@@ -2681,11 +2681,11 @@ void write_afni_data
 
   /*----- write afni data set -----*/
   if (func_type == FUNC_THR_TYPE)               /* threshold */
-    printf("----- Writing `fith' dataset ");
+    printf("++ Writing `fith' dataset ");
   else if (func_type == FUNC_TT_TYPE)           /* t-statistic */
-    printf("----- Writing `fitt' dataset ");
+    printf("++ Writing `fitt' dataset ");
   else if (func_type == FUNC_FT_TYPE)           /* F-statistic */
-    printf("----- Writing `fift' dataset ");
+    printf("++ Writing `fift' dataset ");
 
   printf("into %s\n", DSET_BRIKNAME(new_dset) ) ;
   
@@ -2697,6 +2697,10 @@ void write_afni_data
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
   fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+
+  { int ii = THD_create_all_fdrcurves( new_dset ) ;
+    if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;
+  }
   
   THD_load_statistics( new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
@@ -2876,10 +2880,15 @@ void write_bucket_data
 
 
   /*----- write bucket data set -----*/
+
+  INFO_message("Writing bucket dataset: %s", DSET_BRIKNAME(new_dset)) ;
+
+  { int ii = THD_create_all_fdrcurves( new_dset ) ;
+    if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;
+  }
+
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
-  fprintf(stderr,"----- Wrote bucket dataset ");
-  fprintf(stderr,"into %s\n", DSET_BRIKNAME(new_dset));
 
   
   /*----- deallocate memory -----*/   

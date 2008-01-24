@@ -1310,7 +1310,7 @@ void analyze_results
   This routine was copied from: mri_stats.c
 */
 
-
+#if 0
 double fstat_t2p( double ff , double dofnum , double dofden )
 {
    int which , status ;
@@ -1328,6 +1328,7 @@ double fstat_t2p( double ff , double dofnum , double dofden )
    if( status == 0 ) return q ;
    else              return 1.0 ;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*
