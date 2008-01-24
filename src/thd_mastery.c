@@ -20,11 +20,11 @@ static THD_3dim_dataset * THD_open_3dcalc( char * ) ;
 
 THD_3dim_dataset * THD_open_dataset( char *pathname )
 {
-   THD_3dim_dataset *dset ;
-   char dname[THD_MAX_NAME] , * subv ;            /* 8 May 2007 */
-   char *cpt , *bpt ;
+   THD_3dim_dataset *dset=NULL ;
+   char dname[THD_MAX_NAME]={"\0"} , * subv=NULL ;            /* 8 May 2007 */
+   char *cpt=NULL , *bpt=NULL ;
    int  *ivlist=NULL ;
-   int    ii , jj , kk ;
+   int    ii=-1, jj=-1, kk=-1;
    float  bot=1.0 , top=0.0 ;
 
 ENTRY("THD_open_dataset") ;

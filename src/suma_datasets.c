@@ -2144,8 +2144,8 @@ SUMA_DSET * SUMA_MaskedCopyofDset(  SUMA_DSET *odset,
                                     int masked_only, int keep_node_index)
 {
    static char FuncName[]={"SUMA_MaskedCopyofDset"};
-   int n_incopy = -1, i;
-   char *new_name=NULL, idcode[SUMA_IDCODE_LENGTH], *lblcp=NULL;
+   int n_incopy = -1, i=-1;
+   char *new_name=NULL, idcode[SUMA_IDCODE_LENGTH]={"\0"}, *lblcp=NULL;
    SUMA_DSET *ndset=NULL;
    NI_rowtype *rt=NULL, *rti=NULL;
    SUMA_COL_TYPE ctp = SUMA_ERROR_COL_TYPE;

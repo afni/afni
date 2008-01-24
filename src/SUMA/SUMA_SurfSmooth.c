@@ -1971,8 +1971,8 @@ int main (int argc,char *argv[])
                      if (Opt->debug) SUMA_S_Notev(
                         "Using blurmaster sub-bricks [%d..%d(%d)]\n",
                               ibot, ibot+(ntouse-1)*idel, idel);
-                     colmask = (byte *)SUMA_malloc(
-                                 SDSET_VECNUM(master_dset)*sizeof(byte));
+                     colmask = (byte *)SUMA_calloc(
+                                 SDSET_VECNUM(master_dset),sizeof(byte));
                      cnt = 0;
                      for ( ibm=ibot ; ibm < SDSET_VECNUM(master_dset) && 
                            cnt < ntouse  ; ibm+=idel ) {
