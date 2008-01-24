@@ -147,6 +147,7 @@ ENTRY("AFNI_set_threshold") ;
 
    XmScaleSetValue( im3d->vwid->func->thr_scale , ival ) ;
    AFNI_thr_scale_CB( im3d->vwid->func->thr_scale, (XtPointer)im3d, NULL ) ;
+   FIX_SCALE_SIZE(im3d) ;
    AFNI_thresh_lock_carryout(im3d) ;
    EXRETURN ;
 }
@@ -291,6 +292,7 @@ ENTRY("AFNI_thresh_top_CB") ;
    if( IM3D_OPEN(im3d) && im3d->vinfo->func_thresh_top != tval[av->ival] ){
 
      AFNI_set_thresh_top( im3d , tval[av->ival] ) ;
+     FIX_SCALE_SIZE(im3d) ;
 
      if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
 
@@ -374,11 +376,8 @@ if(PRINT_TRACING)
        }
      }
    }
-#if 0
+
    MCW_set_widget_label( im3d->vwid->func->thr_pval_label , buf ) ;
-#else
-   MCW_set_widget_label_tagged( im3d->vwid->func->thr_pval_label , buf , "charset2" ) ;
-#endif
    FIX_SCALE_SIZE(im3d) ;
    EXRETURN ;
 }
@@ -1986,6 +1985,7 @@ STATUS("defaulted anatomy underlay") ;
    AFNI_process_alteration(im3d) ;
 
    HINTIZE_pbar(im3d) ; /* 15 Aug 2001 */
+   FIX_SCALE_SIZE(im3d) ;
 
    EXRETURN ;
 }
@@ -2557,7 +2557,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
      fprintf(stderr,"** Forced switch from '%s' to '%s' **\n",
              VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
-     for( ii=0 ; ii < 8 ; ii++ ){
+     for( ii=0 ; ii < 7 ; ii++ ){
        MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
        MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
        MCW_invert_widget(wcall) ;
@@ -2580,6 +2580,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    SHOW_AFNI_PAUSE ;
    AFNI_initialize_view( im3d->anat_now , im3d ) ;
    SHOW_AFNI_READY ;
+   FIX_SCALE_SIZE(im3d) ;
 
    if( old_view != new_view ){            /* ending flash */
      XBell( im3d->dc->display , 100 ) ;
@@ -3889,6 +3890,7 @@ ENTRY("AFNI_modify_viewing") ;
    ENABLE_LOCK ;
 
    SAVE_VPT(im3d) ;
+   FIX_SCALE_SIZE(im3d) ;
    EXRETURN ;
 }
 
@@ -5094,6 +5096,7 @@ ENTRY("AFNI_bucket_CB") ;
      if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
    }
 
+   FIX_SCALE_SIZE(im3d) ;
    EXRETURN ;
 }
 

@@ -2717,8 +2717,8 @@ STATUS("making func->rowcol") ;
    func->thr_pval_label =
       XtVaCreateManagedWidget(
          "font8" , xmLabelWidgetClass , func->thr_rowcol ,
-            LABEL_ARG( THR_PVAL_LABEL_NONE ) ,
-            XmNrecomputeSize , True  ,
+            LABEL_ARG( "p=N/A   \nq=N/A   " ) ,
+            XmNrecomputeSize , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
