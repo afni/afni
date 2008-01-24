@@ -6546,5 +6546,6 @@
  * Generate FDR curves automatically in 3dDeconvolve.
 
 24 Jan 2008
- * Add FDR curve generation to 3dANOVA.lib, 3dNLfim, 3dRegana.
- * Fix little problems with AFNI display as q-value alters.
+ * Add FDR curve generation to 3dANOVA.lib, 3dNLfim, 3dRegana, 3dttest.
+ * Fix little problems with AFNI threshold scale display as q-value alters.
+ * Fix bug in thd_mastery.c in assiging FDR curves to mastered sub-bricks.
