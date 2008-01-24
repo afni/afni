@@ -2207,6 +2207,8 @@ int main( int argc , char *argv[] )
    if( CALC_verbose ) INFO_message("Computing output statistics\n") ;
    THD_load_statistics( new_dset ) ;
 
+   DSET_BRICK_FDRCURVE_ALLKILL(new_dset) ;  /* 24 Jan 2008 */
+
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
    if( CALC_verbose ) WROTE_DSET(new_dset) ;
 
