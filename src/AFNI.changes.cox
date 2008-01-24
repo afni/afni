@@ -6544,3 +6544,7 @@
  * FDR thresh-vs-z(q) curve generation and storage in datasets.
  * Display FDR q in AFNI pval label.
  * Generate FDR curves automatically in 3dDeconvolve.
+
+24 Jan 2008
+ * Add FDR curve generation to 3dANOVA.lib, 3dNLfim, 3dRegana.
+ * Fix little problems with AFNI display as q-value alters.

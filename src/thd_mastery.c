@@ -286,7 +286,7 @@ ENTRY("THD_setup_mastery") ;
      floatvec *fv , *nv ;
      dblk->brick_fdrcurve = (floatvec **)calloc(sizeof(floatvec *),new_nvals) ;
      for( ibr=0 ; ibr < new_nvals ; ibr++ ){
-       fv = old_brick_fdrcurve[ibr] ;
+       fv = old_brick_fdrcurve[ivl[ibr]] ;
        if( fv == NULL ){ nv = NULL; } else { COPY_floatvec(nv,fv); }
        dblk->brick_fdrcurve[ibr] = nv ;
      }
@@ -317,6 +317,12 @@ ENTRY("THD_setup_mastery") ;
    if( old_brick_stataux  != NULL ){
       for( ibr=0 ; ibr < old_nvals ; ibr++ ) myXtFree( old_brick_stataux[ibr] ) ;
       myXtFree( old_brick_stataux ) ;
+   }
+
+   if( old_brick_fdrcurve != NULL ){               /* 24 Jan 2008 */
+     for( ibr=0 ; ibr < old_nvals ; ibr++ )
+       KILL_floatvec( old_brick_fdrcurve[ibr] ) ;
+     free(old_brick_fdrcurve) ;
    }
 
    /** if dataset has statistics, rearrange them **/
