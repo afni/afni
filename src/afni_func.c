@@ -190,6 +190,8 @@ ENTRY("AFNI_thr_scale_CB") ;
      sprintf( pstr , "Nominal p=%.4e" , im3d->vinfo->func_pval ) ;
      if( im3d->vinfo->func_qval >= 0.0 && im3d->vinfo->func_qval <= 1.0 )
        sprintf(pstr+strlen(pstr),"; FDR q=%.4e",im3d->vinfo->func_qval) ;
+     else
+       sprintf(pstr+strlen(pstr),"; FDR q=N/A") ;
      MCW_register_hint( im3d->vwid->func->thr_pval_label , pstr ) ;
    } else {
      MCW_register_hint( im3d->vwid->func->thr_pval_label ,
@@ -339,22 +341,22 @@ if(PRINT_TRACING)
      strcpy( buf , THR_PVAL_LABEL_NONE ) ;
    } else {
      if( pval == 0.0 ){
-       strcpy( buf , " p = 0 " ) ;
+       strcpy( buf , "p=0" ) ;
      } else if( pval >= 0.9999 ){
-       strcpy( buf , " p = 1 " ) ;
+       strcpy( buf , "p=1" ) ;
      } else if( pval >= 0.0010 ){
        char qbuf[16] ;
        sprintf( qbuf , "%5.4f" , pval ) ;
-       strcpy(buf,"p=") ; strcat( buf , qbuf+1 ) ;
+       strcpy(buf,"p=") ; strcat( buf , qbuf+1 ) ; /* qbuf+1 skips leading 0 */
      } else {
        int dec = (int)(0.999 - log10(pval)) ;
        zval = pval * pow( 10.0 , (double) dec ) ;  /* between 1 and 10 */
        if( dec < 10 ) sprintf( buf , "p=%3.1f-%1d" ,           zval , dec ) ;
        else           sprintf( buf , "p=%1d.-%2d"  , (int)rint(zval), dec ) ;
      }
+     if( im3d->vedset.code > 0 && im3d->fim_now->dblk->vedim != NULL )
+       strcat(buf,"*") ;  /* mark that are in clustering mode [05 Sep 2006] */
    }
-   if( im3d->vedset.code > 0 && im3d->fim_now->dblk->vedim != NULL ) /* 05 Sep 2006 */
-     strcat(buf,"*") ;
 
    /* 23 Jan 2007: q-value from FDR curve? */
 
@@ -369,11 +371,13 @@ if(PRINT_TRACING)
          else {
            int dec = (int)(0.999 - log10(qval)) ;
            zval = qval * pow( 10.0 , (double)dec ) ;  /* between 1 and 10 */
-           if( dec < 10 ) sprintf( qbuf , " %3.1f-%1d" ,           zval , dec );
-           else           sprintf( qbuf , " %1d.-%2d"  , (int)rint(zval), dec );
+           if( dec < 10 ) sprintf( qbuf, " %3.1f-%1d",            zval, dec );
+           else           sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec );
          }
          strcat(buf,"\nq=") ; strcat(buf,qbuf+1) ;
        }
+     } else {
+       strcat(buf,"\nq=N/A") ;
      }
    }
 
