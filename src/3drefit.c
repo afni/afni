@@ -272,6 +272,16 @@ void Syntax(char *str)
               FUNC_prefixstr[ii] , FUNC_typestr[ii]+6 , FUNC_label_stat_aux[ii] ) ;
    }
    printf(
+     "\n"
+     "You can also use option '-killSTAT' to remove all statistical encodings\n"
+     "from sub-bricks in the dataset.  This operation would be desirable if\n"
+     "you modified the values in the dataset (e.g., via 3dcalc).\n"
+     " ['-killSTAT' is done BEFORE the '-substatpar' operations, so you can]\n"
+     " [combine these options to completely re-do the sub-bricks, if needed]\n"
+     " [Option '-killSTAT' also implies that '-killFDR' will be carried out]\n"
+   ) ;
+
+   printf(
     "\n"
     "The following options allow you to modify VOLREG fields:\n"
     "  -vr_mat val1 ... val12  Use these twelve values for VOLREG_MATVEC_index.\n"
@@ -341,6 +351,7 @@ int main( int argc , char * argv[] )
    float xyzscale     = 0.0f ;       /* 17 Jul 2006 */
    int deoblique  = 0;               /* 20 Jun 2007 [drg] */
    int do_FDR = 0 ;                  /* 23 Jan 2008 [RWCox] */
+   int do_killSTAT = 0 ;             /* 24 Jan 2008 [RWCox] */
    int   ndone=0 ;                   /* 18 Jul 2006 */
    int   verb =0 ;
 #define VINFO(x) if(verb)ININFO_message(x)
@@ -394,11 +405,14 @@ int main( int argc , char * argv[] )
 
       /*----- -addFDR [23 Jan 2008] -----*/
 
-      if( strcmp(argv[iarg],"-addFDR") == 0 ){
+      if( strcasecmp(argv[iarg],"-addFDR") == 0 ){
         do_FDR = 1 ;  new_stuff++ ; iarg++ ; continue ;
       }
-      if( strcmp(argv[iarg],"-killFDR") == 0 ){
+      if( strcasecmp(argv[iarg],"-killFDR") == 0 ){
         do_FDR = -1 ;  new_stuff++ ; iarg++ ; continue ;
+      }
+      if( strcasecmp(argv[iarg],"-killSTAT") == 0 ){
+        do_killSTAT = 1 ; do_FDR = -1 ; new_stuff++ ; iarg++ ; continue ;
       }
 
       /*----- -atrcopy dd nn [03 Aug 2005] -----*/
@@ -1565,6 +1579,12 @@ int main( int argc , char * argv[] )
         case 1: EDIT_dset_items(dset, ADN_keywords_append , key , ADN_none); break;
         case 2: EDIT_dset_items(dset, ADN_keywords_replace, key , ADN_none); break;
         case 3: EDIT_dset_items(dset, ADN_keywords_replace, NULL, ADN_none); break;
+      }
+
+      if( do_killSTAT ){   /* 24 Jan 2008 */
+        for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
+          EDIT_BRICK_TO_NOSTAT(dset,iv) ;
+        }
       }
 
       if( nsubstatpar > 0 ){
