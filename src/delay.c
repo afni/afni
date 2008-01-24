@@ -47,18 +47,33 @@ int init_indep_var_matrix
 
 {
   const int BIG_NUMBER = 33333;
-  int i;                    /* time index */
-  int m;                    /* X matrix column index */
-  int n;                    /* X matrix row index */
-  int is;                   /* input ideal index */
+  int i=-1;                    /* time index */
+  int m=-1;                    /* X matrix column index */
+  int n=-1;                    /* X matrix row index */
+  int is=-1;                   /* input ideal index */
   float * far = NULL;
-  int nx, ny, iq, nq;
-  int Ngood;
+  int nx=-1, ny=-1, iq=-1, nq=-1;
+  int Ngood=-1;
+  int maxcols=-1;
   matrix xgood;
 
-
+   if (num_ort_files) {
+      fprintf(stderr,"Not ready to deal with ort files at all!\n");
+      exit(1);
+   }
   /*----- Initialize X matrix -----*/
-  matrix_create (N, p, x);
+  maxcols = 0;
+  for (is = 0;  is < num_ort_files;  is++) {/* add orts */
+      if (ort_list[is] == NULL) maxcols += ort_array[is]->ny; 
+      else maxcols += ort_list[is][0]+1;
+  } 
+  for (is = 0;  is < num_ideal_files;  is++) {/* add ideals */
+      if (ideal_list[is] == NULL) maxcols += ideal_array[is]->ny;
+      else maxcols += ideal_list[is][0]+1;
+  }
+  maxcols = maxcols + polort + 1;  /* add polorts */
+  /* fprintf(stderr,"N=%d,p=%d, polort=%d, maxcols = %d\n", N, p, polort, maxcols); */
+  matrix_create (N+NFirst, maxcols, x);
   matrix_initialize (&xgood);
 
 
@@ -69,7 +84,6 @@ int init_indep_var_matrix
 	i = n + NFirst;
 	(*x).elts[n][m] = pow ((double)i, (double)m);
       }
-
 
   /*----- Set up columns of X matrix corresponding to ort time series -----*/
   for (is = 0;  is < num_ort_files;  is++)
