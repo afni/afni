@@ -359,9 +359,11 @@ void read_options ( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-float") == 0 ){
         FDR_float = 1 ; nopt++ ; continue ;
       }
+#if 0
       if( strcmp(argv[nopt],"-curve") == 0 ){  /* hidden option */
         FDR_curve = 1 ; nopt++ ; continue ;
       }
+#endif
 
       /*----- -cind -----*/
       if( strcmp(argv[nopt],"-cind") == 0 ){

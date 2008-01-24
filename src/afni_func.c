@@ -187,9 +187,9 @@ ENTRY("AFNI_thr_scale_CB") ;
 
    if( im3d->vinfo->func_pval >= 0.0 && im3d->vinfo->func_pval <= 1.0 ){
      char pstr[64] ;
-     sprintf( pstr , "nominal p=%.4e" , im3d->vinfo->func_pval ) ;
+     sprintf( pstr , "Nominal p=%.4e" , im3d->vinfo->func_pval ) ;
      if( im3d->vinfo->func_qval >= 0.0 && im3d->vinfo->func_qval <= 1.0 )
-       sprintf(pstr+strlen(pstr)," FDR q=%.4e",im3d->vinfo->func_qval) ;
+       sprintf(pstr+strlen(pstr),"; FDR q=%.4e",im3d->vinfo->func_qval) ;
      MCW_register_hint( im3d->vwid->func->thr_pval_label , pstr ) ;
    } else {
      MCW_register_hint( im3d->vwid->func->thr_pval_label ,

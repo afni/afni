@@ -2730,7 +2730,12 @@ STATUS("making func->rowcol") ;
          "   '[N/A]' instead.\n"
          "* p's that display as 1.2-7 should\n"
          "   be interpreted as 1.2 x 10^(-7).\n"
-         "* This is the significance PER VOXEL." ) ;
+         "* This is the significance PER VOXEL.\n"
+         "* If FDR curves are pre-computed in\n"
+         "   the dataset header, then the False\n"
+         "   Discovery Rate q-value will also\n"
+         "   be shown."
+   ) ;
    MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel" ) ;
 
 #if 0
