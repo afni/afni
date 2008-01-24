@@ -393,8 +393,11 @@ void initialize_options
 )
  
 {
-  int is;                     /* index */
+  int is=-1;                     /* index */
 
+
+
+   byte *bmask;
 
   /*----- Initialize default values -----*/
   option_data->fs = 0;
@@ -405,9 +408,15 @@ void initialize_options
   option_data->Navg = 1;
   option_data->Nfit = 2;
   option_data->Nseg = 1;
+  option_data->ignore = 0;
   option_data->Pover = 0;
+  option_data->ln = 0;
   option_data->biasrem = 1;
   option_data->Dsamp = 1;
+  option_data->errcode = 0;
+  option_data->out = 0;
+  option_data->outts = 0;
+  option_data->rvec = NULL;
   option_data->outwrite = NULL;
   option_data->outwritets = NULL;
   option_data->outlogfile = NULL;
@@ -416,8 +425,6 @@ void initialize_options
   option_data->nzz = 20;
   option_data->NFirst = 0;
   option_data->NLast  = 32767;
-  option_data->out = 0;
-  option_data->outts = 0;
   option_data->polort = -1;
 
 	/* Left over from 3dfim+.c remove inthe future, with care !*/
@@ -432,13 +439,16 @@ void initialize_options
   option_data->num_ideal_files = 0;
 
 
-
+  for (is=0; is<NBUCKETS; ++is) option_data->output_type[is] = -1;
+  
   /*----- Initialize file names -----*/
   option_data->input_filename = NULL;
   option_data->mask_filename = NULL;  
   option_data->input1D_filename = NULL;
   option_data->bucket_filename = NULL;
   option_data->outname = NULL;  
+  option_data->outnamets = NULL;  
+  option_data->outnamelog = NULL;  
   option_data->bmask = NULL;
   
   for (is = 0;  is < MAX_FILES;  is++)
@@ -1455,61 +1465,64 @@ void calculate_results
   float * ts_array = NULL;    /* array of measured data for one voxel */
   float mask_val[1];          /* value of mask at current voxel */
 
-  int q;                      /* number of parameters in the baseline model */
-  int p;                      /* number of parameters in the baseline model 
+  int q=-1;                      /* number of parameters in the baseline model */
+  int p=-1;                      /* number of parameters in the baseline model 
 			         plus number of ideals */
-  int m;                      /* parameter index */
-  int n;                      /* data point index */
+  int m=-1;                      /* parameter index */
+  int n=-1;                      /* data point index */
 
 
-  matrix xdata;               /* independent variable matrix */
-  matrix x_base;              /* extracted X matrix    for baseline model */
-  matrix xtxinvxt_base;       /* matrix:  (1/(X'X))X'  for baseline model */
-  matrix x_ideal[MAX_FILES];  /* extracted X matrices  for ideal models */
-  matrix xtxinvxt_ideal[MAX_FILES];     
+   matrix xdata;               /* independent variable matrix */
+   matrix x_base;              /* extracted X matrix    for baseline model */
+   matrix xtxinvxt_base;       /* matrix:  (1/(X'X))X'  for baseline model */
+   matrix x_ideal[MAX_FILES];  /* extracted X matrices  for ideal models */
+   matrix xtxinvxt_ideal[MAX_FILES];     
                               /* matrix:  (1/(X'X))X'  for ideal models */
-  vector y;                   /* vector of measured data */       
+   vector y;                   /* vector of measured data */       
 
-  int ixyz;                   /* voxel index */
-  int nxyz;                   /* number of voxels per dataset */
+   int ixyz=-1;                   /* voxel index */
+   int nxyz=-1;                   /* number of voxels per dataset */
 
-  int nt;                  /* number of images in input 3d+time dataset */
-  int NFirst;              /* first image from input 3d+time dataset to use */
-  int NLast;               /* last image from input 3d+time dataset to use */
-  int N;                   /* number of usable data points */
+   int nt=-1;                  /* number of images in input 3d+time dataset */
+   int NFirst=-1;              /* first image from input 3d+time dataset to use */
+   int NLast=-1;               /* last image from input 3d+time dataset to use */
+   int N=-1;                   /* number of usable data points */  
 
-  int num_ort_files;       /* number of ort time series files */
-  int num_ideal_files;     /* number of ideal time series files */
-  int polort;              /* degree of polynomial ort */
-  int num_ortts;           /* number of ort time series */
-  int num_idealts;         /* number of ideal time series */
+   int num_ort_files=-1;       /* number of ort time series files */
+   int num_ideal_files=-1;     /* number of ideal time series files */
+   int polort=-1;              /* degree of polynomial ort */
+   int num_ortts=-1;           /* number of ort time series */
+   int num_idealts=-1;         /* number of ideal time series */
   
-  int i;                   /* data point index */
-  int is;                  /* ideal index */
-  int ilag;                /* time lag index */
-  float stddev;            /* normalized parameter standard deviation */
-  char * label;            /* string containing stat. summary of results */
-	int xpos, ypos, zpos; 
-   double tzero , tdelta , ts_mean , ts_slope;
-   int   ii ,  iz,izold, nxy , nuse, use_fac, kk;
-  float * x_bot = NULL;    /* minimum of stimulus time series */
-  float * x_ave = NULL;    /* average of stimulus time series */
-  float * x_top = NULL;    /* maximum of stimulus time series */
-  int * good_list = NULL;  /* list of good (usable) time points */ 
-  float ** rarray = NULL;  /* ranked arrays of ideal time series */
-  float FimParams[NBUCKETS];  /* output delay parameters */
-
+   int i=-1;                   /* data point index */
+   int is=-1;                  /* ideal index */
+   int ilag=-1;                /* time lag index */
+   float stddev=-1.0;            /* normalized parameter standard deviation */
+   char * label=NULL;            /* string containing stat. summary of results */
+   int xpos=-1, ypos=-1, zpos=-1; 
+   double tzero=0.0 , tdelta=0.0 , ts_mean=0.0 , ts_slope=0.0;
+   int   ii=-1,  iz=-1,izold=-1, nxy=-1, nuse=-1, use_fac=-1, kk=-1;
+   float * x_bot = NULL;    /* minimum of stimulus time series */
+   float * x_ave = NULL;    /* average of stimulus time series */
+   float * x_top = NULL;    /* maximum of stimulus time series */
+   int * good_list = NULL;  /* list of good (usable) time points */ 
+   float ** rarray = NULL;  /* ranked arrays of ideal time series */
+   float FimParams[NBUCKETS];  /* output delay parameters */
    float *  dtr  = NULL ;  /* will be array of detrending coeff */
    float *  fac  = NULL ;  /* array of input brick scaling factors */
-	float * vox_vect; 			/* voxel time series */
-	float *ref_ts; /*reference time series */
-	float slp, delu, del,  xcor, xcorCoef,vts, vrvec, dtx, d0fac , d1fac , x0,x1;
-	int  actv, opt, iposdbg;
+   float * vox_vect = NULL; 			/* voxel time series */
+   float *ref_ts=NULL; /*reference time series */
+   float slp=0.0, delu=0.0, del=0.0,  xcor=0.0, xcorCoef=0.0,vts=0.0,
+          vrvec=0.0, dtx=0.0, d0fac=0.0 , d1fac=0.0 , x0=0.0,x1=0.0;
+   int  actv=-1, opt=-1, iposdbg=-1;
 	
-	#ifdef ZDBG
+   for (i=0;i<NBUCKETS;++i) FimParams[i]=-1.0;
+	
+   #ifdef ZDBG
 		xyzTOindex (option_data, &iposdbg, IPOSx,  IPOSy , IPOSz);
 		printf ("Debug for %d: %d, %d, %d\n\n", iposdbg, IPOSx,  IPOSy , IPOSz);
 	#endif
+   
 
   /*----- Initialize matrices and vectors -----*/
   matrix_initialize (&xdata);
@@ -2032,7 +2045,7 @@ void write_bucket_data
       exit(1);
     }
   
-  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+  if (!THD_ok_overwrite() && THD_is_file(DSET_HEADNAME(new_dset))) 
     {
       fprintf(stderr,
 	      "*** Output dataset file %s already exists--cannot continue!\n",

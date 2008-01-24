@@ -140,37 +140,37 @@ SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec)
       SUMA_S_Err("Suspicious values in Spec->N_Surfs, will not free fields");
       SUMA_RETURN(NOPE);
    }
-   if (!Spec->SurfaceType) { SUMA_free2D((char **)Spec->SurfaceType, SUMA_MAX_N_SURFACE_SPEC); Spec->SurfaceType = NULL; }
-   if (!Spec->SurfaceFormat) { SUMA_free2D((char **)Spec->SurfaceFormat, SUMA_MAX_N_SURFACE_SPEC); Spec->SurfaceFormat = NULL; }
-   if (!Spec->TopoFile) { SUMA_free2D((char **)Spec->TopoFile, SUMA_MAX_N_SURFACE_SPEC); Spec->TopoFile = NULL; }
-   if (!Spec->CoordFile) { SUMA_free2D((char **)Spec->CoordFile, SUMA_MAX_N_SURFACE_SPEC); Spec->CoordFile = NULL; }
-   if (!Spec->MappingRef) { SUMA_free2D((char **)Spec->MappingRef, SUMA_MAX_N_SURFACE_SPEC); Spec->MappingRef = NULL; }
-   if (!Spec->SureFitVolParam) { SUMA_free2D((char **)Spec->SureFitVolParam, SUMA_MAX_N_SURFACE_SPEC); Spec->SureFitVolParam = NULL; }
+   if (Spec->SurfaceType) { SUMA_free2D((char **)Spec->SurfaceType, SUMA_MAX_N_SURFACE_SPEC); Spec->SurfaceType = NULL; }
+   if (Spec->SurfaceFormat) { SUMA_free2D((char **)Spec->SurfaceFormat, SUMA_MAX_N_SURFACE_SPEC); Spec->SurfaceFormat = NULL; }
+   if (Spec->TopoFile) { SUMA_free2D((char **)Spec->TopoFile, SUMA_MAX_N_SURFACE_SPEC); Spec->TopoFile = NULL; }
+   if (Spec->CoordFile) { SUMA_free2D((char **)Spec->CoordFile, SUMA_MAX_N_SURFACE_SPEC); Spec->CoordFile = NULL; }
+   if (Spec->MappingRef) { SUMA_free2D((char **)Spec->MappingRef, SUMA_MAX_N_SURFACE_SPEC); Spec->MappingRef = NULL; }
+   if (Spec->SureFitVolParam) { SUMA_free2D((char **)Spec->SureFitVolParam, SUMA_MAX_N_SURFACE_SPEC); Spec->SureFitVolParam = NULL; }
 
-   if (!Spec->SurfaceFile) { SUMA_free2D((char **)Spec->SurfaceFile, SUMA_MAX_N_SURFACE_SPEC); Spec->SurfaceFile = NULL; }
+   if (Spec->SurfaceFile) { SUMA_free2D((char **)Spec->SurfaceFile, SUMA_MAX_N_SURFACE_SPEC); Spec->SurfaceFile = NULL; }
    
-   if (!Spec->VolParName) { SUMA_free2D((char **)Spec->VolParName, SUMA_MAX_N_SURFACE_SPEC); Spec->VolParName = NULL; }
-   if (!Spec->IDcode) { SUMA_free(Spec->IDcode); Spec->IDcode = NULL; }
-   if (!Spec->State) { SUMA_free2D((char **)Spec->State, SUMA_MAX_N_SURFACE_SPEC); Spec->State = NULL; }
+   if (Spec->VolParName) { SUMA_free2D((char **)Spec->VolParName, SUMA_MAX_N_SURFACE_SPEC); Spec->VolParName = NULL; }
+   if (Spec->IDcode) { SUMA_free(Spec->IDcode); Spec->IDcode = NULL; /* IDcode[i] = is a pointer copy */}
+   if (Spec->State) { SUMA_free2D((char **)Spec->State, SUMA_MAX_N_SURFACE_SPEC); Spec->State = NULL; }
 
-   if (!Spec->Group) { SUMA_free2D((char **)Spec->Group, SUMA_MAX_N_SURFACE_SPEC); Spec->Group= NULL; }
+   if (Spec->Group) { SUMA_free2D((char **)Spec->Group, SUMA_MAX_N_SURFACE_SPEC); Spec->Group= NULL; }
 
-   if (!Spec->SurfaceLabel) { SUMA_free2D((char **)Spec->SurfaceLabel, SUMA_MAX_N_SURFACE_SPEC); Spec->SurfaceLabel = NULL; }
+   if (Spec->SurfaceLabel) { SUMA_free2D((char **)Spec->SurfaceLabel, SUMA_MAX_N_SURFACE_SPEC); Spec->SurfaceLabel = NULL; }
 
-   if (!Spec->EmbedDim) { SUMA_free(Spec->EmbedDim); Spec->EmbedDim = NULL; }
+   if (Spec->EmbedDim) { SUMA_free(Spec->EmbedDim); Spec->EmbedDim = NULL; }
    
    /* modifications to the lame MappingRef field */
-   if (!Spec->AnatCorrect) { SUMA_free2D((char **)Spec->AnatCorrect, SUMA_MAX_N_SURFACE_SPEC); Spec->AnatCorrect = NULL; }
+   if (Spec->AnatCorrect) { SUMA_free2D((char **)Spec->AnatCorrect, SUMA_MAX_N_SURFACE_SPEC); Spec->AnatCorrect = NULL; }
 
-   if (!Spec->Hemisphere) { SUMA_free2D((char **)Spec->Hemisphere, SUMA_MAX_N_SURFACE_SPEC); Spec->Hemisphere = NULL; }
+   if (Spec->Hemisphere) { SUMA_free2D((char **)Spec->Hemisphere, SUMA_MAX_N_SURFACE_SPEC); Spec->Hemisphere = NULL; }
 
-   if (!Spec->DomainGrandParentID) { SUMA_free2D((char **)Spec->DomainGrandParentID, SUMA_MAX_N_SURFACE_SPEC); Spec->DomainGrandParentID = NULL; }
+   if (Spec->DomainGrandParentID) { SUMA_free2D((char **)Spec->DomainGrandParentID, SUMA_MAX_N_SURFACE_SPEC); Spec->DomainGrandParentID = NULL; }
 
-   if (!Spec->OriginatorID) { SUMA_free2D((char **)Spec->OriginatorID, SUMA_MAX_N_SURFACE_SPEC); Spec->OriginatorID = NULL; }
+   if (Spec->OriginatorID) { SUMA_free2D((char **)Spec->OriginatorID, SUMA_MAX_N_SURFACE_SPEC); Spec->OriginatorID = NULL; }
 
-   if (!Spec->LocalCurvatureParent) { SUMA_free2D((char **)Spec->LocalCurvatureParent, SUMA_MAX_N_SURFACE_SPEC); Spec->LocalCurvatureParent = NULL; }
+   if (Spec->LocalCurvatureParent) { SUMA_free2D((char **)Spec->LocalCurvatureParent, SUMA_MAX_N_SURFACE_SPEC); Spec->LocalCurvatureParent = NULL; }
 
-   if (!Spec->LocalDomainParent) { SUMA_free2D((char **)Spec->LocalDomainParent, SUMA_MAX_N_SURFACE_SPEC); Spec->LocalDomainParent = NULL; }
+   if (Spec->LocalDomainParent) { SUMA_free2D((char **)Spec->LocalDomainParent, SUMA_MAX_N_SURFACE_SPEC); Spec->LocalDomainParent = NULL; }
    
 
    Spec->N_Surfs = -2; /* flag for freeing */                                                         
@@ -178,9 +178,9 @@ SUMA_Boolean SUMA_FreeSpecFields (SUMA_SurfSpecFile *Spec)
    Spec->N_Groups = 0;
    
    
-   if (!Spec->StateList) { SUMA_free(Spec->StateList); Spec->StateList = NULL; }
-   if (!Spec->SpecFilePath) { SUMA_free(Spec->SpecFilePath); Spec->SpecFilePath = NULL; }
-   if (!Spec->SpecFileName) { SUMA_free(Spec->SpecFileName); Spec->SpecFileName = NULL; }
+   if (Spec->StateList) { SUMA_free(Spec->StateList); Spec->StateList = NULL; }
+   if (Spec->SpecFilePath) { SUMA_free(Spec->SpecFilePath); Spec->SpecFilePath = NULL; }
+   if (Spec->SpecFileName) { SUMA_free(Spec->SpecFileName); Spec->SpecFileName = NULL; }
       
    SUMA_RETURN(YUP);
 }
@@ -835,9 +835,11 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
          /* Allocate for FS */
-         FS = (SUMA_FreeSurfer_struct *) SUMA_malloc(sizeof(SUMA_FreeSurfer_struct));   
+         FS = (SUMA_FreeSurfer_struct *)
+                  SUMA_malloc(sizeof(SUMA_FreeSurfer_struct));   
          if (FS == NULL) {
-            fprintf(SUMA_STDERR,"Error %s: Failed to allocate for FS\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Error %s: Failed to allocate for FS\n", FuncName);
             SUMA_RETURN (NULL);
          }
          /* add a couple of lines to appease the optimation gods...         */
@@ -851,7 +853,9 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          /*read the surface file */
          if (SO->FileFormat == SUMA_ASCII) {
             if (!SUMA_FreeSurfer_Read_eng((char*)SO_FileName_vp, FS, debug)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FreeSurfer_Read.\n", FuncName);
+               fprintf( SUMA_STDERR,
+                        "Error %s: Failed in SUMA_FreeSurfer_Read.\n",
+                        FuncName);
                SUMA_RETURN (NULL);
             }
          } else if (SO->FileFormat == SUMA_BINARY_BE) {
