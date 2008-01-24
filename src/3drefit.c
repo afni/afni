@@ -1592,7 +1592,7 @@ int main( int argc , char * argv[] )
         DSET_BRICK_FDRCURVE_ALLKILL(dset) ;
         if( do_FDR > 0 ){
           int nf = THD_create_all_fdrcurves(dset) ;
-          if( verb ) ININFO_message("created %d FDR curves in dataset header",nf) ;
+          ININFO_message("created %d FDR curves in dataset header",nf) ;
         }
       }
 
