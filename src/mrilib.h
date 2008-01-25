@@ -932,6 +932,8 @@ extern void isort_short( int , short * ) ;
 extern void isort_float( int , float * ) ;
 extern void isort_pair ( int , float * , int * ) ;
 
+extern void mri_xsort_inplace( MRI_IMAGE *im , int rev ) ;
+
 extern MRI_IMAGE * mri_nsize( MRI_IMAGE * ) ;
 
 extern float * mri_lsqfit( MRI_IMAGE * fitim , MRI_IMARR * refim , MRI_IMAGE * ) ;
