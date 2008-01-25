@@ -11,10 +11,10 @@ This program is revised for 3D+time data calculation,
 Added ability to use a 1D time series file as a "dataset" -- see TS variables.
   [RW Cox, April 1998]
 
-Added ability to operate on 3D bucket datasets -- see ALLOW_BUCKETS macro.
+Added ability to operate on 3D bucket datasets.
   [RW Cox, April 1998]
 
-Added ability to use sub-brick selectors on input datasets -- see ALLOW_SUBV macro.
+Added ability to use sub-brick selectors on input datasets.
   [RW Cox, Jan 1999]
 
 Modified output to scale each sub-brick to shorts/bytes separately
@@ -31,9 +31,6 @@ Added the _dshift stuff.
 Modified help menu
   [P Christidis, July 2005]
 ----------------------------------------------------------------------------*/
-
-#define ALLOW_BUCKETS
-#define ALLOW_SUBV
 
 #include "mrilib.h"
 #include "parser.h"
@@ -57,12 +54,12 @@ static int                CALC_histpar = -1; /* 22 Nov 1999 */
 
 static int                CALC_usetemp = 0 ; /* 18 Oct 2005 */
 
-#undef  ALLOW_FDR
+#undef  ALLOW_FDR  /* this was purely experimental */
 #ifdef  ALLOW_FDR
 static int                CALC_fdrize  = 0 ; /* 17 Jan 2008 */
 #endif
 
-#define ALLOW_SORT
+#define ALLOW_SORT /* this is not experimental, but is pretty useless */
 #ifdef  ALLOW_SORT
 static int                CALC_sort    = 0 ; /* 22 Jan 2008 */
 #endif
@@ -597,16 +594,8 @@ void CALC_read_opts( int argc , char * argv[] )
 
          /*-- meanwhile, back at the "normal" dataset opening ranch --*/
 
-#ifndef ALLOW_SUBV
-         dset = THD_open_one_dataset( argv[nopt++] ) ;
-         if( dset == NULL )
-           ERROR_exit("can't open dataset %s\n",argv[nopt-1]) ;
-         if( isub >= DSET_NVALS(dset) )
-           ERROR_exit("dataset %s only has %d sub-bricks\n",
-                      argv[nopt-1],DSET_NVALS(dset)) ;
-#else
          { char dname[512] ;                               /* 02 Nov 1999 */
-           char * fname = argv[nopt];           /* 8 May 2007 [rickr,dglen] */
+           char *fname = argv[nopt];          /* 8 May 2007 [rickr,dglen] */
 
            if( ids > 2 ){                                  /* mangle name */
               if( strstr(argv[nopt],"[") != NULL ){
@@ -625,15 +614,10 @@ void CALC_read_opts( int argc , char * argv[] )
            if( dset == NULL )
               ERROR_exit("can't open dataset %s\n",fname) ;
          }
-#endif
 
          /* set some parameters based on the dataset */
 
-#ifdef ALLOW_BUCKETS
          ntime[ival] = DSET_NVALS(dset) ;
-#else
-         ntime[ival] = DSET_NUM_TIMES(dset);
-#endif
          if ( ids > 2 ) ntime[ival] = 1 ;
          ntime_max = MAX( ntime_max, ntime[ival] );
 
@@ -816,11 +800,7 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
 
    for (ids=0; ids < 26; ids ++)
       if (ntime[ids] > 1 && ntime[ids] != ntime_max ) {
-#ifdef ALLOW_BUCKETS
           ERROR_exit("Multi-brick datasets don't match!\n") ;
-#else
-          ERROR_exit("3D+time datasets don't match!\n") ;
-#endif
       }
 
    /* 17 Apr 1998: if all input datasets are 3D only (no time),
@@ -1106,13 +1086,8 @@ void CALC_Syntax(void)
     "  -nscale    = Don't do any scaling on output to byte or short datasets.\n"
     "               This may be especially useful when operating on mask     \n"
     "               datasets whose output values are only 0's and 1's.       \n"
-#ifndef ALLOW_SUBV
-    "               ** The type and number of sub-bricks in a dataset can be \n"
-    "                  printed out using the '3dinfo' program.               \n"
-#else
     "               ** Another way to achieve the effect of '-b3' is described\n"
     "                  below in the dataset 'INPUT' specification section.   \n"
-#endif
     "                                                                        \n"
     "  -prefix pname = Use 'pname' for the output dataset prefix name.       \n"
     "                  [default='calc']                                      \n"
@@ -1188,6 +1163,8 @@ void CALC_Syntax(void)
     "  -sort         = Sort each output brick separately, before output:     \n"
     "  -SORT           'sort' ==> increasing order, 'SORT' ==> decreasing.   \n"
     "                  [This is useful only under unusual circumstances!]    \n"
+    "                  [Sorting is done in spatial indexes, not in time.]    \n"
+    "                  [Program 3dTsort will sort voxels along time axis]    \n"
 #endif
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
@@ -1230,15 +1207,12 @@ void CALC_Syntax(void)
     " treated as if the particular brick being used has the same value at each\n"
     " point in time.                                                         \n"
     "                                                                        \n"
-#ifdef ALLOW_BUCKETS
     " Multi-brick 'bucket' datasets may also be used.  Note that if multi-brick\n"
     " (bucket or 3D+time) datasets are used, the lowest letter dataset will  \n"
     " serve as the template for the output; that is, '-b fred+tlrc' takes    \n"
     " precedence over '-c wilma+tlrc'.  (The program 3drefit can be used to  \n"
     " alter the .HEAD parameters of the output dataset, if desired.)         \n"
-#endif
 
-#ifdef ALLOW_SUBV
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
     MASTER_HELP_STRING
@@ -1248,7 +1222,6 @@ void CALC_Syntax(void)
     "            with sub-brick selection of the form                        \n"
     "               -b  'bambam+orig[3]'  (the new method)                   \n"
     "            If you try, the Doom of Mandos will fall upon you!          \n"
-#endif
     "                                                                        \n"
     "------------------------------------------------------------------------\n"
     "1D TIME SERIES:                                                         \n"
@@ -2078,7 +2051,7 @@ int main( int argc , char *argv[] )
           else if( CALC_sort < 0 ) qsort_float_rev( CALC_nvox, buf[ii] ) ;
 #endif
 
-#ifdef ALLOW_FDR
+#ifdef ALLOW_FDR  /* only experimental, not useful -- cf. 3dFDR instead */
           if( CALC_fdrize && DSET_BRICK_STATCODE(new_dset,ii) > 0 ){
             MRI_IMAGE *qim=mri_new_vol_empty(CALC_nvox,1,1,MRI_float) ;
             mri_fix_data_pointer( buf[ii] , qim ) ;
