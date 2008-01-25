@@ -19,7 +19,10 @@ int main( int argc , char *argv[] )
       "            * thus, to sort each ROW, do something like\n"
       "               1dTsort -flip file.1D\\' > sfile.1D\n"
       "\n"
-      "N.B.: At this time, 1dTsort does not take input from stdin.\n"
+      "N.B.: Data will be read from standard input if the filename IS stdin,\n"
+      "      and will also be row/column transposed if the filename is stdin\\'\n"
+      "      For example:\n"
+      "        1deval -num 100 -expr 'uran(1)' | 1dTsort stdin | 1dplot stdin\n"
       "\n" ) ;
       exit(0) ;
    }

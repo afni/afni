@@ -2566,6 +2566,20 @@ ENTRY("mri_read_1D") ;
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL) ;
 
+   /*-- 25 Jan 2008: read from stdin? --*/
+
+   ii = strlen(fname) ;
+   if( (ii <= 2 && fname[0] == '-')              ||
+       (ii <= 6 && strncmp(fname,"stdin",5) == 0)  ){
+     inim = mri_read_1D_stdin() ;
+     if( inim != NULL && fname[ii-1] == '\'' ){
+       flim = mri_transpose(inim); mri_free(inim); inim = flim;
+     }
+     RETURN(inim) ;
+   }
+
+   /*-- back to reading from an actual file --*/
+
    DNAME_FIX(fname) ;
    strcpy(dname,fname); ii = strlen(dname);  /* 05 Sep 2006 */
    flip = (dname[ii-1] == '\''); if( flip ) dname[ii-1] = '\0';
@@ -2862,6 +2876,68 @@ ENTRY("mri_read_complex_1D") ;
    if( flip ){ inim=mri_transpose(flim); mri_free(flim); flim=inim; }
 
    mri_add_name(fname,flim) ; RETURN(flim) ;
+}
+
+/*-----------------------------------------------------------------------------------*/
+/* Read a 1D file from stdin; adapted from 1dplot.c */
+
+MRI_IMAGE * mri_read_1D_stdin(void)
+{
+#define SIN_NLBUF 131072
+#define SIN_NVMAX 10000
+   char *lbuf , *cpt , *dpt ;
+   int   nval , ii,nx,ny ;
+   float *val , fff , *far ;
+   MRI_IMAGE *flim , *inim ;
+
+ENTRY("mri_read_1D_stdin") ;
+
+   lbuf = (char * )malloc(sizeof(char )*SIN_NLBUF) ;
+   val  = (float *)malloc(sizeof(float)*SIN_NVMAX) ;
+
+   do{               /* read lines until 1st char is non-blank and non-# */
+     cpt = fgets(lbuf,SIN_NLBUF,stdin) ;
+     if( cpt==NULL ){ free(val);free(lbuf); RETURN(NULL); }
+     for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
+   } while( cpt[ii] == '\0' || cpt[ii] == '#' ) ;
+
+   nval = 0 ; cpt = lbuf ;   /* read numbers from lbuf into val */
+   while(1){
+     fff = strtod(cpt,&dpt) ; if( dpt  == cpt       ) break ;
+     val[nval++] = fff ;      if( nval == SIN_NVMAX ) break ;
+     cpt = dpt; if( *cpt == ','  ) cpt++; if( *cpt == '\0' ) break;
+   }
+   if( nval < 1 ){ free(val);free(lbuf); RETURN(NULL); }
+
+   nx = nval ; ny = 1 ;
+   far = (float *) malloc(sizeof(float)*nx) ;
+   memcpy(far,val,sizeof(float)*nx) ;
+
+   while(1){  /* read from stdin */
+     cpt = fgets(lbuf,SIN_NLBUF,stdin) ;
+     if( cpt == NULL ) break ;            /* done */
+     for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
+     if( cpt[ii] == '\0' || cpt[ii] == '#' ) continue ;         /* skip */
+
+     memset(val,0,sizeof(float)*nx) ;  /* set input buffer to zero */
+     nval = 0 ; cpt = lbuf ;   /* read numbers from lbuf into val */
+     while(1){
+       fff = strtod(cpt,&dpt) ; if( dpt  == cpt ) break ;
+       val[nval++] = fff ;      if( nval == nx  ) break ;
+       cpt = dpt; if( *cpt == ','  ) cpt++; if( *cpt == '\0' ) break;
+     }
+     far = (float *) realloc( far , sizeof(float)*(ny+1)*nx ) ;
+     memcpy(far+ny*nx,val,sizeof(float)*nx) ; ny++ ;
+   }
+
+   flim = mri_new_vol_empty( nx,ny,1 , MRI_float ) ;
+   mri_fix_data_pointer( far , flim ) ;
+   if( ny > 1 ){      /* more than one row ==> transpose (the usual case) */
+     inim = mri_transpose(flim) ; mri_free(flim) ;
+   } else {           /* only 1 row ==> am OK this way */
+     inim = flim ;
+   }
+   free((void *)val); free((void *)lbuf); RETURN(inim);
 }
 
 /*-----------------------------------------------------------------------------------*/
