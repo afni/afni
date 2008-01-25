@@ -15,7 +15,11 @@ int main( int argc , char *argv[] )
       " -inc     = sort into increasing order [default]\n"
       " -dec     = sort into decreasing order\n"
       " -flip    = transpose the file before OUTPUT\n"
-      "            [the INPUT can be transposed using file.1D\\']\n"
+      "            * the INPUT can be transposed using file.1D\\'\n"
+      "            * thus, to sort each ROW, do something like\n"
+      "               1dTsort -flip file.1D\\' > sfile.1D\n"
+      "\n"
+      "N.B.: At this time, 1dTsort does not take input from stdin.\n"
       "\n" ) ;
       exit(0) ;
    }
