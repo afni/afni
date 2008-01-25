@@ -762,6 +762,7 @@ extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
 extern MRI_IMAGE * mri_read_double_1D( char * ) ;
 extern MRI_IMAGE * mri_read_complex_1D( char * ) ;
 extern int mri_write_1D( char * , MRI_IMAGE * ) ;        /* 16 Nov 1999 */
+extern MRI_IMAGE * mri_read_1D_stdin(void) ;             /* 25 Jan 2008 */
 
 extern MRI_IMAGE * mri_1D_fromstring( char * ) ;         /* 28 Apr 2003 */
 

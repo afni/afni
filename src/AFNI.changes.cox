@@ -6551,3 +6551,6 @@
  * Fix little problems with AFNI threshold scale display as q-value alters.
  * Fix bug in thd_mastery.c in assiging FDR curves to mastered sub-bricks.
  * Add '-killSTAT' option to 3drefit.
+
+25 Jan 2008
+ * mri_read_1D_stdin() in mri_read.c.
