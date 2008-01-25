@@ -268,7 +268,7 @@ ENTRY("mri_write_ascii") ;
    if( fname == NULL || strlen(fname) == 0 ||
        im == NULL    || im->nz > 1           ) RETURN( 0 );
 
-   if( strcmp(fname,"-") == 0 ){
+   if( strcmp(fname,"-") == 0 || strcmp(fname,"stdout") == 0 ){
      imfile = stdout ;
    } else if (!THD_ok_overwrite()){
      imfile = fopen( fname , "r" ) ;
