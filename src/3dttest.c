@@ -496,7 +496,7 @@ void TT_syntax(char * msg)
     "      complicated for it to understand.  [New in July 2007]\n"
    ) ;
    printf("\n" MASTER_SHORTHELP_STRING ) ;
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*------------------------------------------------------------------*/

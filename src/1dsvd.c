@@ -56,7 +56,7 @@ int main( int argc , char *argv[] )
        "  http://en.wikipedia.org/wiki/Singular_value_decomposition\n"
        "* Author: Zhark the Algebraical.\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*---------- options ----------*/

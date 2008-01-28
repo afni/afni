@@ -446,7 +446,7 @@ void BUCK_Syntax(void)
     "         with such datasets!\n"
    ) ;
 
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*------------------------------------------------------------------*/

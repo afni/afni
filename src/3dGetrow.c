@@ -29,7 +29,7 @@ int main( int argc , char *argv[] )
       "N.B.: if the input dataset has more than one sub-brick, each\n"
       "      sub-brick will appear as a separate column in the output file.\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*---- scan command line args ----*/

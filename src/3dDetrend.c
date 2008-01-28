@@ -391,7 +391,7 @@ void DT_Syntax(void)
 
    printf("\n" MASTER_SHORTHELP_STRING ) ;
 
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -76,7 +76,7 @@ int main( int argc , char * argv[] )
              "\n"
              " Author: RWCox - July 2000\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dZeropad main"); machdep(); AFNI_logger("3dZeropad",argc,argv);

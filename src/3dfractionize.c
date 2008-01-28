@@ -145,7 +145,7 @@ int main( int argc , char * argv[] )
              "-- RWCox - February 1999\n"
              "         - October 1999: added -warp and -preserve options\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dfractionize main"); machdep();

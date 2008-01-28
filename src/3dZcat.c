@@ -209,7 +209,7 @@ void ZCAT_Syntax(void)
     "    new 3D datasets.\n"
    ) ;
 
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*-------------------------------------------------------------------------*/

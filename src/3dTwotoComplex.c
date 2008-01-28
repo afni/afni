@@ -38,7 +38,7 @@ int main( int argc , char * argv[] )
              "\n"
              "-- RWCox - March 2006\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dTwotoComplex main"); machdep();

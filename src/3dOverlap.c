@@ -25,7 +25,7 @@ int main( int argc , char * argv[] )
              "  3dOverlap -save abcnum a+orig b+orig c+orig\n"
              "  3dmaskave -mask 'abcnum+orig<3..3>' a+orig\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    narg = 1 ;

@@ -174,7 +174,7 @@ int main( int argc , char * argv[] )
              "  3dZregrid -dz 1.2 -prefix ElvisZZ Elvis2+orig\n"
              "  3dvolreg -base Elvis1+orig -prefix Elvis2reg ElvisZZ+orig\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dZregrid main"); machdep(); PRINT_VERSION("3dZregrid") ;

@@ -80,7 +80,7 @@ int main( int argc , char *argv[] )
              "  possibility that the program fails, or that the optimal\n"
              "  nudge is zero.\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dAnatNudge"); machdep(); AFNI_logger("3dAnatNudge",argc,argv);

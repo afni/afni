@@ -46,7 +46,7 @@ int main( int argc , char *argv[] )
       "                and the next phase #1.\n"
       "\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    iarg = 1 ;

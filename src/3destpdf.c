@@ -89,7 +89,7 @@ void display_help_menu()
      "-anat filename    Filename of anat dataset to be segmented            \n"
       );
   
-  exit(0);
+  PRINT_COMPILE_DATE ; exit(0);
 }
 
 

@@ -47,7 +47,7 @@ int main( int argc , char * argv[] )
              "    * The output dataset origin, time steps, etc., are taken from the\n"
              "       first input dataset.\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/

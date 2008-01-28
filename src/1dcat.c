@@ -39,7 +39,7 @@ int main( int argc , char * argv[] )
 "\n"
 "For generic 1D file usage help, see '1dplot -help'\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;

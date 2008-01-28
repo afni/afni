@@ -271,6 +271,8 @@ printf(
 "\n"
 ) ;
 
+   PRINT_COMPILE_DATE ;
+
    exit(0) ;
 
 }

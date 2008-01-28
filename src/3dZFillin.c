@@ -33,7 +33,7 @@ int main( int argc , char * argv[] )
              "bricks obtained from the UT San Antonio database.\n"
              "\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dZFillin main") ; machdep() ; AFNI_logger("3dZfillin",argc,argv) ;

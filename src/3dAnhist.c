@@ -111,7 +111,7 @@ int main( int argc , char * argv[] )
              "\n"
              "-- RWCox - November 2004\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dAnhist main"); machdep(); AFNI_logger("3dAnhist",argc,argv);

@@ -19,7 +19,7 @@ int main( int argc , char * argv[] )
              "                 Only voxels with nonzero values in 'mset'\n"
              "                 will be averaged from 'dataset'.\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    narg = 1 ;

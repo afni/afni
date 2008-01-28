@@ -164,7 +164,7 @@ int main( int argc , char * argv[] )
              "   (2), 221-232, 1992.\n\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3danisosmooth main"); machdep(); AFNI_logger("3danisosmooth",argc,argv);

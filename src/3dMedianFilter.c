@@ -29,7 +29,7 @@ int main( int argc , char * argv[] )
              "\n"
              "-- Feb 2005 - RWCox\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dMedianFilter main"); machdep(); AFNI_logger("3dMedianFilter",argc,argv);

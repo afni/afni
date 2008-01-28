@@ -150,7 +150,7 @@ int main( int argc , char *argv[] )
              "The output is a bucket dataset.  The input dataset may\n"
              "use a sub-brick selection list, as in program 3dcalc.\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /* bureaucracy */

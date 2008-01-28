@@ -58,7 +58,7 @@ int main( int argc , char *argv[] )
              "    1dcat tsort.1D\n"
              "\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /* bureaucracy */

@@ -24,7 +24,7 @@ int main( int argc , char * argv[] )
        "   text editor can handle.\n"
        "* If 'outfile' is '-' (or missing entirely), output goes to stdout.\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;

@@ -306,7 +306,7 @@ void Syntax(char *str)
 
    printf("++ Last program update: 23 Jan 2008\n");
 
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 #define ASET_NULL 1

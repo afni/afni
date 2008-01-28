@@ -55,7 +55,7 @@ int main( int argc , char *argv[] )
      "			defaults to 1.25 degrees\n"
      ) ;
 
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
 /*** read arguments ***/

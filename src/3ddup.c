@@ -51,7 +51,7 @@ int main( int argc , char * argv[] )
        "N.B.: Even if the new dataset is anatomical, it will not contain\n"
        "      any markers, duplicated from the original, or otherwise.\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /** scan command line options **/

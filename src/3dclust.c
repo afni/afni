@@ -325,7 +325,7 @@ int main( int argc , char * argv[] )
   "    set the environment variable AFNI_ORIENT to 'LPI'.  For more        \n"
   "    information, see file README.environment.                           \n"
         ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dclust main"); machdep(); AFNI_logger("3dclust",argc,argv);

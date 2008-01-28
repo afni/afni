@@ -44,7 +44,7 @@ int main( int argc , char * argv[] )
              "    pp 203-214, August 1991.\n"
              "\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/

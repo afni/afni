@@ -27,7 +27,7 @@ int main( int argc , char *argv[] )
             "Options:\n"
             " - There are no stinking options.\n"
            ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /* options */

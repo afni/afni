@@ -26,7 +26,7 @@ void Syntax(void)
     "      3dcalc -a AA_Decon+orig\"[$face]\" -b AA_Decon+orig\"[$hous]\" ...\n"
     "  * Added per the request and efforts of Colm Connolly.\n"
    ) ;
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 int main( int argc , char *argv[] )

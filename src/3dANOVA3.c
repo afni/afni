@@ -266,7 +266,7 @@ void display_help_menu()
 
   printf("\n" MASTER_SHORTHELP_STRING ) ;
   
-  exit(0);
+  PRINT_COMPILE_DATE; exit(0);
 }
 
 /* define index into n[MAX_LEVELS][MAX_LEVELS][MAX_LEVELS] 19 Jul 2004 [rickr]*/

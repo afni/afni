@@ -138,7 +138,7 @@ int main( int argc , char * argv[] )
             "                    turn 'anti-alias' off, and switch to\n"
             "                    landscape mode.\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;

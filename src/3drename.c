@@ -30,7 +30,7 @@ int main( int argc , char * argv[] )
        "Usage 2: 3drename old_prefix+view new_prefix\n"
        "  Will rename only the dataset with the given view (orig, acpc, tlrc).\n"
       ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;

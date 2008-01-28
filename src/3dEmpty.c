@@ -25,7 +25,7 @@ int main( int argc , char *argv[] )
       "  allow you to make up an AFNI header for an existing file.\n"
       "\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dEmpty") ; machdep() ;

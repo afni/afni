@@ -37,7 +37,7 @@ int main( int argc , char * argv[] )
              "  3dRowFillin -maxgap 4 -dir A-P -prefix fredfill fred+orig\n"
              "\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dRowFillin main"); machdep(); AFNI_logger("3dRowFillin",argc,argv);
