@@ -868,8 +868,7 @@ ENTRY("AFNI_clus_update_widgets") ;
    }
 
    if( nclu == 0 || cld == NULL ){
-     for( ii=0 ; ii < cwid->nrow ; ii++ )
-       XtUnmanageChild( cwid->clu_rc[ii] ) ;
+     for( ii=0 ; ii < cwid->nrow ; ii++ ) XtUnmanageChild( cwid->clu_rc[ii] ) ;
      cwid->nrow = 0 ;  /* # of managed rows */
      EXRETURN ;
    }
@@ -896,11 +895,9 @@ ENTRY("AFNI_clus_update_widgets") ;
    /* map or unmap widget rows? */
 
    if( cwid->nrow < nclu ){
-     for( ii=cwid->nrow ; ii < nclu ; ii++ )
-       XtManageChild( cwid->clu_rc[ii] ) ;
+     for( ii=cwid->nrow ; ii < nclu ; ii++ ) XtManageChild( cwid->clu_rc[ii] ) ;
    } else if( cwid->nrow > nclu ){
-     for( ii=nclu ; ii < cwid->nrow ; ii++ )
-       XtUnmanageChild( cwid->clu_rc[ii] ) ;
+     for( ii=nclu ; ii < cwid->nrow ; ii++ ) XtUnmanageChild( cwid->clu_rc[ii] ) ;
    }
    cwid->nrow = nclu ;  /* # of managed rows */
 
