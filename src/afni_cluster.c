@@ -262,7 +262,7 @@ static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
 
 /*---------------------------------------------------------------------------*/
 
-static int maxclu_default = 15 ;
+static int maxclu_default = -1 ;
 static int scrolling      =  1 ;
 
 /*! Make the widgets for one row of the cluster display/control panel.
@@ -394,8 +394,8 @@ ENTRY("AFNI_clus_make_widgets") ;
    else
      shtop = cwid->wtop ;
 
-   scrolling      = (swtop!=NULL) ;
-   maxclu_default = (scrolling) ? 99 : 15 ;
+   scrolling = (swtop!=NULL) ;
+   if( maxclu_default < 0 ) maxclu_default = scrolling ? 15 : 99 ;
 
    /* vertical rowcol to hold it all */
 
@@ -475,7 +475,6 @@ ENTRY("AFNI_clus_make_widgets") ;
    cwid->fwhm = -1.0f ;
 
    /*---- end of popup menu ----*/
-
 
 #undef  VLINE
 #undef  HLINE
@@ -841,6 +840,9 @@ void AFNI_clus_update_widgets( Three_D_View *im3d )
 ENTRY("AFNI_clus_update_widgets") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   if( maxclu_default < 0 )
+     maxclu_default = AFNI_noenv("AFNI_CLUSTER_SCROLL") ? 15 : 99 ;
 
    clar = im3d->vwid->func->clu_list ;
    if( clar != NULL ){  /* sort and truncate */
