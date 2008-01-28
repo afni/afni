@@ -1387,8 +1387,7 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
                (pp),AFNI_VERSION_LABEL,(int)(sizeof(void *)*8))
 
 #undef  PRINT_COMPILE_DATE
-#define PRINT_COMPILE_DATE  \
-  fprintf(stderr,"\n++ Compile date = " __DATE__ "\n\n")
+#define PRINT_COMPILE_DATE printf("\n++ Compile date = " __DATE__ "\n\n")
 
 #undef  AUTHOR
 #define AUTHOR(aa) INFO_message("Authored by: %s",aa)
