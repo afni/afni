@@ -2877,7 +2877,9 @@ if(PRINT_TRACING)
 
       LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
+      AFNI_set_ignore_vedit(1) ; /* 28 Jan 2008 */
       im = FD_warp_to_mri( n , ival , br ) ; /* actually get image from dataset */
+      AFNI_set_ignore_vedit(0) ;
 
       if( ival < 0 ) RETURN( (XtPointer) im ) ;  /* return fake image */
 

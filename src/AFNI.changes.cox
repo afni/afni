@@ -6562,3 +6562,8 @@
      showed a max of 15 widget rows, even if there were more clusters, but
      the number of rows would be reset correctly on any re-clusterizing.
      Problem: didn't initialize maxclu_default at the right location.
+ * Fixed problem with display of clusterized dataset which is both the
+     Underlay and Overlay: the Underlay was being shown as the edited
+     volume, but that looks real bad.  Solution: disable vedit feature
+     in AFNI_dataset_slice() when calling from the 'get anat image' place
+     in afni.c, and then re-enable it right afterwards.

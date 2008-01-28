@@ -303,7 +303,7 @@ static int scrolling      =  1 ;
             ff     , xmPushButtonWidgetClass , rc ,                 \
             LABEL_ARG("Save") , XmNtraversalOn , True ,             \
             XmNinitialResourcesPersistent , False , NULL ) ;        \
-     mb = cwid->clu_alph_lab[ii] = XtVaCreateManagedWidget(         \
+     mb = cwid->clu_alph_lab[ii] = XtVaCreateWidget(                \
             ff     , xmLabelWidgetClass , rc ,                      \
             LABEL_ARG(" N/A") ,                                     \
             XmNalignment , XmALIGNMENT_BEGINNING ,                  \

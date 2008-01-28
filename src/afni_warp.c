@@ -11,6 +11,11 @@
 
 #include "afni_warp.h"
 
+/*------------------------------------------------------------------------*/
+
+static int ignore_vedit = 0 ;   /* 28 Jan 2008 */
+void AFNI_set_ignore_vedit( int ii ){ ignore_vedit = ii; return; }
+
 /*------------------------------------------------------------------------
    Return a slice from a dataset, possibly to be warped on-the-fly
    from its parent:
@@ -121,7 +126,8 @@ if(PRINT_TRACING)
 
    /*----- if datablock exists and not forcing warp-on-demand, use it -----*/
 
-   do_vedit = ( DSET_VEDIT_IVAL(dset)   == ival &&
+   do_vedit = ( !ignore_vedit                   &&
+                DSET_VEDIT_IVAL(dset)   == ival &&
                 dset->dblk->vedim       != NULL &&
                 dset->dblk->vedim->kind == typ    ) ;  /* 16 Jan 2008 */
 
