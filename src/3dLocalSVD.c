@@ -37,7 +37,7 @@ int main( int argc , char *argv[] )
        " -input inputdataset\n"
        " -nbhd nnn\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*---- official startup ---*/

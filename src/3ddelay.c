@@ -322,7 +322,7 @@ void display_help_menu()
 "\n"   
     );
 
-  exit(0);
+  PRINT_COMPILE_DATE ; exit(0);
 }
 
 

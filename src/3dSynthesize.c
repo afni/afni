@@ -155,7 +155,7 @@ int main( int argc , char * argv[] )
        "   seen as a single string, which almost surely won't match anything.\n"
        "-- Author: RWCox -- March 2007\n"
       ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /** AFNI package setup and logging **/

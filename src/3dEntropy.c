@@ -7,7 +7,7 @@ int main( int argc , char * argv[] )
    double eset ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dEntropy dataset ...\n") ; exit(0) ;
+      printf("Usage: 3dEntropy dataset ...\n") ; PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    for( ; iarg < argc ; iarg++ ){

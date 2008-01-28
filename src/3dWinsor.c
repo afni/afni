@@ -47,7 +47,7 @@ int main( int argc , char * argv[] )
              " -mask mmm  = use 'mmm' as a mask dataset - voxels NOT\n"
              "                in the mask won't be filtered\n"
       ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dWinsor main"); machdep(); AFNI_logger("3dWinsor",argc,argv);

@@ -52,7 +52,7 @@ int main( int argc , char *argv[] )
             "\n"
             "-- Zhark, Emperor -- April 2006\n"
       ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dmatcalc main"); machdep(); AFNI_logger("3dmatcalc",argc,argv);

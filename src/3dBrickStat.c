@@ -74,7 +74,7 @@ int main( int argc , char * argv[] )
              "  -help = print this help screen\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dBrickStat main"); machdep(); AFNI_logger("3dBrickStat",argc,argv);

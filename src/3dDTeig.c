@@ -44,7 +44,7 @@ int main( int argc , char * argv[] )
              " quantitative-diffusion tensor MRI, J Magn Reson B 1996; 111:209-19\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dDTeig main"); machdep(); AFNI_logger("3dDTeig",argc,argv);

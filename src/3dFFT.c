@@ -36,7 +36,7 @@ int main( int argc , char *argv[] )
        "    into powers of 2, 3, and 5.\n"
        " * For -abs and -phase, the output dataset is in float format.\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dFFT main") ; machdep() ;

@@ -22,7 +22,7 @@ int main( int argc , char *argv[] )
              "* The TR recorded in MINC files is often incorrect.  You may\n"
              "   need to fix this (or other parameters) using 3drefit.\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    if( strcmp(argv[narg],"-prefix") == 0 ){

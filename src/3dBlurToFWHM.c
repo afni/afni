@@ -191,7 +191,7 @@ int main( int argc , char *argv[] )
       "\n"
       "-- Author: The Dreaded Emperor Zhark - Nov 2006\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*---- official startup ---*/

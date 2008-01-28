@@ -122,7 +122,7 @@ void display_help_menu()
      "[-brick m ncoef k label]   kth noise parameter regression coefficient \n"
     );
   
-  exit(0);
+  PRINT_COMPILE_DATE ; exit(0);
 }
 
 

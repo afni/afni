@@ -144,7 +144,7 @@ int main( int argc , char *argv[] )
       "\n"
       "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*---- official startup ---*/

@@ -40,7 +40,7 @@ void Syntax(void)
     "   used.\n"
     "The source code is function UNIQ_idcode() in file niml.c.\n"
    ) ;
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 int main( int argc , char * argv[] )

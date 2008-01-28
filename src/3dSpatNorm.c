@@ -25,7 +25,7 @@ int main( int argc , char *argv[] )
             "* This program is obsolete, and should not be used by most people. *\n"
             "--------------------------------------------------------------------\n"
            ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*--- options ---*/

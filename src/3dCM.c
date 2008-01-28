@@ -23,7 +23,7 @@ int main( int argc , char * argv[] )
              "                 origin fields in the header so that the CM\n"
              "                 will be at (x,y,z) in DICOM coords.\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    narg = 1 ;

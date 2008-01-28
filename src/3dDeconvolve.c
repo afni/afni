@@ -961,7 +961,7 @@ void display_help_menu()
 #endif
           ) ;
 
-  exit(0);
+  PRINT_COMPILE_DATE; exit(0);
 }
 
 

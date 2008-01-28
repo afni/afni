@@ -26,7 +26,7 @@ int main( int argc , char * argv[] )
              "  -prefix ppp = If you don't know this by now, you shouldn't\n"
              "                 even THINK about using this program!\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    narg = 1 ;

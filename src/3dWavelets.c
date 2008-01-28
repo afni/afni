@@ -178,7 +178,7 @@ void display_help_menu()
     "                     for significance of the wavelet signal model.     \n"
     );
   
-  exit(0);
+  PRINT_COMPILE_DATE ; exit(0);
 }
 
 

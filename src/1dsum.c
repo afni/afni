@@ -24,7 +24,7 @@ int main( int argc , char * argv[] )
             "  -ignore nn = skip the first nn rows of each file\n"
             "  -use    mm = use only mm rows from each file\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;

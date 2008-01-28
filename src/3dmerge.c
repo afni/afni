@@ -870,7 +870,7 @@ void MRG_Syntax(void)
     " ** -1dindex and -1tindex apply to all input datasets.\n"
 #endif
    ) ;
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*------------------------------------------------------------------*/

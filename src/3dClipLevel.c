@@ -64,7 +64,7 @@ int main( int argc , char * argv[] )
        "------\n"
        "Author: Emperor Zhark -- Sadistic Galactic Domination since 1994!\n\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dClipLevel main"); machdep(); AFNI_logger("3dCliplevel",argc,argv);

@@ -21,7 +21,7 @@ int main( int argc , char * argv[] )
             "in columns); outfile will be a similar file, with each column being\n"
             "L2 normalized.\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;

@@ -108,7 +108,7 @@ int main( int argc , char * argv[] )
              "   registration!\n"
              "   [Hint: open 2 AFNI controllers, and turn Time Lock on.]\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /** AFNI package setup and logging **/

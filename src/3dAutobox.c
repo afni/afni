@@ -16,7 +16,7 @@ void help_autobox()
              "                The default uses some clustering to find cropping\n"
              "\n"
             ) ;
-   return;
+   PRINT_COMPILE_DATE ; return;
 }
 int main( int argc , char * argv[] )
 {

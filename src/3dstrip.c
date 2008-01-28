@@ -76,7 +76,7 @@ int main( int argc , char * argv[] )
              "area threshold is also chosen from experience.  The goal of the thresholds\n"
              "is to avoid removing brain tissue.\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /* arguments */

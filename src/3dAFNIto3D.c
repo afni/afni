@@ -19,7 +19,7 @@ int main( int argc , char *argv[] )
              "NOTES:\n"
              "* At present, all bricks are written out in float format.\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE; exit(0) ;
    }
 
    mainENTRY("3dAFNIto3D main"); machdep(); PRINT_VERSION("3dAFNIto3D");

@@ -30,7 +30,7 @@ int main( int argc , char * argv[] )
              "              each output.\n"
              "\n" 
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dLRflip main"); machdep(); AFNI_logger("3dLRflip",argc,argv);

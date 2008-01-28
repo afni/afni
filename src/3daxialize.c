@@ -76,7 +76,7 @@ int main( int argc , char * argv[] )
             ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3daxialize main"); machdep(); AFNI_logger("3daxialize",argc,argv);

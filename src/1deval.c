@@ -66,7 +66,7 @@ int main( int argc , char * argv[] )
              "* If I had any sense, this program would have been called 1dcalc!\n"
              "  -- RW Cox\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;

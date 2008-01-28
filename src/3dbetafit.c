@@ -66,7 +66,7 @@ int main( int argc , char * argv[] )
              "  -pthr p = Sets p-value of cutoff for threshold evaluation\n"
              "              [default = 1.e-4]\n"
          ) ;
-         exit(0) ;
+         PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /* scan command-line args */

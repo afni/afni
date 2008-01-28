@@ -60,7 +60,7 @@ int main( int argc , char *argv[] )
              "\n"
              "-- RWCox - Jan 31 2002\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dAutoTcorrelate main"); machdep(); PRINT_VERSION("3dAutoTcorrelate");

@@ -60,7 +60,7 @@ int main( int argc , char *argv[] )
        "   program operates silently (unless an error is detected).\n"
        "* The '-denote' option will remove any Notes from the file.\n"
       ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dcopy") ; machdep() ; AFNI_logger("3dcopy",argc,argv) ;

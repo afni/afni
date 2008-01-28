@@ -1428,7 +1428,8 @@ void CALC_Syntax(void)
     "   compiling on an array processor hooked up to a VAX.  It's a mess, but\n"
     "   it works - somewhat slowly - but hey, computers are fast these days.)\n"
    ) ;
-   exit(0) ;
+
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*------------------------------------------------------------------*/

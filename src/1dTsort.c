@@ -24,7 +24,7 @@ int main( int argc , char *argv[] )
       "      For example:\n"
       "        1deval -num 100 -expr 'uran(1)' | 1dTsort stdin | 1dplot stdin\n"
       "\n" ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    iarg = 1 ;

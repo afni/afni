@@ -99,7 +99,7 @@ int main( int argc , char *argv[] )
    short ccc[NRAD] , vvv[NRAD] ; int rr ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("3dDimize dataset\n"); exit(0);
+     printf("3dDimize dataset\n"); PRINT_COMPILE_DATE ; exit(0);
    }
 
    mainENTRY("3dDimize"); machdep();

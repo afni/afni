@@ -243,7 +243,7 @@ int main( int argc , char * argv[] )
       ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3drotate main"); machdep(); PRINT_VERSION("3drotate"); AUTHOR("RW Cox");

@@ -85,7 +85,7 @@ int main( int argc , char *argv[] )
              "    display, AFNI assumes the LPI orientation, unless you\n"
              "    set environment variable AFNI_ANALYZE_ORIENT.\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE; exit(0) ;
    }
 
    mainENTRY("3dAFNItoANALYZE main"); machdep(); PRINT_VERSION("3dAFNItoANALYZE");
