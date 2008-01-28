@@ -6558,3 +6558,7 @@
 28 Jan 2008
  * Added PRINT_COMPILE_DATE macro to mrilib.h and to a lot of programs'
      -help output.
+ * Fixed 'rule of 15' bug in afni_cluster.c, where the initial display only
+     showed a max of 15 widget rows, even if there were more clusters, but
+     the number of rows would be reset correctly on any re-clusterizing.
+     Problem: didn't initialize maxclu_default at the right location.

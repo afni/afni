@@ -397,6 +397,7 @@ typedef struct {
   Widget dset_lab ;         /* label after second row */
 
   int nrow, nall, is_open ;
+  Widget rowtop ;           /* holds the rows of widgets */
   Widget *clu_rc ;          /* rows of widgets */
   Widget *clu_lab ;
   Widget *clu_jump_pb ;
