@@ -800,7 +800,7 @@ int main( int argc , char *argv[] )
         "[[[ To see a few advanced/experimental options, use '-HELP'. ]]]\n");
      }
 
-     printf("\n"); exit(0);
+     PRINT_COMPILE_DATE ; exit(0);
    }
 
    /**--- bookkeeping and marketing ---**/

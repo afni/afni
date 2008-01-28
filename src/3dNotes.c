@@ -73,7 +73,7 @@ void Show_Help(void) {
 "line.  If you do something like -d 10 -d 10, it will delete both notes 10\n"
 "and 11.  Don't do that.\n\n"
    );
-   exit(0);
+   PRINT_COMPILE_DATE ; exit(0);
 }
 
 

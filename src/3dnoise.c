@@ -94,7 +94,7 @@ int main( int argc , char * argv[] )
              "               estimate of a value for 'x'.\n"
              "Author -- RW Cox\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    while( narg < argc && argv[narg][0] == '-' ){

@@ -968,7 +968,7 @@ void Syntax( char *note )
    for( ii=0 ; ii < sizeof(mesg)/sizeof(char *) ; ii++ ){
       printf( " %s\n" , mesg[ii] );
    }
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 

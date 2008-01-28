@@ -112,7 +112,7 @@ int main( int argc , char * argv[] )
              " of the 3 point filters described above, which always use -EXTEND.\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dTsmooth main"); machdep(); AFNI_logger("3dTsmooth",argc,argv);

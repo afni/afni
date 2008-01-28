@@ -500,7 +500,7 @@ void TCAT_Syntax(void)
     "  dataset to modify some of the .HEAD file parameters.\n"
    ) ;
 
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -56,7 +56,7 @@ int main( int argc , char * argv[] )
              "                 millimeters inferior to that.  hh=130 seems to\n"
              "                 be decent (i.e., for Homo Sapiens brains).\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dAutomask main"); machdep(); AFNI_logger("3dAutomask",argc,argv);

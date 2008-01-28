@@ -812,5 +812,5 @@ int main(int argc, char **argv)
    DSET_delete(Opt->csfinit); Opt->csfinit = NULL;
    free(Opt); Opt = NULL;
    
-   exit(0);
+   PRINT_COMPILE_DATE ; exit(0);
 }

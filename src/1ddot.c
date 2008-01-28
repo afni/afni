@@ -26,7 +26,7 @@ int main( int argc , char *argv[] )
             " -terse=  Output only the correlation or covariance matrix\n"
             "          and without any of the garnish. \n"
            ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /* options */

@@ -556,7 +556,7 @@ int main( int argc , char * argv[] )
              "  -bout   = Use 'b' for the output, instead of thr\n"
              "  -aout   = Use 'a' for the output, instead of thr\n"
          ) ;
-         exit(0) ;
+         PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /* scan command-line args */

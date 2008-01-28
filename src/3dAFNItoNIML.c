@@ -26,7 +26,7 @@ int main( int argc , char *argv[] )
       "\n"
       "-- RWCox - Mar 2005\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE; exit(0) ;
    }
 
    mainENTRY("3dAFNItoNIML main"); machdep(); PRINT_VERSION("3dAFNItoNIML");

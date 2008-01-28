@@ -23,7 +23,7 @@ int main( int argc , char * argv[] )
             "             [Hamming 'raised cosine' taper of f/2 of the ]\n"
             "             [data length at each end; default is no taper]\n"
            ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dDFT main"); machdep(); AFNI_logger("3dDFT",argc,argv);

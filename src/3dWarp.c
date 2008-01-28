@@ -180,7 +180,7 @@ int main( int argc , char * argv[] )
             "  -prefix ppp   = Sets the prefix of the output dataset.\n"
             "\n"
            ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*-- startup mechanics --*/

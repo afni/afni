@@ -205,7 +205,7 @@ void display_help_menu()
    "http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht05_group/html/index.shtml\n"
      "\n" );
      
-  exit(0);
+  PRINT_COMPILE_DATE; exit(0);
 }
 
 /*---------------------------------------------------------------------------*/

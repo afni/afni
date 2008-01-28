@@ -1489,7 +1489,7 @@ void VL_syntax(void)
 
    , VL_maxite , VL_dxy , VL_dph , VL_del ) ;
 
-   return ;
+   PRINT_COMPILE_DATE ; return ;
 }
 
 /*---------------------------------------------------------------------*/

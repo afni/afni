@@ -12,7 +12,7 @@ void Syntax(void)
     "Prints out the number of sub-bricks in a 3D dataset\n"
     "Usage: 3dnvals [-verb] dataset\n"
    ) ;
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 int main( int argc , char * argv[] )

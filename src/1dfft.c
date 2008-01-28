@@ -56,7 +56,7 @@ int main( int argc , char * argv[] )
             "     That is something else entirely.\n"
             " * If 'outfile' is '-', the output appears on stdout.\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;

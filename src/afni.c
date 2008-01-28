@@ -401,7 +401,7 @@ void AFNI_syntax(void)
     "  * Describes the algorithm used in 3ddelay (cf. '3ddelay -help').\n"
    ) ;
 
-   printf("\n") ; exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*----------------------------------------------------------------------

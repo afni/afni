@@ -195,7 +195,7 @@ int main( int argc , char *argv[] )
             "\n"
             TS_HELP_STRING
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("1dplot main"); machdep(); PRINT_VERSION("1dplot"); AUTHOR("RWC et al.");

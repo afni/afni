@@ -64,7 +64,7 @@ int main( int argc , char *argv[] )
              "                  distinguish it from the input dataset.\n"
              "     **** N.B.:  -newid is now the default action.\n"
             ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE; exit(0) ;
    }
 
    mainENTRY("3dAFNItoNIFTI main"); machdep();

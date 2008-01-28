@@ -103,7 +103,7 @@ int main( int argc , char *argv[] )
       "-----------------------------\n"
       "Author: RWCox - October 2006.\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*---- official startup ---*/

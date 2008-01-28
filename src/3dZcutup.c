@@ -68,7 +68,7 @@ int main( int argc , char * argv[] )
              "\n"
              "  /bin/rm -f zcut*\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("3dZcutup main") ; machdep() ; AFNI_logger("3dZcutup",argc,argv) ;

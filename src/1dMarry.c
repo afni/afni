@@ -29,7 +29,7 @@ int main( int argc , char *argv[] )
       "\n"
       "-- RWCox -- written hastily in March 2007 -- hope I don't repent\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    while( iarg < argc && argv[iarg][0] == '-' ){

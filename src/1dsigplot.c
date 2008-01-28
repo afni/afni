@@ -277,7 +277,7 @@ int main( int argc , char * argv[] )
             " -xrange x1 x2 = Range of x-axis\n"
             " -yrange y1 y2 = Range of y-axis\n"
            ) ;
-      exit(0) ;
+      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    machdep() ;
