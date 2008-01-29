@@ -7441,6 +7441,13 @@ STATUS("forcing function WOD") ;
         }
       }
 
+      /* 29 Jan 2008: enable/disable the FDR-izing button */
+
+      { int scod=DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
+            doit=FUNC_IS_STAT(scod) ;
+        XtSetSensitive( im3d->vwid->func->thr_fdr_pb , (Boolean)doit ) ;
+      }
+
    } else {   /* 29 Jul 2003: no longer possible */
 
 STATUS("no function dataset") ;

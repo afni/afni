@@ -93,6 +93,28 @@ ENTRY("AFNI_func_autothresh_CB") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/*! 29 Jan 2008 */
+
+void AFNI_func_fdr_CB( Widget w, XtPointer cd, XtPointer cb)
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   THD_3dim_dataset *dset ; int nf ;
+
+ENTRY("AFNI_func_fdr_CB") ;
+
+   if( !IM3D_OPEN(im3d) || !ISVALID_DSET(im3d->fim_now) ) EXRETURN ;
+   dset = im3d->fim_now ;
+   SHOW_AFNI_PAUSE ;
+   nf = THD_create_all_fdrcurves(dset) ;
+   AFNI_set_thr_pval(im3d) ;
+   INFO_message("Computed %d FDR curves in %s [but not saved on disk]" ,
+                nf , DSET_FILECODE(dset) ) ;
+   SHOW_AFNI_READY ;
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! 08 Aug 2007 */
 
 void AFNI_func_thrsign_CB( MCW_arrowval *av , XtPointer cd )
@@ -4684,9 +4706,9 @@ ENTRY("AFNI_andersonville") ;
    }  /* end of loop over sessions */
 
 #ifdef AFNI_DEBUG
-{ char str[256] ;
-  sprintf(str,"total # datasets killed = %d",num_killed) ;
-  STATUS(str) ; }
+  { char str[256] ;
+    sprintf(str,"total # datasets killed = %d",num_killed) ;
+    STATUS(str) ; }
 #endif
 
    EXRETURN ;

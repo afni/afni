@@ -104,6 +104,10 @@ ENTRY("mri_fdrize") ;
 #undef  NCURV
 #define NCURV 101
 
+/*! Create a curve that gives the FDR z(q) value vs. the statistical
+    threshold.  Stored as a mri_floatvec struct, with the statistical
+    value give as x0+i*dx and the corresponding z(q) value in ar[i].  */
+
 floatvec * mri_fdr_curve( MRI_IMAGE *im, int statcode, float *stataux )
 {
   MRI_IMAGE *cim ;
@@ -115,32 +119,46 @@ floatvec * mri_fdr_curve( MRI_IMAGE *im, int statcode, float *stataux )
 
 ENTRY("mri_fdr_curve") ;
 
+  /* check for legal inputs */
+
   if( !FUNC_IS_STAT(statcode) )              RETURN(NULL) ;
   if( im == NULL || im->kind != MRI_float )  RETURN(NULL) ;
   far = MRI_FLOAT_PTR(im); if( far == NULL ) RETURN(NULL) ;
+
+  /* make a copy of the statistics and convert them to z(q) scores */
+
   cim = mri_to_float(im) ; car = MRI_FLOAT_PTR(cim) ;
 
   nq = mri_fdrize( cim , statcode , stataux , 0 ) ;
-  if( nq < 9 ){ mri_free(cim); RETURN(NULL); }
+  if( nq < 9 ){ mri_free(cim); RETURN(NULL); }  /* bad FDR-izing */
+
+  /* create iq[] = list of voxels that were validly FDR-ized */
 
   nvox = im->nvox ;
   iq   = (int *)malloc(sizeof(int)*nvox) ;
   for( nq=ii=0 ; ii < nvox ; ii++ ){      /* make list of voxels with */
     if( car[ii] > 0.0f ) iq[nq++] = ii ;  /* meaningful z(q) values   */
   }
-  if( nq < 9 ){ free(iq); mri_free(cim); RETURN(NULL); }
+  if( nq < 9 ){ free(iq); mri_free(cim); RETURN(NULL); }  /* bad */
 
-  zar = (float *)malloc(sizeof(float)*nq) ;
-  tar = (float *)malloc(sizeof(float)*nq) ;
+  /* create list of z(q) scores and corresponding statistics */
+
+  zar = (float *)malloc(sizeof(float)*nq) ;  /* z(q) values */
+  tar = (float *)malloc(sizeof(float)*nq) ;  /* statistics */
   for( ii=0 ; ii < nq ; ii++ ){
-    zar[ii] = car[iq[ii]] ; tar[ii] = far[iq[ii]] ;
+    zar[ii] = car[iq[ii]] ; tar[ii] = fabsf(far[iq[ii]]) ;
   }
-  free(iq) ; mri_free(cim) ;
-  qsort_floatfloat( nq , zar , tar ) ;
+  free(iq) ; mri_free(cim) ;   /* toss the trash */
+
+  qsort_floatfloat( nq , zar , tar ) ;  /* sort into increasing z */
+
+  /* find the largest z(q) that isn't beyond the top value we like */
 
   for( klast=nq-1 ; klast > 0 && zar[klast] >= ZTOP ; klast-- ) ; /*nada */
   if( klast == 0 ){ free(tar); free(zar); RETURN(NULL); }
   if( klast < nq-1 ) klast++ ;
+
+  /* make the floatvec, evenly spaced in the statistic (tar) values */
 
   tbot = tar[0] ; ttop = tar[klast] ; dt = (ttop-tbot)/(NCURV-1) ;
   zbot = zar[0] ; ztop = zar[klast] ;
@@ -148,11 +166,11 @@ ENTRY("mri_fdr_curve") ;
   MAKE_floatvec(fv,NCURV) ; fv->dx = dt ; fv->x0 = tbot ;
   fv->ar[0] = zbot ;
   for( jj=ii=1 ; ii < NCURV-1 ; ii++ ){
-    tt = tbot + ii*dt ;
+    tt = tbot + ii*dt ;  /* the statistic for this point on the curve */
     for( ; jj < nq && tar[jj] < tt ; jj++ ) ; /*nada*/
-    t1 = tar[jj-1] ; t2 = tar[jj] ; tf = (tt-t1)/(t2-t1) ;
-    z1 = zar[jj-1] ; z2 = zar[jj] ; zf = tf*z2 + (1.0f-tf)*z1 ;
-    fv->ar[ii] = zf ;
+    t1 = tar[jj-1] ; t2 = tar[jj] ; tf = (tt-t1)/(t2-t1) ;      /* linearly */
+    z1 = zar[jj-1] ; z2 = zar[jj] ; zf = tf*z2 + (1.0f-tf)*z1 ; /* interp z */
+    fv->ar[ii] = zf ;                                         /* to this tt */
   }
   fv->ar[NCURV-1] = ztop ;
 

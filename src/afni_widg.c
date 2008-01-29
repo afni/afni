@@ -2537,9 +2537,10 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->thr_label , "Type of threshold statistic" ) ;
 #endif
 
+   /**--------- 05 Sep 2006: creat menu hidden on the thr_label ---------**/
+
 #if 1
    { static char *onofflabel[] = { "Use Threshold?" } ;
-   /**-- 05 Sep 2006: menu hidden on the thr_label --**/
 
 #ifdef BAD_BUTTON3_POPUPS
    func->thr_menu = XmCreatePopupMenu( func->thr_rowcol, "menu", NULL, 0 ) ;
@@ -2622,11 +2623,24 @@ STATUS("making func->rowcol") ;
                             "show Positives, Negatives, or Both?" ) ;
     }
 
-   /*---- end of thr_menu creation ----*/
-   }
+   /* FDR button */
+
+   func->thr_fdr_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("Add FDR Curves") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_fdr_pb , XmNactivateCallback ,
+                  AFNI_func_fdr_CB , im3d ) ;
+   MCW_register_hint( func->thr_fdr_pb ,
+                      "Compute FDR curves for OLay statistical sub-bricks" ) ;
+
+   } /*---- end of thr_menu creation for top of threshold slider ----*/
 #endif
 
-   FIX_SCALE_VALUE(im3d) ;
+   FIX_SCALE_VALUE(im3d) ;  /* just in case */
 
 #define SCALE_EXTRA 66
 
@@ -2736,7 +2750,7 @@ STATUS("making func->rowcol") ;
          "   Discovery Rate q-value will also\n"
          "   be shown."
    ) ;
-   MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel" ) ;
+   MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel; nominal FDR q-value" ) ;
 
 #if 0
    /* 05 Sep 2006: duplicate popup from thr_label */
