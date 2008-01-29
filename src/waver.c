@@ -533,7 +533,8 @@ void Syntax(void)
     "\n"
     "If a square wave is desired, see the 'sqwave' program.\n"
    ) ;
-   exit(0) ;
+
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*----------------------------------------------------------------*/

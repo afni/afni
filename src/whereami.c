@@ -364,8 +364,13 @@ void whereami_usage(void)
                "Thanks to Kristina Simonyan for feedback and testing.\n"
                "\n" 
                "\n",Init_Whereami_Max_Find(), Init_Whereami_Max_Rad());
+
+   PRINT_COMPILE_DATE ;
    EXRETURN;
 }
+
+/*----------------------------------------------------------------------------*/
+
 int main(int argc, char **argv)
 {
    float x, y, z, xi, yi, zi, tx, ty, tz;

@@ -3481,6 +3481,7 @@ void Syntax()
     INIT_ngray
    ) ;
 
+   PRINT_COMPILE_DATE ;
    exit(0) ;
 }
 

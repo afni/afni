@@ -649,7 +649,7 @@ void display_help_menu()
 {
   identify_software();
 
-  printf (
+  printf ("\n"
 "Program to calculate the deconvolution of a measurement 3d+time dataset    \n"
 "with a specified input stimulus time series.  This program will also       \n"
 "perform multiple linear regression using multiple input stimulus time      \n"

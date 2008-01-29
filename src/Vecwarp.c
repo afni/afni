@@ -146,7 +146,7 @@ static void Syntax(void)
     "\n"
     "Author: RWCox - October 2001\n"
    ) ;
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*--------------------------------------------------------------------------*/

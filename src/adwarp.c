@@ -193,7 +193,7 @@ void display_help_menu()
       RESAM_shortstr[1]
       ) ;
 
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 

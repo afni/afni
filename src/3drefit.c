@@ -273,12 +273,12 @@ void Syntax(char *str)
    }
    printf(
      "\n"
-     "You can also use option '-killSTAT' to remove all statistical encodings\n"
+     "You can also use option '-unSTAT' to remove all statistical encodings\n"
      "from sub-bricks in the dataset.  This operation would be desirable if\n"
      "you modified the values in the dataset (e.g., via 3dcalc).\n"
-     " ['-killSTAT' is done BEFORE the '-substatpar' operations, so you can]\n"
-     " [combine these options to completely re-do the sub-bricks, if needed]\n"
-     " [Option '-killSTAT' also implies that '-killFDR' will be carried out]\n"
+     " ['-unSTAT' is done BEFORE the '-substatpar' operations, so you can  ]\n"
+     " [combine these options to completely redo the sub-bricks, if needed.]\n"
+     " [Option '-unSTAT' also implies that '-unFDR' will be carried out.   ]\n"
    ) ;
 
    printf(
@@ -296,11 +296,17 @@ void Syntax(char *str)
    printf(
     "\n"
     "The following options let you modify the FDR curves stored in the header:\n"
-    "  -addFDR   = for each sub-brick marked with a statistical code, (re)compute\n"
-    "              the FDR curve of z(q) vs. statistic, and store in the header\n"
-    "  -killFDR  = remove all FDR curves from the header\n"
-    "              [you will want to do this if you have done something to ]\n"
-    "              [modify the values in the dataset statistical sub-bricks]\n"
+    " -addFDR = For each sub-brick marked with a statistical code, (re)compute\n"
+    "           the FDR curve of z(q) vs. statistic, and store in the dataset header\n"
+    "           * Since 3drefit doesn't have a '-mask' option, you will have to mask\n"
+    "             statistical sub-bricks yourself via 3dcalc (if desired):\n"
+    "              3dcalc -a stat+orig -b mask+orig -expr 'a*step(b)' -prefix statmm\n"
+    "           * '-addFDR' runs as if '-new -pmask' were given to 3dFDR, so that\n"
+    "              stat values == 0 will be ignored in the FDR algorithm.\n"
+    "\n"
+    " -unFDR  = Remove all FDR curves from the header\n"
+    "           [you will want to do this if you have done something to ]\n"
+    "           [modify the values in the dataset statistical sub-bricks]\n"
     "\n"
    ) ;
 
@@ -408,10 +414,10 @@ int main( int argc , char * argv[] )
       if( strcasecmp(argv[iarg],"-addFDR") == 0 ){
         do_FDR = 1 ;  new_stuff++ ; iarg++ ; continue ;
       }
-      if( strcasecmp(argv[iarg],"-killFDR") == 0 ){
+      if( strcasecmp(argv[iarg],"-killFDR") == 0 || strcasecmp(argv[iarg],"-unFDR") == 0 ){
         do_FDR = -1 ;  new_stuff++ ; iarg++ ; continue ;
       }
-      if( strcasecmp(argv[iarg],"-killSTAT") == 0 ){
+      if( strcasecmp(argv[iarg],"-killSTAT") == 0 || strcasecmp(argv[iarg],"-unSTAT") == 0 ){
         do_killSTAT = 1 ; do_FDR = -1 ; new_stuff++ ; iarg++ ; continue ;
       }
 
