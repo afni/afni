@@ -1211,7 +1211,8 @@ void AFNI_sigfunc_alrm(int sig)
      "The song is ended, but the melody lingers on"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
-   fprintf(stderr,"\n** AFNI is done: %s!\n\n",msg[nn]);
+   if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") )
+     fprintf(stderr,"\n** AFNI is done: %s!\n\n",msg[nn]);
    exit(sig);
 }
 #undef NMSG
