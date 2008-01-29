@@ -1417,7 +1417,7 @@ the same session. Strange things may happen.
 ---------------------------
 Variables: AFNI_ACPC_BBOX_*
 ---------------------------
-The variables let you choose the size of the "ACPC Box", into which 
+The variables let you choose the size of the "ACPC Box", into which
 +acpc datasets are transformed. If defined, they should be positive values,
 in mm.  The 6 variables (any or all of which may be used) are:
 
@@ -2686,3 +2686,5 @@ If this variable is set to NO, then the automatic computation of FDR
 curves into headers output by 3dDeconvolve, 3dANOVA, 3dttest, and
 3dNLfim will NOT be done.  Otherwise, the automatic FDR-ization of
 these datasets will performed when the datasets are written to disk.
+(You can always use '3drefit -addFDR' to add FDR curves to a dataset
+header, for those sub-bricks marked as statistical parameters.)
