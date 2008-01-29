@@ -19,8 +19,10 @@
 /*! Take an image of statistics and convert to FDR-ized z-scores (in place):
       - im must be in float format
       - if statcode > 0, the data is a statistic to be converted to
-        a p-value first; otherwise, the data is already p-value-ized
-        (values < 0 or >= 1 will be masked out)
+        a p-value first
+        (input data values == 0 are masked out as having p=1)
+      - otherwise, the data is already p-value-ized
+        (input data values < 0 or >= 1 will be masked out)
       - if flags&1==1, then the function tries to be compatible with the
         3dFDR program in '-old' mode:
           - in 3dFDR -old, processed input values that give p==1 are
@@ -34,7 +36,7 @@
         correlation structure -- this is not necessary for FMRI data!
       - if flags&4==1, then the output is q-values, not z-values
       - to mask, set input values to a statistic that will give p==1
-        (e.g., 0.0 for t, F, or rho; 1.0 for p or z) -- and set flags=0;
+        (e.g., 0.0 for t, F, or rho; 1.0 for p) -- and set flags=0;
         masked out voxels will be set to 0 (or 1 if flags&4 is set).
 *//*------------------------------------------------------------------------*/
 
@@ -53,9 +55,16 @@ ENTRY("mri_fdrize") ;
 
   /* convert to p-value? */
 
-  if( FUNC_IS_STAT(statcode) ){
+  if( FUNC_IS_STAT(statcode) ){     /* conversion to p-value */
+    for( ii=0 ; ii < nvox ; ii++ ){
+      if( far[ii] != 0.0f )
+        far[ii] = THD_stat_to_pval( fabsf(far[ii]), statcode,stataux ) ;
+      else
+        far[ii] = 1.0f ;
+    }
+  } else {                          /* already supposed to be p-value */
     for( ii=0 ; ii < nvox ; ii++ )
-      far[ii] = THD_stat_to_pval( fabsf(far[ii]), statcode,stataux ) ;
+      if( far[ii] < 0.0f || far[ii] > 1.0f ) far[ii] = 1.0f ;
   }
 
   qq   = (float *)malloc(sizeof(float)*nvox) ;
