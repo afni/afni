@@ -5190,9 +5190,9 @@ ENTRY("calculate_results") ;
     else if( esum > 1.e-6 ){ www = " ++ GOOD ++"     ; }
     else                   { www = " ++ VERY GOOD ++"; }
     if( strstr(www,"**") != NULL )
-      WARNING_message("!! Matrix inverse average error = %g %s",esum,www) ;
+      WARNING_message("+++++ !! Matrix inverse average error = %g %s",esum,www) ;
     else
-      INFO_message("Matrix inverse average error = %g %s",esum,www) ;
+      INFO_message("+++++ Matrix inverse average error = %g %s",esum,www) ;
   }
 
 #if 0
@@ -6499,7 +6499,7 @@ void write_bucket_data
 
   /*----- write bucket data set -----*/
 
-  if( do_FDR )
+  if( do_FDR && !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
     ibrick = THD_create_all_fdrcurves( new_dset ) ;
   else
     ibrick = 0 ;

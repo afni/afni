@@ -2442,6 +2442,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
+  if( !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
   { int ii = THD_create_all_fdrcurves( new_dset ) ;
     if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;
   }
@@ -2657,6 +2658,7 @@ void write_bucket_data
 
   INFO_message("Writing bucket dataset: %s",DSET_BRIKNAME(new_dset)) ;
 
+  if( !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
   { int ii = THD_create_all_fdrcurves( new_dset ) ;
     if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;
   }
