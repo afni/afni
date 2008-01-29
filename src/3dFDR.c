@@ -185,6 +185,7 @@ printf(
 "                       Note: If file mname contains more than 1 sub-brick, \n"
 "                       the mask sub-brick must be specified!               \n"
 "                       Default: No mask                                    \n"
+"                       N.B.: may also be abbreviated to '-mask'            \n"
 "                                                                           \n"
 "    -mask_thr m        Only voxels whose corresponding mask value is       \n"
 "                       greater than or equal to m in absolute value will   \n"
@@ -228,6 +229,11 @@ printf(
 "                N.B.: '-list' does not work in the new mode!\n"
 "    -pmask   = Instruct the program to ignore p=1 voxels\n"
 "                [the default in the new mode, but not in the old mode]\n"
+"               N.B.: voxels that were masked in 3dDeconvolve (etc.)\n"
+"                     will have their statistics set to 0, which means p=1,\n"
+"                     which means that such voxels are implicitly masked\n"
+"                     with '-new', and so don't need to be explicitly\n"
+"                     masked with the '-mask' option.\n"
 "    -nopmask = Instruct the program to count p=1 voxels\n"
 "                [the default in the old mode, but not in the new mode]\n"
 "    -force   = Force the conversion of all sub-bricks, even if they\n"
@@ -336,7 +342,7 @@ void read_options ( int argc , char * argv[] )
       
       
       /*-----   -mask_file mname   -----*/
-      if (strncmp(argv[nopt], "-mask_file",5) == 0 && strstr(argv[nopt],"thr") == NULL )
+      if (strcmp(argv[nopt], "-mask_file") == 0 || strcmp(argv[nopt],"-mask") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  FDR_error ("need argument after -mask_file ");
