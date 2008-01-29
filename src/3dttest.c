@@ -1095,7 +1095,8 @@ printf(" ** fimfac for mean, t-stat = %g, %g\n",dd, fimfac) ;
    (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 #endif
 
-   ii = THD_create_all_fdrcurves( new_dset ) ;
+   if( !AFNI_noenv("AFNI_AUTOMATIC_FDR") ) ii = THD_create_all_fdrcurves(new_dset) ;
+   else                                    ii = 0 ;
    THD_load_statistics( new_dset ) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
    if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;

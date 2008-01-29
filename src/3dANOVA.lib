@@ -710,8 +710,9 @@ void write_afni_data (anova_options * option_data,  char * filename,
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
   fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
- 
-  ii = THD_create_all_fdrcurves( new_dset ) ;
+
+  ii = !AFNI_noenv("AFNI_AUTOMATIC_FDR") ? THD_create_all_fdrcurves(new_dset)
+                                         : 0 ;
   if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;
 
   THD_load_statistics( new_dset ) ;
