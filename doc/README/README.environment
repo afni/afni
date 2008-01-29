@@ -2678,3 +2678,11 @@ If this YES/NO variable is set to YES, then 3dDeconvolve and 3dcalc
 will write their outputs in floating point format (unless they are
 forced to do otherwise with the '-datum short' type of option).  In
 the future, other programs may also be affected by this variable.
+
+----------------------------
+Variable: AFNI_AUTOMATIC_FDR
+----------------------------
+If this variable is set to NO, then the automatic computation of FDR
+curves into headers output by 3dDeconvolve, 3dANOVA, 3dttest, and
+3dNLfim will NOT be done.  Otherwise, the automatic FDR-ization of
+these datasets will performed when the datasets are written to disk.
