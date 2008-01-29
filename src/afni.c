@@ -1128,7 +1128,7 @@ static char *FALLback[] =
       "AFNI*troughColor:           blue3"                ,
       "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
       "AFNI*help*background:       black"                ,
-      "AFNI*help*foreground:       #ffff88"              ,
+      "AFNI*help*foreground:       #ffdd66"              ,
       "AFNI*help*helpborder:       False"                ,
       "AFNI*help*waitPeriod:       1066"                 ,
       "AFNI*help*fontList:         9x15bold=charset1"    ,
