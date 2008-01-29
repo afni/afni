@@ -203,6 +203,7 @@ static mday holiday[] = {
    {JAN,24,"Emperor Hadrian's birthday"                              } ,
    {JAN,25,"Somerset Maugham's birthday"                             } ,
    {JAN,26,"Anniversary of First Fleet to Botany Bay"                } ,
+   {JAN,26,"Australia Day"                                           } ,
    {JAN,27,"Charles Dodgson's (Lewis Carroll) birthday"              } ,
    {JAN,27,"Wolfgang Amadeus Mozart's birthday"                      } ,
    {JAN,28,"Anniversary of Challenger explosion"                     } ,
