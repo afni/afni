@@ -514,6 +514,7 @@ typedef struct {
       MCW_bbox *thr_onoff_bbox ;
       Widget thr_autothresh_pb ;
       MCW_arrowval *thr_sign_av ;  /* 08 Aug 2007 */
+      Widget thr_fdr_pb ;          /* 29 Jan 2008 */
 
       Widget inten_rowcol , inten_label ;
       MCW_pbar     *inten_pbar ;
@@ -567,6 +568,7 @@ typedef struct {
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
 extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007 */
+extern void AFNI_func_fdr_CB    (Widget,XtPointer,XtPointer) ;    /* 29 Jan 2008 */
 
 #define PBAR_MODEBUT  0
 #define PBAR_MODEPOS  (1 << PBAR_MODEBUT)

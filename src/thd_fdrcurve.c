@@ -29,10 +29,15 @@ ENTRY("THD_create_one_fdrcurve") ;
    fv = mri_fdr_curve( qim , sc , DSET_BRICK_STATAUX(dset,iv) ) ;
 
    if( qim != bim ) mri_free(qim) ;
+
    if( fv != NULL ){
+
      if( dset->dblk->brick_fdrcurve == NULL )
        dset->dblk->brick_fdrcurve = (floatvec **)calloc(sizeof(floatvec *),
                                                         dset->dblk->nvals  ) ;
+     else if( dset->dblk->brick_fdrcurve[iv] != NULL )
+       KILL_floatvec( dset->dblk->brick_fdrcurve[iv] ) ;
+
      dset->dblk->brick_fdrcurve[iv] = fv ;
    }
 
