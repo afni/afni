@@ -6567,3 +6567,6 @@
      volume, but that looks real bad.  Solution: disable vedit feature
      in AFNI_dataset_slice() when calling from the 'get anat image' place
      in afni.c, and then re-enable it right afterwards.
+
+29 Jan 2008
+ * Fixed bug in 3dFDR -new handling of mask -- ooooppssssie.

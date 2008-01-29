@@ -161,7 +161,7 @@ int main( int argc , char *argv[] )
       "\n"
       "-- Author: RW Cox\n"
      ) ;
-     exit(0) ;
+     PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    mainENTRY("aiv main") ; machdep() ;

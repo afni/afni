@@ -127,11 +127,15 @@ do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
    Print error message and stop.
 */
 
+#if 0
 void FDR_error (char * message)
 {
   fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
   exit(1);
 }
+#else
+# define FDR_error(s) ERROR_exit("3dFDR -- %s",s)
+#endif
 
 
 /*---------------------------------------------------------------------------*/
@@ -242,12 +246,21 @@ printf(
 "   p=1 voxels are not counted (which should give results virtually\n"
 "   identical to '-new').\n"
 "\n"
+"* However, the combination of '-new', '-nopmask' and '-mask_file' does not\n"
+"   work -- if you try it, '-pmask' will be turned back on and a warning\n"
+"   message printed to aid your path elucidation and enlightenment.\n"
+"\n"
 "Other Notes:\n"
 "------------\n"
 "* '3drefit -addFDR' can be used to add FDR curves of z(q) as a function\n"
 "    of threshold for all statistic sub-bricks in a dataset; in turn, these\n"
 "    curves let you see the (estimated) q-value as you move the threshold\n"
 "    slider in AFNI.\n"
+"   - Since 3drefit doesn't have a '-mask' option, you will have to mask\n"
+"     statistical sub-bricks yourself via 3dcalc (if desired):\n"
+"       3dcalc -a stat+orig -b mask+orig -expr 'a*step(b)' -prefix statmm\n"
+"   - '-addFDR' runs as if '-new -pmask' were given to 3dFDR, so that\n"
+"     stat values == 0 are ignored in the FDR calculations.\n"
 "\n"
 "* q-values are estimates of the False Discovery Rate at a given threshold;\n"
 "   that is, about 5%% of all voxels with q <= 0.05 (z >= 1.96) are\n"
@@ -323,7 +336,7 @@ void read_options ( int argc , char * argv[] )
       
       
       /*-----   -mask_file mname   -----*/
-      if (strcmp(argv[nopt], "-mask_file") == 0)
+      if (strncmp(argv[nopt], "-mask_file",5) == 0 && strstr(argv[nopt],"thr") == NULL )
 	{
 	  nopt++;
 	  if (nopt >= argc)  FDR_error ("need argument after -mask_file ");
@@ -437,10 +450,22 @@ void read_options ( int argc , char * argv[] )
        " +   process tends to increase the q-values and so decrease the z-scores.\n"
        " + * If you wish to do the FDR conversion using the old mode, use '-old'\n"
        " +   on the command line.  For more information, use '3dFDR -help'.\n"
-       " + * If you don't want to see this message, use the '-new' option.\n"
+       " + * If you don't want to see this message again, use the '-new' option.\n"
        "++ RWCox - 18 Jan 2008\n\n"
      ) ;
    }
+
+   if( FDR_old < 1 && FDR_pmask == 0 && FDR_mask != NULL ){  /* 29 Jan 2008 */
+     fprintf(stderr,"\n"
+       "++ In the 'new' method of FDR calculation, options '-nopmask' and\n"
+       " +  -mask_file are incompatible.  Am now turning '-pmask' back on\n"
+       " +  so that the mask can be used.\n"
+       "++ RWCox - 29 Jan 2008\n\n"
+     ) ;
+     FDR_pmask = 1 ;
+   }
+
+   return ;
 }
 
 
@@ -605,17 +630,17 @@ void * initialize_program (int argc, char * argv[])
   if (FDR_mask_filename != NULL)
     {
       if (!FDR_quiet) 
-	printf ("Reading mask dataset: %s \n", FDR_mask_filename);
+        printf ("Reading mask dataset: %s \n", FDR_mask_filename);
       DOPEN (FDR_dset, FDR_mask_filename);
 
       if (FDR_dset == NULL)
-	{
-	  sprintf (message, "Cannot open mask dataset %s", FDR_mask_filename); 
-	  FDR_error (message);
-	}
+      {
+        sprintf (message, "Cannot open mask dataset %s", FDR_mask_filename); 
+        FDR_error (message);
+      }
 
       if (DSET_NVALS(FDR_dset) != 1)
-	FDR_error ("Must specify single sub-brick for mask data");
+        WARNING_message("Mask dataset: using sub-brick #0") ;
 
 
       /*----- Get dimensions of mask dataset -----*/
@@ -630,7 +655,7 @@ void * initialize_program (int argc, char * argv[])
 
 
       /*----- Convert mask dataset sub-brick to floats (in ffim) -----*/
-      iv = DSET_PRINCIPAL_VALUE (FDR_dset);
+      iv = 0 ;
       SUB_POINTER (FDR_dset, iv, 0, vfim);
       EDIT_coerce_scale_type (mxyz, DSET_BRICK_FACTOR(FDR_dset,iv),
 			      DSET_BRICK_TYPE(FDR_dset,iv), vfim,  /* input  */
@@ -644,19 +669,15 @@ void * initialize_program (int argc, char * argv[])
       
       /*----- Create mask of voxels above mask threshold -----*/
       nthr = 0;
-      for (ixyz = 0;  ixyz < mxyz;  ixyz++)
-	if (fabs(ffim[ixyz]) >= FDR_mask_thr)  
-	  { 
-	    FDR_mask[ixyz] = 1;
-	    nthr++;
-	  }
-	else
-	  FDR_mask[ixyz] = 0;
+      for (ixyz = 0;  ixyz < mxyz;  ixyz++){
+        if (fabs(ffim[ixyz]) >= FDR_mask_thr){ FDR_mask[ixyz] = 1; nthr++; }
+        else                                   FDR_mask[ixyz] = 0;
+      }
 
       if (!FDR_quiet)  
-	printf ("Number of voxels above mask threshold = %d \n", nthr);
+        printf ("Number of voxels above mask threshold = %d \n", nthr);
       if (nthr < 1)  
-	FDR_error ("No voxels above mask threshold.  Cannot continue.");
+        FDR_error ("No voxels above mask threshold.  Cannot continue.");
 
 
       /*----- Delete floating point sub-brick -----*/
@@ -914,9 +935,10 @@ void process_volume (float * ffim, int statcode, float * stataux)
     MRI_IMAGE *qim ; int flags=0 ;
     qim = mri_new_vol_empty( FDR_nxyz,1,1 , MRI_float ) ;
     mri_fix_data_pointer( ffim , qim ) ;
-    if (FDR_mask != NULL){
+    if( FDR_mask != NULL ){
       float zz = (FUNC_IS_STAT(statcode)) ? 0.0f : 1.0f ;
-      for( ixyz=0 ; ixyz < FDR_nxyz ; ixyz++ ) ffim[ixyz] = zz ;
+      for( ixyz=0 ; ixyz < FDR_nxyz ; ixyz++ )
+        if( !FDR_mask[ixyz] ) ffim[ixyz] = zz ;
     }
     if( FDR_curve ){ /* hidden option: produce t-z curve */
       floatvec *fv = mri_fdr_curve( qim , statcode , stataux ) ;
@@ -956,8 +978,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
     {
 
       /*----- First, check if voxel is inside the mask -----*/
-      if (FDR_mask != NULL)
-	if (!FDR_mask[ixyz]) continue;
+      if( FDR_mask != NULL && !FDR_mask[ixyz] ) continue;
 
 
       /*----- Convert stats to p-values -----*/
