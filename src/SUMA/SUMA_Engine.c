@@ -3079,7 +3079,9 @@ SUMA_Boolean SUMA_GetOverlaysFromParent(SUMA_SurfaceObject *SO_nxt, SUMA_Surface
    Replaces one viewing state with another
 
 */
-SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, int nxtstateID, char *nxtgroup)
+SUMA_Boolean SUMA_SwitchState (  SUMA_DO *dov, int N_dov, 
+                                 SUMA_SurfaceViewer *sv, 
+                                 int nxtstateID, char *nxtgroup)
 {
    static char FuncName[]={"SUMA_SwitchState"};
    SUMA_Axis *EyeAxis;
@@ -3100,8 +3102,11 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    curstateID = SUMA_WhichState(sv->State, sv, sv->CurGroupName);
    
    /* unregister all the surfaces for the current view */
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Unregistering state %d (%s), sv(%p)->State = %s\n", 
-                  FuncName, curstateID, sv->VSv[curstateID].Name, sv, sv->State);
+   if (LocalHead) 
+         fprintf( SUMA_STDERR,
+                  "%s: Unregistering state %d (%s), sv(%p)->State = %s\n", 
+                  FuncName, curstateID, sv->VSv[curstateID].Name, 
+                  sv, sv->State);
    for (i=0; i<sv->VSv[curstateID].N_MembSOs; ++i) {
       if (!SUMA_UnRegisterDO(sv->VSv[curstateID].MembSOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to UnRegisterDO.\n", FuncName);
@@ -3121,8 +3126,10 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    }
    
    /* register all the surfaces from the next view */
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: Registering DOv of state %d (%s)...\n", 
-            FuncName, nxtstateID, sv->VSv[nxtstateID].Name);
+   if (LocalHead) 
+      fprintf( SUMA_STDERR,
+               "%s: Registering DOv of state %d (%s)...\n", 
+               FuncName, nxtstateID, sv->VSv[nxtstateID].Name);
    for (i=0; i<sv->VSv[nxtstateID].N_MembSOs; ++i) {
       if (!SUMA_RegisterDO(sv->VSv[nxtstateID].MembSOs[i], sv)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to RegisterDO.\n", FuncName);
@@ -3203,7 +3210,8 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    
    /*set the Color Remix flag */
    if (!SUMA_SetShownLocalRemixFlag (sv)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
 
@@ -3217,12 +3225,17 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
       if (!SO_nxt->LocalDomainParentID) {
          prec_ID = -1;
       }else {
-         prec_ID = SUMA_findSO_inDOv(SO_nxt->LocalDomainParentID, SUMAg_DOv, SUMAg_N_DOv);
+         prec_ID = SUMA_findSO_inDOv(  SO_nxt->LocalDomainParentID, 
+                                       SUMAg_DOv, SUMAg_N_DOv);
       }
       if (prec_ID < 0) {
          /* no precursors found, notify user */
-         fprintf(SUMA_STDERR, "\n\aWarning %s: No precursors found for surface %d.\nColors, selected nodes and facesets will not be reflect those in previous state.\n.",\
-          FuncName, sv->VSv[nxtstateID].MembSOs[i]);
+         fprintf(SUMA_STDERR, 
+                  "\n\aWarning %s: "
+                  "No precursors found for surface %d.\n"
+                  "Colors, selected nodes and facesets will "
+                  "not reflect those in previous state.\n.",
+                  FuncName, sv->VSv[nxtstateID].MembSOs[i]);
          continue;
       }
 
@@ -3239,32 +3252,55 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 
          if (SO_prec->N_Node > SO_nxt->N_Node) {/* More in prec */
             /* just warn */
-            fprintf(SUMA_STDERR, "Warning %s: More nodes (%d) in precursor surface. \n Assuming upcoming surface is a subset of precursor.\n", FuncName, SO_prec->N_Node - SO_nxt->N_Node);
+            fprintf(SUMA_STDERR, 
+                     "Warning %s: More nodes (%d) in precursor surface. \n"
+                     "Assuming upcoming surface is a subset of precursor.\n",
+                     FuncName, SO_prec->N_Node - SO_nxt->N_Node);
          }/* More in prec */ 
 
          /* link the selected nodes and facesets, if possible */
-         /*fprintf(SUMA_STDERR, "%s: Linking selected nodes  ...\n", FuncName);*/
+         /*fprintf(SUMA_STDERR, 
+                  "%s: Linking selected nodes  ...\n", 
+                  FuncName);*/
          /* check for risk of node inconsistencies */
          if (SO_prec->N_Node == SO_nxt->N_Node) {
             SO_nxt->SelectedNode = SO_prec->SelectedNode;
-            } else { /* more nodes in precursor, make sure selected node is OK */
+            } else { /*more nodes in precursor, make sure selected node is OK */
             if (SO_prec->SelectedNode < SO_nxt->N_Node) {
                SO_nxt->SelectedNode = SO_prec->SelectedNode;
-               } else { /* this node does not exist in the upcoming thing */
-               fprintf(SUMA_STDERR, "\n\aWarning %s: Slected node in precursor state does not exist in current state.\n Selected Node is left at previous setting in this view state.\n", FuncName);
+            } else { /* this node does not exist in the upcoming thing */
+               fprintf(SUMA_STDERR, 
+                        "\n\aWarning %s: "
+                        "Slected node in precursor state does not exist "
+                        "in current state.\n"
+                        "Selected Node is left at previous setting in "
+                        "this view state.\n", FuncName);
                }
             }
 
          } /* > or equal number of nodes */ else { /* less in prec */
-            fprintf(SUMA_STDERR, "\n\aWarning %s: More nodes (%d) in upcoming surface. Colors, selected nodes and facesets are not carried through from precursor.\n", FuncName, SO_nxt->N_Node - SO_prec->N_Node);
+            fprintf(SUMA_STDERR, 
+                     "\n\aWarning %s: More nodes (%d) in upcoming surface. "
+                     "Colors, selected nodes and facesets are not carried "
+                     "through from precursor.\n", 
+                     FuncName, SO_nxt->N_Node - SO_prec->N_Node);
          }
 
          #if 0
-         /* You do not want to mix colors yet, the flag for doing that has already been set*/
+         /* You do not want to mix colors yet, 
+            the flag for doing that has already been set*/
          /* Here you need to remix the colors */
-         if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, SO_nxt->N_Overlays, SUMA_GetColorList (sv, SO_nxt->idcode_str), SO_nxt->N_Node,\
-             sv->Back_Modfact, sv->ShowBackground, sv->ShowForeground)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
+         if (!SUMA_Overlays_2_GLCOLAR4(SO_nxt->Overlays, 
+                                       SO_nxt->N_Overlays, 
+                                       SUMA_GetColorList (sv,
+                                                         SO_nxt->idcode_str),
+                                       SO_nxt->N_Node,
+                                       sv->Back_Modfact, 
+                                       sv->ShowBackground, 
+                                       sv->ShowForeground)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n",
+                     FuncName);
             SUMA_RETURN (NOPE);
          }
          #endif
@@ -3273,33 +3309,51 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    
    /* Bind the cross hair to a reasonable surface, if possible */
    if (sv->Ch->SurfaceID >= 0) {      
-      if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Linking Cross Hair via SurfaceID...\n", FuncName);
-      j = SUMA_MapRefRelative (sv->Ch->SurfaceID, sv->VSv[nxtstateID].MembSOs, sv->VSv[nxtstateID].N_MembSOs, dov);
-      if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Cross Hair's  New SurfaceID = %d\n", FuncName, j );
+      if (LocalHead) 
+         fprintf( SUMA_STDERR, 
+                  "Local Debug %s: Linking Cross Hair via SurfaceID...\n",
+                   FuncName);
+      j = SUMA_MapRefRelative (sv->Ch->SurfaceID, 
+                               sv->VSv[nxtstateID].MembSOs,
+                               sv->VSv[nxtstateID].N_MembSOs, dov);
+      if (LocalHead) fprintf( SUMA_STDERR, 
+                              "Local Debug %s: "
+                              "Cross Hair's  New SurfaceID = %d\n", 
+                              FuncName, j );
       
-      /* set the XYZ of the cross hair based on the coordinates of the upcoming surface, if possible */
+      /* set the XYZ of the cross hair based on the 
+         coordinates of the upcoming surface, if possible */
       if (j >= 0) {
          SO_nxt = (SUMA_SurfaceObject *)(dov[j].OP);
          ND = SO_nxt->NodeDim;
          id = ND * sv->Ch->NodeID;
          if (sv->Ch->NodeID >= 0) {
-            if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Using NodeID for link.\n", FuncName);
+            if (LocalHead) fprintf( SUMA_STDERR, 
+                                    "Local Debug %s: Using NodeID for link.\n",
+                                    FuncName);
             sv->Ch->c[0] = SO_nxt->NodeList[id];
             sv->Ch->c[1] = SO_nxt->NodeList[id+1];
             sv->Ch->c[2] = SO_nxt->NodeList[id+2];
          } else {
             /* no node associated with cross hair, use XYZ */
-            if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Using XYZ for link.\n", FuncName);
+            if (LocalHead) fprintf( SUMA_STDERR, 
+                                    "Local Debug %s: Using XYZ for link.\n", 
+                                    FuncName);
             SO_prec = (SUMA_SurfaceObject *)(dov[sv->Ch->SurfaceID].OP);
-            /* go from XYZ to XYZmap on current surface then from XYZmap to XYZ on new surface */
+            /* go from XYZ to XYZmap on current surface 
+               then from XYZmap to XYZ on new surface */
             I_C = -1;
             XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c, SO_prec, dov, N_dov, &I_C);
             if (XYZmap == NULL) {
-               fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_XYZ_XYZmap\n", FuncName); 
+               fprintf( SUMA_STDERR, 
+                        "Error %s: Failed in SUMA_XYZ_XYZmap\n", 
+                        FuncName); 
             }else {
                XYZ = SUMA_XYZmap_XYZ (XYZmap, SO_nxt, dov, N_dov, &I_C);
                if (XYZ == NULL) {
-                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_XYZmap_XYZ\n", FuncName); 
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_XYZmap_XYZ\n", 
+                           FuncName); 
                } else {
                   sv->Ch->c[0] = XYZ[0];
                   sv->Ch->c[1] = XYZ[1];
@@ -3317,18 +3371,25 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
          }
 
       } else {
-         fprintf(SUMA_STDERR, "%s: No relatives between states. CrossHair location will not correspond between states\n", FuncName); 
+         fprintf( SUMA_STDERR, 
+                  "%s: No relatives between states. "
+                  "CrossHair location will not correspond between states\n",
+                  FuncName); 
       }
-       sv->Ch->SurfaceID = j;
-      if (LocalHead) fprintf(SUMA_STDERR, "Local Debug %s: Linking Cross Hair Via NodeID Done.\n", FuncName);
+      sv->Ch->SurfaceID = j;
+      if (LocalHead) 
+         fprintf(SUMA_STDERR, 
+                  "Local Debug %s: Linking Cross Hair Via NodeID Done.\n",
+                  FuncName);
    }
    
 
 
    /* switch the state accordingly */
    sv->State =  sv->VSv[nxtstateID].Name;
+   if (sv->FreezeZoomXstates) 
+      sv->FOV[nxtstateID] = sv->FOV[sv->iState]; 
    sv->iState = nxtstateID;
-   
    /* set the focus ID to the first surface in the next view */
    sv->Focus_SO_ID = sv->VSv[nxtstateID].MembSOs[0];
    
@@ -3342,20 +3403,29 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
 
    if (LocalHead) {
       SUMA_SurfaceObject *SOtmp=(SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP);
-      fprintf(SUMA_STDERR,"%s: Setting new Focus ID to surface %s\n", FuncName, SOtmp->Label);
+      fprintf( SUMA_STDERR,
+               "%s: Setting new Focus ID to surface %s\n", 
+               FuncName, SOtmp->Label);
    }
    
    /* decide what the best state is */
    sv->StdView = SUMA_BestStandardView (sv,dov, N_dov);
-   if (LocalHead) fprintf(SUMA_STDOUT,"%s: Standard View Now %d\n", FuncName, sv->StdView);
+   if (LocalHead) fprintf( SUMA_STDOUT,
+                           "%s: Standard View Now %d\n", 
+                           FuncName, sv->StdView);
    if (sv->StdView == SUMA_Dunno) {
-      fprintf(SUMA_STDERR,"Error %s: Could not determine the best standard view. Choosing default SUMA_3D\n", FuncName);
+      fprintf( SUMA_STDERR,
+               "Error %s: Could not determine the best standard view. "
+               "Choosing default SUMA_3D\n", 
+               FuncName);
       sv->StdView = SUMA_3D;
    }
 
    /* modify the rotation center */
    if (!SUMA_UpdateRotaCenter(sv, dov, N_dov)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to update center of rotation", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to update center of rotation", 
+               FuncName);
       SUMA_RETURN (NOPE);
    }
    
@@ -3379,8 +3449,11 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    SUMA_WorldAxisStandard (sv->WAx, sv);
 
    /* do the light business */
-   if (!SUMA_SetViewerLightsForSO(sv, (SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP))) {
-      SUMA_S_Warn("Failed to set viewer lights.\nUse 'F' key to flip lights in SUMA\nif necessary.");
+   if (!SUMA_SetViewerLightsForSO(
+               sv, 
+               (SUMA_SurfaceObject *)(dov[sv->Focus_SO_ID].OP) )) {
+      SUMA_S_Warn("Failed to set viewer lights.\n"
+                  "Use 'F' key to flip lights in SUMA\nif necessary.");
    }
     
    /* Home call baby */

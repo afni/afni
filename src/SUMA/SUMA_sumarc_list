@@ -67,6 +67,6 @@ SUMA_START_NIML = YES
 //29- Allow (YES) datasets with the same filename but differing ID to be considered the same 
 //(only useful with SUMA_AllowDsetReplacement). Default is NO
 SUMA_AllowFilenameDsetMatch = YES
-//30- Freeze zoom across states
+//30- Freeze zoom across states. Default is NO
 SUMA_FreezeFOVAcrossStates = YES
 

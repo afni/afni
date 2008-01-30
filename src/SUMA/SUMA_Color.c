@@ -135,6 +135,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
       SUMA_RETURN (NULL);
    }
+   memset(SM, 0, sizeof(SUMA_COLOR_MAP));
    SM->top_frac = 0.0f;
    SM->Name = (char *)SUMA_calloc(strlen(Name)+1, sizeof(char));
    if (SM->Name == NULL) {
@@ -246,7 +247,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
       SUMA_RETURN (NULL);
    }
-   
+   memset(SM, 0, sizeof(SUMA_COLOR_MAP));
    SM->top_frac = 0.0f;
    SM->Name = (char *)SUMA_calloc(strlen(Name)+1, sizeof(char));
    if (SM->Name == NULL) {
@@ -484,6 +485,8 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
          SUMA_SL_Crit ("Failed to allocate for CMp &/| CMn.");
          SUMA_RETURN(NULL);
       }
+      memset(CMp, 0, sizeof(SUMA_COLOR_MAP));
+      memset(CMn, 0, sizeof(SUMA_COLOR_MAP));
       CMp->top_frac = 0.0f;
       CMn->top_frac = 0.0f;
       CMp->SO = NULL; 
@@ -6470,7 +6473,7 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
       memset(app, 0, sizeof(XtAppContext));
    }
    color_exact = (XColor*)XtCalloc(1, sizeof(XColor));
-   memset(color_exact, 0, sizeof(color_exact));
+   memset(color_exact, 0, sizeof(XColor));
    
    if (!Name) {
       /* cleanup */

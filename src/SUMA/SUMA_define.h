@@ -1653,7 +1653,7 @@ typedef struct {
    int iCurGroup; /*!< index into GroupList (stored in SUMAg_CF) of current group of Surface Viewer */
    SUMA_REDISPLAY_CAUSE rdc;  /*!< Why has a redisplay been requested */
    SUMA_BLEND_MODES Blend_Mode; /*!< blending mode */
-   
+   int FreezeZoomXstates; /*!< if 1, keep zoom constant across states */
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
