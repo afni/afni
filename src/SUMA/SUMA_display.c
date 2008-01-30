@@ -173,6 +173,7 @@ static String fallbackResources_Bonaire[] = {
   NULL
 }; /* if you change default width and height, make sure you change SV->X->WIDTH & SV->X->HEIGHT in SUMA_SVmanip */
 
+/* DO NOT USE THESE, keep here for record */
 static char SUMA_TEXT_WIDGET_TRANSLATIONS[] = 
    "  <Btn4Down>: previous-line()   \n\
       <Btn5Down>: next-line()       ";
@@ -5500,10 +5501,14 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
       XmListSelectPos(LW->list,1, False); 
       /* realize the widget */
       XtRealizeWidget (LW->toplevel);
-      /* Do the wheel buidness Can't seem to get this working no matter where I put it. Best to leave it in fallback */
-      /*XtVaSetValues  (  LW->list, 
-                  XmNtranslations, XtParseTranslationTable(SUMA_SCR_LIST_WIDGET_TRANSLATIONS),
-                  NULL);  */
+      /* The wheel buidness is done in fallback resources.
+         This approach does not work no matter where I put it. 
+         For text widgets, it causes more trouble) */
+         /*XtVaSetValues  (  LW->list, 
+                     XmNtranslations,
+                     XtParseTranslationTable(
+                                 SUMA_SCR_LIST_WIDGET_TRANSLATIONS),
+                     NULL);  */
    }
    
    SUMA_RETURNe;
@@ -7503,17 +7508,25 @@ void SUMA_cb_moreViewerInfo (Widget w, XtPointer client_data, XtPointer callData
    
    #if 1
    if (s) {
-      TextShell =  SUMA_CreateTextShellStruct (SUMA_ViewerInfo_open, (void *)sv, 
-                                               SUMA_ViewerInfo_destroyed, (void *)sv);
+      TextShell =  SUMA_CreateTextShellStruct (
+                                 SUMA_ViewerInfo_open, 
+                                 (void *)sv, 
+                                 SUMA_ViewerInfo_destroyed, 
+                                 (void *)sv);
       if (!TextShell) {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateTextShellStruct.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed in SUMA_CreateTextShellStruct.\n",
+                   FuncName);
          SUMA_RETURNe;
       }
       sprintf(stmp, "[%c] Viewer Info", 65+isv);
-      sv->X->ViewCont->ViewerInfo_TextShell = SUMA_CreateTextShell(s, stmp, TextShell);
+      sv->X->ViewCont->ViewerInfo_TextShell = 
+            SUMA_CreateTextShell(s, stmp, TextShell);
       SUMA_free(s);
    }else {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceViewer_StructInfo.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_SurfaceViewer_StructInfo.\n",
+               FuncName);
    }   
    #else 
       fprintf (SUMA_STDERR, "%s\n", s);
@@ -7749,20 +7762,28 @@ void SUMA_DestroyTextShell (Widget w, XtPointer ud, XtPointer cd)
    
 */
 
-SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (void (*opencallback)(void *data), void *opendata, 
-                                                            void (*closecallback)(void*data), void *closedata)
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
+                                    void (*opencallback)(void *data), 
+                                    void *opendata,
+                                    void (*closecallback)(void*data), 
+                                    void *closedata)
 {
    static char FuncName[] = {"SUMA_CreateTextShellStruct"};
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell=NULL;
    
    SUMA_ENTRY;
    
-   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *) SUMA_malloc (sizeof(SUMA_CREATE_TEXT_SHELL_STRUCT));
+   TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *) 
+               SUMA_malloc (sizeof(SUMA_CREATE_TEXT_SHELL_STRUCT));
    if (!TextShell) {
-      fprintf (SUMA_STDERR, "Error %s: Failed to allocate for TextShell.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed to allocate for TextShell.\n", 
+               FuncName);
       SUMA_RETURN (NULL);
    }
-   TextShell->text_w =  TextShell->search_w = TextShell->text_output = TextShell->toplevel = NULL;
+   TextShell->text_w =  TextShell->search_w = 
+                        TextShell->text_output = 
+                        TextShell->toplevel = NULL;
    TextShell->case_sensitive = NOPE;
    TextShell->allow_edit = NOPE;
    TextShell->OpenCallBack = opencallback;
@@ -7788,7 +7809,10 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (void (*opencallback)
    - based on example SUMA_search_text from "Motif Programming Manual"
    see copyright notice in beginning of SUMA_display.c
 */   
-SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell)
+SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
+                                 char *s, 
+                                 char *title, 
+                                 SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell)
 {
    static char FuncName[] = {"SUMA_CreateTextShell"};
    Widget rowcol_v, rowcol_h, close_w, form, frame, toggle_case_w;
@@ -7796,16 +7820,23 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
    SUMA_Boolean LocalHead = NOPE;
    Pixel fg_pix;
    Arg args[30];
-   
+   static XmTextScanType sarray[] = {  XmSELECT_POSITION, 
+                                       XmSELECT_WORD, 
+                                       XmSELECT_LINE, 
+                                       XmSELECT_ALL };
    SUMA_ENTRY;
 
    if (TextShell->OpenCallBack) { /* do the opening callback */
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Calling OpenCallBack.\n", FuncName);
+      if (LocalHead) fprintf (SUMA_STDERR, 
+                              "%s: Calling OpenCallBack.\n", 
+                              FuncName);
       TextShell->OpenCallBack(TextShell->OpenData);
    }
    
    if (!TextShell->toplevel) { /* need to create window */
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating new text shell window.\n", FuncName);
+      if (LocalHead) fprintf (SUMA_STDERR, 
+                              "%s: Creating new text shell window.\n",
+                              FuncName);
       TextShell->toplevel = XtVaAppCreateShell (title, "Suma",
          topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,        
          XmNdeleteResponse, XmDO_NOTHING,
@@ -7813,7 +7844,9 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
 
       XmAddWMProtocolCallback(/* make "Close" window menu work */
          TextShell->toplevel,
-         XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
+         XmInternAtom(  SUMAg_CF->X->DPY_controller1 , 
+                        "WM_DELETE_WINDOW" , 
+                        False ) ,
          SUMA_DestroyTextShell, TextShell) ;
 
       form = XtVaCreateWidget ("textoutput",
@@ -7839,17 +7872,25 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
          XmNset, TextShell->case_sensitive,
          XmNselectColor, fg_pix, 
          NULL);
-      XtAddCallback (toggle_case_w, XmNvalueChangedCallback,SUMA_cb_ToggleCaseSearch, TextShell);
+      XtAddCallback (toggle_case_w,
+                     XmNvalueChangedCallback,
+                     SUMA_cb_ToggleCaseSearch, 
+                     TextShell);
 
-      close_w = XtVaCreateManagedWidget ("Close", 
-         xmPushButtonWidgetClass, rowcol_h, NULL);
-      XtAddCallback (close_w, XmNactivateCallback, SUMA_DestroyTextShell, TextShell);    
+      close_w = XtVaCreateManagedWidget (
+                     "Close", 
+                     xmPushButtonWidgetClass, 
+                     rowcol_h, NULL);
+      XtAddCallback (close_w, 
+                     XmNactivateCallback, 
+                     SUMA_DestroyTextShell, 
+                     TextShell);    
 
       XtManageChild (rowcol_h);
-
+      
       TextShell->text_output = XtVaCreateManagedWidget ("text_output",
         xmTextWidgetClass, rowcol_v,
-        XmNeditable,              False,
+        XmNeditable, False,
         XmNcursorPositionVisible, False,
         XmNshadowThickness,       0,
         XmNhighlightThickness,    0,
@@ -7869,8 +7910,12 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
       XtSetArg (args[n], XmNleftAttachment, XmATTACH_FORM); n++;
       XtSetArg (args[n], XmNtopAttachment, XmATTACH_WIDGET); n++;
       XtSetArg (args[n], XmNtopWidget, rowcol_v); n++;
-
+      /* XtSetArg (args[n], XmNselectionArray, sarray); n++;
+      XtSetArg (args[n], XmNselectionArrayCount, 4); n++;
+      XtSetArg (args[n], XmNselectThreshold, 1); n++;  leave it to defaults*/
+      
       TextShell->text_w = XmCreateScrolledText (form, "text_w", args, n);
+                                  
       if (!s) {
          XmTextSetString (TextShell->text_w, "No Messages.\n---------------\n");
       } else {
@@ -7878,12 +7923,21 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
       }   
       XtManageChild (TextShell->text_w);
       
-      XtAddCallback (TextShell->search_w, XmNactivateCallback, SUMA_cb_search_text, TextShell);
+      XtAddCallback (TextShell->search_w, 
+                     XmNactivateCallback, SUMA_cb_search_text, 
+                     TextShell);
       
-      /* Setting XmNtranslations gives warning if done inside XmCreateScrolledText ror text_w */
+      /* Setting XmNtranslations gives warning 
+         if done inside XmCreateScrolledText ror text_w 
+      
+      Not needed anymore, see #override in fallback resources
+      If you keep this here, you can no longer select from the text window!
+      
       XtVaSetValues  (  TextShell->text_w, 
-                        XmNtranslations, XtParseTranslationTable(SUMA_TEXT_WIDGET_TRANSLATIONS),
+                        XmNtranslations,
+                        XtParseTranslationTable(SUMA_TEXT_WIDGET_TRANSLATIONS),
                         NULL); 
+      */
 
       XtManageChild (form);
 
