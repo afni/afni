@@ -2737,20 +2737,25 @@ STATUS("making func->rowcol") ;
          NULL ) ;
 
    MCW_register_help( func->thr_pval_label ,
-         "Shows the estimated significance\n"
-         "(p value) of the threshold above,\n"
-         "if possible.\n"
-         "* If not possible, will display as\n"
-         "   '[N/A]' instead.\n"
-         "* p's that display as 1.2-7 should\n"
-         "   be interpreted as 1.2 x 10^(-7).\n"
-         "* This is the significance PER VOXEL.\n"
-         "* If FDR curves are pre-computed in\n"
-         "   the dataset header, then the False\n"
-         "   Discovery Rate q-value will also\n"
-         "   be shown."
+      "Shows the estimated significance\n"
+      "(p-value) of the threshold above,\n"
+      "if possible.\n"
+      "* If not possible, will display as\n"
+      "   '[N/A]' instead.\n"
+      "* p's that display as 1.2-7 should\n"
+      "   be interpreted as 1.2 x 10^(-7).\n"
+      "* p-value here is significance PER VOXEL.\n"
+      "* If FDR curves are pre-computed in\n"
+      "   the dataset header, then the False\n"
+      "   Discovery Rate q-value will also\n"
+      "   be shown.\n"
+      "* You can add FDR curves to a dataset\n"
+      "   with '3drefit -addFDR' or by using\n"
+      "   the 'Add FDR Curves' button on the\n"
+      "   right-click popup menu on the label\n"
+      "   atop the threshold slider.\n"
    ) ;
-   MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel; nominal FDR q-value" ) ;
+   MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel; FDR q-value" ) ;
 
 #if 0
    /* 05 Sep 2006: duplicate popup from thr_label */
