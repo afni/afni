@@ -138,25 +138,28 @@ Create a SurfaceViewer data structure
 */
 SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 {
-   SUMA_SurfaceViewer *SV=NULL, *SVv=NULL;
    static char FuncName[]={"SUMA_Alloc_SurfaceViewer_Struct"};
+   SUMA_SurfaceViewer *SV=NULL, *SVv=NULL;
    int i=-1, j=-1, n=-1, iii=-1;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
-   SVv =  (SUMA_SurfaceViewer *)SUMA_malloc(sizeof(SUMA_SurfaceViewer)*N);
+   SVv =  (SUMA_SurfaceViewer *)SUMA_calloc(N, sizeof(SUMA_SurfaceViewer));
    if (SVv == NULL) {
       fprintf(SUMA_STDERR,"Error %s: Failed to SUMA_malloc SV\n", FuncName);
       SUMA_RETURN (NULL);
    }
    for (i=0; i < N; ++i) {
       SV = &(SVv[i]);
-      
+      memset(SV, 0, sizeof(SUMA_SurfaceViewer)); 
       SV->N_GVS = SUMA_N_STANDARD_VIEWS;
-      SV->GVS = (SUMA_GEOMVIEW_STRUCT *)SUMA_malloc(sizeof(SUMA_GEOMVIEW_STRUCT)*SV->N_GVS);
+      SV->GVS = (SUMA_GEOMVIEW_STRUCT *)
+                  SUMA_calloc(SV->N_GVS, sizeof(SUMA_GEOMVIEW_STRUCT));
       if (!SV->GVS) {
-         fprintf(SUMA_STDERR,"Error %s: Could not allocate for N_GVS.\n", FuncName);
+         fprintf(SUMA_STDERR,
+                  "Error %s: Could not allocate for N_GVS.\n", 
+                  FuncName);
          SUMA_RETURN (NULL);
       }
       SV->StdView = SUMA_3D; /* default */
@@ -173,6 +176,15 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          }
       }
       {
+         char *eee = getenv("SUMA_FreezeFOVAcrossStates");
+         if (eee) {
+            if (strcmp (eee, "YES") == 0) SV->FreezeZoomXstates = 1;
+            else SV->FreezeZoomXstates = 0;
+         } else {
+            SV->FreezeZoomXstates = 1; 
+         }
+      }
+      {
          char *eee = getenv("SUMA_ViewOrthographicProjection");
          if (eee) {
             if (strcmp (eee, "YES") == 0) SV->ortho = 1;
@@ -185,6 +197,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->Aspect = 1.0;
       SV->FOV = NULL;
       for (j=0; j < SV->N_GVS; ++j) {
+         memset(&(SV->GVS[j]), 0, sizeof(SUMA_GEOMVIEW_STRUCT));
          switch (j) {
             case SUMA_2D_Z0:
                SV->GVS[j].currentQuat[0] = 0.252199;
@@ -966,7 +979,8 @@ SUMA_Boolean SUMA_SetAllRemixFlag (SUMA_SurfaceViewer *SVv, int N_SVv)
 Updates the View Center and view from of SV based on the contents of RegisteredDO
 */
 
-SUMA_Boolean SUMA_UpdateViewPoint (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov)
+SUMA_Boolean SUMA_UpdateViewPoint ( SUMA_SurfaceViewer *SV, 
+                                    SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_UpdateViewPoint"};
    int i, do_id, TotWeight;
@@ -1148,25 +1162,57 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    if (SV->ortho) SS = SUMA_StringAppend_va(SS,"   Projection: Orthographic\n");
    else SS = SUMA_StringAppend_va(SS,"   Projection: Perspective\n");
    SS = SUMA_StringAppend_va(SS,"   Aspect = %f\n", SV->Aspect);
-   SS = SUMA_StringAppend_va(SS,"   ViewFrom = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFrom[0], SV->GVS[SV->StdView].ViewFrom[1], SV->GVS[SV->StdView].ViewFrom[2]);
-   SS = SUMA_StringAppend_va(SS,"   ViewFromOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFromOrig[0], SV->GVS[SV->StdView].ViewFromOrig[1], SV->GVS[SV->StdView].ViewFromOrig[2]);
-   SS = SUMA_StringAppend_va(SS,"   ViewCenter = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenter[0], SV->GVS[SV->StdView].ViewCenter[1], SV->GVS[SV->StdView].ViewCenter[2]);
-   SS = SUMA_StringAppend_va(SS,"   ViewCenterOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenterOrig[0], SV->GVS[SV->StdView].ViewCenterOrig[1], SV->GVS[SV->StdView].ViewCenterOrig[2]);
-   SS = SUMA_StringAppend_va(SS,"   ViewCamUp = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCamUp[0], SV->GVS[SV->StdView].ViewCamUp[1], SV->GVS[SV->StdView].ViewCamUp[2]);
-   SS = SUMA_StringAppend_va(SS,"   RotaCenter = [%f %f %f]\n", SV->GVS[SV->StdView].RotaCenter[0], SV->GVS[SV->StdView].RotaCenter[1], SV->GVS[SV->StdView].RotaCenter[2]);
+   SS = SUMA_StringAppend_va( SS,"   Freeze Zoom across states = %d\n",
+                               SV->FreezeZoomXstates);
+   SS = SUMA_StringAppend_va(SS, "   ViewFrom = [%f %f %f]\n",
+                                 SV->GVS[SV->StdView].ViewFrom[0],
+                                 SV->GVS[SV->StdView].ViewFrom[1],
+                                 SV->GVS[SV->StdView].ViewFrom[2]);
+   SS = SUMA_StringAppend_va(SS,"   ViewFromOrig = [%f %f %f]\n", 
+                                 SV->GVS[SV->StdView].ViewFromOrig[0], 
+                                 SV->GVS[SV->StdView].ViewFromOrig[1],     
+                                 SV->GVS[SV->StdView].ViewFromOrig[2]);
+   SS = SUMA_StringAppend_va(SS,"   ViewCenter = [%f %f %f]\n", 
+                                 SV->GVS[SV->StdView].ViewCenter[0], 
+                                 SV->GVS[SV->StdView].ViewCenter[1],    
+                                 SV->GVS[SV->StdView].ViewCenter[2]);
+   SS = SUMA_StringAppend_va(SS,"   ViewCenterOrig = [%f %f %f]\n", 
+                                 SV->GVS[SV->StdView].ViewCenterOrig[0], 
+                                 SV->GVS[SV->StdView].ViewCenterOrig[1], 
+                                 SV->GVS[SV->StdView].ViewCenterOrig[2]);
+   SS = SUMA_StringAppend_va(SS,"   ViewCamUp = [%f %f %f]\n", 
+                                 SV->GVS[SV->StdView].ViewCamUp[0], 
+                                 SV->GVS[SV->StdView].ViewCamUp[1], 
+                                 SV->GVS[SV->StdView].ViewCamUp[2]);
+   SS = SUMA_StringAppend_va(SS,"   RotaCenter = [%f %f %f]\n", 
+                                 SV->GVS[SV->StdView].RotaCenter[0], 
+                                 SV->GVS[SV->StdView].RotaCenter[1], 
+                                 SV->GVS[SV->StdView].RotaCenter[2]);
    SS = SUMA_StringAppend_va(SS,"   light0_position = [%f %f %f %f] (lit for %d)\n", 
-                                             SV->light0_position[0], SV->light0_position[1], 
-                                             SV->light0_position[2], SV->light0_position[3], SV->lit_for);
-   SS = SUMA_StringAppend_va(SS,"   light1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
+                                 SV->light0_position[0], 
+                                 SV->light0_position[1], 
+                                 SV->light0_position[2], 
+                                 SV->light0_position[3], 
+                                 SV->lit_for);
+   SS = SUMA_StringAppend_va(SS,"   light1_position = [%f %f %f %f]\n",
+                                 SV->light1_position[0], 
+                                 SV->light1_position[1], 
+                                 SV->light1_position[2], 
+                                 SV->light1_position[3]);
    SS = SUMA_StringAppend_va(SS,"   ZoomCompensate = %f\n", SV->ZoomCompensate);
    SS = SUMA_StringAppend_va(SS,"   WindWidth/WIDTH = %d/%d\n", SV->WindWidth, SV->X->WIDTH);
    SS = SUMA_StringAppend_va(SS,"   WindHeight/HEIGHT = %d/%d\n", SV->WindHeight, SV->X->HEIGHT);
    SS = SUMA_StringAppend_va(SS,"   ShowWorldAxis = %d\n", SV->ShowWorldAxis);
    if (SV->WAx) {
-      SS = SUMA_StringAppend_va(SS,"   WorldAxis: Center = [%f %f %f] BR = [%f %f %f , %f %f %f]\n", 
-                                    SV->WAx->Center[0], SV->WAx->Center[1], SV->WAx->Center[2],
-                                    SV->WAx->BR[0][0], SV->WAx->BR[1][0],   SV->WAx->BR[2][0], 
-                                    SV->WAx->BR[0][1], SV->WAx->BR[1][1],   SV->WAx->BR[2][1]);
+      SS = SUMA_StringAppend_va(SS, "   WorldAxis: Center = [%f %f %f] \n"
+                                    "              BR = [%f %f %f ,\n"
+                                    "                    %f %f %f]\n", 
+                                    SV->WAx->Center[0], SV->WAx->Center[1],
+                                    SV->WAx->Center[2],
+                                    SV->WAx->BR[0][0], SV->WAx->BR[1][0],   
+                                    SV->WAx->BR[2][0], 
+                                    SV->WAx->BR[0][1], SV->WAx->BR[1][1],   
+                                    SV->WAx->BR[2][1]);
    } else {
       SS = SUMA_StringAppend_va(SS,"   WorldAxis: NULL\n");
    }     
