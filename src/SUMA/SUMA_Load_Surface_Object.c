@@ -387,7 +387,9 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    PatchNodeMask = SUMA_MaskOfNodesInPatch(SO, &(SO->N_patchNode));
    if (!SO->N_patchNode || SO->N_patchNode == SO->N_Node) { 
       SUMA_LHv("Up here, isSphere = %d\n", SO->isSphere);
-      if (!PatchNodeMask ) { SUMA_SL_Err("Failed in SUMA_MaskOfNodesInPatch.\nUsing values from all nodes."); }
+      if (!PatchNodeMask ) { 
+         SUMA_SL_Err("Failed in SUMA_MaskOfNodesInPatch.\n"
+                     "Using values from all nodes."); }
       if (!SUMA_IS_GEOM_SYMM(SO->isSphere)) {
          SUMA_COPY_VEC(SO->Center, SO->patchCenter, 3, float, float);
       } else {
@@ -399,7 +401,11 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       SO->patchaMinDims = SO->aMinDims;
    }else {
       SUMA_LH("Down there");
-      SUMA_MIN_MAX_SUM_VECMAT_MASK_COL (SO->NodeList, SO->N_Node, SO->NodeDim, PatchNodeMask, SO->patchMinDims, SO->patchMaxDims, SO->patchCenter);
+      SUMA_MIN_MAX_SUM_VECMAT_MASK_COL (
+                  SO->NodeList, SO->N_Node, 
+                  SO->NodeDim, PatchNodeMask, 
+                  SO->patchMinDims, SO->patchMaxDims, 
+                  SO->patchCenter);
       SO->patchCenter[0] /= SO->N_patchNode;
       SO->patchCenter[1] /= SO->N_patchNode;
       SO->patchCenter[2] /= SO->N_patchNode;
@@ -440,8 +446,17 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    #ifdef DO_SCALE
    /* Now do some scaling */
    if ((SO->aMaxDims - SO->aMinDims) > SUMA_TESSCON_DIFF_FLAG) {
-      fprintf (stdout,"\n\nWARNING %s:\n Assuming surface to be in tesscon units, scaling down by %f.\n\aYou might have abnormally large or small freakish vertex coordinates\n\n",\
-         FuncName, SUMA_TESSCON_TO_MM);
+      fprintf (stdout,  "\n"
+                        "\n"
+                        "WARNING %s:\n"
+                        " Assuming surface to be in tesscon units,\n"
+                        " scaling down by %f.\n"
+                        "\aYou might have abnormally large or small \n"
+                        "freakish vertex coordinates.\n"
+                        "Max/Min Dims = %f/%f\n"
+                        "\n",
+         FuncName, SUMA_TESSCON_TO_MM,
+         SO->aMaxDims, SO->aMinDims);
       ND = SO->NodeDim;
       for (k=0; k < SO->N_Node; k++)
       {

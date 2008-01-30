@@ -5451,12 +5451,13 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
    
    SUMA_ENTRY;
 
-   SO = (SUMA_SurfaceObject *)SUMA_malloc(sizeof(SUMA_SurfaceObject)*N);
+   SO = (SUMA_SurfaceObject *)SUMA_calloc(N, sizeof(SUMA_SurfaceObject));
    if (SO == NULL) {
       SUMA_alloc_problem("SUMA_Alloc_SurfObject_Struct: could not allocate memory for SO");
    }
    
    for (i=0; i< N; ++i) {
+      memset(&(SO[i]), 0, sizeof(SUMA_SurfaceObject));
       SO[i].do_type = SO_type;
       SO[i].FileType = SUMA_FT_NOT_SPECIFIED;
       SO[i].FileFormat = SUMA_FF_NOT_SPECIFIED;
@@ -5575,11 +5576,15 @@ SUMA_Boolean SUMA_isSODimInitialized(SUMA_SurfaceObject *SO)
 SUMA_Boolean SUMA_SetSODims(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_SetSODims"};
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    if (!SO) SUMA_RETURN(NOPE);
-      SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
+      SUMA_MIN_MAX_SUM_VECMAT_COL (
+            SO->NodeList, SO->N_Node, 
+            SO->NodeDim, SO->MinDims, 
+            SO->MaxDims, SO->Center);
 
       SO->Center[0] /= SO->N_Node;
       SO->Center[1] /= SO->N_Node;
@@ -5587,6 +5592,12 @@ SUMA_Boolean SUMA_SetSODims(SUMA_SurfaceObject *SO)
 
       SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );
       SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);
+   SUMA_LHv("Min:[%f %f %f]\n"
+            "Max:[%f %f %f]\n"
+            "aMax: %f, aMin %f\n",
+            SO->MinDims[1], SO->MinDims[2],SO->MinDims[3],
+            SO->MaxDims[1], SO->MaxDims[2],SO->MaxDims[3],
+            SO->aMaxDims, SO->aMinDims );
    SUMA_RETURN(YUP);
 }
 
