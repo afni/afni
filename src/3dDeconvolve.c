@@ -896,6 +896,7 @@ void display_help_menu()
     "                     either -bucket or -nobucket on the command line.  \n"
     "[-noFDR]           Don't compute the statistic-vs-FDR curves for the   \n"
     "                     bucket dataset.                                   \n"
+    "                     [same as 'setenv AFNI_AUTOMATIC_FDR NO']          \n"
     "                                                                       \n"
     "[-xsave]           Flag to save X matrix into file bprefix.xsave       \n"
     "                     (only works if -bucket option is also given)      \n"
