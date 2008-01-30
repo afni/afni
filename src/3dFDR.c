@@ -285,6 +285,7 @@ printf(
 "   Prob[|x|>z] = q: for example, z(0.05) = 1.95996.\n"
 "\n"
 "* cf. http://en.wikipedia.org/wiki/False_discovery_rate\n"
+"* cf. http://afni.nimh.nih.gov/pub/dist/doc/misc/FDR/FDR_Jan2008.pdf\n"
 "* cf. C source code in mri_fdrize.c\n"
 "* changes by RWCox -- 18 Jan 2008 == Cary Grant's Birthday!\n"
 "\n"
