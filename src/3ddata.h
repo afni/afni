@@ -4615,6 +4615,7 @@ extern void       THD_set_dataset_attributes( THD_3dim_dataset * ) ;
 extern THD_3dim_dataset * THD_niml_to_dataset( NI_group * , int ) ;
 extern int THD_add_bricks( THD_3dim_dataset * , void * ) ;
 extern int THD_add_sparse_data( THD_3dim_dataset * , NI_group * ) ;
+extern int THD_add_sparse_bricks( THD_3dim_dataset *, NI_element *) ;
 
 extern int  NI_get_byte_order(NI_element *) ;    /* 29 Aug 2006 [rickr] */
 

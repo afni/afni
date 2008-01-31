@@ -496,7 +496,7 @@ ENTRY("AFNI_process_NIML_data") ;
 
    if( tt == NI_PROCINS_TYPE ) EXRETURN ;   /* 16 Mar 2005 */
 
-   /* we got a group element, so process it */
+   /*----- we got a group element, so process it -----*/
 
    if( tt == NI_GROUP_TYPE ){
      NI_group *ngr = (NI_group *) nini ;
@@ -507,7 +507,7 @@ ENTRY("AFNI_process_NIML_data") ;
 
        process_NIML_AFNI_dataset( ngr , ct_start ) ;   /* AFNI dataset header */
 
-     } else if( strcmp(ngr->name,"VOLUME_DATA") == 0 ){
+     } else if( strncmp(ngr->name,"VOLUME_DATA",11) == 0 ){
 
        process_NIML_AFNI_volumedata( ngr , ct_start ) ;    /* AFNI sub-bricks */
 
@@ -515,7 +515,7 @@ ENTRY("AFNI_process_NIML_data") ;
                                  so process the elements within it separately */
        int ii ;
        for( ii=0 ; ii < ngr->part_num ; ii++ )
-          AFNI_process_NIML_data( chan , ngr->part[ii] , -1 ) ; /* recursion */
+         AFNI_process_NIML_data( chan , ngr->part[ii] , -1 ) ; /* recursion */
      }
 
      EXRETURN ;
@@ -523,8 +523,8 @@ ENTRY("AFNI_process_NIML_data") ;
 
    if( tt != NI_ELEMENT_TYPE ) EXRETURN ;  /* should never happen */
 
-   /* if here, have a single data element;
-      process the data based on the element name */
+   /*----- if here, have a single data element;
+           process the data based on the element name -----*/
 
    nel = (NI_element *)nini ;
 
@@ -554,7 +554,7 @@ ENTRY("AFNI_process_NIML_data") ;
 
      process_NIML_Node_ROI(nel, ct_start) ;         /* ROI drawing from SUMA */
 
-   } else if( strcmp(nel->name,"VOLUME_DATA") == 0 ){         /* 10 Mar 2005 */
+   } else if( strncmp(nel->name,"VOLUME_DATA",11) == 0 ){     /* 10 Mar 2005 */
 
      process_NIML_AFNI_volumedata( nel , ct_start ) ;     /* AFNI sub-bricks */
 
@@ -2275,13 +2275,13 @@ ENTRY("process_NIML_AFNI_volumedata") ;
    if( idc == NULL ) idc = NI_get_attribute( nini , "AFNI_idcode" ) ;
    if( idc == NULL ) idc = NI_get_attribute( nini , "idcode"      ) ;
    if( idc == NULL ){
-     fprintf(stderr,"\n** ERROR: anonymous VOLUME_DATA received via NIML\a\n");
+     ERROR_message("ERROR: anonymous VOLUME_DATA received via NIML");
      EXRETURN ;
    }
 
    find = PLUTO_dset_finder(idc) ;
    if( find.dset == NULL ){
-     fprintf(stderr,"\n** ERROR: orphan VOLUME_DATA received via NIML\a\n");
+     ERROR_message("ERROR: orphan VOLUME_DATA received via NIML");
      EXRETURN ;
    }
 
