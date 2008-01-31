@@ -1,5 +1,6 @@
 #include "afni.h"
 #include "vol2surf.h"
+#include "thd_ttatlas_query.h"
 
 /*----------------------------------------------------------------------
  * history:
@@ -2261,6 +2262,7 @@ static void process_NIML_AFNI_volumedata( void *nini , int ct_start )
 {
    char *idc ;
    THD_slist_find find ;
+   THD_3dim_dataset *dset ;
 
    int ct_read = 0, ct_tot = 0 ;
    char msg[1024] ;
@@ -2274,21 +2276,71 @@ ENTRY("process_NIML_AFNI_volumedata") ;
                      idc = NI_get_attribute( nini , "domain_parent_idcode" ) ;
    if( idc == NULL ) idc = NI_get_attribute( nini , "AFNI_idcode" ) ;
    if( idc == NULL ) idc = NI_get_attribute( nini , "idcode"      ) ;
-   if( idc == NULL ){
-     ERROR_message("ERROR: anonymous VOLUME_DATA received via NIML");
-     EXRETURN ;
-   }
+   if( idc == NULL ) idc = NI_get_attribute( nini , "target_idcode" ) ;
+   if( idc == NULL ) idc = NI_get_attribute( nini , "target_name" ) ;
+   if( idc == NULL ) idc = "Anonymous" ;   /* default name */
 
-   find = PLUTO_dset_finder(idc) ;
-   if( find.dset == NULL ){
-     ERROR_message("ERROR: orphan VOLUME_DATA received via NIML");
-     EXRETURN ;
+   /* see if this dataset already exists */
+
+   find = PLUTO_dset_finder(idc) ; dset = find.dset ;
+
+   /* if not, see if we can create a new one from a geometry parent */
+
+   if( dset == NULL ){
+     char *gidc ; THD_3dim_dataset *gset ;
+
+                        gidc = NI_get_attribute( nini , "geometry_idcode" ) ;
+     if( gidc == NULL ) gidc = NI_get_attribute( nini , "geometry_name" ) ;
+     if( gidc == NULL ) gidc = NI_get_attribute( nini , "master_idcode" ) ;
+     if( gidc == NULL ) gidc = NI_get_attribute( nini , "master_name" ) ;
+     if( gidc == NULL ){
+       ERROR_message("ERROR: un-parented VOLUME_DATA received via NIML");
+       EXRETURN ;
+     }
+
+     find = PLUTO_dset_finder(gidc) ; gset = find.dset ;
+
+     if( gset == NULL ){
+       gset = THD_open_dataset(gidc) ;
+       if( gset == NULL && strchr(gidc,'/') == NULL ){
+         char *dnam = get_atlas_dirname() ;
+         if( dnam != NULL ){
+           char enam[THD_MAX_NAME] ;
+           strcpy(enam,dnam); strcat(enam,gidc); gset=THD_open_dataset(enam);
+         }
+       }
+     }
+
+     if( gset != NULL ){   /*--- create a new dataset and put in a session ---*/
+       Three_D_View *im3d = AFNI_find_open_controller() ;
+       THD_session    *ss = im3d->ss_now ; int qs = ss->num_dsset ;
+       dset = EDIT_empty_copy(gset) ; DSET_superlock(dset) ;
+       if( DSET_NVALS(dset) > 1 ) EDIT_dset_items(dset, ADN_nvals,1, ADN_none) ;
+       gidc = NI_get_attribute( nini , "target_name") ;
+       if( gidc == NULL ) gidc = "Anonymous" ;
+       EDIT_dset_items(dset, ADN_prefix,gidc , ADN_none ) ;
+       POPDOWN_strlist_chooser ;
+       if( qs < THD_MAX_SESSION_SIZE ){
+         int vv = dset->view_type ;
+         ss->dsset[qs][vv] = dset ; ss->num_dsset++ ;
+         INFO_message("Added dataset '%s' to controller %s",
+                      gidc , AFNI_controller_label(im3d)    ) ;
+       } else {
+         DSET_delete(dset) ;
+         ERROR_message("Can't create dataset '%s': session array overflow",gidc);
+         EXRETURN ;
+       }
+       DSET_delete(gset) ;  /* don't need this no more */
+     } else {
+       ERROR_message("Can't find parent '%s' of VOLUME_DATA",gidc) ;
+       EXRETURN ;
+     }
    }
 
    /** put this data into the dataset **/
 
-   (void)THD_add_bricks( find.dset , nini ) ;
-   THD_update_statistics( find.dset ) ;
+   (void)THD_add_bricks( dset , nini ) ;
+   THD_update_statistics( dset ) ;
 
    /** wrapup **/
 
