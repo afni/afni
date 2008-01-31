@@ -3874,6 +3874,10 @@ ENTRY( "RCREND_xhair_recv" );
             ind       != func_color_ival && DSET_NVALS(func_dset) > ind ){
           AV_assign_ival( wfunc_color_av , ind ) ;
           RCREND_choose_av_CB( wfunc_color_av , NULL ) ;
+          if( AFNI_yesenv("AFNI_SLAVE_THRTIME") ){         /* 31 Jan 2008   */
+            AV_assign_ival( wfunc_thresh_av , ind ) ;      /* change thresh */
+            RCREND_choose_av_CB( wfunc_thresh_av , NULL ); /* if ordered to */
+          }
           red = 1 ;
         }
         if( red ){ FREE_VOLUMES; RCREND_draw_CB(NULL,NULL,NULL); }
@@ -5167,7 +5171,7 @@ ENTRY( "RCREND_autocancel_CB" );
    What happens when the user selects a sub-brick from a menu
 ----------------------------------------------------------------------------*/
 
-void RCREND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
+void RCREND_choose_av_CB( MCW_arrowval *av , XtPointer cd )
 {
    XmString xstr ;
    char str[2*THD_MAX_NAME] ;
@@ -5200,7 +5204,8 @@ ENTRY( "RCREND_choose_av_CB" );
 
    /*--- selection of overlay color sub-brick ---*/
 
-   } else if( av == wfunc_color_av && func_dset != NULL && av->ival < DSET_NVALS(func_dset) ){
+   } else if( av == wfunc_color_av && func_dset != NULL &&
+                                      av->ival < DSET_NVALS(func_dset) ){
 
       float fac = DSET_BRICK_FACTOR(func_dset,av->ival) ;
 
@@ -5234,7 +5239,8 @@ ENTRY( "RCREND_choose_av_CB" );
 
    /*--- selection of overlay threshold sub-brick ---*/
 
-   } else if( av == wfunc_thresh_av && func_dset != NULL && av->ival < DSET_NVALS(func_dset) ){
+   } else if( av == wfunc_thresh_av && func_dset != NULL &&
+                                       av->ival < DSET_NVALS(func_dset) ){
 
       func_thresh_ival = av->ival ;
 

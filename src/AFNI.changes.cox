@@ -6571,3 +6571,6 @@
 29 Jan 2008
  * Fixed bug in 3dFDR -new handling of mask -- ooooppssssie.
  * And bug in FDR curves generated from signed statistics (like t).
+
+31 Jan 2008
+ * Modify plug_crender.c to obey AFNI_SLAVE_THRTIME.
