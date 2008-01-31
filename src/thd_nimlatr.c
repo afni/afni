@@ -188,7 +188,7 @@ ENTRY("THD_dblkatr_from_niml") ;
                   THD_unzblock( nch+1 , str ) ;  /* re-insert NULs */
                   THD_set_char_atr( blk , rhs , nch+1 , str ) ;
                   free(str) ;
-               } 
+               }
              }
              break ;
            }
@@ -323,7 +323,7 @@ ENTRY("THD_niml_to_dataset") ;
        set the scale factor for all sub-bricks loaded from the element.
        Otherwise, any scale factor previously set will remain in effect.
      - Elements that are not named 'VOLUME_DATA' will be ignored here.
------------------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------------*/
 
 int THD_add_bricks( THD_3dim_dataset *dset , void *nini )
 {
@@ -336,7 +336,7 @@ int THD_add_bricks( THD_3dim_dataset *dset , void *nini )
 
 ENTRY("THD_add_bricks") ;
 
-   if( !ISVALID_DSET(dset) || tt < 0 ) RETURN(0) ;
+   if( !ISVALID_DSET(dset) || tt < 0 || nini == NULL ) RETURN(0) ;
 
    /*-- if have a group element, do the parts by recursion --*/
 
@@ -353,6 +353,13 @@ ENTRY("THD_add_bricks") ;
    nel = (NI_element *)nini ;
 
    /*- check element name to see if it's what we want -*/
+
+   if( strcasecmp(nel->name,"VOLUME_DATA_SPARSE") == 0 ){ /* 31 Jan 2008:     */
+     ii = THD_add_sparse_bricks( dset , nel ) ;           /* sparsely defined */
+     RETURN(ii) ;                                         /* array(s) of data */
+   }
+
+   /*- otherwise, fully defined 3D array(s) of data -*/
 
    if( strcasecmp(nel->name,"VOLUME_DATA") != 0 ) RETURN(0) ;
 
@@ -430,6 +437,213 @@ ENTRY("THD_add_bricks") ;
      if( kk >= 0 ) kk++ ;  /* move to next sub-brick */
    }
 
+   RETURN(nbr) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Like THD_add_bricks(), but with a single element of type
+    <VOLUME_DATA_SPARSE ...>
+*//*-------------------------------------------------------------------------*/
+
+int THD_add_sparse_bricks( THD_3dim_dataset *dset , NI_element *nel )
+{
+   int nbr=0 ;
+   int nxyz , ii , jj , nbar , vlen , kk , bb ;
+   void *bar ;
+   char *str ;
+   float fac ;
+   int *id , do_zzz=1 , nd=1 ;
+
+ENTRY("THD_add_sparse_bricks") ;
+
+   if( !ISVALID_DSET(dset) || nel == NULL || nel->type != NI_ELEMENT_TYPE ){
+     ERROR_message("bad data on entry to THD_add_sparse_bricks()") ;
+     RETURN(0) ;
+   }
+
+   /*- check element name to see if it's what we want -*/
+
+   if( strcasecmp(nel->name,"VOLUME_DATA_SPARSE") != 0 ) RETURN(0) ;
+
+   nxyz = DSET_NVOX(dset) ;   /* number of voxels in a sub-brick */
+   vlen = nel->vec_len ;      /* number of values in a column of data */
+
+   /* check if have at least 2 columns and the first must be int */
+
+   if( nel->vec_num < 2 || vlen < 1 || nel->vec_typ[0] != NI_INT ){
+     ERROR_message("bad data in <VOLUME_DATA_SPARSE...> header") ;
+     RETURN(0) ;
+   }
+
+   /* find number of dimensions of indexes (1 or 3; 1 = default) */
+
+                     str = NI_get_attribute( nel , "numdim" ) ;
+   if( str == NULL ) str = NI_get_attribute( nel , "dimnum" ) ;
+   if( str != NULL ){
+     nd = (int)strtod(str,NULL) ;
+     if( nd != 1 && nd != 3 ){
+       ERROR_message("bad numdim=%d attribute in <VOLUME_DATA_SPARSE...>",nd);
+       RETURN(0) ;
+     }
+   }
+   if( nd == 3 ){  /* index triples require 3 int columns at front */
+     if( nel->vec_num < 4 || nel->vec_typ[1] != NI_INT
+                          || nel->vec_typ[2] != NI_INT ){
+       ERROR_message("numdim=3 but don't have 3 int columns in <VOLUME_DATA_SPARSE...>");
+       RETURN(0) ;
+     }
+   }
+
+   /* get or create index into dataset */
+
+   switch( nd ){
+     default:
+       ERROR_message("You should NEVER see this message: <VOLUME_DATA_SPARSE...>") ;
+     RETURN(0) ; /* should never happen */
+
+     case 1: id = (int *)nel->vec[0] ; break ;  /* just assign */
+
+     case 3:{                                   /* must create index array */
+       int *idd, *jdd , *kdd , nx,ny,nz,nxy , pp,qq,rr ;
+       idd = (int *)nel->vec[0] ; nx = DSET_NX(dset) ;
+       jdd = (int *)nel->vec[1] ; ny = DSET_NY(dset) ; nxy = nx*ny ;
+       kdd = (int *)nel->vec[2] ; nz = DSET_NZ(dset) ;
+       id  = (int *)malloc(sizeof(int)*vlen) ;
+       for( ii=0 ; ii < vlen ; ii++ ){
+         pp = idd[ii] ; if( pp < 0 || pp >= nx ){ id[ii] = -1; continue; }
+         qq = jdd[ii] ; if( qq < 0 || qq >= ny ){ id[ii] = -1; continue; }
+         rr = kdd[ii] ; if( rr < 0 || rr >= nz ){ id[ii] = -1; continue; }
+         id[ii] = pp + qq*nx * rr*nxy ;
+       }
+     }
+     break ;
+   }
+
+   /*- find index of sub-brick, if present -*/
+
+   kk  = -1 ;                                 /* flag for overwrite */
+                     str = NI_get_attribute( nel , "AFNI_index" ) ;
+   if( str == NULL ) str = NI_get_attribute( nel , "index"      ) ;
+   if( str != NULL && isdigit(*str) )
+     kk = (int)strtol( str , NULL , 10 ) ;
+
+   /*- and scale factor, if present -*/
+
+   fac = 0.0 ;
+                     str = NI_get_attribute( nel , "scale_factor" ) ;
+   if( str == NULL ) str = NI_get_attribute( nel , "AFNI_factor"  ) ;
+   if( str != NULL && ( *str== '-' || isdigit(*str) ) )
+     fac = (float)strtod( str , NULL ) ;
+
+   /* check if doing infill or if we should set brick to all zero first */
+   /* THIS IS IGNORED AT PRESENT! */
+
+#if 0
+                     str = NI_get_attribute("infill") ;
+   if( str == NULL ) str = NI_get_attribute("fillin") ;
+   if( str != NULL && toupper(str[0]) == 'Y' ) do_zzz = 0 ;
+#endif
+
+   if(PRINT_TRACING){
+     char str[256] ;
+     sprintf(str,"kk=%d vlen=%d nxyz=%d fac=%f do_zzz=%d\n",kk,vlen,nxyz,fac,do_zzz);
+     STATUS(str);
+   }
+
+   /*- loop over columns and enter them into the dataset -*/
+
+   for( jj=nd ; jj < nel->vec_num ; jj++ ){
+
+     if( !AFNI_GOOD_DTYPE(nel->vec_typ[jj]) ) continue ; /* skip this */
+
+     /* create a volume array to hold this data */
+
+     nbar = mri_datum_size(nel->vec_typ[jj]) ;   /* size of one value */
+     bar = calloc( nbar , nxyz ) ;             /* will be zero filled */
+     if( bar == NULL ) break ;                     /* malloc failure! */
+
+     /* load data from element into this volume */
+
+     switch( nel->vec_typ[jj] ){
+       default: free((void *)bar) ; continue ;  /* should never happen */
+
+       case MRI_short:{
+         short *qar = (short *)bar ;
+         short *car = (short *)nel->vec[jj] ;
+         for( ii=0 ; ii < vlen ; ii++ ){
+           if( id[ii] >= 0 && id[ii] < nxyz ) qar[id[ii]] = car[ii] ;
+         }
+       }
+       break ;
+
+       case MRI_float:{
+         float *qar = (float *)bar ;
+         float *car = (float *)nel->vec[jj] ;
+         for( ii=0 ; ii < vlen ; ii++ ){
+           if( id[ii] >= 0 && id[ii] < nxyz ) qar[id[ii]] = car[ii] ;
+         }
+       }
+       break ;
+
+       case MRI_byte:{
+         byte *qar = (byte *)bar ;
+         byte *car = (byte *)nel->vec[jj] ;
+         for( ii=0 ; ii < vlen ; ii++ ){
+           if( id[ii] >= 0 && id[ii] < nxyz ) qar[id[ii]] = car[ii] ;
+         }
+       }
+       break ;
+
+       case MRI_complex:{
+         complex *qar = (complex *)bar ;
+         complex *car = (complex *)nel->vec[jj] ;
+         for( ii=0 ; ii < vlen ; ii++ ){
+           if( id[ii] >= 0 && id[ii] < nxyz ) qar[id[ii]] = car[ii] ;
+         }
+       }
+       break ;
+
+       case MRI_rgb:{
+         rgbyte *qar = (rgbyte *)bar ;
+         rgbyte *car = (rgbyte *)nel->vec[jj] ;
+         for( ii=0 ; ii < vlen ; ii++ ){
+           if( id[ii] >= 0 && id[ii] < nxyz ) qar[id[ii]] = car[ii] ;
+         }
+       }
+       break ;
+     }
+
+     /* find a place (bb) to put this volume in the dataset */
+
+     if( kk < 0 ){  /* scan for an empty sub-brick */
+       for( ii=0 ; ii < DSET_NVALS(dset) ; ii++ )
+         if( DSET_ARRAY(dset,ii) == NULL ) break ;
+       if( ii == DSET_NVALS(dset) ) kk = ii ;  /* all full */
+       bb = ii ;                               /* put here */
+     } else if( kk > DSET_NVALS(dset) ){
+       bb = DSET_NVALS(dset) ;                 /* at end */
+     } else {
+       bb = kk ;                               /* exactly here */
+     }
+
+     if( bb < DSET_NVALS(dset) ){   /* replace existing data */
+       EDIT_substitute_brick( dset , bb , nel->vec_typ[jj] , bar ) ;
+
+     } else {                       /* append new sub-brick */
+       bb = DSET_NVALS(dset) ;
+       EDIT_add_brick( dset , nel->vec_typ[jj] , 0.0 , bar ) ;
+     }
+     nbr++ ;   /* 1 more sub-brick! */
+
+          if( fac >  0.0 ) EDIT_BRICK_FACTOR(dset,bb,fac) ;
+     else if( fac <= 0.0 ) EDIT_BRICK_FACTOR(dset,bb,0.0) ;
+
+     DSET_CRUSH_BSTAT(dset,bb) ;
+
+     if( kk >= 0 ) kk++ ;  /* move to next sub-brick */
+   }
+
+   if( nd == 3 ) free((void *)id) ;  /* toss the trashola */
    RETURN(nbr) ;
 }
 
@@ -527,7 +741,7 @@ ENTRY("mri_to_niml") ;
    nel = NI_new_data_element( "MRI_IMAGE" , im->nvox ) ;
 
    /* put in some attributes about the MRI_IMAGE struct */
- 
+
    sprintf( rhs , "%d,%d,%d,%d,%d,%d,%d" ,
             im->nx , im->ny , im->nz , im->nt , im->nu , im->nv , im->nw ) ;
    NI_set_attribute( nel , "mri_dimen" , rhs ) ;
@@ -542,7 +756,7 @@ ENTRY("mri_to_niml") ;
 
    if( im->xo != 0.0 || im->yo != 0.0 || im->zo != 0.0 ||
        im->to != 0.0 || im->uo != 0.0 || im->vo != 0.0 || im->wo != 0.0 ){
- 
+
      sprintf( rhs , "%f,%f,%f,%f,%f,%f,%f" ,
               im->xo , im->yo , im->zo , im->to , im->uo , im->vo , im->wo ) ;
      NI_set_attribute( nel , "mri_xyzo" , rhs ) ;
