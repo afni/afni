@@ -4808,7 +4808,7 @@ THD_3dim_dataset * PLUTO_find_dset_idc( char * idc )
   If this returns NULL, then you are SOL.
 ------------------------------------------------------------------------------*/
 
-THD_3dim_dataset * PLUTO_find_dset( MCW_idcode * idcode )
+THD_3dim_dataset * PLUTO_find_dset( MCW_idcode *idcode )
 {
    THD_slist_find find ;
 
@@ -4829,10 +4829,18 @@ THD_slist_find PLUTO_dset_finder( char *idc )
    MCW_idcode idcode ;
    THD_slist_find find ;
 
-   BADFIND(find) ;
-   if( idc == NULL ) return find ;
+   BADFIND(find) ; if( idc == NULL || *idc == '\0' ) return find ;
+
    MCW_strncpy( idcode.str , idc , MCW_IDSIZE ) ;
    find = THD_dset_in_sessionlist( FIND_IDCODE , &idcode ,
+                                   GLOBAL_library.sslist , -1 ) ;
+   if( find.dset != NULL ) return find ;
+
+   find = THD_dset_in_sessionlist( FIND_PREFIX , idc ,
+                                   GLOBAL_library.sslist , -1 ) ;
+   if( find.dset != NULL ) return find ;
+
+   find = THD_dset_in_sessionlist( FIND_NAME , idc ,
                                    GLOBAL_library.sslist , -1 ) ;
    return find ;
 }
