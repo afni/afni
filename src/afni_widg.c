@@ -73,27 +73,27 @@ static int num_entry = 0 ;  /* 31 Aug 1999 */
    (after the toplevel shell has been created)
 -----------------------------------------------------------------------*/
 
-static char * AFNI_dummy_av_label[2] = { "Nothing 1" , "Nothing 2" } ;
+static char *AFNI_dummy_av_label[2] = { "Nothing 1" , "Nothing 2" } ;
 
-static char * AFNI_crosshair_av_label[9] = {  /* modified 31 Dec 1998 */
+static char *AFNI_crosshair_av_label[9] = {  /* modified 31 Dec 1998 */
     "Off"   , "Single" , "Multi" ,
     " LR+AP", " LR+IS" , " AP+IS",
     "  LR"  , "  AP"   , "  IS"    } ;
 
-static char * AFNI_see_marks_bbox_label[1] = { "See Markers" } ;
+static char *AFNI_see_marks_bbox_label[1] = { "See Markers" } ;
 
-static char * AFNI_see_func_bbox_label[1] = { "See OverLay" } ;
+static char *AFNI_see_func_bbox_label[1] = { "See OverLay" } ;
 
-static char * AFNI_wrap_bbox_label[1] = {"Wrap"} ;
-static char * AFNI_xhall_bbox_label[1] = {"X+"} ;
+static char *AFNI_wrap_bbox_label[1] = {"Wrap"} ;
+static char *AFNI_xhall_bbox_label[1] = {"X+"} ;
 
-static char * AFNI_marks_edits_bbox_label[1] = { "Allow edits" } ;
+static char *AFNI_marks_edits_bbox_label[1] = { "Allow edits" } ;
 
-static char * AFNI_range_bbox_label[1] = { "autoRange:xxxxxxxxx" } ;
+static char *AFNI_range_bbox_label[1] = { "autoRange:xxxxxxxxx" } ;
 
-static char * AFNI_inten_bbox_label[1] = { "Pos?" } ;
+static char *AFNI_inten_bbox_label[1] = { "Pos?" } ;
 
-static char * AFNI_tlrc_big_bbox_label[1] = { "Big Talairach Box?" } ;
+static char *AFNI_tlrc_big_bbox_label[1] = { "Big Talairach Box?" } ;
 
 #define AFNI_tlrc_big_bbox_help                                       \
    "pressed IN:  Uses a larger 'bounding box' when creating\n"        \
@@ -110,10 +110,10 @@ static char * AFNI_tlrc_big_bbox_label[1] = { "Big Talairach Box?" } ;
    "             transform from the AC-PC aligned view to the\n"      \
    "             Talairach view."
 
-static char * AFNI_anatmode_bbox_label[2] =
+static char *AFNI_anatmode_bbox_label[2] =
    { "View ULay Data Brick" , "Warp ULay on Demand" } ;
 
-static char * AFNI_funcmode_bbox_label[2] =
+static char *AFNI_funcmode_bbox_label[2] =
    { "View OLay Data Brick" , "Warp OLay on Demand" } ;
 
 #define AFNI_see_marks_bbox_help                       \
@@ -289,13 +289,13 @@ static char * AFNI_funcmode_bbox_label[2] =
 #pragma OPT_LEVEL 1
 #endif
 
-static   AFNI_widget_set       * vwid  ;
-static   AFNI_imaging_widgets  * imag  ;
-static   AFNI_viewing_widgets  * view  ;
-static   AFNI_marks_widgets    * marks ;
-static   AFNI_function_widgets * func  ;
-static   AFNI_program_widgets  * prog  ;
-static   AFNI_datamode_widgets * dmode ;
+static   AFNI_widget_set       *vwid  ;
+static   AFNI_imaging_widgets  *imag  ;
+static   AFNI_viewing_widgets  *view  ;
+static   AFNI_marks_widgets    *marks ;
+static   AFNI_function_widgets *func  ;
+static   AFNI_program_widgets  *prog  ;
+static   AFNI_datamode_widgets *dmode ;
 
 static   XmString   xstr ;
 static   XmFontList xflist ;
@@ -694,7 +694,7 @@ void AFNI_raiseup_CB( Widget w , XtPointer cd , XtPointer cb )
 
 /*--------------------------------------------------------------------*/
 
-void AFNI_make_wid1( Three_D_View * im3d )
+void AFNI_make_wid1( Three_D_View *im3d )
 {
    int ii ;
 
@@ -1527,7 +1527,7 @@ STATUS("making view->rowcol") ;
       "Use these to select the\n"
       "type of view for your data" ) ;
 
-   { char * hh[] = { "View data in original coordinates" ,
+   { char *hh[] = { "View data in original coordinates" ,
                      "View data in AC-PC aligned coordinates" ,
                      "View data in Talairach coordinates" } ;
      MCW_bbox_hints( view->view_bbox , 3 , hh ) ;
@@ -1862,15 +1862,24 @@ STATUS("making view->rowcol") ;
    }
 
    /* NIML+PO button here -- 02 Feb 2007 */
+   /* Set label to match current status of 01 Feb 2008 */
 
-   view->nimlpo_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
-            LABEL_ARG("NIML+PO") ,
-            XmNmarginHeight , 1 ,
-            XmNtraversalOn , True  ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
+   { char *label ; int have_po , have_ni ;
+     have_po = !GLOBAL_argopt.noplugouts || AFNI_have_plugouts() ;
+     have_ni =  GLOBAL_argopt.yes_niml   || AFNI_have_niml() ;
+          if( have_po == have_ni ) label = "NIML+PO" ;
+     else if( have_po )            label = "NIML"    ;
+     else if( have_ni )            label = "Plgouts" ;
+     else                          label = "WTF?"    ;  /* should not happen */
+     view->nimlpo_pb =
+        XtVaCreateManagedWidget(
+           "dialog" , xmPushButtonWidgetClass , view->choose_rowcol ,
+              LABEL_ARG(label) ,
+              XmNmarginHeight , 1 ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+   }
    XtAddCallback( view->nimlpo_pb , XmNactivateCallback ,
                   AFNI_nimlpo_CB , im3d ) ;
    if( AFNI_have_niml() && AFNI_have_plugouts() ){
@@ -1996,7 +2005,7 @@ STATUS("making view->rowcol") ;
 
 /*--------------------------------------------------------------------*/
 
-void AFNI_make_wid2( Three_D_View * im3d )
+void AFNI_make_wid2( Three_D_View *im3d )
 {
    int ii ;
    Widget hrc ;  /* 30 Mar 2001 */
@@ -3730,7 +3739,7 @@ STATUS("making func->rowcol") ;
 
 /*--------------------------------------------------------------------*/
 
-void AFNI_make_wid3( Three_D_View * im3d )
+void AFNI_make_wid3( Three_D_View *im3d )
 {
 
 ENTRY("AFNI_make_wid3") ;
@@ -3766,7 +3775,7 @@ STATUS("making dmode->rowcol") ;
      "                   (will be grayed-out if data is not available)\n"
      "Warp ULay on Demand  ==> data is resampled as needed for display" ) ;
 
-   { char * hh[] = { "View data direct from brick" ,
+   { char *hh[] = { "View data direct from brick" ,
                      "View data resampled to new grid" } ;
      MCW_bbox_hints( dmode->anatmode_bbox , 2 , hh ) ;
    }
@@ -3873,7 +3882,7 @@ STATUS("making dmode->rowcol") ;
      "  to whatever alterations may have been made in the Talairach view."
    ) ;
 
-   { char * hh[] = { "View data direct from brick" ,
+   { char *hh[] = { "View data direct from brick" ,
                      "View data resampled to new grid" } ;
      MCW_bbox_hints( dmode->funcmode_bbox , 2 , hh ) ;
    }
@@ -5105,7 +5114,7 @@ static float DSET_bigness( THD_3dim_dataset *dset ) /* 07 Dec 2001 */
    Set up the controller with some data to view!
 -----------------------------------------------------------------*/
 
-void AFNI_initialize_controller( Three_D_View * im3d )
+void AFNI_initialize_controller( Three_D_View *im3d )
 {
    int ii ;
    char ttl[16] ;
@@ -5303,9 +5312,9 @@ ENTRY("AFNI_make_controller") ;
 void AFNI_clone_controller_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
    int ii , xx , yy ;
-   Three_D_View * im3d ;
-   Three_D_View * caller_im3d = (Three_D_View *) cd ;
-   MCW_DC * new_dc , * old_dc ;
+   Three_D_View *im3d ;
+   Three_D_View *caller_im3d = (Three_D_View *) cd ;
+   MCW_DC *new_dc , *old_dc ;
 
 ENTRY("AFNI_clone_controller_CB") ;
 
@@ -5383,7 +5392,7 @@ ENTRY("AFNI_clone_controller_CB") ;
 
 void AFNI_controller_clonify(void)
 {
-   Three_D_View * im3d ;
+   Three_D_View *im3d ;
    int id ;
    Boolean clone_on ;
 
@@ -5409,21 +5418,21 @@ ENTRY("AFNI_controller_clonify") ;
                 of the various controller windows
 ---------------------------------------------------------------------------*/
 
-void AFNI_lock_button( Three_D_View * im3d )
+void AFNI_lock_button( Three_D_View *im3d )
 {
    Widget rc , mbar , menu , cbut , wpar ;
    XmString xstr ;
 
-   static char * clabel[] = {
+   static char *clabel[] = {
       "Lock [A]", "Lock [B]", "Lock [C]", "Lock [D]", "Lock [E]",
       "Lock [F]", "Lock [G]", "Lock [H]", "Lock [I]", "Lock [J]",
       "Lock [K]", "Lock [L]", "Lock [M]", "Lock [N]", "Lock [O]",
       "Lock [P]", "Lock [Q]", "Lock [R]", "Lock [S]", "Lock [T]",
       "Lock [U]", "Lock [V]", "Lock [W]", "Lock [X]", "Lock [Y]", "Lock [Z]" } ;
 
-   static char * tlabel[] = { "Time Lock" } ;
+   static char *tlabel[] = { "Time Lock" } ;
 
-   static char * ijklabel[] = { "IJK lock" } ;
+   static char *ijklabel[] = { "IJK lock" } ;
 
 ENTRY("AFNI_lock_button") ;
 
@@ -5600,7 +5609,7 @@ ENTRY("AFNI_lock_button") ;
    30 Oct 1997: make a menubar for miscellaneous options
 -----------------------------------------------------------------------*/
 
-void AFNI_misc_button( Three_D_View * im3d )
+void AFNI_misc_button( Three_D_View *im3d )
 {
    Widget rc , mbar , menu , cbut , wpar ;
    XmString xstr ;
@@ -5706,7 +5715,7 @@ ENTRY("AFNI_misc_button") ;
 #ifdef USE_WRITEOWNSIZE
    /*-- 01 Aug 1999: Toggle for Write dimensions --*/
 
-   { char * blab[1] = { "Write=Own Size?" } ;
+   { char *blab[1] = { "Write=Own Size?" } ;
      dmode->misc_writeownsize_bbox = new_MCW_bbox( menu ,
                                                    1 , blab ,
                                                    MCW_BB_check , MCW_BB_noframe ,
@@ -5722,7 +5731,7 @@ ENTRY("AFNI_misc_button") ;
 
    /* 01 Aug 1999: replace pushbutton with toggle button */
 
-   { char * blab[1] = { "Voxel Coords?" } ;
+   { char *blab[1] = { "Voxel Coords?" } ;
      dmode->misc_voxind_bbox = new_MCW_bbox( menu ,
                                              1 , blab ,
                                              MCW_BB_check , MCW_BB_noframe ,
@@ -5734,7 +5743,7 @@ ENTRY("AFNI_misc_button") ;
     /*-- pushbutton to turn hints on and off --*/
 
 #ifndef DONT_USE_HINTS
-   { char * hh = getenv("AFNI_HINTS") ;
+   { char *hh = getenv("AFNI_HINTS") ;
      if( hh != NULL && ( strncmp(hh,"KILL",4)==0 ||
                          strncmp(hh,"kill",4)==0 ||
                          strncmp(hh,"Kill",4)==0 ) ){
@@ -5749,7 +5758,7 @@ ENTRY("AFNI_misc_button") ;
                   NULL ) ;
 
          } else {
-            { char * blab[1] = { "Show Hints?" } ;
+            { char *blab[1] = { "Show Hints?" } ;
               dmode->misc_hints_bbox = new_MCW_bbox( menu ,
                                                      1 , blab ,
                                                      MCW_BB_check , MCW_BB_noframe ,
@@ -6054,7 +6063,7 @@ ENTRY("AFNI_misc_button") ;
 }
 
 /*------------------------------------------------------------------*/
-/*! Doesn't do much. */
+/*! Doesn't do much (for testing new buttons, mostly). */
 
 void AFNI_invert_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
@@ -6062,10 +6071,20 @@ void AFNI_invert_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 }
 
 /*------------------------------------------------------------------*/
+/*! Callback for NIML+PO button. */
 
 void AFNI_nimlpo_CB( Widget wcall , XtPointer cd , XtPointer cbs )
 {
+   Three_D_View *im3d ; int id ;
+
    AFNI_init_niml() ;
    AFNI_init_plugouts() ;
-   XtSetSensitive( wcall , False ) ;
+
+   for( id=0 ; id < MAX_CONTROLLERS ; id++ ){     /* 01 Feb 2008: */
+     im3d = GLOBAL_library.controllers[id] ;    /* disable in all */
+     if( IM3D_VALID(im3d) )                        /* controllers */
+       XtSetSensitive( im3d->vwid->view->nimlpo_pb , False ) ;
+   }
+
+   return ;
 }
