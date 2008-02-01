@@ -12,11 +12,11 @@
 
 /** global data for plugouts **/
 
-static IOCHAN * ioc_control[NUM_TCP_CONTROL] ;  /* 21 Nov 2001: now an array */
-static char *   ioc_conname[NUM_TCP_CONTROL] ;
+static IOCHAN *ioc_control[NUM_TCP_CONTROL] ;  /* 21 Nov 2001: now an array */
+static char   *ioc_conname[NUM_TCP_CONTROL] ;
 
-static int            npout = 0 ;       /* number of plugouts allocated */
-static PLUGOUT_spec ** pout = NULL ;    /* malloc-ed array of plugouts */
+static int           npout = 0 ;       /* number of plugouts allocated */
+static PLUGOUT_spec **pout = NULL ;    /* malloc-ed array of plugouts */
 
 #undef RETRY
 
@@ -34,9 +34,9 @@ int AFNI_have_plugouts( void ){ return started ; }  /* 07 Nov 2001 */
 
 void AFNI_init_plugouts( void )
 {
-   int    cc ;
-   char * env ;
-   int    base_port ;
+   int   cc ;
+   char *env ;
+   int   base_port ;
 
 ENTRY("AFNI_init_plugouts") ;
 
@@ -107,7 +107,7 @@ void AFNI_plugout_exit( void )
 Boolean AFNI_plugout_workproc( XtPointer elvis )
 {
    int jj , ngood , pcode , ii , opcount=0 , cc ;
-   PLUGOUT_spec * pp ;
+   PLUGOUT_spec *pp ;
 
    /********************************************/
    /** start up non-listening control sockets **/
@@ -270,10 +270,10 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
 
 #define MAX_STR 1024   /* 21 Nov 2001 */
 
-int AFNI_process_plugout( PLUGOUT_spec * pp )
+int AFNI_process_plugout( PLUGOUT_spec *pp )
 {
    int ii , jj , npobuf , nend , retval=0 ;
-   Three_D_View * im3d ;
+   Three_D_View *im3d ;
    static char pobuf[PO_BUFSIZE+1] ; /* I/O buffer */
    static char oobuf[1024] ;
 
@@ -285,8 +285,8 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
    /** find the lowest numbered open controller **/
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      im3d = GLOBAL_library.controllers[ii] ;
-      if( IM3D_OPEN(im3d) ) break ;
+     im3d = GLOBAL_library.controllers[ii] ;
+     if( IM3D_OPEN(im3d) ) break ;
    }
    if( ii == MAX_CONTROLLERS ) return(0) ;  /* nothing available?  weird */
 
@@ -364,7 +364,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
      nstr = ss ; if( nstr > 0 ) retval = 2 ;
 
      if( verbose && nstr > 1 )
-        fprintf(stderr,"PO: received %d command strings at once\n",nstr) ;
+       fprintf(stderr,"PO: received %d command strings at once\n",nstr) ;
 
      /** determine what to do with each substring **/
 
@@ -515,6 +515,27 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
           if( pp->do_ack ){
             if( ii < 0 ) PO_ACK_BAD( pp->ioc ) ;
             else         PO_ACK_OK ( pp->ioc ) ;
+          }
+        }
+
+      /*-- 01 Feb 2008: a command to read NIML data from a file --*/
+
+      } else if( strncmp(str[ss],"READ_NIML_FILE",14) == 0 ){
+
+        if( strlen(str[ss]) < 16 ){
+          fprintf(stderr,"PO: READ_NIML_FILE from plugout %s lacks filename\n",
+                         pp->po_name ) ;
+          if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
+        } else {
+          char fname[THD_MAX_NAME]="\0" ; void *nini ;
+          sscanf(str[ss]+15,"%s",fname) ;
+          nini = NI_read_element_fromfile(fname) ;
+          if( nini != NULL ){
+            AFNI_process_NIML_data(0,nini,-1) ;
+            NI_free_element(nini) ;
+            PO_ACK_OK(pp->ioc) ;
+          } else {
+            PO_ACK_BAD(pp->ioc);
           }
         }
 

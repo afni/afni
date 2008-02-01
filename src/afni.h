@@ -1206,6 +1206,7 @@ extern void AFNI_startup_3dview  ( Three_D_View * im3d ); /* 15 Jun 2000 */
 extern MRI_IMAGE * AFNI_overlay( int n , FD_brick * br );
 extern void AFNI_invert_CB( Widget, XtPointer, XtPointer ) ; /* 02 Feb 2007 */
 extern void AFNI_nimlpo_CB( Widget, XtPointer, XtPointer ) ; /* 02 Feb 2007 */
+extern void AFNI_process_NIML_data( int , void * , int ) ;   /* 01 Feb 2008 */
 
 extern char * AFNI_controller_label( Three_D_View * im3d ); /* 01 Apr 1999 */
 extern void AFNI_set_window_titles( Three_D_View * im3d );
