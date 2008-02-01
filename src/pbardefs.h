@@ -1,4 +1,6 @@
-#define NSBUF 128    /* Place here because SUMA needs that baby too */
+#ifndef PBARDEFS_INCLUDED
+#define PBARDEFS_INCLUDED
+
 
 /* ZSS: New 256-color maps.
    Each new color map is added with 
@@ -676,3 +678,6 @@ static char FREESURFER_SEG_255_CMD[]={
    "#DCF8A4 #009400 #C43AFA #781286 "
    "#CD3E4E #F5F5F5 #CD3E4E "
 };
+
+
+#endif

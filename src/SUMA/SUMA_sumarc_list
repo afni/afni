@@ -68,5 +68,8 @@ SUMA_START_NIML = YES
 //(only useful with SUMA_AllowDsetReplacement). Default is NO
 SUMA_AllowFilenameDsetMatch = YES
 //30- Freeze zoom across states. Default is NO
-SUMA_FreezeFOVAcrossStates = YES
+SUMA_FreezeFOVAcrossStates = NO
+//31 Dset color map, default is AFNI's Spectrum:red_to_blue 
+SUMA_DsetColorMap = Spectrum:red_to_blue
+
 

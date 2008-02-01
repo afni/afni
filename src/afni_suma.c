@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include "pbardefs.h"
 
 /********************************************************************
  ****** Functions to create and deal with SUMA_surface structs ******
@@ -1160,4 +1161,6 @@ ENTRY("THD_get_surfname") ;
    }
    free(snam) ; EXRETURN ;  /* .SURF file does not exist */
 }
+
+
 #endif  /* ALLOW_SURFACE_FILES */

@@ -23,6 +23,8 @@
 #include "bbox.h"
 #include "xutil.h"
 
+#include "pbardefs.h"
+
 #ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
@@ -57,7 +59,6 @@ static Pixmap check_pixmap = XmUNSPECIFIED_PIXMAP ;
 #define pbCR_COLOR       (1<<0)
 #define pbCR_VALUE       (1<<1)
 
-#define NPANE_BIG      256    /* 30 Jan 2003: # colors in "big" mode , ZSS. Jan 06, Up from 128, Bigger, immer.*/
 
 typedef struct {
   Widget top , panew , panes[NPANE_MAX]   , labels[NPANE_MAX+1] ;
