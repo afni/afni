@@ -24,8 +24,8 @@ ENTRY("AFNI_vedit") ;
 
    dblk = dset->dblk ;
 
-   /* check if we are to clear any existing edits,
-      and also set future editing status to 'do nothing' */
+   /*--- check if we are to clear any existing edits,
+         and also set future editing status to 'do nothing' ---*/
 
    if( vednew.code <= 0 || vednew.code > VEDIT_LASTCODE ){
      if( dblk->vedim != NULL ){ mri_free(dblk->vedim); dblk->vedim=NULL; }
@@ -37,18 +37,22 @@ ENTRY("AFNI_vedit") ;
       and they correspond to the same parameters as before, then are done.
       otherwise, we clear out the existing results so they can be replaced. */
 
-   if( dblk->vedim != NULL ){
-     if( memcmp(&dblk->vedset,&vednew,sizeof(VEDIT_settings)) == 0 ){
-       RETURN(0) ;
+   if( dblk->vedim != NULL && (vednew.flags&1) == 0 ){
+
+     if( dblk->vedset.code == vednew.code &&  /* check if have same params */
+         dblk->vedset.ival == vednew.ival &&
+         memcmp(dblk->vedset.param,vednew.param,sizeof(float)*VEDIT_NPARAM) == 0 ){
+       RETURN(0) ;                            /* if so, do nothing */
      }
-     mri_free(dblk->vedim); dblk->vedim=NULL;
+     mri_free(dblk->vedim); dblk->vedim=NULL; /* if not, clear old results */
    }
 
-   /* at this point, must edit dataset brick */
+   /*--- at this point, must edit dataset brick ---*/
 
    dblk->vedset = vednew ;  /* save settings for next time in */
+   dblk->vedset.flags = 0 ;
 
-   /* get volume to edit */
+   /*--- get volume to edit ---*/
 
    ival = vednew.ival ;
    if( ival < 0 || ival > DSET_NVALS(dset) ) RETURN(0) ;
@@ -62,7 +66,7 @@ ENTRY("AFNI_vedit") ;
    dim->dy = fabs(DSET_DY(dset));
    dim->dz = fabs(DSET_DZ(dset));
 
-   /* edit volume into the temporary result instead */
+   /*--- edit volume into the temporary result instead ---*/
 
    switch( vednew.code ){
 
