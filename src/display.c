@@ -1617,3 +1617,57 @@ int DC_parse_color( MCW_DC *dc, char *str, float *rr, float *gg, float *bb )
    }
    return 1 ;
 }
+
+/* Create those AJJ maps */
+int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
+{
+   char **bigmap_name=NULL;
+   rgbyte **bigmap = NULL;
+   int ii=0;
+   
+   if (  !bigmap_namep || !bigmapp || 
+         bigmap_num != NBIGMAP_INIT) return 1;
+         
+   {
+     bigmap_name    = (char **) malloc(sizeof(char *)*bigmap_num) ;
+     bigmap_name[0] = strdup(BIGMAP_NAMES[0]) ;
+     bigmap_name[1] = strdup(BIGMAP_NAMES[1]) ;
+     bigmap_name[2] = strdup(BIGMAP_NAMES[2]) ;
+     bigmap_name[3] = strdup(BIGMAP_NAMES[3]) ;
+     bigmap_name[4] = strdup(BIGMAP_NAMES[4]) ;
+     bigmap_name[5] = strdup(BIGMAP_NAMES[5]) ;
+     bigmap_name[6] = strdup(BIGMAP_NAMES[6]) ;
+     bigmap         = (rgbyte **) malloc(sizeof(rgbyte *)*bigmap_num) ;
+     bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[2]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[3]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[4]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[5]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[6]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     for( ii=0 ; ii < NPANE_BIG ; ii++ ){
+       bigmap[0][ii] = DC_spectrum_AJJ(      ii*((AJJ_BLU+8.0)/(NPANE_BIG-1.0))-4.0,0.8);
+       bigmap[4][ii] = DC_spectrum_AJJ( 60.0-ii*(AJJ_YEL/(NPANE_BIG-1.0))          ,0.7);
+       bigmap[5][ii] = DC_spectrum_AJJ(      ii*(360.0  /(NPANE_BIG-1.0))          ,0.8);
+       bigmap[6][ii] = DC_spectrum_ZSS(360.0-ii*(360.0  /(NPANE_BIG-1.0))          ,1.0);
+       if( ii < NBIG_MBOT ){
+         bigmap[1][ii] = DC_spectrum_AJJ(         ii*(AJJ_YEL/(NBIG_MBOT-1.0)) , 0.8 );
+         bigmap[2][ii] = DC_spectrum_AJJ( AJJ_YEL-ii*(AJJ_YEL/(NBIG_MBOT-1.0)) , 0.8 );
+         bigmap[3][ii] = bigmap[2][ii] ;
+       } else if( ii > NBIG_MTOP ){
+         bigmap[1][ii] = DC_spectrum_AJJ( AJJ_CYN+(ii-NBIG_MTOP-1)*(60.0/(NPANE_BIG-NBIG_MTOP-2.0)),0.8);
+         bigmap[2][ii] = DC_spectrum_AJJ( AJJ_BLU-(ii-NBIG_MTOP-1)*(60.0/(NPANE_BIG-NBIG_MTOP-2.0)),0.8);
+         bigmap[3][ii] = bigmap[2][ii] ;
+       } else {
+         bigmap[1][ii].r = bigmap[1][ii].g = bigmap[1][ii].b = 0 ;
+         bigmap[2][ii]   = DC_spectrum_AJJ( 360.0-(ii-NBIG_MBOT+1)*(120.0/(NBIG_MTOP-NBIG_MBOT+2.0)),0.8) ;
+         bigmap[3][ii].r = bigmap[3][ii].g = bigmap[3][ii].b = 0 ;
+       }
+     }
+   }
+   *bigmapp = bigmap;
+   *bigmap_namep = bigmap_name;
+   return 0;
+}
+
+

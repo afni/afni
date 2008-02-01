@@ -98,6 +98,25 @@ typedef struct {
 /***---------------------------- typedefs ----------------------------***/
 
 #define MAX_COLORS 256
+#define NSBUF 128    /* Place here because SUMA needs that baby too */
+#define NPANE_BIG      256    /* 30 Jan 2003: # colors in "big" mode , ZSS. Jan 06, Up from 128, Bigger, immer.*/
+#define NBIGMAP_INIT 7                           /* # of initial colorscales */
+#define NBIG_GAP     6
+#define NBIG_MBOT    (NPANE_BIG/2-NBIG_GAP)
+#define NBIG_MTOP    (NPANE_BIG/2+NBIG_GAP)
+#define AJJ_RED        0.0
+#define AJJ_YEL       60.0
+#define AJJ_GRN      120.0
+#define AJJ_CYN      180.0
+#define AJJ_BLU      240.0
+#define AJJ_PUR      300.0
+static char BIGMAP_NAMES[][32] = {
+   "Spectrum:red_to_blue", "Spectrum:red_to_blue+gap",
+   "Spectrum:yellow_to_cyan", "Spectrum:yellow_to_cyan+gap", 
+   "Spectrum:yellow_to_red", "Color_circle_AJJ", 
+   "Color_circle_ZSS", 
+   "\0" };
+int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp);
 
 /** Dec 1997: split overlay stuff into a separate struct **/
 
