@@ -130,6 +130,7 @@ THD_ivec3 THD_3dmm_to_3dind_warn( THD_3dim_dataset * dset ,
 
    return iv ;
 }
+
 THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset * dset ,
                              THD_fvec3 fv )
 {

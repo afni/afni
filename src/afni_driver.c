@@ -81,6 +81,7 @@ static int AFNI_define_colorscale      ( char *cmd ) ; /* 03 Feb 2003 */
 static int AFNI_open_panel             ( char *cmd ) ; /* 05 Feb 2003 */
 static int AFNI_drive_purge_memory     ( char *cmd ) ; /* 09 Dec 2004 */
 static int AFNI_redisplay              ( char *cmd ) ;
+static int AFNI_read_niml_file         ( char *cmd ) ; /* 01 Feb 2008 */
 
 static int AFNI_trace                  ( char *cmd ) ; /* 04 Oct 2005 */
 
@@ -181,6 +182,9 @@ static AFNI_driver_pair dpair[] = {
  { "REDISPLAY"          , AFNI_redisplay               } ,
  { "REDRAW"             , AFNI_redisplay               } ,
 
+ { "READ_NIML_FILE"     , AFNI_read_niml_file          } , /* 01 Feb 2008 */
+ { "READ_NIML_DATA"     , AFNI_read_niml_file          } ,
+
  { "TRACE"              , AFNI_trace                   } , /* debugging */
 
  { NULL , NULL }  /* flag that we've reached the end times */
@@ -250,7 +254,7 @@ ENTRY("AFNI_driver") ;
        AFNI_block_rescan(1) ;                /* 10 Nov 2005 */
        rval = dpair[dd].fun( cmd+ii ) ;      /* execute command */
        if( rval < 0 )
-         WARNING_message("Bad drive AFNI result in '%s'",cmd) ;  /* 22 Feb 2007 */
+         WARNING_message("Bad drive AFNI result from '%s'",cmd); /* 22 Feb 2007 */
        AFNI_block_rescan(0) ;
        free(dmd) ; RETURN(rval) ;
      }
@@ -2785,6 +2789,20 @@ static int AFNI_trace( char *cmd )
    DBG_trace = (YESSISH(cmd)) ? 2 : 0 ;
 #endif
    return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+
+static int AFNI_read_niml_file( char *cmd )  /* 01 Feb 2008 */
+{
+   void *nini ;
+   nini = NI_read_element_fromfile(cmd) ;
+   if( nini != NULL ){
+     AFNI_process_NIML_data(0,nini,-1) ;
+     NI_free_element(nini) ;
+     return 0 ;
+   }
+   return -1;
 }
 
 /*--------------------------------------------------------------------*/
