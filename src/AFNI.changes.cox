@@ -6574,3 +6574,7 @@
 
 31 Jan 2008
  * Modify plug_crender.c to obey AFNI_SLAVE_THRTIME.
+
+01 Feb 2008
+ * VOLUME_DATA_SPARSE in thd_nimlatr.c.
+ * READ_NIML_FILE in afni_driver.c.

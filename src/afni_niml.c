@@ -30,6 +30,12 @@
  *   - slist_choose_surfs(): do slist_check_user_surfs() for nsurf == 1
  * 08 Aug 2006 [rickr]
  *   - get spec_file name from suma via surface_specfile_name atr
+ * 31 Jan 2008 [RWCox]
+ *   - modify process_NIML_AFNI_volumedata() to be able to create a
+ *     dataset directly from a <VOLUME_DATA> element, and also so
+ *     allow new <VOLUME_DATA_SPARSE> elements.
+ * 01 Feb 2008 [RWCox]
+ *   - make AFNI_process_NIML_data() visible to the world!
  *----------------------------------------------------------------------*/
 
 /**************************************/
@@ -151,7 +157,6 @@ static int viewpoint_key[MAX_CONTROLLERS] ;
 
 static void    AFNI_niml_atexit( void ) ;
 static Boolean AFNI_niml_workproc( XtPointer ) ;
-static void    AFNI_process_NIML_data( int , void * , int ) ;
 static void    AFNI_niml_redisplay_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_viewpoint_CB( int,int,void *,void * ) ;
 static void    AFNI_niml_driver( char * , NI_stream_type *, NI_element * ) ;
@@ -485,7 +490,7 @@ ENTRY("AFNI_niml_workproc") ;
     this is currently not used.
 ------------------------------------------------------------------------*/
 
-static void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
+void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
 {
    int tt=NI_element_type(nini) ;
    NI_element *nel ;

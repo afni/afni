@@ -453,6 +453,7 @@ int THD_add_sparse_bricks( THD_3dim_dataset *dset , NI_element *nel )
    char *str ;
    float fac ;
    int *id , do_zzz=1 , nd=1 ;
+   int nx,ny,nz,nxy , pp,qq,rr ;
 
 ENTRY("THD_add_sparse_bricks") ;
 
@@ -461,62 +462,85 @@ ENTRY("THD_add_sparse_bricks") ;
      RETURN(0) ;
    }
 
-   /*- check element name to see if it's what we want -*/
+   /*--- check element name to see if it's what we want ---*/
 
    if( strcasecmp(nel->name,"VOLUME_DATA_SPARSE") != 0 ) RETURN(0) ;
 
-   nxyz = DSET_NVOX(dset) ;   /* number of voxels in a sub-brick */
    vlen = nel->vec_len ;      /* number of values in a column of data */
 
-   /* check if have at least 2 columns and the first must be int */
+   nx = DSET_NX(dset) ;
+   ny = DSET_NY(dset) ; nxy  = nx*ny ;
+   nz = DSET_NZ(dset) ; nxyz = nxy*nz;
 
-   if( nel->vec_num < 2 || vlen < 1 || nel->vec_typ[0] != NI_INT ){
-     ERROR_message("bad data in <VOLUME_DATA_SPARSE...> header") ;
+   /*----- check if have at least 2 columns and 1 row! -----*/
+
+   if( nel->vec_num < 2 || vlen < 1 ){
+     ERROR_message("inadequate data in <VOLUME_DATA_SPARSE...> header") ;
      RETURN(0) ;
    }
 
-   /* find number of dimensions of indexes (1 or 3; 1 = default) */
+   /*----- determine if we have xyz coords or index coords -----*/
 
-                     str = NI_get_attribute( nel , "numdim" ) ;
-   if( str == NULL ) str = NI_get_attribute( nel , "dimnum" ) ;
-   if( str != NULL ){
-     nd = (int)strtod(str,NULL) ;
-     if( nd != 1 && nd != 3 ){
-       ERROR_message("bad numdim=%d attribute in <VOLUME_DATA_SPARSE...>",nd);
-       RETURN(0) ;
-     }
-   }
-   if( nd == 3 ){  /* index triples require 3 int columns at front */
-     if( nel->vec_num < 4 || nel->vec_typ[1] != NI_INT
-                          || nel->vec_typ[2] != NI_INT ){
-       ERROR_message("numdim=3 but don't have 3 int columns in <VOLUME_DATA_SPARSE...>");
-       RETURN(0) ;
-     }
-   }
+   if( nel->vec_num > 3            && nel->vec_typ[0] == NI_FLOAT &&
+       nel->vec_typ[1] == NI_FLOAT && nel->vec_typ[2] == NI_FLOAT ){ /*- xyz -*/
 
-   /* get or create index into dataset */
+     float *xdd , *ydd , *zdd ;
+     THD_fvec3 xyz ; THD_ivec3 ijk ;
 
-   switch( nd ){
-     default:
-       ERROR_message("You should NEVER see this message: <VOLUME_DATA_SPARSE...>") ;
-     RETURN(0) ; /* should never happen */
+     nd  = 3 ; /* indicating we use the first 3 columns for index compuation */
+     id  = (int *)malloc(sizeof(int)*vlen) ;       /* indexes computed below */
+     xdd = (float *)nel->vec[0] ;                       /* DICOM coordinates */
+     ydd = (float *)nel->vec[1] ;
+     zdd = (float *)nel->vec[2] ;
 
-     case 1: id = (int *)nel->vec[0] ; break ;  /* just assign */
-
-     case 3:{                                   /* must create index array */
-       int *idd, *jdd , *kdd , nx,ny,nz,nxy , pp,qq,rr ;
-       idd = (int *)nel->vec[0] ; nx = DSET_NX(dset) ;
-       jdd = (int *)nel->vec[1] ; ny = DSET_NY(dset) ; nxy = nx*ny ;
-       kdd = (int *)nel->vec[2] ; nz = DSET_NZ(dset) ;
-       id  = (int *)malloc(sizeof(int)*vlen) ;
-       for( ii=0 ; ii < vlen ; ii++ ){
-         pp = idd[ii] ; if( pp < 0 || pp >= nx ){ id[ii] = -1; continue; }
-         qq = jdd[ii] ; if( qq < 0 || qq >= ny ){ id[ii] = -1; continue; }
-         rr = kdd[ii] ; if( rr < 0 || rr >= nz ){ id[ii] = -1; continue; }
-         id[ii] = pp + qq*nx * rr*nxy ;
+     for( ii=0 ; ii < vlen ; ii++ ){
+       LOAD_FVEC3( xyz , xdd[ii],ydd[ii],zdd[ii] ) ;      /* get coords  */
+       xyz = THD_dicomm_to_3dmm( dset , xyz ) ;           /* to dset xyz */
+       ijk = THD_3dmm_to_3dind_warn( dset , xyz , &jj ) ; /* to 3D index */
+       if( jj == 0 ){
+         UNLOAD_IVEC3( ijk , pp,qq,rr ) ;            /* if good, make 1D */
+         id[ii] = pp + qq*nx + rr*nxy ;
+       } else {
+         id[ii] = -1 ;          /* not good ==> means to skip this puppy */
        }
      }
-     break ;
+
+   } else {  /*------- index coords -------*/
+
+     if( nel->vec_num > 3          && nel->vec_typ[0] == NI_INT &&
+         nel->vec_typ[1] == NI_INT && nel->vec_typ[2] == NI_INT ){  /* 3 ints */
+
+       nd = 3 ;
+
+     } else if( nel->vec_typ[0] == NI_INT ){                        /* 1 int */
+
+       nd = 1 ;
+
+     } else {                                                       /* bad */
+       ERROR_message("invalid coordinate column types in <VOLUME_DATA_SPARSE...> header");
+       RETURN(0) ;
+     }
+
+     /* get or create index into dataset from these int columns */
+
+     switch( nd ){
+       case 1: id = (int *)nel->vec[0] ; break ;  /* just assign */
+
+       case 3:{                                   /* must create index array */
+         int *idd, *jdd , *kdd ;
+         idd = (int *)nel->vec[0] ;
+         jdd = (int *)nel->vec[1] ;
+         kdd = (int *)nel->vec[2] ;
+         id  = (int *)malloc(sizeof(int)*vlen) ;
+         for( ii=0 ; ii < vlen ; ii++ ){
+           pp = idd[ii] ; if( pp < 0 || pp >= nx ){ id[ii] = -1; continue; }
+           qq = jdd[ii] ; if( qq < 0 || qq >= ny ){ id[ii] = -1; continue; }
+           rr = kdd[ii] ; if( rr < 0 || rr >= nz ){ id[ii] = -1; continue; }
+           id[ii] = pp + qq*nx + rr*nxy ;
+         }
+       }
+       break ;
+     }
    }
 
    /*- find index of sub-brick, if present -*/
