@@ -1124,7 +1124,6 @@ void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
        }
        MCW_invert_widget(quit_pb) ;
        THD_load_statistics( dset ) ;
-       IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
        PLUTO_dset_redisplay( dset ) ;
        MCW_invert_widget(quit_pb) ;
      }
@@ -2563,7 +2562,6 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
             DSET_mallocize(dset) ; DSET_lock(dset) ; DSET_load(dset) ;
             if( dset_changed ){
                THD_load_statistics( dset ) ;
-               IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
                PLUTO_dset_redisplay( dset ) ;
 
                XBell(dc->display,100) ;
@@ -2720,7 +2718,6 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
 
    /* now redisplay dataset, in case anyone is looking at it */
 
-   IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
    PLUTO_dset_redisplay( dset ) ;
    dset_changed = 1 ;
    SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
@@ -2894,7 +2891,6 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
    nftot = THD_dataset_rowfillin( dset , 0 , dcode , maxgap ) ;
    if( nftot > 0 ){
      fprintf(stderr,"++ Fillin filled %d voxels\n",nftot) ;
-     IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
      PLUTO_dset_redisplay( dset ) ;
      dset_changed = 1 ;
      SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
@@ -3112,7 +3108,6 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
      free(xd) ;
 
      fprintf(stderr,"++ %d TT Atlas voxels drawn into dataset\n",ff) ;
-     IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
      PLUTO_dset_redisplay( dset ) ;
      dset_changed = 1 ;
      SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
