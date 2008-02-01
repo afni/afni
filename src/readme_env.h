@@ -1418,7 +1418,7 @@ static char * readme_env[] = {
    "---------------------------\n" ,
    "Variables: AFNI_ACPC_BBOX_*\n" ,
    "---------------------------\n" ,
-   "The variables let you choose the size of the \"ACPC Box\", into which \n" ,
+   "The variables let you choose the size of the \"ACPC Box\", into which\n" ,
    "+acpc datasets are transformed. If defined, they should be positive values,\n" ,
    "in mm.  The 6 variables (any or all of which may be used) are:\n" ,
    "\n" ,
@@ -2679,5 +2679,15 @@ static char * readme_env[] = {
    "will write their outputs in floating point format (unless they are\n" ,
    "forced to do otherwise with the '-datum short' type of option).  In\n" ,
    "the future, other programs may also be affected by this variable.\n" ,
+   "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_AUTOMATIC_FDR\n" ,
+   "----------------------------\n" ,
+   "If this variable is set to NO, then the automatic computation of FDR\n" ,
+   "curves into headers output by 3dDeconvolve, 3dANOVA, 3dttest, and\n" ,
+   "3dNLfim will NOT be done.  Otherwise, the automatic FDR-ization of\n" ,
+   "these datasets will performed when the datasets are written to disk.\n" ,
+   "(You can always use '3drefit -addFDR' to add FDR curves to a dataset\n" ,
+   "header, for those sub-bricks marked as statistical parameters.)\n" ,
    NULL } ;
-#define NUM_readme_env 2680
+#define NUM_readme_env 2690
