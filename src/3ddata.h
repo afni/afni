@@ -1055,9 +1055,10 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
 /*------------------------------------------------------------------*/
 /* Stuff for volume-editing on demand.  [05 Sep 2006] */
 
+#define VEDIT_NPARAM 9
 typedef struct {
-  int code , ival ;
-  float param[9] ;
+  int code , ival , flags ;
+  float param[VEDIT_NPARAM] ;
 } VEDIT_settings ;
 
 #define VEDIT_CLUST  1   /* param= ithr,thr,rmm,vmul */
@@ -1071,6 +1072,10 @@ typedef struct {
 #define DBLK_VEDIT_CODE(db) VEDIT_CODE((db)->vedset)
 #define DSET_VEDIT_CODE(ds) DBLK_VEDIT_CODE((ds)->dblk)
 
+#define VEDIT_FLAGS(vv)      ((vv).flags)
+#define DBLK_VEDIT_FLAGS(db) VEDIT_FLAGS((db)->vedset)
+#define DSET_VEDIT_FLAGS(db) DBLK_VEDIT_FLAGS((ds)->dblk)
+
 #define VEDIT_good(vv)                                            \
    ( (vv).code>0 && (vv).code<=VEDIT_LASTCODE )
 #define DBLK_VEDIT_good(db)                                       \
@@ -1082,7 +1087,7 @@ typedef struct {
 /*!  All subvolumes are stored in an array of MRI_IMAGE (the "brick").
      - If mmap is used, then the whole external file is mmap()-ed in one
        block and the data pointers for each image computed from this base.
-     - If malloc() is used, then each image is separately allocated and read in.
+     - If malloc() is used, then each image is separately allocated and input.
      - Each datablock has a brick, even if it doesn't actually contain
        data (is only warp-on-demand).
      - Whether or not a datablock contains actual voxel data can be

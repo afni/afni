@@ -252,13 +252,13 @@ static int    mode_ints[] = {
 #define NUM_modes (sizeof(mode_ints)/sizeof(int))
 
 #define NFILLIN_DIR 3
-static char * fillin_dir_strings[NFILLIN_DIR] = { "A-P" , "I-S" , "R-L" } ;
+static char *fillin_dir_strings[NFILLIN_DIR] = { "A-P" , "I-S" , "R-L" } ;
 #define NFILLIN_GAP 9
 
-static MCW_DC * dc ;                 /* display context */
-static Three_D_View * im3d ;         /* AFNI controller */
-static THD_3dim_dataset * dset ;     /* The dataset!    */
-static MCW_idcode         dset_idc ; /* 31 Mar 1999     */
+static MCW_DC *dc ;                 /* display context */
+static Three_D_View *im3d ;         /* AFNI controller */
+static THD_3dim_dataset *dset ;     /* The dataset!    */
+static MCW_idcode        dset_idc ; /* 31 Mar 1999     */
 
 static Dtable *vl_dtable=NULL ;      /* 17 Oct 2003     */
 
@@ -353,19 +353,19 @@ static THD_dataxes dax_save ;    /* save this for later reference */
 
 static int old_stroke_autoplot = 0 ;  /* 27 Oct 2003 */
 
-char * DRAW_main( PLUGIN_interface * plint )
+char * DRAW_main( PLUGIN_interface *plint )
 {
    XmString xstr ;
 
    /*-- sanity checks --*/
 
    if( ! IM3D_OPEN(plint->im3d) )
-      return " \n AFNI Controller\nnot opened?! \n " ;
+     return " \n AFNI Controller\nnot opened?! \n " ;
 
    if( editor_open ){
-      XtMapWidget(shell) ;
-      XRaiseWindow( XtDisplay(shell) , XtWindow(shell) ) ;
-      return NULL ;
+     XtMapWidget(shell) ;
+     XRaiseWindow( XtDisplay(shell) , XtWindow(shell) ) ;
+     return NULL ;
    }
 
    im3d = plint->im3d ;  /* save for local use */
@@ -373,10 +373,10 @@ char * DRAW_main( PLUGIN_interface * plint )
    /*-- create widgets, first time through --*/
 
    if( shell == NULL ){
-      dc = im3d->dc ;        /* save this too */
-      DRAW_make_widgets() ;
-      PLUTO_set_topshell( plint , shell ) ;  /* 22 Sep 2000 */
-      RWC_visibilize_widget( shell ) ;       /* 27 Sep 2000 */
+     dc = im3d->dc ;        /* save this too */
+     DRAW_make_widgets() ;
+     PLUTO_set_topshell( plint , shell ) ;  /* 22 Sep 2000 */
+     RWC_visibilize_widget( shell ) ;       /* 27 Sep 2000 */
    }
 
    /*-- set titlebar --*/
@@ -1036,16 +1036,16 @@ Sensitize_copy_bbox(int  sens)
 void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    if( dset != NULL ){
-      if( recv_open )  /* 31 Mar 1999: changed shutdown to EVERYTHING */
-         AFNI_receive_control( im3d, recv_key,EVERYTHING_SHUTDOWN, NULL ) ;
-      if( dset_changed ){
-         MCW_invert_widget( done_pb ) ;
-         DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
-         DSET_write(dset) ;
-         MCW_invert_widget( done_pb ) ;
-      }
-      DSET_unlock(dset) ; DSET_anyize(dset) ;
-      dset = NULL ; dset_changed = 0 ;
+     if( recv_open )  /* 31 Mar 1999: changed shutdown to EVERYTHING */
+       AFNI_receive_control( im3d, recv_key,EVERYTHING_SHUTDOWN, NULL ) ;
+     if( dset_changed ){
+       MCW_invert_widget( done_pb ) ;
+       DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
+       DSET_write(dset) ;
+       MCW_invert_widget( done_pb ) ;
+     }
+     DSET_unlock(dset) ; DSET_anyize(dset) ;
+     dset = NULL ; dset_changed = 0 ;
    }
 
    CLEAR_UNREDOBUF ;  /* 19 Nov 2003 */
@@ -1124,6 +1124,7 @@ void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
        }
        MCW_invert_widget(quit_pb) ;
        THD_load_statistics( dset ) ;
+       IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
        PLUTO_dset_redisplay( dset ) ;
        MCW_invert_widget(quit_pb) ;
      }
@@ -2562,6 +2563,7 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
             DSET_mallocize(dset) ; DSET_lock(dset) ; DSET_load(dset) ;
             if( dset_changed ){
                THD_load_statistics( dset ) ;
+               IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
                PLUTO_dset_redisplay( dset ) ;
 
                XBell(dc->display,100) ;
@@ -2718,6 +2720,7 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
 
    /* now redisplay dataset, in case anyone is looking at it */
 
+   IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
    PLUTO_dset_redisplay( dset ) ;
    dset_changed = 1 ;
    SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
@@ -2891,6 +2894,7 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
    nftot = THD_dataset_rowfillin( dset , 0 , dcode , maxgap ) ;
    if( nftot > 0 ){
      fprintf(stderr,"++ Fillin filled %d voxels\n",nftot) ;
+     IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
      PLUTO_dset_redisplay( dset ) ;
      dset_changed = 1 ;
      SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
@@ -3108,6 +3112,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
      free(xd) ;
 
      fprintf(stderr,"++ %d TT Atlas voxels drawn into dataset\n",ff) ;
+     IM3D_VEDIT_FORCE(im3d) ;        /* 01 Feb 2008 */
      PLUTO_dset_redisplay( dset ) ;
      dset_changed = 1 ;
      SENSITIZE(save_pb,1) ; SENSITIZE(saveas_pb,1) ;
