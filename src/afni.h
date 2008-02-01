@@ -910,6 +910,10 @@ typedef struct {
       int   vedskip ;
 } Three_D_View ;
 
+/*! Force re-clusterizing when this viewer is redisplayed */
+
+#define IM3D_VEDIT_FORCE(iq) (iq)->vedset.flags=1
+
 /*! Is any image viewer window open? */
 
 #define IM3D_IMAGIZED(iq) \
