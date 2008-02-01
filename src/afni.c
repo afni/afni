@@ -5862,7 +5862,6 @@ DUMP_IVEC3("  new_id",new_id) ;
        }
        if( !im3d->vedskip )
          changed = AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
-       im3d->vedset.flags = 0 ;  /* 01 Feb 2008 */
        if( !DSET_VEDIT_good(im3d->fim_now) ){
          VEDIT_clear_label(im3d) ;
          if( im3d->vwid->func->clu_rep != NULL ){
@@ -5890,6 +5889,7 @@ DUMP_IVEC3("  new_id",new_id) ;
        DESTROY_CLARR(im3d->vwid->func->clu_list) ;
      }
      AFNI_set_thr_pval(im3d) ;  /* for the * marker */
+     im3d->vedset.flags = 0 ;   /* 01 Feb 2008 */
    }
 
    /*--- redraw images now ---*/
