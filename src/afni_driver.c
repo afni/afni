@@ -437,7 +437,7 @@ ENTRY("AFNI_switch_session") ;
 
    cbs.ival = ic ;
 
-   AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
+   AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb,
                              (XtPointer)im3d ,  &cbs          ) ;
 
    RETURN(0) ;

@@ -2851,10 +2851,12 @@ ENTRY("AFNI_append_sessions") ;
 
 void AFNI_finalize_read_sess_CB( Widget w, XtPointer cd, XtPointer cb )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
-   XmFileSelectionBoxCallbackStruct *cbs = (XmFileSelectionBoxCallbackStruct *) cb ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   XmFileSelectionBoxCallbackStruct *cbs = (XmFileSelectionBoxCallbackStruct *)cb ;
 
 ENTRY("AFNI_finalize_read_sess_CB") ;
+
+   if( !IM3D_OPEN(im3d) || cbs == NULL ) EXRETURN ;  /* 04 Feb 2008 */
 
    switch( cbs->reason ){
 
@@ -3007,7 +3009,16 @@ STATUS("rescanning timeseries files") ;
                }
 
                RWC_XtPopdown( im3d->vwid->file_dialog ) ;
-            }
+
+               /* 04 Feb 2008: switch to this session */
+
+               if( !AFNI_noenv("AFNI_NEWSESSION_SWITCH") ){
+                 MCW_choose_cbs cbs;
+                 cbs.ival = GLOBAL_library.sslist->num_sess - 1 ;
+                 AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb,
+                                           (XtPointer)im3d ,  &cbs          ) ;
+               }
+            } /* end of if we actually read a new session */
 
 STATUS("freeing 'text' variable") ;
             myXtFree(text) ;
