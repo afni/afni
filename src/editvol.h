@@ -410,6 +410,7 @@ extern void * EDIT_volpad( int,int,int,int,int,int ,
 extern THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * ) ;
 extern THD_3dim_dataset * EDIT_full_copy ( THD_3dim_dataset * , char * ) ;
 extern int                EDIT_dset_items( THD_3dim_dataset * , ... ) ;
+extern THD_3dim_dataset * EDIT_geometry_constructor( char * ) ; /* 05 Jan 2008 */
 extern int THD_volDXYZscale(  THD_dataxes  * daxes, 
                               float xyzscale, 
                               int reuse_shift);    /* ZSS Dec 07 */

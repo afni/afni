@@ -518,6 +518,7 @@ int AFNI_process_plugout( PLUGOUT_spec *pp )
           }
         }
 
+#if 0
       /*-- 01 Feb 2008: a command to read NIML data from a file --*/
 
       } else if( strncmp(str[ss],"READ_NIML_FILE",14) == 0 ){
@@ -538,6 +539,7 @@ int AFNI_process_plugout( PLUGOUT_spec *pp )
             PO_ACK_BAD(pp->ioc);
           }
         }
+#endif
 
       /*-- unknown plugout command: drop a daisy cutter on them --*/
 
