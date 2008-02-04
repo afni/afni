@@ -1,3 +1,4 @@
+#!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
 #Version 0.0.9, Dec. 3, 2007
@@ -10,7 +11,7 @@
 
 Ftype <- "sequential"   # "marginal" or "sequential"
 
-source(file.path(Sys.getenv("LME"), "AFNIio.R"))
+source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
 #install.packages("nlme",dependencies=TRUE)
 library(nlme)
 library(contrast)
