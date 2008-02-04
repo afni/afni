@@ -2519,6 +2519,13 @@ If this variable is set to YES, then the AFNI 'goodbye' messages won't
 be printed when the program exits.  For the grumpy people out there
 (you know who I'm talking about, don't you, Daniel?).
 
+--------------------------------
+Variable: AFNI_NEWSESSION_SWITCH
+--------------------------------
+If this variable is set to NO, then AFNI will not automatically switch
+to a new session after that session is read in using the 'Read Sess'
+button on the Datamode control panel.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
