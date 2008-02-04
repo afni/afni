@@ -330,6 +330,10 @@ SET_XHAIRS [c.]code
   'code' is one of the following strings:
        OFF  SINGLE  MULTI   LR_AP   LR_IS  AP_IS  LR  AP  IS
 
+READ_NIML_FILE fname
+  Reads the NIML-formatted file 'fname' from disk and processes it as if
+  the data in the file had been sent to AFNI through a TCP/IP socket.
+
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
   memory, and when re-used, AFNI will re-read them from disk.  If a prefix
