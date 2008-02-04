@@ -2520,6 +2520,13 @@ static char * readme_env[] = {
    "be printed when the program exits.  For the grumpy people out there\n" ,
    "(you know who I'm talking about, don't you, Daniel?).\n" ,
    "\n" ,
+   "--------------------------------\n" ,
+   "Variable: AFNI_NEWSESSION_SWITCH\n" ,
+   "--------------------------------\n" ,
+   "If this variable is set to NO, then AFNI will not automatically switch\n" ,
+   "to a new session after that session is read in using the 'Read Sess'\n" ,
+   "button on the Datamode control panel.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2690,4 +2697,4 @@ static char * readme_env[] = {
    "(You can always use '3drefit -addFDR' to add FDR curves to a dataset\n" ,
    "header, for those sub-bricks marked as statistical parameters.)\n" ,
    NULL } ;
-#define NUM_readme_env 2690
+#define NUM_readme_env 2697

@@ -6581,3 +6581,6 @@
  * Force re-clustering when doing a redraw in the ROI plugin.
  * Modify NIML+PO button label to reflect status of NIML and plugouts
      at time button is created.
+
+04 Feb 2008
+ * AFNI_NEWSESSION_SWITCH in afni_func.c == switch to new session?
