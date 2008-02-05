@@ -2646,7 +2646,6 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    else
      AFNI_check_obliquity(wcall, ss_new->dsset[new_anat][0]);
 
-
    EXRETURN ;
 }
 
@@ -2661,6 +2660,11 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
 
    ENTRY("AFNI_check_obliquity");
    if( !ISVALID_DSET(dset) ) EXRETURN ;
+
+   if(AFNI_yesenv("AFNI_NO_OBLIQUE_WARNING")) EXRETURN;
+
+   THD_check_oblique_field(dset);
+
    angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
    if(angle == 0.0) EXRETURN ;
 
