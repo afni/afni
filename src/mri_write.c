@@ -8,6 +8,42 @@
 
 /*** 7D SAFE ***/
 
+/*-------------------------------------------------------------------------*/
+/*! Open a file for writing, if practicable.  Use fclose_maybe() to close. */
+
+static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
+{
+   FILE *imfile ;
+
+   if( fname == NULL || *fname == '\0' ) return NULL ;  /* bad input */
+
+   /* special case -- be sure not to fclose() stdout */
+
+   if( strcmp(fname,"-") == 0 || strcmp(fname,"stdout") == 0 ) return stdout ;
+
+   if( THD_is_ondisk(fname) ){   /* check for existing file */
+     if( !THD_ok_overwrite() ){  /* if not allowed to overwrite */
+       ERROR_message("(FAILED) attempt to over-write file %s",fname) ;
+       return NULL ;
+     } else {
+       WARNING_message("over-writing file %s",fname) ;  /* tell the user */
+     }
+   }
+
+   imfile = fopen(fname,"w") ;
+   if( imfile == NULL ) ERROR_message("Can't open for output: %s",fname) ;
+   return imfile ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
+{
+   if( fp != NULL && fp != stdout ) fclose(fp) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* 28 Aug 1996: return value changed from void to int,
                 which will be the number of files written to disk
                 (either 0 or 1 at the present time).             */
@@ -31,25 +67,9 @@ ENTRY("mri_write") ;
    if( im->kind == MRI_byte ){ RETURN(mri_write_pnm( fname , im )) ; }
 
    /* open the file for output */
- 
-   if( !THD_ok_overwrite() && strcmp(fname,"-") != 0 ){
-     imfile = fopen( fname , "r" ) ;
-     if( imfile != NULL ){
-       fclose( imfile ) ;
-       ERROR_message("(FAILED) attempt to overwrite file %s",fname) ;
-       RETURN(0) ;
-     }
-   }
 
-   if( strcmp(fname,"-") != 0 )
-     imfile = fopen( fname , "w" ) ;
-   else
-     imfile = stdout ;   /* 18 Apr 2005: write to stdout instead */
-
-   if( imfile == NULL ){
-     ERROR_message("Couldn't open for output file %s" , fname ) ;
-     RETURN(0) ;
-   }
+   imfile = fopen_maybe(fname) ;
+   if( imfile == NULL ) RETURN(0) ;
 
    /*** possibly write MRI header, unless a standard image type ***/
 
@@ -101,7 +121,7 @@ ENTRY("mri_write") ;
    data = mri_data_pointer( im ) ;
    fwrite( data , im->pixel_size , im->nx * im->ny , imfile ) ;
 
-   if( imfile != stdout ) fclose( imfile ) ;
+   fclose_maybe(imfile) ;
    RETURN(1) ;
 }
 
@@ -116,19 +136,8 @@ ENTRY("mri_write_7D") ;
 
    if( im == NULL ) RETURN( 0 );
 
-   imfile = fopen( fname , "r" ) ;
-   if( !THD_ok_overwrite() && imfile != NULL ){
-      fclose( imfile ) ;
-      ERROR_message("(FAILED) attempt to overwrite file %s",fname) ;
-      RETURN( 0 );
-   }
-
-   imfile = fopen( fname , "w" ) ;
-
-   if( imfile == NULL ){
-      ERROR_message("Couldn't open for output file %s" , fname ) ;
-      RETURN( 0 );
-   }
+   imfile = fopen_maybe(fname) ;
+   if( imfile == NULL ) RETURN(0) ;
 
    /*** write MR7 header ***/
 
@@ -174,7 +183,7 @@ ENTRY("mri_write_7D") ;
 
    data = mri_data_pointer( im ) ;
    fwrite( data , im->pixel_size , im->nvox , imfile ) ;
-   fclose( imfile ) ;
+   fclose_maybe(imfile) ;
 
    RETURN( 1 );
 }
@@ -201,24 +210,8 @@ ENTRY("mri_write_pnm") ;
      RETURN( mri_write_filtered(fname+1,im) ) ;
    }
 
-   if( !THD_ok_overwrite() && strcmp(fname,"-") != 0 ){
-     imfile = fopen( fname , "r" ) ;
-     if( imfile != NULL ){
-       fclose( imfile ) ;
-       ERROR_message("(FAILED) attempt to overwrite image file %s",fname) ;
-       RETURN( 0 );
-     }
-   }
-
-   if( strcmp(fname,"-") != 0 )
-     imfile = fopen( fname , "w" ) ;
-   else
-     imfile = stdout ;     /* 18 Apr 2005: write to stdout */
-
-   if( imfile == NULL ){
-     ERROR_message("Couldn't open image file %s for writing" , fname ) ;
-     RETURN( 0 );
-   }
+   imfile = fopen_maybe(fname) ;
+   if( imfile == NULL ) RETURN(0) ;
 
    switch( im->kind ){
 
@@ -234,7 +227,7 @@ ENTRY("mri_write_pnm") ;
 
    }
 
-   if( imfile != stdout ) fclose( imfile ) ;
+   fclose_maybe(imfile) ;
    RETURN( 1 );
 }
 
@@ -265,27 +258,15 @@ int mri_write_ascii( char *fname, MRI_IMAGE *im )
 
 ENTRY("mri_write_ascii") ;
 
-   if( fname == NULL || strlen(fname) == 0 ||
-       im == NULL    || im->nz > 1           ) RETURN( 0 );
+   if( fname == NULL || *fname == '\0' ||
+       im    == NULL || im->nz >  1      ) RETURN( 0 );
 
-   if( strcmp(fname,"-") == 0 || strcmp(fname,"stdout") == 0 ){
-     imfile = stdout ;
-   } else if (!THD_ok_overwrite()){
-     imfile = fopen( fname , "r" ) ;
-     if( imfile != NULL ){
-       fclose( imfile ) ;
-       ERROR_message("(FAILED) attempt to overwrite file %s",fname) ;
-       RETURN( 0 );
-     }
-     imfile = fopen( fname , "w" ) ;
-     if( imfile == NULL ){
-       ERROR_message("Couldn't open for output file %s" , fname ) ;
-       RETURN( 0 );
-     }
-   }
+   imfile = fopen_maybe(fname) ;
+   if( imfile == NULL ) RETURN(0) ;
 
    nx = im->nx ; ny = im->ny ;
 
+STATUS("looping") ;
    for( jj=0 ; jj < ny ; jj++ ){
 
       switch( im->kind ){
@@ -343,7 +324,7 @@ ENTRY("mri_write_ascii") ;
       fprintf(imfile,"\n") ;
    }
 
-   if( imfile != stdout ) fclose(imfile) ;
+   fclose_maybe(imfile) ;
    RETURN( 1 );
 }
 
@@ -369,14 +350,11 @@ ENTRY("mri_write_raw") ;
    if( THD_is_file(fname) )
      WARNING_message("Over-writing file %s",fname) ;
 
-   imfile = fopen( fname , "w" ) ;
-
-   if( imfile == NULL ){
-     ERROR_message("Can't open for output: %s",fname); RETURN( 0 );
-   }
+   imfile = fopen_maybe(fname) ;
+   if( imfile == NULL ) RETURN(0) ;
 
    fwrite( data , 1 , dsize , imfile ) ;
-   fclose( imfile ) ;
+   fclose_maybe( imfile ) ;
    RETURN( 1 );
 }
 

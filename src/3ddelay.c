@@ -2045,7 +2045,7 @@ void write_bucket_data
       exit(1);
     }
   
-  if (!THD_ok_overwrite() && THD_is_file(DSET_HEADNAME(new_dset))) 
+  if (!THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(new_dset))) 
     {
       fprintf(stderr,
 	      "*** Output dataset file %s already exists--cannot continue!\n",
