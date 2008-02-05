@@ -2378,3 +2378,7 @@
 23 Jan 2008: added useless statements to fix suma crashes on FC7 (compiler?)
   * modified SUMA_Load_Surface_Object.c: added optimization appease message
 25 Jan 2008: fixed Makefile.linux_gcc32 to linux motif statically
+
+05 Feb 2008: nifti updates for hans johnson to remove nia.gz functionality
+  * modified cmake_testscripts/newfiles_test.sh, commands/c15.new.files,
+             utils/nifti1_test.c, niftilib/nifti1_io.c
