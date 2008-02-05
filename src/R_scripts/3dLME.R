@@ -176,7 +176,7 @@ tag <- 0
 for (i in 1:dimx) {
 for (j in 1:dimy) {
 for (k in 1:dimz) {
-   if ((!all(Mask[i, j, k,] == 0)) & (IData[i, j, k,] != 0)) {	
+   if ((Mask[i, j, k,] != 0) & !all(IData[i, j, k,] == 0)) {	
 	Model$Beta<-IData[i, j, k,]
 	if (RM) try(fm <- lme(ModelForm, random = ~1|Subj, Model), tag <- 1)
    else try(fm <- lm(ModelForm, Model), tag <- 1) 
