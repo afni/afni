@@ -2260,8 +2260,19 @@ ENTRY("AFNI_choose_dataset_CB") ;
             if( DSET_in_global_session(im3d->ss_now->dsset[ii][vv]) )
               strcat( strlist[ii] , "G" ) ;
 
-         } else
+         } else {
+#if 0
+THD_3dim_dataset *qset ;
+for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ ){
+ qset = im3d->ss_now->dsset[ii][vv] ;
+ if( qset != NULL ){
+  INFO_message("BAD: type=%d view_type=%d ibk=%d bkt=%d",
+               qset->type , qset->view_type , qset->dblk != NULL , qset->dblk->type ) ;
+ }
+}
+#endif
             MCW_strncpy( strlist[ii] , "??*BAD*??" , THD_MAX_PREFIX ) ;
+         }
       }
 
       init_str = im3d->vinfo->anat_num ;
