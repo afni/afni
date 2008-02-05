@@ -2267,7 +2267,7 @@ static void process_NIML_AFNI_volumedata( void *nini , int ct_start )
 {
    char *idc ;
    THD_slist_find find ;
-   THD_3dim_dataset *dset ;
+   THD_3dim_dataset *dset=NULL ;
 
    int ct_read = 0, ct_tot = 0 ;
    char msg[1024] ;
@@ -2298,10 +2298,8 @@ ENTRY("process_NIML_AFNI_volumedata") ;
      if( gidc == NULL ) gidc = NI_get_attribute( nini , "geometry_name" ) ;
      if( gidc == NULL ) gidc = NI_get_attribute( nini , "master_idcode" ) ;
      if( gidc == NULL ) gidc = NI_get_attribute( nini , "master_name" ) ;
-     if( gidc == NULL ){
-       ERROR_message("ERROR: un-parented VOLUME_DATA received via NIML");
-       EXRETURN ;
-     }
+     if( gidc == NULL ) gidc = NI_get_attribute( nini , "target_name" ) ;
+     if( gidc == NULL ) gidc = "Anonymous" ;
 
      find = PLUTO_dset_finder(gidc) ; gset = find.dset ;
 
@@ -2318,23 +2316,35 @@ ENTRY("process_NIML_AFNI_volumedata") ;
 
      if( gset == NULL ){
        char *gstr = NI_get_attribute( nini , "geometry_string" ) ;
-       gset = EDIT_geometry_constructor(gstr,NULL) ;
+       if( gstr != NULL ) dset = EDIT_geometry_constructor(gstr,NULL) ;
      }
 
-     if( gset != NULL ){   /*--- create a new dataset and put in a session ---*/
+     if( dset != NULL || gset != NULL ){   /*--- create new dataset ---*/
        Three_D_View *im3d = AFNI_find_open_controller() ;
        THD_session    *ss = im3d->ss_now ; int qs = ss->num_dsset ;
-       dset = EDIT_empty_copy(gset) ; DSET_superlock(dset) ;
+
+       if( dset == NULL ) dset = EDIT_empty_copy(gset) ;
+       DSET_superlock(dset) ;
        if( DSET_NVALS(dset) > 1 ) EDIT_dset_items(dset, ADN_nvals,1, ADN_none) ;
+
+       gidc = NI_get_attribute( nini , "view") ;
+       if( gidc != NULL && strcasecmp(gidc,"tlrc") == 0 &&
+                           dset->view_type != VIEW_TALAIRACH_TYPE )
+         EDIT_dset_items( dset , ADN_view_type,VIEW_TALAIRACH_TYPE , ADN_none );
+
        gidc = NI_get_attribute( nini , "target_name") ;
        if( gidc == NULL ) gidc = "Anonymous" ;
-       EDIT_dset_items(dset, ADN_prefix,gidc , ADN_none ) ;
+       EDIT_dset_items( dset , ADN_prefix,gidc , ADN_none ) ;
+
        POPDOWN_strlist_chooser ;
        if( qs < THD_MAX_SESSION_SIZE ){
-         int vv = dset->view_type ;
+         int vv=dset->view_type , qq ;
+         if( vv < FIRST_VIEW_TYPE || vv > LAST_VIEW_TYPE ) vv = FIRST_VIEW_TYPE;
+         for( qq=FIRST_VIEW_TYPE ; qq <= LAST_VIEW_TYPE ; qq++ )
+           ss->dsset[qs][qq] = NULL ;
          ss->dsset[qs][vv] = dset ; ss->num_dsset++ ;
          INFO_message("Added dataset '%s' to controller %s",
-                      gidc , AFNI_controller_label(im3d)    ) ;
+                      DSET_FILECODE(dset), AFNI_controller_label(im3d) ) ;
        } else {
          DSET_delete(dset) ;
          ERROR_message("Can't create dataset '%s': session array overflow",gidc);
@@ -2347,7 +2357,7 @@ ENTRY("process_NIML_AFNI_volumedata") ;
      }
    }
 
-   /** put this data into the dataset **/
+   /** actually put this data into the dataset **/
 
    (void)THD_add_bricks( dset , nini ) ;
    THD_update_statistics( dset ) ;
@@ -2357,7 +2367,7 @@ ENTRY("process_NIML_AFNI_volumedata") ;
    if( ct_start >= 0 )                      /* keep track    */
      ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
 
-   sprintf(msg,"\n+++ NOTICE: Replacement AFNI sub-bricks received.\n\n") ;
+   sprintf(msg,"\n++ NOTICE: Replacement AFNI sub-bricks received.\n") ;
 
    if( ct_tot > 0 ) sprintf(msg+strlen(msg),
                             "  I/O time = %4d ms, Processing = %4d ms\n" ,

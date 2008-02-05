@@ -6591,4 +6591,5 @@
  * Move THD_deathcon() and THD_ok_overwrite() functions to afni_environ.c,
      where they belong.
  * New function EDIT_geometry_constructor() to make an empty dataset from
-     a string specifying it's geometry.
+     a string specifying it's geometry.  Also, print this geometry string
+     in 3dinfo.

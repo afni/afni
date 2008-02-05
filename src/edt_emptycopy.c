@@ -61,7 +61,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
       new_dset->type      = HEAD_ANAT_TYPE ;
       new_dset->func_type = ANAT_SPGR_TYPE ;
       new_dset->view_type = VIEW_ORIGINAL_TYPE ;
-      new_nvals           = ANAT_nvals[new_dset->func_type] ;
+      new_nvals           = 1 ;
    }
 
    new_dset->warp        = NULL ;
@@ -72,8 +72,8 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    /*-- 14 Dec 1999: copy the anat_parent, too --*/
 
    if( old_good ){
-      new_dset->anat_parent = old_dset->anat_parent  ; /* actual link, for use now */
-      EDIT_COPY_ANATOMY_PARENT_ID(new_dset,old_dset) ; /* idcode, for HEAD file later */
+     new_dset->anat_parent = old_dset->anat_parent  ; /* actual link, for use now */
+     EDIT_COPY_ANATOMY_PARENT_ID(new_dset,old_dset) ; /* idcode, for HEAD file later */
    }
 
    /*-- end of anat_parent copy --*/
