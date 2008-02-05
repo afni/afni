@@ -4207,6 +4207,8 @@ extern int THD_get_oblique_report(void);
 
 extern void THD_reset_oblique_report_index(void);
 
+extern void THD_check_oblique_field(THD_3dim_dataset *dset);
+extern void THD_make_cardinal(THD_3dim_dataset *dset);
 
   /* cf. thd_tmask.c */
 
