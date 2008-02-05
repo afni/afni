@@ -538,8 +538,10 @@ int main( int argc , char * argv[] )
 
    if( yes_niml ){  /*----- 04 Feb 2008: NIML formatted output -----*/
      if( nout > 0 ){
+       char *gstr = EDIT_get_geometry_string(input_dset[0]) ;
        fprintf(ofile,"<VOLUME_DATA_SPARSE\n") ;
-       fprintf(ofile,"  master_name='%s'\n",DSET_IDCODE_STR(input_dset[0]) ) ;
+       if( gstr != NULL && *gstr != '\0' )
+         fprintf(ofile,"  geometry_string='%s'\n",gstr) ;
        fprintf(ofile,"  target_name='%s'\n",niml_name) ;
        fprintf(ofile,"  ni_type='%d*float'\n",ndval+3) ; /* +3 allows for xyz */
        fprintf(ofile,"  ni_dimen='%d'\n",nout) ;

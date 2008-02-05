@@ -49,6 +49,8 @@ extern void          multivector_set_name( multivector * , char * ) ;
 extern char * MV_format_fval( float ) ;  /* 12 July 01999 */
 extern char * MV_format_fval2( float, int ) ;  /* May 28 04, ZSS */
 
+extern void MV_fval_to_char( float qval , char * buf ) ;
+
 #define MV_FREE(m) do{ multivector_free((m)); (m)=NULL; }while(0)
 
 #ifdef  __cplusplus
