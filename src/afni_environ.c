@@ -247,7 +247,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
 
    /*--- scan thru argv[];
          see if any should be processed now and marked as 'used up' ---*/
-   
+
    for( ii=1 ; ii < narg ; ii++ ){
 
      /*** empty argument (should never happen in Unix) ***/
@@ -284,24 +284,24 @@ int AFNI_prefilter_args( int *argc , char **argv )
        if( ttt ) fprintf(stderr,"++ argv[%d] is -pad_to_node\n",ii) ;
        if (ii+1 >= narg) {
          fprintf(stderr,"** -pad_to_node needs a positive integer.\n");
-         exit(1); 
+         exit(1);
        }
-       used[ii] = 1 ; ii++; 
+       used[ii] = 1 ; ii++;
        MRILIB_DomainMaxNodeIndex = atoi(argv[ii]);
-       if (MRILIB_DomainMaxNodeIndex < 0) { 
+       if (MRILIB_DomainMaxNodeIndex < 0) {
          fprintf(stderr,"** parameter for -pad_to_node (%d) is negative!\n",
                         MRILIB_DomainMaxNodeIndex);
-         exit(1); 
+         exit(1);
        }else if (MRILIB_DomainMaxNodeIndex > 500000) {
          fprintf(stderr,
                   "** parameter for -pad_to_node (%d) is suspiciously large.\n"
-                  "   I hope you know what you're doing.\n", 
+                  "   I hope you know what you're doing.\n",
                   MRILIB_DomainMaxNodeIndex );
        }
-       used[ii] = 1; 
+       used[ii] = 1;
        continue ;
      }
-     
+
      /*** if get to here, argv[ii] is nothing special ***/
 
    } /* end of loop over argv[] */
@@ -318,4 +318,22 @@ int AFNI_prefilter_args( int *argc , char **argv )
      fprintf(stderr,"++ 'used up' %d argv[] entries, leaving %d\n",nused,narg) ;
 
    free((void *)used) ; *argc = narg ; return(nused);
+}
+
+
+/*-------------------------------------------------------------------------*/
+/* These functions moved here: 05 Feb 2008. */
+
+int THD_deathcon(void)  /* 06 Jun 2007 */
+{
+   char *ppp = my_getenv("AFNI_DECONFLICT") ;
+   if( ppp != NULL && *ppp == 'N' ) return 1 ;
+   return 0 ;
+}
+
+int THD_ok_overwrite(void)  /* Jan 2008 */
+{
+   char *ppp=my_getenv("AFNI_DECONFLICT");
+   if (ppp && strcmp(ppp,"OVERWRITE")==0) return 1;
+   return 0;
 }
