@@ -19,8 +19,27 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: A template code for writing SUMA programs.\n"
-               " \n"
+               "Usage: SurfDist <SURFACE> <NODEPAIRS>\n"
+               "       Output shortest distance between NODEPAIRS along\n"
+               "       the nesh of SURFACE.\n"
+               "  <SURFACE> : Surface on which distances are computed.\n"
+               "              (For option's syntax, see \n"
+               "              'Specifying input surfaces' section below).\n"
+               "  <NODEPAIRS>: A dataset of two columns where each row\n"
+               "               specifies a node pair.\n"
+               "               (For option's syntax, see \n"
+               "              'SUMA dataset input options' section below).\n"
+               "  example:\n"
+               "     echo make a toy surface\n"
+               "     CreateIcosahedron\n"
+               "     echo Create some nodepairs\n"
+               "     echo 13 344 > nodelist.1D\n"
+               "     echo 123 32414 >> nodelist.1D\n"
+               "     echo Get distances and write out results in a 1D file\n"
+               "     SurfDist -i CreateIco_surf.asc \\\n"
+               "              -input nodelist.1D > example.1D\n"
+               "     less example.1D\n"
+               "\n"
                "%s"
                "%s"
                "\n", sio,  s);
@@ -103,7 +122,9 @@ int main (int argc,char *argv[])
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-s;-sv;-spec;-mask;-dset;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-s;-sv;-spec;-dset;"); 
+                                       /* -mask could be used if needed, see 
+                                          comment on masks below*/
    
    if (argc < 2) {
       usage_SurfDist(ps);
@@ -142,7 +163,8 @@ int main (int argc,char *argv[])
    }   
    /* need some metrics */
    if (!SUMA_SurfaceMetrics_eng( SO, "EdgeList", NULL, 
-                                 0, SUMAg_CF->DsetList)){
+                                 SUMA_MAX_PAIR(0, Opt->debug -1), 
+                                 SUMAg_CF->DsetList)){
       SUMA_S_Err("Failed to metricate");
       exit(1);
    }
@@ -161,10 +183,15 @@ int main (int argc,char *argv[])
       exit(1);
    }
    /* work  the node pairs */
-   fprintf(SUMA_STDOUT, "#Internodal distance along graph of surface %s\n", 
+   fprintf(SUMA_STDOUT, "#Internodal distance along graph of surface %s\n"
+                        "#A distance of -1 indicates an error of sorts.\n", 
                         SO->Label);
    fprintf(SUMA_STDOUT, "#%-6s %-6s %-6s\n",
                         "From" , "to", "Dist." );
+   /* no making is being used at the moment. You
+   can't just pass Opt->nmask because Dijkstra destroys its contents.
+   You'll need to keep an original copy of it or patch it each time 
+   it gets modified. */
    for (ii=0; ii<SDSET_VECLEN(din); ++ii) {
       Nfrom = (int)SUMA_GetDsetValInCol2(din, 0, ii);
       Nto = (int)SUMA_GetDsetValInCol2(din, 1, ii);
