@@ -91,7 +91,7 @@ int main (int argc,char *argv[])
    SUMA_DSET_FORMAT iform = SUMA_NO_DSET_FORMAT;
    SUMA_DSET *din=NULL, *dout=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
-   int i, N_Spec, N_inmask = -1;
+   int ii, N_Spec, N_inmask = -1;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    

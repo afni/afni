@@ -6154,13 +6154,20 @@ void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId
    
    dd = -1.0;  dd_c = -1.0;
    if (option == SW_DrawROI_WhatDistAll) { /* do shortest distance */
-      isNodeInMesh = (SUMA_Boolean*) SUMA_malloc(SO->N_Node * sizeof(SUMA_Boolean)); N_left = SO->N_Node; for (i=0;i<N_left;++i) isNodeInMesh[i] = YUP;
+      isNodeInMesh = (SUMA_Boolean*) SUMA_malloc(  SO->N_Node * 
+                                                   sizeof(SUMA_Boolean)); 
+      N_left = SO->N_Node; for (i=0;i<N_left;++i) isNodeInMesh[i] = YUP;
       if (!isNodeInMesh) {
-         SUMA_SL_Err("Failed to allocate!\nWill not compute shortest distance.");
+         SUMA_SL_Err("Failed to allocate!\n"
+                     "Will not compute shortest distance.");
       }else {
-         nPath = SUMA_Dijkstra (SO, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], isNodeInMesh, &N_left, 1, &dd, &N_n);
+         nPath = SUMA_Dijkstra ( SO, ROId->nPath[0], 
+                                 ROId->nPath[ROId->N_n - 1], 
+                                 isNodeInMesh, &N_left, 1, &dd, &N_n);
          if (nPath) { 
-            SUMA_free(nPath); nPath = NULL; dd_c = dd / SUMA_FS_DIJKSTRA_DISTANCE_FACTOR;
+            SUMA_free(nPath); 
+            nPath = NULL; 
+            dd_c = dd / SUMA_FS_DIJKSTRA_DISTANCE_FACTOR;
          } else { 
             dd = -2.0;  dd_c = -2.0;
          }
@@ -6170,13 +6177,15 @@ void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId
          "#Distances on %s\n"
          "#n0\tn1\tN_n\td\td_c\tds\tds_c\n"
          "%d\t%d\t%d\t%.2f\t%.2f\t%.2f\t%.2f\n", 
-         SO->Label, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], ROId->N_n, ds, ds_c, dd, dd_c);
+         SO->Label, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], 
+         ROId->N_n, ds, ds_c, dd, dd_c);
    } else if (option == SW_DrawROI_WhatDistTrace) {
       SS = SUMA_StringAppend_va(SS,
          "#Distances on %s\n"
          "#n0\tn1\tN_n\td\td_c\n"
          "%d\t%d\t%d\t%.2f\t%.2f\n", 
-         SO->Label, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], ROId->N_n, ds, ds_c);
+         SO->Label, ROId->nPath[0], ROId->nPath[ROId->N_n - 1], 
+         ROId->N_n, ds, ds_c);
    }
    
    SUMA_SS2S(SS,s);

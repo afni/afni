@@ -543,13 +543,17 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             SUMA_SurfaceObject *SO;
             float fv3[3];
             int it;
-            fprintf(SUMA_STDOUT, "%s: Enter mm distance [RAI] to move center of all mappable surfaces in DOv by.\n", FuncName);
+            fprintf(SUMA_STDOUT, "%s: Enter shift in mm [RAI] "
+                                 "to apply to all mappable surfaces in DOv.\n",
+                                 FuncName);
             it = SUMA_ReadNumStdin (fv3, 3);
             if (it > 0 && it < 3) {
-               fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
+               fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", 
+                                    FuncName, it);
                SUMA_RETURN(0);
             }else if (it < 0) {
-               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", 
+                                    FuncName);
                SUMA_RETURN(0);
             }else if (it == 0) {
                fprintf(SUMA_STDERR,"%s: Nothing read.\n", FuncName);
@@ -562,7 +566,9 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   if (SUMA_isLocalDomainParent(SO)) {
                      int imax, ii;
                      /* add the shift */
-                     fprintf (SUMA_STDERR,"%s: Shifting %s by %f %f %f mm RAI.\n", FuncName, SO->Label, fv3[0], fv3[1], fv3[2]);
+                     fprintf (SUMA_STDERR,
+                              "%s: Shifting %s by %f %f %f mm RAI.\n", 
+                              FuncName, SO->Label, fv3[0], fv3[1], fv3[2]);
                      ii = 0;
                      imax = 3 * SO->N_Node;
                      while (ii < imax) {
@@ -576,13 +582,19 @@ int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          } else {
-            sv->GVS[sv->StdView].ApplyMomentum = !sv->GVS[sv->StdView].ApplyMomentum;
+            sv->GVS[sv->StdView].ApplyMomentum = 
+                                 !sv->GVS[sv->StdView].ApplyMomentum;
             SUMA_UpdateViewerTitle(sv);
             if (sv->GVS[sv->StdView].ApplyMomentum) {
-                sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) sv->X->GLXAREA);
+                sv->X->MOMENTUMID = XtAppAddTimeOut(  
+                                       SUMAg_CF->X->App, 1,   
+                                       SUMA_momentum, 
+                                       (XtPointer) sv->X->GLXAREA);
                 /* wait till user initiates turning */
-               sv->GVS[sv->StdView].spinDeltaX = 0; sv->GVS[sv->StdView].spinDeltaY = 0;
-               sv->GVS[sv->StdView].translateDeltaX = 0; sv->GVS[sv->StdView].translateDeltaY = 0;
+               sv->GVS[sv->StdView].spinDeltaX = 0; 
+               sv->GVS[sv->StdView].spinDeltaY = 0;
+               sv->GVS[sv->StdView].translateDeltaX = 0; 
+               sv->GVS[sv->StdView].translateDeltaY = 0;
             } else {
                if (sv->X->MOMENTUMID)  {
                   XtRemoveTimeOut(sv->X->MOMENTUMID);

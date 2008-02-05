@@ -4687,7 +4687,7 @@ double SUMA_GetDsetNodeValInCol2(SUMA_DSET *dset, int ind,
 /*!
    \brief Returns the value from column ind, row ival
    The value is stored in a double variable 0.0  in case of error. 
-   \sa SUMA_GetDsetValInCol
+   \sa SUMA_GetDsetValInCol and SUMA_GetDsetNodeValInCol2
 */
 double SUMA_GetDsetValInCol2(SUMA_DSET *dset, int ind, int ival) 
 {
