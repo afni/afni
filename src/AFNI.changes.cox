@@ -6584,3 +6584,9 @@
 
 04 Feb 2008
  * AFNI_NEWSESSION_SWITCH in afni_func.c == switch to new session?
+
+05 Feb 2008
+ * Fix over-write checks in mri_write.c by moving all file open/close
+     operations to new fopen_maybe() and fclose_maybe() functions.
+ * Move THD_deathcon() and THD_ok_overwrite() functions to afni_environ.c,
+     where they belong.
