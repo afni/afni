@@ -189,6 +189,12 @@ quickspec: SUMA_quickspec.c
          SUMA_quickspec.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
          ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+SurfDist: SUMA_SurfDist.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfDist.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
+         ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+         
 #>>>>>>>>>>>>>>>>>> Begin special block, compiling without all of SUMA's load <<<<<<<<<<<<<<<<<<<<
 #A special compilation of SUMA_DataSets and SUMA_Algorithms, without SUMA_COMPILED defined
 SUMA_DataSets_NS.o: SUMA_DataSets.c 
@@ -562,6 +568,7 @@ install:
 	@if [ -f SurfFWHM ]; then mv SurfFWHM ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SpharmDeco ]; then mv SpharmDeco ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SpharmReco ]; then mv SpharmReco ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfDist ]; then mv SurfDist ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -620,6 +627,7 @@ packbins:
 	@if [ -f SurfFWHM ]; then $(CP) -p SurfFWHM SUMA_bin/; fi;
 	@if [ -f SpharmDeco ]; then $(CP) -p SpharmDeco SUMA_bin/; fi;
 	@if [ -f SpharmReco ]; then $(CP) -p SpharmReco SUMA_bin/; fi;
+	@if [ -f SurfDist ]; then $(CP) -p SurfDist SUMA_bin/; fi;
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
@@ -636,7 +644,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
    SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface 3dSkullStrip \
    3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask Surf2VolCoord SurfToSurf ROIgrow\
    NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SurfFWHM \
-   SpharmDeco SpharmReco SumaProgramTemplate 
+   SpharmDeco SpharmReco SurfDist SumaProgramTemplate 
    
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 

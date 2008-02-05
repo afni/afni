@@ -8628,13 +8628,15 @@ int SUMA_Find_Edge_Nhost (SUMA_EDGE_LIST  *EL, int *IsInter, int N_IsInter, int 
                                        a complete surface is only for very patient people.
                                 NOTE:  This vector is modified as a node is visited. Make sure you 
                                        do not use it after this function has been called.
+                                       Set to NULL if you want all nodes used.
 \param N_isNodeInMesh (int *) Pointer to the total number of nodes that make up the mesh (subset of SO)
                This parameter is passed as a pointer because as nodes in the mesh are visited, that
                number is reduced and represents when the function returns, the number of nodes that were
                never visited in the search. 
+               Set to NULL, if isNodeInMesh is NULL
 \param Method_Number (int) selector for which algorithm to use. Choose from:
                      0 - Straight forward implementation, slow
-                     1 - Variation to eliminate long searches for minimum of L, much much much faster than 0, 5 time more memory.
+                     1 - Variation to eliminate long searches for minimum of L, much much much faster than 0, 5 times more memory.
 \param Path_length (float *) The distance between Nx and Ny. This value is negative if no path between Nx and Ny was found.
 \param N_Path (int *) Number of nodes forming the Path vector
 
@@ -8645,18 +8647,23 @@ int SUMA_Find_Edge_Nhost (SUMA_EDGE_LIST  *EL, int *IsInter, int N_IsInter, int 
 */
 #define LARGE_NUM 9e300
 /* #define LOCALDEBUG */ /* lots of debugging info. */
-int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNodeInMesh, int *N_isNodeInMesh, int Method_Number, float *Lfinal, int *N_Path)
+int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, 
+                     int Ny, SUMA_Boolean *isNodeInMeshp, 
+                     int *N_isNodeInMesh, int Method_Number, 
+                     float *Lfinal, int *N_Path)
 {
    static char FuncName[] = {"SUMA_Dijkstra"};
    SUMA_Boolean LocalHead = NOPE;
    float *L = NULL, Lmin = -1.0, le = 0.0, DT_DIJKSTRA;
-   int i, iw, iv, v, w, N_Neighb, *Path = NULL;
+   int i, iw, iv, v, w, N_Neighb, *Path = NULL, N_loc=-1;
+   SUMA_Boolean *isNodeInMesh=NULL;
    struct  timeval  start_time;
-   SUMA_DIJKSTRA_PATH_CHAIN *DC = NULL, *DCi, *DCp;
+   SUMA_DIJKSTRA_PATH_CHAIN *DC = NULL, *DCi=NULL, *DCp=NULL;
    SUMA_Boolean Found = NOPE;
    /* variables for method 2 */
-   int N_Lmins, *vLmins, *vLocInLmins, iLmins, ReplacingNode, ReplacedNodeLocation;
-   float *Lmins; 
+   int N_Lmins, *vLmins=NULL, *vLocInLmins=NULL, 
+      iLmins, ReplacingNode, ReplacedNodeLocation;
+   float *Lmins=NULL; 
    
    
    SUMA_ENTRY;
@@ -8664,19 +8671,33 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
    *Lfinal = -1.0;
    *N_Path = 0;
    
+   if (!isNodeInMeshp) {
+      if (!(isNodeInMesh = (SUMA_Boolean *)SUMA_malloc(  sizeof(SUMA_Boolean) * 
+                                                         SO->N_Node) )) {
+                                                   
+         SUMA_S_Err("Failed to allocate"); 
+         goto CLEANUP;
+      }
+      memset((void*)isNodeInMesh, 1,  sizeof(SUMA_Boolean) * SO->N_Node);
+      N_isNodeInMesh = &N_loc;
+      *N_isNodeInMesh = SO->N_Node;                                          
+   } else {
+      isNodeInMesh = isNodeInMeshp;
+   }
+   
    /* make sure Both Nx and Ny exist in isNodeInMesh */
    if (!isNodeInMesh[Nx]) {
       fprintf (SUMA_STDERR,"\aError %s: Node %d (Nx) is not in mesh.\n", FuncName, Nx);
-      SUMA_RETURN (NULL);
+      goto CLEANUP;
    }  
    if (!isNodeInMesh[Ny]) {
       fprintf (SUMA_STDERR,"\aError %s: Node %d (Ny) is not in mesh.\n", FuncName, Ny);
-      SUMA_RETURN (NULL);
+      goto CLEANUP;
    }
 
    if (!SO->FN) {
       fprintf (SUMA_STDERR, "Error %s: SO does not have FN structure.\n", FuncName);
-      SUMA_RETURN (NULL);
+      goto CLEANUP;
    }
 
    if (LocalHead) {
@@ -8688,7 +8709,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
    DC = (SUMA_DIJKSTRA_PATH_CHAIN *) SUMA_malloc (sizeof(SUMA_DIJKSTRA_PATH_CHAIN) * SO->N_Node);
    if (!DC) {
       fprintf (SUMA_STDERR, "Error %s: Could not allocate. \n", FuncName);
-      SUMA_RETURN (NULL);
+      goto CLEANUP;
    }
    
    switch (Method_Number) {
@@ -8698,8 +8719,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
          L = (float *) SUMA_calloc (SO->N_Node, sizeof (float));
          if (!L) {
             fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
-            SUMA_free(DC);
-            SUMA_RETURN (NULL);
+            goto CLEANUP;
          }
 
          /* label all vertices with very large numbers, initialize path previous pointers to null */
@@ -8726,9 +8746,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
             SUMA_MIN_LOC_VEC(L, SO->N_Node, Lmin, v);   /* locates and finds the minimum of L, nodes not in mesh will keep their large values and will not be picked*/
             if (!isNodeInMesh[v]) {
                fprintf (SUMA_STDERR, "\aERROR %s: Dijkstra derailed. v = %d, Lmin = %f\n. Try another point.", FuncName, v, Lmin);
-               SUMA_free (L);
-               SUMA_free(DC);
-               SUMA_RETURN (NULL); 
+               goto CLEANUP; 
             }
             if (v == Ny) {
                if (LocalHead) fprintf (SUMA_STDERR, "%s: Done.\n", FuncName);
@@ -8767,9 +8785,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
 
          if (!Found) {
             fprintf (SUMA_STDERR, "Error %s: No more nodes in mesh, failed to reach target.\n", FuncName);
-            SUMA_free (L);
-            SUMA_free(DC);
-            SUMA_RETURN (NULL);
+            goto CLEANUP;
          }else {
             if (LocalHead) fprintf (SUMA_STDERR, "%s: Path between Nodes %d and %d is %f.\n", FuncName, Nx, Ny, *Lfinal);
          }
@@ -8781,7 +8797,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
             fprintf (SUMA_STDERR, "%s: Method 1- Elapsed time in function %f seconds.\n", FuncName, DT_DIJKSTRA);
          }
 
-         SUMA_free(L);
+         if (L) SUMA_free(L); L = NULL;
          break;
 
       case 1:  /********* Method 1- faster minimum searching *******************/
@@ -8798,7 +8814,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
 
          if (!L || !Lmins || !vLmins || !vLocInLmins) {
             fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
-            SUMA_RETURN (NULL);
+            goto CLEANUP;
          }
 
          /* label all vertices with very large numbers and initialize vLocInLmins to -1*/
@@ -8833,13 +8849,10 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
             SUMA_MIN_LOC_VEC(Lmins, N_Lmins, Lmin, iLmins);   /* locates the minimum value in Lmins vector */
             v = vLmins[iLmins];   /* get the node for this Lmin value */
             if (!isNodeInMesh[v]) {
-               fprintf (SUMA_STDERR, "\aERROR %s: Dijkstra derailed. v = %d, Lmin = %f\n. Try another point.", FuncName, v, Lmin);
-               SUMA_free (L);
-               SUMA_free (Lmins);
-               SUMA_free(vLmins);
-               SUMA_free(vLocInLmins);
-               SUMA_free(DC);
-               SUMA_RETURN (NULL);
+               fprintf (SUMA_STDERR,"\aERROR %s: \n"
+                                    "Dijkstra derailed. v = %d, Lmin = %f\n."
+                                    "Try another point.", FuncName, v, Lmin);
+               goto CLEANUP;
             }
             #ifdef LOCALDEBUG
                fprintf (SUMA_STDERR, "%s: Node v = %d.\n", FuncName, v);
@@ -8927,12 +8940,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
 
          if (!Found) {
             fprintf (SUMA_STDERR, "Error %s: No more nodes in mesh, failed to reach target %d. NLmins = %d\n", FuncName, Ny, N_Lmins);
-            SUMA_free (L);
-            SUMA_free (Lmins);
-            SUMA_free(vLmins);
-            SUMA_free(vLocInLmins);
-            SUMA_free(DC);
-            SUMA_RETURN (NULL);
+            goto CLEANUP;
          }else {
             if (LocalHead) fprintf (SUMA_STDERR, "%s: Path between Nodes %d and %d is %f.\n", FuncName, Nx, Ny, *Lfinal);
          }
@@ -8941,18 +8949,21 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
          if (LocalHead) {
             /* stop timer */
             DT_DIJKSTRA = SUMA_etime(&start_time,1);
-            fprintf (SUMA_STDERR, "%s: Method 2- Elapsed time in function %f seconds.\n", FuncName, DT_DIJKSTRA);
+            fprintf (SUMA_STDERR, 
+                     "%s: Method 2- Elapsed time in function %f seconds.\n", 
+                     FuncName, DT_DIJKSTRA);
          }
 
-         SUMA_free(L);
-         SUMA_free(Lmins);
-         SUMA_free(vLmins);
-         SUMA_free(vLocInLmins);
+         if (L) SUMA_free(L); L = NULL;
+         if (Lmins) SUMA_free(Lmins); Lmins = NULL;
+         if (vLmins) SUMA_free(vLmins); vLmins = NULL;
+         if (vLocInLmins) SUMA_free(vLocInLmins); vLocInLmins = NULL;
          break;   /********** Method 1- faster minimum searching **************/
       default: 
-         fprintf (SUMA_STDERR, "Error %s: No such method (%d).\n", FuncName, Method_Number);
-         if (DC) SUMA_free(DC);
-         SUMA_RETURN (NULL);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: No such method (%d).\n", 
+                  FuncName, Method_Number);
+         goto CLEANUP;
          break;
    }
    
@@ -8961,8 +8972,7 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
    Path = (int *) SUMA_calloc (*N_Path, sizeof(int));
    if (!Path) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
-      if (DC) SUMA_free(DC);
-      SUMA_RETURN (NULL);
+      goto CLEANUP;
    }
    
    DCi = &(DC[Ny]);
@@ -8978,10 +8988,19 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNod
    }
    
    if (iv != 0) {
-      fprintf (SUMA_STDERR, "Error %s: iv = %d. This should not be.\n", FuncName, iv);
+      fprintf (SUMA_STDERR, 
+               "Error %s: iv = %d. This should not be.\n", 
+               FuncName, iv);
    }  
    
-   SUMA_free(DC);
+   CLEANUP:
+      if (L) SUMA_free(L);
+      if (Lmins) SUMA_free(Lmins);
+      if (vLmins)  SUMA_free(vLmins);
+      if (vLocInLmins)   SUMA_free(vLocInLmins);
+      if (DC) SUMA_free(DC);
+      if (!isNodeInMeshp) SUMA_free(isNodeInMesh); 
+   
    SUMA_RETURN (Path);
 }
 
