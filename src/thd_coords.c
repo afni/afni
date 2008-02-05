@@ -350,7 +350,7 @@ THD_fvec3 THD_3dfind_to_fdfind( FD_brick * br , THD_fvec3 id ) /* 30 Aug 2001 */
 
 /*-------------------------------------------------------------------*/
 
-void THD_coorder_fill( char * in_orcode , THD_coorder * cord )
+void THD_coorder_fill( char *in_orcode , THD_coorder *cord )
 {
    char acod , orcode[4] ;
    int xx,yy,zz , ss1,ss2,ss3 , ii,ll ;
@@ -419,8 +419,8 @@ void THD_coorder_fill( char * in_orcode , THD_coorder * cord )
    convert to output order x,y,z from Dicom x,y,z
 -----------------------------------------------------------------------*/
 
-void THD_dicom_to_coorder( THD_coorder * cord ,
-                           float * xx , float * yy , float * zz )
+void THD_dicom_to_coorder( THD_coorder *cord ,
+                           float *xx , float *yy , float *zz )
 {
    float xval , yval , zval ;
 
@@ -450,8 +450,8 @@ void THD_dicom_to_coorder( THD_coorder * cord ,
    convert to Dicom x,y,z from output order x,y,z
 ---------------------------------------------------------------------*/
 
-void THD_coorder_to_dicom( THD_coorder * cord ,
-                           float * xx , float * yy , float * zz )
+void THD_coorder_to_dicom( THD_coorder *cord ,
+                           float *xx , float *yy , float *zz )
 {
    float xval , yval , zval ;
 

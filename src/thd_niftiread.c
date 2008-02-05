@@ -212,7 +212,8 @@ ENTRY("THD_open_nifti") ;
                   nim->qto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
                   nim->qto_xyz.m[2][2]  ) ;
 
-     LOAD_MAT44(ijk_to_dicom44, -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
+     LOAD_MAT44(ijk_to_dicom44,
+                 -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
                  -nim->qto_xyz.m[0][1] ,  /* coefficients,    */
                  -nim->qto_xyz.m[0][2] ,  /* since AFNI works */
                  -nim->qto_xyz.m[0][3] ,

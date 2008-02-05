@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "multivector.h"
 
 /*********************************************************************
@@ -12,8 +12,6 @@
 
   RWCox - May 1999
 **********************************************************************/
-
-static void MV_fval_to_char( float qval , char * buf ) ;
 
 /*-------------------------------------------------------------------
    Check 2 strings for equivalence, regardless of case
@@ -394,7 +392,7 @@ int multivector_write( char * fname , multivector * mv )
 
 #define MV_NCOL 12
 
-static void MV_fval_to_char( float qval , char * buf )
+void MV_fval_to_char( float qval , char *buf )
 {
    float aval = fabs(qval) ;
    int lv ;
@@ -472,8 +470,8 @@ char * MV_format_fval( float fval )
    \brief s = MV_format_fval2( fval, len);
    same as fval, but will attempt to keep
    the number len characters long. That's done
-   by truncating digits to the right of the decimal 
-   point, if one exists. 
+   by truncating digits to the right of the decimal
+   point, if one exists.
    \sa MV_fval_to_char
    \sa MV_format_fval      ZSS, RickR May 28 04
 */
@@ -482,11 +480,11 @@ char * MV_format_fval2( float fval, int len)
    static char buf[32] ;
    int wid;
    char *pos = NULL;
-   
+
    MV_fval_to_char( fval , buf ) ;
    if (len < 1) return (buf);
    if (strlen(buf) < len) return (buf);
-   
+
    /* trim it down */
    pos = strchr (buf, 'e');
    if (pos) return(buf); /* scientific notation, get out (ZSS, thanks to tip by Ben Singer Dec 12 05) */

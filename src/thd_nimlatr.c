@@ -453,7 +453,7 @@ int THD_add_sparse_bricks( THD_3dim_dataset *dset , NI_element *nel )
    char *str ;
    float fac ;
    int *id , do_zzz=1 , nd=1 ;
-   int nx,ny,nz,nxy , pp,qq,rr ;
+   int nx,ny,nz,nxy , pp,qq,rr , otyp,ityp ;
 
 ENTRY("THD_add_sparse_bricks") ;
 
@@ -578,18 +578,30 @@ ENTRY("THD_add_sparse_bricks") ;
 
    for( jj=nd ; jj < nel->vec_num ; jj++ ){
 
-     if( !AFNI_GOOD_DTYPE(nel->vec_typ[jj]) ) continue ; /* skip this */
+     ityp = nel->vec_typ[jj] ;
+          if( AFNI_GOOD_DTYPE(ityp) ) otyp = ityp ;
+     else if( ityp == NI_INT        ) otyp = NI_FLOAT ;
+     else                             continue ; /* skip this */
 
      /* create a volume array to hold this data */
 
-     nbar = mri_datum_size(nel->vec_typ[jj]) ;   /* size of one value */
-     bar = calloc( nbar , nxyz ) ;             /* will be zero filled */
-     if( bar == NULL ) break ;                     /* malloc failure! */
+     nbar = mri_datum_size(otyp) ;   /* size of one value */
+     bar = calloc( nbar , nxyz ) ;   /* will be zero filled */
+     if( bar == NULL ) break ;       /* malloc failure! */
 
      /* load data from element into this volume */
 
-     switch( nel->vec_typ[jj] ){
+     switch( ityp ){
        default: free((void *)bar) ; continue ;  /* should never happen */
+
+       case MRI_int:{                         /* special case: convert int */
+         float *qar = (float *)bar ;          /* to float since AFNI */
+         int   *car = (int *)  nel->vec[jj] ; /* doesn't have int datasets */
+         for( ii=0 ; ii < vlen ; ii++ ){
+           if( id[ii] >= 0 && id[ii] < nxyz ) qar[id[ii]] = car[ii] ;
+         }
+       }
+       break ;
 
        case MRI_short:{
          short *qar = (short *)bar ;
