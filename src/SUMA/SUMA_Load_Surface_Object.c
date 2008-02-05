@@ -2957,8 +2957,12 @@ SUMA_Boolean SUMA_SurfaceMetrics(SUMA_SurfaceObject *SO, const char *Metrics, SU
    
       
 */
-SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metrics, SUMA_SurfaceObject *SOinh, int debug, 
-                                       DList *DsetList)
+SUMA_Boolean SUMA_SurfaceMetrics_eng (
+         SUMA_SurfaceObject *SO, 
+         const char *Metrics, 
+         SUMA_SurfaceObject *SOinh, 
+         int debug, 
+         DList *DsetList)
 {
    static char FuncName[]={"SUMA_SurfaceMetrics_eng"};
    float *Cx=NULL, *SOCx = NULL;
