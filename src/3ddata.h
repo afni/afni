@@ -2426,12 +2426,12 @@ typedef struct THD_3dim_dataset {
 
 /*! Determine if ds is a pointer to a valid dataset. */
 
-#define ISVALID_3DIM_DATASET(ds)                      \
-   ( (ds) != NULL && (ds)->type >= FIRST_3DIM_TYPE && \
-                     (ds)->type <= LAST_3DIM_TYPE  && \
-                 (ds)->view_type >= 0              && \
-                 (ds)->view_type <= LAST_VIEW_TYPE && \
-      ISVALID_DATABLOCK((ds)->dblk)                    )
+#define ISVALID_3DIM_DATASET(ds)                       \
+   ( (ds) != NULL && (ds)->type >= FIRST_3DIM_TYPE  && \
+                     (ds)->type <= LAST_3DIM_TYPE   && \
+                 (ds)->view_type >= FIRST_VIEW_TYPE && \
+                 (ds)->view_type <= LAST_VIEW_TYPE  && \
+      ISVALID_DATABLOCK((ds)->dblk)                     )
 
 /*! Determine if ds is a pointer to a valid dataset. */
 

@@ -97,6 +97,9 @@ ENTRY("EDIT_empty_constructor") ;
    dset->daxes->ijk_to_dicom_real = ijk_to_dicom44 ;
    dset->daxes->ijk_to_dicom      = ijk_to_dicom44 ;
 
+   nxyz.ijk[0] = nx ; nxyz.ijk[1] = ny ; nxyz.ijk[2] = nz ;
+   EDIT_dset_items( dset , ADN_nxyz,nxyz , ADN_none ) ;
+
 #ifndef MANUAL_ORIENT
    THD_daxes_from_mat44( dset->daxes ) ;
 #else
@@ -116,6 +119,11 @@ ENTRY("EDIT_empty_constructor") ;
    if( ORIENT_sign[orixyz.ijk[1]] == '-' ) dy = -dy ;
    if( ORIENT_sign[orixyz.ijk[2]] == '-' ) dz = -dz ;
    LOAD_FVEC3( dxyz , dx,dy,dz ) ;
+   EDIT_dset_items( dset ,
+                      ADN_xyzdel      , dxyz ,
+                      ADN_xyzorg      , orgxyz ,
+                      ADN_xyzorient   , orixyz ,
+                    ADN_none ) ;
 #endif
 
    dset->idcode.str[0] = 'G' ;
@@ -124,16 +132,8 @@ ENTRY("EDIT_empty_constructor") ;
 
    if( !THD_filename_ok(prefix) ) prefix = "gggeom" ;
 
-   nxyz.ijk[0] = nx ; nxyz.ijk[1] = ny ; nxyz.ijk[2] = nz ;
-
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
-                      ADN_nxyz        , nxyz ,
-#ifdef MANUAL_ORIENT
-                      ADN_xyzdel      , dxyz ,
-                      ADN_xyzorg      , orgxyz ,
-                      ADN_xyzorient   , orixyz ,
-#endif
                       ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
                       ADN_view_type   , view ,
                       ADN_type        , HEAD_FUNC_TYPE ,
