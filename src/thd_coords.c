@@ -602,6 +602,7 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
 
    if( !ISVALID_DSET(dset) || oblique_report_repeat==0 ) return;
 
+   THD_check_oblique_field(dset); /* make sure oblique field is available*/
    angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
    if(angle == 0.0) return;
 
@@ -659,4 +660,28 @@ int THD_get_oblique_report()
 void THD_reset_oblique_report_index()
 {
    oblique_report_index = 0;
+}
+
+/* make daxes structure set to cardinal orientation versus oblique */
+/* usually done if not already set (in older datasets) */
+void THD_make_cardinal(THD_3dim_dataset *dset)
+{
+   THD_dmat33 tmat ;
+   THD_dfvec3 tvec ;
+   mat44 Tc, Tr;
+
+   THD_dicom_card_xform(dset, &tmat, &tvec); 
+   LOAD_MAT44(Tc, 
+      tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
+      tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
+      tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
+   dset->daxes->ijk_to_dicom_real = Tc;
+}
+
+/* check the obliquity transformation field to see if it's valid */
+/* if not, reset it to the cardinal field */
+void THD_check_oblique_field(THD_3dim_dataset *dset)
+{
+   if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom_real) )
+      THD_make_cardinal(dset);
 }

@@ -249,4 +249,8 @@ datasets elsewhere
 15 Jan 2008
  * modified 1D file reading to allow for colons, alphabetic strings while
 maintaining support for complex (i) numbers
+05 Feb 2008
+ * added way to turn off pop-up warnings in afni GUI for obliquity and added 
+another level of checking for obliquity transformation matrix in attributes
+
 

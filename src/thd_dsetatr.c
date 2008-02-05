@@ -164,8 +164,7 @@ ENTRY("THD_set_dataset_attributes") ;
 
    /*-- write matrix for (i,j,k) to DICOM real (x,y,z) conversion [18 May 2007] --*/
    /* to store obliquity information */
-   if( !ISVALID_MAT44(daxes->ijk_to_dicom_real) ) THD_daxes_to_mat44( daxes ) ;
-
+   THD_check_oblique_field(dset);
    /* if not oblique already,compute Tc (Cardinal transformation matrix) */
    angle = THD_compute_oblique_angle(daxes->ijk_to_dicom_real, 0);
    if(angle==0.0){
