@@ -6590,3 +6590,5 @@
      operations to new fopen_maybe() and fclose_maybe() functions.
  * Move THD_deathcon() and THD_ok_overwrite() functions to afni_environ.c,
      where they belong.
+ * New function EDIT_geometry_constructor() to make an empty dataset from
+     a string specifying it's geometry.

@@ -186,6 +186,10 @@ ENTRY("THD_dataset_info") ;
             "Data Axes Orientation:");
          obliquity = 0;
       }
+      { char *gstr = EDIT_get_geometry_string(dset) ;
+        if( gstr != NULL && *gstr != '\0' )
+          outbuf = THD_zzprintf(outbuf,"Geometry String: \"%s\"\n",gstr) ;
+      }
    } else {
       sprintf (soblq, 
             "Data Axes Tilt:  Unspecified, assumed plumb\n"

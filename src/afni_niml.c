@@ -2316,6 +2316,11 @@ ENTRY("process_NIML_AFNI_volumedata") ;
        }
      }
 
+     if( gset == NULL ){
+       char *gstr = NI_get_attribute( nini , "geometry_string" ) ;
+       gset = EDIT_geometry_constructor(gstr,NULL) ;
+     }
+
      if( gset != NULL ){   /*--- create a new dataset and put in a session ---*/
        Three_D_View *im3d = AFNI_find_open_controller() ;
        THD_session    *ss = im3d->ss_now ; int qs = ss->num_dsset ;
