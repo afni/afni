@@ -99,6 +99,8 @@ typedef struct {
    byte accept_mask;
    byte accept_dset;
    
+   /* flags for help */
+   byte hverb; /* help verbosity */
 } SUMA_GENERIC_ARGV_PARSE;
 
 typedef struct {

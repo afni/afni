@@ -2876,19 +2876,50 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
    ps->cs = NULL;
    
    for (i=0;i<SUMA_MAX_SURF_ON_COMMAND; ++i) {
-      ps->t_surfnames[i] =  ps->t_surftopo[i] = ps->t_surfpath[i] = ps->t_surfprefix[i] = ps->t_state[i] = NULL;
-      ps->t_N_surfnames = 0; ps->t_FF[i] = SUMA_FF_NOT_SPECIFIED; ps->t_FT[i] = SUMA_FT_NOT_SPECIFIED; ps->t_anatomical[i] = NOPE;
-      ps->i_surfnames[i] =  ps->i_surftopo[i] = ps->i_surfpath[i] = ps->i_surfprefix[i] = ps->i_state[i] = ps->i_group[i] = NULL;
-      ps->i_N_surfnames = 0; ps->i_FF[i] = SUMA_FF_NOT_SPECIFIED; ps->i_FT[i] = SUMA_FT_NOT_SPECIFIED;  ps->i_anatomical[i] = NOPE;
-      ps->ipar_surfnames[i] =  ps->ipar_surftopo[i] = ps->ipar_surfpath[i] = ps->ipar_surfprefix[i] = ps->ipar_state[i] = ps->ipar_group[i] = NULL; 
-      ps->ipar_N_surfnames = 0; ps->ipar_FF[i] = SUMA_FF_NOT_SPECIFIED; ps->ipar_FT[i] = SUMA_FT_NOT_SPECIFIED;  ps->ipar_anatomical[i] = NOPE;
-      ps->o_surfnames[i] =  ps->o_surftopo[i] = ps->o_surfpath[i] = ps->o_surfprefix[i] = ps->o_state[i] = ps->o_group[i] = NULL;
-      ps->o_N_surfnames = 0; ps->o_FF[i] = SUMA_FF_NOT_SPECIFIED; ps->o_FT[i] = SUMA_FT_NOT_SPECIFIED; ps->o_anatomical[i] = NOPE;
-      ps->s_surfnames[i] = ps->s_surfprefix[i] = ps->s_surfpath[i] = NULL;  
+      ps->t_surfnames[i]   =  ps->t_surftopo[i] = 
+                              ps->t_surfpath[i] = 
+                              ps->t_surfprefix[i] = 
+                              ps->t_state[i] = NULL;
+      ps->t_N_surfnames = 0; 
+      ps->t_FF[i] = SUMA_FF_NOT_SPECIFIED; 
+      ps->t_FT[i] = SUMA_FT_NOT_SPECIFIED; 
+      ps->t_anatomical[i] = NOPE;
+      ps->i_surfnames[i]   =  ps->i_surftopo[i] = 
+                              ps->i_surfpath[i] = 
+                              ps->i_surfprefix[i] = 
+                              ps->i_state[i] = 
+                              ps->i_group[i] = NULL;
+      ps->i_N_surfnames = 0; 
+      ps->i_FF[i] = SUMA_FF_NOT_SPECIFIED; 
+      ps->i_FT[i] = SUMA_FT_NOT_SPECIFIED;  
+      ps->i_anatomical[i] = NOPE;
+      ps->ipar_surfnames[i]   =  ps->ipar_surftopo[i] = 
+                                 ps->ipar_surfpath[i] = 
+                                 ps->ipar_surfprefix[i] = 
+                                 ps->ipar_state[i] = 
+                                 ps->ipar_group[i] = NULL; 
+      ps->ipar_N_surfnames = 0; 
+      ps->ipar_FF[i] = SUMA_FF_NOT_SPECIFIED; 
+      ps->ipar_FT[i] = SUMA_FT_NOT_SPECIFIED;  
+      ps->ipar_anatomical[i] = NOPE;
+      ps->o_surfnames[i]   =  ps->o_surftopo[i] = 
+                              ps->o_surfpath[i] = 
+                              ps->o_surfprefix[i] = 
+                              ps->o_state[i] = 
+                              ps->o_group[i] = NULL;
+      ps->o_N_surfnames = 0; 
+      ps->o_FF[i] = SUMA_FF_NOT_SPECIFIED; 
+      ps->o_FT[i] = SUMA_FT_NOT_SPECIFIED; 
+      ps->o_anatomical[i] = NOPE;
+      ps->s_surfnames[i]   =  ps->s_surfprefix[i] = 
+                              ps->s_surfpath[i] = NULL;  
       ps->s_N_surfnames = 0;
-      ps->spec_names[i] = NULL; ps->N_spec_names = 0;
+      ps->spec_names[i] = NULL; 
+      ps->N_spec_names = 0;
       ps->sv[i] = NULL; ps->N_sv = 0;
       ps->vp[i] = NULL; ps->N_vp = 0;
+      
+      ps->hverb = 0;
    }
    
    ps->N_dsetname = 0;
