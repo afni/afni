@@ -2382,3 +2382,5 @@
 05 Feb 2008: nifti updates for hans johnson to remove nia.gz functionality
   * modified cmake_testscripts/newfiles_test.sh, commands/c15.new.files,
              utils/nifti1_test.c, niftilib/nifti1_io.c
+06 Feb 2008: modified 3dbucket.c to copy fdr curves
+
