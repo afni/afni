@@ -2,4 +2,4 @@
 
 setenv AFNI_R_DIR $0:h
 
-R --no-restore --save --no-readline < $1 >$2
+R --no-restore --save --no-readline < $1 >& $2
