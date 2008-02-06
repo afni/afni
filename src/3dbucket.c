@@ -453,7 +453,7 @@ void BUCK_Syntax(void)
 
 int main( int argc , char * argv[] )
 {
-   int ninp , ids , nv , iv,jv,kv , ivout , new_nvals ;
+   int ninp , ids , nv , iv,jv,kv , ivout , new_nvals , have_fdr = 0, nfdr = 0 ;
    THD_3dim_dataset * new_dset=NULL , * dset ;
    char buf[256] ;
 
@@ -494,11 +494,14 @@ int main( int argc , char * argv[] )
    new_dset = EDIT_empty_copy( DSUB(0) ) ;
 
    /* 23 May 2005: check for axis consistency */
+   /* 06 Feb 2008: and see if there are fdrcurves to perpetuate */
 
+   if( DSUB(0)->dblk->brick_fdrcurve ) have_fdr = 1 ;
    for( iv=1 ; iv < ninp ; iv++ ){
      if( !EQUIV_DATAXES(new_dset->daxes,DSUB(iv)->daxes) )
        fprintf(stderr,"++ WARNING: %s grid mismatch with %s\n",
                DSET_BRIKNAME(DSUB(0)) , DSET_BRIKNAME(DSUB(iv)) ) ;
+     if( DSUB(iv)->dblk->brick_fdrcurve ) have_fdr = 1 ;
    }
 
    /*  if( ninp == 1 ) */   tross_Copy_History( DSUB(0) , new_dset ) ;
@@ -529,6 +532,17 @@ int main( int argc , char * argv[] )
    }
 
    THD_force_malloc_type( new_dset->dblk , DATABLOCK_MEM_MALLOC ) ;
+
+   /* if there are fdr curves, allocate space    06 Feb 2008 [rickr] */
+   if( have_fdr ){
+      new_dset->dblk->brick_fdrcurve = (floatvec **)calloc(sizeof(floatvec *),
+                                                           new_nvals) ;
+      if( !new_dset->dblk->brick_fdrcurve ){
+         fprintf(stderr,"** failed to alloc %d fdrcurves\n",new_nvals);
+         exit(1);
+      }
+      if( BUCK_verb ) printf("-verb: adding fdrcurve list\n");
+   }
 
    /*** loop over input datasets ***/
 
@@ -612,6 +626,16 @@ int main( int argc , char * argv[] )
                free(par) ;
             }
 
+            /** append any fdrcurve **/
+            if( have_fdr ){
+               if(dset->dblk->brick_fdrcurve && dset->dblk->brick_fdrcurve[iv]){
+                  COPY_floatvec(new_dset->dblk->brick_fdrcurve[ivout],
+                                    dset->dblk->brick_fdrcurve[iv]) ;
+                  nfdr++;
+               }
+               else new_dset->dblk->brick_fdrcurve[ivout] = NULL ;
+            }
+
             /** print a message? **/
 
             if( BUCK_verb ) printf("-verb: copied %s[%d] into %s[%d]\n" ,
@@ -650,7 +674,11 @@ int main( int argc , char * argv[] )
    } /* end of loop over input datasets */
 
    if( ! BUCK_dry ){
-      if( BUCK_verb ) fprintf(stderr,"-verb: loading statistics\n") ;
+      if( BUCK_verb ){
+         if( have_fdr ) fprintf(stderr,"-verb: added %d of %d fdr curves\n",
+                                nfdr, new_nvals);
+         fprintf(stderr,"-verb: loading statistics\n") ;
+      }
       THD_load_statistics( new_dset ) ;
       if( BUCK_glue ) putenv("AFNI_DECONFLICT=OVERWRITE") ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
