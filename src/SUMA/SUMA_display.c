@@ -4833,14 +4833,18 @@ void SUMA_CreateDrawROIWindow(void)
    if (SUMAg_CF->Connected) SUMAg_CF->ROI2afni = YUP;
    else SUMAg_CF->ROI2afni = NOPE;
    #endif
-   SUMAg_CF->ROI2afni = NOPE; /* keep link off when starting, otherwise  it is confusing */
+   SUMAg_CF->ROI2afni = NOPE; /* keep link off when starting, 
+                                 otherwise  it is confusing */
    
-   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, SUMAg_CF->ROI2afni, NOPE);
+   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->AfniLink_tb, 
+                           SUMAg_CF->ROI2afni, NOPE);
    XtAddCallback (SUMAg_CF->X->DrawROI->AfniLink_tb, 
                   XmNvalueChangedCallback, SUMA_cb_AfniLink_toggled, 
                   NULL);
-   MCW_register_help(SUMAg_CF->X->DrawROI->AfniLink_tb , SUMA_DrawROI_AfniLink_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->AfniLink_tb , "Toggles Link to Afni" ) ;
+   MCW_register_help(SUMAg_CF->X->DrawROI->AfniLink_tb , 
+                     SUMA_DrawROI_AfniLink_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->AfniLink_tb , 
+                     "Toggles Link to Afni" ) ;
 
    /* set the toggle button's select color */
    SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->AfniLink_tb);
@@ -4849,7 +4853,9 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc, XmMENU_OPTION, 
                    "Dist", '\0', YUP, DrawROI_WhatDist_Menu, 
-                   "DoDist", "Report length of drawn segments? (BHelp for more)", SUMA_DrawROI_WhatDist_help,   
+                   "DoDist", 
+                   "Report length of drawn segments? (BHelp for more)", 
+                   SUMA_DrawROI_WhatDist_help,   
                    SUMAg_CF->X->DrawROI->WhatDistMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->WhatDistMenu[SW_DrawROI_WhatDist]);
    
@@ -4876,7 +4882,8 @@ void SUMA_CreateDrawROIWindow(void)
                            3, SUMA_int,
                            NOPE,
                            SUMA_DrawROI_NewValue, NULL,
-                           "Integer value associated with ROI", SUMA_DrawROI_Value_help,
+                           "Integer value associated with ROI", 
+                           SUMA_DrawROI_Value_help,
                            SUMAg_CF->X->DrawROI->ROIval);
    /* manage  rc */
    XtManageChild (rc);

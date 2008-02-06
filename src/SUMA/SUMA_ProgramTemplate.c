@@ -19,11 +19,20 @@ void usage_PROGRAM_NAME (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: A template code for writing SUMA programs.\n"
+               "Usage: SurfDist <SURFACE> <INPUT>\n"
+               "       A template code for writing SUMA programs.\n"
+               "  <SURFACE> : Surface on which distances are computed.\n"
+               "              (For option's syntax, see \n"
+               "              'Specifying input surfaces' section below).\n"
+               "  <INPUT>: A dataset of ...\n"
+               "               (For option's syntax, see \n"
+               "              'SUMA dataset input options' section below).\n"
                " \n"
                "%s"
                "%s"
-               "\n", sio,  s);
+               "\n", 
+               ps->hverb ? sio:"Use -help for more detail.\n", 
+               ps->hverb ? s:"");
       if (s) SUMA_free(s); s = NULL; 
       if (st) SUMA_free(st); st = NULL; 
       if (sio) SUMA_free(sio); sio = NULL;       
@@ -51,7 +60,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_PROGRAM_NAME_ParseInput(
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_PROGRAM_NAME(ps);
+			 ps->hverb = 1;
+          usage_PROGRAM_NAME(ps);
           exit (0);
 		}
 		

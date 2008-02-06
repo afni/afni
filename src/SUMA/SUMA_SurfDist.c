@@ -14,7 +14,7 @@ SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing 
 void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
 {
       static char FuncName[]={"usage_SurfDist"};
-      char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
+      char * s = NULL, *sio=NULL;
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
@@ -42,9 +42,10 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
                "\n"
                "%s"
                "%s"
-               "\n", sio,  s);
+               "\n", 
+               ps->hverb ? sio:"Use -help for more detail.\n", 
+               ps->hverb ? s:"");
       if (s) SUMA_free(s); s = NULL; 
-      if (st) SUMA_free(st); st = NULL; 
       if (sio) SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -70,7 +71,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
-			 usage_SurfDist(ps);
+			 ps->hverb = 1;
+          usage_SurfDist(ps);
           exit (0);
 		}
 		
