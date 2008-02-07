@@ -1979,7 +1979,7 @@ ENTRY("AFNI_fimmer_execute") ;
 
    /* write to disk */
 
-   (void) THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+   DSET_overwrite(new_dset) ;
 
    /*** At this point, FIM is computed and written to disk!!! ***/
 
