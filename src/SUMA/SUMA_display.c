@@ -9558,11 +9558,16 @@ void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt)
    
    See SUMA_DestroyTextShell
 */
-SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy, SUMA_FILE_SELECT_MODE Mode, SUMA_Boolean preserve,
-                                                                  void (*SelectCallback)(char *filename, void *data), void *SelectData,
-                                                                  void (*CancelCallback)(void *data), void *CancelData,
-                                                                  char *FilePattern,
-                                                                  SUMA_SELECTION_DIALOG_STRUCT *odlg)
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (
+   Widget daddy, 
+   SUMA_FILE_SELECT_MODE Mode, 
+   SUMA_Boolean preserve,
+   void (*SelectCallback)(char *filename, void *data), 
+   void *SelectData,
+   void (*CancelCallback)(void *data), 
+   void *CancelData,
+   char *FilePattern,
+   SUMA_SELECTION_DIALOG_STRUCT *odlg)
 {
    static char FuncName[]={"SUMA_CreateFileSelectionDialogStruct"};
    SUMA_SELECTION_DIALOG_STRUCT * dlg = NULL;
@@ -9664,7 +9669,7 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (
       last_title_extension = SUMA_copy_string( title_extension);
    }
    
-   if (dlg->FilePattern && !same) {
+   if (dlg->FilePattern ) { /* no more && !same, better to rescan each time */
       pattern = XmStringCreateLocalized (dlg->FilePattern);
       XtVaSetValues (dlg->dlg_w,
          XmNpattern, pattern,
