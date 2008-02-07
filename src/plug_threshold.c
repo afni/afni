@@ -606,7 +606,7 @@ char *THRESH_main(PLUGIN_interface *plint)
   EDIT_BRICK_LABEL(mask, 0, "Mask");
   mri_fix_data_pointer(mask_img, DSET_BRICK(mask, 0));
   EDIT_BRICK_FACTOR(mask, 0, 0.0);	/*no scaling*/
-  DSET_write(mask);
+  DSET_overwrite(mask);
   PLUTO_add_dset(plint, mask, DSET_ACTION_NONE);
   return (char *)0;
   }

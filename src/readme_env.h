@@ -697,7 +697,6 @@ static char * readme_env[] = {
    "warning that it pops up in a message window when an oblique dataset is selected.\n" ,
    "(The warning will still be printed to stdout.)\n" ,
    "\n" ,
-   "\n" ,
    "----------------------\n" ,
    "Variable: AFNI_NO_XDBE\n" ,
    "----------------------\n" ,
@@ -2705,4 +2704,4 @@ static char * readme_env[] = {
    "(You can always use '3drefit -addFDR' to add FDR curves to a dataset\n" ,
    "header, for those sub-bricks marked as statistical parameters.)\n" ,
    NULL } ;
-#define NUM_readme_env 2705
+#define NUM_readme_env 2704

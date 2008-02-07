@@ -4574,8 +4574,7 @@ r_save_dataset_as( char * filename, int overwrite )
     }
     else
     {
-	THD_load_statistics( dset );
-	THD_write_3dim_dataset( NULL, NULL, dset, True );
+	DSET_overwrite( dset ) ;
 
 	sprintf( gRmessage, "Dataset copied as '%s'.", filename );
 	rWARNING( gRmessage );
@@ -4650,7 +4649,7 @@ static void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
       if( recv_open ) AFNI_receive_control( im3d, recv_key, DRAWING_SHUTDOWN, NULL ) ;
       if( dset_changed ){
 	 MCW_invert_widget( done_pb ) ;
-	 DSET_write(dset) ;
+	 DSET_overwrite(dset) ;
 	 MCW_invert_widget( done_pb ) ;
       }
       DSET_unlock(dset) ; DSET_anyize(dset) ;
@@ -4746,7 +4745,7 @@ static void DRAW_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    MCW_invert_widget(save_pb) ;
 
-   DSET_write(dset) ; dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
+   DSET_overwrite(dset); dset_changed = 0; SENSITIZE(choose_pb,1);
 
    MCW_invert_widget(save_pb) ; SENSITIZE(save_pb,0) ;
    EXRETURN ;

@@ -6593,3 +6593,13 @@
  * New function EDIT_geometry_constructor() to make an empty dataset from
      a string specifying it's geometry.  Also, print this geometry string
      in 3dinfo.
+
+07 Feb 2008
+ * DSET_overwrite() macro, and THD_force_ok_overwrite() function.
+ * Modify plug_drawdset.c to use DSET_overwrite(), and a few other
+     plugins and 3d*.c programs as well.
+ * Fix drawing of surface overlay when the functional overlay is being
+     shown as the underlay: must use the underlay dataset for coordinate
+     checking even if overlay dataset is actually being drawn as underlay,
+     since the coordinates for the images are still the underlay's in
+     this situation.

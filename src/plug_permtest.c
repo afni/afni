@@ -2200,7 +2200,7 @@ char *PERMTEST_main(PLUGIN_interface *plint)
   EDIT_BRICK_TO_FIZT(new_dset, 1);
   mri_fix_data_pointer(zvals, DSET_BRICK(new_dset, 1));
   EDIT_BRICK_FACTOR(new_dset, 1, (float)(1.0/FUNC_ZT_SCALE_SHORT));
-  DSET_write(new_dset);
+  DSET_overwrite(new_dset);
   PLUTO_add_dset(plint, new_dset, DSET_ACTION_MAKE_CURRENT);
 #ifdef PERMTEST_DEBUG
   signal(SIGUSR1, handler);
