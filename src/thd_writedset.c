@@ -92,11 +92,14 @@ ENTRY("THD_write_3dim_dataset") ;
      MCW_strncpy( pfx , DSET_PREFIX(dset) , THD_MAX_PREFIX ) ;
      ii = THD_deconflict_prefix( dset ) ;
      if( ii ){
-       if( ppp && toupper(*ppp) == 'Y' )
+       if( ppp && toupper(*ppp) == 'Y' ){
          WARNING_message("changed output dataset name from '%s' to '%s'",
                          pfx , DSET_PREFIX(dset) ) ;
-       else
-        ERROR_exit("output dataset name '%s' conflicts with existing file",pfx);
+       } else {
+         ERROR_message("output dataset name '%s' conflicts with existing file",pfx);
+         ERROR_message("dataset NOT written to disk!") ;
+         RETURN(False) ;
+       }
      }
    }
 
