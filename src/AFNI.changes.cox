@@ -6603,3 +6603,4 @@
      checking even if overlay dataset is actually being drawn as underlay,
      since the coordinates for the images are still the underlay's in
      this situation.
+ * Fix 3dvolreg to work properly with sub-brick scale factors.
