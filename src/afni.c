@@ -6720,7 +6720,7 @@ ENTRY("AFNI_marks_action_CB") ;
 #endif
 
          tross_Append_History( im3d->anat_now , "AFNI: markers were edited" ) ;
-         (void) THD_write_3dim_dataset( NULL,NULL , im3d->anat_now , False ) ;
+         DSET_overwrite_header(im3d->anat_now) ;
       }
 
       EXRETURN ;
@@ -8958,7 +8958,7 @@ ENTRY("AFNI_marks_transform_CB") ;
 
 STATUS("writing new dataset") ;
 
-   (void) THD_write_3dim_dataset( NULL,NULL , new_dset , False ) ; /* header */
+   DSET_overwrite_header(new_dset) ;
 
    /*--- have transformed this anatomy dataset
          ==> if the input was the original view, then
