@@ -3152,12 +3152,23 @@ extern float THD_fdrcurve_zval( THD_3dim_dataset *, int, float ) ;
 #define DSET_write(ds)  ( THD_load_statistics( (ds) ) ,                    \
                           THD_write_3dim_dataset( NULL,NULL , (ds),True ) )
 
-extern int THD_deathcon(void) ; /* 06 Jun 2007 */
-extern int THD_ok_overwrite(void) ; /* Jan 2008 */
+/*! Write dataset to disk, fer shur this time, Cletus. [07 Jan 2008] */
+
+#define DSET_overwrite(ds)      \
+ do{ THD_force_ok_overwrite(1); \
+     DSET_write(ds); THD_force_ok_overwrite(0); } while(0)
+
+extern int THD_deathcon(void) ;             /* 06 Jun 2007 */
+extern int THD_ok_overwrite(void) ;         /* Jan 2008 */
+extern void THD_force_ok_overwrite( int ) ; /* 07 Jan 2008 */
 
 /*! Write only the dataset header to disk, for dataset ds */
 
 #define DSET_write_header(ds)  THD_write_3dim_dataset( NULL,NULL , (ds),False )
+
+#define DSET_overwrite_header(ds)  \
+ do{ THD_force_ok_overwrite(1);    \
+     DSET_write_header(ds); THD_force_ok_overwrite(0); } while(0)
 
 /*! Check if dataset ds if fully loaded into memory.
 

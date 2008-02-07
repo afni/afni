@@ -331,9 +331,13 @@ int THD_deathcon(void)  /* 06 Jun 2007 */
    return 0 ;
 }
 
+static int force_ok_overwrite = 0 ;
+void THD_force_ok_overwrite( int ii ){ force_ok_overwrite = ii; }
+
 int THD_ok_overwrite(void)  /* Jan 2008 */
 {
    char *ppp=my_getenv("AFNI_DECONFLICT");
+   if( force_ok_overwrite ) return 1 ;
    if (ppp && strcmp(ppp,"OVERWRITE")==0) return 1;
    return 0;
 }

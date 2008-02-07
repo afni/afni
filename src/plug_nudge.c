@@ -1528,7 +1528,7 @@ static void NUD_doall_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    if( nvals > 1 ) MCW_set_meter( meter , 100 ) ;
 
-   DSET_write( dset ) ;
+   DSET_overwrite( dset ) ;
    PLUTO_dset_redisplay( dset ) ;
    AFNI_process_drawnotice( im3d ) ;
 

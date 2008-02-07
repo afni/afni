@@ -643,7 +643,7 @@ static void NOTES_save_CB( Widget w, XtPointer client_data, XtPointer call_data 
 
    if( nnew > 0 ){
       putenv("AFNI_DECONFLICT=OVERWRITE") ;
-      DSET_write_header(dset) ;
+      DSET_overwrite_header(dset) ;
    }
    else if( w != NULL )
       (void) MCW_popup_message( save_pb ,

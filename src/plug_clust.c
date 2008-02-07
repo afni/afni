@@ -307,7 +307,7 @@ static char * CLUST_main( PLUGIN_interface * plint )
                "**********************************************" ;
       }
    } else {
-      DSET_write( new_dset ) ;    /* otherwise, re-write to disk */
+      DSET_overwrite( new_dset ) ;    /* otherwise, re-write to disk */
       PLUTO_force_redisplay() ;  /* and force a redisplay of images */
    }
 

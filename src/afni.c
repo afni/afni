@@ -2243,13 +2243,14 @@ STATUS("get status") ;
 
 #define RX 0.2
    if( type == isqCR_getmemplot ){
-     Three_D_View *im3d = (Three_D_View *) br->parent ;
+     Three_D_View *im3d = (Three_D_View *)br->parent ;
+     THD_3dim_dataset *udset = im3d->anat_now ; /* 07 Jan 2008 */
      int do_xhar=(im3d->vinfo->crosshair_visible && AFNI_yesenv("AFNI_CROSSHAIR_LINES"));
      int do_surf;
      MEM_plotdata *mp ;
      AFNI_surface_widgets *swid = im3d->vwid->view->swid ;  /* 19 Aug 2002 */
      THD_session *suss=im3d->ss_now ;                       /* 20 Jan 2004 */
-     THD_dataxes *daxes=CURRENT_DAXES(br->dset) ;
+     THD_dataxes *daxes=CURRENT_DAXES(udset) ;
 
      if( !IM3D_OPEN(im3d) )     RETURN(NULL) ;
 
@@ -2394,12 +2395,12 @@ STATUS("defining surface drawing parameters") ;
 
       LOAD_IVEC3(iv,0,0,n+1) ;                     /* next */
       ivp = THD_fdind_to_3dind( br , iv ) ;
-      fvp = THD_3dind_to_3dmm ( br->dset , ivp ) ;
-      fvp = THD_3dmm_to_dicomm( br->dset , fvp ) ;
+      fvp = THD_3dind_to_3dmm ( udset , ivp ) ;
+      fvp = THD_3dmm_to_dicomm( udset , fvp ) ;
       LOAD_IVEC3(iv,0,0,n-1) ;                     /* previous */
       ivm = THD_fdind_to_3dind( br , iv ) ;
-      fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
-      fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
+      fvm = THD_3dind_to_3dmm ( udset , ivm ) ;
+      fvm = THD_3dmm_to_dicomm( udset , fvm ) ;
 
       /* threshold for determining which axis this slice is along */
 
@@ -2424,8 +2425,8 @@ STATUS(" - x plane") ;
           for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].x >= xb && nod[ii].x <= xt ){         /* inside?  */
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ; /* convert  */
-               fv = THD_dicomm_to_3dmm( br->dset , fv ) ;     /* coords   */
-               fv = THD_3dmm_to_3dfind( br->dset , fv ) ;     /* to slice */
+               fv = THD_dicomm_to_3dmm( udset , fv ) ;        /* coords   */
+               fv = THD_3dmm_to_3dfind( udset , fv ) ;        /* to slice */
                fv = THD_3dfind_to_fdfind( br , fv ) ;         /* indexes  */
 
                if( firstb ){
@@ -2461,8 +2462,8 @@ STATUS(" - y plane") ;
           for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].y >= yb && nod[ii].y <= yt ){
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
-               fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
-               fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
+               fv = THD_dicomm_to_3dmm( udset , fv ) ;
+               fv = THD_3dmm_to_3dfind( udset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
 
                if( firstb ){
@@ -2498,8 +2499,8 @@ STATUS(" - z plane") ;
           for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].z >= zb && nod[ii].z <= zt ){
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
-               fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
-               fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
+               fv = THD_dicomm_to_3dmm( udset , fv ) ;
+               fv = THD_3dmm_to_3dfind( udset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
 
                if( firstb ){
@@ -2615,24 +2616,24 @@ STATUS("drawing triangle lines") ;
 
             /* transform interpolated points to FD_brick coords */
 
-            fvp = THD_dicomm_to_3dmm( br->dset , fvp ) ;
+            fvp = THD_dicomm_to_3dmm( udset , fvp ) ;
             if( fvp.xyz[0] < daxes->xxmin ||
                 fvp.xyz[0] > daxes->xxmax ||
                 fvp.xyz[1] < daxes->yymin ||
                 fvp.xyz[1] > daxes->yymax ||
                 fvp.xyz[2] < daxes->zzmin ||
                 fvp.xyz[2] > daxes->zzmax   ) continue ;  /* 08 Jan 2004 */
-            fvp = THD_3dmm_to_3dfind( br->dset , fvp ) ;
+            fvp = THD_3dmm_to_3dfind( udset , fvp ) ;
             fvp = THD_3dfind_to_fdfind( br , fvp ) ;
 
-            fvm = THD_dicomm_to_3dmm( br->dset , fvm ) ;
+            fvm = THD_dicomm_to_3dmm( udset , fvm ) ;
             if( fvm.xyz[0] < daxes->xxmin ||
                 fvm.xyz[0] > daxes->xxmax ||
                 fvm.xyz[1] < daxes->yymin ||
                 fvm.xyz[1] > daxes->yymax ||
                 fvm.xyz[2] < daxes->zzmin ||
                 fvm.xyz[2] > daxes->zzmax   ) continue ;  /* 08 Jan 2004 */
-            fvm = THD_3dmm_to_3dfind( br->dset , fvm ) ;
+            fvm = THD_3dmm_to_3dfind( udset , fvm ) ;
             fvm = THD_3dfind_to_fdfind( br , fvm ) ;
 
             /* plot a line segment between them, in the plane of the slice */
@@ -2864,7 +2865,7 @@ STATUS("drawing crosshairs") ;
    /*--- underlay image # n ---*/
 
    if( type == isqCR_getimage || type == isqCR_getqimage ){
-      Three_D_View *im3d = (Three_D_View *) br->parent ;
+      Three_D_View *im3d = (Three_D_View *)br->parent ;
       int ival ;
 
       /*** decide which 3D brick to extract data from (ival) ***/
