@@ -1174,7 +1174,7 @@ static void TAG_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
    *oldtagset      = *mytagset ;  /* backup copy is replaced */
 
    putenv("AFNI_DECONFLICT=OVERWRITE") ;
-   DSET_write_header(dset) ;
+   DSET_overwrite_header(dset) ;
    TAG_redraw() ; DSET_ON ;
    return ;
 }

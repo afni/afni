@@ -1632,7 +1632,7 @@ int main( int argc , char * argv[] )
 
       if( write_output ) DSET_load(dset) ;    /* 20 Jun 2006 */
 
-      putenv("AFNI_DECONFLICT=OVERWRITE") ;   /* 24 Sep 2007 */
+      THD_force_ok_overwrite(1) ;             /* 24 Sep 2007 */
       THD_write_3dim_dataset( NULL,NULL , dset , write_output ) ;
       THD_delete_3dim_dataset( dset , False ) ;
 

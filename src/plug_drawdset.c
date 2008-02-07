@@ -1041,7 +1041,7 @@ void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
      if( dset_changed ){
        MCW_invert_widget( done_pb ) ;
        DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
-       DSET_write(dset) ;
+       DSET_overwrite(dset) ;
        MCW_invert_widget( done_pb ) ;
      }
      DSET_unlock(dset) ; DSET_anyize(dset) ;
@@ -1148,7 +1148,7 @@ void DRAW_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
    MCW_invert_widget(save_pb) ;
 
    DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
-   DSET_write(dset) ; dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
+   DSET_overwrite(dset); dset_changed = 0; SENSITIZE(choose_pb,1);
    Sensitize_copy_bbox(1);   /* turn copy dataset widgets back on  - drg 4/4/2006 */
    MCW_invert_widget(save_pb) ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
@@ -1222,16 +1222,16 @@ void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    dset = cset ; dset_idc = dset->idcode ;
    DRAW_attach_dtable( vl_dtable, "VALUE_LABEL_DTABLE",  dset ) ;
-   DSET_write(dset) ; DSET_mallocize(dset) ; DSET_load(dset) ; DSET_lock(dset) ;
+   DSET_overwrite(dset); DSET_mallocize(dset); DSET_load(dset); DSET_lock(dset);
 
    /*-- re-write the informational label --*/
 
    if( DSET_BRICK_FACTOR(dset,0) == 0.0 ){
-      strcpy(str,DSET_FILECODE(dset)) ;
+     strcpy(str,DSET_FILECODE(dset)) ;
    } else {
-      char abuf[16] ;
-      AV_fval_to_char( DSET_BRICK_FACTOR(dset,0) , abuf ) ;
-      sprintf(str,"%s\nbrick factor: %s", DSET_FILECODE(dset) , abuf ) ;
+     char abuf[16] ;
+     AV_fval_to_char( DSET_BRICK_FACTOR(dset,0) , abuf ) ;
+     sprintf(str,"%s\nbrick factor: %s", DSET_FILECODE(dset) , abuf ) ;
    }
    xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;

@@ -135,12 +135,12 @@ int main( int argc , char * argv[] )
          putenv("AFNI_DECONFLICT=OVERWRITE") ;
 	 if(DSET_IS_BRIK(xset)) {
            INFO_message("Rewriting header %s",DSET_HEADNAME(xset)) ;
-           DSET_write_header( xset ) ;
+           DSET_overwrite_header( xset ) ;
 	 }
 	 else {     /* for other dataset types like NIFTI, rewrite whole dset */
-	    DSET_load( xset ) ; THD_load_statistics( xset ) ;
-            THD_write_3dim_dataset(NULL,NULL,xset,1); /* rewrite output file */
-            INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(xset)) ;
+	    DSET_load( xset ) ;
+       DSET_overwrite(xset) ;
+       INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(xset)) ;
 	 }   
       }
      }

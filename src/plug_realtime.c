@@ -1108,11 +1108,11 @@ Boolean RT_worker( XtPointer elvis )
          for( cc=0 ; cc < rtinp->num_chan ; cc++ ) {
            if( okay_to_add_markers(rtinp->dset[cc]) ) /* 13 Sep 2005 [rickr] */
               rtinp->dset[cc]->markers = create_empty_marker_set() ;
-           THD_write_3dim_dataset( NULL,NULL , rtinp->dset[cc] , True ) ;
+           DSET_overwrite( rtinp->dset[cc] ) ;
          }
 
          if( rtinp->func_dset != NULL )
-            THD_write_3dim_dataset( NULL,NULL , rtinp->func_dset , True ) ;
+            DSET_overwrite( rtinp->func_dset ) ;
 
          THD_set_write_compression(cmode) ;  sync() ; /* 08 Mar 2000: sync disk */
          SHOW_AFNI_READY ;
@@ -3802,7 +3802,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
       if( okay_to_add_markers(rtinp->dset[cc]) ) /* 13 Sep 2005 [rickr] */
          rtinp->dset[cc]->markers = create_empty_marker_set() ;
 
-      THD_write_3dim_dataset( NULL,NULL , rtin->dset[cc] , True ) ;
+      DSET_overwrite( rtin->dset[cc] ) ;
       DSET_unlock( rtin->dset[cc] ) ;  /* 20 Mar 1998 */
 
       if( rtin->func_dset != NULL ){
@@ -3813,14 +3813,14 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
          AFNI_CALL_VALU_2ARG( rtin->func_func , int,jj ,
                               RT_input *,rtin , int,FINAL_MODE ) ;
 #endif
-         THD_write_3dim_dataset( NULL,NULL , rtin->func_dset , True ) ;
+         DSET_overwrite( rtin->func_dset ) ;
          DSET_unlock( rtin->func_dset ) ;  /* 20 Mar 1998 */
          THD_force_malloc_type( rtin->func_dset->dblk , DATABLOCK_MEM_ANY ) ;
       }
 
 #ifdef ALLOW_REGISTRATION
       if( rtin->reg_dset != NULL && rtin->reg_nvol > 0 ){
-         THD_write_3dim_dataset( NULL,NULL , rtin->reg_dset , True ) ;
+         DSET_overwrite( rtin->reg_dset ) ;
          DSET_unlock( rtin->reg_dset ) ;
          THD_force_malloc_type( rtin->reg_dset->dblk , DATABLOCK_MEM_ANY ) ;
       }
