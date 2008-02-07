@@ -4405,11 +4405,13 @@ ENTRY("AFNI_refashion_dataset") ;
 
    /* write the header out */
 
+   THD_force_ok_overwrite(1);
    good = THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
+   THD_force_ok_overwrite(0);
    if( !good ){
-      fprintf(stderr,"\a\n*** cannot write dataset header ***\n") ;
-      if( picturize ) UNPICTURIZE ;
-      RETURN(False) ;
+     fprintf(stderr,"\a\n*** cannot write dataset header ***\n") ;
+     if( picturize ) UNPICTURIZE ;
+     RETURN(False) ;
    }
    STATUS("wrote output header file") ;
 
@@ -4609,7 +4611,7 @@ STATUS("have new image") ;
    STATUS("rewriting header") ;
 
    tross_Append_History( dset , "AFNI: resampled and rewritten" ) ;
-   (void) THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
+   DSET_overwrite(dset) ;
 
    STATUS("purging datablock") ;
 
