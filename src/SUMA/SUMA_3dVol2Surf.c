@@ -1509,21 +1509,21 @@ ENTRY("check_outfile");
     if ( opts == NULL || p == NULL )
         RETURN(-1);
 
-    if ( THD_is_file(opts->outfile_1D) )
+    if ( !THD_ok_overwrite() && THD_is_file(opts->outfile_1D) )
     {
         fprintf(stderr, "** output file '%s' already exists\n",
                 opts->outfile_1D);
         RETURN(-1);
     }
 
-    if ( THD_is_file(opts->outfile_niml) )
+    if ( !THD_ok_overwrite() && THD_is_file(opts->outfile_niml) )
     {
         fprintf(stderr, "** output file '%s' already exists\n",
                 opts->outfile_niml);
         RETURN(-1);
     }
 
-    if ( THD_is_file(opts->seg_coords_file) )
+    if ( !THD_ok_overwrite() && THD_is_file(opts->seg_coords_file) )
     {
         fprintf(stderr, "** segment coords output file '%s' already exists\n",
                 opts->seg_coords_file);
