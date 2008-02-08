@@ -7310,7 +7310,7 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
       while (i < SEL->N_EL) {
          ht0 = SEL->ELps[i][1];
          /* make sure edge is not part of three triangles, if it is, skip it */
-         if (SEL->ELps[i][2] > 3) {
+         if (SEL->ELps[i][2] > 2) {
             ++i;
             fprintf(SUMA_STDERR, "%s: Bad edge (#%d: %d--%d), part of more than 2 triangles, skip it\n", FuncName, i, SEL->EL[i][0], SEL->EL[i][1]); 
             continue;

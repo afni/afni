@@ -1269,9 +1269,14 @@ char *SUMA_set_string_length(char *buf, char cp, int n);
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 void SUMA_sigfunc(int sig);
-char *SUMA_pad_string(char *buf, char cp, int n, int add2end);
+char * SUMA_pad_string(char *buf, char cp, int n, int add2end);
 char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval) ;
 char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval); 
+void * SUMA_GetDsetAllNodeValsInCols2(SUMA_DSET *dset, 
+                                       int *ind, int nind, 
+                                       int node, int N_Node,
+                                       int *N_ret, 
+                                       SUMA_VARTYPE tp);
 double SUMA_GetDsetValInCol2(SUMA_DSET *dset, int ind, int ival) ;
 double SUMA_GetValInCol2(NI_element *nel, int ind, int ival); 
 int SUMA_GetNodeRow_FromNodeIndex_ns(SUMA_DSET *dset, int node, int N_Node);

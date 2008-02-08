@@ -3735,9 +3735,10 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(int N_Nodes, const char *Na
 
    SUMA_ENTRY;
     
-   Sover = (SUMA_OVERLAYS *)SUMA_malloc(sizeof(SUMA_OVERLAYS));
+   Sover = (SUMA_OVERLAYS *)SUMA_calloc(1, sizeof(SUMA_OVERLAYS));
    if (!Sover) {
-      fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Could not allocate for Sover.\n", FuncName);
       SUMA_RETURN (NULL);
    }
    
@@ -3766,6 +3767,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(int N_Nodes, const char *Na
    Sover->Label = sfn.FileName;
    if (sfn.Path) SUMA_free(sfn.Path); /* get rid of path */
    
+   Sover->rowgraph_mtd=NULL;
+   Sover->rowgraph_num=0;
    SUMA_RETURN(Sover);   
 }
 
@@ -3949,6 +3952,11 @@ SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover)
    if (Sover->Name) SUMA_free(Sover->Name);
    if (Sover->cmapname) SUMA_free(Sover->cmapname);
    if (Sover->OptScl) SUMA_free(Sover->OptScl);
+   if (Sover->rowgraph_mtd) Sover->rowgraph_mtd = NULL; /* that struct is killed
+                                                           with delete_memplot
+                                                           which is called with
+                                                           donebut_CB in
+                                                           plot_motif.c*/
    SUMA_free(Sover); Sover = NULL;
    
    SUMA_RETURN (YUP);

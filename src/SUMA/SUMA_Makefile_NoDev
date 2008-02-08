@@ -194,6 +194,18 @@ SurfDist: SUMA_SurfDist.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfDist.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
          ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
+plottoy: plottoy.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         plottoy.c ${SUMA_INPATH} -I/Users/ziad/tmp/plotutils-2.5/include \
+         ${SUMA_LINK_PATH} \
+         ${SUMALIBLIST} ${AFNILIB}  \
+         /Users/ziad/tmp/plotutils-2.5/libplot/.libs/libplot.a \
+         ${ZLIB} ${SUMA_LINK_LIB} \
+         /usr/X11R6/lib/libXaw.a \
+         /usr/X11R6/lib/libXpm.a  
+         
          
 #>>>>>>>>>>>>>>>>>> Begin special block, compiling without all of SUMA's load <<<<<<<<<<<<<<<<<<<<
 #A special compilation of SUMA_DataSets and SUMA_Algorithms, without SUMA_COMPILED defined

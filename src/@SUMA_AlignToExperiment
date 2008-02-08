@@ -127,8 +127,11 @@ PARSE_COMMAND:
                set StripSkull = 1;
             else if ("$argv[$cnt]" == "both") then
                set StripSkull = 3;
+            else if ("$argv[$cnt]" == "surf_anat") then
+               set StripSkull = 2;
             else
-               echo "Acceptable options for -strip_skull are 'exp_anat' or 'both'"
+               echo "Acceptable options for -strip_skull are:"
+               echo "'exp_anat' or 'surf_anat' or 'both'"
                goto END
             endif
         endif		
@@ -254,7 +257,7 @@ STRIP_EXP_VOL:
    #strip skull off of EXP_VOL
    set Skip = 0
    cd $CurDir
-   if ($StripSkull >= 1) then
+   if ($StripSkull == 1 || $StripSkull == 3 ) then
       set ExpAnat_NoSkullPrefix = $ExpAnatPrefix"_ns"
       set ExpAnat_NoSkull = $ExpAnatPrefix"_ns"$ExpAnatView
       echo "Stripping exp vol ..."
@@ -267,7 +270,8 @@ STRIP_EXP_VOL:
 			   rm -f $ExpAnat_NoSkull.BRIK* $ExpAnat_NoSkull.HEAD
 		   endif
 		   if ("$sel" == 'S' || "$sel" == 's') then
-			   echo "Skipping stripping, existing data set $ExpAnat_NoSkull will be used"
+			   echo "Skipping stripping, existing data set "
+            echo " $ExpAnat_NoSkull will be used"
 			   set Skip = 1
 		   endif
 		   if ("$sel" == 'Q' || "$sel" == 'q') then
@@ -286,7 +290,7 @@ STRIP_EXP_VOL:
 	   set ExpAnat = $ExpAnat_NoSkull
 	   set SkullStripped = 1
    endif
-	if ($StripSkull >= 2) then
+	if ($StripSkull == 2 || $StripSkull == 3 ) then
       set Skip = 0
       set SurfAnat_NoSkullPrefix = $SurfAnatPrefix"_ns"
       set SurfAnat_NoSkull = $SurfAnatPrefix"_ns"$SurfAnatView
@@ -400,7 +404,13 @@ REGISTER:
 	if ($UseWarp == 0) then
 	   echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
 	   echo ""
-	   3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
+	   if ( -f ${VolRegPrefix}.aff12.1D) rm -f ${VolRegPrefix}.aff12.1D 
+      3dvolreg -wtrim -clipit -twopass \
+               -twodup -zpad 8 -rotcom \
+               -verbose -base $ExpAnat \ 
+               -1Dmatrix_save  ${VolRegPrefix}.aff12.1D \
+               -prefix $VolRegPrefix \
+               $SurfAnatPath/$SurfAnat
 	   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.bz2)) then
 		   goto NO_VOLREG
 	   endif
@@ -416,10 +426,12 @@ REGISTER:
       
       3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
       3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_refpad $ExpAnat
-
-      3dWarpDrive $cropt -twopass -verb -affine_general -cubic -final quintic \
+      if ( -f ${VolRegPrefix}.aff12.1D) rm -f ${VolRegPrefix}.aff12.1D 
+      3dWarpDrive $cropt -twopass -verb -affine_general \
+                  -cubic -final quintic \
+                  -1Dmatrix_save ${VolRegPrefix}.aff12.1D \
                   -base ./${tmpref}_refpad$SurfAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
-	   if ($StripSkull > 2) then
+	   if ($StripSkull >= 2) then
          #Have to apply same transform to original SurfAnat
          3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_padori $SurfAnatPath/$SurfAnatOri
          3dWarp -matparent ./${tmpref}_pad_wd$SurfAnatView -quintic -prefix ./${tmpref}_pad_wdori ./${tmpref}_padori$SurfAnatView
