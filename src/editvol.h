@@ -384,7 +384,17 @@ extern float EDIT_coerce_autoscale( int , int,void * , int,void * ) ;
 extern float EDIT_convert_dtype   ( int , int,void * , int,void *, int ) ;
 extern int   is_integral_data     ( int , int , void * ) ;
 
+extern void EDIT_floatize_dataset( THD_3dim_dataset *dset ) ;
+extern int DSET_pure_type( THD_3dim_dataset *dset ) ;
 
+#undef  DSET_IS_FLOAT
+#define DSET_IS_FLOAT(ds) (DSET_pure_type((ds))==MRI_float)
+
+#undef  DSET_IS_SHORT
+#define DSET_IS_SHORT(ds) (DSET_pure_type((ds))==MRI_short)
+
+#undef  DSET_IS_BYTE
+#define DSET_IS_BYTE(ds) (DSET_pure_type((ds))==MRI_byte)
 
 extern void EDIT_aver_fvol( int, int, int,
                             float, float, float, float *, float) ;
