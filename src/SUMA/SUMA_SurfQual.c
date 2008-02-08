@@ -15,77 +15,78 @@ void usage_SUMA_SurfQual ()
       static char FuncName[]={"usage_SUMA_SurfQual"};
       char * s = NULL;
       s = SUMA_help_basics();
-      printf ( "\nUsage: A program to check the quality of surfaces.\n"
-               "  SurfQual <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
-               "             <-sphere> [-self_intersect] [-prefix OUTPREF]  \n"
-               "\n"
-               "  Mandatory parameters:\n"
-               "     -spec SpecFile: Spec file containing input surfaces.\n"
-               "     -surf_X: Name of input surface X where X is a character\n"
-               "              from A to Z. If surfaces are specified using two\n"
-               "              files, use the name of the node coordinate file.\n"
-               "  Mesh winding consistency and 2-manifold checks are performed\n"
-               "  on all surfaces.\n"
-               "  Optional parameters:\n"
-               "     -summary: Provide summary of results to stdout\n"
-               "     -self_intersect: Check if surface is self intersecting.\n"
-               "                      This option is rather slow, so be patient.\n"
-               "                      In the presence of intersections, the output file\n"
-               "                      OUTPREF_IntersNodes.1D.dset will contain the indices\n"
-               "                      of nodes forming segments that intersect the surface.\n"
-               "  Most other checks are specific to spherical surfaces (see option below).\n"
-               "     -sphere: Indicates that surfaces read are spherical.\n"
-               "              With this option you get the following output.\n"
-               "              - Absolute deviation between the distance (d) of each\n"
-               "                node from the surface's center and the estimated\n"
-               "                radius(r). The distances, abs (d - r), are \n"
-               "                and written to the file OUTPREF_Dist.1D.dset .\n"
-               "                The first column represents node index and the \n"
-               "                second is the absolute distance. A colorized \n"
-               "                version of the distances is written to the file \n"
-               "                OUTPREF_Dist.1D.col (node index followed \n"
-               "                by r g b values). A list of the 10 largest absolute\n"
-               "                distances is also output to the screen.\n"
-               "              - Also computed is the cosine of the angle between \n"
-               "                the normal at a node and the direction vector formed\n"
-               "                formed by the center and that node. Since both vectors\n"
-               "                are normalized, the cosine of the angle is the dot product.\n"
-               "                On a sphere, the abs(dot product) should be 1 or pretty \n"
-               "                close. Nodes where abs(dot product) < 0.9 are flagged as\n"
-               "                bad and written out to the file OUTPREF_BadNodes.1D.dset .\n"
-               "                The file OUTPREF_dotprod.1D.dset contains the dot product \n"
-               "                values for all the nodes. The files with colorized results\n"
-               "                are OUTPREF_BadNodes.1D.col and OUTPREF_dotprod.1D.col .\n"
-               "                A list of the bad nodes is also output to the screen for\n"
-               "                convenience. You can use the 'j' option in SUMA to have\n"
-               "                the cross-hair go to a particular node. Use 'Alt+l' to\n"
-               "                have the surface rotate and place the cross-hair at the\n"
-               "                center of your screen.\n"
-               "              NOTE: For detecting topological problems with spherical\n"
-               "                surfaces, I find the dot product method to work best.\n"              
-               "  Optional parameters:\n"
-               "     -prefix OUTPREF: Prefix of output files. If more than one surface\n"
-               "                      are entered, then the prefix will have _X added\n"
-               "                      to it, where X is a character from A to Z.\n"
-               "                      THIS PROGRAM WILL OVERWRITE EXISTING FILES.\n"
-               "                      Default prefix is the surface's label.\n"
-               "\n"
-               "  Comments:\n"
-               "     - The colorized (.col) files can be loaded into SUMA (with the 'c' \n"
-               "     option. By focusing on the bright spots, you can find trouble spots\n"
-               "     which would otherwise be very difficult to locate.\n"
-               "     - You should also pay attention to the messages output when the \n"
-               "     surfaces are being loaded, particularly to edges (segments that \n"
-               "     join 2 nodes) are shared by more than 2 triangles. For a proper\n"
-               "     closed surface, every segment should be shared by 2 triangles. \n"
-               "     For cut surfaces, segments belonging to 1 triangle only form\n"
-               "     the edge of that surface.\n"
-               "     - There are no utilities within SUMA to correct these defects.\n"
-               "     It is best to fix these problems with the surface creation\n"
-               "     software you are using.\n"
-               "     - Some warnings may be redundant. That should not hurt you.\n"
-               "%s"
-               "\n", s);
+      printf ( 
+"\nUsage: A program to check the quality of surfaces.\n"
+"  SurfQual <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
+"             <-sphere> [-self_intersect] [-prefix OUTPREF]  \n"
+"\n"
+"  Mandatory parameters:\n"
+"     -spec SpecFile: Spec file containing input surfaces.\n"
+"     -surf_X: Name of input surface X where X is a character\n"
+"              from A to Z. If surfaces are specified using two\n"
+"              files, use the name of the node coordinate file.\n"
+"  Mesh winding consistency and 2-manifold checks are performed\n"
+"  on all surfaces.\n"
+"  Optional parameters:\n"
+"     -summary: Provide summary of results to stdout\n"
+"     -self_intersect: Check if surface is self intersecting.\n"
+"                      This option is rather slow, so be patient.\n"
+"                      In the presence of intersections, the output file\n"
+"                      OUTPREF_IntersNodes.1D.dset will contain the indices\n"
+"                      of nodes forming segments that intersect the surface.\n"
+"  Most other checks are specific to spherical surfaces (see option below).\n"
+"     -sphere: Indicates that surfaces read are spherical.\n"
+"              With this option you get the following output.\n"
+"              - Absolute deviation between the distance (d) of each\n"
+"                node from the surface's center and the estimated\n"
+"                radius(r). The distances, abs (d - r), are \n"
+"                and written to the file OUTPREF_Dist.1D.dset .\n"
+"                The first column represents node index and the \n"
+"                second is the absolute distance. A colorized \n"
+"                version of the distances is written to the file \n"
+"                OUTPREF_Dist.1D.col (node index followed \n"
+"                by r g b values). A list of the 10 largest absolute\n"
+"                distances is also output to the screen.\n"
+"              - Also computed is the cosine of the angle between \n"
+"                the normal at a node and the direction vector formed\n"
+"                formed by the center and that node. Since both vectors\n"
+"                are normalized, the cosine of the angle is the dot product.\n"
+"                On a sphere, the abs(dot product) should be 1 or pretty \n"
+"                close. Nodes where abs(dot product) < 0.9 are flagged as\n"
+"                bad and written out to the file OUTPREF_BadNodes.1D.dset .\n"
+"                The file OUTPREF_dotprod.1D.dset contains the dot product \n"
+"                values for all the nodes. The files with colorized results\n"
+"                are OUTPREF_BadNodes.1D.col and OUTPREF_dotprod.1D.col .\n"
+"                A list of the bad nodes is also output to the screen for\n"
+"                convenience. You can use the 'j' option in SUMA to have\n"
+"                the cross-hair go to a particular node. Use 'Alt+l' to\n"
+"                have the surface rotate and place the cross-hair at the\n"
+"                center of your screen.\n"
+"              NOTE: For detecting topological problems with spherical\n"
+"                surfaces, I find the dot product method to work best.\n"              
+"  Optional parameters:\n"
+"     -prefix OUTPREF: Prefix of output files. If more than one surface\n"
+"                      are entered, then the prefix will have _X added\n"
+"                      to it, where X is a character from A to Z.\n"
+"                      THIS PROGRAM WILL OVERWRITE EXISTING FILES.\n"
+"                      Default prefix is the surface's label.\n"
+"\n"
+"  Comments:\n"
+"     - The colorized (.col) files can be loaded into SUMA (with the 'c' \n"
+"     option. By focusing on the bright spots, you can find trouble spots\n"
+"     which would otherwise be very difficult to locate.\n"
+"     - You should also pay attention to the messages output when the \n"
+"     surfaces are being loaded, particularly to edges (segments that \n"
+"     join 2 nodes) are shared by more than 2 triangles. For a proper\n"
+"     closed surface, every segment should be shared by 2 triangles. \n"
+"     For cut surfaces, segments belonging to 1 triangle only form\n"
+"     the edge of that surface.\n"
+"     - There are no utilities within SUMA to correct these defects.\n"
+"     It is best to fix these problems with the surface creation\n"
+"     software you are using.\n"
+"     - Some warnings may be redundant. That should not hurt you.\n"
+"%s"
+"\n", s);
        SUMA_free(s); s = NULL;        
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -311,6 +312,42 @@ int main (int argc,char *argv[])
          SUMA_S_Warn("Failed to make sure surface's mesh is consistently wound.\n"
                      "You should fix the mesh.\n");
          consistent = 0;
+      } 
+      
+      {
+         int iii=0, isbad=0, ht0;
+         int *badedge=(int*)SUMA_calloc(SO->N_Node, sizeof(int));
+         /* check on troubled edges */
+         while (iii < SO->EL->N_EL) {
+            ht0 = SO->EL->ELps[iii][1];
+            /* make sure edge is not part of three triangles, if it is,skip it*/
+            if (SO->EL->ELps[iii][2] > 2) {
+               ++iii;
+               fprintf( SUMA_STDERR, 
+                        "%s: Bad edge (#%d: %d--%d), \n"
+                        " part of more than 2 triangles, skip it\n", 
+                        FuncName, i, SO->EL->EL[iii][0], SO->EL->EL[iii][1]); 
+               ++badedge[SO->EL->EL[iii][0]];
+               ++badedge[SO->EL->EL[iii][1]];
+               isbad = 1;
+               continue;
+            }
+            ++iii;
+         }
+         if (isbad) {
+            if (Opt->N_surf > 1) {
+            sprintf(ext,"_%c", 65+i);
+            OutName = SUMA_append_replace_string (
+                           prefix, 
+                           "_BadEdgeNodes.1D.dset", 
+                           ext, 0);
+            } else { 
+               OutName = SUMA_append_string (prefix, "_BadEdgeNodes.1D.dset");
+            }
+            SUMA_WRITE_ARRAY_1D(badedge,SO->N_Node,1,OutName);
+            if (OutName) SUMA_free(OutName); OutName = NULL;
+         }
+         SUMA_free(badedge); badedge = NULL;
       } 
       
       if (DoConv) {

@@ -59,14 +59,18 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
             SUMA_RETURN(XK_b);
          case 'B':
             SUMA_RETURN(XK_B);
-         case 'n':
-            SUMA_RETURN(XK_n);
-         case 'N':
-            SUMA_RETURN(XK_N);
+         case 'g':
+            SUMA_RETURN(XK_g);
+         case 'G':
+            SUMA_RETURN(XK_G);
          case 'm':
             SUMA_RETURN(XK_m);
          case 'M':
             SUMA_RETURN(XK_M);
+         case 'n':
+            SUMA_RETURN(XK_n);
+         case 'N':
+            SUMA_RETURN(XK_N);
          case 'p':
             SUMA_RETURN(XK_p);
          case 'P':
@@ -522,6 +526,74 @@ int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          break;
    }
 
+   SUMA_RETURN(1);
+}
+
+int SUMA_G_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_G_Key"};
+   char tk[]={"G"}, keyname[100];
+   int k=0, nc=-1;
+   int inode = -1;
+   SUMA_DSET *Dset = NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_OVERLAYS *Sover=NULL;
+   char stmp[100]={"\0"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_KEY_COMMON;
+   
+   if (sv->Focus_SO_ID < 0) {
+      if (callmode && strcmp(callmode, "interactive") == 0) {
+         SUMA_SLP_Err("No surface in focus.\nCannot graph.");
+      } else {
+         SUMA_S_Err("No surface in focus.\nCannot graph.");
+      }
+      SUMA_RETURN(0);
+   }
+   SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+   if (  !SO || !SO->SurfCont || 
+         !SO->SurfCont->curColPlane || 
+         !SO->SurfCont->curColPlane->dset_link) {
+      SUMA_SL_Err("Nothing to graph");
+      SUMA_RETURN(0);
+   }
+   Sover = SO->SurfCont->curColPlane;
+   Dset = SO->SurfCont->curColPlane->dset_link;
+   inode = SO->SelectedNode;
+   if (inode < 0) {
+      if (callmode && strcmp(callmode, "interactive") == 0) {
+         SUMA_SLP_Warn("No selected node.\nNothing to graph.");
+      }else{
+         SUMA_S_Warn("No selected node.\nNothing to graph.");
+      }
+      SUMA_RETURN(1);
+   }
+   if (SDSET_VECNUM(Dset) < 2) {
+      if (callmode && strcmp(callmode, "interactive") == 0) {
+         SUMA_SLP_Warn("One or no value per node.\nNothing to graph.");
+      }else{
+         SUMA_S_Warn("One or no value per node.\nNothing to graph.");
+      }
+      SUMA_RETURN(1);
+   }
+   /* do the work */
+   switch (k) {
+      case XK_g:
+         if ((SUMA_CTRL_KEY(key))) {
+         } else {
+            SUMA_OverlayGraphAtNode(Sover, SO, inode); 
+         }
+         break;
+      case XK_G:
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }
    SUMA_RETURN(1);
 }
 
@@ -1717,7 +1789,19 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->HighlightBox_prmpt);
                
             break;
-
+         case XK_g:
+            if (Kev.state & ControlMask){
+                  if (SUMAg_CF->Dev) {
+                     if (!SUMA_G_Key(sv, "ctrl+g", "interactive")) {
+                        SUMA_S_Err("Failed in key func.");
+                     }
+                  }
+               } else {
+                  if (!SUMA_G_Key(sv, "g", "interactive")) {
+                     SUMA_S_Err("Failed in key func.");
+                  }
+               }
+             break;
          case XK_h:
             if (Kev.state & ControlMask){
               if (!list) list = SUMA_CreateList();

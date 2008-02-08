@@ -518,6 +518,9 @@ typedef struct {
    char *cmapname; /*!< name of colormap (must be in SUMAg_CF->scm)  */
    SUMA_SCALE_TO_MAP_OPT *OptScl;   /* Options for mapping values in dset to colormap */
    int SymIrange;
+   
+   MEM_topshell_data *rowgraph_mtd;
+   int rowgraph_num;
 } SUMA_OVERLAYS;
 
 
