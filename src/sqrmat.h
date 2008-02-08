@@ -23,34 +23,34 @@ typedef struct { int n ; double *mat ; } sqrmat ;
 #undef  DUMP_SQRMAT
 #define DUMP_SQRMAT(str,ss)                                      \
  do{ int yy,zz,n=(ss)->n; double *mat=(ss)->mat;                 \
-     fprintf(stderr,"%s matrix: %d x %d\n",(str),n,n);           \
+     printf("%s matrix: %d x %d\n",(str),n,n);           \
      for( yy=0 ; yy < n ; yy++ ){                                \
-       fprintf(stderr,"%02d:",yy+1) ;                            \
+       printf("%02d:",yy+1) ;                            \
        for( zz=0 ; zz < n ; zz++ ) {                             \
           if(MAT(yy,zz)==0.0)                                    \
-            fprintf(stderr," %8.1f   ",MAT(yy,zz));              \
+            printf(" %8.1f   ",MAT(yy,zz));              \
           else                                                   \
-            fprintf(stderr," %11.4f",MAT(yy,zz));                \
+            printf(" %11.4f",MAT(yy,zz));                \
        }                                                         \
-       fprintf(stderr,"\n") ;                                    \
+       printf("\n") ;                                    \
  }} while(0)
 
 #undef  DUMP_SQRMAT_LABELED
 #define DUMP_SQRMAT_LABELED(str,ss,labels)                       \
  do{ int yy,zz,n=(ss)->n; double *mat=(ss)->mat;                 \
-     fprintf(stderr,"%s matrix: %d x %d\n#     ",(str),n,n);     \
+     printf("%s matrix: %d x %d\n#     ",(str),n,n);     \
      for( yy=0 ; yy < n ; yy++ )                                 \
-        fprintf(stderr,"%11.4s ",labels[yy]) ;                   \
-     fprintf(stderr,"\n");                                       \
+        printf("%11.4s ",labels[yy]) ;                   \
+     printf("\n");                                       \
      for( yy=0 ; yy < n ; yy++ ){                                \
-       fprintf(stderr,"%-5.5s ",labels[yy]) ;                    \
+       printf("%-5.5s ",labels[yy]) ;                    \
        for( zz=0 ; zz < n ; zz++ ) {                             \
           if(MAT(yy,zz)==0.0)                                    \
-            fprintf(stderr," %8.1f   ",MAT(yy,zz));              \
+            printf(" %8.1f   ",MAT(yy,zz));              \
           else                                                   \
-            fprintf(stderr," %11.4f",MAT(yy,zz));                \
+            printf(" %11.4f",MAT(yy,zz));                \
        }                                                         \
-       fprintf(stderr,"\n") ;                                    \
+       printf("\n") ;                                    \
  }} while(0)
 
 #undef  EQUIV_SQRMAT
