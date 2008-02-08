@@ -2511,14 +2511,14 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist;\
+   DriveSuma SurfDist; \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset \
    3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset \
 	SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
-   3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
-	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace 
+   3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask \
+	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
    DriveSuma SurfDist \
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
@@ -2548,7 +2548,7 @@ suma_install:
    SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask \
    SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
    SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
-   SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist\
+   SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
