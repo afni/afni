@@ -1162,6 +1162,7 @@ ENTRY("AFNI_clus_action_CB") ;
      /*-------- Jump to the cluster peak or cmass --------*/
 
      if( w == cwid->clu_jump_pb[ii] ){
+
        float px,py,pz , xx,yy,zz ;
        switch( cwid->coord_mode ){
          default:
@@ -1175,6 +1176,7 @@ ENTRY("AFNI_clus_action_CB") ;
      /*----------- Process the cluster data -----------*/
 
      } else if( w == cwid->clu_plot_pb[ii] || w == cwid->clu_save_pb[ii] ){
+
        int dosave = (w == cwid->clu_save_pb[ii]) ;
        int domean = (cwid->aver_av->ival == 0) ;
        int dopc   = (cwid->aver_av->ival == 1) ;
@@ -1365,6 +1367,7 @@ ENTRY("AFNI_clus_action_CB") ;
      /*--------- flash the voxels for this cluster ---------*/
 
      } else if( w == cwid->clu_flsh_pb[ii] ){
+
        THD_3dim_dataset  *fset = im3d->fim_now ;
        MCW_cluster_array *clar = im3d->vwid->func->clu_list ; int jj ;
        STATUS("flashing") ;
@@ -1389,7 +1392,8 @@ ENTRY("AFNI_clus_action_CB") ;
          im3d->vedskip = 0 ;
        }
        EXRETURN ;
-     }
+
+     } /* end of flash */
 
    } /*---------- end of loop over button rows ----------*/
 

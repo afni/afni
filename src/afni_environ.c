@@ -67,6 +67,7 @@ char * AFNI_suck_file( char *fname )
       GETSTR ; if(ISTARRED(str)) goto SkipSection ; \
       strcpy(right,str) ; } while(0)
 
+#undef  NSBUF
 #define NSBUF 256
 
 static int afni_env_done = 0 ;

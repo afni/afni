@@ -7120,6 +7120,7 @@ void REND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
       GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
       strcpy(right,str) ; } while(0)
 
+#undef  NSBUF
 #define NSBUF 256
 
 /*--------------------------------------------------------------------------*/

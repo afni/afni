@@ -98,6 +98,7 @@ typedef struct {
 /***---------------------------- typedefs ----------------------------***/
 
 #define MAX_COLORS 256
+#undef  NSBUF
 #define NSBUF 128    /* Place here because SUMA needs that baby too */
 #define NPANE_BIG      256    /* 30 Jan 2003: # colors in "big" mode , ZSS. Jan 06, Up from 128, Bigger, immer.*/
 #define NBIGMAP_INIT 7                           /* # of initial colorscales */
