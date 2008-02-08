@@ -53,6 +53,7 @@ int label_in_PALTAB( PBAR_palette_table *pt , char *lab )
       GETSTR ; if(ISTARRED(str)) goto SkipSection ;                       \
       strcpy(right,str) ; } while(0)
 
+#undef  NSBUF
 #define NSBUF 256
 
 void AFNI_process_setup( char *fname , int mode , MCW_DC *dc )

@@ -7965,6 +7965,7 @@ ENTRY( "RCREND_read_exec_CB" );
       GETSTR ; if(ISTARRED(str)) goto SkipSection ;    \
       strcpy(right,str) ; } while(0)
 
+#undef  NSBUF
 #define NSBUF 256
 
 /*--------------------------------------------------------------------------*/
