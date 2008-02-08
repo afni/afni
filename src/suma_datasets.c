@@ -3326,7 +3326,10 @@ SUMA_DSET * SUMA_FindDset_eng (char *idcode, DList *DsetList, DListElmt **elp)
    }  \
                   }\
 
-SUMA_DSET * SUMA_FindDsetLoose (SUMA_DSET *dsetin, DList *DsetList, char *criteria)
+SUMA_DSET * SUMA_FindDsetLoose (
+               SUMA_DSET *dsetin, 
+               DList *DsetList, 
+               char *criteria)
 {
    static char FuncName[]={"SUMA_FindDsetLoose_eng"};
    SUMA_DSET *dsetf = NULL, *dset= NULL;
@@ -3344,8 +3347,9 @@ SUMA_DSET * SUMA_FindDsetLoose (SUMA_DSET *dsetin, DList *DsetList, char *criter
    if (!dsetin) { SUMA_SL_Err("NULL dset"); SUMA_RETURN(dsetf); }
    totmatch = 0;
    do { 
-      if (LocalHead) fprintf(SUMA_STDOUT,"%s: \n      checking element out of %d\n", 
-                                       FuncName, dlist_size(DsetList));
+      if (LocalHead) fprintf( SUMA_STDOUT,
+                              "%s: \n      checking element out of %d\n", 
+                              FuncName, dlist_size(DsetList));
       if (!el) el = dlist_head(DsetList);
       else el = dlist_next(el);
       dset = (SUMA_DSET *)el->data;
@@ -3357,13 +3361,15 @@ SUMA_DSET * SUMA_FindDsetLoose (SUMA_DSET *dsetin, DList *DsetList, char *criter
          SUMA_LH("dset found");
          
          newmatch = 0; icrit = 0;
-         while (!newmatch && (s = SUMA_NI_get_ith_string( criteria , "|", icrit ))) {
+         while (  !newmatch && 
+                  (s = SUMA_NI_get_ith_string( criteria , "|", icrit ))) {
             if (!strcmp(s,"self_idcode")) { 
                #ifdef OLD_DSET      /* before dsets were NI_groups */
                if (dset->nel) {
                   SUMA_LH("dset is nel type");
                   dsetid = NI_get_attribute(dset->nel, "idcode"); /* obsolete */
-                  if (!dsetid) dsetid = NI_get_attribute(dset->nel, "self_idcode");
+                  if (!dsetid) 
+                     dsetid = NI_get_attribute(dset->nel, "self_idcode");
                   if (dsetid) {
                      if (!strcmp(dsetid, SDSET_ID(dsetin)))  {/* match */
                         CHECK_DUPS;
@@ -3376,7 +3382,8 @@ SUMA_DSET * SUMA_FindDsetLoose (SUMA_DSET *dsetin, DList *DsetList, char *criter
                if (dset->ngr) {
                   SUMA_LH("dset is ngr type");
                   dsetid = NI_get_attribute(dset->ngr, "idcode"); /* obsolete */
-                  if (!dsetid) dsetid = NI_get_attribute(dset->ngr, "self_idcode");
+                  if (!dsetid) 
+                     dsetid = NI_get_attribute(dset->ngr, "self_idcode");
                   if (dsetid) {
                      if (!strcmp(dsetid, SDSET_ID(dsetin)))  { /* match */
                         CHECK_DUPS;
@@ -3404,7 +3411,9 @@ SUMA_DSET * SUMA_FindDsetLoose (SUMA_DSET *dsetin, DList *DsetList, char *criter
                   SUMA_LH("dset is ngr type");
                   dsetid = SDSET_FILENAME(dset);
                   if (dsetid) {
-                     if (!strcmp(dsetid, SDSET_FILENAME(dsetin)))  { /* match */
+                     if (!strcmp(   dsetid,
+                                    CHECK_NULL_STR(SDSET_FILENAME(dsetin))))  {
+                                    /* match */
                         CHECK_DUPS;
                         dsetf = dset;
                         newmatch = 1; ++totmatch;
@@ -3420,7 +3429,8 @@ SUMA_DSET * SUMA_FindDsetLoose (SUMA_DSET *dsetin, DList *DsetList, char *criter
       }
       if (LocalHead) fprintf(SUMA_STDOUT,"%s: About to loopback:\n"
                                           "el=%p, tail=%p, dsetf=%p\n"
-                                          , FuncName, el, dlist_tail(DsetList), dsetf);
+                                          , FuncName, el, 
+                                          dlist_tail(DsetList), dsetf);
    } while ( (el != dlist_tail(DsetList))); 
    SUMA_RETURN(dsetf);
 }
@@ -4669,6 +4679,140 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
    SUMA_RETURN(str);
 }
 
+/*
+   returns a vector of values at a particular node index in a dset
+   dset: is the dset in question
+   ind (int *): An optional vector of columns to use.
+               Default is NULL = all columns
+   nind (int): Number of values in ind.
+               Not useful when ind = NULL
+   node (int): Index of node in question
+   N_Node (int): If you know the maximum number of nodes forming the domain
+                  of the dset, typically SO->N_Node then pass it for speed.
+                  Otherwise, pass -1
+   N_ret (int *): Pointer to int to contain the number of values in result
+                  vector
+   Returns:
+      result (double*) a vector of N_ret values at node node
+   
+   \sa SUMA_GetDsetAllNodeValsInCols2
+*/
+void *SUMA_GetDsetAllNodeValsInCols2(SUMA_DSET *dset, 
+                                       int *ind, int nind, 
+                                       int node, int N_Node,
+                                       int *N_ret,
+                                       SUMA_VARTYPE tp)
+{
+   static char FuncName[]={"SUMA_GetDsetAllNodeValsInCols2"};
+   double *resd = NULL;
+   float *resf = NULL;
+   int *resi=NULL;
+   void *resv=NULL;
+   int noderow=-1, i=-1;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->dnel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(resv); }
+   noderow = SUMA_GetNodeRow_FromNodeIndex_eng (dset, node, N_Node);
+   if (noderow < 0) { SUMA_SL_Err("Bad node index"); SUMA_RETURN(resv); }
+   if ( tp != SUMA_float &&
+        tp != SUMA_double &&
+        tp != SUMA_int) { SUMA_SL_Err("Bad otype"); SUMA_RETURN(resv); } 
+   if (ind) {
+      if (!ind || nind <= 0) {
+         SUMA_SL_Err("no columns selected"); SUMA_RETURN(resv); 
+      }
+      if (nind > SDSET_VECNUM(dset)) {
+         SUMA_SL_Err("More columns than in dset"); SUMA_RETURN(resv); 
+      }
+      switch (tp) {
+         case SUMA_double:
+            if (!(resd = (double*)SUMA_calloc(nind, sizeof(double)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+            for (i=0; i<nind; ++i) {
+               if (ind[i] >= 0 && ind[i]<SDSET_VECNUM(dset)) {
+                  resd[i] = SUMA_GetDsetValInCol2(dset, ind[i], noderow);
+               } else {
+                  resd[i] = 0.0; 
+               }
+            }
+            resv = (void *)resd;
+            break;
+         case SUMA_float:
+            if (!(resf = (float*)SUMA_calloc(nind, sizeof(float)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+            for (i=0; i<nind; ++i) {
+               if (ind[i] >= 0 && ind[i]<SDSET_VECNUM(dset)) {
+                  resf[i] = (float)SUMA_GetDsetValInCol2(dset, ind[i], noderow);
+               } else {
+                  resf[i] = 0.0; 
+               }
+            }
+            resv = (void *)resf;
+            break;
+         case SUMA_int:
+            if (!(resi = (int*)SUMA_calloc(nind, sizeof(int)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+            for (i=0; i<nind; ++i) {
+               if (ind[i] >= 0 && ind[i]<SDSET_VECNUM(dset)) {
+                  resi[i] = (int)SUMA_GetDsetValInCol2(dset, ind[i], noderow);
+               } else {
+                  resi[i] = 0; 
+               }
+            }
+            resv = (void *)resi;
+            break;
+         default:
+            SUMA_SL_Err("Bad otype, why here?"); SUMA_RETURN(resv);
+            break;
+      }
+      *N_ret =  nind;  
+   } else {
+      switch (tp) {
+         case SUMA_double:
+            if (!(resd = (double*)SUMA_calloc(SDSET_VECNUM(dset),
+                                                sizeof(double)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+            for (i=0; i<SDSET_VECNUM(dset); ++i) {
+               resd[i] = SUMA_GetDsetValInCol2(dset, i, noderow);
+            }
+            resv = (void *)resd;
+            break;
+         case SUMA_float:
+            if (!(resf = (float*)SUMA_calloc(SDSET_VECNUM(dset),
+                                                sizeof(float)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+            for (i=0; i<SDSET_VECNUM(dset); ++i) {
+               resf[i] = (float)SUMA_GetDsetValInCol2(dset, i, noderow);
+            }
+            resv = (void *)resf;
+            break;
+         case SUMA_int:
+            if (!(resi = (int*)SUMA_calloc(SDSET_VECNUM(dset),
+                                                sizeof(int)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+            for (i=0; i<SDSET_VECNUM(dset); ++i) {
+               resi[i] = (int)SUMA_GetDsetValInCol2(dset, i, noderow);
+            }
+            resv = (void *)resi;
+            break;
+         default:
+            SUMA_SL_Err("Bad otype, why here too?"); SUMA_RETURN(resv);
+            break;
+      }
+      *N_ret = SDSET_VECNUM(dset);
+   }
+   
+   SUMA_RETURN(resv);
+}
+                              
 /* returns the value at a paricular column and particular
    node in double format.
    If you know the maximum number of nodes forming the domain
@@ -4703,7 +4847,7 @@ double SUMA_GetDsetValInCol2(SUMA_DSET *dset, int ind, int ival)
 
    SUMA_ENTRY;
 
-   if (!dset->dnel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(0.0); }
+   if (!dset || !dset->dnel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(0.0); }
 
    if (ind < 0 || ind > SDSET_VECNUM(dset) - 1) {
       SUMA_SL_Err("Bad column index");

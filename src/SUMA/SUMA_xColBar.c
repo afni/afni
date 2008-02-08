@@ -4827,6 +4827,8 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_UpdateNodeField"};
+   int i=0;
+   SUMA_OVERLAYS *Sover=NULL;
    SUMA_SurfaceObject *curSO=NULL;
    
    SUMA_ENTRY; 
@@ -4843,7 +4845,31 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
          SUMA_UpdateNodeLblField(SO);
                   
       }
+      
+      if (!SO->SurfCont->ShowCurOnly) {   /* graph updating can be done 
+                                             for all planes */
+         for (i=0; i<SO->N_Overlays; ++i) {
+            Sover = SO->Overlays[i];
+            if (     Sover 
+                  && Sover->dset_link 
+                  && Sover->rowgraph_mtd ) {
+               SUMA_OverlayGraphAtNode(Sover, 
+                                       SO, 
+                                       SO->SelectedNode);
+            }
+         }
+      } else {
+         Sover = SO->SurfCont->curColPlane;
+         if (     Sover 
+                  && Sover->dset_link 
+                  && Sover->rowgraph_mtd ) {
+               SUMA_OverlayGraphAtNode(Sover, 
+                                       SO, 
+                                       SO->SelectedNode);
+            }
+      }
    }
+   
          
    SUMA_RETURN(YUP);
    
