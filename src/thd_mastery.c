@@ -50,7 +50,8 @@ ENTRY("THD_open_dataset") ;
 
    /*-- 17 Mar 2000: check if this is a 3dcalc() run --*/
 
-   if( strncmp(pathname,"3dcalc(",7)  == 0 ){
+   if( strncmp(pathname,"3dcalc(",7) == 0 ||
+       strncmp(pathname,"3dcalc ",7) == 0   ){
      dset = THD_open_3dcalc( pathname ) ;
      if( ISVALID_DSET(dset) &&
         !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
@@ -398,9 +399,10 @@ ENTRY("THD_open_3dcalc") ;
    qname = (char *) malloc(sizeof(char)*(strlen(pname)+1024)) ;
    strcpy(qname,pname+7) ;
    ll = strlen(qname) ;
-   for( ii=ll-1 ; ii > 0 && qname[ii] != ')' ; ii++ ) ; /* nada */
-   if( ii == 0 ){ free(qname) ; RETURN(NULL) ; }
-   qname[ii] = '\0' ;
+   for( ii=ll-1 ; ii > 0 && isspace(qname[ii]) ; ii-- ) ; /*nada*/
+   if( ii == 0 ){ free(qname) ; RETURN(NULL) ; }  /* all blanks? */
+   if( qname[ii] == ')' && isspace(qname[ii-1]) )
+     qname[ii] = '\0' ;                   /* remove trailing ')' */
 
    /*-- add -session to command string --*/
 
@@ -410,9 +412,9 @@ ENTRY("THD_open_3dcalc") ;
 
    /*-- add -prefix to command string --*/
 
-   for( ii=ibase ; ii < 9999 ; ii++ ){                    /* dataset name   */
-      sprintf(prefix,"3dcalc#%04d",ii) ;
-      if( THD_is_dataset(tdir,prefix,-1) == -1 ) break ;
+   for( ii=ibase ; ii < 9999 ; ii++ ){                    /* dataset name */
+     sprintf(prefix,"3dcalc#%04d",ii) ;
+     if( THD_is_dataset(tdir,prefix,-1) == -1 ) break ;
    }
    if( ii > 9999 ){
      fprintf(stderr,"*** Can't find unused 3dcalc# dataset name in %s!\n",tdir) ;

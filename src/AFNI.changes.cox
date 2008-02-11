@@ -6604,3 +6604,7 @@
      since the coordinates for the images are still the underlay's in
      this situation.
  * Fix 3dvolreg to work properly with sub-brick scale factors.
+
+11 Feb 2008
+ * Modified afni.c and thd_mastery.c to work better with '3dcalc' command
+     line datasets.
