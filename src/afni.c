@@ -4293,8 +4293,10 @@ if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"try to read directory %s",qlist->ar[id]) ; STATUS(str) ; }
 
-         dname  = qlist->ar[id] ;                /* try to read datasets from */
-         new_ss = THD_init_session( dname ) ;    /* this directory name       */
+         dname  = qlist->ar[id] ;
+         new_ss = NULL ;
+         if( strncmp(dname,"3dcalc(",7) != 0 )      /* try to read datasets */
+           new_ss = THD_init_session( dname ) ; /* from this directory name */
 
          REFRESH ;
 
