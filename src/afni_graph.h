@@ -214,7 +214,7 @@ typedef struct {
 
 #define DEFAULT_GR_BOXES_COLOR    DARKEST_COLOR
 #define DEFAULT_GR_BACKG_COLOR    BRIGHTEST_COLOR
-#define DEFAULT_GR_GRID_COLOR     1
+#define DEFAULT_GR_GRID_COLOR     1                /* yellow */
 #define DEFAULT_GR_TEXT_COLOR     DARKEST_COLOR
 #define DEFAULT_GR_DATA_COLOR     DARKEST_COLOR
 #define DEFAULT_GR_IDEAL_COLOR    REDDEST_COLOR
@@ -235,12 +235,12 @@ int INIT_GR_boxes_color  = DEFAULT_GR_BOXES_COLOR  ,
 
 int INIT_GR_boxes_thick  = 0 ,
     INIT_GR_grid_thick   = 0 ,
-    INIT_GR_data_thick   = 0 ,
-    INIT_GR_ideal_thick  = 0 ,
-    INIT_GR_ort_thick    = 0 ,
-    INIT_GR_dplot_thick  = 0  ;
+    INIT_GR_data_thick   = 1 ,
+    INIT_GR_ideal_thick  = 1 ,
+    INIT_GR_ort_thick    = 1 ,
+    INIT_GR_dplot_thick  = 1  ;
 
-int INIT_GR_ggap         = 0 ;  /* 27 May 1999 */
+int INIT_GR_ggap         = 4 ;  /* 27 May 1999 */
 int INIT_GR_gthick       = 2 ;  /* 06 Oct 2004 */
 int INIT_GR_gmat         = 3 ;  /* 10 Feb 2003 */
 #else
