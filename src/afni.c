@@ -1423,8 +1423,6 @@ int main( int argc , char *argv[] )
      AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
 
-   AFNI_load_defaults( MAIN_shell ) ;
-
    /** set default values of some environment variables [22 Jun 2004] **/
    /** moved here and made conditional on being empty -- 31 Jan 2008  **/
 
@@ -1448,6 +1446,8 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_IMAGE_LABEL_SETBACK","01") ;
    PUTENV("AFNI_IMAGE_LABEL_COLOR","yellow") ;
 #endif
+
+   AFNI_load_defaults( MAIN_shell ) ;
 
    if( ! GLOBAL_argopt.skip_afnirc ){          /* this line added 14 Jul 1998 */
       char *home = getenv("HOME") ; char fname[256] ;
@@ -10254,8 +10254,8 @@ void AFNI_load_defaults( Widget w )
 ENTRY("AFNI_load_defaults") ;
 
    if( w == NULL ){
-      fprintf(stderr,"\n** AFNI_load_defaults: NULL input widget **\n") ;
-      EXRETURN ;
+     ERROR_message("\n** AFNI_load_defaults: NULL input widget") ;
+     EXRETURN ;
    }
 
    display = XtDisplay( w ) ;
@@ -10263,12 +10263,11 @@ ENTRY("AFNI_load_defaults") ;
    /** initialize overlay color arrays from defaults **/
 
    for( ii=0 ; ii < DEFAULT_NCOLOVR ; ii++ ){
-      INIT_colovr[ii] = XtNewString(INIT_def_colovr[ii]) ;
-      INIT_labovr[ii] = XtNewString(INIT_def_labovr[ii]) ;
+     INIT_colovr[ii] = XtNewString(INIT_def_colovr[ii]) ;
+     INIT_labovr[ii] = XtNewString(INIT_def_labovr[ii]) ;
    }
-   for( ; ii < MAX_NCOLOVR ; ii++ ){
-      INIT_colovr[ii] = INIT_labovr[ii] = NULL ;
-   }
+   for( ; ii < MAX_NCOLOVR ; ii++ )
+     INIT_colovr[ii] = INIT_labovr[ii] = NULL ;
 
    /** initialize display and overlay colors **/
 
@@ -10279,11 +10278,11 @@ ENTRY("AFNI_load_defaults") ;
    NAME2FLOAT("gamma",INIT_gamma,0.1,9.9) ;
 
    for( ii=0 ; ii < INIT_ncolovr ; ii++ ){
-      sprintf( buf , "ovdef%02d" , ii+1 ) ;
-      NAME2STRING(buf,INIT_colovr[ii] ) ;
+     sprintf( buf , "ovdef%02d" , ii+1 ) ;
+     NAME2STRING(buf,INIT_colovr[ii] ) ;
 
-      sprintf( buf , "ovlab%02d" , ii+1 ) ;
-      NAME2STRING(buf,INIT_labovr[ii] ) ;
+     sprintf( buf , "ovlab%02d" , ii+1 ) ;
+     NAME2STRING(buf,INIT_labovr[ii] ) ;
    }
 
    NAME2INT("ovcrosshair"      , INIT_crosshair_color,0,INIT_ncolovr) ;
@@ -10321,15 +10320,15 @@ ENTRY("AFNI_load_defaults") ;
    cpt = NULL ;
    NAME2STRING( "tlrc_big" , cpt ) ;
    if( cpt != NULL ){
-      INIT_tlrc_big = (strcmp(cpt,"True")==0) ? 1 : 0 ;
-      XtFree(cpt) ;
+     INIT_tlrc_big = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+     XtFree(cpt) ;
    }
 
    cpt = NULL ;
    NAME2STRING( "montage_periodic" , cpt ) ;
    if( cpt != NULL ){
-      INIT_montage_periodic = (strcmp(cpt,"True")==0) ? 1 : 0 ;
-      XtFree(cpt) ;
+     INIT_montage_periodic = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+     XtFree(cpt) ;
    }
 
    NAME2INT("fim_ignore",INIT_ignore,0,999) ;
@@ -10337,8 +10336,8 @@ ENTRY("AFNI_load_defaults") ;
    cpt = NULL ;
    NAME2STRING( "purge" , cpt ) ;
    if( cpt != NULL ){
-      INIT_purge = (strcmp(cpt,"True")==0) ? 1 : 0 ;
-      myXtFree(cpt) ;
+     INIT_purge = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+     myXtFree(cpt) ;
    }
 
    NAME2FLOAT("resam_vox",INIT_resam_vox,0.1,4.0) ;
@@ -10347,31 +10346,31 @@ ENTRY("AFNI_load_defaults") ;
    cpt = NULL ;
    NAME2STRING( "resam_anat" , cpt ) ;
    if( cpt != NULL ){
-      for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ ){
-         if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
-      }
-      if( ii <= LAST_RESAM_TYPE ) INIT_resam_anat = ii ;
-      myXtFree(cpt) ;
+     for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ )
+       if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
+
+     if( ii <= LAST_RESAM_TYPE ) INIT_resam_anat = ii ;
+     myXtFree(cpt) ;
    }
 
    cpt = NULL ;
    NAME2STRING( "resam_func" , cpt ) ;
    if( cpt != NULL ){
-      for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ ){
-         if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
-      }
-      if( ii <= LAST_RESAM_TYPE ) INIT_resam_func = ii ;
-      (char*)myXtFree(cpt) ;
+     for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ )
+       if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
+
+     if( ii <= LAST_RESAM_TYPE ) INIT_resam_func = ii ;
+     (char*)myXtFree(cpt) ;
    }
 
    cpt = NULL ;
    NAME2STRING( "resam_thr" , cpt ) ;
    if( cpt != NULL ){
-      for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ ){
-         if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
-      }
-      if( ii <= LAST_RESAM_TYPE ) INIT_resam_thr = ii ;
-      myXtFree(cpt) ;
+     for( ii=FIRST_RESAM_TYPE ; ii <= LAST_RESAM_TYPE ; ii++ )
+       if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
+
+     if( ii <= LAST_RESAM_TYPE ) INIT_resam_thr = ii ;
+     myXtFree(cpt) ;
    }
 
    /** initialize pbar panes **/
@@ -10379,15 +10378,15 @@ ENTRY("AFNI_load_defaults") ;
    cpt = NULL ;
    NAME2STRING( "pbar_posfunc" , cpt ) ;
    if( cpt != NULL ){
-      INIT_posfunc = (strcmp(cpt,"True")==0) ? 1 : 0 ;
-      myXtFree(cpt) ;
+     INIT_posfunc = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+     myXtFree(cpt) ;
    }
 
    cpt = NULL ;
    NAME2STRING( "pbar_hide" , cpt ) ;
    if( cpt != NULL ){
-      INIT_panes_hide = (strcmp(cpt,"True")==0) ? 1 : 0 ;
-      myXtFree(cpt) ;
+     INIT_panes_hide = (strcmp(cpt,"True")==0) ? 1 : 0 ;
+     myXtFree(cpt) ;
    }
 
    NAME2INT("pbar_pos_pane_count" , INIT_panes_pos , NPANE_MIN , NPANE_MAX ) ;
@@ -10396,94 +10395,92 @@ ENTRY("AFNI_load_defaults") ;
    /* start with positive panes */
 
    for( ii=NPANE_INIT+1 ; ii <= NPANE_MAX ; ii++ ){
-      fval     = 1.0 / ii ;
-      pthr[0]  = 1.0 ;
-      pthr[ii] = 0.0 ;
-      for( jj=1 ; jj < ii ; jj++ ) pthr[jj] = fval * (ii-jj) ;
-      for( jj=0 ; jj < ii ; jj++ ) pov[jj]  = (jj % INIT_ncolovr) + 1 ;
+     fval     = 1.0 / ii ;
+     pthr[0]  = 1.0 ;
+     pthr[ii] = 0.0 ;
+     for( jj=1 ; jj < ii ; jj++ ) pthr[jj] = fval * (ii-jj) ;
+     for( jj=0 ; jj < ii ; jj++ ) pov[jj]  = (jj % INIT_ncolovr) + 1 ;
 
-      for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_pos[ii][jj] = pthr[jj] ;
-      for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_pos[ii][jj] = pov[jj] ;
+     for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_pos[ii][jj] = pthr[jj] ;
+     for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_pos[ii][jj] = pov[jj] ;
    }
 
    for( ii=NPANE_MIN ; ii <= NPANE_MAX ; ii++ ){
 
-      for( jj=0 ; jj <= ii ; jj++ ){
-         sprintf( buf , "pbar_pos_pane%02d_thr%02d" , ii,jj ) ;
-         pthr[jj] = BAD ;
-         NAME2FLOAT(buf,pthr[jj],0.0,1.0) ;
-      }
+     for( jj=0 ; jj <= ii ; jj++ ){
+       sprintf( buf , "pbar_pos_pane%02d_thr%02d" , ii,jj ) ;
+       pthr[jj] = BAD ;
+       NAME2FLOAT(buf,pthr[jj],0.0,1.0) ;
+     }
 
-      for( jj=0 ; jj < ii ; jj++ ){
-         sprintf( buf , "pbar_pos_pane%02d_ov%02d" , ii,jj ) ;
-         pov[jj] = BAD ;
-         NAME2INT(buf,pov[jj],0,INIT_ncolovr) ;
-      }
+     for( jj=0 ; jj < ii ; jj++ ){
+       sprintf( buf , "pbar_pos_pane%02d_ov%02d" , ii,jj ) ;
+       pov[jj] = BAD ;
+       NAME2INT(buf,pov[jj],0,INIT_ncolovr) ;
+     }
 
-      /* check pthr for OK-ness; if not good, skip to next pane count (ii) */
+     /* check pthr for OK-ness; if not good, skip to next pane count (ii) */
 
-      if( pthr[0] != 1.0 || pthr[jj] != 0.0 ) continue ;
-      for( jj=1 ; jj <= ii ; jj++ ){
-         if( pthr[jj] == BAD || pthr[jj] >= pthr[jj-1] ) break ;
-      }
-      if( jj <= ii ) continue ;
+     if( pthr[0] != 1.0 || pthr[jj] != 0.0 ) continue ;
+     for( jj=1 ; jj <= ii ; jj++ )
+       if( pthr[jj] == BAD || pthr[jj] >= pthr[jj-1] ) break ;
+     if( jj <= ii ) continue ;
 
-      /* check pov for OK-ness */
+     /* check pov for OK-ness */
 
-      for( jj=0 ; jj < ii ; jj++ ) if( pov[jj] == BAD ) break ;
-      if( jj < ii ) continue ;
+     for( jj=0 ; jj < ii ; jj++ ) if( pov[jj] == BAD ) break ;
+     if( jj < ii ) continue ;
 
-      /* get to here --> load pthr and pov into arrays */
+     /* get to here --> load pthr and pov into arrays */
 
-      for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_pos[ii][jj] = pthr[jj] ;
-      for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_pos[ii][jj] = pov[jj] ;
+     for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_pos[ii][jj] = pthr[jj] ;
+     for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_pos[ii][jj] = pov[jj] ;
 
    }
 
    /** initialize signed pbar panes **/
 
    for( ii=NPANE_INIT+1 ; ii <= NPANE_MAX ; ii++ ){
-      fval     =  1.0 / ii ;
-      pthr[0]  =  1.0 ;
-      pthr[ii] = -1.0 ;
-      for( jj=1 ; jj < ii ; jj++ ) pthr[jj] = fval * (ii-2*jj) ;
-      for( jj=0 ; jj < ii ; jj++ ) pov[jj]  = (jj % INIT_ncolovr) + 1 ;
+     fval     =  1.0 / ii ;
+     pthr[0]  =  1.0 ;
+     pthr[ii] = -1.0 ;
+     for( jj=1 ; jj < ii ; jj++ ) pthr[jj] = fval * (ii-2*jj) ;
+     for( jj=0 ; jj < ii ; jj++ ) pov[jj]  = (jj % INIT_ncolovr) + 1 ;
 
-      for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_sgn[ii][jj] = pthr[jj] ;
-      for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_sgn[ii][jj] = pov[jj] ;
+     for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_sgn[ii][jj] = pthr[jj] ;
+     for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_sgn[ii][jj] = pov[jj] ;
    }
 
    for( ii=NPANE_MIN ; ii <= NPANE_MAX ; ii++ ){
 
-      for( jj=0 ; jj <= ii ; jj++ ){
-         sprintf( buf , "pbar_sgn_pane%02d_thr%02d" , ii,jj ) ;
-         pthr[jj] = BAD ;
-         NAME2FLOAT(buf,pthr[jj],-1.0,1.0) ; /* 14 Apr 1999: 0.0 changed to -1.0! */
-      }
+     for( jj=0 ; jj <= ii ; jj++ ){
+       sprintf( buf , "pbar_sgn_pane%02d_thr%02d" , ii,jj ) ;
+       pthr[jj] = BAD ;
+       NAME2FLOAT(buf,pthr[jj],-1.0,1.0) ; /* 14 Apr 1999: 0.0 changed to -1.0! */
+     }
 
-      for( jj=0 ; jj < ii ; jj++ ){
-         sprintf( buf , "pbar_sgn_pane%02d_ov%02d" , ii,jj ) ;
-         pov[jj] = BAD ;
-         NAME2INT(buf,pov[jj],0,INIT_ncolovr) ;
-      }
+     for( jj=0 ; jj < ii ; jj++ ){
+       sprintf( buf , "pbar_sgn_pane%02d_ov%02d" , ii,jj ) ;
+       pov[jj] = BAD ;
+       NAME2INT(buf,pov[jj],0,INIT_ncolovr) ;
+     }
 
-      /* check pthr for OK-ness; if not good, skip to next pane count (ii) */
+     /* check pthr for OK-ness; if not good, skip to next pane count (ii) */
 
-      if( pthr[0] != 1.0 || pthr[jj] != -1.0 ) continue ;
-      for( jj=1 ; jj <= ii ; jj++ ){
-         if( pthr[jj] == BAD || pthr[jj] >= pthr[jj-1] ) break ;
-      }
-      if( jj <= ii ) continue ;
+     if( pthr[0] != 1.0 || pthr[jj] != -1.0 ) continue ;
+     for( jj=1 ; jj <= ii ; jj++ )
+       if( pthr[jj] == BAD || pthr[jj] >= pthr[jj-1] ) break ;
+     if( jj <= ii ) continue ;
 
-      /* check pov for OK-ness */
+     /* check pov for OK-ness */
 
-      for( jj=0 ; jj < ii ; jj++ ) if( pov[jj] == BAD ) break ;
-      if( jj < ii ) continue ;
+     for( jj=0 ; jj < ii ; jj++ ) if( pov[jj] == BAD ) break ;
+     if( jj < ii ) continue ;
 
-      /* get to here --> load pthr and pov into arrays */
+     /* get to here --> load pthr and pov into arrays */
 
-      for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_sgn[ii][jj] = pthr[jj] ;
-      for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_sgn[ii][jj] = pov[jj] ;
+     for( jj=0 ; jj <= ii ; jj++ ) INIT_pval_sgn[ii][jj] = pthr[jj] ;
+     for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_sgn[ii][jj] = pov[jj] ;
 
    }
 
