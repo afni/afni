@@ -5885,15 +5885,8 @@ DUMP_IVEC3("  new_id",new_id) ;
          AFNI_cluster_dispize(im3d,0);  /* display the results */
        }
      } else {
-       AFNI_vedit_clear( im3d->fim_now ) ; VEDIT_clear_label(im3d) ;
-       AFNI_cluster_dispkill(im3d) ;
-       if( im3d->vwid->func->clu_rep != NULL ){
-         free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
-       }
-       DESTROY_CLARR(im3d->vwid->func->clu_list) ;
+       UNCLUSTERIZE(im3d) ;  /* macro-ized 13 Feb 2008 */
      }
-     AFNI_set_thr_pval(im3d) ;  /* for the * marker */
-     im3d->vedset.flags = 0 ;   /* 01 Feb 2008 */
    }
 
    /*--- redraw images now ---*/
@@ -6978,6 +6971,7 @@ ENTRY("AFNI_switchview_CB") ;
    SHOW_AFNI_PAUSE ;
 
    POPDOWN_strlist_chooser ;                        /* might be choosing datasets */
+   UNCLUSTERIZE(im3d) ;                             /* 13 Feb 2008 */
 
    im3d->vinfo->view_type = bval ;                  /* set the new view type */
    AFNI_initialize_view( im3d->anat_now , im3d ) ;  /* and initialize it */

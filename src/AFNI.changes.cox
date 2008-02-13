@@ -6612,3 +6612,4 @@
 13 Feb 2008
  * Modify mcw_glob.c and thd_mastery.c to pre-expand '~/' at the start of
      a filename to '${HOME}/' to help some pitiful users (e.g., me).
+ * Modify afni.c to turn off clusterizing when switching coordinate systems.
