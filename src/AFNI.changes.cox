@@ -6608,3 +6608,7 @@
 11 Feb 2008
  * Modified afni.c and thd_mastery.c to work better with '3dcalc' command
      line datasets.
+
+13 Feb 2008
+ * Modify mcw_glob.c and thd_mastery.c to pre-expand '~/' at the start of
+     a filename to '${HOME}/' to help some pitiful users (e.g., me).
