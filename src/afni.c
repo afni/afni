@@ -1270,9 +1270,11 @@ int main( int argc , char *argv[] )
    /** Check for -version [15 Aug 2003] **/
 
    if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ){
-     printf("Version " VERSION  "\n") ;
+     printf( "Version " VERSION  "\n" ) ;
 #ifdef SHSTRING
-       printf( "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n" ) ;
+     printf( "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n" ) ;
+#else
+     printf( "Compile date = " __DATE__ "\n") ;
 #endif
      exit(0) ;
    }
