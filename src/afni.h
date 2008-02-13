@@ -914,6 +914,19 @@ typedef struct {
 
 #define IM3D_VEDIT_FORCE(iq) (iq)->vedset.flags=1
 
+/*! Turn cluster display off in this viewer */
+
+#define UNCLUSTERIZE(iq)                                                   \
+ do{ AFNI_vedit_clear((iq)->fim_now); VEDIT_clear_label((iq));             \
+     AFNI_cluster_dispkill((iq));                                          \
+     if( (iq)->vwid->func->clu_rep != NULL ){                              \
+       free((iq)->vwid->func->clu_rep); (iq)->vwid->func->clu_rep = NULL;  \
+     }                                                                     \
+     DESTROY_CLARR((iq)->vwid->func->clu_list);                            \
+     AFNI_set_thr_pval((iq)); (iq)->vedset.flags = 0;                      \
+ } while(0) ;
+
+
 /*! Is any image viewer window open? */
 
 #define IM3D_IMAGIZED(iq) \
