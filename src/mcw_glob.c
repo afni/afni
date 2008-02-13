@@ -748,28 +748,30 @@ void MCW_warn_expand( int www ){ warn = www; return; }  /* 13 Jul 2001 */
      - 10 Feb  2000:  and for 3A: prefixes.
 --------------------------------------------------------------------------*/
 
-void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
+void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
 {
    glob_t gl ;
    int    ii , gnum, gold , ilen ;
-   char ** gout ;
-   char *  fn ;
-   char prefix[4] , fpre[128] , fname[256] ;
+   char **gout ;
+   char *fn , *ehome ;
+   char prefix[4] , fpre[128] , fname[1024] ;
    int  b1,b2,b3,b4,b5 , ib,ig , lpre ;
 
    if( nin <= 0 ){ *nout = 0 ; return ; }
 
-   gnum = 0 ;
-   gout = NULL ;
+   gnum  = 0 ;
+   gout  = NULL ;
+   ehome = getenv("HOME") ;
 
    for( ii=0 ; ii < nin ; ii++ ){
-      fn = fin[ii] ;
+      fn = fin[ii] ; if( fn == NULL || *fn == '\0' ) continue ;
 
-      ig = 0 ;
+      ig = 0 ; fname[0] = '\0' ;
 
       /** look for 3D: prefix **/
 
       if( strlen(fn) > 9 && fn[0] == '3' && fn[1] == 'D' ){
+
          ib = 0 ;
          prefix[ib++] = '3' ;
          prefix[ib++] = 'D' ;
@@ -787,9 +789,9 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
          } else {
             ig = 0 ;
          }
-      }
 
-      if( strlen(fn) > 9 && fn[0] == '3' && fn[1] == 'A' && fn[3] == ':' ){
+      } else if( strlen(fn) > 9 && fn[0] == '3' && fn[1] == 'A' && fn[3] == ':' ){
+
          ib = 0 ;
          prefix[ib++] = '3' ;
          prefix[ib++] = 'A' ;
@@ -809,8 +811,14 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
          }
       }
 
-      if( ig > 0 ) (void) glob( fname , 0 , NULL ,  &gl ) ;  /* 3D: was OK */
-      else         (void) glob( fn    , 0 , NULL ,  &gl ) ;  /*     not OK */
+      if( fname[0] == '\0' ) strcpy(fname,fn) ;
+      if( ehome != NULL && fname[0] == TILDE && fname[1] == '/' ){
+        char qname[1024] ;
+        strcpy(qname,ehome); strcat(qname,fname+1);
+        strcpy(fname,qname);
+      }
+
+      (void) glob( fname , 0 , NULL , &gl ) ;
 
       /** put each matched string into the output array **/
 

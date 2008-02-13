@@ -4111,10 +4111,9 @@ ENTRY("AFNI_inconstancy_check") ;
    EXRETURN ;
 }
 
-/*----------------------------------------------------------------------
-   read the files specified on the command line
-   and create the data structures
-------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------
+   read the files specified on the command line and create the data structures
+------------------------------------------------------------------------------*/
 
 void AFNI_read_inputs( int argc , char *argv[] )
 {

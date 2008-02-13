@@ -52,6 +52,7 @@ THD_3dim_dataset * THD_open_one_dataset( char *pathname )
    long long fsize ;     /* 06 Jan 2005, to unsigned 20 Feb 2006 [rickr] */
                                       /* to long long 22 Mar 2007 [RWC] */
    int   isfile = 1;
+   static char qname[THD_MAX_NAME+222] ;
 
 ENTRY("THD_open_one_dataset") ;
 
@@ -60,6 +61,15 @@ ENTRY("THD_open_one_dataset") ;
    if( pathname == NULL              ||
        (plen=strlen(pathname)) == 0  ||
        pathname[plen-1]        == '/'  ) RETURN(NULL) ;
+
+
+   if( pathname[0] == '~' && pathname[1] == '/' ){  /* 13 Feb 2008 */
+     char *eee = getenv("HOME") ;
+     if( eee != NULL ){
+       strcpy(qname,eee); strcat(qname,pathname+1);
+       pathname = qname ;
+     }
+   }
 
    /*-- perhaps open the new-fangled way [22 May 2000] --*/
 

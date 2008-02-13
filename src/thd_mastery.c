@@ -26,6 +26,7 @@ THD_3dim_dataset * THD_open_dataset( char *pathname )
    int  *ivlist=NULL ;
    int    ii=-1, jj=-1, kk=-1;
    float  bot=1.0 , top=0.0 ;
+   static char qname[THD_MAX_NAME+222] ;
 
 ENTRY("THD_open_dataset") ;
 
@@ -34,6 +35,14 @@ ENTRY("THD_open_dataset") ;
    if( pathname == NULL            ||
        (ii=strlen(pathname)) == 0  ||
        pathname[ii-1]        == '/'  ) RETURN(NULL) ;
+
+   if( pathname[0] == '~' && pathname[1] == '/' ){  /* 13 Feb 2008 */
+     char *eee = getenv("HOME") ;
+     if( eee != NULL ){
+       strcpy(qname,eee); strcat(qname,pathname+1);
+       pathname = qname ;
+     }
+   }
 
    /*-- 23 Mar 2001: perhaps get from across the Web --*/
 
@@ -402,7 +411,7 @@ ENTRY("THD_open_3dcalc") ;
    for( ii=ll-1 ; ii > 0 && isspace(qname[ii]) ; ii-- ) ; /*nada*/
    if( ii == 0 ){ free(qname) ; RETURN(NULL) ; }  /* all blanks? */
    if( qname[ii] == ')' && isspace(qname[ii-1]) )
-     qname[ii] = '\0' ;                   /* remove trailing ')' */
+     qname[ii] = '\0' ;                   /* remove trailing ' )' */
 
    /*-- add -session to command string --*/
 
