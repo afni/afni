@@ -32,7 +32,7 @@ Boolean THD_write_3dim_dataset( char *new_sessname , char *new_prefixname ,
 {
    THD_datablock *blk ;
    int ii, cmode ;
-   int is_nsd = 0 ;  /* is NI_SURF_DSET  03 Jul 2006 [rickr] */
+   int is_nsd = 0, is_gifti = 0 ;  /* is NI_SURF_DSET  03 Jul 2006 [rickr] */
    char *ppp ;  /* 06 Apr 2005 */
 
 ENTRY("THD_write_3dim_dataset") ;
@@ -59,7 +59,9 @@ ENTRY("THD_write_3dim_dataset") ;
 
    /* block NI_SURF_DSET from 1D write    11 Jul 2006 [rickr] */
    ppp = DSET_PREFIX(dset) ;
-   is_nsd = DSET_IS_NI_SURF_DSET(dset) || STRING_HAS_SUFFIX(ppp,".niml.dset") ;
+   is_gifti = DSET_IS_GIFTI(dset) || STRING_HAS_SUFFIX(ppp,".gii") ;
+   is_nsd = DSET_IS_NI_SURF_DSET(dset) || STRING_HAS_SUFFIX(ppp,".niml.dset") ||
+            is_gifti ;
 
    if( DSET_IS_1D(dset) ||                 /* block NSD  03 Jul 2006 [rickr] */
        ( DSET_NY(dset)==1 && DSET_NZ(dset)==1 && !is_nsd ) ){ /* 04 Mar 2003 */
@@ -185,7 +187,8 @@ ENTRY("THD_write_3dim_dataset") ;
 
    /* if(STRING_HAS_SUFFIX(ppp,".niml.dset") || DSET_IS_NI_SURF_DSET(dset)){ */
    if( is_nsd ){  /* already determined                  03 Jul 2006 [rickr] */
-     RETURN( THD_write_niml( dset, write_brick ) ) ;
+     if( is_gifti ) RETURN( THD_write_gifti( dset, write_brick ) ) ;
+     else           RETURN( THD_write_niml( dset, write_brick ) ) ;
    }
 
    /*----- write datablock to disk in AFNI .HEAD/.BRIK format -----*/

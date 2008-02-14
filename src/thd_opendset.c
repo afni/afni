@@ -31,7 +31,8 @@ static char * file_extension_list[] = {
     ".3D",
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
-    ".niml", ".niml.dset"
+    ".niml", ".niml.dset",
+    ".gii"
 };
 
 
@@ -171,6 +172,16 @@ ENTRY("THD_open_one_dataset") ;
 
      CHECK_FOR_DATA(pathname) ;
      dset = THD_open_niml(pathname) ;
+     THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
+     RETURN(dset) ;
+   }
+
+   /*-- 13 Feb 2008 [rickr]: the GIFTI way! --*/
+
+   if( STRING_HAS_SUFFIX(pathname,".gii") ){
+
+     CHECK_FOR_DATA(pathname) ;
+     dset = THD_open_gifti(pathname) ;
      THD_patch_brickim(dset) ;  /* 20 Oct 2006 */
      RETURN(dset) ;
    }
@@ -449,6 +460,8 @@ ENTRY("storage_mode_from_filename");
     if( STRING_HAS_SUFFIX(fname, ".niml") )     RETURN(STORAGE_BY_NIML);
 
     if( STRING_HAS_SUFFIX(fname,".niml.dset") ) RETURN(STORAGE_BY_NI_SURF_DSET);
+
+    if( STRING_HAS_SUFFIX(fname,".gii") )       RETURN(STORAGE_BY_GIFTI);
 
     RETURN(STORAGE_UNDEFINED);
 }

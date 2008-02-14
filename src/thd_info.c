@@ -128,6 +128,10 @@ ENTRY("THD_dataset_info") ;
       case STORAGE_BY_NI_SURF_DSET:
         outbuf = THD_zzprintf(outbuf,"Storage Mode:    NI_SURF_DSET file\n") ;
        break ;
+
+      case STORAGE_BY_GIFTI:
+        outbuf = THD_zzprintf(outbuf,"Storage Mode:    GIFTI file\n") ;
+       break ;
     }
    }
 

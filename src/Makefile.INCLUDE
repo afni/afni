@@ -7,7 +7,7 @@ F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 
-INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src $(USE_ZLIB)
+INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src $(USE_ZLIB) $(USE_GIFTI)
 ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src $(USE_ZLIB)
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox   \
@@ -1551,8 +1551,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_emptycopy.o edt_filtervol.o edt_help.o edt_onedset.o  \
            edt_scl2max.o edt_substbrick.o edt_volamax.o edt_zscore.o \
            edt_fullcopy.o edt_calcmask.o edt_volpad.o edt_sortmask.o \
-           edt_clust2.o edt_wodcopy.o edt_clustalpha.o edt_geomcon.o \
-           edt_floatize.o
+           edt_clust2.o edt_wodcopy.o edt_clustalpha.o edt_geomcon.o
 
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
@@ -1585,7 +1584,7 @@ SUMA_OBJS = suma_datasets.o suma_algorithms.o
 
 MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
 	     nifti_statlib.o nifticdf.o r_new_resam_dset.o r_idisp.o    \
-	     r_misc.o matrix.o
+	     r_misc.o matrix.o gifti_choice.o
 
 libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
@@ -2304,6 +2303,10 @@ gifti_tool:nifti1_io.o znzlib.o
 	$(CC) -o gifti_tool $(INFLAGS) \
 		gifti/gifti_tool.c gifti/gifti_io.c gifti/gifti_xml.c 	\
 		nifti1_io.o znzlib.o -lexpat $(LZLIB) -lm
+
+gifti_choice.o:gifti_choice.c thd_gifti.c
+	$(RM) $@
+	$(CC) -c gifti_choice.c -Igifti $(INFLAGS)
 
 tsdsim:tsdsim.o
 	$(RM) $@
