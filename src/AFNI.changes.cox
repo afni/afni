@@ -6613,3 +6613,10 @@
  * Modify mcw_glob.c and thd_mastery.c to pre-expand '~/' at the start of
      a filename to '${HOME}/' to help some pitiful users (e.g., me).
  * Modify afni.c to turn off clusterizing when switching coordinate systems.
+
+14 Feb 2008
+ * Similar changes to de-clusterize when a forced view switch occurs when
+     switching datasets, or when switching datasets to something that
+     doesn't have data available.
+ * Also, AFNI_FLASH_VIEWSWITCH to disable Adam Thomas's view switching
+     flashiness.
