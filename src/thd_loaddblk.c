@@ -279,7 +279,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      RETURN( False ) ;
    }
 
-   if( dkptr->storage_mode == STORAGE_BY_NI_SURF_DSET ){  /* 26 May 2006 */
+   if( dkptr->storage_mode == STORAGE_BY_NI_SURF_DSET ) {
      THD_load_niml( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
@@ -287,6 +287,17 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
        RETURN( True ) ;
      }
      STATUS("can't read NI_SURF_DSET dataset file?!") ;
+     RETURN( False ) ;
+   }
+
+   if( dkptr->storage_mode == STORAGE_BY_GIFTI ) {  /* 13 Feb 2008 */
+     THD_load_gifti( blk ) ;
+     ii = THD_count_databricks( blk ) ;
+     if( ii == blk->nvals ){
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       RETURN( True ) ;
+     }
+     STATUS("can't read GIFTI dataset file?!") ;
      RETURN( False ) ;
    }
 

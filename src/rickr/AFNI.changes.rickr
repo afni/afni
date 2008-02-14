@@ -2384,3 +2384,9 @@
              utils/nifti1_test.c, niftilib/nifti1_io.c
 06 Feb 2008: modified 3dbucket.c to copy fdr curves
 
+13 Feb 2008: beginning GIFTI support in AFNI
+  * added gifti_choice.c, thd_gifti.c
+  * modified: 3ddata.h, thd_auxdata.c, thd_info.c, thd_opendset.c,
+    edt_dsetitems.c, thd_delete.c, thd_loaddblk.c, thd_writedset.c,
+    thd_fetchdset.c, thd_mastery.c, thd_niml.c, Makefile.INCLUDE
+

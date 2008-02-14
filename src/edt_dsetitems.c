@@ -495,6 +495,14 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
         fname[ll-10] = '\0' ;
         if( !STRING_HAS_SUFFIX(fname,".niml.dset") ) strcat(fname,".niml.dset");
       }
+
+      if( DSET_IS_GIFTI(dset) ){ /* 13 Feb 2008 [rickr] */
+        char *fname = dset->dblk->diskptr->brick_name ;
+        int  ll = strlen(fname) ;
+        fname[ll-10] = '\0' ;
+        if( !STRING_HAS_SUFFIX(fname,".gii") ) strcat(fname,".gii");
+      }
+
       /** output of NIfTI-1.1 dataset: 06 May 2005 **/
       /* if the prefix ends in .nii or .nii.gz, change filename in brick_name */
       if( nprefix != NULL && ( STRING_HAS_SUFFIX(nprefix,".nii") ||

@@ -1106,6 +1106,7 @@ ENTRY("nsd_add_str_atr_to_group");
     /* create a new string */
     dest = (char *)calloc(atr->nch+1, sizeof(char)); /* +1 for last '\0' */
     memcpy(dest, atr->ch, atr->nch);
+    if(gni.debug > 2) fprintf(stderr, "-d new atr (orig): '%s'\n", dest);
     THD_zblock_ch(atr->nch, dest, ZSBLOCK);  /* swap out nul chars */
     dest[atr->nch] = '\0';
 
@@ -1116,7 +1117,7 @@ ENTRY("nsd_add_str_atr_to_group");
     NI_add_column(nel, NI_STRING, &dest);
     NI_add_to_group(ngr, nel);
 
-    if(gni.debug > 1) fprintf(stderr, "-d new atr is: '%s' ", dest);
+    if(gni.debug > 1) fprintf(stderr, "-d new atr is: '%s'\n", dest);
 
     free(dest); /* nuke local copy */
 

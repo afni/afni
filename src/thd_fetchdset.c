@@ -26,6 +26,7 @@ ENTRY("THD_fetch_dset") ;
        !STRING_HAS_SUFFIX(hp,".nii.gz")    &&  /* 06 Apr 2005 */
        !STRING_HAS_SUFFIX(hp,".niml")      &&  /* 16 Jun 2006 [rickr] */
        !STRING_HAS_SUFFIX(hp,".niml.dset") &&
+       !STRING_HAS_SUFFIX(hp,".gii")       &&  /* 13 Feb 2008 [rickr] */
        !STRING_HAS_SUFFIX(hp,".mnc")       &&
        !STRING_HAS_SUFFIX(hp,".mnc.gz")   ) strcat(hp,".HEAD") ;
 
@@ -40,8 +41,9 @@ ENTRY("THD_fetch_dset") ;
    fprintf(stderr,": %d bytes read\n ++ Trying to initialize dataset %s\n",nhp,thp) ;
    THD_allow_empty_dataset(1) ;
    dset = THD_open_one_dataset(thp) ;
-   if( DSET_IS_MINC(dset) || DSET_IS_NIFTI(dset) ||       /* 29 Oct 2001 */
-       DSET_IS_NIML(dset) || DSET_IS_NI_SURF_DSET(dset) ) /* 16 Jun 2006 [r] */
+   if( DSET_IS_MINC(dset) || DSET_IS_NIFTI(dset)        || /* 29 Oct 2001 */
+       DSET_IS_NIML(dset) || DSET_IS_NI_SURF_DSET(dset) || /* 16 Jun 2006 [r] */
+       DSET_IS_GIFTI(dset) )                               /* 13 Feb 2008 [r] */
       DSET_load(dset) ;
 
    THD_allow_empty_dataset(0) ;
@@ -54,8 +56,9 @@ ENTRY("THD_fetch_dset") ;
    }
 
    DSET_superlock(dset) ;  /* don't let be deleted from memory */
-   if( DSET_IS_MINC(dset) || DSET_IS_NIFTI(dset) ||       /* 29 Oct 2001 */
-       DSET_IS_NIML(dset) || DSET_IS_NI_SURF_DSET(dset) ) /* 16 Jun 2006 [r] */
+   if( DSET_IS_MINC(dset) || DSET_IS_NIFTI(dset)        || /* 29 Oct 2001 */
+       DSET_IS_NIML(dset) || DSET_IS_NI_SURF_DSET(dset) || /* 16 Jun 2006 [r] */
+       DSET_IS_GIFTI(dset) )                               /* 13 Feb 2008 [r] */
       RETURN(dset) ;
    DSET_mallocize(dset) ;
 

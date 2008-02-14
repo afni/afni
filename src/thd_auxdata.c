@@ -76,9 +76,9 @@ STATUS("copy statcode and stataux") ;
       }
    }
 
-   /* we may need to copy the node_list    12 Jul 2006 [rickr] */
-   if( DBLK_IS_NI_SURF_DSET(old_dblk) && old_dblk->nnodes > 0 &&
-                                         old_dblk->node_list ){
+   /* we may need to copy the node_list        12 Jul 2006 [rickr] */
+   if( (DBLK_IS_NI_SURF_DSET(old_dblk) || DBLK_IS_GIFTI(old_dblk)) &&
+        old_dblk->nnodes > 0 && old_dblk->node_list ){
 STATUS("copy surface node_list") ;
       iv = old_dblk->nnodes * sizeof(int) ;
       new_dblk->node_list = (int *)XtMalloc(iv) ;
