@@ -2581,26 +2581,37 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    /*--- make sure all values are set OK-ly ---*/
 
    if( new_view < 0 || new_sess < 0 || new_anat < 0 || new_func < 0 ){
-     XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad! */
+     ERROR_message("Something bad happened when trying to 'Switch'\a") ;
+     EXRETURN ;  /* bad! */
    }
 
    /*- beep & flash viewing control box if view type changes -*/
 
    if( old_view != new_view ){
-     XBell( im3d->dc->display , 100 ) ;
+     static int first=1 ;
      MCW_set_bbox( im3d->vwid->view->view_bbox , 1 << new_view ) ;
+     UNCLUSTERIZE(im3d) ;  /* 14 Feb 2008 */
 
      /* this stuff is for Adam Thomas -- 18 Oct 2006 */
 
-     fprintf(stderr,"** Forced switch from '%s' to '%s' **\n",
-             VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
-     for( ii=0 ; ii < 7 ; ii++ ){
-       MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
-       MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
-       MCW_invert_widget(wcall) ;
-       MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(16);
-       MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(16);
-       MCW_invert_widget(wcall) ;
+     WARNING_message("Forced switch from '%s' to '%s'\a",
+                     VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
+     if( first && wcall != NULL ){
+       char str[256] ; first = 0 ;
+       sprintf(str," \nForced switch from\n  '%s'\nto\n  '%s'\n ",
+                   VIEW_typestr[old_view] , VIEW_typestr[new_view] ) ;
+       (void) MCW_popup_message( wcall, str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     }
+
+     if( wcall != NULL && !AFNI_noenv("AFNI_FLASH_VIEWSWITCH") ){
+       for( ii=0 ; ii < 6 ; ii++ ){
+         MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(32);
+         MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(32);
+         MCW_invert_widget(wcall) ;
+         MCW_invert_widget(im3d->vwid->view->view_bbox->wframe ); RWC_sleep(32);
+         MCW_invert_widget(im3d->vwid->view->view_bbox->wrowcol); RWC_sleep(32);
+         MCW_invert_widget(wcall) ;
+       }
      }
    }
 

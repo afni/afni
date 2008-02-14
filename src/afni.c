@@ -5867,11 +5867,7 @@ DUMP_IVEC3("  new_id",new_id) ;
        if( !im3d->vedskip )
          changed = AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
        if( !DSET_VEDIT_good(im3d->fim_now) ){
-         VEDIT_clear_label(im3d) ;
-         if( im3d->vwid->func->clu_rep != NULL ){
-           free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
-         }
-         DESTROY_CLARR(im3d->vwid->func->clu_list) ;
+         UNCLUSTERIZE(im3d) ;
        } else if( changed ){
          mri_cluster_detail *cld ; int nc ; char *rrr ;
          VEDIT_helpize(im3d);
@@ -7070,7 +7066,6 @@ if(PRINT_TRACING)
    new_func = GLOBAL_library.sslist->ssar[sss]->dsset[fff][vvv] ;
 
    AFNI_vedit_clear( im3d->fim_now ) ;  /* 05 Sep 2006 */
-   VEDIT_clear_label( im3d ) ;
 
    /*----------------------------------------------*/
    /*--- if the old dataset has markers and the
@@ -7109,6 +7104,8 @@ STATUS("purging old datasets from memory (maybe)") ;
    im3d->ss_now   = GLOBAL_library.sslist->ssar[sss] ;
 
    SENSITIZE( im3d->vwid->func->clu_rowcol , DSET_INMEMORY(im3d->fim_now) ) ;
+
+   if( !DSET_INMEMORY(im3d->fim_now) ) UNCLUSTERIZE(im3d) ; /* 14 Feb 2008 */
 
    /*------------------------------------------------*/
    /*--- if markers are defined, then set them up ---*/
