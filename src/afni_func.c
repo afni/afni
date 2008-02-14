@@ -3934,11 +3934,9 @@ ENTRY("AFNI_modify_viewing") ;
    if( im3d->type == AFNI_3DDATA_VIEW ){            /* 19 Oct 1999 */
 
       LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
-
       fv = THD_dicomm_to_3dmm(
              im3d->anat_now ,
              TEMP_FVEC3(im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk) ) ;
-
       iv = THD_3dmm_to_3dind( im3d->anat_now , fv ) ;
 
    } else {
