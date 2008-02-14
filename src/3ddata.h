@@ -956,8 +956,9 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_MPEG          11  /* 03 Dec 2003 */
 #define STORAGE_BY_NIML          12  /* NIML AFNI dset   25 May 2006 [rickr] */
 #define STORAGE_BY_NI_SURF_DSET  13  /* NIML surface dset */
+#define STORAGE_BY_GIFTI         14  /* GIFTI surface dset */
 
-#define LAST_STORAGE_MODE        13
+#define LAST_STORAGE_MODE        14
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -2554,6 +2555,12 @@ typedef struct THD_3dim_dataset {
                        ISVALID_DISKPTR((db)->diskptr) &&  \
                        (db)->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET )
 
+/*! Determine if datablock db is stored in a NI_SURF_DSET file on disk */
+
+#define DBLK_IS_GIFTI(db) ( ISVALID_DBLK(db)   &&  \
+                       ISVALID_DISKPTR((db)->diskptr) &&  \
+                       (db)->diskptr->storage_mode == STORAGE_BY_GIFTI )
+
 /*! Determine if dataset ds is stored in a 1D file on disk */
 
 #define DSET_IS_1D(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&           \
@@ -2583,6 +2590,12 @@ typedef struct THD_3dim_dataset {
 #define DSET_IS_NI_SURF_DSET(ds) (ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) \
                  && ISVALID_DISKPTR((ds)->dblk->diskptr) &&                    \
                  (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET )
+
+/*! Determine if dataset ds is stored in a GIFTI file on disk */
+
+#define DSET_IS_GIFTI(ds) (ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) \
+                 && ISVALID_DISKPTR((ds)->dblk->diskptr) &&                    \
+                 (ds)->dblk->diskptr->storage_mode == STORAGE_BY_GIFTI )
 
 /*! Determine if datablock db is stored by volume files rather than 1 big BRIK */
 
@@ -2622,7 +2635,8 @@ typedef struct THD_3dim_dataset {
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI        ||  \
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MPEG         ||  \
             (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NIML         ||  \
-            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET     \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_NI_SURF_DSET ||  \
+            (ds)->dblk->diskptr->storage_mode == STORAGE_BY_GIFTI            \
           ) )
 
 /*! Determine if AFNI is allowed to over-write dataset ds */
@@ -3674,6 +3688,7 @@ extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
 extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
 extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
 extern THD_3dim_dataset * THD_open_niml( char * ) ;         /* 01 Jun 2006 */
+extern THD_3dim_dataset * THD_open_gifti( char * ) ;        /* 13 Feb 2008 */
 
 extern THD_string_array * THD_multiplex_dataset( char * ) ; /* 19 Jul 2007 */
 
@@ -3682,6 +3697,7 @@ extern THD_3dim_dataset * THD_ni_surf_dset_to_afni( NI_group *, int ) ;
 extern void * read_niml_file( char *, int ) ;
 extern int    storage_mode_from_niml( void * ) ;
 
+extern NI_group * NI_read_gifti( char * , int ) ;
 
 extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
 extern int has_known_non_afni_extension( char * fname ) ;   /*     [rickr] */
@@ -3881,6 +3897,7 @@ extern void    THD_load_nifti  ( THD_datablock * ) ;         /* 28 Aug 2003 */
 extern void    THD_load_mpeg   ( THD_datablock * ) ;         /* 03 Dec 2003 */
 extern void    THD_load_tcat   ( THD_datablock * ) ;         /* 04 Aug 2004 */
 extern int     THD_load_niml   ( THD_datablock * ) ;         /* 12 Jun 2006 */
+extern int     THD_load_gifti  ( THD_datablock * ) ;         /* 13 Feb 2008 */
 
 extern int     THD_count_potential_databricks( THD_datablock *dblk );
 
@@ -3900,6 +3917,7 @@ extern int THD_write_minc( char *, THD_3dim_dataset * , int) ; /* 11 Apr 2002 */
 extern void THD_write_1D( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
 extern void THD_write_3D( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */
 extern Boolean THD_write_niml( THD_3dim_dataset *, int);
+extern Boolean THD_write_gifti( THD_3dim_dataset *, int);
 
 extern int  write_niml_file( char *, NI_group *);      /* 12 Jun 2006 [rickr] */
 

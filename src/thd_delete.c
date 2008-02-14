@@ -129,8 +129,9 @@ ENTRY("THD_delete_3dim_dataset") ;
    if( DSET_IS_CTFMRI(dset)  ) kill_files = False ;
    if( DSET_IS_CTFSAM(dset)  ) kill_files = False ;
    if( DSET_IS_NIFTI(dset)   ) kill_files = False ;  /* 28 Aug 2003 */
-   if( DSET_IS_NIML(dset)    ) kill_files = False ;  /* 12 Jul 2006 [rickr */
+   if( DSET_IS_NIML(dset)    ) kill_files = False ;  /* 12 Jul 2006 [rickr] */
    if( DSET_IS_NI_SURF_DSET (dset) ) kill_files = False ;
+   if( DSET_IS_GIFTI (dset)  ) kill_files = False ;  /* 13 Feb 2008 [rickr] */
 
    if( kill_files ){
       THD_diskptr *dkptr = dset->dblk->diskptr ;
