@@ -2533,6 +2533,16 @@ If this variable is set to NO, then AFNI will not automatically switch
 to a new session after that session is read in using the 'Read Sess'
 button on the Datamode control panel.
 
+-------------------------------
+Variable: AFNI_FLASH_VIEWSWITCH
+-------------------------------
+If you switch sessions, underlay, or overlay, it can happen that the
+coordinate system might be forced to switch from +orig to +tlrc
+(for example) because there is no dataset to view in the +orig system.
+Normally, AFNI flashes the view switch buttons on and off a few times
+to let you know this is happening (this is the Adam Thomas feature).
+You can turn this feature off, by setting this variable to NO.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
