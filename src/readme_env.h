@@ -2534,6 +2534,16 @@ static char * readme_env[] = {
    "to a new session after that session is read in using the 'Read Sess'\n" ,
    "button on the Datamode control panel.\n" ,
    "\n" ,
+   "-------------------------------\n" ,
+   "Variable: AFNI_FLASH_VIEWSWITCH\n" ,
+   "-------------------------------\n" ,
+   "If you switch sessions, underlay, or overlay, it can happen that the\n" ,
+   "coordinate system might be forced to switch from +orig to +tlrc\n" ,
+   "(for example) because there is no dataset to view in the +orig system.\n" ,
+   "Normally, AFNI flashes the view switch buttons on and off a few times\n" ,
+   "to let you know this is happening (this is the Adam Thomas feature).\n" ,
+   "You can turn this feature off, by setting this variable to NO.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2704,4 +2714,4 @@ static char * readme_env[] = {
    "(You can always use '3drefit -addFDR' to add FDR curves to a dataset\n" ,
    "header, for those sub-bricks marked as statistical parameters.)\n" ,
    NULL } ;
-#define NUM_readme_env 2704
+#define NUM_readme_env 2714
