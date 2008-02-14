@@ -1274,7 +1274,7 @@ int main( int argc , char *argv[] )
 #ifdef SHSTRING
      printf( "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n" ) ;
 #else
-     printf( "Compile date = " __DATE__ "\n") ;
+     printf( "Compile date = " __DATE__ " " __TIME__ "\n") ;
 #endif
      exit(0) ;
    }
@@ -6756,7 +6756,6 @@ if(PRINT_TRACING)
       markers->valid[ipt] = True ;
 
       LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
-
       fv = THD_3dind_to_3dmm( im3d->anat_now ,    /* convert to mm */
                               TEMP_IVEC3( im3d->vinfo->i1 ,
                                           im3d->vinfo->j2 ,
@@ -7213,7 +7212,6 @@ STATUS("turning markers on") ;
               dset ) ;
 
       LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
-
       fv = THD_dicomm_to_3dmm( dset , fv ) ;
       iv = THD_3dmm_to_3dind( dset , fv ) ;
    } else {
@@ -7319,7 +7317,7 @@ STATUS("setting anatmode_bbox back to 'View ULay Data Brick'") ;
       *(im3d->wod_daxes) = *(im3d->anat_now->daxes) ;
 
    im3d->anat_voxwarp->type =
-      im3d->fim_voxwarp->type = ILLEGAL_TYPE ;                  /* 02 Nov 1996 */
+     im3d->fim_voxwarp->type = ILLEGAL_TYPE ;                   /* 02 Nov 1996 */
 
    LOAD_ANAT_VIEW(im3d) ;                                       /* 02 Nov 1996 */
 
