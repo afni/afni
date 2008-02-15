@@ -3348,6 +3348,8 @@ typedef struct THD_3dim_dataset_array {
 
 #define SESSION_TYPE 97
 
+typedef struct { THD_3dim_dataset *drow[LAST_VIEW_TYPE+1] ; } THD_dsetrow ;
+
 /*! Holds all the datasets from a directory (session).
     [28 Jul 2003: modified to put elide distinction between anat and func]
     [20 Jan 2004: modified to put surfaces into here as well]
