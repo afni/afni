@@ -4408,7 +4408,7 @@ if(PRINT_TRACING)
         GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = gss ;
 
         sprintf(str,"\n AFNI_GLOBAL_SESSION = %s %d datasets" ,
-            gss->sessname , gss->num_dsset ) ;
+                gss->sessname , gss->num_dsset ) ;
 
         num_dsets += gss->num_dsset ;
 

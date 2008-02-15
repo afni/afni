@@ -2862,8 +2862,8 @@ ENTRY("AFNI_append_sessions") ;
 
    qs = ssa->num_dsset ;
    for( qd=0; qd < ssb->num_dsset && qd+qs < THD_MAX_SESSION_SIZE ; qd++ )
-      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-         ssa->dsset[qd+qs][vv] = ssb->dsset[qd][vv] ;
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+       ssa->dsset[qd+qs][vv] = ssb->dsset[qd][vv] ;
    ssa->num_dsset += qd ;
 
    EXRETURN ;
