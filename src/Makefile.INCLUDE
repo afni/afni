@@ -76,7 +76,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
-           1dFlagMotion 3dTsort 1dTsort $(EXTRAS)
+           1dFlagMotion 3dTsort 1dTsort 3dTfitter $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -102,7 +102,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   Imon nifti_tool 3dAllineate nifti1_test Dimon 3danisosmooth       \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
-                  1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion                      \
+                  1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -134,7 +134,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                nifti_tool 3dAFNItoRaw DTIStudioFibertoSegments Dimon              \
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
-               1dFlagMotion 3dTsort 1dTsort
+               1dFlagMotion 3dTsort 1dTsort 3dTfitter
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -467,6 +467,10 @@ dsetdup:dsetdup.o
 3dTstat:3dTstat.o
 	$(RM) $@
 	$(CC) -o 3dTstat 3dTstat.o $(LFLAGS) $(LLIBS)
+
+3dTfitter:3dTfitter.o
+	$(RM) $@
+	$(CC) -o 3dTfitter 3dTfitter.o $(LFLAGS) $(LLIBS)
 
 3dTsort:3dTsort.o
 	$(RM) $@
@@ -1520,7 +1524,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
            thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o  \
            thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o \
-           thd_shift2.o thd_1Dtodset.o thd_detrend.o                  \
+           thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_fitter.o     \
            thd_winsor.o thd_zeropad.o thd_rot3d_byte.o thd_shear3d.o   \
            thd_tmask.o thd_rotangles.o           thd_center.o           \
            thd_mismatch.o thd_read_vecmat.o thd_tshift.o thd_newprefix.o \
