@@ -6620,3 +6620,6 @@
      doesn't have data available.
  * Also, AFNI_FLASH_VIEWSWITCH to disable Adam Thomas's view switching
      flashiness.
+
+16 Feb 2008
+ * New program 3dTfitter.  And fitting function THD_fitter().
