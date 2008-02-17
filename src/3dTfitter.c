@@ -192,7 +192,7 @@ int main( int argc , char *argv[] )
          ERROR_exit("LHS 1D file is too short: %d < %d",jj,ntime) ;
        if( jj > ntime )
          INFO_message("LHS 1D file too long: %d > %d: ignoring extra",jj,ntime);
-       for( mm=0 ; jj < lim->ny ; mm++ ) rvec[kk++] = lar + mm*lim->nx ;
+       for( mm=0 ; mm < lim->ny ; mm++ ) rvec[kk++] = lar + mm*lim->nx ;
        kvec->ar[ii] = -1 ;
      } else if( XTARR_IC(dsar,ii) == IC_DSET ){
        lset = (THD_3dim_dataset *)XTARR_XT(dsar,ii) ;
