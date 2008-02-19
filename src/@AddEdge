@@ -3,10 +3,11 @@
 set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
-set listlog = 'ExamineList.log'
+set prs = "_ae."
 set opa = 7
 set do_score = 0
 set do_rand = 0
+set listlog = "${prs}ExamineList.log"
 
 if ("$1" == "") goto DANCE
 if ("$1" == "-help") then
@@ -32,6 +33,16 @@ if ("$1" == "-help") then
    echo ""
    echo "The colormap used is  Spectrum:red_to_blue, Pos"
    echo ""
+   echo "Use: "
+   echo "setenv AFNI_MIX_BY_BRIGHT"
+   echo "setenv AFNI_IMAGE_LABEL_MODE 1"
+   echo "setenv AFNI_IMAGE_LABEL_SIZE 2"
+   echo "setenv AFNI_JPEG_COMPRESS 100"
+   echo ""
+   goto END
+endif
+if (0) then
+   #Info for registration comparison.
    echo " Note: Had to prep SPM dset that way:"
    echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
    echo "            -inset SPManat_coreg.nii -prefix SPManat_coreg_rs.nii"
@@ -42,44 +53,72 @@ if ("$1" == "-help") then
    echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
    echo "            -inset SPManat_norm_do.nii -prefix SPManat_norm_rs.nii"
    echo "ALSO: Note that for SPM, only coreg can be compared to our results"
-   echo "      Only coreg results used MI for cost but with only 6 params!"
-   echo "Use: "
-   echo "setenv AFNI_MIX_BY_BRIGHT"
-   echo "setenv AFNI_IMAGE_LABEL_MODE 1"
-   echo "setenv AFNI_IMAGE_LABEL_SIZE 2"
-   echo "setenv AFNI_JPEG_COMPRESS 100"
-   echo ""
-   goto END
+   echo "      Only coreg results used MI for cost but with only 6 params."
 endif
 
+#Notice, 3dresample is now done with -rmode Li instead of -rmode Cu
+#to avoid negative values
+
+#Set resolutions
 set epi = $1
+set analist = ($argv[2-])
+
+RESAMPLE_ANATS:
+set anabox = $analist[1]
+set minres = 1000
+foreach ana ($analist)
+   set mm = `@GetAfniRes -min $ana`
+   if (`ccalc -i -expr "step($minres-$mm)"`) then
+      set minres = $mm
+      set anabox = $ana
+   endif  
+end
+#resample all anatomies
+set analistn = ()
+foreach ana ($analist)
+   if ("$ana" != "$anabox") then
+      set anapref = `@GetAfniPrefix $ana`
+      set anapref = `@NoExt $anapref nii nii.gz`
+      3dresample -master $anabox -inset $ana -prefix ${prs}$anapref -rmode Li
+   else
+      3dcopy $ana ${prs}$ana
+   endif
+   
+   #deoblique if necessary
+   if (`@isOblique $ana`) then
+      3dWarp -deoblique -overwrite -prefix ${prs}$ana -input ${prs}$ana
+   endif
+   
+   set analistn = ($analistn ${prs}$ana)
+end
+set analist = ($analistn)
 
 RES_EPI:
-#create a resampled version of epi if resolution is not close to 1 mm
-set meres = `@GetAfniRes -mean $epi`
-if (`ccalc -i $meres` > 1.5) then
-   3dresample -dxyz 1 -inset $epi -prefix _ae$epi -rmode Cu
-   set epi = _ae$epi
-endif
+#create a resampled version of epi 
+set epipref = `@GetAfniPrefix $epi`
+set epipref = `@NoExt $epipref nii nii.gz`
+3dresample -master $anabox -inset $epi'[0]' -prefix ${prs}$epipref -rmode Li
+set epi = ${prs}$epi
 set epipref = `@GetAfniPrefix $epi`
 set epipref = `@NoExt $epipref nii nii.gz`
 
-
-#Get epi edges
-3dedge3 -input $epi  -prefix  ${epipref}_e3
-
-#Make sure all the data is at the same resolution of the epi
-STOPPED HERE
-
+CROP_ANATS:
 #Get average of anats
-if ($#argv > 2) then
-   3dMean -prefix tmp_avg $argv[2-] 
+if ($#analist > 1) then
+   3dMean -overwrite -prefix tmp_avg $analist
 else
-   3dcopy $argv[2]        tmp_avg 
+   rm -f tmp_avg+????.* >& /dev/null
+   3dcopy $analist        tmp_avg 
 endif
 #Get a nice cropping box
 3dAutobox   -input "3dcalc( -a tmp_avg+orig -b $epi -expr ((a+b)/2.0) )" \
             -noclust -overwrite -prefix tmp_box+orig
+
+
+EPI_EDGES:
+#Get epi edges
+3dedge3 -input $epi  -prefix  ${epipref}_e3
+
 
 set eth = `3dBrickStat -non-zero -percentile 30 1 30 ${epipref}_e3+orig`
 set eth = $eth[2]
@@ -93,7 +132,7 @@ set emaxval = `3dBrickStat -non-zero -max $epi`
 set olist = ($olist ${epipref}_ec+orig.HEAD)
 rm -f ${epipref}_e+orig* 
 
-foreach anain ($argv[2-])
+foreach anain ($analist)
    set anat = $anain
    set anatpref = `@GetAfniPrefix $anat`
    set anatpref = `@NoExt $anatpref nii nii.gz`
@@ -122,18 +161,25 @@ foreach anain ($argv[2-])
    set olist = ($olist ${anatpref}_ec+orig.HEAD)
    
    #put some of the anat edge in the epi image
+   #Crazed equation
+   #   line1: Keep value where there is no edge
+   #       2: Use 1.2* the maximum when both edges are present
+   #       3: Use eminval when ONLY epi has an edge
+   #       4: Use emaxval when ONLY anat has an edge
    3dcalc   -a $epi \
             -b ${anatpref}_e3+orig \
             -c ${epipref}_e3+orig   \
             -overwrite -prefix ${epipref}_${anatpref}_e  \
             -expr "(1-step((step(c-$eth)+step(b-$ath))))*a\
-                  + step(c-$eth)*$eminval \
-                  + step(b-$ath)*$emaxval"
+                  + step(step(c-$eth)+step(b-$ath)-1.9)*$emaxval*1.2 \
+                  + (1-step(b-$ath))*step(c-$eth)*$eminval \
+                  + (1-step(c-$eth))*step(b-$ath)*$emaxval"
+   set ooo = `echo ${epipref}_${anatpref}_ec | sed "s/$prs//g" `
    3dresample  -master tmp_box+orig -rmode NN \
-               -overwrite -prefix ${epipref}_${anatpref}_ec+orig  \
+               -overwrite -prefix ${prs}${ooo}+orig  \
                -inset ${epipref}_${anatpref}_e+orig 
    set olist = (  $olist \
-                  ${epipref}_${anatpref}_ec+orig.HEAD)               
+                  ${prs}${ooo}+orig.HEAD)               
    
    rm -f ${anatpref}_e+orig* ${anatpref}_e3+orig* ${epipref}_${anatpref}_e+orig* 
 end
@@ -141,8 +187,9 @@ end
 
 rm -f tmp_box+orig* tmp_avg+orig*
 
-echo "Recommended command:"
-echo "afni $olist"
+echo "Recommended commands:"
+echo "afni -niml -yesplugouts &"
+echo "@AddEdge"
 if (-f ${listlog}) goto LOG_EXISTS
 
 echo "$olist" > ${listlog}
@@ -161,7 +208,12 @@ end
 #Number of elements must be odd
 set n_pairs = `ccalc -form int "($#olist-1)/2"`
 if (`ccalc -form int "$n_pairs*2+1"` != $#olist) then
-   echo "Damn it!"
+   echo "Error:"
+   echo "If log file ${listlog} is not here then you"
+   echo "Need to run @AddEdge in the first mode before"
+   echo "running @AddEdge to look at results."
+   echo "Otherwise, there is a mismatch between files "
+   echo "in ${listlog} and file pairs."
    goto END
 endif
 
@@ -230,8 +282,10 @@ while ($cnt < $#olist)
       -com "SWITCH_OVERLAY  $ep"    \
       -com "OPEN_WINDOW A.axialimage mont=2x2:24 opacity=$opa"\
       -com "OPEN_WINDOW A.axialimage ifrac=0.9"\
+      -com "OPEN_WINDOW A.axialimage geom=577x502+433+334 "\
       -com "OPEN_WINDOW A.sagittalimage ifrac=0.9"\
       -com "OPEN_WINDOW A.sagittalimage opacity=$opa"\
+      -com "OPEN_WINDOW A.sagittalimage geom=449x267+434+46"\
       -com "SEE_OVERLAY +"          \
       -com "SET_THRESHOLD A.0"      \
       -com "SET_PBAR_ALL A.+99 1.0 SpectrumLred_to_blue" \

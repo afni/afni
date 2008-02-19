@@ -309,7 +309,7 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
    CM->top_frac = 0.0f;
    CM->SO = NULL; 
    CM->cname = NULL;
-   CM->N_Col = NPANE_BIG+1; 
+   CM->N_Col = NPANE_BIG; 
    CM->Sgn = 0;
       
    CM->frac = NULL;
@@ -342,12 +342,12 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
             SUMA_LHv("found one %d\n", iii);
             CM->Name = SUMA_copy_string(BIGMAP_NAMES[iii]);
             for (kkk=0; kkk<NPANE_BIG; ++kkk) {
-               /*SUMA_LHv("%d [%d %d %d]\n", 
+                  SUMA_LHv("%d [%d %d %d]\n", 
                         kkk,
-                        bm[iii][kkk].r, bm[iii][kkk].g, bm[iii][kkk].b); */
-               CM->M[kkk][0] = bm[iii][kkk].r / 255.0f ; 
-               CM->M[kkk][1] = bm[iii][kkk].g / 255.0f ; 
-               CM->M[kkk][2] = bm[iii][kkk].b / 255.0f ;
+                        bm[iii][kkk].r, bm[iii][kkk].g, bm[iii][kkk].b);
+               CM->M[NPANE_BIG-(kkk+1)][0] = bm[iii][kkk].r / 255.0f ; 
+               CM->M[NPANE_BIG-(kkk+1)][1] = bm[iii][kkk].g / 255.0f ; 
+               CM->M[NPANE_BIG-(kkk+1)][2] = bm[iii][kkk].b / 255.0f ;
             }
             found = 1;
          }
@@ -362,8 +362,9 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
          bmn = NULL;
          bm= NULL;
       }
-      if (found) SUMA_RETURN(CM);
-      else{
+      if (found) {
+         SUMA_RETURN(CM);
+      } else{
          SUMA_S_Err("Bad deal. No bigmap constructed.");
          SUMA_RETURN(NULL);
       }
