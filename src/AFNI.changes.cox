@@ -6623,3 +6623,6 @@
 
 16 Feb 2008
  * New program 3dTfitter.  And fitting function THD_fitter().
+
+19 Feb 2008
+ * Bug fixes in 3dTfitter.c and thd_fitter.c.
