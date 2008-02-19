@@ -36,6 +36,20 @@
 #undef MIN
 #define MIN(a,b) (((a)>(b)) ? (b) : (a))
 
+#ifndef HOTCOLOR
+#define HOTCOLOR(ww,ss)                                                        \
+  { char * xdef = XGetDefault(XtDisplay(ww),"AFNI","hotcolor") ;               \
+    if( xdef == NULL ) xdef = getenv("AFNI_hotcolor") ;                        \
+    if( xdef == NULL ) xdef = getenv("AFNI_HOTCOLOR") ;                        \
+    if( xdef == NULL ) xdef = XGetDefault(XtDisplay(ww),"AFNI","background") ; \
+    (ss) = (xdef != NULL) ? (xdef) : ("gray40") ; }
+#endif
+
+#ifndef BGCOLOR_ARG
+#define BGCOLOR_ARG(str) \
+  XtVaTypedArg , XmNbackground , XmRString , (str) , strlen(str)+1
+#endif
+
 #ifndef VOID_FUNC
 #define VOID_FUNC
 typedef void void_func() ;
@@ -222,15 +236,16 @@ extern void set_memplot_X11_rectfill( int ) ;  /* 26 Oct 2005 */
    memplot_to_X11_sef( (d),(w) , get_active_memplot() , 0,0,1 )
 
 typedef struct {
-   Widget top , dial , wtf , drawing , form ;
+   Widget top , dial , wtf , drawing , form, clonebut ;
    int valid ;
    MEM_plotdata * mp ;
    void * userdata ;
    void_func * killfunc ;
-
 #ifdef HAVE_XDBE
    int            have_xdbe ;
    XdbeBackBuffer buf_xdbe ;
+
+   void (* clonebut_user_cb)(void *data); /* for SUMA */
 #endif
 } MEM_topshell_data ;
 
@@ -244,6 +259,8 @@ typedef struct {
   do{ delete_memplot((mpcb)->mp) ; (mpcb)->mp = (mpnew) ; } while(0)
 
 extern MEM_topshell_data * memplot_to_topshell(Display *,MEM_plotdata *,void_func *) ;
+extern MEM_topshell_data * suma_memplot_to_topshell( Display *dpy,
+                                         MEM_plotdata *mp, void_func *kfun );
 extern void plotkill_topshell( MEM_topshell_data * ) ;
 extern void redraw_topshell( MEM_topshell_data * ) ;
 

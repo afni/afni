@@ -1605,6 +1605,7 @@ void SUMA_RangeTableCell_EV ( Widget w , XtPointer cd ,
             fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s, node = %d\n", 
                   FuncName, i, j, (char *)cv, atoi((char *)cv));
          }
+
          /* look for a viewer that is showing this surface and has this surface in focus*/
          for (i=0; i<SUMAg_N_SVv; ++i) {
             if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, i);

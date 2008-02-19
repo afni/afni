@@ -128,6 +128,9 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
 "   [-memdbg] Turn on the memory tracing from the start.\n" */    
 "   [-visuals] Shows the available glxvisuals and exits.\n"
 "   [-version] Shows the current version number.\n"
+"   [-environment] Shows a list of all environment variables and \n"
+"                  and their default setting.\n"
+"                  The output can be used as your .sumarc file.\n" 
 "   [-latest_news] Shows the latest news for the current \n"
 "                  version of the entire SUMA package.\n"
 "   [-all_latest_news] Shows the history of latest news.\n"
@@ -407,6 +410,18 @@ int main (int argc,char *argv[])
       if (strcmp(argv[kar], "-all_latest_news") == 0) {
 			 s = SUMA_New_Additions (-1.0, 0);
           fprintf (SUMA_STDOUT,"%s\n", s); 
+          SUMA_free(s); s = NULL;
+          exit (0);
+		}
+      if (strcmp(argv[kar], "-environment") == 0) {
+			 s = SUMA_env_list_help ();
+          fprintf (SUMA_STDOUT,  "#SUMA DEFAULT ENVIRONMENT \n"
+                                 "# If you do not have a ~/.cshrc\n"
+                                 "# you can use: \n"
+                                 "# suma -environment > ~/.sumarc \n"
+                                 "# to create a new one with defaults.\n"
+                                 "***ENVIRONMENT\n"
+                                 "%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
 		}

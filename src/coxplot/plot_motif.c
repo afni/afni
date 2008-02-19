@@ -16,19 +16,7 @@ static char *redcolor = NULL ;
   XtVaTypedArg , XmNlabelString , XmRString , (str) , strlen(str)+1
 #endif
 
-#ifndef BGCOLOR_ARG
-#define BGCOLOR_ARG(str) \
-  XtVaTypedArg , XmNbackground , XmRString , (str) , strlen(str)+1
-#endif
 
-#ifndef HOTCOLOR
-#define HOTCOLOR(ww,ss)                                                        \
-  { char * xdef = XGetDefault(XtDisplay(ww),"AFNI","hotcolor") ;               \
-    if( xdef == NULL ) xdef = getenv("AFNI_hotcolor") ;                        \
-    if( xdef == NULL ) xdef = getenv("AFNI_HOTCOLOR") ;                        \
-    if( xdef == NULL ) xdef = XGetDefault(XtDisplay(ww),"AFNI","background") ; \
-    (ss) = (xdef != NULL) ? (xdef) : ("gray40") ; }
-#endif
 
 /*--------------------------------------------------------------------------*/
 #undef  STRING_HAS_SUFFIX
@@ -140,7 +128,7 @@ static void psfinalize_CB( Widget w , XtPointer cd , XtPointer cb )
 
 /****** initiation of a print request ******/
 
-static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
+void pm_psfile_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
    Widget wpop , wrc , wlab , wtf , form , but0 , but1 ;
@@ -262,7 +250,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
    Print plot to a PostScript printer (if possible)
 ----------------------------------------------------------------------------*/
 
-static void psprint_CB( Widget w , XtPointer cd , XtPointer cb )
+void pm_psprint_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MEM_topshell_data *mpcb = (MEM_topshell_data *) cd ;
    MEM_plotdata *mp ;
@@ -277,7 +265,7 @@ static void psprint_CB( Widget w , XtPointer cd , XtPointer cb )
    Close plot window
 ----------------------------------------------------------------------------*/
 
-static void donebut_CB( Widget w , XtPointer cd , XtPointer cb )
+void pm_donebut_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
 
@@ -308,7 +296,7 @@ static void donebut_CB( Widget w , XtPointer cd , XtPointer cb )
    Draw plot window
 ----------------------------------------------------------------------------*/
 
-static void expose_CB( Widget w , XtPointer cd , XtPointer cb )
+void pm_expose_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    XmDrawingAreaCallbackStruct * cbs = (XmDrawingAreaCallbackStruct *) cb ;
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
@@ -364,7 +352,7 @@ static void expose_CB( Widget w , XtPointer cd , XtPointer cb )
 void redraw_topshell( MEM_topshell_data * mpcb )
 {
    if( mpcb == NULL ) return ;
-   expose_CB( mpcb->drawing , mpcb , NULL ) ;
+   pm_expose_CB( mpcb->drawing , mpcb , NULL ) ;
    return ;
 }
 
@@ -372,9 +360,9 @@ void redraw_topshell( MEM_topshell_data * mpcb )
    Redraw plot window after a resize notice
 ----------------------------------------------------------------------------*/
 
-static void resize_CB( Widget w , XtPointer cd , XtPointer cb )
+void pm_resize_CB( Widget w , XtPointer cd , XtPointer cb )
 {
-   expose_CB( w , cd , NULL ) ;
+   pm_expose_CB( w , cd , NULL ) ;
    return ;
 }
 
@@ -382,7 +370,7 @@ static void resize_CB( Widget w , XtPointer cd , XtPointer cb )
    Handle input to the drawing area (key or button press) - 06 Aug 2001
 ----------------------------------------------------------------------------*/
 
-static void input_CB( Widget w , XtPointer cd , XtPointer cb )
+void pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
    XmDrawingAreaCallbackStruct * cbs = (XmDrawingAreaCallbackStruct *) cb ;
@@ -405,11 +393,10 @@ static void input_CB( Widget w , XtPointer cd , XtPointer cb )
          XLookupString( event , buf , 32 , &ks , NULL ) ;
 
          switch( buf[0] ){
-            default: break ;
-
+            default: break;
             case 'Q':
             case 'q':
-               donebut_CB( NULL , (XtPointer) mpcb , NULL ) ;
+               pm_donebut_CB( NULL , (XtPointer) mpcb , NULL ) ;
                break ;
          }
          break ;
@@ -428,13 +415,13 @@ void plotkill_topshell( MEM_topshell_data * mpcb )
 {
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
 
-   donebut_CB( NULL , (XtPointer) mpcb , NULL ) ;
+   pm_donebut_CB( NULL , (XtPointer) mpcb , NULL ) ;
    return ;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static void decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy )
+void pm_decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy )
 {
    int has_x , has_plus ;
 
@@ -473,7 +460,8 @@ static void decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy )
 MEM_topshell_data * memplot_to_topshell( Display *dpy,
                                          MEM_plotdata *mp, void_func *kfun )
 {
-   Widget topshell , drawing , donebut , form , psfilebut , psprintbut ;
+   Widget topshell , drawing , donebut , form , psfilebut , 
+         psprintbut ;
    MEM_topshell_data *mpcb ;
    int hmin=400 , wmin , ibut=0 , hh,ww,xx,yy ;
    char *prc , *ept ;
@@ -483,6 +471,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    if( dpy == NULL || mp == NULL ) return NULL ;
 
    mpcb = (MEM_topshell_data *) malloc( sizeof(MEM_topshell_data) ) ;
+   memset((void*)mpcb, 0, sizeof(MEM_topshell_data));
    mpcb->valid = 0 ;
 
 #ifdef HAVE_XDBE
@@ -493,7 +482,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
 
    /* 12 Oct 2000: a crude way to set the geometry of the popup */
 
-   decode_geom( getenv("AFNI_tsplotgeom") , &ww,&hh,&xx,&yy ) ;
+   pm_decode_geom( getenv("AFNI_tsplotgeom") , &ww,&hh,&xx,&yy ) ;
    if( ww < wmin ) ww = wmin ;
    if( hh < hmin ) hh = hmin ;
 
@@ -511,7 +500,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
 
    XmAddWMProtocolCallback(
         topshell , XmInternAtom(dpy,"WM_DELETE_WINDOW",False) ,
-        donebut_CB , (XtPointer) mpcb ) ;
+        pm_donebut_CB , (XtPointer) mpcb ) ;
 
    mpcb->top = topshell ;
    mpcb->mp  = mp ;
@@ -556,7 +545,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
                     XmNtraversalOn   , False ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
-   XtAddCallback( psfilebut , XmNactivateCallback , psfile_CB , (XtPointer) mpcb ) ;
+   XtAddCallback( psfilebut , XmNactivateCallback , pm_psfile_CB , (XtPointer) mpcb ) ;
 
    ibut++ ;
    psprintbut = XtVaCreateManagedWidget(
@@ -579,7 +568,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    prc = getenv( "AFNI_PSPRINT" ) ;
    if( prc != NULL ){
       sprintf( print_command , "|%.250s" , prc ) ;
-      XtAddCallback( psprintbut , XmNactivateCallback , psprint_CB , (XtPointer) mpcb ) ;
+      XtAddCallback( psprintbut , XmNactivateCallback , pm_psprint_CB , (XtPointer) mpcb ) ;
    } else {
 #if 0
       XtAddCallback( psprintbut , XmNactivateCallback , beep_CB ,
@@ -613,7 +602,7 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
                     XmNtraversalOn   , False ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
-   XtAddCallback( donebut , XmNactivateCallback , donebut_CB , (XtPointer) mpcb ) ;
+   XtAddCallback( donebut , XmNactivateCallback , pm_donebut_CB , (XtPointer) mpcb ) ;
 
    /* drawing area to receive the picture */
 
@@ -626,9 +615,9 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
                                           XmNinitialResourcesPersistent , False ,
                                         NULL ) ;
 
-   XtAddCallback( drawing , XmNexposeCallback , expose_CB , (XtPointer) mpcb ) ;
-   XtAddCallback( drawing , XmNresizeCallback , resize_CB , (XtPointer) mpcb ) ;
-   XtAddCallback( drawing , XmNinputCallback  , input_CB  , (XtPointer) mpcb ) ;
+   XtAddCallback( drawing , XmNexposeCallback , pm_expose_CB , (XtPointer) mpcb ) ;
+   XtAddCallback( drawing , XmNresizeCallback , pm_resize_CB , (XtPointer) mpcb ) ;
+   XtAddCallback( drawing , XmNinputCallback  , pm_input_CB  , (XtPointer) mpcb ) ;
 
    /* finish the job */
 
@@ -643,3 +632,4 @@ MEM_topshell_data * memplot_to_topshell( Display *dpy,
    mpcb->valid = 1 ; mpcb->userdata = NULL ; mpcb->drawing = drawing ;
    return mpcb ;
 }
+

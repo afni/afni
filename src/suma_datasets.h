@@ -1306,6 +1306,8 @@ char * SUMA_file_suck( char *fname , int *nread );
 void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
 void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp);
 SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out);
+char *SUMA_EscapeChars(char *s1, char *ca, char *es);
+char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
 
 /*********************** END Miscellaneous support functions **************************** */
 
