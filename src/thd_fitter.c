@@ -3,7 +3,7 @@
 /*------------------------------------------------------------------*/
 
 static float * new_lsqfit( int npt  , float *far   ,
-                           int nref , float *ref[] , float *ccon )
+                           int nref , float *ref[]  )
 {
   int  jj ;
   MRI_IMAGE *rmat,*pmat,*smat ;
@@ -26,6 +26,42 @@ static float * new_lsqfit( int npt  , float *far   ,
   mri_clear_data_pointer(smat); mri_free(smat);
   return rar ;
 }
+
+/*------------------------------------------------------------------*/
+/* Does not work! */
+
+#if 0
+static float * con_lsqfit( int npt  , float *far   ,
+                           int nref , float *ref[] , float *ccon )
+{
+  float *qfit , **cref , *cfit ;
+  int jj , nit , nok ;
+
+  qfit = new_lsqfit(npt,far,nref,ref) ;
+  if( ccon == NULL || qfit == NULL ) return qfit ;
+
+  cref = (float **)malloc(sizeof(float *)*nref) ;
+
+  for( nit=0 ; nit < nref ; nit++ ){
+    for( nok=jj=0 ; jj < nref ; jj++ ){
+      if( qfit[jj]*ccon[jj] >= 0.0f ) cref[nok++] = ref[jj] ;
+    }
+    if( nok == 0 ){            /* none met the constraints */
+      for( jj=0 ; jj < nref ; jj++ ) qfit[jj] = 0.0f ;
+      free(cref); return qfit ;
+    } else if( nok == nref ){  /* all met the constraints */
+      free(cref) ; return qfit ;
+    }
+    cfit = new_lsqfit(npt,far,nok,cref) ;  /* fit a subset */
+    for( nok=jj=0 ; jj < nref ; jj++ ){
+      if( qfit[jj]*ccon[jj] >= 0.0f ) qfit[jj] = cfit[nok++] ;
+      else                            qfit[jj] = 0.0f ;
+    }
+    free(cfit) ;
+  }
+  free(cref) ; free(qfit) ; return NULL ;
+}
+#endif
 
 /*------------------------------------------------------------------*/
 
@@ -59,7 +95,7 @@ floatvec * THD_fitter( int npt , float *far  ,
      default: ERREX("THD_fitter: bad meth code") ;
 
      case 2:
-       qfit = new_lsqfit( npt, far, nref, ref , NULL ) ;
+       qfit = new_lsqfit( npt, far, nref, ref ) ;
      break ;
 
      case 1:
