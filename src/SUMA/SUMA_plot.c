@@ -546,6 +546,7 @@ void SUMA_Show_Rowgraph_MTD(MEM_topshell_data *rowgraph_mtd)
 
 #define REFILL_MPUD(mpud){\
    int m_i=0;  \
+   char *m_pref=NULL;   \
    mpud = SUMA_clear_mpud_contents(mpud); \
    MPUD->tsa = yar; \
    yar = NULL;  /* protect yar from freedom */\
@@ -556,10 +557,12 @@ void SUMA_Show_Rowgraph_MTD(MEM_topshell_data *rowgraph_mtd)
    MPUD->tsa_dims[1] = N_res; \
    MPUD->Sover = Sover; \
    MPUD->tsnode = inode; \
+   m_pref = SUMA_RemoveDsetExtension_s(Sover->Label, SUMA_NO_DSET_FORMAT); \
    snprintf(MPUD->write_name, \
             90*sizeof(char),  \
-            "%s_node_%05d.1D", \
-            Sover->Label, mpud->tsnode); \
+            "%s.%05d.1D", \
+            m_pref ? m_pref:"NoName", mpud->tsnode); \
+   if (m_pref) SUMA_free(m_pref); m_pref = NULL;   \
 }
 
 SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
