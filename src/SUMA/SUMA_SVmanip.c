@@ -1507,6 +1507,35 @@ int SUMA_WhichSV (SUMA_SurfaceViewer *sv, SUMA_SurfaceViewer *SVv, int N_SVv)
    SUMA_RETURN (-1);
 }
 
+/* return 1st viewer that is open and has a 
+   particular surface visible
+*/
+SUMA_SurfaceViewer *SUMA_OneViewerWithSOinFocus(
+                              SUMA_SurfaceObject *curSO)
+{  
+   static char FuncName[]={"SUMA_OneViewerWithSOinFocus"};
+   int i=0;
+   SUMA_SurfaceViewer *sv=NULL;
+   
+   SUMA_ENTRY;
+
+   /* look for 1st viewer that is showing this 
+      surface and has this surface in focus*/
+   for (i=0; i<SUMAg_N_SVv; ++i) {
+      if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
+         /* is this viewer showing curSO ? */
+         if (SUMA_isVisibleSO(&(SUMAg_SVv[i]), SUMAg_DOv, curSO)) {
+            if ((SUMAg_DOv[SUMAg_SVv[i].Focus_SO_ID].OP) == curSO) {
+                  sv = &(SUMAg_SVv[i]);
+                  SUMA_RETURN(sv);
+            }
+         }
+      }
+   }
+
+   SUMA_RETURN(sv);
+}
+
 /*! 
    locate the index i (into csv->VSv[i]) of state 
    -1 if not found
@@ -1826,6 +1855,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->X->Help_TextShell = NULL;
    cf->X->Help_Cmap_TextShell = NULL;
+   cf->X->Help_Plot_TextShell = NULL;
    cf->X->Log_TextShell = NULL;
    cf->X->FileSelectDlg = NULL;
    cf->X->N_ForeSmooth_prmpt = NULL;

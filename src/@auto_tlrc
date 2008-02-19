@@ -520,9 +520,13 @@ AUTO_TLRC_MODE:
    set Converged = 0
    while ($Converged == 0 && $pass < 3)
       rm -f ${ns_pref}_WarpDrive.log >& /dev/null
-      3dWarpDrive ${maxite} ${spopt}  -twopass -${xform_type} -cubic  \
-               -final ${rmode} -base ${ref_pref_pad}${ref_view} -summ ${ns_pref}_WarpDrive.log \
-               -prefix ${tmppref}_reg_warpdriveout -input ${rs_pref}${anat_view}
+      3dWarpDrive ${maxite} ${spopt}  -twopass \
+                  -${xform_type} -cubic  \
+                  -final ${rmode} -1Dmatrix_save ${ns_pref}_XToBase.aff12.1D \
+                  -base ${ref_pref_pad}${ref_view} \
+                  -summ ${ns_pref}_WarpDrive.log \
+                  -prefix ${tmppref}_reg_warpdriveout \
+                  -input ${rs_pref}${anat_view}
       if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then
          echo "Error: Failed in 3dWarpDrive "
          goto END
