@@ -3695,11 +3695,25 @@ int SUMA_GetListIchoice(XmListCallbackStruct *cbs,
       if (LocalHead) 
          fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<\n", 
                   FuncName, LW->ALS->clist[ichoice], choice);
-      if (strncmp(LW->ALS->clist[ichoice], 
-                  choice, strlen(choice)) == 0) Found = YUP; 
+      if (strcmp(LW->ALS->clist[ichoice], 
+                  choice) == 0) Found = YUP; 
       else ++ichoice;
    } while (ichoice < LW->ALS->N_clist && !Found);
-
+      
+   if (!Found) { /* do older search, with strncmp dunno why it 
+                     was like that
+                     but I worry about backward compatibility */
+      ichoice = 0;
+      do {
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: Comparing:\t>%s<\t>%s<\n", 
+                     FuncName, LW->ALS->clist[ichoice], choice);
+         if (strncmp(LW->ALS->clist[ichoice], 
+                     choice, strlen(choice)) == 0) Found = YUP; 
+         else ++ichoice;
+      } while (ichoice < LW->ALS->N_clist && !Found);
+   }
+   
    if (!Found) {
       SUMA_SLP_Err("Choice not found.");
       SUMA_RETURN(-1);
@@ -4071,10 +4085,14 @@ void SUMA_cb_SelectSwitchCmap (Widget w, XtPointer client_data, XtPointer call_d
 
    /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
    if (LW->ALS) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: N_clist = %d\n", FuncName, LW->ALS->N_clist); 
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: N_clist = %d\n", 
+                     FuncName, LW->ALS->N_clist); 
       if (LW->ALS->N_clist > ichoice) {
          CM = (SUMA_COLOR_MAP *)LW->ALS->oplist[ichoice];
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved Colmap named %s\n", FuncName, CM->Name);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: Retrieved Colmap named %s\n", 
+                     FuncName, CM->Name);
          /* Now you need to set the button menu to reflect the choice made */
          if (!SUMA_SetCmapMenuChoice (SO, LW->ALS->clist[ichoice])) {
             SUMA_SL_Err("Failed in SUMA_SetCmapMenuChoice");
