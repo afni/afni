@@ -53,12 +53,23 @@ if ("$1" == "-help") then
 endif
 
 set epi = $1
+
+RES_EPI:
+#create a resampled version of epi if resolution is not close to 1 mm
+set meres = `@GetAfniRes -mean $epi`
+if (`ccalc -i $meres` > 1.5) then
+   3dresample -dxyz 1 -inset $epi -prefix _ae$epi -rmode Cu
+   set epi = _ae$epi
+endif
 set epipref = `@GetAfniPrefix $epi`
 set epipref = `@NoExt $epipref nii nii.gz`
 
 
 #Get epi edges
 3dedge3 -input $epi  -prefix  ${epipref}_e3
+
+#Make sure all the data is at the same resolution of the epi
+STOPPED HERE
 
 #Get average of anats
 if ($#argv > 2) then

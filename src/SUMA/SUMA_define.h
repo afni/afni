@@ -184,18 +184,32 @@ typedef enum {SUMA_SOLID_LINE, SUMA_DASHED_LINE} SUMA_STIPPLE;
 typedef enum {SUMA_Button_12_Motion, SUMA_Button_2_Shift_Motion, SUMA_Button_1_Motion, SUMA_Button_2_Motion, SUMA_Button_3_Motion} SUMA_MOTION_TYPES; /*!< Types of mouse motion */
 
 typedef enum { SE_Empty, 
-               SE_SetLookAt, SE_SetLookFrom, SE_Redisplay, SE_Home, SE_SetNodeColor, 
-               SE_FlipLight0Pos, SE_GetNearestNode, SE_SetLookAtNode, SE_HighlightNodes, SE_SetRotMatrix, 
-               SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,
-               SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetAfniSurfList, SE_SetAfniThisSurf, 
-               SE_SetForceAfniSurf, SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
-               SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
-               SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
-               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Help_Cmap, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
-               SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
-               SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
-               SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, SE_SaveViewFileSelection, SE_LoadSegDO,
-               SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip, SE_OpenDsetFile, SE_OneOnly, SE_OpenSurfCont,
+               SE_SetLookAt, SE_SetLookFrom, SE_Redisplay, 
+               SE_Home, SE_SetNodeColor, 
+               SE_FlipLight0Pos, SE_GetNearestNode, SE_SetLookAtNode,
+               SE_HighlightNodes, SE_SetRotMatrix, 
+               SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, 
+               SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,
+               SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, 
+               SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetAfniSurfList, 
+               SE_SetAfniThisSurf, 
+               SE_SetForceAfniSurf, SE_BindCrossHair, SE_ToggleForeground, 
+               SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
+               SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, 
+               SE_LockCrossHair,
+               SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, 
+               SE_ToggleLockView, SE_ToggleLockAllViews, 
+               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Help_Cmap, 
+               SE_Help_Plot, SE_Log,
+               SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
+               SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  
+               SE_SetLight0Pos, SE_OpenColFileSelection,
+               SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, 
+               SE_SendColorMapToAfni, SE_SaveSOFileSelection,
+               SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, 
+               SE_SaveViewFileSelection, SE_LoadSegDO,
+               SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip, 
+               SE_OpenDsetFile, SE_OneOnly, SE_OpenSurfCont,
                SE_SetSurfCont, SE_SetViewerCont, SE_SetRecorderCont,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
 typedef enum { SE_niEmpty,
@@ -365,6 +379,7 @@ typedef enum {   SUMA_No_Lock, SUMA_I_Lock, SUMA_XYZ_Lock, SUMA_N_Lock_Types}  S
 typedef enum {  SWP_DONT_CARE,
                 SWP_TOP_RIGHT, /*!< Position to the top right of reference */
                 SWP_BOTTOM_RIGHT_CORNER, 
+                SWP_STEP_DOWN_RIGHT,
                 SWP_TOP_LEFT,
                 SWP_POINTER, /*!< Position centered to the pointer */
                 SWP_POINTER_OFF
@@ -1263,6 +1278,7 @@ typedef struct {
    SUMA_XRESOURCES X_Resources; /*!< flag specifying the types of resources to use */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Help_TextShell; /*!< structure containing widgets and options of SUMA_help window */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Help_Cmap_TextShell; /*!< structure containing widgets and options of colormap help window */
+   SUMA_CREATE_TEXT_SHELL_STRUCT *Help_Plot_TextShell;
    SUMA_CREATE_TEXT_SHELL_STRUCT *Log_TextShell; /*!<  structure containing widgets and options of SUMA_log window */
    SUMA_SELECTION_DIALOG_STRUCT *FileSelectDlg; /*!< structure containing widgets and options of a generic file selection dialog */
    SUMA_PROMPT_DIALOG_STRUCT *N_ForeSmooth_prmpt; /*!< structure for the number of foreground smoothingLookAt dialog */

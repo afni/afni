@@ -337,12 +337,6 @@ void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, XtPointer
 SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO);
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO, char *DispOptions);
-SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
-               SUMA_SurfaceObject *SO,
-               int inode);
-void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp );
-
-
 
 #define SUMA_DrawROI_ParentLabel_help  \
    "Label of the ROI's parent surface." 

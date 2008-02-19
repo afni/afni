@@ -1,4 +1,6 @@
 #include "SUMA_suma.h"
+#include "coxplot.h"
+#include "SUMA_plot.h"
  
 /* the method for hiding a surface viewer (and other controllers), used to have three options prior to Fri Jan  3 10:21:52 EST 2003
 Now only SUMA_USE_WITHDRAW and NOT SUMA_USE_DESTROY should be used*/
@@ -8868,6 +8870,10 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
          NewX = RefW + Dx;
          NewY = RefY;
          break;
+      case SWP_STEP_DOWN_RIGHT:
+         NewY = RefY + 10;
+         NewX = RefX + 10;
+         break;
       case SWP_POINTER:
          {
             Window root, child, wind;
@@ -10631,117 +10637,6 @@ char * SUMA_Format(int n, int w)
    SUMA_RETURN(buf);
 }
 
-SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
-               SUMA_SurfaceObject *SO,
-               int inode) {
-   static char FuncName[]={"SUMA_OverlayGraphAtNode"};
-   MEM_plotdata *mp =NULL;
-   float *res = NULL;
-   int jj, nrow = 1, ymask=TSP_SEPARATE_YBOX;
-   int N_res = -1;
-   float *yar[ROWGRAPH_MAX] ;
-   char title_str[101]={""};
-   SUMA_DSET *Dset = NULL;
-   
-   SUMA_ENTRY;
-   
-   if (  !Sover || 
-         !SO || !Sover || 
-         !Sover->dset_link) {
-      SUMA_SL_Err("Nothing to graph");
-      SUMA_RETURN(0);
-   }
-   Dset = Sover->dset_link;
-   /* Excerpts right out of ISQ_rowgraph_draw*/
-
-   /* make a plot in memory 
-     Should probably be moved to SUMA_display.c*/
-
-   res = (float*)SUMA_GetDsetAllNodeValsInCols2(Dset, 
-                              NULL, 0, 
-                              inode, SO->N_Node, /* test this
-                                                    SO->N_Node when
-                                                    using patches. 
-                                                    Else -1 */
-                              &N_res,
-                              SUMA_float);
-   #if 0
-   system ("rm -f ___tmp_row* >& /dev/null ");
-   sprintf(stmp,"___tmp_row_%d.1D", inode); 
-   SUMA_WRITE_ARRAY_1D(res,N_res,1,stmp);
-   /* see PLUTO_histoplot_f in afni_plugin.c and 
-   section starting with
-   hrad = AFNI_numenv("AFNI_1DPLOT_THIK") ;
-   in plug_histog.c to do this properly */
-   sprintf( stmp,
-            "1dplot -nopush ___tmp_row_%d.1D & ",
-            inode); 
-   SUMA_S_Notev("Running:\n%s\n", stmp);
-   system (stmp);
-   #else
-   snprintf(title_str, 100*sizeof(char), 
-            "%s, node %d on %s", 
-            SUMA_CHECK_NULL_STR(Sover->Label),
-            inode,
-            SUMA_CHECK_NULL_STR(SO->Label));
-            
-   for (jj=0; jj<nrow; jj++) yar[jj] = res;
-
-   ymask = TSP_SEPARATE_YBOX ;
-   plot_ts_xypush(0,0);
-   mp = plot_ts_mem( N_res , NULL , 
-                     nrow, ymask, yar , 
-                     "column index",
-                     NULL,title_str,NULL ) ;
-   if( mp == NULL ){
-      SUMA_S_Err("can't make plot_ts_mem") ;
-      SUMA_RETURN(0);
-   }
-   /* if there is a plot window open, 
-      plot into it, otherwise open a new window */
-
-   if( Sover->rowgraph_mtd != NULL ){
-
-      MTD_replace_plotdata( Sover->rowgraph_mtd , mp ) ;
-      redraw_topshell( Sover->rowgraph_mtd ) ;
-
-   } else {  /* make a new plot window */
-
-      Sover->rowgraph_mtd = memplot_to_topshell( 
-                                       SUMAg_CF->X->DPY_controller1, 
-                                       mp, 
-                                       SUMA_rowgraph_mtdkill ) ;
-
-      if( Sover->rowgraph_mtd == NULL ){ 
-         delete_memplot( mp );  
-         SUMA_RETURN(1);
-      }
-
-      Sover->rowgraph_mtd->userdata = (void *) Sover ;
-   }
-   #endif
-   if (res) SUMA_free(res); res = NULL;
-   SUMA_RETURN(1);
-}   
-
-void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
-{
-   static char FuncName[]={"SUMA_rowgraph_mtdkill"};
-   SUMA_OVERLAYS * Sover ;
-
-   SUMA_ENTRY ;
-
-   if( mp == NULL ) SUMA_RETURNe; 
-   Sover = (SUMA_OVERLAYS *) mp->userdata ; 
-   if( ! Sover ) SUMA_RETURNe ;
-
-   Sover->rowgraph_mtd = NULL ;
-   /* here you might do something with some widgets on 
-   say surface controller */
-      
-   Sover->rowgraph_num = 0 ; /* not sure I need that one yet...*/
-   SUMA_RETURNe ;
-}
 
 /*
 void  (Widget w, XtPointer data, XtPointer client_data)

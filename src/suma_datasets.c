@@ -4715,7 +4715,9 @@ void *SUMA_GetDsetAllNodeValsInCols2(SUMA_DSET *dset,
    
    if (!dset || !dset->dnel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(resv); }
    noderow = SUMA_GetNodeRow_FromNodeIndex_eng (dset, node, N_Node);
-   if (noderow < 0) { SUMA_SL_Err("Bad node index"); SUMA_RETURN(resv); }
+   if (noderow < 0) { /* SUMA_SL_Err("Bad node index"); 
+                        keep quiet, can happen*/ 
+                        SUMA_RETURN(resv); }
    if ( tp != SUMA_float &&
         tp != SUMA_double &&
         tp != SUMA_int) { SUMA_SL_Err("Bad otype"); SUMA_RETURN(resv); } 
@@ -9473,6 +9475,84 @@ int SUMA_isNumString (char *s, void *p)
    if(sc) SUMA_free(sc); sc = NULL;
    SUMA_RETURN(ans);
 }
+/*
+   SUMA_EscapeChars ("Hallo_Baby%Hallo", "_%", "//")
+   returns
+   Hallo\\_Baby\\%Hallo
+   \sa SUMA_ReplaceChars
+*/
+char *SUMA_EscapeChars(char *s1, char *ca, char *es)
+{
+   static char FuncName[]={"SUMA_EscapeChars"};
+   char *ses =NULL;
+   int nca=0, nes=0, ns1 = 0, nses = 0;
+   int i=0, j=0, k=0, l=0, nfound = 0;
+   SUMA_ENTRY;
+
+   if (!s1 || !ca || !es) SUMA_RETURN(ses);
+
+   nca = strlen(ca);
+   nes = strlen(es);
+   ns1 = strlen(s1);
+   nfound = 0;
+   for (i=0;i<ns1;++i) {
+      for (j=0; j<nca; ++j) if (s1[i] == ca[j]) ++nfound;
+   }
+   nses = ns1+nfound*nes+1;
+   ses = (char *)SUMA_calloc(nses, sizeof(char));
+
+   i=0;l=0; 
+   while (s1[i]) {
+      for (j=0; j<nca; ++j) {
+         if (s1[i] == ca[j]) {
+            for (k=0; k<nes; ++k) { ses[l] = es[k]; ++l;}
+            continue;
+         } 
+      }
+      ses[l] =  s1[i]; ++l;
+      ++i;
+   }
+   ses[l] = '\0';
+   
+   SUMA_RETURN(ses);
+} 
+char *SUMA_ReplaceChars(char *s1, char *ca, char *es)
+{
+   static char FuncName[]={"SUMA_ReplaceChars"};
+   char *ses =NULL;
+   int nca=0, nes=0, ns1 = 0, nses = 0;
+   int i=0, j=0, k=0, l=0, nfound = 0, rpl = 0;
+   SUMA_ENTRY;
+
+   if (!s1 || !ca || !es) SUMA_RETURN(ses);
+
+   nca = strlen(ca);
+   nes = strlen(es);
+   ns1 = strlen(s1);
+   nfound = 0;
+   for (i=0;i<ns1;++i) {
+      for (j=0; j<nca; ++j) if (s1[i] == ca[j]) ++nfound;
+   }
+   nses = ns1-nfound+nfound*nes+1;
+   ses = (char *)SUMA_calloc(nses, sizeof(char));
+
+   i=0;l=0; 
+   while (s1[i]) {
+      for (j=0; j<nca; ++j) {
+         rpl = 0 ;
+         if (s1[i] == ca[j]) {
+            for (k=0; k<nes; ++k) { ses[l] = es[k]; ++l;}
+            rpl  = 1;
+            continue;
+         } 
+      }
+      if (!rpl) { ses[l] =  s1[i]; ++l; }
+      ++i;
+   }
+   ses[l] = '\0';
+   
+   SUMA_RETURN(ses);
+} 
 
 /*!
    \brief function that parses a string of numbers into a float vector
@@ -10018,12 +10098,17 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
       
       if (nout < 0) {
          SUMA_SL_Err("Error reported by  vsnprintf");
-         SUMA_RETURN(SUMA_StringAppend(SS,"Error SUMA_StringAppend_va: ***Error reported by  vsnprintf"));
+         SUMA_RETURN(SUMA_StringAppend(SS,
+                                       "Error SUMA_StringAppend_va:"
+                                       " ***Error reported by  vsnprintf"));
       }
       if (nout >= MAX_APPEND) {
          SUMA_SL_Warn("String trunctated by vsnprintf");
          SUMA_StringAppend(SS,sbuf);
-         SUMA_RETURN(SUMA_StringAppend(SS,"WARNING: ***Previous string trunctated because of its length. ***"));
+         SUMA_RETURN(SUMA_StringAppend(SS,
+                                       "WARNING: "
+                                       "***Previous string trunctated because "
+                                       "of its length. ***"));
       }
       SUMA_LH("Calling StringAppend");
       SUMA_RETURN (SUMA_StringAppend(SS,sbuf));

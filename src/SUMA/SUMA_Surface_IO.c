@@ -3598,7 +3598,9 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name_in, SUMA_SurfaceObject *SO)
    f_name = SUMA_Extension(f_name_in,".ply" , YUP); 
    f_name2  = SUMA_append_string(f_name,".ply");
    if (!THD_ok_overwrite() && SUMA_filexists (f_name2)) {
-      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n", FuncName, f_name2);
+      fprintf (SUMA_STDERR, 
+               "Error %s: file %s exists, will not overwrite.\n", 
+               FuncName, f_name2);
       SUMA_free(f_name2);f_name2 = NULL;
       SUMA_free(f_name);f_name = NULL;
       SUMA_RETURN (NOPE);
