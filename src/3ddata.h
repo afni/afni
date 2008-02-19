@@ -4039,7 +4039,7 @@ extern void THD_insert_series( int, THD_3dim_dataset *, int, int, void *, int );
 extern int THD_voxel_is_constant( int ind , THD_3dim_dataset *dset ) ;
 
 extern floatvec * THD_fitter( int npt , float *far  ,
-                              int nref, float *ref[], int meth, int flags ) ;
+                              int nref, float *ref[], int meth, float *ccon ) ;
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
 

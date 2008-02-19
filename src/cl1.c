@@ -89,11 +89,11 @@ float cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
    /* load matrices & vectors */
 
    for( jj=0 ; jj < nvec ; jj++ )
-      for( ii=0 ; ii < ndim ; ii++ )
-         q[ii+jj*klm2d] = A[jj][ii] ;   /* matrix */
+     for( ii=0 ; ii < ndim ; ii++ )
+       q[ii+jj*klm2d] = A[jj][ii] ;   /* matrix */
 
    for( ii=0 ; ii < ndim ; ii++ )
-      q[ii+nvec*klm2d] = z[ii] ;        /* vector */
+     q[ii+nvec*klm2d] = z[ii] ;        /* vector */
 
    if( cony ){
      for( jj=0 ; jj < nvec ; jj++ )     /* constraints on solution */
@@ -102,7 +102,7 @@ float cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
    }
 
    for( ii=0 ; ii < klmd ; ii++ )       /* no constraints on resids */
-      res[ii] = 0.0 ;
+     res[ii] = 0.0 ;
 
    /*-- do the work --*/
 

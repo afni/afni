@@ -318,8 +318,10 @@ ENTRY("mri_matrix_psinv") ;
      sum = V(ii,ii) ;
      for( kk=0 ; kk < ii ; kk++ ) sum -= V(ii,kk) * V(ii,kk) ;
      if( sum < PSINV_EPS ){
-       WARNING_message("Choleski fails in mri_matrix_psinv()!\n");
-       do_svd = 1 ; goto SVD_PLACE ;
+       static int first=1 ;
+       if( first )
+         WARNING_message("Choleski fails in mri_matrix_psinv()!\n");
+       first = 0 ; do_svd = 1 ; goto SVD_PLACE ;
      }
      V(ii,ii) = sqrt(sum) ;
    }
@@ -370,8 +372,10 @@ ENTRY("mri_matrix_psinv") ;
      for( ii=1 ; ii < n ; ii++ ) if( sval[ii] > smax ) smax = sval[ii] ;
 
      if( smax <= 0.0 ){                        /* this is bad */
-       ERROR_message("SVD fails in mri_matrix_psinv()!\n");
-       free((void *)xfac); free((void *)sval);
+       static int first = 1 ;
+       if( first )
+         ERROR_message("SVD fails in mri_matrix_psinv()!\n");
+       free((void *)xfac); free((void *)sval); first = 0;
        free((void *)vmat); free((void *)umat); RETURN( NULL);
      }
 
