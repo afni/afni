@@ -4659,6 +4659,7 @@ extern int THD_add_sparse_data( THD_3dim_dataset * , NI_group * ) ;
 extern int THD_add_sparse_bricks( THD_3dim_dataset *, NI_element *) ;
 
 extern int  NI_get_byte_order(NI_element *) ;    /* 29 Aug 2006 [rickr] */
+extern int  dtype_nifti_to_niml(int dtype);      /* 19 Feb 2008 [rickr] */
 
 extern int  get_gni_debug(void) ;                /*  3 Aug 2006 [rickr] */
 extern int  get_gni_to_float(void) ;
