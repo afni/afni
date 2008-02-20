@@ -244,9 +244,9 @@ typedef struct {
 #ifdef HAVE_XDBE
    int            have_xdbe ;
    XdbeBackBuffer buf_xdbe ;
+#endif
 
    void (* clonebut_user_cb)(void *data); /* for SUMA */
-#endif
 } MEM_topshell_data ;
 
 #define MTD_PLOTDATA(mpcb)        ((mpcb)->mp)
