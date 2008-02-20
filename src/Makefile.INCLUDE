@@ -1443,6 +1443,10 @@ cl1.o:cl1.c
 	$(RM) $@
 	$(CCFAST) -c cl1.c $(INFLAGS)
 
+cl2.o:cl2.c
+	$(RM) $@
+	$(CCFAST) -c cl2.c $(INFLAGS)
+
 mri_drawing.o:mri_drawing.c
 	$(RM) $@
 	$(CCFAST) -c mri_drawing.c $(INFLAGS)
@@ -1558,7 +1562,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust2.o edt_wodcopy.o edt_clustalpha.o edt_geomcon.o
 
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
-           cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
+           cs_addto_args.o multivector.o afni_environ.o cs_qmed.o cl2.o    \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
            cl1.o cs_misc.o powell_int.o powell_newuoa.o cs_sort_dv.o
 
