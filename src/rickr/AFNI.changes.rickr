@@ -2390,3 +2390,8 @@
     edt_dsetitems.c, thd_delete.c, thd_loaddblk.c, thd_writedset.c,
     thd_fetchdset.c, thd_mastery.c, thd_niml.c, Makefile.INCLUDE
 
+20 Feb 2008: GIFTI to AFNI
+  * modified 3ddata.h: added dtype_nifti_to_niml prototype
+  * modified thd_niml.c: added dtype_nifti_to_niml(), plus 2 stupid changes
+  * modified thd_gifti.c: added functionality to convert GIFTI to NIML/AFNI
+  * modified gifti_io.[ch]: added gifti_get_meta_value and gifti_image_has_data
