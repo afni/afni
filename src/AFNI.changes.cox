@@ -6626,3 +6626,7 @@
 
 19 Feb 2008
  * Bug fixes in 3dTfitter.c and thd_fitter.c.
+
+20 Feb 2008
+ * Add cl2.c constrained least squares function to the library.
+ * Use this in thd_fitter.c and thence in 3dTfitter.c.

@@ -1,8 +1,10 @@
 #include "mrilib.h"
 
+static void vstep_print(void) ; /* prototype */
+
 int main( int argc , char *argv[] )
 {
-   int iarg , ii,jj,kk , nx,ny,nz,nvox ;
+   int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep ;
    THD_3dim_dataset *rhset=NULL ;
    THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 ;
    THD_3dim_dataset *fset ;
@@ -39,14 +41,17 @@ int main( int argc , char *argv[] )
       "               are in the file.\n"
       "           *** Columns are assembled in the order given on the command line,\n"
       "               which means that parameters will be output in that order!\n"
-      "             * If all LHS inputs are 1D vectors and you are using least\n"
-      "               squares fitting, then 3dDeconvolve would be more efficient,\n"
-      "               since each voxel would have the same set of equations.\n"
+      "           *** If all LHS inputs are 1D vectors and you are using least\n"
+      "               squares fitting without constraints, then 3dDeconvolve would\n"
+      "               be more efficient, since each voxel would have the same set\n"
+      "               of equations -- a fact that 3dDeconvolve exploits for speed.\n"
       "\n"
-      " -label lab = Specifies a sub-brick label for the output dataset.\n"
-      "             * More than one 'lab' can follow the '-label' option;\n"
+      "  -label lb = Specifies a sub-brick label for the output dataset.\n"
+      "             * More than one 'lb' can follow the '-label' option;\n"
       "               however, each label must NOT start with the '-' character!\n"
       "             * Labels are applied in the order given.\n"
+      "             * Normally, you would provide exactly as many labels as\n"
+      "               LHS columns.\n"
       "\n"
       "  -lsqfit   = Solve equations via least squares [the default].\n"
       "             * '-l2fit' is a synonym for this option\n"
@@ -54,8 +59,8 @@ int main( int argc , char *argv[] )
       "  -l1fit    = Solve equations via least sum of absolute residuals.\n"
       "             * L1 fitting is slower than L2 fitting, but perhaps\n"
       "               less sensitive to outliers or ill-posed problems.\n"
-      "             * Constraints on the signs of output coefficients can\n"
-      "               be imposed with '-l1fit' but not with '-l2fit'.\n"
+      "             * L2 fitting is statistically more efficient when\n"
+      "               the noise is normally (Gaussian) distributed.\n"
       "\n"
       "  -consign  = Follow this option with a list of parameter indexes\n"
       "              to indicate that the sign of some output parameters\n"
@@ -63,42 +68,55 @@ int main( int argc , char *argv[] )
       "                 -consign +1 -3\n"
       "              which indicates that parameter #1 (from the first -LHS)\n"
       "              must be non-negative, and that parameter #3 must be\n"
-      "              non-positive.  Parameter #2 is unconstrained.\n"
+      "              non-positive.  Parameter #2 is unconstrained (e.g., the\n"
+      "              output can be positive or negative).\n"
       "             * Parameter counting starts with 1, and corresponds to\n"
       "               the order in which the LHS columns are specified.\n"
-      "           *** Constraints are not available with '-lsqfit', but only\n"
-      "               with '-l1fit'; if you use '-consign' with '-lsqfit', the\n"
-      "               program will print a warning and ignore the constraints.\n"
+      "             * Unlike '-LHS or '-label', only one '-consign' option\n"
+      "               can be used.\n"
+      "           *** Constraints can be used with '-l1fit' AND '-l2fit'.\n"
       "\n"
       "  -prefix p = Prefix for the output dataset filename.\n"
       "             * Which is always in float format.\n"
       "\n"
       "  -mask ms  = Read in dataset 'ms' as a mask; only voxels with nonzero\n"
-      "              values in the mask will be processed.\n"
+      "              values in the mask will be processed.  Voxels falling\n"
+      "              outside the mask will be set to all zeros in the output.\n"
       "\n"
-      "Non-Options:\n"
+      "NON-Options:\n"
       "------------\n"
       "* There is no '-fitts' option to produces the fitted time series\n"
       "  dataset at each voxel.  You could use 3dcalc for this purpose.\n"
       "* There is no option to produce statistical estimates of the\n"
       "  significance of the parameter estimates.\n"
       "* There are no options for censoring or baseline generation.\n"
+      "* There is no option to constrain the range of the output parameters,\n"
+      "  except as provided by '-consign'.\n"
       "\n"
       "Trivial Example:\n"
       "----------------\n"
-      "The dataset 'atm' and 'btm' are assumed to have 99 time points.\n"
+      "The dataset 'atm' and 'btm' are assumed to have 99 time points each.\n"
       "We use 3dcalc to create a synthetic combination of these plus a constant\n"
       "plus Gaussian noise, then use 3dTfitter to fit the weights of these\n"
-      "3 functions to each voxel, using 3 different methods.  Note the use of\n"
+      "3 functions to each voxel, using 4 different methods.  Note the use of\n"
       "the input 1D time series '1D: 99@1' to provide the constant term.\n"
       "\n"
-      " 3dcalc -a atm+orig -b btm+orig -expr '2*a+b+gran(666,10)' -prefix 21 -float\n"
-      " 3dTfitter -RHS 21+orig -LHS atm+orig btm+orig '1D: 99@1' -prefix F2\n"
+      " 3dcalc -a atm+orig -b btm+orig -expr '-2*a+b+gran(100,20)' -prefix 21 -float\n"
+      " 3dTfitter -RHS 21+orig -LHS atm+orig btm+orig '1D: 99@1' -prefix F2 -l2fit\n"
       " 3dTfitter -RHS 21+orig -LHS atm+orig btm+orig '1D: 99@1' -prefix F1 -l1fit\n"
       " 3dTfitter -RHS 21+orig -LHS atm+orig btm+orig '1D: 99@1' -prefix F1c -l1fit \\\n"
-      "           -consign +1 +2 +3\n"
+      "           -consign -1 +3\n"
+      " 3dTfitter -RHS 21+orig -LHS atm+orig btm+orig '1D: 99@1' -prefix F2c -l2fit \\\n"
+      "           -consign -1 +3\n"
       "\n"
-      "-- RWCox -- Feb 2008\n"
+      "In the absence of noise and error, the output datasets should all be\n"
+      "  #0 sub-brick = -2.0 in all voxels\n"
+      "  #1 sub-brick = +1.0 in all voxels\n"
+      "  #2 sub-brick = +100.0 in all voxels\n"
+      "\n"
+      "----- RWCox -- Feb 2008\n"
+      "----- Created for the imperial purposes of John A Butman, MD PhD.\n"
+      "----- But may be useful for some other well-meaning souls out there.\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -203,6 +221,10 @@ int main( int argc , char *argv[] )
        for( nvec=0 ; iarg < argc ; iarg++ ){
          ii = (int)strtod(argv[iarg],&cpt) ;
          if( ii == 0 || *cpt != '\0' ) break ;  /* bad */
+         for( jj=0 ; jj < nvec ; jj++ ){
+           if( abs(convec->ar[jj]) == abs(ii) )
+             ERROR_exit("Duplicate indexes in -consign!") ;
+         }
          RESIZE_intvec(convec,nvec+1) ;
          convec->ar[nvec++] = ii ;
        }
@@ -267,7 +289,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( nlset == 0 && meth == 2 )
+   if( nlset == 0 && meth == 2 && convec == NULL )
      INFO_message("LHS datasets all 1D files ==> you could use 3dDeconvolve");
 
    if( nlab < nvar ){
@@ -282,11 +304,6 @@ int main( int argc , char *argv[] )
    }
 
    /*--- create constraint vector ---*/
-
-   if( convec != NULL && meth == 2 ){
-     WARNING_message("-consign doesn't work with -lsqfit; ignoring constraints");
-     KILL_intvec(convec) ; convec = NULL ;
-   }
 
    if( convec != NULL ){
      cvec = (float *)calloc(sizeof(float),nvar) ;
@@ -334,7 +351,12 @@ int main( int argc , char *argv[] )
    INFO_message("begin voxel loop: %d time points X %d fit parameters",
                 ntime , nvar ) ;
 
+   vstep = nvox / 50 ;
+   if( vstep > 0 ) fprintf(stderr,"++ loop: ") ;
+
    for( ii=0 ; ii < nvox ; ii++ ){
+
+     if( vstep > 0 && ii%vstep==vstep-1 ) vstep_print() ;
 
      if( mask != NULL && mask[ii] == 0 ) continue ; /* skip */
 
@@ -361,6 +383,8 @@ int main( int argc , char *argv[] )
      KILL_floatvec(bfit) ; ngood++ ;
    }
 
+   if( vstep > 0 ) fprintf(stderr,"\n") ;
+
    /*----- clean up and go away -----*/
 
    if( nbad > 0 )
@@ -371,4 +395,15 @@ int main( int argc , char *argv[] )
    DSET_write(fset); WROTE_DSET(fset);
    INFO_message("Total CPU time = %.1f s",COX_cpu_time()) ;
    exit(0);
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void vstep_print(void)
+{
+   static int nn=0 ;
+   static char xx[10] = "0123456789" ;
+   fprintf(stderr , "%c" , xx[nn%10] ) ;
+   if( nn%10 == 9) fprintf(stderr,".") ;
+   nn++ ;
 }
