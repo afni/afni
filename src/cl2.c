@@ -46,10 +46,7 @@ static int wnlit_(real *, integer *, integer *, integer *,
 	    integer *, integer *, integer *, real *, real *, real *, integer * ,
 	    real *, logical *);
 
-/*==========================================================================*/
-
-#undef  FREEIF
-#define FREEIF(x) do{ if( (x) != NULL ) free((x)); } while(0)
+/****************************************************************************/
 
 /*--------------------------------------------------------------------------
   Approximately (L2) solve equations
@@ -67,15 +64,17 @@ static int wnlit_(real *, integer *, integer *, integer *,
              =  1 ==> y[j] must be non-negative on output
              = -1 ==> y[j] must be non-positive on output
 
-  If cony == 0, then the input y[j] is ignored.
+  If cony == 0, then the input y[j] is ignored. (But see note below!)
 
-  The return value of the function is E = size of residuals >= 0.0f
+  The return value of the function is E = size of residuals >= 0.0f,
   if everything worked, and is a negative number if an error occured.
 
-  N.B.: If cony == 0, there is no real reason to call this
-  function, since it will only then do standard least squares fitting,
-  which a number of other AFNI library functions do (e.g., lsqfit).
-----------------------------------------------------------------------------*/
+  ** If cony == 0, there is no real reason to call this function,
+     since it will only then do standard least squares fitting,
+     which a number of other AFNI library functions do (e.g., lsqfit).
+  ** Also see the analogous cl1_solve() function in cl1.c, which does
+     the same thing but with an L1 cost function instead of L2.
+*//*------------------------------------------------------------------------*/
 
 float cl2_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 {
@@ -92,6 +91,9 @@ float cl2_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 
    real *w=NULL , prgopt[1] , *x=NULL , rnorm , *work=NULL ;
    integer mdw , me , ma , n , l , mode , *iwork=NULL ;
+
+#undef  FREEIF
+#define FREEIF(x) do{ if( (x) != NULL ) free((x)); } while(0)
 
 #undef  CLEANUP
 #define CLEANUP do{ FREEIF(w)   ; FREEIF(x)    ;  \
