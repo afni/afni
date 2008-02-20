@@ -14,7 +14,7 @@ int main( int argc , char * argv[] )
    PARSER_code * pcode = NULL ;
    char sym[4] ;
    double atoz[26] , value , del=1.0 , dzero=0.0 ;
-   int ii,jj , kvar , nopt , qvar , num=-1 , verbose=0 ;
+   int ii,jj , kvar , nopt , qvar , num=-1 , verbose=0 , do_1Dc=0 ;
    MRI_IMAGE * inim[26] ;
    float     * inar[26] ;
    MRI_IMAGE *dindex_im = NULL;
@@ -53,11 +53,16 @@ int main( int argc , char * argv[] )
              "                 write it out as 1st column of output.\n"
              "                 This option is useful when working with\n"
              "                 surface data.\n"
+             "  -1D:     = Write output in the form of a single '1D:'\n"
+             "               string suitable for input on the command\n"
+             "               line of another program.\n"
+             "               [-1D: is incompatible with the -index option!]\n"
              "Examples:\n"
              " 1deval -expr 'sin(2*PI*t)' -del 0.01 -num 101 > sin.1D\n"
              " 1deval -expr 'a*b' -a fred.1D -b ethel.1D > ab.1D\n"
              " 1deval -start 10 -num 90 -expr 'fift_p2t(0.001,n,2*n)' | 1dplot -xzero 10 -stdin\n"
              " 1deval -x '1D: 1 4 9 16' -expr 'sqrt(x)'\n"
+             " 1dplot `1deval -1D: -num 30 -expr 'cos(t)*exp(-t/9)'`\n"
              "\n"
              "* Program 3dcalc operates on 3D and 3D+time datasets in a similar way.\n"
              "* Program ccalc can be used to evaluate a single numeric expression.\n"
@@ -81,6 +86,10 @@ int main( int argc , char * argv[] )
 
    nopt = 1 ;
    while( nopt < argc ){
+
+      if( strncmp(argv[nopt],"-1D:",2) == 0 ){  /* 20 Feb 2008 */
+        do_1Dc = 1 ; nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-verb") == 0 ){
          verbose++ ;
@@ -247,13 +256,19 @@ int main( int argc , char * argv[] )
 
    /*-- evaluate --*/
 
+   if( dindex && do_1Dc ){
+     do_1Dc = 0; WARNING_message("-1D: is incompatible with -index");
+   }
+   if( do_1Dc ) printf("1D:") ;
    for( ii=0 ; ii < num ; ii++ ){
       for( jj=0 ; jj < 26 ; jj++ )
          if( inar[jj] != NULL ) atoz[jj] = inar[jj][ii] ;
       if( kvar >= 0 ) atoz[kvar] = ii * del + dzero ;
       value = PARSER_evaluate_one( pcode , atoz ) ;
-      if (dindex) printf(" %d\t%g\n", (int)dindex[ii], value) ;
-      else printf(" %g\n",value) ;
+      if (dindex)       printf(" %d\t%g\n", (int)dindex[ii], value) ;
+      else if( do_1Dc ) printf("%g,",value) ;
+      else              printf(" %g\n",value) ;
    }
+   if( do_1Dc ) printf("\n") ;
    exit(0) ;
 }
