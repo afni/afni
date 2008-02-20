@@ -21,11 +21,11 @@ static ni_globals gni =         /* default values for globals   */
         NI_BINARY_MODE          /* write_mode                   */
 };
 
-static int    are_sorted_ints(int *, int);
+static int    nsd_are_sorted_ints(int *, int);
 static int    loc_append_vals(char **, int *, char *, float, float, int, int);
 static char * my_strndup(char *, int);
 static int    nsd_add_colms_range(NI_group *, THD_3dim_dataset *);
-static int    nsd_add_colms_type(THD_datablock *, NI_group *);
+static int    nsd_add_colms_type(int, NI_group *);
 static int    nsd_add_sparse_data(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_str_atr_to_group(char*, char*, THD_datablock*, NI_group*);
 static int    nsd_fill_index_list(NI_group *, THD_3dim_dataset *);
@@ -64,8 +64,8 @@ ENTRY("get_blk_min_max_posn");
     switch(DBLK_BRICK_TYPE(blk, ind)){
         default:{
             fprintf(stderr,"** GBMMP, bad dtype\n");
-            break;
             *fmin = *fmax = 0.0;  *imin = *imax = 0;
+            break;
         }
         case MRI_byte:
         {
@@ -1020,7 +1020,7 @@ ENTRY("THD_dset_to_ni_surf_dset");
 
     nsd_add_str_atr_to_group("BRICK_LABS", "COLMS_LABS", blk, ngr);
     nsd_add_colms_range(ngr, dset);
-    nsd_add_colms_type(blk, ngr);
+    nsd_add_colms_type(blk->nvals, ngr);
     nsd_add_str_atr_to_group("BRICK_STATSYM", "COLMS_STATSYM", blk, ngr);
     nsd_add_str_atr_to_group("HISTORY_NOTE", NULL, blk, ngr);
     nsd_fill_index_list(ngr, dset);                  /* add INDEX_LIST */
@@ -1034,7 +1034,7 @@ ENTRY("THD_dset_to_ni_surf_dset");
 
    return 0 on success
 */
-static int nsd_add_colms_type(THD_datablock * blk, NI_group * ngr)
+static int nsd_add_colms_type(int nvals, NI_group * ngr)
 {
     NI_element * nel;
     char       * str, * slist[1];  /* add_column requires a list of strings */
@@ -1043,17 +1043,20 @@ static int nsd_add_colms_type(THD_datablock * blk, NI_group * ngr)
 ENTRY("nsd_add_colms_type");
 
     /* check usage */
-    if( !blk || !ngr ) RETURN(1);
+    if( nvals <= 0 || !ngr ) RETURN(1);
 
     /* create a new string: "Generic_Float;Generic_Float;..." */
-    plen = 14*blk->nvals + 1;
+
+    /* rcr - update this with more types (that agree with SUMA) */
+
+    plen = 14*nvals + 1;
     str = (char *)malloc(plen * sizeof(char));
 
     /* insert first string */
     strcpy(str, "Generic_Float");
 
     /* and then the rest */
-    for( c = 1; c < blk->nvals; c++ )
+    for( c = 1; c < nvals; c++ )
         strcat(str, ";Generic_Float");
 
     /* now add it to the group */
@@ -1233,8 +1236,8 @@ ENTRY("nsd_fill_index_list");
 
     nel->outmode = gni.write_mode; /* ASCII or BINARY mode (from globals) */
 
-    if( are_sorted_ints(node_list, nx)) strcpy(str, "Yes");
-    else                                strcpy(str, "No");
+    if( nsd_are_sorted_ints(node_list, nx)) strcpy(str, "Yes");
+    else                                    strcpy(str, "No");
 
     NI_set_attribute(nel, "sorted_node_def", str);
     if(gni.debug > 1) fprintf(stderr,"+d set sorted_node_def = %s\n", str);
@@ -1354,11 +1357,11 @@ ENTRY("set_sparse_data_attribs");
 /*------------------------------------------------------------------------*/
 /*! return whether the given list is sorted            23 Aug 2006 [rickr]
 --------------------------------------------------------------------------*/
-static int are_sorted_ints(int *list, int len)
+int nsd_are_sorted_ints(int *list, int len)
 {
     int c;
 
-ENTRY("are_sorted_ints");
+ENTRY("nsd_are_sorted_ints");
 
     if( !list || len <= 0 ) RETURN(0);
     for( c = 0; c < len - 1; c++ )
@@ -1446,6 +1449,20 @@ ENTRY("NI_get_byte_order");
 
 /* ---------------------------------------------------------------------- */
 /* NIML globals access functions                       3 Aug 2006 [rickr] */
+
+/* return the corresponding NI_type, and -1 on failure (since 0 is used) */
+int dtype_nifti_to_niml(int dtype) {
+    switch(dtype) {
+        case NIFTI_TYPE_INT16:   { return NI_SHORT;     }
+        case NIFTI_TYPE_INT32:   { return NI_INT;       }
+        case NIFTI_TYPE_FLOAT32: { return NI_FLOAT32;   }
+        case NIFTI_TYPE_FLOAT64: { return NI_FLOAT64;   }
+        case NIFTI_TYPE_INT8:    { return NI_BYTE;      }
+    }
+
+    return -1;
+}
+
 int set_ni_globs_from_env(void)
 {
 ENTRY("set_ni_globs_from_env");
@@ -1476,3 +1493,4 @@ int  get_gni_to_float( void     ){ return gni.to_float; }
 
 void set_gni_write_mode( int mode ){ gni.write_mode = mode; }
 int  get_gni_write_mode( void     ){ return gni.write_mode; }
+

@@ -828,6 +828,7 @@ int gifti_valid_dims(giiDataArray * da, int whine)
         vals *= da->dims[c];
     }
 
+    /* each DA must have the same length (hmmm, we should check all dims...) */
     if( vals != da->nvals ) {
         if( G.verb > 0 ) {
             fprintf(stderr,"** nvals = %lld does not match %lld for dims[%d]: ",
@@ -1458,6 +1459,43 @@ int gifti_find_DA_list(gifti_image * gim, int intent,
     }
 
     return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! given metadata name, return the corresponding value (or NULL)
+ *
+ *  no allocation is done here
+*//*-------------------------------------------------------------------*/
+char * gifti_get_meta_value(nvpairs * nvp, char * name)
+{
+    int c;
+
+    if( !nvp || !name ) {
+        if( G.verb > 3 )
+          fprintf(stderr,"** get_meta_value: NULL input (%p, %p)\n",
+                (void*)nvp, name);
+        return NULL;
+    }
+
+    if( G.verb > 5 )
+        fprintf(stderr,"-- G_get_meta_value: looking for name = '%s'\n", name);
+
+    if ( !nvp->name || !nvp->value || nvp->length <= 0 ) {
+        if( G.verb > 3 )
+            fprintf(stderr,"-- G_get_meta_value: no name/value array\n");
+        return NULL;
+    }
+
+    for( c = 0; c < nvp->length; c++ )
+        if( !strcmp(nvp->name[c], name) )
+            break;  /* found */
+
+    if( c >= nvp->length ) return NULL;
+
+    if( G.verb > 3 )
+        fprintf(stderr,"++ found meta '%s'='%s'\n",nvp->name[c],nvp->value[c]);
+
+    return nvp->value[c];
 }
 
 /*----------------------------------------------------------------------
@@ -2612,6 +2650,28 @@ int gifti_valid_gifti_image( gifti_image * gim, int whine )
 
     if( errs ) return 0;
     else       return 1;
+}
+
+/*---------------------------------------------------------------------*/
+/*! return whether data exists
+ *
+ *  - darray, each darray[i] and darray[i]->data must be set
+ *  
+ *  return 1 if true, 0 otherwise
+*//*-------------------------------------------------------------------*/
+int gifti_image_has_data(const gifti_image * gim)
+{
+    int c;
+
+    if( !gim || !gim->darray || gim->numDA <= 0 ) return 0;
+
+    for( c = 0; c < gim->numDA; c++ )
+        if( !gim->darray[c] ) {
+            if(G.verb > 3) fprintf(stderr,"** gim missing data at ind %d\n",c);
+            return 0;
+        }
+
+    return 1;
 }
 
 /*---------------------------------------------------------------------*/
