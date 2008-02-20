@@ -4,6 +4,8 @@
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
+# USE_GIFTI = -DHAVE_GIFTI
+# LGIFTI    = -lexpat
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY
@@ -58,7 +60,7 @@ INSTALL_PREREQ = suma_gts
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri /usr/lib64/libXm.a -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) -lm  -ldl -lc
+LLIBS  = -lmri /usr/lib64/libXm.a -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
