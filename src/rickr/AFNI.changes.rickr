@@ -2395,3 +2395,5 @@
   * modified thd_niml.c: added dtype_nifti_to_niml(), plus 2 stupid changes
   * modified thd_gifti.c: added functionality to convert GIFTI to NIML/AFNI
   * modified gifti_io.[ch]: added gifti_get_meta_value and gifti_image_has_data
+  * modified Makefile.linux_xorg7_64: to have the option of GIFTI support
+
