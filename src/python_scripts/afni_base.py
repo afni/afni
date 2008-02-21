@@ -173,7 +173,7 @@ class afni_name:
       return an
                
 class comopt:
-   def __init__(self, name, npar, defpar, acplist=[]):
+   def __init__(self, name, npar, defpar, acplist=[], helpstr=""):
       self.name = name
       self.i_name = -1      # index of option name in argv
       self.n_exp = npar     # Number of expected params, 0 if no params, 
@@ -185,6 +185,7 @@ class comopt:
       self.deflist = defpar # default parameter list,if any
       self.acceptlist = acplist # acceptable values if any
       self.required = 0     # is the argument required?
+      self.helpstr = helpstr  # The help string
       return 
 
    def show(self, mesg = '', short = 0):

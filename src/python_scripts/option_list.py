@@ -39,8 +39,8 @@ class OptionList:
             if com.name == name: count += 1
         return count
 
-    def add_opt(self, name, npar, defpar, acplist=[], req=0, setpar=0):
-        com = afni_base.comopt(name, npar, defpar, acplist)
+    def add_opt(self, name, npar, defpar, acplist=[], req=0, setpar=0, helpstr = ""):
+        com = afni_base.comopt(name, npar, defpar, acplist, helpstr)
         com.required = req
         if setpar: com.parlist = com.deflist
         self.olist.append(com)
