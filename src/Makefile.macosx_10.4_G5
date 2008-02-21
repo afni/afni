@@ -4,6 +4,8 @@
 
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
+# USE_GIFTI = -DHAVE_GIFTI
+# LGIFTI    = -lexpat
 
 CC_G5  = -O3 -funroll-loops -fstrict-aliasing -fsched-interblock               \
          -falign-loops=32 -falign-jumps=16 -falign-functions=16                \
@@ -56,15 +58,15 @@ INSTALL_PREREQ = suma_gts
 
 # for dynamic linking
 
-LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -lc
-# LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -lc
+LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lmri -lc
+# LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lmri -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
 SUMA_GLIB_VER = -2.0
 SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include -I/sw/include
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib -L/sw/lib
-SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lmx -lglib -bind_at_load
+SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 

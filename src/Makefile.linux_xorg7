@@ -5,6 +5,8 @@
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
+# USE_GIFTI = -DHAVE_GIFTI
+# LGIFTI    = -lexpat
 
 # for LFS (large file support): -D_FILE_OFFSET_BITS=64
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
@@ -55,11 +57,11 @@ INSTALL_PREREQ = suma_gts
 
 # for dynamic linking
 
-# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -ldl -lc
+# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri /usr/lib/libXm.a -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) -lm  -ldl -lc
+LLIBS  = -lmri /usr/lib/libXm.a -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 

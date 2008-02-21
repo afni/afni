@@ -2,6 +2,8 @@
 
 # USE_ZLIB = -DHAVE_ZLIB
 # LZLIB    = -lz
+# USE_GIFTI = -DHAVE_GIFTI
+# LGIFTI    = -lexpat
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = gcc -O2 -ffast-math -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING \
@@ -48,15 +50,15 @@ SHOWOFF = -DSHOWOFF=solaris28_gcc
 
 INSTALL_PREREQ = 
 
-LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) -lm $(EXTRA_LIBS)
-# LLIBS  = -lmri -lXm $(EXTRA_LIBS) $(LZLIB) -lm -lc
+LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) $(LGIFTI) -lm $(EXTRA_LIBS)
+# LLIBS  = -lmri -lXm $(EXTRA_LIBS) $(LZLIB) $(LGIFTI) -lm -lc
 
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
 SUMA_INCLUDE_PATH = -I/usr/openwin/share/include/X11 -I../ -I../niml/ -I./ -Igts/src
 SUMA_LINK_PATH = -L/usr/openwin/lib -R/usr/openwin/lib -L../
-SUMA_LINK_LIB = $(LZLIB) -lm -lGL -lGLU -lGLw -lXmu -lXm -lXp -lXt -lXext -lX11 -lsocket -lnsl
+SUMA_LINK_LIB = $(LZLIB) $(LGIFTI) -lm -lGL -lGLU -lGLw -lXmu -lXm -lXp -lXt -lXext -lX11 -lsocket -lnsl
 SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
 SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
