@@ -2,6 +2,8 @@
 
 # USE_ZLIB = -DHAVE_ZLIB
 # LZLIB    = -lz
+# USE_GIFTI = -DHAVE_GIFTI
+# LGIFTI    = -lexpat
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = cc -xO2 -Xa -w -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
@@ -41,7 +43,7 @@ LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./solaris28_suncc
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) -lm $(EXTRA_LIBS)
+LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) $(LGIFTI) -lm $(EXTRA_LIBS)
 
 
 ######################################################################
