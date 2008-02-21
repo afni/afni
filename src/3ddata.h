@@ -3699,6 +3699,7 @@ extern THD_3dim_dataset * THD_ni_surf_dset_to_afni( NI_group *, int ) ;
 extern void * read_niml_file( char *, int ) ;
 extern int    storage_mode_from_niml( void * ) ;
 
+extern int        NI_write_gifti( NI_group *, char * );
 extern NI_group * NI_read_gifti( char * , int ) ;
 
 extern int storage_mode_from_filename( char * fname );      /* 20 Apr 2006 */
@@ -4648,8 +4649,10 @@ extern float THD_BN_rat (void);
 /*------------------------------------------------------------------------*/
 /* 09 May 2005: stuff for converting a dataset to from a NIML group.      */
 
-extern NI_group * THD_nimlize_dsetatr( THD_3dim_dataset *) ;
-extern NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * , int ) ;
+extern NI_group   * THD_nimlize_dsetatr( THD_3dim_dataset *) ;
+extern NI_group   * THD_dset_to_ni_surf_dset( THD_3dim_dataset * , int ) ;
+extern NI_element * NI_find_element_by_aname(NI_group *,char *,char *,char *);
+
 extern void       THD_dblkatr_from_niml( NI_group *, THD_datablock * ) ;
 extern void       THD_set_dataset_attributes( THD_3dim_dataset * ) ;
 
@@ -4660,6 +4663,9 @@ extern int THD_add_sparse_bricks( THD_3dim_dataset *, NI_element *) ;
 
 extern int  NI_get_byte_order(NI_element *) ;    /* 29 Aug 2006 [rickr] */
 extern int  dtype_nifti_to_niml(int dtype);      /* 19 Feb 2008 [rickr] */
+extern int  dtype_niml_to_nifti(int dtype);      /* 20 Feb 2008 [rickr] */
+extern int  nsd_string_atr_to_slist(char ***, int, ATR_string *);
+
 
 extern int  get_gni_debug(void) ;                /*  3 Aug 2006 [rickr] */
 extern int  get_gni_to_float(void) ;
