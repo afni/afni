@@ -1,3 +1,7 @@
+/***** This code is part of the AFNI software package, which is   *****
+ ***** partly in the public domain and partly covered by the GPL. *****
+ ***** See http://afni.nimh.nih.gov/afni for more information.    *****/
+
 #include "mrilib.h"
 
 /*------------------------------------------------------------------*/
@@ -44,7 +48,7 @@ static float * new_lsqfit( int npt  , float *far   ,
 /* Fit the npt-long vector far[] to the nref vectors in ref[].
     - meth=1 ==> L1 fit
     - meth=2 ==> L2 fit (any meth besides 1 or 2 is illegal)
-    - ccon != NULL ==> ccon[i] is constraint on coef #i
+    - ccon != NULL ==> ccon[i] is sign constraint on coef #i
                        ccon[i] = 0 == no constraint
                                > 0 == coef #i must be >= 0
                                < 0 == coef #i must be <= 0
@@ -60,11 +64,12 @@ floatvec * THD_fitter( int npt , float *far  ,
    float *qfit=NULL, val ;
    floatvec *fv=NULL ;
 
-   /* check inputs */
+   /* check inputs for stupid users */
 
    if( npt  <= 1 || far == NULL ||
        nref <= 0 || ref == NULL || nref >= npt-1 )
      ERREX("THD_fitter: bad inputs") ;
+
    for( jj=0 ; jj < nref ; jj++ )
      if( ref[jj] == NULL ) ERREX("THD_fitter: bad ref") ;
 
@@ -75,29 +80,29 @@ floatvec * THD_fitter( int npt , float *far  ,
      /*-- least squares --*/
 
      case 2:
-       if( ccon == NULL ){                           /* unconstrained */
+       if( ccon == NULL ){                            /* unconstrained */
          qfit = new_lsqfit( npt, far, nref, ref ) ;
-       } else {                                      /* constrained */
-         qfit = (float *)malloc(sizeof(float)*nref);
+       } else {                                         /* constrained */
+         qfit = (float *)malloc(sizeof(float)*nref);   /* output array */
          memcpy(qfit,ccon,sizeof(float)*nref) ;
          val = cl2_solve( npt, nref, far, ref, qfit, 1 ) ; /* cf cl2.c */
-         if( val < 0.0f ){ free(qfit); qfit = NULL; }      /* bad */
+         if( val < 0.0f ){ free(qfit); qfit = NULL; }           /* bad */
        }
      break ;
 
      /*-- L1 fitting --*/
 
      case 1:
-       qfit = (float *)malloc(sizeof(float)*nref) ;
+       qfit = (float *)malloc(sizeof(float)*nref) ;          /* output array */
        if( ccon != NULL ) memcpy(qfit,ccon,sizeof(float)*nref) ;
        val = cl1_solve( npt,nref, far,ref, qfit, (ccon!=NULL) ); /* cf cl1.c */
-       if( val < 0.0f ){ free(qfit); qfit = NULL; }              /* bad */
+       if( val < 0.0f ){ free(qfit); qfit = NULL; }                   /* bad */
      break ;
    }
 
-   if( qfit == NULL ) return NULL ;  /* bad */
+   if( qfit == NULL ) return NULL ;  /* bad: didn't get output array */
 
-   MAKE_floatvec(fv,nref) ;
-   memcpy( fv->ar, qfit, sizeof(float)*nref ) ;
-   free(qfit) ; return fv ;
+   MAKE_floatvec(fv,nref) ;                      /* copy output array */
+   memcpy( fv->ar, qfit, sizeof(float)*nref ) ;  /* into floatvec and */
+   free(qfit) ; return fv ;                      /* return to caller. */
 }

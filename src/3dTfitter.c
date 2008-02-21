@@ -1,11 +1,15 @@
+/***** This code is part of the AFNI software package, which is   *****
+ ***** partly in the public domain and partly covered by the GPL. *****
+ ***** See http://afni.nimh.nih.gov/afni for more information.    *****/
+
 #include "mrilib.h"
 
 static void vstep_print(void) ; /* prototype */
 
 int main( int argc , char *argv[] )
 {
-   int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep ;
-   THD_3dim_dataset *rhset=NULL ;
+   int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep=0 ;
+   THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ;
    THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 ;
    THD_3dim_dataset *fset ;
    XtPointer_array *dsar ;
@@ -17,6 +21,7 @@ int main( int argc , char *argv[] )
    floatvec *bfit ;
    float *dvec , **rvec , *cvec=NULL ;
    char **lab=NULL ; int nlab=0 ;
+   int verb=1 ;
 
    /*------- help the pitifully ignorant user? -------*/
 
@@ -85,6 +90,7 @@ int main( int argc , char *argv[] )
       "  -mask ms  = Read in dataset 'ms' as a mask; only voxels with nonzero\n"
       "              values in the mask will be processed.  Voxels falling\n"
       "              outside the mask will be set to all zeros in the output.\n"
+      "  -quiet    = Don't print progress report messages.\n"
       "\n"
       "NON-Options:\n"
       "------------\n"
@@ -117,6 +123,19 @@ int main( int argc , char *argv[] )
       "  #0 sub-brick = -2.0 in all voxels\n"
       "  #1 sub-brick = +1.0 in all voxels\n"
       "  #2 sub-brick = +100.0 in all voxels\n"
+      "\n"
+      "Yet More Contrivance:\n"
+      "---------------------\n"
+      "You can input a 1D file for the RHS dataset, as in the example below:\n"
+      "\n"
+      " 1deval -num 30 -expr 'cos(t)' > Fcos.1D\n"
+      " 1deval -num 30 -expr 'sin(t)' > Fsin.1D\n"
+      " 1deval -num 30 -expr 'exp(-t/20)' > Fexp.1D\n"
+      " 3dTfitter -quiet -RHS Fexp.1D -LHS Fcos.1D Fsin.1D -prefix -\n"
+      "\n"
+      "* Note the use of the '-' as a prefix to write the results\n"
+      "  (just 2 numbers) to stdout, and the use of '-quiet' to hide\n"
+      "  the chatty and informative progress messages.\n"
       "\n"
       "----- RWCox -- Feb 2008.\n"
       "----- Created for the imperial purposes of John A Butman, MD PhD.\n"
@@ -153,7 +172,10 @@ int main( int argc , char *argv[] )
          ERROR_exit("Need argument after %s",argv[iarg-1]);
        if( rhset != NULL )
          ERROR_exit("Can't have two %s options",argv[iarg-1]);
-       rhset = THD_open_dataset( argv[iarg] ) ;
+       rhsnam = malloc(sizeof(char)*(strlen(argv[iarg])+4)) ;
+       strcpy(rhsnam,argv[iarg]) ;
+       if( STRING_HAS_SUFFIX_CASE(rhsnam,"1D") ) strcat(rhsnam,"'");
+       rhset = THD_open_dataset( rhsnam ) ;
        if( rhset == NULL )
          ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
        iarg++ ; continue ;
@@ -237,6 +259,10 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     if( strncasecmp(argv[iarg],"-quiet",2) == 0 ){
+       verb = 0 ; iarg++ ; continue ;
+     }
+
      ERROR_exit("Unknown argument on command line: '%s'",argv[iarg]) ;
    }
 
@@ -246,7 +272,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("No RHS dataset input!?") ;
    ntime = DSET_NVALS(rhset) ;
    if( ntime < 2 )
-     ERROR_exit("RHS dataset has only 1 value per voxel?!") ;
+     ERROR_exit("RHS dataset %s has only 1 value per voxel?!",rhsnam) ;
 
    nx = DSET_NX(rhset); ny = DSET_NY(rhset); nz = DSET_NZ(rhset);
    nvox = nx*ny*nz;
@@ -293,12 +319,15 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( nlset == 0 && meth == 2 && convec == NULL )
+#if 0
+   if( verb && nlset == 0 && meth == 2 && convec == NULL )
      INFO_message("LHS datasets all 1D files ==> you could use 3dDeconvolve");
+#endif
 
    if( nlab < nvar ){
      char lll[32] ;
-     INFO_message("Making up %d LHS labels (out of %d parameters)",nvar-nlab,nvar);
+     if( verb )
+       INFO_message("Making up %d LHS labels (out of %d parameters)",nvar-nlab,nvar);
      lab = (char **)realloc((void *)lab,sizeof(char *)*nvar) ;
      for( ii=nlab ; ii < nvar ; ii++ ){
        sprintf(lll,"Param#%d",ii+1) ; lab[ii] = strdup(lll) ;
@@ -320,7 +349,7 @@ int main( int argc , char *argv[] )
 
    /*----- load input datasets -----*/
 
-   INFO_message("loading input datasets into memory") ;
+   if( verb ) INFO_message("loading input datasets into memory") ;
 
    DSET_load(rhset) ; CHECK_LOAD_ERROR(rhset) ;
    for( ii=0 ; ii < dsar->num ; ii++ ){
@@ -352,10 +381,11 @@ int main( int argc , char *argv[] )
 
    /*------- loop over voxels and process them ---------*/
 
-   INFO_message("begin voxel loop: %d time points X %d fit parameters",
-                ntime , nvar ) ;
-
-   vstep = nvox / 50 ;
+   if( verb ){
+     INFO_message("begin voxel loop: %d time points X %d fit parameters",
+                  ntime , nvar ) ;
+     vstep = nvox / 50 ;
+   }
    if( vstep > 0 ) fprintf(stderr,"++ loop: ") ;
 
    for( ii=0 ; ii < nvox ; ii++ ){
@@ -393,11 +423,12 @@ int main( int argc , char *argv[] )
 
    if( nbad > 0 )
      WARNING_message("Fit worked in %d voxels; failed in %d",ngood,nbad) ;
-   else
+   else if( verb )
      INFO_message("Fit worked on all %d voxels",ngood) ;
 
-   DSET_write(fset); WROTE_DSET(fset);
-   INFO_message("Total CPU time = %.1f s",COX_cpu_time()) ;
+   DSET_write(fset);
+   if( verb ) WROTE_DSET(fset);
+   if( verb ) INFO_message("Total CPU time = %.1f s",COX_cpu_time()) ;
    exit(0);
 }
 

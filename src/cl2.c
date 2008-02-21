@@ -1,8 +1,6 @@
-#line 1 "cl2.f"
-/* cl2.f -- translated by f2c (version 20030320).
-   You must link the resulting object file with the libraries:
-	-lf2c -lm   (in that order)
-*/
+/***** This code is part of the AFNI software package, which is   *****
+ ***** partly in the public domain and partly covered by the GPL. *****
+ ***** See http://afni.nimh.nih.gov/afni for more information.    *****/
 
 #include <math.h>
 #include <stddef.h>
@@ -57,14 +55,15 @@ static int wnlit_(real *, integer *, integer *, integer *,
 
   for y[j] (j=0..nvec-1), subject to constraints (based on y[j] input)
 
-  If input cony != 0, then you can supply constraints on the values
+  If input cony != 0, then you can supply sign constraints on the values
   of the output y[j] by putting values into the input y[j]:
 
   input y[j] =  0 ==> unconstrained
              =  1 ==> y[j] must be non-negative on output
              = -1 ==> y[j] must be non-positive on output
 
-  If cony == 0, then the input y[j] is ignored. (But see note below!)
+  If cony == 0, then the input y[j] is ignored.
+  (But see note below for the case cony == 0!)
 
   The return value of the function is E = size of residuals >= 0.0f,
   if everything worked, and is a negative number if an error occured.
@@ -74,6 +73,8 @@ static int wnlit_(real *, integer *, integer *, integer *,
      which a number of other AFNI library functions do (e.g., lsqfit).
   ** Also see the analogous cl1_solve() function in cl1.c, which does
      the same thing but with an L1 cost function instead of L2.
+  ** Also see thd_fitter.c which can handle both L1 and L2 fitting,
+     with and without constraints.
 *//*------------------------------------------------------------------------*/
 
 float cl2_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
@@ -193,6 +194,11 @@ float cl2_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
 /*======================================================================
    Translated from the TOMS library algorithm #587
 ========================================================================*/
+
+/* cl2.f -- translated by f2c (version 20030320).
+   You must link the resulting object file with the libraries:
+	-lf2c -lm   (in that order)
+*/
 
 #undef INLINE
 #ifdef __GNUC__
