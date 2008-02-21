@@ -188,6 +188,7 @@ end
 rm -f tmp_box+orig* tmp_avg+orig*
 
 echo "Recommended commands:"
+echo "   (make sure you kill all pre-existing AFNI sessions first)"
 echo "afni -niml -yesplugouts &"
 echo "@AddEdge"
 if (-f ${listlog}) goto LOG_EXISTS
@@ -309,19 +310,29 @@ while ($cnt < $#olist)
       set nx = $<
       if ("$nx" == 'r') then
          set stay = 1
+         if ($do_rand == 1) then
+            set ojpg = ${uname}${dd}
+         else
+            set ojpg = ${prs}
+         endif
          plugout_drive \
             -com "SEE_OVERLAY +"   \
-            -com "SAVE_JPEG A.axialimage ${uname}${dd}axi_$ana.jpg"  \
-            -com "SAVE_JPEG A.sagittalimage ${uname}${dd}sag_$ana.jpg"  \
+            -com "SAVE_JPEG A.axialimage ${ojpg}axi_$ana.jpg"  \
+            -com "SAVE_JPEG A.sagittalimage ${ojpg}sag_$ana.jpg"  \
             -quit 
       endif
       if ("$nx" == 'q')   goto END
    end
    #auto_record
-   echo "Autorecording number ${ilbl} to at${uname}${ilbl}${dd}..."
+   if ($do_rand == 1) then
+      set ojpg = at${uname}${ilbl}${dd}
+   else
+      set ojpg = ${prs}
+   endif
+   echo "Autorecording number ${ilbl} to ${ojpg}..."
    plugout_drive \
-            -com "SAVE_JPEG A.axialimage at${uname}${ilbl}${dd}axi_$ana.jpg"  \
-            -com "SAVE_JPEG A.sagittalimage at${uname}${ilbl}${dd}sag_$ana.jpg"\
+            -com "SAVE_JPEG A.axialimage ${ojpg}axi_$ana.jpg"  \
+            -com "SAVE_JPEG A.sagittalimage ${ojpg}sag_$ana.jpg"\
             -quit
    if ("$nx" == 's') then
       if ($do_rand == 1) then
