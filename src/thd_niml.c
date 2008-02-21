@@ -29,7 +29,6 @@ static int    nsd_add_colms_type(int, NI_group *);
 static int    nsd_add_sparse_data(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_str_atr_to_group(char*, char*, THD_datablock*, NI_group*);
 static int    nsd_fill_index_list(NI_group *, THD_3dim_dataset *);
-static int    nsd_string_atr_to_slist(char ***, int, ATR_string *);
 static int    process_NSD_attrs(THD_3dim_dataset *);
 static int    process_NSD_group_attrs(NI_group *, THD_3dim_dataset *);
 static int    process_NSD_index_list(NI_group *, THD_datablock *);
@@ -485,7 +484,7 @@ ENTRY("THD_write_niml");
 
     return the number of strings found
 */
-static int nsd_string_atr_to_slist(char *** slist, int llen, ATR_string * atr)
+int nsd_string_atr_to_slist(char *** slist, int llen, ATR_string * atr)
 {
     int sind, posn, prev, copy_len;
     int found = 0;
@@ -505,7 +504,7 @@ ENTRY("nsd_string_atr_to_slist");
         RETURN(0); 
     }
 
-    if(gni.debug > 1)
+    if(gni.debug > 2)
     {
         if( atr ) fprintf(stderr,"+d getting string attrs from %s\n",atr->name);
         else      fprintf(stderr,"+d setting default strings\n");
@@ -715,9 +714,8 @@ ENTRY("process_NSD_sparse_data");
         if( nel->vec_typ[ind] != NI_FLOAT &&
             nel->vec_typ[ind] != NI_INT )
         {
-            if(gni.debug)
-                fprintf(stderr,"** NI_SURF_DSET has non-float type %d\n",
-                        nel->vec_typ[ind]);
+            fprintf(stderr,"** NI_SURF_DSET has has invalid type %d\n",
+                    nel->vec_typ[ind]);
             RETURN(1);
         }
 
@@ -886,13 +884,19 @@ int THD_add_sparse_data(THD_3dim_dataset * dset, NI_group * ngr )
 
 ENTRY("THD_add_sparse_data");
 
-    if( !dset || !ngr ) RETURN(0);
+    if( !dset || !ngr ) {
+        if(gni.debug > 1) fprintf(stderr,"** bad params to add_sparse_data\n");
+        RETURN(0);
+    }
     blk = dset->dblk;
     nvals = blk->nvals;
 
     ind = NI_search_group_shallow(ngr, "SPARSE_DATA", &elist);
     if( ind > 0 ) { nel = (NI_element *)elist[0]; NI_free(elist); }
-    if( !nel ) RETURN(0);
+    if( !nel ) {
+        if(gni.debug > 1) fprintf(stderr,"-- no SPARSE_DATA to add\n");
+        RETURN(0);
+    }
 
     /* if mlist is NULL, no mastery */
     if( DBLK_IS_MASTERED(blk) ) mlist = blk->master_ival;
@@ -986,7 +990,7 @@ ENTRY("THD_add_sparse_data");
     - apply HISTORY_NOTE
     
 */
-NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * dset, int write_data )
+NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * dset, int copy_data )
 {
     THD_datablock * blk;
     NI_group      * ngr;
@@ -1024,7 +1028,7 @@ ENTRY("THD_dset_to_ni_surf_dset");
     nsd_add_str_atr_to_group("BRICK_STATSYM", "COLMS_STATSYM", blk, ngr);
     nsd_add_str_atr_to_group("HISTORY_NOTE", NULL, blk, ngr);
     nsd_fill_index_list(ngr, dset);                  /* add INDEX_LIST */
-    if( write_data ) nsd_add_sparse_data(ngr, dset); /* add SPARSE_DATA */
+    if( copy_data ) nsd_add_sparse_data(ngr, dset);  /* add SPARSE_DATA */
 
     RETURN(ngr);
 }
@@ -1295,7 +1299,8 @@ ENTRY("nsd_add_sparse_data");
     /* create initial element of length nx */
     nel = NI_new_data_element("SPARSE_DATA", nx);
 
-    if(gni.debug > 1) fprintf(stderr,"+d adding %d data columns\n", blk->nvals);
+    if(gni.debug > 1)
+        fprintf(stderr,"+d sparse_data: adding %d data columns\n", blk->nvals);
 
     /* insert data */
     for( ind = 0; ind < blk->nvals; ind++ )
@@ -1461,6 +1466,48 @@ int dtype_nifti_to_niml(int dtype) {
     }
 
     return -1;
+}
+
+/* return the corresponding NIFTI_type, and DT_UNKNOWN on failure */
+int dtype_niml_to_nifti(int dtype) {
+    switch(dtype) {
+        case NI_SHORT:  { return NIFTI_TYPE_INT16;   }
+        case NI_INT:    { return NIFTI_TYPE_INT32;   }
+        case NI_FLOAT32:{ return NIFTI_TYPE_FLOAT32; }
+        case NI_FLOAT64:{ return NIFTI_TYPE_FLOAT64; }
+        case NI_BYTE:   { return NIFTI_TYPE_INT8;    }
+    }
+
+    return 0;   /* some #define seems to get in the way of DT_UNKNOWN */
+}
+
+/* return the first element where name is 'ename' and atr_name is 'atr_name' */
+NI_element * NI_find_element_by_aname(NI_group * ngr, char * ename,
+                                      char * aname, char * aval)
+{
+    NI_element  * nel = NULL;
+    void       ** elist = NULL;
+    char       ** sar, * atr;
+    int           ind, c;
+
+    ENTRY("NI_find_element_by_aname");
+
+    if( !ngr || !ename || !aname || !aval ) RETURN(NULL);
+
+    ind = NI_search_group_shallow(ngr, ename, &elist);
+    if( ind <= 0 ) RETURN(NULL);  /* no such name */
+
+    for( c = 0; c < ind; c++ ) {
+        atr = NI_get_attribute(elist[c], aname);
+        if( !strcmp(atr, aval) ) {   /* found! */
+            nel = (NI_element *)elist[c];
+            break;
+        }
+    }
+
+    NI_free(elist);
+
+    RETURN(nel);
 }
 
 int set_ni_globs_from_env(void)

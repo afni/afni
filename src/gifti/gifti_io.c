@@ -76,9 +76,11 @@ static char * gifti_history[] =
   "             gifti_valid_gifti_image()\n"
   "     - added control over library updates to metadata\n"
   "     - expanded checks in gifti_valid_dims\n"
+  "0.13 20 February, 2008:\n",
+  "     - added gifti_get_meta_value() and gifti_image_has_data()\n"
 };
 
-static char gifti_version[] = "gifti library version 0.12, 16 January, 2008";
+static char gifti_version[] = "gifti library version 0.13, 20 February, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
