@@ -58,7 +58,7 @@
         return NULL;
     }
 
-    int NI_write_gifti(NI_group ngr, char * fname, int add_index)
+    int NI_write_gifti(NI_group * ngr, char * fname)
     {
         fprintf(stderr,"** cannot write '%s', no compiled GIFTI support\n",
                 fname ? fname : "NULL");

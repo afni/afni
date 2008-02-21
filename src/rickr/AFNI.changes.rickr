@@ -2397,3 +2397,12 @@
   * modified gifti_io.[ch]: added gifti_get_meta_value and gifti_image_has_data
   * modified Makefile.linux_xorg7_64: to have the option of GIFTI support
 
+21 Feb 2008: GIFTI I/O mostly working
+  * modified 3ddata.h: added NI_write_gifti(), NI_find_element_by_aname(),
+                             dtype_niml_to_nifti(), nsd_string_atr_to_slist()
+  * modified gifti_choice.c: changed NI_write_gifti() prototype
+  * modified thd_niml.c:
+      - exported nsd_string_atr_to_slist()
+      - added dtype_niml_to_nifti(), NI_find_element_by_aname()
+  * modified thd_gifti.c: added functions to convert AFNI->GIFTI
+

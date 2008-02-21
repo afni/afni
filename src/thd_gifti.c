@@ -7,8 +7,8 @@
  * THD_3dim_dataset * THD_load_gifti (THD_datablock *dblk)
  * Boolean            THD_write_gifti(THD_3dim_dataset *dset, int write_data)
  *
- * NI_group         * NI_read_gifti  (char *fname, int read_data)
- * int                NI_write_gifti (NI_group ngr, char *fname, int add_index)
+ * NI_group         * NI_read_gifti (char *fname, int read_data)
+ * int                NI_write_gifti(NI_group *ngr, char *fname)
  *
  *----------------------------------------------------------------------
  */
@@ -19,13 +19,15 @@
 
 typedef struct {        /* put this in thd_gifti.h ? */
     int add_index_list; /* if no NIFTI_INTENT_NODE_LIST, add a default */
-    int write_mode;     /* ASCII or BINARY */
+    int write_mode;     /* BINARY (0) or ASCII (1) */
+    int gverb;
     int verb;
 } gifti_globs_t;
 
-gifti_globs_t gifti_globs = { 0, NI_BINARY_MODE, 1 };
+gifti_globs_t gifti_globs = { 0, NI_BINARY_MODE, 1, 1 };
 static gifti_globs_t * GP = &gifti_globs; /* for ease of access */
 
+/*--- read gifti routines ---*/
 static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data);
 
 static int add_string_attribute(NI_group * ngr, char * aname, char * value);
@@ -48,6 +50,15 @@ static int nsd_are_sorted_ints(int * list, int len);
 static char * gifti_DA_meta_concat(gifti_image * gim, char * name,
                                    char * def, char * sep);
 static char * nifti2suma_typestring(int niftitype);
+
+/*--- write gifti routines ---*/
+static int nsdg_add_data(NI_element * sdel, gifti_image * gim);
+static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim);
+static int nsdg_labs_to_meta(NI_group * ngr, gifti_image * gim);
+static int nsdg_set_history(NI_group * ngr, gifti_image * gim);
+static int nsdg_stat_to_intent(NI_group * ngr, gifti_image * gim);
+
+static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname);
 
 /*
  * - sub-brick selection in NI_read_gifti()?
@@ -100,7 +111,8 @@ int THD_load_gifti(THD_datablock * dblk)
     if( !ngr ) {
         fprintf(stderr,"** failed to load GIFTI dset '%s'\n", fname);
         RETURN(1);
-    }
+    } else if( GP->verb > 2 )
+        fprintf(stderr,"-- have NI_group NSD, adding sparse data...\n");
 
     rv = THD_add_sparse_data(dblk->parent, ngr);
     NI_free_element(ngr);
@@ -112,20 +124,44 @@ int THD_load_gifti(THD_datablock * dblk)
         fprintf(stderr,"** loaded only %d vols for '%s'\n",rv,fname);
         RETURN(1);
     } else if (GP->verb > 2)
-        fprintf(stderr,"++ THD_load_gifti added %d columns\n", rv);
+        fprintf(stderr,"++ THD_load_gifti succeeded, adding %d columns\n", rv);
 
     RETURN(0);
 }
 
 Boolean THD_write_gifti(THD_3dim_dataset * dset, int write_data)
 {
-    char * prefix;
+    NI_group * ngr;
+    char     * prefix;
+    int        rv;
 
     ENTRY("THD_write_gifti");
 
+    gifti_globs_from_env();     /* for thd_gifti */
+    set_ni_globs_from_env();    /* for thd_niml */
+
     prefix = DSET_PREFIX(dset);
-    fprintf(stderr,"** THD_write_gifti: '%s', coming soon\n", prefix);
-    RETURN(False);
+
+    if( !prefix ) {
+        if( GP->verb ) fprintf(stderr,"** THD_write_gifti: no dset prefix\n");
+        RETURN(False);
+    }
+
+    if( GP->verb > 1 )
+        fprintf(stderr,"++ THD_write_gifti: converting '%s' to NSD\n", prefix);
+
+    ngr = THD_dset_to_ni_surf_dset(dset, write_data);
+    if( !ngr ) {
+        fprintf(stderr,"** failed dset to NSD for '%s'\n", prefix);
+        RETURN(False);
+    }
+
+    rv = NI_write_gifti(ngr, prefix);
+
+    NI_free_element(ngr);
+
+    if( rv ) RETURN(False);
+    else     RETURN(True);
 }
 
 /* ------------------------------- NIML ------------------------------- */
@@ -148,7 +184,7 @@ NI_group * NI_read_gifti(char * fname, int read_data)
 
     if( GP->verb > 2 ) fprintf(stderr,"-- NI_read_gifti from '%s'\n", fname );
 
-    gifti_set_verb(GP->verb);
+    gifti_set_verb(GP->gverb);
 
     gim = gifti_read_image(fname, read_data);
     if( !gim ) {
@@ -177,18 +213,385 @@ NI_group * NI_read_gifti(char * fname, int read_data)
     RETURN(ngr);
 }
 
-int NI_write_gifti(NI_group ngr, char * fname, int add_index)
+/* write the NSD dataset to a GIFTI file
+ *
+ * if add_index:  add a NIFTI_INTENT_NODE_INDEX DataArray
+ */
+int NI_write_gifti(NI_group * ngr, char * fname)
 {
-    fprintf(stderr,"** cannot write '%s', no compiled GIFTI support\n",
-            fname ? fname : "NULL");
-    return 1;
+    gifti_image * gim;
+    int           rv;
+
+    ENTRY("NI_write_gifti");
+
+    gifti_globs_from_env();     /* for thd_gifti (maybe done already) */
+    gifti_set_verb(GP->gverb);
+
+    if( !ngr || !fname ) {
+        fprintf(stderr,"** NI_write_nifti: bad params\n");
+        RETURN(1);
+    } else if( NI_element_type(ngr) != NI_GROUP_TYPE ) {
+        fprintf(stderr,"** NI_write_nifti: ngr is not NI_GROUP_TYPE\n");
+        RETURN(1);
+    }
+
+    if(GP->verb > 2) fprintf(stderr,"-- NI_write_gifti file %s ...\n", fname);
+
+    gim = NSD_to_gifti(ngr, fname);
+
+    if( !gim ) {
+        if(GP->verb) fprintf(stderr,"** failed NSD_to_gifti for '%s'\n",fname);
+        RETURN(1);
+    } else if( GP->verb > 1 )
+        fprintf(stderr,"++ have gifti from NSD, writing image to '%s'\n",fname);
+
+    rv = gifti_write_image(gim, fname, 1);
+
+    if( GP->verb > 2 )
+        fprintf(stderr,"-- gifti_write_image complete, freeing gim...\n");
+
+    gifti_free_image(gim);
+
+    RETURN(rv);
+}
+
+/* convert between dataset types: NI_SURF_DSET to GIFTI */
+static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
+{
+    gifti_image * gim;
+    NI_element  * nel, * sdel = NULL;
+    void       ** elist = NULL;
+    char        * rhs, * id = NULL;
+    int           numDA, intent, dtype, ndim, dims[GIFTI_DARRAY_DIM_LEN] = {0};
+    int           ind, has_time, rv;
+
+    ENTRY("NSD_to_gifti");
+
+    /* get dimensions and such to create basic gifti dataset */
+    ind = NI_search_group_shallow(ngr, "SPARSE_DATA", &elist);
+    if(ind > 0){ sdel = (NI_element *)elist[0]; NI_free(elist); elist = NULL; }
+    
+    if( !sdel || sdel->vec_num <= 0 || sdel->vec_len <= 0 ) {
+        if( GP->verb ) fprintf(stderr,"** NSD_to_gifti: missing SPARSE_DATA\n");
+        RETURN(NULL);
+    }
+    has_time = NI_get_attribute(sdel, "ni_timestep") != NULL;
+
+    /* set basic gifti attributes */
+    numDA   = sdel->vec_num;
+    intent  = has_time ? NIFTI_INTENT_TIME_SERIES : NIFTI_INTENT_NONE;
+    dtype   = dtype_niml_to_nifti(sdel->vec_typ[0]);
+    ndim    = 1;
+    dims[0] = sdel->vec_len;
+
+    /* last check before we start trashing the place */
+    if( dtype == 0 ) {
+        if( GP->verb > 0 )
+            fprintf(stderr,"** NSD2Gii: bad NI_type %d\n", sdel->vec_typ[0]);
+        RETURN(NULL);
+    }
+
+    if( GP->verb > 2 ) fprintf(stderr,"++ creating gifti_image...\n");
+
+    /*--- create an initial gifti_image ---*/
+    gim = gifti_create_image(numDA, intent, dtype, ndim, dims, 0);
+    if( !gim ) {
+        fprintf(stderr,"** NSD2Gii: failed gifti_create_image\n");
+        RETURN(NULL);
+    }
+
+    /*--- start populating the image, first with metadata ---*/
+
+    /* add UniqueID MD */
+    if( GP->verb > 4 ) fprintf(stderr,"++ adding idcode...\n");
+    rhs = NI_get_attribute(ngr, "self_idcode");
+    if( !rhs ) NI_get_attribute(ngr, "ni_idcode");
+    if( !rhs ) { id = UNIQ_idcode(); rhs = id; }
+    gifti_add_to_meta(&gim->meta, "UniqueID", rhs, 1);
+    if( id ) free(id);
+
+    /* range is not used, type was set from SPARSE_DATA */
+
+    rv = nsdg_labs_to_meta(ngr, gim);
+    if( !rv ) rv = nsdg_stat_to_intent(ngr, gim);
+    if( !rv ) rv = nsdg_set_history(ngr, gim);
+    if( !rv ) rv = nsdg_add_data(sdel, gim);
+    if( !rv ) rv = nsdg_add_index_list(ngr, gim);
+
+    /* on failure, nuke image */
+    if( rv ) { gifti_free_image(gim); RETURN(NULL); }
+
+    RETURN(gim);
+}
+
+/* copy or steal data
+ *
+ * dims and type are set, just insert the data
+ */
+static int nsdg_add_data(NI_element * sdel, gifti_image * gim)
+{
+    giiDataArray * da;
+    void         * dp;
+    int            c;
+
+    ENTRY("nsdg_add_data");
+
+    if( GP->verb > 1 ) fprintf(stderr, "++ adding data to gim ...\n");
+
+    /* allocate all data */
+    if( gifti_alloc_DA_data(gim, NULL, 0) ) RETURN(1);
+
+    /* now walk through the list and either copy data or steal pointers */
+    for( c = 0; c < gim->numDA; c++ ) {
+        da = gim->darray[c];
+        switch( da->datatype ) {
+            default: {
+                fprintf(stderr,"** nsdg_add_data: invalid dtype %s\n",
+                        gifti_datatype2str(da->datatype));
+                RETURN(1);
+            }
+            case NIFTI_TYPE_INT16: {
+                short * data = (short *)sdel->vec[c];
+                memcpy(da->data, data, da->nvals*sizeof(short));
+                break;
+            }
+            case NIFTI_TYPE_INT32: {
+                int * data = (int *)sdel->vec[c];
+                memcpy(da->data, data, da->nvals*sizeof(int));
+                break;
+            }
+            case NIFTI_TYPE_FLOAT32: {
+                float * data = (float *)sdel->vec[c];
+                memcpy(da->data, data, da->nvals*sizeof(float));
+                break;
+            }
+            case NIFTI_TYPE_FLOAT64: {
+                double * data = (double *)sdel->vec[c];
+                memcpy(da->data, data, da->nvals*sizeof(double));
+                break;
+            }
+            case NIFTI_TYPE_INT8: {
+                char * data = (char *)sdel->vec[c];
+                memcpy(da->data, data, da->nvals*sizeof(char));
+                break;
+            }
+        }
+        if(GP->write_mode == NI_TEXT_MODE) da->encoding = GIFTI_ENCODING_ASCII;
+    }
+
+    if( GP->verb > 1 )
+      fprintf(stderr,"-- setting encoding to %s\n",
+        gifti_list_index2string(gifti_encoding_list, gim->darray[0]->encoding));
+
+    RETURN(0);
+}
+
+/* convert any COLMS_LABS to meta */
+static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
+{
+    giiDataArray  * da;
+    NI_element    * nel;
+    void         ** elist = NULL;
+    char          * rhs;
+    int             ni_type, ind, c, len = 0, sorted = 0, def = 0;
+
+    ENTRY("nsdg_add_index_list");
+
+    if( GP->verb > 4 ) fprintf(stderr,"++ nsdg_add_index_list ...\n");
+
+    ind = NI_search_group_shallow(ngr, "INDEX_LIST", &elist);
+    if(ind > 0){ nel = (NI_element *)elist[0]; NI_free(elist); elist = NULL; }
+    if( !nel || nel->vec_num <= 0 || nel->vec_len <= 0 ) {
+        if(GP->verb>1) fprintf(stderr,"-- NSD_to_gifti: missing INDEX_LIST\n");
+        RETURN(0);
+    }
+    if( nel->vec_typ[0] != NI_INT ) {
+        if(GP->verb>1) fprintf(stderr,"** bad type in INDEX_LIST\n");
+        RETURN(1);
+    }
+
+    len = nel->vec_len;
+    if( len <= 0 ) {
+        if( GP->verb > 1 ) fprintf(stderr,"** bad vec_len in INDEX_LIST\n");
+        RETURN(1);
+    }
+
+    rhs = NI_get_attribute(nel, "sorted_node_def");
+    if( rhs )  sorted = *rhs == 'Y' || *rhs == 'y';
+
+    if( sorted && len == (int)gim->darray[0]->nvals ) def = 1;
+
+    /* if it appears to be the default, skip it */
+    if( GP->verb > 2 )
+        fprintf(stderr,"-- INDEX_LIST len = %d, sorted = %d, default = %d\n",
+                len, sorted, def);
+
+    if( def ) {
+        if( GP->verb > 1 ) fprintf(stderr,"-- skipping default INDEX_LIST\n");
+        RETURN(0);
+    }
+
+    /* okay, let's actually add the list as NIFTI_INTENT_NODE_INDEX */
+    if( GP->verb > 3 ) fprintf(stderr,"++ inserting NODE_INDEX element...\n");
+
+    if( gifti_add_empty_darray(gim, 1) ) RETURN(1);
+
+    da = gim->darray[gim->numDA-1];
+
+    gifti_set_DA_defaults(da);
+    da->intent   = NIFTI_INTENT_NODE_INDEX;
+    da->datatype = NIFTI_TYPE_INT32;
+    da->num_dim  = 1;
+    da->dims[0]  = len;
+    if( GP->write_mode == NI_TEXT_MODE ) da->encoding = GIFTI_ENCODING_ASCII;
+
+    /* allocate and copy the data */
+    da->data = (int *)malloc(len * sizeof(int));
+    memcpy(da->data, nel->vec[0], len*sizeof(int));
+
+    RETURN(0);
+}
+
+/* convert any HISTORY_NOTE to gim->meta:History */
+static int nsdg_set_history(NI_group * ngr, gifti_image * gim)
+{
+    ATR_string    atr_str;      /* fill with element values */
+    NI_element  * nel;
+    char       ** sar, * hstr;
+    int           np, ind, c;
+
+    ENTRY("nsdg_set_history");
+
+    if( GP->verb > 4 ) fprintf(stderr,"++ nsdg_set_history...\n");
+
+    nel = NI_find_element_by_aname(ngr,"AFNI_atr","atr_name","HISTORY_NOTE");
+    if( !nel ) {
+        if( GP->verb > 2 )fprintf(stderr,"-- no history to copy\n");
+        RETURN(0);
+    }
+
+    hstr = ((char **)nel->vec[0])[0];  /* data is encoded stat string */
+    if( GP->verb > 3 )
+        fprintf(stderr,"++ G_set_history: hstr = '%s'\n", hstr);
+
+    gifti_add_to_meta(&gim->meta, "History", hstr, 1);
+
+    RETURN(0);
+}
+
+/* convert any COLMS_LABS to meta */
+static int nsdg_labs_to_meta(NI_group * ngr, gifti_image * gim)
+{
+    ATR_string    atr_str;      /* fill with element values */
+    NI_element  * nel;
+    char       ** sar, * labstr;
+    int           np, ind, c;
+
+    ENTRY("nsdg_labs_to_meta");
+
+    if( GP->verb > 4 ) fprintf(stderr,"++ nsdg_labs_to_meta...\n");
+
+    nel = NI_find_element_by_aname(ngr,"AFNI_atr","atr_name","COLMS_LABS");
+    if( !nel ) {
+        if( GP->verb > 2 )fprintf(stderr,"-- no colms_labs for labels\n");
+        RETURN(0);
+    }
+
+    labstr = ((char **)nel->vec[0])[0];  /* data is encoded stat string */
+    if( GP->verb > 3 )
+        fprintf(stderr,"++ G_labs_to_meta: labstr = '%s'\n", labstr);
+
+    /* put into ATR_string format, which has no extra allocation */
+    atr_str.type = ATR_STRING_TYPE;
+    atr_str.name = nel->name;
+    atr_str.nch  = strlen(labstr);
+    atr_str.ch   = labstr;
+
+    /* rip it into pieces */
+    np = nsd_string_atr_to_slist(&sar, gim->numDA, &atr_str);
+    if( !sar || np <= 0 ) {
+        if( GP->verb > 3 )
+            fprintf(stderr,"** have COLMS_LABS, but it is empty\n");
+        RETURN(0);
+    } else if ( np != gim->numDA && GP->verb > 1 ) /* just warn user */
+        fprintf(stderr,"** NSA2S returned only %d of %d ptrs\n",np,gim->numDA);
+
+    /* apply any labels that are not "none" */
+    for( ind = 0; ind < gim->numDA; ind++ ) {
+        if( sar[ind][0] && strcmp(sar[ind], "none") )
+            gifti_add_to_meta(&gim->darray[ind]->meta, "Name", sar[ind], 1);
+        free(sar[ind]);
+    }
+    free(sar);
+
+    RETURN(0);
+}
+
+/* convert any COLMS_STATSYM to intent and parms */
+static int nsdg_stat_to_intent(NI_group * ngr, gifti_image * gim)
+{
+    ATR_string    atr_str;      /* fill with element values */
+    NI_element  * nel;
+    char       ** sar, * statstr;
+    char          istr[10] = "intent_p1";         /* update for pX */
+    float         parm[3];
+    int           scode, np, ind, c;
+
+    ENTRY("nsdg_stat_to_intent");
+
+    if( GP->verb > 4 ) fprintf(stderr,"++ nsdg_stat_to_intent...\n");
+
+    nel = NI_find_element_by_aname(ngr,"AFNI_atr","atr_name","COLMS_STATSYM");
+    if( !nel )
+        nel=NI_find_element_by_aname(ngr,"AFNI_atr","atr_name","BRICK_STATSYM");
+    if( !nel ) {
+        if( GP->verb > 2 )fprintf(stderr,"-- no colms_statsym for intents\n");
+        RETURN(0);
+    }
+
+    statstr = ((char **)nel->vec[0])[0];  /* data is encoded stat string */
+    if( GP->verb > 3 )
+        fprintf(stderr,"++ G_stat_to_intent: statstr = '%s'\n", statstr);
+
+    /* put into ATR_string format, which has no extra allocation */
+    atr_str.type = ATR_STRING_TYPE;
+    atr_str.name = nel->name;
+    atr_str.nch  = strlen(statstr);
+    atr_str.ch   = statstr;
+
+    /* rip it into pieces */
+    np = nsd_string_atr_to_slist(&sar, gim->numDA, &atr_str);
+    if( !sar || np <= 0 ) {
+        if( GP->verb > 3 )
+            fprintf(stderr,"** have STATSYM, but it is empty\n");
+        RETURN(0);
+    } else if ( np != gim->numDA && GP->verb > 0 ) /* just warn user */
+        fprintf(stderr,"** NSA2S returned only %d of %d ptrs\n",np,gim->numDA);
+
+    /* apply any valid codes */
+    for( ind = 0; ind < gim->numDA; ind++ ) {
+        NI_stat_decode(sar[ind], &scode, parm, parm+1, parm+2);
+        if( scode >= AFNI_FIRST_STATCODE && scode <= AFNI_LAST_STATCODE ) {
+            np = NI_stat_numparam(scode);
+            gim->darray[ind]->intent = scode;
+            for( c = 0; c < np; c++ ) {
+                istr[8] = '1' + c;
+                gifti_add_to_meta(&gim->darray[ind]->meta,
+                                  istr, MV_format_fval(parm[c]), 1);
+            }
+        }
+        free(sar[ind]);
+    }
+    free(sar);
+
+    RETURN(0);
 }
 
 /* convert between dataset types: GIFTI to NI_SURF_DSET */
 static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
 {
     NI_group * ngr;
-    char     * cp;
+    char     * cp, * id = NULL;
 
     ENTRY("gifti_to_NSD");
 
@@ -205,7 +608,9 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
 
     /* get or create an ID code */
     cp = gifti_get_meta_value(&gim->meta, "UniqueID");
-    NI_set_attribute(ngr, "self_idcode", cp ? cp : UNIQ_idcode());
+    if( !cp ){ id = UNIQ_idcode(); cp = id; }
+    NI_set_attribute(ngr, "self_idcode", cp);
+    if( id ) free(id);
 
     cp = gifti_get_meta_value(&gim->meta, "filename");
     if( cp ) NI_set_attribute(ngr, "filename", cp);
@@ -229,7 +634,7 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
     RETURN(ngr);
 }
 
-/* --------------------------- static functions ---------------------- */
+/* ------------------------- static functions ------------------------ */
 
 /* add a SPARSE_DATA element from the gifti_image (skip INTENT_NODE_INDEX) */
 static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
@@ -385,7 +790,7 @@ static int nsd_add_gifti_stat_codes(NI_group * ngr, gifti_image * gim)
     /* first, compute the needed space */
     for( c = 0; c < gim->numDA; c++ ) {
         da = gim->darray[c];
-        if( da->intent < NI_STAT_FIRSTCODE || da->intent > NI_STAT_LASTCODE ) {
+        if(da->intent >= NI_STAT_FIRSTCODE && da->intent <= NI_STAT_LASTCODE) {
             p1 = p2 = p3 = 0.0; /* init */
             ncodes = get_meta_stat_codes(&da->meta, &p1, &p2, &p3);
             str = NI_stat_encode(da->intent, p1, p2, p3);
@@ -839,35 +1244,6 @@ static char * gifti_DA_meta_concat(gifti_image * gim, char * name,
     return result;
 }
 
-
-static int gifti_globs_from_env(void)
-{
-    char * ept = NULL;
-
-    ept = my_getenv("AFNI_NIML_DEBUG");
-    if( ept ) GP->verb = atoi(ept);       /* adjust if set */
-
-    GP->add_index_list = AFNI_yesenv("AFNI_NSD_ADD_NODES");
-    GP->write_mode = AFNI_yesenv("AFNI_NIML_TEXT_DATA") ? NI_TEXT_MODE :
-                                                          NI_BINARY_MODE;
-
-    if( GP->verb > 1 ) disp_gifti_globs("gifti_globs_from_env: ", GP);
-
-    return 0;
-}
-
-static int disp_gifti_globs(char * mesg, gifti_globs_t * g)
-{
-    if( mesg ) fputs(mesg, stderr);
-
-    fprintf(stderr,"gifti_globs_t:\n"
-                   "    add_index_list  = %d\n"
-                   "    write_mode      = %d\n"
-                   "    verb            = %d\n",
-                   g->add_index_list, g->write_mode, g->verb);
-    return 0;
-}
-
 /* be sure there is space for 'src' and 'sep' in 'dest', and insert */
 static int append_string(char ** dest, int * alen, char * src, char * sep)
 {
@@ -910,5 +1286,35 @@ ENTRY("are_sorted_ints");
         if( list[c] > list[c+1] )
             RETURN(0);
     RETURN(1);
+}
+
+static int disp_gifti_globs(char * mesg, gifti_globs_t * g)
+{
+    if( mesg ) fputs(mesg, stderr);
+
+    fprintf(stderr,"gifti_globs_t:\n"
+                   "    add_index_list  = %d\n"
+                   "    write_mode      = %d\n"
+                   "    verb            = %d\n",
+                   g->add_index_list, g->write_mode, g->verb);
+    return 0;
+}
+
+static int gifti_globs_from_env(void)
+{
+    char * ept = NULL;
+
+    ept = my_getenv("AFNI_NIML_DEBUG");
+    if( ept ) GP->verb = atoi(ept);       /* adjust if set */
+    ept = my_getenv("AFNI_GIFTI_VERB");
+    if( ept ) GP->gverb = atoi(ept);      /* adjust if set */
+
+    GP->add_index_list = AFNI_yesenv("AFNI_NSD_ADD_NODES");
+    GP->write_mode = AFNI_yesenv("AFNI_NIML_TEXT_DATA") ? NI_TEXT_MODE :
+                                                          NI_BINARY_MODE;
+
+    if( GP->verb > 1 ) disp_gifti_globs("gifti_globs_from_env: ", GP);
+
+    return 0;
 }
 
