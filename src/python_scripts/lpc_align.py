@@ -22,7 +22,7 @@ g_help_string = """
     3dAllineate command is then executed.
     
     Basic Usage:
-      lpcw.py -anat ANAT   -epi EPI   
+      lpc_align.py -anat ANAT   -epi EPI   
        
     The script outputs the following:
         ANAT_alepi: A version of the anatomy that is aligned to the epi 
@@ -60,8 +60,8 @@ g_help_string = """
     relevant, one can from experience focus on edges that are relevant. 
     Here is a simple example, where one can judge the improvement of alignment.
     Say we have anat+orig, epi+orig and we ran: 
-      lpcw.py -anat anat+orig -epi epi+orig 
-    The relevant output of lpcw.py is 
+      lpc_align.py -anat anat+orig -epi epi+orig 
+    The relevant output of lpc_align.py is 
       anat_alepi+orig, _lpc.anat+orig, _lpc.epi+orig :
     To judge the improvement of alignment, we run:
       @AddEdge _lpc.epi+orig _lpc.anat+orig anat_alepi+orig 
@@ -69,7 +69,7 @@ g_help_string = """
       you use _lpc.epi+orig and _lpc.anat+orig rather than epi+orig and
       anat+orig, because edge enhancement is much better without skulls. 
       Anatomical volumes of various alignments with the EPI can be listed next.
-      Here we are only examing pre- and post-lpcw.py alignment.
+      Here we are only examing pre- and post-lpc_align.py alignment.
     @AddEdge will create new, edge enhanced volumes with names starting by _ae. A
     new pair of volumes is created for each pair at input. Once done, @AddEdge
     proposes you run the following commands:
@@ -518,7 +518,7 @@ class RegWrap:
 if __name__ == '__main__':
 
 
-   ps = RegWrap('lpcw.py')
+   ps = RegWrap('lpc_align.py')
    ps.init_opts()
 
    rv = ps.get_user_opts()
