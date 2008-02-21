@@ -2405,4 +2405,7 @@
       - exported nsd_string_atr_to_slist()
       - added dtype_niml_to_nifti(), NI_find_element_by_aname()
   * modified thd_gifti.c: added functions to convert AFNI->GIFTI
-
+  * modified Makefiles: added USE_GIFTI and LGIFTI to uncomment for application
+        linux_gcc32 linux_gcc33_64 linux_xorg7 macosx_10.4 macosx_10.4_G5
+        macosx_10.4_Intel macosx_10.5_G5 macosx_10.5_Intel solaris28_gcc
+        solaris29_suncc solaris29_suncc_64 solaris28_suncc
