@@ -6631,3 +6631,6 @@
  * Add cl2.c constrained least squares function to the library.
  * Use this in thd_fitter.c and thence in 3dTfitter.c.
  * Add '-1D:' option to 1deval.c.
+
+22 Feb 2008
+ * Changes to 3dpc.c: -reduce and -eigonly options.
