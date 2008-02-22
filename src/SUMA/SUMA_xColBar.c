@@ -3687,6 +3687,7 @@ int SUMA_GetListIchoice(XmListCallbackStruct *cbs,
       fprintf (SUMA_STDERR,
                "%s: Selected item: %s {%s} (%d)\n", 
                FuncName, choice, choice, cbs->item_position);
+   LW->lastitempos = cbs->item_position;   /* store for next opening */
    /* because of sorting, choice cannot be used 
       as an index into clist and oplist in ALS */
    Found = NOPE;
