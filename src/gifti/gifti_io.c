@@ -701,7 +701,7 @@ int gifti_valid_nvpairs(nvpairs * nvp, int whine)
 
         if( ! nvp->value[c] ) {
             if( G.verb > 2 || whine )
-                fprintf(stderr,"** invalid nvpair value[%d], name = '%s'\n",
+                fprintf(stderr,"** missing nvpair value[%d], name = '%s'\n",
                         c, nvp->name[c]);
             return 0;
         }
