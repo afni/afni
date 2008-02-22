@@ -416,7 +416,7 @@ int main (int argc,char *argv[])
       if (strcmp(argv[kar], "-environment") == 0) {
 			 s = SUMA_env_list_help ();
           fprintf (SUMA_STDOUT,  "#SUMA DEFAULT ENVIRONMENT \n"
-                                 "# If you do not have a ~/.cshrc\n"
+                                 "# If you do not have a ~/.sumarc\n"
                                  "# you can use: \n"
                                  "# suma -environment > ~/.sumarc \n"
                                  "# to create a new one with defaults.\n"
