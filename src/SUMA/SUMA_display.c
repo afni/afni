@@ -5134,6 +5134,7 @@ SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (
    }
    
    LW = (SUMA_LIST_WIDGET *) SUMA_malloc(sizeof(SUMA_LIST_WIDGET));
+   memset(LW, 0, sizeof(SUMA_LIST_WIDGET));
    LW->toplevel = NULL;
    LW->list = NULL;      
    LW->rc = NULL;  
@@ -5152,6 +5153,7 @@ SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (
    LW->Select_Data = Select_Data;
    LW->ALS = NULL;
    LW->isShaded = YUP;
+   LW->lastitempos = -1;
    SUMA_RETURN(LW);
    
 }
@@ -5330,8 +5332,9 @@ SUMA_Boolean SUMA_UpdateScrolledListData(SUMA_LIST_WIDGET *LW, void *Default_Dat
    
                            
 */
-void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partial,  
-                                  SUMA_LIST_WIDGET *LW)
+void SUMA_CreateScrolledList (    
+      char **clist, int N_clist, 
+      SUMA_Boolean Partial, SUMA_LIST_WIDGET *LW)
 {
    static char FuncName[]={"SUMA_CreateScrolledList"};
    XmString  str, *strlist;
@@ -5354,7 +5357,9 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
       SUMA_RETURNe;
    }
    
-   if (!LW->toplevel) { /* widget has never been created or had been destroyed, create it anew */  
+   if (!LW->toplevel) { 
+      /* widget has never been created 
+         or had been destroyed, create it anew */  
       /* create the widget */ 
       LW->toplevel = XtVaAppCreateShell(LW->Label , "Suma" ,
                      topLevelShellWidgetClass , SUMAg_CF->X->DPY_controller1 ,
@@ -5365,32 +5370,41 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
            XmNdeleteResponse, XmDO_NOTHING,
            NULL);  
              
-      /* handle the close button from window manager  SEE ALSO  SUMA_UpdateScrolledListData */
+      /* handle the close button from window manager  
+         SEE ALSO  SUMA_UpdateScrolledListData */
       if (!LW->CloseList_Data) {
          XmAddWMProtocolCallback(/* make "Close" window menu work */
             LW->toplevel,
-            XmInternAtom( SUMAg_CF->X->DPY_controller1  , "WM_DELETE_WINDOW" , False ) ,
+            XmInternAtom(  SUMAg_CF->X->DPY_controller1  , 
+                           "WM_DELETE_WINDOW" , False ) ,
             LW->CloseList_cb, (XtPointer)LW) ;
       } else {
          XmAddWMProtocolCallback(/* make "Close" window menu work */
             LW->toplevel,
-            XmInternAtom( SUMAg_CF->X->DPY_controller1  , "WM_DELETE_WINDOW" , False ) ,
+            XmInternAtom(  SUMAg_CF->X->DPY_controller1  , 
+                           "WM_DELETE_WINDOW" , False ) ,
             LW->CloseList_cb, (XtPointer)LW->CloseList_Data) ;
       }   
       
 
-      LW->rc = XtVaCreateWidget("Tonka", xmRowColumnWidgetClass, LW->toplevel, NULL);
+      LW->rc = XtVaCreateWidget( "Tonka", 
+                                 xmRowColumnWidgetClass, LW->toplevel, NULL);
       n = 0;
       XtSetArg (args[n], XmNitemCount,      0); n++;
       XtSetArg (args[n], XmNlistSizePolicy,   XmCONSTANT   ); n++;
       LW->list = XmCreateScrolledList (LW->rc, "Tonka", args, n);
       
       
-      /* add the default selection callback  SEE ALSO  SUMA_UpdateScrolledListData */
+      /* add the default selection callback  
+         SEE ALSO  SUMA_UpdateScrolledListData */
       if (!LW->Default_Data) {
-         XtAddCallback (LW->list, XmNdefaultActionCallback, LW->Default_cb, (XtPointer)LW);
+         XtAddCallback (LW->list, 
+                        XmNdefaultActionCallback, 
+                        LW->Default_cb, (XtPointer)LW);
       } else {
-         XtAddCallback (LW->list, XmNdefaultActionCallback, LW->Default_cb, (XtPointer)LW->Default_Data);
+         XtAddCallback (LW->list, 
+                        XmNdefaultActionCallback, 
+                        LW->Default_cb, (XtPointer)LW->Default_Data);
       }        
 
      /* set the selection policy SEE ALSO  SUMA_UpdateScrolledListData */
@@ -5398,33 +5412,50 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
          case SUMA_LSP_SINGLE:
             XtVaSetValues( LW->list, XmNselectionPolicy, XmSINGLE_SELECT, NULL);
             if (!LW->Select_Data) 
-               XtAddCallback (LW->list, XmNsingleSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtAddCallback (LW->list, 
+                              XmNsingleSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW);
             else
-               XtAddCallback (LW->list, XmNsingleSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
+               XtAddCallback (LW->list, XmNsingleSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW->Select_Data); 
             break;
          case SUMA_LSP_BROWSE:
             XtVaSetValues( LW->list, XmNselectionPolicy, XmBROWSE_SELECT, NULL);
             if (!LW->Select_Data) 
-               XtAddCallback (LW->list, XmNbrowseSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtAddCallback (LW->list, 
+                              XmNbrowseSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW);
             else
-               XtAddCallback (LW->list, XmNbrowseSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
+               XtAddCallback (LW->list, 
+                              XmNbrowseSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW->Select_Data); 
             
             break;
          case SUMA_LSP_MULTIPLE:
             if (!LW->Select_Data) 
-               XtAddCallback (LW->list, XmNmultipleSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtAddCallback (LW->list, 
+                              XmNmultipleSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW);
             else
-               XtAddCallback (LW->list, XmNmultipleSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
+               XtAddCallback (LW->list, 
+                              XmNmultipleSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW->Select_Data); 
             
-            XtVaSetValues( LW->list, XmNselectionPolicy, XmMULTIPLE_SELECT, NULL);
+            XtVaSetValues( LW->list, 
+                           XmNselectionPolicy, XmMULTIPLE_SELECT, NULL);
             break;
          case SUMA_LSP_EXTENDED:
             if (!LW->Select_Data) 
-               XtAddCallback (LW->list, XmNextendedSelectionCallback, LW->Select_cb, (XtPointer)LW);
+               XtAddCallback (LW->list, 
+                              XmNextendedSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW);
             else
-               XtAddCallback (LW->list, XmNextendedSelectionCallback, LW->Select_cb, (XtPointer)LW->Select_Data); 
+               XtAddCallback (LW->list, 
+                              XmNextendedSelectionCallback, 
+                              LW->Select_cb, (XtPointer)LW->Select_Data); 
             
-            XtVaSetValues( LW->list, XmNselectionPolicy, XmEXTENDED_SELECT, NULL);
+            XtVaSetValues( LW->list, 
+                           XmNselectionPolicy, XmEXTENDED_SELECT, NULL);
             break;
          default:
             SUMA_SL_Err("Bad selection policy");
@@ -5450,12 +5481,17 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
    }  
 
    
-   /* now cycle through the elements in clist and add them, if they are new, in alphabetical order */
+   /* now cycle through the elements in clist and add them, 
+      if they are new, in alphabetical order */
    if (!Partial && !LW->RemoveDups) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: New full list, deleting old entries. \n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: New full list, deleting old entries. \n", FuncName);
       XmListDeleteAllItems(LW->list);
    }else {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Partial list, will add.\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: Partial list, will add.\n", FuncName);
    }
    for (iclist=0; iclist < N_clist; iclist++)     {
       SUMA_LH(clist[iclist]);
@@ -5483,13 +5519,16 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
         l_bound = 0; 
       }
       
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Adding %s...\n", FuncName, clist[iclist]);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Adding %s...\n", FuncName, clist[iclist]);
       str = XmStringCreateLocalized (clist[iclist]); 
 
       /* positions indexes start at 1, so increment accordingly */
       if (LW->RemoveDups) { 
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: removing duplicates\n", FuncName);
-         if (!XmListItemExists(LW->list, str)) XmListAddItemUnselected (LW->list, str, l_bound+1);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s: removing duplicates\n", FuncName);
+         if (!XmListItemExists(LW->list, str)) 
+            XmListAddItemUnselected (LW->list, str, l_bound+1);
       } else { 
          if (LocalHead) fprintf (SUMA_STDERR,"%s: with duplicates\n", FuncName);
          XmListAddItemUnselected (LW->list, str, l_bound+1);
@@ -5510,14 +5549,9 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
       XmListSelectPos(LW->list,1, False); 
       /* realize the widget */
       XtRealizeWidget (LW->toplevel);
-      /* The wheel buidness is done in fallback resources.
-         This approach does not work no matter where I put it. 
-         For text widgets, it causes more trouble) */
-         /*XtVaSetValues  (  LW->list, 
-                     XmNtranslations,
-                     XtParseTranslationTable(
-                                 SUMA_SCR_LIST_WIDGET_TRANSLATIONS),
-                     NULL);  */
+   } else {
+      XmListSetPos(LW->list,SUMA_MAX_PAIR(1,LW->lastitempos-3));
+      XmListSelectPos(LW->list,SUMA_MAX_PAIR(1,LW->lastitempos), False); 
    }
    
    SUMA_RETURNe;
@@ -6553,8 +6587,8 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
       SUMA_S_Err("NULL LW!");
       SUMA_RETURNe;
    }
-   
-   
+
+   #if 0
    if (cbs->reason == XmCR_SINGLE_SELECT) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
    } else {
@@ -6566,6 +6600,8 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
    
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s {%s} (%d)\n", FuncName, choice, choice, cbs->item_position);
+   LW->lastitempos = cbs->item_position;   /* store for next opening */
+   
    /* because of sorting, choice cannot be used as an index into clist and oplist in ALS */
    Found = NOPE;
    ichoice = 0;
@@ -6582,6 +6618,10 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
    
    XtFree (choice);
    
+   #else
+   /* the new way */
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+   #endif
    /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
    if (LW->ALS) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: N_clist = %d\n", FuncName, LW->ALS->N_clist); 
@@ -6602,7 +6642,7 @@ void SUMA_cb_SelectSwitchColPlane(Widget w, XtPointer data, XtPointer call_data)
       SUMA_cb_CloseSwitchColPlane( w,  (XtPointer)SO->SurfCont->SwitchDsetlst,  call_data);
    }  
    
-
+   
    SUMA_RETURNe;
 }
 
@@ -6664,6 +6704,8 @@ void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
       SUMA_S_Err("NULL LW!");
       SUMA_RETURNe;
    }
+
+   #if 0
    if (cbs->reason == XmCR_SINGLE_SELECT) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
    } else {
@@ -6674,6 +6716,7 @@ void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
    
    XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s (%d)\n", FuncName, choice, cbs->item_position);
+   LW->lastitempos = cbs->item_position;   /* store for next opening */
  
    /* because of sorting, choice cannot be used as an index into clist and oplist in ALS */
    Found = NOPE;
@@ -6690,6 +6733,10 @@ void SUMA_cb_SelectSwitchGroup(Widget w, XtPointer data, XtPointer call_data)
    }
    
    XtFree (choice);
+   #else
+   /* the new way */
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+   #endif
 
    /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
    if (LW->ALS) {
@@ -6775,7 +6822,8 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
       SUMA_S_Err("NULL LW!");
       SUMA_RETURNe;
    }
-   
+
+   #if 0   
    if (cbs->reason == XmCR_SINGLE_SELECT) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Single selection, list widget %s... \n", FuncName, LW->Label);
    } else {
@@ -6786,6 +6834,7 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
 
    XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s (%d)\n", FuncName, choice, cbs->item_position);
+   LW->lastitempos = cbs->item_position;   /* store for next opening */
  
    /* because of sorting, choice cannot be used as an index into clist and oplist in ALS */
    Found = NOPE;
@@ -6802,6 +6851,10 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
    }
    
    XtFree (choice);
+   #else
+   /* the new way */
+   ichoice = SUMA_GetListIchoice(cbs, LW, &CloseShop);
+   #endif
 
    /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
    if (LW->ALS) {

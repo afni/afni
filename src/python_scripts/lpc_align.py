@@ -415,7 +415,7 @@ class RegWrap:
                            "-1Dmatrix_save anat2epi.aff12.1D " \
                            "-prefix %s -base %s " \
                            "%s " \
-                  % (wtopt, a.ppve(), o.prefix, e.ppv(), alopt))
+                  % (wtopt, a.ppve(), o.prefix, e.ppv(), alopt), ps.oexec)
          com.run();
       if (not o.exist() and not ps.dry_run()):
          print "Error: Could not square a circle\n"
@@ -431,21 +431,24 @@ class RegWrap:
       if perci < 0:
          perci = 90.0;
       com = shell_com( "3dBrickStat -automask -percentile %f 1 %f %s" \
-                        % (perci, perci, e.ppve()))
+                        % (perci, perci, e.ppve()), ps.oexec)
       com.run()
-      th = float(com.val(0,1))
+      if ps.oexec == "dry_run":
+         th = -999;  # a flag for the dry_run
+      else:
+         th = float(com.val(0,1))
       print "Applying threshold of %f on %s" % (th, e.ppve())
       
       if sq == 1.0:
          com = shell_com( 
                "3dcalc -datum float -prefix %s "\
                "-a %s -expr 'min(1,(a/%f))'" \
-               % (o.prefix, e.ppve(), th))
+               % (o.prefix, e.ppve(), th), ps.oexec)
       else:
          com = shell_com( 
                "3dcalc -datum float -prefix %s -a "\
                "%s -expr 'min(1,(a/%f))**%f'" \
-               % (o.prefix, e.ppve(), th, sq))
+               % (o.prefix, e.ppve(), th, sq), ps.oexec)
       if (not o.exist() or ps.rewrite):
          o.delete(ps.oexec)
          com.run()

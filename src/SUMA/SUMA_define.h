@@ -983,7 +983,8 @@ typedef struct {
    SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
    
    SUMA_ASSEMBLE_LIST_STRUCT *ALS; /*!< structure containing the list of strings shown in the widget and the pointers 
-                                       of the objects the list refers to*/  
+                                       of the objects the list refers to*/ 
+   int lastitempos; 
 } SUMA_LIST_WIDGET;
 
 /*! structure containing widgets for surface viewer controllers ViewCont */
