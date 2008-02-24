@@ -9,7 +9,6 @@
  *
  * NI_group         * NI_read_gifti (char *fname, int read_data)
  * int                NI_write_gifti(NI_group *ngr, char *fname)
- *
  *----------------------------------------------------------------------
  */
 
@@ -259,11 +258,11 @@ int NI_write_gifti(NI_group * ngr, char * fname)
 static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
 {
     gifti_image * gim;
-    NI_element  * nel, * sdel = NULL;
+    NI_element  * sdel = NULL;
     void       ** elist = NULL;
-    char        * rhs, * id = NULL;
+    char        * rhs, * id = NULL, * timestr;
     int           numDA, intent, dtype, ndim, dims[GIFTI_DARRAY_DIM_LEN] = {0};
-    int           ind, has_time, rv;
+    int           ind, rv;
 
     ENTRY("NSD_to_gifti");
 
@@ -275,11 +274,12 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
         if( GP->verb ) fprintf(stderr,"** NSD_to_gifti: missing SPARSE_DATA\n");
         RETURN(NULL);
     }
-    has_time = NI_get_attribute(sdel, "ni_timestep") != NULL;
+    timestr = NI_get_attribute(sdel, "ni_timestep");
 
     /* set basic gifti attributes */
     numDA   = sdel->vec_num;
-    intent  = has_time ? NIFTI_INTENT_TIME_SERIES : NIFTI_INTENT_NONE;
+    intent  = (timestr && *timestr) ? NIFTI_INTENT_TIME_SERIES
+                                    : NIFTI_INTENT_NONE;
     dtype   = dtype_niml_to_nifti(sdel->vec_typ[0]);
     ndim    = 1;
     dims[0] = sdel->vec_len;
@@ -310,6 +310,10 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     gifti_add_to_meta(&gim->meta, "UniqueID", rhs, 1);
     if( id ) free(id);
 
+    /* maybe set the AFNI_Timestep */
+    if( timestr && *timestr )
+        gifti_add_to_meta(&gim->meta, "AFNI_Timestep", timestr, 1);
+
     /* range is not used, type was set from SPARSE_DATA */
 
     rv = nsdg_labs_to_meta(ngr, gim);
@@ -331,7 +335,6 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
 static int nsdg_add_data(NI_element * sdel, gifti_image * gim)
 {
     giiDataArray * da;
-    void         * dp;
     int            c;
 
     ENTRY("nsdg_add_data");
@@ -390,10 +393,10 @@ static int nsdg_add_data(NI_element * sdel, gifti_image * gim)
 static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
 {
     giiDataArray  * da;
-    NI_element    * nel;
+    NI_element    * nel = NULL;
     void         ** elist = NULL;
     char          * rhs;
-    int             ni_type, ind, c, len = 0, sorted = 0, def = 0;
+    int             ind, len = 0, sorted = 0, def = 0;
 
     ENTRY("nsdg_add_index_list");
 
@@ -455,10 +458,8 @@ static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
 /* convert any HISTORY_NOTE to gim->meta:History */
 static int nsdg_set_history(NI_group * ngr, gifti_image * gim)
 {
-    ATR_string    atr_str;      /* fill with element values */
-    NI_element  * nel;
-    char       ** sar, * hstr;
-    int           np, ind, c;
+    NI_element * nel;
+    char       * hstr;
 
     ENTRY("nsdg_set_history");
 
@@ -474,7 +475,7 @@ static int nsdg_set_history(NI_group * ngr, gifti_image * gim)
     if( GP->verb > 3 )
         fprintf(stderr,"++ G_set_history: hstr = '%s'\n", hstr);
 
-    gifti_add_to_meta(&gim->meta, "History", hstr, 1);
+    gifti_add_to_meta(&gim->meta, "AFNI_History", hstr, 1);
 
     RETURN(0);
 }
@@ -485,7 +486,7 @@ static int nsdg_labs_to_meta(NI_group * ngr, gifti_image * gim)
     ATR_string    atr_str;      /* fill with element values */
     NI_element  * nel;
     char       ** sar, * labstr;
-    int           np, ind, c;
+    int           np, ind;
 
     ENTRY("nsdg_labs_to_meta");
 
@@ -624,8 +625,8 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
     nsd_add_gifti_colms_type(ngr, gim);
     nsd_add_gifti_stat_codes(ngr, gim);
 
-    cp = gifti_get_meta_value(&gim->meta, "History");
-    if( cp ) NI_set_attribute(ngr, "HISTORY_NOTE", cp);
+    cp = gifti_get_meta_value(&gim->meta, "AFNI_History");
+    if( cp ) add_string_attribute(ngr, "HISTORY_NOTE", cp);
 
     nsd_add_gifti_index_list(ngr, gim);
 
@@ -641,7 +642,6 @@ static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
 {
     NI_element   * nel;
     giiDataArray * da;
-    float          tr;
     char         * str;
     int            c, length, nnew, ni_type;
 
@@ -690,7 +690,7 @@ static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
                          "lsbfirst" : "msbfirst");
 
     /* if there is a Timestep, pass it along */
-    str = gifti_get_meta_value(&gim->meta, "Timestep");
+    str = gifti_get_meta_value(&gim->meta, "AFNI_Timestep");
     if( str ) NI_set_attribute(nel, "ni_timestep", str);
 
     NI_add_to_group(ngr, nel);

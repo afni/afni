@@ -2409,3 +2409,5 @@
         linux_gcc32 linux_gcc33_64 linux_xorg7 macosx_10.4 macosx_10.4_G5
         macosx_10.4_Intel macosx_10.5_G5 macosx_10.5_Intel solaris28_gcc
         solaris29_suncc solaris29_suncc_64 solaris28_suncc
+24 Feb 2008: minor fixes to thd_gifti.c
+
