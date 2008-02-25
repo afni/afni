@@ -6634,3 +6634,6 @@
 
 22 Feb 2008
  * Changes to 3dpc.c: -reduce and -eigonly options.
+
+25 Feb 2008
+ * Make 3dTfitter work when -RHS is a '1D:' input (-LHS already worked).

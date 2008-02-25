@@ -565,7 +565,7 @@ ENTRY("AFNI_parse_args") ;
       /*----- -layout (23 Sep 2000) -----*/
 
       if( strcmp(argv[narg],"-layout") == 0 ){
-         if( narg+1 >= argc ) FatalError("need an argument after -layout!") ;
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -layout!") ;
          GLOBAL_argopt.layout_fname = argv[++narg] ;  /* just a pointer */
          narg++ ; continue ;  /* go to next arg */
       }
@@ -622,7 +622,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strcmp(argv[narg],"-comsep") == 0 ){
         char cc ;
-        if( ++narg >= argc ) FatalError("need an argument after -comsep") ;
+        if( ++narg >= argc ) ERROR_exit("need an argument after -comsep") ;
         cc = argv[narg][0] ;
         if( cc=='\0' || isalnum(cc) || isspace(cc) || cc=='\'' || cc=='\"' )
           ERROR_message("Illegal character after -comsep") ;
@@ -636,7 +636,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strcmp(argv[narg],"-com") == 0 ){
         int ii , ll ; char *cm , *cs , *cq ;
-        if( ++narg >= argc ) FatalError("need an argument after -com!");
+        if( ++narg >= argc ) ERROR_exit("need an argument after -com!");
         cm = argv[narg] ; ll = strlen(cm) ; cs = strchr(cm,comsep) ;
              if( ll > 255   ) ERROR_message("argument after -com is too long" );
         else if( ll <   3   ) ERROR_message("argument after -com is too short");
@@ -673,7 +673,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strcmp(argv[narg],"-np") == 0 ){
          float val ;
-         if( narg+1 >= argc ) FatalError("need an argument after -np!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -np!");
 
          val = strtod( argv[++narg] , NULL ) ;
          if( val >= 1024 && val <= 65535 ) GLOBAL_argopt.port_niml = (int)val ;
@@ -691,7 +691,7 @@ ENTRY("AFNI_parse_args") ;
       /*----- -tbar 'name' option -----*/
 
       if( strncmp(argv[narg],"-tbar",5) == 0 ){
-         if( narg+1 >= argc ) FatalError("need an argument after -tbar!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -tbar!");
          MCW_strncpy(GLOBAL_argopt.title_name,argv[++narg],32) ;
          narg++ ; continue ;  /* go to next arg */
       }
@@ -731,7 +731,7 @@ ENTRY("AFNI_parse_args") ;
          else {
             ll = strtol( argv[narg]+2 , NULL , 10 ) ;
             if( ll > 0 ) GLOBAL_argopt.recurse = ll ;
-            else FatalError("illegal -R option!") ;
+            else ERROR_exit("illegal -R option!") ;
          }
          narg++ ; continue ;  /* go to next arg */
       }
@@ -843,7 +843,7 @@ ENTRY("AFNI_parse_args") ;
       /*----- -orient code option -----*/
 
       if( strncmp(argv[narg],"-orient",4) == 0 ){
-         if( narg+1 >= argc ) FatalError("need an argument after -orient!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -orient!");
 
          MCW_strncpy(GLOBAL_argopt.orient_code,argv[++narg],4) ;
          narg++ ; continue ;  /* go to next arg */
@@ -853,7 +853,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-ignore",4) == 0 ){
          float val ;
-         if( narg+1 >= argc ) FatalError("need an argument after -ignore!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -ignore!");
 
          val = strtod( argv[++narg] , NULL ) ;
          if( val >= 0 ) GLOBAL_argopt.ignore = (int) val ;
@@ -867,7 +867,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-im1",4) == 0 ){
          float val ;
-         if( narg+1 >= argc ) FatalError("need an argument after -im1!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -im1!");
 
          val = strtod( argv[++narg] , NULL ) ;
          if( val >= 1 ) GLOBAL_argopt.ignore = (int) (val-1.0) ;
@@ -882,7 +882,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-dy",3) == 0 ){
          float val ;
-         if( narg+1 >= argc ) FatalError("need an argument after -dy!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -dy!");
 
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.dy = val ;
@@ -896,7 +896,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-dz",3) == 0 ){
          float val ;
-         if( narg+1 >= argc ) FatalError("need an argument after -dz!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -dz!");
 
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.dz = val ;
@@ -910,7 +910,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-gamma",4) == 0 ){
          float val ;
-         if( narg+1 >= argc ) FatalError("need an argument after -gamma!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -gamma!");
 
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 0 ) GLOBAL_argopt.gamma = val ;
@@ -925,7 +925,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-gsfac",4) == 0 ){
          float val ;
-         if( narg+1 >= argc ) FatalError("need an argument after -gsfac!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -gsfac!");
 
          val = strtod( argv[++narg] , NULL ) ;
          if( val != 0 ) GLOBAL_argopt.gsfac = val ;
@@ -939,7 +939,7 @@ ENTRY("AFNI_parse_args") ;
       /*----- -datum type option -----*/
 
       if( strncmp(argv[narg],"-datum",6) == 0 ){
-         if( ++narg >= argc ) FatalError("need an argument after -datum!") ;
+         if( ++narg >= argc ) ERROR_exit("need an argument after -datum!") ;
 
          if( strcmp(argv[narg],"short") == 0 ){
             GLOBAL_argopt.datum= MRI_short ;
@@ -953,7 +953,7 @@ ENTRY("AFNI_parse_args") ;
             char buf[256] ;
             sprintf(buf,"-datum of type '%s' is not supported in AFNI!",
                    argv[narg] ) ;
-            FatalError(buf) ;
+            ERROR_exit(buf) ;
          }
          narg++ ; continue ;  /* go to next arg */
       }
@@ -962,7 +962,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-ncolor",3) == 0 ){
          float val ;
-         if( narg+1 >= argc ) FatalError("need an argument after -ncolor!");
+         if( narg+1 >= argc ) ERROR_exit("need an argument after -ncolor!");
 
          val = strtod( argv[++narg] , NULL ) ;
          if( val > 2 ) GLOBAL_argopt.ncolor = val ;
@@ -1005,8 +1005,7 @@ ENTRY("AFNI_parse_args") ;
             if( nn > 1 ){
                GLOBAL_argopt.read_tim = nn ; /* will be nz or nt */
             } else {
-               fprintf(stderr,"** Error: illegal value in %s\n",argv[narg]);
-               exit(1) ;
+               ERROR_exit("Illegal value in %s",argv[narg]);
             }
          }
 
@@ -1038,9 +1037,8 @@ ENTRY("AFNI_parse_args") ;
 
       /*----- if we get here, bad news for America! -----*/
 
-      fprintf(stderr,"\n** Unknown option %s ***",argv[narg]) ;
-      fprintf(stderr,"\n** Try 'afni -help' for a list of command line options.\n") ;
-      exit(1) ;
+      ERROR_message("Unknown option %s ***",argv[narg]) ;
+      ERROR_exit   ("Try 'afni -help' for a list of command line options.") ;
 
    } /* end of loop over argv's starting with '-' */
 
@@ -1208,7 +1206,8 @@ void AFNI_sigfunc_alrm(int sig)
      "Absent from thee I languish"                                  ,
      "The return makes one love the farewell"                       ,
      "Every goodbye makes the next hello closer"                    ,
-     "The song is ended, but the melody lingers on"
+     "The song is ended, but the melody lingers on"                 ,
+     "A star will shine upon the hour of our next meeting"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") )
@@ -1401,9 +1400,8 @@ int main( int argc , char *argv[] )
    MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
                                    &argc , argv , FALLback , NULL ) ;
 
-   if( MAIN_shell == NULL ){
-     fprintf(stderr,"\n** Cannot initialize X11 **\n") ; exit(1) ;
-   }
+   if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
    if( DBG_trace == 2 ){                           /* 01 Dec 1999 */
      XSynchronize(XtDisplay(MAIN_shell),TRUE) ;
      STATUS("XSynchronize is enabled") ;
@@ -1526,7 +1524,7 @@ int main( int argc , char *argv[] )
 STATUS("start XtAppMainLoop") ;
 
    XtAppMainLoop(MAIN_app) ;  /* never returns */
-   exit(0) ;                  /* should never be reached */
+   AFexit(0) ;                /* should never be reached */
 }
 
 #undef HUBERIZE
@@ -1880,14 +1878,6 @@ STATUS("call 15") ;
    }
 
    MAIN_calls++ ; RETURN(False) ;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void FatalError(char *str)
-{
-   fprintf(stderr,"\n** Fatal Error **\n %s\n",str) ;
-   sleep(1) ; exit(1) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3027,7 +3017,7 @@ ENTRY("AFNI_read_images") ;
 
    /*----- see if there are any images to read! -----*/
 
-   if( nf < 1 ) FatalError("** No images on command line!? **") ;
+   if( nf < 1 ) ERROR_exit("No images on command line!?") ;
 
    /* count total number of images */
 
@@ -3040,10 +3030,8 @@ ENTRY("AFNI_read_images") ;
        exit(1) ;
      }
      ii = mri_imcount( fname[lf] ) ;
-     if( ii == 0 ){
-       sprintf(str,"** Illegal image file specifier: %s",fname[lf]) ;
-       FatalError(str) ;
-     }
+     if( ii == 0 )
+       ERROR_exit("Illegal image file specifier: %s",fname[lf]) ;
      nz += ii ;
    }
    if( nz == 1 ) nz = 2 ;  /* special case for just one image */
@@ -3051,10 +3039,8 @@ ENTRY("AFNI_read_images") ;
    /*--- read 1st file to get sizes ---*/
 
    arr = mri_read_file( fname[0] ) ;
-   if( arr == NULL || arr->num == 0 ){
-      sprintf(str,"** Cannot read first image file: %s",fname[0]) ;
-      FatalError(str) ;
-   }
+   if( arr == NULL || arr->num == 0 )
+      ERROR_exit("Cannot read first image file: %s",fname[0]) ;
 
    im = arr->imarr[0] ;
    nx = im->nx ;
@@ -3066,7 +3052,7 @@ ENTRY("AFNI_read_images") ;
 
    if( datum < 0 ) datum = im->kind ;
    if( ! AFNI_GOOD_DTYPE(datum) )
-      FatalError("** Illegal datum type found ***") ;
+     ERROR_exit("Illegal datum type found in image") ;
 
    dsize = mri_datum_size( (MRI_TYPE) datum ) ;
    bar   = (char *) malloc( dsize * nx*ny*nz ) ;
@@ -3084,10 +3070,8 @@ ENTRY("AFNI_read_images") ;
 
       if( lf != 0 ){
          arr = mri_read_file( fname[lf] ) ;
-         if( arr == NULL || arr->num == 0 ){
-           sprintf(str,"** Cannot read image file: %s",fname[lf]) ;
-           FatalError(str) ;
-         }
+         if( arr == NULL || arr->num == 0 )
+           ERROR_exit("Cannot read image file: %s",fname[lf]) ;
       }
 
       /** for each image in file ... **/
@@ -3099,10 +3083,10 @@ ENTRY("AFNI_read_images") ;
 
          if( im->nx != nx || im->ny != ny ){
             if( ! GLOBAL_argopt.resize_images ){
-               sprintf(str, "** Image size mismatch:\n"
+               sprintf(str, "Image size mismatch:\n"
                            " ** expected nx=%d ny=%d but got nx=%d ny=%d in file %s" ,
                            nx,ny,im->nx,im->ny , fname[lf] ) ;
-               FatalError(str) ;
+               ERROR_exit(str) ;
             } else {
                MRI_IMAGE *rim ;
                rim = mri_resize( im , nx , ny ) ;
@@ -3117,7 +3101,7 @@ ENTRY("AFNI_read_images") ;
             shim = im ;
          } else {
             shim = mri_to_mri( datum , im ) ;
-            if( shim == NULL ) FatalError("** Illegal convert! **") ;
+            if( shim == NULL ) ERROR_exit("Illegal datum convert!") ;
             mri_free( im ) ;
          }
 
@@ -3321,7 +3305,7 @@ ENTRY("AFNI_read_images") ;
      acod = toupper(GLOBAL_argopt.orient_code[2]) ; zz = ORCODE(acod) ;
 
      if( xx < 0 || yy < 0 || zz < 0 || ! OR3OK(xx,yy,zz) )
-        FatalError("Unusable -orient code!") ;
+       ERROR_exit("Unusable -orient code!") ;
 
      dset->daxes->xxorient = xx ;
      dset->daxes->yyorient = yy ;
@@ -4134,7 +4118,7 @@ ENTRY("AFNI_read_inputs") ;
    /*----- read files -----*/
 
    if( GLOBAL_argopt.first_file_arg >= argc && GLOBAL_argopt.read_images ){
-      FatalError("No image files on command line!!") ;
+      ERROR_exit("No image files on command line!!") ;
    }
 
    /*--- read directly from images (the old-fashioned way) ---*/
@@ -4155,12 +4139,12 @@ ENTRY("AFNI_read_inputs") ;
       MCW_warn_expand(0) ;  /* 13 Jul 2001 */
 
       if( gnim < 1 )
-        FatalError("No valid filenames on command line?!" ) ;
+        ERROR_exit("No valid filenames on command line?!") ;
 
       dset = AFNI_read_images( gnim , gname ) ;
 
       if( dset == NULL )
-        FatalError("Could not form 3D dataset from images!" ) ;
+        ERROR_exit("Could not form 3D dataset from images!" ) ;
 
       MCW_free_expand( gnim , gname ) ;
 
@@ -4769,13 +4753,13 @@ STATUS("reading commandline dsets") ;
       } /* end of loop over ii=command line arguments past options */
 
       if( nerr > 0 ){
-         fprintf(stderr,"** FATAL ERRORS on input\n") ; exit(1) ;  /* bad */
+        fprintf(stderr,"** FATAL ERRORS on input\n") ; exit(1) ;  /* bad */
       }
 
       sprintf(str,"\n dataset count = %d" , nds ) ;
       if( new_ss->num_dsset == 0 ){
-         fprintf(stderr,"\n** No datasets read from the list!\n") ;
-         exit(1) ;
+        fprintf(stderr,"\n** No datasets read from the list!\n") ;
+        exit(1) ;
       }
       REPORT_PROGRESS(str) ;
 

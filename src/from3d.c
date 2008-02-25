@@ -27,9 +27,6 @@
 
 #include "mrilib.h"
 
-#define FatalError(str) \
-   ( fprintf(stderr,"\nError: %s\n\r try 'from3d -help'\n",(str)) , exit(1) )
-
 /*---------------------------------------------------------------------------*/
 
 void Syntax(void)
@@ -146,7 +143,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
       /* --- zfirst option --- */
       if ( strncmp(Argv[nopt],"-zfirst",4) == 0 )
       {
-         if( ++nopt >= Argc ) FatalError("-zfirst needs an argument") ;
+         if( ++nopt >= Argc ) ERROR_exit("-zfirst needs an argument") ;
          ftemp = strtod( Argv[nopt] , NULL ) ;
          *zfirst = (int) ftemp ;
          nopt++ ;
@@ -156,7 +153,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
       /* --- zlast option --- */
       if ( strncmp(Argv[nopt],"-zlast",4) == 0 )
       {
-         if( ++nopt >= Argc ) FatalError("-zlast needs an argument") ;
+         if( ++nopt >= Argc ) ERROR_exit("-zlast needs an argument") ;
          ftemp = strtod( Argv[nopt] , NULL ) ;
          *zlast = (int) ftemp ;
          nopt++ ;
@@ -166,7 +163,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
       /* --- tfirst option --- */
       if ( strncmp(Argv[nopt],"-tfirst",4) == 0 )
       {
-         if( ++nopt >= Argc ) FatalError("-tfirst needs an argument") ;
+         if( ++nopt >= Argc ) ERROR_exit("-tfirst needs an argument") ;
          ftemp = strtod( Argv[nopt] , NULL ) ;
          *tfirst = (int) ftemp ;
          nopt++ ;
@@ -176,7 +173,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
       /* --- tlast option --- */
       if ( strncmp(Argv[nopt],"-tlast",4) == 0 )
       {
-         if( ++nopt >= Argc ) FatalError("-tlast needs an argument") ;
+         if( ++nopt >= Argc ) ERROR_exit("-tlast needs an argument") ;
          ftemp = strtod( Argv[nopt] , NULL ) ;
          *tlast = (int) ftemp ;
          nopt++ ;
@@ -186,7 +183,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
       /* --- input file name --- */
       if ( strncmp(Argv[nopt],"-input",4) == 0 )
       {
-         if ( ++nopt >= Argc ) FatalError("-input needs a name") ;
+         if ( ++nopt >= Argc ) ERROR_exit("-input needs a name") ;
          strcpy ( input_filename , Argv[nopt] ) ;
          nopt++ ; continue ;
       }
@@ -194,25 +191,25 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
       /* --- prefix name --- */
       if ( strncmp(Argv[nopt],"-prefix",4) == 0 )
       {
-         if ( ++nopt >= Argc ) FatalError("-prefix needs a name") ;
+         if ( ++nopt >= Argc ) ERROR_exit("-prefix needs a name") ;
          strcpy ( prefix_filename , Argv[nopt] ) ;
          nopt++ ; continue ;
       }
 
       /* --- exception --- */
-      FatalError ("Illegal input");
+      ERROR_exit("Illegal input");
 
    }  /* nopt */
 
    /* --- check for valid inputs --- */
    if (*zfirst > *zlast)
-      FatalError ("Cannot have zfirst > zlast");
+      ERROR_exit ("Cannot have zfirst > zlast");
    if (*tfirst > *tlast)
-      FatalError ("Cannot have tfirst > tlast");
+      ERROR_exit ("Cannot have tfirst > tlast");
    if (!strcmp(input_filename,""))
-      FatalError ("Must specify input file name. ");
+      ERROR_exit ("Must specify input file name. ");
    if (!strcmp(prefix_filename,""))
-      FatalError ("Must specify prefix file name.");
+      ERROR_exit ("Must specify prefix file name.");
 
    return;
 }
@@ -257,12 +254,12 @@ int main( int argc , char * argv[] )
 
    /* --- open 3D dataset --- */
    dset = THD_open_dataset( input_filename ) ;
-   if( dset == NULL )  FatalError ("Unable to open input file") ;
+   if( dset == NULL )  ERROR_exit ("Unable to open input file") ;
    if ( verbose )  printf("\n" "3D Dataset File:    %s\n" , input_filename ) ;
 
    /* --- load data block --- */
    ok = THD_load_datablock( dset->dblk );
-   if ( !ok )  FatalError ("Unable to load data block") ;
+   if ( !ok )  ERROR_exit ("Unable to load data block") ;
 
    /* --- get data dimensions --- */
    dskptr = dset->dblk->diskptr;
@@ -278,10 +275,10 @@ int main( int argc , char * argv[] )
    if (zlast > nz) zlast = nz;
    if (tfirst < 1) tfirst = 1;
    if (tlast > nv) tlast = nv;
-   if (zfirst > nz)  FatalError ("No data selected -- zfirst too large.");
-   if (zlast < 1)    FatalError ("No data selected -- zlast too small.");
-   if (tfirst > nv)  FatalError ("No data selected -- tfirst too large.");
-   if (tlast < 1)    FatalError ("No data selected -- tlast too small.");
+   if (zfirst > nz)  ERROR_exit ("No data selected -- zfirst too large.");
+   if (zlast < 1)    ERROR_exit ("No data selected -- zlast too small.");
+   if (tfirst > nv)  ERROR_exit ("No data selected -- tfirst too large.");
+   if (tlast < 1)    ERROR_exit ("No data selected -- tlast too small.");
 
    /* --- get data type --- */
    kind = IMAGE_IN_IMARR ( dset->dblk->brick, 0 ) -> kind;
@@ -325,7 +322,7 @@ int main( int argc , char * argv[] )
                mri_set_data_pointer(im2d, MRI_RGB_PTR(im) + 3*iz*nx*ny) ;
             break;
             default :
-               FatalError ("Illegal data type encountered.");
+               ERROR_exit ("Illegal data type encountered.");
          }
 
          /* --- create 2D data file name --- */

@@ -1160,7 +1160,6 @@ extern int AFNI_vol2surf_func_overlay( Three_D_View *, SUMA_irgba **,
                                        int, int, int, float **, float * );
 
 extern void AFNI_parse_args( int argc , char * argv[] );
-extern void FatalError(char * str);
 
 extern void AFNI_splashup   (void) ;  /* 02 Aug 1999 */
 extern void AFNI_splashdown (void) ;
