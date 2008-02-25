@@ -6637,3 +6637,4 @@
 
 25 Feb 2008
  * Make 3dTfitter work when -RHS is a '1D:' input (-LHS already worked).
+ * -vnorm and -vmean options for 1dsvd.c (as in 3dpc.c).
