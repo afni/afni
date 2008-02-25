@@ -10872,3 +10872,29 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
 }
 
 /*********************** END Miscellaneous support functions **************************** */
+
+/******** BEGIN functions for surface structure  ******************** */
+AFNI_SurfaceObject *SUMA_NewAfniSurfaceObject(void)
+{
+   static char FuncName[]={"SUMA_NewAfniSurfaceObject"};
+   AFNI_SurfaceObject *aSO=NULL;
+   
+   SUMA_ENTRY;
+   
+   aSO = (AFNI_SurfaceObject *)SUMA_calloc(1, sizeof(AFNI_SurfaceObject));
+   
+   SUMA_RETURN(aSO);
+}
+
+AFNI_SurfaceObject *SUMA_FreeAfniSurfaceObject(AFNI_SurfaceObject *aSO)
+{
+   static char FuncName[]={"SUMA_FreeAfniSurfaceObject"};
+   if (aSO) {
+      if (aSO->NodeList   ) SUMA_free(aSO->NodeList); aSO->NodeList=NULL;
+      if (aSO->FaceSetList) SUMA_free(aSO->FaceSetList); aSO->FaceSetList=NULL;
+      SUMA_free(aSO); aSO = NULL;     
+   }
+   SUMA_RETURN(NULL);
+}
+
+/******** END functions for surface structure  ******************** */

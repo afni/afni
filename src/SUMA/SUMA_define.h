@@ -1840,142 +1840,214 @@ typedef struct {
    SUMA_OVERLAYS *Overlay; /*!< pointer to color overlay structures */
 } SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists of SO->Overlays and co */ 
 
-
-
 /*! structure defining a Surface Object */
-typedef struct {
+typedef struct {/* Begin by listings fields that are generic 
+                  and need to be accessed from AFNI 
+                  Keep in sync with AFNI_SurfaceObject STRUCT 
+                  
+   **********  BEGIN KEEP THIS SECTION TIGHT 
+               WITH AFNI_SURFACEOBJECT STRUCT ***********
+   */
+   int N_Node; /*!< Number of nodes in the SO */
+   int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 
+                     is used for now, with flat surfaces having z = 0*/
+   int EmbedDim; /*!<   Embedding dimension of the surface, 
+                        2 for flat surfaces 3 for ones with non zero 
+                        curvature. */ 
+   float *NodeList; /*!< N_Node x 3 vector containing the XYZ node coordinates. 
+                        If NodeDim is 2 then the third column is all zeros
+                        Prior to SUMA  1.2 this used to be a 2D matrix 
+                        (a vector of vectors) */
+   
+   int N_FaceSet; /*!< Number of polygons defining the surface  */
+   int FaceSetDim; /*!< Number of sides on the polygon */
+   int *FaceSetList; /*!<  N_FaceSetList x FaceSetDim vector describing 
+                           the polygon set that makes up the SO.
+                           Each row contains the indices (into NodeList) of 
+                           the nodes that make up a polygon 
+                           Prior to SUMA  1.2 this used to be a 2D matrix 
+                           (a vector of vectors) */
+   /*
+   **********  END KEEP THIS SECTION TIGHT 
+               WITH AFNI_SurfaceObject STRUCT 
+               in suma_datasets.h     ***********
+   */
+   
    char *idcode_str; /*!< string containing the idcode of the surface */
-   char *Label; /*!< string containing a label for the surface. Used for window titles and saved image names */
+   char *Label; /*!< string containing a label for the surface. 
+                     Used for window titles and saved image names */
+
    SUMA_DO_Types do_type;
    
    SUMA_SO_File_Type FileType; /*!< Type of Surface file */
    SUMA_SO_File_Format FileFormat; /*!< Format of Surface file ascii or binary*/
    SUMA_FileName Name; /*!< Directory and Name of surface object file (SO) */
-   SUMA_FileName Name_coord; /*!< Directory and Name of surface coordinate file (for SureFit files) */
-   SUMA_FileName Name_topo; /*!< Directory and Name of surface topology file  (for SureFit files)*/
-   SUMA_FileName SpecFile; /*!< To be added for use in AFNI's mapping interface */
+   SUMA_FileName Name_coord; /*!< Directory and Name of surface coordinate 
+                                 file (for SureFit files) */
+   SUMA_FileName Name_topo; /*!< Directory and Name of surface topology file
+                                (for SureFit files)*/
+   SUMA_FileName SpecFile; /*!< To be added for use in AFNI's 
+                                 mapping interface*/
    
-   char *parent_vol_idcode_str; /*!< IDcode of the volume from which the surface was created. Called SurfVol (NOT SurfVol_AlndExp) 
-                                    That ID does not usually refer to the volume from which VolPar is created. Except in the case 
-                                    where you are viewing the surfaces on the orignal volume (SurfVol) then this field and
-                                    SurfVol (afni dset *) ->idcode.str and VolPar->vol_idcode_str should be identical*/
+   char *parent_vol_idcode_str; /*!< IDcode of the volume from which the surface
+                                     was created. 
+                                     Called SurfVol (NOT SurfVol_AlndExp) 
+                                    That ID does not usually refer to the volume
+                                    from which VolPar is created. 
+                                    Except in the case 
+                                    where you are viewing the surfaces on 
+                                    the orignal volume (SurfVol) then this 
+                                    field and
+                                    SurfVol (afni dset *) ->idcode.str and
+                                    VolPar->vol_idcode_str should be identical*/
    char *facesetlist_idcode_str;   /*!< ID of facesets element */
    char *nodelist_idcode_str; /*!< ID of nodelist element */
    char *facenormals_idcode_str; /*!< ID of facenormals element */
    char *nodenormals_idcode_str; /*!< ID of nodenormals element */
    char *polyarea_idcode_str; /*!< ID of polygon areas element */
-   char *Name_NodeParent; /*!< Node parent of the SO.   Node Indices of SO are into NodeList matrix of the NodeParent SO*/               
+   char *Name_NodeParent; /*!<   Node parent of the SO.   
+                                 Node Indices of SO are into NodeList 
+                                 matrix of the NodeParent SO*/               
    char *Group_idcode_str;  /*!< IDcode of group */
-   char *StandardSpace;   /*!< standard space of surface (orig, tlrc, stdxxx, etc.*/
-   char *Group;   /*!< Group the surface belongs to, like Simpsons H. (aka. SubjectLabel)*/
+   char *StandardSpace;   /*!< standard space of surface 
+                              (orig, tlrc, stdxxx, etc.*/
+   char *Group;   /*!<  Group the surface belongs to, 
+                        like Simpsons H. (aka. SubjectLabel)*/
    char *State; /*!< State of SO (like inflated, bloated, exploded) */
    char *ModelName; /*!< cerebellum, hippocampus, cerebrum, etc. */
-   /* modifications to the lame MappingRef field */
+   
    SUMA_SO_SIDE Side; /*!< Left/right */
    SUMA_GEOM_TYPE isSphere;  /*!< yes/no */
    float SphereRadius; /*!< If a sphere, then this is its radius */
    float SphereCenter[3]; /*!< If a sphere, then this it is center */
-   SUMA_Boolean AnatCorrect;    /*!< Does surface geometry matches anatomy ? (YUP/NOPE)*/
-   char *DomainGrandParentID;        /*!< Grandparent's mesh ID (icosahedron's for std-meshes) */
-   char *OriginatorID;          /*!<  ID common for surfaces from one subject that are created
-                                      at one point in time. Surfaces of the same subject,
-                                      created at different points in time (like in a longitudinal
-                                      study) will have differing OriginatorID fields (aka InstanceID)*/
+   SUMA_Boolean AnatCorrect;    /*!<   Does surface geometry match 
+                                       anatomy ? (YUP/NOPE)*/
+   char *DomainGrandParentID;        /*!< Grandparent's mesh ID 
+                                          (icosahedron's for std-meshes) */
+   char *OriginatorID;          /*!<   ID common for surfaces from one subject
+                                       that are created
+                                       at one point in time. Surfaces of the  
+                                       same subject,
+                                      created at different points in time 
+                                      (like in a longitudinal
+                                      study) will have differing 
+                                      OriginatorID fields (aka InstanceID)*/
    char *OriginatorLabel;        /*!< aka InstanceLabel */
-   char *LocalCurvatureParent;   /*!< \sa same field in SUMA_SurfSpecFile structure */
-   char *LocalCurvatureParentID;        /*!< \sa idcode_str of LocalCurvatureParent*/
-   char *LocalDomainParent;   /*!< \sa same field in SUMA_SurfSpecFile structure */
+   char *LocalCurvatureParent;   /*!< \sa same field in SUMA_SurfSpecFile 
+                                       structure */
+   char *LocalCurvatureParentID;     /*!< \sa   idcode_str of 
+                                                LocalCurvatureParent*/
+   char *LocalDomainParent;   /*!< \sa same field in SUMA_SurfSpecFile 
+                                       structure */
    char *LocalDomainParentID;      /*!< \sa idcode_str of LocalDomainParent */
-   #if 0
-   /* in the old days */
-   char *MapRef_idcode_str; /*!< if NULL, then it is not known whether surface is mappable or not
-                                 if equal to idcode_str then surface surface is Mappable, 
-                                 otherwise it specifies the idcode of the Mapping reference surface */
-   #endif
-   SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume data sets ?*/
-   SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/
-   SUMA_Boolean TAGALIGN_APPLIED; /*!< YUP if VP->TAGALIGN_MATVEC was successfully applied */
+
+   SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume 
+                                          data sets ?*/
+   SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, 
+                                     VP->VOLREG_CENTER_OLD, 
+                                     VP->VOLREG_MATVEC were 
+                                     successfully applied*/
+   SUMA_Boolean TAGALIGN_APPLIED; /*!< YUP if VP->TAGALIGN_MATVEC was 
+                                       successfully applied */
    SUMA_Boolean WARPDRIVE_APPLIED;
-   SUMA_Boolean ROTATE_APPLIED; /*!< YUP if VP->ROTATE_MATVEC was successfully applied */
-   SUMA_Boolean SentToAfni; /*!< YUP if the surface has been niml-sent to AFNI */
-   SUMA_Boolean Show; /*!< YUP then the surface is visible in the viewer. Not used that much I'd say*/
+   SUMA_Boolean ROTATE_APPLIED; /*!<   YUP if VP->ROTATE_MATVEC was 
+                                       successfully applied */
+   SUMA_Boolean SentToAfni; /*!< YUP if the surface has been 
+                                 niml-sent to AFNI */
+   SUMA_Boolean Show; /*!< YUP then the surface is visible in the viewer. 
+                           Not used that much I'd say*/
    
-   SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points */
+   SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, 
+                                    SRM_Line, SRM_Points */
+      
+   float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior 
+                              to SUMA 1.2) containing normalized normal 
+                              vectors for each node*/
+   float *FaceNormList ; /*!< N_FaceSet x 3 vector (used to be matrix prior 
+                              to SUMA 1.2) containing normalized normal vectors 
+                              for each polygon*/ 
+   int normdir;        ; /*!< direction of normals, 0 not known. 
+                              1 outwards, -1 inwards */
    
-   int N_Node; /*!< Number of nodes in the SO */
-   int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 is used for now, with flat surfaces having z = 0*/
-   int EmbedDim; /*!< Embedding dimension of the surface, 2 for flat surfaces 3 for ones with non zero curvature other. */ 
-   float *NodeList; /*!< N_Node x 3 vector containing the XYZ node coordinates. 
-                        If NodeDim is 2 then the third column is all zeros
-                        Prior to SUMA  1.2 this used to be a 2D matrix (a vector of vectors) */
-   
-   int N_FaceSet; /*!< Number of polygons defining the surface  */
-   int FaceSetDim; /*!< Number of sides on the polygon */
-   int *FaceSetList; /*!< N_FaceSetList x FaceSetDim vector describing the polygon set that makes up the SO.
-                     Each row contains the indices (into NodeList) of the nodes that make up a polygon 
-                     Prior to SUMA  1.2 this used to be a 2D matrix (a vector of vectors) */
-   
-   float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior to SUMA 1.2) containing normalized normal vectors for each node*/
-   float *FaceNormList ; /*!< N_FaceSet x 3 vector (used to be matrix prior to SUMA 1.2) containing normalized normal vectors for each polygon*/ 
-   int normdir;        ; /*!< direction of normals, 0 not known. 1 outwards, -1 inwards */
-   
-   float Center[3];       /*!< The centroid of the surface (using all the nodes in NodeList)*/
+   float Center[3];       /*!< The centroid of the surface 
+                              (using all the nodes in NodeList)*/
    float MaxDims[3];      /*!< The maximum along each of the XYZ dimensions */
    float MinDims[3];      /*!< The minimum along each of the XYZ dimensions */
    float aMinDims;      /*!< The maximum across all dimensions*/
    float aMaxDims;      /*!< The minimum across all dimensions*/
    
-   int N_patchNode; /*!< Number of nodes used in the mesh. For patches, this number is < SO->N_Node */
-   float patchCenter[3];  /*!< The centroid of the surface (using all the nodes in FaceSetList)*/
-   float patchMaxDims[3];      /*!< The maximum along each of the XYZ dimensions (using all the nodes in FaceSetList)*/
-   float patchMinDims[3];      /*!< The minimum along each of the XYZ dimensions (using all the nodes in FaceSetList)*/
-   float patchaMinDims;      /*!< The maximum across all dimensions(using all the nodes in FaceSetList)*/
-   float patchaMaxDims;      /*!< The minimum across all dimensions(using all the nodes in FaceSetList)*/
+   int N_patchNode; /*!<   Number of nodes used in the mesh. 
+                           For patches, this number is < SO->N_Node */
+   float patchCenter[3];  /*!< The centroid of the surface 
+                              (using all the nodes in FaceSetList)*/
+   float patchMaxDims[3];      /*!< The maximum along each of the XYZ dimensions
+                                    (using all the nodes in FaceSetList)*/
+   float patchMinDims[3];      /*!< The minimum along each of the XYZ dimensions
+                                    (using all the nodes in FaceSetList)*/
+   float patchaMinDims;      /*!<   The maximum across all dimensions(using all 
+                                    the nodes in FaceSetList)*/
+   float patchaMaxDims;      /*!<   The minimum across all dimensions(using all 
+                                    the nodes in FaceSetList)*/
    
-   int RotationWeight; /*!< Contribution to center of rotation calculation. 
-                           set to 0 if not contributing.
-                            set to N_Node to have the number of nodes weigh into the center's location, center of mass effect
-                           set to 1 to give each object equal weight */
-   int ViewCenterWeight; /*!< Contribution to center of gaze and viewfrom location */
+   int RotationWeight; /*!<   Contribution to center of rotation calculation. 
+                              set to 0 if not contributing.
+                              set to N_Node to have the number of nodes weigh 
+                              into the center's location, center of mass effect
+                              set to 1 to give each object equal weight */
+   int ViewCenterWeight; /*!< Contribution to center of gaze and 
+                              viewfrom location */
    
 
-   GLfloat *glar_NodeList;         /*!< pointer to the 1D NodeList array - DO NOT FREE IT, it is a pointer copy of NodeList*/
-   GLint  *glar_FaceSetList;      /*!< pointer to the 1D FaceSetList array - DO NOT FREE IT, it is a pointer copy of FaceSetList*/
-   GLfloat *glar_FaceNormList;    /*!< pointer to the 1D FaceNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
-   #if 0
-   /* This pointer is now a part of the surface viewer structure. Wed Nov  6 10:23:05 EST 2002
-   Node color assignment is not a property of the surface alone, it also depends on the settings of the viewer. */
-   GLfloat *glar_ColorList;       /*!< pointer to the 1D ColorList array*/
-   #endif
-   GLfloat *PermCol; /*!< pointer to a 1D ColorList array. If this vector is not null then it specifies the colors
-                           of the nodes on the surface. It is illegal to have this if Overlays != NULL */ 
-   GLfloat *glar_NodeNormList;    /*!< pointer to the 1D NodeNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
+   GLfloat *glar_NodeList;         /*!< pointer to the 1D NodeList array 
+                                    - DO NOT FREE IT, 
+                                    it is a pointer copy of NodeList*/
+   GLint  *glar_FaceSetList;      /*!< pointer to the 1D FaceSetList array 
+                                    - DO NOT FREE IT, 
+                                    it is a pointer copy of FaceSetList*/
+   GLfloat *glar_FaceNormList;    /*!< pointer to the 1D FaceNormList array 
+                                    - DO NOT FREE IT, 
+                                    it is a pointer copy of NodeNormList*/
+   GLfloat *PermCol; /*!< pointer to a 1D ColorList array. 
+                         If this vector is not null then it specifies the colors
+                         of the nodes on the surface. 
+                         It is illegal to have this if Overlays != NULL */ 
+   GLfloat *glar_NodeNormList;    /*!< pointer to the 1D NodeNormList array 
+                                       - DO NOT FREE IT, 
+                                       it is a pointer copy of NodeNormList*/
    
    int ShowMeshAxis; /*!< flag to show Mesh Axis if it is created */
    SUMA_Axis *MeshAxis;   /*!< pointer to XYZ axis  */
    
-   SUMA_MEMBER_FACE_SETS *MF; /*!< structure containing the facesets containing each node */
-   SUMA_NODE_FIRST_NEIGHB *FN; /*!< structure containing the first order neighbors of each node */
+   SUMA_MEMBER_FACE_SETS *MF; /*!<  structure containing the facesets 
+                                    containing each node */
+   SUMA_NODE_FIRST_NEIGHB *FN; /*!< structure containing the first order
+                                    neighbors of each node */
    SUMA_EDGE_LIST *EL; /*!< structure containing the edge list */
-   float *PolyArea; /*!< N_FaceSet x 1 vector containing the area of each polygon in FaceSetList */
-   SUMA_SURFACE_CURVATURE *SC; /*!< Structure containing the surface curvature info */
+   float *PolyArea; /*!< N_FaceSet x 1 vector containing the area of 
+                         each polygon in FaceSetList */
+   SUMA_SURFACE_CURVATURE *SC; /*!< Structure containing the surface 
+                                    curvature info */
    
    
    /* selection stuff */
    SUMA_Boolean ShowSelectedNode; /*!< flag for an obvious reason */
-   int SelectedNode; /*!< index of one selected node, -1 if no node is selected */
+   int SelectedNode; /*!< index of one selected node, 
+                           -1 if no node is selected */
    SUMA_SphereMarker *NodeMarker; /*!< Node Marker object structure*/
    
    SUMA_Boolean ShowSelectedFaceSet; /*!< you know what I mean */
-   int SelectedFaceSet; /*!< index of one selected faceset, -1 if no faceset is selected */
+   int SelectedFaceSet; /*!< index of one selected faceset, 
+                              -1 if no faceset is selected */
    SUMA_FaceSetMarker *FaceSetMarker; /*!< Aha, I hear ya */
    
    SUMA_VOLPAR *VolPar; /*!< Parent Volume structure */
    
-   SUMA_OVERLAYS **Overlays; /*!< vector of pointers to color overlay structures */
+   SUMA_OVERLAYS **Overlays; /*!< vector of pointers to color overlay 
+                                  structures */
    int N_Overlays; /*!< number of pointers to overlay structures */
    
-   SUMA_X_SurfCont *SurfCont;/*!< pointer to structure containing surface controller widget structure */
+   SUMA_X_SurfCont *SurfCont;/*!< pointer to structure containing surface  
+                                  controller widget structure */
    
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
