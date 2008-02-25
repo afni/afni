@@ -1223,6 +1223,7 @@ int SUMA_GetAddIndex_1D(void);
 THD_3dim_dataset *SUMA_sumadset2afnidset(SUMA_DSET **dsetp, int copy_data, int cleardset);
 SUMA_DSET *SUMA_afnidset2sumadset(THD_3dim_dataset **dsetp, int copy_data, int cleardset);
 
+
 /*********************** BEGIN Miscellaneous support functions **************************** */
    #define SUMA_STANDALONE_INIT {   \
       /* install signal handler, shamelessly copied from AFNI) */ \
@@ -1310,6 +1311,38 @@ char *SUMA_EscapeChars(char *s1, char *ca, char *es);
 char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
 
 /*********************** END Miscellaneous support functions **************************** */
+
+/******** BEGIN functions for surface structure  ******************** */
+typedef struct {  /* BEFORE YOU ADD ANYTHING HERE, 
+                     See comment at closing brace */
+   int N_Node; /*!< Number of nodes in the SO */
+   int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 
+                     is used for now, with flat surfaces having z = 0*/
+   int EmbedDim; /*!<   Embedding dimension of the surface, 
+                        2 for flat surfaces 3 for ones with non zero 
+                        curvature. */ 
+   float *NodeList; /*!< N_Node x 3 vector containing the XYZ node coordinates. 
+                        If NodeDim is 2 then the third column is all zeros
+                        Prior to SUMA  1.2 this used to be a 2D matrix 
+                        (a vector of vectors) */
+   
+   int N_FaceSet; /*!< Number of polygons defining the surface  */
+   int FaceSetDim; /*!< Number of sides on the polygon */
+   int *FaceSetList; /*!<  N_FaceSetList x FaceSetDim vector describing 
+                           the polygon set that makes up the SO.
+                           Each row contains the indices (into NodeList) of 
+                           the nodes that make up a polygon 
+                           Prior to SUMA  1.2 this used to be a 2D matrix 
+                           (a vector of vectors) */
+   
+} AFNI_SurfaceObject; /* Keep content and order of fields identical to
+                        those in the beginning of SUMA_SurfaceObject 
+                        in SUMA_define.h */
+AFNI_SurfaceObject *SUMA_NewAfniSurfaceObject(void);
+AFNI_SurfaceObject *SUMA_FreeAfniSurfaceObject(AFNI_SurfaceObject *aSO);
+
+
+/******** END functions for surface structure  ******************** */
 
 
 #endif
