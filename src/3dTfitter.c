@@ -132,12 +132,25 @@ int main( int argc , char *argv[] )
       "\n"
       " 1deval -num 30 -expr 'cos(t)' > Fcos.1D\n"
       " 1deval -num 30 -expr 'sin(t)' > Fsin.1D\n"
-      " 1deval -num 30 -expr 'exp(-t/20)' > Fexp.1D\n"
+      " 1deval -num 30 -expr 'cos(t)*exp(-t/20)' > Fexp.1D\n"
       " 3dTfitter -quiet -RHS Fexp.1D -LHS Fcos.1D Fsin.1D -prefix -\n"
       "\n"
       "* Note the use of the '-' as a prefix to write the results\n"
       "  (just 2 numbers) to stdout, and the use of '-quiet' to hide\n"
       "  the chatty and informative progress messages.\n"
+      "* For the Jedi AFNI Masters out there, the above example can be carried\n"
+      "  out on using single complicated command line:\n"
+      "\n"
+      " 3dTfitter -quiet -RHS `1deval -1D: -num 30 -expr 'cos(t)*exp(-t/20)'` \\\n"
+      "                  -LHS `1deval -1D: -num 30 -expr 'cos(t)'`            \\\n"
+      "                       `1deval -1D: -num 30 -expr 'sin(t)'`            \\\n"
+      "                  -prefix - \n"
+      "\n"
+      "  resulting in the single output line below:\n"
+      "\n"
+      " 0.535479 0.000236338\n"
+      "\n"
+      "  which are respectively the fit coefficients of 'cos(t)' and 'sin(t)'.\n"
       "\n"
       "----- RWCox -- Feb 2008.\n"
       "----- Created for the imperial purposes of John A Butman, MD PhD.\n"
@@ -176,7 +189,8 @@ int main( int argc , char *argv[] )
          ERROR_exit("Can't have two %s options",argv[iarg-1]);
        rhsnam = malloc(sizeof(char)*(strlen(argv[iarg])+4)) ;
        strcpy(rhsnam,argv[iarg]) ;
-       if( STRING_HAS_SUFFIX_CASE(rhsnam,"1D") ) strcat(rhsnam,"'");
+       if( STRING_HAS_SUFFIX_CASE(rhsnam,"1D") ||
+           strncmp(rhsnam,"1D:",3) == 0          ) strcat(rhsnam,"'");
        rhset = THD_open_dataset( rhsnam ) ;
        if( rhset == NULL )
          ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;

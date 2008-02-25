@@ -316,8 +316,8 @@ ENTRY("AFNI_make_widgets") ;
 
    /*---- initialize -----*/
 
-   if( ! IM3D_VALID(im3d) )
-     FatalError("illegal call to AFNI_make_widgets") ;
+   if( ! IM3D_VALID(im3d) )   /* should never happen! */
+     ERROR_exit("illegal call to AFNI_make_widgets") ;
 
    num_entry++ ;
 

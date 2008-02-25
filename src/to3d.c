@@ -51,9 +51,6 @@ static int     af_type_set=0 ;                 /* 20 Dec 2001 */
 
 /*** additions of Mar 2, 1995 ***/
 
-#define FatalError(str) \
-   ( fprintf(stderr,"\n** %s\n\n try 'to3d -help'\n",(str)) , exit(1) )
-
 static struct {
    int ncolor ;       /* -ncolor # */
    float gamma ;      /* -gamma #  */
@@ -2021,7 +2018,7 @@ ENTRY("T3D_initialize_user_data") ;
    { char *eee=my_getenv("AFNI_TO3D_ZPAD") , *fff ;
      if( eee != NULL ){
          zpad = strtod( eee , &fff ) ;
-         if( zpad < 0.0 ) FatalError("AFNI_TO3D_ZPAD is negative") ;
+         if( zpad < 0.0 ) ERROR_exit("AFNI_TO3D_ZPAD is negative") ;
          zpad_mm = (*fff == 'm') ;
      }
    }
@@ -2081,7 +2078,7 @@ ENTRY("T3D_initialize_user_data") ;
       if( strncmp(Argv[nopt],"-view",4) == 0 ){
          char * str ;
 
-         if( ++nopt >= Argc ) FatalError("-view needs a type") ;
+         if( ++nopt >= Argc ) ERROR_exit("-view needs a type") ;
 
          str = Argv[nopt] ; if( str[0] == '+' ) str++ ;
 
@@ -2100,10 +2097,10 @@ ENTRY("T3D_initialize_user_data") ;
 
       if( strncmp(Argv[nopt],"-zpad",5) == 0 ){
          char * eee ;
-         if( ++nopt >= Argc ) FatalError("-zpad needs a count") ;
+         if( ++nopt >= Argc ) ERROR_exit("-zpad needs a count") ;
          if( zpad > 0.0 ) fprintf(stderr,"++ WARNING: second -zpad option found!\n") ;
          zpad = strtod( Argv[nopt] , &eee ) ;
-         if( zpad < 0.0 ) FatalError("-zpad is negative") ;
+         if( zpad < 0.0 ) ERROR_exit("-zpad is negative") ;
          zpad_mm = (*eee == 'm') ;
          nopt++ ; continue ;
       }
@@ -2111,7 +2108,7 @@ ENTRY("T3D_initialize_user_data") ;
       /*--- -session name ---*/
 
       if( strncmp(Argv[nopt],"-session",4) == 0 ){
-         if( ++nopt >= Argc ) FatalError("-session needs a name") ;
+         if( ++nopt >= Argc ) ERROR_exit("-session needs a name") ;
          MCW_strncpy( user_inputs.session_filename, Argv[nopt], THD_MAX_NAME ) ;
          nopt++ ; continue ;
       }
@@ -2119,7 +2116,7 @@ ENTRY("T3D_initialize_user_data") ;
       /*--- -prefix name ---*/
 
       if( strncmp(Argv[nopt],"-prefix",4) == 0 ){
-         if( ++nopt >= Argc ) FatalError("-prefix needs a name") ;
+         if( ++nopt >= Argc ) ERROR_exit("-prefix needs a name") ;
          MCW_strncpy( user_inputs.output_filename , Argv[nopt] , THD_MAX_NAME ) ;
          nopt++ ; continue ;
       }
@@ -2128,7 +2125,7 @@ ENTRY("T3D_initialize_user_data") ;
       /*--- -dname name ---*/
 
       if( strncmp(Argv[nopt],"-dname",4) == 0 ){
-         if( ++nopt >= Argc ) FatalError("-dname needs a name") ;
+         if( ++nopt >= Argc ) ERROR_exit("-dname needs a name") ;
          MCW_strncpy( user_inputs.dataset_name , Argv[nopt] , THD_MAX_NAME ) ;
          nopt++ ; continue ;
       }
@@ -2136,7 +2133,7 @@ ENTRY("T3D_initialize_user_data") ;
       /*--- -dlabel name ---*/
 
       if( strncmp(Argv[nopt],"-dlabel",4) == 0 ){
-         if( ++nopt >= Argc ) FatalError("-dlabel needs a name") ;
+         if( ++nopt >= Argc ) ERROR_exit("-dlabel needs a name") ;
          MCW_strncpy( user_inputs.short_label1 , Argv[nopt] , THD_MAX_LABEL ) ;
          nopt++ ; continue ;
       }
@@ -2145,7 +2142,7 @@ ENTRY("T3D_initialize_user_data") ;
       /*--- -geomparent headerfile ---*/
 
       if( strncmp(Argv[nopt],"-geomparent",6) == 0 ){
-         if( ++nopt >= Argc ) FatalError("-geomparent needs a headerfile" ) ;
+         if( ++nopt >= Argc ) ERROR_exit("-geomparent needs a headerfile" ) ;
          MCW_strncpy( user_inputs.geometry_parent_filename ,
                       Argv[nopt] , THD_MAX_NAME ) ;
          nopt++ ; continue ;
@@ -2154,7 +2151,7 @@ ENTRY("T3D_initialize_user_data") ;
       /*--- -anatparent headerfile ---*/
 
       if( strncmp(Argv[nopt],"-anatparent",6) == 0 ){
-         if( ++nopt >= Argc ) FatalError("-anatparent needs a headerfile" ) ;
+         if( ++nopt >= Argc ) ERROR_exit("-anatparent needs a headerfile" ) ;
          MCW_strncpy( user_inputs.anatomy_parent_filename ,
                       Argv[nopt] , THD_MAX_NAME ) ;
          nopt++ ; continue ;
@@ -2186,10 +2183,10 @@ ENTRY("T3D_initialize_user_data") ;
       /*--- 26 Aug 2001: -save_outliers ---*/
 
       if( strcmp(Argv[nopt],"-save_outliers") == 0 ){
-         if(++nopt > Argc) FatalError("-save_outliers needs a filename") ;
+         if(++nopt > Argc) ERROR_exit("-save_outliers needs a filename") ;
          outliers_fname = Argv[nopt] ;
          if( !THD_filename_ok(outliers_fname) )
-            FatalError("-save_outliers filename is illegal") ;
+            ERROR_exit("-save_outliers filename is illegal") ;
          nopt++ ; continue ;
       }
 
@@ -2198,8 +2195,8 @@ ENTRY("T3D_initialize_user_data") ;
       if( strncmp(Argv[nopt],"-orient",4) == 0 ){
          char acod ;
 
-         if( ++nopt >= Argc ) FatalError("-orient needs a code") ;
-         if( strlen(Argv[nopt]) != 3 ) FatalError("Illegal -orient code") ;
+         if( ++nopt >= Argc ) ERROR_exit("-orient needs a code") ;
+         if( strlen(Argv[nopt]) != 3 ) ERROR_exit("Illegal -orient code") ;
          acod = toupper(Argv[nopt][0]) ; user_inputs.xorient = ORCODE(acod) ;
          acod = toupper(Argv[nopt][1]) ; user_inputs.yorient = ORCODE(acod) ;
          acod = toupper(Argv[nopt][2]) ; user_inputs.zorient = ORCODE(acod) ;
@@ -2207,7 +2204,7 @@ ENTRY("T3D_initialize_user_data") ;
       }
 
       if( strncmp(Argv[nopt],"-zorigin",7) == 0 ){
-         if( ++nopt >= Argc ) FatalError("-zorigin needs a value") ;
+         if( ++nopt >= Argc ) ERROR_exit("-zorigin needs a value") ;
          zoff = strtod( Argv[nopt] , NULL ) ;
          use_zoff = 1 ;
          nopt++ ; continue ;
@@ -2637,7 +2634,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          float val ;
          char * ptr ;
 
-         if( ++nopt >= Argc ) FatalError("need an argument after -statpar!") ;
+         if( ++nopt >= Argc ) ERROR_exit("need an argument after -statpar!") ;
 
          ii = 0 ;
          do{
@@ -2676,7 +2673,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
       /**** 23 Feb 2005: -Torg option ****/
 
       if( strncmp(Argv[nopt],"-Torg",5) == 0 ){
-        if( nopt+1 >= Argc ) FatalError("need 1 argument after -Torg") ;
+        if( nopt+1 >= Argc ) ERROR_exit("need 1 argument after -Torg") ;
         user_inputs.Torg = strtod( Argv[++nopt] , NULL ) ;
         nopt++ ; continue ;
       }
@@ -2688,7 +2685,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          float TR , tframe , tsl ;
          char *tpattern , *eptr ;
 
-         if( nopt+4 >= Argc ) FatalError("need 4 arguments after -time: options") ;
+         if( nopt+4 >= Argc ) ERROR_exit("need 4 arguments after -time: options") ;
 
          t_then_z = ( strncmp(Argv[nopt],"-time:tz",8)==0 ) ;
 
@@ -2844,7 +2841,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
 
       if( strncmp(Argv[nopt],"-gamma",4) == 0 ){
          float val ;
-         if( nopt+1 >= Argc ) FatalError("need an argument after -gamma!");
+         if( nopt+1 >= Argc ) ERROR_exit("need an argument after -gamma!");
 
          val = strtod( Argv[++nopt] , NULL ) ;
          if( val > 0 ) argopt.gamma = val ;
@@ -2858,7 +2855,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
 
       if( strncmp(Argv[nopt],"-gsfac",4) == 0 ){
          float val ;
-         if( nopt+1 >= Argc ) FatalError("need an argument after -gsfac!");
+         if( nopt+1 >= Argc ) ERROR_exit("need an argument after -gsfac!");
 
          val = strtod( Argv[++nopt] , NULL ) ;
          if( val != 0.0 ) argopt.gsfac = val ;
@@ -2871,7 +2868,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
       /*----- -datum type option -----*/
 
       if( strncmp(Argv[nopt],"-datum",6) == 0 ){
-         if( ++nopt >= Argc ) FatalError("need an argument after -datum!") ;
+         if( ++nopt >= Argc ) ERROR_exit("need an argument after -datum!") ;
 
          if( strcmp(Argv[nopt],"short") == 0 ){
             argopt.datum_all = MRI_short ;
@@ -2887,7 +2884,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
             char buf[256] ;
             sprintf(buf,"-datum of type '%s' is not supported in AFNI!",
                     Argv[nopt] ) ;
-            FatalError(buf) ;
+            ERROR_exit(buf) ;
          }
 
          nopt++ ; continue ;  /* go to next arg */
@@ -2897,7 +2894,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
 
       if( strncmp(Argv[nopt],"-ncolor",4) == 0 ){
          float val ;
-         if( nopt+1 >= Argc ) FatalError("need an argument after -ncolor!");
+         if( nopt+1 >= Argc ) ERROR_exit("need an argument after -ncolor!");
 
          val = strtod( Argv[++nopt] , NULL ) ;
          if( val > 4 ) argopt.ncolor = val ;
@@ -2948,7 +2945,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
       /*--- illegal option ---*/
 
       printf("** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
-      FatalError("cannot continue") ;
+      ERROR_exit("cannot continue") ;
 
    }
 
@@ -3981,7 +3978,7 @@ ENTRY("T3D_read_images") ;
 printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 #endif
 
-   if( gnim < 1 ){ FatalError("NO INPUT IMAGE FILES?") ; }
+   if( gnim < 1 ){ ERROR_exit("NO INPUT IMAGE FILES?") ; }
 
    /**--- count up the actual number of images into nz ---**/
 
@@ -4238,7 +4235,7 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
          } else {                               /* must convert data */
             switch( argopt.datum_all ){
 
-               default: FatalError("Illegal argopt.datum_all!") ;
+               default: ERROR_exit("Illegal argopt.datum_all!") ;
 
                case MRI_short:{                 /** convert to shorts **/
                   short * shar ;
