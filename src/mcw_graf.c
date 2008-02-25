@@ -4,6 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#include <stdlib.h>
 #include "mcw_graf.h"
 
 #ifndef LABEL_ARG
@@ -716,8 +717,6 @@ void InitSpline(int *x,int *y,int n,double *y2)
 
 /*******************************************************************/
 
-extern void FatalError(char * str);
-
 double EvalSpline(int xa[],int ya[],double y2a[],int n,double x)
 {
   int klo,khi,k;
@@ -728,10 +727,10 @@ double EvalSpline(int xa[],int ya[],double y2a[],int n,double x)
   while (khi-klo > 1) {
     k = (khi+klo) >> 1;
     if (xa[k] > x) khi = k;
-    else klo = k;
+    else           klo = k;
   }
   h = xa[khi] - xa[klo];
-  if (h==0.0) FatalError("bad xvalues in splint\n");
+  if (h==0.0) return ya[klo] ;  /* error condition, should not happen */
   a = (xa[khi]-x)/h;
   b = (x-xa[klo])/h;
   return (a*ya[klo] + b*ya[khi] + ((a*a*a-a)*y2a[klo] +(b*b*b-b)*y2a[khi])
