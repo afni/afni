@@ -12,6 +12,7 @@ int main( int argc , char *argv[] )
    int do_cond=0 ;  /* 08 Nov 2004 */
    int do_sing=0 ;
    int do_1Dll=0 ;  /* 05 Jan 2005 */
+   int do_vmean=0 , do_vnorm=0 ; /* 25 Feb 2008 */
    int pall=1 ;
 
    /*---------- help? ----------*/
@@ -24,6 +25,9 @@ int main( int argc , char *argv[] )
        "\n"
        "OPTIONS:\n"
        " -one    = Make 1st vector be all 1's.\n"
+       " -vmean  = Remove mean from each vector (can't be used with -one).\n"
+       " -vnorm  = Make L2-norm of each vector = 1 before SVD.\n"
+       "           * The above 2 options mirror those in 3dpc.\n"
        " -cond   = Only print condition number (ratio of extremes)\n"
        " -sing   = Only print singular values\n"
        " -sort   = Sort singular values (descending) [the default]\n"
@@ -32,7 +36,8 @@ int main( int argc , char *argv[] )
        " -1Dleft = Only output left eigenvectors, in a .1D format\n"
        "           This might be useful for reducing the number of\n"
        "           columns in a design matrix.  The singular values\n"
-       "           are printed at the top of each vector column.\n"
+       "           are printed at the top of each vector column,\n"
+       "           as a '#...' comment line.\n"
        "NOTES:\n"
        "* Call the input n X m matrix [A] (n rows, m columns).  The SVD\n"
        "  is the factorization [A] = [U] [S] [V]' ('=transpose), where\n"
@@ -54,7 +59,7 @@ int main( int argc , char *argv[] )
        "  is no '-1Dright' option.\n"
        "* For more information on the SVD, you can start at\n"
        "  http://en.wikipedia.org/wiki/Singular_value_decomposition\n"
-       "* Author: Zhark the Algebraical.\n"
+       "* Author: Zhark the Algebraical (Linear).\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -89,6 +94,13 @@ int main( int argc , char *argv[] )
        do_one = 1 ; iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-vmean") == 0 ){
+       do_vmean = 1 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-vnorm") == 0 ){
+       do_vnorm = 1 ; iarg++ ; continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-cond") == 0 ){
        pall = 0 ; do_cond = 1 ; iarg++ ; continue ;
      }
@@ -101,6 +113,9 @@ int main( int argc , char *argv[] )
    }
 
    if( iarg == argc ) ERROR_exit("No 1D files on command line!?\n") ;
+
+   if( do_vmean && do_one )
+     ERROR_exit("Can't use -vmean and -one in the same run!") ;
 
    /* input 1D files */
 
@@ -156,9 +171,34 @@ int main( int argc , char *argv[] )
        for( ii=0 ; ii < nx ; ii++ ) A(ii,kk) = far[ii+jj*nx] ;
      }
    }
-   DESTROY_IMARR(tar) ;
+   DESTROY_IMARR(tar) ;  /* done with input data images */
+
+   if( do_vmean ){  /* 25 Feb 2008 */
+     double sum ;
+     for( jj=0 ; jj < nvec ; jj++ ){
+       sum = 0.0 ;
+       for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj) ;
+       sum /= nx ;
+       for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) -= sum ;
+     }
+   }
+   if( do_vnorm ){  /* 25 Feb 2008 */
+     double sum ;
+     for( jj=0 ; jj < nvec ; jj++ ){
+       sum = 0.0 ;
+       for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
+       if( sum > 0.0 ){
+         sum = 1.0 / sqrt(sum) ;
+         for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) *= sum ;
+       }
+     }
+   }
+
+   /**----- the core of the program -----**/
 
    svd_double( nx , nvec , amat , sval , umat , vmat ) ;
+
+   /*-- various outputs now go to stdout --*/
 
    if( do_cond ){
      double sbot,stop , cnum ;
