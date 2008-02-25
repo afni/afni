@@ -78,9 +78,11 @@ static char * gifti_history[] =
   "     - expanded checks in gifti_valid_dims\n"
   "0.13 20 February, 2008:\n",
   "     - added gifti_get_meta_value() and gifti_image_has_data()\n"
+  "0.14 25 February, 2008:\n",
+  "     - consider data-less metadata as valid\n"
 };
 
-static char gifti_version[] = "gifti library version 0.13, 20 February, 2008";
+static char gifti_version[] = "gifti library version 0.14, 20 February, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -695,16 +697,14 @@ int gifti_valid_nvpairs(nvpairs * nvp, int whine)
     for( c = 0; c < nvp->length; c++ ) {
         if( ! nvp->name[c] ) {
             if( G.verb > 2 || whine )
-                fprintf(stderr,"** invalid nvpair name[%d]\n", c);
+                fprintf(stderr,"** invalid nvpair, missing name @ %d\n", c);
             return 0;
         }
 
-        if( ! nvp->value[c] ) {
-            if( G.verb > 2 || whine )
-                fprintf(stderr,"** missing nvpair value[%d], name = '%s'\n",
-                        c, nvp->name[c]);
-            return 0;
-        }
+        /* value string is not required   25 Feb 2008 */
+        if( ! nvp->value[c] && G.verb > 2 )
+            fprintf(stderr,"-- missing nvpair value[%d], name %s (is OK)\n",
+                    c, nvp->name[c]);
     }
 
     return 1;
