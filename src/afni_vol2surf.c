@@ -139,8 +139,25 @@ ENTRY("AFNI_vol2surf_func_overlay") ;
     /* if a new overlay has been created from clustering, get it as a mask
        (for now - since it's in MRI_IMAGE, and we can't pass to v2s)
                                                        11 Jan 2008 [rickr] */
+
+    if( debug ) {
+        fprintf(stderr,"-- CLUST: ");
+        if( ! im3d->vinfo )
+            fprintf(stderr,"no vinfo to cluster on\n");
+        else if( ! oset->dblk->vedim )
+            fprintf(stderr,"no dblk->vedim to cluster on\n");
+        else {
+            fprintf(stderr,"fim_index %d, thr_index %d, VEDIT_IVAL %d\n",
+                   im3d->vinfo->fim_index,
+                   im3d->vinfo->thr_index,
+                   DSET_VEDIT_IVAL(oset));
+            fprintf(stderr,"   (kind %d, brick type %d)\n",
+                   oset->dblk->vedim->kind, DSET_BRICK_TYPE(oset,oind));
+        }
+    }
+
     if( im3d->vinfo && oset->dblk->vedim                      &&
-            (im3d->vinfo->thr_index == DSET_VEDIT_IVAL(oset)) &&
+            (im3d->vinfo->fim_index == DSET_VEDIT_IVAL(oset)) &&
             (oset->dblk->vedim->kind == DSET_BRICK_TYPE(oset,oind)) ) {
         cmask = mri_to_bytemask(oset->dblk->vedim, 1.0, 0.0);
         if( debug > 1 ) fprintf(stderr,"++ applying mask from edited image\n");
