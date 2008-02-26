@@ -1517,7 +1517,7 @@ SUMA_TABLE_FIELD * SUMA_AllocTableField(void)
    SUMA_TABLE_FIELD *TF = NULL;
 
    SUMA_ENTRY;
-   TF = (SUMA_TABLE_FIELD *)SUMA_malloc(sizeof(SUMA_TABLE_FIELD));
+   TF = (SUMA_TABLE_FIELD *)SUMA_calloc(1,sizeof(SUMA_TABLE_FIELD));
    if (!TF) {
       SUMA_SL_Crit("Failed to allocate");
       SUMA_RETURN(TF);
@@ -1901,7 +1901,7 @@ void SUMA_CreateTable(  Widget parent,
    for (j=0; j<TF->Nj; ++j) TF->cwidth[j] = cwidth[j];
    if(col_tit) TF->HasColTit = YUP; else TF->HasColTit = NOPE;
    if(row_tit) TF->HasRowTit = YUP; else TF->HasRowTit = NOPE;
-   TF->cells = (Widget *)SUMA_malloc(sizeof(Widget)*TF->Ni*TF->Nj);
+   TF->cells = (Widget *)SUMA_calloc(TF->Ni*TF->Nj,sizeof(Widget));
    if (!TF->cells) {  SUMA_SL_Crit("Failed to allocate"); SUMA_RETURNe; }
    TF->NewValueCallback = NewValueCallback;
    TF->NewValueCallbackData = cb_data;
@@ -2846,7 +2846,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          }
          /* create a new one allocate for one more spot for the parent widget. 
             (more additions for sub-menus, see how SUMA_BuildMenu works )*/
-         SO->SurfCont->SwitchIntMenu = (Widget *)SUMA_malloc(sizeof(Widget)*(N_items+1));  
+         SO->SurfCont->SwitchIntMenu = 
+            (Widget *)SUMA_calloc((N_items+1), sizeof(Widget));  
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "I", '\0', YUP, SwitchInt_Menu, 
@@ -2880,7 +2881,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          }
          /* create a new one allocate for one more spot for the parent widget. 
             (more additions for sub-menus, see how SUMA_BuildMenu works )*/
-         SO->SurfCont->SwitchThrMenu = (Widget *)SUMA_malloc(sizeof(Widget)*(N_items+1));  
+         SO->SurfCont->SwitchThrMenu = 
+            (Widget *)SUMA_calloc((N_items+1), sizeof(Widget));  
          SUMA_BuildMenuReset(13);         
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "T", '\0', YUP, SwitchThr_Menu, 
@@ -2913,7 +2915,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          }
          /* create a new one allocate for one more spot for the parent widget. 
             (more additions for sub-menus, see how SUMA_BuildMenu works )*/         
-         SO->SurfCont->SwitchBrtMenu = (Widget *)SUMA_malloc(sizeof(Widget)*(N_items+1));  
+         SO->SurfCont->SwitchBrtMenu = 
+            (Widget *)SUMA_calloc((N_items+1), sizeof(Widget));  
          SUMA_BuildMenuReset(13);
          SUMA_BuildMenu (SO->SurfCont->rcsw_v1, XmMENU_OPTION, /* populate it */
                            "B", '\0', YUP, SwitchBrt_Menu, 
@@ -3300,7 +3303,8 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
       }
       /* create a new one allocate for one more spot for the parent widget. 
          (more additions for sub-menus, see how SUMA_BuildMenu works )*/
-      SO->SurfCont->SwitchCmapMenu = (Widget *)SUMA_malloc(sizeof(Widget)*(SUMAg_CF->scm->N_maps+1));  
+      SO->SurfCont->SwitchCmapMenu = 
+         (Widget *)SUMA_calloc((SUMAg_CF->scm->N_maps+1), sizeof(Widget));  
       SUMA_BuildMenuReset(10);
       SO->SurfCont->N_CmapMenu = 
          SUMA_BuildMenu (  SO->SurfCont->rc_CmapCont, 
@@ -4643,7 +4647,7 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, in
    }
    
    /* Allocate for menu */
-   menu = (SUMA_MenuItem *)SUMA_malloc(sizeof(SUMA_MenuItem)*(nel->vec_num+1));
+   menu = (SUMA_MenuItem *)SUMA_calloc((nel->vec_num+1), sizeof(SUMA_MenuItem));
    
 
    /* fillup menu */
@@ -4706,7 +4710,7 @@ SUMA_MenuItem *SUMA_FormSwitchCmapMenuVector(SUMA_COLOR_MAP **CMv, int N_maps)
    callback = SUMA_cb_SwitchCmap;
    
    /* Allocate for menu */
-   menu = (SUMA_MenuItem *)SUMA_malloc(sizeof(SUMA_MenuItem)*(N_maps+1));
+   menu = (SUMA_MenuItem *)SUMA_calloc((N_maps+1),sizeof(SUMA_MenuItem));
    
    /* fillup menu */
    for (i=0; i < N_maps; ++i) {
@@ -4952,10 +4956,10 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])
 SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_UpdateXhairField"};
-   int i, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+   int i=0, N_SOlist=0, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    SUMA_DO *dov = SUMAg_DOv;
    SUMA_SurfaceObject *SO=NULL, *curSO=NULL;
-   char str[100];
+   char str[100]={""};
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY; 
@@ -4965,7 +4969,8 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
    /* Which surfaces are visible in this SV ? */
    N_SOlist = SUMA_VisibleSOs(sv, dov, SOlist);
    for (i=0; i<N_SOlist; ++i) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: working %d/%d shown surfaces ...\n", 
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, "%s: working %d/%d shown surfaces ...\n", 
                                           FuncName, i, N_SOlist);
       SO = (SUMA_SurfaceObject *)dov[SOlist[i]].OP;
       if (SO->SurfCont) { /* does this surface have surface controller ? */
@@ -4973,11 +4978,14 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
          curSO = *(SO->SurfCont->curSOp);
          if (curSO == SO) {
             /* OK, show the coordinate */
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Setting cross hair at %f %f %f\n", 
-               FuncName, sv->Ch->c[0],sv->Ch->c[1],sv->Ch->c[2]);
+            if (LocalHead) 
+               fprintf(SUMA_STDERR, "%s: Setting cross hair at %f %f %f\n", 
+                                    FuncName, 
+                                    sv->Ch->c[0],sv->Ch->c[1],sv->Ch->c[2]);
             SUMA_XHAIR_STRING(sv->Ch->c, str);
             SUMA_LH(str);
-            XtVaSetValues(SO->SurfCont->XhairTable->cells[1], XmNvalue, str, NULL);
+            XtVaSetValues(SO->SurfCont->XhairTable->cells[1], 
+                           XmNvalue, str, NULL);
          }
       }
       
@@ -5488,7 +5496,7 @@ XImage *SUMA_cmap_to_XImage (Widget wid, SUMA_COLOR_MAP *cm)
    } 
    
    /* create XImage*/
-   par = (Pixel *) malloc(sizeof(Pixel)*cm->N_Col); 
+   par = (Pixel *) calloc(cm->N_Col,sizeof(Pixel)); 
    if( par == NULL ) {
       SUMA_SL_Err("Failed to allocate");
       SUMA_RETURN(NULL) ;

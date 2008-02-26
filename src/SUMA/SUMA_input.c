@@ -3524,7 +3524,7 @@ SUMA_Boolean  SUMA_CreateBrushStroke (SUMA_SurfaceViewer *sv)
       SUMA_RETURN(NOPE); 
       
    }
-   sv->BS = (DList *)SUMA_malloc(sizeof(DList));
+   sv->BS = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init(sv->BS, SUMA_FreeBSDatum);  
    
    SUMA_RETURN (YUP);
@@ -3537,7 +3537,8 @@ SUMA_BRUSH_STROKE_DATUM * SUMA_CreateBSDatum(void)
    
    SUMA_ENTRY;
    
-   bsd = (SUMA_BRUSH_STROKE_DATUM *)SUMA_malloc(sizeof(SUMA_BRUSH_STROKE_DATUM));
+   bsd = (SUMA_BRUSH_STROKE_DATUM *)
+            SUMA_calloc(1,sizeof(SUMA_BRUSH_STROKE_DATUM));
    if (!bsd) {
       SUMA_RegisterMessage (SUMAg_CF->MessageList, 
                             "Failed to allocate.", FuncName, 
@@ -3955,7 +3956,8 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          ROIstroke->action = SUMA_BSA_AppendStroke;
          /*now add the ROIdatum to the list of ROIs */
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Adding ROIStroke to DrawnROI->ROIstrokelist\n", FuncName);
-         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
+         ROIA = (SUMA_ROI_ACTION_STRUCT *)
+                   SUMA_calloc(1,sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
          ROIA->DrawnROI = DrawnROI;
          ROIA->ROId = ROIstroke;
          tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_AddToTailROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -3971,7 +3973,8 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          /* store the action */
          ROIstroke->action = SUMA_BSA_JoinEnds;
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing path.\n", FuncName);
-         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
+         ROIA = (SUMA_ROI_ACTION_STRUCT *)
+                   SUMA_calloc(1,sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
          ROIA->DrawnROI = DrawnROI;
          ROIA->ROId = ROIstroke;
          tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_AddToTailJunctionROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -3987,7 +3990,8 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          /* store the action */
          ROIfill->action = SUMA_BSA_FillArea;
          /* Now add ROIdatum to stack */
-         ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
+         ROIA = (SUMA_ROI_ACTION_STRUCT *)
+                   SUMA_calloc(1,sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
          ROIA->DrawnROI = DrawnROI;
          ROIA->ROId = ROIfill;
          tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_AddFillROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -4569,7 +4573,8 @@ DListElmt * SUMA_PushActionStack (DList *ActionStack, DListElmt *StackPos,
    
    /* Pushing the action and its data onto the stack */
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Pushing the action and its data onto the stack.\n", FuncName);
-   AS_data = (SUMA_ACTION_STACK_DATA *)SUMA_malloc (sizeof(SUMA_ACTION_STACK_DATA));
+   AS_data = (SUMA_ACTION_STACK_DATA *)
+                  SUMA_calloc(1,sizeof(SUMA_ACTION_STACK_DATA));
    AS_data->ActionDataDestructor = ActionDataDestructor;
    AS_data->ActionFunction = ActionFunction;
    AS_data->ActionData = ActionData;

@@ -13,7 +13,7 @@ SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void)
    SUMA_NEW_SO_OPT *nsoopt=NULL;
    SUMA_ENTRY;
    
-   nsoopt = (SUMA_NEW_SO_OPT *) SUMA_malloc(sizeof(SUMA_NEW_SO_OPT));
+   nsoopt = (SUMA_NEW_SO_OPT *) SUMA_calloc(1,sizeof(SUMA_NEW_SO_OPT));
    nsoopt->idcode_str = NULL;
    nsoopt->LocalDomainParent = SUMA_copy_string("SAME");
    nsoopt->LocalDomainParentID = NULL;
@@ -676,7 +676,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char 
    
    SUMA_ENTRY;
    
-   SDO = (SUMA_SegmentDO *) SUMA_malloc (sizeof (SUMA_SegmentDO));
+   SDO = (SUMA_SegmentDO *) SUMA_calloc(1,sizeof (SUMA_SegmentDO));
    if (!SDO) {
          fprintf(stderr,"Error %s: Failed to allocate for SDO\n", FuncName);
          SUMA_RETURN (SDO);
@@ -1634,7 +1634,7 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name, SUMA_DO_Types type)
 
    SUMA_ENTRY;
 
-   Ax = (SUMA_Axis *) SUMA_malloc (sizeof (SUMA_Axis));
+   Ax = (SUMA_Axis *) SUMA_calloc(1,sizeof (SUMA_Axis));
    if (Ax == NULL) {
       fprintf(stderr,"SUMA_Alloc_Axis Error: Failed to allocate Ax\n");
       SUMA_RETURN (Ax);
@@ -1891,7 +1891,7 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_s
    
    SUMA_ENTRY;
 
-   SDO = (SUMA_SphereDO*)SUMA_malloc (sizeof (SUMA_SphereDO));
+   SDO = (SUMA_SphereDO*)SUMA_calloc(1,sizeof (SUMA_SphereDO));
    if (SDO == NULL) {
       fprintf(stderr,"SUMA_Alloc_SphereDO Error: Failed to allocate SDO\n");
       SUMA_RETURN (NULL);
@@ -2202,7 +2202,7 @@ SUMA_PlaneDO * SUMA_Alloc_PlaneDO (int N_n, char *Label, SUMA_DO_Types type)
    
    SUMA_ENTRY;
 
-   SDO = (SUMA_PlaneDO*)SUMA_malloc (sizeof (SUMA_PlaneDO));
+   SDO = (SUMA_PlaneDO*)SUMA_calloc(1,sizeof (SUMA_PlaneDO));
    if (SDO == NULL) {
       fprintf(stderr,"SUMA_Alloc_PlaneDO Error: Failed to allocate SDO\n");
       SUMA_RETURN (NULL);
@@ -2564,11 +2564,17 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
    for (i=0; i<3; ++i) { C[5][i] = ( P[2][i] + P[3][i] + P[7][i] + P[6][i] ) / 4.0; } /* Plane c, d, h, g*/
   
    /* for (i=0; i<3; ++i) sv->Ch->c[i] = sv->Plist_close[i];  */
-   if (LocalHead) { fprintf (SUMA_STDERR,"%s: sv->Pcenter_close = [%f %f %f]\n", FuncName, sv->Pcenter_close[0], sv->Pcenter_close[1], sv->Pcenter_close[2]); }
-   ASI = (SUMA_AxisSegmentInfo **) SUMA_malloc( 12 * sizeof(SUMA_AxisSegmentInfo *));
+   if (LocalHead) { 
+      fprintf (SUMA_STDERR,"%s: sv->Pcenter_close = [%f %f %f]\n", 
+                           FuncName, sv->Pcenter_close[0], sv->Pcenter_close[1],
+                           sv->Pcenter_close[2]); }
+   ASI = (SUMA_AxisSegmentInfo **) 
+      SUMA_calloc(12, sizeof(SUMA_AxisSegmentInfo *));
 
    for (j=0; j<12; ++j) {
-      ASI[j] = (SUMA_AxisSegmentInfo *) SUMA_malloc(sizeof(SUMA_AxisSegmentInfo )); ASIp = ASI[j];
+      ASI[j] = (SUMA_AxisSegmentInfo *)
+                  SUMA_calloc(1,sizeof(SUMA_AxisSegmentInfo )); 
+      ASIp = ASI[j];
       ASIp->SegIndex = j;
       switch (j) {
          case 0: /* seg, 1 */
@@ -2694,7 +2700,7 @@ DList *SUMA_SortedAxisSegmentList (SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, SUMA_S
       }
    }
 
-   list = (DList *)SUMA_malloc(sizeof(DList));
+   list = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init(list, NULL);
    for (i=0; i<12; ++i) {
       ASIp = ASI[i];
@@ -3119,7 +3125,7 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIonSO (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_
    *N_ROI = -1;
    
    /* allocate for maximum */
-   ROIv = (SUMA_DRAWN_ROI **)SUMA_malloc(sizeof(SUMA_DRAWN_ROI *)*N_do);
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_do, sizeof(SUMA_DRAWN_ROI *));
    if (!ROIv) {
       SUMA_SL_Crit("Failed to allocate for ROIv");
       SUMA_RETURN(NULL);
@@ -3177,7 +3183,7 @@ SUMA_DRAWN_ROI **SUMA_Find_ROIrelatedtoSO (SUMA_SurfaceObject *SO, SUMA_DO* dov,
    *N_ROI = -1;
    
    /* allocate for maximum */
-   ROIv = (SUMA_DRAWN_ROI **)SUMA_malloc(sizeof(SUMA_DRAWN_ROI *)*N_do);
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_do,sizeof(SUMA_DRAWN_ROI *));
    if (!ROIv) {
       SUMA_SL_Crit("Failed to allocate for ROIv");
       SUMA_RETURN(NULL);
@@ -4039,7 +4045,7 @@ int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique)
       SUMA_RETURN (NULL);
    }
     
-   Nodes = (int*)SUMA_malloc(N_max*sizeof(int));
+   Nodes = (int*)SUMA_calloc(N_max,sizeof(int));
    if (!Nodes) {
       SUMA_SLP_Crit("Failed to allocate for Nodes.");
       *N_Nodes = -1;
@@ -4144,7 +4150,7 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
    SUMA_ENTRY;
    
    if (!ROIplaneListIn) { /* initialization land */
-      ROIplaneList = (DList *)SUMA_malloc(sizeof(DList));
+      ROIplaneList = (DList *)SUMA_calloc(1,sizeof(DList));
       dlist_init (ROIplaneList, SUMA_Free_ROI_PlaneData);
       SUMA_RETURN(ROIplaneList);
    } else {
@@ -4187,9 +4193,9 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
    }
    
    if (!found) { /* must create this plane */
-      Plane = (SUMA_ROI_PLANE *)SUMA_malloc(sizeof(SUMA_ROI_PLANE));
+      Plane = (SUMA_ROI_PLANE *)SUMA_calloc(1,sizeof(SUMA_ROI_PLANE));
       Plane->name = UsedName; /* preserved, don't go freeing UsedName later! */
-      Plane->ROI_index_lst = (DList *) SUMA_malloc(sizeof(DList));
+      Plane->ROI_index_lst = (DList *) SUMA_calloc(1,sizeof(DList));
       dlist_init(Plane->ROI_index_lst, NULL);
       dlist_ins_next(ROIplaneList, dlist_tail(ROIplaneList), (void *)Plane);
    }
@@ -4292,7 +4298,7 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    
    SUMA_ENTRY;
 
-   Ch = SUMA_malloc (sizeof (SUMA_CrossHair));
+   Ch = SUMA_calloc(1,sizeof (SUMA_CrossHair));
    if (Ch == NULL) {
       fprintf(stderr,"SUMA_Alloc_CrossHair Error: Failed to allocate Ch\n");
       SUMA_RETURN (NULL);
@@ -4365,7 +4371,7 @@ SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void)
    
    SUMA_ENTRY;
 
-   SM = (SUMA_SphereMarker*)SUMA_malloc (sizeof (SUMA_SphereMarker));
+   SM = (SUMA_SphereMarker*)SUMA_calloc(1,sizeof (SUMA_SphereMarker));
    if (SM == NULL) {
       fprintf(stderr,"SUMA_Alloc_SphereMarker Error: Failed to allocate SM\n");
       SUMA_RETURN (NULL);
@@ -4445,7 +4451,7 @@ SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void)
    
    SUMA_ENTRY;
 
-   FM = SUMA_malloc (sizeof (SUMA_FaceSetMarker));
+   FM = SUMA_calloc(1,sizeof (SUMA_FaceSetMarker));
    if (FM == NULL) {
       fprintf(stderr,"SUMA_Alloc_FaceSetMarker Error: Failed to allocate FM\n");
       SUMA_RETURN (NULL);
@@ -5453,7 +5459,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
 
    SO = (SUMA_SurfaceObject *)SUMA_calloc(N, sizeof(SUMA_SurfaceObject));
    if (SO == NULL) {
-      SUMA_alloc_problem("SUMA_Alloc_SurfObject_Struct: could not allocate memory for SO");
+      SUMA_alloc_problem(  "SUMA_Alloc_SurfObject_Struct:\n"
+                           "could not allocate memory for SO");
    }
    
    for (i=0; i< N; ++i) {
@@ -5500,7 +5507,9 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].glar_FaceNormList = NULL; 
       SO[i].glar_NodeNormList = NULL; 
       /* create vector of pointers */
-      SO[i].Overlays = (SUMA_OVERLAYS **) SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
+      SO[i].Overlays = 
+         (SUMA_OVERLAYS **)
+            SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
       /* fill pointers with NULL */
       for (j=0; j < SUMA_MAX_OVERLAYS; ++j) {
          SO[i].Overlays[j] = NULL;
@@ -5674,7 +5683,7 @@ SUMA_ROI *SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char *l
    
    SUMA_ENTRY;
    
-   ROI = (SUMA_ROI *) SUMA_malloc (sizeof(SUMA_ROI));
+   ROI = (SUMA_ROI *) SUMA_calloc(1,sizeof(SUMA_ROI));
    ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH+1, sizeof(char));
    ROI->Parent_idcode_str = (char *)SUMA_calloc (strlen(Parent_idcode_str)+1, sizeof (char));
    if (label) ROI->Label = (char *)SUMA_calloc (strlen(label)+1, sizeof(char));
@@ -5727,14 +5736,14 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING
    
    SUMA_ENTRY;
    
-   D_ROI = (SUMA_DRAWN_ROI *) SUMA_malloc (sizeof(SUMA_DRAWN_ROI));
+   D_ROI = (SUMA_DRAWN_ROI *) SUMA_calloc(1,sizeof(SUMA_DRAWN_ROI));
    D_ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
    D_ROI->Parent_idcode_str = (char *)SUMA_calloc (strlen(Parent_idcode_str)+1, sizeof (char));
    D_ROI->ColPlaneName = SUMA_copy_string("DefROIpl");
    D_ROI->FillColor[0] = 1.0; D_ROI->FillColor[1] = 0.0; D_ROI->FillColor[2] = 0.0;
    D_ROI->EdgeColor[0] = 0.0; D_ROI->EdgeColor[1] = 0.0; D_ROI->EdgeColor[2] = 1.0;
    D_ROI->EdgeThickness = 2;
-   D_ROI->ROIstrokelist = (DList *)SUMA_malloc (sizeof(DList));
+   D_ROI->ROIstrokelist = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init(D_ROI->ROIstrokelist, SUMA_FreeROIDatum);
    D_ROI->CE = NULL;
    D_ROI->N_CE = -1;
@@ -5803,7 +5812,7 @@ SUMA_ROI_DATUM * SUMA_AllocROIDatum (void)
    
    SUMA_ENTRY;
    
-   ROId = (SUMA_ROI_DATUM *) SUMA_malloc (sizeof(SUMA_ROI_DATUM));
+   ROId = (SUMA_ROI_DATUM *) SUMA_calloc(1,sizeof(SUMA_ROI_DATUM));
    
    if (!ROId) {
       SUMA_RETURN (NULL);

@@ -50,10 +50,10 @@ void SUMA_PushErrLog(char *macroname, char *msg, char *fname)
 {
    SUMA_ERRLOG *el=NULL;
    if (!list) {
-      list = (DList *)SUMA_malloc(sizeof(DList));
+      list = (DList *)SUMA_calloc(1,sizeof(DList));
       dlist_init(list, SUMA_FreeErrLog); 
    }
-   el = (SUMA_ERRLOG*)SUMA_malloc(sizeof(SUMA_ERRLOG));
+   el = (SUMA_ERRLOG*)SUMA_calloc(1,sizeof(SUMA_ERRLOG));
    snprintf(el->macroname, 39*sizeof(char),"%s", macroname);
    snprintf(el->msg, (MAX_ERRLOG_MSG-1)*sizeof(char), "%s", msg);
    snprintf(el->FuncName, (MAX_ERRLOG_FUNCNAME-1)*sizeof(char), "%s", fname);
@@ -146,7 +146,7 @@ SUMA_MX_VEC *SUMA_NewMxNullVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte firs
       SUMA_SL_Err("NULL dims");
       SUMA_RETURN(NULL);
    }
-   mxv = (SUMA_MX_VEC *)SUMA_malloc(sizeof(SUMA_MX_VEC));
+   mxv = (SUMA_MX_VEC *)SUMA_calloc(1,sizeof(SUMA_MX_VEC));
    mxv->fdf = 1;
    mxv->bv = NULL;
    mxv->sv = NULL;
@@ -1198,8 +1198,9 @@ int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int s
       NI_set_attribute(nelb, "atr_name", "COLMS_RANGE");
       NI_add_to_group(dset->ngr, nelb);
       #if 0 /* trying to work with NI_insert */
-      { int i ; junk = (char **)SUMA_malloc(sizeof(char*)*300); 
-         for (i=0; i< 300; ++i) junk[i] = (char *)SUMA_malloc(300 * sizeof(char));
+      { int i ; junk = (char **)SUMA_calloc(300,sizeof(char*)); 
+         for (i=0; i< 300; ++i) 
+            junk[i] = (char *)SUMA_calloc(300, sizeof(char));
          for (i=0; i<50; ++i) sprintf(junk[i], "Hello Baby Joannne ro"); }
       NI_add_column_stride ( nelb, NI_STRING, junk, 1 );
       #else
@@ -2292,8 +2293,11 @@ void *SUMA_Copy_Part_Column(void *col, NI_rowtype *rt, int N_col, byte *rowmask,
    }
    
    /* allocate for result */
-         ndat = (char *)SUMA_malloc(sizeof(char) *  rt->size * n_alloc ) ;
-         if (!ndat) { SUMA_SL_Crit("Failed to allocate for ndat"); SUMA_RETURN(NULL); }
+         ndat = (char *)SUMA_calloc(rt->size * n_alloc ,sizeof(char)  ) ;
+         if (!ndat) { 
+            SUMA_SL_Crit("Failed to allocate for ndat"); 
+            SUMA_RETURN(NULL); 
+         }
          /* Now to copy the proper values */
          if (!masked_only) {
             SUMA_LH("All copy");
@@ -3624,7 +3628,7 @@ SUMA_DSET * SUMA_NewDsetPointer(void)
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
 
-   dset = (SUMA_DSET *)SUMA_malloc(sizeof(SUMA_DSET));
+   dset = (SUMA_DSET *)SUMA_calloc(1,sizeof(SUMA_DSET));
    if (!dset) {
       SUMA_SL_Err("Failed to allocate for dset");
       SUMA_RETURN(dset);
@@ -5057,7 +5061,7 @@ float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly)
    
    ctp = SUMA_TypeOfColNumb(nel, ind); 
 
-   V = (float *)SUMA_malloc(sizeof(float)*N_read);
+   V = (float *)SUMA_calloc(N_read,sizeof(float));
    if (!V) { SUMA_SL_Crit("Failed to allocate for V."); SUMA_RETURN(NULL); }
    vtp = SUMA_ColType2TypeCast (ctp) ;
    switch (vtp) {
@@ -5295,7 +5299,7 @@ byte *SUMA_get_c_mask(char *mask, int N_Node, byte *omask, const char *oper, int
    
    clen = strlen( mask );
 	/* save original cmask command, as EDT_calcmask() is destructive */
-	cmd = (char *)malloc((clen + 1) * sizeof(char));
+	cmd = (char *)calloc((clen + 1), sizeof(char));
 	strcpy( cmd,  mask);
 
 	
@@ -5665,7 +5669,7 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted (
       /* if you get here then you do not have a 
          full list or the list is not sorted*/
       SUMA_LH("Creating vn");
-      vn = (float *)SUMA_malloc(N_Node * sizeof(float));
+      vn = (float *)SUMA_calloc(N_Node, sizeof(float));
       if (bmp) {
          if (*bmp) {
             SUMA_S_Err("*bmp must be NULL");
@@ -5836,7 +5840,7 @@ float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly)
    
    ctp = SUMA_TypeOfDsetColNumb(dset, ind); 
 
-   V = (float *)SUMA_malloc(sizeof(float)*N_read);
+   V = (float *)SUMA_calloc(N_read, sizeof(float));
    if (!V) { SUMA_SL_Crit("Failed to allocate for V."); SUMA_RETURN(NULL); }
    vtp = SUMA_ColType2TypeCast (ctp) ;
    switch (vtp) {
@@ -5883,7 +5887,7 @@ int * SUMA_DsetCol2Int (SUMA_DSET *dset, int ind, int FilledOnly)
    
    ctp = SUMA_TypeOfDsetColNumb(dset, ind); 
 
-   V = (int *)SUMA_malloc(sizeof(int)*N_read);
+   V = (int *)SUMA_calloc(N_read, sizeof(int));
    if (!V) { SUMA_SL_Crit("Failed to allocate for V."); SUMA_RETURN(NULL); }
    vtp = SUMA_ColType2TypeCast (ctp) ;
    switch (vtp) {
@@ -7779,7 +7783,7 @@ SUMA_OPEN_DX_STRUCT *SUMA_Alloc_OpenDX_Struct(void)
    
    SUMA_ENTRY;
    
-   dx = (SUMA_OPEN_DX_STRUCT *)SUMA_malloc(sizeof(SUMA_OPEN_DX_STRUCT));
+   dx = (SUMA_OPEN_DX_STRUCT *)SUMA_calloc(1,sizeof(SUMA_OPEN_DX_STRUCT));
    dx->rank = 0;
    dx->shape = 0;
    dx->items = 0;
@@ -9100,7 +9104,7 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
    FoundColSel = NOPE;
    FoundRangeSel = NOPE;
 	if (N_FileName ){
-		NewName = (SUMA_PARSED_NAME *) SUMA_malloc(sizeof(SUMA_PARSED_NAME));
+		NewName = (SUMA_PARSED_NAME *) SUMA_calloc(1,sizeof(SUMA_PARSED_NAME));
       
       i = N_FileName -1;
 		while (i > -1 && !FoundPath) {
@@ -10839,7 +10843,7 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp)
    switch (tp) {
       case SUMA_int:
          {
-            SUMA_IVEC *ivec= (SUMA_IVEC *)SUMA_malloc(sizeof(SUMA_IVEC));
+            SUMA_IVEC *ivec= (SUMA_IVEC *)SUMA_calloc(1,sizeof(SUMA_IVEC));
             ivec->v = (int *)SUMA_calloc(nread,sizeof(int));
             ivec->n = nread;
             for (i=0; i<nread; ++i) ivec->v[i] = (int)d[i];
@@ -10848,7 +10852,7 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp)
          break;
       case SUMA_float:
          {
-            SUMA_FVEC *fvec= (SUMA_FVEC *)SUMA_malloc(sizeof(SUMA_FVEC));
+            SUMA_FVEC *fvec= (SUMA_FVEC *)SUMA_calloc(1,sizeof(SUMA_FVEC));
             fvec->v = (float *)SUMA_calloc(nread,sizeof(float));
             fvec->n = nread;
             for (i=0; i<nread; ++i) fvec->v[i] = (float)d[i];
@@ -10857,7 +10861,7 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp)
          break;
       case SUMA_double:
          {
-            SUMA_DVEC *dvec= (SUMA_DVEC *)SUMA_malloc(sizeof(SUMA_DVEC));
+            SUMA_DVEC *dvec= (SUMA_DVEC *)SUMA_calloc(1,sizeof(SUMA_DVEC));
             dvec->v = (double *)SUMA_calloc(nread,sizeof(double));
             dvec->n = nread;
             for (i=0; i<nread; ++i) dvec->v[i] = (double)d[i];

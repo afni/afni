@@ -1323,7 +1323,7 @@ int main (int argc,char *argv[])
 	}
 	
 	/* Allocate for SF */
-	SF = (SUMA_SureFit_struct *) SUMA_malloc(sizeof(SUMA_SureFit_struct));	
+	SF = (SUMA_SureFit_struct *) SUMA_calloc(1,sizeof(SUMA_SureFit_struct));	
 	if (SF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for SF\n", FuncName);
 		exit(1);
@@ -1388,14 +1388,14 @@ SUMA_FS_COLORTABLE *SUMA_CreateFS_ColorTable(int nbins, int len, SUMA_FS_COLORTA
    SUMA_ENTRY;
    
    if (!cto) {
-      ct = (SUMA_FS_COLORTABLE*) SUMA_malloc(sizeof(SUMA_FS_COLORTABLE));
+      ct = (SUMA_FS_COLORTABLE*) SUMA_calloc(1,sizeof(SUMA_FS_COLORTABLE));
       if (!ct) {
          SUMA_SL_Crit("Failed to allocate for ct");
          SUMA_RETURN(NULL);
       }
       ct->nbins = nbins;
-      ct->bins = (SUMA_FS_COLORTABLE_ENTRY *) SUMA_malloc(nbins * 
-                                             sizeof(SUMA_FS_COLORTABLE_ENTRY));
+      ct->bins = (SUMA_FS_COLORTABLE_ENTRY *) 
+                     SUMA_calloc(nbins, sizeof(SUMA_FS_COLORTABLE_ENTRY));
 
       ct->fname = (char *)SUMA_malloc((len + 1)*sizeof(char));
       if (!ct->bins || !ct->fname) {
@@ -1611,7 +1611,7 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, int lbl1, int lbl2, in
    }
    
    /* allocate for SM */
-   SM = (SUMA_COLOR_MAP*) SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+   SM = (SUMA_COLOR_MAP*) SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    SM->top_frac = 0.0f;
    SM->SO = NULL; 
    SM->N_Col = lbl2-lbl1+1;
@@ -3238,7 +3238,8 @@ int main (int argc,char *argv[])
 	}
 	
 	/* Allocate for FS */
-	FS = (SUMA_FreeSurfer_struct *) SUMA_malloc(sizeof(SUMA_FreeSurfer_struct));	
+	FS = (SUMA_FreeSurfer_struct *)
+             SUMA_calloc(1,sizeof(SUMA_FreeSurfer_struct));	
 	if (FS == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for FS\n", FuncName);
 		exit(1);
@@ -4439,7 +4440,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
    }
    
    
-   ROIv = (SUMA_DRAWN_ROI **)SUMA_malloc(N_Labels*sizeof(SUMA_DRAWN_ROI*));
+   ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_Labels,sizeof(SUMA_DRAWN_ROI*));
    
    for (i=0; i < N_Labels; ++i) {
       int Value, N_Node, *Node=NULL;
@@ -4662,7 +4663,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
    }
    
    /* Now turn those nel into ROIS */
-   ROIv = (SUMA_DRAWN_ROI **) SUMA_malloc(N_nel*sizeof(SUMA_DRAWN_ROI*));
+   ROIv = (SUMA_DRAWN_ROI **) SUMA_calloc(N_nel, sizeof(SUMA_DRAWN_ROI*));
    for (inel=0; inel < N_nel; ++inel) {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Processing nel %d/%d...\n", FuncName, inel, N_nel);
       nel = nelv[inel];
@@ -4672,7 +4673,8 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
       /* store nel in nimlROI struct */
 
       /* allocate for nimlROI */
-      nimlROI = (SUMA_NIML_DRAWN_ROI *)SUMA_malloc(sizeof(SUMA_NIML_DRAWN_ROI));
+      nimlROI = (SUMA_NIML_DRAWN_ROI *)
+                     SUMA_calloc(1,sizeof(SUMA_NIML_DRAWN_ROI));
       nimlROI->Type = (int)strtod(NI_get_attribute( nel , "Type"), NULL);
       nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "idcode_str")); /* obsolete */
       if (SUMA_IS_EMPTY_STR_ATTR(nimlROI->idcode_str)) nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "self_idcode"));
@@ -4704,7 +4706,9 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
             nimlROI->idcode_str, nimlROI->Parent_idcode_str);
       }
 
-      nimlROI->ROI_datum = (SUMA_NIML_ROI_DATUM *)SUMA_malloc(nimlROI->N_ROI_datum*sizeof(SUMA_NIML_ROI_DATUM));
+      nimlROI->ROI_datum = 
+         (SUMA_NIML_ROI_DATUM *)                   
+               SUMA_calloc(nimlROI->N_ROI_datum,sizeof(SUMA_NIML_ROI_DATUM));
 
       /* DO NOT use niml_ROI_datum_buff = (SUMA_NIML_ROI_DATUM *)nel->vec[idat];
       inside the loop.
@@ -4723,8 +4727,11 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
          nimlROI->ROI_datum[idat].N_n = niml_ROI_datum_buff[idat].N_n;
          if (nimlROI->ROI_datum[idat].N_n > 0) {
             if (LocalHead) fprintf (SUMA_STDERR,"%s: Copying nPath, %d values\n", FuncName, nimlROI->ROI_datum[idat].N_n);
-            nimlROI->ROI_datum[idat].nPath = (int *)SUMA_malloc(sizeof(int)*nimlROI->ROI_datum[idat].N_n);
-            memcpy(nimlROI->ROI_datum[idat].nPath, niml_ROI_datum_buff[idat].nPath, sizeof(int)*nimlROI->ROI_datum[idat].N_n);
+            nimlROI->ROI_datum[idat].nPath = 
+               (int *)SUMA_malloc(sizeof(int)*nimlROI->ROI_datum[idat].N_n);
+            memcpy(  nimlROI->ROI_datum[idat].nPath, 
+                     niml_ROI_datum_buff[idat].nPath,    
+                     sizeof(int)*nimlROI->ROI_datum[idat].N_n);
          } else {
             SUMA_LH("Null nPath");
             nimlROI->ROI_datum[idat].nPath = NULL;
@@ -5600,7 +5607,7 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
    /* count the total number of nodes in ROI */
    
    /* allocate for nimlROI */
-   ROI_1D = (SUMA_1D_DRAWN_ROI *)SUMA_malloc(sizeof(SUMA_1D_DRAWN_ROI));
+   ROI_1D = (SUMA_1D_DRAWN_ROI *)SUMA_calloc(1,sizeof(SUMA_1D_DRAWN_ROI));
    Elm = NULL;
    ROI_1D->N = 0;
    do {
@@ -5786,7 +5793,8 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_New_FormAfniDset_Opt(void)
    
    SUMA_ENTRY;
    
-   Opt = (SUMA_FORM_AFNI_DSET_STRUCT*)SUMA_malloc(sizeof(SUMA_FORM_AFNI_DSET_STRUCT));
+   Opt = (SUMA_FORM_AFNI_DSET_STRUCT*)
+            SUMA_calloc(1,sizeof(SUMA_FORM_AFNI_DSET_STRUCT));
    
    Opt->master = NULL;
    Opt->mset = NULL;

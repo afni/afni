@@ -169,7 +169,8 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
    
    SUMA_ENTRY;
    
-   Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
+   Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
+            SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
 
    N_k = 12; /* Think of this number as the number of states, rather than individual surfaces
                10 from isosurface (actually 9, number 6 is removed), 
