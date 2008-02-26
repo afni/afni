@@ -1568,8 +1568,9 @@ void SUMA_BuildMenuReset(int n_max)
    SUMA_RETURNe;
 }
 
-int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, 
-                     char menu_mnemonic, SUMA_Boolean tear_off, SUMA_MenuItem *items, 
+int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title, 
+                     char menu_mnemonic, SUMA_Boolean tear_off, 
+                     SUMA_MenuItem *items, 
                      void *ContID, 
                      char *hint, char *help,
                      Widget *MenuWidgets )
@@ -1709,7 +1710,7 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting callback ...\n", FuncName);
       if (items[i].callback) {
          SUMA_MenuCallBackData *CBp=NULL;
-         CBp = (SUMA_MenuCallBackData *)malloc (sizeof(SUMA_MenuCallBackData)); /* There is no freeing of this pointer in SUMA. Once created, a widget is only destroyed when SUMA is killed */
+         CBp = (SUMA_MenuCallBackData *)calloc(1,sizeof(SUMA_MenuCallBackData)); /* There is no freeing of this pointer in SUMA. Once created, a widget is only destroyed when SUMA is killed */
          /* prepare the callback pointer */
          CBp->callback_data = (XtPointer) items[i].callback_data;
          CBp->ContID = ContID;
@@ -1966,8 +1967,11 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          SUMAg_SVv[ic].X->TOPLEVEL = XtAppInitialize(&SUMAg_CF->X->App, "SUMA", NULL, 0, &cargc, vargv,
        SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication
       */
-      SUMAg_SVv[ic].X->TOPLEVEL = XtOpenApplication(&SUMAg_CF->X->App, "SUMA", NULL, 0, &cargc, vargv,
-       SUMA_get_fallbackResources(), topLevelShellWidgetClass, NULL, 0); 
+      SUMAg_SVv[ic].X->TOPLEVEL = 
+         XtOpenApplication(&SUMAg_CF->X->App, "SUMA", 
+                           NULL, 0, &cargc, vargv,
+                           SUMA_get_fallbackResources(), 
+                           topLevelShellWidgetClass, NULL, 0); 
       SUMAg_SVv[ic].X->DPY = XtDisplay(SUMAg_SVv[ic].X->TOPLEVEL);
       /* save DPY for first controller opened */
       SUMAg_CF->X->DPY_controller1 = SUMAg_SVv[ic].X->DPY;
@@ -1984,7 +1988,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          }
       }
       if (!Found) { /* no unopen windows left to open */
-         fprintf (SUMA_STDERR,"Error %s: Cannot open more than %d viewers.\n", FuncName, SUMA_MAX_SURF_VIEWERS);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Cannot open more than %d viewers.\n", 
+                  FuncName, SUMA_MAX_SURF_VIEWERS);
          SUMA_RETURN (NOPE);
       }
       
@@ -2014,16 +2020,21 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 
       /* Step 3 */
       if (!Inherit) {
-         if (LocalHead) fprintf(stdout, "trying for cool double buffer visual\n");
-         SUMAg_SVv[ic].X->VISINFO = glXChooseVisual(SUMAg_SVv[ic].X->DPY, DefaultScreen(SUMAg_SVv[ic].X->DPY), dblBuf);
+         if (LocalHead) 
+            fprintf(stdout, "trying for cool double buffer visual\n");
+         SUMAg_SVv[ic].X->VISINFO = 
+            glXChooseVisual(  SUMAg_SVv[ic].X->DPY, 
+                              DefaultScreen(SUMAg_SVv[ic].X->DPY), dblBuf);
          if (SUMAg_SVv[ic].X->VISINFO == NULL) {
-         fprintf(stdout, "trying lame single buffer visual\n");
-          XtAppWarning(SUMAg_CF->X->App, "trying lame single buffer visual");
-          SUMAg_SVv[ic].X->VISINFO = glXChooseVisual(SUMAg_SVv[ic].X->DPY, DefaultScreen(SUMAg_SVv[ic].X->DPY), snglBuf);
+            fprintf(stdout, "trying lame single buffer visual\n");
+            XtAppWarning(SUMAg_CF->X->App, "trying lame single buffer visual");
+            SUMAg_SVv[ic].X->VISINFO = 
+               glXChooseVisual(  SUMAg_SVv[ic].X->DPY, 
+                                 DefaultScreen(SUMAg_SVv[ic].X->DPY), snglBuf);
           if (SUMAg_SVv[ic].X->VISINFO == NULL) {
             XtAppError(SUMAg_CF->X->App, "no good visual");
             SUMA_RETURN (NOPE);
-            }
+          }
           SUMAg_SVv[ic].X->DOUBLEBUFFER = False;
          }
       } else {
@@ -5731,7 +5742,7 @@ void SUMA_CreateTextField ( Widget pw, char *label,
                               char *hint, char *help,
                               SUMA_ARROW_TEXT_FIELD *AF)
 {
-   static char FuncName[]={"SUMA_ATF_cb_label_Modify"};
+   static char FuncName[]={"SUMA_CreateTextField"};
 
    SUMA_ENTRY;
 
@@ -5934,8 +5945,10 @@ void SUMA_DrawROI_NewValue (void *data)
    if (AF->value == DrawnROI->iLabel) SUMA_RETURNe;
    
    if (!DrawnROI->DrawStatus == SUMA_ROI_Finished) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Changing ROI value from %d to %d\n", 
-         FuncName, DrawnROI->iLabel, (int)AF->value);   
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: Changing ROI value from %d to %d\n", 
+                  FuncName, DrawnROI->iLabel, (int)AF->value);   
 
       DrawnROI->iLabel = (int)AF->value;
       ErrCnt = 0;
@@ -7869,7 +7882,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShellStruct (
    SUMA_ENTRY;
    
    TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *) 
-               SUMA_malloc (sizeof(SUMA_CREATE_TEXT_SHELL_STRUCT));
+               SUMA_calloc(1,sizeof(SUMA_CREATE_TEXT_SHELL_STRUCT));
    if (!TextShell) {
       fprintf (SUMA_STDERR, 
                "Error %s: Failed to allocate for TextShell.\n", 
@@ -8587,7 +8600,8 @@ void SUMA_cb_DrawROI_Join (Widget w, XtPointer data, XtPointer client_data)
    
    /* looking good, add the thing */
    ROIstroke->action = SUMA_BSA_JoinEnds;
-   ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
+   ROIA = (SUMA_ROI_ACTION_STRUCT *)
+            SUMA_calloc(1,sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
    ROIA->DrawnROI = DrawnROI;
    ROIA->ROId = ROIstroke;
    tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_AddToTailJunctionROIDatum, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -8630,7 +8644,8 @@ void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data)
    }
    
    /* looking good, add the thing */
-   ROIA = (SUMA_ROI_ACTION_STRUCT *) SUMA_malloc (sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
+   ROIA = (SUMA_ROI_ACTION_STRUCT *)
+             SUMA_calloc(1,sizeof(SUMA_ROI_ACTION_STRUCT)); /* this structure is freed in SUMA_DestroyROIActionData */
    ROIA->DrawnROI = DrawnROI;
    ROIA->ROId = NULL;
    tmpStackPos = SUMA_PushActionStack (DrawnROI->ActionStack, DrawnROI->StackPos, SUMA_FinishedROI, (void *)ROIA, SUMA_DestroyROIActionData);
@@ -9071,7 +9086,8 @@ SUMA_PROMPT_DIALOG_STRUCT *SUMA_CreatePromptDialogStruct (SUMA_PROMPT_MODE Mode,
    
    if (!oprmpt) {
       SUMA_LH ("New prompt structure");
-      prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)SUMA_malloc(sizeof(SUMA_PROMPT_DIALOG_STRUCT));
+      prmpt = (SUMA_PROMPT_DIALOG_STRUCT *)
+                  SUMA_calloc(1,sizeof(SUMA_PROMPT_DIALOG_STRUCT));
       if (!prmpt) {
          SUMA_SLP_Crit("Failed to allocate for prmpt");
          SUMA_RETURN(prmpt);
@@ -9670,7 +9686,7 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (
    if (!odlg) { /* new structure */
       SUMA_LH("A new structure ");    
       dlg = (SUMA_SELECTION_DIALOG_STRUCT *)
-                  SUMA_malloc(sizeof(SUMA_SELECTION_DIALOG_STRUCT));
+                  SUMA_calloc(1,sizeof(SUMA_SELECTION_DIALOG_STRUCT));
       if (!dlg) {
          fprintf (SUMA_STDERR, 
                   "Error %s: Failed to allocate for TextShell.\n", 

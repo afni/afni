@@ -130,7 +130,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
    }
 
    /* package the resutls */
-   SM = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+   SM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (SM == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -242,7 +242,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
    }
    
    /* package the resutls */
-   SM = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+   SM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (SM == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -678,7 +678,7 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    SUMA_PBARDEF_ADD(ROI_256_CMD);
 
    /* now wrap it up */   
-   SAC = (SUMA_AFNI_COLORS *) SUMA_malloc(sizeof(SUMA_AFNI_COLORS));
+   SAC = (SUMA_AFNI_COLORS *) SUMA_calloc(1,sizeof(SUMA_AFNI_COLORS));
    SAC->CMv = CMv;
    SAC->N_maps = N_maps;
    SAC->Cv = Cv;
@@ -1347,12 +1347,12 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
    
    
    /* allocate for SM */
-   SM = (SUMA_COLOR_MAP*) SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+   SM = (SUMA_COLOR_MAP*) SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    SM->top_frac = 0.0f;
    SM->SO = NULL; 
    SM->cname = NULL;
    SM->N_Col = im->nx;
-   SM->Name = (char *)SUMA_malloc(sizeof(char)*(strlen(Name)+1));
+   SM->Name = (char *)SUMA_calloc((strlen(Name)+1),sizeof(char));
    sprintf(SM->Name, "%s", Name);
    if (im->ny == 4) {
       SM->frac = (float*) SUMA_calloc(im->nx, sizeof(float));
@@ -1457,7 +1457,7 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
    
    /* allocate for new map */
    SUMA_LH("Allocating for new map");
-   LSM = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+   LSM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (LSM == NULL) {
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate for LSM.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -2908,7 +2908,7 @@ SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node)
    
    SUMA_ENTRY;
    if (LocalHead) fprintf (SUMA_STDERR,"%s:\n Allocate for %d nodes ...\n", FuncName, N_Node);
-   S = (SUMA_COLOR_SCALED_VECT *)SUMA_malloc(sizeof(SUMA_COLOR_SCALED_VECT));
+   S = (SUMA_COLOR_SCALED_VECT *)SUMA_calloc(1,sizeof(SUMA_COLOR_SCALED_VECT));
    if (S == NULL) {
       fprintf(SUMA_STDERR, "Error %s: Failed to allocate for S.\n", FuncName);
       SUMA_RETURN (S);
@@ -4809,13 +4809,14 @@ DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
    
    SUMA_ENTRY; 
    
-   listop = (DList *)SUMA_malloc(sizeof(DList));
+   listop = (DList *)SUMA_calloc(1,sizeof(DList));
    
    dlist_init(listop, SUMA_FreeOverlayListDatum);
    SUMA_LH("Considering loop");
    for (i=0; i < SO->N_Overlays; ++i) {
       SUMA_LH("In Loop");
-         OvD = (SUMA_OVERLAY_LIST_DATUM *)SUMA_malloc(sizeof(SUMA_OVERLAY_LIST_DATUM));
+         OvD = (SUMA_OVERLAY_LIST_DATUM *)
+                  SUMA_calloc(1,sizeof(SUMA_OVERLAY_LIST_DATUM));
          OvD->Overlay = SO->Overlays[i];
          if (!OvD->Overlay) {
             SUMA_LH("NULL Overlay");
@@ -5293,7 +5294,8 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay,
    }
    
    SUMA_LH("Adding to list...");
-   OvD = (SUMA_OVERLAY_LIST_DATUM *) SUMA_malloc(sizeof(SUMA_OVERLAY_LIST_DATUM));
+   OvD = (SUMA_OVERLAY_LIST_DATUM *)
+            SUMA_calloc(1,sizeof(SUMA_OVERLAY_LIST_DATUM));
    OvD->Overlay = Overlay;
    
    if (Overlay->isBackGrnd) {
@@ -5731,10 +5733,10 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO)
    OverlayPlanelist = SUMA_OverlaysToOrderedList (SO, 0);
 
    /* need a list to store new names */
-   list = (DList *)SUMA_malloc(sizeof(DList));
+   list = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init(list, NULL); /* you don't want to free the strings */
    /* need a list to store the pointers, it is useless when SortByOrder is used, but I leave it in to keep the code simple */
-   listop = (DList *)SUMA_malloc(sizeof(DList)); 
+   listop = (DList *)SUMA_calloc(1,sizeof(DList)); 
    dlist_init(listop, NULL); /* you don't want to free the data as it is copied from  OverlayPlanelist*/
          
    clist = NULL;
@@ -6471,7 +6473,7 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
             }
             
             /* prepare the colormap */
-            CM = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+            CM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
             if (CM == NULL) {
                SUMA_SL_Crit ("Failed to allocate for CM");
                SUMA_RETURN(-1);

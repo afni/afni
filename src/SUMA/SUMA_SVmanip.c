@@ -404,7 +404,9 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       }
       SV->N_DO = 0; /* Nothing is registered with the viewer yet */
 
-      SV->ColList = (SUMA_COLORLIST_STRUCT *) SUMA_malloc( sizeof(SUMA_COLORLIST_STRUCT) * SUMA_MAX_DISPLAYABLE_OBJECTS);
+      SV->ColList = (SUMA_COLORLIST_STRUCT *) 
+         SUMA_calloc(SUMA_MAX_DISPLAYABLE_OBJECTS, 
+                     sizeof(SUMA_COLORLIST_STRUCT));
       SV->N_ColList = 0; /* this number reflects the number of surfaces that have colorlist structures in SV */
       /* initialize fields */
       for (j=0; j<SUMA_MAX_DISPLAYABLE_OBJECTS; ++j) {
@@ -434,7 +436,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          SUMA_RETURN (NULL); 
       } else SV->ShowCrossHair = 1;
       
-      SV->X = (SUMA_X *)SUMA_malloc(sizeof(SUMA_X));
+      SV->X = (SUMA_X *)SUMA_calloc(1,sizeof(SUMA_X));
       if (SV->X == NULL) {
          fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to SUMA_malloc SV->X\n");
          SUMA_RETURN (NULL);
@@ -1367,7 +1369,7 @@ SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void)
    
    SUMA_ENTRY;
 
-   vsh = (SUMA_ViewState_Hist *)SUMA_malloc(sizeof(SUMA_ViewState_Hist));
+   vsh = (SUMA_ViewState_Hist *)SUMA_calloc(1,sizeof(SUMA_ViewState_Hist));
    if (vsh == NULL) {
       fprintf(SUMA_STDERR,"Error %s: Could not allocate for vsh.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -1403,7 +1405,7 @@ SUMA_Boolean SUMA_New_ViewState (SUMA_SurfaceViewer *cs)
    
    if (!cs->VSv) { /* a new baby */
       cs->N_VSv = 1;
-      cs->VSv = (SUMA_ViewState *)SUMA_malloc(sizeof(SUMA_ViewState));
+      cs->VSv = (SUMA_ViewState *)SUMA_calloc(1,sizeof(SUMA_ViewState));
    } else { /* realloc */
       ++cs->N_VSv;
       cs->VSv = (SUMA_ViewState *)SUMA_realloc(cs->VSv, cs->N_VSv*sizeof(SUMA_ViewState) );
@@ -1447,7 +1449,7 @@ SUMA_ViewState *SUMA_Alloc_ViewState (int N)
                "Start using SUMA_New_ViewState.\n"
                "     ZSS Jan 12 04 \n");
    SUMA_RETURN(NULL);
-   vs = (SUMA_ViewState *)SUMA_malloc(sizeof(SUMA_ViewState)*N);
+   vs = (SUMA_ViewState *)SUMA_calloc(N,sizeof(SUMA_ViewState));
    if (vs == NULL) {
       fprintf(SUMA_STDERR,"Error %s: Could not allocate for vs.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -1747,7 +1749,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    /* allocate */
    /* DO NOT USE SUMA_malloc here, too early for that */
-   cf = (SUMA_CommonFields *)malloc(sizeof(SUMA_CommonFields));
+   cf = (SUMA_CommonFields *)calloc(1,sizeof(SUMA_CommonFields));
    
    if (cf == NULL) {
       fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
@@ -1821,7 +1823,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       cf->SwapButtons_1_3 = NOPE;
    }
 
-   cf->X = (SUMA_X_AllView *)malloc(sizeof(SUMA_X_AllView));
+   cf->X = (SUMA_X_AllView *)calloc(1,sizeof(SUMA_X_AllView));
    if (!cf->X) {
      fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
      return (NULL); 
@@ -1955,7 +1957,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->N_Group = -1;
    
    cf->scm = NULL;
-   cf->DsetList = (DList *)SUMA_malloc(sizeof(DList));
+   cf->DsetList = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init (cf->DsetList, SUMA_FreeDset);
    {
       char *eee = getenv("SUMA_AllowDsetReplacement");
@@ -2019,7 +2021,7 @@ SUMA_rb_group *SUMA_CreateLock_rbg (int N_rb_group, int N_but)
    static char FuncName[]={"SUMA_CreateLock_rbg"};
    SUMA_rb_group *Lock_rb;
 
-   Lock_rb = (SUMA_rb_group *) malloc(sizeof(SUMA_rb_group));
+   Lock_rb = (SUMA_rb_group *) calloc(1,sizeof(SUMA_rb_group));
    if (!Lock_rb) { 
       fprintf (SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
       return(NULL);
@@ -2066,10 +2068,12 @@ SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void)
    SUMA_X_DrawROI *DrawROI = NULL;
    
    /* do not use commonfields related stuff here for obvious reasons */
-   DrawROI = (SUMA_X_DrawROI *)malloc (sizeof(SUMA_X_DrawROI));
+   DrawROI = (SUMA_X_DrawROI *)calloc (1, sizeof(SUMA_X_DrawROI));
    DrawROI->AppShell = NULL;
-   DrawROI->ROIval = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
-   DrawROI->ROIlbl = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   DrawROI->ROIval = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
+   DrawROI->ROIlbl = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    DrawROI->curDrawnROI = NULL;  /* DO NOT FREE THIS POINTER */
    DrawROI->SwitchROIlst = NULL;
    DrawROI->Delete_first = YUP;
@@ -2090,16 +2094,18 @@ SUMA_X_SumaCont *SUMA_CreateSumaContStruct (void)
    static char FuncName[]={"SUMA_CreateSumaContStruct"};
    SUMA_X_SumaCont *SumaCont = NULL;
    /* do not use commonfields related stuff here for obvious reasons */
-   SumaCont = (SUMA_X_SumaCont *)malloc(sizeof(SUMA_X_SumaCont));
+   SumaCont = (SUMA_X_SumaCont *)calloc(1,sizeof(SUMA_X_SumaCont));
    SumaCont->AppShell = NULL;
    SumaCont->quit_pb = NULL;
    SumaCont->quit_first = YUP;
    SumaCont->Lock_rbg = SUMA_CreateLock_rbg (SUMA_MAX_SURF_VIEWERS, 3);
    if (!SumaCont->Lock_rbg) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateLock_rb.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_CreateLock_rb.\n", FuncName);
       return (NULL);
    }
-   SumaCont->LockView_tbg = (Widget *)calloc (SUMA_MAX_SURF_VIEWERS, sizeof(Widget));
+   SumaCont->LockView_tbg = 
+      (Widget *)calloc (SUMA_MAX_SURF_VIEWERS, sizeof(Widget));
    SumaCont->LockAllView_tb = NULL;
    SumaCont->SumaInfo_TextShell = NULL;
    return (SumaCont);
@@ -2148,7 +2154,7 @@ SUMA_X_ViewCont *SUMA_CreateViewContStruct (void)
    static char FuncName[]={"SUMA_CreateViewContStruct"};
    SUMA_X_ViewCont *ViewCont = NULL;
    /* do not use commonfields related stuff here for obvious reasons */
-   ViewCont = (SUMA_X_ViewCont *)malloc(sizeof(SUMA_X_ViewCont));
+   ViewCont = (SUMA_X_ViewCont *)calloc(1,sizeof(SUMA_X_ViewCont));
    ViewCont->TopLevelShell = NULL;
    ViewCont->ViewerInfo_TextShell = NULL;
    ViewCont->Info_lb = NULL;
