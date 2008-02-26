@@ -20,13 +20,13 @@ g_afni_history_struct rwcox_history[] = {
    "add '-1D:' option, to write output that is usable on the command line" ,
    "Sample usage:
    " 1dplot `1deval -1D: -num 71 -expr 'cos(t/2)*exp(-t/19)'`
-   "The backquotes `...` capture the output of the command and put this string\n"
-   "on the command line.  The '-1D:' option formats the 1deval output so that\n"
+   "The backquotes `...` capture command's output and put this string on\n"
+   "the command line.  The '-1D:' option formats the 1deval output so that\n"
    "it is ready to be used in this way.\n" } ,
 
  { 22 , FEB , 2008 , RWC , "3dpc" , MINOR ,
-   "add '-eigonly' and '-reduce' options; also, output eigenvalues to a 1D file" ,
-   "'-eigonly' causes 3dpc to print the eigenvalues to stdout and stop there.\n"
+   "add '-eigonly' and '-reduce' options; output eigenvalues to a 1D file"  ,
+   "'-eigonly' causes 3dpc to print eigenvalues to stdout and stop there.\n"
    "'-reduce n pp' outputs a reduced dataset, using only the largest 'n'\n"
    "eigenvalues.\n" } ,
 
