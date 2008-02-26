@@ -278,6 +278,7 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    double *amat , *umat , *vmat , *sval ;
    float *far ; MRI_IMAGE *tim ;
    float vmean=0.0f , vnorm=0.0f ;
+   register double sum ;
 
    if( imar == NULL ) return NULL ;
    nvec = IMARR_COUNT(imar) ;       if( nvec < 1 ) return NULL ;
@@ -300,7 +301,6 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    }
 
    if( mpv_vmean ){
-     register double sum ;
      for( jj=0 ; jj < nvec ; jj++ ){
        sum = 0.0 ;
        for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj) ;
@@ -309,7 +309,6 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
      }
    }
    if( mpv_vnorm ){
-     register double sum ;
      for( jj=0 ; jj < nvec ; jj++ ){
        sum = 0.0 ;
        for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
@@ -325,6 +324,11 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    tim = mri_new( nx , 1 , MRI_float ) ;
    far = MRI_FLOAT_PTR(tim) ;
    for( ii=0 ; ii < nx ; ii++ ) far[ii] = (float)U(ii,0) ;
+
+   sum = 0.0 ;
+   for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,0)*far[ii] ;
+   if( sum < 0.0 )
+     for( ii=0 ; ii < nx ; ii++ ) far[ii] = -far[ii] ;
 
    if( vnorm != 0.0f )
      for( ii=0 ; ii < nx ; ii++ ) far[ii] *= vnorm ;
