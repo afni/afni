@@ -13,6 +13,10 @@
 #include "readline.h"
 #endif
 
+#ifdef SOLARIS
+# define strcasestr strstr  /* stupid Solaris */
+#endif
+
 int main( int argc , char * argv[] )
 {
    PARSER_code * pcode ;
@@ -61,13 +65,13 @@ int main( int argc , char * argv[] )
  "                   -form fint   with    -f  (evokes float, unfortunately!)\n"
  "                   -form cint   with    -c\n"
  "    Mandatory parameter: (must come last on command line)\n"
- "    -eval EXPR: EXPR is the expression to evaluate.\n" 
+ "    -eval EXPR: EXPR is the expression to evaluate.\n"
  "                Example: ccalc -eval '3 + 5 * sin(22)' \n"
  "                     or: ccalc -eval 3 +5 '*' 'sin(22)'\n"
  "                You can not use variables in EXPR\n"
  "                as you do with 3dcalc.\n"
  "    Example with formatting:\n"
- "        ccalc -form '********\\n%%6.4f%%%%\\n********' -eval '100*328/457'\n" 
+ "        ccalc -form '********\\n%%6.4f%%%%\\n********' -eval '100*328/457'\n"
  "    gives:\n"
  "        ********\n"
  "        0.7177%%\n"
@@ -85,17 +89,14 @@ int main( int argc , char * argv[] )
  "            it for quick command line calculations. \n"
  "            But that feature might be removed in the\n"
  "            future, so always use -eval when you are \n"
- "            using this program in your scripts.\n" 
+ "            using this program in your scripts.\n"
                 ) ;
          exit(0) ;
       }
 
       if ( !brk && strcmp(argv[kar],"-form") == 0 ) {
          ++kar;
-         if (kar >= argc)  {
-	         fprintf (stderr, "need argument after -form ");
-	         exit (1);
-         }
+         if (kar >= argc) ERROR_exit("need argument after -form ");
          if (strcmp(argv[kar],"double") == 0 ) oform = CCALC_DOUBLE;
          else if (strcmp(argv[kar],"nice") == 0 ) oform = CCALC_NICE;
          else if (strcmp(argv[kar],"int") == 0 ) oform = CCALC_INT;
@@ -113,7 +114,7 @@ int main( int argc , char * argv[] )
          DoOnce = 1;
          brk = 1;
       }
-      
+
       if (!brk && strncmp(argv[kar],"-d",2) == 0 ) {
          oform = CCALC_DOUBLE;
          brk = 1; DoOnce = 1;
@@ -140,21 +141,18 @@ int main( int argc , char * argv[] )
       }
       if( !brk &&  ( strcmp(argv[kar],"-eval") == 0 || strcmp(argv[kar],"-expr") == 0) ){
          ++kar;
-         if (kar >= argc)  {
-	         fprintf (stderr, "need argument after -eval (or -expr) ");
-	         exit (1);
-         }
+         if (kar >= argc) ERROR_exit("need argument after -eval (or -expr) ");
          /* anything after eval gets put into an expression */
          while (kar < argc)  {
-            if (  strcmp(argv[kar],"-eval") == 0 || 
+            if (  strcmp(argv[kar],"-eval") == 0 ||
                   strcmp(argv[kar],"-expr") == 0 ||
                   strcmp(argv[kar],"-form") == 0   ) {
                fprintf (stderr,  "Error:\n"
                                  "You have optional parameters (%s) following \n"
                                  "the expression to evaluate.\n"
                                  "Stop it!\n", argv[kar]);
-		         exit (1);      
-            } 
+               exit (1);
+            }
             sprintf(expr,"%s %s", expr, argv[kar]);
             ++ kar;
          }
@@ -166,31 +164,30 @@ int main( int argc , char * argv[] )
       if (!brk) {
          /* if nothing is understood, assume the expression follows, instead of moaning and quitting*/
          while (kar < argc)  {
-            if (  strcmp(argv[kar],"-eval") == 0 || 
+            if (  strcmp(argv[kar],"-eval") == 0 ||
                   strcmp(argv[kar],"-expr") == 0 ||
                   strcmp(argv[kar],"-form") == 0   ) {
                fprintf (stderr,  "Error:\n"
                                  "You have optional parameters (%s) following \n"
                                  "the expression to evaluate.\n"
                                  "Stop it!\n", argv[kar]);
-		         exit (1);      
-            } 
+               exit (1);
+            }
             sprintf(expr,"%s %s", expr, argv[kar]);
             ++ kar;
          }
          /* fprintf (stdout, "%s\n", expr);*/
          DoOnce = 1;
          brk = 1;
-	   }
-      
+      }
+
       if (!brk) {
-		   fprintf (stderr,"Error: Option %s not understood. Try -help for usage\n", argv[kar]);
-		   exit (1); 
-	   } else {	
-		   brk = 0;
-		   kar ++;
-	   }
-		
+        ERROR_exit("Option %s not understood. Try -help for usage\n", argv[kar]);
+      } else {
+        brk = 0;
+        kar ++;
+      }
+
    }
 
    for( ii=0 ; ii < 25 ; ii++ ) atoz[ii] = 0.0 ;
@@ -270,54 +267,53 @@ int main( int argc , char * argv[] )
             case CCALC_CINT:
                printf("%d\n",(int)ceil(value)) ;
                break;
-  	    case CCALC_CUSTOM:           /* use user customized format */
-	      /* add check for integer output %d */
-	      strptr = strchr(formatstr, '%');
+        case CCALC_CUSTOM:           /* use user customized format */
+         /* add check for integer output %d */
+         strptr = strchr(formatstr, '%');
               if(strptr==NULL) {
                printf("%f\n",value) ;
               }
               else {
-		len = strlen(strptr);
+                len = strlen(strptr);
                 for(ii=1;ii<len;ii++) {
                   ch = *(++strptr);
-  	          switch(ch) {
-		  case 'd':  case 'i': case 'c': case 'o': case 'u': case 'x': case 'X':
-		    value = (int)value;              /* integer (no decimal) type output */
+               switch(ch) {
+        case 'd':  case 'i': case 'c': case 'o': case 'u': case 'x': case 'X':
+          value = (int)value;              /* integer (no decimal) type output */
                        ii = len + 1;
                        break;
 
                   case 'e': case 'E':         /* floating point output types */
-		  case 'f': case 'F':
+        case 'f': case 'F':
                   case 'g': case 'G':
                   case 'a': case 'A':
                     ii = len+1;
-		    break;
+          break;
                   case '%':
                     strptr = strchr(strptr, '%'); /* find next % symbol */
                   default:
-		    break;
+          break;
                   }
                 }
-		if(ii==len) {
-		    printf("unknown format specifier. Try %%d, %%c, %%f or %%g instead.\n");
-                    exit(1);
-		}
+      if(ii==len) {
+        ERROR_exit("unknown format specifier. Try %%d, %%c, %%f or %%g instead.\n");
+      }
                 strptr = (char *) 1;
                 while(strptr) {
-	  	  strptr = strstr(formatstr, "\\n");
+                  strptr = strstr(formatstr, "\\n");
                   if(strptr) {
                     *strptr = ' ';
                     *(strptr+1) = AFNI_EOL;
-		  }
+                  }
                 }
-               
+
                printf(formatstr,value) ;
                printf("\n");
               }
                break;
             default:
                printf("%f\n",value) ;
-               break; 
+               break;
          }
          exit (0);
          #else
