@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 0.0.9, Dec. 3, 2007
+#Version 0.0.9, Feb. 26, 2007
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -214,7 +214,7 @@ for (i in 2:(NoF+1)) {  # Assume an intercept
 }
 if (ncontr != 0) for (n in 1:ncontr) statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", contrDF[n])
 
-statpar <- paste(statpar, " -view tlrc -newid ", OutFile)
+statpar <- paste(statpar, " -view tlrc -addFDR -newid ", OutFile)
 system(statpar)
 print(sprintf("Congratulations! You've got output %s+tlrc.*", Out))
 
