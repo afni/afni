@@ -784,6 +784,10 @@ static char * DELAY_main( PLUGIN_interface * plint )
 				
 		}
 	
+   
+   if (!AFNI_noenv("AFNI_AUTOMATIC_FDR")) {
+      THD_create_all_fdrcurves( new_dset );
+   }
 	PLUTO_add_dset( plint , new_dset , DSET_ACTION_MAKE_CURRENT ) ;
 	
 	

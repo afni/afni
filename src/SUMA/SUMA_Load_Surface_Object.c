@@ -2305,7 +2305,11 @@ char* SUMA_SpecStructInfo (SUMA_SurfSpecFile *Spec, int detail)
    SO->SpecFile
    \returns SO (SUMA_SurfaceObject *)
 */
-SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *tmpVolParName, int debug)
+SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
+                           SUMA_SurfSpecFile *Spec, 
+                           int i, 
+                           char *tmpVolParName, 
+                           int debug)
 {  /* start SUMA_Load_Spec_Surf */
    static char FuncName[]={"SUMA_Load_Spec_Surf"};
    SUMA_SFname *SF_name;

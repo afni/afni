@@ -1222,6 +1222,10 @@ void SUMA_SetAddIndex_1D(int);
 int SUMA_GetAddIndex_1D(void);
 THD_3dim_dataset *SUMA_sumadset2afnidset(SUMA_DSET **dsetp, int copy_data, int cleardset);
 SUMA_DSET *SUMA_afnidset2sumadset(THD_3dim_dataset **dsetp, int copy_data, int cleardset);
+int SUMA_GetDsetColStatAttr(  SUMA_DSET *dset, int col_index, 
+                              int *statcode,
+                              float *p1, float *p2, float *p3);
+float SUMA_fdrcurve_zval( SUMA_DSET *dset , int iv , float thresh );
 
 
 /*********************** BEGIN Miscellaneous support functions **************************** */

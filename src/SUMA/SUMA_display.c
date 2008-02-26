@@ -42,6 +42,9 @@ static String fallbackResources_default[] = {
    "*fontList:              9x15bold=charset1"    ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
+   "*font8*fontList:        8x13=charset1"        ,
+   "*font7*fontList:        7x13=charset1"        ,
+   "*font6*fontList:        6x10=charset1"        ,
    "*background:            gray50"               ,
    "*menu*background:       gray30"               ,
    "*borderColor:           gray30"               ,
@@ -77,6 +80,9 @@ static String fallbackResources_AFNI[] = {
    "*fontList:              9x15bold=charset1"    ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
+   "*font8*fontList:        8x13=charset1"        ,
+   "*font7*fontList:        7x13=charset1"        ,
+   "*font6*fontList:        6x10=charset1"        ,
    "*background:            gray30"               ,
    "*menu*background:       gray30"               ,
    "*borderColor:           gray30"               ,
@@ -110,6 +116,9 @@ static String fallbackResources_EURO[] = {
    "*frame*rightOffset: 20", "*frame*leftOffset: 20",
    "*frame*shadowType: SHADOW_IN", 
    "*fontList:              9x15=charset1"    ,
+   "*font8*fontList:        8x13=charset1"        ,
+   "*font7*fontList:        7x13=charset1"        ,
+   "*font6*fontList:        6x10=charset1"        ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
    "*background:            black"               ,
@@ -146,6 +155,9 @@ static String fallbackResources_Bonaire[] = {
    "*frame*rightOffset: 20", "*frame*leftOffset: 20",
    "*frame*shadowType: SHADOW_IN", 
    "*fontList:              9x15bold=charset1"    ,
+   "*font8*fontList:        8x13=charset1"        ,
+   "*font7*fontList:        7x13=charset1"        ,
+   "*font6*fontList:        6x10=charset1"        ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
    "*background:            navy"               ,
@@ -4574,18 +4586,26 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
       SUMA_LH("Initializing for real");
       if (ColPlane->dset_link) { /* get the parent surface of the colorplane */
          if (ColPlane->dset_link->ngr) {
-            SOpar = SUMA_findSOp_inDOv(NI_get_attribute(ColPlane->dset_link->ngr,"domain_parent_idcode"), SUMAg_DOv, SUMAg_N_DOv);
+            SOpar = SUMA_findSOp_inDOv(
+                              NI_get_attribute(ColPlane->dset_link->ngr,
+                                                "domain_parent_idcode"), 
+                              SUMAg_DOv, SUMAg_N_DOv);
          }
       }
       if (!SOpar) {
-         SUMA_SL_Warn("No parent for dset found.\nProceeding with next best option.");
+         SUMA_SL_Warn(  "No parent for dset found.\n"
+                        "Proceeding with next best option.");
          SOpar = SO;
       }
       
-      if (strlen(ColPlane->Label) + strlen(SOpar->Label) +25 > SUMA_MAX_LABEL_LENGTH) {
+      if (  strlen(ColPlane->Label) + 
+            strlen(SOpar->Label) +  25   > 
+            SUMA_MAX_LABEL_LENGTH) {
          SUMA_SL_Warn("Surface Labels too long!");
-         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, "Surface Labels too long!");
-         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, "Surface Labels too long!");
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 
+                                 0, 1, "Surface Labels too long!");
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 
+                                 1, 1, "Surface Labels too long!");
       } else {
          if (strlen(SOpar->Label) > 40) {
             char *tmpstr=NULL;
@@ -4594,13 +4614,18 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
                sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, tmpstr);
                free(tmpstr); tmpstr = NULL;
             }
-            SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, ColPlane->Label);
-            SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, tmpstr);
+            SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 
+                                    0, 1, ColPlane->Label);
+            SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 
+                                    1, 1, tmpstr);
          } else {
-            sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, SOpar->Label);
+            sprintf (sbuf, "Label: %s\nParent: %s", 
+                     ColPlane->Label, SOpar->Label);
          }
-         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, ColPlane->Label);
-         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, SOpar->Label);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 
+                                 0, 1, ColPlane->Label);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 
+                                 1, 1, SOpar->Label);
       }
       
       SO->SurfCont->ColPlaneOrder->value = ColPlane->PlaneOrder;
@@ -4611,7 +4636,8 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
       sprintf(sbuf,"%.1f", ColPlane->GlobalOpacity);
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneOpacity->textfield, sbuf);
       
-      if (ColPlane->OptScl) SO->SurfCont->ColPlaneDimFact->value = ColPlane->OptScl->BrightFact;
+      if (ColPlane->OptScl) 
+         SO->SurfCont->ColPlaneDimFact->value = ColPlane->OptScl->BrightFact;
       else SO->SurfCont->ColPlaneDimFact->value = ColPlane->DimFact;
       sprintf(sbuf,"%.1f", SO->SurfCont->ColPlaneDimFact->value);
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield, sbuf);
@@ -4635,7 +4661,9 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
          }
       } else {
          if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {
-            SUMA_LH("A non RGB dset, surface controls need to be seen\nBut only when ColPlane_fr is also shown (frame may be hidden by Dsets button action)");
+            SUMA_LH( "A non RGB dset, surface controls need to be seen\n"
+                     "But only when ColPlane_fr is also shown \n"
+                     "(frame may be hidden by Dsets button action)");
             if (XtIsManaged(SO->SurfCont->ColPlane_fr)) {
                XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
                XtManageChild(SO->SurfCont->DsetMap_fr);
@@ -4650,7 +4678,9 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
          SUMA_SetCmapMenuChoice(SO, ColPlane->cmapname);
 
          /* set the values for the threshold bar */
-         if (SUMA_GetDsetColRange(SO->SurfCont->curColPlane->dset_link, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
+         if (SUMA_GetDsetColRange(  SO->SurfCont->curColPlane->dset_link, 
+                                    SO->SurfCont->curColPlane->OptScl->tind, 
+                                    range, loc)) {   
             SUMA_SetScaleRange(SO, range );
          }
       }
@@ -4683,9 +4713,12 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO)
    for (i=0; i<SUMAg_N_DOv; ++i) {
       if (SUMA_isSO(SUMAg_DOv[i])) {
          SOi = (SUMA_SurfaceObject *)SUMAg_DOv[i].OP;
-         if (SOi != SO && SUMA_isRelated (SOi, SO, 1)) { /* do this for kins of the 1st order */
+         if (SOi != SO && SUMA_isRelated (SOi, SO, 1)) { 
+            /* do this for kins of the 1st order */
             if (SOi->SurfCont) {
-               if (SOi->SurfCont != SO->SurfCont && SOi->SurfCont->ColPlane_fr && SOi->SurfCont->curColPlane == SO->SurfCont->curColPlane) {
+               if (  SOi->SurfCont != SO->SurfCont && 
+                     SOi->SurfCont->ColPlane_fr && 
+                     SOi->SurfCont->curColPlane == SO->SurfCont->curColPlane) {
                   SUMA_InitializeColPlaneShell(SOi, SOi->SurfCont->curColPlane);
                }
             }

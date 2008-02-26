@@ -6125,7 +6125,9 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
    error flag */
    par[0] = (float)SO->N_Node;
    par[1] = (float)SO->N_Node; /* assuming independence of course */
-   prob = THD_stat_to_pval( SUMA_MAX_PAIR(varss/(2.0*var), (2.0*var)/varss)  , NI_STAT_FTEST , par ) ;
+   prob = THD_stat_to_pval(   SUMA_MAX_PAIR(varss/(2.0*var),(2.0*var)/varss), 
+                              NI_STAT_FTEST , 
+                              par ) ;
    if (prob > 0.01) {
       /* so what would the smallest acceptable FWHM be? */
       stat = THD_pval_to_stat (0.01, NI_STAT_FTEST, par);
@@ -6134,7 +6136,8 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
       SUMA_S_Notev(  "   Distribution of data is possibly random noise (p=%f)\n"
                      "   Expect fwhm to be no different from 0 \n"
                      "   FWHM values up to %.2f(segments) or %.2f(mm)\n"
-                     "   are likely meaningless (at p=0.01) on this mesh.\n\n", prob, ss, ss*ds);
+                     "   are likely meaningless (at p=0.01) on this mesh.\n\n",
+                      prob, ss, ss*ds);
    }
    arg = 1.0 - 0.5*(varss/var);
    if (arg <= 0.0 || arg >= 1.0) {
@@ -6380,6 +6383,8 @@ SUMA_Boolean SUMA_Offset_Smooth_dset(
    SUMA_S_Warn("Niter is not treated properly");
    SUMA_S_Warn("No useful weighting in place");
    
+   SUMA_S_Warn("Useless and obsolete. DO NOT USE");
+   SUMA_RETURN(NOPE);
    
    if (!SO || !dset) {
       SUMA_S_Errv("NULL SO (%p) or dset(%p)\n", SO, dset);

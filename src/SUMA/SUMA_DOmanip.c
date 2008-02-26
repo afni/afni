@@ -307,6 +307,7 @@ int SUMA_FindDOi_byID(SUMA_DO *dov, int N_dov, char *idcode_str)
    int i;
    void *op;
    SUMA_ALL_DO *ado=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -317,9 +318,12 @@ int SUMA_FindDOi_byID(SUMA_DO *dov, int N_dov, char *idcode_str)
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType > no_type) {
          ado = (SUMA_ALL_DO *)dov[i].OP;
-         /* fprintf(SUMA_STDERR,"%s: Object %d/%d type: %d\n", FuncName, i, N_dov, dov[i].ObjectType); 
-         fprintf(SUMA_STDERR,"%s: ado->idcode_str= %s\n", FuncName, SUMA_CHECK_NULL_STR(ado->idcode_str));
-         fprintf(SUMA_STDERR,"%s: idcode_str= %s\n", FuncName, SUMA_CHECK_NULL_STR(idcode_str)); */
+         SUMA_LHv("ado %p: Object %d/%d type: %d\n", 
+                  ado, i, N_dov, dov[i].ObjectType); 
+         SUMA_LHv("ado->idcode_str= %s\n", 
+                  SUMA_CHECK_NULL_STR(ado->idcode_str));
+         SUMA_LHv("idcode_str= %s\n", 
+                  SUMA_CHECK_NULL_STR(idcode_str)); 
          if (ado->idcode_str && strcmp(ado->idcode_str, idcode_str) == 0) {
             SUMA_RETURN(i);
          } 
@@ -327,7 +331,7 @@ int SUMA_FindDOi_byID(SUMA_DO *dov, int N_dov, char *idcode_str)
          SUMA_SL_Warn("Strange, no type for DO");
       }
    }
-   /* SUMA_Show_DOv (dov, N_dov, NULL); */
+   if (LocalHead) SUMA_Show_DOv (dov, N_dov, NULL); 
    SUMA_RETURN(-1);
 }
 /*!
