@@ -2974,7 +2974,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    SUMA_ENTRY;
 
    Opt = (SUMA_SCALE_TO_MAP_OPT *)SUMA_malloc(sizeof(SUMA_SCALE_TO_MAP_OPT));
-   
+   memset (Opt, 0, sizeof(SUMA_SCALE_TO_MAP_OPT));
    if (Opt == NULL) {
       fprintf (SUMA_STDERR, "Error %s: Could not allocate for Opt.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -2986,6 +2986,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->ApplyClip = NOPE;
    Opt->IntRange[0] = Opt->IntRange[1] = 0.0;
    Opt->ThreshRange[0] = Opt->ThreshRange[1] = 0.0;
+   Opt->ThreshStats[0] = Opt->ThreshStats[1] = -1.0;
    Opt->BrightRange[0] = 0.0; Opt->BrightRange[1] = 0.0; 
    Opt->BrightMap[0] = 0.3; Opt->BrightMap[1] = 0.8; 
    Opt->BrightFact = 1.0;
@@ -4732,22 +4733,33 @@ char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail)
       SS = SUMA_StringAppend_va (SS, "find = %d\n", OptScl->find);
       SS = SUMA_StringAppend_va (SS, "IntRange = %f %f\n", 
          OptScl->IntRange[0], OptScl->IntRange[1]);
-      SS = SUMA_StringAppend_va (SS, "AutoIntRange = %d\n", OptScl->AutoIntRange);
-      SS = SUMA_StringAppend_va (SS, "tind = %d (use:%d). Mode %d\n", OptScl->tind, OptScl->UseThr, OptScl->ThrMode);
+      SS = SUMA_StringAppend_va (SS, "AutoIntRange = %d\n", 
+                                 OptScl->AutoIntRange);
+      SS = SUMA_StringAppend_va (SS, "tind = %d (use:%d). Mode %d\n", 
+                                 OptScl->tind, OptScl->UseThr, 
+                                 OptScl->ThrMode);
       SS = SUMA_StringAppend_va (SS, "ThreshRange = %f %f\n", 
          OptScl->ThreshRange[0], OptScl->ThreshRange[1]);
-      SS = SUMA_StringAppend_va (SS, "bind = %d (use:%d)\n", OptScl->bind, OptScl->UseBrt);
+      SS = SUMA_StringAppend_va (SS, "ThreshStats = %f %f\n", 
+         OptScl->ThreshStats[0], OptScl->ThreshStats[1]);
+      SS = SUMA_StringAppend_va (SS, "bind = %d (use:%d)\n", 
+                                 OptScl->bind, OptScl->UseBrt);
       SS = SUMA_StringAppend_va (SS, "BrightRange = %f %f\n", 
          OptScl->BrightRange[0], OptScl->BrightRange[1]);
       SS = SUMA_StringAppend_va (SS, "BrightMap = %f %f\n", 
          OptScl->BrightMap[0], OptScl->BrightMap[1]);
-      SS = SUMA_StringAppend_va (SS, "AutoBrtRange = %d\n", OptScl->AutoBrtRange);
+      SS = SUMA_StringAppend_va (SS, "AutoBrtRange = %d\n", 
+                                 OptScl->AutoBrtRange);
       SS = SUMA_StringAppend_va (SS, "alaAFNI = %d\n", OptScl->alaAFNI);
-      SS = SUMA_StringAppend_va (SS, "interpmode = %d (%s)\n", OptScl->interpmode, SUMA_CmapModeName(OptScl->interpmode));
+      SS = SUMA_StringAppend_va (SS, "interpmode = %d (%s)\n", 
+                                 OptScl->interpmode, 
+                                 SUMA_CmapModeName(OptScl->interpmode));
       SS = SUMA_StringAppend_va (SS, "BiasMode = %d, Range=%f, %f \n", 
-            OptScl->DoBias, OptScl->CoordBiasRange[0], OptScl->CoordBiasRange[1]);
-      if (OptScl->BiasVect) SS = SUMA_StringAppend_va (SS, "BiasVect is NOT NULL\n");
-         else SS = SUMA_StringAppend_va (SS, "BiasVect is NULL\n");
+                                 OptScl->DoBias, OptScl->CoordBiasRange[0],
+                                 OptScl->CoordBiasRange[1]);
+      if (OptScl->BiasVect) 
+         SS = SUMA_StringAppend_va (SS, "BiasVect is NOT NULL\n");
+      else SS = SUMA_StringAppend_va (SS, "BiasVect is NULL\n");
    }        
    SUMA_SS2S(SS, s);
    SUMA_RETURN(s);

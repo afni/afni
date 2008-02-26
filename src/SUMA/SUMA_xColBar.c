@@ -680,6 +680,8 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
       SUMA_UpdateColPlaneShellAsNeeded(SO);
    #endif
    
+   SUMA_UpdatePvalueField (SO, (float)cbs->value / pow(10.0, dec));   
+
    SUMA_RETURNe;
 }
 
@@ -688,8 +690,8 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    static char FuncName[]={"SUMA_cb_set_threshold"};
    SUMA_SurfaceObject *SO=NULL;
    XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
-   float fff ;
-   int dec;
+   float fff=0.0;
+   int dec=-1;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -698,12 +700,17 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    SO = (SUMA_SurfaceObject *)clientData;
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURNe; }
    XtVaGetValues(w, XmNuserData, &dec, NULL);
-   SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = (float)cbs->value / pow(10.0, dec); 
+   SO->SurfCont->curColPlane->OptScl->ThreshRange[0] = 
+            (float)cbs->value / pow(10.0, dec); 
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s:\nThreshold set to %f\n",FuncName, SO->SurfCont->curColPlane->OptScl->ThreshRange[0]); 
+      fprintf( SUMA_STDERR,
+               "%s:\nThreshold set to %f\n",
+               FuncName, 
+               SO->SurfCont->curColPlane->OptScl->ThreshRange[0]); 
    }
    
-   if (SO->SurfCont->curColPlane->OptScl->UseThr && SO->SurfCont->curColPlane->OptScl->tind >=0) {
+   if (  SO->SurfCont->curColPlane->OptScl->UseThr &&
+         SO->SurfCont->curColPlane->OptScl->tind >=0) {   
       SUMA_ColorizePlane(SO->SurfCont->curColPlane);
       SUMA_RemixRedisplay(SO);
    }
@@ -720,7 +727,9 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call)
    
    SUMA_UpdateNodeValField(SO);
    SUMA_UpdateNodeLblField(SO);
-   
+   SUMA_UpdatePvalueField (SO,
+                           SO->SurfCont->curColPlane->OptScl->ThreshRange[0]);  
+
    SUMA_RETURNe;
 
 }
@@ -1867,8 +1876,14 @@ void SUMA_CreateTable(  Widget parent,
                         char **row_help, char **col_help, 
                         int *cwidth, SUMA_Boolean editable, SUMA_VARTYPE type,
                         void (*NewValueCallback)(void * data), void *cb_data,
-                        void (*TitLabelEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *TitLabelEVHandlerData,
-                        void (*CellEVHandler)(Widget w , XtPointer cd , XEvent *ev , Boolean *ctd), void *CellEVHandlerData,
+                        void (*TitLabelEVHandler)
+                           (  Widget w , XtPointer cd , XEvent *ev , 
+                              Boolean *ctd   ), 
+                        void *TitLabelEVHandlerData,
+                        void (*CellEVHandler)
+                           (  Widget w , XtPointer cd , XEvent *ev , 
+                              Boolean *ctd), 
+                        void *CellEVHandlerData,
                         SUMA_TABLE_FIELD *TF) 
 {
    static char FuncName[]={"SUMA_CreateTable"};
@@ -1882,7 +1897,8 @@ void SUMA_CreateTable(  Widget parent,
 
    if (!TF) { SUMA_SL_Err("NULL TF"); SUMA_RETURNe; }
    TF->Ni = Ni; TF->Nj = Nj; TF->editable = editable; 
-   TF->cwidth = (int *)SUMA_calloc(TF->Nj, sizeof(int)); for (j=0; j<TF->Nj; ++j) TF->cwidth[j] = cwidth[j];
+   TF->cwidth = (int *)SUMA_calloc(TF->Nj, sizeof(int)); 
+   for (j=0; j<TF->Nj; ++j) TF->cwidth[j] = cwidth[j];
    if(col_tit) TF->HasColTit = YUP; else TF->HasColTit = NOPE;
    if(row_tit) TF->HasRowTit = YUP; else TF->HasRowTit = NOPE;
    TF->cells = (Widget *)SUMA_malloc(sizeof(Widget)*TF->Ni*TF->Nj);
@@ -2331,7 +2347,8 @@ void SUMA_SetScaleThr(void *data)
    SUMA_RemixRedisplay(SO);
 
    SUMA_UpdateNodeLblField(SO);
-
+   SUMA_UpdatePvalueField( SO,
+                           SO->SurfCont->curColPlane->OptScl->ThreshRange[0]);
    SUMA_RETURNe;  
 }
 
@@ -4422,10 +4439,14 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
       rct = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, SO->SurfCont->opts_rc,
          XmNpacking, XmPACK_TIGHT, 
-         XmNresizeHeight, False, /* important that this rc is not to be resized automatically,
-                                    otherwise, the fix SUMA_FORCE_SCALE_HEIGHT will fail */
+         XmNresizeHeight, False, /* important that this rc is not to be resized
+                                    automatically,
+                                    otherwise, the fix SUMA_FORCE_SCALE_HEIGHT
+                                    will fail 
+                                   */
          XmNresizeWidth, False,
-         XmNwidth, SUMA_SCALE_WIDTH, 
+         XmNwidth, SUMA_SCALE_WIDTH,
+         XmNheight,  SUMA_SCALE_HEIGHT, 
          XmNorientation , XmVERTICAL ,
          XmNmarginHeight , 0 ,
          XmNmarginWidth  , 0 ,
@@ -4450,7 +4471,7 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
                                           XmNrecomputeSize, False,   /* don't let it change size, it messes up the slider */ 
                                           NULL);
       #else
-      {
+      { 
          int colw[]={6};
          char *lhint[]={ "Threshold Value", NULL};
          char *lhelp[]={ SUMA_SurfContHelp_SetThreshTblr0, NULL};
@@ -4474,19 +4495,31 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
                                           XtVaNestedList, arglist,
                                           NULL);
 
-      XtAddCallback (SO->SurfCont->thr_sc, XmNvalueChangedCallback, SUMA_cb_set_threshold, (XtPointer) SO);
+      XtAddCallback (SO->SurfCont->thr_sc, 
+                     XmNvalueChangedCallback, 
+                     SUMA_cb_set_threshold, 
+                     (XtPointer) SO);
       
-      XtAddCallback (SO->SurfCont->thr_sc, XmNdragCallback, SUMA_cb_set_threshold_label, (XtPointer) SO); 
+      XtAddCallback (SO->SurfCont->thr_sc, 
+                     XmNdragCallback, 
+                     SUMA_cb_set_threshold_label, 
+                     (XtPointer) SO); 
       
-      #if 0
       /* put a string for the pvalue */
-      sprintf(slabel,"[N/A]");
-      SO->SurfCont->thrstat_lb = XtVaCreateManagedWidget (slabel, 
+      sprintf(slabel,"p [N/A]\nq [N/A]");
+      SO->SurfCont->thrstat_lb = XtVaCreateManagedWidget ("font8", 
                                           xmLabelWidgetClass, rct,
+                                          XmNwidth, SUMA_SCALE_WIDTH,
+                                          XmNrecomputeSize, False,
+                                          LABEL_ARG(slabel),
+                                          XmNinitialResourcesPersistent, False ,
                                           NULL);
-      #endif
-      XtManageChild (rct);
+      MCW_register_help( SO->SurfCont->thrstat_lb ,
+                         SUMA_SurfContHelp_ThreshStats);
+      MCW_register_hint( SO->SurfCont->thrstat_lb , 
+                         "Nominal p-value per node; FDR q-value" ) ;
 
+      XtManageChild (rct);
    }/* the threshold bar */
                      
    if (arglist) XtFree(arglist); arglist = NULL;
@@ -4693,6 +4726,114 @@ SUMA_MenuItem *SUMA_FormSwitchCmapMenuVector(SUMA_COLOR_MAP **CMv, int N_maps)
    SUMA_RETURN (menu);
 }
 
+/* This one here, recalculates the p and q value for a new threshold
+and displays the results on the widget
+*/
+void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh)   
+{/* set the pvalue */ 
+   static char FuncName[]={"SUMA_UpdatePvalueField"};
+   float p[3], zval = -1.0;
+   int statcode;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO) { 
+      SUMA_SL_Err("NULL SO");
+      SUMA_RETURNe; 
+   }  
+   if (!SO->SurfCont || 
+       !SO->SurfCont->thr_sc ||
+       !SO->SurfCont->curColPlane ||
+       !SO->SurfCont->curColPlane->dset_link) { 
+      SUMA_SL_Err("NULL SurfCont");
+      SUMA_RETURNe; 
+   }
+     
+   /* see if you can get the stat codes */
+   if (!SUMA_GetDsetColStatAttr(  
+            SO->SurfCont->curColPlane->dset_link, 
+            SO->SurfCont->curColPlane->OptScl->tind, 
+            &statcode,
+            p, (p+1), (p+2))) {
+      SUMA_LH("Error");        
+   }else if (statcode) {
+      SUMA_LHv("Have stats at sb %d\n"
+               "statcode %d: %f %f %f\n", 
+               SO->SurfCont->curColPlane->OptScl->tind,
+               statcode, p[0], p[1], p[2]);
+      SO->SurfCont->curColPlane->OptScl->ThreshStats[0] = 
+            THD_stat_to_pval( thresh , statcode , p  ) ;
+      
+      SUMA_LHv("Have pval of %f\n", 
+               SO->SurfCont->curColPlane->OptScl->ThreshStats[0]);
+      if( SO->SurfCont->curColPlane->OptScl->ThreshStats[0] >= 0.0 ){
+         SUMA_LH("zvaling ...\n")
+         zval = SUMA_fdrcurve_zval( 
+                           SO->SurfCont->curColPlane->dset_link, 
+                           SO->SurfCont->curColPlane->OptScl->tind, 
+                           thresh) ;
+         if( zval > 0.0f ){
+            SO->SurfCont->curColPlane->OptScl->ThreshStats[1] = 
+                     2.0*qg(zval) ;         /* convert z back to FDR q */
+         }
+      } 
+   } else {
+      /* no stats */
+      SO->SurfCont->curColPlane->OptScl->ThreshStats[0] = -1.0;
+      SO->SurfCont->curColPlane->OptScl->ThreshStats[1] = -1.0;
+   }
+   SUMA_LHv("statcode %d: %f %f %f\n"
+            "Thresh %f, p %f, q %f\n", 
+            statcode, p[0], p[1], p[2],
+            thresh, 
+            SO->SurfCont->curColPlane->OptScl->ThreshStats[0], 
+            SO->SurfCont->curColPlane->OptScl->ThreshStats[1]);
+   
+   
+   { /* form the text, a la afni */
+      char buf[100]={"Rien"};
+      float pval = SO->SurfCont->curColPlane->OptScl->ThreshStats[0];
+      float qval = SO->SurfCont->curColPlane->OptScl->ThreshStats[1];
+      if( pval < 0.0 ){
+        strcpy( buf , "p=N/A") ;
+      } else {
+        if( pval == 0.0 ){
+          strcpy( buf , "p=0" ) ;
+        } else if( pval >= 0.9999 ){
+          strcpy( buf , "p=1" ) ;
+        } else if( pval >= 0.0010 ){
+          char qbuf[16] ;
+          sprintf( qbuf , "%5.4f" , pval ) ;
+          strcpy(buf,"p=") ; strcat( buf , qbuf+1 ) ;/*qbuf+1 skips leading 0*/
+        } else {
+          int dec = (int)(0.999 - log10(pval)) ;
+          zval = pval * pow( 10.0 , (double) dec ) ;  /* between 1 and 10 */
+          if( dec < 10 ) sprintf( buf , "p=%3.1f-%1d" ,           zval , dec ) ;
+          else           sprintf( buf , "p=%1d.-%2d"  , (int)rint(zval), dec ) ;
+        }
+      }
+      if( qval > 0.0f & qval < 0.9999 ){
+         char qbuf[16] ;
+         if( qval >= 0.0010 ) sprintf(qbuf,"%5.4f",qval) ;
+         else {
+           int dec = (int)(0.999 - log10(qval)) ;
+           zval = qval * pow( 10.0 , (double)dec ) ;  /* between 1 and 10 */
+           if( dec < 10 ) sprintf( qbuf, " %3.1f-%1d",            zval, dec );
+           else           sprintf( qbuf, " %1d.-%2d" , (int)rint(zval), dec );
+         }
+         strcat(buf,"\nq=") ; strcat(buf,qbuf+1) ;
+      } else {
+         strcat(buf,"\nq=N/A") ;
+      }
+     
+      MCW_set_widget_label( SO->SurfCont->thrstat_lb, buf );
+   }
+   
+   SUMA_RETURNe;
+}
+         
+
 void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])   
 {
    static char FuncName[]={"SUMA_SetScaleRange"};
@@ -4792,8 +4933,10 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])
    }
    /* SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);*/
       SUMA_INSERT_CELL_STRING(SO->SurfCont->SetThrScaleTable, 0,0,slabel); 
-
-            
+   
+   SUMA_UpdatePvalueField (SO, 
+                           SO->SurfCont->curColPlane->OptScl->ThreshRange[0]);
+   
    SUMA_RETURNe;
 }
 

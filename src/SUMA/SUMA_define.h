@@ -452,22 +452,36 @@ typedef enum {
 to free this structure use the free function
 */
 typedef struct {
-   SUMA_Boolean ApplyMask; /*!< if YUP then values that fall in MaskRange are assigned the color in MaskColor */
-   float MaskRange[2]; /*!< values between MaskRange[0] and MaskRange[1] (inclusive) are assigned MaskColor */
-   float MaskColor[3]; /*!< color to assign to masked nodes */
-   SUMA_Boolean ApplyClip; /*!< if YUP then range clipping using Range is applied */
+   SUMA_Boolean ApplyMask; /*!< if YUP then values that fall in MaskRange 
+                                 are assigned the color in MaskColor */
+   float MaskRange[2];     /*!< values between MaskRange[0] and 
+                                MaskRange[1] (inclusive) are assigned 
+                                MaskColor */
+   float MaskColor[3];     /*!<   color to assign to masked nodes */
+   SUMA_Boolean ApplyClip; /*!< if YUP then range clipping using Range 
+                                 is applied */
    
    /* fields used in the _Interactive scale to map mode */
    float BrightFact; /*!< a brightness factor to apply to the color map. 
-                           This factor is applied to the colors in the colormap and the mask colors
+                           This factor is applied to the colors in the 
+                           colormap and the mask colors
                            This overrides DimFact in SUMA_OVERLAYS*/
-   SUMA_Boolean MaskZero; /*!< values equal to zero will be masked no matter what */
-   float ThreshRange[2]; /*!< Thresholding range. Only first value will be used */
-   float IntRange[2]; /*!< nodes with values <= Range[0] are given the first color in the color map, 
-                           values >= Range[1] get the last color in the map (USED to be called ClipRange*/
-   float BrightRange[2]; /*!< Same as IntRange but for brightness modulating column */
-   float BrightMap[2]; /*!< BrightRange[0] is mapped to BrightMap[0], BrightRange[1] is mapped to BrightMap[1] */
-   SUMA_Boolean alaAFNI; /*!< If yes, use ScaleToMap_alaAFNI, if NOPE, use ScaleToMap */
+   SUMA_Boolean MaskZero; /*!<   values equal to zero will be masked 
+                                 no matter what */
+   float ThreshRange[2]; /*!< Thresholding range.  */
+   float ThreshStats[2]; /*!<  Thresholding statistics, 
+                              ThreshStats[0] = p(ThreshRange[0])
+                              ThreshStats[1] = q(ThreshRange[0]) */
+   float IntRange[2]; /*!< nodes with values <= Range[0] are 
+                           given the first color in the color map, 
+                           values >= Range[1] get the last color in the map
+                            (USED to be called ClipRange*/
+   float BrightRange[2]; /*!< Same as IntRange but for brightness 
+                              modulating column */
+   float BrightMap[2]; /*!<   BrightRange[0] is mapped to BrightMap[0],
+                              BrightRange[1] is mapped to BrightMap[1] */
+   SUMA_Boolean alaAFNI; /*!< If yes, use ScaleToMap_alaAFNI, if NOPE, 
+                              use ScaleToMap */
    SUMA_COLORMAP_INTERP_MODE interpmode; /*!< see typedef.*/
    int find;   /*!< index of function sub-brick */
    int tind;   /*!< index of thresholf sub-brick */
@@ -476,8 +490,10 @@ typedef struct {
    SUMA_THRESH_MODE ThrMode;  /*!< how to apply the thresholding */
    SUMA_Boolean UseBrt; /*!< use or ignore bind */
    SUMA_WIDGET_INDEX_COORDBIAS DoBias;  /*!< use coordinate bias */
-   float CoordBiasRange[2]; /*!< Same as IntRange but for brightness modulating column */
-   float *BiasVect; /*!< A vector of values to add to the coordinates of the mesh */
+   float CoordBiasRange[2]; /*!< Same as IntRange but for brightness 
+                                 modulating column */
+   float *BiasVect; /*!< A vector of values to add to the coordinates 
+                         of the mesh */
    int AutoIntRange;
    int AutoBrtRange;
 } SUMA_SCALE_TO_MAP_OPT;
@@ -1841,7 +1857,15 @@ typedef struct {
 } SUMA_OVERLAY_LIST_DATUM;   /*!< a structure used to create linked lists of SO->Overlays and co */ 
 
 /*! structure defining a Surface Object */
-typedef struct {/* Begin by listings fields that are generic 
+typedef struct {
+   /* THE FIRST THREE FIELDS CANNOT BE MOVED FROM HERE */
+   char *idcode_str; /*!< string containing the idcode of the surface */
+   char *Label; /*!< string containing a label for the surface. 
+                     Used for window titles and saved image names */
+   SUMA_DO_Types do_type;  /* displayable type identifier */
+               
+   
+   /* Begin by fields that are generic    
                   and need to be accessed from AFNI 
                   Keep in sync with AFNI_SurfaceObject STRUCT 
                   
@@ -1872,12 +1896,6 @@ typedef struct {/* Begin by listings fields that are generic
                WITH AFNI_SurfaceObject STRUCT 
                in suma_datasets.h     ***********
    */
-   
-   char *idcode_str; /*!< string containing the idcode of the surface */
-   char *Label; /*!< string containing a label for the surface. 
-                     Used for window titles and saved image names */
-
-   SUMA_DO_Types do_type;
    
    SUMA_SO_File_Type FileType; /*!< Type of Surface file */
    SUMA_SO_File_Format FileFormat; /*!< Format of Surface file ascii or binary*/
