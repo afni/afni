@@ -407,7 +407,7 @@ REGISTER:
 	   if ( -f ${VolRegPrefix}.aff12.1D) rm -f ${VolRegPrefix}.aff12.1D 
       3dvolreg -wtrim -clipit -twopass \
                -twodup -zpad 8 -rotcom \
-               -verbose -base $ExpAnat \ 
+               -verbose -base $ExpAnat \
                -1Dmatrix_save  ${VolRegPrefix}.aff12.1D \
                -prefix $VolRegPrefix \
                $SurfAnatPath/$SurfAnat
