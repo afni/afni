@@ -28,6 +28,7 @@ static int    nsd_add_colms_range(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_colms_type(int, NI_group *);
 static int    nsd_add_sparse_data(NI_group *, THD_3dim_dataset *);
 static int    nsd_add_str_atr_to_group(char*, char*, THD_datablock*, NI_group*);
+static int    nsd_add_atr_to_group(char*, char*, THD_datablock*, NI_group*);
 static int    nsd_fill_index_list(NI_group *, THD_3dim_dataset *);
 static int    process_NSD_attrs(THD_3dim_dataset *);
 static int    process_NSD_group_attrs(NI_group *, THD_3dim_dataset *);
@@ -994,8 +995,9 @@ NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * dset, int copy_data )
 {
     THD_datablock * blk;
     NI_group      * ngr;
-    int             nx;
-
+    int             nx, ibr=0;
+    char name[100]={""};
+    
 ENTRY("THD_dset_to_ni_surf_dset");
 
     if( !ISVALID_DSET(dset) ) RETURN(NULL);
@@ -1027,6 +1029,12 @@ ENTRY("THD_dset_to_ni_surf_dset");
     nsd_add_colms_type(blk->nvals, ngr);
     nsd_add_str_atr_to_group("BRICK_STATSYM", "COLMS_STATSYM", blk, ngr);
     nsd_add_str_atr_to_group("HISTORY_NOTE", NULL, blk, ngr);
+    
+    for (ibr=0; ibr<DSET_NVALS(dset); ++ibr) {
+      sprintf(name,"FDRCURVE_%06d",ibr) ;
+      nsd_add_atr_to_group(name, NULL, blk, ngr);
+    }
+    
     nsd_fill_index_list(ngr, dset);                  /* add INDEX_LIST */
     if( copy_data ) nsd_add_sparse_data(ngr, dset);  /* add SPARSE_DATA */
 
@@ -1076,6 +1084,75 @@ ENTRY("nsd_add_colms_type");
     RETURN(0);
 }
 
+
+/* - find the given attribute in the datablock
+   - put it in a data element
+   - add it to the group
+
+   aname  - AFNI attribute name
+   niname - NIML attribute name (if NULL, use aname)
+   blk    - datablock
+   ngr    - NI_group to insert new element into
+
+   ZSS Feb 08: pilfered from THD_nimlize_dsetatr
+   
+   return 0 on success
+*/
+static int nsd_add_atr_to_group(char * aname, char * niname,
+                                THD_datablock * blk, NI_group * ngr)
+{
+    ATR_any *atr_any ;
+    ATR_string * atr_str;
+    NI_element * nel;
+    char       * dest;
+
+ENTRY("nsd_add_atr_to_group");
+
+   /* check usage */
+   if( !aname || !blk || !ngr ) RETURN(1);
+
+   atr_any = THD_find_atr(blk, aname);
+   if( !atr_any ) RETURN(0);  /* nothing to add */
+
+   if(gni.debug > 1){
+     fprintf(stderr, "-d adding '%s' atr: ", niname?niname:aname);
+   }
+
+   switch( atr_any->type ){   /* pilfered from THD_nimlize_dsetatr */
+       case ATR_FLOAT_TYPE:{
+         ATR_float *atr_flo = (ATR_float *)atr_any ;
+
+         nel = NI_new_data_element( "AFNI_atr" , atr_flo->nfl ) ;
+         nel->outmode = NI_TEXT_MODE ;
+         NI_set_attribute( nel , "atr_name" , atr_flo->name ) ;
+         NI_add_column( nel , NI_FLOAT , atr_flo->fl ) ;
+         NI_add_to_group( ngr , nel ) ;
+       }
+       break ;
+
+       case ATR_INT_TYPE:{
+         ATR_int *atr_int = (ATR_int *)atr_any ;
+
+         nel = NI_new_data_element( "AFNI_atr" , atr_int->nin ) ;
+         nel->outmode = NI_TEXT_MODE ;
+         NI_set_attribute( nel , "atr_name" , atr_int->name ) ;
+         NI_add_column( nel , NI_INT , atr_int->in ) ;
+         NI_add_to_group( ngr , nel ) ;
+       }
+       break ;
+
+       case ATR_STRING_TYPE:{
+         nsd_add_str_atr_to_group(aname, niname, blk, ngr);
+       }
+       break;
+       
+       default:
+         fprintf(stderr, "*** unexpected type!\n");
+         RETURN(1);
+   }
+   
+   RETURN(0);
+}
 
 /* - find the given attribute in the datablock
    - now just add 1 to length (should we bother?)

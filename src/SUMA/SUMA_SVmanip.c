@@ -2192,6 +2192,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    
    /* do not use commonfields related stuff here for obvious reasons */
    SurfCont = (SUMA_X_SurfCont *)malloc(sizeof(SUMA_X_SurfCont));
+   memset(SurfCont, 0, sizeof(SUMA_X_SurfCont));
    
    /* take care of linking fields */
    if (idcode_str) sprintf(SurfCont->owner_id, "%s", idcode_str);
@@ -2206,9 +2207,12 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->SurfInfo_pb = NULL;
    SurfCont->SurfInfo_label = NULL;
    SurfCont->SurfInfo_TextShell = NULL;
-   SurfCont->ColPlaneOrder = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
-   SurfCont->ColPlaneOpacity = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
-   SurfCont->ColPlaneDimFact = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->ColPlaneOrder = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->ColPlaneOpacity = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
+   SurfCont->ColPlaneDimFact = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
    SurfCont->XhairTable = SUMA_AllocTableField();
    SurfCont->SetRangeTable = SUMA_AllocTableField();
    SurfCont->SetThrScaleTable = SUMA_AllocTableField();
@@ -2226,13 +2230,16 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->ColPlaneLabelTable = SUMA_AllocTableField();;
    SurfCont->curColPlane = NULL;
    SurfCont->ShowCurOnly = NOPE;
-   SurfCont->curSOp = (void **)malloc(sizeof(void*));
+   SurfCont->curSOp = (void **)calloc(1, sizeof(void*));
    SurfCont->PosRef = NULL;
-   SurfCont->cmp_ren = (SUMA_CMAP_RENDER_AREA *)SUMA_malloc(sizeof(SUMA_CMAP_RENDER_AREA));
+   SurfCont->cmp_ren = 
+      (SUMA_CMAP_RENDER_AREA *)SUMA_calloc(1, sizeof(SUMA_CMAP_RENDER_AREA));
    SurfCont->cmp_ren->cmap_wid = NULL;
    SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL;
    SurfCont->cmp_ren->cmap_context = NULL;
-   SurfCont->cmp_ren->translateVec[0] = SurfCont->cmp_ren->translateVec[0] = SurfCont->cmp_ren->translateVec[1] = 0.0;
+   SurfCont->cmp_ren->translateVec[0] = 
+   SurfCont->cmp_ren->translateVec[0] = 
+   SurfCont->cmp_ren->translateVec[1] = 0.0;
    SurfCont->thr_sc = NULL;
    SurfCont->brt_sc = NULL;
    SurfCont->thr_lb = NULL;
@@ -2265,9 +2272,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->Brt_tb = NULL;
    SurfCont->IntRangeLocked = 0;
    SurfCont->BrtRangeLocked = 0;
-   /*SurfCont-> = NULL;
-   SurfCont-> = NULL;
-   SurfCont-> = NULL;*/
+
   return (SurfCont);
 }
  
