@@ -96,9 +96,10 @@ float *SUMA_CalculateNodeAreas(SUMA_SurfaceObject *SO, byte *mask)
    
    \sa SUMA_Build_Cluster_From_Node_NoRec       
 */
-SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(int dothisnode, SUMA_CLUST_DATUM *AddToThisClust, 
-                                                float *ToBeAssigned, int *N_TobeAssigned, float *NodeArea,
-                                                SUMA_SurfaceObject *SO, SUMA_SURFCLUST_OPTIONS *Opt)
+SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(
+               int dothisnode, SUMA_CLUST_DATUM *AddToThisClust, 
+               float *ToBeAssigned, int *N_TobeAssigned, float *NodeArea,
+               SUMA_SurfaceObject *SO, SUMA_SURFCLUST_OPTIONS *Opt)
 {
    static char FuncName[]={"SUMA_Build_Cluster_From_Node"};
    SUMA_CLUST_DATUM *Clust = NULL;
@@ -225,11 +226,10 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(int dothisnode, SUMA_CLUST_DATUM
                SUMA_Build_Cluster_From_Node( neighb, Clust, ToBeAssigned, N_TobeAssigned, NodeArea, SO, Opt); 
             }      
          } while (elm != dlist_tail(offlist));
-         dlist_destroy(offlist);  
+         dlist_destroy(offlist); SUMA_free(offlist); offlist = NULL;   
       }      
    }
    
-   /* If you ever use this function again, you should probably SUMA_free(offlist); dlist_destroy(candlist); SUMA_free(candlist); */
 
    SUMA_RETURN(Clust);
 }

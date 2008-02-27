@@ -2352,8 +2352,8 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList); cf->MessageList = NULL;
    if (cf->scm) cf->scm = SUMA_DestroyAfniColors (cf->scm); cf->scm = NULL;
    if (cf->DsetList) {
-      dlist_destroy(cf->DsetList); 
-      SUMA_free(cf->DsetList); cf->DsetList = NULL;
+      dlist_destroy(cf->DsetList);  SUMA_free(cf->DsetList); 
+      cf->DsetList = NULL;
    }
    #ifdef USE_SUMA_MALLOC
    SUMA_SL_Err("NO LONGER SUPPORTED");
@@ -3287,10 +3287,10 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleGroupList (SUMA_SurfaceViewer *sv)
 
       N_clist = list->size;
       /* destroy list */
-      dlist_destroy(list);
-      dlist_destroy(listop);
-      SUMA_free(list);
-      SUMA_free(listop);
+      dlist_destroy(list);SUMA_free(list);
+      dlist_destroy(listop);SUMA_free(listop);
+      
+      
    }
    
    clist_str = SUMA_CreateAssembleListStruct();

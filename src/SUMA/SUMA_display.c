@@ -1300,7 +1300,7 @@ void
 SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
 {
    
-   XVisualInfo *SUMAg_cVISINFO;
+   XVisualInfo *SUMAg_cVISINFO=NULL;
    static char FuncName[]={"SUMA_graphicsInit"};
    int isv;
    SUMA_SurfaceViewer *sv;
@@ -6349,7 +6349,11 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
    
   
    XtVaGetValues (AF->textfield, XmNvalue, &n, NULL);
-   /* YOU DO NOT WANT TO FREE n because n is not a copy of the string in the widget! */
+   /* YOU DO NOT WANT TO FREE n because n is not a 
+      copy of the string in the widget! 
+      Later in time:
+      Hmmmm, maybe you do, maybe you do. Must abide by 
+      upper case message. Must have crashed somwhere */
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Read %s\n", FuncName, (char *)n);
    
@@ -8863,7 +8867,7 @@ void SUMA_DrawROI_NewLabel (void *data)
       SUMA_RETURNe;
    }
    
-   XtVaGetValues (AF->textfield, XmNvalue, &n, NULL);
+   XtVaGetValues (AF->textfield, XmNvalue, &n, NULL); 
    /* return if no change has been made */
    if (!strcmp((char *)n, DrawnROI->Label)) {
       SUMA_LH("No change");
@@ -8876,7 +8880,8 @@ void SUMA_DrawROI_NewLabel (void *data)
       SUMA_LH("unFinished");
       /* YOU DO NOT WANT TO FREE n because n is not a copy of the string in the widget! */
       if (DrawnROI->Label) {
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Changing ROI label from %s to %s\n", FuncName, DrawnROI->Label, (char *)n);         
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, "%s: Changing ROI label from %s to %s\n", FuncName, DrawnROI->Label, (char *)n);         
          DrawnROI->Label = (char *)SUMA_realloc(DrawnROI->Label, sizeof(char)*(strlen((char *)n)+1));
       }  else {
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting ROI label to %s\n", FuncName, (char *)n);

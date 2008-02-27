@@ -2175,7 +2175,8 @@ DList * SUMA_DestroyList (DList *list)
    SUMA_ENTRY;
    
    if (list->size) {
-      fprintf (SUMA_STDERR, "Error %s: list still contains elements.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: list still contains elements.\n", FuncName);
       SUMA_RETURN (list);
    }
    
@@ -2249,7 +2250,7 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS)
 
    SUMA_ENTRY;
 
-   dlist_destroy(AS);
+   dlist_destroy(AS); SUMA_free(AS); AS = NULL;
    
    SUMA_RETURN (NULL);
 }
