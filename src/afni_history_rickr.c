@@ -38,6 +38,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, FEB, 2008, RCR, "afni_proc.py", MINOR,
+   "fixed -regress_use_stim_files typo (was -regress_use_stim_times)", 
+   NULL
+ } ,
+
  { 26, FEB, 2008, RCR, "afni_history", MICRO,
    "checked in initial afni_history files", 
    NULL
