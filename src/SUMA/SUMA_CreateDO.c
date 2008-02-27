@@ -52,7 +52,9 @@ SUMA_NEW_SO_OPT *SUMA_FreeNewSOOpt(SUMA_NEW_SO_OPT *nsopt)
    nsooptu (SUMA_NEW_SO_OPT *) an options structure to dictate what to do with certain
                      fields of SO. At the moment, just pass NULL.
 */
-SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, int N_FaceSet, SUMA_NEW_SO_OPT *nsooptu)
+SUMA_SurfaceObject *SUMA_NewSO ( float **NodeList, int N_Node, 
+                                 int **FaceSetList, int N_FaceSet,
+                                 SUMA_NEW_SO_OPT *nsooptu)
 {
    static char FuncName[]={"SUMA_NewSO"};
    SUMA_SurfaceObject *SO = NULL;
@@ -74,7 +76,8 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
 
    SUMA_LH("NodeList");
    SO->NodeDim = 3;
-   SO->NodeList = *NodeList; *NodeList = NULL;  /* keeps user from freeing afterwards ... */
+   SO->NodeList = *NodeList; *NodeList = NULL;  /* keeps user from 
+                                                   freeing afterwards ... */
    SO->N_Node = N_Node;
 
    if (nsoopt->DoCenter) {
@@ -93,13 +96,16 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
     
    SUMA_LH("FaceSetList");
    SO->FaceSetDim = 3;
-   SO->FaceSetList = *FaceSetList; *FaceSetList = NULL;  /* keeps user from freeing afterwards ... */
+   SO->FaceSetList = *FaceSetList; *FaceSetList = NULL;  /* keeps user from 
+                                                            freeing later ... */
    SO->N_FaceSet = N_FaceSet;
    
    if (nsoopt->DoMetrics) {
       SUMA_LH("Metrics");
-      if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList, MemberFace", NULL, 0, SUMAg_CF->DsetList)) {
-         SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+      if (!SUMA_SurfaceMetrics_eng( SO, "EdgeList, MemberFace", 
+                                    NULL, 0, SUMAg_CF->DsetList)) {
+         SUMA_SL_Warn(  "Failed to compute metrics\n"
+                        "Returing with whatever is salvageable");
       }
    } else {
       SUMA_LH("Skipping metrics");
@@ -114,14 +120,20 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
    SO->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));  
    if (nsoopt->idcode_str) sprintf(SO->idcode_str, "%s", nsoopt->idcode_str);
    else UNIQ_idcode_fill (SO->idcode_str);
-   if (nsoopt->LocalDomainParentID) SO->LocalDomainParentID = SUMA_copy_string(nsoopt->LocalDomainParentID);
+   if (nsoopt->LocalDomainParentID) 
+      SO->LocalDomainParentID = SUMA_copy_string(nsoopt->LocalDomainParentID);
    else SO->LocalDomainParentID = SUMA_copy_string(SO->idcode_str);
-   if (nsoopt->LocalDomainParent) SO->LocalDomainParent = SUMA_copy_string(nsoopt->LocalDomainParent);
+   if (nsoopt->LocalDomainParent) 
+      SO->LocalDomainParent = SUMA_copy_string(nsoopt->LocalDomainParent);
    else SO->LocalDomainParent = SUMA_copy_string("SAME");
    
    /* the stupid copies */
-   if (sizeof(GLfloat) != sizeof(float)) { SUMA_SL_Crit("GLfloat and float have differing sizes!\n"); SUMA_RETURN(NOPE); }
-   if (sizeof(GLint) != sizeof(int)) { SUMA_SL_Crit("GLint and int have differing sizes!\n"); SUMA_RETURN(NOPE); }
+   if (sizeof(GLfloat) != sizeof(float)) { 
+      SUMA_SL_Crit("GLfloat and float have differing sizes!\n"); 
+      SUMA_RETURN(NOPE); }
+   if (sizeof(GLint) != sizeof(int)) { 
+      SUMA_SL_Crit("GLint and int have differing sizes!\n"); 
+      SUMA_RETURN(NOPE); }
 
    SO->glar_NodeList = (GLfloat *)SO->NodeList;
    SO->glar_FaceSetList = (GLint *) SO->FaceSetList;
@@ -2889,8 +2901,8 @@ SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
          } while (i < N_Ax && Elm);   
          
          /* destroy list */
-         dlist_destroy(slist);
-         SUMA_free(slist); slist = NULL;
+         dlist_destroy(slist);SUMA_free(slist); slist = NULL;
+         
          break;
       default:
          SUMA_S_Err("Should not be here.");
@@ -3598,15 +3610,15 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    SUMA_ROI_PLANE *Plane = NULL;
    int *N_ColHist = NULL, *ivect = NULL, *Nodes=NULL, *ilab=NULL, *labvect=NULL;
    float *r=NULL, *g=NULL, *b=NULL, *rvect=NULL, *gvect=NULL, *bvect=NULL;
-   float FillColor[3];
-   int i, ii, N_NewNode = 0, istore, OverInd=-1, 
-      inode, i_D_ROI, LastOfPreSeg, N_Nodes=0;
+   float FillColor[3]={0.0, 0.0, 0.0};
+   int i= 0, ii= 0, N_NewNode = 0, istore= 0, OverInd=-1, 
+      inode= 0, i_D_ROI= 0, LastOfPreSeg= 0, N_Nodes=0;
    SUMA_OVERLAY_PLANE_DATA sopd;
    DListElmt *NextPlaneElm = NULL, *NextROIElm = NULL, *NextElm=NULL;
    SUMA_DRAWN_ROI *D_ROI = NULL;
    SUMA_ROI_DATUM *ROId=NULL;
    NI_element **nelv = NULL;
-   char *mapname;
+   char *mapname=NULL;
    char *eee = NULL;
    DList *list=NULL;
    static int iwarn=0;
@@ -3770,15 +3782,20 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                   list = SUMA_CreateList();
                   ED = SUMA_InitializeEngineListData (SE_SendColorMapToAfni);
                   mapcode = SUMA_StandardMapCode(mapname);
-                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_i, (void*)&mapcode, 
-                                                         SES_SumaWidget, NULL, NOPE, 
-                                                         SEI_Head, NULL )) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                  if (!SUMA_RegisterEngineListCommand (  
+                                                   list, ED, 
+                                                   SEF_i, (void*)&mapcode, 
+                                                   SES_SumaWidget, NULL, NOPE, 
+                                                   SEI_Head, NULL )) {
+                     fprintf(SUMA_STDERR,
+                              "Error %s: Failed to register command\n", 
+                              FuncName);
                      SUMA_RETURN(NOPE);
                   }
                   if (!SUMA_Engine (&list)) {
-                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     fprintf( stderr, 
+                              "Error %s: SUMA_Engine call failed.\n", 
+                              FuncName);
                      SUMA_RETURN(NOPE);
                   }
                   
@@ -3893,13 +3910,14 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                                     FuncName, N_NewNode, istore);
       SUMA_LH("Freedom");
       /* free the big ones */
-      SUMA_free(N_ColHist); 
-      SUMA_free(r); 
-      SUMA_free(g); 
-      SUMA_free(b);
-      if (*CreateNel) SUMA_free(ilab);
+      if (N_ColHist) SUMA_free(N_ColHist); N_ColHist = NULL;
+      if (r) SUMA_free(r); r = NULL;
+      if (g) SUMA_free(g); g = NULL;
+      if (b) SUMA_free(b); b = NULL;
+      if (ilab) SUMA_free(ilab); ilab = NULL;
       
    /* put the colors in a color plane */
+      memset(&sopd, 0, sizeof(SUMA_OVERLAY_PLANE_DATA)); 
       sopd.N = N_NewNode;
       sopd.Type = SOPT_ifff;
       sopd.Source = SES_Suma;
@@ -3914,7 +3932,9 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
       sopd.a = NULL;
 
       SUMA_LH("Calling SUMA_iRGB_to_OverlayPointer");
-      if (!SUMA_iRGB_to_OverlayPointer (SO, Plane->name, &sopd, &OverInd, dov, N_do, SUMAg_CF->DsetList)) {
+      if (!SUMA_iRGB_to_OverlayPointer (  SO, Plane->name, 
+                                          &sopd, &OverInd, 
+                                          dov, N_do, SUMAg_CF->DsetList)) {
          SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
          SUMA_RETURN(NOPE);
       }      
@@ -3942,7 +3962,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             /* Add the index column */
             SUMA_LH("Adding index column...");
             SUMA_allow_nel_use(1);
-            if (!SUMA_AddNelCol (nel, "node index", SUMA_NODE_INDEX, (void *)ivect, NULL, 1)) {
+            if (!SUMA_AddNelCol (nel, "node index", 
+                                 SUMA_NODE_INDEX, (void *)ivect, NULL, 1)) {
                SUMA_SL_Err("Failed in SUMA_AddNelCol");
                SUMA_RETURN(NOPE);
             }
@@ -3950,7 +3971,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
             /* Add the label column */
             SUMA_LH("Adding label column...");
             SUMA_allow_nel_use(1);
-            if (!SUMA_AddNelCol (nel, "integer label", SUMA_NODE_ILABEL, (void *)labvect, NULL, 1)) {
+            if (!SUMA_AddNelCol (nel, "integer label", 
+                                 SUMA_NODE_ILABEL, (void *)labvect, NULL, 1)) {
                SUMA_SL_Err("Failed in SUMA_AddNelCol");
                SUMA_RETURN(NOPE);
             }
@@ -3971,7 +3993,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          nelv[i] = nel; nel = NULL;
          
          /* DO NOT FREE ivect, it is used in sopd */
-         SUMA_free(labvect);
+         SUMA_free(labvect);labvect=NULL;
       }
       
    } 
@@ -3990,13 +4012,13 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
       rvect = NULL;
       gvect = NULL;
       bvect = NULL;
-      if (*CreateNel) labvect = NULL;  
+      if (*CreateNel && labvect) SUMA_free(labvect); labvect = NULL;  
    }
    
       
    SUMA_LH("Destroying list");
    /* destroy plane list */
-   dlist_destroy (ROIPlaneList);
+   dlist_destroy (ROIPlaneList); SUMA_free(ROIPlaneList); ROIPlaneList = NULL; 
 
    /* Set the remix flag for that surface */
    if(!SUMA_SetRemixFlag (SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
@@ -4101,7 +4123,10 @@ void SUMA_Free_ROI_PlaneData (void *da)
    if (!pl) SUMA_RETURNe;
    
    /* destroy the list containing ROIs belonging to plane */
-   if (pl->ROI_index_lst) dlist_destroy (pl->ROI_index_lst);
+   if (pl->ROI_index_lst) {
+      dlist_destroy (pl->ROI_index_lst); 
+      SUMA_free(pl->ROI_index_lst); pl->ROI_index_lst = NULL;
+   }
    if (pl->name) SUMA_free(pl->name);
    
    /* now free the structure */
@@ -4143,9 +4168,10 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
    SUMA_DRAWN_ROI *D_ROI = NULL;
    char *UsedName = NULL;
    SUMA_DO *doel = NULL;
-   SUMA_ROI_PLANE *Plane;
-   int i;
-   SUMA_Boolean found = NOPE, LocalHead = NOPE;
+   SUMA_ROI_PLANE *Plane=NULL;
+   int i=0;
+   SUMA_Boolean found = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -4162,7 +4188,7 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
    if (doel->ObjectType != ROIdO_type) {
       SUMA_SLP_Crit("Only planning to deal\n"
                    "with ROIdO_type type");
-      dlist_destroy(ROIplaneList);
+      dlist_destroy(ROIplaneList); SUMA_free(ROIplaneList); ROIplaneList=NULL; 
       SUMA_RETURN(NULL);
    }
    
@@ -4200,8 +4226,10 @@ DList * SUMA_Addto_ROIplane_List (DList *ROIplaneListIn, SUMA_DO *dov, int idov)
       dlist_ins_next(ROIplaneList, dlist_tail(ROIplaneList), (void *)Plane);
    }
    
-   /* now put the ROI in question in that list, easiest is to store its index into dov */
-   dlist_ins_next(Plane->ROI_index_lst, dlist_tail(Plane->ROI_index_lst), (void *)idov);
+   /* now put the ROI in question in that list, 
+      easiest is to store its index into dov */
+   dlist_ins_next(Plane->ROI_index_lst, 
+                  dlist_tail(Plane->ROI_index_lst), (void *)idov);
    
    /* OK, done, now return */
    SUMA_RETURN(ROIplaneList);
@@ -4781,11 +4809,13 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       SUMA_RETURN(YUP);
    }
    if (LocalHead) {
-      if (SO->Label) fprintf (SUMA_STDERR, "%s: freeing SO %s\n", FuncName, SO->Label);
+      if (SO->Label) 
+         fprintf (SUMA_STDERR, "%s: freeing SO %s\n", FuncName, SO->Label);
       else fprintf (SUMA_STDERR, "%s: freeing SO\n", FuncName);
    }
    /* Start with the big ones and down*/
-   /* From SUMA 1.2 and on, some glar_ pointers are copies of others and should not be freed */ 
+   /* From SUMA 1.2 and on, some glar_ pointers are copies 
+      of others and should not be freed */ 
    SO->glar_FaceSetList = NULL;
    SO->glar_NodeList = NULL;
    SO->glar_NodeNormList = NULL;
@@ -4804,23 +4834,28 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (LocalHead) fprintf (stdout, "SO->Name.FileName... "); 
    if (SO->Name.FileName) SUMA_free(SO->Name.FileName);
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->Name.Path\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: freeing SO->Name.Path\n", FuncName);
    if (SO->Name.Path) SUMA_free(SO->Name.Path);
    if (SO->SpecFile.Path) SUMA_free(SO->SpecFile.Path);
    if (SO->SpecFile.FileName) SUMA_free(SO->SpecFile.FileName);
    if (SO->MeshAxis) SUMA_Free_Axis (SO->MeshAxis);
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->NodeMarker\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: freeing SO->NodeMarker\n", FuncName);
    if (SO->NodeMarker) SUMA_Free_SphereMarker (SO->NodeMarker);
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->FaceSetMarker\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: freeing SO->FaceSetMarker\n", FuncName);
    if (SO->FaceSetMarker) SUMA_Free_FaceSetMarker(SO->FaceSetMarker);
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->idcode_str\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: freeing SO->idcode_str\n", FuncName);
    if (SO->idcode_str) SUMA_free(SO->idcode_str); 
    if (SO->facesetlist_idcode_str) SUMA_free(SO->facesetlist_idcode_str);
    if (SO->nodelist_idcode_str) SUMA_free(SO->nodelist_idcode_str);
    if (SO->facenormals_idcode_str) SUMA_free(SO->facenormals_idcode_str);
    if (SO->nodenormals_idcode_str) SUMA_free(SO->nodenormals_idcode_str);
    if (SO->polyarea_idcode_str) SUMA_free(SO->polyarea_idcode_str);
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->LocalDomainParentID\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, "%s: freeing SO->LocalDomainParentID\n", FuncName);
    if (SO->LocalDomainParentID) SUMA_free(SO->LocalDomainParentID);
    if (SO->LocalDomainParent) SUMA_free(SO->LocalDomainParent);
    if (SO->LocalCurvatureParentID) SUMA_free(SO->LocalCurvatureParentID);
@@ -5974,10 +6009,12 @@ SUMA_Boolean SUMA_AppendToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2
    
    \sa SUMA_AppendToROIdatum
 */
-SUMA_Boolean SUMA_PrependToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2)
+SUMA_Boolean SUMA_PrependToROIdatum (
+   SUMA_ROI_DATUM *ROId1, 
+   SUMA_ROI_DATUM *ROId2)
 {
    static char FuncName[]={"SUMA_PrependToROIdatum"};
-   int i, N_nNew=-1, N_tNew=-1, *tPathNew=NULL, *nPathNew=NULL;
+   int i=0, N_nNew=-1, N_tNew=-1, *tPathNew=NULL, *nPathNew=NULL;
    SUMA_Boolean CommonTip = NOPE;
    
    SUMA_ENTRY;
@@ -5991,7 +6028,9 @@ SUMA_Boolean SUMA_PrependToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId
    /* make sure the last node of ROId1 and the first node of ROId2 match */
    if (ROId2->N_n) {
       if (ROId1->nPath[ROId1->N_n-1] != ROId2->nPath[0]) {
-         fprintf (SUMA_STDERR, "Error %s: Last node of ROId1 is not the same as the first node of ROId2.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Last node of ROId1 is not the same \n"
+                  "as the first node of ROId2.\n", FuncName);
          SUMA_RETURN(NOPE);
       }
    }
@@ -6038,7 +6077,7 @@ SUMA_Boolean SUMA_PrependToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId
       }
       for (i=0; i<ROId1->N_t; ++i) tPathNew[i] = ROId1->tPath[i];
       for (i=1; i<ROId2->N_t; ++i) tPathNew[ROId1->N_t+i-1] = ROId2->tPath[i];
-      SUMA_free(ROId2->tPath);
+      SUMA_free(ROId2->tPath); 
    }else {
       /* figure out the new N_n */
       N_tNew = ROId1->N_t + ROId2->N_t;
@@ -6051,7 +6090,7 @@ SUMA_Boolean SUMA_PrependToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId
       }
       for (i=0; i<ROId1->N_t; ++i) tPathNew[i] = ROId1->tPath[i];
       for (i=0; i<ROId2->N_t; ++i) tPathNew[ROId1->N_t+i] = ROId2->tPath[i];
-      SUMA_free(ROId2->tPath);
+      SUMA_free(ROId2->tPath); 
    }
    ROId2->tPath = tPathNew;
    ROId2->N_t = N_tNew;

@@ -1527,10 +1527,10 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, S
 
       N_clist = list->size;
       /* destroy list */
-      dlist_destroy(list);
-      dlist_destroy(listop);
-      SUMA_free(list);
-      SUMA_free(listop);
+      dlist_destroy(list);SUMA_free(list);
+      dlist_destroy(listop);SUMA_free(listop);
+      
+      
    }
    
    clist_str = SUMA_CreateAssembleListStruct();

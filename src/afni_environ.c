@@ -149,6 +149,7 @@ ENTRY("AFNI_process_environ") ;
             enveqn = (char *) malloc(nl+nr+4) ;
             strcpy(enveqn,left) ; strcat(enveqn,"=") ; strcat(enveqn,right) ;
             putenv(enveqn) ;
+            free(enveqn); enveqn = NULL; /*ZSS Feb 08 */
          }
 
          continue ;  /* to end of outer while */
