@@ -14,60 +14,10 @@ static char g_history[] =
 static char g_version[] = "afni_history version 0.0, 26 February 2008";
 
 
-/* local structs that don't need to confuse the issue */
-typedef struct {
-    afni_history_struct * hlist;
-    char                * author;
-} histpair;
-
-typedef struct {
-    /* user options */
-    int        verb;
-
-    /* assigned variables */
-    int        plen;
-    histpair * histpairs;
-} global_data;
-
 histpair g_histpairs[NUM_HIST_USERS];  /* will initialize internally */
 
 /* use this for top-level access */
-global_data GD = { 1, 0, NULL };
-
-#undef INT_IN_RANGE
-#define INT_IN_RANGE(val,min,max) (((val)<(min)) ? 0 : ((val)>(max)) ? 0 : 1)
-
-#undef CHECK_NULL_STR
-#define CHECK_NULL_STR(str) (str ? str : "NULL")
-
-#undef CHECK_NEXT_OPT
-#define CHECK_NEXT_OPT(n,m,str)                                     \
-   do { if ( (n) >= (m) ) {                                          \
-           fprintf(stderr,"** option '%s': missing parameter\n",str); \
-           fprintf(stderr,"   consider: '-help' option\n");            \
-           return 1;      }                                             \
-      } while(0)
-
-#undef CHECK_NEXT_OPT2
-#define CHECK_NEXT_OPT2(n,m,s1,s2)                                        \
-   do { if ( (n) >= (m) ) {                                                \
-           fprintf(stderr,"** option '%s': missing parameter '%s'\n",s1,s2);\
-           fprintf(stderr,"   consider: '-help' option\n");                  \
-           return 1;      }                                                   \
-      } while(0)
-
-
-/* local protos */
-int histlists_are_valid (histpair * hpairs, int plen);
-int hlist_is_sorted     (afni_history_struct * hlist);
-int hlist_len           (afni_history_struct * hlist);
-int init_histlist       (global_data * gd);
-int process_options     (int argc, char * argv[], global_data * gd);
-int show_help           (void);
-int valid_dstring       (char * str, int max_line_len);
-int valid_histlist      (afni_history_struct * hlist, char * author);
-int valid_histstruct    (afni_history_struct * hstr, char * author);
-int valid_program       (char * prog);
+global_data GD;
 
 int main(int argc, char *argv[])
 {
@@ -92,6 +42,9 @@ int process_options(int argc, char * argv[], global_data * gd)
     int ac, c;
 
     if( argc < 0 || !argv || !gd ) return -1;
+
+    memset(gd, 0, sizeof(global_data));
+    gd->verb = 1;
 
     /* if( argc <= 1 ) { show_help(); return 1; } maybe just run */
 
@@ -202,7 +155,7 @@ int valid_histstruct(afni_history_struct * hstr, char * author)
         errs++;
     }
 
-    if( ! INT_IN_RANGE(hstr->yyyy, 2006, 2050) ) {
+    if( ! INT_IN_RANGE(hstr->yyyy, FIRST_YEAR, 2050) ) {
         fprintf(stderr,"** invalid year: %d\n", hstr->yyyy);
         errs++;
     }
