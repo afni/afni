@@ -69,5 +69,10 @@ afni_history_struct rwcox_history[] = {
    "add '-vmean' and '-vnorm' options, to mirror capabilities in 3dpc" ,
    NULL } ,
 
+ { 27 , FEB , 2008 , RWC , "3dTfitter" , MAJOR ,
+   "add deconvolution via the '-FALTUNG' option" ,
+   "Unlike 3dDeconvolve, this deconvolution is to find the input time\n"
+   "series, given the impulse response function.\n" } ,
+
  { 99,99,99, NULL,NULL, 99, NULL,NULL}  /** the end */
 } ;
