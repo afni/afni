@@ -41,8 +41,8 @@ static float * new_lsqfit( int npt  , float *far   ,
 
 /*------------------------------------------------------------------*/
 
-#undef  ERREX
-#define ERREX(s) do{ ERROR_message(s); return NULL; } while(0)
+#undef  GOOD_METH
+#define GOOD_METH(m) ( (m)==1 || (m)==2 )
 
 /*------------------------------------------------------------------*/
 /* Fit the npt-long vector far[] to the nref vectors in ref[].
@@ -67,15 +67,13 @@ floatvec * THD_fitter( int npt , float *far  ,
    /* check inputs for stupid users */
 
    if( npt  <= 1 || far == NULL ||
-       nref <= 0 || ref == NULL || nref >= npt-1 )
-     ERREX("THD_fitter: bad inputs") ;
+       nref <= 0 || ref == NULL || nref >= npt-1 ) return NULL ;
 
-   for( jj=0 ; jj < nref ; jj++ )
-     if( ref[jj] == NULL ) ERREX("THD_fitter: bad ref") ;
+   for( jj=0 ; jj < nref ; jj++ ) if( ref[jj] == NULL ) return NULL ;
 
    switch( meth ){
 
-     default: ERREX("THD_fitter: bad meth code") ;
+     default: return NULL ;  /* stupid user */
 
      /*-- least squares --*/
 
@@ -105,4 +103,122 @@ floatvec * THD_fitter( int npt , float *far  ,
    MAKE_floatvec(fv,nref) ;                      /* copy output array */
    memcpy( fv->ar, qfit, sizeof(float)*nref ) ;  /* into floatvec and */
    free(qfit) ; return fv ;                      /* return to caller. */
+}
+
+/*-------------------------------------------------------------------------*/
+
+floatvec * THD_deconvolve( int npt    , float *far   ,
+                           int minlag , int maxlag   , float *kern,
+                           int nbase  , float *base[],
+                           int meth   , float *ccon  , int dcon   ,
+                           int pencode, float penfac               )
+{
+   int ii , jj , kk ;
+   float val,kernmax,fmax , *zar , *zcon=NULL ;
+   floatvec *fv=NULL ;
+   int nref,nlag,npen,nplu ; float **ref ;
+
+   /* check inputs for stupid users */
+
+   if( npt <= 3 || far == NULL ) return NULL ;
+   nlag = maxlag-minlag+1 ;
+   if( nlag <= 1 || kern == NULL || !GOOD_METH(meth) ) return NULL ;
+   if( minlag <= -npt+1 || maxlag >= npt-1 ) return NULL ;
+   if( nbase > 0 ){
+     if( base == NULL ) return NULL ;
+     for( jj=0 ; jj < nbase ; jj++ ) if( base[jj] == NULL ) return NULL ;
+   } else if( nbase < 0 ){ /* user = dumb as a brick */
+     nbase = 0 ;
+   }
+
+   for( kernmax=0.0f,jj=0 ; jj < nlag ; jj++ ){
+     val = fabsf(kern[jj]) ; kernmax = MAX(kernmax,val) ;
+   }
+   if( kernmax == 0.0f ) return NULL ;
+
+   for( fmax=0.0f,ii=0 ; ii < npt ; ii++ ){
+     val = fabsf(far[ii]) ; fmax = MAX(fmax,val) ;
+   }
+   if( fmax == 0.0f ) return NULL ;
+
+   /* number of penalty equations */
+
+   if( penfac == 0.0f ) penfac = -0.01f ;
+   if( penfac <  0.0f ) penfac = penfac * fmax / kernmax ;
+   if( pencode > 2 || pencode > npt-1-nbase || pencode < 0 ) pencode = 0 ;
+   npen = npt - pencode ;
+
+   /* number of equations and number of references */
+
+   nplu = npt + npen ;
+   nref = npt + nbase ;
+   if( nref > nplu ) return NULL ;  /* only if user is really stupid */
+
+   /** make new reference vectors **/
+
+   ref = (float **)malloc(sizeof(float *)*nref) ;
+
+   /* deconvolution equations */
+
+   for( jj=0 ; jj < npt ; jj++ ){
+     ref[jj] = (float *)calloc(sizeof(float),nplu) ;
+     for( ii=0 ; ii < npt ; ii++ ){
+       kk = ii-jj ; if( kk < minlag ) continue; if( kk > maxlag ) break ;
+       ref[jj][ii] = kern[kk-minlag] ;
+     }
+   }
+
+   /* penalty eqations */
+
+   switch( pencode ){
+     case 0:
+       for( jj=0 ; jj < npt ; jj++ ) ref[jj][npt+jj] = penfac ;
+     break ;
+
+     case 1:
+       for( jj=0 ; jj < npt-1 ; jj++ ) ref[jj][npt+jj]   = -penfac ;
+       for( jj=1 ; jj < npt   ; jj++ ) ref[jj][npt+jj-1] =  penfac ;
+     break ;
+
+     case 2:
+       for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][npt+jj]   = -penfac ;
+       for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][npt+jj-1] =2*penfac ;
+       for( jj=2 ; jj < npt   ; jj++ ) ref[jj][npt+jj-2] = -penfac ;
+     break ;
+   }
+
+   /* copy baseline equations (if any) */
+
+   for( jj=0 ; jj < nbase ; jj++ ){
+     ref[jj+npt] = (float *)calloc(sizeof(float),nplu) ;
+     memcpy( ref[jj+npt] , base[jj] , sizeof(float)*npt ) ;
+   }
+
+   /* copy data */
+
+   zar = (float *)calloc(sizeof(float),nplu) ;
+   memcpy(zar,far,sizeof(float)*npt) ;
+
+   /* copy constraints? */
+
+   if( ccon != NULL || dcon != 0 ){
+     zcon = (float *)calloc(sizeof(float),nref) ;
+     if( dcon != 0 )
+       for( ii=0 ; ii < npt ; ii++ ) zcon[ii] = (float)dcon ;
+     if( nbase > 0 )
+       memcpy(zcon+npt,ccon,sizeof(float)*nbase) ;
+   }
+
+   /** actually fit the parameters (deconvolution + baseline) **/
+
+   fv = THD_fitter( nplu , zar , nref , ref , meth , zcon ) ;
+
+   /* free the enslaved memory and return to the user */
+
+   if( zcon != NULL ) free((void *)zcon) ;
+   free((void *)zar) ;
+   for( jj=0 ; jj < nref ; jj++ ) free((void *)ref[jj]) ;
+   free((void *)ref) ;
+
+   return fv ;
 }
