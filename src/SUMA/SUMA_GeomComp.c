@@ -6820,7 +6820,8 @@ SUMA_SurfaceObject *SUMA_Patch2Surf(float *NodeList, int N_NodeList, int *PatchF
    \return isNodeInPatch (SUMA_Boolean *) a vector SO->N_Node long such that if isNodeInPatch[n] = YUP then node n is used
                                     in the mesh 
 */
-SUMA_Boolean *SUMA_MaskOfNodesInPatch(SUMA_SurfaceObject *SO, int *N_NodesUsedInPatch)
+SUMA_Boolean *SUMA_MaskOfNodesInPatch(
+                  SUMA_SurfaceObject *SO, int *N_NodesUsedInPatch)
 {
    static char FuncName[]={"SUMA_MaskOfNodesInPatch"};
    int k;
@@ -6839,7 +6840,8 @@ SUMA_Boolean *SUMA_MaskOfNodesInPatch(SUMA_SurfaceObject *SO, int *N_NodesUsedIn
       SUMA_RETURN(NULL);
    }
 
-   NodesInPatchMesh = (SUMA_Boolean *)SUMA_calloc(SO->N_Node, sizeof(SUMA_Boolean)); 
+   NodesInPatchMesh = (SUMA_Boolean *)
+                        SUMA_calloc(SO->N_Node, sizeof(SUMA_Boolean)); 
    if (!NodesInPatchMesh) {
       SUMA_SL_Crit("Failed to allocate for NodesInPatchMesh");
       SUMA_RETURN(NULL);
@@ -7042,18 +7044,22 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
    if (LocalHead) SUMA_ShowPatch (Patch,NULL);
    
    if (Patch->N_FaceSet) {
-      SEL = SUMA_Make_Edge_List_eng (Patch->FaceSetList, Patch->N_FaceSet, SO->N_Node, SO->NodeList, 0, NULL);
+      SEL = SUMA_Make_Edge_List_eng (  Patch->FaceSetList, 
+                                       Patch->N_FaceSet, SO->N_Node, 
+                                       SO->NodeList, 0, NULL);
    
       if (0 && LocalHead) SUMA_Show_Edge_List (SEL, NULL);
       /* allocate for maximum */
-      CE = (SUMA_CONTOUR_EDGES *) SUMA_malloc(SEL->N_EL * sizeof(SUMA_CONTOUR_EDGES));
+      CE = (SUMA_CONTOUR_EDGES *) 
+            SUMA_calloc(SEL->N_EL, sizeof(SUMA_CONTOUR_EDGES));
       if (!CE) {
          SUMA_SLP_Crit("Failed to allocate for CE");
          SUMA_RETURN(CE);
       }
    
       switch (ContourMode) {
-         case 0: /* a pretty contour, edges used here may not be the outermost of the patch */
+         case 0: /* a pretty contour, edges used here may 
+                     not be the outermost of the patch */
             /* edges that are part of unfilled triangles are good */
             i = 0;
             *N_ContEdges = 0;
@@ -7091,7 +7097,8 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
                }
             }
             break;
-         case 1: /* outermost contour, not pretty, but good for getting the outermost edge */
+         case 1: /* outermost contour, not pretty, 
+                   but good for getting the outermost edge */
             i = 0;
             *N_ContEdges = 0;
             while (i < SEL->N_EL) {
@@ -7100,8 +7107,9 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
                   CE[*N_ContEdges].n2 = SEL->EL[i][1];
                   ++ *N_ContEdges;
                   if (LocalHead) {
-                           fprintf (SUMA_STDERR,"%s: Found edge made up of nodes [%d %d]\n",
-                              FuncName, SEL->EL[i][0], SEL->EL[i][1]);
+                           fprintf (SUMA_STDERR,
+                                    "%s: Found edge made up of nodes [%d %d]\n",
+                                    FuncName, SEL->EL[i][0], SEL->EL[i][1]);
                   }
                }
                if (SEL->ELps[i][2] > 0) {
@@ -7122,14 +7130,15 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
          SUMA_free(CE); CE = NULL;
          SUMA_RETURN(CE);
       }else {
-         CE = (SUMA_CONTOUR_EDGES *) SUMA_realloc (CE, *N_ContEdges * sizeof(SUMA_CONTOUR_EDGES));
+         CE = (SUMA_CONTOUR_EDGES *) 
+                  SUMA_realloc (CE, *N_ContEdges * sizeof(SUMA_CONTOUR_EDGES));
          if (!CE) {
             SUMA_SLP_Crit("Failed to reallocate for CE");
             SUMA_RETURN(CE);
          }
       }
          
-      SUMA_free_Edge_List (SEL); 
+      SUMA_free_Edge_List (SEL); SEL = NULL;
    }
    
    if (!UseThisPatch) {
@@ -7137,7 +7146,7 @@ SUMA_CONTOUR_EDGES * SUMA_GetContour (
    }
    Patch = NULL;
    
-   SUMA_free(isNode);
+   SUMA_free(isNode); isNode = NULL;
    
    SUMA_RETURN(CE);
 }
@@ -7892,6 +7901,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
    }
    #endif
    
+   if (Eq) SUMA_free(Eq); Eq = NULL; /* not needed further */
    
    if (DrawIntersEdges) {
       /* Show all intersected edges */

@@ -389,7 +389,10 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       SUMA_LHv("Up here, isSphere = %d\n", SO->isSphere);
       if (!PatchNodeMask ) { 
          SUMA_SL_Err("Failed in SUMA_MaskOfNodesInPatch.\n"
-                     "Using values from all nodes."); }
+                     "Using values from all nodes."); 
+      } else {
+         SUMA_LH("Using values from all nodes."); 
+      }
       if (!SUMA_IS_GEOM_SYMM(SO->isSphere)) {
          SUMA_COPY_VEC(SO->Center, SO->patchCenter, 3, float, float);
       } else {
@@ -411,8 +414,9 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       SO->patchCenter[2] /= SO->N_patchNode;
       SUMA_MIN_VEC (SO->patchMinDims, 3, SO->patchaMinDims );
       SUMA_MAX_VEC (SO->patchMaxDims, 3, SO->patchaMaxDims);
-      SUMA_free(PatchNodeMask) ; PatchNodeMask = NULL;
    }
+   
+   if (PatchNodeMask) SUMA_free(PatchNodeMask) ; PatchNodeMask = NULL;
    
    #ifdef DO_SCALE_RANGE
    { float tmpfact;

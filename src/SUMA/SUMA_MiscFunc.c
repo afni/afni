@@ -6603,6 +6603,7 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
    if (SEL->ELps) SUMA_free2D((char **)SEL->ELps, SEL->N_EL);
    if (SEL->Tri_limb) SUMA_free2D((char **)SEL->Tri_limb, SEL->N_EL/3);
    if (SEL->idcode_str) SUMA_free(SEL->idcode_str);
+   if (SEL->Le) SUMA_free(SEL->Le);
    if (SEL) SUMA_free(SEL);
    SUMA_RETURNe;
 }
@@ -6649,12 +6650,15 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *Node
    DO NOT MODIFY WHAT THIS FUNCTION RETURNS without serious thought.
    Complicated functions depend on it.                
 */
-SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *NodeList, int debug, char *ownerid)
+SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (
+                     int *FL, int N_FL, int N_Node, 
+                     float *NodeList, int debug, char *ownerid)
 {
    static char FuncName[]={"SUMA_Make_Edge_List_eng"};
-   int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur, in1, in2;
+   int i, ie, ip, *isort_EL=NULL, **ELp=NULL, lu, ht, 
+       *iTri_limb=NULL, icur, in1, in2;
    float dx, dy, dz;
-   SUMA_EDGE_LIST *SEL;
+   SUMA_EDGE_LIST *SEL=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -6672,7 +6676,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
    }
    /* allocate and form the List of edges */
    SUMA_LH("New SEL next");
-   SEL = (SUMA_EDGE_LIST *) SUMA_malloc(sizeof(SUMA_EDGE_LIST));
+   SEL = (SUMA_EDGE_LIST *) SUMA_calloc(1,sizeof(SUMA_EDGE_LIST));
    SUMA_LH("New ID next");
    SEL->idcode_str = NULL;
    SUMA_NEW_ID(SEL->idcode_str, NULL); 

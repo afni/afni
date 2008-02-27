@@ -6576,7 +6576,8 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
       if (tl && dpy) {
          SUMA_LH("Cleanup");
          XFreeColormap(dpy, cmap);
-         /* These 2 lines cause a crash on Fedora Core 4, but Core 4 crashes at XmCreateMainWindow anyway so we're doomed.*/
+         /* These 2 lines cause a crash on Fedora Core 4, 
+            but Core 4 crashes at XmCreateMainWindow anyway so we're doomed.*/
          XtDestroyWidget(tl); 
          XtDestroyApplicationContext(*app);
          tl = NULL;
@@ -6625,7 +6626,6 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
             RGB[0] = (float)color_exact->red/255.0/257.0;
             RGB[1] = (float)color_exact->green/255.0/257.0;
             RGB[2] = (float)color_exact->blue/255.0/257.0;
-            XtFree((char *)color_exact); color_exact=NULL;
          } else {
             SUMA_LH("Not graphical");
             if (0 && (LocalHead || !(iwarn % 10))) {
@@ -6640,6 +6640,7 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
          }
       }
    
+   if (color_exact) XtFree((char *)color_exact); color_exact=NULL;
 
    if (LocalHead) {
       fprintf (SUMA_STDERR,"%s: %s = %f %f %f\n", 
