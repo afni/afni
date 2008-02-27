@@ -39,6 +39,23 @@
 
 */
 
+/* Ponderosos:
+   -----------
+   - What about a type variable to replace username:
+   { NA, NEW_PROG, NEW_OPT, NEW_ENV, BUG_FIX }
+   It would allow users to check for new things easily.
+   - Should we terminate the two description strings with periods? 
+   (I assume yes, but have not done it yet)
+   - We should probably start building a program list. To make sure 
+   that we have no typos there. We can have users add to that list 
+   whenever they introduce a program for the first time. This way 
+   nobody has to do it at once. 
+   - Also, we need to have special 'program names' like: 
+   "afni-general", "suma-general", "general"
+   or perhaps
+   "AFNI", "SUMA", "ALL"
+   these would be used to refer to package-wide changes.
+*/ 
 /* CHANGE: rickr to other username */
 afni_history_struct ziad_history[] = {
 
@@ -47,11 +64,22 @@ afni_history_struct ziad_history[] = {
    "  - Use BHelp on p and q text in suma to get more info"
  } ,
  
+ { 27 , FEB , 2008 , ZSS , "suma-general" , MICRO ,
+   "Another bout of initialization and leak fixes based on valgrind's output" ,
+   "  - The hope is that some weird X behavior is caused by uninitialized\n"
+   "  variables"
+ } ,
+ 
  { 14 , FEB , 2008 , ZSS , "suma" , MAJOR ,
    "Graphing of dset content with 'g'" ,
    "  - A graph of the column content at a node can be plotted\n"
    "  This would be the surface equivalent to AFNI's graphing function.\n"
    "  See suma's interactive help 'ctrl+h' for more info"
+ } ,
+
+ { 12 , FEB , 2008 , ZSS , "suma" , MINOR ,
+   "An option to show all of suma's environment variables" ,
+   "  - See help for -environment in suma -help"
  } ,
  
  { 6 , FEB , 2008 , ZSS , "SurfDist" , MAJOR ,
