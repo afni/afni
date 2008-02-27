@@ -27,9 +27,14 @@
 
            - leave the last "99, NULL" entry as it is
 
- -- example --
+ -- examples (newest at top) --
 
- { 26 , FEB , 2008 , rickr , "my_program" , MAJOR ,
+ { 30 , FEB , 2008 , GC , "3dLME.R" , MAJOR ,
+   "added the ability for it to write the paper, too" ,
+   NULL
+ } ,
+
+ { 19 , FEB , 2008 , GC , "my_program" , MAJOR ,
    "short description of change" ,
    "(optional) description of where to get more information\n"
    "   - with newlines, if you babble for multiple lines\n"
@@ -40,7 +45,7 @@
 
 afni_history_struct gangc_history[] = {
 
- /* CHANGE: copy and change the above 6 line example to here */
+  /* can copy to and change one of the examples here */
 
  { 99,99,99, NULL,NULL, 99, NULL,NULL}  /** the end (do not delete) **/
 } ;

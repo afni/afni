@@ -27,9 +27,14 @@
 
            - leave the last "99, NULL" entry as it is
 
- -- example --
+ -- examples (newest at top) --
 
- { 26 , FEB , 2008 , rickr , "my_program" , MAJOR ,
+ { 30 , FEB , 2008 , BGP , "website" , MAJOR ,
+   "updated links in class handout" ,
+   NULL
+ } ,
+
+ { 19 , FEB , 2008 , BGP , "my_program" , MAJOR ,
    "short description of change" ,
    "(optional) description of where to get more information\n"
    "   - with newlines, if you babble for multiple lines\n"
@@ -40,7 +45,7 @@
 
 afni_history_struct bpittman_history[] = {
 
- /* CHANGE: copy and change the above 6 line example to here */
+ /* can copy to and change one of the examples here */
 
  { 99,99,99, NULL,NULL, 99, NULL,NULL}  /** the end (do not delete) **/
 } ;
