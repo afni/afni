@@ -273,9 +273,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             {
                SUMA_SAVESO_STRUCT *SaveSO_data = NULL;
                
-               SaveSO_data = (SUMA_SAVESO_STRUCT *) SUMA_malloc(sizeof(SUMA_SAVESO_STRUCT)); /* DO NOT FREE THIS POINTER,
-                                                                                                It is freed by the function 
-                                                                                                SUMA_SaveSOascii */
+               SaveSO_data = (SUMA_SAVESO_STRUCT *)
+                              SUMA_calloc(1,sizeof(SUMA_SAVESO_STRUCT)); 
+                              /* DO NOT FREE THIS POINTER,
+                                 It is freed by the function 
+                                 SUMA_SaveSOascii */
                SaveSO_data->SO = (SUMA_SurfaceObject *)EngineData->vp;
                SaveSO_data->sv = sv;
                

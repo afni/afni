@@ -40,7 +40,7 @@
 typedef struct {
   short dd;          /* Day: 1..31 */
   short mm;          /* Month: 1..12 (use a macro) */
-  short yyyy;        /* Year: 2008..9999 */
+  short yyyy;        /* Year: 2006..9999 */
   char *author;      /* use a macro */
   char *program;     /* will be checked against allowed names */
   short rank;        /* use a macro */

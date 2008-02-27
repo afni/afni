@@ -830,7 +830,7 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message,
    }
    
    /* allocate and initialize element */
-   MD = (SUMA_MessageData *) SUMA_malloc(sizeof(SUMA_MessageData));
+   MD = (SUMA_MessageData *) SUMA_calloc(1,sizeof(SUMA_MessageData));
    if (!MD) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
       SUMA_RETURN (NOPE);
@@ -1849,7 +1849,7 @@ SUMA_EngineData *SUMA_InitializeEngineListData (SUMA_ENGINE_CODE CommandCode)
       SUMA_RETURN (NULL); 
    }
    
-   ED = SUMA_malloc(sizeof(SUMA_EngineData));
+   ED = SUMA_calloc(1,sizeof(SUMA_EngineData));
    if (!ED) {
       fprintf(SUMA_STDERR,"Error %s: Failed to allocate for ED.\n", FuncName);
       SUMA_RETURN (NULL);   
@@ -2218,7 +2218,7 @@ DList *SUMA_CreateActionStack (void)
    
    SUMA_ENTRY;
 
-   list = (DList *)malloc (sizeof(DList));
+   list = (DList *)calloc(1,sizeof(DList));
    if (!list) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate for list.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -2268,7 +2268,7 @@ DList *SUMA_CreateMessageList (void)
    DList *list=NULL;
    
    
-   list = (DList *)malloc (sizeof(DList));
+   list = (DList *)calloc(1,sizeof(DList));
    if (!list) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate for list.\n", FuncName);
       return (NULL);
@@ -2292,7 +2292,7 @@ DList *SUMA_CreateList (void)
    
    SUMA_ENTRY;
    
-   list = (DList *)SUMA_malloc (sizeof(DList));
+   list = (DList *)SUMA_calloc(1,sizeof(DList));
    if (!list) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate for list.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -2699,7 +2699,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    
    SUMA_ENTRY;
    
-   Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
+   Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)
+            SUMA_calloc(1,sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
    Opt->SpatNormDxyz = 0.0;
    Opt->spec_file = NULL;
    Opt->surftype = NULL;
@@ -2871,7 +2872,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
    int i;
    SUMA_ENTRY;
    
-   ps = (SUMA_GENERIC_ARGV_PARSE*)SUMA_malloc(sizeof(SUMA_GENERIC_ARGV_PARSE));
+   ps = (SUMA_GENERIC_ARGV_PARSE*)
+            SUMA_calloc(1,sizeof(SUMA_GENERIC_ARGV_PARSE));
    ps->cmask = NULL;
    ps->nmaskname = NULL;
    ps->bmaskname = NULL;
