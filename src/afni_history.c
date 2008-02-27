@@ -202,7 +202,7 @@ int valid_histstruct(afni_history_struct * hstr, char * author)
         errs++;
     }
 
-    if( ! INT_IN_RANGE(hstr->yyyy, 2008, 2050) ) {
+    if( ! INT_IN_RANGE(hstr->yyyy, 2006, 2050) ) {
         fprintf(stderr,"** invalid year: %d\n", hstr->yyyy);
         errs++;
     }
