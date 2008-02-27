@@ -1494,6 +1494,10 @@ mri_matrix.o:mri_matrix.c
 	$(RM) $@
 	$(CCFAST) -c mri_matrix.c $(INFLAGS)
 
+thd_fitter.o:thd_fitter.c
+	$(RM) $@
+	$(CCFAST) -c thd_fitter.c $(INFLAGS)
+
 MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_max.o mri_new.o mri_read.o mri_swapbytes.o mri_dup.o        \
            mri_to_byte.o mri_to_complex.o mri_to_float.o mri_to_short.o     \

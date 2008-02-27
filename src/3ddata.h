@@ -4042,6 +4042,12 @@ extern int THD_voxel_is_constant( int ind , THD_3dim_dataset *dset ) ;
 extern floatvec * THD_fitter( int npt , float *far  ,
                               int nref, float *ref[], int meth, float *ccon ) ;
 
+extern floatvec * THD_deconvolve( int npt    , float *far   ,
+                                  int minlag , int maxlag   , float *kern,
+                                  int nbase  , float *base[],
+                                  int meth   , float *ccon  , int dcon   ,
+                                  int pencode, float penpar               ) ;
+
 /*--------------- routines that are in thd_detrend.c ---------------*/
 
 extern void get_linear_trend     ( int, float *, float *, float * ) ;

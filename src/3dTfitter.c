@@ -6,22 +6,31 @@
 
 static void vstep_print(void) ; /* prototype */
 
+#define FALTUNG
+
 int main( int argc , char *argv[] )
 {
    int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep=0 ;
    THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ;
-   THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 ;
-   THD_3dim_dataset *fset ;
+   THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 , nlhs=0 ;
+   THD_3dim_dataset *fset=NULL ;
    XtPointer_array *dsar ;
    int ntime , nvar=0 ;
    char *prefix="Tfitter" ;
    int meth=2 , nbad=0,ngood=0 ;
-   intvec *convec=NULL , *kvec ;
+   intvec *convec=NULL , *kvec=NULL ;
    byte *mask=NULL ; int mnx,mny,mnz ;
    floatvec *bfit ;
-   float *dvec , **rvec , *cvec=NULL ;
+   float *dvec , **rvec=NULL , *cvec=NULL ;
    char **lab=NULL ; int nlab=0 ;
    int verb=1 ;
+#ifdef FALTUNG
+   THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
+   char *fal_pre ; int fal_pencod, fal_klen=0 ;
+   float *fal_kern=NULL , fal_penfac ;
+   THD_3dim_dataset *defal_set=NULL ;
+#endif
+   int nvoff=0 ;
 
    /*------- help the pitifully ignorant user? -------*/
 
@@ -57,6 +66,30 @@ int main( int argc , char *argv[] )
       "             * Labels are applied in the order given.\n"
       "             * Normally, you would provide exactly as many labels as\n"
       "               LHS columns.  If not, the program invents some labels.\n"
+#ifdef FALTUNG
+      "\n"
+      "  -FALTUNG fset fpre pen fac\n"
+      "            = Specifies a convolution (German: Faltung) model to be\n"
+      "              added to the LHS matrix:\n"
+      "             * 'fset' is a 3D+time dataset or a 1D file that specifies\n"
+      "               the known kernel of the convolution.\n"
+      "             * fset's time point [0] is the 0-lag point in the kernel,\n"
+      "               [1] is the 1-lag into the past point, etc.\n"
+      "             * 'fpre' is the prefix for the output time series to\n"
+      "               be created -- it will have the same length as the\n"
+      "               input 'rset' time series.\n"
+      "             * 'pen' denotes the type of penalty function to be\n"
+      "               applied to constrain the deconvolved time series:\n"
+      "              ++ pen = 0, 1, or 2 to minimize the summed 0th, 1st, or 2nd\n"
+      "                 order differences of the output time series\n"
+      "             * 'fac' is the positive weight to give the penalty function\n"
+      "              ++ if fac <= 0, then the program uses a small value\n"
+      "             * If '-LHS' is also used, these basis vectors can be\n"
+      "               thought of as a baseline to be regressed out at the\n"
+      "               same time the convolution model is fitted.\n"
+      "           *** At most one '-FALTUNG' option can be used!\n"
+      " ************* THIS OPTION IS EXPERIMENTAL AND NOT DEBUGGED YET!\n"
+#endif
       "\n"
       "  -lsqfit   = Solve equations via least squares [the default].\n"
       "             * '-l2fit' is a synonym for this option\n"
@@ -164,12 +197,49 @@ int main( int argc , char *argv[] )
    iarg = 1 ; INIT_XTARR(dsar) ;
    while( iarg < argc ){
 
+#ifdef FALTUNG
+     if( strcasecmp(argv[iarg],"-faltung") == 0 ){
+       if( fal_set != NULL || fal_im != NULL )
+         ERROR_exit("Can't have two -FALTUNG arguments") ;
+       if( iarg+4 >= argc )
+         ERROR_exit("Need 4 arguments after '%s'",argv[iarg]);
+       iarg++ ;
+       if( strstr(argv[iarg],"1D") != NULL ){
+         fal_im = mri_read_1D(argv[iarg]) ;
+         if( fal_im == NULL )
+           ERROR_exit("Can't read -FALTUNG time series from '%s'",argv[iarg]) ;
+         fal_klen = fal_im->nx ;
+         if( fal_klen < 2 )
+           ERROR_exit("-FALTUNG 1D file '%s' has only 1 time point!",argv[iarg]);
+         if( fal_im->ny > 1 )
+           WARNING_message("Only using first column of -FALTUNG 1D file") ;
+         fal_kern = MRI_FLOAT_PTR(fal_im) ;
+         for( jj=0 ; jj < fal_klen && fal_kern[jj] == 0.0f ; jj++ ) ; /*nada*/
+         if( jj == fal_klen )
+           ERROR_exit("-FALTUNG 1D file '%s' is all zeros!",argv[iarg]) ;
+       } else {
+         fal_set = THD_open_dataset(argv[iarg]) ;
+         CHECK_OPEN_ERROR(fal_set,argv[iarg]) ;
+         fal_klen = DSET_NVALS(fal_set) ;
+         if( fal_klen < 2 )
+           ERROR_exit("-FALTUNG dataset '%s' has only 1 sub-brick!",argv[iarg]);
+       }
+       fal_pre = strdup(argv[++iarg]) ;
+       if( !THD_filename_ok(fal_pre) )
+         ERROR_exit("Illegal filename prefix '%s'",argv[iarg]) ;
+       fal_pencod = (int)strtod(argv[++iarg],NULL) ;
+       if( fal_pencod < 0 || fal_pencod > 2 ) fal_pencod = 0 ;
+       fal_penfac = (float)strtod(argv[++iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+#endif
+
      if( strcasecmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ;
-       if( ++iarg >= argc )
-         ERROR_exit("Need argument after %s",argv[iarg-1]);
        if( mask != NULL )
          ERROR_exit("Can't have two -mask arguments!") ;
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        mset = THD_open_dataset(argv[iarg]) ;
        CHECK_OPEN_ERROR(mset,argv[iarg]) ;
        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
@@ -184,9 +254,9 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-rhs") == 0 ){
        if( ++iarg >= argc )
-         ERROR_exit("Need argument after %s",argv[iarg-1]);
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        if( rhset != NULL )
-         ERROR_exit("Can't have two %s options",argv[iarg-1]);
+         ERROR_exit("Can't have two '%s' options",argv[iarg-1]);
        rhsnam = malloc(sizeof(char)*(strlen(argv[iarg])+4)) ;
        strcpy(rhsnam,argv[iarg]) ;
        if( STRING_HAS_SUFFIX_CASE(rhsnam,"1D") ||
@@ -199,9 +269,9 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-lhs") == 0 ){
        if( ++iarg >= argc )
-         ERROR_exit("Need argument after %s",argv[iarg-1]);
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        if( argv[iarg][0] == '-' )
-         ERROR_exit("Illegal argument after %s",argv[iarg-1]) ;
+         ERROR_exit("Illegal argument after '%s'",argv[iarg-1]) ;
        for( ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){
          if( strstr(argv[iarg],"1D") != NULL ){
            lim = mri_read_1D(argv[iarg]) ;
@@ -226,9 +296,9 @@ int main( int argc , char *argv[] )
 
      if( strncasecmp(argv[iarg],"-label",4) == 0 ){
        if( ++iarg >= argc )
-         ERROR_exit("Need argument after %s",argv[iarg-1]);
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        if( argv[iarg][0] == '-' )
-         ERROR_exit("Illegal argument after %s",argv[iarg-1]) ;
+         ERROR_exit("Illegal argument after '%s'",argv[iarg-1]) ;
        for( ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ){
          lab = (char **)realloc((void *)lab,sizeof(char *)*(nlab+1)) ;
          lab[nlab++] = strdup(argv[iarg]) ;
@@ -246,7 +316,7 @@ int main( int argc , char *argv[] )
 
      if( strncasecmp(argv[iarg],"-prefix",5) == 0 ){
        if( ++iarg >= argc )
-         ERROR_exit("Need argument after %s",argv[iarg-1]);
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        prefix = argv[iarg] ;
        if( !THD_filename_ok(prefix) )
          ERROR_exit("Illegal string after -prefix: '%s'",prefix) ;
@@ -256,7 +326,7 @@ int main( int argc , char *argv[] )
      if( strncasecmp(argv[iarg],"-consign",5) == 0 ){
        char *cpt , nvec ;
        if( ++iarg >= argc )
-         ERROR_exit("Need argument after %s",argv[iarg-1]);
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        if( convec != NULL )
          ERROR_exit("Can't have 2 -consign options!") ;
        MAKE_intvec(convec,1) ;
@@ -288,7 +358,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("No RHS dataset input!?") ;
    ntime = DSET_NVALS(rhset) ;
    if( ntime < 2 )
-     ERROR_exit("RHS dataset %s has only 1 value per voxel?!",rhsnam) ;
+     ERROR_exit("RHS dataset '%s' has only 1 value per voxel?!",rhsnam) ;
 
    nx = DSET_NX(rhset); ny = DSET_NY(rhset); nz = DSET_NZ(rhset);
    nvox = nx*ny*nz;
@@ -296,42 +366,68 @@ int main( int argc , char *argv[] )
    if( mask != NULL && (mnx != nx || mny != ny || mnz != nz) )
      ERROR_exit("mask and RHS datasets don't match in grid size") ;
 
+#ifndef FALTUNG
    if( nvar < 1 )
      ERROR_exit("no LHS time series input?!") ;
+#endif
    if( nvar >= ntime )
      ERROR_exit("too many (%d) LHS time series for %d time points",nvar,ntime) ;
 
-   dvec = (float * )malloc(sizeof(float  )*ntime) ;  /* RHS vector */
-   rvec = (float **)malloc(sizeof(float *)*nvar ) ;  /* LHS vectors */
+   nlhs = dsar->num ;  /* number of -LHS inputs */
+
+#ifdef FALTUNG
+   if( fal_klen > 0 ){
+     if( fal_set != NULL ){
+       if( DSET_NX(fal_set) != nx ||
+           DSET_NY(fal_set) != ny || DSET_NZ(fal_set) != nz )
+        ERROR_exit("-FALTUNG dataset and RHS dataset don't match in grid size");
+     }
+     if( fal_klen >= ntime/2 )
+       ERROR_exit("-FALTUNG kernel size %d longer than 1/2 dataset %d",
+                  fal_klen , ntime/2 ) ;
+     if( fal_set != NULL )
+       fal_kern = (float *)malloc(sizeof(float)*fal_klen) ;
+     nvoff = ntime ;
+   }
+#else
+   if( nlhs == 0 )
+     ERROR_exit("no -LHS option given?!") ;
+#endif
+
+   dvec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
+   if( nvar > 0 )
+     rvec = (float **)malloc(sizeof(float *)*nvar ) ;  /* LHS vectors */
 
    /*--- check LHS inputs and assign ref vectors ---*/
 
-   MAKE_intvec(kvec,dsar->num) ;
-   for( kk=ii=0 ; ii < dsar->num ; ii++ ){
-     if( XTARR_IC(dsar,ii) == IC_FLIM ){  /* 1D image: ref points to data */
-       float *lar ; int mm ;
-       lim = (MRI_IMAGE *)XTARR_XT(dsar,ii) ;
-       jj = lim->nx ; lar = MRI_FLOAT_PTR(lim) ;
-       if( jj < ntime )
-         ERROR_exit("LHS 1D file is too short: %d < %d",jj,ntime) ;
-       if( jj > ntime )
-         WARNING_message("LHS 1D file too long: %d > %d: ignoring extra",jj,ntime);
-       for( mm=0 ; mm < lim->ny ; mm++ ) rvec[kk++] = lar + mm*lim->nx ;
-       kvec->ar[ii] = -1 ;
-     } else if( XTARR_IC(dsar,ii) == IC_DSET ){ /* dset: create ref vector */
-       lset = (THD_3dim_dataset *)XTARR_XT(dsar,ii) ;
-       if( DSET_NX(lset) != nx || DSET_NY(lset) != ny || DSET_NZ(lset) != nz )
-         ERROR_exit("LHS dataset %s doesn't match RHS dataset grid size",
-                    DSET_HEADNAME(lset) ) ;
-       jj = DSET_NVALS(lset) ;
-       if( jj < ntime )
-         ERROR_exit("LHS dataset is too short: %d < %d",jj,ntime) ;
-       if( jj > ntime )
-         WARNING_message("LHS dataset too long: %d > %d: ignoring extra",jj,ntime);
-       kvec->ar[ii] = kk ;  /* index of vector from this dataset */
-       rvec[kk++] = (float *)malloc(sizeof(float)*(jj+1)) ;
-     } else {
-       ERROR_exit("This message should never be seen by mortal eyes!") ;
+   if( nlhs > 0 ){
+     MAKE_intvec(kvec,nlhs) ;
+     for( kk=ii=0 ; ii < nlhs ; ii++ ){
+       if( XTARR_IC(dsar,ii) == IC_FLIM ){  /* 1D image: ref points to data */
+         float *lar ; int mm ;
+         lim = (MRI_IMAGE *)XTARR_XT(dsar,ii) ;
+         jj = lim->nx ; lar = MRI_FLOAT_PTR(lim) ;
+         if( jj < ntime )
+           ERROR_exit("LHS 1D file is too short: %d < %d",jj,ntime) ;
+         if( jj > ntime )
+           WARNING_message("LHS 1D file too long: %d > %d: ignoring extra",jj,ntime);
+         for( mm=0 ; mm < lim->ny ; mm++ ) rvec[kk++] = lar + mm*lim->nx ;
+         kvec->ar[ii] = -1 ;
+       } else if( XTARR_IC(dsar,ii) == IC_DSET ){ /* dset: create ref vector */
+         lset = (THD_3dim_dataset *)XTARR_XT(dsar,ii) ;
+         if( DSET_NX(lset) != nx || DSET_NY(lset) != ny || DSET_NZ(lset) != nz )
+           ERROR_exit("LHS dataset '%s' doesn't match RHS dataset grid size",
+                      DSET_HEADNAME(lset) ) ;
+         jj = DSET_NVALS(lset) ;
+         if( jj < ntime )
+           ERROR_exit("LHS dataset is too short: %d < %d",jj,ntime) ;
+         if( jj > ntime )
+           WARNING_message("LHS dataset too long: %d > %d: ignoring extra",jj,ntime);
+         kvec->ar[ii] = kk ;  /* index of vector from this dataset */
+         rvec[kk++] = (float *)malloc(sizeof(float)*(jj+1)) ;
+       } else {
+         ERROR_exit("This message should never be seen by mortal eyes!") ;
+       }
      }
    }
 
@@ -355,11 +451,15 @@ int main( int argc , char *argv[] )
    /*--- create constraint vector ---*/
 
    if( convec != NULL ){
-     cvec = (float *)calloc(sizeof(float),nvar) ;
-     for( ii=0 ; ii < convec->nar ; ii++ ){
-       kk = convec->ar[ii] ; jj = abs(kk) ;
-       if( jj > nvar ) ERROR_exit("Index %d in -consign is too large",jj) ;
-       cvec[jj-1] = (kk < 0) ? -1.0f : 1.0f ;
+     if( nvar > 0 ){
+       cvec = (float *)calloc(sizeof(float),nvar) ;
+       for( ii=0 ; ii < convec->nar ; ii++ ){
+         kk = convec->ar[ii] ; jj = abs(kk) ;
+         if( jj > nvar ) ERROR_exit("Index %d in -consign is too large",jj) ;
+         cvec[jj-1] = (kk < 0) ? -1.0f : 1.0f ;
+       }
+     } else {
+       WARNING_message("-consign option ignored: no -LHS given!") ;
      }
    }
 
@@ -368,7 +468,7 @@ int main( int argc , char *argv[] )
    if( verb ) INFO_message("loading input datasets into memory") ;
 
    DSET_load(rhset) ; CHECK_LOAD_ERROR(rhset) ;
-   for( ii=0 ; ii < dsar->num ; ii++ ){
+   for( ii=0 ; ii < nlhs ; ii++ ){
      if( XTARR_IC(dsar,ii) == IC_DSET ){
        lset = (THD_3dim_dataset *)XTARR_XT(dsar,ii) ;
        DSET_load(lset) ; CHECK_LOAD_ERROR(lset) ;
@@ -377,30 +477,46 @@ int main( int argc , char *argv[] )
 
    /*------ create output dataset ------*/
 
-   fset = EDIT_empty_copy(rhset) ;
-   EDIT_dset_items( fset ,
-                      ADN_nvals     , nvar           ,
-                      ADN_ntt       , 0              ,
-                      ADN_func_type , FUNC_BUCK_TYPE ,
-                      ADN_type      , HEAD_FUNC_TYPE ,
-                      ADN_datum_all , MRI_float      ,
-                      ADN_brick_fac , NULL           ,
-                      ADN_prefix    , prefix         ,
-                    ADN_none ) ;
-   tross_Copy_History( rhset , fset ) ;
-   tross_Make_History( "3dTfitter" , argc,argv , fset ) ;
+   if( nvar > 0 ){
+     fset = EDIT_empty_copy(rhset) ;
+     EDIT_dset_items( fset ,
+                        ADN_nvals     , nvar           ,
+                        ADN_ntt       , 0              ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_datum_all , MRI_float      ,
+                        ADN_brick_fac , NULL           ,
+                        ADN_prefix    , prefix         ,
+                      ADN_none ) ;
+     tross_Copy_History( rhset , fset ) ;
+     tross_Make_History( "3dTfitter" , argc,argv , fset ) ;
 
-   for( jj=0 ; jj < nvar ; jj++ ){ /* create empty bricks to be filled below */
-     EDIT_substitute_brick( fset , jj , MRI_float , NULL ) ;
-     EDIT_BRICK_LABEL( fset , jj , lab[jj] ) ;
+     for( jj=0 ; jj < nvar ; jj++ ){ /* create empty bricks to be filled below */
+       EDIT_substitute_brick( fset , jj , MRI_float , NULL ) ;
+       EDIT_BRICK_LABEL( fset , jj , lab[jj] ) ;
+     }
    }
+
+#ifdef FALTUNG
+   if( fal_klen > 0 ){
+     defal_set = EDIT_empty_copy(rhset) ;
+     EDIT_dset_items( defal_set ,
+                        ADN_datum_all , MRI_float ,
+                        ADN_brick_fac , NULL      ,
+                        ADN_prefix    , fal_pre   ,
+                      ADN_none ) ;
+     tross_Copy_History( rhset , defal_set ) ;
+     tross_Make_History( "3dTfitter" , argc,argv , defal_set ) ;
+
+     for( jj=0 ; jj < ntime ; jj++ ) /* create empty bricks to be filled below */
+       EDIT_substitute_brick( defal_set , jj , MRI_float , NULL ) ;
+   }
+#endif
 
    /*------- loop over voxels and process them ---------*/
 
-   if( verb ){
-     INFO_message("begin voxel loop: %d time points X %d fit parameters",
-                  ntime , nvar ) ;
-     vstep = nvox / 50 ;
+   if( verb && nvox > 499 ){
+     INFO_message("begin voxel loop:") ; vstep = nvox / 50 ;
    }
    if( vstep > 0 ) fprintf(stderr,"++ loop: ") ;
 
@@ -412,7 +528,7 @@ int main( int argc , char *argv[] )
 
      THD_extract_array( ii , rhset , 0 , dvec ) ;   /* get RHS data vector */
 
-     for( jj=0 ; jj < dsar->num ; jj++ ){          /* get LHS data vectors */
+     for( jj=0 ; jj < nlhs ; jj++ ){               /* get LHS data vectors */
        if( XTARR_IC(dsar,jj) == IC_DSET ){
          lset = (THD_3dim_dataset *)XTARR_XT(dsar,jj) ;
          kk = kvec->ar[jj] ;
@@ -420,6 +536,27 @@ int main( int argc , char *argv[] )
        }
      }
 
+#ifdef FALTUNG
+     if( fal_klen > 0 ){
+       if( fal_set != NULL )
+         THD_extract_array( ii , fal_set , 0 , fal_kern ) ;
+
+       bfit = THD_deconvolve( ntime , dvec ,
+                              0 , fal_klen-1 , fal_kern ,
+                              nvar , rvec , meth , cvec , 0 ,
+                              fal_pencod , fal_penfac        ) ;
+     } else {
+       bfit = THD_fitter( ntime , dvec , nvar , rvec , meth , cvec ) ;
+     }
+
+     if( bfit == NULL ){ nbad++; continue; } /* bad */
+
+     if( nvar > 0 )
+       THD_insert_series( ii , fset , nvar , MRI_float , bfit->ar+nvoff , 1 ) ;
+
+     if( fal_klen > 0 )
+       THD_insert_series( ii , defal_set , ntime , MRI_float , bfit->ar , 1 ) ;
+#else
      /* solve equations */
 
      bfit = THD_fitter( ntime , dvec , nvar , rvec , meth , cvec ) ;
@@ -429,11 +566,12 @@ int main( int argc , char *argv[] )
      /* put results into dataset */
 
      THD_insert_series( ii , fset , nvar , MRI_float , bfit->ar , 1 ) ;
+#endif
 
      KILL_floatvec(bfit) ; ngood++ ;
    }
 
-   if( vstep > 0 ) fprintf(stderr,"\n") ;
+   if( vstep > 0 ) fprintf(stderr," Done\n") ;
 
    /*----- clean up and go away -----*/
 
@@ -442,8 +580,16 @@ int main( int argc , char *argv[] )
    else if( verb )
      INFO_message("Fit worked on all %d voxels",ngood) ;
 
-   DSET_write(fset);
-   if( verb ) WROTE_DSET(fset);
+   if( fset != NULL ){
+     DSET_write(fset); DSET_unload(fset);
+     if( verb ) WROTE_DSET(fset);
+   }
+#ifdef FALTUNG
+   if( defal_set != NULL ){
+     DSET_write(defal_set); DSET_unload(defal_set);
+     if( verb ) WROTE_DSET(defal_set);
+   }
+#endif
    if( verb ) INFO_message("Total CPU time = %.1f s",COX_cpu_time()) ;
    exit(0);
 }
