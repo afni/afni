@@ -30,7 +30,7 @@
 
  -- example --
 
- { 26 , FEB , 2008 , rickr , "my_program" , MAJOR ,
+ { 26 , FEB , 2008 , ZSS , "my_program" , MAJOR ,
    "short description of change" ,
    "(optional) description of where to get more information\n"
    "   - with newlines, if you babble for multiple lines\n"
@@ -42,7 +42,129 @@
 /* CHANGE: rickr to other username */
 afni_history_struct ziad_history[] = {
 
- /* CHANGE: copy and change the above 6 line example to here */
+ { 27 , FEB , 2008 , ZSS , "suma" , MAJOR ,
+   "Addition of p and q values under threshold bar" ,
+   "  - Use BHelp on p and q text in suma to get more info"
+ } ,
+ 
+ { 14 , FEB , 2008 , ZSS , "suma" , MAJOR ,
+   "Graphing of dset content with 'g'" ,
+   "  - A graph of the column content at a node can be plotted\n"
+   "  This would be the surface equivalent to AFNI's graphing function.\n"
+   "  See suma's interactive help 'ctrl+h' for more info"
+ } ,
+ 
+ { 6 , FEB , 2008 , ZSS , "SurfDist" , MAJOR ,
+   "Program to calculate geodesic internodal distances" ,
+   "  "
+ } ,
+ 
+ { 12 , JAN , 2008 , ZSS , "suma" , MAJOR ,
+   "Scroll lists for I T and B selectors in suma" ,
+   "  - Right click on pulldown menu titles to get\n"
+   "  a scroll list instead. This makes selecting from\n"
+   "  a long list of options, or columns, much easier."
+   "  Right click on 'I' to the left of suma's Intensity Selection\n"
+   "  button for an illustration"
+ } ,
+ 
+ { 19 , DEC , 2007 , ZSS , "suma-general" , MAJOR ,
+   "Use of '[i]' to select node index from surface dset" ,
+   "  - Square bracket '[]' selection works for surface-based\n"
+   "  datasets much like it does for volume-based ones.\n"
+   "  In addition, one can use '[i]' to select the indices\n"
+   "  of nodes for which data are defined in a particular \n"
+   "  surface-based dataset.\n"
+   "  For more information, see 'SUMA dataset input options:' \n"
+   "  section in the output of ConvertDset -help "
+ } ,
 
+ { 18 , DEC , 2007 , ZSS , "ROIgrow" , MINOR ,
+   "Grows regions separately, depending on labels" ,
+   ""
+ } ,
+ 
+ { 18 , DEC , 2007 , ZSS , "ROI2dataset" , MINOR ,
+   "Output full datasets if needed" ,
+   ""
+ } ,
+ 
+ { 17 , DEC , 2007 , ZSS , "ConvertDset" , MINOR ,
+   "Output of full dsets if needed" ,
+   "  - This can be used to force a dataset with data\n"
+   "  defined on a few nodes to be written out with a\n"
+   "  complete list of nodes, using 0 where no data are defined"
+ } ,
+ 
+ { 19 , NOV , 2007 , ZSS , "Surf2VolCoord" , MINOR ,
+   "Program to show surface-node to voxel correspondence" ,
+   "  - This can be used to understand how surface coordinates\n"
+   "  relate to voxel coordinates."
+ } ,
+
+ { 26 , SEP , 2007 , ZSS , "SurfSmooth" , MAJOR ,
+   "Big changes to data smoothing functions" ,
+   "  - HEAT_07 method does controlled blurring, with options\n"
+   "  to blur 'to' a particular FWHM. No guessing needed for\n"
+   "  iterative kernel bandwidth or number of iterations.\n"
+   "  - HEAT_05 method improved to reduce numerical precision\n"
+   "  problems"
+ } ,
+ 
+ { 26 , SEP , 2007 , ZSS , "SurfFWHM" , MAJOR ,
+   "Program to estimate FWHM of data on surface" ,
+   ""
+ } ,
+ 
+ { 10 , MAR , 2007 , ZSS , "MapIcosahedron" , MINOR ,
+   "Better handling of surface centers" ,
+   ""
+ } ,
+ 
+ { 15 , FEB , 2007 , ZSS , "suma" , MINOR ,
+   "High resolution image saving with ctrl+r" ,
+   "  - Very high resolution images can be created.\n"
+   "  See suma's interactive help 'ctrl+h' for more info"
+ } ,
+
+ { 5 , FEB , 2007 , ZSS , "SurfDsetInfo" , MINOR ,
+   "Program to display surface dataset information" ,
+   "  - Output is crude at the moment"
+ } ,
+
+ { 15 , JAN , 2007 , ZSS , "suma" , MAJOR ,
+   "Allow replacement of pre-loaded DO and Dsets" ,
+   "  - When a dataset is reloaded, it replaces the one\n"
+   "  already loaded in suma"
+ } ,
+ 
+ { 5 , JAN , 2007 , ZSS , "imcat" , MINOR ,
+   "Program to stitch images" ,
+   "  "
+ } ,
+
+ { 30 , NOV , 2006 , ZSS , "suma" , MINOR ,
+   "Addition of new Displayable Objects (DO)(ctrl+Alt+s)" ,
+   "  - Allows display of segments, spheres and other markers\n"
+   "  See suma's interactive help 'ctrl+h' for more info"
+ } ,
+ 
+ { 30 , NOV , 2006 , ZSS , "suma" , MINOR ,
+   "Addition of new Displayable Objects (DO)(ctrl+Alt+s)" ,
+   "  - Allows display of segments, spheres and other markers\n"
+   "  See suma's interactive help 'ctrl+h' for more info"
+ } ,
+
+ { 20 , SEP , 2006 , ZSS , "DriveSuma" , MAJOR ,
+   "Program to control SUMA from the command line" ,
+   ""
+ } ,
+
+ { 31 , AUG , 2006 , ZSS , "AnalyzeTrace" , MICRO ,
+   "Program to analyze the output of -trace option" ,
+   ""
+ } ,
+
+ 
  { 99,99,99, NULL,NULL, 99, NULL,NULL}  /** the end (do not delete) **/
 } ;

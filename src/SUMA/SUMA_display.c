@@ -5746,7 +5746,8 @@ void SUMA_CreateTextField ( Widget pw, char *label,
 
    SUMA_ENTRY;
 
-   /* techincally, one should have a structure that is only for text but that is not necessary, I think */
+   /* techincally, one should have a structure that 
+      is only for text but that is not necessary, I think */
    
    AF->up = AF->down = NULL;
    AF->step = AF->value = AF->min = AF->max = AF->wrap = 0;
