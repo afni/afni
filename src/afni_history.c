@@ -9,11 +9,22 @@ static char g_history[] =
   "----------------------------------------------------------------------\n"
   "history (of afni_history):\n"
   "\n"
-  "1.0  27 Feb, 2008 [rickr]\n"
-  "     - initial release\n"
+  "1.0  27 Feb, 2008 [rickr] : initial release\n"
+  "\n"
+  "1.1  28 Feb, 2008 [rickr] : added -list_authors option\n"
 };
 
 static char g_version[] = "afni_history version 1.0, 27 February 2008";
+
+static  char * g_author_list[] = {
+    "rwcox",    "RWC",  RWC,
+    "ziad",     "ZSS",  ZSS,
+    "dglen",    "DRG",  DRG,
+    "rickr",    "RCR",  RCR,
+    "gangc",    "GC",   GC,
+    "christip", "PPC",  PPC,
+    "bpittman", "BGP",  BGP
+};
 
 
 histpair g_histpairs[NUM_HIST_USERS];  /* will initialize internally */
@@ -62,6 +73,9 @@ int process_options(int argc, char * argv[], global_data * gd)
             return 1;
         } else if( !strcmp(argv[ac], "-hist") ) {
             puts(g_history);
+            return 1;
+        } else if( !strcmp(argv[ac], "-list_authors") ) {
+            show_author_list();
             return 1;
         } else if( !strcmp(argv[ac], "-ver") ) {
             puts(g_version);
@@ -248,7 +262,10 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
 
     if( gd->html ) show_html_header(stdout, gd->min_level);
 
-    printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
+    if( gd->sort_dir == 1 )
+        printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
+    else
+        printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
 
     for( c = 0; c < len; c++ ) {
         show_hist_type(hlist[c], stdout);
@@ -652,7 +669,7 @@ int disp_global_data(char * mesg, global_data * gd)
 int show_help(void)
 {
     printf(
-    "afni_history:  show AFNI updates per user, dates or levels\n"
+    "afni_history:           show AFNI updates per user, dates or levels\n"
     "\n"
     "This program is meant to display a log of updates to AFNI code, the\n"
     "website, educational material, etc.  Users can specify a level of\n"
@@ -688,7 +705,11 @@ int show_help(void)
     "       afni_history -author rickr\n"
     "       afni_history -program afni_proc.py\n"
     "\n"
-    "  4. generate a web-page, maybe from the past year at at a minimum level\n"
+    "  4. select level 3+ suma updates from ziad over the past year\n"
+    "\n"
+    "       afni_history -author ziad -min_level 3 -program suma\n"
+    "\n"
+    "  5. generate a web-page, maybe from the past year at at a minimum level\n"
     "\n"
     "       afni_history -html -reverse > afni_history_all.html\n"
     "       afni_history -html -reverse -past_years 1 > afni_hist_YEAR.html\n"
@@ -700,6 +721,7 @@ int show_help(void)
     "\n"
     "  -help                    : show this help\n"
     "  -hist                    : show this program's history\n"
+    "  -list_authors            : show the list of valid authors\n"
     "  -ver                     : show this program's version\n"
     "\n"
     "\n"
@@ -897,6 +919,20 @@ int hlist_len(hist_type * hlist)
     if( GD.verb > 1 ) fprintf(stderr,"-- hlist has %d entries\n", len);
 
     return len;
+}
+
+int show_author_list(void)
+{
+    char ** alist = g_author_list;
+    int     len   = sizeof(g_author_list)/sizeof(char *);
+    int     c;
+
+    printf("\nafni_history author list:\n\n");
+    for( c = 0; c < len-2; c+= 3 )
+        printf("    %-12s %-3s      %s\n", alist[c], alist[c+1], alist[c+2]);
+    putchar('\n');
+
+    return 0;
 }
 
 /* return 1 on some problem, else fill histpairs and set len */
