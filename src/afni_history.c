@@ -10,11 +10,11 @@ static char g_history[] =
   "----------------------------------------------------------------------\n"
   "history (of afni_history):\n"
   "\n"
-  "0.0  26 Feb, 2008 [rickr]\n"
-  "     - started the joy\n"
+  "1.0  27 Feb, 2008 [rickr]\n"
+  "     - initial release\n"
 };
 
-static char g_version[] = "afni_history version 0.0, 26 February 2008";
+static char g_version[] = "afni_history version 1.0, 27 February 2008";
 
 
 histpair g_histpairs[NUM_HIST_USERS];  /* will initialize internally */
@@ -53,9 +53,11 @@ int process_options(int argc, char * argv[], global_data * gd)
     gd->sort_dir = 1;   /* can reverse this */
     gd->verb = 1;
 
+
     /* if( argc <= 1 ) { show_help(); return 1; } maybe just run */
 
     for( ac = 1; ac < argc; ac++ ) {
+        /* early quitters, then the rest alphabetically */
         if( !strcmp(argv[ac], "-help") ) {
             show_help();
             return 1;
@@ -65,6 +67,51 @@ int process_options(int argc, char * argv[], global_data * gd)
         } else if( !strcmp(argv[ac], "-ver") ) {
             puts(g_version);
             return 1;
+        /* alphabetical continuation */
+        } else if( !strcmp(argv[ac], "-author" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-author", "AUTHOR");
+            gd->author = convert_author(argv[ac]);
+        } else if( !strcmp(argv[ac], "-html" ) ) {
+            gd->html = 1;
+        } else if( !strcmp(argv[ac], "-level" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-level", "LEVEL");
+            gd->level = atol(argv[ac]);
+        } else if( !strcmp(argv[ac], "-min_level" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-min_level", "LEVEL");
+            gd->min_level = atol(argv[ac]);
+        } else if( !strcmp(argv[ac], "-past_days" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-past_days", "DAYS");
+            gd->past_days = atol(argv[ac]);
+            if( gd->past_days < 0 ) {
+                fprintf(stderr,"** DAYS should be at least zero\n");
+                return 1;
+            }
+        } else if( !strcmp(argv[ac], "-past_months" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-past_months", "MONTHS");
+            gd->past_months = atol(argv[ac]);
+            if( gd->past_months < 0 ) {
+                fprintf(stderr,"** MONTHS should be at least zero\n");
+                return 1;
+            }
+        } else if( !strcmp(argv[ac], "-past_years" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-past_years", "YEARS");
+            gd->past_years = atol(argv[ac]);
+            if( gd->past_years < 0 ) {
+                fprintf(stderr,"** YEARS should be at least zero\n");
+                return 1;
+            }
+        } else if( !strcmp(argv[ac], "-program" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-program", "PROGRAM");
+            gd->program = argv[ac];
+        } else if( !strcmp(argv[ac], "-reverse" ) ) {
+            gd->sort_dir = -1;
         } else if( !strcmp(argv[ac], "-verb") ) {
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-verb", "LEVEL");
@@ -75,6 +122,48 @@ int process_options(int argc, char * argv[], global_data * gd)
     if( gd->verb > 3 ) disp_global_data("-- options read: ", gd);
 
     return 0;
+}
+
+char * convert_author(char * name)
+{
+    if( !name ) return NULL;
+
+    if( !strcmp(name, "RWC") )      return RWC;
+    if( !strcmp(name, "rwcox") )    return RWC;
+    if( !strcmp(name, "bob") )      return RWC;
+    if( !strcmp(name, "Bob") )      return RWC;
+
+    if( !strcmp(name, "ZSS") )      return ZSS;
+    if( !strcmp(name, "Ziad") )     return ZSS;
+    if( !strcmp(name, "ziad") )     return ZSS;
+
+    if( !strcmp(name, "DRG") )      return DRG;
+    if( !strcmp(name, "dglen") )    return DRG;
+    if( !strcmp(name, "Daniel") )   return DRG;
+    if( !strcmp(name, "daniel") )   return DRG;
+
+    if( !strcmp(name, "RCR") )      return RCR;
+    if( !strcmp(name, "rickr") )    return RCR;
+    if( !strcmp(name, "Rick") )     return RCR;
+    if( !strcmp(name, "rick") )     return RCR;
+
+    if( !strcmp(name, "GC") )       return GC;
+    if( !strcmp(name, "gangc") )    return GC;
+    if( !strcmp(name, "Gang") )     return GC;
+    if( !strcmp(name, "gang") )     return GC;
+
+    if( !strcmp(name, "PPC") )      return PPC;
+    if( !strcmp(name, "christip") ) return PPC;
+    if( !strcmp(name, "Peggy") )    return PPC;
+    if( !strcmp(name, "peggy") )    return PPC;
+
+    if( !strcmp(name, "BGP") )      return BGP;
+    if( !strcmp(name, "bpittman") ) return BGP;
+    if( !strcmp(name, "pittmanb") ) return BGP;
+    if( !strcmp(name, "Brian") )    return BGP;
+    if( !strcmp(name, "brian") )    return BGP;
+
+    return name;   /* give up and stick with what we have */
 }
 
 /* if author is set, show results for only that author
@@ -130,7 +219,7 @@ int show_results(global_data * gd)
     if( gd->level || gd->min_level )
         if( restrict_by_level(gd, &hlist, &hlen) ) return 1;
 
-    /* sort by date, author, rank and program */
+    /* sort by date, author, level and program */
     qsort(hlist, hlen, sizeof(hist_type *), compare_hlist);
 
     /* maybe restrict by the date */
@@ -158,22 +247,58 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
         return 1;
     }
 
-    /* check for html, and write header */
+    if( gd->html ) show_html_header(stdout, gd->min_level);
+
+    printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
 
     for( c = 0; c < len; c++ ) {
         show_hist_type(hlist[c], stdout);
     }
 
-    /* check for html, and write trailer */
+    if( gd->html ) show_html_footer(stdout);
 
+    return 0;
+}
+
+int show_html_header(FILE * fp, int min_level)
+{
+    fprintf(fp, "<html><head>\n"
+                "<title>AFNI HISTORY</title></head>\n"
+                "<body><center><h1>AFNI HISTORY</h1>\n");
+    
+    if( min_level > 0 )
+        fprintf(fp, "<h2>level %d and higher</h2>\n", min_level);
+    else
+        fprintf(fp, "<h2>all levels</h2>\n");
+
+    fprintf(fp,"</center><h4><pre>\n"
+        "The levels of importance go from 1 to 4, with meanings:\n"
+        "       1 - users would not care\n"
+        "       2 - of little importance, though some users might care\n"
+        "       3 - fairly important\n"
+        "       4 - IMPORTANT: we expect users to know\n"
+        "\n</h4>\n");
+
+    fprintf(fp, "</center><hr />\n<pre>\n\n");
+
+    return 0;
+}
+
+int show_html_footer(FILE * fp)
+{
+    fprintf(fp, "</pre>\n"
+                "<hr /><b>auto-generated by afni_history on %s</b>\n",
+                __DATE__);
+    fprintf(fp, "</body></html>\n");
+    
     return 0;
 }
 
 int show_hist_type(hist_type * hp, FILE * fp)
 {
-    fprintf(fp, "%02d %s %04d, %s, %s, rank %d\n",
+    fprintf(fp, "%02d %s %04d, %s, %s, level %d\n",
             hp->dd, mm2month(hp->mm), hp->yyyy,
-            hp->author, hp->program, hp->rank);
+            hp->author, hp->program, hp->level);
     fprintf(fp, "    %s", hp->desc);
     if( hp->desc[strlen(hp->desc)-1] != '\n' ) fputc('\n', fp);
 
@@ -247,7 +372,7 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
     struct tm  * loctime;               /* to get todays date */
     time_t       tsec;
     long long    offset;
-    int          c, nfound, dcount;
+    int          c, gap, nfound, dcount;
 
     if( !hlist || !*hlist || !len || *len <= 0 ) {
         if( gd->verb > 1 ) fprintf(stderr,"** bad, evil restriction\n");
@@ -269,6 +394,7 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
 
     /* get time in seconds, and subtract the offset to get a comparison date */
     offset = 24 * 3600;                         /* seconds in a day */
+    if( gd->past_days   > 0 ) offset *= gd->past_days;
     if( gd->past_months > 0 ) offset *= (30.5 * gd->past_months);
     if( gd->past_years  > 0 ) offset *= (365.25 * gd->past_years);
     tsec = time(NULL);          
@@ -289,12 +415,27 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
         fprintf(stderr,"++ applying cutoff date of dd/mm/yyyy %02d/%02d/%04d\n",
                 hstr.dd, hstr.mm, hstr.yyyy);
 
-    /* just find a cutoff now, we should need to move anything */
+    /* find a cutoff, and move everything to the top */
     nfound = 0;
     hptr = *hlist;
-    for( c = 0; c < *len && compare_hlist(&hsptr, &hptr) <= 0; c++)
-        ;
-    nfound = c;
+    for( c = 0; c < *len; c++ ) {
+        /* equality is good in the reverse direction */
+        if( gd->sort_dir < 0 && compare_hlist(&hsptr, hptr+c) == 0 ) continue;
+        if( compare_hlist(&hsptr, hptr+c) <= 0 ) break;
+    }
+
+    /* results will be backward, depending on sort */
+    if( gd->sort_dir == 1 ) {
+        nfound = *len - c;
+        gap = c;
+        if( nfound > 0 && nfound < *len ) {
+            if(gd->verb > 2)
+                fprintf(stderr,"-- shifting histlist up by %d\n",gap);
+            for( c = 0; c < nfound; c++ )  /* shift lower entries to the top */
+                hptr[c] = hptr[c+gap];
+        }
+    } else
+        nfound = c;     /* no shift requred */
 
     if( nfound == 0 ) {         /* death by 'levels' */
         if(gd->verb>0) fprintf(stderr,"-- no history for level restriction\n");
@@ -341,8 +482,8 @@ int restrict_by_level(global_data * gd, hist_type *** hlist, int * len)
     nfound = 0;
     hptr = *hlist;
     for( c = 0; c < *len; c++) {
-        if( (gd->level && gd->level != hptr[c]->rank) ||
-            (hptr[c]->rank < gd->min_level) ) continue;  /* skip it */
+        if( (gd->level && gd->level != hptr[c]->level) ||
+            (hptr[c]->level < gd->min_level) ) continue;  /* skip it */
 
         /* we have a winner! */
         if( c > nfound ) hptr[nfound] = hptr[c];  /* move it up */
@@ -428,7 +569,7 @@ int restrict_by_program(global_data * gd, hist_type *** hlist, int * len)
     return 0;
 }
 
-/* sort by date, then by author, rank and program */
+/* sort by date, then by author, level and program */
 int compare_hlist(const void *v0, const void *v1)
 {
     hist_type * h0 = *(hist_type **)v0;
@@ -443,7 +584,7 @@ int compare_hlist(const void *v0, const void *v1)
     rv = strcmp(h0->author, h1->author);
     if( rv ) return rv*GD.sort_dir;
 
-    if( h0->rank != h1->rank ) return GD.sort_dir*(h0->rank - h1->rank);
+    if( h0->level != h1->level ) return GD.sort_dir*(h0->level - h1->level);
 
     if( !h0->program || !h1->program ) return 0; /* missing means equal */
     rv = strcmp(h0->program, h1->program);
@@ -512,8 +653,82 @@ int disp_global_data(char * mesg, global_data * gd)
 int show_help(void)
 {
     printf(
-        "afni_history:  show AFNI changes per user, dates or levels\n"
-          );
+    "afni_history:  show AFNI updates per user, dates or levels\n"
+    "\n"
+    "This program is meant to display a log of updates to AFNI code, the\n"
+    "website, educational material, etc.  Users can specify a level of\n"
+    "importance, the author, program or how recent the changes are.\n"
+    "\n"
+    "The levels of importance go from 1 to 4, with meanings:\n"
+    "       1 - users would not care\n"
+    "       2 - of little importance, though some users might care\n"
+    "       3 - fairly important\n"
+    "       4 - IMPORTANT: we expect users to know\n"
+    "\n"
+    "-----------------------------------------------------------------\n"
+    "\n"
+    "common examples:\n"
+    "\n"
+    "  0. get help\n"
+    "\n"
+    "       afni_history -help\n"
+    "\n"
+    "  1. display all of the history, possibly subject to recent days\n"
+    "\n"
+    "       afni_history\n"
+    "       afni_history -past_days 5\n"
+    "       afni_history -past_months 6\n"
+    "\n"
+    "  2. select a specific level or minimum level\n"
+    "\n"
+    "       afni_history -level 2\n"
+    "       afni_history -min_level 3\n"
+    "\n"
+    "  3. select a specific author or program\n"
+    "\n"
+    "       afni_history -author rickr\n"
+    "       afni_history -program afni_proc.py\n"
+    "\n"
+    "  4. generate a web-page, maybe from the past year at at a minimum level\n"
+    "\n"
+    "       afni_history -html -reverse > afni_history_all.html\n"
+    "       afni_history -html -reverse -past_years 1 > afni_hist_YEAR.html\n"
+    "       afni_history -html -reverse -min_level 3  > afni_hist_level3.html\n"
+    "\n"
+    "-----------------------------------------------------------------\n"
+    "\n"
+    "informational options: \n"
+    "\n"
+    "  -help                    : show this help\n"
+    "  -hist                    : show this program's history\n"
+    "  -ver                     : show this program's version\n"
+    "\n"
+    "\n"
+    "output restriction options: \n"
+    "\n"
+    "  -author AUTHOR           : restrict output to the given AUTHOR\n"
+    "  -level LEVEL             : restrict output to the given LEVEL\n"
+    "  -min_level LEVEL         : restrict output to at least level LEVEL\n"
+    "  -program PROGRAM         : restrict output to the given PROGRAM\n"
+    "\n"
+    "  -past_days DAYS          : restrict output to the past DAYS days\n"
+    "  -past_months MONTHS      : restrict output to the past MONTHS months\n"
+    "  -past_years YEARS        : restrict output to the past YEARS years\n"
+    "\n"
+    "\n"
+    "general options: \n"
+    "\n"
+    "  -html                    : add html formatting\n"
+    "  -reverse                 : reverse the sorting order\n"
+    "                             (sort is by date, author, level, program)\n"
+    "  -verb LEVEL              : request verbose output\n"
+    "                             (LEVEL is from 0-6)\n"
+    "\n"
+    "\n"
+    "                                           Author: Rick Reynolds\n"
+    "                                           Thanks to: Ziad, Bob\n"
+    "\n"
+    );
 
     return 0;
 }
@@ -613,8 +828,8 @@ int valid_histstruct(hist_type * hstr, char * author)
         errs++;
     }
 
-    if( ! INT_IN_RANGE(hstr->rank, MIN_PROG_RANK, MAX_PROG_RANK) ) {
-        fprintf(stderr,"** invalid rank: %d\n", hstr->rank);
+    if( ! INT_IN_RANGE(hstr->level, MIN_PROG_LEVEL, MAX_PROG_LEVEL) ) {
+        fprintf(stderr,"** invalid level: %d\n", hstr->level);
         errs++;
     }
 

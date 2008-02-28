@@ -38,9 +38,10 @@
 
 afni_history_struct rickr_history[] = {
 
- { 27, FEB, 2008, RCR, "afni_history", MICRO,
-   "continued updates" ,
-   NULL
+ { 27, FEB, 2008, RCR, "afni_history", MAJOR,
+   "new program: display the history of AFNI updates" ,
+   "This will be used to create a web page of AFNI updates.\n"
+   "Please see 'afni_history -help' for more details."
  } ,
 
  { 27, FEB, 2008, RCR, "afni_proc.py", MINOR,
