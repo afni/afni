@@ -349,6 +349,13 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO,
                   , FuncName);
          SUMA_RETURN (NOPE);
          break;
+      case SUMA_GIFTI:
+         fprintf (SUMA_STDERR, 
+                  "Error %s: "
+                  "Not ready to deal with gifti surface writing.\n"
+                  , FuncName);
+         SUMA_RETURN (NOPE);
+         break;
       case SUMA_FT_NOT_SPECIFIED:
       default:
          fprintf (SUMA_STDERR, "Error %s: Bad surface type.\n", FuncName);
@@ -690,6 +697,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
       case SUMA_BYU:
          break;
+      case SUMA_GIFTI:
+         break;
       default:
          SUMA_error_message(FuncName, "SO_FileType not supported", 0);
          SUMA_RETURN (NULL);
@@ -766,24 +775,29 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          
      case SUMA_BRAIN_VOYAGER:
          if (!SUMA_BrainVoyager_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_BrainVoyager_Read.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_BrainVoyager_Read.\n", 
+                     FuncName);
             SUMA_RETURN(NULL);
          }
          SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
          
-         /* change coordinates to align them with volparent data set, if possible */
+         /* change coordinates to align them with volparent data set, 
+            if possible */
          if (VolParName != NULL) {
             SO->VolPar = SUMA_VolPar_Attr (VolParName);
             if (SO->VolPar == NULL) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to load parent volume attributes.\n", FuncName);
+               fprintf( SUMA_STDERR,
+                        "Error %s: Failed to load parent volume attributes.\n",
+                        FuncName);
             } else {
-
-            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+            if (!SUMA_Align_to_VolPar (SO, NULL)) 
+               SO->SUMA_VolPar_Aligned = NOPE;
                else {
                   SO->SUMA_VolPar_Aligned = YUP;
                   /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
                }
-         }
+            }
          } else { 
             SO->SUMA_VolPar_Aligned = NOPE;
          }
@@ -794,20 +808,56 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       
       case SUMA_BYU:
          if (!SUMA_BYU_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_BYU_Read.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_BYU_Read.\n", FuncName);
             SUMA_RETURN(NULL);
          }
          SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
          
-         /* change coordinates to align them with volparent data set, if possible */
+         /* change coordinates to align them with volparent data set, 
+            if possible */
          if (VolParName != NULL) {
             SO->VolPar = SUMA_VolPar_Attr (VolParName);
             if (SO->VolPar == NULL) {
-               fprintf(SUMA_STDERR,
-                  "Error %s: Failed to load parent volume attributes.\n", FuncName);
+               fprintf( SUMA_STDERR,
+                        "Error %s: Failed to load parent volume attributes.\n", 
+                        FuncName);
             } else {
 
-            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+            if (!SUMA_Align_to_VolPar (SO, NULL)) 
+               SO->SUMA_VolPar_Aligned = NOPE;
+               else {
+                  SO->SUMA_VolPar_Aligned = YUP;
+                  /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
+               }
+         }
+         } else { 
+            SO->SUMA_VolPar_Aligned = NOPE;
+         }
+         
+         SO->normdir = SUMA_SurfNormDir(SO);  /* guess */
+         break;
+      
+      case SUMA_GIFTI:
+         if (!SUMA_GIFTI_Read ((char *)SO_FileName_vp, SO, 1, 1)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_GIFTI_Read.\n", FuncName);
+            SUMA_RETURN(NULL);
+         }
+         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         
+         /* change coordinates to align them with volparent data set, 
+            if possible */
+         if (VolParName != NULL) {
+            SO->VolPar = SUMA_VolPar_Attr (VolParName);
+            if (SO->VolPar == NULL) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: Failed to load parent volume attributes.\n", 
+                        FuncName);
+            } else {
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) 
+               SO->SUMA_VolPar_Aligned = NOPE;
                else {
                   SO->SUMA_VolPar_Aligned = YUP;
                   /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
@@ -2429,7 +2479,7 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
       brk = YUP;
    } /* load bv format surface */
    
-   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "BYU") == 1) {/* load BrainVoyager format surface */
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "BYU") == 1) {/* load BYU format surface */
 
       SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], SUMA_BYU, SUMA_FF_NOT_SPECIFIED, tmpVolParName, debug);
 
@@ -2440,6 +2490,20 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
       SurfIn = YUP;
       brk = YUP;
    } /* load byu format surface */
+   
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "GIFTI") == 1) {
+      /* load GIFTI format surface */
+      SO = SUMA_Load_Surface_Object_eng (
+               (void *)Spec->SurfaceFile[i], SUMA_GIFTI, 
+               SUMA_FF_NOT_SPECIFIED, tmpVolParName, debug);
+
+      if (SO == NULL)   {
+         fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
+         SUMA_RETURN(NULL);
+      }
+      SurfIn = YUP;
+      brk = YUP;
+   } /* load gifti format surface */
    
    if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) {/* load generic inventor format surface */
       if (tmpVolParName != NULL) {
@@ -3413,16 +3477,22 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          SUMA_RETURN (NULL);
          break;
       case SUMA_VEC:
-         if (MitPath) nalloc = strlen(SO->Name_coord.Path) + strlen(SO->Name_coord.FileName) \
-                           +    strlen(SO->Name_topo.Path) + strlen(SO->Name_topo.FileName) + 5;
-         else nalloc = strlen(SO->Name_coord.FileName) \
-                     +   strlen(SO->Name_topo.FileName) + 5;
+         if (MitPath) nalloc = 
+            strlen(SO->Name_coord.Path) + 
+            strlen(SO->Name_coord.FileName) +
+            strlen(SO->Name_topo.Path) + 
+            strlen(SO->Name_topo.FileName) + 5;
+         else nalloc =  strlen(SO->Name_coord.FileName) +
+                        strlen(SO->Name_topo.FileName) + 5;
          break;
       case SUMA_SUREFIT:
-         if (MitPath) nalloc = strlen(SO->Name_coord.Path) + strlen(SO->Name_coord.FileName) \
-                           +    strlen(SO->Name_topo.Path) + strlen(SO->Name_topo.FileName) + 5;
-         else nalloc = strlen(SO->Name_coord.FileName) \
-                     +   strlen(SO->Name_topo.FileName) + 5;
+         if (MitPath) nalloc = 
+               strlen(SO->Name_coord.Path) + 
+               strlen(SO->Name_coord.FileName) +
+               strlen(SO->Name_topo.Path) + 
+               strlen(SO->Name_topo.FileName) + 5;
+         else nalloc =  strlen(SO->Name_coord.FileName) +
+                        strlen(SO->Name_topo.FileName) + 5;
          break;
       case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
@@ -3430,8 +3500,10 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_BRAIN_VOYAGER:
       case SUMA_OPENDX_MESH:
       case SUMA_BYU:
+      case SUMA_GIFTI:
       case SUMA_PLY:
-         if (MitPath) nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
+         if (MitPath) 
+            nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
          else nalloc = strlen(SO->Name.FileName) + 5;
          break;
       default:
@@ -3453,6 +3525,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_PLY:
       case SUMA_OPENDX_MESH:
       case SUMA_BYU:
+      case SUMA_GIFTI:
       case SUMA_BRAIN_VOYAGER:
          if (MitPath) sprintf(Name,"%s%s", SO->Name.Path, SO->Name.FileName);
          else sprintf(Name,"%s", SO->Name.FileName);
@@ -3530,6 +3603,16 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
       case SUMA_CMAP_SO:
       case SUMA_FT_ERROR:
          break;
+      case SUMA_GIFTI:
+         if (  SUMA_iswordsame_ci (  SO->aSO->ps->GeometricType,
+                                     "Reconstruction") == 1    ||
+               SUMA_iswordsame_ci (  SO->aSO->ps->GeometricType,
+                                     "Anatomical") == 1        ) {
+            SUMA_RETURN('Y');
+         }else {
+            SUMA_RETURN('N');
+         }
+         break;
    } 
    
    SUMA_RETURN('\0');
@@ -3593,6 +3676,24 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
                      SUMA_RETURN(SUMA_RIGHT);
                }
          break;
+      case SUMA_GIFTI:
+         if ( SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
+                                "Left") == 1 &&
+               SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
+                                "Right") != 1 ) {
+            SUMA_RETURN(SUMA_LEFT);
+         } else if ( SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
+                                "Right") == 1 &&
+               SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
+                                "Left") != 1 ) {
+            SUMA_RETURN(SUMA_RIGHT);
+         } else if ( SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
+                                "Right") == 1 &&
+               SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
+                                "Left") == 1 ) {
+            SUMA_RETURN(SUMA_LR);
+         }
+         break;
    } 
    
    SUMA_RETURN (SUMA_NO_SIDE);
@@ -3653,7 +3754,12 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
          case SUMA_OPENDX_MESH:
          case SUMA_PLY:
             break;
-      } 
+         case SUMA_GIFTI:
+            if (SUMA_iswordsame_ci(SO->aSO->ps->GeometricType,"spherical")) {
+               isSphere = SUMA_GEOM_SPHERE;
+            } 
+            break; 
+     } 
       
       /* the quick way, make sure bounding box is not that of a flat surface*/
       SUMA_LH("Trying to guess from aspect ratio");

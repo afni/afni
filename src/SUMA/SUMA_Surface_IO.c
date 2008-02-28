@@ -62,46 +62,71 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_n
             sprintf(SF_name->name_param,"%s", vp_name);
          }
          SO_name = (void *)SF_name;
-         if (debug > 0) fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, sv_name);
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,
+                     "Reading %s and %s...\n", 
+                     SF_name->name_coord, SF_name->name_topo);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, 
+                                        SUMA_ASCII, sv_name);
          break;
       case SUMA_VEC:
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
          sprintf(SF_name->name_coord,"%s", if_name);
          sprintf(SF_name->name_topo,"%s", if_name2); 
          SO_name = (void *)SF_name;
-         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,
+                     "Reading %s and %s...\n", 
+                     SF_name->name_coord, SF_name->name_topo);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
          break;
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
          SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
          if (SUMA_isExtension(SO_name, ".asc")) 
-            SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
+            SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, 
+                                           SUMA_ASCII, sv_name);
          else
-            SO = SUMA_Load_Surface_Object_eng (SO_name, SUMA_FREE_SURFER, SUMA_BINARY_BE, sv_name, 0);
+            SO = SUMA_Load_Surface_Object_eng ( SO_name, SUMA_FREE_SURFER, 
+                                                SUMA_BINARY_BE, sv_name, 0);
          break;  
       case SUMA_OPENDX_MESH:
          SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_OPENDX_MESH, SUMA_ASCII, sv_name);
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (  SO_name, SUMA_OPENDX_MESH, 
+                                          SUMA_ASCII, sv_name);
          break;  
       case SUMA_PLY:
          SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (  SO_name, SUMA_PLY, 
+                                          SUMA_FF_NOT_SPECIFIED, sv_name);
          break;  
       case SUMA_BRAIN_VOYAGER:
          SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_BRAIN_VOYAGER, SUMA_BINARY, sv_name);
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (  SO_name, SUMA_BRAIN_VOYAGER, 
+                                          SUMA_BINARY, sv_name);
          break;  
       case SUMA_BYU:
          SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_BYU, SUMA_ASCII, sv_name);
          break;  
+      case SUMA_GIFTI:
+         SO_name = (void *)if_name; 
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (  SO_name, SUMA_GIFTI,
+                                          SUMA_FF_NOT_SPECIFIED, sv_name);
+         break;  
+      
       default:
          fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
          exit(1);
@@ -155,6 +180,9 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
       case SUMA_BYU:
          tmp  =  SUMA_Extension(Name,".byu" , YUP);
          noex  =  SUMA_Extension(tmp, ".g", YUP); SUMA_free(tmp); tmp = NULL; 
+         break;
+      case SUMA_GIFTI:
+         noex  =  SUMA_Extension(Name,".gii" , YUP); 
          break;
       default:
          /* do nothing, get back fprintf (SUMA_STDERR,"Warning %s: Bad format.\n", FuncName); */
@@ -253,29 +281,36 @@ void * SUMA_Prefix2SurfaceName (char *prefix_in, char *path, char *vp_name, SUMA
    switch (oType) {
       case SUMA_SUREFIT:
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         snprintf(SF_name->name_coord, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+         snprintf(SF_name->name_coord, 
+                  (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
                    "%s.coord", ppref);
-         snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+         snprintf(SF_name->name_topo,  
+                  (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
                    "%s.topo", ppref); 
-         if (SUMA_filexists(SF_name->name_topo) || SUMA_filexists(SF_name->name_coord)) *exists = YUP;
+         if (  SUMA_filexists(SF_name->name_topo) || 
+               SUMA_filexists(SF_name->name_coord)) *exists = YUP;
          else *exists = NOPE;
          if (!vp_name) { /* initialize to empty string */
             SF_name->name_param[0] = '\0'; 
          }
          else {
-            snprintf(SF_name->name_param, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
-                   "%s", vp_name);
+            snprintf(SF_name->name_param, 
+                     (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+                     "%s", vp_name);
          }
          SO_name = (void *)SF_name;
          break;
       case SUMA_VEC:
          if (SF_name) SUMA_free(SF_name);
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         snprintf(SF_name->name_coord, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+         snprintf(SF_name->name_coord,
+                  (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
                    "%s.1D.coord", ppref);
-         snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
+         snprintf(SF_name->name_topo,
+                  (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
                    "%s.1D.topo", ppref); 
-         if (SUMA_filexists(SF_name->name_topo) || SUMA_filexists(SF_name->name_coord)) *exists = YUP;
+         if (  SUMA_filexists(SF_name->name_topo) || 
+               SUMA_filexists(SF_name->name_coord)) *exists = YUP;
          else *exists = NOPE;
          SO_name = (void *)SF_name;
          break;
@@ -307,6 +342,11 @@ void * SUMA_Prefix2SurfaceName (char *prefix_in, char *path, char *vp_name, SUMA
          break;
       case SUMA_INVENTOR_GENERIC:
          SO_name = (void *)SUMA_append_string(ppref,".iv"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
+         break;
+      case SUMA_GIFTI:
+         SO_name = (void *)SUMA_append_string(ppref,".gii"); 
          if (SUMA_filexists((char*)SO_name)) *exists = YUP;
          else *exists = NOPE;
          break;
@@ -2960,6 +3000,44 @@ SUMA_Boolean SUMA_BYU_Read(char *f_name, SUMA_SurfaceObject *SO, int debug, byte
    
    SUMA_free(fli); fli=NULL;
    
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Load a GIFTI surface from a .gii file 
+*/
+SUMA_Boolean SUMA_GIFTI_Read(char *f_name, SUMA_SurfaceObject *SO,
+                             int debug)
+{
+   static char FuncName[]={"SUMA_GIFTI_Read"};
+   AFNI_SurfaceObject *aSO=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (SO->aSO) {
+      SUMA_S_Err("SO has aSO already!");
+      SUMA_RETURN(NOPE);
+   }
+   
+      
+   if (!(aSO = afni_open_gifti_surf(f_name,1))) {
+      SUMA_RETURN(NOPE);
+   }
+   
+   SO->FileType = SUMA_GIFTI;
+   SO->Name = SUMA_StripPath(f_name);
+   SO->FileFormat = SUMA_ASCII;  
+
+   if (!SUMA_MergeAfniSO_In_SumaSO(&aSO, SO)) {
+      SUMA_S_Err("Failed to merge SOs");
+      aSO = SUMA_FreeAfniSurfaceObject(aSO);
+      SUMA_RETURN(NOPE);
+   }
+
+   
+   if (LocalHead) SUMA_Print_Surface_Object (SO, NULL);
+                 
    SUMA_RETURN(YUP);
 }
 /*!
@@ -6330,11 +6408,6 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
       NI_set_attribute(ngr, "Instance_Label", SUMA_EMPTY_ATTR);
    }
    
-   if (SO->ModelName) {
-      NI_set_attribute(ngr, "Model_Name", SO->ModelName);
-   } else {
-      NI_set_attribute(ngr, "Model_Name", SUMA_EMPTY_ATTR);
-   }
    NI_SET_INT(ngr, "do_type", SO->do_type);
    
    switch (SO->Side) {
@@ -6379,11 +6452,6 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    
    NI_set_attribute(ngr, "Surface_Creation_History", SUMA_EMPTY_ATTR); 
    
-   if (SO->StandardSpace) {
-      NI_set_attribute(ngr, "Standard_Space", SO->StandardSpace);
-   } else {
-      NI_set_attribute(ngr, "Standard_Space", SUMA_EMPTY_ATTR);
-   }
    
    sprintf(stmp,"%d", SO->normdir);
    NI_set_attribute(ngr, "Node_Normal_Direction", stmp);
@@ -6630,8 +6698,6 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    tmp = NI_get_attribute(ngr, "Instance_Label");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->OriginatorLabel = SUMA_copy_string(tmp); 
    
-   tmp = NI_get_attribute(ngr, "Model_Name");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->ModelName = SUMA_copy_string(tmp); 
    
    tmp = NI_get_attribute(ngr, "Side");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) {
@@ -6655,10 +6721,7 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    
    tmp = NI_get_attribute(ngr, "Surface_Creation_Software");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->FileType = SUMA_SurfaceTypeCode(tmp); 
-   
-   tmp = NI_get_attribute(ngr, "Standard_Space");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->StandardSpace = SUMA_copy_string(tmp); 
-   
+      
    tmp = NI_get_attribute(ngr, "SUMA_Afni_Parent_Vol_ID");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->parent_vol_idcode_str = SUMA_copy_string(tmp); 
       

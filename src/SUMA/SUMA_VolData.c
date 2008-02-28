@@ -1022,6 +1022,9 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
          }
          #endif
          break;
+      case SUMA_GIFTI:  /* have to apply coord xform */
+      
+         break;
       default:
          fprintf(SUMA_STDERR,"Warning %s: Unknown SO->FileType. Assuming coordinates are in DICOM already.\n", FuncName);
          break;
@@ -1179,6 +1182,67 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    #endif
 
    SUMA_RETURN (YUP);
+}
+
+SUMA_Boolean SUMA_Apply_Coord_xform(SUMA_SurfaceObject *SO, 
+                                    double Xform[4][4],
+                                    int doinv)
+{
+   static char FuncName[]={"SUMA_Apply_Coord_xform"};
+   double x, y, z;
+   int i=0, id = 0;
+   mat44 A, A0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO) SUMA_RETURN(NOPE); 
+   
+   /* check for identity */
+   if (  Xform[0][0] == 1.0 && Xform[1][1] == 1.0 && Xform[2][2] == 1.0 && 
+         Xform[0][3] == 0.0 && Xform[1][3] == 0.0 && Xform[2][3] == 0.0 &&
+         Xform[0][1] == 0.0 && Xform[0][2] == 0.0 &&
+         Xform[1][0] == 0.0 && Xform[1][2] == 0.0 &&
+         Xform[2][0] == 0.0 && Xform[2][1] == 0.0 ) {
+      SUMA_LH("Indentity, nothing to do.");
+      SUMA_RETURN(YUP);      
+   }
+   
+   if (!doinv) {
+      LOAD_MAT44( A, \
+                  Xform[0][0], Xform[0][1], Xform[0][2], Xform[0][3],    \
+                  Xform[1][0], Xform[1][1], Xform[1][2], Xform[1][3],    \
+                  Xform[2][0], Xform[2][1], Xform[2][2], Xform[2][3]   );
+   } else {
+      LOAD_MAT44( A0, \
+                  Xform[0][0], Xform[0][1], Xform[0][2], Xform[0][3],    \
+                  Xform[1][0], Xform[1][1], Xform[1][2], Xform[1][3],    \
+                  Xform[2][0], Xform[2][1], Xform[2][2], Xform[2][3]   );
+      A = nifti_mat44_inverse(A0);
+   }            
+   
+   for (i=0; i < SO->N_Node; ++i) {
+      id = SO->NodeDim * i;
+      x = (double)SO->NodeList[id] ;
+      y = (double)SO->NodeList[id+1] ;
+      z = (double)SO->NodeList[id+2] ;
+
+      /* Apply the rotation matrix XYZn = Mrot x XYZ + Delta*/
+      SO->NodeList[id]   = (float) ( A.m[0][0] * x + 
+                                     A.m[0][1] * y + 
+                                     A.m[0][2] * z +
+                                     A.m[0][3] );
+      SO->NodeList[id+1] = (float) ( A.m[1][0] * x + 
+                                     A.m[1][1] * y + 
+                                     A.m[1][2] * z +
+                                     A.m[1][3] );
+      SO->NodeList[id+2] = (float) ( A.m[2][0] * x + 
+                                     A.m[2][1] * y + 
+                                     A.m[2][2] * z +
+                                     A.m[2][3] );
+    }
+
+   SUMA_RETURN(YUP);
 }
 
 /*!

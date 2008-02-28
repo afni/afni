@@ -8314,7 +8314,7 @@ void SUMA_PopUpMessage (SUMA_MessageData *MD)
    static char FuncName[]={"SUMA_PopUpMessage"};
    Widget Parent_w=NULL, wmsg = NULL;
    int ii;
-   
+   char *sf=NULL; 
    SUMA_ENTRY;
    
    if (!SUMAg_N_SVv) {
@@ -8324,7 +8324,9 @@ void SUMA_PopUpMessage (SUMA_MessageData *MD)
    
    /* find a decent popup message parent */
    ii=0;
-   while ((SUMAg_SVv[ii].isShaded || !SUMAg_SVv[ii].X->TOPLEVEL) && (ii < SUMAg_N_SVv)) {
+   while (  (  SUMAg_SVv[ii].isShaded || 
+               !SUMAg_SVv[ii].X->TOPLEVEL) && 
+            (ii < SUMAg_N_SVv)) {
       ++ii;   
    }
    
@@ -8338,32 +8340,40 @@ void SUMA_PopUpMessage (SUMA_MessageData *MD)
          ++ii;   
       }
       if (ii >= SUMAg_N_SVv) {
-         fprintf (SUMA_STDERR, "Error %s: This should not be happening.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+            "Error %s: This should not be happening.\n", FuncName);
          SUMA_RETURNe;  
       }else Parent_w = SUMAg_SVv[ii].X->TOPLEVEL;
    }
    
    if (MD->Action ==  SMA_LogAndPopup) {
       wmsg = NULL;
+      sf = SUMA_FormatMessage (MD);
       switch (MD->Type) {
          case SMT_Notice:
-            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
+            wmsg = MCW_popup_message(Parent_w, sf, 
+                                     MCW_USER_KILL | MCW_TIMER_KILL);
             break;
          case SMT_Warning:
-            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
+            wmsg = MCW_popup_message(Parent_w, sf, 
+                                     MCW_USER_KILL | MCW_TIMER_KILL);
             break;
          case SMT_Error:
-            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL);
+            wmsg = MCW_popup_message(Parent_w, sf, 
+                                     MCW_USER_KILL);
             break;
          case SMT_Critical:
-            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_CALLER_KILL);
+            wmsg = MCW_popup_message(Parent_w, sf, 
+                                     MCW_CALLER_KILL);
             break;
          case SMT_Text:
-            wmsg = MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_CALLER_KILL | MCW_TIMER_KILL);
+            wmsg = MCW_popup_message(Parent_w, sf,  
+                                     MCW_CALLER_KILL | MCW_TIMER_KILL);
             break;
          default:
             break;
       }
+      if (sf)SUMA_free(sf); sf = NULL;
       if (wmsg) {
          SUMA_PositionWindowRelative (wmsg, NULL, SWP_POINTER_OFF);
       }

@@ -4822,8 +4822,10 @@ DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
             SUMA_LH("NULL Overlay");
          }
             SUMA_LH("Here");
-         if (OvD->Overlay->isBackGrnd && Opt == 1) continue;   /* that was an unwanted background */
-         if (!OvD->Overlay->isBackGrnd && Opt == -1) continue; /* that was an unwanted foreground */
+         if (OvD->Overlay->isBackGrnd && Opt == 1) continue;   
+            /* that was an unwanted background */
+         if (!OvD->Overlay->isBackGrnd && Opt == -1) continue; 
+            /* that was an unwanted foreground */
          if (!listop->size) {
             SUMA_LH("Very first");
             dlist_ins_next(listop, dlist_tail(listop), (void*)OvD);
@@ -4840,13 +4842,16 @@ DList * SUMA_OverlaysToOrderedList (SUMA_SurfaceObject *SO, int Opt)
                
                oOvD = (SUMA_OVERLAY_LIST_DATUM *)Elmop->data;
                
-               /* transform PlaneOrder so that is reflects the Background modulation */
+               /* transform PlaneOrder so that is 
+                  reflects the Background modulation */
                Shift = SO->N_Overlays;
                
-               if (OvD->Overlay->isBackGrnd) ShftPlaneOrder = OvD->Overlay->PlaneOrder - Shift;
+               if (OvD->Overlay->isBackGrnd) 
+                  ShftPlaneOrder = OvD->Overlay->PlaneOrder - Shift;
                else ShftPlaneOrder = OvD->Overlay->PlaneOrder;
                
-               if (oOvD->Overlay->isBackGrnd) oShftPlaneOrder = oOvD->Overlay->PlaneOrder - Shift;
+               if (oOvD->Overlay->isBackGrnd) 
+                  oShftPlaneOrder = oOvD->Overlay->PlaneOrder - Shift;
                else oShftPlaneOrder = oOvD->Overlay->PlaneOrder; 
                
                if (ShftPlaneOrder <= oShftPlaneOrder) {
@@ -5255,9 +5260,11 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay,
    
    if (SUMA_NewPlaneSearch(SO, Overlay)) {
       if (DuplicateFlag == 0) {
-         SUMA_S_Errv("Plane exists in SO->Overlays either by pointer %p or by name (%s).\n"
-                     "Both of these must be unique because DuplicateFlag=%d\n", 
-                     Overlay, Overlay->Name, DuplicateFlag);
+         SUMA_S_Errv(
+            "Plane exists in SO->Overlays either \n"
+            "by pointer %p or by name (%s).\n"
+            "Both of these must be unique because DuplicateFlag=%d\n", 
+            Overlay, Overlay->Name, DuplicateFlag);
          SUMA_DUMP_TRACE("Allora");
          SUMA_RETURN (NOPE);
       } else {
@@ -5269,11 +5276,15 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay,
    /* make sure that overlay plane does not have bias in it */
    if (Overlay->OptScl) {
       if (Overlay->OptScl->BiasVect) {
-         SUMA_SL_Err("New overlay plane cannot have coordinate bias.\nNot yet at least.\n");
-         /* If you want to support this feature, you'll have to call SUMA_ADD_COORD_BIAS_VECT
-         on any surface the plane gets assigned to. That means SO and SO2 below.
-         Search for macro SUMA_ADD_COORD_BIAS_VECT in SUMA_SwitchState in file SUMA_Engine.c
-         for the example */
+         SUMA_SL_Err("New overlay plane cannot have coordinate bias.\n"
+                     "Not yet at least.\n");
+         /* If you want to support this feature, 
+            you'll have to call SUMA_ADD_COORD_BIAS_VECT
+            on any surface the plane gets assigned to. 
+            That means SO and SO2 below.
+            Search for macro SUMA_ADD_COORD_BIAS_VECT in 
+            SUMA_SwitchState in file SUMA_Engine.c
+            for the example */
          SUMA_RETURN(NOPE);
       }
    }
@@ -5330,16 +5341,22 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay,
    } else kin = 1; 
    if (dov) {
       SUMA_LH("Registering plane with surfaces deserving it");
-      /* Now that you have the color overlay plane set, go about all the surfaces, searching for ones related to SO 
-      and make sure they have this colorplane, otherwise, create a link to it. */   
+      /* Now that you have the color overlay plane set, 
+         go about all the surfaces, searching for ones related to SO 
+         and make sure they have this colorplane, 
+         otherwise, create a link to it. */   
       for (i=0; i < N_dov; ++i) {
          if (SUMA_isSO(dov[i])) { 
             SO2 = (SUMA_SurfaceObject *)dov[i].OP;
-            if (SUMA_isRelated(SO, SO2, kin) && SO != SO2) { /* only 1st order kinship allowed */
+            if (SUMA_isRelated(SO, SO2, kin) && SO != SO2) { 
+               /* only 1st order kinship allowed */
                /* surfaces related and not identical, check on colorplanes */
-               if (!SUMA_Fetch_OverlayPointer (SO2->Overlays, SO2->N_Overlays, Overlay->Name, &OverInd)) {
+               if (!SUMA_Fetch_OverlayPointer ( SO2->Overlays, SO2->N_Overlays, 
+                                                Overlay->Name, &OverInd)) {
                   /* color plane not found, link to that of SO */
-                  SO2->Overlays[SO2->N_Overlays] = (SUMA_OVERLAYS *)SUMA_LinkToPointer((void*)SO->Overlays[SO->N_Overlays-1]);
+                  SO2->Overlays[SO2->N_Overlays] = 
+                     (SUMA_OVERLAYS*)SUMA_LinkToPointer(
+                                       (void*)SO->Overlays[SO->N_Overlays-1]);
                   /*increment the number of overlay planes */
                   ++SO2->N_Overlays;
                } else {
@@ -5826,12 +5843,12 @@ SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO)
 
       N_clist = list->size;
       /* destroy list */
-      dlist_destroy(list);
-      dlist_destroy(listop);
-      dlist_destroy(OverlayPlanelist);
-      SUMA_free(list);
-      SUMA_free(listop);
-      SUMA_free(OverlayPlanelist);
+      dlist_destroy(list);SUMA_free(list);
+      dlist_destroy(listop);SUMA_free(listop);
+      dlist_destroy(OverlayPlanelist);SUMA_free(OverlayPlanelist);
+      
+      
+      
    }
    
    clist_str = SUMA_CreateAssembleListStruct();

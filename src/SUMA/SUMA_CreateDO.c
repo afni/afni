@@ -4871,28 +4871,13 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
       SUMA_Free_SURFACE_CURVATURE(SO->SC);
    }
    if (SO->Group_idcode_str) SUMA_free(SO->Group_idcode_str);
-   if (SO->ModelName) SUMA_free(SO->ModelName);
    if (SO->OriginatorLabel) SUMA_free(SO->OriginatorLabel);
-   if (SO->StandardSpace) SUMA_free(SO->StandardSpace);
    if (SO->parent_vol_idcode_str) SUMA_free(SO->parent_vol_idcode_str);
 
-   #if 0 /* no more Cx inside SO */
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing Cx\n", FuncName);
-   /* freeing Cx,  make sure that there are no links to Cx*/
-   if (SO->Cx || SO->Cx_Inode) { /* there should be no case where only one of two is null but if such a case existed, you'll get notified below. */
-      if (SUMA_ReleaseLink(SO->Cx_Inode)) { 
-         /* some links are left, do not free memory */
-      } else {
-         if (SO->Cx) SUMA_free(SO->Cx);
-         /* now free SO->Cx_Inode */
-         if (SO->Cx_Inode) SUMA_free(SO->Cx_Inode);
-      }
-      SO->Cx = NULL;
-      SO->Cx_Inode = NULL;
-   } 
-   #endif 
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing %d overlays\n", FuncName, SO->N_Overlays);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: freeing %d overlays\n", FuncName, SO->N_Overlays);
    
    /* freeing overlays */
    if (SO->N_Overlays) {
@@ -4910,7 +4895,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    /* freeing FN,  make sure that there are no links to FN*/
    if (SO->FN) {
       if (!SUMA_Free_FirstNeighb (SO->FN)) {
-               fprintf(SUMA_STDERR,"Error SUMA_Free_Surface_Object : Failed to free SO->FN");
+         fprintf(SUMA_STDERR,
+                  "Error SUMA_Free_Surface_Object : Failed to free SO->FN");
       }
       SO->FN = NULL;
    }
@@ -4933,6 +4919,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (SO->PermCol) SUMA_free(SO->PermCol);
    
    if (SO->VolPar) SUMA_Free_VolPar(SO->VolPar); 
+   
+   if (SO->aSO) SO->aSO = SUMA_FreeAfniSurfaceObject(SO->aSO);
    
    if (SO) SUMA_free(SO);
    
@@ -5018,17 +5006,25 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       switch (SO->FileType) {
          case SUMA_SUREFIT:
             SS = SUMA_StringAppend_va (SS, "SureFit surface.\n");
-            SS = SUMA_StringAppend_va (SS,"Coord FileName: %s \n", SO->Name_coord.FileName);
-            SS = SUMA_StringAppend_va (SS,"Coord Path: %s \n", SO->Name_coord.Path);
-            SS = SUMA_StringAppend_va (SS,"Topo FileName: %s \n", SO->Name_topo.FileName);
-            SS = SUMA_StringAppend_va (SS,"Topo Path: %s \n", SO->Name_topo.Path);
+            SS = SUMA_StringAppend_va (SS,"Coord FileName: %s \n", 
+                                          SO->Name_coord.FileName);
+            SS = SUMA_StringAppend_va (SS,"Coord Path: %s \n",  
+                                          SO->Name_coord.Path);
+            SS = SUMA_StringAppend_va (SS,"Topo FileName: %s \n",  
+                                          SO->Name_topo.FileName);
+            SS = SUMA_StringAppend_va (SS,"Topo Path: %s \n",  
+                                          SO->Name_topo.Path);
             break;
          case SUMA_VEC:
             SS = SUMA_StringAppend_va (SS,"VEC surface.\n");
-            SS = SUMA_StringAppend_va (SS,"NodeList FileName: %s \n", SO->Name_coord.FileName);
-            SS = SUMA_StringAppend_va (SS,"NodeList Path: %s \n", SO->Name_coord.Path);
-            SS = SUMA_StringAppend_va (SS,"FaceSetList FileName: %s \n", SO->Name_topo.FileName);
-            SS = SUMA_StringAppend_va (SS,"FaceSetList Path: %s \n", SO->Name_topo.Path);
+            SS = SUMA_StringAppend_va (SS,"NodeList FileName: %s \n",  
+                                          SO->Name_coord.FileName);
+            SS = SUMA_StringAppend_va (SS,"NodeList Path: %s \n",  
+                                          SO->Name_coord.Path);
+            SS = SUMA_StringAppend_va (SS,"FaceSetList FileName: %s \n",  
+                                          SO->Name_topo.FileName);
+            SS = SUMA_StringAppend_va (SS,"FaceSetList Path: %s \n",  
+                                          SO->Name_topo.Path);
             break;
          case SUMA_FREE_SURFER:
          case SUMA_FREE_SURFER_PATCH:
@@ -5061,6 +5057,11 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
             SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
             SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
             break;
+         case SUMA_GIFTI: 
+            SS = SUMA_StringAppend_va (SS,"GIFTI surface.\n");
+            SS = SUMA_StringAppend_va (SS,"FileName: %s\n", SO->Name.FileName);
+            SS = SUMA_StringAppend_va (SS,"Path: %s\n", SO->Name.Path);
+            break;
          case SUMA_FT_NOT_SPECIFIED:
             SS = SUMA_StringAppend_va (SS,"File Type not specified.\n");
             break;
@@ -5070,51 +5071,83 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       }
 
       SS = SUMA_StringAppend_va (SS,"SpecFile:");
-      if (SO->SpecFile.Path) SS = SUMA_StringAppend_va (SS,"%s", SO->SpecFile.Path);
-      if (SO->SpecFile.FileName) SS = SUMA_StringAppend_va (SS,"%s", SO->SpecFile.FileName);
+      if (SO->SpecFile.Path) SS = SUMA_StringAppend_va (SS,"%s",  
+                                          SO->SpecFile.Path);
+      if (SO->SpecFile.FileName) SS = SUMA_StringAppend_va (SS,"%s",  
+                                          SO->SpecFile.FileName);
       SS = SUMA_StringAppend_va (SS,"\n");
       
-      SS = SUMA_StringAppend_va (SS,"FileType: %d\t FileFormat: %d\n", SO->FileType, SO->FileFormat);
+      SS = SUMA_StringAppend_va (SS,"FileType: %d\t FileFormat: %d\n",  
+                                          SO->FileType, SO->FileFormat);
 
       if (!SO->idcode_str) SS = SUMA_StringAppend_va (SS,"IDcode is NULL\n");
       else SS = SUMA_StringAppend_va (SS,"IDcode: %s\n", SO->idcode_str);
-      if (!SO->parent_vol_idcode_str) SS = SUMA_StringAppend_va (SS,"parent_vol_IDcode is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"parent_vol_IDcode: %s\n", SO->parent_vol_idcode_str);
-      if (!SO->facesetlist_idcode_str) SS = SUMA_StringAppend_va (SS,"faceset_IDcode is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"faceset_IDcode: %s\n", SO->facesetlist_idcode_str);
-      if (!SO->nodelist_idcode_str) SS = SUMA_StringAppend_va (SS,"nodelist_IDcode is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"nodelist_IDcode: %s\n", SO->nodelist_idcode_str);
-      if (!SO->facenormals_idcode_str) SS = SUMA_StringAppend_va (SS,"facenormals_IDcode is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"facenormals_IDcode: %s\n", SO->facenormals_idcode_str);
-      if (!SO->nodenormals_idcode_str) SS = SUMA_StringAppend_va (SS,"nodenormals_IDcode is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"nodenormals_IDcode: %s\n", SO->nodenormals_idcode_str);
-      if (!SO->polyarea_idcode_str) SS = SUMA_StringAppend_va (SS,"polyarea_IDcode is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"polyarea_IDcode: %s\n", SO->polyarea_idcode_str);
+      if (!SO->parent_vol_idcode_str) SS = SUMA_StringAppend_va  
+                                          (SS,"parent_vol_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"parent_vol_IDcode: %s\n",  
+                                          SO->parent_vol_idcode_str);
+      if (!SO->facesetlist_idcode_str) SS = SUMA_StringAppend_va  
+                                          (SS,"faceset_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"faceset_IDcode: %s\n",  
+                                          SO->facesetlist_idcode_str);
+      if (!SO->nodelist_idcode_str) SS = SUMA_StringAppend_va  
+                                          (SS,"nodelist_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"nodelist_IDcode: %s\n",  
+                                          SO->nodelist_idcode_str);
+      if (!SO->facenormals_idcode_str) SS = SUMA_StringAppend_va  
+                                          (SS,"facenormals_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"facenormals_IDcode: %s\n",  
+                                          SO->facenormals_idcode_str);
+      if (!SO->nodenormals_idcode_str) SS = SUMA_StringAppend_va  
+                                          (SS,"nodenormals_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"nodenormals_IDcode: %s\n",  
+                                          SO->nodenormals_idcode_str);
+      if (!SO->polyarea_idcode_str) SS = SUMA_StringAppend_va  
+                                          (SS,"polyarea_IDcode is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"polyarea_IDcode: %s\n",  
+                                          SO->polyarea_idcode_str);
       
       
-      if (!SO->LocalDomainParent) SS = SUMA_StringAppend_va (SS,"LocalDomainParent is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"LocalDomainParent: %s\n", SO->LocalDomainParent);
+      if (!SO->LocalDomainParent) SS = SUMA_StringAppend_va  
+                                          (SS,"LocalDomainParent is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"LocalDomainParent: %s\n",  
+                                          SO->LocalDomainParent);
 
-      if (!SO->LocalDomainParentID) SS = SUMA_StringAppend_va (SS,"LocalDomainParentID is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"LocalDomainParentID: %s\n", SO->LocalDomainParentID);
+      if (!SO->LocalDomainParentID) SS = SUMA_StringAppend_va  
+                                          (SS,"LocalDomainParentID is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"LocalDomainParentID: %s\n",  
+                                          SO->LocalDomainParentID);
      
-      if (!SO->LocalCurvatureParent) SS = SUMA_StringAppend_va (SS,"LocalCurvatureParent is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"LocalCurvatureParent: %s\n", SO->LocalCurvatureParent);
+      if (!SO->LocalCurvatureParent) SS = SUMA_StringAppend_va  
+                                          (SS,"LocalCurvatureParent is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"LocalCurvatureParent: %s\n",  
+                                          SO->LocalCurvatureParent);
        
-      if (!SO->LocalCurvatureParentID) SS = SUMA_StringAppend_va (SS,"LocalCurvatureParentID is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"LocalCurvatureParentID: %s\n", SO->LocalCurvatureParentID);
+      if (!SO->LocalCurvatureParentID) 
+         SS = SUMA_StringAppend_va (SS,"LocalCurvatureParentID is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"LocalCurvatureParentID: %s\n",  
+                                          SO->LocalCurvatureParentID);
        
-      if (!SO->OriginatorID) SS = SUMA_StringAppend_va (SS,"OriginatorID is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"OriginatorID: %s\n", SO->OriginatorID);
+      if (!SO->OriginatorID) 
+         SS = SUMA_StringAppend_va (SS,"OriginatorID is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"OriginatorID: %s\n",  
+                                          SO->OriginatorID);
 
-      if (!SO->OriginatorLabel) SS = SUMA_StringAppend_va (SS,"OriginatorLabel is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"OriginatorLabel: %s\n", SO->OriginatorLabel);
+      if (!SO->OriginatorLabel) 
+         SS = SUMA_StringAppend_va (SS,"OriginatorLabel is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"OriginatorLabel: %s\n",  
+                                          SO->OriginatorLabel);
        
-      if (!SO->DomainGrandParentID) SS = SUMA_StringAppend_va (SS,"DomainGrandParentID is NULL\n");
-      else SS = SUMA_StringAppend_va (SS,"DomainGrandParentID: %s\n", SO->DomainGrandParentID);
+      if (!SO->DomainGrandParentID) SS = SUMA_StringAppend_va  
+                                          (SS,"DomainGrandParentID is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"DomainGrandParentID: %s\n",  
+                                          SO->DomainGrandParentID);
              
-      SS = SUMA_StringAppend_va (SS,"GroupLabel: %s\tGroupID: %s\tModelName %s\tState: %s\tStandardSpace %s\n", 
-                                 SO->Group, SO->Group_idcode_str, SO->ModelName, SO->State, SO->StandardSpace);
+      SS = SUMA_StringAppend_va (SS,
+                                 "GroupLabel: %s\tGroupID: %s\t"
+                                 "State: %s\t", 
+                                 SO->Group, SO->Group_idcode_str,
+                                 SO->State);
 
       if (SUMA_ismappable(SO)) {
          if (SUMA_isLocalDomainParent(SO)) {
@@ -5139,10 +5172,12 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       }
 
       if (SO->MeshAxis) {
-         sprintf (stmp,"ShowMeshAxis: %d\t MeshAxis Defined\n", SO->ShowMeshAxis);
+         sprintf (stmp,"ShowMeshAxis: %d\t MeshAxis Defined\n",  
+                                          SO->ShowMeshAxis);
          SS = SUMA_StringAppend (SS,stmp);
       }   else {
-         sprintf (stmp,"ShowMeshAxis: %d\t MeshAxis Undefined\n", SO->ShowMeshAxis);
+         sprintf (stmp,"ShowMeshAxis: %d\t MeshAxis Undefined\n",  
+                                          SO->ShowMeshAxis);
          SS = SUMA_StringAppend (SS,stmp);
       }  
       
@@ -5152,41 +5187,54 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       sprintf (stmp,"N_Node: %d\t NodeDim: %d, EmbedDim: %d\n", \
          SO->N_Node, SO->NodeDim, SO->EmbedDim);
       SS = SUMA_StringAppend (SS,stmp);
-      sprintf (stmp,"RotationWeight: %d, ViewCenterWeight %d\n", SO->RotationWeight, SO->ViewCenterWeight);
+      sprintf (stmp,"RotationWeight: %d, ViewCenterWeight %d\n",  
+                     SO->RotationWeight, SO->ViewCenterWeight);
       SS = SUMA_StringAppend (SS,stmp);
-      sprintf (stmp,"N_FaceSet: %d, FaceSetDim %d\n", SO->N_FaceSet, SO->FaceSetDim);
+      sprintf (stmp,"N_FaceSet: %d, FaceSetDim %d\n", SO->N_FaceSet, 
+                     SO->FaceSetDim);
       SS = SUMA_StringAppend (SS,stmp);
       
       SUMA_EULER_SO(SO, eu);
       SS = SUMA_StringAppend_va (SS, "Euler No. = %d\n\n", eu);
       
-      sprintf (stmp,"Center of Mass: [%.3f\t%.3f\t%.3f]\n", SO->Center[0], SO->Center[1],SO->Center[2]);
+      sprintf (stmp,"Center of Mass: [%.3f\t%.3f\t%.3f]\n", 
+                     SO->Center[0], SO->Center[1],SO->Center[2]);
       SS = SUMA_StringAppend (SS,stmp);
-      if (SO->isSphere == SUMA_GEOM_SPHERE || SO->isSphere == SUMA_GEOM_ICOSAHEDRON ) {
+      if (  SO->isSphere == SUMA_GEOM_SPHERE || 
+            SO->isSphere == SUMA_GEOM_ICOSAHEDRON ) {
          sprintf (stmp, "Surface is considered a %s.\n"
                         "Sphere Center: [%.3f\t%.3f\t%.3f]\n",
                         SUMA_GeomTypeName(SO->isSphere), 
-                        SO->SphereCenter[0], SO->SphereCenter[1],SO->SphereCenter[2]);
+                        SO->SphereCenter[0],
+                        SO->SphereCenter[1],SO->SphereCenter[2]);
          SS = SUMA_StringAppend (SS,stmp);
          sprintf (stmp,"Sphere Radius: [%.3f]\n", SO->SphereRadius);
          SS = SUMA_StringAppend (SS,stmp);
       } else if (SO->isSphere > SUMA_GEOM_NOT_SET) {
          sprintf (stmp, "Surface geometry is considered irregular.\n"
-                        "Sphere Center Set To: [%.3f\t%.3f\t%.3f]\n", SO->SphereCenter[0], SO->SphereCenter[1],SO->SphereCenter[2]);
+                        "Sphere Center Set To: [%.3f\t%.3f\t%.3f]\n", 
+                        SO->SphereCenter[0], SO->SphereCenter[1],
+                        SO->SphereCenter[2]);
          SS = SUMA_StringAppend (SS,stmp);
          sprintf (stmp,"Sphere Radius Set To: [%.3f]\n", SO->SphereRadius);
          SS = SUMA_StringAppend (SS,stmp);
       }  else {
          sprintf (stmp, "Surface geometry has not been checked for type.\n"
-                        "Sphere Center Set To: [%.3f\t%.3f\t%.3f]\n", SO->SphereCenter[0], SO->SphereCenter[1],SO->SphereCenter[2]);
+                        "Sphere Center Set To: [%.3f\t%.3f\t%.3f]\n", 
+                        SO->SphereCenter[0], SO->SphereCenter[1],
+                        SO->SphereCenter[2]);
          SS = SUMA_StringAppend (SS,stmp);
          sprintf (stmp,"Sphere Radius Set To: [%.3f]\n", SO->SphereRadius);
          SS = SUMA_StringAppend (SS,stmp);
       }
-      sprintf (stmp,"Maximum: [%.3f\t%.3f\t%.3f]\t (aMax %.3f)\n", SO->MaxDims[0], SO->MaxDims[1],SO->MaxDims[2], SO->aMaxDims);
+      sprintf (stmp,"Maximum: [%.3f\t%.3f\t%.3f]\t (aMax %.3f)\n", 
+                     SO->MaxDims[0], SO->MaxDims[1],SO->MaxDims[2], 
+                     SO->aMaxDims);
       SS = SUMA_StringAppend (SS,stmp);
 
-      sprintf (stmp,"Minimum: [%.3f\t%.3f\t%.3f]\t (aMin %.3f)\n\n", SO->MinDims[0], SO->MinDims[1],SO->MinDims[2], SO->aMinDims);
+      sprintf (stmp,"Minimum: [%.3f\t%.3f\t%.3f]\t (aMin %.3f)\n\n",    
+                     SO->MinDims[0], SO->MinDims[1],SO->MinDims[2], 
+                     SO->aMinDims);
       SS = SUMA_StringAppend (SS,stmp);
       sprintf (stmp,"SUMA_VolPar_Aligned: %d\n", SO->SUMA_VolPar_Aligned);
       SS = SUMA_StringAppend (SS,stmp);
@@ -5213,7 +5261,9 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       } else {
          if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-         sprintf (stmp, "NodeList (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
+         sprintf (stmp, 
+                  "NodeList (showing %d out of %d elements):\n", 
+                  MaxShow, SO->N_Node);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow; ++i)   {
             for (j=0; j < SO->NodeDim; ++j) {
@@ -5225,13 +5275,16 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          }
       }
 
-      SS = SUMA_StringAppend_va (SS, "Node Normal Direction (1=out, -1=in, 0=dunno) = %d\n", SO->normdir);
+      SS = SUMA_StringAppend_va (SS, 
+                     "Node Normal Direction (1=out, -1=in, 0=dunno) = %d\n",
+                     SO->normdir);
       if (SO->NodeNormList == NULL) {
          sprintf (stmp,"NodeNormList is NULL\n\n");
          SS = SUMA_StringAppend (SS,stmp);
       } else {
          if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-         sprintf (stmp, "NodeNormList (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
+         sprintf (stmp, "NodeNormList (showing %d out of %d elements):\n",
+                        MaxShow, SO->N_Node);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow; ++i)   {
             for (j=0; j < 3; ++j) {
@@ -5251,7 +5304,8 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       } else {
          if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
-         sprintf (stmp, "FaceSetList: (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
+         sprintf (stmp, "FaceSetList: (showing %d out of %d elements):\n", 
+                        MaxShow, SO->N_FaceSet);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow; ++i)   {
             for (j=0; j < SO->FaceSetDim; ++j) {
@@ -5270,7 +5324,8 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       } else {
          if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
-         sprintf (stmp, "FaceNormList (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
+         sprintf (stmp, "FaceNormList (showing %d out of %d elements):\n", 
+                        MaxShow, SO->N_FaceSet);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow; ++i)   {
             for (j=0; j < 3; ++j) {
@@ -5290,10 +5345,12 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       } else {
          if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-         sprintf (stmp, "SO->MF (showing %d out of %d elements):\n", MaxShow, SO->N_Node);
+         sprintf (stmp, "SO->MF (showing %d out of %d elements):\n", 
+                        MaxShow, SO->N_Node);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow ; ++i)   {
-            sprintf (stmp,"\tNode %d: Member of %d FaceSets: ", i, SO->MF->N_Memb[i]);
+            sprintf (stmp,"\tNode %d: Member of %d FaceSets: ", 
+                           i, SO->MF->N_Memb[i]);
             SS = SUMA_StringAppend (SS,stmp);
             for (j=0; j < SO->MF->N_Memb[i]; ++j) {
                sprintf (stmp,"%d, ", SO->MF->NodeMemberOfFaceSet[i][j]);
@@ -5311,7 +5368,10 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       } else {
          if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-         sprintf (stmp, "SO->FN, Max. Neighbs of %d (showing %d out of %d elements):\n", SO->FN->N_Neighb_max, MaxShow, SO->N_Node);
+         sprintf (stmp, 
+                  "SO->FN, Max. Neighbs of %d "
+                  "(showing %d out of %d elements):\n", 
+                  SO->FN->N_Neighb_max, MaxShow, SO->N_Node);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow ; ++i)   {
             sprintf (stmp,"\tNode %d: %d Neighbors:\t", i, SO->FN->N_Neighb[i]);
@@ -5334,25 +5394,30 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          if (MaxShow > SO->EL->N_EL) MaxShow = SO->EL->N_EL; 
          sprintf (stmp, "SO->EL, %d edges, %d unique edges.\n"
                         "Sloppy avg seg. length: %f\n"
-                        "max_Hosts %d, min_Hosts %d (showing %d out of %d elements):\n", \
+                        "max_Hosts %d, min_Hosts %d "
+                        "(showing %d out of %d elements):\n", 
                SO->EL->N_EL, SO->EL->N_Distinct_Edges, 
                SO->EL->AvgLe,
                SO->EL->max_N_Hosts, SO->EL->min_N_Hosts, MaxShow, SO->EL->N_EL);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow ; ++i)   {
-            sprintf (stmp,"\tEdge %d: %d %d\tFlip %d Tri %d N_tri %d\n",\
-                i, SO->EL->EL[i][0], SO->EL->EL[i][1], SO->EL->ELps[i][0], SO->EL->ELps[i][1],SO->EL->ELps[i][2]);
+            sprintf (stmp,"\tEdge %d: %d %d\tFlip %d Tri %d N_tri %d\n",
+                i, SO->EL->EL[i][0], SO->EL->EL[i][1], SO->EL->ELps[i][0],
+                SO->EL->ELps[i][1],SO->EL->ELps[i][2]);
             SS = SUMA_StringAppend (SS,stmp);   
          }
          sprintf (stmp,"\n");
          SS = SUMA_StringAppend (SS,stmp);
          
          if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet; 
-         sprintf (stmp, "Triangle Limbs, (showing %d out of %d elements):\n", MaxShow, SO->N_FaceSet);
+         sprintf (stmp, 
+                  "Triangle Limbs, (showing %d out of %d elements):\n", 
+                  MaxShow, SO->N_FaceSet);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow ; ++i)   {
-            sprintf (stmp,"\tTri_limb[%d][:] = %d %d %d\n", \
-            i, SO->EL->Tri_limb[i][0], SO->EL->Tri_limb[i][1],SO->EL->Tri_limb[i][2]);
+            sprintf (stmp,"\tTri_limb[%d][:] = %d %d %d\n", 
+                           i, SO->EL->Tri_limb[i][0], 
+                           SO->EL->Tri_limb[i][1],SO->EL->Tri_limb[i][2]);
             SS = SUMA_StringAppend (SS,stmp);
          } 
          sprintf (stmp, "\n");
@@ -5364,7 +5429,9 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
          SS = SUMA_StringAppend (SS,stmp);
       } else {
          if (MaxShow > SO->N_FaceSet) MaxShow = SO->N_FaceSet;
-         sprintf (stmp, "SO->PolyArea, showing %d out of %d elements:\n", MaxShow, SO->N_FaceSet);
+         sprintf (stmp, 
+                  "SO->PolyArea, showing %d out of %d elements:\n", 
+                  MaxShow, SO->N_FaceSet);
          SS = SUMA_StringAppend (SS,stmp);
          for (i=0; i < MaxShow ; ++i)   {
             sprintf (stmp,"\tFaceSet %d: Area = %f\n", i, SO->PolyArea[i]);
@@ -5382,7 +5449,8 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
             SS = SUMA_StringAppend (SS,stmp);
          } else {
             if (MaxShow > SO->N_Node) MaxShow = SO->N_Node;
-            sprintf (stmp, "Cx, showing %d out of %d elements:\n", MaxShow, SO->N_Node);
+            sprintf (stmp, "Cx, showing %d out of %d elements:\n", 
+                           MaxShow, SO->N_Node);
             SS = SUMA_StringAppend (SS,stmp);
             for (i=0; i < MaxShow ; ++i)   {
                sprintf (stmp,"\t Cx[%d] = %f\n", i, Cx[i]);
@@ -5413,9 +5481,16 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       if (!SO->PermCol) SUMA_StringAppend (SS,"PermCol = NULL\n");
       else SUMA_StringAppend (SS,"PermCol is NOT NULL\n");
       
-      if ( (SO->PermCol && SO->N_Overlays) || (SO->PermCol && SO->N_Overlays) ) {
-         SUMA_StringAppend (SS,"CONFLICT! Both PermCol and Overlays are specified!\n");
+      if (  (SO->PermCol && SO->N_Overlays) || 
+            (SO->PermCol && SO->N_Overlays) ) {
+         SUMA_StringAppend (SS,  "CONFLICT! "
+                                 "Both PermCol and Overlays are specified!\n");
       }
+      
+      s = SUMA_AfniSurfaceObject_Info(SO->aSO, 0, NULL);
+      
+      SUMA_StringAppend (SS, s);
+      SUMA_free(s); s = NULL;
       
    } else {
       sprintf (stmp, "NULL Surface Object Pointer.");
@@ -5478,6 +5553,52 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
    
    SUMA_RETURNe;
 }   
+
+SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(AFNI_SurfaceObject **aSOp,
+                                        SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_MergeAfniSO_In_SumaSO"};
+   AFNI_SurfaceObject *aSO=NULL;
+
+   SUMA_ENTRY;
+
+   if (!aSOp || !SO) SUMA_RETURN(NOPE);
+   aSO = *aSOp; 
+   if (!aSO) SUMA_RETURN(NOPE);
+
+   /* copy common fields one by one. 
+      Follow AFNI_SurfaceObject structure closely.
+      Keep new fields in aSO */
+   SO->N_Node = aSO->ps->N_Node; 
+   SO->NodeDim = aSO->ps->NodeDim; 
+   SO->EmbedDim = aSO->ps->EmbedDim; 
+   SO->NodeList = aSO->ps->NodeList; aSO->ps->NodeList = NULL;
+   SO->N_FaceSet = aSO->tr->N_FaceSet; 
+   SO->FaceSetDim = aSO->tr->FaceSetDim; 
+   SO->FaceSetList = aSO->tr->FaceSetList; aSO->tr->FaceSetList = NULL;
+
+   SO->aSO = aSO;
+   *aSOp = NULL; /* allow no one to touch this anymore */
+
+   /* Now fill up some additional fields */
+   SO->Side = SUMA_GuessSide(SO);
+   if (SO->isSphere == SUMA_GEOM_NOT_SET) SUMA_SetSphereParams(SO, -0.1);
+   SO->AnatCorrect = SUMA_GuessAnatCorrect(SO);
+   SO->State = 
+      SUMA_append_replace_string(SO->aSO->ps->GeometricType,
+                                 SO->aSO->ps->AnatomicalStructureSecondary,
+                                 ".", 0);
+   
+   /* Is there an xform to apply ? */
+   if (!SUMA_Apply_Coord_xform(SO, SO->aSO->ps->xform, 0)) {
+      SUMA_S_Err("Failed to apply xform!");
+   }else{
+      SO->aSO->ps->inxformspace = 1;
+   }
+
+   
+   SUMA_RETURN(YUP);
+}
 
 /*!
 Create a Surface Object data structure 
@@ -5596,10 +5717,10 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].LocalCurvatureParentID = NULL;
       SO[i].PermCol = NULL;
       SO[i].Group_idcode_str = NULL;
-      SO[i].ModelName = NULL;
       SO[i].OriginatorLabel = NULL;
-      SO[i].StandardSpace = NULL;
       SO[i].parent_vol_idcode_str = NULL;
+      
+      SO[i].aSO = NULL;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

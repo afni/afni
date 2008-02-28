@@ -160,7 +160,7 @@ typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED,
                SUMA_FREE_SURFER, SUMA_FREE_SURFER_PATCH, SUMA_SUREFIT, 
                SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC, SUMA_CMAP_SO,
                SUMA_BRAIN_VOYAGER , 
-               SUMA_OPENDX_MESH, SUMA_BYU,
+               SUMA_OPENDX_MESH, SUMA_BYU, SUMA_GIFTI, 
                   SUMA_N_SO_FILE_TYPE} SUMA_SO_File_Type; /* add types always between SUMA_FT_NOT_SPECIFIED AND SUMA_N_SO_FILE_TYPE */
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
 typedef enum { type_not_set = -1,
@@ -1868,7 +1868,7 @@ typedef struct {
    /* Begin by fields that are generic    
                   and need to be accessed from AFNI 
                   Keep in sync with AFNI_SurfaceObject STRUCT 
-                  
+                  AND function SUMA_MergeAfniSO_In_SumaSO
    **********  BEGIN KEEP THIS SECTION TIGHT 
                WITH AFNI_SURFACEOBJECT STRUCT ***********
    */
@@ -1896,6 +1896,11 @@ typedef struct {
                WITH AFNI_SurfaceObject STRUCT 
                in suma_datasets.h     ***********
    */
+   
+   /* Include also AFNI_SurfaceObject which would contain GIFTI's information
+   with pointers stolen for list above set to NULL 
+      (see SUMA_MergeAfniSO_In_SumaSO)  */
+   AFNI_SurfaceObject *aSO;
    
    SUMA_SO_File_Type FileType; /*!< Type of Surface file */
    SUMA_SO_File_Format FileFormat; /*!< Format of Surface file ascii or binary*/
@@ -1927,12 +1932,9 @@ typedef struct {
                                  Node Indices of SO are into NodeList 
                                  matrix of the NodeParent SO*/               
    char *Group_idcode_str;  /*!< IDcode of group */
-   char *StandardSpace;   /*!< standard space of surface 
-                              (orig, tlrc, stdxxx, etc.*/
    char *Group;   /*!<  Group the surface belongs to, 
                         like Simpsons H. (aka. SubjectLabel)*/
    char *State; /*!< State of SO (like inflated, bloated, exploded) */
-   char *ModelName; /*!< cerebellum, hippocampus, cerebrum, etc. */
    
    SUMA_SO_SIDE Side; /*!< Left/right */
    SUMA_GEOM_TYPE isSphere;  /*!< yes/no */

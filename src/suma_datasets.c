@@ -10473,8 +10473,11 @@ NI_str_array *SUMA_free_NI_str_array(NI_str_array *nisa)
    SUMA_ENTRY;
    
    if (nisa) {
-      for (i=0; i<nisa->num; ++i) {
-         if (nisa->str[i]) NI_free(nisa->str[i]); nisa->str[i] = NULL;
+      if (nisa->str) {
+         for (i=0; i<nisa->num; ++i) {
+            if (nisa->str[i]) NI_free(nisa->str[i]); nisa->str[i] = NULL;
+         }
+         NI_free(nisa->str); 
       }
       NI_free(nisa); nisa = NULL;
    }
@@ -10514,7 +10517,8 @@ char *SUMA_Get_Sub_String(char *cs, char *sep, int ii)
 /*!
    \brief replace the col th string attribute in a one-string nel
 */
-int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep, int insertmode)
+int SUMA_AddColAtt_CompString(NI_element *nel, int col, 
+                              char *lbl, char *sep, int insertmode)
 {
    static char FuncName[]={"SUMA_AddColAtt_CompString"};
    NI_str_array *nisa = NULL;
@@ -10537,15 +10541,20 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep, in
    
 
    nisa = SUMA_comp_str_2_NI_str_ar(cs, sep);
-   if (!nisa) { SUMA_SL_Err("Failed in SUMA_comp_str_2_NI_str_ar"); SUMA_RETURN(NOPE); }
+   if (!nisa) { 
+      SUMA_SL_Err("Failed in SUMA_comp_str_2_NI_str_ar"); SUMA_RETURN(NOPE); }
    
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: col = %d, nisa->num = %d\n", FuncName, col, nisa->num);
+      fprintf(SUMA_STDERR, "%s: col = %d, nisa->num = %d\n", 
+                           FuncName, col, nisa->num);
    }
-   if (col > nisa->num) { SUMA_SL_Err("col > nisa->num"); SUMA_DUMP_TRACE("nisa nisa"); SUMA_RETURN(NOPE); }
+   if (col > nisa->num) { 
+      SUMA_SL_Err("col > nisa->num"); SUMA_DUMP_TRACE("nisa nisa"); 
+      SUMA_RETURN(NOPE); }
    
    if (col == nisa->num) { /* add at the end */
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: append %s to end of %s\n", FuncName, lbl, cs); 
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: append %s to end of %s\n", FuncName, lbl, cs);
       ns = SUMA_append_replace_string(cs, lbl, sep, 0);
       SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns);   
    } else if (!insertmode) { /* REPLACE! in middle */
@@ -10553,21 +10562,27 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep, in
       if (lbl) {
          nisa->str[col] = (char*)NI_malloc(char, (strlen(lbl)+1)*sizeof(char));
          strcpy( nisa->str[col],  lbl ); 
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: replaced %s at location %d\n", FuncName, lbl, col);
+         if (LocalHead) 
+            fprintf( SUMA_STDERR,
+                     "%s: replaced %s at location %d\n", FuncName, lbl, col);
          ns = SUMA_NI_str_ar_2_comp_str(nisa, sep);
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: final string is %s\n", FuncName, ns);
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s: final string is %s\n", FuncName, ns);
          SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns); 
       }
    } else { /* insert in middle */
-      nisa->str = NI_realloc( nisa->str , char*, sizeof(char *)*(nisa->num+1) ) ;
+      nisa->str = NI_realloc( nisa->str, char*, sizeof(char *)*(nisa->num+1) ) ;
       /* now move all above col to end */
       for (i=nisa->num-1; i >= col; --i) nisa->str[i+1] = nisa->str[i];
       nisa->str[col] = (char*)NI_malloc(char, (strlen(lbl)+1)*sizeof(char));
       strcpy( nisa->str[col],  lbl ); 
       ++nisa->num;
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: inserted %s at location %d\n", FuncName, lbl, col);
+      if (LocalHead) 
+         fprintf( SUMA_STDERR,
+                  "%s: inserted %s at location %d\n", FuncName, lbl, col);
       ns = SUMA_NI_str_ar_2_comp_str(nisa, sep);
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: final string is %s\n", FuncName, ns);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: final string is %s\n", FuncName, ns);
       SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns); 
    }
    if (ns) SUMA_free(ns); ns = NULL;
@@ -10993,19 +11008,159 @@ AFNI_SurfaceObject *SUMA_NewAfniSurfaceObject(void)
    SUMA_ENTRY;
    
    aSO = (AFNI_SurfaceObject *)SUMA_calloc(1, sizeof(AFNI_SurfaceObject));
-   
+   aSO->ps = SUMA_NewAfniSurfaceObjectPointset();
+   aSO->tr = SUMA_NewAfniSurfaceObjectTriangle();
    SUMA_RETURN(aSO);
+}
+
+AFNI_SurfaceObject_TRIANGLE *SUMA_NewAfniSurfaceObjectTriangle(void)
+{
+   static char FuncName[]={"SUMA_NewAfniSurfaceObjectTriangle"};
+   AFNI_SurfaceObject_TRIANGLE *tr=NULL;
+    
+   tr=(AFNI_SurfaceObject_TRIANGLE*)
+            SUMA_calloc(1,sizeof(AFNI_SurfaceObject_TRIANGLE));
+   
+   SUMA_RETURN(tr);
+}
+
+AFNI_SurfaceObject_POINTSET *SUMA_NewAfniSurfaceObjectPointset(void)
+{
+   static char FuncName[]={"SUMA_NewAfniSurfaceObjectPointset"};
+   AFNI_SurfaceObject_POINTSET *ps=NULL;
+   
+   ps = (AFNI_SurfaceObject_POINTSET *)
+            SUMA_calloc(1,sizeof(AFNI_SurfaceObject_POINTSET));
+   
+   SUMA_RETURN(ps);
+}
+
+#define IF_FREE(ggg) { if (ggg) SUMA_free(ggg); ggg = NULL; }
+AFNI_SurfaceObject_POINTSET *SUMA_FreeAfniSurfaceObjectPointset(
+                                    AFNI_SurfaceObject_POINTSET *ps) {
+   static char FuncName[]={"SUMA_FreeAfniSurfaceObjectPointset"};
+   
+   SUMA_ENTRY;
+   
+   if (ps) {
+      IF_FREE(ps->NodeList);
+      IF_FREE(ps->AnatomicalStructurePrimary);
+      IF_FREE(ps->AnatomicalStructurePrimary);
+      IF_FREE(ps->GeometricType);
+      IF_FREE(ps->UniqueID);
+      IF_FREE(ps->date);
+      IF_FREE(ps->dataspace);
+      IF_FREE(ps->xformspace);
+      SUMA_free(ps); ps = NULL;
+   }
+   
+   SUMA_RETURN(NULL);                                    
+}
+
+AFNI_SurfaceObject_TRIANGLE *SUMA_FreeAfniSurfaceObjectTriangle(
+                                    AFNI_SurfaceObject_TRIANGLE *tr){
+   static char FuncName[]={"SUMA_FreeAfniSurfaceObjectTriangle"};
+   
+   SUMA_ENTRY;
+   if (tr) {
+      IF_FREE(tr->FaceSetList);
+      IF_FREE(tr->TopologicalType);
+      IF_FREE(tr->UniqueID);
+      IF_FREE(tr->date);
+      SUMA_free(tr); tr = NULL;
+   }
+   
+   SUMA_RETURN(NULL);                                    
 }
 
 AFNI_SurfaceObject *SUMA_FreeAfniSurfaceObject(AFNI_SurfaceObject *aSO)
 {
    static char FuncName[]={"SUMA_FreeAfniSurfaceObject"};
+   
+   SUMA_ENTRY;
+   
    if (aSO) {
-      if (aSO->NodeList   ) SUMA_free(aSO->NodeList); aSO->NodeList=NULL;
-      if (aSO->FaceSetList) SUMA_free(aSO->FaceSetList); aSO->FaceSetList=NULL;
+      aSO->ps = SUMA_FreeAfniSurfaceObjectPointset(aSO->ps);
+      aSO->tr = SUMA_FreeAfniSurfaceObjectTriangle(aSO->tr);
+      
       SUMA_free(aSO); aSO = NULL;     
    }
+   
    SUMA_RETURN(NULL);
 }
 
+void SUMA_ShowAfniSurfaceObject( AFNI_SurfaceObject *aSO, FILE *out, 
+                                 int detail, char *title)
+{
+   static char FuncName[]={"SUMA_ShowAfniSurfaceObject"};
+   char *s=NULL;
+   SUMA_ENTRY;
+   
+   if (!out) out = stdout;
+   
+   s = SUMA_AfniSurfaceObject_Info(aSO, detail, title);
+   fprintf(out,"%s",s);
+   SUMA_free(s); s = NULL;
+   SUMA_RETURNe;
+}
+
+char *SUMA_AfniSurfaceObject_Info(AFNI_SurfaceObject *aSO, 
+                                  int detail, char *title)
+{
+   static char FuncName[]={"SUMA_AfniSurfaceObject_Info"};
+   int i=0, j=0;
+   char *s=NULL, stmp[200];
+   SUMA_STRING *SS=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+    
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   
+   if (title) SS = SUMA_StringAppend(SS, title);
+   if (!aSO) {
+      SS = SUMA_StringAppend(SS, "NULL Afni Surface Object\n");
+   } else {
+      if (!aSO->ps) {
+         SS = SUMA_StringAppend(SS, "NULL ps\n");
+      } else {
+         SS = SUMA_StringAppend_va(SS,   "Have %d (%dD) nodes:\n", 
+                           aSO->ps->N_Node, aSO->ps->NodeDim);
+         if (!aSO->ps->NodeList) {
+            SS = SUMA_StringAppend(SS, "   NULL NodeList\n");
+         } else {
+            for (i=0; i<SUMA_MIN_PAIR(5,aSO->ps->N_Node); ++i) {
+               SS = SUMA_StringAppend_va(SS, "   %6d: ", i); 
+               for (j=0; j<aSO->ps->NodeDim; ++j) 
+                  SS = SUMA_StringAppend_va(SS, 
+                           "%4.3f\t", 
+                           aSO->ps->NodeList[aSO->ps->NodeDim*i+j]);
+               SS = SUMA_StringAppend(SS, "\n");
+            }
+         }
+      }
+      if (!aSO->tr) {
+         SS = SUMA_StringAppend(SS, "NULL tr\n");
+      } else {
+         SS = SUMA_StringAppend_va(SS,   "Have %d (%dD) polygons:\n", 
+                           aSO->tr->N_FaceSet, aSO->tr->FaceSetDim);
+         if (!aSO->tr->FaceSetList) {
+            SS = SUMA_StringAppend(SS, "   NULL FaceSetList\n");
+         } else {
+            for (i=0; i<SUMA_MIN_PAIR(5,aSO->tr->N_FaceSet); ++i) {
+               SS = SUMA_StringAppend_va(SS, "   %6d: ", i); 
+               for (j=0; j<aSO->tr->FaceSetDim; ++j) 
+                  SS = SUMA_StringAppend_va(SS, 
+                           "%6d\t",
+                           aSO->tr->FaceSetList[aSO->tr->FaceSetDim*i+j]);
+               SS = SUMA_StringAppend(SS, "\n");
+            }
+         }
+      }
+   }
+   
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
+}
 /******** END functions for surface structure  ******************** */

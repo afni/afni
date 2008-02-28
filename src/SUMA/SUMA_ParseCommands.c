@@ -517,6 +517,9 @@ const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp)
       case SUMA_BYU:
          SUMA_RETURN("BYU");
          break;
+      case SUMA_GIFTI:
+         SUMA_RETURN("GIFTI");
+         break;
       case SUMA_VEC:
          SUMA_RETURN("1D");
          break;
@@ -549,6 +552,8 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    if (!strcmp(cd, "DX") || !strcmp(cd, "dx") || !strcmp(cd, "OpenDX") || !strcmp(cd, "opendx")) { SUMA_RETURN( SUMA_OPENDX_MESH); }
    if (!strcmp(cd, "BrainVoyager") || !strcmp(cd, "BV") || !strcmp(cd, "bv")) { SUMA_RETURN( SUMA_BRAIN_VOYAGER); }
    if (!strcmp(cd, "BYU") || !strcmp(cd, "Byu") || !strcmp(cd, "byu")) { SUMA_RETURN( SUMA_BYU); }
+   if (!strcmp(cd, "GIFTI") || !strcmp(cd, "Gifti") || !strcmp(cd, "gifti") || 
+         !strcmp(cd, "gii") ) { SUMA_RETURN( SUMA_GIFTI); }
    if (!strcmp(cd, "1D") || !strcmp(cd, "VEC") || !strcmp(cd, "1d")) { SUMA_RETURN(SUMA_VEC ); }
    if (!strcmp(cd, "Error")) { SUMA_RETURN(SUMA_FT_ERROR ); }
    /* if (!strcmp(cd, "")) { SUMA_RETURN( ); } */
@@ -919,8 +924,11 @@ char *SUMA_BuildMessageLog (DList *ML)
    }
    do {
       MD = (SUMA_MessageData *)CurElmt->data;
-      SS = SUMA_StringAppend (SS, SUMA_FormatMessage (MD)); 
-      if (MD->Type != SMT_Text)SS = SUMA_StringAppend (SS, "---------------------\n");
+      s = SUMA_FormatMessage (MD);
+      SS = SUMA_StringAppend (SS, s);
+      SUMA_free(s); s = NULL; 
+      if (MD->Type != SMT_Text)
+         SS = SUMA_StringAppend (SS, "---------------------\n");
    } while ((CurElmt = dlist_next(CurElmt)));
    
    /* clean SS */
@@ -2624,6 +2632,9 @@ SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
       SUMA_RETURN( SUMA_BRAIN_VOYAGER );
    if (SUMA_iswordin_ci(str, "BYU") == 1  ) 
       SUMA_RETURN( SUMA_BYU );
+   if (  SUMA_iswordin_ci(str, "GIFTI") == 1  ||
+         SUMA_iswordin_ci(str, "GII") == 1  ) 
+      SUMA_RETURN( SUMA_GIFTI );
    if (SUMA_iswordin_ci(str, "cmap")  == 1 ) 
       SUMA_RETURN( SUMA_CMAP_SO );
 
@@ -2652,6 +2663,7 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name)
    if (  SUMA_isExtension(Name, ".1D.coord") ||
          SUMA_isExtension(Name, ".1D.topo")) SUMA_RETURN(SUMA_VEC);
    if (  SUMA_isExtension(Name, ".srf")) SUMA_RETURN(SUMA_BRAIN_VOYAGER);
+   if (  SUMA_isExtension(Name, ".gii")) SUMA_RETURN(SUMA_GIFTI);
    if (  SUMA_isExtension(Name, ".byu") ||
          SUMA_isExtension(Name, ".g") ||
          SUMA_isExtension(Name, ".go")) SUMA_RETURN( SUMA_BYU);
@@ -3499,8 +3511,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                case SUMA_BYU:
                   tmp_i = SUMA_copy_string("-i_byu");
                   break;
+               case SUMA_GIFTI:
+                  tmp_i = SUMA_copy_string("-i_gii");
                   break;
                case SUMA_CMAP_SO:
+                  break;
                default:
                   tmp_i = SUMA_copy_string(argv[kar]);
                   break;
@@ -3509,7 +3524,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             tmp_i = SUMA_copy_string(argv[kar]);
          }
          SUMA_LHv("accept_i %d (argv[%d]=%s)\n", ps->accept_i, kar, argv[kar]);
-         if (!brk && ( (strcmp(tmp_i, "-i_bv") == 0) || (strcmp(tmp_i, "-i_BV") == 0) ) ) {
+         if (!brk && ( (strcmp(tmp_i, "-i_bv") == 0) || 
+                     (strcmp(tmp_i, "-i_BV") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3526,7 +3542,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(tmp_i, "-i_byu") == 0) || (strcmp(tmp_i, "-i_BYU") == 0) ) ) {
+         if (!brk && ( (strcmp(tmp_i, "-i_byu") == 0) || 
+                        (strcmp(tmp_i, "-i_BYU") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3543,7 +3560,27 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(tmp_i, "-i_fs") == 0) || (strcmp(tmp_i, "-i_FS") == 0)) ) {
+         if (  !brk && 
+               (  (strcmp(tmp_i, "-i_gii") == 0) || 
+                  (strcmp(tmp_i, "-i_GII") == 0) ) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -i_gii ");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->i_FT[ps->i_N_surfnames] = SUMA_GIFTI;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
+            ++ps->i_N_surfnames;
+            brk = YUP;
+         }
+         if (!brk && ( (strcmp(tmp_i, "-i_fs") == 0) || 
+                        (strcmp(tmp_i, "-i_FS") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3693,6 +3730,27 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
             ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_BYU;
+            ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
+            ++ps->ipar_N_surfnames;
+            brk = YUP;
+         }
+
+         if (  !brk && 
+               (  (strcmp(argv[kar], "-ipar_gii") == 0) || 
+                  (strcmp(argv[kar], "-ipar_GII") == 0)  ) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -ipar_gii ");
+	            exit (1);
+            }
+            if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                             SUMA_copy_string(argv[kar]);
+            ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_GIFTI;
             ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
             ++ps->ipar_N_surfnames;
             brk = YUP;
@@ -3896,7 +3954,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                   ps->t_FT[ps->t_N_surfnames] == SUMA_VEC ||
                   ps->t_FT[ps->t_N_surfnames] == SUMA_INVENTOR_GENERIC || 
                   ps->t_FT[ps->t_N_surfnames] == SUMA_OPENDX_MESH ||
-                  ps->t_FT[ps->t_N_surfnames] == SUMA_BYU) 
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_BYU ||
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_GIFTI ) 
                   ps->t_FF[ps->t_N_surfnames] = SUMA_ASCII;
             else if (ps->t_FT[ps->t_N_surfnames] == SUMA_PLY)
                   ps->t_FF[ps->t_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
@@ -3947,8 +4006,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                case SUMA_BYU:
                   tmp_o = SUMA_copy_string("-o_byu");
                   break;
+               case SUMA_GIFTI:
+                  tmp_o = SUMA_copy_string("-o_gii");
                   break;
                case SUMA_CMAP_SO:
+                  break;
                default:
                   tmp_o = SUMA_copy_string(argv[kar]);
                   break;
