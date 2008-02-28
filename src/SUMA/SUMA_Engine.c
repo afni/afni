@@ -4012,19 +4012,42 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
             if (SO->AnatCorrect && !SO->SentToAfni && SO->VolPar) {
                switch (s) {
                   case 0:
-                     if (!is_listed[ii] && SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==  -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (  !is_listed[ii] && 
+                           SO->Side == SUMA_LEFT && 
+                           SUMA_isTypicalSOforVolSurf(SO) ==  -1) { 
+                              SendList[*N_Send] = ii; 
+                              *N_Send = *N_Send + 1; 
+                              is_listed[ii] = 1;}
                      break;
                   case 1:
-                     if (!is_listed[ii] && SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==   1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (  !is_listed[ii] && 
+                           SO->Side == SUMA_LEFT && 
+                           SUMA_isTypicalSOforVolSurf(SO) ==   1) { 
+                              SendList[*N_Send] = ii; 
+                              *N_Send = *N_Send + 1; 
+                              is_listed[ii] = 1;}
                      break;
                   case 2:
-                     if (!is_listed[ii] && SO->Side == SUMA_RIGHT && SUMA_isTypicalSOforVolSurf(SO) == -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (  !is_listed[ii] && 
+                           SO->Side == SUMA_RIGHT && 
+                           SUMA_isTypicalSOforVolSurf(SO) == -1) { 
+                              SendList[*N_Send] = ii; 
+                              *N_Send = *N_Send + 1; 
+                              is_listed[ii] = 1;}
                      break;
                   case 3:
-                     if (!is_listed[ii] && SO->Side == SUMA_RIGHT && SUMA_isTypicalSOforVolSurf(SO) ==  1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (  !is_listed[ii] && 
+                           SO->Side == SUMA_RIGHT && 
+                           SUMA_isTypicalSOforVolSurf(SO) ==  1) { 
+                              SendList[*N_Send] = ii; 
+                              *N_Send = *N_Send + 1; 
+                              is_listed[ii] = 1;}
                      break;
                   default:
-                     if (!is_listed[ii]) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     if (  !is_listed[ii]) { 
+                        SendList[*N_Send] = ii; 
+                        *N_Send = *N_Send + 1; 
+                        is_listed[ii] = 1;}
                      break;
                }
             }

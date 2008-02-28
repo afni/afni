@@ -33,6 +33,8 @@ SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM, SUMA_SurfaceViewer 
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void);
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *csv);
+SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(AFNI_SurfaceObject **aSOp,
+                                        SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
 char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList);
