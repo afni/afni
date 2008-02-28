@@ -221,8 +221,8 @@ int main (int argc,char *argv[])
   SO1 = Surf1;
   SO2 = Surf2;
  
-  //SUMA_Print_Surface_Object ( SO1, NULL);
-  //SUMA_Print_Surface_Object ( SO2, NULL);
+  /*SUMA_Print_Surface_Object ( SO1, NULL);
+  SUMA_Print_Surface_Object ( SO2, NULL);*/
 
   num_nodes1 = SO1->N_Node;
   num_nodes2 = SO2->N_Node;

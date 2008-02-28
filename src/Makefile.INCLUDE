@@ -2327,7 +2327,7 @@ gifti_tool:nifti1_io.o znzlib.o
 		gifti/gifti_tool.c gifti/gifti_io.c gifti/gifti_xml.c 	\
 		nifti1_io.o znzlib.o -lexpat $(LZLIB) -lm
 
-gifti_choice.o:gifti_choice.c thd_gifti.c
+gifti_choice.o:gifti_choice.c thd_gifti.c suma_gifti.c
 	$(RM) $@
 	$(CC) -c gifti_choice.c -Igifti $(INFLAGS)
 

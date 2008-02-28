@@ -16,14 +16,15 @@
     #include "gifti_xml.c"
 
     #include "thd_gifti.c"      /* afni interface */
-
+    #include "suma_gifti.c"     /* suma interface */
 #else
 
     /* if we do not love or even want GIFTI, include failure functions here */
     /* (these should be the same functions exported from thd_gifti.c)       */
 
     #include "mrilib.h"
-
+    #include "suma_algorithms.h"
+    #include "suma_datasets.h"
     /* ------------------------------- AFNI ------------------------------- */
 
     THD_3dim_dataset * THD_open_gifti(char * fname)
@@ -63,6 +64,15 @@
         fprintf(stderr,"** cannot write '%s', no compiled GIFTI support\n",
                 fname ? fname : "NULL");
         return 1;
+    }
+
+    /* ------------------------------- SUMA ------------------------------- */
+    
+    AFNI_SurfaceObject * afni_open_gifti_surf(char * fname, int read_data)
+    {
+        fprintf(stderr,"** cannot read '%s', no compiled GIFTI support\n",
+                fname ? fname : "NULL");
+        return NULL;
     }
 
 
