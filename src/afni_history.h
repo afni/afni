@@ -31,11 +31,6 @@
 #define SUPER     4  /* rank for changes that users must know */
 #define MAX_PROG_RANK  4                       /* max in list */
 
-#define micro  1
-#define minor  2
-#define major  3
-#define super  4
-
 #define TYPE_NOT_SET    0
 #define TYPE_NEW_OPT    1
 #define TYPE_NEW_PROG   2
@@ -52,6 +47,7 @@ typedef struct {
   char  * desc;        /* one line description */
   char  * verbtext;    /* can be NULL, but shouldn't be */
 } afni_history_struct;
+typedef afni_history_struct hist_type;
 
 
 #define MAX_LINE_CHARS  73  /* max description chars without newline   */
@@ -74,8 +70,8 @@ extern afni_history_struct ziad_history[];
 /*-- specific to afni_history.c ----------------------------------------*/
 
 typedef struct {
-    afni_history_struct * hlist;
-    char                * author;
+    hist_type * hlist;
+    char      * author;
 } histpair;
 
 typedef struct {
@@ -86,6 +82,7 @@ typedef struct {
     int        level;
     int        min_level;
     int        past_days, past_months, past_years;
+    int        sort_dir;
     int        verb;
 
     /* assigned variables */
@@ -97,7 +94,7 @@ typedef struct {
 #define INT_IN_RANGE(val,min,max) (((val)<(min)) ? 0 : ((val)>(max)) ? 0 : 1)
 
 #undef CHECK_NULL_STR
-#define CHECK_NULL_STR(str) (str ? str : "NULL")
+#define CHECK_NULL_STR(str) ((str) ? (str) : "NULL")
 
 #undef CHECK_NEXT_OPT
 #define CHECK_NEXT_OPT(n,m,str)                                     \
@@ -115,15 +112,26 @@ typedef struct {
            return 1;      }                                                   \
       } while(0)
 
+/* main protos */
+int add_to_hlist        (hist_type *** hlist, hist_type * hadd,
+                         int addlen, int * newlen);
+int compare_hlist       (const void *v0, const void *v1);
+int disp_global_data    (char * mesg, global_data * gd);
 int histlists_are_valid (histpair * hpairs, int plen);
-int hlist_is_sorted     (afni_history_struct * hlist);
-int hlist_len           (afni_history_struct * hlist);
+int hlist_is_sorted     (hist_type * hlist);
+int hlist_len           (hist_type * hlist);
 int init_histlist       (global_data * gd);
 int process_options     (int argc, char * argv[], global_data * gd);
 int show_help           (void);
+int show_hist_type      (hist_type * hp, FILE * fp);
+int show_history        (global_data * gd, hist_type ** hlist, int len);
+int show_results        (global_data * gd);
+int show_wrapping_line  (char * str, char * prefix, int indent, FILE * fp);
 int valid_dstring       (char * str, int max_line_len);
-int valid_histlist      (afni_history_struct * hlist, char * author);
-int valid_histstruct    (afni_history_struct * hstr, char * author);
+int valid_histlist      (hist_type * hlist, char * author);
+int valid_histstruct    (hist_type * hstr, char * author);
 int valid_program       (char * prog);
+
+char * mm2month         (int mm);
 
 #endif /* _AFNI_HISTORY_HEADER_ */
