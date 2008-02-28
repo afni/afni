@@ -35,7 +35,7 @@ void Syntax(char * msg)
     "    *OR*           will determine the geometry of the output.\n"
     "  -dimen I J K = Sets the dimensions of the output dataset to\n"
     "                   be I by J by K voxels.  (Each I, J, and K\n"
-    "                   must be >= 2.)  This option can be used to\n"
+    "                   must be >= 1.)  This option can be used to\n"
     "                   create a dataset of a specific size for test\n"
     "                   purposes, when no suitable master exists.\n"
     "          ** N.B.: Exactly one of -master or -dimen must be given.\n"
@@ -86,7 +86,7 @@ void Syntax(char * msg)
     "                   of the output dataset.  If -master is used instead,\n"
     "                   the output dataset's axes ordering is the same as the\n"
     "                   -master dataset's, regardless of -orient.\n"
-    "  -head_only   =  A secret option for creating only the .HEAD file which\n"
+    "  -head_only   =  A 'secret' option for creating only the .HEAD file which\n"
     "                  gets exploited by the AFNI matlab library function\n"
     "                  New_HEAD.m\n"
     "\n"
@@ -111,6 +111,7 @@ void Syntax(char * msg)
     "* This program creates a 1 sub-brick file.  You can 'glue' multiple\n"
     "   files together using 3dbucket or 3dTcat to make multi-brick datasets.\n"
     "* If an input filename is '-', then stdin is used for input.\n"
+    "* If no input files are given, an 'empty' dataset is created.\n"
     "* By default, the output dataset is of type '-fim', unless the -master\n"
     "   dataset is an anat type. You can change the output type using 3drefit.\n"
     "* You could use program 1dcat to extract specific columns from a\n"
@@ -237,8 +238,8 @@ int main( int argc , char * argv[] )
          dimen_ii = strtol(argv[++iarg],NULL,10) ;
          dimen_jj = strtol(argv[++iarg],NULL,10) ;
          dimen_kk = strtol(argv[++iarg],NULL,10) ;
-         if( dimen_ii < 2 || dimen_jj < 2 || dimen_kk < 2 )
-            Syntax("-dimen: values following are not all >= 2!") ;
+         if( dimen_ii < 1 || dimen_jj < 1 || dimen_kk < 1 )
+            Syntax("-dimen: values following are not all >= 1!") ;
 
          iarg++ ; continue ;
       }
@@ -343,8 +344,10 @@ int main( int argc , char * argv[] )
 
    /*-- check for inconsistencies --*/
 
+#if 0
    if( iarg >= argc && !do_head_only)
       Syntax("No input files on command line!?") ;
+#endif
 
    if( do_ijk == 0 && mset == NULL )
       Syntax("Can't use -xyz without -master also!") ;
@@ -501,6 +504,9 @@ int main( int argc , char * argv[] )
    }
 
    /*-- loop over input files and read them line by line --*/
+
+   if( iarg == argc )
+     WARNING_message("No input files ==> creating empty dataset") ;
 
    for( ; iarg < argc ; iarg++ ){  /* iarg is already set at start of this loop */
 
