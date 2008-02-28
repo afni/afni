@@ -157,11 +157,13 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
 
    if( penfac == 0.0f ) penfac = -0.999f ;
    if( penfac < 0.0f ){
-     float fmax ;
-     qmedmad_float( npt , far , &val , &fmax ) ;
-     if( fmax == 0.0f ) fmax = fabsf(val) ;
-     if( fmax == 0.0f ) fmax = 1.0f ;
-     penfac = -2.789f * penfac * fmax / kernmax ;
+     float fmed , fsig ;
+     qmedmad_float  ( npt , far , &val , &fmed ) ; fmed *= 1.4826f ;
+     meansigma_float( npt , far , NULL , &fsig ) ;
+     if( fmed <  fsig ) fmed = fsig ;
+     if( fmed == 0.0f ) fmed = fabsf(val) ;
+     if( fmed == 0.0f ) fmed = 1.0f ;
+     penfac = -2.789f * penfac * fmed / kernmax ;
    }
 
    /* number of equations and number of references */
