@@ -1,5 +1,8 @@
 
-#include "string.h"
+#include <stdlib.h>
+#include <string.h>
+#include <malloc.h>
+#include <time.h>
 #include "afni_history.h"
 
 static char g_history[] =
@@ -21,17 +24,20 @@ global_data GD;
 
 int main(int argc, char *argv[])
 {
-    int rv;
+    global_data * gd = &GD;
+    int           rv;
 
-    rv = process_options(argc, argv, &GD);
+    rv = process_options(argc, argv, gd);
     if( rv < 0 )        return 1;
     else if( rv > 0 )   return 0;       /* gentle exit */
 
     /* fill hist people's history_structs */
-    if( init_histlist(&GD) ) return 1;
+    if( init_histlist(gd) ) return 1;
 
     /* are they valid? */
-    if( ! histlists_are_valid(GD.histpairs, GD.plen) ) return 1;
+    if( ! histlists_are_valid(gd->histpairs, gd->plen) ) return 1;
+
+    return show_results(gd);
 
     return 0;
 }
@@ -60,10 +66,443 @@ int process_options(int argc, char * argv[], global_data * gd)
             return 1;
         } else if( !strcmp(argv[ac], "-verb") ) {
             ac++;
-            CHECK_NEXT_OPT(ac, argc, "-verb");
+            CHECK_NEXT_OPT2(ac, argc, "-verb", "LEVEL");
             gd->verb = atoi(argv[ac]);
         }
     }
+
+    if( gd->verb > 3 ) disp_global_data("-- options read: ", gd);
+
+    return 0;
+}
+
+/* if author is set, show results for only that author
+ * otherwise, create a combined list, and show them from there
+ */
+int show_results(global_data * gd)
+{
+    hist_type ** hlist = NULL, * h1 = NULL;
+    int          c, rv, hlen = 0;
+
+    if( gd->author ) {
+        if( gd->verb > 3 )
+            fprintf(stderr,"-- searching for history of '%s'\n", gd->author);
+
+        for( c = 0; c < gd->plen; c++ )
+            if( ! strcmp(gd->histpairs[c].author, gd->author) )
+                break;
+
+        if( c >= gd->plen ) {
+            fprintf(stderr,"** could not find history for author '%s'\n",
+                            gd->author);
+            return 1;
+        }
+
+        if( gd->verb > 1 )
+            fprintf(stderr,"++ found history for author '%s'\n", gd->author);
+
+        /* allocate hlist, and set pointers */
+        h1 = gd->histpairs[c].hlist;
+        if( add_to_hlist(&hlist, h1, hlist_len(h1), &hlen) ) return 1;
+    } else {
+        if( gd->verb > 3 ) fprintf(stderr,"-- compiling composite history\n");
+
+        /* no author, so create hlist as a composite list */
+
+        for( c = 0; c < gd->plen; c++ ) {
+            h1 = gd->histpairs[c].hlist;
+            if( gd->verb > 3 )
+                fprintf(stderr,"\n++ adding history for author '%s'\n",
+                         gd->histpairs[c].author);
+            if( add_to_hlist(&hlist, h1, hlist_len(h1), &hlen) ) {
+                if( hlist ) free(hlist);
+                return 1;
+            }
+        }
+    }
+
+    /* maybe restrict the list to a specific program */
+    if( gd->program )
+        if( restrict_by_program(gd, &hlist, &hlen) ) return 1;
+
+    /* maybe restrict the list to a level or a set of levels */
+    if( gd->level || gd->min_level )
+        if( restrict_by_level(gd, &hlist, &hlen) ) return 1;
+
+    /* sort by date, author, rank and program */
+    qsort(hlist, hlen, sizeof(hist_type *), compare_hlist);
+
+    /* maybe restrict by the date */
+    if( gd->past_days || gd->past_months || gd->past_years )
+        if( restrict_by_date(gd, &hlist, &hlen) ) return 1;
+
+    rv = show_history(gd, hlist, hlen);
+
+    if( hlist ) free(hlist);
+
+    return rv;
+}
+
+/* hlist is an array of structure pointers (to sort and display) */
+int show_history(global_data * gd, hist_type ** hlist, int len)
+{
+    int c;
+
+    if( gd->verb > 1 )
+        fprintf(stderr,"\n-- showing history, length %d...\n\n",len);
+
+    if( !hlist || !*hlist || len <= 0 ) {
+        if( gd->verb > 0 )
+            printf("no history to show, given the restrictions\n");
+        return 1;
+    }
+
+    /* check for html, and write header */
+
+    for( c = 0; c < len; c++ ) {
+        show_hist_type(hlist[c], stdout);
+    }
+
+    /* check for html, and write trailer */
+
+    return 0;
+}
+
+int show_hist_type(hist_type * hp, FILE * fp)
+{
+    fprintf(fp, "%02d %s %04d, %s, %s, rank %d\n",
+            hp->dd, mm2month(hp->mm), hp->yyyy,
+            hp->author, hp->program, hp->rank);
+    fprintf(fp, "    %s", hp->desc);
+    if( hp->desc[strlen(hp->desc)-1] != '\n' ) fputc('\n', fp);
+
+    if( hp->verbtext )
+        show_wrapping_line(hp->verbtext, "  * ", 4, fp);
+
+    fputc('\n', fp);
+
+    return 0;
+}
+
+/* apply line indent per line, if we exceed MAX_LINE_CHARS, wrap */
+int show_wrapping_line(char * str, char * prefix, int indent, FILE * fp)
+{
+    int c, cline, len;
+
+    if( !str ) return 0;
+
+    if( prefix ) fputs(prefix, fp);
+
+    len = strlen(str);
+    if( len < 2 ) return 1;
+
+    if( str[len-1] == '\n' ) len--;     /* ignore trailing newline */
+
+    cline = 0;
+    for( c = 0; c < len; c++ ) {
+        if( str[c] == '\n' ) {          /* print newline and indent */
+            fputc('\n', fp);
+            fprintf(fp, "%*s", indent, "");
+            cline = 0;
+            continue;
+        } else if ( cline > MAX_LINE_CHARS ) {  /* fix, and continue */
+            fputc('\n', fp);
+            fprintf(fp, "%*s", indent, "");
+            cline = 0;
+        }
+        fputc(str[c], fp);
+        cline++;
+    }
+
+    return 0;
+}
+
+/* convert a numerical month to a readable word */
+char * mm2month(int mm)
+{
+    if( mm <=  0 ) return "ILLEGAL";
+    if( mm ==  1 ) return "Jan";
+    if( mm ==  2 ) return "Feb";
+    if( mm ==  3 ) return "Mar";
+    if( mm ==  4 ) return "Apr";
+    if( mm ==  5 ) return "May";
+    if( mm ==  6 ) return "Jun";
+    if( mm ==  7 ) return "Jul";
+    if( mm ==  8 ) return "Aug";
+    if( mm ==  9 ) return "Sep";
+    if( mm == 10 ) return "Oct";
+    if( mm == 11 ) return "Nov";
+    if( mm == 12 ) return "Dec";
+
+    return "ILLEGAL";
+}
+
+/* perhaps we want to remove everythng that is not so recent */
+int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
+{
+    hist_type ** hptr, hstr, *hsptr;
+    struct tm  * loctime;               /* to get todays date */
+    time_t       tsec;
+    long long    offset;
+    int          day, month, year;
+    int          c, nfound, dcount;
+
+    if( !hlist || !*hlist || !len || *len <= 0 ) {
+        if( gd->verb > 1 ) fprintf(stderr,"** bad, evil restriction\n");
+        return 1;
+    }
+
+    /* be sure we have exactly 1 operaion here */
+    dcount = 0;
+    if( gd->past_days   > 0 ) dcount++;
+    if( gd->past_months > 0 ) dcount++;
+    if( gd->past_years  > 0 ) dcount++;
+    if( dcount < 1 ) {
+        if(gd->verb > 1) fprintf(stderr,"-- no date restriction to enforce\n");
+        return 0;
+    } else if ( dcount > 1 ) {
+        fprintf(stderr,"** will not apply multiple date restrictions\n");
+        return 1;
+    }
+
+    /* get time in seconds, and subtract the offset to get a comparison date */
+    offset = 24 * 3600;                         /* seconds in a day */
+    if( gd->past_months > 0 ) offset *= (30.5 * gd->past_months);
+    if( gd->past_years  > 0 ) offset *= (365.25 * gd->past_years);
+    tsec = time(NULL);          
+    if( gd->verb > 1 )
+        fprintf(stderr,"++ converting current date: %s\n",ctime(&tsec));
+    tsec -= offset;
+    loctime = localtime(&tsec);
+    if( gd->verb > 1 )
+        fprintf(stderr,"   to cutoff date: %s\n",ctime(&tsec));
+
+    memset(&hstr, 0, sizeof(hstr));          /* clear and init */
+    hstr.dd   =   loctime->tm_mday;          /* 1..31 */
+    hstr.mm   =   loctime->tm_mon + 1;       /* from 0..11 */
+    hstr.yyyy =   loctime->tm_year + 1900;   /* was offset from 1900 */
+    hsptr = &hstr;  /* needed for compar() */
+
+    if( gd->verb > 1 )
+        fprintf(stderr,"++ applying cutoff date of dd/mm/yyyy %02d/%02d/%04d\n",
+                hstr.dd, hstr.mm, hstr.yyyy);
+
+    /* just find a cutoff now, we should need to move anything */
+    nfound = 0;
+    hptr = *hlist;
+    for( c = 0; c < *len && compare_hlist(&hsptr, &hptr) <= 0; c++)
+        ;
+    nfound = c;
+
+    if( nfound == 0 ) {         /* death by 'levels' */
+        if(gd->verb>0) fprintf(stderr,"-- no history for level restriction\n");
+        free(*hlist);
+        *hlist = NULL;
+        return 1;
+    }
+
+    /* restrict the list */
+    if( nfound < *len ) {
+        *hlist = (hist_type **)realloc(*hlist, nfound*sizeof(hist_type *));
+        if( !*hlist ) {
+            fprintf(stderr,"** failed realloc of list ptrs to len %d\n",nfound);
+            return 1;
+        }
+    }
+
+    if( gd->verb > 1 )
+        fprintf(stderr,"++ date restriction drops list length from %d to %d\n",
+                *len, nfound);
+
+    *len = nfound;
+
+    return 0;
+}
+
+/* perhaps we want to remove everythng that is not up to our 'level' */
+int restrict_by_level(global_data * gd, hist_type *** hlist, int * len)
+{
+    hist_type ** hptr;                  /* just for typing */
+    int          c, nfound;
+
+    if( !hlist || !*hlist || !len || *len <= 0 ) {
+        if( gd->verb > 1 ) fprintf(stderr,"** bad, naughty restriction\n");
+        return 1;
+    }
+
+    if( !gd->level && !gd->min_level ) {
+        if( gd->verb > 3 ) fprintf(stderr, "-- no levels to restrict to\n");
+        return 0;
+    }
+
+    /* move good pointers to beginning of list, and count num found */
+    nfound = 0;
+    hptr = *hlist;
+    for( c = 0; c < *len; c++) {
+        if( (gd->level && gd->level != hptr[c]->rank) ||
+            (hptr[c]->rank < gd->min_level) ) continue;  /* skip it */
+
+        /* we have a winner! */
+        if( c > nfound ) hptr[nfound] = hptr[c];  /* move it up */
+        nfound++;
+    }
+
+    if( nfound == 0 ) {         /* death by 'levels' */
+        if(gd->verb>0) fprintf(stderr,"-- no history for level restriction\n");
+        free(*hlist);
+        *hlist = NULL;
+        return 1;
+    }
+
+    /* restrict the list */
+    *hlist = (hist_type **)realloc(*hlist, nfound*sizeof(hist_type *));
+    if( !*hlist ) {
+        fprintf(stderr,"** failed to realloc hlist ptrs to len %d\n", nfound);
+        return 1;
+    }
+
+    if( gd->verb > 1 ) {
+        if( gd->level )
+            fprintf(stderr,"++ level %d drops list length from %d to %d\n",
+                    gd->level, *len, nfound);
+        else
+            fprintf(stderr,"++ min_level %d drops list length from %d to %d\n",
+                    gd->min_level, *len, nfound);
+    }
+
+    *len = nfound;
+
+    return 0;
+}
+
+/* perhaps we want to remove everythng that is not our program of interest */
+int restrict_by_program(global_data * gd, hist_type *** hlist, int * len)
+{
+    hist_type ** hptr;                  /* just for typing */
+    int          c, nfound;
+
+    if( !hlist || !*hlist || !len || *len <= 0 ) {
+        if( gd->verb > 1 ) fprintf(stderr,"** evil restriction\n");
+        return 1;
+    }
+
+    if( !gd->program ) {
+        if( gd->verb > 3 ) fprintf(stderr, "-- no program to restrict to\n");
+        return 0;
+    }
+
+    /* move good pointers to beginning of list, and count num found */
+    nfound = 0;
+    hptr = *hlist;
+    for( c = 0; c < *len; c++) {
+        if( ! strcmp(gd->program, hptr[c]->program) ) {
+            /* we have a winner! */
+            if( c > nfound ) hptr[nfound] = hptr[c];  /* move it up */
+            nfound++;
+        }
+    }
+
+    if( nfound == 0 ) {         /* death by 'program' */
+        if( gd->verb > 0 )
+            fprintf(stderr,"-- no history for program '%s'\n", gd->program);
+        free(*hlist);
+        *hlist = NULL;
+        return 1;
+    }
+
+    /* restrict the list */
+    *hlist = (hist_type **)realloc(*hlist, nfound*sizeof(hist_type *));
+    if( !*hlist ) {
+        fprintf(stderr,"** failed to realloc hlist ptrs to len %d\n", nfound);
+        return 1;
+    }
+
+    if( gd->verb > 1 )
+        fprintf(stderr,"++ program '%s' drops list length from %d to %d\n",
+                gd->program, *len, nfound);
+
+    *len = nfound;
+
+    return 0;
+}
+
+/* sort by date, then by author, rank and program */
+int compare_hlist(const void *v0, const void *v1)
+{
+    hist_type * h0 = *(hist_type **)v0;
+    hist_type * h1 = *(hist_type **)v1;
+    int         rv;
+
+    if( h0->yyyy != h1->yyyy ) return GD.sort_dir*(h0->yyyy - h1->yyyy);
+    if( h0->mm   != h1->mm   ) return GD.sort_dir*(h0->mm   - h1->mm  );
+    if( h0->dd   != h1->dd   ) return GD.sort_dir*(h0->dd   - h1->dd  );
+
+    if( !h0->author || !h1->author ) return 0;   /* missing means equal */
+    rv = strcmp(h0->author, h1->author);
+    if( rv ) return rv*GD.sort_dir;
+
+    if( h0->rank != h1->rank ) return GD.sort_dir*(h0->rank - h1->rank);
+
+    if( !h0->program || !h1->program ) return 0; /* missing means equal */
+    rv = strcmp(h0->program, h1->program);
+    if( rv ) return rv*GD.sort_dir;
+
+    return 0;
+}
+
+/* reallocate space, and fill the array of longer struct pointers
+ * (note that 'hadd' is a an array of structures) */
+int add_to_hlist(hist_type *** hlist, hist_type * hadd,
+                 int addlen, int * newlen)
+{
+    int c, prevlen;
+
+    if( GD.verb > 4 )
+        fprintf(stderr,"++ appending len %d hist to len %d total\n",
+                addlen, *newlen);
+
+    if( addlen <= 0 ) return 0; /* nothing to add */
+
+    prevlen = *newlen;  /* store for starting index to adjust */
+    *newlen += addlen;
+    *hlist = (hist_type **)realloc(*hlist, *newlen*sizeof(hist_type *));
+    if( !*hlist ) {
+        fprintf(stderr,"** failed to realloc hlist ptrs of len %d\n", *newlen);
+        return 1;
+    }
+
+    for(c = 0; c < addlen; c++)
+        (*hlist)[c+prevlen] = hadd + c;   /* applies struct offsets */
+
+    if( GD.verb > 5 && addlen > 2 ) {
+        fprintf(stderr,"++ first 3 new addresses are: %p, %p, %p\n",
+                (*hlist)[prevlen], (*hlist)[prevlen+1], (*hlist)[prevlen+2]);
+        fprintf(stderr,"   programs are %s, %s, %s\n",
+                CHECK_NULL_STR((*hlist)[prevlen]->program),
+                CHECK_NULL_STR((*hlist)[prevlen+1]->program),
+                CHECK_NULL_STR((*hlist)[prevlen+2]->program)); 
+    }
+
+    return 0;
+}
+
+
+int disp_global_data(char * mesg, global_data * gd)
+{
+    if( mesg ) fputs(mesg, stderr);
+
+    if( !gd ) return 1;
+
+    fprintf(stderr,"global_data struct: \n"
+            "    author                   = %s\n"
+            "    program                  = %s\n"
+            "    html                     = %d\n"
+            "    level, min_level         = %d, %d\n"
+            "    past_days, months, years = %d, %d, %d\n"
+            "    verb, plen               = %d, %d\n",
+            gd->author, gd->program, gd->html, gd->level, gd->min_level,
+            gd->past_days, gd->past_months, gd->past_years,
+            gd->verb, gd->plen);
 
     return 0;
 }
@@ -79,8 +518,8 @@ int show_help(void)
 
 int histlists_are_valid(histpair * hpairs, int plen)
 {
-    afni_history_struct * hp;
-    int                   errs = 0, c;
+    hist_type * hp;
+    int         errs = 0, c;
 
     if( GD.verb > 2 )
         fprintf(stderr,"-- checking for %d valid hlists...\n", plen);
@@ -91,11 +530,12 @@ int histlists_are_valid(histpair * hpairs, int plen)
 
     if( GD.verb > 2 ) fprintf(stderr,"++ number of bad hlists: %d\n", errs);
 
-    return errs;
+    if( errs ) return 0;
+    else       return 1;
 }
 
 /* print any error messages here */
-int valid_histlist(afni_history_struct * hlist, char * author)
+int valid_histlist(hist_type * hlist, char * author)
 {
     int c, len, errs;
 
@@ -124,19 +564,19 @@ int valid_histlist(afni_history_struct * hlist, char * author)
     if( errs )
         fprintf(stderr,"** author %s, found %d bad structs\n", author, errs);
     else if ( GD.verb > 1 )
-        fprintf(stderr,"++ author %s, %d structs, OK\n", author, len);
+        fprintf(stderr,"++ author %s, %d structs, OK\n\n", author, len);
 
     if( errs ) return 0;
     else       return 1;
 }
 
 /* rcr - finish this, check that the dates are sorted (one way or the other) */
-int hlist_is_sorted(afni_history_struct * hlist)
+int hlist_is_sorted(hist_type * hlist)
 {
     return 1;
 }
 
-int valid_histstruct(afni_history_struct * hstr, char * author)
+int valid_histstruct(hist_type * hstr, char * author)
 {
     int errs = 0;
 
@@ -230,7 +670,7 @@ int valid_program(char * prog)
     else         return 1;
 }
 
-int hlist_len(afni_history_struct * hlist)
+int hlist_len(hist_type * hlist)
 {
     int len = 0;
 
@@ -270,13 +710,21 @@ int init_histlist( global_data * gd )
     plist[c].hlist = ziad_history;      plist[c++].author = ZSS;
     gd->plen = c;
 
-    if( c > NUM_HIST_USERS ) {
-        fprintf(stderr,"** NUM_HIST_USERS too small for %d users\n",c);
+    if( gd->plen > NUM_HIST_USERS ) {
+        fprintf(stderr,"** NUM_HIST_USERS too small for %d users\n",gd->plen);
         return 1;
     }
 
     if( gd->verb > 1 )
-        fprintf(stderr,"-- histlist initialized with %d lists\n", c);
+        fprintf(stderr,"-- histlist initialized with %d lists\n", gd->plen);
+
+    if( gd->verb > 4 ) {
+        fprintf(stderr, "-- most recent programs are:\n");
+        for( c = 0; c < gd->plen; c++ )
+            fprintf(stderr,"     author %s, program %s\n",
+                    CHECK_NULL_STR(plist[c].hlist->author),
+                    CHECK_NULL_STR(plist[c].hlist->program));
+    }
 
     return 0;
 }
