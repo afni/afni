@@ -125,6 +125,7 @@ int process_options     (int argc, char * argv[], global_data * gd);
 int restrict_by_date    (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_level   (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_program (global_data * gd, hist_type *** hlist, int * len);
+int show_author_list    (void);
 int show_help           (void);
 int show_hist_type      (hist_type * hp, FILE * fp);
 int show_history        (global_data * gd, hist_type ** hlist, int len);
