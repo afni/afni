@@ -2323,7 +2323,7 @@ nifti_tool.exe:nifti_tool.o nifti1_io.o znzlib.o
 # just compile completely, removing issue of libraries
 gifti_tool:nifti1_io.o znzlib.o
 	$(RM) $@
-	$(CC) -o gifti_tool $(INFLAGS) \
+	$(CC) -o gifti_tool $(INFLAGS) $(LFLAGS) 			\
 		gifti/gifti_tool.c gifti/gifti_io.c gifti/gifti_xml.c 	\
 		nifti1_io.o znzlib.o -lexpat $(LZLIB) -lm
 
