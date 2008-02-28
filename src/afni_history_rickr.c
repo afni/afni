@@ -38,6 +38,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, FEB, 2008, RCR, "afni_history", MINOR,
+   "added -list_authors option",
+   NULL
+ } ,
+
  { 27, FEB, 2008, RCR, "afni_history", MAJOR,
    "new program: display the history of AFNI updates" ,
    "This will be used to create a web page of AFNI updates.\n"
