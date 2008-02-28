@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 /* return -1 on error, +1 for gentle exit, and 0 to continue */
 int process_options(int argc, char * argv[], global_data * gd)
 {
-    int ac, c;
+    int ac;
 
     if( argc < 0 || !argv || !gd ) return -1;
 
@@ -247,7 +247,6 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
     struct tm  * loctime;               /* to get todays date */
     time_t       tsec;
     long long    offset;
-    int          day, month, year;
     int          c, nfound, dcount;
 
     if( !hlist || !*hlist || !len || *len <= 0 ) {
@@ -521,8 +520,7 @@ int show_help(void)
 
 int histlists_are_valid(histpair * hpairs, int plen)
 {
-    hist_type * hp;
-    int         errs = 0, c;
+    int errs = 0, c;
 
     if( GD.verb > 2 )
         fprintf(stderr,"-- checking for %d valid hlists...\n", plen);
