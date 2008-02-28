@@ -107,6 +107,8 @@ floatvec * THD_fitter( int npt , float *far  ,
 
 /*-------------------------------------------------------------------------*/
 
+#define ERREX(s) do { /** ERROR_message(s); **/ return NULL; } while(0)
+
 floatvec * THD_deconvolve( int npt    , float *far   ,
                            int minlag , int maxlag   , float *kern,
                            int nbase  , float *base[],
@@ -114,19 +116,20 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
                            int pencode, float penfac               )
 {
    int ii , jj , kk ;
-   float val,kernmax,fmax , *zar , *zcon=NULL ;
+   float val,kernmax, *zar , *zcon=NULL ;
    floatvec *fv=NULL ;
    int nref,nlag,npen,nplu ; float **ref ;
+   int p0,p1,p2 , np0,np1,np2 , rp0,rp1,rp2 ;
 
    /* check inputs for stupid users */
 
-   if( npt <= 3 || far == NULL ) return NULL ;
+   if( npt <= 3 || far == NULL ) ERREX("e1") ;
    nlag = maxlag-minlag+1 ;
-   if( nlag <= 1 || kern == NULL || !GOOD_METH(meth) ) return NULL ;
-   if( minlag <= -npt+1 || maxlag >= npt-1 ) return NULL ;
+   if( nlag <= 1 || kern == NULL || !GOOD_METH(meth) ) ERREX("e2") ;
+   if( minlag <= -npt+1 || maxlag >= npt-1 ) ERREX("e3") ;
    if( nbase > 0 ){
-     if( base == NULL ) return NULL ;
-     for( jj=0 ; jj < nbase ; jj++ ) if( base[jj] == NULL ) return NULL ;
+     if( base == NULL ) ERREX("e4") ;
+     for( jj=0 ; jj < nbase ; jj++ ) if( base[jj] == NULL ) ERREX("e5") ;
    } else if( nbase < 0 ){ /* user = dumb as a brick */
      nbase = 0 ;
    }
@@ -134,25 +137,38 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
    for( kernmax=0.0f,jj=0 ; jj < nlag ; jj++ ){
      val = fabsf(kern[jj]) ; kernmax = MAX(kernmax,val) ;
    }
-   if( kernmax == 0.0f ) return NULL ;
+   if( kernmax == 0.0f ) ERREX("e6") ;
 
-   for( fmax=0.0f,ii=0 ; ii < npt ; ii++ ){
-     val = fabsf(far[ii]) ; fmax = MAX(fmax,val) ;
+   /* count penalty equations */
+
+   p0   = (pencode & 1) ;    /* which penalty functions are enabled */
+   p1   = (pencode & 2) ;
+   p2   = (pencode & 4) ;
+   if( p0==0 && p1==0 & p2==0 ) p0 = 1 ;  /* must have some penalty */
+   np0  = (p0) ? npt   : 0 ;   /* number of equations for each case */
+   np1  = (p1) ? npt-1 : 0 ;
+   np2  = (p2) ? npt-2 : 0 ;
+   rp0  = npt ;                      /* row offset for p0 functions */
+   rp1  = rp0 + np0 ;                /* row offset for p1 functions */
+   rp2  = rp1 + np1 ;                /* row offset for p2 functions */
+   npen = np0+np1+np2 ;        /* total number of penalty equations */
+
+   /* set scale factor for penalty equations */
+
+   if( penfac == 0.0f ) penfac = -0.999f ;
+   if( penfac < 0.0f ){
+     float fmax ;
+     qmedmad_float( npt , far , &val , &fmax ) ;
+     if( fmax == 0.0f ) fmax = fabsf(val) ;
+     if( fmax == 0.0f ) fmax = 1.0f ;
+     penfac = -2.789f * penfac * fmax / kernmax ;
    }
-   if( fmax == 0.0f ) return NULL ;
-
-   /* number of penalty equations */
-
-   if( penfac == 0.0f ) penfac = -0.01f ;
-   if( penfac <  0.0f ) penfac = penfac * fmax / kernmax ;
-   if( pencode > 2 || pencode > npt-1-nbase || pencode < 0 ) pencode = 0 ;
-   npen = npt - pencode ;
 
    /* number of equations and number of references */
 
    nplu = npt + npen ;
    nref = npt + nbase ;
-   if( nref > nplu ) return NULL ;  /* only if user is really stupid */
+   if( nref > nplu ) ERREX("e8") ;  /* only if user is really stupid */
 
    /** make new reference vectors **/
 
@@ -170,21 +186,18 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
 
    /* penalty eqations */
 
-   switch( pencode ){
-     case 0:
-       for( jj=0 ; jj < npt ; jj++ ) ref[jj][npt+jj] = penfac ;
-     break ;
-
-     case 1:
-       for( jj=0 ; jj < npt-1 ; jj++ ) ref[jj][npt+jj]   = -penfac ;
-       for( jj=1 ; jj < npt   ; jj++ ) ref[jj][npt+jj-1] =  penfac ;
-     break ;
-
-     case 2:
-       for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][npt+jj]   = -penfac ;
-       for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][npt+jj-1] =2*penfac ;
-       for( jj=2 ; jj < npt   ; jj++ ) ref[jj][npt+jj-2] = -penfac ;
-     break ;
+   if( p0 ){
+     for( jj=0 ; jj < npt   ; jj++ ) ref[jj][rp0+jj]   =  penfac ;
+   }
+   if( p1 ){
+     for( jj=0 ; jj < npt-1 ; jj++ ) ref[jj][rp1+jj]   = -penfac ;
+     for( jj=1 ; jj < npt   ; jj++ ) ref[jj][rp1+jj-1] =  penfac ;
+   }
+   if( p2 ){
+     float pp = -0.5f*penfac ;
+     for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][rp2+jj]   = pp ;
+     for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][rp2+jj-1] = penfac ;
+     for( jj=2 ; jj < npt   ; jj++ ) ref[jj][rp2+jj-2] = pp ;
    }
 
    /* copy baseline equations (if any) */
@@ -205,7 +218,7 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
      zcon = (float *)calloc(sizeof(float),nref) ;
      if( dcon != 0 )
        for( ii=0 ; ii < npt ; ii++ ) zcon[ii] = (float)dcon ;
-     if( nbase > 0 )
+     if( nbase > 0 && ccon != NULL )
        memcpy(zcon+npt,ccon,sizeof(float)*nbase) ;
    }
 

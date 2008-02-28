@@ -74,5 +74,15 @@ afni_history_struct rwcox_history[] = {
    "Unlike 3dDeconvolve, this deconvolution is to find the input time\n"
    "series, given the impulse response function.\n" } ,
 
+ { 28 , FEB , 2008 , RWC , "3dUndump" , MINOR ,
+   "allow input of NO text files, to produce an 'empty' dataset" ,
+   NULL } ,
+
+ { 28 , FEB , 2008 , RWC , "3dTfitter" , MINOR ,
+   "allow constraints on sign of deconvolved function" , NULL } ,
+
+ { 28 , FEB , 2008 , RWC , "3dTfitter" , MINOR ,
+   "allow combination of penalty functions in deconvolution" , NULL } ,
+
  { 99,99,99, NULL,NULL, 99, NULL,NULL}  /** the end */
 } ;
