@@ -26,7 +26,7 @@ int main( int argc , char *argv[] )
    int verb=1 ;
 #ifdef FALTUNG
    THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
-   char *fal_pre ; int fal_pencod, fal_klen=0 ;
+   char *fal_pre ; int fal_pencod, fal_klen=0 , fal_dcon=0 ;
    float *fal_kern=NULL , fal_penfac ;
    THD_3dim_dataset *defal_set=NULL ;
 #endif
@@ -80,15 +80,48 @@ int main( int argc , char *argv[] )
       "               input 'rset' time series.\n"
       "             * 'pen' denotes the type of penalty function to be\n"
       "               applied to constrain the deconvolved time series:\n"
-      "              ++ pen = 0, 1, or 2 to minimize the summed 0th, 1st, or 2nd\n"
-      "                 order differences of the output time series\n"
-      "             * 'fac' is the positive weight to give the penalty function\n"
-      "              ++ if fac <= 0, then the program uses a small value\n"
-      "             * If '-LHS' is also used, these basis vectors can be\n"
+      "              ++ The following penalty functions are available:\n"
+      "                   P0[s] = f^q * sum{ |s(t)|^q }\n"
+      "                   P1[s] = f^q * sum{ |s(t)-s(t-1)|^q }\n"
+      "                   P2[s] = f^q * sum{ |s(t)-0.5*s(t-1)-0.5*s(t+1)|^q }\n"
+      "                 where s(t) is the deconvolved time series;\n"
+      "                 where q=1 for L1 fitting, q=2 for L2 fitting;\n"
+      "                 where f is the value of 'fac' (defined below).\n"
+      "                   P0 tries to keep s(t) itself small\n"
+      "                   P1 tries to keep point-to-point fluctuations\n"
+      "                      in s(t) small (1st derivative)\n"
+      "                   P2 tries to keep 3 point fluctuations\n"
+      "                      in s(t) small (2nd derivative)\n"
+      "              ++ In L2 regression, these penalties are like Wiener\n"
+      "                 deconvolution with noise spectra proportional to\n"
+      "                   P0 ==> f^2 (constant in frequency)\n"
+      "                   P1 ==> f^2 * freq^2\n"
+      "                   P2 ==> f^2 * freq^4\n"
+      "                 However, 3dTfitter does deconvolution in\n"
+      "                 the time domain, not the frequency domain!\n"
+      "              ++ The value of 'pen' is one of the following 7 cases:\n"
+      "                     0 = use P0 only\n"
+      "                     1 = use P1 only\n"
+      "                     2 = use P2 only\n"
+      "                    01 = use P0+P1 (the sum of these two functions)\n"
+      "                    02 = use P0+P2\n"
+      "                    12 = use P1+P2\n"
+      "                   012 = use P0+P1+P2\n"
+      "                 If 'pen' does not contain any of the digits 0..2,\n"
+      "                 then '01' will be used.\n"
+      "             * 'fac' is the positive weight for the penalty function:\n"
+      "              ++ if fac < 0, then the program chooses a penalty\n"
+      "                 factor for each voxel and then scales that by -fac.\n"
+      "              ++ fac = 0 is like selecting fac = -1.\n"
+      "              ++ SOME penalty has to be applied, since otherwise the\n"
+      "                 set of linear equations for s(t) is under-determined\n"
+      "                 and/or ill-conditioned!\n"
+      "             * If '-LHS' is also used, those basis vectors can be\n"
       "               thought of as a baseline to be regressed out at the\n"
       "               same time the convolution model is fitted.\n"
       "           *** At most one '-FALTUNG' option can be used!\n"
-      " ************* THIS OPTION IS EXPERIMENTAL AND NOT DEBUGGED YET!\n"
+      "   *********** THIS OPTION IS EXPERIMENTAL AND NOT FULLY TESTED YET!\n"
+      "           *** And it can be pretty slow, applied to a 3D+time dataset.\n"
 #endif
       "\n"
       "  -lsqfit   = Solve equations via least squares [the default].\n"
@@ -116,6 +149,15 @@ int main( int argc , char *argv[] )
       "               '-consign' -- you can't specify that an coefficient\n"
       "               is both non-negative and non-positive, for example!\n"
       "           *** Constraints can be used with '-l1fit' AND with '-l2fit'.\n"
+#ifdef FALTUNG
+      "           *** '-consign' constraints only apply to the '-LHS'\n"
+      "               fit parameters.  To constrain the '-FALTUNG' output,\n"
+      "               use the option below.\n"
+      "\n"
+      "  -consFAL s= Constrain the deconvolution time series from '-FALTUNG'\n"
+      "              to be positive if 's' is '+' or to be negative if\n"
+      "              's' is '-'.\n"
+#endif
       "\n"
       "  -prefix p = Prefix for the output dataset filename.\n"
       "             * Which is always in float format.\n"
@@ -184,13 +226,45 @@ int main( int argc , char *argv[] )
       " 0.535479 0.000236338\n"
       "\n"
       "  which are respectively the fit coefficients of 'cos(t)' and 'sin(t)'.\n"
+#ifdef FALTUNG
       "\n"
-      "----- RWCox -- Feb 2008.\n"
-      "----- Created for the imperial purposes of John A Butman, MD PhD.\n"
-      "----- But may be useful for some other well-meaning souls out there.\n"
+      "Contrived Deconvolution Example:\n"
+      "--------------------------------\n"
+      "(1) Create a 100 point 1D file that is a block of 'activation'\n"
+      "    between points 40..50\n"
+      "       3dConvolve -input1D -polort -1 -num_stimts 1     \\\n"
+      "                  -stim_file 1 '1D: 40@0 10@1 950@0'    \\\n"
+      "                  -stim_minlag 1 0 -stim_maxlag 1 5     \\\n"
+      "                  -iresp 1 '1D: 0 1 2 3 2 1' -nlast 100 \\\n"
+      "            | grep -v Result | grep -v '^$' > F101.1D\n"
+      "\n"
+      "(2) Create a 3D+time dataset with this time series in each\n"
+      "    voxel, plus noise that increases with voxel 'i' index\n"
+      "       3dUndump -prefix Fjunk -dimen 100 100 1\n"
+      "       3dcalc -a Fjunk+orig -b F101.1D     \\\n"
+      "              -expr 'b+gran(0,0.04*(i+1))' \\\n"
+      "              -float -prefix F101d\n"
+      "       /bin/rm -f Fjunk+orig.*\n"
+      "\n"
+      "(3) Deconvolve and see what you get\n"
+      "       3dTfitter -RHS F101d+orig -l1fit \\\n"
+      "                 -FALTUNG '1D: 0 1 2 3 2 1' F101d_fal2 012 2.0\n"
+      "\n"
+      "    View F101d_fal2+orig and F101d+orig in AFNI and see how the\n"
+      "    fit quality varies with the noise level.\n"
+#endif
+      "\n"
+      "---------------------------------------------------------------------\n"
+      "-- RWCox - Feb 2008.\n"
+      "-- Created for the imperial purposes of John A Butman, MD PhD.\n"
+      "-- But may be useful for some other well-meaning souls out there.\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
+
+   mainENTRY("3dTfitter"); machdep();
+   PRINT_VERSION("3dTfitter"); AUTHOR("RWCox") ;
+   AFNI_logger("3dTfitter",argc,argv);
 
    /*------- read command line args -------*/
 
@@ -199,6 +273,7 @@ int main( int argc , char *argv[] )
 
 #ifdef FALTUNG
      if( strcasecmp(argv[iarg],"-faltung") == 0 ){
+       int p0,p1,p2 ;
        if( fal_set != NULL || fal_im != NULL )
          ERROR_exit("Can't have two -FALTUNG arguments") ;
        if( iarg+4 >= argc )
@@ -227,9 +302,27 @@ int main( int argc , char *argv[] )
        fal_pre = strdup(argv[++iarg]) ;
        if( !THD_filename_ok(fal_pre) )
          ERROR_exit("Illegal filename prefix '%s'",argv[iarg]) ;
-       fal_pencod = (int)strtod(argv[++iarg],NULL) ;
-       if( fal_pencod < 0 || fal_pencod > 2 ) fal_pencod = 0 ;
+       iarg++ ;
+       p0 = (strchr(argv[iarg],'0') != NULL) ;
+       p1 = (strchr(argv[iarg],'1') != NULL) ;
+       p2 = (strchr(argv[iarg],'2') != NULL) ;
+       if( p0==0 && p1==0 && p2==0 ){
+         WARNING_message(
+           "-FALTUNG 'pen' value '%s' illegal: defaulting to '01'",argv[iarg]);
+         p0 = p1 = 1 ;
+       }
+       fal_pencod = p0 + 2*p1 + 4*p2 ; /* encode in bits */
        fal_penfac = (float)strtod(argv[++iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+
+     if( strncasecmp(argv[iarg],"-consFAL",7) == 0 ){
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+       fal_dcon = (argv[iarg][0] == '+') ?  1
+                 :(argv[iarg][0] == '-') ? -1 : 0 ;
+       if( fal_dcon == 0 )
+         WARNING_message("value after '-consFAL' is not '+' or '-' -- ignoring");
        iarg++ ; continue ;
      }
 #endif
@@ -323,7 +416,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     if( strncasecmp(argv[iarg],"-consign",5) == 0 ){
+     if( strncasecmp(argv[iarg],"-consign",7) == 0 ){
        char *cpt , nvec ;
        if( ++iarg >= argc )
          ERROR_exit("Need argument after '%s'",argv[iarg-1]);
@@ -543,8 +636,8 @@ int main( int argc , char *argv[] )
 
        bfit = THD_deconvolve( ntime , dvec ,
                               0 , fal_klen-1 , fal_kern ,
-                              nvar , rvec , meth , cvec , 0 ,
-                              fal_pencod , fal_penfac        ) ;
+                              nvar , rvec , meth , cvec , fal_dcon ,
+                              fal_pencod , fal_penfac               ) ;
      } else {
        bfit = THD_fitter( ntime , dvec , nvar , rvec , meth , cvec ) ;
      }
