@@ -39,7 +39,7 @@
 afni_history_struct rickr_history[] = {
 
  { 28, FEB, 2008, RCR, "afni_history", MINOR,
-   "added -list_authors option",
+   "added -list_authors option and adjusted spacing",
    NULL
  } ,
 

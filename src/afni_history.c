@@ -263,15 +263,64 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
     if( gd->html ) show_html_header(stdout, gd->min_level);
 
     if( gd->sort_dir == 1 )
-        printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
-    else
         printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
+    else
+        printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
 
     for( c = 0; c < len; c++ ) {
         show_hist_type(hlist[c], stdout);
     }
 
     if( gd->html ) show_html_footer(stdout);
+
+    return 0;
+}
+
+int show_hist_type(hist_type * hp, FILE * fp)
+{
+    fprintf(fp, "%02d %s %04d, %s, %s, level %d\n",
+            hp->dd, mm2month(hp->mm), hp->yyyy,
+            hp->author, hp->program, hp->level);
+    fprintf(fp, "    %s\n", hp->desc);
+    if( hp->desc[strlen(hp->desc)-1] != '\n' ) fputc('\n', fp);
+
+    if( hp->verbtext )
+        show_wrapping_line(hp->verbtext, "    ", 4, fp);
+
+    return 0;
+}
+
+/* apply line indent per line, if we exceed MAX_LINE_CHARS, wrap */
+int show_wrapping_line(char * str, char * prefix, int indent, FILE * fp)
+{
+    int c, cline, len;
+
+    if( !str ) return 0;
+
+    if( prefix ) fputs(prefix, fp);
+
+    len = strlen(str);
+    if( len < 2 ) return 1;
+
+    if( str[len-1] == '\n' ) len--;     /* ignore trailing newline */
+
+    cline = 0;
+    for( c = 0; c < len; c++ ) {
+        if( str[c] == '\n' ) {          /* print newline and indent */
+            fputc('\n', fp);
+            fprintf(fp, "%*s", indent, "");
+            cline = 0;
+            continue;
+        } else if ( cline > MAX_LINE_CHARS ) {  /* fix, and continue */
+            fputc('\n', fp);
+            fprintf(fp, "%*s", indent, "");
+            cline = 0;
+        }
+        fputc(str[c], fp);
+        cline++;
+    }
+
+    fprintf(fp,"\n\n");
 
     return 0;
 }
@@ -307,57 +356,6 @@ int show_html_footer(FILE * fp)
                 __DATE__);
     fprintf(fp, "</body></html>\n");
     
-    return 0;
-}
-
-int show_hist_type(hist_type * hp, FILE * fp)
-{
-    fprintf(fp, "%02d %s %04d, %s, %s, level %d\n",
-            hp->dd, mm2month(hp->mm), hp->yyyy,
-            hp->author, hp->program, hp->level);
-    fprintf(fp, "    %s", hp->desc);
-    if( hp->desc[strlen(hp->desc)-1] != '\n' ) fputc('\n', fp);
-
-    if( hp->verbtext )
-        show_wrapping_line(hp->verbtext, "  * ", 4, fp);
-
-    fputc('\n', fp);
-
-    return 0;
-}
-
-/* apply line indent per line, if we exceed MAX_LINE_CHARS, wrap */
-int show_wrapping_line(char * str, char * prefix, int indent, FILE * fp)
-{
-    int c, cline, len;
-
-    if( !str ) return 0;
-
-    if( prefix ) fputs(prefix, fp);
-
-    len = strlen(str);
-    if( len < 2 ) return 1;
-
-    if( str[len-1] == '\n' ) len--;     /* ignore trailing newline */
-
-    cline = 0;
-    for( c = 0; c < len; c++ ) {
-        if( str[c] == '\n' ) {          /* print newline and indent */
-            fputc('\n', fp);
-            fprintf(fp, "%*s", indent, "");
-            cline = 0;
-            continue;
-        } else if ( cline > MAX_LINE_CHARS ) {  /* fix, and continue */
-            fputc('\n', fp);
-            fprintf(fp, "%*s", indent, "");
-            cline = 0;
-        }
-        fputc(str[c], fp);
-        cline++;
-    }
-
-    fputc('\n', fp);
-
     return 0;
 }
 
