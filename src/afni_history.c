@@ -50,6 +50,7 @@ int process_options(int argc, char * argv[], global_data * gd)
     if( argc < 0 || !argv || !gd ) return -1;
 
     memset(gd, 0, sizeof(global_data));
+    gd->sort_dir = 1;   /* can reverse this */
     gd->verb = 1;
 
     /* if( argc <= 1 ) { show_help(); return 1; } maybe just run */
@@ -213,6 +214,8 @@ int show_wrapping_line(char * str, char * prefix, int indent, FILE * fp)
         fputc(str[c], fp);
         cline++;
     }
+
+    fputc('\n', fp);
 
     return 0;
 }
@@ -499,10 +502,10 @@ int disp_global_data(char * mesg, global_data * gd)
             "    html                     = %d\n"
             "    level, min_level         = %d, %d\n"
             "    past_days, months, years = %d, %d, %d\n"
-            "    verb, plen               = %d, %d\n",
+            "    sort_dir, verb, plen     = %d, %d, %d\n",
             gd->author, gd->program, gd->html, gd->level, gd->min_level,
             gd->past_days, gd->past_months, gd->past_years,
-            gd->verb, gd->plen);
+            gd->sort_dir, gd->verb, gd->plen);
 
     return 0;
 }
