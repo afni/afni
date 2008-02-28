@@ -1,7 +1,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <time.h>
 #include "afni_history.h"
 
