@@ -24,12 +24,12 @@
 #define PPC "PP Chrisidis"
 #define BGP "BG Pittman"
 
-#define MIN_PROG_RANK  1                       /* min in list */
-#define MICRO     1  /* rank for changes that users don't see */
-#define MINOR     2  /* rank for small changes that users see */
-#define MAJOR     3  /* rank for large changes that users see */
-#define SUPER     4  /* rank for changes that users must know */
-#define MAX_PROG_RANK  4                       /* max in list */
+#define MIN_PROG_LEVEL  1                       /* min in list */
+#define MICRO     1  /* level for changes that users don't see */
+#define MINOR     2  /* level for small changes that users see */
+#define MAJOR     3  /* level for large changes that users see */
+#define SUPER     4  /* level for changes that users must know */
+#define MAX_PROG_LEVEL  4                       /* max in list */
 
 #define TYPE_NOT_SET    0
 #define TYPE_NEW_OPT    1
@@ -43,7 +43,7 @@ typedef struct {
   short   yyyy;        /* Year: 2001..9999 */
   char  * author;      /* use a macro */
   char  * program;     /* will be checked against allowed names */
-  short   rank;        /* use a macro */
+  short   level;       /* use a macro */
   char  * desc;        /* one line description */
   char  * verbtext;    /* can be NULL, but shouldn't be */
 } afni_history_struct;
@@ -128,6 +128,8 @@ int restrict_by_program (global_data * gd, hist_type *** hlist, int * len);
 int show_help           (void);
 int show_hist_type      (hist_type * hp, FILE * fp);
 int show_history        (global_data * gd, hist_type ** hlist, int len);
+int show_html_footer    (FILE * fp);
+int show_html_header    (FILE * fp, int min_level);
 int show_results        (global_data * gd);
 int show_wrapping_line  (char * str, char * prefix, int indent, FILE * fp);
 int valid_dstring       (char * str, int max_line_len);
@@ -136,5 +138,6 @@ int valid_histstruct    (hist_type * hstr, char * author);
 int valid_program       (char * prog);
 
 char * mm2month         (int mm);
+char * convert_author   (char * name);
 
 #endif /* _AFNI_HISTORY_HEADER_ */

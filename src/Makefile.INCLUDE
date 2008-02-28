@@ -2116,14 +2116,14 @@ imcalc:imcalc.o parser.o parser_int.o
 	$(CC) -o imcalc imcalc.o parser.o parser_int.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 
-AFNI_HIST_FILES  =							     \
+AFNI_HIST_FILES  = afni_history.c					     \
 	afni_history_bpittman.c afni_history_christip.c afni_history_dglen.c \
 	afni_history_gangc.c afni_history_rickr.c afni_history_rwcox.c	     \
 	afni_history_ziad.c
 
-afni_history: afni_history.o $(AFNI_HIST_FILES)
+afni_history: $(AFNI_HIST_FILES)
 	$(RM) $@
-	$(CCMIN) -Wall -o afni_history afni_history.o $(AFNI_HIST_FILES)
+	$(CCMIN) -Wall -o afni_history $(AFNI_HIST_FILES)
 
 ###########################################################################
 # Miscellaneous programs, mostly for testing purposes
