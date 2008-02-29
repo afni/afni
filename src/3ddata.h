@@ -4048,6 +4048,9 @@ extern floatvec * THD_deconvolve( int npt    , float *far   ,
                                   int meth   , float *ccon  , int dcon   ,
                                   int pencode, float penpar               ) ;
 
+extern floatvec * THD_fitter_fitts( int npt, floatvec *fv,
+                                    int nref, float *ref[] ) ;
+
 /*--------------- routines that are in thd_detrend.c ---------------*/
 
 extern void get_linear_trend     ( int, float *, float *, float * ) ;
