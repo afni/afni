@@ -42,6 +42,12 @@
 */
 
 afni_history_struct rwcox_history[] = {
+/*=====BELOW THIS LINE=====*/
+
+ { 20 , NOV , 2007 , RWC , "3dTsort" , MAJOR , TYPE_NEW_PROG ,
+   "new program = sorts voxel data along the time axis" ,
+   "This might be useful for sorting the -stim_time_IM beta weights\n"
+   "output be 3dDeconvolve.  Perhaps for something else, too?" } ,
 
  { 16 , FEB , 2008 , RWC , "3dTfitter" , SUPER , TYPE_NEW_PROG ,
    "new program = linear fits to voxel time series" ,
@@ -83,14 +89,15 @@ afni_history_struct rwcox_history[] = {
    "allow input of NO text files, to produce an 'empty' dataset" ,
    NULL } ,
 
- { 28 , FEB , 2008 , RWC , "3dTfitter" , MINOR , TYPE_GENERAL ,
+ { 28 , FEB , 2008 , RWC , "3dTfitter" , MINOR , TYPE_NEW_OPT ,
    "allow constraints on sign of deconvolved function" , NULL } ,
 
- { 28 , FEB , 2008 , RWC , "3dTfitter" , MINOR , TYPE_GENERAL ,
+ { 28 , FEB , 2008 , RWC , "3dTfitter" , MINOR , TYPE_NEW_OPT ,
    "allow combination of penalty functions in deconvolution" , NULL } ,
 
  { 29 , FEB , 2008 , RWC , "afni_history" , MICRO , TYPE_GENERAL ,
    "with HTML output, put a rule between different dates" , NULL } ,
 
+/*=====ABOVE THIS LINE=====*/
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end */
 } ;
