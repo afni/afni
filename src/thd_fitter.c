@@ -106,8 +106,59 @@ floatvec * THD_fitter( int npt , float *far  ,
 }
 
 /*-------------------------------------------------------------------------*/
+/* Get the fitted time series, given the parameters in fv. */
 
-#define ERREX(s) do { /** ERROR_message(s); **/ return NULL; } while(0)
+floatvec * THD_fitter_fitts( int npt, floatvec *fv, int nref, float *ref[] )
+{
+   int ii , jj ;
+   float sum , *qar , pval ;
+   floatvec *qv ;
+
+   if( npt < 1 || fv == NULL || fv->nar < nref ||
+                  nref < 1   || ref == NULL      ) return NULL ;
+
+   MAKE_floatvec(qv,npt) ; qar = qv->ar ;
+   for( jj=0 ; jj < nref ; jj++ ){
+     pval = fv->ar[jj] ;
+     for( ii=0 ; ii < npt ; ii++ ) qar[ii] += ref[jj][ii] * pval ;
+   }
+
+   return qv ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+#if 0
+# define ERREX(s) do { ERROR_message(s); return NULL; } while(0)
+#else
+# define ERREX(s) return(NULL)
+#endif
+
+/*------------------------------------------------------------------------*/
+/* Fit a deconvolution model, using THD_fitter() as the workhorse.
+    - npt    = length of time series
+    - far    = time series data [0..npt-1]
+    - minlag = minimum lag into the past (can be negative) -- usually 0
+    - maxlag = maximum lag into the past
+    - kern   = kernel to deconvolve = kern[0..maxlag-minlag]
+    - nbase  = number of baseline parameters (can be 0)
+    - base   = baseline reference functions (can be NULL if nbase==0)
+    - meth   = 1 or 2 for L1 or L2 regresstion
+    - ccon   = constraints on signs of baselne parameters
+    - dcon   = constraint on sign of deconvolved time series s(t)
+    - pencode= penalty function for s(t) -- cf. 3dTfitter -help
+    - npfac  = number of penalty factors to use
+    - pfac   = array of penalty factors
+
+   Return value is an array of npfac floatvec-s, each of which has
+   npt+nbase values -- the first npt of which are s(t) and the last
+   nbase of which are the baseline parameters.  A NULL return indicates
+   some bad input.  An individual NULL floatvec indicates that particular
+   value of pfac caused the regression to fail for some hideous reason.
+
+   The purpose of evaluating multiple pfac-s is to implement the L-curve
+   methodology for choosing a pfac.  But that part isn't yet written.
+*//*----------------------------------------------------------------------*/
 
 floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
                                      int minlag , int maxlag   , float *kern,
@@ -249,137 +300,13 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
 }
 
 /*-------------------------------------------------------------------------*/
+/* The real work is outsourced to the function above. */
 
 floatvec * THD_deconvolve( int npt    , float *far   ,
                            int minlag , int maxlag   , float *kern,
                            int nbase  , float *base[],
                            int meth   , float *ccon  , int dcon   ,
                            int pencode, float penfac               )
-#if 0
-{
-   int ii , jj , kk ;
-   float val,kernmax, *zar , *zcon=NULL ;
-   floatvec *fv=NULL ;
-   int nref,nlag,npen,nplu ; float **ref ;
-   int p0,p1,p2 , np0,np1,np2 , rp0,rp1,rp2 ;
-
-   /* check inputs for stupid users */
-
-   if( npt <= 3 || far == NULL ) ERREX("e1") ;
-   nlag = maxlag-minlag+1 ;
-   if( nlag <= 1 || kern == NULL || !GOOD_METH(meth) ) ERREX("e2") ;
-   if( minlag <= -npt+1 || maxlag >= npt-1 ) ERREX("e3") ;
-   if( nbase > 0 ){
-     if( base == NULL ) ERREX("e4") ;
-     for( jj=0 ; jj < nbase ; jj++ ) if( base[jj] == NULL ) ERREX("e5") ;
-   } else if( nbase < 0 ){ /* user = dumb as a brick */
-     nbase = 0 ;
-   }
-
-   for( kernmax=0.0f,jj=0 ; jj < nlag ; jj++ ){
-     val = fabsf(kern[jj]) ; kernmax = MAX(kernmax,val) ;
-   }
-   if( kernmax == 0.0f ) ERREX("e6") ;
-
-   /* count penalty equations */
-
-   p0   = (pencode & 1) ;    /* which penalty functions are enabled */
-   p1   = (pencode & 2) ;
-   p2   = (pencode & 4) ;
-   if( p0==0 && p1==0 & p2==0 ) p0 = 1 ;  /* must have some penalty */
-   np0  = (p0) ? npt   : 0 ;   /* number of equations for each case */
-   np1  = (p1) ? npt-1 : 0 ;
-   np2  = (p2) ? npt-2 : 0 ;
-   rp0  = npt ;                      /* row offset for p0 functions */
-   rp1  = rp0 + np0 ;                /* row offset for p1 functions */
-   rp2  = rp1 + np1 ;                /* row offset for p2 functions */
-   npen = np0+np1+np2 ;        /* total number of penalty equations */
-
-   /* set scale factor for penalty equations, if user requested */
-
-   if( penfac == 0.0f ) penfac = -0.999f ;
-   if( penfac < 0.0f ){
-     float fmed , fsig ;
-     qmedmad_float  ( npt , far , NULL , &fmed ) ; fmed *= 1.789f ;
-     meansigma_float( npt , far , &val , &fsig ) ;
-     if( fmed <  fsig ) fmed = fsig ;
-     if( fmed == 0.0f ) fmed = fabsf(val) ; /* data is constant? */
-     if( fmed == 0.0f ) ERREX("e7") ;       /* data is all zero? */
-     penfac = -2.789f * penfac * fmed / kernmax ;
-   }
-
-   /* number of equations and number of references */
-
-   nplu = npt + npen ;   /* number of equations */
-   nref = npt + nbase ;  /* number of references */
-   if( nref > nplu ) ERREX("e8") ;  /* only if user is really stupid */
-
-   /** make new reference vectors (that are nplu long) **/
-
-   ref = (float **)malloc(sizeof(float *)*nref) ;
-
-   /* deconvolution equations (rows and columns #0..npt-1) */
-
-   for( jj=0 ; jj < npt ; jj++ ){
-     ref[jj] = (float *)calloc(sizeof(float),nplu) ;
-     for( ii=0 ; ii < npt ; ii++ ){
-       kk = ii-jj ; if( kk < minlag ) continue; if( kk > maxlag ) break ;
-       ref[jj][ii] = kern[kk-minlag] ;
-     }
-   }
-
-   /* penalty eqations for deconv (columns #0..npt-1, rows #npt..nplu-1) */
-
-   if( p0 ){
-     for( jj=0 ; jj < npt   ; jj++ ) ref[jj][rp0+jj]   =  penfac ;
-   }
-   if( p1 ){
-     for( jj=0 ; jj < npt-1 ; jj++ ) ref[jj][rp1+jj]   = -penfac ;
-     for( jj=1 ; jj < npt   ; jj++ ) ref[jj][rp1+jj-1] =  penfac ;
-   }
-   if( p2 ){
-     float pp = -0.5f*penfac ;
-     for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][rp2+jj]   = pp ;
-     for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][rp2+jj-1] = penfac ;
-     for( jj=2 ; jj < npt   ; jj++ ) ref[jj][rp2+jj-2] = pp ;
-   }
-
-   /* baseline equations, if any (columns #npt..nref-1, rows #0..npt-1) */
-
-   for( jj=0 ; jj < nbase ; jj++ ){
-     ref[jj+npt] = (float *)calloc(sizeof(float),nplu) ;
-     memcpy( ref[jj+npt] , base[jj] , sizeof(float)*npt ) ;
-   }
-
-   /* copy data (rows #0..npt-1) */
-
-   zar = (float *)calloc(sizeof(float),nplu) ;
-   memcpy(zar,far,sizeof(float)*npt) ;
-
-   /* copy constraints? */
-
-   if( ccon != NULL || dcon != 0 ){
-     zcon = (float *)calloc(sizeof(float),nref) ;
-     if( dcon != 0 )  /* sign constraints on deconvolution output */
-       for( ii=0 ; ii < npt ; ii++ ) zcon[ii] = (float)dcon ;
-     if( nbase > 0 && ccon != NULL ) /* sign constraints on baseline params */
-       memcpy(zcon+npt,ccon,sizeof(float)*nbase) ;
-   }
-
-   /***** actually fit the parameters (deconvolution + baseline) *****/
-
-   fv = THD_fitter( nplu , zar , nref , ref , meth , zcon ) ;
-
-   /* free the enslaved memory and return to the user */
-
-   if( zcon != NULL ) free((void *)zcon) ;
-   free((void *)zar) ;
-   for( jj=0 ; jj < nref ; jj++ ) free((void *)ref[jj]) ;
-   free((void *)ref) ;
-
-   return fv ;
-}
-#else
 {
    floatvec **fvv , *fv ; float pfac=penfac ;
 
@@ -390,4 +317,3 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
    if( fvv == NULL ) return NULL ;
    fv = fvv[0] ; free((void *)fvv) ; return fv ;
 }
-#endif
