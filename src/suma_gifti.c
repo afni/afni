@@ -3,6 +3,7 @@
  *
  * These main routines should match those in gifti_choice.c.
  *
+ * Do not call anything that is in suma_datasets.c or libSUMA.a
  *----------------------------------------------------------------------
  */
 
