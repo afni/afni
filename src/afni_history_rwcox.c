@@ -84,5 +84,8 @@ afni_history_struct rwcox_history[] = {
  { 28 , FEB , 2008 , RWC , "3dTfitter" , MINOR ,
    "allow combination of penalty functions in deconvolution" , NULL } ,
 
+ { 29 , FEB , 2008 , RWC , "afni_history" , MICRO ,
+   "with HTML output, put a rule between different dates" , NULL } ,
+
  { 99,99,99, NULL,NULL, 99, NULL,NULL}  /** the end */
 } ;

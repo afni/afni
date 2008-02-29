@@ -116,6 +116,7 @@ typedef struct {
 int add_to_hlist        (hist_type *** hlist, hist_type * hadd,
                          int addlen, int * newlen);
 int compare_hlist       (const void *v0, const void *v1);
+int compare_hist_dates  (hist_type *h0, hist_type *h1);    /* RWC */
 int disp_global_data    (char * mesg, global_data * gd);
 int histlists_are_valid (histpair * hpairs, int plen);
 int hlist_is_sorted     (hist_type * hlist);
@@ -131,6 +132,7 @@ int show_hist_type      (hist_type * hp, FILE * fp);
 int show_history        (global_data * gd, hist_type ** hlist, int len);
 int show_html_footer    (FILE * fp);
 int show_html_header    (FILE * fp, int min_level);
+int show_html_separator (FILE * fp);
 int show_results        (global_data * gd);
 int show_wrapping_line  (char * str, char * prefix, int indent, FILE * fp);
 int valid_dstring       (char * str, int max_line_len);
