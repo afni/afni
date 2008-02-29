@@ -563,10 +563,10 @@ def afni_view(names):
 #exectute a shell command and return results in so (stdout) and se (stderr)
 def shell_exec(s,opt=""):
    if opt == "dry_run":
-      print "In %s, would execute:\n%s" % (os.getcwd(), s)
+      print "In %s, would execute:\n   %s" % (os.getcwd(), s)
       return "", ""
    elif opt == "echo":
-      print "In %s, about to execute:\n%s" % (os.getcwd(), s)
+      print "In %s, about to execute:\n   %s" % (os.getcwd(), s)
    
    i,o,e = os.popen3(s,'r') #captures stdout in o,  stderr in e and stdin in i      
    so = o.readlines()
