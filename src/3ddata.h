@@ -4049,7 +4049,7 @@ extern floatvec * THD_deconvolve( int npt    , float *far   ,
                                   int pencode, float penpar               ) ;
 
 extern floatvec * THD_fitter_fitts( int npt, floatvec *fv,
-                                    int nref, float *ref[] ) ;
+                                    int nref, float *ref[], float *far ) ;
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
 

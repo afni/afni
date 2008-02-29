@@ -106,9 +106,14 @@ floatvec * THD_fitter( int npt , float *far  ,
 }
 
 /*-------------------------------------------------------------------------*/
-/* Get the fitted time series, given the parameters in fv. */
+/* Get the fitted time series (length npt), given the nref parameters
+   in fv (presumably from THD_fitter itself)  and the reference functions
+   in ref[0..nref-1].  If far is not NULL, then its contents are
+   subtracted from the fit -- thus, giving the residuals.
+*//*-----------------------------------------------------------------------*/
 
-floatvec * THD_fitter_fitts( int npt, floatvec *fv, int nref, float *ref[] )
+floatvec * THD_fitter_fitts( int npt, floatvec *fv,
+                             int nref, float *ref[] , float *far )
 {
    int ii , jj ;
    float sum , *qar , pval ;
@@ -122,6 +127,8 @@ floatvec * THD_fitter_fitts( int npt, floatvec *fv, int nref, float *ref[] )
      pval = fv->ar[jj] ;
      for( ii=0 ; ii < npt ; ii++ ) qar[ii] += ref[jj][ii] * pval ;
    }
+   if( far != NULL )
+     for( ii=0 ; ii < npt ; ii++ ) qar[ii] -= far[ii] ;
 
    return qv ;
 }
@@ -148,7 +155,7 @@ floatvec * THD_fitter_fitts( int npt, floatvec *fv, int nref, float *ref[] )
     - dcon   = constraint on sign of deconvolved time series s(t)
     - pencode= penalty function for s(t) -- cf. 3dTfitter -help
     - npfac  = number of penalty factors to use
-    - pfac   = array of penalty factors
+    - pfac   = array of penalty factors (if NULL, program makes them up)
 
    Return value is an array of npfac floatvec-s, each of which has
    npt+nbase values -- the first npt of which are s(t) and the last
@@ -164,17 +171,18 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
                                      int minlag , int maxlag   , float *kern,
                                      int nbase  , float *base[],
                                      int meth   , float *ccon  , int dcon   ,
-                                     int pencode, int npfac , float *pfac    )
+                                     int pencode, int npfac    , float *pfac )
 {
    int ii , jj , kk ;
    float val,kernmax, *zar , *zcon=NULL ;
    floatvec **fvv ;
    int nref,nlag,npen,nplu ; float **ref ;
-   int p0,p1,p2 , np0,np1,np2 , rp0,rp1,rp2 ; float penfac,fmed,fsig ; int ipf ;
+   int p0,p1,p2 , np0,np1,np2 , rp0,rp1,rp2 , ipf ;
+   float penfac,fmed,fsig , *qfac ;
 
    /* check inputs for stupid users */
 
-   if( npt <= 3 || far == NULL ) ERREX("e1") ;
+   if( npt <= 3 || far == NULL || npfac < 1 ) ERREX("e1") ;
    nlag = maxlag-minlag+1 ;
    if( nlag <= 1 || kern == NULL || !GOOD_METH(meth) ) ERREX("e2") ;
    if( minlag <= -npt+1 || maxlag >= npt-1 ) ERREX("e3") ;
@@ -189,8 +197,6 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
      val = fabsf(kern[jj]) ; kernmax = MAX(kernmax,val) ;
    }
    if( kernmax == 0.0f ) ERREX("e6") ;
-
-   if( npfac < 1 || pfac == NULL ) ERREX("e6a") ;
 
    /* count penalty equations */
 
@@ -257,6 +263,23 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
        memcpy(zcon+npt,ccon,sizeof(float)*nbase) ;
    }
 
+   /* make up some penalty factors if not supplied by user */
+
+   if( pfac == NULL ){
+     qfac = (float *)malloc(sizeof(float)*npfac) ;
+     if( npfac == 1 ){
+       qfac[0] = -1.0f ;
+     } else {
+       float pb,pt,dp ;
+       pt = sqrtf((float)npfac); pb = 1.0f/pt;
+       dp = powf(pt/pb,1.0f/(npfac-1.0f));
+       qfac[0] = -pb ;
+       for( ii=1 ; ii < npfac ; ii++ ) qfac[ii] = qfac[ii-1] * dp ;
+     }
+   } else {
+     qfac = pfac ;
+   }
+
    /** loop over different penalty factors **/
 
    fvv = (floatvec **)calloc(sizeof(floatvec *),npfac) ;
@@ -265,7 +288,7 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
 
      /* penalty eqations for deconv (columns #0..npt-1, rows #npt..nplu-1) */
 
-     penfac = pfac[ipf] ;
+     penfac = qfac[ipf] ;
      if( penfac == 0.0f ) penfac = -0.999f ;
      if( penfac <  0.0f ) penfac = -penfac * fmed ;
 
@@ -277,10 +300,10 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
        for( jj=1 ; jj < npt   ; jj++ ) ref[jj][rp1+jj-1] =  penfac ;
      }
      if( p2 ){
-       float pp = -0.5f*penfac ;
-       for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][rp2+jj]   = pp ;
+       val = -0.5f*penfac ;
+       for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][rp2+jj]   = val ;
        for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][rp2+jj-1] = penfac ;
-       for( jj=2 ; jj < npt   ; jj++ ) ref[jj][rp2+jj-2] = pp ;
+       for( jj=2 ; jj < npt   ; jj++ ) ref[jj][rp2+jj-2] = val ;
      }
 
      /***** actually fit the parameters (deconvolution + baseline) *****/
@@ -291,6 +314,7 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
 
    /* free the enslaved memory and return to the user */
 
+   if( qfac != pfac ) free((void *)qfac) ;
    if( zcon != NULL ) free((void *)zcon) ;
    free((void *)zar) ;
    for( jj=0 ; jj < nref ; jj++ ) free((void *)ref[jj]) ;
