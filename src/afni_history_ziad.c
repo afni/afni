@@ -61,6 +61,11 @@
 /* CHANGE: rickr to other username */
 afni_history_struct ziad_history[] = {
 
+ { 28 , FEB , 2008 , ZSS , "suma-general" , MAJOR ,
+   "Support for GIFTI surface format reading" ,
+   NULL
+ } ,
+ 
  { 27 , FEB , 2008 , ZSS , "suma" , MAJOR ,
    "Addition of p and q values under threshold bar" ,
    "Use BHelp on p and q text in suma to get more info."

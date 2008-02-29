@@ -5,7 +5,7 @@
  *
  * Add this object to libmri.
  * Do not add thd_gifti.o or anything under the gifti directory.
- */
+ */ 
 
 
 #ifdef HAVE_GIFTI
