@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 #include "afni_history.h"
 
@@ -14,6 +15,7 @@ static char g_history[] =
   "1.1  28 Feb, 2008 [rickr] : added -list_authors option\n"
   "1.2  29 Feb, 2008 [rwcox] : separated dates in html output\n"
   "1.3  29 Feb, 2008 [rickr]\n"
+  "     - added -type option, to restrict output to a specific type\n"
   "     - added a string to explain the output level\n"
   "     - added TYPE field, and a new SUPERDUPER level\n"
 };
@@ -81,6 +83,9 @@ int process_options(int argc, char * argv[], global_data * gd)
         } else if( !strcmp(argv[ac], "-list_authors") ) {
             show_author_list();
             return 1;
+        } else if( !strcmp(argv[ac], "-list_types") ) {
+            show_valid_types();
+            return 1;
         } else if( !strcmp(argv[ac], "-ver") ) {
             puts(g_version);
             return 1;
@@ -129,10 +134,25 @@ int process_options(int argc, char * argv[], global_data * gd)
             gd->program = argv[ac];
         } else if( !strcmp(argv[ac], "-reverse" ) ) {
             gd->sort_dir = -1;
+        } else if( !strcmp(argv[ac], "-type" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-type", "TYPE");
+            if( isdigit(*argv[ac]) )
+                gd->type = atol(argv[ac]);              /* integer */
+            else
+                gd->type = type_string2type(argv[ac]);  /* string */
+            if( ! INT_IN_RANGE(gd->type, 0, MAX_TYPE_VAL) ) {
+                fprintf(stderr,"** invalid type (number or string): %s\n",
+                        argv[ac]);
+                return -1;
+            }
         } else if( !strcmp(argv[ac], "-verb") ) {
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-verb", "LEVEL");
             gd->verb = atoi(argv[ac]);
+        } else {
+            fprintf(stderr,"** invalid option: '%s'\n", argv[ac]);
+            return -1;
         }
     }
 
@@ -236,6 +256,10 @@ int show_results(global_data * gd)
     if( gd->level || gd->min_level )
         if( restrict_by_level(gd, &hlist, &hlen) ) return 1;
 
+    /* maybe restrict the list to a level or a set of levels */
+    if( gd->type )
+        if( restrict_by_type(gd, &hlist, &hlen) ) return 1;
+
     /* sort by date, author, level and program */
     qsort(hlist, hlen, sizeof(hist_type *), compare_hlist);
 
@@ -285,9 +309,10 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
 
 int show_hist_type(hist_type * hp, FILE * fp)
 {
-    fprintf(fp, "%02d %s %04d, %s, %s, level %d (%s)\n",
+    fprintf(fp, "%02d %s %04d, %s, %s, level %d (%s), type %d (%s)\n",
             hp->dd, mm2month(hp->mm), hp->yyyy,
-            hp->author, hp->program, hp->level, level_string(hp->level));
+            hp->author, hp->program, hp->level, level_string(hp->level),
+            hp->type, type_string(hp->type));
     fprintf(fp, "    %s\n", hp->desc);
     if( hp->desc[strlen(hp->desc)-1] != '\n' ) fputc('\n', fp);
 
@@ -369,7 +394,7 @@ int show_html_footer(FILE * fp)
 
 int show_html_separator(FILE * fp)  /* RWC */
 {
-    fprintf(fp, "<hr width='50%%' align='left' />\n") ;
+    fprintf(fp, "<hr width='54%%' align='left' />\n") ;
 
     return 0 ;
 }
@@ -485,6 +510,55 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
     if( gd->verb > 1 )
         fprintf(stderr,"++ date restriction drops list length from %d to %d\n",
                 *len, nfound);
+
+    *len = nfound;
+
+    return 0;
+}
+
+/* perhaps we want to remove everythng that is not up to our 'level' */
+int restrict_by_type(global_data * gd, hist_type *** hlist, int * len)
+{
+    hist_type ** hptr;                  /* just for typing */
+    int          c, nfound;
+
+    if( !hlist || !*hlist || !len || *len <= 0 ) {
+        if( gd->verb > 1 ) fprintf(stderr,"** RBT: bad restriction\n");
+        return 1;
+    }
+
+    if( !gd->type ) {
+        if( gd->verb > 3 ) fprintf(stderr, "-- no type to restrict to\n");
+        return 0;
+    }
+
+    /* move good pointers to beginning of list, and count num found */
+    nfound = 0;
+    hptr = *hlist;
+    for( c = 0; c < *len; c++) {
+        if( gd->type == hptr[c]->type ) {
+            if( c > nfound ) hptr[nfound] = hptr[c];  /* move it up */
+            nfound++;
+        }
+    }
+
+    if( nfound == 0 ) {         /* death by 'type' */
+        if(gd->verb>0) fprintf(stderr,"-- no history for type restriction\n");
+        free(*hlist);
+        *hlist = NULL;
+        return 1;
+    }
+
+    /* restrict the list */
+    *hlist = (hist_type **)realloc(*hlist, nfound*sizeof(hist_type *));
+    if( !*hlist ) {
+        fprintf(stderr,"** failed to realloc hlist ptrs to len %d\n", nfound);
+        return 1;
+    }
+
+    if( gd->verb > 1 )
+        fprintf(stderr,"++ type %d drops list length from %d to %d\n",
+                gd->type, *len, nfound);
 
     *len = nfound;
 
@@ -677,11 +751,12 @@ int disp_global_data(char * mesg, global_data * gd)
     fprintf(stderr,"global_data struct: \n"
             "    author                   = %s\n"
             "    program                  = %s\n"
-            "    html                     = %d\n"
+            "    html, type               = %d, %d\n"
             "    level, min_level         = %d, %d\n"
             "    past_days, months, years = %d, %d, %d\n"
             "    sort_dir, verb, plen     = %d, %d, %d\n",
-            gd->author, gd->program, gd->html, gd->level, gd->min_level,
+            gd->author, gd->program, gd->html, gd->type,
+            gd->level, gd->min_level,
             gd->past_days, gd->past_months, gd->past_years,
             gd->sort_dir, gd->verb, gd->plen);
 
@@ -691,87 +766,91 @@ int disp_global_data(char * mesg, global_data * gd)
 int show_help(void)
 {
     printf(
-    "afni_history:           show AFNI updates per user, dates or levels\n"
-    "\n"
-    "This program is meant to display a log of updates to AFNI code, the\n"
-    "website, educational material, etc.  Users can specify a level of\n"
-    "importance, the author, program or how recent the changes are.\n"
-    "\n"
-    "The levels of importance go from 1 to 4, with meanings:\n"
-    "       1 - users would not care\n"
-    "       2 - of little importance, though some users might care\n"
-    "       3 - fairly important\n"
-    "       4 - a big change or new program\n"
-    "       5 - IMPORTANT: we expect users to know\n"
-    "\n"
-    "-----------------------------------------------------------------\n"
-    "\n"
-    "common examples:\n"
-    "\n"
-    "  0. get help\n"
-    "\n"
-    "       afni_history -help\n"
-    "\n"
-    "  1. display all of the history, possibly subject to recent days\n"
-    "\n"
-    "       afni_history\n"
-    "       afni_history -past_days 5\n"
-    "       afni_history -past_months 6\n"
-    "\n"
-    "  2. select a specific level or minimum level\n"
-    "\n"
-    "       afni_history -level 2\n"
-    "       afni_history -min_level 3\n"
-    "\n"
-    "  3. select a specific author or program\n"
-    "\n"
-    "       afni_history -author rickr\n"
-    "       afni_history -program afni_proc.py\n"
-    "\n"
-    "  4. select level 3+ suma updates from ziad over the past year\n"
-    "\n"
-    "       afni_history -author ziad -min_level 3 -program suma\n"
-    "\n"
-    "  5. generate a web-page, maybe from the past year at at a minimum level\n"
-    "\n"
-    "       afni_history -html -reverse > afni_history_all.html\n"
-    "       afni_history -html -reverse -past_years 1 > afni_hist_YEAR.html\n"
-    "       afni_history -html -reverse -min_level 3  > afni_hist_level3.html\n"
-    "\n"
-    "-----------------------------------------------------------------\n"
-    "\n"
-    "informational options: \n"
-    "\n"
-    "  -help                    : show this help\n"
-    "  -hist                    : show this program's history\n"
-    "  -list_authors            : show the list of valid authors\n"
-    "  -ver                     : show this program's version\n"
-    "\n"
-    "\n"
-    "output restriction options: \n"
-    "\n"
-    "  -author AUTHOR           : restrict output to the given AUTHOR\n"
-    "  -level LEVEL             : restrict output to the given LEVEL\n"
-    "  -min_level LEVEL         : restrict output to at least level LEVEL\n"
-    "  -program PROGRAM         : restrict output to the given PROGRAM\n"
-    "\n"
-    "  -past_days DAYS          : restrict output to the past DAYS days\n"
-    "  -past_months MONTHS      : restrict output to the past MONTHS months\n"
-    "  -past_years YEARS        : restrict output to the past YEARS years\n"
-    "\n"
-    "\n"
-    "general options: \n"
-    "\n"
-    "  -html                    : add html formatting\n"
-    "  -reverse                 : reverse the sorting order\n"
-    "                             (sort is by date, author, level, program)\n"
-    "  -verb LEVEL              : request verbose output\n"
-    "                             (LEVEL is from 0-6)\n"
-    "\n"
-    "\n"
-    "                                           Author: Rick Reynolds\n"
-    "                                           Thanks to: Ziad, Bob\n"
-    "\n"
+  "afni_history:           show AFNI updates per user, dates or levels\n"
+  "\n"
+  "This program is meant to display a log of updates to AFNI code, the\n"
+  "website, educational material, etc.  Users can specify a level of\n"
+  "importance, the author, program or how recent the changes are.\n"
+  "\n"
+  "The levels of importance go from 1 to 4, with meanings:\n"
+  "       1 - users would not care\n"
+  "       2 - of little importance, though some users might care\n"
+  "       3 - fairly important\n"
+  "       4 - a big change or new program\n"
+  "       5 - IMPORTANT: we expect users to know\n"
+  "\n"
+  "-----------------------------------------------------------------\n"
+  "\n"
+  "common examples:\n"
+  "\n"
+  "  0. get help\n"
+  "\n"
+  "     a. afni_history -help\n"
+  "\n"
+  "  1. display all of the history, possibly subject to recent days\n"
+  "\n"
+  "     a. afni_history\n"
+  "     b. afni_history -past_days 5\n"
+  "     c. afni_history -past_months 6\n"
+  "\n"
+  "  2. select a specific type, level or minimum level\n"
+  "\n"
+  "     a. afni_history -level 2\n"
+  "     b. afni_history -min_level 3\n"
+  "     c. afni_history -type 1 -min_level 3 -past_years 1\n"
+  "\n"
+  "  3. select a specific author or program\n"
+  "\n"
+  "     a. afni_history -author rickr\n"
+  "     b. afni_history -program afni_proc.py\n"
+  "\n"
+  "  4. select level 3+ suma updates from ziad over the past year\n"
+  "\n"
+  "     a. afni_history -author ziad -min_level 3 -program suma\n"
+  "\n"
+  "  5. generate a web-page, maybe from the past year at at a minimum level\n"
+  "\n"
+  "     a. afni_history -html -reverse > afni_hist_all.html\n"
+  "     b. afni_history -html -reverse -past_years 1 > afni_hist_YEAR.html\n"
+  "     c. afni_history -html -reverse -min_level 2  > afni_hist_level2.html\n"
+  "     d. afni_history -html -reverse -min_level 3  > afni_hist_level3.html\n"
+  "     e. afni_history -html -reverse -min_level 4  > afni_hist_level4.html\n"
+  "\n"
+  "-----------------------------------------------------------------\n"
+  "\n"
+  "informational options: \n"
+  "\n"
+  "  -help                    : show this help\n"
+  "  -hist                    : show this program's history\n"
+  "  -list_authors            : show the list of valid authors\n"
+  "  -list_types              : show the list of valid change types\n"
+  "  -ver                     : show this program's version\n"
+  "\n"
+  "\n"
+  "output restriction options: \n"
+  "\n"
+  "  -author AUTHOR           : restrict output to the given AUTHOR\n"
+  "  -level LEVEL             : restrict output to the given LEVEL\n"
+  "  -min_level LEVEL         : restrict output to at least level LEVEL\n"
+  "  -program PROGRAM         : restrict output to the given PROGRAM\n"
+  "\n"
+  "  -past_days DAYS          : restrict output to the past DAYS days\n"
+  "  -past_months MONTHS      : restrict output to the past MONTHS months\n"
+  "  -past_years YEARS        : restrict output to the past YEARS years\n"
+  "\n"
+  "\n"
+  "general options: \n"
+  "\n"
+  "  -html                    : add html formatting\n"
+  "  -reverse                 : reverse the sorting order\n"
+  "                             (sort is by date, author, level, program)\n"
+  "  -verb LEVEL              : request verbose output\n"
+  "                             (LEVEL is from 0-6)\n"
+  "\n"
+  "\n"
+  "                                           Author: Rick Reynolds\n"
+  "                                           Thanks to: Ziad, Bob\n"
+  "\n"
     );
 
     return 0;
@@ -961,6 +1040,36 @@ char * level_string(int level)
     }
 }
 
+char * type_string(int type)
+{
+    switch( type ) {
+        default:                return "INVALID";
+        case TYPE_GENERAL:      return "GENERAL";
+        case TYPE_NEW_PROG:     return "NEW_PROG";
+        case TYPE_NEW_OPT:      return "NEW_OPT";
+        case TYPE_NEW_ENV:      return "NEW_ENV";
+        case TYPE_BUG_FIX:      return "BUG_FIX";
+        case TYPE_MODIFY:       return "MODIFY";
+    }
+}
+
+int type_string2type(char * tstring)
+{
+    if( !tstring || !*tstring ) {
+        fprintf(stderr,"** missing type string\n");
+        return TYPE_INVALID;
+    }
+
+    if( ! strcmp("GENERAL",  tstring) ) return TYPE_GENERAL;
+    if( ! strcmp("NEW_PROG", tstring) ) return TYPE_NEW_PROG;
+    if( ! strcmp("NEW_OPT",  tstring) ) return TYPE_NEW_OPT;
+    if( ! strcmp("NEW_ENV",  tstring) ) return TYPE_NEW_ENV;
+    if( ! strcmp("BUG_FIX",  tstring) ) return TYPE_BUG_FIX;
+    if( ! strcmp("MODIFY",   tstring) ) return TYPE_MODIFY;
+
+    return TYPE_INVALID;
+}
+
 int show_author_list(void)
 {
     char ** alist = g_author_list;
@@ -970,6 +1079,18 @@ int show_author_list(void)
     printf("\nafni_history author list:\n\n");
     for( c = 0; c < len-2; c+= 3 )
         printf("    %-12s %-3s      %s\n", alist[c], alist[c+1], alist[c+2]);
+    putchar('\n');
+
+    return 0;
+}
+
+int show_valid_types(void)
+{
+    int c;
+
+    printf("\nvalid history types:\n\n");
+    for( c = 0; c <= MAX_TYPE_VAL; c++ )
+        printf("   %2d  :  %s\n", c, type_string(c));
     putchar('\n');
 
     return 0;

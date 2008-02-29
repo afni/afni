@@ -43,8 +43,8 @@
 
 afni_history_struct rickr_history[] = {
 
- { 29, FEB, 2008, RCR, "afni_history", MINOR, TYPE_MODIFY,
-   "added a TYPE, a new level, and a string to identify each level",
+ { 29, FEB, 2008, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
+   "added a TYPE, -type, a new level, and a string to identify each level",
    NULL
  } ,
 

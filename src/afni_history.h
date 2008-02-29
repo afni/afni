@@ -34,12 +34,13 @@
 #define MAX_PROG_LEVEL  5  /* max in list */
 
 /* change types (we mostly care about new things and bug fixes) */
+#define TYPE_INVALID   -1  /* bad, naughty type */
 #define TYPE_GENERAL    0  /* if it doesn't fit any other category type */
 #define TYPE_NEW_PROG   1  /* new program */
 #define TYPE_NEW_OPT    2  /* new program option */
 #define TYPE_NEW_ENV    3  /* environmental change or new env variable */
 #define TYPE_BUG_FIX    4  /* enhancement of an existing bug */
-#define TYPE_MODIFY     5  /* maybe? */
+#define TYPE_MODIFY     5  /* a change (not new, not a bug fix) */
 #define MAX_TYPE_VAL    5  /* maximum type value */
 
 
@@ -86,6 +87,7 @@ typedef struct {
     char     * author;
     char     * program;
     int        html;
+    int        type;
     int        level;
     int        min_level;
     int        past_days, past_months, past_years;
@@ -108,7 +110,7 @@ typedef struct {
    do { if ( (n) >= (m) ) {                                          \
            fprintf(stderr,"** option '%s': missing parameter\n",str); \
            fprintf(stderr,"   consider: '-help' option\n");            \
-           return 1;      }                                             \
+           return -1;      }                                            \
       } while(0)
 
 #undef CHECK_NEXT_OPT2
@@ -116,7 +118,7 @@ typedef struct {
    do { if ( (n) >= (m) ) {                                                \
            fprintf(stderr,"** option '%s': missing parameter '%s'\n",s1,s2);\
            fprintf(stderr,"   consider: '-help' option\n");                  \
-           return 1;      }                                                   \
+           return -1;      }                                                  \
       } while(0)
 
 /* main protos */
@@ -133,6 +135,7 @@ int process_options     (int argc, char * argv[], global_data * gd);
 int restrict_by_date    (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_level   (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_program (global_data * gd, hist_type *** hlist, int * len);
+int restrict_by_type    (global_data * gd, hist_type *** hlist, int * len);
 int show_author_list    (void);
 int show_help           (void);
 int show_hist_type      (hist_type * hp, FILE * fp);
@@ -141,7 +144,9 @@ int show_html_footer    (FILE * fp);
 int show_html_header    (FILE * fp, int min_level);
 int show_html_separator (FILE * fp);
 int show_results        (global_data * gd);
+int show_valid_types    (void);
 int show_wrapping_line  (char * str, char * prefix, int indent, FILE * fp);
+int type_string2type    (char * tstring);
 int valid_dstring       (char * str, int max_line_len);
 int valid_histlist      (hist_type * hlist, char * author);
 int valid_histstruct    (hist_type * hstr, char * author);
@@ -150,5 +155,6 @@ int valid_program       (char * prog);
 char * convert_author   (char * name);
 char * level_string     (int level);
 char * mm2month         (int mm);
+char * type_string      (int level);
 
 #endif /* _AFNI_HISTORY_HEADER_ */
