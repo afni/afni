@@ -268,6 +268,9 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
         printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
 
     for( c = 0; c < len; c++ ) {
+        if( gd->html && c > 0 && compare_hist_dates(hlist[c],hlist[c-1]) )
+          show_html_separator(stdout) ;  /* RWC */
+
         show_hist_type(hlist[c], stdout);
     }
 
@@ -357,6 +360,13 @@ int show_html_footer(FILE * fp)
     fprintf(fp, "</body></html>\n");
     
     return 0;
+}
+
+int show_html_separator(FILE * fp)  /* RWC */
+{
+    fprintf(fp, "<hr width='50%%' align='left' />\n") ;
+
+    return 0 ;
 }
 
 /* convert a numerical month to a readable word */
@@ -605,6 +615,15 @@ int compare_hlist(const void *v0, const void *v1)
     if( rv ) return rv*GD.sort_dir;
 
     return 0;
+}
+
+/* compare only the dates -- RWC */
+int compare_hist_dates(hist_type *h0 , hist_type *h1)
+{
+    if( h0->yyyy != h1->yyyy ) return GD.sort_dir*(h0->yyyy - h1->yyyy);
+    if( h0->mm   != h1->mm   ) return GD.sort_dir*(h0->mm   - h1->mm  );
+    if( h0->dd   != h1->dd   ) return GD.sort_dir*(h0->dd   - h1->dd  );
+    return 0 ;
 }
 
 /* reallocate space, and fill the array of longer struct pointers
