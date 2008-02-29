@@ -53,17 +53,17 @@ afni_history_struct gangc_history[] = {
   /* can copy to and change one of the examples here */
   
   { 29 , FEB , 2008 , GC , "3dICA.R" , SUPERDUPER , TYPE_NEW_PROG ,
-   "An R program that runs independent component analysis in AFNI.\n"
-	
-	"This testing program for ICA only takes one dataset that presumably has already \n"
-	"been properly pre-processed. See more details on: \n"
-	"http://afni.nimh.nih.gov/sscc/gangc/ica.html" 
+    "An R program that runs independent component analysis in AFNI.\n",	
+
+    "This testing program for ICA only takes one dataset that presumably has already \n"
+    "been properly pre-processed. See more details on: \n"
+    "http://afni.nimh.nih.gov/sscc/gangc/ica.html" 
   } ,
   
   { 29 , FEB , 2008 , GC , "3dLME.R" , SUPERDUPER , TYPE_NEW_PROG ,
-   "An R program that runs linear mixed-effects analysis at group level in AFNI.\n"
-	
-	"See more details on: http://afni.nimh.nih.gov/sscc/gangc/lme.html" 
+    "An R program that runs linear mixed-effects analysis at group level in AFNI.\n",
+	 
+    "See more details on: http://afni.nimh.nih.gov/sscc/gangc/lme.html" 
   } ,
 
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
