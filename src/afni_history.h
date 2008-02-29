@@ -21,20 +21,26 @@
 #define DRG "DR Glen"
 #define RCR "RC Reynolds"
 #define GC  "G Chen"         /* no middle initial (clearly evil) */
-#define PPC "PP Chrisidis"
+#define PPC "PP Christidis"
 #define BGP "BG Pittman"
 
-#define MIN_PROG_LEVEL  1                       /* min in list */
-#define MICRO     1  /* level for changes that users don't see */
-#define MINOR     2  /* level for small changes that users see */
-#define MAJOR     3  /* level for large changes that users see */
-#define SUPER     4  /* level for changes that users must know */
-#define MAX_PROG_LEVEL  4                       /* max in list */
+/* importance levels */
+#define MIN_PROG_LEVEL  1  /* min in list */
+#define MICRO           1  /* level for changes that users don't see */
+#define MINOR           2  /* level for small changes that users see */
+#define MAJOR           3  /* level for larger changes               */
+#define SUPER           4  /* level for big changes, or new programs */
+#define SUPERDUPER      5  /* level for changes that users must know */
+#define MAX_PROG_LEVEL  5  /* max in list */
 
-#define TYPE_NOT_SET    0
-#define TYPE_NEW_OPT    1
-#define TYPE_NEW_PROG   2
-#define TYPE_FIX        3
+/* change types (we mostly care about new things and bug fixes) */
+#define TYPE_GENERAL    0  /* if it doesn't fit any other category type */
+#define TYPE_NEW_PROG   1  /* new program */
+#define TYPE_NEW_OPT    2  /* new program option */
+#define TYPE_NEW_ENV    3  /* environmental change or new env variable */
+#define TYPE_BUG_FIX    4  /* enhancement of an existing bug */
+#define TYPE_MODIFY     5  /* maybe? */
+#define MAX_TYPE_VAL    5  /* maximum type value */
 
 
 typedef struct {
@@ -43,7 +49,8 @@ typedef struct {
   short   yyyy;        /* Year: 2001..9999 */
   char  * author;      /* use a macro */
   char  * program;     /* will be checked against allowed names */
-  short   level;       /* use a macro */
+  short   level;       /* importance:  use a macro */
+  short   type;        /* change type: use a macro */
   char  * desc;        /* one line description */
   char  * verbtext;    /* can be NULL, but shouldn't be */
 } afni_history_struct;
@@ -140,7 +147,8 @@ int valid_histlist      (hist_type * hlist, char * author);
 int valid_histstruct    (hist_type * hstr, char * author);
 int valid_program       (char * prog);
 
-char * mm2month         (int mm);
 char * convert_author   (char * name);
+char * level_string     (int level);
+char * mm2month         (int mm);
 
 #endif /* _AFNI_HISTORY_HEADER_ */
