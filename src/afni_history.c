@@ -394,7 +394,7 @@ int show_html_footer(FILE * fp)
 
 int show_html_separator(FILE * fp)  /* RWC */
 {
-    fprintf(fp, "<hr width='54%%' align='left' />\n") ;
+    fprintf(fp, "<hr width='50%%' align='left' />\n") ;
 
     return 0 ;
 }
@@ -796,7 +796,7 @@ int show_help(void)
   "  2. select a specific type, level or minimum level\n"
   "\n"
   "     a. afni_history -level 2\n"
-  "     b. afni_history -min_level 3\n"
+  "     b. afni_history -min_level 3 -type BUG_FIX\n"
   "     c. afni_history -type 1 -min_level 3 -past_years 1\n"
   "\n"
   "  3. select a specific author or program\n"
@@ -811,10 +811,9 @@ int show_help(void)
   "  5. generate a web-page, maybe from the past year at at a minimum level\n"
   "\n"
   "     a. afni_history -html -reverse > afni_hist_all.html\n"
-  "     b. afni_history -html -reverse -past_years 1 > afni_hist_YEAR.html\n"
-  "     c. afni_history -html -reverse -min_level 2  > afni_hist_level2.html\n"
-  "     d. afni_history -html -reverse -min_level 3  > afni_hist_level3.html\n"
-  "     e. afni_history -html -reverse -min_level 4  > afni_hist_level4.html\n"
+  "     b. afni_history -html -reverse -min_level 2  > afni_hist_level2.html\n"
+  "     c. afni_history -html -reverse -min_level 3  > afni_hist_level3.html\n"
+  "     d. afni_history -html -reverse -min_level 4  > afni_hist_level4.html\n"
   "\n"
   "-----------------------------------------------------------------\n"
   "\n"
@@ -838,6 +837,10 @@ int show_help(void)
   "  -past_months MONTHS      : restrict output to the past MONTHS months\n"
   "  -past_years YEARS        : restrict output to the past YEARS years\n"
   "\n"
+  "  -type TYPE               : restrict output to the given TYPE\n"
+  "                             (TYPE = 0..5, or strings 'NEW_PROG', etc.)\n"
+  "                             e.g.  -type NEW_ENV\n"
+  "                             e.g.  -type BUG_FIX\n"
   "\n"
   "general options: \n"
   "\n"
