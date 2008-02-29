@@ -369,7 +369,7 @@ int show_html_header(FILE * fp, int min_level)
         fprintf(fp, "<h2>all levels</h2>\n");
 
     fprintf(fp,"</center><h4><pre>\n"
-        "The levels of importance go from 1 to 4, with meanings:\n"
+        "The levels of importance go from 1 to 5, with meanings:\n"
         "       1 - users would not care\n"
         "       2 - of little importance, though some users might care\n"
         "       3 - fairly important\n"
