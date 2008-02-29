@@ -12,6 +12,10 @@ static char g_history[] =
   "1.0  27 Feb, 2008 [rickr] : initial release\n"
   "\n"
   "1.1  28 Feb, 2008 [rickr] : added -list_authors option\n"
+  "1.2  29 Feb, 2008 [rwcox] : separated dates in html output\n"
+  "1.3  29 Feb, 2008 [rickr]\n"
+  "     - added a string to explain the output level\n"
+  "     - added TYPE field, and a new SUPERDUPER level\n"
 };
 
 static char g_version[] = "afni_history version 1.0, 27 February 2008";
@@ -246,7 +250,7 @@ int show_results(global_data * gd)
     return rv;
 }
 
-/* hlist is an array of structure pointers (to sort and display) */
+/* hlist is an array of structure pointers */
 int show_history(global_data * gd, hist_type ** hlist, int len)
 {
     int c;
@@ -281,9 +285,9 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
 
 int show_hist_type(hist_type * hp, FILE * fp)
 {
-    fprintf(fp, "%02d %s %04d, %s, %s, level %d\n",
+    fprintf(fp, "%02d %s %04d, %s, %s, level %d (%s)\n",
             hp->dd, mm2month(hp->mm), hp->yyyy,
-            hp->author, hp->program, hp->level);
+            hp->author, hp->program, hp->level, level_string(hp->level));
     fprintf(fp, "    %s\n", hp->desc);
     if( hp->desc[strlen(hp->desc)-1] != '\n' ) fputc('\n', fp);
 
@@ -344,7 +348,8 @@ int show_html_header(FILE * fp, int min_level)
         "       1 - users would not care\n"
         "       2 - of little importance, though some users might care\n"
         "       3 - fairly important\n"
-        "       4 - IMPORTANT: we expect users to know\n"
+        "       4 - a big change or new program\n"
+        "       5 - IMPORTANT: we expect users to know\n"
         "\n</h4>\n");
 
     fprintf(fp, "</center><hr />\n<pre>\n\n");
@@ -696,7 +701,8 @@ int show_help(void)
     "       1 - users would not care\n"
     "       2 - of little importance, though some users might care\n"
     "       3 - fairly important\n"
-    "       4 - IMPORTANT: we expect users to know\n"
+    "       4 - a big change or new program\n"
+    "       5 - IMPORTANT: we expect users to know\n"
     "\n"
     "-----------------------------------------------------------------\n"
     "\n"
@@ -871,6 +877,11 @@ int valid_histstruct(hist_type * hstr, char * author)
         errs++;
     }
 
+    if( ! INT_IN_RANGE(hstr->type, 0, MAX_TYPE_VAL) ) {
+        fprintf(stderr,"** invalid type: %d\n", hstr->type);
+        errs++;
+    }
+
     if( ! valid_dstring(hstr->desc, MAX_LINE_CHARS) ) {
         fprintf(stderr,"** invalid desc: %s\n", CHECK_NULL_STR(hstr->desc));
         errs++;
@@ -936,6 +947,18 @@ int hlist_len(hist_type * hlist)
     if( GD.verb > 1 ) fprintf(stderr,"-- hlist has %d entries\n", len);
 
     return len;
+}
+
+char * level_string(int level)
+{
+    switch( level ) {
+        default:         return "INVALID";
+        case MICRO:      return "MICRO";
+        case MINOR:      return "MINOR";
+        case MAJOR:      return "MAJOR";
+        case SUPER:      return "SUPER";
+        case SUPERDUPER: return "SUPERDUPER";
+    }
 }
 
 int show_author_list(void)
