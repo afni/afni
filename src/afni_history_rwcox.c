@@ -44,6 +44,29 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , MAR , 2008 , RWC , "++AFNI_History++ plugin" , MICRO , TYPE_NEW_PROG ,
+   "Provides a way to create and insert entries into afni_history_NAME.c" ,
+   "User must set two environment variables:\n"
+   "  AFNI_HISTORY_PERSONAL_FILE = full path to your personal version of\n"
+   "    afni_history_NAME.c\n"
+   "  AFNI_HISTORY_USERNAME = what you want for the username in your file\n"
+   "My values of these are\n"
+   "  AFNI_HISTORY_PERSONAL_FILE = /Users/rwcox/AFNI/src/afni_history_rwcox.c\n"
+   "  AFNI_HISTORY_USERNAME      = RWC\n"
+   "You also need to add one of two lines to your afni_history_NAME.c file:\n"
+   "\n"
+   "/*=====below THIS LINE=====*/\n"
+   "or\n"
+   "/*=====above THIS LINE=====*/\n"
+   "\n"
+   "as shown, with no blanks before or after on the same line (except that\n"
+   "you must make 'BELOW' or 'ABOVE' all caps!).\n"
+   "New history entries are placed below the 'BELOW' line (if present), or\n"
+   "above the 'ABOVE' line.\n"
+   "\n"
+   "If you set AFNI_HISTORY_DONTSAVE to YES, then the afni_history_NAME.c\n"
+   "file won't be edited, and the new entry is just written to stdout." } ,
+
  { 20 , NOV , 2007 , RWC , "3dTsort" , MAJOR , TYPE_NEW_PROG ,
    "new program = sorts voxel data along the time axis" ,
    "This might be useful for sorting the -stim_time_IM beta weights\n"
