@@ -535,11 +535,12 @@ ENTRY("new_MCW_optmenu") ;
 
    nargs = 0 ;
    XtSetArg( args[0] , XmNsubMenuId , wmenu ) ; nargs++ ;
+   XtSetArg( args[1] , XmNtraversalOn, True ) ; nargs++ ;
 
    if( label == NULL ) label = " " ;  /* 24 Sep 2001 */
 
    xstr = XmStringCreateLtoR( label , XmFONTLIST_DEFAULT_TAG ) ;
-   XtSetArg( args[1] , XmNlabelString , xstr ) ; nargs++ ;
+   XtSetArg( args[2] , XmNlabelString , xstr ) ; nargs++ ;
 
    av->wrowcol = XmCreateOptionMenu( parent , "dialog" , args , nargs ) ;
    XmStringFree(xstr) ;
