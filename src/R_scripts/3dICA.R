@@ -3,12 +3,12 @@
 #-----------------------------------------------------------
 #Version 0.0.1, Feb. 29, 2007
 #Author: Gang Chen (gangchen@mail.nih.gov)
-#Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
+#Website: http://afni.nimh.nih.gov/sscc/gangc/ica.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #-----------------------------------------------------------
 
 # Commannd line to run this script: 3dIVA.R Output (Output is a file
-# in which the running progress including error message will be store)
+# in which the running progress including error message will be stored)
 
 source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
 #source(file.path(Sys.getenv("LME"), "AFNIio.R"))
