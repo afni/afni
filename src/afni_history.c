@@ -158,6 +158,10 @@ int process_options(int argc, char * argv[], global_data * gd)
 
     if( gd->verb > 3 ) disp_global_data("-- options read: ", gd);
 
+    /* save options for later, in case we want to print them out */
+    gd->argc = argc;
+    gd->argv = argv;
+
     return 0;
 }
 
@@ -209,7 +213,7 @@ char * convert_author(char * name)
 int show_results(global_data * gd)
 {
     hist_type ** hlist = NULL, * h1 = NULL;
-    int          c, rv, hlen = 0;
+    int          c, rv = 0, hlen = 0;
 
     if( gd->author ) {
         if( gd->verb > 3 )
@@ -249,23 +253,24 @@ int show_results(global_data * gd)
     }
 
     /* maybe restrict the list to a specific program */
-    if( gd->program )
-        if( restrict_by_program(gd, &hlist, &hlen) ) return 1;
+    if( !rv && gd->program )
+        rv = restrict_by_program(gd, &hlist, &hlen);
 
     /* maybe restrict the list to a level or a set of levels */
-    if( gd->level || gd->min_level )
-        if( restrict_by_level(gd, &hlist, &hlen) ) return 1;
+    if( !rv && (gd->level || gd->min_level) )
+        rv = restrict_by_level(gd, &hlist, &hlen);
 
     /* maybe restrict the list to a level or a set of levels */
-    if( gd->type )
-        if( restrict_by_type(gd, &hlist, &hlen) ) return 1;
+    if( !rv && gd->type )
+        rv = restrict_by_type(gd, &hlist, &hlen);
 
     /* sort by date, author, level and program */
-    qsort(hlist, hlen, sizeof(hist_type *), compare_hlist);
+    if( !rv && hlen > 0 )
+        qsort(hlist, hlen, sizeof(hist_type *), compare_hlist);
 
     /* maybe restrict by the date */
-    if( gd->past_days || gd->past_months || gd->past_years )
-        if( restrict_by_date(gd, &hlist, &hlen) ) return 1;
+    if( !rv && hlen>0 && (gd->past_days || gd->past_months || gd->past_years) )
+        rv = restrict_by_date(gd, &hlist, &hlen);
 
     rv = show_history(gd, hlist, hlen);
 
@@ -282,13 +287,14 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
     if( gd->verb > 1 )
         fprintf(stderr,"\n-- showing history, length %d...\n\n",len);
 
+    if( gd->html ) show_html_header(gd, stdout, gd->min_level);
+
     if( !hlist || !*hlist || len <= 0 ) {
         if( gd->verb > 0 )
             printf("no history to show, given the restrictions\n");
+        if( gd->html ) show_html_footer(stdout);
         return 1;
     }
-
-    if( gd->html ) show_html_header(stdout, gd->min_level);
 
     if( gd->sort_dir == 1 )
         printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
@@ -357,7 +363,7 @@ int show_wrapping_line(char * str, char * prefix, int indent, FILE * fp)
     return 0;
 }
 
-int show_html_header(FILE * fp, int min_level)
+int show_html_header(global_data * gd, FILE * fp, int min_level)
 {
     fprintf(fp, "<html><head>\n"
                 "<title>AFNI HISTORY</title></head>\n"
@@ -377,7 +383,21 @@ int show_html_header(FILE * fp, int min_level)
         "       5 - IMPORTANT: we expect users to know\n"
         "\n</h4>\n");
 
-    fprintf(fp, "</center><hr />\n<pre>\n\n");
+    fprintf(fp, "</center><hr />\n<pre>\n");
+    fprintf(fp, "<b>generated via the command : ");
+    show_command(fp, gd->argc, gd->argv);
+    fprintf(fp, "</b><hr width='75%%' align='left'/>\n");
+
+    return 0;
+}
+
+int show_command(FILE * fp, int argc, char ** argv)
+{
+    int c;
+
+    for( c = 0; c < argc; c++ )
+        fprintf(fp, "%s ", argv[c]);
+    fputc('\n', fp);
 
     return 0;
 }
@@ -492,7 +512,7 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
         nfound = c;     /* no shift requred */
 
     if( nfound == 0 ) {         /* death by 'levels' */
-        if(gd->verb>0) fprintf(stderr,"-- no history for level restriction\n");
+        if(gd->verb>0) fprintf(stderr,"-- no history for date restriction\n");
         free(*hlist);
         *hlist = NULL;
         return 1;

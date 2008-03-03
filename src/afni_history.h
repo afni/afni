@@ -97,6 +97,9 @@ typedef struct {
     /* assigned variables */
     int        plen;
     histpair * histpairs;
+
+    int        argc;
+    char    ** argv;
 } global_data;
 
 #undef INT_IN_RANGE
@@ -137,11 +140,12 @@ int restrict_by_level   (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_program (global_data * gd, hist_type *** hlist, int * len);
 int restrict_by_type    (global_data * gd, hist_type *** hlist, int * len);
 int show_author_list    (void);
+int show_command        (FILE * fp, int argc, char ** argv);
 int show_help           (void);
 int show_hist_type      (hist_type * hp, FILE * fp);
 int show_history        (global_data * gd, hist_type ** hlist, int len);
 int show_html_footer    (FILE * fp);
-int show_html_header    (FILE * fp, int min_level);
+int show_html_header    (global_data * gd, FILE * fp, int min_level);
 int show_html_separator (FILE * fp);
 int show_results        (global_data * gd);
 int show_valid_types    (void);
