@@ -61,7 +61,7 @@ typedef afni_history_struct hist_type;
 #define MAX_LINE_CHARS  73  /* max description chars without newline   */
                             /* 80 - ( 3 spaces + " + \n" )             */
 #define NUM_HIST_USERS  20  /* increase this if we go beyond 20 people */
-#define FIRST_YEAR    2001  /* start of SSCC, just in case (Ziad...)   */
+#define FIRST_YEAR    1994  /* start of AFNI, just in case (RWCox..)   */
 
 
 /* refereces to the structures in each history file */
