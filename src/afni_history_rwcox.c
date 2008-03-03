@@ -51,12 +51,12 @@ afni_history_struct rwcox_history[] = {
  { 1 , MAR , 2008 , RWC , "++AFNI_History++ plugin" , MICRO , TYPE_NEW_PROG ,
    "Provides a way to create and insert entries into afni_history_NAME.c" ,
    "User must set two environment variables:\n"
-   "  AFNI_HISTORY_PERSONAL_FILE = full path to your personal version of\n"
-   "    afni_history_NAME.c\n"
-   "  AFNI_HISTORY_USERNAME = what you want for the username in your file\n"
+   " AFNI_HISTORY_PERSONAL_FILE = full path to your personal version of\n"
+   "   afni_history_NAME.c\n"
+   " AFNI_HISTORY_USERNAME = what you want for the username in your file\n"
    "My values of these are\n"
-   "  AFNI_HISTORY_PERSONAL_FILE = /Users/rwcox/AFNI/src/afni_history_rwcox.c\n"
-   "  AFNI_HISTORY_USERNAME      = RWC\n"
+   " AFNI_HISTORY_PERSONAL_FILE = /Users/rwcox/AFNI/src/afni_history_rwcox.c\n"
+   " AFNI_HISTORY_USERNAME      = RWC\n"
    "You also need to add one of two lines to your afni_history_NAME.c file:\n"
    "\n"
    "/*=====below THIS LINE=====*/\n"
@@ -129,8 +129,8 @@ afni_history_struct rwcox_history[] = {
  /*-------------------------------------------------------------------------*/
  /*---------- The stuff below was converted from AFNI.changes.cox ----------*/
 
- { 24,JUL,1996, RWC, "Miscellaneous", SUPERDUPER, TYPE_GENERAL, "Older History stuff" ,
-   "AFNI was created in summer 1994 (although some parts date to the 1980s).\n"
+ { 24,JUL,1996, RWC, "Miscellaneous", SUPERDUPER, TYPE_GENERAL, "Oldest History stuff" ,
+   "AFNI was created in summer 1994 (altho some parts date to the 1980s).\n"
    "However, no log was made of changes until this date in 1996.\n"
    } ,
 
@@ -153,10 +153,10 @@ afni_history_struct rwcox_history[] = {
    "* Used fsync(fileno()) to ensure that writes of .BRIK files are\n"
    "   flushed to disk -- in afni_func.c and 3ddata.c.\n"
    "* Don't do shadow color changing in 'colormenus' unless the widget is\n"
-   "   realized, since this causes a BadDrawable error on Linux (Motif 2.0).\n"
+   "   realized, since this causes BadDrawable error on Linux (Motif 2.0).\n"
    "* Changed most popup widgets to be of class 'menu', which means that\n"
    "   their background color can now be changed separately.\n"
-   "* Changed operation of -R option in afni to limit the levels of recursion.\n"
+   "* Changed operation of -R option in afni to limit levels of recursion.\n"
    "   Mostly involved changing the routine THD_get_all_subdirs in 3ddata.c.\n"
    },
 
@@ -417,14 +417,14 @@ afni_history_struct rwcox_history[] = {
    "   value has changed before trying to update the meter progress.\n"
    "* Added 'units_type' to the 3D+time dataset format.  This lets the\n"
    "   'time axis' be expressed in milliseconds, seconds, or Hertz.\n"
-   "   Changes were made to 3ddata.[ch], to3d.c, 3dinfo.c, and editvol.[ch].\n"
+   "   Changes were made to 3ddata.[ch], to3d.c, 3dinfo.c, editvol.[ch].\n"
    "* Power spectrum plugin 'plug_power.c' was made to work today.\n"
    },
 
   { 22,OCT,1996 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Added timeseries chooser to afni_plugin.c.\n"
    "* Added ability to apply a function to graph data (e.g., to take the\n"
-   "   logarithm of each point).  This affected afni.[ch] and afni_graph.[ch].\n"
+   "   logarithm of each point).  This affected afni.[ch], afni_graph.[ch].\n"
    "* Fixed a bug in afni_fimmer.c, where routine AFNI_ts_in_library could\n"
    "   return the wrong value if the timeseries being searched for was\n"
    "   not actually found.\n"
@@ -615,7 +615,7 @@ afni_history_struct rwcox_history[] = {
    "* Included '#include <string.h>' in mcw_glob.h, to prevent complaints\n"
    "   from stupid compilers.\n"
    "* Added Makefile.osf1, from a system at U Maryland.\n"
-   "* Added gmovie, a script to create a GIF movie from a bunch of PNM files.\n"
+   "* Added gmovie, script to create a GIF movie from a bunch of PNM files.\n"
    },
 
   { 21,JAN,1997 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -626,7 +626,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 22,JAN,1997 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Made the control buttons on the image viewers (imseq.c) a little smaller.\n"
+   "* Made the control buttons on image viewers (imseq.c) a little smaller.\n"
    },
 
   { 30,JAN,1997 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -1136,26 +1136,27 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 17,APR,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modified 3dcalc.c to allow input of *.1D time series in place of datasets.\n"
+   "* Modified 3dcalc.c to allow input of *.1D time series\n"
+   "   in place of datasets.\n"
    },
 
   { 25,APR,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modified thd_*.c to store byte order (for short and int datasets) in the\n"
-   "   the .HEAD file.  Then when the file is read in, it will be byte swapped\n"
+   "* Modified thd_*.c to store byte order (for short and int dsets) in the\n"
+   "   .HEAD file.  Then when the file is read in, it will be byte swapped\n"
    "   if necessary (which will force it to be malloc-ed, not mmap-ed).\n"
-   "* Also modified 3drefit to allow a byte order to be written to the .HEAD\n"
-   "   file.  Note that this does not affect the .BRIK file.\n"
-   "* Added new environment variable AFNI_BYTEORDER to control the byte order\n"
+   "* Also modified 3drefit to allow a byte order to be written to .HEAD\n"
+   "   files.  Note that this does not affect the .BRIK file.\n"
+   "* Added new environment variable AFNI_BYTEORDER to control byte order\n"
    "   of output datasets.  This can be 'LSB_FIRST' or 'MSB_FIRST'.  If not\n"
    "   present, this means to use the native order of the CPU.\n"
-   "* Added new enviroment variable 'AFNI_NOMMAP' to allow suppression of mmap.\n"
+   "* Added enviroment variable 'AFNI_NOMMAP' to allow suppression of mmap.\n"
    "   If the value is 'YES', then all datasets will be malloc-ed.\n"
    "* Modified the 'Purge Memory' button to purge ALL datasets from memory.\n"
    "   Formerly, it only purged the unused ones.\n"
    },
 
   { 29,APR,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* At the behest of Ted DeYoe, modified 3dcalc.c (again!) to allow operations\n"
+   "* At the behest of Ted DeYoe, modified 3dcalc.c to allow operations\n"
    "   on bucket and other multi-brick datasets that aren't 3D+time.\n"
    "* Also modified 3drefit.c to allow conversion of 3D+time into a bucket.\n"
    "* This also required the ability to erase datablock attributes, since\n"
@@ -1164,11 +1165,11 @@ afni_history_struct rwcox_history[] = {
    "   THD_erase_one_atr was added.  In files thd_writedset.c and\n"
    "   thd_writdblk.c, every attribute that DOESN'T get written now gets\n"
    "   erased.  This will still leave extra attributes (perhaps added by\n"
-   "   a plugin) being persistent, but avoids the attribute 'hangover' problem.\n"
+   "   a plugin) being persistent, but avoids attribute 'hangover' problem.\n"
    },
 
   { 30,APR,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modified 3dcalc.c to purge dataset sub-bricks when finished with them,\n"
+   "* Modified 3dcalc.c to purge dset sub-bricks when finished with them,\n"
    "   and to allocate output buffer sub-bricks only when needed.  This is\n"
    "   to keep memory usage down when using compressed 3D+time datasets.\n"
    "* Also added the -verbose option to 3dcalc.c.\n"
@@ -1382,8 +1383,8 @@ afni_history_struct rwcox_history[] = {
   { 1,OCT,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified mri_rota_shear to double up on FFTs -- speeds it up by\n"
    "   about 30%.\n"
-   "* Modified mri_align.c and mri_2dalign.c to allow choice of interpolation\n"
-   "   method at each stage of registration.\n"
+   "* Modified mri_align.c and mri_2dalign.c to allow choice of\n"
+   "   interpolation method at each stage of registration.\n"
    "* Modified imrotate.c, imreg.c, and plug_realtime.c to use the new\n"
    "   image alignment methods.\n"
    },
@@ -1398,12 +1399,12 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 21,OCT,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Added some routines to afni_plugin.c to create/manipulate PLUGIN_strval's\n"
+   "* Added routines to afni_plugin.c to create/manipulate PLUGIN_strval's\n"
    "   [= label + textfield].\n"
    },
 
   { 26,OCT,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Finished plug_tag.c, and added tagset to a 3D dataset.  Modified afni.c\n"
+   "* Finished plug_tag.c, and added tagset to a 3D dset.  Modified afni.c\n"
    "   to allow markers panel to open when there are no markers, so user can\n"
    "   control the color of the tags.\n"
    "* Modified mri_max.c to fix the initial values.\n"
@@ -1412,12 +1413,12 @@ afni_history_struct rwcox_history[] = {
 
   { 1,NOV,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Added realtime 3D registration to plug_realtime.c.\n"
-   "* Added quintic interpolation option to thd_rot3d.c and places that use it\n"
-   "   (3dvolreg.c, mri_3dalign.c, 3drotate.c, and plug_realtime.c).\n"
+   "* Added quintic interpolation option to thd_rot3d.c and places that use\n"
+   "   it (3dvolreg.c, mri_3dalign.c, 3drotate.c, and plug_realtime.c).\n"
    },
 
   { 3,NOV,1998 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modified afni.c, afni_widg.c, and afni.h to allow user to lock the time\n"
+   "* Modified afni.c, afni_widg.c, and afni.h to allow user to lock time\n"
    "   indexes of controllers, as well as the spatial locations.\n"
    },
 
@@ -1575,14 +1576,14 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 20,JAN,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Fixed bug in mri_stats.c, where the 'p2t' conversion was done backwards for\n"
-   "   the F statistic (p should have been q, and vice-versa).\n"
+   "* Fixed bug in mri_stats.c, where 'p2t' conversion was done backwards\n"
+   "   for the F statistic (p should have been q, and vice-versa).\n"
    },
 
   { 21,JAN,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Added SurfGraph feature to imseq.c.\n"
    "* Added OSfilt9 to imseq.c and the 2D transformations menu (afni.c).\n"
-   "* Modified coxplot/plot_topshell.c to store a handle to the form at the top\n"
+   "* Modified coxplot/plot_topshell.c to store a handle to the form at top\n"
    "   of the graph window hierarchy.\n"
    "* Modified xutil.c to add the 'SaveUnder' property to the hints widget.\n"
    },
@@ -1672,8 +1673,8 @@ afni_history_struct rwcox_history[] = {
 
   { 18,FEB,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* In plug_render.c\n"
-   "   + Replaced 'Remove Isolas' with 'Remove Small Clusters' in plug_render.c;\n"
-   "   + Added the slant cut planes.\n"
+   "  + Replaced 'Remove Isolas' w/ 'Remove Small Clusters' in plug_render.c\n"
+   "  + Added the slant cut planes.\n"
    "* In imseq.c, made it so that closing a rowgraph or surfgraph window\n"
    "   turns off the feature.\n"
    },
@@ -1683,10 +1684,10 @@ afni_history_struct rwcox_history[] = {
    "   to the (argc,argv) command line of a program.  Testbed is\n"
    "   3dRegAna.c (for D. Emge).\n"
    "* Added 'LOCK_ZORDER' command to plug_realtime (for Vinai).\n"
-   "* Fixed some bugs in plug_render.c having to do with the 'Expr > 0' cutout\n"
-   "   + Combination with AND was incorrect (counted ncdone too many times);\n"
-   "   + Test for evaluation to a pure number was incorrect if there were\n"
-   "     any leading blanks.\n"
+   "* Fixed bugs in plug_render.c having to do with the 'Expr > 0' cutout\n"
+   "  + Combination with AND was incorrect (counted ncdone too many times);\n"
+   "  + Test for evaluation to a pure number was incorrect if there were\n"
+   "    any leading blanks.\n"
    },
 
   { 23,FEB,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -1716,7 +1717,7 @@ afni_history_struct rwcox_history[] = {
 
   { 8,MAR,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* More changes to mcw_malloc.[ch].\n"
-   "* Added macro FREE_AV() to bbox.h, because I found out that all the places\n"
+   "* Added macro FREE_AV() to bbox.h, because I found out that all places\n"
    "   where I used XtFree() on an arrowval would leave the string values\n"
    "   (sval) high and dry.\n"
    },
@@ -1754,7 +1755,7 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 29,MAR,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Modified afni_receive.c and other places to allow for multiple receivers\n"
+   "* Modified afni_receive.c and others to allow for multiple receivers\n"
    "   for an IM3D.\n"
    "* Modified plug_render.c to auto-redraw when it receives notice of a\n"
    "   crosshair location move.\n"
@@ -1879,20 +1880,20 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 7,JUN,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Fixed bug in edt_onedset.c that always applied the zscore transformation\n"
+   "* Fixed bug in edt_onedset.c that always applied zscore transformation\n"
    "   if possible!\n"
-   "* Created afni_environ.[ch], which now process the ***ENVIRONMENT section\n"
+   "* Created afni_environ.[ch], which now process a ***ENVIRONMENT section\n"
    "   of .afnirc.  Also, in all programs, switched use of getenv() to\n"
-   "   my_getenv(), which just makes sure that the .afnirc ***ENVIRONMENT has\n"
+   "   my_getenv(), which just makes sure that .afnirc's ***ENVIRONMENT has\n"
    "   been processed before using getenv().  In this way, the .afnirc setup\n"
    "   will be universal.\n"
    },
 
   { 8,JUN,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Added MCW_new_idcode() to 3drotate.c -- was producing datasets with identical\n"
-   "   idcodes, which is terrible!\n"
-   "* Added function THD_check_idcodes() [thd_checkidc.c] to allow AFNI to check\n"
-   "   the idcodes in all datasets for duplicates.\n"
+   "* Added MCW_new_idcode() to 3drotate.c -- was producing datasets with\n"
+   "   identical idcodes, which is terrible!\n"
+   "* Added function THD_check_idcodes() [thd_checkidc.c] to allow AFNI to\n"
+   "   check the idcodes in all datasets for duplicates.\n"
    },
 
   { 15,JUN,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -1925,15 +1926,15 @@ afni_history_struct rwcox_history[] = {
    },
 
   { 19,JUL,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Fixed a bug in 3dcalc.c, where it tested CALC_type[ids] for > 0, whereas\n"
+   "* Fixed bug in 3dcalc.c, where it tested CALC_type[ids] for > 0, whereas\n"
    "   it should have been >= 0.  The effect was that 3D+time byte valued\n"
    "   datasets were not loaded into the atoz array.\n"
    },
 
   { 29,JUL,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
-   "* Fixed afni_graph.c to drop use of XComposeStatus in call to XLookupString,\n"
+   "* Fixed afni_graph.c to not use XComposeStatus in XLookupString call,\n"
    "   which was causing trouble on SunOS.\n"
-   "* Line 2707 of afni_graph.c also had an '==' for assignment, instead of '='.\n"
+   "* Line 2707 of afni_graph.c had an '==' for assignment, instead of '='.\n"
    "   The effect was a possible failure of the x-axis (xax_tsim) graphing\n"
    "   mode.  I don't think this failure ever occured in practice.\n"
    },
@@ -1959,8 +1960,8 @@ afni_history_struct rwcox_history[] = {
   { 6,AUG,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Modified afni_plugin.[ch] to allow plugins to set a sequence code,\n"
    "   which determines the order in which the plugins appear on the menu.\n"
-   "* Received 4 plugins (plug_hemisub, plug_maskcalc, plug_roiedit, plug_maxima)\n"
-   "   from the estate of Rick Reynolds.\n"
+   "* Received 4 plugins (plug_hemisub, plug_maskcalc, plug_roiedit,\n"
+   "    plug_maxima) from the estate of Rick Reynolds.\n"
    },
 
   { 7,AUG,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
@@ -1976,7 +1977,8 @@ afni_history_struct rwcox_history[] = {
 
   { 9,AUG,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* Added the radix-5 routine to csfft.c.\n"
-   "* Modified edt_blur.c, thd_rot3d.c, and plug_power.c to use new FFT abilities.\n"
+   "* Modified edt_blur.c, thd_rot3d.c, and plug_power.c to use new\n"
+   "   FFT abilities.\n"
    },
 
   { 19,AUG,1999 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
