@@ -65,6 +65,13 @@ afni_history_struct gangc_history[] = {
 	 
     "See more details on: http://afni.nimh.nih.gov/sscc/gangc/lme.html" 
   } ,
+  
+  { 17 , JAN , 2007 , GC , "1dSEM" , SUPER , TYPE_NEW_PROG ,
+    "An AFNI program that runs path analysis (or structural equation modeling) at \n"
+	 "group level.\n",
+	 
+    "See more details on: http://afni.nimh.nih.gov/sscc/gangc/PathAna.html" 
+  } ,
 
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
 } ;
