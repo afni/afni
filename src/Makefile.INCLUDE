@@ -2124,7 +2124,7 @@ AFNI_HIST_FILES  = afni_history.c					     \
 
 afni_history: $(AFNI_HIST_FILES)
 	$(RM) $@
-	$(CCMIN) -Wall -o afni_history $(AFNI_HIST_FILES)
+	$(CCMIN) -o afni_history $(AFNI_HIST_FILES)
 
 ###########################################################################
 # Miscellaneous programs, mostly for testing purposes
