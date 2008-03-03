@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, MAR, 2008, RCR, "website", MINOR, TYPE_MODIFY,
+   "updated the AFNI History website pages, with a table of entries",
+   NULL
+ } ,
+
  { 29, FEB, 2008, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
    "added a TYPE, -type, a new level, and a string to identify each level",
    NULL
