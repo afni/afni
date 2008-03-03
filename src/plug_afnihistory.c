@@ -89,7 +89,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Add to your personal afni_history file" ) ;
 
-   PLUTO_set_butcolor( plint , "blue" ) ;
+   PLUTO_set_butcolor( plint , "lightblue" ) ;
 
    return plint ;
 }
@@ -119,6 +119,7 @@ char * AHIST_main( PLUGIN_interface * plint )
 {
    XmString xstr ;
    int ii ;
+   char label[1234] ;
 
    /*-- sanity checks --*/
 
@@ -143,10 +144,10 @@ char * AHIST_main( PLUGIN_interface * plint )
       RWC_visibilize_widget( shell ) ;       /* 27 Sep 2000 */
    }
 
-   if( histfilename != NULL )
-     XtVaSetValues( shell , XmNtitle , histfilename , NULL ) ;
-   else
-     XtVaSetValues( shell , XmNtitle , "AFNI History Editor" , NULL ) ;
+   sprintf(label,"%s :: %s",
+           histusername , (histfilename != NULL) ? histfilename
+                                                 : "AFNI History Editor" ) ;
+   XtVaSetValues( shell , XmNtitle , label , NULL ) ;
 
    /*-- pop the widget up --*/
 
