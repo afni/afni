@@ -45,7 +45,7 @@ afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
  { 3 , MAR , 2008 , RWC , "++AFNI_History++ plugin" , MICRO , TYPE_NEW_OPT ,
-   "Small changes to make onscreen wordrwap match printout wordwrap" ,
+   "Small changes to make onscreen wordwrap match printout wordwrap" ,
    NULL } ,
 
  { 1 , MAR , 2008 , RWC , "++AFNI_History++ plugin" , MICRO , TYPE_NEW_PROG ,
@@ -7083,9 +7083,11 @@ afni_history_struct rwcox_history[] = {
    "* Added -check and -master options to 3dAllineate.c.\n"
    },
 
+#if 0
   { 28,SEP,2006 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* End of Res Publica Americana.\n"
    },
+#endif
 
   { 29,SEP,2006 , RWC , "Miscellaneous" , MICRO , TYPE_GENERAL , "Older History stuff" ,
    "* 3dAllineate.c edited to make -linear the default interpolation during\n"
