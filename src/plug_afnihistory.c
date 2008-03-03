@@ -143,9 +143,10 @@ char * AHIST_main( PLUGIN_interface * plint )
       RWC_visibilize_widget( shell ) ;       /* 27 Sep 2000 */
    }
 
-#if 0
-   XtVaSetValues( shell , XmNtitle , histfilename , NULL ) ;
-#endif
+   if( histfilename != NULL )
+     XtVaSetValues( shell , XmNtitle , histfilename , NULL ) ;
+   else
+     XtVaSetValues( shell , XmNtitle , "AFNI History Editor" , NULL ) ;
 
    /*-- pop the widget up --*/
 
@@ -197,7 +198,6 @@ static void AHIST_make_widgets(void)
       XtVaAppCreateShell(
            "AFNI" , "AFNI" , topLevelShellWidgetClass , dc->display ,
 
-           XmNtitle             , histfilename , /* top of window */
            XmNiconName          , "History"    , /* label on icon */
            XmNdeleteResponse    , XmDO_NOTHING , /* deletion handled below */
            XmNallowShellResize  , True ,         /* let code resize shell? */
@@ -245,7 +245,8 @@ static void AHIST_make_widgets(void)
                      XmNautoShowCursorPosition , True ,
                      XmNeditable               , True ,
                      XmNcursorPositionVisible  , True ,
-                     XmNcolumns                , 24   ,
+                     XmNcolumns                , 23   ,
+                     XmNmaxLength              , 23   ,
                  NULL ) ;
 
    /* Level chooser */
@@ -286,7 +287,8 @@ static void AHIST_make_widgets(void)
                      XmNautoShowCursorPosition , True ,
                      XmNeditable               , True ,
                      XmNcursorPositionVisible  , True ,
-                     XmNcolumns                , TWIDTH ,
+                     XmNcolumns                , TWIDTH-5 ,
+                     XmNmaxLength              , TWIDTH ,
                  NULL ) ;
    XtManageChild(twid) ;
 
@@ -309,8 +311,9 @@ static void AHIST_make_widgets(void)
                      XmNautoShowCursorPosition , True ,
                      XmNeditable               , True ,
                      XmNcursorPositionVisible  , True ,
-                     XmNcolumns                , TWIDTH ,
-                     XmNrows                   , THEIGHT,
+                     XmNcolumns                , TWIDTH  ,
+                     XmNrows                   , THEIGHT ,
+                     XmNmaxLength              , TWIDTH*THEIGHT*2 ,
                      XmNwordWrap               , True ,
                   NULL ) ;
 
@@ -359,7 +362,14 @@ static void AHIST_make_widgets(void)
 
    /*** done ***/
 
-   XtManageChild(topman) ; XtRealizeWidget(shell) ; return ;
+
+   XtManageChild(topman) ; XtRealizeWidget(shell) ;
+
+   MCW_set_widget_bg(program_tf,"black",0) ;  /* for fun */
+   MCW_set_widget_bg(oneline_tf,"black",0) ;
+   MCW_set_widget_bg(verbtext_t,"black",0) ;
+
+   return ;
 }
 
 /*-------------------------------------------------------------------
@@ -400,9 +410,9 @@ static void my_breakup_string( char *str , int lbot , int ltop )
 
    slen = strlen(str) ; if( slen <= ltop ) return ; /* already short enough */
 
-   ibot = 0 ; ldif = ltop-lbot ;
+   ibot = 0 ; ldif = ltop-lbot+1 ;
    while(1){
-     itop = ibot + ltop-1 ;    /* want to treat str[ibot..itop] as a line */
+     itop = ibot + ltop ;    /* want to treat str[ibot..itop] as a line */
 
      /* if itop is past end of str, then we am done */
 
@@ -525,7 +535,7 @@ static void AHIST_save_CB( Widget w, XtPointer client_data, XtPointer call_data 
    truncate_string(program_text) ;  /* all this stuff */
    truncate_string(oneline_text) ;  /* is done in place */
    truncate_string(verbose_text) ;
-   my_breakup_string(verbose_text,TWIDTH/2,TWIDTH) ;
+   my_breakup_string(verbose_text,TWIDTH/4,TWIDTH) ;
 
    /*-- check if required strings are present --*/
 
@@ -606,7 +616,8 @@ static void AHIST_save_CB( Widget w, XtPointer client_data, XtPointer call_data 
 
    /*-- print to screen for the user's edificationizing --*/
 
-   fputs(sstr,stdout) ;
+   fputs("\n",stdout) ;
+   fputs(sstr,stdout) ; fflush(stdout) ;
 
    if( dontsave ){
      if( histfilename != NULL )
