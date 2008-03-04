@@ -10,7 +10,7 @@ F2C = f2c -A
 INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src $(USE_ZLIB) $(USE_GIFTI)
 ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src $(USE_ZLIB)
 
-DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox   \
+DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett \
            AFNI.changes.dglen
 MINDOCS  = AFNI.changes.cox rickr/AFNI.changes.rickr AFNI.changes.dglen
