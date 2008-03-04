@@ -72,6 +72,34 @@ afni_history_struct gangc_history[] = {
 	 
     "See more details on: http://afni.nimh.nih.gov/sscc/gangc/PathAna.html" 
   } ,
+  
+  { 1 , DEC , 2005 , GC , "3dANOVA3" , MAJOR , TYPE_NEW_OPT ,
+    "New options were made to run 2nd-order general linear contrasts in 3dANOVA3. \n",
+	 
+    "See more details on: http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html" 
+  } ,
+  
+  { 23 , SEP , 2005 , GC , "3dANOVA2 and 3dANOVA3" , SUPER , TYPE_BUG_FIX ,
+    "Significant modifications were made to avoid statistics inflation for \n"
+	 "general linear contrasts when coefficients don't add up to 0. \n",
+	 
+    "See more details on: http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html" 
+  } ,
+  
+  { 27 , JUL , 2004 , GC , "PathAna" , SUPER , TYPE_NEW_PROG ,
+    "A Matlab package that runs group analysis of up to 5-way ANOVA \n",
+	 
+    "This packages adopts the conventional ANOVA approach to handling gorup \n"
+	 "analysis. And it requires Statistics Toolbox other than the basic Matlab.\n"
+	 "See more details on: http://afni.nimh.nih.gov/sscc/gangc" 
+  } ,
+  
+  { 27 , JUL , 2004 , GC , "IndiAna" , SUPER , TYPE_NEW_PROG ,
+    "A Matlab package that individual subject analysis in an interactive fashion.\n",
+	 
+	 "See more details on: http://afni.nimh.nih.gov/sscc/gangc" 
+  } ,
+  
 
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
 } ;
