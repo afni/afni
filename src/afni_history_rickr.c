@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, MAR, 2008, RCR, "3dTstat", MINOR, TYPE_NEW_OPT,
+   "added -accumulate option, to output each partial sum" ,
+   "for k = 0..N-1 : output[k] = sum(input[i]) over i = 0..k"
+ } ,
+
  {  3, MAR, 2008, RCR, "website", MINOR, TYPE_MODIFY,
    "updated the AFNI History website pages, with a table of entries",
    NULL

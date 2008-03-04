@@ -44,7 +44,9 @@
 #define METH_ONSET        23  /* DRG 08 Jan 2008 */
 #define METH_OFFSET       24
 
-#define MAX_NUM_OF_METHS  25
+#define METH_ACCUMULATE   25  /* RCR 04 Mar 2008 */
+
+#define MAX_NUM_OF_METHS  26
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -59,7 +61,7 @@ static char *meth_names[] = {
    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-   "Offset"
+   "Offset"        , "Accumulate"
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -77,7 +79,9 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *old_dset , *new_dset ;  /* input and output datasets */
    int nopt, nbriks, ii ;
-   int addBriks = 0;
+   int addBriks = 0 ;   /* n-1 sub-bricks out */
+   int fullBriks = 0 ;  /* n   sub-bricks out */
+   int tsout = 0 ;      /* flag to output a time series (not a stat bucket) */
    int numMultBriks,methIndex,brikIndex;
 
    /*----- Help the pitiful user? -----*/
@@ -133,6 +137,10 @@ int main( int argc , char *argv[] )
              "               first n coefficients\n"
              "   [N.B.: -autocorr 0 and/or -autoreg 0 will return number\n"
              "          coefficients equal to the length of the input data]\n"
+             "\n"
+             " -accumulate = accumulate time series values (partial sums)\n"
+             "               val[i] = sum old_val[t] over t = 0..i\n"
+             "               (output length = input length)\n"
              "\n"
              " ** If no statistic option is given, then '-mean' is assumed **\n"
              "\n"
@@ -332,6 +340,14 @@ int main( int argc , char *argv[] )
          continue ;
       }
 
+      if( strcmp(argv[nopt],"-accumulate") == 0 ){  /* 4 Mar 2008 [rickr] */
+         meth[nmeths++] = METH_ACCUMULATE ;
+         meth[nmeths++] = -1;   /* flag to add N (not N-1) output bricks */
+         fullBriks++;
+         tsout = 1;             /* flag to output a timeseries */
+         nopt++ ; continue ;
+      }
+
       /*-- prefix --*/
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
@@ -375,7 +391,7 @@ int main( int argc , char *argv[] )
    /*--- If no options selected, default to single stat MEAN -- KRH ---*/
 
    if (nmeths == 0) nmeths = 1;
-   if (nbriks == 0 && addBriks == 0) nbriks = 1;
+   if (nbriks == 0 && addBriks == 0 && fullBriks == 0) nbriks = 1;
 
    /*----- read input dataset -----*/
 
@@ -406,6 +422,7 @@ int main( int argc , char *argv[] )
    /* an argument of 0, then I'll now add extra BRIKs for the N-1 data */
    /* output points for each.                                          */
    nbriks += ((DSET_NVALS(old_dset)-1) * addBriks);
+   nbriks += ((DSET_NVALS(old_dset)  ) * fullBriks);
 
    /*------------- ready to compute new dataset -----------*/
 
@@ -423,14 +440,23 @@ int main( int argc , char *argv[] )
    if( new_dset != NULL ){
       tross_Copy_History( old_dset , new_dset ) ;
       tross_Make_History( "3dTstat" , argc,argv , new_dset ) ;
-      for (methIndex = 0,brikIndex = 0; methIndex < nmeths; methIndex++, brikIndex++) {
-        if ((meth[methIndex] == METH_AUTOCORR) || (meth[methIndex] == METH_AUTOREGP)) {
+      for (methIndex = 0,brikIndex = 0; methIndex < nmeths;
+           methIndex++, brikIndex++) {
+        if ((meth[methIndex] == METH_AUTOCORR)   ||
+            (meth[methIndex] == METH_ACCUMULATE) ||
+            (meth[methIndex] == METH_AUTOREGP)) {
           numMultBriks = meth[methIndex+1];
-          if (numMultBriks == 0) numMultBriks = DSET_NVALS(old_dset);
+
+          /* note: this looks like it should be NV-1   4 Mar 2008 [rickr] */
+          if (numMultBriks ==  0) numMultBriks = DSET_NVALS(old_dset)-1;
+          /* new flag for NVALS [rickr] */
+          if (numMultBriks == -1) numMultBriks = DSET_NVALS(old_dset);
+
           for (ii = 1; ii <= numMultBriks; ii++) {
             char tmpstr[25];
             if (meth[methIndex] == METH_AUTOREGP) {
-              sprintf(tmpstr,"%s[%d](%d)",meth_names[meth[methIndex]],numMultBriks,ii);
+              sprintf(tmpstr,"%s[%d](%d)",meth_names[meth[methIndex]],
+                      numMultBriks,ii);
             } else {
               sprintf(tmpstr,"%s(%d)",meth_names[meth[methIndex]],ii);
             }
@@ -442,6 +468,15 @@ int main( int argc , char *argv[] )
           EDIT_BRICK_LABEL(new_dset, brikIndex, meth_names[meth[methIndex]]) ;
         }
       }
+
+      if( tsout ) /* then change output to a time series */
+         EDIT_dset_items( new_dset ,
+                        ADN_ntt    , brikIndex ,
+                        ADN_ttorg  , DSET_TIMEORIGIN(old_dset) ,
+                        ADN_ttdel  , DSET_TIMESTEP(old_dset) ,
+                        ADN_tunits , DSET_TIMEUNITS(old_dset) ,
+                      NULL ) ;
+
       DSET_write( new_dset ) ;
       WROTE_DSET( new_dset ) ;
    } else {
@@ -502,7 +537,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
    /* out_index is an index into the output array.                            */
 
    for(meth_index=out_index=0 ; meth_index < nmeths; meth_index++,out_index++){
-   switch( meth[meth_index] ){
+    switch( meth[meth_index] ){
 
       default:
       case METH_MEAN:  val[out_index] = ts_mean  ; break ;
@@ -803,7 +838,23 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         free(z);
       }
       break ;
-   }
+
+      case METH_ACCUMULATE:{
+        register double sum = 0.0 ;
+        register int    ii ;
+
+        meth_index++;   /* go past dummy zero */
+
+        for( ii = 0; ii < npts; ii++) {
+          sum += ts[ii];  /* keep track as double */
+          val[out_index + ii] = sum;
+        }
+
+        out_index+=(npts - 1);
+      }
+      break ;
+
+    }
    }
 
    free(ts_det);
