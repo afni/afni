@@ -23,8 +23,7 @@
     /* (these should be the same functions exported from thd_gifti.c)       */
 
     #include "mrilib.h"
-    #include "suma_algorithms.h"
-    #include "suma_datasets.h"
+    #include "suma_afni_surface.h"
     /* ------------------------------- AFNI ------------------------------- */
 
     THD_3dim_dataset * THD_open_gifti(char * fname)
