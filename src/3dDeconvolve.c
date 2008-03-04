@@ -389,6 +389,13 @@ static int goforit = 0 ;  /* 07 Mar 2007 */
 static int badlev  = 0 ;
 static int floatout= 0 ;  /* 13 Mar 2007 */
 
+#define CHECK_NIFTI(fn)                                                \
+ do{ if( !floatout && strstr((fn),".nii") != NULL ){                   \
+       WARNING_message(                                                \
+        "output prefix '%s' is NIfTI-1 ==> forcing '-float'" , (fn)) ; \
+       floatout = 1 ;                                                  \
+   }} while(0)
+
 static int allzero_OK = 0 ;  /* 30 May 2007 */
 
 struct DC_options ;  /* incomplete struct definition */
@@ -2019,6 +2026,7 @@ void get_options
           = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->iresp_filename[k]);
         strcpy (option_data->iresp_filename[k], argv[nopt]);
+        CHECK_NIFTI(argv[nopt]) ;
         nopt++;
         continue;
       }
@@ -2049,6 +2057,7 @@ void get_options
           = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->sresp_filename[k]);
         strcpy (option_data->sresp_filename[k], argv[nopt]);
+        CHECK_NIFTI(argv[nopt]) ;
         nopt++;
         continue;
       }
@@ -2137,6 +2146,7 @@ void get_options
         option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->bucket_filename);
         strcpy (option_data->bucket_filename, argv[nopt]);
+        CHECK_NIFTI(argv[nopt]) ;
         nopt++;
         continue;
       }
@@ -2151,7 +2161,8 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need file prefixname after -cbucket ");
-          CoefFilename = strdup( argv[nopt] ) ;
+        CoefFilename = strdup( argv[nopt] ) ;
+        CHECK_NIFTI(argv[nopt]) ;
         nopt++; continue;
       }
 
@@ -2164,6 +2175,7 @@ void get_options
         option_data->fitts_filename = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->fitts_filename);
         strcpy (option_data->fitts_filename, argv[nopt]);
+        CHECK_NIFTI(argv[nopt]) ;
         nopt++;
         continue;
       }
@@ -2177,6 +2189,7 @@ void get_options
         option_data->errts_filename = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->errts_filename);
         strcpy (option_data->errts_filename, argv[nopt]);
+        CHECK_NIFTI(argv[nopt]) ;
         nopt++;
         continue;
       }
