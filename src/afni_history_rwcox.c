@@ -44,9 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
- { 4 , MAR , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
-   "add more informative error message if allocate_memory() fails" ,
-   NULL } ,
+ { 4 , MAR , 2008 , RWC , "3dDeconvolve" , MINOR , TYPE_BUG_FIX ,
+   "couple of small changes to help the hapless users" ,
+   "* add more informative error message if allocate_memory() fails\n"
+   "* force '-float' if any output prefix is NIfTI-1 format (.nii)" } ,
 
  { 3 , MAR , 2008 , RWC , "++AFNI_History++ plugin" , MICRO , TYPE_NEW_OPT ,
    "Small changes to make onscreen wordwrap match printout wordwrap" ,
