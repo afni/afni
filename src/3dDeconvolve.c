@@ -347,11 +347,11 @@
 # define QEPS 1.e-4
 #endif
 
-#define MEM_MESSAGE                                                      \
+#define MEM_MESSAGE                                                     \
  do{ long long val = MCW_MALLOC_total ;                                  \
-     if( val > 0 )                                                       \
-       INFO_message("current memory allocated = %lld bytes (about %s)" , \
-                    val , approximate_number_string((double)val) ) ;     \
+     if( val > 0 )                                                        \
+       INFO_message("current memory malloc-ated = %lld bytes (about %s)" , \
+                    val , approximate_number_string((double)val) ) ;        \
  } while(0)
 
 
@@ -3830,22 +3830,22 @@ void zero_fill_volume (float ** fvol, int nxyz)
     *fvol  = (float *) malloc (sizeof(float) * nxyz);
 
     if( *fvol == NULL ){  /* 04 Mar 2008 */
+      MEM_MESSAGE ;
       ERROR_message("Memory allocation for output sub-bricks fails!") ;
-      ERROR_message("Have allocated %lld (%s) bytes for output, up to now",
+      ERROR_message("Have allocated %lld bytes (about %s) for output, up to now",
                     zvf_totalbytes ,
                     approximate_number_string((double)zvf_totalbytes) ) ;
-      ERROR_message("Suggestions:\n"
+      ERROR_message("Potential lenitives or palliatives:\n"
                     " ++ Use 3dZcutup to cut input dataset into\n"
                     "      smaller volumes, then 3dZcat to put\n"
                     "      the results datasets back together.\n"
                     " ++ Reduce the number of output sub-bricks.\n"
-                    " ++ Get more memory and run a 64 bit version of AFNI."
+                    " ++ Use a system with more memory and/or swap space."
                    ) ;
       ERROR_exit("Alas, 3dDeconvolve cannot continue under these circumstances.") ;
     }
 
-    for (ixyz = 0;  ixyz < nxyz;  ixyz++)
-      (*fvol)[ixyz]  = 0.0;
+    for (ixyz = 0;  ixyz < nxyz;  ixyz++) (*fvol)[ixyz]  = 0.0;
 
   }
 #ifdef PROC_MAX
@@ -4023,7 +4023,7 @@ void proc_finalize_shm_volumes(void)
    atexit(proc_atexit) ;   /* or when the program exits */
 
 #ifdef MAP_ANON
-   INFO_message("mmap() memory allocated: %lld bytes [%s]\n" ,
+   INFO_message("mmap() memory allocated: %lld bytes (about %s)\n" ,
                 proc_shmsize, approximate_number_string((double)proc_shmsize) );
 #else
    INFO_message("Shared memory allocated: %lld bytes at id=%d\n" ,
@@ -4404,7 +4404,7 @@ ENTRY("initialize_program") ;
                  glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
                  fitts_vol, errts_vol);
 
-    INFO_message("Memory required for output bricks = %lld (%s) bytes",
+    INFO_message("Memory required for output bricks = %lld bytes (about %s)",
                  zvf_totalbytes ,
                  approximate_number_string((double)zvf_totalbytes) ) ;
   }
