@@ -3807,13 +3807,31 @@ void check_for_valid_inputs
   Allocate volume memory and fill with zeros.
 */
 
+static long long zvf_totalbytes = 0 ;  /* 04 Mar 2008 */
+
 void zero_fill_volume (float ** fvol, int nxyz)
 {
   int ixyz;
 
+  zvf_totalbytes += (long long) (sizeof(float) * nxyz) ;  /* 04 Mar 2008 */
+
   if( proc_numjob == 1 ){ /* 1 process ==> allocate locally */
 
-    *fvol  = (float *) malloc (sizeof(float) * nxyz);   MTEST(*fvol);
+    *fvol  = (float *) malloc (sizeof(float) * nxyz);
+    if( *fvol == NULL ){
+      ERROR_message("Memory allocation for output sub-bricks fails!") ;
+      ERROR_message("Have allocated %lld (%s) bytes for output, up to now",
+                    zvf_totalbytes ,
+                    approximate_number_string((double)zvf_totalbytes) ) ;
+      ERROR_message("Suggestions:\n"
+                    " ++ Use 3dZcutup to cut input dataset into\n"
+                    "      smaller volumes, then 3dZcat to put\n"
+                    "      the results datasets back together.\n"
+                    " ++ Reduce the number of output sub-bricks.\n"
+                    " ++ Get more memory and run a 64 bit version of AFNI."
+                   ) ;
+      ERROR_exit("Alas, 3dDeconvolve cannot continue under these circumstances") ;
+    }
     for (ixyz = 0;  ixyz < nxyz;  ixyz++)
       (*fvol)[ixyz]  = 0.0;
 
@@ -4372,11 +4390,16 @@ ENTRY("initialize_program") ;
 
 
   /*----- Allocate memory for output volumes -----*/
-  if (!(*option_data)->nodata)
+  if (!(*option_data)->nodata){
     allocate_memory (*option_data, coef_vol, scoef_vol, tcoef_vol,
                  fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
                  glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
                  fitts_vol, errts_vol);
+
+    INFO_message("Memory required for output bricks = %lld (%s) bytes",
+                 zvf_totalbytes ,
+                 approximate_number_string((double)zvf_totalbytes) ) ;
+  }
 
   EXRETURN ;
 }
