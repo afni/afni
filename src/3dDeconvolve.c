@@ -3818,7 +3818,8 @@ void zero_fill_volume (float ** fvol, int nxyz)
   if( proc_numjob == 1 ){ /* 1 process ==> allocate locally */
 
     *fvol  = (float *) malloc (sizeof(float) * nxyz);
-    if( *fvol == NULL ){
+
+    if( *fvol == NULL ){  /* 04 Mar 2008 */
       ERROR_message("Memory allocation for output sub-bricks fails!") ;
       ERROR_message("Have allocated %lld (%s) bytes for output, up to now",
                     zvf_totalbytes ,
@@ -3830,8 +3831,9 @@ void zero_fill_volume (float ** fvol, int nxyz)
                     " ++ Reduce the number of output sub-bricks.\n"
                     " ++ Get more memory and run a 64 bit version of AFNI."
                    ) ;
-      ERROR_exit("Alas, 3dDeconvolve cannot continue under these circumstances") ;
+      ERROR_exit("Alas, 3dDeconvolve cannot continue under these circumstances.") ;
     }
+
     for (ixyz = 0;  ixyz < nxyz;  ixyz++)
       (*fvol)[ixyz]  = 0.0;
 
