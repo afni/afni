@@ -308,7 +308,7 @@ L_SET_SURF_DIRS:
     end
     
    set other_mgz = ()
-   set other_candidates = ( T1 aparc+aseg aseg.auto aseg brain.finalsurfs brain brainmask.auto brainmask norm nu nu_noneck lh.ribbon rh.ribbon wm.asegedit wm wm.seg )
+   set other_candidates = ( T1 aparc+aseg aparc.a2005s+aseg aseg.auto aseg brain.finalsurfs brain brainmask.auto brainmask norm nu nu_noneck lh.ribbon rh.ribbon wm.asegedit wm wm.seg )
    foreach candidate ($other_candidates)
       foreach dcand ($surf_dir/ $surf_dir/mri/ ./ mri/ ../ ../mri/ )
          if ( -f $dcand$candidate.mgz ) then 
