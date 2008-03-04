@@ -722,11 +722,13 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
     ertr_c0    =  1 - exp(-RIB * TR)  * cos0;
     c0_ertr_c0 = (1 - exp(-RIB * TR)) * cos0;
 
-    if(P->debug > 1)
+    if(P->debug > 1) {
+        fflush(stdout);
         fprintf(stderr,
                 "+d mp_len, m0, rTR, R_r1 = %d, %f, %f, %f\n"
                 "  ertr, ertr_c0, c0_ertr_c0 = %f, %f, %f\n"
                 , mp_len, m0, rTR, R_r1, ertr, ertr_c0, c0_ertr_c0);
+    }
 
     /* we don't have to be too fast here, since this is one-time-only */
 
