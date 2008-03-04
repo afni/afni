@@ -2575,7 +2575,6 @@ suma_install:
    SUMA/SampBias SUMA/3dSkullStrip SUMA/3dCRUISEtoAFNI \
    SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask \
    SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
-   SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
    SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
