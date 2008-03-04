@@ -347,6 +347,14 @@
 # define QEPS 1.e-4
 #endif
 
+#define MEM_MESSAGE                                                      \
+ do{ long long val = MCW_MALLOC_total ;                                  \
+     if( val > 0 )                                                       \
+       INFO_message("current memory allocated = %lld bytes (about %s)" , \
+                    val , approximate_number_string((double)val) ) ;     \
+ } while(0)
+
+
 /*------------ prototypes for routines far below (RWCox) ------------------*/
 
 void JPEG_matrix_gray( matrix X, char *fname );        /* save X matrix to JPEG */
@@ -2637,8 +2645,10 @@ ENTRY("read_input_data") ;
       *dset_time = THD_open_dataset (option_data->input_filename);
       CHECK_OPEN_ERROR(*dset_time,option_data->input_filename);
       if( !option_data->x1D_stop ){
+        if( verb ) MEM_MESSAGE ;
         if( verb ) INFO_message("loading dataset %s",option_data->input_filename);
         DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
+        if( verb ) MEM_MESSAGE ;
       }
       if( (*dset_time)->taxis == NULL )
         WARNING_message("dataset '%s' has no time axis",
@@ -3934,13 +3944,9 @@ void proc_finalize_shm_volumes(void)
        "** SUGGESTION:  Run on a 64-bit computer system, instead of 32-bit.\n"
       , psum,twogig) ;
    else {
-     long long val ;
      INFO_message("total shared memory needed = %lld bytes (about %s)" ,
                   psum , approximate_number_string((double)psum) ) ;
-     val = MCW_MALLOC_total ;
-     if( val > 0 )
-       INFO_message("current memory allocated = %lld bytes (about %s)" ,
-                    val , approximate_number_string((double)val) ) ;
+     if( verb ) MEM_MESSAGE ;
    }
 
    proc_shmsize = psum ;  /* global variable */
@@ -5404,10 +5410,7 @@ ENTRY("calculate_results") ;
 #endif /* PROC_MAX */
 
       if( proc_numjob == 1 && !option_data->quiet ){
-        long long val = MCW_MALLOC_total ;
-        if( val > 0 )
-          INFO_message("current memory allocated = %lld bytes (about %s)" ,
-                       val , approximate_number_string((double)val) ) ;
+        MEM_MESSAGE ;
         INFO_message("Calculations starting; elapsed time=%.3f",COX_clock_time()) ;
       }
 
