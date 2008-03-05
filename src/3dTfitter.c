@@ -9,7 +9,7 @@ static void vstep_print(void) ; /* prototype */
 int main( int argc , char *argv[] )
 {
    int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep=0 ;
-   THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ;
+   THD_3dim_dataset *rhset=NULL ; char *rhsnam="?" ; int rhs1D=0 ;
    THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 , nlhs=0 ;
    THD_3dim_dataset *fset=NULL ;
    XtPointer_array *dsar ;
@@ -184,10 +184,21 @@ int main( int argc , char *argv[] )
       "             * Which is always in float format.\n"
       "             * If you don't give this option, 'Tfitter' is the prefix.\n"
       "             * If you don't want this dataset, use 'NULL' as the prefix.\n"
+      "            ** If the input '-RHS' file is a .1D file, normally the\n"
+      "               output files are written in the AFNI .3D ASCII format,\n"
+      "               where each row contains the time series data for one\n"
+      "               voxel.  If you want to have these files written in the\n"
+      "               .1D format, with time represented down the column\n"
+      "               direction, be sure to put '.1D' on the end of the prefix,\n"
+      "               as in '-prefix Elvis.1D'.  If you use '-' or 'stdout' as\n"
+      "               the prefix, the resulting 1D file will be written to the\n"
+      "               terminal.\n"
       "\n"
       "  -fitts ff = Prefix filename for the output fitted time series dataset.\n"
       "             * Which is always in float format.\n"
       "             * Which will not be written if this option isn't given!\n"
+      "            ** If you want the residuals, subtract this time series\n"
+      "               from the '-RHS' input using 3dcalc (or 1deval).\n"
       "\n"
       "  -mask ms  = Read in dataset 'ms' as a mask; only voxels with nonzero\n"
       "              values in the mask will be processed.  Voxels falling\n"
@@ -385,6 +396,7 @@ int main( int argc , char *argv[] )
        rhset = THD_open_dataset( rhsnam ) ;
        if( rhset == NULL )
          ERROR_exit("Can't open dataset '%s'",argv[iarg]) ;
+       rhs1D = DSET_IS_1D(rhset) ;  /* 05 Mar 2008 */
        iarg++ ; continue ;
      }
 
