@@ -44,6 +44,11 @@ static float * new_lsqfit( int npt  , float *far   ,
 #undef  GOOD_METH
 #define GOOD_METH(m) ( (m)==1 || (m)==2 )
 
+static floatvec *fitv = NULL ;
+static int    do_fitv = 0 ;
+void       THD_fitter_do_fitts(int qq){ do_fitv = qq; }
+floatvec * THD_retrieve_fitts(void){ return fitv; }  /* 05 Mar 2008 */
+
 /*------------------------------------------------------------------*/
 /* Fit the npt-long vector far[] to the nref vectors in ref[].
     - meth=1 ==> L1 fit
@@ -63,6 +68,8 @@ floatvec * THD_fitter( int npt , float *far  ,
    int jj ;
    float *qfit=NULL, val ;
    floatvec *fv=NULL ;
+
+   KILL_floatvec(fitv) ;  /* 05 Mar 2008 */
 
    /* check inputs for stupid users */
 
@@ -102,7 +109,10 @@ floatvec * THD_fitter( int npt , float *far  ,
 
    MAKE_floatvec(fv,nref) ;                      /* copy output array */
    memcpy( fv->ar, qfit, sizeof(float)*nref ) ;  /* into floatvec and */
-   free(qfit) ; return fv ;                      /* return to caller. */
+   free(qfit) ;                                  /* free the trashola */
+   if( do_fitv )
+     fitv = THD_fitter_fitts( npt,fv,nref,ref,NULL ) ; /* 05 Mar 2008 */
+   return fv ;                                    /* return to caller */
 }
 
 /*-------------------------------------------------------------------------*/
