@@ -257,13 +257,15 @@ int NI_write_gifti(NI_group * ngr, char * fname)
     RETURN(rv);
 }
 
-/* set all pointers to NULL, since they were stolen from the NI_group */
+/* set all non-NODE_INDEX pointers to NULL,
+ * since they were stolen from the NI_group */
 static int clear_gifti_pointers(gifti_image * gim)
 {
     int c;
     ENTRY("clear_gifti_pointers");
     for( c = 0; c < gim->numDA; c++ )
-        gim->darray[c]->data = NULL;
+        if( gim->darray[c]->intent != NIFTI_INTENT_NODE_INDEX )
+            gim->darray[c]->data = NULL;
     RETURN(0);
 }
 
@@ -365,14 +367,16 @@ static int nsdg_add_data(NI_element * sdel, gifti_image * gim)
     RETURN(0);
 }
 
-/* convert any COLMS_LABS to meta */
+/* add an INDEX list to the gifti_image
+ * (data is allocated, so we must free() later) */
 static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
 {
     giiDataArray  * da;
     NI_element    * nel = NULL;
     void         ** elist = NULL;
     char          * rhs;
-    int             ind, len = 0, sorted = 0, def = 0;
+    int           * data;  /* new index_list */
+    int             ind, len = 0, sorted = 0, def = 0, make_list = 0;
 
     ENTRY("nsdg_add_index_list");
 
@@ -381,33 +385,67 @@ static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
     ind = NI_search_group_shallow(ngr, "INDEX_LIST", &elist);
     if(ind > 0){ nel = (NI_element *)elist[0]; NI_free(elist); elist = NULL; }
     if( !nel || nel->vec_num <= 0 || nel->vec_len <= 0 ) {
-        if(GP->verb>1) fprintf(stderr,"-- NSD_to_gifti: missing INDEX_LIST\n");
-        RETURN(0);
-    }
-    if( nel->vec_typ[0] != NI_INT ) {
-        if(GP->verb>1) fprintf(stderr,"** bad type in INDEX_LIST\n");
-        RETURN(1);
-    }
-
-    len = nel->vec_len;
-    if( len <= 0 ) {
-        if( GP->verb > 1 ) fprintf(stderr,"** bad vec_len in INDEX_LIST\n");
-        RETURN(1);
+        if( GP->add_index_list ) {
+            if(GP->verb>1)
+                fprintf(stderr,"-- NSD_to_gifti: no INDEX_LIST, creating...\n");
+            make_list = 1;
+        } else {
+            if(GP->verb>1)
+                fprintf(stderr,"-- NSD_to_gifti: no INDEX_LIST, skipping...\n");
+            RETURN(0);
+        }
     }
 
-    rhs = NI_get_attribute(nel, "sorted_node_def");
-    if( rhs )  sorted = *rhs == 'Y' || *rhs == 'y';
+    if( make_list) {    /* create a default list */
+        len = (int)gim->darray[0]->nvals;
+        data = (int *)malloc(len * sizeof(int));
+        if( !data ){
+            fprintf(stderr,"** failed to alloc IND_LIST, len %d\n",len);
+            RETURN(1);
+        }
+        for( ind = 0; ind < len; ind++ )
+            data[ind] = ind;
+    } else {
+        if( nel->vec_typ[0] != NI_INT ) {
+            if(GP->verb>1) fprintf(stderr,"** bad type in INDEX_LIST\n");
+            RETURN(1);
+        }
 
-    if( sorted && len == (int)gim->darray[0]->nvals ) def = 1;
+        len = nel->vec_len;
+        if( len <= 0 ) {
+            if( GP->verb > 1 ) fprintf(stderr,"** bad vec_len in INDEX_LIST\n");
+            RETURN(1);
+        }
 
-    /* if it appears to be the default, skip it */
-    if( GP->verb > 2 )
-        fprintf(stderr,"-- INDEX_LIST len = %d, sorted = %d, default = %d\n",
-                len, sorted, def);
+        rhs = NI_get_attribute(nel, "sorted_node_def");
+        if( rhs )  sorted = *rhs == 'Y' || *rhs == 'y';
 
-    if( def ) {
-        if( GP->verb > 1 ) fprintf(stderr,"-- skipping default INDEX_LIST\n");
-        RETURN(0);
+        /* see if it is just 1..N */
+        if( sorted && len == (int)gim->darray[0]->nvals ) {
+            int * ip = nel->vec[0];
+            for( ind = 0; ind < len; ind++ )
+                if( ip[ind] != ind ) break;
+            if( ind == len ) def = 1;
+            else             def = 0;
+        }
+
+        if( GP->verb > 2 )
+            fprintf(stderr,"-- INDEX_LIST len=%d, sorted=%d, default=%d\n",
+                    len, sorted, def);
+
+        /* if it is a default and wasn't requested, skip it */
+        if( def && ! GP->add_index_list ) {
+            if(GP->verb>1) fprintf(stderr,"-- skipping default INDEX_LIST\n");
+            RETURN(0);
+        }
+
+        /* have 'len', set 'data' */
+        data = (int *)malloc(len * sizeof(int));
+        if( !data ){
+            fprintf(stderr,"** failed to alloc IND_LIST, len %d\n",len);
+            RETURN(1);
+        }
+        memcpy(data, nel->vec[0], len*sizeof(int));
     }
 
     /* okay, let's actually add the list as NIFTI_INTENT_NODE_INDEX */
@@ -422,10 +460,11 @@ static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
     da->datatype = NIFTI_TYPE_INT32;
     da->num_dim  = 1;
     da->dims[0]  = len;
+    da->nvals    = len;
     if( GP->write_mode == NI_TEXT_MODE ) da->encoding = GIFTI_ENCODING_ASCII;
 
-    /* steal the pointer */
-    da->data = nel->vec[0];
+    /* set the pointer */
+    da->data = data;
 
     RETURN(0);
 }
