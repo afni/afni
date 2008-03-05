@@ -21,23 +21,29 @@ meth <- "C"         # or "R"
 InFile <- unlist(strsplit(unlist(scan(file="par.txt", what= list(""), 
    skip=0, nline=1)), "\\:"))[2]
 
-#  Line 2: Output filename
+#  Line 2: Output filename for the components in 3D
 #how to check output filename?
 Out <- unlist(strsplit(unlist(scan(file="par.txt", what= list(""), 
    skip=1, nline=1)), "\\:"))[2]
 OutFile <- paste(Out, "+orig", sep="")
 
-#  Line 3: Number of components
+#  Line 3: Output filename for the mixing matrix in 1D. Transformed for 
+# easier handling when plotting with 1dplot
+OutTemp <- unlist(strsplit(unlist(scan(file="par.txt", what= list(""), 
+   skip=2, nline=1)), "\\:"))[2]
+OutTempFile <- paste(OutTemp, ".1D", sep="")
+
+#  Line 4: Number of components
 NoComp <- as.integer(unlist(strsplit(unlist(scan(file="par.txt", 
-   what= list(""), skip=2, nline=1)), "\\:"))[2])
+   what= list(""), skip=3, nline=1)), "\\:"))[2])
 	
-#  Line 4: function for approximation to neg-antropy
+#  Line 5: function for approximation to neg-antropy
 Func <- unlist(strsplit(unlist(scan(file="par.txt", 
-   what= list(""), skip=3, nline=1)), "\\:"))[2]
-	
-#  Line 5: extraction method
-Type <- unlist(strsplit(unlist(scan(file="par.txt", 
    what= list(""), skip=4, nline=1)), "\\:"))[2]
+	
+#  Line 6: extraction method
+Type <- unlist(strsplit(unlist(scan(file="par.txt", 
+   what= list(""), skip=5, nline=1)), "\\:"))[2]
 		
 
 Data <- read.AFNI(InFile)
@@ -70,6 +76,8 @@ write.AFNI(OutFile, MData, MyLabel, note=Data$header$HISTORY_NOTE, origin=Data$o
 statpar <- "3drefit"
 statpar <- paste(statpar, " -view tlrc -newid ", OutFile)
 system(statpar)
+
+write(t(ica$A), file = OutTempFile, sep="\t")
 
 print(sprintf("Congratulations! You've got output %s+tlrc.*", Out))
 
