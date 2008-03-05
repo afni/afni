@@ -51,6 +51,7 @@ static char * gifti_DA_meta_concat(gifti_image * gim, char * name,
 static char * nifti2suma_typestring(int niftitype);
 
 /*--- write gifti routines ---*/
+static int clear_gifti_pointers(gifti_image * gim);
 static int nsdg_add_data(NI_element * sdel, gifti_image * gim);
 static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim);
 static int nsdg_labs_to_meta(NI_group * ngr, gifti_image * gim);
@@ -249,9 +250,21 @@ int NI_write_gifti(NI_group * ngr, char * fname)
     if( GP->verb > 2 )
         fprintf(stderr,"-- gifti_write_image complete, freeing gim...\n");
 
+    clear_gifti_pointers(gim);  /* since they were stolen from ngr */
+
     gifti_free_image(gim);
 
     RETURN(rv);
+}
+
+/* set all pointers to NULL, since they were stolen from the NI_group */
+static int clear_gifti_pointers(gifti_image * gim)
+{
+    int c;
+    ENTRY("clear_gifti_pointers");
+    for( c = 0; c < gim->numDA; c++ )
+        gim->darray[c]->data = NULL;
+    RETURN(0);
 }
 
 /* convert between dataset types: NI_SURF_DSET to GIFTI */
@@ -328,10 +341,7 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     RETURN(gim);
 }
 
-/* copy or steal data
- *
- * dims and type are set, just insert the data
- */
+/* do not allocate data, just steal pointers */
 static int nsdg_add_data(NI_element * sdel, gifti_image * gim)
 {
     giiDataArray * da;
@@ -341,44 +351,10 @@ static int nsdg_add_data(NI_element * sdel, gifti_image * gim)
 
     if( GP->verb > 1 ) fprintf(stderr, "++ adding data to gim ...\n");
 
-    /* allocate all data */
-    if( gifti_alloc_DA_data(gim, NULL, 0) ) RETURN(1);
-
-    /* now walk through the list and either copy data or steal pointers */
+    /* walk through the list and steal pointers */
     for( c = 0; c < gim->numDA; c++ ) {
         da = gim->darray[c];
-        switch( da->datatype ) {
-            default: {
-                fprintf(stderr,"** nsdg_add_data: invalid dtype %s\n",
-                        gifti_datatype2str(da->datatype));
-                RETURN(1);
-            }
-            case NIFTI_TYPE_INT16: {
-                short * data = (short *)sdel->vec[c];
-                memcpy(da->data, data, da->nvals*sizeof(short));
-                break;
-            }
-            case NIFTI_TYPE_INT32: {
-                int * data = (int *)sdel->vec[c];
-                memcpy(da->data, data, da->nvals*sizeof(int));
-                break;
-            }
-            case NIFTI_TYPE_FLOAT32: {
-                float * data = (float *)sdel->vec[c];
-                memcpy(da->data, data, da->nvals*sizeof(float));
-                break;
-            }
-            case NIFTI_TYPE_FLOAT64: {
-                double * data = (double *)sdel->vec[c];
-                memcpy(da->data, data, da->nvals*sizeof(double));
-                break;
-            }
-            case NIFTI_TYPE_INT8: {
-                char * data = (char *)sdel->vec[c];
-                memcpy(da->data, data, da->nvals*sizeof(char));
-                break;
-            }
-        }
+        da->data = sdel->vec[c];
         if(GP->write_mode == NI_TEXT_MODE) da->encoding = GIFTI_ENCODING_ASCII;
     }
 
@@ -448,9 +424,8 @@ static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
     da->dims[0]  = len;
     if( GP->write_mode == NI_TEXT_MODE ) da->encoding = GIFTI_ENCODING_ASCII;
 
-    /* allocate and copy the data */
-    da->data = (int *)malloc(len * sizeof(int));
-    memcpy(da->data, nel->vec[0], len*sizeof(int));
+    /* steal the pointer */
+    da->data = nel->vec[0];
 
     RETURN(0);
 }
@@ -589,6 +564,7 @@ static int nsdg_stat_to_intent(NI_group * ngr, gifti_image * gim)
 }
 
 /* convert between dataset types: GIFTI to NI_SURF_DSET */
+/* note: we throw away the gifti data as it is copied   */
 static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
 {
     NI_group * ngr;
@@ -638,6 +614,7 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
 /* ------------------------- static functions ------------------------ */
 
 /* add a SPARSE_DATA element from the gifti_image (skip INTENT_NODE_INDEX) */
+/* note: delete gifti data as it is copied                                 */
 static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
 {
     NI_element   * nel;
@@ -681,6 +658,9 @@ static int gnsd_add_sparse_data(NI_group * ngr, gifti_image * gim, int add_data)
 
         NI_add_column(nel, ni_type, da->data);  /* finally, the data */
         nnew++;
+
+        /* and nuke it from the gifti dataset */
+        free(da->data);  da->data = NULL;
     }
 
     NI_set_attribute(nel, "data_type", "Node_Bucket_data");

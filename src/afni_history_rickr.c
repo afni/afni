@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "do not duplicate data when reading and writing GIFTI from AFNI",
+   NULL
+ } ,
+
  {  4, MAR, 2008, RCR, "3dTstat", MINOR, TYPE_NEW_OPT,
    "added -accumulate option, to output each partial sum" ,
    "for k = 0..N-1 : output[k] = sum(input[i]) over i = 0..k"
