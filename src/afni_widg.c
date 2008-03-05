@@ -5979,7 +5979,31 @@ ENTRY("AFNI_misc_button") ;
       dmode->misc_motd_pb = NULL ;
    }
 
+   /*--- pushbutton to see AFNI's historical documents ---*/
+
+   { char *pg = THD_find_executable("afni_history") ;
+     dmode->misc_hist_pb = NULL ;
+     if( pg != NULL ){
+       dmode->misc_hist_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , menu ,
+                  LABEL_ARG("AFNI History") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , True  ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( dmode->misc_hist_pb , XmNactivateCallback ,
+                     AFNI_misc_CB , im3d ) ;
+      MCW_register_hint( dmode->misc_hist_pb,"Show the Historical Documents" );
+     }
+   }
+
    /*--- pushbutton to purge unused datasets ---*/
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , menu ,
+               XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
 
    dmode->misc_purge_pb =
          XtVaCreateManagedWidget(
@@ -5994,13 +6018,6 @@ ENTRY("AFNI_misc_button") ;
    MCW_register_hint( dmode->misc_purge_pb , "Purge unused datasets" ) ;
 
    /*--- pushbutton to toggle routine tracing ---*/
-
-#if defined(USE_TRACING) || defined(USING_MCW_MALLOC)
-   (void) XtVaCreateManagedWidget(
-            "dialog" , xmSeparatorWidgetClass , menu ,
-               XmNseparatorType , XmSINGLE_LINE ,
-            NULL ) ;
-#endif
 
 #ifdef USE_TRACING
    if( !ALLOW_real_time ){    /* 26 Jan 2001: don't do this if realtime is on */

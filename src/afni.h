@@ -657,6 +657,7 @@ typedef struct {
       Widget         misc_readme_env_pb ; /* 05 Aug 2004 */
 
       Widget         misc_motd_pb ;       /* 29 Nov 2005 */
+      Widget         misc_hist_pb ;       /* 05 Mar 2008 */
 
 } AFNI_datamode_widgets ;
 
@@ -1126,6 +1127,7 @@ typedef struct {
 #endif
 
 extern void AFNI_display_motd( Widget w ) ;       /* 29 Nov 2005 */
+extern void AFNI_display_hist( Widget w ) ;       /* 05 Mar 2008 */
 
 #define FIM_THR          (0.01*GLOBAL_library.fim_bkthr_perc)  /* 02 Jun 1999 */
 #define SET_FIM_bkthr(v) (GLOBAL_library.fim_bkthr_perc = (v))

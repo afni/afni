@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , MAR , 2008 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Added 'AFNI History' button to the Datamode->Misc menu" ,
+   NULL } ,
+
  { 4 , MAR , 2008 , RWC , "3dDeconvolve" , MINOR , TYPE_BUG_FIX ,
    "couple of small changes to help the hapless users" ,
    "* add more informative error message if allocate_memory() fails\n"

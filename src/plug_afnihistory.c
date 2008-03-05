@@ -703,7 +703,7 @@ static void AHIST_show_CB( Widget w, XtPointer client_data, XtPointer call_data 
        XtSetSensitive(w,False) ; return ;
      }
      cmd = (char *)calloc( sizeof(char) , (64+strlen(pg)) ) ;
-     sprintf(cmd,"%s -reverse -past_months 1",pg) ;
+     sprintf(cmd,"%s -reverse -past_months 3",pg) ;
    }
 
    /*-- open a pipe to read from the command --*/
