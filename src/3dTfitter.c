@@ -6,8 +6,6 @@
 
 static void vstep_print(void) ; /* prototype */
 
-#define FALTUNG
-
 int main( int argc , char *argv[] )
 {
    int iarg , ii,jj,kk , nx,ny,nz,nvox , vstep=0 ;
@@ -24,13 +22,14 @@ int main( int argc , char *argv[] )
    float *dvec , **rvec=NULL , *cvec=NULL ;
    char **lab=NULL ; int nlab=0 ;
    int verb=1 ;
-#ifdef FALTUNG
+
    THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
    char *fal_pre ; int fal_pencod, fal_klen=0 , fal_dcon=0 ;
    float *fal_kern=NULL , fal_penfac ;
    THD_3dim_dataset *defal_set=NULL ;
-#endif
    int nvoff=0 ;
+
+   char *fitts_prefix=NULL ; THD_3dim_dataset *fitts_set=NULL ;
 
    /*------- help the pitifully ignorant user? -------*/
 
@@ -73,7 +72,6 @@ int main( int argc , char *argv[] )
       "             * Labels are applied in the order given.\n"
       "             * Normally, you would provide exactly as many labels as\n"
       "               LHS columns.  If not, the program invents some labels.\n"
-#ifdef FALTUNG
       "\n"
       "  -FALTUNG fset fpre pen fac\n"
       "            = Specifies a convolution (German: Faltung) model to be\n"
@@ -140,7 +138,6 @@ int main( int argc , char *argv[] )
       "           *** At most one '-FALTUNG' option can be used!\n"
       "   *********** THIS OPTION IS EXPERIMENTAL AND NOT FULLY TESTED YET!\n"
       "           *** And it can be pretty slow, applied to a 3D+time dataset.\n"
-#endif
       "\n"
       "  -lsqfit   = Solve equations via least squares [the default].\n"
       "             * '-l2fit' is a synonym for this option\n"
@@ -172,7 +169,6 @@ int main( int argc , char *argv[] )
       "               '-consign' -- you can't specify that an coefficient\n"
       "               is both non-negative and non-positive, for example!\n"
       "           *** Constraints can be used with '-l1fit' AND with '-l2fit'.\n"
-#ifdef FALTUNG
       "           *** '-consign' constraints only apply to the '-LHS'\n"
       "               fit parameters.  To constrain the '-FALTUNG' output,\n"
       "               use the option below.\n"
@@ -183,10 +179,15 @@ int main( int argc , char *argv[] )
       "             * There is no way at present to constrain the deconvolved\n"
       "               time series s(t) to be positive in some regions and\n"
       "               negative in others.\n"
-#endif
       "\n"
-      "  -prefix p = Prefix for the output dataset filename.\n"
+      "  -prefix p = Prefix for the output dataset (coefficient) filename.\n"
       "             * Which is always in float format.\n"
+      "             * If you don't give this option, 'Tfitter' is the prefix.\n"
+      "             * If you don't want this dataset, use 'NULL' as the prefix.\n"
+      "\n"
+      "  -fitts ff = Prefix filename for the output fitted time series dataset.\n"
+      "             * Which is always in float format.\n"
+      "             * Which will not be written if this option isn't given!\n"
       "\n"
       "  -mask ms  = Read in dataset 'ms' as a mask; only voxels with nonzero\n"
       "              values in the mask will be processed.  Voxels falling\n"
@@ -196,9 +197,6 @@ int main( int argc , char *argv[] )
       "\n"
       "NON-Options:\n"
       "------------\n"
-      "* There is no '-fitts' option to produces the fitted time series\n"
-      "  dataset at each voxel.  You could use 3dcalc for this purpose.\n"
-      "  If you are clever.\n"
       "* There is no option to produce statistical estimates of the\n"
       "  significance of the parameter estimates.\n"
       "* There are no options for censoring or baseline generation.\n"
@@ -252,7 +250,6 @@ int main( int argc , char *argv[] )
       " 0.535479 0.000236338\n"
       "\n"
       "  which are respectively the fit coefficients of 'cos(t)' and 'sin(t)'.\n"
-#ifdef FALTUNG
       "\n"
       "Contrived Deconvolution Example:\n"
       "--------------------------------\n"
@@ -286,7 +283,6 @@ int main( int argc , char *argv[] )
       "    selected in the commands above, which means the program selects\n"
       "    the penalty factor for each voxel, based on the size of the\n"
       "    data time series fluctuations.\n"
-#endif
       "\n"
       "---------------------------------------------------------------------\n"
       "-- RWCox - Feb 2008.\n"
@@ -305,7 +301,6 @@ int main( int argc , char *argv[] )
    iarg = 1 ; INIT_XTARR(dsar) ;
    while( iarg < argc ){
 
-#ifdef FALTUNG
      if( strcasecmp(argv[iarg],"-faltung") == 0 ){
        int p0,p1,p2 ;
        if( fal_set != NULL || fal_im != NULL )
@@ -359,7 +354,6 @@ int main( int argc , char *argv[] )
          WARNING_message("value after '-consFAL' is not '+' or '-' -- ignoring");
        iarg++ ; continue ;
      }
-#endif
 
      if( strcasecmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ;
@@ -450,6 +444,15 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strncasecmp(argv[iarg],"-fitts",5) == 0 ){
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+       fitts_prefix = argv[iarg] ;
+       if( !THD_filename_ok(prefix) )
+         ERROR_exit("Illegal string after -prefix: '%s'",prefix) ;
+       iarg++ ; continue ;
+     }
+
      if( strncasecmp(argv[iarg],"-consign",7) == 0 ){
        char *cpt , nvec ;
        if( ++iarg >= argc )
@@ -493,16 +496,11 @@ int main( int argc , char *argv[] )
    if( mask != NULL && (mnx != nx || mny != ny || mnz != nz) )
      ERROR_exit("mask and RHS datasets don't match in grid size") ;
 
-#ifndef FALTUNG
-   if( nvar < 1 )
-     ERROR_exit("no LHS time series input?!") ;
-#endif
    if( nvar >= ntime )
      ERROR_exit("too many (%d) LHS time series for %d time points",nvar,ntime) ;
 
    nlhs = dsar->num ;  /* number of -LHS inputs */
 
-#ifdef FALTUNG
    if( fal_klen > 0 ){
      if( fal_set != NULL ){
        if( DSET_NX(fal_set) != nx ||
@@ -515,11 +513,9 @@ int main( int argc , char *argv[] )
      if( fal_set != NULL )
        fal_kern = (float *)malloc(sizeof(float)*fal_klen) ;
      nvoff = ntime ;
-   }
-#else
-   if( nlhs == 0 )
+   } else if( nlhs == 0 ){
      ERROR_exit("no -LHS option given?!") ;
-#endif
+   }
 
    dvec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
    if( nvar > 0 )
@@ -604,7 +600,7 @@ int main( int argc , char *argv[] )
 
    /*------ create output dataset ------*/
 
-   if( nvar > 0 ){
+   if( nvar > 0 && strcmp(prefix,"NULL") != 0 ){
      fset = EDIT_empty_copy(rhset) ;
      EDIT_dset_items( fset ,
                         ADN_nvals     , nvar           ,
@@ -624,7 +620,20 @@ int main( int argc , char *argv[] )
      }
    }
 
-#ifdef FALTUNG
+   if( fitts_prefix != NULL && strcmp(fitts_prefix,"NULL") != 0 ){
+     fitts_set = EDIT_empty_copy(rhset) ;
+     EDIT_dset_items( fitts_set ,
+                        ADN_datum_all , MRI_float      ,
+                        ADN_brick_fac , NULL           ,
+                        ADN_prefix    , fitts_prefix   ,
+                      ADN_none ) ;
+     tross_Copy_History( rhset , fitts_set ) ;
+     tross_Make_History( "3dTfitter" , argc,argv , fitts_set ) ;
+
+     for( jj=0 ; jj < ntime ; jj++ ) /* create empty bricks to be filled below */
+       EDIT_substitute_brick( fitts_set , jj , MRI_float , NULL ) ;
+   }
+
    if( fal_klen > 0 ){
      defal_set = EDIT_empty_copy(rhset) ;
      EDIT_dset_items( defal_set ,
@@ -638,7 +647,6 @@ int main( int argc , char *argv[] )
      for( jj=0 ; jj < ntime ; jj++ ) /* create empty bricks to be filled below */
        EDIT_substitute_brick( defal_set , jj , MRI_float , NULL ) ;
    }
-#endif
 
    /*------- loop over voxels and process them ---------*/
 
@@ -646,6 +654,8 @@ int main( int argc , char *argv[] )
      INFO_message("begin voxel loop:") ; vstep = nvox / 50 ;
    }
    if( vstep > 0 ) fprintf(stderr,"++ loop: ") ;
+
+   THD_fitter_do_fitts( (fitts_set != NULL) ) ;  /* 05 Mar 2008 */
 
    for( ii=0 ; ii < nvox ; ii++ ){
 
@@ -663,9 +673,10 @@ int main( int argc , char *argv[] )
        }
      }
 
-#ifdef FALTUNG
+     /** do the fitting work **/
+
      if( fal_klen > 0 ){
-       if( fal_set != NULL )
+       if( fal_set != NULL )  /* get decon kernel if from a 3D+time dataset */
          THD_extract_array( ii , fal_set , 0 , fal_kern ) ;
 
        bfit = THD_deconvolve( ntime , dvec ,
@@ -676,27 +687,24 @@ int main( int argc , char *argv[] )
        bfit = THD_fitter( ntime , dvec , nvar , rvec , meth , cvec ) ;
      }
 
-     if( bfit == NULL ){ nbad++; continue; } /* bad */
+     if( bfit == NULL ){ nbad++; continue; } /*** bad voxel ***/
 
-     if( nvar > 0 )
+     /** store the results **/
+
+     if( nvar > 0 && fset != NULL )
        THD_insert_series( ii , fset , nvar , MRI_float , bfit->ar+nvoff , 1 ) ;
 
      if( fal_klen > 0 )
        THD_insert_series( ii , defal_set , ntime , MRI_float , bfit->ar , 1 ) ;
-#else
-     /* solve equations */
 
-     bfit = THD_fitter( ntime , dvec , nvar , rvec , meth , cvec ) ;
-
-     if( bfit == NULL ){ nbad++; continue; } /* bad */
-
-     /* put results into dataset */
-
-     THD_insert_series( ii , fset , nvar , MRI_float , bfit->ar , 1 ) ;
-#endif
+     if( fitts_set != NULL ){                /* 05 Mar 2008 */
+       floatvec *fv = THD_retrieve_fitts() ;
+       THD_insert_series( ii , fitts_set , ntime , MRI_float , fv->ar , 1 ) ;
+     }
 
      KILL_floatvec(bfit) ; ngood++ ;
-   }
+
+   } /* end of loop over voxels */
 
    if( vstep > 0 ) fprintf(stderr," Done\n") ;
 
@@ -709,14 +717,16 @@ int main( int argc , char *argv[] )
 
    if( fset != NULL ){
      DSET_write(fset); DSET_unload(fset);
-     if( verb ) WROTE_DSET(fset);
    }
-#ifdef FALTUNG
+
    if( defal_set != NULL ){
      DSET_write(defal_set); DSET_unload(defal_set);
-     if( verb ) WROTE_DSET(defal_set);
    }
-#endif
+
+   if( fitts_set != NULL ){
+     DSET_write(fitts_set); DSET_unload(fitts_set);
+   }
+
    if( verb ) INFO_message("Total CPU time = %.1f s",COX_cpu_time()) ;
    exit(0);
 }
