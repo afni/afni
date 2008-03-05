@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_BUG_FIX,
+   "fixed passing of INDEX_LIST" ,
+   NULL
+ } ,
+
  {  5, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_MODIFY,
    "do not duplicate data when reading and writing GIFTI from AFNI",
    NULL
