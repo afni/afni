@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , MAR , 2008 , RWC , "3dTfitter" , MINOR , TYPE_NEW_OPT ,
+   "added '-fitts' option to produce fitted time series dataset" ,
+   NULL } ,
+
  { 5 , MAR , 2008 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Added 'AFNI History' button to the Datamode->Misc menu" ,
    NULL } ,
