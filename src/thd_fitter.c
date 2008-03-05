@@ -224,12 +224,12 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
 
    /* set scale level for negative pfac values */
 
-   qmedmad_float  ( npt , far , NULL , &fmed ) ; fmed *= 1.789f ;
+   qmedmad_float  ( npt , far , NULL , &fmed ) ; fmed *= 1.666f ;
    meansigma_float( npt , far , &val , &fsig ) ;
    if( fmed <  fsig ) fmed = fsig ;
    if( fmed == 0.0f ) fmed = fabsf(val) ; /* data is constant? */
    if( fmed == 0.0f ) ERREX("e7") ;       /* data is all zero? */
-   fmed = fmed * 2.789 / kernmax ;
+   fmed = fmed * 1.666 / kernmax ;
 
    /* number of equations and number of references */
 
