@@ -492,3 +492,76 @@ ENTRY("AFNI_display_motd") ;
 
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------*/
+/*! Display the AFNI historical documents [05 Mar 2008]
+------------------------------------------------------------------------*/
+
+void AFNI_display_hist( Widget w )
+{
+#define NBUF 1024
+   static char *cmd=NULL ;
+   char buf[NBUF+1] , *all=NULL ;
+   int nbuf         , nall=0 ;
+   FILE *fp ;
+
+   /*-- get the path to the command to run --*/
+
+   if( cmd == NULL ){
+     char *pg = THD_find_executable("afni_history") ;
+     if( pg == NULL || *pg == '\0' ){
+       (void)MCW_popup_message( w ,
+                                  " \n"
+                                  " Can't find afni_history \n"
+                                  " program in your PATH!!! \n" ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       XtSetSensitive(w,False) ; return ;
+     }
+     cmd = (char *)calloc( sizeof(char) , (64+strlen(pg)) ) ;
+     sprintf(cmd,"%s -reverse",pg) ;
+   }
+
+   /*-- open a pipe to read from the command --*/
+
+   fp = popen( cmd , "r" );
+   if( fp == NULL ){
+     (void)MCW_popup_message( w ,
+                              " \n"
+                              " Can't run afni_history\n"
+                              " program for some reason!\n" ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     return ;
+   }
+
+   /*-- read the first bunch of data fromt the pipe --*/
+
+   nbuf = fread( buf , 1 , NBUF , fp ) ;
+   if( nbuf < 16 || *buf == '\0' ){
+     (void)MCW_popup_message( w ,
+                              " \n"
+                              " afni_history program\n"
+                              " fails to give output!\n" ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
+     return ;
+   }
+
+   /*-- store this initial string in 'all' --*/
+
+   buf[nbuf] = '\0' ; all = strdup(buf) ; nall = strlen(all) ;
+
+   /*-- loop: read buffer, copy into 'all', until nothing left to read --*/
+
+   do{
+     nbuf = fread( buf , 1 , NBUF , fp ) ;
+     if( nbuf <= 0 ){ pclose(fp); break; }  /* read failed ==> done */
+     buf[nbuf] = '\0' ;
+     all = realloc( all , nall+nbuf+2 ) ;
+     strcat(all,buf) ; nall = strlen(all) ;
+   } while(1) ;
+
+   /*-- display results in a window, and exeunt omnes --*/
+
+   (void)new_MCW_textwin( w , all , 1 ) ;
+
+   free(all) ; return ;
+}
