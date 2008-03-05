@@ -79,7 +79,7 @@ system(statpar)
 
 write(t(ica$A), file = OutTempFile, sep="\t")
 
-print(sprintf("Congratulations! You've got output %s+tlrc.*", Out))
+print(sprintf("Congratulations! You've got output %s+tlrc.* and %s", Out, OutTempFile))
 
 # set save defaults using option:
 options(save.defaults=list(ascii=TRUE, safe=FALSE))
