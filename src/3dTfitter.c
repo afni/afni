@@ -201,7 +201,7 @@ int main( int argc , char *argv[] )
       "  significance of the parameter estimates.\n"
       "* There are no options for censoring or baseline generation.\n"
       "* There is no option to constrain the range of the output parameters,\n"
-      "  except as provided by '-consign'.\n"
+      "  except as provided by '-consign' and/or '-consFAL'.\n"
       "\n"
       "Contrived Example:\n"
       "------------------\n"
@@ -634,7 +634,7 @@ int main( int argc , char *argv[] )
        EDIT_substitute_brick( fitts_set , jj , MRI_float , NULL ) ;
    }
 
-   if( fal_klen > 0 ){
+   if( fal_klen > 0 && strcmp(fal_pre,"NULL") != 0 ){
      defal_set = EDIT_empty_copy(rhset) ;
      EDIT_dset_items( defal_set ,
                         ADN_datum_all , MRI_float ,
@@ -694,7 +694,7 @@ int main( int argc , char *argv[] )
      if( nvar > 0 && fset != NULL )
        THD_insert_series( ii , fset , nvar , MRI_float , bfit->ar+nvoff , 1 ) ;
 
-     if( fal_klen > 0 )
+     if( fal_klen > 0 && defal_set != NULL )
        THD_insert_series( ii , defal_set , ntime , MRI_float , bfit->ar , 1 ) ;
 
      if( fitts_set != NULL ){                /* 05 Mar 2008 */
