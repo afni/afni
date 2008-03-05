@@ -19,7 +19,8 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 
    /* special case -- be sure not to fclose() stdout */
 
-   if( strcmp(fname,"-") == 0 || strcmp(fname,"stdout") == 0 ) return stdout ;
+   if( strcmp(fname,"-") == 0 || strcmp(fname,"-.1D")   == 0
+                              || strcmp(fname,"stdout") == 0 ) return stdout ;
 
    if( THD_is_ondisk(fname) ){   /* check for existing file */
      if( !THD_ok_overwrite() ){  /* if not allowed to overwrite */
@@ -39,7 +40,7 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 
 static void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
 {
-   if( fp != NULL && fp != stdout ) fclose(fp) ;
+   if( fp != NULL && fp != stdout || fp != stderr ) fclose(fp) ;
    return ;
 }
 
