@@ -381,3 +381,27 @@ ENTRY("THD_extract_many_series") ;
 
    free(far) ; RETURN(imar);
 }
+
+/*---------------------------------------------------------------------------*/
+/* Convert time series dataset to a 1D style MRI_IMAGE struct. [05 Mar 2008] */
+
+MRI_IMAGE * THD_dset_to_1Dmri( THD_3dim_dataset *dset )
+{
+   MRI_IMAGE *im ; float *far ;
+   int nx , ny , ii ;
+
+ENTRY("THD_dset_to_1D") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
+   DSET_load(dset) ;
+   if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+
+   nx = DSET_NVALS(dset) ;
+   ny = DSET_NVOX(dset) ;
+   im = mri_new( nx , ny , MRI_float ) ; far = MRI_FLOAT_PTR(im) ;
+
+   for( ii=0 ; ii < ny ; ii++ )
+     THD_extract_array( ii , dset , 0 , far + ii*nx ) ;
+
+   RETURN(im) ;
+}

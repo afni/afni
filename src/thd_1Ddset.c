@@ -249,6 +249,19 @@ ENTRY("THD_write_1D") ;
      fp = stdout ; strcpy(fname,"stdout") ; binflag = 0 ;
    }
 
+   /* 05 Mar 2008: special case to write as a 'pure' .1D file,
+                   if filename ends in '.1D' or specifies stdout */
+
+   if( pname == NULL &&
+       (STRING_HAS_SUFFIX(cpt,".1D") || *cpt=='-' || strcmp(cpt,"stdout")==0) ){
+     MRI_IMAGE *qim = THD_dset_to_1Dmri(dset) ;
+     mri_write_1D(cpt,qim);
+     mri_free(qim);
+     EXRETURN ;
+   }
+
+   /* back to normal 3D mode of writing */
+
    if( fp == NULL ){
      if( pname != NULL ){        /* have input prefix */
        if( sname != NULL ){      /* and input session (directory) */
