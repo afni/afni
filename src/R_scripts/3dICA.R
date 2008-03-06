@@ -77,7 +77,8 @@ statpar <- "3drefit"
 statpar <- paste(statpar, " -view tlrc -newid ", OutFile)
 system(statpar)
 
-write(t(ica$A), file = OutTempFile, sep="\t")
+# dump out the mixing matrix 
+write(ica$A, file = OutTempFile, ncolumns = NoComp)
 
 print(sprintf("Congratulations! You've got output %s+tlrc.* and %s", Out, OutTempFile))
 
