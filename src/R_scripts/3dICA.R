@@ -10,12 +10,13 @@
 # Commannd line to run this script: 3dIVA.R Output (Output is a file
 # in which the running progress including error message will be stored)
 
+system("rm -f .RData")
 source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
 #source(file.path(Sys.getenv("LME"), "AFNIio.R"))
 library(fastICA)
 
+# C is much faster than R!
 meth <- "C"         # or "R"
-
 
 # Line 1: data type - volume or surface
 InFile <- unlist(strsplit(unlist(scan(file="par.txt", what= list(""), 
@@ -80,6 +81,13 @@ system(statpar)
 # dump out the mixing matrix 
 write(ica$A, file = OutTempFile, ncolumns = NoComp)
 
+PlotComm <- "1dplot -ynames"
+for (ii in 1:NoComp) PlotComm <- paste(PlotComm, sprintf(" Comp%i", ii)) 
+PlotComm <- paste(PlotComm, " -xlabel TR -plabel TimeCoursesOfComponents ", OutTempFile, " &")
+system(PlotComm)
+
+paste("The time courses of the components are plotted with the following command:")
+paste(PlotComm)
 print(sprintf("Congratulations! You've got output %s+tlrc.* and %s", Out, OutTempFile))
 
 # set save defaults using option:
