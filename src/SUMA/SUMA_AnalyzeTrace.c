@@ -21,28 +21,29 @@ void usage_AnalyzeTrace (SUMA_GENERIC_ARGV_PARSE *ps)
       
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( "\n"
-               "Usage: A program to analyze SUMA (and AFNI's perhaps) stack output\n"
-               "       The program can detect functions that return with RETURN without\n"
-               "       bothering to go on the stack.\n" 
-               "   AnaylzeTrace [options] FILE \n"
-               "       where FILE is obtained by redirecting program's trace output.\n" 
-               "Optional Param:\n"
-               "   -max_func_lines N: Set the maximum number of code lines before a function\n"
-               "                      returns. Default is no limit.\n"
-               "   -suma_c: FILE is a SUMA_*.c file. It is analyzed for functions that use SUMA_ RETURN \n"
-               "            (typo on purpose to avoid being caught here) without ENTRY\n"
-               "       Note: The file for this program has special strings (in comments at times)\n"
-               "            to avoid false alarms when processing it.\n"
-               "            \n"
-               "   -max_err MAX_ERR: Stop after encountering MAX_ERR errors\n"
-               "                     reported in log. Default is 5.\n"
-               "                     Error key terms are:\n"
-               "                     'Error', 'error', 'corruption'\n"
-               "\n"
-               "%s"
-               "%s"
-               "\n", sio,  s);
+      printf ( 
+"\n"
+"Usage: A program to analyze SUMA (and AFNI's perhaps) stack output\n"
+"       The program can detect functions that return with RETURN without\n"
+"       bothering to go on the stack.\n" 
+"   AnaylzeTrace [options] FILE \n"
+"       where FILE is obtained by redirecting program's trace output.\n" 
+"Optional Param:\n"
+"   -max_func_lines N: Set the maximum number of code lines before a function\n"
+"                      returns. Default is no limit.\n"
+"   -suma_c: FILE is a SUMA_*.c file. It is analyzed for functions that use SUMA_ RETURN \n"
+"            (typo on purpose to avoid being caught here) without ENTRY\n"
+"       Note: The file for this program has special strings (in comments at times)\n"
+"            to avoid false alarms when processing it.\n"
+"            \n"
+"   -max_err MAX_ERR: Stop after encountering MAX_ERR errors\n"
+"                     reported in log. Default is 5.\n"
+"                     Error key terms are:\n"
+"                     'Error', 'error', 'corruption'\n"
+"\n"
+"%s"
+"%s"
+"\n", sio,  s);
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -768,7 +769,7 @@ int main (int argc,char *argv[])
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-talk;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "");
    
    if (argc < 2) {
       usage_AnalyzeTrace(ps);

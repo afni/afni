@@ -1184,7 +1184,10 @@ SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    SUMA_RETURN (YUP);
 }
 
-SUMA_Boolean SUMA_Apply_Coord_xform(SUMA_SurfaceObject *SO, 
+         
+SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
+                                    int N_Node,
+                                    int NodeDim, 
                                     double Xform[4][4],
                                     int doinv)
 {
@@ -1196,14 +1199,10 @@ SUMA_Boolean SUMA_Apply_Coord_xform(SUMA_SurfaceObject *SO,
    
    SUMA_ENTRY;
    
-   if (!SO) SUMA_RETURN(NOPE); 
+   if (!NodeList) SUMA_RETURN(NOPE); 
    
    /* check for identity */
-   if (  Xform[0][0] == 1.0 && Xform[1][1] == 1.0 && Xform[2][2] == 1.0 && 
-         Xform[0][3] == 0.0 && Xform[1][3] == 0.0 && Xform[2][3] == 0.0 &&
-         Xform[0][1] == 0.0 && Xform[0][2] == 0.0 &&
-         Xform[1][0] == 0.0 && Xform[1][2] == 0.0 &&
-         Xform[2][0] == 0.0 && Xform[2][1] == 0.0 ) {
+   if ( SUMA_IS_XFORM_IDENTITY(Xform)  ) {
       SUMA_LH("Indentity, nothing to do.");
       SUMA_RETURN(YUP);      
    }
@@ -1221,22 +1220,22 @@ SUMA_Boolean SUMA_Apply_Coord_xform(SUMA_SurfaceObject *SO,
       A = nifti_mat44_inverse(A0);
    }            
    
-   for (i=0; i < SO->N_Node; ++i) {
-      id = SO->NodeDim * i;
-      x = (double)SO->NodeList[id] ;
-      y = (double)SO->NodeList[id+1] ;
-      z = (double)SO->NodeList[id+2] ;
+   for (i=0; i < N_Node; ++i) {
+      id = NodeDim * i;
+      x = (double)NodeList[id] ;
+      y = (double)NodeList[id+1] ;
+      z = (double)NodeList[id+2] ;
 
       /* Apply the rotation matrix XYZn = Mrot x XYZ + Delta*/
-      SO->NodeList[id]   = (float) ( A.m[0][0] * x + 
+      NodeList[id]   = (float) (     A.m[0][0] * x + 
                                      A.m[0][1] * y + 
                                      A.m[0][2] * z +
                                      A.m[0][3] );
-      SO->NodeList[id+1] = (float) ( A.m[1][0] * x + 
+      NodeList[id+1] = (float) (     A.m[1][0] * x + 
                                      A.m[1][1] * y + 
                                      A.m[1][2] * z +
                                      A.m[1][3] );
-      SO->NodeList[id+2] = (float) ( A.m[2][0] * x + 
+      NodeList[id+2] = (float) (     A.m[2][0] * x + 
                                      A.m[2][1] * y + 
                                      A.m[2][2] * z +
                                      A.m[2][3] );

@@ -608,6 +608,13 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
       }  \
    }
 
+/*! is 3x4 xform an indentity matrix? */
+#define SUMA_IS_XFORM_IDENTITY(Xform)  \
+      (  Xform[0][0] == 1.0 && Xform[1][1] == 1.0 && Xform[2][2] == 1.0 && \
+         Xform[0][3] == 0.0 && Xform[1][3] == 0.0 && Xform[2][3] == 0.0 && \
+         Xform[0][1] == 0.0 && Xform[0][2] == 0.0 &&  \
+         Xform[1][0] == 0.0 && Xform[1][2] == 0.0 &&  \
+         Xform[2][0] == 0.0 && Xform[2][1] == 0.0 )   ? 1:0 
 
 /* definitions for SUMA_MT_intersect */
 #define SUMA_MT_CROSS(m_MTCR_dest,m_MTCR_v1,m_MTCR_v2) \

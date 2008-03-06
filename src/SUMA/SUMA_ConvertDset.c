@@ -17,11 +17,14 @@
 
 #ifdef STAND_ALONE
    #if defined SUMA_COMPILED
-      /* need to define these global variables because function calls are made to functions in files that declare these variables as extern */
+      /* need to define these global variables because function calls 
+      are made to functions in files that declare these variables as extern */
       SUMA_CommonFields *SUMAg_CF;
-      SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-      SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
-                                          SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
+      SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface
+                                          Viewer structure*/
+      SUMA_SurfaceViewer *SUMAg_SVv = NULL; /*!< Global pointer to the vector
+                 containing the various Surface Vewer Structures SUMAg_SVv 
+                 contains SUMA_MAX_SURF_VIEWERS structures */
       int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
       SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
       int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
@@ -53,6 +56,11 @@ void usage_ConverDset()
 "         For stderr and stdout output use one of:\n"
 "           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout, \n"
 "           1Dp_stdout, 1Dp_stderr, 1Dpt_stdout, 1Dpt_stderr\n"
+"         Actually, this parameter is not that mandatory, the program\n"
+"         can look at extensions on the prefix to guess the output\n"
+"         format. If the prefix has no extension and o_TYPE is not\n"
+"         specified, then the output format is the same as that of the\n"
+"         input.\n"
 "     -input DSET: Input dataset to be converted.\n"
 "                  See more on input datasets below.\n"
 "  Optional parameters:\n"
@@ -84,8 +92,9 @@ void usage_ConverDset()
 "           dx: OpenDX format, expects to work on 1st\n"
 "               object only.\n"
 "           If no format is specified, the program will \n"
-"           guess however that might slow \n"
-"           operations down considerably.\n"
+"           guess using the extension first and the file\n"
+"           content next. However the latter operation might \n"
+"           slow operations down considerably.\n"
 "     -prefix OUT_PREF: Output prefix for data set.\n"
 "                       Default is something based\n"
 "                       on the input prefix.\n"
@@ -325,6 +334,26 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (  !brk && 
+            (strncmp(argv[kar], "-o_gii", 6) == 0) ||
+            (strncmp(argv[kar], "-o_gifti", 8) == 0) )
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         
+         if (SUMA_iswordin_ci(argv[kar],"asc"))
+            oform = SUMA_XML_ASCII_DSET;
+         else if (SUMA_iswordin_ci(argv[kar],"b64gz"))
+            oform = SUMA_XML_B64GZ_DSET;
+         else if (SUMA_iswordin_ci(argv[kar],"b64"))
+            oform = SUMA_XML_B64_DSET;
+         else oform = SUMA_XML_DSET;
+         
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-input") == 0))
       {
          if (kar+1 >= argc) {
@@ -384,21 +413,7 @@ int main (int argc,char *argv[])
          prfx = argv[kar];
          brk = YUP;
       }
-      #if 0 /* now handled in mainENTRY() */
-      if (!brk && (strcmp(argv[kar], "-overwrite") == 0))
-      {
-         if (kar+1 >= argc) {
-            SUMA_SL_Err("Need argument after -overwrite");
-            exit(1);
-         }
-         ++kar;
-         prfx = argv[kar];
-         overwrite = 1;
-         brk = YUP;
-      }
-      #else
-      /* handled in mainENTRY(); */
-      #endif
+      
       if (!brk && !ps->arg_checked[kar]) {
          fprintf (SUMA_STDERR,
             "Error %s: Option %s not understood. Try -help for usage\n",
@@ -415,8 +430,20 @@ int main (int argc,char *argv[])
    pad_to_node = MRILIB_DomainMaxNodeIndex;
    
    if (oform == SUMA_NO_DSET_FORMAT) {
-      SUMA_SL_Err("Output format MUST be specified");
-      exit(1);
+      if (prfx) {
+         /* try to guess */
+         oform = SUMA_GuessFormatFromExtension(prfx, argv[i_input]);
+         SUMA_LHv("Guessing output format to be: %s\n", 
+                  SUMA_Dset_Format_Name(oform));
+         if (oform == SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("Output format MUST be specified, or should be\n"
+                        "obvious from prefix or the first input file.\n");
+            exit(1);
+         }
+      } else {
+         SUMA_S_Err("You need to specify either -o_TYPE or -prefix\n");
+         exit(1);
+      }
    }
    
    exists = SUMA_WriteDset_NameCheck_s (prfx, NULL, oform, 0, &ooo);

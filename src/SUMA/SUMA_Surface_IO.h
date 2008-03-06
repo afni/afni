@@ -2,8 +2,10 @@
 #define SUMA_SURFACE_IO_INCLUDED
 
 
-SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_name2, char *vp_name, 
-                                                   SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *sv_name, int debug);
+SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( 
+                        char *if_name, char *if_name2, char *vp_name, 
+                        SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, 
+                        char *sv_name, int debug);
 char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType);
 void *SUMA_Prefix2SurfaceName (char *prefix, char *path, char *vp_name, SUMA_SO_File_Type oType, SUMA_Boolean *exists);
 void * SUMA_2Prefix2SurfaceName (char *namecoord, char *nametopo, char *path, char *vp_name, SUMA_SO_File_Type oType, SUMA_Boolean *exists);
@@ -22,6 +24,9 @@ SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_VEC_Read(SUMA_SFname *Fname, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLine);
 SUMA_Boolean SUMA_SureFit_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_GIFTI_Write (char *fileNm, SUMA_SurfaceObject *SO, 
+                               SUMA_SO_File_Format forceencode);
+SUMA_Boolean SUMA_BYU_Write (char *fileNm, SUMA_SurfaceObject *SO, int base1);
 void SUMA_SaveDrawnROI (char *filename, void *data);
 SUMA_Boolean SUMA_SaveDrawnROI_1D (char *filename, SUMA_SurfaceObject *SO, SUMA_DRAWN_ROI *DrawnROI, int SaveWhat); 
 SUMA_Boolean SUMA_SaveDrawnROINIML (char *filename, SUMA_SurfaceObject *SO, SUMA_DRAWN_ROI *DrawnROI, int SaveWhat, int Format); 
@@ -36,8 +41,6 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
 void SUMA_SaveSOascii (char *filename, void *data);
 float * SUMA_readFScurv (char *f_name, int *nrows, int *ncols, SUMA_Boolean rowmajor, SUMA_Boolean SkipCoords);
 SUMA_Boolean SUMA_BYU_Read(char *f_name, SUMA_SurfaceObject *SO, int debug, byte hide_negcols); 
-SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(AFNI_SurfaceObject **aSOp,
-                                        SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int debug, byte hide_negcols); 
 SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, char *firstLine, SUMA_SurfaceObject *SOparent);
 SUMA_FORM_AFNI_DSET_STRUCT *SUMA_New_FormAfniDset_Opt(void);
