@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAR , 2008 , RWC , "3dcalc" , MICRO , TYPE_MODIFY ,
+   "Add cbrt (cube root) function to parser; affects 1deval and ccalc" ,
+   NULL } ,
+
  { 5 , MAR , 2008 , RWC , "afni-general" , MINOR , TYPE_MODIFY ,
    "Change the way 1D datasets are written to disk from 3D programs" ,
    "In programs that analyze time series files (such as 3dTfitter), you can\n"
@@ -2946,7 +2950,7 @@ afni_history_struct rwcox_history[] = {
 
   { 16,JAN,2001, RWC, "AFNI-general", SUPERDUPER, TYPE_GENERAL, "Older History stuff",
    "  ===========================================================\n"
-   "   == All changes from this date onwards were made at the NIH ==\n"
+   " == All changes from this date onwards were made at the NIH ==\n"
    "  ===========================================================\n"
    },
 

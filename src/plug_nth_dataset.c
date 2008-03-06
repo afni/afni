@@ -253,6 +253,7 @@ ENTRY( "DSETN_dset_recv" );
 
      case RECEIVE_ALTERATION:   /* may take effect before DSETCHANGE */
      case RECEIVE_DSETCHANGE:{
+       static int ncall=0 ;
        /* start by noting the number of valid data sets */
 	    int num_valid = set_global_dsets_from_ids( );
 
@@ -265,14 +266,15 @@ ENTRY( "DSETN_dset_recv" );
 		AFNI_receive_control( plint->im3d, g_dset_recv,
 				      EVERYTHING_SHUTDOWN, NULL );
 		g_dset_recv = -1;
-		PLUTO_popup_worker( plint,
-					"Warning: plugin 'Dataset#N'\n"
-					"has lost its dataset links.\n"
-					"To plot 1-D overlays, please\n"
-					"re-run the plugin.",
-				    MCW_USER_KILL | MCW_TIMER_KILL ) ;
+      if( ++ncall == 1 )
+		 PLUTO_popup_worker( plint,
+               "Warning: plugin 'Dataset#N'\n"
+               "has lost its dataset links.\n"
+               "To plot 1-D overlays, please\n"
+               "re-run the plugin.",
+             MCW_USER_KILL | MCW_TIMER_KILL ) ;
 	    }
-	}
+     }
     }
 
     EXRETURN;

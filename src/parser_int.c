@@ -261,6 +261,9 @@ doublereal dgamma_( doublereal * x )
   return (doublereal)g ;
 }
 
+doublereal cbrtff_( doublereal * x )
+{ return (doublereal) cbrt( (double) *x ) ; }
+
 /********************************************************************/
 extern double nifti_cdf2stat(double,int,double,double,double) ;
 extern double nifti_stat2cdf(double,int,double,double,double) ;

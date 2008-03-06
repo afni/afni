@@ -103,7 +103,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    rect , step , astep, bool  , and   , or    , mofn ,       \n"           \
   "    sind , cosd , tand , median, lmode , hmode , mad  ,       \n"           \
   "    gran , uran , iran , eran  , lran  , orstat,              \n"           \
-  "    mean , stdev, sem  , Pleg\n"                                            \
+  "    mean , stdev, sem  , Pleg  , cbrt\n"                                    \
   "\n"                                                                         \
   " where:\n"                                                                  \
   " * qg(x)    = reversed cdf of a standard normal distribution\n"             \
