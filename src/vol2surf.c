@@ -2403,7 +2403,8 @@ ENTRY("v2s_write_outfile_NSD");
     else
         fprintf(stderr, "** WO_NSD: missing SPARSE_DATA?\n");
 
-    oname = SUMA_WriteDset_ns(sopt->outfile_niml, sdset, SUMA_NIML, 1,1);
+    oname = SUMA_WriteDset_ns(sopt->outfile_niml, sdset, 
+                              SUMA_NO_DSET_FORMAT, 1,1);
     if(sopt->debug && oname) fprintf(stderr,"+d wrote NI_SURF_DSET %s\n",oname);
 
     SUMA_FreeDset(sdset);

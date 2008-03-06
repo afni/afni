@@ -64,10 +64,17 @@
 */ 
 
 afni_history_struct ziad_history[] = {
+/*=====BELOW THIS LINE=====*/
 
+ { 5 , MAR , 2008 , ZSS , "suma-general" , MAJOR , TYPE_GENERAL ,
+   "Support for GIFTI surface format writing" ,
+   "GIFTI writing can now be done with SUMA programs.\n"
+   "For example, see options -o_gii and -xml* in ConvertSurface program."
+ } ,
+ 
  { 28 , FEB , 2008 , ZSS , "suma-general" , MAJOR , TYPE_NEW_ENV ,
    "Support for GIFTI surface format reading" ,
-   NULL
+   NULL 
  } ,
  
  { 27 , FEB , 2008 , ZSS , "suma" , MAJOR , TYPE_GENERAL ,

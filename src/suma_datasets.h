@@ -206,7 +206,11 @@ typedef enum {
    SUMA_1D_PURE_STDOUT,       /* 12 */
    SUMA_1D_PURE_STDERR,       /* 13 */
    SUMA_1D_PURE_STDOUT_TRANSPOSE,       /* 14 */
-   SUMA_1D_PURE_STDERR_TRANSPOSE,   /* THIS ONE IS USED AS A MARKER TOO  */  /* 15 */
+   SUMA_1D_PURE_STDERR_TRANSPOSE,/* THIS ONE IS USED AS A MARKER TOO*/  /* 15 */
+   SUMA_XML_DSET,                  /* 16 */
+   SUMA_XML_ASCII_DSET,            /* 17 */
+   SUMA_XML_B64_DSET,              /* 18 */
+   SUMA_XML_B64GZ_DSET             /* 19 */
    
 } SUMA_DSET_FORMAT; /*!<  Format of data set
                           When you add a new element, modify functions
@@ -1153,6 +1157,7 @@ int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int s
 int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int stride) ;
 int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col, int stride, int col_index); 
 SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb);
+SUMA_DSET *SUMA_LoadGIFTIDset (char *Name, int verb);
 SUMA_DSET *SUMA_LoadDset_eng (char *Name, SUMA_DSET_FORMAT *form, int verb);
 SUMA_DSET *SUMA_LoadDset_ns (char *Name, SUMA_DSET_FORMAT *form, int verb);
 SUMA_DSET *SUMA_Load1DDset_eng (char *Name, int verb);
@@ -1323,6 +1328,8 @@ void SUMA_ShowAfniSurfaceObject(AFNI_SurfaceObject *aSO, FILE *out,
 char *SUMA_AfniSurfaceObject_Info(AFNI_SurfaceObject *aSO, 
                                   int detail, char *title);
 AFNI_SurfaceObject * afni_open_gifti_surf(char * fname, int read_data);
+int afni_write_gifti_surf( AFNI_SurfaceObject *SO, char * fname, 
+                           int write_data, int encoding);
 
 
 /******** END functions for surface structure  ******************** */
