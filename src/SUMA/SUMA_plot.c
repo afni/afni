@@ -55,6 +55,8 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
    static SUMA_Boolean DoubleClick = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
+   SUMA_ENTRY;
+   
    if( mpcb == NULL || ! MTD_VALID(mpcb)         ) return ;  /* bad */
    if( cbs  == NULL || cbs->reason != XmCR_INPUT ) return ;  /* real bad */
    

@@ -3027,7 +3027,7 @@ SUMA_Boolean SUMA_GIFTI_Read(char *f_name, SUMA_SurfaceObject *SO,
    
    SO->FileType = SUMA_GIFTI;
    SO->Name = SUMA_StripPath(f_name);
-   SO->FileFormat = SUMA_ASCII;  
+   SO->FileFormat = SUMA_XML_SURF;  
 
    if (!SUMA_MergeAfniSO_In_SumaSO(&aSO, SO)) {
       SUMA_S_Err("Failed to merge SOs");
@@ -3845,6 +3845,112 @@ SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLin
 
    SUMA_RETURN (YUP);
    
+}
+
+SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
+                                 SUMA_SO_File_Format forceencode) 
+{
+   static char FuncName[]={"SUMA_GIFTI_Write"};
+   int i, j, gii_encode=-1;
+   float *NodeList=NULL;
+   AFNI_SurfaceObject *aSO=NULL;
+   FILE *outFile = NULL;
+   SUMA_Boolean suc = YUP;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   suc = YUP;
+   
+   if (!SO) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!THD_ok_overwrite() && SUMA_filexists(fileNm)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: file %s exists, will not overwrite.\n",
+               FuncName, fileNm);
+      SUMA_RETURN (NOPE);
+   }
+   
+   if (!SO->aSO) {
+      SUMA_LH("Adding aSO");
+      SUMA_MergeAfniSO_In_SumaSO(NULL,SO); 
+   } else {
+      SUMA_LH("Have aSO");
+   }
+   
+   SUMA_LH("Coordinate xform");
+   /* Are the coordinates transformed? */
+   if (SO->aSO->ps->inxformspace) { /* make copy of nodelist */
+      SUMA_LH("Copying coords");
+      NodeList = (float *)SUMA_malloc(sizeof(float)*SO->NodeDim*SO->N_Node);
+      memcpy( (void *)NodeList,(void *)SO->NodeList, 
+               sizeof(float)*SO->NodeDim*SO->N_Node );
+      /* undo the transform in coordinate copy*/
+      if (!SUMA_Apply_Coord_xform(NodeList, SO->N_Node, SO->NodeDim,
+                                  SO->aSO->ps->xform, 1)) {
+         SUMA_S_Err("Failed to apply inverse xform!");
+         SUMA_free(NodeList); NodeList = NULL;
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+      SUMA_LH("Copying coords pointer");
+      NodeList = SO->NodeList;
+   }
+   
+   /* Now fill up aSO */
+   SUMA_LH("Filling up aSO");
+   SO->aSO->ps->NodeList = NodeList;
+   SO->aSO->tr->FaceSetList = SO->FaceSetList;
+   /* for normals, recomputing may need to be done if 
+   xform is not identity. Not sure what GIFTI definition
+   is yet */
+   if (!SUMA_IS_XFORM_IDENTITY(SO->aSO->ps->xform)) {
+      SUMA_S_Warn("Normals may not be properly handled when,\n"
+                  "pointset xform is not identity matrix.");
+   } else {
+      SUMA_LH("Xform is identity");
+   }
+   SO->aSO->NodeNormList = SO->NodeNormList;
+      
+
+   /* show me aSO */
+   if (LocalHead) {
+      SUMA_ShowAfniSurfaceObject( SO->aSO, NULL, 
+                                  1, "SUMA_GIFTI_Write Debug:\n");
+   }
+   /* write it out  */
+   /* gii_encode values set based on #define values in  gifti_io.h */
+   gii_encode = -1;
+   if (forceencode == SUMA_XML_SURF) { 
+      gii_encode = 0; /* let gii function defaults rule */
+   } else if (forceencode == SUMA_XML_B64_SURF) { 
+      gii_encode = 2;
+   } else if (forceencode == SUMA_XML_B64GZ_SURF) { 
+      gii_encode = 3;
+   } else if (forceencode == SUMA_XML_ASCII_SURF) {
+      gii_encode = 1;
+   }
+
+   if (!afni_write_gifti_surf(SO->aSO, fileNm, 1, gii_encode)) {
+      SUMA_S_Errv("Failed to write SO to %s\n", fileNm);
+      suc = NOPE;
+   }
+   
+   /* make sure all is back to initial state */
+   if (NodeList != SO->NodeList) {
+      SUMA_free(NodeList); NodeList = NULL;
+      SO->aSO->ps->NodeList = NULL;
+   } else {
+      SO->aSO->ps->NodeList = NULL;
+   }
+   
+   SO->aSO->NodeNormList = NULL;
+   SO->aSO->tr->FaceSetList = NULL;
+   
+   SUMA_RETURN(suc);
 }
 /*! 
    \brief Function to write a surface object to a BYU file format

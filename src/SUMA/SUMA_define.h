@@ -162,7 +162,7 @@ typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED,
                SUMA_BRAIN_VOYAGER , 
                SUMA_OPENDX_MESH, SUMA_BYU, SUMA_GIFTI, 
                   SUMA_N_SO_FILE_TYPE} SUMA_SO_File_Type; /* add types always between SUMA_FT_NOT_SPECIFIED AND SUMA_N_SO_FILE_TYPE */
-typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
+typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE, SUMA_XML_SURF, SUMA_XML_ASCII_SURF,  SUMA_XML_B64_SURF, SUMA_XML_B64GZ_SURF } SUMA_SO_File_Format;
 typedef enum { type_not_set = -1,
                no_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
                GO_type, LS_type, OLS_type, NBV_type, ONBV_type, SP_type,

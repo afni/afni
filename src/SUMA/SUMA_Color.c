@@ -6022,7 +6022,9 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    SO = (SUMA_SurfaceObject *)data;
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: Received request to load %s for surface %s.\n", FuncName, filename, SO->Label);
+      fprintf (SUMA_STDERR,
+               "%s: Received request to load %s for surface %s.\n", 
+               FuncName, filename, SO->Label);
    }
 
    /* find out if file exists and how many values it contains */
@@ -6048,7 +6050,9 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    if (!dset) { SUMA_SLP_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of a supported\n"
-                                 "format."); SUMA_RETURNe; }
+                                 "format. See command line\n"
+                                 "for hints in other error\n"
+                                 "messages."); SUMA_RETURNe; }
    SUMA_SetParent_DsetToLoad(NULL);  /* reset the parent surface flag */
    
    if (LocalHead) {

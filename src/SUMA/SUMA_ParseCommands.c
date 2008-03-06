@@ -2644,7 +2644,8 @@ SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
 /*!
    \brief Surface Type from extension
    \param Name (char *) name 
-   \return form SUMA_DSET_FORMAT
+   \return Type SUMA_SO_File_Type
+   Bad name for function, should be ...SurfTypeFromExte...
 */
 SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name)
 {
@@ -3155,6 +3156,12 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 "            v1 v2 v3 triangle vertices.\n"
 "       ply: PLY format, ascii or binary.\n"
 "       byu: BYU format, ascii or binary.\n"
+"       gii: GIFTI format, ascii.\n"
+"            You can also enforce the encoding of data arrays\n"
+"            by using gii_asc, gii_b64, or gii_b64gz for \n"
+"            ASCII, Base64, or Base64 Gzipped. \n"
+"            If AFNI_NIML_TEXT_DATA environment variable is set to YES, the\n"
+"            the default encoding is ASCII, otherwise it is Base64.\n" 
 " Note that if the surface filename has the proper extension, \n"
 " it is enough to use the -o option and let the programs guess\n"
 " the type from the extension.\n"      );
@@ -3577,7 +3584,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
             ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
             ps->i_FT[ps->i_N_surfnames] = SUMA_GIFTI;
-            ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_XML_SURF;
             ++ps->i_N_surfnames;
             brk = YUP;
          }
@@ -3753,7 +3760,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ps->ipar_surfnames[ps->ipar_N_surfnames] = 
                                              SUMA_copy_string(argv[kar]);
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_GIFTI;
-            ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
+            ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_XML_SURF;
             ++ps->ipar_N_surfnames;
             brk = YUP;
          }
@@ -3956,9 +3963,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                   ps->t_FT[ps->t_N_surfnames] == SUMA_VEC ||
                   ps->t_FT[ps->t_N_surfnames] == SUMA_INVENTOR_GENERIC || 
                   ps->t_FT[ps->t_N_surfnames] == SUMA_OPENDX_MESH ||
-                  ps->t_FT[ps->t_N_surfnames] == SUMA_BYU ||
-                  ps->t_FT[ps->t_N_surfnames] == SUMA_GIFTI ) 
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_BYU ) 
                   ps->t_FF[ps->t_N_surfnames] = SUMA_ASCII;
+            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_GIFTI )
+                  ps->t_FF[ps->t_N_surfnames] = SUMA_XML_SURF;
             else if (ps->t_FT[ps->t_N_surfnames] == SUMA_PLY)
                   ps->t_FF[ps->t_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
             else if (ps->t_FT[ps->t_N_surfnames] == SUMA_BRAIN_VOYAGER) 
@@ -4133,7 +4141,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;
 		   }         
-         if (!brk && ( (strcmp(tmp_o, "-o_ply") == 0) || (strcmp(tmp_o, "-o_PLY") == 0) 
+         if (!brk && ( (strcmp(tmp_o, "-o_ply") == 0) || 
+                        (strcmp(tmp_o, "-o_PLY") == 0) 
                      || (strcmp(tmp_o, "-o_Ply") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -4145,13 +4154,15 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_PLY); 
+			   ps->o_surfnames[ps->o_N_surfnames] = 
+                  SUMA_RemoveSurfNameExtension(argv[kar], SUMA_PLY); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_PLY;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;
 		   }
-         if (!brk && ( (strcmp(tmp_o, "-o_byu") == 0) || (strcmp(tmp_o, "-o_BYU") == 0) 
+         if (!brk && (  (strcmp(tmp_o, "-o_byu") == 0) || 
+                        (strcmp(tmp_o, "-o_BYU") == 0) 
                      || (strcmp(tmp_o, "-o_Ply") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -4163,12 +4174,41 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_BYU); 
+			   ps->o_surfnames[ps->o_N_surfnames] = 
+                        SUMA_RemoveSurfNameExtension(argv[kar], SUMA_BYU); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_BYU;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;
 		   }
+         if (!brk && (  (strncmp(tmp_o, "-o_gii",6) == 0) || 
+                        (strncmp(tmp_o, "-o_GII",6) == 0) ||
+                        (strncmp(tmp_o, "-o_gifti",8) == 0) ||
+                        (strncmp(tmp_o, "-o_GIFTI",8) == 0) ) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+		  		   SUMA_S_Err( "need argument after -o_gii \n");
+				   exit (1);
+			   }
+			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+			   ps->o_surfnames[ps->o_N_surfnames] = 
+                        SUMA_RemoveSurfNameExtension(argv[kar], SUMA_GIFTI); 
+            ps->o_FT[ps->o_N_surfnames] = SUMA_GIFTI;
+            if (SUMA_iswordin_ci(tmp_o,"asc") == 1) 
+               ps->o_FF[ps->o_N_surfnames] = SUMA_XML_ASCII_SURF;
+            else   if (SUMA_iswordin_ci(tmp_o,"gz") == 1)
+               ps->o_FF[ps->o_N_surfnames] = SUMA_XML_B64GZ_SURF;
+            else   if (SUMA_iswordin_ci(tmp_o,"b64") == 1)
+               ps->o_FF[ps->o_N_surfnames] = SUMA_XML_B64_SURF; 
+            else   ps->o_FF[ps->o_N_surfnames] = SUMA_XML_SURF;
+			   ++ps->o_N_surfnames;  
+			   brk = YUP;
+		   }
+         
          if (tmp_o) SUMA_free(tmp_o); tmp_o = NULL;
       }
 
