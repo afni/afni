@@ -38,6 +38,7 @@ int main( int argc , char *argv[] )
       "Usage: 3dTfitter [options]\n"
       "* At each voxel, assembles and solves a set of linear equations.\n"
       "* Output is a bucket dataset with the parameters at each voxel.\n"
+      "* Can also get output of fitted time series at each voxel.\n"
       "* Can also deconvolve with a known kernel function (e.g., HRF model),\n"
       "  in which case the output dataset is a new time series.\n"
       "\n"
@@ -45,6 +46,7 @@ int main( int argc , char *argv[] )
       "--------\n"
       "  -RHS rset = Specifies the right-hand-side 3D+time dataset.\n"
       "                ('rset' can also be a 1D file with 1 column)\n"
+      "             * Exactly one '-RHS' option must be given to 3dTfitter.\n"
       "\n"
       "  -LHS lset = Specifies a column (or columns) of the left-hand-side matrix.\n"
       "             * More than one 'lset' can follow the '-LHS' option, but each\n"
@@ -65,6 +67,7 @@ int main( int argc , char *argv[] )
       "               squares fitting without constraints, then 3dDeconvolve would\n"
       "               be more efficient, since each voxel would have the same set\n"
       "               of equations -- a fact that 3dDeconvolve exploits for speed.\n"
+      "              ++ But who cares about CPU time?  Burn, baby, burn!\n"
       "\n"
       "  -label lb = Specifies a sub-brick label for the output parameter dataset.\n"
       "             * More than one 'lb' can follow the '-label' option;\n"
@@ -75,8 +78,8 @@ int main( int argc , char *argv[] )
       "\n"
       "  -FALTUNG fset fpre pen fac\n"
       "            = Specifies a convolution (German: Faltung) model to be\n"
-      "              added to the LHS matrix:\n"
-      "             * 'fset' is a 3D+time dataset or a 1D file that specifies\n"
+      "              added to the LHS matrix.  Four arguments follow the option:\n"
+      "            ** 'fset' is a 3D+time dataset or a 1D file that specifies\n"
       "               the known kernel of the convolution.\n"
       "             * fset's time point [0] is the 0-lag point in the kernel,\n"
       "               [1] is the 1-lag into the past point, etc.\n"
@@ -85,10 +88,12 @@ int main( int argc , char *argv[] )
       "                 the set of all s(t) values are of the form\n"
       "                   z(t) = h(0)s(t) + h(1)s(t-1) + ... + h(L)s(t-L) + noise\n"
       "                 where L is the last value in the kernel function.\n"
-      "             * 'fpre' is the prefix for the output time series to\n"
+      "            ** 'fpre' is the prefix for the output time series to\n"
       "               be created -- it will have the same length as the\n"
       "               input 'rset' time series.\n"
-      "             * 'pen' selects the type of penalty function to be\n"
+      "              ++ If you don't want this time series (why?), set 'fpre'\n"
+      "                 to be the string 'NULL'.\n"
+      "            ** 'pen' selects the type of penalty function to be\n"
       "               applied to constrain the deconvolved time series:\n"
       "              ++ The following penalty functions are available:\n"
       "                   P0[s] = f^q * sum{ |s(t)|^q }\n"
@@ -117,18 +122,21 @@ int main( int argc , char *argv[] )
       "                    01 = use P0+P1 (the sum of these two functions)\n"
       "                    02 = use P0+P2\n"
       "                    12 = use P1+P2\n"
-      "                   012 = use P0+P1+P2\n"
-      "                 If 'pen' does not contain any of the digits 0..2,\n"
+      "                   012 = use P0+P1+P2 (sum of three penalty functions)\n"
+      "                 If 'pen' does not contain any of the digits 0, 1, or 2,\n"
       "                 then '01' will be used.\n"
-      "             * 'fac' is the positive weight for the penalty function:\n"
-      "              ++ if fac < 0, then the program chooses a penalty\n"
-      "                 factor for each voxel and then scales that by -fac.\n"
+      "            ** 'fac' is the positive weight for the penalty function:\n"
+      "              ++ if fac < 0, then the program chooses a penalty factor\n"
+      "                 for each voxel separately and then scales that by -fac.\n"
       "              ++ fac = 0 is like selecting fac = -1, and is recommended\n"
       "                 if you have no other idea and don't want to experiment.\n"
+      "              ++ If you don't have any idea what to use for fac, you\n"
+      "                 should experiment, perhaps with -0.5, -1.0, and -1.5,\n"
+      "                 and see what works well for your data and kernel.\n"
       "              ++ SOME penalty has to be applied, since otherwise the\n"
       "                 set of linear equations for s(t) is under-determined\n"
       "                 and/or ill-conditioned!\n"
-      "             * If '-LHS' is also used, those basis vectors can be\n"
+      "            ** If '-LHS' is also used, those basis vectors can be\n"
       "               thought of as a baseline to be regressed out at the\n"
       "               same time the convolution model is fitted.\n"
       "              ++ When '-LHS' supplies a baseline, it is important\n"
@@ -136,17 +144,16 @@ int main( int argc , char *argv[] )
       "                 collinearity between convolution with a constant s(t)\n"
       "                 and a constant baseline can be resolved.\n"
       "           *** At most one '-FALTUNG' option can be used!\n"
-      "   *********** THIS OPTION IS EXPERIMENTAL AND NOT FULLY TESTED YET!\n"
-      "           *** And it can be pretty slow, applied to a 3D+time dataset.\n"
+      "        ****** Deconvolution is a tricky business, so be careful out there!\n"
       "\n"
-      "  -lsqfit   = Solve equations via least squares [the default].\n"
+      "  -lsqfit   = Solve equations via least squares [the default method].\n"
       "             * '-l2fit' is a synonym for this option\n"
       "             * This is sometimes called L2 regression by mathematicians.\n"
       "\n"
       "  -l1fit    = Solve equations via least sum of absolute residuals.\n"
       "             * This is sometimes called L1 regression by mathematicians.\n"
-      "             * L1 fitting is a slower than L2 fitting, but is\n"
-      "               perhaps less sensitive to outliers in the data.\n"
+      "             * L1 fitting is usually slower than L2 fitting, but\n"
+      "               is perhaps less sensitive to outliers in the data.\n"
       "              ++ L1 deconvolution might give nicer looking results\n"
       "                 when you expect the deconvolved signal s(t) to\n"
       "                 have large-ish sections where s(t) = 0.\n"
@@ -172,6 +179,8 @@ int main( int argc , char *argv[] )
       "           *** '-consign' constraints only apply to the '-LHS'\n"
       "               fit parameters.  To constrain the '-FALTUNG' output,\n"
       "               use the option below.\n"
+      "             * If '-consign' is not used, the signs of the fit\n"
+      "               parameters are not constrained.\n"
       "\n"
       "  -consFAL c= Constrain the deconvolution time series from '-FALTUNG'\n"
       "              to be positive if 'c' is '+' or to be negative if\n"
@@ -179,11 +188,16 @@ int main( int argc , char *argv[] )
       "             * There is no way at present to constrain the deconvolved\n"
       "               time series s(t) to be positive in some regions and\n"
       "               negative in others.\n"
+      "             * If '-consFAL' is not used, the sign of the deconvolved\n"
+      "               time series is not constrained.\n"
       "\n"
       "  -prefix p = Prefix for the output dataset (coefficient) filename.\n"
-      "             * Which is always in float format.\n"
+      "             * Output datasets from 3dTfitter are always in float format.\n"
       "             * If you don't give this option, 'Tfitter' is the prefix.\n"
       "             * If you don't want this dataset, use 'NULL' as the prefix.\n"
+      "             * If you are doing deconvolution and do not also give any\n"
+      "               '-LHS' option, then this file will not be output, since\n"
+      "               it comprises the fit parameters for the '-LHS' vectors.\n"
       "            ** If the input '-RHS' file is a .1D file, normally the\n"
       "               output files are written in the AFNI .3D ASCII format,\n"
       "               where each row contains the time series data for one\n"
@@ -204,15 +218,20 @@ int main( int argc , char *argv[] )
       "              values in the mask will be processed.  Voxels falling\n"
       "              outside the mask will be set to all zeros in the output.\n"
       "\n"
-      "  -quiet    = Don't print progress report messages.\n"
+      "  -quiet    = Don't print the fun fun fun progress report messages.\n"
       "\n"
       "NON-Options:\n"
       "------------\n"
       "* There is no option to produce statistical estimates of the\n"
       "  significance of the parameter estimates.\n"
+      "  ++ 3dTcorrelate might be useful, to compute the correlation\n"
+      "     between the '-fitts' time series and the '-RHS' input data.\n"
       "* There are no options for censoring or baseline generation.\n"
+      "  ++ You could generate some baseline 1D files using 1deval, perhaps.\n"
       "* There is no option to constrain the range of the output parameters,\n"
-      "  except as provided by '-consign' and/or '-consFAL'.\n"
+      "  except the semi-infinite ranges provided by '-consign' and/or '-consFAL'.\n"
+      "* The '-jobs N' option, to use multiple CPUs as in 3dDeconvolve,\n"
+      "  is not available at the present chronosynclastic infundibulum.\n"
       "\n"
       "Contrived Example:\n"
       "------------------\n"
@@ -281,7 +300,7 @@ int main( int argc , char *argv[] )
       "              -float -prefix F101d\n"
       "       /bin/rm -f Fjunk+orig.*\n"
       "\n"
-      "(3) Deconvolve and see what you get:\n"
+      "(3) Deconvolve, then look what you get by running AFNI:\n"
       "       3dTfitter -RHS F101d+orig -l1fit \\\n"
       "                 -FALTUNG '1D: 0 1 2 3 2 1' F101d_fal1 012 0.0\n"
       "       3dTfitter -RHS F101d+orig -l2fit \\\n"
@@ -295,11 +314,15 @@ int main( int argc , char *argv[] )
       "    the penalty factor for each voxel, based on the size of the\n"
       "    data time series fluctuations.\n"
       "\n"
-      "(5) Add some noise to the noise-free time series, then deconvolve and\n"
-      "    plot the result directly to the screen:\n"
-      "      1deval -a F101.1D -expr 'a+gran(0,.4)' > F101n.1D\n"
+      "(5) Add logistic noise to the noise-free 1D time series, then deconvolve\n"
+      "    and plot the results directly to the screen, with L1 and L2 fitting:\n"
+      "      1deval -a F101.1D -expr 'a+lran(.5)' > F101n.1D\n"
       "      3dTfitter -RHS F101n.1D -l1fit \\\n"
       "                -FALTUNG '1D: 0 1 2 3 2 1' stdout 01 0.0 | 1dplot -stdin &\n"
+      "      3dTfitter -RHS F101n.1D -l2fit \\\n"
+      "                -FALTUNG '1D: 0 1 2 3 2 1' stdout 01 0.0 | 1dplot -stdin &\n"
+      "  **N.B.: you can only use 'stdout' as an output filename\n"
+      "          when the output will be written as a 1D file!\n"
       "\n"
       "------------------------------------------------------------------------\n"
       "-- RWCox - Feb 2008.\n"
@@ -359,6 +382,7 @@ int main( int argc , char *argv[] )
        }
        fal_pencod = p0 + 2*p1 + 4*p2 ; /* encode in bits */
        fal_penfac = (float)strtod(argv[++iarg],NULL) ;
+       if( fal_penfac == 0.0f ) fal_penfac = -1.0f ;
        iarg++ ; continue ;
      }
 
@@ -606,7 +630,7 @@ int main( int argc , char *argv[] )
 
    /*----- load input datasets -----*/
 
-   if( verb ) INFO_message("loading input datasets into memory") ;
+   if( verb && !rhs1D ) INFO_message("loading input datasets into memory") ;
 
    DSET_load(rhset) ; CHECK_LOAD_ERROR(rhset) ;
    for( ii=0 ; ii < nlhs ; ii++ ){
@@ -616,9 +640,9 @@ int main( int argc , char *argv[] )
      }
    }
 
-   /*------ create output dataset ------*/
+   /*------ create output datasets ------*/
 
-   if( nvar > 0 && strcmp(prefix,"NULL") != 0 ){
+   if( nvar > 0 && strcmp(prefix,"NULL") != 0 ){  /** coefficients **/
      fset = EDIT_empty_copy(rhset) ;
      EDIT_dset_items( fset ,
                         ADN_nvals     , nvar           ,
@@ -638,7 +662,7 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( fitts_prefix != NULL && strcmp(fitts_prefix,"NULL") != 0 ){
+   if( fitts_prefix != NULL && strcmp(fitts_prefix,"NULL") != 0 ){ /** fitts */
      fitts_set = EDIT_empty_copy(rhset) ;
      EDIT_dset_items( fitts_set ,
                         ADN_datum_all , MRI_float      ,
@@ -652,7 +676,7 @@ int main( int argc , char *argv[] )
        EDIT_substitute_brick( fitts_set , jj , MRI_float , NULL ) ;
    }
 
-   if( fal_klen > 0 && strcmp(fal_pre,"NULL") != 0 ){
+   if( fal_klen > 0 && strcmp(fal_pre,"NULL") != 0 ){  /** deconvolution **/
      defal_set = EDIT_empty_copy(rhset) ;
      EDIT_dset_items( defal_set ,
                         ADN_datum_all , MRI_float ,
@@ -666,12 +690,10 @@ int main( int argc , char *argv[] )
        EDIT_substitute_brick( defal_set , jj , MRI_float , NULL ) ;
    }
 
-   /*------- loop over voxels and process them ---------*/
+   /*------- loop over voxels and process them one at a time ---------*/
 
-   if( verb && nvox > 499 ){
-     INFO_message("begin voxel loop:") ; vstep = nvox / 50 ;
-   }
-   if( vstep > 0 ) fprintf(stderr,"++ loop: ") ;
+   if( verb && nvox > 499 ) vstep = nvox / 50 ;
+   if( vstep > 0 ) fprintf(stderr,"++ voxel loop: ") ;
 
    THD_fitter_do_fitts( (fitts_set != NULL) ) ;  /* 05 Mar 2008 */
 
@@ -724,7 +746,7 @@ int main( int argc , char *argv[] )
 
    } /* end of loop over voxels */
 
-   if( vstep > 0 ) fprintf(stderr," Done\n") ;
+   if( vstep > 0 ) fprintf(stderr," Done!\n") ;
 
    /*----- clean up and go away -----*/
 

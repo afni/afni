@@ -44,10 +44,12 @@ static float * new_lsqfit( int npt  , float *far   ,
 #undef  GOOD_METH
 #define GOOD_METH(m) ( (m)==1 || (m)==2 )
 
+/**--- 05 Mar 2008: stuff to get the fitted model back ---**/
+
 static floatvec *fitv = NULL ;
-static int    do_fitv = 0 ;
+static int    do_fitv = 0 ;    /* if 1, will compute fitts into fitv */
 void       THD_fitter_do_fitts(int qq){ do_fitv = qq; }
-floatvec * THD_retrieve_fitts(void){ return fitv; }  /* 05 Mar 2008 */
+floatvec * THD_retrieve_fitts(void){ return fitv; }
 
 /*------------------------------------------------------------------*/
 /* Fit the npt-long vector far[] to the nref vectors in ref[].
@@ -110,7 +112,7 @@ floatvec * THD_fitter( int npt , float *far  ,
    MAKE_floatvec(fv,nref) ;                      /* copy output array */
    memcpy( fv->ar, qfit, sizeof(float)*nref ) ;  /* into floatvec and */
    free(qfit) ;                                  /* free the trashola */
-   if( do_fitv )
+   if( do_fitv )                                    /* compute fitts? */
      fitv = THD_fitter_fitts( npt,fv,nref,ref,NULL ) ; /* 05 Mar 2008 */
    return fv ;                                    /* return to caller */
 }
@@ -224,12 +226,12 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
 
    /* set scale level for negative pfac values */
 
-   qmedmad_float  ( npt , far , NULL , &fmed ) ; fmed *= 1.666f ;
+   qmedmad_float  ( npt , far , NULL , &fmed ) ; fmed *= 1.777f ;
    meansigma_float( npt , far , &val , &fsig ) ;
    if( fmed <  fsig ) fmed = fsig ;
    if( fmed == 0.0f ) fmed = fabsf(val) ; /* data is constant? */
    if( fmed == 0.0f ) ERREX("e7") ;       /* data is all zero? */
-   fmed = fmed * 1.666 / kernmax ;
+   fmed = fmed * 1.777 / kernmax ;
 
    /* number of equations and number of references */
 

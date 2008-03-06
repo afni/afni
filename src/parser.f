@@ -839,7 +839,7 @@ C
      X          FIBTTP , FIBTPT , FIBTTZ ,
      X          FIBNTP , FIBNPT , FIBNTZ ,
      X          FIGTTP , FIGTPT , FIGTTZ ,
-     X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE
+     X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE , CBRTFF
 C
       REAL*8 R2D , D2R
       PARAMETER ( R2D = 57.29577951308232D+00 ,
@@ -921,6 +921,9 @@ C.......................................................................
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SQRT' )THEN
             R8_EVAL(NEVAL) = SQRT(ABS(R8_EVAL(NEVAL)))
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'CBRT' )THEN
+            R8_EVAL(NEVAL) = CBRTFF(R8_EVAL(NEVAL))
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'ABS' )THEN
             R8_EVAL(NEVAL) = ABS( R8_EVAL(NEVAL) )
@@ -1351,7 +1354,7 @@ C
      X          FIBTTP , FIBTPT , FIBTTZ ,
      X          FIBNTP , FIBNPT , FIBNTZ ,
      X          FIGTTP , FIGTPT , FIGTTZ ,
-     X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE
+     X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE , CBRTFF
 C
       REAL*8 R2D , D2R
       PARAMETER ( R2D = 57.29577951308232D+00 ,
@@ -1629,6 +1632,11 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'SQRT' )THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = SQRT(ABS(R8_EVAL(IV-IBV,NEVAL)))
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'CBRT' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = CBRTFF(R8_EVAL(IV-IBV,NEVAL))
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'ABS' )THEN
