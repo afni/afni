@@ -44,6 +44,9 @@ typedef struct {
 
 typedef struct {  /* BEFORE YOU ADD ANYTHING HERE, 
                      See comment at closing brace */
+  float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior 
+                              to SUMA 1.2) containing normalized normal 
+                              vectors for each node*/
   AFNI_SurfaceObject_POINTSET *ps;
   AFNI_SurfaceObject_TRIANGLE *tr; 
 } AFNI_SurfaceObject; /* Keep content and order of fields identical to

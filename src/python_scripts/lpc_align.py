@@ -230,7 +230,7 @@ class RegWrap:
 
    def self_help(self):
       print g_help_string
-      if 0: #not ready for this yet
+      if 1: #not ready for this yet
          print "A full list of options for %s:\n" % ps.label
          for opt in self.valid_opts.olist:
             print "   %-20s" % (opt.name )

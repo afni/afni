@@ -73,6 +73,13 @@
                 fname ? fname : "NULL");
         return NULL;
     }
+    int afni_write_gifti_surf(gifti_image *gim, char * fname, 
+                              int write_data, int encoding)
+    {
+        fprintf(stderr,"** cannot write '%s', no compiled GIFTI support\n",
+                fname ? fname : "NULL");
+        return NULL;
+    }
 
 
 #endif  /* HAVE_GIFTI */
