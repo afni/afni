@@ -124,7 +124,7 @@ floatvec * THD_fitter( int npt , float *far  ,
    subtracted from the fit -- thus, giving the residuals.
 *//*-----------------------------------------------------------------------*/
 
-floatvec * THD_fitter_fitts( int npt, floatvec *fv,
+floatvec * THD_fitter_fitts( int npt , floatvec *fv ,
                              int nref, float *ref[] , float *far )
 {
    int ii , jj ;
@@ -163,7 +163,7 @@ floatvec * THD_fitter_fitts( int npt, floatvec *fv,
     - nbase  = number of baseline parameters (can be 0)
     - base   = baseline reference functions (can be NULL if nbase==0)
     - meth   = 1 or 2 for L1 or L2 regresstion
-    - ccon   = constraints on signs of baselne parameters
+    - ccon   = constraints on signs of baseline parameters
     - dcon   = constraint on sign of deconvolved time series s(t)
     - pencode= penalty function for s(t) -- cf. 3dTfitter -help
     - npfac  = number of penalty factors to use
@@ -177,6 +177,7 @@ floatvec * THD_fitter_fitts( int npt, floatvec *fv,
 
    The purpose of evaluating multiple pfac-s is to implement the L-curve
    methodology for choosing a pfac.  But that part isn't yet written.
+   And may never be.
 *//*----------------------------------------------------------------------*/
 
 floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
