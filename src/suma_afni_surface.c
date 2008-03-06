@@ -42,7 +42,6 @@ AFNI_SurfaceObject_POINTSET *SUMA_NewAfniSurfaceObjectPointset(void)
    
    ps = (AFNI_SurfaceObject_POINTSET *)
             SUMA_calloc(1,sizeof(AFNI_SurfaceObject_POINTSET));
-   
    SUMA_RETURN(ps);
 }
 
@@ -93,7 +92,7 @@ AFNI_SurfaceObject *SUMA_FreeAfniSurfaceObject(AFNI_SurfaceObject *aSO)
    if (aSO) {
       aSO->ps = SUMA_FreeAfniSurfaceObjectPointset(aSO->ps);
       aSO->tr = SUMA_FreeAfniSurfaceObjectTriangle(aSO->tr);
-      
+      IF_FREE(aSO->NodeNormList);
       SUMA_free(aSO); aSO = NULL;     
    }
    

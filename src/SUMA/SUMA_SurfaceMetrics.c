@@ -398,7 +398,9 @@ int main (int argc,char *argv[])
       }
       
       if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;

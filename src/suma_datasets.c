@@ -2756,6 +2756,18 @@ char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr)
       case SUMA_1D:
          SUMA_RETURN ("Afni_1D");
          break;
+      case SUMA_XML_DSET:
+         SUMA_RETURN ("GIFTI");
+         break;
+      case SUMA_XML_B64_DSET:
+         SUMA_RETURN ("GIFTI_Base64");
+         break;
+      case SUMA_XML_B64GZ_DSET:
+         SUMA_RETURN ("GIFTI_Base64_GZIPPED");
+         break;
+      case SUMA_XML_ASCII_DSET:
+         SUMA_RETURN ("GIFTI_ASCII");
+         break;
       case SUMA_ASCII_OPEN_DX_DSET:
          SUMA_RETURN ("Ascii_OpenDX_dset");
          break;
@@ -2779,6 +2791,11 @@ SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name)
    if (!strcmp(Name,"Niml")) SUMA_RETURN (SUMA_NIML);
    if (!strcmp(Name,"Afni_1D")) SUMA_RETURN (SUMA_1D);
    if (!strcmp(Name,"Ascii_OpenDX_dset")) SUMA_RETURN (SUMA_ASCII_OPEN_DX_DSET);
+   if (!strcmp(Name,"GIFTI")) SUMA_RETURN (SUMA_XML_DSET);
+   if (!strcmp(Name,"GIFTI_Base64_GZIPPED")) SUMA_RETURN (SUMA_XML_B64GZ_DSET);
+   if (!strcmp(Name,"GIFTI_Base64")) SUMA_RETURN (SUMA_XML_B64_DSET);
+   if (!strcmp(Name,"GIFTI_ASCII")) SUMA_RETURN (SUMA_XML_ASCII_DSET);
+  
    SUMA_RETURN(SUMA_ERROR_DSET_FORMAT);
 }
 
@@ -3094,7 +3111,8 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
 char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold)
 {
    static char FuncName[]={"SUMA_HistString"}; 
-   char *stmp=NULL, *ch=NULL, *chold = NULL, *cdate=NULL, *cname=NULL, *cuser=NULL, *cn = NULL;
+   char  *stmp=NULL, *ch=NULL, *chold = NULL, 
+         *cdate=NULL, *cname=NULL, *cuser=NULL, *cn = NULL;
    int idate , iname , iuser ;
    int N_tot, i;
    SUMA_Boolean LocalHead = NOPE;
@@ -3105,26 +3123,17 @@ char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold)
    if (!arg[0]) SUMA_RETURN(NULL);
    if (!N_arg) SUMA_RETURN(NULL);
    
-   #if 0
-      if (sold) stmp = SUMA_append_string (sold, "\n");
-
-      if (CallingFunc) {
-         stmp = SUMA_append_replace_string (stmp, CallingFunc, "",1);
-         stmp = SUMA_append_replace_string (stmp, ":", " ", 1);
-      }
-
-      for (i=0; i < N_arg; ++i) 
-         stmp = SUMA_append_replace_string (stmp, arg[i], " ", 1);
-   #else
       /* Based on tross_Make_History and tross_Append_History */
-      if (LocalHead) fprintf(SUMA_STDERR,"CF: %s, N_arg=%d\n", CallingFunc, N_arg);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"CF: %s, N_arg=%d\n", CallingFunc, N_arg);
       cn = tross_commandline( CallingFunc, N_arg, arg);
       if (LocalHead) fprintf(SUMA_STDERR,"cn: %s\n", cn);
       cdate = tross_datetime() ; idate = strlen(cdate) ;
       cname = tross_hostname() ; iname = strlen(cname) ;  
       cuser = tross_username() ; iuser = strlen(cuser) ;  
       if (sold) { /* sold is already trossized */
-         chold = tross_Expand_String(sold) ; if( chold == NULL ) SUMA_RETURN(NULL) ;
+         chold = tross_Expand_String(sold) ; 
+         if( chold == NULL ) SUMA_RETURN(NULL) ;
          chold = AFREALL( chold, char, 
 		               strlen(chold)+idate+iuser+iname+strlen(cn)+12 ) ;
 
@@ -3135,18 +3144,21 @@ char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold)
          strcat(chold,"] ") ;
          strcat(chold,cn) ;
          SUMA_LH(chold);
-         ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); SUMA_RETURN(NULL); }
+         ch = tross_Encode_String(chold) ; 
+         if( ch == NULL ){ free(chold); SUMA_RETURN(NULL); }
          stmp = SUMA_copy_string(ch);
          free(chold) ; free(ch);
       } else {
          chold = AFMALL(char, idate+iuser+iname+strlen(cn)+12 ) ;
          sprintf(chold,"[%s@%s: %s] %s",cuser,cname,cdate,cn) ;
          SUMA_LH(chold);
-         ch = tross_Encode_String(chold) ; if( ch == NULL ){ free(chold); SUMA_RETURN(NULL); }
+         ch = tross_Encode_String(chold) ; 
+         if( ch == NULL ){ free(chold); SUMA_RETURN(NULL); }
          stmp = SUMA_copy_string(ch);
          free(chold) ;  free(ch); 
+         free(cuser); free(cname); free(cdate);
       }
-   #endif   
+
    SUMA_RETURN(stmp);
 }   
 
@@ -6284,6 +6296,13 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
          SUMA_LH("Loading DX Dset");
          dset = SUMA_LoadDXDset_ns(Name, verb);
          break;
+      case SUMA_XML_DSET:
+      case SUMA_XML_ASCII_DSET:
+      case SUMA_XML_B64_DSET:
+      case SUMA_XML_B64GZ_DSET:
+         SUMA_LH("Loading GIFTI Dset");
+         dset = SUMA_LoadGIFTIDset(Name, verb);
+         break;
       case SUMA_NO_DSET_FORMAT:
          if (!dset) { 
             SUMA_LH("Trying NIML Dset"); 
@@ -6435,14 +6454,18 @@ static int AddIndex_1D = 0;
 void SUMA_SetAddIndex_1D(int v) { AddIndex_1D=v; return; }
 int SUMA_GetAddIndex_1D(void) { return(AddIndex_1D); }
 
-int SUMA_WriteDset_NameCheck_ns (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int verb, char **NameOutp) 
+int SUMA_WriteDset_NameCheck_ns (
+            char *Name, SUMA_DSET *dset, 
+            SUMA_DSET_FORMAT form, int verb, char **NameOutp) 
 {
    int exists = SUMA_WriteDset_NameCheck_eng(Name, dset, form, verb, NameOutp);
    WorkErrLog_ns();
    return(exists);
 } 
 
-int SUMA_WriteDset_NameCheck_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int verb, char **NameOutp) 
+int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset, 
+                                    SUMA_DSET_FORMAT form, 
+                                    int verb, char **NameOutp) 
 {
    static char FuncName[]={"SUMA_WriteDset_NameCheck_eng"};
    int exists = 0;
@@ -6450,18 +6473,37 @@ int SUMA_WriteDset_NameCheck_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT 
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
+   
    if (!Name && dset && dset->ngr && !SUMA_IS_DSET_STDXXX_FORMAT(form)) {
       if (!(Name=NI_get_attribute(dset->ngr, "filename"))) {
       SUMA_PushErrLog("SL_Err","NULL Name", FuncName); SUMA_RETURN(-1); 
       }
    }
+   
    if (!SUMA_IS_DSET_STDXXX_FORMAT(form)) {
       PrefOut = SUMA_RemoveDsetExtension_ns(Name, form);
-      if (!PrefOut) { SUMA_PushErrLog("SL_Err","Failed clean dset name", FuncName); SUMA_RETURN(-1); }
+      if (!PrefOut) { 
+         SUMA_PushErrLog(  "SL_Err",
+                           "Failed clean dset name", FuncName); 
+         SUMA_RETURN(-1);
+      }
       SUMA_LH(PrefOut);
    }
    
    switch (form) {
+      case SUMA_XML_DSET:
+      case SUMA_XML_ASCII_DSET:
+      case SUMA_XML_B64_DSET:
+      case SUMA_XML_B64GZ_DSET:
+         if (SUMA_isExtension(PrefOut,".gii")) { /* allow .gii only */
+            NameOut = SUMA_Extension(PrefOut, ".gii", NOPE);
+         } else {
+            NameOut = SUMA_Extension(PrefOut, ".gii.dset", NOPE);
+         }
+         if (SUMA_filexists(NameOut)) {
+            exists = 1;
+         } 
+         break;
       case SUMA_NIML:
       case SUMA_ASCII_NIML:
       case SUMA_BINARY_NIML:
@@ -6514,6 +6556,7 @@ int SUMA_WriteDset_NameCheck_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT 
    }
    SUMA_RETURN(exists);
 }
+
 /*!
    \brief writes a dataset to disk
    \param Name (char *) Name of output file. 
@@ -6525,7 +6568,9 @@ int SUMA_WriteDset_NameCheck_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT 
    - Be careful, this function will not change the idcode of the
    dataset being written. You'll have to do that manually.
 */
-char * SUMA_WriteDset_ns (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb) 
+char * SUMA_WriteDset_ns ( char *Name, SUMA_DSET *dset, 
+                           SUMA_DSET_FORMAT form, 
+                           int overwrite, int verb) 
 {
    char *c=SUMA_WriteDset_eng (Name, dset, form, overwrite, verb);
    WorkErrLog_ns();
@@ -6533,7 +6578,8 @@ char * SUMA_WriteDset_ns (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, in
 } 
 
 
-char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb) 
+char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, 
+                           SUMA_DSET_FORMAT form, int overwrite, int verb) 
 {
    static char FuncName[]={"SUMA_WriteDset_eng"};
    char *NameOut = NULL, *strmname=NULL, stmp[500], *eee=NULL, *oName=NULL;
@@ -6541,6 +6587,8 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (LocalHead) verb = 3;
    
    if (!dset) { 
       SUMA_PushErrLog("SL_Err", "NULL dset", FuncName); 
@@ -6567,7 +6615,11 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
                            FuncName); 
          SUMA_RETURN(NameOut);
       }
-   }  
+   }
+     
+   if (form == SUMA_NO_DSET_FORMAT) {
+      form = SUMA_GuessFormatFromExtension (Name, NULL);
+   }
    
    if (( exists = 
          SUMA_WriteDset_NameCheck_ns (Name, dset, form, verb, &NameOut) ) < 0) {
@@ -6605,6 +6657,19 @@ char * SUMA_WriteDset_eng (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, i
    
    if (!exists) {
       switch (form) {
+         case SUMA_XML_DSET:
+         case SUMA_XML_ASCII_DSET:
+         case SUMA_XML_B64_DSET:
+         case SUMA_XML_B64GZ_DSET:
+            {
+               if (NI_write_gifti(dset->ngr, NameOut)) {
+                  SUMA_PushErrLog(  "SL_Err",
+                                    "Failed to write GIFTI dset", FuncName);
+                  flg = 0;
+               } else flg = 1;
+
+            }
+            break;
          case SUMA_NIML:
          case SUMA_ASCII_NIML:
          case SUMA_BINARY_NIML:
@@ -6786,6 +6851,8 @@ SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension_core(char *Name)
    
    if (!Name) { SUMA_RETURN(form); }
    if (SUMA_isExtension(Name, ".niml.dset")) form = SUMA_NIML;
+   if (  SUMA_isExtension(Name, ".gii.dset") ||
+         SUMA_isExtension(Name, ".gii") ) form = SUMA_XML_DSET;
    if (SUMA_isExtension(Name, ".1D.dset")) form = SUMA_1D;
    if (SUMA_isExtension(Name, ".niml.cmap")) form = SUMA_NIML;
    if (SUMA_isExtension(Name, ".1D.cmap")) form = SUMA_1D; 
@@ -6875,6 +6942,12 @@ char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form)
          tmp  =  SUMA_Extension(Name, ".1D", YUP);
          noex = SUMA_Extension(tmp, ".1D.dset", YUP); SUMA_free(tmp); tmp = NULL; tmp = noex;
          noex = SUMA_Extension(tmp, ".niml.dset", YUP); SUMA_free(tmp); tmp = NULL;
+         break;
+      case SUMA_XML_DSET:
+      case SUMA_XML_ASCII_DSET:
+      case SUMA_XML_B64_DSET:
+      case SUMA_XML_B64GZ_DSET:
+         noex  =  SUMA_Extension(Name, ".gii.dset", YUP);
          break;
       case SUMA_NIML_STDOUT:
       case SUMA_NIML_STDERR:
@@ -7033,6 +7106,55 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
    SUMA_RETURN(ngr);
 }
 
+SUMA_DSET *SUMA_LoadGIFTIDset (char *Name, int verb)
+{
+   static char FuncName[]={"SUMA_LoadGIFTIDset"};
+   char *FullName = NULL, *niname = NULL;
+   SUMA_DSET *dset=NULL;
+   NI_group *ngr = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!Name) { SUMA_SL_Err("Null Name"); SUMA_RETURN(dset); }
+   
+   /* work the name */
+   if (!SUMA_filexists(Name)) {
+      /* try the extension game */
+      FullName = SUMA_Extension(Name, ".gii.dset", NOPE);
+      if (!SUMA_filexists(FullName)) {
+         if (verb)  { SUMA_SL_Err("Failed to find dset file."); }
+         if (FullName) SUMA_free(FullName); FullName = NULL;
+         SUMA_RETURN(dset);
+      }
+   }else {
+      FullName = SUMA_copy_string(Name);
+   }   
+   
+   ngr = NI_read_gifti(Name, 1);
+   if( !ngr ) {
+      if (verb)  { SUMA_SL_Err("Failed to read dset file."); }
+      SUMA_RETURN(dset);
+   }
+   if (!(dset = SUMA_ngr_2_dset(ngr))) {
+      SUMA_SL_Err("Failed to go from ngr to dset");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* make sure inel is initialized*/
+   if (!dset->inel || !SDSET_NODEINDLEN(dset)) { 
+      SUMA_SL_Err("Bad dset->inel\nOld niml dset?"); 
+      SUMA_ShowDset(dset,0, NULL); 
+      SUMA_DUMP_TRACE("Bad dset->inel, dumping trace for debug:");
+      SUMA_FreeDset(dset); dset = NULL; 
+      SUMA_RETURN(dset); 
+   }
+   
+   /* done, clean up and out you go */
+   if (FullName) SUMA_free(FullName); FullName = NULL;
+   SUMA_RETURN(dset);
+}
+   
 /*!
 
    \brief Load a surface-based data set of the niml format
@@ -11067,6 +11189,23 @@ char *SUMA_AfniSurfaceObject_Info(AFNI_SurfaceObject *aSO,
                            aSO->tr->FaceSetList[aSO->tr->FaceSetDim*i+j]);
                SS = SUMA_StringAppend(SS, "\n");
             }
+         }
+      }
+      if (!aSO->NodeNormList) {
+         SS = SUMA_StringAppend(SS, "NULL Node Normals\n");
+      } else {
+         if (aSO->ps) {
+            for (i=0; i<SUMA_MIN_PAIR(5,aSO->ps->N_Node); ++i) {
+               SS = SUMA_StringAppend_va(SS, "   %6d: ", i); 
+               for (j=0; j<aSO->ps->NodeDim; ++j) 
+                  SS = SUMA_StringAppend_va(SS, 
+                           "%4.3f\t", 
+                           aSO->NodeNormList[aSO->ps->NodeDim*i+j]);
+                  SS = SUMA_StringAppend(SS, "\n");
+            }
+         } else {
+            SS = SUMA_StringAppend(SS, 
+                     "Freakish structure, no pointset to go with nornals\n");
          }
       }
    }
