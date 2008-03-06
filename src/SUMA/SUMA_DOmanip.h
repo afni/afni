@@ -30,7 +30,9 @@ char *SUMA_AfniPrefix(char *name, char *view, char *path, int *exists);
 byte * SUMA_isSkin(THD_3dim_dataset *dset, float *fvec, double thresh, int *N_skin);
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out);
 char *SUMA_VolPar_Info (SUMA_VOLPAR *VP);
-SUMA_Boolean SUMA_Apply_Coord_xform(SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
+                                    int N_Node,
+                                    int NodeDim, 
                                     double Xform[4][4],
                                     int doinv);
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void* S_struct);

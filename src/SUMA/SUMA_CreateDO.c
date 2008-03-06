@@ -5554,51 +5554,196 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
    SUMA_RETURNe;
 }   
 
+char *SUMA_SO_GeometricType(SUMA_SurfaceObject *SO) {
+   static char FuncName[]={"SUMA_SO_GeometricType"};
+   
+   SUMA_ENTRY;
+   
+   if (SO->aSO) {
+      SUMA_RETURN(SO->aSO->ps->GeometricType);
+   }
+   
+   if (SO->isSphere == SUMA_GEOM_SPHERE) {
+      SUMA_RETURN("Spherical");
+   }
+   /* if need be, try guessing for different common surface type */  
+   
+   SUMA_RETURN("Unknown");
+}
+
+char *SUMA_SO_AnatomicalStructureSecondary(SUMA_SurfaceObject *SO) {
+   static char FuncName[]={"SUMA_SO_AnatomicalStructureSecondary"};
+   
+   SUMA_ENTRY;
+   
+   if (SO->aSO) {
+      SUMA_RETURN(SO->aSO->ps->AnatomicalStructureSecondary);
+   }
+   
+   /* some guessing from FreeSurfer settings */
+   if (  SUMA_iswordin_ci(SO->State,"pial") == 1 ||
+         SUMA_iswordin_ci(SO->Label,"pial") == 1 ||
+         SUMA_iswordin_ci(SO->Name.FileName,"pial") == 1 ) 
+            SUMA_RETURN("Pial");
+   if (SUMA_iswordin_ci(SO->State,"smoothwm") == 1||
+         SUMA_iswordin_ci(SO->Label,"smoothwm") == 1 ||
+         SUMA_iswordin_ci(SO->Name.FileName,"smoothwm") == 1)
+            SUMA_RETURN("GrayWhite");
+   if (SUMA_iswordin_ci(SO->State,"white") == 1||
+         SUMA_iswordin_ci(SO->Label,"white") == 1 ||
+         SUMA_iswordin_ci(SO->Name.FileName,"white") == 1)
+               SUMA_RETURN("GrayWhite");
+   
+   
+   SUMA_RETURN("Unknown");
+}
+
+char *SUMA_SO_AnatomicalStructurePrimary(SUMA_SurfaceObject *SO) {
+   static char FuncName[]={"SUMA_SO_AnatomicalStructurePrimary"};
+   
+   SUMA_ENTRY;
+   
+   if (SO->aSO) {
+      SUMA_RETURN(SO->aSO->ps->AnatomicalStructurePrimary);
+   }
+   
+   /* weak guess, based on side */
+   if (SO->Side <= SUMA_NO_SIDE) SO->Side = SUMA_GuessSide(SO);
+   if (SO->Side == SUMA_LEFT) SUMA_RETURN("CortexLeft");
+   if (SO->Side == SUMA_RIGHT) SUMA_RETURN("CortexRight");
+   if (SO->Side == SUMA_LR) SUMA_RETURN("CortexRightAndLeft");
+   
+   
+   SUMA_RETURN("Unknown");
+}
+char *SUMA_SO_TopologicalType(SUMA_SurfaceObject *SO) {
+   static char FuncName[]={"SUMA_SO_TopologicalType"};
+   
+   SUMA_ENTRY;
+   
+   if (SO->aSO) {
+      SUMA_RETURN(SO->aSO->tr->TopologicalType);
+   }
+   
+   /* guess, based on edges */
+   if (SO->EL) {
+      if (  SO->EL->min_N_Hosts == SO->EL->max_N_Hosts &&
+            SO->EL->min_N_Hosts == 2 ) SUMA_RETURN("Closed");
+      else if (SO->EL->min_N_Hosts == 1) SUMA_RETURN("Open"); /* could also be
+                                                                 cut...*/   
+      else if (SO->EL->max_N_Hosts > 2) SUMA_RETURN("Not_2_Manifold");
+   }
+   
+   SUMA_RETURN("Unknown");
+}
+/*
+   Keep function in sync with SUMA_ExtractAfniSO_FromSumaSO
+*/
 SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(AFNI_SurfaceObject **aSOp,
                                         SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_MergeAfniSO_In_SumaSO"};
    AFNI_SurfaceObject *aSO=NULL;
-
+   int i,j;
+   SUMA_Boolean LocalHead=NOPE;
+   
    SUMA_ENTRY;
 
-   if (!aSOp || !SO) SUMA_RETURN(NOPE);
-   aSO = *aSOp; 
-   if (!aSO) SUMA_RETURN(NOPE);
+   if (!SO) SUMA_RETURN(NOPE);
+   if (aSOp) {
+      if (SO->aSO) {
+         SUMA_S_Err("Not ready to merge with pre-existing aSO");
+         SUMA_RETURN(NOPE);
+      }
+      aSO = *aSOp; 
+      if (!aSO) SUMA_RETURN(NOPE);
 
-   /* copy common fields one by one. 
-      Follow AFNI_SurfaceObject structure closely.
-      Keep new fields in aSO */
-   SO->N_Node = aSO->ps->N_Node; 
-   SO->NodeDim = aSO->ps->NodeDim; 
-   SO->EmbedDim = aSO->ps->EmbedDim; 
-   SO->NodeList = aSO->ps->NodeList; aSO->ps->NodeList = NULL;
-   SO->N_FaceSet = aSO->tr->N_FaceSet; 
-   SO->FaceSetDim = aSO->tr->FaceSetDim; 
-   SO->FaceSetList = aSO->tr->FaceSetList; aSO->tr->FaceSetList = NULL;
+      /* copy common fields one by one. 
+         Follow AFNI_SurfaceObject structure closely.
+         Keep new fields in aSO */
+      SO->N_Node = aSO->ps->N_Node; 
+      SO->NodeDim = aSO->ps->NodeDim; 
+      SO->EmbedDim = aSO->ps->EmbedDim; 
+      SO->NodeList = aSO->ps->NodeList; aSO->ps->NodeList = NULL;
+      
+      SO->N_FaceSet = aSO->tr->N_FaceSet; 
+      SO->FaceSetDim = aSO->tr->FaceSetDim; 
+      SO->FaceSetList = aSO->tr->FaceSetList; aSO->tr->FaceSetList = NULL;
 
-   SO->aSO = aSO;
-   *aSOp = NULL; /* allow no one to touch this anymore */
+      SO->NodeNormList = aSO->NodeNormList; aSO->NodeNormList = NULL;
+      
+      SO->aSO = aSO;
+      *aSOp = NULL; /* allow no one to touch this anymore */
 
-   /* Now fill up some additional fields */
-   SO->Side = SUMA_GuessSide(SO);
-   if (SO->isSphere == SUMA_GEOM_NOT_SET) SUMA_SetSphereParams(SO, -0.1);
-   SO->AnatCorrect = SUMA_GuessAnatCorrect(SO);
-   SO->State = 
-      SUMA_append_replace_string(SO->aSO->ps->GeometricType,
-                                 SO->aSO->ps->AnatomicalStructureSecondary,
-                                 ".", 0);
-   
-   /* Is there an xform to apply ? */
-   if (!SUMA_Apply_Coord_xform(SO, SO->aSO->ps->xform, 0)) {
-      SUMA_S_Err("Failed to apply xform!");
-   }else{
-      SO->aSO->ps->inxformspace = 1;
+      /* Now fill up some additional fields */
+      SO->Side = SUMA_GuessSide(SO);
+      if (SO->isSphere == SUMA_GEOM_NOT_SET) SUMA_SetSphereParams(SO, -0.1);
+      SO->AnatCorrect = SUMA_GuessAnatCorrect(SO);
+      SO->State = 
+         SUMA_append_replace_string(SO->aSO->ps->GeometricType,
+                                    SO->aSO->ps->AnatomicalStructureSecondary,
+                                    ".", 0);
+
+      /* Is there an xform to apply ? */
+      if (!SUMA_Apply_Coord_xform(SO->NodeList, SO->N_Node, SO->NodeDim,
+                                  SO->aSO->ps->xform, 0)) {
+         SUMA_S_Err("Failed to apply xform!");
+         SO->aSO->ps->inxformspace = 0;
+      }else{
+         SO->aSO->ps->inxformspace = 1;
+      }
+   } else { /* add new one */
+      SUMA_LH("Adding a new aSO");
+      if (SO->aSO) {
+         SUMA_S_Err("aSO already exists.");
+         SUMA_RETURN(NOPE);
+      }
+      aSO = SUMA_NewAfniSurfaceObject();
+      /* fillup IDs, Creating function cannot call ID creating routines */
+      SUMA_NEW_ID(aSO->ps->UniqueID, NULL);
+      SUMA_NEW_ID(aSO->tr->UniqueID, NULL);
+      /* fillup date */
+      {  char *date=tross_datetime();
+         aSO->ps->date = SUMA_copy_string(date); 
+         aSO->tr->date = SUMA_copy_string(date);
+         free(date);
+      }
+      /* populate xform with junk since this concept does not exist in SO */
+      aSO->ps->inxformspace = 0;
+      for (i=0; i<3;++i) 
+         for (j=0; j<3;++j) 
+            if (i==j) aSO->ps->xform[i][j]=1.0;
+            else aSO->ps->xform[i][j]=0.0;
+      aSO->ps->dataspace = SUMA_copy_string("NIFTI_XFORM_UNKNOWN");
+      aSO->ps->xformspace = SUMA_copy_string("NIFTI_XFORM_UNKNOWN");
+      
+      /* Have aSO, now start filling it up */
+      SUMA_LH("Filling new aSO");
+      aSO->ps->N_Node = SO->N_Node ; 
+      aSO->ps->NodeDim = SO->NodeDim ; 
+      aSO->ps->EmbedDim = SO->EmbedDim ; 
+      aSO->ps->NodeList = NULL;
+      
+      aSO->tr->N_FaceSet = SO->N_FaceSet ; 
+      aSO->tr->FaceSetDim = SO->FaceSetDim  ; 
+      
+      aSO->NodeNormList = NULL;
+      
+      aSO->ps->GeometricType = SUMA_copy_string(SUMA_SO_GeometricType(SO));
+      aSO->ps->AnatomicalStructureSecondary = 
+                   SUMA_copy_string(SUMA_SO_AnatomicalStructureSecondary(SO));
+      aSO->ps->AnatomicalStructurePrimary = 
+                   SUMA_copy_string(SUMA_SO_AnatomicalStructurePrimary(SO));
+      
+      aSO->tr->TopologicalType = 
+                  SUMA_copy_string(SUMA_SO_TopologicalType(SO));
+      SO->aSO = aSO; 
+     
    }
-
    
    SUMA_RETURN(YUP);
 }
+
 
 /*!
 Create a Surface Object data structure 

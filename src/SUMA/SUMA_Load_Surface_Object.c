@@ -350,11 +350,12 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO,
          SUMA_RETURN (NOPE);
          break;
       case SUMA_GIFTI:
-         fprintf (SUMA_STDERR, 
-                  "Error %s: "
-                  "Not ready to deal with gifti surface writing.\n"
-                  , FuncName);
-         SUMA_RETURN (NOPE);
+         if (!SUMA_GIFTI_Write ((char *)F_name, SO, SO_FF)) {
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write GIFTI surface.\n"
+                     , FuncName);
+            SUMA_RETURN (NOPE);
+         }
          break;
       case SUMA_FT_NOT_SPECIFIED:
       default:
@@ -998,133 +999,12 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
             SUMA_RETURN (NULL);
          }
          
-         #if 0
-         /* THE OLDE WAY */
-         /* check number of elements */
-         SO->N_Node = SUMA_float_file_size (SF_FileName->name_coord);
-         if ((SO->N_Node %3)) {
-            fprintf(SUMA_STDERR,"Error %s: Number of elements (%d) in vertex file %s is not multiple of 3.\n", 
-               FuncName, SO->N_Node, SF_FileName->name_coord);
-            SUMA_RETURN (NULL);
-         }
-         SO->N_Node /= 3;
-         SO->N_FaceSet = SUMA_float_file_size (SF_FileName->name_topo);
-         if ((SO->N_FaceSet % 3)) {
-            fprintf(SUMA_STDERR,"Error %s: Number of elements (%d) in faceset file %s is not multiple of 3.\n", 
-               FuncName, SO->N_Node, SF_FileName->name_topo);
-            SUMA_RETURN (NULL);
-         }
-         SO->N_FaceSet /= 3;
-         SO->FaceSetDim = 3;
-         
-         SO->NodeList = (float *)SUMA_calloc (SO->N_Node*SO->NodeDim, sizeof(float));
-         SO->FaceSetList = (int *) SUMA_calloc (SO->N_FaceSet*SO->FaceSetDim, sizeof(int));
-         if (!SO->NodeList || !SO->FaceSetList) {
-            fprintf(SUMA_STDERR,"Error %s: Failed to allocate for NodeList or FaceSetList.\n", FuncName);
+         if (!SUMA_VEC_Read(SF_FileName, SO)) {
+            SUMA_SLP_Err("Failed to read 1D file");
             if (SO->NodeList) SUMA_free(SO->NodeList);
             if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
             SUMA_RETURN (NULL);
          }
-         SUMA_Read_file (SO->NodeList, SF_FileName->name_coord, SO->N_Node*SO->NodeDim);
-         SUMA_Read_dfile (SO->FaceSetList, SF_FileName->name_topo, SO->N_FaceSet*SO->FaceSetDim);
-        
-         #else
-         if (0){
-            /* the local im_read_1D way */
-            MRI_IMAGE *im = NULL;
-            float *far=NULL;
-            int icnt;
-            
-            im = mri_read_1D (SF_FileName->name_coord);
-            if (!im) {
-               SUMA_SLP_Err("Failed to read 1D file");
-               SUMA_RETURN(NULL);
-            }
-            far = MRI_FLOAT_PTR(im);
-            SO->N_Node = im->nx;
-            SO->NodeDim = im->ny;
-            if (!SO->N_Node) {
-               SUMA_SL_Err("Empty file");
-               SUMA_RETURN(NULL);
-            }
-            if (SO->NodeDim !=  3 ) {
-               SUMA_SL_Err("File must have\n"
-                           "3 columns.");
-               mri_free(im); im = NULL;   /* done with that baby */
-               SUMA_RETURN(NULL);
-            }
-            
-            SO->NodeList = (float *)SUMA_calloc (SO->N_Node*SO->NodeDim, sizeof(float));
-            if (!SO->NodeList) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to allocate for NodeList.\n", FuncName);
-               if (SO->NodeList) SUMA_free(SO->NodeList);
-               if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
-               SUMA_RETURN (NULL);
-            }
-            
-            for (icnt=0; icnt < SO->N_Node; ++icnt) {
-               SO->NodeList[3*icnt] = far[icnt];
-               SO->NodeList[3*icnt+1] = far[icnt+SO->N_Node];
-               SO->NodeList[3*icnt+2] = far[icnt+2*SO->N_Node];
-            }   
-            if (LocalHead) {
-               fprintf (SUMA_STDERR,"%s: SO->NodeList\n Node 0: %f, %f, %f \n Node %d: %f, %f, %f \n",
-                  FuncName,
-                  SO->NodeList[0], SO->NodeList[1], SO->NodeList[2], SO->N_Node -1, 
-                  SO->NodeList[3*(SO->N_Node-1)], SO->NodeList[3*(SO->N_Node-1)+1], SO->NodeList[3*(SO->N_Node-1)+2]);
-            }
-            mri_free(im); im = NULL;
-            
-            im = mri_read_1D (SF_FileName->name_topo);
-            if (!im) {
-               SUMA_SLP_Err("Failed to read 1D file");
-               SUMA_RETURN(NULL);
-            }
-            far = MRI_FLOAT_PTR(im);
-            SO->N_FaceSet = im->nx;
-            SO->FaceSetDim = im->ny;
-            if (!SO->N_FaceSet) {
-               SUMA_SL_Err("Empty file");
-               SUMA_RETURN(NULL);
-            }
-            if (SO->FaceSetDim !=  3 ) {
-               SUMA_SL_Err("File must have\n"
-                           "3 columns.");
-               mri_free(im); im = NULL;   /* done with that baby */
-               SUMA_RETURN(NULL);
-            }
-            
-            SO->FaceSetList = (int *)SUMA_calloc (SO->N_FaceSet*SO->FaceSetDim, sizeof(int));
-            if (!SO->FaceSetList) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to allocate for FaceSetList.\n", FuncName);
-               if (SO->NodeList) SUMA_free(SO->NodeList);
-               if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
-               SUMA_RETURN (NULL);
-            }
-            
-            for (icnt=0; icnt < SO->N_FaceSet; ++icnt) {
-               SO->FaceSetList[3*icnt] = (int)far[icnt];
-               SO->FaceSetList[3*icnt+1] = (int)far[icnt+SO->N_FaceSet];
-               SO->FaceSetList[3*icnt+2] = (int)far[icnt+2*SO->N_FaceSet];
-            }   
-            
-            if (LocalHead) {
-               fprintf (SUMA_STDERR,"%s: SO->FaceSetList\n Node 0: %d, %d, %d \n Node %d: %d, %d, %d \n",
-                  FuncName,
-                  SO->FaceSetList[0], SO->FaceSetList[1], SO->FaceSetList[2], SO->N_FaceSet -1, 
-                  SO->FaceSetList[3*(SO->N_FaceSet-1)], SO->FaceSetList[3*(SO->N_FaceSet-1)+1], SO->FaceSetList[3*(SO->N_FaceSet-1)+2]);
-            } 
-            mri_free(im); im = NULL;
-            
-         } else {
-            if (!SUMA_VEC_Read(SF_FileName, SO)) {
-               SUMA_SLP_Err("Failed to read 1D file");
-               if (SO->NodeList) SUMA_free(SO->NodeList);
-               if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
-               SUMA_RETURN (NULL);
-            }
-         }
-         #endif
                   
          sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
          SUMA_NEW_ID(SO->idcode_str,stmp);
@@ -2369,7 +2249,7 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
    SUMA_SFname *SF_name;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean brk, SurfIn=NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2763,14 +2643,19 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             SUMA_RETURN(NOPE);
          }
          
-         /* store the surface's idcode pointer for use in non mappable bloc below */
+         /* store the surface's idcode pointer for use in 
+            non mappable bloc below */
             Spec->IDcode[i] = SO->idcode_str;
          
          /* check if surface read was unique 
-         it's inefficient to check after the surface is read, but idcode is generated in the read routine 
+         it's inefficient to check after the surface is read, 
+         but idcode is generated in the read routine 
          and users should not be making this mistake too often */
          if (SUMA_existSO (SO->idcode_str, dov, *N_dov)) {
-            fprintf(SUMA_STDERR,"Note %s: Surface is specifed more than once, multiple copies ignored.\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Note %s: \n"
+                     "Surface is specifed more than once, \n"
+                     "multiple copies ignored.\n", FuncName);
             /* free SO */
             if (!SUMA_Free_Surface_Object (SO)) {
                fprintf(SUMA_STDERR,"Error %s: Error freeing SO.\n", FuncName);
@@ -4294,6 +4179,11 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
          }
          strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->i_FT[i]));
          if (ps->i_FF[i] == SUMA_BINARY || ps->i_FF[i] == SUMA_BINARY_LE || ps->i_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
+         else if (ps->i_FF[i] == SUMA_XML_SURF ||
+                  ps->i_FF[i] == SUMA_XML_ASCII_SURF ||
+                  ps->i_FF[i] == SUMA_XML_B64_SURF ||
+                  ps->i_FF[i] == SUMA_XML_B64GZ_SURF ) 
+               strcpy(spec->SurfaceFormat[spec->N_Surfs], "XML");
          else strcpy(spec->SurfaceFormat[spec->N_Surfs], "ASCII");
          if (ps->i_FT[i] == SUMA_SUREFIT || ps->i_FT[i] == SUMA_VEC) {
             strcpy(spec->TopoFile[spec->N_Surfs], ps->i_surftopo[i]);
@@ -4321,6 +4211,11 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
          }
          strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->ipar_FT[i]));
          if (ps->ipar_FF[i] == SUMA_BINARY || ps->ipar_FF[i] == SUMA_BINARY_LE || ps->ipar_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
+         else if (ps->ipar_FF[i] == SUMA_XML_SURF || 
+                  ps->ipar_FF[i] == SUMA_XML_ASCII_SURF ||
+                  ps->ipar_FF[i] == SUMA_XML_B64_SURF ||
+                  ps->ipar_FF[i] == SUMA_XML_B64GZ_SURF ) 
+               strcpy(spec->SurfaceFormat[spec->N_Surfs], "XML");
          else strcpy(spec->SurfaceFormat[spec->N_Surfs], "ASCII");
          if (ps->ipar_FT[i] == SUMA_SUREFIT || ps->ipar_FT[i] == SUMA_VEC) {
             strcpy(spec->TopoFile[spec->N_Surfs], ps->ipar_surftopo[i]);
@@ -4349,6 +4244,11 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
          }
          strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->t_FT[i]));
          if (ps->t_FF[i] == SUMA_BINARY || ps->t_FF[i] == SUMA_BINARY_LE || ps->t_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
+         else if (ps->t_FF[i] == SUMA_XML_SURF || 
+                  ps->t_FF[i] == SUMA_XML_ASCII_SURF ||
+                  ps->t_FF[i] == SUMA_XML_B64_SURF ||
+                  ps->t_FF[i] == SUMA_XML_B64GZ_SURF )
+               strcpy(spec->SurfaceFormat[spec->N_Surfs], "XML");
          else strcpy(spec->SurfaceFormat[spec->N_Surfs], "ASCII");
          if (ps->t_FT[i] == SUMA_SUREFIT || ps->t_FT[i] == SUMA_VEC) {
             strcpy(spec->TopoFile[spec->N_Surfs], ps->t_surftopo[i]);
