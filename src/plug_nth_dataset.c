@@ -4,7 +4,7 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
-#define DSETN_VERSION	"Version 1.1 <October, 2002>"
+#define DSETN_VERSION     "Version 1.1 <October, 2002>"
 
 /***********************************************************************
   Plugin to provide extra datasets' timeseries in place of first
@@ -72,11 +72,12 @@ static char helpstring[] =
    " -- RWCox - 29 Mar 2002\n"
 ;
 
-#define NMAX 9  /* max number of time series */
+#define NMAX 49       /* max allowed nmax */
+static int nmax = 9 ; /* max number of time series in the interface */
 
 static THD_3dim_dataset *dset[NMAX] ;
-static MCW_idcode        g_id[NMAX] ;	/* for re-establishing dset values */
-static int               ovc [NMAX] ;
+static MCW_idcode        g_id[NMAX] ;     /* for re-establishing dset values */
+static int               ovc[NMAX] ;
 static int               g_dset_recv = -1 ;         /* for AFNI messaging  */
 static int               g_valid_data = 0 ;         /* is the data usable  */
 
@@ -108,8 +109,9 @@ DEFINE_PLUGIN_PROTOTYPE
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    int id , ic ;
-#define NCTAB 4
-   static int ctab[NCTAB] = { 6 , 7 , 14 , 16 } ;
+#define NCTAB 5
+   static int ctab[NCTAB] = { 6 , 7 , 14 , 16 , 10 } ;
+   char lab[32] ;
 
 ENTRY("PLUGIN_init:Dataset#N") ;
 
@@ -128,8 +130,12 @@ ENTRY("PLUGIN_init:Dataset#N") ;
 
    PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;  /* 04 Nov 2003 */
 
-   for( id=0 ; id < NMAX ; id++ ){
-     PLUTO_add_option( plint , "Input" , "Input" , FALSE ) ;
+   nmax = (int)AFNI_numenv("AFNI_DATASETN_NMAX") ;
+   if( nmax < 9 ) nmax = 9 ; else if( nmax > NMAX ) nmax = NMAX ;
+
+   for( id=0 ; id < nmax ; id++ ){
+     sprintf(lab,"Input#%02d",id+1) ;
+     PLUTO_add_option( plint , lab , "Input" , FALSE ) ;
      PLUTO_add_dataset(plint , "Dataset" ,
                                       ANAT_ALL_MASK , FUNC_ALL_MASK ,
                                       DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
@@ -147,9 +153,8 @@ ENTRY("PLUGIN_init:Dataset#N") ;
 #endif
 
    /* init the global lists */
-   for ( id=0 ; id < NMAX ; id++ ){
-	dset[id] = NULL;
-	ZERO_IDCODE(g_id[id]);
+   for ( id=0 ; id < nmax ; id++ ){
+      dset[id] = NULL; ZERO_IDCODE(g_id[id]);
    }
 
    RETURN( plint ) ;
@@ -172,9 +177,8 @@ ENTRY( "DSETN_main" ) ;
              "DSETN_main:  NULL input\n"
              "***********************") ;
 
-   for( id=0 ; id < NMAX ; id++ ){   /* 18 Mar 2004: renullification */
-     dset[id] = NULL ;
-     ZERO_IDCODE(g_id[id]);
+   for( id=0 ; id < nmax ; id++ ){   /* 18 Mar 2004: renullification */
+     dset[id] = NULL ; ZERO_IDCODE(g_id[id]);
    }
 
    id = 0 ;
@@ -217,10 +221,10 @@ g_id[id] = *idc ;
 
    }
 
-   if ( id <= 0 )	/* no data - nothing to do */
+   if ( id <= 0 )     /* no data - nothing to do */
        RETURN( NULL ) ;
 
-   g_valid_data = 1 ;	/* valid data, woohooo!    */
+   g_valid_data = 1 ;     /* valid data, woohooo!    */
 
    if ( g_dset_recv < 0 )
        g_dset_recv = AFNI_receive_init( plint->im3d, RECEIVE_DSETCHANGE_MASK,
@@ -246,7 +250,7 @@ ENTRY( "DSETN_dset_recv" );
     switch ( why )
     {
      default:{
-	    fprintf( stderr, "warning: DSETN_dset_recv() called with invalid "
+         fprintf( stderr, "warning: DSETN_dset_recv() called with invalid "
                 "why code, %d\n", why );
        EXRETURN;
      }
@@ -255,25 +259,25 @@ ENTRY( "DSETN_dset_recv" );
      case RECEIVE_DSETCHANGE:{
        static int ncall=0 ;
        /* start by noting the number of valid data sets */
-	    int num_valid = set_global_dsets_from_ids( );
+         int num_valid = set_global_dsets_from_ids( );
 
-	    if ( g_valid_data != 1 || num_valid <= 0 )
-	    {
-		/* shut the plugin down - "he's only _mostly_ dead" */
+         if ( g_valid_data != 1 || num_valid <= 0 )
+         {
+          /* shut the plugin down - "he's only _mostly_ dead" */
 
-		g_valid_data = 0;
+          g_valid_data = 0;
 
-		AFNI_receive_control( plint->im3d, g_dset_recv,
-				      EVERYTHING_SHUTDOWN, NULL );
-		g_dset_recv = -1;
+          AFNI_receive_control( plint->im3d, g_dset_recv,
+                          EVERYTHING_SHUTDOWN, NULL );
+          g_dset_recv = -1;
       if( ++ncall == 1 )
-		 PLUTO_popup_worker( plint,
+           PLUTO_popup_worker( plint,
                "Warning: plugin 'Dataset#N'\n"
                "has lost its dataset links.\n"
                "To plot 1-D overlays, please\n"
                "re-run the plugin.",
              MCW_USER_KILL | MCW_TIMER_KILL ) ;
-	    }
+         }
      }
     }
 
@@ -294,7 +298,7 @@ void DSETN_func( MRI_IMAGE *qim )
 ENTRY( "DSETN_func" );
 
    if ( g_valid_data != 1 )
-       EXRETURN ;				  /* nothing to do */
+       EXRETURN ;                      /* nothing to do */
 
    INIT_IMARR(tar) ;
    ijk = AFNI_needs_dset_ijk() ;          /* voxel index from AFNI */
@@ -349,23 +353,23 @@ static int set_global_dsets_from_ids( void )
 
 ENTRY( "set_global_dsets_from_ids" );
 
-    for ( idcount = 0; idcount < NMAX; idcount++ )
+    for ( idcount = 0; idcount < nmax; idcount++ )
     {
-	if ( ! ISZERO_IDCODE( g_id[idcount] ) )
-	{
-	    dptr = PLUTO_find_dset( &g_id[idcount] );
-	    if ( ! ISVALID_DSET( dptr ) )
-	    {
-		dptr = NULL;
-		ZERO_IDCODE( g_id[idcount] );	/* lost dataset    */
-	    }
-	    else				/* a good one      */
-		num_valid++;
-	}
-	else					/* just being safe */
-	    dptr = NULL;
+     if ( ! ISZERO_IDCODE( g_id[idcount] ) )
+     {
+         dptr = PLUTO_find_dset( &g_id[idcount] );
+         if ( ! ISVALID_DSET( dptr ) )
+         {
+          dptr = NULL;
+          ZERO_IDCODE( g_id[idcount] );     /* lost dataset    */
+         }
+         else                    /* a good one      */
+          num_valid++;
+     }
+     else                         /* just being safe */
+         dptr = NULL;
 
-	dset[idcount] = dptr;
+     dset[idcount] = dptr;
     }
 
     RETURN( num_valid );
