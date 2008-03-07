@@ -2592,6 +2592,13 @@ static char * readme_env[] = {
    "String data components (I'm looking at YOU, Ziad), then you may want\n" ,
    "to increase this past its default size of 255*1024=261120.\n" ,
    "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_DATASETN_NMAX\n" ,
+   "----------------------------\n" ,
+   "This numeric variable, if set, lets you expand the number of dataset\n" ,
+   "lines in the 'Dataset#N' plugin from the default of 9 up to a max of 49.\n" ,
+   "(This one is for Shruti.)\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- END: variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2714,4 +2721,4 @@ static char * readme_env[] = {
    "(You can always use '3drefit -addFDR' to add FDR curves to a dataset\n" ,
    "header, for those sub-bricks marked as statistical parameters.)\n" ,
    NULL } ;
-#define NUM_readme_env 2714
+#define NUM_readme_env 2721
