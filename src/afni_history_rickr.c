@@ -44,7 +44,7 @@
 afni_history_struct rickr_history[] = {
 
  {  7, MAR, 2008, RCR, "make_stim_times.py", MINOR, TYPE_BUG_FIX,
-   "properly ignore empty lines",
+   "properly ignore empty lines, and exit on short files",
    NULL
  } ,
 
