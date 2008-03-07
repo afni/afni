@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , MAR , 2008 , RWC , "Dataset#N" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_DATASETN_NMAX sets number of datasets allowed" ,
+   "New environment variable AFNI_DATASETN_NMAX sets the number of datasets\n"
+   "allowed in Dataset#N plugin, from 9..49.  This is for Shruti." } ,
+
  { 6 , MAR , 2008 , RWC , "3dcalc" , MICRO , TYPE_MODIFY ,
    "Add cbrt (cube root) function to parser; affects 1deval and ccalc" ,
    NULL } ,
