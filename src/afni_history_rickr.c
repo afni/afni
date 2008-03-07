@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, MAR, 2008, RCR, "GIFTI", MICRO, TYPE_MODIFY,
+   "allow functional control over GIFTI encoding" ,
+   NULL
+ } ,
+
  {  5, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_BUG_FIX,
    "fixed passing of INDEX_LIST" ,
    NULL
