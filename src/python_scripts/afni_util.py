@@ -148,6 +148,9 @@ def read_1D_file(filename, nlines = -1, verb = 0):
     fp.close()
     for line in data.splitlines():
         if 0 <= nlines <= lnum: break   # then stop early
+        if not line:
+            if verb > 0: print "skipping empty line:"
+            continue
         if line[0] == '#' or line[0] == '\0':
             if verb > 0: print "skipping comment line: %s" % line
             continue
