@@ -19,6 +19,7 @@
 typedef struct {        /* put this in thd_gifti.h ? */
     int add_index_list; /* if no NIFTI_INTENT_NODE_LIST, add a default */
     int write_mode;     /* BINARY (0) or ASCII (1) */
+    int g_encoding;     /* gifti encoding to use on write */
     int gverb;
     int verb;
 } gifti_globs_t;
@@ -57,6 +58,7 @@ static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim);
 static int nsdg_labs_to_meta(NI_group * ngr, gifti_image * gim);
 static int nsdg_set_history(NI_group * ngr, gifti_image * gim);
 static int nsdg_stat_to_intent(NI_group * ngr, gifti_image * gim);
+static int set_gifti_encoding(int encoding);
 
 static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname);
 
@@ -343,7 +345,7 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     RETURN(gim);
 }
 
-/* do not allocate data, just steal pointers */
+/* add data to the gifti_image (do not allocate data, just steal pointers) */
 static int nsdg_add_data(NI_element * sdel, gifti_image * gim)
 {
     giiDataArray * da;
@@ -357,7 +359,12 @@ static int nsdg_add_data(NI_element * sdel, gifti_image * gim)
     for( c = 0; c < gim->numDA; c++ ) {
         da = gim->darray[c];
         da->data = sdel->vec[c];
-        if(GP->write_mode == NI_TEXT_MODE) da->encoding = GIFTI_ENCODING_ASCII;
+
+        /* set encoding via set_gifti_encoding or A_N_TEXT_DATA or default */
+        if( GP->g_encoding )
+            da->encoding = GP->g_encoding;
+        else if ( GP->write_mode == NI_TEXT_MODE )
+            da->encoding = GIFTI_ENCODING_ASCII;
     }
 
     if( GP->verb > 1 )
@@ -1307,6 +1314,17 @@ ENTRY("are_sorted_ints");
     RETURN(1);
 }
 
+/* allow other functions to control the encoding
+ * note: 0 = GIFTI_ENCODING_UNDEF means to clear it */
+static int set_gifti_encoding(int encoding)
+{
+    if( encoding >= GIFTI_ENCODING_UNDEF && encoding <= GIFTI_ENCODING_MAX )
+        GP->g_encoding = encoding;
+    else
+        fprintf(stderr,"** SGE: illegal encoding %d\n", encoding);
+    return 0;
+}
+
 static int disp_gifti_globs(char * mesg, gifti_globs_t * g)
 {
     if( mesg ) fputs(mesg, stderr);
@@ -1314,8 +1332,10 @@ static int disp_gifti_globs(char * mesg, gifti_globs_t * g)
     fprintf(stderr,"gifti_globs_t:\n"
                    "    add_index_list  = %d\n"
                    "    write_mode      = %d\n"
-                   "    verb            = %d\n",
-                   g->add_index_list, g->write_mode, g->verb);
+                   "    g_encoding      = %d\n"
+                   "    gverb, verb     = %d, %d\n",
+                   g->add_index_list, g->write_mode, g->g_encoding,
+                   g->gverb, g->verb);
     return 0;
 }
 
@@ -1326,7 +1346,7 @@ static int gifti_globs_from_env(void)
     ept = my_getenv("AFNI_NIML_DEBUG");
     if( ept ) GP->verb = atoi(ept);       /* adjust if set */
     ept = my_getenv("AFNI_GIFTI_VERB");
-    if( ept ) GP->gverb = atoi(ept);      /* adjust if set */
+    if( ept ) GP->gverb = atoi(ept);     /* adjust if set */
 
     GP->add_index_list = AFNI_yesenv("AFNI_NSD_ADD_NODES");
     GP->write_mode = AFNI_yesenv("AFNI_NIML_TEXT_DATA") ? NI_TEXT_MODE :
