@@ -171,8 +171,12 @@ def proc_mats(uopts):
             return
         mat = afni_util.transpose(mat)
 
-        if len(mat[0]) != nt * nruns:
-            print 'warning: file %s has %d entries (expected %d)' % \
+        if len(mat[0]) < nt * nruns:
+            print '** error: file %s has only %d entries (%d required)' % \
+                  (file, len(mat[0]), nt*nruns)
+            return
+        elif len(mat[0]) > nt * nruns:
+            print '** warning: file %s has %d entries (expected only %d)' % \
                   (file, len(mat[0]), nt*nruns)
 
         for row in mat:
