@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, MAR, 2008, RCR, "make_stim_times.py", MINOR, TYPE_BUG_FIX,
+   "properly ignore empty lines",
+   NULL
+ } ,
+
  {  6, MAR, 2008, RCR, "GIFTI", MICRO, TYPE_MODIFY,
    "allow functional control over GIFTI encoding" ,
    NULL
