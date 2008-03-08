@@ -84,7 +84,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 27, FEB, 2008, RCR, "afni_history", SUPER, TYPE_NEW_PROG,
-   "new program: display the history of AFNI updates" ,
+   "program to display the history of AFNI updates" ,
    "This will be used to create a web page of AFNI updates.\n"
    "Please see 'afni_history -help' for more details."
  } ,
@@ -103,7 +103,7 @@ afni_history_struct rickr_history[] = {
    "fixed application of cluster for sending data to suma",
 
    "Previously, clustering was only applied when the Olay and Thr sub-bricks\n"
-   "  were the same."
+   "were the same."
  } ,
 
  { 24, FEB, 2008, RCR, "GIFTI", MINOR, TYPE_MODIFY,
@@ -112,7 +112,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- /* pre-afni_history updates */
+ /* pre-afni_history updates, mostly new programs and data formats */
 
  { 21, FEB, 2008, RCR, "GIFTI", SUPER, TYPE_GENERAL,
    "AFNI programs can now read and write GIFTI datasets",
@@ -127,16 +127,74 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- /* addition from bottom ends here */
+ {  22, JAN, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added options to estimate smoothness in data for use in AlphaSim",
+   "See help options -regress_est_blur_epits and -regress_est_blur_errts."
+ } ,
+
+ {  28, DEC, 2007, RCR, "gifti_tool", MAJOR, TYPE_NEW_PROG,
+   "program to read and write GIFTI datasets",
+   NULL
+ } ,
+
+ {   3, DEC, 2007, RCR, "GIFTI", MAJOR, TYPE_GENERAL,
+   "initial release of gifti I/O C API",
+   NULL
+ } ,
+
+ {  31, AUG, 2007, RCR, "DECONFLICT", MAJOR, TYPE_MODIFY,
+   "modified default behavior of programs from deconflict to no overwrite",
+   "See AFNI_DECONFLICT in README.environment."
+ } ,
+
+ {  31, AUG, 2007, RCR, "model_conv_diffgamma", MINOR, TYPE_NEW_PROG,
+   "NLfim model to compute the convolution of the difference of gammas",
+   NULL
+ } ,
+
+ {  30, JUL, 2007, RCR, "regression_tests", MAJOR, TYPE_GENERAL,
+   "added setup for regression testing to NIFTI package",
+   "This can be used as a template for testing any command-line programs."
+ } ,
+
+ {  20, DEC, 2006, RCR, "afni_proc.py", SUPER, TYPE_NEW_PROG,
+   "program to write complete single subject FMRI processing script", 
+   NULL
+ } ,
+
+ {  11, DEC, 2006, RCR, "make_stim_times.py", MINOR, TYPE_NEW_PROG,
+   "program to convert stim_files to stim_times files",
+   NULL
+ } ,
+
+ {  22, OCT, 2006, RCR, "model_demri_3", MAJOR, TYPE_NEW_PROG,
+   "NLfim model for Dynamic Enhanced MRI", 
+   NULL
+ } ,
+
+ {  12, OCT, 2006, RCR, "serial_writer", MINOR, TYPE_NEW_PROG,
+   "program to send data from a file, pipe or made up to a given serial port",
+   NULL
+ } ,
+
+ {   8, AUG, 2006, RCR, "C++", MINOR, TYPE_MODIFY,
+   "afni program compiles in C++ (effort with Rich and Greg Balls)",
+   NULL
+ } ,
+
+ {   3, AUG, 2006, RCR, "NI_SURF_DSET", SUPER, TYPE_GENERAL,
+   "added a new surface dataset format, with read/write ability in AFNI",
+   NULL
+ } ,
 
  {  25, JAN, 2006, RCR, "model_michaelis_menton", MAJOR, TYPE_NEW_PROG,
-   "model function for ethanol studies",
+   "NLfim model function for ethanol studies",
    NULL
  } ,
 
  {   2, DEC, 2005, RCR, "ANOVA", SUPERDUPER, TYPE_MODIFY,
    "changed variance computations in 3dANOVA programs to not assume sphericity",
-   "for details, see http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html"
+   "For details, see http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html ."
  } ,
 
  {  11, OCT, 2005, RCR, "3dmaxima", MAJOR, TYPE_NEW_PROG,
@@ -149,17 +207,22 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ {  25, APR, 2005, RCR, "NIFTI", SUPER, TYPE_GENERAL,
+   "AFNI can read and write NIFTI datasets (effort with Bob and Rich)",
+   NULL
+ } ,
+
  {  7, JAN, 2005, RCR, "nifti_tool", SUPER, TYPE_NEW_PROG,
    "program to directly manipulate or compare NIFTI dataset headers",
    NULL
  } ,
 
- {  7, JAN, 2005, RCR, "NIFTI", SUPER, TYPE_NEW_ENV,
+ {  7, JAN, 2005, RCR, "NIFTI", SUPER, TYPE_GENERAL,
    "initial release of NIFTI library",
    NULL
  } ,
 
- {  4, OCT, 2004, RCR, "vol2surf", SUPER, TYPE_NEW_ENV,
+ {  4, OCT, 2004, RCR, "vol2surf", SUPER, TYPE_GENERAL,
    "added vol2surf interface for real-time mapping from afni to suma",
    NULL
  } ,
@@ -215,7 +278,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  8, MAR, 2002, RCR, "plug_crender", SUPER, TYPE_NEW_PROG,
-   "rendering plugin to afni",
+   "added rendering plugin to afni",
    NULL
  } ,
 
