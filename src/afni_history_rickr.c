@@ -112,6 +112,8 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ /* pre-afni_history updates */
+
  { 21, FEB, 2008, RCR, "GIFTI", SUPER, TYPE_GENERAL,
    "AFNI programs can now read and write GIFTI datasets",
 
@@ -122,6 +124,98 @@ afni_history_struct rickr_history[] = {
 
  {  6, FEB, 2008, RCR, "3dbucket", MINOR, TYPE_GENERAL,
    "modified to copy FDR curves",
+   NULL
+ } ,
+
+ /* addition from bottom ends here */
+
+ {  25, JAN, 2006, RCR, "model_michaelis_menton", MAJOR, TYPE_NEW_PROG,
+   "model function for ethanol studies",
+   NULL
+ } ,
+
+ {   2, DEC, 2005, RCR, "ANOVA", SUPERDUPER, TYPE_MODIFY,
+   "changed variance computations in 3dANOVA programs to not assume sphericity",
+   "for details, see http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html"
+ } ,
+
+ {  11, OCT, 2005, RCR, "3dmaxima", MAJOR, TYPE_NEW_PROG,
+   "command-line version of maxima plugin",
+   NULL
+ } ,
+
+ {   5, JUL, 2005, RCR, "Dimon", SUPER, TYPE_NEW_PROG,
+   "program to monitor real-time acquisition of DICOM images",
+   NULL
+ } ,
+
+ {  7, JAN, 2005, RCR, "nifti_tool", SUPER, TYPE_NEW_PROG,
+   "program to directly manipulate or compare NIFTI dataset headers",
+   NULL
+ } ,
+
+ {  7, JAN, 2005, RCR, "NIFTI", SUPER, TYPE_NEW_ENV,
+   "initial release of NIFTI library",
+   NULL
+ } ,
+
+ {  4, OCT, 2004, RCR, "vol2surf", SUPER, TYPE_NEW_ENV,
+   "added vol2surf interface for real-time mapping from afni to suma",
+   NULL
+ } ,
+
+ { 31, MAR, 2004, RCR, "serial_helper", MAJOR, TYPE_NEW_PROG,
+   "program to pass realtime registration params from TCP to serial port",
+   NULL
+ } ,
+
+ {  1, DEC, 2003, RCR, "SurfMeasures", MAJOR, TYPE_NEW_PROG,
+   "program to compute various measures over surfaces",
+   NULL
+ } ,
+
+ {  5, AUG, 2003, RCR, "3dVol2Surf", SUPER, TYPE_NEW_PROG,
+   "program to map data from the volume to domain to the surface domain",
+   NULL
+ } ,
+
+ { 29, MAY, 2003, RCR, "3dSurf2Vol", SUPER, TYPE_NEW_PROG,
+   "program to map data from the surface domain to the volume domain",
+   NULL
+ } ,
+
+ { 15, JAN, 2003, RCR, "Imon", MAJOR, TYPE_NEW_OPT,
+   "added connection to the realtime plugin in afni",
+   NULL
+ } ,
+
+ { 27, NOV, 2002, RCR, "Imon", SUPER, TYPE_NEW_PROG,
+   "program to monitor GE I-files as they are written to the scanner",
+   NULL
+ } ,
+
+ {  1, OCT, 2002, RCR, "file_tool", SUPER, TYPE_NEW_PROG,
+   "program to perform generic manipulations of binary files",
+   NULL
+ } ,
+
+ { 20, JUN, 2002, RCR, "@make_stim_file", MINOR, TYPE_NEW_PROG,
+   "script to create binary stim files",
+   NULL
+ } ,
+
+ {  6, JUN, 2002, RCR, "@SUMA_Make_Spec_FS", MAJOR, TYPE_NEW_PROG,
+   "script to import FreeSurfer surfaces into SUMA",
+   NULL
+ } ,
+
+ { 21, MAY, 2002, RCR, "3dresample", SUPER, TYPE_NEW_PROG,
+   "program to change a dataset orientation and/or grid spacing",
+   NULL
+ } ,
+
+ {  8, MAR, 2002, RCR, "plug_crender", SUPER, TYPE_NEW_PROG,
+   "rendering plugin to afni",
    NULL
  } ,
 
