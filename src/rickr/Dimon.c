@@ -17,11 +17,13 @@ static char * g_history[] =
     " 2.2  Aug 29, 2005 [rickr] - added options -rev_org_dir, -rev_sort_dir\n",
     " 2.3  Sep 01, 2005 [rickr] - added option -tr\n",
     " 2.4  Nov 20, 2006 [rickr] - added option -epsilon\n",
-    " 2.5  Mar 10, 2008 [rickr] - if 1 run, GERT_Reco_dicom is named by it\n",
+    " 2.5  Mar 10, 2008 [rickr]\n"
+    "      - if 1 run, GERT_Reco_dicom is named by it\n",
+    "      - apply -gert_outdir in the case of dicom images\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.4 (November 20, 2006)"
+#define DIMON_VERSION "version 2.5 (March 10, 2008)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -3351,11 +3353,20 @@ static int create_gert_dicom( stats_t * s, param_t * p )
              "# Please modify the following options for your own evil uses.\n"
              "\n"
              "set OutlierCheck = ''         # use '-skip_outliers' to skip\n"
-             "set OutPrefix    = 'OutBrick' # prefix for datasets\n"
-             "\n"
-             "\n",
+             "set OutPrefix    = 'OutBrick' # prefix for datasets\n",
              IFM_PROG_NAME
            );
+
+    /* maybe use an output directory */
+    if( opts->gert_outdir )
+        fprintf(fp,
+             "set OutDir       = '%s'     # output directoy for datasets\n"
+             "\n\n"
+             "#---------- make sure output directory exists ----------\n"
+             "test -d $OutDir || mkdir $OutDir\n",
+             opts->gert_outdir );
+
+    fprintf(fp, "\n\n");
 
     /* create run files, containing lists of all files in a run */
     for ( c = 0; c < s->nused; c++ )
@@ -3380,10 +3391,17 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             clear_float_zeros(TR);
 
             /* and write to3d command */
+            if( opts->gert_outdir )
+                fprintf(fp, "#------- create dataset for run #%d -------\n",c);
+
             fprintf(fp, "to3d -prefix ${OutPrefix}_run_%03d  \\\n"
-                        "     -time:zt %d %d %ssec %s \\\n"
+                        "     -time:zt %d %d %ssec %s   \\\n"
                         "     -@ < %s\n\n",
                     c, s->slices, s->runs[c].volumes, TR, spat, outfile);
+
+            /* and possibly move output datasets there */
+            if( opts->gert_outdir )
+                fprintf(fp, "mv ${OutPrefix}_run_%03d+orig.* $OutDir\n\n", c);
         }
 
     fclose( fp );
