@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, MAR, 2008, RCR, "SUMA_SurfMeasures", MAJOR, TYPE_BUG_FIX,
+   "averages did not include nodes lost to -cmask",
+   "Noticed by M Beauchamp."
+ } ,
+
  {  7, MAR, 2008, RCR, "make_stim_times.py", MINOR, TYPE_BUG_FIX,
    "properly ignore empty lines, and exit on short files",
    NULL
