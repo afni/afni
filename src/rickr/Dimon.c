@@ -17,6 +17,7 @@ static char * g_history[] =
     " 2.2  Aug 29, 2005 [rickr] - added options -rev_org_dir, -rev_sort_dir\n",
     " 2.3  Sep 01, 2005 [rickr] - added option -tr\n",
     " 2.4  Nov 20, 2006 [rickr] - added option -epsilon\n",
+    " 2.5  Mar 10, 2008 [rickr] - if 1 run, GERT_Reco_dicom is named by it\n",
     "----------------------------------------------------------------------\n"
 };
 
@@ -3308,24 +3309,31 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 {
     opts_t * opts = &p->opts;
     FILE   * fp, * nfp;                   /* script and name file pointers */
-    char   * script = IFM_GERT_DICOM;     /* output script filename */
+    char     script[32] = IFM_GERT_DICOM; /* output script filename */
     char   * spat;                        /* slice acquisition pattern */
     char     outfile[32];                 /* run files */
     char     TR[16];                      /* for printing TR w/out zeros */
     int      num_valid, c, findex;
+    int      first_run = -1;
 
     /* if the user did not give a slice pattern string, use the default */
     spat = opts->sp ? opts->sp : IFM_SLICE_PAT;
 
     for ( c = 0, num_valid = 0; c < s->nused; c++ )
         if ( s->runs[c].volumes > 0 )
+        {
+            if( first_run < 0 ) first_run = c;  /* note first valid run */
             num_valid++;
+        }
 
     if ( num_valid == 0 )
     {
         fprintf( stderr, "-- no runs to use for '%s'\n", script );
         return 0;
     }
+
+    if ( num_valid == 1 && first_run >= 0 )       /* then name by run */
+        sprintf(script, "%s_%03d", IFM_GERT_DICOM, first_run);
 
     if ( (fp = fopen( script, "w" )) == NULL )
     {
