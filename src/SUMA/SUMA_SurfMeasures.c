@@ -91,6 +91,10 @@ static char g_history[] =
     "\n"
     "1.11 October 12, 2004  [rickr]\n"
     "  - More volume comments: suggest 'SurfPatch -vol'\n"
+    "\n"
+    "1.12 March 10, 2008  [rickr]\n"
+    "  - Averages did _not_ include any -cmask option (so were too small)\n"
+    "    (noticed by M Beauchamp)\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -207,7 +211,7 @@ int write_output( opts_t * opts, param_t * p )
     float       ave_dist, fval;
     int         c, fnum, node, nindex;
     int       * fcodes;
-    int         skipped = 0;
+    int         skipped = 0, tot_nodes;
 
 ENTRY("write_output");
 
@@ -379,7 +383,14 @@ ENTRY("write_output");
 	}
     }
 
-    ave_dist = tdist/p->nnodes;
+    /* Ick, averages should not include skipped nodes!  10 Mar 2008 [rickr] */
+    tot_nodes = p->nnodes - skipped;
+    if( tot_nodes <= 0 ) {
+        printf("** no nodes remaining for averages (skipped = %d)!\n",skipped);
+        RETURN(0);
+    }
+
+    ave_dist = tdist/tot_nodes;
 
     if ( opts->info )
 	printf("----------------------------------------------------------\n");
@@ -398,7 +409,7 @@ ENTRY("write_output");
     {
 	printf( "-- ave. angles to normals: (nA_nB, sA, sB) = "
 		"(%.4f, %.4f, %.4f)\n",
-		atn/p->nnodes, atna/p->nnodes, atnb/p->nnodes);
+		atn/tot_nodes, atna/tot_nodes, atnb/tot_nodes);
     }
 
     if ( (opts->info & ST_INFO_THICK) && (p->S.nsurf > 1) )
