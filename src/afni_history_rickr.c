@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, MAR, 2008, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "if only 1 run, GERT_Reco_dicom is named per run",
+   NULL
+ } ,
+
  { 10, MAR, 2008, RCR, "SUMA_SurfMeasures", MAJOR, TYPE_BUG_FIX,
    "averages did not include nodes lost to -cmask",
    "Noticed by M Beauchamp."
