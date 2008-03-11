@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, MAR, 2008, RCR, "model_demri_3", MINOR, TYPE_NEW_OPT,
+   "add control of hematocrit via AFNI_MODEL_D3_HCT",
+   NULL
+ } ,
+
  { 10, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_NEW_ENV,
    "AFNI_GIFTI_VERB sets the verbose level in the gifti I/O library",
    "The default is 1, 0 is quiet, and values go up to 7."
