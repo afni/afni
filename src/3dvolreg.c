@@ -43,6 +43,9 @@ static int         VL_coarse_del=10 ; /* 11 Dec 2000 */
 static int         VL_coarse_num=2  ;
 static int         VL_coarse_rot=1  ; /* 01 Dec 2005 */
 
+static THD_fvec3 VL_cen_bas , VL_cen_inp ; /* 11 Mar 2008 */
+static float     VL_cen_dist = 0.0f ;
+
 static THD_3dim_dataset *VL_dset = NULL ;
 static THD_3dim_dataset *VL_bset = NULL ;  /* 06 Feb 2001 */
 
@@ -1037,14 +1040,12 @@ int main( int argc , char *argv[] )
 
      /* info about base dataset */
 
-     if( VL_bset == NULL ) VL_bset = VL_dset ;  /* default base */
-
      THD_set_string_atr( new_dset->dblk , "VOLREG_BASE_IDCODE" ,
                                           VL_bset->idcode.str ) ;
      THD_set_string_atr( new_dset->dblk , "VOLREG_BASE_NAME" ,
                                           DSET_HEADNAME(VL_bset) ) ;
 
-     cv = THD_dataset_center( VL_bset ) ;
+     cv = VL_cen_bas ;
      THD_set_float_atr( new_dset->dblk , "VOLREG_CENTER_BASE" , 3 , cv.xyz ) ;
 
      /* number of images registered */
@@ -1097,12 +1098,19 @@ int main( int argc , char *argv[] )
 
         if( VL_msfp != NULL ){  /* 24 Jul 2007 */
           THD_dvecmat vm , ivm ;
-          vm.mm = rmat ; LOAD_DFVEC3(vm.vv,matar[3],matar[7],matar[11]) ;
-          ivm = invert_dvecmat(vm) ;
+          float xd=matar[3] , yd=matar[7] , zd=matar[11] ;
+          if( VL_cen_dist > 0.01f ){  /* 11 Mar 2008 */
+            THD_fvec3 dv , ev ;
+            dv = MATVEC(rmat,VL_cen_inp) ;
+            ev = SUB_FVEC3(VL_cen_bas,dv) ;
+            xd += dv.xyz[0] ; yd += dv.xyz[1] ; zd += dv.xyz[2] ;
+          }
+          LOAD_DFVEC3(vm.vv,xd,yd,zd) ;
+          vm.mm = rmat ; ivm = invert_dvecmat(vm) ;
 
           fprintf(VL_msfp,"%13.6g %13.6g %13.6g %13.6g "
-                           "%13.6g %13.6g %13.6g %13.6g "
-                           "%13.6g %13.6g %13.6g %13.6g\n" ,
+                          "%13.6g %13.6g %13.6g %13.6g "
+                          "%13.6g %13.6g %13.6g %13.6g\n" ,
           ivm.mm.mat[0][0], ivm.mm.mat[0][1], ivm.mm.mat[0][2], ivm.vv.xyz[0],
           ivm.mm.mat[1][0], ivm.mm.mat[1][1], ivm.mm.mat[1][2], ivm.vv.xyz[1],
           ivm.mm.mat[2][0], ivm.mm.mat[2][1], ivm.mm.mat[2][2], ivm.vv.xyz[2] ) ;
@@ -1542,8 +1550,10 @@ void VL_command_line(void)
       /** -1Dmatrix_save [24 Jul 2007] **/
 
       if( strcmp(Argv[Iarg],"-1Dmatrix_save") == 0 ){
-        if( VL_matrix_save_1D != NULL ) ERROR_exit("Can't have multiple %s options!",Argv[Iarg]);
-        if( ++Iarg >= Argc ) ERROR_exit("no argument after '%s'!",Argv[Iarg-1]) ;
+        if( VL_matrix_save_1D != NULL )
+          ERROR_exit("Can't have multiple %s options!",Argv[Iarg]);
+        if( ++Iarg >= Argc )
+          ERROR_exit("no argument after '%s'!",Argv[Iarg-1]) ;
         if( !THD_filename_ok(Argv[Iarg]) )
           ERROR_exit("badly formed filename: %s '%s'",Argv[Iarg-1],Argv[Iarg]) ;
         if( STRING_HAS_SUFFIX(Argv[Iarg],".1D") ){
@@ -1742,9 +1752,8 @@ void VL_command_line(void)
         /* try an integer */
 
         bb = strtol( Argv[++Iarg] , &cpt , 10 ) ;
-        if( bb < 0 ){
-          fprintf(stderr,"** Illegal number after -base\n"); exit(1);
-        }
+        if( bb < 0 )
+          ERROR_exit("Illegal negative number after -base") ;
 
         if( *cpt == '\0' ){  /* it WAS an integer */
 
@@ -1768,9 +1777,8 @@ void VL_command_line(void)
                     "++ Reading in base dataset %s\n",DSET_BRIKNAME(VL_bset)) ;
           DSET_load(VL_bset) ; CHECK_LOAD_ERROR(VL_bset) ;
           if( DSET_NVALS(VL_bset) > 1 )
-             fprintf(stderr,
-                     "++ WARNING: -base dataset %s has more than 1 sub-brick\n",
-                     Argv[Iarg]) ;
+             WARNING_message("-base dataset %s has more than 1 sub-brick",
+                             Argv[Iarg]) ;
 
           VL_intern = 0 ;   /* not internal to input dataset */
 
@@ -2021,6 +2029,17 @@ void VL_command_line(void)
       fprintf(stderr,"** Can't open dataset %s\n",Argv[Iarg]) ; exit(1) ;
    }
 
+   if( VL_bset == NULL ) VL_bset = VL_dset ;  /* default base */
+   VL_cen_bas = THD_dataset_center(VL_bset) ;  /* 11 Mar 2008 */
+   VL_cen_inp = THD_dataset_center(VL_dset) ;
+   if( VL_bset != VL_dset ){
+     THD_fvec3 dv ; float dd ;
+     dv = SUB_FVEC3(VL_cen_bas,VL_cen_inp) ;
+     VL_cen_dist = SIZE_FVEC3(dv) ;
+     if( VL_cen_dist > 0.01f && VL_verbose )
+       INFO_message("centers of base and input datasets are %.2f mm apart",VL_cen_dist);
+   }
+
    if( VL_tshift ){
       if( DSET_NVALS(VL_dset) < 2 ){
          fprintf(stderr,"++ WARNING: -tshift used on a 1 brick dataset!\n") ;
@@ -2044,7 +2063,7 @@ void VL_command_line(void)
 
    /*-- 27 Feb 2001: do a better check for mismatch between base and input --*/
 #if 1
-   if( VL_bset != NULL ){
+   if( VL_bset != NULL && VL_bset != VL_dset ){
       int mm = THD_dataset_mismatch( VL_dset , VL_bset ) , nn=0 ;
 
       if( mm & MISMATCH_DIMEN ){
@@ -2132,10 +2151,8 @@ void VL_command_line(void)
       exit(1) ;
    }
 
-   if( VL_intern && DSET_NVALS(VL_dset) == 1 ){
-      fprintf(stderr,"** You can't register a 1 brick dataset to itself!\n") ;
-      exit(1) ;
-   }
+   if( VL_intern && DSET_NVALS(VL_dset) == 1 )
+     ERROR_exit("You can't register a 1 brick dataset to itself!") ;
 
    /* 15 Mar 2001: adjust VL_coarse_del, perhaps */
 

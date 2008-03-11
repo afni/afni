@@ -24,9 +24,9 @@ ENTRY("THD_dataset_center") ;
                     daxes->zzorg + (daxes->nzz-1)*daxes->zzdel  ) ;
    fv2 = THD_3dmm_to_dicomm( dset , fv2 ) ;
 
-   fv1.xyz[0] = 0.5*(fv1.xyz[0]+fv2.xyz[0]) ;
-   fv1.xyz[1] = 0.5*(fv1.xyz[1]+fv2.xyz[1]) ;
-   fv1.xyz[2] = 0.5*(fv1.xyz[2]+fv2.xyz[2]) ;
+   fv1.xyz[0] = 0.5f * (fv1.xyz[0]+fv2.xyz[0]) ;
+   fv1.xyz[1] = 0.5f * (fv1.xyz[1]+fv2.xyz[1]) ;
+   fv1.xyz[2] = 0.5f * (fv1.xyz[2]+fv2.xyz[2]) ;
 
    RETURN(fv1) ;
 }
