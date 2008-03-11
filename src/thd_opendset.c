@@ -32,7 +32,7 @@ static char * file_extension_list[] = {
     ".nii", ".nii.gz", ".nia", ".hdr", ".img",
     ".mpg", ".mpeg", ".MPG", ".MPEG",
     ".niml", ".niml.dset",
-    ".gii"
+    ".gii", ".gii.dset"
 };
 
 
@@ -178,7 +178,8 @@ ENTRY("THD_open_one_dataset") ;
 
    /*-- 13 Feb 2008 [rickr]: the GIFTI way! --*/
 
-   if( STRING_HAS_SUFFIX(pathname,".gii") ){
+   if( STRING_HAS_SUFFIX(pathname,".gii") ||
+       STRING_HAS_SUFFIX(pathname,".gii.dset") ){
 
      CHECK_FOR_DATA(pathname) ;
      dset = THD_open_gifti(pathname) ;
@@ -461,7 +462,8 @@ ENTRY("storage_mode_from_filename");
 
     if( STRING_HAS_SUFFIX(fname,".niml.dset") ) RETURN(STORAGE_BY_NI_SURF_DSET);
 
-    if( STRING_HAS_SUFFIX(fname,".gii") )       RETURN(STORAGE_BY_GIFTI);
+    if( STRING_HAS_SUFFIX(fname,".gii") ||
+        STRING_HAS_SUFFIX(fname,".gii.dset") )  RETURN(STORAGE_BY_GIFTI);
 
     RETURN(STORAGE_UNDEFINED);
 }

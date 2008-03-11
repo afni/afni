@@ -500,7 +500,9 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
         fname[ll-10] = '\0' ;
-        if( !STRING_HAS_SUFFIX(fname,".gii") ) strcat(fname,".gii");
+        if( ! STRING_HAS_SUFFIX(fname,".gii") &&
+            ! STRING_HAS_SUFFIX(fname,".gii.dset") )
+           strcat(fname,".gii");
       }
 
       /** output of NIfTI-1.1 dataset: 06 May 2005 **/

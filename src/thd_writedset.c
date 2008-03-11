@@ -59,7 +59,8 @@ ENTRY("THD_write_3dim_dataset") ;
 
    /* block NI_SURF_DSET from 1D write    11 Jul 2006 [rickr] */
    ppp = DSET_PREFIX(dset) ;
-   is_gifti = DSET_IS_GIFTI(dset) || STRING_HAS_SUFFIX(ppp,".gii") ;
+   is_gifti = DSET_IS_GIFTI(dset) || STRING_HAS_SUFFIX(ppp,".gii")
+                                  || STRING_HAS_SUFFIX(ppp,".gii.dset") ;
    is_nsd = DSET_IS_NI_SURF_DSET(dset) || STRING_HAS_SUFFIX(ppp,".niml.dset") ||
             is_gifti ;
 

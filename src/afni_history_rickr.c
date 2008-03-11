@@ -43,6 +43,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_NEW_ENV,
+   "AFNI_GIFTI_VERB sets the verbose level in the gifti I/O library",
+   "The default is 1, 0 is quiet, and values go up to 7."
+ } ,
+
+ { 10, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_GENERAL,
+   "AFNI can read/write .gii.dset as with .gii",
+   NULL
+ } ,
+
  { 10, MAR, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "apply -gert_outdir in the case of dicom images",
    NULL
