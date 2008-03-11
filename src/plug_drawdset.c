@@ -10,10 +10,14 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
-#ifndef BGCOLOR_ARG
+#undef  BGCOLOR_ARG
 #define BGCOLOR_ARG(str) \
   XtVaTypedArg , XmNbackground , XmRString , (str) , strlen(str)+1
-#endif
+
+#undef  RCOL
+#define RCOL "#440011"  /* 26 Oct 2007 */
+#undef  GCOL
+#define GCOL "#003311"
 
 /***********************************************************************
   Plugin to draw values into a dataset.
@@ -388,9 +392,11 @@ char * DRAW_main( PLUGIN_interface *plint )
 
    /*-- set the info label --*/
 
-   xstr = XmStringCreateLtoR( "[No dataset]" ,
-                              XmFONTLIST_DEFAULT_TAG ) ;
-   XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
+   xstr = XmStringCreateLtoR( "[No dataset]" , XmFONTLIST_DEFAULT_TAG ) ;
+   XtVaSetValues( info_lab ,
+                    XmNlabelString , xstr ,
+                    BGCOLOR_ARG(RCOL) ,
+                  NULL ) ;
    XmStringFree(xstr) ;
 
    /*-- 22 Aug 2001: perhaps allow TT Atlas stuff --*/
@@ -512,15 +518,12 @@ void DRAW_make_widgets(void)
 
    /*** label at top to let user know who we are ***/
 
-#undef  BCOL
-#define BCOL "#003311"  /* 26 Oct 2007 */
-
    xstr = XmStringCreateLtoR( "[No dataset]" ,
                               XmFONTLIST_DEFAULT_TAG ) ;
    info_lab = XtVaCreateManagedWidget(
                  "AFNI" , xmLabelWidgetClass , rowcol ,
                     XmNlabelString , xstr ,
-                    BGCOLOR_ARG(BCOL) ,
+                    BGCOLOR_ARG(RCOL) ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    XmStringFree(xstr) ;
@@ -617,7 +620,7 @@ void DRAW_make_widgets(void)
                   "AFNI" , xmPushButtonWidgetClass , rowcol ,
                      XmNlabelString , xstr ,
                      XmNtraversalOn , True  ,
-                     BGCOLOR_ARG(BCOL) ,
+                     BGCOLOR_ARG(GCOL) ,
                      XmNinitialResourcesPersistent , False ,
                   NULL ) ;
    XmStringFree(xstr) ;
@@ -1234,7 +1237,10 @@ void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
      sprintf(str,"%s\nbrick factor: %s", DSET_FILECODE(dset) , abuf ) ;
    }
    xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
-   XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
+   XtVaSetValues( info_lab ,
+                    XmNlabelString , xstr ,
+                    BGCOLOR_ARG(GCOL) ,
+                  NULL ) ;
    XmStringFree(xstr) ;
 
    /*-- finish up --*/
@@ -1741,7 +1747,10 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
       sprintf(str,"%s\nbrick factor: %s", dtit , abuf ) ;
    }
    xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
-   XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
+   XtVaSetValues( info_lab ,
+                    XmNlabelString , xstr ,
+                    BGCOLOR_ARG(GCOL) ,
+                  NULL ) ;
    XmStringFree(xstr) ;
 
    /*-- setup AFNI for drawing --*/
