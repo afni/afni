@@ -2591,16 +2591,22 @@ NIML dataset input.  If you are inputting gigantic headers or gigantic
 String data components (I'm looking at YOU, Ziad), then you may want
 to increase this past its default size of 255*1024=261120.
 
+----------------------------------------------------------------------
+--- END: variables specific to NIML I/O
+----------------------------------------------------------------------
+
+----------------------------
+Variable: AFNI_GIFTI_VERB
+----------------------------
+This integer sets the verbose level in the gifti I/O library routines.
+Level 1 is the default, 0 is "quiet", and values go up to 7.
+
 ----------------------------
 Variable: AFNI_DATASETN_NMAX
 ----------------------------
 This numeric variable, if set, lets you expand the number of dataset
 lines in the 'Dataset#N' plugin from the default of 9 up to a max of 49.
 (This one is for Shruti.)
-
-----------------------------------------------------------------------
---- END: variables specific to NIML I/O
-----------------------------------------------------------------------
 
 =============================================
 | Robert W Cox, PhD                         |

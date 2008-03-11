@@ -151,7 +151,7 @@ ENTRY("THD_open_dataset") ;
    if( STRING_HAS_SUFFIX(dname,".hdr") || STRING_HAS_SUFFIX(dname,".nia")    ||
        STRING_HAS_SUFFIX(dname,".nii") || STRING_HAS_SUFFIX(dname,".nii.gz") ||
        STRING_HAS_SUFFIX(dname,".niml.dset")                                 ||
-       STRING_HAS_SUFFIX(dname,".gii") ) {
+       STRING_HAS_SUFFIX(dname,".gii") || STRING_HAS_SUFFIX(dname,".gii.dset")){
       dset->dblk->master_bot = 1.0 ;
       dset->dblk->master_top = 0.0 ;
    }
