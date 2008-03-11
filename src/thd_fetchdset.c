@@ -27,6 +27,7 @@ ENTRY("THD_fetch_dset") ;
        !STRING_HAS_SUFFIX(hp,".niml")      &&  /* 16 Jun 2006 [rickr] */
        !STRING_HAS_SUFFIX(hp,".niml.dset") &&
        !STRING_HAS_SUFFIX(hp,".gii")       &&  /* 13 Feb 2008 [rickr] */
+       !STRING_HAS_SUFFIX(hp,".gii.dset")  &&  /* 10 Mar 2008 [rickr] */
        !STRING_HAS_SUFFIX(hp,".mnc")       &&
        !STRING_HAS_SUFFIX(hp,".mnc.gz")   ) strcat(hp,".HEAD") ;
 
