@@ -23,6 +23,8 @@ extern int  AFNI_needs_dset_ijk(void) ;
 #define M_D3_TR_MAX     10000.0
 #define M_D3_TF_MIN     0.1
 #define M_D3_TF_MAX     30.0
+#define M_D3_HCT_MIN    0.01
+#define M_D3_HCT_MAX    0.99
 
 #define M_D3_NFIRST     5
 #define EPSILON         0.0001
@@ -42,6 +44,7 @@ typedef struct
     float    K, kep, ve, fvp;   /* fit params  (one of kep or ve given)   */
     float    r1, RIB, RIT;      /* given params (via env)                 */
     float    theta, TR, TF;     /* TR & inter-frame TR (TR of input dset) */
+    float    hct;               /* hematocrit value (via env)             */
 
     float    cos0;              /* cos(theta)                             */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
@@ -129,7 +132,8 @@ void signal_model (
     float  * ts_array           /* estimated signal model time series */  
 )
 {
-    static demri_params P = {0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    static demri_params P = {0.0, 0.0, 0.0, 0.0,
+                             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0, 0, 0, 0, 0,  NULL, NULL, NULL };
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
@@ -565,6 +569,18 @@ static int get_env_params(demri_params * P)
         }
     }
 
+    /* see if the user has set a hematocrit value (should be near 0.5) */
+    envp = my_getenv("AFNI_MODEL_D3_HCT");
+    if( envp )
+    {
+        P->hct = atof(envp);
+        if( P->hct < M_D3_HCT_MIN || P->hct > M_D3_HCT_MAX ) {
+            fprintf(stderr,"** HCT (%f) must be in [%0.2f,%02.f]\n",
+                    P->hct, M_D3_HCT_MIN, M_D3_HCT_MAX);
+            errs++;
+        }
+    }
+
     if( AFNI_yesenv("AFNI_MODEL_D3_PER_MIN") )
         P->per_min = 1;
 
@@ -749,8 +765,15 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
         if( mp[c] < 0.0 ) mp[c] = 0.0;  /* don't allow result < 0 */
     }
 
+    /* if we have a hematocrit value, apply it */
+    if( P->hct > 0 )
+        for( c = 0; c < mp_len; c++ )
+            mp[c] /= (1-P->hct);
+
     if( P->debug > 1 )      /* maybe print out the list */
     {
+        fprintf(stderr,"+d HCT = %f (%sapplied)\n",
+                P->hct, P->hct > 0 ? "" : "not ");
         fprintf(stderr,"+d Cp =");
         for( c = 0; c < mp_len; c++ )
             fprintf(stderr,"  %s", MV_format_fval(mp[c]));
@@ -777,6 +800,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    theta  = %f  ( degrees )\n"
                     "    TR     = %f  ( seconds (~0.007) )\n"
                     "    TF     = %f  ( seconds (~20) )\n"
+                    "    hct    = %f  ( hematocrit (~0.5) )\n"
                     "\n"
                     "    cos0    = %f  ( cos(theta) )\n"
                     "    nfirst  = %d\n"
@@ -789,7 +813,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    mcp     = %p\n"
             , p,
             p->K, p->kep, p->ve, p->fvp,
-            p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF,
+            p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->hct,
             p->cos0, p->nfirst, p->ijk, p->debug, p->per_min,
             p->comp, p->elist, p->mcp);
 
@@ -868,6 +892,13 @@ static int model_help(void)
     "\n"
     "           e.g. 20 or 20sec\n"
     "\n"
+    "       --- AFNI_MODEL_D3_HCT --------------------------------\n"
+    "\n"
+    "           Set the hematocrit value, the proportion of blood volume\n"
+    "           that is occupied by red blood cells, in [%.1f, %.1f].\n"
+    "\n"
+    "           typical values are 0.47 for men and 0.42 for women\n"
+    "\n"
     "       --- AFNI_MODEL_D3_PER_MIN ----------------------------\n"
     "\n"
     "           The default rate units of K_trans and k_ep are per second.\n"
@@ -936,7 +967,8 @@ static int model_help(void)
     M_D3_R_MIN,     M_D3_R_MAX,
     M_D3_TR_MIN,    M_D3_TR_MAX,
     M_D3_THETA_MIN, M_D3_THETA_MAX,
-    M_D3_TF_MIN,    M_D3_TF_MAX
+    M_D3_TF_MIN,    M_D3_TF_MAX,
+    M_D3_HCT_MIN,   M_D3_HCT_MAX
     );
 
     return 0;
