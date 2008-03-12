@@ -136,7 +136,19 @@ static ENV_SPEC envlist[] = {
    {  "Dset color map, default is AFNI's Spectrum:red_to_blue",
       "SUMA_DsetColorMap",
       "Spectrum:red_to_blue" },
-
+   {  "Show only selected dset in suma's surface controller.",
+      "SUMA_ShowOneOnly",
+      "YES" },
+   {  "Update graphs, even SUMA_ShowOneOnly (or suma's '1 Only') is turned on.",
+      "SUMA_GraphHidden",
+      "YES" },
+   {  "Fraction of colormap to rotate with up/down arrow keys.",
+      "SUMA_ColorMapRotationFraction",
+      "0.05"},
+   {  "Size of surface controller font. \n"
+      " Values are SMALL (default), BIG (old style).",
+      "SUMA_SurfContFontSize",
+      "SMALL"},
    {  NULL, NULL, NULL  }
 };
       
@@ -765,7 +777,9 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
    
    SS = SUMA_StringAppend (SS, 
-      "\nKeyboard Controls\n"
+      "\nColormap Keyboard Controls:\n"
+      "     f: flip color map\n"
+      "        See also Up/Down keys.\n"
       "     r: record image of colormap.\n"
       "\n"
       "     Ctrl+h: this help message\n"
@@ -775,9 +789,17 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
       "     z: Zoom out.\n"
       "        Minimum zoom in shows all colors in the map\n"
       "\n"
-      "     Up/Down arrows: move colormap up/down.\n"
+      "     Up/Down arrows: rotate colormap up/down by fraction of\n"
+      "                     number of colors in color map. Fraction\n"
+      "                     a number between 0 and 0.5 and set via\n"
+      "                     the environment variable\n"
+      "                     SUMA_ColorMapRotationFraction.\n"
+      "                     See suma -environment for complete list\n"
+      "                     of variables.\n"
+      "     Ctrl+Up/Down arrows: rotate colormap up/down by one color\n"
+      "     Shift+Up/Down arrows: move colormap up/down\n"
       "\n"
-      "     Home: Reset zoom and translation parameters\n"
+      "     Home: Reset zoom, translation and rotation parameters\n"
       "\n");
       
    SS = SUMA_StringAppend (SS, 

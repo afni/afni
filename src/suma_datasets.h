@@ -1022,6 +1022,31 @@ If ind is NULL, then the index will be the line number.
    }  \
 }
 
+/*! A macro to transport common attributes when 
+    copying columns from one dset to another.
+    Do not include in ATR_LIST here, any of
+    HISTORY_NOTE (this should be done by appending old history separately)
+    COLMS_LABELS
+    COLMS_TYPES   
+    COLMS_RANGE as these are handled at the moment of column creation
+*/
+#define SUMA_COPY_DSET_COL_ATTRIBUTES(odset, ndset, io, in) {   \
+   char *m_ATR_LIST[64] = { \
+      "COLMS_STATSYM", "FDRCURVE",  \
+       NULL }; \
+   if (!SUMA_CopyDsetAttributes (odset, ndset, m_ATR_LIST, io, in)) {   \
+      SUMA_S_Err("Failed to copy dset attributes");   \
+   }  \
+}
+#define SUMA_COPY_DSETWIDE_ATTRIBUTES(odset, ndset) {   \
+   char *m_ATR_LIST[64] = { \
+      "TR",  \
+       NULL }; \
+   if (!SUMA_CopyDsetAttributes (odset, ndset, m_ATR_LIST, -1, -1)) {   \
+      SUMA_S_Err("Failed to copy dset attributes");   \
+   }  \
+}
+
 #define SUMA_MAX_OPEN_DX_FIELD_COMPONENTS 500
 #define SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES 500
 #define SUMA_MAX_OPEN_DX_OBJECTS  500
@@ -1096,6 +1121,17 @@ int SUMA_AddDsetNodeIndexColAttr (SUMA_DSET *dset, char *col_label,
                      SUMA_COL_TYPE ctp, void *col_attr );
 int SUMA_AddColAttr (NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col_attr, int col_index);
+SUMA_Boolean SUMA_isMultiColumnAttr(NI_element *nel);
+SUMA_Boolean SUMA_isSingleColumnAttr(NI_element *nel, int *icolb, char *rtname);
+SUMA_Boolean SUMA_isDsetwideColumnAttr(NI_element *nel);
+SUMA_Boolean SUMA_isDsetNelAttr(NI_element *nel);
+char * SUMA_GetDsetColStringAttr( SUMA_DSET *dset, int col_index, 
+                                    char *attrname);
+SUMA_Boolean SUMA_ParseAttrName(NI_element *nel, int *tp, 
+                                 int *icol, char *rtname);
+SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
+                                       char **attrlist, 
+                                       int isrc, int idest );
 SUMA_Boolean SUMA_NewDsetGrp (SUMA_DSET *dset, SUMA_DSET_TYPE dtp, 
                            char* MeshParent_idcode, 
                           char * geometry_parent_idcode, int N_el, 
@@ -1179,8 +1215,12 @@ SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id,
 int SUMA_is_AllNumeric_dset(SUMA_DSET *dset); 
 int SUMA_is_AllNumeric_ngr(NI_group *ngr) ;
 int SUMA_is_AllNumeric_nel(NI_element *nel);
+int SUMA_is_TimeSeries_dset(SUMA_DSET *dset, double *TRp);
+SUMA_Boolean SUMA_SetDsetTR(SUMA_DSET *dset, double TR);
 SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
 SUMA_Boolean SUMA_NewDsetID2 (SUMA_DSET *dset, char *str);
+char *SUMA_DsetColStringAttrCopy(SUMA_DSET *dset, int i, 
+                                 int addcolnum, char *attrname);
 char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum);
 char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
 SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex );
@@ -1319,6 +1359,7 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp);
 SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out);
 char *SUMA_EscapeChars(char *s1, char *ca, char *es);
 char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
+char *SUMA_isEnv(char *env, char *sval);
 
 /*********************** END Miscellaneous support functions **************************** */
 

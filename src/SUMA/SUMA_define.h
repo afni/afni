@@ -1166,6 +1166,7 @@ typedef struct {
    SUMA_TABLE_FIELD *ColPlaneLabelTable; 
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
    SUMA_Boolean ShowCurOnly; /*!< Show current plane only out of the entire stack */
+   SUMA_Boolean GraphHidden; /*!< Graph update even in ShowCurOnly */
    void **curSOp; /*!< a copy of the pointer to the surface object for which the controller is open */
    SUMA_CMAP_RENDER_AREA *cmp_ren;   /* data for cmap rendering zone */
    Widget thr_sc;   /*! scale for threshold data */
@@ -2097,6 +2098,10 @@ typedef struct {
    char *Name; /*!< Name of colormap */
    
    SUMA_SurfaceObject *SO;    /*!< Surface object used to represent map */
+   
+   float M0[3];   /*!< The very first color at Map creation, needed to reset
+                      when rotations are performed*/
+   byte flipped;  /*!< if the colormap is flipped */
 } SUMA_COLOR_MAP;
 
 /*! structure containing a mapping of one surface to another*/
@@ -2505,6 +2510,8 @@ typedef struct {
    SUMA_TIMER Timer[SUMA_MAX_N_TIMER];
    
    char *cwd;
+   
+   float CmapRotaFrac; /*!< fraction by which to rotate colormap */
 } SUMA_CommonFields;
 
 typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, SUMA_SORT_BY_LLC_DISTANCE, SUMA_SORT_BY_LL_QUAD } SUMA_SORT_BOX_AXIS_OPTION;

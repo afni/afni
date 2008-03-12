@@ -110,7 +110,7 @@ void usage_ConverDset()
 "\n"
 "Examples:\n"
 "1-   Plot a node's time series from a niml dataset:\n"
-"     ConvertDset -input DemoSubj_EccCntavir.niml.dset'{5779}' \\\n"
+"     ConvertDset -input DemoSubj_EccCntavir.niml.dset'#5779#' \\\n"
 "                 -o_1D_stdout | 1dplot -nopush -stdin \n"
 "\n", sd, sm, s);
    SUMA_free(s); s = NULL; SUMA_free(sd); sd = NULL; SUMA_free(sm); sm = NULL;  
@@ -301,7 +301,9 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-o_niml") == 0))
+      if (  !brk && 
+            (strcmp(argv[kar], "-o_niml") == 0) ||
+            (strcmp(argv[kar], "-o_nii") == 0) )
       {
          if (oform != SUMA_NO_DSET_FORMAT) {
             SUMA_SL_Err("output type already specified.");
@@ -312,7 +314,9 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-o_niml_asc") == 0))
+      if (  !brk && 
+            (strncmp(argv[kar], "-o_niml_asc", 11) == 0)||
+            (strncmp(argv[kar], "-o_nii_asc", 10) == 0) )
       {
          if (oform != SUMA_NO_DSET_FORMAT) {
             SUMA_SL_Err("output type already specified.");
@@ -323,7 +327,9 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-o_niml_bi") == 0))
+      if (  !brk && 
+            (strncmp(argv[kar], "-o_niml_bi", 10) == 0)||
+            (strncmp(argv[kar], "-o_nii_bi", 9) == 0))
       {
          if (oform != SUMA_NO_DSET_FORMAT) {
             SUMA_SL_Err("output type already specified.");

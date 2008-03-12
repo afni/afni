@@ -144,6 +144,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
    }
    sprintf(SM->Name, "%s",Name); 
    SM->M = M;
+   SM->M0[0] = SM->M[0][0]; SM->M0[1] = SM->M[0][1]; SM->M0[2] = SM->M[0][2]; 
    SM->N_Col = Ncols;
 
    SM->frac = NULL; /* a linear map */
@@ -256,6 +257,7 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
    }
    sprintf(SM->Name, "%s",Name); 
    SM->M = M;
+   SM->M0[0] = SM->M[0][0]; SM->M0[1] = SM->M[0][1]; SM->M0[2] = SM->M[0][2]; 
    SM->N_Col = Ncols;
    
    SM->frac = NULL; /* a linear map */
@@ -300,7 +302,7 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
    SUMA_ENTRY;
    
    
-   CM = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+   CM = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
    if (CM == NULL ) {
       SUMA_SL_Crit ("Failed to allocate for CM");
       SUMA_RETURN(NULL);
@@ -363,6 +365,9 @@ SUMA_COLOR_MAP * SUMA_pbardef_to_CM(char *cmd)
          bm= NULL;
       }
       if (found) {
+         CM->M0[0] = CM->M[0][0]; 
+         CM->M0[1] = CM->M[0][1]; 
+         CM->M0[2] = CM->M[0][2]; 
          SUMA_RETURN(CM);
       } else{
          SUMA_S_Err("Bad deal. No bigmap constructed.");
@@ -529,8 +534,8 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    
    /* now create AFNI's colormaps */
    for (i = NPANE_MIN; i<= NPANE_MAX; ++i) {
-      CMp = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
-      CMn = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
+      CMp = (SUMA_COLOR_MAP *)SUMA_calloc(1,sizeof(SUMA_COLOR_MAP));
+      CMn = (SUMA_COLOR_MAP *)SUMA_calloc(1, sizeof(SUMA_COLOR_MAP));
       if (CMp == NULL || CMn == NULL) {
          SUMA_SL_Crit ("Failed to allocate for CMp &/| CMn.");
          SUMA_RETURN(NULL);
@@ -598,7 +603,10 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
          SUMA_LH("top_frac not 1 for positive map");
          CMp->top_frac = CMp->frac[CMp->N_Col-1];
       }
-        
+      CMp->M0[0] = CMp->M[0][0]; 
+      CMp->M0[1] = CMp->M[0][1]; 
+      CMp->M0[2] = CMp->M[0][2]; 
+
       /* add the positive map to the list */
       CMv = SUMA_Add_ColorMap (CMp, CMv, &N_maps);
       if (!CMv) {
@@ -639,6 +647,9 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
          SUMA_LH("top_frac not 1 for negative map");
          CMn->top_frac = CMn->frac[CMp->N_Col-1];
       }
+      CMn->M0[0] = CMn->M[0][0]; 
+      CMn->M0[1] = CMn->M[0][1]; 
+      CMn->M0[2] = CMn->M[0][2]; 
       /* add the negative map to the list */
       CMv = SUMA_Add_ColorMap (CMn, CMv, &N_maps);
       if (!CMv) {
@@ -1414,7 +1425,10 @@ SUMA_COLOR_MAP *SUMA_Read_Color_Map_1D (char *Name)
       } else SUMA_disp_mat (SM->M, SM->N_Col, 3, 1);
    }
    
-   
+   SM->M0[0] = SM->M[0][0]; 
+   SM->M0[1] = SM->M[0][1]; 
+   SM->M0[2] = SM->M[0][2]; 
+
    SUMA_RETURN (SM);
 }
 
@@ -1510,6 +1524,11 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
    LSM->M[LSM->N_Col-1][0] = SM->M[SM->N_Col-1][0];
    LSM->M[LSM->N_Col-1][1] = SM->M[SM->N_Col-1][1];
    LSM->M[LSM->N_Col-1][2] = SM->M[SM->N_Col-1][2];
+
+   LSM->M0[0] = LSM->M[0][0]; 
+   LSM->M0[1] = LSM->M[0][1]; 
+   LSM->M0[2] = LSM->M[0][2]; 
+   
    
    if (LocalHead) {
       for (i=0; i < LSM->N_Col; ++i) {
@@ -3567,6 +3586,8 @@ SUMA_COLOR_MAP * SUMA_MakeStandardMap (char *mapname)
 void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM)
 {
    static char FuncName[] = {"SUMA_Flip_Color_Map"};
+   float orig[3]={ SUMA_CMAP_ORIGIN };
+   float topright[3] = { SUMA_CMAP_TOPLEFT };
    int lim, i, j, c;
    float t;
    SUMA_Boolean LocalHead = NOPE;
@@ -3586,18 +3607,109 @@ void SUMA_Flip_Color_Map (SUMA_COLOR_MAP *CM)
          CM->M[c][j] = t;           /* put old color of i ar c */
       } 
    }
-   
-   if (CM->frac) { /* got to flip fractions */
-      for (i=0; i < lim; ++i) {
-         t = CM->frac[i];           /* store fraction at i to be flipped */
-         c = CM->N_Col - i - 1;     /* index of fraction to replace one at i */
-         CM->frac[i] = CM->frac[c]; /* replace fraction at i */
-         CM->frac[c] = t;           /* put old fraction of i at c */
-      } 
+      
+   if (CM->SO) { /* Free it, and recreate it */
+      SUMA_Free_Surface_Object(CM->SO);
+      CM->SO = SUMA_Cmap_To_SO(CM, orig, topright, 0);; 
    }
    
+   #if 0 /* not sure you want to do that. If you flip
+            after rotation, you'll be lost */
+   CM->M0[0] = CM->M[CM->N_Col-1][0]; 
+   CM->M0[1] = CM->M[CM->N_Col-1][1]; 
+   CM->M0[2] = CM->M[CM->N_Col-1][2]; 
+   #endif
+   
+   CM->flipped = !CM->flipped;
    SUMA_RETURNe;
 }
+
+/*!
+   \brief rotates a color map by a fraction of its
+   length 
+   frac = 0, ET go home
+   frac < 0 rotate down
+   frac > 0 rotate up
+   abs(frac) = 1, go one color at a time 
+   \param CM (SUMA_COLOR_MAP *) to be flipped
+*/
+int SUMA_Rotate_Color_Map (SUMA_COLOR_MAP *CM, float frac)
+{
+   static char FuncName[] = {"SUMA_Rotate_Color_Map"};
+   float orig[3]={ SUMA_CMAP_ORIGIN };
+   float topright[3] = { SUMA_CMAP_TOPLEFT };
+   float **orig_cols=NULL, tdist=0.0, tdistmin=0.0;
+   int i, j, di, ic, dmin;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!CM) SUMA_RETURN(0);
+   
+   if (!CM->M) SUMA_RETURN(0);
+   
+   /* make copy */
+   orig_cols = (float **)SUMA_allocate2D (CM->N_Col, 3, sizeof(float));
+   for (j=0; j < 3; ++j) { 
+      for (i=0; i < CM->N_Col; ++i) {
+         orig_cols[i][j] = CM->M[i][j];  
+      }
+   }
+   
+   /* shift */
+   if (frac == 0.0f) {  /* come back baby */
+      tdistmin = 1000;
+      dmin = 900;
+      for (i=0; i < CM->N_Col; ++i) {
+         tdist = 0.0;
+         for (j=0; j<3; ++j) {
+            tdist += SUMA_POW2(CM->M[i][j]-CM->M0[j]); 
+         }
+         if (tdist <= tdistmin) {
+            tdistmin = tdist;
+            dmin = i;
+         }
+      }
+     if (!CM->flipped) di = dmin;
+     else di = dmin+1;
+   } else if (SUMA_ABS(frac) == 1.0f) {   /* one color at a time */
+      di = 1;
+   } else {
+      di = SUMA_ROUND(SUMA_ABS(frac*CM->N_Col));
+      if (di > CM->N_Col/2) di = CM->N_Col/2;
+      if (di < 1) di = 1;
+   }
+   SUMA_LHv("A shift of %d colors (frac %f, N_Col %d)...\n",
+            di, frac, CM->N_Col); 
+   if (frac > 0) {
+      for (i=0; i < CM->N_Col; ++i)  {
+         ic = (i+di) % CM->N_Col;
+         for (j=0; j < 3; ++j) {
+            CM->M[ic][j] = orig_cols[i][j];
+         }
+      }
+   } else {
+      for (i=0; i < CM->N_Col; ++i)  {
+         ic = (i+di) % CM->N_Col;
+         for (j=0; j < 3; ++j) {
+            CM->M[i][j] = orig_cols[ic][j];
+         }
+      }
+   }
+   
+   SUMA_free2D((char **)orig_cols, CM->N_Col); orig_cols = NULL;
+      
+   if (CM->SO) { /* Free it, and recreate it here or suffer
+                  from asynchronous display related problems if you
+                  wait for that to happen when DrawCmap is
+                  doing it. */
+      SUMA_Free_Surface_Object(CM->SO);
+      CM->SO = SUMA_Cmap_To_SO(CM, orig, topright, 0);; 
+   }
+      
+   SUMA_RETURN(di);
+}
+
 /*! 
    A function to compute the percentile range.
    
@@ -6541,6 +6653,10 @@ int SUMA_AFNI_Extract_Colors ( char *fname, SUMA_AFNI_COLORS *SAC )
                CM->top_frac = CM->frac[CM->N_Col-1];
             }
             
+            CM->M0[0] = CM->M[0][0]; 
+            CM->M0[1] = CM->M[0][1]; 
+            CM->M0[2] = CM->M[0][2]; 
+
             /* add the map to the list */
             SAC->CMv = SUMA_Add_ColorMap (CM, SAC->CMv, &(SAC->N_maps));  
             if (SAC->CMv) ++ngood;

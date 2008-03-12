@@ -2007,6 +2007,21 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 */
    cf->cwd = SUMA_getcwd();
    
+   {
+      char *eee = getenv("SUMA_ColorMapRotationFraction");
+      if (eee) {
+         cf->CmapRotaFrac = atof(eee); 
+         if (cf->CmapRotaFrac < 0.01 || cf->CmapRotaFrac > 0.99) {
+            SUMA_S_Warn( 
+               "Values for environment variable SUMA_ColorMapRotationFraction\n"
+               "are outside valid range of [0.01 .. 0.99]. \n"
+               "Setting value to default of 0.05.");
+            cf->CmapRotaFrac = 0.05;
+         }   
+      } else {
+         cf->CmapRotaFrac = 0.05;
+      }
+   }
    return (cf);
 
 }
@@ -2235,7 +2250,27 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->SwitchDsetlst = NULL;
    SurfCont->ColPlaneLabelTable = SUMA_AllocTableField();;
    SurfCont->curColPlane = NULL;
-   SurfCont->ShowCurOnly = NOPE;
+   {
+      char *eee = getenv("SUMA_ShowOneOnly");
+      if (eee) {
+         SUMA_TO_LOWER(eee);
+         if (strcmp (eee, "yes") == 0) SurfCont->ShowCurOnly = YUP; 
+            else SurfCont->ShowCurOnly = NOPE;
+      } else {
+         SurfCont->ShowCurOnly = YUP;
+      }
+   }
+   {
+      char *eee = getenv("SUMA_GraphHidden");
+      if (eee) {
+         SUMA_TO_LOWER(eee);
+         if (strcmp (eee, "yes") == 0) SurfCont->GraphHidden = YUP; 
+            else SurfCont->GraphHidden = NOPE;
+      } else {
+         SurfCont->GraphHidden = YUP;
+      }
+   }
+   
    SurfCont->curSOp = (void **)calloc(1, sizeof(void*));
    SurfCont->PosRef = NULL;
    SurfCont->cmp_ren = 
@@ -2278,6 +2313,7 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->Brt_tb = NULL;
    SurfCont->IntRangeLocked = 0;
    SurfCont->BrtRangeLocked = 0;
+   
 
   return (SurfCont);
 }
