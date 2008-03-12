@@ -65,6 +65,35 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 12 , MAR , 2008 , ZSS , "suma" , MICRO , TYPE_BUG_FIX ,
+   "Changed crash in SurfaceMetrics when -spec and -i options are mixed. " ,
+   NULL
+ } ,
+
+ { 12 , MAR , 2008 , ZSS , "suma" , MINOR , TYPE_MODIFY ,
+   "Changed surface controller font to 8. " ,
+   "You can get the old font size with environment\n"
+   "variable SUMA_SurfContFontSize BIG.\n"
+   "The default is now SMALL.\n"
+ } ,
+
+ { 7 , MAR , 2008 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
+   "Color map in surface controller can be flipped and rotated" ,
+   "* f key for flipping colormap\n"
+   "* Up/Down keys for rotating color map\n"
+   "* Home for home\n"
+   "Hit ctrl+h on Surface Controller's colormap for more help."
+ } ,
+
+ { 6 , MAR , 2008 , ZSS , "suma" , MINOR , TYPE_NEW_ENV ,
+   "Added three variables affecting the surface controller" ,
+   "* SUMA_ShowOneOnly: Sets '1 Only' on or off. On by default\n"
+   "* SUMA_GraphHidden: Update open graphs even if corresponding dset\n"
+   "                    is hidden."
+   "* SUMA_ColorMapRotationFraction: Fraction of colormap to rotate\n"
+   "                    up or down with arrow keys.\n"
+   "See suma -environment for a complete list."
+ } ,
 
  { 5 , MAR , 2008 , ZSS , "suma-general" , MAJOR , TYPE_GENERAL ,
    "Support for GIFTI surface format writing" ,

@@ -4171,13 +4171,19 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
    strcpy(spec->SpecFileName, "FromCommandLine.spec");   
    if (ps->accept_i) {
       SUMA_LH("Processing -i");
-      if (ps->i_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); *nspec = 0; SUMA_RETURN(spec); }
+      if (ps->i_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { 
+         SUMA_S_Err("Too many surfaces to work with.\n"); 
+         *nspec = 0; SUMA_RETURN(spec); 
+      }
       for (i=0; i<ps->i_N_surfnames; ++i) {
          if (ps->check_input_surf) { 
             SUMA_CHECK_INPUT_SURF(ps->i_surfnames[i], ps->i_surftopo[i], ok);
-            if (!ok) { SUMA_free(spec); spec = NULL; *nspec = 0; SUMA_RETURN(spec); }
+            if (!ok) { 
+               SUMA_free(spec); spec = NULL; *nspec = 0; SUMA_RETURN(spec); 
+            }
          }
-         strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->i_FT[i]));
+         strcpy(  spec->SurfaceType[spec->N_Surfs], 
+                  SUMA_SurfaceTypeString (ps->i_FT[i]));
          if (ps->i_FF[i] == SUMA_BINARY || ps->i_FF[i] == SUMA_BINARY_LE || ps->i_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
          else if (ps->i_FF[i] == SUMA_XML_SURF ||
                   ps->i_FF[i] == SUMA_XML_ASCII_SURF ||
@@ -4296,19 +4302,21 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
    /* Now see if you have explicity define specs on command line */
    if (ps->accept_spec || ps->accept_s) {
       SUMA_LHv("Working Specs, %d %d\n"
-               "ps->N_spec_names = %d\n", 
+               "ispec0 = %d, ps->N_spec_names = %d\n"
+               "i=%d\n", 
                ps->accept_spec, ps->accept_s,
-               ps->N_spec_names);
+               ispec0, ps->N_spec_names,
+               i);
       if (ps->N_spec_names) {
          *nspec = ispec0 + ps->N_spec_names;
          spec = (SUMA_SurfSpecFile *)
                   SUMA_realloc(  spec, 
                                  *nspec * sizeof(SUMA_SurfSpecFile));
-         if (!SUMA_AllocSpecFields(&(spec[i+ispec0]))) { 
-            SUMA_S_Err("Failed to init spec fields"); 
-         }
          SUMA_LH("Here");
          for (i=0; i<ps->N_spec_names; ++i) {   
+            if (!SUMA_AllocSpecFields(&(spec[i+ispec0]))) { 
+               SUMA_S_Err("Failed to init spec fields"); 
+            }
             if (!SUMA_Read_SpecFile (ps->spec_names[i], &(spec[i+ispec0]))) {
                SUMA_SL_Err("Failed to read SpecFile");
                {  

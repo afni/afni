@@ -1668,7 +1668,8 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, int lbl1, int lbl2, in
    if (ct->bins[cnt].i == lbl1) { /* Found the starting point */
       ism = 0;
       while (cnt < ct->nbins && ct->bins[cnt].i <= lbl2 && ism < SM->N_Col) {
-         SUMA_LHv("ct->bins[cnt].i %d <> lbl1+ism %d\n", ct->bins[cnt].i, lbl1+ism);
+         SUMA_LHv("ct->bins[cnt].i %d <> lbl1+ism %d\n", 
+                  ct->bins[cnt].i, lbl1+ism);
          if (ct->bins[cnt].i == lbl1+ism) {
             SM->M[ism][0] = (float)(ct->bins[cnt].r) / 255.0;
             SM->M[ism][1] = (float)(ct->bins[cnt].g) / 255.0;
@@ -1684,6 +1685,10 @@ SUMA_COLOR_MAP *SUMA_FScolutToColorMap(char *fscolutname, int lbl1, int lbl2, in
          ++ism;
       }
    } 
+
+   SM->M0[0] = SM->M[0][0]; 
+   SM->M0[1] = SM->M[0][1]; 
+   SM->M0[2] = SM->M[0][2]; 
  
    SUMA_RETURN(SM);
 }

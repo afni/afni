@@ -427,40 +427,20 @@ int main (int argc,char *argv[])
       exit(1);
    }
 
-   #if 1
    pSpec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
       exit(1);
    }
 
-   SUMA_LH("Loading surface...");
-   SO = SUMA_Load_Spec_Surf(pSpec, 0, ps->sv[0], 1);
-   #else
-   /* read all surfaces */
-   if (!SUMA_AllocSpecFields(&Spec)) { SUMA_S_Err("Error initing"); exit(1); }
-   if (!SUMA_Read_SpecFile (spec_file, &Spec)) {
-		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-		exit(1);
-	}
-   SO_read = SUMA_spec_select_surfs(&Spec, surf_names, SURFACEMETRICS_MAX_SURF, 0);
-   if ( SO_read != N_surf )
-   {
-	   if (SO_read >=0 )
-         fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", FuncName,  SO_read, N_surf);
+   if (N_Spec > 1 ) {
+      SUMA_S_Err( "Mike, you cannot mix -spec with -i or -t options "
+                  "for specifying surfaces.");
       exit(1);
    }
    
-   /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, ps->sv[0], 0, SUMAg_CF->DsetList) ) {
-	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
-      exit(1);
-   }   SO = SUMA_find_named_SOp_inDOv(surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
-   if (!SO) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
-      exit (1);
-   }
-   #endif
+   SUMA_LH("Loading surface...");
+   SO = SUMA_Load_Spec_Surf(pSpec, 0, ps->sv[0], 1);
    if (Do_tlrc) {
       fprintf (SUMA_STDOUT,"Performing talairach transform...\n");
 

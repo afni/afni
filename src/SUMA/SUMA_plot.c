@@ -576,7 +576,8 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
    int jj, nrow = 1, ymask=TSP_SEPARATE_YBOX;
    int N_res = -1;
    float **yar=NULL ;
-   char title_str[101]={""}, *sl1=NULL, *sl2=NULL;
+   char title_str[101]={""}, xlabel_str[101]={""}, *sl1=NULL, *sl2=NULL;
+   double TR=0.0;
    SUMA_DSET *Dset = NULL;
    SUMA_MEMPLOT_USERDATA *MPUD=NULL;
    SUMA_SurfaceViewer *sv=NULL;
@@ -600,22 +601,46 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
                                                     using patches. 
                                                     Else -1 */
                               &N_res,
-                              SUMA_float))) { SUMA_RETURN(0); }
+                              SUMA_float))) { 
+      /* instead of returning with
+         SUMA_RETURN(0); Prioir to March 12 08 
+         , produce a no data graph */
+       
+      N_res = SDSET_VECNUM(Dset);
+      res = (float *) SUMA_calloc(N_res , sizeof(float));
+      snprintf(title_str, 100*sizeof(char), 
+               "No Data: %s, node %d on %s", 
+               SUMA_CHECK_NULL_STR(Sover->Label),
+               inode,
+               SUMA_CHECK_NULL_STR(SO->Label));
+      sl1 = SUMA_EscapeChars(title_str, "_","\\");
+   } else {
+      snprintf(title_str, 100*sizeof(char), 
+               "%s, node %d on %s", 
+               SUMA_CHECK_NULL_STR(Sover->Label),
+               inode,
+               SUMA_CHECK_NULL_STR(SO->Label));
+      sl1 = SUMA_EscapeChars(title_str, "_","\\");
+   }
+   
+   if (!SUMA_is_TimeSeries_dset(Dset, &TR)) { 
+      snprintf(xlabel_str, 100*sizeof(char), 
+               "column index");
+   } else {
+      snprintf(xlabel_str, 100*sizeof(char), 
+               "TR (%.2fs) step", TR);
+   }
+   
+   if (!res) SUMA_RETURN(0);
    
    yar = (float **)SUMA_calloc(nrow, sizeof(float*));        
    for (jj=0; jj<nrow; jj++) yar[jj] = res;
 
-   snprintf(title_str, 100*sizeof(char), 
-            "%s, node %d on %s", 
-            SUMA_CHECK_NULL_STR(Sover->Label),
-            inode,
-            SUMA_CHECK_NULL_STR(SO->Label));
-   sl1 = SUMA_EscapeChars(title_str, "_","\\");
    ymask = TSP_SEPARATE_YBOX ;
    plot_ts_xypush(0,0);
    mp = plot_ts_mem( N_res , NULL , 
                      nrow, ymask, yar , 
-                     "column index",
+                     xlabel_str,
                      NULL,sl1,NULL ) ;
    if (sl1) SUMA_free(sl1); sl1=NULL;
    if( mp == NULL ){

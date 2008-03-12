@@ -36,7 +36,8 @@
     /* presumably we've already whined, via 'open' */
     int THD_load_gifti(THD_datablock * dblk){ return 1; }
 
-    Boolean THD_write_gifti(THD_3dim_dataset * dset, int write_data)
+    Boolean THD_write_gifti(  THD_3dim_dataset * dset, int write_data, 
+                              int forcencode)
     {
         char * prefix;
 
@@ -58,7 +59,7 @@
         return NULL;
     }
 
-    int NI_write_gifti(NI_group * ngr, char * fname)
+    int NI_write_gifti(NI_group * ngr, char * fname, int forcencode)
     {
         fprintf(stderr,"** cannot write '%s', no compiled GIFTI support\n",
                 fname ? fname : "NULL");
