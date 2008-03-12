@@ -10,14 +10,14 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Program to calculate the deconvolution of a measurement 3d+time dataset
+  Program to calculate the deconvolution of a measurement 3D+time dataset
   with a specified input stimulus time series.  This program will also
   perform multiple linear regression using multiple input stimulus time
   series. Output consists of an AFNI 'bucket' type dataset containing the
   least squares estimates of the linear regression coefficients, t-statistics
   for significance of the coefficients, partial F-statistics for significance
   of the individual input stimuli, and the F-statistic for significance of
-  the overall regression.  Additional output consists of a 3d+time dataset
+  the overall regression.  Additional output consists of a 3D+time dataset
   containing the estimated system impulse response function.
 
   File:    3dDeconvolve.c
@@ -89,11 +89,11 @@
   Date:    12 November 1999
 
   Mod:     Added options for writing the fitted full model time series (-fitts)
-           and the residual error time series (-errts) to 3d+time datasets.
+           and the residual error time series (-errts) to 3D+time datasets.
   Date:    22 November 1999
 
   Mod:     Added option to perform analysis on a single (fMRI) measurement
-           time series instead of a 3d+time dataset (-input1D).
+           time series instead of a 3D+time dataset (-input1D).
   Date:    23 November 1999
 
   Mod:     Added test for maximum number of full model parameters.
@@ -131,7 +131,7 @@
   Mod:     Added -glt_label option for labeling the GLT matrix.
   Date:    23 June 2000
 
-  Mod:     Added -concat option for analysis of a concatenated 3d+time dataset.
+  Mod:     Added -concat option for analysis of a concatenated 3D+time dataset.
   Date:    26 June 2000
 
   Mod:     Increased max. allowed number of input stimulus functions, GLTs,
@@ -542,16 +542,16 @@ static column_metadata *coldat = NULL ;  /* global info about matrix columns */
 typedef struct DC_options
 {
   int nxyz;                /* number of voxels in the input dataset */
-  int nt;                  /* number of input 3d+time dataset time points */
-  int NFirst;              /* first image from input 3d+time dataset to use */
-  int NLast;               /* last image from input 3d+time dataset to use */
+  int nt;                  /* number of input 3D+time dataset time points */
+  int NFirst;              /* first image from input 3D+time dataset to use */
+  int NLast;               /* last image from input 3D+time dataset to use */
   int N;                   /* number of usable data points from input data */
   int polort;              /* degree of polynomial for baseline model */
   float rms_min;           /* minimum rms error to reject reduced model */
   int quiet;               /* flag to suppress screen output */
   int progress;            /* print periodic progress reports */
   float fdisp;             /* minimum f-statistic for display */
-  char * input_filename;   /* input 3d+time dataset */
+  char * input_filename;   /* input 3D+time dataset */
   char * mask_filename;    /* input mask dataset */
   char * input1D_filename; /* input fMRI measurement time series */
   float  input1D_TR;       /* TR for input 1D time series */
@@ -580,10 +580,10 @@ typedef struct DC_options
   char ** glt_label;       /* label for general linear tests */
 
   char * bucket_filename;  /* bucket dataset file name */
-  char ** iresp_filename;  /* impulse response 3d+time output */
-  char ** sresp_filename;  /* std. dev. 3d+time output */
-  char * fitts_filename;   /* fitted time series 3d+time output */
-  char * errts_filename;   /* error time series 3d+time output */
+  char ** iresp_filename;  /* impulse response 3D+time output */
+  char ** sresp_filename;  /* std. dev. 3D+time output */
+  char * fitts_filename;   /* fitted time series 3D+time output */
+  char * errts_filename;   /* error time series 3D+time output */
   int nobucket ;           /* don't output a -bucket file! */
 
   int tshift;           /* flag to time shift the impulse response */
@@ -665,7 +665,7 @@ void display_help_menu()
   identify_software();
 
   printf ("\n"
-   "Program to calculate the deconvolution of a measurement 3d+time dataset \n"
+   "Program to calculate the deconvolution of a measurement 3D+time dataset \n"
    "with a specified input stimulus time series.  This program can also     \n"
    "perform multiple linear regression using multiple input stimulus time   \n"
    "series. Output consists of an AFNI 'bucket' type dataset containing     \n"
@@ -700,7 +700,7 @@ void display_help_menu()
     PROGRAM_NAME "\n"
     "                                                                       \n"
     "**** Input data and control options:                                   \n"
-    "-input fname         fname = filename of 3d+time input dataset         \n"
+    "-input fname         fname = filename of 3D+time input dataset         \n"
     "                       (more than  one filename  can be  given)        \n"
     "                       (here,   and  these  datasets  will  be)        \n"
     "                       (catenated  in time;   if you do this, )        \n"
@@ -884,21 +884,21 @@ void display_help_menu()
     "   Use 'dt' as the stepsize for computation of integrals in -IRC_times \n"
     "   options.  Default is to use value given in '-TR_times'.             \n"
     "                                                                       \n"
-    "**** Options for output 3d+time datasets:                              \n"
-    "[-iresp k iprefix]   iprefix = prefix of 3d+time output dataset which  \n"
+    "**** Options for output 3D+time datasets:                              \n"
+    "[-iresp k iprefix]   iprefix = prefix of 3D+time output dataset which  \n"
     "                       will contain the kth estimated impulse response \n"
     "[-tshift]            Use cubic spline interpolation to time shift the  \n"
     "                       estimated impulse response function, in order to\n"
     "                       correct for differences in slice acquisition    \n"
-    "                       times. Note that this effects only the 3d+time  \n"
+    "                       times. Note that this effects only the 3D+time  \n"
     "                       output dataset generated by the -iresp option.  \n"
-    "[-sresp k sprefix]   sprefix = prefix of 3d+time output dataset which  \n"
+    "[-sresp k sprefix]   sprefix = prefix of 3D+time output dataset which  \n"
     "                       will contain the standard deviations of the     \n"
     "                       kth impulse response function parameters        \n"
-    "[-fitts  fprefix]    fprefix = prefix of 3d+time output dataset which  \n"
+    "[-fitts  fprefix]    fprefix = prefix of 3D+time output dataset which  \n"
     "                       will contain the (full model) time series fit   \n"
     "                       to the input data                               \n"
-    "[-errts  eprefix]    eprefix = prefix of 3d+time output dataset which  \n"
+    "[-errts  eprefix]    eprefix = prefix of 3D+time output dataset which  \n"
     "                       will contain the residual error time series     \n"
     "                       from the full model fit to the input data       \n"
     "[-TR_times dt]                                                         \n"
@@ -2485,7 +2485,7 @@ ENTRY("read_time_series") ;
 void read_input_data
 (
   DC_options * option_data,         /* deconvolution program options */
-  THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
+  THD_3dim_dataset ** dset_time,    /* input 3D+time data set */
   byte ** mask_vol,                 /* input mask volume */
   float ** fmri_data,               /* input fMRI time series data */
   int * fmri_length,                /* length of fMRI time series */
@@ -2674,7 +2674,7 @@ ENTRY("read_input_data") ;
       if (verb) INFO_message("1D TR is %.3f seconds", basis_TR);
    }
 
-  else if (option_data->input_filename != NULL) /*----- 3d+time dataset -----*/
+  else if (option_data->input_filename != NULL) /*----- 3D+time dataset -----*/
     {
       *dset_time = THD_open_dataset (option_data->input_filename);
       CHECK_OPEN_ERROR(*dset_time,option_data->input_filename);
@@ -3461,7 +3461,7 @@ ENTRY("remove_zero_stimfns") ;
 
 void check_one_output_file
 (
-  THD_3dim_dataset * dset_time,     /* input 3d+time data set */
+  THD_3dim_dataset * dset_time,     /* input 3D+time data set */
   char * filename                   /* name of output file */
 )
 
@@ -3524,7 +3524,7 @@ void check_one_output_file
 void check_output_files
 (
   DC_options * option_data,       /* deconvolution program options */
-  THD_3dim_dataset * dset_time    /* input 3d+time data set */
+  THD_3dim_dataset * dset_time    /* input 3D+time data set */
 )
 
 {
@@ -3562,7 +3562,7 @@ void check_output_files
 void check_for_valid_inputs
 (
   DC_options * option_data,       /* deconvolution program options */
-  THD_3dim_dataset * dset_time,   /* input 3d+time data set */
+  THD_3dim_dataset * dset_time,   /* input 3D+time data set */
   int fmri_length,                /* length of input fMRI time series */
   float * censor_array,           /* input censor time series array */
   int censor_length,              /* length of censor array */
@@ -3586,9 +3586,9 @@ void check_for_valid_inputs
   int p;                   /* number of full model parameters */
   int nbricks;             /* number of sub-bricks in bucket dataset output */
   int it;                  /* time point index */
-  int nt;                  /* number of images in input 3d+time dataset */
-  int NFirst;              /* first image from input 3d+time dataset to use */
-  int NLast;               /* last image from input 3d+time dataset to use */
+  int nt;                  /* number of images in input 3D+time dataset */
+  int NFirst;              /* first image from input 3D+time dataset to use */
+  int NLast;               /* last image from input 3D+time dataset to use */
   int N;                   /* number of usable time points */
   int ib;                  /* block (run) index */
   int irb;                 /* time index relative to start of block (run) */
@@ -3765,7 +3765,7 @@ void check_for_valid_inputs
       {
         if (option_data->iresp_filename[is] != NULL)
           {
-            sprintf (message, "Only %d time points for 3d+time dataset %s\n",
+            sprintf (message, "Only %d time points for 3D+time dataset %s\n",
                     m, option_data->iresp_filename[is]);
             strcat (message, "Require >= 4 data points for -tshift option");
             DC_error (message);
@@ -4152,7 +4152,7 @@ void allocate_memory
   int nlc;                 /* number of linear combinations in a GLT */
   int ilc;                 /* linear combination index */
   int it;                  /* time point index */
-  int nt;                  /* number of images in input 3d+time dataset */
+  int nt;                  /* number of images in input 3D+time dataset */
   int * min_lag;           /* minimum time delay for impulse response */
   int * max_lag;           /* maximum time delay for impulse response */
 
@@ -4353,7 +4353,7 @@ void initialize_program
   int argc,                         /* number of input arguments */
   char ** argv,                     /* array of input arguments */
   DC_options ** option_data,        /* deconvolution algorithm options */
-  THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
+  THD_3dim_dataset ** dset_time,    /* input 3D+time data set */
   byte ** mask_vol,                 /* input mask volume */
   float ** fmri_data,               /* input fMRI time series data */
   int * fmri_length,                /* length of fMRI time series */
@@ -4450,12 +4450,12 @@ ENTRY("initialize_program") ;
 #ifndef USE_GET
 /*---------------------------------------------------------------------------*/
 /*
-  Get the time series for one voxel from the AFNI 3d+time data set.
+  Get the time series for one voxel from the AFNI 3D+time data set.
 */
 
 void extract_ts_array
 (
-  THD_3dim_dataset * dset_time,      /* input 3d+time dataset */
+  THD_3dim_dataset * dset_time,      /* input 3D+time dataset */
   int iv,                            /* get time series for this voxel */
   float * ts_array                   /* time series data for voxel #iv */
 )
@@ -4463,16 +4463,16 @@ void extract_ts_array
 {
   MRI_IMAGE * im;          /* intermediate float data */
   float * ar;              /* pointer to float data */
-  int ts_length;           /* length of input 3d+time data set */
+  int ts_length;           /* length of input 3D+time data set */
   int it;                  /* time index */
 
 
-  /*----- Extract time series from 3d+time data set into MRI_IMAGE -----*/
+  /*----- Extract time series from 3D+time data set into MRI_IMAGE -----*/
   im = THD_extract_series (iv, dset_time, 0);
 
 
   /*----- Verify extraction -----*/
-  if (im == NULL)  DC_error ("Unable to extract data from 3d+time dataset");
+  if (im == NULL)  DC_error ("Unable to extract data from 3D+time dataset");
 
 
   /*----- Now extract time series from MRI_IMAGE -----*/
@@ -4516,7 +4516,7 @@ void save_voxel
   vector * glt_tcoef,          /* t-statistics for the general linear tests */
   float * fglt,                /* F-statistics for the general linear tests */
   float * rglt,                /* R^2 stats. for the general linear tests */
-  int nt,                      /* number of images in input 3d+time dataset */
+  int nt,                      /* number of images in input 3D+time dataset */
   float * ts_array,            /* array of measured data for one voxel */
   int * good_list,             /* list of usable time points */
   float * fitts,               /* full model fitted time series */
@@ -4876,7 +4876,7 @@ void setup_regression_matrices( DC_options *option_data ,
 void calculate_results
 (
   DC_options * option_data,         /* deconvolution algorithm options */
-  THD_3dim_dataset * dset,          /* input 3d+time data set */
+  THD_3dim_dataset * dset,          /* input 3D+time data set */
   byte * mask_vol,                  /* input mask volume */
   float * fmri_data,                /* input fMRI time series data */
   int fmri_length,                  /* length of fMRI time series */
@@ -4940,7 +4940,7 @@ void calculate_results
   int ixyz;                   /* voxel index */
   int nxyz;                   /* number of voxels per dataset */
 
-  int nt;                  /* number of images in input 3d+time dataset */
+  int nt;                  /* number of images in input 3D+time dataset */
   int N;                   /* number of usable data points */
 
   int num_stimts;          /* number of stimulus time series */
@@ -5836,7 +5836,7 @@ void cubic_spline
 
 /*---------------------------------------------------------------------------*/
 /*
-  Routine to write one AFNI 3d+time data set.
+  Routine to write one AFNI 3D+time data set.
 */
 
 
@@ -6088,7 +6088,7 @@ void write_bucket_data
   int num_stimts;           /* number of stimulus time series */
   int istim;                /* stimulus index */
   int nxyz;                 /* total number of voxels */
-  int nt;                   /* number of images in input 3d+time dataset */
+  int nt;                   /* number of images in input 3D+time dataset */
   int ilag;                 /* lag index */
   int icoef;                /* coefficient index */
   int ibrick;               /* sub-brick index */
@@ -6663,7 +6663,7 @@ void output_results
   int ib;                   /* sub-brick index */
   int is;                   /* stimulus index */
   int ts_length;            /* length of impulse reponse function */
-  int nt;                   /* number of images in input 3d+time dataset */
+  int nt;                   /* number of images in input 3D+time dataset */
   int nxyz;                 /* number of voxels */
 
 
@@ -6690,7 +6690,7 @@ void output_results
       write_one_ts (option_data->bucket_filename, p, coef_vol);
 
 
-  /*----- Write the impulse response function 3d+time dataset -----*/
+  /*----- Write the impulse response function 3D+time dataset -----*/
   ib = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
@@ -6725,7 +6725,7 @@ void output_results
     }
 
 
-  /*----- Write the standard deviation 3d+time dataset -----*/
+  /*----- Write the standard deviation 3D+time dataset -----*/
   ib = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
@@ -6755,7 +6755,7 @@ void output_results
     }
 
 
-  /*----- Write the fitted (full model) 3d+time dataset -----*/
+  /*----- Write the fitted (full model) 3D+time dataset -----*/
   if (option_data->fitts_filename != NULL)
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, fitts_vol,
@@ -6765,7 +6765,7 @@ void output_results
 
 
 
-  /*----- Write the residual errors 3d+time dataset -----*/
+  /*----- Write the residual errors 3D+time dataset -----*/
   if (option_data->errts_filename != NULL)
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, errts_vol,
@@ -6812,7 +6812,7 @@ void terminate_program
   int * glt_rows;           /* number of linear constraints in glt */
   int ilc;                  /* linear combination index */
   int it;                   /* time index */
-  int nt;                   /* number of images in input 3d+time dataset */
+  int nt;                   /* number of images in input 3D+time dataset */
 
 
   /*----- Initialize local variables -----*/
@@ -6973,7 +6973,7 @@ int main
 
 {
   DC_options * option_data;               /* deconvolution algorithm options */
-  THD_3dim_dataset * dset_time = NULL;    /* input 3d+time data set */
+  THD_3dim_dataset * dset_time = NULL;    /* input 3D+time data set */
   byte * mask_vol  = NULL;                /* mask volume */
   float * fmri_data = NULL;               /* input fMRI time series data */
   int fmri_length;                        /* length of fMRI time series */
