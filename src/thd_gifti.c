@@ -5,10 +5,12 @@
  *
  * THD_3dim_dataset * THD_open_gifti (char *fname)
  * THD_3dim_dataset * THD_load_gifti (THD_datablock *dblk)
- * Boolean            THD_write_gifti(THD_3dim_dataset *dset, int write_data)
+ * Boolean            THD_write_gifti( THD_3dim_dataset *dset, 
+                                       int write_data, int forcencode)
  *
  * NI_group         * NI_read_gifti (char *fname, int read_data)
- * int                NI_write_gifti(NI_group *ngr, char *fname)
+ * int                NI_write_gifti(NI_group *ngr, 
+                                     char *fname, int forcencode)
  *----------------------------------------------------------------------
  */
 
@@ -131,7 +133,7 @@ int THD_load_gifti(THD_datablock * dblk)
     RETURN(0);
 }
 
-Boolean THD_write_gifti(THD_3dim_dataset * dset, int write_data)
+Boolean THD_write_gifti(THD_3dim_dataset * dset, int write_data, int forcencode)
 {
     NI_group * ngr;
     char     * prefix;
@@ -158,7 +160,7 @@ Boolean THD_write_gifti(THD_3dim_dataset * dset, int write_data)
         RETURN(False);
     }
 
-    rv = NI_write_gifti(ngr, prefix);
+    rv = NI_write_gifti(ngr, prefix, forcencode);
 
     NI_free_element(ngr);
 
@@ -219,7 +221,7 @@ NI_group * NI_read_gifti(char * fname, int read_data)
  *
  * if add_index:  add a NIFTI_INTENT_NODE_INDEX DataArray
  */
-int NI_write_gifti(NI_group * ngr, char * fname)
+int NI_write_gifti(NI_group * ngr, char * fname, int forcencode)
 {
     gifti_image * gim;
     int           rv;
@@ -239,6 +241,7 @@ int NI_write_gifti(NI_group * ngr, char * fname)
 
     if(GP->verb > 2) fprintf(stderr,"-- NI_write_gifti file %s ...\n", fname);
 
+    set_gifti_encoding(forcencode);
     gim = NSD_to_gifti(ngr, fname);
 
     if( !gim ) {
@@ -248,7 +251,8 @@ int NI_write_gifti(NI_group * ngr, char * fname)
         fprintf(stderr,"++ have gifti from NSD, writing image to '%s'\n",fname);
 
     rv = gifti_write_image(gim, fname, 1);
-
+    set_gifti_encoding(GIFTI_ENCODING_UNDEF);
+    
     if( GP->verb > 2 )
         fprintf(stderr,"-- gifti_write_image complete, freeing gim...\n");
 
@@ -468,7 +472,10 @@ static int nsdg_add_index_list(NI_group *ngr, gifti_image *gim)
     da->num_dim  = 1;
     da->dims[0]  = len;
     da->nvals    = len;
-    if( GP->write_mode == NI_TEXT_MODE ) da->encoding = GIFTI_ENCODING_ASCII;
+    if( GP->g_encoding )
+            da->encoding = GP->g_encoding;
+    else if ( GP->write_mode == NI_TEXT_MODE )
+            da->encoding = GIFTI_ENCODING_ASCII;
 
     /* set the pointer */
     da->data = data;

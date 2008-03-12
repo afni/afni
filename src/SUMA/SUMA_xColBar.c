@@ -188,8 +188,8 @@ void SUMA_DrawCmap(SUMA_COLOR_MAP *Cmap)
 {
    static char FuncName[]={"SUMA_DrawCmap"};
    float orig[3]={ SUMA_CMAP_ORIGIN };
-   int i;
    float topright[3] = { SUMA_CMAP_TOPLEFT };
+   int i;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -202,9 +202,12 @@ void SUMA_DrawCmap(SUMA_COLOR_MAP *Cmap)
       if (!Cmap->SO) { SUMA_SL_Err("Failed to create SO"); }
    }
    
-   /* initialize the context to be safe; sometimes there is conflict with the viewer's context 
-   and that causes the colormaps to be absent...   ZSS Nov. 28 06*/
-   SUMA_cmap_context_Init(Cmap->SO);
+   /* initialize the context to be safe; 
+   sometimes there is conflict with the viewer's context 
+   and that causes the colormaps to be absent...   ZSS Nov. 28 06
+   But that is too radical and kils translation toys ZSS Mar. 06 08*/
+   /* Turned off, may no longer cause trouble...  ZSS Mar. 07 08*/
+   /* SUMA_cmap_context_Init(Cmap->SO); */
  
    /* This allows each node to follow the color specified when it was drawn */ 
    glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
@@ -254,24 +257,40 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    
    SUMA_LH("in, lots of inefficiencies here, make sure you revisit");
    
-   /* now you need to set the clear_color since it can be changed per viewer Thu Dec 12 2002 */
+   /* now you need to set the clear_color since it can be 
+      changed per viewer Thu Dec 12 2002 */
    glClearColor (clear_color[0], clear_color[1],clear_color[2],clear_color[3]);
       
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Building Rotation matrix ...\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT,"%s: Building Rotation matrix ...\n", FuncName);
    SUMA_build_rotmatrix(rotationMatrix, currentQuat);
     
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: performing glClear ...\n", FuncName);
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT,"%s: performing glClear ...\n", FuncName);
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer                                                          and the depth buffer */
    
-   /* careful here, you might want to turn the next block into a macro like SUMA_SET_GL_PROJECTION */
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\nFOV=%f\n", FuncName, SUMA_CMAP_FOV_INITIAL);
+   /* careful here, you might want to turn 
+      the next block into a macro like SUMA_SET_GL_PROJECTION */
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT,
+               "%s: Setting up matrix mode and perspective ...\nFOV=%f\n"
+               "Translation is %f %f %f\n", 
+               FuncName, SUMA_CMAP_FOV_INITIAL,
+               SO->SurfCont->cmp_ren->translateVec[0],
+               SO->SurfCont->cmp_ren->translateVec[1], 
+               SO->SurfCont->cmp_ren->translateVec[2] );
    glMatrixMode (GL_PROJECTION);
    glLoadIdentity ();
-   gluPerspective(SO->SurfCont->cmp_ren->FOV, (double)SUMA_CMAP_WIDTH/SUMA_CMAP_HEIGHT, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
+   gluPerspective(SO->SurfCont->cmp_ren->FOV, 
+                  (double)SUMA_CMAP_WIDTH/SUMA_CMAP_HEIGHT, 
+                  SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); 
+                  /*lower angle is larger zoom,*/
 
    glMatrixMode(GL_MODELVIEW);
    glPushMatrix();
-   glTranslatef (SO->SurfCont->cmp_ren->translateVec[0], SO->SurfCont->cmp_ren->translateVec[1], SO->SurfCont->cmp_ren->translateVec[2] );
+   glTranslatef ( SO->SurfCont->cmp_ren->translateVec[0],
+                  SO->SurfCont->cmp_ren->translateVec[1], 
+                  SO->SurfCont->cmp_ren->translateVec[2] );
    if (0){
    SUMA_SL_Note("no need for shananigans\n"
                   "But to illustrate ...\n");
@@ -290,15 +309,18 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    }   
    glPopMatrix();   
 
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Flushing or swapping ...\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT,"%s: Flushing or swapping ...\n", FuncName);
    
    if (SUMAg_SVv[0].X->DOUBLEBUFFER)
-      glXSwapBuffers(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), XtWindow(SO->SurfCont->cmp_ren->cmap_wid));
+      glXSwapBuffers(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
+                     XtWindow(SO->SurfCont->cmp_ren->cmap_wid));
    else  
       glFlush();
 
    /* Avoid indirect rendering latency from queuing. */
-   if (!glXIsDirect(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), SO->SurfCont->cmp_ren->cmap_context))
+   if (!glXIsDirect( XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
+                     SO->SurfCont->cmp_ren->cmap_context))
       glFinish();
 
    SUMA_RETURNe;
@@ -318,15 +340,19 @@ Boolean SUMA_cmap_wid_handleRedisplay(XtPointer clientData)
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURN(NOPE); }
    
    SUMA_LH("Making cmap_wid current");
-   if (!glXMakeCurrent(XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), XtWindow(SO->SurfCont->cmp_ren->cmap_wid), SO->SurfCont->cmp_ren->cmap_context)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+   if (!glXMakeCurrent( XtDisplay(SO->SurfCont->cmp_ren->cmap_wid), 
+                        XtWindow(SO->SurfCont->cmp_ren->cmap_wid), 
+                        SO->SurfCont->cmp_ren->cmap_context)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", 
+               FuncName);
    }
    
    SUMA_cmap_wid_display(SO);
    glFinish();
    
    /* insist on a glXMakeCurrent for surface viewer */
-   SUMA_LH("Making sv's GLXAREA current");
+   SUMA_LH("Making sv's GLXAREA current\n");
    SUMA_SiSi_I_Insist();
    
    SUMA_RETURN(YUP);
@@ -410,7 +436,8 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_ENTRY;
    
    SUMA_LH("called");
-   SO = (SUMA_SurfaceObject *)clientData;             /* THIS SO is for the main surface, NOT THE colormap's */
+   SO = (SUMA_SurfaceObject *)clientData;             
+      /* THIS SO is for the main surface, NOT THE colormap's */
    if (!SO) { SUMA_SL_Err("NULL SO"); SUMA_RETURNe; }
    
    ColMap = SUMA_CmapOfPlane (SO->SurfCont->curColPlane );
@@ -420,18 +447,26 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
       /* calculate FOV limit for zooming in */
       SOcmap = ColMap->SO;
       ncol = SOcmap->N_FaceSet / 2;
-      height_two_col = (SOcmap->MaxDims[1] - SOcmap->MinDims[1]) / (float)ncol * 2.0; /* no need to show more than 2 cols */
+      height_two_col =  (SOcmap->MaxDims[1] - SOcmap->MinDims[1]) / 
+                        (float)ncol * 2.0; 
+                        /* no need to show more than 2 cols */
       width = (SOcmap->MaxDims[0] - SOcmap->MinDims[0]);
-      fov_lim = 2.0 * atan( (double)height_two_col / ( 2.0 * (double)SUMA_CMAP_VIEW_FROM ) ) * 180 / SUMA_PI; 
+      fov_lim = 2.0 * atan( (double)height_two_col / 
+               ( 2.0 * (double)SUMA_CMAP_VIEW_FROM ) ) * 180 / SUMA_PI; 
       if (LocalHead) {
          SUMA_Print_Surface_Object(SOcmap, NULL);
-         fprintf(SUMA_STDERR,"%s: ncol=%d, height = %f, height of 2 col =%f, width=%f, d = %d, fov_lim = %f\n", 
-            FuncName, ncol, (SOcmap->MaxDims[1] - SOcmap->MinDims[1]), height_two_col,  width, SUMA_CMAP_VIEW_FROM, fov_lim);
+         fprintf( SUMA_STDERR,
+                  "%s: ncol=%d, height = %f, height of 2 col =%f\n"
+                  ", width=%f, d = %d, fov_lim = %f\n", 
+                  FuncName, ncol, (SOcmap->MaxDims[1] - SOcmap->MinDims[1]), 
+                  height_two_col,  width, SUMA_CMAP_VIEW_FROM, fov_lim);
       }
    }  
 
    /* make sure the color map is the current context */
-   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), SO->SurfCont->cmp_ren->cmap_context)) {
+   if (!glXMakeCurrent( XtDisplay(w), 
+                        XtWindow(w), 
+                        SO->SurfCont->cmp_ren->cmap_context)) {
       fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n ", FuncName);
       SUMA_RETURNe;
    }
@@ -439,7 +474,9 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
    /* get the callData pointer */
    cd = (GLwDrawingAreaCallbackStruct *) callData;
 
-   Kev = *(XKeyEvent *) &cd->event->xkey; /* RickR's suggestion to comply with ANSI C, no type casting of structures July 04*/
+   Kev = *(XKeyEvent *) &cd->event->xkey; /* RickR's suggestion to comply with 
+                                             ANSI C, no type casting of
+                                             structures July 04*/
    Bev = *(XButtonEvent *) &cd->event->xbutton;
    Mev = *(XMotionEvent *) &cd->event->xmotion;
    
@@ -458,22 +495,27 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
                                          SES_SumaWidget, NULL, NOPE,
                                          SEI_Head, NULL); 
               if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                  fprintf(stderr, 
+                           "Error %s: SUMA_Engine call failed.\n", FuncName);
               }    
             }
             break;
          case XK_f:
             {
-               if (0) { /* needs work, don't feel like it for now */
-                  GLvoid *pixels;
+               if (1) { /* needs work, don't feel like it for now */
                   SUMA_LH("Flipping colormap");
-                  SUMA_Flip_Color_Map(SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
-                  SUMA_SwitchColPlaneCmap(SO, SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+                  SUMA_Flip_Color_Map(
+                     SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+                  SUMA_LH("Switching colormap");
+                  SUMA_SwitchColPlaneCmap(SO,
+                     SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
                   #if SUMA_SEPARATE_SURF_CONTROLLERS
+                     SUMA_LH("Updating shells");
                      SUMA_UpdateColPlaneShellAsNeeded(SO);
                   #endif
 
                   /* update Lbl fields */
+                  SUMA_LH("Updating NodeLblFields");
                   SUMA_UpdateNodeLblField(SO);
                }
             }
@@ -484,7 +526,9 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
                SUMA_LH("Recording");
                pixels = SUMA_grabPixels(1, SUMA_CMAP_WIDTH, SUMA_CMAP_HEIGHT);
                if (pixels) {
-                 ISQ_snapsave (SUMA_CMAP_WIDTH, -SUMA_CMAP_HEIGHT, (unsigned char *)pixels, SO->SurfCont->cmp_ren->cmap_wid ); 
+                 ISQ_snapsave (SUMA_CMAP_WIDTH, -SUMA_CMAP_HEIGHT, 
+                              (unsigned char *)pixels,
+                              SO->SurfCont->cmp_ren->cmap_wid ); 
                  SUMA_free(pixels);
                }else {
                   SUMA_SLP_Err("Failed to record image.");
@@ -501,7 +545,10 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   SO->SurfCont->cmp_ren->FOV = fov_lim; 
                } else BeepedAlready = NOPE;
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Zoom in FOV = %f\n", FuncName, SO->SurfCont->cmp_ren->FOV);
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR,
+                           "%s: Zoom in FOV = %f\n", 
+                           FuncName, SO->SurfCont->cmp_ren->FOV);
                SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
             }
             break;
@@ -516,42 +563,115 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
                   }
                   SO->SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL; 
                } else BeepedAlready = NOPE;
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Zoom out FOV = %f\n", FuncName, SO->SurfCont->cmp_ren->FOV);
+               if (LocalHead) 
+                  fprintf( SUMA_STDERR,
+                           "%s: Zoom out FOV = %f\n", 
+                           FuncName, SO->SurfCont->cmp_ren->FOV);
                SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
             }
             break;
          case XK_Home:   
             SO->SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL;
-            SO->SurfCont->cmp_ren->translateVec[0] = SO->SurfCont->cmp_ren->translateVec[1] = SO->SurfCont->cmp_ren->translateVec[2] = 0.0;
-            SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+            SO->SurfCont->cmp_ren->translateVec[0] = 
+            SO->SurfCont->cmp_ren->translateVec[1] = 
+            SO->SurfCont->cmp_ren->translateVec[2] = 0.0;
+            {
+               SUMA_COLOR_MAP *CM = SUMA_CmapOfPlane(SO->SurfCont->curColPlane);
+               if (SUMA_Rotate_Color_Map(CM, 0) % CM->N_Col) { 
+                  SUMA_LH("Got color map modification to do");
+                  SUMA_SwitchColPlaneCmap(SO,
+                     SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+                  #if SUMA_SEPARATE_SURF_CONTROLLERS
+                     SUMA_UpdateColPlaneShellAsNeeded(SO);
+                  #endif
+
+                  /* update Lbl fields */
+                  SUMA_UpdateNodeLblField(SO);
+               } else {
+                  SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+               }
+            }
             break;
          case XK_Up:   /*KEY_UP:*/
             {
-               static SUMA_Boolean BeepedAlready = NOPE;   
-               float tstep = height_two_col / 2 * SO->SurfCont->cmp_ren->FOV/(float)SUMA_CMAP_FOV_INITIAL; 
-               SO->SurfCont->cmp_ren->translateVec[1] += tstep ;
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: translateVec[1] = %f\n", FuncName, SO->SurfCont->cmp_ren->translateVec[1]);
-               if (SO->SurfCont->cmp_ren->translateVec[1] >  SUMA_CMAP_HEIGHT - 20) {
-                  if (!BeepedAlready) {
-                     SUMA_BEEP; BeepedAlready = YUP;
+               if (Kev.state & ShiftMask){
+                  static SUMA_Boolean BeepedAlready = NOPE;   
+                  float tstep = height_two_col / 2.0 * 
+                                 SO->SurfCont->cmp_ren->FOV /
+                                 (float)SUMA_CMAP_FOV_INITIAL; 
+                  SO->SurfCont->cmp_ren->translateVec[1] += tstep ;
+                  if (LocalHead) 
+                     fprintf(SUMA_STDERR,
+                              "%s: translateVec[1] = %f (%d)\n", 
+                              FuncName, 
+                              SO->SurfCont->cmp_ren->translateVec[1],
+                              SUMA_CMAP_HEIGHT - 20);
+                  if (  SO->SurfCont->cmp_ren->translateVec[1] >  
+                        SUMA_CMAP_HEIGHT - 20) {
+                     if (!BeepedAlready) {
+                        SUMA_BEEP; BeepedAlready = YUP;
+                     }
+                        SO->SurfCont->cmp_ren->translateVec[1] -= tstep; 
+                  } else BeepedAlready = NOPE;
+                  SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+               } else { 
+                  float frac = 0.0;
+                  if (Kev.state & ControlMask) {
+                     frac = 1;
+                  }else {
+                     frac = SUMAg_CF->CmapRotaFrac;
                   }
-                     SO->SurfCont->cmp_ren->translateVec[1] -= tstep; 
-               } else BeepedAlready = NOPE;
-               SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+                  SUMA_LH("Rotating colormap");
+                  SUMA_Rotate_Color_Map(
+                     SUMA_CmapOfPlane(SO->SurfCont->curColPlane), frac);
+                  SUMA_LH("Switching colormap");
+                  SUMA_SwitchColPlaneCmap(SO,
+                     SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+                  #if SUMA_SEPARATE_SURF_CONTROLLERS
+                     SUMA_LH("Updating shells");
+                     SUMA_UpdateColPlaneShellAsNeeded(SO);
+                  #endif
+
+                  /* update Lbl fields */
+                  SUMA_LH("Updating NodeLblFields");
+                  SUMA_UpdateNodeLblField(SO);
+               }
             }
             break;
          case XK_Down:   /*KEY_DOWN:*/
             {
-               static SUMA_Boolean BeepedAlready = NOPE;  
-               float tstep = height_two_col / 2 * SO->SurfCont->cmp_ren->FOV/(float)SUMA_CMAP_FOV_INITIAL; 
-               SO->SurfCont->cmp_ren->translateVec[1] -=  tstep;
-               if (SO->SurfCont->cmp_ren->translateVec[1] <  -SUMA_CMAP_HEIGHT + 20) {
-                  if (!BeepedAlready) {
-                     SUMA_BEEP; BeepedAlready = YUP;
+               if (Kev.state & ShiftMask){
+                  static SUMA_Boolean BeepedAlready = NOPE;  
+                  float tstep =  height_two_col / 2.0 * 
+                                 SO->SurfCont->cmp_ren->FOV / 
+                                 (float)SUMA_CMAP_FOV_INITIAL; 
+                  SO->SurfCont->cmp_ren->translateVec[1] -=  tstep;
+                  if (  SO->SurfCont->cmp_ren->translateVec[1] <  
+                        -SUMA_CMAP_HEIGHT + 20) {
+                     if (!BeepedAlready) {
+                        SUMA_BEEP; BeepedAlready = YUP;
+                     }
+                        SO->SurfCont->cmp_ren->translateVec[1] += tstep; 
+                  } else BeepedAlready = NOPE;
+                  SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+               } else {
+                  float frac = 0.0;
+                  if (Kev.state & ControlMask) {
+                     frac = 1;
+                  }else {
+                     frac = SUMAg_CF->CmapRotaFrac;
                   }
-                     SO->SurfCont->cmp_ren->translateVec[1] += tstep; 
-               } else BeepedAlready = NOPE;
-               SUMA_cmap_wid_postRedisplay(w, (XtPointer)SO, NULL);
+                  SUMA_Rotate_Color_Map(
+                     SUMA_CmapOfPlane(SO->SurfCont->curColPlane), -frac);
+                  SUMA_SwitchColPlaneCmap(SO,
+                     SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
+                  #if SUMA_SEPARATE_SURF_CONTROLLERS
+                     SUMA_UpdateColPlaneShellAsNeeded(SO);
+                  #endif
+
+                  /* update Lbl fields */
+                  SUMA_UpdateNodeLblField(SO);
+               }
             }
             break;
          
@@ -4160,14 +4280,29 @@ SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_SurfaceObject *SO, SUMA_COLOR_MAP *CM)
    
    /* reset zoom and translation vectors */
    SO->SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL;
-   SO->SurfCont->cmp_ren->translateVec[0] = SO->SurfCont->cmp_ren->translateVec[1] = SO->SurfCont->cmp_ren->translateVec[2] = 0.0;
+   SO->SurfCont->cmp_ren->translateVec[0] = 
+   SO->SurfCont->cmp_ren->translateVec[1] = 
+   SO->SurfCont->cmp_ren->translateVec[2] = 0.0;
 
-   /* update the color map display */
+   /* update the color map display NOW, no workprocess crap. ZSS Mar. 7 08*/
+   #if 0
+   /* With this, the next call to SUMA_RemixRedisplay,
+   causes an error: glXSwapBuffers: no context for this drawable
+   because SUMA_cmap_wid_handleRedisplay is still to be processed
+   as SUMA_cmap_wid_postRedisplay puts it in as a workprocess.
+   You need to force the immediate execution of 
+   SUMA_cmap_wid_handleRedisplay which resets the context before 
+   returning */
+   SUMA_LH("Calling SUMA_cmap_wid_postRedisplay");
    SUMA_cmap_wid_postRedisplay(NULL, (XtPointer)SO, NULL);
-               
+   #else
+   SUMA_cmap_wid_handleRedisplay((XtPointer)SO);
+   #endif
+   
+   SUMA_LH("Calling SUMA_RemixRedisplay ");          
    SUMA_RemixRedisplay(SO);
 
-   
+   SUMA_LH("Returning");
    SUMA_RETURN(YUP);
 }
 /*!
@@ -5017,7 +5152,8 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
                   
       }
       
-      if (!SO->SurfCont->ShowCurOnly) {   /* graph updating can be done 
+      if (  !SO->SurfCont->ShowCurOnly || 
+            SO->SurfCont->GraphHidden) {   /* graph updating can be done 
                                              for all planes */
          for (i=0; i<SO->N_Overlays; ++i) {
             Sover = SO->Overlays[i];

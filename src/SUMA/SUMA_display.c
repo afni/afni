@@ -3787,7 +3787,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    Widget tl, pb, form, DispFrame, SurfFrame, rc_left, rc_right, rc_mamma;
    Display *dpy;
    SUMA_SurfaceObject *SO;
-   char *slabel, *lbl30; 
+   char *slabel, *lbl30, *sss=NULL; 
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    
@@ -3797,7 +3797,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    *(SO->SurfCont->curSOp) = (void *)SO;
    
    if (SO->SurfCont->TopLevelShell) {
-      fprintf (SUMA_STDERR,"Error %s: SO->SurfCont->TopLevelShell!=NULL. Should not be here.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: SO->SurfCont->TopLevelShell!=NULL.\n"
+               "Should not be here.\n", FuncName);
       SUMA_RETURNe;
    }
    tl = SUMA_GetTopShell(w); /* top level widget */
@@ -3815,20 +3817,35 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       sprintf(slabel,"[%s] Surface Controller", SO->Label);
    }
    
-   #if SUMA_CONTROLLER_AS_DIALOG /*xmDialogShellWidgetClass, topLevelShellWidgetClass*/
-   if (LocalHead) fprintf(SUMA_STDERR, "%s: Creating dialog shell.\n", FuncName);
-   SO->SurfCont->TopLevelShell = XtVaCreatePopupShell (slabel,
+   /* March 12 08: Made font8 default for surface controller */
+   if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
+      sss = slabel;
+   } else {
+      sss = "font8";
+   }
+
+   #if SUMA_CONTROLLER_AS_DIALOG /* xmDialogShellWidgetClass, 
+                                    topLevelShellWidgetClass*/
+   if (LocalHead) 
+      fprintf(SUMA_STDERR, "%s: Creating dialog shell.\n", FuncName);
+   
+   SO->SurfCont->TopLevelShell = XtVaCreatePopupShell (sss,
+      XmNtitle, slabel,
       xmDialogShellWidgetClass, tl,
       XmNallowShellResize, True, /* let code resize shell */
       XmNdeleteResponse, XmDO_NOTHING,
       NULL);    
    #else
-   if (LocalHead) fprintf(SUMA_STDERR, "%s: Creating toplevel shell.\n", FuncName);
-   /** Feb 03/03: I was using XtVaCreatePopupShell to create a topLevelShellWidgetClass. 
-   XtVaCreatePopupShell is used to create dialog shells not toplevel or appshells. 
-   Of course, it made no difference! */
-   SO->SurfCont->TopLevelShell = XtVaAppCreateShell (slabel, "Suma",
+   if (LocalHead) 
+      fprintf(SUMA_STDERR, "%s: Creating toplevel shell.\n", FuncName);
+   /** Feb 03/03:    I was using XtVaCreatePopupShell to create a 
+                     topLevelShellWidgetClass. 
+                     XtVaCreatePopupShell is used to create dialog 
+                     shells not toplevel or appshells. 
+                     Of course, it made no difference! */
+   SO->SurfCont->TopLevelShell = XtVaAppCreateShell (sss, "Suma",
       topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
+      XmNtitle, slabel,
       XmNdeleteResponse, XmDO_NOTHING,
       NULL);   
    #endif
@@ -3872,8 +3889,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             XmNorientation , XmVERTICAL ,
             XmNmarginHeight, SUMA_MARGIN ,
             XmNmarginWidth , SUMA_MARGIN ,
-            XmNwidth, 317,
-            XmNresizeWidth, False,
+/*            XmNwidth, 317,
+            XmNresizeWidth, False, */
             NULL);
    
    rc_right = XtVaCreateWidget ("rowcolumn",
@@ -3937,19 +3954,21 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SO->SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, SUMA_cb_moreSurfInfo, (XtPointer)SO->SurfCont->curSOp);
-      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, (XtPointer)SO->SurfCont->curSOp, NULL); /* 
-                                                                  Feb 23 04: XmNuserData is not used anymore.
-                                                                  See notes for SUMA_cb_moreViewerInfo
-                                                                  call for reasons why this was done...
-                                                                  
-                                                                  store the surface object SO in userData
-                                                                  I think it is more convenient than as data
-                                                                  in the call back structure. This way it will
-                                                                  be easy to change the SO that this same button
-                                                                  might refer to. 
-                                                                  This is only for testing purposes, the pb_close
-                                                                  button still expects SO in clientData*/
+      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, 
+                     SUMA_cb_moreSurfInfo, (XtPointer)SO->SurfCont->curSOp);
+      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, 
+                     (XtPointer)SO->SurfCont->curSOp, NULL); /* 
+            Feb 23 04: XmNuserData is not used anymore.
+            See notes for SUMA_cb_moreViewerInfo
+            call for reasons why this was done...
+
+            store the surface object SO in userData
+            I think it is more convenient than as data
+            in the call back structure. This way it will
+            be easy to change the SO that this same button
+            might refer to. 
+            This is only for testing purposes, the pb_close
+            button still expects SO in clientData*/
       MCW_register_hint( SO->SurfCont->SurfInfo_pb , "More info on Surface" ) ;
       MCW_register_help( SO->SurfCont->SurfInfo_pb , SUMA_SurfContHelp_more ) ;
       XtManageChild (SO->SurfCont->SurfInfo_pb); 
@@ -3981,8 +4000,11 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       pb = XtVaCreateWidget ("Dsets", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO->SurfCont->curSOp);
-      MCW_register_hint( pb , "Show/Hide Dataset (previously Color Plane) controllers" ) ;
+      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, 
+                     (XtPointer) SO->SurfCont->curSOp);
+      MCW_register_hint( pb , 
+                        "Show/Hide Dataset (previously Color Plane) "
+                        "controllers" ) ;
       MCW_register_help( pb , SUMA_SurfContHelp_Dsets ) ;
       XtManageChild (pb);
       
@@ -4131,7 +4153,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            2, SUMA_int,
                            NOPE,
                            SUMA_ColPlane_NewOrder, (void *)SO,
-                           SUMA_SurfCont_ColPlaneOrder_hint, SUMA_SurfContHelp_DsetOrd,
+                           SUMA_SurfCont_ColPlaneOrder_hint, 
+                           SUMA_SurfContHelp_DsetOrd,
                            SO->SurfCont->ColPlaneOrder);
                              
       SUMA_CreateArrowField ( rc, "Opa:",
@@ -4139,7 +4162,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            3, SUMA_float,
                            NOPE,
                            SUMA_ColPlane_NewOpacity, (void *)SO,
-                           SUMA_SurfCont_ColPlaneOpacity_hint, SUMA_SurfContHelp_DsetOpa,
+                           SUMA_SurfCont_ColPlaneOpacity_hint,
+                           SUMA_SurfContHelp_DsetOpa,
                            SO->SurfCont->ColPlaneOpacity);
 
       /* manage  rc */
@@ -4157,7 +4181,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            3, SUMA_float,
                            YUP,
                            SUMA_ColPlane_NewDimFact, (void *)SO, 
-                           SUMA_SurfCont_ColPlaneDim_hint, SUMA_SurfContHelp_DsetDim,
+                           SUMA_SurfCont_ColPlaneDim_hint, 
+                           SUMA_SurfContHelp_DsetDim,
                            SO->SurfCont->ColPlaneDimFact);
            
       SO->SurfCont->ColPlaneShow_tb = XtVaCreateManagedWidget("view", 
@@ -4166,18 +4191,24 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XtAddCallback (SO->SurfCont->ColPlaneShow_tb, 
                   XmNvalueChangedCallback, SUMA_cb_ColPlaneShow_toggled, SO);
                   
-      MCW_register_help(SO->SurfCont->ColPlaneShow_tb , SUMA_SurfContHelp_DsetView ) ;
+      MCW_register_help(SO->SurfCont->ColPlaneShow_tb , 
+                        SUMA_SurfContHelp_DsetView ) ;
       MCW_register_hint(SO->SurfCont->ColPlaneShow_tb , "Shows/Hides Dset." ) ;
       SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShow_tb);
       
-      SO->SurfCont->ColPlaneShowOne_tb = XtVaCreateManagedWidget("1 Only", 
-            xmToggleButtonWidgetClass, rc, NULL);
-      XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOne_tb, SO->SurfCont->ShowCurOnly, NOPE);
+      SO->SurfCont->ColPlaneShowOne_tb = 
+         XtVaCreateManagedWidget("1 Only", 
+                                 xmToggleButtonWidgetClass, rc, NULL);
+      XmToggleButtonSetState (SO->SurfCont->ColPlaneShowOne_tb, 
+                              SO->SurfCont->ShowCurOnly, NOPE);
       XtAddCallback (SO->SurfCont->ColPlaneShowOne_tb, 
-                  XmNvalueChangedCallback, SUMA_cb_ColPlaneShowOne_toggled, SO);
+                     XmNvalueChangedCallback, 
+                     SUMA_cb_ColPlaneShowOne_toggled, SO);
                   
-      MCW_register_help(SO->SurfCont->ColPlaneShowOne_tb , SUMA_SurfContHelp_DsetViewOne ) ;
-      MCW_register_hint(SO->SurfCont->ColPlaneShowOne_tb , "Shows ONLY selected Dset from foreground stack." ) ;
+      MCW_register_help(SO->SurfCont->ColPlaneShowOne_tb , 
+                        SUMA_SurfContHelp_DsetViewOne ) ;
+      MCW_register_hint(SO->SurfCont->ColPlaneShowOne_tb , 
+                        "Shows ONLY selected Dset from foreground stack." ) ;
       SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShowOne_tb);
            
       /* manage  rc */
@@ -4195,18 +4226,21 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);
          
       /* put a push button to switch between color planes */
-      SO->SurfCont->SwitchDsetlst = SUMA_AllocateScrolledList ("Switch Dset", SUMA_LSP_SINGLE, 
-                                 NOPE, NOPE, /* duplicate deletion, no sorting */ 
-                                 SO->SurfCont->TopLevelShell, SWP_POINTER,
-                                 SUMA_cb_SelectSwitchColPlane, (void *)SO,
-                                 SUMA_cb_SelectSwitchColPlane, (void *)SO,
-                                 SUMA_cb_CloseSwitchColPlane, NULL);
+      SO->SurfCont->SwitchDsetlst = 
+            SUMA_AllocateScrolledList ("Switch Dset", 
+                     SUMA_LSP_SINGLE, 
+                     NOPE, NOPE, /* duplicate deletion, no sorting */ 
+                     SO->SurfCont->TopLevelShell, SWP_POINTER,
+                     SUMA_cb_SelectSwitchColPlane, (void *)SO,
+                     SUMA_cb_SelectSwitchColPlane, (void *)SO,
+                     SUMA_cb_CloseSwitchColPlane, NULL);
 
 
       pb = XtVaCreateWidget ("Switch Dset", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_SurfCont_SwitchColPlane, (XtPointer)SO);
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_SurfCont_SwitchColPlane, (XtPointer)SO);
       MCW_register_hint(pb , "Switch between datasets" ) ;
       MCW_register_help(pb , SUMA_SurfContHelp_DsetSwitch ) ;
       XtManageChild (pb);
@@ -4224,13 +4258,15 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       pb = XtVaCreateWidget ("Delete", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Delete, (XtPointer) SO);
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_ColPlane_Delete, (XtPointer) SO);
       /* XtManageChild (pb); */ /* Not ready for this one yet */
 
       pb = XtVaCreateWidget ("Load Col", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Load, (XtPointer) SO);
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_ColPlane_Load, (XtPointer) SO);
       MCW_register_hint(pb , "Load a new color plane (same as ctrl+c)" ) ;
       MCW_register_help(pb , SUMA_SurfContHelp_DsetLoadCol  ) ;
       XtManageChild (pb);
@@ -4279,7 +4315,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       pb_close = XtVaCreateWidget ("Close", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb_close, XmNactivateCallback, SUMA_cb_closeSurfaceCont, (XtPointer) SO);
+      XtAddCallback (pb_close, XmNactivateCallback, 
+                     SUMA_cb_closeSurfaceCont, (XtPointer) SO);
       MCW_register_hint( pb_close , "Close Surface controller" ) ;
       MCW_register_help( pb_close , SUMA_closeSurfaceCont_help ) ;
       XtManageChild (pb_close); 
@@ -4289,7 +4326,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);
       XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
       MCW_register_help(pb_bhelp , SUMA_help_help ) ;
-      MCW_register_hint(pb_bhelp  , "Press this button then click on a button/label/menu for more help." ) ;
+      MCW_register_hint(pb_bhelp  , 
+                        "Press this button then click on a "
+                        "button/label/menu for more help." ) ;
 
       XtManageChild (pb_bhelp); 
 
