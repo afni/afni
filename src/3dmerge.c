@@ -647,6 +647,10 @@ void MRG_Syntax(void)
     "       3dmerge -dxyz=1 -1clust_order 1 40 -1thresh 3.25    \\\n"
     "               -prefix e5.mask5 stats+orig'[5]'\n"
     "\n"
+    "     Note: this should match the 3dclust output from:\n"
+    "\n"
+    "       3dclust -1thresh 3.25 -dxyz=1 1 40 stats+orig'[5]'\n"
+    "\n"
     "----------------------------------------------------------------------\n"
    ) ;
 
