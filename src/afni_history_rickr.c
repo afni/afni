@@ -43,8 +43,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, MAR, 2008, RCR, "3dmerge", MINOR, TYPE_GENERAL,
+   "added some examples to the -help output",
+   NULL
+ } ,
+
  { 11, MAR, 2008, RCR, "model_demri_3", MINOR, TYPE_NEW_OPT,
-   "add control of hematocrit via AFNI_MODEL_D3_HCT",
+   "added control of hematocrit via AFNI_MODEL_D3_HCT",
    NULL
  } ,
 
@@ -59,7 +64,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 10, MAR, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
-   "apply -gert_outdir in the case of dicom images",
+   "applied -gert_outdir in the case of dicom images",
    NULL
  } ,
 
