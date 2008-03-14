@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , MAR , 2008 , RWC , "3dROIstats" , MICRO , TYPE_NEW_OPT ,
+   "Sub-brick label printing (and -nobriklab option)" ,
+   "Per the noble Vince Hradil." } ,
+
  { 7 , MAR , 2008 , RWC , "Dataset#N" , MINOR , TYPE_NEW_ENV ,
    "AFNI_DATASETN_NMAX sets number of datasets allowed" ,
    "New environment variable AFNI_DATASETN_NMAX sets the number of datasets\n"
