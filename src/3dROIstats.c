@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
     double *percentile=NULL;
     float *fv = NULL;
     int nfv = 0, perc = 0, nzperc = 0;
+    int nobriklab=0 ;  /* 14 Mar 2008 */
 
     if (argc < 3 || strcmp(argv[1], "-help") == 0) {
 	printf("Usage: 3dROIstats -mask[n] mset [options] datasets\n"
@@ -114,6 +115,7 @@ int main(int argc, char *argv[])
 	       "\n"
 	       "  -debug        Print out debugging information\n"
 	       "  -quiet        Do not print out labels for columns or rows\n"
+          "  -nobriklab    Do not print the sub-brick label next to its index\n"
 	       "\n"
 	       "The following options specify what stats are computed.  By default\n"
 	       "the mean is always computed.\n"
@@ -235,6 +237,11 @@ int main(int argc, char *argv[])
 	}
 	if (strncmp(argv[narg], "-quiet", 5) == 0) {
 	    quiet = 1;
+	    narg++;
+	    continue;
+	}
+	if (strncmp(argv[narg], "-nobriklab", 8) == 0) {  /* 14 Mar 2008 */
+	    nobriklab = 1;
 	    narg++;
 	    continue;
 	}
@@ -587,8 +594,13 @@ int main(int argc, char *argv[])
 	    }
        
        /* print the next line of results */
-	    if (!quiet && !summary)
-		fprintf(stdout, "%s\t%d", argv[narg], brik);
+	    if (!quiet && !summary){
+         if( nobriklab )
+		     fprintf(stdout, "%s\t%d", argv[narg], brik);
+         else
+           fprintf(stdout, "%s\t%d[%-.9s]",   /* 14 Mar 2008 */
+                           argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
+       }
 	    if (!summary) {
 		for (i = 0; i < num_ROI; i++) {
 		    if (voxels[i]) {	/* possible if the numROI option is used - 5/00 */
