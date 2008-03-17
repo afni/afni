@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 17 , MAR , 2008 , ZSS , "lpc_align.py" , MICRO , TYPE_NEW_OPT ,
+   "Added -big_move to lpc_align.py for large displacements." ,
+   NULL
+ } ,
+
  { 12 , MAR , 2008 , ZSS , "suma" , MICRO , TYPE_BUG_FIX ,
    "Changed crash in SurfaceMetrics when -spec and -i options are mixed. " ,
    NULL

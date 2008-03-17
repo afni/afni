@@ -167,6 +167,7 @@ int main (int argc,char *argv[])
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       SUMA_TO_LOWER(argv[kar]);
+      
       if (!brk && (strcmp(argv[kar], "-i_1d") == 0))
       {
          if (iform != SUMA_NO_DSET_FORMAT) {
@@ -360,7 +361,10 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-input") == 0))
+      if (  !brk && 
+            (  strcmp(argv[kar], "-input") == 0 ||
+               strcmp(argv[kar], "-i") == 0 || 
+               strcmp(argv[kar], "-i_") == 0)   )
       {
          if (kar+1 >= argc) {
             SUMA_SL_Err("Need argument after -input");
@@ -409,7 +413,10 @@ int main (int argc,char *argv[])
          prepend_node_index = 1;
          brk = YUP;
       }
-      if (!brk && (strcmp(argv[kar], "-prefix") == 0))
+      if (  !brk && 
+            (  strcmp(argv[kar], "-prefix") == 0 ||
+               strcmp(argv[kar], "-o") == 0 ||  
+               strcmp(argv[kar], "-o_") == 0 ) )
       {
          if (kar+1 >= argc) {
             SUMA_SL_Err("Need argument after -prefix");

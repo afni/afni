@@ -1901,7 +1901,7 @@ typedef struct {
    /* Include also AFNI_SurfaceObject which would contain GIFTI's information
    with pointers stolen for list above set to NULL 
       (see SUMA_MergeAfniSO_In_SumaSO)  */
-   AFNI_SurfaceObject *aSO;
+   NI_group *aSO;
    
    SUMA_SO_File_Type FileType; /*!< Type of Surface file */
    SUMA_SO_File_Format FileFormat; /*!< Format of Surface file ascii or binary*/

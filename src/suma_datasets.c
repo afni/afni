@@ -503,6 +503,7 @@ char *SUMA_MxVec_Info (SUMA_MX_VEC *mxv, int detail, char *title)
    SUMA_RETURN(s);
 }
 
+
 /*!
    Creates a NI group to store surface data 
    N_el is the number of data elements stored in each column
@@ -1407,44 +1408,6 @@ NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname)
 
    SUMA_RETURN(nel);
 }
-
-NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname)
-{
-   static char FuncName[]={"SUMA_FindNgrNamedElement"};
-   NI_element *nel = NULL;
-   char *rs=NULL;
-   int ip;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
-   
-   if (!ngr || !elname) { SUMA_SL_Err("NUll input "); SUMA_RETURN(nel); }
-  /* now read the elements in this group */
-   for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
-      switch( ngr->part_typ[ip] ){
-         /*-- a sub-group ==> recursion! --*/
-         case NI_GROUP_TYPE:
-            break ;
-         case NI_ELEMENT_TYPE:
-            nel = (NI_element *)ngr->part[ip] ;
-            if (LocalHead)  {
-               fprintf(SUMA_STDERR,"%s:  Looking for %s   name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
-                        elname, nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
-            }
-            if (!strcmp(elname, nel->name)) SUMA_RETURN(nel);   
-            /* cancel plans if you get here */
-            nel = NULL;
-            break;
-         default:
-            SUMA_SL_Err("Don't know what to make of this group element, ignoring.");
-            break;
-      }
-   }
-
-
-   SUMA_RETURN(nel);
-}
-
 
 
 /*!
@@ -3565,6 +3528,10 @@ int SUMA_ShowNel (void *nel)
       fprintf(stderr,"%s: Can't open fd:1\n", FuncName); 
       SUMA_RETURN(0); 
    }
+   if (!nel) {
+      fprintf (stdout, "\n***********NULL nel  ************\n");
+      SUMA_RETURN(0); 
+   }
    fprintf (stdout, "\n***********nel extra info ************\n");
    el = (NI_element *)nel;
    if (el->type == NI_ELEMENT_TYPE) {
@@ -4218,7 +4185,7 @@ SUMA_DSET * SUMA_NewDsetPointer(void)
    To preserve ngr:
       ngr_keep = dset->ngr; dset->ngr = NULL; SUMA_Free(dset);
 */
-SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini)
+SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn)
 {
    static char FuncName[]={"SUMA_ngr_2_dset"};
    SUMA_DSET *dset=NULL;
@@ -4242,12 +4209,16 @@ SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini)
       the inel is written with vecnum set to 0. This would make
       any attempt to add columns later on fail.
       */
-      SUMA_S_Note("NIML dset with no valid node index element");
+      if (warn) {
+         SUMA_S_Note("NIML dset with no valid node index element");
+      }
       NI_remove_from_group(dset->ngr, dset->inel);
       NI_free(dset->inel); dset->inel = NULL;
       /* Now add the new and proper node index element holder*/
       if (dset->dnel) {
-         SUMA_S_Note("Adding empty holder");
+         if (warn) {
+            SUMA_S_Note("Adding empty holder");
+         }
          dname = SUMA_append_string(
                NEL_DSET_TYPE(dset->ngr), "_node_indices");
          dset->inel = NI_new_data_element("INDEX_LIST", SDSET_VECLEN(dset)); 
@@ -7707,7 +7678,7 @@ SUMA_DSET *SUMA_LoadGIFTIDset (char *Name, int verb)
       if (verb)  { SUMA_SL_Err("Failed to read dset file."); }
       SUMA_RETURN(dset);
    }
-   if (!(dset = SUMA_ngr_2_dset(ngr))) {
+   if (!(dset = SUMA_ngr_2_dset(ngr, 0))) {
       SUMA_SL_Err("Failed to go from ngr to dset");
       SUMA_RETURN(NULL);
    }
@@ -7814,7 +7785,7 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
       }
       #endif
    } else {
-      if (!(dset = SUMA_ngr_2_dset((NI_group *)nini))) {
+      if (!(dset = SUMA_ngr_2_dset((NI_group *)nini, 1))) {
          SUMA_SL_Err("Failed to go from ngr to dset");
          SUMA_RETURN(NULL);
       }
@@ -9309,7 +9280,7 @@ SUMA_DSET *SUMA_afnidset2sumadset(
       SUMA_S_Err("Failed in THD_dset_to_ni_surf_dset");
       SUMA_RETURN(newset);
    }else {
-      if (!(newset = SUMA_ngr_2_dset(ngr))) {
+      if (!(newset = SUMA_ngr_2_dset(ngr, 1))) {
          SUMA_S_Err("Failed to go from ngr to dset");
          SUMA_RETURN(newset);
       }
@@ -9335,7 +9306,7 @@ float SUMA_fdrcurve_zval( SUMA_DSET *dset , int iv , float thresh )
    
    sprintf(name,"FDRCURVE_%06d",iv) ;
    nelb = SUMA_FindNgrAttributeElement(dset->ngr, name);
-   if (!nelb || !nelb->vec[0]) SUMA_RETURN(0.0f) ;
+   if (!nelb || !nelb->vec_num) SUMA_RETURN(0.0f) ;
 
    v = (float *)nelb->vec[0];
    nv = nelb->vec_len - 2 ;
@@ -9633,6 +9604,22 @@ void SUMA_ParseInput_basics_ns(char *argv[], int argc) /* for non-suma programs 
    return;
 
 }
+
+/*!
+   A function version of macro SUMA_TO_LOWER
+   what gets returned is actually the same pointer
+   s but s now points to a lowercase string.
+*/
+char * SUMA_to_lower(char *s) { 
+   int i, d; 
+   if (s) { 
+      d = 'a' - 'A';  
+      for (i=0; i < strlen(s); ++i) { 
+         if (s[i] >= 'A' && s[i] <= 'Z') s[i] = s[i] + d;  
+      }   
+   } 
+   return(s); 
+}  
 
 /*!**
    
@@ -11773,7 +11760,7 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
 
 /******** BEGIN functions for surface structure  ******************** */
       /* see some basic functions in suma_afni_surface.c */
-void SUMA_ShowAfniSurfaceObject( AFNI_SurfaceObject *aSO, FILE *out, 
+void SUMA_ShowAfniSurfaceObject( NI_group *aSO, FILE *out, 
                                  int detail, char *title)
 {
    static char FuncName[]={"SUMA_ShowAfniSurfaceObject"};
@@ -11788,12 +11775,20 @@ void SUMA_ShowAfniSurfaceObject( AFNI_SurfaceObject *aSO, FILE *out,
    SUMA_RETURNe;
 }
 
-char *SUMA_AfniSurfaceObject_Info(AFNI_SurfaceObject *aSO, 
+char *SUMA_AfniSurfaceObject_Info(NI_group *aSO, 
                                   int detail, char *title)
 {
    static char FuncName[]={"SUMA_AfniSurfaceObject_Info"};
-   int i=0, j=0;
+   int i=0, j=0, n=0;
    char *s=NULL, stmp[200];
+   float *fv=NULL;
+   int *iv=NULL;
+   double xform[4][4];
+   NI_element *nelxyz=NULL;
+   NI_element *nelijk=NULL;
+   NI_element *nelxform=NULL;
+   NI_element *nelnormals=NULL;
+   NI_element *nel=NULL;
    SUMA_STRING *SS=NULL;
    SUMA_Boolean LocalHead = NOPE;
     
@@ -11805,53 +11800,72 @@ char *SUMA_AfniSurfaceObject_Info(AFNI_SurfaceObject *aSO,
    if (!aSO) {
       SS = SUMA_StringAppend(SS, "NULL Afni Surface Object\n");
    } else {
-      if (!aSO->ps) {
+      nelxyz = SUMA_FindNgrNamedElement(aSO, "Node_XYZ");
+      nelijk = SUMA_FindNgrNamedElement(aSO, "Mesh_IJK");
+      nelnormals = SUMA_FindNgrNamedElement(aSO, "Node_Normals");
+      nelxform = SUMA_FindNgrNamedElement(aSO, "Coord_System");
+      
+      if (!nelxyz) {
          SS = SUMA_StringAppend(SS, "NULL ps\n");
       } else {
+         NI_GET_INT(nelxyz,"NodeDim",n);
          SS = SUMA_StringAppend_va(SS,   "Have %d (%dD) nodes:\n", 
-                           aSO->ps->N_Node, aSO->ps->NodeDim);
-         if (!aSO->ps->NodeList) {
+                           n > 0 ? nelxyz->vec_len/n:-1, n);
+         if (!nelxyz->vec_num) {
             SS = SUMA_StringAppend(SS, "   NULL NodeList\n");
          } else {
-            for (i=0; i<SUMA_MIN_PAIR(5,aSO->ps->N_Node); ++i) {
+            fv = (float *)nelxyz->vec[0];
+            for (i=0; i<SUMA_MIN_PAIR(5,nelxyz->vec_len/n); ++i) {
                SS = SUMA_StringAppend_va(SS, "   %6d: ", i); 
-               for (j=0; j<aSO->ps->NodeDim; ++j) 
+               for (j=0; j<n; ++j) 
                   SS = SUMA_StringAppend_va(SS, 
                            "%4.3f\t", 
-                           aSO->ps->NodeList[aSO->ps->NodeDim*i+j]);
+                           fv[n*i+j]);
                SS = SUMA_StringAppend(SS, "\n");
             }
          }
       }
-      if (!aSO->tr) {
+      if (!nelijk) {
          SS = SUMA_StringAppend(SS, "NULL tr\n");
       } else {
+         NI_GET_INT(nelijk,"FaceSetDim",n);
          SS = SUMA_StringAppend_va(SS,   "Have %d (%dD) polygons:\n", 
-                           aSO->tr->N_FaceSet, aSO->tr->FaceSetDim);
-         if (!aSO->tr->FaceSetList) {
+                           n > 0 ? nelxyz->vec_len/n:-1, n);
+         if (!nelijk->vec_num) {
             SS = SUMA_StringAppend(SS, "   NULL FaceSetList\n");
          } else {
-            for (i=0; i<SUMA_MIN_PAIR(5,aSO->tr->N_FaceSet); ++i) {
+            iv = (int *)nelijk->vec[0];
+            for (i=0; i<SUMA_MIN_PAIR(5,nelxyz->vec_len/n); ++i) {
                SS = SUMA_StringAppend_va(SS, "   %6d: ", i); 
-               for (j=0; j<aSO->tr->FaceSetDim; ++j) 
+               for (j=0; j<n; ++j) 
                   SS = SUMA_StringAppend_va(SS, 
                            "%6d\t",
-                           aSO->tr->FaceSetList[aSO->tr->FaceSetDim*i+j]);
+                           iv[n*i+j]);
                SS = SUMA_StringAppend(SS, "\n");
             }
          }
       }
-      if (!aSO->NodeNormList) {
-         SS = SUMA_StringAppend(SS, "NULL Node Normals\n");
+
+      if (!nelnormals) {
+         SS = SUMA_StringAppend(SS, "No Node Normals\n");
       } else {
-         if (aSO->ps) {
-            for (i=0; i<SUMA_MIN_PAIR(5,aSO->ps->N_Node); ++i) {
-               SS = SUMA_StringAppend_va(SS, "   %6d: ", i); 
-               for (j=0; j<aSO->ps->NodeDim; ++j) 
-                  SS = SUMA_StringAppend_va(SS, 
-                           "%4.3f\t", 
-                           aSO->NodeNormList[aSO->ps->NodeDim*i+j]);
-                  SS = SUMA_StringAppend(SS, "\n");
+         if (nelxyz) {
+            NI_GET_INT(nelxyz,"NodeDim",n);
+            SS = SUMA_StringAppend_va(SS,   "Have %d (%dD) node normals:\n", 
+                                             n > 0 ? nelnormals->vec_len/n:-1,
+                                             n); 
+         if (!nelnormals->vec_num) {
+               SS = SUMA_StringAppend(SS, "NULL Node Normals Vector\n");
+            } else {
+               fv = (float *)nelnormals->vec[0];
+               for (i=0; i<SUMA_MIN_PAIR(5,nelxyz->vec_len/n); ++i) {
+                  SS = SUMA_StringAppend_va(SS, "   %6d: ", i); 
+                  for (j=0; j<n; ++j) 
+                     SS = SUMA_StringAppend_va(SS, 
+                              "%4.3f\t", 
+                              fv[n*i+j]);
+                     SS = SUMA_StringAppend(SS, "\n");
+               }
             }
          } else {
             SS = SUMA_StringAppend(SS, 

@@ -37,6 +37,17 @@
    else {   char *m_tmp; m_tmp = UNIQ_hashcode((strn)); (newcode) = SUMA_copy_string(m_tmp); free(m_tmp); m_tmp = NULL; }  \
 }
 
+#define SUMA_PUT_ID_ATTR(nel,name,strn) { \
+   if (strn) { \
+      char *m_tmp; m_tmp = UNIQ_hashcode((strn));  \
+      NI_set_attribute(nel, name,m_tmp); free(m_tmp); \
+   } else { \
+      char m_sbuf[SUMA_IDCODE_LENGTH]; \
+      UNIQ_idcode_fill(m_sbuf); \
+      NI_set_attribute(nel, name, m_sbuf); \
+   }  \
+}
+
 
 #define SUMA_WHAT_ENDIAN(End){   \
    int m_one = 1;   \

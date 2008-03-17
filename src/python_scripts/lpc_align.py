@@ -141,12 +141,13 @@ class RegWrap:
                                        "quiet: execute commands quietly\n"\
                                        "echo: echo commands executed\n"\
                                        "dry_run: only echo commands\n" )
+      self.valid_opts.add_opt('-big_move', 0, [])
       self.valid_opts.add_opt('-Allineate_opts', -1, \
-                              ["-onepass -lpc -weight_frac 1.0 "\
+                              ["-lpc -weight_frac 1.0 "\
                                "-VERB -warp aff "\
                                "-maxrot 6 -maxshf 10 "\
                                "-cmass+xy -source_automask+4 "\
-                               "-onepass -lpc -weight_frac 1.0 "], \
+                               ], \
                                helpstr="Options passed to 3dAllineate.")
       self.valid_opts.add_opt('-perc', 1, ['50'])
       self.valid_opts.add_opt('-fresh', 0, [])
@@ -264,7 +265,13 @@ class RegWrap:
          ps.AlOpt = string.join(opt.parlist, ' ')
       else:
          ps.AlOpt = ''
-      
+      #big_move?
+      opt = self.user_opts.find_opt('-big_move')
+      if opt == None:
+         ps.AlOpt.join(' -onepass')
+      else:
+         ps.AlOpt.join(' -twopass')
+         
       #get anat and epi
       opt = self.user_opts.find_opt('-epi')
       if opt != None: 

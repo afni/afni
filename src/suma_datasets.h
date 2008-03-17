@@ -676,6 +676,14 @@ static byte NI_GOT;
    } else { NI_GOT = 0; }  \
 }
 #define NI_IS_STR_ATTR_EQUAL(ngr, name, stmp) ( (!name || !NI_get_attribute(ngr,name) || !stmp || strcmp(NI_get_attribute(ngr,name), stmp) ) ? 0:1 )
+
+#define NI_YES_ATTR(ngr, name) ( \
+   (  !name || \
+      !NI_get_attribute(ngr,name) ||   \
+      strncmp(SUMA_to_lower(NI_get_attribute(ngr,name)), "y",1) )   \
+      ? 0:1 )
+#define NI_NO_ATTR(ngr, name) ( (!name || !NI_get_attribute(ngr,name) || strncmp(SUMA_to_lower(NI_get_attribute(ngr,name)), "n",1) ) ? 0:1 )
+
 /*!
    NEL_READ macro for reading a NI element from strm
    nel (NI_element *) to contain the deed (if null then read failed)
@@ -1094,7 +1102,6 @@ NI_element *SUMA_FindDsetDataElement(SUMA_DSET *dset);
 NI_element *SUMA_FindDsetNodeIndexElement(SUMA_DSET *dset);
 NI_element *SUMA_FindDsetAttributeElement(SUMA_DSET *dset, char *attname);
 NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname);
-NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname);
 NI_element *SUMA_FindNgrDataElement(NI_group *ngr, char *nelname, char *typename);
 float SUMA_LatestVersionNumber(void);
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);
@@ -1256,7 +1263,7 @@ float * SUMA_DsetCol2FloatFullSortedColumn(  SUMA_DSET *dset, int ico, byte **nm
 SUMA_Boolean SUMA_MakeSparseColumnFullSorted(float **vp, int N_v, float mask_val, byte **bmp, SUMA_DSET *dset, int N_Node);
 SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node); 
 int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind);
-SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini);
+SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn);
 SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl);
 SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename);
 byte *SUMA_load_1D_n_mask(char *name, int N_Node, byte *omask, const char *oper, int *N_inmask);
@@ -1284,7 +1291,7 @@ float SUMA_fdrcurve_zval( SUMA_DSET *dset , int iv , float thresh );
       SUMA_process_environ(); \
       SUMA_ParseInput_basics_ns (argv, argc);   \
    }
-
+char * SUMA_to_lower(char *s) ;
 int SUMA_filexists (char *f_name);
 char *SUMA_help_basics();
 char *SUMA_help_talk();
@@ -1364,12 +1371,12 @@ char *SUMA_isEnv(char *env, char *sval);
 /*********************** END Miscellaneous support functions **************************** */
 
 /******** BEGIN functions for surface structure  ******************** */
-void SUMA_ShowAfniSurfaceObject(AFNI_SurfaceObject *aSO, FILE *out,
+void SUMA_ShowAfniSurfaceObject(NI_group *aSO, FILE *out,
                               int detail, char *title);
-char *SUMA_AfniSurfaceObject_Info(AFNI_SurfaceObject *aSO, 
+char *SUMA_AfniSurfaceObject_Info(NI_group *aSO, 
                                   int detail, char *title);
-AFNI_SurfaceObject * afni_open_gifti_surf(char * fname, int read_data);
-int afni_write_gifti_surf( AFNI_SurfaceObject *SO, char * fname, 
+NI_group * afni_open_gifti_surf(char * fname, int read_data);
+int afni_write_gifti_surf( NI_group *aSO, char * fname, 
                            int write_data, int encoding);
 
 

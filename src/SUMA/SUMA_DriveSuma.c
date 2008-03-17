@@ -296,10 +296,11 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
       exit(0);
 }
 
-SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, float *Key_pause, int *Key_redis)
+SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, 
+                                    float *Key_pause, int *Key_redis)
 {
    static char FuncName[]={"SUMA_ParseKeyModifiers"};
-   char *cccp=NULL;
+   char *cccp=NULL, *op=NULL;
    int Found, v;
    double dv;
    SUMA_Boolean LocalHead = NOPE;
@@ -324,7 +325,9 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, float *Key_paus
             case 'r':
                SUMA_ADVANCE_PAST_INT(cccp, v, Found);
                if (!Found) {
-                  fprintf (SUMA_STDERR, "Failed to parse number after :r in %s\n", keyopt);
+                  fprintf (SUMA_STDERR, 
+                           "Failed to parse number after :r in %s\n", 
+                           keyopt);
                   SUMA_RETURN(NOPE);
                }
                *Key_mult = v;
@@ -337,7 +340,9 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, float *Key_paus
                ++cccp;  /* touchy for floats*/
                SUMA_ADVANCE_PAST_NUM(cccp, dv, Found);
                if (!Found) {
-                  fprintf (SUMA_STDERR, "Failed to parse number after :s in %s\n", keyopt);
+                  fprintf (SUMA_STDERR, 
+                           "Failed to parse number after :s in %s\n", 
+                           keyopt);
                   SUMA_RETURN(NOPE);
                }
                *Key_pause = (float)dv;
@@ -347,6 +352,7 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, float *Key_paus
                *Key_redis = 1;
                SUMA_LH("Will redisplay for each rep\n");
                break;
+            
             default:
                SUMA_S_Errv("Failed to parse content of %s\n", keyopt);
                Found = 0;
@@ -377,15 +383,22 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
    kar = 1;
    brk = NOPE;
 	if (LocalHead) {
-      fprintf(SUMA_STDERR, "%s verbose: Parsing command line...\nHave %d entries with argt[0]='%s'", FuncName, argtc, argt[0]);
+      fprintf(SUMA_STDERR, 
+               "%s verbose: Parsing command line...\n"
+               "Have %d entries with argt[0]='%s'", 
+               FuncName, argtc, argt[0]);
 	}
    while (kar < argtc) { /* loop accross command ine options */
-      SUMA_LHv("Now processing argt[%d]=%s\n", kar, SUMA_CHECK_NULL_STR(argt[kar]));
+      SUMA_LHv("Now processing argt[%d]=%s\n", 
+               kar, SUMA_CHECK_NULL_STR(argt[kar]));
       if (!argt[kar]) {
-         SUMA_S_Errv("Null entry!: argt[%d]=%s\n", kar, SUMA_CHECK_NULL_STR(argt[kar]));
+         SUMA_S_Errv("Null entry!: argt[%d]=%s\n", 
+                     kar, SUMA_CHECK_NULL_STR(argt[kar]));
          SUMA_RETURN(NOPE);
       }
-      if (!brk && ( (strcmp(argt[kar], "-label") == 0) || (strcmp(argt[kar], "-surf_label") == 0) || (strcmp(argt[kar], "-so_label") == 0)))
+      if (!brk && (  (strcmp(argt[kar], "-label") == 0) || 
+                     (strcmp(argt[kar], "-surf_label") == 0) || 
+                     (strcmp(argt[kar], "-so_label") == 0)))
       {
          if (kar+1 >= argtc)
          {
@@ -393,8 +406,12 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
-         if (!NI_get_attribute(ngr, "SO_label")) NI_set_attribute(ngr, "SO_label", argt[++kar]);
-         else if (strcmp(NI_get_attribute(ngr, "SO_label"), argt[++kar])) { SUMA_S_Err("Two options setting different  surface labels"); SUMA_RETURN(0); }
+         if (!NI_get_attribute(ngr, "SO_label")) 
+            NI_set_attribute(ngr, "SO_label", argt[++kar]);
+         else if (strcmp(NI_get_attribute(ngr, "SO_label"), argt[++kar])) { 
+            SUMA_S_Err("Two options setting different  surface labels"); 
+            SUMA_RETURN(0); 
+         }
          argt[kar][0] = '\0';
          brk = YUP;
       }
@@ -407,8 +424,12 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }
          argt[kar][0] = '\0';
-         if (!NI_get_attribute(ngr, "SO_label")) NI_set_attribute(ngr, "SO_label", argt[++kar]);
-         else if (strcmp(NI_get_attribute(ngr, "SO_label"), argt[++kar])) { SUMA_S_Err("Two options setting different  surface labels"); SUMA_RETURN(0); }
+         if (!NI_get_attribute(ngr, "SO_label")) 
+            NI_set_attribute(ngr, "SO_label", argt[++kar]);
+         else if (strcmp(NI_get_attribute(ngr, "SO_label"), argt[++kar])) { 
+            SUMA_S_Err("Two options setting different  surface labels"); 
+            SUMA_RETURN(0); 
+         }
          NI_set_attribute(ngr, "switch_surf", argt[kar]);
          argt[kar][0] = '\0';
          brk = YUP;
@@ -508,12 +529,15 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          
          argt[kar][0] = '\0';
          ++kar; N = 1; stmp = NULL; nums = 0;
-         while (kar < argtc && argt[kar] && SUMA_isNumString(argt[kar],(void *)N)) {
+         while (  kar < argtc && 
+                  argt[kar] && 
+                  SUMA_isNumString(argt[kar],(void *)N)) {
             stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
             argt[kar][0] = '\0'; ++kar;
          } --kar;
          if (!stmp || nums < 1 || nums > 2) {
-            SUMA_S_Err("Bad format for -I_range option values; 1 or 2 values allowed.");
+            SUMA_S_Err( "Bad format for -I_range option values;\n"
+                        " 1 or 2 values allowed.");
             SUMA_RETURN(0);
          }
          nv = SUMA_StringToNum(stmp, fv3, 3);
@@ -522,9 +546,12 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
             SUMA_RETURN(0);
          }else {
             if (nv == 1) { fv3[0] = -SUMA_ABS(fv3[0]); fv3[1] = -fv3[0]; }
-            else if (fv3[0] > fv3[1]) { tmpf = fv3[0]; fv3[0] = fv3[1]; fv3[1] = tmpf; }
+            else if (fv3[0] > fv3[1]) { 
+               tmpf = fv3[0]; fv3[0] = fv3[1]; fv3[1] = tmpf; 
+            }
             /* have range, set it please */
-            SUMA_free(stmp); stmp = NULL; stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
+            SUMA_free(stmp); stmp = NULL; 
+            stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
             sprintf(stmp,"%f , %f", fv3[0], fv3[1]);
             NI_set_attribute(ngr, "I_range", stmp);
             SUMA_LHv("Range of %s\n", stmp);
@@ -598,8 +625,10 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  NI_set_attribute(ngr, "1_only", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  NI_set_attribute(ngr, "1_only", "n");
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+            NI_set_attribute(ngr, "1_only", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  
+            NI_set_attribute(ngr, "1_only", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -1_only \n");
             SUMA_RETURN(0);
@@ -617,8 +646,10 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  NI_set_attribute(ngr, "view_dset", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  NI_set_attribute(ngr, "view_dset", "n");
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+            NI_set_attribute(ngr, "view_dset", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  
+            NI_set_attribute(ngr, "view_dset", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_dset \n");
             SUMA_RETURN(0);
@@ -636,8 +667,10 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  NI_set_attribute(ngr, "view_surf", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  NI_set_attribute(ngr, "view_surf", "n");
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+            NI_set_attribute(ngr, "view_surf", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  
+            NI_set_attribute(ngr, "view_surf", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf \n");
             SUMA_RETURN(0);
@@ -655,8 +688,10 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          }
          argt[kar][0] = '\0';
          ++kar;
-         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  NI_set_attribute(ngr, "View_Surf_Cont", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  NI_set_attribute(ngr, "View_Surf_Cont", "n");
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+            NI_set_attribute(ngr, "View_Surf_Cont", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  
+            NI_set_attribute(ngr, "View_Surf_Cont", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf_cont \n");
             SUMA_RETURN(0);
@@ -670,35 +705,22 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          int N_Key = 0, Key_mult = 1, Key_redis= 0;
          char stmp[100];
          float Key_pause = 0;
+         
          if (kar+1 >= argtc)
          {
             fprintf (SUMA_STDERR, "need a key after -key \n");
             SUMA_RETURN(0);
          }
          
-         #if 0
-         if (strlen(argt[kar]) > 4) {
-            char *cccp=argt[kar]+4;
-            int Found;
-            if (*cccp == ':') {
-               SUMA_ADVANCE_PAST_INT(cccp, Key_mult, Found);
-               if (!Found) {
-                  fprintf (SUMA_STDERR, "Failed to parse number after : in %s\n", argt[kar]);
-                  SUMA_RETURN(0);
-               }
-               SUMA_LHv("Key will be repeated %d times\n", Key_mult);
-            } else {
-               fprintf (SUMA_STDERR, "Bad flag after -key in %s\n", argt[kar]);
-               SUMA_RETURN(0);
-            }   
-         }
-         #else
-            if (!SUMA_ParseKeyModifiers(argt[kar], &Key_mult, &Key_pause, &Key_redis)) {
-               SUMA_S_Errv("Failed in parsing %s\n", argt[kar]);
-               SUMA_RETURN(0);
-            } 
-         
-         #endif
+         if (!SUMA_ParseKeyModifiers(argt[kar], 
+                                    &Key_mult, 
+                                    &Key_pause, 
+                                    &Key_redis 
+                                    )) {
+            SUMA_S_Errv("Failed in parsing %s\n", argt[kar]);
+            SUMA_RETURN(0);
+         } 
+
          
          argt[kar][0] = '\0';
          ++kar;
@@ -712,6 +734,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          NI_SET_FLOAT(ngr, stmp, Key_pause);
          sprintf(stmp, "Key_redis_%d", N_Key);
          NI_SET_INT(ngr, stmp, Key_redis);
+         
          argt[kar][0] = '\0';
          ++N_Key;
          NI_SET_INT(ngr,"N_Key", N_Key);
@@ -834,7 +857,9 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
       }
       
       if (0 && !brk) { /* do not enforce this here */
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n",
+			fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Option %s not understood. Try -help for usage\n",
                FuncName, argt[kar]);
 			SUMA_RETURN(0);
 		} else {	
@@ -842,6 +867,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
 			kar ++;
 		}
    }
+
    if (!NI_get_attribute(ngr, "Caller_Working_Dir")) {
       NI_set_attribute(ngr, "Caller_Working_Dir", SUMAg_CF->cwd);
    }
@@ -988,7 +1014,7 @@ char ** SUMA_com2argv(char *com, int *argtcp)
    while (com[0]) {
       SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
       tp=NULL;SUMA_COPY_TO_STRING(com, pos, tp); com = pos;
-      SUMA_LHv("Adding >>>%s<<<\n", tp);
+      SUMA_LHv("Adding other >>>%s<<<\n", tp);
       argt = (char **)SUMA_realloc(argt, sizeof(char *)*(argtc+1)); 
       argt[argtc] = tp; tp = NULL; 
       ++argtc;
@@ -1265,6 +1291,7 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
       SUMA_S_Err("NULL input");
       SUMA_RETURN(NULL);
    }
+   SUMA_LHv("Called with >%s<\n", com);
    /* change com to a bunch of arguments */
    argt = SUMA_com2argv(com, &argtc); 
    
@@ -1288,7 +1315,10 @@ NI_group *SUMA_ComToNgr(char *com, char *command)
       if (argt[kar][0] == '\0') { brk = YUP; } /* been take care of */
       
       if (!brk) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood or not valid for command %s. Try -help for usage\n",
+			fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Option %s not understood or not valid for command %s.\n"
+                  " Try -help for usage\n",
                FuncName, argt[kar], NI_get_attribute(ngr, "Command"));
 			NI_free(ngr); ngr = NULL;
          SUMA_RETURN(ngr);
@@ -1330,7 +1360,7 @@ int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
    SUMA_ENTRY;
    
    if (!com) { SUMA_S_Err("NULL command"); SUMA_RETURN(NOPE); }
-   
+   SUMA_LHv("Called with %s\n", com);
    SUMA_GET_BETWEEN_BLANKS(com, NULL, pos);
    act = NULL;
    SUMA_COPY_TO_STRING(com, pos, act); com = pos;
@@ -1393,7 +1423,8 @@ int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
       argt = SUMA_com2argv(com, &argtc); 
 
       if (argtc != 2) {
-         SUMA_S_Errv("Expecting one value after sleep, have %d\n%s\n", argtc-1, argt[1]);
+         SUMA_S_Errv("Expecting one value after sleep, have %d\n%s\n", 
+                        argtc-1, argt[1]);
          ans = NOPE;
       }
       slp = SUMA_ParseTime(argt[1]);
