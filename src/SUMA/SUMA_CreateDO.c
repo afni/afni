@@ -5556,11 +5556,14 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 
 char *SUMA_SO_GeometricType(SUMA_SurfaceObject *SO) {
    static char FuncName[]={"SUMA_SO_GeometricType"};
+   char *cc=NULL;
    
    SUMA_ENTRY;
    
    if (SO->aSO) {
-      SUMA_RETURN(SO->aSO->ps->GeometricType);
+      cc = SUMA_NI_AttrOfNamedElement(SO->aSO, 
+                                      "Node_XYZ","GeometricType");
+      SUMA_RETURN(cc);
    }
    
    if (SO->isSphere == SUMA_GEOM_SPHERE) {
@@ -5573,11 +5576,15 @@ char *SUMA_SO_GeometricType(SUMA_SurfaceObject *SO) {
 
 char *SUMA_SO_AnatomicalStructureSecondary(SUMA_SurfaceObject *SO) {
    static char FuncName[]={"SUMA_SO_AnatomicalStructureSecondary"};
+   char *cc=NULL;
    
    SUMA_ENTRY;
    
    if (SO->aSO) {
-      SUMA_RETURN(SO->aSO->ps->AnatomicalStructureSecondary);
+      cc = SUMA_NI_AttrOfNamedElement(SO->aSO, 
+                                      "Node_XYZ",
+                                      "AnatomicalStructureSecondary");
+     SUMA_RETURN(cc);
    }
    
    /* some guessing from FreeSurfer settings */
@@ -5600,11 +5607,15 @@ char *SUMA_SO_AnatomicalStructureSecondary(SUMA_SurfaceObject *SO) {
 
 char *SUMA_SO_AnatomicalStructurePrimary(SUMA_SurfaceObject *SO) {
    static char FuncName[]={"SUMA_SO_AnatomicalStructurePrimary"};
+   char *cc=NULL;
    
    SUMA_ENTRY;
    
    if (SO->aSO) {
-      SUMA_RETURN(SO->aSO->ps->AnatomicalStructurePrimary);
+      cc = SUMA_NI_AttrOfNamedElement(SO->aSO, 
+                                      "Node_XYZ",
+                                      "AnatomicalStructurePrimary");
+      SUMA_RETURN(cc);
    }
    
    /* weak guess, based on side */
@@ -5618,11 +5629,15 @@ char *SUMA_SO_AnatomicalStructurePrimary(SUMA_SurfaceObject *SO) {
 }
 char *SUMA_SO_TopologicalType(SUMA_SurfaceObject *SO) {
    static char FuncName[]={"SUMA_SO_TopologicalType"};
+   char *cc=NULL;
    
    SUMA_ENTRY;
    
    if (SO->aSO) {
-      SUMA_RETURN(SO->aSO->tr->TopologicalType);
+      cc = SUMA_NI_AttrOfNamedElement(SO->aSO, 
+                                      "Mesh_IJK",
+                                      "TopologicalType");
+      SUMA_RETURN(cc);
    }
    
    /* guess, based on edges */
@@ -5639,12 +5654,15 @@ char *SUMA_SO_TopologicalType(SUMA_SurfaceObject *SO) {
 /*
    Keep function in sync with SUMA_ExtractAfniSO_FromSumaSO
 */
-SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(AFNI_SurfaceObject **aSOp,
+SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
                                         SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_MergeAfniSO_In_SumaSO"};
-   AFNI_SurfaceObject *aSO=NULL;
-   int i,j;
+   NI_group *aSO=NULL;
+   int i,j,k;
+   double *dv=NULL, xform[4][4];
+   NI_element *nelxyz=NULL, *nelnormals=NULL, *nelxform=NULL, *nelijk=NULL;
+
    SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
@@ -5658,39 +5676,91 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(AFNI_SurfaceObject **aSOp,
       aSO = *aSOp; 
       if (!aSO) SUMA_RETURN(NOPE);
 
+      if (SO->NodeList || SO->FaceSetList || SO->NodeNormList) {
+         SUMA_S_Err("This assumes SO->NodeList and others like it to be NULL!");
+         SUMA_RETURN(NOPE);
+      }
       /* copy common fields one by one. 
          Follow AFNI_SurfaceObject structure closely.
          Keep new fields in aSO */
-      SO->N_Node = aSO->ps->N_Node; 
-      SO->NodeDim = aSO->ps->NodeDim; 
-      SO->EmbedDim = aSO->ps->EmbedDim; 
-      SO->NodeList = aSO->ps->NodeList; aSO->ps->NodeList = NULL;
-      
-      SO->N_FaceSet = aSO->tr->N_FaceSet; 
-      SO->FaceSetDim = aSO->tr->FaceSetDim; 
-      SO->FaceSetList = aSO->tr->FaceSetList; aSO->tr->FaceSetList = NULL;
+      SUMA_LH("Moving node coordinates");
+      nelxyz = SUMA_FindNgrNamedElement(aSO, "Node_XYZ");
+      SO->N_Node = SUMA_NI_get_int(nelxyz, "N_Node"); 
+      SO->NodeDim = SUMA_NI_get_int(nelxyz, "NodeDim"); 
+      SO->EmbedDim = SUMA_NI_get_int(nelxyz, "EmbedDim");
 
-      SO->NodeNormList = aSO->NodeNormList; aSO->NodeNormList = NULL;
+      if (nelxyz->vec_num) {
+         if (!(SO->NodeList = (float *)SUMA_calloc(SO->NodeDim*SO->N_Node,
+                                                  sizeof(float)))) {
+            SUMA_S_Err("Failed to allocate");
+            SUMA_RETURN(NOPE);
+         }
+         memcpy(  SO->NodeList, nelxyz->vec[0], 
+                  SO->NodeDim*SO->N_Node*sizeof(float));
+         NI_remove_column(nelxyz,0);
+      } else {
+         SO->NodeList = NULL;
+      }
       
+      SUMA_LH("Moving mesh ijk");
+      nelijk = SUMA_FindNgrNamedElement(aSO, "Mesh_IJK");
+      SO->N_FaceSet = SUMA_NI_get_int(nelijk, "N_FaceSet"); 
+      SO->FaceSetDim = SUMA_NI_get_int(nelijk, "FaceSetDim"); 
+      if (nelijk->vec_num) {
+         if (!(SO->FaceSetList = (int *)
+                                 SUMA_calloc(SO->FaceSetDim*SO->N_FaceSet,
+                                             sizeof(int)))) {
+            SUMA_S_Err("Failed to allocate");
+            SUMA_RETURN(NOPE);
+         }
+         memcpy(  SO->FaceSetList, nelijk->vec[0], 
+                  SO->FaceSetDim*SO->N_FaceSet*sizeof(int)); 
+         NI_remove_column(nelijk,0);
+      } else {
+         SO->FaceSetList = NULL;
+      }
+      SUMA_LH("Moving normals");
+      nelnormals = SUMA_FindNgrNamedElement(aSO, "Node_Normals");
+      if (nelnormals->vec_num) {
+         if (!(SO->NodeNormList = (float *)SUMA_calloc(SO->NodeDim*SO->N_Node,
+                                                       sizeof(float)))) {
+            SUMA_S_Err("Failed to allocate");
+            SUMA_RETURN(NOPE);
+         } 
+         memcpy(  SO->NodeNormList, nelnormals->vec[0], 
+                  SO->NodeDim*SO->N_Node*sizeof(float));
+         NI_remove_column(nelnormals,0);
+      } else {
+         SO->NodeNormList = NULL;
+      }
+
       SO->aSO = aSO;
       *aSOp = NULL; /* allow no one to touch this anymore */
 
       /* Now fill up some additional fields */
+      SUMA_LH("Filling extras");
       SO->Side = SUMA_GuessSide(SO);
       if (SO->isSphere == SUMA_GEOM_NOT_SET) SUMA_SetSphereParams(SO, -0.1);
       SO->AnatCorrect = SUMA_GuessAnatCorrect(SO);
       SO->State = 
-         SUMA_append_replace_string(SO->aSO->ps->GeometricType,
-                                    SO->aSO->ps->AnatomicalStructureSecondary,
-                                    ".", 0);
+         SUMA_append_replace_string(
+            NI_get_attribute(nelxyz,"GeometricType"),
+            NI_get_attribute(nelxyz,"AnatomicalStructureSecondary"),
+            ".", 0);
 
       /* Is there an xform to apply ? */
-      if (!SUMA_Apply_Coord_xform(SO->NodeList, SO->N_Node, SO->NodeDim,
-                                  SO->aSO->ps->xform, 0)) {
-         SUMA_S_Err("Failed to apply xform!");
-         SO->aSO->ps->inxformspace = 0;
-      }else{
-         SO->aSO->ps->inxformspace = 1;
+      SUMA_LH("Dealing with Xforms");
+      if (!SUMA_GetSOCoordXform(SO, xform)) {
+         SUMA_S_Err("Failed to get xform!");
+         NI_SET_INT(nelxyz,"inxformspace",0);
+      } else {
+         if (!SUMA_Apply_Coord_xform(SO->NodeList, SO->N_Node, SO->NodeDim,
+                                     xform, 0)) {
+            SUMA_S_Err("Failed to apply xform!");
+            NI_SET_INT(nelxyz,"inxformspace",0);
+         }else{
+            NI_SET_INT(nelxyz,"inxformspace",1);
+         }
       }
    } else { /* add new one */
       SUMA_LH("Adding a new aSO");
@@ -5699,44 +5769,58 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(AFNI_SurfaceObject **aSOp,
          SUMA_RETURN(NOPE);
       }
       aSO = SUMA_NewAfniSurfaceObject();
+      nelxyz = SUMA_FindNgrNamedElement(aSO, "Node_XYZ");
+      NI_alter_veclen(nelxyz,SO->NodeDim*SO->N_Node);
+      nelijk = SUMA_FindNgrNamedElement(aSO, "Mesh_IJK");
+      NI_alter_veclen(nelijk,SO->FaceSetDim*SO->N_FaceSet);
+      nelnormals = SUMA_FindNgrNamedElement(aSO, "Node_Normals");
+      NI_alter_veclen(nelnormals,SO->NodeDim*SO->N_Node);
+      nelxform = SUMA_FindNgrNamedElement(aSO, "Coord_System");
       /* fillup IDs, Creating function cannot call ID creating routines */
-      SUMA_NEW_ID(aSO->ps->UniqueID, NULL);
-      SUMA_NEW_ID(aSO->tr->UniqueID, NULL);
+      SUMA_PUT_ID_ATTR(nelxyz,"idcode_str", NULL);
+      SUMA_PUT_ID_ATTR(nelijk, "idcode_str", NULL);
+      
       /* fillup date */
       {  char *date=tross_datetime();
-         aSO->ps->date = SUMA_copy_string(date); 
-         aSO->tr->date = SUMA_copy_string(date);
+         NI_set_attribute(nelxyz,"date", date); 
+         NI_set_attribute(nelijk,"date", date);
          free(date);
       }
+      
       /* populate xform with junk since this concept does not exist in SO */
-      aSO->ps->inxformspace = 0;
-      for (i=0; i<3;++i) 
-         for (j=0; j<3;++j) 
-            if (i==j) aSO->ps->xform[i][j]=1.0;
-            else aSO->ps->xform[i][j]=0.0;
-      aSO->ps->dataspace = SUMA_copy_string("NIFTI_XFORM_UNKNOWN");
-      aSO->ps->xformspace = SUMA_copy_string("NIFTI_XFORM_UNKNOWN");
+      NI_SET_INT(nelxyz,"inxformspace",  0);
+      NI_set_attribute(nelxform, "dataspace", "NIFTI_XFORM_UNKNOWN");
+      NI_set_attribute(nelxform, "xformspace", "NIFTI_XFORM_UNKNOWN");
+      dv = (double *)nelxform->vec[0];
+      k = 0;
+      for (i=0; i<4;++i) 
+         for (j=0; j<4;++j) { 
+            if (i==j) dv[k]=1.0;
+            else dv[k]=0.0;
+            ++k;
+         }
       
       /* Have aSO, now start filling it up */
       SUMA_LH("Filling new aSO");
-      aSO->ps->N_Node = SO->N_Node ; 
-      aSO->ps->NodeDim = SO->NodeDim ; 
-      aSO->ps->EmbedDim = SO->EmbedDim ; 
-      aSO->ps->NodeList = NULL;
+      NI_SET_INT(nelxyz,"N_Node",SO->N_Node) ; 
+      NI_SET_INT(nelxyz,"NodeDim", SO->NodeDim); 
+      NI_SET_INT(nelxyz,"EmbedDim", SO->EmbedDim) ; 
       
-      aSO->tr->N_FaceSet = SO->N_FaceSet ; 
-      aSO->tr->FaceSetDim = SO->FaceSetDim  ; 
+      NI_SET_INT(nelijk,"N_FaceSet", SO->N_FaceSet) ; 
+      NI_SET_INT(nelijk,"FaceSetDim", SO->FaceSetDim)  ; 
       
-      aSO->NodeNormList = NULL;
-      
-      aSO->ps->GeometricType = SUMA_copy_string(SUMA_SO_GeometricType(SO));
-      aSO->ps->AnatomicalStructureSecondary = 
-                   SUMA_copy_string(SUMA_SO_AnatomicalStructureSecondary(SO));
-      aSO->ps->AnatomicalStructurePrimary = 
-                   SUMA_copy_string(SUMA_SO_AnatomicalStructurePrimary(SO));
-      
-      aSO->tr->TopologicalType = 
-                  SUMA_copy_string(SUMA_SO_TopologicalType(SO));
+      NI_set_attribute( nelxyz,
+                        "GeometricType",
+                        SUMA_SO_GeometricType(SO));
+      NI_set_attribute( nelxyz,
+                        "AnatomicalStructureSecondary",
+                        SUMA_SO_AnatomicalStructureSecondary(SO));
+      NI_set_attribute( nelxyz,
+                        "AnatomicalStructurePrimary",
+                        SUMA_SO_AnatomicalStructurePrimary(SO));
+      NI_set_attribute( nelijk,
+                        "TopologicalType",
+                        SUMA_SO_TopologicalType(SO));    
       SO->aSO = aSO; 
      
    }

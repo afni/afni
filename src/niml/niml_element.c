@@ -614,7 +614,8 @@ void NI_remove_column(NI_element *nel, int irm)
    
    if (nel == NULL || nel->vec_len <= 0 )            return ;
    
-   nn = nel->vec_num ;
+   if (!(nn = nel->vec_num)) return;
+
    if (irm < 0 || irm >= nn) irm = nn-1;
    
    /* move irm to last column */
@@ -630,8 +631,8 @@ void NI_remove_column(NI_element *nel, int irm)
    nel->vec_num = nn; 
    
    /* get rid of extra space */
-   nel->vec_typ = NI_realloc( nel->vec_typ, int, sizeof(int)*(nn-1) ) ;
-   nel->vec = NI_realloc( nel->vec , void*, sizeof(void *)*(nn-1) ) ;
+   nel->vec_typ = NI_realloc( nel->vec_typ, int, sizeof(int)*(nn) ) ;
+   nel->vec = NI_realloc( nel->vec , void*, sizeof(void *)*(nn) ) ;
 
    /* if element has "ni_type" attribute, adjust it   14 Jul 2006 [rickr] */
    if( NI_get_attribute(nel, "ni_type") )

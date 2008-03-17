@@ -540,10 +540,18 @@ int main (int argc,char *argv[])
 		
 
 		if (!brk && !ps->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,
+			if (  !strcmp(argv[kar], "-i") ||
+               !strncmp(argv[kar], "-i_",3) ) {
+            fprintf (SUMA_STDERR,
+                  "Error %s: Option %s not understood. \n"
+                  "Make sure parameter after -i or -i_ is the \n"
+                  "full name of a surface.\n", FuncName, argv[kar]);
+         } else {
+            fprintf (SUMA_STDERR,
                   "Error %s: Option %s not understood. Try -help for usage\n", 
                   FuncName, argv[kar]);
-			exit (1);
+			}
+         exit (1);
 		} else {	
 			brk = NOPE;
 			kar ++;

@@ -68,13 +68,13 @@
 
     /* ------------------------------- SUMA ------------------------------- */
     
-    AFNI_SurfaceObject * afni_open_gifti_surf(char * fname, int read_data)
+    NI_group * afni_open_gifti_surf(char * fname, int read_data)
     {
         fprintf(stderr,"** cannot read '%s', no compiled GIFTI support\n",
                 fname ? fname : "NULL");
         return NULL;
     }
-    int afni_write_gifti_surf( AFNI_SurfaceObject *aSO, char * fname, 
+    int afni_write_gifti_surf( NI_group *aSO, char * fname, 
                               int write_data, int encoding)
     {
         fprintf(stderr,"** cannot write '%s', no compiled GIFTI support\n",

@@ -1,63 +1,37 @@
 #ifndef SUMA_AFNI_SURFACE_INCLUDE
 #define SUMA_AFNI_SURFACE_INCLUDE
 
-typedef struct {
-   int N_Node; /*!< Number of nodes in the SO */
-   int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 
-                     is used for now, with flat surfaces having z = 0*/
-   int EmbedDim; /*!<   Embedding dimension of the surface, 
-                        2 for flat surfaces 3 for ones with non zero 
-                        curvature. */ 
-   float *NodeList; /*!< N_Node x 3 vector containing the XYZ node coordinates. 
-                        If NodeDim is 2 then the third column is all zeros
-                        Prior to SUMA  1.2 this used to be a 2D matrix 
-                        (a vector of vectors) */
-   /* meta data (all GIFTI) */
-   char *AnatomicalStructurePrimary;
-   char *AnatomicalStructureSecondary;
-   char *GeometricType;
-   char *UniqueID;
-   char *date;
-   
-   /* coordsys (all GIFTI) */
-   char *dataspace;
-   char *xformspace;
-   double xform[4][4];
-   byte  inxformspace;  /* (internal) 1 = coordinates are in xform space */
+#define NI_SETA_INT(ngr, name, val)  {\
+   char m_stmp[100]; sprintf(m_stmp,"%d", val);   \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+#define NI_GETA_INT(ngr, name, val)  {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   if (m_s) { val = atoi(m_s); } else { val = 0; }\
+}
+#define NI_SETA_FLOAT(ngr, name, val)  {\
+   char m_stmp[100]; sprintf(m_stmp,"%f", val);   \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+#define NI_GETA_FLOAT(ngr, name, val)  {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   if (m_s) { val = atof(m_s); } else { val = 0.0; }\
+}
 
-} AFNI_SurfaceObject_POINTSET;
 
-typedef struct {
-   int N_FaceSet; /*!< Number of polygons defining the surface  */
-   int FaceSetDim; /*!< Number of sides on the polygon */
-   int *FaceSetList; /*!<  N_FaceSetList x FaceSetDim vector describing 
-                           the polygon set that makes up the SO.
-                           Each row contains the indices (into NodeList) of 
-                           the nodes that make up a polygon 
-                           Prior to SUMA  1.2 this used to be a 2D matrix 
-                           (a vector of vectors) */
-   /* meta data (all GIFTI) */
-   char *TopologicalType;
-   char *UniqueID;
-   char *date;
-} AFNI_SurfaceObject_TRIANGLE;
+NI_group *SUMA_NewAfniSurfaceObject(void);
+NI_group *SUMA_NewAfniSurfaceObjectTriangle(void);
+NI_group *SUMA_NewAfniSurfaceObjectPointset(void);
+NI_group *SUMA_NewAfniSurfaceObjectNormals(void);
+NI_group *SUMA_FreeAfniSurfaceObject(NI_group *aSO);
+NI_element *SUMA_FindNgrNamedElement(NI_group *ngr, char *elname);
+int SUMA_NI_get_int(NI_element *nel, char *attrname);
+double SUMA_NI_get_double(NI_element *nel, char *attrname);
+void SUMA_NI_set_int(NI_element *nel, char *attrname, int n);
+void SUMA_NI_set_double(NI_element *nel, char *attrname, double n);
+char *SUMA_NI_AttrOfNamedElement(NI_group *ngr, char *elname, char *attrname);
+int SUMA_NI_intAttrOfNamedElement(NI_group *ngr, char *elname, char *attrname);
+double SUMA_NI_doubleAttrOfNamedElement(NI_group *ngr, char *elname, 
+                                       char *attrname);
 
-typedef struct {  /* BEFORE YOU ADD ANYTHING HERE, 
-                     See comment at closing brace */
-  float *NodeNormList ; /*!< N_Node x 3 vector (used to be matrix prior 
-                              to SUMA 1.2) containing normalized normal 
-                              vectors for each node*/
-  AFNI_SurfaceObject_POINTSET *ps;
-  AFNI_SurfaceObject_TRIANGLE *tr; 
-} AFNI_SurfaceObject; /* Keep content and order of fields identical to
-                        those in the beginning of SUMA_SurfaceObject 
-                        in SUMA_define.h */
-AFNI_SurfaceObject *SUMA_NewAfniSurfaceObject(void);
-AFNI_SurfaceObject_TRIANGLE *SUMA_NewAfniSurfaceObjectTriangle(void);
-AFNI_SurfaceObject_POINTSET *SUMA_NewAfniSurfaceObjectPointset(void);
-AFNI_SurfaceObject *SUMA_FreeAfniSurfaceObject(AFNI_SurfaceObject *aSO);
-AFNI_SurfaceObject_POINTSET *SUMA_FreeAfniSurfaceObjectPointset(
-                                    AFNI_SurfaceObject_POINTSET *ps);
-AFNI_SurfaceObject_TRIANGLE *SUMA_FreeAfniSurfaceObjectTriangle(
-                                    AFNI_SurfaceObject_TRIANGLE *tr);
 #endif

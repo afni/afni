@@ -2569,7 +2569,8 @@ SUMA_Boolean SUMA_NodeXYZ_nel2NodeXYZ (SUMA_SurfaceObject *SO, NI_element *nel)
    }
 
    tmp = NI_get_attribute(nel, "self_idcode");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->nodelist_idcode_str = SUMA_copy_string(tmp);
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) 
+      SO->nodelist_idcode_str = SUMA_copy_string(tmp);
 
    tmp = NI_get_attribute(nel, "domain_parent_idcode");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) {
@@ -2582,15 +2583,22 @@ SUMA_Boolean SUMA_NodeXYZ_nel2NodeXYZ (SUMA_SurfaceObject *SO, NI_element *nel)
    if (SO->N_Node) {
       if (SO->N_Node == nel->vec_len/SO->NodeDim) {
          if (!SO->NodeList) {
-            SUMA_SL_Err("Bad initial values in SO. SO->N_Node == nel->vec_len/3 but NULL SO->NodeList");
+            SUMA_SL_Err("Bad initial values in SO.\n"
+                        "SO->N_Node == nel->vec_len/3 \n"
+                        "but NULL SO->NodeList");
             SUMA_RETURN(NOPE); 
          } 
       } else {
          /* gotta cleanup */
-         if (SO->NodeList) SUMA_free(SO->NodeList); SO->NodeList = NULL; SO->N_Node = 0;
+         if (SO->NodeList) 
+            SUMA_free(SO->NodeList); 
+         SO->NodeList = NULL; SO->N_Node = 0;
       }
    } else {
-      if (SO->NodeList) { SUMA_SL_Err("Should not have a NodeList here"); SUMA_RETURN(NOPE); }
+      if (SO->NodeList) { 
+         SUMA_SL_Err("Should not have a NodeList here"); 
+         SUMA_RETURN(NOPE); 
+      }
    }
    
    SO->N_Node = nel->vec_len/SO->NodeDim;

@@ -2253,15 +2253,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
          case SE_SetViewerCont:
             /* expects a ngr and SO in vp */
-            if (EngineData->ngr_Dest != NextComCode || EngineData->vp_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n"
-                                    "Have %d and %d\n",FuncName, NextCom, NextComCode, EngineData->ngr_Dest, EngineData->vp_Dest);
+            if (  EngineData->ngr_Dest != NextComCode || 
+                  EngineData->vp_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n"
+                        "Have %d and %d\n",
+                        FuncName, NextCom, NextComCode, 
+                        EngineData->ngr_Dest, EngineData->vp_Dest);
                break;
             }
             SO = (SUMA_SurfaceObject *)EngineData->vp; 
             /* search for the keys */
             if (NI_get_attribute(EngineData->ngr,"N_Key")) {
-               char *stmp=NULL, nc;
+               char *stmp=NULL, nc, *vbuf=NULL;
                int k, rep,  N_rep = 1, redisp=0;
                float pauz=0.0, delta_t=0.0;
                struct timeval tt;
@@ -2277,7 +2281,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   NI_GET_FLOAT(EngineData->ngr,tmpstr, pauz);
                   sprintf(tmpstr, "Key_redis_%d", ii);
                   NI_GET_INT(EngineData->ngr,tmpstr, redisp);
-                  SUMA_LHv("Rep=%d, Pause=%f, Redis=%d\n", N_rep, pauz, redisp);
+                  SUMA_LHv("Rep=%d, Pause=%f, Redis=%d\n", 
+                           N_rep, pauz, redisp);
                   if (stmp && (nc = strlen(stmp))) {
                      k = SUMA_KeyPress(stmp, NULL);
                      for (rep=0; rep<N_rep; ++rep) {
@@ -2287,6 +2292,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            case XK_b:
                            case XK_B:
                               if (!SUMA_B_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break; 
+                           case XK_g:
+                           case XK_G:
+                              if (!SUMA_G_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break; 

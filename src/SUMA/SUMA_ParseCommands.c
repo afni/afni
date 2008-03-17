@@ -2655,14 +2655,14 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name)
    SUMA_ENTRY;
    
    if (!Name) { SUMA_RETURN(form); }
+   if (  SUMA_isExtension(Name, ".1D.coord") ||
+         SUMA_isExtension(Name, ".1D.topo")) SUMA_RETURN(SUMA_VEC);
    if (  SUMA_isExtension(Name, ".asc")) SUMA_RETURN(SUMA_FREE_SURFER);
    if (  SUMA_isExtension(Name, ".topo") ||
          SUMA_isExtension(Name, ".coord") ) SUMA_RETURN(SUMA_SUREFIT);
    if (  SUMA_isExtension(Name, ".iv") ) SUMA_RETURN(SUMA_INVENTOR_GENERIC);
    if (  SUMA_isExtension(Name, ".dx")) SUMA_RETURN(SUMA_OPENDX_MESH); 
    if (  SUMA_isExtension(Name, ".ply")) SUMA_RETURN(SUMA_PLY); 
-   if (  SUMA_isExtension(Name, ".1D.coord") ||
-         SUMA_isExtension(Name, ".1D.topo")) SUMA_RETURN(SUMA_VEC);
    if (  SUMA_isExtension(Name, ".srf")) SUMA_RETURN(SUMA_BRAIN_VOYAGER);
    if (  SUMA_isExtension(Name, ".gii")) SUMA_RETURN(SUMA_GIFTI);
    if (  SUMA_isExtension(Name, ".byu") ||
@@ -3621,17 +3621,30 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
-            kar ++; ps->arg_checked[kar]=1;
-            ps->i_surftopo[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (!SUMA_isExtension(argv[kar], ".topo")) { 
+               ps->i_surfnames[ps->i_N_surfnames] = 
+                  SUMA_copy_string(argv[kar]);
+               kar ++; ps->arg_checked[kar]=1;
+               ps->i_surftopo[ps->i_N_surfnames] = 
+                  SUMA_copy_string(argv[kar]);
+            } else {
+               ps->i_surftopo[ps->i_N_surfnames] = 
+                     SUMA_copy_string(argv[kar]);
+               kar ++; ps->arg_checked[kar]=1;
+               ps->i_surfnames[ps->i_N_surfnames] = 
+                  SUMA_copy_string(argv[kar]);   
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_SUREFIT;
             ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
             ++ps->i_N_surfnames;            
             brk = YUP;
          }
 
-         if (!brk && ( (strcmp(tmp_i, "-i_vec") == 0) || (strcmp(tmp_i, "-i_1d") == 0) ||
-                       (strcmp(tmp_i, "-i_VEC") == 0) || (strcmp(tmp_i, "-i_1D") == 0) ) ) {
+         if (  !brk && 
+               (  (strcmp(tmp_i, "-i_vec") == 0) || 
+                  (strcmp(tmp_i, "-i_1d") == 0) ||                    
+                  (strcmp(tmp_i, "-i_VEC") == 0) || 
+                  (strcmp(tmp_i, "-i_1D") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar+1 >= argc)  {
@@ -3642,9 +3655,15 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
-            kar ++; ps->arg_checked[kar]=1;
-            ps->i_surftopo[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (!SUMA_isExtension(argv[kar], ".topo")) { 
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+               kar ++; ps->arg_checked[kar]=1;
+               ps->i_surftopo[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            } else {
+               ps->i_surftopo[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+               kar ++; ps->arg_checked[kar]=1;
+               ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            }
             ps->i_FT[ps->i_N_surfnames] = SUMA_VEC;
             ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII; 
             ++ps->i_N_surfnames;            
@@ -3797,9 +3816,19 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
-            kar ++; ps->arg_checked[kar]=1;
-            ps->ipar_surftopo[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (!SUMA_isExtension(argv[kar], ".topo")) { 
+               ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                  SUMA_copy_string(argv[kar]);
+               kar ++; ps->arg_checked[kar]=1;
+               ps->ipar_surftopo[ps->ipar_N_surfnames] = 
+                  SUMA_copy_string(argv[kar]);
+            } else {
+               ps->ipar_surftopo[ps->ipar_N_surfnames] = 
+                  SUMA_copy_string(argv[kar]);
+               kar ++; ps->arg_checked[kar]=1;
+               ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                  SUMA_copy_string(argv[kar]);
+            }
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_SUREFIT;
             ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
             ++ps->ipar_N_surfnames;            
@@ -3818,9 +3847,19 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+         if (!SUMA_isExtension(argv[kar], ".topo")) { 
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+               SUMA_copy_string(argv[kar]);
             kar ++; ps->arg_checked[kar]=1;
-            ps->ipar_surftopo[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->ipar_surftopo[ps->ipar_N_surfnames] = 
+               SUMA_copy_string(argv[kar]);
+         } else {
+            ps->ipar_surftopo[ps->ipar_N_surfnames] = 
+               SUMA_copy_string(argv[kar]);
+            kar ++; ps->arg_checked[kar]=1;
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+               SUMA_copy_string(argv[kar]);
+         }
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_VEC;
             ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII; 
             ++ps->ipar_N_surfnames;            
@@ -3899,17 +3938,32 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                exit(1);
             }
             /* get the name */
-            if (ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT || ps->t_FT[ps->t_N_surfnames] == SUMA_VEC) N_name = 2;
+            if (  ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT || 
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_VEC) N_name = 2;
             else N_name = 1;
             if (kar+N_name >= argc)  {
 		  		   fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);
 				   exit (1);
 			   }
             kar ++; ps->arg_checked[kar]=1;
-            ps->t_surfnames[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
-            if (N_name == 2) {
-               kar ++; ps->arg_checked[kar]=1;
-               ps->t_surftopo[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (!SUMA_isExtension(argv[kar], ".topo")) { 
+               ps->t_surfnames[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
+               if (N_name == 2) {
+                  kar ++; ps->arg_checked[kar]=1;
+                  ps->t_surftopo[ps->t_N_surfnames] = 
+                     SUMA_copy_string(argv[kar]);
+               }
+            } else {
+               if (N_name == 1) {
+                  ps->t_surfnames[ps->t_N_surfnames] = 
+                     SUMA_Extension(argv[kar], ".topo", YUP);
+               } else {
+                  ps->t_surftopo[ps->t_N_surfnames] = 
+                     SUMA_copy_string(argv[kar]);
+                  kar ++; ps->arg_checked[kar]=1;
+                  ps->t_surfnames[ps->t_N_surfnames] = 
+                     SUMA_copy_string(argv[kar]);
+               }
             } 
 
             ++ps->t_N_surfnames; 
@@ -3953,10 +4007,25 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 				   exit (1);
 			   }
             kar ++; ps->arg_checked[kar]=1;
-            ps->t_surfnames[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
-            if (N_name == 2) {
-               kar ++; ps->arg_checked[kar]=1;
-               ps->t_surftopo[ps->t_N_surfnames] = SUMA_copy_string(argv[kar]);
+            if (!SUMA_isExtension(argv[kar], ".topo")) { 
+               ps->t_surfnames[ps->t_N_surfnames] = 
+                  SUMA_copy_string(argv[kar]);
+               if (N_name == 2) {
+                  kar ++; ps->arg_checked[kar]=1;
+                  ps->t_surftopo[ps->t_N_surfnames] = 
+                     SUMA_copy_string(argv[kar]);
+               }
+            } else {
+               if (N_name == 1) {
+                  ps->t_surfnames[ps->t_N_surfnames] = 
+                     SUMA_Extension(argv[kar],".topo", YUP);
+               } else {
+                  ps->t_surftopo[ps->t_N_surfnames] = 
+                     SUMA_copy_string(argv[kar]);
+                  kar ++; ps->arg_checked[kar]=1;
+                  ps->t_surfnames[ps->t_N_surfnames] = 
+                     SUMA_copy_string(argv[kar]);
+               }
             } 
             /* get the format */
             if (  ps->t_FT[ps->t_N_surfnames] == SUMA_SUREFIT ||
@@ -4106,17 +4175,20 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
+            ps->o_surfnames[ps->o_N_surfnames] = 
+               SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
             ps->o_FT[ps->o_N_surfnames] = SUMA_VEC;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
 			   /* is there another argument ?*/
             if (kar+1 < argc)  {
 		  		   if (argv[kar+1][0] == '-') {
                   /* that is an option flag */ 
-                  ps->o_surftopo[ps->o_N_surfnames] = SUMA_copy_string(ps->o_surfnames[ps->o_N_surfnames]);
+                  ps->o_surftopo[ps->o_N_surfnames] = 
+                     SUMA_copy_string(ps->o_surfnames[ps->o_N_surfnames]);
                } else {
                   kar ++; ps->arg_checked[kar]=1;
-                  ps->o_surftopo[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
+                  ps->o_surftopo[ps->o_N_surfnames] = 
+                     SUMA_RemoveSurfNameExtension(argv[kar], SUMA_VEC);
                }
 			   }
             ++ps->o_N_surfnames;   
