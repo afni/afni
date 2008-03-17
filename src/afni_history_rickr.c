@@ -43,6 +43,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, MAR, 2008, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "if 1 volume, GERT_Reco_dicom does not give (useless) timing to to3d",
+   NULL
+ } ,
+
  { 13, MAR, 2008, RCR, "3dmerge", MINOR, TYPE_GENERAL,
    "added some examples to the -help output",
    NULL
