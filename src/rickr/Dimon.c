@@ -20,10 +20,12 @@ static char * g_history[] =
     " 2.5  Mar 10, 2008 [rickr]\n"
     "      - if 1 run, GERT_Reco_dicom is named by it\n",
     "      - apply -gert_outdir in the case of dicom images\n",
+    " 2.6  Mar 17, 2008 [rickr]\n"
+    "      - if 1 volume, GERT_Reco_dicom does not specify nt=1 in to3d\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.5 (March 10, 2008)"
+#define DIMON_VERSION "version 2.6 (March 17, 2008)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -3312,6 +3314,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     opts_t * opts = &p->opts;
     FILE   * fp, * nfp;                   /* script and name file pointers */
     char     script[32] = IFM_GERT_DICOM; /* output script filename */
+    char     command[64];                 /* command line for chmod */
     char   * spat;                        /* slice acquisition pattern */
     char     outfile[32];                 /* run files */
     char     TR[16];                      /* for printing TR w/out zeros */
@@ -3394,10 +3397,15 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             if( opts->gert_outdir )
                 fprintf(fp, "#------- create dataset for run #%d -------\n",c);
 
-            fprintf(fp, "to3d -prefix ${OutPrefix}_run_%03d  \\\n"
-                        "     -time:zt %d %d %ssec %s   \\\n"
-                        "     -@ < %s\n\n",
-                    c, s->slices, s->runs[c].volumes, TR, spat, outfile);
+            /* if volumes = 1, do not print timing information, 17 Mar 2008 */
+
+            fprintf(fp, "to3d -prefix ${OutPrefix}_run_%03d  \\\n", c );
+
+            if( s->runs[c].volumes > 1 )
+               fprintf(fp, "     -time:zt %d %d %ssec %s   \\\n",
+                       s->slices, s->runs[c].volumes, TR, spat);
+
+            fprintf(fp, "     -@ < %s\n\n", outfile);
 
             /* and possibly move output datasets there */
             if( opts->gert_outdir )
@@ -3407,7 +3415,8 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     fclose( fp );
 
     /* now make it an executable */
-    system( "chmod u+x " IFM_GERT_DICOM );
+    sprintf(command, "chmod u+x %s", script );
+    system( command );
 
     return 0;
 }
