@@ -49,7 +49,7 @@ void DT_Syntax(void) ;
 
 void DT_read_opts( int argc , char * argv[] )
 {
-   int nopt = 1 , nvals , ii , nvcheck ;
+   int nopt = 1 , nvals , ii , nvcheck , nerr=0 ;
    MRI_IMARR *slice_imar ;
 
    INIT_IMARR(DT_imar) ;
@@ -257,17 +257,21 @@ void DT_read_opts( int argc , char * argv[] )
    if( DT_byslice ) nvcheck *= DSET_NZ(DT_dset) ;
 #endif
    for( ii=0 ; ii < DT_nvector ; ii++ ){
-     if( IMARR_SUBIMAGE(DT_imar,ii)->nx < nvcheck )
-       ERROR_exit("%d-th -vector is shorter than dataset!\n",ii+1) ;
+     if( IMARR_SUBIMAGE(DT_imar,ii)->nx < nvcheck ){
+       ERROR_message("%d-th -vector is shorter (%d) than dataset (%d)",
+                     ii+1,IMARR_SUBIMAGE(DT_imar,ii)->nx,nvcheck) ;
+       nerr++ ;
+     }
    }
+   if( nerr > 0 ) ERROR_exit("Cannot continue") ;
 
    /*--- create time series from expressions */
 
    if( DT_exnum > 0 ){
      double atoz[26] , del ;
      int kvar , jj ;
-     MRI_IMAGE * flim ;
-     float * flar ;
+     MRI_IMAGE *flim ;
+     float *flar ;
 
      for( jj=0 ; jj < DT_exnum ; jj++ ){
        if( DT_verb ) INFO_message("Evaluating %d-th -expr\n",jj+1) ;
@@ -448,9 +452,9 @@ int main( int argc , char * argv[] )
 
    nvals = DSET_NVALS(new_dset) ;
    for( iv=0 ; iv < nvals ; iv++ )
-      EDIT_substitute_brick( new_dset , iv ,
-                             DSET_BRICK_TYPE(DT_dset,iv) ,
-                             DSET_ARRAY(DT_dset,iv)       ) ;
+     EDIT_substitute_brick( new_dset , iv ,
+                            DSET_BRICK_TYPE(DT_dset,iv) ,
+                            DSET_ARRAY(DT_dset,iv)       ) ;
 
    if( DT_norm && DSET_BRICK_TYPE(new_dset,0) != MRI_float ){
      INFO_message("Turning -normalize option off (input not in float format)");
@@ -466,9 +470,9 @@ int main( int argc , char * argv[] )
 
    refvec = (float **) malloc( sizeof(float *)*nvec ) ;
    for( kk=ii=0 ; ii < IMARR_COUNT(DT_imar) ; ii++ ){
-      fv = MRI_FLOAT_PTR( IMARR_SUBIMAGE(DT_imar,ii) ) ;
-      for( jj=0 ; jj < IMARR_SUBIMAGE(DT_imar,ii)->ny ; jj++ )          /* compute ptr */
-         refvec[kk++] = fv + ( jj * IMARR_SUBIMAGE(DT_imar,ii)->nx ) ;  /* to vectors  */
+     fv = MRI_FLOAT_PTR( IMARR_SUBIMAGE(DT_imar,ii) ) ;
+     for( jj=0 ; jj < IMARR_SUBIMAGE(DT_imar,ii)->ny ; jj++ )         /* compute ptr */
+       refvec[kk++] = fv + ( jj * IMARR_SUBIMAGE(DT_imar,ii)->nx ) ;  /* to vectors  */
    }
 
    fit = (float *) malloc( sizeof(float) * nvals ) ;  /* will get fit to voxel data */
