@@ -3015,7 +3015,7 @@ SUMA_Boolean SUMA_GIFTI_Read(char *f_name, SUMA_SurfaceObject *SO,
                              int debug)
 {
    static char FuncName[]={"SUMA_GIFTI_Read"};
-   AFNI_SurfaceObject *aSO=NULL;
+   NI_group *aSO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3852,13 +3852,92 @@ SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLin
    
 }
 
+SUMA_Boolean SUMA_isSOinXformedSpace(SUMA_SurfaceObject *SO, NI_element **nelp)
+{
+   static char FuncName[]={"SUMA_isSOinXformedSpace"};
+   NI_element *nel=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (nelp) *nelp = NULL;
+   
+   if (!SO || !SO->aSO) {
+      SUMA_S_Warn("Can't tell, returning NO");
+      SUMA_RETURN(0);
+   }
+   nel = SUMA_FindNgrNamedElement(SO->aSO, "Coord_System");
+   if (nelp) *nelp = nel;
+   if (!nel) {
+      SUMA_S_Warn("Can't tell, returning Nein");
+      SUMA_RETURN(0);
+   }
+   SUMA_RETURN(NI_YES_ATTR(nel, "inxformspace"));
+}
+ 
+SUMA_Boolean SUMA_GetSOCoordXform(SUMA_SurfaceObject *SO, double xform[4][4])
+{
+   static char FuncName[]={"SUMA_GetSOCoordXform"};
+   NI_element *nel=NULL;
+   double *x1d = NULL;
+   int i=0,j=0,k=0;
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->aSO) { SUMA_RETURN(0);}
+   
+   if (!(nel = SUMA_FindNgrNamedElement(SO->aSO, "Coord_System"))) {
+      SUMA_RETURN(0);
+   }
+   
+   x1d = (double *)nel->vec[0];
+   k = 0;
+   for (i=0; i<4;++i) {
+      for (j=0; j<4; ++j) {
+         xform[i][j] = x1d[k];
+         ++k;
+      }   
+   }
+    
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_PutSOCoordXform(SUMA_SurfaceObject *SO, double xform[4][4])
+{
+   static char FuncName[]={"SUMA_PutSOCoordXform"};
+   NI_element *nel=NULL;
+   double *x1d = NULL;
+   int i=0,j=0,k=0;
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->aSO) { SUMA_RETURN(0);}
+   
+   if (!(nel = SUMA_FindNgrNamedElement(SO->aSO, "Coord_System"))) {
+      SUMA_RETURN(0);
+   }
+   if (nel->vec_num) x1d = (double *)nel->vec[0];
+   else x1d = (double *)SUMA_calloc(16, sizeof(double));
+   k = 0;
+   for (i=0; i<4;++i) {
+      for (j=0; j<4; ++j) {
+         x1d[k] = xform[i][j];
+         ++k;
+      }   
+   }
+   if (!nel->vec_num)  {
+      NI_add_column (nel, NI_DOUBLE, x1d);
+      SUMA_free(x1d); x1d=NULL;
+   } 
+   SUMA_RETURN(YUP);
+}
+
 SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
                                  SUMA_SO_File_Format forceencode) 
 {
    static char FuncName[]={"SUMA_GIFTI_Write"};
    int i, j, gii_encode=-1;
    float *NodeList=NULL;
-   AFNI_SurfaceObject *aSO=NULL;
+   double xform[4][4];
+   NI_group *aSO=NULL;
+   NI_element *nel=NULL;
    FILE *outFile = NULL;
    SUMA_Boolean suc = YUP;
    SUMA_Boolean LocalHead = NOPE;
@@ -3888,17 +3967,31 @@ SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
    
    SUMA_LH("Coordinate xform");
    /* Are the coordinates transformed? */
-   if (SO->aSO->ps->inxformspace) { /* make copy of nodelist */
+   if (SUMA_isSOinXformedSpace(SO, &nel)) { /* make copy of nodelist */
       SUMA_LH("Copying coords");
       NodeList = (float *)SUMA_malloc(sizeof(float)*SO->NodeDim*SO->N_Node);
       memcpy( (void *)NodeList,(void *)SO->NodeList, 
                sizeof(float)*SO->NodeDim*SO->N_Node );
       /* undo the transform in coordinate copy*/
+      if (!SUMA_GetSOCoordXform(SO, xform)) {
+         SUMA_S_Err("Failed to get xform!");
+         SUMA_free(NodeList); NodeList = NULL;
+         SUMA_RETURN(NOPE);
+      }
       if (!SUMA_Apply_Coord_xform(NodeList, SO->N_Node, SO->NodeDim,
-                                  SO->aSO->ps->xform, 1)) {
+                                  xform, 1)) {
          SUMA_S_Err("Failed to apply inverse xform!");
          SUMA_free(NodeList); NodeList = NULL;
          SUMA_RETURN(NOPE);
+      }
+      /* for normals, recomputing may need to be done if 
+      xform is not identity. Not sure what GIFTI definition
+      is yet */
+      if (!SUMA_IS_XFORM_IDENTITY(xform)) {
+         SUMA_S_Warn("Normals are not be properly handled when,\n"
+                     "pointset xform is not identity matrix.");
+      } else {
+         SUMA_LH("Xform is identity");
       }
    } else {
       SUMA_LH("Copying coords pointer");
@@ -3907,18 +4000,29 @@ SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
    
    /* Now fill up aSO */
    SUMA_LH("Filling up aSO");
-   SO->aSO->ps->NodeList = NodeList;
-   SO->aSO->tr->FaceSetList = SO->FaceSetList;
-   /* for normals, recomputing may need to be done if 
-   xform is not identity. Not sure what GIFTI definition
-   is yet */
-   if (!SUMA_IS_XFORM_IDENTITY(SO->aSO->ps->xform)) {
-      SUMA_S_Warn("Normals may not be properly handled when,\n"
-                  "pointset xform is not identity matrix.");
-   } else {
-      SUMA_LH("Xform is identity");
+   nel = SUMA_FindNgrNamedElement(SO->aSO, "Node_XYZ");
+   if (nel->vec_num) { 
+      SUMA_S_Crit("Unexpected non NULL coords pointer!");
+      SUMA_RETURN(NOPE);
    }
-   SO->aSO->NodeNormList = SO->NodeNormList;
+   /* Now put the Nodelist in the element.
+      No pointer tricks here, keep niml separate */
+   
+   NI_add_column(nel, NI_FLOAT, (void*)NodeList);
+   
+   nel = SUMA_FindNgrNamedElement(SO->aSO, "Mesh_IJK");
+   if (nel->vec_num) { 
+      SUMA_S_Crit("Unexpected non NULL mesh pointer!");
+      SUMA_RETURN(NOPE);
+   }
+   NI_add_column(nel, NI_INT, (void*)SO->FaceSetList);
+      
+   nel = SUMA_FindNgrNamedElement(SO->aSO, "Node_Normals");
+   if (nel->vec_num) { 
+      SUMA_S_Crit("Unexpected non NULL node normals pointer!");
+      SUMA_RETURN(NOPE);
+   }
+   if (SO->NodeNormList) NI_add_column(nel, NI_FLOAT, (void*)SO->NodeNormList);
       
 
    /* show me aSO */
@@ -3945,15 +4049,15 @@ SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
    }
    
    /* make sure all is back to initial state */
+   nel = SUMA_FindNgrNamedElement(SO->aSO, "Node_XYZ");
    if (NodeList != SO->NodeList) {
       SUMA_free(NodeList); NodeList = NULL;
-      SO->aSO->ps->NodeList = NULL;
-   } else {
-      SO->aSO->ps->NodeList = NULL;
-   }
-   
-   SO->aSO->NodeNormList = NULL;
-   SO->aSO->tr->FaceSetList = NULL;
+   } 
+   NI_remove_column(nel,0);
+   nel = SUMA_FindNgrNamedElement(SO->aSO, "Mesh_IJK");
+   NI_remove_column(nel,0);
+   nel = SUMA_FindNgrNamedElement(SO->aSO, "Node_Normals");
+   NI_remove_column(nel,0);
    
    SUMA_RETURN(suc);
 }
@@ -6743,6 +6847,17 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    SUMA_RETURN(ngr);
 }
 
+SUMA_Boolean SUMA_isnimlSO(NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_isnimlSO"};
+   
+   SUMA_ENTRY;
+   if (!ngr || !ngr->name || strcmp(ngr->name, "SurfaceObject")) {
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_RETURN(YUP);
+}
+
 SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr) 
 {
    static char FuncName[]={"SUMA_nimlSO2SO"};
@@ -6756,8 +6871,11 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    
    if (!ngr) {  SUMA_SL_Err("Null ngr"); SUMA_RETURN(SO); }
    
-   if (strcmp(ngr->name, "SurfaceObject")) {
-      fprintf (SUMA_STDERR,"Error %s: group name (%s) is not (SUMA_SurfaceObject)\nObject does not appear to be a surface.", FuncName, ngr->name);
+   if (!SUMA_isnimlSO(ngr)) {
+      fprintf (SUMA_STDERR,   
+               "Error %s: group name (%s) is not (SUMA_SurfaceObject)\n"
+               "Object does not appear to be a surface.", 
+               FuncName, ngr->name);
    }
    
    /* a new surface */
@@ -6767,15 +6885,24 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    /** BEGIN ATTRIBUTES COMMON TO ALL OBJECTS **/ 
    tmp = SUMA_copy_string(NI_get_attribute(ngr,"self_idcode"));
    if (SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_SL_Warn("No ID in nel.\nThat's not cool yall.\n I'll be adding a new one now."); SUMA_NEW_ID(SO->idcode_str, NULL); 
+      SUMA_SL_Warn(  "No ID in nel.\n"
+                     "That's not cool yall.\n"
+                     "I'll be adding a new one now.");
+      SUMA_NEW_ID(SO->idcode_str, NULL); 
       NI_set_attribute(ngr, "Group_ID", SO->idcode_str);
    } else SO->idcode_str = SUMA_copy_string(tmp);
    
    tmp = NI_get_attribute(ngr, "Object_Type");
-   if (SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_SL_Err("Missing Object Type."); SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO); }
+   if (SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
+      SUMA_SL_Err("Missing Object Type."); 
+      SUMA_Free_Surface_Object(SO); 
+      SO = NULL; 
+      SUMA_RETURN(SO); 
+   }
    if (!strcmp(tmp, "Triangulated_Surface")) SO->FaceSetDim = 3;
    else {
-      fprintf (SUMA_STDERR,"Error %s: Object_Type %s not recognized.\n", FuncName, tmp);
+      fprintf (SUMA_STDERR,
+               "Error %s: Object_Type %s not recognized.\n", FuncName, tmp);
       SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO); 
    }   
    
@@ -6786,19 +6913,22 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    
    /* set the parent ID */
    tmp = NI_get_attribute(ngr, "domain_parent_idcode");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->LocalDomainParentID = SUMA_copy_string(tmp);  
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) 
+      SO->LocalDomainParentID = SUMA_copy_string(tmp);  
    
    
    /* set the grand parent ID */
    tmp = NI_get_attribute(ngr, "Grand_domain_parent_idcode");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->DomainGrandParentID = SUMA_copy_string(tmp);  
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) 
+      SO->DomainGrandParentID = SUMA_copy_string(tmp);  
    
    
    /** END ATTRIBUTES COMMON TO ALL OBJECTS **/      
    
    /** BEGIN ATTRIBUTES specific to Surfaces**/
    tmp = NI_get_attribute(ngr, "Subject_ID");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->Group_idcode_str = SUMA_copy_string(tmp); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) 
+      SO->Group_idcode_str = SUMA_copy_string(tmp); 
    
    tmp = NI_get_attribute(ngr, "Subject_Label");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->Group = SUMA_copy_string(tmp); 
@@ -6807,7 +6937,8 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->OriginatorID = SUMA_copy_string(tmp);    
    
    tmp = NI_get_attribute(ngr, "Instance_Label");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->OriginatorLabel = SUMA_copy_string(tmp); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) 
+      SO->OriginatorLabel = SUMA_copy_string(tmp); 
    
    
    tmp = NI_get_attribute(ngr, "Side");
@@ -6819,7 +6950,8 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    } 
 
    tmp = NI_get_attribute(ngr, "Layer_Name");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->State = SUMA_copy_string(tmp); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) 
+      SO->State = SUMA_copy_string(tmp); 
 
    tmp = NI_get_attribute(ngr, "Anatomically_Correct");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) {
@@ -6834,7 +6966,8 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->FileType = SUMA_SurfaceTypeCode(tmp); 
       
    tmp = NI_get_attribute(ngr, "SUMA_Afni_Parent_Vol_ID");
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->parent_vol_idcode_str = SUMA_copy_string(tmp); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) 
+      SO->parent_vol_idcode_str = SUMA_copy_string(tmp); 
       
    tmp = NI_get_attribute(ngr, "Node_Normal_Direction");
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->normdir = atoi(tmp);
@@ -6842,23 +6975,30 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
    /** END ATTRIBUTES specific to Surfaces**/ 
    
    /* now read the elements in this group */
-   for( ip=0 ; ip < ngr->part_num ; ip++ ){ /* do not free elements as you process them, free with group at end */
+   for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
+      /* do not free elements as you process them, free with group at end */
       switch( ngr->part_typ[ip] ){
          /*-- a sub-group ==> recursion! --*/
          case NI_GROUP_TYPE:
-            SUMA_SL_Err("Not ready from groups inside surface group. Group ignored"); 
+            SUMA_SL_Err("Not ready from groups inside surface group.\n"
+                        " Group ignored"); 
             break ;
          case NI_ELEMENT_TYPE:
             nel = (NI_element *)ngr->part[ip] ;
             if (LocalHead)  {
-               fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
-                        nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
+               fprintf(SUMA_STDERR,
+                        "%s:     name=%s \n"
+                        "vec_len=%d vec_filled=%d, vec_num=%d\n", 
+                        FuncName, nel->name, 
+                        nel->vec_len, nel->vec_filled, nel->vec_num );
             }
 
             /*--- NodeList ---*/
-            if( strcmp(nel->name,"Node_XYZ") == 0 || strcmp(nel->name,"NewNode_XYZ") == 0) { /* Get Da NodeList */
-               if (LocalHead) fprintf (SUMA_STDERR,"%s:\nGetting NodeList...\n", 
-                                             FuncName);
+            if(   strcmp(nel->name,"Node_XYZ") == 0 || 
+                  strcmp(nel->name,"NewNode_XYZ") == 0) { /* Get Da NodeList */
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,
+                           "%s:\nGetting NodeList...\n",  FuncName);
                if (!SUMA_NodeXYZ_nel2NodeXYZ(SO, nel)) {
                   SUMA_SL_Err("Failed in SUMA_NodeXYZ_nel2NodeXYZ");
                   SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);

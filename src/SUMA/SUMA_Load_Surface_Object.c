@@ -16,7 +16,7 @@
    
 #include "SUMA_suma.h"
 
-
+ 
 /*#define  DO_SCALE_RANGE   *//*!< scale node coordinates to 0 <--> 100. DO NOT USE IT, OBSOLETE*/
 #ifndef DO_SCALE_RANGE
    #define DO_SCALE 319.7   /*!< scale node coordinates by specified factor. Useful for tesscon coordinate system in iv files*/
@@ -3489,9 +3489,15 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
       case SUMA_FT_ERROR:
          break;
       case SUMA_GIFTI:
-         if (  SUMA_iswordsame_ci (  SO->aSO->ps->GeometricType,
+         if (  SUMA_iswordsame_ci (  SUMA_NI_AttrOfNamedElement(
+                                                   SO->aSO, 
+                                                   "Node_XYZ", 
+                                                   "GeometricType"),
                                      "Reconstruction") == 1    ||
-               SUMA_iswordsame_ci (  SO->aSO->ps->GeometricType,
+               SUMA_iswordsame_ci (  SUMA_NI_AttrOfNamedElement(
+                                                   SO->aSO, 
+                                                   "Node_XYZ", 
+                                                   "GeometricType"),
                                      "Anatomical") == 1        ) {
             SUMA_RETURN('Y');
          }else {
@@ -3506,6 +3512,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
 SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_GuessSide"};
+   char *cc=NULL;
    
    SUMA_ENTRY;
     
@@ -3562,20 +3569,17 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
                }
          break;
       case SUMA_GIFTI:
-         if ( SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
-                                "Left") == 1 &&
-               SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
-                                "Right") != 1 ) {
+         cc = SUMA_NI_AttrOfNamedElement( SO->aSO, 
+                                          "Node_XYZ",
+                                          "AnatomicalStructurePrimary");
+         if ( SUMA_iswordin_ci (cc, "Left")  == 1 &&
+              SUMA_iswordin_ci (cc, "Right") != 1 ) {
             SUMA_RETURN(SUMA_LEFT);
-         } else if ( SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
-                                "Right") == 1 &&
-               SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
-                                "Left") != 1 ) {
+         } else if ( SUMA_iswordin_ci (cc, "Right") == 1 &&
+                     SUMA_iswordin_ci (cc, "Left")  != 1 ) {
             SUMA_RETURN(SUMA_RIGHT);
-         } else if ( SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
-                                "Right") == 1 &&
-               SUMA_iswordin_ci (SO->aSO->ps->AnatomicalStructurePrimary, 
-                                "Left") == 1 ) {
+         } else if (    SUMA_iswordin_ci (cc, "Right") == 1 &&
+                        SUMA_iswordin_ci (cc, "Left")  == 1 ) {
             SUMA_RETURN(SUMA_LR);
          }
          break;
@@ -3594,6 +3598,7 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
    double cent[3], centmed[3], RAD, RAD0, RAD1, rad;
    int i, i3;
    double r[3], ra=0.0;
+   char *cc=NULL;
    SUMA_GEOM_TYPE isSphere = SUMA_GEOM_NOT_SET;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -3640,7 +3645,9 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
          case SUMA_PLY:
             break;
          case SUMA_GIFTI:
-            if (SUMA_iswordsame_ci(SO->aSO->ps->GeometricType,"spherical")) {
+            cc = SUMA_NI_AttrOfNamedElement( SO->aSO, 
+                                             "Node_XYZ", "GeometricType");
+            if (SUMA_iswordsame_ci(cc,"spherical")) {
                isSphere = SUMA_GEOM_SPHERE;
             } 
             break; 

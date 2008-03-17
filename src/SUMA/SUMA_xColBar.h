@@ -421,7 +421,20 @@ void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh);
    
 #define SUMA_SurfContHelp_DsetLoadCol  \
    "Load a new color plane.\n"   \
-   "(Same as ctrl+c option)."
+   "A color plane is a 1D text file with \n" \
+   "each row formatted as such:"  \
+   "  n  r g b\n" \
+   "where n is the node index, \n"  \
+   "r, g, and b are the red, green and blue\n"  \
+   "color values, respectively. \n"  \
+   "Color values must be between 0 and 1.0. \n" \
+   "A sample file would be: test.1D.col\n"   \
+   "   0    0.1 0.2 1   \n"   \
+   "   1    0   1   0.8 \n"   \
+   "   4    1   1   1   \n"   \
+   "   7    1   0   1   \n"   \
+   "   14   0.7 0.3 0   "
+
 
 #define SUMA_SurfContHelp_SelInt \
    "Select Intensity (I) column.\n"   \

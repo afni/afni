@@ -4267,7 +4267,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, 
                      SUMA_cb_ColPlane_Load, (XtPointer) SO);
-      MCW_register_hint(pb , "Load a new color plane (same as ctrl+c)" ) ;
+      MCW_register_hint(pb , "Load a new color plane (more with BHelp)" ) ;
       MCW_register_help(pb , SUMA_SurfContHelp_DsetLoadCol  ) ;
       XtManageChild (pb);
       

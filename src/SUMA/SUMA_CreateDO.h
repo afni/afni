@@ -37,9 +37,9 @@ char *SUMA_SO_AnatomicalStructurePrimary(SUMA_SurfaceObject *SO);
 char *SUMA_SO_GeometricType(SUMA_SurfaceObject *SO);
 char *SUMA_SO_AnatomicalStructureSecondary(SUMA_SurfaceObject *SO);
 char *SUMA_SO_TopologicalType(SUMA_SurfaceObject *SO);
-SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(AFNI_SurfaceObject **aSOp,
+SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
                                         SUMA_SurfaceObject *SO);
-AFNI_SurfaceObject *SUMA_ExtractAfniSO_FromSumaSO( SUMA_SurfaceObject *SO, 
+NI_group *SUMA_ExtractAfniSO_FromSumaSO( SUMA_SurfaceObject *SO, 
                                                    int CopyData);
 
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
