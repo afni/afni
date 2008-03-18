@@ -1096,7 +1096,7 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
    char *rs=NULL, nmbuf[256], nmbuf2[256],*nm=NULL, *src_string=NULL;
    int ip=0, iattrlist=-1, inelcp=-1, N_ip=-1, tp=-1, icolsrc=-1, ic=-1;
    SUMA_Boolean ans = NOPE;
-   SUMA_Boolean LocalHead = 2;
+   SUMA_Boolean LocalHead = 0;
    
    SUMA_ENTRY;
    
