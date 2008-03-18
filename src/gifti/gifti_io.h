@@ -241,7 +241,20 @@ int    gifti_valid_num_dim      (int num_dim, int whine);
 int    gifti_valid_nvpairs      (nvpairs * nvp, int whine);
 int    gifti_validate_dims      (giiDataArray * da, int whine);
 
+/* comparison functions */
+int gifti_compare_coordsys      (giiCoordSystem*s1, giiCoordSystem*s2,int verb);
+int gifti_compare_DA_pair       (giiDataArray *d1, giiDataArray *d2,
+                                 int comp_data, int verb);
+int gifti_compare_gifti_images  (gifti_image * g1, gifti_image * g2,
+                                 int comp_data, int verb);
+int gifti_compare_gims_only     (gifti_image * g1, gifti_image * g2, int verb);
+int gifti_compare_labeltable    (giiLabelTable*t1, giiLabelTable*t2, int verb);
+int gifti_compare_nvpairs       (nvpairs * p1, nvpairs * p2, int verb);
+int gifti_strdiff               (char * s1, char * s2);
 
+long long gifti_compare_raw_data(void * p1, void * p2, long long length);
+
+/* display functions */
 void   gifti_disp_dtd_url        (void);
 void   gifti_disp_lib_hist       (void);
 void   gifti_disp_lib_version    (void);
