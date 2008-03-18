@@ -142,11 +142,12 @@ class RegWrap:
                                        "echo: echo commands executed\n"\
                                        "dry_run: only echo commands\n" )
       self.valid_opts.add_opt('-big_move', 0, [])
+      self.valid_opts.add_opt('-partial_coverage', 0, [])
       self.valid_opts.add_opt('-Allineate_opts', -1, \
                               ["-lpc -weight_frac 1.0 "\
                                "-VERB -warp aff "\
                                "-maxrot 6 -maxshf 10 "\
-                               "-cmass+xy -source_automask+4 "\
+                               "-source_automask+4 "\
                                ], \
                                helpstr="Options passed to 3dAllineate.")
       self.valid_opts.add_opt('-perc', 1, ['50'])
@@ -247,7 +248,15 @@ class RegWrap:
       return 1
    
    def cleanup(self):
-      com = "rm -f __tt_*"
+      opt = self.user_opts.find_opt('-epi')
+      e = afni_name(opt.parlist[0]) 
+      
+      opt = self.user_opts.find_opt('-anat')
+      a = afni_name(opt.parlist[0])
+      
+      com = "rm -f __tt_%s*" % a.prefix
+      shell_exec(com,ps.oexec)
+      com = "rm -f __tt_%s*" % e.prefix
       shell_exec(com,ps.oexec)
       return 1
 
@@ -271,7 +280,14 @@ class RegWrap:
          ps.AlOpt.join(' -onepass')
       else:
          ps.AlOpt.join(' -twopass')
-         
+      
+      #partial coverage?
+      opt = self.user_opts.find_opt('-partial_coverage')
+      if opt == None:
+         ps.AlOpt.join(' -cmass+xy')
+      else:
+         ps.AlOpt.join(' -nocmass')
+            
       #get anat and epi
       opt = self.user_opts.find_opt('-epi')
       if opt != None: 
