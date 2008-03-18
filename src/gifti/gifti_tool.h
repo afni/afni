@@ -28,6 +28,10 @@ typedef struct {
     int           mod_DA_meta;  /* modify DataArray meta data           */
     int           mod_to_float; /* convert all input data to FLOAT32    */
 
+    /* compare options */
+    int           comp_data;    /* compare data in DataArrays           */
+    int           comp_verb;    /* set verbose level for compare_gifti  */
+
     /* GIFTI user options */
     int           verb;         /* verbose level                        */
     int           indent;       /* spaces per indent level              */
@@ -73,6 +77,7 @@ typedef struct {
 /* protos */
 gifti_image * gt_read_dataset(gt_opts * opts, char * fname);
 
+int gt_compare       (gt_opts * opts);
 int gt_display       (gt_opts *);
 int gt_modify_dset   (gt_opts *, gifti_image * gim);
 int gt_test          (gt_opts *);

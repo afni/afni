@@ -27,9 +27,11 @@ static char * g_history[] =
   "     - reformatted help output\n"
   "0.3  16 Jan, 2008:\n",
   "     - added options -gifti_zlib, -gifti_test, -mod_to_float, -no_updates\n"
+  "0.4  18 Mar, 2008: added comparison options\n",
+  "     -compare_gifti, -compare_data, compare_verb\n"
 };
 
-static char g_version[] = "gifti_tool version 0.3, 16 January 2008";
+static char g_version[] = "gifti_tool version 0.4, 18 March 2008";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -61,7 +63,7 @@ int main( int argc, char * argv[] )
     /* choose top-level operation to perform */
     if     ( opts.gt_display ) rv = gt_display(&opts);
     else if( opts.gt_write )   rv = gt_write(&opts);
-    else if( opts.gt_compare ) rv = 1; /* gt_compare(&opts); to do */
+    else if( opts.gt_compare ) rv = gt_compare(&opts);
     else                       rv = gt_test(&opts);
 
     free_gt_opts(&opts);
@@ -138,6 +140,15 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-buf_size");
             opts->buf_size = atoi(argv[ac]);
+        /* compare options */
+        } else if( !strcmp(argv[ac], "-compare_data") ) {
+            opts->comp_data = 1;
+        } else if( !strcmp(argv[ac], "-compare_gifti") ) {
+            opts->gt_compare = 1;
+        } else if( !strcmp(argv[ac], "-compare_verb") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-compare_verb");
+            opts->comp_verb = atoi(argv[ac]);
         } else if( !strcmp(argv[ac], "-gifti_test") ) {
             opts->gt_test = 1;
         } else if( !strcmp(argv[ac], "-encoding") ) {
@@ -385,6 +396,31 @@ int gt_display(gt_opts * opts)
     return rv;
 }
 
+/* start by comparing 2 gifti_image structs */
+int gt_compare(gt_opts * opts)
+{
+    gifti_image * gimA;
+    gifti_image * gimB;
+    int           rv = 0;
+
+    if( opts->infiles.len != 2 ) {
+        fprintf(stderr,"** must have exactly 2 gifti_images files to test\n");
+        return 1;
+    }
+
+    gimA = gt_read_dataset(opts, opts->infiles.list[0]);
+    gimB = gt_read_dataset(opts, opts->infiles.list[1]);
+
+    if(gimA && gimB) rv = gifti_compare_gifti_images(gimA,gimB,
+                                opts->comp_data, opts->comp_verb);
+    else             rv = -1;
+
+    gifti_free_image(gimA);
+    gifti_free_image(gimB);
+
+    return rv;
+}
+
 int gt_test(gt_opts * opts)
 {
     gifti_image * gim;
@@ -619,6 +655,9 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         "    mod_DA_meta   : %d\n"
         "    mod_to_float  : %d\n"
         "\n"
+        "    comp_data     : %d\n"
+        "    comp_verb     : %d\n"
+        "\n"
         "    verb          : %d\n"
         "    indent        : %d\n"
         "    buf_size      : %d\n"
@@ -635,6 +674,7 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         opts->new_data, opts->mod_add_data, opts->mod_gim_atr,
         opts->mod_gim_meta, opts->mod_DA_atr, opts->mod_DA_meta,
         opts->mod_to_float,
+        opts->comp_data, opts->comp_verb,
         opts->verb, opts->indent, opts->buf_size, opts->b64_check,
         opts->update_ok, opts->zlevel,
         opts->dstore, opts->encoding, opts->show_gifti,
@@ -743,6 +783,11 @@ static int show_help()
     "                   -new_numDA 3 -new_dtype NIFTI_TYPE_INT16 \\\n"
     "                   -new_intent NIFTI_INTENT_TTEST           \\\n"
     "                   -new_ndim 2 -new_dims 5 2 0 0 0 0\n"
+    "\n"
+    "    7. compare 2 gifti datasets\n"
+    "\n"
+    "        gifti_tool -compare_gifti -compare_data -compare_verb 3 \\\n"
+    "                   -infiles dset1.gii dset2.gii\n"
     "\n"
     "----------------------------------------------------------------------\n"
     );
