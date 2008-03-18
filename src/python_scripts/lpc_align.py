@@ -23,7 +23,13 @@ g_help_string = """
     
     Basic Usage:
       lpc_align.py -anat ANAT   -epi EPI   
-       
+    
+    Extra Options:
+      -big_move : indicates that large displacement is needed to align the
+                  two volumes. This option is off by default.
+      -partial_coverage: indicates that the EPI dataset covers a part of the 
+                         brain.    
+    
     The script outputs the following:
         ANAT_alepi: A version of the anatomy that is aligned to the epi 
         anat2epi.aff12.1D: A transformation matrix to align anatomy to the epi 
