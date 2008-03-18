@@ -3458,7 +3458,9 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
    /* open a PLY file for reading */
    ply = ply_open_for_reading(f_name, &nelems, &elist, &file_type, &version);
    if (!ply) {
-      fprintf (SUMA_STDERR, "Error %s: Failed to find/read %s.\n", FuncName, f_name);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed to find/read %s.\n", 
+               FuncName, f_name);
       SUMA_RETURN (NOPE);
    }
    
@@ -3476,7 +3478,9 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
     plist = ply_get_element_description (ply, elem_name, &num_elems, &nprops);
 
     /* print the name of the element, for debugging */
-    if (LocalHead) fprintf (SUMA_STDERR, "%s: element %s %d\n", FuncName, elem_name, num_elems);
+    if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: element %s %d\n", FuncName, elem_name, num_elems);
 
     /* if we're on vertex elements, read them in */
     if (equal_strings ("vertex", elem_name)) {
@@ -3488,7 +3492,9 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       
       SO->NodeList = (float *) SUMA_calloc (3*num_elems, sizeof(float));
       if (!SO->NodeList) {
-         fprintf (SUMA_STDERR, "Error %s: Failed to allocate for SO->NodeList.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to allocate for SO->NodeList.\n", 
+                  FuncName);
          SUMA_RETURN(NOPE);
       }
       
