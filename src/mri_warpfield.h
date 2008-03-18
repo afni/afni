@@ -6,7 +6,6 @@
 
 typedef void (*Warpfield_basis)(int,void *,int,float *,float *,float *,float *);
 typedef void * (*Warpfield_setup)(float,int *,void *) ;
-typedef char * (*Warpfield_label)(int,void *) ;
 
 #define WARPFIELD_TRIG_TYPE   1  /* sin & cos */
 #define WARPFIELD_LEGEN_TYPE  2  /* Legendre polynomials */
@@ -24,7 +23,6 @@ typedef struct {
   void *bpar ;
   Warpfield_basis bfun ;
   Warpfield_setup bset ;
-  Warpfield_label blab ;
 } Warpfield ;
 
 /*---------------------------------------------------------------------------*/
@@ -39,7 +37,7 @@ extern float Warpfield_fitter( Warpfield *wf , int flags ,
 
 extern Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr ) ;
 
-extern float Warpfield_compose(void) ;
+extern float Warpfield_compose(void) ; /* not implemented yet */
 
 extern void Warpfield_trigfun( int kfun, void *vpar,
                                int npt , float *x, float *y, float *z, float *val ) ;
