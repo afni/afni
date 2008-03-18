@@ -43,6 +43,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
+   "added comparison functions to gifticlib",
+   NULL
+ } ,
+
+ { 18, MAR, 2008, RCR, "gifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -compare_gifti option",
+   "See 'gifti_tool -help' for details, including example #7."
+ } ,
+
  { 17, MAR, 2008, RCR, "Dimon", MINOR, TYPE_MODIFY,
    "if 1 volume, GERT_Reco_dicom does not give (useless) timing to to3d",
    NULL
