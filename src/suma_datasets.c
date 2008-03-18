@@ -1046,7 +1046,7 @@ SUMA_Boolean SUMA_FindInAttrList(char **attrlist, char *attr,
    iattrlist = 0;
    while (attrlist[iattrlist] && iattrlist >= 0) {
       if (!strcmp(attrlist[iattrlist],attr)) { 
-         if (*imatch) *imatch = iattrlist;
+         if (imatch) *imatch = iattrlist;
          iattrlist = -1; /* a sign to quit */
       } else {
          ++iattrlist;
@@ -1059,7 +1059,7 @@ SUMA_Boolean SUMA_FindInAttrList(char **attrlist, char *attr,
          sprintf(nmbuf,"%s_%06d",attrlist[iattrlist],icol) ;
          if (!strcmp(nmbuf,attr)) { 
             /* a name match */
-            if (*imatch) *imatch = iattrlist;
+            if (imatch) *imatch = iattrlist;
             iattrlist = -1; /* a sign to quit */
          } else {
             ++iattrlist;
