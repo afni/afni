@@ -287,12 +287,14 @@ int main (int argc,char *argv[])
    }
    
    /* write it out */
-   ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 0, 0);
+   ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 
+                           THD_ok_overwrite(), 0);
    SUMA_free(ooo); ooo=NULL;
    
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    
    exit(0);
    

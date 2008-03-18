@@ -490,7 +490,7 @@ int main (int argc,char *argv[])
       else sprintf(  stmp,"_ClstTable_r%.1f_a%.1f.1D", 
                      Opt->DistLim, Opt->AreaLim);
       ClustOutName = SUMA_append_string(Opt->out_prefix, stmp);   
-      if (SUMA_filexists(ClustOutName)) {
+      if (SUMA_filexists(ClustOutName) && !THD_ok_overwrite()) {
          fprintf (SUMA_STDERR,
                   "Error %s:\n"
                   "Output file %s exists, will not overwrite.\n", 
@@ -569,7 +569,9 @@ int main (int argc,char *argv[])
       }
       cnt = 0;
       if (Opt->DoThreshold == 1) {
-         if (Opt->update) fprintf(SUMA_STDERR,"%s: Thresholding at %f...\n", FuncName, Opt->Thresh);
+         if (Opt->update) 
+            fprintf( SUMA_STDERR,
+                     "%s: Thresholding at %f...\n", FuncName, Opt->Thresh);
          for (i=0;i<N_ni; ++i) {
             if (nt[i] >= Opt->Thresh) {
                ni[cnt] = ni[i];
@@ -661,7 +663,8 @@ int main (int argc,char *argv[])
          if (LocalHead) SUMA_ShowDset(dset_roi,0, NULL); 
       }
       
-      NameOut = SUMA_WriteDset_s (ROIprefix, dset_roi, Opt->oform, 0, 0);
+      NameOut = SUMA_WriteDset_s (  ROIprefix, dset_roi, Opt->oform, 
+                                    THD_ok_overwrite(), 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       SUMA_FreeDset((void *)dset_roi); dset_roi = NULL; 
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;
@@ -685,7 +688,8 @@ int main (int argc,char *argv[])
          SUMA_S_Err("NULL dset_clust");
          exit(1);
       }
-      NameOut = SUMA_WriteDset_s (Clustprefix, dset_clust, Opt->oform, 0, 0);
+      NameOut = SUMA_WriteDset_s (  Clustprefix, dset_clust, Opt->oform, 
+                                    THD_ok_overwrite(), 0);
       if (!NameOut) { SUMA_SL_Err("Failed to write dataset."); exit(1); } 
       SUMA_FreeDset((void *)dset_clust); dset_clust = NULL; 
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;
