@@ -66,8 +66,9 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  { 17 , MAR , 2008 , ZSS , "lpc_align.py" , MICRO , TYPE_NEW_OPT ,
-   "Added -big_move to lpc_align.py for large displacements." ,
-   NULL
+   "Added -big_move and -partial_coverage." ,
+   "-big_move is for when large displacements are needed for alignment.\n"
+   "-partial_coverage is for when EPI covers a portion of the brain."
  } ,
 
  { 12 , MAR , 2008 , ZSS , "suma" , MICRO , TYPE_BUG_FIX ,
