@@ -1188,9 +1188,11 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
                         } 
                      }  
                   }  else {
+                      if (LocalHead > 1) {     
                            fprintf( SUMA_STDERR,
                                     "  ----- Not added\n"
                                     );
+                      }
                   }
                   #endif 
                }
