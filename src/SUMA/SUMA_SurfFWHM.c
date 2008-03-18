@@ -697,7 +697,8 @@ int main (int argc,char *argv[])
       if (Opt->debug) {
          SUMA_S_Notev("Writing output to %s\n", Opt->out_prefix);
       }
-      ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 0, 0);
+      ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 
+                              THD_ok_overwrite(), 0);
       if (dout) SUMA_FreeDset(dout); dout = NULL; SUMA_free(ooo); ooo=NULL;
    }
    
