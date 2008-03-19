@@ -1022,6 +1022,7 @@ static int show_help()
     );
     printf (
     "  ----------------------------------------\n"
+    "\n"
     "  creation (new dataset) options\n"
     "\n"
     "     -new_dset         : create a new GIFTI dataset\n"
@@ -1035,6 +1036,39 @@ static int show_help()
     "     -new_dims D0...D5 : set dims[] to these 6 values\n"
     "                         e.g. -new_ndim 2 -new_dims 7 2 0 0 0 0\n"
     "     -new_data         : allocate space for data in created dataset\n"
+    "\n"
+    );
+    printf (
+    "  ----------------------------------------\n"
+    "  comparison options\n"
+    "\n"
+    "     -compare_gifti           : specifies to compare two GIFTI datasets\n"
+    "\n"
+    "           This compares all elements of the two GIFTI structures.\n"
+    "           The attributes, LabelTabels, MetaData are compared, and then\n"
+    "           each of the included DataArray elements.  All sub-structures\n"
+    "           of the DataArrays are compared, except for the actual 'data',\n"
+    "           which requires the '-compare_data' flag.\n"
+    "\n"
+    "           There must be exactly 2 input datasets to use this option.\n"
+    "           See example #7 for sample usage.\n"
+    "\n"
+    "     -compare_data            : flag to request comparison of the data\n"
+    "\n"
+    "           Data comparison is done per DataArray element.\n"
+    "\n"
+    "     -compare_verb LEVEL      : set the verbose level of comparisons\n"
+    "\n"
+    "           Data comparison is done per DataArray element.  Setting the\n"
+    "           verb level will have the following effect:\n"
+    "\n"
+    "           0 : quiet, only return whether there was a difference\n"
+    "           1 : show whether there was a difference\n"
+    "           2 : show whether there was a difference per DataArray\n"
+    "           3 : show all differences\n"
+    "\n"
+    );
+    printf (
     "------------------------------------------------------------\n"
     );
     return 0;
