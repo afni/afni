@@ -3205,6 +3205,193 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    SUMA_RETURN(s);
    
 }
+
+SUMA_Boolean SUMA_isOutputFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp)
+{
+   static char FuncName[]={"SUMA_isOutputFormatFromArg"};
+   SUMA_Boolean brk = NOPE;
+   char *arg=NULL;
+   SUMA_DSET_FORMAT oform = SUMA_NO_DSET_FORMAT;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!argi) SUMA_RETURN(NOPE);
+   
+   
+   if (  !strncmp(argi,"-o_",3) ||
+         !strncmp(argi,"-O_",3)) arg = SUMA_copy_string(argi+3);
+   else if (!strncmp(argi,"-i_",3) ||
+         !strncmp(argi,"-I_",3)) arg = SUMA_copy_string(argi+3); 
+   else arg = SUMA_copy_string(argi);
+   
+   SUMA_TO_LOWER(arg);
+   SUMA_LHv("%s-->%s\n", argi, arg);
+   
+   if (!brk && (strcmp(arg, "1d") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D;
+      brk = YUP;
+   }
+
+   if (!brk && (strcmp(arg, "1dp") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D_PURE;
+      brk = YUP;
+   }
+   if (!brk && (strcmp(arg, "1dpt") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D_PURE_TRANSPOSE;
+      brk = YUP;
+   }
+
+   if (!brk && (strcmp(arg, "1d_stderr") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D_STDERR;
+      brk = YUP;
+   }
+   if (!brk && (strcmp(arg, "1dp_stderr") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D_PURE_STDERR;
+      brk = YUP;
+   }
+   if (!brk && (strcmp(arg, "1dpt_stderr") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D_PURE_STDERR_TRANSPOSE;
+      brk = YUP;
+   }
+   if (!brk && (strcmp(arg, "1d_stdout") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D_STDOUT;
+      brk = YUP;
+   }
+
+   if (!brk && (strcmp(arg, "1dp_stdout") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D_PURE_STDOUT;
+      brk = YUP;
+   }
+   if (!brk && (strcmp(arg, "1dpt_stdout") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_1D_PURE_STDOUT_TRANSPOSE;
+      brk = YUP;
+   }
+   if (!brk && (strcmp(arg, "niml_stderr") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_NIML_STDERR;
+      brk = YUP;
+   }
+
+   if (!brk && (strcmp(arg, "niml_stdout") == 0))
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+      oform = SUMA_NIML_STDOUT;
+      brk = YUP;
+   }
+
+   if (  !brk && (
+         (strcmp(arg, "niml") == 0) ||
+         (strcmp(arg, "nii") == 0) ) ) 
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+
+      oform = SUMA_NIML;
+      brk = YUP;
+   }
+
+   if (  !brk && (
+         (strncmp(arg, "niml_asc", 8) == 0)||
+         (strncmp(arg, "nii_asc", 7) == 0) ||
+         (strncmp(arg, "ni_as",5) == 0) ) )
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+
+      oform = SUMA_ASCII_NIML;
+      brk = YUP;
+   }
+
+   if (  !brk && (
+         (strncmp(arg, "niml_bi", 7) == 0)||
+         (strncmp(arg, "nii_bi", 6) == 0) ||
+         (strncmp(arg, "ni_bi", 5) == 0) ) )
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+
+      oform = SUMA_BINARY_NIML;
+      brk = YUP;
+   }
+
+   if (  !brk && (
+         (strncmp(arg, "gii", 3) == 0) ||
+         (strncmp(arg, "gifti", 5) == 0) ) )
+   {
+      if (*oformp && *oformp != SUMA_NO_DSET_FORMAT) {
+         SUMA_SL_Warn("output type already specified.");
+      }
+
+      if (SUMA_iswordin_ci(arg,"asc"))
+         oform = SUMA_XML_ASCII_DSET;
+      else if (SUMA_iswordin_ci(arg,"b64gz"))
+         oform = SUMA_XML_B64GZ_DSET;
+      else if (SUMA_iswordin_ci(arg,"b64"))
+         oform = SUMA_XML_B64_DSET;
+      else oform = SUMA_XML_DSET;
+
+      brk = YUP;
+   }
+   
+   
+   
+   if (oformp && oform != SUMA_NO_DSET_FORMAT) {
+      *oformp = oform;
+      SUMA_LHv("Returning %s with oform=%d\n", arg, oform);
+      SUMA_free(arg); arg=NULL;
+      SUMA_RETURN(YUP);
+   } else {
+      SUMA_LHv("Returning %s without touching oform\n", arg);
+      SUMA_free(arg); arg=NULL;
+      SUMA_RETURN(NOPE);
+   }
+   
+}
 /*!
    A function to parse command line arguments and return a convenient
    structure that can be used by various programs for surface specifications

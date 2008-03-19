@@ -4581,23 +4581,30 @@ SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
    SUMA_ENTRY;
    
    if (!DrawnROI) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Initializing with NULL.\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, "%s: Initializing with NULL.\n", FuncName);
       SUMA_SET_LABEL(SUMAg_CF->X->DrawROI->ParentLabel_lb, "Parent: -");
       SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, "-");
       SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIval->textfield, "0");
    }else {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Initializing with %p.\n", FuncName, DrawnROI);
-      SOp = SUMA_findSOp_inDOv(DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-      sprintf (sbuf, "Parent: %s", SOp->Label);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: Initializing with %p.\n", FuncName, DrawnROI);
+      SOp = SUMA_findSOp_inDOv(DrawnROI->Parent_idcode_str, 
+                               SUMAg_DOv, SUMAg_N_DOv);
       if (SOp) {
+         sprintf (sbuf, "Parent: %s", SOp->Label);
          SUMA_SET_LABEL(SUMAg_CF->X->DrawROI->ParentLabel_lb, sbuf);
       } else {
-         SUMA_SET_LABEL(SUMAg_CF->X->DrawROI->ParentLabel_lb, "Parent: Not Found");
+         SUMA_SET_LABEL(SUMAg_CF->X->DrawROI->ParentLabel_lb, 
+                        "Parent: Not Found");
       }  
 
-      SUMAg_CF->X->DrawROI->curDrawnROI = DrawnROI; /* set the currently drawnROI */
+      SUMAg_CF->X->DrawROI->curDrawnROI = DrawnROI; 
+            /* set the currently drawnROI */
 
-      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, DrawnROI->Label);
+      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, 
+                           DrawnROI->Label);
       
       SUMAg_CF->X->DrawROI->ROIval->value = DrawnROI->iLabel;
       sprintf(sbuf,"%d", DrawnROI->iLabel);

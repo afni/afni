@@ -2430,7 +2430,13 @@ SUMA_DSET * SUMA_EmptyCopyofDset (  SUMA_DSET *odset,
    SUMA_ENTRY;
    
    if (!odset) { SUMA_SL_Err("Null input"); SUMA_RETURN(NULL); }
-  
+   
+   ind = SDSET_NODE_INDEX_COL(odset);
+   if (rowmask && !ind) {
+      SUMA_S_Note("Will force population of node index element");
+      SUMA_PopulateDsetNodeIndexNel(odset,0);
+   }
+   
    /* deal with node index element */
    if ((ind = SDSET_NODE_INDEX_COL(odset))) {
       rti = NI_rowtype_find_code(SUMA_ColType2TypeCast(SUMA_NODE_INDEX)) ;
@@ -6647,7 +6653,7 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node)
    SUMA_RETURN(NOPE);
 }
 
-SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset)
+SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset, int verb)
 {
    static char FuncName[]={"SUMA_PopulateDsetNodeIndexNel"};
    int *Ti = NULL; 
@@ -6663,15 +6669,16 @@ SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset)
    }
    
    if (dset->inel && dset->inel->vec_num) {
-      SUMA_S_Note("Dset has node indices. Will not alter list.\n");
+      if (verb) SUMA_S_Note("Dset has node indices. Will not alter list.\n");
    } else {
-      SUMA_S_Note( "Assuming node indexing\n"
+      if (verb) SUMA_S_Note( "Assuming node indexing\n"
                      "is explicit. \n"
                      "1st row is for node 0\n"
                      "2nd is for node 1, etc.\n" );
       Ti = (int *) SUMA_calloc(SDSET_VECLEN(dset), sizeof(int));
       for (i=0; i <SDSET_VECLEN(dset); ++i) Ti[i]=i;
-      if (!SUMA_AddDsetNelCol (dset, "Node Index (inferred)", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
+      if (!SUMA_AddDsetNelCol (  dset, "Node Index (inferred)", 
+                                 SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
          SUMA_S_Err("Failed to add column");
          SUMA_RETURN(NOPE);
       }
@@ -7029,7 +7036,7 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
       case SUMA_XML_ASCII_DSET:
       case SUMA_XML_B64_DSET:
       case SUMA_XML_B64GZ_DSET:
-         if (SUMA_isExtension(PrefOut,".gii")) { /* allow .gii only */
+         if (SUMA_isExtension(Name,".gii")) { /* allow .gii only */
             NameOut = SUMA_Extension(PrefOut, ".gii", NOPE);
          } else {
             NameOut = SUMA_Extension(PrefOut, ".gii.dset", NOPE);
@@ -7438,6 +7445,11 @@ const char *SUMA_ExtensionOfDsetFormat (SUMA_DSET_FORMAT form)
          SUMA_RETURN(".1D.dset");
       case SUMA_ASCII_OPEN_DX_DSET:
          SUMA_RETURN(".dx.dset");
+      case SUMA_XML_DSET:
+      case SUMA_XML_ASCII_DSET:
+      case SUMA_XML_B64_DSET:
+      case SUMA_XML_B64GZ_DSET:
+         SUMA_RETURN(".gii.dset");
       default:
          SUMA_RETURN(""); 
    }
@@ -7476,22 +7488,36 @@ char *SUMA_RemoveDsetExtension_eng (char*Name, SUMA_DSET_FORMAT form)
       case SUMA_1D_PURE:
       case SUMA_1D_PURE_TRANSPOSE:
          tmp  =  SUMA_Extension(Name, ".1D", YUP);
-         noex  =  SUMA_Extension(tmp, ".1D.dset", YUP); SUMA_free(tmp); tmp = NULL;
+         noex  =  SUMA_Extension(tmp, ".1D.dset", YUP); 
+            SUMA_free(tmp); tmp = NULL;
          break;
       case SUMA_ASCII_OPEN_DX_DSET:
          tmp  =  SUMA_Extension(Name, ".dx", YUP);
-         noex  =  SUMA_Extension(tmp, ".dx.dset", YUP); SUMA_free(tmp); tmp = NULL;
+         noex  =  SUMA_Extension(tmp, ".dx.dset", YUP); 
+            SUMA_free(tmp); tmp = NULL;
          break;
       case SUMA_NO_DSET_FORMAT:
          tmp  =  SUMA_Extension(Name, ".1D", YUP);
-         noex = SUMA_Extension(tmp, ".1D.dset", YUP); SUMA_free(tmp); tmp = NULL; tmp = noex;
-         noex = SUMA_Extension(tmp, ".niml.dset", YUP); SUMA_free(tmp); tmp = NULL;
+         noex = SUMA_Extension(tmp, ".1D.dset", YUP); 
+            SUMA_free(tmp); tmp = NULL; tmp = noex;
+         noex = SUMA_Extension(tmp, ".niml.dset", YUP); 
+            SUMA_free(tmp); tmp = NULL; tmp = noex;
+         noex  =  SUMA_Extension(tmp, ".gii", YUP);
+            SUMA_free(tmp); tmp = NULL; tmp = noex;
+         noex  =  SUMA_Extension(tmp, ".gii.dset", YUP); 
+            SUMA_free(tmp); tmp = NULL; tmp = noex;
+         noex  =  SUMA_Extension(tmp, ".dx", YUP);
+            SUMA_free(tmp); tmp = NULL; tmp = noex;
+         noex  =  SUMA_Extension(tmp, ".dx.dset", YUP); 
+            SUMA_free(tmp); tmp = NULL;
          break;
       case SUMA_XML_DSET:
       case SUMA_XML_ASCII_DSET:
       case SUMA_XML_B64_DSET:
       case SUMA_XML_B64GZ_DSET:
-         noex  =  SUMA_Extension(Name, ".gii.dset", YUP);
+         tmp  =  SUMA_Extension(Name, ".gii", YUP);
+         noex  =  SUMA_Extension(tmp, ".gii.dset", YUP); 
+            SUMA_free(tmp); tmp = NULL;
          break;
       case SUMA_NIML_STDOUT:
       case SUMA_NIML_STDERR:
@@ -9211,7 +9237,7 @@ THD_3dim_dataset *SUMA_sumadset2afnidset(
    }
    
    if (!dset->inel || !dset->inel->vec_num) {
-      if (!SUMA_PopulateDsetNodeIndexNel(dset)) {
+      if (!SUMA_PopulateDsetNodeIndexNel(dset,1)) {
             SUMA_S_Err("Failed to add node index column");
             exit(1);
       }
@@ -9472,13 +9498,13 @@ char *SUMA_help_mask()
    SS = SUMA_StringAppend(SS,
 " SUMA mask options:\n"
 "      -n_mask INDEXMASK: Apply operations to nodes listed in\n"
-"                            INDEXMASK  only. \n"
-"      -b_mask BINARYMASK: Similar to -n_mask, except that BINARYMASK\n"
-"                          contains 1 for nodes to filter and 0 for nodes \n"
-"                          to be ignored.\n"
+"                            INDEXMASK  only. INDEXMASK is a 1D file.\n"
+"      -b_mask BINARYMASK: Similar to -n_mask, except that the BINARYMASK\n"
+"                          1D file contains 1 for nodes to filter and\n"
+"                          0 for nodes to be ignored.\n"
 "                          The number of rows in filter_binary_mask must be\n"
-"                          equal to the\n"
-"                          number of nodes forming the surface.\n"
+"                          equal to the number of nodes forming the\n"
+"                          surface.\n"
 "      -c_mask EXPR: Masking based on the result of EXPR. \n"
 "                    Use like afni's -cmask options. \n"
 "                    See explanation in 3dmaskdump -help \n"

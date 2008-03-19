@@ -3715,7 +3715,8 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    
    if (*CreateNel) { 
       /* user wants ni elements to sent to AFNI */
-      nelv = (NI_element **) SUMA_calloc(dlist_size(ROIPlaneList), sizeof(NI_element *));
+      nelv = (NI_element **) 
+         SUMA_calloc(dlist_size(ROIPlaneList), sizeof(NI_element *));
       if (!nelv) {
          SUMA_SLP_Err("Failed to allocate\nfor nelv.");
          SUMA_RETURN(NOPE);
@@ -3731,7 +3732,10 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
 
       Plane = (SUMA_ROI_PLANE *)NextPlaneElm->data;
       
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Processing plane %s\n", FuncName, Plane->name);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,
+                  "%s: Processing plane %s\n", 
+                  FuncName, Plane->name);
       
       if (!dlist_size(Plane->ROI_index_lst)) continue;
       
@@ -4109,6 +4113,46 @@ int * SUMA_NodesInROI (SUMA_DRAWN_ROI *D_ROI, int *N_Nodes, SUMA_Boolean Unique)
       
    SUMA_RETURN(Nodes);
    
+}
+
+SUMA_Boolean SUMA_MinMaxNodesInROI (SUMA_DRAWN_ROI *D_ROI, 
+                                    int MinMax[]) 
+{
+   static char FuncName[]={"SUMA_MinMaxNodesInROI"};
+   int LastOfPreSeg, N_max = -1, ii;
+   DListElmt *NextElm = NULL;
+   SUMA_ROI_DATUM *ROId=NULL;
+   
+   SUMA_ENTRY;
+   
+   MinMax[0] = -1; MinMax[1] = -1;
+   
+   if (!D_ROI || !dlist_size(D_ROI->ROIstrokelist)) {
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* a quick count of number of nodes */
+   SUMA_ROI_CRUDE_COUNT_NODES(D_ROI, N_max);
+   
+   if (!N_max) {
+      SUMA_RETURN (NOPE);
+   }
+    
+   MinMax[0] = 10e8; 
+   NextElm = NULL;
+   do {
+      if (!NextElm) NextElm = dlist_head(D_ROI->ROIstrokelist);
+      else NextElm = dlist_next(NextElm);
+
+      ROId = (SUMA_ROI_DATUM *)NextElm->data;
+      
+      for (ii=0; ii < ROId->N_n; ++ii) {
+         if (ROId->nPath[ii] > MinMax[1]) MinMax[1] = ROId->nPath[ii];
+         else if (ROId->nPath[ii] < MinMax[0]) MinMax[0] = ROId->nPath[ii];
+      }
+   } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
+
+   SUMA_RETURN(YUP);
 }
 
 void SUMA_Free_ROI_PlaneData (void *da)

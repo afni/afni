@@ -1183,7 +1183,7 @@ int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label,
 int SUMA_FillDsetNelNodeIndexCol (SUMA_DSET *dset, char *col_label, 
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride); 
-SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset);
+SUMA_Boolean SUMA_PopulateDsetNodeIndexNel(SUMA_DSET *dset, int verb);
 int SUMA_FillNelCol (NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride); 
