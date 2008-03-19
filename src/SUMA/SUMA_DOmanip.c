@@ -996,6 +996,36 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    SUMA_RETURN(NULL);
 }
 
+/*!
+   Returns an index into dov of a surface domain parent with the largest
+   number of nodes
+*/
+int SUMA_BiggestLocalDomainParent(SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_BiggestLocalDomainParent"};
+   SUMA_SurfaceObject *SO;
+   int i, imax = -1, MaxNode=-1;
+   
+   SUMA_ENTRY;
+   MaxNode = -1;
+   imax = -1;
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == SO_type) {
+         SO = (SUMA_SurfaceObject *)dov[i].OP;
+         if (SUMA_isLocalDomainParent(SO)) {
+            if (SO->N_Node > MaxNode) {
+               imax = i;
+               MaxNode= SO->N_Node;
+            }
+         }
+      }
+   }
+   
+   SUMA_RETURN(imax);
+}
+
+
+
 SUMA_SurfaceObject * SUMA_findanySOp_inDOv(SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_findanySOp_inDOv"};
@@ -1078,15 +1108,24 @@ char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
    \sa SUMA_findSO_inDOv
    \sa SUMA_findSOp_inDOv
 */
-SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, int N_dov)
+SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv( char *coordnamei, 
+                                                SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_find_named_SOp_inDOv"};
    SUMA_SurfaceObject *SO = NULL, *SOf = NULL;
    SUMA_STRING *SS=NULL;
-   char *stmp=NULL;
+   char *stmp=NULL, *coordname=NULL;
    int i;
+   SUMA_FileName sf;
    
    SUMA_ENTRY;
+   
+   if (!coordnamei || !dov) SUMA_RETURN(NULL);
+   
+   /* remove the path from coordname, to be sure */
+   sf = SUMA_StripPath(coordnamei);
+   if (!sf.FileName) SUMA_RETURN(NULL);
+   else coordname = sf.FileName;
    
    i=0;
    SOf = NULL;
@@ -1109,6 +1148,10 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, in
                                     SO->Name_coord.FileName);
                      SUMA_SS2S(SS, stmp);
                      SUMA_SL_Err(stmp); if (stmp) SUMA_free(stmp); stmp = NULL;
+                     if (sf.FileName) SUMA_free(sf.FileName); 
+                        sf.FileName = NULL;
+                     if (sf.Path) SUMA_free(sf.Path); 
+                        sf.Path = NULL;
                      SUMA_RETURN(NULL);
                   }
                   SOf = SO;
@@ -1135,7 +1178,10 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, in
                                     SO->Name_coord.FileName);
                      SUMA_SS2S(SS, stmp);
                      SUMA_SL_Err(stmp); if (stmp) SUMA_free(stmp); stmp = NULL;
-                     SUMA_RETURN(NULL);
+                     if (sf.FileName) SUMA_free(sf.FileName); 
+                        sf.FileName = NULL;
+                     if (sf.Path) SUMA_free(sf.Path); 
+                        sf.Path = NULL;                     SUMA_RETURN(NULL);
                   }
                   SOf = SO;
                }
@@ -1148,6 +1194,11 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, in
       ++i;
    }
    
+   if (sf.FileName) SUMA_free(sf.FileName); 
+      sf.FileName = NULL;
+   if (sf.Path) SUMA_free(sf.Path); 
+      sf.Path = NULL;   
+      
    SUMA_RETURN(SOf);
 }
 
@@ -1674,6 +1725,7 @@ SUMA_Boolean SUMA_isNBDOrelated (SUMA_NB_DO *SDO, SUMA_SurfaceObject *SO)
 }
 
 
+
 /*!
 \brief Returns YUP if the surface: dROI->Parent_idcode_str is related to SO->idcode_str or SO->LocalDomainParentID.
 NOPE otherwise
@@ -1693,21 +1745,34 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
+   if (!SO || !ROI) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
    if (LocalHead) {
-      fprintf (SUMA_STDERR, "%s: %s SO->LocalDomainParentID\n", FuncName, SO->LocalDomainParentID);
-      fprintf (SUMA_STDERR, "%s: %s ROI->Parent_idcode_str\n", FuncName, ROI->Parent_idcode_str);
-      fprintf (SUMA_STDERR, "%s: %s SO->idcode_str\n", FuncName, SO->idcode_str);
+      fprintf (SUMA_STDERR, 
+               "%s: %s SO->LocalDomainParentID\n", 
+               FuncName, SO->LocalDomainParentID);
+      fprintf (SUMA_STDERR, 
+               "%s: %s ROI->Parent_idcode_str\n", 
+               FuncName, ROI->Parent_idcode_str);
+      fprintf (SUMA_STDERR, 
+               "%s: %s SO->idcode_str\n", 
+               FuncName, SO->idcode_str);
    }
    
-   /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
+   /* find the pointer to the surface having for an 
+      idcode_str: ROI->Parent_idcode_str */
    SO_ROI = SUMA_findSOp_inDOv(ROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   
    
    if (!SO_ROI) {
       SUMA_SL_Err("Could not find surface of ROI->Parent_idcode_str");
-      SUMA_RETURN (NOPE);
+      SUMA_RETURN(NOPE);
    }
    
-   if (SUMA_isRelated (SO, SO_ROI, 1)) { /* relationship of the 1st order only */ 
+   if (SUMA_isRelated (SO, SO_ROI, 1)) { 
+      /* relationship of the 1st order only */ 
       SUMA_RETURN (YUP);
    }
 

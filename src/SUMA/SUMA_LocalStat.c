@@ -1155,7 +1155,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
    else {
       if (!(ind = SDSET_NODE_INDEX_COL(din))) {
          SUMA_S_Note("Trying to populate the node index element");
-         if (!SUMA_PopulateDsetNodeIndexNel(din)) {
+         if (!SUMA_PopulateDsetNodeIndexNel(din, 0)) {
             SUMA_S_Err("Failed to populate NodeIndex Nel");
             SUMA_RETURN(NULL);
          }
