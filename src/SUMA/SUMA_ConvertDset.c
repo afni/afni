@@ -53,6 +53,10 @@ void usage_ConverDset()
 "           1Dp:                like 1D but with no comments\n"
 "                               or other 1D formatting gimmicks.\n"
 "           1Dpt:               like 1Dp but transpose the output.\n"
+"           gii:                GIFTI format default .\n"
+"           gii_asc:            GIFTI format with ascii DataArrays.\n"
+"           gii_b64:            GIFTI format with Base 64 encoded DataArrays.\n"
+"           gii_b64gz:          GIFTI format with B64 enconding and gzipping.\n"
 "         For stderr and stdout output use one of:\n"
 "           1D_stderr, 1D_stdout, niml_stderr, or niml_stdout, \n"
 "           1Dp_stdout, 1Dp_stderr, 1Dpt_stdout, 1Dpt_stderr\n"
@@ -168,6 +172,11 @@ int main (int argc,char *argv[])
       
       SUMA_TO_LOWER(argv[kar]);
       
+      if (SUMA_isOutputFormatFromArg(argv[kar], &oform)) {
+         brk = YUP;
+      } 
+
+      
       if (!brk && (strcmp(argv[kar], "-i_1d") == 0))
       {
          if (iform != SUMA_NO_DSET_FORMAT) {
@@ -198,168 +207,6 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-o_1d") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D;
-         brk = YUP;
-      }
-      
-      if (!brk && (strcmp(argv[kar], "-o_1dp") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D_PURE;
-         brk = YUP;
-      }
-      if (!brk && (strcmp(argv[kar], "-o_1dpt") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D_PURE_TRANSPOSE;
-         brk = YUP;
-      }
-      
-      if (!brk && (strcmp(argv[kar], "-o_1d_stderr") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D_STDERR;
-         brk = YUP;
-      }
-      if (!brk && (strcmp(argv[kar], "-o_1dp_stderr") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D_PURE_STDERR;
-         brk = YUP;
-      }
-      if (!brk && (strcmp(argv[kar], "-o_1dpt_stderr") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D_PURE_STDERR_TRANSPOSE;
-         brk = YUP;
-      }
-      if (!brk && (strcmp(argv[kar], "-o_1d_stdout") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D_STDOUT;
-         brk = YUP;
-      }
-      
-      if (!brk && (strcmp(argv[kar], "-o_1dp_stdout") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D_PURE_STDOUT;
-         brk = YUP;
-      }
-      if (!brk && (strcmp(argv[kar], "-o_1dpt_stdout") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_1D_PURE_STDOUT_TRANSPOSE;
-         brk = YUP;
-      }
-      if (!brk && (strcmp(argv[kar], "-o_niml_stderr") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_NIML_STDERR;
-         brk = YUP;
-      }
-      
-      if (!brk && (strcmp(argv[kar], "-o_niml_stdout") == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         oform = SUMA_NIML_STDOUT;
-         brk = YUP;
-      }
-      
-      if (  !brk && 
-            (strcmp(argv[kar], "-o_niml") == 0) ||
-            (strcmp(argv[kar], "-o_nii") == 0) )
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         
-         oform = SUMA_NIML;
-         brk = YUP;
-      }
-      
-      if (  !brk && 
-            (strncmp(argv[kar], "-o_niml_asc", 11) == 0)||
-            (strncmp(argv[kar], "-o_nii_asc", 10) == 0) )
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         
-         oform = SUMA_ASCII_NIML;
-         brk = YUP;
-      }
-      
-      if (  !brk && 
-            (strncmp(argv[kar], "-o_niml_bi", 10) == 0)||
-            (strncmp(argv[kar], "-o_nii_bi", 9) == 0))
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         
-         oform = SUMA_BINARY_NIML;
-         brk = YUP;
-      }
-      
-      if (  !brk && 
-            (strncmp(argv[kar], "-o_gii", 6) == 0) ||
-            (strncmp(argv[kar], "-o_gifti", 8) == 0) )
-      {
-         if (oform != SUMA_NO_DSET_FORMAT) {
-            SUMA_SL_Err("output type already specified.");
-            exit(1);
-         }
-         
-         if (SUMA_iswordin_ci(argv[kar],"asc"))
-            oform = SUMA_XML_ASCII_DSET;
-         else if (SUMA_iswordin_ci(argv[kar],"b64gz"))
-            oform = SUMA_XML_B64GZ_DSET;
-         else if (SUMA_iswordin_ci(argv[kar],"b64"))
-            oform = SUMA_XML_B64_DSET;
-         else oform = SUMA_XML_DSET;
-         
-         brk = YUP;
-      }
       
       if (  !brk && 
             (  strcmp(argv[kar], "-input") == 0 ||
@@ -438,7 +285,6 @@ int main (int argc,char *argv[])
       }
       
    }/* loop accross command ine options */
-   
    overwrite = THD_ok_overwrite();
    pad_to_node = MRILIB_DomainMaxNodeIndex;
    
@@ -522,12 +368,12 @@ int main (int argc,char *argv[])
       }
       
       if (add_node_index) {
-         if (!SUMA_PopulateDsetNodeIndexNel(dset)) {
+         if (!SUMA_PopulateDsetNodeIndexNel(dset, 1)) {
             SUMA_S_Err("Failed to add node index column");
             exit(1);
          }
       }
-      
+       
       SUMA_LHv("On to auto_nmask ...%p %p %p\n", 
                ps->bmaskname,ps->nmaskname,ps->cmask);
       if (!(auto_nmask = 

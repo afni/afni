@@ -14,55 +14,55 @@ void usage_ROI2dataset_Main ()
       static char FuncName[]={"usage_ROI2dataset_Main"};
       char * s = NULL;
       fprintf(SUMA_STDOUT, 
-            "\n"
-            "Usage: \n"
-            "   ROI2dataset <-prefix dsetname> [...] <-input ROI1 ROI2 ...>\n"
-            "               [<-of ni_bi|ni_as|1D>] \n"
-            "               [<-dom_par_id idcode>] \n"
-          /* "   [<-dom_par domain> NOT IMPLEMENTED YET] \n" */
-            "    This program transforms a series of ROI files\n"
-            "    to a node dataset. This data set will contain\n"
-            "    the node indices in the first column and their\n"
-            "    ROI values in the second column.\n"
-            "    Duplicate node entries (nodes that are part of\n"
-            "    multiple ROIs) will get ignored. You will be\n"
-            "    notified when this occurs. \n"
-            "\n"
-            "Mandatory parameters:\n"
-            "    -prefix dsetname: Prefix of output dataset.\n"
-            "                      Program will not overwrite existing\n"
-            "                      datasets.\n"
-            "    -input ROI1 ROI2....: ROI files to turn into a \n"
-            "                          data set. This parameter MUST\n"
-            "                          be the last one on command line.\n"
-            "\n"
-            "Optional parameters:\n"
-            "(all optional parameters must be specified before the\n"
-            " -input parameters.)\n"
-            "    -h | -help: This help message\n"
-            "    -of FORMAT: Output format of dataset. FORMAT is one of:\n"
-            "                ni_bi: NIML binary\n"
-            "                ni_as: NIML ascii (default)\n"
-            "                1D   : 1D AFNI format.\n"
-            "    -dom_par_id id: Idcode of domain parent.\n"
-            "                    When specified, only ROIs have the same\n"
-            "                    domain parent are included in the output.\n"
-            "                    If id is not specified then the first\n"
-            "                    domain parent encountered in the ROI list\n"
-            "                    is adopted as dom_par_id.\n"
-            "                    1D roi files do not have domain parent \n"
-            "                    information. They will be added to the \n"
-            "                    output data under the chosen dom_par_id.\n"
-            "    -pad_to_node max_index: Output a full dset from node 0 \n"
-            "                            to node max_index (a total of \n"
-            "                            max_index + 1 nodes). Nodes that\n"
-            "                            are not part of any ROI will get\n"
-            "                            a default label of 0 unless you\n"
-            "                            specify your own padding label.\n"
-            "    -pad_label padding_label: Use padding_label (an integer) to\n"
-            "                            label nodes that do not belong\n"
-            "                            to any ROI. Default is 0.\n" 
-            "\n");
+"\n"
+"Usage: \n"
+"   ROI2dataset <-prefix dsetname> [...] <-input ROI1 ROI2 ...>\n"
+"               [<-of ni_bi|ni_as|1D>] \n"
+"               [<-dom_par_id idcode>] \n"
+/* "   [<-dom_par domain> NOT IMPLEMENTED YET] \n" */
+"    This program transforms a series of ROI files\n"
+"    to a node dataset. This data set will contain\n"
+"    the node indices in the first column and their\n"
+"    ROI values in the second column.\n"
+"    Duplicate node entries (nodes that are part of\n"
+"    multiple ROIs) will get ignored. You will be\n"
+"    notified when this occurs. \n"
+"\n"
+"Mandatory parameters:\n"
+"    -prefix dsetname: Prefix of output dataset.\n"
+"                      Program will not overwrite existing\n"
+"                      datasets.\n"
+"    -input ROI1 ROI2....: ROI files to turn into a \n"
+"                          data set. This parameter MUST\n"
+"                          be the last one on command line.\n"
+"\n"
+"Optional parameters:\n"
+"(all optional parameters must be specified before the\n"
+" -input parameters.)\n"
+"    -h | -help: This help message\n"
+"    -of FORMAT: Output format of dataset. FORMAT is one of:\n"
+"                ni_bi: NIML binary\n"
+"                ni_as: NIML ascii (default)\n"
+"                1D   : 1D AFNI format.\n"
+"    -dom_par_id id: Idcode of domain parent.\n"
+"                    When specified, only ROIs have the same\n"
+"                    domain parent are included in the output.\n"
+"                    If id is not specified then the first\n"
+"                    domain parent encountered in the ROI list\n"
+"                    is adopted as dom_par_id.\n"
+"                    1D roi files do not have domain parent \n"
+"                    information. They will be added to the \n"
+"                    output data under the chosen dom_par_id.\n"
+"    -pad_to_node max_index: Output a full dset from node 0 \n"
+"                            to node max_index (a total of \n"
+"                            max_index + 1 nodes). Nodes that\n"
+"                            are not part of any ROI will get\n"
+"                            a default label of 0 unless you\n"
+"                            specify your own padding label.\n"
+"    -pad_label padding_label: Use padding_label (an integer) to\n"
+"                            label nodes that do not belong\n"
+"                            to any ROI. Default is 0.\n" 
+"\n");
          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
          fprintf(SUMA_STDOUT, 
             "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
@@ -73,7 +73,8 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ROI2dataset"}; 
    char  *prefix_name, **input_name_v=NULL, *out_name=NULL, 
-         *Parent_idcode_str = NULL, *dummy_idcode_str = NULL, *stmp=NULL;
+         *Parent_idcode_str = NULL, *dummy_idcode_str = NULL, 
+         *stmp=NULL, *sss=NULL;
    int kar, brk, N_input_name, cnt = 0, N_ROIv, N_tROI, ii, i, nn, pad_to, pad_val;
    SUMA_DSET *dset=NULL;
    NI_stream ns;
@@ -125,13 +126,12 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -of ");
 				exit (1);
 			}
-			if (!strcmp(argv[kar], "ni_as")) Out_Format = SUMA_ASCII_NIML;
-         else if (!strcmp(argv[kar], "ni_bi")) Out_Format = SUMA_BINARY_NIML;
-         else if (!strcmp(argv[kar], "1D")) Out_Format = SUMA_1D;
-         else {
-            fprintf (SUMA_STDERR, "%s not a valid option with -of.\n", argv[kar]);
+			Out_Format = SUMA_NO_DSET_FORMAT;
+         if (!SUMA_isOutputFormatFromArg(argv[kar], &Out_Format)) {
+            fprintf (SUMA_STDERR, 
+                     "%s not a valid option with -of.\n", argv[kar]);
 				exit (1);
-         }   
+         }
          brk = YUP;
 		}
       
@@ -201,6 +201,11 @@ int main (int argc,char *argv[])
    }
    
    /* form the output name and check for existence */
+   #if 1
+   out_name = SUMA_Extension( prefix_name, 
+                              (char *)SUMA_ExtensionOfDsetFormat(Out_Format), 
+                              NOPE);
+   #else
    switch (Out_Format) {
       case SUMA_ASCII_NIML:
       case SUMA_BINARY_NIML:
@@ -214,11 +219,11 @@ int main (int argc,char *argv[])
          exit(1);
          break;
    }
-   
+   #endif
    SUMA_LH (out_name);
     
    /* check for existence of out_name */
-   if (SUMA_filexists(out_name)) {
+   if (SUMA_filexists(out_name) && !THD_ok_overwrite()) {
       fprintf(SUMA_STDERR,"Error %s:\n Output file %s exists.\n", 
                            FuncName, out_name);
       exit(1); 
@@ -337,43 +342,63 @@ int main (int argc,char *argv[])
         
    }
    
-   /* open stream */
-   stmp = SUMA_append_string ("file:", out_name);
-   ns = NI_stream_open( stmp , "w" ) ;
-   if( ns == NULL ){
-      fprintf (stderr,"Error  %s:\nCan't open %s!"
-                  , FuncName, stmp); 
-      exit(1);
-   }
    
    /* write nel */
    switch (Out_Format) {
       case SUMA_ASCII_NIML:
-         nn = NI_write_element(  ns , dset->ngr , NI_TEXT_MODE ); 
-         break;
       case SUMA_BINARY_NIML:
-         nn = NI_write_element(  ns , dset->ngr , NI_BINARY_MODE ); 
+         /* open stream */
+         stmp = SUMA_append_string ("file:", out_name);
+         ns = NI_stream_open( stmp , "w" ) ;
+         if( ns == NULL ){
+            fprintf (stderr,"Error  %s:\nCan't open %s!"
+                        , FuncName, stmp); 
+            exit(1);
+         }
+         if (Out_Format == SUMA_ASCII_NIML) {
+            nn = NI_write_element(  ns , dset->ngr , NI_TEXT_MODE ); 
+         } else {
+            nn = NI_write_element(  ns , dset->ngr , NI_BINARY_MODE ); 
+         }
+         if (nn < 0) {
+            SUMA_S_Err ("Failed in NI_write_element");
+            exit(1);
+         }
+
+         /* close the stream */
+         NI_stream_close( ns ) ; 
          break;
       case SUMA_1D:
+         stmp = SUMA_append_string ("file:", out_name);
+         ns = NI_stream_open( stmp , "w" ) ;
+         if( ns == NULL ){
+            fprintf (stderr,"Error  %s:\nCan't open %s!"
+                        , FuncName, stmp); 
+            exit(1);
+         }
          if (LocalHead) SUMA_ShowNel(dset->dnel);
-         NI_insert_column(dset->dnel, dset->inel->vec_typ[0], dset->inel->vec[0], 0); 
+         NI_insert_column(dset->dnel, dset->inel->vec_typ[0], 
+                           dset->inel->vec[0], 0); 
          if (LocalHead) SUMA_ShowNel(dset->dnel);
-         nn = NI_write_element(  ns , dset->dnel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG);  
+         nn = NI_write_element(  ns , dset->dnel , 
+                                 NI_TEXT_MODE | NI_HEADERSHARP_FLAG);  
          NI_remove_column(dset->dnel, 0); 
+         if (nn < 0) {
+            SUMA_S_Err ("Failed in NI_write_element");
+            exit(1);
+         }
+
+         /* close the stream */
+         NI_stream_close( ns ) ; 
          break;
       default:
-         SUMA_S_Err("Output format not supported");
-         exit(1);
+         nn = 1;
+         sss = SUMA_WriteDset_s( out_name, dset, 
+                                 Out_Format, THD_ok_overwrite(),0);
+         if (sss) SUMA_free(sss); sss=NULL;
          break;
    }
  
-   if (nn < 0) {
-      SUMA_S_Err ("Failed in NI_write_element");
-      exit(1);
-   }
-   
-   /* close the stream */
-   NI_stream_close( ns ) ; 
    
    /* free nel */
    SUMA_FreeDset(dset); dset = NULL;

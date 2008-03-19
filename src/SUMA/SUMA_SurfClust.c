@@ -525,7 +525,12 @@ int main (int argc,char *argv[])
 	   fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
       exit(1);
    }
-   SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
+   
+   if (!(SO = SUMA_find_named_SOp_inDOv(  Opt->surf_names[0], 
+                                          SUMAg_DOv, SUMAg_N_DOv))) {
+      SUMA_S_Errv("Failed to find surface %s\n", Opt->surf_names[0]);
+      exit(1);                   
+   }
    NodeArea = SUMA_CalculateNodeAreas(SO, NULL);
    if (!NodeArea) {
       SUMA_S_Err("Failed to calculate Node Areas.\n");
