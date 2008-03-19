@@ -155,11 +155,11 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
                         if( DBG_trace ){                                        \
                           if( DBG_fp == NULL ) DBG_fp = stdout ;               \
                           fprintf(DBG_fp,                                     \
-                                  "%*.*s%s [%d]: ENTRY (file=%s line=%d)\n", \
-                                  DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num, \
-                                  __FILE__ , __LINE__ ) ;                    \
-                          MCHECK ; fflush(DBG_fp) ; }                        \
-                        last_status[0] = '\0' ;                              \
+                                  "%*.*s%s [%d]: {ENTRY (file=%s line=%d)\n", \
+                                  DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num,  \
+                                  __FILE__ , __LINE__ ) ;                     \
+                          MCHECK ; fflush(DBG_fp) ; }                         \
+                        last_status[0] = '\0' ;                               \
                     } while(0)
 
 #define DBROUT      DBG_rout[DBG_num-1]
@@ -167,7 +167,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #define DBEXIT      do{ if( DBG_trace ){                                     \
                           if( DBG_fp == NULL ) DBG_fp = stdout ;              \
                           fprintf(DBG_fp,                                      \
-                                  "%*.*s%s [%d]: EXIT (file=%s line=%d)\n",     \
+                                  "%*.*s%s [%d]: EXIT} (file=%s line=%d)\n",    \
                                   DBG_num,DBG_num,DBG_LEADER_OUT,DBROUT,DBG_num, \
                                   __FILE__ , __LINE__ );                         \
                           MCHECK ; fflush(DBG_fp) ; }                            \

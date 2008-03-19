@@ -1317,6 +1317,7 @@ extern MRI_IMAGE * mri_matrix_scale    ( float, MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_matrix_evalrpn  ( char * ) ;
 extern char      * mri_matrix_evalrpn_help(void) ;
 extern void        mri_matrix_evalrpn_verb(int) ;
+extern float mri_matrix_size( MRI_IMAGE * ) ;
 
 #define            mri_matrix_transpose(x) mri_transpose(x)
 

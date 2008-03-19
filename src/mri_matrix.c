@@ -459,7 +459,7 @@ float mri_matrix_size( MRI_IMAGE *imc )  /* 30 Jul 2007 */
    int nxy , ii ;
    float sum , *car ;
 
-   if( imc == NULL || imc->kind != MRI_float ) RETURN(-1.0f) ;
+   if( imc == NULL || imc->kind != MRI_float ) return(-1.0f) ;
    nxy = imc->nx * imc->ny ; car = MRI_FLOAT_PTR(imc) ;
    sum = 0.0f ;
    for( ii=0 ; ii < nxy ; ii++ ) sum += fabs(car[ii]) ;
