@@ -232,7 +232,8 @@ class comopt:
 
 class shell_com:
    def __init__(self, com, eo="echo"):
-      self.com = com #command
+      self.com = com    # command string to be executed
+      self.eo = eo      # echo mode (echo/dry_run/script/"")
       self.dir = os.getcwd()
       self.exc = 0      #command not executed yet
       self.so = ''
@@ -260,6 +261,10 @@ class shell_com:
          print "#Would be running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
          sys.stdout.flush()
          self.out()
+      elif (eo == "script" or eo == "nocap"):
+         print "#Script is running%s:\n  %s" % (ms, self.trimcom)
+         sys.stdout.flush()
+         self.run_echo(eo)
       else:
          self.run()
          self.out()
@@ -272,7 +277,14 @@ class shell_com:
          tcom = string.replace(self.com, self.dir, '')
       return tcom
    def run(self):
-      so, se = shell_exec(self.trimcom, "")
+      so, se = shell_exec(self.trimcom, "") 
+      self.so = so
+      self.se = se
+      self.exc = 1
+   def run_echo(self,eo=""):
+      if(self.exc==1):
+         return
+      so, se = shell_exec(self.trimcom, eo)   # specify echo
       self.so = so
       self.se = se
       self.exc = 1
@@ -560,25 +572,39 @@ def afni_view(names):
       pref.append(res['view'])
    return pref
 
-#exectute a shell command and return results in so (stdout) and se (stderr)
+#execute a shell command and return results in so (stdout) and se (stderr)
 def shell_exec(s,opt=""):
    if opt == "dry_run":
       print "In %s, would execute:\n   %s" % (os.getcwd(), s)
       return "", ""
    elif opt == "echo":
       print "In %s, about to execute:\n   %s" % (os.getcwd(), s)
-   
+   #if we don't need to capture output, just use system call
+   if(opt == 'script'):
+      os.system("%s"%s)
+      return "", ""
+      
    i,o,e = os.popen3(s,'r') #captures stdout in o,  stderr in e and stdin in i      
-   so = o.readlines()
-   se = e.readlines()
-   o.close
-   e.close                     
+   #The readlines seems to hang below despite all the attempts at limiting the size
+   #and flushing, etc. The hangup happens when a program spews out a lot to stdout
+   #So when that is expected, redirect output to a file at the command.
+   #Or use the "script" execution mode
+   sys.stdout.flush()
+   sys.stderr.flush()  #Not sure this is doing anything 
+   so = o.readlines(64)  #default is to read till EOF but that might make python hang 
+   se = e.readlines(64)  # output to stdout and stderr is too large.
+   o.close             #Have tried readlines(1024) and (256) to little effect 
+   e.close             #
+   
+                        
    if (len(so) and opt == "echo"):
       print "++++++++++ stdout:" 
+   if (len(so) and ((opt == "echo") or (opt == "script"))) :
       for ln in so:
          print "   %s" % ln
    if (len(se) and opt == "echo"):
       print "---------- stderr:" 
+   if (len(se) and ((opt == "echo") or (opt == "script"))) :
       for ln in se:
          print "   %s" % ln
       
