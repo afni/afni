@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , MAR , 2008 , RWC , "3dTfitter" , MINOR , TYPE_NEW_OPT ,
+   "Add -polort option, to keep Gang Chen happy." ,
+   NULL } ,
+
  { 14 , MAR , 2008 , RWC , "3dROIstats" , MICRO , TYPE_NEW_OPT ,
    "Sub-brick label printing (and -nobriklab option)" ,
    "Per the noble Vince Hradil." } ,

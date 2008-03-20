@@ -553,9 +553,9 @@ double Plegendre( double x , int m )
    if( m < 0 ) return 1.0 ;    /* bad input */
 
    switch( m ){                /*** direct formulas for P_m(x) for m=0..20 ***/
-    case 0: return 1.0 ;       /* that was easy */
-    case 1: return x ;         /* also easy */
-    case 2: return (3.0*x*x-1.0)/2.0 ;
+    case 0: return 1.0 ;                /* that was easy */
+    case 1: return x ;                  /* also pretty easy */
+    case 2: return (3.0*x*x-1.0)/2.0 ;  /* now it gets harder */
     case 3: return (5.0*x*x-3.0)*x/2.0 ;
     case 4: return ((35.0*x*x-30.0)*x*x+3.0)/8.0 ;
     case 5: return ((63.0*x*x-70.0)*x*x+15.0)*x/8.0 ;

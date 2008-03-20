@@ -252,7 +252,7 @@ typedef struct {
 /*! Add a pointer to a dynamic XtPointer array. */
 
 #define ADDTO_XTARR(name,bblk)                                 \
-   { if( (name)->num == (name)->nall ){                        \
+ do{ if( (name)->num == (name)->nall ){                        \
       (name)->nall += INC_XTARR + (name)->nall/8 ;             \
       (name)->ar    = (XtPointer *)                            \
                        XtRealloc( (char *) (name)->ar ,        \
@@ -260,11 +260,10 @@ typedef struct {
       (name)->ic    = (int *) XtRealloc( (char *) (name)->ic , \
                           sizeof(int) * (name)->nall ) ;       \
      }                                                         \
-     if( (XtPointer) (bblk) != NULL ){               \
-      (name)->ar[(name)->num] = (XtPointer) (bblk) ; \
-      (name)->ic[(name)->num] = 0                  ; \
-      ((name)->num)++ ;                              \
-     } }
+     (name)->ar[(name)->num] = (XtPointer)(bblk) ;             \
+     (name)->ic[(name)->num] = 0 ;                             \
+     ((name)->num)++ ;                                         \
+   } while(0)
 
 /*! Number of good entries in a dynamic XtPointer array. */
 
@@ -277,7 +276,6 @@ typedef struct {
 #define XTARR_IC(name,i) ((name)->ic[i])
 
 /*! Free a dynamic XtPointer array.
-
     But not what the pointers point to - that is a completely separate matter.
 */
 
