@@ -443,8 +443,9 @@ class RegWrap:
                            "-source %s " \
                            "-1Dmatrix_save anat2epi.aff12.1D " \
                            "-prefix %s -base %s " \
-                           "%s " \
-                  % (wtopt, a.ppve(), o.prefix, e.ppv(), alopt), ps.oexec)
+                           "%s >& %s%s.log ; tail %s%s.log" \
+                  % (wtopt, a.ppve(), o.prefix, e.ppv(), alopt, \
+                     a.prefix, suf, a.prefix, suf), ps.oexec)
          com.run();
       if (not o.exist() and not ps.dry_run()):
          print "Error: Could not square a circle\n"
