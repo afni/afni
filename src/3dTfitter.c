@@ -5,6 +5,9 @@
 #include "mrilib.h"
 
 static void vstep_print(void) ; /* prototype */
+static float lhs_legendre( float x, float bot, float top, float n ) ;
+
+#define IC_POLORT 66666
 
 int main( int argc , char *argv[] )
 {
@@ -13,7 +16,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *lset ; MRI_IMAGE *lim ; int nlset=0 , nlhs=0 ;
    THD_3dim_dataset *fset=NULL ;
    XtPointer_array *dsar ;
-   int ntime , nvar=0 ;
+   int ntime , nvar=0 , polort=-1,npol=0 ;
    char *prefix="Tfitter" ;
    int meth=2 , nbad=0,ngood=0 ;
    intvec *convec=NULL , *kvec=NULL ;
@@ -73,6 +76,12 @@ int main( int argc , char *argv[] )
       "               be more efficient, since each voxel would have the same set\n"
       "               of equations -- a fact that 3dDeconvolve exploits for speed.\n"
       "              ++ But who cares about CPU time?  Burn, baby, burn!\n"
+      "\n"
+      "  -polort p = Add 'p' Legendre polynomial columns to the LHS matrix.\n"
+      "             * These columns are added to the LHS matrix AFTER all other\n"
+      "               columns specified by the '-LHS' option, even if the '-polort'\n"
+      "               option appears before '-LHS' on the command line.\n"
+      "             * By default, no polynomial columns will be used.\n"
       "\n"
       "  -label lb = Specifies a sub-brick label for the output LHS parameter dataset.\n"
       "             * More than one 'lb' can follow the '-label' option;\n"
@@ -362,6 +371,17 @@ int main( int argc , char *argv[] )
    iarg = 1 ; INIT_XTARR(dsar) ;
    while( iarg < argc ){
 
+     if( strcasecmp(argv[iarg],"-polort") == 0 ){  /* 20 Mar 2008 */
+       if( polort >= 0 )
+         WARNING_message("you have more than 1 -polort option!") ;
+       if( iarg+1 >= argc )
+         ERROR_exit("Need an argument after '%s'",argv[iarg]);
+       polort = (int)strtod(argv[++iarg],NULL) ;
+       if( polort < 0 )
+         WARNING_message("-polort value is negative ==> ignoring") ;
+       iarg++ ; continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-faltung") == 0 ){
        int p0,p1,p2 ;
        if( fal_set != NULL || fal_im != NULL )
@@ -562,7 +582,12 @@ int main( int argc , char *argv[] )
    if( nvar >= ntime )
      ERROR_exit("too many (%d) LHS time series for %d time points",nvar,ntime) ;
 
-   nlhs = dsar->num ;  /* number of -LHS inputs */
+   npol = (polort < 0) ? 0 : polort+1 ;  /* number of polynomial columns */
+   if( npol > 0 ){
+     ADDTO_XTARR(dsar,NULL);
+     ii = XTARR_NUM(dsar)-1; XTARR_IC(dsar,ii) = IC_POLORT; nvar += npol;
+   }
+   nlhs = dsar->num ;                    /* number of -LHS inputs */
 
    if( fal_klen > 0 ){
      if( fal_set != NULL ){
@@ -577,7 +602,7 @@ int main( int argc , char *argv[] )
        fal_kern = (float *)malloc(sizeof(float)*fal_klen) ;
      nvoff = ntime ;
    } else if( nlhs == 0 ){
-     ERROR_exit("no -LHS option given?!") ;
+     ERROR_exit("no -LHS or -polort option given?!") ;
    }
 
    dvec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
@@ -594,10 +619,19 @@ int main( int argc , char *argv[] )
          lim = (MRI_IMAGE *)XTARR_XT(dsar,ii) ;
          jj = lim->nx ; lar = MRI_FLOAT_PTR(lim) ;
          if( jj < ntime )
-           ERROR_exit("LHS 1D file is too short: %d < %d",jj,ntime) ;
+           ERROR_exit("LHS 1D file is too short along time axis: %d < %d",jj,ntime) ;
          if( jj > ntime )
-           WARNING_message("LHS 1D file too long: %d > %d: ignoring extra",jj,ntime);
+           WARNING_message(
+             "LHS 1D file too long along time axis: %d > %d: ignoring extra",jj,ntime);
          for( mm=0 ; mm < lim->ny ; mm++ ) rvec[kk++] = lar + mm*lim->nx ;
+         kvec->ar[ii] = -1 ;
+       } else if( XTARR_IC(dsar,ii) == IC_POLORT ){ /* polort columns */
+         int mm ;
+         for( mm=0 ; mm < npol ; mm++,kk++ ){
+           rvec[kk] = (float *)malloc(sizeof(float)*ntime) ;
+           for( jj=0 ; jj < ntime ; jj++ )
+             rvec[kk][jj] = lhs_legendre( (float)jj, 0.0f, ntime-1.0f, mm ) ;
+         }
          kvec->ar[ii] = -1 ;
        } else if( XTARR_IC(dsar,ii) == IC_DSET ){ /* dset: create ref vector */
          lset = (THD_3dim_dataset *)XTARR_XT(dsar,ii) ;
@@ -606,9 +640,10 @@ int main( int argc , char *argv[] )
                       DSET_HEADNAME(lset) ) ;
          jj = DSET_NVALS(lset) ;
          if( jj < ntime )
-           ERROR_exit("LHS dataset is too short: %d < %d",jj,ntime) ;
+           ERROR_exit("LHS dataset is too short along time axis: %d < %d",jj,ntime) ;
          if( jj > ntime )
-           WARNING_message("LHS dataset too long: %d > %d: ignoring extra",jj,ntime);
+           WARNING_message(
+             "LHS dataset too long along time axis: %d > %d: ignoring extra",jj,ntime);
          kvec->ar[ii] = kk ;  /* index of vector from this dataset */
          rvec[kk++] = (float *)malloc(sizeof(float)*(jj+1)) ;
        } else {
@@ -624,13 +659,13 @@ int main( int argc , char *argv[] )
 
    if( nlab < nvar ){
      char lll[32] ;
-     if( verb )
+     if( verb && strcmp(prefix,"NULL") != 0 )
        INFO_message("Making up %d LHS labels (out of %d parameters)",nvar-nlab,nvar);
      lab = (char **)realloc((void *)lab,sizeof(char *)*nvar) ;
      for( ii=nlab ; ii < nvar ; ii++ ){
        sprintf(lll,"Param#%d",ii+1) ; lab[ii] = strdup(lll) ;
      }
-   } else if( nlab > nvar ){
+   } else if( nlab > nvar && strcmp(prefix,"NULL") != 0 ){
      WARNING_message("Too many (%d) -label strings for %d parameters",nlab,nvar) ;
    }
 
@@ -802,3 +837,13 @@ static void vstep_print(void)
    if( nn%10 == 9) fprintf(stderr,".") ;
    nn++ ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+static float lhs_legendre( float x, float bot, float top, float n )
+{
+   double xx ;
+   xx = 2.0*(x-bot)/(top-bot) - 1.0 ;  /* now in range -1..1 */
+   return (float)Plegendre(xx,n) ;
+}
+
