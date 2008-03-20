@@ -400,8 +400,16 @@ int main( int argc , char *argv[] )
            WARNING_message("Only using first column of -FALTUNG 1D file") ;
          fal_kern = MRI_FLOAT_PTR(fal_im) ;
          for( jj=0 ; jj < fal_klen && fal_kern[jj] == 0.0f ; jj++ ) ; /*nada*/
-         if( jj == fal_klen )
+         for( jj=fal_klen-1 ; jj >= 0 && fal_kern[jj] == 0.0f ; jj-- ) ; /*nada*/
+         if( jj < 0 )
            ERROR_exit("-FALTUNG 1D file '%s' is all zeros!",argv[iarg]) ;
+#if 0
+         if( jj < fal_klen-1 ){  /* truncate final zeros */
+           WARNING_message("-FALTUNG 1D file '%s' has %d zeros at its end",
+                           argv[iag],fal_klen-1-jj) ;
+           fal_klen = jj+1 ;
+         }
+#endif
        } else {
          fal_set = THD_open_dataset(argv[iarg]) ;
          CHECK_OPEN_ERROR(fal_set,argv[iarg]) ;

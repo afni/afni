@@ -187,7 +187,7 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
                                      int pencode, int npfac    , float *pfac )
 {
    int ii , jj , kk ;
-   float val,kernmax, *zar , *zcon=NULL ;
+   float val,kernsum, *zar , *zcon=NULL ;
    floatvec **fvv ;
    int nref,nlag,npen,nplu ; float **ref ;
    int p0,p1,p2 , np0,np1,np2 , rp0,rp1,rp2 , ipf ;
@@ -206,10 +206,11 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
      nbase = 0 ;
    }
 
-   for( kernmax=0.0f,jj=0 ; jj < nlag ; jj++ ){
-     val = fabsf(kern[jj]) ; kernmax = MAX(kernmax,val) ;
+   for( kernsum=0.0f,jj=0 ; jj < nlag ; jj++ ){
+     val = kern[jj] ; kernsum += val*val ;
    }
-   if( kernmax == 0.0f ) ERREX("e6") ;
+   if( kernsum <= 0.0f ) ERREX("e6") ;
+   kernsum = sqrtf(kernsum) ;
 
    /* count penalty equations */
 
@@ -227,12 +228,18 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
 
    /* set scale level for negative pfac values */
 
+#if 0
    qmedmad_float  ( npt , far , NULL , &fmed ) ; fmed *= 1.777f ;
    meansigma_float( npt , far , &val , &fsig ) ;
    if( fmed <  fsig ) fmed = fsig ;
    if( fmed == 0.0f ) fmed = fabsf(val) ; /* data is constant? */
    if( fmed == 0.0f ) ERREX("e7") ;       /* data is all zero? */
-   fmed = fmed * 1.777 / kernmax ;
+   fmed = fmed * 1.777 / kernsum ;
+#else
+   fmed = 0.555f * kernsum ;
+#endif
+   if( AFNI_yesenv("AFNI_TFITTER_SHOWPEN") )
+     ININFO_message("default penalty factor=%g",fmed) ;
 
    /* number of equations and number of references */
 
