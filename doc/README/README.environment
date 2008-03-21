@@ -2608,6 +2608,13 @@ This numeric variable, if set, lets you expand the number of dataset
 lines in the 'Dataset#N' plugin from the default of 9 up to a max of 49.
 (This one is for Shruti.)
 
+----------------------------
+Variable: AFNI_WRITE_1D_AS_PREFIX
+----------------------------
+If this variable is set to YES, then 1D formatted files will be written
+to the file based on the given prefix, rather than to an automatic 1D file.
+This allows writing surface files to NIfTI format, for example.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |

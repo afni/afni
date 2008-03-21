@@ -48,6 +48,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ { 20, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_NEW_ENV,
+   "AFNI_WRITE_1D_AS_PREFIX allows writing 1D or surface data given the prefix",
+   "For example, setting this to YES will allow writing surface data to NIfTI."
+ } ,
+
  { 18, MAR, 2008, RCR, "gifti_tool", MINOR, TYPE_NEW_OPT,
    "added -compare_gifti option",
    "See 'gifti_tool -help' for details, including example #7."
