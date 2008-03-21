@@ -320,15 +320,15 @@ class RegWrap:
          ps.epi.view = '+orig'
          if (not ps.epi.exist() or ps.rewrite):
             ps.epi.delete(ps.oexec)
-            if dset_dims(e.ppve())[3] > 1:
-               com = "3dTstat -median -prefix %s %s" % (ps.epi.pv(), e.ppve())
+            if e.dims()[3] > 1:
+               com = shell_com("3dTstat -median -prefix %s %s" % (ps.epi.pv(), e.ppve()), ps.oexec)
             else:
-               com = "3dbucket -prefix %s %s'[0]'" % (ps.epi.pv(), e.ppve())   
-            shell_exec(com, ps.oexec)
+               com = shell_com("3dbucket -prefix %s %s'[0]'" % (ps.epi.pv(), e.ppve()), ps.oexec)   
+            com.run()
             if (not ps.epi.exist() and not ps.dry_run()):
                print "Error: Could not copy epi"
                return None
-         
+      
       #anat input
       if not a.exist():
          print "Error: Could not find anat dataset\n   %s " % a.ppv()
@@ -337,12 +337,14 @@ class RegWrap:
          ps.anat = afni_name("__tt_%s" % a.prefix)
          ps.anat.view = '+orig'
          if (not ps.anat.exist() or ps.rewrite):
+            ps.anat.delete(ps.oexec)
             com = "3dcopy %s %s" % (a.ppve(), ps.anat.pv())
             shell_exec(com, ps.oexec)
             if (not ps.anat.exist() and not ps.dry_run()):
                print "Error: Could not copy anat (%d)" % ps.anat.exist()
                return None
-     
+      #OK
+      return 1
       
     
    def process_epi(self, use_ss='3dSkullStrip'):
@@ -443,9 +445,8 @@ class RegWrap:
                            "-source %s " \
                            "-1Dmatrix_save anat2epi.aff12.1D " \
                            "-prefix %s -base %s " \
-                           "%s >& %s%s.log ; tail %s%s.log" \
-                  % (wtopt, a.ppve(), o.prefix, e.ppv(), alopt, \
-                     a.prefix, suf, a.prefix, suf), ps.oexec)
+                           "%s " \
+                  % (wtopt, a.ppve(), o.prefix, e.ppv(), alopt), ps.oexec)
          com.run();
       if (not o.exist() and not ps.dry_run()):
          print "Error: Could not square a circle\n"
@@ -461,7 +462,7 @@ class RegWrap:
       if perci < 0:
          perci = 90.0;
       com = shell_com( "3dBrickStat -automask -percentile %f 1 %f %s" \
-                        % (perci, perci, e.ppve()), ps.oexec)
+                        % (perci, perci, e.ppve()), ps.oexec, capture=1)
       com.run()
       if ps.oexec == "dry_run":
          th = -999;  # a flag for the dry_run
@@ -562,7 +563,8 @@ if __name__ == '__main__':
    #ps.show('A show of options:\n')
    
    #process and check input params
-   ps.process_input()
+   if (not ps.process_input()):
+      ps.ciao(1)
 
    
    #Now process anatomy and epi
