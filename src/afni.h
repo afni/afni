@@ -1781,7 +1781,7 @@ static char * INIT_def_colovr[DEFAULT_NCOLOVR] = {
    "#ffff00" , "#ffcc00"   , "#ff9900"  , "#ff6900" , "#ff4400" , "#ff0000" ,
    "#0000ff" , "#0044ff"   , "#0069ff"  , "#0099ff" , "#00ccff" , "#00ffff" ,
    "green"   , "limegreen" , "violet"   , "hotpink" ,
-   "white"   , "#dddddd"   , "#bbbbbb"  , "black"   ,
+   "white"   , "#dddddd"   , "#bbbbbb"  , "#010101" ,
 
    "#cc1033" , "#992066"   , "#663199"  , "#3341cc" ,  /* RGB cycle */
    "#0051ff" , "#0074cc"   , "#009799"  , "#00b966" ,  /* 10 Jun 2002 */

@@ -274,6 +274,7 @@ STATUS("looping") ;
 
          case MRI_float:{
            float *iar = MRI_FLOAT_PTR(im) + (jj*nx) ;
+STATUS(" flooping") ;
            for( ii=0 ; ii < nx ; ii++ )
              fprintf(imfile," %14g",iar[ii]) ;
          }
@@ -325,6 +326,7 @@ STATUS("looping") ;
       fprintf(imfile,"\n") ;
    }
 
+STATUS("done") ;
    fclose_maybe(imfile) ;
    RETURN( 1 );
 }
