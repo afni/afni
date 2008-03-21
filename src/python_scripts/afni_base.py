@@ -26,7 +26,7 @@ class afni_name:
                          self.view, self.extension)
       return s
    def ppves(self):
-      s = "%s/%s%s%s%s%s%s%s" % (self.p(), self.prefix, \
+      s = "%s/%s%s%s'%s%s%s%s'" % (self.p(), self.prefix, \
                          self.view, self.extension,\
                          self.colsel, self.rowsel,\
                          self.nodesel, self.rangesel)
@@ -386,7 +386,6 @@ def dset_dims(dset):
       com = shell_com('3dnvals -all %s' % dset, capture=1);
       if (com.run()):
          print '** failed to get dimensions.'
-         return dl
       dl = [int(com.val(0,0)), int(com.val(0,1)), int(com.val(0,2)), int(com.val(0,3))]   
    return dl
    
@@ -660,14 +659,16 @@ def shell_exec(s,opt="",capture=1):
    return so, se
    
 def shell_exec2(s, capture=0):
-   s = sys.version.split()[0]
-   v = s.split('.')
+
+   vs = sys.version.split()[0]
+   v = vs.split('.')
    if len(v) > 1:
-      s = "%s.%s" % (v[0], v[1])
+      vs = "%s.%s" % (v[0], v[1])
    else:
-      s = v[0]
-      
-   v = float(s)
+      vs = v[0]
+
+   v = float(vs)
+
    if (v < 2.5): #Use old version and pray
       #if there is no capture in option: run os.system
       if(not capture):
