@@ -660,7 +660,14 @@ def shell_exec(s,opt="",capture=1):
    return so, se
    
 def shell_exec2(s, capture=0):
-   v = float(sys.version.split()[0])
+   s = sys.version.split()[0]
+   v = s.split('.')
+   if len(v) > 1:
+      s = "%s.%s" % (v[0], v[1])
+   else:
+      s = v[0]
+      
+   v = float(s)
    if (v < 2.5): #Use old version and pray
       #if there is no capture in option: run os.system
       if(not capture):
