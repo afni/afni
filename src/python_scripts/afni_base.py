@@ -3,6 +3,7 @@ import os, sys, glob, operator, string, afni_base
 
 class afni_name:
    def __init__(self, name=""):
+      self.initname = name
       res = parse_afni_name(name)
       self.path = res['path']
       self.prefix = res['prefix']
@@ -165,6 +166,7 @@ class afni_name:
       self.view = view
    def show(self):
       print "AFNI filename:"
+      print "   initial : %s" % self.initname
       print "   name    : %s" % self.ppve()
       print "   path    : %s" % self.path
       print "   prefix  : %s" % self.prefix   
