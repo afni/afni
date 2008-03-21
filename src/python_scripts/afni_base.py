@@ -252,7 +252,7 @@ class comopt:
       return 1
 
 class shell_com:
-   def __init__(self, com, eo="echo", capture=0):
+   def __init__(self, com, eo="", capture=0):
       self.com = com    # command string to be executed
       self.eo = eo      # echo mode (echo/dry_run/script/"")
       self.dir = os.getcwd()
@@ -289,10 +289,10 @@ class shell_com:
       elif self.eo == "dry_run":
          print "#Would be running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
          sys.stdout.flush()
-      elif (eo == "script"):
+      elif (self.eo == "script"):
          print "#Script is running%s:\n  %s" % (ms, self.trimcom)
          sys.stdout.flush()
-      elif (eo == "quiet"):
+      elif (self.eo == "quiet"):
          pass
       
       if self.exc==1:
