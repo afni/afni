@@ -8,9 +8,13 @@
 
 void Syntax(void)
 {
+   /* -verbose never did anything here, but I leave it 
+   out of respect for others */
    printf(
+    "Usage: 3dnvals [-all] [-verbose] dataset\n"
     "Prints out the number of sub-bricks in a 3D dataset\n"
-    "Usage: 3dnvals [-verb] dataset\n"
+    "If -all is specified, prints out all 4 dimensions\n"
+    "Nx, Ny, Nz, Nvals\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }
@@ -18,21 +22,30 @@ void Syntax(void)
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * dset ;
-   int iarg , verbose = 0 ;
+   int iarg , all = 0, verbose = 0, cnt = 0;
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
    iarg = 1 ;
-   if( strncmp(argv[iarg],"-verb",5) == 0 ){ verbose = 1 ; iarg++ ; }
-
+   cnt = 1;
+   while (cnt < argc) {
+      if( strncmp(argv[iarg],"-all",4) == 0 ){ all = 1 ; iarg++ ; }
+      else if( strncmp(argv[iarg],"-verbose",5) == 0 ){ verbose = 1 ; iarg++ ; }
+      ++cnt;
+   }
    for( ; iarg < argc ; iarg++ ){
       dset = THD_open_dataset( argv[iarg] ) ;
       if( dset == NULL ){
          printf("-1\n") ;
          continue ;
       }
-      printf("%d\n",DSET_NVALS(dset)) ;
-
+      if (!all) {
+         printf("%d\n",DSET_NVALS(dset)) ;
+      } else {
+         printf("%d %d %d %d\n", 
+                  DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), 
+                  DSET_NVALS(dset)) ;
+      }
       THD_delete_3dim_dataset( dset , False ) ;
    }
    exit(0) ;
