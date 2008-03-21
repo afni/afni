@@ -142,11 +142,15 @@ int main( int argc , char *argv[] )
       "            ** 'fac' is the positive weight for the penalty function:\n"
       "              ++ if fac < 0, then the program chooses a penalty factor\n"
       "                 for each voxel separately and then scales that by -fac.\n"
-      "              ++ fac = 0 is like selecting fac = -1, and is recommended\n"
-      "                 if you have no other idea and don't want to experiment.\n"
-      "              ++ If you don't have any idea what to use for fac, you\n"
-      "                 should experiment, perhaps with -0.5, -1.0, and -1.5,\n"
-      "                 and see what works well for your data and kernel.\n"
+      "              ++ use fac = -1 to get this voxel-dependent factor unscaled.\n"
+      "              ++ fac = 0 is a special case: the program chooses a range\n"
+      "                 of penalty factors, does the deconvolution regression\n"
+      "                 for each one, and then chooses the fit it likes best\n"
+      "                 (as a tradeoff between fit error and solution size).\n"
+      "              ++ fac = 0 will be MUCH slower since it solves about 20\n"
+      "                 problems for each voxel and then chooses what it likes.\n"
+      "                 setenv AFNI_TFITTER_VERBOSE YES to get some progress\n"
+      "                 reports, if you want to see what it is doing.\n"
       "              ++ SOME penalty has to be applied, since otherwise the\n"
       "                 set of linear equations for s(t) is under-determined\n"
       "                 and/or ill-conditioned!\n"
@@ -431,7 +435,7 @@ int main( int argc , char *argv[] )
        }
        fal_pencod = p0 + 2*p1 + 4*p2 ; /* encode in bits */
        fal_penfac = (float)strtod(argv[++iarg],NULL) ;
-       if( fal_penfac == 0.0f ) fal_penfac = -1.0f ;
+       if( fal_penfac == 0.0f ) fal_penfac = -666.0f ;
        iarg++ ; continue ;
      }
 
@@ -820,14 +824,17 @@ int main( int argc , char *argv[] )
      INFO_message("Fit worked on all %d voxels",ngood) ;
 
    if( fset != NULL ){
+     if( verb ) ININFO_message("Writing parameter dataset: %s",prefix) ;
      DSET_write(fset); DSET_unload(fset);
    }
 
    if( defal_set != NULL ){
+     if( verb ) ININFO_message("Writing FALTUNG dataset: %s",fal_pre) ;
      DSET_write(defal_set); DSET_unload(defal_set);
    }
 
    if( fitts_set != NULL ){
+     if( verb ) ININFO_message("Writing fitts dataset") ;
      DSET_write(fitts_set); DSET_unload(fitts_set);
    }
 

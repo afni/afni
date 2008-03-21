@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , MAR , 2008 , RWC , "3dTfitter" , MICRO , TYPE_MODIFY ,
+   "Modified operation of FALTUNG penalty=0 option" ,
+   "Implemented the L-curve method for selecting the penalty factor, when\n"
+   "user sets the factor to 0." } ,
+
  { 20 , MAR , 2008 , RWC , "3dTfitter" , MINOR , TYPE_NEW_OPT ,
    "Add -polort option, to keep Gang Chen happy." ,
    NULL } ,

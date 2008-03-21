@@ -103,9 +103,11 @@ int main( int argc , char *argv[] )
             "              versus\n"
             "        echo 2 4.5 -1 | 1dplot -plabel 'test\\_underscore' -stdin\n"
             " -title pp = Same as -plabel, but only works with -ps/-png/-jpg options.\n"
+#if 0
             "             Use -plabel instead for full interoperability.\n"
             "             [In X11 mode, the X11 startup 'consumes' the '-title' ]\n"
             "             [before the program scans the command line for options]\n"
+#endif
             "\n"
             " -stdin     = Don't read from tsfile; instead, read from\n"
             "              stdin and plot it. You cannot combine input\n"
@@ -212,7 +214,9 @@ int main( int argc , char *argv[] )
    if( !skip_x11 ){
      for( ii=1 ; ii < argc ; ii++ ){
        if( strcmp(argv[ii],"-title") == 0 ){
+#if 0
          WARNING_message("-title used with X11 plotting: use -plabel instead!") ;
+#endif
          title = argv[ii+1] ; break ;
        }
      }
@@ -237,7 +241,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-x") == 0 ){   /* ZSS: April 2007 */
+     if( strcasecmp(argv[iarg],"-x") == 0 ){   /* ZSS: April 2007 */
        xfile = argv[++iarg];
        iarg++; continue;
      }
@@ -323,10 +327,12 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-title") == 0 ){ /* this option normally gets eaten by XtVaAppInitialize */
-        WARNING_message(                     /* unless that is one is using -ps! So keep it here, it */
-         "Consider using -plabel; -title "   /* don't hurt. */
+     if( strcmp(argv[iarg],"-title") == 0 ){ /* normally eaten by XtVaAppInitialize */
+#if 0
+        WARNING_message(                     /* unless  using -ps! So keep it here, */
+         "Consider using -plabel; -title "   /* it don't hurt. */
          "only works with the -ps / -jpg / -png options"  );
+#endif
         title = argv[++iarg] ;
         iarg++ ; continue ;
      }
