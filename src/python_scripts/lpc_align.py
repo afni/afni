@@ -320,6 +320,7 @@ class RegWrap:
          ps.epi.view = '+orig'
          if (not ps.epi.exist() or ps.rewrite):
             ps.epi.delete(ps.oexec)
+            e.dims()
             if e.dims()[3] > 1:
                com = shell_com("3dTstat -median -prefix %s %s" % (ps.epi.pv(), e.ppve()), ps.oexec)
             else:
