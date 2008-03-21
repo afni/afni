@@ -9,6 +9,10 @@ class afni_name:
       self.view = res['view']
       self.extension = res['extension']
       self.type = res['type']
+      self.colsel = res['col']
+      self.nodesel = res['node']
+      self.rowsel = res['row']
+      self.rangesel = res['range']
       return
    def p(self):   #Full path 
       pp = "%s/" % os.path.abspath('./')  #full path at this location
@@ -20,6 +24,12 @@ class afni_name:
    def ppve(self):
       s = "%s/%s%s%s" % (self.p(), self.prefix, \
                          self.view, self.extension)
+      return s
+   def ppves(self):
+      s = "%s/%s%s%s%s%s%s%s" % (self.p(), self.prefix, \
+                         self.view, self.extension,\
+                         self.colsel, self.rowsel,\
+                         self.nodesel, self.rangesel)
       return s
    def ppv(self):
       s = "%s/%s%s" % (self.p(), self.prefix, self.view)
@@ -36,6 +46,8 @@ class afni_name:
       return "%s%s" % (self.prefix, self.view)
    def pve(self):
       return "%s%s%s" % (self.prefix, self.view, self.extension)
+   def dims(self):
+      return dset_dims(self.ppves())
    def exist(self):
       if (self.type == 'NIFTI'):
          if (     os.path.isfile("%s.nii" % self.ppv()) or \
@@ -63,6 +75,8 @@ class afni_name:
             return 1
          else: return 0
    def delete(self, oexec=""): #delete files on disk!
+      if oexec == "":
+         oexec = self.eo
       if (self.type == 'BRIK'):
          if os.path.isfile("%s.HEAD" % self.ppv()):
             shell_exec("rm %s.HEAD" % self.ppv(), oexec)
@@ -81,6 +95,8 @@ class afni_name:
    def move_to_dir(self, path="", oexec=""):
       #self.show()
       #print path
+      if oexec == "":
+         oexec = self.eo
       found = 0
       if os.path.isdir(path):
          if (self.type == 'BRIK'):
@@ -156,6 +172,11 @@ class afni_name:
       print "   exten.  : %s" % self.extension
       print "   type    : %s" % self.type
       print "   On Disk : %d" % self.exist()
+      print "   Row Sel : %s" % self.rowsel
+      print "   Col Sel : %s" % self.colsel
+      print "   Node Sel: %s" % self.nodesel
+      print "   RangeSel: %s" % self.rangesel
+      
    def new(self,new_pref='', new_view=''):  
       #return a copy of class member with new_prefix and new_view if needed
       an = afni_name()
@@ -231,13 +252,17 @@ class comopt:
       return 1
 
 class shell_com:
-   def __init__(self, com, eo="echo"):
+   def __init__(self, com, eo="echo", capture=0):
       self.com = com    # command string to be executed
       self.eo = eo      # echo mode (echo/dry_run/script/"")
       self.dir = os.getcwd()
       self.exc = 0      #command not executed yet
       self.so = ''
       self.se = ''
+      if (self.eo == "quiet"):
+         self.capture = 1
+      else:
+         self.capture = capture; #Want stdout and stderr captured?
       #If command line is long, trim it, if possible
       l1 = len(self.com)
       if (l1 > 80):
@@ -246,29 +271,6 @@ class shell_com:
          #print "Command trimmed to: %s" % (self.com)
       else:
          self.trimcom = self.com
-      if (len(self.trimcom) < len(self.com)):
-         ms = " (command trimmed)"
-      else:
-         ms = ""
-      if eo == "echo":
-         print "#Now running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
-         #if (len(self.trimcom)):
-         #   print "#Command trimmed to:\n   %s" % (self.trimcom)
-         sys.stdout.flush()
-         self.run()
-         self.out()
-      elif eo == "dry_run":
-         print "#Would be running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
-         sys.stdout.flush()
-         self.out()
-      elif (eo == "script" or eo == "nocap"):
-         print "#Script is running%s:\n  %s" % (ms, self.trimcom)
-         sys.stdout.flush()
-         self.run_echo(eo)
-      else:
-         self.run()
-         self.out()
-      return
    def trim(self):
       #try to remove absolute path
       if self.dir[-1] != '/':
@@ -276,18 +278,40 @@ class shell_com:
       else:
          tcom = string.replace(self.com, self.dir, '')
       return tcom
+   def echo(self): 
+      if (len(self.trimcom) < len(self.com)):
+         ms = " (command trimmed)"
+      else:
+         ms = ""
+      if self.eo == "echo":
+         print "#Now running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
+         sys.stdout.flush()
+      elif self.eo == "dry_run":
+         print "#Would be running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
+         sys.stdout.flush()
+      elif (eo == "script"):
+         print "#Script is running%s:\n  %s" % (ms, self.trimcom)
+         sys.stdout.flush()
+      elif (eo == "quiet"):
+         pass
+      
+      if self.exc==1:
+         print "#    WARNING: that command has been executed already! "
+         sys.stdout.flush()
+      return
+
    def run(self):
-      so, se = shell_exec(self.trimcom, "") 
-      self.so = so
-      self.se = se
-      self.exc = 1
-   def run_echo(self,eo=""):
+      self.echo()
       if(self.exc==1):
-         return
-      so, se = shell_exec(self.trimcom, eo)   # specify echo
-      self.so = so
-      self.se = se
+         return 0
+      self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture) 
       self.exc = 1
+      return self.status
+      
+   def run_echo(self,eo=""):
+      self.eo = eo;
+      self.run()
+
    def stdout(self):
       if (len(self.so)):
          print "++++++++++ stdout:" 
@@ -308,10 +332,13 @@ class shell_com:
       else:
          print "#............. not executed."
          sys.stdout.flush()
+   
    def val(self, i, j=-1): #return the jth string from the ith line of output. if j=-1, return all ith line
       if not self.exc:
          print "Error: Command not executed"
          return None
+      elif self.eo == "dry_run":
+         return "0"  #Just something that won't cause trouble for places expecting numbers
       elif len(self.so) == 0:
          print "Error: Empty output."
          return None
@@ -347,12 +374,20 @@ def read_attribute(dset, atr):
 
 # return dimensions of dset, 4th dimension included
 def dset_dims(dset):
-   ld = read_attribute(dset, 'DATASET_DIMENSIONS')
-   lr = read_attribute(dset, 'DATASET_RANK')
-   dl = []
-   for dd in ld[0:3]:
-      dl.append(int(dd))
-   dl.append(int(lr[1]))
+   dl = [-1 -1 -1 -1]
+   if 0: #This approach fails with selectors!
+      ld = read_attribute(dset, 'DATASET_DIMENSIONS')
+      lr = read_attribute(dset, 'DATASET_RANK')
+      dl = []
+      for dd in ld[0:3]:
+         dl.append(int(dd))
+      dl.append(int(lr[1]))
+   else:
+      com = shell_com('3dnvals -all %s' % dset, capture=1);
+      if (com.run()):
+         print '** failed to get dimensions.'
+         return dl
+      dl = [int(com.val(0,0)), int(com.val(0,1)), int(com.val(0,2)), int(com.val(0,3))]   
    return dl
    
 
@@ -525,6 +560,9 @@ def parse_afni_name(name):
    rp = os.path.dirname(name) #relative path
    #ap = os.path.abspath(name) #absolute path
    fn = os.path.basename(name)
+   #Get selectors out of the way:
+   res['col'], res['row'], res['node'], res['range'], fn = afni_selectors(fn)
+   
    #is this a .nii volume?
    rni = strip_extension(fn,['.nii', '.nii.gz'])
    if (len(rni[1]) > 0):
@@ -547,6 +585,8 @@ def parse_afni_name(name):
       rni = strip_extension(rni[0], ['+orig','+tlrc','+acpc'])
       vi = rni[1]
       pr = rni[0]
+   #get selectors 
+   
    #Build the dictionary result
    if len(rp) == 0:
       rp = '.'
@@ -572,44 +612,89 @@ def afni_view(names):
       pref.append(res['view'])
    return pref
 
-#execute a shell command and return results in so (stdout) and se (stderr)
-def shell_exec(s,opt=""):
-   if opt == "dry_run":
-      print "In %s, would execute:\n   %s" % (os.getcwd(), s)
-      return "", ""
-   elif opt == "echo":
-      print "In %s, about to execute:\n   %s" % (os.getcwd(), s)
-   #if we don't need to capture output, just use system call
-   if(opt == 'script'):
-      os.system("%s"%s)
-      return "", ""
-      
-   i,o,e = os.popen3(s,'r') #captures stdout in o,  stderr in e and stdin in i      
-   #The readlines seems to hang below despite all the attempts at limiting the size
-   #and flushing, etc. The hangup happens when a program spews out a lot to stdout
-   #So when that is expected, redirect output to a file at the command.
-   #Or use the "script" execution mode
-   sys.stdout.flush()
-   sys.stderr.flush()  #Not sure this is doing anything 
-   so = o.readlines(64)  #default is to read till EOF but that might make python hang 
-   se = e.readlines(64)  # output to stdout and stderr is too large.
-   o.close             #Have tried readlines(1024) and (256) to little effect 
-   e.close             #
+def afni_selectors(names):
+   sqsel = ""
+   cusel = ""
+   pnsel = ""
+   ltsel = ""
+   namestr = names
    
-                        
-   if (len(so) and opt == "echo"):
-      print "++++++++++ stdout:" 
-   if (len(so) and ((opt == "echo") or (opt == "script"))) :
-      for ln in so:
-         print "   %s" % ln
-   if (len(se) and opt == "echo"):
-      print "---------- stderr:" 
-   if (len(se) and ((opt == "echo") or (opt == "script"))) :
-      for ln in se:
-         print "   %s" % ln
+   nse = names.count('[')
+   if (nse == 1 and nse == names.count(']')):
+      sqsel = names[names.find('['):names.find(']')+1]
+      namestr = namestr.replace(sqsel,'')
+   
+   nse = names.count('{')
+   if (nse == 1 and nse == names.count('}')):
+      cusel = names[names.find('{'):names.find('}')+1]
+      namestr = namestr.replace(cusel,'')
+   
+   nse = names.count('<')
+   if (nse == 1 and nse == names.count('>')):
+      ltsel = names[names.find('<'):names.find('>')+1]
+      namestr = namestr.replace(ltsel,'')
+   
+   nse = names.count('#')
+   if (nse == 2):
+      nf = names.find('#')
+      pnsel = names[nf[0]:nf[1]+1]
+      namestr = namestr.replace(pnsel,'')
+   
+   return sqsel, cusel, pnsel, ltsel, namestr
+   
+#execute a shell command and when capture is 1 returns results in:
+# so (stdout) and se (stderr) and status
+#status is only reliable with python versions 2.5 and above
+def shell_exec(s,opt="",capture=1):
+   #opt is left here for backwards compatibility.
+   #no echoing should be done here. It is better
+   #to use the shell_com objects
+   if opt == "dry_run":
+      print "#In %s, would execute:\n   %s" % (os.getcwd(), s)
+      sys.stdout.flush()
+   elif opt == "echo":
+      print "#In %s, about to execute:\n   %s" % (os.getcwd(), s)   
+      sys.stdout.flush()
       
+   status, so, se = shell_exec2(s,capture)
    return so, se
+   
+def shell_exec2(s, capture=0):
+   v = float(sys.version.split()[0])
+   if (v < 2.5): #Use old version and pray
+      #if there is no capture in option: run os.system
+      if(not capture):
+         os.system("%s"%s)
+         status = 0; #Don't got status here 
+         so = ""
+         se = ""
+      else:
+         i,o,e = os.popen3(s) #captures stdout in o,  stderr in e and stdin in i      
+         #The readlines seems to hang below despite all the attempts at limiting the size
+         #and flushing, etc. The hangup happens when a program spews out a lot to stdout
+         #So when that is expected, redirect output to a file at the command.
+         #Or use the "script" execution mode
+         so = o.readlines(64)  #default is to read till EOF but that might make python hang 
+         se = e.readlines(64)  # output to stdout and stderr is too large.
+         o.close             #Have tried readlines(1024) and (256) to little effect 
+         e.close             #
+         status = 0; #Don't got status here 
+   else:
+      import subprocess as SP
+      if(not capture):
+         pipe = SP.Popen(s,shell=True, executable='/bin/tcsh', stdout=None, stderr=None, close_fds=True)
+         status = pipe.wait() #Wait till it is over and store returncode
+         so = ""
+         se = ""
+      else:
+         pipe = SP.Popen(s,shell=True, stdout=SP.PIPE, stderr=SP.PIPE, close_fds=True)
+         o,e = pipe.communicate()   #This won't return until command is over
+         status = pipe.returncode   #NOw get returncode
+         so = o.splitlines()
+         se = e.splitlines()                           
 
+   return status, so, se
+   
 #generic unique function, from:
 #  http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52560/index_txt
 def unique(s):
