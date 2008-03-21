@@ -33,6 +33,7 @@ Boolean THD_write_3dim_dataset( char *new_sessname , char *new_prefixname ,
    THD_datablock *blk ;
    int ii, cmode ;
    int is_nsd = 0, is_gifti = 0 ;  /* is NI_SURF_DSET  03 Jul 2006 [rickr] */
+   int free_1d = 0 ;               /* write 1D using prefix */
    char *ppp ;  /* 06 Apr 2005 */
 
 ENTRY("THD_write_3dim_dataset") ;
@@ -64,8 +65,11 @@ ENTRY("THD_write_3dim_dataset") ;
    is_nsd = DSET_IS_NI_SURF_DSET(dset) || STRING_HAS_SUFFIX(ppp,".niml.dset") ||
             is_gifti ;
 
+   /* might want to block trapping of 1D writes    20 Mar 2008 [rickr] */
+   free_1d = is_nsd || AFNI_yesenv("AFNI_WRITE_1D_AS_PREFIX");
+
    if( DSET_IS_1D(dset) ||                 /* block NSD  03 Jul 2006 [rickr] */
-       ( DSET_NY(dset)==1 && DSET_NZ(dset)==1 && !is_nsd ) ){ /* 04 Mar 2003 */
+       ( DSET_NY(dset)==1 && DSET_NZ(dset)==1 && !free_1d) ){ /* 04 Mar 2003 */
 
      THD_write_1D( new_sessname , new_prefixname , dset ) ;
      RETURN(True) ;
