@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAR , 2008 , RWC , "3dTfitter" , MINOR , TYPE_MODIFY ,
+   "deconvolution with penalty factor = 0 is modified" ,
+   "Now the criterion for choosing the penalty factor is based on curvature\n"
+   "rather than distance from the origin.  Seems to be more robust, but\n"
+   "probably will require yet more tweaking." } ,
+
  { 21 , MAR , 2008 , RWC , "3dTfitter" , MICRO , TYPE_MODIFY ,
    "Modified operation of FALTUNG penalty=0 option" ,
    "Implemented the L-curve method for selecting the penalty factor, when\n"
