@@ -447,7 +447,7 @@ static float ellish( float a , float b , float c ,
    dd = SQR(b-a)+SQR(e-d) ;
    ee = SQR(c-b)+SQR(f-e) ;
    if( dd > 0.0f && ee > 0.0f )
-     ss = fabsf((b-a)*(f-e)-(c-b)*(e-d)) / (dd*ee) ;
+     ss = fabsf((b-a)*(f-e)-(c-b)*(e-d)) / sqrtf(dd*ee) ;
    return ss ;
 }
 
@@ -502,6 +502,9 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    for( ii=1 ; ii < NPFAC-1 ; ii++ ){
      val = ellish( pres[ii-1],pres[ii],pres[ii+1] ,
                    psiz[ii-1],psiz[ii],psiz[ii+1]  ) ;
+#if 0
+     if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") ) ININFO_message("ellish[%d] = %g",ii,val) ;
+#endif
      if( val > ppk && psiz[ii] > 1.e-5 ){ ipk = ii; ppk = val; }
    }
    if( ipk > 0 && psiz[ipk+1] > 1.e-5 ) ipk++ ;
@@ -522,8 +525,8 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
 
    /*--- refinement step in pfac: scan around best one found above ---*/
 
-   pbot = (ipk > 0)       ? pfac[ipk-1] : 0.1f*pfac[0] ;
-   ptop = (ipk < NPFAC-1) ? pfac[ipk+1] : 10.f*pfac[NPFAC-1] ;
+   pbot = (ipk > 0)       ? 0.8f*pfac[ipk-1] : 0.5f*pfac[0] ;
+   ptop = (ipk < NPFAC-1) ? 1.0f*pfac[ipk+1] : 2.0f*pfac[NPFAC-1] ;
    fillerup( pbot , ptop , NPFAC , pfac ) ;
    memset( (void *)pres , 0 , sizeof(float)*NPFAC ) ;
    memset( (void *)psiz , 0 , sizeof(float)*NPFAC ) ;
@@ -557,6 +560,9 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    for( ii=1 ; ii < NPFAC-1 ; ii++ ){
      val = ellish( pres[ii-1],pres[ii],pres[ii+1] ,
                    psiz[ii-1],psiz[ii],psiz[ii+1]  ) ;
+#if 0
+     if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") ) ININFO_message("ellish[%d] = %g",ii,val) ;
+#endif
      if( val > ppk && psiz[ii] > 1.e-5 ){ ipk = ii; ppk = val; }
    }
    if( ipk > 0 && psiz[ipk+1] > 1.e-5 ) ipk++ ;
