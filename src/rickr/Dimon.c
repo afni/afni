@@ -22,10 +22,12 @@ static char * g_history[] =
     "      - apply -gert_outdir in the case of dicom images\n",
     " 2.6  Mar 17, 2008 [rickr]\n"
     "      - if 1 volume, GERT_Reco_dicom does not specify nt=1 in to3d\n",
+    " 2.7  Mar 24, 2008 [rickr] - new GERT_Reco options\n"
+    "      - added -gert_filename, -gert_nz, -gert_to3d_prefix (for D Glen)\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.6 (March 17, 2008)"
+#define DIMON_VERSION "version 2.7 (March 24, 2008)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -1581,9 +1583,45 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 errors++;
             }
         }
+        else if ( ! strncmp( argv[ac], "-gert_filename", 10 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -gert_filename FILENAME\n", stderr );
+                return 1;
+            }
+
+            p->opts.gert_filename = argv[ac];
+        }
+        else if ( ! strncmp( argv[ac], "-gert_nz", 8 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -gert_nz NZ\n", stderr );
+                return 1;
+            }
+
+            p->opts.gert_nz = atoi(argv[ac]);
+            if( p->opts.gert_nz <= 0 )
+            {
+                fprintf(stderr,"gert_nz error: NZ must be positive (have %d)\n",
+                        p->opts.gert_nz);
+                return 1;
+            }
+        }
         else if ( ! strncmp( argv[ac], "-GERT_Reco", 7 ) )
         {
             p->opts.gert_reco = 1;      /* output script at the end */
+        }
+        else if ( ! strncmp( argv[ac], "-gert_to3d_prefix", 14 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -gert_to3d_prefix PREFIX\n", stderr );
+                return 1;
+            }
+
+            p->opts.gert_prefix = argv[ac];
         }
         else if ( ! strncmp( argv[ac], "-help", 5 ) )
         {
@@ -2468,8 +2506,12 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   (argv, argc)       = (%p, %d)\n"
             "   tr                 = %f\n"
             "   (nt, nice, pause)  = (%d, %d, %d)\n"
-            "   (debug, gert_reco) = (%d, %d)\n"
+            "   debug              = %d\n"
             "   quit, use_dicom    = %d, %d\n"
+            "   gert_reco          = %d\n"
+            "   gert_filename      = %s\n"
+            "   gert_prefix        = %s\n"
+            "   gert_nz            = %d\n"
             "   dicom_org          = %d\n"
             "   sort_num_suff      = %d\n"
             "   rev_org_dir        = %d\n"
@@ -2487,7 +2529,9 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->gert_outdir),
             opt->argv, opt->argc,
             opt->tr, opt->nt, opt->nice, opt->pause,
-            opt->debug, opt->gert_reco, opt->quit, opt->use_dicom,
+            opt->debug, opt->quit, opt->use_dicom, opt->gert_reco,
+            CHECK_NULL_STR(opt->gert_filename),
+            CHECK_NULL_STR(opt->gert_prefix), opt->gert_nz,
             opt->dicom_org, opt->sort_num_suff,
             opt->rev_org_dir, opt->rev_sort_dir,
             CHECK_NULL_STR(opt->flist_file),
@@ -2715,6 +2759,15 @@ static int usage ( char * prog, int level )
           "    %s -infile_prefix   s8912345/i  -debug 2\n"
           "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco -quit\n"
           "\n"
+          "  examples (for GERT_Reco):\n"
+          "\n"
+          "    %s -infile_prefix run_003/image -GERT_Reco -quit\n"
+          "    %s -infile_prefix run_003/image -dicom_org -GERT_Reco -quit\n"
+          "    %s -infile_prefix 'run_00[3-5]/image' -GERT_Reco -quit\n"
+          "    %s -infile_prefix anat/image -GERT_Reco -quit\n"
+          "    %s -infile_prefix epi_003/image -dicom_org -quit   \\\n"
+          "          -GERT_Reco -gert_to3d_prefix run3 -gert_nz 42\n"
+          "\n"
           "  examples (with real-time options):\n"
           "\n"
           "    %s -infile_prefix s8912345/i -rt \n"
@@ -2771,6 +2824,7 @@ static int usage ( char * prog, int level )
           "\n"
           "  ---------------------------------------------------------------\n",
           prog, prog, prog, prog, prog, prog,
+          prog, prog, prog, prog, prog,
           prog, prog, prog, prog, prog, prog,
           prog, prog, prog, prog, prog, prog, prog );
           
@@ -3109,7 +3163,10 @@ static int usage ( char * prog, int level )
           "    -use_imon          : revert to Imon functionality\n"
           "\n"
           "    -version           : show the version information\n"
-          "\n"
+          "\n",
+          prog, prog, prog, prog, prog, prog, prog
+        );
+        printf(
           "  ---------------------------------------------------------------\n"
           "  GERT_Reco options:\n"
           "\n"
@@ -3118,6 +3175,29 @@ static int usage ( char * prog, int level )
           "        Create a script called 'GERT_Reco_dicom', similar to the\n"
           "        one that Ifile creates.  This script may be run to create\n"
           "        the AFNI datasets corresponding to the I-files.\n"
+          "\n"
+          "    -gert_filename FILENAME : save GERT_Reco as FILENAME\n"
+          "\n"
+          "        e.g. -gert_filename gert_reco_anat\n"
+          "\n"
+          "        This option can be used to specify the name of the script,\n"
+          "        as opposed to using GERT_Reco_dicom.\n"
+          "\n"
+          "        By default, if the script is generated for a single run,\n"
+          "        it will be named GERT_Reco_dicom_NNN, where 'NNN' is the\n"
+          "        run number found in the image files.  If it is generated\n"
+          "        for multiple runs, then the default it to name it simply\n"
+          "        GERT_Reco_dicom.\n"
+          "\n"
+          "    -gert_nz NZ        : specify the number of slices in a mosaic\n"
+          "\n"
+          "        e.g. -gert_nz 42\n"
+          "\n"
+          "        Dimon happens to be able to write valid to3d commands\n"
+          "        for mosaic (volume) data, even though it is intended for\n"
+          "        slices.  In the case of mosaics, the user must specify the\n"
+          "        number of slices in an image file, or any GERT_Reco script\n"
+          "        will specify nz as 1.\n"
           "\n"
           "    -gert_outdir OUTPUT_DIR  : set output directory in GERT_Reco\n"
           "\n"
@@ -3139,11 +3219,23 @@ static int usage ( char * prog, int level )
           "\n"
           "        See 'to3d -help' for more information.\n"
           "\n"
+          "    -gert_to3d_prefix PREFIX : set to3d PREFIX in output script\n"
+          "\n"
+          "        e.g. -gert_to3d_prefix anatomy\n"
+          "\n"
+          "        When creating a GERT_Reco script that calls 'to3d', this\n"
+          "        option will be applied to '-prefix'.\n"
+          "\n"
+          "        The default prefix is 'OutBrick_run_NNN', where NNN is the\n"
+          "        run number found in the images.\n"
+          "\n"
+          "      * Caution: this option should only be used when the output\n"
+          "        is for a single run.\n"
+          "\n"
           "  ---------------------------------------------------------------\n"
           "\n"
           "  Author: R. Reynolds - %s\n"
           "\n",
-          prog, prog, prog, prog, prog, prog, prog,
           DIMON_VERSION
         );
 
@@ -3314,6 +3406,9 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     opts_t * opts = &p->opts;
     FILE   * fp, * nfp;                   /* script and name file pointers */
     char     script[32] = IFM_GERT_DICOM; /* output script filename */
+    char   * sfile;                       /* pointer to script      */
+    char     prefixname[32];              /* output prefix          */
+    char   * pname;                       /* pointer to prefix      */
     char     command[64];                 /* command line for chmod */
     char   * spat;                        /* slice acquisition pattern */
     char     outfile[32];                 /* run files */
@@ -3337,13 +3432,16 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         return 0;
     }
 
-    if ( num_valid == 1 && first_run >= 0 )       /* then name by run */
+    sfile = script;                     /* init to script string   */
+    if ( opts->gert_filename )          /* override with user name */
+        sfile = opts->gert_filename;
+    else if ( num_valid == 1 && first_run >= 0 )    /* name by run */
         sprintf(script, "%s_%03d", IFM_GERT_DICOM, first_run);
 
-    if ( (fp = fopen( script, "w" )) == NULL )
+    if ( (fp = fopen( sfile, "w" )) == NULL )
     {
         fprintf( stderr, "failure: cannot open '%s' for writing, "
-                 "check permissions\n", script );
+                 "check permissions\n", sfile );
         return -1;
     }
 
@@ -3355,10 +3453,12 @@ static int create_gert_dicom( stats_t * s, param_t * p )
              "#\n"
              "# Please modify the following options for your own evil uses.\n"
              "\n"
-             "set OutlierCheck = ''         # use '-skip_outliers' to skip\n"
-             "set OutPrefix    = 'OutBrick' # prefix for datasets\n",
+             "set OutlierCheck = ''         # use '-skip_outliers' to skip\n",
              IFM_PROG_NAME
            );
+
+    if( !opts->gert_prefix )
+        fprintf(fp, "set OutPrefix    = 'OutBrick' # prefix for datasets\n");
 
     /* maybe use an output directory */
     if( opts->gert_outdir )
@@ -3399,23 +3499,37 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
             /* if volumes = 1, do not print timing information, 17 Mar 2008 */
 
-            fprintf(fp, "to3d -prefix ${OutPrefix}_run_%03d  \\\n", c );
+            if( ! opts->gert_prefix )
+            {
+                sprintf(prefixname, "${OutPrefix}_run_%03d", c);
+                pname = prefixname;
+            } else
+                pname = opts->gert_prefix;
+
+            fprintf(fp, "to3d -prefix %s  \\\n", pname );
 
             if( s->runs[c].volumes > 1 )
-               fprintf(fp, "     -time:zt %d %d %ssec %s   \\\n",
-                       s->slices, s->runs[c].volumes, TR, spat);
+            {
+                if( opts->gert_nz && s->slices != 1 )
+                    fprintf(stderr,"** warning: overriding %d slices with %d"
+                                   " in script %s\n",
+                            s->slices, opts->gert_nz, sfile);
+                fprintf(fp, "     -time:zt %d %d %ssec %s   \\\n",
+                        opts->gert_nz ? opts->gert_nz : s->slices,
+                        s->runs[c].volumes, TR, spat);
+            }
 
             fprintf(fp, "     -@ < %s\n\n", outfile);
 
             /* and possibly move output datasets there */
             if( opts->gert_outdir )
-                fprintf(fp, "mv ${OutPrefix}_run_%03d+orig.* $OutDir\n\n", c);
+                fprintf(fp, "mv %s+orig.* $OutDir\n\n", pname);
         }
 
     fclose( fp );
 
     /* now make it an executable */
-    sprintf(command, "chmod u+x %s", script );
+    sprintf(command, "chmod u+x %s", sfile );
     system( command );
 
     return 0;
