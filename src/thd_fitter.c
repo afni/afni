@@ -185,7 +185,7 @@ floatvec * THD_fitter_fitts( int npt , floatvec *fv ,
    value of pfac caused the regression to fail for some hideous reason.
 
    The purpose of evaluating multiple pfac-s is to implement the L-curve
-   methodology for choosing a pfac.  But that part isn't written, yet.
+   methodology for choosing a pfac -- cf. THD_deconvolve_autopen()
 *//*----------------------------------------------------------------------*/
 
 floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
@@ -388,7 +388,7 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
 }
 
 /*-------------------------------------------------------------------------*/
-/* The real work is outsourced to the function above. */
+/* The real work is outsourced to the function above, or the one below. */
 
 floatvec * THD_deconvolve( int npt    , float *far   ,
                            int minlag , int maxlag   , float *kern,
@@ -398,7 +398,7 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
 {
    floatvec **fvv , *fv=NULL ; float pfac=penfac ;
 
-   if( pfac == -666.0f ){
+   if( pfac == -666.0f || pfac == 0.0f ){
      fv = THD_deconvolve_autopen( npt , far , minlag , maxlag , kern ,
                                   nbase , base , meth , ccon , dcon ,
                                   pencode , NULL ) ;
@@ -434,6 +434,9 @@ static void fillerup( float bot, float top, int nval, float *val )
 }
 
 /*-------------------------------------------------------------------------*/
+/* Like THD_deconvolve, but choose the penalty factor automatically.
+   Will be significantly slower as it searches through penfac space.
+*//*-----------------------------------------------------------------------*/
 
 static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
                                           int minlag , int maxlag   , float *kern,
@@ -446,7 +449,7 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    float pbot,ptop , ppk , val ;
    int ii , ipk ;
 
-   /*--- crude mesh in pfac ---*/
+   /*--- solve many problems, using a crude mesh in pfac ---*/
 
    fillerup( -0.01f , -10.0f , NPFAC , pfac ) ;
    memset( (void *)pres , 0 , sizeof(float)*NPFAC ) ;
@@ -456,24 +459,32 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
                                   nbase , base , meth , ccon , dcon ,
                                   pencode , NPFAC , pfac , pres,psiz ) ;
 
+   if( fvv == NULL ){
+     ERROR_message("THD_deconvolve_autopen failed") ; return NULL ;
+   }
+
+   /* find the best combination of residual and solution size */
+
    ipk = -1 ; ppk = 0.0f ;
-   for( ii=0 ; ii < NPFAC ; ii++ ){  /* find best combination */
-     val = pres[ii]*psiz[ii] ;       /* of residual and size */
+   for( ii=0 ; ii < NPFAC ; ii++ ){
+     val = pres[ii]*psiz[ii] ;
      if( val > ppk ){ ipk = ii; ppk = val; }
    }
+
    if( ipk < 0 || ppk == 0.0f ){  /* all fits failed?! */
      for( ii=0 ; ii < NPFAC ; ii++ ) KILL_floatvec(fvv[ii]) ;
      free((void *)fvv) ;
-     ERROR_message("THD_deconvolve_autopen fails") ; return ;
+     ERROR_message("THD_deconvolve_autopen fails") ; return NULL ;
    }
+
    fv = fvv[ipk] ; if( do_fitv ){ COPY_floatvec(gv,ggfitvv[ipk]); }
    for( ii=0 ; ii < NPFAC ; ii++ ) if( ii != ipk ) KILL_floatvec(fvv[ii]) ;
    free((void *)fvv) ;
    if( penfac_used != NULL ) *penfac_used = pfac[ipk] ;
    if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
-     ININFO_message("penfac_used#%d = %g",ipk,pfac[ipk]) ;
+     ININFO_message("optimal penfac_used#%d = %g",ipk,pfac[ipk]) ;
 
-   /*--- refinement step in pfac ---*/
+   /*--- refinement step in pfac: scan around best one found above ---*/
 
    pbot = (ipk > 0)       ? pfac[ipk-1] : 0.1f*pfac[0] ;
    ptop = (ipk < NPFAC-1) ? pfac[ipk+1] : 10.f*pfac[NPFAC-1] ;
@@ -485,11 +496,18 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
                                   nbase , base , meth , ccon , dcon ,
                                   pencode , NPFAC , pfac , pres,psiz ) ;
 
+   if( fvv == NULL ){  /* failed ==> return what we found earlier */
+     ERROR_message("THD_deconvolve_autopen semi-failed") ;
+     if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
+     return fv ;
+   }
+
    ipk = -1 ; ppk = 0.0f ;
    for( ii=0 ; ii < NPFAC ; ii++ ){
      val = pres[ii]*psiz[ii] ;
      if( val > ppk ){ ipk = ii; ppk = val; }
    }
+
    if( ipk < 0 || ppk == 0.0f ){ /* all failed?  use old result */
      for( ii=0 ; ii < NPFAC ; ii++ ) KILL_floatvec(fvv[ii]) ;
      free((void *)fvv) ;
@@ -497,13 +515,14 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
      if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
      return fv ;
    }
+
    KILL_floatvec(fv) ; fv = fvv[ipk] ;
    if( do_fitv ){ KILL_floatvec(gv); COPY_floatvec(gv,ggfitvv[ipk]); }
    for( ii=0 ; ii < NPFAC ; ii++ ) if( ii != ipk ) KILL_floatvec(fvv[ii]) ;
    free((void *)fvv) ;
    if( penfac_used != NULL ) *penfac_used = pfac[ipk] ;
    if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
-     ININFO_message("penfac_used#%d = %g",ipk,pfac[ipk]) ;
+     ININFO_message("Optimal penfac_used#%d = %g",ipk,pfac[ipk]) ;
 
    if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
    return fv ;
