@@ -107,7 +107,7 @@ SETCENTER:
    set mp = `@AfniOrientSign $v1_orient`
    set del_refit = ($del)
    foreach i ( 1 2 3)
-         set del_refit[$i] = `ccalc -form int -expr "$mp[$i] * $del[$i]"`
+         set del_refit[$i] = `ccalc -expr "$mp[$i] * $del[$i]"`  # changed to default of double
    end
    #apply delta
    if ($usecp == 1) then
@@ -149,10 +149,10 @@ foreach v1foli ( $v1_list )
       echo $del
 
       #multiply deltas by axis signs
-      set mp = `@AfniOrientSign $v1_orient`
+      set mp = `@AfniOrientSign $v1fol_orient`          # changed from v1_orient  DG/RR
       set del_refit = ($del)
       foreach i ( 1 2 3)
-            set del_refit[$i] = `ccalc -form int -expr "$mp[$i] * $del[$i]"`
+            set del_refit[$i] = `ccalc -expr "$mp[$i] * $del[$i]"`  # changed to default of double
       end
 
       #apply the  delta
@@ -217,7 +217,7 @@ HELP:
    echo ""
    echo "Requires 3drefit newer than Oct. 02/02."
    echo ""
-   echo "Ziad Saad (ziad@nih.gov)"
+   echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
    echo ""
    goto END

@@ -43,6 +43,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, MAR, 2008, RCR, "@Align_Centers", MINOR, TYPE_BUG_FIX,
+   "applied proper follower dataset orientation and floating point shifts",
+   "The shift applied to the child datasets was based on the parent's\n"
+   "orientation.  The shifts were also being truncated to integers.\n"
+   "Changed with D Glen.\n"
+ } ,
+
  { 18, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
    "added comparison functions to gifticlib",
    NULL

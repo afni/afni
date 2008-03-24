@@ -62,7 +62,7 @@ int main( int argc , char * argv[] )
  "                   -form int    with    -i\n"
  "                   -form nice   with    -n\n"
  "                   -form double with    -d\n"
- "                   -form fint   with    -f  (evokes float, unfortunately!)\n"
+ "                   -form fint   with    -f\n" /* no float are evoked */
  "                   -form cint   with    -c\n"
  "    Mandatory parameter: (must come last on command line)\n"
  "    -eval EXPR: EXPR is the expression to evaluate.\n"
