@@ -435,17 +435,21 @@ int main( int argc , char *argv[] )
        }
        fal_pencod = p0 + 2*p1 + 4*p2 ; /* encode in bits */
        fal_penfac = (float)strtod(argv[++iarg],NULL) ;
-       if( fal_penfac == 0.0f ) fal_penfac = -666.0f ;
+       if( fal_penfac == 0.0f ) fal_penfac = -666.0f ;  /* autopen */
        iarg++ ; continue ;
      }
 
      if( strncasecmp(argv[iarg],"-consFAL",7) == 0 ){
-       if( ++iarg >= argc )
-         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
-       fal_dcon = (argv[iarg][0] == '+') ?  1
-                 :(argv[iarg][0] == '-') ? -1 : 0 ;
-       if( fal_dcon == 0 )
-         WARNING_message("value after '-consFAL' is not '+' or '-' -- ignoring");
+            if( argv[iarg][8] == '+' ) fal_dcon =  1 ;
+       else if( argv[iarg][8] == '-' ) fal_dcon = -1 ;
+       else {
+         if( ++iarg >= argc )
+           ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+         fal_dcon = (argv[iarg][0] == '+') ?  1
+                   :(argv[iarg][0] == '-') ? -1 : 0 ;
+         if( fal_dcon == 0 )
+           WARNING_message("value after '-consFAL' is not '+' or '-' -- ignoring!");
+       }
        iarg++ ; continue ;
      }
 
