@@ -360,18 +360,22 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
            for( ii=0; ii < npt; ii++ ){
              rsum += fabsf(rar[ii]); ssum += fabsf(sar[ii]);
            }
+           if( p1 || p2 )
+            for( ii=1 ; ii < npt ; ii++ ) ssum += fabsf(sar[ii]-sar[ii-1]) ;
          break ;
          case 2:
            for( ii=0; ii < npt; ii++ ){
              rsum += rar[ii]*rar[ii] ; ssum += sar[ii]*sar[ii] ;
            }
+           if( p1 || p2 )
+            for( ii=1 ; ii < npt ; ii++ ) ssum += SQR(sar[ii]-sar[ii-1]) ;
            rsum = sqrtf(rsum) ; ssum = sqrtf(ssum) ;
          break ;
        }
        KILL_floatvec(fitv) ; pres[ipf] = rsum ; psiz[ipf] = ssum ;
        if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
-         ININFO_message("qfac=%g penfac=%g resid=%g norm=%g prod=%g",
-                        qfac[ipf],penfac,rsum,ssum,rsum*ssum) ;
+         ININFO_message("qfac=%g penfac=%g resid=%g norm=%g",
+                        qfac[ipf],penfac,rsum,ssum) ;
      }
 
    }
@@ -415,6 +419,7 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
 /*-------------------------------------------------------------------------*/
 /* L curving. */
 
+#undef  NPFAC
 #define NPFAC 11
 
 static void fillerup( float bot, float top, int nval, float *val )
@@ -434,6 +439,19 @@ static void fillerup( float bot, float top, int nval, float *val )
 }
 
 /*-------------------------------------------------------------------------*/
+
+static float ellish( float a , float b , float c ,
+                     float d , float e , float f  )
+{
+   float dd , ee , ss=0.0f ;
+   dd = SQR(b-a)+SQR(e-d) ;
+   ee = SQR(c-b)+SQR(f-e) ;
+   if( dd > 0.0f && ee > 0.0f )
+     ss = fabsf((b-a)*(f-e)-(c-b)*(e-d)) / (dd*ee) ;
+   return ss ;
+}
+
+/*-------------------------------------------------------------------------*/
 /* Like THD_deconvolve, but choose the penalty factor automatically.
    Will be significantly slower as it searches through penfac space.
 *//*-----------------------------------------------------------------------*/
@@ -446,7 +464,7 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
 {
    floatvec **fvv=NULL , *fv=NULL , *gv=NULL ;
    float pfac[NPFAC] , pres[NPFAC] , psiz[NPFAC] ;
-   float pbot,ptop , ppk , val ;
+   float pbot,ptop , ppk , val , rpk,spk ;
    int ii , ipk ;
 
    /*--- solve many problems, using a crude mesh in pfac ---*/
@@ -466,10 +484,28 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    /* find the best combination of residual and solution size */
 
    ipk = -1 ; ppk = 0.0f ;
+#if 0
    for( ii=0 ; ii < NPFAC ; ii++ ){
      val = pres[ii]*psiz[ii] ;
      if( val > ppk ){ ipk = ii; ppk = val; }
    }
+#else
+   rpk = spk = 0.0f ;
+   for( ii=0 ; ii < NPFAC ; ii++ ){
+     rpk = MAX(rpk,pres[ii]) ; spk = MAX(rpk,psiz[ii]) ;
+   }
+   if( rpk > 0.0f ) rpk = 1.0f / rpk ;
+   if( spk > 0.0f ) spk = 1.0f / spk ;
+   for( ii=0 ; ii < NPFAC ; ii++ ){
+     pres[ii] *= rpk ; psiz[ii] *= spk ;
+   }
+   for( ii=1 ; ii < NPFAC-1 ; ii++ ){
+     val = ellish( pres[ii-1],pres[ii],pres[ii+1] ,
+                   psiz[ii-1],psiz[ii],psiz[ii+1]  ) ;
+     if( val > ppk && psiz[ii] > 1.e-5 ){ ipk = ii; ppk = val; }
+   }
+   if( ipk > 0 && psiz[ipk+1] > 1.e-5 ) ipk++ ;
+#endif
 
    if( ipk < 0 || ppk == 0.0f ){  /* all fits failed?! */
      for( ii=0 ; ii < NPFAC ; ii++ ) KILL_floatvec(fvv[ii]) ;
@@ -503,10 +539,28 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    }
 
    ipk = -1 ; ppk = 0.0f ;
+#if 0
    for( ii=0 ; ii < NPFAC ; ii++ ){
      val = pres[ii]*psiz[ii] ;
      if( val > ppk ){ ipk = ii; ppk = val; }
    }
+#else
+   rpk = spk = 0.0f ;
+   for( ii=0 ; ii < NPFAC ; ii++ ){
+     rpk = MAX(rpk,pres[ii]) ; spk = MAX(rpk,psiz[ii]) ;
+   }
+   if( rpk > 0.0f ) rpk = 1.0f / rpk ;
+   if( spk > 0.0f ) spk = 1.0f / spk ;
+   for( ii=0 ; ii < NPFAC ; ii++ ){
+     pres[ii] *= rpk ; psiz[ii] *= spk ;
+   }
+   for( ii=1 ; ii < NPFAC-1 ; ii++ ){
+     val = ellish( pres[ii-1],pres[ii],pres[ii+1] ,
+                   psiz[ii-1],psiz[ii],psiz[ii+1]  ) ;
+     if( val > ppk && psiz[ii] > 1.e-5 ){ ipk = ii; ppk = val; }
+   }
+   if( ipk > 0 && psiz[ipk+1] > 1.e-5 ) ipk++ ;
+#endif
 
    if( ipk < 0 || ppk == 0.0f ){ /* all failed?  use old result */
      for( ii=0 ; ii < NPFAC ; ii++ ) KILL_floatvec(fvv[ii]) ;
