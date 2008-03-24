@@ -43,6 +43,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, MAR, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added GERT_Reco options (request of D Glen)",
+   "  -gert_filename    : specify a name for the GERT_Reco script\n"
+   "  -gert_nz          : override nz=1 in mosaic image files\n"
+   "  -gert_to3d_prefix : specify a dataset prefix for the to3d command"
+ } ,
+
  { 24, MAR, 2008, RCR, "@Align_Centers", MINOR, TYPE_BUG_FIX,
    "applied proper follower dataset orientation and floating point shifts",
    "The shift applied to the child datasets was based on the parent's\n"

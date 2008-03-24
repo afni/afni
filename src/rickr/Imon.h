@@ -105,9 +105,14 @@ typedef struct  /* user options */
     int              nice;          /* nice offset (must be >= 0)       */
     int              pause;         /* pause time between volumes (MS)  */
     int              debug;         /* debug level                      */
-    int              gert_reco;     /* output GERT_Reco2 script         */
     int              quit;          /* quit when no new images found    */
     int              use_dicom;     /* flag for dicom (not GE) images   */
+
+    /* GERT_Reco options */
+    int              gert_reco;     /* output GERT_Reco script          */
+    char           * gert_filename; /* GERT_Reco script name            */
+    char           * gert_prefix;   /* to3d prefix in GERT_Reco script  */
+    int              gert_nz;       /* override nz=1 in script          */
 
     /* DICOM organization options */
     int              dicom_org;     /* flag to organize dicom files     */
