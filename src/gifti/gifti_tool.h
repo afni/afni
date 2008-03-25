@@ -29,6 +29,7 @@ typedef struct {
     int           mod_to_float; /* convert all input data to FLOAT32    */
 
     /* compare options */
+    int           comp_gifti;   /* compare structures                   */
     int           comp_data;    /* compare data in DataArrays           */
     int           comp_verb;    /* set verbose level for compare_gifti  */
 

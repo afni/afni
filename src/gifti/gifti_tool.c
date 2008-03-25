@@ -29,9 +29,10 @@ static char * g_history[] =
   "     - added options -gifti_zlib, -gifti_test, -mod_to_float, -no_updates\n"
   "0.4  18 Mar, 2008: added comparison options\n",
   "     -compare_gifti, -compare_data, compare_verb\n"
+  "0.5  24 Mar, 2008: -compare_data is now separate from -compare_gifti\n",
 };
 
-static char g_version[] = "gifti_tool version 0.4, 18 March 2008";
+static char g_version[] = "gifti_tool version 0.5, 24 March 2008";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -143,7 +144,9 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         /* compare options */
         } else if( !strcmp(argv[ac], "-compare_data") ) {
             opts->comp_data = 1;
+            opts->gt_compare = 1;
         } else if( !strcmp(argv[ac], "-compare_gifti") ) {
+            opts->comp_gifti = 1;
             opts->gt_compare = 1;
         } else if( !strcmp(argv[ac], "-compare_verb") ) {
             ac++;
@@ -401,7 +404,7 @@ int gt_compare(gt_opts * opts)
 {
     gifti_image * gimA;
     gifti_image * gimB;
-    int           rv = 0;
+    int           rv0 = 0, rv1 = 0;
 
     if( opts->infiles.len != 2 ) {
         fprintf(stderr,"** must have exactly 2 gifti_images files to test\n");
@@ -411,14 +414,26 @@ int gt_compare(gt_opts * opts)
     gimA = gt_read_dataset(opts, opts->infiles.list[0]);
     gimB = gt_read_dataset(opts, opts->infiles.list[1]);
 
-    if(gimA && gimB) rv = gifti_compare_gifti_images(gimA,gimB,
-                                opts->comp_data, opts->comp_verb);
-    else             rv = -1;
+    if( !gimA || !gimB ) rv0 = -1;  /* if failure, make no comparison */
+    else {
+        if( opts->comp_gifti ) {
+            rv0 = gifti_compare_gifti_images(gimA, gimB, 0, opts->comp_verb);
+            if( !rv0 && opts->comp_verb > 0 )
+                printf("++ no differences between gifti_images\n");
+        }
+        if( opts->comp_data ) {
+            rv1 = gifti_compare_gifti_data(gimA, gimB, opts->comp_verb);
+            if( !rv1 && opts->comp_verb > 0 )
+                printf("++ no data differences between gifti_images\n");
+        }
+
+        rv0 |= rv1;
+    }
 
     gifti_free_image(gimA);
     gifti_free_image(gimB);
 
-    return rv;
+    return rv0;
 }
 
 int gt_test(gt_opts * opts)
@@ -609,6 +624,8 @@ static int init_opts(gt_opts * opts)
     opts->new_ndim = 0;
     /* opts->new_dims left with zeros */
     opts->new_data = 0;
+
+    opts->comp_verb = 1;
 
     opts->verb = 1;
     opts->indent = -1;
@@ -1056,6 +1073,9 @@ static int show_help()
     "     -compare_data            : flag to request comparison of the data\n"
     "\n"
     "           Data comparison is done per DataArray element.\n"
+    "\n"
+    "           Comparing data is a separate operation from comparing GIFTI.\n"
+    "           Neither implies the other.\n"
     "\n"
     "     -compare_verb LEVEL      : set the verbose level of comparisons\n"
     "\n"
