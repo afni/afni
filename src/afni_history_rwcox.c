@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , MAR , 2008 , RWC , "1dnorm" , MINOR , TYPE_BUG_FIX ,
+   "Forgot the sqrt()!  kudos to David Perlman." ,
+   NULL } ,
+
  { 24 , MAR , 2008 , RWC , "3dTfitter" , MINOR , TYPE_MODIFY ,
    "deconvolution with penalty factor = 0 is modified" ,
    "Now the criterion for choosing the penalty factor is based on curvature\n"

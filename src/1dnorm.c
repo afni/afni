@@ -10,7 +10,7 @@ int main( int argc , char * argv[] )
 {
    MRI_IMAGE * inim ;
    int ii , jj , nx,ny , nopt;
-   float * iar ;
+   float *iar ;
    double sq ;
 
    /*-- help? --*/
@@ -20,6 +20,8 @@ int main( int argc , char * argv[] )
             "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
             "in columns); outfile will be a similar file, with each column being\n"
             "L2 normalized.\n"
+            "* If 'infile'  is '-', it will be read from stdin.\n"
+            "* If 'outfile' is '-', it will be written to stdout.\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -51,7 +53,7 @@ int main( int argc , char * argv[] )
       sq = 0.0 ;
       for( ii=0 ; ii < nx ; ii++ ) sq += SQR(iar[ii+jj*nx]) ;
       if( sq > 0.0 ){
-         sq = 1.0 / sq ;
+         sq = 1.0 / sqrt(sq) ;
          for( ii=0 ; ii < nx ; ii++ ) iar[ii+jj*nx] *= sq ;
       }
    }
