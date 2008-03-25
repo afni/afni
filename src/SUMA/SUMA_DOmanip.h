@@ -34,7 +34,8 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
                                     int N_Node,
                                     int NodeDim, 
                                     double Xform[4][4],
-                                    int doinv);
+                                    int doinv,
+                                    double *pps);
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void* S_struct);
 SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct);
 SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO);

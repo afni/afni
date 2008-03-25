@@ -2,19 +2,20 @@
 
 void help_autobox()
 {
-   printf("Usage: 3dAutobox [options] DATASET\n"
-             "Computes size of a box that fits around the volume.\n"
-             "Also can be used to crop the volume to that box.\n"
-             "Optional parameters are:\n"
-             "-prefix PREFIX: Crop the input dataset to the size of the box.\n"
-             "                If left empty no new volume is written out.\n"
-             "-input DATASET: An alternate way to specify the input dataset.\n"
-             "                The default method is to pass DATASET as\n"
-             "                the last parameter on the command line.\n"
-             "-noclust      : Don't do any clustering to find box. Any non-zero\n"
-             "                voxel will be preserved in cropped volume.\n"
-             "                The default uses some clustering to find cropping\n"
-             "\n"
+   printf(
+"Usage: 3dAutobox [options] DATASET\n"
+ "Computes size of a box that fits around the volume.\n"
+ "Also can be used to crop the volume to that box.\n"
+ "Optional parameters are:\n"
+ "-prefix PREFIX: Crop the input dataset to the size of the box.\n"
+ "                If left empty no new volume is written out.\n"
+ "-input DATASET: An alternate way to specify the input dataset.\n"
+ "                The default method is to pass DATASET as\n"
+ "                the last parameter on the command line.\n"
+ "-noclust      : Don't do any clustering to find box. Any non-zero\n"
+ "                voxel will be preserved in cropped volume.\n"
+ "                The default uses some clustering to find cropping\n"
+ "\n"
             ) ;
    PRINT_COMPILE_DATE ; return;
 }
@@ -68,7 +69,9 @@ int main( int argc , char * argv[] )
       
       fprintf(stderr,"** 3dAutobox: %s makes no sense here.\n"
                      "I know you're John, \n"
-                     "stop pretending you have an accent!\n",argv[iarg]) ; exit(1) ;
+                     "stop pretending you have an accent!\n",
+                     argv[iarg]) ; 
+      exit(1) ;
    }
    
    /* got input ? */
@@ -76,7 +79,9 @@ int main( int argc , char * argv[] )
    else if (iarg != argc) {
       fprintf(stderr,"** 3dAutobox: %s is nonsense on the line \n"
                      "I know you're John, \n"
-                     "stop pretending you have an accent!\n",argv[iarg]) ; exit(1) ;
+                     "stop pretending you have an accent!\n",
+                     argv[iarg]) ; 
+      exit(1) ;
    }
    
    if (!iname) {

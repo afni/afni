@@ -1189,7 +1189,8 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
                                     int N_Node,
                                     int NodeDim, 
                                     double Xform[4][4],
-                                    int doinv)
+                                    int doinv,
+                                    double *ppshift)
 {
    static char FuncName[]={"SUMA_Apply_Coord_xform"};
    double x, y, z;
@@ -1225,7 +1226,12 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
       x = (double)NodeList[id] ;
       y = (double)NodeList[id+1] ;
       z = (double)NodeList[id+2] ;
-
+      if (ppshift) {
+         x += ppshift[0];
+         y += ppshift[1];
+         z += ppshift[2];
+      }
+      
       /* Apply the rotation matrix XYZn = Mrot x XYZ + Delta*/
       NodeList[id]   = (float) (     A.m[0][0] * x + 
                                      A.m[0][1] * y + 
@@ -1239,6 +1245,11 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
                                      A.m[2][1] * y + 
                                      A.m[2][2] * z +
                                      A.m[2][3] );
+      if (ppshift) {
+         NodeList[id  ] -= ppshift[0];
+         NodeList[id+1] -= ppshift[1];
+         NodeList[id+2] -= ppshift[2];
+      }
     }
 
    SUMA_RETURN(YUP);
