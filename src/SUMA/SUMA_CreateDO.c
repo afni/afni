@@ -6156,38 +6156,69 @@ SUMA_ROI *SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char *l
    
    \sa SUMA_NIMLDrawnROI_to_DrawnROI where a SUMA_DRAWN_ROI is also created
 */
-SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_STATUS DrawStatus, 
-                                       SUMA_ROI_DRAWING_TYPE Type, char *label, int ilabel) 
+SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (
+   char *Parent_idcode_str, 
+   SUMA_ROI_DRAWING_STATUS DrawStatus, 
+   SUMA_ROI_DRAWING_TYPE Type, 
+   char *label, int ilabel) 
 {
    SUMA_DRAWN_ROI *D_ROI = NULL;
    static int ROI_index = 1;
+   char stmp[32], sd;
+   SUMA_SurfaceObject *SO=NULL;
    static char FuncName[]={"SUMA_AllocateDrawnROI"};
    
    SUMA_ENTRY;
    
    D_ROI = (SUMA_DRAWN_ROI *) SUMA_calloc(1,sizeof(SUMA_DRAWN_ROI));
    D_ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
-   D_ROI->Parent_idcode_str = (char *)SUMA_calloc (strlen(Parent_idcode_str)+1, sizeof (char));
-   D_ROI->ColPlaneName = SUMA_copy_string("DefROIpl");
-   D_ROI->FillColor[0] = 1.0; D_ROI->FillColor[1] = 0.0; D_ROI->FillColor[2] = 0.0;
-   D_ROI->EdgeColor[0] = 0.0; D_ROI->EdgeColor[1] = 0.0; D_ROI->EdgeColor[2] = 1.0;
+   D_ROI->Parent_idcode_str = 
+      (char *)SUMA_calloc (strlen(Parent_idcode_str)+1, sizeof (char));
+   /* get some decent name for colplane */
+   SO = SUMA_findSOp_inDOv(Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   if (SO && SO->Label) {
+      if (SO->Side == SUMA_LEFT) {
+         sd = 'L';
+      } else if (SO->Side == SUMA_RIGHT) {
+         sd = 'R';
+      } else if (SO->Side == SUMA_LR) {
+         sd = 'B';
+      } else if (SO->Side == SUMA_NO_SIDE) {
+         sd = '-';
+      } else if (SO->Side == SUMA_SIDE_ERROR) {
+         sd = 'E';
+      } 
+      snprintf(stmp,12*sizeof(char),".%c.%s",sd,SO->State);
+      D_ROI->ColPlaneName = SUMA_append_string("ROI",stmp);
+   } else {
+      D_ROI->ColPlaneName = SUMA_copy_string("DefROIpl");
+   }
+   D_ROI->FillColor[0] = 1.0; 
+   D_ROI->FillColor[1] = 0.0; 
+   D_ROI->FillColor[2] = 0.0;
+   D_ROI->EdgeColor[0] = 0.0; 
+   D_ROI->EdgeColor[1] = 0.0; 
+   D_ROI->EdgeColor[2] = 1.0;
    D_ROI->EdgeThickness = 2;
    D_ROI->ROIstrokelist = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init(D_ROI->ROIstrokelist, SUMA_FreeROIDatum);
    D_ROI->CE = NULL;
    D_ROI->N_CE = -1;
    
-   if (label) D_ROI->Label = (char *)SUMA_calloc (strlen(label)+1, sizeof(char));
+   if (label) 
+      D_ROI->Label = (char *)SUMA_calloc (strlen(label)+1, sizeof(char));
    else D_ROI->Label = (char *)SUMA_calloc (20, sizeof(char));
    
-   if (!D_ROI || !D_ROI->idcode_str || !D_ROI->Parent_idcode_str || !D_ROI->Label) {
+   if (  !D_ROI || 
+         !D_ROI->idcode_str || !D_ROI->Parent_idcode_str || !D_ROI->Label) {
       fprintf (SUMA_STDERR, "Error %s: Failed allocating.\n", FuncName);
       SUMA_RETURN (NULL);
    }
       
    UNIQ_idcode_fill(D_ROI->idcode_str);   
    
-   D_ROI->Parent_idcode_str = strcpy (D_ROI->Parent_idcode_str, Parent_idcode_str);
+   D_ROI->Parent_idcode_str = 
+      strcpy (D_ROI->Parent_idcode_str, Parent_idcode_str);
    if (label) D_ROI->Label = strcpy (D_ROI->Label, label);
    else sprintf (D_ROI->Label, "auto label %d", ROI_index);
    
