@@ -24,7 +24,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 "Usage:  ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> \n"
 "                       [<-sv SurfaceVolume [VolParam for sf surfaces]>] \n"
-"                       [-tlrc] [-MNI_rai/-MNI_lpi]\n"
+"                       [-tlrc] [-MNI_rai/-MNI_lpi][-xmat_1D XMAT]\n"
 "    reads in a surface and writes it out in another format.\n"
 "    Note: This is a not a general utility conversion program. \n"
 "    Only fields pertinent to SUMA are preserved.\n"
@@ -124,6 +124,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  r11 r12 r13 D1\n"
 "                  r21 r22 r23 D2\n"
 "                  r31 r32 r33 D3\n"
+"    -ixmat_1D mat: Same as xmat_1D except that mat is replaced by inv(mat)\n"
 "    -xcenter x y z: Use vector cen = [x y z]' for rotation center.\n"
 "                    Default is cen = [0 0 0]'\n"
 "    -polar_decomp: Apply polar decomposition to mat and preserve\n"
@@ -142,8 +143,10 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
-	int kar, volexists, i;
-   float xcen[3], M[3][4], DoR2S;
+	int kar, volexists, i, Doinv;
+   float DoR2S;
+   double xcen[3];
+   double xform[4][4];
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
          *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
          *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL,
@@ -199,6 +202,7 @@ int main (int argc,char *argv[])
    Do_native = NOPE;
    DoR2S = 0.0;
    Do_PolDec = NOPE;
+   Doinv = 0;
    onemore = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -219,13 +223,25 @@ int main (int argc,char *argv[])
 			}
 			xmat_name = argv[kar]; 
          Doxmat = YUP;
+         Doinv = 0;
 			brk = YUP;
 		}
-      
+      if (!brk && (strcmp(argv[kar], "-ixmat_1d") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -ixmat_1D\n");
+				exit (1);
+			}
+			xmat_name = argv[kar]; 
+         Doxmat = YUP;
+         Doinv = 1;
+			brk = YUP;
+		}
       if (!brk && (strcmp(argv[kar], "-polar_decomp") == 0)) {
          Do_PolDec = YUP;
 			brk = YUP;
 		}
+      
       
       if (!brk && (strcmp(argv[kar], "-make_consistent") == 0)) {
          Do_wind = YUP;
@@ -521,16 +537,16 @@ int main (int argc,char *argv[])
    /* now for the real work */
    if (Doxmat) {
       MRI_IMAGE *im = NULL;
-      float *far=NULL;
+      double *far=NULL;
       int ncol, nrow;
       
-      im = mri_read_1D (xmat_name);
+      im = mri_read_double_1D (xmat_name);
    
       if (!im) {
          SUMA_SLP_Err("Failed to read 1D file");
          exit(1);
       }
-      far = MRI_FLOAT_PTR(im);
+      far = MRI_DOUBLE_PTR(im);
       ncol = im->nx;
       nrow = im->ny;
       if (nrow < 4 ) {
@@ -554,12 +570,32 @@ int main (int argc,char *argv[])
                         "row in transform file.\n");
       }
       for (i=0; i < 3; ++i) {
-         M[i][0] = far[i];
-         M[i][1] = far[i+ncol];
-         M[i][2] = far[i+2*ncol];
-         M[i][3] = far[i+3*ncol];
-      } 
+         xform[i][0] = far[i];
+         xform[i][1] = far[i+ncol];
+         xform[i][2] = far[i+2*ncol];
+         xform[i][3] = far[i+3*ncol];
+      }
+      xform[3][0] = 0.0;  
+      xform[3][1] = 0.0;  
+      xform[3][2] = 0.0;  
+      xform[3][3] = 1.0;  
+      
       mri_free(im); im = NULL;
+      
+      if (Doinv) {
+         mat44 A, A0;
+   
+         LOAD_MAT44( A0, \
+                  xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
+                  xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
+                  xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
+         A = nifti_mat44_inverse(A0);
+         UNLOAD_MAT44(A,   \
+                  xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
+                  xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
+                  xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
+      }            
+
       
       if (Do_PolDec) {
          #ifdef USE_DECOMPOSE_SHOEMAKE
@@ -595,32 +631,32 @@ int main (int argc,char *argv[])
             for (i=0;i<3; ++i) { M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2]; }
             
          #else
-            {/* use the NIFTI polar decomposition function (same results as above)*/
+            {/* use the NIFTI polar decomposition function 
+               (same results as above)*/
                mat33 Q, A;
-               for (i=0;i<3;++i) { A.m[i][0] = M[i][0]; A.m[i][1] = M[i][1]; A.m[i][2] = M[i][2]; }
-               Q = nifti_mat33_polar( A );
-               if (0) { /* save results to file for examination */
-                  char *stmp = SUMA_append_string("Q2_",xmat_name);
-                  FILE *fout = fopen(stmp,"w"); SUMA_free(stmp); stmp = NULL;
-                  fprintf(fout,"#[M][D]: (D is the shift)\n");
-                  for (i=0;i<3; ++i)
-                     fprintf(fout,"#%.5f   %.5f  %.5f  %.5f\n", M[i][0], M[i][1], M[i][2], M[i][3]); 
-                  fprintf(fout,"#Q:\n");
-                  for (i=0;i<3; ++i)
-                     fprintf(fout,"#%.5f   %.5f  %.5f  \n", Q.m[i][0], Q.m[i][1], Q.m[i][2]); 
-                  fprintf(fout,"#[Q][D]: A close xform to [M][D], without scaling.\n");
-                  for (i=0;i<3; ++i)
-                     fprintf(fout,"%.5f   %.5f  %.5f  %.5f\n", Q.m[i][0], Q.m[i][1], Q.m[i][2], M[i][3]);
-                  fclose(fout); SUMA_free(stmp); stmp = NULL;
+               for (i=0;i<3;++i) { 
+                  A.m[i][0] = xform[i][0]; 
+                  A.m[i][1] = xform[i][1]; 
+                  A.m[i][2] = xform[i][2]; 
                }
+               Q = nifti_mat33_polar( A );
                /* replace user's xform with orthogonal one: */
                fprintf(SUMA_STDOUT,"Replacing matrix:\n");
                for (i=0;i<3; ++i)
-                     fprintf(SUMA_STDOUT," %.5f   %.5f  %.5f  %.5f\n", M[i][0], M[i][1], M[i][2], M[i][3]); 
+                     fprintf( SUMA_STDOUT,
+                              " %.5f   %.5f  %.5f  %.5f\n", 
+                              xform[i][0], xform[i][1], 
+                              xform[i][2], xform[i][3]); 
                fprintf(SUMA_STDOUT,"     with matrix:\n");
                for (i=0;i<3; ++i)
-                     fprintf(SUMA_STDOUT," %.5f   %.5f  %.5f  %.5f\n", Q.m[i][0], Q.m[i][1], Q.m[i][2], M[i][3]);
-               for (i=0;i<3; ++i) { M[i][0] = Q.m[i][0]; M[i][1] = Q.m[i][1]; M[i][2] = Q.m[i][2]; }
+                     fprintf( SUMA_STDOUT,
+                              " %.5f   %.5f  %.5f  %.5f\n", 
+                              Q.m[i][0], Q.m[i][1], Q.m[i][2], xform[i][3]);
+               for (i=0;i<3; ++i) { 
+                  xform[i][0] = Q.m[i][0]; 
+                  xform[i][1] = Q.m[i][1]; 
+                  xform[i][2] = Q.m[i][2]; 
+               }
                 
             }
          #endif 
@@ -755,14 +791,20 @@ int main (int argc,char *argv[])
       fprintf (SUMA_STDOUT,"Performing affine transform...\n");
       if (LocalHead) {
          for (i=0; i<3 ; ++i) {
-            fprintf (SUMA_STDERR,"M[%d][:] = %f %f %f %f\n", i, M[i][0], M[i][1], M[i][2], M[i][3]);
+            fprintf (SUMA_STDERR,"M[%d][:] = %f %f %f %f\n", i, xform[i][0], xform[i][1], xform[i][2], xform[i][3]);
          }
          fprintf (SUMA_STDERR,"Cen[:] %f %f %f\n", xcen[0], xcen[1], xcen[2]);
       }
       if (Docen) {
-         if (!SUMA_ApplyAffine (SO->NodeList, SO->N_Node, M, xcen)) { SUMA_SL_Err("Failed to xform coordinates"); exit(1); }
+         if (!SUMA_Apply_Coord_xform(  SO->NodeList, SO->N_Node, SO->NodeDim,
+                                       xform, 0, xcen)) { 
+            SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
+         }
       } else {
-         if (!SUMA_ApplyAffine (SO->NodeList, SO->N_Node, M, NULL)) { SUMA_SL_Err("Failed to xform coordinates"); exit(1); }
+         if (!SUMA_Apply_Coord_xform(  SO->NodeList, SO->N_Node, SO->NodeDim,
+                                       xform, 0, NULL)) { 
+            SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
+         }
       }
    }
    

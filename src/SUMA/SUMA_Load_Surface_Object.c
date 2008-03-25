@@ -2049,6 +2049,14 @@ SUMA_Boolean SUMA_CheckOnSpecFile (SUMA_SurfSpecFile *Spec)
       } else {
          sprintf(Spec->LocalCurvatureParent[i], "%s", Spec->LocalDomainParent[i]);
       }
+      
+      if (strlen(Spec->LocalDomainParent[i]) &&
+         SUMA_iswordsame(Spec->SurfaceFile[i],Spec->LocalDomainParent[i]) == 1){
+         SUMA_LH("Make LDP be SAME");
+         snprintf (Spec->LocalDomainParent[i], 
+                   SUMA_MAX_FP_NAME_LENGTH * sizeof(char),
+                   "%s%s", Spec->SpecFilePath, "SAME");
+      }
    }
    
    SUMA_RETURN(YUP);

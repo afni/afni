@@ -791,6 +791,8 @@ SUMA_Boolean SUMA_ApplyAffine (float *NodeList, int N_Node, float M[][4], float 
    
    SUMA_ENTRY;
    
+   SUMA_S_Note("Use SUMA_Apply_Coord_xform instead");
+   
    if (!NodeList || N_Node <=0) { 
       SUMA_SL_Err("Bad Entries.\n");
       SUMA_RETURN(NOPE);

@@ -5799,7 +5799,7 @@ SUMA_Boolean SUMA_MergeAfniSO_In_SumaSO(NI_group **aSOp,
          NI_SET_INT(nelxyz,"inxformspace",0);
       } else {
          if (!SUMA_Apply_Coord_xform(SO->NodeList, SO->N_Node, SO->NodeDim,
-                                     xform, 0)) {
+                                     xform, 0, NULL)) {
             SUMA_S_Err("Failed to apply xform!");
             NI_SET_INT(nelxyz,"inxformspace",0);
          }else{
