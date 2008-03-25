@@ -43,6 +43,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "minor changes:",
+   "  - NIFTI_INTENT_NONE is considered valid\n"
+   "  - added compare_gifti_data functions\n"
+   "  - LabelTables are now written using CDATA"
+ } ,
+
+ { 25, MAR, 2008, RCR, "gifti_tool", MINOR, TYPE_MODIFY,
+   "the -compare_data option is not separate from -compare_gifti",
+   NULL
+ } ,
+
  { 24, MAR, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added GERT_Reco options (request of D Glen)",
    "  -gert_filename    : specify a name for the GERT_Reco script\n"

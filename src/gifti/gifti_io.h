@@ -243,8 +243,10 @@ int    gifti_validate_dims      (giiDataArray * da, int whine);
 
 /* comparison functions */
 int gifti_compare_coordsys      (giiCoordSystem*s1, giiCoordSystem*s2,int verb);
+int gifti_compare_DA_data       (giiDataArray * d1, giiDataArray * d2,int verb);
 int gifti_compare_DA_pair       (giiDataArray *d1, giiDataArray *d2,
                                  int comp_data, int verb);
+int gifti_compare_gifti_data    (gifti_image * g1, gifti_image * g2, int verb);
 int gifti_compare_gifti_images  (gifti_image * g1, gifti_image * g2,
                                  int comp_data, int verb);
 int gifti_compare_gims_only     (gifti_image * g1, gifti_image * g2, int verb);
