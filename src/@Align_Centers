@@ -107,7 +107,8 @@ SETCENTER:
    set mp = `@AfniOrientSign $v1_orient`
    set del_refit = ($del)
    foreach i ( 1 2 3)
-         set del_refit[$i] = `ccalc -expr "$mp[$i] * $del[$i]"`  # changed to default of double
+         # changed to form double  RR/DG  24 Mar 2008
+         set del_refit[$i] = `ccalc -form d -expr "$mp[$i] * $del[$i]"`
    end
    #apply delta
    if ($usecp == 1) then
@@ -148,11 +149,12 @@ foreach v1foli ( $v1_list )
       set del = `@FromRAI -xyz $del_RAI -or $v1fol_orient`
       echo $del
 
-      #multiply deltas by axis signs
-      set mp = `@AfniOrientSign $v1fol_orient`          # changed from v1_orient  DG/RR
+      #multiply deltas by axis signs         (changed from v1_orient  DG/RR)
+      set mp = `@AfniOrientSign $v1fol_orient` 
       set del_refit = ($del)
       foreach i ( 1 2 3)
-            set del_refit[$i] = `ccalc -expr "$mp[$i] * $del[$i]"`  # changed to default of double
+            # changed to form double
+            set del_refit[$i] = `ccalc -form d -expr "$mp[$i] * $del[$i]"`
       end
 
       #apply the  delta
