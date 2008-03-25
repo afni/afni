@@ -4106,7 +4106,6 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke
       SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURN(DrawnROI);
    }
-   
    if (BsA == SUMA_BSA_FillArea) {   /*  ZSS Sept 29 06 */
       SUMA_OVERLAYS *Overlay=NULL;
       int junk;
