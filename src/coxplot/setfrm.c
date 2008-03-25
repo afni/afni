@@ -115,8 +115,8 @@ static integer c__1 = 1;
     zzzplt_1.minrx = 10;
     zzzplt_1.majry = 5;
     zzzplt_1.minry = 10;
-    zzzplt_1.isizx = 12;
-    zzzplt_1.isizy = 12;
+    zzzplt_1.isizx = 11;
+    zzzplt_1.isizy = 11;
 
 /*  Dashed line type (solid) */
 
