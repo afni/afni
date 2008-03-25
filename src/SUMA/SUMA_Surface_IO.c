@@ -3985,7 +3985,7 @@ SUMA_Boolean SUMA_GIFTI_Write (  char *fileNm, SUMA_SurfaceObject *SO,
          SUMA_RETURN(NOPE);
       }
       if (!SUMA_Apply_Coord_xform(NodeList, SO->N_Node, SO->NodeDim,
-                                  xform, 1)) {
+                                  xform, 1, NULL)) {
          SUMA_S_Err("Failed to apply inverse xform!");
          SUMA_free(NodeList); NodeList = NULL;
          SUMA_RETURN(NOPE);

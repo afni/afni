@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 21 , MAR , 2008 , ZSS , "3dnvals" , MICRO , TYPE_NEW_OPT ,
+   "Added -all to 3dnvals to output all 4 dimensions. " ,
+   NULL
+ } ,
+
  { 17 , MAR , 2008 , ZSS , "lpc_align.py" , MICRO , TYPE_NEW_OPT ,
    "Added -big_move and -partial_coverage." ,
    "-big_move is for when large displacements are needed for alignment.\n"
