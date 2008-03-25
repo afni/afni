@@ -204,11 +204,11 @@ void THD_normalize( int npt , float *far )
 
    if( npt <= 0 || far == NULL ) return ;
 
-   fac = 0 ;
+   fac = 0.0f ;
    for( ii=0 ; ii < npt ; ii++ ) fac += far[ii]*far[ii] ;
-   if( fac == 0.0 ) return ;
-   fac = 1.0 / sqrt(fac) ;
-   for( ii=0 ; ii < npt ; ii++ ) far[ii] /= fac ;
+   if( fac == 0.0f ) return ;
+   fac = 1.0f / sqrtf(fac) ;
+   for( ii=0 ; ii < npt ; ii++ ) far[ii] *= fac ;
    return ;
 }
 
