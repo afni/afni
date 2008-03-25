@@ -86,9 +86,14 @@ static char * gifti_history[] =
   "                  gifti_compare_nvpairs(), gifti_compare_labeltable(),\n"
   "                  gifti_compare_coordsys()\n"
   "                  gifti_strdiff() and gifti_compare_raw_data()\n"
+  "0.16 25 March, 2008\n",
+  "     - separate data diffs in compare_gifti_images\n"
+  "     - added gifti_compare_gifti_data() and gifti_compare_DA_data()\n"
+  "     - NIFTI_INTENT_NONE is considered valid\n"
+  "     - write LabelTables using CDATA\n"
 };
 
-static char gifti_version[] = "gifti library version 0.15, 18 March, 2008";
+static char gifti_version[] = "gifti library version 0.16, 24 March, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -96,9 +101,6 @@ static char gifti_version[] = "gifti library version 0.15, 18 March, 2008";
 /*! this should match GIFTI_IND_ORD_* */
 char * gifti_index_order_list[] = {"Undefined", "RowMajorOrder",
                                                 "ColumnMajorOrder"};
-/* {"Undefined", "HighestFirst", "LowestFirst"}; */
-
-/* char * gifti_dataloc_list[] = {"Undefined", "Internal", "External"}; */
 
 /*! gifti_type_list is an array of gifti_type_ele structs which list, for
     each type, the bytes per value, swapsize and corresponding name string
@@ -1774,7 +1776,7 @@ int gifti_intent_is_valid( int code )
         if( gifti_intent_list[c].code == code )
             break;
 
-    return( c > 0 );
+    return( c >= 0 );
 }
 
 
@@ -1984,7 +1986,7 @@ char ** gifti_copy_char_list(char ** list, int len)
 int gifti_compare_gifti_images(gifti_image * g1, gifti_image * g2,
                                int comp_data, int verb)
 {
-    int diffs = 0, c, numDA;
+    int diffs = 0, data_diffs = 0, c, rv, numDA;
     int lverb = verb;           /* possibly override passed 'verb' */
 
     if( G.verb > 3 ) lverb = 3;
@@ -2006,15 +2008,106 @@ int gifti_compare_gifti_images(gifti_image * g1, gifti_image * g2,
     /* get min numDA, just to be safe */
     numDA = g1->numDA < g2->numDA ? g1->numDA : g2->numDA;
     for( c = 0; c < numDA; c++ ) {
-        if( gifti_compare_DA_pair(g1->darray[c], g2->darray[c],
-                                  comp_data, lverb) ) {
+        rv = gifti_compare_DA_pair(g1->darray[c],g2->darray[c],comp_data,lverb);
+        if( rv ) {
             diffs++;
+            if( rv & 2 ) data_diffs++;
             if( lverb < 2 ) break;
-            printf("++ DataArray[%d] - difference\n", c);
+            printf("++ DataArray[%d] - difference (data %s)\n",
+                   c, (rv & 2) ? "differs" : "identical");
         }
     }
 
+    /* maybe we should state data diffs separately */
+    if( G.verb > 2 && comp_data ) {
+        if( ! data_diffs ) fprintf(stderr,"-- no data differences found\n");
+        else fprintf(stderr,"-- data differences found in %d of %d DAs\n",
+                            data_diffs, numDA);
+    }
+
     if( diffs ) return 1;
+    return 0;
+}
+
+/*---------------------------------------------------------------------*/
+/*! find any differences between the two sets of image data
+ *
+ *  verb  0-2+ = quiet, state diff, state per DA
+ *
+ *  return 0 if they are the same, 1 if they differ
+*//*-------------------------------------------------------------------*/
+int gifti_compare_gifti_data(gifti_image * g1, gifti_image * g2, int verb)
+{
+    int lverb = verb, c, diffs = 0, numDA;
+
+    if( G.verb > 2 ) lverb = 2;
+
+    if( !g1 || !g2 ) {
+        if( !g1 && !g2 ) return 0;  /* both NULL means equal */
+        if(lverb) printf("-- gim data difference (exactly one gim is NULL)\n");
+        return 1;
+    }
+
+    /* if numDA does not match, they differ */
+    if( g1->numDA != g2->numDA ) {
+        if( lverb > 0 )
+            printf("-- gim data differs: numDA differs, %d vs. %d\n",
+                   g1->numDA, g2->numDA);
+        if( lverb < 2 ) return 1;
+    }
+
+    /* even if they differ, we may want to continue, so use minimum */
+    numDA = g1->numDA < g2->numDA ? g1->numDA : g2->numDA;
+    for( c = 0; c < numDA; c++ ) {
+        if( gifti_compare_DA_data(g1->darray[c],g2->darray[c],lverb) ) {
+            diffs++;
+            if( lverb > 0 ) printf("++ data differece at DataArray[%d]\n", c);
+            if( lverb < 2 ) return 1;
+        }
+    }
+
+    if( diffs ) {  /* verb must be 2, so print */
+        printf("-- found data diffs in %d DataArrays\n", diffs);
+        return 1;
+    }
+
+    if( G.verb > 1 ) fprintf(stderr,"-- no data diffs found\n");
+    return 0;
+}
+
+int gifti_compare_DA_data(giiDataArray * d1, giiDataArray * d2, int verb)
+{
+    long long nbytes, offset;
+
+    if( !d1 || !d2 ) {
+        if( !d1 && !d2 ) return 0;  /* both NULL means equal */
+        if(verb>1) printf("-- DA data difference (exactly one DA is NULL)\n");
+        return 1;
+    }
+
+    if( ! gifti_valid_dims(d1,verb>1) || ! gifti_valid_dims(d2,verb>1) ) {
+        if(verb>1) printf("-- DA data diff: dims are not valid\n");
+        return 1;
+    }
+
+    nbytes = d1->nvals * d1->nbyper;
+    if( nbytes != (d2->nvals * d2->nbyper) ) {
+        if(verb>1) printf("-- DA data diff: nbytes differs, %lld vs. %lld\n",
+                          nbytes, d2->nvals * d2->nbyper);
+        return 1;
+    }
+
+    /* okay, let's test the data */
+    offset = gifti_compare_raw_data(d1->data,d2->data,nbytes);
+
+    if( offset < 0 ) {  /* some pointer not set */
+        if( verb > 1 ) printf("-- diff in DA data pointers set\n");
+        return 1;
+    } else if ( offset > 0 ) {  /* actual difference in data */
+        if(verb > 1) printf("-- diff in DA data at offset %lld\n",offset);
+        return 1;
+    }
+
     return 0;
 }
 
@@ -2114,7 +2207,7 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( d1->intent != d2->intent ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA intent: %d (%s) vs. %d (%s)\n",
                    d1->intent, gifti_intent_to_string(d1->intent),
@@ -2123,7 +2216,7 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( d1->datatype != d2->datatype ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA datatype: %d (%s) vs. %d (%s)\n",
                    d1->datatype, gifti_datatype2str(d1->datatype),
@@ -2132,7 +2225,7 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( d1->ind_ord != d2->ind_ord ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA ind_ord: %d (%s) vs. %d (%s)\n",
                d1->ind_ord,
@@ -2143,8 +2236,8 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( d1->num_dim != d2->num_dim ) {
-        diffs++;
-        data_diffs++;
+        diffs = 1;
+        data_diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA num_dim: %d vs. %d\n",
                    d1->num_dim, d2->num_dim );
@@ -2155,8 +2248,8 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     top = d1->num_dim < d2->num_dim ? d1->num_dim : d2->num_dim;
     for( c = 0; c < top; c++ ) if( d1->dims[c] != d2->dims[c] ) break;
     if( c < top ) {
-        diffs++;
-        data_diffs++;
+        diffs = 1;
+        data_diffs = 1;
         if( lverb > 1 ) {
             printf("-- diff in DA dims (length %d)\n   ", top);
             gifti_disp_raw_data(d1->dims, NIFTI_TYPE_INT32, top, 0, stdout);
@@ -2167,7 +2260,7 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( d1->encoding != d2->encoding ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA encoding: %d (%s) vs. %d (%s)\n",
                d1->encoding,
@@ -2178,7 +2271,7 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( d1->endian != d2->endian ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA endian: %d (%s) vs. %d (%s)\n",
                d1->endian,
@@ -2191,7 +2284,7 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     if( d1->ext_fname || d2->ext_fname ) {
         if( ! d1->ext_fname || !d2->ext_fname ||
               strcmp(d1->ext_fname, d2->ext_fname) ) {
-            diffs++;
+            diffs = 1;
             if( lverb > 1 )
                 printf("-- diff in DA ext_fname: %s vs. %s\n",
                    G_CHECK_NULL_STR(d1->ext_fname),
@@ -2201,7 +2294,7 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( d1->ext_offset != d2->ext_offset ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA ext_offset: %lld vs. %lld\n",
                d1->ext_offset, d2->ext_offset);
@@ -2209,20 +2302,20 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( gifti_compare_nvpairs(&d1->meta, &d2->meta, verb) ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 ) printf("-- diff in DA meta\n");
         if( lverb < 3 ) return 1;
     }
 
     if( gifti_compare_coordsys(d1->coordsys, d2->coordsys, verb) ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 ) printf("-- diff in DA coordsys\n");
         if( lverb < 3 ) return 1;
     }
 
     if( d1->nvals != d2->nvals ) {
-        diffs++;
-        data_diffs++;
+        diffs = 1;
+        data_diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA nvals: %lld vs. %lld\n",
                d1->nvals, d2->nvals);
@@ -2230,28 +2323,29 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
     }
 
     if( d1->nbyper != d2->nbyper ) {
-        diffs++;
-        data_diffs++;
+        diffs = 1;
+        data_diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA nbyper: %d vs. %d\n", d1->nbyper, d2->nbyper);
         if( lverb < 3 ) return 1;
     }
 
     if( gifti_compare_nvpairs(&d1->ex_atrs, &d2->ex_atrs, verb) ) {
-        diffs++;
+        diffs = 1;
         if( lverb > 1 ) printf("-- diff in DA ex_atrs\n");
         if( lverb < 3 ) return 1;
     }
 
-    /* check data last, and only if no diffs and dims are valid */
+    /* check data last, and only if no data diffs and dims are valid */
+    /* (set the 2^1 bit for a data diff)                             */
     if( comp_data && !data_diffs && gifti_valid_dims(d1, 0) ) {
         offset = gifti_compare_raw_data(d1->data,d2->data,d1->nvals*d1->nbyper);
         if( offset < 0 ) {
-            diffs++;
+            diffs |= 2;
             if( lverb > 1 ) printf("-- diff in DA data pointers set\n");
             if( lverb < 3 ) return 1;
         } else if ( offset > 0 ) {
-            diffs++;
+            diffs |= 2;
             if(lverb > 1) printf("-- diff in DA data at offset %lld\n",offset);
             if(lverb < 3) return 1;
         }
@@ -2306,7 +2400,7 @@ int gifti_compare_nvpairs(nvpairs * p1, nvpairs * p2, int verb)
         }
         else if( strcmp(value, p1->value[c]) ) {
             if( lverb > 2 )
-                printf("-- nvp mis-match for Name '%s':\n   '%s' vs. '%s'\n",
+                printf("-- nvp diff for Name '%s':\n   '%s' vs. '%s'\n",
                        p1->name[c], p1->value[c], value);
             diffs++;
         }
