@@ -313,10 +313,13 @@ void DT_Syntax(void)
 {
    printf(
     "Usage: 3dDetrend [options] dataset\n"
-    "This program removes components from voxel time series using\n"
-    "linear least squares.  Each voxel is treated independently.\n"
-    "The input dataset may have a sub-brick selector string; otherwise,\n"
-    "all sub-bricks will be used.\n\n"
+    "* This program removes components from voxel time series using\n"
+    "  linear least squares.  Each voxel is treated independently.\n"
+    "* Note that least squares detrending is equivalent to orthogonalizing\n"
+    "  the input dataset time series with respect to the basis time series\n"
+    "  provided by the '-vector', '-polort', et cetera options.\n"
+    "* The input dataset may have a sub-brick selector string; otherwise,\n"
+    "  all sub-bricks will be used.\n\n"
    ) ;
 
    printf(
@@ -331,7 +334,7 @@ void DT_Syntax(void)
     " -normalize    = Normalize each output voxel time series; that is,\n"
     "                   make the sum-of-squares equal to 1.\n"
     "           N.B.: This option is only valid if the input dataset is\n"
-    "                   stored as floats!\n"
+    "                   stored as floats! (1D files are always floats.)\n"
 #ifdef ALLOW_BYSLICE
     " -byslice      = Treat each input vector (infra) as describing a set of\n"
     "                   time series interlaced across slices.  If NZ is the\n"
@@ -393,7 +396,24 @@ void DT_Syntax(void)
 #endif
    ) ;
 
-   printf("\n" MASTER_SHORTHELP_STRING ) ;
+   printf("\n"
+    "Detrending 1D files\n"
+    "-------------------\n"
+    "As far as '3d' programs are concerned, you can input a 1D file as\n"
+    "a 'dataset'.  Each row is a separate voxel, and each column is a\n"
+    "separate time point.  If you want to detrend a single column, then\n"
+    "you need to transpose it on input.  For example:\n"
+    "\n"
+    "  3dDetrend -prefix - -vector G1.1D -polort 3 G5.1D\\' | 1dplot -stdin\n"
+    "\n"
+    "Note that the '-vector' file is NOT transposed with \\', but that\n"
+    "the input dataset file IS transposed.  This is because in the first\n"
+    "case the program expects a 1D file, and so knows that the column\n"
+    "direction is time.  In the second case, the program expects a 3D\n"
+    "dataset, and when given a 1D file, knows that the row direction is\n"
+    "time -- so it must be transposed.  I'm sorry if this is confusing,\n"
+    "but that's the way it is.\n"
+   ) ;
 
    PRINT_COMPILE_DATE ; exit(0) ;
 }
