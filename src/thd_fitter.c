@@ -200,7 +200,7 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
    floatvec **fvv ;
    int nref,nlag,npen,nplu ; float **ref ;
    int p0,p1,p2 , np0,np1,np2 , rp0,rp1,rp2 , ipf ;
-   float penfac,fmed,fsig , *qfac ;
+   float penfac,fmed,fsig , *qfac , p1scl,p2scl,p1fac,p2fac ;
 
    if( nggfitvv > 0 ){
      for( ii=0 ; ii < nggfitvv ; ii++ ) KILL_floatvec(ggfitvv[ii]) ;
@@ -240,6 +240,12 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
    rp2  = rp1 + np1 ;                /* row offset for p2 functions */
    npen = np0+np1+np2 ;        /* total number of penalty equations */
 
+#if 0
+   if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
+     ININFO_message("penalty: P0=%d@%d equations P1=%d@%d P2=%d@%d",
+                    np0,rp0,np1,rp1,np2,rp2) ;
+#endif
+
    /* set scale level for negative pfac values */
 
 #if 0
@@ -253,7 +259,7 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
    fmed = 0.333f * kernsum ;
 #endif
    if( AFNI_yesenv("AFNI_TFITTER_VERBOSE") )
-     ININFO_message("default penalty factor=%g",fmed) ;
+     ININFO_message("default penalty scale factor=%g",fmed) ;
 
    /* number of equations and number of references */
 
@@ -323,6 +329,9 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
      nggfitvv = npfac ;
    }
 
+   p1scl = AFNI_numenv("AFNI_TFITTER_P1SCALE"); if( p1scl <= 0.0f ) p1scl=1.0f ;
+   p2scl = AFNI_numenv("AFNI_TFITTER_P2SCALE"); if( p2scl <= 0.0f ) p2scl=1.0f ;
+
    for( ipf=0 ; ipf < npfac ; ipf++ ){
 
      /* penalty eqations for deconv (columns #0..npt-1, rows #npt..nplu-1) */
@@ -330,18 +339,20 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
      penfac = qfac[ipf] ;
      if( penfac == 0.0f ) penfac = -0.999f ;
      if( penfac <  0.0f ) penfac = -penfac * fmed ;
+     p1fac = p1scl * penfac ;
+     p2fac = p2scl * penfac ;
 
      if( p0 ){
        for( jj=0 ; jj < npt   ; jj++ ) ref[jj][rp0+jj]   =  penfac ;
      }
      if( p1 ){
-       for( jj=0 ; jj < npt-1 ; jj++ ) ref[jj][rp1+jj]   = -penfac ;
-       for( jj=1 ; jj < npt   ; jj++ ) ref[jj][rp1+jj-1] =  penfac ;
+       for( jj=0 ; jj < npt-1 ; jj++ ) ref[jj][rp1+jj]   = -p1fac ;
+       for( jj=1 ; jj < npt   ; jj++ ) ref[jj][rp1+jj-1] =  p1fac ;
      }
      if( p2 ){
-       val = -0.5f*penfac ;
+       val = -0.5f*p2fac ;
        for( jj=0 ; jj < npt-2 ; jj++ ) ref[jj][rp2+jj]   = val ;
-       for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][rp2+jj-1] = penfac ;
+       for( jj=1 ; jj < npt-1 ; jj++ ) ref[jj][rp2+jj-1] = p2fac ;
        for( jj=2 ; jj < npt   ; jj++ ) ref[jj][rp2+jj-2] = val ;
      }
 
