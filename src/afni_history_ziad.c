@@ -65,6 +65,31 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 25 , MAR , 2008 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
+   "ROIs drawn on different surfaces now handled properly" ,
+   NULL
+ } ,
+
+ { 25 , MAR , 2008 , ZSS , "suma-general" , MINOR , TYPE_MODIFY ,
+   "Instead of SAME, one can use surface's name as LocalDomainParent" ,
+   NULL
+ } ,
+
+ { 25 , MAR , 2008 , ZSS , "ConvertSurface" , MICRO , TYPE_NEW_OPT ,
+   "Added option -ixmat_1D to apply inverse of affine transform" ,
+   NULL
+ } ,
+
+ { 25 , MAR , 2008 , ZSS , "@auto_tlrc" , MICRO , TYPE_MODIFY ,
+   "Improvements on -rigid_equiv output and .1D transform output" ,
+   NULL
+ } ,
+
+ { 25 , MAR , 2008 , ZSS , "@SUMA_AlignToExperiment" , MICRO , TYPE_MODIFY ,
+   "View is now changed even if rigid-body registration is used." ,
+   NULL
+ } ,
+
  { 21 , MAR , 2008 , ZSS , "3dnvals" , MICRO , TYPE_NEW_OPT ,
    "Added -all to 3dnvals to output all 4 dimensions. " ,
    NULL
