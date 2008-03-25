@@ -4616,7 +4616,9 @@ SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
 /*!
    \brief Initializes the widgets in the color plane shell window based on the SUMA_OVERLAYS structue
 */
-SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ColPlane)
+SUMA_Boolean SUMA_InitializeColPlaneShell (
+                  SUMA_SurfaceObject *SO, 
+                  SUMA_OVERLAYS *ColPlane)
 {
    static char FuncName[] = {"SUMA_InitializeColPlaneShell"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
@@ -4629,7 +4631,12 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    SUMA_ENTRY;
    
    SUMA_LH("Called");
-   if (!SO->SurfCont->ColPlane_fr) SUMA_RETURN(YUP);
+   
+   if (!SO->SurfCont->ColPlane_fr) {
+      /* just set the curColPlane before returning ZSS  March 25 08*/
+      if (ColPlane) SO->SurfCont->curColPlane = ColPlane;
+      SUMA_RETURN(YUP);
+   }
    
    if (!ColPlane) {
       SUMA_LH("Initializing with NULL");
