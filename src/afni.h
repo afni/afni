@@ -1724,7 +1724,8 @@ extern float mad_proj    ( int, float * ) ;  /* 07 Dec 2007 */
 extern void median9_box_func ( int, int, double,double, float * ) ;
 extern void winsor9_box_func ( int, int, double,double, float * ) ;
 extern void osfilt9_box_func ( int, int, double,double, float * ) ;
-extern void fft2D_func       ( int, int, double,double, float * ) ;
+extern void fft2D_absfunc    ( int, int, double,double, float * ) ;
+extern void fft2D_phasefunc  ( int, int, double,double, float * ) ;
 extern void median21_box_func( int, int, double,double, float * ) ;
 extern void winsor21_box_func( int, int, double,double, float * ) ;
 

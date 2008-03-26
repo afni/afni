@@ -486,7 +486,7 @@ void winsor21_box_func( int nx , int ny , double dx, double dy, float *ar )
 
 /*------- [30 Jun 2000: abs(2D FFT) function] ----------------------------*/
 
-void fft2D_func( int nx , int ny , double dx, double dy, float *ar )
+void fft2D_absfunc( int nx , int ny , double dx, double dy, float *ar )
 {
    complex *cxar , *cpt ;
    int nxup,nyup , ii,jj ;
@@ -531,6 +531,57 @@ void fft2D_func( int nx , int ny , double dx, double dy, float *ar )
    for( jj=0 ; jj < ny ; jj++ )
       for( ii=0 ; ii < nx ; ii++ )
          ar[ii+jj*nx] = CABS(cxar[ii+jj*nxup]) ;
+
+   free(cxar) ; free(cpt) ; return ;
+}
+
+/*------- [26 Mar 2008: arg(2D FFT) function] ----------------------------*/
+
+void fft2D_phasefunc( int nx , int ny , double dx, double dy, float *ar )
+{
+   complex *cxar , *cpt ;
+   int nxup,nyup , ii,jj ;
+   float fi,fj , *fpt ;
+
+   if( nx < 5 || ny < 5 ) return ;
+
+   nxup = csfft_nextup_one35(nx) ;  /* get FFT size */
+   nyup = csfft_nextup_one35(ny) ;
+
+   cxar = (complex *) malloc(sizeof(complex)*nxup*nyup) ;
+
+   /* copy input to output, sign-alternating and zero-padding along the way */
+
+   cpt = cxar ;
+   fpt = ar   ;
+   fj  = 1.0  ;
+   for( jj=0 ; jj < ny ; jj++ ){
+      fi = fj ; fj = -fj ;
+      for(ii=0; ii<nx  ; ii++){cpt->r=*fpt*fi; cpt->i=0.0; cpt++;fpt++;fi=-fi;}
+      for(    ; ii<nxup; ii++){cpt->r=cpt->i=0.0; cpt++;}
+   }
+   for( ; jj < nyup ; jj++ ){cpt->r=cpt->i=0.0; cpt++;}
+
+   /* row FFTs */
+
+   for( jj=0 ; jj < ny ; jj++ )
+      csfft_cox( -1 , nxup , cxar+jj*nxup ) ;
+
+   /* column FFTs */
+
+   cpt = (complex *) malloc(sizeof(complex)*nyup) ;
+
+   for( ii=0 ; ii < nxup ; ii++ ){
+      for( jj=0 ; jj < nyup ; jj++ ) cpt[jj] = cxar[ii+jj*nxup] ;
+      csfft_cox( -1 , nyup , cpt ) ;
+      for( jj=0 ; jj < nyup ; jj++ ) cxar[ii+jj*nxup] = cpt[jj] ;
+   }
+
+   /* copy to output */
+
+   for( jj=0 ; jj < ny ; jj++ )
+      for( ii=0 ; ii < nx ; ii++ )
+         ar[ii+jj*nx] = CARG(cxar[ii+jj*nxup]) ;
 
    free(cxar) ; free(cpt) ; return ;
 }
