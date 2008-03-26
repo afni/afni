@@ -58,6 +58,10 @@
 
   Mod:      Added USE_SCSLBLAS stuff for SGI Altix, and USE_SUNPERF for Solaris.
   Date:     01 Mar 2005
+
+  Mod:      Freed memory for an orphaned matrix in matrix_sqrt function
+  Date:     26 Mar 2008 - drg
+
 */
 
 /*---------------------------------------------------------------------*/
@@ -830,6 +834,7 @@ int matrix_sqrt (matrix a, matrix * s)
   matrix_destroy (&xinv);
   matrix_destroy (&axinv);
   matrix_destroy (&xtemp);
+  matrix_destroy (&error);   /* destroy error matrix too  - 26 Mar 2008 drg */
 
   return (1);
 

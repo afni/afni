@@ -51,6 +51,11 @@
 afni_history_struct dglen_history[] = {
 
  /* can copy to and change one of the examples here */
+{ 26, MAR , 2008 , DRG , "matrix square root" , MICRO , TYPE_BUG_FIX ,
+   "freed matrix used in matrix_sqrt functions" ,
+   NULL
+ } ,
+
 
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
 } ;

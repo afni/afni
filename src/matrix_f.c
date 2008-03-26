@@ -57,6 +57,10 @@
 
   Mod:      Added USE_SCSLBLAS stuff for SGI Altix.
   Date:     01 Mar 2005
+
+  Mod:      Freed memory for an orphaned matrix in matrix_sqrt function
+  Date:     26 Mar 2008 - drg
+
 */
 
 #include "mri_image.h"  /* moved here on 16 May 2005, for OS X Tiger */
@@ -780,6 +784,7 @@ int matrix_sqrt (matrix a, matrix * s)
   matrix_destroy (&xinv);
   matrix_destroy (&axinv);
   matrix_destroy (&xtemp);
+  matrix_destroy (&error);   /* destroy error matrix too  - 26 Mar 2008 drg */
 
   return (1);
 
