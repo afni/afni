@@ -306,6 +306,10 @@ class shell_com:
       self.echo()
       if(self.exc==1):
          return 0
+      if(self.eo=="dry_run"):
+         self.status = 0
+	 self.exc = 1
+	 return 0
       self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture) 
       self.exc = 1
       return self.status
