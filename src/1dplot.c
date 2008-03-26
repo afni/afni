@@ -64,6 +64,7 @@ int main( int argc , char *argv[] )
    int nnax=0,mmax=0 , nnay=0,mmay=0 ;
    float xbot,xtop   , ybot,ytop ;
    int skip_x11=0 , imsave=0 ; char *imfile=NULL ;
+   int do_norm=0 ; /* 26 Mar 2008 */
 
    /*-- help? --*/
 
@@ -79,6 +80,12 @@ int main( int argc , char *argv[] )
             " -sepscl    = Plot each column in a separate sub-graph\n"
             "              and allow each sub-graph to have a different\n"
             "              y-scale.  -sepscl is meaningless with -one!\n"
+            "\n"
+            " -norm2     = Independently scale each time series plotted to\n"
+            "              have L2 norm = 1 (sum of squares).\n"
+            " -normx     = Independently scale each time series plotted to\n"
+            "              have max absolute value = 1 (L-infinity norm)\n"
+            "\n"
             " -x  X.1D   = Use for X axis the data in X.1D.\n"
             "              Note that X.1D should have one column\n"
             "              of the same length as the columns in tsfile. \n"
@@ -239,6 +246,13 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-") == 0 ){  /* 23 Aug 2006: null option */
        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-norm2") == 0 ){  /* 26 Mar 2008 */
+       do_norm = 2 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-normx") == 0 ){
+       do_norm = 666 ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-x") == 0 ){   /* ZSS: April 2007 */
@@ -524,8 +538,7 @@ int main( int argc , char *argv[] )
    if( nx < 2 )
      ERROR_exit("1dplot can't plot curves only 1 point long!\n") ;
 
-
-   /* select data to plot */
+   /*--- select data to plot ---*/
 
    nts = ny ;
    yar = (float **) malloc(sizeof(float *)*nts) ;
@@ -535,7 +548,17 @@ int main( int argc , char *argv[] )
 
    if( use > 1 && nx > use ) nx = use ;  /* 29 Nov 1999 */
 
-   /* make x axis */
+   switch( do_norm ){  /* 26 Mar 2008 */
+     case 2:
+      for( ii=0 ; ii < ny ; ii++ ) THD_normalize(nx,yar[ii]) ;
+     break ;
+
+     case 666:
+      for( ii=0 ; ii < ny ; ii++ ) THD_normmax(nx,yar[ii]) ;
+     break ;
+   }
+
+   /*--- make x axis ---*/
 
    if (!xfile) {
       xar = (float *) malloc( sizeof(float) * nx ) ;

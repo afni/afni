@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , MAR , 2008 , RWC , "1dplot" , MINOR , TYPE_NEW_OPT ,
+   "Add -norm2 and -normx options: normalize time series before plotting" ,
+   NULL } ,
+
  { 25 , MAR , 2008 , RWC , "3dDetrend" , MINOR , TYPE_BUG_FIX ,
    "-normalize didn't work -- what the hellll was I thinking?" ,
    "Also, added some help to explain how to use 3dDetrend on 1D files." } ,
