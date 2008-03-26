@@ -15,8 +15,8 @@
 
            - levels are :
                     MICRO           - users don't see
-                    MINOR           - small affect on users
-                    MAJOR           - larger affect on users
+                    MINOR           - small effect on users
+                    MAJOR           - larger effect on users
                     SUPER           - important changes, like new programs
                     SUPERDUPER      - we expect users to know
 
@@ -51,6 +51,11 @@
 afni_history_struct dglen_history[] = {
 
  /* can copy to and change one of the examples here */
+{ 26, MAR , 2008 , DRG , "dry_run mode for python scripts" , MINOR ,
+   TYPE_BUG_FIX ,   "repaired support for dry_run mode in python scripts" ,
+   NULL
+ } ,
+
 { 26, MAR , 2008 , DRG , "matrix square root" , MICRO , TYPE_BUG_FIX ,
    "freed matrix used in matrix_sqrt functions" ,
    NULL
