@@ -24,6 +24,9 @@ Ret_DOWNSAMPLE:
 goto STRIP_EXP_VOL
 Ret_STRIP_EXP_VOL:
 
+goto ALIGN_CENTERS
+Ret_ALIGN_CENTERS:
+
 goto RESAMPLE
 Ret_RESAMPLE:
 
@@ -49,6 +52,7 @@ PARSE_COMMAND:
    set DownSample = 0
    set StripSkull = 0
    set okchangeview = 0
+   set no_center = 1;	
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-dxyz") then
@@ -114,6 +118,11 @@ PARSE_COMMAND:
      
       if ($donext && "$argv[$cnt]" == "-wd") then
          set UseWarp = 1;		
+         set donext = 0		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-align_centers") then
+         set no_center = 0;		
          set donext = 0		
       endif
       
@@ -332,6 +341,25 @@ STRIP_EXP_VOL:
    endif
    goto Ret_STRIP_EXP_VOL
 
+ALIGN_CENTERS:
+   if ($no_center == 0) then
+      echo "Calculating center shift..."
+      rm -f $ExpAnatPrefix"_shft$ExpAnatView."* >& /dev/null
+      @Align_Centers -base $SurfAnatPath/$SurfAnat.HEAD \
+                     -dset $ExpAnat.HEAD 
+      set mpref = $ExpAnatPrefix
+      set center_mat = $mpref"_shft.1D"
+      if ( ! -f $center_mat) then
+         echo "Failed to create shift matrix"
+         goto END
+      endif
+      set ExpAnatPrefixOrig = $ExpAnatPrefix
+      set ExpAnatPrefix = $ExpAnatPrefixOrig"_shft"
+      set ExpAnatOrig = $ExpAnat
+      set ExpAnat = $ExpAnatPrefix$ExpAnatView
+   endif
+   goto Ret_ALIGN_CENTERS
+   
 RESAMPLE:
 	#resample Experiment volume to look like SurfAnat
 	set Skip = 0
@@ -410,12 +438,13 @@ REGISTER:
 	if ($UseWarp == 0) then
 	   echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
 	   echo ""
-	   if ( -f ${VolRegPrefix}.aff12.1D) rm -f ${VolRegPrefix}.aff12.1D 
+	   if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
       3dvolreg -wtrim -clipit -twopass \
                -twodup -zpad 8 -rotcom \
                -verbose -base $ExpAnat \
-               -1Dmatrix_save  ${VolRegPrefix}.aff12.1D \
+               -1Dmatrix_save  ${VolRegPrefix}.A2E.1D \
                -prefix $VolRegPrefix \
+               -cubic   \
                $SurfAnatPath/$SurfAnat
 	   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.bz2)) then
 		   goto NO_VOLREG
@@ -443,10 +472,10 @@ REGISTER:
       
       3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
       3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_refpad $ExpAnat
-      if ( -f ${VolRegPrefix}.aff12.1D) rm -f ${VolRegPrefix}.aff12.1D 
+      if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
       3dWarpDrive $cropt -twopass -verb -affine_general \
                   -cubic -final quintic \
-                  -1Dmatrix_save ${VolRegPrefix}.aff12.1D \
+                  -1Dmatrix_save ${VolRegPrefix}.A2E.1D \
                   -base ./${tmpref}_refpad$SurfAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
 	   if ($StripSkull >= 2) then
          #Have to apply same transform to original SurfAnat
@@ -480,12 +509,29 @@ REGISTER:
       endif
    endif
 	
-	
+	#If have center shift, combine a reapply
+   if ($no_center == 0) then
+      echo "Combining xform with shift..."
+      set echo
+      mv ${VolRegPrefix}.A2E.1D ___A2E.1D
+      cat_matvec -ONELINE $center_mat -I ___A2E.1D \
+         > ${VolRegPrefix}.A2E.1D && rm -f ___A2E.1D
+      3dAllineate -master $ExpAnatOrig \
+            -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
+            -input $SurfAnatPath/$SurfAnat \
+            -prefix ./${VolRegPrefix}$fview  \
+            -overwrite  \
+            -final quintic
+   endif
+   
 	#remove _resamp_
 	if ($Resampled == 1 && $cleanup == 1) then
 		echo "removing temporary bricks ..."
 		rm -f $ExpAnat_Resamp".HEAD"
 		rm -f $ExpAnat_Resamp".BRIK"
+      if ($no_center == 0) then
+         rm -f $ExpAnatPrefixOrig"_shft"$ExpAnatView"+orig."* >& /dev/null
+      endif
 	endif
    
    #add a history note
@@ -508,26 +554,36 @@ CHECK_EXISTENCE:
 	#	goto NO_SURFANAT
 	#endif
    
-   #check for large center difference
-   set dist_cent = `@Center_Distance -dset $ExpAnat.HEAD $SurfAnatPath/$SurfAnat.HEAD`
-   if (`ccalc -form int -eval "step($dist_cent - 80)"`) then
-      echo ""
-      echo "*********** Warning *************"
-      echo "Dataset centers are $dist_cent mm"
-      echo "apart. If registration fails, try"
-      echo "recentering all the input data using"
-      echo "@Align_Centers -base $SurfAnatPath/$SurfAnat.HEAD -dset $ExpAnat.HEAD -child CHILDREN"
-      echo "and rerun `basename $0` using the shifted dset"
-      echo "See @Align_Centers for more help."
-      echo "*********************************"
-      echo ""
-      echo "Hit Enter to proceed or ctrl+c to quit."
-      echo ""
-      set junk = $<
+   if ($no_center) then
+      #check for large center difference
+      set dist_cent = `@Center_Distance -dset $ExpAnat.HEAD $SurfAnatPath/$SurfAnat.HEAD`
+      set ishuge = `ccalc -form int -eval "step($dist_cent - 80)"`
+      set isbig = `ccalc -form int -eval "step($dist_cent - 30)"`
+      if ($isbig) then
+         echo ""
+         echo "*********** Warning *************"
+         echo "Dataset centers are $dist_cent mm"
+         echo "apart. If registration fails, try"
+         echo "adding option -align_centers"
+         #echo "recentering all the input data using" /**** The olde WAY ****/
+         #echo "@Align_Centers -base $SurfAnatPath/$SurfAnat.HEAD -dset $ExpAnat.HEAD -child CHILDREN"
+         #echo "and rerun `basename $0` using the shifted dset"
+         #echo "See @Align_Centers for more help."
+         #echo "*********************************"
+         if ($ishuge) then
+            echo ""
+            echo "Hit Enter to proceed or ctrl+c to quit."
+            echo ""
+            set junk = $<
+         endif
+      else
+         echo "Center distance of $dist_cent mm"   
+      endif 
+      set center_mat = ''
    else
-      echo "Center distance of $dist_cent mm"   
-   endif 
-
+      #Center shifting is best done after skull stripping, if any is needed  
+   endif
+     
 	goto Ret_CHECK_EXISTENCE
 
 CHECK_PROGRAMS:
