@@ -11,7 +11,7 @@ int main( int argc , char * argv[] )
    MRI_IMAGE * inim ;
    int ii , jj , nx,ny , nopt;
    float *iar ;
-   double sq ;
+   int mode=2 ;  /* 26 Mar 2008 */
 
    /*-- help? --*/
 
@@ -19,10 +19,14 @@ int main( int argc , char * argv[] )
      printf("Usage: 1dnorm infile outfile\n"
             "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
             "in columns); outfile will be a similar file, with each column being\n"
-            "L2 normalized.\n"
+            "L_2 normalized (sum of squares = 1).\n"
             "* If 'infile'  is '-', it will be read from stdin.\n"
             "* If 'outfile' is '-', it will be written to stdout.\n"
-            "* This program has no options!\n"
+            "\n"
+            "Options:\n"
+            "--------\n"
+            " -norm1  = Normalize so sum of absolute values is 1 (L_1 norm)\n"
+            " -normx  = So that max absolute value is 1 (L_infinity norm)\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -30,8 +34,17 @@ int main( int argc , char * argv[] )
    machdep() ;
 
    nopt = 1 ;
+
+   if( strncmp(argv[nopt],"-norm",5) == 0 ){       /* 26 Mar 2008 */
+          if( argv[nopt][5] == '1' ) mode = 1 ;
+     else if( argv[nopt][5] == 'x' ) mode = 666 ;
+     else if( argv[nopt][5] == '2' ) mode = 2 ;
+     else ERROR_message("Don't understand option '%s'",argv[nopt]) ;
+     nopt++ ;
+   }
+
    if( nopt+1 >= argc )
-     ERROR_exit(" Need input and output filenames!") ;
+     ERROR_exit("Need input and output filenames!") ;
 
    if( argc > nopt+1 && !THD_filename_ok(argv[nopt+1]) )
      ERROR_exit(" Illegal output filename!") ;
@@ -48,7 +61,11 @@ int main( int argc , char * argv[] )
    nx = inim->nx ; ny = inim->ny ; iar = MRI_FLOAT_PTR(inim) ;
 
    for( jj=0 ; jj < ny ; jj++ ){
-     THD_normalize( nx , iar + jj*nx ) ;
+     switch( mode ){
+       default:  THD_normalize( nx , iar + jj*nx ); break;
+       case 1:   THD_normL1   ( nx , iar + jj*nx ); break;
+       case 666: THD_normmax  ( nx , iar + jj*nx ); break;
+     }
    }
 
    mri_write_1D( (argc > nopt+1) ? argv[nopt+1] : "-" , inim ) ;
