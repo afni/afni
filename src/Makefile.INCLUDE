@@ -1123,7 +1123,7 @@ afni_vcheck:afni_vcheck.o
 
 1dnorm:1dnorm.o
 	$(RM) $@
-	$(CC) -o 1dnorm 1dnorm.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 1dnorm 1dnorm.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 1dFlagMotion:1dFlagMotion.o
 	$(RM) $@
