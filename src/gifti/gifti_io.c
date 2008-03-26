@@ -2014,7 +2014,8 @@ int gifti_compare_gifti_images(gifti_image * g1, gifti_image * g2,
             if( rv & 2 ) data_diffs++;
             if( lverb < 2 ) break;
             printf("++ DataArray[%d] - difference (data %s)\n",
-                   c, (rv & 2) ? "differs" : "identical");
+                   c, ! comp_data  ? "untested" :
+                        data_diffs ? "differs"  : "identical");
         }
     }
 
