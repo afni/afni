@@ -22,6 +22,7 @@ int main( int argc , char * argv[] )
             "L2 normalized.\n"
             "* If 'infile'  is '-', it will be read from stdin.\n"
             "* If 'outfile' is '-', it will be written to stdout.\n"
+            "* This program has no options!\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -29,33 +30,25 @@ int main( int argc , char * argv[] )
    machdep() ;
 
    nopt = 1 ;
-   if( nopt+1 >= argc ){
-      fprintf(stderr,"** Need input and output filenames!\n");exit(1);
-   }
+   if( nopt+1 >= argc )
+     ERROR_exit(" Need input and output filenames!") ;
 
-   if( argc > nopt+1 && !THD_filename_ok(argv[nopt+1]) ){
-      fprintf(stderr,"** Illegal output filename!\n"); exit(1);
-   }
-   if( argc > nopt+1 && strcmp(argv[nopt+1],"-") != 0 && THD_is_file(argv[nopt+1]) ){
-      fprintf(stderr,"** Output file already exists!\n"); exit(1);
-   }
+   if( argc > nopt+1 && !THD_filename_ok(argv[nopt+1]) )
+     ERROR_exit(" Illegal output filename!") ;
+
+   if( argc > nopt+1 && strcmp(argv[nopt+1],"-") != 0 && THD_is_file(argv[nopt+1]) )
+     ERROR_exit("Output file already exists!") ;
 
    /* read input file */
 
    inim = mri_read_1D( argv[nopt] ) ;
-   if( inim == NULL ){
-      fprintf(stderr,"** Can't read input file!\n"); exit(1);
-   }
+   if( inim == NULL )
+     ERROR_exit("Can't read input file!") ;
 
    nx = inim->nx ; ny = inim->ny ; iar = MRI_FLOAT_PTR(inim) ;
 
    for( jj=0 ; jj < ny ; jj++ ){
-      sq = 0.0 ;
-      for( ii=0 ; ii < nx ; ii++ ) sq += SQR(iar[ii+jj*nx]) ;
-      if( sq > 0.0 ){
-         sq = 1.0 / sqrt(sq) ;
-         for( ii=0 ; ii < nx ; ii++ ) iar[ii+jj*nx] *= sq ;
-      }
+     THD_normalize( nx , iar + jj*nx ) ;
    }
 
    mri_write_1D( (argc > nopt+1) ? argv[nopt+1] : "-" , inim ) ;
