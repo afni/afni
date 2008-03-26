@@ -8,6 +8,7 @@ PARSE:
    set v2i = ""
    set v1i = ""
    set usecp = 1
+   set xmat_only = 0
    if ("$1" == '') goto HELP
    while ($cnt <= $Narg)
       set donext = 1;
@@ -32,7 +33,12 @@ PARSE:
          set usecp = 0
          set donext = 0   
       endif
-
+      
+      if ($donext && "$argv[$cnt]" == "-1Dmat_only") then
+         set xmat_only = 1
+         set donext = 0   
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-dset") then
          set pLoc = $cnt      
          if ($pLoc >= $Narg) then
@@ -63,7 +69,12 @@ PARSE:
       endif
       @ cnt ++
    end
-   
+
+if ("$v1i" == "" || "$v2i" == "") then
+   echo "Error: Missing input"
+   goto END
+endif   
+
 SET_PARAMS: 
 set v2_vw = `@GetAfniView $v2i`
 set pth2 = $v2i:h
@@ -103,6 +114,24 @@ SETCENTER:
    foreach i (1 2 3)
       set del[$i] = `ccalc -eval "$v2_center_v1or[$i] - $v1_center[$i]"`
    end
+   
+   #get delta in RAI 
+   #echo "del: $del"
+   set del_RAI = `@ToRAI -xyz $del -or $v1_orient`
+   #echo "del_RAI: $del_RAI"
+   #Output xform matrix for allineating
+   set del_xform = ()
+   foreach delx ($del_RAI)
+      set del_xform = ($del_xform `ccalc -eval "$delx * -1"`)
+   end
+   echo "1 0 0 $del_xform[1] 0 1 0 $del_xform[2] 0 0 1 $del_xform[3]" \
+         > ${v1_pref}_shft.1D
+   if ($xmat_only == 1) then
+      goto END
+   else
+      #echo "Proceeding..."
+   endif
+   
    #multiply deltas by axis signs
    set mp = `@AfniOrientSign $v1_orient`
    set del_refit = ($del)
@@ -126,10 +155,6 @@ SETCENTER:
       3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
    endif
    
-   #get delta in RAI 
-   #echo "del: $del"
-   set del_RAI = `@ToRAI -xyz $del -or $v1_orient`
-   #echo "del_RAI: $del_RAI"
    
 SETCHILDREN:
 foreach v1foli ( $v1_list )
@@ -162,7 +187,7 @@ foreach v1foli ( $v1_list )
          if ( `@CheckForAfniDset $v1fol_pth/${v1fol_pref}_shft$v1fol_vw` != 0 ) then
             echo ""
             echo "Error `basename $0`"
-            echo "Dset $v1fol_pth/${v1fol_pref}_shft$v1fol_vw found, cleanup first!"
+            echo "Child Dset $v1fol_pth/${v1fol_pref}_shft$v1fol_vw found, cleanup first!"
             echo ""
             goto END
          endif
@@ -184,6 +209,14 @@ HELP:
    echo "Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp] [-child CHILD_2 ... CHILD_N] "
    echo ""
    echo "   Moves the center of DSET to the center of BASE."
+   echo ""
+   echo "   AND/OR creates the transform matrix needed for this shift."
+   echo "   The transform can be used with 3dAllineate's -1D_matrix_apply"
+   echo "   option."
+   echo ""
+   echo "   -1Dmat_only: Only output the transfrom needed to align"
+   echo "                the centers. Do not shift the volumes."
+   echo "                The transform is named DSET_shft.1D"
    echo "   -base BASE: Base volume, typically a template."
    echo "   -dset DSET: Typically an anatomical dset to be"
    echo "               aligned to BASE."
