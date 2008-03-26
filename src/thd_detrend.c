@@ -213,6 +213,23 @@ void THD_normalize( int npt , float *far )
 }
 
 /*-----------------------------------------------------------------------*/
+/* Make a vector have max abs 1 [26 Mar 2008]. */
+
+void THD_normmax( int npt , float *far )
+{
+   register int ii ;
+   register float fac , val ;
+
+   if( npt <= 0 || far == NULL ) return ;
+   fac = 0.0f ;
+   for( ii=0 ; ii < npt ; ii++ ){ val = fabsf(far[ii]); fac = MAX(fac,val); }
+   if( fac == 0.0f ) return ;
+   fac = 1.0f / fac ;
+   for( ii=0 ; ii < npt ; ii++ ) far[ii] *= fac ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Detrend a vector with a given polort level, plus some others, using
     least squares regression.
      - npt    = length of vector
