@@ -530,7 +530,7 @@ REGISTER:
 		rm -f $ExpAnat_Resamp".HEAD"
 		rm -f $ExpAnat_Resamp".BRIK"
       if ($no_center == 0) then
-         rm -f $ExpAnatPrefixOrig"_shft"$ExpAnatView"+orig."* >& /dev/null
+         rm -f $ExpAnatPrefixOrig"_shft"$ExpAnatView"."* >& /dev/null
       endif
 	endif
    
