@@ -81,10 +81,15 @@ int main( int argc , char *argv[] )
             "              and allow each sub-graph to have a different\n"
             "              y-scale.  -sepscl is meaningless with -one!\n"
             "\n"
+            "           ** The '-norm' options below can be useful for\n"
+            "               plotting data with different value ranges on\n"
+            "               top of each other using '-one':\n"
             " -norm2     = Independently scale each time series plotted to\n"
-            "              have L2 norm = 1 (sum of squares).\n"
+            "              have L_2 norm = 1 (sum of squares).\n"
             " -normx     = Independently scale each time series plotted to\n"
-            "              have max absolute value = 1 (L-infinity norm)\n"
+            "              have max absolute value = 1 (L_infinity norm).\n"
+            " -norm1     = Independently scale each time series plotted to\n"
+            "              have max sum of absolute values = 1 (L_1 norm).\n"
             "\n"
             " -x  X.1D   = Use for X axis the data in X.1D.\n"
             "              Note that X.1D should have one column\n"
@@ -250,6 +255,9 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-norm2") == 0 ){  /* 26 Mar 2008 */
        do_norm = 2 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-norm1") == 0 ){
+       do_norm = 1 ; iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-normx") == 0 ){
        do_norm = 666 ; iarg++ ; continue ;
@@ -551,6 +559,10 @@ int main( int argc , char *argv[] )
    switch( do_norm ){  /* 26 Mar 2008 */
      case 2:
       for( ii=0 ; ii < ny ; ii++ ) THD_normalize(nx,yar[ii]) ;
+     break ;
+
+     case 1:
+      for( ii=0 ; ii < ny ; ii++ ) THD_normL1(nx,yar[ii]) ;
      break ;
 
      case 666:
