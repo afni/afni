@@ -39,9 +39,19 @@
    "   (but none at the end)"
  } ,
 
+ { 26, MAR, 2008, RCR, "sample", MICRO, TYPE_GENERAL,
+   "blah",
+   NULL
+ } ,
+
 */
 
 afni_history_struct rickr_history[] = {
+
+ { 26, MAR, 2008, RCR, "gifticlib", MICRO, TYPE_MODIFY,
+   "in compare, if comp_data is not set, state the fact",
+   NULL
+ } ,
 
  { 25, MAR, 2008, RCR, "GIFTI", MINOR, TYPE_MODIFY,
    "minor changes:",
