@@ -2774,62 +2774,31 @@ SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel)
    tmp = NI_get_attribute(nel, "xyzorg"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, fv15, 3); SO->VolPar->xorg = fv15[0]; SO->VolPar->yorg = fv15[1];   SO->VolPar->zorg = fv15[2]; }
       
-   tmp = NI_get_attribute(nel, "VOLREG_CENTER_OLD"); 
+   tmp = NI_get_attribute(nel, "CENTER_OLD"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
       SUMA_StringToNum(tmp, fv15, 3); 
-      SO->VolPar->VOLREG_CENTER_OLD = (float*)SUMA_malloc(sizeof(float)*3);
-      SUMA_COPY_VEC(fv15, SO->VolPar->VOLREG_CENTER_OLD, 2, float, float);
+      SO->VolPar->CENTER_OLD = (double*)SUMA_malloc(sizeof(double)*3);
+      SUMA_COPY_VEC(fv15, SO->VolPar->CENTER_OLD, 2, float, double);
    }
    
-   tmp = NI_get_attribute(nel, "VOLREG_CENTER_BASE"); 
+   tmp = NI_get_attribute(nel, "CENTER_BASE"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
       SUMA_StringToNum(tmp, fv15, 3); 
-      SO->VolPar->VOLREG_CENTER_BASE = (float*)SUMA_malloc(sizeof(float)*3);
-      SUMA_COPY_VEC(fv15, SO->VolPar->VOLREG_CENTER_BASE, 2, float, float);
+      SO->VolPar->CENTER_BASE = (double*)SUMA_malloc(sizeof(double)*3);
+      SUMA_COPY_VEC(fv15, SO->VolPar->CENTER_BASE, 2, float, double);
    }
    
-   tmp = NI_get_attribute(nel, "VOLREG_MATVEC"); 
+   tmp = NI_get_attribute(nel, "MATVEC"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
       SUMA_StringToNum(tmp, fv15, 12); 
-      SO->VolPar->VOLREG_MATVEC = (float*)SUMA_malloc(sizeof(float)*12);
-      SUMA_COPY_VEC(fv15, SO->VolPar->VOLREG_MATVEC, 2, float, float);
-   }
-
-   tmp = NI_get_attribute(nel, "TAGALIGN_MATVEC"); 
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_StringToNum(tmp, fv15, 12); 
-      SO->VolPar->TAGALIGN_MATVEC = (float*)SUMA_malloc(sizeof(float)*12);
-      SUMA_COPY_VEC(fv15, SO->VolPar->TAGALIGN_MATVEC, 2, float, float);
-   }
-
-   tmp = NI_get_attribute(nel, "WARPDRIVE_MATVEC"); 
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_StringToNum(tmp, fv15, 12); 
-      SO->VolPar->WARPDRIVE_MATVEC = (float*)SUMA_malloc(sizeof(float)*12);
-      SUMA_COPY_VEC(fv15, SO->VolPar->WARPDRIVE_MATVEC, 2, float, float);
-   }
-
-   tmp = NI_get_attribute(nel, "ROTATE_MATVEC"); 
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_StringToNum(tmp, fv15, 12); 
-      SO->VolPar->ROTATE_MATVEC = (float*)SUMA_malloc(sizeof(float)*12);
-      SUMA_COPY_VEC(fv15, SO->VolPar->ROTATE_MATVEC, 2, float, float);
+      SO->VolPar->MATVEC = (double*)SUMA_malloc(sizeof(double)*12);
+      SUMA_COPY_VEC(fv15, SO->VolPar->MATVEC, 2, float, double);
    }
    
-   tmp = NI_get_attribute(nel, "ROTATE_CENTER_OLD"); 
+   tmp = NI_get_attribute(nel, "MATVEC_source"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_StringToNum(tmp, fv15, 3); 
-      SO->VolPar->ROTATE_CENTER_OLD = (float*)SUMA_malloc(sizeof(float)*3);
-      SUMA_COPY_VEC(fv15, SO->VolPar->ROTATE_CENTER_OLD, 2, float, float);
+      SO->VolPar->MATVEC_source = (SUMA_WARP_TYPES)atoi(tmp);
    }
-
-   tmp = NI_get_attribute(nel, "ROTATE_CENTER_BASE"); 
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_StringToNum(tmp, fv15, 3); 
-      SO->VolPar->ROTATE_CENTER_BASE = (float*)SUMA_malloc(sizeof(float)*3);
-      SUMA_COPY_VEC(fv15, SO->VolPar->ROTATE_CENTER_BASE, 2, float, float);
-   }
- 
    SUMA_RETURN(YUP);
 }
 
@@ -2837,7 +2806,8 @@ SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel)
    A function to turn the VolPar structure to a nel, this one's a group
    \sa SUMA_VolPar_nel2SOVolPar
 */
-NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, SUMA_DSET_TYPE dtype)
+NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, 
+                                       SUMA_VOLPAR *VolPar, SUMA_DSET_TYPE dtype)
 {
    static char FuncName[]={"SUMA_SOVolPar2VolPar_nel"};
    NI_element *nel=NULL;
@@ -2914,51 +2884,26 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPa
    sprintf(stmp, "%f %f %f", VolPar->xorg, VolPar->yorg, VolPar->zorg);
    NI_set_attribute(nel, "xyzorg", stmp);
    
-   if (VolPar->VOLREG_CENTER_OLD) {
+   if (VolPar->CENTER_OLD) {
       stmp[0] = '\0';
-      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->VOLREG_CENTER_OLD[i]);
-      NI_set_attribute(nel, "VOLREG_CENTER_OLD", stmp);
+      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->CENTER_OLD[i]);
+      NI_set_attribute(nel, "CENTER_OLD", stmp);
    }
-   if (VolPar->VOLREG_CENTER_BASE) {
+   if (VolPar->CENTER_BASE) {
       stmp[0] = '\0';
-      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->VOLREG_CENTER_BASE[i]);
-      NI_set_attribute(nel, "VOLREG_CENTER_BASE", stmp);
-   }
-   
-   if (VolPar->VOLREG_MATVEC) {
-      stmp[0] = '\0';
-      for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->VOLREG_MATVEC[i]);
-      NI_set_attribute(nel, "VOLREG_MATVEC", stmp);
+      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->CENTER_BASE[i]);
+      NI_set_attribute(nel, "CENTER_BASE", stmp);
    }
    
-   if (VolPar->TAGALIGN_MATVEC) {
+   if (VolPar->MATVEC) {
       stmp[0] = '\0';
-      for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->TAGALIGN_MATVEC[i]);
-      NI_set_attribute(nel, "TAGALIGN_MATVEC", stmp);
+      for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->MATVEC[i]);
+      NI_set_attribute(nel, "MATVEC", stmp);
    }
+   
+   sprintf(stmp, "%d", VolPar->MATVEC_source);
+   NI_set_attribute(nel, "MATVEC_source", stmp);
 
-   if (VolPar->WARPDRIVE_MATVEC) {
-      stmp[0] = '\0';
-      for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->WARPDRIVE_MATVEC[i]);
-      NI_set_attribute(nel, "WARPDRIVE_MATVEC", stmp);
-   }
-
-   if (VolPar->ROTATE_MATVEC) {
-      stmp[0] = '\0';
-      for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->ROTATE_MATVEC[i]);
-      NI_set_attribute(nel, "ROTATE_MATVEC", stmp);
-   }
-   
-   if (VolPar->ROTATE_CENTER_OLD) {
-      stmp[0] = '\0';
-      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->ROTATE_CENTER_OLD[i]);
-      NI_set_attribute(nel, "ROTATE_CENTER_OLD", stmp);
-   }
-   if (VolPar->ROTATE_CENTER_BASE) {
-      stmp[0] = '\0';
-      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->ROTATE_CENTER_BASE[i]);
-      NI_set_attribute(nel, "ROTATE_CENTER_BASE", stmp);
-   }
    SUMA_RETURN(nel);  
 }
 

@@ -3,6 +3,29 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 
+const char *SUMA_WarpTypeName(SUMA_WARP_TYPES wt)
+{
+   switch (wt) {
+      case BAD_WARP:
+         return ("Bad Warp");
+      case NO_WARP:
+         return ("No Warp");
+      case ROTATE_WARP:
+         return ("3drotate Warp");
+      case VOLREG_WARP:
+         return ("3dvolreg Warp");
+      case ALLINEATE_WARP:
+         return ("3dAllineate Warp");
+      case WARPDRIVE_WARP:
+         return ("3dWarpdrive Warp");
+      case TAGALIGN_WARP:
+         return ("3dTagalign Warp");
+      case N_WARP_TYPES:
+         return ("Number of Warp Types");
+      default:
+         return ("You're a warped type");
+   }
+}
 
 /*!
    \brief Find the closest node on the surface to a voxel in the volume (as defined in vp)
@@ -447,16 +470,11 @@ SUMA_VOLPAR *SUMA_Alloc_VolPar (void)
    VP->vol_idcode_str = NULL; /*!< idcode string OF parent volume*/
    VP->vol_idcode_date = NULL; /*!< idcode date */
    VP->xxorient = VP->yyorient = VP->zzorient = 0; /*!< orientation of three dimensions*/ 
-   VP->VOLREG_CENTER_OLD = NULL; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
-   VP->VOLREG_CENTER_BASE = NULL; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
-   VP->VOLREG_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
-   VP->TAGALIGN_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the tag aligned Parent Volume */
-   VP->WARPDRIVE_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the 3dWarpDrive aligned Parent Volume */
-   VP->ROTATE_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the 3drotated Parent Volume */
-   VP->ROTATE_CENTER_OLD = NULL;
-   VP->ROTATE_CENTER_BASE = NULL;
+   VP->CENTER_OLD = NULL; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   VP->CENTER_BASE = NULL; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   VP->MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
    VP->Hand = 1; /*!< Handedness of axis 1 RH, -1 LH*/
-   
+   VP->MATVEC_source = NO_WARP;
    SUMA_RETURN(VP);
 }
 SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
@@ -471,24 +489,20 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
    if (VP->dirname != NULL) SUMA_free(VP->dirname);
    if (VP->vol_idcode_str != NULL) SUMA_free(VP->vol_idcode_str);
    if (VP->vol_idcode_date != NULL) SUMA_free(VP->vol_idcode_date);
-   if (VP->VOLREG_CENTER_OLD != NULL) SUMA_free(VP->VOLREG_CENTER_OLD);
-   if (VP->VOLREG_CENTER_BASE != NULL) SUMA_free(VP->VOLREG_CENTER_BASE);
-   if (VP->VOLREG_MATVEC != NULL) SUMA_free(VP->VOLREG_MATVEC);
-   if (VP->TAGALIGN_MATVEC != NULL) SUMA_free(VP->TAGALIGN_MATVEC);
-   if (VP->WARPDRIVE_MATVEC != NULL) SUMA_free(VP->WARPDRIVE_MATVEC);
-   if (VP->ROTATE_MATVEC != NULL) SUMA_free(VP->ROTATE_MATVEC);
-   if (VP->ROTATE_CENTER_OLD != NULL) SUMA_free(VP->ROTATE_CENTER_OLD);
-   if (VP->ROTATE_CENTER_BASE != NULL) SUMA_free(VP->ROTATE_CENTER_BASE);
+   if (VP->CENTER_OLD != NULL) SUMA_free(VP->CENTER_OLD);
+   if (VP->CENTER_BASE != NULL) SUMA_free(VP->CENTER_BASE);
+   if (VP->MATVEC != NULL) SUMA_free(VP->MATVEC);
    if (VP != NULL) SUMA_free(VP);
    SUMA_RETURN (YUP);
 }
 
+
 SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
 {
-   ATR_float *atr;
+   ATR_float *atr=NULL, *atrkeep=NULL;
    static char FuncName[]={"SUMA_VolParFromDset"};
-   SUMA_VOLPAR *VP;
-   int ii;
+   SUMA_VOLPAR *VP=NULL;
+   int ii, nxform = 0;
    MCW_idcode idcode;
    SUMA_Boolean LocalHead = NOPE;
       
@@ -528,8 +542,14 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
    VP->vol_idcode_str = (char *)SUMA_malloc(ii+1);
    ii = strlen(dset->idcode.date);
    VP->vol_idcode_date = (char *)SUMA_malloc(ii+1);
-   if (VP->prefix == NULL || VP->filecode == NULL || VP->vol_idcode_date == NULL || VP->dirname == NULL || VP->vol_idcode_str == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to allocate for strings. Kill me, please.\n", FuncName);
+   if (  VP->prefix == NULL || 
+         VP->filecode == NULL || 
+         VP->vol_idcode_date == NULL || 
+         VP->dirname == NULL || 
+         VP->vol_idcode_str == NULL) {
+      fprintf( SUMA_STDERR,
+               "Error %s: Failed to allocate for strings. Kill me, please.\n", 
+               FuncName);
       SUMA_Free_VolPar(VP);
       SUMA_RETURN (NULL);
    }
@@ -543,139 +563,136 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
    VP->zzorient = dset->daxes->zzorient;
 
    if (LocalHead) {      
-      fprintf (SUMA_STDERR,"%s: dset->idcode_str = %s\n", FuncName, dset->idcode.str);
-      fprintf (SUMA_STDERR,"%s: VP->vol_idcode_str = %s\n", FuncName, VP->vol_idcode_str);
-   }
-   /* Get the 3drotate matrix if possible*/
-   atr = THD_find_float_atr( dset->dblk , "ROTATE_MATVEC_000000" ) ;
-   if (atr == NULL) {
-      VP->ROTATE_MATVEC = NULL;
-   }else {
-      VP->ROTATE_MATVEC = (float *)SUMA_calloc(12, sizeof(float));
-      if (VP->ROTATE_MATVEC != NULL) {
-         if (atr->nfl == 12) {
-            for (ii=0; ii<12; ++ii) VP->ROTATE_MATVEC[ii] = atr->fl[ii];
-         } else {   
-            fprintf(SUMA_STDERR,"Error %s: ROTATE_MATVEC does not have 12 elements.\n", FuncName);
-         }
-      } else {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->ROTATE_MATVEC\n", FuncName);
-      }
-   }
-   
-   /* Get the tagalign matrix if possible*/
-   atr = THD_find_float_atr( dset->dblk , "TAGALIGN_MATVEC" ) ;
-   if (atr == NULL) {
-      VP->TAGALIGN_MATVEC = NULL;
-   }else {
-      VP->TAGALIGN_MATVEC = (float *)SUMA_calloc(12, sizeof(float));
-      if (VP->TAGALIGN_MATVEC != NULL) {
-         if (atr->nfl == 12) {
-            for (ii=0; ii<12; ++ii) VP->TAGALIGN_MATVEC[ii] = atr->fl[ii];
-         } else {   
-            fprintf(SUMA_STDERR,"Error %s: TAGALIGN_MATVEC does not have 12 elements.\n", FuncName);
-         }
-      } else {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->TAGALIGN_MATVEC\n", FuncName);
-      }
+      fprintf (SUMA_STDERR,"%s: dset->idcode_str = %s\n", 
+               FuncName, dset->idcode.str);
+      fprintf (SUMA_STDERR,"%s: VP->vol_idcode_str = %s\n", 
+               FuncName, VP->vol_idcode_str);
    }
 
-   /* Get the tagalign matrix if possible*/
-   atr = THD_find_float_atr( dset->dblk , "WARPDRIVE_MATVEC_INV_000000" ) ; /* _INV_ yes _INV_, not _FOR_: Don't ask why. */
+   /* Get the 3drotate matrix if possible*/
+   VP->MATVEC_source = NO_WARP;
+   if ((atr = THD_find_float_atr( dset->dblk , "ROTATE_MATVEC_000000" ))) {
+      if (!atrkeep) {
+         atrkeep = atr;
+         VP->MATVEC_source = ROTATE_WARP;
+      }
+      ++nxform;
+   }
+   if ((atr = THD_find_float_atr( dset->dblk , "TAGALIGN_MATVEC" ))) {
+      if (!atrkeep) {
+         atrkeep = atr;
+         VP->MATVEC_source = TAGALIGN_WARP;
+      }
+      ++nxform;
+   }
+   if ((atr = THD_find_float_atr( dset->dblk , "WARPDRIVE_MATVEC_INV_000000" ))){
+      if (!atrkeep) {
+         atrkeep = atr;
+         VP->MATVEC_source = WARPDRIVE_WARP; 
+      }
+      ++nxform;
+   }
+   if ((atr = THD_find_float_atr( dset->dblk , "ALLINEATE_MATVEC_S2B_000000" ))){
+      if (!atrkeep) {
+         atrkeep = atr;
+         VP->MATVEC_source = ALLINEATE_WARP;
+      }
+      ++nxform;
+   }
+   if ((atr = THD_find_float_atr( dset->dblk , "VOLREG_MATVEC_000000" ))) {
+      if (!atrkeep) {
+         atrkeep = atr;
+         VP->MATVEC_source = VOLREG_WARP;
+      }
+      ++nxform;
+   }
+   atr = atrkeep;
+   if (nxform > 1) {
+      SUMA_S_Warnv("More than one (%d) plausible transforms found.\n"
+                  "Abiding by %s\n", 
+                  nxform, SUMA_WarpTypeName(VP->MATVEC_source)); 
+   } 
+   
    if (atr == NULL) {
-      VP->WARPDRIVE_MATVEC = NULL;
+      VP->MATVEC = NULL;
    }else {
-      VP->WARPDRIVE_MATVEC = (float *)SUMA_calloc(12, sizeof(float));
-      if (VP->WARPDRIVE_MATVEC != NULL) {
+      VP->MATVEC = (double *)SUMA_calloc(12, sizeof(double));
+      if (VP->MATVEC != NULL) {
          if (atr->nfl == 12) {
-            for (ii=0; ii<12; ++ii) VP->WARPDRIVE_MATVEC[ii] = atr->fl[ii];
+            for (ii=0; ii<12; ++ii) VP->MATVEC[ii] = (double)atr->fl[ii];
          } else {   
-            fprintf(SUMA_STDERR,"Error %s: WARPDRIVE_MATVEC_FOR_000000 does not have 12 elements.\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Error %s: MATVEC does not have 12 elements.\n", 
+                     FuncName);
          }
       } else {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->WARPDRIVE_MATVEC\n", FuncName);
+         fprintf(SUMA_STDERR,
+                 "Error %s: Failed to allocate for VP->MATVEC\n", 
+                 FuncName);
       }
    }
    
-   /* Get the volreg matrix if possible*/
-   atr = THD_find_float_atr( dset->dblk , "VOLREG_MATVEC_000000" ) ;
-   if (atr == NULL) {
-      VP->VOLREG_MATVEC = NULL;
-   }else {
-      VP->VOLREG_MATVEC = (float *)SUMA_calloc(12, sizeof(float));
-      if (VP->VOLREG_MATVEC != NULL) {
-         if (atr->nfl == 12) {
-            for (ii=0; ii<12; ++ii) VP->VOLREG_MATVEC[ii] = atr->fl[ii];
-         } else {   
-            fprintf(SUMA_STDERR,"Error %s: VOLREG_MATVEC_000000 does not have 12 elements.\n", FuncName);
-         }
-      } else {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->VOLREG_MATVEC\n", FuncName);
-      }
-   }
+   
    /* Get the center base coordinates */
-   atr = THD_find_float_atr( dset->dblk , "VOLREG_CENTER_BASE");
-   if (atr == NULL) {
-      VP->VOLREG_CENTER_BASE = NULL;
-   } else {
-      VP->VOLREG_CENTER_BASE = (float *)SUMA_calloc(3, sizeof(float));
-      if (VP->VOLREG_CENTER_BASE != NULL) {
-         if (atr->nfl == 3) {
-            for (ii=0; ii<3; ++ii) VP->VOLREG_CENTER_BASE[ii] = atr->fl[ii];
-         } else {   
-            fprintf(SUMA_STDERR,"Error %s: VOLREG_CENTER_BASE does not have 12 elements.\n", FuncName);
-         }
-      } else {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->VOLREG_CENTER_BASE\n", FuncName);
-      }
+   switch (VP->MATVEC_source) {
+      case VOLREG_WARP:
+         atr = THD_find_float_atr( dset->dblk , "VOLREG_CENTER_BASE");
+         break;
+      case ROTATE_WARP:
+         atr = THD_find_float_atr( dset->dblk , "ROTATE_CENTER_BASE");
+         break;
+      default:
+         atr = NULL;
+         break;
    }
-   /* VOLREG_CENTER_OLD  */
-   atr = THD_find_float_atr( dset->dblk , "VOLREG_CENTER_OLD");
+   
    if (atr == NULL) {
-      VP->VOLREG_CENTER_OLD = NULL;
+      VP->CENTER_BASE = NULL;
    } else {
-      VP->VOLREG_CENTER_OLD = (float *)SUMA_calloc(3, sizeof(float));
-      if (VP->VOLREG_CENTER_OLD != NULL) {
+      VP->CENTER_BASE = (double *)SUMA_calloc(3, sizeof(double));
+      if (VP->CENTER_BASE != NULL) {
          if (atr->nfl == 3) {
-            for (ii=0; ii<3; ++ii) VP->VOLREG_CENTER_OLD[ii] = atr->fl[ii];
+            for (ii=0; ii<3; ++ii) VP->CENTER_BASE[ii] = atr->fl[ii];
          } else {   
-            fprintf(SUMA_STDERR,"Error %s: VOLREG_CENTER_OLD does not have 12 elements.\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Error %s: CENTER_BASE does not have 12 elements.\n", 
+                     FuncName);
          }
       } else {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->VOLREG_CENTER_OLD\n", FuncName);
+         fprintf( SUMA_STDERR,
+                  "Error %s: Failed to allocate for VP->CENTER_BASE\n", 
+                  FuncName);
       }
    }
    
-   /* Get the center base coordinates */
-   atr = THD_find_float_atr( dset->dblk , "ROTATE_CENTER_BASE");
-   if (atr == NULL) {
-      VP->ROTATE_CENTER_BASE = NULL;
-   } else {
-      VP->ROTATE_CENTER_BASE = (float *)SUMA_calloc(3, sizeof(float));
-      if (VP->ROTATE_CENTER_BASE != NULL) {
-         if (atr->nfl == 3) {
-            for (ii=0; ii<3; ++ii) VP->ROTATE_CENTER_BASE[ii] = atr->fl[ii];
-         } else {   
-            fprintf(SUMA_STDERR,"Error %s: ROTATE_CENTER_BASE does not have 12 elements.\n", FuncName);
-         }
-      } else {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->ROTATE_CENTER_BASE\n", FuncName);
-      }
+   /* CENTER_OLD  */
+   switch (VP->MATVEC_source) {
+      case VOLREG_WARP:
+         atr = THD_find_float_atr( dset->dblk , "VOLREG_CENTER_OLD");
+         break;
+      case ROTATE_WARP:
+         atr = THD_find_float_atr( dset->dblk , "ROTATE_CENTER_OLD");
+         break;
+      default:
+         atr = NULL;
+         break;
    }
-   /* ROTATE_CENTER_OLD */
-   atr = THD_find_float_atr( dset->dblk , "ROTATE_CENTER_OLD");
+
    if (atr == NULL) {
-      VP->ROTATE_CENTER_OLD = NULL;
+      VP->CENTER_OLD = NULL;
    } else {
-      VP->ROTATE_CENTER_OLD = (float *)SUMA_calloc(3, sizeof(float));
-      if (VP->ROTATE_CENTER_OLD != NULL) {
+      VP->CENTER_OLD = (double *)SUMA_calloc(3, sizeof(double));
+      if (VP->CENTER_OLD != NULL) {
          if (atr->nfl == 3) {
-            for (ii=0; ii<3; ++ii) VP->ROTATE_CENTER_OLD[ii] = atr->fl[ii];
+            for (ii=0; ii<3; ++ii) VP->CENTER_OLD[ii] = atr->fl[ii];
          } else {   
-            fprintf(SUMA_STDERR,"Error %s: ROTATE_CENTER_OLD does not have 12 elements.\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Error %s: CENTER_OLD does not have 12 elements.\n", 
+                     FuncName);
          }
       } else {
-         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->ROTATE_CENTER_OLD\n", FuncName);
+         fprintf( SUMA_STDERR,
+                  "Error %s: Failed to allocate for VP->CENTER_OLD\n", FuncName);
       }
    }
 
@@ -700,7 +717,8 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
    /* read the header of the parent volume */
    dset = THD_open_dataset(volparent_name);
    if (dset == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Could not read %s\n", FuncName, volparent_name);
+      fprintf (SUMA_STDERR,
+               "Error %s: Could not read %s\n", FuncName, volparent_name);
       SUMA_RETURN (NULL);
    }
    
@@ -738,130 +756,71 @@ char *SUMA_VolPar_Info (SUMA_VOLPAR *VP)
    if (VP) { 
       sprintf (stmp,"\nVP contents:\n");
       SS = SUMA_StringAppend (SS, stmp);
-      sprintf (stmp,"prefix: %s\tfilecode: %s\tdirname: %s\nId code str:%s\tID code date: %s\n", \
-         VP->prefix, VP->filecode, VP->dirname, VP->vol_idcode_str, VP->vol_idcode_date);
+      sprintf (stmp,
+               "prefix: %s\tfilecode: %s\tdirname: %s\n"
+               "Id code str:%s\tID code date: %s\n", 
+               VP->prefix, VP->filecode, VP->dirname, 
+               VP->vol_idcode_str, VP->vol_idcode_date);
       SS = SUMA_StringAppend (SS, stmp);
       if (VP->idcode_str) SS = SUMA_StringAppend (SS, "IDcode is NULL\n");
       else SS = SUMA_StringAppend_va (SS, "IDcode: %s\n", VP->idcode_str);
       
       sprintf (stmp,"isanat: %d\n", VP->isanat);
       SS = SUMA_StringAppend (SS, stmp);
-      sprintf (stmp,"Orientation: %d %d %d\n", \
+      sprintf (stmp,"Orientation: %d %d %d\n", 
          VP->xxorient, VP->yyorient, VP->zzorient);
-      if (VP->Hand == 1) SS = SUMA_StringAppend (SS, "Right Hand Coordinate System.\n");
-      else if (VP->Hand == -1) SS = SUMA_StringAppend (SS, "Left Hand Coordinate System.\n");
+      if (VP->Hand == 1) 
+         SS = SUMA_StringAppend (SS, "Right Hand Coordinate System.\n");
+      else if (VP->Hand == -1) 
+         SS = SUMA_StringAppend (SS, "Left Hand Coordinate System.\n");
       else SS = SUMA_StringAppend (SS, "No hand coordinate system!\n");
       
       SS = SUMA_StringAppend (SS, stmp);
-      sprintf (stmp,"Origin: %f %f %f\n", \
+      sprintf (stmp,"Origin: %f %f %f\n", 
          VP->xorg, VP->yorg, VP->zorg);
       SS = SUMA_StringAppend (SS, stmp);
-      sprintf (stmp,"Delta: %f %f %f\n", \
+      sprintf (stmp,"Delta: %f %f %f\n", 
          VP->dx, VP->dy, VP->dz);
       SS = SUMA_StringAppend (SS, stmp);
-      sprintf (stmp,"N: %d %d %d\n",\
+      sprintf (stmp,"N: %d %d %d\n",
          VP->nx, VP->ny, VP->nz);
       SS = SUMA_StringAppend (SS, stmp);
 
-      if (VP->ROTATE_MATVEC != NULL) {
-         sprintf (stmp,"VP->ROTATE_MATVEC = \n\tMrot\tDelta\n");
+      SS = SUMA_StringAppend_va( SS,
+                                 "VolPar transform type: %d\n", 
+                                 SUMA_WarpTypeName(VP->MATVEC_source));
+      if (VP->MATVEC != NULL) {
+         sprintf (stmp,"VP->MATVEC = \n\tMrot\tDelta\n");
          SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->ROTATE_MATVEC[0], VP->ROTATE_MATVEC[1], VP->ROTATE_MATVEC[2], VP->ROTATE_MATVEC[3]); 
+         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", 
+         VP->MATVEC[0], VP->MATVEC[1], VP->MATVEC[2], VP->MATVEC[3]); 
          SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->ROTATE_MATVEC[4], VP->ROTATE_MATVEC[5], VP->ROTATE_MATVEC[6], VP->ROTATE_MATVEC[7]);
+         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", 
+         VP->MATVEC[4], VP->MATVEC[5], VP->MATVEC[6], VP->MATVEC[7]);
          SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->ROTATE_MATVEC[8], VP->ROTATE_MATVEC[9], VP->ROTATE_MATVEC[10], VP->ROTATE_MATVEC[11]);
+         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n",
+         VP->MATVEC[8], VP->MATVEC[9], VP->MATVEC[10], VP->MATVEC[11]);
          SS = SUMA_StringAppend (SS, stmp);
       } else {
-         sprintf (stmp,"VP->ROTATE_MATVEC = NULL\n");
+         sprintf (stmp,"VP->MATVEC = NULL\n");
          SS = SUMA_StringAppend (SS, stmp);
       }      
-      if (VP->ROTATE_CENTER_OLD != NULL) {
-         sprintf (stmp,"VP->ROTATE_CENTER_OLD = %f, %f, %f\n", \
-           VP->ROTATE_CENTER_OLD[0], VP->ROTATE_CENTER_OLD[1], VP->ROTATE_CENTER_OLD[2]); 
+      if (VP->CENTER_OLD != NULL) {
+         sprintf (stmp,"VP->CENTER_OLD = %f, %f, %f\n", 
+           VP->CENTER_OLD[0], VP->CENTER_OLD[1], VP->CENTER_OLD[2]); 
          SS = SUMA_StringAppend (SS, stmp);
       }else {
-         sprintf (stmp,"VP->ROTATE_CENTER_OLD = NULL\n");
+         sprintf (stmp,"VP->CENTER_OLD = NULL\n");
          SS = SUMA_StringAppend (SS, stmp);
       }
-      if (VP->ROTATE_CENTER_BASE != NULL) {
-         sprintf (stmp,"VP->ROTATE_CENTER_BASE = %f, %f, %f\n", \
-            VP->ROTATE_CENTER_BASE[0], VP->ROTATE_CENTER_BASE[1], VP->ROTATE_CENTER_BASE[2]); 
+      if (VP->CENTER_BASE != NULL) {
+         sprintf (stmp,"VP->CENTER_BASE = %f, %f, %f\n", 
+            VP->CENTER_BASE[0], VP->CENTER_BASE[1], VP->CENTER_BASE[2]); 
          SS = SUMA_StringAppend (SS, stmp);
       } else {
-         sprintf (stmp,"VP->ROTATE_CENTER_BASE = NULL\n");
+         sprintf (stmp,"VP->CENTER_BASE = NULL\n");
          SS = SUMA_StringAppend (SS, stmp);
       }      
-      if (VP->TAGALIGN_MATVEC != NULL) {
-         sprintf (stmp,"VP->TAGALIGN_MATVEC = \n\tMrot\tDelta\n");
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->TAGALIGN_MATVEC[0], VP->TAGALIGN_MATVEC[1], VP->TAGALIGN_MATVEC[2], VP->TAGALIGN_MATVEC[3]); 
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->TAGALIGN_MATVEC[4], VP->TAGALIGN_MATVEC[5], VP->TAGALIGN_MATVEC[6], VP->TAGALIGN_MATVEC[7]);
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->TAGALIGN_MATVEC[8], VP->TAGALIGN_MATVEC[9], VP->TAGALIGN_MATVEC[10], VP->TAGALIGN_MATVEC[11]);
-         SS = SUMA_StringAppend (SS, stmp);
-      } else {
-         sprintf (stmp,"VP->TAGALIGN_MATVEC = NULL\n");
-         SS = SUMA_StringAppend (SS, stmp);
-      }      
-      
-      if (VP->WARPDRIVE_MATVEC != NULL) {
-         sprintf (stmp,"VP->WARPDRIVE_MATVEC = \n\tMrot\tDelta\n");
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->WARPDRIVE_MATVEC[0], VP->WARPDRIVE_MATVEC[1], VP->WARPDRIVE_MATVEC[2], VP->WARPDRIVE_MATVEC[3]); 
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->WARPDRIVE_MATVEC[4], VP->WARPDRIVE_MATVEC[5], VP->WARPDRIVE_MATVEC[6], VP->WARPDRIVE_MATVEC[7]);
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->WARPDRIVE_MATVEC[8], VP->WARPDRIVE_MATVEC[9], VP->WARPDRIVE_MATVEC[10], VP->WARPDRIVE_MATVEC[11]);
-         SS = SUMA_StringAppend (SS, stmp);
-      } else {
-         sprintf (stmp,"VP->WARPDRIVE_MATVEC = NULL\n");
-         SS = SUMA_StringAppend (SS, stmp);
-      }      
-      if (VP->VOLREG_MATVEC != NULL) {
-         sprintf (stmp,"VP->VOLREG_MATVEC = \n\tMrot\tDelta\n");
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->VOLREG_MATVEC[0], VP->VOLREG_MATVEC[1], VP->VOLREG_MATVEC[2], VP->VOLREG_MATVEC[3]); 
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->VOLREG_MATVEC[4], VP->VOLREG_MATVEC[5], VP->VOLREG_MATVEC[6], VP->VOLREG_MATVEC[7]);
-         SS = SUMA_StringAppend (SS, stmp);
-         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
-         VP->VOLREG_MATVEC[8], VP->VOLREG_MATVEC[9], VP->VOLREG_MATVEC[10], VP->VOLREG_MATVEC[11]);
-         SS = SUMA_StringAppend (SS, stmp);
-      } else {
-         sprintf (stmp,"VP->VOLREG_MATVEC = NULL\n");
-         SS = SUMA_StringAppend (SS, stmp);
-      }
-
-      if (VP->VOLREG_CENTER_OLD != NULL) {
-         sprintf (stmp,"VP->VOLREG_CENTER_OLD = %f, %f, %f\n", \
-           VP->VOLREG_CENTER_OLD[0], VP->VOLREG_CENTER_OLD[1], VP->VOLREG_CENTER_OLD[2]); 
-         SS = SUMA_StringAppend (SS, stmp);
-      }else {
-         sprintf (stmp,"VP->VOLREG_CENTER_OLD = NULL\n");
-         SS = SUMA_StringAppend (SS, stmp);
-      }
-
-      if (VP->VOLREG_CENTER_BASE != NULL) {
-         sprintf (stmp,"VP->VOLREG_CENTER_BASE = %f, %f, %f\n", \
-            VP->VOLREG_CENTER_BASE[0], VP->VOLREG_CENTER_BASE[1], VP->VOLREG_CENTER_BASE[2]); 
-         SS = SUMA_StringAppend (SS, stmp);
-      } else {
-         sprintf (stmp,"VP->VOLREG_CENTER_BASE = NULL\n");
-         SS = SUMA_StringAppend (SS, stmp);
-      }
    }else{
       sprintf (stmp, "NULL Volume Parent Pointer.\n");
       SS = SUMA_StringAppend (SS, stmp);
@@ -1263,94 +1222,128 @@ SO->NodeList is in DICOM to begin with...
 \sa SUMA_Align_to_VolPar
 NOTE: The field SO->VOLREG_APPLIED is set to NOPE if this function fails, YUP otherwise
 */
+
 SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_Apply_VolReg_Trans"};
    int i, ND, id;
-   SUMA_Boolean UseVolreg, UseTagAlign, UseRotate, UseWarpAlign, Bad=YUP;
+   double xform[3][4];
+   SUMA_Boolean Bad=YUP;
+   SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
 
    if (get_IgnoreXforms()) {
-      SUMA_SL_Note("Ignoring any Volreg, TagAlign, Rotate or WarpDrive transforms present in Surface Volume.\n");
+      SUMA_SL_Note("Ignoring any Volreg, TagAlign, Rotate, \n"
+                   "WarpDrive, or Allineate transforms present\n"
+                   "in Surface Volume.\n");
       SUMAg_CF->IgnoreVolreg = YUP;
-      SO->VOLREG_APPLIED = NOPE;
-      SO->WARPDRIVE_APPLIED = NOPE;
-      SO->ROTATE_APPLIED   = NOPE;
-      SO->TAGALIGN_APPLIED  = NOPE;
+      SO->APPLIED_A2Exp_XFORM = NO_WARP;
       SUMA_RETURN (YUP);
    }
    
-   if (SO->VOLREG_APPLIED || SO->TAGALIGN_APPLIED || SO->ROTATE_APPLIED || SO->WARPDRIVE_APPLIED) {
-      fprintf (SUMA_STDERR,"Error %s: Volreg (or Tagalign or rotate or warpdrive) already applied. Nothing done.\n", FuncName);
+   if (SO->APPLIED_A2Exp_XFORM != 0) {
+      fprintf (SUMA_STDERR,
+               "Error %s: \n"
+               "Volreg (or Tagalign or rotate or warpdrive or allineate)\n"
+               "already applied. Nothing done.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
 
    ND = SO->NodeDim;
    
-   
-   UseVolreg = NOPE;
-   UseTagAlign = NOPE;
-   UseRotate = NOPE;
-   UseWarpAlign = NOPE;
-   /* perform the rotation needed to align the surface with the current experiment's data */
-   if (SO->VolPar->VOLREG_MATVEC != NULL || SO->VolPar->VOLREG_CENTER_OLD != NULL || SO->VolPar->VOLREG_CENTER_BASE != NULL) {
-      Bad = NOPE;
-      if (SO->VolPar->VOLREG_MATVEC == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: SO->VolPar->VOLREG_MATVEC = NULL. Cannot perform alignment.\n", FuncName);
+    /* perform the rotation needed to align 
+      the surface with the current experiment's data */
+   SUMA_LHv("MATVEC_source = %s\n",
+             SUMA_WarpTypeName(SO->VolPar->MATVEC_source));
+   switch (SO->VolPar->MATVEC_source) {
+      case ROTATE_WARP:
+      case VOLREG_WARP:
+         if (  SO->VolPar->MATVEC != NULL || 
+               SO->VolPar->CENTER_OLD != NULL || 
+               SO->VolPar->CENTER_BASE != NULL) {
+            Bad = NOPE;
+            if (SO->VolPar->MATVEC == NULL) {
+               fprintf(SUMA_STDERR,
+                        "Error %s: SO->VolPar->VOLREG_MATVEC = NULL. \n"
+                        "Cannot perform alignment.\n", FuncName);
+               Bad = YUP;
+            }
+            if (SO->VolPar->CENTER_OLD == NULL) {
+               fprintf(SUMA_STDERR,
+                        "Error %s: SO->VolPar->CENTER_OLD = NULL.\n"
+                        "Cannot perform alignment.\n", FuncName);
+               Bad = YUP;
+            }
+            if (SO->VolPar->CENTER_BASE == NULL) {
+               fprintf( SUMA_STDERR,
+                        "Error %s: SO->VolPar->CENTER_BASE = NULL. \n"
+                        "Cannot perform alignment.\n", FuncName);
+               Bad = YUP;
+            }
+         }
+         break;
+      case TAGALIGN_WARP:
+      case ALLINEATE_WARP:
+      case WARPDRIVE_WARP:
+         /* all good */
+         if (  SO->VolPar->MATVEC != NULL) {
+            Bad = NOPE;
+         } else {
+            fprintf(SUMA_STDERR,
+                     "Error %s: SO->VolPar->MATVEC = NULL. \n"
+                     "Cannot perform alignment.\n", FuncName);
+            Bad = YUP;
+         }
+         break;
+      case NO_WARP:
+         SO->APPLIED_A2Exp_XFORM = NO_WARP;
+         SUMA_RETURN (YUP);
+      default:
+         fprintf( SUMA_STDERR,
+                  "Error %s: Warptype %d unaccounted for.\n", 
+                  FuncName, SO->VolPar->MATVEC_source);
          Bad = YUP;
-      }
-      if (SO->VolPar->VOLREG_CENTER_OLD == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: SO->VolPar->VOLREG_CENTER_OLD = NULL. Cannot perform alignment.\n", FuncName);
-         Bad = YUP;
-      }
-      if (SO->VolPar->VOLREG_CENTER_BASE == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: SO->VolPar->VOLREG_CENTER_BASE = NULL. Cannot perform alignment.\n", FuncName);
-         Bad = YUP;
-      }
-      if (!Bad) UseVolreg = YUP;
+         break;
    }
    
-   /* Check for Tagalign and Rotate field */
-   if (SO->VolPar->TAGALIGN_MATVEC) UseTagAlign = YUP;
-   if (SO->VolPar->WARPDRIVE_MATVEC) UseWarpAlign = YUP;
-   if (SO->VolPar->ROTATE_MATVEC || SO->VolPar->ROTATE_CENTER_OLD || SO->VolPar->ROTATE_CENTER_BASE) {
-      Bad = NOPE;
-      if (SO->VolPar->ROTATE_MATVEC == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: SO->VolPar->ROTATE_MATVEC = NULL. Cannot perform alignment.\n", FuncName);
-         Bad = YUP;
+   /* Now do the transformation */   
+
+#if 1
+   if (  SO->VolPar->MATVEC_source == VOLREG_WARP ||
+         SO->VolPar->MATVEC_source == ROTATE_WARP ) {
+      /* remove old center */      
+      for (i=0; i < SO->N_Node; ++i) {
+         id = ND * i;
+         SO->NodeList[id  ] -= SO->VolPar->CENTER_OLD[0];
+         SO->NodeList[id+1] -= SO->VolPar->CENTER_OLD[1];
+         SO->NodeList[id+2] -= SO->VolPar->CENTER_OLD[2];
       }
-      if (SO->VolPar->ROTATE_CENTER_OLD == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: SO->VolPar->ROTATE_CENTER_OLD = NULL. Cannot perform alignment.\n", FuncName);
-         Bad = YUP;
-      }
-      if (SO->VolPar->ROTATE_CENTER_BASE == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: SO->VolPar->ROTATE_CENTER_BASE = NULL. Cannot perform alignment.\n", FuncName);
-         Bad = YUP;
-      }
-      if (!Bad) UseRotate = YUP;
-   }
-   if (UseTagAlign && UseVolreg) {
-      SUMA_SL_Note("Found both Volreg and TagAlign fields.\n"
-                   "Using Volreg fields for alignment.");
-      UseTagAlign = NOPE;
-   }
-   if (UseRotate && UseVolreg) {
-      SUMA_SL_Note("Found both Volreg and Rotate fields.\n"
-                   "Using Volreg fields for alignment.");
-      UseRotate = NOPE;
-   }
-   if (UseRotate && UseTagAlign) {
-      SUMA_SL_Note("Found both Rotate and TagAlign fields.\n"
-                   "Using Tagalign fields for alignment.");
-      UseRotate = NOPE;
-   }
-   if (UseWarpAlign && (UseRotate || UseTagAlign || UseVolreg)) {
-      SUMA_SL_Note("Found WarpDrive and and some other transformation field.\n"
-                   "Ignoring WarpDrive field for alignment.");
-      UseWarpAlign = NOPE;
    }
    
+   /* Now apply affine */
+   SUMA_Xform1Dto2D(SO->VolPar->MATVEC, xform);
+   if (!SUMA_Apply_Coord_xform(SO->NodeList, SO->N_Node, SO->NodeDim,
+                               xform, 0, NULL)) {
+      SUMA_S_Err("Failed to apply AlndExp transform");
+      Bad = YUP;
+   } 
+   
+   if (  SO->VolPar->MATVEC_source == VOLREG_WARP ||
+         SO->VolPar->MATVEC_source == ROTATE_WARP ) {
+      /* put back new center */      
+      for (i=0; i < SO->N_Node; ++i) {
+         id = ND * i;
+         SO->NodeList[id  ] += SO->VolPar->CENTER_BASE[0];
+         SO->NodeList[id+1] += SO->VolPar->CENTER_BASE[1];
+         SO->NodeList[id+2] += SO->VolPar->CENTER_BASE[2];
+      }
+   }
+   
+   SO->APPLIED_A2Exp_XFORM = SO->VolPar->MATVEC_source;
+   Bad = NOPE;
+#else
+   /* the olde way, burn it a while after March 27 2008*/
    if (UseTagAlign) {
       float Mrot[3][3], Delta[3], x, y, z, NetShift[3];
       
@@ -1550,8 +1543,9 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       SO->ROTATE_APPLIED = YUP;   
    } else
       SO->ROTATE_APPLIED = NOPE;
+#endif
    
-   SUMA_RETURN (YUP);
+   SUMA_RETURN (!Bad);
 }
 
 /*! The following functions are adaptations from thd_coords.c 

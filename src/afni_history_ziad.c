@@ -65,6 +65,42 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 27 , MAR , 2008 , ZSS , "suma-general" , MICRO , TYPE_MODIFY ,
+   "Changed internal handling of various MATVEC sources.",
+   "Simplified handling of different sources of MATVECs from\n"
+   "AFNI's headers. Added handling of ALLINEATE_MATVEC to the\n"
+   "mix."
+ } ,
+
+ { 27 , MAR , 2008 , ZSS , "afni-matlab" , MINOR , TYPE_MODIFY ,
+   "Added other return options for Read_1D.m and BrikLoad.m",
+   NULL
+ } ,
+
+ { 26 , MAR , 2008 , ZSS , "3dvolreg" , MINOR , TYPE_BUG_FIX ,
+   "3dvolreg's -1Dmatrix_save was not always accounting for centers of rotation"
+   ,"Now the output of -1Dmatrix_save always matches what one would get for\n"
+   "the first sub-brick from\n"
+   "   cat_matvec FRED+orig::VOLREG_MATVEC_000000 -I "
+ } ,
+
+ { 26 , MAR , 2008 , ZSS , "cat_matvec" , MINOR , TYPE_MODIFY ,
+   "cat_matvec can now output IJK_TO_CARD_DICOM and IJK_TO_DICOM_REAL" ,
+   NULL
+ } ,
+
+ { 26 , MAR , 2008 , ZSS , "@Align_Centers" , MINOR , TYPE_MODIFY ,
+   "Script now outputs a matrix that represents the shift" ,
+   "This matrix can be used with 3dAllineate to perform the shift."
+ } ,
+
+ { 26 , MAR , 2008 , ZSS , "@SUMA_AlignToExperiment" , MINOR , TYPE_NEW_OPT ,
+   "Added -align_centers as an option to deal with very large moves" ,
+   "It used to be that users had to run @Align_Centers on all their\n"
+   "data when big moves were needed to align the surface's antaomy\n"
+   "to that of the experiment. This is no longer needed."
+ } ,
+
  { 25 , MAR , 2008 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
    "ROIs drawn on different surfaces now handled properly" ,
    NULL

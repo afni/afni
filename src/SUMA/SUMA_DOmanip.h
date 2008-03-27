@@ -39,6 +39,7 @@ SUMA_Boolean SUMA_Apply_Coord_xform(float *NodeList,
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void* S_struct);
 SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct);
 SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO);
+const char *SUMA_WarpTypeName(SUMA_WARP_TYPES wt);
 SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF);
 int SUMA_ReleaseLink (SUMA_INODE * IN);
 int SUMA_AddLink (SUMA_INODE *IN);
