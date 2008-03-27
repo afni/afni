@@ -4245,6 +4245,8 @@ extern THD_dvecmat THD_read_dvecmat( char * , int ) ;  /* THD_read_vecmat.c */
   /* cf. thd_coords.c for cardinal transformation matrix */
 extern void THD_dicom_card_xform (THD_3dim_dataset * dset ,
                       THD_dmat33 *tmat, THD_dfvec3 *dics );
+extern void THD_dicom_real_xform (THD_3dim_dataset * dset ,
+                      THD_dmat33 *tmat, THD_dfvec3 *dics );
 extern float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose);
 
 extern void THD_report_obliquity(THD_3dim_dataset *dset);

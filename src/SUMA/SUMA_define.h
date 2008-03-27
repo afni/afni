@@ -1829,6 +1829,10 @@ typedef struct {
                   inodemin = FaceSet[ifacemin][inodeminlocal]*/
 } SUMA_MT_INTERSECT_TRIANGLE;
 
+typedef enum { BAD_WARP=-1, NO_WARP, ROTATE_WARP, VOLREG_WARP, 
+               TAGALIGN_WARP,  WARPDRIVE_WARP, ALLINEATE_WARP, 
+               N_WARP_TYPES } SUMA_WARP_TYPES;
+
 /*! Structure defining the surface's volume parent info */
 typedef struct {
    char *idcode_str; /*!< the id of the vol par element */
@@ -1842,14 +1846,18 @@ typedef struct {
    char *vol_idcode_str; /*!< idcode string OF parent volume*/
    char *vol_idcode_date; /*!< idcode date */
    int xxorient, yyorient, zzorient; /*!< orientation of three dimensions*/ 
-   float *VOLREG_CENTER_OLD; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
-   float *VOLREG_CENTER_BASE; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   double *CENTER_OLD; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   double *CENTER_BASE; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   double *MATVEC; /*!< pointer to the warp attribute (12x1) in the .HEAD file 
+                        of the experiment-aligned Parent Volume */
+   SUMA_WARP_TYPES MATVEC_source;
+#if 0
    float *VOLREG_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
    float *TAGALIGN_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the tag aligned Parent Volume */
    float *WARPDRIVE_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the warpdrive aligned Parent Volume */
+   float *ALLINEATE_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the warpdrive aligned Parent Volume */
    float *ROTATE_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the rotate aligned Parent Volume */
-   float *ROTATE_CENTER_OLD; 
-   float *ROTATE_CENTER_BASE; 
+#endif
    int Hand; /*!< Handedness of axis 1 RH, -1 LH*/
 } SUMA_VOLPAR;
 
@@ -1964,15 +1972,13 @@ typedef struct {
 
    SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume 
                                           data sets ?*/
-   SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, 
-                                     VP->VOLREG_CENTER_OLD, 
-                                     VP->VOLREG_MATVEC were 
-                                     successfully applied*/
-   SUMA_Boolean TAGALIGN_APPLIED; /*!< YUP if VP->TAGALIGN_MATVEC was 
-                                       successfully applied */
-   SUMA_Boolean WARPDRIVE_APPLIED;
-   SUMA_Boolean ROTATE_APPLIED; /*!<   YUP if VP->ROTATE_MATVEC was 
-                                       successfully applied */
+   SUMA_WARP_TYPES APPLIED_A2Exp_XFORM; /*! Type of warp applied
+                                            to bring SurfVol into alignment
+                                            with ExpVol 
+                                          Replaces VOLREG_APPLIED,
+                                                   TAGALIGN_APPLIED,
+                                                   ROTATE_APPLIED,
+                                                   etc*/
    SUMA_Boolean SentToAfni; /*!< YUP if the surface has been 
                                  niml-sent to AFNI */
    SUMA_Boolean Show; /*!< YUP then the surface is visible in the viewer. 

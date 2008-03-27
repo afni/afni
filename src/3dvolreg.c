@@ -1054,9 +1054,6 @@ int main( int argc , char *argv[] )
 
      /* each volume's transformation parameters, matrix, and vector */
 
-     if( VL_maxdisp > 0 && VL_verbose )
-       INFO_message("Max displacements (mm) for each sub-brick:") ;
-
      if( VL_maxdisp > 0 ){
        if( VL_verbose )
          INFO_message("Max displacements (mm) for each sub-brick:") ;
@@ -1099,6 +1096,10 @@ int main( int argc , char *argv[] )
         if( VL_msfp != NULL ){  /* 24 Jul 2007 */
           THD_dvecmat vm , ivm ;
           float xd=matar[3] , yd=matar[7] , zd=matar[11] ;
+          #if 0 /* ZSS: That's not good enough 
+                        One has to do the dance
+                        even if dist is 0.0, just like
+                        in cat_matvec*/
           if( VL_cen_dist > 0.01f ){  /* 11 Mar 2008 */
             THD_fvec3 dv , ev ;
             dv = MATVEC(rmat,VL_cen_inp) ;
@@ -1107,7 +1108,17 @@ int main( int argc , char *argv[] )
           }
           LOAD_DFVEC3(vm.vv,xd,yd,zd) ;
           vm.mm = rmat ; ivm = invert_dvecmat(vm) ;
-
+          #else
+          {
+            THD_fvec3 dv , ev ;
+            dv = MATVEC(rmat, VL_cen_inp) ;
+            xd += VL_cen_bas.xyz[0] - dv.xyz[0];
+            yd += VL_cen_bas.xyz[1] - dv.xyz[1];
+            zd += VL_cen_bas.xyz[2] - dv.xyz[2];
+            LOAD_DFVEC3(vm.vv,xd,yd,zd) ;
+            vm.mm = rmat ; ivm = invert_dvecmat(vm) ;
+          }
+          #endif
           fprintf(VL_msfp,"%13.6g %13.6g %13.6g %13.6g "
                           "%13.6g %13.6g %13.6g %13.6g "
                           "%13.6g %13.6g %13.6g %13.6g\n" ,

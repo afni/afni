@@ -549,6 +549,24 @@ void THD_dicom_card_xform (THD_3dim_dataset * dset ,
    return  ;
 }
 
+/*---------------------------------------------------------------------
+   Return rotation and shift param. to go from i, j, k to Real
+   Dicom x,y,z 
+-----------------------------------------------------------------------*/
+void THD_dicom_real_xform(THD_3dim_dataset * dset ,
+                      THD_dmat33 *tmat, THD_dfvec3 *dics )
+{
+   if (  !dset || !dset->daxes || 
+         !ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
+      THD_FATAL_ERROR("null input or no valid ijk_to_dicom_real") ;
+   }
+   
+   UNLOAD_MAT44(dset->daxes->ijk_to_dicom_real,
+      tmat->mat[0][0], tmat->mat[0][1], tmat->mat[0][2], dics->xyz[0],    \
+      tmat->mat[1][0], tmat->mat[1][1], tmat->mat[1][2], dics->xyz[1],    \
+      tmat->mat[2][0], tmat->mat[2][1], tmat->mat[2][2], dics->xyz[2]   );
+   return;
+}
 #define MAXNUM(a,b) ( (a) > (b) ? (a):(b))
 #define MAX3(a,b,c) ( (MAXNUM(a,b)) > (MAXNUM(a,c)) ? (MAXNUM(a,b)):(MAXNUM(a,c)))
 #define MINNUM(a,b) ( (a) < (b) ? (a):(b))

@@ -357,6 +357,10 @@ ALIGN_CENTERS:
       set ExpAnatPrefix = $ExpAnatPrefixOrig"_shft"
       set ExpAnatOrig = $ExpAnat
       set ExpAnat = $ExpAnatPrefix$ExpAnatView
+   else
+      #Nothing really...
+      set ExpAnatOrig = $ExpAnat
+      set ExpAnatPrefixOrig = $ExpAnatPrefix
    endif
    goto Ret_ALIGN_CENTERS
    
@@ -512,16 +516,28 @@ REGISTER:
 	#If have center shift, combine a reapply
    if ($no_center == 0) then
       echo "Combining xform with shift..."
-      set echo
-      mv ${VolRegPrefix}.A2E.1D ___A2E.1D
-      cat_matvec -ONELINE $center_mat -I ___A2E.1D \
-         > ${VolRegPrefix}.A2E.1D && rm -f ___A2E.1D
+      mv ${VolRegPrefix}.A2E.1D ${VolRegPrefix}".A2E_shft".1D
+      cat_matvec -ONELINE $center_mat -I ${VolRegPrefix}".A2E_shft".1D \
+         > ${VolRegPrefix}.A2E.1D 
+      #set echo
       3dAllineate -master $ExpAnatOrig \
             -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
             -input $SurfAnatPath/$SurfAnat \
             -prefix ./${VolRegPrefix}$fview  \
             -overwrite  \
             -final quintic
+   else  
+      if (0) then
+         #Reproduce output with 3dAllineate, when no shifting is needed.
+         echo "WARNING! Unnecessary here, but for testing."
+         set echo
+         3dAllineate -master $ExpAnatOrig \
+               -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
+               -input $SurfAnatPath/$SurfAnat \
+               -prefix ./${VolRegPrefix}$fview  \
+               -overwrite  \
+               -final quintic
+      endif
    endif
    
 	#remove _resamp_
@@ -531,6 +547,7 @@ REGISTER:
 		rm -f $ExpAnat_Resamp".BRIK"
       if ($no_center == 0) then
          rm -f $ExpAnatPrefixOrig"_shft"$ExpAnatView"."* >& /dev/null
+         rm -f ${VolRegPrefix}".A2E_shft".1D >& /dev/null
       endif
 	endif
    
