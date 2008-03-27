@@ -3,6 +3,10 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %  OLD USAGE for backward compatibility, see New Usage
 %
 %   [err, V, Info, ErrMessage] = BrikLoad (BrikName, [form], [MachineFormat])
+% or 
+%  [V,Info] = BrikLoad (BrikName, [form], [MachineFormat])
+% or 
+%  [V] = BrikLoad (BrikName, [form], [MachineFormat])
 %
 %Purpose:
 %   loads an AFNI brik into V
@@ -213,6 +217,13 @@ if (is1D), % 1D land
       err = ErrEval(FuncName,'Err_1D file could not be read');
       return;
    end
+   if (nargout == 4 || nargout == 3),   
+      err = 0;
+   else 
+      err = V;
+      V = Info;
+   end
+
    return;
 end
 
@@ -433,8 +444,14 @@ if (isNIFTI),
    delete(obrik(2).name);
    Info.RootName = NiftiPref;
 end
-   
-err = 0;
+
+if (nargout == 4 || nargout == 3),   
+   err = 0;
+else 
+   err = V;
+   V = Info;
+end
+
 return;
 
 %test code

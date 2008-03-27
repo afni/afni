@@ -2360,5 +2360,17 @@ WARNING: The input data vectors are not cast to the type of s.
             }\
          }\
    }
+
+/*!
+   Change a 12 element 1D affine transform vector to a 3x4 double array format
+*/
+   #define SUMA_Xform1Dto2D(v,m){\
+      m[0][0] = v[0]; m[0][1] = v[1]; m[0][2] = v[2]; m[0][3] = v[3]; \
+      m[1][0] = v[4]; m[1][1] = v[5]; m[1][2] = v[6]; m[1][3] = v[7]; \
+      m[2][0] = v[8]; m[2][1] = v[9]; m[2][2] = v[10]; m[2][3] = v[11]; \
+   }
+
+
+
 #endif
 
