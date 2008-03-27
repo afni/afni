@@ -3320,6 +3320,7 @@ ENTRY("ISQ_saver_CB") ;
          tim = XImage_to_mri( seq->dc , seq->given_xim , mcod ) ; /* 21 Sep 2001: */
                                                                   /* X2M_USE_CMAP -> mcod */
 
+/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            tim->dx = seq->last_dx ; tim->dy = seq->last_dy ;
            if( dbg ) fprintf(stderr,"  square-ize aspect\n") ;
@@ -3381,7 +3382,8 @@ ENTRY("ISQ_saver_CB") ;
                else
                   strcat(seq->saver_prefix,"pnm") ;
 
-               printf("Writing one PNM image to file %s\n",seq->saver_prefix) ;
+               INFO_message("Writing one %dx%d PNM image to file %s",
+                            tim->nx,tim->ny,seq->saver_prefix) ;
                mri_write_pnm( seq->saver_prefix , tim ) ;
 
             } else {  /* 26 Jul 2001: allow Save One in filtered formats */
@@ -3399,7 +3401,8 @@ ENTRY("ISQ_saver_CB") ;
                  sprintf( fname, "%s%s", seq->saver_prefix, ppmto_suffix[ff] ) ;
                }
                sprintf( filt , ppmto_filter[ff] , fname ) ;
-               printf("Writing one image to file %s\n",fname) ;
+               INFO_message("Writing one %dx%d image to file %s",
+                            tim->nx,tim->ny,fname) ;
 #ifndef CYGWIN
                signal( SIGPIPE , SIG_IGN ) ;
 #endif
@@ -3619,6 +3622,7 @@ ENTRY("ISQ_saver_CB") ;
             mri_free( ovim ) ;
          }
 
+/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
            if( dbg ) fprintf(stderr,"  square-ize aspect ratio\n") ;
@@ -3858,6 +3862,7 @@ ENTRY("ISQ_saver_CB") ;
          flim = ISQ_process_mri( kf , seq , tim ) ;  /* image processing */
          if( tim != flim ) KILL_1MRI( tim ) ;
 
+/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
            if( dbg ) fprintf(stderr,"  square-ate aspect ratio\n") ;
@@ -3949,6 +3954,7 @@ ENTRY("ISQ_saver_CB") ;
             mri_free( ovim ) ;
          }
 
+/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
            tim = mri_squareaspect( flim ) ;
@@ -11830,6 +11836,7 @@ ENTRY("ISQ_save_image") ;
 
    /** make the image square? **/
 
+/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
    if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){
      tim->dx = seq->last_dx ; tim->dy = seq->last_dy ;
      flim = mri_squareaspect( tim ) ;
@@ -12153,6 +12160,7 @@ ENTRY("ISQ_save_anim") ;
         mri_free( ovim ) ;
       }
 
+/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
       if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
         flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
         tim = mri_squareaspect( flim ) ;
