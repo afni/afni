@@ -1412,17 +1412,6 @@ int main( int argc , char *argv[] )
 
    REPORT_PROGRESS(".") ;
 
-   /*-- 04 Jun 1999: modify order of loading arguments and defaults --*/
-
-   if( ! GLOBAL_argopt.skip_afnirc ){
-     char *sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;        /* 12 Apr 2000 */
-     if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 12 Apr 2000 */
-
-     AFNI_process_environ(NULL) ;                         /* 07 Jun 1999 */
-   } else {
-     AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
-   }
-
    /** set default values of some environment variables [22 Jun 2004] **/
    /** moved here and made conditional on being empty -- 31 Jan 2008  **/
 
@@ -1446,6 +1435,19 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_IMAGE_LABEL_SETBACK","01") ;
    PUTENV("AFNI_IMAGE_LABEL_COLOR","yellow") ;
 #endif
+
+   /*-- 04 Jun 1999: modify order of loading arguments and defaults --*/
+
+   if( ! GLOBAL_argopt.skip_afnirc ){
+     char *sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;        /* 12 Apr 2000 */
+     if( sysenv != NULL ) AFNI_process_environ(sysenv) ;  /* 12 Apr 2000 */
+
+     AFNI_process_environ(NULL) ;                         /* 07 Jun 1999 */
+   } else {
+     AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
+   }
+
+/* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
 
    AFNI_load_defaults( MAIN_shell ) ;
 
