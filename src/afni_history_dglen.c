@@ -51,6 +51,11 @@
 afni_history_struct dglen_history[] = {
 
  /* can copy to and change one of the examples here */
+{ 28, MAR , 2008 , DRG , "3dDTeig" , MINOR ,
+   TYPE_BUG_FIX ,"small negative eigenvalues are set to zero as in 3dDWItoDT" ,
+   "This fix avoids FA being set to 0 for those affected voxels"
+ } ,
+
 { 26, MAR , 2008 , DRG , "dry_run mode for python scripts" , MINOR ,
    TYPE_BUG_FIX ,   "repaired support for dry_run mode in python scripts" ,
    NULL
