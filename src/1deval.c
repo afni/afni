@@ -88,9 +88,11 @@ int main( int argc , char * argv[] )
              "   tricked into doing multi-column 1D format output by treating\n"
              "   a 1D file as a 3D dataset and auto-transposing it with \\'\n"
              "   For example:\n"
-             "     3dcalc -a '1D: 3 4 5 | 1 2 3'\' -expr 'cbrt(a)' -prefix -\n"
+             "     3dcalc -a '1D: 3 4 5 | 1 2 3'\\' -expr 'cbrt(a)' -prefix -\n"
              "   The input has 2 'columns' and so does the output.\n"
              "   Note that the 1D 'file' is transposed on input to 3dcalc!\n"
+             "   This is essential, or 3dcalc will not treat the 1D file as\n"
+             "   a dataset, and the results will be very different.\n"
              "\n"
              "-- RW Cox --\n"
             ) ;
