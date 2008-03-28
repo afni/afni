@@ -1131,12 +1131,21 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       }/* Node_XYZ */
 
       /* SUMA_irgba Node colors */
-      if( strcmp(nel->name,"SUMA_irgba") == 0 || strcmp(nel->name,"Node_RGBAb") == 0) {/* SUMA_irgba */
-         if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
-            fprintf(SUMA_STDERR,"%s: Empty SUMA_irgba.\n", FuncName);
+      if(   strcmp(nel->name,"SUMA_irgba") == 0 || 
+            strcmp(nel->name,"Node_RGBAb") == 0) {/* SUMA_irgba */
+         SUMA_OVERLAYS *ColPlane=NULL;
+         int itmp=-1,popit = 0;
+         
+         if( nel->vec_len  < 1 || nel->vec_filled <  1) { /* empty element?  */
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: Empty SUMA_irgba.\n", FuncName);
             Empty_irgba = YUP;
            }else {
-            if( nel->vec_num != 5 || nel->vec_typ[0] != NI_INT || nel->vec_typ[1] != NI_BYTE || nel->vec_typ[2] != NI_BYTE || nel->vec_typ[3] != NI_BYTE) {
+            if(   nel->vec_num != 5 || 
+                  nel->vec_typ[0] != NI_INT || 
+                  nel->vec_typ[1] != NI_BYTE ||
+                  nel->vec_typ[2] != NI_BYTE || 
+                  nel->vec_typ[3] != NI_BYTE) {
                  fprintf(SUMA_STDERR,"%s: SUMA_irgba Bad format\n", FuncName);
                SUMA_RETURN(NOPE);
            }
@@ -1146,8 +1155,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             NI_sleep(200);
             SUMA_RETURN(YUP);
 
-
-            if (0) {  /* At times, I found the value in nel->vec[0] to be corrupted, use this to check on it */
+            if (0) {  /* At times, I found the value in nel->vec[0] 
+                        to be corrupted, use this to check on it */
                int *ibad;
                ibad = (int *)nel->vec[0]; 
                fprintf (SUMA_STDERR,"ibad[0] = %d\n", ibad[0]);
@@ -1159,31 +1168,40 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) 
+            nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
-            fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
+            fprintf( SUMA_STDERR,
+                     "Error %s: surface_idcode missing in nel (%s).\n", 
+                     FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
 
          SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
          if (!SO) {
-            fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n", FuncName, nel->name);
+            fprintf( SUMA_STDERR,
+                     "Error %s:%s: nel idcode is not found in DOv.\n", 
+                     FuncName, nel->name);
             SUMA_RETURN(NOPE);
          }
 
          /* store the node colors */
          /* create a color overlay plane */
-         /* you could create an overlay plane with partial node coverage but you'd have to clean up and SUMA_reallocate
-         with each new data sent since the number of colored nodes will change. So I'll allocate for the entire node list 
-         for the FuncAfni_0 color plane although only some values will be used*/
+         /* you could create an overlay plane with partial node coverage 
+            but you'd have to clean up and SUMA_reallocate
+            with each new data sent since the number of colored nodes will 
+            change. So I'll allocate for the entire node list 
+            for the FuncAfni_0 color plane although only some values will 
+            be used*/
 
          sopd.Type = SOPT_ibbb;
          sopd.Source = SES_Afni;
          sopd.GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;
          sopd.isBackGrnd = NOPE;
          sopd.Show = YUP;
-         /* dim colors from maximum intensity to preserve surface shape highlights, 
-         division by is no longer necessary.
+         /* dim colors from maximum intensity to 
+            preserve surface shape highlights, 
+            division by is no longer necessary.
          */
          sopd.DimFact = SUMA_DIM_AFNI_COLOR_FACTOR;
          if (!Empty_irgba) {
@@ -1198,31 +1216,65 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             sopd.N = 0;
          }
 
-         if (!SUMA_iRGB_to_OverlayPointer (SO, "FuncAfni_0", &sopd, &OverInd, SUMAg_DOv, SUMAg_N_DOv, SUMAg_CF->DsetList)) {
+         if (!SUMA_Fetch_OverlayPointer(  SO->Overlays, SO->N_Overlays, 
+                                          "FuncAfni_0", 
+                                           &itmp)) {
+            /* first timer, pop it up */
+            popit = 1;
+         } else popit = 0;
+         
+         if (!SUMA_iRGB_to_OverlayPointer (  SO, "FuncAfni_0", &sopd, &OverInd, 
+                                             SUMAg_DOv, SUMAg_N_DOv, 
+                                             SUMAg_CF->DsetList)) {
             SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
             SUMA_RETURN(NOPE);
          }
-
-
+         if (popit) {
+            ColPlane = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, 
+                                                 "FuncAfni_0", 
+                                                 &itmp);
+            if (!ColPlane) {
+               SUMA_S_Errv("Failed to find dset %s\n", 
+                           "FuncAfni_0"); 
+            } else {
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,
+                           "%s: Retrieved ColPlane named %s\n", 
+                           FuncName, ColPlane->Name);
+               SUMA_InitializeColPlaneShell(SO, ColPlane);
+               SUMA_UpdateColPlaneShellAsNeeded(SO); 
+                              /* update other open ColPlaneShells */
+               /* If you're viewing one plane at a time, do a remix */
+               if (SO->SurfCont->ShowCurOnly) SUMA_RemixRedisplay(SO);
+            }
+         }
          /* register a color remix request */
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Setting Remix Flag for all related surfaces. ...\n", FuncName);
+         if (LocalHead) 
+            fprintf( SUMA_STDERR, 
+                     "%s: Setting Remix Flag for all related surfaces. ...\n", 
+                     FuncName);
          if(!SUMA_SetRemixFlag (SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SetRemixFlag.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_SetRemixFlag.\n", FuncName);
             SUMA_RETURN(NOPE);
          }
 
          /* file a redisplay request */
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
+         if (LocalHead) 
+            fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
          if (!list) list = SUMA_CreateList();
          if (strcmp(nel->name,"SUMA_irgba") == 0) {
             /* call from AFNI */
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAfni, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay_AllVisible, 
+                                                SES_SumaFromAfni, sv);
          } else {
-            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAny, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                                SES_SumaFromAny, sv);
          }
 
          if (!SUMA_Engine (&list)) {
-            fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            fprintf( SUMA_STDERR, 
+                     "Error %s: SUMA_Engine call failed.\n", FuncName);
             SUMA_RETURN(NOPE);
          }
 

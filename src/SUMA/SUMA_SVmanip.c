@@ -904,38 +904,48 @@ SUMA_Boolean SUMA_SetRemixFlag (char *SO_idcode_str, SUMA_SurfaceViewer *SVv, in
    SUMA_ENTRY;
    
    if (!SO_idcode_str || !SVv) {
-      fprintf (SUMA_STDERR,"Error %s: NULL SVv or SO_idcode_str. BAD\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: NULL SVv or SO_idcode_str. BAD\n", FuncName);
       SUMA_RETURN (NOPE);
    }
    
    dov_id = SUMA_findSO_inDOv (SO_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    if (dov_id < 0) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to find object with idcode %s.\n", FuncName, SO_idcode_str);
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to find object with idcode %s.\n", 
+               FuncName, SO_idcode_str);
       SUMA_RETURN (NOPE);
    }
    SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP;
    
    /* search all viewers */
    for (i=0; i < N_SVv; ++i) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Searching viewer %d.\n", FuncName, i);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Searching viewer %d.\n", FuncName, i);
       sv = &(SVv[i]);
       /* search for relatives in RegisteredDO */
       for (k=0; k < sv->N_DO; ++k) {
          if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[k]])) {
             SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[sv->RegisteredDO[k]].OP;
-            if (SUMA_isRelated (SO1, SO2, 1)) { /* only 1st order kinship allowed */
+            if (SUMA_isRelated (SO1, SO2, 1)) { 
+               /* only 1st order kinship allowed */
                /* related, set flag for remixing SO2 */
                kk = 0;
                Found = NOPE;
                while (!Found && kk < sv->N_ColList) {
-                  if (strcmp (SO2->idcode_str, sv->ColList[kk].idcode_str) == 0) {
+                  if (strcmp (SO2->idcode_str, 
+                              sv->ColList[kk].idcode_str) == 0) {
                      Found = YUP;
+                     SUMA_LHv("Setting remix for %d\n", kk);
                      sv->ColList[kk].Remix = YUP;
                   }
                   ++kk;
                }
                if (!Found) {
-                  fprintf (SUMA_STDERR,"Error %s: Failed to find surface in ColList structs. BAD.\n", FuncName);
+                  fprintf (SUMA_STDERR,
+                           "Error %s:\n"
+                           "Failed to find surface in ColList structs. BAD.\n", 
+                           FuncName);
                   SUMA_RETURN (NOPE);
                }
             }
