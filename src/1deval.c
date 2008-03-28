@@ -74,7 +74,7 @@ int main( int argc , char * argv[] )
              " 3dTfitter -quiet -prefix -                                     \\\n"
              "           -RHS `1deval -1D: -num 30 -expr 'cos(t)*exp(-t/20)'` \\\n"
              "           -LHS `1deval -1D: -num 30 -expr 'cos(t)'`            \\\n"
-             "                `1deval -1D: -num 30 -expr 'sin(t)'`            \\\n"
+             "                `1deval -1D: -num 30 -expr 'sin(t)'`              \n"
              "\n"
              "* Program 3dcalc operates on 3D and 3D+time datasets in a similar way.\n"
              "* Program ccalc can be used to evaluate a single numeric expression.\n"
