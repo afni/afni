@@ -1706,32 +1706,56 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             sv->GVS[sv->StdView].ViewFrom[1] = fm2_3[0][1]; 
             sv->GVS[sv->StdView].ViewFrom[2] = fm2_3[0][2]; 
                         
-            gluLookAt (sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], sv->GVS[sv->StdView].ViewCamUp[2]);
+            gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], 
+                        sv->GVS[sv->StdView].ViewFrom[1], 
+                        sv->GVS[sv->StdView].ViewFrom[2], 
+                        sv->GVS[sv->StdView].ViewCenter[0], 
+                        sv->GVS[sv->StdView].ViewCenter[1], 
+                        sv->GVS[sv->StdView].ViewCenter[2], 
+                        sv->GVS[sv->StdView].ViewCamUp[0], 
+                        sv->GVS[sv->StdView].ViewCamUp[1], 
+                        sv->GVS[sv->StdView].ViewCamUp[2]);
             }
             
             break;
          case SE_SetLookFrom:
             /* expects a center XYZ in EngineData->fv3[0 .. 2] */
             if (EngineData->fv3_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s:\n"
+                        " Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             } 
             /* set the LookFrom option */
             sv->GVS[sv->StdView].ViewFrom[0] = EngineData->fv3[0];
             sv->GVS[sv->StdView].ViewFrom[1] = EngineData->fv3[1]; 
             sv->GVS[sv->StdView].ViewFrom[2] = EngineData->fv3[2];
-            gluLookAt (sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], sv->GVS[sv->StdView].ViewCamUp[2]);
+            gluLookAt ( sv->GVS[sv->StdView].ViewFrom[0], 
+                        sv->GVS[sv->StdView].ViewFrom[1], 
+                        sv->GVS[sv->StdView].ViewFrom[2], 
+                        sv->GVS[sv->StdView].ViewCenter[0], 
+                        sv->GVS[sv->StdView].ViewCenter[1], 
+                        sv->GVS[sv->StdView].ViewCenter[2], 
+                        sv->GVS[sv->StdView].ViewCamUp[0], 
+                        sv->GVS[sv->StdView].ViewCamUp[1], 
+                        sv->GVS[sv->StdView].ViewCamUp[2]);
             break;
 
          case SE_Redisplay_AllVisible:
             /* expects nothing in EngineData */
             /* post a redisplay to all visible viewers */
             for (ii=0; ii<SUMAg_N_SVv; ++ii) {
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, ii);
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,
+                           "%s: Checking viewer %d.\n", FuncName, ii);
                if (!SUMAg_SVv[ii].isShaded && SUMAg_SVv[ii].X->TOPLEVEL) {
                   /* you must check for both conditions because by default 
-                  all viewers are initialized to isShaded = NOPE, even before they are ever opened */
-                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Redisplaying viewer %d.\n", FuncName, ii);
+                  all viewers are initialized to isShaded = NOPE, even before 
+                  they are ever opened */
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,
+                              "%s: Redisplaying viewer %d.\n", FuncName, ii);
                   SUMAg_SVv[ii].ResetGLStateVariables = YUP;
                   SUMA_postRedisplay(SUMAg_SVv[ii].X->GLXAREA, NULL, NULL);
                }
@@ -2076,9 +2100,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_SetSurfCont:
             /* expects a ngr and SO in vp */
-            if (EngineData->ngr_Dest != NextComCode || EngineData->vp_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n"
-                                    "Have %d and %d\n",FuncName, NextCom, NextComCode, EngineData->ngr_Dest, EngineData->vp_Dest);
+            if (  EngineData->ngr_Dest != NextComCode || 
+                  EngineData->vp_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n"
+                        "Have %d and %d\n",
+                        FuncName, NextCom, NextComCode, 
+                        EngineData->ngr_Dest, EngineData->vp_Dest);
                break;
             }
             SO = (SUMA_SurfaceObject *)EngineData->vp;
@@ -2087,28 +2115,38 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                int is;
                
                if (SUMA_iswordsame(SO->Group, sv->CurGroupName) != 1) {
-                  SUMA_S_Errv("Surface %s is of group %s while viewer is of group %s.\n"
-                              "Need to switch group before switch_surf\n", SO->Label, SO->Group, sv->CurGroupName);
+                  SUMA_S_Errv(
+                     "Surface %s is of group %s while viewer is of group %s.\n"
+                     "Need to switch group before switch_surf\n", 
+                     SO->Label, SO->Group, sv->CurGroupName);
                   break;
                }
                is = SUMA_WhichState(SO->State, sv, sv->CurGroupName);
                if (is < 0) {
-                  SUMA_S_Errv("Surface %s of group %s, viewer in group %s\nNo surface of state %s found.\n",
-                                 SO->Label, SO->Group, sv->CurGroupName , SO->State);
+                  SUMA_S_Errv("Surface %s of group %s, viewer in group %s\n"
+                              "No surface of state %s found.\n",
+                               SO->Label, SO->Group, sv->CurGroupName , 
+                               SO->State);
                   break;
                }
-               if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, is, sv->CurGroupName)) {
+               if (!SUMA_SwitchState ( SUMAg_DOv, SUMAg_N_DOv, sv, 
+                                       is, sv->CurGroupName)) {
                   SUMA_S_Err("Failed to switch state"); break;
                } else {
-                  sv->Focus_SO_ID = SUMA_findSO_inDOv(SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-                  sv->NewGeom = YUP;   /* sv->ResetGLStateVariables was not enough */
+                  sv->Focus_SO_ID = SUMA_findSO_inDOv(
+                                       SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+                  sv->NewGeom = YUP;   /* sv->ResetGLStateVariables 
+                                          was not enough */
                   /* remove this attribute and call engine again for redisplay */
                   NI_set_attribute(EngineData->ngr, "switch_surf", NULL);
                   {
                      DList *llist = SUMA_CreateList();
-                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(llist, SE_Redisplay, SES_SumaFromAny, sv);
+                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(llist, SE_Redisplay, 
+                                                         SES_SumaFromAny, sv);
                      if (!SUMA_Engine (&llist)) {
-                        fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                        fprintf( stderr, 
+                                 "Error %s: SUMA_Engine call failed.\n",
+                                 FuncName);
                      }
                      /* update titles */
                      SUMA_UpdateViewerTitle(sv);
@@ -2117,20 +2155,34 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             
             if (NI_get_attribute(EngineData->ngr, "switch_dset")) {
-               SUMA_OVERLAYS *ColPlane = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, NI_get_attribute(EngineData->ngr, "switch_dset"), &itmp);
+               SUMA_OVERLAYS *ColPlane = SUMA_Fetch_OverlayPointer(
+                  SO->Overlays, SO->N_Overlays, 
+                  NI_get_attribute(EngineData->ngr, "switch_dset"), 
+                  &itmp);
                if (!ColPlane) {
-                  SUMA_S_Errv("Failed to find dset %s\n", NI_get_attribute(EngineData->ngr, "switch_dset")); break;
+                  SUMA_S_Errv("Failed to find dset %s\n", 
+                              NI_get_attribute(EngineData->ngr, "switch_dset")); 
+                  break;
                } else {
-                  if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved ColPlane named %s\n", FuncName, ColPlane->Name);
+                  if (LocalHead) 
+                     fprintf (SUMA_STDERR,
+                              "%s: Retrieved ColPlane named %s\n", 
+                              FuncName, ColPlane->Name);
                   SUMA_InitializeColPlaneShell(SO, ColPlane);
-                  SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
+                  SUMA_UpdateColPlaneShellAsNeeded(SO); 
+                                 /* update other open ColPlaneShells */
                   /* If you're viewing one plane at a time, do a remix */
                   if (SO->SurfCont->ShowCurOnly) SUMA_RemixRedisplay(SO);
                }
             }
+            
             if (NI_get_attribute(EngineData->ngr, "switch_cmap")) {
                /* find the colormap */
-               if ((itmp = SUMA_Find_ColorMap(NI_get_attribute(EngineData->ngr, "switch_cmap"), SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 )) < 0) {
+               if ((itmp = SUMA_Find_ColorMap(
+                              NI_get_attribute( EngineData->ngr, "switch_cmap"), 
+                                                SUMAg_CF->scm->CMv, 
+                                                SUMAg_CF->scm->N_maps, -2 )) < 0)
+               {
                   SUMA_S_Err("Failed to find color map"); break;
                } else {
                   SUMA_COLOR_MAP *ColMap = SUMAg_CF->scm->CMv[itmp];
