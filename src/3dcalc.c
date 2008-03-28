@@ -507,7 +507,8 @@ void CALC_read_opts( int argc , char * argv[] )
 
          ll = strlen(argv[nopt]) ;
          if( ll >= 4 && ( strstr(argv[nopt],".1D") != NULL ||
-                          strstr(argv[nopt],"1D:") != NULL   ) ){
+                          strstr(argv[nopt],"1D:") != NULL   )
+                     && strstr(argv[nopt],"'") == NULL       ){
 
             ll = TS_reader( ival , argv[nopt] ) ;
             if( ll == 0 ){ nopt++ ;  goto DSET_DONE ; }
