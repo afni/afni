@@ -68,7 +68,8 @@ echo "Threshold value is: $th"
        -expr "a*(1-step(b-$th))"  \
        -overwrite
 
-       
+
+#This does not work well. Do not use it       
 #Create one killing top 100-pt percent or _p dset
 set pt = 97
 set pth = `3dBrickStat -percentile $pt 1 $pt  $t"_p"$av`
@@ -80,12 +81,12 @@ set pth = $pth[2]
        -overwrite
 
 
-#create masked version of input
+#create masked version of input (took unreliable *(1-step(c)) out )
 3dcalc -a $ap$av  \
        -b $ap.air$av \
        -c $ap.skl$av \
        -prefix $ap.ma \
-       -expr "a*(1-step(b))*(1-step(c))"  \
+       -expr "a*(1-step(b))"  \
        -overwrite
 
 goto Ret_MAKE_MASK
