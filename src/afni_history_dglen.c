@@ -56,12 +56,12 @@ afni_history_struct dglen_history[] = {
    "This fix avoids FA being set to 0 for those affected voxels"
  } ,
 
-{ 26, MAR , 2008 , DRG , "dry_run mode for python scripts" , MINOR ,
+{ 26, MAR , 2008 , DRG , "python" , MINOR ,
    TYPE_BUG_FIX ,   "repaired support for dry_run mode in python scripts" ,
    NULL
  } ,
 
-{ 26, MAR , 2008 , DRG , "matrix square root" , MICRO , TYPE_BUG_FIX ,
+{ 26, MAR , 2008 , DRG , "matrix.c" , MICRO , TYPE_BUG_FIX ,
    "freed matrix used in matrix_sqrt functions" ,
    NULL
  } ,
