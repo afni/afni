@@ -3,6 +3,8 @@
 #include "mrilib.h"
 #include "thd_shear3d.h"
 
+#define SMALLNUMBER 1E-4
+
 static char prefix[THD_MAX_PREFIX] = "eig" ;
 static int datum                   = MRI_float ;
 static void EIG_tsfunc( double tzero , double tdelta ,
@@ -370,6 +372,11 @@ static void EIG_tsfunc( double tzero, double tdelta ,
      for(j=0;j<3;j++){
         val[vstart+j] = a[astart+j];
       }
+  }
+
+  for(i=0;i<3;i++) {
+    if(fabs(val[i])<SMALLNUMBER)
+       val[i] = 0.0;
   }
 
   /* calculate the Fractional Anisotropy, FA */
