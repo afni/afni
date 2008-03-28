@@ -91,9 +91,12 @@ static char * gifti_history[] =
   "     - added gifti_compare_gifti_data() and gifti_compare_DA_data()\n"
   "     - NIFTI_INTENT_NONE is considered valid\n"
   "     - write LabelTables using CDATA\n"
+  "0.17 28 March, 2008 : added copy MetaData routines\n",
+  "     - gifti_copy_gifti_meta, gifti_copy_DA_meta, gifti_copy_all_DA_meta,\n"
+  "     - gifti_copy_DA_meta_many, gifti_copy_nvpairs\n"
 };
 
-static char gifti_version[] = "gifti library version 0.16, 24 March, 2008";
+static char gifti_version[] = "gifti library version 0.17, 28 March, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -602,7 +605,7 @@ int gifti_set_DA_atrs(giiDataArray * da, const char ** attr, int alen,
  *  return 1, if valid
  *         0, if not
 *//*-------------------------------------------------------------------*/
-int gifti_valid_DataArray(giiDataArray * da, int whine)
+int gifti_valid_DataArray(const giiDataArray * da, int whine)
 {
     int errs = 0, nbyper;
 
@@ -677,7 +680,7 @@ int gifti_valid_DataArray(giiDataArray * da, int whine)
 /*----------------------------------------------------------------------
  *! check whether pointers are valid and consistent with length
 *//*-------------------------------------------------------------------*/
-int gifti_valid_nvpairs(nvpairs * nvp, int whine)
+int gifti_valid_nvpairs(const nvpairs * nvp, int whine)
 {
     int c;
 
@@ -723,7 +726,7 @@ int gifti_valid_nvpairs(nvpairs * nvp, int whine)
  *
  *  no check is done on the actual indices or labels
 *//*-------------------------------------------------------------------*/
-int gifti_valid_LabelTable(giiLabelTable * T, int whine)
+int gifti_valid_LabelTable(const giiLabelTable * T, int whine)
 {
     int c;
 
@@ -815,7 +818,7 @@ int gifti_valid_nbyper(int nbyper, int whine)
  *      - datatype is valie (required to check nbyper)
  *      - nbyper is correct
 *//*-------------------------------------------------------------------*/
-int gifti_valid_dims(giiDataArray * da, int whine)
+int gifti_valid_dims(const giiDataArray * da, int whine)
 {
     long long vals = 1;
     int       c, nbyper;
@@ -1375,7 +1378,7 @@ int gifti_datatype_sizes(int datatype, int *nbyper, int *swapsize)
 /*----------------------------------------------------------------------
  *! compute the total number of data values in a DataArray element
 *//*-------------------------------------------------------------------*/
-long long gifti_darray_nvals(giiDataArray * da)
+long long gifti_darray_nvals(const giiDataArray * da)
 {
     long long ndim = 1;
     int       c;
@@ -1476,7 +1479,7 @@ int gifti_find_DA_list(gifti_image * gim, int intent,
  *
  *  no allocation is done here
 *//*-------------------------------------------------------------------*/
-char * gifti_get_meta_value(nvpairs * nvp, char * name)
+char * gifti_get_meta_value(const nvpairs * nvp, const char * name)
 {
     int c;
 
@@ -1975,6 +1978,129 @@ char ** gifti_copy_char_list(char ** list, int len)
     return newlist;
 }
 
+/*---------------------------------------------------------------------*/
+/*! copy any GIFTI MetaData named 'name' from dest to src (replace old)
+ *
+ *  return 0 on success, 1 on failure to find, -1 on error
+*//*-------------------------------------------------------------------*/
+int gifti_copy_gifti_meta(gifti_image * dest, gifti_image * src, 
+                          const char * name)
+{
+    char * value;
+
+    if( !dest || !src || !name ) {
+        if( G.verb > 0 )
+            fprintf(stderr,"** copy_gifti_meta: bad params(%p,%p,%p)\n",
+                    (void *)dest, (void *)src, name);
+        return -1;
+    }
+
+    value = gifti_get_meta_value(&src->meta, name);
+    if( !value ) {
+        if( G.verb > 4 )
+            fprintf(stderr,"-- GCGM: did not find meta name '%s'\n", name);
+        return 1;
+    }
+
+    return gifti_add_to_meta(&dest->meta, name, value, 1);
+}
+
+/*---------------------------------------------------------------------*/
+/*! copy any DataArray MetaData named 'name' from dest to src (replace old)
+ *  (apply to list of DAs, or to all)
+ *
+ *  return 0 on success, 1 on failure to find, -1 on error
+*//*-------------------------------------------------------------------*/
+int gifti_copy_DA_meta_many(gifti_image * dest, gifti_image * src,
+                            const char * name, const int * dalist, int len)
+{
+    int c, index, use_list, numDA, rv = 0;
+
+    if( !dest || !dest->darray || !src || !src->darray || !name ) {
+        if( G.verb > 1 ) fprintf(stderr,"** GCDAMM: bad params\n");
+        return -1;
+    }
+
+    /* if they are not equal, it is probably a user mistake to be here */
+    if( dest->numDA != src->numDA ) {
+        if(G.verb>0) fprintf(stderr,"-- cannot copy DA meta, numDA %d != %d\n",
+                             src->numDA, dest->numDA);
+        return -1;
+    }
+
+    /* the empty case is probably not an error */
+    if( dest->numDA <= 0 || src->numDA <= 0 ) {
+        if( G.verb > 4 ) fprintf(stderr,"-- GCDAMM: numDA %d, %d\n",
+                                 src->numDA, dest->numDA);
+        return 0;
+    }
+
+    /* decide whether to use dalist or all DAs */
+    use_list = gifti_valid_int_list(dalist, len, 0, src->numDA-1, G.verb);
+
+    if( use_list && G.verb > 2 )
+        fprintf(stderr,"++ copy_DA_meta_many, %s (list length %d)\n",
+                use_list ? "DA in list" : "all DAs", len);
+
+    /* finally, get to work */
+    numDA = use_list ? len : src->numDA;
+    for( c = 0; c < numDA; c++ ) {
+        index = use_list ? dalist[c] : c;  /* choose appropriate DA index */
+
+        /* note any failures */
+        rv |= gifti_copy_DA_meta(dest->darray[index], src->darray[index], name);
+    }
+
+    return rv;
+}
+
+/*---------------------------------------------------------------------*/
+/*! copy any DataArray MetaData named 'name' from dest to src (replace old)
+ *
+ *  return 0 on success, 1 on failure to find, -1 on error
+*//*-------------------------------------------------------------------*/
+int gifti_copy_DA_meta(giiDataArray *dest, giiDataArray *src, const char *name)
+{
+    char * value;
+
+    if( !dest || !src || !name ) {
+        if( G.verb > 0 )
+            fprintf(stderr,"** copy_DA_meta: bad params(%p,%p,%p)\n",
+                    (void *)dest, (void *)src, name);
+        return -1;
+    }
+
+    value = gifti_get_meta_value(&src->meta, name);
+    if( !value ) {
+        if( G.verb > 4 )
+            fprintf(stderr,"-- GCDAM: did not find meta name '%s'\n", name);
+        return 1;
+    }
+
+    return gifti_add_to_meta(&dest->meta, name, value, 1);
+}
+
+/*---------------------------------------------------------------------*/
+/*! copy ALL DataArray MetaData from dest to src (replace old)
+ *
+ *  return 0 on success, 1 on failure to find, -1 on error
+*//*-------------------------------------------------------------------*/
+int gifti_copy_all_DA_meta(giiDataArray *dest, giiDataArray *src)
+{
+    int c, rv;
+
+    if( !dest || !src ) {
+        if( G.verb > 0 )
+            fprintf(stderr,"** copy_all_DA_meta: bad params(%p,%p)\n",
+                    (void *)dest, (void *)src);
+        return -1;
+    }
+
+    for( c = 0; c < src->meta.length; c++ )
+        rv |= gifti_copy_DA_meta(dest, src, src->meta.name[c]);
+
+    return rv;
+}
 
 /*---------------------------------------------------------------------*/
 /*! find any differences between the two images
@@ -1983,7 +2109,7 @@ char ** gifti_copy_char_list(char ** list, int len)
  *
  *  return 0 if they are the same, 1 if they differ
 *//*-------------------------------------------------------------------*/
-int gifti_compare_gifti_images(gifti_image * g1, gifti_image * g2,
+int gifti_compare_gifti_images(const gifti_image * g1, const gifti_image * g2,
                                int comp_data, int verb)
 {
     int diffs = 0, data_diffs = 0, c, rv, numDA;
@@ -2037,7 +2163,8 @@ int gifti_compare_gifti_images(gifti_image * g1, gifti_image * g2,
  *
  *  return 0 if they are the same, 1 if they differ
 *//*-------------------------------------------------------------------*/
-int gifti_compare_gifti_data(gifti_image * g1, gifti_image * g2, int verb)
+int gifti_compare_gifti_data(const gifti_image * g1, const gifti_image * g2,
+                             int verb)
 {
     int lverb = verb, c, diffs = 0, numDA;
 
@@ -2076,7 +2203,8 @@ int gifti_compare_gifti_data(gifti_image * g1, gifti_image * g2, int verb)
     return 0;
 }
 
-int gifti_compare_DA_data(giiDataArray * d1, giiDataArray * d2, int verb)
+int gifti_compare_DA_data(const giiDataArray * d1, const giiDataArray * d2,
+                          int verb)
 {
     long long nbytes, offset;
 
@@ -2115,7 +2243,8 @@ int gifti_compare_DA_data(giiDataArray * d1, giiDataArray * d2, int verb)
 /* compare everything but darray
  * (for diffs, only print if verb > 1)
  */
-int gifti_compare_gims_only(gifti_image * g1, gifti_image * g2, int verb)
+int gifti_compare_gims_only(const gifti_image * g1, const gifti_image * g2,
+                            int verb)
 {
     int diffs = 0;
     int lverb = verb;           /* possibly override passed 'verb' */
@@ -2191,7 +2320,7 @@ int gifti_compare_gims_only(gifti_image * g1, gifti_image * g2, int verb)
     return diffs;
 }
 
-int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
+int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
                           int comp_data, int verb)
 {
     long long offset;
@@ -2361,7 +2490,7 @@ int gifti_compare_DA_pair(giiDataArray * d1, giiDataArray * d2,
  *
  *  only state diffs in the verb=3 case
 *//*-------------------------------------------------------------------*/
-int gifti_compare_nvpairs(nvpairs * p1, nvpairs * p2, int verb)
+int gifti_compare_nvpairs(const nvpairs * p1, const nvpairs * p2, int verb)
 {
     char * value;
     int    lverb = verb;        /* possibly override passed verb */
@@ -2428,7 +2557,8 @@ int gifti_compare_nvpairs(nvpairs * p1, nvpairs * p2, int verb)
  *
  *  only state diffs in the verb=3 case
 *//*-------------------------------------------------------------------*/
-int gifti_compare_labeltable(giiLabelTable * t1, giiLabelTable * t2, int verb)
+int gifti_compare_labeltable(const giiLabelTable *t1, const giiLabelTable *t2,
+                             int verb)
 {
     int lverb = verb;        /* possibly override passed verb */
     int c, diffs = 0;
@@ -2471,7 +2601,7 @@ int gifti_compare_labeltable(giiLabelTable * t1, giiLabelTable * t2, int verb)
  *      0: if both pointers are NULL
  *      1: if exactly one is NULL
 *//*-------------------------------------------------------------------*/
-int gifti_strdiff(char * s1, char * s2)
+int gifti_strdiff(const char * s1, const char * s2)
 {
     if( !s1 || !s2 ) {
         if( s1 || s2 ) return 1;        /* one NULL means different */
@@ -2486,7 +2616,8 @@ int gifti_strdiff(char * s1, char * s2)
  *
  *  only state diffs in the verb=3 case
 *//*-------------------------------------------------------------------*/
-int gifti_compare_coordsys(giiCoordSystem * s1, giiCoordSystem * s2, int verb)
+int gifti_compare_coordsys(const giiCoordSystem *s1, const giiCoordSystem *s2,
+                           int verb)
 {
     long long offset;
     int       lverb = verb;        /* possibly override passed verb */
@@ -2543,7 +2674,8 @@ int gifti_compare_coordsys(giiCoordSystem * s1, giiCoordSystem * s2, int verb)
  *
  * (return -1 if the pointers differ in whether they are set) 
 *//*-------------------------------------------------------------------*/
-long long gifti_compare_raw_data(void * p1, void * p2, long long length)
+long long gifti_compare_raw_data(const void * p1, const void * p2,
+                                 long long length)
 {
     long long   posn;
     char      * d1 = (char *)p1, * d2 = (char *)p2;

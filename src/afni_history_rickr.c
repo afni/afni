@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, MAR, 2008, RCR, "gifticlib", MICRO, TYPE_NEW_OPT,
+   "added routines to copy MetaData",
+   NULL
+ } ,
+
+ { 28, MAR, 2008, RCR, "gifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -copy_gifti_meta and -copy_DA_meta options",
+   NULL
+ } ,
+
  { 26, MAR, 2008, RCR, "gifticlib", MICRO, TYPE_MODIFY,
    "in compare, if comp_data is not set, state the fact",
    NULL
