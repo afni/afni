@@ -27,26 +27,19 @@ typedef struct {
 
 /*---------------------------------------------------------------------------*/
 
+extern void Warpfield_set_verbose( int ) ;
+
 extern Warpfield * Warpfield_init( int type, float order, floatvec *fv ) ;
+
+extern void Warpfield_destroy( Warpfield *wf ) ;
 
 extern void Warpfield_change_order( Warpfield *wf , float neword ) ;
 
-extern float Warpfield_fitter( Warpfield *wf , int flags ,
-                               int npt, float *xi , float *yi , float *zi ,
-                                        float *xw , float *yw , float *zw  ) ;
-
 extern Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr ) ;
 
+extern Warpfield * Warpfield_approx( Warpfield *wf, float ord, float *rmserr );
+
 extern float Warpfield_compose(void) ; /* not implemented yet */
-
-extern void Warpfield_trigfun( int kfun, void *vpar,
-                               int npt , float *x, float *y, float *z, float *val ) ;
-
-extern void Warpfield_legfun( int kfun, void *vpar,
-                              int npt , float *x, float *y, float *z, float *val ) ;
-
-extern void Warpfield_gegenfun( int kfun, void *vpar,
-                                int npt , float *x, float *y, float *z, float *val ) ;
 
 extern void Warpfield_eval_array( Warpfield *wf ,
                                   int npt, float *xi, float *yi, float *zi,
