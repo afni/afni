@@ -608,7 +608,8 @@ int main (int argc,char *argv[])
 	}
 
 	/* Store it into SUMAg_DOv */
-	if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)EyeAxis,  AO_type, SUMA_SCREEN)) {
+	if (!SUMA_AddDO(  SUMAg_DOv, &SUMAg_N_DOv, 
+                     (void *)EyeAxis,  AO_type, SUMA_SCREEN)) {
 		SUMA_error_message (FuncName,"Error Adding DO", 1);
 		exit(1);
 	}

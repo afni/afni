@@ -104,6 +104,7 @@ DList *SUMA_SortedAxisSegmentList ( SUMA_SurfaceViewer *sv, SUMA_Axis *Ax,
                                     SUMA_SORT_BOX_AXIS_OPTION opt);
 void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_AxisText(SUMA_AxisSegmentInfo *ASIp, double *Ps);
+SUMA_Boolean SUMA_DrawText(char *txt, float *Ps);
 void SUMA_ReportDrawnROIDatumLength(SUMA_SurfaceObject *SO, SUMA_ROI_DATUM *ROId, FILE *out, SUMA_WIDGET_INDEX_DRAWROI_WHATDIST option);
 SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart);
 SUMA_SurfaceObject *SUMA_head_01_surface(void);
