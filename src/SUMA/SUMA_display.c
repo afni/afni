@@ -1090,8 +1090,36 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       }
    }
 
-   /* cycle through csv->RegisteredDO and display those things that have a fixed CoordType*/
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Creating objects with fixed coordinates ...\n", FuncName);
+   /* cycle through csv->RegisteredDO and display 
+      those things that have a fixed CoordType*/
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT,
+               "%s: Creating objects with fixed coordinates ...\n", 
+               FuncName);
+   #if 0
+      {
+         float Ps[3]={0.0, 0.0, 0.0};
+         /* To ponder:
+         How to define coordinates of location
+            You could have centered text on center of screen axis,
+         but then what do you do you're off center and you zoom in and out...
+            Do you want coordinate relative to window size or do you want them
+         in mm units?
+         You probably want two loops on the display. 
+            One for DOs in the foreground and one for DOs in the background.
+            It gets complicated but you typically want text on the front and
+            axis on the back even though both may be SUMA_SCREEN CoordType
+         
+         Last but not least, you need a respectable DO for text on screen
+         
+         See SUMA_DrawWindowLine and SUMA_GetSelectionLine for relating 
+         window coords to 3d coords.
+         
+         */ 
+         SUMA_S_Note("make me DO");
+         SUMA_DrawText("YeeeeHaw", Ps);
+      }
+   #endif
    i = 0;
    while (i < csv->N_DO) {
       if (dov[csv->RegisteredDO[i]].CoordType == SUMA_SCREEN) {
@@ -1108,8 +1136,11 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case AO_type:
                if (csv->ShowEyeAxis){
-                  if (!SUMA_DrawAxis ((SUMA_Axis*)dov[csv->RegisteredDO[i]].OP, csv)) {
-                     fprintf(SUMA_STDERR,"Error %s: Could not display EYE AXIS\n", FuncName);
+                  if (!SUMA_DrawAxis (
+                        (SUMA_Axis*)dov[csv->RegisteredDO[i]].OP, csv)) {
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Could not display EYE AXIS\n", 
+                              FuncName);
                   }
                }
                break;
@@ -2890,24 +2921,28 @@ SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double
 }
 
 /*!
-   Purpose: Takes a the x,y positions of the cursor and sets the Pick0 and Pick1 values (usually sv's) 
+   Purpose: Takes a the x,y positions of the cursor and sets 
+            the Pick0 and Pick1 values (usually sv's) 
    \param sv (*SUMA_SurfaceViewer)
    \param x (int) mouse coordinate
    \param y (int)
    \param Pick0 (GLdouble *) vector of 3 elements (usually, pass sv->Pick0)
    \param Pick1 (GLdouble *) vector of 3 elements (usually, pass sv->Pick1)
-   \param N_List (int) if > 0, it indicates that there are N_list other mouse coordinates
-                              to consider in addition to the y and y above.
+   \param N_List (int) if > 0, it indicates that there are N_list 
+                       other mouse coordinates to consider 
+                       in addition to the y and y above.
    \param xList (int *) a vector of N_list x values
    \param yList (int *) a vector of N_list y values
-   \param PickList (Gldouble *) a N_list x 3 vector containing the equivalent of Pick0 
-                                 for the values in xList and yList
+   \param PickList (Gldouble *) a N_list x 3 vector containing the equivalent 
+                                of Pick0 for the values in xList and yList
    \return YUP/NOPE
    \sa SUMA_input, button3 pick
    \sa 
 */
-SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, GLdouble *Pick0, GLdouble *Pick1, 
-                                    int N_List, int *xList, int *yList, GLdouble *Pick0List)
+SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, 
+                                    GLdouble *Pick0, GLdouble *Pick1, 
+                                    int N_List, int *xList, int *yList, 
+                                    GLdouble *Pick0List)
 {
    static char FuncName[]={"SUMA_GetSelectionLine"};
    GLfloat rotationMatrix[4][4];
@@ -2922,47 +2957,73 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, GLdoub
    
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR, "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", \
-       FuncName, sv->GVS[sv->StdView].currentQuat[0], sv->GVS[sv->StdView].currentQuat[1], \
-       sv->GVS[sv->StdView].currentQuat[2],sv->GVS[sv->StdView].currentQuat[3]);
-      fprintf (SUMA_STDERR, "%s: Translation Vector of view #%d: %.4f, %.4f, %.4f\n", \
-         FuncName, sv->StdView, sv->GVS[sv->StdView].translateVec[0], sv->GVS[sv->StdView].translateVec[1], \
-         sv->GVS[sv->StdView].translateVec[2]);
-      fprintf (SUMA_STDERR, "%s: RotaCenter of view #%d: %.4f, %.4f, %.4f\n", \
-         FuncName, sv->StdView, sv->GVS[sv->StdView].RotaCenter[0], sv->GVS[sv->StdView].RotaCenter[1], \
-         sv->GVS[sv->StdView].RotaCenter[2]);
+      fprintf (SUMA_STDERR, 
+               "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", 
+                FuncName, 
+                sv->GVS[sv->StdView].currentQuat[0], 
+                sv->GVS[sv->StdView].currentQuat[1],  
+                sv->GVS[sv->StdView].currentQuat[2],
+                sv->GVS[sv->StdView].currentQuat[3]);
+      fprintf (SUMA_STDERR, 
+               "%s: Translation Vector of view #%d: %.4f, %.4f, %.4f\n",
+               FuncName, sv->StdView, sv->GVS[sv->StdView].translateVec[0], 
+               sv->GVS[sv->StdView].translateVec[1], 
+               sv->GVS[sv->StdView].translateVec[2]);
+      fprintf (SUMA_STDERR, 
+               "%s: RotaCenter of view #%d: %.4f, %.4f, %.4f\n", 
+               FuncName, sv->StdView, sv->GVS[sv->StdView].RotaCenter[0], 
+               sv->GVS[sv->StdView].RotaCenter[1], 
+               sv->GVS[sv->StdView].RotaCenter[2]);
    }
       
    
-   /* go through the ModelView transforms as you would in display since the modelview matrix is popped
-   after each display call */
+   /* go through the ModelView transforms as you would in 
+      display since the modelview matrix is popped
+      after each display call */
    SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
    glMatrixMode(GL_MODELVIEW);
-   /* The next line appears to fix some bug with GL_MODELVIEW's matrix. When you clicked button3 for the first time in a viewer, 
-   the chosen point was off. The next click in the identical position would select the correct point and subsequent clicks are OK.
-   None of the parameters used for the selection would change between the first click and the next but it appears that going from one
-   viewer to the next caused GL_MODELVIEW to change (sometimes) slightly. Putting the line glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
-   to check (and debug) what was happening to GL_MODELVIEW matrix between one viewer and the next fixed the clicking problem. So, we keep
-   it here as a fix until a better one comes along. PS: This was also the source of the Z (blue) eye axis showing up when it should not. */  
+   /* The next line appears to fix some bug with GL_MODELVIEW's matrix. 
+      When you clicked button3 for the first time in a viewer, 
+      the chosen point was off. The next click in the identical position would 
+      select the correct point and subsequent clicks are OK.
+      None of the parameters used for the selection would change between the
+      first click and the next but it appears that going from one
+      viewer to the next caused GL_MODELVIEW to change (sometimes) slightly.  
+      Putting the line glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+      to check (and debug) what was happening to GL_MODELVIEW matrix between one 
+      viewer and the next fixed the clicking problem. So, we keep
+      it here as a fix until a better one comes along. 
+      PS: This was also the source of the Z (blue) eye axis showing up when 
+      it should have not. */  
       glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
       if (LocalHead) {
          int itmp = 0;
-         fprintf (SUMA_STDERR, "%s: Initial Modelview:\nMV=[ ", FuncName);
-         while (itmp < 16) { fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+         fprintf (SUMA_STDERR, 
+                  "%s: Initial Modelview:\nMV=[ ", FuncName);
+         while (itmp < 16) { 
+            fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
          fprintf (SUMA_STDERR, "]\n");
       }
    glPushMatrix();
-   glTranslatef (sv->GVS[sv->StdView].translateVec[0], sv->GVS[sv->StdView].translateVec[1], 0.0);
-   glTranslatef (sv->GVS[sv->StdView].RotaCenter[0], sv->GVS[sv->StdView].RotaCenter[1], sv->GVS[sv->StdView].RotaCenter[2]);
+   glTranslatef ( sv->GVS[sv->StdView].translateVec[0], 
+                  sv->GVS[sv->StdView].translateVec[1], 0.0);
+   glTranslatef ( sv->GVS[sv->StdView].RotaCenter[0], 
+                  sv->GVS[sv->StdView].RotaCenter[1], 
+                  sv->GVS[sv->StdView].RotaCenter[2]);
    glMultMatrixf(&rotationMatrix[0][0]);
       glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
       if (LocalHead) {
          int itmp = 0;
-         fprintf (SUMA_STDERR, "%s: Modelview After Translation & Rotation:\nMVtr=[ ", FuncName);
-         while (itmp < 16) { fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+         fprintf (SUMA_STDERR, 
+                  "%s: Modelview After Translation & Rotation:\nMVtr=[ ", 
+                  FuncName);
+         while (itmp < 16) { 
+            fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
          fprintf (SUMA_STDERR, "]\n");
       }
-   glTranslatef (-sv->GVS[sv->StdView].RotaCenter[0], -sv->GVS[sv->StdView].RotaCenter[1], -sv->GVS[sv->StdView].RotaCenter[2]);
+   glTranslatef ( -sv->GVS[sv->StdView].RotaCenter[0], 
+                  -sv->GVS[sv->StdView].RotaCenter[1], 
+                  -sv->GVS[sv->StdView].RotaCenter[2]);
 
    glGetIntegerv(GL_VIEWPORT, viewport);
    glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
@@ -2970,35 +3031,45 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, GLdoub
    /* viewport[3] is height of window in pixels */
    realy = viewport[3] - (GLint)y -1;
 
-   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Coordinates at cursor are (%4d, %4d)\n", FuncName, x, realy);
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT, 
+               "%s: Coordinates at cursor are (%4d, %4d)\n", 
+               FuncName, x, realy);
 
    /* set the pick points at both ends of the clip planes */
    if (Pick0) {
-      gluUnProject((GLdouble)x, (GLdouble)realy, 0.0,\
-         mvmatrix, projmatrix, viewport, \
-         &(Pick0[0]), &(Pick0[1]), &(Pick0[2]));
-      if (LocalHead) fprintf (SUMA_STDOUT, "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",\
-         (Pick0[0]), (Pick0[1]), (Pick0[2]));
+      gluUnProject(  (GLdouble)x, (GLdouble)realy, 0.0,
+                     mvmatrix, projmatrix, viewport, 
+         &           (Pick0[0]), &(Pick0[1]), &(Pick0[2]));
+      if (LocalHead) 
+         fprintf (SUMA_STDOUT, 
+                  "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",
+                 (Pick0[0]), (Pick0[1]), (Pick0[2]));
    }
    if (Pick1) {
-      gluUnProject((GLdouble)x, (GLdouble)realy, 1.0,\
-         mvmatrix, projmatrix, viewport, \
-         &(Pick1[0]), &(Pick1[1]), &(Pick1[2]));
-      if (LocalHead) fprintf (SUMA_STDOUT, "World Coords at z=1.0 (far clip plane) are (%f, %f, %f)\n",\
-         (Pick1[0]), (Pick1[1]), (Pick1[2]));
+      gluUnProject(  (GLdouble)x, (GLdouble)realy, 1.0,
+                     mvmatrix, projmatrix, viewport, 
+                     &(Pick1[0]), &(Pick1[1]), &(Pick1[2]));
+      if (LocalHead) 
+         fprintf (SUMA_STDOUT, 
+                  "World Coords at z=1.0 (far clip plane) are (%f, %f, %f)\n",
+                  (Pick1[0]), (Pick1[1]), (Pick1[2]));
    }
 
    if (N_List > 0) {
       SUMA_LH("Doing the list thing");
-      if (!Pick0List || !xList || !yList) { SUMA_S_Err("Null Pick0List or xlist or ylist with non 0 N_List.\nPickList ignored."); }
+      if (!Pick0List || !xList || !yList) { 
+         SUMA_S_Err( "Null Pick0List or xlist or ylist with non 0 N_List.\n"
+                     "PickList ignored."); }
       else {
          int i, i3;
          for (i=0; i<N_List; ++i) {
             i3 = 3*i;
             realy = viewport[3] - (GLint)yList[i] -1;
-            gluUnProject((GLdouble)xList[i], (GLdouble)realy, 0.0,\
-                           mvmatrix, projmatrix, viewport, \
-                           &(Pick0List[i3+0]), &(Pick0List[i3+1]), &(Pick0List[i3+2]));
+            gluUnProject((GLdouble)xList[i], (GLdouble)realy, 0.0,
+                           mvmatrix, projmatrix, viewport, 
+                           &(Pick0List[i3+0]), &(Pick0List[i3+1]), 
+                           &(Pick0List[i3+2]));
          }
       }  
    }
@@ -3010,7 +3081,9 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, GLdoub
 /*!
    \brief Draws a line between screen (window) coordinates 
 */
-SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, int x1, int y1, int meth)
+SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, 
+                                 int x0, int y0, 
+                                 int x1, int y1, int meth)
 {
    static char FuncName[]={"SUMA_DrawWindowLine"};
    GLfloat rotationMatrix[4][4];
@@ -3031,19 +3104,29 @@ SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, int x1,
          SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
          xlist[0] = x0; xlist[1] = x1;
          ylist[0] = y0; ylist[1] = y1;
-         SUMA_GetSelectionLine (sv, x0, y0, NULL, NULL, 2, xlist, ylist, PickList);
+         SUMA_GetSelectionLine ( sv, x0, y0, 
+                                 NULL, NULL, 
+                                 2, 
+                                 xlist, ylist, 
+                                 PickList);
          SUMA_SET_GL_PROJECTION(sv);
          SUMA_SET_GL_MODELVIEW(sv);
          glMaterialfv(GL_FRONT, GL_EMISSION, LineCol);
          glLineWidth(SUMA_CROSS_HAIR_LINE_WIDTH);
          if (LocalHead) {
-            fprintf(SUMA_STDERR,"%s:PickList\n[%.3f %.3f %.3f\n %.3f %.3f %.3f]\n", FuncName,
-                     PickList[0],PickList[1],PickList[2],PickList[3], PickList[4],PickList[5] );
+            fprintf( SUMA_STDERR,
+                     "%s:PickList\n"
+                     "[%.3f %.3f %.3f\n %.3f %.3f %.3f]\n", 
+                     FuncName,
+                     PickList[0],PickList[1],PickList[2],
+                     PickList[3], PickList[4],PickList[5] );
          }
          glBegin(GL_LINES);
-         glVertex3d(PickList[0], PickList[1], PickList[2]-0.001); /* something to do with clipping ...*/
+         glVertex3d(PickList[0], PickList[1], PickList[2]-0.001); 
+                  /* something to do with clipping ...*/
          glVertex3d(PickList[3], PickList[4], PickList[5]-0.001);
-         glVertex3d(PickList[0], PickList[1], PickList[2]+0.001); /* something to do with clipping ...*/
+         glVertex3d(PickList[0], PickList[1], PickList[2]+0.001); 
+                  /* something to do with clipping ...*/
          glVertex3d(PickList[3], PickList[4], PickList[5]+0.001);
          glEnd();
          glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
