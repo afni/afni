@@ -953,6 +953,9 @@ ENTRY("create_GA_BLOK_set") ;
 
 /*---------------------------------------------------------------------------*/
 
+#undef  CMAX
+#define CMAX 0.9999f
+
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
@@ -1013,8 +1016,8 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 
      if( xv <= 0.0f || yv <= 0.0f ) continue ;      /* skip this blok */
      pcor = xy/sqrtf(xv*yv) ;                       /* correlation */
-     if( pcor > 1.0f ) pcor = 1.0f; else if( pcor < -1.0f ) pcor = -1.0f;
-     pcor = logf( (1.0001f+pcor)/(1.0001f-pcor) ) ; /* 2*arctanh() */
+     if( pcor > CMAX ) pcor = CMAX; else if( pcor < -CMAX ) pcor = -CMAX;
+     pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() */
      psum += pcor * fabsf(pcor) ;                   /* emphasize large values */
    }
 
@@ -2408,4 +2411,100 @@ void mri_genalign_mat44( int npar, float *wpar,
      MAT44_VEC( gam , xi[ii],yi[ii],zi[ii] , xo[ii],yo[ii],zo[ii] ) ;
 
    return ;
+}
+
+/****************************************************************************/
+/****************  Nonlinear Warpfield on top of affine *********************/
+
+#include "mri_warpfield.h"
+
+static float to_cube_ax=1.0f , to_cube_bx=0.0f ;
+static float to_cube_ay=1.0f , to_cube_by=0.0f ;
+static float to_cube_az=1.0f , to_cube_bz=0.0f ;
+static float fr_cube_ax=1.0f , fr_cube_bx=0.0f ;
+static float fr_cube_ay=1.0f , fr_cube_by=0.0f ;
+static float fr_cube_az=1.0f , fr_cube_bz=0.0f ;
+
+static mat44 to_cube , fr_cube ;
+
+void mri_genalign_set_boxsize( float xbot, float xtop,
+                               float ybot, float ytop, float zbot, float ztop )
+{
+   float ax=(xtop-xbot) ;
+   float ay=(ytop-ybot) ;
+   float az=(ztop-zbot) ;
+
+   if( ax == 0.0f ){ to_cube_ax = 1.0f ; to_cube_bx = -xbot ; }
+   else            { to_cube_ax = 2.0f/ax; to_cube_bx = -1.0f - xbot*to_cube_ax; }
+
+   if( ay == 0.0f ){ to_cube_ay = 1.0f ; to_cube_by = -ybot ; }
+   else            { to_cube_ay = 2.0f/ay; to_cube_by = -1.0f - ybot*to_cube_ay; }
+
+   if( az == 0.0f ){ to_cube_az = 1.0f ; to_cube_bz = -zbot ; }
+   else            { to_cube_az = 2.0f/az; to_cube_bz = -1.0f - zbot*to_cube_az; }
+
+   fr_cube_ax = 1.0f / to_cube_ax ; fr_cube_bx = -to_cube_bx * fr_cube_ax ;
+   fr_cube_ay = 1.0f / to_cube_ay ; fr_cube_by = -to_cube_by * fr_cube_ay ;
+   fr_cube_az = 1.0f / to_cube_az ; fr_cube_bz = -to_cube_bz * fr_cube_az ;
+
+   LOAD_DIAG_MAT44(to_cube,to_cube_ax,to_cube_ay,to_cube_az) ;
+   LOAD_MAT44_VEC (to_cube,to_cube_bx,to_cube_by,to_cube_bz) ;
+
+   LOAD_DIAG_MAT44(fr_cube,fr_cube_ax,fr_cube_ay,fr_cube_az) ;
+   LOAD_MAT44_VEC (fr_cube,fr_cube_bx,fr_cube_by,fr_cube_bz) ;
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static Warpfield *wfield  = NULL ;
+static int wfield_xfreeze = 0 ;
+static int wfield_yfreeze = 0 ;
+static int wfield_zfreeze = 0 ;
+
+Warpfield * mri_genalign_warpfield_setup( int ttt , float ord , int fmask )
+{
+   if( wfield != NULL ){ Warpfield_destroy(wfield); wfield = NULL; }
+   wfield_xfreeze = (fmask & 1) ;
+   wfield_yfreeze = (fmask & 2) ;
+   wfield_zfreeze = (fmask & 4) ;
+   if( wfield_xfreeze && wfield_yfreeze && wfield_zfreeze )
+     ERROR_message("Can't freeze warpfield in all 3 dimensions!") ;
+   else
+     wfield = Warpfield_init( ttt , ord , NULL ) ;
+
+   return wfield ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+Warpfield * mri_genalign_warpfield_get(void){ return wfield; }
+
+/*--------------------------------------------------------------------------*/
+/*! A wfunc function for nonlinear transformations. */
+/*--------------------------------------------------------------------------*/
+
+void mri_genalign_warpfield( int npar, float *wpar ,
+                             int npt , float *xi, float *yi, float *zi ,
+                                       float *xo, float *yo, float *zo  )
+{
+   int ii ;
+
+   /* check for criminal inputs */
+
+   if( npar < 12 || wfield == NULL || !ISVALID_MAT44(to_cube) ) return ;
+
+   /** new parameters ==> setup transformation **/
+
+   if( npar > 0 && wpar != NULL ){
+     mat44 gf , gam=GA_setup_affine(npar,wpar) ; /* setup affine matrix */
+     gf = MAT44_MUL(gam,fr_cube) ;
+     wfield->aa = MAT44_MUL(to_cube,gf) ;
+   }
+
+   /* nothing to transform? */
+
+   if( wfield == NULL || npt <= 0 || xi == NULL || xo == NULL ) return ;
+
 }
