@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, MAR, 2008, RCR, "ANOVA", MINOR, TYPE_MODIFY,
+   "extended maximum number of means, diffs and contrasts to 50",
+   NULL
+ } ,
+
  { 28, MAR, 2008, RCR, "gifticlib", MICRO, TYPE_NEW_OPT,
    "added routines to copy MetaData",
    NULL
