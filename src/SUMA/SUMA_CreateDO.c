@@ -2832,6 +2832,8 @@ SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    
    switch (Ax->atype) {
       case SUMA_STD_ZERO_CENTERED:
+         SUMA_LHv("SUMA_STD_ZERO_CENTERED at %f %f %f\n",
+                  Ax->Center[0], Ax->Center[1], Ax->Center[2]);
          glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
          glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
          
@@ -2939,7 +2941,7 @@ SUMA_Boolean SUMA_AxisText(SUMA_AxisSegmentInfo *ASIp, double *Ps)
       
    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor); 
    glMaterialfv(GL_FRONT, GL_EMISSION, txcol); /*turn on emissidity for text*/
-   glRasterPos3f(Ps[0], Ps[1], Ps[2]);
+   glRasterPos3d(Ps[0], Ps[1], Ps[2]);
    glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
    glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
    if (LocalHead) fprintf(SUMA_STDERR, "%s: Raster position (%g,%g, %g) is %s\n",
@@ -2954,7 +2956,47 @@ SUMA_Boolean SUMA_AxisText(SUMA_AxisSegmentInfo *ASIp, double *Ps)
          glutBitmapCharacter(GLUT_BITMAP_9_BY_15, txt[is]);
       }  
    }
-   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);  /*turn off emissidity for text*/ 
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);  
+      /*turn off emissidity for text*/ 
+      
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief writes a text somewhere
+*/
+SUMA_Boolean SUMA_DrawText(char *txt, float *Ps)
+{
+   static char FuncName[]={"SUMA_DrawText"};
+   GLboolean valid;
+   GLfloat rpos[4];
+   int is;
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   static float txcol[3] = {1, 1, 1};
+   static int width, height;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!txt) SUMA_RETURN(YUP);
+      
+   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor); 
+   glMaterialfv(GL_FRONT, GL_EMISSION, txcol); /*turn on emissidity for text*/
+   glRasterPos3f(Ps[0], Ps[1], Ps[2]);
+   glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+   glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+   if (LocalHead) fprintf(SUMA_STDERR, "%s: Raster position (%g,%g, %g) is %s\n",
+      FuncName, rpos[0], rpos[1], rpos[2], valid ? "valid" : "INVALID");
+
+   /* do some text action */
+   if (valid) {
+      glColor3fv(txcol); 
+      for (is=0; txt[is] != '\0'; is++) {
+         glutBitmapCharacter(GLUT_BITMAP_9_BY_15, txt[is]);
+      }  
+   }
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);  
+      /*turn off emissidity for text*/ 
       
    SUMA_RETURN(YUP);
 }
@@ -2993,8 +3035,8 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
             
    glBegin(GL_LINES);
    /* draw the line */
-   glVertex3f(ASIp->P1[0], ASIp->P1[1], ASIp->P1[2]);
-   glVertex3f(ASIp->P2[0], ASIp->P2[1], ASIp->P2[2]);
+   glVertex3d(ASIp->P1[0], ASIp->P1[1], ASIp->P1[2]);
+   glVertex3d(ASIp->P2[0], ASIp->P2[1], ASIp->P2[2]);
 
    /* work the ticks */
    /* unit vector */
@@ -3024,38 +3066,62 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
 
       /* draw the ticks */
       i = 0;
-      if (LocalHead) fprintf(SUMA_STDERR,"%s:\nspace = %f\nsize = %f\n", FuncName, space[jj], size[jj]);
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,
+            "%s:\nspace = %f\nsize = %f\n", FuncName, space[jj], size[jj]);
       if (Ax->DoCross) {
          size[jj] /= 2.0;
          while (i*space[jj] < nu3) {
-            Ps[0] = i*space[jj]*u3[0] + Pt[0]; Ps[1] = i*space[jj]*u3[1] + Pt[1]; Ps[2] = i*space[jj]*u3[2] + Pt[2]; /* center */
+            Ps[0] = i*space[jj]*u3[0] + Pt[0]; 
+            Ps[1] = i*space[jj]*u3[1] + Pt[1]; 
+            Ps[2] = i*space[jj]*u3[2] + Pt[2]; /* center */
             #if 0 
-               if (LocalHead) fprintf(SUMA_STDERR,"%s:\nPs = [%f %f %f]; \n", FuncName, Ps[0], Ps[1], Ps[2]);
+               if (LocalHead) 
+                  fprintf( SUMA_STDERR,
+                           "%s:\nPs = [%f %f %f]; \n", 
+                           FuncName, Ps[0], Ps[1], Ps[2]);
             #endif
-            glVertex3f(Ps[0]-ASIp->tick1_dir[0]*size[jj], Ps[1]-ASIp->tick1_dir[1]*size[jj], Ps[2]-ASIp->tick1_dir[2]*size[jj]);
-            glVertex3f(Ps[0]+ASIp->tick1_dir[0]*size[jj], Ps[1]+ASIp->tick1_dir[1]*size[jj], Ps[2]+ASIp->tick1_dir[2]*size[jj]);
-            glVertex3f(Ps[0]-ASIp->tick2_dir[0]*size[jj], Ps[1]-ASIp->tick2_dir[1]*size[jj], Ps[2]-ASIp->tick2_dir[2]*size[jj]);
-            glVertex3f(Ps[0]+ASIp->tick2_dir[0]*size[jj], Ps[1]+ASIp->tick2_dir[1]*size[jj], Ps[2]+ASIp->tick2_dir[2]*size[jj]);
+            glVertex3d( Ps[0]-ASIp->tick1_dir[0]*size[jj], 
+                        Ps[1]-ASIp->tick1_dir[1]*size[jj], 
+                        Ps[2]-ASIp->tick1_dir[2]*size[jj]);
+            glVertex3d( Ps[0]+ASIp->tick1_dir[0]*size[jj], 
+                        Ps[1]+ASIp->tick1_dir[1]*size[jj], 
+                        Ps[2]+ASIp->tick1_dir[2]*size[jj]);
+            glVertex3d( Ps[0]-ASIp->tick2_dir[0]*size[jj], 
+                        Ps[1]-ASIp->tick2_dir[1]*size[jj], 
+                        Ps[2]-ASIp->tick2_dir[2]*size[jj]);
+            glVertex3d( Ps[0]+ASIp->tick2_dir[0]*size[jj], 
+                        Ps[1]+ASIp->tick2_dir[1]*size[jj], 
+                        Ps[2]+ASIp->tick2_dir[2]*size[jj]);
             ++i;
          }
       } else {
          while (i*space[jj] < nu3) {
-            Ps[0] = i*space[jj]*u3[0] + Pt[0]; Ps[1] = i*space[jj]*u3[1] + Pt[1]; Ps[2] = i*space[jj]*u3[2] + Pt[2]; /* center */
+            Ps[0] = i*space[jj]*u3[0] + Pt[0]; 
+            Ps[1] = i*space[jj]*u3[1] + Pt[1]; 
+            Ps[2] = i*space[jj]*u3[2] + Pt[2]; /* center */
             #if 0 
-              if (LocalHead) fprintf(SUMA_STDERR,"%s:\nPs = [%f %f %f]; \n", FuncName, Ps[0], Ps[1], Ps[2]);
+              if (LocalHead) 
+                  fprintf( SUMA_STDERR,
+                           "%s:\nPs = [%f %f %f]; \n", 
+                           FuncName, Ps[0], Ps[1], Ps[2]);
             #endif
-            glVertex3f(Ps[0], Ps[1], Ps[2]);
-            glVertex3f(Ps[0]+ASIp->tick1_dir[0]*size[jj], Ps[1]+ASIp->tick1_dir[1]*size[jj], Ps[2]+ASIp->tick1_dir[2]*size[jj]);
-            glVertex3f(Ps[0], Ps[1], Ps[2]);
-            glVertex3f(Ps[0]+ASIp->tick2_dir[0]*size[jj], Ps[1]+ASIp->tick2_dir[1]*size[jj], Ps[2]+ASIp->tick2_dir[2]*size[jj]);
+            glVertex3d( Ps[0], Ps[1], Ps[2]);
+            glVertex3d( Ps[0]+ASIp->tick1_dir[0]*size[jj], 
+                        Ps[1]+ASIp->tick1_dir[1]*size[jj],  
+                        Ps[2]+ASIp->tick1_dir[2]*size[jj]);
+            glVertex3d( Ps[0], Ps[1], Ps[2]);
+            glVertex3d( Ps[0]+ASIp->tick2_dir[0]*size[jj], 
+                        Ps[1]+ASIp->tick2_dir[1]*size[jj], 
+                        Ps[2]+ASIp->tick2_dir[2]*size[jj]);
                #if 0 /* for a little debug */
                if (jj==1) {
-                  glVertex3f(Ps[0], Ps[1], Ps[2]);
+                  glVertex3d(Ps[0], Ps[1], Ps[2]);
                   txofffac = 1.0 * size[1];
                   Ps[0] = i*space[1]*u3[0] + Pt[0] + txofffac * ASIp->TxOff[0]; 
                   Ps[1] = i*space[1]*u3[1] + Pt[1] + txofffac * ASIp->TxOff[1]; 
                   Ps[2] = i*space[1]*u3[2] + Pt[2] + txofffac * ASIp->TxOff[2];
-                  glVertex3f(Ps[0], Ps[1], Ps[2]);
+                  glVertex3d(Ps[0], Ps[1], Ps[2]);
                }
                #endif
             ++i;
@@ -3068,7 +3134,8 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
    
    glEnd();
 
-   glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
+   glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, NoColor); 
+      /*turn off emissivity for axis*/
    
          
 
@@ -3077,9 +3144,12 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
       int OKnext;
       dSxT = (float)fabs(ASIp->screen_length_x) / (float)nTick[1];
       dSyT = (float)fabs(ASIp->screen_length_y) / (float)nTick[1];
-      MinYstep = 15 ; /* height of letters in pixels (using GLUT_BITMAP_9_BY_15) */
-      MinXstep = 9 * 5; /* length of string in pixels (around 5 chars, including sign, using %.1f )*/
-      if (LocalHead) fprintf (SUMA_STDERR,"%s:\ndS = %f, %f\n", FuncName, dSxT, dSyT);
+      MinYstep = 15 ; /* height of letters in pixels 
+                        (using GLUT_BITMAP_9_BY_15) */
+      MinXstep = 9 * 5; /* length of string in pixels 
+                           (around 5 chars, including sign, using %.1f )*/
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s:\ndS = %f, %f\n", FuncName, dSxT, dSyT);
       i = 0;
       if (Ax->DoCross) { /* size has already been modified above ... */
          /* perhaps add a factor to the shift below, we'll see .. */
@@ -4578,20 +4648,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(SurfObj->PolyMode); 
    }
-   
-   #if 0 /* demo only. now handled elsewhere */
-   if (0) { /* clipping parts of the OBJECT */
-      GLdouble eqn[4] = {0.0, 1.0, 0.0, 0.0}; /* clip nodes with y < 0, below plane of equation eqn (y = 0)*/
-      GLdouble eqn2[4] = {1.0, 0.0, 0.0, 0.0}; /* clip nodes with x < 0, below plane of equation eqn (x = 0)*/
       
-      SUMA_S_Note("The clip");
-      glClipPlane(GL_CLIP_PLANE0, eqn);
-      glEnable(GL_CLIP_PLANE0);
-      glClipPlane(GL_CLIP_PLANE1, eqn2);
-      glEnable(GL_CLIP_PLANE1);
-   }
-   #endif
-   
    SUMA_LH("Draw Method");
    ND = SurfObj->NodeDim;
    NP = SurfObj->FaceSetDim;
@@ -4626,7 +4683,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          break;
       
       case ARRAY:
-         /* This allows each node to follow the color specified when it was drawn */ 
+         /* This allows each node to follow the color 
+            specified when it was drawn */ 
          glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
          glEnable(GL_COLOR_MATERIAL);
          
@@ -4642,25 +4700,32 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                SUMA_SL_Err("Null Color Pointer.");
             }
          } else { 
-            glColorPointer (4, GL_FLOAT, 0, colp); /* ZSS: Used to be: 
-                                                   glColorPointer (4, GL_FLOAT, 0, SUMA_GetColorList (sv, SurfObj->idcode_str));
-                                                   A redundant call, to say the least! */
+            glColorPointer (4, GL_FLOAT, 0, colp); 
+                  /* ZSS: Used to be: 
+                  glColorPointer (  4, GL_FLOAT, 0, 
+                                    SUMA_GetColorList (sv, SurfObj->idcode_str));
+                 A redundant call, to say the least! */
          }
          glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
          glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
-         if (LocalHead) fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet); 
+         if (LocalHead) 
+            fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet); 
          switch (RENDER_METHOD) {
             case TRIANGLES:
-               glDrawElements (GL_TRIANGLES, (GLsizei)SurfObj->N_FaceSet*3, GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
+               glDrawElements (  GL_TRIANGLES, (GLsizei)SurfObj->N_FaceSet*3, 
+                                 GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                break;
             case POINTS:
                glPointSize(4.0); /* keep outside of glBegin */
-               /* it is inefficient to draw points using the glar_FaceSetList because nodes are listed more 
-               than once. You are better off creating an index vector into glar_NodeList to place all the points, just once*/ 
-               glDrawElements (GL_POINTS, (GLsizei)SurfObj->N_FaceSet*3, GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
+               /* it is inefficient to draw points using the 
+                  glar_FaceSetList because nodes are listed more 
+                  than once. You are better off creating an index 
+                  vector into glar_NodeList to place all the points, just once*/ 
+               glDrawElements (  GL_POINTS, (GLsizei)SurfObj->N_FaceSet*3, 
+                                 GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
                break;
          } /* switch RENDER_METHOD */
-
+         
          #if TestImage
          if (1){
             GLboolean valid;
@@ -4682,8 +4747,10 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             } else { id = 0; }
             
             glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
-            glMaterialfv(GL_FRONT, GL_EMISSION, txcol); /*turn on emissidity for text*/
-            glRasterPos3f(SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
+            glMaterialfv(GL_FRONT, GL_EMISSION, txcol); 
+               /*turn on emissidity for text*/
+            glRasterPos3f( SurfObj->NodeList[id], 
+                           SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
             glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
             glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
             printf("%s: Raster position (%g,%g, %g) is %s\n",
@@ -4697,26 +4764,36 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             for (is=0; ShowString && string[is] != '\0'; is++) {
                glutBitmapCharacter(GLUT_BITMAP_9_BY_15, string[is]);
             }  
-            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for text*/
+            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+               /*turn off emissidity for text*/
 
             if (!image) {
                FILE *fid;
                SUMA_SL_Note(  "Reading the image.");
-               image = SUMA_read_ppm("/Users/ziad/Pictures/IMG_0526.ppm", &width, &height, 1);
+               image = SUMA_read_ppm("/Users/ziad/Pictures/IMG_0526.ppm", 
+                                    &width, &height, 1);
                if (!image) {
                   SUMA_SL_Err("Failed to read image.");
                }else if (ShowTexture) {
                   #if TestTexture
-                  SUMA_SL_Note("Creating texture, see init pp 415 in OpenGL programming guide, 3red");
+                  SUMA_SL_Note(  "Creating texture, see init pp 415 in \n"
+                                 "OpenGL programming guide, 3red");
                   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
                   glGenTextures(1, &texName);
                   glBindTexture(GL_TEXTURE_2D, texName);
-                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP); /* GL_REPEAT, GL_CLAMP */
-                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-                  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE); /* GL_REPLACE, GL_MODULATE */
-                  glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP); /* GL_SPHERE_MAP, GL_EYE_LINEAR, GL_OBJECT_LINEAR */
+                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP); 
+                           /* GL_REPEAT, GL_CLAMP */
+                  glTexParameteri(  GL_TEXTURE_2D,
+                                    GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                  glTexParameteri(  GL_TEXTURE_2D,
+                                    GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                  glTexImage2D(  GL_TEXTURE_2D, 0, GL_RGBA, 
+                                 width, height, 0, GL_RGBA, 
+                                 GL_UNSIGNED_BYTE, image);
+                  glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE); 
+                                 /* GL_REPLACE, GL_MODULATE */
+                  glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP); 
+                        /* GL_SPHERE_MAP, GL_EYE_LINEAR, GL_OBJECT_LINEAR */
                   glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
                   glEnable(GL_TEXTURE_GEN_S);
                   glEnable(GL_TEXTURE_GEN_T);
@@ -4731,7 +4808,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                }
                /*
                fid = fopen("junk.img", "w");
-               SUMA_disp_vecucmat (image, width*height, 4, 1, SUMA_ROW_MAJOR, fid, NOPE);
+               SUMA_disp_vecucmat ( image, width*height, 
+                                    4, 1, SUMA_ROW_MAJOR, fid, NOPE);
                fclose(fid);
                */
                
@@ -4740,8 +4818,10 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                SUMA_SL_Note(  "Drawing the image.");
                /* NOTE. The raster position has been pushed aside by the string.
                If you want it back, you need a new call to glRasterPos3f */
-               glRasterPos3f(SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-               glAlphaFunc(GL_GEQUAL, 0.25);/* Should do this only once, not each time you render ...*/
+               glRasterPos3f( SurfObj->NodeList[id],
+                              SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
+               glAlphaFunc(GL_GEQUAL, 0.25);
+                  /* Should do this only once, not each time you render ...*/
                glEnable(GL_ALPHA_TEST);
                glDrawPixels(width, height, GL_RGBA,
                   GL_UNSIGNED_BYTE, image);
@@ -4761,25 +4841,29 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          /* draw surface ROIs */
          SUMA_LH("ROIs");
          if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in drawing ROI objects.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed in drawing ROI objects.\n", FuncName);
          }
          /* Draw Axis */
          SUMA_LH("Axis");
          if (SurfObj->MeshAxis && SurfObj->ShowMeshAxis)   {
             if (!SUMA_DrawAxis (SurfObj->MeshAxis, sv)) {
-               fprintf(stderr,"Error SUMA_DrawAxis: Unrecognized Stipple option\n");
+               fprintf( stderr,
+                        "Error SUMA_DrawAxis: Unrecognized Stipple option\n");
             }
          }
          /* Draw node-based vectors */
          SUMA_LH("NBV");
          if (!SUMA_Draw_SO_NBV (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in drawing NBV objects.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed in drawing NBV objects.\n", FuncName);
          }
          
          /* Draw node-based spheres */
          SUMA_LH("NBV");
          if (!SUMA_Draw_SO_NBSP (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in drawing NBSP objects.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed in drawing NBSP objects.\n", FuncName);
          }
          
          /* Draw Selected Node Highlight */
@@ -4787,20 +4871,30 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
             if (LocalHead) fprintf(SUMA_STDOUT,"Drawing Node Selection \n");
             id = ND * SurfObj->SelectedNode;
-            glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissidity for sphere */
+            glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); 
+                  /*turn on emissidity for sphere */
             glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
-            glTranslatef (SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad*(SUMA_sv_fov_original(sv)/FOV_INITIAL)*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
-                      SurfObj->NodeMarker->slices, SurfObj->NodeMarker->stacks);
-            glTranslatef (-SurfObj->NodeList[id], -SurfObj->NodeList[id+1],-SurfObj->NodeList[id+2]);
-            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for axis*/
+            glTranslatef ( SurfObj->NodeList[id], 
+                           SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
+            gluSphere(  SurfObj->NodeMarker->sphobj,
+                        SurfObj->NodeMarker->sphrad *          
+                           (SUMA_sv_fov_original(sv)/FOV_INITIAL) *  
+                           SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
+                        SurfObj->NodeMarker->slices, 
+                        SurfObj->NodeMarker->stacks);
+            glTranslatef ( -SurfObj->NodeList[id], 
+                           -SurfObj->NodeList[id+1],
+                           -SurfObj->NodeList[id+2]);
+            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+                     /*turn off emissidity for axis*/
          }
          
          /* Draw Selected FaceSet Highlight */
          if (SurfObj->ShowSelectedFaceSet && SurfObj->SelectedFaceSet >= 0) {
             if (LocalHead) fprintf(SUMA_STDOUT,"Drawing FaceSet Selection \n");            
             if (!SUMA_DrawFaceSetMarker (SurfObj->FaceSetMarker, sv)) {
-               fprintf(SUMA_STDERR,"Error SUMA_DrawMesh: Failed in SUMA_DrawFaceSetMarker\b");
+               fprintf(SUMA_STDERR,
+                  "Error SUMA_DrawMesh: Failed in SUMA_DrawFaceSetMarker\b");
             }
          } 
 
