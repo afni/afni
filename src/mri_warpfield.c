@@ -413,8 +413,8 @@ static tenprodpar * Warpfield_tenprod_setup( float order )
 
    /* sort by increasing radius */
 
-   mergesort( kvec , (size_t)pp , sizeof(fvm) ,
-              (int(*)(const void *,const void *))cmp_fvm ) ;
+   qsort( kvec , (size_t)pp , sizeof(fvm) ,
+          (int(*)(const void *,const void *))cmp_fvm ) ;
 
    /* copy sorted tensor product indexes into output struct */
 
