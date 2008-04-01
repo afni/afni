@@ -1427,6 +1427,8 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 /*--------------------------------------------------------------------*/
 /** July 2006: stuff for generic alignment functions: mri_genalign.c **/
 
+#include "mri_warpfield.h"
+
   /* definition of various convex neighborhoods */
 
 #define GA_BLOK_BALL 1  /* sphere */
@@ -1574,6 +1576,15 @@ extern void GA_do_cost(int, byte) ;
 extern void GA_do_params(int) ;
 extern float mri_genalign_scalar_cost( GA_setup * , float *) ;
 extern void GA_set_outval( float ) ;   /* 28 Feb 2007 */
+
+extern void mri_genalign_set_boxsize( float xbot, float xtop,
+                                      float ybot, float ytop,
+                                      float zbot, float ztop ) ;
+extern Warpfield * mri_genalign_warpfield_setup( int, float, int ) ;
+extern Warpfield * mri_genalign_warpfield_get(void) ;
+extern void mri_genalign_warpfield( int, float *,
+                                    int, float *, float *, float *,
+                                         float *, float *, float * ) ;
 
 extern floatvec * mri_genalign_scalar_allcosts( GA_setup * , float * ); /* 19 Sep 2007 */
 

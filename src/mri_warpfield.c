@@ -1,5 +1,4 @@
 #include "mrilib.h"
-#include "mri_warpfield.h"
 
 #undef  FREEIF
 #define FREEIF(p) do{ if((p)!=NULL){free(p);(p)=NULL;} }while(0)
@@ -16,7 +15,7 @@ static void Warpfield_trigfun  (int,void *,int,float *,float *,float *,float *);
 static void Warpfield_legfun   (int,void *,int,float *,float *,float *,float *);
 static void Warpfield_gegenfun (int,void *,int,float *,float *,float *,float *);
 
-static void * Warpfield_prodfun_setup(float,int *,void *) ;
+static void * Warpfield_prodfun_setup(float,int *,int,void *) ;
 
 static void Wtrig    (int,int,float *,float *) ;
 static void Wlegendre(int,int,float *,float *) ;
@@ -33,14 +32,15 @@ void Warpfield_set_verbose( int vv ){ verb = vv; }
 /*---------------------------------------------------------------------------*/
 /*! Setup a new warpfield. */
 
-Warpfield * Warpfield_init( int type, float order, floatvec *fv )
+Warpfield * Warpfield_init( int type, float order, int flags, floatvec *fv )
 {
    Warpfield *wf ;
 
-   if( order < 0.0f ) return(NULL) ;
+   if( order < 1.5f ) return(NULL) ;
 
    wf = (Warpfield *)calloc( 1 , sizeof(Warpfield) ) ;
-   wf->type = type ;
+   wf->type  = type ;
+   wf->flags = flags ;
 
    switch( type ){
      default: free((void *)wf) ; return(NULL) ;  /* bad */
@@ -77,14 +77,15 @@ Warpfield * Warpfield_init( int type, float order, floatvec *fv )
    /* set up space for warping parameters */
 
    wf->order = order ;
-   wf->bpar = wf->bset( wf->order , &(wf->nfun) , (void *)wf->pv ) ;
-   if( wf->nfun > 0 ){
-     wf->cx = (float *)calloc(wf->nfun,sizeof(float)) ;
-     wf->cy = (float *)calloc(wf->nfun,sizeof(float)) ;
-     wf->cz = (float *)calloc(wf->nfun,sizeof(float)) ;
-   } else {
-     wf->cx = wf->cy = wf->cz = NULL ;  /* should not happen */
+   wf->bpar = wf->bset( wf->order , &(wf->nfun) , wf->flags , (void *)wf->pv ) ;
+
+   if( wf->nfun <= 0 ){
+     Warpfield_destroy(wf) ; return(NULL) ;  /* should never transpire */
    }
+
+   wf->cx = (float *)calloc(wf->nfun,sizeof(float)) ;
+   wf->cy = (float *)calloc(wf->nfun,sizeof(float)) ;
+   wf->cz = (float *)calloc(wf->nfun,sizeof(float)) ;
 
    return wf ;
 }
@@ -95,7 +96,7 @@ void Warpfield_destroy( Warpfield *wf )
 {
    if( wf == NULL ) return ;
    KILL_floatvec(wf->pv) ;
-   if( wf->bpar != NULL ) wf->bset( -1.0f , NULL , wf->bpar ) ;
+   if( wf->bpar != NULL ) wf->bset( -1.0f, NULL, wf->flags, wf->bpar ) ;
    FREEIF(wf->cx) ; FREEIF(wf->cy) ; FREEIF(wf->cz) ;
    free((void *)wf) ; return ;
 }
@@ -109,8 +110,8 @@ void Warpfield_change_order( Warpfield *wf , float neword )
 
    if( neword < 0.0f || neword == order ) return ;
 
-   if( wf->bpar != NULL ) wf->bset( -1.0f , NULL , wf->bpar ) ;
-   wf->bpar = wf->bset( neword, &newfun, (void *)wf->pv ) ;
+   if( wf->bpar != NULL ) wf->bset( -1.0f , NULL , wf->flags , wf->bpar ) ;
+   wf->bpar = wf->bset( neword, &newfun, wf->flags, (void *)wf->pv ) ;
    if( newfun <= 0 ){
      FREEIF(wf->cx) ; FREEIF(wf->cy) ; FREEIF(wf->cz) ; newfun = 0 ;
    } else if( newfun != wf->nfun ){
@@ -118,8 +119,9 @@ void Warpfield_change_order( Warpfield *wf , float neword )
      wf->cx = (float *)realloc((void *)wf->cx,sizeof(float)*newfun) ;
      wf->cy = (float *)realloc((void *)wf->cy,sizeof(float)*newfun) ;
      wf->cz = (float *)realloc((void *)wf->cz,sizeof(float)*newfun) ;
-     for( ii=wf->nfun ; ii < newfun ; ii++ )
+     for( ii=wf->nfun ; ii < newfun ; ii++ ){
        wf->cx[ii] = wf->cy[ii] = wf->cz[ii] = 0.0f ;
+     }
    }
    wf->order = neword ; wf->nfun = newfun ; return ;
 }
@@ -178,9 +180,8 @@ static float Warpfield_lsqfit( Warpfield *wf , int flags , float order ,
 
    car = wf->cx ; dar = wf->cy ; ear = wf->cz ;
    for( ii=0 ; ii < ncol ; ii++ ){
-     cs = ds = es = 0.0f ;
-     for( jj=0 ; jj < nrow ; jj++ ){
-       cs += P(ii,jj)*xw[jj]; ds += P(ii,jj)*yw[jj]; es += P(ii,jj)*zw[jj];
+     for( cs=ds=es=0.0f,jj=0 ; jj < nrow ; jj++ ){
+       cs += P(ii,jj)*xw[jj] ; ds += P(ii,jj)*yw[jj] ; es += P(ii,jj)*zw[jj] ;
      }
      car[ii] = cs ; dar[ii] = ds ; ear[ii] = es ;
    }
@@ -193,7 +194,7 @@ static float Warpfield_lsqfit( Warpfield *wf , int flags , float order ,
    for( ii=0 ; ii < nrow ; ii++ ){
      cs = -xw[ii] ; ds = -yw[ii] ; es = -zw[ii] ;
      for( jj=0 ; jj < ncol ; jj++ ){
-       cs += B(ii,jj)*car[jj]; ds += B(ii,jj)*dar[jj]; es += B(ii,jj)*ear[jj];
+       cs += B(ii,jj)*car[jj] ; ds += B(ii,jj)*dar[jj] ; es += B(ii,jj)*ear[jj] ;
      }
      qsum += cs*cs + ds*ds + es*es ;
    }
@@ -220,7 +221,7 @@ Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr )
 
    /* create the output warpfield */
 
-   uf = Warpfield_init( wf->type , wf->order , wf->pv ) ;
+   uf = Warpfield_init( wf->type , wf->order , wf->flags , wf->pv ) ;
    if( uf == NULL ) return(NULL) ;
 
    /* its matrix is the inverse of the input's */
@@ -297,7 +298,7 @@ Warpfield * Warpfield_approx( Warpfield *wf , float ord , float *rmserr )
 
    /* create the output warpfield */
 
-   uf = Warpfield_init( wf->type , ord , wf->pv ) ;
+   uf = Warpfield_init( wf->type , ord , wf->flags , wf->pv ) ;
    if( uf == NULL ) return(NULL) ;
 
    /* its matrix is the same as the input's */
@@ -396,7 +397,7 @@ static tenprodpar * Warpfield_tenprod_setup( float order )
    float kt ;
    fvm *kvec , vv ;
 
-   if( order <= 1.0f ) return(NULL) ;  /* bad call */
+   if( order <= 1.5f ) return(NULL) ;  /* bad call */
 
    /* create a sphere of tensor products up to the given radius */
 
@@ -436,7 +437,7 @@ static tenprodpar * Warpfield_tenprod_setup( float order )
 
 /*---------------------------------------------------------------------------*/
 
-static void * Warpfield_prodfun_setup( float order, int *nfun, void *vp )
+static void * Warpfield_prodfun_setup( float order, int *nfun, int flags, void *vp )
 {
    tenprodpar *spar ;
 

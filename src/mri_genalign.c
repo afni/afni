@@ -2416,8 +2416,6 @@ void mri_genalign_mat44( int npar, float *wpar,
 /****************************************************************************/
 /****************  Nonlinear Warpfield on top of affine *********************/
 
-#include "mri_warpfield.h"
-
 static float to_cube_ax=1.0f , to_cube_bx=0.0f ;
 static float to_cube_ay=1.0f , to_cube_by=0.0f ;
 static float to_cube_az=1.0f , to_cube_bz=0.0f ;
@@ -2459,20 +2457,12 @@ void mri_genalign_set_boxsize( float xbot, float xtop,
 /*--------------------------------------------------------------------------*/
 
 static Warpfield *wfield  = NULL ;
-static int wfield_xfreeze = 0 ;
-static int wfield_yfreeze = 0 ;
-static int wfield_zfreeze = 0 ;
 
-Warpfield * mri_genalign_warpfield_setup( int ttt , float ord , int fmask )
+Warpfield * mri_genalign_warpfield_setup( int ttt , float ord , int flags )
 {
    if( wfield != NULL ){ Warpfield_destroy(wfield); wfield = NULL; }
-   wfield_xfreeze = (fmask & 1) ;
-   wfield_yfreeze = (fmask & 2) ;
-   wfield_zfreeze = (fmask & 4) ;
-   if( wfield_xfreeze && wfield_yfreeze && wfield_zfreeze )
-     ERROR_message("Can't freeze warpfield in all 3 dimensions!") ;
-   else
-     wfield = Warpfield_init( ttt , ord , NULL ) ;
+
+   wfield = Warpfield_init( ttt , ord , flags , NULL ) ;
 
    return wfield ;
 }
@@ -2489,7 +2479,7 @@ void mri_genalign_warpfield( int npar, float *wpar ,
                              int npt , float *xi, float *yi, float *zi ,
                                        float *xo, float *yo, float *zo  )
 {
-   int ii ;
+   int ii,pp,np ;
 
    /* check for criminal inputs */
 
@@ -2498,13 +2488,22 @@ void mri_genalign_warpfield( int npar, float *wpar ,
    /** new parameters ==> setup transformation **/
 
    if( npar > 0 && wpar != NULL ){
-     mat44 gf , gam=GA_setup_affine(npar,wpar) ; /* setup affine matrix */
-     gf = MAT44_MUL(gam,fr_cube) ;
-     wfield->aa = MAT44_MUL(to_cube,gf) ;
+     float *wp = wpar+12 ;
+     mat44 gf , gam=GA_setup_affine(12,wpar) ; /* setup affine matrix */
+     gf = MAT44_MUL(gam,fr_cube) ; wfield->aa = MAT44_MUL(to_cube,gf) ;
+
+     np = (npar-12)/3 ; if( np > wfield->nfun ) np = wfield->nfun ;
+     for( pp=ii=0 ; ii < np ; ii++ ){
+       wfield->cx[ii] = wpar[pp++] ;
+       wfield->cy[ii] = wpar[pp++] ;
+       wfield->cz[ii] = wpar[pp++] ;
+     }
    }
 
    /* nothing to transform? */
 
    if( wfield == NULL || npt <= 0 || xi == NULL || xo == NULL ) return ;
 
+   Warpfield_eval_array( wfield , npt , xi,yi,zi , xo,yo,zo ) ;
+   return ;
 }
