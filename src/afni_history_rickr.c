@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, APR, 2008, RCR, "ANOVA", MINOR, TYPE_MODIFY,
+   "increased internal memory for 3dbucket and 3drefit command creation",
+   NULL
+ } ,
+
  { 31, MAR, 2008, RCR, "ANOVA", MINOR, TYPE_MODIFY,
    "extended maximum number of means, diffs and contrasts to 50",
    NULL

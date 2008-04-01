@@ -1615,8 +1615,9 @@ void analyze_results (anova_options * option_data)
 void create_bucket (anova_options * option_data)
 
 {
-  char bucket_str[10000];             /* command line for program 3dbucket */
-  char refit_str[10000];              /* command line for program 3drefit */
+  char bucket_str[20000];             /* command line for program 3dbucket */
+  char refit_str[20000];              /* command line for program 3drefit */
+                                      /* (changed from 10K to 20K for Shruti) */
   THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int i;                              /* file index */
