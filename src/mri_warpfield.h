@@ -44,6 +44,9 @@ typedef struct {
 #define WARPFIELD_NOVARY_Z(ww) NOVARY_Z((ww)->flags)
 #endif
 
+#define SKIPAFF(ff)           ((ff)&128 != 0)
+#define WARPFIELD_SKIPAFF(ww) SKIPAFF((ww)->flags)
+
 /*---------------------------------------------------------------------------*/
 
 extern void Warpfield_set_verbose( int ) ;
