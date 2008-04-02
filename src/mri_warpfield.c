@@ -63,7 +63,10 @@ Warpfield * Warpfield_init( int type, float order, int flags, floatvec *fv )
 
    /* identity matrix */
 
-   LOAD_DIAG_MAT44( wf->aa , 1.0f , 1.0f , 1.0f ) ;
+   if( SKIPAFF(flags) )
+     LOAD_DIAG_MAT44( wf->aa , 0.0f , 0.0f , 0.0f ) ;
+   else
+     LOAD_DIAG_MAT44( wf->aa , 1.0f , 1.0f , 1.0f ) ;
 
    /* copy float vector parameters in, if any [not used at present] */
 
@@ -226,7 +229,9 @@ Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr )
 
    /* its matrix is the inverse of the input's */
 
-   wa = wf->aa ; ub = uf->aa = MAT44_INV(wa) ;
+   if( !WARPFIELD_SKIPAFF(wf) ){
+     wa = wf->aa ; ub = uf->aa = MAT44_INV(wa) ;
+   }
 
    /* workspaces */
 
@@ -258,11 +263,11 @@ Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr )
 
    /* set up for approximating inverse at these grid points */
 
-   for( ii=0 ; ii < npt ; ii++ ){
-     MAT44_VEC( ub , xi[ii],yi[ii],zi[ii] , ss,tt,uu ) ;
-     xw[ii] -= ss ;
-     yw[ii] -= tt ;
-     zw[ii] -= uu ;
+   if( !WARPFIELD_SKIPAFF(uf) ){
+     for( ii=0 ; ii < npt ; ii++ ){
+       MAT44_VEC( ub , xi[ii],yi[ii],zi[ii] , ss,tt,uu ) ;
+       xw[ii] -= ss ; yw[ii] -= tt ; zw[ii] -= uu ;
+     }
    }
 
    /* compute approximate inverse at various orders */
@@ -335,11 +340,11 @@ Warpfield * Warpfield_approx( Warpfield *wf , float ord , float *rmserr )
 
    /* set up for approximating new warp at these grid points */
 
-   for( ii=0 ; ii < npt ; ii++ ){
-     MAT44_VEC( ub , xi[ii],yi[ii],zi[ii] , ss,tt,uu ) ;
-     xw[ii] -= ss ;
-     yw[ii] -= tt ;
-     zw[ii] -= uu ;
+   if( !WARPFIELD_SKIPAFF(uf) ){
+     for( ii=0 ; ii < npt ; ii++ ){
+       MAT44_VEC( ub , xi[ii],yi[ii],zi[ii] , ss,tt,uu ) ;
+       xw[ii] -= ss ; yw[ii] -= tt ; zw[ii] -= uu ;
+     }
    }
 
    /* compute approximation */
@@ -716,16 +721,16 @@ void Warpfield_eval_array( Warpfield *wf ,
                                     float *xo, float *yo, float *zo )
 {
    int kk ;
-   float *val ;
-   float a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ;
-   register int ii ; register float cx,cy,cz ;
+   register int ii ; register float cx,cy,cz , *val ;
 
-   UNLOAD_MAT44( wf->aa , a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ) ;
-
-   for( ii=0 ; ii < npt ; ii++ ){
-     xo[ii] = a11*xi[ii] + a12*yi[ii] + a13*zi[ii] + a14 ;
-     yo[ii] = a21*xi[ii] + a22*yi[ii] + a23*zi[ii] + a24 ;
-     zo[ii] = a31*xi[ii] + a32*yi[ii] + a33*zi[ii] + a34 ;
+   if( !WARPFIELD_SKIPAFF(wf) ){
+     float a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ;
+     UNLOAD_MAT44( wf->aa , a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34 ) ;
+     for( ii=0 ; ii < npt ; ii++ ){
+       xo[ii] = a11*xi[ii] + a12*yi[ii] + a13*zi[ii] + a14 ;
+       yo[ii] = a21*xi[ii] + a22*yi[ii] + a23*zi[ii] + a24 ;
+       zo[ii] = a31*xi[ii] + a32*yi[ii] + a33*zi[ii] + a34 ;
+     }
    }
 
    val = (float *)malloc(sizeof(float)*npt) ;

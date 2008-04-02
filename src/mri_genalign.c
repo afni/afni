@@ -2471,6 +2471,8 @@ Warpfield * mri_genalign_warpfield_setup( int ttt , float ord , int flags )
 
 Warpfield * mri_genalign_warpfield_get(void){ return wfield; }
 
+void mri_genalign_warpfield_set(Warpfield *wf){ wfield = wf; }
+
 /*--------------------------------------------------------------------------*/
 /*! A wfunc function for nonlinear transformations. */
 /*--------------------------------------------------------------------------*/
@@ -2479,7 +2481,8 @@ void mri_genalign_warpfield( int npar, float *wpar ,
                              int npt , float *xi, float *yi, float *zi ,
                                        float *xo, float *yo, float *zo  )
 {
-   int ii,pp,np ;
+   int ii,pp,npp ;
+   static float *xii=NULL,*yii,*zii , *xoo,*yoo,*zoo ;
 
    /* check for criminal inputs */
 
@@ -2488,15 +2491,21 @@ void mri_genalign_warpfield( int npar, float *wpar ,
    /** new parameters ==> setup transformation **/
 
    if( npar > 0 && wpar != NULL ){
-     float *wp = wpar+12 ;
-     mat44 gf , gam=GA_setup_affine(12,wpar) ; /* setup affine matrix */
-     gf = MAT44_MUL(gam,fr_cube) ; wfield->aa = MAT44_MUL(to_cube,gf) ;
+     float *wp ;
 
-     np = (npar-12)/3 ; if( np > wfield->nfun ) np = wfield->nfun ;
-     for( pp=ii=0 ; ii < np ; ii++ ){
-       wfield->cx[ii] = wpar[pp++] ;
-       wfield->cy[ii] = wpar[pp++] ;
-       wfield->cz[ii] = wpar[pp++] ;
+     if( !WARPFIELD_SKIPAFF(wfield) ){
+       mat44 gf , gam=GA_setup_affine(12,wpar) ; /* setup affine matrix */
+       gf = MAT44_MUL(gam,fr_cube) ; wfield->aa = MAT44_MUL(to_cube,gf) ;
+       wp = wpar+12 ; npp = npar-12 ;
+     } else {
+       wp = wpar ; npp = npar ;
+     }
+
+     npp = npp/3 ; if( npp > wfield->nfun ) npp = wfield->nfun ;
+     for( pp=ii=0 ; ii < npp ; ii++ ){
+       wfield->cx[ii] = wp[pp++] ;
+       wfield->cy[ii] = wp[pp++] ;
+       wfield->cz[ii] = wp[pp++] ;
      }
    }
 
@@ -2504,6 +2513,25 @@ void mri_genalign_warpfield( int npar, float *wpar ,
 
    if( wfield == NULL || npt <= 0 || xi == NULL || xo == NULL ) return ;
 
-   Warpfield_eval_array( wfield , npt , xi,yi,zi , xo,yo,zo ) ;
+   if( xii == NULL ){
+     xii = (float *)malloc(sizeof(float)*NPER) ;
+     yii = (float *)malloc(sizeof(float)*NPER) ;
+     zii = (float *)malloc(sizeof(float)*NPER) ;
+     xoo = (float *)malloc(sizeof(float)*NPER) ;
+     yoo = (float *)malloc(sizeof(float)*NPER) ;
+     zoo = (float *)malloc(sizeof(float)*NPER) ;
+   }
+
+   for( pp=0 ; pp < npt ; pp+=NPER ){
+     npp = MIN( NPER , npt-pp ) ;  /* number to do in this iteration */
+     for( ii=0 ; ii < npp ; ii++ )
+       MAT44_VEC( to_cube , xi [ii+pp],yi [ii+pp],zi [ii+pp] ,
+                            xii[ii+pp],yii[ii+pp],zii[ii+pp]  ) ;
+     Warpfield_eval_array( wfield , npp , xii,yii,zii , xoo,yoo,zoo ) ;
+     for( ii=0 ; ii < npp ; ii++ )
+       MAT44_VEC( fr_cube , xoo[ii+pp],yoo[ii+pp],zoo[ii+pp] ,
+                            xo [ii+pp],yo [ii+pp],zo [ii+pp]  ) ;
+   }
+
    return ;
 }
