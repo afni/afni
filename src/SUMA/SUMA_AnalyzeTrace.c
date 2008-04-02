@@ -165,29 +165,6 @@ void SUMA_ShowTraceStack(SUMA_TRACE_STRUCT *TS, int its, char *head) {
    return;
 }
 
-int SUMA_LineNumbersFromTo(char *f, char *t){
-   int N_line = 0;
-   
-   while (f<t) {
-      if (SUMA_IS_LINE_END(*f)) ++N_line;
-      ++f;
-   }
-   return(N_line);   
-}
-
-void SUMA_ShowFromTo(char *f, char *t, char *head){
-   if (head) {
-      fprintf(SUMA_STDERR, "%s", head);
-   } else {
-      fprintf(SUMA_STDERR, "Chunk in question:\n"
-                           "------------------\n");
-   }
-   while (f<t) {
-      fprintf(SUMA_STDERR, "%c", *f); ++f;
-   }
-   fprintf(SUMA_STDERR, "\n");
-   return;
-}
 
 char *SUMA_NextEntry(char *ss, int *level, int *io, char *func, char *file, int *line, int *error) {
    static char FuncName[]={"SUMA_NextEntry"};
@@ -361,7 +338,8 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
    char *fl = NULL, *flc = NULL, *fls = NULL, *flo = NULL, 
          *fln = NULL, *fle = NULL, func[100],  file[100],
          *comp_fl=NULL, stmp[300];
-   int level, cur_level, io, nread, its, line, error, cnt, N_comp_fl, Nrep, N_error = 0;
+   int level, cur_level, io, nread, its, line, error, cnt, N_comp_fl, 
+       Nrep, N_error = 0;
    SUMA_TRACE_STRUCT TS[100];
    SUMA_Boolean Res = NOPE;
    FILE *fff=NULL;
@@ -399,7 +377,9 @@ int SUMA_AnalyzeTraceFunc(char *fname, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt) {
       flc = fln; /* set current location */
       fln = SUMA_NextEntry(flc, &level, &io, func, file, &line, &error) ;
       if (fln == flc) {
-         SUMA_S_Note("\nDone Checking.\nTrace looks OK (Note that exit() calls are not popped off the stack).\n");
+         SUMA_S_Note("\nDone Checking.\n"
+                     "Trace looks OK \n"
+                     "(Note that exit() calls are not popped off the stack).\n");
          SUMA_ShowTraceStack(TS, its, "Stack at Exit:\n");
          Res = YUP;
          goto GETOUT;

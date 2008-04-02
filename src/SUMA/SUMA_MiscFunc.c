@@ -9140,3 +9140,28 @@ int *SUMA_reorder(int *y, int *isort, int N_isort)
    SUMA_RETURN(yr);
 }
 
+void SUMA_ShowFromTo(char *f, char *t, char *head){
+   if (head) {
+      fprintf(SUMA_STDERR, "%s", head);
+   } else {
+      fprintf(SUMA_STDERR, "Chunk in question:\n"
+                           "------------------\n");
+   }
+   while (f<t) {
+      fprintf(SUMA_STDERR, "%c", *f); ++f;
+   }
+   fprintf(SUMA_STDERR, "\n");
+   return;
+}
+
+int SUMA_LineNumbersFromTo(char *f, char *t){
+   int N_line = 0;
+   
+   while (f<t) {
+      if (SUMA_IS_LINE_END(*f)) ++N_line;
+      ++f;
+   }
+   return(N_line);   
+}
+
+

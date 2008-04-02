@@ -53,6 +53,9 @@ SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI);
 SUMA_Boolean SUMA_freeROI (SUMA_ROI *ROI); 
 SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov, SUMA_SurfaceViewer *csv);
 SUMA_DO_Types SUMA_Guess_DO_Type(char *s);
+SUMA_TextDO * SUMA_Alloc_TextDO (int N_n, char *Label, 
+                                 char *Parent_idcode_str, SUMA_DO_Types type);
+SUMA_TextDO *SUMA_free_TextDO(SUMA_TextDO *TDO) ;
 SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char *parent_idcode, SUMA_DO_Types type);
 void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO);
 SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv);

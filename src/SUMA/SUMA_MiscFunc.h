@@ -169,6 +169,9 @@ void SUMA_TestMxVecMatOps(void);
 SUMA_MX_VEC * SUMA_MxVecRand(SUMA_VARTYPE tp, int N_dims,int * dims, SUMA_MX_VEC *recycle);
 SUMA_MX_VEC *  SUMA_Read1DMxVec(SUMA_VARTYPE tp, char *Name, int *dims, int *N_dims);
 
+void SUMA_ShowFromTo(char *f, char *t, char *head);
+int SUMA_LineNumbersFromTo(char *f, char *t);
+
 
 #endif
 
