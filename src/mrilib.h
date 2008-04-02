@@ -1582,6 +1582,7 @@ extern void mri_genalign_set_boxsize( float xbot, float xtop,
                                       float zbot, float ztop ) ;
 extern Warpfield * mri_genalign_warpfield_setup( int, float, int ) ;
 extern Warpfield * mri_genalign_warpfield_get(void) ;
+extern void mri_genalign_warpfield_set(Warpfield *) ;
 extern void mri_genalign_warpfield( int, float *,
                                     int, float *, float *, float *,
                                          float *, float *, float * ) ;

@@ -8414,7 +8414,7 @@ static float basis_tent( float x, float bot, float mid, float top, void *q )
 
 /*--------------------------------------------------------------------------*/
 #undef  CA
-#define CA  0.5f   /* negative of slope at x=0 */
+#define CA  0.5f   /* negative of slope at x=1 */
 static float hh_csplin( float y )   /* for CSPLIN */
 {
    float yy = fabsf(y) ;
