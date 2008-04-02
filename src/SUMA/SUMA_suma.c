@@ -128,9 +128,13 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
 "   [-memdbg] Turn on the memory tracing from the start.\n" */    
 "   [-visuals] Shows the available glxvisuals and exits.\n"
 "   [-version] Shows the current version number.\n"
-"   [-environment] Shows a list of all environment variables and \n"
-"                  and their default setting.\n"
-"                  The output can be used as your .sumarc file.\n" 
+"   [-environment] Shows a list of all environment variables, \n"
+"                  their default setting and your current setting.\n"
+"                  The output can be used as a new .sumarc file.\n"
+"                  Since it takes into consideration your own settings\n"
+"                  this command can be used to update your .sumarc \n"
+"                  regularly with a csh command like this:\n"
+"                  suma -environment > ~/sumarc && mv ~/sumarc ~/.sumarc\n" 
 "   [-latest_news] Shows the latest news for the current \n"
 "                  version of the entire SUMA package.\n"
 "   [-all_latest_news] Shows the history of latest news.\n"
@@ -416,13 +420,16 @@ int main (int argc,char *argv[])
 		}
       if (strcmp(argv[kar], "-environment") == 0) {
 			 s = SUMA_env_list_help ();
-          fprintf (SUMA_STDOUT,  "#SUMA DEFAULT ENVIRONMENT \n"
-                                 "# If you do not have a ~/.sumarc\n"
-                                 "# you can use: \n"
-                                 "# suma -environment > ~/.sumarc \n"
-                                 "# to create a new one with defaults.\n"
-                                 "***ENVIRONMENT\n"
-                                 "%s\n", s); 
+          fprintf (SUMA_STDOUT,  
+                  "#SUMA DEFAULT ENVIRONMENT \n"
+                  "# If you do not have a ~/.sumarc\n"
+                  "# or you want to update yours with\n"
+                  "# new variables, while keeping your\n"
+                  "# settings intact, you can use: \n"
+                  "# suma -environment > ~/sumarc && mv ~/sumarc ~/.sumarc \n"
+                  "# \n"
+                  "***ENVIRONMENT\n"
+                  "%s\n", s); 
           SUMA_free(s); s = NULL;
           exit (0);
 		}
@@ -563,6 +570,13 @@ int main (int argc,char *argv[])
       AfniHostName = SUMA_copy_string(ps->cs->afni_host_name);
    }
    
+   #if 0
+   SUMA_S_Note("KILL ME");
+   SUMA_ReadTextDO("/Users/ziad/SUMA_test_dirs/sample.niml", NULL);   
+      
+   exit(1);
+   #endif
+      
    /* Make surface loading pacifying */
    SetLoadPacify(1);
    
@@ -599,7 +613,7 @@ int main (int argc,char *argv[])
       SUMA_free(jnk); /* without the -trace, you'll get a warning here if jnk is corrupted */
    }
    #endif
-      
+   
 	/* create an Eye Axis DO */
 	EyeAxis = SUMA_Alloc_Axis ("Eye Axis", AO_type);
 	if (EyeAxis == NULL) {

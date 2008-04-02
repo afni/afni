@@ -657,14 +657,125 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = ONBV_type;
    } else if (strstr(sbuf,"#planes")) {
       dotp = PL_type;
-   }
+   } else if (strstr(sbuf,"#node_based_text")) {
+      dotp = NBT_type;
+   } else if (strstr(sbuf,"#dicom_based_text")) {
+      dotp = DBT_type;
+   } else if (strstr(sbuf,"#screen_based_text")) {
+      dotp = SBT_type;
+   } 
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: Searched header string:\n>>>%s<<<\ndotp = %d\n", FuncName, sbuf, dotp);
+      fprintf( SUMA_STDERR,
+               "%s: Searched header string:\n>>>%s<<<\ndotp = %d\n", 
+               FuncName, sbuf, dotp);
    }
    
    fclose(fid); fid = NULL;
    
    SUMA_RETURN(dotp);
+}
+
+SUMA_TextDO * SUMA_Alloc_TextDO (int N_n, char *Label, 
+                                 char *Parent_idcode_str, SUMA_DO_Types type)
+{
+   static char FuncName[]={"SUMA_Alloc_TextDO"};
+   SUMA_TextDO * TDO= NULL;
+   char *hs = NULL;
+   
+   SUMA_ENTRY;
+   
+   TDO = (SUMA_TextDO *) SUMA_calloc(1,sizeof (SUMA_TextDO));
+   if (!TDO) {
+      fprintf(stderr,"Error %s: Failed to allocate for TDO\n", FuncName);
+      SUMA_RETURN (TDO);
+   }
+   TDO->do_type = type;
+   
+   if (N_n > 0) {
+      if (!Parent_idcode_str) {
+         TDO->NodeBased = 0;
+         TDO->NodeID = NULL;
+         TDO->Parent_idcode_str = NULL;
+         TDO->x = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+      } else {
+         TDO->NodeBased = 1;
+         TDO->x = NULL;
+         TDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
+         TDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
+      }
+      TDO->text = (char **)SUMA_calloc(N_n, sizeof(char *));
+   
+      if (  (!TDO->NodeBased && !TDO->x) || 
+            (TDO->NodeBased && !TDO->NodeID) ||
+            !TDO->text ) {
+         SUMA_S_Crit("Failed to allocate for TDO elements");
+         SUMA_free_TextDO(TDO);
+         SUMA_RETURN (NULL);
+      }
+   } else {
+      TDO->NodeID = NULL;
+      TDO->NodeBased = 0;
+      TDO->Parent_idcode_str = NULL;
+      TDO->x = NULL;
+      TDO->text = NULL;
+      TDO->N_n = 0;
+   }
+   
+   /* create a string to hash an idcode */
+   if (Label) hs = SUMA_copy_string(Label);
+   else hs = SUMA_copy_string("NULL_");
+   if (Parent_idcode_str) 
+      hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
+   else hs = SUMA_append_replace_string(hs,"NULL","",1);
+   TDO->idcode_str = UNIQ_hashcode(hs);
+   SUMA_free(hs); hs = NULL;
+   
+   if (Label) {
+      TDO->Label = (char *)SUMA_calloc (strlen(Label)+1, sizeof(char));
+      TDO->Label = strcpy (TDO->Label, Label);
+   } else {
+      TDO->Label = NULL;
+   }
+   
+   TDO->N_n = N_n;
+
+
+   /* setup some default values */
+   TDO->FontSize = GLUT_BITMAP_HELVETICA_18;
+   TDO->FontCol[0] = 1.0; 
+   TDO->FontCol[1] = 0.3; 
+   TDO->FontCol[2] = 1.0; 
+   TDO->FontCol[3] = 1.0; 
+   
+   TDO->colv = NULL;
+   TDO->sizev = NULL;
+      
+   SUMA_RETURN (TDO);
+}
+
+SUMA_TextDO *SUMA_free_TextDO(SUMA_TextDO *TDO) 
+{
+   static char FuncName[]={"SUMA_free_TextDO"};   
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!TDO) SUMA_RETURN(NULL);
+   if (TDO->x) SUMA_free(TDO->x);
+   if (TDO->colv) SUMA_free(TDO->colv);
+   if (TDO->sizev) SUMA_free(TDO->sizev);
+   if (TDO->text){
+      for (i=0; i<TDO->N_n; ++i) if (TDO->text[i]) SUMA_free(TDO->text[i]);
+      SUMA_free(TDO->text);
+   }
+   if (TDO->NodeID) SUMA_free(TDO->NodeID);
+   if (TDO->Parent_idcode_str) SUMA_free(TDO->Parent_idcode_str);
+   if (TDO->Label) SUMA_free(TDO->Label);
+   if (TDO->idcode_str) SUMA_free(TDO->idcode_str);
+   
+   SUMA_free(TDO); TDO = NULL;
+   
+   SUMA_RETURN(TDO);
 }
 
 /*!
@@ -779,6 +890,184 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    if (SDO) SUMA_free(SDO);
    
    SUMA_RETURNe;
+}
+
+/*!
+   This function needs some thinking. 
+   A format for a text DO can start to become complicated
+   You can stick with simple formats like:
+         Text           Font  Node  Col
+      "djjf   jffjj'"   H10   7     0.4 0.6 1.0
+      "And a multi   
+      line
+      Version"          H8    19    1.0 0.2 0.3
+      
+      and allow for replacing Node with XYZ, etc.
+   
+   But then when you consider an ImageDO, it will
+   be largely similar to TextDO, with the Text representing
+   an image file. But then you might want to mix the two
+   and if you do then you need, Text, ImageName, etc.
+   
+   So wouldn't something like:
+   <T> Text</T> <I> Image </I> <F> H10 </F> <C> 0.4 0.6 1.0 </C>  etc.
+   be better?  
+   
+   And when you start down that path, is it not better to be more
+   precise by doing: <T> Text <F> H10 </F> </T> with nested deeds
+   to specify attributes that are relevant for one thing and not another?
+   And if you go that route, should you not go NIML or XML and use available
+   parsers?
+   
+   Got to think about it some more...      
+   
+   At the moment, all ReadTextDO does is to start parsing a simple 
+   file like:
+"Some 'Text' for showing" H7  3 0.2 0.4 0.5
+"Multi   
+Line 
+Text" H8 9 1.0 0.8 0.1
+
+Results are not stored in a structure yet nor is SUMA_TextDO handled 
+in all places.
+
+You'll also need a section in a viewer to be reserved for displaying some text and possibly an image. But what would you show there ? Possibly text sent from
+DriveSuma for now...   
+
+a niml format can be easy to write, see the .vvs samples. But putting data becomes tricky because users wil need to set ni_dimen and ni_type and now we're
+getting complicated. 
+
+Note, for transmitting images, rather than their file names, look at im2niml and
+nicat programs...
+
+Example:
+   im2niml face_ZangYF.jpg | nicat "file:ZangYF.niml"
+   or 
+   im2niml face_ZangYF.jpg | nicat "stdout:"
+
+So a simple niml format like this would be quite simple.
+a list of NI_elements, without data won't be much to ask,
+and they can be readily transmitted, perhaps in a group:
+
+<T
+font = "ff"
+coord = "0.1 0.4 30"
+col = "0.1 0.1 0.1"
+/T>
+<T
+font = "ff2"
+coord = "0.31 0.14 330"
+col = "0.21 0.41 0.61"
+/> 
+
+See two sample files in:  /Users/ziad/SUMA_test_dirs/TextDO  
+*/
+SUMA_TextDO *SUMA_ReadTextDO (char *fname, char *parent_SO_id)
+{
+   static char FuncName[]={"SUMA_ReadTextDO"};
+   char  *fl=NULL, *FLO=NULL, *FLE=NULL, 
+         *fls=NULL, *fln=NULL;
+   SUMA_TextDO *TDO = NULL;
+   int nread = 0, N_n=0, found = 0, N_word=0, N_cols=0;
+   char  *tkey[]={ "<T>","</T>", NULL};
+   int    tgap[]={   -1,  500,    -1};
+   char stmp[36];
+   char *niname=NULL;
+   NI_element *nini=NULL;
+   NI_stream ns=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!fname) SUMA_RETURN(NULL);
+   
+   if (SUMA_GuessFormatFromExtension(fname, NULL)==SUMA_NIML) {
+      niname = SUMA_append_string("file:", fname);
+      ns = NI_stream_open(niname, "r");
+      while ((nini = NI_read_element(ns, 1))) {
+         SUMA_ShowNel(nini);
+         NI_free_element(nini); nini = NULL;
+      } 
+      NI_stream_close( ns ) ; ns = NULL;
+      SUMA_free(niname); niname=NULL;
+   } else {
+      nread = SUMA_suck_file( fname , &fl ) ;
+      if (!fl) {
+         SUMA_S_Errv("Failed to read file  %s\n", fname);
+         SUMA_RETURN(NULL);
+      }
+
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: Read in %d chars\n", FuncName, nread);
+
+      FLE = fl+nread; /* eof string */
+      FLO = fl; /* very beginning of string */
+
+      /* count the number of text entries */
+      #if 0 /* here the idea was to have <T> and </T> delimit the text field. */
+      N_n = 0;
+      do {
+         SUMA_ADVANCE_PAST_SEQUENCE(fl, FLE, fls, tkey, tgap, found, 1);
+         if (found) {
+            SUMA_ADVANCE_PAST(fls, FLE, tkey[0], found, 1);
+            if (LocalHead) 
+               SUMA_ShowFromTo(fls, fl-strlen(tkey[1]), "Le Text:\n");
+            fls = fl;
+            SUMA_SKIP_LINE(fl, FLE);
+
+            SUMA_ShowFromTo(fls, fl,"Les params:\n");
+            ++N_n;
+         }
+      } while (found);
+      #else
+      /* Be lazy, count the number of text entries first */
+      fl = FLO;
+      N_n = 0;
+      do {
+         fls = fl;
+         SUMA_GET_BETWEEN_BLANKS(fls, FLE, fl);
+         if (fl > fls) {
+            SUMA_SKIP_BLANK(fl, FLE);
+            fln = fl;              /* mark the beginning of post text stuff */
+            SUMA_SKIP_LINE(fl, FLE);  
+            /* How many words in between? */
+            SUMA_COUNT_WORDS(fln, fl, N_word); 
+            if (!N_cols) N_cols = N_word;
+            else if (N_cols != N_word) {
+               SUMA_S_Errv("Entry %d has a different number\n"
+                           " of parameters following text.\n"
+                           "Expected %d, found %d\n", 
+                           N_n+1, N_cols, N_word);
+               SUMA_ShowFromTo(fln, fl-1,"   Bad Entry Values:\n");
+               SUMA_RETURN(TDO);
+            }  
+            ++N_n;
+         }
+      } while (fl <= FLE && fl > fls);
+      SUMA_LHv("Have %d text entries, with %d cols of data\n", 
+               N_n, N_word);
+
+      /* now more slowly, with storage */
+      fl = FLO;
+      N_n = 0;
+      N_cols = 0;
+      do {
+         fls = fl;
+         SUMA_GET_BETWEEN_BLANKS(fls, FLE, fl);
+         if (fl > fls) {
+            if (LocalHead) SUMA_ShowFromTo(fls+1, fl-1, "Le Text:\n");
+            SUMA_SKIP_BLANK(fl, FLE);
+            fln = fl;                 /* mark the beginning of post text stuff */
+            SUMA_SKIP_LINE(fl, FLE);   /* Now fl is at the next line */
+            if (LocalHead) SUMA_ShowFromTo(fln, fl-1,"Param Chunk:");
+            /* take in the data */
+            ++N_n;
+         }
+      } while (fl <= FLE && fl > fls);
+      #endif
+      SUMA_LHv("Have %d text entries\n", N_n);
+   }
+   SUMA_RETURN(TDO);
 }
 
 SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
@@ -4641,7 +4930,11 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       
    SUMA_LH("Poly Mode");
    
-   if (SurfObj->PolyMode == SRM_Hide || sv->PolyMode == SRM_Hide) { SUMA_LH("Hiding surface"); SUMA_RETURNe; }
+   if (  SurfObj->PolyMode == SRM_Hide || 
+         sv->PolyMode == SRM_Hide) { 
+      SUMA_LH("Hiding surface"); 
+      SUMA_RETURNe; 
+   }
    
    /* check on rendering mode */
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
@@ -4732,9 +5025,9 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             GLfloat rpos[4];
             char  string[]= {"Yo Baby sssup? 1 2 3, 4.2 mm"};
             int is;
-            int ShowString = 0;
-            int ShowImage = 0;
-            int ShowTexture = 0;
+            int ShowString = 1;
+            int ShowImage = 1;
+            int ShowTexture = 1;
             float txcol[3] = {0.2, 0.5, 1};
             static int width, height;
 
@@ -4769,19 +5062,24 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 
             if (!image) {
                FILE *fid;
+               char imtex[] = {"/Users/ziad/Pictures/1615-small.ppm"}; 
+                  /* IMG_0526.ppm, 1910.ppm,  1615-small.ppm*/
                SUMA_SL_Note(  "Reading the image.");
-               image = SUMA_read_ppm("/Users/ziad/Pictures/IMG_0526.ppm", 
+               image = SUMA_read_ppm(imtex, 
                                     &width, &height, 1);
+               
                if (!image) {
                   SUMA_SL_Err("Failed to read image.");
                }else if (ShowTexture) {
                   #if TestTexture
                   SUMA_SL_Note(  "Creating texture, see init pp 415 in \n"
                                  "OpenGL programming guide, 3red");
+                  /* see 
+                     http://www.filterforge.com/filters/category42-page1.html */
                   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
                   glGenTextures(1, &texName);
                   glBindTexture(GL_TEXTURE_2D, texName);
-                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP); 
+                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
                            /* GL_REPEAT, GL_CLAMP */
                   glTexParameteri(  GL_TEXTURE_2D,
                                     GL_TEXTURE_MAG_FILTER, GL_LINEAR);

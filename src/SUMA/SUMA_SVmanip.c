@@ -1858,11 +1858,15 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          if (LocalHead) fprintf(SUMA_STDERR,"%s: default resources\n", FuncName);
       } else {
          cf->X->X_Resources = SXR_Euro;
-         fprintf(SUMA_STDERR,"%s:\nUnrecognized option %s for SUMA_ColorPattern.\nUsing default = EURO\n", FuncName, eee);
+         fprintf(SUMA_STDERR,
+                  "%s:\nUnrecognized option %s for SUMA_ColorPattern.\n"
+                  "Using default = EURO\n", FuncName, eee);
       }
    } else {
       cf->X->X_Resources = SXR_Euro;
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Undefined environment. Using default\n", FuncName);
+      if (LocalHead) 
+         fprintf( SUMA_STDERR,
+                  "%s: Undefined environment. Using default\n", FuncName);
    }
    
    cf->X->Help_TextShell = NULL;
@@ -2006,7 +2010,8 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          else if (strcmp(eee,"YES") == 0) cf->NoDuplicatesInRecorder = 1;
          else {
             fprintf (SUMA_STDERR,   "Warning %s:\n"
-                                    "Bad value for environment variable SUMA_NoDuplicatesInRecorder\n"
+                                    "Bad value for environment variable:\n"
+                                    "  SUMA_NoDuplicatesInRecorder\n"
                                     "Assuming default of YES", FuncName);
             cf->NoDuplicatesInRecorder = 1;
          }

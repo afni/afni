@@ -17,7 +17,7 @@ static char * SUMA_ver2date(int ver)
 typedef struct {
    char *envhelp;
    char *envname;
-   char *envval;
+   char *envval;  /* This is the default */
 }ENV_SPEC;
 
 static ENV_SPEC envlist[] = {
@@ -36,13 +36,13 @@ static ENV_SPEC envlist[] = {
    {  "ROI color map (bgyr64, roi64, roi128, roi256)",
       "SUMA_ROIColorMap",
       "roi256" },
-   {  "Number of smoothing operations to run on convexity data, default is 5",
+   {  "Number of smoothing operations to run on convexity data",
       "SUMA_NumConvSmooth",
-      "8" },
+      "5" },
    {  "Colormap for convexity (gray02, gray_i02, ngray20, bgyr64, etc.)",
       "SUMA_ConvColorMap",
       "gray02" },
-   {  "Brightness factor for convexity (default is 0.5)",
+   {  "Brightness factor for convexity ",
       "SUMA_ConvBrightFactor",
       "0.5" },
    {  "Number of smoothing operations to run on mixed foregroung color plane\n"
@@ -58,24 +58,24 @@ static ENV_SPEC envlist[] = {
       " SUMA_AFNI_TCP_PORT + i (i > 0)",
       "SUMA_AFNI_TCP_PORT",
       "53211" },
-   {  "Warn before closing with the Escape key (YES/NO, default is YES)",
+   {  "Warn before closing with the Escape key (YES/NO)",
       "SUMA_WarnBeforeClose",
       "YES" },
    {  "Mask node values\n"
-      " 0 ? YES(default)/NO",
+      " 0 ? YES/NO",
       "SUMA_MaskZero",
       "YES" },
-   {  "Threshold if Val < thr (NO) or | Val | < | Thr | (YES, default)",
+   {  "Threshold if Val < thr (NO) or | Val | < | Thr | (YES)",
       "SUMA_AbsThreshold",
-      "NO" },
-   {  "Threshold scale precision. 2 is the default and the minimum. \n"
+      "YES" },
+   {  "Threshold scale precision. 2 is the minimum allowed. \n"
       " This value might be overriden in SUMA.",
       "SUMA_ThresholdScalePower",
       "2" },
    {  "Center of Rotation is based on nodes used in the mesh and not \n"
-      " on all the nodes in NodeList (NOPE, default)",
+      " on all the nodes in NodeList",
       "SUMA_CenterOnPatch",
-      "YES" },
+      "NO" },
    {  "Use cross ticks on axis ?",
       "SUMA_UseCrossTicks",
       "NO" },
@@ -83,31 +83,30 @@ static ENV_SPEC envlist[] = {
       "SUMA_1D_Transponse_Warn",
       "YES" },
    {  "Adjust roation and translation factor of mouse with changes \n"
-      " in zoom levels (YES, default)",
+      " in zoom levels ",
       "SUMA_AdjustMouseMotionWithZoom",
       "YES" },
-   {  "Use orthographic projection (NOPE, default)",
+   {  "Use orthographic projection ",
       "SUMA_ViewOrthographicProjection",
-      "NOPE" },
+      "NO" },
    {  "Percent gain for zooming in and out with the 'z' and 'Z' keys. \n"
-      " Typical range from 0 to 50, default is 5",
+      " Typical range from 0 to 50",
       "SUMA_KeyZoomGain",
       "5" },
-   {  "Original FOV. Set between 1.0 and 100.0. \n"
+   {  "Original FOV. Set between 1.0 and 100.0 \n"
       " Default is 30.0, -1 == auto",
       "SUMA_FOV_Original",
       "-1" },
-   {  "light0 color. Default is 1.0 1.0 1.0",
+   {  "light0 color",
       "SUMA_Light0Color",
       "1.0,1.0,1.0" },
-   {  "Ambient light Default is 1.0 1.0 1.0",
+   {  "Ambient light ",
       "SUMA_AmbientLight",
       "1.0,1.0,1.0" },
-   {  "Allow for replacement of pre-loaded dsets. Default is NO",
+   {  "Allow for replacement of pre-loaded dsets",
       "SUMA_AllowDsetReplacement",
-      "YES" },
-   {  "Allow for surfaces with same DomainGrandParentID to share overlays\n"
-      " (default is NO, might want to think of a better name for that one)",
+      "NO" },
+   {  "Allow for surfaces with same DomainGrandParentID to share overlays",
       "SUMA_ShareGrandChildrenOverlays",
       "NO" },
    {  "Increase the resolution of images recorded with 'r' button.\n"
@@ -119,21 +118,21 @@ static ENV_SPEC envlist[] = {
       " Assemble images with program imcat.",
       "SUMA_SnapshotOverSampling",
       "1" },
-   {  "Ignore consecutive duplicate images in recorder (YES, default)",
+   {  "Ignore consecutive duplicate images in recorder",
       "SUMA_NoDuplicatesInRecorder",
-      "NO" },
+      "YES" },
    {  "start NIML (can't do this for more than one suma at a time!)",
       "SUMA_START_NIML",
       "YES" },
    {  "Allow (YES) datasets with the same filename but differing ID \n"
       " to be considered the same.\n"
-      " This is only useful with SUMA_AllowDsetReplacement. Default is NO",
+      " This is only useful with SUMA_AllowDsetReplacement",
       "SUMA_AllowFilenameDsetMatch",
-      "YES" },
-   {  "Freeze zoom across states. Default is NO",
+      "NO" },
+   {  "Freeze zoom across states",
       "SUMA_FreezeFOVAcrossStates",
       "NO" },
-   {  "Dset color map, default is AFNI's Spectrum:red_to_blue",
+   {  "Dset color map",
       "SUMA_DsetColorMap",
       "Spectrum:red_to_blue" },
    {  "Show only selected dset in suma's surface controller.",
@@ -146,7 +145,7 @@ static ENV_SPEC envlist[] = {
       "SUMA_ColorMapRotationFraction",
       "0.05"},
    {  "Size of surface controller font. \n"
-      " Values are SMALL (default), BIG (old style).",
+      " Values are SMALL, BIG (old style).",
       "SUMA_SurfContFontSize",
       "SMALL"},
    {  NULL, NULL, NULL  }
@@ -159,22 +158,32 @@ char * SUMA_env_list_help(){
    int i=0;
    char *sli=NULL;
    SUMA_STRING *SS=NULL;
-   char *s=NULL;
+   char *s=NULL, *eee=NULL, *userval=NULL;
    
    SUMA_ENTRY;
    
    SS = SUMA_StringAppend(NULL, NULL);
    
    while (envlist[i].envhelp) {
+      /* find the user's setting */
+      char *eee = getenv(envlist[i].envname);
+      if (userval) 
+         SUMA_free(userval); 
+      userval=NULL;
+      if (!eee) userval = SUMA_copy_string(envlist[i].envval);
+      else userval = SUMA_copy_string(eee);
       sli = SUMA_ReplaceChars(envlist[i].envhelp,"\n","\n//      ");
       SS = SUMA_StringAppend_va(SS,
                      "// %03d-%s:\n"
                      "//     %s\n"
+                     "//     default:   %s = %s\n"
                      "   %s = %s\n",
                      i, envlist[i].envname,
                      sli,
                      envlist[i].envname,
-                     envlist[i].envval);
+                     envlist[i].envval,
+                     envlist[i].envname,
+                     userval);
       SUMA_free(sli); sli = NULL;
       ++i;
    }

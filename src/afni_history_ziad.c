@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2 , APR , 2008 , ZSS , "suma" , MINOR , TYPE_MODIFY ,
+   "Changed suma -environment's output to reflect user's current environment.",
+   "With this change, users can always replace their .sumarc with\n"
+   "the one output by suma -environment without worrying about loosing\n"
+   "their preferred settings."
+ } ,
+
  { 27 , MAR , 2008 , ZSS , "suma-general" , MICRO , TYPE_MODIFY ,
    "Changed internal handling of various MATVEC sources.",
    "Simplified handling of different sources of MATVECs from\n"

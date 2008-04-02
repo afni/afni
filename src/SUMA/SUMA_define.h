@@ -166,7 +166,10 @@ typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, S
 typedef enum { type_not_set = -1,
                no_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
                GO_type, LS_type, OLS_type, NBV_type, ONBV_type, SP_type,
-               NBSP_type, PL_type} SUMA_DO_Types;   /*!< Displayable Object Types 
+               NBSP_type, PL_type,
+               NBT_type, SBT_type, DBT_type} SUMA_DO_Types;   
+
+/*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
                                                                                     ROId: Region of interest drawn type,
                                                                                     LS_type: line segment
@@ -175,7 +178,11 @@ typedef enum { type_not_set = -1,
                                                                                     ONBV_type: NBV with a ball on the bottom (slower to render)
                                                                                     SP_type: spherical markers
                                                                                     NBSP_type: Node-Based spherical markers
-                                                                                    PL_type: planes*/
+                                                                                    PL_type: planes
+                                                                                    NBT_type: Node-based text
+                                                                                    SBT_type: Screen-based text
+                                                                                    DBT_type: Dicom-based text
+                                                                                    */
 typedef enum {SUMA_SCREEN, SUMA_LOCAL} SUMA_DO_CoordType; /*!< Coordinate system that Displayable object is attached to
                                                                   SCREEN is for a fixed system, LOCAL is for a mobile system,
                                                                   ie one that is rotated by the mouse movements */
@@ -1351,6 +1358,34 @@ typedef struct {
    GLfloat LineCol[4]; /*!< LineColor of Edge*/
    GLfloat NormVect[3]; /*!< normal vector of faceset, two triangles are drawn at a small distance from the selected FaceSet */
 }SUMA_FaceSetMarker;
+
+/*!
+   Structure containg a bunch of text defined at various locations
+*/
+typedef struct {
+   char *idcode_str;    /*!< unique idcode for DO */
+   char *Label; /*!< ascii label for DO */ 
+   SUMA_DO_Types do_type;
+   
+   int NodeBased; /*!< flag: 1 if text is displayed relative to surface nodes */
+   char *Parent_idcode_str; /*!< Parent surface's id 
+                                 (only used if NodeBased = 1
+                                 NULL if NodeBased)*/
+   int *NodeID; /*!< ID of the node at which the vector is represented
+                     NULL if NodeBased = 0 */
+
+   char **text; /*! vector containing N_n strings */
+   GLfloat *x; /*!< vector containing XYZ of text locations (3*N_n elements long)
+                     NULL if NodeBased*/
+   int N_n; /*!< Number of elements in x */
+   void *FontSize; /*!< Common FontSize of all text 
+                     (based on constants in glut.h) */
+   GLfloat FontCol[4]; /*!< Common FontColor of all text*/
+   int *colv; /*!< Vector of text colors, 4 elements per segment. 
+                        NULL if using LineCol */
+   void **sizev; /*!< Vector of text size, 1 elements per segment. 
+                        NULL if using LineWidth */   
+} SUMA_TextDO;
 
 /*!
    Structure containg a bunch of segments defined between n0 and n1

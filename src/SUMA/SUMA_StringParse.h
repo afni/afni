@@ -91,6 +91,20 @@
    op2 = op;                 /* skip till next blanks */ \
    SUMA_SKIP_TO_NEXT_BLANK(op2, eop);  \
 }
+
+/*! \brief Count number of blank delimited words. 
+      Does not alter op or eop
+      Returns number of words in N_word;
+   */
+#define SUMA_COUNT_WORDS(op, eop, N_word){   \
+   char *m_ops=op, *m_opn=op;   \
+   N_word = 0; \
+   do { \
+      m_ops = m_opn; SUMA_GET_BETWEEN_BLANKS(m_ops,eop,m_opn); \
+      if (m_opn > m_ops) ++N_word;  \
+   } while (m_opn < eop && m_ops != m_opn);   \
+}
+   
 /*!
    \brief advance pointer past a string
    \param op (char *) pointer to char array
