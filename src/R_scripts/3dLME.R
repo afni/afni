@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.0,  March 4, 2008
+#Version 1.0.0,  March 5, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -65,7 +65,9 @@ VarStr <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=6, 
 
 # Line 8: Correlation structure for modeling dependence among within-subject errors
 # 0 - nothing; 1 - corAR1; 2 - corARMA(2,0); 3 - corARMA(1,1)
-CorStr <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=7, nline=1)), "\\:"))[2]
+CorTmp <- strsplit(unlist(scan(file="model.txt", what= list(""), skip=7, nline=1)), "\\:|~")
+CorStr <- unlist(CorTmp)[2]
+CorForm <- as.formula(paste("~", unlist(CorTmp)[3]))
 
 # Line 9: type of sums of squares - "marginal" or "sequential"
 Ftype <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=8, nline=1)), "\\:"))[2]
@@ -164,11 +166,11 @@ while (tag == 1) {
 	if (RanEff) {
 		if (CorStr == 0) try(fm <- lme(ModelForm, random = ~1|Subj, Model), tag <- 1)
 		if (CorStr == 1) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corAR1(0.3, form=~order|Subj), Model), tag <- 1)
+		   correlation=corAR1(0.3, form=CorForm), Model), tag <- 1)
 		if (CorStr == 2) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(0.3, p=2,form=~1|Subj/Time), Model), tag <- 1)
+		   correlation=corARMA(0.3, p=2, form=CorForm), Model), tag <- 1)
 		if (CorStr == 3) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(0.3, p=1, q=1, form=~1|Subj/Time), Model), tag <- 1)		
+		   correlation=corARMA(0.3, p=1, q=1, form=CorForm), Model), tag <- 1)		
 	}	
 	else try(fm <- gls(ModelForm, Model), tag <- 1)
 	if (ncontr > 0) try(for (n in 1:ncontr) { contrDF[n] <- contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average")$df }, tag <- 1)
@@ -214,11 +216,11 @@ for (k in 1:dimz) {
 	if (RanEff) {
 		if (CorStr == 0) try(fm <- lme(ModelForm, random = ~1|Subj, Model), tag <- 1)
 		if (CorStr == 1) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corAR1(0.3, form=~order|Subj), Model), tag <- 1)
+		   correlation=corAR1(0.3, form=CorForm), Model), tag <- 1)
 		if (CorStr == 2) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(0.3, p=2,form=~1|Subj/Time), Model), tag <- 1)
+		   correlation=corARMA(0.3, p=2, form=CorForm), Model), tag <- 1)
 		if (CorStr == 3) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(0.3, p=1, q=1, form=~1|Subj/Time), Model), tag <- 1)		
+		   correlation=corARMA(0.3, p=1, q=1, form=CorForm), Model), tag <- 1)		
 	}	
    else try(fm <- gls(ModelForm, Model), tag <- 1) 
 	if (tag != 1) {
@@ -264,11 +266,13 @@ write.AFNI(OutFile, Stat, MyLabel, note=Data$header$HISTORY_NOTE, origin=Data$or
 statpar <- "3drefit"
 if (!RanEff) glsDF <- as.integer(gsub(" \n", "", gsub("Denom. DF: ", "", attr(anova(fm), "label"))))
 
-for (i in (2-as.integer(NoConst)):(NoF+1-as.integer(NoConst))) {  # has an intercept or not
+#Index adjustment when no intercept 
+IdxAdj <- as.integer(NoConst)
+for (i in (2-IdxAdj):(NoF+1-IdxAdj)) {  # has an intercept or not
    # DFs are acquired from the last solvable voxel 
-	if (RanEff) statpar <- paste(statpar, " -substatpar ", i-2+as.integer(NoConst), 
+	if (RanEff) statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
 	   " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
-	else statpar <- paste(statpar, " -substatpar ", i-2+as.integer(NoConst), " fift ", 1, " ", glsDF)
+	else statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, " fift ", 1, " ", glsDF)
 }
 if (ncontr > 0) for (n in 1:ncontr) statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", contrDF[n])
 if (nCov > 0) {
