@@ -53,6 +53,8 @@ void AL_setup_warp_coords( int,int,int,int ,
 # define MEMORY_CHECK(mm) /*nada*/
 #endif
 
+#undef  ALLOW_METH_CHECK   /* for the -check option: 03 Apr 2008 */
+
 /*----------------------------------------------------------------------------*/
 #undef  NMETH
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
@@ -200,6 +202,10 @@ int main( int argc , char *argv[] )
    int blokmin                 = 0 ;
 
    int do_allcost              = 0 ;            /* 19 Sep 2007 */
+
+   int   nwarp_pass            = 0 ;
+   int   nwarp_type            = WARPFIELD_TRIG_TYPE ;
+   float nwarp_order           = 2.9f ;
 
    /**----------------------------------------------------------------------*/
    /**----------------- Help the pitifully ignorant user? -----------------**/
@@ -388,6 +394,7 @@ int main( int argc , char *argv[] )
 #endif
 " -nousetemp  = Don't use temporary workspace on disk [the default].\n"
 "\n"
+#ifdef ALLOW_METH_CHECK
 " -check kkk  = After cost function optimization is done, start at the\n"
 "               final parameters and RE-optimize using the new cost\n"
 "               function 'kkk'.  If the results are too different, a\n"
@@ -407,6 +414,7 @@ int main( int argc , char *argv[] )
 "               set will be the median of all the final parameter sets\n"
 "               generated at this stage (including the primary set).\n"
 "                 **** '-CHECK' is experimental and CPU intensive ****\n"
+#endif
 "\n"
 " ** PARAMETERS THAT AFFECT THE COST OPTIMIZATION STRATEGY **\n"
 " -onepass    = Use only the refining pass -- do not try a coarse\n"
@@ -804,6 +812,16 @@ int main( int argc , char *argv[] )
           printf( "   %-4s *OR*  %-16s= %s\n" ,
                   meth_shortname[ii] , meth_longname[ii] , meth_username[ii] );
 
+       printf("\n"
+        "=================================================================\n"
+        " -nwarp [type [order]] = Experimental nonlinear warp\n"
+        "                         'type' = 'trig'      or\n"
+        "                                  'legendre'  or\n"
+        "                                  'gegenbauer'\n"
+        "                         'order'= value in range 2..5 (inclusive)\n"
+        "=================================================================\n"
+       ) ;
+
      } else {
        printf(
         "\n"
@@ -831,6 +849,39 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[iarg],"-nwarp") == 0 ){     /* 03 Apr 2008 = SECRET */
+       nwarp_pass = 1 ; iarg++ ;
+
+       if( iarg < argc && isalpha(argv[iarg][0]) ){
+         if( strncasecmp(argv[iarg],"tri",3) == 0 ){
+           nwarp_type = WARPFIELD_TRIG_TYPE ;
+         } else if( strncasecmp(argv[iarg],"leg",3) == 0 ){
+           nwarp_type = WARPFIELD_LEGEN_TYPE ;
+         } else if( strncasecmp(argv[iarg],"geg",3) == 0 ){
+           nwarp_type = WARPFIELD_GEGEN_TYPE ;
+         } else {
+           WARNING_message("unknown -nwarp type '%s'",argv[iarg]) ;
+         }
+         iarg++ ;
+       }
+
+       if( iarg < argc && isdigit(argv[iarg][0]) ){
+         nwarp_order = (float)strtod(argv[iarg],NULL) ;
+         if( nwarp_order < 2.0f || nwarp_order > 5.0f ){
+           WARNING_message("illegal -nwarp order '%s'",argv[iarg]) ;
+           nwarp_order = 2.9f ;
+         }
+         iarg++ ;
+       }
+
+       /* change some other parameters from their defaults */
+
+       do_refinal = 0 ;
+       continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[iarg],"-norefinal") == 0 ){ /* 14 Nov 2007 */
        do_refinal = 0 ; iarg++ ; continue ;      /* SECRET OPTION */
      }
@@ -848,7 +899,7 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-cmass",6) == 0 ){
        if( argv[iarg][6] == '+' ){
-         if (strchr(argv[iarg]+6,'a')) { 
+         if (strchr(argv[iarg]+6,'a')) {
             do_cmass = -1; /* ZSS */
          } else {
             do_cmass =    (strchr(argv[iarg]+6,'x') != NULL)
@@ -1183,6 +1234,7 @@ int main( int argc , char *argv[] )
        ERROR_exit("Unknown code '%s' after -cost!",argv[iarg]) ;
      }
 
+#ifdef ALLOW_METH_CHECK
      /*----- -check costname -----*/
 
      if( strncasecmp(argv[iarg],"-check",5) == 0 ){
@@ -1209,6 +1261,13 @@ int main( int argc , char *argv[] )
        }
        continue ;
      }
+#else
+     if( strncasecmp(argv[iarg],"-check",5) == 0 ){
+       WARNING_message("option '%s' is no longer available",argv[iarg]) ;
+       for( ; iarg < argc && argv[iarg][0] != '-' ; iarg++ ) ; /*nada*/
+       continue ;
+     }
+#endif
 
      /*-----*/
 
@@ -1887,6 +1946,9 @@ int main( int argc , char *argv[] )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
    }
 
+   if( nwarp_pass && DSET_NVALS(dset_targ) > 1 )
+     ERROR_exit("Can't use -nwarp on more than 1 sub-brick!") ;
+
    switch( tb_mast ){                        /* 19 Jul 2007 */
      case 1: dset_mast = dset_targ ; break ;
      case 2: dset_mast = dset_base ; break ;
@@ -2082,6 +2144,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("Can't register 2D source into 3D base!") ;
    if( nz_base == 1 && nz_targ >  1 )
      ERROR_exit("Can't register 3D source onto 2D base!") ;
+   if( nz_base == 1 && nwarp_pass )
+     ERROR_exit("Can't use -nwarp on 2D images!") ;  /* 03 Apr 2008 */
 
    /* load weight dataset if defined */
 
@@ -2229,6 +2293,11 @@ int main( int argc , char *argv[] )
    stup.wfunc       = mri_genalign_affine ;  /* warping function */
    stup.wfunc_param = (GA_param *)calloc(12,sizeof(GA_param)) ;
 
+   if( nwarp_pass && warp_code != WARP_AFFINE ){
+     WARNING_message("Use of -nwarp ==> must use all 12 affine parameters") ;
+     warp_code = WARP_AFFINE ;
+   }
+
    switch( warp_code ){
      case WARP_SHIFT:   stup.wfunc_numpar =  3 ; break ;
      case WARP_ROTATE:  stup.wfunc_numpar =  6 ; break ;
@@ -2297,19 +2366,19 @@ int main( int argc , char *argv[] )
          if (fabs(xc) >= fabs(yc) && fabs(xc) >= fabs(zc)) {
             if (     fabs(xc) > 4.0          /* more than 4 voxels */
                   && fabs(xc) > 2.0*fabs(yc) /* more than twice the 2nd */
-                  && fabs(xc) > 2.0*fabs(zc) /* more than twice the 3rd */) { 
+                  && fabs(xc) > 2.0*fabs(zc) /* more than twice the 3rd */) {
                xc = 0.0f;
             }
          } else if (fabs(yc) >= fabs(xc) && fabs(yc) >= fabs(zc)) {
             if (     fabs(yc) > 4.0          /* more than 4 voxels */
                   && fabs(yc) > 2.0*fabs(xc) /* more than twice the 2nd */
-                  && fabs(yc) > 2.0*fabs(zc) /* more than twice the 3rd */) { 
+                  && fabs(yc) > 2.0*fabs(zc) /* more than twice the 3rd */) {
                yc = 0.0f;
             }
          } else if (fabs(zc) >= fabs(xc) && fabs(zc) >= fabs(yc)) {
             if (     fabs(zc) > 4.0          /* more than 4 voxels */
                   && fabs(zc) > 2.0*fabs(xc) /* more than twice the 2nd */
-                  && fabs(zc) > 2.0*fabs(yc) /* more than twice the 3rd */) { 
+                  && fabs(zc) > 2.0*fabs(yc) /* more than twice the 3rd */) {
                zc = 0.0f;
             }
          }
@@ -2317,7 +2386,7 @@ int main( int argc , char *argv[] )
         if( (do_cmass & 1) == 0 ) xc = 0.0f ;
         if( (do_cmass & 2) == 0 ) yc = 0.0f ;
         if( (do_cmass & 4) == 0 ) zc = 0.0f ;
-     } 
+     }
      if( verb > 2 && apply_mode == 0 ){
        INFO_message("center of mass shifts = %.1f %.1f %.1f",xc,yc,zc) ;
      }
@@ -2609,7 +2678,7 @@ int main( int argc , char *argv[] )
      skipped = 0 ;
      if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
        if( verb )
-         INFO_message("========== Skipping sub-brick #0: it's also base image ==========");
+         INFO_message("========= Skipping sub-brick #0: it's also base image =========");
        DSET_unload_one(dset_targ,0) ;
 
        /* load parameters with identity transform */
@@ -2674,7 +2743,7 @@ int main( int argc , char *argv[] )
                            nxyz_base, dxyz_base, stup.base_cmat,
                            nxyz_targ, dxyz_targ, stup.targ_cmat ) ;
 
-     if( do_allcost != 0 ){
+     if( do_allcost != 0 ){  /*-- print all cost functions, for fun? --*/
        PAR_CPY(val_init) ;
        stup.interp_code = MRI_LINEAR ;
        stup.npt_match   = npt_match ;
@@ -2687,7 +2756,7 @@ int main( int argc , char *argv[] )
        if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
      }
 
-     /*--- do coarse resolution pass? ---*/
+     /*-------- do coarse resolution pass? --------*/
 
      didtwo = 0 ;
      if( twopass && (!twofirst || !tfdone) ){
@@ -2839,13 +2908,15 @@ int main( int argc , char *argv[] )
 
      } /*------------- end of twopass-ization -------------*/
 
-     /*----------------------- do final resolution pass -----------------------*/
+     /*-----------------------------------------------------------------------*/
+     /*----------------------- do final resolution pass ----------------------*/
 
      if( verb ) INFO_message("Fine pass begins") ;
-     stup.interp_code = interp_code ;
-     stup.smooth_code = sm_code ;
 
-     /* setup smoothing */
+     stup.interp_code = interp_code ;  /* set interpolation   */
+     stup.smooth_code = sm_code ;      /* and smoothing codes */
+
+     /*-- setup smoothing --*/
 
      if( fine_rad > 0.0f ){  /* if ordered by user */
        stup.smooth_radius_base = stup.smooth_radius_targ = fine_rad ;
@@ -2862,16 +2933,17 @@ int main( int argc , char *argv[] )
        stup.smooth_radius_base = (tr <= 1.1f*br) ? 0.0f
                                                  : sqrt(tr*tr-br*br) ;
      }
+
      stup.npt_match = npt_match ;
-     if( didtwo )
-       mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;  /* simple re-setup */
+     if( didtwo )                                  /* did first pass already: */
+       mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ); /* simple re-setup */
      else {
        mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
        im_bset = NULL; im_wset = NULL;  /* after being set, needn't set again */
        if( usetemp ) mri_purge( im_targ ) ;
      }
 
-     /* choose initial parameters, based on interp_code cost function */
+     /*-- choose initial parameters, based on interp_code cost function --*/
 
      if( tfdone ){                           /* find best in tfparm array */
        int kb=0 , ib ; float cbest=1.e+33 ;
@@ -2888,11 +2960,14 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )        /* copy best set */
          stup.wfunc_param[jj].val_init = tfparm[kb][jj] ; /* for fine work */
        cost_ini = cbest ;
-     } else {
+
+     } else {  /*-- did not do first pass, so we start at default params --*/
+
        cost_ini = mri_genalign_scalar_cost( &stup , NULL ) ;
+
      }
 
-     if( do_allcost != 0 ){
+     if( do_allcost != 0 ){  /*-- print out all cost functions, for fun --*/
        PAR_CPY(val_init) ;
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
        INFO_message("allcost output: start fine #%d",kk) ;
@@ -2916,7 +2991,7 @@ int main( int argc , char *argv[] )
        default: rad = 0.0066 ; break ;
      }
 
-     /* start with some optimization with linear interp, for speed? */
+     /*-- start with some optimization with linear interp, for speed? --*/
 
      if( MRI_HIGHORDER(interp_code) || npt_match > 999999 ){
        float pini[MAXPAR] ;
@@ -2925,13 +3000,16 @@ int main( int argc , char *argv[] )
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
        if( verb > 1 ) ININFO_message("- start Intermediate optimization") ;
        /*** if( verb > 2 ) GA_do_params(1) ; ***/
+
        nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 6666 );
+
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
        }
-       stup.interp_code = interp_code ;
-       stup.npt_match   = npt_match ;
+
+       stup.interp_code = interp_code ;  /* check cost of result with  */
+       stup.npt_match   = npt_match ;    /* actual final interp method */
        mri_genalign_scalar_setup( NULL,NULL,NULL, &stup ) ;
        cost = mri_genalign_scalar_cost( &stup , NULL ) ; /* interp_code, not LINEAR */
        if( cost > cost_ini ){   /* should not happen, but it could since  */
@@ -2947,7 +3025,7 @@ int main( int argc , char *argv[] )
          if( nfunc < 6666 ) rad *= 0.246 ;
        }
 
-       if( do_allcost != 0 ){
+       if( do_allcost != 0 ){  /*-- all cost functions for fun again --*/
          PAR_CPY(val_init) ;
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
          INFO_message("allcost output: intermed fine #%d",kk) ;
@@ -2957,13 +3035,13 @@ int main( int argc , char *argv[] )
        }
      }
 
-     /* now do the final final optimization, with the correct interp mode */
+     /*-- now do the final final optimization, with the correct interp mode --*/
 
      /*** if( verb > 2 ) GA_do_params(1) ; ***/
 
      nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
 
-     if( do_refinal ){  /* 14 Nov 2007: a final final optimization? */
+     if( do_refinal ){  /*-- 14 Nov 2007: a final final optimization? --*/
        if( verb > 1 )
          ININFO_message("- Finalish cost = %f ; %d funcs",stup.vbest,nfunc) ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
@@ -2974,11 +3052,12 @@ int main( int argc , char *argv[] )
 
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
      /*** if( verb > 2 ) GA_do_params(0) ; ***/
+
      if( verb ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
      if( verb > 1 && meth_check_count < 1 ) PAROUT("Final fine fit") ;
      if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",COX_cpu_time()-ctim) ;
 
-     if( do_allcost != 0 ){
+     if( do_allcost != 0 ){  /*-- all costs at final affine solution? --*/
        PAR_CPY(val_out) ;
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
        INFO_message("allcost output: final fine #%d",kk) ;
@@ -3021,8 +3100,32 @@ int main( int argc , char *argv[] )
        }
      }
 
+     /*----- Nonlinear warp ---------------------------------------*/
+
+     if( nwarp_pass ){
+       Warpfield *wf ;
+       int wf_nparam ;
+       char str[16] ;
+
+       wf = Warpfield_init( nwarp_type , nwarp_order , 0 , NULL ) ;
+       mri_genalign_warpfield_set(wf) ;
+
+       stup.wfunc_numpar = wf_nparam = 12 + 3*wf->nfun ;
+       stup.wfunc        = mri_genalign_warpfield ;
+       stup.wfunc_param  = (GA_param *)realloc( (void *)stup.wfunc_param ,
+                                                wf_nparam*sizeof(GA_param) ) ;
+       for( ii=12 ; ii < wf_nparam ; ii++ ){
+         sprintf(str,"#%03d",ii+1) ;
+         DEFPAR( ii,str, -0.05f,0.05f , 0.0f,0.0f,0.0f ) ;
+       }
+       for( ii=0 ; ii < 12 ; ii++ ) stup.wfunc_param[ii].fixed = 1 ;
+     }
+
+     /*-------- FINALLY HAVE FINISHED -----------------------------*/
+
      mri_free(im_targ) ; im_targ = NULL ;
 
+#ifdef ALLOW_METH_CHECK
      /*--- 27 Sep 2006: check if results are stable when
                         we optimize a different cost function ---*/
 
@@ -3114,6 +3217,7 @@ int main( int argc , char *argv[] )
        }
 
      } /* end of checking */
+#endif
 
      /*- freeze warp-ing parameters (those after #0..5) for later rounds */
 
