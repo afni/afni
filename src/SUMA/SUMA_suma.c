@@ -572,6 +572,12 @@ int main (int argc,char *argv[])
    
    #if 0
    SUMA_S_Note("KILL ME");
+   { 
+      int i,j; 
+      SUMA_TextBoxSize("Hello\nMr Bond! How are you?\nzs", &i,&j,NULL); 
+      SUMA_TextBoxSize("Hello\nMr Bond! How are you?\nzs", 
+                        &i,&j,GLUT_BITMAP_8_BY_13); 
+   }
    SUMA_ReadTextDO("/Users/ziad/SUMA_test_dirs/sample.niml", NULL);   
       
    exit(1);
