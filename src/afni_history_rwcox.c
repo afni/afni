@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , APR , 2008 , RWC , "3dAllineate" , MINOR , TYPE_GENERAL ,
+   "Added '-nwarp bilinear' option" ,
+   "Experimental nonlinear warping comes to 3dAllineate at last. \n"
+   "Preliminary test looks good, but more work is needed to be sure it's OK." } ,
+
  { 4 , APR , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "Check for ' ' option, which means a blank after a '\\' character" ,
    NULL } ,

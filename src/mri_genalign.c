@@ -2413,6 +2413,91 @@ void mri_genalign_mat44( int npar, float *wpar,
    return ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+void mri_genalign_bilinear( int npar, float *wpar ,
+                            int npt , float *xi, float *yi, float *zi ,
+                                      float *xo, float *yo, float *zo  )
+{
+   static mat44 gam ;  /* saved general affine matrix */
+   static float dd_for[3][3][3] ;
+   int ii ;
+   THD_mat33 dd,ee ; float aa,bb,cc , uu,vv,ww ;
+
+   /** new parameters ==> setup matrix */
+
+   if( npar >= 40 && wpar != NULL ){
+     float dd_fac = wpar[39] ;
+
+     gam = GA_setup_affine( 12 , wpar ) ;
+
+     dd_for[0][0][0] = wpar[12] * dd_fac ;
+     dd_for[0][0][1] = wpar[13] * dd_fac ;
+     dd_for[0][0][2] = wpar[14] * dd_fac ;
+
+     dd_for[0][1][0] = wpar[15] * dd_fac ;
+     dd_for[0][1][1] = wpar[16] * dd_fac ;
+     dd_for[0][1][2] = wpar[17] * dd_fac ;
+
+     dd_for[0][2][0] = wpar[18] * dd_fac ;
+     dd_for[0][2][1] = wpar[19] * dd_fac ;
+     dd_for[0][2][2] = wpar[20] * dd_fac ;
+
+     dd_for[1][0][0] = wpar[21] * dd_fac ;
+     dd_for[1][0][1] = wpar[22] * dd_fac ;
+     dd_for[1][0][2] = wpar[23] * dd_fac ;
+
+     dd_for[1][1][0] = wpar[24] * dd_fac ;
+     dd_for[1][1][1] = wpar[25] * dd_fac ;
+     dd_for[1][1][2] = wpar[26] * dd_fac ;
+
+     dd_for[1][2][0] = wpar[27] * dd_fac ;
+     dd_for[1][2][1] = wpar[28] * dd_fac ;
+     dd_for[1][2][2] = wpar[29] * dd_fac ;
+
+     dd_for[2][0][0] = wpar[30] * dd_fac ;
+     dd_for[2][0][1] = wpar[31] * dd_fac ;
+     dd_for[2][0][2] = wpar[32] * dd_fac ;
+
+     dd_for[2][1][0] = wpar[33] * dd_fac ;
+     dd_for[2][1][1] = wpar[34] * dd_fac ;
+     dd_for[2][1][2] = wpar[35] * dd_fac ;
+
+     dd_for[2][2][0] = wpar[36] * dd_fac ;
+     dd_for[2][2][1] = wpar[37] * dd_fac ;
+     dd_for[2][2][2] = wpar[38] * dd_fac ;
+   }
+
+   /* nothing to transform? */
+
+   if( npt <= 0 || xi == NULL || xo == NULL ) return ;
+
+   /* mutiply matrix times input vectors */
+
+   for( ii=0 ; ii < npt ; ii++ ){
+     aa = xi[ii] ; bb = yi[ii] ; cc = zi[ii] ;
+
+     dd.mat[0][0] = 1.0f + dd_for[0][0][0]*aa + dd_for[0][0][1]*bb + dd_for[0][0][2]*cc;
+     dd.mat[0][1] =        dd_for[0][1][0]*aa + dd_for[0][1][1]*bb + dd_for[0][1][2]*cc;
+     dd.mat[0][2] =        dd_for[0][2][0]*aa + dd_for[0][2][1]*bb + dd_for[0][2][2]*cc;
+     dd.mat[1][0] =        dd_for[1][0][0]*aa + dd_for[1][0][1]*bb + dd_for[1][0][2]*cc;
+     dd.mat[1][1] = 1.0f + dd_for[1][1][0]*aa + dd_for[1][1][1]*bb + dd_for[1][1][2]*cc;
+     dd.mat[1][2] =        dd_for[1][2][0]*aa + dd_for[1][2][1]*bb + dd_for[1][2][2]*cc;
+     dd.mat[2][0] =        dd_for[2][0][0]*aa + dd_for[2][0][1]*bb + dd_for[2][0][2]*cc;
+     dd.mat[2][1] =        dd_for[2][1][0]*aa + dd_for[2][1][1]*bb + dd_for[2][1][2]*cc;
+     dd.mat[2][2] = 1.0f + dd_for[2][2][0]*aa + dd_for[2][2][1]*bb + dd_for[2][2][2]*cc;
+
+     ee = MAT_INV(dd) ;
+
+     MAT44_VEC( gam , aa,bb,cc, uu,vv,ww ) ;
+     xo[ii] = ee.mat[0][0] * uu + ee.mat[0][1] * vv + ee.mat[0][2] * ww ;
+     yo[ii] = ee.mat[1][0] * uu + ee.mat[1][1] * vv + ee.mat[1][2] * ww ;
+     zo[ii] = ee.mat[2][0] * uu + ee.mat[2][1] * vv + ee.mat[2][2] * ww ;
+   }
+
+   return ;
+}
+
 /****************************************************************************/
 /****************  Nonlinear Warpfield on top of affine *********************/
 
