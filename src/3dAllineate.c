@@ -27,6 +27,10 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 
 #define APPLY_PARAM   1   /* 23 Jul 2007 */
 #define APPLY_AFF12   2
+#define APPLY_BILIN   3
+#define NPBIL        40
+
+#define WARP_BILINEAR 666
 
 static float wt_medsmooth = 2.25f ;   /* for mri_weightize() */
 static float wt_gausmooth = 4.50f ;
@@ -93,6 +97,23 @@ static char *meth_username[NMETH] =    /* descriptive names */
     "Signed Pearson Correlation"            ,  /* hidden */
     "Local Pearson Correlation Signed"      ,  /* hidden */
     "Local Pearson Correlation Abs"       } ;  /* hidden */
+/*---------------------------------------------------------------------------*/
+
+#define SETUP_BILINEAR_PARAMS                                                \
+ do{ char str[16] ;                                                          \
+     stup.wfunc_numpar = NPBIL ;                                             \
+     stup.wfunc        = mri_genalign_bilinear ;                             \
+     stup.wfunc_param  = (GA_param *)realloc( (void *)stup.wfunc_param,      \
+                                              NPBIL*sizeof(GA_param)   ) ;   \
+     for( jj=12 ; jj < NPBIL-1 ; jj++ ){                                     \
+       sprintf(str,"blin_%02d",jj+1) ;                                       \
+       DEFPAR( jj,str, -0.1234f,0.1234f , 0.0f,0.0f,0.0f ) ;                 \
+       stup.wfunc_param[jj].fixed = 1 ;                                      \
+     }                                                                       \
+     DEFPAR(NPBIL-1,"dd_fac",0.0f,1.0e9 , 1.0f,0.0f,0.0f ) ;                 \
+     stup.wfunc_param[NPBIL-1].fixed = 2 ;                                   \
+ } while(0)
+
 /*---------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
@@ -204,7 +225,7 @@ int main( int argc , char *argv[] )
    int do_allcost              = 0 ;            /* 19 Sep 2007 */
 
    int   nwarp_pass            = 0 ;
-   int   nwarp_type            = WARPFIELD_TRIG_TYPE ;
+   int   nwarp_type            = WARP_BILINEAR ;
    float nwarp_order           = 2.9f ;
 
    /**----------------------------------------------------------------------*/
@@ -814,11 +835,41 @@ int main( int argc , char *argv[] )
 
        printf("\n"
         "=================================================================\n"
+#if 0
         " -nwarp [type [order]] = Experimental nonlinear warp\n"
-        "                         'type' = 'trig'      or\n"
+        "                         'type' = 'bilinear'  or\n"
+        "                                  'trig'      or\n"
         "                                  'legendre'  or\n"
         "                                  'gegenbauer'\n"
         "                         'order'= value in range 2..5 (inclusive)\n"
+#else
+        " -nwarp type = Experimental nonlinear warp:\n"
+        "              * At present, the only 'type' is 'bilinear',\n"
+        "                as in 3dWarpDrive, with 39 parameters.\n"
+        "              * I plan to implement higher order nonlinear\n"
+        "                warps in the future, someday ....\n"
+        "              * -nwarp can only be applied to a source dataset\n"
+        "                that has a single sub-brick!\n"
+        "              * -1Dparam_save and -1Dparam_apply work with\n"
+        "                bilinear warps:\n"
+        "               ++ 40 values are saved in 1 row of the param file\n"
+        "               ++ The final 'extra' value is a scaling factor\n"
+        "                  applied to parameters #13..39\n"
+        "  Bilinear warp formula:\n"
+        "    Xout = inv[ I + {D1 Xin | D2 Xin | D3 Xin} ] [ A Xin ]\n"
+        "  where Xin  = input vector  (base dataset coordinates)\n"
+        "        Xout = output vector (source dataset coordinates)\n"
+        "        A    = matrix representing affine transformation (12 params)\n"
+        "        I    = identity matrix\n"
+        "    D1,D2,D3 = three 3x3 matrices (the 27 'new' parameters)\n"
+        "               (when all 27 parameters == 0, warp is purely affine)\n"
+        "     {P|Q|R} = 3x3 matrix formed by adjoining the 3-vectors P,Q,R\n"
+        "    inv[...] = inverse matrix of stuff inside '[...]'\n"
+        "  The inverse of a bilinear transformation is another bilinear\n"
+        "  transformation.\n"
+        "\n"
+        "  ***** N.B.: '-nwarp' is slow! *****\n"
+#endif
         "=================================================================\n"
        ) ;
 
@@ -859,10 +910,12 @@ int main( int argc , char *argv[] )
            nwarp_type = WARPFIELD_LEGEN_TYPE ;
          } else if( strncasecmp(argv[iarg],"geg",3) == 0 ){
            nwarp_type = WARPFIELD_GEGEN_TYPE ;
+         } else if( strncasecmp(argv[iarg],"bil",3) == 0 ){
+           nwarp_type = WARP_BILINEAR ;
          } else {
            WARNING_message("unknown -nwarp type '%s'",argv[iarg]) ;
          }
-         iarg++ ;
+         warp_code = WARP_AFFINE ; iarg++ ;
        }
 
        if( iarg < argc && isdigit(argv[iarg][0]) ){
@@ -871,6 +924,8 @@ int main( int argc , char *argv[] )
            WARNING_message("illegal -nwarp order '%s'",argv[iarg]) ;
            nwarp_order = 2.9f ;
          }
+         if( nwarp_type == WARP_BILINEAR )
+           WARNING_message("'order' is meaningless for bilinear warp") ;
          iarg++ ;
        }
 
@@ -1405,6 +1460,14 @@ int main( int argc , char *argv[] )
        apply_nx  = apply_im->nx ;  /* # of values per row */
        apply_ny  = apply_im->ny ;  /* number of rows */
        apply_mode = APPLY_PARAM ;
+
+       if( apply_nx == NPBIL ){
+         apply_mode = APPLY_BILIN ;
+         INFO_message(
+          "found %d param/row in param file '%s' ==> applying bilinear warp",
+          NPBIL , apply_1D) ;
+       }
+
        iarg++ ; continue ;
      }
 
@@ -2542,6 +2605,12 @@ int main( int argc , char *argv[] )
    if( verb > 1 && apply_mode == 0 )
      INFO_message("Normalized convergence radius = %.6f",conv_rad) ;
 
+   /*-- special case: 04 Apr 2008 --*/
+
+   if( apply_mode == APPLY_BILIN ){
+     SETUP_BILINEAR_PARAMS ;
+   }
+
    /*****------ create shell of output dataset ------*****/
 
    if( prefix == NULL ){
@@ -2654,8 +2723,10 @@ int main( int argc , char *argv[] )
    if( param_save_1D != NULL || apply_mode != APPLY_AFF12 )
      parsave = (float **)calloc(sizeof(float *),DSET_NVALS(dset_targ)) ;
 
-   if( matrix_save_1D != NULL || apply_mode != APPLY_AFF12  )
-     matsave = (mat44 * )calloc(sizeof(mat44  ),DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
+   if( apply_mode != APPLY_BILIN ){                                     /* 04 Apr 2008 */
+    if( matrix_save_1D != NULL || apply_mode != APPLY_AFF12  )
+      matsave = (mat44 * )calloc(sizeof(mat44),DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
+   }
 
    /***-------------------- loop over target sub-bricks --------------------***/
 
@@ -2718,6 +2789,7 @@ int main( int argc , char *argv[] )
 
        switch( apply_mode ){   /* 23 Jul 2007 */
          default:
+         case APPLY_BILIN:
          case APPLY_PARAM:     /* load parameters from file into structure */
            if( verb > 1 ) INFO_message("using -1Dparam_apply") ;
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
@@ -3100,25 +3172,79 @@ int main( int argc , char *argv[] )
        }
      }
 
-     /*----- Nonlinear warp ---------------------------------------*/
+     /*--------------- Nonlinear warp improvement? --------------------------*/
 
      if( nwarp_pass ){
-       Warpfield *wf ;
-       int wf_nparam ;
-       char str[16] ;
 
-       wf = Warpfield_init( nwarp_type , nwarp_order , 0 , NULL ) ;
-       mri_genalign_warpfield_set(wf) ;
+       if( nwarp_type == WARP_BILINEAR ){  /*------ special case ------------*/
 
-       stup.wfunc_numpar = wf_nparam = 12 + 3*wf->nfun ;
-       stup.wfunc        = mri_genalign_warpfield ;
-       stup.wfunc_param  = (GA_param *)realloc( (void *)stup.wfunc_param ,
-                                                wf_nparam*sizeof(GA_param) ) ;
-       for( ii=12 ; ii < wf_nparam ; ii++ ){
-         sprintf(str,"#%03d",ii+1) ;
-         DEFPAR( ii,str, -0.05f,0.05f , 0.0f,0.0f,0.0f ) ;
+         float xr,yr,zr,rr ; int nbf ;
+
+         xr = 0.5f * dx_base * nx_base ;
+         yr = 0.5f * dy_base * ny_base ; rr = MAX(xr,yr) ;
+         zr = 0.5f * dz_base * nz_base ; rr = MAX(zr,rr) ; rr = 1.0f / rr ;
+
+         SETUP_BILINEAR_PARAMS ;
+         stup.wfunc_param[NPBIL-1].val_init = rr ;
+
+         for( jj=0 ; jj < 12 ; jj++ )
+           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+
+         stup.need_hist_setup = 1 ;
+         mri_genalign_scalar_setup( NULL,NULL,NULL, &stup );
+
+         if( verb > 0 ) INFO_message("Start bilinear warping") ;
+         if( verb > 1 ) PARINI(" - bilinear initial") ;
+         for( jj=12 ; jj <= 14 ; jj++ ){
+           stup.wfunc_param[jj   ].fixed = 0 ;
+           stup.wfunc_param[jj+12].fixed = 0 ;
+           stup.wfunc_param[jj+24].fixed = 0 ;
+         }
+         nbf = mri_genalign_scalar_optim( &stup , rad, 11.1f*conv_rad,1111 );
+         if( verb )
+           ININFO_message("- Bilinear#1 cost = %f ; %d funcs",stup.vbest,nbf) ;
+
+         for( jj=12 ; jj < NPBIL-1 ; jj++ )
+           stup.wfunc_param[jj].fixed = 0 ;
+         for( jj=0  ; jj < NPBIL-1 ; jj++ )
+           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+         nbf = mri_genalign_scalar_optim( &stup , 0.666f*rad, 3.3f*conv_rad,2222 );
+         if( verb )
+           ININFO_message("- Bilinear#2 cost = %f ; %d funcs",stup.vbest,nbf) ;
+
+         for( jj=0  ; jj < NPBIL-1 ; jj++ )
+           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+         nbf = mri_genalign_scalar_optim( &stup , 0.333f*rad, 2.2f*conv_rad,2222 );
+         if( verb )
+           ININFO_message("- Bilinear#3 cost = %f ; %d funcs",stup.vbest,nbf) ;
+
+         for( jj=0  ; jj < NPBIL-1 ; jj++ )
+           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
+         nbf = mri_genalign_scalar_optim( &stup , 0.222f*rad, conv_rad,3333 );
+         if( verb )
+           ININFO_message("- Bilinear#4 cost = %f ; %d funcs",stup.vbest,nbf) ;
+         if( verb > 1 ) PAROUT("- bilinear#4") ;
+
+       } else {   /*----------------------- general nonlinear expansion -----*/
+         char str[16] ;
+         Warpfield *wf ;
+         int wf_nparam ;
+
+         ERROR_exit("Warpfield not yet finished -- SORRY") ;
+
+         wf = Warpfield_init( nwarp_type , nwarp_order , 0 , NULL ) ;
+         mri_genalign_warpfield_set(wf) ;
+
+         stup.wfunc_numpar = wf_nparam = 12 + 3*wf->nfun ;
+         stup.wfunc        = mri_genalign_warpfield ;
+         stup.wfunc_param  = (GA_param *)realloc( (void *)stup.wfunc_param ,
+                                                  wf_nparam*sizeof(GA_param) ) ;
+         for( jj=12 ; jj < wf_nparam ; jj++ ){
+           sprintf(str,"#%03d",jj+1) ;
+           DEFPAR( jj,str, -0.05f,0.05f , 0.0f,0.0f,0.0f ) ;
+         }
+         for( jj=0 ; jj < 12 ; jj++ ) stup.wfunc_param[jj].fixed = 1 ;
        }
-       for( ii=0 ; ii < 12 ; ii++ ) stup.wfunc_param[ii].fixed = 1 ;
      }
 
      /*-------- FINALLY HAVE FINISHED -----------------------------*/
@@ -3313,6 +3439,7 @@ mri_genalign_set_pgmat(1) ;
 
        switch( apply_mode ){
          default:
+         case APPLY_BILIN:
          case APPLY_PARAM:
            AL_setup_warp_coords( epi_targ,epi_fe,epi_pe,epi_se,
                                  nxyz_dout, dxyz_dout, cmat_bout,

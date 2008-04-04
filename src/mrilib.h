@@ -1568,6 +1568,10 @@ extern void mri_genalign_mat44( int, float *,
                                      float *, float *, float * ) ;
 extern void mri_genalign_set_pgmat( int ) ;
 
+extern void mri_genalign_bilinear( int, float *,
+                                   int, float *, float *, float *,
+                                        float *, float *, float * ) ;
+
 void mri_genalign_set_targmask( MRI_IMAGE *, GA_setup * ) ; /* 07 Aug 2007 */
 
 extern void GA_reset_fit_callback( void (*fc)(int,double*) ) ;
