@@ -2246,6 +2246,11 @@ void get_options
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
+      if( isspace(argv[nopt][0]) )
+        sprintf(message,"Unknown command line option '%s'\n"
+                        "**  Is there a blank after a '\\' character?",argv[nopt]) ;
+      else
+        sprintf(message,"Unrecognized command line option: '%s'\n", argv[nopt]);
       DC_error (message);
 
     } /***** end of loop over input arguments ****/

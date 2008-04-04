@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , APR , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "Check for ' ' option, which means a blank after a '\\' character" ,
+   NULL } ,
+
  { 28 , MAR , 2008 , RWC , "3dcalc" , MICRO , TYPE_MODIFY ,
    "Treat auto-transposed .1D\\' files as datasets, not as timeseries." ,
    NULL } ,
