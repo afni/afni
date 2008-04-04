@@ -142,7 +142,8 @@ SCENE_DATA = Three integer codes describing the dataset type
                     the bucket should be used to make the underlay image.
 
                     If dataset is Func type, then this is one of the
-                    following codes:
+                    following codes (Please modify @statauxcode if you
+                    make additions or changes here):
                       #define FUNC_FIM_TYPE   0  /* 1 value           */
                       #define FUNC_THR_TYPE   1  /* obsolete          */
                       #define FUNC_COR_TYPE   2  /* fico: correlation */
