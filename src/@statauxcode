@@ -1,0 +1,49 @@
+#!/bin/tcsh -f 
+
+
+# List is straight from README.attributes, under scene data.
+# The order is important, do not mess with it!
+set lst  = (   "0" "value"     "1" "obsolete"     "2" "fico"      \
+               "3" "fitt"      "4" "fift"         "5" "fizt"      \
+               "6" "fict"      "7" "fibt"         "8" "fibn"      \
+               "9" "figt"      "10" "fipt"        "11" "fbuc" )
+if ("$1" =~ "-h" || "$1" == "") then
+   goto USAGE
+endif
+
+set cnt = 0
+while ($cnt < $#lst) 
+   @ cnt ++
+   set num = $lst[$cnt]
+   @ cnt ++
+   set code = $lst[$cnt]   
+   if ("$num" == "$1") then
+      echo "$code"
+      goto END
+   else if ("$code" == "$1") then
+      echo "$num"
+      goto END
+   endif
+end
+
+goto END
+
+USAGE:
+   echo "Usage: `basename $0` code"
+   echo "Returns name (or number) of statistics code"
+   echo "Based on README.attributes:"
+   set cnt = 0
+   while ($cnt < $#lst) 
+      @ cnt ++
+      set num = $lst[$cnt]
+      @ cnt ++
+      set code = $lst[$cnt]
+      echo "      $num <--> $code"
+   end
+   echo ""
+   echo "Example:"
+   echo "`basename $0` fipt"
+   echo "`basename $0` 4"
+   echo "" 
+goto END
+END:
