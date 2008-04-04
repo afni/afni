@@ -960,7 +960,10 @@ coord = "0.31 0.14 330"
 col = "0.21 0.41 0.61"
 /> 
 
-See two sample files in:  /Users/ziad/SUMA_test_dirs/TextDO  
+See two sample files in:  /Users/ziad/SUMA_test_dirs/TextDO 
+
+Also, see function SUMA_TextBoxSize for finding text size in pixels
+ 
 */
 SUMA_TextDO *SUMA_ReadTextDO (char *fname, char *parent_SO_id)
 {
@@ -3291,6 +3294,102 @@ SUMA_Boolean SUMA_DrawText(char *txt, float *Ps)
 }
 
 /*! 
+   \brief glutBitmapLength does not work, so here is a local version
+   string length in pixels.
+*/
+int SUMA_glutBitmapLength(void *font, char *txt, char *txte)
+{
+   int l=0;
+   if (!txt) return(0);
+   if (!txte) txte=txt+strlen(txt);
+   for (; *txt!='\0' && txt < txte; ++txt) {
+      l = l + glutBitmapWidth(font, *txt);
+   }
+   return (l);
+}
+
+/*!
+   \brief Font height in pixels 
+*/
+int SUMA_glutBitmapHeight(void *font) 
+{
+   if (!font) return(0);
+   if (font == GLUT_BITMAP_9_BY_15)
+         return(15);
+   else if (font == GLUT_BITMAP_8_BY_13)
+         return(13);
+   else if (font == GLUT_BITMAP_TIMES_ROMAN_10)
+         return(10);
+   else if (font == GLUT_BITMAP_TIMES_ROMAN_24)
+         return(24);
+   else if (font == GLUT_BITMAP_HELVETICA_10)
+         return(10);
+   else if (font == GLUT_BITMAP_HELVETICA_12)
+         return(12);
+   else if (font == GLUT_BITMAP_HELVETICA_18)
+         return(18);
+   else
+         return(0);
+   
+}
+
+
+/*!
+   \brief Figures out box size for some text
+   if font is NULL, box sizes are in character units 
+   You can use glutBitmapLength
+               glutBitmapWidth
+   (some good tips here: http://www.lighthouse3d.com/opengl/glut )            
+*/
+SUMA_Boolean SUMA_TextBoxSize (char *txt, int *w, int *h, void *font)
+{
+   static char FuncName[]={"SUMA_TextBoxSize"};
+   char *op=NULL, *ops=NULL, *OPE=NULL;
+   int nc=0;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   *w = 0;
+   *h = 0;
+   
+   if (!txt || !strlen(txt)) SUMA_RETURN(YUP);
+   
+
+   
+   op = txt;
+   OPE = txt+strlen(txt);
+   /* One line at time */
+   ops = op;
+   do {
+      SUMA_SKIP_LINE(op,OPE);
+      if (op > ops) {
+         if (!font) {
+            ++(*h);
+            nc = op-ops;
+            if (nc > *w) *w = nc;
+         } else {
+            *h = *h + SUMA_glutBitmapHeight(font);
+            nc = SUMA_glutBitmapLength(font, ops, op-1);
+            if (nc > *w) *w = nc;
+         }
+      }
+      ops = op;
+   } while (op < OPE);
+   
+   if (!font) {
+      SUMA_LHv("Need %d lines with a max of %d chars on one line\n",
+            *h,*w);
+   } else {
+      SUMA_LHv("Need %d pixels with a max of %d pixels on one line\n",
+            *h,*w);
+   }
+       
+       
+   SUMA_RETURN(YUP);
+}
+
+/*! 
    \brief Draws a scale line.
    
    \param ASIp (SUMA_AxisSegmentInfo *) structure containing segment info
@@ -3434,7 +3533,9 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
       dSxT = (float)fabs(ASIp->screen_length_x) / (float)nTick[1];
       dSyT = (float)fabs(ASIp->screen_length_y) / (float)nTick[1];
       MinYstep = 15 ; /* height of letters in pixels 
-                        (using GLUT_BITMAP_9_BY_15) */
+                        (using GLUT_BITMAP_9_BY_15) 
+                        Might want to use SUMA_glutBitmapHeight
+                        if you're using differing fonts*/
       MinXstep = 9 * 5; /* length of string in pixels 
                            (around 5 chars, including sign, using %.1f )*/
       if (LocalHead) 
@@ -5062,7 +5163,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 
             if (!image) {
                FILE *fid;
-               char imtex[] = {"/Users/ziad/Pictures/1615-small.ppm"}; 
+               char imtex[] = {"/Users/ziad/Pictures/IMG_0526.ppm"}; 
                   /* IMG_0526.ppm, 1910.ppm,  1615-small.ppm*/
                SUMA_SL_Note(  "Reading the image.");
                image = SUMA_read_ppm(imtex, 

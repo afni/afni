@@ -117,6 +117,7 @@ SUMA_Boolean SUMA_isSODimInitialized(SUMA_SurfaceObject *SO) ;
 SUMA_Boolean SUMA_SetSODims(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_MinMaxNodesInROI (SUMA_DRAWN_ROI *D_ROI, 
                                     int MinMax[]);
+SUMA_Boolean SUMA_TextBoxSize(char *txt, int *w, int *h, void *font);
 
 /*!
    NO Guarantee that certain nodes might 
