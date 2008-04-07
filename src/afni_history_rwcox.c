@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , APR , 2008 , RWC , "1dUpsample" , MINOR , TYPE_NEW_PROG ,
+   "Upsample a 1D time series" ,
+   NULL } ,
+
  { 4 , APR , 2008 , RWC , "3dAllineate" , MINOR , TYPE_GENERAL ,
    "Added '-nwarp bilinear' option" ,
    "Experimental nonlinear warping comes to 3dAllineate at last. \n"

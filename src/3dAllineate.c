@@ -28,7 +28,7 @@ typedef struct { int np,code; float vb,vt ; } param_opt ;
 #define APPLY_PARAM   1   /* 23 Jul 2007 */
 #define APPLY_AFF12   2
 #define APPLY_BILIN   3
-#define NPBIL        40
+#define NPBIL        39   /* plus 4 */
 
 #define WARP_BILINEAR 666
 
@@ -101,17 +101,23 @@ static char *meth_username[NMETH] =    /* descriptive names */
 
 #define SETUP_BILINEAR_PARAMS                                                \
  do{ char str[16] ;                                                          \
-     stup.wfunc_numpar = NPBIL ;                                             \
+     stup.wfunc_numpar = NPBIL+4 ;                                           \
      stup.wfunc        = mri_genalign_bilinear ;                             \
      stup.wfunc_param  = (GA_param *)realloc( (void *)stup.wfunc_param,      \
-                                              NPBIL*sizeof(GA_param)   ) ;   \
-     for( jj=12 ; jj < NPBIL-1 ; jj++ ){                                     \
-       sprintf(str,"blin_%02d",jj+1) ;                                       \
-       DEFPAR( jj,str, -0.1234f,0.1234f , 0.0f,0.0f,0.0f ) ;                 \
+                                              (NPBIL+4)*sizeof(GA_param) ) ; \
+     for( jj=12 ; jj < NPBIL ; jj++ ){                                       \
+       sprintf(str,"blin%02d",jj+1) ;                                        \
+       DEFPAR( jj,str, -0.1357f,0.1357f , 0.0f,0.0f,0.0f ) ;                 \
        stup.wfunc_param[jj].fixed = 1 ;                                      \
      }                                                                       \
-     DEFPAR(NPBIL-1,"dd_fac",0.0f,1.0e9 , 1.0f,0.0f,0.0f ) ;                 \
-     stup.wfunc_param[NPBIL-1].fixed = 2 ;                                   \
+     DEFPAR(NPBIL  ,"xcen" ,-1.0e9,1.0e9 , 0.0f,0.0f,0.0f ) ;                \
+     DEFPAR(NPBIL+1,"ycen" ,-1.0e9,1.0e9 , 0.0f,0.0f,0.0f ) ;                \
+     DEFPAR(NPBIL+2,"zcen" ,-1.0e9,1.0e9 , 0.0f,0.0f,0.0f ) ;                \
+     DEFPAR(NPBIL+3,"ddfac", 0.0f ,1.0e9 , 1.0f,0.0f,0.0f ) ;                \
+     stup.wfunc_param[NPBIL  ].fixed = 2 ;                                   \
+     stup.wfunc_param[NPBIL+1].fixed = 2 ;                                   \
+     stup.wfunc_param[NPBIL+2].fixed = 2 ;                                   \
+     stup.wfunc_param[NPBIL+3].fixed = 2 ;                                   \
  } while(0)
 
 /*---------------------------------------------------------------------------*/
@@ -133,14 +139,14 @@ int main( int argc , char *argv[] )
    int tfdone=0;  /* stuff for -twofirst */
    float tfparm[PARAM_MAXTRIAL+1][MAXPAR];
    int skip_first=0 , didtwo , targ_kind , skipped=0 , nptwo=6 ;
-   double ctim , rad , conv_rad ;
+   double ctim,dtim , rad , conv_rad ;
    float **parsave=NULL ;
    mat44 *matsave=NULL ;
    mat44 targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv,mast_cmat,mast_cmat_inv,
          qmat,wmat ;
    MRI_IMAGE *apply_im = NULL ;
    float *apply_far    = NULL ;
-   int apply_nx, apply_ny , apply_mode=0 , nparam_free , diffblur=1 ;
+   int apply_nx=0, apply_ny=0, apply_mode=0, nparam_free , diffblur=1 ;
    float cost, cost_ini ;
    mat44 cmat_bout , cmat_tout , aff12_xyz ;
    int   nxout,nyout,nzout ;
@@ -851,24 +857,38 @@ int main( int argc , char *argv[] )
         "              * -nwarp can only be applied to a source dataset\n"
         "                that has a single sub-brick!\n"
         "              * -1Dparam_save and -1Dparam_apply work with\n"
-        "                bilinear warps:\n"
-        "               ++ 40 values are saved in 1 row of the param file\n"
-        "               ++ The final 'extra' value is a scaling factor\n"
-        "                  applied to parameters #13..39\n"
-        "  Bilinear warp formula:\n"
-        "    Xout = inv[ I + {D1 Xin | D2 Xin | D3 Xin} ] [ A Xin ]\n"
+        "                bilinear warps; see the Notes for more information.\n"
+        "-nwarp NOTES:\n"
+        "-------------\n"
+        "* -nwarp is slow!\n"
+        "* Check the results to make sure the optimizer didn't run amok!\n"
+        "* If you use -1Dparam_save, then you can apply the bilinear\n"
+        "   warp to another dataset using -1Dparam_apply in a later\n"
+        "   3dAllineate run. To do so, use '-nwarp bilinear' in both\n"
+        "   runs, so that the program knows what the extra parameters\n"
+        "   in the file are to be used for.\n"
+        "  ++ 43 values are saved in 1 row of the param file.\n"
+        "  ++ The first 12 are the affine parameters\n"
+        "  ++ The next 27 are the D1,D2,D3 matrix parameters.\n"
+        "  ++ The final 'extra' 4 values are used to specify\n"
+        "      the center of coordinates (vector Xc below), and a\n"
+        "      pre-computed scaling factor applied to parameters #13..39.\n"
+        "* Bilinear warp formula:\n"
+        "   Xout = inv[ I + {D1 (Xin-Xc) | D2 (Xin-Xc) | D3 (Xin-Xc)} ] [ A Xin ]\n"
         "  where Xin  = input vector  (base dataset coordinates)\n"
         "        Xout = output vector (source dataset coordinates)\n"
+        "        Xc   = center of coordinates used for nonlinearity\n"
+        "               (will be the center of the base dataset volume)\n"
         "        A    = matrix representing affine transformation (12 params)\n"
         "        I    = identity matrix\n"
         "    D1,D2,D3 = three 3x3 matrices (the 27 'new' parameters)\n"
-        "               (when all 27 parameters == 0, warp is purely affine)\n"
+        "               * when all 27 parameters == 0, warp is purely affine\n"
         "     {P|Q|R} = 3x3 matrix formed by adjoining the 3-vectors P,Q,R\n"
-        "    inv[...] = inverse matrix of stuff inside '[...]'\n"
-        "  The inverse of a bilinear transformation is another bilinear\n"
-        "  transformation.\n"
-        "\n"
-        "  ***** N.B.: '-nwarp' is slow! *****\n"
+        "    inv[...] = inverse 3x3 matrix of stuff inside '[...]'\n"
+        "* The inverse of a bilinear transformation is another bilinear\n"
+        "   transformation.  Someday, I may write a program that will let\n"
+        "   you compute that inverse transformation, so you can use it for\n"
+        "   some hideous purpose.\n"
 #endif
         "=================================================================\n"
        ) ;
@@ -1460,14 +1480,6 @@ int main( int argc , char *argv[] )
        apply_nx  = apply_im->nx ;  /* # of values per row */
        apply_ny  = apply_im->ny ;  /* number of rows */
        apply_mode = APPLY_PARAM ;
-
-       if( apply_nx == NPBIL ){
-         apply_mode = APPLY_BILIN ;
-         INFO_message(
-          "found %d param/row in param file '%s' ==> applying bilinear warp",
-          NPBIL , apply_1D) ;
-       }
-
        iarg++ ; continue ;
      }
 
@@ -1998,6 +2010,22 @@ int main( int argc , char *argv[] )
    }
 
    if( warp_freeze ) twofirst = 1 ;  /* 10 Oct 2006 */
+
+   if( apply_mode > 0 ){
+     if( nwarp_pass && nwarp_type == WARP_BILINEAR ){
+       if( apply_nx >= NPBIL+4 ){
+         apply_mode = APPLY_BILIN ;
+         INFO_message(
+          "found %d param/row in param file '%s'; applying bilinear warp",
+          apply_nx , apply_1D) ;
+       } else {
+         INFO_message(
+          "found %d param/row in param file '%s'; not enough for bilinear warp",
+          apply_nx , apply_1D) ;
+       }
+     }
+   }
+
 
    /* open target from last argument, if not already open */
 
@@ -3178,14 +3206,21 @@ int main( int argc , char *argv[] )
 
        if( nwarp_type == WARP_BILINEAR ){  /*------ special case ------------*/
 
-         float xr,yr,zr,rr ; int nbf ;
+         float xr,yr,zr,rr , xcen,ycen,zcen ; int nbf ;
 
          xr = 0.5f * dx_base * nx_base ;
          yr = 0.5f * dy_base * ny_base ; rr = MAX(xr,yr) ;
          zr = 0.5f * dz_base * nz_base ; rr = MAX(zr,rr) ; rr = 1.0f / rr ;
 
          SETUP_BILINEAR_PARAMS ;
-         stup.wfunc_param[NPBIL-1].val_init = rr ;
+
+         MAT44_VEC( stup.base_cmat,
+                    0.5f*nx_base, 0.5f*ny_base, 0.5f*nz_base,
+                    xcen        , ycen        , zcen         ) ;
+         stup.wfunc_param[NPBIL  ].val_fixed = stup.wfunc_param[NPBIL  ].val_init = xcen;
+         stup.wfunc_param[NPBIL+1].val_fixed = stup.wfunc_param[NPBIL+1].val_init = ycen;
+         stup.wfunc_param[NPBIL+2].val_fixed = stup.wfunc_param[NPBIL+2].val_init = zcen;
+         stup.wfunc_param[NPBIL+3].val_fixed = stup.wfunc_param[NPBIL+3].val_init = rr  ;
 
          for( jj=0 ; jj < 12 ; jj++ )
            stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
@@ -3194,36 +3229,43 @@ int main( int argc , char *argv[] )
          mri_genalign_scalar_setup( NULL,NULL,NULL, &stup );
 
          if( verb > 0 ) INFO_message("Start bilinear warping") ;
-         if( verb > 1 ) PARINI(" - bilinear initial") ;
+         if( verb > 1 ) PARINI("- Bilinear initial") ;
          for( jj=12 ; jj <= 14 ; jj++ ){
-           stup.wfunc_param[jj   ].fixed = 0 ;
-           stup.wfunc_param[jj+12].fixed = 0 ;
+           stup.wfunc_param[jj   ].fixed = 0 ;  /* just free up diagonal */
+           stup.wfunc_param[jj+12].fixed = 0 ;  /* elements of B tensor */
            stup.wfunc_param[jj+24].fixed = 0 ;
          }
-         nbf = mri_genalign_scalar_optim( &stup , rad, 11.1f*conv_rad,1111 );
-         if( verb )
-           ININFO_message("- Bilinear#1 cost = %f ; %d funcs",stup.vbest,nbf) ;
+         if( verb ) ctim = COX_cpu_time() ;
+         nbf = mri_genalign_scalar_optim( &stup , rad, 11.1f*conv_rad, 555 );
+         if( verb ){
+           dtim = COX_cpu_time() ;
+           ININFO_message("- Bilinear#1 cost = %f ; %d funcs ; CPU = %.1f s",
+                          stup.vbest,nbf,dtim-ctim) ;
+           ctim = dtim ;
+         }
 
-         for( jj=12 ; jj < NPBIL-1 ; jj++ )
+         for( jj=12 ; jj < NPBIL ; jj++ )   /* now free up all B elements */
            stup.wfunc_param[jj].fixed = 0 ;
-         for( jj=0  ; jj < NPBIL-1 ; jj++ )
+         for( jj=0  ; jj < NPBIL ; jj++ )
            stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         nbf = mri_genalign_scalar_optim( &stup , 0.666f*rad, 3.3f*conv_rad,2222 );
-         if( verb )
-           ININFO_message("- Bilinear#2 cost = %f ; %d funcs",stup.vbest,nbf) ;
+         nbf = mri_genalign_scalar_optim( &stup , 0.555f*rad, 3.3f*conv_rad,2222 );
+         if( verb ){
+           dtim = COX_cpu_time() ;
+           ININFO_message("- Bilinear#2 cost = %f ; %d funcs ; CPU = %.1f s",
+                          stup.vbest,nbf,dtim-ctim) ;
+           ctim = dtim ;
+         }
 
-         for( jj=0  ; jj < NPBIL-1 ; jj++ )
+         for( jj=0  ; jj < NPBIL ; jj++ )
            stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         nbf = mri_genalign_scalar_optim( &stup , 0.333f*rad, 2.2f*conv_rad,2222 );
-         if( verb )
-           ININFO_message("- Bilinear#3 cost = %f ; %d funcs",stup.vbest,nbf) ;
-
-         for( jj=0  ; jj < NPBIL-1 ; jj++ )
-           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         nbf = mri_genalign_scalar_optim( &stup , 0.222f*rad, conv_rad,3333 );
-         if( verb )
-           ININFO_message("- Bilinear#4 cost = %f ; %d funcs",stup.vbest,nbf) ;
-         if( verb > 1 ) PAROUT("- bilinear#4") ;
+         nbf = mri_genalign_scalar_optim( &stup , 0.222f*rad, conv_rad,1111 );
+         if( verb ){
+           dtim = COX_cpu_time() ;
+           ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; CPU = %.1f s",
+                          stup.vbest,nbf,dtim-ctim) ;
+           ctim = dtim ;
+         }
+         if( verb > 1 ) PAROUT("- Bilinear final") ;
 
        } else {   /*----------------------- general nonlinear expansion -----*/
          char str[16] ;

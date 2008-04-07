@@ -252,12 +252,11 @@ ENTRY("THD_write_1D") ;
    /* 05 Mar 2008: special case to write as a 'pure' .1D file,
                    if filename ends in '.1D' or specifies stdout */
 
-   if( pname == NULL &&
+   if( pname == NULL && AFNI_yesenv("AFNI_1D_TRANOUT") &&
        (STRING_HAS_SUFFIX(cpt,".1D") || *cpt=='-' || strcmp(cpt,"stdout")==0) ){
+
      MRI_IMAGE *qim = THD_dset_to_1Dmri(dset) ;
-     mri_write_1D(cpt,qim);
-     mri_free(qim);
-     EXRETURN ;
+     mri_write_1D(cpt,qim); mri_free(qim); EXRETURN ;
    }
 
    /* back to normal 3D mode of writing */

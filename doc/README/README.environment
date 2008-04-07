@@ -1877,21 +1877,16 @@ then the output 1D file will be transposed and written so that the
 time axis goes down the columns instead of across them.  If this
 variable is NO, then the standard AFNI 1D-to-3D dataset convention is
 followed: each row is a single voxel time series.  Example:
-  3dTstat -prefix - '1D: 3 4 5 | 1 2 3'
-will write
-  2  3  4
-to stdout if AFNI_1D_TRANOUT is YES, but will write
-  2
-  3
-  4
-to stdout if AFNI_1D_TRANOUT is NO.  Note that '1D: 3 4 5 | 1 2 3'
-is equivalent to the input file
- 3 1
- 4 2
- 5 3
-which has 3 'voxels' and 2 'time points' when input as a dataset to
-a 3d* program.  3dTstat averages across time to produce a single
-sub-brick dataset.
+  3dDetrend -polort 1 -prefix - 1D:'3 4 5 4 3'\'
+will write to the screen
+           -0.8
+            0.2
+            1.2
+            0.2
+           -0.8
+if AFNI_1D_TRANOUT is YES, but will write
+ -0.8 0.2 1.2 0.2 -0.8
+to stdout if AFNI_1D_TRANOUT is NO.
 
 -------------------------
 Variable: AFNI_1D_TIME_TR
