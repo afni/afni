@@ -33,8 +33,8 @@
            - leave the last "99, NULL" entry as it is
 
  -- examples (newest at top) --
-
- { 30 , FEB , 2008 , DRG , "oblique_datasets" , MAJOR , TYPE_MODIFY ,
+ 
+ { 30 , MAR , 2008 , DRG , "oblique_datasets" , MAJOR , TYPE_MODIFY ,
    "no longer create the TO_DICOM_REAL xform from current axes" ,
    NULL
  } ,
@@ -51,6 +51,14 @@
 afni_history_struct dglen_history[] = {
 
  /* can copy to and change one of the examples here */
+{ 07 , APR , 2008 , DRG , "align_epi_anat.py" , 
+    SUPERDUPER , TYPE_NEW_PROG , "Alignment of EPI and Anatomical datasets" ,
+    "Aligns anat and EPI data. Alignment is in either direction of anat to\n"
+    "epi or epi to anat. Transformations are combined where possible as\n"
+    "from time series registration and talairach transformations. Multiple\n"
+    "child epi datasets may be aligned at the same time."
+ } ,
+
 { 28, MAR , 2008 , DRG , "3dDTeig" , MINOR ,
    TYPE_BUG_FIX ,"small negative eigenvalues are set to zero as in 3dDWItoDT" ,
    "This fix avoids FA being set to 0 for those affected voxels"
