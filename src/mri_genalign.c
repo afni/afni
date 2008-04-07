@@ -2420,18 +2420,21 @@ void mri_genalign_bilinear( int npar, float *wpar ,
                                       float *xo, float *yo, float *zo  )
 {
    static mat44 gam ;  /* saved general affine matrix */
-   static float dd_for[3][3][3] ;
+   static float dd_for[3][3][3] , xcen,ycen,zcen,dd_fac ;
    int ii ;
    THD_mat33 dd,ee ; float aa,bb,cc , uu,vv,ww ;
 
    /** new parameters ==> setup matrix */
 
-   if( npar >= 40 && wpar != NULL ){
-     float dd_fac = wpar[39] ;
+   if( npar >= 43 && wpar != NULL ){  /* 39 'real' parameters, 4 'fake' ones */
+     xcen   = wpar[39] ;              /* the fake ones */
+     ycen   = wpar[40] ;
+     zcen   = wpar[41] ;
+     dd_fac = wpar[42] ;
 
      gam = GA_setup_affine( 12 , wpar ) ;
 
-     dd_for[0][0][0] = wpar[12] * dd_fac ;
+     dd_for[0][0][0] = wpar[12] * dd_fac ;  /* the real ones */
      dd_for[0][0][1] = wpar[13] * dd_fac ;
      dd_for[0][0][2] = wpar[14] * dd_fac ;
 
@@ -2477,15 +2480,22 @@ void mri_genalign_bilinear( int npar, float *wpar ,
    for( ii=0 ; ii < npt ; ii++ ){
      aa = xi[ii] ; bb = yi[ii] ; cc = zi[ii] ;
 
-     dd.mat[0][0] = 1.0f + dd_for[0][0][0]*aa + dd_for[0][0][1]*bb + dd_for[0][0][2]*cc;
-     dd.mat[0][1] =        dd_for[0][1][0]*aa + dd_for[0][1][1]*bb + dd_for[0][1][2]*cc;
-     dd.mat[0][2] =        dd_for[0][2][0]*aa + dd_for[0][2][1]*bb + dd_for[0][2][2]*cc;
-     dd.mat[1][0] =        dd_for[1][0][0]*aa + dd_for[1][0][1]*bb + dd_for[1][0][2]*cc;
-     dd.mat[1][1] = 1.0f + dd_for[1][1][0]*aa + dd_for[1][1][1]*bb + dd_for[1][1][2]*cc;
-     dd.mat[1][2] =        dd_for[1][2][0]*aa + dd_for[1][2][1]*bb + dd_for[1][2][2]*cc;
-     dd.mat[2][0] =        dd_for[2][0][0]*aa + dd_for[2][0][1]*bb + dd_for[2][0][2]*cc;
-     dd.mat[2][1] =        dd_for[2][1][0]*aa + dd_for[2][1][1]*bb + dd_for[2][1][2]*cc;
-     dd.mat[2][2] = 1.0f + dd_for[2][2][0]*aa + dd_for[2][2][1]*bb + dd_for[2][2][2]*cc;
+     if( aff_use_before ){
+       MAT44_VEC( aff_before , aa,bb,cc , uu,vv,ww ) ;
+     } else {
+       uu = aa ; vv = bb ; ww = cc ;
+     }
+     uu -= xcen; vv -= ycen; ww -= zcen;
+
+     dd.mat[0][0] = 1.0f + dd_for[0][0][0]*uu + dd_for[0][0][1]*vv + dd_for[0][0][2]*ww;
+     dd.mat[0][1] =        dd_for[0][1][0]*uu + dd_for[0][1][1]*vv + dd_for[0][1][2]*ww;
+     dd.mat[0][2] =        dd_for[0][2][0]*uu + dd_for[0][2][1]*vv + dd_for[0][2][2]*ww;
+     dd.mat[1][0] =        dd_for[1][0][0]*uu + dd_for[1][0][1]*vv + dd_for[1][0][2]*ww;
+     dd.mat[1][1] = 1.0f + dd_for[1][1][0]*uu + dd_for[1][1][1]*vv + dd_for[1][1][2]*ww;
+     dd.mat[1][2] =        dd_for[1][2][0]*uu + dd_for[1][2][1]*vv + dd_for[1][2][2]*ww;
+     dd.mat[2][0] =        dd_for[2][0][0]*uu + dd_for[2][0][1]*vv + dd_for[2][0][2]*ww;
+     dd.mat[2][1] =        dd_for[2][1][0]*uu + dd_for[2][1][1]*vv + dd_for[2][1][2]*ww;
+     dd.mat[2][2] = 1.0f + dd_for[2][2][0]*uu + dd_for[2][2][1]*vv + dd_for[2][2][2]*ww;
 
      ee = MAT_INV(dd) ;
 
