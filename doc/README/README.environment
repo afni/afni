@@ -1864,7 +1864,34 @@ Variable: AFNI_1D_TIME
 If this YES/NO variable is set to YES, then when a multicolumn .1D file is
 read in as an AFNI dataset, the column variable is taken to be time, and
 a time-dependent dataset is created.  The default is to create a bucket
-dataset.
+dataset.  Note that each row is taken to be a separate 'voxel'.
+
+-------------------------
+Variable: AFNI_1D_TRANOUT
+-------------------------
+If this variable is set to YES, it affects the way 1D datasets are
+written out from 3d* programs that are being used to process 1D files
+as AFNI dataset.  If this variable is YES, AND if the output dataset
+prefix ends in '.1D' or is the string '-' (meaning standard output),
+then the output 1D file will be transposed and written so that the
+time axis goes down the columns instead of across them.  If this
+variable is NO, then the standard AFNI 1D-to-3D dataset convention is
+followed: each row is a single voxel time series.  Example:
+  3dTstat -prefix - '1D: 3 4 5 | 1 2 3'
+will write
+  2  3  4
+to stdout if AFNI_1D_TRANOUT is YES, but will write
+  2
+  3
+  4
+to stdout if AFNI_1D_TRANOUT is NO.  Note that '1D: 3 4 5 | 1 2 3'
+is equivalent to the input file
+ 3 1
+ 4 2
+ 5 3
+which has 3 'voxels' and 2 'time points' when input as a dataset to
+a 3d* program.  3dTstat averages across time to produce a single
+sub-brick dataset.
 
 -------------------------
 Variable: AFNI_1D_TIME_TR
