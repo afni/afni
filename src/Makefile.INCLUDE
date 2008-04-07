@@ -76,7 +76,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
-           1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history $(EXTRAS)
+           1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
+           $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -103,7 +104,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
-                  afni_history                                                      \
+                  afni_history 1dUpsample                                           \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -135,7 +136,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                nifti_tool 3dAFNItoRaw DTIStudioFibertoSegments Dimon              \
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
-               1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history
+               1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -1072,6 +1073,10 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 1dtranspose:1dtranspose.o
 	$(RM) $@
 	$(CC) -o 1dtranspose 1dtranspose.o $(LFLAGS) $(LLIBS)
+
+1dUpsample:1dUpsample.o
+	$(RM) $@
+	$(CC) -o 1dUpsample 1dUpsample.o $(LFLAGS) $(LLIBS)
 
 1dTsort:1dTsort.o
 	$(RM) $@
