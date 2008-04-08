@@ -48,6 +48,23 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, APR, 2008, RCR, "2dImreg", MINOR, TYPE_BUG_FIX,
+   "allow zero slices, passing input as result",
+   "Choleski factorization would fail on an empty slice.  In this case,\n"
+   "return the input slices as the result (instead of crashing).\n"
+   "Done with D Glen."
+ } ,
+
+ {  8, APR, 2008, RCR, "3dNLfim", MICRO, TYPE_MODIFY,
+   "only update output every 100 voxels",
+   NULL
+ } ,
+
+ {  8, APR, 2008, RCR, "model_demri_3", MINOR, TYPE_NEW_ENV,
+   "allow residual Ct values via AFNI_MODEL_D3_RESID_CT_DSET dataset",
+   "e.g. setenv AFNI_MODEL_D3_RESID_CT_DSET residual_Ct+orig"
+ } ,
+
  {  2, APR, 2008, RCR, "ANOVA", MINOR, TYPE_MODIFY,
    "extended maximum number of contrasts to 75",
    NULL
