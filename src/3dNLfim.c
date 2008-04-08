@@ -3445,8 +3445,8 @@ int main
       /*----- display progress for user (1-based) -----*/
       if (g_voxel_count && proc_ind == 0 )
       {
-        /* only print every 10th          26 Oct 2006 [rickr] */
-        if( voxel_count_index % 10 == 0 )
+        /* only print every 100th         26 Oct 2006 [rickr] */
+        if( voxel_count_index % 100 == 0 )
           fprintf(stderr,"\r++ voxel count: %8d (of %d)", iv+1, ixyz_top);
         voxel_count_index++ ;
       }
