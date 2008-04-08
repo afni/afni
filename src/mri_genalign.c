@@ -959,7 +959,7 @@ ENTRY("create_GA_BLOK_set") ;
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
-   int nblok , nelm , *elm , dd , ii,jj , nm ;
+   int nblok , nelm , *elm , dd , ii,jj , nm , uwb ;
    float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f ;
 
    if( gstup->blokset == NULL ){
@@ -981,6 +981,8 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
    gbs = (GA_BLOK_set *)gstup->blokset ;
    nblok = gbs->num ; nm = gstup->npt_match ;
    if( nblok < 1 ) ERROR_exit("Bad GA_BLOK_set?!") ;
+
+   uwb = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;
 
    for( wss=0.0f,dd=0 ; dd < nblok ; dd++ ){
      nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;
@@ -1012,6 +1014,7 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
          wt = wvm[jj] ; vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
          xv += wt*vv*vv ; yv += wt*ww*ww ; xy += wt*vv*ww ;
        }
+       if( uwb ) ws = 1.0f ;
      }
      wss += ws ;
 
