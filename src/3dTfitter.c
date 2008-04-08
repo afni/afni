@@ -69,6 +69,10 @@ int main( int argc , char *argv[] )
       "                 .xmat.1D file output by 3dDeconvolve, if you wanted\n"
       "                 to repeat the same linear regression using 3dTfitter,\n"
       "                 for some bizarre unfathomable twisted reason.\n"
+      "            ** If some LHS vector is very small (less than a factor of 0.000333)\n"
+      "               compared to the largest LHS vector, then it will be ignored\n"
+      "               in the fitting.  This feature allows the case where some LHS\n"
+      "               dataset voxels are all zero.  [Per Rasmus Birn et al.]\n"
       "           *** Columns are assembled in the order given on the command line,\n"
       "               which means that LHS parameters will be output in that order!\n"
       "           *** If all LHS inputs are 1D vectors AND you are using least\n"
@@ -856,7 +860,7 @@ int main( int argc , char *argv[] )
    }
 
    if( fitts_set != NULL ){
-     if( verb ) ININFO_message("Writing fitts dataset") ;
+     if( verb ) ININFO_message("Writing fitts dataset: %s",fitts_prefix) ;
      DSET_write(fitts_set); DSET_unload(fitts_set);
    }
 
