@@ -3623,6 +3623,9 @@ DUMP_MAT44("aff12_ijk",qmat) ;
 
    if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
    MEMORY_CHECK("end of program (after final cleanup)") ;
+   if( verb )
+    INFO_message("###########################################################");
+
    exit(0) ;
 }
 
