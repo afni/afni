@@ -77,7 +77,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
-           $(EXTRAS)
+           3dUpsample $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -104,7 +104,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
-                  afni_history 1dUpsample                                           \
+                  afni_history 3dUpsample 1dUpsample                                           \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -132,7 +132,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile  \
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
-               file_tool Imon 3dresample serial_helper im2niml                    \
+               file_tool Imon 3dresample serial_helper im2niml 3dUpsample         \
                nifti_tool 3dAFNItoRaw DTIStudioFibertoSegments Dimon              \
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
@@ -1077,6 +1077,10 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 1dUpsample:1dUpsample.o
 	$(RM) $@
 	$(CC) -o 1dUpsample 1dUpsample.o $(LFLAGS) $(LLIBS)
+
+3dUpsample:3dUpsample.o
+	$(RM) $@
+	$(CC) -o 3dUpsample 3dUpsample.o $(LFLAGS) $(LLIBS)
 
 1dTsort:1dTsort.o
 	$(RM) $@

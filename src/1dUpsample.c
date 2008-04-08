@@ -5,22 +5,29 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *inim ,  *outim ;
    float     *inar ,  *outar ;
    int      nxin   , nxout   , ny ;
-   int iarg=1 , jj , nup ;
+   int iarg=1 , jj , nup , do_one=0 ;
 
    if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
      printf("Program 1dUpsample:\n"
             "Upsamples a 1D time series (along the column direction)\n"
             "to a finer time grid.\n"
-            "Usage:  1dUpsample n fred.1D > ethel.1D\n"
+            "Usage:  1dUpsample [options] n fred.1D > ethel.1D\n"
             "\n"
             "Where 'n' is the upsample factor (integer from 2..32)\n"
             "\n"
-            "Notes:\n"
+            "NOTES:\n"
             "* Interpolation is done with 7th order polynomials.\n"
+            "* The only option is '-1' or '-one', to use 1st order\n"
+            "  polynomials instead (i.e., linear interpolation).\n"
+            "* Output is written to stdout.\n"
+            "* If you want to interpolate along the row direction,\n"
+            "  transpose before input, then transpose the output.\n"
             "* This program is a quick hack for Gang Chen.\n"
      "\n") ;
      exit(0) ;
    }
+
+   if( argv[iarg][0] == '-' ){ do_one = 1 ; iarg++ ; }  /* very cheap */
 
    nup = (int)strtod(argv[iarg++],NULL) ;
    if( nup < 2 || nup > 32 )
@@ -38,7 +45,10 @@ int main( int argc , char *argv[] )
    outar = MRI_FLOAT_PTR(outim) ;
 
    for( jj=0 ; jj < ny ; jj++ ){
-     upsample_7( nup , nxin , inar + nxin*jj , outar + nxout*jj ) ;
+     if( do_one )
+       upsample_1( nup , nxin , inar + nxin*jj , outar + nxout*jj ) ;
+     else
+       upsample_7( nup , nxin , inar + nxin*jj , outar + nxout*jj ) ;
    }
 
    mri_write_1D( "-" , outim ) ;
