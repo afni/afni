@@ -52,7 +52,7 @@ afni_history_struct dglen_history[] = {
 
  /* can copy to and change one of the examples here */
 { 07 , APR , 2008 , DRG , "align_epi_anat.py" , 
-    SUPERDUPER , TYPE_NEW_PROG , "Alignment of EPI and Anatomical datasets" ,
+    SUPER , TYPE_NEW_PROG , "Alignment of EPI and Anatomical datasets" ,
     "Aligns anat and EPI data. Alignment is in either direction of anat to\n"
     "epi or epi to anat. Transformations are combined where possible as\n"
     "from time series registration and talairach transformations. Multiple\n"
