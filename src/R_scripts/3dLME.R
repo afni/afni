@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.0,  March 5, 2008
+#Version 1.0.1,  April 8, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -193,8 +193,16 @@ if (tag == 0)  {
 # if (RM) FArr <- 2:(NoF+1) else FArr <- 1:NoF  
 if (NoConst) FArr <- 1:NoF else FArr <- 2:(NoF+1)
 
-# Number of statistics
+# Number of sub-bricks
 NoBrick <- NoF + 2*ncontr + 2*nCov
+if (NoConst) {
+   if (RanEff) NoCoef <- length(fm$coefficients$fixed) else {
+	   NoCoef <- length(fm$coefficients)
+	}
+	NoBrick <- NoBrick + 2*NoCoef	
+}	
+# to avoid the ambiguity with the case of no intercept	
+BrickCnt <- NoBrick - 2*ncontr - 2*nCov  
 
 #Modeln <- groupedData(Beta ~ session | Subj, data = Model)
 
@@ -225,15 +233,25 @@ for (k in 1:dimz) {
    else try(fm <- gls(ModelForm, Model), tag <- 1) 
 	if (tag != 1) {
 	   Stat[i, j, k, 1:NoF] <- anova(fm, type=Ftype)$F[FArr]
+		if (NoConst) 
+		   if (RanEff) {
+			   # or unname(summary(fm)$tTable[, "Value"])
+				Stat[i, j, k, NoF+2*0.5:NoCoef] <- unname(fm$coefficients$fixed) 
+			   Stat[i, j, k, NoF+2*1:NoCoef] <- unname(summary(fm)$tTable[,"t-value"])
+			} else {
+			   Stat[i, j, k, NoF+2*0.5:NoCoef] <- unname(fm$coefficients)
+				Stat[i, j, k, NoF+2*1:NoCoef] <- unname(summary(fm)$tTable[,"t-value"])
+		   }
+
 		if (ncontr > 0) {
 		   for (n in 1:ncontr) { 
 		   con <- contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average") 
-		   Stat[i, j, k, (NoF+2*n-1):(NoF+2*n)] <- c(con$Contrast, con$testStat)
+		   Stat[i, j, k, (BrickCnt+2*n-1):(BrickCnt+2*n)] <- c(con$Contrast, con$testStat)
 	   }
 		}
 		if (nCov > 0) {
 		   for (n in 1:nCov) {
-			   Stat[i, j, k, (NoF+2*ncontr+2*n-1):(NoF+2*ncontr+2*n)] <- 
+			   Stat[i, j, k, (BrickCnt+2*ncontr+2*n-1):(BrickCnt+2*ncontr+2*n)] <- 
 				c(summary(fm)$tTable[Cov[n], "Value"], summary(fm)$tTable[Cov[n], "t-value"])
 			}
 		}
@@ -248,6 +266,12 @@ print(format(Sys.time(), "%D %H:%M:%OS3"))
 }
 
 MyLabel <- paste(rownames(anova(fm))[FArr], " F")
+if (NoConst) {  # RanEff or not
+   for (n in 1:dim(summary(fm)$tTable)[1]) {
+	   MyLabel <- append(MyLabel, rownames(summary(fm)$tTable)[n])
+		MyLabel <- append(MyLabel, paste(rownames(summary(fm)$tTable)[n], "t"))
+	}
+}		
 if (ncontr > 0) {
 for (n in 1:ncontr) {
    MyLabel <- append(MyLabel, contrLabel[n])
@@ -273,12 +297,25 @@ for (i in (2-IdxAdj):(NoF+1-IdxAdj)) {  # has an intercept or not
 	if (RanEff) statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, 
 	   " fift ", anova(fm)$numDF[i], " ", anova(fm)$denDF[i])
 	else statpar <- paste(statpar, " -substatpar ", i-2+IdxAdj, " fift ", 1, " ", glsDF)
-}
-if (ncontr > 0) for (n in 1:ncontr) statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", contrDF[n])
+}  # from 0 to NoF-1
+
+if (NoConst) {
+   for (n in 1:dim(summary(fm)$tTable)[1]) {
+	   if (RanEff) { 
+		   for (n in 1:dim(summary(fm)$tTable)[1]) {
+		      statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
+			}
+		} else for (n in 1:dim(summary(fm)$tTable)[1]) {
+		   statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", glsDF)
+		}
+	}
+}	# from NoF to BrickCnt-1
+
+if (ncontr > 0) for (n in 1:ncontr) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*n-1, " fitt ", contrDF[n])
 if (nCov > 0) {
-   if (RanEff) for (n in 1:nCov) statpar <- paste(statpar, " -substatpar ", NoF+nCov+2*n-1, " fitt ",
+   if (RanEff) for (n in 1:nCov) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*ncontr+2*n-1, " fitt ",
 	   summary(fm)$tTable[Cov[n], "DF"]) else
-	   for (n in 1:nCov) statpar <- paste(statpar, " -substatpar ", NoF+nCov+2*n-1, " fitt ", glsDF)
+	   for (n in 1:nCov) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*ncontr+2*n-2, " fitt ", glsDF)
 }
 statpar <- paste(statpar, " -view tlrc -addFDR -newid ", OutFile)
 system(statpar)
