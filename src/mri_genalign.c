@@ -960,7 +960,7 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
    int nblok , nelm , *elm , dd , ii,jj , nm ;
-   float xv,yv,xy,xm,ym,vv,ww,ws , pcor , wt , psum=0.0f ;
+   float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f ;
 
    if( gstup->blokset == NULL ){
      float rad=gstup->blokrad , mrad ;
@@ -982,12 +982,12 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
    nblok = gbs->num ; nm = gstup->npt_match ;
    if( nblok < 1 ) ERROR_exit("Bad GA_BLOK_set?!") ;
 
-   for( dd=0 ; dd < nblok ; dd++ ){
+   for( wss=0.0f,dd=0 ; dd < nblok ; dd++ ){
      nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;
      elm = gbs->elm[dd] ;
 
      if( wvm == NULL ){   /*** unweighted correlation ***/
-       xv=yv=xy=xm=ym=0.0f ; /*** ws = nelm ; ***/
+       xv=yv=xy=xm=ym=0.0f ; ws = 1.0f ;
        for( ii=0 ; ii < nelm ; ii++ ){
          jj = elm[ii] ;
          xm += avm[jj] ; ym += bvm[jj] ;
@@ -1013,15 +1013,16 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
          xv += wt*vv*vv ; yv += wt*ww*ww ; xy += wt*vv*ww ;
        }
      }
+     wss += ws ;
 
      if( xv <= 0.0f || yv <= 0.0f ) continue ;      /* skip this blok */
      pcor = xy/sqrtf(xv*yv) ;                       /* correlation */
      if( pcor > CMAX ) pcor = CMAX; else if( pcor < -CMAX ) pcor = -CMAX;
      pcor = logf( (1.0f+pcor)/(1.0f-pcor) ) ;       /* 2*arctanh() */
-     psum += pcor * fabsf(pcor) ;                   /* emphasize large values */
+     psum += ws * pcor * fabsf(pcor) ;              /* emphasize large values */
    }
 
-   return (0.25f*psum/nblok) ; /* averaged stretched emphasized correlations */
+   return (0.25f*psum/(nblok*wss)); /* averaged stretched emphasized correlation */
 }
 /*======================== End of BLOK-iness functionality ==================*/
 
