@@ -12,7 +12,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *inset=NULL , *outset ;
    char *prefix="Upsam" ;
    int verb=0 , iarg=1 ;
-   float *ivec , *ovec ;
+   float *ivec , *ovec , trin , trout ;
 
    /*------- help the pitifully ignorant user? -------*/
 
@@ -24,6 +24,7 @@ int main( int argc , char *argv[] )
       "   by a factor of 'n'.\n"
       "* The value of 'n' must be between 2 and 32 (inclusive).\n"
       "* The output dataset is always in float format.\n"
+      "   [Because I'm lazy scum, that's why.]\n"
       "\n"
       "Options:\n"
       "--------\n"
@@ -38,6 +39,14 @@ int main( int argc , char *argv[] )
       "Example:\n"
       "--------\n"
       " 3dUpsample -prefix LongFred 5 Fred+orig\n"
+      "\n"
+      "Nota Bene:\n"
+      "----------\n"
+      "* You should not use this for files that were 3dTcat-ed across\n"
+      "   imaging run boundaries, since that will result in interpolating\n"
+      "   between non-contiguous time samples!\n"
+      "\n"
+      "--- RW Cox - April 2008\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -85,7 +94,7 @@ int main( int argc , char *argv[] )
    inset = THD_open_dataset(argv[iarg]) ;
    if( !ISVALID_DSET(inset) )
      ERROR_exit("3dUpsample can't open dataset '%s'",argv[iarg]) ;
-   ntin = DSET_NVALS(inset) ;
+   ntin = DSET_NVALS(inset) ; trin = DSET_TR(inset) ;
    if( ntin < 2 )
      ERROR_exit("dataset '%s' has only 1 value per voxel?!",argv[iarg]) ;
 
@@ -97,7 +106,7 @@ int main( int argc , char *argv[] )
 
    /*------ create output dataset ------*/
 
-   ntout = ntin * nup ;
+   ntout = ntin * nup ; trout = trin / nup ;
 
    outset = EDIT_empty_copy(inset) ;
    EDIT_dset_items( outset ,
@@ -109,6 +118,15 @@ int main( int argc , char *argv[] )
                       ADN_none ) ;
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dUpsample" , argc,argv , outset ) ;
+
+   if( outset->taxis != NULL ){
+     outset->taxis->ttdel /= nup ;
+     outset->taxis->ttdur /= nup ;
+     if( outset->taxis->toff_sl != NULL ){
+       for( ii=0 ; ii < outset->taxis->nsl ; ii++ )
+         outset->taxis->toff_sl[ii] /= nup ;
+     }
+   }
 
    for( ii=0 ; ii < ntout ; ii++ ){ /* create empty bricks to be filled below */
      EDIT_substitute_brick( outset , ii , MRI_float , NULL ) ;
