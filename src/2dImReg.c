@@ -859,7 +859,7 @@ char * IMREG_main
    char * new_prefix ;                         /* string from user */
    int base , ntime , datum , nx,ny,nz , ii,kk , npix ;
    float                      dx,dy,dz ;
-   int base_datum;
+   int base_datum, failed;
    MRI_IMARR * ims_in , * ims_out ;
    MRI_IMAGE * im , * imbase ;
 
@@ -1134,8 +1134,13 @@ char * IMREG_main
       ims_out = mri_align_dfspace( imbase , NULL , ims_in ,
                                    ALIGN_REGISTER_CODE , dxar,dyar,phiar ) ;
 
-      if( ims_out == NULL )
-	fprintf(stderr,"IMREG: mri_align_dfspace return NULL\n") ;
+      /* hack of a fix for failure case       08 Apr 2008 [rickr/dglen] */
+      failed = 0;
+      if( ims_out == NULL ) {
+	fprintf(stderr,"IMREG failure (zero slice?), copying input\n");
+        failed = 1;
+        ims_out = ims_in;
+      }
 
       
       /*----- Store the registration parameters -----*/
@@ -1213,7 +1218,7 @@ char * IMREG_main
 	fprintf(stderr,"IMREG: destroying aligned output\n") ;
 
 
-      DESTROY_IMARR( ims_out ) ;
+      if( !failed ) DESTROY_IMARR( ims_out ) ;  /* 08 Apr 2008 */
    }
 
    /*** 5) Destroy the empty images and other workspaces ***/
