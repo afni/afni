@@ -48,7 +48,7 @@
 
 afni_history_struct rickr_history[] = {
 
- {  8, APR, 2008, RCR, "2dImreg", MINOR, TYPE_BUG_FIX,
+ {  8, APR, 2008, RCR, "2dImReg", MINOR, TYPE_BUG_FIX,
    "allow zero slices, passing input as result",
    "Choleski factorization would fail on an empty slice.  In this case,\n"
    "return the input slices as the result (instead of crashing).\n"
