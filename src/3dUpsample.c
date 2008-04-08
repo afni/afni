@@ -18,7 +18,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
-      "Usage: 3dUpsam [options] n dataset\n"
+      "Usage: 3dUpsample [options] n dataset\n"
       "\n"
       "* Upsamples a 3D+time dataset, in the time direction,\n"
       "   by a factor of 'n'.\n"
