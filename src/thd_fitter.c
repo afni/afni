@@ -76,8 +76,8 @@ floatvec * THD_fitter( int npt , float *far  ,
                        int nref, float *ref[],
                        int meth, float *ccon  )
 {
-   int jj ;
-   float *qfit=NULL, val ;
+   int ii,jj , nbad ;
+   float *qfit=NULL, val , qmax ;
    floatvec *fv=NULL ;
 
    KILL_floatvec(gfitv) ;  /* 05 Mar 2008 */
@@ -88,6 +88,44 @@ floatvec * THD_fitter( int npt , float *far  ,
        nref <= 0 || ref == NULL || nref >= npt-1 ) return NULL ;
 
    for( jj=0 ; jj < nref ; jj++ ) if( ref[jj] == NULL ) return NULL ;
+
+   /*--- 08 Apr 2008: check if some columns are way small;
+                      if so, excise them and solve smaller problem ---*/
+
+   qfit = (float *)malloc(sizeof(float)*nref) ;
+   for( qmax=0.0f,jj=0 ; jj < nref ; jj++ ){
+     for( val=0.0f,ii=0 ; ii < npt ; ii++ ) val += fabsf(ref[jj][ii]) ;
+     qfit[jj] = val ; if( val > qmax ) qmax = val ;
+   }
+   if( qmax == 0.0f ){ free((void *)qfit); return NULL; }
+   qmax *= 0.000333f ;
+   for( nbad=jj=0 ; jj < nref ; jj++ ) if( qfit[jj] <= qmax ) nbad++ ;
+
+   if( nbad > 0 ){  /*-- must excise the tiny columns before solving --*/
+     int    ngood = nref-nbad ;
+     float **qref = (float **)calloc(sizeof(float *),ngood) ;
+     floatvec *qv ; float *qcon=NULL ;
+     if( ccon != NULL ) qcon = (float *)calloc(sizeof(float),ngood) ;
+     for( ii=jj=0 ; jj < nref ; jj++ ){
+       if( qfit[jj] > qmax ){
+         if( qcon != NULL ) qcon[ii] = ccon[jj] ;
+         qref[ii++] = ref[jj] ;
+       }
+     }
+     qv = THD_fitter( npt , far , ngood , qref , meth , qcon ) ;
+     if( qcon != NULL ) free((void *)qcon) ;
+     free((void *)qref) ;
+     if( qv == NULL ){ free((void *)qfit); return NULL; }
+     MAKE_floatvec(fv,nref) ;
+     for( ii=jj=0 ; jj < nref ; jj++ ){
+       if( qfit[jj] > qmax ) fv->ar[jj] = qv->ar[ii++] ;
+     }
+     KILL_floatvec(qv) ; free((void *)qfit) ; return fv ;
+   }
+
+   free((void *)qfit) ; qfit = NULL ;
+
+   /*------- actually solve now -------*/
 
    switch( meth ){
 

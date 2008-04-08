@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , APR , 2008 , RWC , "3dTfitter" , MICRO , TYPE_BUG_FIX ,
+   "Deal with ref (LHS) vectors that are very tiny." ,
+   "Modify thd_fitter.c so that ref vectors that are very tiny compared to\n"
+   "the largest one will not be included in the regression.  Per the\n"
+   "unreasonable request of Rasmus Birn." } ,
+
  { 8 , APR , 2008 , RWC , "3dAllineate" , MICRO , TYPE_BUG_FIX ,
    "Weighting in LPC cost function" ,
    "Realized that weighting in computing the LPC was only done on the blok\n"
