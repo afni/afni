@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , APR , 2008 , RWC , "3dUpsample" , MINOR , TYPE_NEW_PROG ,
+   "Upsample a 3D+time dataset (in the time direction)" ,
+   NULL } ,
+
  { 7 , APR , 2008 , RWC , "1dUpsample" , MINOR , TYPE_NEW_PROG ,
    "Upsample a 1D time series" ,
    NULL } ,
