@@ -45,6 +45,9 @@ int main( int argc , char *argv[] )
       "* You should not use this for files that were 3dTcat-ed across\n"
       "   imaging run boundaries, since that will result in interpolating\n"
       "   between non-contiguous time samples!\n"
+      "* If the input has M time points, the output will have n*M time\n"
+      "   points.  The last n-1 of them will be past the end of the original\n"
+      "   time series.\n"
       "\n"
       "--- RW Cox - April 2008\n"
      ) ;
