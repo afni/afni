@@ -41,10 +41,11 @@ void signal_model
 
 typedef struct
 {
-    float    K, kep, ve, fvp;   /* fit params  (one of kep or ve given)   */
+    float    K, kep, ve, fpv;   /* fit params  (one of kep or ve given)   */
     float    r1, RIB, RIT;      /* given params (via env)                 */
     float    theta, TR, TF;     /* TR & inter-frame TR (TR of input dset) */
     float    hct;               /* hematocrit value (via env)             */
+    float    rct;               /* residual Ct value (via env dset)       */
 
     float    cos0;              /* cos(theta)                             */
     int      nfirst;            /* num TRs used to compute mean Mp,0 */
@@ -59,8 +60,12 @@ typedef struct
 } demri_params;
 
 static int g_use_ve = 0;        /* can be modified in initialize model() */
-static THD_3dim_dataset *dset_R1I = NULL;    /* input 3d+time data set */
+
+/* extra datasets and data pointers */
+static THD_3dim_dataset *dset_R1I = NULL;      /* input 3d+time data set */
 static float *R1I_data_ptr = NULL;
+static THD_3dim_dataset *dset_resid_ct = NULL; /* input 3d+time data set */
+static float *resid_ct_ptr = NULL;
 
 static int alloc_param_arrays(demri_params * P, int len);
 static int compute_ts       (demri_params *P, float *ts, int ts_len);
@@ -132,9 +137,7 @@ void signal_model (
     float  * ts_array           /* estimated signal model time series */  
 )
 {
-    static demri_params P = {0.0, 0.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0, 0, 0, 0, 0,  NULL, NULL, NULL };
+    static demri_params P;
     static int          first_call = 1;
     int                 mp_len;      /* length of mcp list */
     int                 rv, errs = 0;
@@ -144,6 +147,8 @@ void signal_model (
     /* first time here, get set params, and process Mp data */
     if( first_call )
     {
+        memset(&P, 0, sizeof(P));  /* initialize params */
+
         if( get_env_params( &P )                ||
             get_Mp_array(&P, &mp_len)           ||
             alloc_param_arrays(&P, mp_len)      ||
@@ -179,7 +184,7 @@ void signal_model (
 
     /* note passed parameters */
     P.K   = params[0];
-    P.fvp = params[2];
+    P.fpv = params[2];
 
     if( P.per_min ) P.K /= 60.0;        /* then convert to per minute */
 
@@ -232,6 +237,14 @@ void signal_model (
             /* do something here?  panic into error?? */
         }
         if(P.debug > 3) printf("Voxel index %d, R1I value %f\n", P.ijk, P.RIT); 
+    }
+
+    /* get any residual Ct value */
+    if( resid_ct_ptr )
+    {
+        P.ijk = AFNI_needs_dset_ijk();
+        P.rct = resid_ct_ptr[P.ijk];  /*  get residual Ct from dataset */
+        if(P.debug > 3) printf("Voxel index %d, rCt value %f\n", P.ijk, P.rct); 
     }
 
     if(P.debug>1 && P.counter==0) disp_demri_params("before compute_ts: ", &P);
@@ -298,6 +311,14 @@ static int compute_ts( demri_params * P, float * ts, int ts_len )
     note: in exp_list, max power is (P3*(len-1-m)), m is nfirst
     note: Ct is stored in P->comp
     
+    If we have a residual Ct value, rcr, apply it an let it decay as:
+    by adding (rct - Cp[0]) * exp( -kep * (n+1) * TF ) for each n.
+
+        Ct[n] += (rct - Cp[0]) * exp( P3 * (n+1) )
+
+        note that n*TR = t (time, in seconds)
+        note that Ct has already decayed by 1 TR of time, hence +1
+    
     ** This is the only place that the dataset TR (which we label as TF,
        the inter-frame TR) is used in this model.
 */
@@ -306,11 +327,8 @@ static int ct_from_cp(demri_params * P, double * ct, float * cp,
 {
     double     * elist = P->elist;
     double       P12, P3, P14;
-    double       dval;
+    double       dval, resid;
     int          k, n;
-
-    /* init first elements to 0 */
-    for(n=0; n < nfirst; n++) ct[n] = 0.0;
 
     /* assign P*, and then fill elist[] from P3 */
     P12  = P->K / P->kep;               /* P1 for now */
@@ -322,18 +340,30 @@ static int ct_from_cp(demri_params * P, double * ct, float * cp,
     /* In a test, float accuracy was not lost until ~1 million products.
        Computing powers over the range of a time series should be okay. */
 
-    /* fill elist with powers of e(P3*i), i = 1..len-1-nfirst */
+    /* fill elist with powers of e(P3*i), i = 1..len-1 */
     elist[0] = 1.0;
     dval = exp(P3); /* first val, elist[i] is a power of this */
-    for( k = 1; k < len - nfirst; k++ )   /* fill the list */
+    for( k = 1; k < len; k++ )   /* fill the list */
         elist[k] = dval * elist[k-1];
     
-    for( n = nfirst; n < len; n++ )   /* ct[k] = 0, for k < nfirst */
+    ct[0] = 0.0;  /* no accumulation at first */
+    for( n = 1; n < len; n++ )
     {
         dval = 0.0;   /* dval is sum here */
-        for( k = nfirst+1; k < n; k++ )
+        for( k = 1; k < n; k++ )
             dval += cp[k]*elist[n-k];
-        ct[n] = P12 * dval + P14 * (cp[n]+cp[nfirst]);
+        ct[n] = P12 * dval + P14 * (cp[n]+cp[0]);
+    }
+
+    /* possibly apply the residual Ct */
+    if( P->rct > 0 ) {
+        if( P->debug > 1 && P->counter == 0 )
+            fprintf(stderr,"-- removing residuals, Ct=%f, Cp=%f, fpv=%f\n",
+                    P->rct, cp[0], P->fpv);
+        resid = P->rct - cp[0];
+        /* elist is not long enough, even if we take it to nfirst-1 (since
+           we must start at 1), so be a little slow */
+        for( n = 0; n < len; n++ ) { resid *= dval; ct[n] += resid; }
     }
 
     /* maybe print out the array */
@@ -356,8 +386,8 @@ static int c_from_ct_cp(demri_params * P, int len)
     double * C = P->comp;
     float  * cp = P->mcp;
     int      n;
-    for( n = P->nfirst; n < len; n++ )
-        C[n] += P->fvp * cp[n];         /* C already holds Ct */
+    for( n = 0; n < len; n++ )
+        C[n] += P->fpv * cp[n];         /* C already holds Ct */
 
     /* maybe print out the array */
     if( P->debug > 1 && P->counter == 0)
@@ -377,7 +407,7 @@ static int R1_from_c(demri_params * P, int len)
     double * R1 = P->comp;
     int      n;
     
-    for( n = P->nfirst; n < len; n++ ) 
+    for( n = 0; n < len; n++ ) 
         R1[n] = P->RIT + P->r1 * R1[n];
 
     /* maybe print out the array */
@@ -403,7 +433,6 @@ static int R1_from_c(demri_params * P, int len)
     notes:  R1 is in P->comp
             The '1' is a placeholder for Mx(t=0), which should have
               been factored out of the input time series.
-            Mx[i] is identically 1, for i = 0..nfirst-1 .
             I can see no speed-up for e[n].  :'(
 */
 static int Mx_from_R1(demri_params * P, float * ts, int len)
@@ -417,12 +446,8 @@ static int Mx_from_R1(demri_params * P, float * ts, int len)
     P1c  = 1 - P1 * cos0;
     P1   = 1 - P1;
 
-    /* the first nfirst values 1.0 */
-    for( n = 0; n < P->nfirst; n++ )
-        ts[n] = 1.0;
-
     /* and compute the last ones */
-    for( n = P->nfirst; n < len; n++ )
+    for( n = 0; n < len; n++ )
     {
         e = exp(-R1[n] * P->TR);
         ts[n] = (1 - e)*P1c / ( (1-cos0*e) * P1);
@@ -611,9 +636,40 @@ static int get_env_params(demri_params * P)
     {                    /* should I close any open datasets? */
        if(R1I_data_ptr)
        {
-           fprintf(stderr,"** MD3: warning, we should not be here\n");
+           fprintf(stderr,"** MD3 R1I_data: warning, we should not be here\n");
            R1I_data_ptr = NULL;
            dset_R1I = NULL;
+       }
+    }
+
+    /* check for residual contrast data */
+    envp = my_getenv("AFNI_MODEL_D3_RESID_CT_DSET");  
+    if(envp)
+    {
+        /* verify RCT dataset existence and open dataset */
+        dset_resid_ct = THD_open_one_dataset (envp);
+        if (dset_resid_ct == NULL) {
+            fprintf(stderr,"Unable to open residual Ct dataset: %s", envp);
+            return 1;
+        }
+        DSET_mallocize (dset_resid_ct);
+        DSET_load(dset_resid_ct);
+        if( !DSET_LOADED((dset_resid_ct)) ) 
+            { fprintf(stderr,"Can't load dataset %s",envp) ; return 1; }
+
+        if( DSET_BRICK_TYPE(dset_resid_ct, 0) != MRI_float )
+            { fprintf(stderr,"dset %s is not of type float\n",envp); return 1; }
+
+        resid_ct_ptr = DSET_ARRAY(dset_resid_ct, 0);
+        if(P->debug>0) printf("Set resid_ct_ptr\n");
+    }
+    else
+    {                    /* should I close any open datasets? */
+       if(resid_ct_ptr)
+       {
+           fprintf(stderr,"** MD3 resid Ct: warning, we should not be here\n");
+           resid_ct_ptr = NULL;
+           dset_resid_ct = NULL;
        }
     }
 
@@ -716,17 +772,20 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
     float  r1 = P->r1, RIB = P->RIB, TR = P->TR, cos0 = P->cos0;
     int    nfirst = P->nfirst;
 
-    /* compute m0 equal to mean of first 'nfirst+1' values */
+    if( nfirst > mp_len ) nfirst = 0;
+
+    /* compute m0 equal to mean of first 'nfirst' values */
     dval = 0.0;
-    for(c = 0; c <= nfirst; c++)
+    for(c = 0; c < nfirst; c++)
         dval += mp[c];
-    m0 = dval / (nfirst+1);
+    if( nfirst == 0 ) m0 = 1.0;         /* then no scaling */
+    else              m0 = dval / (nfirst+1);
 
     if( m0 < EPSILON ) /* negative is bad, too */
     {
         fprintf(stderr,"** m0 == %s is too small (for my dreams of konquest)\n",
                 MV_format_fval(m0));
-        return 1;
+        m0 = 1.0;
     }
 
     /* simple terms */
@@ -740,6 +799,7 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
 
     if(P->debug > 1) {
         fflush(stdout);
+        fprintf(stderr,"-- applying nfirst = %d\n", nfirst);
         fprintf(stderr,
                 "+d mp_len, m0, rTR, R_r1 = %d, %f, %f, %f\n"
                 "  ertr, ertr_c0, c0_ertr_c0 = %f, %f, %f\n"
@@ -748,8 +808,8 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
 
     /* we don't have to be too fast here, since this is one-time-only */
 
-    /* start with setting nfirst+1 terms to 0 */
-    for( c = 0; c <= nfirst; c++ )
+    /* start with setting nfirst terms to 0 (compute @nfirst, maybe not 0) */
+    for( c = 0; c < nfirst; c++ )
         mp[c] = 0.0;
 
     /* and compute the remainder of the array */
@@ -793,7 +853,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    K      = %f  ( K trans (plasma Gd -> tissue Gd) )\n"
                     "    kep    = %f  ( back-transfer rate ( Gd_t -> Gd_p ) )\n"
                     "    ve     = %f  ( external cellular volume fraction)\n"
-                    "    fvp    = %f  ( fraction of voxel occupied by blood )\n"
+                    "    fpv    = %f  ( fraction of voxel occupied by blood )\n"
                     "    r1     = %f  ( 1/(mMol*seconds) )\n"
                     "    RIB    = %f  ( 1/seconds )\n"
                     "    RIT    = %f  ( 1/seconds )\n"
@@ -801,6 +861,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    TR     = %f  ( seconds (~0.007) )\n"
                     "    TF     = %f  ( seconds (~20) )\n"
                     "    hct    = %f  ( hematocrit (~0.5) )\n"
+                    "    rct    = %f  ( residual Ct value )\n"
                     "\n"
                     "    cos0    = %f  ( cos(theta) )\n"
                     "    nfirst  = %d\n"
@@ -812,8 +873,8 @@ static int disp_demri_params( char * mesg, demri_params * p )
                     "    elist   = %p\n"
                     "    mcp     = %p\n"
             , p,
-            p->K, p->kep, p->ve, p->fvp,
-            p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->hct,
+            p->K, p->kep, p->ve, p->fpv,
+            p->r1, p->RIB, p->RIT, p->theta, p->TR, p->TF, p->hct, p->rct,
             p->cos0, p->nfirst, p->ijk, p->debug, p->per_min,
             p->comp, p->elist, p->mcp);
 
@@ -905,6 +966,28 @@ static int model_help(void)
     "           If this variable is set to YES, then rates are per minute.\n"
     "\n"
     "     ** note: default units are with respect to seconds\n"
+    "\n"
+    "       --- AFNI_MODEL_D3_RESID_CT_DSET ---------------------------\n"
+    "\n"
+    "           In the case of multiple injections, the current data may have\n"
+    "           residual contrast from a previous injection.  To let this\n"
+    "           model know about it, the user can specify a volume dataset\n"
+    "           containing the residual Ct value (from the previous curve).\n"
+    "\n"
+    "           This model would then compute { Ct - fpv*Cp(0) } and let it\n"
+    "           decay, multiplying by exp(-kep*t) over time.  This time\n"
+    "           series would be added to the resulting Ct curve.\n"
+
+    "           e.g. residual_Ct+orig\n"
+    "\n"
+    "        ** Note that in this case, the input time series must be scaled\n"
+    "           prior to input.  For example, if a time series consisted of\n"
+    "           90 TRs, where there were injections at TR = 5 and at TR = 45,\n"
+    "           then the entire 90 TR dataset should be scaled by the mean\n"
+    "           (or median) of the first 5 TRs.\n"
+    "\n"
+    "           After that, the first and last 45 TRs can be given to 3dNLfim\n"
+    "           separately.\n"
     "\n"
     "   environment variables to control Mp(t):\n"
     "       AFNI_MODEL_D3_MP_FILE : file containing Mp(t) data\n"
