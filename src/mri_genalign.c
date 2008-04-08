@@ -959,8 +959,9 @@ ENTRY("create_GA_BLOK_set") ;
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
-   int nblok , nelm , *elm , dd , ii,jj , nm , uwb ;
+   int nblok , nelm , *elm , dd , ii,jj , nm ;
    float xv,yv,xy,xm,ym,vv,ww,ws,wss , pcor , wt , psum=0.0f ;
+   static int uwb=-1 ;
 
    if( gstup->blokset == NULL ){
      float rad=gstup->blokrad , mrad ;
@@ -982,7 +983,7 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
    nblok = gbs->num ; nm = gstup->npt_match ;
    if( nblok < 1 ) ERROR_exit("Bad GA_BLOK_set?!") ;
 
-   uwb = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;
+   if( uwb < 0 ) uwb = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;  /* first time in */
 
    for( wss=0.0f,dd=0 ; dd < nblok ; dd++ ){
      nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ;
@@ -1025,7 +1026,7 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
      psum += ws * pcor * fabsf(pcor) ;              /* emphasize large values */
    }
 
-   return (0.25f*psum/(nblok*wss)); /* averaged stretched emphasized correlation */
+   return (0.25f*psum/wss);      /* averaged stretched emphasized correlation */
 }
 /*======================== End of BLOK-iness functionality ==================*/
 
