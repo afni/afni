@@ -714,7 +714,7 @@ AUTO_TLRC_MODE:
    3drefit  -atrcopy ${tmppref}_reg_warpdriveout${anat_view} \
             WARPDRIVE_MATVEC_INV_000000 ${tt_prefupad}${anat_view}
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
-            -h "Dataset created via: `basename $0` $argv[*]"   \ 
+            -h "Dataset created via: `basename $0` $argv[*]"   \
             ${tt_prefupad}${anat_view}
    
    if ($KeepView == 0) then
