@@ -107,7 +107,7 @@ static char *meth_username[NMETH] =    /* descriptive names */
                                               (NPBIL+4)*sizeof(GA_param) ) ; \
      for( jj=12 ; jj < NPBIL ; jj++ ){                                       \
        sprintf(str,"blin%02d",jj+1) ;                                        \
-       DEFPAR( jj,str, -0.1357f,0.1357f , 0.0f,0.0f,0.0f ) ;                 \
+       DEFPAR( jj,str, -0.1999f,0.1999f , 0.0f,0.0f,0.0f ) ;                 \
        stup.wfunc_param[jj].fixed = 1 ;                                      \
      }                                                                       \
      DEFPAR(NPBIL  ,"xcen" ,-1.0e9,1.0e9 , 0.0f,0.0f,0.0f ) ;                \
@@ -3248,7 +3248,7 @@ int main( int argc , char *argv[] )
            stup.wfunc_param[jj].fixed = 0 ;
          for( jj=0  ; jj < NPBIL ; jj++ )
            stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         nbf = mri_genalign_scalar_optim( &stup , 0.555f*rad, 3.3f*conv_rad,2222 );
+         nbf = mri_genalign_scalar_optim( &stup, 0.555f*rad, 3.33f*conv_rad,2222 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Bilinear#2 cost = %f ; %d funcs ; CPU = %.1f s",
@@ -3258,7 +3258,8 @@ int main( int argc , char *argv[] )
 
          for( jj=0  ; jj < NPBIL ; jj++ )
            stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         nbf = mri_genalign_scalar_optim( &stup , 0.222f*rad, conv_rad,1111 );
+         rad = 0.111f*rad ; if( rad > 9.99f*conv_rad ) rad = 9.99f*conv_rad ;
+         nbf = mri_genalign_scalar_optim( &stup, rad, conv_rad, 555 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; CPU = %.1f s",
