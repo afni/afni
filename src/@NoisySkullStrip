@@ -29,6 +29,19 @@ set nbin = 1000
             -datum short   \
             $ap$av 
 
+if (DoEight) then
+   #Also do this one, looks promising might want it later
+   3dLocalstat -overwrite -prefix $t"_ls8" \
+               -stat mean -stat stdev \
+               -nbhd 'SPHERE(8)' \
+               -datum short   \
+               $ap$av
+   3dcalc   -a $t"_ls"8+orig'[0]' -b $t"_ls"8+orig'[1]' \
+            -expr 'a/b' -prefix $t_"ir"
+   #top 75% is brainy 
+
+endif
+
 set mma = `3dBrickStat -non-zero -mean $ap$av `
 set mm  = `3dBrickStat -non-zero -mean $t"_ls"$av'[0]'`
 3dcalc   -a $t"_ls"$av'[0]' -b $t"_ls"$av'[1]'   \
@@ -122,6 +135,7 @@ PARSE_COMMAND:
    set ssopt = ""
    set cleanup = 1
    set in = ""
+   set DoEight = 0
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-input") then
