@@ -115,10 +115,10 @@ g_help_string = """
 
     -suffix ssss: append the suffix to the original anat/epi dataset to use
                      in the resulting dataset names (default is "_al")
-		     
+     
     -child_epi dset1 dset2 ... : specify other EPI datasets to align.
         Time series volume registration will be done to the same
-		  base as the main parent EPI dataset. 
+        base as the main parent EPI dataset. 
         
     -big_move   : indicates that large displacement is needed to align the
                   two volumes. This option is off by default.
@@ -174,18 +174,22 @@ g_help_string = """
     Examples:
       # align anat to sub-brick 5 of epi+orig. In addition, do slice timing
       # correction on epi+orig and register all sub-bricks to sub-brick 5
-      align_epi_anat.py -anat anat+orig -epi epi+orig \\
+
+      align_epi_anat.py -anat anat+orig -epi epi_r1+orig \\
                         -epi_base 5
       
       # same as example above, but also process other epi runs
       # in the same way as epi+orig
-      align_epi_anat.py -anat anat+orig -epi epi+orig \\
+
+      align_epi_anat.py -anat anat+orig -epi epi_r1+orig \\
                         -epi_base 5 -child_epi epi_r??+orig.HEAD
                         
       # Instead of aligning the anatomy to an epi, transform the epi
       # to match the anatomy. Children get the same treatment. Note that
       # epi sub-bricks are transformed once in the process.
-      align_epi_anat.py -anat anat+orig -epi epi+orig \\
+      # (Sample data files are in AFNI_data4/sb23 in sample class data)
+
+      align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig \\
                         -epi_base 5 -child_epi epi_r??+orig.HEAD \\
                         -epi2anat
       
@@ -193,7 +197,10 @@ g_help_string = """
       # - create talairach transformed epi datasets (still one transform)
       # - do not execute, just show the commands that would be executed.
       #   These commands can be saved in a script or modified.
-      # - a bunch of other options to tickle your mind
+      # + a bunch of other options to tickle your mind
+      # The talairach transformation requires auto-talairaching 
+      # the anatomical dataset first
+      @auto_tlrc -base ~/abin/TT_N27+tlrc -input sb23_mpra+orig
       align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig \\
                         -epi_base 6 -child_epi epi_r??+orig.HEAD \\
                         -ex_mode dry_run -epi2anat \\
@@ -210,10 +217,10 @@ g_help_string = """
 #                     ('cmass+a','cmass+xy','nocmass',...) Default is cmass+xy.
 #    -child_anat dset1 dset2 ... : specify other anatomical datasets to align.
 #        The anatomical data will be aligned first to the parent
-#		  structural dataset. If aligning to EPI data, then the
-#		  transformation of the parent anatomical to the EPI data will
-#		  be combined with the inter-structural transformation.
-#		  
+#                 structural dataset. If aligning to EPI data, then the
+#                 transformation of the parent anatomical to the EPI data will
+#                 be combined with the inter-structural transformation.
+#
 #     -fresh      : remove any temporary files at start from a previous run
 #    Weighting mask options:
 #    A weighting mask is used in the alignment. The default weighting mask
@@ -294,7 +301,7 @@ class RegWrap:
                                helpstr="Options passed to 3dAllineate.")
       self.valid_opts.add_opt('-perc', 1, ['50'])
 #      self.valid_opts.add_opt('-fresh', 0, [])
-      self.valid_opts.add_opt('-suffix', 1,['_alepi'])
+      self.valid_opts.add_opt('-suffix', 1,['_al'])
       self.valid_opts.add_opt('-cost', 1,['lpc'])
 #      self.valid_opts.add_opt('-fat', 1, ['1'])
 
@@ -336,19 +343,21 @@ class RegWrap:
                  "template transformed datasets for the epi aligned\n"
                  "to the anatomical combined with this additional\n"
                  "transformation to template of this parent dataset\n"
-                 "The result will be EPI_alepi+tlrc.HEAD\n")
+                 "The result will be EPI_al+tlrc.HEAD\n")
 
       # talairach transformed EPI parent dataset
       self.valid_opts.add_opt('-epar', 1, [], \
-         helpstr="If this is set, the results will include +tlrc\n"
+         helpstr="Not available yet.\n"
+	         "If this is set, the results will include +tlrc\n"
                  "template transformed datasets for the anatomical\n"
                  "aligned to the epi combined with this additional\n"
                  "transformation to template of this parent dataset\n"
-                 "The result will be ANAT_alepi+tlrc.HEAD\n")
+                 "The result will be ANAT_al+tlrc.HEAD\n")
 
       # auto_talairach results
       self.valid_opts.add_opt('-auto_tlrc', 0, [], \
-         helpstr="If this is set, the results will also be aligned\n"
+         helpstr="Not available yet.\n"
+	         "If this is set, the results will also be aligned\n"
                  "to a template using the @auto_tlrc script.\n"
                  "Transformations computed from that will be combined\n"
                  "with the anat to epi transformations and epi to anat\n"
@@ -381,7 +390,8 @@ class RegWrap:
                helpstr = "Unused")
 
       self.valid_opts.add_opt('-mask', -1, ['vent'], \
-               helpstr="Mask to apply to data. Unused")
+               helpstr="Not available yet.\n"
+	               "Mask to apply to data.")
   
    def dry_run(self):
       if self.oexec != "dry_run":
@@ -465,13 +475,13 @@ class RegWrap:
               self.volreg_flag = 1
           elif(opt.parlist[0]=='off'):
               self.volreg_flag = 0
-	      self.info_msg("turning off volume registration")
+              self.info_msg("turning off volume registration")
           else:
               self.error_msg("volreg option not on/off");
               self.ciao(1)
       else:
           self.volreg_flag = 1              
-	  
+
       opt = opt_list.find_opt('-save_Al_in')  # save 3dAllineate input datasets
       if opt != None: self.save_Al_in = 1
 
@@ -626,7 +636,7 @@ class RegWrap:
       opt = self.user_opts.find_opt('-epi_base')
       if opt != None: 
          ps.epi_base = opt.parlist[0]
-	 ps.info_msg("epi_base set")
+         ps.info_msg("epi_base set")
       else:
          ps.error_msg("Must use -epi_base option")
          ps.ciao(1)
@@ -686,12 +696,12 @@ class RegWrap:
          self.info_msg("-child_epi option given")
          for child_epi_name in ps.child_epis.parlist:
             child_epi = afni_name(child_epi_name) 
-	    # it's 11:00, do you know where your children are?
+            # it's 11:00, do you know where your children are?
             if not child_epi.exist():
                self.error_msg("Could not find child epi\n %s "
                      % child_epi.ppv())
             else:
-	       self.info_msg("Found child epi %s" % child_epi.ppv())
+               self.info_msg("Found child epi %s" % child_epi.ppv())
 
       # all inputs look okay
       return 1
@@ -774,9 +784,9 @@ class RegWrap:
    def align_epi2anat(  self, e=None, a=None, \
         alopt="-VERB -warp aff ",\
         suf = "_alnd_anat"):
-	
+
       self.info_msg(" Aligning %s to anat" % e.ppv())
-	
+
       o = e.new("%s%s" % (e.prefix, suf))
       if (not o.exist() or ps.rewrite):
          o.delete(ps.oexec)
@@ -933,8 +943,8 @@ class RegWrap:
          #   or (ps.volreg_base=='mean')):   
          # choose a statistic as representative
          # if an integer, choose a single sub-brick
-	 if(childflag):
-	    base = "%s.'[%s]'"  %  (ps.epi.ppv(), ps.volreg_base)
+         if(childflag):
+            base = "%s.'[%s]'"  %  (ps.epi.ppv(), ps.volreg_base)
          elif(ps.volreg_base.isdigit()): 
             base = "%s" % ps.volreg_base
 
@@ -1107,9 +1117,9 @@ class RegWrap:
          if(self.tshiftable_dset(o)) :
             o = self.tshift_epi( o, ps.tshift_opt, prepre, "_tsh")
             prepre = ""
-	 else:
-	    self.info_msg("Can not do time shifting of slices. "
-	                  "Data is already time shifted")
+         else:
+            self.info_msg("Can not do time shifting of slices. "
+                          "Data is already time shifted")
       # if timeshifting was done, this will be the final epi dataset
       # and then the concatenated volreg, 3dAllineate transformations will be
       # applied
@@ -1117,7 +1127,7 @@ class RegWrap:
       # do volume registration
       if(self.volreg_flag):
          o = self.register_epi( o, ps.reg_opt, prepre, "_vr",\
-	      childflag=childflag)
+               childflag=childflag)
          prepre = ""
       volreg_o = o
 
@@ -1125,7 +1135,7 @@ class RegWrap:
       #   and skip reduction, resampling, skullstripping
       if(childflag):
          return tshift_o, volreg_o, volreg_o
-	 
+ 
       # reduce epi to a single representative sub-brick
       o = self.tstat_epi(o, ps.tstat_opt, prepre, "_ts")
       prepre = ""
@@ -1212,8 +1222,8 @@ class RegWrap:
             print "** ERROR: Could not rename %s\n" % aae.ppv()
             return
 
-	 # save the timeshifted EPI data
-	 if (self.epi_ts and self.tshift_flag) :
+         # save the timeshifted EPI data
+         if (self.epi_ts and self.tshift_flag) :
             eo = epi_in.new("%s_tshft%s" % (ein.prefix, suf))
             eo.delete(ps.oexec)
             self.info_msg( "Creating final output: time shifted epi")
@@ -1221,8 +1231,8 @@ class RegWrap:
                      "3dcopy %s %s" % (self.epi_ts.ppv(), eo.pve()), ps.oexec)
             com.run()
 
-	 # save the volume registered EPI data
-	 if (self.epi_vr and self.volreg_flag):
+         # save the volume registered EPI data
+         if (self.epi_vr and self.volreg_flag):
             eo = epi_in.new("%s_vr%s" % (ein.prefix, suf))
             eo.delete(ps.oexec)
             self.info_msg( "Creating final output: "
@@ -1234,8 +1244,8 @@ class RegWrap:
 
       # save Allineate input datasets
       if(ps.save_Al_in):
-	 # save weight used in 3dAllineate
-	 if w:
+         # save weight used in 3dAllineate
+         if w:
             ow = ain.new("%s_wt_in_3dAl%s" % (ein.prefix,suf))
             ow.delete(ps.oexec)
             self.info_msg( "Creating final output: weighting data")
@@ -1243,8 +1253,8 @@ class RegWrap:
                      "3dcopy %s %s" % (w.ppv(), ow.pve()), ps.oexec)
             com.run()
 
-	 #save a version of the epi as it went into 3dAllineate         
-	 if epi_in:
+         #save a version of the epi as it went into 3dAllineate         
+         if epi_in:
             eo = epi_in.new("%s_epi_in_3dAl%s" % (ein.prefix, suf))
             eo.delete(ps.oexec)
             self.info_msg( "Creating final output: " \
@@ -1253,8 +1263,8 @@ class RegWrap:
                      "3dcopy %s %s" % (epi_in.ppv(), eo.pve()), ps.oexec)
             com.run()
 
-	 #save a version of the anat as it went into 3dAllineate
-	 if anat_in:  
+         #save a version of the anat as it went into 3dAllineate
+         if anat_in:  
             ao = epi_in.new("%s_anat_in_3dAl%s" % (ain.prefix, suf))
             ao.delete(ps.oexec)
             self.info_msg(    \
@@ -1267,9 +1277,9 @@ class RegWrap:
       if (eaa):
          #save the epi aligned to anat
          o = e.new("%s%s" % (ein.prefix, suf))
-	 if(eaa.ppv()==o.ppv()):
-	    self.info_msg("Output EPI data created without time shifting" \
-	                  "nor time series registration")
+         if(eaa.ppv()==o.ppv()):
+            self.info_msg("Output EPI data created without time shifting" \
+                          "nor time series registration")
          else:
             o.delete(ps.oexec)
             self.info_msg( "Creating final output: epi data aligned to anat")
@@ -1319,24 +1329,24 @@ class RegWrap:
       self.info_msg("Parent %s:  Child: %s" % (ps.epi.ppv(), child.epi.ppv()))
             
       child.epi_ts, child.epi_vr, child.epi_ns = \
-	 child.process_epi(childflag=1)
+          child.process_epi(childflag=1)
       if (not child.epi_ns):
-	 child.ciao(1)
+         child.ciao(1)
 
       e = child.epi_ns
       a = ps.anat_ns   # use parent anat
 
       if(ps.prep_only):  # if preprocessing only, exit now
-	 ps.ciao(0)
+         ps.ciao(0)
 
       if (ps.epi2anat) :   # does the user want the epi aligned to the anat
-	 # compute transformation just from applying inverse
-	 child.epi_alnd = \
+         # compute transformation just from applying inverse
+         child.epi_alnd = \
             child.align_epi2anat(child.epi_vr, a, suf=ps.suffix)
-	 if (not child.epi_alnd):
+         if (not child.epi_alnd):
             ps.ciao(1)
       else:
-	child.epi_alnd = ''
+         child.epi_alnd = ''
 
       
 # Main:
@@ -1401,8 +1411,8 @@ if __name__ == '__main__':
    # process the children
    if ps.child_epis != None: 
       for child_epi_name in ps.child_epis.parlist:
-	 child_epi = afni_name(child_epi_name) 
-	 ps.process_child_epi(child_epi)
+         child_epi = afni_name(child_epi_name) 
+         ps.process_child_epi(child_epi)
 
    #cleanup?
    if (ps.rmrm):
