@@ -299,6 +299,7 @@ static mday holiday[] = {
    {APR, 8,"Siddhartha Gautama's birthday"                           } ,
    {APR, 9,"Anniversary of Lee's surrender at Appomattox"            } ,
    {APR,10,"Anniversary of loss of USS Thresher"                     } ,
+   {APR,10,"National Sibling Day (USA)"                              } ,
    {APR,11,"Dean Acheson's birthday"                                 } ,
    {APR,12,"Anniversary of Yuri Gagarin's spaceflight"               } ,
    {APR,13,"Thomas Jefferson's birthday"                             } ,
