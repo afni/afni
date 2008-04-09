@@ -3210,7 +3210,7 @@ int main( int argc , char *argv[] )
 
          xr = 0.5f * dx_base * nx_base ;
          yr = 0.5f * dy_base * ny_base ; rr = MAX(xr,yr) ;
-         zr = 0.5f * dz_base * nz_base ; rr = MAX(zr,rr) ; rr = 1.0f / rr ;
+         zr = 0.5f * dz_base * nz_base ; rr = MAX(zr,rr) ; rr = 1.2f / rr ;
 
          SETUP_BILINEAR_PARAMS ;
 
