@@ -357,10 +357,13 @@ ENTRY("THD_localstat") ;
              int N_mp, pp; 
              float *sfar=NULL;
              MRI_IMAGE *fim=NULL;
-                if (codeparam[cc][0] < 1) { ERROR_exit("THD_localstat: No percentile parameters set."); }
+                if (codeparam[cc][0] < 1) { 
+                  ERROR_exit("THD_localstat: No percentile parameters set."); }
                 N_mp = (int) codeparam[cc][0];
                 if (N_mp >  MAX_CODE_PARAMS) {
-                  ERROR_exit("THD_localstat: Cannot exceed %d params.\nHave %d\n", MAX_CODE_PARAMS, N_mp);
+                  ERROR_exit( "THD_localstat: Cannot exceed %d params.\n"
+                              "Have %d\n", 
+                              MAX_CODE_PARAMS, N_mp);
                 }
                 for (pp=0; pp<N_mp; ++pp) {
                   mpv[pp] = (double) codeparam[cc][1+pp]/100.0;
@@ -370,10 +373,11 @@ ENTRY("THD_localstat") ;
                   else                          fim = nbim ;
 
                    sfar = MRI_FLOAT_PTR(fim);
-                   if (!(sfar = (float *)Percentate (MRI_FLOAT_PTR(fim), NULL, fim->nvox,
-                                    MRI_float, mpv, N_mp,
-                                    0, perc,
-                                    1, 1, 1 ))) {
+                   if (!(sfar = (float *)Percentate ( MRI_FLOAT_PTR(fim), 
+                                                      NULL, fim->nvox,
+                                                      MRI_float, mpv, N_mp,
+                                                      0, perc,
+                                                      1, 1, 1 ))) {
 
                      ERROR_exit("Failed to compute percentiles.");
                   } 
