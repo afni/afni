@@ -51,6 +51,13 @@
 afni_history_struct dglen_history[] = {
 
  /* can copy to and change one of the examples here */
+
+{ 10 , APR , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY , "minor changes" ,
+    "remove tabs in file, change output file names for epi children,\n"
+    "changes to help, and renamed tlrc parent option"
+} ,
+
 { 07 , APR , 2008 , DRG , "align_epi_anat.py" , 
     SUPER , TYPE_NEW_PROG , "Alignment of EPI and Anatomical datasets" ,
     "Aligns anat and EPI data. Alignment is in either direction of anat to\n"

@@ -8,7 +8,7 @@
 
 # align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig \
 #   -epi2anat -ex_mode dry_run -epi_base 6 -child_epi epi_r??+orig.HEAD \
-#   -anat2epi -epi2anat -apar sb23_mpra_at+tlrc
+#   -anat2epi -epi2anat -tlrc_apar sb23_mpra_at+tlrc -suffix _alx2
 
 import sys
 import copy
@@ -45,17 +45,18 @@ g_help_string = """
     EPI dataset in order to align it to the anatomical data instead.
 
     This program generates several kinds of output in the form of datasets
-    and transformation matrices which can be applied to other datasets if needed.
+    and transformation matrices which can be applied to other datasets if
+    needed.
     
-    Depending upon various options, the script's output contains the following:
+    Depending upon selected options, the script's output contains the following:
         Datasets:
           ANAT_al+orig: A version of the anatomy that is aligned to the EPI
           EPI_al+orig: A version of the EPI dataset aligned to the anatomy
           EPI_al+tlrc: A version of the EPI dataset aligned to a standard
                        template
-          These transformations automatically include slice timing correction and
-          time-series registation.
-          
+        These transformations include slice timing correction and
+          time-series registation by default.
+
         Transformation matrices:
           ANAT_al_mat.aff12.1D: matrix to align anatomy to the EPI
           EPI_al_mat.aff12.1D:  matrix to align EPI to anatomy 
@@ -141,7 +142,7 @@ g_help_string = """
        that all transformations are applied simultaneously, thereby minimizing 
        data interpolation.
        
-    -apar ANAT+tlrc : structural dataset that has been aligned to
+    -tlrc_apar ANAT+tlrc : structural dataset that has been aligned to
                   a master template such as a tlrc dataset. If this option
                   is supplied, then an epi+tlrc dataset will be created.
 
@@ -174,24 +175,25 @@ g_help_string = """
     Examples:
       # align anat to sub-brick 5 of epi+orig. In addition, do slice timing
       # correction on epi+orig and register all sub-bricks to sub-brick 5
+      # (Sample data files are in AFNI_data4/sb23 in sample class data)
 
-      align_epi_anat.py -anat anat+orig -epi epi_r1+orig \\
+      align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig \\
                         -epi_base 5
       
       # same as example above, but also process other epi runs
-      # in the same way as epi+orig
+      # in the same way as epi_r03+orig
 
-      align_epi_anat.py -anat anat+orig -epi epi_r1+orig \\
-                        -epi_base 5 -child_epi epi_r??+orig.HEAD
+      align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig   \\
+                        -suffix _al2epi -epi_base 5              \\
+			-child_epi epi_r??+orig.HEAD
                         
       # Instead of aligning the anatomy to an epi, transform the epi
       # to match the anatomy. Children get the same treatment. Note that
       # epi sub-bricks are transformed once in the process.
-      # (Sample data files are in AFNI_data4/sb23 in sample class data)
 
-      align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig \\
+      align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig   \\
                         -epi_base 5 -child_epi epi_r??+orig.HEAD \\
-                        -epi2anat
+                        -epi2anat -suffix al2anat
       
       # Bells and whistles:
       # - create talairach transformed epi datasets (still one transform)
@@ -201,18 +203,18 @@ g_help_string = """
       # The talairach transformation requires auto-talairaching 
       # the anatomical dataset first
       @auto_tlrc -base ~/abin/TT_N27+tlrc -input sb23_mpra+orig
-      align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig \\
-                        -epi_base 6 -child_epi epi_r??+orig.HEAD \\
-                        -ex_mode dry_run -epi2anat \\
-                        -apar sb23_mpra_at+tlrc
+      align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig     \\
+                        -epi_base 6 -child_epi epi_r??+orig.HEAD   \\
+                        -ex_mode dry_run -epi2anat -suffix _altest \\
+                        -tlrc_apar sb23_mpra_at+tlrc
 
 
     Our HBM 2008 abstract describing the alignment tools is available here:
       http://afni.nimh.nih.gov/sscc/rwcox/abstracts
 
 """   
-#    -cost          : cost function used by 3dAllineate. Default is lpc, anything
-#                     else is inferior!
+#   -cost          : cost function used by 3dAllineate. Default is lpc, anything
+#                    else is inferior!
 #    -cmass cmass+ss: center of mass option for 3dAllineate 
 #                     ('cmass+a','cmass+xy','nocmass',...) Default is cmass+xy.
 #    -child_anat dset1 dset2 ... : specify other anatomical datasets to align.
@@ -228,7 +230,7 @@ g_help_string = """
 #    -pow_mask n.n  : raise the epi masked dataset to a power before normalizing
 #                     (default is 1.0)
 
-#    -epar epi_template_dset : EPI  dataset that has been aligned to
+#    -tlrc_epar epi_template_dset : EPI  dataset that has been aligned to
 #                  a master template such as a tlrc dataset If this option
 #                  is supplied, then an anat+tlrc dataset will be created.
 
@@ -237,7 +239,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = 1.00 # software version (update for changes)
+      self.align_version = 1.01 # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -338,7 +340,7 @@ class RegWrap:
       self.valid_opts.add_opt('-cmass', 1, ['cmass+xy'] )
       
       # talairach transformed anatomical parent dataset
-      self.valid_opts.add_opt('-apar', 1, [], \
+      self.valid_opts.add_opt('-tlrc_apar', 1, [], \
          helpstr="If this is set, the results will include +tlrc\n"
                  "template transformed datasets for the epi aligned\n"
                  "to the anatomical combined with this additional\n"
@@ -346,7 +348,7 @@ class RegWrap:
                  "The result will be EPI_al+tlrc.HEAD\n")
 
       # talairach transformed EPI parent dataset
-      self.valid_opts.add_opt('-epar', 1, [], \
+      self.valid_opts.add_opt('-tlrc_epar', 1, [], \
          helpstr="Not available yet.\n"
 	         "If this is set, the results will include +tlrc\n"
                  "template transformed datasets for the anatomical\n"
@@ -362,8 +364,8 @@ class RegWrap:
                  "Transformations computed from that will be combined\n"
                  "with the anat to epi transformations and epi to anat\n"
                  "(and volreg) transformations\n"
-                 "Either the -apar and -epar options or the -auto_tlrc\n"
-                 "option may be used but not both\n")
+                 "0nly one of the -tlrc_apar, -tlrc_epar or the -auto_tlrc\n"
+                 "options may be used\n")
       # child epi datasets
       self.valid_opts.add_opt('-child_epi', -1,[],\
                                helpstr="Names of child EPI datasets")
@@ -668,7 +670,7 @@ class RegWrap:
          ps.cmass = optc.parlist[0]
 
       #get talairached anatomical dataset
-      opt = self.user_opts.find_opt('-apar')
+      opt = self.user_opts.find_opt('-tlrc_apar')
       if opt != None: 
          anat_tlrc = afni_name(opt.parlist[0]) 
          ps.tlrc_apar = anat_tlrc
@@ -680,7 +682,7 @@ class RegWrap:
                          (anat_tlrc.ppv()))
       else :
          ps.tlrc_apar = ""
-      opt = self.user_opts.find_opt('-epar')
+      opt = self.user_opts.find_opt('-tlrc_epar')
       if opt != None: 
          at = afni_name(opt.parlist[0]) 
          ps.tlrc_epar = at
@@ -928,7 +930,7 @@ class RegWrap:
          # save the volreg output to file names based on original epi name
          #  (not temporary __tt_ names)
          self.mot_1D = "%s%s_motion.1D" % (self.epi.prefix, suf)
-         self.reg_mat = "%s%s_vr_mat.aff12.1D" % (self.epi.prefix, suf)
+         self.reg_mat = "%s%s_mat.aff12.1D" % (self.epi.prefix, suf)
          self.info_msg( "Volume registration for epi data")
          # user option for which registration program (3dvolreg,3dWarpDrive,...)
          opt = self.user_opts.find_opt('-volreg_method')
@@ -1115,7 +1117,7 @@ class RegWrap:
       # time shift epi data, prepend a prefix
       if(self.tshift_flag):
          if(self.tshiftable_dset(o)) :
-            o = self.tshift_epi( o, ps.tshift_opt, prepre, "_tsh")
+            o = self.tshift_epi( o, ps.tshift_opt, prepre, "_tsh%s"%ps.suffix)
             prepre = ""
          else:
             self.info_msg("Can not do time shifting of slices. "
@@ -1126,7 +1128,7 @@ class RegWrap:
       tshift_o = o         
       # do volume registration
       if(self.volreg_flag):
-         o = self.register_epi( o, ps.reg_opt, prepre, "_vr",\
+         o = self.register_epi( o, ps.reg_opt, prepre, suf="_vr%s"%ps.suffix,\
                childflag=childflag)
          prepre = ""
       volreg_o = o
@@ -1137,14 +1139,14 @@ class RegWrap:
          return tshift_o, volreg_o, volreg_o
  
       # reduce epi to a single representative sub-brick
-      o = self.tstat_epi(o, ps.tstat_opt, prepre, "_ts")
+      o = self.tstat_epi(o, ps.tstat_opt, prepre, "_ts%s"%ps.suffix)
       prepre = ""
 
       # resample epi to match anat
-      e = self.resample_epi( o,"", "", "_rs")
+      e = self.resample_epi( o,"", "", "_rs%s"%ps.suffix)
 
       # remove outside brain or skull
-      skullstrip_o = self.skullstrip_data( e, use_ss, "", "", "_ns")
+      skullstrip_o = self.skullstrip_data( e, use_ss, "", "", "_ns%s"%ps.suffix)
 
       return  tshift_o, volreg_o, skullstrip_o
       
@@ -1383,7 +1385,7 @@ if __name__ == '__main__':
    #Create a weight for final pass
    ps.epi_wt = \
       ps.create_weight( e, float(ps.sqmask), ps.boxmask, \
-                        ps.binmask, -1, -1, suf = "_wt")
+                        ps.binmask, -1, -1, suf = "_wt%s"%ps.suffix)
    if(ps.prep_only):  # if preprocessing only, exit now
       ps.ciao(0)
       
