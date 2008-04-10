@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, APR, 2008, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "updated the -help with information regarding runs of different lengths",
+   NULL
+ } ,
+
  {  8, APR, 2008, RCR, "2dImReg", MINOR, TYPE_BUG_FIX,
    "allow zero slices, passing input as result",
    "Choleski factorization would fail on an empty slice.  In this case,\n"
