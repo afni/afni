@@ -52,6 +52,26 @@ g_help_string = """
     files should start _after_ steady state has been reached).
 
     --------------------------------------------------
+    NOTE on having runs of different lengths:
+
+    In the case that the EPI datasets are not all of the same length, here
+    are some issues that may come up, listed by relevant option:
+
+        -volreg_align_to        If aligning to "last" afni_proc.py might get
+                                an inaccurate index for the volreg -base.
+
+        -regress_polort         If this option is not used, then the degree of
+                                polynomial used for the baseline will come from
+                                the first run.
+
+        -regress_est_blur_epits This may fail, as afni_proc.py may have trouble
+                                teasing the different runs apart from the errts
+                                dataset.
+
+        -regress_use_stim_files This may fail, as make_stim_files.py is not
+                                currently prepared to handle runs of different
+                                lengths.
+    --------------------------------------------------
     PROCESSING STEPS (of the output script):
 
     The output script will go through the following steps, unless the user
