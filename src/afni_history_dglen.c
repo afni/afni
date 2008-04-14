@@ -52,6 +52,12 @@ afni_history_struct dglen_history[] = {
 
  /* can copy to and change one of the examples here */
 
+{ 14 , APR , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX , "minor change" ,
+    "3dAllineate options are also applied to epi to anat alignment,\n"
+    "so output EPI datasets get original resolution and type."
+} ,
+
 { 10 , APR , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_MODIFY , "minor changes" ,
     "remove tabs in file, change output file names for epi children,\n"
