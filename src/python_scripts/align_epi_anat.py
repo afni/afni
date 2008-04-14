@@ -784,7 +784,7 @@ class RegWrap:
    # align the epi to the anatomical but do it using the inverse 
    # transformation of the alignment of anat to epi
    def align_epi2anat(  self, e=None, a=None, \
-        alopt="-VERB -warp aff ",\
+        alopt="-VERB -warp aff -master SOURCE",\
         suf = "_alnd_anat"):
 
       self.info_msg(" Aligning %s to anat" % e.ppv())
@@ -1344,7 +1344,7 @@ class RegWrap:
       if (ps.epi2anat) :   # does the user want the epi aligned to the anat
          # compute transformation just from applying inverse
          child.epi_alnd = \
-            child.align_epi2anat(child.epi_vr, a, suf=ps.suffix)
+            child.align_epi2anat(child.epi_vr, a, ps.AlOpt, suf=ps.suffix)
          if (not child.epi_alnd):
             ps.ciao(1)
       else:
@@ -1397,7 +1397,7 @@ if __name__ == '__main__':
    if (ps.epi2anat) :   # does the user want the epi aligned to the anat
       # compute transformation just from applying inverse
       ps.epi_alnd = \
-         ps.align_epi2anat(ps.epi_vr, a, suf=ps.suffix)
+         ps.align_epi2anat(ps.epi_vr, a, ps.AlOpt, suf=ps.suffix)
       if (not ps.epi_alnd):
          ps.ciao(1)
    else:
