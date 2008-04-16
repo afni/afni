@@ -239,7 +239,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = 1.01 # software version (update for changes)
+      self.align_version = 1.02 # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -257,6 +257,8 @@ class RegWrap:
       self.epi_base = None  # don't assume representative epi
       self.reg_mat = "" # volume registration matrix 1D file
       self.save_Al_in = 0  # don't save 3dAllineate input files
+      self.master_epi_option = '-master SOURCE'
+      self.master_tlrc_option = '-master SOURCE'
       return
 
 # box, bin and fat mask are not used for now
@@ -372,8 +374,18 @@ class RegWrap:
 
       # child anat datasets
       self.valid_opts.add_opt('-child_anat', -1,[],\
-                               helpstr="Names of child anatomical datasets")
+                               helpstr="Not available yet.\n"
+			       "Names of child anatomical datasets")
 
+      # master resampling options for alignment
+      self.valid_opts.add_opt('-master_epi', 1,['SOURCE'],\
+             helpstr="-master grid resolution for epi to anat alignment\n" \
+		       "MIN_DXYZ uses the smallest dimension\n"
+		       "SOURCE and BASE as in 3dAllineate help")
+      self.valid_opts.add_opt('-master_tlrc', 1,['MIN_DXYZ'],\
+             helpstr="-master grid resolution for epi to tlrc anat alignment\n" \
+		       "MIN_DXYZ uses the smallest dimension"
+		       "SOURCE and BASE as in 3dAllineate help")
 
       # create edge images
       # do edge-based alignment
@@ -487,7 +499,6 @@ class RegWrap:
       opt = opt_list.find_opt('-save_Al_in')  # save 3dAllineate input datasets
       if opt != None: self.save_Al_in = 1
 
-
      
    def get_user_opts(self):
       self.user_opts = read_options(sys.argv, self.valid_opts)
@@ -557,13 +568,13 @@ class RegWrap:
       return 1
    
    # remove all the temporary files for epi and anat base names
-   def cleanup(self):
+   def cleanup(self, rmold=0):
       opt = self.user_opts.find_opt('-epi')
       e = afni_name(opt.parlist[0]) 
       
       opt = self.user_opts.find_opt('-anat')
       a = afni_name(opt.parlist[0])
-      self.fresh_start(e.prefix, a.prefix)
+      self.fresh_start(e.prefix, a.prefix, rmold = rmold)
       return 1
 
    def version(self):
@@ -625,7 +636,7 @@ class RegWrap:
       if opt != None: 
          ps.tshift_opt = string.join(opt.parlist, ' ')
       else:
-         ps.tshift_opt = ''
+         ps.tshift_opt = '-cubic'
 
       #get 3dvolreg options
       opt = self.user_opts.find_opt('-volreg_opts')
@@ -638,7 +649,6 @@ class RegWrap:
       opt = self.user_opts.find_opt('-epi_base')
       if opt != None: 
          ps.epi_base = opt.parlist[0]
-         ps.info_msg("epi_base set")
       else:
          ps.error_msg("Must use -epi_base option")
          ps.ciao(1)
@@ -704,15 +714,61 @@ class RegWrap:
                      % child_epi.ppv())
             else:
                self.info_msg("Found child epi %s" % child_epi.ppv())
-
-      # all inputs look okay
-      return 1
+       
+      opt = self.user_opts.find_opt('-master_epi')  # epi to anat resolution
+      if opt != None: 
+          self.master_epi_option = "-master %s" % opt.parlist[0]
       
+          if(opt.parlist[0]=='MIN_DXYZ'):
+              min_d =  self.min_dim_dset(ps.epi)
+	      self.master_epi_option = "-mast_dxyz %f" % min_d
+              self.info_msg("Spacing for EPI to anat alignment is %f" % min_d)
+
+
+      opt = self.user_opts.find_opt('-master_tlrc')  # epi to tlrc resolution
+      if opt != None: 
+          self.master_tlrc_option = "-master %s" % opt.parlist[0]
+          if(opt.parlist[0]=='MIN_DXYZ'):
+              min_d =  self.min_dim_dset(ps.epi)
+	      self.master_tlrc_option = "-mast_dxyz %f" % min_d
+              self.info_msg("Spacing for EPI to tlrc alignment is %f" % min_d)
+      else :   # default is to use smallest dimension
+          min_d =  min_dim_dset(ps.epi)
+	  self.master_tlrc_option = "-mast_dxyz %f" % min_d
+	  self.info_msg("Spacing for EPI to tlrc alignment is %f mm" % min_d)
+
+      # all inputs look okay  - this goes after all inputs. ##########
+      return 1
+  
+
+   # find smallest dimension of dataset in x,y,z
+   def min_dim_dset(self, dset=None) :
+       com = shell_com(  \
+                "3dAttribute DELTA %s" % dset.ppv(), ps.oexec,capture=1)
+       com.run()
+       if  ps.dry_run():
+           return (1.2)
+
+       min_dx = 1000.0       # some high number to start
+       i = 0
+       while i < 3 :    # find the smallest of the 3 dimensions
+          dx = float(com.val(0,i))
+          if (dx<min_dx):
+	      min_dx = dx
+	  i += 1    
+       if(min_dx==0.0):
+           min_dx = 1.0
+       return (min_dx)
+     
+
+   
    # determine if dataset has time shifts in slices
    def tshiftable_dset( self, dset=None) :
        com = shell_com(  \
                 "3dAttribute TAXIS_OFFSETS %s" % dset.ppv(), ps.oexec,capture=1)
        com.run()
+       if  ps.dry_run():
+           return (1)
        if(len(com.so)): status = 1
        else: status = 0
        return (status)
@@ -784,19 +840,21 @@ class RegWrap:
    # align the epi to the anatomical but do it using the inverse 
    # transformation of the alignment of anat to epi
    def align_epi2anat(  self, e=None, a=None, \
-        alopt="-VERB -warp aff -master SOURCE",\
+        alopt="",\
         suf = "_alnd_anat"):
 
       self.info_msg(" Aligning %s to anat" % e.ppv())
 
-      o = e.new("%s%s" % (e.prefix, suf))
-      if (not o.exist() or ps.rewrite):
+      o = afni_name("%s%s" % (self.epi.prefix, suf)) # was e.prefix here
+      o.view = '+orig'
+
+      if (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          anat_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.prefix,suf)
          epi_mat = "%s%s_mat.aff12.1D" %  (self.epi.prefix,suf)
          self.info_msg("Inverting anat to epi matrix")
          com = shell_com(  \
-                  "cat_matvec -ONELINE %s -I >& %s" % \
+                  "cat_matvec -ONELINE %s -I > %s" % \
                   (anat_mat, epi_mat), ps.oexec)
          com.run();
          
@@ -806,7 +864,7 @@ class RegWrap:
                           "to anat transformations")
             epi_mat = "%s%s_reg_mat.aff12.1D" % (self.epi.prefix, suf)
             com = shell_com(  \
-                     "cat_matvec -ONELINE %s -I %s >& %s" % \
+                     "cat_matvec -ONELINE %s -I %s > %s" % \
                      (anat_mat, self.reg_mat, epi_mat), ps.oexec)
             com.run();
 
@@ -817,12 +875,13 @@ class RegWrap:
          com = shell_com(  \
                "3dAllineate -base %s -1Dmatrix_apply %s " \
                "-prefix %s -input %s  %s "   %  \
-               ( a.ppv(), epi_mat, o.prefix, e.ppv(), alopt), ps.oexec)
+               ( a.ppv(), epi_mat, o.prefix, e.ppv(), self.master_epi_option),\
+	         ps.oexec)
          
          com.run();
-         if (not o.exist() and not ps.dry_run()):
-            self.error_msg("Could not apply transformation to epi data")
-            return None
+#         if (not o.exist() and not ps.dry_run()):
+#            self.error_msg("Could not apply transformation to epi data")
+#            return None
 
          # concatenate talairach transformation
          if(self.tlrc_apar != ""):
@@ -850,35 +909,51 @@ class RegWrap:
 
             # note registration matrix, reg_mat, can be blank and ignored
             com = shell_com(  \
-                   "cat_matvec -ONELINE %s %s -I %s >& %s" % \
+                   "cat_matvec -ONELINE %s %s -I %s > %s" % \
                    (anat_tlrc_mat, anat_mat, self.reg_mat, epi_mat), ps.oexec)
             com.run();
 
-            tlrc_dset = e.new("%s_tlrc%s+tlrc" % (e.prefix, suf))
+            tlrc_dset = afni_name("%s_tlrc%s" % (self.epi.prefix, suf))
+            tlrc_dset.view = '+tlrc'
+            # silliness because 3dAllineate makes +orig when applying matrix
+            tlrc_orig_dset = afni_name("%s_tlrc%s" % (self.epi.prefix, suf))
+            tlrc_orig_dset.view = '+orig'
+
             if (not tlrc_dset.exist() or ps.rewrite):
+               tlrc_dset.delete(ps.oexec)
+            if (not tlrc_orig_dset.exist() or ps.rewrite):
                tlrc_dset.delete(ps.oexec)
 
             self.info_msg( "Applying transformation of epi to anat+tlrc")
             com = shell_com(  \
                   "3dAllineate -base %s -1Dmatrix_apply %s " \
-                  "-prefix %s -input %s  -verb "   %  \
-                  ( a.ppv(), epi_mat, tlrc_dset.prefix, e.ppv()), ps.oexec)
+                  "-prefix %s -input %s  -verb  %s"   %  \
+                  ( a.ppv(), epi_mat, tlrc_dset.ppv(), e.ppv(), \
+		    self.master_tlrc_option), ps.oexec)
 
-            com.run();
-            if (not o.exist() and not ps.dry_run()):
-               self.error_msg("Could not apply tlrc transformation to epi data")
-               return None
+            com.run()
+	    # 3dAllineate doesn't write out the correct view
+	    # so rename the files for AFNI BRIK, HEAD pairs
+	    if (tlrc_dset.type == 'BRIK'):
+               com = shell_com ("3drefit -view tlrc %s+orig" %     \
+	                	tlrc_dset.prefix, ps.oexec)
+               com.run()
+	    
+#          if (not o.exist() and not ps.dry_run()):
+#             self.error_msg("Could not apply tlrc transformation to epi data")
+#             return None
 
 
       return o
 
    # reduce EPI dataset to a single representative sub-brick
-   def tstat_epi(self, e=None, tstat_opt="", prepre="", suf = "_ts"  ):
-      o = e.new("%s%s%s" % (prepre, e.prefix, suf))
+   def tstat_epi(self, e=None, tstat_opt="", prefix = "temp_ts"  ):
+      o = e.new(prefix)
       if (not o.exist() or ps.rewrite):
          o.delete(ps.oexec)
          # if more than 1 sub-brick
-         if (not ps.dry_run and dset_dims(e.ppve())[3] > 1):
+         if (ps.dry_run() or \
+	    ((not ps.dry_run() and dset_dims(e.ppve())[3] > 1))):
          # could be: if number choose bucket else use that as stat
          # if((ps.epi_base=='median') or (ps.epi_base=='max') or \
          # (ps.epi_base=='mean')):   
@@ -895,6 +970,7 @@ class RegWrap:
                "3dTstat -%s -prefix %s %s" % \
                (ps.epi_base, o.prefix, e.ppv()), ps.oexec)
          else:   # choose a single sub-brick (sub-brick 0)
+	    self.info_msg("using 0th sub-brick because only one found")
             com = shell_com(  \
             "3dbucket -prefix %s %s'[0]'" % (o.prefix, e.ppv()), ps.oexec)
          com.run();
@@ -904,10 +980,11 @@ class RegWrap:
       return o
 
    # do time shifting of EPI dataset
-   def tshift_epi(  self, e=None, tshift_opt="-cubic", prepre="", suf = "_tsh"):
-      o = e.new("%s%s%s" % (prepre,e.prefix, suf))
+   def tshift_epi(  self, e=None, tshift_opt="-cubic", prefix="temp_tsh"):
+      o = e.new(prefix)  
+# why doesn't afni_name work here instead?
 
-      if (not o.exist() or ps.rewrite or (ps.dry_run)):
+      if (not o.exist() or ps.rewrite or (ps.dry_run())):
          o.delete(ps.oexec)
          self.info_msg( "Correcting for slice timing")
          com = shell_com(  \
@@ -921,16 +998,16 @@ class RegWrap:
 
  
    # do volume registration of EPI dataset
-   def register_epi(self, e=None, reg_opt="-quintic", prepre="", suf = "_vr", \
+   def register_epi(self, e=None, reg_opt="-quintic", prefix="temp_vr", \
                       childflag=0):
-      o = e.new("%s%s%s" % (prepre,e.prefix, suf))
+      o = e.new(prefix)
 
-      if (not o.exist() or ps.rewrite or (ps.dry_run)):
+      if (not o.exist() or ps.rewrite or (ps.dry_run())):
          o.delete(ps.oexec)
          # save the volreg output to file names based on original epi name
          #  (not temporary __tt_ names)
-         self.mot_1D = "%s%s_motion.1D" % (self.epi.prefix, suf)
-         self.reg_mat = "%s%s_mat.aff12.1D" % (self.epi.prefix, suf)
+         self.mot_1D = "%s_motion.1D" % prefix
+         self.reg_mat = "%s_mat.aff12.1D" % prefix
          self.info_msg( "Volume registration for epi data")
          # user option for which registration program (3dvolreg,3dWarpDrive,...)
          opt = self.user_opts.find_opt('-volreg_method')
@@ -958,7 +1035,7 @@ class RegWrap:
                              ps.volreg_base)
               base = "0"
            else:
-              ots = e.new("%s%s_vrt_alpha%s" % (prepre, e.prefix, suf))
+              ots = e.new("%s_ts_tempalpha" % prefix)
               base = "%s.'[0]'" % ots.ppv()
               if (not ots.exist() or ps.rewrite):
                  ots.delete(ps.oexec)
@@ -974,7 +1051,7 @@ class RegWrap:
                                 "for time series registration")
                  ps.ciao(1)
 
-              ovr_alpha = e.new("%s%s_vralpha_%s" % (prepre,e.prefix, suf))
+              ovr_alpha = e.new("%s_vr_tempalpha" % prefix)
 
               com = shell_com(                                      \
                     "%s -prefix %s -base %s %s %s "  %              \
@@ -982,7 +1059,7 @@ class RegWrap:
                   reg_opt, e.ppv()), ps.oexec)
               com.run()
 
-              ots = e.new("%s%s_vrt%s" % (prepre, e.prefix, suf))
+              ots = e.new("%s_vrt" % prefix)
               base = "%s.'[0]'" % ots.ppv()
               if (not ots.exist() or ps.rewrite):
                  ots.delete(ps.oexec)
@@ -1013,8 +1090,8 @@ class RegWrap:
       return o
 
    # resample EPI data to match higher resolution anatomical data
-   def resample_epi(  self, e=None, resample_opt="", prepre="", suf = "_rs"):
-      o = self.epi.new("%s%s%s" % (prepre, e.prefix, suf), "+orig")
+   def resample_epi(  self, e=None, resample_opt="", prefix="temp_rs"):
+      o = self.epi.new(prefix)
       if (not o.exist() or ps.rewrite):
          o.delete(ps.oexec)
          self.info_msg( "resampling epi to match anatomical data")
@@ -1029,10 +1106,10 @@ class RegWrap:
       
    # remove skull or outside brain area
    def skullstrip_data(self, e=None, use_ss='3dSkullStrip', \
-       skullstrip_opt="", prepre="", suf = "_ns"):
+       skullstrip_opt="", prefix = "temp_ns"):
       self.info_msg( "removing skull or area outside brain")
       if (use_ss == '3dSkullStrip'):     #skullstrip epi
-         n = e.new("%s_ns" % e.prefix, "+orig")
+         n = e.new(prefix)
          if (not n.exist() or ps.rewrite):
             n.delete(ps.oexec)
             com = shell_com(  \
@@ -1043,7 +1120,7 @@ class RegWrap:
                print "** ERROR: Could not strip skull\n"
                return None
       elif use_ss == '3dAutomask': #Automask epi
-         n = e.new("%s_ns" % e.prefix)
+         n = e.new(prefix)
          j = e.new("junk")
          if (not n.exist() or ps.rewrite):
             n.delete(ps.oexec)
@@ -1109,16 +1186,21 @@ class RegWrap:
 
    # do the preprocessing of the EPI data    
    def process_epi(self, use_ss='3dSkullStrip', childflag=0):
+      basesuff = ""
+      basename = self.epi.prefix
       o = self.epi;
       if childflag:    # no temporary files for children
          prepre = ""
       else:
          prepre = "__tt_"
+      suff = ps.suffix
       # time shift epi data, prepend a prefix
       if(self.tshift_flag):
          if(self.tshiftable_dset(o)) :
-            o = self.tshift_epi( o, ps.tshift_opt, prepre, "_tsh%s"%ps.suffix)
-            prepre = ""
+	    basesuff = "%s_tsh" % basesuff
+            prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
+            self.info_msg("Tshift %s" % prefix)
+            o = self.tshift_epi( o, ps.tshift_opt, prefix=prefix)
          else:
             self.info_msg("Can not do time shifting of slices. "
                           "Data is already time shifted")
@@ -1128,9 +1210,9 @@ class RegWrap:
       tshift_o = o         
       # do volume registration
       if(self.volreg_flag):
-         o = self.register_epi( o, ps.reg_opt, prepre, suf="_vr%s"%ps.suffix,\
-               childflag=childflag)
-         prepre = ""
+	 basesuff = "%s_vr" % basesuff
+         prefix = "%s%s%s" % (basename,basesuff,suff) # don't use prepre temp filename
+         o = self.register_epi( o, ps.reg_opt, prefix, childflag=childflag)
       volreg_o = o
 
       # if just processing child epi datasets, just go home
@@ -1139,17 +1221,22 @@ class RegWrap:
          return tshift_o, volreg_o, volreg_o
  
       # reduce epi to a single representative sub-brick
-      o = self.tstat_epi(o, ps.tstat_opt, prepre, "_ts%s"%ps.suffix)
-      prepre = ""
+      basesuff = "%s_ts" % basesuff
+      prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
+      o = self.tstat_epi(o, ps.tstat_opt, prefix)
 
       # resample epi to match anat
-      e = self.resample_epi( o,"", "", "_rs%s"%ps.suffix)
+      basesuff = "%s_rs" % basesuff
+      prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
+      e = self.resample_epi( o,"", prefix)
 
       # remove outside brain or skull
-      skullstrip_o = self.skullstrip_data( e, use_ss, "", "", "_ns%s"%ps.suffix)
+      basesuff = "%s_ns" % basesuff
+      prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
+      skullstrip_o = self.skullstrip_data( e, use_ss, "", prefix)
 
       return  tshift_o, volreg_o, skullstrip_o
-      
+
    # do the preprocessing of the anatomical data
    def process_anat(self):
       #copy original anat to a temporary file
@@ -1280,8 +1367,7 @@ class RegWrap:
          #save the epi aligned to anat
          o = e.new("%s%s" % (ein.prefix, suf))
          if(eaa.ppv()==o.ppv()):
-            self.info_msg("Output EPI data created without time shifting" \
-                          "nor time series registration")
+            self.info_msg("epi aligned to anat data copy not necessary")
          else:
             o.delete(ps.oexec)
             self.info_msg( "Creating final output: epi data aligned to anat")
@@ -1301,7 +1387,8 @@ class RegWrap:
       return
 
    # remove all the temporary files from a previous run
-   def fresh_start(self, epref="", apref=""):
+   # remove old results too optionally
+   def fresh_start(self, epref="", apref="", rmold = 0 ):
       self.info_msg("Removing all the temporary files")
       if epref == "" and apref == "":
          com = shell_com(  "rm -f __tt_*", ps.oexec)
@@ -1310,9 +1397,17 @@ class RegWrap:
          if epref != "":
             com = shell_com(  "rm -f __tt_%s*" % (epref), ps.oexec)
             com.run() 
+	    if(rmold):
+               com = shell_com(  "rm -f %s*%s*" % (epref, ps.suffix), ps.oexec)
+               com.run() 
+
          if apref != "":
             com = shell_com(  "rm -f __tt_%s*" % (apref), ps.oexec)
             com.run()  
+            if(rmold):
+               com = shell_com(  "rm -f %s*%s*" % (apref, ps.suffix), ps.oexec)
+               com.run() 
+
       return
 
 
@@ -1344,7 +1439,7 @@ class RegWrap:
       if (ps.epi2anat) :   # does the user want the epi aligned to the anat
          # compute transformation just from applying inverse
          child.epi_alnd = \
-            child.align_epi2anat(child.epi_vr, a, ps.AlOpt, suf=ps.suffix)
+            child.align_epi2anat(child.epi_ts, a, ps.AlOpt, suf=ps.suffix)
          if (not child.epi_alnd):
             ps.ciao(1)
       else:
@@ -1385,7 +1480,7 @@ if __name__ == '__main__':
    #Create a weight for final pass
    ps.epi_wt = \
       ps.create_weight( e, float(ps.sqmask), ps.boxmask, \
-                        ps.binmask, -1, -1, suf = "_wt%s"%ps.suffix)
+                        ps.binmask, -1, -1, suf = "_wt")
    if(ps.prep_only):  # if preprocessing only, exit now
       ps.ciao(0)
       
@@ -1397,7 +1492,7 @@ if __name__ == '__main__':
    if (ps.epi2anat) :   # does the user want the epi aligned to the anat
       # compute transformation just from applying inverse
       ps.epi_alnd = \
-         ps.align_epi2anat(ps.epi_vr, a, ps.AlOpt, suf=ps.suffix)
+         ps.align_epi2anat(ps.epi_ts, a, ps.AlOpt, suf=ps.suffix)
       if (not ps.epi_alnd):
          ps.ciao(1)
    else:
