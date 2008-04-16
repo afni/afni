@@ -51,6 +51,10 @@
 afni_history_struct dglen_history[] = {
 
  /* can copy to and change one of the examples here */
+{ 16 , APR , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX , "minor change" ,
+    "Naming conventions for tlrc output, generic shell compatible."
+} ,
 
 { 14 , APR , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX , "minor change" ,
