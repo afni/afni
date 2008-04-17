@@ -50,7 +50,12 @@
 
 afni_history_struct dglen_history[] = {
 
- /* can copy to and change one of the examples here */
+{ 17 , APR , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY , "minor changes" ,
+    "Child epi datasets can be volume registeredeven if parent epi\n"
+    "is a single sub-brick"
+} ,
+
 { 16 , APR , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX , "multiple changes" ,
     "Naming conventions for tlrc output, generic shell compatible,\n"
