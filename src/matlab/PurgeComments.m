@@ -1,6 +1,6 @@
-function [CnoCom] = PurgeComments (C, ch)
+function [CnoCom, Com] = PurgeComments (C, ch)
 %
-%   [CnoCom] = PurgeComments (C, [ch])
+%   [CnoCom, Com] = PurgeComments (C, [ch])
 %
 %Purpose:
 %   purges all matlab coments from character array
@@ -66,14 +66,15 @@ if (~isempty(Loc_1)),
 	while (cnt < length(Loc_1)),
 		%skip that line
 		[err,Cnext, cend] = NextString (C, 'NewLine', Loc_1(cnt));
-
+	   Com = [Com Cnext];
 		%make sure next line is not a comment
 		if (cend+1 == Loc_1(cnt+1)), lop = 1; else lop = 0; end
 		while (lop), %looks like it is a comment, cycle through block
 			% fprintf (1,'Looping, cnt = %g/%g\n', cnt, length(Loc_1));
 			cnt = cnt+1;
 			[err,Cnext, cend] = NextString (C, 'NewLine', Loc_1(cnt));
-			lop = 0;
+			Com = [Com Cnext];
+         lop = 0;
 			if (cnt < length(Loc_1))
 				if (cend+1 == Loc_1(cnt+1)), 
 					lop = 1; 
@@ -98,7 +99,8 @@ if (~isempty(Loc_1)),
 		%append last piece if any
 		if (Loc_1(cnt) < nC),
 			[err,Cnext, cend] = NextString (C, 'NewLine', Loc_1(cnt));
-			LastChunk = C(cend+1:nC);
+			Com = [Com Cnext];
+         LastChunk = C(cend+1:nC);
 			CnoCom(1+nCnoCom:nCnoCom+length(LastChunk)) = LastChunk;
 			nCnoCom = nCnoCom+length(LastChunk);
 			%fprintf ('Last Chunk : \n');
@@ -106,13 +108,13 @@ if (~isempty(Loc_1)),
 		end
 
 		CnoCom = CnoCom(1:nCnoCom);
-
+       
 		%fprintf ('\n***\nFinal CnoCom\n***\n');
 		%fprintf ('%c', CnoCom(1:nCnoCom));
 else %no comments
 	CnoCom = C;
 end
-
+%Com
 return;
 
 

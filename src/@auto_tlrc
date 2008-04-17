@@ -1084,7 +1084,7 @@ echo "      Then use @auto_tlrc on the shifted datasets."
 echo "      Take care not to shift datasets from the same session by differing"
 echo "      amounts as they will no longer be in alignment." 
 echo ""
-echo "Written by Ziad S. Saad (ziad@nih.gov)"
+echo "Written by Ziad S. Saad (saadz@mail.nih.gov)"
 echo "                        SSCC/NIMH/NIH/DHHS"
 echo ""
       goto END

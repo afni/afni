@@ -4,64 +4,90 @@ set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
 set prs = "_ae."
-set opa = 7
 set do_score = 0
 set do_rand = 0
 set listlog = "${prs}ExamineList.log"
+set ax_geom = '777x702+433+334'
+set sag_geom = '540x360+4+436'
 
-if ("$1" == "") goto DANCE
-if ("$1" == "-help") then
-   echo "A script to examine the results of registration"
-   echo "using various cost functions and software."
-   echo "The script adds edge markers to anatomy"
-   echo "and EPI and attempts to illustrate the match."
-   echo "To run this, first do:"
-   echo "@AddEdge epi+orig. \"
-   echo "         anat+orig.  \"
-   echo "         Alline_aff_*.nii  \"
-   echo "         SPManat_coreg_rs.nii SPManat_norm_rs.nii SPManat_seg_rs.nii \"
-   echo "         FLIRT_aff_*_*w.nii"
-   echo "To examine results, open afni in listen mode "
-   echo "and preferably with a nice .layout file, then "
-   echo "rerun @AddEdge with no options."
-   echo ""
-   echo "The edges from the EPI are added to the epi overlay using"
-   echo "the minimum value so they are of a dark blue. Edges from"
-   echo "the anatomy are added as the max of the epi. They end up"
-   echo "in orange on the composite image and dark red wherever"
-   echo "they also overlap with the epi's blue edges"
-   echo ""
-   echo "The colormap used is  Spectrum:red_to_blue, Pos"
-   echo ""
-   echo "Use: "
-   echo "setenv AFNI_MIX_BY_BRIGHT"
-   echo "setenv AFNI_IMAGE_LABEL_MODE 1"
-   echo "setenv AFNI_IMAGE_LABEL_SIZE 2"
-   echo "setenv AFNI_JPEG_COMPRESS 100"
-   echo ""
-   goto END
-endif
-if (0) then
-   #Info for registration comparison.
-   echo " Note: Had to prep SPM dset that way:"
-   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
-   echo "            -inset SPManat_coreg.nii -prefix SPManat_coreg_rs.nii"
-   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
-   echo "            -inset SPManat_seg.nii -prefix SPManat_seg_rs.nii"
-   echo "3dWarp -deoblique -overwrite -prefix SPManat_norm_do.nii\"
-   echo "            SPManat_norm.nii"
-   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
-   echo "            -inset SPManat_norm_do.nii -prefix SPManat_norm_rs.nii"
-   echo "ALSO: Note that for SPM, only coreg can be compared to our results"
-   echo "      Only coreg results used MI for cost but with only 6 params."
-endif
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set ax_mont='2x2:24'
+   set opa=9
+   set argrem = ()
+   while ($cnt <= $Narg)
+      set donext = 1;
+      
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-ax_mont") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a montage string (like $ax_mont) after -ax_mont"
+            goto END
+         else
+            @ cnt ++
+            set ax_mont = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-ax_geom") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a montage string (like $ax_geom) after -ax_geom"
+            goto END
+         else
+            @ cnt ++
+            set ax_geom = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-sag_geom") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a montage string (like $sag_geom) after -sag_geom"
+            goto END
+         else
+            @ cnt ++
+            set sag_geom = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-opa") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a number (0-9) after -opa"
+            goto END
+         else
+            @ cnt ++
+            set opa = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext) then
+         #no more options, this is assumed to be the list 
+         set argrem = ($argv[$cnt-])
+      else
+         #found an option, continue
+         @ cnt ++
+      endif
+   end
+         
+if ($#argrem == 0) goto DANCE
 
 #Notice, 3dresample is now done with -rmode Li instead of -rmode Cu
 #to avoid negative values
 
 #Set resolutions
-set epi = $1
-set analist = ($argv[2-])
+set epi = $argrem[1]
+set analist = ($argrem[2-])
 
 RESAMPLE_ANATS:
 set anabox = $analist[1]
@@ -76,20 +102,29 @@ end
 #resample all anatomies
 set analistn = ()
 foreach ana ($analist)
+   set anapref = `@GetAfniPrefix $ana`
+   set anapref = `@NoExt $anapref nii nii.gz`
+   set scene = `3dAttribute -name SCENE_DATA $ana`
+   if ($scene[3] == 2) then
+      set anaview = "+tlrc"
+   else if ($scene[3] == 2) then
+      set anaview = "+acpc"
+   else 
+      set anaview = "+orig"
+   endif   
    if ("$ana" != "$anabox") then
-      set anapref = `@GetAfniPrefix $ana`
-      set anapref = `@NoExt $anapref nii nii.gz`
       3dresample -master $anabox -inset $ana -prefix ${prs}$anapref -rmode Li
    else
-      3dcopy $ana ${prs}$ana
+      3dcopy $ana ${prs}$anapref
    endif
    
    #deoblique if necessary
    if (`@isOblique $ana`) then
-      3dWarp -deoblique -overwrite -prefix ${prs}$ana -input ${prs}$ana
+      3dWarp -deoblique -overwrite -prefix ${prs}$anapref \
+             -input ${prs}$anapref$anaview
    endif
    
-   set analistn = ($analistn ${prs}$ana)
+   set analistn = ($analistn ${prs}$anapref$anaview)
 end
 set analist = ($analistn)
 
@@ -160,20 +195,45 @@ foreach anain ($analist)
                
    set olist = ($olist ${anatpref}_ec+orig.HEAD)
    
-   #put some of the anat edge in the epi image
-   #Crazed equation
-   #   line1: Keep value where there is no edge
-   #       2: Use 1.2* the maximum when both edges are present
-   #       3: Use eminval when ONLY epi has an edge
-   #       4: Use emaxval when ONLY anat has an edge
-   3dcalc   -a $epi \
-            -b ${anatpref}_e3+orig \
-            -c ${epipref}_e3+orig   \
-            -overwrite -prefix ${epipref}_${anatpref}_e  \
-            -expr "(1-step((step(c-$eth)+step(b-$ath))))*a\
-                  + step(step(c-$eth)+step(b-$ath)-1.9)*$emaxval*1.2 \
-                  + (1-step(b-$ath))*step(c-$eth)*$eminval \
-                  + (1-step(c-$eth))*step(b-$ath)*$emaxval"
+   if (1) then
+      #new highlighting method
+      #Scale epi from 5 to 250
+      rm -f ___ae.epi.sc* >& /dev/null
+      @ScaleVolume   -input $epi -prefix ___ae.epi.sc \
+                     -perc_clip 2 98 -val_clip 5 250
+      #put some of the anat edge in the epi image
+      #Crazed equation
+      #   line1: Keep value where there is no edge
+      #       2: Use 255 when both edges are present
+      #       3: Use 2   when ONLY epi  has an edge
+      #       4: Use 252 when ONLY anat has an edge
+      3dcalc   -a ___ae.epi.sc+orig \
+               -b ${anatpref}_e3+orig \
+               -c ${epipref}_e3+orig   \
+               -overwrite -prefix ${epipref}_${anatpref}_e  \
+               -expr "(1-step((step(c-$eth)+step(b-$ath))))*a\
+                     + step(step(c-$eth)+step(b-$ath)-1.9)*255 \
+                     + (1-step(b-$ath))*step(c-$eth)*2 \
+                     + (1-step(c-$eth))*step(b-$ath)*252"
+      #rm -f ___ae.epi.sc* >& /dev/null              
+   else
+      ### Old highlighting method
+      #put some of the anat edge in the epi image
+      #Crazed equation
+      #   line1: Keep value where there is no edge
+      #       2: Use 1.2* the maximum when both edges are present
+      #       3: Use eminval when ONLY epi has an edge
+      #       4: Use emaxval when ONLY anat has an edge
+      3dcalc   -a $epi \
+               -b ${anatpref}_e3+orig \
+               -c ${epipref}_e3+orig   \
+               -overwrite -prefix ${epipref}_${anatpref}_e  \
+               -expr "(1-step((step(c-$eth)+step(b-$ath))))*a\
+                     + step(step(c-$eth)+step(b-$ath)-1.9)*$emaxval*1.2 \
+                     + (1-step(b-$ath))*step(c-$eth)*$eminval \
+                     + (1-step(c-$eth))*step(b-$ath)*$emaxval"
+   endif
+   
    set ooo = `echo ${epipref}_${anatpref}_ec | sed "s/$prs//g" `
    3dresample  -master tmp_box+orig -rmode NN \
                -overwrite -prefix ${prs}${ooo}+orig  \
@@ -191,7 +251,15 @@ echo "Recommended commands:"
 echo "   (make sure you kill all pre-existing AFNI sessions first)"
 echo "afni -niml -yesplugouts &"
 echo "@AddEdge"
-if (-f ${listlog}) goto LOG_EXISTS
+if (-f ${listlog}) then
+   echo ""
+   echo "File ${listlog} already  exists, writing log to"
+   echo "temporary name ${listlog}.new"
+   echo "Backup ${listlog} then mv ${listlog}.new to ${listlog}"
+   echo "to view results later."
+   echo ""
+   set listlog = ${listlog}.new
+endif
 
 echo "$olist" > ${listlog}
 #better not go into interactive mode now since this mode is slow and not done repeatedly
@@ -281,15 +349,15 @@ while ($cnt < $#olist)
    plugout_drive  \
       -com "SWITCH_UNDERLAY $ana"   \
       -com "SWITCH_OVERLAY  $ep"    \
-      -com "OPEN_WINDOW A.axialimage mont=2x2:24 opacity=$opa"\
+      -com "OPEN_WINDOW A.axialimage mont=$ax_mont opacity=$opa"\
       -com "OPEN_WINDOW A.axialimage ifrac=0.9"\
-      -com "OPEN_WINDOW A.axialimage geom=577x502+433+334 "\
+      -com "OPEN_WINDOW A.axialimage geom=$ax_geom "\
       -com "OPEN_WINDOW A.sagittalimage ifrac=0.9"\
       -com "OPEN_WINDOW A.sagittalimage opacity=$opa"\
-      -com "OPEN_WINDOW A.sagittalimage geom=449x267+434+46"\
+      -com "OPEN_WINDOW A.sagittalimage geom=$sag_geom"\
       -com "SEE_OVERLAY +"          \
       -com "SET_THRESHOLD A.0"      \
-      -com "SET_PBAR_ALL A.+99 1.0 SpectrumLred_to_blue" \
+      -com "SET_PBAR_ALL A.+99 1.0 Add_Edge" \
       -quit
    set ilst = 2
    set iii  = 0
@@ -472,10 +540,51 @@ endif
 
 goto END
 
-LOG_EXISTS:
-echo ""
-echo "File ${listlog} already  exists, will not overwrite."
-echo ""
+HELP:   
+   echo "A script to examine the results of registration"
+   echo "using various cost functions and software."
+   echo "The script adds edge markers to anatomy"
+   echo "and EPI and attempts to illustrate the match."
+   echo "To run this, first do:"
+   echo "@AddEdge epi+orig. \"
+   echo "         anat+orig.  \"
+   echo "         Alline_aff_*.nii  \"
+   echo "         SPManat_coreg_rs.nii SPManat_norm_rs.nii SPManat_seg_rs.nii \"
+   echo "         FLIRT_aff_*_*w.nii"
+   echo "To examine results, open afni in listen mode "
+   echo "and preferably with a nice .layout file, then "
+   echo "rerun @AddEdge with no options."
+   echo ""
+   echo "The edges from the EPI are added to the epi overlay using"
+   echo "the minimum value so they are of a dark blue. Edges from"
+   echo "the anatomy are added as the max of the epi. They end up"
+   echo "in orange on the composite image and dark red wherever"
+   echo "they also overlap with the epi's blue edges"
+   echo ""
+   echo "The colormap used is  Spectrum:red_to_blue, Pos"
+   echo ""
+   echo "Use: "
+   echo "setenv AFNI_MIX_BY_BRIGHT"
+   echo "setenv AFNI_IMAGE_LABEL_MODE 1"
+   echo "setenv AFNI_IMAGE_LABEL_SIZE 2"
+   echo "setenv AFNI_JPEG_COMPRESS 100"
+   echo ""
+   goto END
+if (0) then
+   #Info for registration comparison.
+   echo " Note: Had to prep SPM dset that way:"
+   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
+   echo "            -inset SPManat_coreg.nii -prefix SPManat_coreg_rs.nii"
+   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
+   echo "            -inset SPManat_seg.nii -prefix SPManat_seg_rs.nii"
+   echo "3dWarp -deoblique -overwrite -prefix SPManat_norm_do.nii\"
+   echo "            SPManat_norm.nii"
+   echo "3dresample  -master Alline_aff_lpc.nii -rmode Cu \"
+   echo "            -inset SPManat_norm_do.nii -prefix SPManat_norm_rs.nii"
+   echo "ALSO: Note that for SPM, only coreg can be compared to our results"
+   echo "      Only coreg results used MI for cost but with only 6 params."
+endif
 
-goto END
+
+
 END:
