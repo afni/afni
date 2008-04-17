@@ -295,6 +295,7 @@ ENTRY("new_MCW_pbar") ;
    PBAR_define_bigmap( ROI_128_256_CMD );
    PBAR_define_bigmap( ROI_256_CMD );
    PBAR_define_bigmap( AMBER_REDTOP_BLUEBOT_CS );
+   PBAR_define_bigmap( ADD_EDGE );
 
    
    RETURN( pbar );

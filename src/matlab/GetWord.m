@@ -1,7 +1,7 @@
 function [err,Word] = GetWord (S,n,D)
 %
 %   [err,Word] = GetWord (S,n,D)
-%
+% or Word = GetWord (S,n,D)
 %Purpose:
 %   Extracts the nth word from S using one of the characters in
 %   D as a delimiter.
@@ -68,5 +68,6 @@ end
 
 
 err = 0;
+if (nargout < 2) err = Word; end
 return;
 
