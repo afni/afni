@@ -6,8 +6,8 @@ PARSE:
    set cnt = 1
    set p0 = 2
    set p1 = 98
-   set min = 2
-   set max = 253
+   set min = 0
+   set max = 255
    set invol = ""
    set opref = ""
    if ("$1" == '') goto HELP
@@ -132,5 +132,17 @@ goto END
          -expr "step(a) * \
                 ( (a - $v0)/($v1-$v0)*($max-$min)+$min )"   \
          -overwrite -prefix sss
-                
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <-input DSET> <-prefix PREFIX>"
+   echo "                     [-perc_clip P0 P1] [-val_clip V0 V1]"    
+   echo "Scale a voume so that its values range between V0 and V1"
+   echo "-val_clip V0 V1: Min and Max of output dset"
+   echo "                 Default V0 = $min and V1 = $max"
+   echo "-perc_clip P0 P1: Set lowest P0 percentile to Min "
+   echo "                  and highest P1 percentile to Max"
+   echo "                  Default P0 = $p0 and P1 = $p1"
+   echo ""
+   goto END
+         
 END:
