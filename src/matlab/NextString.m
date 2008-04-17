@@ -1,7 +1,7 @@
 function [err, Cnext, cend] = NextString (C, Delim, cpos, Opt)
 %
 %   [err,Cnext, cend] = NextString (C, Delim, cpos, Opt)
-%
+% or [Cnext, cend] = NextString (C, Delim, cpos, Opt)
 %Purpose:
 %   gets the next string in charachter array C that is delimited by Delim
 %   
@@ -118,6 +118,12 @@ if (Opt.Deblank & nCnext),
 end
 
 err = 0;
+
+if (nargout < 3), 
+   err = Cnext; 
+   Cnext = cend; 
+end
+
 return;
 
 

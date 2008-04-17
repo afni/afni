@@ -1,6 +1,6 @@
-function [err, v, Info] = Read_1D (fname, p1)
+function [err, v, Info, Com] = Read_1D (fname, p1)
 %
-%   [err,M, Info] = Read_1D (fname, [opt])
+%   [err,M, Info, Com] = Read_1D (fname, [opt])
 % or 
 %   [err,M] = Read_1D (fname,[opt])
 % or
@@ -65,6 +65,7 @@ FuncName = 'Read_1D';
 
 %Debug Flag
 DBG = 1;
+Com = '';
 
 if (nargin == 1),
    verb = 1; Opt = [];
@@ -126,7 +127,7 @@ if (Opt.method == 0),
 
    %purge comments
    if (verb > 1), fprintf(1,'Purging comments\n'); end
-   c = PurgeComments(c, '#');
+   [c, Com] = PurgeComments(c, '#');
    nc = length(c);
    %remove line breaks and the following new line
    if (verb > 1), fprintf(1,'Removing line breaks\n'); end
