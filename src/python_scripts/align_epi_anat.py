@@ -185,7 +185,7 @@ g_help_string = """
 
       align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig   \\
                         -suffix _al2epi -epi_base 5              \\
-			-child_epi epi_r??+orig.HEAD
+                        -child_epi epi_r??+orig.HEAD
                         
       # Instead of aligning the anatomy to an epi, transform the epi
       # to match the anatomy. Children get the same treatment. Note that
@@ -239,7 +239,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = 1.02 # software version (update for changes)
+      self.align_version = 1.03 # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -352,7 +352,7 @@ class RegWrap:
       # talairach transformed EPI parent dataset
       self.valid_opts.add_opt('-tlrc_epar', 1, [], \
          helpstr="Not available yet.\n"
-	         "If this is set, the results will include +tlrc\n"
+                 "If this is set, the results will include +tlrc\n"
                  "template transformed datasets for the anatomical\n"
                  "aligned to the epi combined with this additional\n"
                  "transformation to template of this parent dataset\n"
@@ -361,7 +361,7 @@ class RegWrap:
       # auto_talairach results
       self.valid_opts.add_opt('-auto_tlrc', 0, [], \
          helpstr="Not available yet.\n"
-	         "If this is set, the results will also be aligned\n"
+                 "If this is set, the results will also be aligned\n"
                  "to a template using the @auto_tlrc script.\n"
                  "Transformations computed from that will be combined\n"
                  "with the anat to epi transformations and epi to anat\n"
@@ -375,17 +375,17 @@ class RegWrap:
       # child anat datasets
       self.valid_opts.add_opt('-child_anat', -1,[],\
                                helpstr="Not available yet.\n"
-			       "Names of child anatomical datasets")
+                               "Names of child anatomical datasets")
 
       # master resampling options for alignment
       self.valid_opts.add_opt('-master_epi', 1,['SOURCE'],\
              helpstr="-master grid resolution for epi to anat alignment\n" \
-		       "MIN_DXYZ uses the smallest dimension\n"
-		       "SOURCE and BASE as in 3dAllineate help")
+                       "MIN_DXYZ uses the smallest dimension\n"
+                       "SOURCE and BASE as in 3dAllineate help")
       self.valid_opts.add_opt('-master_tlrc', 1,['MIN_DXYZ'],\
-             helpstr="-master grid resolution for epi to tlrc anat alignment\n" \
-		       "MIN_DXYZ uses the smallest dimension"
-		       "SOURCE and BASE as in 3dAllineate help")
+             helpstr="-master grid resolution for epi to tlrc anat alignment\n"\
+                       "MIN_DXYZ uses the smallest dimension"
+                       "SOURCE and BASE as in 3dAllineate help")
 
       # create edge images
       # do edge-based alignment
@@ -405,7 +405,7 @@ class RegWrap:
 
       self.valid_opts.add_opt('-mask', -1, ['vent'], \
                helpstr="Not available yet.\n"
-	               "Mask to apply to data.")
+                       "Mask to apply to data.")
   
    def dry_run(self):
       if self.oexec != "dry_run":
@@ -721,7 +721,7 @@ class RegWrap:
       
           if(opt.parlist[0]=='MIN_DXYZ'):
               min_d =  self.min_dim_dset(ps.epi)
-	      self.master_epi_option = "-mast_dxyz %f" % min_d
+              self.master_epi_option = "-mast_dxyz %f" % min_d
               self.info_msg("Spacing for EPI to anat alignment is %f" % min_d)
 
 
@@ -730,12 +730,12 @@ class RegWrap:
           self.master_tlrc_option = "-master %s" % opt.parlist[0]
           if(opt.parlist[0]=='MIN_DXYZ'):
               min_d =  self.min_dim_dset(ps.epi)
-	      self.master_tlrc_option = "-mast_dxyz %f" % min_d
+              self.master_tlrc_option = "-mast_dxyz %f" % min_d
               self.info_msg("Spacing for EPI to tlrc alignment is %f" % min_d)
       else :   # default is to use smallest dimension
           min_d =  min_dim_dset(ps.epi)
-	  self.master_tlrc_option = "-mast_dxyz %f" % min_d
-	  self.info_msg("Spacing for EPI to tlrc alignment is %f mm" % min_d)
+          self.master_tlrc_option = "-mast_dxyz %f" % min_d
+          self.info_msg("Spacing for EPI to tlrc alignment is %f mm" % min_d)
 
       # all inputs look okay  - this goes after all inputs. ##########
       return 1
@@ -754,8 +754,8 @@ class RegWrap:
        while i < 3 :    # find the smallest of the 3 dimensions
           dx = float(com.val(0,i))
           if (dx<min_dx):
-	      min_dx = dx
-	  i += 1    
+              min_dx = dx
+          i += 1    
        if(min_dx==0.0):
            min_dx = 1.0
        return (min_dx)
@@ -876,7 +876,7 @@ class RegWrap:
                "3dAllineate -base %s -1Dmatrix_apply %s " \
                "-prefix %s -input %s  %s "   %  \
                ( a.ppv(), epi_mat, o.prefix, e.ppv(), self.master_epi_option),\
-	         ps.oexec)
+                 ps.oexec)
          
          com.run();
 #         if (not o.exist() and not ps.dry_run()):
@@ -929,16 +929,16 @@ class RegWrap:
                   "3dAllineate -base %s -1Dmatrix_apply %s " \
                   "-prefix %s -input %s  -verb  %s"   %  \
                   ( a.ppv(), epi_mat, tlrc_dset.ppv(), e.ppv(), \
-		    self.master_tlrc_option), ps.oexec)
+                    self.master_tlrc_option), ps.oexec)
 
             com.run()
-	    # 3dAllineate doesn't write out the correct view
-	    # so rename the files for AFNI BRIK, HEAD pairs
-	    if (tlrc_dset.type == 'BRIK'):
+            # 3dAllineate doesn't write out the correct view
+            # so rename the files for AFNI BRIK, HEAD pairs
+            if (tlrc_dset.type == 'BRIK'):
                com = shell_com ("3drefit -view tlrc %s+orig" %     \
-	                	tlrc_dset.prefix, ps.oexec)
+                                tlrc_dset.prefix, ps.oexec)
                com.run()
-	    
+            
 #          if (not o.exist() and not ps.dry_run()):
 #             self.error_msg("Could not apply tlrc transformation to epi data")
 #             return None
@@ -953,7 +953,7 @@ class RegWrap:
          o.delete(ps.oexec)
          # if more than 1 sub-brick
          if (ps.dry_run() or \
-	    ((not ps.dry_run() and dset_dims(e.ppve())[3] > 1))):
+            ((not ps.dry_run() and dset_dims(e.ppve())[3] > 1))):
          # could be: if number choose bucket else use that as stat
          # if((ps.epi_base=='median') or (ps.epi_base=='max') or \
          # (ps.epi_base=='mean')):   
@@ -970,7 +970,7 @@ class RegWrap:
                "3dTstat -%s -prefix %s %s" % \
                (ps.epi_base, o.prefix, e.ppv()), ps.oexec)
          else:   # choose a single sub-brick (sub-brick 0)
-	    self.info_msg("using 0th sub-brick because only one found")
+            self.info_msg("using 0th sub-brick because only one found")
             com = shell_com(  \
             "3dbucket -prefix %s %s'[0]'" % (o.prefix, e.ppv()), ps.oexec)
          com.run();
@@ -1197,9 +1197,8 @@ class RegWrap:
       # time shift epi data, prepend a prefix
       if(self.tshift_flag):
          if(self.tshiftable_dset(o)) :
-	    basesuff = "%s_tsh" % basesuff
+            basesuff = "%s_tsh" % basesuff
             prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
-            self.info_msg("Tshift %s" % prefix)
             o = self.tshift_epi( o, ps.tshift_opt, prefix=prefix)
          else:
             self.info_msg("Can not do time shifting of slices. "
@@ -1210,9 +1209,16 @@ class RegWrap:
       tshift_o = o         
       # do volume registration
       if(self.volreg_flag):
-	 basesuff = "%s_vr" % basesuff
-         prefix = "%s%s%s" % (basename,basesuff,suff) # don't use prepre temp filename
-         o = self.register_epi( o, ps.reg_opt, prefix, childflag=childflag)
+         if(ps.dry_run() or \
+	   (not ps.dry_run() and (dset_dims(o.ppve())[3] > 1))) :
+             basesuff = "%s_vr" % basesuff
+             prefix = "%s%s%s" % (basename,basesuff,suff) # don't use prepre
+             o = self.register_epi( o, ps.reg_opt, prefix, childflag=childflag)
+         else:
+            self.info_msg("Skipping time series volume registration. "
+                          "Must have more than a single sub-brick.")
+            self.reg_mat = "" # children can be skipped too
+
       volreg_o = o
 
       # if just processing child epi datasets, just go home
@@ -1323,12 +1329,16 @@ class RegWrap:
          # save the volume registered EPI data
          if (self.epi_vr and self.volreg_flag):
             eo = epi_in.new("%s_vr%s" % (ein.prefix, suf))
-            eo.delete(ps.oexec)
-            self.info_msg( "Creating final output: "
-                           "time series volume registered epi")
-            com = shell_com(  \
-                     "3dcopy %s %s" % (self.epi_vr.ppv(), eo.pve()), ps.oexec)
-            com.run()
+            if(eo.ppv()==self.epi_vr.ppv()):
+               self.info_msg(  \
+	        "time series volume registered epi dataset copy not necessary")
+            else:
+               eo.delete(ps.oexec)
+               self.info_msg( "Creating final output: "
+                              "time series volume registered epi")
+               com = shell_com(  \
+               	   "3dcopy %s %s" % (self.epi_vr.ppv(), eo.pve()), ps.oexec)
+               com.run()
 
 
       # save Allineate input datasets
@@ -1397,7 +1407,7 @@ class RegWrap:
          if epref != "":
             com = shell_com(  "rm -f __tt_%s*" % (epref), ps.oexec)
             com.run() 
-	    if(rmold):
+            if(rmold):
                com = shell_com(  "rm -f %s*%s*" % (epref, ps.suffix), ps.oexec)
                com.run() 
 
