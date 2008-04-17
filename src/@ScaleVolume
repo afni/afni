@@ -1,0 +1,136 @@
+#!/bin/tcsh -f
+
+
+PARSE: 
+   set Narg = $#
+   set cnt = 1
+   set p0 = 2
+   set p1 = 98
+   set min = 2
+   set max = 253
+   set invol = ""
+   set opref = ""
+   if ("$1" == '') goto HELP
+
+   while ($cnt <= $Narg)
+      set donext = 1;
+      
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-perc_clip") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need 2 values between 0 and 100 after -perc_clip"
+            goto END
+         else
+            @ cnt ++
+            set p0 = "$argv[$cnt]"
+            if ($cnt == $Narg) then
+               echo "Need 2 values between 0 and 100 after -perc_clip"
+               goto END
+            endif
+            @ cnt ++
+            set p1 = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-val_clip") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need 2 values after -val_clip"
+            goto END
+         else
+            @ cnt ++
+            set min = "$argv[$cnt]"
+            if ($cnt == $Narg) then
+               echo "Need 2 values between 0 and 100 after -val_clip"
+               goto END
+            endif
+            @ cnt ++
+            set max = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-input") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need 1 dset after -input"
+            goto END
+         else
+            @ cnt ++
+            set invol = "$argv[$cnt]"
+            set donext = 0   
+         endif
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a prefix after -prefix"
+            goto END
+         else
+            @ cnt ++
+            set opref = "$argv[$cnt]"
+            set donext = 0   
+         endif
+      endif
+      
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+
+      
+set ps = `ccalc -i  -expr "($p1 - $p0)"` 
+set ipref = `@GetAfniPrefix $invol`
+if ($opref == "") set opref = $ipref.sc
+if ($invol == "") then
+   echo "Error: No input volume"
+   echo ""
+   goto END
+endif
+
+if (`3dnvals $invol` > 1) then
+   echo "Error `basename $0`
+   echo "Script operates on datasets with one input only"
+   echo ""
+   goto END
+endif
+
+
+DOIT:
+set perc = `3dBrickstat -non-zero -percentile $p0 $ps $p1 $invol`
+echo $perc
+set v0 = $perc[2]
+set v1 = $perc[4]
+
+#In one step
+3dcalc   -a $invol -prefix $opref  \
+         -expr "step(a) * \
+                ( \
+                  ( ($v0 * (1-step(a-$v0)) + \
+                     $v1 * (  step(a-$v1)) + \
+                     step(a-$v0)*(1-step(a-$v1))*a) - $v0 ) / \
+                  ($v1-$v0)*($max-$min)+$min \
+                )    "
+                
+goto END
+
+#Two steps would be
+3dcalc   -a $invol -prefix sss  \
+         -expr "step(a) * \
+                ( $v0 * (step($v0-a)) + \
+                  $v1 * (step(a-$v1)) + \
+                  step(a-$v0)*step($v1-a)*a )"  
+3dcalc   -a sss+orig  \
+         -expr "step(a) * \
+                ( (a - $v0)/($v1-$v0)*($max-$min)+$min )"   \
+         -overwrite -prefix sss
+                
+END:
