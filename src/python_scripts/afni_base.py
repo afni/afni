@@ -76,8 +76,6 @@ class afni_name:
             return 1
          else: return 0
    def delete(self, oexec=""): #delete files on disk!
-      if oexec == "":
-         oexec = self.eo
       if (self.type == 'BRIK'):
          if os.path.isfile("%s.HEAD" % self.ppv()):
             shell_exec("rm %s.HEAD" % self.ppv(), oexec)
@@ -96,8 +94,6 @@ class afni_name:
    def move_to_dir(self, path="", oexec=""):
       #self.show()
       #print path
-      if oexec == "":
-         oexec = self.eo
       found = 0
       if os.path.isdir(path):
          if (self.type == 'BRIK'):
