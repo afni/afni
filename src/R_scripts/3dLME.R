@@ -226,9 +226,9 @@ for (k in 1:dimz) {
 		if (CorStr == 1) try(fm <- lme(ModelForm, random = ~1|Subj, 
 		   correlation=corAR1(0.3, form=CorForm), Model), tag <- 1)
 		if (CorStr == 2) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(0.3, p=2, form=CorForm), Model), tag <- 1)
+		   correlation=corARMA(c(0.3,0.3), p=2, form=CorForm), Model), tag <- 1)
 		if (CorStr == 3) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(0.3, p=1, q=1, form=CorForm), Model), tag <- 1)		
+		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm), Model), tag <- 1)		
 	}	
    else try(fm <- gls(ModelForm, Model), tag <- 1) 
 	if (tag != 1) {
