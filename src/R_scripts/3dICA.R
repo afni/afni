@@ -21,6 +21,8 @@ meth <- "C"         # or "R"
 # Line 1: data type - volume or surface
 InFile <- unlist(strsplit(unlist(scan(file="par.txt", what= list(""), 
    skip=0, nline=1)), "\\:"))[2]
+	
+View <- unlist(strsplit(unlist(strsplit(InFile, "\\+"))[2], "\\."))[1]
 
 #  Line 2: Output filename for the components in 3D
 #how to check output filename?
@@ -75,7 +77,9 @@ MyLabel <- rep("component", NoComp)
 
 write.AFNI(OutFile, MData, MyLabel, note=Data$header$HISTORY_NOTE, origin=Data$origin, delta=Data$delta, idcode="whatever")
 statpar <- "3drefit"
-statpar <- paste(statpar, " -view tlrc -newid ", OutFile)
+
+if (View == "tlrc") statpar <- paste(statpar, " -view tlrc -newid ", OutFile) else
+   statpar <- paste(statpar, " -newid ", OutFile)
 system(statpar)
 
 # dump out the mixing matrix 
