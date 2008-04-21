@@ -168,9 +168,9 @@ while (tag == 1) {
 		if (CorStr == 1) try(fm <- lme(ModelForm, random = ~1|Subj, 
 		   correlation=corAR1(0.3, form=CorForm), Model), tag <- 1)
 		if (CorStr == 2) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(0.3, p=2, form=CorForm), Model), tag <- 1)
+		   correlation=corARMA(c(0.3,0.3), p=2, form=CorForm), Model), tag <- 1)
 		if (CorStr == 3) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(0.3, p=1, q=1, form=CorForm), Model), tag <- 1)		
+		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm), Model), tag <- 1)		
 	}	
 	else try(fm <- gls(ModelForm, Model), tag <- 1)
 	if (ncontr > 0) try(for (n in 1:ncontr) { contrDF[n] <- contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average")$df }, tag <- 1)
