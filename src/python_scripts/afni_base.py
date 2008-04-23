@@ -21,28 +21,36 @@ class afni_name:
       if (fn > 0 and fn+len(self.path) == len(pp)): #path is at end of abs path
          return pp
       else:
-         return os.path.abspath(self.path)
+         return "%s/" % os.path.abspath(self.path)
    def ppve(self):
-      s = "%s/%s%s%s" % (self.p(), self.prefix, \
+      s = "%s%s%s%s" % (self.p(), self.prefix, \
                          self.view, self.extension)
       return s
    def ppves(self):
-      s = "%s/%s%s%s'%s%s%s%s'" % (self.p(), self.prefix, \
+      s = "%s%s%s%s'%s%s%s%s'" % (self.p(), self.prefix, \
                          self.view, self.extension,\
                          self.colsel, self.rowsel,\
                          self.nodesel, self.rangesel)
       return s
+   def inp(self):
+      if self.type == 'BRIK':
+         return self.ppv()
+      else:
+         return self.ppve() 
+   def out(self):
+      if self.type == 'BRIK':
+         return self.prefix
+      else:
+         return self.pve() 
    def ppv(self):
-      s = "%s/%s%s" % (self.p(), self.prefix, self.view)
+      s = "%s%s%s" % (self.p(), self.prefix, self.view)
       return s
    def rpv(self): # relative path, prefix, view (no leading './')
-      if self.path == './':
-          s = "%s%s" % (self.prefix, self.view)
-      else:
-          s = "%s%s%s" % (self.path, self.prefix, self.view)
+      rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
+      s = "%s%s%s" % (rp, self.prefix, self.view)
       return s
    def pp(self):
-      return "%s/%s" % (self.p(), self.prefix)
+      return "%s%s" % (self.p(), self.prefix)
    def pv(self):
       return "%s%s" % (self.prefix, self.view)
    def pve(self):
@@ -150,18 +158,16 @@ class afni_name:
    def new_path(self,path=""):
       #give name a new path
       if len(path) == 0:
-         self.path = "./"
+         self.path = "%s/" % os.path.abspath("./")
       else:
-         if path[-1] == '/':
-            self.path = path
-         else:
-            self.path = "%s/" % path
+         self.path = "%s/" % os.path.abspath(path)
    def new_prefix(self, prefix=""):
       self.prefix = prefix
    def new_view(self,view=""):
       self.view = view
    def show(self):
       print "AFNI filename:"
+      print "   curdir  : %s" % os.path.abspath(os.curdir)
       print "   initial : %s" % self.initname
       print "   name    : %s" % self.ppve()
       print "   path    : %s" % self.path
@@ -304,8 +310,8 @@ class shell_com:
          return 0
       if(self.eo=="dry_run"):
          self.status = 0
-	 self.exc = 1
-	 return 0
+         self.exc = 1
+         return 0
       self.status, self.so, self.se = shell_exec2(self.trimcom, self.capture) 
       self.exc = 1
       return self.status
@@ -559,7 +565,7 @@ def parse_afni_name(name):
    res = {}
    #get the path  #Can also use os.path.split
    rp = os.path.dirname(name) #relative path
-   #ap = os.path.abspath(name) #absolute path
+   ap = os.path.abspath(rp) #absolute path
    fn = os.path.basename(name)
    #Get selectors out of the way:
    res['col'], res['row'], res['node'], res['range'], fn = afni_selectors(fn)
@@ -591,7 +597,7 @@ def parse_afni_name(name):
    #Build the dictionary result
    if len(rp) == 0:
       rp = '.'
-   res['path'] = "%s/" % rp
+   res['path'] = "%s/" % ap   #A world of trouble when relative path is used. So use ap instead April 08
    res['prefix'] = pr
    res['view'] = vi
    res['extension'] = ex

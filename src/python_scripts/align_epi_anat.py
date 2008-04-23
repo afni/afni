@@ -623,12 +623,12 @@ class RegWrap:
          
       #epi input
       if not e.exist():
-         print "** ERROR: Could not find epi dataset\n   %s " % e.ppv()
+         print "** ERROR: Could not find epi dataset\n   %s " % e.inp()
          ps.ciao(1)
          
       #anat input
       if not a.exist():
-         print "** ERROR: Could not find anat dataset\n   %s " % a.ppv()
+         print "** ERROR: Could not find anat dataset\n   %s " % a.inp()
          ps.ciao(1)
 
       #get 3dTshift options
@@ -689,7 +689,7 @@ class RegWrap:
                   "  %s " %  anat_tlrc.prefix)
          else:
             self.info_msg("Talairach transformed anatomical: %s" % \
-                         (anat_tlrc.ppv()))
+                         (anat_tlrc.inp()))
       else :
          ps.tlrc_apar = ""
       opt = self.user_opts.find_opt('-tlrc_epar')
@@ -698,7 +698,7 @@ class RegWrap:
          ps.tlrc_epar = at
          if not at.exist():
             self.error_msg("Could not find epi talairach template dataset\n %s "
-                  % at.ppv())
+                  % at.inp())
       else :
          ps.tlrc_epar = ""
 
@@ -711,9 +711,9 @@ class RegWrap:
             # it's 11:00, do you know where your children are?
             if not child_epi.exist():
                self.error_msg("Could not find child epi\n %s "
-                     % child_epi.ppv())
+                     % child_epi.inp())
             else:
-               self.info_msg("Found child epi %s" % child_epi.ppv())
+               self.info_msg("Found child epi %s" % child_epi.inp())
        
       opt = self.user_opts.find_opt('-master_epi')  # epi to anat resolution
       if opt != None: 
@@ -744,11 +744,12 @@ class RegWrap:
    # find smallest dimension of dataset in x,y,z
    def min_dim_dset(self, dset=None) :
        com = shell_com(  \
-                "3dAttribute DELTA %s" % dset.ppv(), ps.oexec,capture=1)
+                "3dAttribute DELTA %s" % dset.inp(), ps.oexec,capture=1)
        com.run()
        if  ps.dry_run():
            return (1.2)
-
+       com
+       
        min_dx = 1000.0       # some high number to start
        i = 0
        while i < 3 :    # find the smallest of the 3 dimensions
@@ -765,7 +766,7 @@ class RegWrap:
    # determine if dataset has time shifts in slices
    def tshiftable_dset( self, dset=None) :
        com = shell_com(  \
-                "3dAttribute TAXIS_OFFSETS %s" % dset.ppv(), ps.oexec,capture=1)
+                "3dAttribute TAXIS_OFFSETS %s" % dset.inp(), ps.oexec,capture=1)
        com.run()
        if  ps.dry_run():
            return (1)
@@ -810,7 +811,7 @@ class RegWrap:
          o.delete(ps.oexec)
          ow.delete(ps.oexec)
          if m:
-            wtopt = "-wtprefix %s -weight %s" % (ow.prefix, m.ppv())
+            wtopt = "-wtprefix %s -weight %s" % (ow.prefix, m.inp())
          else:
             wtopt = "-wtprefix %s " % (ow.prefix)
          anat_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.prefix,suf)
@@ -828,7 +829,7 @@ class RegWrap:
                   "%s "  # center of mass options (cmass) \
                   "-1Dmatrix_save %s "  \
                   "%s "  # other 3dAllineate options (may be user specified) \
-                  % (costfunction, wtopt, a.ppve(), o.prefix, e.ppv(), cmass,\
+                  % (costfunction, wtopt, a.ppve(), o.out(), e.inp(), cmass,\
                   anat_mat, alopt), ps.oexec)
          com.run()
       if (not o.exist() and not ps.dry_run()):
@@ -843,7 +844,7 @@ class RegWrap:
         alopt="",\
         suf = "_alnd_anat"):
 
-      self.info_msg(" Aligning %s to anat" % e.ppv())
+      self.info_msg(" Aligning %s to anat" % e.inp())
 
       o = afni_name("%s%s" % (self.epi.prefix, suf)) # was e.prefix here
       o.view = '+orig'
@@ -875,7 +876,7 @@ class RegWrap:
          com = shell_com(  \
                "3dAllineate -base %s -1Dmatrix_apply %s " \
                "-prefix %s -input %s  %s "   %  \
-               ( a.ppv(), epi_mat, o.prefix, e.ppv(), self.master_epi_option),\
+               ( a.inp(), epi_mat, o.out(), e.inp(), self.master_epi_option),\
                  ps.oexec)
          
          com.run();
@@ -890,11 +891,11 @@ class RegWrap:
             
             com = shell_com(  \
                      "3dAttribute WARP_TYPE %s" % \
-                      self.tlrc_apar.ppv(), ps.oexec, capture=1)
+                      self.tlrc_apar.inp(), ps.oexec, capture=1)
             com.run();
             if(com.status != 0) :
                self.error_msg("Warp type not defined for this dataset: %s" % \
-                         anat_tlrc.ppv())
+                         anat_tlrc.inp())
                return o
 
             tlrc_type = int(com.val(0,0))
@@ -903,7 +904,7 @@ class RegWrap:
                          " talairached data")
                return o
                
-            anat_tlrc_mat = "%s::WARP_DATA" % (self.tlrc_apar.ppv())
+            anat_tlrc_mat = "%s::WARP_DATA" % (self.tlrc_apar.inp())
 
             epi_mat = "%s%s_tlrc_mat.aff12.1D" % (self.epi.prefix, suf)
 
@@ -928,7 +929,7 @@ class RegWrap:
             com = shell_com(  \
                   "3dAllineate -base %s -1Dmatrix_apply %s " \
                   "-prefix %s -input %s  -verb  %s"   %  \
-                  ( a.ppv(), epi_mat, tlrc_dset.ppv(), e.ppv(), \
+                  ( a.inp(), epi_mat, tlrc_dset.inp(), e.inp(), \
                     self.master_tlrc_option), ps.oexec)
 
             com.run()
@@ -964,16 +965,17 @@ class RegWrap:
             # if an integer, choose a single sub-brick
                com = shell_com(  \
                "3dbucket -prefix %s %s'[%s]'" % \
-               (o.prefix, e.ppv(), ps.epi_base) , ps.oexec)
+               (o.out(), e.inp(), ps.epi_base) , ps.oexec)
             else:          
                com = shell_com(  \
                "3dTstat -%s -prefix %s %s" % \
-               (ps.epi_base, o.prefix, e.ppv()), ps.oexec)
+               (ps.epi_base, o.out(), e.inp()), ps.oexec)
          else:   # choose a single sub-brick (sub-brick 0)
             self.info_msg("using 0th sub-brick because only one found")
             com = shell_com(  \
-            "3dbucket -prefix %s %s'[0]'" % (o.prefix, e.ppv()), ps.oexec)
+            "3dbucket -prefix %s %s'[0]'" % (o.out(), e.inp()), ps.oexec)
          com.run();
+         o.show()
          if (not o.exist() and not ps.dry_run()):
             print "** ERROR: Could not 3dTstat epi"
             return None
@@ -989,7 +991,7 @@ class RegWrap:
          self.info_msg( "Correcting for slice timing")
          com = shell_com(  \
                "3dTshift -prefix %s %s %s "   %  \
-               ( o.prefix, tshift_opt, e.ppv()), ps.oexec)
+               ( o.out(), tshift_opt, e.inp()), ps.oexec)
          com.run();
          if (not o.exist() and not ps.dry_run()):
             print "** ERROR: Could not do time shifting of epi data\n"
@@ -1023,7 +1025,7 @@ class RegWrap:
          # choose a statistic as representative
          # if an integer, choose a single sub-brick
          if(childflag):
-            base = "%s.'[%s]'"  %  (ps.epi.ppv(), ps.volreg_base)
+            base = "%s.'[%s]'"  %  (ps.epi.inp(), ps.volreg_base)
          elif(ps.volreg_base.isdigit()): 
             base = "%s" % ps.volreg_base
 
@@ -1036,14 +1038,14 @@ class RegWrap:
               base = "0"
            else:
               ots = e.new("%s_ts_tempalpha" % prefix)
-              base = "%s.'[0]'" % ots.ppv()
+              base = "%s.'[0]'" % ots.inp()
               if (not ots.exist() or ps.rewrite):
                  ots.delete(ps.oexec)
 
               # compute stats, volreg, then recompute stats
               com = shell_com(  \
                 "3dTstat -%s -prefix %s %s" % \
-                (ps.volreg_base, ots.prefix, e.ppv()), ps.oexec)
+                (ps.volreg_base, ots.out(), e.inp()), ps.oexec)
               com.run()
 
               if(not ots.exist() and not ps.dry_run()):
@@ -1055,18 +1057,18 @@ class RegWrap:
 
               com = shell_com(                                      \
                     "%s -prefix %s -base %s %s %s "  %              \
-                ( vrcom, ovr_alpha.prefix, base,                    \
-                  reg_opt, e.ppv()), ps.oexec)
+                ( vrcom, ovr_alpha.out(), base,                    \
+                  reg_opt, e.inp()), ps.oexec)
               com.run()
 
               ots = e.new("%s_vrt" % prefix)
-              base = "%s.'[0]'" % ots.ppv()
+              base = "%s.'[0]'" % ots.inp()
               if (not ots.exist() or ps.rewrite):
                  ots.delete(ps.oexec)
 
                  com = shell_com(  \
                    "3dTstat -%s -prefix %s %s" % \
-                   (ps.volreg_base, ots.prefix, ovr_alpha.ppv()), ps.oexec)
+                   (ps.volreg_base, ots.out(), ovr_alpha.inp()), ps.oexec)
                  com.run()
 
               if(not ots.exist() and not ps.dry_run()):
@@ -1079,8 +1081,8 @@ class RegWrap:
          com = shell_com(                                      \
                "%s -1Dfile %s -1Dmatrix_save %s "              \
                "-prefix %s -base %s %s %s "  %                 \
-           ( vrcom, self.mot_1D, self.reg_mat, o.prefix, base, \
-             reg_opt, e.ppv()), ps.oexec)
+           ( vrcom, self.mot_1D, self.reg_mat, o.out(), base, \
+             reg_opt, e.inp()), ps.oexec)
          com.run()
 
          if (not o.exist() and not ps.dry_run()):
@@ -1097,7 +1099,7 @@ class RegWrap:
          self.info_msg( "resampling epi to match anatomical data")
          com = shell_com(  \
                "3dresample -master %s -prefix %s -inset %s -rmode Cu" \
-                  % (ps.anat_ns.ppv(), o.prefix, e.ppv()), ps.oexec)
+                  % (ps.anat_ns.inp(), o.out(), e.inp()), ps.oexec)
          com.run()
          if (not o.exist() and not ps.dry_run()):
             print "** ERROR: Could not resample\n"
@@ -1114,7 +1116,7 @@ class RegWrap:
             n.delete(ps.oexec)
             com = shell_com(  \
                   "3dSkullStrip -input %s -prefix %s" \
-                  % (e.ppve(), n.prefix) , ps.oexec)
+                  % (e.ppve(), n.out()) , ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print "** ERROR: Could not strip skull\n"
@@ -1127,8 +1129,8 @@ class RegWrap:
             com = shell_com(  \
                   "3dAutomask -prefix %s %s && 3dcalc -a %s "\
                   "-b %s -prefix %s -expr 'step(b)*a'" \
-                  % (   j.prefix, e.ppv(), e.ppv(), 
-                        j.ppv(), n.prefix), ps.oexec)
+                  % (   j.out(), e.inp(), e.inp(), 
+                        j.inp(), n.out()), ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print "** ERROR: Could not strip skull with automask\n"
@@ -1167,12 +1169,12 @@ class RegWrap:
          com = shell_com( 
                "3dcalc -datum float -prefix %s "\
                "-a %s -expr 'min(1,(a/%f))'" \
-               % (o.prefix, e.ppve(), th), ps.oexec)
+               % (o.out(), e.ppve(), th), ps.oexec)
       else:
          com = shell_com( 
                "3dcalc -datum float -prefix %s -a "\
                "%s -expr 'min(1,(a/%f))**%f'" \
-               % (o.prefix, e.ppve(), th, sq), ps.oexec)
+               % (o.out(), e.ppve(), th, sq), ps.oexec)
       if (not o.exist() or ps.rewrite):
          o.delete(ps.oexec)
          com.run()
@@ -1267,7 +1269,7 @@ class RegWrap:
             self.info_msg( "Removing skull from anatomical data")
             com = shell_com(  \
                   "3dSkullStrip -input %s -prefix %s" \
-                  % (a.ppve(), n.prefix), ps.oexec)
+                  % (a.ppve(), n.out()), ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print "** ERROR: Could not strip skull\n"
@@ -1311,10 +1313,10 @@ class RegWrap:
          # save aligned anatomy
          self.info_msg( "Creating final output: anat data aligned to epi data")
          com = shell_com(  \
-               "3dcopy %s %s" % (aae.ppv(), o.pve()), ps.oexec)
+               "3dcopy %s %s" % (aae.inp(), o.pve()), ps.oexec)
          com.run()
          if (not o.exist() and not ps.dry_run()):
-            print "** ERROR: Could not rename %s\n" % aae.ppv()
+            print "** ERROR: Could not rename %s\n" % aae.inp()
             return
 
          # save the timeshifted EPI data
@@ -1323,13 +1325,13 @@ class RegWrap:
             eo.delete(ps.oexec)
             self.info_msg( "Creating final output: time shifted epi")
             com = shell_com(  \
-                     "3dcopy %s %s" % (self.epi_ts.ppv(), eo.pve()), ps.oexec)
+                     "3dcopy %s %s" % (self.epi_ts.inp(), eo.pve()), ps.oexec)
             com.run()
 
          # save the volume registered EPI data
          if (self.epi_vr and self.volreg_flag):
             eo = epi_in.new("%s_vr%s" % (ein.prefix, suf))
-            if(eo.ppv()==self.epi_vr.ppv()):
+            if(eo.inp()==self.epi_vr.inp()):
                self.info_msg(  \
 	        "time series volume registered epi dataset copy not necessary")
             else:
@@ -1337,7 +1339,7 @@ class RegWrap:
                self.info_msg( "Creating final output: "
                               "time series volume registered epi")
                com = shell_com(  \
-               	   "3dcopy %s %s" % (self.epi_vr.ppv(), eo.pve()), ps.oexec)
+               	   "3dcopy %s %s" % (self.epi_vr.inp(), eo.pve()), ps.oexec)
                com.run()
 
 
@@ -1349,7 +1351,7 @@ class RegWrap:
             ow.delete(ps.oexec)
             self.info_msg( "Creating final output: weighting data")
             com = shell_com(  \
-                     "3dcopy %s %s" % (w.ppv(), ow.pve()), ps.oexec)
+                     "3dcopy %s %s" % (w.inp(), ow.pve()), ps.oexec)
             com.run()
 
          #save a version of the epi as it went into 3dAllineate         
@@ -1359,7 +1361,7 @@ class RegWrap:
             self.info_msg( "Creating final output: " \
                            "epi representative data as used by 3dAllineate")
             com = shell_com(  \
-                     "3dcopy %s %s" % (epi_in.ppv(), eo.pve()), ps.oexec)
+                     "3dcopy %s %s" % (epi_in.inp(), eo.pve()), ps.oexec)
             com.run()
 
          #save a version of the anat as it went into 3dAllineate
@@ -1369,20 +1371,20 @@ class RegWrap:
             self.info_msg(    \
               "Creating final output: anatomical data as used by 3dAllineate")
             com = shell_com(  \
-              "3dcopy %s %s" % (anat_in.ppv(), ao.pve()), ps.oexec)
+              "3dcopy %s %s" % (anat_in.inp(), ao.pve()), ps.oexec)
             com.run()
 
       #Now create a version of the epi that is aligned to the anatomy
       if (eaa):
          #save the epi aligned to anat
          o = e.new("%s%s" % (ein.prefix, suf))
-         if(eaa.ppv()==o.ppv()):
+         if(eaa.inp()==o.inp()):
             self.info_msg("epi aligned to anat data copy not necessary")
          else:
             o.delete(ps.oexec)
             self.info_msg( "Creating final output: epi data aligned to anat")
             com = shell_com(  \
-               "3dcopy %s %s" % (eaa.ppv(), o.pve()), ps.oexec)
+               "3dcopy %s %s" % (eaa.inp(), o.pve()), ps.oexec)
             com.run()
 
          # save skull stripped anat
@@ -1391,7 +1393,7 @@ class RegWrap:
          self.info_msg(    \
            "Creating final output: anatomical data as used by 3dAllineate")
          com = shell_com(  \
-           "3dcopy %s %s" % (ps.anat_ns.ppv(), ao_ns.pve()), ps.oexec)
+           "3dcopy %s %s" % (ps.anat_ns.inp(), ao_ns.pve()), ps.oexec)
          com.run()
        
       return
@@ -1428,12 +1430,12 @@ class RegWrap:
       # do preprocessing of epi
       # do time shifting, volume registration of child epi data
       #   if requested; otherwise, just keep the input epi
-      if(childepi.ppv()==ps.epi.ppv()) :    # skip the parent if it's included
+      if(childepi.inp()==ps.epi.inp()) :    # skip the parent if it's included
          return                             #   in child list
       child = copy.copy(ps)      
       
       child.epi = childepi
-      self.info_msg("Parent %s:  Child: %s" % (ps.epi.ppv(), child.epi.ppv()))
+      self.info_msg("Parent %s:  Child: %s" % (ps.epi.inp(), child.epi.inp()))
             
       child.epi_ts, child.epi_vr, child.epi_ns = \
           child.process_epi(childflag=1)
