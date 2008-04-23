@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 23 , APR , 2008 , ZSS , "afni-python" , MICRO , TYPE_MODIFY ,
+   "Changed methods in afni_name class",
+   ".path is now absolute\n"
+   ".inp() and .out() should be used to specify input and output volumes\n"
+   "Updated lpc_align.py and align_epi_anat.py to reflect changes."
+ } ,
+
  { 2 , APR , 2008 , ZSS , "suma" , MINOR , TYPE_MODIFY ,
    "Changed suma -environment's output to reflect user's current environment.",
    "With this change, users can always replace their .sumarc with\n"
