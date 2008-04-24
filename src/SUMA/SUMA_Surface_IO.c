@@ -2240,18 +2240,20 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 		if (LocalHead) fprintf (SUMA_STDOUT, "%s: Found comment\n", FuncName); 
 		
       /*skip till next line */
-		sprintf(FS->comment,"#"); 
 		cnt = 0;
+		FS->comment[cnt] = '#'; 
 		while (ex != EOF && c != '\n') {
 			ex = fscanf (fs_file,"%c",&c);
 			if (cnt < SUMA_MAX_STRING_LENGTH-2) {
-				sprintf(FS->comment, "%s%c", FS->comment, c);
 				++cnt;
+				FS->comment[cnt] = c;
 			} else {
 				fprintf(SUMA_STDERR,"Error %s: Too long a comment in FS file, increase SUMA_FS_MAX_COMMENT_LENGTH\n", FuncName);
 				SUMA_RETURN (NOPE);
 			}
 		}
+      ++cnt;
+		FS->comment[cnt] = '\0';
       if (LocalHead) fprintf (SUMA_STDOUT, "%s: Comment:-->%s<--", FuncName, FS->comment);
 	}
 	

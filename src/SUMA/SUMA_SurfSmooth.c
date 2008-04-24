@@ -186,6 +186,9 @@ void usage_SUMA_SurfSmooth (SUMA_GENERIC_ARGV_PARSE *ps)
 "                smoothing results. \n"
 "      -sigma  S: Bandwidth of smoothing kernel (for a single iteration).\n"
 "                 S should be small (< 1) but not too small.\n"
+"                 If the program is taking forever to run, with final\n"
+"                 numbers of iteration in the upper hundreds, you can\n"
+"                 increase the value of -sigma somewhat.\n"
 "      -c_mask or -b_mask or -n_mask (see below for details):\n"
 "                 Restrict smoothing to nodes in mask.\n"
 "                 You should not include nodes with no data in \n"
@@ -1369,7 +1372,7 @@ int main (int argc,char *argv[])
    if (Opt->debug > 2) LocalHead = YUP;
    
    if (Opt->debug) SUMA_S_Note("Reading surface(s)\n");
-   #if 1       /* New loading approach */
+
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -1383,43 +1386,6 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Failed in SUMA_SurfaceMetrics.\n");
       exit(1);
    }
-   #else
-   if (Opt->insurf_method == 1) { /* method 1 */
-      SUMA_SL_Err("Input in this method is no longer supported.\n");
-      exit(1);
-   } else { /* method 2 */
-      int SO_read = -1;
-      if (!SUMA_AllocSpecFields(&Spec)) {
-         SUMA_S_Err("Failed to allocate");
-         exit(1);
-      }
-      if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
-			fprintf(SUMA_STDERR,
-                  "Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-			exit(1);
-		}
-      SO_read = SUMA_spec_select_surfs(&Spec, 
-                     Opt->surf_names, SURFSMOOTH_MAX_SURF, 0);
-      if ( SO_read != 1 )
-      {
-	      fprintf(SUMA_STDERR,
-            "Error %s: Found %d surfaces, expected only 1.\n"
-            , FuncName,  SO_read);
-         exit(1);
-      }
-      /* now read into SUMAg_DOv */
-      if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, 
-                  &SUMAg_N_DOv, Opt->sv_name, 
-                  Opt->debug, SUMAg_CF->DsetList) ) {
-	      fprintf(SUMA_STDERR,
-                  "Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
-         exit(1);
-      }
-      /* now identify surface needed */
-      SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0],
-                                     SUMAg_DOv, SUMAg_N_DOv);
-   }
-   #endif
    if (!SO) {
       SUMA_S_Err("Failed to read input surface \n");
       exit (1);
@@ -2105,7 +2071,10 @@ int main (int argc,char *argv[])
                            1, Opt->FWHM_mixmode, &fwhmhist)){
                      SUMA_S_Err("Failed to blur master data dset");  
                      exit(1);                                     
-                  } 
+                  }
+                  /* done with master */
+                  if (master_dset)  SUMA_FreeDset((void*)master_dset); master_dset=NULL;       
+ 
                   /* OK, now blur the input data by the previous specs */
                   if (0) {
                      fwhmttt = -1.0;
@@ -2226,7 +2195,17 @@ int main (int argc,char *argv[])
 
                /* Now back to SUMA_DSETand kill afni volume*/
                dset = SUMA_afnidset2sumadset(&inset, 1, 1); 
-            }            
+            }
+            if (wgtd) { /* this was allocate without allocate2D
+                       You can't use free2D to freeit because
+                       of the use of allocation tracking
+                       which is disabled in allocate2D 
+                           SUMA_free2D((char **)wgtd,SO->N_Node);  */
+               for (jj=0;jj<SO->N_Node;++jj)
+                  if (wgtd[jj]) SUMA_free(wgtd[jj]);
+               SUMA_free(wgtd);
+               wgtd = NULL;
+            }
          }
          break; 
       
@@ -2662,7 +2641,7 @@ int main (int argc,char *argv[])
    } SUMA_free(Spec); Spec = NULL;
    if (cs) cs = NULL; /* ps->cs if freed below */
    if (SF_name) SUMA_free(SF_name);
-   if (Opt->insurf_method == 1) { if (SO) SUMA_Free_Surface_Object(SO); }
+   if (SO) SUMA_Free_Surface_Object(SO); 
    if (data_old) SUMA_free(data_old);  
    if (Opt->out_name) SUMA_free(Opt->out_name); Opt->out_name = NULL;
    if (Opt->nmask) SUMA_free(Opt->nmask); Opt->nmask = NULL;

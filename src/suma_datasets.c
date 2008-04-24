@@ -9290,7 +9290,7 @@ SUMA_DSET *SUMA_afnidset2sumadset(
    THD_3dim_dataset *dset = NULL;
    SUMA_DSET *newset=NULL;
    NI_group *ngr=NULL;
-   
+   SUMA_Boolean LocalHead = YUP;
    SUMA_ENTRY;
    
    if (!dsetp) { SUMA_S_Err("Null of Null you are!"); SUMA_RETURN(newset); }
@@ -9313,7 +9313,7 @@ SUMA_DSET *SUMA_afnidset2sumadset(
          SUMA_RETURN(newset);
       }
    }
-   if (cleardset) { DSET_delete(dset); *dsetp = NULL; }
+   if (cleardset) { SUMA_LH("Clearing dset ..."); DSET_delete(dset); *dsetp = NULL; }
     
    SUMA_RETURN(newset);
 }    
@@ -10886,6 +10886,7 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
    static char FuncName[]={"SUMA_StringAppend"};
    int N_inc = 0, N_cur = 0;
    int N_chunk = 1000;
+   int i=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -10913,7 +10914,9 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
          }
       }
       /* append */
-      sprintf (SS->s, "%s%s", SS->s, newstring);
+      for (i=N_cur;i<N_cur+N_inc; ++i)
+         SS->s[i] = newstring[i-N_cur];
+      SS->s[N_cur+N_inc] = '\0';   
    }else {
       /* shrink SS->s to small size */
       N_cur = strlen (SS->s);

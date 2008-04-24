@@ -5438,17 +5438,22 @@ SUMA_Boolean SUMA_WriteSmoothingRecord (  SUMA_SurfaceObject *SO,
    on each column, successively.
     
 */
-SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (SUMA_SurfaceObject *SO, double **wgt, 
+SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (
+                           SUMA_SurfaceObject *SO, double **wgt, 
                            int *N_iter, double *FWHMp, SUMA_DSET *dset, 
                            byte *nmask, byte strict_mask, 
                            char *FWHM_mixmode, float **fwhmgp)
 {
    static char FuncName[]={"SUMA_Chung_Smooth_07_toFWHM_dset"};
    double fp, dfp, fpj, minfn=0.0, maxfn=0.0, FWHM, dfps=0.0;
-   float *fin_float=NULL, *fwhmg=NULL, *fwhmv=NULL, *fout_final = NULL, *fin=NULL, *fout=NULL;
-   int n , k, j, niter, jj, nj, *icols=NULL, N_icols, N_nmask, kth_buf, niter_alloc, N;
-   int NITERMAX = 3000;
-   char LogFWHM_hist[]={""}; /* for now don't save history.  to turn it back on, use something like: {"FWHM_vs_iteration"}; */
+   float *fin_float=NULL, *fwhmg=NULL, *fwhmv=NULL, 
+         *fout_final = NULL, *fin=NULL, *fout=NULL;
+   int   n , k, j, niter, jj, nj, *icols=NULL, 
+         N_icols, N_nmask, kth_buf, niter_alloc, N;
+   int   NITERMAX = 3000;
+   char  LogFWHM_hist[]={""}; /* for now don't save history.  
+                                 to turn it back on, use something like: 
+                                 {"FWHM_vs_iteration"}; */
    byte *bfull=NULL, stop = 0;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5506,8 +5511,10 @@ SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (SUMA_SurfaceObject *SO, double **
    niter = 0;
    while (!stop) {
       if (*N_iter < 0) { /* function knows best */
-         if (niter >= niter_alloc) {   fwhmg = SUMA_realloc(fwhmg,sizeof(float)*(niter_alloc+500)); 
-                                       niter_alloc = niter_alloc+500; }
+         if (niter >= niter_alloc) {   
+            fwhmg = SUMA_realloc(fwhmg,sizeof(float)*(niter_alloc+500)); 
+            niter_alloc = niter_alloc+500; 
+         }
          fwhmg[niter] = 0.0; N = 0;
          if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, dset, 
                                                 icols, N_icols, nmask, 
@@ -5522,24 +5529,32 @@ SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (SUMA_SurfaceObject *SO, double **
          }
          if (fwhmg[niter] > FWHM) stop = 1;
          else if (niter > NITERMAX) {
-            SUMA_S_Warnv( "More than %d iterations failed to reach target of %f.\n"
-                        "Stopping at fwhm of %f.\n"
-                        "Consider increasing kernel bandwidth\n", niter-1,FWHM, fwhmg[niter]);
+            SUMA_S_Warnv( 
+                  "More than %d iterations failed to reach target of %f.\n"
+                  "Stopping at fwhm of %f.\n"
+                  "Consider increasing kernel bandwidth\n", 
+                  niter-1,FWHM, fwhmg[niter]);
             stop =1;
          }
       } else { /* caller is the boss */
          if (niter >= *N_iter) stop = 1;
       } 
       if (!stop) {
-         if (*N_iter < 0) { SUMA_LHv("Beginning iteration %d, fwhm = %f; target %f\n", niter, fwhmg[niter], FWHM); }
+         if (*N_iter < 0) { 
+            SUMA_LHv("Beginning iteration %d, fwhm = %f; target %f\n", 
+                      niter, fwhmg[niter], FWHM); }
          else { SUMA_LHv("Iteration %d/%d\n", niter+1,*N_iter);}
          /* Begin filtering operation for each column */
          for (k=0; k < N_icols; ++k) {
             /*SUMA_LHv("Filtering column %d\n",icols[k]); */
             if (k==0) {
-               fin_float = SUMA_DsetCol2FloatFullSortedColumn (dset, icols[k], &bfull, 0.0, SO->N_Node, &N_nmask, YUP);
+               fin_float = 
+                  SUMA_DsetCol2FloatFullSortedColumn (
+                     dset, icols[k], &bfull, 0.0, SO->N_Node, &N_nmask, YUP);
             } else {
-               fin_float = SUMA_DsetCol2FloatFullSortedColumn (dset, icols[k], &bfull, 0.0, SO->N_Node, &N_nmask, NOPE);
+               fin_float = 
+                  SUMA_DsetCol2FloatFullSortedColumn (
+                     dset, icols[k], &bfull, 0.0, SO->N_Node, &N_nmask, NOPE);
             }
 
 
@@ -5552,12 +5567,15 @@ SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (SUMA_SurfaceObject *SO, double **
                   fp = fin[n]; /* kth value at node n */
                   dfp = 0.0;
                   for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
-                     fpj = (double)fin[SO->FN->FirstNeighb[n][j]]; /* value at jth neighbor of n */
+                     fpj = (double)fin[SO->FN->FirstNeighb[n][j]]; 
+                                          /* value at jth neighbor of n */
                      dfp += wgt[n][j+1] * (fpj); 
                   }/* for j*/
                   fout[n] = (float)((double)fin[n] * wgt[n][0] +  dfp);
                   #if 0
-                     if (LocalHead && n == SUMA_SSidbg) SUMA_LHv("node %d, fin %g, fout %g\n", n, fin[n], fout[n]);
+                     if (LocalHead && n == SUMA_SSidbg) 
+                        SUMA_LHv("node %d, fin %g, fout %g\n", 
+                                 n, fin[n], fout[n]);
                   #endif
                }/* for n */ 
             } else {  /* masking potential */
@@ -5570,8 +5588,11 @@ SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (SUMA_SurfaceObject *SO, double **
                      for (j=0; j < SO->FN->N_Neighb[n]; ++j) {
                         {
                            nj = SO->FN->FirstNeighb[n][j];
-                           if (bfull[nj] || !strict_mask) { /* consider only neighbors that are in mask if strict_mask is 1*/
-                              fpj = (double)fin[nj]; /* value at jth neighbor of n */
+                           if (bfull[nj] || !strict_mask) { 
+                                 /* consider only neighbors that are in mask 
+                                    if strict_mask is 1*/
+                              fpj = (double)fin[nj]; 
+                                          /* value at jth neighb. of n */
                               dfp += wgt[n][j+1] * fpj;
                               dfps += wgt[n][j+1];
                            }
@@ -5590,8 +5611,8 @@ SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (SUMA_SurfaceObject *SO, double **
                SUMA_S_Err("Failed to update dset's values");
                SUMA_RETURN(NOPE);      
             }
-            /* Need to free fin_float now 
-            SUMA_free(fin_float); fin_float = NULL;*/
+            /* Need to free fin_float now */
+            SUMA_free(fin_float); fin_float = NULL;
          }/* repeat for each column */
 
          if (fwhmv) SUMA_free(fwhmv); fwhmv = NULL;

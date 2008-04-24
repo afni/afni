@@ -696,7 +696,9 @@ ENTRY("THD_extract_detrended_array") ;
      val = 1.0f / var[ii] ;
      for( tt=0 ; tt < nval ; tt++ ) far[tt] *= val ;
    }
-
+   
+   /* ZSS: Need to free fitar */
+   free(fitar); fitar=NULL;
    EXRETURN ;
 }
 
