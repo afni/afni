@@ -3675,7 +3675,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 	      }  
       }
       if (!brk && ps->accept_i) {
-         char *tmp_i = SUMA_copy_string(argv[kar]);
+         char *tmp_i = NULL;
          if (strcmp(argv[kar], "-i_") == 0 || strcmp(argv[kar], "-i") == 0) {
             if (kar+1 >= argc)  {
 	            SUMA_S_Err( "need argument after -i_ ");
@@ -4240,7 +4240,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
           
       }
       if (!brk && ps->accept_o) {
-         char *tmp_o = SUMA_copy_string(argv[kar]);
+         char *tmp_o = NULL;
          if (strcmp(argv[kar], "-o_") == 0 || strcmp(argv[kar], "-o") == 0) {
             if (kar+1 >= argc)  {
 	            SUMA_S_Err( "need argument after -o_ ");
