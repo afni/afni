@@ -5427,8 +5427,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    }
    /*Now free the vector of pointers */
    SUMA_free(SO->Overlays);
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing FN\n", FuncName);
 
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing FN\n", FuncName);
    /* freeing FN,  make sure that there are no links to FN*/
    if (SO->FN) {
       if (!SUMA_Free_FirstNeighb (SO->FN)) {
