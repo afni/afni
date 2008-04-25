@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 24 , APR , 2008 , ZSS , "SurfSmooth" , MICRO , TYPE_BUG_FIX ,
+   "Fixed leaky SurfSmooth.",
+   "Leak was from one of fin_float pointers in Head07\n"
+   "Also found leak in THD_extract_detrended_array and a few\n"
+   "more small leaks in other SUMA function. Valgrind is good."
+ } ,
+
  { 23 , APR , 2008 , ZSS , "afni-python" , MICRO , TYPE_MODIFY ,
    "Changed methods in afni_name class",
    ".path is now absolute\n"

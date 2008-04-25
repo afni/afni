@@ -7084,17 +7084,15 @@ int SUMA_WriteDset_NameCheck_eng (  char *Name, SUMA_DSET *dset,
          break;
    }
 
-   if (!SUMA_IS_DSET_STDXXX_FORMAT(form)) {
+
+
+   if (NameOutp && !SUMA_IS_DSET_STDXXX_FORMAT(form)) {
       SUMA_LH(NameOut);
-
-      if (NameOutp) {
-         *NameOutp = NameOut; NameOut = NULL;
-      } else {
-         SUMA_free(NameOut); NameOut = NULL;
-      }
-
-      if (PrefOut) SUMA_free(PrefOut); PrefOut = NULL;
+      *NameOutp = NameOut; NameOut = NULL;
+   } else {
+      if (NameOut) SUMA_free(NameOut); NameOut = NULL;
    }
+   if (PrefOut) SUMA_free(PrefOut); PrefOut = NULL;
    SUMA_RETURN(exists);
 }
 
