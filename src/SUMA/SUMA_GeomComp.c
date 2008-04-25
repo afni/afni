@@ -5544,6 +5544,11 @@ SUMA_Boolean SUMA_Chung_Smooth_07_toFWHM_dset (
             SUMA_LHv("Beginning iteration %d, fwhm = %f; target %f\n", 
                       niter, fwhmg[niter], FWHM); }
          else { SUMA_LHv("Iteration %d/%d\n", niter+1,*N_iter);}
+         /* Dull report */
+         if (!LocalHead && !(niter % 10)) 
+            fprintf( SUMA_STDERR,
+                     "Iteration %d, fwhm = %f; target %f\n", 
+                      niter, fwhmg[niter], FWHM);
          /* Begin filtering operation for each column */
          for (k=0; k < N_icols; ++k) {
             /*SUMA_LHv("Filtering column %d\n",icols[k]); */

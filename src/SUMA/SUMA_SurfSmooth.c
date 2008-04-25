@@ -2056,6 +2056,8 @@ int main (int argc,char *argv[])
                }               
                
                if (Opt->debug) SUMA_S_Note("Calculating weights");
+               SUMA_S_Notev("Smoothing kernel bandwidth (sigma) = %f\n",
+                            Opt->sigma);
                wgtd = SUMA_Chung_Smooth_Weights_07(SO, (double)Opt->sigma);
                if (!wgtd) {
                   SUMA_SL_Err("Failed to compute weights.\n");
