@@ -15,6 +15,10 @@ Ret_MAKE_MASK:
 goto STRIP_SKULL
 Ret_STRIP_SKULL:
 
+goto SYMMETRIZE
+Ret_SYMMETRIZE:
+
+goto CLEANUP
 goto END
 
 MAKE_MASK:
@@ -29,7 +33,7 @@ set nbin = 1000
             -datum short   \
             $ap$av 
 
-if (DoEight) then
+if ($DoEight) then
    #Also do this one, looks promising might want it later
    3dLocalstat -overwrite -prefix $t"_ls8" \
                -stat mean -stat stdev \
@@ -120,7 +124,18 @@ set echo
          -overwrite
 unset echo
 goto Ret_STRIP_SKULL
-         
+
+SYMMETRIZE:
+if ($symm) then
+   3dLRflip -prefix ${t}_LRFns $ap.ns$av      
+   3dcalc   -a $ap.ns$av \
+            -b ${t}_LRFns$av \
+            -c $ap$av \
+            -expr 'c*step((a+b)/2)' \
+            -prefix $ap.ns.sym
+endif
+goto Ret_SYMMETRIZE
+
 CLEANUP:
 #cleanup
 if ($cleanup) then
@@ -136,6 +151,7 @@ PARSE_COMMAND:
    set cleanup = 1
    set in = ""
    set DoEight = 0
+   set symm = 0
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-input") then
@@ -149,6 +165,7 @@ PARSE_COMMAND:
             set donext = 0	
          endif	
       endif
+      
       if ($donext && "$argv[$cnt]" == "-3dSkullStrip_opts") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -164,6 +181,11 @@ PARSE_COMMAND:
       
       if ($donext && "$argv[$cnt]" == "-keep_tmp") then
          set cleanup = 0;		
+         set donext = 0		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-symm") then
+         set symm = 1;		
          set donext = 0		
       endif
       
