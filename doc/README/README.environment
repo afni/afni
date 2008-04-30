@@ -2565,6 +2565,17 @@ Normally, AFNI flashes the view switch buttons on and off a few times
 to let you know this is happening (this is the Adam Thomas feature).
 You can turn this feature off, by setting this variable to NO.
 
+-------------------------
+Variable: AFNI_SHELL_GLOB
+-------------------------
+'Globbing' is the Unix jargon for filename wildcard expansion.  AFNI programs
+do globbing at various points, using an adaptation of a function from the
+csh shell.  This function has been reported to fail on Mac OS X Server 10.5
+on network mounted directories.  If you set this variable to YES, then globbing
+will instead be done using the shell directly (via popen and ls).  You should
+only set this variable if you really need it, and understand the issue!
+[For Graham Wideman]
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
