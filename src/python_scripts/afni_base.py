@@ -32,12 +32,12 @@ class afni_name:
                          self.colsel, self.rowsel,\
                          self.nodesel, self.rangesel)
       return s
-   def inp(self):
+   def input(self):
       if self.type == 'BRIK':
          return self.ppv()
       else:
          return self.ppve() 
-   def out(self):
+   def out_prefix(self):
       if self.type == 'BRIK':
          return self.prefix
       else:
