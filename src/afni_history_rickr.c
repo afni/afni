@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, APR, 2008, RCR, "make_stim_times.py", MICRO, TYPE_BUG_FIX,
+   "replaced make_stim_files with make_stim_times.py in help",
+   NULL
+ } ,
+
  { 10, APR, 2008, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "updated the -help with information regarding runs of different lengths",
    NULL
