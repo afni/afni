@@ -1848,7 +1848,7 @@ void get_options
         k = ival-1;
         nopt++;
 
-        if( strncmp(option_data->stim_label[k],"Stim",4) != 0 )
+        if( strncmp(option_data->stim_label[k],"Stim#",5) != 0 )
           WARNING_message("-stim_label %d '%s' replacing old label '%s'",
                           ival , argv[nopt] , option_data->stim_label[k] ) ;
 
@@ -2329,7 +2329,7 @@ void get_options
   nerr = 0 ;
   for( k=0 ; k < option_data->num_stimts ; k++ ){
 
-    if( strncmp(option_data->stim_label[k],"Stim",4) == 0 )
+    if( strncmp(option_data->stim_label[k],"Stim#",5) == 0 )
       WARNING_message("no -stim_label given for stim #%d ==> label = '%s'",
                       k+1 , option_data->stim_label[k] ) ;
 
