@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , APR , 2008 , RWC , "mcw_glob.c" , MINOR , TYPE_NEW_ENV ,
+   "setenv AFNI_SHELL_GLOB YES == wildcard expansion via the shell" ,
+   "For Graham Wideman and Mac OS X Server 10.5 problems." } ,
+
  { 8 , APR , 2008 , RWC , "3dTfitter" , MICRO , TYPE_BUG_FIX ,
    "Deal with ref (LHS) vectors that are very tiny." ,
    "Modify thd_fitter.c so that ref vectors that are very tiny compared to\n"
