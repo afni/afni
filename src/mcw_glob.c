@@ -756,6 +756,7 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
    char *fn , *ehome ;
    char prefix[4] , fpre[128] , fname[1024] ;
    int  b1,b2,b3,b4,b5 , ib,ig , lpre ;
+   char *eee ;
 
    if( nin <= 0 ){ *nout = 0 ; return ; }
 
@@ -818,6 +819,39 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
         strcpy(fname,qname);
       }
 
+      /** 30 Apr 2008: do globbing directly via the shell **/
+
+      eee = getenv("AFNI_SHELL_GLOB") ;
+      if( eee != NULL && (*eee == 'Y' || *eee == 'y') ){
+        FILE *pf ; char *cmd , buf[6666] ; int nb ;
+
+        cmd = malloc(sizeof(char)*(strlen(fname)+32)) ;
+        sprintf(cmd,"/bin/ls -d1 %s 2> /dev/null",fname) ;
+        pf = popen( cmd , "r" ) ;
+        if( pf == NULL ){
+          fprintf(stderr,"** ERROR: popen() fails with AFNI_SHELL_GLOB\n") ;
+          free(cmd) ; goto NEXT_STRING ;
+        }
+        while( fgets(buf,6666,pf) != NULL ){
+          nb = strlen(buf)-1 ;
+          if( nb > 0 ){
+            if( isspace(buf[nb]) ) buf[nb] = '\0' ;
+            gout = (char **)realloc( gout , sizeof(char *)*(gnum+1) ) ;
+            ilen = nb+3 ; if( ig > 0 ) ilen += lpre ;
+            gout[gnum] = (char *)malloc( sizeof(char) * ilen ) ;
+            if( ig > 0 ){
+              strcpy(gout[gnum],fpre) ; strcat(gout[gnum],buf) ;
+            } else {
+              strcpy(gout[gnum],buf) ;
+            }
+            gnum++ ;
+          }
+        }
+        pclose(pf) ; free(cmd) ; goto NEXT_STRING ;
+      }
+
+      /** the olden way (via glob function) **/
+
       (void) glob( fname , 0 , NULL , &gl ) ;
 
       /** put each matched string into the output array **/
@@ -863,6 +897,8 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
       }
 
       globfree( &gl ) ;
+
+    NEXT_STRING: continue ;
    }
 
    *nout = gnum ; *fout = gout ; return ;
