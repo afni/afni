@@ -2566,6 +2566,17 @@ static char * readme_env[] = {
    "to let you know this is happening (this is the Adam Thomas feature).\n" ,
    "You can turn this feature off, by setting this variable to NO.\n" ,
    "\n" ,
+   "-------------------------\n" ,
+   "Variable: AFNI_SHELL_GLOB\n" ,
+   "-------------------------\n" ,
+   "'Globbing' is the Unix jargon for filename wildcard expansion.  AFNI programs\n" ,
+   "do globbing at various points, using an adaptation of a function from the\n" ,
+   "csh shell.  This function has been reported to fail on Mac OS X Server 10.5\n" ,
+   "on network mounted directories.  If you set this variable to YES, then globbing\n" ,
+   "will instead be done using the shell directly (via popen and ls).  You should\n" ,
+   "only set this variable if you really need it, and understand the issue!\n" ,
+   "[For Graham Wideman]\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2756,4 +2767,4 @@ static char * readme_env[] = {
    "(You can always use '3drefit -addFDR' to add FDR curves to a dataset\n" ,
    "header, for those sub-bricks marked as statistical parameters.)\n" ,
    NULL } ;
-#define NUM_readme_env 2756
+#define NUM_readme_env 2767
