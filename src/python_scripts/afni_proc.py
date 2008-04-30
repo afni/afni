@@ -68,7 +68,7 @@ g_help_string = """
                                 teasing the different runs apart from the errts
                                 dataset.
 
-        -regress_use_stim_files This may fail, as make_stim_files.py is not
+        -regress_use_stim_files This may fail, as make_stim_times.py is not
                                 currently prepared to handle runs of different
                                 lengths.
     --------------------------------------------------
