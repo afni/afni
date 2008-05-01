@@ -78,6 +78,8 @@
 #include <ctype.h>
 typedef void * ptr_t;
 
+#include <errno.h>
+
 /** don't use sh.h any more **/
 
 #if 0
@@ -558,7 +560,7 @@ glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pg
 	    return (0);
     }
 
-    err = 0;
+    err = 0; errno = 0 ;
 
     /* search directory for matching names */
     while ((dp = readdir(dirp)) != NULL) {
@@ -603,6 +605,13 @@ glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pg
 	    break;
     }
     /* todo: check error from readdir? */
+    if( errno != 0 ){
+      static int cnt=2 ;
+      if( cnt ){
+        perror("** glob error"); errno = 0; cnt-- ;
+        fprintf(stderr,"** You may need to 'setenv AFNI_SHELL_GLOB YES'\n") ;
+      }
+    }
     (void) closedir(dirp);
     return (err);
 }
