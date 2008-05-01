@@ -529,9 +529,9 @@ ENTRY("AFNI_clus_make_widgets") ;
    XtAddCallback( cwid->clust3d_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
    MCW_register_hint( cwid->clust3d_pb , "Output equivalent 3dclust command" ) ;
 
-   /* row #1: Save Table button */
+   /* row #1: SaveTable button */
 
-   xstr = XmStringCreateLtoR( "Save Table" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "SaveTable" , XmFONTLIST_DEFAULT_TAG ) ;
    cwid->savetable_pb = XtVaCreateManagedWidget(
            "menu" , xmPushButtonWidgetClass , rc ,
             XmNlabelString , xstr ,
@@ -548,7 +548,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      cwid->prefix_tf = XtVaCreateManagedWidget(
                        "menu" , xmTextFieldWidgetClass , rc ,
                            XmNvalue        , ppp ,
-                           XmNcolumns      , 11 ,
+                           XmNcolumns      , 8 ,
                            XmNeditable     , True ,
                            XmNmaxLength    , 64 ,
                            XmNresizeWidth  , False ,
@@ -563,6 +563,18 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_register_hint( cwid->prefix_tf , "Output file prefix" ) ;
      MCW_set_widget_bg( cwid->prefix_tf , "black" , (Pixel)0 ) ;
    }
+
+   /* row #1: SaveMask button [01 May 2008] */
+
+   xstr = XmStringCreateLtoR( "SaveMask" , XmFONTLIST_DEFAULT_TAG ) ;
+   cwid->savemask_pb = XtVaCreateManagedWidget(
+           "menu" , xmPushButtonWidgetClass , rc ,
+            XmNlabelString , xstr ,
+            XmNtraversalOn , True  ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   XtAddCallback( cwid->savemask_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
+   MCW_register_hint( cwid->savemask_pb , "Write clusters to a mask dataset" ) ;
 
    /* row #1: Done button */
 
@@ -680,7 +692,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      int wx,hy , cmax ;
      MCW_widget_geom( cwid->rowcol  , &wx,&hy,NULL,NULL ) ;
      hy *= 2 ; cmax = im3d->dc->height-128 ; if( hy > cmax ) hy = cmax ;
-     XtVaSetValues( cwid->wtop , XmNwidth,wx+63,XmNheight,hy+19 , NULL ) ;
+     XtVaSetValues( cwid->wtop , XmNwidth,wx+31,XmNheight,hy+21 , NULL ) ;
    }
 
    XtRealizeWidget( cwid->wtop ) ;
@@ -1067,7 +1079,7 @@ ENTRY("AFNI_clus_action_CB") ;
      EXRETURN ;
    }
 
-   /*--------- Save Table button ---------*/
+   /*--------- SaveTable button ---------*/
 
    if( w == cwid->savetable_pb ){
      char fnam[128] , *ppp ; FILE *fp ; int ff ;
@@ -1107,6 +1119,54 @@ ENTRY("AFNI_clus_action_CB") ;
        if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
        else     INFO_message   ("Wrote file %s"     ,fnam) ;
      }
+     EXRETURN ;
+   }
+
+   /*--------- SaveMask button ---------*/
+
+   if( w == cwid->savemask_pb ){  /* 01 May 2008 */
+     char pref[128] , *ppp , *cmd ;
+     THD_3dim_dataset  *fset = im3d->fim_now , *mset ;
+     MCW_cluster_array *clar = im3d->vwid->func->clu_list ;
+     MCW_cluster *cl ;
+     short *mask ; int ii,jj,nx,ny,nxy,nz,ijk ;
+
+     nclu = im3d->vwid->func->clu_num ;
+     cld  = im3d->vwid->func->clu_det ;
+     if( nclu == 0 || cld == NULL ) EXRETURN ;
+
+     ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
+     if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
+     sprintf(pref,"%s_mask",ppp) ;
+     cmd = AFNI_clus_3dclust(im3d) ;
+
+     mset = EDIT_empty_copy(fset) ;
+     tross_Copy_History(fset,mset) ;
+     tross_Append_History(mset,"== Interactive clusterize mask:") ;
+     tross_Append_History(mset,cmd) ;
+     EDIT_dset_items( mset ,
+                        ADN_prefix    , pref ,
+                        ADN_nvals     , 1    ,
+                        ADN_ntt       , 0    ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+     nx = DSET_NX(mset); ny = DSET_NY(mset); nxy = nx*ny; nz = DSET_NZ(mset);
+     EDIT_substitute_brick( mset , 0 , MRI_short , NULL ) ;
+     mask = DSET_BRICK_ARRAY( mset , 0 ) ;
+     for( jj=0 ; jj < clar->num_clu ; jj++ ){
+       cl = clar->clar[jj] ;
+       for( ii=0 ; ii < cl->num_pt ; ii++ ){
+         ijk = THREE_TO_IJK( cl->i[ii] , cl->j[ii] , cl->k[ii] , nx,nxy ) ;
+         mask[ijk] = jj+1 ;
+       }
+     }
+     THD_force_ok_overwrite(1) ;
+     INFO_message("Writing mask dataset %s",DSET_BRIKNAME(mset)) ;
+     DSET_write(mset) ;
+     DSET_delete(mset) ;
+     THD_force_ok_overwrite(0) ;
+
      EXRETURN ;
    }
 
