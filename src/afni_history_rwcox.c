@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , MAY , 2008 , RWC , "afni_cluster.c" , MICRO , TYPE_GENERAL ,
+   "Add SaveMask button to Clusterize report window." ,
+   "Saves the clusters as a mask dataset (cluster #1 has value=1, etc.). \n"
+   "Uses the prefix in the text field for the dataset name -- will overwrite\n"
+   "existing dataset if the same name is used twice.  Equivalent 3dclust\n"
+   "command is saved in History Note in output mask dataset (as if you had\n"
+   "pressed the '3dclust' button)." } ,
+
  { 30 , APR , 2008 , RWC , "mcw_glob.c" , MINOR , TYPE_NEW_ENV ,
    "setenv AFNI_SHELL_GLOB YES == wildcard expansion via the shell" ,
    "For Graham Wideman and Mac OS X Server 10.5 problems." } ,
