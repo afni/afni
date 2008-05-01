@@ -40,6 +40,8 @@ goto END
 PARSE_COMMAND:
 	
    #continue parsing for new options
+   set followers = ()
+   set folinterp = NN
    set cleanup = 1
    set Narg = $#
    set cnt = 1
@@ -153,6 +155,55 @@ PARSE_COMMAND:
         set donext = 0		
       endif
       
+      if ($donext && "$argv[$cnt]" == "-surf_anat_followers") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need at least a volume after -surf_anat_followers"
+            goto END
+			else
+            @ cnt ++
+            set followers = ($argv[$cnt-])
+            foreach fol ($followers)
+               set exx = `@CheckForAfniDset $fol`
+               if ( $status) then
+                  echo "Error follower dset $fol cannot be found"
+                  echo "Note that option -surf_anat_followers must be "
+                  echo "the last one on the command line"
+                  goto END
+               endif
+               if ( $exx < 2) then
+                  echo "Error follower dset $fol appears not to be a dset"
+                  echo "Note that option -surf_anat_followers must be "
+                  echo "the last one on the command line"
+                  goto END
+               endif
+            end
+            set cnt = `expr $cnt + $#followers - 1`
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-followers_interp") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need an interpolation kernel after -followers_interp"
+            goto END
+			else
+            @ cnt ++
+            set folinterp = $argv[$cnt]
+            if (  $folinterp != NN  && \
+                  $folinterp != linear  && \
+                  $folinterp != cubic  && \
+                  $folinterp != quintic  ) then
+               echo "Interpolation kernel $folinterp is not recognized"
+               echo "Choose one of: NN, linear, cubic, or quintic"
+               echo ""
+               goto END
+            endif
+         endif
+         set donext = 0		
+      endif
+          
       if ($donext && "$argv[$cnt]" == "-ncr") then
          set cropt = '';		
          set donext = 0		
@@ -440,7 +491,9 @@ REGISTER:
 	
    echo "Registering $SurfAnatPath/$SurfAnat to $ExpAnat"
 	if ($UseWarp == 0) then
-	   echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
+	   echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 \"
+      echo "         -rotcom -verbose -base $ExpAnat \"
+      echo "         -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
 	   echo ""
 	   if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
       3dvolreg -wtrim -clipit -twopass \
@@ -450,7 +503,10 @@ REGISTER:
                -prefix $VolRegPrefix \
                -cubic   \
                $SurfAnatPath/$SurfAnat
-	   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.bz2)) then
+	   if ( ! ( -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || \
+               -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || \
+               -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z || \
+               -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.bz2)) then
 		   goto NO_VOLREG
 	   endif
       #differing views?
@@ -471,32 +527,47 @@ REGISTER:
       rm -rf ${tmpref}*.???? >& /dev/null
       set pd = 8
       
-      echo "3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat"
+      echo "3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \"
+      echo "          -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat"
       echo ""
       
-      3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
-      3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_refpad $ExpAnat
+      3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+                  -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
+      3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+                  -mm -prefix ./${tmpref}_refpad $ExpAnat
       if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
       3dWarpDrive $cropt -twopass -verb -affine_general \
                   -cubic -final quintic \
                   -1Dmatrix_save ${VolRegPrefix}.A2E.1D \
-                  -base ./${tmpref}_refpad$SurfAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
+                  -base ./${tmpref}_refpad$SurfAnatView \
+                  -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
 	   if ($StripSkull >= 2) then
          #Have to apply same transform to original SurfAnat
-         3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_padori $SurfAnatPath/$SurfAnatOri
-         3dWarp -matparent ./${tmpref}_pad_wd$SurfAnatView -quintic -prefix ./${tmpref}_pad_wdori ./${tmpref}_padori$SurfAnatView
+         3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+                     -mm \
+                     -prefix ./${tmpref}_padori $SurfAnatPath/$SurfAnatOri
+         3dWarp   -matparent ./${tmpref}_pad_wd$SurfAnatView \
+                  -quintic \
+                  -prefix ./${tmpref}_pad_wdori ./${tmpref}_padori$SurfAnatView
          set wdnext = ${tmpref}_pad_wdori  
       else
          set wdnext = ${tmpref}_pad_wd   
       endif
       
-      3dZeropad -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm -prefix ./$VolRegPrefix ${wdnext}$SurfAnatView
+      3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd \
+                  -mm \
+                  -prefix ./$VolRegPrefix ${wdnext}$SurfAnatView
 	   #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-      3drefit -atrcopy ${wdnext}$SurfAnatView WARPDRIVE_INPUT_IDCODE $VolRegPrefix$SurfAnatView
-      3drefit -atrcopy ${wdnext}$SurfAnatView WARPDRIVE_INPUT_NAME $VolRegPrefix$SurfAnatView
-      3drefit -atrcopy ${wdnext}$SurfAnatView WARPDRIVE_BASE_IDCODE $VolRegPrefix$SurfAnatView
-      3drefit -atrcopy ${wdnext}$SurfAnatView WARPDRIVE_MATVEC_FOR_000000 $VolRegPrefix$SurfAnatView
-      3drefit -atrcopy ${wdnext}$SurfAnatView WARPDRIVE_MATVEC_INV_000000 $VolRegPrefix$SurfAnatView
+      3drefit  -atrcopy ${wdnext}$SurfAnatView \
+               WARPDRIVE_INPUT_IDCODE $VolRegPrefix$SurfAnatView
+      3drefit  -atrcopy ${wdnext}$SurfAnatView \
+               WARPDRIVE_INPUT_NAME $VolRegPrefix$SurfAnatView
+      3drefit  -atrcopy ${wdnext}$SurfAnatView \
+               WARPDRIVE_BASE_IDCODE $VolRegPrefix$SurfAnatView
+      3drefit  -atrcopy ${wdnext}$SurfAnatView \
+               WARPDRIVE_MATVEC_FOR_000000 $VolRegPrefix$SurfAnatView
+      3drefit  -atrcopy ${wdnext}$SurfAnatView \
+               WARPDRIVE_MATVEC_INV_000000 $VolRegPrefix$SurfAnatView
       #differing views?
       if ("$SurfAnatView" != "$ExpAnatView") then
          echo "Changing view from $SurfAnatView to $ExpAnatView."
@@ -505,7 +576,10 @@ REGISTER:
       else
          set fview = $SurfAnatView
       endif
-      if (!(-f ./$VolRegPrefix$fview.BRIK || -f ./$VolRegPrefix$fview.BRIK.gz || -f ./$VolRegPrefix$fview.BRIK.Z || -f ./$VolRegPrefix$fview.BRIK.bz2)) then
+      if ( ! ( -f ./$VolRegPrefix$fview.BRIK || \
+               -f ./$VolRegPrefix$fview.BRIK.gz || \
+               -f ./$VolRegPrefix$fview.BRIK.Z || \
+               -f ./$VolRegPrefix$fview.BRIK.bz2)) then
 		   goto NO_WARPDRIVE
 	   endif
       if ($cleanup == 1) then
@@ -513,7 +587,7 @@ REGISTER:
       endif
    endif
 	
-	#If have center shift, combine a reapply
+	#If have center shift, combine and reapply
    if ($no_center == 0) then
       echo "Combining xform with shift..."
       mv ${VolRegPrefix}.A2E.1D ${VolRegPrefix}".A2E_shft".1D
@@ -538,6 +612,22 @@ REGISTER:
                -overwrite  \
                -final quintic
       endif
+   endif
+   
+FOLLOWERS:
+   #If you have follower dsets, do them here
+   if ($#followers) then
+      foreach fol ($followers)
+         set folPrefix = `@GetAfniPrefix $fol`
+         echo "Applying same transform to $folPrefix..."
+         #set echo
+         3dAllineate -master $ExpAnatOrig \
+               -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
+               -input $fol \
+               -prefix ./${folPrefix}"_Alnd_Exp"$fview  \
+               -overwrite  \
+               -final $folinterp
+      end
    endif
    
 	#remove _resamp_
@@ -718,7 +808,7 @@ echo "        To get the value of CLP, use AFNI to locate the slice"
 echo "        below which you want to clip and set CLP to the z coordinate"
 echo "        from AFNI's top left corner. Coordinate must be in RAI, DICOM."   
 echo "   [-prefix PREFIX]: Use PREFIX for the output volume. Default is the prefix "
-echo "        of the 'Surface Anatomy' suffixed by _AlndExp."
+echo "        of the 'Surface Anatomy' suffixed by _Alnd_Exp."
 echo "   [-keep_tmp]: Keep temporary files for debugging. Note that you should"
 echo "                delete temporary files before rerunning the script."
 echo ""         
@@ -733,7 +823,7 @@ echo ""
 echo "Example 2: For datasets with some distortion and different coverage."
 echo "           Using 12 param. transform and clipping of areas below cerebellum:"
 echo "@SUMA_AlignToExperiment -exp_anat ABanat+orig. -surf_anat DemoSubj_SurfVol+orig. \"
-echo "                       -wd -prefix DemoSubj_SurfVol_WD_AlndExp \"
+echo "                       -wd -prefix DemoSubj_SurfVol_WD_Alnd_Exp \"
 echo "                       -EA_clip_below -30"
 echo ""
 echo "More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
