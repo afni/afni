@@ -1764,26 +1764,39 @@ int main (int argc,char *argv[])
          SUMA_SL_Crit("Failed to allocate");
          exit(1);
       } 
-      for (i=0; i<SO->N_Node; ++i) Opt->ztv[i] = SUMA_MIN_PAIR(1.0, (Opt->Zt*Opt->shrink_bias[i]));
+      for (i=0; i<SO->N_Node; ++i) 
+         Opt->ztv[i] = SUMA_MIN_PAIR(1.0, (Opt->Zt*Opt->shrink_bias[i]));
 
       /* need sv for communication to AFNI */
       SO->VolPar = SUMA_VolParFromDset (Opt->in_vol);
-      SO->SUMA_VolPar_Aligned = YUP; /* Surface is in alignment with volume, should not call SUMA_Align_to_VolPar ... */
+      SO->SUMA_VolPar_Aligned = YUP; 
+            /* Surface is in alignment with volume, 
+               should not call SUMA_Align_to_VolPar ... */
       if (!SO->State) {SO->State = SUMA_copy_string("3dSkullStrip"); }
       if (!SO->Group) {SO->Group = SUMA_copy_string("3dSkullStrip"); }
       if (!SO->Label) {SO->Label = SUMA_copy_string(stmp); }
       /* make the idcode_str depend on the Label, it is convenient to
       send the same surface all the time to SUMA */
-      if (SO->Label) { if (SO->idcode_str) SUMA_free(SO->idcode_str); SO->idcode_str = NULL; SUMA_NEW_ID(SO->idcode_str, SO->Label); }
+      if (SO->Label) { 
+         if (SO->idcode_str) SUMA_free(SO->idcode_str); 
+         SO->idcode_str = NULL; 
+         SUMA_NEW_ID(SO->idcode_str, SO->Label); 
+      }
       
       if (!nint && SOhull) {
          SOhull->VolPar = SUMA_VolParFromDset (Opt->in_vol);
-         SOhull->SUMA_VolPar_Aligned = YUP; /* Surface is in alignment with volume, should not call SUMA_Align_to_VolPar ... */
+         SOhull->SUMA_VolPar_Aligned = YUP; 
+               /* Surface is in alignment with volume, 
+               should not call SUMA_Align_to_VolPar ... */
    
          if (!SOhull->State) {SOhull->State = SUMA_copy_string("3dSkullStrip"); }
          if (!SOhull->Group) {SOhull->Group = SUMA_copy_string("3dSkullStrip"); }
          if (!SOhull->Label) {SOhull->Label = SUMA_copy_string(stmphull); }
-         if (SOhull->Label) { if (SOhull->idcode_str) SUMA_free(SOhull->idcode_str); SOhull->idcode_str = NULL; SUMA_NEW_ID(SOhull->idcode_str,SOhull->Label); }
+         if (SOhull->Label) { 
+            if (SOhull->idcode_str) SUMA_free(SOhull->idcode_str); 
+            SOhull->idcode_str = NULL;       
+            SUMA_NEW_ID(SOhull->idcode_str,SOhull->Label); 
+         }
       }
 
       /* see if SUMA talk is turned on */
@@ -1801,15 +1814,28 @@ int main (int argc,char *argv[])
             ps->cs->afni_Send = NOPE;
             ps->cs->Send = NOPE;
          } else {
+            /* send in_vol to afni */
+            if (Opt->DoSpatNorm && ps->cs->afni_Send) {
+               SUMA_SL_Note("Sending spatnormed volume to AFNI");
+               if (!SUMA_SendToAfni(ps->cs, Opt->in_vol, 1)) {
+                  SUMA_SL_Err("Failed to send volume to AFNI");
+                  ps->cs->afni_Send = NOPE;
+               }
+            }
+
             if (!nint && SOhull) {
                if (Opt->send_hull) {
                   SUMA_LH("Sending Hull");
-                  if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Sending HULL next"); }
+                  if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { 
+                     SUMA_PAUSE_PROMPT("Sending HULL next"); 
+                  }
                   SUMA_SendSumaNewSurface(SOhull, ps->cs);
                }
             }
             SUMA_LH("Sending Ico");
-            if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Sending Ico next"); }
+            if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { 
+               SUMA_PAUSE_PROMPT("Sending Ico next"); 
+            }
             SUMA_SendSumaNewSurface(SO, ps->cs);
 
          }
@@ -1818,10 +1844,13 @@ int main (int argc,char *argv[])
 
       if (!nint && Opt->UseSkull) {
          /* get a crude mask of outer skull */
-         if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Shrinking skull hull next"); }
+         if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) {
+            SUMA_PAUSE_PROMPT("Shrinking skull hull next"); 
+         }
          SUMA_SkullMask (SOhull, Opt, ps->cs);
          /* Now take mask and turn it into a volume */
-         fprintf (SUMA_STDERR,"%s: Locating voxels on skull boundary  ...\n", FuncName);
+         fprintf (SUMA_STDERR,
+                  "%s: Locating voxels on skull boundary  ...\n", FuncName);
          isin = SUMA_FindVoxelsInSurface (SOhull, SO->VolPar, &N_in, 0, NULL);
          for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) { 
             if (isin[i] <= SUMA_ON_NODE) Opt->fvec[i] = 0; 
@@ -1832,7 +1861,9 @@ int main (int argc,char *argv[])
                FILE *fout=fopen("hullmask.1D","w");
                int ii, jj, kk; 
                for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) { 
-                  SUMA_1D_2_3D_index(i, ii, jj, kk, SO->VolPar->nx, SO->VolPar->nx*SO->VolPar->ny); 
+                  SUMA_1D_2_3D_index(  i, ii, jj, kk, 
+                                       SO->VolPar->nx, 
+                                       SO->VolPar->nx*SO->VolPar->ny); 
                   fprintf(fout,"%d %d %d %d\n",ii, jj, kk, isin[i]); 
                }
                fclose(fout);
@@ -1840,19 +1871,11 @@ int main (int argc,char *argv[])
          #endif
          if (isin) SUMA_free(isin); isin = NULL;
       }
-      
-      /* send in_vol to afni */
-      if (Opt->DoSpatNorm && ps->cs->afni_Send) {
-         SUMA_SL_Note("Sending spatnormed volume to AFNI");
-         if (!SUMA_SendToAfni(ps->cs, Opt->in_vol, 1)) {
-            SUMA_SL_Err("Failed to send volume to AFNI");
-            ps->cs->afni_Send = NOPE;
-         }
-      }
-      
+            
             
       /* This is it baby, start walking */
-      if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Brain expansion next"); }
+      if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { 
+         SUMA_PAUSE_PROMPT("Brain expansion next"); }
       if ( !Opt->UseThisBrain ) {
          SUMA_StretchToFitLeCerveau (SO, Opt, ps->cs);
       } else {
