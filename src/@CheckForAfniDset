@@ -62,7 +62,7 @@ USAGE:
 	echo "        1 if only .HEAD exists"
    echo "        2 if both .HEAD and .BRIK(.gz)(.bz2)(.Z) exist"
 	echo "        3 if .nii dataset "
-   echo "Ziad Saad (ziad@nih.gov)"
+   echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "  SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
    echo ""
 	goto ENDALL

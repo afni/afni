@@ -127,11 +127,12 @@ goto Ret_STRIP_SKULL
 
 SYMMETRIZE:
 if ($symm) then
-   3dLRflip -prefix ${t}_LRFns $ap.ns$av      
+   3dLRflip -overwrite -prefix ${t}_LRFns $ap.ns$av      
    3dcalc   -a $ap.ns$av \
             -b ${t}_LRFns$av \
             -c $ap$av \
             -expr 'c*step((a+b)/2)' \
+            -overwrite  \
             -prefix $ap.ns.sym
 endif
 goto Ret_SYMMETRIZE

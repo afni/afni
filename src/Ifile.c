@@ -458,7 +458,7 @@ void Ifile_help ()
       fprintf(stdout,"\tIfile and @RenamePanga separate. They can be combined into one program but it's usage\n");
       fprintf(stdout,"\twould become more complicated. At any rate, the user should not notice any difference\n");
       fprintf(stdout,"\tsince all they have to do is run the script GERT_reco that is created by Ifile.\n\n"); 
-      fprintf(stdout,"\t   Dec. 12/01 (Last modified July 24/02) SSCC/NIMH \n\tRobert W. Cox(rwcox@nih.gov) and Ziad S. Saad (ziad@nih.gov)\n\n");
+      fprintf(stdout,"\t   Dec. 12/01 (Last modified July 24/02) SSCC/NIMH \n\tRobert W. Cox(rwcox@nih.gov) and Ziad S. Saad (saadz@mail.nih.gov)\n\n");
       
    }
 

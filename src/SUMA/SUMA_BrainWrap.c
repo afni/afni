@@ -267,23 +267,36 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
             }
          }
          if (! (nf = SUMA_qhull_wrap(cnt, CoordList, &ijk, 1)) ) {
-            fprintf(SUMA_STDERR,"Error %s:\nFailed in SUMA_qhull_wrap\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Error %s:\nFailed in SUMA_qhull_wrap\n", FuncName);
             *SOhull = NULL;
          } else {
             fprintf(SUMA_STDERR,"%s:\nForming hull.\n", FuncName);
             *SOhull = SUMA_Patch2Surf(CoordList, cnt, ijk, nf, 3);
             SOhullp = *SOhull;
             #if 0
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Making hull consistently orientated\n", FuncName);
-            SOhullp->EL = SUMA_Make_Edge_List_eng (SOhullp->FaceSetList, SOhullp->N_FaceSet, SOhullp->N_Node, SOhullp->NodeList, 1, NULL);
-            if (!SUMA_MakeConsistent (SOhullp->FaceSetList, SOhullp->N_FaceSet, SOhullp->EL, 0, &trouble)) {
+            if (LocalHead) 
+               fprintf( SUMA_STDERR,
+                        "%s: Making hull consistently orientated\n", FuncName);
+            SOhullp->EL = 
+               SUMA_Make_Edge_List_eng (SOhullp->FaceSetList, SOhullp->N_FaceSet,                                         SOhullp->N_Node, SOhullp->NodeList, 
+                                        1, NULL);
+            if (!SUMA_MakeConsistent ( SOhullp->FaceSetList, SOhullp->N_FaceSet, 
+                                       SOhullp->EL, 0, &trouble)) {
                SUMA_SL_Err("Failed in SUMA_MakeConsistent");
             }
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking orientation.\n", FuncName);
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: Checking orientation.\n", FuncName);
             SUMA_SL_Warn("Stuff shaky here, Attend to it.");
             Force = 1; 
-            orient = SUMA_OrientTriangles (SOhullp->NodeList, SOhullp->N_Node, SOhullp->FaceSetList, SOhullp->N_FaceSet, 1, Force);
-            if (orient < 0 || Force) { /* flipping was done, dump the edge list */ if (SOhullp->EL) SUMA_free_Edge_List(SOhullp->EL); SOhullp->EL = NULL; }
+            orient = SUMA_OrientTriangles (  SOhullp->NodeList, SOhullp->N_Node, 
+                                             SOhullp->FaceSetList, 
+                                             SOhullp->N_FaceSet, 1, Force);
+            if (orient < 0 || Force) { 
+               /* flipping was done, dump the edge list */ 
+               if (SOhullp->EL) SUMA_free_Edge_List(SOhullp->EL); 
+               SOhullp->EL = NULL; 
+            }
             if (!orient) { fprintf(SUMA_STDERR,"Error %s:\nFailed in SUMA_OrientTriangles\n", FuncName); }
             if (LocalHead) {
                if (orient < 0) { SUMA_SL_Note("Hull was reoriented"); }

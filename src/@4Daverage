@@ -28,7 +28,7 @@ if (("$1" =~ "-h") || ("$1" =~ "-help") || ("$1" =~ "")) then
 	echo ""
 	echo "\012Ziad Saad Nov 21 97, Marquette University"
 	echo "Modified to accept wild cards Jan 24 01, FIM/LBC/NIH"
-	echo "Ziad S. Saad (ziad@nih.gov)"
+	echo "Ziad S. Saad (saadz@mail.nih.gov)"
 	goto END
 endif
 
