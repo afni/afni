@@ -72,7 +72,7 @@ echo ""
 echo "Example:"
 echo "    @Purify_1D -sub '[0,3]' somedataset.1D.dset"
 echo ""
-echo "Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov"
+echo "Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov"
 echo ""
 goto END
 

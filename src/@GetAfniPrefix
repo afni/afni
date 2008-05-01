@@ -69,7 +69,7 @@ USAGE:
    echo "If a Suffix string is specified, then it is"
    echo "appended to the returned prefix."
    echo ""
-   echo "Ziad Saad (ziad@nih.gov)"
+   echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "  LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
    echo ""
 	goto ENDALL

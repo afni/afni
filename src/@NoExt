@@ -34,7 +34,7 @@ USAGE:
 	echo "`basename $0` Hello.Jon HEAD BRIK"
 	echo "returns Hello.Jon"
 	echo ""
-   echo "Ziad Saad (ziad@nih.gov)"
+   echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
    echo ""
 	goto ENDALL

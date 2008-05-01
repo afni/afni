@@ -550,6 +550,91 @@ L_CREATE_SPEC:
 	echo "++ created spec file'$suma_dir/$spec_file'"
     end 	# foreach hand
 
+	# Create both.spec file
+	set spec_file = {$subj_id}_both.spec
+
+	if ( $debug ) echo "++ creating spec file '$spec_file'..."
+
+	(echo "# delimits comments" > $spec_file) >& /dev/null
+
+	if ( $status ) then
+	    set endstr = ( "failure: no permissions to create spec file" \
+			 "'$suma_dir/$spec_file'" )
+	    goto L_BAD_END
+	endif
+
+	# note user, date, machine, pwd, command line
+	echo ""							>> $spec_file
+	echo "# Creation information:"				>> $spec_file
+	echo "#     user    : $user"				>> $spec_file
+	echo "#     date    : `date`"				>> $spec_file
+	echo "#     machine : `uname -n`"			>> $spec_file
+	echo "#     pwd     : $cwd"				>> $spec_file
+	echo "#     command : $prog_name $argv"			>> $spec_file
+	echo ""							>> $spec_file
+	
+	# define the group
+	echo "# define the group"				>> $spec_file
+	echo "        Group = $subj_id"				>> $spec_file
+	echo ""							>> $spec_file
+
+	# define the states
+	echo "# define various States"				>> $spec_file
+	foreach attrib ( $surf_attribs )
+	   if (  $attrib =~ *sphere*  || \
+            $attrib =~ *flat*    || \
+            $attrib =~ *infla*) then
+         echo "        StateDef = ${attrib}_lh"			>> $spec_file
+         echo "        StateDef = ${attrib}_rh"			>> $spec_file
+      else
+         echo "        StateDef = $attrib"			>> $spec_file
+      endif
+	end
+	echo ""							>> $spec_file
+	foreach hand ( lh rh )
+	if ( $hand == lh ) then
+	    set list_cur = ( $list_lh )		# get a current list copy
+	else
+	    set list_cur = ( $list_rh )
+	endif
+
+	foreach surf ( $list_cur )
+	    set s_head = `echo $surf | cut -d. -f1`	# up to first '.'
+	    set s_state = `echo $surf | cut -d. -f2-`	# after first '.'
+       
+       if ( $s_state =~ *sphere* || \
+            $s_state =~ *flat*   || \
+            $s_state =~ *infla*) then
+         set s_state = "${s_state}_${hand}"
+       endif
+	    # check for SAME mapping ref
+	    if ( "$surf.asc" == "$s_head.smoothwm.asc" ) then
+		set map_ref = SAME
+	    else
+		set map_ref = $s_head.smoothwm.asc
+	    endif
+
+	    # EmbedDimension is 2 for .flat surfaces, else 3
+	    if ( $surf =~ *.flat* ) then
+		set embed_ref = 2
+	    else
+		set embed_ref = 3
+	    endif
+
+	    echo "NewSurface"					>> $spec_file
+	    echo "        SurfaceFormat = ASCII"		>> $spec_file
+	    echo "        SurfaceType = FreeSurfer"		>> $spec_file
+	    echo "        FreeSurferSurface = $surf.asc"	>> $spec_file
+	    echo "        LocalDomainParent = $map_ref"		>> $spec_file
+	    echo "        SurfaceState = $s_state"		>> $spec_file
+	    echo "        EmbedDimension = $embed_ref"		>> $spec_file
+	    echo ""						>> $spec_file
+	end
+   end 	# foreach hand
+
+	echo "++ created spec file'$suma_dir/$spec_file'"
+
+
     cd $start_dir
 
 goto L_CREATE_SPEC_DONE
@@ -762,7 +847,9 @@ L_HELP_END:
     echo "    4. You can tailor the script to your needs. Just make sure you rename it or risk"
 	 echo "       having your modifications overwritten with the next SUMA version you install."
 	 echo ""
-    echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
+    echo "     R. Reynolds (rickr@codon.nih.gov)"
+    echo "     Z. Saad (saadz@mail.nih.gov)"
+    echo "     M. Beauchamp (Michael.S.Beauchamp@uth.tmc.edu)"
     echo ""
 
     exit

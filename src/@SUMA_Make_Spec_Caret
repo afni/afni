@@ -820,7 +820,7 @@ L_HELP_END:
     echo "       means since the surfaces are for one hemisphere but the script will use"
     echo "       these surfaces too."
     echo ""
-    echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
+    echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (saadz@mail.nih.gov)"
     echo ""
 
     exit

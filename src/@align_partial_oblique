@@ -299,7 +299,7 @@ HELP:
       echo "   `basename $0` -base ah_SurfVol+orig. -input ah_T1W_anat+orig."
       echo ""
       echo ""
-      echo "Written by Ziad S. Saad, for Ikuko (ziad@nih.gov)"
+      echo "Written by Ziad S. Saad, for Ikuko (saadz@mail.nih.gov)"
       echo "                        SSCC/NIMH/NIH/DHHS"
       echo ""
       goto END

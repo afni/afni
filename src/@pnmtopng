@@ -15,7 +15,7 @@ goto END
 USAGE:
         echo "Usage: `basename $0` <*.pnm>"
 			echo "uses pnmtopng to change the pnm images on command line to png"
-		  echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
+		  echo "\012Ziad Saad (saadz@mail.nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
     	  goto END
 
 END:

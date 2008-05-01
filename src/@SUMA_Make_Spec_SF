@@ -719,7 +719,7 @@ L_HELP_END:
     echo "    3. You can tailor the script to your needs. Just make sure you rename it or risk"
 	 echo "       having your modifications overwritten with the next SUMA version you install."
 	 echo ""
-    echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
+    echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (saadz@mail.nih.gov)"
     echo ""
 
     exit

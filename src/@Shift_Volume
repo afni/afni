@@ -172,7 +172,7 @@ HELP:
    echo ""
    echo "Requires 3drefit newer than Oct. 02/02."
    echo ""
-   echo "Ziad Saad (ziad@nih.gov)"
+   echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
    echo ""
    goto END
