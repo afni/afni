@@ -390,6 +390,7 @@ typedef struct {
 
   MCW_arrowval *cmode_av ;  /* first row of controls */
   Widget clust3d_pb, savetable_pb, index_lab, prefix_tf, done_pb ;
+  Widget savemask_pb ;      /* 01 May 2008 */
 
   Widget dataset_pb ;       /* second row of controls */
   MCW_arrowval *from_av, *to_av, *aver_av ;

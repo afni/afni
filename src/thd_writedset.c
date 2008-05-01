@@ -110,6 +110,9 @@ ENTRY("THD_write_3dim_dataset") ;
          }
        }
      }
+   } else if( THD_is_file(dset->dblk->diskptr->header_name) ||
+              THD_is_file(dset->dblk->diskptr->brick_name)    ){
+     WARNING_message("Over-writing dataset %s",dset->dblk->diskptr->brick_name);
    }
 
    /*------ 06 Apr 2005: write a NIFTI-1 dataset??? -----*/
