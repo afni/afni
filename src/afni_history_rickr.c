@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_BUG_FIX,
+   "treat RESID_CT as Ct(t), not C(t)",
+   NULL
+ } ,
+
  { 30, APR, 2008, RCR, "make_stim_times.py", MICRO, TYPE_BUG_FIX,
    "replaced make_stim_files with make_stim_times.py in help",
    NULL

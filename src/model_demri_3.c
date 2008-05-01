@@ -360,7 +360,8 @@ static int ct_from_cp(demri_params * P, double * ct, float * cp,
         if( P->debug > 1 && P->counter == 0 )
             fprintf(stderr,"-- removing residuals, Ct=%f, Cp=%f, fpv=%f\n",
                     P->rct, cp[0], P->fpv);
-        resid = P->rct - cp[0];
+        /* if resid were C, subtract fpv*cp, but if Ct, just keep it */
+        resid = P->rct;
         /* elist is not long enough, even if we take it to nfirst-1 (since
            we must start at 1), so be a little slow */
         for( n = 0; n < len; n++ ) { resid *= dval; ct[n] += resid; }
