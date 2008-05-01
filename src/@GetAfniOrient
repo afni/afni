@@ -17,7 +17,7 @@ USAGE:
 	echo "Usage: `basename $0` <Name> ....."
 	echo "example: `basename $0` Hello+orig.HEAD"
 	echo "returns the orient code of Hello+orig.HEAD" 
-	echo "Ziad Saad (ziad@nih.gov)"
+	echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
 	goto ENDALL
 ENDALL:

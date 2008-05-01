@@ -111,7 +111,7 @@ USAGE:
 	echo 'will execute 3dinfo -v on each of the A*.HEAD headers'
 	echo "\012`basename $0` -com '3dZeropad -z 4' -newxt _zpd4 -list ADzst*vr+orig.BRIK"
 	echo 'will run 3dZeropad with the -z 4 option on all the bricks ADzst*vr+orig.BRIK'
-	echo "\012Ziad S. Saad (ziad@nih.gov). FIM/LBC/NIMH/NIH. Wed Jan 24 "
+	echo "\012Ziad S. Saad (saadz@mail.nih.gov). FIM/LBC/NIMH/NIH. Wed Jan 24 "
 
 	goto ENDALL
 

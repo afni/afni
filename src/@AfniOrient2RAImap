@@ -57,7 +57,7 @@ USAGE:
    echo "`basename $0` LSP"
    echo "returns: -1 -3 -2"
 	echo ""
-   echo "Ziad Saad (ziad@nih.gov)"
+   echo "Ziad Saad (saadz@mail.nih.gov)"
    echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
 	goto ENDALL
 ENDALL:

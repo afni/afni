@@ -381,7 +381,7 @@ USAGE:
 	echo "Usage: `basename $0` <Dir #> <First Image #> <# slices> <# reps> <Output Root>" 	
    echo "                   [-kp] [-i] [-oc] [-sp Pattern] [-od Output Directory]" 	
 	echo ""
-	echo " Version $VerNum  Ziad Saad (ziad@nih.gov) Dec 5 2001   SSCC/LBC/NIMH." 
+	echo " Version $VerNum  Ziad Saad (saadz@mail.nih.gov) Dec 5 2001   SSCC/LBC/NIMH." 
  	goto ENDALL
 
 ENDALL:

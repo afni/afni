@@ -31,7 +31,7 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "@clip_volume -below -30 -above 53 -left 20 -right -13 -anterior -15 \"
    echo "             -posterior 42 -input ABanat+orig. -verb -prefix sample"
    echo ""
-   echo "Written by Ziad S. Saad (ziad@nih.gov)"
+   echo "Written by Ziad S. Saad (saadz@mail.nih.gov)"
    echo "                        SSCC/NIMH/NIH/DHHS"
    echo ""
    goto END

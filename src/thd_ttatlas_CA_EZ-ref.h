@@ -32,7 +32,7 @@ char CA_EZ_REF_STR[128][256] = {
 " ",
 " ",
 "AFNI adaptation by",
-" Ziad S. Saad (ziad@nih.gov, SSCC/NIMH/NIH)",
+" Ziad S. Saad (saadz@mail.nih.gov, SSCC/NIMH/NIH)",
 " Info automatically created with CA_EZ_Prep.m based on se_note.m",
 ""};/* Must be the only empty string in the array*/
 char CA_EZ_VERSION_STR[128] = { "Version 1.5" };

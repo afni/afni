@@ -172,7 +172,7 @@ USAGE:
 		  echo 'are copied into $localBIN.bak directory'
 		  echo "For more info, see:"
 		  echo "http://afni.nimh.nih.gov/~cox/afni_wget.html"
-		  echo "Ziad Saad (ziad@nih.gov) SSCC/NIMH/NIH, Bethesda MD USA"
+		  echo "Ziad Saad (saadz@mail.nih.gov) SSCC/NIMH/NIH, Bethesda MD USA"
     	  goto END
 
 END:
