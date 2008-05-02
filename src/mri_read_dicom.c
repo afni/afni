@@ -53,6 +53,45 @@ static int obl_info_set = 0;
 
 static int debugprint = 0;
 
+/*--- stuff for multi-frame collections of 2D images ---*/
+
+typedef struct {
+  int nframe ;
+  int *time_index , *stack_index ;
+  float *xpos , *ypos , *zpos ;
+} MultiFrame_info ;
+
+#define INIT_MultiFrame(mf,n)                                    \
+ do{ (mf) = (MultiFrame_info *)malloc(sizeof(MultiFrame_info));  \
+     (mf)->nframe      = (n) ;                                   \
+     (mf)->time_index  = (int *)  calloc(sizeof(int)  ,(n)) ;    \
+     (mf)->stack_index = (int *)  calloc(sizeof(int)  ,(n)) ;    \
+     (mf)->xpos        = (float *)calloc(sizeof(float),(n)) ;    \
+     (mf)->ypos        = (float *)calloc(sizeof(float),(n)) ;    \
+     (mf)->zpos        = (float *)calloc(sizeof(float),(n)) ;    \
+ } while(0)
+
+#define KILL_MultiFrame(mf)                                      \
+ do{ if( (mf) != NULL ){                                         \
+       if( (mf)->time_index  ) free((void *)(mf)->time_index) ;  \
+       if( (mf)->stack_index ) free((void *)(mf)->stack_index) ; \
+       if( (mf)->xpos        ) free((void *)(mf)->xpos) ;        \
+       if( (mf)->ypos        ) free((void *)(mf)->ypos) ;        \
+       if( (mf)->zpos        ) free((void *)(mf)->zpos) ;        \
+       free((void *)(mf)) ; (mf) = NULL ;                        \
+     }                                                           \
+ } while(0)
+
+#define DELPOS_MultiFrame(mf)                                           \
+ do{ if( (mf) != NULL ){                                                \
+       if( (mf)->xpos ){ free((void *)(mf)->xpos); (mf)->xpos = NULL; } \
+       if( (mf)->ypos ){ free((void *)(mf)->ypos); (mf)->ypos = NULL; } \
+       if( (mf)->zpos ){ free((void *)(mf)->zpos); (mf)->xpos = NULL; } \
+     }                                                                  \
+ } while(0)
+
+static int scanfor_MultiFrame( char *ppp , MultiFrame_info *mfi ) ;
+
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
 
@@ -115,6 +154,14 @@ static char *elist[] = {
 
  "0002 0010" ,  /* Transfer Syntax [RWC - 05 Jul 2006] */
 
+ /*--- The following are for multi-frame DICOM files [RWC - 02 May 2008] ---*/
+
+ "0020 0105" ,  /* Number of temporal positions */
+ "0020 0013" ,  /* Instance number */
+ "0020 0100" ,  /* Temporal position index identifier */
+ "0020 9128" ,  /* Temporal position index */
+ "0020 9057" ,  /* Stack position index */
+
 NULL } ;
 
 #define NUM_ELIST (sizeof(elist)/sizeof(char *)-1)
@@ -154,6 +201,12 @@ NULL } ;
 
 #define E_TRANSFER_SYNTAX            28    /* 05 Jul 2006 */
 
+#define E_NUMBER_OF_TIMES            29    /* 02 May 2008 */
+#define E_INSTANCE_NUMBER            30
+#define E_TIME_INDEX_ID              31
+#define E_TIME_INDEX                 32
+#define E_STACK_INDEX                33
+
 /*---------------------------------------------------------------------------*/
 /* global set via 'to3d -assume_dicom_mosaic'            13 Mar 2006 [rickr] */
 int assume_dicom_mosaic = 0;   /* (case of 1 is equivalent to Rich's change) */
@@ -166,7 +219,7 @@ MRI_IMARR * mri_read_dicom( char *fname )
 {
    char *ppp , *ddd ;
    off_t poff ;
-   int plen ;
+   unsigned int plen ;
    char *epos[NUM_ELIST] ;
    int ii,jj , ee , bpp , datum ;
    int nx,ny,nz , swap , shift=0 ;
@@ -202,6 +255,8 @@ MRI_IMARR * mri_read_dicom( char *fname )
    static int obliqueflag = 0;
    float xc1=0.0,xc2=0.0,xc3=0.0 , yc1=0.0,yc2=0.0,yc3=0.0 ;
    float xn,yn ; int qq ;
+
+   MultiFrame_info *mfi = NULL ; /* 02 May 2008 */
 
 ENTRY("mri_read_dicom") ;
 
@@ -290,7 +345,7 @@ ENTRY("mri_read_dicom") ;
    /* find out where the pixel array is in the file */
 
    mri_dicom_pxlarr( &poff , &plen ) ;
-   if( plen <= 0 || poff == 0 ){
+   if( plen == 0 || poff == 0 ){
      ERROR_message("DICOM file %s: ILLEGAL plen=%d  poff=%u",
                    fname , plen , (unsigned int)poff ) ;
      free(ppp); RETURN(NULL);
@@ -298,11 +353,11 @@ ENTRY("mri_read_dicom") ;
 
    /* check if file is actually this big (maybe it was truncated) */
 
-   { unsigned int psiz , fsiz ;
+   { long long psiz , fsiz ;
      fsiz = THD_filesize( fname ) ;
-     psiz = (unsigned int)(poff) + (unsigned int)(plen) ;
+     psiz = (long long)(poff) + (long long)(plen) ;
      if( fsiz < psiz ){
-       ERROR_message("DICOM file %s: plen=%d  poff=%u  filesize=%u",
+       ERROR_message("DICOM file %s: plen=%u  poff=%u  filesize=%lld",
                      fname , plen , (unsigned int)poff , fsiz ) ;
        free(ppp) ; RETURN(NULL);
      }
@@ -438,12 +493,20 @@ ENTRY("mri_read_dicom") ;
      if( ddd != NULL ) sscanf(ddd+2,"%d",&nz) ;
    }
 
+   /* 02 May 2008: set up for multi-frame info extraction? */
+
+   if( nz > 1 && epos[E_STACK_INDEX] != NULL ){
+     INIT_MultiFrame(mfi,nz) ;
+     jj = scanfor_MultiFrame( ppp , mfi ) ;
+     if( jj < nz ) KILL_MultiFrame(mfi) ;
+   }
+
    /* if didn't get nz above, make up a value */
 
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;    /* compute from image array size */
    if( nz == 0 ){
      ERROR_message("DICOM file %s: not enough data for 1 slice!",fname) ;
-     free(ppp) ; RETURN(NULL);
+     free(ppp) ; KILL_MultiFrame(mfi) ; RETURN(NULL);
    }
 
    /*-- 28 Oct 2002: Check if this is a Siemens mosaic.        --*/
@@ -493,7 +556,7 @@ ENTRY("mri_read_dicom") ;
            if((sexi_start2!=NULL) && (sexi_start2<sexi_end)) {
               sexi_start = sexi_start2;
             }
-  
+
 	   sexi_size = sexi_end - sexi_start + 19 ;
 	   sexi_tmp = AFMALL( char, sexi_size+1 );
 	   memcpy(sexi_tmp,sexi_start,sexi_size);
@@ -520,7 +583,7 @@ ENTRY("mri_read_dicom") ;
 
          for( mos_ix=1 ; mos_ix*mos_ix < sexinfo.mosaic_num ; mos_ix++ ) ; /* nada */
          mos_iy = mos_ix ;
-  
+
          mos_nx = nx / mos_ix ; mos_ny = ny / mos_iy ;  /* sub-image dimensions */
 
          if( mos_ix*mos_nx == nx &&               /* Sub-images must fit nicely */
@@ -534,7 +597,7 @@ ENTRY("mri_read_dicom") ;
                fprintf(stderr,
                      "** DICOM ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
                      mos_ix,mos_iy,mos_nx,mos_ny,fname,nz) ;
-               free(ppp) ; RETURN(NULL) ;
+               free(ppp) ; KILL_MultiFrame(mfi) ; RETURN(NULL) ;
              }
 
              /* mark as a mosaic */
@@ -654,7 +717,7 @@ ENTRY("mri_read_dicom") ;
    fp = fopen( fname , "rb" ) ;
    if( fp == NULL ){
      ERROR_message("DICOM file %s: can't open!?",fname) ;
-     free(ppp) ; RETURN(NULL);
+     free(ppp) ; KILL_MultiFrame(mfi) ; RETURN(NULL);
    }
    lseek( fileno(fp) , poff , SEEK_SET ) ;
 
@@ -713,7 +776,7 @@ ENTRY("mri_read_dicom") ;
      dar  = (char*)calloc(bpp,nvox) ;            /* make space for super-image */
      if(dar==NULL)  {  /* exit if can't allocate memory */
         ERROR_message("Could not allocate memory for mosaic volume");
-        RETURN(NULL);
+        KILL_MultiFrame(mfi) ; RETURN(NULL);
      }
      fread( dar , bpp , nvox , fp ) ;    /* read data directly into it */
 
@@ -884,14 +947,14 @@ MCHECK ;
                ar[jj] = (ar[jj] <= wbot) ? 0 : ymax ;
            }
            break ;
-  
+
            case MRI_short:{
              short *ar = mri_data_pointer( im ) ;
              for( jj=0 ; jj < im->nvox ; jj++ )
                ar[jj] = (ar[jj] <= wbot) ? 0 : ymax ;
            }
            break ;
-  
+
            case MRI_int:{
              int *ar = mri_data_pointer( im ) ;
              for( jj=0 ; jj < im->nvox ; jj++ )
@@ -1274,7 +1337,7 @@ fprintf(stderr,"SLICE_LOCATION = %f\n",zz) ;
    if(obl_info_set<2)
          Fill_obl_info(&obl_info, epos, &sexinfo);
 
-   free(ppp); RETURN( imar );
+   free(ppp); KILL_MultiFrame(mfi) ; RETURN( imar );
 }
 
 /*---------- compute slice thickness from DICOM header ----------*/
@@ -1297,9 +1360,9 @@ static float get_dz(  char **epos)
 	  sp = 0.0;   /* probably should write this as function to check on all DICOM fields*/
        }
        else {
-	  sscanf( ddd+2 , "%f" , &sp ) ;
-	  }
-     }     
+          sscanf( ddd+2 , "%f" , &sp ) ;
+       }
+     }
   }
 
   if( epos[E_SLICE_THICKNESS] != NULL ){                /* get reported slice thickness */
@@ -1373,14 +1436,14 @@ int mri_imcount_dicom( char *fname )
 {
    char *ppp , *ddd ;
    off_t poff ;
-   int plen ;
+   unsigned int plen ;
    char *epos[NUM_ELIST] ;
    int ii , ee , bpp , datum ;
    int nx,ny,nz ;
 
    int mosaic=0 , mos_nx,mos_ny , mos_ix,mos_iy,mos_nz ;  /* 28 Oct 2002 */
    Siemens_extra_info sexinfo ;                           /* 02 Dec 2002 */
-   
+
    char *sexi_start, *sexi_start2;   /* KRH 25 Jul 2003 */
    char *sexi_end;
 
@@ -1399,13 +1462,13 @@ ENTRY("mri_imcount_dicom") ;
    /* find out where the pixel array is in the file */
 
    mri_dicom_pxlarr( &poff , &plen ) ;
-   if( plen <= 0 ){ free(ppp) ; RETURN(0); }
+   if( plen == 0 ){ free(ppp) ; RETURN(0); }
 
    /* check if file is actually this big */
 
-   { unsigned int psiz , fsiz ;
+   { long long psiz , fsiz ;
      fsiz = THD_filesize( fname ) ;
-     psiz = (unsigned int)(poff) + (unsigned int)(plen) ;
+     psiz = (long long)(poff) + (long long)(plen) ;
      if( fsiz < psiz ){ free(ppp) ; RETURN(0); }
    }
 
@@ -1511,7 +1574,7 @@ ENTRY("mri_imcount_dicom") ;
         sexi_start2 = strstr(sexi_start+21, "### ASCCONV BEGIN ###");
         sexi_end = strstr(sexi_start, "### ASCCONV END ###");
         if(debugprint)
-           printf("sexi_start %d sexi_start2 %d sexi_end %d\n", 
+           printf("sexi_start %d sexi_start2 %d sexi_end %d\n",
                   (int) sexi_start, (int) sexi_start2,(int) sexi_end);
         if (sexi_end != NULL) {
            char *sexi_tmp;
@@ -1520,7 +1583,7 @@ ENTRY("mri_imcount_dicom") ;
            if((sexi_start2!=NULL) && (sexi_start2<sexi_end)) {
               sexi_start = sexi_start2;
             }
-  
+
 	   sexi_size = sexi_end - sexi_start + 19 ;
 	   sexi_tmp = AFMALL( char, sexi_size+1 );
            if(sexi_tmp==NULL) {
@@ -1678,15 +1741,15 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
      }
 #endif
 
-     if( strcmp(name,"sPosition.dSag") == 0 ){ 
+     if( strcmp(name,"sPosition.dSag") == 0 ){
        mi->slice_xyz[snum][0] = val;
        if (snum < 2) have_x[snum] = 1;
        last_snum = snum;
-     } else if( strcmp(name,"sPosition.dCor") == 0 ){ 
+     } else if( strcmp(name,"sPosition.dCor") == 0 ){
        mi->slice_xyz[snum][1] = val;
        if (snum < 2) have_y[snum] = 1;
        last_snum = snum;
-     } else if( strcmp(name,"sPosition.dTra") == 0 ){ 
+     } else if( strcmp(name,"sPosition.dTra") == 0 ){
        mi->slice_xyz[snum][2] = val;
        if (snum < 2) have_z[snum] = 1;
        last_snum = snum;
@@ -1790,13 +1853,13 @@ Clear_obl_info(oblique_info *obl_info)
 {
    int i,j;
 
-   LOAD_FVEC3(obl_info->dfpos1,0.0,0.0,0.0);   
-   LOAD_FVEC3(obl_info->dfpos2,0.0,0.0,0.0);   
-   LOAD_FVEC3(obl_info->del,0.0,0.0,0.0);   
-   LOAD_FVEC3(obl_info->xvec,0.0,0.0,0.0);   
-   LOAD_FVEC3(obl_info->yvec,0.0,0.0,0.0);   
+   LOAD_FVEC3(obl_info->dfpos1,0.0,0.0,0.0);
+   LOAD_FVEC3(obl_info->dfpos2,0.0,0.0,0.0);
+   LOAD_FVEC3(obl_info->del,0.0,0.0,0.0);
+   LOAD_FVEC3(obl_info->xvec,0.0,0.0,0.0);
+   LOAD_FVEC3(obl_info->yvec,0.0,0.0,0.0);
    obl_info->mosaic = 0;
-   obl_info->mos_ix = obl_info->mos_nx = obl_info->mos_ny = 
+   obl_info->mos_ix = obl_info->mos_nx = obl_info->mos_ny =
       obl_info->mos_nslice = 1;
    obl_info->nx = obl_info->ny = 1;
    obl_info_set = 0;
@@ -1825,7 +1888,7 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
     ENTRY("Fill_obl_info");
     if(obl_info_set) /* if already set all parameters for first slice */
        xyz = obl_info->dfpos2.xyz;   /* only need to set ImagePosition for 2nd slice */
-    else 
+    else
        xyz = obl_info->dfpos1.xyz;
 
 
@@ -1890,7 +1953,7 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
    if(siem->mosaic_num>1) {
       obl_info->mosaic = 1;
       obl_info->mos_sliceinfo = 0;
-      /* need nx, ny in mosaic and in each slice and the real number of slices*/  
+      /* need nx, ny in mosaic and in each slice and the real number of slices*/
       ddd = strstr(epos[E_COLUMNS],"//") ;
       sscanf(ddd+2,"%d",&nx) ;
       ddd = strstr(epos[E_ROWS],"//") ;
@@ -1899,18 +1962,18 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
       /* get siemens in the same way as in the standard mri_read_dicom above */
       /* compute size of mosaic layout
        as 1st integer whose square is >= # of images in mosaic */
-      for( mos_ix=1 ; mos_ix*mos_ix < siem->mosaic_num ; mos_ix++ ) ; 
+      for( mos_ix=1 ; mos_ix*mos_ix < siem->mosaic_num ; mos_ix++ ) ;
 
       mos_iy = mos_ix ;   /* number of subimages in each direction */
       obl_info->mos_ix = mos_ix;
-      obl_info->mos_nx = nx / mos_ix ;  /* sub-image dimensions*/ 
+      obl_info->mos_nx = nx / mos_ix ;  /* sub-image dimensions*/
       obl_info->mos_ny = ny / mos_iy ;
       obl_info->mos_nslice = siem->mosaic_num;
       obl_info->nx = nx; obl_info->ny = ny;
       obl_info_set = 2;
 
       /* check for alternate slice information */
-      if((siem->slice_xyz[0][0] == -9999.9) || 
+      if((siem->slice_xyz[0][0] == -9999.9) ||
      (siem->slice_xyz[0][1] == -9999.9) || \
      (siem->slice_xyz[0][2] == -9999.9) || \
      (siem->slice_xyz[obl_info->mos_nslice-1][0] == -9999.9) ||
@@ -1937,12 +2000,12 @@ static int CheckObliquity(float xc1, float xc2, float xc3, float yc1, float yc2,
 {
    int obliqueflag = 0;
    /* any values not 1 or 0 or really close mean the data is oblique */
-   if ((!ALMOST(fabs(xc1),1.0) && !ALMOST(xc1,0.0)) || 
+   if ((!ALMOST(fabs(xc1),1.0) && !ALMOST(xc1,0.0)) ||
        (!ALMOST(fabs(xc2),1.0) && !ALMOST(xc2,0.0)) ||
        (!ALMOST(fabs(xc3),1.0) && !ALMOST(xc3,0.0)) ||
        (!ALMOST(fabs(yc1),1.0) && !ALMOST(yc1,0.0)) ||
        (!ALMOST(fabs(yc2),1.0) && !ALMOST(yc2,0.0)) ||
-       (!ALMOST(fabs(yc3),1.0) && !ALMOST(yc3,0.0)) ) 
+       (!ALMOST(fabs(yc3),1.0) && !ALMOST(yc3,0.0)) )
       obliqueflag = 1;
    return(obliqueflag);
 }
@@ -1958,7 +2021,7 @@ static float *ComputeObliquity(oblique_info *obl_info)
 /*   double dotp, angle, aangle;*/
    float fac;
    int altsliceinfo = 0;
-   Siemens_extra_info *siem; 
+   Siemens_extra_info *siem;
    int ii,jj;
    double Cxx, Cxy, Cxz;
 
@@ -1966,7 +2029,7 @@ static float *ComputeObliquity(oblique_info *obl_info)
    /* compute cross product of image orientation vectors*/
    vec3 = CROSS_FVEC3(obl_info->xvec, obl_info->yvec);
 
-   /* compute dfpos (difference between first and second 
+   /* compute dfpos (difference between first and second
       ImagePositionPatient fields as a vector */
    vec4 = SUB_FVEC3(obl_info->dfpos2, obl_info->dfpos1);
    /* scale directions by voxel sizes*/
@@ -1989,7 +2052,7 @@ static float *ComputeObliquity(oblique_info *obl_info)
             fac = 1.0;
          if(ALMOST(fac, -1.0))
             fac = -1.0;
- 
+
 	 if((fac!=1)&&(fac!=-1)) {
            WARNING_message("Image Positions do not lie in same direction as"
             " cross product vector: %f", fac);
@@ -2034,11 +2097,11 @@ DUMP_FVEC3("dc4", dc4);
 
    /*   *(Tr+3) = obl_info->dfpos1.xyz[0]; *(Tr+7) = obl_info->dfpos1.xyz[1];
       *(Tr+11) = obl_info->dfpos1.xyz[2];*/
-   obl_info->Tr_dicom[0][3] = obl_info->dfpos1.xyz[0]; 
-   obl_info->Tr_dicom[1][3] = obl_info->dfpos1.xyz[1]; 
+   obl_info->Tr_dicom[0][3] = obl_info->dfpos1.xyz[0];
+   obl_info->Tr_dicom[1][3] = obl_info->dfpos1.xyz[1];
    obl_info->Tr_dicom[2][3] = obl_info->dfpos1.xyz[2];
    /*   *(Tr+12) = *(Tr+13) = *(Tr+14) = 0.0; *(Tr+15) = 1.0;*/
-   obl_info->Tr_dicom[3][0] = 0; obl_info->Tr_dicom[3][1] = 0; 
+   obl_info->Tr_dicom[3][0] = 0; obl_info->Tr_dicom[3][1] = 0;
    obl_info->Tr_dicom[3][2] = 0; obl_info->Tr_dicom[3][3] = 1.0;
 
 
@@ -2076,13 +2139,13 @@ DUMP_FVEC3("dc4", dc4);
 
    /* check if this center of the mosaic is about the same as the slice center*/
    if(obl_info->mos_sliceinfo) {
-   /* find center of volume as center of vector from 
+   /* find center of volume as center of vector from
       center of first slice to center of last slice */
       Cxx = (obl_info->slice_xyz[0][0] + obl_info->slice_xyz[1][0]) / 2.0;
       Cxy = (obl_info->slice_xyz[0][1] + obl_info->slice_xyz[1][1]) / 2.0;
       Cxz = (obl_info->slice_xyz[0][2] + obl_info->slice_xyz[1][2]) / 2.0;
       LOAD_FVEC3(Cx, Cxx, Cxy, Cxz);
-      /* also check if the vector from slice 0 to last slice parallel or 
+      /* also check if the vector from slice 0 to last slice parallel or
 	 anti-parallel to the slice normal */
       LOAD_FVEC3(obl_info->dfpos1,
         (obl_info->slice_xyz[1][0] - obl_info->slice_xyz[0][0]),
@@ -2101,7 +2164,7 @@ DUMP_FVEC3("dc4", dc4);
             fac = 1.0;
          if(ALMOST(fac, -1.0))
             fac = -1.0;
- 
+
 	 if((fac!=1.0)&&(fac!=-1.0)) {
            WARNING_message("Image Positions do not lie in same direction"
              " as cross product vector: %f", fac);
@@ -2113,7 +2176,7 @@ DUMP_FVEC3("dc4", dc4);
       }
      if(fac==-1) {
         INFO_message("Assuming anti-parallel (left-handed coordinate system)");
-     }   
+     }
 
       if(!ALMOST(Cm.xyz[0], Cx.xyz[0]) ||
          !ALMOST(Cm.xyz[1], Cx.xyz[1]) ||
@@ -2159,7 +2222,7 @@ DUMP_FVEC3("Origin", Orgin);
 
 
 #if 0
-   /* compute dot product with 0,1,0 axis - put 1 in maximum index 
+   /* compute dot product with 0,1,0 axis - put 1 in maximum index
       (closest major axis) */
    vec4.xyz[0] = 0.0; vec4.xyz[1] = 0.0; vec4.xyz[2] = 0.0;
    vec4.xyz[MAXINDEX_FVEC3(vec2)] = 1.0;
@@ -2203,3 +2266,62 @@ void mri_read_dicom_get_obliquity(float *Tr)
    return;
 }
 
+/*---------------------------------------------------------------------*/
+/* Scan the string for the per-frame strings */
+
+static int scanfor_MultiFrame( char *ppp , MultiFrame_info *mfi )
+{
+   int nz , jj , ival ;
+   char *qqq , *ccc , *ddd , *ttt ;
+   float xyz[3] ;
+
+   if( ppp == NULL || mfi == NULL || mfi->nframe < 1 ) return 0 ;
+
+   nz = mfi->nframe ;
+
+   /** stack (==slice) index **/
+
+   ttt = elist[E_STACK_INDEX] ;
+   for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
+      ccc = strstr(qqq,ttt) ;
+      if( ccc == NULL ) return jj ;
+      ddd = strstr(ccc,"//") ; if( ddd == NULL ) return jj ;
+      sscanf(ddd+2,"%d",&ival) ;
+      if( ival <= 0 ) return jj ;
+      mfi->stack_index[jj] = ival ;
+      qqq = ddd+3 ;
+   }
+
+   /** time index **/
+
+   ttt = elist[E_TIME_INDEX] ; ccc = strstr(ppp,ttt) ;
+   if( ccc == NULL ){
+     ttt = elist[E_TIME_INDEX_ID] ; ccc = strstr(ppp,ttt) ;
+     if( ccc == NULL ) return 0 ;
+   }
+   for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
+      ccc = strstr(qqq,ttt) ;
+      if( ccc == NULL ) return jj ;
+      ddd = strstr(ccc,"//") ; if( ddd == NULL ) return jj ;
+      sscanf(ddd+2,"%d",&ival) ;
+      if( ival <= 0 ) return jj ;
+      mfi->stack_index[jj] = ival ;
+      qqq = ddd+3 ;
+   }
+
+   /** image position (not strictly required?) **/
+
+   ttt = elist[E_IMAGE_POSITION] ;
+   for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
+     ccc = strstr(qqq,ttt) ;
+     if( ccc == NULL ){ DELPOS_MultiFrame(mfi) ; return nz ; }
+     ddd = strstr(ccc,"//") ;
+     if( ddd == NULL ){ DELPOS_MultiFrame(mfi) ; return nz ; }
+     ival = sscanf(ddd+2,"%f\\%f\\%f",xyz,xyz+1,xyz+2) ;
+     if( ival < 3 ){ DELPOS_MultiFrame(mfi) ; return nz ; }
+     mfi->xpos[jj] = xyz[0]; mfi->ypos[jj] = xyz[1]; mfi->zpos[jj] = xyz[2];
+     qqq = ddd+3 ;
+   }
+
+   return nz ;
+}
