@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , MAY , 2008 , RWC , "mcw_glob.c" , MICRO , TYPE_GENERAL ,
+   "added message from Graham Wideman when readdir() fails" ,
+   NULL } ,
+
  { 1 , MAY , 2008 , RWC , "afni_cluster.c" , MICRO , TYPE_GENERAL ,
    "Add SaveMask button to Clusterize report window." ,
    "Saves the clusters as a mask dataset (cluster #1 has value=1, etc.). \n"
