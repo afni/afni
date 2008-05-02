@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv)
 {
-   char *ppp , *sin ; int ii, iarg=1 , do_sin=0 ;
+   char *ppp , *sin ; int ii, iarg=1 , do_sin=0 , do_printf=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: dicom_hdr [options] fname [...]\n"
@@ -14,6 +14,9 @@ int main(int argc, char **argv)
             " -sexinfo = Dump Siemens EXtra INFO text (0029 1020), if present\n"
             "             (can be VERY lengthy).\n"
             " -v n     = Dump n words of binary data also.\n"
+#if 0
+            " -printf  = Use 'printf' directly, instead of an intermediate string.\n"
+#endif
             "\n"
             "Based on program dcm_dump_file from the RSNA, developed at\n"
             "the Mallinckrodt Institute of Radiology.  See the source\n"
@@ -57,6 +60,10 @@ int main(int argc, char **argv)
        do_sin++ ; iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-printf") == 0 ){  /* 02 May 2008 */
+       do_printf++ ; iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-hex") == 0 ){
        mri_dicom_nohex(0) ; iarg++ ; continue ;
      }
@@ -75,6 +82,8 @@ int main(int argc, char **argv)
      fprintf(stderr,"*** Unknown option: %s\n",argv[iarg]) ; iarg++ ;
    }
 
+   mri_dicom_header_use_printf(do_printf) ;  /* 02 May 2008 */
+
    for( ii=iarg ; ii < argc ; ii++ ){
      if( ii > iarg )
        printf("---------------------------------------------------------------\n");
@@ -83,7 +92,7 @@ int main(int argc, char **argv)
 STATUS("calling funct mri_dicom_header()") ;
      ppp = mri_dicom_header( argv[ii] ) ;
 STATUS("returned from mri_dicom_header()") ;
-     if( ppp != NULL ){
+     if( !do_printf && ppp != NULL ){
        off_t poff ; int plen ;
        printf("%s",ppp) ; free(ppp) ;
        mri_dicom_pxlarr( &poff , &plen ) ;
@@ -101,7 +110,7 @@ STATUS("returned from mri_dicom_header()") ;
            printf("........... Siemens Extra Info [0029 1020] = NOT PRESENT .............\n");
          }
        }
-     } else {
+     } else if( !do_printf ) {
        printf("***\n*** ERROR: can't open %s as a DICOM file!\n***\n",argv[ii]) ;
      }
    }

@@ -122,8 +122,12 @@ int g_readpreamble = FALSE;                /* 18 May 2006 [rickr] */
 /****************************************************************/
 /***** Function and variables to replace printf() ***************/
 
+static int just_do_printf = 0 ;  /* 02 May 2008 */
+void mri_dicom_header_use_printf( int i ){ just_do_printf = i; }
+
 static char *pbuf = NULL ;
 static int  npbuf = 0 ;
+static int  lpbuf = 0 ;
 
 #define NPBUF 2048
 
@@ -132,10 +136,10 @@ static void RWC_clear_pbuf(void)
    if( pbuf != NULL ){ free(pbuf); pbuf = NULL; npbuf = 0; }
 }
 
-static int RWC_printf( char *fmt , ... )
+int RWC_printf( char *fmt , ... )
 {
    static char *sbuf = NULL ;
-   int nsbuf , nn , lpbuf ;
+   int nsbuf , nn ;
    va_list vararg_ptr ;
 
    va_start( vararg_ptr , fmt ) ;
@@ -148,25 +152,32 @@ static int RWC_printf( char *fmt , ... )
    nsbuf = strlen(sbuf) ;
    if( nsbuf == 0 ) return(0);
 
+   if( just_do_printf ){ fputs(sbuf,stdout); return(nn); }
+
    if( npbuf == 0 ){
      pbuf = AFMALL(char,NPBUF) ; npbuf = NPBUF ; pbuf[0] = '\0' ;
    }
 
+#if 0
    lpbuf = strlen(pbuf) ;
+#endif
    if( lpbuf+nsbuf+8 > npbuf ){
-     npbuf += NPBUF + npbuf/4 ; pbuf = AFREALL( pbuf, char, npbuf) ;
+     npbuf += NPBUF + npbuf/16 ; pbuf = AFREALL( pbuf, char, npbuf) ;
    }
-
+#if 0
    strcat(pbuf,sbuf) ;
+#else
+   strcpy(pbuf+lpbuf,sbuf) ; lpbuf += nsbuf ;
+#endif
    return(nn);
 }
 
 /****************************************************************/
 
-static off_t pxl_off = 0 ;  /* store pixel array offset */
-static int   pxl_len = 0 ;  /* and length in file */
+static off_t        pxl_off = 0 ;  /* store pixel array offset */
+static unsigned int pxl_len = 0 ;  /* and length in file */
 
-void mri_dicom_pxlarr( off_t *poff , int *plen )
+void mri_dicom_pxlarr( off_t *poff , unsigned int *plen )
 {
    *poff = pxl_off ; *plen = pxl_len ;
 }
@@ -2454,12 +2465,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 		    sq = (void *)LST_Head(&elementItem->element.d.sq);
 		    if (sq != NULL)
 			(void) LST_Position(&elementItem->element.d.sq, (void *)sq);
-		    RWC_printf("DCM Dump SEQUENCE\n");
+		    RWC_printf("DCM Dump SEQUENCE{\n");
 		    while (sq != NULL) {
 			(void) DCM_DumpElements(&sq->object, vm);
 			sq = (void *)LST_Next(&elementItem->element.d.sq);
 		    }
-		    RWC_printf("DCM Dump SEQUENCE Complete\n");
+		    RWC_printf("DCM Dump SEQUENCE Complete}\n");
 		    break;
 		case DCM_ST:
 		    stringLength = MIN(sizeof(scratch) - 1, elementItem->element.length);
@@ -2655,14 +2666,14 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 		    sq = (void *)LST_Head(&elementItem->element.d.sq);
 		    if (sq != NULL)
 			(void) LST_Position(&elementItem->element.d.sq, (void *)sq);
-		    RWC_printf("%sDCM Dump SEQUENCE\n", prefix);
+		    RWC_printf("%sDCM Dump SEQUENCE{\n", prefix);
 		    strcpy(localPrefix, prefix);
 		    strcat(localPrefix, " ");
 		    while (sq != NULL) {
 			(void) DCM_FormatElements(&sq->object, vm, localPrefix);
 			sq = (void *)LST_Next(&elementItem->element.d.sq);
 		    }
-		    RWC_printf("%sDCM Dump SEQUENCE Complete\n", prefix);
+		    RWC_printf("%sDCM Dump SEQUENCE Complete}\n", prefix);
 		    break;
 		case DCM_ST:
 		    stringLength = MIN(sizeof(scratch) - 1, elementItem->element.length);
@@ -6804,7 +6815,7 @@ readData(const char *name, unsigned char **ptr, int fd, U32 * size,
 		if ((*elementItem)->element.length != DCM_UNSPECIFIEDLENGTH){
 
                     pxl_off = lseek( fd , 0 , SEEK_CUR ) ;
-                    pxl_len = (int)((*elementItem)->element.length) ;
+                    pxl_len = (unsigned int)((*elementItem)->element.length) ;
 
                     (*elementItem)->element.data_offset = pxl_off ;   /* RWCox */
 
