@@ -610,6 +610,46 @@ glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pg
       if( cnt ){
         perror("** glob error"); errno = 0; cnt-- ;
         fprintf(stderr,"** You may need to 'setenv AFNI_SHELL_GLOB YES'\n") ;
+        if( cnt == 1 )
+          fprintf(stderr,
+            "**\n"
+            "** In particular, if you are trying to access an NFS (network file\n"
+            "** system) mounted drive, you might be running into the situation\n"
+            "** where the NFS 'cookie' length on the remote system does not\n"
+            "** match the cookie length on your local system -- this is the only\n"
+            "** situation in which we have ever seen this error.  In that case,\n"
+            "** you can either set the environment variable as described above,\n"
+            "** or fix the cookie length mismatch by changing the way the NFS\n"
+            "** drive is exported.\n"
+            "**-------------------------------------------------------------------\n"
+            "** The following information from Graham Wideman of UCSD might also\n"
+            "** be helpful if you are reading this 'glob error' message:\n"
+            "**\n"
+            "**  I've changed the NFS export settings on our Mac OS X 10.5 server\n"
+            "**  to include the '-32bitclients' option, and can confirm that\n"
+            "**  this does cause AFNI to be able to see files that it could not\n"
+            "**  see without this option. So this appears to be the more general\n"
+            "**  way to fix the problem.\n"
+            "**\n"
+            "**  For others in the same boat who may stumble on this message:\n"
+            "**  It's not at all obvious how to actually set this option,\n"
+            "**  as OS X 10.5's Server Admin NFS settings panels don't have\n"
+            "**  any way to do it.\n"
+            "**\n"
+            "**  The short story is:\n"
+            "**  You have to edit the /etc/exports file, as per usual in Unix,\n"
+            "**  but decidedly not in line with all other SharePoint related\n"
+            "**  settings in 10.5.  But first, in order to have the edits not\n"
+            "**  conflict with Server Admin management of those settings, you\n"
+            "**  have to uncheck Server Admin's 'NFS Enabled' checkbox for the\n"
+            "**  relevant shares.  Then, when editing the exports file, move\n"
+            "**  the relevant lines outside the 'Server Admin managed' brackets,\n"
+            "**  and add your options.  In general, such options have to go in\n"
+            "**  the middle section of a line; for example, after the path.\n"
+            "**  Example:\n"
+            "**\n"
+            "** /Somedir -32bitclients -maproot=nobody -sec=sys -network 123.1.2.3 -mask 255.255.255.0\n"
+          ) ;
       }
     }
     (void) closedir(dirp);
