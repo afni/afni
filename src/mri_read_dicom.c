@@ -53,45 +53,6 @@ static int obl_info_set = 0;
 
 static int debugprint = 0;
 
-/*--- stuff for multi-frame collections of 2D images ---*/
-
-typedef struct {
-  int nframe ;
-  int *time_index , *stack_index ;
-  float *xpos , *ypos , *zpos ;
-} MultiFrame_info ;
-
-#define INIT_MultiFrame(mf,n)                                    \
- do{ (mf) = (MultiFrame_info *)malloc(sizeof(MultiFrame_info));  \
-     (mf)->nframe      = (n) ;                                   \
-     (mf)->time_index  = (int *)  calloc(sizeof(int)  ,(n)) ;    \
-     (mf)->stack_index = (int *)  calloc(sizeof(int)  ,(n)) ;    \
-     (mf)->xpos        = (float *)calloc(sizeof(float),(n)) ;    \
-     (mf)->ypos        = (float *)calloc(sizeof(float),(n)) ;    \
-     (mf)->zpos        = (float *)calloc(sizeof(float),(n)) ;    \
- } while(0)
-
-#define KILL_MultiFrame(mf)                                      \
- do{ if( (mf) != NULL ){                                         \
-       if( (mf)->time_index  ) free((void *)(mf)->time_index) ;  \
-       if( (mf)->stack_index ) free((void *)(mf)->stack_index) ; \
-       if( (mf)->xpos        ) free((void *)(mf)->xpos) ;        \
-       if( (mf)->ypos        ) free((void *)(mf)->ypos) ;        \
-       if( (mf)->zpos        ) free((void *)(mf)->zpos) ;        \
-       free((void *)(mf)) ; (mf) = NULL ;                        \
-     }                                                           \
- } while(0)
-
-#define DELPOS_MultiFrame(mf)                                           \
- do{ if( (mf) != NULL ){                                                \
-       if( (mf)->xpos ){ free((void *)(mf)->xpos); (mf)->xpos = NULL; } \
-       if( (mf)->ypos ){ free((void *)(mf)->ypos); (mf)->ypos = NULL; } \
-       if( (mf)->zpos ){ free((void *)(mf)->zpos); (mf)->xpos = NULL; } \
-     }                                                                  \
- } while(0)
-
-static int scanfor_MultiFrame( char *ppp , MultiFrame_info *mfi ) ;
-
 /*-----------------------------------------------------------------------------------*/
 /* Save the Siemens extra info string in case the caller wants to get it. */
 
@@ -115,97 +76,9 @@ static void RWC_set_endianosity(void)
    }
 }
 
-/*-----------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 
-static char *elist[] = {
-
- "0018 0050" ,  /* Slice thickness */
- "0018 0080" ,  /* Repetition time */
- "0018 0088" ,  /* Spacing between slices */
- "0018 1149" ,  /* Field of view */
-
- "0020 0020" ,  /* Patient orientation */
- "0020 0032" ,  /* Image position (patient) */
- "0020 0037" ,  /* Image orientation (patient) */
- "0020 1041" ,  /* Slice location */
-
- "0028 0002" ,  /* Samples per pixel */
- "0028 0008" ,  /* Number of frames */
- "0028 0010" ,  /* Rows */
- "0028 0011" ,  /* Columns */
- "0028 0030" ,  /* Pixel spacing */
- "0028 0100" ,  /* Bits allocated */
- "0028 0101" ,  /* Bits stored */
- "0028 1052" ,  /* Rescale intercept */
- "0028 1053" ,  /* Rescale slope */
- "0028 1054" ,  /* Rescale type */
- "0028 0004" ,  /* Photometric interpretation */
- "0028 0103" ,  /* Pixel representation */
- "0028 0102" ,  /* High bit */
- "0028 1050" ,  /* Window center */
- "0028 1051" ,  /* Window width */
-
- "0008 0008" ,  /* ID Image type */
- "0008 0070" ,  /* ID Manufacturer */
- "0018 1310" ,  /* Acquisition Matrix */
-
- "0029 1010" ,  /* Siemens addendum #1 */
- "0029 1020" ,  /* Siemens addendum #2 */
-
- "0002 0010" ,  /* Transfer Syntax [RWC - 05 Jul 2006] */
-
- /*--- The following are for multi-frame DICOM files [RWC - 02 May 2008] ---*/
-
- "0020 0105" ,  /* Number of temporal positions */
- "0020 0013" ,  /* Instance number */
- "0020 0100" ,  /* Temporal position index identifier */
- "0020 9128" ,  /* Temporal position index */
- "0020 9057" ,  /* Stack position index */
-
-NULL } ;
-
-#define NUM_ELIST (sizeof(elist)/sizeof(char *)-1)
-
-#define E_SLICE_THICKNESS             0
-#define E_REPETITION_TIME             1
-#define E_SLICE_SPACING               2
-#define E_FIELD_OF_VIEW               3
-
-#define E_PATIENT_ORIENTATION         4
-#define E_IMAGE_POSITION              5
-#define E_IMAGE_ORIENTATION           6
-#define E_SLICE_LOCATION              7
-
-#define E_SAMPLES_PER_PIXEL           8
-#define E_NUMBER_OF_FRAMES            9
-#define E_ROWS                       10
-#define E_COLUMNS                    11
-#define E_PIXEL_SPACING              12
-#define E_BITS_ALLOCATED             13
-#define E_BITS_STORED                14
-#define E_RESCALE_INTERCEPT          15
-#define E_RESCALE_SLOPE              16
-#define E_RESCALE_TYPE               17
-#define E_PHOTOMETRIC_INTERPRETATION 18
-#define E_PIXEL_REPRESENTATION       19
-#define E_HIGH_BIT                   20
-#define E_WINDOW_CENTER              21
-#define E_WINDOW_WIDTH               22
-
-#define E_ID_IMAGE_TYPE              23    /* 28 Oct 2002: for Siemens mosaic */
-#define E_ID_MANUFACTURER            24
-#define E_ACQ_MATRIX                 25
-
-#define E_SIEMENS_1                  26    /* 31 Oct 2002 */
-#define E_SIEMENS_2                  27
-
-#define E_TRANSFER_SYNTAX            28    /* 05 Jul 2006 */
-
-#define E_NUMBER_OF_TIMES            29    /* 02 May 2008 */
-#define E_INSTANCE_NUMBER            30
-#define E_TIME_INDEX_ID              31
-#define E_TIME_INDEX                 32
-#define E_STACK_INDEX                33
+#include "mri_dicom_elist.h"  /** elist now defined elsewhere [05 May 2008] **/
 
 /*---------------------------------------------------------------------------*/
 /* global set via 'to3d -assume_dicom_mosaic'            13 Mar 2006 [rickr] */
@@ -255,8 +128,6 @@ MRI_IMARR * mri_read_dicom( char *fname )
    static int obliqueflag = 0;
    float xc1=0.0,xc2=0.0,xc3=0.0 , yc1=0.0,yc2=0.0,yc3=0.0 ;
    float xn,yn ; int qq ;
-
-   MultiFrame_info *mfi = NULL ; /* 02 May 2008 */
 
 ENTRY("mri_read_dicom") ;
 
@@ -493,20 +364,12 @@ ENTRY("mri_read_dicom") ;
      if( ddd != NULL ) sscanf(ddd+2,"%d",&nz) ;
    }
 
-   /* 02 May 2008: set up for multi-frame info extraction? */
-
-   if( nz > 1 && epos[E_STACK_INDEX] != NULL ){
-     INIT_MultiFrame(mfi,nz) ;
-     jj = scanfor_MultiFrame( ppp , mfi ) ;
-     if( jj < nz ) KILL_MultiFrame(mfi) ;
-   }
-
    /* if didn't get nz above, make up a value */
 
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;    /* compute from image array size */
    if( nz == 0 ){
      ERROR_message("DICOM file %s: not enough data for 1 slice!",fname) ;
-     free(ppp) ; KILL_MultiFrame(mfi) ; RETURN(NULL);
+     free(ppp) ; RETURN(NULL);
    }
 
    /*-- 28 Oct 2002: Check if this is a Siemens mosaic.        --*/
@@ -597,7 +460,7 @@ ENTRY("mri_read_dicom") ;
                fprintf(stderr,
                      "** DICOM ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
                      mos_ix,mos_iy,mos_nx,mos_ny,fname,nz) ;
-               free(ppp) ; KILL_MultiFrame(mfi) ; RETURN(NULL) ;
+               free(ppp) ; RETURN(NULL) ;
              }
 
              /* mark as a mosaic */
@@ -717,7 +580,7 @@ ENTRY("mri_read_dicom") ;
    fp = fopen( fname , "rb" ) ;
    if( fp == NULL ){
      ERROR_message("DICOM file %s: can't open!?",fname) ;
-     free(ppp) ; KILL_MultiFrame(mfi) ; RETURN(NULL);
+     free(ppp) ; RETURN(NULL);
    }
    lseek( fileno(fp) , poff , SEEK_SET ) ;
 
@@ -776,7 +639,7 @@ ENTRY("mri_read_dicom") ;
      dar  = (char*)calloc(bpp,nvox) ;            /* make space for super-image */
      if(dar==NULL)  {  /* exit if can't allocate memory */
         ERROR_message("Could not allocate memory for mosaic volume");
-        KILL_MultiFrame(mfi) ; RETURN(NULL);
+        RETURN(NULL);
      }
      fread( dar , bpp , nvox , fp ) ;    /* read data directly into it */
 
@@ -1337,7 +1200,7 @@ fprintf(stderr,"SLICE_LOCATION = %f\n",zz) ;
    if(obl_info_set<2)
          Fill_obl_info(&obl_info, epos, &sexinfo);
 
-   free(ppp); KILL_MultiFrame(mfi) ; RETURN( imar );
+   free(ppp); RETURN( imar );
 }
 
 /*---------- compute slice thickness from DICOM header ----------*/
@@ -2264,64 +2127,4 @@ void mri_read_dicom_get_obliquity(float *Tr)
 /*   memcpy(Tr, fptr, 16*sizeof(float));*/
 
    return;
-}
-
-/*---------------------------------------------------------------------*/
-/* Scan the string for the per-frame strings */
-
-static int scanfor_MultiFrame( char *ppp , MultiFrame_info *mfi )
-{
-   int nz , jj , ival ;
-   char *qqq , *ccc , *ddd , *ttt ;
-   float xyz[3] ;
-
-   if( ppp == NULL || mfi == NULL || mfi->nframe < 1 ) return 0 ;
-
-   nz = mfi->nframe ;
-
-   /** stack (==slice) index **/
-
-   ttt = elist[E_STACK_INDEX] ;
-   for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
-      ccc = strstr(qqq,ttt) ;
-      if( ccc == NULL ) return jj ;
-      ddd = strstr(ccc,"//") ; if( ddd == NULL ) return jj ;
-      sscanf(ddd+2,"%d",&ival) ;
-      if( ival <= 0 ) return jj ;
-      mfi->stack_index[jj] = ival ;
-      qqq = ddd+3 ;
-   }
-
-   /** time index **/
-
-   ttt = elist[E_TIME_INDEX] ; ccc = strstr(ppp,ttt) ;
-   if( ccc == NULL ){
-     ttt = elist[E_TIME_INDEX_ID] ; ccc = strstr(ppp,ttt) ;
-     if( ccc == NULL ) return 0 ;
-   }
-   for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
-      ccc = strstr(qqq,ttt) ;
-      if( ccc == NULL ) return jj ;
-      ddd = strstr(ccc,"//") ; if( ddd == NULL ) return jj ;
-      sscanf(ddd+2,"%d",&ival) ;
-      if( ival <= 0 ) return jj ;
-      mfi->stack_index[jj] = ival ;
-      qqq = ddd+3 ;
-   }
-
-   /** image position (not strictly required?) **/
-
-   ttt = elist[E_IMAGE_POSITION] ;
-   for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
-     ccc = strstr(qqq,ttt) ;
-     if( ccc == NULL ){ DELPOS_MultiFrame(mfi) ; return nz ; }
-     ddd = strstr(ccc,"//") ;
-     if( ddd == NULL ){ DELPOS_MultiFrame(mfi) ; return nz ; }
-     ival = sscanf(ddd+2,"%f\\%f\\%f",xyz,xyz+1,xyz+2) ;
-     if( ival < 3 ){ DELPOS_MultiFrame(mfi) ; return nz ; }
-     mfi->xpos[jj] = xyz[0]; mfi->ypos[jj] = xyz[1]; mfi->zpos[jj] = xyz[2];
-     qqq = ddd+3 ;
-   }
-
-   return nz ;
 }
