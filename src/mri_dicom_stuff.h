@@ -23,7 +23,6 @@
 typedef struct {
   int   manufacturer_code ;                 /* from ID  group */
   float tr , slice_spacing , slice_thick ;  /* from ACQ group */
-  int   acq_matrix_xx , acq_matrix_yy ;
   float pos_xx , pos_yy , pos_zz ,          /* from REL group */
         ori_ix , ori_iy , ori_iz ,
         ori_jx , ori_jy , ori_jz ,
@@ -32,6 +31,9 @@ typedef struct {
   int   ni , nj , nk ;
   unsigned data_offset, data_length ;       /* from PXL group */
   int      nbits ;
+
+  float rescale_intercept, rescale_slope,
+        window_center    , window_width  ;
 
   char *filename ;                          /* where 'tis */
   void *extra_info ;                        /* whatever   */
@@ -103,6 +105,8 @@ typedef struct {
 extern char *AFD_manufacturer_code_to_string( int code ) ;
 extern void AFD_siemens_info_free( void *aei ) ;
 extern void AFD_dicom_header_free( AFD_dicom_header *adh ) ;
+extern int AFD_manufacturer_string_to_code( char * ) ;
+extern AFD_dicom_header * AFD_scanfor_header( char * ) ;
 
 extern MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp ) ;
 
