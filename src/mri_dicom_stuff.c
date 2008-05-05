@@ -77,7 +77,7 @@ MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp )
    ccc = strstr( ppp , elist[E_NUMBER_OF_FRAMES] ) ;
    if( ccc == NULL ) return NULL ;
    ddd = strstr(ccc,"//") ; if( ddd == NULL ) return NULL ;
-   sscanf(ddd+2,"%d",&nz) ;
+   nz = (int)strtol(ddd+2,NULL,10) ;
    if( nz <= 1 ) return NULL ;
 
    /** create output struct **/
@@ -88,14 +88,14 @@ MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp )
 
    ttt = elist[E_STACK_INDEX] ;
    for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
-      ccc = strstr(qqq,ttt) ;
-      if( ccc == NULL ){ KILL_MultiFrame(mfi); return NULL; }
-      ddd = strstr(ccc,"//") ;
-      if( ddd == NULL ){ KILL_MultiFrame(mfi); return NULL; }
-      sscanf(ddd+2,"%d",&ival) ;
-      if( ival <= 0 )  { KILL_MultiFrame(mfi); return NULL; }
-      mfi->stack_index[jj] = ival ;
-      qqq = ddd+3 ;
+     ccc = strstr(qqq,ttt) ;
+     if( ccc == NULL ){ KILL_MultiFrame(mfi); return NULL; }
+     ddd = strstr(ccc+8,"//") ;
+     if( ddd == NULL ){ KILL_MultiFrame(mfi); return NULL; }
+     ival = (int)strtol(ddd+2,NULL,10) ;
+     if( ival <= 0 )  { KILL_MultiFrame(mfi); return NULL; }
+     mfi->stack_index[jj] = ival ;
+     qqq = ddd+3 ;
    }
 
    /** time index **/
@@ -105,15 +105,15 @@ MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp )
      ttt = elist[E_TIME_INDEX_ID] ; ccc = strstr(ppp,ttt) ;
      if( ccc == NULL ) return 0 ;
    }
-   for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
-      ccc = strstr(qqq,ttt) ;
-      if( ccc == NULL ){ KILL_MultiFrame(mfi); return NULL; }
-      ddd = strstr(ccc,"//") ;
-      if( ddd == NULL ){ KILL_MultiFrame(mfi); return NULL; }
-      sscanf(ddd+2,"%d",&ival) ;
-      if( ival <= 0 )  { KILL_MultiFrame(mfi); return NULL; }
-      mfi->stack_index[jj] = ival ;
-      qqq = ddd+3 ;
+   for( qqq=ccc,jj=0 ; jj < nz ; jj++ ){
+     ccc = strstr(qqq,ttt) ;
+     if( ccc == NULL ){ KILL_MultiFrame(mfi); return NULL; }
+     ddd = strstr(ccc+8,"//") ;
+     if( ddd == NULL ){ KILL_MultiFrame(mfi); return NULL; }
+     ival = (int)strtol(ddd+2,NULL,10) ;
+     if( ival <= 0 )  { KILL_MultiFrame(mfi); return NULL; }
+     mfi->time_index[jj] = ival ;
+     qqq = ddd+3 ;
    }
 
    /** image position (not strictly required?) **/
@@ -122,12 +122,13 @@ MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp )
    for( qqq=ppp,jj=0 ; jj < nz ; jj++ ){
      ccc = strstr(qqq,ttt) ;
      if( ccc == NULL ){ DELPOS_MultiFrame(mfi); return mfi; }
-     ddd = strstr(ccc,"//") ;
+     ddd = strstr(ccc+8,"//") ;
      if( ddd == NULL ){ DELPOS_MultiFrame(mfi); return mfi; }
-     ival = sscanf(ddd+2,"%f\\%f\\%f",xyz,xyz+1,xyz+2) ;
-     if( ival < 3 )   { DELPOS_MultiFrame(mfi); return mfi; }
+     xyz[0] = (float)strtod(ddd+2,&ccc) ;
+     xyz[1] = (float)strtod(ccc+1,&ccc) ;
+     xyz[2] = (float)strtod(ccc+1,&ccc) ;
      mfi->xpos[jj] = xyz[0]; mfi->ypos[jj] = xyz[1]; mfi->zpos[jj] = xyz[2];
-     qqq = ddd+3 ;
+     qqq = ccc ;
    }
 
    return mfi ;

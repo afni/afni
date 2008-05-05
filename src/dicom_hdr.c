@@ -2,7 +2,8 @@
 
 int main(int argc, char **argv)
 {
-   char *ppp , *sin ; int ii, iarg=1 , do_sin=0 , do_printf=0 ;
+   char *ppp=NULL , *sin ;
+   int ii, iarg=1 , do_sin=0 , do_printf=0 , do_mul=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: dicom_hdr [options] fname [...]\n"
@@ -13,6 +14,9 @@ int main(int argc, char **argv)
             " -noname  = Don't include element names in the printout.\n"
             " -sexinfo = Dump Siemens EXtra INFO text (0029 1020), if present\n"
             "             (can be VERY lengthy).\n"
+            " -mulfram = Dump multi-frame information, if present\n"
+            "             (1 line per frame, plus an XML-style header/footer)\n"
+            "             [-mulfram also implies -noname]\n"
             " -v n     = Dump n words of binary data also.\n"
 #if 0
             " -printf  = Use 'printf' directly, instead of an intermediate string.\n"
@@ -64,6 +68,10 @@ int main(int argc, char **argv)
        do_printf++ ; iarg++ ; continue ;
      }
 
+     if( strncmp(argv[iarg],"-mulfram",4) == 0 ){  /* 05 May 2008 */
+       mri_dicom_noname(1) ; do_mul++ ; iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-hex") == 0 ){
        mri_dicom_nohex(0) ; iarg++ ; continue ;
      }
@@ -90,11 +98,12 @@ int main(int argc, char **argv)
 
      mri_dicom_seterr(-1) ;  /* make sure all errors are printed - 07 May 2003 */
 STATUS("calling funct mri_dicom_header()") ;
+     if( ppp != NULL ) free(ppp) ;
      ppp = mri_dicom_header( argv[ii] ) ;
 STATUS("returned from mri_dicom_header()") ;
      if( !do_printf && ppp != NULL ){
-       off_t poff ; int plen ;
-       printf("%s",ppp) ; free(ppp) ;
+       off_t poff ; unsigned int plen ;
+       printf("%s",ppp) ;
        mri_dicom_pxlarr( &poff , &plen ) ;
        if( plen > 0 )
          printf("Pixel array offset = %u (bytes)\n"
@@ -108,6 +117,25 @@ STATUS("returned from mri_dicom_header()") ;
                   "%s\n" , sin ) ;
          } else {
            printf("........... Siemens Extra Info [0029 1020] = NOT PRESENT .............\n");
+         }
+       }
+       if( do_mul ){  /* 05 May 2008 */
+         MultiFrame_info *mfi = AFD_scanfor_MultiFrame(ppp) ;
+         if( mfi != NULL ){
+           int nz = mfi->nframe , jj ;
+           printf("........... DICOM MultiFrame Information          ...........\n");
+           printf("........... time_index stack_index xpos ypos zpos ...........\n");
+           printf("<DICOM_MultiFrame nframe='%d'>\n",nz) ;
+           for( jj=0 ; jj < nz ; jj++ ){
+             printf(" %4d %4d" , mfi->time_index[jj] , mfi->stack_index[jj] ) ;
+             if( mfi->xpos != NULL )
+               printf("  %.3f %.3f %.3f",mfi->xpos[jj],mfi->ypos[jj],mfi->zpos[jj]);
+             printf("\n") ;
+           }
+           printf("</DICOM_MultiFrame>\n") ;
+           KILL_MultiFrame(mfi) ;
+         } else {
+           printf("........... DICOM MultiFrame Information = ABSENT ...........\n");
          }
        }
      } else if( !do_printf ) {
