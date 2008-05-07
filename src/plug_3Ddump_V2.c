@@ -155,7 +155,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_dataset(plint , "3D brick" ,
                                     ANAT_ALL_MASK  ,  FUNC_ALL_MASK ,
                                     SESSION_ALL_MASK |
-                                    DIMEN_3D_MASK    | BRICK_ALLREAL_MASK ) ;
+                                    DIMEN_ALL_MASK   | BRICK_ALLREAL_MASK ) ;
    
 	/*-- second line of input: intensity and threshold brick indices --*/
    
