@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.2,  May 7, 2008
+#Version 1.0.1,  April 8, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -170,7 +170,7 @@ while (tag == 1) {
 	if (RanEff) {
 		if (CorStr == 0) if (VarStr == 0) {
 		   try(fm <- lme(ModelForm, random = ~1|Subj, Model), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = ~1|Subj, Model), weights=varIdent(VarForm), tag <- 1) }
+			try(fm <- lme(ModelForm, random = ~1|Subj, weights=varIdent(VarForm), Model), tag <- 1) }
 			
 		if (CorStr == 1) if (VarStr == 0) {
 		   try(fm <- lme(ModelForm, random = ~1|Subj, 
