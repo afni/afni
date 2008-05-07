@@ -60,7 +60,7 @@ Create random stimulus timing files.
     Reading the list (still for a single run), times are accumulated, starting
     with pre_stim_rest seconds.  As the list is read, a 0 means add t_gran
     seconds to the current time.  A non-zero value means the given stimulus
-    type occured, so the current time goes into that stimulus file and the
+    type occurred, so the current time goes into that stimulus file and the
     time is incremented by stim_time seconds.
 
   * Note that stimulus times will never overlap, though response times can.
@@ -113,12 +113,12 @@ examples:
             make_random_timing.py -num_stim 1 -num_runs 1 -run_time 100  \\
                 -stim_time 1.5 -num_reps 20 -pre_stim_rest 10 -prefix stimesA
 
-    2. A typcal example.
+    2. A typical example.
 
-       Make timing files for 3 stim classes over 4 runs of 200 seconds.
-       Each class will have 8 events of 3.5 seconds each.  Require 20
-       seconds before the first stimulus as well as after the last stimulus
-       (in each run).
+       Make timing files for 3 stim classes over 4 runs of 200 seconds.  Every
+       stimulus class will have 8 events per run, each lasting 3.5 seconds.
+       Require 20 seconds of rest before the first stimulus in each run, as
+       well as after the last.
 
        The output will be written to stimesB_01.1D (and 02.1D and 03.1D).
 
@@ -219,7 +219,7 @@ required arguments:
         a total of that number of repetitions, across all runs).
 
         The user can also specify the number of repetitions for each of the
-        stimulus classes separatly, as a list.
+        stimulus classes separetly, as a list.
 
             see also: -across_runs
 
@@ -275,7 +275,7 @@ optional arguments:
 
         e.g. -min_rest 0.320
 
-                --> would add 320 miliseconds of rest after each stimulus
+                --> would add 320 milliseconds of rest after each stimulus
 
         There is no difference between applying this option and instead
         adding the REST_TIME to that of each regressor.  It is merely another
