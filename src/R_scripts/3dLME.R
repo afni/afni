@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.1,  April 8, 2008
+#Version 1.0.2,  May 7, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -62,6 +62,10 @@ RanEff <- as.logical(unlist(strsplit(unlist(scan(file="model.txt", what= list(""
 
 # Line 7: Variance structure for modeling dependence among within-subject errors
 VarStr <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=6, nline=1)), "\\:"))[2]
+# 0 - nothing; 1 - different variances across groups
+VarTmp <- strsplit(unlist(scan(file="model.txt", what= list(""), skip=6, nline=1)), "\\:|~")
+VarStr <- unlist(VarTmp)[2]
+VarForm <- as.formula(paste("~", unlist(VarTmp)[3]))
 
 # Line 8: Correlation structure for modeling dependence among within-subject errors
 # 0 - nothing; 1 - corAR1; 2 - corARMA(2,0); 3 - corARMA(1,1)
@@ -164,13 +168,29 @@ tag<-1
 while (tag == 1) {
    tag<-0
 	if (RanEff) {
-		if (CorStr == 0) try(fm <- lme(ModelForm, random = ~1|Subj, Model), tag <- 1)
-		if (CorStr == 1) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corAR1(0.3, form=CorForm), Model), tag <- 1)
-		if (CorStr == 2) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(c(0.3,0.3), p=2, form=CorForm), Model), tag <- 1)
-		if (CorStr == 3) try(fm <- lme(ModelForm, random = ~1|Subj, 
-		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm), Model), tag <- 1)		
+		if (CorStr == 0) if (VarStr == 0) {
+		   try(fm <- lme(ModelForm, random = ~1|Subj, Model), tag <- 1) } else {
+			try(fm <- lme(ModelForm, random = ~1|Subj, Model), weights=varIdent(VarForm), tag <- 1) }
+			
+		if (CorStr == 1) if (VarStr == 0) {
+		   try(fm <- lme(ModelForm, random = ~1|Subj, 
+		   correlation=corAR1(0.3, form=CorForm), Model), tag <- 1) } else {
+			try(fm <- lme(ModelForm, random = ~1|Subj, correlation=corAR1(0.3, form=CorForm),
+		   weights=varIdent(VarForm), Model), tag <- 1) }
+			
+		if (CorStr == 2) if (VarStr == 0) {
+		   try(fm <- lme(ModelForm, random = ~1|Subj, 
+		   correlation=corARMA(c(0.3,0.3), p=2, form=CorForm), Model), tag <- 1) } else {
+			try(fm <- lme(ModelForm, random = ~1|Subj, 
+			correlation=corARMA(c(0.3,0.3), p=2, form=CorForm),
+			weights=varIdent(VarForm), Model), tag <- 1) }
+			
+		if (CorStr == 3) if (VarStr == 0) {
+		   try(fm <- lme(ModelForm, random = ~1|Subj, 
+		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm), Model), tag <- 1) } else {
+			try(fm <- lme(ModelForm, random = ~1|Subj, 
+		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm),
+			weights=varIdent(VarForm), Model), tag <- 1) }
 	}	
 	else try(fm <- gls(ModelForm, Model), tag <- 1)
 	if (ncontr > 0) try(for (n in 1:ncontr) { contrDF[n] <- contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average")$df }, tag <- 1)
