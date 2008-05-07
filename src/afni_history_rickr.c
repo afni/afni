@@ -48,6 +48,23 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7, MAY, 2008, RCR, "option_list.py", MINOR, TYPE_NEW_OPT,
+   "added get_type_list and other accessor functions",
+   NULL
+ } ,
+
+ { 7, MAY, 2008, RCR, "plug_3Ddump_V2", MINOR, TYPE_BUG_FIX,
+   "allow 4D datasets to be opened (so that buckets are again usable)",
+   "PLUGIN_dset_check() now checks NVALS instead of NUM_TIMES..."
+ } ,
+
+ { 7, MAY, 2008, RCR, "make_random_timing.py", MAJOR, TYPE_NEW_PROG,
+   "generate random stimulus timing files",
+   "This generates random timing files suitable for use in 3dDeconvolve.\n"
+   "The timing is not restricted to a TR grid, though that is possible.\n"
+   "Consider use with '3dDeconvolve -nodata'."
+ } ,
+
  { 1, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_BUG_FIX,
    "treat RESID_CT as Ct(t), not C(t)",
    NULL
