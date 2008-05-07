@@ -7,6 +7,14 @@
 import sys
 import afni_base
 
+# hisory:
+#   
+#   07 May 2008 [rickr]:
+#     - added doc string and reformatted add_opt()
+#     - modified show()
+#     - added class functions get_string_opt, get_string_list,
+#       get_type_opt and get_type_list
+
 # ---------------------------------------------------------------------------
 # This class provides functionality for processing lists of comopt elements.
 class OptionList:
@@ -16,12 +24,36 @@ class OptionList:
         self.trailers = 0       # for  read_options: no trailing args allowed
                                 # from read_options: say there were such args
 
-    def show(self, mesg = '', short = 0):
-        print "%sOptionList: %s (len %d)" % \
-               (mesg, self.label, len(self.olist))
+    def add_opt(self, name, npar, deflist, acplist=[], req=0, setpar=0,  \
+                helpstr = ""):
+        """add an option to the current OptionList
+
+                name    : option name, to be provided on command line
+                npar    : number of parameters
+                              > 0 --> require exactly that number
+                              < 0 --> require at least the positive number
+                deflist : default parmeter list (required, for now)
+                acplist : list of acceptable values
+                req     : flag: is this required?
+                setpar  : flag: set option parlist from deflist
+        """
+        
+        com = afni_base.comopt(name, npar, deflist, acplist, helpstr)
+        com.required = req
+        if setpar: com.parlist = com.deflist
+        self.olist.append(com)
+
+    def show(self, mesg = '', verb = 0):
+        if verb: print "%sOptionList: %s (len %d)" % \
+                       (mesg, self.label, len(self.olist))
         for index in range(len(self.olist)):
-            str = "%sopt %d: " % (mesg, index)
-            self.olist[index].show(str, short)
+            # possibly add short help string
+            if verb and self.olist[index].helpstr :
+                hs = ": %s" % self.olist[index].helpstr
+            else :
+                hs = ''
+            print "%sopt %02d: %-20s%s" % \
+                (mesg, index, self.olist[index].name, hs)
 
     def find_opt(self, name, nth=1):    # find nth occurance of option label
         """return nth comopt where name=name, else None"""
@@ -39,12 +71,6 @@ class OptionList:
             if com.name == name: count += 1
         return count
 
-    def add_opt(self, name, npar, defpar, acplist=[], req=0, setpar=0, helpstr = ""):
-        com = afni_base.comopt(name, npar, defpar, acplist, helpstr)
-        com.required = req
-        if setpar: com.parlist = com.deflist
-        self.olist.append(com)
-
     def del_opt(self, name, nth=1):     # delete nth occurance of option label
         """delete nth comopt where name=name, else None"""
         count = 0
@@ -54,6 +80,73 @@ class OptionList:
                 if count == nth:
                     del self.olist[index]
                     return 1
+
+    def get_string_opt(self, opt_name):
+        """return the option parameter string"""
+
+        opt = self.find_opt(opt_name)
+        if not opt or not opt.parlist: return None
+        if len(opt.parlist) != 1:
+            print '** option %s takes exactly 1 parameter, have: %s' % \
+                  (opt_name, opt.parlist)
+            return None
+        return opt.parlist[0]
+
+    def get_string_list(self, opt_name):
+        """return the option parameter string"""
+
+        opt = self.find_opt(opt_name)
+        if not opt or not opt.parlist or len(opt.parlist) < 1: return None
+        return opt.parlist
+
+    def get_type_opt(self, type, opt_name):
+        """return the option param value converted to the given type"""
+
+        opt = self.find_opt(opt_name)
+        if not opt or not opt.parlist: return None
+        if len(opt.parlist) != 1:
+            print '** option %s takes exactly 1 parameter, have: %s' % \
+                  (opt_name, opt.parlist)
+            return None
+        try: val = type(opt.parlist[0])
+        except:
+            print '** cannot convert %s to %s' % (opt.parlist[0], type)
+            return None
+
+        return val
+
+    def get_type_list(self, type, opt_name, length, len_name, verb=1):
+        """return a list of values of the given type
+
+            type      : expected conversion type
+            opt_name  : option name to find in opts list
+            length    : expected length of option parameters (or 1)
+            len_name  : name of option that would define expected length
+            verb      : verbose level
+
+            Find opt_name in opts list.  Verify that the parlist values are of
+            the proper type and that there are either 1 or 'length' of them.
+            If 1, duplicate it to length."""
+
+        opt = self.find_opt(opt_name)
+        if not opt or not opt.parlist: return None
+        olen = len(opt.parlist)
+        if olen != 1 and olen != length:
+            print '** %s takes 1 or %s (%d) values, have %d: %s' % \
+                  (opt_name, len_name, length, olen, ', '.join(opt.parlist))
+            return 1
+        try:
+            tlist = map(type,opt.parlist)
+        except:
+            print "** %s takes only %s, have: %s" % (opt_name,type,opt.parlist)
+            return None
+        if olen != length:     # expand the list
+            tlist = [tlist[0] for i in range(length)]
+            if verb > 1: print '++ expanding %s to list %s' % (opt_name, tlist)
+        elif verb > 1: print '-- have %s list %s' % (opt_name, tlist)
+
+        return tlist        # return the list
+
 
 # ---------------------------------------------------------------------------
 # read_options:
@@ -154,7 +247,7 @@ def read_options(argv, oplist, verb = 1):
                     return None
 
             if not oplist.trailers :   # then trailers are not allowed
-                print "** error: trailing arguments found: %s" % argv[ac:]
+                print "** error: unknown trailing arguments : %s" % argv[ac:]
                 return None
 
             # insert remaining args as trailers

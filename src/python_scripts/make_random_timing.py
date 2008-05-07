@@ -12,6 +12,10 @@ Create random stimulus timing files.
     not even specified).  Stimulus presentation times will never overlap,
     though their responses can.
 
+    This can easily be used to generate many sets of random timing files to
+    test via "3dDeconvolve -nodata", in order to determine good timing, akin
+    to what is done in HowTo #3 using RSFgen.
+
     given:
         num_stim        - number of stimulus classes
         num_runs        - number of runs
@@ -381,7 +385,7 @@ optional arguments:
         errors.  The maximum level is currently 4.
 
 
-- R Reynolds  May 7, 2008
+- R Reynolds  May 7, 2008               motivated by Ikuko Mukai
 ===========================================================================
 """
 
