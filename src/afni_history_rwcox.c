@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAY , 2008 , RWC , "edt_dsetitems.c" , MICRO , TYPE_GENERAL ,
+   "new prefix *.hdr gets a 2-file NIfTI format output" ,
+   NULL } ,
+
  { 8 , MAY , 2008 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "small changes to bilinear optimization parameters" ,
    NULL } ,
