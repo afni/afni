@@ -107,6 +107,7 @@ extern void AFD_siemens_info_free( void *aei ) ;
 extern void AFD_dicom_header_free( AFD_dicom_header *adh ) ;
 extern int AFD_manufacturer_string_to_code( char * ) ;
 extern AFD_dicom_header * AFD_scanfor_header( char * ) ;
+extern char * AFD_format_header( AFD_dicom_header *adh ) ;
 
 extern MultiFrame_info * AFD_scanfor_MultiFrame( char *ppp ) ;
 

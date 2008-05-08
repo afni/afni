@@ -125,15 +125,15 @@ int g_readpreamble = FALSE;                /* 18 May 2006 [rickr] */
 static int just_do_printf = 0 ;  /* 02 May 2008 */
 void mri_dicom_header_use_printf( int i ){ just_do_printf = i; }
 
-static char *pbuf = NULL ;
-static int  npbuf = 0 ;
-static int  lpbuf = 0 ;
+static char *pbuf = NULL ;  /* output string buffer */
+static int  npbuf = 0 ;     /* number of bytes allocated in pbuf */
+static int  lpbuf = 0 ;     /* number of bytes used in pbuf */
 
 #define NPBUF 2048
 
 static void RWC_clear_pbuf(void)
 {
-   if( pbuf != NULL ){ free(pbuf); pbuf = NULL; npbuf = 0; }
+   if( pbuf != NULL ){ free(pbuf); pbuf = NULL; npbuf = 0; lpbuf = 0; }
 }
 
 int RWC_printf( char *fmt , ... )
@@ -141,6 +141,8 @@ int RWC_printf( char *fmt , ... )
    static char *sbuf = NULL ;
    int nsbuf , nn ;
    va_list vararg_ptr ;
+
+ENTRY("RWC_printf") ;
 
    va_start( vararg_ptr , fmt ) ;
 
@@ -150,26 +152,32 @@ int RWC_printf( char *fmt , ... )
    nn = vsprintf( sbuf , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
    nsbuf = strlen(sbuf) ;
-   if( nsbuf == 0 ) return(0);
+   if( nsbuf == 0 ) RETURN(0);
 
-   if( just_do_printf ){ fputs(sbuf,stdout); return(nn); }
+   if( just_do_printf ){ fputs(sbuf,stdout); RETURN(nn); }
 
    if( npbuf == 0 ){
-     pbuf = AFMALL(char,NPBUF) ; npbuf = NPBUF ; pbuf[0] = '\0' ;
+STATUS("initial allocation of pbuf") ;
+     pbuf = AFMALL(char,NPBUF); npbuf = NPBUF; pbuf[0] = '\0'; lpbuf = 0;
    }
 
 #if 0
    lpbuf = strlen(pbuf) ;
 #endif
    if( lpbuf+nsbuf+8 > npbuf ){
-     npbuf += NPBUF + npbuf/16 ; pbuf = AFREALL( pbuf, char, npbuf) ;
+     npbuf += NPBUF + nsbuf + npbuf/16 ; pbuf = AFREALL( pbuf, char, npbuf) ;
+if(PRINT_TRACING){
+  char str[256];
+  sprintf(str,"realloc pbuf: lpbuf=%d nsbuf=%d npbuf=%d",lpbuf,nsbuf,npbuf);
+  STATUS(str);
+}
    }
 #if 0
    strcat(pbuf,sbuf) ;
 #else
    strcpy(pbuf+lpbuf,sbuf) ; lpbuf += nsbuf ;
 #endif
-   return(nn);
+   RETURN(nn);
 }
 
 /****************************************************************/
@@ -269,23 +277,27 @@ STATUS("DCM_OpenFile open failed; try again as Part 10") ;
     if (cond == DCM_NORMAL) {
 STATUS("DCM_OpenFile is good") ;
        RWC_printf("DICOM File: %s\n", fname);
-       if (formatFlag)
+       if (formatFlag){
+STATUS("call DCM_FormatElements") ;
          cond = DCM_FormatElements(&object, vmLimit, "");
-       else
+       } else {
+STATUS("call DCM_DumpElements") ;
          cond = DCM_DumpElements(&object, vmLimit);
+       }
     } else {
 STATUS("DCM_OpenFile failed") ;
     }
+STATUS("closing") ;
     (void) DCM_CloseObject(&object);
     (void) COND_PopCondition(TRUE);
 
     if( pbuf != NULL ){
-      ppp = strdup(pbuf) ; RWC_clear_pbuf() ;
+      ppp = strdup(pbuf) ; RWC_clear_pbuf() ;  /* copy results for output */
     }
 
     if( rwc_fd >= 0 ){ close(rwc_fd); rwc_fd = -1; }
 
-    RETURN(ppp);
+    RETURN(ppp);  /* output */
 }
 
 /*
@@ -2340,26 +2352,36 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
     int
         stringLength;
 
+ENTRY("DCM_DumpElements") ;
+
     object = (PRIVATE_OBJECT **) callerObject;
 
+STATUS("calling checkObject") ;
     cond = checkObject(object, "DCM_DumpElements");
-    if (cond != DCM_NORMAL)
-	return cond;
+    if (cond != DCM_NORMAL){
+STATUS("abnormal condition") ;
+	RETURN(cond);
+   }
 
     switch ((*object)->objectType) {
     case DCM_OBJECTUNKNOWN:
+STATUS("objectType=UNKNOWN") ;
 	RWC_printf("Object type: UNKNOWN\n");
 	break;
     case DCM_OBJECTCOMMAND:
+STATUS("objectType=COMMAND") ;
 	RWC_printf("Object type: COMMAND\n");
 	break;
     case DCM_OBJECTIMAGE:
+STATUS("objectType=IMAGE") ;
 	RWC_printf("Object type: IMAGE\n");
 	break;
     case DCM_OBJECTELEMENTLIST:
+STATUS("objectType=ELEMENTLIST") ;
 	RWC_printf("Object type: ELEMENT LIST\n");
 	break;
     default:
+STATUS("objectType=Unknown") ;
 	RWC_printf("Object type: Unknown (error)\n");
 	break;
     }
@@ -2369,6 +2391,7 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
     if (groupItem != NULL)
 	(void) LST_Position(&(*object)->groupList, (void *)groupItem);
 
+STATUS("looping over groupItem") ;
     while (groupItem != NULL) {
 #ifdef MACOS
 	RWC_printf("Group: %04x, Length: %8ld\n", groupItem->group,
@@ -2544,7 +2567,7 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
     }
 
     RWC_printf("DCM Dump Elements Complete\n");
-    return DCM_NORMAL;
+    RETURN(DCM_NORMAL);
 }
 
 CONDITION
