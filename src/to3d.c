@@ -5303,7 +5303,7 @@ STATUS("check output filename") ;
 
    ll_out = ll = strlen( user_inputs.output_filename ) ;
    if( ll == 0 ){
-      T3D_poperr( OUTERR , "No output filename provided!", perr ) ;
+      if(perr)T3D_poperr( OUTERR , "No output filename provided!", perr ) ;
       good = False ;
    } else {
       for( ii=0 ; ii < ll ; ii++ )

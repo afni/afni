@@ -84,6 +84,11 @@ static void RWC_set_endianosity(void)
 /* global set via 'to3d -assume_dicom_mosaic'            13 Mar 2006 [rickr] */
 int assume_dicom_mosaic = 0;   /* (case of 1 is equivalent to Rich's change) */
 
+#undef  SINT
+#undef  SFLT
+#define SINT(p) ((int)strtol((p),NULL,10))  /* scan for an integer */
+#define SFLT(p) ((float)strtod((p),NULL))   /* scan for a float */
+
 /*---------------------------------------------------------------------------*/
 /*! Read image(s) from a DICOM file, if possible.
 -----------------------------------------------------------------------------*/
@@ -248,7 +253,7 @@ ENTRY("mri_read_dicom") ;
 
    if( epos[E_SAMPLES_PER_PIXEL] != NULL ){
       ddd = strstr(epos[E_SAMPLES_PER_PIXEL],"//") ;
-      ii  = 0 ; sscanf(ddd+2,"%d",&ii) ;
+      ii = SINT(ddd+2) ;
       if( ii != 1 ){
         ERROR_message("DICOM file %s: %d samples per pixel -- too much!",
                       fname,ii) ;
@@ -270,7 +275,7 @@ ENTRY("mri_read_dicom") ;
 
    ddd = strstr(epos[E_BITS_ALLOCATED],"//") ;
    if( ddd == NULL ){ free(ppp); RETURN(NULL); }
-   bpp = 0 ; sscanf(ddd+2,"%d",&bpp) ;
+   bpp = SINT(ddd+2) ;
    switch( bpp ){
       default:
         ERROR_message(
@@ -288,8 +293,8 @@ ENTRY("mri_read_dicom") ;
 
    if( epos[E_BITS_STORED] != NULL && epos[E_HIGH_BIT] != NULL ){
      int bs=0 , hb=0 ;
-     ddd = strstr(epos[E_BITS_STORED],"//") ; sscanf(ddd+2,"%d",&bs) ;
-     ddd = strstr(epos[E_HIGH_BIT],"//")    ; sscanf(ddd+2,"%d",&hb) ;
+     ddd = strstr(epos[E_BITS_STORED],"//") ; bs = SINT(ddd+2) ;
+     ddd = strstr(epos[E_HIGH_BIT],"//")    ; hb = SINT(ddd+2) ;
      if( bs != hb+1 ){
        static int nwarn=0 ;
        if( nwarn < NWMAX )
@@ -317,8 +322,8 @@ ENTRY("mri_read_dicom") ;
          fprintf(stderr,"++ DICOM WARNING: no more Rescale tags messages will be printed\n") ;
        nwarn++ ;
      } else {
-       ddd = strstr(epos[E_RESCALE_INTERCEPT],"//") ; sscanf(ddd+2,"%f",&rescale_inter) ;
-       ddd = strstr(epos[E_RESCALE_SLOPE    ],"//") ; sscanf(ddd+2,"%f",&rescale_slope) ;
+       ddd = strstr(epos[E_RESCALE_INTERCEPT],"//"); rescale_inter = SFLT(ddd+2);
+       ddd = strstr(epos[E_RESCALE_SLOPE    ],"//"); rescale_slope = SFLT(ddd+2);
      }
    }
 
@@ -337,8 +342,8 @@ ENTRY("mri_read_dicom") ;
          fprintf(stderr,"++ DICOM WARNING: no more Window tags messages will be printed\n") ;
        nwarn++ ;
      } else {
-       ddd = strstr(epos[E_WINDOW_CENTER],"//") ; sscanf(ddd+2,"%f",&window_center) ;
-       ddd = strstr(epos[E_WINDOW_WIDTH ],"//") ; sscanf(ddd+2,"%f",&window_width ) ;
+       ddd = strstr(epos[E_WINDOW_CENTER],"//"); window_center = SFLT(ddd+2);
+       ddd = strstr(epos[E_WINDOW_WIDTH ],"//"); window_width  = SFLT(ddd+2);
      }
    }
 
@@ -348,12 +353,12 @@ ENTRY("mri_read_dicom") ;
 
    ddd = strstr(epos[E_ROWS],"//") ;                 /* 31 Oct 2002: */
    if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }    /* Oops: ROWS is ny and */
-   ny = 0 ; sscanf(ddd+2,"%d",&ny) ;                 /*       COLUMNS is nx! */
+   ny = SINT(ddd+2) ;                                /*       COLUMNS is nx! */
    if( ny < 2 ){ free(ppp) ; RETURN(NULL); }
 
    ddd = strstr(epos[E_COLUMNS],"//") ;
    if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
-   nx = 0 ; sscanf(ddd+2,"%d",&nx) ;
+   nx = SINT(ddd+2) ;
    if( nx < 2 ){ free(ppp) ; RETURN(NULL); }
 
    /* get number of slices */
@@ -361,7 +366,7 @@ ENTRY("mri_read_dicom") ;
    nz = 0 ;
    if( epos[E_NUMBER_OF_FRAMES] != NULL ){
      ddd = strstr(epos[E_NUMBER_OF_FRAMES],"//") ;
-     if( ddd != NULL ) sscanf(ddd+2,"%d",&nz) ;
+     if( ddd != NULL ) nz = SINT(ddd+2) ;
    }
 
    /* if didn't get nz above, make up a value */
@@ -530,10 +535,7 @@ ENTRY("mri_read_dicom") ;
 
    if( epos[E_REPETITION_TIME] != NULL ){
      ddd = strstr(epos[E_REPETITION_TIME],"//") ;
-     if( ddd != NULL ){
-       sscanf( ddd+2 , "%f" , &dt ) ;
-       dt *= 0.001 ;   /* ms to s */
-     }
+     if( ddd != NULL ) dt = 0.001f * SFLT(ddd+2) ;  /* ms to s conversion */
    }
 
    /* check if we might have 16 bit unsigned data that fills all bits */
@@ -542,15 +544,13 @@ ENTRY("mri_read_dicom") ;
      if( epos[E_PIXEL_REPRESENTATION] != NULL ){
        ddd = strstr(epos[E_PIXEL_REPRESENTATION],"//") ;
        if( ddd != NULL ){
-         ii = 0 ; sscanf( ddd+2 , "%d" , &ii ) ;
-         if( ii == 0 ) un16 = 1 ;                /* unsigned */
+         ii = SINT(ddd+2) ; if( ii == 0 ) un16 = 1 ; /* unsigned */
        }
      }
      if( un16 && epos[E_HIGH_BIT] != NULL ){
        ddd = strstr(epos[E_HIGH_BIT],"//") ;
        if( ddd != NULL ){
-         ii = 0 ; sscanf( ddd+2 , "%d" , &ii ) ;
-         if( ii < 15 ) un16 = 0 ;               /* but less than 16 bits */
+         ii = SINT(ddd+2) ; if( ii < 15 ) un16 = 0 ; /* but less than 16 bits */
        }
      }
    }
@@ -560,15 +560,13 @@ ENTRY("mri_read_dicom") ;
      if( epos[E_PIXEL_REPRESENTATION] != NULL ){
        ddd = strstr(epos[E_PIXEL_REPRESENTATION],"//") ;
        if( ddd != NULL ){
-         ii = 0 ; sscanf( ddd+2 , "%d" , &ii ) ;
-         if( ii == 1 ) shift = -1 ;
+         ii = SINT(ddd+2) ; if( ii == 1 ) shift = -1 ;
        }
      }
      if( shift == 0 && epos[E_HIGH_BIT] != NULL ){
        ddd = strstr(epos[E_HIGH_BIT],"//") ;
        if( ddd != NULL ){
-         ii = 0 ; sscanf( ddd+2 , "%d" , &ii ) ;
-         if( ii == 15 ) shift = 1 ;
+         ii = SINT(ddd+2) ; if( ii == 15 ) shift = 1 ;
        }
      }
      sbot = 32767 ; stop = -32767 ;
@@ -786,8 +784,7 @@ MCHECK ;
 
      ddd = strstr(epos[E_BITS_STORED],"//") ;
      if( ddd != NULL ){
-       ymax = 0 ; sscanf(ddd+2,"%d",&ymax) ;
-       if( ymax > 0 ) ymax = (1 << ymax) - 1 ;
+       ymax = SINT(ddd+2) ; if( ymax > 0 ) ymax = (1 << ymax) - 1 ;
      }
      if( ymax <= 0 ){
        switch( IMARR_SUBIM(imar,0)->kind ){
@@ -1223,7 +1220,7 @@ static float get_dz(  char **epos)
 	  sp = 0.0;   /* probably should write this as function to check on all DICOM fields*/
        }
        else {
-          sscanf( ddd+2 , "%f" , &sp ) ;
+          sp = SFLT(ddd+2) ;
        }
      }
   }
@@ -1235,7 +1232,7 @@ static float get_dz(  char **epos)
 	  th = 0.0;
        }
        else {
-	  sscanf( ddd+2 , "%f" , &th ) ;
+	  th = SFLT(ddd+2) ;
 	  }
     }
   }
@@ -1350,7 +1347,7 @@ ENTRY("mri_imcount_dicom") ;
 
    if( epos[E_SAMPLES_PER_PIXEL] != NULL ){
       ddd = strstr(epos[E_SAMPLES_PER_PIXEL],"//") ;
-      ii = 0 ; sscanf(ddd+2,"%d",&ii) ;
+      ii = SINT(ddd+2) ;
       if( ii != 1 ){ free(ppp) ; RETURN(0); }
    }
 
@@ -1365,7 +1362,7 @@ ENTRY("mri_imcount_dicom") ;
 
    ddd = strstr(epos[E_BITS_ALLOCATED],"//") ;
    if( ddd == NULL ){ free(ppp); RETURN(0); }
-   bpp = 0 ; sscanf(ddd+2,"%d",&bpp) ;
+   bpp = SINT(ddd+2) ;
    switch( bpp ){
       default: free(ppp) ; RETURN(0);   /* bad value */
       case  8: datum = MRI_byte ; break ;
@@ -1378,18 +1375,18 @@ ENTRY("mri_imcount_dicom") ;
 
    ddd = strstr(epos[E_ROWS],"//") ;
    if( ddd == NULL ){ free(ppp) ; RETURN(0); }
-   nx = 0 ; sscanf(ddd+2,"%d",&nx) ;
-   if( nx < 2 ){ free(ppp) ; RETURN(0); }
+   ny = SINT(ddd+2) ;
+   if( ny < 2 ){ free(ppp) ; RETURN(0); }
 
    ddd = strstr(epos[E_COLUMNS],"//") ;
    if( ddd == NULL ){ free(ppp) ; RETURN(0); }
-   ny = 0 ; sscanf(ddd+2,"%d",&ny) ;
-   if( ny < 2 ){ free(ppp) ; RETURN(0); }
+   nx = SINT(ddd+2) ;
+   if( nx < 2 ){ free(ppp) ; RETURN(0); }
 
    nz = 0 ;
    if( epos[E_NUMBER_OF_FRAMES] != NULL ){
      ddd = strstr(epos[E_NUMBER_OF_FRAMES],"//") ;
-     if( ddd != NULL ) sscanf(ddd+2,"%d",&nz) ;
+     if( ddd != NULL ) nz = SINT(ddd+2) ;
    }
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;
 
@@ -1817,10 +1814,8 @@ Fill_obl_info(oblique_info *obl_info, char **epos, Siemens_extra_info *siem)
       obl_info->mosaic = 1;
       obl_info->mos_sliceinfo = 0;
       /* need nx, ny in mosaic and in each slice and the real number of slices*/
-      ddd = strstr(epos[E_COLUMNS],"//") ;
-      sscanf(ddd+2,"%d",&nx) ;
-      ddd = strstr(epos[E_ROWS],"//") ;
-      sscanf(ddd+2,"%d",&ny) ;
+      ddd = strstr(epos[E_COLUMNS],"//") ; nx = SINT(ddd+2) ;
+      ddd = strstr(epos[E_ROWS]   ,"//") ; ny = SINT(ddd+2) ;
 
       /* get siemens in the same way as in the standard mri_read_dicom above */
       /* compute size of mosaic layout

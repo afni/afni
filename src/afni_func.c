@@ -2025,7 +2025,7 @@ char * AFNI_controller_label( Three_D_View *im3d )
    int ic ;
 
    ic = AFNI_controller_index( im3d ) ;
-   if( ic < 0 || ic > 26 ) strcpy (str,"    ") ;
+   if( ic < 0 || ic > 26 ) strcpy (str,"    ") ;  /* shouldn't happen */
    else                    sprintf(str,"[%c] ",clabel[ic]) ;
    return str ;
 }
@@ -2044,20 +2044,27 @@ void AFNI_set_window_titles( Three_D_View *im3d )
 {
    Boolean redo_title ;
    char ttl[THD_MAX_NAME] , nam[THD_MAX_NAME] ;
-   char *tnam , *clab ;
+   char *tnam , *clab ; int ilab ;
    char signum ; /* 08 Aug 2007 */
 
 ENTRY("AFNI_set_window_titles") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   signum  = (im3d->vinfo->thr_sign==0) ? ' '
-            :(im3d->vinfo->thr_sign==1) ? '+' : '-' ;
-   clab    = AFNI_controller_label(im3d) ;
-   clab[3] = signum ; clab[4] = '\0' ;
+   clab = AFNI_controller_label(im3d) ;
+   switch( im3d->vinfo->thr_sign ){
+     default: ilab = 2 ; break ;
+     case 1:  ilab = 3 ; clab[3] = '+' ; break ;
+     case 2:  ilab = 3 ; clab[3] = '-' ; break ;
+   }
+   switch( im3d->vinfo->underlay_type ){  /* 08 May 2008 */
+     default:               clab[++ilab] = 'u' ; break ;
+     case UNDERLAY_ALLFUNC: clab[++ilab] = 'o' ; break ;
+   }
+   clab[++ilab] = ' ' ; clab[++ilab] = '\0' ;
 
    if( im3d->anat_wod_flag )
-     sprintf(ttl , "{warp} %s%s: " , clab,GLOBAL_argopt.title_name) ;
+     sprintf(ttl , "{warp}%s%s: " , clab,GLOBAL_argopt.title_name) ;
    else
      sprintf(ttl , "%s%s: " , clab,GLOBAL_argopt.title_name) ;
 
