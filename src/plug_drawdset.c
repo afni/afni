@@ -1202,7 +1202,7 @@ void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    }
    EDIT_dset_items( cset , ADN_prefix,cbs->cval , ADN_none ) ;
 
-   if( THD_is_file(DSET_HEADNAME(cset)) ){  /* stupid user */
+   if( THD_is_file(DSET_BRIKNAME(cset)) ){  /* stupid user */
      (void) MCW_popup_message( saveas_pb ,
                                  " \n"
                                  "*** Cannot SaveAs this edited   ***\n"
@@ -1230,11 +1230,11 @@ void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    /*-- re-write the informational label --*/
 
    if( DSET_BRICK_FACTOR(dset,0) == 0.0 ){
-     strcpy(str,DSET_FILECODE(dset)) ;
+     strcpy(str,DSET_BRIKNAME(dset)) ;
    } else {
      char abuf[16] ;
      AV_fval_to_char( DSET_BRICK_FACTOR(dset,0) , abuf ) ;
-     sprintf(str,"%s\nbrick factor: %s", DSET_FILECODE(dset) , abuf ) ;
+     sprintf(str,"%s\nbrick factor: %s", DSET_BRIKNAME(dset) , abuf ) ;
    }
    xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( info_lab ,
@@ -1736,7 +1736,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
 
    /*-- write the informational label --*/
 
-   if( copied ) dtit = DSET_FILECODE(dset) ;  /* 24 Sep 2001 */
+   if( copied ) dtit = DSET_BRIKNAME(dset) ;  /* 24 Sep 2001 */
    else         dtit = dsl[id].title ;
 
    if( DSET_BRICK_FACTOR(dset,0) == 0.0 ){
