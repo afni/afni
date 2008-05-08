@@ -507,34 +507,44 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
       /** output of NIfTI-1.1 dataset: 06 May 2005 **/
       /* if the prefix ends in .nii or .nii.gz, change filename in brick_name */
+
       if( nprefix != NULL && ( STRING_HAS_SUFFIX(nprefix,".nii") ||
                                STRING_HAS_SUFFIX(nprefix,".nii.gz") ) ){
+
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
         fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
-	
+
         if( STRING_HAS_SUFFIX(nprefix,".nii") ) {  /* 22 Jun 2006 mod drg */
-	   cmode = THD_get_write_compression() ; /* check env. variable for compression*/
-	   if(cmode==0) { /* have to compress this NIFTI data, add .gz to prefix */
+
+          cmode = THD_get_write_compression() ; /* check env. variable for compression*/
+          if(cmode==0) { /* have to compress this NIFTI data, add .gz to prefix */
              sprintf(DSET_PREFIX(dset),"%s.gz",nprefix); /* add .gz on to prefix initialized in */
-	                                          /* THD_init_diskptr_names just above */
+                                                         /* THD_init_diskptr_names just above */
              if(STRING_HAS_SUFFIX(fname,".nii")) {  /* if filename ends with .nii */
-	       strcat(fname,".gz") ;   /* add the .gz extension */
-	       }
-             else {
-	        if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) /* compressed NIFTI extension*/
-       	        strcat(fname,".nii.gz") ;
-	     }
-	   }
-	   else {
+               strcat(fname,".gz") ;   /* add the .gz extension */
+             } else {
+               if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) /* compressed NIFTI extension*/
+                 strcat(fname,".nii.gz") ;
+             }
+          } else {
              if(!(STRING_HAS_SUFFIX(fname,".nii")))  /* if filename doesn't end with .nii */
-	       strcat(fname,".nii") ;   /* add the .nii extension */
-	    }
-	  }
-        else {
+               strcat(fname,".nii") ;   /* add the .nii extension */
+          }
+        } else {
            if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) /* compressed NIFTI extension*/
-   	      strcat(fname,".nii.gz") ;
-	   }
+             strcat(fname,".nii.gz") ;
+        }
+      }
+
+      /** NIfTI-1.1 with .hdr suffix (2 file format) [08 May 2008] **/
+
+      if( nprefix != NULL && STRING_HAS_SUFFIX(nprefix,".hdr") ){
+
+        char *fname = dset->dblk->diskptr->brick_name ;
+        int  ll = strlen(fname) ;
+        fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
+        if( !STRING_HAS_SUFFIX(fname,".img") ) strcat(fname,".img") ;
       }
       
       if( nprefix != NULL ) free(nprefix) ;
