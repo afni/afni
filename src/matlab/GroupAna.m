@@ -2195,7 +2195,7 @@ for (sn = 1:1:slices),
 
    Info.SCENE_DATA(2) = 11;   % 11 means Bucket Func type, defined in AFNI doc README.attributes  
    Info.SCENE_DATA(3) = 1;    % 1 means 3DIM_HEAD_FUNC, defined in AFNI doc README.attributes
-	Info=rmfield(Info, {'TAXIS_NUMS', 'TAXIS_FLOATS', 'TAXIS_OFFSETS'})  % addeed May 8, 2008
+	Info=rmfield(Info, {'TAXIS_NUMS', 'TAXIS_FLOATS', 'TAXIS_OFFSETS'});  % addeed May 8, 2008
 
    Opt.Frames = [];  %Because it might have been set as the frame list in the case of input files with multiple subbriks during loading
 
