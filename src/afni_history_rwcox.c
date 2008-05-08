@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAY , 2008 , RWC , "ROI drawing plugin" , MICRO , TYPE_GENERAL ,
+   "Change info label to show BRIK filename rather than dataset prefix" ,
+   NULL } ,
+
  { 8 , MAY , 2008 , RWC , "edt_dsetitems.c" , MICRO , TYPE_GENERAL ,
    "new prefix *.hdr gets a 2-file NIfTI format output" ,
    NULL } ,
