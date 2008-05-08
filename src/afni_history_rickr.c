@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_MODIFY,
+   "updated help, NFIRST does not need to imply injection time",
+   NULL
+ } ,
+
  { 7, MAY, 2008, RCR, "option_list.py", MINOR, TYPE_NEW_OPT,
    "added get_type_list and other accessor functions",
    NULL
