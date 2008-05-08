@@ -26,7 +26,7 @@ extern int  AFNI_needs_dset_ijk(void) ;
 #define M_D3_HCT_MIN    0.01
 #define M_D3_HCT_MAX    0.99
 
-#define M_D3_NFIRST     5
+#define M_D3_NFIRST     0
 #define EPSILON         0.0001
 #define Mmmmmm_PIiiiii  3.1415926535897932385
 
@@ -346,8 +346,8 @@ static int ct_from_cp(demri_params * P, double * ct, float * cp,
     for( k = 1; k < len; k++ )   /* fill the list */
         elist[k] = dval * elist[k-1];
     
-    ct[0] = 0.0;  /* no accumulation at first */
-    for( n = 1; n < len; n++ )
+    /* start at 0    8 May 2008 [rickr] */
+    for( n = 0; n < len; n++ )
     {
         dval = 0.0;   /* dval is sum here */
         for( k = 1; k < n; k++ )
@@ -992,8 +992,8 @@ static int model_help(void)
     "\n"
     "   environment variables to control Mp(t):\n"
     "       AFNI_MODEL_D3_MP_FILE : file containing Mp(t) data\n"
-    "       AFNI_MODEL_D3_NFIRST  : to set nfirst (injection TR)\n"
-    "                               index of input dataset, e.g. 5\n"
+    "       AFNI_MODEL_D3_NFIRST  : to set the number of TRs averaged for M0\n"
+    "                               (if data is not scaled, this will do it)\n"
     "\n"
     "   optional environment variables:\n"
     "       AFNI_MODEL_HELP_DEMRI_3 (Y/N) : to get this help\n"
