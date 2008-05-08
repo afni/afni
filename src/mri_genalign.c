@@ -2426,34 +2426,38 @@ void mri_genalign_bilinear( int npar, float *wpar ,
 {
    static mat44 gam ;  /* saved general affine matrix */
    static float dd_for[3][3][3] , xcen,ycen,zcen,dd_fac ;
+   static int ddiag=0 ;  /* is dd matrix diagonal? */
    int ii ;
    THD_mat33 dd,ee ; float aa,bb,cc , uu,vv,ww ;
 
    /** new parameters ==> setup matrix */
 
    if( npar >= 43 && wpar != NULL ){  /* 39 'real' parameters, 4 'fake' ones */
-     xcen   = wpar[39] ;              /* the fake ones */
+     xcen   = wpar[39] ;              /* the fake (non-varying) parameters */
      ycen   = wpar[40] ;
      zcen   = wpar[41] ;
      dd_fac = wpar[42] ;
 
      gam = GA_setup_affine( 12 , wpar ) ;
 
-     dd_for[0][0][0] = wpar[12] * dd_fac ;  /* the real ones */
+     dd_for[0][0][0] = wpar[12] * dd_fac ;  /* the real parameters */
      dd_for[0][0][1] = wpar[13] * dd_fac ;
      dd_for[0][0][2] = wpar[14] * dd_fac ;
 
      dd_for[0][1][0] = wpar[15] * dd_fac ;
      dd_for[0][1][1] = wpar[16] * dd_fac ;
      dd_for[0][1][2] = wpar[17] * dd_fac ;
+     ddiag = (wpar[15]==0.0f) && (wpar[16]==0.0f) && (wpar[17]==0.0f) ;
 
      dd_for[0][2][0] = wpar[18] * dd_fac ;
      dd_for[0][2][1] = wpar[19] * dd_fac ;
      dd_for[0][2][2] = wpar[20] * dd_fac ;
+     ddiag = ddiag && (wpar[18]==0.0f) && (wpar[19]==0.0f) && (wpar[20]==0.0f) ;
 
      dd_for[1][0][0] = wpar[21] * dd_fac ;
      dd_for[1][0][1] = wpar[22] * dd_fac ;
      dd_for[1][0][2] = wpar[23] * dd_fac ;
+     ddiag = ddiag && (wpar[21]==0.0f) && (wpar[22]==0.0f) && (wpar[23]==0.0f) ;
 
      dd_for[1][1][0] = wpar[24] * dd_fac ;
      dd_for[1][1][1] = wpar[25] * dd_fac ;
@@ -2462,14 +2466,17 @@ void mri_genalign_bilinear( int npar, float *wpar ,
      dd_for[1][2][0] = wpar[27] * dd_fac ;
      dd_for[1][2][1] = wpar[28] * dd_fac ;
      dd_for[1][2][2] = wpar[29] * dd_fac ;
+     ddiag = ddiag && (wpar[27]==0.0f) && (wpar[28]==0.0f) && (wpar[29]==0.0f) ;
 
      dd_for[2][0][0] = wpar[30] * dd_fac ;
      dd_for[2][0][1] = wpar[31] * dd_fac ;
      dd_for[2][0][2] = wpar[32] * dd_fac ;
+     ddiag = ddiag && (wpar[30]==0.0f) && (wpar[31]==0.0f) && (wpar[32]==0.0f) ;
 
      dd_for[2][1][0] = wpar[33] * dd_fac ;
      dd_for[2][1][1] = wpar[34] * dd_fac ;
      dd_for[2][1][2] = wpar[35] * dd_fac ;
+     ddiag = ddiag && (wpar[33]==0.0f) && (wpar[34]==0.0f) && (wpar[35]==0.0f) ;
 
      dd_for[2][2][0] = wpar[36] * dd_fac ;
      dd_for[2][2][1] = wpar[37] * dd_fac ;
@@ -2483,6 +2490,7 @@ void mri_genalign_bilinear( int npar, float *wpar ,
    /* mutiply matrix times input vectors */
 
    for( ii=0 ; ii < npt ; ii++ ){
+
      aa = xi[ii] ; bb = yi[ii] ; cc = zi[ii] ;
 
      if( aff_use_before ){
@@ -2490,25 +2498,42 @@ void mri_genalign_bilinear( int npar, float *wpar ,
      } else {
        uu = aa ; vv = bb ; ww = cc ;
      }
-     uu -= xcen; vv -= ycen; ww -= zcen;
+     uu -= xcen; vv -= ycen; ww -= zcen;  /* centered coords */
+
+     /* compute denominator (dd) matrix from coordinates and parameters */
 
      dd.mat[0][0] = 1.0f + dd_for[0][0][0]*uu + dd_for[0][0][1]*vv + dd_for[0][0][2]*ww;
-     dd.mat[0][1] =        dd_for[0][1][0]*uu + dd_for[0][1][1]*vv + dd_for[0][1][2]*ww;
-     dd.mat[0][2] =        dd_for[0][2][0]*uu + dd_for[0][2][1]*vv + dd_for[0][2][2]*ww;
-     dd.mat[1][0] =        dd_for[1][0][0]*uu + dd_for[1][0][1]*vv + dd_for[1][0][2]*ww;
      dd.mat[1][1] = 1.0f + dd_for[1][1][0]*uu + dd_for[1][1][1]*vv + dd_for[1][1][2]*ww;
-     dd.mat[1][2] =        dd_for[1][2][0]*uu + dd_for[1][2][1]*vv + dd_for[1][2][2]*ww;
-     dd.mat[2][0] =        dd_for[2][0][0]*uu + dd_for[2][0][1]*vv + dd_for[2][0][2]*ww;
-     dd.mat[2][1] =        dd_for[2][1][0]*uu + dd_for[2][1][1]*vv + dd_for[2][1][2]*ww;
      dd.mat[2][2] = 1.0f + dd_for[2][2][0]*uu + dd_for[2][2][1]*vv + dd_for[2][2][2]*ww;
+     if( !ddiag ){
+       dd.mat[0][1] =      dd_for[0][1][0]*uu + dd_for[0][1][1]*vv + dd_for[0][1][2]*ww;
+       dd.mat[0][2] =      dd_for[0][2][0]*uu + dd_for[0][2][1]*vv + dd_for[0][2][2]*ww;
+       dd.mat[1][0] =      dd_for[1][0][0]*uu + dd_for[1][0][1]*vv + dd_for[1][0][2]*ww;
+       dd.mat[1][2] =      dd_for[1][2][0]*uu + dd_for[1][2][1]*vv + dd_for[1][2][2]*ww;
+       dd.mat[2][0] =      dd_for[2][0][0]*uu + dd_for[2][0][1]*vv + dd_for[2][0][2]*ww;
+       dd.mat[2][1] =      dd_for[2][1][0]*uu + dd_for[2][1][1]*vv + dd_for[2][1][2]*ww;
+       ee = MAT_INV(dd) ;
+     } else {
+       ee.mat[0][0] = 1.0f / dd.mat[0][0] ;  /* diagonal dd matrix case */
+       ee.mat[1][1] = 1.0f / dd.mat[1][1] ;
+       ee.mat[2][2] = 1.0f / dd.mat[2][2] ;
+     }
 
-     ee = MAT_INV(dd) ;
+     MAT44_VEC( gam , aa,bb,cc, uu,vv,ww ) ;  /* affine part of transformation */
 
-     MAT44_VEC( gam , aa,bb,cc, uu,vv,ww ) ;
-     xo[ii] = ee.mat[0][0] * uu + ee.mat[0][1] * vv + ee.mat[0][2] * ww ;
-     yo[ii] = ee.mat[1][0] * uu + ee.mat[1][1] * vv + ee.mat[1][2] * ww ;
-     zo[ii] = ee.mat[2][0] * uu + ee.mat[2][1] * vv + ee.mat[2][2] * ww ;
-   }
+     /* apply inverse of denominator matrix to affinely transformed vector */
+
+     if( !ddiag ){
+       xo[ii] = ee.mat[0][0] * uu + ee.mat[0][1] * vv + ee.mat[0][2] * ww ;
+       yo[ii] = ee.mat[1][0] * uu + ee.mat[1][1] * vv + ee.mat[1][2] * ww ;
+       zo[ii] = ee.mat[2][0] * uu + ee.mat[2][1] * vv + ee.mat[2][2] * ww ;
+     } else {
+       xo[ii] = ee.mat[0][0] * uu ;  /* diagonal dd matrix case */
+       yo[ii] = ee.mat[1][1] * vv ;
+       zo[ii] = ee.mat[2][2] * ww ;
+     }
+
+   } /* end of loop over input points */
 
    return ;
 }

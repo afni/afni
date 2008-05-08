@@ -72,6 +72,60 @@ void AFD_dicom_header_free( AFD_dicom_header *adh )
 
 /*--------------------------------------------------------------------------*/
 
+char * AFD_format_header( AFD_dicom_header *adh )
+{
+   char *str=NULL ;
+
+   if( adh == NULL ) return str ;
+
+   str = THD_zzprintf( str , "<DICOM_summary>\n" ) ;
+
+   str = THD_zzprintf( str , " NX:             %d\n"   , adh->ni) ;
+   str = THD_zzprintf( str , " NY:             %d\n"   , adh->nj) ;
+   str = THD_zzprintf( str , " NImage:         %d\n"   , adh->nk) ;
+   str = THD_zzprintf( str , " DeltaX:         %.3f\n" , adh->di) ;
+   str = THD_zzprintf( str , " DeltaY:         %.3f\n" , adh->dj ) ;
+   str = THD_zzprintf( str , " SliceSpacing:   %.3f\n" , adh->slice_spacing) ;
+   str = THD_zzprintf( str , " SliceThickness: %.3f\n" , adh->slice_thick) ;
+   str = THD_zzprintf( str , " TR:             %.3f\n" , adh->tr ) ;
+
+   str = THD_zzprintf( str , " X_v1:           %.3f\n" , adh->ori_ix ) ;
+   str = THD_zzprintf( str , " X_v2:           %.3f\n" , adh->ori_iy ) ;
+   str = THD_zzprintf( str , " X_v3:           %.3f\n" , adh->ori_iz ) ;
+
+   str = THD_zzprintf( str , " Y_v1:           %.3f\n" , adh->ori_jx ) ;
+   str = THD_zzprintf( str , " Y_v2:           %.3f\n" , adh->ori_jy ) ;
+   str = THD_zzprintf( str , " Y_v3:           %.3f\n" , adh->ori_jz ) ;
+
+   str = THD_zzprintf( str , " Pos_v1:         %.3f\n" , adh->pos_xx ) ;
+   str = THD_zzprintf( str , " Pos_v2:         %.3f\n" , adh->pos_yy ) ;
+   str = THD_zzprintf( str , " Pos_v3:         %.3f\n" , adh->pos_yy ) ;
+
+   str = THD_zzprintf( str , " NBits:          %d\n"   , adh->nbits ) ;
+
+   str = THD_zzprintf( str , " RescaleInt:     %.3f\n" , adh->rescale_intercept ) ;
+   str = THD_zzprintf( str , " RescaleSlope:   %.3f\n" , adh->rescale_slope ) ;
+   str = THD_zzprintf( str , " WindowCenter:   %.3f\n" , adh->window_center ) ;
+   str = THD_zzprintf( str , " WindowWidth:    %.3f\n" , adh->window_width ) ;
+
+   str = THD_zzprintf( str , " DataOffset:     %u\n"   , adh->data_offset ) ;
+   str = THD_zzprintf( str , " DataLength:     %u\n"   , adh->data_length ) ;
+
+   str = THD_zzprintf( str , " Manufacturer:   %s\n",
+                        adh->manufacturer_string[0] == '\0' ?
+                        "Unknown" : adh->manufacturer_string ) ;
+
+   str = THD_zzprintf( str , "</DICOM_summary>") ;
+   return str ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+#undef  SINT
+#undef  SFLT
+#define SINT(p) ((int)strtol((p),NULL,10))
+#define SFLT(p) ((float)strtod((p),NULL))
+
 AFD_dicom_header * AFD_scanfor_header( char *ppp )
 {
    char *ddd ;
@@ -102,8 +156,7 @@ AFD_dicom_header * AFD_scanfor_header( char *ppp )
 
    if( epos[E_SAMPLES_PER_PIXEL] != NULL ){
      ddd = strstr(epos[E_SAMPLES_PER_PIXEL],"//") ;
-     ii  = 0 ; sscanf(ddd+2,"%d",&ii) ;
-     if( ii != 1 ) return NULL ;
+     ii = SINT(ddd+2) ; if( ii != 1 ) return NULL ;
    }
 
    /* check if photometric interpretation is MONOCHROME (don't like PALETTE) */
@@ -121,40 +174,36 @@ AFD_dicom_header * AFD_scanfor_header( char *ppp )
 
    ddd = strstr(epos[E_BITS_ALLOCATED],"//") ;
    if( ddd == NULL ){ free(ppp); RETURN(NULL); }
-   bpp = 0 ; sscanf(ddd+2,"%d",&bpp) ; dh->nbits = bpp ;
+   dh->nbits = SINT(ddd+2) ;
 
    /* check if Rescale is ordered */
 
    if( epos[E_RESCALE_INTERCEPT] != NULL && epos[E_RESCALE_SLOPE] != NULL ){
      ddd = strstr(epos[E_RESCALE_INTERCEPT],"//") ;
-     sscanf(ddd+2,"%f",&dh->rescale_intercept)    ;
+     dh->rescale_intercept = SFLT(ddd+2) ;
      ddd = strstr(epos[E_RESCALE_SLOPE    ],"//") ;
-     sscanf(ddd+2,"%f",&dh->rescale_slope    )    ;
+     dh->rescale_slope     = SFLT(ddd+2) ;
    }
 
    /* check if Window is ordered */
 
    if( epos[E_WINDOW_CENTER] != NULL && epos[E_WINDOW_WIDTH] != NULL ){
      ddd = strstr(epos[E_WINDOW_CENTER],"//") ;
-     sscanf(ddd+2,"%f",&dh->window_center)    ;
+     dh->window_center = SFLT(ddd+2) ;
      ddd = strstr(epos[E_WINDOW_WIDTH ],"//") ;
-     sscanf(ddd+2,"%f",&dh->window_width ) ;
+     dh->window_width = SFLT(ddd+2) ;
    }
 
    /* get image nx & ny */
 
-   ddd = strstr(epos[E_ROWS],"//") ;
-   ny = 1 ; sscanf(ddd+2,"%d",&ny) ;
-
-   ddd = strstr(epos[E_COLUMNS],"//") ;
-   nx = 1 ; sscanf(ddd+2,"%d",&nx) ;
+   ddd = strstr(epos[E_COLUMNS],"//") ; nx = SINT(ddd+2) ;
+   ddd = strstr(epos[E_ROWS]   ,"//") ; ny = SINT(ddd+2) ;
 
    /* get number of slices */
 
    nz = 1 ;
    if( epos[E_NUMBER_OF_FRAMES] != NULL ){
-     ddd = strstr(epos[E_NUMBER_OF_FRAMES],"//") ;
-     sscanf(ddd+2,"%d",&nz) ;
+     ddd = strstr(epos[E_NUMBER_OF_FRAMES],"//") ; nz = SINT(ddd+2) ;
    }
 
    dh->ni = nx ; dh->nj = ny ; dh->nk = nz ;
@@ -182,27 +231,26 @@ AFD_dicom_header * AFD_scanfor_header( char *ppp )
   if( epos[E_SLICE_SPACING] != NULL ){                  /* get reported slice spacing */
     ddd = strstr(epos[E_SLICE_SPACING],"//") ;
     if(*(ddd+2)=='\n') sp = 0.0 ;
-    else               sscanf( ddd+2 , "%f" , &sp ) ;
+    else               sp = SFLT(ddd+2) ;
   }
   if( epos[E_SLICE_THICKNESS] != NULL ){                /* get reported slice thickness */
     ddd = strstr(epos[E_SLICE_THICKNESS],"//") ;
     if(*(ddd+2)=='\n') th = 0.0 ;
-    else               sscanf( ddd+2 , "%f" , &th ) ;
+    else               th = SFLT(ddd+2) ;
   }
 
    /* get dt */
 
    if( epos[E_REPETITION_TIME] != NULL ){
      ddd = strstr(epos[E_REPETITION_TIME],"//") ;
-     sscanf( ddd+2 , "%f" , &dt ) ;
-     dt *= 0.001 ;   /* ms to s */
+     dt = 0.001 * SFLT(ddd+2) ;  /* ms to s */
    }
 
    dh->tr = dt ;
    dh->di = dx ;
    dh->dj = dy ;
-   dh->slice_spacing = fabs(sp) ;
-   dh->slice_thick   = fabs(th) ;
+   dh->slice_spacing = sp ;
+   dh->slice_thick   = th ;
 
    /* manufacturer */
 

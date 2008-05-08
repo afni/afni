@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAY , 2008 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "small changes to bilinear optimization parameters" ,
+   NULL } ,
+
+ { 8 , MAY , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Add 'u' or 'o' marker in titlebar to indicate what's the grayscale" ,
+   NULL } ,
+
  { 2 , MAY , 2008 , RWC , "mcw_glob.c" , MICRO , TYPE_GENERAL ,
    "added message from Graham Wideman when readdir() fails" ,
    NULL } ,

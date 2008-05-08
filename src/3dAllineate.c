@@ -153,6 +153,7 @@ int main( int argc , char *argv[] )
    float dxout,dyout,dzout ;
    floatvec *allcost ;   /* 19 Sep 2007 */
    float     allpar[MAXPAR] ;
+   float xsize , ysize , zsize ;  /* 06 May 2008: box size */
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -2023,6 +2024,8 @@ int main( int argc , char *argv[] )
           "found %d param/row in param file '%s'; not enough for bilinear warp",
           apply_nx , apply_1D) ;
        }
+     } else if( nwarp_pass ){
+       ERROR_exit("Can't apply -nwarp except bilinear, at this time.") ;
      }
    }
 
@@ -2601,9 +2604,9 @@ int main( int argc , char *argv[] )
    /*-- set convergence radius for parameter search --*/
 
    if( im_weig == NULL ){
-     xxx = 0.5f * (nx_base-1) * dx_base ;
-     yyy = 0.5f * (ny_base-1) * dy_base ;
-     zzz = 0.5f * (nz_base-1) * dz_base ;
+     xsize = xxx = 0.5f * (nx_base-1) * dx_base ;
+     ysize = yyy = 0.5f * (ny_base-1) * dy_base ;
+     zsize = zzz = 0.5f * (nz_base-1) * dz_base ;
    } else {
      int xm,xp , ym,yp , zm,zp ;
      MRI_autobbox_clust(0) ;
@@ -2614,9 +2617,9 @@ int main( int argc , char *argv[] )
      fprintf(stderr,"ym,yp,ny=%d,%d,%d\n",ym,yp,ny_base) ;
      fprintf(stderr,"zm,zp,nz=%d,%d,%d\n",zm,zp,nz_base) ;
 #endif
-     xxx = 0.5f * (xp-xm) * dx_base ;
-     yyy = 0.5f * (yp-ym) * dy_base ;
-     zzz = 0.5f * (zp-zm) * dz_base ;
+     xsize = xxx = 0.5f * (xp-xm) * dx_base ;
+     ysize = yyy = 0.5f * (yp-ym) * dy_base ;
+     zsize = zzz = 0.5f * (zp-zm) * dz_base ;
    }
    xxx = (nz_base > 1) ? cbrt(xxx*yyy*zzz) : sqrt(xxx*yyy) ;
    zzz = 0.01f ;
@@ -3090,6 +3093,7 @@ int main( int argc , char *argv[] )
         case 2: rad = 0.0123 ; break ;
        default: rad = 0.0066 ; break ;
      }
+     if( rad < 22.2f*conv_rad ) rad = 22.2f*conv_rad ;
 
      /*-- start with some optimization with linear interp, for speed? --*/
 
@@ -3122,7 +3126,9 @@ int main( int argc , char *argv[] )
            PARINI("- Intrmed fine") ;
            ININFO_message("- Intrmed  cost = %f ; %d funcs",cost,nfunc) ;
          }
-         if( nfunc < 6666 ) rad *= 0.246 ;
+         if( nfunc < 6666 ){
+           rad *= 0.246f ; if( rad < 9.99f*conv_rad ) rad = 9.99f*conv_rad ;
+         }
        }
 
        if( do_allcost != 0 ){  /*-- all cost functions for fun again --*/
@@ -3206,13 +3212,21 @@ int main( int argc , char *argv[] )
 
        if( nwarp_type == WARP_BILINEAR ){  /*------ special case ------------*/
 
-         float xr,yr,zr,rr , xcen,ycen,zcen ; int nbf ;
+         float xr,yr,zr,rr , xcen,ycen,zcen , brad ; int nbf ;
 
+#if 0
          xr = 0.5f * dx_base * nx_base ;
-         yr = 0.5f * dy_base * ny_base ; rr = MAX(xr,yr) ;
-         zr = 0.5f * dz_base * nz_base ; rr = MAX(zr,rr) ; rr = 1.2f / rr ;
+         yr = 0.5f * dy_base * ny_base ;
+         zr = 0.5f * dz_base * nz_base ;
+#else
+         xr = xsize ; yr = ysize ; zr = zsize ;
+#endif
+         rr = MAX(xr,yr) ; rr = MAX(zr,rr) ; rr = 1.2f / rr ;
 
-         SETUP_BILINEAR_PARAMS ;
+         SETUP_BILINEAR_PARAMS ;  /* nonlinear params */
+
+         /* nonlinear transformation is centered at middle of base volume
+            indexes (xcen,ycen,zcen) and is scaled by reciprocal of size (rr) */
 
          MAT44_VEC( stup.base_cmat,
                     0.5f*nx_base, 0.5f*ny_base, 0.5f*nz_base,
@@ -3222,11 +3236,15 @@ int main( int argc , char *argv[] )
          stup.wfunc_param[NPBIL+2].val_fixed = stup.wfunc_param[NPBIL+2].val_init = zcen;
          stup.wfunc_param[NPBIL+3].val_fixed = stup.wfunc_param[NPBIL+3].val_init = rr  ;
 
+         /* affine part is copied from results of work thus far */
+
          for( jj=0 ; jj < 12 ; jj++ )
            stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
 
          stup.need_hist_setup = 1 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL, &stup );
+
+         /* do the first pass of the bilinear optimization */
 
          if( verb > 0 ) INFO_message("Start bilinear warping") ;
          if( verb > 1 ) PARINI("- Bilinear initial") ;
@@ -3236,7 +3254,10 @@ int main( int argc , char *argv[] )
            stup.wfunc_param[jj+24].fixed = 0 ;
          }
          if( verb ) ctim = COX_cpu_time() ;
-         nbf = mri_genalign_scalar_optim( &stup , rad, 11.1f*conv_rad, 555 );
+         brad = MAX(conv_rad,0.001f) ;
+              if( rad > 33.3f*brad ) rad = 33.3f*brad ;
+         else if( rad < 22.2f*brad ) rad = 22.2f*brad ;
+         nbf = mri_genalign_scalar_optim( &stup , rad, 11.1f*brad, 555 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Bilinear#1 cost = %f ; %d funcs ; CPU = %.1f s",
@@ -3244,11 +3265,13 @@ int main( int argc , char *argv[] )
            ctim = dtim ;
          }
 
+         /* do the second pass, with more parameters varying */
+
          for( jj=12 ; jj < NPBIL ; jj++ )   /* now free up all B elements */
            stup.wfunc_param[jj].fixed = 0 ;
          for( jj=0  ; jj < NPBIL ; jj++ )
            stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         nbf = mri_genalign_scalar_optim( &stup, 0.555f*rad, 3.33f*conv_rad,2222 );
+         nbf = mri_genalign_scalar_optim( &stup, 22.2f*brad, 3.33f*brad,2222 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Bilinear#2 cost = %f ; %d funcs ; CPU = %.1f s",
@@ -3256,10 +3279,11 @@ int main( int argc , char *argv[] )
            ctim = dtim ;
          }
 
+         /* run it again to see if it improves any more */
+
          for( jj=0  ; jj < NPBIL ; jj++ )
            stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-         rad = 0.111f*rad ; if( rad > 9.99f*conv_rad ) rad = 9.99f*conv_rad ;
-         nbf = mri_genalign_scalar_optim( &stup, rad, conv_rad, 555 );
+         nbf = mri_genalign_scalar_optim( &stup, 4.44f*brad, brad, 222 );
          if( verb ){
            dtim = COX_cpu_time() ;
            ININFO_message("- Bilinear#3 cost = %f ; %d funcs ; CPU = %.1f s",
@@ -3273,7 +3297,7 @@ int main( int argc , char *argv[] )
          Warpfield *wf ;
          int wf_nparam ;
 
-         ERROR_exit("Warpfield not yet finished -- SORRY") ;
+         ERROR_exit("Warpfield not yet fully implemented -- SORRY") ;
 
          wf = Warpfield_init( nwarp_type , nwarp_order , 0 , NULL ) ;
          mri_genalign_warpfield_set(wf) ;
