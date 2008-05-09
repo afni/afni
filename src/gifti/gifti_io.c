@@ -94,9 +94,12 @@ static char * gifti_history[] =
   "0.17 28 March, 2008 : added copy MetaData routines\n",
   "     - gifti_copy_gifti_meta, gifti_copy_DA_meta, gifti_copy_all_DA_meta,\n"
   "     - gifti_copy_DA_meta_many, gifti_copy_nvpairs\n"
+  "0.18 08 May, 2008 : DataArray can now contain a list of CoordSystems\n",
+  "     - modified giiDataArray struct: new numCS, coordsys is now CS**\n"
+  "     - added gifti_free_CS_list, gifti_add_empty_CS\n"
 };
 
-static char gifti_version[] = "gifti library version 0.17, 28 March, 2008";
+static char gifti_version[] = "gifti library version 0.18, 8 May, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -513,13 +516,34 @@ int gifti_free_DataArray( giiDataArray * darray )
     if(darray->ext_fname) { free(darray->ext_fname); darray->ext_fname = NULL; }
 
     (void)gifti_free_nvpairs(&darray->meta);
-    if( darray->coordsys) {
-        gifti_free_CoordSystem(darray->coordsys);
-        darray->coordsys = NULL;
-    }
+    (void)gifti_free_CS_list(darray);
     if( darray->data ) { free(darray->data); darray->data = NULL; }
     (void)gifti_free_nvpairs(&darray->ex_atrs);
     free(darray);
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! free the CoordSystem array from a DataArray
+ *  passing NULL is okay
+*//*-------------------------------------------------------------------*/
+int gifti_free_CS_list( giiDataArray * da )
+{
+    int c;
+
+    if( !da ) return 0;
+
+    if( G.verb > 3 ) fprintf(stderr,"-- freeing giiCoordSystem list\n");
+
+    if( da->coordsys && da->numCS > 0 ) {
+        for( c = 0; c < da->numCS; c++ )
+            gifti_free_CoordSystem(da->coordsys[c]);
+        free(da->coordsys);
+    }
+
+    da->coordsys = NULL;
+    da->numCS = 0;
 
     return 0;
 }
@@ -1071,6 +1095,41 @@ int gifti_clear_CoordSystem(giiCoordSystem * p)
 }
 
 /*----------------------------------------------------------------------
+ *! add an empty CoordSystem struct to the DataArray
+*//*-------------------------------------------------------------------*/
+int gifti_add_empty_CS(giiDataArray * da)
+{
+    if( !da ) return 1;
+
+    /* be safe, if anything looks bad, start clean */
+    if(da->numCS <= 0 || !da->coordsys) { da->numCS = 0; da->coordsys = NULL; }
+
+    if(G.verb > 3 )fprintf(stderr,"++ adding empty CS[%d]\n", da->numCS);
+
+    /* realloc coordsys pointer array, and add an empty structure */
+    da->coordsys = (giiCoordSystem **)realloc(da->coordsys,
+                        (da->numCS+1) * sizeof(giiCoordSystem *));
+    if( !da->coordsys ) {
+        fprintf(stderr,"** AECS: failed to alloc %d CoordSys pointers\n",
+                       da->numCS+1);
+        da->numCS = 0;
+        return 1;
+    }
+
+    da->coordsys[da->numCS] = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
+    if( !da->coordsys[da->numCS] ) {
+        fprintf(stderr,"** push_cstm: failed to alloc new CoordSystem\n");
+        return 1;
+    }
+
+    gifti_clear_CoordSystem(da->coordsys[da->numCS]);
+
+    da->numCS++;
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
  *! add an empty DataArray struct to the gim->darray list
  *
  *  this both reallocates gim->darray and allocates gim->darray[new]
@@ -1233,6 +1292,7 @@ int gifti_disp_CoordSystem(const char * mesg, const giiCoordSystem * p)
 *//*-------------------------------------------------------------------*/
 int gifti_disp_DataArray(const char * mesg, const giiDataArray * p, int subs)
 {
+    int c;
     fprintf(stderr,"--------------------------------------------------\n");
 
     if( mesg ) { fputs(mesg, stderr); fputc(' ', stderr); }
@@ -1265,12 +1325,15 @@ int gifti_disp_DataArray(const char * mesg, const giiDataArray * p, int subs)
            );
 
     if( subs ) gifti_disp_nvpairs("darray->meta", &p->meta);
-    if( subs ) gifti_disp_CoordSystem("darray->coordsys", p->coordsys);
+    if( subs ) for( c = 0; c < p->numCS; c++ )
+                   gifti_disp_CoordSystem("darray->coordsys", p->coordsys[c]);
                 
     fprintf(stderr,"    data       = %s\n"
                    "    nvals      = %u\n"
-                   "    nbyper     = %d\n",
-                p->data ? "<set>" : "NULL", (unsigned)p->nvals, p->nbyper);
+                   "    nbyper     = %d\n"
+                   "    numCS      = %d\n",
+                p->data ? "<set>" : "NULL", (unsigned)p->nvals,
+                p->nbyper, p->numCS);
 
     if( subs ) gifti_disp_nvpairs("darray->ex_atrs", &p->ex_atrs);
     fprintf(stderr,"--------------------------------------------------\n");
@@ -1820,6 +1883,7 @@ char * gifti_strdup( const char * src )
 giiDataArray * gifti_copy_DataArray(const giiDataArray * orig, int get_data)
 {
     giiDataArray * gnew;
+    int            c;
 
     if( ! orig ){ fprintf(stderr,"** copy_DA: input is NULL\n"); return NULL; }
 
@@ -1834,7 +1898,17 @@ giiDataArray * gifti_copy_DataArray(const giiDataArray * orig, int get_data)
     /* copy any pointer data or structures */
     gnew->ext_fname = gifti_strdup(orig->ext_fname);
     gifti_copy_nvpairs(&gnew->meta, &orig->meta);
-    gnew->coordsys = gifti_copy_CoordSystem(orig->coordsys);
+    if( orig->numCS > 0 && orig->coordsys ) {
+        gnew->coordsys = (giiCoordSystem **)malloc(gnew->numCS *
+                                sizeof(giiCoordSystem *));
+        if(!gnew->coordsys) {
+            fprintf(stderr,"** copy_DA: failed to alloc %d CS pointers\n",
+                    gnew->numCS);
+            gnew->numCS = 0;
+        } else
+            for( c = 0; c < gnew->numCS; c++ )
+                gnew->coordsys[c] = gifti_copy_CoordSystem(orig->coordsys[c]);
+    }
 
     /* maybe the needy user wants data, too */
     if(orig->data && get_data) {
@@ -2437,11 +2511,20 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
         if( lverb < 3 ) return 1;
     }
 
-    if( gifti_compare_coordsys(d1->coordsys, d2->coordsys, verb) ) {
+    if( d1->numCS != d2->numCS ) {
         diffs = 1;
-        if( lverb > 1 ) printf("-- diff in DA coordsys\n");
+        if( lverb > 1 ) printf("-- diff in DA numCS\n");
         if( lverb < 3 ) return 1;
     }
+
+    /* compare each of the CoordSystem structs */
+    top = d1->numCS < d2->numCS ? d1->numCS : d2->numCS;
+    for( c = 0; c < top; c++ )
+        if( gifti_compare_coordsys(d1->coordsys[c], d2->coordsys[c], verb) ) {
+            diffs = 1;
+            if( lverb > 1 ) printf("-- diff in DA coordsys[%d]\n", c);
+            if( lverb < 3 ) return 1;
+        }
 
     if( d1->nvals != d2->nvals ) {
         diffs = 1;

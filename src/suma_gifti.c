@@ -402,15 +402,15 @@ static byte gifti_surf_meta_to_afni_surf_meta(
       
    nelxform = SUMA_FindNgrNamedElement(aSO, "Coord_System");
    dv = (double *)nelxform->vec[0];
-   if (dac->coordsys) {
-      if (!(cp = dac->coordsys->dataspace)) {
+   if (dac->numCS > 0 && dac->coordsys && dac->coordsys[0]) {
+      if (!(cp = dac->coordsys[0]->dataspace)) {
          cp = GIFTI_NO_META;
       }
       NI_set_attribute( nelxform,
                         "dataspace",
                         cp); 
 
-      if (!(cp = dac->coordsys->xformspace)) {
+      if (!(cp = dac->coordsys[0]->xformspace)) {
          cp = GIFTI_NO_META;
       }
       NI_set_attribute( nelxform,
@@ -420,7 +420,7 @@ static byte gifti_surf_meta_to_afni_surf_meta(
       k = 0;
       for (i=0; i<4;++i) {
          for (j=0; j<4; ++j) {
-            dv[k] = dac->coordsys->xform[i][j];
+            dv[k] = dac->coordsys[0]->xform[i][j];
             ++k;
          }   
       }
@@ -520,22 +520,25 @@ static byte afni_surf_meta_to_gifti_surf_meta(
       fprintf(stderr,"** failed to add meta date.\n"); 
       RETURN(1); 
    }
-   if (dac->coordsys) {
-      gifti_free_CoordSystem(dac->coordsys); dac->coordsys = NULL;
+
+   /* free any old CoordSystems and add a single new one      */
+   /* - coordsys now an array of pointers, 8 May 2008 [rickr] */
+   gifti_free_CS_list(dac);
+   if( gifti_add_empty_CS(dac) ) {
+      fprintf(stderr,"** failed to add empty CoordSystem\n");
+      RETURN(1);
    }
    
-   dac->coordsys = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
-   gifti_clear_CoordSystem(dac->coordsys);
    nelxform = SUMA_FindNgrNamedElement(aSO,"Coord_System");
-   dac->coordsys->dataspace = 
+   dac->coordsys[0]->dataspace = 
          gifti_strdup(NI_get_attribute(nelxform,"dataspace"));
-   dac->coordsys->xformspace = 
+   dac->coordsys[0]->xformspace = 
          gifti_strdup(NI_get_attribute(nelxform,"xformspace"));
    dv = (double *)nelxform->vec[0];
    k = 0;
    for (i=0; i<4; ++i) 
          for (j=0; j< 4; ++j) { 
-            dac->coordsys->xform[i][j] = dv[k];
+            dac->coordsys[0]->xform[i][j] = dv[k];
             ++k;
          }
    dac = NULL; /* make sure it is not used below */
