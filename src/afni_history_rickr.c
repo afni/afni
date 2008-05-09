@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 9, MAY, 2008, RCR, "GIFTI", MINOR, TYPE_MODIFY,
+   "gifticlib-0.0.18: giiCoordSystem is now an array of struct pointers",
+   "modified GIFTI library, along with suma_gifti.c"
+ } ,
+
  { 8, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_MODIFY,
    "updated help, NFIRST does not need to imply injection time",
    NULL
