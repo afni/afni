@@ -1017,19 +1017,17 @@ static int pop_darray(gxml_data * xd)
 }
 
 
-/* verify the elements are clear */
+/* make space for a new CS structure in the current DataArray */
 static int push_cstm(gxml_data * xd)
 {
     giiDataArray * da = xd->gim->darray[xd->gim->numDA-1]; /* current DA */
 
-    /* NIFTI_INTENT_POINTSET is 1008 - don't know whether to use nifti1.h */
-    if( da->intent != 1008 && xd->verb > 0 )
+    if( da->intent != NIFTI_INTENT_POINTSET && xd->verb > 0 )
         fprintf(stderr,"** DA[%d] has coordsys with intent %s (should be %s)\n",
                 xd->gim->numDA-1, gifti_intent_to_string(da->intent),
-                gifti_intent_to_string(1008));
+                gifti_intent_to_string(NIFTI_INTENT_POINTSET));
 
-    da->coordsys = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
-    gifti_clear_CoordSystem(da->coordsys);
+    if( gifti_add_empty_CS(da) ) return 1;
 
     return 0;
 }
@@ -1094,13 +1092,21 @@ static int push_data(gxml_data * xd)
 /* point cdata to the correct location and init */
 static int push_dspace(gxml_data * xd)
 {
-    if( !xd->gim->darray[xd->gim->numDA-1]->coordsys ) {
+    int CSind = xd->gim->darray[xd->gim->numDA-1]->numCS-1;
+    if( CSind < 0 ) {
+        fprintf(stderr,"** PD: bad numCS %d in darray %d, skipping...",
+                CSind+1, xd->gim->numDA-1);
+        xd->skip = xd->depth;
+        return 1;
+    }
+
+    if( !xd->gim->darray[xd->gim->numDA-1]->coordsys[CSind] ) {
         fprintf(stderr,"** found dataspace without coordsys, skipping...\n");
         xd->skip = xd->depth;
         return 1;
     }
 
-    xd->cdata = &xd->gim->darray[xd->gim->numDA-1]->coordsys->dataspace;
+    xd->cdata = &xd->gim->darray[xd->gim->numDA-1]->coordsys[CSind]->dataspace;
     *xd->cdata = NULL;                      /* init to empty */
     xd->clen = 0;
     return 0;
@@ -1109,13 +1115,21 @@ static int push_dspace(gxml_data * xd)
 /* point cdata to the correct location and init */
 static int push_xspace(gxml_data * xd)
 {
-    if( !xd->gim->darray[xd->gim->numDA-1]->coordsys ) {
+    int CSind = xd->gim->darray[xd->gim->numDA-1]->numCS-1;
+    if( CSind < 0 ) {
+        fprintf(stderr,"** PX: bad numCS %d in darray %d, skipping...",
+                CSind+1, xd->gim->numDA-1);
+        xd->skip = xd->depth;
+        return 1;
+    }
+
+    if( !xd->gim->darray[xd->gim->numDA-1]->coordsys[CSind] ) {
         fprintf(stderr,"** found xformspace without coordsys, skipping...\n");
         xd->skip = xd->depth;
         return 1;
     }
 
-    xd->cdata = &xd->gim->darray[xd->gim->numDA-1]->coordsys->xformspace;
+    xd->cdata = &xd->gim->darray[xd->gim->numDA-1]->coordsys[CSind]->xformspace;
     *xd->cdata = NULL;                      /* init to empty */
     xd->clen = 0;
     return 0;
@@ -1124,7 +1138,15 @@ static int push_xspace(gxml_data * xd)
 /* verify the processing buffer space */
 static int push_xform(gxml_data * xd, const char ** attr)
 {
-    if( !xd->gim->darray[xd->gim->numDA-1]->coordsys ) {
+    int CSind = xd->gim->darray[xd->gim->numDA-1]->numCS-1;
+    if( CSind < 0 ) {
+        fprintf(stderr,"** PXform: bad numCS %d in darray %d, skipping...",
+                CSind+1, xd->gim->numDA-1);
+        xd->skip = xd->depth;
+        return 1;
+    }
+
+    if( !xd->gim->darray[xd->gim->numDA-1]->coordsys[CSind] ) {
         fprintf(stderr,"** found xform without coordsys, skipping...\n");
         xd->skip = xd->depth;
         return 1;
@@ -1730,15 +1752,21 @@ static int append_to_xform(gxml_data * xd, const char * cdata, int len)
     double    * dptr;
     char      * cptr;
     long long   rem_vals;
-    int         rem_len = len, copy_len, unused;
+    int         rem_len = len, copy_len, unused, CSind;
     int         type = gifti_str2datatype("NIFTI_TYPE_FLOAT64"); /* double */
 
-    if( !da || !xd->xlen || !xd->xdata || xd->dind < 0 ) {
-        fprintf(stderr,"** A2X: bad setup (%p,%d,%p,%lld)\n",
-                (void *)da, xd->xlen, (void *)xd->xdata, xd->dind);
+    if( !da || !xd->xlen || !xd->xdata || xd->dind < 0 || da->numCS <= 0) {
+        fprintf(stderr,"** A2X: bad setup (%p,%d,%p,%lld,%d)\n",
+                (void *)da, xd->xlen, (void *)xd->xdata, xd->dind, da->numCS);
         return 1;
     } else if( xd->verb > 4 )
         fprintf(stderr,"++ appending %d bytes to xform\n",len);
+
+    CSind = da->numCS-1;
+    if( !da->coordsys || !da->coordsys[CSind] ) {
+        fprintf(stderr,"** A2X: bad coordsys[%d]\n", CSind);
+        return 1;
+    }
 
     /* if there is only whitespace, blow outta here */
     if( whitespace_len(cdata, len) == len ) { xd->doff = 0; return 0; }
@@ -1771,7 +1799,7 @@ static int append_to_xform(gxml_data * xd, const char * cdata, int len)
 
         /*--- process the ascii data ---*/
         if( xd->dind == 0 ) mod_prev = 0;       /* nothing to modify at first */
-        dptr = (double *)da->coordsys->xform + (xd->dind);  /* as array */
+        dptr = (double *)da->coordsys[CSind]->xform + (xd->dind); /* as array */
         xd->doff = decode_ascii(xd,
                         xd->xdata,              /* data source */
                         xd->doff+copy_len,      /* data length */
@@ -2429,7 +2457,8 @@ static int ewrite_darray(gxml_data * xd, giiDataArray * da, FILE * fp)
     /* write sub-elements */
     xd->depth++;
     ewrite_meta(xd, &da->meta, fp);
-    ewrite_coordsys(xd, da->coordsys, fp);
+    for( c = 0; c < da->numCS; c++ )
+        ewrite_coordsys(xd, da->coordsys[c], fp);
     ewrite_data(xd, da, fp);
     xd->depth--;
 
