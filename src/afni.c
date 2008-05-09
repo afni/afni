@@ -1420,6 +1420,7 @@ int main( int argc , char *argv[] )
                            if( getenv((nm)) == NULL ){           \
                              strcpy(str,(nm)); strcat(str,"=");  \
                              strcat(str,val);  putenv(str);      \
+                             if( PRINT_TRACING ) STATUS(str) ;   \
                            }} while(0)
 
    PUTENV("AFNI_CROSSHAIR_LINES","YES") ;
