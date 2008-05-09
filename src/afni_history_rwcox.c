@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , MAY , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Modify PUTENV macro to malloc new string for each variable" ,
+   "Previously used an array str[256] that would go away, and that's\n"
+   "actually not legal in Linux -- the array must be permanent, since its\n"
+   "pointer is what gets put in the environment, not a copy of the string. \n"
+   "That's why the PUTENV didn't work on Linux (but worked for some reason\n"
+   "on Mac OS X)!  Sheesh." } ,
+
  { 8 , MAY , 2008 , RWC , "ROI drawing plugin" , MICRO , TYPE_GENERAL ,
    "Change info label to show BRIK filename rather than dataset prefix" ,
    NULL } ,
