@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, MAY, 2008, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
+   "gifticlib-1.0.0: initial release",
+   "includes support for (set/clear/read/write) external data files"
+ } ,
+
+ { 13, MAY, 2008, RCR, "gifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -set_extern_filelist option, and help for using external data files",
+   NULL
+ } ,
+
  { 9, MAY, 2008, RCR, "GIFTI", MINOR, TYPE_MODIFY,
    "gifticlib-0.0.18: giiCoordSystem is now an array of struct pointers",
    "modified GIFTI library, along with suma_gifti.c"

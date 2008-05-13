@@ -231,6 +231,7 @@ int    gifti_free_LabelTable    (giiLabelTable * t);
 int    gifti_free_nvpairs       (nvpairs * p);
 
 int    gifti_read_dset_numDA    (const char * fname);
+int    gifti_read_extern_DA_data(giiDataArray * da);
 int    gifti_set_atr_in_DAs     (gifti_image *gim, const char *name,
                                  const char *value, const int *dalist, int len);
 int    gifti_set_DA_atrs        (giiDataArray * da, const char ** attr, int len,
@@ -240,6 +241,7 @@ int    gifti_set_DA_meta        (gifti_image *gim, const char *name,
                                  const char *value, const int * dalist,
                                  int len, int replace);
 int    gifti_set_dims_all_DA    (gifti_image * gim, int ndim, const int * dims);
+int    gifti_set_extern_filelist(gifti_image * gim, int nfiles, char ** files);
 int    gifti_update_nbyper      (gifti_image * gim);
 int    gifti_valid_DataArray    (const giiDataArray * da, int whine);
 int    gifti_valid_datatype     (int dtype, int whine);
@@ -250,6 +252,7 @@ int    gifti_valid_LabelTable   (const giiLabelTable * T, int whine);
 int    gifti_valid_nbyper       (int nbyper, int whine);
 int    gifti_valid_num_dim      (int num_dim, int whine);
 int    gifti_valid_nvpairs      (const nvpairs * nvp, int whine);
+int    gifti_write_extern_DA_data(giiDataArray * da);
 
 /* comparison functions */
 int gifti_compare_coordsys      (const giiCoordSystem * s1,
