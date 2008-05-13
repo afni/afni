@@ -97,9 +97,13 @@ static char * gifti_history[] =
   "0.18 08 May, 2008 : DataArray can now contain a list of CoordSystems\n",
   "     - modified giiDataArray struct: new numCS, coordsys is now CS**\n"
   "     - added gifti_free_CS_list, gifti_add_empty_CS\n"
+  "1.0  13 May, 2008 : release version of gifticlib\n",
+  "     - (allow external data)\n"
+  "     - added gifti_read/write_extern_DA_data() and\n"
+  "             gifti_set_extern_filelist()\n"
 };
 
-static char gifti_version[] = "gifti library version 0.18, 8 May, 2008";
+static char gifti_version[] = "gifti library version 1.0, 13 May, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -865,7 +869,7 @@ int gifti_valid_dims(const giiDataArray * da, int whine)
         vals *= da->dims[c];
     }
 
-    /* each DA must have the same length (hmmm, we should check all dims...) */
+    /* verify computed vals and nbyper against stored ones */
     if( vals != da->nvals ) {
         if( G.verb > 3 ) {
             fprintf(stderr,"** nvals = %lld does not match %lld for dims[%d]: ",
@@ -1791,6 +1795,207 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
 }
 
 /*---------------------------------------------------------------------*/
+/*! Allocate and fill the data array with data read from the given
+ *  external file.
+ *
+ *  return 0 on success
+*//*-------------------------------------------------------------------*/
+int gifti_read_extern_DA_data(giiDataArray * da)
+{
+    FILE      * fp;
+    long long   nbytes, nread;
+
+    if( !da || !da->ext_fname || !*da->ext_fname ) return 0;
+
+    if(G.verb > 4) fprintf(stderr,"-- external read of '%s'\n",da->ext_fname);
+
+    if( da->ext_offset < 0 ) {
+        fprintf(stderr,"** want external DA data with bad offset %lld\n",
+                da->ext_offset);
+        return 1;
+    } else if( da->data ) {
+        fprintf(stderr,"** want external DA data but data already allocated\n");
+        return 1;
+    } else if ( !gifti_valid_dims(da, 1) ) {
+        fprintf(stderr,"** cannot read external DA data with bad dims...\n");
+        return 1;
+    }
+
+    /* allocate data */
+    nbytes = da->nvals * da->nbyper;
+    da->data = calloc(da->nvals, da->nbyper); /* zero in case of read failure */
+    if( !da->data ) {
+        fprintf(stderr,"** failed to alloc %lld bytes for external read\n",
+                nbytes);
+        return 1;
+    }
+
+    /* open file, jump to offset and read */
+    fp = fopen(da->ext_fname, "r");
+    if( !fp ) {
+        fprintf(stderr,"** ext read: failed to open '%s'\n",da->ext_fname);
+        return 1;
+    }
+
+    if( fseek(fp, da->ext_offset, SEEK_SET) ) {
+        fprintf(stderr,"** ext read: failed to seek to %lld in '%s'\n",
+                da->ext_offset, da->ext_fname);
+        fclose(fp); return 1;
+    }
+
+    nread = fread(da->data, sizeof(char), nbytes, fp);
+    fclose(fp);  /* close now in any case */
+
+    if( nread != nbytes ) {
+        fprintf(stderr,"** ext_read: read only %lld of %lld bytes from %s\n",
+                nread, nbytes, da->ext_fname);
+        return 1;
+    }
+
+    if(G.verb > 2)
+        fprintf(stderr,"-- read %lld bytes from external '%s' @ %lld\n",
+                       nbytes, da->ext_fname, da->ext_offset);
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Write DA data to the given external file.
+ *
+ *  Note: the given ext_offset _must_ refer to the current end of file.
+ *
+ *  return 0 on success
+*//*-------------------------------------------------------------------*/
+int gifti_write_extern_DA_data(giiDataArray * da)
+{
+    FILE      * fp;
+    long long   nbytes, nwritten, posn;
+
+    if( !da || !da->ext_fname || !*da->ext_fname ) return 0;
+
+    if(G.verb > 4) fprintf(stderr,"-- external write to '%s'\n",da->ext_fname);
+
+    if( da->ext_offset < 0 ) {
+        fprintf(stderr,"** bad offset for external DA data write, %lld\n",
+                da->ext_offset);
+        return 1;
+    } else if( !da->data ) {
+        fprintf(stderr,"** no data for external DA data write\n");
+        return 1;
+    } else if ( !gifti_valid_dims(da, 1) ) {
+        fprintf(stderr,"** cannot write external DA data with bad dims...\n");
+        return 1;
+    }
+
+    nbytes = da->nvals * da->nbyper;
+
+    /* open file for append and verify that the file offset matches this one */
+    fp = fopen(da->ext_fname, "a+");
+    if( !fp ) {
+        fprintf(stderr,"** ext write: failed to open '%s' for append\n",
+                da->ext_fname);
+        return 1;
+    }
+
+    /* we should be at the end of the file, which measn posn da->ext_offset */
+    fseek(fp, 0, SEEK_END);  /* append should write to the end, but be sure */
+    posn = ftell(fp);
+    if( posn != da->ext_offset ) {
+        fprintf(stderr,"** ext write: cur posn (%lld) not ext_offset (%lld)"
+                       " in file %s\n", posn, da->ext_offset, da->ext_fname);
+        fclose(fp); return 1;
+    }
+
+    nwritten = fwrite(da->data, sizeof(char), nbytes, fp);
+
+    fclose(fp);         /* close now in any case */
+
+    if( nwritten != nbytes ) {
+        fprintf(stderr,"** ext_write: appended only %lld of %lld bytes to %s\n",
+                nwritten, nbytes, da->ext_fname);
+        return 1;
+    }
+
+    if(G.verb > 2)
+        fprintf(stderr,"-- appended %lld bytes to external '%s' @ %lld\n",
+                       nbytes, da->ext_fname, da->ext_offset);
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Apply the file list as external files.
+ *
+ *  The files are assumed to be partitioned by DataArray entries.  So
+ *  the list length must divide numDA evenly.
+ *
+ *  External files are not checked for her, as this is independent of any
+ *  read or write operation.
+ *
+ *  return 0 on success
+*//*-------------------------------------------------------------------*/
+int gifti_set_extern_filelist(gifti_image * gim, int nfiles, char ** files)
+{
+    giiDataArray * da;
+    long long      nbytes, offset;
+    int            nper;
+    int            daindex, findex, oindex;
+
+    if(!gim || gim->numDA <= 0 || nfiles <= 0 || !files) {
+        if(G.verb>1) fprintf(stderr,"-- set_extern_filelist: nothing to do\n");
+        return 1;
+    }
+
+    if(G.verb > 4) fprintf(stderr,"-- set_extern_flist for %d files\n", nfiles);
+
+    nper = gim->numDA / nfiles;
+    if( nfiles * nper != gim->numDA ) { /* be sure division is integral */
+        fprintf(stderr,"** Cannot evenly divide %d DataArrays by %d"
+                       " external files\n", gim->numDA, nfiles);
+        return 1;
+    }
+
+    /* note and check nbytes */
+    nbytes = gim->darray[0]->nvals * gim->darray[0]->nbyper;
+    if( nbytes <= 0 ) {
+        fprintf(stderr,"** gifti_set_extern_filelist: bad nbytes\n");
+        return 1;
+    }
+
+    daindex = 0;  /* DataArray index */
+    for( findex = 0; findex < nfiles; findex++ ) {
+        if( !files[findex] || !*files[findex] ) {
+            fprintf(stderr,"** set_extern_flist: missing filename %d\n",findex);
+            return 1;
+        }
+
+        /* within this file, offset will be multiples of nbytes */
+        for( oindex=0, offset=0; oindex < nper; oindex++, offset += nbytes ) {
+            da = gim->darray[daindex];
+
+            if( nbytes != da->nvals * da->nbyper ) {
+              fprintf(stderr,"** set_extern_flist: nbytes mismatch at DA[%d]\n",
+                      daindex);
+              return 1;
+            }
+
+            /* set encoding and external file fields */
+            da->encoding   = GIFTI_ENCODING_EXTBIN;
+            da->ext_fname  = gifti_strdup(files[findex]);
+            da->ext_offset = offset;
+
+            daindex++;  /* increment DataArray index every time */
+        }
+    }
+
+    if(G.verb > 2)
+        fprintf(stderr,"++ set extern file list, %d files, %d DAs per file",
+                nfiles, nper);
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------*/
 /*! Given a NIFTI_INTENT string, such as "NIFTI_INTENT_NODE_INDEX",
  *  return the corresponding integral intent code.  The intent code is
  *  the macro value defined in nifti1.h.
@@ -2161,7 +2366,7 @@ int gifti_copy_DA_meta(giiDataArray *dest, giiDataArray *src, const char *name)
 *//*-------------------------------------------------------------------*/
 int gifti_copy_all_DA_meta(giiDataArray *dest, giiDataArray *src)
 {
-    int c, rv;
+    int c, rv = 0;
 
     if( !dest || !src ) {
         if( G.verb > 0 )

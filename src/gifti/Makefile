@@ -4,15 +4,16 @@
 # might not have zlib
 APPLY_ZLIB = -DHAVE_ZLIB
 
-NIFTI_DIR = ../../nifti/Clibs
+# NIFTI_DIR = ../../nifti/Clibs
+NIFTI_DIR = ../nifti
 
 LIBTOOL = libtool
 
 C_LIBFLAGS = -03 -fPIC -DPIC $(APPLY_ZLIB)
 INST_DIR = /usr/lib
-VER = 0.0.9
+VER = 1.0.0
 
-# CFLAGS = -Wall -g -pedantic -std=c99 $(APPLY_ZLIB)
+# CFLAGS = -Wall -Wextra -g -pedantic -std=c99 $(APPLY_ZLIB)
 CFLAGS = -O3 $(APPLY_ZLIB)
 IFLAGS = -I$(NIFTI_DIR)/include
 LFLAGS = -L$(NIFTI_DIR)/lib
