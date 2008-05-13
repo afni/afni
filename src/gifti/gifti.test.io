@@ -9,9 +9,10 @@ set prog = gifti_tool   # was gifti_test
 # if the user specifies -nots, skip the time series dataset
 set narg = $#argv
 set base = 1
+set gt_comp = 0
 if ( $narg >= 1 ) then
     if ( "$argv[1]" == "-help" ) then
-        echo "usage: gifti.test.io [-nots] [files...]"
+        echo "usage: gifti.test.io [-nots] [-gt_compare] [files...]"
         echo ""
         echo "option:"
         echo "    -nots         : do not process *time_series*.gii"
@@ -23,9 +24,13 @@ if ( $narg >= 1 ) then
         echo "    gifti.test.io -nots *.gii"
 
         exit
+    else if ( "$argv[1]" == "-gt_compare" ) then
+        @ narg --
+        @ base ++
+        set gt_comp = 1
     else if ( "$argv[1]" == "-nots" ) then
         @ narg --
-        set base = 2
+        @ base ++
         set skip_ts = 1
     endif
 endif
@@ -53,7 +58,15 @@ foreach file ( $files )
     if( $status ) then
         echo "** FAILURE : $prog -infile $file -no_updates -write_gifti new.gii"
     else
-        cmp $file new.gii
-        if( ! $status ) echo okay
+        if ( $gt_comp ) then
+            gifti_tool -compare_gifti -compare_data -infiles $file new.gii  \
+                >& /dev/null
+            set result = $status
+            if ( $result ) echo '** differs **'
+        else
+            cmp $file new.gii
+            set result = $status
+        endif
+        if( ! $result ) echo okay
     endif
 end
