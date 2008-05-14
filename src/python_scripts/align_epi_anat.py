@@ -239,7 +239,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = 1.03 # software version (update for changes)
+      self.align_version = 1.04 # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -303,7 +303,7 @@ class RegWrap:
                              ["-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB"\
                               " -warp aff -master SOURCE"],\
                                helpstr="Options passed to 3dAllineate.")
-      self.valid_opts.add_opt('-perc', 1, ['50'])
+      self.valid_opts.add_opt('-perc', 1, ['90'])
 #      self.valid_opts.add_opt('-fresh', 0, [])
       self.valid_opts.add_opt('-suffix', 1,['_al'])
       self.valid_opts.add_opt('-cost', 1,['lpc'])
@@ -330,7 +330,7 @@ class RegWrap:
 
       # do volume registration of EPI as part of this whole mess
       self.valid_opts.add_opt('-volreg', 1, ['on'], ['on','off'])
-      self.valid_opts.add_opt('-volreg_opts', -1, [])
+      self.valid_opts.add_opt('-volreg_opts', -1, ["-cubic"])
  
       # do time shifting
       self.valid_opts.add_opt('-tshift', 1, ['on'], ['on','off'])
@@ -747,16 +747,22 @@ class RegWrap:
                 "3dAttribute DELTA %s" % dset.input(), ps.oexec,capture=1)
        com.run()
        if  ps.dry_run():
-           return (1.2)
-       com
+          return (1.2)
+
+       # new purty python way (donated by rick)
+       min_dx = min([float(com.val(0,i)) for i in range(3)])
        
-       min_dx = 1000.0       # some high number to start
-       i = 0
-       while i < 3 :    # find the smallest of the 3 dimensions
-          dx = float(com.val(0,i))
-          if (dx<min_dx):
-              min_dx = dx
-          i += 1    
+       # old non-pythonesque way
+       if 0:
+          min_dx = 1000.0       # some high number to start
+          i = 0
+          while i < 3 :    # find the smallest of the 3 dimensions
+             dx = float(com.val(0,i))
+             if (dx<min_dx):
+                 min_dx = dx
+             i += 1    
+
+
        if(min_dx==0.0):
            min_dx = 1.0
        return (min_dx)
@@ -975,7 +981,6 @@ class RegWrap:
             com = shell_com(  \
             "3dbucket -prefix %s %s'[0]'" % (o.out_prefix(), e.input()), ps.oexec)
          com.run();
-         o.show()
          if (not o.exist() and not ps.dry_run()):
             print "** ERROR: Could not 3dTstat epi"
             return None
@@ -1008,8 +1013,8 @@ class RegWrap:
          o.delete(ps.oexec)
          # save the volreg output to file names based on original epi name
          #  (not temporary __tt_ names)
-         self.mot_1D = "%s_motion.1D" % prefix
-         self.reg_mat = "%s_mat.aff12.1D" % prefix
+         self.mot_1D = "%s_motion.1D" % o.out_prefix()      # prefix
+         self.reg_mat = "%s_mat.aff12.1D" % o.out_prefix()  # prefix
          self.info_msg( "Volume registration for epi data")
          # user option for which registration program (3dvolreg,3dWarpDrive,...)
          opt = self.user_opts.find_opt('-volreg_method')
@@ -1492,7 +1497,7 @@ if __name__ == '__main__':
    #Create a weight for final pass
    ps.epi_wt = \
       ps.create_weight( e, float(ps.sqmask), ps.boxmask, \
-                        ps.binmask, -1, -1, suf = "_wt")
+                        ps.binmask, ps.perc, -1, suf = "_wt")
    if(ps.prep_only):  # if preprocessing only, exit now
       ps.ciao(0)
       
