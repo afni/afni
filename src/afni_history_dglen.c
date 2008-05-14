@@ -49,10 +49,14 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 14 , MAY , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX , "1D file names for child epi data,micro changes" ,
+    NULL
+} ,
 
 { 17 , APR , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_MODIFY , "minor changes" ,
-    "Child epi datasets can be volume registeredeven if parent epi\n"
+    "Child epi datasets can be volume registered even if parent epi\n"
     "is a single sub-brick"
 } ,
 
