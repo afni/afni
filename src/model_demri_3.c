@@ -364,6 +364,7 @@ static int ct_from_cp(demri_params * P, double * ct, float * cp,
         resid = P->rct;
         /* elist is not long enough, even if we take it to nfirst-1 (since
            we must start at 1), so be a little slow */
+        dval = exp(P3); /* note: this assumes new kep, not quite accurate */
         for( n = 0; n < len; n++ ) { resid *= dval; ct[n] += resid; }
     }
 
