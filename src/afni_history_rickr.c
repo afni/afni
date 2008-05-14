@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_BUG_FIX,
+   "fixed application of decay term",
+   NULL
+ } ,
+
  { 13, MAY, 2008, RCR, "GIFTI", MINOR, TYPE_NEW_OPT,
    "gifticlib-1.0.0: initial release",
    "includes support for (set/clear/read/write) external data files"
