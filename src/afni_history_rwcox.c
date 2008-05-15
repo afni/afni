@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , MAY , 2008 , RWC , "thd_initdblk.c" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_IGNORE_BRICK_FLTFAC = YES means ignore brick factors on input" ,
+   "This is a quick hack for Ziad, and must be used with care!  Example:\n"
+   "  3dBrickStat -DAFNI_IGNORE_BRICK_FLTFAC=YES -max -slow fred+orig" } ,
+
  { 9 , MAY , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Modify PUTENV macro to malloc new string for each variable" ,
    "Previously used an array str[256] that would go away, and that's\n"

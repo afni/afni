@@ -248,10 +248,12 @@ ENTRY("THD_datablock_from_atr") ;
 
    /* scaling factors from short type to float type, if nonzero */
 
-   atr_flt = THD_find_float_atr( dblk , ATRNAME_BRICK_FLTFAC ) ;
-   if( atr_flt != NULL ){
-     for( ibr=0 ; ibr < nvals && ibr < atr_flt->nfl ; ibr++ )
-       dblk->brick_fac[ibr] = atr_flt->fl[ibr] ;
+   if( !AFNI_yesenv("AFNI_IGNORE_BRICK_FLTFAC") ){
+     atr_flt = THD_find_float_atr( dblk , ATRNAME_BRICK_FLTFAC ) ;
+     if( atr_flt != NULL ){
+       for( ibr=0 ; ibr < nvals && ibr < atr_flt->nfl ; ibr++ )
+         dblk->brick_fac[ibr] = atr_flt->fl[ibr] ;
+     }
    }
 
    /** Now create an empty shell of the "brick" == the data structure
