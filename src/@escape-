@@ -2,10 +2,10 @@
 #Add a shell escape before the first dash in argument
 #  @escape- one -two three
 set  ll = ()
-foreach jjj ("$*")
+foreach jjj ($*)
    #set jjj = `echo "$jjj" | sed 's/#/ /g' | sed 's/{/ /g' | sed 's/}/ /g' | sed 's/(/ /g' | sed 's/)/ /g' | sed 's/\[/ /g' | sed 's/\]/ /g'`
    #Needed to add two \\ to the rash of '\' in sed's command. That's not needed on command line but it has to be in the script
-   set a = "`echo $jjj | sed 's/^-/\\\\-/'`"
+   set a = "`echo $jjj | sed 's/^-/\\-/'`"
    #echo ddd $jjj "$a"
    set ll = ($ll "$a")
 end

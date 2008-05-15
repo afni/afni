@@ -32,6 +32,8 @@ int * SUMA_disaster(void)
    int i;
    
    SUMA_ENTRY;
+   
+   SUMA_S_Notev("Domemtrace %d\n", get_Domemtrace());
    N_iv1 = 5;
    N_iv2 = 5;
    iv1 = (int*) SUMA_calloc(N_iv1, sizeof(int));
@@ -43,7 +45,12 @@ int * SUMA_disaster(void)
    /* overwrite iv2 */
    iv2[N_iv2] = 7;
    
+   /* MEMCHECK should give a warning */
+   SUMA_S_Note("Memcheck output");
+   MCHECK ; fflush(stdout) ; /* ZSS */
+
    /* free iv1 (that should give a warning)*/
+   SUMA_S_Note("Now freeing iv1");
    SUMA_free(iv1); /* without the -trace option, 
                       you'll get a warning of this corruption here */
 
@@ -52,9 +59,12 @@ int * SUMA_disaster(void)
    /* SUMA_free(iv3);*/
          
    /* don't free iv2, that should only give a warning when you exit with -trace option turned on */
+   SUMA_S_Note("Now dumping malloc table");
+   mcw_malloc_dump();
    
    /* if you use -trace, you'll get a warning at the return for iv2 
    All allocated memory will be checked, at the return, not just iv2*/   
+   SUMA_S_Note("Now returning");
    SUMA_RETURN(iv2); 
 }
 

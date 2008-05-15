@@ -17,7 +17,7 @@
 //#include "svm_learn.h"
 #include "mrilib.h"
 
-#define CLASS_MAX 20
+#define CLASS_MAX 300
 #define SCALE 4000000
 #define MAX_FILE_NAME_LENGTH 500
 #define LONG_STRING 500
@@ -52,8 +52,8 @@ typedef struct ASLoptions{
 typedef struct labels {
   LabelType *lbls;			/* the class labels indicating the stimulus categories for fMRI data */
   LabelType *cnsrs;			/* indicates which labels to ignore (value == 0) or use (value == 1) */
-  int       n_classes;			/* number of different classes allowed (for multiclass) */
   int       class_list[CLASS_MAX];	/* hold class numbers appearing in classfile */
+  int       n_classes;			/* number of different classes allowed (for multiclass) */
   long      n;				/* the number of labels and censors */
 }LABELS;
 
@@ -61,7 +61,14 @@ typedef struct afniSvmModelHead {
     int class_count;		/* number of classes (stimulus categories) */
     int combinations;		/* all possible pair-wise combinations of class_count  - would like to be long*/
     int timepoints;		/* total number (even counting censored data  - would like to be long*/
-    char combName[10][(CLASS_MAX * (CLASS_MAX-1))/2];		/* short string describing the class combinations (e.g. '0_1','0_3') */
+    char combName[(CLASS_MAX * (CLASS_MAX-1))/2][10];		
+         /* short string describing the class combinations (e.g. '0_1','0_3') 
+            ZSS: Changed from [10][...] to [...][10] 
+            See how combName was used in function train_routine
+            where classCount is the variable used to index into combName's 
+            first dimension. classCount goes to (CLASS_MAX * (CLASS_MAX-1))/2
+            and the previous declaration was causing bad corruption with other
+            pointers. */
     int *kernel_type; 
     int *polynomial_degree; 
     float *rbf_gamma;

@@ -24,6 +24,10 @@ int main( int argc, char *argv[] )
   THD_3dim_dataset *dsetModel = NULL;
   char errorString[LONG_STRING];
 
+   enable_mcw_malloc(); /* ZSS helps locate some memory problems*/
+
+   mainENTRY("3dsvm"); /* ZSS, see -trace option in input_parse*/
+
   /*----- COMMAND LINE PARSE -> OPTIONS --------*/
   strcpy(errorString,"OK");
   input_parse(argc,argv,&verbosity,&kernel_cache_size,&learn_parm,&kernel_parm,&options,&mode,&errorString[0]);
@@ -54,7 +58,7 @@ int main( int argc, char *argv[] )
   }
 
 
-  return 0;
+  RETURN(0);
 }
 
 

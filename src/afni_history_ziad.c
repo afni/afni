@@ -65,6 +65,21 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 15 , MAY , 2008 , ZSS , "3dmaskdump" , MINOR , TYPE_NEW_OPT ,
+   "added -n_rand and -n_randseed.",
+   NULL
+ } ,
+
+ { 15 , MAY , 2008 , ZSS , "3dfim+" , MINOR , TYPE_BUG_FIX ,
+   "Fixed memory corruption when using more than 20 regressors",
+   NULL
+ } ,
+
+ { 8 , MAY , 2008 , ZSS , "3dsvm" , MAJOR , TYPE_BUG_FIX ,
+   "Fixed memory corruption caused by improper declaration of combName",
+   NULL
+ } ,
+
  { 24 , APR , 2008 , ZSS , "SurfSmooth" , MICRO , TYPE_BUG_FIX ,
    "Fixed leaky SurfSmooth.",
    "Leak was from one of fin_float pointers in Head07\n"

@@ -1554,5 +1554,6 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    flops += n*n*(n+2.0*m+2.0) ;
 #endif
    free((void *)xfac); free((void *)sval);
-   free((void *)vmat); free((void *)umat); return;
+   free((void *)vmat); free((void *)umat); 
+return;
 }

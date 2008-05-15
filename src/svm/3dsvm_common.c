@@ -133,13 +133,13 @@ float **Allocate2f(long index1, long index2)
 void free2f(float **x, long index1)
 {
   long i;
-
+   ENTRY("free2f");
   for(i = 0; i < index1; i++) {
     free(x[i]);
   }
   free(x);
 
-  return;
+  EXRETURN;
 }
 
 /****************************************************************
@@ -351,7 +351,8 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
   char p[100],*q; /* used for strtok magic */
   char headernames[100];
 
-
+   ENTRY("readAllocateAfniModel");
+   
   atr_int = THD_find_int_atr( dsetModel->dblk, "CLASS_COUNT" );
   afniModel->class_count = *atr_int->in;
 
@@ -440,6 +441,9 @@ void readAllocateAfniModel( THD_3dim_dataset *dsetModel,  AFNI_MODEL *afniModel)
       afniModel->alphas[i][j] = (double)atr_float->fl[j];
     }
   }
+   
+
+   EXRETURN;
 
 }
 
@@ -510,7 +514,7 @@ void writeModelMask( THD_3dim_dataset *dsetMask, MaskType* dsetMaskArray, char *
   char maskCopyName[MAX_FILE_NAME_LENGTH];
   THD_3dim_dataset* dsetMaskCopy;
   int ityp;
-
+   ENTRY("writeModelMask");
   /* Write out model mask (actually, just a simple copy of mask used) */
   sprintf( maskCopyName, "%s%s", fileName, MODEL_MSK_EXT );
   dsetMaskCopy = EDIT_empty_copy(dsetMask);
@@ -531,6 +535,7 @@ void writeModelMask( THD_3dim_dataset *dsetMask, MaskType* dsetMaskArray, char *
 
   printf("Writing model dataset mask...\n");
   THD_write_3dim_dataset( "./", maskCopyName, dsetMaskCopy, True );
+  EXRETURN;
 }
 
 /*-----------------------------------------------------------*/
@@ -590,7 +595,7 @@ void addToAfniModel(AFNI_MODEL *afniModel, char *alphaFile, MODEL *model, LabelT
 
   /* it is difficult to access the alpha values without making modifications to the svmlight
    * source. So, for now, we are just reading in the file output by svmlight
-   *******************************************************************************************/ 
+   *******************************************************************************************/
   tmp_alphas = (double *)malloc(sizeof(double)*sampleCount);
   if( tmp_alphas  == NULL ) {
     fprintf(stderr, "memory allocation error! could not allocate tmp_alphas.\n");
@@ -711,6 +716,7 @@ void getTmpLabels(LabelType *tmp_labels,long *sampleCount, LABELS *labels, long 
 
 void freeAfniModel(AFNI_MODEL *afniModel)
 {
+  ENTRY("freeAfniModel");
   free( afniModel->kernel_type );
   free( afniModel->polynomial_degree );
   free( afniModel->rbf_gamma );
@@ -722,6 +728,7 @@ void freeAfniModel(AFNI_MODEL *afniModel)
   free( afniModel->b );
 
   free2f(afniModel->alphas,afniModel->combinations);
+  EXRETURN;
 }
 
 void allocateAfniModel(AFNI_MODEL *afniModel,LABELS *labels)
@@ -753,12 +760,13 @@ void allocateAfniModel(AFNI_MODEL *afniModel,LABELS *labels)
 
 void freeLabels(LABELS *labels)
 {
+  ENTRY("freeLabels");
   // free labels.labels
   free(labels->lbls);
 
   // free labels.censors
   free(labels->cnsrs);
-
+   EXRETURN;
 }
 
 //void getLabels(LABELS *labels,ASLoptions *options)
@@ -768,6 +776,7 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
   int class_exists_flag = 0;
   long i,j,k, cc, dd;
 
+   ENTRY("getLabels");
   /*----- RETRIEVE LABEL FILE --------------*/
   labels->lbls = (LabelType*)malloc(sizeof(LabelType)*labels->n);
   if( labels->lbls == NULL ) {
@@ -834,7 +843,13 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
     }
     printf("\n");
   }
-
+   if (labels->n_classes >= CLASS_MAX) {
+      fprintf(stderr,"Error:\n"
+                     "Max numer of classes hard coded to %d\n"
+                     "Complain to the authors if you need more.\n",
+                     CLASS_MAX-1);
+      exit(1);
+   }
   /*----- RETRIEVE CENSOR FILE --------------*/
   labels->cnsrs = (LabelType*)malloc(sizeof(LabelType)*labels->n);
   if( labels->cnsrs == NULL ) {
@@ -1132,7 +1147,8 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
   long nvox_masked = 0;
   long i,j,k, cc, dd;
 
-
+   ENTRY("train_routine");
+   
   /*----- LOAD TRAINING DATA --------*/
   dsetTrain = THD_open_one_dataset( options->trainFile );
   if ( dsetTrain == NULL ) {
@@ -1190,8 +1206,12 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
   classCount = 0; /* could figure it out from cc and dd, but easier just to keep track */
   for( cc=0 ; cc < labels.n_classes-1; ++cc ) {
     for( dd=cc+1 ; dd < labels.n_classes; ++dd ) {
-
-      if(verbosity >= 1)  printf("\nPreparing classes %d and %d: \n", labels.class_list[cc], labels.class_list[dd]);
+      
+      if(verbosity >= 1)  { 
+         printf(  "\nPreparing classes %d and %d: \n", 
+                  labels.class_list[cc], labels.class_list[dd]);
+         if (verbosity > 1) MCHECK ; fflush(stdout) ; /* ZSS */
+      }   
 
       getTmpLabels(tmp_labels, &sampleCount, &labels, cc, dd);
       if(verbosity >= 1) printf( "sampleCount = %ld\n", sampleCount );
@@ -1271,7 +1291,8 @@ void train_routine(MODEL *model, LEARN_PARM *learn_parm, KERNEL_PARM *kernel_par
   freeLabels(&labels);
   freeAfniModel(&afniModel);
   free(tmp_labels);
-
+  
+  EXRETURN;
 }
 
 void input_parse(int argc,char *argv[],long *main_verbosity,
@@ -1334,6 +1355,11 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
 
   for( i=1 ; i<argc ; ++i ) {
     parseFlag = 0;
+    if( !strcmp(argv[i],"-trace")) { parseFlag = 1; ++i; DBG_trace=1; 
+            /* It is a good idea to use ENTRY(""), RETURN(); and EXRETURN;
+            macros in order to enable the tracing utility.
+            I have used them in a few places. ZSS */ }
+    if( !strcmp(argv[i],"-no_memcheck")) { pause_mcw_malloc(); /* ZSS */ }
     if( !strcmp(argv[i],"-z") ) { parseFlag = 1; ++i; strcpy(type,argv[i]); }
     if( !strcmp(argv[i],"-v") ) { parseFlag = 1; ++i; (*main_verbosity)=atol(argv[i]); verbosity = *main_verbosity; }
     if( !strcmp(argv[i],"-b") ) { parseFlag = 1; ++i; learn_parm->biased_hyperplane=atol(argv[i]); }

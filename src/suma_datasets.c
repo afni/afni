@@ -9562,12 +9562,13 @@ int SUMA_ParseInput_basics_eng (char *argv[], int argc)
    int kar;
 
    if (!argv) return (0);
-   if (argc < 2) return (0);
+   set_Domemtrace(1);
+   set_Doiotrace(0);
+
+   /* if (argc < 2) return (0); why insist on two parameters? */
 
    kar = 1;
    brk = 0;
-   set_Domemtrace(1);
-   set_Doiotrace(0);
    while (kar < argc) { /* loop accross tracing and debugging command line options */
 		if ((strcmp(argv[kar], "-memdbg") == 0) ||
           (strcmp(argv[kar], "-yesmall") == 0) ) {
@@ -9615,7 +9616,7 @@ void SUMA_ParseInput_basics_ns(char *argv[], int argc) /* for non-suma programs 
    static char FuncName[]={"SUMA_ParseInput_basics_ns"};
    
    if (!argv) return;
-   if (argc < 2) return;
+   /*if (argc < 2) return; why insist on two parameters? */
    
    if (!SUMA_ParseInput_basics_eng (argv, argc)) return;
    
