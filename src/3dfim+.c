@@ -36,8 +36,12 @@
 
 /*---------------------------------------------------------------------------*/
 
-#define MAX_FILES 20                        /* maximum number of ideal files */
-                                            /* = maximum number of ort files */
+#define MAX_FILES 200                        /* maximum number of ideal files */
+                                             /* = maximum number of ort files */
+                                             /* It looks like this is also the
+                                                limit on the number of regressors
+                                                (columns) in an ideal file 
+                                                   ZSS May 15 08 */ 
 #define RA_error FIM_error
 
 /*---------------------------------------------------------------------------*/
@@ -1215,7 +1219,6 @@ void calculate_results
       nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;       
       nt = DSET_NUM_TIMES (dset);
     }
-
   NFirst = option_data->NFirst;
   NLast = option_data->NLast;   
   N = option_data->N;
@@ -1226,7 +1229,18 @@ void calculate_results
   num_idealts     = option_data->num_idealts;
   num_ort_files   = option_data->num_ort_files;
   num_ideal_files = option_data->num_ideal_files;
-
+  if (num_idealts > MAX_FILES ||
+      num_ort_files > MAX_FILES ||
+      num_ideal_files > MAX_FILES ) {
+   /* ZSS: I used one ideal file with 30 regressors when MAX_FILE was 20
+   and I spent most of the day chasing memory corruption errors. 
+   Tested with 20 regressors and all was well so now limit is 200 ZSS May 08 */
+   fprintf(stderr,"Error: the number of ideal or ort regressors\n"
+                  "exceeds the hard coded limit of %d\n"
+                  "Contact authors if you need the limit extended.\n",
+                  MAX_FILES);
+   exit(0);     
+  }
 
   /*----- Allocate memory -----*/
   ts_array = (float *) malloc (sizeof(float) * nt);      MTEST (ts_array);
@@ -1513,7 +1527,7 @@ void write_bucket_data
       exit(1);
     }
   
-  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+  if (!THD_ok_overwrite() && THD_is_file(DSET_HEADNAME(new_dset))) 
     {
       fprintf(stderr,
 	      "*** Output dataset file %s already exists--cannot continue!\n",
@@ -1712,6 +1726,7 @@ int main
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
    }
 
+  enable_mcw_malloc();
   
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &dset_time, &mask_dset, 
@@ -1726,7 +1741,6 @@ int main
 		     ort_array, ort_list, ideal_array, ideal_list, 
 		     fim_params_vol);
   
-
   /*----- Deallocate memory for input datasets -----*/   
   if (dset_time != NULL)  
     { THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL; }

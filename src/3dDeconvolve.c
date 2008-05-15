@@ -2009,6 +2009,18 @@ void get_options
         option_data->glt_rows[iglt] = -1 ;  /* flag for symbolic read */
 
         option_data->glt_filename[iglt] = strdup( argv[nopt] ) ;
+        if (option_data->glt_filename[iglt]) {  /* ZSS May 08:remove trailing '\'
+                                                   or go into inf. loops */
+         int ss;
+         char *fdup=option_data->glt_filename[iglt];
+         ss = strlen(fdup)-1;
+         while (  ss >= 0 && 
+                  ( fdup[ss] == '\\' || isspace(fdup[ss]) ) ) { 
+            fdup[ss]='\0'; 
+            --ss; 
+         }
+       }
+
         iglt++ ; nopt++ ; continue ;
       }
 
@@ -8296,7 +8308,7 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
    int ii,jj ;
 
 ENTRY("read_glt_matrix") ;
-
+ 
    if( *nrows > 0 ){    /* standard read of numbers from a file*/
 
      matrix_file_read( fname , *nrows , ncol , cmat , 1 ) ;  /* mri_read_1D */
@@ -8314,7 +8326,6 @@ ENTRY("read_glt_matrix") ;
      if( strncmp(fname,"SYM:",4) == 0 ){  /* read directly from fname string */
        char *fdup=strdup(fname+4) , *fpt , *buf ;
        int ss , ns ;
-
        buf = fdup ;
        while(1){
                            fpt = strchr(buf,'\\'); /* find end of 'line' */
@@ -8367,7 +8378,6 @@ ENTRY("read_glt_matrix") ;
      if( jj == ncol )
        ERROR_message("row #%d of matrix '%s' is all zero!", ii+1 , fname ) ;
    }
-
    EXRETURN ;
 }
 

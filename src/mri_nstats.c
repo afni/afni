@@ -261,7 +261,8 @@ void THD_localstat_datum(int i) {
    if (  localstat_datum != MRI_byte &&
          localstat_datum != MRI_short &&
          localstat_datum != MRI_float) {
-      fprintf(stderr ,  "Warning: Datum can only be one of MRI_byte, MRI_short or MRI_float\n"
+      fprintf(stderr ,  "Warning: Datum can only be one of "
+                        "MRI_byte, MRI_short or MRI_float\n"
                         "Setting datum to float default.\n");
       localstat_datum = MRI_float;
    }

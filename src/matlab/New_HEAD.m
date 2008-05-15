@@ -32,7 +32,8 @@ function [err,Info, opt] = New_HEAD (opt)
 %             defaults to 1. It defaults to 0 for other types. It is
 %             used when storing float data as shorts to minimize disk
 %             use while preserving numeric percision.      
-%   
+%     .Overwrite: y/[n] allow header to be created even if one with
+%                 similar name is found on disk
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1  Problems
@@ -128,8 +129,11 @@ if (~isfield(opt,'view') | ~strcmp(opt.view,'+tlrc') | isfield(opt,'master')),
    if (isfield(opt,'prefix')),
       [Status, Prefix, View] = PrefixStatus (opt.prefix);
       if (Status < 1 & strcmp(View,opt.view)),
-         fprintf(1,'Error %s:\nLooks like %s exists already.\n', FuncName, opt.prefix);
-         return;
+         if (isfield(opt,'overwrite') & ~strcmp(opt.overwrite,'y')),
+            fprintf(1,'Error %s:\nLooks like %s exists already.\n',...
+                     FuncName, opt.prefix);
+            return;
+         end
       end
       opt.prefix = Prefix;
       ohead = sprintf('%s%s', tmp_suf, opt.prefix);
