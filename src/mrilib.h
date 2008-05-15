@@ -1435,9 +1435,13 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_BLOK_BALL 1  /* sphere */
 #define GA_BLOK_CUBE 2  /* cube */
 #define GA_BLOK_RHDD 3  /* rhombic dodecahedron */
+#define GA_BLOK_TOHD 4  /* truncated octahedron */
 
-#define GA_BLOK_STRING(b) \
- ( ((b)==GA_BLOK_BALL) ? "BALL" : ((b)==GA_BLOK_CUBE) ? "CUBE" : "RHDD" )
+#define GA_BLOK_STRING(b)  ( ((b)==GA_BLOK_BALL) ? "BALL" :          \
+                             ((b)==GA_BLOK_CUBE) ? "CUBE" :          \
+                             ((b)==GA_BLOK_RHDD) ? "RHDD" :          \
+                             ((b)==GA_BLOK_TOHD) ? "TOHD" :          \
+                                                            "UNKNOWN" )
 
  /* method codes for matching scalar-valued images */
 
