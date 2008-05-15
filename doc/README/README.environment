@@ -2576,6 +2576,14 @@ will instead be done using the shell directly (via popen and ls).  You should
 only set this variable if you really need it, and understand the issue!
 [For Graham Wideman]
 
+----------------------------------
+Variable: AFNI_IGNORE_BRICK_FLTFAC
+----------------------------------
+Under some very rare circumstances, you might want to ignore the brick scaling
+factors.  Set this variable to YES to do so.  WARNING: this is dangerous, so
+be sure to unset this variable when you are done.  Sample usage:
+  3dBrickStat -DAFNI_IGNORE_BRICK_FLTFAC=YES -max fred+orig
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
