@@ -821,8 +821,12 @@ int main( int argc , char *argv[] )
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
         " -blok bbb     = Blok definition for the 'lp?' (Local Pearson) cost\n"
-        "                 functions; 'bbb' is 'BALL(r)' or 'CUBE(r)' or 'RHDD(r)'\n"
-        "                 where 'r' is the radius in mm.\n"
+        "                 functions: 'bbb' is one of\n"
+        "                   'BALL(r)' or 'CUBE(r)' or 'RHDD(r)' or 'TOHD(r)'\n"
+        "                 corresponding to\n"
+        "                   spheres or cubes or rhombic dodecahedra or\n"
+        "                   truncated octahedra\n"
+        "                 where 'r' is the size parameter in mm.\n"
         "                 [Default is 'RHDD(6.54321)' (rhombic dodecahedron)]\n"
         " -allcost      = Compute ALL available cost functions and print them\n"
         "                 at various points.\n"
@@ -1960,6 +1964,8 @@ int main( int argc , char *argv[] )
          ia = 5 ; bloktype = GA_BLOK_CUBE ;
        } else if( strncmp(argv[iarg],"RHDD(",5) == 0 ){
          ia = 5 ; bloktype = GA_BLOK_RHDD ;
+       } else if( strncmp(argv[iarg],"TOHD(",5) == 0 ){
+         ia = 5 ; bloktype = GA_BLOK_TOHD ;
        } else {
          ERROR_exit("Illegal argument after -blok") ;
        }

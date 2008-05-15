@@ -6,6 +6,7 @@
 #define NTYPE_SPHERE 1
 #define NTYPE_RECT   2
 #define NTYPE_RHDD   3
+#define NTYPE_TOHD   4
 
 void mri_principal_vector_params( int a , int b ) ;
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
