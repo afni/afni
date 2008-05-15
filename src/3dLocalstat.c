@@ -122,7 +122,12 @@ int main( int argc , char *argv[] )
       "                          (e.g., outside the mask).\n"
       "               * FWHMbar= Compute just the average of the 3 FWHM values\n"
       "                          (normally would NOT do this with FWHM also).\n"
-      "               * ALL    = all of the above, in that order (except FWHMbar).\n"
+      "               * perc:P0:P1:Pstep = \n"
+      "                          Compute percentiles between P0 and P1 with a \n"
+      "                          step of Pstep.\n"
+      "                          Default P1 is equal to P0 and default P2 = 1\n" 
+      "               * ALL    = all of the above, in that order \n"
+      "                         (except FWHMbar and perc).\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
       " -mask mset  = Read in dataset 'mset' and use the nonzero voxels\n"
@@ -175,7 +180,8 @@ int main( int argc , char *argv[] )
         } else if( strcasecmp(argv[iarg],"byte") == 0 ){
            datum = MRI_byte ;
         } else {
-            ERROR_exit("-datum of type '%s' not supported in 3dLocalstat!\n",argv[iarg]) ;
+            ERROR_exit("-datum of type '%s' not supported in 3dLocalstat!\n",
+                        argv[iarg]) ;
         }
         iarg++ ; continue ;  
      }
@@ -203,7 +209,8 @@ int main( int argc , char *argv[] )
        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
-       if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
+       if( mask == NULL ) 
+         ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
        mmm = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        if( verb ) INFO_message("Number of voxels in mask = %d",mmm) ;
        if( mmm < 2 ) ERROR_exit("Mask is too small to process") ;
@@ -250,7 +257,8 @@ int main( int argc , char *argv[] )
          if (jmp == 0.0) jmp = 1.0;
          npv = ceil((stp - strt)/jmp);
          if (npv > MAX_CODE_PARAMS) {
-            ERROR_exit("A max of %d percentiles allowed. You have %d\n", MAX_CODE_PARAMS, npv);
+            ERROR_exit( "A max of %d percentiles allowed. You have %d\n", 
+                        MAX_CODE_PARAMS, npv);
          }
          ipv = 1;
          codeparams[ncode][1] = strt;
@@ -259,8 +267,9 @@ int main( int argc , char *argv[] )
          }
          codeparams[ncode][0] = ipv;
          iizz = (int)(codeparams[ncode][0]);
-         /* fprintf(stderr, 
-                     "Have %d percentiles (coded with %d) starting at code index %d\n",
+         /* fprintf( stderr, 
+                     "Have %d percentiles (coded with %d) "
+                     "starting at code index %d\n",
                       iizz, NSTAT_PERCENTILE, ncode); */
          for (ipv=0; ipv<iizz; ++ipv)  code[ncode++] = NSTAT_PERCENTILE;
        }                                                                           

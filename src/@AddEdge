@@ -16,7 +16,7 @@ PARSE:
    set ax_mont='2x2:24'
    set opa=9
    set argrem = ()
-   while ($cnt <= $Narg)
+   while ($cnt <= $Narg && $#argrem == 0)
       set donext = 1;
       
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then

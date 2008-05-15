@@ -6,6 +6,8 @@
 
 #include "mrilib.h"
 
+extern int *z_rand_order(int bot, int top, long int seed);
+
 /*----------------
   Another quickie.
 ------------------*/
@@ -26,6 +28,7 @@ int main( int argc , char * argv[] )
    int verb=1 ;
    int yes_niml=0 , no_zero=0 , numz ;   /* 04 Feb 2008 */
    int nout ; char **bout , *niml_name="maskdump" ;
+   int nrand = -1;
 
 #define BOXLEN   7
 #define BOX_XYZ  1
@@ -34,136 +37,146 @@ int main( int argc , char * argv[] )
 #define BOX_IJK  4
    int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 - RWCox */
    int nx,ny,nz,nxy,nxyz ;
-
+   unsigned int nrandseed = 1234;
+   
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dmaskdump [options] dataset dataset ...\n"
-             "Writes to an ASCII file values from the input datasets\n"
-             "which satisfy the mask criteria given in the options.\n"
-             "If no options are given, then all voxels are included.\n"
-             "This might result in a GIGANTIC output file.\n"
-             "Options:\n"
-             "  -mask mset   Means to use the dataset 'mset' as a mask:\n"
-             "                 Only voxels with nonzero values in 'mset'\n"
-             "                 will be printed from 'dataset'.  Note\n"
-             "                 that the mask dataset and the input dataset\n"
-             "                 must have the same number of voxels.\n"
-             "  -mrange a b  Means to further restrict the voxels from\n"
-             "                 'mset' so that only those mask values\n"
-             "                 between 'a' and 'b' (inclusive) will\n"
-             "                 be used.  If this option is not given,\n"
-             "                 all nonzero values from 'mset' are used.\n"
-             "                 Note that if a voxel is zero in 'mset', then\n"
-             "                 it won't be included, even if a < 0 < b.\n"
-       /*-- 09 May 2003: add -index option [rickr] */
-             "  -index       Means to write out the dataset index values.\n"
-             "  -noijk       Means not to write out the i,j,k values.\n"
-             "  -xyz         Means to write the x,y,z coordinates from\n"
-             "                 the 1st input dataset at the start of each\n"
-             "                 output line.  These coordinates are in\n"
-             "                 the 'RAI' (DICOM) order.\n"
-             "  -o fname     Means to write output to file 'fname'.\n"
-             "                 [default = stdout, which you won't like]\n"
-             "\n"
-             "  -cmask 'opts' Means to execute the options enclosed in single\n"
-             "                  quotes as a 3dcalc-like program, and produce\n"
-             "                  produce a mask from the resulting 3D brick.\n"
-             "       Examples:\n"
-             "        -cmask '-a fred+orig[7] -b zork+orig[3] -expr step(a-b)'\n"
-             "                  produces a mask that is nonzero only where\n"
-             "                  the 7th sub-brick of fred+orig is larger than\n"
-             "                  the 3rd sub-brick of zork+orig.\n"
-             "        -cmask '-a fred+orig -expr 1-bool(k-7)'\n"
-             "                  produces a mask that is nonzero only in the\n"
-             "                  7th slice (k=7); combined with -mask, you\n"
-             "                  could use this to extract just selected voxels\n"
-             "                  from particular slice(s).\n"
-             "       Notes: * You can use both -mask and -cmask in the same\n"
-             "                  run - in this case, only voxels present in\n"
-             "                  both masks will be dumped.\n"
-             "              * Only single sub-brick calculations can be\n"
-             "                  used in the 3dcalc-like calculations -\n"
-             "                  if you input a multi-brick dataset here,\n"
-             "                  without using a sub-brick index, then only\n"
-             "                  its 0th sub-brick will be used.\n"
-             "              * Do not use quotes inside the 'opts' string!\n"
-             "\n"
-             "  -xbox x y z   Means to put a 'mask' down at the dataset (not DICOM)\n"
-             "                  coordinates of 'x y z' mm.  By default, this box is\n"
-             "                  1 voxel wide in each direction.  You can specify\n"
-             "                  instead a range of coordinates using a colon ':'\n"
-             "                  after the coordinates; for example:\n"
-             "                    -xbox 22:27 31:33 44\n"
-             "                  means a box from (x,y,z)=(22,31,44) to (27,33,44).\n"
-             "           NOTE: dataset coordinates are NOT the coordinates you\n"
-             "                 typically see in AFNI's main controller top left corner.\n"
-             "                 Those coordinates are typically in either RAI/DICOM order\n"
-             "                 or in LPI/SPM order and should be used with -dbox and -nbox,\n"
-             "                 respectively.\n"
-             "\n"
-             "  -dbox x y z   Means the same as -xbox, but the coordinates are in\n"
-             "                  RAI/DICOM order (+x=Left, +y=Posterior, +z=Superior).\n"
-             "                  If your AFNI environment variable AFNI_ORIENT is set to\n"
-             "                  RAI, these coordinates correspond to those you'd enter\n"
-             "                  into the 'Jump to (xyz)' control in AFNI, and to\n"
-             "                  those output by 3dclust.\n"
-             "            NOTE: It is possible to make AFNI and/or 3dclust output coordinates \n"
-             "                  in an order different from the one specified by AFNI_ORIENT, \n"
-             "                  but you'd have to work hard on that. In any case, the order\n"
-             "                  is almost always specified along with the coordinates. If you\n"
-             "                  see RAI/DICOM, then use -dbox. If you see LPI/SPM then use -nbox. \n"
-             "  -nbox x y z   Means the same as -xbot, but the coordinates are in\n"
-             "                  LPI/SPM or 'neuroscience' order where the signs of the\n"
-             "                  x and y coordinates are reversed relative to RAI/DICOM.\n"
-             "                  (+x=Right, +y=Anterior, +z=Superior)\n"
-             "\n"
-             "  -ibox i j k   Means to put a 'mask' down at the voxel indexes\n"
-             "                  given by 'i j k'.  By default, this picks out\n"
-             "                  just 1 voxel.  Again, you can use a ':' to specify\n"
-             "                  a range (now in voxels) of locations.\n"
-             "       Notes: * Boxes are cumulative; that is, if you specify more\n"
-             "                  than 1 box, you'll get more than one region.\n"
-             "              * If a -mask and/or -cmask option is used, then\n"
-             "                  the intersection of the boxes with these masks\n"
-             "                  determines which voxels are output; that is,\n"
-             "                  a voxel must be inside some box AND inside the\n"
-             "                  mask in order to be selected for output.\n"
-             "              * If boxes select more than 1 voxel, the output lines\n"
-             "                  are NOT necessarily in the order of the options on\n"
-             "                  the command line.\n"
-             "              * Coordinates (for -xbox, -dbox, and -nbox) are relative\n"
-             "                  to the first dataset on the command line.\n"
-             "\n"
-             "  -nozero       Means to skip output of any voxel where all the\n"
-             "                  data values are zero.\n"
-             "\n"
-             "  -niml name    Means to output data in the XML/NIML format that\n"
-             "                  is compatible with input back to AFNI via\n"
-             "                  the READ_NIML_FILE command.\n"
-             "              * 'name' is the 'target_name' for the NIML header\n"
-             "                  field, which is the name that will be assigned\n"
-             "                  to the dataset when it is sent into AFNI.\n"
-             "              * Also implies '-noijk' and '-xyz' and '-nozero'.\n"
-             "\n"
-             "  -quiet        Means not to print progress messages to stderr.\n"
-             "\n"
-             "Inputs after the last option are datasets whose values you\n"
-             "want to be dumped out.  These datasets (and the mask) can\n"
-             "use the sub-brick selection mechanism (described in the\n"
-             "output of '3dcalc -help') to choose which values you get.\n"
-             "\n"
-             "Each selected voxel gets one line of output:\n"
-             "  i j k val val val ....\n"
-             "where (i,j,k) = 3D index of voxel in the dataset arrays,\n"
-             "and val = the actual voxel value.  Note that if you want\n"
-             "the mask value to be output, you have to include that\n"
-             "dataset in the dataset input list again, after you use\n"
-             "it in the '-mask' option.\n"
-             "\n"
-             "* To eliminate the 'i j k' columns, use the '-noijk' option.\n"
-             "* To add spatial coordinate columns, use the '-xyz' option.\n"
-             "\n"
-             "N.B.: This program doesn't work with complex-valued datasets!\n"
-            ) ;
+      printf(
+"Usage: 3dmaskdump [options] dataset dataset ...\n"
+ "Writes to an ASCII file values from the input datasets\n"
+ "which satisfy the mask criteria given in the options.\n"
+ "If no options are given, then all voxels are included.\n"
+ "This might result in a GIGANTIC output file.\n"
+ "Options:\n"
+ "  -mask mset   Means to use the dataset 'mset' as a mask:\n"
+ "                 Only voxels with nonzero values in 'mset'\n"
+ "                 will be printed from 'dataset'.  Note\n"
+ "                 that the mask dataset and the input dataset\n"
+ "                 must have the same number of voxels.\n"
+ "  -mrange a b  Means to further restrict the voxels from\n"
+ "                 'mset' so that only those mask values\n"
+ "                 between 'a' and 'b' (inclusive) will\n"
+ "                 be used.  If this option is not given,\n"
+ "                 all nonzero values from 'mset' are used.\n"
+ "                 Note that if a voxel is zero in 'mset', then\n"
+ "                 it won't be included, even if a < 0 < b.\n"
+/*-- 09 May 2003: add -index option [rickr] */
+ "  -index       Means to write out the dataset index values.\n"
+ "  -noijk       Means not to write out the i,j,k values.\n"
+ "  -xyz         Means to write the x,y,z coordinates from\n"
+ "                 the 1st input dataset at the start of each\n"
+ "                 output line.  These coordinates are in\n"
+ "                 the 'RAI' (DICOM) order.\n"
+ "  -o fname     Means to write output to file 'fname'.\n"
+ "                 [default = stdout, which you won't like]\n"
+ "\n"
+ "  -cmask 'opts' Means to execute the options enclosed in single\n"
+ "                  quotes as a 3dcalc-like program, and produce\n"
+ "                  produce a mask from the resulting 3D brick.\n"
+ "       Examples:\n"
+ "        -cmask '-a fred+orig[7] -b zork+orig[3] -expr step(a-b)'\n"
+ "                  produces a mask that is nonzero only where\n"
+ "                  the 7th sub-brick of fred+orig is larger than\n"
+ "                  the 3rd sub-brick of zork+orig.\n"
+ "        -cmask '-a fred+orig -expr 1-bool(k-7)'\n"
+ "                  produces a mask that is nonzero only in the\n"
+ "                  7th slice (k=7); combined with -mask, you\n"
+ "                  could use this to extract just selected voxels\n"
+ "                  from particular slice(s).\n"
+ "       Notes: * You can use both -mask and -cmask in the same\n"
+ "                  run - in this case, only voxels present in\n"
+ "                  both masks will be dumped.\n"
+ "              * Only single sub-brick calculations can be\n"
+ "                  used in the 3dcalc-like calculations -\n"
+ "                  if you input a multi-brick dataset here,\n"
+ "                  without using a sub-brick index, then only\n"
+ "                  its 0th sub-brick will be used.\n"
+ "              * Do not use quotes inside the 'opts' string!\n"
+ "\n"
+ "  -xbox x y z   Means to put a 'mask' down at the dataset (not DICOM)\n"
+ "                  coordinates of 'x y z' mm.  By default, this box is\n"
+ "                  1 voxel wide in each direction.  You can specify\n"
+ "                  instead a range of coordinates using a colon ':'\n"
+ "                  after the coordinates; for example:\n"
+ "                    -xbox 22:27 31:33 44\n"
+ "                  means a box from (x,y,z)=(22,31,44) to (27,33,44).\n"
+ "           NOTE: dataset coordinates are NOT the coordinates you\n"
+ "                 typically see in AFNI's main controller top left corner.\n"
+ "                 Those coordinates are typically in either RAI/DICOM order\n"
+ "                 or in LPI/SPM order and should be used with -dbox and\n"
+ "                 -nbox, respectively.\n"
+ "\n"
+ "  -dbox x y z   Means the same as -xbox, but the coordinates are in\n"
+ "                  RAI/DICOM order (+x=Left, +y=Posterior, +z=Superior).\n"
+ "                  If your AFNI environment variable AFNI_ORIENT is set to\n"
+ "                  RAI, these coordinates correspond to those you'd enter\n"
+ "                  into the 'Jump to (xyz)' control in AFNI, and to\n"
+ "                  those output by 3dclust.\n"
+ "            NOTE: It is possible to make AFNI and/or 3dclust output \n"
+ "                  coordinates in an order different from the one specified \n"
+ "                  by AFNI_ORIENT, but you'd have to work hard on that. \n"
+ "                  In any case, the order is almost always specified along \n"
+ "                  with the coordinates. If you see RAI/DICOM, then use \n"
+ "                  -dbox. If you see LPI/SPM then use -nbox. \n"
+ "\n"
+ "  -nbox x y z   Means the same as -xbot, but the coordinates are in\n"
+ "                  LPI/SPM or 'neuroscience' order where the signs of the\n"
+ "                  x and y coordinates are reversed relative to RAI/DICOM.\n"
+ "                  (+x=Right, +y=Anterior, +z=Superior)\n"
+ "\n"
+ "  -ibox i j k   Means to put a 'mask' down at the voxel indexes\n"
+ "                  given by 'i j k'.  By default, this picks out\n"
+ "                  just 1 voxel.  Again, you can use a ':' to specify\n"
+ "                  a range (now in voxels) of locations.\n"
+ "       Notes: * Boxes are cumulative; that is, if you specify more\n"
+ "                  than 1 box, you'll get more than one region.\n"
+ "              * If a -mask and/or -cmask option is used, then\n"
+ "                  the intersection of the boxes with these masks\n"
+ "                  determines which voxels are output; that is,\n"
+ "                  a voxel must be inside some box AND inside the\n"
+ "                  mask in order to be selected for output.\n"
+ "              * If boxes select more than 1 voxel, the output lines\n"
+ "                  are NOT necessarily in the order of the options on\n"
+ "                  the command line.\n"
+ "              * Coordinates (for -xbox, -dbox, and -nbox) are relative\n"
+ "                  to the first dataset on the command line.\n"
+ "\n"
+ "  -nozero       Means to skip output of any voxel where all the\n"
+ "                  data values are zero.\n"
+ "\n"
+ "  -n_rand N_RAND Means to keep only N_RAND randomly selected\n"
+ "                 voxels from what would have been the output.\n"
+ "\n"
+ "  -n_randseed SEED  Seed the random number generator with SEED,\n"
+ "                    instead of the default seed of %d\n"  
+ "\n"
+ "  -niml name    Means to output data in the XML/NIML format that\n"
+ "                  is compatible with input back to AFNI via\n"
+ "                  the READ_NIML_FILE command.\n"
+ "              * 'name' is the 'target_name' for the NIML header\n"
+ "                  field, which is the name that will be assigned\n"
+ "                  to the dataset when it is sent into AFNI.\n"
+ "              * Also implies '-noijk' and '-xyz' and '-nozero'.\n"
+ "\n"
+ "  -quiet        Means not to print progress messages to stderr.\n"
+ "\n"
+ "Inputs after the last option are datasets whose values you\n"
+ "want to be dumped out.  These datasets (and the mask) can\n"
+ "use the sub-brick selection mechanism (described in the\n"
+ "output of '3dcalc -help') to choose which values you get.\n"
+ "\n"
+ "Each selected voxel gets one line of output:\n"
+ "  i j k val val val ....\n"
+ "where (i,j,k) = 3D index of voxel in the dataset arrays,\n"
+ "and val = the actual voxel value.  Note that if you want\n"
+ "the mask value to be output, you have to include that\n"
+ "dataset in the dataset input list again, after you use\n"
+ "it in the '-mask' option.\n"
+ "\n"
+ "* To eliminate the 'i j k' columns, use the '-noijk' option.\n"
+ "* To add spatial coordinate columns, use the '-xyz' option.\n"
+ "\n"
+ "N.B.: This program doesn't work with complex-valued datasets!\n"
+            , nrandseed) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
 
@@ -289,7 +302,21 @@ int main( int argc , char * argv[] )
            ERROR_exit("-mrange inputs are illegal!\n") ;
          narg++ ; continue ;
       }
+      
+      if( strcmp(argv[narg],"-n_rand") == 0 ){
+         if( narg+1 >= argc )
+           ERROR_exit("-n_rand option requires 1 argument!\n");
+         nrand = (int)strtod( argv[++narg] , NULL ) ;
+         narg++ ; continue ;
+      }
 
+      if( strcmp(argv[narg],"-n_randseed") == 0 ){
+         if( narg+1 >= argc )
+           ERROR_exit("-n_randseed option requires 1 argument!\n");
+         nrandseed = (unsigned int)strtod( argv[++narg] , NULL ) ;
+         narg++ ; continue ;
+      }
+      
       if( strcmp(argv[narg],"-o") == 0 ){
          if( narg+1 >= argc )
            ERROR_exit("-o needs an argument after it!\n");
@@ -475,6 +502,34 @@ int main( int argc , char * argv[] )
    /*-- 09 May 2003: add room for the index (9 -> 10)    [rickr] --*/
    obuf = (char *) malloc( sizeof(char) * (ndval+10) * 16 ) ;
 
+   /* do we want a random set? */
+   if (nrand > 0) {
+      int *iok = (int *)calloc(nvox, sizeof(int));
+      int *ranorder=NULL;
+      int cnt=0;
+      
+      cnt = 0;
+      for( ii=0 ; ii < nvox ; ii++ ){
+         if( mmm == NULL || mmm[ii]) {
+            iok[cnt] = ii;
+            ++cnt;
+         }
+      }
+      if( verb ) 
+         INFO_message("Dumping %d randomly selected voxels \n"
+                      "out of %d originally in the mask.\n", 
+                      ( (cnt<nrand) ? cnt : nrand ), cnt);
+
+      ranorder = z_rand_order(0, cnt-1, nrandseed);
+      if (mmm) free(mmm); mmm = (byte *)calloc(nvox, sizeof(byte));
+      for (ii=0; ii < ( (cnt<nrand) ? cnt : nrand ); ++ii) {
+         mmm[iok[ranorder[ii]]] = 1; 
+      }
+      
+      free(iok); iok = NULL;
+      free(ranorder); ranorder = NULL;
+   }
+    
    /* loop over voxels */
 
    nout = 0 ; bout = NULL ;
