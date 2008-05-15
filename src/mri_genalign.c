@@ -695,21 +695,38 @@ typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
 #undef  FAS
 #define FAS(a,s) ( (a) <= (s) && (a) >= -(s) )
 
+/** volume of ball = 4*PI/3 * siz**3 = 4.1888 * siz**3 **/
+
 #define GA_BLOK_inside_ball(a,b,c,siz) \
   ( ((a)*(a)+(b)*(b)+(c)*(c)) <= (siz) )
 
+/** volume of cube = 8 * siz**3 **/
+/** lattice vectors = [2*siz,0,0]  [0,2*siz,0]  [0,0,2*siz] **/
+
 #define GA_BLOK_inside_cube(a,b,c,siz) \
   ( FAS((a),(siz)) && FAS((b),(siz)) && FAS((c),(siz)) )
+
+/** volume of RHDD = 2 * siz**3 **/
+/** lattice vectors = [siz,siz,0]  [0,siz,siz]  [siz,0,siz] **/
 
 #define GA_BLOK_inside_rhdd(a,b,c,siz)              \
   ( FAS((a)+(b),(siz)) && FAS((a)-(b),(siz)) &&     \
     FAS((a)+(c),(siz)) && FAS((a)-(c),(siz)) &&     \
     FAS((b)+(c),(siz)) && FAS((b)-(c),(siz))   )
 
+/** volume of TOHD = 4 * siz**3 **/
+/** lattice vectors = [-siz,siz,siz]  [siz,-siz,siz]  [siz,siz,-siz] **/
+
+#define GA_BLOK_inside_tohd(a,b,c,siz)                              \
+  ( FAS((a),(siz)) && FAS((b),(siz)) && FAS((c),(siz))         &&   \
+    FAS((a)+(b)+(c),1.5f*(siz)) && FAS((a)-(b)+(c),1.5f*(siz)) &&   \
+    FAS((a)+(b)-(c),1.5f*(siz)) && FAS((a)-(b)-(c),1.5f*(siz))   )
+
 #define GA_BLOK_inside(bt,a,b,c,s)                              \
  (  ((bt)==GA_BLOK_BALL) ? GA_BLOK_inside_ball((a),(b),(c),(s)) \
   : ((bt)==GA_BLOK_CUBE) ? GA_BLOK_inside_cube((a),(b),(c),(s)) \
   : ((bt)==GA_BLOK_RHDD) ? GA_BLOK_inside_rhdd((a),(b),(c),(s)) \
+  : ((bt)==GA_BLOK_TOHD) ? GA_BLOK_inside_tohd((a),(b),(c),(s)) \
   : 0 )
 
 #define GA_BLOK_ADDTO_intar(nar,nal,ar,val)                                 \
@@ -797,7 +814,7 @@ ENTRY("create_GA_BLOK_set") ;
      }
      break ;
 
-     /* rhombic dodecahedra go on their own hexagonal lattice,
+     /* rhombic dodecahedra go on a FCC lattice,
         spaced so that faces touch (i.e., no volumetric overlap) */
 
      case GA_BLOK_RHDD:{
@@ -806,6 +823,18 @@ ENTRY("create_GA_BLOK_set") ;
        dxp = a   ; dyp = a   ; dzp = 0.0f ;
        dxq = 0.0f; dyq = a   ; dzq = a    ;
        dxr = a   ; dyr = 0.0f; dzr = a    ;
+     }
+     break ;
+
+     /* truncated octahedra go on a BCC lattice,
+        spaced so that faces touch (i.e., no volumetric overlap) */
+
+     case GA_BLOK_TOHD:{
+       float a = blokrad ;
+       siz = a ;
+       dxp = -a ; dyp =  a ; dzp =  a ;
+       dxq =  a ; dyq = -a ; dzq =  a ;
+       dxr =  a ; dyr =  a ; dzr = -a ;
      }
      break ;
 
