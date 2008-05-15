@@ -2577,6 +2577,14 @@ static char * readme_env[] = {
    "only set this variable if you really need it, and understand the issue!\n" ,
    "[For Graham Wideman]\n" ,
    "\n" ,
+   "----------------------------------\n" ,
+   "Variable: AFNI_IGNORE_BRICK_FLTFAC\n" ,
+   "----------------------------------\n" ,
+   "Under some very rare circumstances, you might want to ignore the brick scaling\n" ,
+   "factors.  Set this variable to YES to do so.  WARNING: this is dangerous, so\n" ,
+   "be sure to unset this variable when you are done.  Sample usage:\n" ,
+   "  3dBrickStat -DAFNI_IGNORE_BRICK_FLTFAC=YES -max fred+orig\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2767,4 +2775,4 @@ static char * readme_env[] = {
    "(You can always use '3drefit -addFDR' to add FDR curves to a dataset\n" ,
    "header, for those sub-bricks marked as statistical parameters.)\n" ,
    NULL } ;
-#define NUM_readme_env 2767
+#define NUM_readme_env 2775
