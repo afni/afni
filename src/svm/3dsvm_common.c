@@ -1,5 +1,6 @@
 #include "3dsvm_common.h"
 #include "svm_learn.c"
+#include "debugtrace.h"
 
 # define PROGRAM_NAME   "3dsvm"    /* name of this program - used to include commandline history in model */
 
