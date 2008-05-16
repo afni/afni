@@ -1,0 +1,77 @@
+#!/bin/tcsh -f
+if ("$1" == "" || $1 =~ -h*) then
+   goto HELP
+endif
+
+set in = `@GetAfniPrefix $1`
+
+3dAutomask  -prefix automask  \
+            -overwrite \
+            ${in}+orig.BRIK 
+3dTstat \
+            -mean -min -max \
+            -DAFNI_IGNORE_BRICK_FLTFAC=YES   \
+            -prefix ${in}.drangestat \
+            -overwrite  \
+            ${in}+orig.BRIK
+            
+3dcalc   -a ${in}.drangestat+orig'[0]' \
+         -b ${in}.drangestat+orig'[1]' \
+         -c ${in}.drangestat+orig'[2]' \
+         -d automask+orig              \
+         -expr 'step(d)*1/a*100' \
+         -datum float \
+         -overwrite  \
+         -prefix ${in}.minpercchange
+
+3dcalc   -a ${in}.drangestat+orig'[0]' \
+         -b ${in}.drangestat+orig'[1]' \
+         -c ${in}.drangestat+orig'[2]' \
+         -d automask+orig              \
+         -expr 'step(d)*(c-b)' \
+         -datum float \
+         -overwrite  \
+         -prefix ${in}.range
+         
+set avg_discreet_vals = `3dBrickStat -non-zero -mean ${in}.range+orig`
+set avg_minchange_vals = `3dBrickStat -non-zero -mean ${in}.minpercchange+orig`
+
+echo ""
+echo "***************************************************************"
+echo "Average within brain voxel range: ${avg_discreet_vals} values"
+echo "Average within brain minimum perc change step: ${avg_minchange_vals} %" 
+echo "***************************************************************"
+
+goto END
+
+HELP:
+echo "Usage `basename $0` <afni dset>"
+echo "The script checks the dynamic range of the time series data"
+echo "at locations inside the brain."
+echo ""
+echo "The input dataset is an epi timeseries that has just been assembled"
+echo "from your reconstructed images"
+echo ""
+echo "The output consists of the following:"
+echo "- A dataset whose prefix ends with minpercchange"
+echo "  wich shows the percent signal change that an increment of 1 digitized"
+echo "  value in the time series corresponds to."
+echo "- A dataset whose prefix ends with .range"
+echo "  which shows the number of discreet levels used to "
+echo "  represent the time series."
+echo ""
+echo "The scripts output the average range and the average %change corresponding"
+echo "to a unit digitized signal"
+echo ""
+echo "To be safe, one should have a dynamic range that does not introduce noise "
+echo "at the level of expected response differences between tasks."
+echo "For example, if a unit step corresponds to 0.3% signal change then you may"
+echo "not be able to detect differences of comparable magnitude in the FMRI "
+echo "response to two tasks."
+echo "These differences would be obscured by digitization noise."
+echo ""
+echo "Ranges about 50 or unit steps larger than 0.1% may be cause for "
+echo "concern, particularly for event-related experiments."
+
+goto END
+END:
