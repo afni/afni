@@ -1356,7 +1356,10 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
 
   for( i=1 ; i<argc ; ++i ) {
     parseFlag = 0;
-    if( !strcmp(argv[i],"-trace")) { parseFlag = 1; ++i; DBG_trace=1; 
+    if( !strcmp(argv[i],"-trace")) {
+      parseFlag = 1;
+      ++i;
+      DBG_trace = 1; 
             /* It is a good idea to use ENTRY(""), RETURN(); and EXRETURN;
             macros in order to enable the tracing utility.
             I have used them in a few places. ZSS */ }
