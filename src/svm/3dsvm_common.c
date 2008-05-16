@@ -1358,11 +1358,13 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
     parseFlag = 0;
     if( !strcmp(argv[i],"-trace")) {
       parseFlag = 1;
-      ++i;
+#ifdef USE_TRACING
       DBG_trace = 1; 
+#endif
             /* It is a good idea to use ENTRY(""), RETURN(); and EXRETURN;
             macros in order to enable the tracing utility.
-            I have used them in a few places. ZSS */ }
+            I have used them in a few places. ZSS */
+    }
     if( !strcmp(argv[i],"-no_memcheck")) { pause_mcw_malloc(); /* ZSS */ }
     if( !strcmp(argv[i],"-z") ) { parseFlag = 1; ++i; strcpy(type,argv[i]); }
     if( !strcmp(argv[i],"-v") ) { parseFlag = 1; ++i; (*main_verbosity)=atol(argv[i]); verbosity = *main_verbosity; }
