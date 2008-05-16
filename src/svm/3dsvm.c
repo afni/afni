@@ -4,6 +4,7 @@
 
 #include "3dsvm_common.h"
 #include "svm_common.h"
+#include "debugtrace.h"
 
 int main( int argc, char *argv[] )
 {
