@@ -6,12 +6,16 @@
    Each function is 1 at (0,0,0) and goes to 0 at the edge of its support.
    RHDD(a) is defined as the set
      { (x,y,z) such that max(|x|+|y|,|x|+|z|,|y|+|z|) < a }
+   The 14 vertices are given by the points
+     (a/2,a/2,a/2) {8 points = each coordinate independently can be + or -}
+     (a,0,0) (0,a,0) (0,0,a) {6 more points, with + or -}
+   To fill space with overlapping RHDD(a) objects, sprinkle them on a
+   lattice with centers at
+     0.5*i * (-a,a,a) + 0.5*j * (a,-a,a) + 0.5*k * (a,a,-a)
+   with (i,j,k) being integers.
+   For example, (x,y,z)=(a/2,a/2,a/2) is given by (i,j,k)=(1,1,1);
+                (x,y,z)=(a,0,0)       is given by (i,j,k)=(0,1,1).
 *//*-------------------------------------------------------------------------*/
-
-#undef DEBUG
-#ifdef DEBUG
-static int rcode ; static float qx,qy,qz ;
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* If needed, swap so that first argument ends up as the smaller of the pair */
@@ -20,20 +24,22 @@ static int rcode ; static float qx,qy,qz ;
 #define ISWAP(a,b) if( (b) < (a) ) ( tt=(a), (a)=(b), (b)=tt )
 
 /*---------------------------------------------------------------------------*/
-/*! C0 basis function with RHDD(2) support (piecewise linear).
+/*! C0 basis function with RHDD(1) support (piecewise linear).
 *//*-------------------------------------------------------------------------*/
 
-static INLINE float rhddc0( float x, float y, float z )
+float rhddc0( float x, float y, float z )
 {
    register float xx, yy, zz, tt ;
 
-   xx = fabsf(x) ; yy = fabsf(y) ; zz = fabsf(z) ;
+   xx = fabsf(x) ; if( xx >= 1.0f ) return 0.0f ;  /* way too big */
+   yy = fabsf(y) ; if( yy >= 1.0f ) return 0.0f ;
+   zz = fabsf(z) ; if( zz >= 1.0f ) return 0.0f ;
    ISWAP(zz,yy) ;  /* sort so xx >= yy >= zz */
    ISWAP(zz,xx) ; ISWAP(yy,xx) ;
 
    tt = xx+yy ;
-   if( tt >= 2.0f ) return ( 0.0f ) ;            /* outside RHDD(2) */
-                    return ( 0.5f*(2.0f-tt) ) ;  /* linear inside  */
+   if( tt >= 1.0f ) return ( 0.0f ) ;     /* outside RHDD(1) */
+                    return ( 1.0f-tt ) ;  /* linear inside  */
 }
 
 /*---------------------------------------------------------------------------*/
@@ -46,21 +52,22 @@ static INLINE float rhddc0( float x, float y, float z )
 #define GAMMA  0.0104166667f  /* 1/96  */
 
 /*---------------------------------------------------------------------------*/
-/*! C2 basis function with RHDD(4) support (piecewise quintic).
+/*! C2 basis function with RHDD(2) support (piecewise quintic).
 *//*-------------------------------------------------------------------------*/
 
-static INLINE float rhddc2( float x, float y, float z )
+float rhddc2( float x, float y, float z )
 {
    register float xx, yy, zz, tt, xz2,yz2,xy2 ;
 
-   xx = fabsf(x) ; yy = fabsf(y) ; zz = fabsf(z) ;
+   xx = fabsf(x) ; if( xx >= 2.0f ) return 0.0f ;  /* way too big */
+   yy = fabsf(y) ; if( yy >= 2.0f ) return 0.0f ;
+   zz = fabsf(z) ; if( zz >= 2.0f ) return 0.0f ;
    ISWAP(zz,yy) ;  /* sort so that xx >= yy >= zz */
    ISWAP(zz,xx) ; ISWAP(yy,xx) ;
 
-#ifdef DEBUG
-   rcode = 0 ; qx=xx ; qy=yy ; qz=zz ;
-#endif
-
+   /* Entezari paper gives things in terms of RHDD(4), so scale up by 2 */
+ 
+   xx *= 2.0f ;  yy *= 2.0f ; zz *= 2.0f ;
    tt = xx+yy-4.0f ;
    if( tt >= 0.0f ) return 0.0f ;  /* outside RHDD(4) */
 
@@ -84,9 +91,6 @@ static INLINE float rhddc2( float x, float y, float z )
    /* Region 1 */
 
    if( xy2 <= 0.0f ){
-#ifdef DEBUG
-     rcode = 1 ;
-#endif
      return (  PA + PB1 + PB2
              - GAMMA * xy2*xy2*xy2
               * ( xx*xx + xx - 3.0f*xx*yy - 5.0f*zz*zz + yy*yy + yy - 6.0f ) ) ;
@@ -95,9 +99,6 @@ static INLINE float rhddc2( float x, float y, float z )
    /* Region 2 */
 
    if( xz2 <= 0.0f ){
-#ifdef DEBUG
-     rcode = 2 ;
-#endif
      return ( PA + PB1 + PB2 ) ;
    }
 
@@ -107,18 +108,12 @@ static INLINE float rhddc2( float x, float y, float z )
 
      if( xx-zz >= 2.0f ){  /* Region 3A */
 
-#ifdef DEBUG
-       rcode = 3 ;
-#endif
        return ( ALPHA * tt*tt*tt
                * ( -xx*xx + 8.0f*xx + 3.0f*xx*yy - yy*yy + 5.0f*zz*zz
                    -16.0f - 12.0f*yy ) ) ;
 
      } else {            /* Region 3B */
 
-#ifdef DEBUG
-       rcode = 4 ;
-#endif
        return( PA + PB2 ) ;
 
      }
@@ -127,22 +122,5 @@ static INLINE float rhddc2( float x, float y, float z )
 
    /* Region 4 */
 
-#ifdef DEBUG
-   rcode = 5 ;
-#endif
    return ( PA ) ;
 }
-
-#ifdef DEBUG
-int main( int argc , char *argv[] )
-{
-   float x,y,z,val ;
-
-   if( argc < 4 ){ printf("need x y z\n"); exit(0); }
-   x = (float)strtod(argv[1],NULL) ;
-   y = (float)strtod(argv[2],NULL) ;
-   z = (float)strtod(argv[3],NULL) ;
-   val = rhddc2(x,y,z) ;
-   printf("%f %f %f %f %f %f %d %f\n",x,y,z,qx,qy,qz,rcode,val) ; exit(0) ;
-}
-#endif
