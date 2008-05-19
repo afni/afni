@@ -838,7 +838,7 @@ C
      X          FICTTP , FICTPT , FICTTZ ,
      X          FIBTTP , FIBTPT , FIBTTZ ,
      X          FIBNTP , FIBNPT , FIBNTZ ,
-     X          FIGTTP , FIGTPT , FIGTTZ ,
+     X          FIGTTP , FIGTPT , FIGTTZ , RHDDC2   ,
      X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE , CBRTFF
 C
       REAL*8 R2D , D2R
@@ -985,6 +985,11 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'PLEG')THEN
             NEVAL = NEVAL - 1
             R8_EVAL(NEVAL) = LEGENDRE( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'RHDDC2')THEN
+            NEVAL = NEVAL - 2
+            R8_EVAL(NEVAL) = RHDDC2( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1),
+     X                                              R8_EVAL(NEVAL+2) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
             IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
@@ -1353,7 +1358,7 @@ C
      X          FICTTP , FICTPT , FICTTZ ,
      X          FIBTTP , FIBTPT , FIBTTZ ,
      X          FIBNTP , FIBNPT , FIBNTZ ,
-     X          FIGTTP , FIGTPT , FIGTTZ ,
+     X          FIGTTP , FIGTPT , FIGTTZ , RHDDC2   ,
      X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE , CBRTFF
 C
       REAL*8 R2D , D2R
@@ -1741,6 +1746,14 @@ C.......................................................................
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = LEGENDRE( R8_EVAL(IV-IBV,NEVAL) ,
      X                                         R8_EVAL(IV-IBV,NEVAL+1) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'RHDDC2')THEN
+            NEVAL = NEVAL - 2
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = RHDDC2( R8_EVAL(IV-IBV,NEVAL) ,
+     X                                         R8_EVAL(IV-IBV,NEVAL+1) ,
+     X                                         R8_EVAL(IV-IBV,NEVAL+2) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
