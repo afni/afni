@@ -18,6 +18,9 @@ static char g_history[] =
   "     - added -type option, to restrict output to a specific type\n"
   "     - added a string to explain the output level\n"
   "     - added TYPE field, and a new SUPERDUPER level\n"
+  "1.4  19 May, 2008 [rickr]\n"
+  "     - added MY_INT_COMPARE macro for comparison speed-up\n"
+  "     - in compare: if strings are not set, ignore rather than claim equal\n"
 };
 
 static char g_version[] = "afni_history version 1.0, 27 February 2008";
@@ -692,26 +695,31 @@ int restrict_by_program(global_data * gd, hist_type *** hlist, int * len)
     return 0;
 }
 
+/* meant to use as a return value, this macro assumes the ints are different */
+/* (history lists are now long, so this is a speed-up)   19 May 2008 [rickr] */
+#define MY_INT_COMPARE(a,b) (((a)<(b)) ? -GD.sort_dir : GD.sort_dir )
+
 /* sort by date, then by author, level and program */
 int compare_hlist(const void *v0, const void *v1)
 {
     hist_type * h0 = *(hist_type **)v0;
     hist_type * h1 = *(hist_type **)v1;
-    int         rv;
+    int         rv = 0;
 
-    if( h0->yyyy != h1->yyyy ) return GD.sort_dir*(h0->yyyy - h1->yyyy);
-    if( h0->mm   != h1->mm   ) return GD.sort_dir*(h0->mm   - h1->mm  );
-    if( h0->dd   != h1->dd   ) return GD.sort_dir*(h0->dd   - h1->dd  );
+    if( h0->yyyy != h1->yyyy ) return MY_INT_COMPARE(h0->yyyy, h1->yyyy);
+    if( h0->mm   != h1->mm   ) return MY_INT_COMPARE(h0->mm  , h1->mm  );
+    if( h0->dd   != h1->dd   ) return MY_INT_COMPARE(h0->dd  , h1->dd  );
 
-    if( !h0->author || !h1->author ) return 0;   /* missing means equal */
-    rv = strcmp(h0->author, h1->author);
-    if( rv ) return rv*GD.sort_dir;
+    /* ignore any string that is not set (rather than return as equal) */
+    /*                                             19 May 2008 [rickr] */
 
-    if( h0->level != h1->level ) return GD.sort_dir*(h0->level - h1->level);
+    if( h0->author && h1->author ) rv = strcmp(h0->author, h1->author);
+    if( rv ) return (rv < 0 ? -GD.sort_dir : GD.sort_dir);
 
-    if( !h0->program || !h1->program ) return 0; /* missing means equal */
-    rv = strcmp(h0->program, h1->program);
-    if( rv ) return rv*GD.sort_dir;
+    if( h0->level != h1->level ) return MY_INT_COMPARE(h0->level, h1->level);
+
+    if( h0->program && h1->program ) rv = strcmp(h0->program, h1->program);
+    if( rv ) return (rv < 0 ? -GD.sort_dir : GD.sort_dir);
 
     return 0;
 }
@@ -719,9 +727,9 @@ int compare_hlist(const void *v0, const void *v1)
 /* compare only the dates -- RWC */
 int compare_hist_dates(hist_type *h0 , hist_type *h1)
 {
-    if( h0->yyyy != h1->yyyy ) return GD.sort_dir*(h0->yyyy - h1->yyyy);
-    if( h0->mm   != h1->mm   ) return GD.sort_dir*(h0->mm   - h1->mm  );
-    if( h0->dd   != h1->dd   ) return GD.sort_dir*(h0->dd   - h1->dd  );
+    if( h0->yyyy != h1->yyyy ) return MY_INT_COMPARE(h0->yyyy, h1->yyyy);
+    if( h0->mm   != h1->mm   ) return MY_INT_COMPARE(h0->mm  , h1->mm  );
+    if( h0->dd   != h1->dd   ) return MY_INT_COMPARE(h0->dd  , h1->dd  );
     return 0 ;
 }
 

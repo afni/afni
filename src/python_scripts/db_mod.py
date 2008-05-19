@@ -755,6 +755,15 @@ def db_cmd_regress(proc, block):
     cmd = cmd + fitts + errts
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
+    # if 3dDeconvolve fails, terminate the script
+    cmd = cmd + "# if 3dDeconvolve fails, terminate the script\n"       \
+                "if ( $status != 0 ) then\n"                            \
+                "    echo '---------------------------------------'\n"  \
+                "    echo '** 3dDeconvolve error, failing...'\n"        \
+                "    echo '   (consider the file 3dDeconvolve.err)'\n"  \
+                "    exit\n"                                            \
+                "endif\n\n\n"
+
     # create all_runs, and store name for blur_est
     all_runs = 'all_runs.$subj'
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"

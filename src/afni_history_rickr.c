@@ -48,6 +48,24 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, MAY, 2008, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "added options for TR-locking and storing '3dDeconvolve -nodata' examples",
+   "- added shuffle() to replace that from random (cannot produce all perms)\n"
+   "- added options -tr, -tr_locked and -save_3dd_cmd\n"
+   "- changed -stim_time option to -stim_dur"
+ } ,
+
+ { 18, MAY, 2008, RCR, "afni_history", MICRO, TYPE_MODIFY,
+   "sped up comparison (since histories have gotten long)",
+   NULL
+ } ,
+
+ { 17, MAY, 2008, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "check result of 3dDeconvolve execution in output script",
+   "If 3dDeconvolve fails, terminate the script so that the user can\n"
+   "see what happened."
+ } ,
+
  { 14, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_BUG_FIX,
    "fixed application of decay term",
    NULL
