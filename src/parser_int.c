@@ -406,7 +406,8 @@ doublereal legendre_( doublereal *mm , doublereal *xx )
    }
 }
 
-/**** statistic conversion routines ****/
+/*****************************************************************************/
+/********************* statistic conversion routines *************************/
 
 /*--- macros to create functions ---*/
 
@@ -505,3 +506,94 @@ FUNC3(figttz_,FUNC_GT_TYPE,THD_stat_to_zscore)
 FUNC2(fipttp_,FUNC_PT_TYPE,THD_stat_to_pval)
 FUNC2(fiptpt_,FUNC_PT_TYPE,THD_pval_to_stat)
 FUNC2(fipttz_,FUNC_PT_TYPE,THD_stat_to_zscore)
+
+/******************************************************************************/
+
+/*---------------------------------------------------------------------------*/
+/* If needed, swap so that first argument ends up as the smaller of the pair */
+
+#undef  ISWAP
+#define ISWAP(a,b) if( (b) < (a) ) ( tt=(a), (a)=(b), (b)=tt )
+
+/*---------------------------------------------------------------------------*/
+
+#undef  ALPHA
+#undef  BETA
+#undef  GAMMA
+#define ALPHA  0.00260416666667  /* 1/384 */
+#define BETA   0.00520833333333  /* 1/192 */
+#define GAMMA  0.01041666666667  /* 1/96  */
+
+/*---------------------------------------------------------------------------*/
+/*! C2 basis function with RHDD(2) support (piecewise quintic).
+*//*-------------------------------------------------------------------------*/
+
+doublereal rhddc2_( doublereal *x, doublereal *y, doublereal *z )
+{
+   register double xx, yy, zz, tt, xz2,yz2,xy2 ;
+
+   xx = fabs((double)*x) ; if( xx >= 2.0 ) return 0.0 ;  /* way too big */
+   yy = fabs((double)*y) ; if( yy >= 2.0 ) return 0.0 ;
+   zz = fabs((double)*z) ; if( zz >= 2.0 ) return 0.0 ;
+   ISWAP(zz,yy) ;  /* sort so that xx >= yy >= zz */
+   ISWAP(zz,xx) ; ISWAP(yy,xx) ;
+
+   /* Entezari paper gives things in terms of RHDD(4), so scale up by 2 */
+ 
+   xx *= 2.0 ;  yy *= 2.0 ; zz *= 2.0 ;
+   tt = xx+yy-4.0 ;
+   if( tt >= 0.0 ) return 0.0 ;  /* outside RHDD(4) */
+
+   xz2 = xx+zz-2.0 ; yz2 = yy+zz-2.0 ; xy2 = tt+2.0 ;
+
+#undef  PA
+#define PA ALPHA * tt*tt*tt                                       \
+           * ( -3.0*xx*yy - 5.0*zz*zz + 2.0*(xx+yy) + 20.0*zz     \
+              + xx*xx + yy*yy - 24.0 )
+
+#undef  PB1
+#define PB1 BETA * xz2*xz2*xz2                                    \
+            * (  xx*xx - 9.0*xx - 3.0*xx*zz + 10.0*yy - 5.0*yy*yy \
+               + 14.0 + 11.0*zz + zz*zz )
+
+#undef  PB2
+#define PB2 BETA * yz2*yz2*yz2                                    \
+            * (  46.0 - 30.0*xx - zz - yy + 3.0*zz*yy + 5.0*xx*xx \
+               - yy*yy - zz*zz )
+
+   /* Region 1 */
+
+   if( xy2 <= 0.0 ){
+     return (  PA + PB1 + PB2
+             - GAMMA * xy2*xy2*xy2
+              * ( xx*xx + xx - 3.0*xx*yy - 5.0*zz*zz + yy*yy + yy - 6.0 ) ) ;
+   }
+
+   /* Region 2 */
+
+   if( xz2 <= 0.0 ){
+     return ( PA + PB1 + PB2 ) ;
+   }
+
+   /* Region 3 */
+
+   if( yz2 <= 0.0 ){
+
+     if( xx-zz >= 2.0 ){  /* Region 3A */
+
+       return ( ALPHA * tt*tt*tt
+               * ( -xx*xx + 8.0*xx + 3.0*xx*yy - yy*yy + 5.0*zz*zz
+                   -16.0 - 12.0*yy ) ) ;
+
+     } else {            /* Region 3B */
+
+       return( PA + PB2 ) ;
+
+     }
+
+   }
+
+   /* Region 4 */
+
+   return ( PA ) ;
+}
