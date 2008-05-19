@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, random
+import sys, random, os
 import option_list, afni_util as UTIL
 
 g_help_string = """
@@ -8,51 +8,53 @@ g_help_string = """
 Create random stimulus timing files.
 
     The object is to create a set of random stimulus timing files, suitable
-    for use in 3dDeconvolve.  These times will not be TR-locked (the TR is
-    not even specified).  Stimulus presentation times will never overlap,
-    though their responses can.
+    for use in 3dDeconvolve.  These times will not be TR-locked (unless the
+    user requests it).  Stimulus presentation times will never overlap, though
+    their responses can.
 
     This can easily be used to generate many sets of random timing files to
     test via "3dDeconvolve -nodata", in order to determine good timing, akin
-    to what is done in HowTo #3 using RSFgen.
+    to what is done in HowTo #3 using RSFgen.  Note that the -save_3dd_cmd
+    can be used to create a sample "3dDeconvolve -nodata" script.
 
     given:
         num_stim        - number of stimulus classes
         num_runs        - number of runs
         num_reps        - number of repetitions for each class (same each run)
-        stim_time       - length of time for each stimulus
+        stim_dur        - length of time for each stimulus, in seconds
         run_time        - total amount of time, per run
-        pre_stim_rest   - time before any first stimulus (assume same each run)
-        post_stim_rest  - time after last stimulus (assume same each run)
+        pre_stim_rest   - time before any first stimulus (same each run)
+        post_stim_rest  - time after last stimulus (same each run)
 
     This program will create one timing file per stimulus class, num_runs lines
     long, with num_stim stimulus times per line.
 
     Time for rest will be run_time minus all stimulus time, and can be broken
     into pre_stim_rest, post_stim_rest and randomly distributed rest.  Consider
-    the sum, assuming num_reps and stim_time are constant (per run and stimulus
+    the sum, assuming num_reps and stim_dur are constant (per run and stimulus
     class).
 
-          num_stim * num_reps * stim_time (total stimulus duration for one run)
+          num_stim * num_reps * stim_dur  (total stimulus duration for one run)
         + randomly distributed rest       (surrounding stimuli)
         + pre_stim_rest
-        + post_stim_rest                  (account for response time)
+        + post_stim_rest                  (note: account for response time)
         -----------
         = run_time
 
     Other controlling inputs include:
 
         across_runs - distribute num_reps across all runs, not per run
-        t_gran      - granularity of time, in seconds (default 0.1 seconds)
         min_rest    - time of rest to immediately follow each stimulus
-                      (this is internally added to stim_time)
+                      (this is internally added to stim_dur)
         seed        - optional random number seed
+        t_gran      - granularity of time, in seconds (default 0.1 seconds)
+        tr_locked   - make all timing locked with the accompanying TR
 
-    The method used is similar to that of RSFgen.  For a given run, a list of
-    num_reps stimuli for each stimulus class is generated (these intervals are
-    each stim_time seconds).  Appended to this is a list of rest intervals
-    (each of length t_gran seconds).  This accounts for all time except for
-    pre_stim_rest and post_stim_rest.
+    The internal method used is similar to that of RSFgen.  For a given run, a
+    list of num_reps stimulus intervals for each stimulus class is generated
+    (each interval is stim_dur seconds).  Appended to this is a list of rest
+    intervals (each of length t_gran seconds).  This accounts for all time
+    except for pre_stim_rest and post_stim_rest.
 
     This list (of numbers 0..num_stim, where 0 means rest) is then randomized.
     Timing comes from the result.
@@ -61,23 +63,30 @@ Create random stimulus timing files.
     with pre_stim_rest seconds.  As the list is read, a 0 means add t_gran
     seconds to the current time.  A non-zero value means the given stimulus
     type occurred, so the current time goes into that stimulus file and the
-    time is incremented by stim_time seconds.
+    time is incremented by stim_dur seconds.
 
   * Note that stimulus times will never overlap, though response times can.
-
-  * Note that if TR-locked timing is desired, it can be achieved by having
-    stim_time and t_gran being equal to (or a multiple of) the TR.
 
   * The following options can be specified as one value or as a list:
 
         -run_time       : time for each run, or a list of run times
-        -stim_time      : duration of all stimuli, or a list of each duration
+        -stim_dur       : duration of all stimuli, or a list of every duration
         -num_reps       : nreps for all stimuli, or a list of nreps for each
 
     Note that varying these parameters can lead to unbalanced designs.  Use
     the list forms with caution.
 
-    Currently, -pre_stim_rest and -post_stim_rest cannot vary.
+    Currently, -pre_stim_rest and -post_stim_rest cannot vary over runs.
+
+----------------------------------------
+getting TR-locked timing
+
+    If TR-locked timing is desired, it can be enforced with the -tr_locked
+    option, along with which the user must specify "-tr TR".  The effect is
+    to force stim_dur and t_gran to be equal to (or a multiple of) the TR.
+
+    It is illegal to use both -tr_locked and -t_gran (since -tr is used to
+    set t_gran).
 
 ----------------------------------------
 distributing stimuli across all runs at once (via -across_runs)
@@ -111,7 +120,7 @@ examples:
        The output will be written to 'stimesA_01.1D'.
 
             make_random_timing.py -num_stim 1 -num_runs 1 -run_time 100  \\
-                -stim_time 1.5 -num_reps 20 -pre_stim_rest 10 -prefix stimesA
+                -stim_dur 1.5 -num_reps 20 -pre_stim_rest 10 -prefix stimesA
 
     2. A typical example.
 
@@ -120,11 +129,17 @@ examples:
        Require 20 seconds of rest before the first stimulus in each run, as
        well as after the last.
 
-       The output will be written to stimesB_01.1D (and 02.1D and 03.1D).
+       Also, add labels for the 3 stimulus classes: houses, faces, donuts.
+       They will be appended to the respective filenames.
+
+       The output will be written to stimesB_01.houses.1D, etc.
 
             make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
-                -stim_time 3.5 -num_reps 8 -prefix stimesB               \\
-                -pre_stim_rest 20 -post_stim_rest 20
+                -stim_dur 3.5 -num_reps 8 -prefix stimesB                \\
+                -pre_stim_rest 20 -post_stim_rest 20                     \\
+                -stim_labels houses faces donuts
+
+       Consider adding the -save_3dd_cmd option.
 
     3. Distribute stimuli over all runs at once.
 
@@ -132,44 +147,49 @@ examples:
        In #2, each stim class has 8 events per run (so 32 total events).
        Here each stim class has a total of 8 events.  Just add -across_runs.
 
-       Also, add labels for the 3 stimulus classes: houses, faces, donuts.
-       They will be appended to each filename.
-
             make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
-                -stim_time 3.5 -num_reps 8 -prefix stimesC               \\
+                -stim_dur 3.5 -num_reps 8 -prefix stimesC                \\
                 -pre_stim_rest 20 -post_stim_rest 20                     \\
                 -across_runs -stim_labels houses faces donuts
 
     4. TR-locked example.
 
-       Similar to #2, but make the stimuli TR-locked.  Assuming the TR is 2.0
-       seconds, along with the length of each stimulus event, use the -t_gran
-       option to set the granularity of the rest timing grid equal to the TR.
+       Similar to #2, but make the stimuli TR-locked.  Set the TR to 2.0
+       seconds, along with the length of each stimulus event.  This adds
+       options -tr_locked and -tr, and requires -stim_dur to be a multiple
+       (or equal to) the TR.
 
-            make_random_timing.py -num_stim 3 -num_runs 4 -run_time 100  \\
-                -stim_time 2.0 -num_reps 8 -prefix stimesD               \\
-                -pre_stim_rest 10 -post_stim_rest 10 -t_gran 2.0
+            make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
+                -stim_dur 2.0 -num_reps 8 -prefix stimesD                \\
+                -pre_stim_rest 20 -post_stim_rest 20 -tr_locked -tr 2.0
 
-    5. Similar to #2, but require an additional 0.7 seconds of rest after
-       each stimulus (exactly the same as adding 0.7 to the stim_time), set
+    5. Esoteric example.
+
+       Similar to #2, but require an additional 0.7 seconds of rest after
+       each stimulus (exactly the same as adding 0.7 to the stim_dur), set
        the granularity of random sequencing to 0.001 seconds, apply a random
        number seed of 17, and set the verbose level to 2.
+
+       Save a 3dDeconvolve -nodata command in @cmd.3dd .
        
             make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
-                -stim_time 3.5 -num_reps 8 -prefix stimesE               \\
+                -stim_dur 3.5 -num_reps 8 -prefix stimesE                \\
                 -pre_stim_rest 20 -post_stim_rest 20                     \\
-                -min_rest 0.7 -t_gran 0.001 -seed 17 -verb 2
+                -min_rest 0.7 -t_gran 0.001 -seed 17 -verb 2             \\
+                -save_3dd_cmd @cmd.3dd
 
-    6. Similar to #2, but require each stimulus class to have a different
+    6. Example with varying number of events.
+
+    ** Note that this does not make for a balanced design.
+
+       Similar to #2, but require each stimulus class to have a different
        number of events.  Class #1 will have 8 reps per run, class #2 will
        have 10 reps per run and class #3 will have 15 reps per run.  The
        -num_reps option takes either 1 or -num_stim parameters.  Here, 3
        are supplied.
 
-    ** Note that this does not make for a balanced design.
-
             make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
-                -stim_time 3.5 -num_reps 8 10 15 -prefix stimesF         \\
+                -stim_dur 3.5 -num_reps 8 10 15 -prefix stimesF          \\
                 -pre_stim_rest 20 -post_stim_rest 20
 
 
@@ -223,17 +243,17 @@ required arguments:
 
             see also: -across_runs
 
-    -stim_time TIME             : set the amount of time for a single stimulus
+    -stim_dur TIME              : set the duration for a single stimulus
 
-        e.g. -stim_time 3.5
-        e.g. -stim_time 3.5 1.0 4.2
+        e.g. -stim_dur 3.5
+        e.g. -stim_dur 3.5 1.0 4.2
 
         This specifies the length of time taken for a single stimulus, in
         seconds.  These stimulation intervals never overlap (with either rest
-        or other stimulus intervals).
+        or other stimulus intervals) in the output timing files.
 
         If a single TIME parameter is given, it applies to all of the stimulus
-        classes.  Otherwise, the user can provide a list of times, one per
+        classes.  Otherwise, the user can provide a list of durations, one per
         stimulus class.
 
     -prefix    PREFIX           : set the prefix for output filenames
@@ -285,8 +305,8 @@ optional arguments:
         that at least 0.5 seconds separates each stimulus pair, then there
         are 2 equivalent ways to express this:
 
-            A: -stim_time 2.0
-            B: -stim_time 1.5 -min_rest 0.5
+            A: -stim_dur 2.0
+            B: -stim_dur 1.5 -min_rest 0.5
 
         These have the same effect, but perhaps the user wants to keep the
         terms logically separate.
@@ -315,13 +335,29 @@ optional arguments:
         for the decay of the BOLD response after the last stimulus period ends.
 
         Note that the program does just prevent a stimulus from starting after
-        this time, but the entire stimulation period (described by -stim_time)
+        this time, but the entire stimulation period (described by -stim_dur)
         will end before this post_stim_rest period begins.
 
-        For example, if the user provides "-run_time 100", "-stim_time 2.5"
+        For example, if the user provides "-run_time 100", "-stim_dur 2.5"
         and "-post_stim_rest 15", then the latest a stimulus could possibly
         occur at is 82.5 seconds into a run.  This would allow 2.5 seconds for
         the stimulus, plus another 15 seconds for the post_stim_rest period.
+
+    -save_3dd_cmd FILENAME      : save a 3dDeconvolve -nodata example
+
+        e.g. -save_3dd_cmd sample.3dd.command
+
+        Use this option to save an example of running "3dDeconvolve -nodata"
+        with the newly created stim_times files.  The saved script includes
+        creation of a SUM regressor (if more than one stimulus was given) and
+        a suggestion of how to run 1dplot to view the regressors created from
+        the timing files.
+
+        The use of the SUM regressor is to get a feel for what the expected
+        response might look at a voxel that response to all stimulus classes.
+        If, for example, the SUM never goes to zero in the middle of a run,
+        one might wonder whether it is possible to accurately separate each
+        stimulus response from the baseline.
 
     -seed SEED                  : specify a seed for random number generation
 
@@ -375,7 +411,17 @@ optional arguments:
 
         Also, one might want to use the actual TR, such as 2.5 seconds, to
         ensure that rest and stimuli occur on the TR grid.  Note that such a
-        use also requires -stim_time to be a multiple of the TR.
+        use also requires -stim_dur to be a multiple of the TR.
+
+    -tr TR                      : set the scanner TR
+
+        e.g. -tr 2.5
+
+        The TR is needed for the -tr_locked option (so that all times are
+        multiples of the TR), and for the -save_3dd_cmd option (the TR must
+        be given to 3dDeconvolve).
+
+        see also: -save_3dd_cmd, -tr_locked
 
     -verb LEVEL                 : set the verbose level
 
@@ -392,7 +438,10 @@ optional arguments:
 g_history = """
     make_random_timing.py history:
 
-    0.1  May 07  2008: initial release
+    0.1  May 07, 2008: initial release
+    0.2  May 18, 2008:
+         - changed -stim_time option to -stim_dur
+         - added options -tr_locked, -tr and -save_3dd_cmd
 """
 
 g_version = "version 1.0, May 7, 2008"
@@ -406,6 +455,7 @@ class RandTiming:
     def __init__(self, label):
         # actual stimulus timing lists
         self.stimes     = []
+        self.fnames     = []            # output filenames
 
         # general parameters
         self.label = label
@@ -417,11 +467,11 @@ class RandTiming:
         self.num_stim   = 0             # number of stimulus classes
         self.num_runs   = 0             # number of runs
         self.prefix     = None          # prefix for output files
-                                        # add .001.1D (stim_index.1D)
+                                        # add .LABEL.INDEX.1D
 
         self.run_time   = []            # total time per run (seconds)
         self.num_reps   = []            # number of stimuli, per class (per run)
-        self.stim_time  = []            # time of single stimulus (seconds)
+        self.stim_dur   = []            # time of single stimulus (seconds)
                                         #   - per stim class
 
         # optional arguments
@@ -434,8 +484,11 @@ class RandTiming:
         self.t_digits = gDEF_DEC_PLACES # digits after decimal when showing time
         self.labels   = None            # labels to be applied to filenames
 
+        self.tr_locked      = 0         # flag: require TR-locked timing
+        self.tr             = 0.0       # TR, for use in output 3dDecon cmd
         self.control_breaks = 1         # flag: across runs, add max stim time
                                         # to post_stim_rest
+        self.file_3dd_cmd   = None      # file for 3dD -nodata command
 
     def init_opts(self):
         global g_help_string
@@ -464,7 +517,7 @@ class RandTiming:
                         helpstr='number of stimulus reps per run, per class')
         self.valid_opts.add_opt('-run_time', -1, [], req=1,
                         helpstr='total length of each run, in seconds')
-        self.valid_opts.add_opt('-stim_time', -1, [], req=1,
+        self.valid_opts.add_opt('-stim_dur', -1, [], req=1,
                         helpstr='length of each stimulus, in seconds')
 
         # optional arguments
@@ -476,6 +529,8 @@ class RandTiming:
                         helpstr='time before first stimulus, in seconds')
         self.valid_opts.add_opt('-post_stim_rest', 1, [],
                         helpstr='time after last stimulus, in seconds')
+        self.valid_opts.add_opt('-save_3dd_cmd', 1, [],
+                        helpstr='file for "3dDeconvolve -nodata" command')
         self.valid_opts.add_opt('-seed', 1, [],
                         helpstr='seed for random number generation (integer)')
         self.valid_opts.add_opt('-stim_labels', -1, [],
@@ -484,6 +539,10 @@ class RandTiming:
                         helpstr='digits after decimal, for printing times')
         self.valid_opts.add_opt('-t_gran', 1, [],
                         helpstr='time_granularity for rest, in seconds')
+        self.valid_opts.add_opt('-tr', 1, [],
+                        helpstr='specify TR for 3dDeconvolve command');
+        self.valid_opts.add_opt('-tr_locked', 0, [],
+                        helpstr='specify TR and enforce TR-locked timing');
 
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr='verbose level (0=quiet, 1=default, ...)')
@@ -524,7 +583,7 @@ class RandTiming:
 
     def process_opts(self):
         """apply each option, and turn list options with single params
-           into complete lists (e.g. stim_time is per stim class)"""
+           into complete lists (e.g. stim_dur is per stim class)"""
 
         # ----------------------------------------
         # set verb first
@@ -559,10 +618,10 @@ class RandTiming:
                                       self.num_stim, 'num_stim', self.verb)
         if self.num_reps == None: return 1
 
-        # set stim_time list of length num_stim
-        self.stim_time = self.user_opts.get_type_list(float, '-stim_time',
+        # set stim_dur list of length num_stim
+        self.stim_dur = self.user_opts.get_type_list(float, '-stim_dur',
                                        self.num_stim, 'num_stim', self.verb)
-        if self.stim_time == None: return 1
+        if self.stim_dur == None: return 1
 
         # ----------------------------------------
         # optional arguments (if failure, use default)
@@ -585,8 +644,33 @@ class RandTiming:
         if self.seed == None: self.seed = None
 
         self.t_gran = self.user_opts.get_type_opt(float,'-t_gran')
-        if self.t_gran == None: self.t_gran = gDEF_T_GRAN
+        # check the result after -tr_locked
 
+        self.tr = self.user_opts.get_type_opt(float,'-tr')
+        if not self.tr: self.tr = 0.0
+
+        opt = self.user_opts.find_opt('-tr_locked')
+        if opt: self.tr_locked = 1
+
+        if self.tr_locked:  # set t_gran, and check stim_lengths
+            if self.t_gran:
+                print '** cannot use both -tr_locked and -t_gran'
+                return 1
+            if self.tr == 0.0:
+                print '** -tr_locked option requires -tr'
+                return 1
+            self.t_gran = self.tr;
+            if self.verb > 1:
+                print '++ setting t_gran to TR, %0.1f s' % self.tr
+            if not UTIL.vals_are_multiples(self.tr, self.stim_dur, digits=4):
+                print '** want TR-locked, but stim durations are not' + \
+                      ' multiples of TR %.3f\n' +                       \
+                      '   duration(s): %s' % (self.tr, self.stim_dur)
+
+        # if t_gran is still not set, apply the default
+        if not self.t_gran: self.t_gran = gDEF_T_GRAN
+
+        # t_digits must come after t_gran is set
         self.t_digits = self.user_opts.get_type_opt(float,'-t_digits')
         if self.t_digits == None:
             if self.t_gran == round(self.t_gran,1):
@@ -598,6 +682,8 @@ class RandTiming:
         if self.labels and len(self.labels) != self.num_stim:
             print '** error: %d stim classes but %d labels: %s' \
                   % (self.num_stim, len(self.lables), self.labels)
+
+        self.file_3dd_cmd = self.user_opts.get_string_opt('-save_3dd_cmd')
 
         if self.verb > 1:
             print '-- pre_stim_rest = %.1f, post_stim_rest = %.1f, seed = %s' \
@@ -614,7 +700,7 @@ class RandTiming:
                   rest times
                 - divide rest be gran to get number of rest trials
                 - randomize: sequence of trials per class and rest
-                - accumulate time: offset + gran (rest) or stim_time
+                - accumulate time: offset + gran (rest) or stim_dur
                 - each class gets a list of times
             - write all timing lists to files """
 
@@ -627,7 +713,7 @@ class RandTiming:
         # possibly get timing across all runs at once
         if self.across_runs:
             self.stimes = make_rand_timing(self.num_runs, self.run_time[0],
-                                self.num_stim, self.num_reps, self.stim_time,
+                                self.num_stim, self.num_reps, self.stim_dur,
                                 self.pre_stim_rest, self.post_stim_rest,
                                 self.control_breaks,
                                 tgran=self.t_gran, verb=self.verb)
@@ -643,13 +729,13 @@ class RandTiming:
 
             # init the 3D array: class by run by stim
             # each element (class) is a list (run) of lists (stim)
-            # (for each run, append a stim_time list to each class)
+            # (for each run, append a stim_dur list to each class)
             self.stimes = [[] for i in range(self.num_stim)]
 
             for run in range(self.num_runs):
                 # get timing for current run
                 stim_list = make_rand_timing(1, self.run_time[run],
-                                self.num_stim, self.num_reps, self.stim_time,
+                                self.num_stim, self.num_reps, self.stim_dur,
                                 self.pre_stim_rest, self.post_stim_rest,
                                 self.control_breaks,
                                 tgran=self.t_gran, verb=self.verb)
@@ -677,6 +763,20 @@ class RandTiming:
 
         return None
 
+    def set_filenames(self):
+        """create a list of filenames for writing"""
+
+        if self.prefix: prefix = self.prefix    # be sure we have a prefix
+        else:           prefix = 'stim_times'
+
+        self.fnames = []
+        for sind in range(self.num_stim):
+            if self.labels:
+                fname = '%s_%02d_%s.1D' % (prefix, sind+1, self.labels[sind])
+            else:
+                fname = '%s_%02d.1D' % (prefix, sind+1)
+            self.fnames.append(fname)
+
     def write_timing_files(self):
         """write timing from slist to files from the prefix"""
 
@@ -684,8 +784,9 @@ class RandTiming:
             print '** bad stim data for file write'
             return 1
 
-        if self.prefix: prefix = self.prefix    # be sure we have a prefix
-        else:           prefix = 'stim_times'
+        if len(self.fnames) != self.num_stim:
+            print '** missing filenames for timing output'
+            return 1
 
         # compute min and max stim times, for verbose output
         mint = max(self.run_time)
@@ -695,10 +796,7 @@ class RandTiming:
             stim = sind+1                   # 1-based index
 
             # open file, write each row (run), and close
-            if self.labels:
-                fname = '%s_%02d_%s.1D' % (prefix, stim, self.labels[sind])
-            else:
-                fname = '%s_%02d.1D' % (prefix, stim)
+            fname = self.fnames[sind]
             fp = open(fname, 'w')
             if not fp:
                 print "** failed to open timing file '%s'" % fname
@@ -723,12 +821,87 @@ class RandTiming:
 
             fp.close()
 
+            # and add this filename to the list, in case we want it later
+
         if self.verb > 1:
             print 'min, max stim times are: %.1f, %.1f' % (mint, maxt)
 
         return None
 
-def make_rand_timing(nruns, run_time, nstim, reps_list, stime_list, tinitial,
+    def make_3dd_cmd(self):
+        """write sample usage of 3dDeconvolve -nodata to a file"""
+
+        if not self.file_3dd_cmd:       return
+        if os.path.isfile(self.file_3dd_cmd):
+            print "** 3dD command file '%s' already exists, failing..." \
+                        % self.file_3dd_cmd
+
+        if len(self.fnames) != self.num_stim:
+            print '** fname list does not have expected length'
+            return
+
+        # set tr and nt for the command
+        if self.tr != 0.0:      tr = self.tr
+        elif self.t_gran > 1.0: tr = self.t_gran
+        else:                   tr = 1.0
+
+        nt = round(sum(self.run_time) / tr)
+
+        cmd  = '# -------------------------------------------------------\n' \
+               '# create 3dDeconvolve -nodata command\n\n'      \
+
+        # separate the 3dDecon command, to apply wrappers
+        c2   = '3dDeconvolve   \\\n'                            \
+            +  '    -nodata %d %.1f    \\\n' % (nt, tr)         \
+            +  '%s' % make_concat_from_times(self.run_time,tr)  \
+            +  '    -num_stimts %d    \\\n' % self.num_stim
+
+        for ind in range(len(self.fnames)):
+            c2 += '    -stim_times %d %s %s    \\\n' %          \
+                  (ind+1,self.fnames[ind],basis_from_time(self.stim_dur[ind]))
+        c2 += '    -x1D X.xmat.1D\n\n'
+
+        if len(self.run_time) > 1:
+            c2 += '# compute sum\n'                                          \
+                  "3dTstat -sum -prefix sum_ideal.1D X.xmat.1D'[%d..$]'\n\n" \
+                    % (2*len(self.run_time))
+            ynames = '-ynames SUM - sum_ideal.1D '
+            c2 += "# consider: 1dplot -xlabel Time %sX.xmat.1D'[%d..$]'\n"   \
+                    % (ynames, 2*len(self.run_time))
+        else:
+            c2 += "# consider: 1dplot -xlabel Time X.xmat.1D'[%d]'\n"        \
+                    % (2*len(self.run_time))
+
+        cmd += UTIL.add_line_wrappers(c2)
+
+        if self.verb > 0:
+            print "saving 3dD command to file '%s'...\n" % self.file_3dd_cmd
+        if self.verb > 1:
+            print cmd
+
+        fp = open(self.file_3dd_cmd,"w")
+        if not fp:
+            print '** failed to open %s for writing 3dDecon cmd'        \
+                  % self.file_3dd_cmd,
+            return
+
+        fp.write(cmd)
+        fp.close()
+
+def basis_from_time(stim_len):
+    if stim_len > 1.0: return "'BLOCK(%.1f,1)'" % stim_len
+    else: return 'GAM'
+
+def make_concat_from_times(run_times, tr):
+    if len(run_times) < 2: return ''
+    str = "    -concat '1D: 0"
+    cind = 0
+    for ind in range(len(run_times)-1):
+        cind += round(run_times[ind]/tr)
+        str += ' %d' % cind
+    return str + "' \\\n"
+
+def make_rand_timing(nruns, run_time, nstim, reps_list, sdur_list, tinitial,
                      tfinal, ctrl_breaks=1, tgran=gDEF_T_GRAN, verb=gDEF_VERB):
     """Create random timing for stimuli over all runs (or for a single run),
        where the random placement of stimuli is over all runs at once (so
@@ -740,7 +913,7 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, stime_list, tinitial,
         run_time        : total time, per run (in seconds)
         nstim           : number of stimulus classes
         reps_list       : number of repetitions per class (total for all runs)
-        stime_list      : duration of each stimulus class
+        sdur_list       : duration of each stimulus class
         tinitial        : initial rest time, per run
         tfinal          : final rest time, per run
 
@@ -754,7 +927,7 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, stime_list, tinitial,
         print '   rtime, tinit, tfinal = %.1f, %.1f, %.1f'      \
                   % (run_time, tinitial, tfinal)
         print '   reps_list  = %s' % reps_list
-        print '   stime_list = %s' % stime_list
+        print '   sdur_list = %s' % sdur_list
         print '   tgran = %.3f, verb = %d' % (tgran, verb)
 
     # verify inputs
@@ -768,15 +941,15 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, stime_list, tinitial,
     if tgran < gDEF_MIN_T_GRAN:
         print '** time granularity (%f) below minimum (%f)' %   \
               (tgran, gDEF_MIN_T_GRAN)
-    if not reps_list or not stime_list or       \
-       len(reps_list) != nstim or len(stime_list) != nstim:
+    if not reps_list or not sdur_list or       \
+       len(reps_list) != nstim or len(sdur_list) != nstim:
         print '** invalid rand_timing input lists: reps, stimes = %s %s ' % \
-              (reps_list, stime_list)
+              (reps_list, sdur_list)
         return
 
     # if multi runs and ctrl_breaks, add max stim time (-tgran) to tfinal
     if nruns > 1 and ctrl_breaks:
-        smax = max(stime_list)
+        smax = max(sdur_list)
         if verb > 1:
             print '++ adding max stim (%.1f) to post_stim_rest' % smax
         tfinal += smax
@@ -784,11 +957,11 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, stime_list, tinitial,
     # compute total stim time across all runs together
     stime = 0.0 
     for ind in range(nstim):
-        if reps_list[ind] < 0 or stime_list[ind] < 0:
+        if reps_list[ind] < 0 or sdur_list[ind] < 0:
             print '** invalid negative reps or stimes list entry in %s, %s' \
-                  % (reps_list, stime_list)
+                  % (reps_list, sdur_list)
             return
-        stime += reps_list[ind]*stime_list[ind]
+        stime += reps_list[ind]*sdur_list[ind]
 
     # compute rest time across all runs together
     rtime = nruns * (run_time - tinitial - tfinal) - stime
@@ -807,7 +980,8 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, stime_list, tinitial,
 
     if verb > 2: print '++ elist (len %d, sorted): %s' % (len(elist), elist)
 
-    random.shuffle(elist)  # rcr: replace this, as not all lists are possible
+    # random.shuffle(elist)
+    shuffle(elist)  # rcr: replace this, as not all lists are possible
 
     if verb > 2:
         print '++ elist (len %d, random): %s' % (len(elist), elist)
@@ -833,13 +1007,37 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, stime_list, tinitial,
         else:
             eind = event - 1                # event is one more than index
             slist[eind][run].append(ctime)  # append cur time to event's list
-            ctime += stime_list[eind]       # increment time by this stim
+            ctime += sdur_list[eind]        # increment time by this stim
 
     if verb > 3:
         for stim in range(nstim):
             print '++ stim list[%d] = %s' % (stim+1,slist[stim])
 
     return slist
+
+def shuffle(vlist):
+    """mostly like RSFgen, but for each index, search for swap in [index,n]
+
+       this makes each permutation equally likely
+
+       -- random.shuffle() cannot produce all possibilities
+       -- RSFgen style permute_array() does not produce results with equal
+          likelihood"""
+
+    # don't rely on randint, as that comes from 2.4
+
+    size = len(vlist)
+    newlist = [-1 for i in range(size)]
+    remain = size       # remaining space (of -1's) in newlist
+
+    for index in range(size):
+        # find random index in [index,n] = index+rand[0,n-index]
+        i2 = index + int((size-index)*random.random())
+
+        if i2 != index:         # if we want a new location, swap
+            val = vlist[i2]
+            vlist[i2] = vlist[index]
+            vlist[index] = val
 
 def process():
     timing = RandTiming('make random timing')
@@ -859,10 +1057,17 @@ def process():
         if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
         return rv
 
+    rv = timing.set_filenames()
+    if rv != None:
+        if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
+        return rv
+
     rv = timing.write_timing_files()
     if rv != None:
         if rv: UTIL.show_args_as_command(sys.argv,"** failed command:")
         return rv
+
+    if timing.file_3dd_cmd: timing.make_3dd_cmd()  # ignore return value
 
     return 0
 
