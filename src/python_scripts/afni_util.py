@@ -5,7 +5,6 @@ import afni_base
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
-
 # given a path (leading directory or not) swap the trailing
 # filename with the passed prefix and suffix
 def change_path_basename(orig, prefix, suffix):
@@ -397,7 +396,37 @@ def find_last_space(str,start,end,max_len=-1):
 
     return index   # for either success or failure
 
-
-
 # end line_wrapper functions
 # ----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
+# other functions
+
+# 17 May, 2008 [rickr]
+def vals_are_multiples(num, vals, digits=4):
+    """decide whether every value in 'vals' is a multiple of 'num'
+       (vals can be a single float or a list of them)
+
+       Note, 'digits' can be used to specify the number of digits of accuracy
+       in the test to see if a ratio is integral.  For example:
+           vals_are_multiples(1.1, 3.3001, 3) == 1
+           vals_are_multiples(1.1, 3.3001, 4) == 0
+
+       return 1 if true, 0 otherwise (including error)"""
+
+    if num == 0.0: return 0
+
+    try:
+        l = len(vals)
+        vlist = vals
+    except:
+        vlist = [vals]
+
+    for val in vlist:
+        rat = val/num
+        rem = rat - int(rat)
+
+        if round(rem,digits) != 0.0: return 0
+
+    return 1
+
