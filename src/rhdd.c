@@ -1,10 +1,23 @@
 #include "mrilib.h"
 
 /*---------------------------------------------------------------------------*/
+/* C0 and C2 box splines with rhombic dodecahedron (RHDD) support.  From
+     Entezari, van de Mille, and Moller, IEEE Trans. Vis. Comp. Graph.
+   Each function is 1 at (0,0,0) and goes to 0 at the edge of its support.
+   RHDD(a) is defined as the set
+     { (x,y,z) such that max(|x|+|y|,|x|+|z|,|y|+|z|) < a }
+*//*-------------------------------------------------------------------------*/
+
+#undef DEBUG
+#ifdef DEBUG
+static int rcode ; static float qx,qy,qz ;
+#endif
+
+/*---------------------------------------------------------------------------*/
 /* If needed, swap so that first argument ends up as the smaller of the pair */
 
 #undef  ISWAP
-#define ISWAP(a,b) if( (b) > (a) ) ( tt=(a), (a)=(b), (b)=tt )
+#define ISWAP(a,b) if( (b) < (a) ) ( tt=(a), (a)=(b), (b)=tt )
 
 /*---------------------------------------------------------------------------*/
 /*! C0 basis function with RHDD(2) support (piecewise linear).
@@ -44,6 +57,10 @@ static INLINE float rhddc2( float x, float y, float z )
    ISWAP(zz,yy) ;  /* sort so that xx >= yy >= zz */
    ISWAP(zz,xx) ; ISWAP(yy,xx) ;
 
+#ifdef DEBUG
+   rcode = 0 ; qx=xx ; qy=yy ; qz=zz ;
+#endif
+
    tt = xx+yy-4.0f ;
    if( tt >= 0.0f ) return 0.0f ;  /* outside RHDD(4) */
 
@@ -67,6 +84,9 @@ static INLINE float rhddc2( float x, float y, float z )
    /* Region 1 */
 
    if( xy2 <= 0.0f ){
+#ifdef DEBUG
+     rcode = 1 ;
+#endif
      return (  PA + PB1 + PB2
              - GAMMA * xy2*xy2*xy2
               * ( xx*xx + xx - 3.0f*xx*yy - 5.0f*zz*zz + yy*yy + yy - 6.0f ) ) ;
@@ -75,6 +95,9 @@ static INLINE float rhddc2( float x, float y, float z )
    /* Region 2 */
 
    if( xz2 <= 0.0f ){
+#ifdef DEBUG
+     rcode = 2 ;
+#endif
      return ( PA + PB1 + PB2 ) ;
    }
 
@@ -84,12 +107,18 @@ static INLINE float rhddc2( float x, float y, float z )
 
      if( xx-zz >= 2.0f ){  /* Region 3A */
 
+#ifdef DEBUG
+       rcode = 3 ;
+#endif
        return ( ALPHA * tt*tt*tt
                * ( -xx*xx + 8.0f*xx + 3.0f*xx*yy - yy*yy + 5.0f*zz*zz
                    -16.0f - 12.0f*yy ) ) ;
 
      } else {            /* Region 3B */
 
+#ifdef DEBUG
+       rcode = 4 ;
+#endif
        return( PA + PB2 ) ;
 
      }
@@ -98,9 +127,13 @@ static INLINE float rhddc2( float x, float y, float z )
 
    /* Region 4 */
 
+#ifdef DEBUG
+   rcode = 5 ;
+#endif
    return ( PA ) ;
 }
 
+#ifdef DEBUG
 int main( int argc , char *argv[] )
 {
    float x,y,z,val ;
@@ -110,5 +143,6 @@ int main( int argc , char *argv[] )
    y = (float)strtod(argv[2],NULL) ;
    z = (float)strtod(argv[3],NULL) ;
    val = rhddc2(x,y,z) ;
-   printf("rhddc2 = %f\n",val) ; exit(0) ;
+   printf("%f %f %f %f %f %f %d %f\n",x,y,z,qx,qy,qz,rcode,val) ; exit(0) ;
 }
+#endif
