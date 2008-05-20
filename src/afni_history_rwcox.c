@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , MAY , 2008 , RWC , "plugout_drive" , MICRO , TYPE_NEW_OPT ,
+   "Make TCP/IP to 'localhost' the default.  Add option '-shm' if needed." ,
+   NULL } ,
+
  { 20 , MAY , 2008 , RWC , "afni_cluster.c" , MICRO , TYPE_GENERAL ,
    "Added BHelp to a bunch of buttons." ,
    NULL } ,
