@@ -223,7 +223,7 @@ int tcp_alivecheck( int sd )
    errno = 0 ;
    ii = tcp_recv( sd , bbb , 1 , MSG_PEEK ) ; /* try to read one byte */
    if( ii == 1 ) return 1 ;                   /* if we get it, good   */
-   if( errno ) PERROR("Socket gone bad? tcp_alivecheck") ;
+   if( errno ) PERROR("Socket gone bad? tcp_alivecheck[tcp_recv]") ;
    return 0 ;                                 /* no data ==> death!   */
 }
 
@@ -366,7 +366,7 @@ int tcp_accept( int sd , char ** hostname , char ** hostaddr )
 
    addrlen = sizeof(pin) ;
    sd_new = accept( sd , (struct sockaddr *)&pin , &addrlen ) ;
-   if( sd_new == -1 ){ PERROR("Can't accept? tcp_accept"); return -1; }
+   if( sd_new == -1 ){ PERROR("Can't accept? tcp_accept[accept]"); return -1; }
 
    /** get name of connector **/
 
@@ -448,7 +448,7 @@ int shm_create( char * key_string , int size )
    key   = string_to_key( key_string ) ;
    shmid = shmget( key , size , 0777 | IPC_CREAT ) ;
    if( shmid < 0 ){
-     PERROR("Can't create? shm_create") ;
+     PERROR("Can't create? shm_create[shmget]") ;
      if( pron ) fprintf(stderr,"key_string=%s key=%d size=%d\n",
                         key_string , (int)key , size ) ;
    }
@@ -466,7 +466,7 @@ char * shm_attach( int shmid )
    char * adr ;
    adr = (char *) shmat( shmid , NULL , 0 ) ;
    if( adr == (char *) -1 ){
-     adr = NULL ; PERROR("Can't attach? shm_attach") ;
+     adr = NULL ; PERROR("Can't attach? shm_attach[shmat]") ;
    }
    return adr ;
 }
@@ -483,7 +483,7 @@ int shm_size( int shmid )
 
    if( shmid < 0 ) return -1 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
-   if( ii < 0 ){ PERROR("Can't check? shm_size");  return -1; }
+   if( ii < 0 ){ PERROR("Can't check? shm_size[shmctl]");  return -1; }
    return buf.shm_segsz ;
 }
 
@@ -501,7 +501,7 @@ int shm_nattach( int shmid )
    errno = 0 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
    if( ii < 0 ){
-     PERROR("Has shared memory buffer gone bad? shm_nattach") ;
+     PERROR("Has shared memory buffer gone bad? shm_nattach[shmctl]") ;
      return -1 ;
    }
    return buf.shm_nattch ;
