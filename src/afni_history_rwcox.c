@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , MAY , 2008 , RWC , "afni" , MINOR , TYPE_GENERAL ,
+   "Clusterize: '-' as the filename means write to stdout." ,
+   NULL } ,
+
  { 15 , MAY , 2008 , RWC , "thd_initdblk.c" , MICRO , TYPE_NEW_ENV ,
    "AFNI_IGNORE_BRICK_FLTFAC = YES means ignore brick factors on input" ,
    "This is a quick hack for Ziad, and must be used with care!  Example:\n"
