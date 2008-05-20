@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , MAY , 2008 , RWC , "afni_cluster.c" , MICRO , TYPE_GENERAL ,
+   "Added BHelp to a bunch of buttons." ,
+   NULL } ,
+
  { 20 , MAY , 2008 , RWC , "afni" , MINOR , TYPE_GENERAL ,
    "Clusterize: '-' as the filename means write to stdout." ,
    NULL } ,
