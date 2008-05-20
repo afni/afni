@@ -1091,9 +1091,13 @@ ENTRY("AFNI_clus_action_CB") ;
 
      ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
      if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
-     sprintf(fnam,"%s_table.1D",ppp) ;
-     ff = THD_is_file(fnam) ;
-     fp = fopen(fnam,"w") ;
+     if( strcmp(ppp,"-") != 0 ){
+       sprintf(fnam,"%s_table.1D",ppp) ;
+       ff = THD_is_file(fnam) ;
+       fp = fopen(fnam,"w") ;
+     } else {
+       fp = stdout ; ff = 0 ;
+     }
      if( fp == NULL ){
        ERROR_message("Can't open file %s for writing",fnam) ;
      } else {
@@ -1115,9 +1119,11 @@ ENTRY("AFNI_clus_action_CB") ;
          fprintf(fp,"%7d %+6.1f %+6.1f %+6.1f %+6.1f %+6.1f %+6.1f\n" ,
                  cld[ii].nvox , mx,my,mz , px,py,pz ) ;
        }
-       fclose(fp) ;
-       if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
-       else     INFO_message   ("Wrote file %s"     ,fnam) ;
+       if( fp != stdout ){
+         fclose(fp) ;
+         if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
+         else     INFO_message   ("Wrote file %s"     ,fnam) ;
+       }
      }
      EXRETURN ;
    }
@@ -1136,7 +1142,7 @@ ENTRY("AFNI_clus_action_CB") ;
      if( nclu == 0 || cld == NULL ) EXRETURN ;
 
      ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
-     if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
+     if( !THD_filename_pure(ppp) || strcmp(ppp,"-") == 0 ) ppp = "Clust" ;
      sprintf(pref,"%s_mask",ppp) ;
      cmd = AFNI_clus_3dclust(im3d) ;
 
@@ -1323,9 +1329,13 @@ ENTRY("AFNI_clus_action_CB") ;
 
            ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
            if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
-           sprintf(fnam,"%s_%02d_hist.1D",ppp,ii+1) ;
-           ff = THD_is_file(fnam) ;
-           fp = fopen(fnam,"w") ;
+           if( strcmp(ppp,"-") != 0 ){
+             sprintf(fnam,"%s_%02d_hist.1D",ppp,ii+1) ;
+             ff = THD_is_file(fnam) ;
+             fp = fopen(fnam,"w") ;
+           } else {
+             fp = stdout ; ff = 0 ;
+           }
            if( fp == NULL ){
              ERROR_message("Can't open file %s for writing",fnam) ;
            } else {
@@ -1341,9 +1351,11 @@ ENTRY("AFNI_clus_action_CB") ;
              fprintf(fp,"# num of voxels  = %d\n"
                         "# num of values  = %d\n" , IMARR_COUNT(imar),nval ) ;
              for( jj=0 ; jj < nbin ; jj++ ) fprintf(fp,"%7d\n",(int)hbin[jj]) ;
-             fclose(fp) ;
-             if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
-             else     INFO_message   ("Wrote file %s"     ,fnam) ;
+             if( fp != stdout ){
+               fclose(fp) ;
+               if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
+               else     INFO_message   ("Wrote file %s"     ,fnam) ;
+             }
            }
 
          }
@@ -1393,9 +1405,13 @@ ENTRY("AFNI_clus_action_CB") ;
            char fnam[128] , *ppp ; int jj,kk,nx,ny,ff ; float *far ; FILE *fp ;
            ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
            if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
-           sprintf(fnam,"%s_%02d_%s.1D",ppp,ii+1,(dopc)?"pc":"mean") ;
-           ff = THD_is_file(fnam) ;
-           fp = fopen(fnam,"w") ;
+           if( strcmp(ppp,"-") != 0 ){
+             sprintf(fnam,"%s_%02d_%s.1D",ppp,ii+1,(dopc)?"pc":"mean") ;
+             ff = THD_is_file(fnam) ;
+             fp = fopen(fnam,"w") ;
+           } else {
+             fp = stdout ; ff = 0 ;
+           }
            if( fp == NULL ){
              ERROR_message("Can't open file %s for writing",fnam) ;
            } else {
@@ -1415,9 +1431,11 @@ ENTRY("AFNI_clus_action_CB") ;
                }
                fprintf(fp,"\n") ;
              }
-             fclose(fp) ;
-             if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
-             else     INFO_message   ("Wrote file %s"     ,fnam) ;
+             if( fp != stdout ){
+               fclose(fp) ;
+               if( ff ) WARNING_message("Over-wrote file %s",fnam) ;
+               else     INFO_message   ("Wrote file %s"     ,fnam) ;
+             }
            }
          }
          if( im != IMARR_SUBIM(imar,0) ) mri_free(im) ;
