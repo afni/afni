@@ -195,9 +195,15 @@ void signal_model (
         /* it is not clear what to do if P.ve is small */
         if( P.ve < 10e-6 )
         {
-            if( P.debug > 2 )
-                fprintf(stderr, "** warning, ve, K = %f, %f --> kep = %f\n",
-                        P.ve, P.K, P.kep);
+            static int warn_count = 0;
+            static int next_warn = 1;
+            warn_count++;
+
+            if( P.debug > 2 && warn_count == next_warn ) {
+                fprintf(stderr, "** warning %d, ve, K = %f, %f --> kep = %f\n",
+                        warn_count, P.ve, P.K, P.kep);
+                next_warn *= 10;
+            }
             memset(ts_array, 0, ts_len*sizeof(float));
             return;
         }
@@ -206,9 +212,14 @@ void signal_model (
 
         if( P.kep > 10.0 )
         {
-            if( P.debug > 2 )
-                fprintf(stderr, "** warning, ve, K = %f, %f ---> kep = %f\n",
-                        P.ve, P.K, P.kep);
+            static int warn_count = 0;
+            static int next_warn = 1;
+            warn_count++;
+            if( P.debug > 2 && warn_count == next_warn ) {
+                fprintf(stderr, "** warning %d, ve, K = %f, %f ===> kep = %f\n",
+                        warn_count, P.ve, P.K, P.kep);
+                next_warn *= 10;
+            }
             memset(ts_array, 0, ts_len*sizeof(float));
             return;
         }
@@ -357,15 +368,33 @@ static int ct_from_cp(demri_params * P, double * ct, float * cp,
 
     /* possibly apply the residual Ct */
     if( P->rct > 0 ) {
+        dval = exp(P3); /* note: this assumes new kep, not quite accurate */
+
+        /* if resid is C, subtract fpv*cp, but if Ct, just keep it */
+        /* also, decay the C value, since it is one TR earlier than Cp */
+        resid = P->rct*dval - P->fpv*cp[0];
+
         if( P->debug > 1 && P->counter == 0 )
-            fprintf(stderr,"-- removing residuals, Ct=%f, Cp=%f, fpv=%f\n",
-                    P->rct, cp[0], P->fpv);
-        /* if resid were C, subtract fpv*cp, but if Ct, just keep it */
-        resid = P->rct;
+            fprintf(stderr,"-- removing residuals, Ct=%f, Cp=%f, fpv=%f,"
+                           " resid=%f\n", P->rct, cp[0], P->fpv, resid);
+
+        if ( resid < 0.0 ) resid = 0.0; /* clip it if negative */
+
         /* elist is not long enough, even if we take it to nfirst-1 (since
            we must start at 1), so be a little slow */
-        dval = exp(P3); /* note: this assumes new kep, not quite accurate */
-        for( n = 0; n < len; n++ ) { resid *= dval; ct[n] += resid; }
+        /* note, Ct has already been decayed from the prior TR */
+        for( n = 0; n < len; n++ ) { ct[n] += resid; resid *= dval; }
+
+        /* in debug case, recompute decay curve for display */
+        if( P->debug > 2 && P->counter == 0 ) {
+            resid = P->rct*dval - P->fpv*cp[0];
+            if(resid < 0.0) fprintf(stderr,"-- resid < 0.0, no decay curve\n");
+            else {
+                fprintf(stderr,"++ decay curve:");
+                for(n=0; n<len; n++, resid*=dval) fprintf(stderr,"  %f",resid);
+                fputc('\n', stderr);
+            }
+        }
     }
 
     /* maybe print out the array */
@@ -781,7 +810,7 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
     for(c = 0; c < nfirst; c++)
         dval += mp[c];
     if( nfirst == 0 ) m0 = 1.0;         /* then no scaling */
-    else              m0 = dval / (nfirst+1);
+    else              m0 = dval / nfirst;
 
     if( m0 < EPSILON ) /* negative is bad, too */
     {
@@ -834,7 +863,7 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
 
     if( P->debug > 1 )      /* maybe print out the list */
     {
-        fprintf(stderr,"+d HCT = %f (%sapplied)\n",
+        fprintf(stderr,"+d HCT = %f (%sapplied, yo)\n",
                 P->hct, P->hct > 0 ? "" : "not ");
         fprintf(stderr,"+d Cp =");
         for( c = 0; c < mp_len; c++ )
