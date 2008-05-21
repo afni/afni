@@ -3027,12 +3027,14 @@ ENTRY("read_input_data") ;
             else if( dt < 0.05f ) nndup++ ;
           }
         }
-        if( ndup > 0 || nndup > 0 )
+        if( ndup > 0 || nndup > 0 ){
           WARNING_message(
             "'%s %d' file '%s' has %d duplicate and %d near-duplicate times ???",
             be->option , is+1 , option_data->stim_filename[is] , ndup,nndup ) ;
-        if( nndup > 0 )
-          INFO_message("Where 'near-duplicate' means within 5% of one TR") ;
+          if( nndup > 0 )
+            ININFO_message(" Where 'near-duplicate' means within 5%% of one TR") ;
+          WARNING_message("One possibility: you want local times, but have global times?");
+        }
       }
 
       /* create qim image to hold time indexes (and paired vals, if present) */
