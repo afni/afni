@@ -2911,6 +2911,9 @@ ENTRY("read_input_data") ;
     if( basis_dtout == basis_TR )
       INFO_message(" [you can alter the -iresp TR via the -TR_times option]");
 
+    if( basis_timetype == GUESS_TIMES )
+      INFO_message("Will guess GLOBAL times if 1 time per line; LOCAL otherwise");
+
     for( is=0 ; is < num_stimts ; is++ ){
       be = basis_stim[is] ;
       if( be == NULL ) continue ;   /* old style -stim_file: BAH! */
@@ -3020,10 +3023,9 @@ ENTRY("read_input_data") ;
         int ndup=0 , nndup=0 ; float qt , dt ;
         for( ii=0 ; ii < ngood ; ii++ ){
           qt = qar[ii] ;
-          for( jj=0 ; jj < ngood ; jj++ ){
-            if( jj == ii ) continue ;
+          for( jj=ii+1 ; jj < ngood ; jj++ ){
             dt = fabsf(qt-qar[jj]) ;
-                 if( dt == 0.0f ) ndup++ ;
+                 if( dt == 0.0f ) ndup++  ;
             else if( dt < 0.05f ) nndup++ ;
           }
         }
@@ -3033,7 +3035,8 @@ ENTRY("read_input_data") ;
             be->option , is+1 , option_data->stim_filename[is] , ndup,nndup ) ;
           if( nndup > 0 )
             ININFO_message(" Where 'near-duplicate' means within 5%% of one TR") ;
-          WARNING_message("One possibility: you want local times, but have global times?");
+          if( be->timetype == GLOBAL_TIMES ) 
+            ININFO_message(" You are using global times: do you want local times?") ;
         }
       }
 
