@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, MAY, 2008, RCR, "model_demri_3", MICRO, TYPE_BUG_FIX,
+   "fixed incorrect scaling in Cp computation",
+   "The error was introduced on April 8, 2008."
+ } ,
+
  { 18, MAY, 2008, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "added options for TR-locking and storing '3dDeconvolve -nodata' examples",
    "- added shuffle() to replace that from random (cannot produce all perms)\n"
