@@ -2900,6 +2900,7 @@ ENTRY("read_input_data") ;
     int   ii,jj , kk , ngood , nx,ny , nf,dd , btyp , nbas ;
     int   nbl=*num_blocks , *bst=*block_list ;
     basis_expansion *be ;
+    char *glprefix = "\0" ;  /* 21 May 2008 */
 
     if( basis_TR    <= 0.0f ) basis_TR    = 1.0f ;
     if( basis_dtout <= 0.0f ) basis_dtout = basis_TR ;
@@ -2911,8 +2912,10 @@ ENTRY("read_input_data") ;
     if( basis_dtout == basis_TR )
       INFO_message(" [you can alter the -iresp TR via the -TR_times option]");
 
-    if( basis_timetype == GUESS_TIMES )
-      INFO_message("Will guess GLOBAL times if 1 time per line; LOCAL otherwise");
+    if( basis_timetype == GUESS_TIMES ){
+      INFO_message("** NOTE ** Will guess GLOBAL times if 1 time per line; LOCAL otherwise");
+      glprefix = "** GUESSED ** " ;
+    }
 
     for( is=0 ; is < num_stimts ; is++ ){
       be = basis_stim[is] ;
@@ -2973,7 +2976,7 @@ ENTRY("read_input_data") ;
 
       if( be->timetype == GLOBAL_TIMES ){  /****------ global times ------****/
         int nbad=0 , nout=0 ;
-        INFO_message("%s %d using GLOBAL times",be->option,is+1) ;
+        INFO_message("%s%s %d using GLOBAL times",glprefix,be->option,is+1) ;
         tmax = (nt-1)*basis_TR ;         /* max allowed time offset */
         for( ii=0 ; ii < ny ; ii++ ){    /* loop over all input times */
           tt = tar[ii] ;
@@ -2994,7 +2997,7 @@ ENTRY("read_input_data") ;
 
       } else {   /****---------- local times => 1 row per block ----------****/
         int nout ;
-        INFO_message("%s %d using LOCAL times",be->option,is+1) ;
+        INFO_message("%s%s %d using LOCAL times",glprefix,be->option,is+1) ;
         if( ny != nbl ){                 /* times are relative to block */
           WARNING_message(
                   "'%s %d' file '%s' has %d rows,"
