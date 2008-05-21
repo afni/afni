@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , MAY , 2008 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+   "Put -1dindex into '3dclust' output from Clusterize report.  Oops." ,
+   NULL } ,
+
  { 20 , MAY , 2008 , RWC , "plugout_drive" , MICRO , TYPE_NEW_OPT ,
    "Make TCP/IP to 'localhost' the default.  Add option '-shm' if needed." ,
    NULL } ,
