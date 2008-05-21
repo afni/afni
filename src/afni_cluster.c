@@ -1617,12 +1617,13 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d )
    static char cmd[3333] ;
    VEDIT_settings vednew ;
    float thr,rmm,vmul,thb,tht ;
-   int thrsign,posfunc,ithr ;
+   int thrsign,posfunc,ithr , ival ;
 
    if( !IM3D_OPEN(im3d) ) return NULL ;
 
    vednew = im3d->vedset ;
 
+   ival    =      vednew.ival     ;
    ithr    = (int)vednew.param[0] ;
    thr     =      vednew.param[1] ;
    rmm     =      vednew.param[2] ;
@@ -1632,7 +1633,7 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d )
 
    thb = THBOT(thr) ; tht = THTOP(thr) ;
 
-   sprintf(cmd,"3dclust -1Dformat -nosum -1tindex %d",ithr) ;
+   sprintf(cmd,"3dclust -1Dformat -nosum -1dindex %d -1tindex %d",ival,ithr) ;
 
    if( posfunc )
      strcat(cmd," -1noneg") ;
