@@ -411,7 +411,8 @@ int main( int argc , char *argv[] )
       if( TS_verbose )
          printf("++ slice %d: fractional shift = %g\n",kk,tshift) ;
 
-      if( fabs(tshift) < 0.001 ) continue ;          /* skip this slice */
+      /* if removing any trend, process the slice       22 May 2008 [rickr] */
+      if( fabs(tshift) < 0.001 && ! TS_rlt ) continue ;  /* skip this slice */
 
       for( ii=0 ; ii < nxy ; ii+=2 ){   /* loop over voxel pairs in slice */
 

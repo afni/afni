@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, MAY, 2008, RCR, "3dTshift", MINOR, TYPE_BUG_FIX,
+   "with -rlt, slices without any time shift must still be processed",
+   NULL
+ } ,
+
  { 21, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_BUG_FIX,
    "fixed incorrect scaling in Cp computation",
    "The error was introduced on April 8, 2008."
