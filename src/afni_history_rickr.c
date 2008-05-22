@@ -50,7 +50,7 @@ afni_history_struct rickr_history[] = {
 
  { 22, MAY, 2008, RCR, "3dTshift", MINOR, TYPE_BUG_FIX,
    "with -rlt, slices without any time shift must still be processed",
-   NULL
+   "problem noticed by Jie Huang"
  } ,
 
  { 21, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_BUG_FIX,
