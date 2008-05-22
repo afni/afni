@@ -48,9 +48,14 @@
 
 afni_history_struct rickr_history[] = {
 
- { 21, MAY, 2008, RCR, "model_demri_3", MICRO, TYPE_BUG_FIX,
+ { 21, MAY, 2008, RCR, "model_demri_3", MINOR, TYPE_BUG_FIX,
    "fixed incorrect scaling in Cp computation",
    "The error was introduced on April 8, 2008."
+ } ,
+
+ { 21, MAY, 2008, RCR, "make_stim_times.py", MICRO, TYPE_NEW_OPT,
+   "added -amplitudes option (for Rutvik Desai)",
+   NULL
  } ,
 
  { 18, MAY, 2008, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
