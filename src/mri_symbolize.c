@@ -74,8 +74,12 @@ ENTRY("SYM_expand_ranges") ;
 
      qpt = strchr(qstr,'*') ;           /* find and decode factor in front */
      if( qpt != NULL ){                       /* if it is present, that is */
-       fac = (float)strtod(qstr,NULL) ;
+       char *ept ;
+       fac = (float)strtod(qstr,&ept) ;
        if( fac == 0.0 && *qstr != '0' ) fac = 1.0 ;
+       if( ept != qpt )  /* 27 May 2008 */
+         WARNING_message(
+           "-gltsym: '*' scale factor in '%s' not at start of string?",qstr ) ;
        qpt++ ;
      } else if( *qstr == '+' ){                  /* "+" is same as "+1.0*" */
        qpt = qstr+1 ; fac =  1.0 ;
