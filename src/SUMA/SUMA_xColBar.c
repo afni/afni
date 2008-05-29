@@ -875,6 +875,11 @@ int SUMA_SwitchColPlaneIntensity (
                FuncName, ind);
       fprintf(SUMA_STDERR, "SO->Label = %s\n", SO->Label);
    }
+   
+   if (SDSET_TYPE(colp->dset_link) == SUMA_NODE_RGB) {
+      SUMA_S_Err("This is a NODE_RGB dataset, cannot switch columns.\n");
+      SUMA_RETURN(0);
+   }
    if (ind >= SDSET_VECNUM(colp->dset_link)) {
       SUMA_S_Errv("Col. Index of %d exceeds maximum of %d for this dset.\n", ind, SDSET_VECNUM(colp->dset_link)-1);
       SUMA_RETURN(0);

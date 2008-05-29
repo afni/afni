@@ -753,6 +753,7 @@ void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
    
    /* now free userdata structure, this plot is dying*/
    SUMA_free(mpud); 
+   mp->userdata = NULL; /* to be sure */
    
    SUMA_RETURNe ;
 }

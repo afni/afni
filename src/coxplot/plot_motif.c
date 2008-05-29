@@ -279,7 +279,6 @@ void pm_donebut_CB( Widget w , XtPointer cd , XtPointer cb )
 #else
      AFNI_CALL_VOID_1ARG( mpcb->killfunc , MEM_topshell_data * , mpcb ) ;
 #endif
-
    if( mpcb->dial != NULL ) XtDestroyWidget( mpcb->dial ) ;
 #ifdef HAVE_XDBE
    if( mpcb->have_xdbe )
