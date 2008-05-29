@@ -9,7 +9,8 @@ set do_rand = 0
 set listlog = "${prs}ExamineList.log"
 set ax_geom = '777x702+433+334'
 set sag_geom = '540x360+4+436'
-
+set lay = ()
+set hostopt = '-host 127.0.0.1'
 PARSE:
    set Narg = $#
    set cnt = 1
@@ -67,6 +68,20 @@ PARSE:
          else
             @ cnt ++
             set opa = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-layout") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a layout file after -layout"
+            goto END
+         else
+            @ cnt ++
+            #Get remove ***LAYOUT string and delete blank lines
+            set lay = ${prs}lay
+            sed '/\*\*\*LAYOUT/d' "$argv[$cnt]" | sed '/^$/d'  > $lay
             set donext = 0   
          endif   
       endif
@@ -338,7 +353,7 @@ else
 endif
 
 #It is time to dance
-plugout_drive -com "RESCAN_THIS A" -quit
+plugout_drive $hostopt -com "RESCAN_THIS A" -quit
 set cnt = 2
 while ($cnt < $#olist)
    set ilbl =  `ccalc -form int $cnt/2`
@@ -346,19 +361,35 @@ while ($cnt < $#olist)
    @ cnt ++
    set ep = `@GetAfniPrefix $olist[$cnt]`
    @ cnt ++
-   plugout_drive  \
+   plugout_drive $hostopt  \
       -com "SWITCH_UNDERLAY $ana"   \
       -com "SWITCH_OVERLAY  $ep"    \
+      -com "SEE_OVERLAY +"          \
+      -com "SET_THRESHOLD A.0"      \
+      -com "SET_PBAR_ALL A.+99 1.0 Add_Edge" \
+      -quit
+   if ($lay == "") then
+   plugout_drive $hostopt  \
       -com "OPEN_WINDOW A.axialimage mont=$ax_mont opacity=$opa"\
       -com "OPEN_WINDOW A.axialimage ifrac=0.9"\
       -com "OPEN_WINDOW A.axialimage geom=$ax_geom "\
       -com "OPEN_WINDOW A.sagittalimage ifrac=0.9"\
       -com "OPEN_WINDOW A.sagittalimage opacity=$opa"\
       -com "OPEN_WINDOW A.sagittalimage geom=$sag_geom"\
-      -com "SEE_OVERLAY +"          \
-      -com "SET_THRESHOLD A.0"      \
-      -com "SET_PBAR_ALL A.+99 1.0 Add_Edge" \
       -quit
+   else
+      set lcnt = 1
+      set nn = `sed -n "${lcnt}p" $lay`
+      #echo $nn $#nn
+      #set echo
+      while ($#nn > 0)
+         #echo $lcnt  $nn
+         plugout_drive $hostopt  \
+            -com "OPEN_WINDOW $nn" -quit
+         @ lcnt ++
+         set nn = `sed -n "${lcnt}p" $lay`
+      end
+   endif
    set ilst = 2
    set iii  = 0
    while ($ilst < $#olist)
@@ -383,7 +414,7 @@ while ($cnt < $#olist)
          else
             set ojpg = ${prs}
          endif
-         plugout_drive \
+         plugout_drive $hostopt \
             -com "SEE_OVERLAY +"   \
             -com "SAVE_JPEG A.axialimage ${ojpg}axi_$ana.jpg"  \
             -com "SAVE_JPEG A.sagittalimage ${ojpg}sag_$ana.jpg"  \
@@ -398,7 +429,7 @@ while ($cnt < $#olist)
       set ojpg = ${prs}
    endif
    echo "Autorecording number ${ilbl} to ${ojpg}..."
-   plugout_drive \
+   plugout_drive $hostopt \
             -com "SAVE_JPEG A.axialimage ${ojpg}axi_$ana.jpg"  \
             -com "SAVE_JPEG A.sagittalimage ${ojpg}sag_$ana.jpg"\
             -quit

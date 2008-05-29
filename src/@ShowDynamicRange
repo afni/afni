@@ -1,9 +1,17 @@
 #!/bin/tcsh -f
-if ("$1" == "" || $1 =~ -h*) then
+if ("$1" == "" || "$1" =~ -h*) then
    goto HELP
 endif
 
-set in = `@GetAfniPrefix $1`
+set infull = "$1"
+set in = `@GetAfniPrefix "$1"`
+
+set tp = `3dAttribute -name BRICK_TYPES $in+orig'[0]'`
+if ($tp[3] != 1) then
+   echo "Error: "
+   echo "Input dataset $infull does not appear to have short data"
+   goto END
+endif
 
 3dAutomask  -prefix automask  \
             -overwrite \
@@ -13,7 +21,11 @@ set in = `@GetAfniPrefix $1`
             -DAFNI_IGNORE_BRICK_FLTFAC=YES   \
             -prefix ${in}.drangestat \
             -overwrite  \
-            ${in}+orig.BRIK
+            "${infull}"
+if ($status) then
+   echo "Error in 3dTstat"
+   goto END
+endif
             
 3dcalc   -a ${in}.drangestat+orig'[0]' \
          -b ${in}.drangestat+orig'[1]' \
@@ -23,6 +35,10 @@ set in = `@GetAfniPrefix $1`
          -datum float \
          -overwrite  \
          -prefix ${in}.minpercchange
+if ($status) then
+   echo "Error in 3dcalc"
+   goto END
+endif
 
 3dcalc   -a ${in}.drangestat+orig'[0]' \
          -b ${in}.drangestat+orig'[1]' \
@@ -68,10 +84,8 @@ echo "at the level of expected response differences between tasks."
 echo "For example, if a unit step corresponds to 0.3% signal change then you may"
 echo "not be able to detect differences of comparable magnitude in the FMRI "
 echo "response to two tasks."
-echo "These differences would be obscured by digitization noise."
+echo "These differences may be obscured by digitization noise."
 echo ""
-echo "Ranges about 50 or unit steps larger than 0.1% may be cause for "
-echo "concern, particularly for event-related experiments."
 
 goto END
 END:
