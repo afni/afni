@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, MAY, 2008, RCR, "model_demri_3", MICRO, TYPE_BUG_FIX,
+   "help update to clarify use of AFNI_MODEL_D3_R1I_DSET",
+   NULL
+ } ,
+
  { 22, MAY, 2008, RCR, "3dTshift", MINOR, TYPE_BUG_FIX,
    "with -rlt, slices without any time shift must still be processed",
    "problem noticed by Jie Huang"
