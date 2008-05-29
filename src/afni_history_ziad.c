@@ -75,6 +75,11 @@ afni_history_struct ziad_history[] = {
    NULL
  } ,
 
+ { 9 , MAY , 2008 , ZSS , "3dROIstats" , MAJOR , TYPE_NEW_OPT ,
+   "Added option -1Dformat to output results in 1D format",
+   NULL
+ } ,
+
  { 8 , MAY , 2008 , ZSS , "3dsvm" , MAJOR , TYPE_BUG_FIX ,
    "Fixed memory corruption caused by improper declaration of combName",
    NULL

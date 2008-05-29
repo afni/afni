@@ -174,9 +174,11 @@ int main( int argc , char *argv[] )
          }
 
          if (argv[narg] && strlen(argv[narg]) >= PLUGOUT_COM_LENGTH) {
-            fprintf(stderr,"** Command length must be smaller than %d characters.\n"
-                           "   If you really need a longer command let us know.\n"
-                           "   Your command is %d characters long.\n" , PLUGOUT_COM_LENGTH, (int)strlen(argv[narg]));
+            fprintf(stderr,
+               "** Command length must be smaller than %d characters.\n"
+               "   If you really need a longer command let us know.\n"
+               "   Your command is %d characters long.\n" , 
+               PLUGOUT_COM_LENGTH, (int)strlen(argv[narg]));
             exit(1);
          }
 
@@ -184,7 +186,9 @@ int main( int argc , char *argv[] )
             com[N_com] = argv[narg];
             ++N_com;
          } else {
-            fprintf(stderr,"** Only 1024 -com options allowed. Are you nuts?\a\n"); exit(1);
+            fprintf( stderr,
+                     "** Only 1024 -com options allowed. Are you nuts?\a\n"); 
+            exit(1);
          }
 
          narg++ ; continue ;
@@ -203,7 +207,8 @@ int main( int argc , char *argv[] )
    }
 
    if (DontWait && !N_com) {
-      fprintf(stderr,"** WARNING: -quit option is meaningless without -com option.\n");
+      fprintf( stderr,
+               "** WARNING: -quit option is meaningless without -com option.\n");
       DontWait = 0;
    }
 
