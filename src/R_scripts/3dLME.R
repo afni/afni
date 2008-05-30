@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.1,  April 8, 2008
+#Version 1.0.2,  May 30, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -205,7 +205,9 @@ if (tag == 0)  {
    if (NoConst) NoF <- nrow(anova(fm)) else NoF <- nrow(anova(fm))-1  # Just assume an intercept in the model
 	#for (n in 1:ncontr) contrDF[n] <- temp[n]$df
    } else { 
-      print("Something is not quite right during testing!") 
+      print(sprintf("Insoluble model! Formula %s on the 4th line in model.txt", ModelShape))
+		print("might be inappropriate, or there are incorrect specifications in model.txt or")
+		print("other obscure problems") 
       break; next # won't run the whole brain analysis if the test fails
 }
 
