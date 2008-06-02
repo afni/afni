@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, JUN, 2008, RCR, "GIFTI", MICRO, TYPE_GENERAL,
+   "added CMakeLists.txt and XMLCALL update from Simon Warfield",
+   "also added LICENSE.gifti"
+ } ,
+
+ { 2, JUN, 2008, RCR, "model_demri_3", MICRO, TYPE_MODIFY,
+   "small help update to clarify residual C curve input",
+   NULL
+ } ,
+
  { 29, MAY, 2008, RCR, "model_demri_3", MICRO, TYPE_BUG_FIX,
    "help update to clarify use of AFNI_MODEL_D3_R1I_DSET",
    NULL
