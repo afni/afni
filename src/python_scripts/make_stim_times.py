@@ -5,7 +5,8 @@ import option_list, afni_util
 
 g_help_string = """
 ===========================================================================
-Convert a set of 0/1 stim files into a set of stim_times files.
+Convert a set of 0/1 stim files into a set of stim_times files, or
+convert real-valued files into those for use with -stim_times_AM2.
 
 Each input stim file can have a set of columns of stim classes,
      and multiple input files can be used.  Each column of an

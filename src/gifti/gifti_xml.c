@@ -60,6 +60,26 @@ static int  show_bad_b64_chars  (const char *, int);
 
 static giiMetaData * find_current_MetaData(gxml_data *, int);
 
+#ifndef XMLCALL
+/* XMLCALL was added to expat in version 1.95.7 to define a calling convention,
+ * as cdecl
+ */
+#if defined(XML_USE_MSC_EXTENSIONS)
+#define XMLCALL __cdecl
+#elif defined(__GNUC__) && defined(__i386)
+#define XMLCALL __attribute__((cdecl))
+#else
+#define XMLCALL 
+#endif
+#endif /* not defined XMLCALL */
+
+#ifndef XML_STATUS_ERROR
+#define XML_STATUS_ERROR 0
+#endif
+#ifndef XML_STATUS_OK
+#define XML_STATUS_OK 1
+#endif
+
 static void XMLCALL cb_start_ele    (void *, const char *, const char **);
 static void XMLCALL cb_end_ele      (void *, const char *);
 static void XMLCALL cb_char         (void *, const char *, int);
