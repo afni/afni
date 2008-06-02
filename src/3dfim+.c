@@ -129,7 +129,7 @@ void display_help_menu()
     "                     the cross-correlation procedure. (default = last) \n"
     "[-polort pnum]     pnum = degree of polynomial corresponding to the    \n"
     "                     baseline model  (pnum = 0, 1, etc.)               \n"
-    "                     (default: pnum = 1)                               \n"
+    "                     (default: pnum = 1). Use -1 for no baseline model.\n"
     "[-fim_thr p]       p = fim internal mask threshold value (0 <= p <= 1) \n"
     "                     (default: p = 0.0999)                             \n"
     "[-cdisp cval]      Write (to screen) results for those voxels          \n"
@@ -366,7 +366,8 @@ void get_options
 #else
 # define PMAX  2
 #endif
-	  if ((ival < 0) || (ival > PMAX))
+
+     if ((ival < -1) || (ival > PMAX)) /* ZSS May 08, allowed -1 */
 	    FIM_error ("illegal argument after -polort ");
 
 #ifdef USE_LEGENDRE
@@ -664,7 +665,7 @@ void read_input_data
   else if (option_data->input_filename != NULL)
     {
       /*----- Read the input 3d+time dataset -----*/
-      *dset_time = THD_open_one_dataset (option_data->input_filename);
+      *dset_time = THD_open_dataset (option_data->input_filename);   
       if (!ISVALID_3DIM_DATASET(*dset_time))  
 	{ 
 	  sprintf (message,  "Unable to open data file: %s", 
@@ -1466,7 +1467,8 @@ void write_bucket_data
 
 
   /*----- read prototype dataset -----*/
-  old_dset = THD_open_one_dataset (option_data->input_filename);
+  old_dset = THD_open_dataset (option_data->input_filename);
+                     /* ZSS May 08, changed from THD_open_one_dataset  */
 
     
   /*----- Initialize local variables -----*/

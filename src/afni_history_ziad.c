@@ -65,8 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 29 , MAY , 2008 , ZSS , "3dfim+" , MINOR , TYPE_MODIFY ,
+   "allowed for -polort -1 and for sub-brick selection with dataset names",
+   NULL
+ } ,
+
  { 15 , MAY , 2008 , ZSS , "3dmaskdump" , MINOR , TYPE_NEW_OPT ,
-   "added -n_rand and -n_randseed.",
+   "added -n_rand and -n_randseed",
    NULL
  } ,
 
