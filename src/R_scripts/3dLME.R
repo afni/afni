@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.2,  May 30, 2008
+#Version 1.0.3,  June 3, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -97,8 +97,8 @@ clist      <- vector('list', ncontr)
 # CAREFUL: assume contrasts at the same covariate value for multiple groups, 
 # but is this desirable???
 for (n in 1:ncontr) {
-   contrLabel[n] <- paste(unlist(scan(file="model.txt", what= list(""), skip=8+2*n-1, nline=1)), collapse="")
-   contr[n]      <- scan(file="model.txt", what= list(""), sep="-", skip=8+2*n, nline=1)
+   contrLabel[n] <- paste(unlist(scan(file="model.txt", what= list(""), skip=8+2*n-1, strip.white=TRUE, nline=1)), collapse="")
+   contr[n]      <- scan(file="model.txt", what= list(""), sep="-", skip=8+2*n, strip.white=TRUE, nline=1)
 	clist[[n]] <- vector('list', 2)
 	for (ii in 1:2) cc[n, ii,] <- strsplit(contr[n][[1]][ii], "\\*")[[1]] # or unlist(strsplit(contr[n][[1]][ii], "\\*"))
 	for (ii in 1:2) {  # component in n-th contrast
@@ -160,40 +160,41 @@ for (m in 2:NoFile) {
 
 # try out a solvable voxel, and find out the number of F tests and DF's 
 # for t tests (and catch potential problems as well)
-ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
-Model$Beta<-IData[ii, jj, kk,]
 
 if (ncontr > 0) contrDF <- array(data=NA, dim=ncontr)
 tag<-1
 while (tag == 1) {
    tag<-0
+	ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
+	Model$Beta<-IData[ii, jj, kk,]
 	if (RanEff) {
-		if (CorStr == 0) if (VarStr == 0) {
+		if (CorStr == 0) { if (VarStr == 0) {
 		   try(fm <- lme(ModelForm, random = ~1|Subj, Model), tag <- 1) } else {
-			try(fm <- lme(ModelForm, random = ~1|Subj, weights=varIdent(VarForm), Model), tag <- 1) }
+			try(fm <- lme(ModelForm, random = ~1|Subj, weights=varIdent(VarForm), Model), tag <- 1) } }
 			
-		if (CorStr == 1) if (VarStr == 0) {
+		if (CorStr == 1) { if (VarStr == 0) {
 		   try(fm <- lme(ModelForm, random = ~1|Subj, 
 		   correlation=corAR1(0.3, form=CorForm), Model), tag <- 1) } else {
 			try(fm <- lme(ModelForm, random = ~1|Subj, correlation=corAR1(0.3, form=CorForm),
-		   weights=varIdent(VarForm), Model), tag <- 1) }
+		   weights=varIdent(VarForm), Model), tag <- 1) } }
 			
-		if (CorStr == 2) if (VarStr == 0) {
+		if (CorStr == 2) { if (VarStr == 0) {
 		   try(fm <- lme(ModelForm, random = ~1|Subj, 
 		   correlation=corARMA(c(0.3,0.3), p=2, form=CorForm), Model), tag <- 1) } else {
 			try(fm <- lme(ModelForm, random = ~1|Subj, 
 			correlation=corARMA(c(0.3,0.3), p=2, form=CorForm),
-			weights=varIdent(VarForm), Model), tag <- 1) }
+			weights=varIdent(VarForm), Model), tag <- 1) } }
 			
-		if (CorStr == 3) if (VarStr == 0) {
+		if (CorStr == 3) { if (VarStr == 0) {
 		   try(fm <- lme(ModelForm, random = ~1|Subj, 
 		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm), Model), tag <- 1) } else {
 			try(fm <- lme(ModelForm, random = ~1|Subj, 
 		   correlation=corARMA(c(0.3,0.3), p=1, q=1, form=CorForm),
-			weights=varIdent(VarForm), Model), tag <- 1) }
+			weights=varIdent(VarForm), Model), tag <- 1) } }
 	}	
 	else try(fm <- gls(ModelForm, Model), tag <- 1)
-	if (ncontr > 0) try(for (n in 1:ncontr) { contrDF[n] <- contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average")$df }, tag <- 1)
+	if (ncontr > 0) try(for (n in 1:ncontr) { contrDF[n] <- 
+	   contrast(fm, clist[[n]][[1]], clist[[n]][[2]], type="average")$df }, tag <- 1)
    if (ii<dimx) ii<-ii+1 else {
       #print("Something is not quite right during testing!")
       break
@@ -206,8 +207,9 @@ if (tag == 0)  {
 	#for (n in 1:ncontr) contrDF[n] <- temp[n]$df
    } else { 
       print(sprintf("Insoluble model! Formula %s on the 4th line in model.txt", ModelShape))
-		print("might be inappropriate, or there are incorrect specifications in model.txt or")
-		print("other obscure problems") 
+		print("might be inappropriate, or there are incorrect specifications in model.txt")
+		print("such as contrasts, factor levels, or other obscure problems.")
+		print("Meditate on model.txt for 3 minutes, and try to pinpoint the problem...")
       break; next # won't run the whole brain analysis if the test fails
 }
 
