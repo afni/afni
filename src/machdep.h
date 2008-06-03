@@ -399,4 +399,6 @@ extern long int lrand48(void);
 extern double lgamma(double) ;
 #endif
 
+extern char * Random_Insult(void) ;
+
 #endif /* _MCW_MACHDEP_ */

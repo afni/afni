@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , JUN , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Made AFNI_IMAGE_TICK_DIV_IN_MM editable (in 'Edit Environment')" ,
+   "This is Rick's method for putting a physical scale around the edge of an\n"
+   "image.  Of course, you have to use the grayscale intensity bar popup\n"
+   "menu to actually put the tick marks on.  This just converts the\n"
+   "'division' count to mm." } ,
+
  { 21 , MAY , 2008 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
    "Put -1dindex into '3dclust' output from Clusterize report.  Oops." ,
    NULL } ,

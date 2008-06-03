@@ -1786,7 +1786,7 @@ STATUS("creation: widgets created") ;
                       ) ;
    AVOPT_columnize(newseq->wbar_ticnum_av,2) ;
    MCW_reghint_children( newseq->wbar_ticnum_av->wrowcol ,
-                         "Number of tick mark divisions on image edges" ) ;
+    "Number of tick marks on image edges [cf. AFNI_IMAGE_TICK_DIV_IN_MM]" ) ;
    newseq->wbar_ticsiz_av =
       new_MCW_arrowval( newseq->wbar_menu ,
                         "Tick Size" ,
@@ -10893,14 +10893,9 @@ ENTRY("ISQ_cropper") ;
      static int npop=0 ;
      char str[64] ;
      if( npop < 5 ){
-#define NINSULT 17
-       static char *ins[NINSULT]={
-                      "Stupid","Moronic","Cretinous","Idiotic","Bozonic",
-                      "Criminal","Repulsive","Dumb",
-                      "Pinheaded","Fatuous","Asinine","Imbecilic",
-                      "Oafish","Doltish","Duncical","Witless","Brainless" };
-       int ii = (lrand48()>>5) % NINSULT ;
-       sprintf(str," \n  %s \n  crop\n  rectangle! \n ",ins[ii]) ;
+       sprintf(str,
+               " \n  %s \n  crop\n  rectangle! \n\n[Crosses montage border]\n",
+               Random_Insult()) ;
        MCW_popup_message( seq->wimage,str, MCW_USER_KILL|MCW_TIMER_KILL ) ;
        npop++ ;
      }
