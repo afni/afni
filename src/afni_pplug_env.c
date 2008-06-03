@@ -476,6 +476,10 @@ PLUGIN_interface * ENV_init(void)
                     "Max number rows in Clusterize Rpt table" ,
                     10,99,0,15 , NULL ) ;
 
+   /* 03 Jun 2008 [RWCox] */
+   ENV_add_yesno( "AFNI_IMAGE_TICK_DIV_IN_MM" ,
+                  "Image tick divisions count is in mm?" ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
