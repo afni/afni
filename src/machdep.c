@@ -116,3 +116,19 @@ double lgamma( double x )
    return ( gamma_12(w) + g ) ;
 }
 #endif  /* NO_GAMMA */
+
+/*---------------------------------------------------------------------------*/
+
+char * Random_Insult(void)
+{
+#define NINSULT 17
+   static char *ins[NINSULT]={ "Stupid"    , "Moronic"   , "Cretinous" ,
+                               "Idiotic"   , "Bozonic"   , "Criminal"  ,
+                               "Repulsive" , "Dumb"      , "Pinheaded" ,
+                               "Fatuous"   , "Asinine"   , "Imbecilic" ,
+                               "Oafish"    , "Doltish"   , "Duncical"  ,
+                               "Witless"   , "Brainless"
+   } ;
+   int ii = (lrand48()>>5) % NINSULT ;
+   return ins[ii] ;
+}
