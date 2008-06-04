@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.3,  June 3, 2008
+#Version 1.0.2,  May 30, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -19,21 +19,21 @@ library(contrast)
 
 # Line 1: data type - volume or surface
 datatype <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), 
-   skip=0, nline=1)), "\\:"))[2]
+   skip=0, strip.white=TRUE, nline=1)), "\\:"))[2]
 
 #  Line 2: Output filename
 #how to check output filename?
 Out <-unlist(strsplit(unlist(scan(file="model.txt", what= list(""), 
-   skip=1, nline=1)), "\\:"))[2]
+   skip=1, strip.white=TRUE, nline=1)), "\\:"))[2]
 OutFile <- paste(Out, "+orig", sep="")
 
 # Line 3: MASK
 mask <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), 
-   skip=2, nline=1)), "\\:"))[2]
+   skip=2, strip.white=TRUE, nline=1)), "\\:"))[2]
 
 # Line 4: model formula
 ModelShape <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), 
-   skip=3, nline=1)), "\\:"))[2]
+   skip=3, strip.white=TRUE, nline=1)), "\\:"))[2]
 #nfixed <- length(strsplit(ModelShape[[1]], "\\*")[[1]])
 nfixed <- length(unique(unlist(strsplit(unlist(strsplit(ModelShape[[1]], 
    "\\*")), "\\+"))))
@@ -43,7 +43,7 @@ if (length(grep("-1", ModelShape)==1)>0) NoConst <- TRUE else NoConst <- FALSE
 
 # Line 5: covariates Cov is NA if no covariates
 Cov <- unlist(strsplit(unlist(strsplit(unlist(scan(file="model.txt", 
-   what= list(""), skip=4, nline=1)), "\\:"))[2], "\\*"))
+   what= list(""), skip=4, strip.white=TRUE, nline=1)), "\\:"))[2], "\\*"))
 if (is.na(Cov)) nCov <- 0 else nCov <- length(Cov)  # number of covariates
 
 # separate interaction terms
@@ -58,23 +58,28 @@ for (n in 1:nCov) {
 }
 
 # Line 6: Random effect - lme or gls?
-RanEff <- as.logical(unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=5, nline=1)), "\\:"))[2])
+RanEff <- as.logical(unlist(strsplit(unlist(scan(file="model.txt", what= list(""), 
+   skip=5, strip.white=TRUE, nline=1)), "\\:"))[2])
 
 # Line 7: Variance structure for modeling dependence among within-subject errors
-VarStr <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=6, nline=1)), "\\:"))[2]
+VarStr <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=6, 
+   strip.white=TRUE, nline=1)), "\\:"))[2]
 # 0 - nothing; 1 - different variances across groups
-VarTmp <- strsplit(unlist(scan(file="model.txt", what= list(""), skip=6, nline=1)), "\\:|~")
+VarTmp <- strsplit(unlist(scan(file="model.txt", what= list(""), skip=6, 
+   strip.white=TRUE, nline=1)), "\\:|~")
 VarStr <- unlist(VarTmp)[2]
 VarForm <- as.formula(paste("~", unlist(VarTmp)[3]))
 
 # Line 8: Correlation structure for modeling dependence among within-subject errors
 # 0 - nothing; 1 - corAR1; 2 - corARMA(2,0); 3 - corARMA(1,1)
-CorTmp <- strsplit(unlist(scan(file="model.txt", what= list(""), skip=7, nline=1)), "\\:|~")
+CorTmp <- strsplit(unlist(scan(file="model.txt", what= list(""), skip=7, 
+   strip.white=TRUE, nline=1)), "\\:|~")
 CorStr <- unlist(CorTmp)[2]
 CorForm <- as.formula(paste("~", unlist(CorTmp)[3]))
 
 # Line 9: type of sums of squares - "marginal" or "sequential"
-Ftype <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=8, nline=1)), "\\:"))[2]
+Ftype <- unlist(strsplit(unlist(scan(file="model.txt", what= list(""), skip=8, 
+   strip.white=TRUE, nline=1)), "\\:"))[2]
 
 # Line 10 and the next few: pair-wise contrasts
 
@@ -97,8 +102,10 @@ clist      <- vector('list', ncontr)
 # CAREFUL: assume contrasts at the same covariate value for multiple groups, 
 # but is this desirable???
 for (n in 1:ncontr) {
-   contrLabel[n] <- paste(unlist(scan(file="model.txt", what= list(""), skip=8+2*n-1, strip.white=TRUE, nline=1)), collapse="")
-   contr[n]      <- scan(file="model.txt", what= list(""), sep="-", skip=8+2*n, strip.white=TRUE, nline=1)
+   contrLabel[n] <- paste(unlist(scan(file="model.txt", what= list(""), skip=8+2*n-1, 
+	   strip.white=TRUE, nline=1)), collapse="")
+   contr[n]      <- scan(file="model.txt", what= list(""), sep="-", skip=8+2*n, 
+	   strip.white=TRUE, nline=1)
 	clist[[n]] <- vector('list', 2)
 	for (ii in 1:2) cc[n, ii,] <- strsplit(contr[n][[1]][ii], "\\*")[[1]] # or unlist(strsplit(contr[n][[1]][ii], "\\*"))
 	for (ii in 1:2) {  # component in n-th contrast
@@ -158,14 +165,14 @@ for (m in 2:NoFile) {
    IData[,,,m] <- read.AFNI(Model[m, FileCol])$ttt
 }
 
-# try out a solvable voxel, and find out the number of F tests and DF's 
+# try out a few voxels and see if the model is OK, and find out the number of F tests and DF's 
 # for t tests (and catch potential problems as well)
+ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
 
 if (ncontr > 0) contrDF <- array(data=NA, dim=ncontr)
 tag<-1
 while (tag == 1) {
    tag<-0
-	ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
 	Model$Beta<-IData[ii, jj, kk,]
 	if (RanEff) {
 		if (CorStr == 0) { if (VarStr == 0) {
