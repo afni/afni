@@ -2445,12 +2445,15 @@ plugouts.  This allows multiple instances of afni on one machine, where
 each can listen for plugouts.  Valid port numbers are 1024..65535.
 
 -----------------------------------
-Variable: AFNI_IMAGE_TICK_DIV_IN_MM
+Variable: AFNI_IMAGE_TICK_DIV_IN_MM (editable)
 -----------------------------------
 If this YES/NO variable is set to YES, then the Tick Div. value in an
 image window will be interpreted as a separation distance, in mm, as
-opposed to the number of tick divisions along each edge.  In that case,
+opposed to the number of tick divisions along each edge.  In the YES case,
 a larger value would produce fewer ticks, as they would be farther apart.
+In the NO case, a larger value will produce more tick marks.  Tick marks
+are controlled from the Button 3 popup menu attached to the grayscale
+intensity bar in an image viewer.
 
 ----------------------------
 Variable: AFNI_IMAGRA_CLOSER
