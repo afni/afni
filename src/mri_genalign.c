@@ -2169,6 +2169,41 @@ ENTRY("mri_genalign_scalar_warpone") ;
    RETURN(wim) ;
 }
 
+/*--------------------------------------------------------------------------*/
+/*! - Find the 8 corners of the input dataset (voxel edges, not centers).
+    - Warp each one using the provided wfunc().
+    - Return the min and max (x,y,z) coordinates of these warped points.
+*//*------------------------------------------------------------------------*/
+
+#if 0
+static void mri_genalign_warped_bbox( THD_3dim_dataset *inset,
+                                      int npar, float *wpar, GA_warpfunc *wfunc,
+                                      float *xb , float *xt ,
+                                      float *yb , float *yt ,
+                                      float *zb , float *zt )
+{
+   THD_dataxes *daxes ;
+   float nx0,ny0,nz0 , nx1,ny1,nz1 ;
+   float xx,yy,zz , xbot,ybot,zbot , xtop,ytop,ztop ;
+
+   /* setup stuff */
+
+   if( !ISVALID_DSET(inset) || wfunc == NULL ) return ;
+
+   daxes = inset->daxes ;
+   nx0 =           -0.5 ; ny0 =           -0.5 ; nz0 =           -0.5 ;
+   nx1 = daxes->nxx-0.5 ; ny1 = daxes->nyy-0.5 ; nz1 = daxes->nzz-0.5 ;
+
+   /* send parameters to warp function, if needed */
+
+   if( npar > 0 && wpar != NULL )
+     wfunc( npar , wpar , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
+
+   wfunc() ;
+}
+#endif
+
+
 /*==========================================================================*/
 /*****------------------------ Warping functions -----------------------*****/
 /*--------------------------------------------------------------------------*/
