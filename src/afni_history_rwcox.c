@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , JUN , 2008 , RWC , "3dErrtsCormat" , MINOR , TYPE_NEW_PROG ,
+   "Compute correlation matrix of a time series, globally." ,
+   NULL } ,
+
+ { 6 , JUN , 2008 , RWC , "3dLocalCormat" , MINOR , TYPE_NEW_PROG ,
+   "Compute correlation matrix of a time series, averaged locally." ,
+   NULL } ,
+
  { 3 , JUN , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Made AFNI_IMAGE_TICK_DIV_IN_MM editable (in 'Edit Environment')" ,
    "This is Rick's method for putting a physical scale around the edge of an\n"

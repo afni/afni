@@ -19,9 +19,11 @@ static float ccc[NCLR_MAX][3] = {
   { 0.9 , 0.0 , 0.0 } ,
   { 0.0 , 0.7 , 0.0 } ,
   { 0.0 , 0.0 , 0.9 } ,
+  { 0.8 , 0.0 , 0.9 } ,
+  { 0.7 , 0.6 , 0.0 } ,
 } ;
 
-static int NCLR = 4 ;
+static int NCLR = 6 ;
 static int dont_init_colors=0 ;
 
 static int ilab[4] = { 0,2,3,1 } ;  /* whether to plot labels on axes */

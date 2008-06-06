@@ -634,6 +634,14 @@ nsize:nsize.o
 	$(RM) $@
 	$(CC) -o 3dhclip 3dhclip.o $(LFLAGS) $(LLIBS)
 
+3dErrtsCormat:3dErrtsCormat.o
+	$(RM) $@
+	$(CC) -o 3dErrtsCormat 3dErrtsCormat.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3dLocalCormat:3dLocalCormat.o
+	$(RM) $@
+	$(CC) -o 3dLocalCormat 3dLocalCormat.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
 3dmerge:3dmerge.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dmerge 3dmerge.o parser.o parser_int.o \
