@@ -212,6 +212,25 @@ void THD_normalize( int npt , float *far )
    return ;
 }
 
+/*-------------------------------------------------------------------------
+   Make a vector have RMS value = 1
+---------------------------------------------------------------------------*/
+
+void THD_normRMS( int npt , float *far )
+{
+   register int ii ;
+   register float fac ;
+
+   if( npt <= 0 || far == NULL ) return ;
+
+   fac = 0.0f ;
+   for( ii=0 ; ii < npt ; ii++ ) fac += far[ii]*far[ii] ;
+   if( fac == 0.0f ) return ;
+   fac = 1.0f / sqrtf(fac/npt) ;
+   for( ii=0 ; ii < npt ; ii++ ) far[ii] *= fac ;
+   return ;
+}
+
 /*-----------------------------------------------------------------------*/
 /* Make a vector have max abs 1 [26 Mar 2008]. */
 
