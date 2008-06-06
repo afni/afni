@@ -442,9 +442,10 @@ g_history = """
     0.2  May 18, 2008:
          - changed -stim_time option to -stim_dur
          - added options -tr_locked, -tr and -save_3dd_cmd
+    0.3  June 6, 2008: get_*_opt now returns error code
 """
 
-g_version = "version 1.0, May 7, 2008"
+g_version = "version 0.3, June 6, 2008"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -587,19 +588,20 @@ class RandTiming:
 
         # ----------------------------------------
         # set verb first
-        self.verb = self.user_opts.get_type_opt(int, '-verb')
+        self.verb, err = self.user_opts.get_type_opt(int, '-verb')
         if self.verb == None: self.verb = gDEF_VERB
+        elif err: return 1
 
         # ----------------------------------------
         # required args - single parameter
-        self.num_stim = self.user_opts.get_type_opt(int, '-num_stim')
-        if self.num_stim == None: return 1
+        self.num_stim, err = self.user_opts.get_type_opt(int, '-num_stim')
+        if self.num_stim == None or err: return 1
 
-        self.num_runs = self.user_opts.get_type_opt(int, '-num_runs')
-        if self.num_runs == None: return 1
+        self.num_runs, err = self.user_opts.get_type_opt(int, '-num_runs')
+        if self.num_runs == None or err: return 1
 
-        self.prefix = self.user_opts.get_string_opt('-prefix')
-        if self.prefix == None: return 1
+        self.prefix, err = self.user_opts.get_string_opt('-prefix')
+        if self.prefix == None or err: return 1
 
         if self.verb > 1:
             print '-- have %d stim and %d runs, prefix = %s' %  \
@@ -609,19 +611,19 @@ class RandTiming:
         # required args - (possibly) multiple parameter
 
         # set num_reps list of length num_runs
-        self.run_time = self.user_opts.get_type_list(float, '-run_time',
+        self.run_time, err = self.user_opts.get_type_list(float, '-run_time',
                                        self.num_runs, 'num_runs', self.verb)
-        if self.run_time == None: return 1
+        if self.run_time == None or err: return 1
 
         # set num_reps list of length num_runs
-        self.num_reps = self.user_opts.get_type_list(int, '-num_reps',
+        self.num_reps, err = self.user_opts.get_type_list(int, '-num_reps',
                                       self.num_stim, 'num_stim', self.verb)
-        if self.num_reps == None: return 1
+        if self.num_reps == None or err: return 1
 
         # set stim_dur list of length num_stim
-        self.stim_dur = self.user_opts.get_type_list(float, '-stim_dur',
+        self.stim_dur, err = self.user_opts.get_type_list(float, '-stim_dur',
                                        self.num_stim, 'num_stim', self.verb)
-        if self.stim_dur == None: return 1
+        if self.stim_dur == None or err: return 1
 
         # ----------------------------------------
         # optional arguments (if failure, use default)
@@ -630,24 +632,31 @@ class RandTiming:
         opt = self.user_opts.find_opt('-across_runs')
         if opt: self.across_runs = 1
 
-        self.pre_stim_rest = self.user_opts.get_type_opt(float,'-pre_stim_rest')
+        self.pre_stim_rest, err = self.user_opts.get_type_opt(float,
+                                                              '-pre_stim_rest')
         if self.pre_stim_rest == None: self.pre_stim_rest = 0.0
+        elif err: return 1
 
-        self.post_stim_rest = self.user_opts.get_type_opt(float, \
+        self.post_stim_rest, err = self.user_opts.get_type_opt(float, \
                                                           '-post_stim_rest')
         if self.post_stim_rest == None: self.post_stim_rest = 0.0
+        elif err: return 1
 
-        self.min_rest = self.user_opts.get_type_opt(float,'-min_rest')
+        self.min_rest, err = self.user_opts.get_type_opt(float,'-min_rest')
         if self.min_rest == None: self.min_rest = 0
+        elif err: return 1
 
-        self.seed = self.user_opts.get_type_opt(float,'-seed')
+        self.seed, err = self.user_opts.get_type_opt(float,'-seed')
         if self.seed == None: self.seed = None
+        elif err: return 1
 
-        self.t_gran = self.user_opts.get_type_opt(float,'-t_gran')
+        self.t_gran, err = self.user_opts.get_type_opt(float,'-t_gran')
+        if err: return 1
         # check the result after -tr_locked
 
-        self.tr = self.user_opts.get_type_opt(float,'-tr')
+        self.tr, err = self.user_opts.get_type_opt(float,'-tr')
         if not self.tr: self.tr = 0.0
+        elif err: return 1
 
         opt = self.user_opts.find_opt('-tr_locked')
         if opt: self.tr_locked = 1
@@ -671,19 +680,21 @@ class RandTiming:
         if not self.t_gran: self.t_gran = gDEF_T_GRAN
 
         # t_digits must come after t_gran is set
-        self.t_digits = self.user_opts.get_type_opt(float,'-t_digits')
+        self.t_digits, err = self.user_opts.get_type_opt(float,'-t_digits')
         if self.t_digits == None:
             if self.t_gran == round(self.t_gran,1):
                 self.t_digits = gDEF_DEC_PLACES
             else:
                 self.t_digits = 3
+        elif err: return 1
 
-        self.labels = self.user_opts.get_string_list('-stim_labels')
+        self.labels, err = self.user_opts.get_string_list('-stim_labels')
         if self.labels and len(self.labels) != self.num_stim:
             print '** error: %d stim classes but %d labels: %s' \
                   % (self.num_stim, len(self.lables), self.labels)
 
-        self.file_3dd_cmd = self.user_opts.get_string_opt('-save_3dd_cmd')
+        self.file_3dd_cmd, err = self.user_opts.get_string_opt('-save_3dd_cmd')
+        if err: return 1
 
         if self.verb > 1:
             print '-- pre_stim_rest = %.1f, post_stim_rest = %.1f, seed = %s' \
