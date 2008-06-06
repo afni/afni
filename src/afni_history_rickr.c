@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, JUN, 2008, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "get_*_opt now returns an error code",
+   NULL
+ } ,
+
  { 2, JUN, 2008, RCR, "GIFTI", MICRO, TYPE_GENERAL,
    "added CMakeLists.txt and XMLCALL update from Simon Warfield",
    "also added LICENSE.gifti"

@@ -13,7 +13,11 @@ import afni_base
 #     - added doc string and reformatted add_opt()
 #     - modified show()
 #     - added class functions get_string_opt, get_string_list,
-#       get_type_opt and get_type_list
+#       get_type_opt and get_type_list  
+#
+#   06 June 2008 [rickr]:
+#     - get_*_opt functions now return an error code along with the result
+#
 
 # ---------------------------------------------------------------------------
 # This class provides functionality for processing lists of comopt elements.
@@ -82,41 +86,45 @@ class OptionList:
                     return 1
 
     def get_string_opt(self, opt_name):
-        """return the option parameter string"""
+        """return the option parameter string and err
+           err = 0 on success, 1 on failure"""
 
         opt = self.find_opt(opt_name)
-        if not opt or not opt.parlist: return None
+        if not opt or not opt.parlist: return None, 0
         if len(opt.parlist) != 1:
             print '** option %s takes exactly 1 parameter, have: %s' % \
                   (opt_name, opt.parlist)
-            return None
-        return opt.parlist[0]
+            return None, 1
+        return opt.parlist[0], 0
 
     def get_string_list(self, opt_name):
-        """return the option parameter string"""
+        """return the option parameter string and an error code"""
 
         opt = self.find_opt(opt_name)
-        if not opt or not opt.parlist or len(opt.parlist) < 1: return None
-        return opt.parlist
+        if not opt or not opt.parlist or len(opt.parlist) < 1: return None,0
+        return opt.parlist, 0
 
     def get_type_opt(self, type, opt_name):
-        """return the option param value converted to the given type"""
+        """return the option param value converted to the given type, and err
+           (err = 0 on success, 1 on failure)"""
 
         opt = self.find_opt(opt_name)
-        if not opt or not opt.parlist: return None
+        if not opt or not opt.parlist: return None, 0
         if len(opt.parlist) != 1:
             print '** option %s takes exactly 1 parameter, have: %s' % \
                   (opt_name, opt.parlist)
-            return None
+            return None, 1
         try: val = type(opt.parlist[0])
         except:
-            print '** cannot convert %s to %s' % (opt.parlist[0], type)
-            return None
+            print "** cannot convert '%s' to %s" % (opt.parlist[0], type)
+            return None, 1
 
-        return val
+        return val, 0
 
     def get_type_list(self, type, opt_name, length, len_name, verb=1):
-        """return a list of values of the given type
+        """return a list of values of the given type, and err
+
+            err will be set (1) if there is an error
 
             type      : expected conversion type
             opt_name  : option name to find in opts list
@@ -129,23 +137,23 @@ class OptionList:
             If 1, duplicate it to length."""
 
         opt = self.find_opt(opt_name)
-        if not opt or not opt.parlist: return None
+        if not opt or not opt.parlist: return None, 0
         olen = len(opt.parlist)
         if olen != 1 and olen != length:
             print '** %s takes 1 or %s (%d) values, have %d: %s' % \
                   (opt_name, len_name, length, olen, ', '.join(opt.parlist))
-            return 1
+            return 1, 1
         try:
             tlist = map(type,opt.parlist)
         except:
             print "** %s takes only %s, have: %s" % (opt_name,type,opt.parlist)
-            return None
+            return None, 1
         if olen != length:     # expand the list
             tlist = [tlist[0] for i in range(length)]
             if verb > 1: print '++ expanding %s to list %s' % (opt_name, tlist)
         elif verb > 1: print '-- have %s list %s' % (opt_name, tlist)
 
-        return tlist        # return the list
+        return tlist, 0        # return the list
 
 
 # ---------------------------------------------------------------------------
