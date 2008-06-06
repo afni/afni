@@ -8,14 +8,18 @@
 static int maxlag = 0 ;
 static float *cor = NULL ;
 static int  *ncor = NULL ;
+static int   port = 0 ;
 
-void CORMAT_init( int mlag )
+/*....................................................................*/
+
+void CORMAT_init( int mlag , int pp )
 {
    FREEIF(cor) ; FREEIF(ncor) ; maxlag = 0 ;
    if( mlag > 0 ){
-      cor = (float *)calloc( sizeof(float) , mlag ) ;
-     ncor = (int *)  calloc( sizeof(int)   , mlag ) ;
+      cor   = (float *)calloc( sizeof(float) , mlag ) ;
+     ncor   = (int *)  calloc( sizeof(int)   , mlag ) ;
      maxlag = mlag ;
+     port   = (pp < 0 || pp > 3) ? 0 : pp ;
    }
    return ;
 }
@@ -41,17 +45,20 @@ void CORMAT_add_vector( int nv , float *vv )
 
    if( maxlag <= 0 || nv <= 2 || vv == NULL ) return ;
 
-   ss = 0.0f ;
-   for( ii=0 ; ii < nv ; ii++ ) ss += vv[ii] ;
-   ss /= nv ; sq = 0.0f ;
-   for( ii=0 ; ii < nv ; ii++ ) sq += (vv[ii]-ss)*(vv[ii]-ss) ;
-   if( sq == 0.0f ) return ;
-   sq = 1.0f / sq ;
+   switch(port){
+     default:
+     case 0:  THD_const_detrend      ( nv , vv , NULL           ); break;
+     case 1:  THD_linear_detrend     ( nv , vv , NULL,NULL      ); break;
+     case 2:  THD_quadratic_detrend  ( nv , vv , NULL,NULL,NULL ); break;
+     case 3:  THD_cubic_detrend      ( nv , vv                  ); break;
+   }
+   THD_normRMS( nv , vv ) ;
+
    ktop = MIN(maxlag,nv-1) ;
    for( kk=1 ; kk <= ktop ; kk++ ){
      itop = nv-kk ;
      for( ii=0 ; ii < itop ; ii++ ){
-       cor[kk-1] += (vv[ii]-ss)*(vv[ii+kk]-ss)*sq; ncor[kk-1]++;
+       cor[kk-1] += vv[ii] * vv[ii+kk] ; ncor[kk-1]++ ;
      }
    }
 
@@ -70,30 +77,57 @@ void Syntax(void)
     "is a 1D file of the Toeplitz entries (to stdout).\n"
     "\n"
     "Options:\n"
-    "  -concat rname\n"
+    "  -concat rname  = as in 3dDeconvolve\n"
+    "  -input  dset   = alternate way of telling what dataset to read\n"
+    "  -mask   mset   = mask dataset\n"
+    "  -maxlag mm     = set maximum lag\n"
     "\n"
-    "-- RWCox -- Jun 2008\n"
+    "-- RWCox -- Jun 2008 -- for my own nefarious purposes\n"
    ) ;
-   exit(0) ;
+   PRINT_COMPILE_DATE ; exit(0) ;
 }
 
 /*-------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
-   MRI_IMAGE *concim=NULL, *corim ; float *concar, *corar ;
-   THD_3dim_dataset *inset=NULL ;
-   int iarg , ii,nvox ;
+   MRI_IMAGE *concim=NULL, *corim ;
+   float     *concar     , *corar ;
+   THD_3dim_dataset *inset=NULL , *mset=NULL ;
+   int iarg , ii,jj,nvox,ntime , nbk,*bk,mlag , mmlag=0,pport=0 ;
+   byte *mmm ; float *tar ;
+
+   /*-- basic startup stuff --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) Syntax() ;
+
+   mainENTRY("3dErrtsCormat") ; machdep() ;
+   PRINT_VERSION("3dErrtsCormat") ; AUTHOR("Zhark the Correlated") ;
+   AFNI_logger("3dErrtsCormat",argc,argv) ;
+
+   /*-- process command line options --*/
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     if( strcmp(argv[iarg],"-polort") == 0 ){
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after option %s",argv[iarg-1]) ;
+       pport = (int)strtod(argv[iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-maxlag") == 0 ){
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after option %s",argv[iarg-1]) ;
+       mmlag = (int)strtod(argv[iarg],NULL) ;
+       iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-concat") == 0 ){
        if( concim != NULL )
          ERROR_exit("Can't have two %s options!",argv[iarg]) ;
-       if( ++iarg >= argv )
+       if( ++iarg >= argc )
          ERROR_exit("Need argument after option %s",argv[iarg-1]) ;
        concim = mri_read_1D( argv[iarg] ) ;
        if( concim == NULL )
@@ -112,7 +146,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL )
          ERROR_exit("Can't have two %s options!",argv[iarg]) ;
-       if( ++iarg >= argv )
+       if( ++iarg >= argc )
          ERROR_exit("Need argument after option %s",argv[iarg-1]) ;
        inset = THD_open_dataset( argv[iarg] ) ;
        if( inset == NULL )
@@ -123,8 +157,22 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strcmp(argv[iarg],"-mask") == 0 ){
+       if( mset != NULL )
+         ERROR_exit("Can't have two %s options!",argv[iarg]) ;
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after option %s",argv[iarg-1]) ;
+       mset = THD_open_dataset( argv[iarg] ) ;
+       if( mset == NULL )
+         ERROR_exit("Can't open -input dataset '%s'",argv[iarg]) ;
+       DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
+       iarg++ ; continue ;
+     }
+
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
+
+   /*-- get input dataset --*/
 
    if( iarg == argc && inset == NULL )
      ERROR_exit("No input dataset on command line?") ;
@@ -137,7 +185,77 @@ int main( int argc , char *argv[] )
        ERROR_exit("Dataset '%s' has only %d time points",
                   argv[iarg],DSET_NVALS(inset) ) ;
    }
-
    DSET_load(inset); CHECK_LOAD_ERROR(inset);
 
+   /*-- create byte mask array --*/
+
+   nvox = DSET_NVOX(inset) ; ntime = DSET_NVALS(inset) ;
+
+   if( mset != NULL ){
+     if( !EQUIV_GRIDS(inset,mset) )
+       ERROR_exit("Input and mask datasets don't have the same 3D grid!") ;
+     mmm = THD_makemask( mset , 0 , 1.0f,-1.0f ) ;
+     INFO_message("%d voxels in mask (out of %d total)",
+                  THD_countmask(nvox,mmm),nvox) ;
+     DSET_unload( mset ) ;
+   } else {
+     mmm = (byte *)malloc(sizeof(byte)*nvox) ;
+     memset( mmm , 1 , sizeof(byte)*nvox ) ;
+     INFO_message("Using all %d voxels in the dataset",nvox) ;
+   }
+
+   /*-- set up blocks of continuous time data --*/
+
+   if( DSET_IS_TCAT(inset) ){
+     if( concim != NULL ){
+       WARNING_message("Ignoring -concat, since dataset is auto-catenated") ;
+       mri_free(concim) ;
+     }
+     concim = mri_new(inset->tcat_num,1,MRI_float) ;
+     concar = MRI_FLOAT_PTR(concim) ;
+     concar[0] = 0.0 ;
+     for( ii=0 ; ii < inset->tcat_num-1 ; ii++ )
+       concar[ii+1] = concar[ii] + inset->tcat_len[ii] ;
+   } else if( concim == NULL ){
+     concim = mri_new(1,1,MRI_float) ;
+     concar = MRI_FLOAT_PTR(concim)  ; concar[0] = 0 ;
+   }
+   nbk = concim->nx ;
+   bk  = (int *)malloc(sizeof(int)*(nbk+1)) ;
+   for( ii=0 ; ii < nbk ; ii++ ) bk[ii] = (int)concar[ii] ;
+   bk[nbk] = ntime ;
+   mri_free(concim) ;
+   mlag = DSET_NVALS(inset) ;
+   for( ii=0 ; ii < nbk ; ii++ ){
+     jj = bk[ii+1]-bk[ii] ; if( jj < mlag ) mlag = jj ;
+     if( bk[ii] < 0 || jj < 9 )
+       ERROR_exit("something is rotten in the dataset run lengths") ;
+   }
+   mlag-- ;
+   if( mmlag > 0 && mlag > mmlag ) mlag = mmlag ;
+   else                            INFO_message("Max lag set to %d",mlag) ;
+
+   /*-- do some work --*/
+
+   CORMAT_init(mlag,pport) ;
+   tar = (float *)malloc(sizeof(float)*ntime) ;
+
+   for( jj=0 ; jj < nvox ; jj++ ){
+     if( !mmm[jj] ) continue ;
+     ii = THD_extract_array( jj , inset , 0 , tar ) ;
+     if( ii < 0 ){ ERROR_message("bad data at voxel index #%d?",jj); continue; }
+     for( ii=0 ; ii < nbk ; ii++ )
+       CORMAT_add_vector( bk[ii+1]-bk[ii] , tar + bk[ii] ) ;
+   }
+
+   /*-- finish up --*/
+
+   DSET_unload(inset) ;
+   corim = CORMAT_fetch() ;
+   if( corim == NULL ) ERROR_exit("CORMAT_fetch failed!?") ;
+   corar = MRI_FLOAT_PTR(corim) ;
+   printf(" 1.0\n") ;
+   for( ii=0 ; ii < corim->nx ; ii++ ) printf(" %.5f\n",corar[ii]) ;
+
+   exit(0) ;
 }
