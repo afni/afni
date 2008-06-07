@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, JUN, 2008, RCR, "plug_crender", MINOR, TYPE_BUG_FIX,
+   "integral threshold was off by 1",
+   NULL
+ } ,
+
  { 6, JUN, 2008, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
    "get_*_opt now returns an error code",
    NULL

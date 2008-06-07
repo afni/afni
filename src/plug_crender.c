@@ -7050,7 +7050,8 @@ ENTRY( "RCREND_reload_func_dset" );
          case MRI_short:{
             short * sar = (short *) car ;
             short * qar = (short *) tar ;
-            int     thr = (int) thresh  ;
+            /* need ceil() or off by 1          6 Jun 2008 [rickr] */
+            int     thr = (int) ceil(thresh) ;
 
             for( ii=0 ; ii < nvox ; ii++ ){
                if( (qar[ii] > -thr && qar[ii] < thr) || sar[ii] == 0 ){
@@ -7104,7 +7105,8 @@ ENTRY( "RCREND_reload_func_dset" );
          case MRI_byte:{
             byte * sar = (byte *) car ;
             byte * qar = (byte *) tar ;
-            int    thr = (int) thresh ;
+            /* need ceil() or off by 1          6 Jun 2008 [rickr] */
+            int    thr = (int) ceil(thresh) ;
 
             for( lp=0 ; lp < num_lp ; lp++ )
                if( pbar->pval[lp+1] <= 0.0 )
