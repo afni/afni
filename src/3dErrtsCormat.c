@@ -71,6 +71,7 @@ void Syntax(void)
 {
    printf(
     "Usage: 3dErrtsCormat [options] dset\n"
+    "\n"
     "Computes the correlation (not covariance) matrix corresponding\n"
     "to the residual (or error) time series in 'dset', which will\n"
     "usually be the '-errts' output from 3dDeconvolve.  The output\n"
@@ -81,8 +82,10 @@ void Syntax(void)
     "  -input  dset   = alternate way of telling what dataset to read\n"
     "  -mask   mset   = mask dataset\n"
     "  -maxlag mm     = set maximum lag\n"
+    "  -polort pp     = set polort level (default=0)\n"
     "\n"
-    "-- RWCox -- Jun 2008 -- for my own nefarious purposes\n"
+    "-- RWCox -- June 2008 -- for my own suspicious purposes\n"
+    "-- Also see program 3dLocalCormat to do this on each voxel\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }
