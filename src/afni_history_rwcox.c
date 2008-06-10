@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , JUN , 2008 , RWC , "3dLocalCormat" , MINOR , TYPE_NEW_OPT ,
+   "Add -ARMA option to estimate ARMA(1,1) parameters" ,
+   NULL } ,
+
  { 6 , JUN , 2008 , RWC , "3dErrtsCormat" , MINOR , TYPE_NEW_PROG ,
    "Compute correlation matrix of a time series, globally." ,
    NULL } ,
