@@ -79,6 +79,7 @@ MRI_IMAGE * mri_cormat_vector( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
                                      int xx, int yy, int zz, MCW_cluster *nbhd ) ;
 static void vstep_print(void) ;
+static void estimate_arma11( int nx , float *, float * ) ;
 
 static int nbk=0 , *bk=NULL , ntime=0 , mlag=0 , pport=0 ;  /* cheap */
 
@@ -94,8 +95,8 @@ int main( int argc , char *argv[] )
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , xx,yy,zz, vstep ;
    float na,nb,nc , dx,dy,dz ;
    MRI_IMARR *imar=NULL ; MRI_IMAGE *pim=NULL ;
-   int mmlag=0 , ii,jj ;
-   MRI_IMAGE *concim ; float *concar ;
+   int mmlag=10 , ii,jj , do_arma=0 , nvout ;
+   MRI_IMAGE *concim=NULL ; float *concar=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -116,10 +117,11 @@ int main( int argc , char *argv[] )
        "  -automask\n"
        "  -prefix ppp\n"
        "  -input inputdataset\n"
-       "  -nbhd nnn             [e.g., 'SPHERE(9)' for 9 mm radius]\n"
-       "  -polort ppp           [default = 0]\n"
-       "  -concat ccc           [as in 3dDeconvolve]\n"
-       "  -maxlag mmm           [default = max possible]\n"
+       "  -nbhd nnn     [e.g., 'SPHERE(9)' for 9 mm radius]\n"
+       "  -polort ppp   [default = 0]\n"
+       "  -concat ccc   [as in 3dDeconvolve]\n"
+       "  -maxlag mmm   [default = 10]\n"
+       "  -ARMA         [estimate ARMA(1,1) parameters into last 2 sub-bricks]\n"
        "\n"
        "A quick hack for my own benignant purposes -- RWCox -- June 2008\n"
      ) ;
@@ -134,6 +136,14 @@ int main( int argc , char *argv[] )
    /*---- loop over options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+#if 0
+fprintf(stderr,"argv[%d] = %s\n",iarg,argv[iarg]) ;
+#endif
+
+     if( strcmp(argv[iarg],"-ARMA") == 0 ){
+       do_arma = 1 ; iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-polort") == 0 ){
        if( ++iarg >= argc )
@@ -238,6 +248,9 @@ int main( int argc , char *argv[] )
 
    } /*--- end of loop over options ---*/
 
+   if( do_arma && mmlag > 0 && mmlag < 5 )
+     ERROR_exit("Can't do -ARMA with -maxlag %d",mmlag) ;
+
    /*---- deal with input dataset ----*/
 
    if( inset == NULL ){
@@ -298,6 +311,9 @@ int main( int argc , char *argv[] )
    if( mmlag > 0 && mlag > mmlag ) mlag = mmlag ;
    else                            INFO_message("Max lag set to %d",mlag) ;
 
+   if( do_arma && mlag < 5 )
+     ERROR_exit("Can't do -ARMA with maxlag=%d",mlag) ;
+
    /*---- create neighborhood (as a cluster) -----*/
 
    if( ntype <= 0 ){         /* default neighborhood */
@@ -342,15 +358,16 @@ int main( int argc , char *argv[] )
    /** create output dataset **/
 
    outset = EDIT_empty_copy(inset) ;
+   nvout  = mlag ; if( do_arma ) nvout += 2 ;
    EDIT_dset_items( outset,
                       ADN_prefix   , prefix,
                       ADN_brick_fac, NULL  ,
-                      ADN_nvals    , mlag  ,
-                      ADN_ntt      , mlag  ,
+                      ADN_nvals    , nvout ,
+                      ADN_ntt      , nvout ,
                     ADN_none );
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dLocalCormat" , argc,argv , outset ) ;
-   for( kk=0 ; kk < mlag ; kk++ )
+   for( kk=0 ; kk < nvout ; kk++ )
      EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
 
    nx = DSET_NX(outset) ;
@@ -370,6 +387,12 @@ int main( int argc , char *argv[] )
      pim = mri_cormat_vector(imar) ; DESTROY_IMARR(imar) ;
      if( pim == NULL ) continue ;
      THD_insert_series( kk, outset, pim->nx, MRI_float, MRI_FLOAT_PTR(pim), 0 ) ;
+     if( do_arma ){
+       float ab[2] = {0.0f,0.0f} ;
+       float *aa=DSET_ARRAY(outset,mlag), *bb=DSET_ARRAY(outset,mlag+1) ;
+       estimate_arma11( pim->nx , MRI_FLOAT_PTR(pim) , ab ) ;
+       aa[kk] = ab[0] ; bb[kk] = ab[1] ;
+     }
      mri_free(pim) ;
    }
    if( vstep ) fprintf(stderr,"\n") ;
@@ -441,4 +464,38 @@ static void vstep_print(void)
    fprintf(stderr , "%c" , xx[vn%10] ) ;
    if( vn%10 == 9) fprintf(stderr,".") ;
    vn++ ;
+}
+
+/*------------------------------------------------------------------------*/
+
+static int    nc ;
+static float *rc ;
+
+double arma11func( int np , double *par )
+{
+   register double a,b,sum,rr ; register int kk ;
+
+   a = par[0] ; b = par[1] ;
+   rr = (b+a)*(1.0+a*b)/(1.0+b*(b+2.0*a)) ;
+   sum = (rr-rc[0])*(rr-rc[0]) * (0.1+rc[0]*rc[0]) ;
+   for( kk=1 ; kk < nc ; kk++ ){
+     rr *= a ; sum += (rr-rc[kk])*(rr-rc[kk]) * (0.1+rc[kk]*rc[kk]) ;
+   }
+   return sum ;
+}
+
+static void estimate_arma11( int nx , float *cc , float *ab )
+{
+   double x[2] , xbot[2],xtop[2] ;
+
+   nc = nx ; rc = cc ;
+   x[0] = x[1] = 0.0 ;
+   xbot[0] = -0.8 ; xtop[0] = 0.8 ;
+   xbot[1] = -0.8 ; xtop[1] = 0.8 ;
+
+   (void)powell_newuoa_constrained( 2 , x , NULL , xbot , xtop ,
+                                    17 , 5 , 2 ,
+                                    0.10 , 0.005 , 222 , arma11func ) ;
+
+   ab[0] = x[0] ; ab[1] = x[1] ; return ;
 }
