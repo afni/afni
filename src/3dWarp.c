@@ -174,9 +174,7 @@ int main( int argc , char * argv[] )
             "---------------------\n"
             "Miscellaneous Options:\n"
             "---------------------\n"
-#if 0
             "  -verb         = Print out some information along the way.\n"
-#endif
             "  -prefix ppp   = Sets the prefix of the output dataset.\n"
             "\n"
            ) ;
@@ -591,7 +589,7 @@ DUMP_MAT44("Tw_inv",Tw_inv);
 	 if(ISVALID_MAT44(inset->daxes->ijk_to_dicom_real)) {
 	   angle = THD_compute_oblique_angle(inset->daxes->ijk_to_dicom_real, 0);
 	   if(angle>0.0) {
-              INFO_message("Need to deoblique original dataset before obliquing\n");
+              INFO_message("Deobliquing original dataset before obliquing\n");
               INFO_message("  Combining oblique transformations");
               Compute_Deoblique_Transformation(inset, &Tw2);
               Tw = MAT44_MUL(Tw_inv, Tw2);
@@ -602,6 +600,11 @@ DUMP_MAT44("Twcombined", Tw);
            }
          }
       }
+
+      /* show overall oblique/deoblique transformation */
+      if(verb && oblique_flag)
+         DUMP_MAT44("Obliquity Transformation :", Tw);
+
       LOAD_MAT  ( dicom_in2out.mm, matar[0],matar[1],matar[2],
                                    matar[4],matar[5],matar[6],
                                    matar[8],matar[9],matar[10] ) ;
