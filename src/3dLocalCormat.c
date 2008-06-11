@@ -79,7 +79,8 @@ MRI_IMAGE * mri_cormat_vector( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
                                      int xx, int yy, int zz, MCW_cluster *nbhd ) ;
 static void vstep_print(void) ;
-static void estimate_arma11( int nx , float *, float * ) ;
+
+float_pair estimate_arma11( int nx , float * ) ;
 
 static int nbk=0 , *bk=NULL , ntime=0 , mlag=0 , pport=0 ;  /* cheap */
 
@@ -113,12 +114,12 @@ int main( int argc , char *argv[] )
        "least should use an appropriate -polort level for detrending!\n"
        "\n"
        "Options:\n"
-       "  -mask mset\n"
-       "  -automask\n"
-       "  -prefix ppp\n"
        "  -input inputdataset\n"
+       "  -prefix ppp\n"
+       "  -mask mset    {these 2 options are}\n"
+       "  -automask     {mutually exclusive.}\n"
        "  -nbhd nnn     [e.g., 'SPHERE(9)' for 9 mm radius]\n"
-       "  -polort ppp   [default = 0]\n"
+       "  -polort ppp   [default = 0, which is reasonable for -errts output]\n"
        "  -concat ccc   [as in 3dDeconvolve]\n"
        "  -maxlag mmm   [default = 10]\n"
        "  -ARMA         [estimate ARMA(1,1) parameters into last 2 sub-bricks]\n"
@@ -131,7 +132,7 @@ int main( int argc , char *argv[] )
    /*---- official startup ---*/
 
    PRINT_VERSION("3dLocalCormat"); mainENTRY("3dLocalCormat main"); machdep();
-   AFNI_logger("3dLocalCormat",argc,argv); AUTHOR("Emperor Zhark");
+   AFNI_logger("3dLocalCormat",argc,argv); AUTHOR("Zhark the Toeplitzer");
 
    /*---- loop over options ----*/
 
@@ -387,12 +388,14 @@ fprintf(stderr,"argv[%d] = %s\n",iarg,argv[iarg]) ;
      pim = mri_cormat_vector(imar) ; DESTROY_IMARR(imar) ;
      if( pim == NULL ) continue ;
      THD_insert_series( kk, outset, pim->nx, MRI_float, MRI_FLOAT_PTR(pim), 0 ) ;
-     if( do_arma ){
-       float ab[2] = {0.0f,0.0f} ;
+
+     if( do_arma ){  /* estimate ARMA(1,1) params and store those, too */
+       float_pair ab ;
        float *aa=DSET_ARRAY(outset,mlag), *bb=DSET_ARRAY(outset,mlag+1) ;
-       estimate_arma11( pim->nx , MRI_FLOAT_PTR(pim) , ab ) ;
-       aa[kk] = ab[0] ; bb[kk] = ab[1] ;
+       ab = estimate_arma11( pim->nx , MRI_FLOAT_PTR(pim) ) ;
+       aa[kk] = ab.a ; bb[kk] = ab.b ;
      }
+
      mri_free(pim) ;
    }
    if( vstep ) fprintf(stderr,"\n") ;
@@ -467,35 +470,38 @@ static void vstep_print(void)
 }
 
 /*------------------------------------------------------------------------*/
+/* Estimation of ARMA(1,1) coefficients a and b from correlations. */
 
-static int    nc ;
-static float *rc ;
+static int    nc ;  /* number of correlations */
+static float *rc ;  /* correlation vector */
 
-double arma11func( int np , double *par )
+double arma11func( int np , double *par )  /* cost = weighted least squares */
 {
    register double a,b,sum,rr ; register int kk ;
 
    a = par[0] ; b = par[1] ;
-   rr = (b+a)*(1.0+a*b)/(1.0+b*(b+2.0*a)) ;
-   sum = (rr-rc[0])*(rr-rc[0]) * (0.1+rc[0]*rc[0]) ;
+   rr = (b+a)*(1.0+a*b)/(1.0+b*(b+2.0*a)) ;  /* correlation at lag=1 */
+   sum = (rr-rc[0])*(rr-rc[0]) * (0.2+rc[0]*rc[0]) ;
    for( kk=1 ; kk < nc ; kk++ ){
-     rr *= a ; sum += (rr-rc[kk])*(rr-rc[kk]) * (0.1+rc[kk]*rc[kk]) ;
+     rr *= a ;                               /* correlation at lag=kk+1 */
+     sum += (rr-rc[kk])*(rr-rc[kk]) * (0.2+rc[kk]*rc[kk]) ;
    }
    return sum ;
 }
 
-static void estimate_arma11( int nx , float *cc , float *ab )
+float_pair estimate_arma11( int nx , float *cc )
 {
    double x[2] , xbot[2],xtop[2] ;
+   float_pair ab ;
 
-   nc = nx ; rc = cc ;
-   x[0] = x[1] = 0.0 ;
-   xbot[0] = -0.8 ; xtop[0] = 0.8 ;
-   xbot[1] = -0.8 ; xtop[1] = 0.8 ;
+   nc = nx ; rc = cc ;              /* set static variables for arma11func() */
+   x[0] = x[1] = 0.1 ;              /* initial guesses for a and b */
+   xbot[0] = 0.0 ; xtop[0] = 0.8 ;  /* range of allowed values for a and b */
+   xbot[1] = 0.0 ; xtop[1] = 0.8 ;
 
    (void)powell_newuoa_constrained( 2 , x , NULL , xbot , xtop ,
-                                    17 , 5 , 2 ,
+                                    13 , 5 , 2 ,
                                     0.10 , 0.005 , 222 , arma11func ) ;
-
-   ab[0] = x[0] ; ab[1] = x[1] ; return ;
+   ab.a = (float)x[0] ;
+   ab.b = (float)x[1] ; return ab ;
 }
