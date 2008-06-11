@@ -84,8 +84,9 @@ void Syntax(void)
     "  -maxlag mm     = set maximum lag\n"
     "  -polort pp     = set polort level (default=0)\n"
     "\n"
-    "-- RWCox -- June 2008 -- for my own suspicious purposes\n"
-    "-- Also see program 3dLocalCormat to do this on each voxel\n"
+    "-- RWCox -- June 2008 -- for my own pleasant purposes\n"
+    "-- Also see program 3dLocalCormat to do this on each voxel,\n"
+    "   and optionally estimate the ARMA(1,1) model parameters.\n"
    ) ;
    PRINT_COMPILE_DATE ; exit(0) ;
 }
@@ -105,7 +106,7 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) Syntax() ;
 
    mainENTRY("3dErrtsCormat") ; machdep() ;
-   PRINT_VERSION("3dErrtsCormat") ; AUTHOR("Zhark the Correlated") ;
+   PRINT_VERSION("3dErrtsCormat") ; AUTHOR("Zhark the Correlator") ;
    AFNI_logger("3dErrtsCormat",argc,argv) ;
 
    /*-- process command line options --*/
