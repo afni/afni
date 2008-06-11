@@ -49,6 +49,21 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 11 , JUN , 2008 , DRG , "align_epi_anat.py" , 
+    MAJOR , TYPE_MODIFY , "Obliquity handling in alignment, more grid options" ,
+    NULL
+} ,
+
+{ 11 , JUN , 2008 , DRG , "3dWarp.c" , 
+    MICRO , TYPE_MODIFY , "Prints oblique transformation matrix" ,
+    NULL
+} ,
+
+{ 11 , JUN , 2008 , DRG , "afni_base.py" , 
+    MICRO , TYPE_MODIFY , "Added isFloat method to python support" ,
+    NULL
+} ,
+
 { 14 , MAY , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX , "1D file names for child epi data,micro changes" ,
     NULL
