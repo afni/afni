@@ -838,4 +838,14 @@ def GetSelectionFromList(l, prmpt = ""):
                   ( name, len(match(name, l)))
       cnt += 1
    print "Vous ne comprenez pas l'anglais?"
-   print "Ciao"            
+   print "Ciao"
+   
+# determine if a string is a valid floating point number
+# from http://mail.python.org/pipermail/python-list/2002-September/164892.html
+# used like isnum() or isalpha() built-in string methods
+def isFloat(s):
+    try:
+        float(s)
+        return True
+    except (ValueError, TypeError), e:
+        return False
