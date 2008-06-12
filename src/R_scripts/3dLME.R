@@ -347,15 +347,13 @@ for (i in (2-IdxAdj):(NoF+1-IdxAdj)) {  # has an intercept or not
 }  # from 0 to NoF-1
 
 if (NoConst) {
-   for (n in 1:dim(summary(fm)$tTable)[1]) {
-	   if (RanEff) { 
+   if (RanEff) { 
 		   for (n in 1:dim(summary(fm)$tTable)[1]) {
 		      statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", summary(fm)$tTable[n,"DF"])
 			}
 		} else for (n in 1:dim(summary(fm)$tTable)[1]) {
 		   statpar <- paste(statpar, " -substatpar ", NoF+2*n-1, " fitt ", glsDF)
 		}
-	}
 }	# from NoF to BrickCnt-1
 
 if (ncontr > 0) for (n in 1:ncontr) statpar <- paste(statpar, " -substatpar ", BrickCnt+2*n-1, " fitt ", contrDF[n])
