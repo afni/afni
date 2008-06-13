@@ -315,7 +315,7 @@ static char * gni_history[] =
   "1.34 13 Jun 2008 [rickr] - added nifti_compiled_with_zlib()\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.33 (5 Feb, 2008)";
+static char gni_version[] = "nifti library version 1.34 (13 Jun, 2008)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
