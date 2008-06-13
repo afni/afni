@@ -347,6 +347,7 @@ void   nifti_set_iname_offset      (nifti_image *nim);
 int    nifti_set_type_from_names   (nifti_image * nim);
 int    nifti_add_extension(nifti_image * nim, const char * data, int len,
                            int ecode );
+int    nifti_compiled_with_zlib    (void);
 int    nifti_copy_extensions (nifti_image *nim_dest,const nifti_image *nim_src);
 int    nifti_free_extensions (nifti_image *nim);
 int  * nifti_get_intlist     (int nvals , const char *str);

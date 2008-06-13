@@ -77,4 +77,7 @@ Updated in version 1.0 December 6, 2007
 Updated in version UNRELEASED
 
     - RR allowed ANALYZE headers in nifti_hdr_looks_good
+    - RR added nifti_compiled_with_zlib()
+    - RR added nifti_tool ability to add extensions via 'file:FILENAME'
+    - RR added new tests to nifti_regress_test/commands
 
