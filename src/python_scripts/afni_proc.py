@@ -1169,10 +1169,11 @@ g_history = """
          - added -regress_est_blur_errts, -regress_est_blur_epits options
            for estimating the blur in the EPI and errts data
          - added -regress_no_mask, -regress_errts_prefix and -show_valid_opts
-                       
+    1.29 Jun 12 2008 : move code to afni_util.get_dset_reps_tr
+
 """
 
-g_version = "version 1.28, Jan 28, 2008"
+g_version = "version 1.29, June 12, 2008"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1520,38 +1521,9 @@ class SubjProcSream:
 
         # updated by 'tcat' opteration (and -remove_trs option)
         dset = self.dsets[0].rpv()
-        list = read_attribute(dset, 'TAXIS_NUMS')
-        if list == None:
-            print "** failed to find the number of TRs from dset '%s'" % dset
-            return 1
-        try: self.reps = int(list[0])
-        except:
-            print "** reps '%s' is not an int?" % list[0]
-            return 1
-        if self.reps < 1:
-            print "** invalid nreps (%d) for dset %s" % (self.reps, dset)
-            return 1
-        # and set units (to either sec (77002) or ms (77001))
-        try: units = int(list[2])
-        except: units = 77002
-        if units != 77001 and units != 77002: units = 77002
 
-        list = read_attribute(dset, 'TAXIS_FLOATS')
-        if list == None:
-            print "** failed to find the TR length from dset '%s'" % dset
-            return 1
-        try: self.tr = float(list[1])
-        except:
-            print "** TR '%s' is not a float?" % list[0]
-            return 1
-        # specify units in string
-        if units == 77001: unit_str = 'ms'
-        else             : unit_str = 's'
-
-        if self.verb > 1: print '(reps, runs, tr) = (%d, %d, %s%s)' %  \
-                                 (self.reps, self.runs, str(self.tr), unit_str)
-        # and adjust TR
-        if units == 77001: self.tr /= 1000.0
+        err, self.reps, self.tr = get_dset_reps_tr(dset, self.verb)
+        if err: return 1   # check for failure
 
     # create a new block for the given label, and append it to 'blocks'
     def add_block(self, label):
