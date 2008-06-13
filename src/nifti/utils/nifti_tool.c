@@ -36,6 +36,7 @@
  *   nifti_tool -ver
  *   nifti_tool -nifti_hist
  *   nifti_tool -nifti_ver
+ *   nifti_tool -with_zlib
  *
  *   nifti_tool -check_hdr -infiles f1 ...
  *   nifti_tool -check_nim -infiles f1 ...
@@ -143,9 +144,12 @@ static char * g_history[] =
   "1.17 13 Jun 2007 [rickr] - added help for -copy_im, enumerate examples\n",
   "1.18 23 Jun 2007 [rickr] - main returns 0 on -help, -hist, -ver\n"
   "1.19 28 Nov 2007 [rickr] - added -help_datatypes\n",
+  "1.20 13 Jun 2008 [rickr]\n"
+  "   - added -with_zlib\n"
+  "   - added ability to create extension from text file (for J. Gunter)\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.19 (Nov 28, 2007)";
+static char g_version[] = "version 1.20 (Jun 13, 2008)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -154,6 +158,7 @@ static int  g_debug = 1;
 
 /* local prototypes */
 static int free_opts_mem( nt_opts * nopt );
+static char * read_file_text(char * filename, int * length);
 
 #define NTL_FERR(func,msg,file)                                      \
             fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)
@@ -271,6 +276,11 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       else if( ! strncmp(argv[ac], "-nifti_ver", 10) )
       {
          nifti_disp_lib_version();
+         return 1;
+      }
+      else if( ! strncmp(argv[ac], "-with_zlib", 5) ) {
+         printf("Was NIfTI library compiled with zlib?  %s\n",
+                nifti_compiled_with_zlib() ? "YES" : "NO");
          return 1;
       }
 
@@ -858,6 +868,7 @@ int use_full(char * prog)
    "    nifti_tool -hist                 : show the modification history\n"
    "    nifti_tool -nifti_ver            : show the nifti library version\n"
    "    nifti_tool -nifti_hist           : show the nifti library history\n"
+   "    nifti_tool -with_zlib            : was library compiled with zlib\n"
    "\n"
    "\n");
    printf(
@@ -885,6 +896,7 @@ int use_full(char * prog)
    "\n"
    "    nifti_tool -add_afni_ext    'extension in quotes' [...] -infiles f1\n"
    "    nifti_tool -add_comment_ext 'extension in quotes' [...] -infiles f1\n"
+   "    nifti_tool -add_comment_ext 'file:FILENAME' [...] -infiles f1\n"
    "    nifti_tool -rm_ext INDEX [...] -infiles f1 ...\n"
    "    nifti_tool -strip_extras -infiles f1 ...\n"
    "\n");
@@ -954,14 +966,18 @@ int use_full(char * prog)
    "\n");
    printf(
    "    G. strip, add or remove extensions:\n"
+   "       (in example #3, the extension is copied from a text file)\n"
+   "\n"
    "\n"
    "      1. nifti_tool -strip -overwrite -infiles *.nii\n"
    "      2. nifti_tool -add_comment 'converted from MY_AFNI_DSET+orig' \\\n"
    "                    -prefix dnew -infiles dset0.nii\n"
-   "\n");
+   );
    printf(
-   "      3. nifti_tool -rm_ext ALL -prefix dset1 -infiles dset0.nii\n"
-   "      4. nifti_tool -rm_ext 2 -rm_ext 3 -rm_ext 5 -overwrite \\\n"
+   "      3. nifti_tool -add_comment 'file:my.extension.txt' \\\n"
+   "                    -prefix dnew -infiles dset0.nii\n"
+   "      4. nifti_tool -rm_ext ALL -prefix dset1 -infiles dset0.nii\n"
+   "      5. nifti_tool -rm_ext 2 -rm_ext 3 -rm_ext 5 -overwrite \\\n"
    "                    -infiles dset0.nii\n"
    "\n"
    "  ------------------------------\n");
@@ -1319,6 +1335,9 @@ int use_full(char * prog)
    "       This option is used to add AFNI-type extensions to one or more\n"
    "       datasets.  This option may be used more than once to add more than\n"
    "       one extension.\n"
+   "\n"
+   "       If EXT is of the form 'file:FILENAME', then the extension will\n"
+   "       be read from the file, FILENAME.\n"
    "\n");
    printf(
    "       The '-prefix' option is recommended, to create a new dataset.\n"
@@ -1347,6 +1366,9 @@ int use_full(char * prog)
    "       This option is used to add COMMENT-type extensions to one or more\n"
    "       datasets.  This option may be used more than once to add more than\n"
    "       one extension.  This option may also be used with '-add_afni_ext'.\n"
+   "\n"
+   "       If EXT is of the form 'file:FILENAME', then the extension will\n"
+   "       be read from the file, FILENAME.\n"
    "\n");
    printf(
    "       The '-prefix' option is recommended, to create a new dataset.\n"
@@ -1585,6 +1607,10 @@ int use_full(char * prog)
    "\n"
    "       e.g.  nifti_tool -nifti_hist\n"
    "\n"
+   "    -with_zlib        : print whether library was compiled with zlib\n"
+   "\n"
+   "       e.g.  nifti_tool -with_zlib\n"
+   "\n"
    "  ------------------------------\n"
    "\n"
    "  R. Reynolds\n"
@@ -1673,7 +1699,8 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
 int act_add_exts( nt_opts * opts )
 {
    nifti_image      * nim;
-   int                fc, ec;
+   char             * ext, * edata = NULL;
+   int                fc, ec, elen;
 
    if( g_debug > 2 ){
       fprintf(stderr,"+d adding %d extensions to %d files...\n"
@@ -1696,11 +1723,25 @@ int act_add_exts( nt_opts * opts )
       if( !nim ) return 1;  /* errors come from the library */
 
       for( ec = 0; ec < opts->elist.len; ec++ ){
-         if( nifti_add_extension(nim, opts->elist.list[ec],
-                   strlen(opts->elist.list[ec]), opts->etypes.list[ec]) ){
+         ext = opts->elist.list[ec];
+         elen = strlen(ext);
+         if( !strncmp(ext,"file:",5) ){
+            edata = read_file_text(ext+5, &elen);
+            if( !edata || elen <= 0 ) {
+               fprintf(stderr,"** failed to read extension data from '%s'\n",
+                       ext+5);
+               continue;
+            }
+            ext = edata;
+         }
+
+         if( nifti_add_extension(nim, ext, elen, opts->etypes.list[ec]) ){
             nifti_image_free(nim);
             return 1;
          }
+
+         /* if extension came from file, free the data */
+         if( edata ){ free(edata); edata = NULL; }
       }
 
       if( opts->keep_hist && nifti_add_extension(nim, opts->command,
@@ -1729,6 +1770,64 @@ int act_add_exts( nt_opts * opts )
    return 0;
 }
 
+/*----------------------------------------------------------------------
+ * Return the allocated file contents.
+ *----------------------------------------------------------------------*/
+static char * read_file_text(char * filename, int * length)
+{
+   FILE * fp;
+   char * text;
+   int    len, bytes;
+
+   if( !filename || !length ) {
+      fprintf(stderr,"** bad params to read_file_text\n");
+      return NULL;
+   }
+
+   len = nifti_get_filesize(filename);
+   if( len <= 0 ) {
+      fprintf(stderr,"** RFT: file '%s' appears empty\n", filename);
+      return NULL;
+   }
+
+   fp = fopen(filename, "r");
+   if( !fp ) {
+      fprintf(stderr,"** RFT: failed to open '%s' for reading\n", filename);
+      return NULL;
+   }
+
+   /* allocate the bytes, and fill them with the file contents */
+
+   text = (char *)malloc(len * sizeof(char));
+   if( !text ) {
+      fprintf(stderr,"** RFT: failed to allocate %d bytes\n", len);
+      fclose(fp);
+      return NULL;
+   }
+
+   bytes = fread(text, sizeof(char), len, fp);
+   fclose(fp); /* in any case */
+
+   if( bytes != len ) {
+      fprintf(stderr,"** RFT: read only %d of %d bytes from %s\n",
+                     bytes, len, filename);
+      free(text);
+      return NULL;
+   }
+
+   /* success */
+
+   if( g_debug > 1 ) {
+      fprintf(stderr,"++ found extension of length %d in file %s\n",
+              len, filename);
+      if( g_debug > 2 )
+         fprintf(stderr,"++ text is:\n%s\n", text);
+   }
+
+   *length = len;
+
+   return text;
+}
 
 /*----------------------------------------------------------------------
  * For each file, strip the extra fields.
