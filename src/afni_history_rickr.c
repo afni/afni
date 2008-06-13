@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, JUN, 2008, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -with_zlib, and ability to add extensions via 'file:FILENAME'",
+   "extension update added for J. Gunter"
+ } ,
+
+ { 13, JUN, 2008, RCR, "nifticlib", MINOR, TYPE_NEW_OPT,
+   "added nifti_compiled_with_zlib()",
+   NULL
+ } ,
+
  { 12, JUN, 2008, RCR, "neuro_deconvolve.py", MINOR, TYPE_NEW_PROG,
    "generate 3dTfitter script to deconvolve a BOLD signal into a neuro signal",
    NULL

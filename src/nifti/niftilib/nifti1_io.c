@@ -312,6 +312,7 @@ static char * gni_history[] =
   "   - nifti_hdr_looks_good() allows ANALYZE headers (req. by V. Luccio)\n"
   "   - added nifti_datatype_is_valid()\n",
   "1.33 05 Feb 2008 [hansj,rickr] - block nia.gz use\n"
+  "1.34 13 Jun 2008 [rickr] - added nifti_compiled_with_zlib()\n"
   "----------------------------------------------------------------------\n"
 };
 static char gni_version[] = "nifti library version 1.33 (5 Feb, 2008)";
@@ -2395,6 +2396,17 @@ int nifti_is_gzfile(const char* fname)
   return 0;
 }
 
+/*----------------------------------------------------------------------*/
+/*! return whether the given library was compiled with HAVE_ZLIB set
+*//*--------------------------------------------------------------------*/
+int nifti_compiled_with_zlib(void)
+{
+#ifdef HAVE_ZLIB
+    return 1;
+#else
+    return 0;
+#endif
+}
 
 /*----------------------------------------------------------------------*/
 /*! duplicate the filename, while clearing any extension
@@ -4748,7 +4760,8 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
       if( !ok ){
          fprintf(stderr,"** failed while writing extension #%d\n",c);
          return -1;
-      }
+      } else if ( g_opts.debug > 2 )
+         fprintf(stderr,"+d wrote extension %d of %d bytes\n", c, size);
 
       list++;
    }
