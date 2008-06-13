@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import sys, os, string, glob
-import afni_base
+import sys, os, string, glob, math
+import afni_base as BASE
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
@@ -107,7 +107,7 @@ def list_to_datasets(words):
         else: wlist.append(word)
     # now process all words
     for word in wlist:
-        dset = afni_base.afni_name(word)
+        dset = BASE.afni_name(word)
         if dset.exist():
             dsets.append(dset)
         else:
@@ -127,11 +127,66 @@ def basis_has_known_response(basis):
     if basis[0:3] == 'GAM' or basis[0:5] == 'BLOCK': return 1
     else:                                            return 0
 
+# compute a default polort, as done in 3dDeconvolve
+def get_default_polort(tr, reps):
+    if tr <= 0 or reps <= 0:
+        print "** cannot guess polort from tr = %f, reps = %d" % (tr,reps)
+        return 2        # return some default
+    run_time = tr * reps
+    return 1+math.floor(run_time/150.0)
+
+def get_dset_reps_tr(dset, verb=1):
+    """given an AFNI dataset, return err, reps, tr
+
+       err  = error code (0 = success, else failure)
+       reps = number of TRs in the dataset
+       tr   = length of TR, in seconds"""
+
+    # store timing info in a list (to get reps and timing units)
+    tinfo = BASE.read_attribute(dset, 'TAXIS_NUMS')
+    if tinfo == None:
+        print "** failed to find the number of TRs from dset '%s'" % dset
+        return 1, None, None
+
+    # look for the number of repetitions
+    try: reps = int(tinfo[0])
+    except:
+        print "** reps '%s' is not an int in dset %s?" % (tinfo[0], dset)
+        return 1, None, None
+    if reps < 1:
+        print "** invalid nreps (%d) for dset %s" % (reps, dset)
+        return 1, None, None
+
+    # note the units (either sec (77002) or ms (77001))
+    try: units = int(tinfo[2])
+    except: units = 77002
+    if units != 77001 and units != 77002: units = 77002
+
+    # now read the TR (and apply previous units)
+    tinfo = BASE.read_attribute(dset, 'TAXIS_FLOATS')
+    if tinfo == None:
+        print "** failed to find the TR length from dset '%s'" % dset
+        return 1, None, None
+    try: tr = float(tinfo[1])
+    except:
+        print "** TR '%s' is not a float?" % tinfo[0]
+        return 1, None, None
+
+    if verb > 1:
+        if units == 77001: unit_str = 'ms'
+        else             : unit_str = 's'
+        print '-- dset %s : reps = %d, tr = %s%s' % (dset,reps,str(tr),unit_str)
+
+    # and adjust TR
+    if units == 77001: tr /= 1000.0
+
+    return 0, reps, tr
+
 # ----------------------------------------------------------------------
 # begin matrix functions
 
 # read a simple 1D file into a float matrix, and return the matrix
-def read_1D_file(filename, nlines = -1, verb = 0):
+def read_1D_file(filename, nlines = -1, verb = 1):
     """skip leading '#', return a 2D array of floats"""
     try:
         fp = open(filename, 'r')
@@ -139,7 +194,7 @@ def read_1D_file(filename, nlines = -1, verb = 0):
         if verb >= 0: print "failed to open 1D file %s" % filename
         return None
 
-    if verb > 0: print "+d opened file %s" % filename
+    if verb > 1: print "+d opened file %s" % filename
 
     retmat = []
     lnum   = 0
@@ -163,7 +218,7 @@ def read_1D_file(filename, nlines = -1, verb = 0):
                 return None
             retmat[lnum].append(float(tok))
 
-        if verb > 1: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))
+        if verb > 2: print "+d line %d, length %d" % (lnum, len(retmat[lnum]))
 
         lnum += 1
 
@@ -180,6 +235,15 @@ def num_rows_1D(filename):
     mat = read_1D_file(filename)
     if not mat: return 0
     return len(mat)
+
+# return the larger of the number of rows or columns
+def max_dim_1D(filename):
+    mat = read_1D_file(filename)
+    if not mat: return 0
+    rows = len(mat)
+    cols = len(mat[0])
+    if rows >= cols: return rows
+    else:            return cols
 
 # transpose a 2D matrix, returning the new one
 def transpose(matrix):
@@ -275,7 +339,7 @@ def insert_wrappers(command, start=0, end=-1):
             lposn = find_last_space(command, cur, endposn, maxlen)
             maxlen = 78 - plen
 
-            if nfirst < lposn:   # woohoo, wrap away (at lposn)
+            if nfirst+cur < lposn:   # woohoo, wrap away (at lposn)
                 newcmd = newcmd + command[cur:lposn+1] + '\\\n' + prefix
                 cur = lposn+1
                 continue
@@ -384,17 +448,26 @@ def find_next_space(str,start,skip_prefix=0):
     if index >= length : return -1
     return index
 
-# find (index of) last space after before end that isn't a newline
-# return -1 if none are found
-def find_last_space(str,start,end,max_len=-1):
+# find (index of) last space in current line range that isn't a newline
+# if stretch and not found, search towards end
+# return start-1 if none are found
+def find_last_space(str,start,end,max_len=-1,stretch=1):
     if end < 0: end = len(str) - 1
     if max_len >= 0 and end-start >= max_len: index = start+max_len-1
     else:                                     index = end
-    
-    while index >= start and (str[index] == '\n' or not str[index].isspace()):
-        index -= 1
 
-    return index   # for either success or failure
+    posn = index        # store current position in case of stretch
+    
+    while posn >= start and (str[posn] == '\n' or not str[posn].isspace()):
+        posn -= 1
+
+    if posn < start and stretch:       # then search towards end
+        posn = index
+        while posn < end and (str[posn] == '\n' or not str[posn].isspace()):
+            posn += 1
+        if posn > end: posn = start-1 # still failed
+
+    return posn   # for either success or failure
 
 # end line_wrapper functions
 # ----------------------------------------------------------------------

@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, JUN, 2008, RCR, "neuro_deconvolve.py", MINOR, TYPE_NEW_PROG,
+   "generate 3dTfitter script to deconvolve a BOLD signal into a neuro signal",
+   NULL
+ } ,
+
+ { 12, JUN, 2008, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "added get_dset_reps_tr, get_default_polort, get_dset_reps_tr, max_dim_1D",
+   "also, updated find_last_space to deal with long strings"
+ } ,
+
+ { 12, JUN, 2008, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "shifted code to afni_util.get_dset_reps_tr and .get_default_polort",
+   NULL
+ } ,
+
  { 6, JUN, 2008, RCR, "plug_crender", MINOR, TYPE_BUG_FIX,
    "integral threshold was off by 1",
    NULL
