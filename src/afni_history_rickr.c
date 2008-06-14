@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, JUN, 2008, RCR, "3dclust", MINOR, TYPE_MODIFY,
+   "in the help, Volume defaults to microliters, unless -dxyz=1 is used",
+   NULL
+ } ,
+
  { 13, JUN, 2008, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
    "added -with_zlib, and ability to add extensions via 'file:FILENAME'",
    "extension update added for J. Gunter"
