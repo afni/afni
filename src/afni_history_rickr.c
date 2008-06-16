@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, JUN, 2008, RCR, "file_tool", MINOR, TYPE_MODIFY,
+   "show output for multiple bad files when using -show_bad_backslash",
+   NULL
+ } ,
+
  { 13, JUN, 2008, RCR, "3dclust", MINOR, TYPE_MODIFY,
    "in the help, Volume defaults to microliters, unless -dxyz=1 is used",
    NULL
