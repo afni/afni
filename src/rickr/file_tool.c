@@ -185,7 +185,7 @@ int main ( int argc, char * argv[] )
 int
 attack_files( param_t * p )
 {
-    int fc, rv;
+    int fc, rv = 0;
 
     if ( p->analyze >= FT_SINGLE_COMMAND )
         return process_analyze( p, -1 );
@@ -204,8 +204,8 @@ attack_files( param_t * p )
         }
         else if ( p->script )
         {
-            if ( (rv = process_script( p->flist[fc], p )) != 0 )
-                return rv;
+            /* process all files */
+            rv |= process_script( p->flist[fc], p );
         }
         else if ( p->analyze )
         {
@@ -216,7 +216,7 @@ attack_files( param_t * p )
             return rv;
     }
 
-    return 0;
+    return rv;
 }
 
 
@@ -275,7 +275,7 @@ scr_show_bad_bs( char * filename, param_t * p )
         /* this line is bad, and we're looking at '\n' */
         if( !p->quiet )
         {
-            printf("bad line @ %4d: ", lnum);
+            printf("bad line %4d of file %s: ", lnum, filename);
             for( cp = line_start; cp <= fdata+count; cp++)
                 putchar(*cp);
         }
