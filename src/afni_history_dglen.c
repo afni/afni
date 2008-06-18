@@ -50,7 +50,7 @@
 
 afni_history_struct dglen_history[] = {
 { 18 , JUN , 2008 , DRG , "align_epi_anat.py" , 
-    MAJOR , TYPE_MODIFY , "Bug fixes - duplicate master options, mislabeled variable" ,
+    MINOR , TYPE_BUG_FIX , "Bug fixes - duplicate master options, mislabeled variable" ,
     NULL
 } ,
 
