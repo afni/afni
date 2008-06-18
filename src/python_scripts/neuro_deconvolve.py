@@ -265,8 +265,8 @@ class Decon:
         cmd  = '# ------------------------------------------------------\n'  \
                '# perform neuro deconvolution via 3dTfitter\n\n'
 
-        cmd += '# create response kernel\n'             \
-               'waver -%s -peak 1 -dt %s > %s\n\n' %    \
+        cmd += "# create response kernel\n"                             \
+               "waver -%s -peak 1 -dt %s -inline 1@1 > %s\n\n" %        \
                 (self.kernel, self.tr, self.kfile)
 
         if self.aname.type == '1D':
@@ -276,7 +276,7 @@ class Decon:
 
         polort = UTIL.get_default_polort(self.tr, self.reps)
         cmd += '# detrend the input\n'                          \
-               '3dDetrend -polort %d -prefix %s %s\n\n' %  \
+               '3dDetrend -polort %d -prefix %s %s\n\n' %       \
                 (polort,prefix,self.input)
 
         if self.maskset: mask = '          -mask %s \\\n' % self.maskset
