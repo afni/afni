@@ -49,6 +49,11 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 18 , JUN , 2008 , DRG , "align_epi_anat.py" , 
+    MAJOR , TYPE_MODIFY , "Bug fixes - duplicate master options, mislabeled variable" ,
+    NULL
+} ,
+
 { 11 , JUN , 2008 , DRG , "align_epi_anat.py" , 
     MAJOR , TYPE_MODIFY , "Obliquity handling in alignment, more grid options" ,
     NULL

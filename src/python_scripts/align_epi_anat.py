@@ -343,7 +343,7 @@ class RegWrap:
 
       self.valid_opts.add_opt('-Allineate_opts', -1,                       \
                              ["-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB"\
-                              " -warp aff -master SOURCE"],\
+                              " -warp aff"],\
                                helpstr="Options passed to 3dAllineate.")
       self.valid_opts.add_opt('-perc', 1, ['90'])
 #      self.valid_opts.add_opt('-fresh', 0, [])
@@ -599,7 +599,7 @@ class RegWrap:
        print "#**ERROR %s" % mesg
 
    def exists_msg(self, dsetname=""):
-       print "** Dataset: %s already exists"
+       print "** Dataset: %s already exists" % dset_name
        print "** Not overwriting."
        if(not ps.dry_run()):
            self.ciao(1)
@@ -1578,7 +1578,7 @@ class RegWrap:
       # save skull stripped anat
       if(ps.skullstrip):
          ao_ns = ain.new("%s_ns%s" % (ain.prefix, suf))
-         self.copy_dset( anat_ns, ao_ns, "Creating final output: skullstripped anatomical data", ps.oexec)
+         self.copy_dset( ps.anat_ns, ao_ns, "Creating final output: skullstripped anatomical data", ps.oexec)
 
       # save anatomy aligned to epi 
       if (aae):
