@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, JUN, 2008, RCR, "make_stim_times.py", MINOR, TYPE_MODIFY,
+   "help update, added -show_valid_opts, use '*' as separator w/amplitudes",
+   NULL
+ } ,
+
  { 16, JUN, 2008, RCR, "file_tool", MINOR, TYPE_MODIFY,
    "show output for multiple bad files when using -show_bad_backslash",
    NULL
