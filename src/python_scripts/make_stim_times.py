@@ -38,6 +38,8 @@ Corresponding stim_times files, assume TR = 2.5 seconds:
         stim.02.1D:     5    7.5
         stim.03.1D:     15
 
+---------------------------------------------------------------------------
+
 Options: -files file1.1D file2.1D ...   : specify stim files
          -prefix PREFIX                 : output prefix for files
          -nruns  NRUNS                  : number of runs
@@ -49,17 +51,26 @@ Options: -files file1.1D file2.1D ...   : specify stim files
 other options:
          -amplitudes                    : Marry times with amplitudes
 
-                This is to make -stim_times_AM2 files for use in 3dDeconvolve
-                (for 2-parameter amplitude modulation).
+                This is to make files for -stim_times_AM1 or -stim_times_AM2
+                in 3dDeconvolve (for 2-parameter amplitude modulation).
 
                 With this option, the output files do not just contain times,
-                they contain values in the format 'time:amplitude', where the
-                amplitude is the non-zero value in the input file.  e.g.
+                they contain values in the format 'time*amplitude', where the
+                amplitude is the non-zero value in the input file.
+
+                For example, the input might look like:
+
                    0
                    2.4
-                   1.2
-                On a TR=3 grid, this would (skip the zero as usual) and output
-                3:2.4 6:1.2 .
+                   0
+                   0
+                   -1.2
+
+                On a TR=2.5 grid, this would (skip zeros as usual and) output:
+
+                   2.5*2.4 10*-1.2
+
+---------------------------------------------------------------------------
 
 examples:
 
@@ -69,17 +80,17 @@ examples:
        having the times, in seconds, of the stimuli, one run per row.
 
             make_stim_times.py -files stimA.1D stimB.1D stimC.1D   \\
-                               -prefix stimes -tr 2.5 -nruns 7 -nt 100
+                               -prefix stimes1 -tr 2.5 -nruns 7 -nt 100
 
     2. Same as 1, but suppose stim_all.1D has all 3 stim types (so 3 columns).
 
-            make_stim_times.py -files stim_all.1D -prefix stimes -tr 2.5 \\
+            make_stim_times.py -files stim_all.1D -prefix stimes2 -tr 2.5 \\
                                -nruns 7 -nt 100
 
     3. Same as 2, but the stimuli were presented at the middle of the TR, so
        add 1.25 seconds to each stimulus time.
 
-            make_stim_times.py -files stim_all.1D -prefix stimes -tr 2.5 \\
+            make_stim_times.py -files stim_all.1D -prefix stimes3 -tr 2.5 \\
                                -nruns 7 -nt 100 -offset 1.25
 
     4. An appropriate conversion of stim_files to stim_times for the 
@@ -95,7 +106,7 @@ examples:
 
        Just add -amplitudes to any existing command.
 
-            make_stim_times.py -files stim_all.1D -prefix stimes -tr 2.5 \\
+            make_stim_times.py -files stim_weights.1D -prefix stimes5 -tr 2.5 \\
                                -nruns 7 -nt 100 -amplitudes
 
 - R Reynolds, Nov 17, 2006
@@ -111,25 +122,41 @@ g_mst_history = """
          - added options -hist, -ver
     1.2  May 21, 2008:
          - added -amplitudes for Rutvik Desai
+    1.3  June 19, 1008:
+         - help update and change ':' separator to '*' when using -amplitudes
+         - added -show_valid_opts
 """
 
-g_mst_version = "version 1.2, May 21, 2008"
+g_mst_version = "version 1.3, May 21, 2008"
 
 def get_opts():
     global g_help_string
     okopts = option_list.OptionList('for input')
-    okopts.add_opt('-help', 0, [])
-    okopts.add_opt('-hist', 0, [])
-    okopts.add_opt('-ver', 0, [])
+    okopts.add_opt('-help', 0, [],      \
+                   helpstr='display program help')
+    okopts.add_opt('-hist', 0, [],      \
+                   helpstr='display the modification history')
+    okopts.add_opt('-show_valid_opts', 0, [],   \
+                   helpstr='display all valid options')
+    okopts.add_opt('-ver', 0, [],       \
+                   helpstr='display the current version number')
 
-    okopts.add_opt('-amplitudes', 0, [])
-    okopts.add_opt('-files', -1, [], req=1)
-    okopts.add_opt('-prefix', 1, [], req=1)
-    okopts.add_opt('-tr', 1, [], req=1)
-    okopts.add_opt('-nt', 1, [], req=1)
-    okopts.add_opt('-nruns', 1, [], req=1)
-    okopts.add_opt('-offset', 1, [])
-    okopts.add_opt('-verb', 1, [])
+    okopts.add_opt('-amplitudes', 0, [],        \
+                   helpstr='output is in -stim_times_AM1 format')
+    okopts.add_opt('-files', -1, [], req=1,     \
+                   helpstr='set the list of input files')
+    okopts.add_opt('-prefix', 1, [], req=1,     \
+                   helpstr='specify the prefix for output files')
+    okopts.add_opt('-tr', 1, [], req=1, \
+                   helpstr='set the TR time, in seconds')
+    okopts.add_opt('-nt', 1, [], req=1, \
+                   helpstr='set the number of TRs per run')
+    okopts.add_opt('-nruns', 1, [], req=1,      \
+                   helpstr='set the number of runs')
+    okopts.add_opt('-offset', 1, [],    \
+                   helpstr='specify offset to add to all output times')
+    okopts.add_opt('-verb', 1, [],      \
+                   helpstr='set the verbosity level')
     okopts.trailers = 1
 
     # if argv has only the program name, or user requests help, show it
@@ -137,12 +164,15 @@ def get_opts():
         print g_help_string
         return
 
-    # check for -ver and -hist, too
-    if '-hist' in sys.argv:
+    if '-hist' in sys.argv:                 # print history
         print g_mst_history
         return
 
-    if '-ver' in sys.argv:
+    if '-show_valid_opts' in sys.argv:      # show all valid options
+        okopts.show('', 1)
+        return
+
+    if '-ver' in sys.argv:                  # print version
         print g_mst_version
         return
 
@@ -239,7 +269,7 @@ def proc_mats(uopts):
                         nstim += 1
                         # if -amplitudes write as time:amplitude
                         if use_amp:
-                            fp.write('%s:%s ' % \
+                            fp.write('%s*%s ' % \
                                      (str(time+offset),str(row[rindex+lcol])))
                         else:
                             fp.write('%s ' % str(time+offset))
