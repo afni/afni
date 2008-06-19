@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, JUN, 2008, RCR, "file_tool", MICRO, TYPE_MODIFY,
+   "removed printing of pointers in disp_ functions",
+   NULL
+ } ,
+
  { 19, JUN, 2008, RCR, "make_stim_times.py", MINOR, TYPE_MODIFY,
    "help update, added -show_valid_opts, use '*' as separator w/amplitudes",
    NULL
