@@ -123,10 +123,11 @@ static char g_history[] =
  "      - added '-mod_ana_hdr' to modiefy fields of an ANALYZE header file\n"
  "      - added '-mod_field' to specify a field and it value(s)\n"
  "      - added '-overwrite' and '-prefix' to specify output\n"
- " 3.7  August 2, 2007 - added -disp_hex, -disp_hex{1,2,4}\n"
+ " 3.7  August 2, 2007  - added -disp_hex, -disp_hex{1,2,4}\n"
+ " 3.8  June 19, 2008   - removing printing of pointers in disp_ functions\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.7 (August 2, 2007)"
+#define VERSION         "3.8 (June 19, 2008)"
 
 
 /* ----------------------------------------------------------------------
@@ -2094,7 +2095,7 @@ r_idisp_ge_extras( char * info, ge_extras * E )
         return -1;
     }
 
-    printf( " ge_extras at %p :\n"
+    printf( " ge_extras :\n"
             "    bpp              = %d\n"
             "    cflag            = %d\n"
             "    hdroff           = %d\n"
@@ -2103,7 +2104,7 @@ r_idisp_ge_extras( char * info, ge_extras * E )
             "    (xyz0,xyz1,xyz2) = (%f,%f,%f)\n"
             "    (xyz3,xyz4,xyz5) = (%f,%f,%f)\n"
             "    (xyz6,xyz7,xyz8) = (%f,%f,%f)\n",
-            E, E->bpp, E->cflag, E->hdroff, E->skip, E->swap,
+            E->bpp, E->cflag, E->hdroff, E->skip, E->swap,
             E->xyz[0], E->xyz[1], E->xyz[2],
             E->xyz[3], E->xyz[4], E->xyz[5],
             E->xyz[6], E->xyz[7], E->xyz[8]
@@ -2127,7 +2128,7 @@ r_idisp_ge_header_info( char * info, ge_header_info * I )
         return -1;
     }
 
-    printf( " ge_header_info at %p :\n"
+    printf( " ge_header_info :\n"
             "    good        = %d\n"
             "    (nx,ny)     = (%d,%d)\n"
             "    uv17        = %d\n"
@@ -2135,7 +2136,7 @@ r_idisp_ge_header_info( char * info, ge_header_info * I )
             "    zoff        = %f\n"
             "    (tr,te)     = (%f,%f)\n"
             "    orients     = %8s\n",
-            I, I->good, I->nx, I->ny, I->uv17,
+            I->good, I->nx, I->ny, I->uv17,
             I->dx, I->dy, I->dz, I->zoff, I->tr, I->te,
             CHECK_NULL_STR(I->orients)
           );
@@ -2160,11 +2161,11 @@ disp_ge_offsets( char * info, ge_off * D )
         return -1;
     }
 
-    printf( " ge_off at %p :\n"
+    printf( " ge_off at :\n"
             "    nx, ny, uv17 = %d, %d, %d\n"
             "    dx, dy, dz   = %d, %d, %d\n"
             "    tr, te, xyz  = %d, %d, %d\n",
-            D, D->nx, D->ny, D->uv17,
+            D->nx, D->ny, D->uv17,
             D->dx, D->dy, D->dz,
             D->tr, D->te, D->xyz
           );
