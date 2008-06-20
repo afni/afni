@@ -40,13 +40,18 @@
  } ,
 
  { 26, MAR, 2008, RCR, "sample", MICRO, TYPE_GENERAL,
-   "blah blah blah",
+   "blah",
    NULL
  } ,
 
 */
 
 afni_history_struct rickr_history[] = {
+
+ { 20, JUN, 2008, RCR, "libmri", MINOR, TYPE_MODIFY,
+   "thd_niftiread: do not scale to float if scale=1 and inter=0",
+   NULL
+ } ,
 
  { 19, JUN, 2008, RCR, "file_tool", MICRO, TYPE_MODIFY,
    "removed printing of pointers in disp_ functions",
