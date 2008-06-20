@@ -1,0 +1,58 @@
+#!/bin/tcsh -f
+#last edited JUNE 5 2008
+
+#Useful option for forcing AFNI programs to overwrite
+setenv AFNI_DECONFLICT OVERWRITE
+
+#If you want to see where the shell is when it crashes, either do
+#set echo
+#or use #!/bin/tcsh -fx   on the first line
+
+set al = $#argv
+#echo $al
+
+if ($al < 2 ) then
+   echo ""
+   echo  "***********************************************"
+   echo  "give me clustered file xxx.kgg and dumped file "
+   echo  "with ijk coordinats that you used for fitting"
+   echo "************************************************"
+   echo ""
+   goto END
+endif
+
+if ($al == 2 ) then
+   set starttime=`date`
+
+   sort ${1} > D_${1}_sorted
+
+   awk -F" " '{print $2}' D_${1}_sorted > D_${1}_Csorted
+
+   #remove first row
+      set nlines = `grep -c '' D_${1}_Csorted`
+      @ nlines --
+      tail -n$nlines D_${1}_Csorted > D_${1}_Csorted1
+
+   ## increment because clusters start with 0
+   awk '{ ++$1; print $1}' D_$1_Csorted1 \
+      > D_$1_Csorted2
+
+   awk -F" " '{print $1" ",$2" ",$3}' $2 \
+      > D_$2_justijk
+
+   paste D_$2_justijk D_$1_Csorted2 \
+      > D_$1.FINAL4undump
+
+rm D_$1_Csorted1
+rm D_$1_Csorted2
+rm D_$1_sorted
+rm D_$1_Csorted
+
+
+endif
+
+set endtime=`date`
+echo $starttime
+echo $endtime
+
+END:

@@ -1,0 +1,92 @@
+#!/bin/tcsh -f
+#last edited JUNE 5 2008
+
+setenv AFNI_DECONFLICT OVERWRITE
+
+#count the total number of command line parameters
+set al = $#argv
+#echo $al
+
+if ($al < 1) then
+   goto HELP
+endif
+
+set starttime = `date`
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set vollist = ()
+   set out = ''
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-out") then
+         if ($cnt == $Narg) then
+            echo "Need a filename after -out"
+            goto END
+         else
+            @ cnt ++
+            set out = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-components") then
+         if ($cnt == $Narg) then
+            echo "Need at least one component file after -components"
+            goto END
+         else
+            @ cnt ++
+            set vollist = ($argv[$cnt-])
+            goto PROCESS
+         endif
+      endif
+      if ($donext) then
+         set vollist = ($argv[$cnt-])
+         goto PROCESS
+      else 
+         @ cnt ++
+      endif
+   end
+
+PROCESS:
+if ("out" == "") then
+   set out = D_ALL_prepared4clust
+   echo "Output filename defaults to $out"
+endif
+if ($#vollist == 0) then
+   echo "Error: No component files given"
+   goto END
+endif
+foreach ff ($vollist)
+   if ( ! -f $ff ) then
+      echo "Error: Component file $ff not found"
+      goto END
+   endif
+end
+echo "All component files are: ($vollist) "
+
+
+   echo "Combining files and labeling the rows for later sorting"
+   paste $vollist | nl -w 9 -n rz > $out
+
+set endtime = `date`
+
+echo $starttime
+echo $endtime
+
+goto END
+
+HELP:
+   echo "Catenates component files together to form signature file"
+   echo "that can be used by cluster"
+   echo "`basename $0` -out SIGNATURE_FILE -components COMP1 COMP2 ..."
+   goto END
+
+END:
+
