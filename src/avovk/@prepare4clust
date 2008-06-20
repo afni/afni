@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 #last edited JUNE 5 2008
-
+#testing cvs
 setenv AFNI_DECONFLICT OVERWRITE
 
 #count the total number of command line parameters
