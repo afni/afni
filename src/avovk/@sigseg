@@ -2,7 +2,7 @@
 #last edited June 13 2008
 
 MANUALLY_SET_PARAMETERS:
-   set kclustlist = ( 2 )
+   set kclustlist = ( 4 )
    set LSlist = (ALL_med ALL_MAD ALL_skew chew_medaniso chew_MADaniso)
    #Set these two by hand
       #example:
@@ -16,6 +16,8 @@ PARSE:
    set cnt = 1
    set subj = ''
    set mask = ''
+   set ClustOnly = 0;
+   
    if ("$1" == '') goto HELP
    if ($Narg == 2  && ("$1" !~ -*) && ("$2" !~ -*)) then
       set subj = $1
@@ -47,6 +49,45 @@ PARSE:
                set donext = 0   
             endif
          endif
+         
+         if ($donext && "$argv[$cnt]" == "-nclusts") then
+            if ($cnt == $Narg) then
+               echo "Need number of clusts after -nclusts"
+               goto END
+            else
+               @ cnt ++
+               set kclustlist = ($argv[$cnt])
+               set donext = 0   
+            endif
+         endif
+         
+         if ($donext && "$argv[$cnt]" == "-complist") then
+            if ($cnt == $Narg) then
+               echo "Need components list after -complist"
+               goto END
+            else
+               @ cnt ++
+               set component_list = "$argv[$cnt]"
+               set donext = 0   
+            endif
+         endif
+         
+         if ($donext && "$argv[$cnt]" == "-clustsuff") then
+            if ($cnt == $Narg) then
+               echo "Need cluster suffix after -clustsuff"
+               goto END
+            else
+               @ cnt ++
+               set clustsuff = "$argv[$cnt]"
+               set donext = 0   
+            endif
+         endif
+         
+         if ($donext && "$argv[$cnt]" == "-clust_only") then
+            set ClustOnly = 1;
+            set donext = 0   
+         endif
+
          if ($donext) then
             echo "Parameter $argv[$cnt] not understood"
             goto END
@@ -59,6 +100,10 @@ PARSE:
 setenv AFNI_DECONFLICT OVERWRITE
 
 PREP:
+   if ("$subj" == "") then
+      echo "Error: No subject volume given"
+      goto END
+   endif
    set hdir = $PWD
    set pref = `@GetAfniPrefix $subj`
    set dir = out_$pref
@@ -75,9 +120,10 @@ PREP:
    if ( ! -d $dir ) mkdir $dir
    if ("$mask" == "") set mask = $subj
    
-#good jumping point
-goto PREPFORCLUSTERING
-
+if ($ClustOnly == 1) then
+   #good jumping point
+   goto PREPFORCLUSTERING
+endif
 
 COPY:
    3dcopy $subj $dir/$subj
@@ -187,14 +233,46 @@ goto END
 
 HELP:
    echo "Usage mode 1: ############################"
-   echo "Script needs 2 arguments!"
-   echo "1st must be original image to segment"
-   echo "2nd must be mask image for selecting..."
-   echo "If no mask is given, then the whole volume is used"
+   echo "   Script needs 2 arguments!"
+   echo "   1st must be original image to segment"
+   echo "   2nd must be mask image for selecting..."
+   echo "   If no mask is given, then the whole volume is used"
    echo "##########################################"
    echo "Usage mode 2: ############################"
-   echo "`basename $0` -anat ANAT_VOL -mask MASK_VOL"
-   echo "If no mask is given, then the whole volume is used"
+   echo "   `basename $0` -anat ANAT_VOL -mask MASK_VOL"
+   echo "      If no mask is given, then the whole volume is used"
+   echo "Options:"
+   echo "   -clustsuff CLUSTER_DSET_SUFFIX"
+   echo "        Default now is: '$clustsuff'"
+   echo "   -complist COMP_LIST: List of components to use"
+   echo "                     for bulding signatures."
+   echo "         Default now is: '$component_list'"
+   echo "         You can choose combinations of:"
+   echo "         'D_D_ijk_stat.*.fitcoef', where * gets replaced"
+   echo "         by each of the parameter in LSlist: "
+   echo "         $LSlist"
+   echo "         Note that the signle quotes are necessary."
+   echo "         You could also use: "
+   echo "         'D_D_ijk_stat.ALL_mad.fitcoef D_D_ijk_stat.skew.fitcoef'"
+   echo "   -nclusts N_CLUSTS: To make clustering repeat with different"
+   echo "                   number os clusters, you can set N_CLUSTS to:"
+   echo "                   '3 4 6' for example (single quotes necessary)."
+   echo "         Default now is '$kclustlist'"
+   echo "   -clust_only: use precomputed localstats and fitting and "
+   echo "             and go to straight to clustering"
+   echo "         Default is to do the whole thing."
+   echo ""
+   echo "Examples:"
+   echo "1- To process a new data set, with a brain mask"
+   echo "   @sigseg  -anat DemoSubj_spgrsa+orig.   \"
+   echo "            -mask DemoSubj_spgrsa_ns+orig "
+   echo "2- To change clustering parameters and use all components "
+   echo "   and 6 clusters but without repeating localstats and fitting:"
+   echo "   @sigseg  -nclusts 6 -clust_only \"
+   echo "            -complist 'D_D_ijk_stat.*.fitcoef' \"
+   echo "            -clustsuff all \"
+   echo "            -anat DemoSubj_spgrsa+orig.   \"
+   echo "            -mask DemoSubj_spgrsa_ns+orig "
    echo "##########################################"
    goto END
 
