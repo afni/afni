@@ -40,7 +40,7 @@
  } ,
 
  { 26, MAR, 2008, RCR, "sample", MICRO, TYPE_GENERAL,
-   "blah",
+   "blah blah blah",
    NULL
  } ,
 
