@@ -16,6 +16,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    int ntt , nbuc , nvals ;
    int use_qform = 0 , use_sform = 0 ;
    int statcode = 0 , datum , iview , ibr ;
+   int scale_data = 0 ;  /* flag based on scl_slope and inter  20 Jun 2008 */
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz ;
    THD_mat33 R ;
@@ -68,6 +69,14 @@ ENTRY("THD_open_nifti") ;
       if we are scaling, or if the data type in the NIfTI file
       is something AFNI can't handle, then the result will be floats */
 
+   /* do not scale if slope is 0 or if slope is 1 and inter is 0 */
+   if( !finite(nim->scl_slope) || !finite(nim->scl_inter) ){
+      fprintf(stderr,"** bad scl_slope and inter = %f, %f, ignoring...\n",
+              nim->scl_slope, nim->scl_inter);
+   } else
+       scale_data = nim->scl_slope != 0.0 &&
+                        (nim->scl_slope != 1.0 || nim->scl_inter != 0.0) ;
+
    switch( nim->datatype ){
      default:
        fprintf(stderr,
@@ -76,9 +85,8 @@ ENTRY("THD_open_nifti") ;
        RETURN(NULL) ;
      break ;
 
-     case DT_UINT8:     datum = (nim->scl_slope != 0.0) ? MRI_float : MRI_byte  ; break ;
-     case DT_INT16:     datum = (nim->scl_slope != 0.0) ? MRI_float : MRI_short ; break ;
-
+     case DT_UINT8:     datum = scale_data ? MRI_float : MRI_byte  ; break ;
+     case DT_INT16:     datum = scale_data ? MRI_float : MRI_short ; break ;
      case DT_FLOAT32:   datum = MRI_float   ; break ;
      case DT_COMPLEX64: datum = MRI_complex ; break ;
      case DT_RGB24:     datum = MRI_rgb     ; break ;
@@ -692,6 +700,7 @@ void THD_load_nifti( THD_datablock *dblk )
    THD_diskptr *dkptr ;
    int nx,ny,nz,nxy,nxyz,nxyzv , nerr=0,ibr,nv, nslice ;
    int datum, need_copy=0 ;
+   int scale_data=0 ;
    void *ptr ;
    nifti_image *nim ;
    nifti_brick_list NBL ;  /* holds the data read from disk */
@@ -816,7 +825,12 @@ ENTRY("THD_load_nifti") ;
 
    /*-- scale results? ---*/
 
-   if( nim->scl_slope != 0.0 && finite(nim->scl_slope) && finite(nim->scl_inter) ){
+   /* errors for !finite() have been printed */
+   scale_data = finite(nim->scl_slope) && finite(nim->scl_inter) 
+                    && (nim->scl_slope != 0.0)
+                    && (nim->scl_slope != 1.0 || nim->scl_inter != 0.0) ;
+
+   if( scale_data ){
      STATUS("scaling sub-bricks") ;
      for( ibr=0 ; ibr < nv ; ibr++ ){
        if( DBLK_BRICK_TYPE(dblk,ibr) == MRI_float ){
