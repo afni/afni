@@ -1,0 +1,202 @@
+#!/bin/tcsh -f
+#last edited June 13 2008
+
+MANUALLY_SET_PARAMETERS:
+   set kclustlist = ( 2 )
+   set LSlist = (ALL_med ALL_MAD ALL_skew chew_medaniso chew_MADaniso)
+   #Set these two by hand
+      #example:
+      # set component_list = (D_ijk_stat.Int D_D_ijk_stat.*.fitcoef)
+      # set clustsuff = ALLcomp
+      set component_list = ('D_D_ijk_stat.chew_*aniso.fitcoef')
+      set clustsuff = chew_anisos
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set subj = ''
+   set mask = ''
+   if ("$1" == '') goto HELP
+   if ($Narg == 2  && ("$1" !~ -*) && ("$2" !~ -*)) then
+      set subj = $1
+      set mask = $2
+   else
+      while ($cnt <= $Narg)
+         set donext = 1;
+         if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+            goto HELP
+         endif
+         if ($donext && "$argv[$cnt]" == "-anat") then
+            if ($cnt == $Narg) then
+               echo "Need a volume after -anat"
+               goto END
+            else
+               @ cnt ++
+               set subj = "$argv[$cnt]"
+               set donext = 0   
+            endif   
+         endif
+
+         if ($donext && "$argv[$cnt]" == "-mask") then
+            if ($cnt == $Narg) then
+               echo "Need a mask volume after -mask"
+               goto END
+            else
+               @ cnt ++
+               set mask = $argv[$cnt]
+               set donext = 0   
+            endif
+         endif
+         if ($donext) then
+            echo "Parameter $argv[$cnt] not understood"
+            goto END
+         else 
+            @ cnt ++
+         endif
+      end
+   endif
+   
+setenv AFNI_DECONFLICT OVERWRITE
+
+PREP:
+   set hdir = $PWD
+   set pref = `@GetAfniPrefix $subj`
+   set dir = out_$pref
+   set clustpref = ${pref}.${clustsuff}
+   if ( "$hdir:t" == "$dir" ) then
+      echo "This script should be run from outside the"
+      echo " the output directory $dir. Run this:"
+      echo ""
+      echo "cd .."
+      echo "`basename $0` $argv"
+      echo ""
+      goto END
+   endif
+   if ( ! -d $dir ) mkdir $dir
+   if ("$mask" == "") set mask = $subj
+   
+#good jumping point
+goto PREPFORCLUSTERING
+
+
+COPY:
+   3dcopy $subj $dir/$subj
+   if ("$mask" != "$subj") then
+      3dcopy $mask $dir/$mask
+   endif
+
+LOCAL_STATS:
+   echo "#############################"
+   echo "LOCALSTATS:"
+   echo "#############################"
+   cd $dir
+   @seg_Wrsmpl6 ${subj}
+   cd $hdir
+   
+RESAMPLE:
+   cd $dir
+   echo "#############################"
+   echo "RESAMPLE MASK:"
+   echo "#############################"
+
+   3dresample  -rmode NN -dxyz 1.0 1.0 1.0 \
+               -master ${pref}_1mm+orig   \
+               -inset  ../$mask  \
+               -prefix ./${pref}_mask_1mm
+   if (! -f ${pref}_mask_1mm+orig.HEAD) then
+      echo "Error: No resample mask written!"
+      goto END
+   endif
+   cd $hdir
+
+FITTING:
+   cd $dir
+   echo "#############################"
+   echo "FITTING:"
+   echo "#############################"
+
+   set cnt = 1
+   foreach kk ($LSlist)
+      set sgn_volume = ${pref}_${kk}+orig
+      set D_ijk = D_ijk_stat.${kk}
+      3dmaskdump  -mask ${pref}_mask_1mm+orig \
+                  $sgn_volume  > $D_ijk
+      fitanje_1sign $D_ijk > D_${D_ijk}.fitcoef
+      @ cnt ++
+   end
+   #not quite like others, but might be useful to use voxel intensity too
+   3dmaskdump -mask ${pref}_mask_1mm+orig \
+               ${pref}_mask_1mm+orig > D_ijk_stat.Int
+   cd $hdir
+
+PREPFORCLUSTERING:
+   cd $dir
+   echo "#############################"
+   echo "Pre Clustering:"
+   echo "#############################"
+   #expand the component list
+   set component_list = ($component_list)
+   @prepare4clust -out D_${clustpref}_prepared4clust.sign \
+                  -components $component_list
+   if ( ! -f D_${clustpref}_prepared4clust.sign) then
+      echo "Error: Failed to produce signature file"
+      goto END
+   endif
+   cd $hdir
+
+CLUSTERING:
+   #It makes no sense to separate @prepareAFTERclust and 3dUndump from this
+   cd $dir
+   foreach kclust ($kclustlist)
+      echo "#############################"
+      echo "Clustering $kclust :"
+      echo "#############################"
+      cluster  \
+            -f D_${clustpref}_prepared4clust.sign \
+            -g 7  -k $kclust  -r 3  \
+            -u D_${clustpref}
+      if (! -f D_${clustpref}_K_G${kclust}.kgg) then
+         echo "Error: Failed to cluster"
+         goto END
+      endif
+      rm D_${clustpref}_K_G${kclust}.cdt
+   end
+   cd $hdir
+
+POSTCLUSTERING:
+   cd $dir
+   echo "#############################"
+   echo "Post Clustering:"
+   echo "#############################"
+   foreach kclust ($kclustlist)
+      @prepareAFTERclust   D_${clustpref}_K_G${kclust}.kgg   \
+                           D_ijk_stat.Int
+      3dUndump   -prefix ${clustpref}.${kclust}clust   \
+                 -master ${pref}_mask_1mm+orig \
+                 D_D_${clustpref}_K_G${kclust}.kgg.FINAL4undump
+      if (`@CheckForAfniDset \
+              ${clustpref}.${kclust}clust+orig.HEAD` < 2) then
+         echo "Failed to undump to ${clustpref}.${kclust}clust+orig"
+         goto END
+      endif
+      rm D_D_${clustpref}_K_G${kclust}.kgg.FINAL4undump
+   end
+   cd $hdir
+
+goto END
+
+HELP:
+   echo "Usage mode 1: ############################"
+   echo "Script needs 2 arguments!"
+   echo "1st must be original image to segment"
+   echo "2nd must be mask image for selecting..."
+   echo "If no mask is given, then the whole volume is used"
+   echo "##########################################"
+   echo "Usage mode 2: ############################"
+   echo "`basename $0` -anat ANAT_VOL -mask MASK_VOL"
+   echo "If no mask is given, then the whole volume is used"
+   echo "##########################################"
+   goto END
+
+
+END:
