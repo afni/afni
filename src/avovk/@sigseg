@@ -3,7 +3,7 @@
 
 MANUALLY_SET_PARAMETERS:
    set kclustlist = ( 4 )
-   set LSlist = (ALL_med ALL_MAD ALL_skew chew_medaniso chew_MADaniso)
+   set LSlist = (ALL_med ALL_MAD ALL_skew chew_medaniso chew_MADaniso AvMed)
    #Set these two by hand
       #example:
       # set component_list = (D_ijk_stat.Int D_D_ijk_stat.*.fitcoef)
@@ -16,7 +16,8 @@ PARSE:
    set cnt = 1
    set subj = ''
    set mask = ''
-   set ClustOnly = 0;
+   set ClustOnly = 0
+   set distmetric = 7
    
    if ("$1" == '') goto HELP
    if ($Narg == 2  && ("$1" !~ -*) && ("$2" !~ -*)) then
@@ -38,7 +39,23 @@ PARSE:
                set donext = 0   
             endif   
          endif
-
+         
+         if ($donext && "$argv[$cnt]" == "-distmetric") then
+            if ($cnt == $Narg) then
+               echo "Need a value between 1 and 8 after -distmetric"
+               goto END
+            else
+               @ cnt ++
+               set distmetric = $argv[$cnt]
+               if ($distmetric < 1 || $distmetric > 8) then
+                  echo "Need a value between 1 and 8 after -distmetric"
+                  echo "Have $distmetric"
+                  goto END
+               endif
+               set donext = 0   
+            endif
+         endif
+         
          if ($donext && "$argv[$cnt]" == "-mask") then
             if ($cnt == $Narg) then
                echo "Need a mask volume after -mask"
@@ -119,7 +136,7 @@ PREP:
    endif
    if ( ! -d $dir ) mkdir $dir
    if ("$mask" == "") set mask = $subj
-   
+
 if ($ClustOnly == 1) then
    #good jumping point
    goto PREPFORCLUSTERING
@@ -199,7 +216,7 @@ CLUSTERING:
       echo "#############################"
       cluster  \
             -f D_${clustpref}_prepared4clust.sign \
-            -g 7  -k $kclust  -r 3  \
+            -g $distmetric  -k $kclust  -r 3  \
             -u D_${clustpref}
       if (! -f D_${clustpref}_K_G${kclust}.kgg) then
          echo "Error: Failed to cluster"
@@ -261,6 +278,18 @@ HELP:
    echo "   -clust_only: use precomputed localstats and fitting and "
    echo "             and go to straight to clustering"
    echo "         Default is to do the whole thing."
+   echo "   -distmetric DIST: set distance metric."
+   echo "         Default is $distmetric"
+   echo "         Choose between 1 and 8, see cluster"
+   echo "         for meaning."
+   echo "         1 Uncentered correlation"
+   echo "         2 Pearson correlation"
+   echo "         3 Uncentered correlation, abs value"
+   echo "         4 Pearson correlation, abs value"
+   echo "         5 Spearman's rank correlation"
+   echo "         6 Kendall's tau"
+   echo "         7 Euclidian distance"
+   echo "         8 City block distance"
    echo ""
    echo "Examples:"
    echo "1- To process a new data set, with a brain mask"
