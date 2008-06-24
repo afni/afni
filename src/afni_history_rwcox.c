@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , JUN , 2008 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Extend max number of clusters reportable, for Shruti." ,
+   NULL } ,
+
  { 10 , JUN , 2008 , RWC , "3dLocalCormat" , MINOR , TYPE_NEW_OPT ,
    "Add -ARMA option to estimate ARMA(1,1) parameters" ,
    NULL } ,
