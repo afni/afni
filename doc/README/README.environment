@@ -2509,16 +2509,19 @@ time to save files.
 Variable: AFNI_CLUSTER_SCROLL
 -----------------------------
 If this variable is NO, then the 'Clusterize' report will not be given
-scrollbars.  The default is to give it scroll bars.
+scrollbars.  The default is to give it scroll bars (i.e., YES).
 
 -----------------------------
 Variable: AFNI_CLUSTER_REPMAX  (editable)
 -----------------------------
-This numeric variable (between 10 and 99, inclusive) sets the maximum
+This numeric variable (between 10 and 9999, inclusive) sets the maximum
 number of clusters that will be reported in a 'Clusterize' report panel,
 if scroll bars are turned off by AFNI_CLUSTER_SCROLL. The default value
 is 15.  If scroll bars are turned on, then the maximum number of clusters
-shown is fixed at 99.
+shown defaults to 999, but can be increased to 9999 if you are completely
+mad, or are named Shruti.  If scroll bars are turned off, then you probably
+don't want to make this very big, since the report window would become
+taller than your monitor, and that would be hard to deal with.
 
 ----------------------------
 Variable: AFNI_STRLIST_INDEX
