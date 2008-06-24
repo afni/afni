@@ -1,7 +1,9 @@
 #!/bin/tcsh -x
 #last edited June 03 2008
 
-set cleanup = 1
+set cleanup = 0
+set resample = 0
+set fast_grouping = 1
 
 #count the total number of command line parameters
 set al=$#argv
@@ -50,7 +52,7 @@ PREP:
    echo ${newz}
 
 #Good place for a jumping point   
-#goto GROUP_ANISO
+goto GROUPING
 
 ZEROPADDING:
    echo "Zeropadding ..."
@@ -67,158 +69,187 @@ LOCAL_STATS:
 
    echo "CALCULATING LOCALSTATS (1-5mm) ..."
    set in_vol = "${ipref}_1mm+orig"
+    set voxl_size = 1mm
+
    foreach i (1 2 3 4 5)
        3dLocalstat   -nbhd "RECT($i,$i,$i)" \
                      -stat median -stat MAD -stat mean \
                      -datum short \
-                     -prefix "${ipref}_stat0${i}_1mm" \
+                     -prefix "${ipref}_stat0${i}_${voxl_size}" \
                      "${in_vol}"
    
        ####chewing gum statistics
        3dLocalstat   -nbhd "RECT($i,0,0)" \
                      -stat median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewX0${i}_1mm" \
+                     -prefix "${ipref}_chewX0${i}_${voxl_size}" \
                      ${in_vol}
        3dLocalstat   -nbhd "RECT(0,$i,0)" \
                      -stat  median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewY0${i}_1mm" \
+                     -prefix "${ipref}_chewY0${i}_${voxl_size}" \
                      ${in_vol}
        3dLocalstat   -nbhd "RECT(0,0,$i)" \
                      -stat median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewZ0${i}_1mm" \
+                     -prefix "${ipref}_chewZ0${i}_${voxl_size}" \
                      ${in_vol}
 
       #### skewness 
-      3dcalc   -a "${ipref}_stat0${i}_1mm+orig"'[$]' \
-               -b "${ipref}_stat0${i}_1mm+orig"'[0]' \
+      3dcalc   -a "${ipref}_stat0${i}_${voxl_size}+orig"'[$]' \
+               -b "${ipref}_stat0${i}_${voxl_size}+orig"'[0]' \
                -datum short \
                -expr 'a-b' \
-               -prefix "${ipref}_skew0${i}_1mm"
+               -prefix "${ipref}_skew0${i}_${voxl_size}"
 
    end
 
+    if ($resample == 0) then 
+	goto LOCALSTATS6
+    endif
+
    echo "RESAMPLING to 2mm and CALCULATING LOCALSTATS (6 and 8mm) ..."
- 
+    
+    set voxl_size = 2mm
    3dresample  -rmode Linear \
                -dxyz 2.0 2.0 2.0 \
                -inset ${ipref}_ZP+orig \
-               -prefix ${ipref}_2mm
-   set in_vol="${ipref}_2mm+orig"
+               -prefix ${ipref}_${voxl_size}
+
+   set in_vol="${ipref}_${voxl_size}+orig"
+    
+
+LOCALSTATS6:
    foreach i (6 8)
       3dLocalstat    -nbhd "RECT($i,$i,$i)" \
                      -stat median -stat MAD -stat mean \
                      -datum short \
-                     -prefix "${ipref}_stat0${i}" \
+                     -prefix "${ipref}_stat0${i}_${voxl_size}" \
                      "${in_vol}"
 
       ####chewing gum statistics
       3dLocalstat    -nbhd "RECT($i,0,0)" \
                      -stat median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewX0${i}" \
+                     -prefix "${ipref}_chewX0${i}_${voxl_size}" \
                      ${in_vol}
       3dLocalstat    -nbhd "RECT(0,$i,0)" \
                      -stat  median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewY0${i}" \
+                     -prefix "${ipref}_chewY0${i}_${voxl_size}" \
                      ${in_vol}
       3dLocalstat    -nbhd "RECT(0,0,$i)" \
                      -stat median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewZ0${i}" \
+                     -prefix "${ipref}_chewZ0${i}_${voxl_size}" \
                      ${in_vol}
 
       #### skewness 
-      3dcalc   -a "${ipref}_stat0${i}+orig"'[$]' \
-               -b "${ipref}_stat0${i}+orig"'[0]' \
+      3dcalc   -a "${ipref}_stat0${i}_${voxl_size}+orig"'[$]' \
+               -b "${ipref}_stat0${i}_${voxl_size}+orig"'[0]' \
                -datum short \
                -expr 'a-b' \
-               -prefix "${ipref}_skew0${i}"
+               -prefix "${ipref}_skew0${i}_${voxl_size}"
 
    end
 
+    if ($resample == 0) then 
+	goto LOCALSTATS10
+    endif
+
    echo "RESAMPLING to 3mm and CALCULATING LOCALSTATS (10,13 and 16mm) ..."
 
+    set voxl_size = 3mm
    3dresample  -rmode Linear \
                -dxyz 3.0 3.0 3.0 \
                -inset ${ipref}_ZP+orig \
-               -prefix ${ipref}_3mm
+               -prefix ${ipref}_${voxl_size}
 
-   set in_vol="${ipref}_3mm+orig"
+   set in_vol="${ipref}_${voxl_size}+orig"
+
+LOCALSTATS10:
    foreach i (10 13 16)
       3dLocalstat    -nbhd "RECT($i,$i,$i)" \
                      -stat median -stat MAD -stat mean \
                      -datum short \
-                     -prefix "${ipref}_stat${i}" \
+                     -prefix "${ipref}_stat${i}_${voxl_size}" \
                      "${in_vol}"
 
       ####chewing gum statistics
       3dLocalstat    -nbhd "RECT($i,0,0)" \
                      -stat median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewX${i}" \
+                     -prefix "${ipref}_chewX${i}_${voxl_size}" \
                      ${in_vol}
       3dLocalstat    -nbhd "RECT(0,$i,0)" \
                      -stat  median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewY${i}" \
+                     -prefix "${ipref}_chewY${i}_${voxl_size}" \
                      ${in_vol}
       3dLocalstat    -nbhd "RECT(0,0,$i)" \
                      -stat median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewZ${i}" \
+                     -prefix "${ipref}_chewZ${i}_${voxl_size}" \
                      ${in_vol}
 
       #### skewness 
-      3dcalc   -a "${ipref}_stat${i}+orig"'[$]' \
-               -b "${ipref}_stat${i}+orig"'[0]' \
+      3dcalc   -a "${ipref}_stat${i}_${voxl_size}+orig"'[$]' \
+               -b "${ipref}_stat${i}_${voxl_size}+orig"'[0]' \
                -datum short \
                -expr 'a-b' \
-               -prefix "${ipref}_skew${i}"
+               -prefix "${ipref}_skew${i}_${voxl_size}"
 
    end
 
-   echo "RESAMPLING to 4mm and CALCULATING LOCALSTATS (20,25 and 30mm) ..."
+    if ($resample == 0) then 
+	goto LOCALSTATS20
+    endif
 
+   echo "RESAMPLING to 4mm and CALCULATING LOCALSTATS (20,25 and 30mm) ..."
+    
+    set voxl_size = 4mm
    3dresample  -rmode Linear \
                -dxyz 4.0 4.0 4.0 \
                -inset ${ipref}_ZP+orig \
                -prefix ${ipref}_4mm
-   set in_vol="${ipref}_4mm+orig"
+   set in_vol="${ipref}_${voxl_size}+orig"
+
+LOCALSTATS20:
    foreach i (20 25 30)  
       3dLocalstat    -nbhd "RECT($i,$i,$i)" \
                      -stat median -stat MAD -stat mean \
                      -datum short \
-                     -prefix "${ipref}_stat${i}" \
+                     -prefix "${ipref}_stat${i}_${voxl_size}" \
                      "${in_vol}"
 
       ####chewing gum statistics
       3dLocalstat    -nbhd "RECT($i,0,0)" \
                      -stat median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewX${i}" \
+                     -prefix "${ipref}_chewX${i}_${voxl_size}" \
                      ${in_vol}
       3dLocalstat    -nbhd "RECT(0,$i,0)" \
                      -stat  median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewY${i}" \
+                     -prefix "${ipref}_chewY${i}_${voxl_size}" \
                      ${in_vol}
       3dLocalstat    -nbhd "RECT(0,0,$i)" \
                      -stat median -stat MAD \
                      -datum short \
-                     -prefix "${ipref}_chewZ${i}" \
+                     -prefix "${ipref}_chewZ${i}_${voxl_size}" \
                      ${in_vol}
       #### skewness 
-      3dcalc   -a "${ipref}_stat${i}+orig"'[$]' \
-               -b "${ipref}_stat${i}+orig"'[0]' \
+      3dcalc   -a "${ipref}_stat${i}_${voxl_size}+orig"'[$]' \
+               -b "${ipref}_stat${i}_${voxl_size}+orig"'[0]' \
                -datum short \
                -expr 'a-b' \
-               -prefix "${ipref}_skew${i}"
+               -prefix "${ipref}_skew${i}_${voxl_size}"
 
    end
+
+    if ($resample == 0) then 
+	goto GROUPING
+    endif
 
 RESAMPLING:
    #########################################################################
@@ -226,31 +257,47 @@ RESAMPLING:
    echo "RESAMPLING ALL VOLUMES TO 1mm ..."
 
    foreach j (06 08 10 13 16 20 25 30)
-      3dresample  -rmode Linear \
-                  -dxyz 1.0 1.0 1.0 \
-                  -master ${ipref}_1mm+orig \
-                  -inset ${ipref}_stat${j}+orig \
-                  -prefix ${ipref}_stat${j}_1mm
-      3dresample  -rmode Linear \
-                  -dxyz 1.0 1.0 1.0 \
-                  -master ${ipref}_1mm+orig \
-                  -inset ${ipref}_skew${j}+orig \
-                  -prefix ${ipref}_skew${j}_1mm
-      3dresample  -rmode Linear \
-                  -dxyz 1.0 1.0 1.0 \
-                  -master ${ipref}_1mm+orig \
-                  -inset ${ipref}_chewX${j}+orig \
-                  -prefix ${ipref}_chewX${j}_1mm
-      3dresample  -rmode Linear \
-                  -dxyz 1.0 1.0 1.0 \
-                  -master ${ipref}_1mm+orig \
-                  -inset ${ipref}_chewY${j}+orig \
-                  -prefix ${ipref}_chewY${j}_1mm
-      3dresample  -rmode Linear \
-                  -dxyz 1.0 1.0 1.0 \
-                  -master ${ipref}_1mm+orig \
-                  -inset ${ipref}_chewZ${j}+orig \
-                  -prefix ${ipref}_chewZ${j}_1mm
+	foreach k (2 3 4)
+	    if ( -f ${ipref}_stat${j}_${k}mm+orig.HEAD) then
+		3dresample  -rmode Linear \
+			    -dxyz 1.0 1.0 1.0 \
+			    -master ${ipref}_1mm+orig \
+			    -inset ${ipref}_stat${j}_${k}mm+orig \
+			    -prefix ${ipref}_stat${j}_1mm
+	    endif
+
+	    if ( -f ${ipref}_skew${j}_${k}mm+orig.HEAD) then
+		3dresample  -rmode Linear \
+			    -dxyz 1.0 1.0 1.0 \
+			    -master ${ipref}_1mm+orig \
+			    -inset ${ipref}_skew${j}_${k}mm+orig \
+			    -prefix ${ipref}_skew${j}_1mm
+	    endif
+
+	    if ( -f ${ipref}_chewX${j}_${k}mm+orig.HEAD) then
+		3dresample  -rmode Linear \
+			    -dxyz 1.0 1.0 1.0 \
+			    -master ${ipref}_1mm+orig \
+			    -inset ${ipref}_chewX${j}_${k}mm+orig \
+			    -prefix ${ipref}_chewX${j}_1mm
+	    endif
+
+	    if ( -f ${ipref}_chewY${j}_${k}mm+orig.HEAD) then
+		3dresample  -rmode Linear \
+			    -dxyz 1.0 1.0 1.0 \
+			    -master ${ipref}_1mm+orig \
+			    -inset ${ipref}_chewY${j}_${k}mm+orig \
+			    -prefix ${ipref}_chewY${j}_1mm
+	    endif
+
+	   if ( -f ${ipref}_chewZ${j}_${k}mm+orig.HEAD) then
+		3dresample  -rmode Linear \
+			    -dxyz 1.0 1.0 1.0 \
+			    -master ${ipref}_1mm+orig \
+			    -inset ${ipref}_chewZ${j}_${k}mm+orig \
+			    -prefix ${ipref}_chewZ${j}_1mm
+	    endif
+	end
    end
 
 
@@ -267,19 +314,19 @@ GROUPING:
             -expr 'a' -datum short \
             -prefix "${ipref}_ALL_skew+orig"
 
-   if (0) then
+   if ($fast_grouping == 1) then
       #potentially faster but untested
       set li1 = ()
       set li2 = ()
       set li3 = ()
       foreach j ( 02 03 04 05 06 08 10 13 16 20 25 30 )
-         set li1 = ($li1 ${ipref}_stat${j}_1mm+orig'[0]')
-         set li2 = ($li2 ${ipref}_stat${j}_1mm+orig'[1]')
-         set li3 = ($li3 ${ipref}_skew${j}_1mm+orig)
+         set li1 = ("$li1" "${ipref}_stat${j}_1mm+orig[0]")
+         set li2 = ("$li2" "${ipref}_stat${j}_1mm+orig[1]")
+         set li3 = ("$li3" "${ipref}_skew${j}_1mm+orig")	
       end
-      3dTcat -glueto "${ipref}_ALL_med+orig"    "$li1"
-      3dTcat -glueto "${ipref}_ALL_MAD+orig"    "$li2"  
-      3dTcat -glueto "${ipref}_ALL_skew+orig"   "$li3"
+      3dTcat -glueto "${ipref}_ALL_med+orig"    `echo "$li1"`
+      3dTcat -glueto "${ipref}_ALL_MAD+orig"    `echo "$li2"`  
+      3dTcat -glueto "${ipref}_ALL_skew+orig"   `echo "$li3"`
    else 
       #This is most inefficient but tested
       foreach j ( 02 03 04 05 06 08 10 13 16 20 25 30 )
@@ -290,6 +337,8 @@ GROUPING:
 		   3dTcat -glueto "${ipref}_ALL_skew+orig"  ${ipref}_skew${j}_1mm+orig
 	   end
    endif
+
+goto END
 
 ANISO:
    #############################################################################
