@@ -262,6 +262,8 @@ static void AFNI_clus_action_CB( Widget,XtPointer,XtPointer ) ;
 
 /*---------------------------------------------------------------------------*/
 
+#define SHRUTI_NUM 999
+
 static int maxclu_default = -1 ;
 static int scrolling      =  1 ;
 
@@ -395,7 +397,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      shtop = cwid->wtop ;
 
    scrolling = (swtop!=NULL) ;
-   if( maxclu_default < 0 ) maxclu_default = scrolling ? 15 : 99 ;
+   if( maxclu_default < 0 ) maxclu_default = scrolling ? 15 : SHRUTI_NUM ;
 
    /* vertical rowcol to hold it all */
 
@@ -926,14 +928,14 @@ ENTRY("AFNI_clus_update_widgets") ;
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( maxclu_default < 0 )
-     maxclu_default = AFNI_noenv("AFNI_CLUSTER_SCROLL") ? 15 : 99 ;
+     maxclu_default = AFNI_noenv("AFNI_CLUSTER_SCROLL") ? 15 : SHRUTI_NUM ;
 
    clar = im3d->vwid->func->clu_list ;
    if( clar != NULL ){  /* sort and truncate */
      maxclu = maxclu_default ;
      if( !scrolling ){
        maxclu = AFNI_numenv("AFNI_CLUSTER_REPMAX") ;
-       if( maxclu < 10 || maxclu > 99 ) maxclu = maxclu_default ;
+       if( maxclu < 10 || maxclu > 9999 ) maxclu = 9999 ;
      }
      nclu = clar->num_clu ; nclu = MIN(nclu,maxclu) ;
      SORT_CLARR(clar) ;
