@@ -407,7 +407,13 @@ GROUP_ANISO:
    3dTcat -prefix "${ipref}_chew_MADaniso" "${ipref}_chew_MADaniso"??+orig.HEAD
 
 
-
+GROUP_AVM:
+   echo "Creating AVM"
+   3dcalc   -a ${ipref}_1mm+orig \
+            -b ${ipref}_ALL_med+orig   \
+            -expr 'a-b' \
+            -prefix "${ipref}_AvMed"
+            
 if ($cleanup == 0) then 
    goto TIME_REPORT
 endif
