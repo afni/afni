@@ -2,7 +2,7 @@
 #last edited June 03 2008
 
 set cleanup = 0
-set resample = 0
+set resample = 1
 set fast_grouping = 1
 
 #count the total number of command line parameters
@@ -52,7 +52,7 @@ PREP:
    echo ${newz}
 
 #Good place for a jumping point   
-goto GROUPING
+#goto GROUPING
 
 ZEROPADDING:
    echo "Zeropadding ..."
