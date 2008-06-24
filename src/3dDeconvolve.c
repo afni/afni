@@ -463,6 +463,10 @@ void basis_write_iresp( int argc , char *argv[] ,
                         struct DC_options *option_data ,
                         basis_expansion *be , float dt ,
                         float **wtar , char *output_filename ) ;
+void basis_write_iresp_1D( int argc , char *argv[] ,
+                        struct DC_options *option_data ,
+                        basis_expansion *be , float dt ,
+                        float **wtar , char *output_filename ) ;
 void basis_write_sresp( int argc , char *argv[] ,
                         struct DC_options *option_data ,
                         basis_expansion *be , float dt ,
@@ -6720,11 +6724,18 @@ void output_results
   for (is = 0;  is < num_stimts;  is++)
     {
       if( basis_stim[is] != NULL ){                    /* until later */
-        if( option_data->iresp_filename[is] != NULL )
-          basis_write_iresp( argc , argv , option_data ,
-                             basis_stim[is] , basis_dtout ,
-                             coef_vol+ib    ,
-                             option_data->iresp_filename[is] ) ;
+        if( option_data->iresp_filename[is] != NULL ) {
+          if( option_data->input_filename )
+              basis_write_iresp( argc , argv , option_data ,
+                                 basis_stim[is] , basis_dtout ,
+                                 coef_vol+ib    ,
+                                 option_data->iresp_filename[is] ) ;
+          else if( option_data->input1D_filename )
+              basis_write_iresp_1D( argc , argv , option_data ,
+                                 basis_stim[is] , basis_dtout ,
+                                 coef_vol+ib    ,
+                                 option_data->iresp_filename[is] ) ;
+        }
           ib += basis_stim[is]->nparm ;
         continue ;
       }
@@ -9366,6 +9377,92 @@ void basis_write_iresp( int argc , char *argv[] ,
     INFO_message("Wrote iresp 3D+time dataset into %s\n",DSET_BRIKNAME(out_dset)) ;
 
    DSET_delete( out_dset ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! For IRFs defined by -stim_times basis function expansion, write out
+    a 1D dataset with time spacing dt.
+------------------------------------------------------------------------*/
+
+void basis_write_iresp_1D( int argc , char *argv[] ,
+                        DC_options *option_data ,
+                        basis_expansion *be , float dt ,
+                        float **wtar , char *output_filename )
+{
+   int nvox, ii, nf, allz, ts_length ;
+   register int pp, ib ;
+   float *wt , *tt , **hout , factor , **bb ;
+   short *bar ;
+   char *commandline , label[512] ;
+   const float EPSILON = 1.0e-10 ;
+
+   nvox = 1 ;  /* from basis_write_iresp(), but use 1 voxel */
+
+   if( dt <= 0.0f ) dt = 1.0f ;
+
+   ts_length = 1 + (int)ceil( (be->ttop - be->tbot)/dt ) ; /* 13 Apr 2005: +1 */
+
+   /* create output bricks */
+
+   hout = (float **) malloc( sizeof(float *) * ts_length ) ;
+   for( ib=0 ; ib < ts_length ; ib++ )
+     hout[ib] = (float *)calloc(sizeof(float),nvox) ;
+
+   /* create basis vectors for the expansion on the dt time grid */
+
+   nf = be->nfunc ;
+   wt = (float *) malloc( sizeof(float) * nf ) ;
+   tt = (float *) malloc( sizeof(float) * ts_length ) ;
+
+   for( ib=0 ; ib < ts_length ; ib++ )     /* output time grid */
+     tt[ib] = be->tbot + ib*dt ;
+
+   bb = (float **) malloc( sizeof(float *) * nf ) ;
+   for( pp=0 ; pp < nf ; pp++ ){
+     bb[pp] = (float *) malloc( sizeof(float) * ts_length ) ;
+     for( ib=0 ; ib < ts_length ; ib++ )
+       bb[pp][ib] = basis_funceval( be->bfunc[pp] , tt[ib] ) ;
+   }
+
+   /* loop over voxels:
+        extract coefficient (weights) for each basis function into wt
+        sum up basis vectors times wt to get result, save into output arrays */
+
+   for( ii=0 ; ii < nvox ; ii++ ){
+     allz = 1 ;
+     for( pp=0 ; pp < nf ; pp++ ){
+       wt[pp] = wtar[pp][ii] ; allz = ( allz && (wt[pp] == 0.0f) );
+     }
+
+     if( allz ){
+       for( ib=0 ; ib < ts_length ; ib++ ) hout[ib][ii] = 0.0f ;
+     } else {
+       register float sum ;
+       for( ib=0 ; ib < ts_length ; ib++ ){
+         sum = 0.0f ;
+         for( pp=0 ; pp < nf ; pp++ ) sum += wt[pp] * bb[pp][ib] ;
+         hout[ib][ii] = sum ;
+       }
+     }
+   }
+
+   /* toss some trash */
+
+   for( pp=0 ; pp < nf ; pp++ ) free((void *)bb[pp]) ;
+   free((void *)bb) ; free((void *)tt) ; free((void *)wt) ;
+
+   /* write output */
+   write_one_ts( output_filename , ts_length , hout ) ;
+
+   /* and free results */
+   for( ib=0 ; ib < ts_length ; ib++ )
+       free((void *)hout[ib]) ;
+   free((void *)hout) ;
+
+   if( verb )
+    INFO_message("Wrote iresp 1D dataset into %s\n",output_filename) ;
+
    return ;
 }
 

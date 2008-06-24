@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, JUN, 2008, RCR, "3dDeconvolve", MINOR, TYPE_MODIFY,
+   "added the ability to output 1D iresp datasets",
+   NULL
+ } ,
+
  { 20, JUN, 2008, RCR, "libmri", MINOR, TYPE_MODIFY,
    "thd_niftiread: do not scale to float if scale=1 and inter=0",
    NULL
