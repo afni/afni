@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, JUN, 2008, RCR, "howto", MINOR, TYPE_MODIFY,
+   "put disclaimers at the tops of HowTo #1, #2, and #5",
+   "references to current AFNI class handouts were included"
+ } ,
+
  { 24, JUN, 2008, RCR, "3dDeconvolve", MINOR, TYPE_MODIFY,
    "added the ability to output 1D iresp datasets",
    NULL
