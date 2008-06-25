@@ -1,15 +1,15 @@
 #!/bin/tcsh -f
 #last edited June 13 2008
 
-MANUALLY_SET_PARAMETERS:
+DEFAULT_PARAMETERS:
    set kclustlist = ( 4 )
    set LSlist = (ALL_med ALL_MAD ALL_skew chew_medaniso chew_MADaniso AvMed)
    #Set these two by hand
       #example:
       # set component_list = (D_ijk_stat.Int D_D_ijk_stat.*.fitcoef)
       # set clustsuff = ALLcomp
-      set component_list = ('D_D_ijk_stat.chew_*aniso.fitcoef')
-      set clustsuff = chew_anisos
+      set component_list = ('D_D_ijk_stat.ALL_med.fitcoef')
+      set clustsuff = med
 
 PARSE:
    set Narg = $#
@@ -119,6 +119,10 @@ setenv AFNI_DECONFLICT OVERWRITE
 PREP:
    if ("$subj" == "") then
       echo "Error: No subject volume given"
+      goto END
+   endif
+   if (`@CheckForAfniDset $subj` < 2) then
+      echo "Failed to find $subj"
       goto END
    endif
    set hdir = $PWD
