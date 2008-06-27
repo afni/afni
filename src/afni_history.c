@@ -21,9 +21,11 @@ static char g_history[] =
   "1.4  19 May, 2008 [rickr]\n"
   "     - added MY_INT_COMPARE macro for comparison speed-up\n"
   "     - in compare: if strings are not set, ignore rather than claim equal\n"
+  "1.5  25 Jun, 2008 [rickr]\n"
+  "     - added -past_entries option\n"
 };
 
-static char g_version[] = "afni_history version 1.0, 27 February 2008";
+static char g_version[] = "afni_history version 1.5, 25 June 2008";
 
 static  char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
@@ -113,6 +115,14 @@ int process_options(int argc, char * argv[], global_data * gd)
             gd->past_days = atol(argv[ac]);
             if( gd->past_days < 0 ) {
                 fprintf(stderr,"** DAYS should be at least zero\n");
+                return 1;
+            }
+        } else if( !strcmp(argv[ac], "-past_entries" ) ) {
+            ac++;
+            CHECK_NEXT_OPT2(ac, argc, "-past_entries", "ENTRIES");
+            gd->past_entries = atol(argv[ac]);
+            if( gd->past_entries < 1 ) {
+                fprintf(stderr,"** ENTRIES should be at least one\n");
                 return 1;
             }
         } else if( !strcmp(argv[ac], "-past_months" ) ) {
@@ -285,7 +295,7 @@ int show_results(global_data * gd)
 /* hlist is an array of structure pointers */
 int show_history(global_data * gd, hist_type ** hlist, int len)
 {
-    int c;
+    int c, first = 0;   /* use first for truncating on past_entries */
 
     if( gd->verb > 1 )
         fprintf(stderr,"\n-- showing history, length %d...\n\n",len);
@@ -299,12 +309,22 @@ int show_history(global_data * gd, hist_type ** hlist, int len)
         return 1;
     }
 
+    /* to show the past_entries, restrict the indices based on sort_dir */
+    /*                                              25 Jun 2008 [rickr] */
+    if( gd->past_entries > 0 && gd->past_entries < len ) {
+        if( gd->sort_dir == 1 ) first = len - gd->past_entries;
+        else                    len   = gd->past_entries;
+        if( gd->verb > 1 )
+            fprintf(stderr,"++ restricting to entires from %d to %d\n",
+                    first, len-1);
+    }
+
     if( gd->sort_dir == 1 )
         printf("  ----  log of AFNI updates (most recent last)  ----\n\n");
     else
         printf("  ----  log of AFNI updates (most recent first)  ----\n\n");
 
-    for( c = 0; c < len; c++ ) {
+    for( c = first; c < len; c++ ) {
         if( gd->html && c > 0 && compare_hist_dates(hlist[c],hlist[c-1]) )
           show_html_separator(stdout) ;  /* RWC */
 
@@ -442,7 +462,7 @@ char * mm2month(int mm)
     return "ILLEGAL";
 }
 
-/* perhaps we want to remove everythng that is not so recent */
+/* perhaps we want to remove everything that is not so recent */
 int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
 {
     hist_type ** hptr, hstr, *hsptr;
@@ -456,7 +476,7 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
         return 1;
     }
 
-    /* be sure we have exactly 1 operaion here */
+    /* be sure we have exactly 1 operation here */
     dcount = 0;
     if( gd->past_days   > 0 ) dcount++;
     if( gd->past_months > 0 ) dcount++;
@@ -539,7 +559,7 @@ int restrict_by_date(global_data * gd, hist_type *** hlist, int * len)
     return 0;
 }
 
-/* perhaps we want to remove everythng that is not up to our 'level' */
+/* perhaps we want to remove everything that is not our 'type' */
 int restrict_by_type(global_data * gd, hist_type *** hlist, int * len)
 {
     hist_type ** hptr;                  /* just for typing */
@@ -588,7 +608,7 @@ int restrict_by_type(global_data * gd, hist_type *** hlist, int * len)
     return 0;
 }
 
-/* perhaps we want to remove everythng that is not up to our 'level' */
+/* perhaps we want to remove everything that is not up to our 'level' */
 int restrict_by_level(global_data * gd, hist_type *** hlist, int * len)
 {
     hist_type ** hptr;                  /* just for typing */
@@ -644,7 +664,7 @@ int restrict_by_level(global_data * gd, hist_type *** hlist, int * len)
     return 0;
 }
 
-/* perhaps we want to remove everythng that is not our program of interest */
+/* perhaps we want to remove everything that is not our program of interest */
 int restrict_by_program(global_data * gd, hist_type *** hlist, int * len)
 {
     hist_type ** hptr;                  /* just for typing */
@@ -782,11 +802,12 @@ int disp_global_data(char * mesg, global_data * gd)
             "    html, type               = %d, %d\n"
             "    level, min_level         = %d, %d\n"
             "    past_days, months, years = %d, %d, %d\n"
+            "    past_entries             = %d\n"
             "    sort_dir, verb, plen     = %d, %d, %d\n",
             gd->author, gd->program, gd->html, gd->type,
             gd->level, gd->min_level,
             gd->past_days, gd->past_months, gd->past_years,
-            gd->sort_dir, gd->verb, gd->plen);
+            gd->past_entries, gd->sort_dir, gd->verb, gd->plen);
 
     return 0;
 }
@@ -815,11 +836,12 @@ int show_help(void)
   "\n"
   "     a. afni_history -help\n"
   "\n"
-  "  1. display all of the history, possibly subject to recent days\n"
+  "  1. display all of the history, possibly subject to recent days/entries\n"
   "\n"
   "     a. afni_history\n"
   "     b. afni_history -past_days 5\n"
   "     c. afni_history -past_months 6\n"
+  "     d. afni_history -past_entries 1\n"
   "\n"
   "  2. select a specific type, level or minimum level\n"
   "\n"
@@ -861,6 +883,7 @@ int show_help(void)
   "  -min_level LEVEL         : restrict output to at least level LEVEL\n"
   "  -program PROGRAM         : restrict output to the given PROGRAM\n"
   "\n"
+  "  -past_entries ENTRIES    : restrict output to final ENTRIES entries\n"
   "  -past_days DAYS          : restrict output to the past DAYS days\n"
   "  -past_months MONTHS      : restrict output to the past MONTHS months\n"
   "  -past_years YEARS        : restrict output to the past YEARS years\n"
