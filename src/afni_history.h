@@ -90,7 +90,7 @@ typedef struct {
     int        type;
     int        level;
     int        min_level;
-    int        past_days, past_months, past_years;
+    int        past_days, past_months, past_years, past_entries;
     int        sort_dir;
     int        verb;
 
