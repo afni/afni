@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, JUN, 2008, RCR, "gen_epi_review.py", MINOR, TYPE_NEW_PROG,
+   "generate afni/drive_afni script to review initial EPI data",
+   "This program was written to be called from the afni_proc.py output script."
+ } ,
+
+ { 27, JUN, 2008, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "small modification to find_command_end",
+   NULL
+ } ,
+
  { 25, JUN, 2008, RCR, "afni_history", MINOR, TYPE_NEW_OPT,
    "added -past_entries option",
    NULL
