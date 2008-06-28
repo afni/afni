@@ -24,6 +24,21 @@ gen_epi_review.py:
 --------------------------------------------------
 examples:
 
+    These examples assume the EPI dataset names produced as a result of
+    the afni_proc.py processing script proc.sb23.blk, produced by the
+    command AFNI_data4/s1.afni_proc.block, provided with the class data.
+
+    Yes, that means running the s1.afni_proc.block (tcsh) script to call
+    the afni_proc.py (python) script to produce the proc.sb23.blk (tcsh)
+    script, which calls the gen_epi_review.py (python) script to produce
+    the @review_epi_data (tcsh) script, which can be run to review your EPI 
+    data.  Ahhhhhhh...  :)
+
+    Note that when using wildcards, the datasets must exist in the current
+    directory.  But when using the {1,2,..} format, the files do not yet
+    need to exist.  So command #2 could be run anywhere and still create the
+    same script, no data needed.
+
     1. simple usage, just providing datasets (and general options)
 
         gen_epi_review.py -dsets pb00.sb23.blk.r??.tcat+orig.HEAD
@@ -40,7 +55,7 @@ examples:
                 -windows sagittal axial coronal                         \\
                 -script @review_epi_windows
 
-    4. specify the graph size and position (can do the same for windows)
+    4. specify the graph size and position (can do the same for image windows)
 
         gen_epi_review.py -dsets pb00.sb23.blk.r*.tcat+orig.HEAD        \\
                 -gr_size 600 450 -gr_xoff 100 -gr_yoff 200              \\
