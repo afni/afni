@@ -400,15 +400,16 @@ def needs_wrapper(command, max=79, start=0, end=-1):
 
     return 0        # if we get here, line wrapping is not needed
 
-# find the next '\n' that is not preceeded by '\\', or return -1
+# find the next '\n' that is not preceeded by '\\', or return the
+# last valid position (length-1)
 def find_command_end(command, start=0):
-    length = len(command) - start
+    length = len(command)
     end = start-1
     while 1:
         start = end + 1
         end = command.find('\n',start)
 
-        if end < 0: return -1   # not in command
+        if end < 0: return length-1   # not in command
         elif end > start and command[end-1] == '\\':
             if length > end+1 and command[start] == '#'   \
                               and command[end+1] != '#':
