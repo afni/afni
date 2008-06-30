@@ -218,7 +218,7 @@ CLUSTERING:
       echo "#############################"
       echo "Clustering $kclust :"
       echo "#############################"
-      cluster  \
+      Aclustering  \
             -f D_${clustpref}_prepared4clust.sign \
             -g $distmetric  -k $kclust  -r 3  \
             -u D_${clustpref}
