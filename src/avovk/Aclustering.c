@@ -137,14 +137,12 @@ void example_kmeans(int nrows, int ncols, double** data, int** mask, int ncluste
   for (i = 0; i < ncols; i++) weight[i] = 1.0;
   
   int n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
-  /*  
-
+  
   if (dist)
-  { int dummy = k;
+  { int dummy = nclusters;
     do n++; while (dummy/=10);
     }
-  
-  */
+    
   //avovk 
   FILE *out1;
   FILE *out2;
@@ -154,25 +152,14 @@ void example_kmeans(int nrows, int ncols, double** data, int** mask, int ncluste
   filename2 = malloc(n*sizeof(char));
   filename3 = malloc(n*sizeof(char));
   sprintf (filename, "%s_K_G%d.kgg", jobname, nclusters);
-  test = 2;
   out1 = fopen( filename, "w" );
-  test = 3;
   sprintf (filename2, "%s_K_G%d.dis", jobname, nclusters);
   out2 = fopen( filename2, "w" );
   sprintf (filename3, "%s_K_G%d.cen", jobname, nclusters);
   out3 = fopen( filename3, "w" );
 
   printf("======================== k-means clustering ========================\n");
-  /*  printf("\n");
-  printf("----- one pass of the EM algorithm (results may change)\n");
-  kcluster(nclusters,nrows,ncols,data,mask,weight,transpose,npass,method,dist, 
-    clusterid, &error, &ifound);
-  printf ("Solution found %d times; within-cluster sum of distances is %f\n",
-    ifound, error);
-  printf ("Cluster assignments:\n");
-  for (i = 0; i < nrows; i++)
-  printf ("Gene %d: cluster %d\n", i, clusterid[i]);*/
-
+  
   printf ("\n");
   printf("----- doing %d passes of the EM algorithm... go stretch your legs...\n",npass);
   //npass = 3;
@@ -469,15 +456,15 @@ then compile with:
 gcc -Wall -Wno-unused Aclustering2.c cluster.c -o Aclustering -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -L. -bind_at_load -l3DEdge -lmri -lf2c -lmri /usr/lib64/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 -lz -lexpat -lm -lc
 
 The output are 3 files
-- cluster_out.KGG -- as before, index number and cluster number
-- cluster_out.distance -- 
-- cluster_out.centroids -- 
+- cluster_out.kgg -- as before, index number and cluster number
+- cluster_out.dis -- 
+- cluster_out.cen -- 
 
 
 actually
-cp /home/drejc/c_temp/Aclustering2.c ./
+cp /home/drejc/c_temp/Aclustering.c ./
 
-gcc -Wall -g -Wno-unused Aclustering2.c cluster.c -o Aclustering -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -L. -l3DEdge -lmri -lf2c -lmri /usr/lib64/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 -lz -lexpat -lm -lc
+gcc -Wall -g -Wno-unused Aclustering.c cluster.c -o Aclustering -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -L. -l3DEdge -lmri -lf2c -lmri /usr/lib64/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 -lz -lexpat -lm -lc
 
 cp Aclustering /home/drejc/segm4ziad/toandrej/out_mprage_10_smpl/
 
