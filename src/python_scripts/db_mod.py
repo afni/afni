@@ -814,6 +814,7 @@ def db_cmd_blur_est(proc, block):
     if proc.mask: mask = '-mask %s+orig' % proc.mask
     else:
         print '** refusing to estimate blur without a mask dataset'
+        print '   (perhaps keep the mask block and apply -regress_no_mask)'
         return
 
     if proc.verb > 1: print 'computing blur_estimates'
@@ -990,6 +991,19 @@ def db_cmd_empty(proc, block):
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
+
+# create a gen_epi_review.py command
+def db_cmd_gen_review(proc):
+    if not proc.gen_review: return None
+
+    tblk = proc.find_block('tcat')
+
+    cmd = "# -------------------------------------------------------\n" \
+          "# generate a review script for the unprocessed EPI data\n"   \
+          "gen_epi_review.py -script %s \\\n"                           \
+          "    -dsets %s\n\n" % (proc.gen_review, proc.dset_form_wild('tcat'))
 
     return cmd
 
