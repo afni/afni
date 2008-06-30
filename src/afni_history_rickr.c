@@ -48,7 +48,17 @@
 
 afni_history_struct rickr_history[] = {
 
- { 27, JUN, 2008, RCR, "gen_epi_review.py", MINOR, TYPE_NEW_PROG,
+ { 30, JUN, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -gen_epi_review and -no_epi_review options",
+   "By default, a drive_afni script to review EPI data is now generated."
+ } ,
+
+ { 30, JUN, 2008, RCR, "gen_epi_review.py", MINOR, TYPE_MODIFY,
+   "make script executable, decrease sleep, add usage comment in script",
+   NULL
+ } ,
+
+ { 27, JUN, 2008, RCR, "gen_epi_review.py", MAJOR, TYPE_NEW_PROG,
    "generate afni/drive_afni script to review initial EPI data",
    "This program was written to be called from the afni_proc.py output script."
  } ,
