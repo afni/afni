@@ -1170,6 +1170,7 @@ g_history = """
            for estimating the blur in the EPI and errts data
          - added -regress_no_mask, -regress_errts_prefix and -show_valid_opts
     1.29 Jun 12 2008 : move code to afni_util.get_dset_reps_tr
+    1.30 Jun 30 2008 : added -gen_epi_review and -no_epi_review options
 
 """
 
@@ -1209,6 +1210,7 @@ class SubjProcSream:
         self.dsets      = []            # list of afni_name elements
         self.stims_orig = []            # orig list of stim files to apply
         self.stims      = []            # list of stim files to apply
+        self.mot_labs   = []            # labels for motion params
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
@@ -1219,7 +1221,7 @@ class SubjProcSream:
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.rm_rm      = 1             # remove rm.* files
-        self.mot_labs   = []            # labels for motion params
+        self.gen_review = '@epi_reivew.$subj' # filename for gen_epi_review.py
 
         self.verb       = 1             # verbosity level
 
@@ -1228,6 +1230,7 @@ class SubjProcSream:
         self.runs       = 0             # number of runs
         self.mask       = None          # mask dataset
         self.regmask    = 1             # apply any full_mask in regression
+        self.view       = '+orig'       # view could also be '+tlrc'
 
         self.bindex     = 0             # current block index
         self.pblabel    = ''            # previous block label
@@ -1268,6 +1271,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-bash', 0, [])
         self.valid_opts.add_opt('-copy_anat', 1, [])
         self.valid_opts.add_opt('-copy_files', -1, [])
+        self.valid_opts.add_opt('-gen_epi_review', 1, [])
+        self.valid_opts.add_opt('-no_epi_review', 0, [])
         self.valid_opts.add_opt('-keep_rm_files', 0, [])
         self.valid_opts.add_opt('-move_preproc_files', 0, [])
         self.valid_opts.add_opt('-tlrc_anat', 0, [])
@@ -1382,11 +1387,23 @@ class SubjProcSream:
             print g_version
             return 0  # gentle termination
         
-        opt = opt_list.find_opt('-subj_id')
-        if opt != None: self.subj_id = opt.parlist[0]
+        opt = opt_list.find_opt('-copy_anat')
+        if opt != None: self.anat = afni_name(opt.parlist[0])
+
+        opt = opt_list.find_opt('-gen_epi_review')  # name epi review script
+        if opt != None: self.gen_review = opt.parlist[0]
+
+        opt = opt_list.find_opt('-no_epi_review') # no epi review script
+        if opt != None: self.gen_review = None
+
+        opt = opt_list.find_opt('-keep_rm_files')
+        if opt != None: self.rm_rm = 0
 
         opt = opt_list.find_opt('-out_dir')
         if opt != None: self.out_dir = opt.parlist[0]
+
+        opt = opt_list.find_opt('-subj_id') # -- needs to be before script
+        if opt != None: self.subj_id = opt.parlist[0]
 
         opt = opt_list.find_opt('-script')
         if opt != None: self.script = opt.parlist[0]
@@ -1394,12 +1411,6 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-scr_overwrite')
         if opt != None: self.overwrite = 1
-
-        opt = opt_list.find_opt('-copy_anat')
-        if opt != None: self.anat = afni_name(opt.parlist[0])
-
-        opt = opt_list.find_opt('-keep_rm_files')
-        if opt != None: self.rm_rm = 0
 
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?
@@ -1491,6 +1502,17 @@ class SubjProcSream:
                 if self.verb>2: block.show('+d post command creation: ')
                 if self.verb>1: print '+d %s command: %s'%(block.label, cmd_str)
 
+        if self.gen_review:
+            cmd_str = db_cmd_gen_review(self)
+            if cmd_str:
+                self.fp.write(add_line_wrappers(cmd_str))
+                if self.verb > 1:
+                    print "+d generated EPI review script %s" % self.gen_review
+            else:
+                errs += 1
+                if self.verb > 1:
+                    print '** failed to generate EPI review script'
+
         rv = self.finalize_script()     # finish the script
         if rv: errs += 1
 
@@ -1540,7 +1562,7 @@ class SubjProcSream:
         return None
 
     def find_block_index(self, label):
-        block = find_block(label)
+        block = self.find_block(label)
         if block: return self.blocks.index(block)
         return None
 
@@ -1680,6 +1702,15 @@ class SubjProcSream:
     def prev_prefix_form_rwild(self):
         return 'pb%02d.%s.r??.%s' %    \
                 (self.bindex-1, self.subj_label, self.pblabel)
+
+    # like prefix, but list the whole dset form, in wildcard format
+    def dset_form_wild(self, blabel):
+        bind = self.find_block_index(blabel)
+        if bind == None:
+            print "** DFW: failed to find block for label '%s'" % blabel
+            return ''
+        return 'pb%02d.%s.r??.%s%s.HEAD' %      \
+               (bind, self.subj_label, blabel, self.view)
 
 class ProcessBlock:
     def __init__(self, label, proc):

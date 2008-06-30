@@ -26,7 +26,7 @@ examples:
 
     These examples assume the EPI dataset names produced as a result of
     the afni_proc.py processing script proc.sb23.blk, produced by the
-    command AFNI_data4/s1.afni_proc.block, provided with the class data.
+    command in AFNI_data4/s1.afni_proc.block, provided with the class data.
 
     Yes, that means running the s1.afni_proc.block (tcsh) script to call
     the afni_proc.py (python) script to produce the proc.sb23.blk (tcsh)
@@ -164,9 +164,11 @@ g_history = """
     gen_epi_review.py history:
 
     0.1  June 27, 2008: initial version
+    0.2  June 30, 2008:
+         - make script executable, decrease sleep time and add usage comment
 """
 
-g_version = "version 0.1, June 27, 2008"
+g_version = "version 0.2, June 30, 2008"
 
 gDEF_VERB       = 1             # default verbose level
 gDEF_IM_SIZE    = [300,300]     # image size, in pixels
@@ -354,10 +356,13 @@ class GenEPIReview:
         c2  = "#!/bin/tcsh\n\n"
 
         c2 += "# ------------------------------------------------------\n"  \
-              "# review EPI data via 'afni' and 'plugout_drive'\n\n"
+              "# review EPI data via 'afni' and 'plugout_drive'\n\n"        \
+              "# note that when running this script, prompts to change\n"   \
+              "# datasets will appear in the terminal window\n\n"
 
-        c2 += "# set the list of datasets\n"                                \
-               "set dsets = ( %s )\n\n" %       \
+        c2 += "# ------------------------------------------------------\n"  \
+              "# set the list of datasets\n"                                \
+              "set dsets = ( %s )\n\n" %                                    \
                  ' '.join([dset.prefix for dset in self.adsets])
 
         c2 += '# ------------------------------------------------------\n'  \
@@ -395,7 +400,7 @@ class GenEPIReview:
 
         cmd += c2
 
-        cmd += 'sleep 5    # give afni time to open the windows\n\n\n'
+        cmd += 'sleep 2    # give afni time to open the windows\n\n\n'
 
         c2  = '# ------------------------------------------------------\n'  \
               '# process each dataset using video mode\n\n'                 \
@@ -438,6 +443,7 @@ class GenEPIReview:
 
         fp.write(cmd)
         fp.close()
+        os.chmod(self.script, 0755)
 
         return
 
