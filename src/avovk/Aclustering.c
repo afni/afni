@@ -103,9 +103,9 @@ static char getmetric(int i)
 
 
 
-void example_kmeans(int nrows, int ncols, double** data, int** mask, int nclusters, int npass, char dist, char* jobname)
+void example_kmeans(int nrows, int ncols, double** data, int nclusters, int npass, char dist, char* jobname)
 /* Perform k-means clustering on genes */
-{ int i, j;
+{ int i, j, ii, nl, nc;
   //const int nclusters = 3;
   const int transpose = 0;
   //const char dist = 'e';
@@ -127,6 +127,8 @@ void example_kmeans(int nrows, int ncols, double** data, int** mask, int ncluste
   int* clusterid = malloc(nrows*sizeof(int));
   double** cdata = malloc(nclusters*sizeof(double*));
   int** cmask = malloc(nclusters*sizeof(int*));
+  int** mask = NULL;
+  
   char* filename;
   char* filename2;
   char* filename3;
@@ -135,7 +137,20 @@ void example_kmeans(int nrows, int ncols, double** data, int** mask, int ncluste
     cmask[i] = malloc(ncols*sizeof(int));
   }
   for (i = 0; i < ncols; i++) weight[i] = 1.0;
+
+  mask = (int **)calloc(sizeof(int*), nrows);
+  for (ii=0;ii<nrows;++ii) {
+    mask[ii] = (int *)calloc(sizeof(int),ncols);
+  }
   
+  for (nl=0; nl<nrows; ++nl) {
+    for (nc=0; nc<ncols; ++nc) {
+      mask[nl][nc] = 1;
+    }
+  }
+
+
+
   int n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
   
   if (dist)
@@ -161,18 +176,18 @@ void example_kmeans(int nrows, int ncols, double** data, int** mask, int ncluste
   printf("======================== k-means clustering ========================\n");
   
   printf ("\n");
-  printf("----- doing %d passes of the EM algorithm... go stretch your legs...\n",npass);
+  printf("----- doing %d passes... go stretch your legs...\n",npass);
   //npass = 3;
   kcluster(nclusters,nrows,ncols,data,mask,weight,transpose,npass,method,dist, 
     clusterid, &error, &ifound);
   printf ("Solution found %d times; ", ifound);
   printf ("within-cluster sum of distances is %f\n", error);
-  printf ("Cluster assignments:\n");
+  printf ("------- writing Cluster assignments to file:\t\t %s_K_G%d.kgg\n",jobname, nclusters);
   for (i = 0; i < nrows; i++)
     fprintf (out1, "%09d\t %d\n", i, clusterid[i]);
   fclose(out1);
   
-  printf ("------- writing Distance between clusters\n");
+  printf ("------- writing Distance between clusters to file:\t %s_K_G%d.dis \n", jobname, nclusters);
   fprintf (out2,"------- Distance between clusters:\n");
   index = malloc(nclusters*sizeof(int*));
   count = malloc(nclusters*sizeof(int));
@@ -200,7 +215,7 @@ void example_kmeans(int nrows, int ncols, double** data, int** mask, int ncluste
   fclose(out2);
 
 
-  printf ("------- writing Cluster centroids:\n");
+  printf ("------- writing Cluster centroids to file:\t\t %s_K_G%d.cen\n",jobname, nclusters);
   fprintf (out3,"------- Cluster centroids:\n");
   getclustercentroids(nclusters, nrows, ncols, data, mask, clusterid,
                       cdata, cmask, 0, 'a');
@@ -222,10 +237,14 @@ void example_kmeans(int nrows, int ncols, double** data, int** mask, int ncluste
   { free(cdata[i]);
     free(cmask[i]);
   }
+  for (ii=0;ii<nrows;++ii) {
+    if (mask[ii]) free(mask[ii]);
+  }
   free(cdata);
   free(cmask);
   free(clusterid);
   free(weight);
+  free(mask);
   return;
 }
 
@@ -239,10 +258,9 @@ int main(int argc, char **argv)
   MRI_IMAGE *im = NULL;
   double *dar = NULL;
   double **D = NULL;
-  double **mask = NULL;
+  //int **mask = NULL;
 
   //from command.c
-
 
  int i = 1;
   const char* filename = 0;
@@ -388,8 +406,8 @@ if(jobname==0) jobname = setjobname(filename,1);
   //printf("num of clusters %d \n",nclust);
   fprintf(stderr,"Patience, reading %s...\n ", filename);
   im = mri_read_double_1D (filename);
-  // should use filename, bu I get this warning
-  // Aclustering2.c:405: warning: passing argument 1 of ‘mri_read_double_1D’ makes pointer from integer without a cast
+  // ZIAD I get this warning
+  // Aclustering.c:408: warning: passing argument 1 of ‘mri_read_double_1D’ discards qualifiers from pointer target type 
 
   if (!im) {
     fprintf(stderr,"Error: Failed to read matrix data from %s\n",
@@ -398,7 +416,7 @@ if(jobname==0) jobname = setjobname(filename,1);
   }
   ncol = im->ny;
   nrow = im->nx;
-  fprintf (stderr,"Have %d cols, %d rows\nNow... ", ncol, nrow);
+  fprintf (stderr,"Have %d cols, %d rows\nNow...\n", ncol, nrow);
 
   /* now just get the array and kill the rest */
   dar = MRI_DOUBLE_PTR(im);
@@ -409,18 +427,18 @@ if(jobname==0) jobname = setjobname(filename,1);
   
  
   /* for double loop*/
-  D = (double **)calloc(sizeof(double*), nrow);
-  mask = (double **)calloc(sizeof(double*), nrow);
-  for (ii=0;ii<nrow;++ii) {
-    D[ii] = (double *)calloc(sizeof(double), ncol);
-    mask[ii] = (double *)calloc(sizeof(double),ncol);
+  D = (double **)calloc(sizeof(double*), nrow-1);
+  //mask = (int **)calloc(sizeof(int*), nrow-1);
+  for (ii=0;ii<(nrow-1);++ii) {
+    D[ii] = (double *)calloc(sizeof(double), ncol-1);
+    //mask[ii] = (int *)calloc(sizeof(int),ncol-1);
   }
   
   for (nl=1; nl<nrow; ++nl) {
     for (nc=1; nc<ncol; ++nc) {
-      D[nl][nc] = dar[nl+nc*nrow];
-      mask[nl][nc] = 1;
-      //fprintf(stdout,"%g ",D[nl][nc]);
+      D[nl-1][nc-1] = dar[nl+nc*nrow];
+      //mask[nl-1][nc-1] = 1;
+      //fprintf(stdout,"%g ",D[nl-1][nc-1]);
     }
     //fprintf(stdout,"\n");
   }
@@ -431,18 +449,18 @@ if(jobname==0) jobname = setjobname(filename,1);
   //if (distmatrix) example_hierarchical(nrows, ncols, data, mask, distmatrix);
   //example_distance_array(nrows, ncols, data, mask);
   
-  example_kmeans(nrow, ncol, D, mask, k, r, distmetric, jobname);
+  example_kmeans(nrow-1, ncol-1, D, k, r, distmetric, jobname);
   //example_som(nrows, ncols, data, mask);
   
 
   free(dar); dar = NULL; /* done with input array */
   // To free D 
-  for (ii=0;ii<nrow;++ii) {
+  for (ii=0;ii<(nrow-1);++ii) {
     if (D[ii]) free(D[ii]);
-    if (mask[ii]) free(mask[ii]);
+    // if (mask[ii]) free(mask[ii]);
   }
   free(D);
-  free(mask);
+  //free(mask);
   free(jobname);
   //free();
   
