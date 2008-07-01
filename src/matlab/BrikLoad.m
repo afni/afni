@@ -217,7 +217,7 @@ if (is1D), % 1D land
       err = ErrEval(FuncName,'Err_1D file could not be read');
       return;
    end
-   if (nargout == 4 || nargout == 3),   
+   if (nargout == 4 | nargout == 3),   
       err = 0;
    else 
       err = V;
@@ -445,7 +445,7 @@ if (isNIFTI),
    Info.RootName = NiftiPref;
 end
 
-if (nargout == 4 || nargout == 3),   
+if (nargout == 4 | nargout == 3),   
    err = 0;
 else 
    err = V;
