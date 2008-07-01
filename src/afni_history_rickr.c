@@ -50,8 +50,10 @@ afni_history_struct rickr_history[] = {
 
  {  1, JUL, 2008, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
    "modified the make system for building programs in the install directory",
-   "Modified Makefile.INCLUDE's INFLAGS and ISFLAGS, 'rickr/' includes from\n"
-   "mrilib.h and plug_crender.c, and SUMA_INPATH in SUMA_Makefile_NoDev.\n\n"
+   "- modified Makefile.INCLUDE's INFLAGS and ISFLAGS\n"
+   "- modified SUMA_INPATH in SUMA_Makefile_NoDev.\n"
+   "- removed 'rickr/' dirs from includes in mrilib.h, plug_crender.c and\n"
+   "  3dAllineate.c\n\n"
    "Requested by V. Roopchansingh of MCW.\n"
  } ,
 
