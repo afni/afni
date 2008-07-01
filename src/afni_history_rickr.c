@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, JUL, 2008, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
+   "modified the make system for building programs in the install directory",
+   "Modified Makefile.INCLUDE's INFLAGS and ISFLAGS, 'rickr/' includes from\n"
+   "mrilib.h and plug_crender.c, and SUMA_INPATH in SUMA_Makefile_NoDev.\n\n"
+   "Requested by V. Roopchansingh of MCW.\n"
+ } ,
+
  { 30, JUN, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -gen_epi_review and -no_epi_review options",
    "By default, a drive_afni script to review EPI data is now generated."
