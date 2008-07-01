@@ -70,7 +70,7 @@ static char g_cren_hist[] =
 #include "parser.h"
 #include <ctype.h>
 
-#include "rickr/r_idisp.h"
+#include "r_idisp.h"
 
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"

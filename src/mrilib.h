@@ -1278,9 +1278,9 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 
 #include "afni_environ.h"  /* 07 Jun 1999 addition */
 
-#include "rickr/r_new_resam_dset.h" /* 31 Jul 2007 */
-#include "rickr/r_idisp.h"
-#include "rickr/r_misc.h"
+#include "r_new_resam_dset.h" /* 31 Jul 2007 */
+#include "r_idisp.h"
+#include "r_misc.h"
 
 /*------------------------------------------------------------------------*/
 /* some of these clusterize prototypes require editvol.h */
