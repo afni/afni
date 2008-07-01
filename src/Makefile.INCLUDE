@@ -7,8 +7,8 @@ F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 
-INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src $(USE_ZLIB) $(USE_GIFTI)
-ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src $(USE_ZLIB)
+INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/nifticdf -Inifti/znzlib -I3DEdge/src -Irickr $(USE_ZLIB) $(USE_GIFTI)
+ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/nifticdf -I../nifti/znzlib -I../3DEdge/src -I../rickr $(USE_ZLIB)
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README*                    \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett \
@@ -157,10 +157,15 @@ PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
 R_DIR = R_scripts
 
-LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h                \
-             editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h        \
-             thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h    \
-             multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h
+LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
+             editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
+             thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h\
+             multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h\
+             AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h    \
+             mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h        \
+             nifti/niftilib/nifti1_io.h nifti/nifticdf/nifticdf.h             \
+             nifti/znzlib/znzlib.h                                            \
+             rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h
 
 ### Make everything, install it too, and cleanup
 
