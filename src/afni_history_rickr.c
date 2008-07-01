@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, JUL, 2008, RCR, "to3d", MINOR, TYPE_BUG_FIX,
+   "fixed crash in case of mosaic and un16, no longer having im data",
+   "Problem found by R. McColl."
+ } ,
+
  {  1, JUL, 2008, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
    "modified the make system for building programs in the install directory",
    "- modified Makefile.INCLUDE's INFLAGS and ISFLAGS\n"
