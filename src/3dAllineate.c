@@ -9,7 +9,7 @@
 
 /*----------------------------------------------------------------------------*/
 #include "mrilib.h"
-#include "rickr/r_new_resam_dset.h"
+#include "r_new_resam_dset.h"
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
