@@ -735,6 +735,7 @@ MCHECK ;
    if( un16 ){
      for( ov16=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
        short *sar = MRI_SHORT_PTR( IMARR_SUBIM(imar,ii) ) ;
+       im = IMARR_SUBIM(imar,0) ; /* make sure im wasn't TRUNCATEd */
        for( jj=0 ; jj < im->nvox ; jj++ ) if( sar[jj] < 0 ) ov16++ ;
      }
      if( ov16 )
