@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, JUL, 2008, RCR, "Dimon", MICRO, TYPE_MODIFY,
+   "provide suggestions in the case of a real-time TCP connection failure",
+   NULL
+ } ,
+
  {  1, JUL, 2008, RCR, "to3d", MINOR, TYPE_BUG_FIX,
    "fixed crash in case of mosaic and un16, no longer having im data",
    "Problem found by R. McColl."
