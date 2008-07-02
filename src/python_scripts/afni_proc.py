@@ -35,7 +35,7 @@ g_help_string = """
     should feel free to modify the script for their own evil purposes, before
     running it.
 
-    The text interface can be accessed via the -ask_me option.  It envokes a
+    The text interface can be accessed via the -ask_me option.  It invokes a
     question & answer session, during which this program sets user options on
     the fly.  The user may elect to enter some of the options on the command
     line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
@@ -96,7 +96,7 @@ g_help_string = """
     optional steps (the default is _not_ to apply these blocks)
 
         despike     : truncate spikes in each voxel's time series
-        empty       : placehold for some user commamd (using 3dTcat as sample)
+        empty       : placehold for some user command (using 3dTcat as sample)
 
     --------------------------------------------------
     EXAMPLES (options can be provided in any order):
@@ -411,7 +411,7 @@ g_help_string = """
             datasets to be alphabetical, as that is how the shell will list
             them on the command line.  For instance, epi_run1+orig through
             epi_run11+orig is not alphabetical.  If they were specified via
-            wildward their order would end up as run1 run10 run11 run2 ...
+            wildcard their order would end up as run1 run10 run11 run2 ...
 
             Note also that when using a wildcard it is essential to specify
             the datasets suffix, so that the shell doesn't put both the .BRIK
@@ -471,7 +471,7 @@ g_help_string = """
                 e.g. -subj_id elvis
                 default: SUBJ
 
-            The suject ID is used in dataset names and in the output directory
+            The subject ID is used in dataset names and in the output directory
             name (unless -out_dir is used).  This option allows the user to
             apply an appropriate naming convention.
 
@@ -559,8 +559,8 @@ g_help_string = """
             must be applied via -despike_opts_3dDes.
 
             Note that the despike block is not applied by default.  To apply
-            despike in the processing script, use either '-do_block despike' or
-            '-blocks ... despike ...'.
+            despike in the processing script, use either '-do_block despike'
+            or '-blocks ... despike ...'.
 
             Please see '3dDespike -help' for more information.
             See also '-do_blocks', '-blocks'.
@@ -570,10 +570,10 @@ g_help_string = """
                 e.g. -tshift_align_to -slice 14
                 default: -tzero 0
 
-            By default, each time series is aligned to the beginning of the TR.
-            This option allows the users to change the alignment, and applies
-            the option parmeters directly to the 3dTshift command in the output
-            script.
+            By default, each time series is aligned to the beginning of the
+            TR.  This option allows the users to change the alignment, and
+            applies the option parameters directly to the 3dTshift command
+            in the output script.
 
             It is likely that the user will use either '-slice SLICE_NUM' or
             '-tzero ZERO_TIME'.
@@ -893,7 +893,7 @@ g_help_string = """
             Use of this option will add a 3dTstat command to sum the regressor
             (of interest) columns of the 1D X-matrix, output by 3dDeconvolve.
 
-            This is simlilar to the default behavior of creating ideal_STIM.1D
+            This is similar to the default behavior of creating ideal_STIM.1D
             files for each stimulus label, STIM.
 
             Please see '3dDeconvolve -help' and '3dTstat -help'.
@@ -913,12 +913,12 @@ g_help_string = """
                 e.g. -regress_no_ideals
 
             By default, if the GAM or BLOCK basis function is used, ideal
-            resonse curve files are generated for each stimulus type (from
+            response curve files are generated for each stimulus type (from
             the output X matrix using '3dDeconvolve -x1D').  The names of the
             ideal response function files look like 'ideal_LABEL.1D', for each
             stimulus label, LABEL.
 
-            This option is used to supress generation of those files.
+            This option is used to suppress generation of those files.
 
             See also -regress_basis, -regress_stim_labels.
 
@@ -1015,9 +1015,9 @@ g_help_string = """
 
             Labels may be specified using the -regress_stim_labels option.
 
-            These two examples of such files are for a 3-run experiment.
-            In the second example, there is only 1 stimulus at all, occuring
-            in run 2.
+            These two examples of such files are for a 3-run experiment.  In
+            the second example, there is only 1 stimulus at all, occurring in
+            run #2.
 
                 e.g.            0  12.4  27.3  29
                                 *

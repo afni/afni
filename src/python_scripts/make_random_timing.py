@@ -239,7 +239,7 @@ required arguments:
         a total of that number of repetitions, across all runs).
 
         The user can also specify the number of repetitions for each of the
-        stimulus classes separetly, as a list.
+        stimulus classes separatly, as a list.
 
             see also: -across_runs
 

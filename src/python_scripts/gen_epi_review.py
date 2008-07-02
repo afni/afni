@@ -16,7 +16,7 @@ gen_epi_review.py:
 
     Note that there should not be another instance of 'afni' running on
     the system when the script is run, as 'drive_afni' will communicate
-    with only the first envoked 'afni' program.
+    with only the first invoked 'afni' program.
 
     The most simple usage comes with the -dsets option, along with the
     necessary pieces of the gen_epi_review.py command.
