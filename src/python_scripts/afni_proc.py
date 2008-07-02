@@ -1221,7 +1221,7 @@ class SubjProcSream:
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.rm_rm      = 1             # remove rm.* files
-        self.gen_review = '@epi_reivew.$subj' # filename for gen_epi_review.py
+        self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
 
         self.verb       = 1             # verbosity level
 
