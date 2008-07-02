@@ -323,8 +323,13 @@ int ART_open_afni_link( ART_comm * ac, int num_tries, int again, int debug )
     }
     else                        /* bad news - give up on afni communication */
     {
-        fprintf( stderr, "** failed to connect to afni at '%s' - "
-                 "GIVING UP!\n", ac->host );
+        fprintf( stderr, "\n** failed to connect to afni at '%s' - "
+                 "GIVING UP!\n\n", ac->host );
+        fprintf( stderr,
+            "   Note that it may be necessary to perform either or both of\n"
+            "   these operations on the remote computer (running afni):\n"
+            "      1. allow access via iptabes (or stop iptables)\n"
+            "      2. set AFNI_TRUSTHOST to this hostname or address\n\n");
         ac->state = ART_STATE_NO_USE;
     }
 
