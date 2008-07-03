@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , JUL , 2008 , RWC , "matrix.c" , MICRO , TYPE_MODIFY ,
+   "Add QR function matrix_qrr() to matrix.c library file." ,
+   NULL } ,
+
  { 24 , JUN , 2008 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "Extend max number of clusters reportable, for Shruti." ,
    NULL } ,
