@@ -33,7 +33,7 @@ gcc -Wall -Wno-unused fit_onesign.c -lgsl -lgslcblas -lm -o fitanje_1sign -I/sw/
 */
 
 /* to link to AFNI's loot */
-#include "mrilib.h"
+#include "../mrilib.h"
 
 #include <stdio.h>
 #include <gsl/gsl_multifit.h>
