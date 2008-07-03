@@ -55,16 +55,22 @@ PREP:
 #goto GROUPING
 
 ZEROPADDING:
-   echo "Zeropadding ..."
-
-   3dZeropad   -RL $newx -AP $newy -IS $newz \
-               -mm -prefix ${ipref}_ZP+orig \
-               ${ipref}+orig
-
+   if (0) then
+      echo "Zeropadding ..."
+      #I am not sure what this is for here, 
+      #but is fails at times (anat0149_ss+orig) and it makes dset huge
+      set iprefzp = ${ipref}_ZP
+      3dZeropad   -RL $newx -AP $newy -IS $newz \
+                  -mm -prefix ${iprefzp}+orig \
+                  ${ipref}+orig
+   else
+      echo "NO Zeropadding ..."
+      set iprefzp = ${ipref}
+   endif
 LOCAL_STATS:
    echo "RESAMPLING TO 1mm ..."
    3dresample  -rmode Linear -dxyz 1.0 1.0 1.0 \
-               -inset ${ipref}_ZP+orig \
+               -inset ${iprefzp}+orig \
                -prefix ${ipref}_1mm
 
    echo "CALCULATING LOCALSTATS (1-5mm) ..."
@@ -113,7 +119,7 @@ LOCAL_STATS:
     set voxl_size = 2mm
    3dresample  -rmode Linear \
                -dxyz 2.0 2.0 2.0 \
-               -inset ${ipref}_ZP+orig \
+               -inset ${iprefzp}+orig \
                -prefix ${ipref}_${voxl_size}
 
    set in_vol="${ipref}_${voxl_size}+orig"
@@ -162,7 +168,7 @@ LOCALSTATS6:
     set voxl_size = 3mm
    3dresample  -rmode Linear \
                -dxyz 3.0 3.0 3.0 \
-               -inset ${ipref}_ZP+orig \
+               -inset ${iprefzp}+orig \
                -prefix ${ipref}_${voxl_size}
 
    set in_vol="${ipref}_${voxl_size}+orig"
@@ -210,7 +216,7 @@ LOCALSTATS10:
     set voxl_size = 4mm
    3dresample  -rmode Linear \
                -dxyz 4.0 4.0 4.0 \
-               -inset ${ipref}_ZP+orig \
+               -inset ${iprefzp}+orig \
                -prefix ${ipref}_4mm
    set in_vol="${ipref}_${voxl_size}+orig"
 
