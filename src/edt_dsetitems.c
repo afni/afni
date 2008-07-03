@@ -544,7 +544,11 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
         fname[ll-10] = '\0' ;  /* taking off "+view.BRIK" */
+        
+        if( !strcmp(fname+ll-14,".hdr") ) fname[ll-14] = '\0';
         if( !STRING_HAS_SUFFIX(fname,".img") ) strcat(fname,".img") ;
+        /* and override the BRICK mode */
+        dset->dblk->diskptr->storage_mode = STORAGE_BY_NIFTI;
       }
       
       if( nprefix != NULL ) free(nprefix) ;
