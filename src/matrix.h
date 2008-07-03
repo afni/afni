@@ -378,6 +378,10 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2
 
 extern void matrix_psinv_seteps( double eps ) ; /* 02 Mar 2007 - MoJM */
 
+void matrix_qrr( matrix X , matrix *R ) ;  /* 03 Jul 2008 */
+void vector_rr_solve( matrix R , vector b , vector *x ) ;
+void vector_rrtran_solve( matrix R , vector b , vector *x ) ;
+
 double get_matrix_flops(void) ;
 double get_matrix_dotlen(void) ;
 

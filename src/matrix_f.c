@@ -1452,3 +1452,105 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    free((void *)xfac); free((void *)sval);
    free((void *)vmat); free((void *)umat); return;
 }
+/*---------------------------------------------------------------------------*/
+/*! Given MxN matrix X, compute the NxN upper triangle factor R in X = QR.
+    Must have M >= N.
+    Q is not computed.  If you want Q, then compute it as [Q] = [X] * inv[R].
+*//*-------------------------------------------------------------------------*/
+
+void matrix_qrr( matrix X , matrix *R )
+{
+   int m = X.rows , n = X.cols , ii,jj,kk ;
+   float *amat , *uvec , x1 ;
+   register float alp, sum ;
+
+   if( m < 2 || n < 1 || m < n || R == NULL || X.elts == NULL ) return ;
+
+#undef  A
+#define A(i,j) amat[(i)+(j)*m]
+
+   amat = (float *)malloc( sizeof(float)*m*n ) ;  /* copy input matrix */
+   uvec = (float *)malloc( sizeof(float)*m   ) ;  /* Householder vector */
+
+   /* copy input matrix into amat == A */
+
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = X.elts[ii][jj] ;
+
+   /* Householder transform each column of A in turn */
+
+   for( jj=0 ; jj < n ; jj++ ){
+     if( jj == m-1 ) break ;  /* at last column AND have m==n */
+     x1 = uvec[jj] = A(jj,jj) ;
+     for( sum=0.0f,ii=jj+1 ; ii < m ; ii++ ){
+       uvec[ii] = alp = A(ii,jj) ; sum += alp*alp ;
+     }
+     if( sum == 0.0f ) continue ; /* tail of column is pre-reduced to 0 */
+     alp = sqrtf(sum+x1*x1) ; if( x1 > 0.0f ) alp = -alp ;
+     x1 = uvec[jj] -= alp ; A(jj,jj) = alp ;
+     alp = 2.0f / (sum+x1*x1) ;
+     for( kk=jj+1 ; kk < n ; kk++ ){  /* process trailing columns */
+       for( sum=0.0,ii=jj ; ii < m ; ii++ ) sum += uvec[ii]*A(ii,kk) ;
+       sum *= alp ;
+       for( ii=jj ; ii < m ; ii++ ) A(ii,kk) -= sum*uvec[ii] ;
+     }
+   }
+   /* copy result in A to output
+      (changing row signs if needed to make R's diagonal non-negative) */
+
+   matrix_create( n , n , R ) ;
+   for( ii=0 ; ii < n ; ii++ ){
+     for( jj=0 ; jj < ii ; jj++ ) R->elts[ii][jj] = 0.0 ; /* sub-diagonal */
+     if( A(ii,ii) >= 0.0f )
+       for( jj=ii ; jj < n ; jj++ ) R->elts[ii][jj] =  A(ii,jj) ;
+     else
+       for( jj=ii ; jj < n ; jj++ ) R->elts[ii][jj] = -A(ii,jj) ;
+   }
+
+   free((void *)uvec) ; free((void *)amat) ;
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Solve [R] [x] = [b] for [x] where R is upper triangular. */
+
+void vector_rr_solve( matrix R , vector b , vector *x )
+{
+   register int n , ii,jj ;
+   register float sum , *xp ;
+
+   n = R.rows ;
+   if( n < 1 || R.cols != n || x == NULL ) return ;
+
+   vector_create_noinit( n , x ) ; xp = x->elts ;
+
+   for( ii=n-1 ; ii >= 0 ; ii-- ){
+     for( sum=b.elts[ii],jj=ii+1 ; jj < n ; jj++ )
+       sum -= R.elts[ii][jj] * xp[jj] ;
+     xp[ii] = sum / R.elts[ii][ii] ;
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Solve [R]' [x] = [b] for [x] where R is upper triangular. */
+
+void vector_rrtran_solve( matrix R , vector b , vector *x )
+{
+   register int n , ii,jj ;
+   register float sum , *xp ;
+
+   n = R.rows ;
+   if( n < 1 || R.cols != n || x == NULL ) return ;
+
+   vector_create_noinit( n , x ) ; xp = x->elts ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+     for( sum=b.elts[ii],jj=0 ; jj < ii ; jj++ )
+       sum -= R.elts[jj][ii] * xp[jj] ;
+     xp[ii] = sum / R.elts[ii][ii] ;
+   }
+
+   return ;
+}
