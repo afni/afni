@@ -368,3 +368,8 @@ int * matrix_check_columns( matrix a , double eps ) ; /* 14 Jul 2004: RWCox */
 double * matrix_singvals( matrix X ) ; /* 14 Jul 2004 */
 
 void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2004 */
+
+void matrix_qrr( matrix X , matrix *R ) ;  /* 03 Jul 2008 */
+void vector_rr_solve( matrix R , vector b , vector *x ) ;
+void vector_rrtran_solve( matrix R , vector b , vector *x ) ;
+
