@@ -46,7 +46,7 @@ def quotize_list(list, opt_prefix, skip_first=0):
 def args_as_command(args, prefix='', suffix=''):
     if len(args) < 1: return
 
-    cstr = "%s %s\n" % (os.path.basename(args[0]),
+    cstr = "%s %s" % (os.path.basename(args[0]),
                             ' '.join(quotize_list(args[1:],'')))
     fstr = add_line_wrappers('%s%s%s' % (prefix,cstr,suffix))
 
@@ -58,7 +58,7 @@ def show_args_as_command(args, note='command:'):
   print args_as_command(args,
      "----------------------------------------------------------------------\n"
      "%s\n\n    " % note,
-     "----------------------------------------------------------------------"
+     "\n----------------------------------------------------------------------"
   )
 
 # given a list of text elements, create a list of afni_name elements,
