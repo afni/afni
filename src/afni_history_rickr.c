@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, JUL, 2008, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "move extra newline from args_as_command to show_args_as_command",
+   NULL
+ } ,
+
  {  3, JUL, 2008, RCR, "plug_drawdset", MICRO, TYPE_BUG_FIX,
    "edt_dset_items.c: for .hdr, use .img brick file, storage_mode = BY_NIFTI",
    NULL
