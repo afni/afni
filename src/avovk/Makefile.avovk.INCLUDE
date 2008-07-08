@@ -1,7 +1,5 @@
 #Makefile for avovk's code
 
-CC = gcc
-
 AVOVKLIB = libsegtools.a
 
 AVOVK_SRCS = thd_segtools.c
@@ -39,16 +37,16 @@ AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
 AFNI_3dOBJS = ../parser.o ../parser_int.o
 
 #library only
-${AVOVKLIB} : ${AVOVK_OBJS}
+${AVOVKLIB} : ${AVOVK_OBJS} cluster.o
 	rm -f ${AVOVKLIB}
-	ar q ${AVOVKLIB} ${AVOVK_OBJS}
+	ar q ${AVOVKLIB} ${AVOVK_OBJS} cluster.o
 	echo "library Rebuilt ..."
 	$(RANLIB) ${AVOVKLIB} 
 
 
 
 clean:
-	$(RM) *.o
+	$(RM) *.o *.a
 
 cluster.o:cluster.c
 	$(RM) $@
@@ -69,7 +67,6 @@ Aclustering:Aclustering.c cluster.o
 	${CC} ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
          ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
-         cluster.o   \
          -o $@ Aclustering.c 
 
 3dfit_onesign:3dfit_onesign.c ${AVOVKLIB}
@@ -84,7 +81,6 @@ Aclustering:Aclustering.c cluster.o
 	${CC} ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
          ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
-         cluster.o   \
          -o $@ 3dAclustering.c 
 
 	
@@ -98,3 +94,6 @@ install:
 	@echo Installing Binaries...
 	@if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created from avovk directory. ; fi;
 	@if [ -f  fit_onesign ]; then mv fit_onesign ${INSTALLDIR}; fi;
+	@if [ -f  Aclustering ]; then mv Aclustering ${INSTALLDIR}; fi;
+	@if [ -f  3dfit_onesign ]; then mv 3dfit_onesign ${INSTALLDIR}; fi;
+	@if [ -f  3dAclustering ]; then mv 3dAclustering ${INSTALLDIR}; fi;

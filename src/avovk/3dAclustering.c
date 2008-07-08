@@ -106,7 +106,9 @@ int main(int argc, char **argv)
     { clusterlib_display_version();
       return 0;
     }
-    if(!strcmp(argument,"--help") || !strcmp(argument,"-h"))
+    if(     !strcmp(argument,"--help") 
+         || !strcmp(argument,"-h") 
+         || !strcmp(argument,"-help") )
     { display_help();
       return 0;
     }
@@ -137,7 +139,8 @@ int main(int argc, char **argv)
       i++;
       continue;
     }
-    if(!strcmp(argument,"-mask"))
+
+   if(!strcmp(argument,"-mask"))
     { if (i==argc)
       { printf ("Need name after -mask\n");
         return 0;
@@ -222,7 +225,9 @@ int main(int argc, char **argv)
         i++;
         break;
       }
-      default: printf ("Unknown option\n");
+      default: 
+         printf ("Unknown option %s\n", argv[i-1]);
+         return 0;
     }
    }
 
