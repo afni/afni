@@ -74,6 +74,7 @@ echo "All component files are: ($vollist) "
 
    echo "Combining files and labeling the rows for later sorting"
    paste $vollist | nl -w 9 -n rz > $out
+    #numbering lines is not needed any more with Aclustering, but if I change it here I should also change in Aclustering which columns to read...
 
 set endtime = `date`
 
