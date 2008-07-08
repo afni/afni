@@ -11,7 +11,7 @@ you're reading is what you'd expect.
 
 C code notes: For consistency with AFNI's code, would you please:
    Set your editor to replace tab characters with 3 spaces
-   Use /* for comments , especially when covering multiple lines
+   Use / * for comments , especially when covering multiple lines
    DO not exceed 80 characters per line (helps for reading and more
       importantly printing). 
    Better print  debugging to stderr and useful output to stdout 

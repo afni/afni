@@ -1,8 +1,8 @@
-#include "../mrilib.h"
-
 #include <stdio.h>
 #include <gsl/gsl_multifit.h>
 
+#include "../mrilib.h"
+#include "cluster.h"
 #include "thd_segtools.h"
 
 /*!
@@ -206,6 +206,237 @@ char clusterlib_getmetric(int i)
   return '\0';
 }
 
+/* ========================================================================= */
+
+
+
+double** example_distance_gene(int nrows, int ncols, double** data)
+/* Calculate the distance matrix between genes using the Euclidean distance. */
+{ int i, j, ii, nl, nc;
+  double** distMatrix;
+  double* weight = malloc(ncols*sizeof(double));
+  int** mask = NULL;
+
+  mask = (int **)calloc(sizeof(int*), nrows);
+  for (ii=0;ii<nrows;++ii) {
+    mask[ii] = (int *)calloc(sizeof(int),ncols);
+  }
+  
+  for (nl=0; nl<nrows; ++nl) {
+    for (nc=0; nc<ncols; ++nc) {
+      mask[nl][nc] = 1;
+    }
+  }
+
+
+  printf("============ Euclidean distance matrix between genes ============\n");
+  for (i = 0; i < ncols; i++) weight[i] = 1.0;
+  distMatrix = distancematrix(nrows, ncols, data, mask, weight, 'e', 0); 
+         /* ANDREJ: The compiler gave me a warning that: 
+         thd_segtools.c: In function 'example_distance_gene':
+         thd_segtools.c:234: warning: assignment makes pointer from integer
+                                    without a cast
+         This led me to realize that the compiler did not have the prototype
+         of this function before reaching this point and assumed the returned
+         value was an int to be typecast to double **.
+         But int may not be enough to hold a pointer anymore  
+         
+         In any case, there just is not enough memory for this operation here 
+         so we'll have to consider whether this is useful enough to pursue
+         in different ways. */
+
+  if (!distMatrix)
+  { printf ("Insufficient memory to store the distance matrix\n");
+    free(weight);
+    return NULL;
+  }
+  /*printf("   Gene:");
+  for(i=0; i<nrows-1; i++) printf("%6d", i);
+  printf("\n");
+  for(i=0; i<nrows; i++)
+     { printf("Gene %2d:",i);
+    for(j=0; j<i; j++) printf(" %5.2f",distMatrix[i][j]);
+    printf("\n");
+  }
+  printf("\n");
+    */
+  
+  
+  for (ii=0;ii<nrows;++ii) {
+    if (mask[ii]) free(mask[ii]);
+  }
+  free(mask);
+  free(weight);
+  return distMatrix;
+}
+
+
+/* ========================================================================= */
+
+void example_hierarchical( int nrows, int ncols, 
+                           double** data, 
+                           char* jobname, 
+                           int k, double** distmatrix,
+                           int *clusterid)
+/* Perform hierarchical clustering ... , double** distmatrix */
+{ int i, ii, nl, nc;
+  const int nnodes = nrows-1;
+  double* weight = malloc(ncols*sizeof(double));
+  Node* tree;
+  int** mask = NULL;
+  char* filename;
+  //char* filename2;
+
+
+  mask = (int **)calloc(sizeof(int*), nrows);
+  for (ii=0;ii<nrows;++ii) {
+    mask[ii] = (int *)calloc(sizeof(int),ncols);
+  }
+  
+  for (nl=0; nl<nrows; ++nl) {
+    for (nc=0; nc<ncols; ++nc) {
+      mask[nl][nc] = 1;
+    }
+  }
+
+
+  for (i = 0; i < ncols; i++) weight[i] = 1.0;
+  printf("\n");
+
+
+  FILE *out1;
+
+  int n = 1 + strlen(jobname) + strlen("_C") + strlen(".ext");
+
+  if (k)
+    { int dummy = k;
+      do n++; while (dummy/=10);
+    }
+    
+
+  filename = malloc(n*sizeof(char));
+  
+  sprintf (filename, "%s_C%d.hie", jobname, k);
+  out1 = fopen( filename, "w" );
+
+  /*FILE *out2;
+  filename2 = malloc(n*sizeof(char));
+  
+  sprintf (filename2, "%s_C%d.hi1", jobname, k);
+  out2 = fopen( filename2, "w" );*/
+
+  //HERE SHOULD USE method instead of 'xxx' (s,m,a,c)
+
+
+  printf("================ Pairwise single linkage clustering ============\n");
+  /* Since we have the distance matrix here, we may as well use it. */
+  tree = treecluster(nrows, ncols, 0, 0, 0, 0, 'e', 's', distmatrix);
+  /* The distance matrix was modified by treecluster, so we cannot use it any
+   * more. But we still need to deallocate it here.
+   * The first row of distmatrix is a single null pointer; no need to free it.
+   */
+  for (i = 1; i < nrows; i++) free(distmatrix[i]);
+  free(distmatrix);
+  if (!tree)
+  { /* Indication that the treecluster routine failed */
+    printf ("treecluster routine failed due to insufficient memory\n");
+    free(weight);
+    return;
+  }
+
+  #if 0
+   /* Andrej: This block looked like it was commented out
+    I took out some of the * / because they 
+    were generating warning and blocked out the 
+    entire section with #if 0 . 
+    The compiler will not compile this section */
+    
+  fprintf(out2,"Node     Item 1   Item 2    Distance\n");
+  for(i=0; i<nnodes; i++)
+    fprintf(out2,"%3d:%9d%9d      %g\n",
+           -i-1, tree[i].left, tree[i].right, tree[i].distance);
+	   printf("\n");
+	   fclose(out2);
+  //free(tree);
+
+  
+  printf("================ Pairwise maximum linkage clustering ============\n");
+  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'm', 0);
+  /* Here, we let treecluster calculate the distance matrix for us. In that
+   * case, the treecluster routine may fail due to insufficient memory to store
+   * the distance matrix. For the small data sets in this example, that is
+   * unlikely to occur though. Let's check for it anyway:
+   */
+  if (!tree)
+  { /* Indication that the treecluster routine failed */
+    printf ("treecluster routine failed due to insufficient memory\n");
+    free(weight);
+    return;
+  }
+  printf("Node     Item 1   Item 2    Distance\n");
+  for(i=0; i<nnodes; i++)
+    printf("%3d:%9d%9d      %g\n",
+           -i-1, tree[i].left, tree[i].right, tree[i].distance);
+  printf("\n");
+  free(tree);
+
+
+
+  printf("================ Pairwise average linkage clustering ============\n");
+  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'a', 0); 
+  if (!tree)
+  { /* Indication that the treecluster routine failed */
+    printf ("treecluster routine failed due to insufficient memory\n");
+    free(weight);
+    return;
+  }
+  printf("Node     Item 1   Item 2    Distance\n");
+  for(i=0; i<nnodes; i++)
+    printf("%3d:%9d%9d      %g\n",
+           -i-1, tree[i].left, tree[i].right, tree[i].distance);
+  printf("\n");
+  free(tree);
+
+
+
+  printf("================ Pairwise centroid linkage clustering ===========\n");
+  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'c', 0); 
+  if (!tree)
+  { /* Indication that the treecluster routine failed */
+    printf ("treecluster routine failed due to insufficient memory\n");
+    free(weight);
+    return;
+  }
+  printf("Node     Item 1   Item 2    Distance\n");
+  for(i=0; i<nnodes; i++)
+    printf("%3d:%9d%9d      %g\n",
+           -i-1, tree[i].left, tree[i].right, tree[i].distance);
+  printf("\n");
+
+  #endif
+
+
+
+  printf("=============== Cutting a hierarchical clustering tree ==========\n");
+  clusterid = malloc(nrows*sizeof(int));
+  printf(" number of clusters %d \n",k);
+  cuttree (nrows, tree, k, clusterid);
+  for(i=0; i<nrows; i++)
+  fprintf(out1, "%09d\t%2d\n", i, clusterid[i]);
+  fprintf(out1, "\n");
+  fclose(out1);
+
+
+  for (ii=0;ii<nrows;++ii) {
+    if (mask[ii]) free(mask[ii]);
+  }
+  free(mask);
+  free(tree); 
+  free(weight);
+  return;
+}
+
+/* ========================================================================= */
 
 
 void example_kmeans( int nrows, int ncols, 
@@ -375,20 +606,21 @@ void example_kmeans( int nrows, int ncols,
 /*!
    Put some help like for function thd_polyfit
 */
-int thd_kmeans (  THD_3dim_dataset *in_set,
+int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,
                   THD_3dim_dataset **dist_set,
                   OPT_KMEANS oc )
 {
    int ii, nl, nc;
-   double **D=NULL;  /* this double business is a waste of memory ..*/
+   double **D=NULL, **distmatrix=NULL;  /* this double business is a waste of
+                                           memory, at least for D..*/
    int ncol = -1;
    float *dvec=NULL;
    int* clusterid = NULL;
    short *sc = NULL;
    
-   ENTRY("thd_kmeans");
+   ENTRY("thd_Acluster");
    
    if (!clust_set || *clust_set) {
       fprintf(stderr,
@@ -400,8 +632,9 @@ int thd_kmeans (  THD_3dim_dataset *in_set,
    if (ncol < DSET_NUM_TIMES(in_set)) ncol = DSET_NUM_TIMES(in_set);
    
    if (oc.verb) {
-      ININFO_message("Have %d voxels to process with %d dimensions per voxel.\n",
-                     nmask, ncol);
+      ININFO_message("Have %d/%d voxels to process "
+                     "with %d dimensions per voxel.\n",
+                     nmask, DSET_NVOX(in_set), ncol);
    }
    
    /* Create data matrix */
@@ -416,7 +649,7 @@ int thd_kmeans (  THD_3dim_dataset *in_set,
 
    dvec = (float * )malloc(sizeof(float)*ncol) ;  /* array to hold series */
    if (oc.verb) {
-      ININFO_message("Filling D (mask=%p).\n", mask);
+      ININFO_message("Filling D(%dx%d) (mask=%p).\n", nmask, ncol, mask);
    }
    ii = 0;
    for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
@@ -434,15 +667,36 @@ int thd_kmeans (  THD_3dim_dataset *in_set,
    }
 
    /* now do the clustering 
-      (ANDREJ: I do not know why the counting skipped 1st row and 1st col....) */
-   if (oc.verb) {
-      ININFO_message("Going to cluster: k=%d, r=%d\n"
-                     "distmetric %c, jobname %s\n",
-                     oc.k, oc.r, oc.distmetric, oc.jobname);
+     (ANDREJ: I do not know why the counting skipped 1st row and 1st col....) */
+   if (oc.k > 0) {
+      if (oc.verb) {
+         ININFO_message("Going to cluster: k=%d, r=%d\n"
+                        "distmetric %c, jobname %s\n",
+                        oc.k, oc.r, oc.distmetric, oc.jobname);
+      }
+      example_kmeans(   nmask, ncol, D, 
+                        oc.k, oc.r, oc.distmetric, 
+                        oc.jobname, clusterid);
+   } else if (oc.kh > 0) {
+      if (oc.verb) {
+         ININFO_message("Going to h cluster: kh=%d\n"
+                        "jobname %s\n",
+                        oc.kh, oc.jobname);
+      }
+      if ((distmatrix = example_distance_gene(nmask, ncol, D))) {
+         example_hierarchical(   nmask, ncol, D, 
+                                 oc.jobname, oc.kh, 
+                                 distmatrix, 
+                                 clusterid);
+         /* YOU SHOULD FREE distmatrix here ...*/
+      } else {
+         ERROR_message("Failed to create distmatrix");
+         RETURN(0);
+      }
+   } else {
+      ERROR_message("Bad option selection");
+      RETURN(0);
    }
-   example_kmeans(   nmask, ncol, D, 
-                     oc.k, oc.r, oc.distmetric, 
-                     oc.jobname, clusterid);
    
    /* create output datasets, if required*/
    *clust_set = EDIT_empty_copy(in_set) ;
