@@ -57,31 +57,35 @@ cluster.o:cluster.c
 
 fit_onesign:fit_onesign.c
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} \
+	${CC} -o $@ fit_onesign.c \
+         ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
-         -o $@ fit_onesign.c 
+         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas 
+         
 
 Aclustering:Aclustering.c cluster.o
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} \
+	${CC} -o $@ Aclustering.c \
+         ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
-         -o $@ Aclustering.c 
+         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas 
+          
 
 3dfit_onesign:3dfit_onesign.c ${AVOVKLIB}
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} \
+	${CC} -o $@ 3dfit_onesign.c \
+         ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
-         -o $@ 3dfit_onesign.c 
+         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas 
+         
 
 3dAclustering:3dAclustering.c ${AVOVKLIB}
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} \
+	${CC} -o $@ 3dAclustering.c \
+         ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
-         -o $@ 3dAclustering.c 
+         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas 
+         
 
 	
 progs: fit_onesign Aclustering 3dfit_onesign 3dAclustering
