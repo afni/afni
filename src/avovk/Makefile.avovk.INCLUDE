@@ -1,10 +1,22 @@
 #Makefile for avovk's code
 
 CC = gcc
-AVOVK_SRCS = 
+
+AVOVKLIB = libsegtools.a
+
+AVOVK_SRCS = thd_segtools.c
        
 
-AVOVK_OBJS = ${SUMA_SRCS:.c=.o}
+AVOVK_OBJS = ${AVOVK_SRCS:.c=.o}
+
+AVOVK_INCLUDE_PATH = ${IFLAGS} -I../nifti/niftilib -I../nifti/nifticdf \
+                 -I../nifti/znzlib -I../3DEdge/src -I../rickr \
+                 -I../ -I../niml/ -Igts/src  
+
+AVOVK_LINK_PATH = ${LFLAGS} -L/usr/lib -L../ 
+AVOVK_LINK_LIB = ${LLIBS} -lmri
+
+AVOVK_HDRS = thd_segtools.h
 
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
@@ -25,15 +37,6 @@ AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
 				../afni_slice_rgbyte.o
              
 AFNI_3dOBJS = ../parser.o ../parser_int.o
-
-AVOVK_INCLUDE_PATH = ${IFLAGS} -I../nifti/niftilib -I../nifti/nifticdf \
-                 -I../nifti/znzlib -I../3DEdge/src -I../rickr \
-                 -I../ -I../niml/ -Igts/src  
-
-AVOVK_LINK_PATH = ${LFLAGS} -L/usr/lib -L../ 
-AVOVK_LINK_LIB = ${LLIBS} -lmri
-
-AVOVK_HDRS = 
 
 #library only
 ${AVOVKLIB} : ${AVOVK_OBJS}
@@ -58,27 +61,36 @@ fit_onesign:fit_onesign.c
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} -lgsl -lgslcblas \
+         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
          -o $@ fit_onesign.c 
-
-3dfit_onesign:3dfit_onesign.c
-	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} \
-         ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} -lgsl -lgslcblas \
-         -o $@ 3dfit_onesign.c 
 
 Aclustering:Aclustering.c cluster.o
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} -lgsl -lgslcblas \
+         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
          cluster.o   \
          -o $@ Aclustering.c 
-	
-progs: fit_onesign 3dfit_onesign Aclustering
 
-all: progs install 
+3dfit_onesign:3dfit_onesign.c ${AVOVKLIB}
+	$(RM) $@
+	${CC} ${CCOPT} ${WARNOPT} \
+         ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
+         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
+         -o $@ 3dfit_onesign.c 
+
+3dAclustering:3dAclustering.c ${AVOVKLIB}
+	$(RM) $@
+	${CC} ${CCOPT} ${WARNOPT} \
+         ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
+         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas \
+         cluster.o   \
+         -o $@ 3dAclustering.c 
+
+	
+progs: fit_onesign Aclustering 3dfit_onesign 3dAclustering
+
+all: ${AVOVKLIB} progs install 
  
 anew: clean all install 
 
