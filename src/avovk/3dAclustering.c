@@ -46,10 +46,22 @@ static void display_help(void)
           "                (default: 1)\n");
   printf ("  -k number     Specifies whether to run k-means clustering\n"
           "                instead of hierarchical clustering, and the number\n"
-          "                of clusters k to use\n");
+          "                of clusters k to use. \n"
+          "                Default is kmeans with k = 3 clusters\n");
+  printf ("  -c number     Force the program to do hierarchical clsutering\n"
+          "                and specifies the number of clusters for tree\n"
+          "                cutting after hierarchical clustering.\n"
+          "       Options -c and -k are mutually exclusive\n");
   printf ("  -r number     For k-means clustering, the number of times the\n"
           "                k-means clustering algorithm is run\n"
           "                (default: 1)\n");
+  printf ("  -m [msca]     Specifies which hierarchical clustering method to"
+          "                use:\n"
+          "                m: Pairwise complete-linkage\n"
+          "                s: Pairwise single-linkage\n"
+          "                c: Pairwise centroid-linkage\n"
+          "                a: Pairwise average-linkage\n"
+          "                (default: m)\n");
   return;
 }
 
@@ -87,7 +99,8 @@ int main(int argc, char **argv)
    
    
    oc.r = 1;
-   oc.k = 4;
+   oc.k = 0;
+   oc.kh = 0;
    oc.jobname = NULL;
    oc.distmetric = 'u';
    oc.verb = 1;
@@ -202,6 +215,10 @@ int main(int argc, char **argv)
                   "parameter missing\n");
           return 0;
         }
+        if (oc.kh > 0) {
+            ERROR_message("-k and -c options are mutually exclusive\n");
+            return 0;
+        }
         oc.k = clusterlib_readnumber(argv[i]);
         if (oc.k < 1)
         { printf ("Error reading command line argument k: "
@@ -211,7 +228,25 @@ int main(int argc, char **argv)
         i++;
         break;
       }
-      case 'r':
+    case 'c':
+      { if (i==argc)
+        { printf ("Error reading command line argument c: parameter missing\n");
+          return 0;
+        }
+        if (oc.k > 0) {
+            ERROR_message("-k and -c options are mutually exclusive\n");
+            return 0;
+        }
+        oc.kh = clusterlib_readnumber(argv[i]);
+        if (oc.kh < 1)
+        { printf ("Error reading command line argument c: "
+                  "a positive integer is required\n");
+          return 0;
+        }
+        i++;
+        break;
+      }
+   case 'r':
       { if (i==argc)
         { printf ("Error reading command line argument r: parameter missing\n");
           return 0;
@@ -225,12 +260,24 @@ int main(int argc, char **argv)
         i++;
         break;
       }
+   case 'm':
+      { if (i==argc || strlen(argv[i])>1 || !strchr("msca",argv[i][0]))
+	  { printf ("Error reading command line argument m: "
+               "should be 'm', 's', 'c', or 'a'\n");
+	    return 0;
+	  }
+        method = argv[i][0];
+        i++;
+        break;
+      }
       default: 
          printf ("Unknown option %s\n", argv[i-1]);
          return 0;
     }
+    
    }
-
+   if (oc.k <= 0 && oc.kh <= 0) oc.k = 3;
+   
    if(oc.jobname == NULL) oc.jobname = clusterlib_setjobname(filename,1);
 
    /*  else
@@ -280,13 +327,14 @@ int main(int argc, char **argv)
    }
 
    /* Now call clustering function */
-   if (!thd_kmeans ( in_set,
+   if (!thd_Acluster ( in_set,
                      mask, nmask,
                      &clust_set,
                      &dist_set ,
                      oc)) {
-      ERROR_exit("Failed in THD_kmeans");                 
+      ERROR_exit("Failed in thd_Acluster");                 
    }
+   
 
    /* add history to output data and write them  out */
    if( oc.verb && 
