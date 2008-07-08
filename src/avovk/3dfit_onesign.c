@@ -38,7 +38,8 @@ gcc -Wall -Wno-unused fit_onesign.c -lgsl -lgslcblas -lm -o fitanje_1sign -I/sw/
 #include <stdio.h>
 #include <gsl/gsl_multifit.h>
 
-#define C(i) (gsl_vector_get(c,(i)))
+#include "thd_segtools.h"
+
 #define POLORDERMAX 30
 
 int
@@ -47,17 +48,10 @@ main (int argc, char **argv)
    int   i=0, j=0, nl=0, k=0,
          posi=0, posj=0, posk=0, nrow=0,
          verb=1, iarg=0, ncol = 0;
-   double xi=0.0, yi=0.0, yy=0.0, ei=0.0, sumsq=0.0,  med=0.0;
    char *prefix = NULL;
    char *input = NULL, *maskname=NULL;
    THD_3dim_dataset *in_set=NULL, *out_set=NULL;
    THD_3dim_dataset *mset =NULL ;
-   gsl_matrix *X=NULL, *cov=NULL;
-   gsl_vector *y=NULL, *w=NULL, *c=NULL;
-   MRI_IMAGE *im = NULL;
-   double *dar = NULL;
-   float *cbuf=NULL;
-   float *dvec = NULL;
    int polorder = 5, nmask=-1, mnx=-1, mny=-1, mnz=-1;
    byte *mask=NULL;
    gsl_multifit_linear_workspace *work=NULL;
@@ -74,7 +68,8 @@ main (int argc, char **argv)
                "                       [-polorder POLORDER]\n"
                "Mandatory Parameters:\n"
                "   -input SIGNATURE: Signature BRIK or .1D file\n"
-               "               (Andrej, note that it works with both types)\n"
+               "         (Andrej, note that it works with both types\n"
+               "          of files, so it completely replaces fitanje_1sign)\n"
                "Optional Parameters:\n"
                "  -prefix PREFIX: Prefix of output. \n"
                "                  If input is .1D, the output will be too.\n"
@@ -183,118 +178,23 @@ main (int argc, char **argv)
       fprintf (stderr,"Have %d cols, %d voxels, %d in mask\n", 
             ncol, nrow, mask ? nmask:nrow);
    
-   
-   /* prepare output */
-   out_set = EDIT_empty_copy(in_set) ;
-   EDIT_dset_items(  out_set ,
-                     ADN_nvals     , polorder           ,
-                     ADN_ntt       , polorder          ,
-                     ADN_datum_all , MRI_float      ,
-                     ADN_brick_fac , NULL           ,
-                     ADN_prefix    , prefix   ,
-                     ADN_none ) ;
-   tross_Copy_History( in_set , out_set ) ;
-   tross_Make_History( "3dfit_onesign" , argc, argv , out_set ) ;
-
-   for( j=0 ; j < polorder ; j++ ) /* create empty bricks to be filled below */
-      EDIT_substitute_brick( out_set , j , MRI_float , NULL ) ;
-
-
-   /* do the fitting */
-   if (verb) fprintf (stderr,"Now fitting...\n");
-   
-   X = gsl_matrix_alloc (ncol, polorder);
-   y = gsl_vector_alloc (ncol);
-     
-   c = gsl_vector_alloc (polorder);
-   cov = gsl_matrix_alloc (polorder, polorder);
-     
-   for (i = 0; i < ncol; i++)  {
-      xi = i+1;
-      gsl_matrix_set (X, i, 0, 1.0);
-      gsl_matrix_set (X, i, 1, xi);
-      gsl_matrix_set (X, i, 2, xi*xi);
-
-      gsl_matrix_set (X, i, 3, xi*xi*xi);
-      gsl_matrix_set (X, i, 4, xi*xi*xi*xi);
-      //    printf ("%lg ",xi);
+   if (!(out_set = thd_polyfit(in_set, mask, polorder, prefix, verb))) {
+      ERROR_exit("Failed to do the fit!");
    }
 
-
-    /*make header
-      printf ("matrvola\n");
-      ZSS: By adding # to the text line, 
-           I made the output file be a .1D format */
-    if (verb > 1) 
-      fprintf(stdout, "#%s_0\t%s_1\t%s_2\t%s_3\t%s_4\n",
-                    input,input,input,input,input);
-
-    // go by lines - signatures
-    /* pre-allocate, I think this should be just fine, 
-       there should be no need to reinitialize work 
-       all the time */   
-    work = gsl_multifit_linear_alloc (ncol, polorder);
-
-    dvec = (float * )malloc(sizeof(float)*ncol) ;  /* array to hold signature */
-    cbuf = (float *)malloc(sizeof(float)*polorder) ;  
-                              /* array to hold fit */
-    for (nl=0; nl<nrow; ++nl) {
-      if (!mask || mask[nl]) {
-         posi = -1;
-         posj = -1;
-         posk = -1;
-
-         THD_extract_array( nl , in_set , 0 , dvec ) ; 
-                                    /*get signature from voxel */
-
-         for (k = 0; k < ncol; k++) {
-            gsl_vector_set (y, k, dvec[k]);
-         }
-
-         gsl_multifit_linear (X, y, c, cov,
-                              &sumsq, work);
-
-         /* printf ( "\n # best fit: Y = %g + %g X + %g X^2 +%g X^3 + %g X^4\n",
-                     C(0), C(1), C(2), C(3), C(4));
-            printf ("# sumsq = %g\n", sumsq); */
-
-         for (i=0;i<polorder;++i) cbuf[i] = (float)C(i);
-         THD_insert_series( nl , out_set , polorder , MRI_float , cbuf , 1 ) ; 
-                                       /* stick result in output */
-         if (verb > 1) 
-            fprintf (stdout,  "%11g\t%11g\t%11g\t%11g\t%11g\n", 
-                           C(0), C(1), C(2), C(3), C(4)); 
-
-         /*
-         printf ("# covariance matrix:\n");
-         printf ("[ %+.5e, %+.5e, %+.5e  \n",
-                 COV(0,0), COV(0,1), COV(0,2));
-         printf ("  %+.5e, %+.5e, %+.5e  \n", 
-                 COV(1,0), COV(1,1), COV(1,2));
-         printf ("  %+.5e, %+.5e, %+.5e ]\n", 
-                 COV(2,0), COV(2,1), COV(2,2));
-          printf ("# chisq = %g\n", chisq);
-         */
-      
-      }
-   }
-   gsl_multifit_linear_free (work); work = NULL;
    
    /* write the output */
    if( verb ) ININFO_message("\nWriting fit dataset: %s",prefix) ;
+   tross_Copy_History( in_set , out_set ) ;
+   tross_Make_History( "3dfit_onesign" , argc, argv , out_set ) ;
+
    
    DSET_write(out_set); DSET_unload(out_set); 
    DSET_delete(out_set); out_set = NULL;
-   free(dvec); dvec = NULL;
-   free(cbuf); cbuf = NULL;
-    gsl_vector_free (y);
-    gsl_vector_free (c);
-    gsl_matrix_free (cov);
-    gsl_matrix_free (X);
-    //gsl_vector_free (w);
-    free(dvec); dvec = NULL;
-    if (verb) fprintf (stderr,"\n");
-    return 0;
+  
+   if (verb) fprintf (stderr,"\n");
+   
+   RETURN(0);
 
 }
 
