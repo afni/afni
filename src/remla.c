@@ -1,13 +1,14 @@
 #include "mrilib.h"
 
 typedef struct {
-  int nrc ;
-  short *len ;
-  float **rc ;
+  int nrc ;        /* # of rows and columns */
+  short *len ;     /* in row/column #i, there are len[i] elements */
+  float **rc ;     /* so the first column/row index is i+1-len[i] */
 } rcmat_float ;
 
-#define ISVALID_RCMAT(rr) \
-  ( (rr) != NULL && (rr)->len != NULL && (rr)->len[0] == 1 )
+#define ISVALID_RCMAT(rr)                                      \
+  ( (rr) != NULL && (rr)->len != NULL && (rr)->len[0] == 1 &&  \
+                    (rr)->rc  != NULL && (rr)->rc[0] != NULL  )
 
 /*--------------------------------------------------------------------------*/
 
@@ -17,7 +18,7 @@ rcmat_float * rcmat_float_init( int n )
 
    if( n <= 1 ) return NULL ;
 
-   rcm      = (rcmat_float *)calloc( 1 , sizeof(rcmat_float) ) ;
+   rcm      = (rcmat_float *)alloc( sizeof(rcmat_float) ) ;
    rcm->nrc = n ;
    rcm->len = (short  *)calloc( n , sizeof(short  ) ) ;
    rcm->rc  = (float **)calloc( n , sizeof(float *) ) ;
@@ -56,14 +57,10 @@ int rcmat_float_choleski( rcmat_float *rcm )
    rc  = rcm->rc ;
    len = rcm->len ;
 
-   if( rc[0][0] <= 0.0f ) return -1 ;
-   rc[0][0] = sqrtf( rc[0][0] ) ;
-
-   for( ii=1 ; ii < nn ; ii++ ){
+   for( ii=0 ; ii < nn ; ii++ ){
      if( len[ii] == 1 ){
        if( rc[ii][0] <= 0.0f ) return -(ii+1) ;
-       rc[ii][0] = sqrtf(rc[ii][0]) ;
-       continue ;
+       rc[ii][0] = sqrtf(rc[ii][0]) ; continue ;
      }
      jbot = ii - len[ii] + 1 ;
      rii  = rc[ii] - jbot ;
@@ -101,9 +98,7 @@ void rcmat_float_lowert_solve( rcmat_float *rcm , float *vec )
    rc  = rcm->rc ;
    len = rcm->len ;
 
-   vec[0] = vec[0] / rc[0][0] ;
-
-   for( ii=1 ; ii < nn ; ii++ ){
+   for( ii=0 ; ii < nn ; ii++ ){
      if( len[ii] == 1 ){
        vec[ii] = vec[ii] / rc[ii][0] ; continue ;
      }
@@ -153,10 +148,14 @@ rcmat_float * rcmat_float_arma11( int nt, int *itrue, float rho, float lam )
    len = rcm->len ;
    rc  = rcm->rc ;
 
-   if( lam > 0.0f && rho > 0.0f ){
-     bmax = 1 + (int)ceilf( logf(0.02/lam) / logf(rho) ) ;
-   } else if( lam > 0.0f && rho == 0.0f ){
-     bmax = 1 ;
+        if( rho >  0.9f ) rho =  0.9f ;
+   else if( rho < -0.9f ) rho = -0.9f ;
+
+   if( lam > 0.0f ){
+     if( rho > 0.0f )
+       bmax = 1 + (int)ceilf( logf(0.02/lam) / logf(fabsf(rho)) ) ;
+     else
+       bmax = 1 ;
    } else {
      bmax = 0 ;
    }
@@ -176,7 +175,8 @@ rcmat_float * rcmat_float_arma11( int nt, int *itrue, float rho, float lam )
      for( jj=jbot ; jj < ii ; jj++ ){
        jtt = itt - itrue[jj] ; if( jtt <= bmax ) break ;
      }
-     if( jj == ii ){
+     jbot = jj ;
+     if( jbot == ii ){
        len[ii] = 1 ; rc[ii] = malloc(sizeof(float)) ; rc[ii][0] = 1.0f ;
        continue ;
      }
