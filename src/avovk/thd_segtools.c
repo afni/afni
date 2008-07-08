@@ -334,7 +334,6 @@ void example_kmeans( int nrows, int ncols,
    fprintf(out2,"Distance between 1 and 2: %7.3f\n", distance);
    fclose(out2); out2=NULL;
 
-
    printf ("------- writing Cluster centroids to file:\t\t"
           "%s_K_G%d.cen\n",jobname, nclusters);
    fprintf (out3,"------- Cluster centroids:\n");
@@ -361,10 +360,10 @@ void example_kmeans( int nrows, int ncols,
    for (ii=0;ii<nrows;++ii) {
       if (mask[ii]) free(mask[ii]);
    }
+
    
    free(cdata);
    free(cmask);
-   free(clusterid);
    free(weight);
    free(mask);
    return;
@@ -429,13 +428,13 @@ int thd_kmeans (  THD_3dim_dataset *in_set,
    }
 
    /* allocate for answer arrays */
-   if (!(clusterid = (int *)malloc(nmask*sizeof(int)))) {
+   if (!(clusterid = (int *)calloc(sizeof(int), nmask))) {
       fprintf(stderr,"ERROR: Failed to allocate for clusterid\n");
       RETURN(0);
    }
 
    /* now do the clustering 
-      (I do not know why the counting skipped 1st row and 1st col....) */
+      (ANDREJ: I do not know why the counting skipped 1st row and 1st col....) */
    if (oc.verb) {
       ININFO_message("Going to cluster: k=%d, r=%d\n"
                      "distmetric %c, jobname %s\n",
@@ -459,21 +458,19 @@ int thd_kmeans (  THD_3dim_dataset *in_set,
       ININFO_message("loading results into %s\n",
                      DSET_PREFIX(*clust_set));
    }
+   
    /* transfer ints in clusterid to shorts array */
    sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));
    ii = 0;
    for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
       if (!mask || mask[nl]) {
-         sc[nl] = (short)clusterid[ii];
+         sc[nl] = (short)clusterid[ii]+1;
          ++ii;
       }
    }
    free(clusterid); clusterid = NULL;
-      ININFO_message("Freedomf");
    EDIT_substitute_brick( *clust_set , 0 , MRI_short , sc ) ;
    sc = NULL; /* array now in brick */
-   
-  
    
    if (oc.verb) {
       ININFO_message("Freedom");
