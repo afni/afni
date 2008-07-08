@@ -324,8 +324,6 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
 /* ========================================================================= */
 
 
-void example_kmeans(int nrows, int ncols, double** data, int nclusters, int npass, char dist, char* jobname)
-
 void example_kmeans( int nrows, int ncols, 
                      double** data, 
                      int nclusters, int npass, 
@@ -441,49 +439,17 @@ void example_kmeans( int nrows, int ncols,
 	  // fprintf(stderr,"Distance between %d and %d: %7.3f\n", i, j, distance);
 	}
     }
-     
-
-   printf ("------- writing Distance between clusters to file:\t "
-          "%s_K_G%d.dis \n", jobname, nclusters);
-   fprintf (out2,"------- Distance between clusters:\n");
-   index = malloc(nclusters*sizeof(int*));
-   count = malloc(nclusters*sizeof(int));
-   for (i = 0; i < nclusters; i++) count[i] = 0;
-   for (i = 0; i < nrows; i++) count[clusterid[i]]++;
-   for (i = 0; i < nclusters; i++) index[i] = malloc(count[i]*sizeof(int));
-   for (i = 0; i < nclusters; i++) count[i] = 0;
-   for (i = 0; i < nrows; i++){ 
-      int id = clusterid[i];
-      index[id][count[id]] = i;
-      count[id]++;
-   }  
-   distance =
-    clusterdistance(nrows, ncols, data, mask, weight, count[0], count[1],
-		    index[0], index[1], 'e', 'a', 0); 
-   fprintf(out2,"Distance between 0 and 1: %7.3f\n", distance);
-   distance =
-    clusterdistance(nrows, ncols, data, mask, weight, count[0], count[2],
-		    index[0], index[2], 'e', 'a', 0); 
-   fprintf(out2,"Distance between 0 and 2: %7.3f\n", distance);
-   distance =
-    clusterdistance(nrows, ncols, data, mask, weight, count[1], count[2],
-		    index[1], index[2], 'e', 'a', 0); 
-   fprintf(out2,"Distance between 1 and 2: %7.3f\n", distance);
-   fclose(out2); out2=NULL;
+   
+  fclose(out2); out2=NULL;
 
 
 
-   printf ("------- writing Cluster centroids to file:\t\t %s_K_G%d.cen\n",jobname, nclusters);
-   fprintf (out3,"------- Cluster centroids:\n");
-   getclustercentroids(nclusters, nrows, ncols, data, mask, clusterid,
-
-   printf ("------- writing Cluster centroids to file:\t\t"
-          "%s_K_G%d.cen\n",jobname, nclusters);
+   printf ("------- writing Cluster centroids to file:\t\t%s_K_G%d.cen\n",jobname, nclusters);
    fprintf (out3,"------- Cluster centroids:\n");
    getclustercentroids(nclusters, nrows, ncols, data, mask, clusterid, cdata, cmask, 0, 'a');
-   fprintf(out3,"   coefficients:");
-   for(i=0; i<ncols; i++) fprintf(out3,"\t%7d", i);
-   fprintf(out3,"\n");
+	   fprintf(out3,"   coefficients:");
+		       for(i=0; i<ncols; i++) fprintf(out3,"\t%7d", i);
+		       fprintf(out3,"\n");
    for (i = 0; i < nclusters; i++){ 
       fprintf(out3,"Cluster %2d:", i);
       for (j = 0; j < ncols; j++) fprintf(out3,"\t%7.3f", cdata[i][j]);
@@ -516,7 +482,6 @@ void example_kmeans( int nrows, int ncols,
 
 int main(int argc, char **argv)
 { 
-
   int ii=0, ncol=0, nrow=0, nl=0, nc=0, posi=0, posj=0, posk=0;
   //int nclust=atoi(argv[2]);
   MRI_IMAGE *im = NULL;
@@ -527,7 +492,7 @@ int main(int argc, char **argv)
   //from command.c
 
   int i = 1;
-  const char* filename = 0;
+  char* filename = 0;
   char* jobname = 0;
   int l = 0;
   int k = 0;
@@ -547,35 +512,7 @@ int main(int argc, char **argv)
   while (i < argc)
   { const char* const argument = argv[i];
 
-   int ii=0, ncol=0, nrow=0, nl=0, nc=0, posi=0, posj=0, posk=0;
-   //int nclust=atoi(argv[2]);
-   MRI_IMAGE *im = NULL;
-   double *dar = NULL;
-   double **D = NULL;
-   //int **mask = NULL;
-
-   //from command.c
-
-   int i = 1;
-   char* filename = 0;
-   char* jobname = 0;
-   int l = 0;
-   int k = 4;
-   int r = 1;
-   int s = 0;
-   int x = 2;
-   int y = 1;
-   int Rows, Columns;
-   char distmetric = 'u';
-   char arraymetric = '\0';
-   char method = 'm';
-   char cg = '\0';
-   char ca = '\0';
-   int ng = 0;
-   int na = 0;
-   while (i < argc)
-   { const char* const argument = argv[i];
-
+  
     i++;
     if (strlen(argument)<2)
     { printf("ERROR: missing argument\n");
@@ -783,21 +720,7 @@ int main(int argc, char **argv)
         }
       
 
-  free(dar); dar = NULL; /* done with input array */
-  // To free D 
-  for (ii=0;ii<(nrow-1);++ii) {
-  }
-
-   //show_data(nrows, ncols, data, mask);
-   //example_mean_median(nrows, ncols, data, mask);
-   //distmatrix = example_distance_gene(nrows, ncols, data, mask);
-   //if (distmatrix) example_hierarchical(nrows, ncols, data, mask, distmatrix);
-   //example_distance_array(nrows, ncols, data, mask);
-
-   example_kmeans(nrow-1, ncol-1, D, k, r, distmetric, jobname);
-   //example_som(nrows, ncols, data, mask);
-
-
+  
    free(dar); dar = NULL; /* done with input array */
    // To free D 
    for (ii=0;ii<(nrow-1);++ii) {
