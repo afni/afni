@@ -60,7 +60,7 @@ fit_onesign:fit_onesign.c
 	${CC} -o $@ fit_onesign.c \
          ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas 
+         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
 
 Aclustering:Aclustering.c cluster.o
@@ -68,7 +68,7 @@ Aclustering:Aclustering.c cluster.o
 	${CC} -o $@ Aclustering.c \
          ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas 
+         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
           
 
 3dfit_onesign:3dfit_onesign.c ${AVOVKLIB}
@@ -76,7 +76,7 @@ Aclustering:Aclustering.c cluster.o
 	${CC} -o $@ 3dfit_onesign.c \
          ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas 
+         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
 
 3dAclustering:3dAclustering.c ${AVOVKLIB}
@@ -84,7 +84,7 @@ Aclustering:Aclustering.c cluster.o
 	${CC} -o $@ 3dAclustering.c \
          ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-         ${AVOVK_LINK_LIB} ${AVOVKLIB} -lgsl -lgslcblas 
+         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
 
 	
