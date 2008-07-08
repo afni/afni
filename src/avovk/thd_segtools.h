@@ -19,18 +19,27 @@ void clusterlib_display_version(void);
 char* clusterlib_setjobname(const char* basename, int strip);
 int clusterlib_readnumber(const char word[]);
 char clusterlib_getmetric(int i);
+double** example_distance_gene(int nrows, int ncols, double** data);
+void example_hierarchical( int nrows, int ncols, 
+                           double** data, 
+                           char* jobname, 
+                           int k, double** distmatrix,
+                           int *clusterid);
+
+
 /**********************************************************************
    END: functions based on command.c code from The C clustering library.
 **********************************************************************/
                     
 typedef struct {
    int k;
+   int kh;
    int r;
    char *jobname;
    char distmetric;
    int verb;
 } OPT_KMEANS;
-int thd_kmeans (  THD_3dim_dataset *in_set,
+int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,
                   THD_3dim_dataset **dist_set,

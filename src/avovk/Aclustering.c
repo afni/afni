@@ -235,6 +235,12 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
     return;
   }
 
+  #if 0 
+  /* Andrej: This block looked like it was commented out
+    I took out some of the * / because they 
+    were generating warning and blocked out the 
+    entire section with #if 0 .  */
+  
   /*fprintf(out2,"Node     Item 1   Item 2    Distance\n");
   for(i=0; i<nnodes; i++)
     fprintf(out2,"%3d:%9d%9d      %g\n",
@@ -245,15 +251,15 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
 
   /*
   printf("================ Pairwise maximum linkage clustering ============\n");
-  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'm', 0);
+  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'm', 0); */
   /* Here, we let treecluster calculate the distance matrix for us. In that
    * case, the treecluster routine may fail due to insufficient memory to store
    * the distance matrix. For the small data sets in this example, that is
    * unlikely to occur though. Let's check for it anyway:
    */
-  /*  if (!tree)
+  if (!tree)
   { /* Indication that the treecluster routine failed */
-  /*    printf ("treecluster routine failed due to insufficient memory\n");
+    printf ("treecluster routine failed due to insufficient memory\n");
     free(weight);
     return;
   }
@@ -270,7 +276,7 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
   tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'a', 0); 
   if (!tree)
   { /* Indication that the treecluster routine failed */
-  /*    printf ("treecluster routine failed due to insufficient memory\n");
+    printf ("treecluster routine failed due to insufficient memory\n");
     free(weight);
     return;
   }
@@ -287,7 +293,7 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
   tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'c', 0); 
   if (!tree)
   { /* Indication that the treecluster routine failed */
-  /*    printf ("treecluster routine failed due to insufficient memory\n");
+    printf ("treecluster routine failed due to insufficient memory\n");
     free(weight);
     return;
   }
@@ -297,8 +303,8 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
            -i-1, tree[i].left, tree[i].right, tree[i].distance);
   printf("\n");
 
-  */
-
+  
+  #endif
 
 
   printf("=============== Cutting a hierarchical clustering tree ==========\n");
