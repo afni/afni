@@ -181,10 +181,14 @@ rcmat_float * rcmat_float_arma11( int nt, int *itrue, float rho, float lam )
        continue ;
      }
      len[ii] = ii + 1 - jbot ;
-     rc[ii] = malloc(sizeof(float)*len[ii]) ;
-     rii = rc[ii] - jbot ;
-     rii[ii] = 1.0f ; rii[ii-1] = lam ;
-     for( jj=ii-2 ; jj >= jbot ; jj-- ) rii[jj] = rii[jj+1]*rho ;
+     rc[ii]  = calloc(sizeof(float),len[ii]) ;
+     rii     = rc[ii] - jbot ;
+     rii[ii] = 1.0f ;
+     for( jj=jbot ; jj < ii ; jj++ ){
+       jtt = itt - itrue[jj] ;
+            if( jtt == 1 ) rii[jj] = lam ;
+       else if( jtt >  1 ) rii[jj] = lam * powf( rho , jtt-1.0f ) ;
+     }
    }
 
    return rcm ;
