@@ -4400,7 +4400,8 @@ void RT_registration_3D_realtime( RT_input * rtin )
    for( tt=ttbot ; tt < ntt ; tt++ )
       RT_registration_3D_onevol( rtin , tt ) ;
 
-   if( rtin->mp != NULL && ntt > ttbot ){
+   /* even if user closed graph window, proceed if mp_tcp_use is set */
+   if( ntt > ttbot && (rtin->mp || rtin->mp_tcp_use) ){
       float        * yar[7] ;
       int            ycount = -6 ;
 
@@ -4431,7 +4432,8 @@ void RT_registration_3D_realtime( RT_input * rtin )
          yar[1] = rtin->reg_eval + ttbot;
       }
 
-      plot_ts_addto( rtin->mp , ntt-ttbot , yar[0] , ycount , yar+1 ) ;
+      if( rtin->mp )
+         plot_ts_addto( rtin->mp , ntt-ttbot , yar[0] , ycount , yar+1 ) ;
    }
 
    /*-- my work here is done --*/
