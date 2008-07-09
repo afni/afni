@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, JUL, 2008, RCR, "plug_realtime", MICRO, TYPE_MODIFY,
+   "if user closes graph window, allow comm with serial_helper to proceed",
+   NULL
+ } ,
+
  {  7, JUL, 2008, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
    "move extra newline from args_as_command to show_args_as_command",
    NULL
