@@ -348,6 +348,7 @@ void vector_subtract (vector a, vector b, vector * c);
 */
 
 void vector_multiply (matrix a, vector b, vector * c);
+void vector_multiply_transpose (matrix a, vector b, vector * c);
 
 /*---------------------------------------------------------------------------*/
 /*

@@ -1,3 +1,5 @@
+/******* This file is meant to be #include-d into another application! *******/
+
 #include "mrilib.h"
 
 #ifndef FLOATIZE
@@ -7,6 +9,11 @@
 # include "matrix_f.h"
 # define MTYPE float
 #endif
+
+/*****
+  Struct to hold a sparse square matrix that is either symmetric,
+  or upper or lower triangular.
+*****/
 
 typedef struct {
   int nrc ;        /* # of rows and columns */
@@ -18,16 +25,33 @@ typedef struct {
   ( (rr) != NULL && (rr)->len != NULL && (rr)->len[0] == 1 &&  \
                     (rr)->rc  != NULL && (rr)->rc[0]  != NULL )
 
+/*****
+  Struct to hold the information needed to compute
+  the REML log-likelihood for a given ARMA(1,1) case.
+*****/
+
 typedef struct {
   int neq , mreg ;
-  int cor_type , ncor_param ;
-  MTYPE *cor_param ;
+  MTYPE rho , lam ;
   rcmat  *cc ;
-  matrix *dd , *xx ;
+  matrix *dd ;
   MTYPE cc_logdet , dd_logdet ;
 } reml_setup ;
 
-#define COR_ARMA11 1
+/*****
+  Struct to hold the information needed for all
+  ARMA(1,1) cases, so that the best one can be found.
+*****/
+
+typedef struct {
+  int nset ;
+  matrix *X ;
+  reml_setup *rs ;
+} reml_collection ;
+
+/****************************************************************************/
+/****** Generic functions to process a sparse matrix in rcmat format. *******/
+/****************************************************************************/
 
 /*--------------------------------------------------------------------------*/
 /*! Create a rcmat struct, ready to be filled up. */
@@ -66,6 +90,7 @@ rcmat * rcmat_copy( rcmat *rcm )
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Delete a rcmat structure. */
 
 void rcmat_destroy( rcmat *rcm )
 {
@@ -84,14 +109,15 @@ void rcmat_destroy( rcmat *rcm )
 
 /*--------------------------------------------------------------------------*/
 /*! Consider a rcmat struct as a symmetric matrix, and
-    Choleski factor it in place.  Return value is 0 if all is OK. */
+    Choleski factor it in place.  Return value is 0 if all is OK.
+    A positive return indicates the row/column that had trouble. */
 
 int rcmat_choleski( rcmat *rcm )
 {
    int ii,jj,kk , nn , jbot,kbot ; short *len ;
    MTYPE sum , **rc , *rii , *rjj ;
 
-   if( !ISVALID_RCMAT(rcm) ) return -999999999 ;
+   if( !ISVALID_RCMAT(rcm) ) return 999999999 ;
 
    nn  = rcm->nrc ;
    rc  = rcm->rc ;
@@ -99,7 +125,7 @@ int rcmat_choleski( rcmat *rcm )
 
    for( ii=0 ; ii < nn ; ii++ ){
      if( len[ii] == 1 ){
-       if( rc[ii][0] <= 0.0 ) return -(ii+1) ;
+       if( rc[ii][0] <= 0.0 ) return (ii+1) ;
        rc[ii][0] = sqrt(rc[ii][0]) ; continue ;
      }
      jbot = ii - len[ii] + 1 ;
@@ -117,7 +143,7 @@ int rcmat_choleski( rcmat *rcm )
        if( jj < ii ){
          rii[jj] = sum / rjj[jj] ;
        } else {
-         if( sum <= 0.0 ) return -(ii+1) ;
+         if( sum <= 0.0 ) return (ii+1) ;
          rii[ii] = sqrt(sum) ;
        }
      }
@@ -178,37 +204,45 @@ void rcmat_uppert_solve( rcmat *rcm , MTYPE *vec )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Setup correlation matrix
+/*! Setup sparse correlation matrix
       [ 1 lam lam*rho lam*rho^2 lam*rho^3 ... ]
     which is the ARMA(1,1) model with the AR parameter a = rho,
     and the MA parameter b such that (b+a)*(1+a*b)/(1+2*a*b+b*b) = lam.
-    For reasonable models of FMRI noise, 0 < lam < rho < 1.
+    * For reasonable models of FMRI noise, 0 < lam < rho < 0.9.
+    * The maximum bandwidth of the matrix is chosen so that the last
+      correlation element is about 0.02.
+    * tau[i] is the 'true' time index of the i-th data point.  This
+      lets you allow for censoring and for inter-run gaps.
 *//*------------------------------------------------------------------------*/
 
-rcmat * rcmat_arma11( int nt, int *itrue, MTYPE rho, MTYPE lam )
+rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 {
    rcmat *rcm ;
    short *len ;
    MTYPE **rc , *rii ;
    int ii , jj , bmax , jbot , itt,jtt ;
 
-   if( nt < 2 || itrue == NULL || bmax < 1 ) return NULL ;
+   if( nt < 2 || tau == NULL || bmax < 1 ) return NULL ;
 
-   rcm = rcmat_init( nt ) ;
+   rcm = rcmat_init( nt ) ;  /* create sparse matrix struct */
    len = rcm->len ;
    rc  = rcm->rc ;
 
-        if( rho >  0.9f ) rho =  0.9f ;
-   else if( rho < -0.9f ) rho = -0.9f ;
+        if( rho >  0.9 ) rho =  0.9 ;  /* max allowed NN correlation */
+   else if( rho < -0.9 ) rho = -0.9 ;
+
+   /* set maximum bandwidth */
 
    if( lam > 0.0 ){
-     if( rho > 0.0 )
+     if( rho != 0.0 ) /* so that last element is about 0.02 */
        bmax = 1 + (int)ceil( log(0.02/lam) / log(fabsf(rho)) ) ;
      else
-       bmax = 1 ;
+       bmax = 1 ;     /* pure MA(1) case */
    } else {
-     bmax = 0 ;
+     bmax = 0 ;       /* identity matrix case */
    }
+
+   /* special case: identity matrix */
 
    if( bmax == 0 ){
      for( ii=0 ; ii < nt ; ii++ ){
@@ -217,27 +251,32 @@ rcmat * rcmat_arma11( int nt, int *itrue, MTYPE rho, MTYPE lam )
      return rcm ;
    }
 
+   /* First row/column has only 1 entry = diagonal value = 1 */
+
    len[0] = 1 ; rc[0] = malloc(sizeof(MTYPE)) ; rc[0][0] = 1.0 ;
 
+   /* Subsequent rows/columns: */
+
    for( ii=1 ; ii < nt ; ii++ ){
-     itt  = itrue[ii] ;
-     jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;
-     for( jj=jbot ; jj < ii ; jj++ ){
-       jtt = itt - itrue[jj] ; if( jtt <= bmax ) break ;
+     itt  = tau[ii] ;                            /* 'time' of the i'th index */
+     jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
+     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+       jtt = itt - tau[jj] ;                     /* 'time' difference i-to-j */
+       if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }
-     jbot = jj ;
-     if( jbot == ii ){
+     jbot = jj ;      /* this is the earliest index to be correlated with #i */
+     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
        len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
        continue ;
      }
-     len[ii] = ii + 1 - jbot ;
-     rc[ii]  = calloc(sizeof(MTYPE),len[ii]) ;
-     rii     = rc[ii] - jbot ;
-     rii[ii] = 1.0 ;
-     for( jj=jbot ; jj < ii ; jj++ ){
-       jtt = itt - itrue[jj] ;
-            if( jtt == 1 ) rii[jj] = lam ;
-       else if( jtt >  1 ) rii[jj] = lam * powf( rho , jtt-1.0 ) ;
+     len[ii] = ii + 1 - jbot ;            /* number of entries in row/column */
+     rc[ii]  = calloc(sizeof(MTYPE),len[ii]) ;      /* space for the entries */
+     rii     = rc[ii] - jbot ;         /* shifted pointer to this row/column */
+     rii[ii] = 1.0 ;                                       /* diagonal entry */
+     for( jj=jbot ; jj < ii ; jj++ ){        /* compute off diagonal entries */
+       jtt = itt - tau[jj] ;                      /* 'time' difference again */
+            if( jtt == 1 ) rii[jj] = lam ;               /* lag==1 means lam */
+       else if( jtt >  1 ) rii[jj] = lam * pow( rho , jtt-1.0 ) ;
      }
    }
 
@@ -245,8 +284,10 @@ rcmat * rcmat_arma11( int nt, int *itrue, MTYPE rho, MTYPE lam )
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Create the struct for REML calculations for a particular ARMA(1,1)
+    set of parameters, and for a particular regression matrix X.       */
 
-reml_setup * setup_arma11_reml( int nt, int *itrue,
+reml_setup * setup_arma11_reml( int nt, int *tau,
                                 MTYPE rho, MTYPE lam , matrix *X )
 {
    int ii , jj , mm ;
@@ -255,14 +296,15 @@ reml_setup * setup_arma11_reml( int nt, int *itrue,
    matrix *W , *D ;
    MTYPE *vec , csum,dsum,val ;
 
-   if( nt < 2 || itrue == NULL || X == NULL || X->rows != nt ) return NULL ;
+   if( nt < 2 || tau == NULL || X == NULL || X->rows != nt ) return NULL ;
 
-   mm = X->cols ;
+   mm = X->cols ;  /* number of regression parameters */
+   if( mm >= nt || mm <= 0 ) return NULL ;
 
    /* Form R = correlation matrix for ARMA(1,1) model */
 
-   rcm = rcmat_arma11( nt , itrue , rho , lam ) ;
-   if( rcm == NULL ) return NULL ;
+   rcm = rcmat_arma11( nt , tau , rho , lam ) ;
+   if( rcm == NULL ) return NULL ;  /* should not transpire */
 
    /* form C = Choleski factor of R (in place) */
 
@@ -272,46 +314,47 @@ reml_setup * setup_arma11_reml( int nt, int *itrue,
      rcmat_destroy(rcm); return NULL;
    }
 
-   /* prewhiten each column of X into W */
+   /* prewhiten each column of X into W matrix */
 
    matrix_initialize(W) ;
    matrix_create(nt,mm,W) ;
    vec = (MTYPE *)malloc(sizeof(MTYPE)*nt) ;
    for( jj=0 ; jj < X->cols ; jj++ ){
-     for( ii=0 ; ii < nt ; ii++ ) vec[ii] = X->elts[ii][jj] ;
-     rcmat_lowert_solve( rcm , vec ) ;
-     for( ii=0 ; ii < nt ; ii++ ) W->elts[ii][jj] = vec[ii] ;
+     for( ii=0 ; ii < nt ; ii++ ) vec[ii] = X->elts[ii][jj] ; /* extract col */
+     rcmat_lowert_solve( rcm , vec ) ;                          /* prewhiten */
+     for( ii=0 ; ii < nt ; ii++ ) W->elts[ii][jj] = vec[ii] ;  /* put into W */
    }
    free((void *)vec) ;
 
-   /* compute QR decomposition of W, save R factor into D */
+   /* compute QR decomposition of W, save R factor into D, toss W */
 
    matrix_initialize(D) ;
    matrix_qrr( *W , D ) ;
    matrix_destroy(W) ;
-   if( D->rows == 0 ){
+   if( D->rows <= 0 ){
      ERROR_message("matrix_qrr fails") ;
      matrix_destroy(D) ; rcmat_destroy(rcm) ; return NULL ;
    }
 
-   /* create the setup struct */
+   /* create the setup struct, save stuff into it */
 
    rset = (reml_setup *)malloc(sizeof(reml_setup)) ;
-   rset->neq          = nt ;
-   rset->mreg         = mm ;
-   rset->cor_type     = COR_ARMA11 ;
-   rset->ncor_param   = 2 ;
-   rset->cor_param    = (MTYPE *)malloc(sizeof(MTYPE)*2) ;
-   rset->cor_param[0] = rho ;
-   rset->cor_param[1] = lam ;
-   rset->cc           = rcm ;
-   rset->dd           = D ;
+   rset->neq  = nt ;
+   rset->mreg = mm ;
+   rset->rho  = rho ;
+   rset->lam  = lam ;
+   rset->cc   = rcm ;
+   rset->dd   = D ;
+
+   /* compute 2 * log det[D] */
 
    for( dsum=0.0,ii=0 ; ii < mm ; ii++ ){
      val = D->elts[ii][ii] ;
      if( val > 0.0 ) dsum += log(val) ;
    }
    rset->dd_logdet = 2.0 * dsum ;
+
+   /* and 2 * log det[C] */
 
    for( csum=0.0,ii=0 ; ii < nt ; ii++ ){
      jj  = rcm->len[ii] ;
@@ -323,7 +366,11 @@ reml_setup * setup_arma11_reml( int nt, int *itrue,
    return rset ;
 }
 
-MTYPE reml_func( vector *y , reml_setup *rset )
+/*--------------------------------------------------------------------------*/
+/*! Compute the REML -log(likelihood) function for a particular case,
+    given the case's setup and the data and the regression matrix X. */
+
+MTYPE reml_func( vector *y , reml_setup *rset , matrix *X )
 {
    int n=rset->neq , ii ;
    MTYPE val ;
@@ -335,26 +382,28 @@ MTYPE reml_func( vector *y , reml_setup *rset )
    vector_initialize(b5) ; vector_initialize(b6) ;
    vector_initialize(b7) ;
 
+   /** Seven steps to compute the prewhitened residuals */
+
    vector_equate( *y , b1 ) ;
-   rcmat_lowert_solve( rset->cc , b1->elts ) ;
+   rcmat_lowert_solve( rset->cc , b1->elts ) ;      /* b1 = C^(-T) y */
 
    vector_equate( *b1 , b2 ) ;
-   rcmat_uppert_solve( rset->cc , b2->elts ) ;
+   rcmat_uppert_solve( rset->cc , b2->elts ) ;      /* b2 = C^(-1) b1 */
 
-   vector_mutiply_transpose( rset->xx , *b2 , b3 ) ;
+   vector_mutiply_transpose( *X , *b2 , b3 ) ;      /* b3 = X^T b2 */
 
-   vector_rrtran_solve( *(rset->dd) , *b3 , b4 ) ;
+   vector_rrtran_solve( *(rset->dd) , *b3 , b4 ) ;  /* b4 = D^(-T) b3 */
 
-   vector_rr_solve( *(rset->dd) , *b4 , b5 ) ;
+   vector_rr_solve( *(rset->dd) , *b4 , b5 ) ;      /* b5 = D^(-1) b4 */
 
-   vector_multiply( *(rset->xx) , *b5 , b6 ) ;
+   vector_multiply( *X , *b5 , b6 ) ;               /* b6 = X b5 */
 
    vector_equate( *b6 , b7 ) ;
-   rcmat_lowert_solve( rset->cc , b7->elts ) ;
+   rcmat_lowert_solve( rset->cc , b7->elts ) ;      /* b7 = C^(-T) b6 */
 
-   vector_subtract( *b1 , *b7 , b2 ) ;
+   vector_subtract( *b1 , *b7 , b2 ) ;              /* result = b1 - b7 */
 
-   val = (n - rset->mreg) * vector_dotself(*b2)
+   val = (n - rset->mreg) * vector_dotself(*b2)     /* the REML function! */
         + rset->dd_logdet + rset->cc_logdet ;
 
    vector_destroy(b7) ; vector_destroy(b6) ;
@@ -363,4 +412,12 @@ MTYPE reml_func( vector *y , reml_setup *rset )
    vector_destroy(b1) ;
 
    return val ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static reml_collection *rcol = NULL ;
+
+void setup_reml_collection( matrix *X )
+{
 }
