@@ -1092,6 +1092,68 @@ void vector_multiply (matrix a, vector b, vector *c)
 
 /*---------------------------------------------------------------------------*/
 /*!
+  Right multiply matrix a-transpose by vector b.  Result is vector c.
+*/
+void vector_multiply_transpose (matrix a, vector b, vector * c)
+{
+  register int rows, cols;
+  register int i, j;
+  register float *bb ;
+  register float bj ;
+  register float *aa , *cc ;
+
+  if (a.rows != b.dim){
+    char str[444] ;
+    sprintf(str,
+            "Incompatible dimensions for vector_multiply_transpose: %dx%d X %d",
+            a.rows,a.cols,b.dim ) ;
+    matrix_error(str) ;
+  }
+
+  rows = a.rows; cols = a.cols;
+
+  vector_create(cols, c);  /* initialized to 0 */
+
+  if( rows <= 0 ) return ;
+
+  bb = b.elts ; cc = c->elts ;
+
+#ifdef UNROLL_VECMUL
+  switch( cols%2 ){
+    case 0:
+     for( j=0 ; j < rows ; j++ ){
+       aa = a.elts[j] ; bj = bb[j] ;
+       for( i=0 ; i < cols ; i+=2 ){
+         cc[i]   += aa[i]  *bj ;
+         cc[i+1] += aa[i+1]*bj ;
+       }
+     }
+    break ;
+
+    case 1:
+     for( j=0 ; j < rows ; j++ ){
+       aa = a.elts[j] ; bj = bb[j] ;
+       cc[0] += aa[0]*bj ;
+       for( i=1 ; i < cols ; i+=2 ){
+         cc[i]   += aa[i]  *bj ;
+         cc[i+1] += aa[i+1]*bj ;
+       }
+     }
+    break ;
+  }
+#else
+  for( j=0 ; j < rows ; j++ ){
+    aa = a.elts[j] ; bj = bb[j] ;
+    for( i=0 ; i < cols ; i++ ) cc[i] += aa[i]*bj ;
+  }
+#endif
+
+    return ;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*!
   Compute d = c-a*b: a is a matrix; b,c,d are vectors -- RWCox
   26 Feb 2002: return value is sum of squares of d vector
 */
