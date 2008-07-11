@@ -24,10 +24,15 @@ static char * g_history[] =
     "      - if 1 volume, GERT_Reco_dicom does not specify nt=1 in to3d\n",
     " 2.7  Mar 24, 2008 [rickr] - new GERT_Reco options\n"
     "      - added -gert_filename, -gert_nz, -gert_to3d_prefix (for D Glen)\n",
+    " 2.8  Jul 10, 2008 [rickr] - handle oblique datasets\n"
+    "      - pass oblique transform matrix to plug_realtime\n",
+    " 2.9  Jul 11, 2008 [rickr]\n"
+    "      - slight change in sleeping habits (no real effect)\n"
+    "      - pass all 16 elements of oblique transform matrix\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.7 (March 24, 2008)"
+#define DIMON_VERSION "version 2.9 (July 11, 2008)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -113,6 +118,12 @@ extern MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data );
 static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
 static int         sort_by_num_suff( char ** names, int nnames);
 
+/* oblique function protos */
+extern void   mri_read_dicom_reset_obliquity();
+extern int    mri_read_dicom_get_obliquity(float *, int);
+extern int    data_is_oblique(void);
+extern int    disp_obl_info(char * mesg);
+
 /*----------------------------------------------------------------------*/
 /* static function declarations */
 
@@ -137,7 +148,7 @@ static int find_next_zoff      ( param_t * p, int start, float zoff );
 static int init_extras         ( param_t * p, ART_comm * ac );
 static int init_options        ( param_t * p, ART_comm * a, int argc,
                                  char * argv[] );
-static int nap_time_from_tr    ( float tr );
+static int nap_time_in_ms      ( float, float );
 static int path_to_dir_n_suffix( char * dir, char * suff, char * path );
 static int read_ge_files       ( param_t * p, int start, int max );
 static int read_ge_image       ( char * pathname, finfo_t * fp,
@@ -224,12 +235,14 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 {
     int max_im_alloc = IFM_MAX_IM_ALLOC;
     int ret_val;
-    int sleep_secs = -1; /* has not been set from data yet */
+    int sleep_ms = -1; /* has not been set from data yet */
     int vs_state = 0;    /* state for volume search, can reset */
     int fl_start = 0;    /* starting offset into the current flist */
 
     if ( gD.level > 0 )                 /* status */
         fprintf( stderr, "-- scanning for first volume\n" );
+
+    mri_read_dicom_reset_obliquity();   /* to be sure */
 
     ret_val = 0;
     while ( ret_val == 0 )
@@ -255,13 +268,11 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
             if ( gD.level > 0 ) fprintf( stderr, "." );   /* status    */
 
             /* try to update nap time */
-            if( sleep_secs < 0 && p->nused > 0 )
-                sleep_secs = (p->opts.tr > 0) ? /* TR option overrides image */
-                                nap_time_from_tr(p->opts.tr) :
-                                nap_time_from_tr(p->flist->geh.tr);
+            if( sleep_ms < 0 && p->nused > 0 )
+                /* TR option overrides image */
+                sleep_ms = nap_time_in_ms(p->opts.tr, p->flist->geh.tr);
 
-            if( sleep_secs < 0 ) sleep( 4 );              /* nap time! */
-            else                 sleep(sleep_secs);
+            iochan_sleep(sleep_ms);
         }
         else if ( ret_val > 0 )         /* success - we have a volume! */
         {
@@ -275,6 +286,12 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                     disp_ftype("-d ftype: ", p->ftype);
                 }
             }
+
+            mri_read_dicom_get_obliquity(ac->oblique_xform, gD.level>1);
+            ac->is_oblique = data_is_oblique();
+            if( gD.level > 1 )
+                fprintf(stderr,"-- data is %soblique\n",
+                        ac->is_oblique ? "" : "not ");
 
             /* make sure there is enough memory for bad volumes */
             if ( p->nalloc < (4 * v->nim) )
@@ -344,7 +361,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     int   run, seq_num, next_im;
     int   fl_index;                     /* current index into p->flist    */
     int   naps;                         /* keep track of consecutive naps */
-    int   nap_time;                     /* sleep time, in seconds         */
+    int   nap_time;                     /* sleep time, in milliseconds    */
 
     if ( v0 == NULL || p == NULL )
     {
@@ -360,8 +377,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     fl_index = v0->fn_n + 1;            /* start looking past first volume */
     next_im  = v0->fn_n + 1;            /* for read_ge_files()             */
 
-    nap_time = (p->opts.tr > 0) ? nap_time_from_tr(p->opts.tr) :
-                                  nap_time_from_tr(v0->geh.tr);
+    nap_time = nap_time_in_ms(p->opts.tr, v0->geh.tr);
 
     if ( gD.level > 0 )                 /* status */
     {
@@ -394,7 +410,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 
             if ( (ret_val == 1) || (ret_val == -1) )
             {
-                if ( gD.level > 2 )
+                if ( gD.level > 3 )
                     idisp_vol_t( "-- new volume: ", &vn );
 
                 fl_index += vn.nim;             /* note the new position   */
@@ -411,6 +427,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 
                     if ( gD.level > 0 )
                         fprintf( stderr, "\n-- run %d: %d ", run, seq_num );
+                    if ( gD.level > 2 ) disp_obl_info("+d new run obl info: ");
                 }
                 else
                 {
@@ -469,7 +486,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                     fprintf( stderr, ". " );
             }
 
-            sleep( nap_time );          /* wake after a couple of TRs */
+            iochan_sleep( nap_time );   /* wake after a couple of TRs */
             naps ++;
 
             ret_val = read_ge_files( p, next_im, p->nalloc );
@@ -965,7 +982,7 @@ static int check_error( int * retry, float tr, char * note )
 
         *retry = 0;
                                 /* use tr option, if given */
-        sleep( nap_time_from_tr(gP.opts.tr > 0 ? gP.opts.tr : tr) );
+        iochan_sleep( nap_time_in_ms(gP.opts.tr, tr) );
         return 0;
     }
 
@@ -1172,7 +1189,7 @@ static int scan_ge_files (
                     return -1;
             }
 
-            if ( gD.level > 1 )
+            if ( gD.level > 2 )
                 fprintf( stderr, "++ allocated image %d at address %p\n",
                          im_num, p->im_store.im_ary[im_num] );
         }
@@ -1212,7 +1229,7 @@ static int scan_ge_files (
             p->im_store.nused++;        /* keep track of used images     */
             fp->index = fnum;           /* store index into fnames array */
 
-            if ( gD.level > 2 )
+            if ( gD.level > 3 )
             {
                 idisp_ge_header_info( p->fnames[fp->index], &fp->geh );
                 idisp_ge_extras( p->fnames[fp->index], &fp->gex );
@@ -3716,24 +3733,28 @@ static int show_run_stats( stats_t * s )
 
 
 /* ----------------------------------------------------------------------
- * given tr, compute a sleep time of approximate 2*TR
+ * given tr (in seconds), return a sleep time in ms (approx. 2*TR)
+ *
+ * pass 2 potential trs, and apply the first positive one, else use 4s
  * ----------------------------------------------------------------------
 */
-static int nap_time_from_tr( float tr )
+static int nap_time_in_ms( float t1, float t2 )
 {
-    float tr2 = 2 * tr;
+    float tr;           /* TR, in seconds */
     int   nap_time;
 
-    if ( tr2 < 1 )
-        return 1;
+    if     ( t1 > 0.0 ) tr = t1;
+    else if( t2 > 0.0 ) tr = t2;
+    else                tr = 4.0;
 
-    if ( tr2 > 30 )
-        return 30;                      /* ??? tres big */
+    nap_time = (int)(2000.0*tr + 0.5);          /* convert to 2 TRs, in ms */
 
-    nap_time = (int)(tr2 + 0.9);
+    if ( nap_time < 10 )    return 10;          /* 10 ms is minimum */
+
+    if ( nap_time > 30000 ) return 30000;       /* 30 sec is maximum */
 
     if ( gD.level > 1 )
-        fprintf(stderr,"-d computed nap_time is %d seconds (TR = %.2f)\n",
+        fprintf(stderr,"-d computed nap_time is %d ms (TR = %.2f)\n",
                 nap_time, tr );
 
     return( nap_time );
@@ -3772,7 +3793,7 @@ static int find_next_zoff( param_t * p, int start, float zoff )
 /* ----------------------------------------------------------------------
  * Given:  run     > 0
  *         seq_num > 0
- *         naps
+ *         naps_time    in ms
  *
  * If naps is too big, and the run is incomplete, print an obnoxious
  * warning message to the user.
@@ -3824,7 +3845,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
                      "    first file of this run : %s\n"
                      "****************************************************\n",
                      run, seq_num, gS.nvols,
-                     naps*nap_time, gS.runs[run].f1name );
+                     naps*nap_time/1000, gS.runs[run].f1name );
 
             prev_run = run;
             prev_seq = seq_num;
