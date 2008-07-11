@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, JUL, 2008, RCR, "Dimon", MICRO, TYPE_MODIFY,
+   "include last 4 elements of obl_matrix, even though probably useless",
+   NULL
+ } ,
+
+ { 10, JUL, 2008, RCR, "plug_realtime", MAJOR, TYPE_MODIFY,
+   "receive oblique transform matrix via new OBLIQUE_XFORM interface",
+   NULL
+ } ,
+
+ { 10, JUL, 2008, RCR, "Dimon", MAJOR, TYPE_MODIFY,
+   "if the data is oblique, pass the transformation matrix to plug_realtime",
+   NULL
+ } ,
+
  {  9, JUL, 2008, RCR, "plug_realtime", MICRO, TYPE_MODIFY,
    "if user closes graph window, allow comm with serial_helper to proceed",
    NULL

@@ -238,6 +238,10 @@ typedef struct {
    
 #endif
 
+   /*-- Jul 2008 [rickr]: for oblique data                                 --*/
+   int           is_oblique ;     /* flag: is the dataset oblique            */
+   float         oblique_mat[16]; /* oblique tranformation matrix            */
+
    double elapsed , cpu ;         /* times */
    double last_elapsed ;
    int    last_nvol ;
@@ -390,7 +394,7 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
     "None" , "2D: realtime" , "2D: at end"
            , "3D: realtime" , "3D: at end" , "3D: estimate" } ;
 
-  static char * REG_strings_ENV[NREG] = {  /* ' ' -> '_'  17 May 2005 [rickr */
+  static char * REG_strings_ENV[NREG] = { /* ' ' -> '_'  17 May 2005 [rickr] */
     "None" , "2D:_realtime" , "2D:_at_end"
            , "3D:_realtime" , "3D:_at_end" , "3D:_estimate" } ;
 
@@ -1608,6 +1612,9 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mask_aves  = NULL ;      /*                    10 Nov 2006 [rickr] */
    rtin->mask_nvals = 0 ;
 
+   rtin->is_oblique = 0 ;         /* oblique info       10 Jul 2008 [rickr] */
+   memset(rtin->oblique_mat, 0, sizeof(rtin->oblique_mat)) ;
+
    rtin->reg_resam = REG_resam_ints[reg_resam] ;
    if( rtin->reg_resam < 0 ){                    /* 20 Nov 1998: */
       rtin->reg_resam       = MRI_HEPTIC ;       /* special case */
@@ -1888,7 +1895,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
         for ( c = 0; c < nvals; c++ )   /* for each block */
         {
             for ( c2 = 0; c2 < 6; c2++ )                /* send 6 mp params */
-            data[bsize*mpindex+c2] = mp[c2][mpindex];
+                data[bsize*mpindex+c2] = mp[c2][mpindex];
 
             /* and process mask, if desired */
             if( rtin->mask && ! RT_get_mask_aves(rtin, sub+mpindex) )
@@ -2593,6 +2600,21 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          else
                 BADNEWS ;
 
+      } else if( STARTER("OBLIQUE_XFORM") ){     /* 10 Jul 2008 */
+         sscanf( buf , "OBLIQUE_XFORM %f %f %f %f %f %f %f %f %f %f %f %f",
+             rtin->oblique_mat+0, rtin->oblique_mat+ 1, rtin->oblique_mat+ 2,
+             rtin->oblique_mat+3, rtin->oblique_mat+ 4, rtin->oblique_mat+ 5,
+             rtin->oblique_mat+6, rtin->oblique_mat+ 7, rtin->oblique_mat+ 8,
+             rtin->oblique_mat+9, rtin->oblique_mat+10, rtin->oblique_mat+11);
+        rtin->oblique_mat[12] = 0.0; /* fill (no need to transfer this) */
+        rtin->oblique_mat[13] = 0.0;
+        rtin->oblique_mat[14] = 0.0;
+        rtin->oblique_mat[15] = 1.0;
+        rtin->is_oblique = 1;
+
+        if( verbose == 2 )
+           fprintf(stderr,"RT: %s\n", buf);
+
       } else if( STARTER("DRIVE_AFNI") ){   /* 30 Jul 2002 */
          char cmd[1024]="\0" ;
          int ii ;
@@ -2968,7 +2990,7 @@ void RT_start_dataset( RT_input * rtin )
             }
          }
          /* make sequential a terminating case     10 May 2005 [rickr] */
-         /* else if( rtin->zorder == ZORDER_SEQ ){                     */
+         /* else if( rtin->zorder == ZORDER_SEQ )                      */
          /* ... more tpatterns may be added above here                 */
          else {
             tsl = 0.0 ;
@@ -2991,6 +3013,12 @@ void RT_start_dataset( RT_input * rtin )
 
          free( tpattern ) ;
       }
+
+      /*****************************************************************/
+      /** add oblique information, if supplied    10 Jul 2008 [rickr] **/
+      if( rtin->is_oblique )
+         memcpy(rtin->dset[cc]->daxes->ijk_to_dicom_real.m,
+                rtin->oblique_mat, 16*sizeof(float));
 
       rtin->afni_status[cc] = 0 ;  /* uninformed at this time */
       DSET_lock(rtin->dset[cc]) ;  /* 20 Mar 1998 */

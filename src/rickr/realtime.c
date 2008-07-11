@@ -346,6 +346,8 @@ int ART_init_AC_struct( ART_comm * ac )
     if ( ac == NULL )
         return -1;
 
+    memset(ac, 0, sizeof(ART_comm));
+
     ac->state       = ART_STATE_NO_USE;
     ac->mode        = 0;
     ac->use_tcp     = 1;
@@ -473,6 +475,22 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     {
         sprintf( tbuf, "BYTEORDER %s", (ac->byte_order == LSB_FIRST) ?
                  "LSB_FIRST" : "MSB_FIRST" );
+        ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
+    /* OBLIQUE_XFORM interface - send if data is marked as oblique */
+    if ( ac->is_oblique )
+    {
+        sprintf( tbuf,
+            "OBLIQUE_XFORM %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+                 ac->oblique_xform[0],  ac->oblique_xform[1], 
+                 ac->oblique_xform[2],  ac->oblique_xform[3], 
+                 ac->oblique_xform[4],  ac->oblique_xform[5], 
+                 ac->oblique_xform[6],  ac->oblique_xform[7], 
+                 ac->oblique_xform[8],  ac->oblique_xform[9], 
+                 ac->oblique_xform[10], ac->oblique_xform[11],
+                 ac->oblique_xform[12], ac->oblique_xform[13],
+                 ac->oblique_xform[14], ac->oblique_xform[15] );
         ART_ADD_TO_BUF( ac->buf, tbuf );
     }
 
@@ -635,6 +653,8 @@ void ART_exit( void )
 */
 int ART_idisp_ART_comm( char * info, ART_comm * ac )
 {
+    int i, j;
+
     if ( info )
         fputs( info, stdout );
 
@@ -648,13 +668,25 @@ int ART_idisp_ART_comm( char * info, ART_comm * ac )
             "   (state, mode)   = (%d, %d)\n"
             "   (use_tcp, swap) = (%d, %d)\n"
             "   byte_order      = %d\n"
+            "   is_oblique      = %d\n"
             "   zorder          = %s\n"
             "   host            = %s\n"
             "   ioc_name        = %s\n"
             "   (ioc, param)    = (0x%p, 0x%p)\n",
             ac, ac->state, ac->mode, ac->use_tcp, ac->swap, ac->byte_order,
+            ac->is_oblique,
             CHECK_NULL_STR(ac->zorder), CHECK_NULL_STR(ac->host),
             CHECK_NULL_STR(ac->ioc_name), ac->ioc, ac->param );
+
+    if( ac->is_oblique ) {
+        printf("   oblique_xform:\n");
+        for(i = 0; i < 4; i++) {
+            printf("       ");
+            for(j=0; j<4; j++)
+                fprintf(stderr,"%10.4f  ", ac->oblique_xform[4*i+j]);
+            fputc('\n', stderr);
+        }
+    }
 
     return 0;
 }
@@ -688,5 +720,7 @@ static char orient_side_rai( float coord, char dir )
     if ( d == 'R' || d == 'L' ) return( coord < 0 ? 'R' : 'L' );
     if ( d == 'A' || d == 'P' ) return( coord < 0 ? 'A' : 'P' );
     if ( d == 'I' || d == 'S' ) return( coord < 0 ? 'I' : 'S' );
+
+    return 'R';  /* default */
 }
 

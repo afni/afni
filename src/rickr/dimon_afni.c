@@ -7,6 +7,7 @@
 
 #include "mri_image.h"
 #include "mri_dicom_hdr.h"
+#include "vecmat.h"
 #include "Amalloc.h"
 #include "dbtrace.h"
 
@@ -106,11 +107,47 @@ void swap_fourbytes( int nvals, void * data )
 }
 
 /*--------------------------------------------------------------------*/
+/* Daniel's oblique code, lifted from mri_read_dicom.c                */
+typedef struct {
+   THD_fvec3 xvec, yvec;            /* Image Orientation fields */
+   THD_fvec3 dfpos1;                /* image origin for first two slices*/
+   THD_fvec3 dfpos2;
+   THD_fvec3 del;                   /* voxel dimensions */
+   int mosaic;                      /* data is mosaic */
+   int mos_ix, mos_nx, mos_ny, mos_nslice; /* mosaic properties */
+   int nx, ny;                      /* overall mosaic dimensions */
+   float Tr_dicom[4][4];            /* transformation matrix */
+   float slice_xyz[2][3];           /* coordinates for 1st and last slices */
+   int mos_sliceinfo;               /* flag for existence of coordinate info */
+} oblique_info;
+
+oblique_info obl_info;
+static int g_data_is_oblique = 0;
+static int obl_info_set = 0;
+
+static float *ComputeObliquity(oblique_info *obl_info);
+static int    CheckObliquity(float, float, float, float, float, float);
+static void   Clear_obl_info(oblique_info *obl_info);
+static void   Fill_obl_info(oblique_info *, char **);
+static float  get_dz(  char **epos);
+
+void   mri_read_dicom_reset_obliquity();
+int    mri_read_dicom_get_obliquity(float *, int);
+int    data_is_oblique(void);
+int    disp_obl_info(char * mesg);
+
+#undef  ALMOST
+#define ALMOST(a,b) ( fabs(a-b) < 0.0001 )
+#undef  SFLT
+#define SFLT(p) ((float)strtod((p),NULL))   /* scan for a float */
+
+
+/*--------------------------------------------------------------------*/
 /* useful Dicom information that is not stored in an MRI_IMAGE struct */
 struct dimon_stuff_t {
    int study, series, image;
 } gr_dimon_stuff;
-
+static int g_debug = 0;
 /*-------------------------------------------------------------------------*/
 
 static int LITTLE_ENDIAN_ARCHITECTURE = -1 ;
@@ -287,10 +324,11 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
 
    float dxx,dyy,dzz ;
 
-   char *eee ;
    float rescale_slope=0.0 , rescale_inter=0.0 ;  /* 23 Dec 2002 */
 
    ENTRY("mri_read_dicom") ;
+
+   g_debug = debug;     /* store for global access */
 
    if( !mri_possibly_dicom(fname) )
    {
@@ -412,11 +450,11 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
      if( bs != hb+1 ){
        static int nwarn=0 ;
        if( nwarn < NWMAX )
-         fprintf(stderr,
-                 "++ DICOM WARNING: file %s has Bits_Stored=%d and High_Bit=%d\n",
-                 fname,bs,hb) ;
+          fprintf(stderr, "++ DICOM WARNING: file %s has Bits_Stored=%d and "
+                          "High_Bit=%d\n", fname,bs,hb) ;
        if( nwarn == NWMAX )
-         fprintf(stderr,"++ DICOM WARNING: no more Bits_Stored messages will be printed\n") ;
+          fprintf(stderr, "++ DICOM WARNING: no more Bits_Stored "
+                          "messages will be printed\n") ;
        nwarn++ ;
      }
    }
@@ -532,76 +570,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
      }
    }
 
-   /*-- 27 Nov 2002: fix stupid GE error,
-                     where the slice spacing is really the slice gap --*/
-
-   { int stupid_ge_fix , no_stupidity ;
-     float sp=0.0 , th=0.0 ;
-     static int nwarn=0 ;
-                                                           /* 03 Mar 2003 */
-     eee           = getenv("AFNI_SLICE_SPACING_IS_GAP") ;
-     stupid_ge_fix = (eee != NULL && (*eee=='Y' || *eee=='y') );
-     no_stupidity  = (eee != NULL && (*eee=='N' || *eee=='n') );
-
-     if( epos[E_SLICE_SPACING] != NULL ){    /* get reported slice spacing */
-       ddd = strstr(epos[E_SLICE_SPACING],"//") ;
-       if( ddd != NULL ) sscanf( ddd+2 , "%f" , &sp ) ;
-     }
-     if( epos[E_SLICE_THICKNESS] != NULL ){  /* get reported slice thickness */
-       ddd = strstr(epos[E_SLICE_THICKNESS],"//") ;
-       if( ddd != NULL ) sscanf( ddd+2 , "%f" , &th ) ;
-     }
-
-     if(debug>3) fprintf(stderr,"-d dicom: thick, spacing = %f, %f\n", th, sp);
-
-     th = fabs(th) ; sp = fabs(sp) ;         /* we don't use the sign */
-
-     if( stupid_ge_fix ){                    /* always be stupid */
-       dz = sp+th ;
-     } else {
-
-       if( no_stupidity && sp > 0.0 )        /* 13 Jan 2004: if 'NO', then */
-         dz = sp ;                           /* always use spacing if present */
-       else
-         dz = (sp > th) ? sp : th ;          /* the correct-ish DICOM way */
-
-#define GFAC 0.99
-
-       if( !no_stupidity ){                 /* unless stupidity is turned off */
-         if( sp > 0.0 && sp < GFAC*th ) dz = sp+th;/* the stupid GE way again */
-
-         if( sp > 0.0 && sp < GFAC*th && nwarn < NWMAX ){
-           fprintf(stderr,
-                   "++ DICOM WARNING: file %s has Slice_Spacing=%f smaller than Slice_Thickness=%f\n",
-                   fname , sp , th ) ;
-           if( nwarn == 0 )
-            fprintf(stderr,
-              "\n"
-      "++  Setting environment variable AFNI_SLICE_SPACING_IS_GAP       ++\n"
-      "++   to YES will make the center-to-center slice distance        ++\n"
-      "++   be set to Slice_Spacing+Slice_Thickness=%6.3f.             ++\n"
-      "++  This is against the DICOM standard [attribute (0018,0088)    ++\n"
-      "++   is defined as the center-to-center spacing between slices,  ++\n"
-      "++   NOT as the edge-to-edge gap between slices], but it seems   ++\n"
-      "++   to be necessary for some GE scanners.                       ++\n"
-      "++                                                               ++\n"
-      "++  This correction has been made on this data: dz=%6.3f.       ++\n"
-      "++                                                               ++\n"
-      "++  Setting AFNI_SLICE_SPACING_IS_GAP to NO means that the       ++\n"
-      "++  DICOM Slice_Spacing variable will be used for dz, replacing  ++\n"
-      "++  the Slice_Thickness variable.  This usage may be required    ++\n"
-      "++  for some pulse sequences on Phillips scanners.               ++\n"
-              "\n\a" ,
-             sp+th , dz ) ;
-         }
-         if( sp > 0.0 && sp < th && nwarn == NWMAX )
-           fprintf(stderr,"++ DICOM WARNING: no more Slice_Spacing messages will be printed\n") ;
-         nwarn++ ;
-       }
-     }
-     if( dz == 0.0 && dx != 0.0 ) dz = 1.0 ;               /* nominal dz */
-
-   } /*-- end of dz code, with all its stupidities --*/
+   dz = get_dz(epos);
 
    if(debug > 3) fprintf(stderr,"-d dicom: using dxyz = %f, %f, %f\n",dx,dy,dz);
 
@@ -762,6 +731,11 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
 
          xc1 /= xn ; xc2 /= xn ; xc3 /= xn ;      /* normalize vectors */
          yc1 /= yn ; yc2 /= yn ; yc3 /= yn ;
+
+         if(!obl_info_set) {
+            if( CheckObliquity(xc1, xc2, xc3, yc1, yc2, yc3) )
+                fprintf(stderr, "Data detected to be oblique\n");
+         }
 
          if( !use_DI_MRL_xcos ){
            DI_MRL_xcos[0] = xc1 ; DI_MRL_xcos[1] = xc2 ;  /* save direction */
@@ -1029,7 +1003,387 @@ fprintf(stderr,"  nzoff=1 kor=%d qoff=%f\n",kor,qoff) ;
      }
    }
 
+   if(obl_info_set<2) Fill_obl_info(&obl_info, epos);
+
    free(ppp);  /* free the ASCII header */
 
    RETURN( im );
 }
+
+/*--------------------------------------------------------------------*/
+/* Daniel's oblique functions, lifted from mri_read_dicom.c           */
+
+/* clear oblique information structure */
+static void Clear_obl_info(oblique_info *obl_info)
+{
+   int i,j;
+
+   if( g_debug > 3 ) fprintf(stderr,"-- clearing oblique_info struct\n");
+
+   LOAD_FVEC3(obl_info->dfpos1,0.0,0.0,0.0);
+   LOAD_FVEC3(obl_info->dfpos2,0.0,0.0,0.0);
+   LOAD_FVEC3(obl_info->del,0.0,0.0,0.0);
+   LOAD_FVEC3(obl_info->xvec,0.0,0.0,0.0);
+   LOAD_FVEC3(obl_info->yvec,0.0,0.0,0.0);
+   obl_info->mosaic = 0;
+   obl_info->mos_ix = obl_info->mos_nx = obl_info->mos_ny =
+      obl_info->mos_nslice = 1;
+   obl_info->nx = obl_info->ny = 1;
+   obl_info_set = 0;
+   /* make all elements zero flagging it hasn't been computed yet */
+   /* lower right corner of valid MAT44 matrix is 1.0, so this is invalid */
+   for(i=0;i<4;i++) {
+      for(j=0;j<4;j++) {
+            obl_info->Tr_dicom[i][j] = 0.0;
+      }
+   }
+
+   g_data_is_oblique = 0;
+}
+
+/* fill oblique information structure */
+static void Fill_obl_info(oblique_info *obl_info, char **epos)
+{
+    float *xyz ; int qq ;
+    char *ddd;
+    float dx, dy, dz;
+    int ii;
+    THD_fvec3 xc, yc;
+
+    if( g_debug > 3 ) fprintf(stderr,"-- filling oblique_info struct\n");
+
+    ENTRY("Fill_obl_info");
+    if(obl_info_set) /* if already set all parameters for first slice */
+       xyz = obl_info->dfpos2.xyz;   /* need ImagePosition for 2nd slice */
+    else
+       xyz = obl_info->dfpos1.xyz;
+
+    if(epos[E_IMAGE_POSITION] != NULL ){   /* origin position of slice */
+      ddd = strstr(epos[E_IMAGE_POSITION],"//") ;
+      if( ddd != NULL ){
+        qq = sscanf(ddd+2,"%f\\%f\\%f",xyz,xyz+1,xyz+2) ;
+      }
+    }
+
+    if(obl_info_set) {
+       if( g_debug > 2 ) fprintf(stderr,"-- obl_info_set: 1 --> 2\n");
+       if( g_debug > 3 ) {
+           xyz = obl_info->dfpos1.xyz;
+           fprintf(stderr,"++ obl dfposn1: %.4f %.4f %.4f\n",
+                   xyz[0], xyz[1], xyz[2]);
+           xyz = obl_info->dfpos2.xyz;
+           fprintf(stderr,"++ obl dfposn2: %.4f %.4f %.4f\n",
+                   xyz[0], xyz[1], xyz[2]);
+       }
+       obl_info_set = 2;
+       EXRETURN;
+    }
+
+    if( epos[E_PIXEL_SPACING] != NULL ){
+      ddd = strstr(epos[E_PIXEL_SPACING],"//") ;
+      if( ddd != NULL ) sscanf( ddd+2 , "%f\\%f" , &dx , &dy ) ;
+      if( dy == 0.0 && dx > 0.0 ) dy = dx ;
+    }
+
+   dz = get_dz(epos);
+
+   /* set voxel sizes */
+   LOAD_FVEC3(obl_info->del, dx, dy, dz);
+
+   if(epos[E_IMAGE_ORIENTATION] != NULL ){
+     ddd = strstr(epos[E_IMAGE_ORIENTATION],"//") ;
+     if( ddd != NULL ){
+       qq = sscanf(ddd+2,"%f\\%f\\%f\\%f\\%f\\%f",
+          &xc.xyz[0], &xc.xyz[1], &xc.xyz[2],
+          &yc.xyz[0], &yc.xyz[1], &yc.xyz[2]);
+       /* check if both vectors OK */
+       if( qq == 6 && SIZE_FVEC3(xc) > 0.0 && SIZE_FVEC3(yc) > 0.0 ){
+          NORMALIZE_FVEC3(xc);
+          NORMALIZE_FVEC3(yc);
+
+          /* if the values are close to 0 or 1 make it so */
+          for(ii=0;ii<3;ii++) {
+             if(ALMOST(xc.xyz[ii],0.0))
+                xc.xyz[ii] = 0.0;
+             if(ALMOST(xc.xyz[ii],1.0))
+                xc.xyz[ii] = 1.0;
+             if(ALMOST(xc.xyz[ii],-1.0))
+                xc.xyz[ii] = -1.0;
+             if(ALMOST(yc.xyz[ii],0.0))
+                yc.xyz[ii] = 0.0;
+             if(ALMOST(yc.xyz[ii],1.0))
+                yc.xyz[ii] = 1.0;
+             if(ALMOST(yc.xyz[ii],-1.0))
+                yc.xyz[ii] = -1.0;
+
+          }
+          obl_info->xvec = xc;
+          obl_info->yvec = yc;
+       }
+     }
+   }
+
+   if( g_debug > 2 ) fprintf(stderr,"++ obl_info_set: pass 1 done\n");
+
+   obl_info_set = 1;
+}
+
+/* check if data is oblique by using the vectors from the
+ * ImageOrientation field */
+static int CheckObliquity(float xc1, float xc2, float xc3, float yc1,
+                                                float yc2, float yc3)
+{
+   g_data_is_oblique = 0;
+   /* any values not 1 or 0 or really close mean the data is oblique */
+   if ((!ALMOST(fabs(xc1),1.0) && !ALMOST(xc1,0.0)) ||
+       (!ALMOST(fabs(xc2),1.0) && !ALMOST(xc2,0.0)) ||
+       (!ALMOST(fabs(xc3),1.0) && !ALMOST(xc3,0.0)) ||
+       (!ALMOST(fabs(yc1),1.0) && !ALMOST(yc1,0.0)) ||
+       (!ALMOST(fabs(yc2),1.0) && !ALMOST(yc2,0.0)) ||
+       (!ALMOST(fabs(yc3),1.0) && !ALMOST(yc3,0.0)) )
+      g_data_is_oblique = 1;
+
+   if( g_debug > 1 )
+        fprintf(stderr,"++ CheckObliquity: %s\n",
+                g_data_is_oblique ? "yes" : "no");
+
+   return(g_data_is_oblique);
+}
+
+int data_is_oblique(void)
+{
+    return g_data_is_oblique;
+}
+
+/* mod -16 May 2007 */
+/* compute Tr transformation matrix for oblique data */
+/* 16 element float array */
+static float *ComputeObliquity(oblique_info *obl_info)
+{
+/*   THD_fvec3 vec1, vec2;*/
+   THD_fvec3 vec3, vec4, vec5, vec6, dc1, dc2, dc3, dc4 ;
+/*   double dotp, angle, aangle;*/
+   float fac;
+
+   ENTRY("ComputeObliquity");
+
+   if( g_debug > 3 ) fprintf(stderr,"++ ComputeObliquity...\n");
+
+   /* compute cross product of image orientation vectors*/
+   vec3 = CROSS_FVEC3(obl_info->xvec, obl_info->yvec);
+
+   /* compute dfpos (difference between first and second
+      ImagePositionPatient fields as a vector */
+   vec4 = SUB_FVEC3(obl_info->dfpos2, obl_info->dfpos1);
+   /* scale directions by voxel sizes*/
+    dc1 = SCALE_FVEC3(obl_info->xvec, obl_info->del.xyz[0]);
+    dc2 = SCALE_FVEC3(obl_info->yvec, obl_info->del.xyz[1]);
+    dc3 = SCALE_FVEC3(vec3, obl_info->del.xyz[2]);
+
+   /* if not Siemens mosaic this should be enough (GE for instance)*/
+   if(!obl_info->mosaic) {
+      vec5 = NORMALIZE_FVEC3(vec4);
+      vec6 = NORMALIZE_FVEC3(dc3);
+      fac = DOT_FVEC3(vec5, vec6);
+      if(fac==0){
+         fprintf(stderr,
+                 "** Bad DICOM header - assuming oblique scaling direction");
+         fac = 1;
+      }
+      else {
+         if(ALMOST(fac, 1.0))
+            fac = 1.0;
+         if(ALMOST(fac, -1.0))
+            fac = -1.0;
+
+         if((fac!=1)&&(fac!=-1)) {
+             fprintf(stderr,"** Image Positions not in same direction as"
+                     " cross product vector: %f", fac);
+         }
+
+         if(fac >0) fac = 1;
+         else fac = -1;
+      }
+    }
+    else fac = 1;
+    /* switch direction of normal vector by factor */
+    dc4 = SCALE_FVEC3(dc3, fac);
+
+   /*   Tr = malloc(16 * sizeof(float));*/
+   /*   *Tr = dc1.xyz[0]; *(Tr+4) = dc1.xyz[1]; *(Tr+8) = dc1.xyz[2];*/
+   obl_info->Tr_dicom[0][0] = dc1.xyz[0];
+   obl_info->Tr_dicom[1][0] = dc1.xyz[1];
+   obl_info->Tr_dicom[2][0] = dc1.xyz[2];
+
+   /*   *(Tr+1) = dc2.xyz[0]; *(Tr+5) = dc2.xyz[1]; *(Tr+9) = dc2.xyz[2];*/
+   obl_info->Tr_dicom[0][1] = dc2.xyz[0];
+   obl_info->Tr_dicom[1][1] = dc2.xyz[1];
+   obl_info->Tr_dicom[2][1] = dc2.xyz[2];
+
+   /*   *(Tr+2) = dc4.xyz[0]; *(Tr+6) = dc4.xyz[1]; *(Tr+10) = dc4.xyz[2];*/
+   obl_info->Tr_dicom[0][2] = dc4.xyz[0];
+   obl_info->Tr_dicom[1][2] = dc4.xyz[1];
+   obl_info->Tr_dicom[2][2] = dc4.xyz[2];
+
+   /*   *(Tr+3) = obl_info->dfpos1.xyz[0]; *(Tr+7) = obl_info->dfpos1.xyz[1];
+        *(Tr+11) = obl_info->dfpos1.xyz[2];*/
+   obl_info->Tr_dicom[0][3] = obl_info->dfpos1.xyz[0];
+   obl_info->Tr_dicom[1][3] = obl_info->dfpos1.xyz[1];
+   obl_info->Tr_dicom[2][3] = obl_info->dfpos1.xyz[2];
+   /*   *(Tr+12) = *(Tr+13) = *(Tr+14) = 0.0; *(Tr+15) = 1.0;*/
+   obl_info->Tr_dicom[3][0] = 0; obl_info->Tr_dicom[3][1] = 0;
+   obl_info->Tr_dicom[3][2] = 0; obl_info->Tr_dicom[3][3] = 1.0;
+
+   if( g_debug > 3 ) disp_obl_info("++ ComputeObliquity xform: ");
+
+   /*** if not a mosaic, we're done ***/
+   /* if(!obl_info->mosaic) */
+   RETURN(&(obl_info->Tr_dicom[0][0]));
+}
+
+/* externally available function to reset oblique info */
+void mri_read_dicom_reset_obliquity()
+{
+   Clear_obl_info(&obl_info);
+}
+
+/* externally available function to compute oblique transformation */
+/* and store resulting matrix in 16 element float array */
+/* new: return 1 if we are oblique, else 0 if we are not ready */
+int mri_read_dicom_get_obliquity(float *Tr, int verb)
+{
+   float *fptr;
+   int i,j;
+
+   fptr = Tr;
+
+   /* if even partially filled in, compute transformation */
+   if(obl_info_set)
+     ComputeObliquity(&obl_info);
+
+   if( verb ) fprintf(stderr,"-- MRDGO: obl_info_set = %d\n", obl_info_set);
+
+   if( !obl_info_set ) return 1;
+
+   /* only compute it if we are passed a pointer */
+   if( fptr )
+       for(i = 0; i < 4; i++)
+          for(j = 0; j < 4; j++)
+              *fptr++ = obl_info.Tr_dicom[i][j];
+
+   if( verb ) disp_obl_info("++ MRD_get_obl xform: ");
+
+   return 0;
+}
+
+int disp_obl_info(char * mesg)
+{
+    int i, j;
+    if( mesg ) fputs(mesg, stderr);
+
+    if(! obl_info_set) {
+        fprintf(stderr,"** oblique info not set\n");
+        return 1;
+    }
+
+    fprintf(stderr,"oblique info set\n");
+
+    for(i = 0; i < 4; i++) {
+        fprintf(stderr,"    ");
+        for(j=0; j<4; j++) fprintf(stderr,"%10.4f  ", obl_info.Tr_dicom[i][j]);
+        fputc('\n', stderr);
+    }
+
+    return 0;
+}
+
+/*---------- compute slice thickness from DICOM header ----------*/
+
+static float get_dz(char **epos)
+{
+  int stupid_ge_fix , no_stupidity ;
+  float sp=0.0 , th=0.0, dz = 0.0 ;
+  static int nwarn=0, check_env=1;
+  static char * eee=NULL;
+  char *ddd ;
+
+  if(!check_env) { eee = getenv("AFNI_SLICE_SPACING_IS_GAP") ; check_env = 0; }
+  stupid_ge_fix = (eee != NULL && (*eee=='Y' || *eee=='y') ) ;
+  no_stupidity  = (eee != NULL && (*eee=='N' || *eee=='n') ) ; /* 03 Mar 2003 */
+
+  if( epos[E_SLICE_SPACING] != NULL ){       /* get reported slice spacing */
+    ddd = strstr(epos[E_SLICE_SPACING],"//") ;
+    if( ddd != NULL ) {
+       if(*(ddd+2)=='\n'){
+          /* catch carriage returns - Jeff Gunter via DRG 3/14/2007 */
+          /* probably should write as function to check on all DICOM fields*/
+          sp = 0.0;
+       }
+       else {
+          sp = SFLT(ddd+2) ;
+       }
+     }
+  }
+
+  if( epos[E_SLICE_THICKNESS] != NULL ){    /* get reported slice thickness */
+    ddd = strstr(epos[E_SLICE_THICKNESS],"//") ;
+    if( ddd != NULL ) {
+       if(*(ddd+2)=='\n'){
+          th = 0.0;
+       }
+       else {
+          th = SFLT(ddd+2) ;
+          }
+    }
+  }
+  th = fabs(th) ; sp = fabs(sp) ;       /* we don't use the sign */
+
+  if( stupid_ge_fix ){                  /* always be stupid */
+    dz = sp+th ;
+  } else {
+
+    if( no_stupidity && sp > 0.0 )      /* 13 Jan 2004: if 'NO', then */
+      dz = sp ;                         /* always use spacing if present */
+    else
+      dz = (sp > th) ? sp : th ;        /* the correct-ish DICOM way */
+
+#define GFAC 0.99
+
+    if( !no_stupidity ){                /* unless stupidity is turned off */
+      if( sp > 0.0 && sp < GFAC*th ) dz = sp+th ;  /* the stupid GE way again */
+
+      if( sp > 0.0 && sp < GFAC*th && nwarn < NWMAX ){
+        fprintf(stderr,
+       "++ DICOM WARNING: Slice_Spacing=%f smaller than Slice_Thickness=%f\n",
+                 sp , th ) ;
+        if( nwarn == 0 )
+         fprintf(stderr,
+       "\n"
+       "++  Setting environment variable AFNI_SLICE_SPACING_IS_GAP       ++\n"
+       "++   to YES will make the center-to-center slice distance        ++\n"
+       "++   be set to Slice_Spacing+Slice_Thickness=%6.3f.             ++\n"
+       "++  This is against the DICOM standard [attribute (0018,0088)    ++\n"
+       "++   is defined as the center-to-center spacing between slices,  ++\n"
+       "++   NOT as the edge-to-edge gap between slices], but it seems   ++\n"
+       "++   to be necessary for some GE scanners.                       ++\n"
+       "++                                                               ++\n"
+       "++  This correction has been made on this data: dz=%6.3f.       ++\n"
+       "++                                                               ++\n"
+       "++  Setting AFNI_SLICE_SPACING_IS_GAP to NO means that the       ++\n"
+       "++  DICOM Slice_Spacing variable will be used for dz, replacing  ++\n"
+       "++  the Slice_Thickness variable.  This usage may be required    ++\n"
+       "++  for some pulse sequences on Phillips scanners.               ++\n"
+       "\n\a" ,
+          sp+th , dz ) ;
+      }
+      if( sp > 0.0 && sp < th && nwarn == NWMAX )
+        fprintf(stderr,
+        "++ DICOM WARNING: no more Slice_Spacing messages will be printed\n") ;
+      nwarn++ ;
+    }
+  }
+  if( dz == 0.0 ) dz = 1.0 ;               /* nominal dz */
+
+  return(dz);
+} /*-- end of dz code, with all its stupidities --*/
+
