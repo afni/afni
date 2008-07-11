@@ -339,12 +339,14 @@
 # include "matrix.h"          /* double precision */
 # define MTYPE    double
 # define NI_MTYPE NI_DOUBLE
-# define QEPS 1.e-6
+# define QEPS     1.e-6
+# define MPAIR    double_pair
 #else
 # include "matrix_f.h"        /* single precision */
 # define MTYPE    float
 # define NI_MTYPE NI_FLOAT
-# define QEPS 1.e-4
+# define QEPS     1.e-4
+# define MPAIR    float_pair
 #endif
 
 #define MEM_MESSAGE                                                     \
