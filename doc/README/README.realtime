@@ -209,6 +209,13 @@ NOTE text to attach to dataset
   7 and 12 (decimal), respectively).  Any '\a' or '\f' characters in the
   text will be converted to '\n' characters before the note is processed.
 
+OBLIQUE_XFORM m0 m1 m2 m3 m4 m5 m6 m7 m8 m9 m10 m11 m12 m13 m14 m15
+  This command is to send an IJK_TO_DICOM_REAL oblique transformation
+  matrix, consisting of 16 floats in row-major order, to be applied to
+  all resulting datasets (i.e. stored in the daxes->ijk_to_dicom_real
+  structure).
+
+
 ==============================================
 How AFNI reads realtime command and image data
 ==============================================
