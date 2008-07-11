@@ -199,6 +199,16 @@ typedef struct { float a,b ; } float_pair ;
 typedef struct { float a,b,c ; } float_triple ;
 #endif
 
+#ifndef TYPEDEF_double_pair
+#define TYPEDEF_double_pair
+typedef struct { double a,b ; } double_pair ;
+#endif
+
+#ifndef TYPEDEF_double_triple
+#define TYPEDEF_double_triple
+typedef struct { double a,b,c ; } double_triple ;
+#endif
+
 /*-------*/
 
 /*! Triple to hold RGB bytes. */
