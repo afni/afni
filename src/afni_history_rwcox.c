@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , JUL , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Add 'RunStart' field to xmat.1D output, to indicate start of runs." ,
+   NULL } ,
+
  { 3 , JUL , 2008 , RWC , "matrix.c" , MICRO , TYPE_MODIFY ,
    "Add QR function matrix_qrr() to matrix.c library file." ,
    NULL } ,

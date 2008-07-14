@@ -1090,6 +1090,12 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o 1dtranspose 1dtranspose.o $(LFLAGS) $(LLIBS)
 
+1dREMLfit.o: 1dREMLfit.c remla.c
+
+1dREMLfit:1dREMLfit.o
+	$(RM) $@
+	$(CC) -o 1dREMLfit 1dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
+
 1dUpsample:1dUpsample.o
 	$(RM) $@
 	$(CC) -o 1dUpsample 1dUpsample.o $(LFLAGS) $(LLIBS)
