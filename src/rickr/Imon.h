@@ -103,7 +103,10 @@ typedef struct  /* user options */
     float            ep;            /* epsilon - defaut to IFM_EPSILON  */
     int              nt;            /* user input time points per run   */
     int              nice;          /* nice offset (must be >= 0)       */
-    int              pause;         /* pause time between volumes (MS)  */
+    int              pause;         /* pause time between volumes (ms)  */
+    float            sleep_frac;    /* TR fraction to sleep (default 2) */
+    int              sleep_init;    /* pre-first vol sleep time (ms)    */
+    int              sleep_vol;     /* between-vol sleep time (ms)      */
     int              debug;         /* debug level                      */
     int              quit;          /* quit when no new images found    */
     int              use_dicom;     /* flag for dicom (not GE) images   */

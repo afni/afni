@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JUL, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added -sleep_init, -sleep_vol, -sleep_frac",
+   "these options control the timeout periods between data checks"
+ } ,
+
+ { 14, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
+   "terminate TCP transmission to serial_helper if mask is bad\n",
+   NULL
+ } ,
+
+ { 14, JUL, 2008, RCR, "afni_history", MINOR, TYPE_MODIFY,
+   "a single integer option is interpreted as with -past_entires",
+   NULL
+ } ,
+
  { 11, JUL, 2008, RCR, "Dimon", MICRO, TYPE_MODIFY,
    "include last 4 elements of obl_matrix, even though probably useless",
    NULL

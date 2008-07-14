@@ -1865,7 +1865,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 {
     float data[524];            /* 2*(256 + 6) -> 2 blocks, at least */
     int   rv, nvals, remain;
-    int   c, c2, mpindex, nblocks, bsize;
+    int   c, c2, mpindex, nblocks, bsize, err = 0;
 
     if ( rtin->mp_tcp_use != 1 || nt <= 0 )
         return 0;
@@ -1874,12 +1874,8 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
         return -1;
 
     /* hmmmm, Bob has a good function to test the socket... */
-    if ( (rv = tcp_writecheck(rtin->mp_tcp_sd, 1)) == -1 )
-    {
-        fprintf(stderr,"** our MP socket has gone bad?\n");
-        close(rtin->mp_tcp_sd);
-        rtin->mp_tcp_sd  = 0;
-        rtin->mp_tcp_use = 0;   /* allow a later re-try... */
+    if ( (rv = tcp_writecheck(rtin->mp_tcp_sd, 1)) == -1 ) {
+        RT_mp_comm_close(rtin);
         return -1;
     }
 
@@ -1898,9 +1894,15 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
                 data[bsize*mpindex+c2] = mp[c2][mpindex];
 
             /* and process mask, if desired */
-            if( rtin->mask && ! RT_get_mask_aves(rtin, sub+mpindex) )
-                for ( c2 = 0; c2 < rtin->mask_nvals; c2++ )
-                    data[bsize*mpindex+6+c2] = (float)rtin->mask_aves[c2+1];
+            if( g_mask_dset ) {
+                if( ! RT_get_mask_aves(rtin, sub+mpindex) )
+                    for ( c2 = 0; c2 < rtin->mask_nvals; c2++ )
+                        data[bsize*mpindex+6+c2] = (float)rtin->mask_aves[c2+1];
+                else {  /* bad failure, close socket */
+                    RT_mp_comm_close(rtin);
+                    return -1;
+                }
+            }
 
             mpindex++;  /* that was one TR */
         }
@@ -1939,6 +1941,11 @@ int RT_get_mask_aves( RT_input * rtin, int sub )
 
     if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
         fprintf(stderr,"** RT_get_mask_aves: not set for sub-brick %d\n",sub);
+        return -1;
+    }
+
+    if( !rtin->mask || !rtin->mask_aves || rtin->mask_nvals <= 0 ) {
+        fprintf(stderr,"** RT_get_mask_aves: no mask information to apply\n");
         return -1;
     }
 
@@ -2601,19 +2608,20 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
                 BADNEWS ;
 
       } else if( STARTER("OBLIQUE_XFORM") ){     /* 10 Jul 2008 */
-         sscanf( buf , "OBLIQUE_XFORM %f %f %f %f %f %f %f %f %f %f %f %f",
-             rtin->oblique_mat+0, rtin->oblique_mat+ 1, rtin->oblique_mat+ 2,
-             rtin->oblique_mat+3, rtin->oblique_mat+ 4, rtin->oblique_mat+ 5,
-             rtin->oblique_mat+6, rtin->oblique_mat+ 7, rtin->oblique_mat+ 8,
-             rtin->oblique_mat+9, rtin->oblique_mat+10, rtin->oblique_mat+11);
-        rtin->oblique_mat[12] = 0.0; /* fill (no need to transfer this) */
-        rtin->oblique_mat[13] = 0.0;
-        rtin->oblique_mat[14] = 0.0;
-        rtin->oblique_mat[15] = 1.0;
-        rtin->is_oblique = 1;
+         sscanf( buf ,
+             "OBLIQUE_XFORM %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+             rtin->oblique_mat+0,  rtin->oblique_mat+ 1, rtin->oblique_mat+ 2,
+             rtin->oblique_mat+3,  rtin->oblique_mat+ 4, rtin->oblique_mat+ 5,
+             rtin->oblique_mat+6,  rtin->oblique_mat+ 7, rtin->oblique_mat+ 8,
+             rtin->oblique_mat+9,  rtin->oblique_mat+10, rtin->oblique_mat+11,
+             rtin->oblique_mat+12, rtin->oblique_mat+13, rtin->oblique_mat+14,
+             rtin->oblique_mat+15);
+         rtin->is_oblique = 1;
 
-        if( verbose == 2 )
-           fprintf(stderr,"RT: %s\n", buf);
+         if( verbose == 2 )
+            fprintf(stderr,"RT: %s\n", buf);
+         else
+            fprintf(stderr,"RT: received OBLIQUE_XFORM\n");
 
       } else if( STARTER("DRIVE_AFNI") ){   /* 30 Jul 2002 */
          char cmd[1024]="\0" ;
