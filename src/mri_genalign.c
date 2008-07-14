@@ -2443,7 +2443,7 @@ void mri_genalign_affine( int npar, float *wpar ,
 
    if( npt <= 0 || xi == NULL || xo == NULL ) return ;
 
-   /* mutiply matrix times input vectors */
+   /* multiply matrix times input vectors */
 
    for( ii=0 ; ii < npt ; ii++ )
      MAT44_VEC( gam , xi[ii],yi[ii],zi[ii] , xo[ii],yo[ii],zo[ii] ) ;
@@ -2474,7 +2474,7 @@ void mri_genalign_mat44( int npar, float *wpar,
 
    if( npt <= 0 || xi == NULL || xo == NULL ) return ;
 
-   /* mutiply matrix times input vectors */
+   /* multiply matrix times input vectors */
 
    for( ii=0 ; ii < npt ; ii++ )
      MAT44_VEC( gam , xi[ii],yi[ii],zi[ii] , xo[ii],yo[ii],zo[ii] ) ;
@@ -2551,7 +2551,7 @@ void mri_genalign_bilinear( int npar, float *wpar ,
 
    if( npt <= 0 || xi == NULL || xo == NULL ) return ;
 
-   /* mutiply matrix times input vectors */
+   /* multiply matrix times input vectors */
 
    for( ii=0 ; ii < npt ; ii++ ){
 
