@@ -29,10 +29,12 @@ static char * g_history[] =
     " 2.9  Jul 11, 2008 [rickr]\n"
     "      - slight change in sleeping habits (no real effect)\n"
     "      - pass all 16 elements of oblique transform matrix\n",
+    " 2.10 Jul 14, 2008 [rickr] - control over real-time sleep habits\n"
+    "      - added -sleep_init, -sleep_vol, -sleep_frac\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.9 (July 11, 2008)"
+#define DIMON_VERSION "version 2.10 (July 14, 2008)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -267,10 +269,14 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
         {
             if ( gD.level > 0 ) fprintf( stderr, "." );   /* status    */
 
-            /* try to update nap time */
-            if( sleep_ms < 0 && p->nused > 0 )
-                /* TR option overrides image */
-                sleep_ms = nap_time_in_ms(p->opts.tr, p->flist->geh.tr);
+            /* try to update nap time (either given or computed from TR) */
+            if( sleep_ms < 0 ) {
+                if( p->opts.sleep_init > 0 )
+                    sleep_ms = p->opts.sleep_init;
+                else /* TR option overrides image */
+                    sleep_ms = nap_time_in_ms(p->opts.tr,
+                                   p->flist ? p->flist->geh.tr : 0.0);
+            }
 
             iochan_sleep(sleep_ms);
         }
@@ -377,7 +383,9 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     fl_index = v0->fn_n + 1;            /* start looking past first volume */
     next_im  = v0->fn_n + 1;            /* for read_ge_files()             */
 
-    nap_time = nap_time_in_ms(p->opts.tr, v0->geh.tr);
+    /* nap time is either given or computed */
+    if( p->opts.sleep_vol > 0 ) nap_time = p->opts.sleep_vol;
+    else nap_time = nap_time_in_ms(p->opts.tr, v0->geh.tr);
 
     if ( gD.level > 0 )                 /* status */
     {
@@ -461,7 +469,8 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         /* now we need new data - skip past last file name index */
 
         ret_val = read_ge_files( p, next_im, p->nalloc );
-        fl_index = 0;                   /* reset flist index          */
+        fl_index = 0;                   /* reset flist index                 */
+        naps = 0;                       /* do not accumulate for stall check */
 
         while ( (ret_val >= 0 ) &&      /* no fatal error, and        */
                 (ret_val < v0->nim) )   /* didn't see full volume yet */
@@ -530,6 +539,7 @@ static int volume_search(
     float      delta;
     int        bound;                   /* upper bound on image slice  */
     static int prev_bound = -1;         /* note previous 'bound' value */
+    static int bound_cnt  =  0;         /* allow 3 checks */
     int        first = start;           /* first image (start or s+1)  */
     int        last;                    /* final image in volume       */
     int        rv;
@@ -551,8 +561,12 @@ static int volume_search(
         return 0;                   /* not enough data to work with   */
 
     /* maintain the state */
-    if ( *state == 1 && bound == prev_bound ) *state = 2;  /* try to finish */
-    else                                      *state = 1;  /* continue mode */
+    if ( *state == 1 && bound == prev_bound ) {
+        if( bound_cnt < 3 ) bound_cnt++;
+        else *state = 2;  /* try to finish */
+        fprintf(stderr,"** bound_cnt %d, state %d\n", bound_cnt, *state);
+    }
+    else *state = 1;  /* continue mode */
     prev_bound = bound;
 
     rv = check_one_volume(p,start,fl_start,bound,*state, &first,&last,&delta);
@@ -738,7 +752,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     /* note final image in current volume -                        */
     /* if we left the current volume, next is too far by 2, else 1 */
     if ( (fabs(dz - delta) > gD_epsilon) || (run1 != run0) ) last = next - 2;
-    else                                                      last = next - 1;
+    else                                                     last = next - 1;
 
     /* set return values */
     *r_first = first;
@@ -970,6 +984,8 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 */
 static int check_error( int * retry, float tr, char * note )
 {
+    int nap_time;
+
     if ( !retry )
         return -1;
 
@@ -981,8 +997,12 @@ static int check_error( int * retry, float tr, char * note )
                     CHECK_NULL_STR(note));
 
         *retry = 0;
-                                /* use tr option, if given */
-        iochan_sleep( nap_time_in_ms(gP.opts.tr, tr) );
+
+        /* sleep time is either given or computed from some TR */
+        nap_time = (gP.opts.sleep_vol > 0) ? gP.opts.sleep_vol :
+                                             nap_time_in_ms(gP.opts.tr, tr);
+
+        iochan_sleep( nap_time );
         return 0;
     }
 
@@ -1554,6 +1574,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     ART_init_AC_struct( A );            /* init for no real-time comm */
     A->param = p;                       /* store the param_t pointer  */
     p->opts.ep = IFM_EPSILON;           /* allow user to override     */
+    p->opts.sleep_frac = 1.5;           /* fraction of TR to sleep    */
     p->opts.use_dicom = 1;              /* will delete this later...  */
 
     empty_string_list( &p->opts.drive_list, 0 );
@@ -1761,6 +1782,36 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             }
 
             p->opts.flist_file = argv[ac];
+        }
+        else if ( ! strncmp( argv[ac], "-sleep_frac", 11 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -sleep_vol TIME\n", stderr );
+                return 1;
+            }
+
+            p->opts.sleep_frac = atof(argv[ac]);
+        }
+        else if ( ! strncmp( argv[ac], "-sleep_init", 11 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -sleep_init TIME\n", stderr );
+                return 1;
+            }
+
+            p->opts.sleep_init = atoi(argv[ac]);
+        }
+        else if ( ! strncmp( argv[ac], "-sleep_vol", 10 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -sleep_vol TIME\n", stderr );
+                return 1;
+            }
+
+            p->opts.sleep_vol = atoi(argv[ac]);
         }
         else if ( ! strncmp( argv[ac], "-sort_by_num_suffix", 12 ) )
         {
@@ -2523,6 +2574,9 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   (argv, argc)       = (%p, %d)\n"
             "   tr                 = %f\n"
             "   (nt, nice, pause)  = (%d, %d, %d)\n"
+            "   sleep_frac         = %f\n"
+            "   sleep_init         = %d\n"
+            "   sleep_vol          = %d\n"
             "   debug              = %d\n"
             "   quit, use_dicom    = %d, %d\n"
             "   gert_reco          = %d\n"
@@ -2546,6 +2600,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->gert_outdir),
             opt->argv, opt->argc,
             opt->tr, opt->nt, opt->nice, opt->pause,
+            opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
             opt->debug, opt->quit, opt->use_dicom, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix), opt->gert_nz,
@@ -2799,13 +2854,15 @@ static int usage ( char * prog, int level )
           "       -rt -nt 120                           \\\n"
           "       -host some.remote.computer            \\\n"
           "       -rt_cmd \"PREFIX 2005_0513_run3\"     \\\n"
+          "       -sleep_frac 1.1                       \\\n"
           "       -quit                                 \n"
           "\n"
           "    This example scans data starting from directory 003, expects\n"
-          "    160 repetitions (TRs), and invokes the real-time processing,\n"
+          "    120 repetitions (TRs), and invokes the real-time processing,\n"
           "    sending data to a computer called some.remote.computer.name\n"
           "    (where afni is running, and which considers THIS computer to\n"
           "    be trusted - see the AFNI_TRUSTHOST environment variable).\n"
+          "    The time to wait for new data is 1.1*TR.\n"
           "\n"
           "  ---------------------------------------------------------------\n"
           "    Multiple DRIVE_AFNI commands are passed through '-drive_afni'\n"
@@ -2976,6 +3033,51 @@ static int usage ( char * prog, int level )
           "        Note: this option may be used multiple times.\n"
           "\n"
           "        See README.realtime for more details.\n"
+          "\n"
+          "    -sleep_init MS    : time to sleep between initial data checks\n"
+          "\n"
+          "        e.g.  -sleep_init 500\n"
+          "\n"
+          "        While Dimon searches for the first volume, it checks for\n"
+          "        files, pauses, checks, pauses, etc., until some are found.\n"
+          "        By default, the pause is approximately 3000 ms.\n"
+          "\n"
+          "        This option, given in milliseconds, will override that\n"
+          "        default time.\n"
+          "\n"
+          "        A small time makes the program seem more responsive.  But\n"
+          "        if the time is too small, and no new files are seen on\n"
+          "        successive checks, Dimon may think the first volume is\n"
+          "        complete (with too few slices).\n"
+          "\n"
+          "        If the minimum time it takes for the scanner to output\n"
+          "        more slices is T, then 1/2 T is a reasonable -sleep_init\n"
+          "        time.  Note: that minimum T had better be reliable.\n"
+          "\n"
+          "        The example shows a sleep time of half of a second.\n"
+          "\n"
+          "    -sleep_vol MS     : time to sleep between volume checks\n"
+          "\n"
+          "        e.g.  -sleep_vol 1000\n"
+          "\n"
+          "        When Dimon finds some volumes and there still seems to be\n"
+          "        more to acquire, it sleeps for a while (and outputs '.').\n"
+          "        This option can be used to specify the amount of time it\n"
+          "        sleeps before checking again.  The default is 1.5*TR.\n"
+          "\n"
+          "        The example shows a sleep time of one second.\n"
+          "\n"
+          "    -sleep_frac FRAC  : new data search, fraction of TR to sleep\n"
+          "\n"
+          "        e.g.  -sleep_frac 0.5\n"
+          "\n"
+          "        When Dimon finds some volumes and there still seems to be\n"
+          "        more to acquire, it sleeps for a while (and outputs '.').\n"
+          "        This option can be used to specify the amount of time it\n"
+          "        sleeps before checking again, as a fraction of the TR.\n"
+          "        The default is 1.5 (as the fraction).\n"
+          "\n"
+          "        The example shows a sleep time of one half of a TR.\n"
           "\n"
           "    -swap  (obsolete) : swap data bytes before sending to afni\n"
           "\n"
@@ -3733,21 +3835,24 @@ static int show_run_stats( stats_t * s )
 
 
 /* ----------------------------------------------------------------------
- * given tr (in seconds), return a sleep time in ms (approx. 2*TR)
+ * given tr (in seconds), return a sleep time in ms (approx. 1.5*TR)
  *
  * pass 2 potential trs, and apply the first positive one, else use 4s
  * ----------------------------------------------------------------------
 */
 static int nap_time_in_ms( float t1, float t2 )
 {
-    float tr;           /* TR, in seconds */
+    float tr, fr;
     int   nap_time;
 
     if     ( t1 > 0.0 ) tr = t1;
     else if( t2 > 0.0 ) tr = t2;
-    else                tr = 4.0;
+    else                tr = 2.0;
 
-    nap_time = (int)(2000.0*tr + 0.5);          /* convert to 2 TRs, in ms */
+    /* note the fraction of a TR to sleep */
+    fr = ( gP.opts.sleep_frac > 0.0 ) ? gP.opts.sleep_frac : 1.5;
+
+    nap_time = (int)(1000.0*fr*tr + 0.5);       /* convert to time, in ms */
 
     if ( nap_time < 10 )    return 10;          /* 10 ms is minimum */
 
@@ -3845,7 +3950,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
                      "    first file of this run : %s\n"
                      "****************************************************\n",
                      run, seq_num, gS.nvols,
-                     naps*nap_time/1000, gS.runs[run].f1name );
+                     naps*nap_time, gS.runs[run].f1name );
 
             prev_run = run;
             prev_seq = seq_num;

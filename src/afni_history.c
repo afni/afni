@@ -23,9 +23,11 @@ static char g_history[] =
   "     - in compare: if strings are not set, ignore rather than claim equal\n"
   "1.5  25 Jun, 2008 [rickr]\n"
   "     - added -past_entries option\n"
+  "1.6  14 Jul, 2008 [rickr]\n"
+  "     - a single integer option is used as -past_entries\n"
 };
 
-static char g_version[] = "afni_history version 1.5, 25 June 2008";
+static char g_version[] = "afni_history version 1.6, 14 July 2008";
 
 static  char * g_author_list[] = {
     "rwcox",    "RWC",  RWC,
@@ -163,6 +165,13 @@ int process_options(int argc, char * argv[], global_data * gd)
             ac++;
             CHECK_NEXT_OPT2(ac, argc, "-verb", "LEVEL");
             gd->verb = atoi(argv[ac]);
+        /* last possibility, check for shortcut like "afni_history 3" */
+        } else if( (ac == argc-1) && isdigit(argv[ac][0]) ) {
+            gd->past_entries = atol(argv[ac]);
+            if( gd->past_entries < 1 ) {
+                fprintf(stderr,"** invalid last option: '%s'\n", argv[ac]);
+                return 1;
+            }
         } else {
             fprintf(stderr,"** invalid option: '%s'\n", argv[ac]);
             return -1;
