@@ -2,6 +2,8 @@
 
 #include "mrilib.h"
 
+#undef  MTYPE
+#undef  MPAIR
 #ifndef FLOATIZE
 # include "matrix.h"
 # define MTYPE double
@@ -312,7 +314,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
 
    ii = rcmat_choleski( rcm ) ;
    if( ii != 0 ){
-     ERROR_message("rcmat_choleski fails with code=%d",ii) ;
+     ERROR_message("rcmat_choleski fails with code=%d: rho=%f lam=%f",ii,rho,lam) ;
      rcmat_destroy(rcm); return NULL;
    }
 
@@ -370,7 +372,9 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
 
 /*--------------------------------------------------------------------------*/
 
-static vector *b1=NULL,*b2=NULL,*b3=NULL,*b4=NULL,*b5=NULL,*b6=NULL,*b7=NULL ;
+/** intermediate vectors to be saved in case of later need **/
+
+static vector *bb1=NULL,*bb2,*bb3,*bb4,*bb5,*bb6,*bb7 ;
 
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
@@ -381,42 +385,52 @@ MTYPE reml_func( vector *y , reml_setup *rset , matrix *X )
    int n=rset->neq , ii ;
    MTYPE val ;
 
-   if( b1 == NULL ){
-     b1 = (vector *)malloc(sizeof(vector)) ; vector_initialize(b1) ;
-     b2 = (vector *)malloc(sizeof(vector)) ; vector_initialize(b2) ;
-     b3 = (vector *)malloc(sizeof(vector)) ; vector_initialize(b3) ;
-     b4 = (vector *)malloc(sizeof(vector)) ; vector_initialize(b4) ;
-     b5 = (vector *)malloc(sizeof(vector)) ; vector_initialize(b5) ;
-     b6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(b6) ;
-     b7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(b7) ;
+   if( y == NULL ){
+     if( bb1 != NULL ){
+       vector_destroy(bb1) ; bb1 = NULL ;
+       vector_destroy(bb2) ; vector_destroy(bb3) ;
+       vector_destroy(bb4) ; vector_destroy(bb5) ;
+       vector_destroy(bb6) ; vector_destroy(bb7) ;
+     }
+     return -666.0 ;
+   }
+
+   if( bb1 == NULL ){
+     bb1 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb1) ;
+     bb2 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb2) ;
+     bb3 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb3) ;
+     bb4 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb4) ;
+     bb5 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb5) ;
+     bb6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb6) ;
+     bb7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb7) ;
    }
 
    /** Seven steps to compute the prewhitened residuals */
 
-   vector_equate( *y , b1 ) ;
-   rcmat_lowert_solve( rset->cc , b1->elts ) ;      /* b1 = C^(-T) y */
-                                                    /* prewhitened data */
-   vector_equate( *b1 , b2 ) ;
-   rcmat_uppert_solve( rset->cc , b2->elts ) ;      /* b2 = C^(-1) b1 */
+   vector_equate( *y , bb1 ) ;
+   rcmat_lowert_solve( rset->cc , bb1->elts ) ;      /* bb1 = C^(-T) y */
+                                                     /* prewhitened data */
+   vector_equate( *bb1 , bb2 ) ;
+   rcmat_uppert_solve( rset->cc , bb2->elts ) ;      /* bb2 = C^(-1) bb1 */
 
-   vector_mutiply_transpose( *X , *b2 , b3 ) ;      /* b3 = X^T b2 */
+   vector_multiply_transpose( *X , *bb2 , bb3 ) ;    /* bb3 = X^T bb2 */
 
-   vector_rrtran_solve( *(rset->dd) , *b3 , b4 ) ;  /* b4 = D^(-T) b3 */
+   vector_rrtran_solve( *(rset->dd) , *bb3 , bb4 ) ; /* bb4 = D^(-T) bb3 */
 
-   vector_rr_solve( *(rset->dd) , *b4 , b5 ) ;      /* b5 = D^(-1) b4 */
-                                                    /*    = beta_hat */
+   vector_rr_solve( *(rset->dd) , *bb4 , bb5 ) ;     /* bb5 = D^(-1) bb4 */
+                                                     /*    = beta_hat */
 
-   vector_multiply( *X , *b5 , b6 ) ;               /* b6 = X b5 */
-                                                    /* fitted model */
-   vector_equate( *b6 , b7 ) ;
-   rcmat_lowert_solve( rset->cc , b7->elts ) ;      /* b7 = C^(-T) b6 */
-                                                    /* prewhitened fit */
+   vector_multiply( *X , *bb5 , bb6 ) ;              /* bb6 = X bb5 */
+                                                     /* fitted model */
+   vector_equate( *bb6 , bb7 ) ;
+   rcmat_lowert_solve( rset->cc , bb7->elts ) ;      /* bb7 = C^(-T) bb6 */
+                                                     /* prewhitened fit */
 
-   vector_subtract( *b1 , *b7 , b2 ) ;              /* result = b1 - b7 */
-                                                    /* prewhitened residual */
+   vector_subtract( *bb1 , *bb7 , bb2 ) ;            /* result = bb1 - bb7 */
+                                                     /* prewhitened residual */
 
-   val = (n - rset->mreg) * vector_dotself(*b2)     /* the REML function! */
-        + rset->dd_logdet + rset->cc_logdet ;
+   val = (n - rset->mreg) * vector_dotself(*bb2)     /* the REML function! */
+        + rset->dd_logdet + rset->cc_logdet ;        /* -log(likelihood) */
 
    return val ;
 }
@@ -450,13 +464,12 @@ void reml_collection_destroy( reml_collection *rcol )
 
 /*--------------------------------------------------------------------------*/
 
-static reml_collection *rcol = NULL ;
+static reml_collection *rrcol = NULL ;
 
-void setup_reml_collection( matrix *X , int *tau ,
-                            int nrho, MTYPE rhotop, int ndel )
+void REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop, int ndel )
 {
    int ii,jj,kk , nt , *ttau ;
-   MTYPE drho , ddel ;
+   MTYPE drho , ddel , rho , lam ;
 
    if( X == NULL ) return ;
 
@@ -476,21 +489,23 @@ void setup_reml_collection( matrix *X , int *tau ,
    drho = rhotop / nrho ;
    ddel = 1.0    / ndel ;
 
-   if( rcol != NULL ) reml_collection_destroy( rcol ) ;
+   if( rrcol != NULL ) reml_collection_destroy( rrcol ) ;
 
-   rcol = (reml_collection *)malloc(sizeof(reml_collection)) ;
+   rrcol = (reml_collection *)malloc(sizeof(reml_collection)) ;
 
-   rcol->X = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(rcol->X) ;
-   matrix_equate( *X , rcol->X ) ;
+   rrcol->X = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(rrcol->X) ;
+   matrix_equate( *X , rrcol->X ) ;
 
-   rcol->nset = nrho * ndel + 1 ;
-   rcol->rs   = (reml_setup **)malloc(sizeof(reml_setup *)*rcol->nset) ;
+   rrcol->nset = nrho * ndel + 1 ;
+   rrcol->rs   = (reml_setup **)malloc(sizeof(reml_setup *)*rrcol->nset) ;
 
-   rcol->rs[0] = setup_arma11_reml( nt , ttau , 0.0 , 0.0 , X ) ;
+   rrcol->rs[0] = setup_arma11_reml( nt , ttau , 0.0 , 0.0 , X ) ;
 
    for( kk=1,ii=0 ; ii < nrho ; ii++ ){
+     rho = (ii+1)*drho ;
      for( jj=0 ; jj < ndel ; jj++,kk++ ){
-       rcol->rs[kk] = setup_arma11_reml( nt,ttau, (ii+1)*drho, (jj+1)*ddel, X );
+       lam = (jj+1)*ddel * rho ;
+       rrcol->rs[kk] = setup_arma11_reml( nt,ttau, rho,lam , X );
      }
    }
 
@@ -500,26 +515,67 @@ void setup_reml_collection( matrix *X , int *tau ,
 
 /*--------------------------------------------------------------------------*/
 
-static int    first_reml_call = 1 ;
+static int    REML_status   = -1 ;
+static MTYPE  REML_best_rho = 0.0 ;
+static MTYPE  REML_best_lam = 0.0 ;
 
-static MTYPE  REML_best_rho ;
-static MTYPE  REML_best_lam ;
-static vector REML_best_prewhitened_data_vector ;
-static vector REML_best_beta_vector ;
-static vector REML_best_fitts_vector ;
-static vector REML_best_prewhitened_fitts_vector ;
-static vector REML_best_prewhitened_errts_vector ;
+static vector REML_best_prewhitened_data_vector ;     /* in bb1 */
+static vector REML_best_beta_vector ;                 /* in bb5 */
+static vector REML_best_fitts_vector ;                /* in bb6 */
+static vector REML_best_prewhitened_fitts_vector ;    /* in bb7 */
+static vector REML_best_prewhitened_errts_vector ;    /* in bb2 */
 
-void reml_find_best_case( vector *y )
+/*--------------------------------------------------------------------------*/
+
+MTYPE REML_find_best_case( vector *y ) /* input=data vector; output is above */
 {
-   if( y == NULL || rcol == NULL ) return ;
+   MTYPE rbest , rval ;
+   int   ibest , ii ;
 
-   if( first_reml_call ){
+   if( y == NULL ){  /* memory cleanup */
+     vector_destroy( &REML_best_prewhitened_data_vector ) ;
+     vector_destroy( &REML_best_beta_vector ) ;
+     vector_destroy( &REML_best_fitts_vector ) ;
+     vector_destroy( &REML_best_prewhitened_fitts_vector ) ;
+     vector_destroy( &REML_best_prewhitened_errts_vector ) ;
+     reml_func( NULL,NULL,NULL ) ;
+     reml_collection_destroy( rrcol ) ;
+     REML_status = -1 ; return -666.0 ;
+   }
+
+   if( REML_status == -1 ){ /* memory setup */
      vector_initialize( &REML_best_prewhitened_data_vector ) ;
      vector_initialize( &REML_best_beta_vector ) ;
      vector_initialize( &REML_best_fitts_vector ) ;
      vector_initialize( &REML_best_prewhitened_fitts_vector ) ;
      vector_initialize( &REML_best_prewhitened_errts_vector ) ;
-     first_reml_call = 0 ;
    }
+   REML_status = 0 ;
+
+   /* find the best case */
+
+   rbest = 6.66e+36 ; ibest = -1 ;
+   for( ii=0 ; ii < rrcol->nset ; ii++ ){
+     rval = reml_func( y , rrcol->rs[ii] , rrcol->X ) ;
+     if( rval < rbest ){
+       rbest = rval ; ibest = ii ;
+       vector_equate( *bb1 , &REML_best_prewhitened_data_vector ) ;
+       vector_equate( *bb2 , &REML_best_prewhitened_errts_vector ) ;
+       vector_equate( *bb5 , &REML_best_beta_vector ) ;
+       vector_equate( *bb6 , &REML_best_fitts_vector ) ;
+       vector_equate( *bb7 , &REML_best_prewhitened_fitts_vector ) ;
+     }
+   }
+   if( ibest < 0 ) return -666.0 ;
+
+   REML_best_rho = rrcol->rs[ibest]->rho ;
+   REML_best_lam = rrcol->rs[ibest]->lam ;
+
+   REML_status = 1 ; return rbest ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void REML_clear_setup(void){
+  (void)REML_find_best_case(NULL) ; return ;
 }

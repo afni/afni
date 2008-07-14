@@ -384,7 +384,7 @@ int main( int argc , char * argv[] )
        for( jj=0 ; jj < nrow ; jj++ ) clist[ii][jj] = (float)cd[jj] ;
      }
    } else {
-     ERROR_exit("-matrix file stored will illegal data type!") ;
+     ERROR_exit("-matrix file stored will illegal data type!?") ;
    }
 
    /*-- process the -select options to build a column list --*/

@@ -360,7 +360,8 @@
 /*------------ prototypes for routines far below (RWCox) ------------------*/
 
 void JPEG_matrix_gray( matrix X, char *fname );        /* save X matrix to JPEG */
-void ONED_matrix_save( matrix X, char *fname, void *,int,int *, matrix *Xf ); /* save X matrix to .1D */
+void ONED_matrix_save( matrix X, char *fname, void *,int,int *, matrix *Xf ,
+                       int nbl, int *bl ); /* save X matrix to .1D */
 
 void XSAVE_output( char * ) ;                      /* save X matrix into file */
 
@@ -5117,13 +5118,14 @@ ENTRY("calculate_results") ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xdata , option_data->x1D_filename , cd , N,gl ,
-                      (is_xfull) ? &xfull : NULL ) ;
+                      (is_xfull) ? &xfull : NULL , num_blocks,block_list ) ;
   }
   if( is_xfull && option_data->x1D_unc != NULL ){   /* 25 Mar 2007 */
     void *cd=(void *)coldat ; int *gl=good_list ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
-    ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull ) ;
+    ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull,
+                      num_blocks,block_list ) ;
   }
   if( option_data->x1D_stop ){   /* 28 Jun 2007 */
     INFO_message("3dDeconvolve exits: -x1D_stop option was given") ;
@@ -5225,7 +5227,7 @@ ENTRY("calculate_results") ;
     if( jpt == NULL )  jpt = strstr(fn,".1D") ;
     if( jpt == NULL )  jpt = fn + strlen(fn) ;
     strcpy(jpt,"_XtXinv.xmat.1D") ;
-    ONED_matrix_save( xtxinv_full,fn, NULL,0,NULL,NULL ) ; /* no column metadata */
+    ONED_matrix_save( xtxinv_full,fn, NULL,0,NULL,NULL,0,NULL ) ; /* no column metadata */
   }
 
   /*----- Save some of this stuff for later, dude -----*/
@@ -5319,7 +5321,7 @@ ENTRY("calculate_results") ;
                          jpt = strstr(fn,".1D") ; jsuf = ".1D" ;
       if( jpt == NULL )  jpt = fn + strlen(fn) ;
       strcpy(jpt,"_psinv") ; strcat(fn,jsuf) ;
-      ONED_matrix_save( xpsinv , fn , NULL,0,NULL,NULL ) ; /* no column metadata */
+      ONED_matrix_save( xpsinv , fn , NULL,0,NULL,NULL,0,NULL ) ; /* no column metadata */
     }
 #endif
 
@@ -7302,7 +7304,7 @@ void JPEG_matrix_gray( matrix X , char *fname )
 /*! Save matrix to a .1D text file */
 
 void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
-                       matrix *Xff )
+                       matrix *Xff , int nbl, int *bl )
 {
    int nx=X.rows , ny=X.cols , ii,jj ;
    column_metadata *cd = (column_metadata *)xd ;
@@ -7378,6 +7380,15 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
      if( nxf > 0 ){
        sprintf(lll,"%d",nxf) ;
        NI_set_attribute( nel , "NRowFull" , lll ) ;
+     }
+#endif
+#if 1
+     if( nbl > 0 && bl != NULL ){  /* Bastille Day, 2008 */
+       NI_int_array iar ;
+       iar.num = nbl ;
+       iar.ar  = bl ;
+       lab = NI_encode_int_list( &iar , "," ) ;
+       NI_set_attribute( nel, "RunStart", lab ); NI_free((void *)lab); lab = NULL;
      }
 #endif
      NI_write_element_tofile( fname, nel, NI_HEADERSHARP_FLAG | NI_TEXT_MODE );
