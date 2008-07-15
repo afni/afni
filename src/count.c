@@ -41,22 +41,24 @@ int main( int argc , char *argv[] )
 "    in the range 'bot..top' (inclusive) is output.\n"
 "    A number after S ('S#') indicates the number of unique integers\n"
 "    to output. If # exceeds the number of unique values, the shuffled\n"
-"    sequence will simply repeat itself.\n"                  
-"* 'bot' and 'top' must not be negative; step (#) must be positive.\n"
+"    sequence will simply repeat itself. (N.B.: 'S' is for 'Shuffle'.)\n"
+"* 'bot' and 'top' must not be negative; step must be positive (defaults to 1).\n"
 "\n"
 "Options:\n"
 "  -seed        seed number for random number generator (for S and R above)\n"
 "  -sseed       seed string for random number generator (for S and R above)\n"
-"  -column      writes output, one number per line\n"
+"  -column      writes output, one number per line (with root and suffix, if any)\n"
 "  -digits n    prints numbers with 'n' digits [default=4]\n"
 "  -root rrr    prints string 'rrr' before the number [default=empty]\n"
-"  -sep sss     prints string 'sss' between the numbers [default=none]\n"
+"  -sep s       prints single character 's' between the numbers [default=blank]\n"
+"                 [normally you would not use '-sep' with '-column']\n"
 "  -suffix sss  prints string 'sss' after the number [default=empty]\n"
 "  -scale fff   multiplies each number by the factor 'fff';\n"
 "                 if this option is used, -digits is ignored and\n"
 "                 the floating point format '%%g' is used for output.\n"
 "                 ('fff' can be a floating point number.)\n"
 "  -comma       put commas between the outputs, instead of spaces\n"
+"                 (same as '-sep ,')\n"
 "  -skipnmodm n m   skip over numbers with a modulus of n with m\n"
 "                  -skipnmodm 15 16 would skip 15, 31, 47, ...\n"
 "               not valid with random number sequence options\n"
@@ -90,10 +92,7 @@ int main( int argc , char *argv[] )
 
       if( strncmp(argv[narg],"-digits",2) == 0 ){
          ndig = strtol( argv[++narg] , NULL , 10 ) ;
-         if( ndig < 1 ){
-            fprintf( stderr , "-digits illegal!\n" ) ;
-            exit(1) ;
-         }
+         if( ndig < 1 ) ERROR_exit("-digits value must be > 0") ;
          continue ;
       }
       
@@ -108,10 +107,7 @@ int main( int argc , char *argv[] )
       if( strncmp(argv[narg],"-sseed",5) == 0 ){
          char *sseed=NULL;
          int kk;
-         if (narg+1>= argc) { 
-            fprintf(stderr,"Error: Need argument after -sseed\n");
-            exit(1);
-         }
+         if (narg+1>= argc) ERROR_exit("Need argument after -sseed\n");
          sseed=argv[++narg];
          for (kk=0;kk<strlen(sseed);++kk) 
             seed += (int)(sseed[kk]) ;
@@ -128,7 +124,11 @@ int main( int argc , char *argv[] )
       }
       
       if( strncmp(argv[narg],"-sep",4) == 0 ){   /* 02 Mar 2007 [rickr] */
-         strcpy(suffix,argv[++narg]) ;
+         sep = argv[++narg][0] ;
+         if( !isprint(sep) )
+           WARNING_message("-sep character is not printable?!") ;
+         else if( argv[narg][1] != '\0' )
+           WARNING_message("-sep string '%s' has more than one character!",argv[narg]) ;
          continue ;
       }
 
@@ -220,11 +220,11 @@ int main( int argc , char *argv[] )
 
    if (col == 0) {
       if( sclfac == 0.0 ) sprintf( fmt , "%%s%%0%dd%%s" , ndig ) ;
-      else                strcpy( fmt , " %s%g%s" ) ;
-      if( !comma ) strcat(fmt," ") ;
+      else                strcpy ( fmt , " %s%g%s" ) ;
+      if( isspace(sep) )  strcat ( fmt," ") ;
    } else {
       if( sclfac == 0.0 ) sprintf( fmt , " %%s%%0%dd%%s\n" , ndig ) ;
-      else                strcpy( fmt , " %s%g%s\n" ) ;
+      else                strcpy ( fmt , " %s%g%s\n" ) ;
    }
 /*** iterate ***/
    /* fprintf(stderr,"bot=%d, top=%d, step=%d\n", bot, top, step); */
@@ -234,13 +234,12 @@ int main( int argc , char *argv[] )
          for( ii=bot ; ii <= top ; ii += step ) {
             if(skipm) {
               skipout = ii%skipm;
-              if(skipout==skipn)
-                 continue;
+              if(skipout==skipn) continue;
             }
             /* if (ii==top) suffix[0] = '\0'; */  /* ZSS Dec 06 */
             if( sclfac == 0.0 ) printf( fmt , root , ii , suffix ) ;
             else                printf( fmt , root , sclfac*ii , suffix ) ;
-            if( ii <= top-step && comma ) printf(",") ;
+            if( ii <= top-step && !isspace(sep) ) printf("%c",sep) ;
          }
       } else {
          for( ii=bot ; ii >= top ; ii -= step ) {
@@ -253,16 +252,16 @@ int main( int argc , char *argv[] )
             /* if (ii==top) suffix[0] = '\0'; */  /* ZSS Dec 06 */
             if( sclfac == 0.0 ) printf( fmt , root , ii , suffix ) ;
             else                printf( fmt , root , sclfac*ii , suffix ) ;
-            if( ii >= top+step && comma ) printf(",") ;
+            if( ii >= top+step && !isspace(sep) ) printf("%c",sep) ;
          }
       }
    } else if (rando_count == 1) {
       for( ii=0 ; ii < rando_num ; ii++ ){
          iout = ranco( bot , top, seed) ;
-         if (ii==rando_num-1) suffix[0]='\0';
+         /* if (ii==rando_num-1) suffix[0]='\0'; */
          if( sclfac == 0.0 ) printf( fmt , root , iout , suffix ) ;
          else                printf( fmt , root , sclfac*iout , suffix ) ;
-         if( ii < rando_num-1 && comma ) printf(",") ;
+         if( ii < rando_num-1 && !isspace(sep) ) printf("%c",sep) ;
       }
    } else if (rando_count == 2) {
       int nmax, *ir = z_rand_order(bot, top, seed);
@@ -279,10 +278,10 @@ int main( int argc , char *argv[] )
       if (ir) {
          for( ii=0 ; ii < rando_num ; ii++ ){
             iout = ir[ii%nmax] ;
-            if (ii==rando_num-1) suffix[0]='\0';
+            /* if (ii==rando_num-1) suffix[0]='\0'; */
             if( sclfac == 0.0 ) printf( fmt , root , iout , suffix ) ;
             else                printf( fmt , root , sclfac*iout , suffix ) ;
-            if( ii < rando_num-1 && comma ) printf(",") ;
+            if( ii < rando_num-1 && !isspace(sep) ) printf("%c",sep) ;
          }
          free(ir); ir = NULL;
       } else {
@@ -293,7 +292,7 @@ int main( int argc , char *argv[] )
       exit(1);
    }
 
-   printf( "\n" ) ;
+   if( !col ) printf( "\n" ) ;
    exit(0) ;
 }
 
