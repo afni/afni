@@ -1178,7 +1178,7 @@ void vector_multiply_transpose (matrix a, vector b, vector * c)
   if (a.rows != b.dim){
     char str[444] ;
     sprintf(str,
-            "Incompatible dimensions for vector_multiply_transpose: %dx%d X %d",
+            "Incompatible dimensions for vector_multiply_transpose: [%dx%d]' X %d",
             a.rows,a.cols,b.dim ) ;
     matrix_error(str) ;
   }
@@ -1191,7 +1191,8 @@ void vector_multiply_transpose (matrix a, vector b, vector * c)
 
   bb = b.elts ; cc = c->elts ;
 
-#ifdef UNROLL_VECMUL
+/* #ifdef UNROLL_VECMUL */
+#if 0
   switch( cols%2 ){
     case 0:
      for( j=0 ; j < rows ; j++ ){

@@ -198,7 +198,7 @@ void rcmat_uppert_solve( rcmat *rcm , MTYPE *vec )
    rc  = rcm->rc ;
    len = rcm->len ;
 
-   for( jj=nn ; jj >= 0 ; jj-- ){
+   for( jj=nn-1 ; jj >= 0 ; jj-- ){
      ibot = jj - len[jj] + 1 ;
      rjj  = rc[jj] - ibot ;
      xj = vec[jj] = vec[jj] / rjj[jj] ;
@@ -284,12 +284,23 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
      }
    }
 
+#if 0
+{ if( rho > 0.6 && lam/rho > 0.8 ){
+    INFO_message("profile for rho=%g lam=%g",rho,lam) ;
+    for( ii=0 ; ii < nt ; ii++ ) fprintf(stderr," %d",len[ii]) ;
+    fprintf(stderr,"\n") ;
+  }
+}
+#endif
+
    return rcm ;
 }
 
 /*--------------------------------------------------------------------------*/
 /*! Create the struct for REML calculations for a particular ARMA(1,1)
     set of parameters, and for a particular regression matrix X.       */
+
+static MTYPE logdet_Dzero = 0.0 ;
 
 reml_setup * setup_arma11_reml( int nt, int *tau,
                                 MTYPE rho, MTYPE lam , matrix *X )
@@ -358,14 +369,21 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    }
    rset->dd_logdet = 2.0 * dsum ;
 
+   if( rho == 0.0 && lam == 0.0 ) logdet_Dzero = dsum ;
+
    /* and 2 * log det[C] */
 
    for( csum=0.0,ii=0 ; ii < nt ; ii++ ){
      jj  = rcm->len[ii] ;
-     val = rcm->rc[ii][jj+1] ;
+     val = rcm->rc[ii][jj-1] ;
      if( val > 0.0 ) csum += log(val) ;
    }
    rset->cc_logdet = 2.0 * csum ;
+
+#if 0
+INFO_message("REML setup: rho=%.3f lam=%.3f logdet[D]=%g logdet[C]=%g cost=%g",
+             rho,lam,dsum,csum,dsum+csum-logdet_Dzero ) ;
+#endif
 
    return rset ;
 }
@@ -375,6 +393,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
 /** intermediate vectors to be saved in case of later need **/
 
 static vector *bb1=NULL,*bb2,*bb3,*bb4,*bb5,*bb6,*bb7 ;
+static MTYPE rsumq=0.0 ;
 
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
@@ -425,11 +444,11 @@ MTYPE reml_func( vector *y , reml_setup *rset , matrix *X )
    vector_equate( *bb6 , bb7 ) ;
    rcmat_lowert_solve( rset->cc , bb7->elts ) ;      /* bb7 = C^(-T) bb6 */
                                                      /* prewhitened fit */
-
    vector_subtract( *bb1 , *bb7 , bb2 ) ;            /* result = bb1 - bb7 */
                                                      /* prewhitened residual */
+   rsumq = vector_dotself(*bb2) ;                    /* sum of squares */
 
-   val = (n - rset->mreg) * vector_dotself(*bb2)     /* the REML function! */
+   val = (n - rset->mreg) * rsumq                    /* the REML function! */
         + rset->dd_logdet + rset->cc_logdet ;        /* -log(likelihood) */
 
    return val ;
@@ -496,18 +515,27 @@ void REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop, int ndel )
    rrcol->X = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(rrcol->X) ;
    matrix_equate( *X , rrcol->X ) ;
 
-   rrcol->nset = nrho * ndel + 1 ;
    rrcol->rs   = (reml_setup **)malloc(sizeof(reml_setup *)*rrcol->nset) ;
 
    rrcol->rs[0] = setup_arma11_reml( nt , ttau , 0.0 , 0.0 , X ) ;
 
    for( kk=1,ii=0 ; ii < nrho ; ii++ ){
      rho = (ii+1)*drho ;
-     for( jj=0 ; jj < ndel ; jj++,kk++ ){
+     for( jj=0 ; jj < ndel ; jj++ ){
        lam = (jj+1)*ddel * rho ;
-       rrcol->rs[kk] = setup_arma11_reml( nt,ttau, rho,lam , X );
+       if( lam >= 0.05 ){
+         rrcol->rs[kk] = setup_arma11_reml( nt,ttau, rho,lam , X ); kk++;
+       }
      }
    }
+
+   ddel = 0.49 / ndel ;
+   for( jj=1 ; jj < ndel ; jj++ ){
+     rho = 0.0 ; lam = (jj+1)*ddel ;
+     rrcol->rs[kk] = setup_arma11_reml( nt,ttau, rho,lam , X ); kk++;
+   }
+   rrcol->nset = kk ;
+INFO_message("setup %d rho,lam REML cases",kk) ;
 
    if( tau == NULL ) free((void *)ttau) ;
    return ;
@@ -516,14 +544,24 @@ void REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop, int ndel )
 /*--------------------------------------------------------------------------*/
 
 static int    REML_status   = -1 ;
+
 static MTYPE  REML_best_rho = 0.0 ;
 static MTYPE  REML_best_lam = 0.0 ;
-
+static MTYPE  REML_best_ssq = 0.0 ;
 static vector REML_best_prewhitened_data_vector ;     /* in bb1 */
 static vector REML_best_beta_vector ;                 /* in bb5 */
 static vector REML_best_fitts_vector ;                /* in bb6 */
 static vector REML_best_prewhitened_fitts_vector ;    /* in bb7 */
 static vector REML_best_prewhitened_errts_vector ;    /* in bb2 */
+
+static MTYPE  REML_olsq_rho = 0.0 ;
+static MTYPE  REML_olsq_lam = 0.0 ;
+static MTYPE  REML_olsq_ssq = 0.0 ;
+static vector REML_olsq_prewhitened_data_vector ;     /* in bb1 */
+static vector REML_olsq_beta_vector ;                 /* in bb5 */
+static vector REML_olsq_fitts_vector ;                /* in bb6 */
+static vector REML_olsq_prewhitened_fitts_vector ;    /* in bb7 */
+static vector REML_olsq_prewhitened_errts_vector ;    /* in bb2 */
 
 /*--------------------------------------------------------------------------*/
 
@@ -552,10 +590,19 @@ MTYPE REML_find_best_case( vector *y ) /* input=data vector; output is above */
    }
    REML_status = 0 ;
 
+   /* do the Ordinary Least Squares (olsq) case */
+
+   rbest = reml_func( y , rrcol->rs[0] , rrcol->X ) ; ibest = 0 ;
+   vector_equate( *bb1 , &REML_olsq_prewhitened_data_vector ) ;
+   vector_equate( *bb2 , &REML_olsq_prewhitened_errts_vector ) ;
+   vector_equate( *bb5 , &REML_olsq_beta_vector ) ;
+   vector_equate( *bb6 , &REML_olsq_fitts_vector ) ;
+   vector_equate( *bb7 , &REML_olsq_prewhitened_fitts_vector ) ;
+   REML_olsq_ssq = rsumq ;
+
    /* find the best case */
 
-   rbest = 6.66e+36 ; ibest = -1 ;
-   for( ii=0 ; ii < rrcol->nset ; ii++ ){
+   for( ii=1 ; ii < rrcol->nset ; ii++ ){
      rval = reml_func( y , rrcol->rs[ii] , rrcol->X ) ;
      if( rval < rbest ){
        rbest = rval ; ibest = ii ;
@@ -564,9 +611,21 @@ MTYPE REML_find_best_case( vector *y ) /* input=data vector; output is above */
        vector_equate( *bb5 , &REML_best_beta_vector ) ;
        vector_equate( *bb6 , &REML_best_fitts_vector ) ;
        vector_equate( *bb7 , &REML_best_prewhitened_fitts_vector ) ;
+       REML_best_ssq = rsumq ;
      }
    }
-   if( ibest < 0 ) return -666.0 ;
+
+   if( ibest == 0 ){
+     REML_best_ssq = REML_olsq_ssq ;
+     vector_equate( REML_olsq_prewhitened_data_vector,
+                   &REML_best_prewhitened_data_vector ) ;
+     vector_equate( REML_olsq_prewhitened_errts_vector,
+                   &REML_best_prewhitened_errts_vector ) ;
+     vector_equate( REML_olsq_beta_vector , &REML_best_beta_vector ) ;
+     vector_equate( REML_olsq_fitts_vector, &REML_best_fitts_vector ) ;
+     vector_equate( REML_olsq_prewhitened_fitts_vector,
+                   &REML_best_prewhitened_fitts_vector ) ;
+   }
 
    REML_best_rho = rrcol->rs[ibest]->rho ;
    REML_best_lam = rrcol->rs[ibest]->lam ;

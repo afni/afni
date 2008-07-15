@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , JUL , 2008 , RWC , "count" , MICRO , TYPE_BUG_FIX ,
+   "Make '-suffix' work correctly for last item (per Fred Tam)." ,
+   "Also, make '-sep' and '-suffix' work as separate items,\n"
+   "instead of as synonyms for the same thing, which is stoopid." } ,
+
  { 14 , JUL , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
    "Add 'RunStart' field to xmat.1D output, to indicate start of runs." ,
    NULL } ,
