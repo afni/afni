@@ -580,9 +580,11 @@ int main( int argc , char * argv[] )
       if(oblique_flag==1)   /* deoblique case*/
          matar = &Tw.m[0][0];
       else {               /* obliquing case */
-         DSET_delete(oblparset) ;  /* don't need oblique parent dataset anymore */
+         /* don't need oblique parent dataset anymore */
+         DSET_delete(oblparset) ;
          Tw_inv = MAT44_INV(Tw);
          matar = &Tw_inv.m[0][0];
+         Tw = Tw_inv;      /* just for the DUMP */
 #ifdef DEBUG_ON
 DUMP_MAT44("Tw_inv",Tw_inv);
 #endif

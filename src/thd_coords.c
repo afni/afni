@@ -618,11 +618,14 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
 {
    double angle;
 
-   if( !ISVALID_DSET(dset) || oblique_report_repeat==0 ) return;
+   ENTRY("THD_report_obliquity");
+   if(AFNI_yesenv("AFNI_NO_OBLIQUE_WARNING")) EXRETURN;
+
+   if( !ISVALID_DSET(dset) || oblique_report_repeat==0 ) EXRETURN;
 
    THD_check_oblique_field(dset); /* make sure oblique field is available*/
    angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
-   if(angle == 0.0) return;
+   if(angle == 0.0) EXRETURN;
 
    if(oblique_report_index<oblique_report_repeat) {
       if(first_oblique) {
@@ -648,13 +651,14 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
    if(oblique_report_repeat2==-1) {   /* report obliquity n times, stop */
       if(oblique_report_index>oblique_report_repeat) 
          oblique_report_index = oblique_report_repeat;
-      return;
+      EXRETURN;
    }
 
    /* reset counter if needed*/
    if(oblique_report_index>=(oblique_report_repeat+oblique_report_repeat2))
       oblique_report_index = 0;
 
+   EXRETURN;
 }
 
 /* set the number of times to report obliquity and 
