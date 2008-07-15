@@ -3,12 +3,12 @@
 
 int main( int argc , char *argv[] )
 {
-   MRI_IMAGE *inim , *outim ;
+   MRI_IMAGE *inim , *outim ; float *iv ;
    int iarg , ii,jj , nreg , ntime , *tau=NULL , rnum ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
    MTYPE rhomax=0.7 ; int rhonum=7 , delnum=10 ;
    char *cgl , *rst ;
-   matrix X ;
+   matrix X ; vector y ;
    float cput ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -135,5 +135,16 @@ int main( int argc , char *argv[] )
    cput = COX_cpu_time() - cput ;
    INFO_message("REML setup: rows=%d cols=%d CPU=%.2f",ntime,nreg,cput) ;
 
+   cput = COX_cpu_time() ;
+   vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
+   for( jj=0 ; jj < inim->ny ; jj++ ){
+     iv = MRI_FLOAT_PTR(inim) + ntime*jj ;
+     for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[ii] ;
+     (void)REML_find_best_case( &y ) ;
+     INFO_message("Vector #%d: best_rho=%.2f best_lam=%.2f best_ssq=%g  olsq_ssq=%g",
+                  jj, REML_best_rho, REML_best_lam, REML_best_ssq, REML_olsq_ssq ) ;
+   }
+   cput = COX_cpu_time() - cput ;
+   INFO_message("REML work: CPU=%.2f",cput) ;
    exit(0) ;
 }
