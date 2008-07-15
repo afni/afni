@@ -237,7 +237,7 @@ int main( int argc , char *argv[] )
               if(skipout==skipn)
                  continue;
             }
-            if (ii==top) suffix[0] = '\0';   /* ZSS Dec 06 */
+            /* if (ii==top) suffix[0] = '\0'; */  /* ZSS Dec 06 */
             if( sclfac == 0.0 ) printf( fmt , root , ii , suffix ) ;
             else                printf( fmt , root , sclfac*ii , suffix ) ;
             if( ii <= top-step && comma ) printf(",") ;
@@ -250,7 +250,7 @@ int main( int argc , char *argv[] )
                  continue;
             }
 
-            if (ii==top) suffix[0] = '\0';   /* ZSS Dec 06 */
+            /* if (ii==top) suffix[0] = '\0'; */  /* ZSS Dec 06 */
             if( sclfac == 0.0 ) printf( fmt , root , ii , suffix ) ;
             else                printf( fmt , root , sclfac*ii , suffix ) ;
             if( ii >= top+step && comma ) printf(",") ;
