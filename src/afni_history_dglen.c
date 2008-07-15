@@ -49,6 +49,17 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 15 , JUL , 2008 , DRG , "general" , 
+    MINOR , TYPE_MODIFY, "Can turn off all obliquity warnings" ,
+    "AFNI_NO_OBLIQUE_WARNING variable is extended to turn off warnings\n"
+    "about using oblique data in commandline programs and in GUI"
+} ,
+
+{ 15 , JUL , 2008 , DRG , "3dWarp" , 
+    MINOR , TYPE_BUG_FIX , "Print correct obliquity transformation matrix" ,
+    NULL
+} ,
+
 { 18 , JUN , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX , "Bug fixes - duplicate master options, mislabeled variable" ,
     NULL
