@@ -1191,15 +1191,16 @@ void vector_multiply_transpose (matrix a, vector b, vector * c)
 
   bb = b.elts ; cc = c->elts ;
 
-/* #ifdef UNROLL_VECMUL */
-#if 0
-  switch( cols%2 ){
+#ifdef UNROLL_VECMUL
+  switch( cols%4 ){
     case 0:
      for( j=0 ; j < rows ; j++ ){
        aa = a.elts[j] ; bj = bb[j] ;
-       for( i=0 ; i < cols ; i+=2 ){
+       for( i=0 ; i < cols ; i+=4 ){
          cc[i]   += aa[i]  *bj ;
          cc[i+1] += aa[i+1]*bj ;
+         cc[i+2] += aa[i+2]*bj ;
+         cc[i+3] += aa[i+3]*bj ;
        }
      }
     break ;
@@ -1208,12 +1209,42 @@ void vector_multiply_transpose (matrix a, vector b, vector * c)
      for( j=0 ; j < rows ; j++ ){
        aa = a.elts[j] ; bj = bb[j] ;
        cc[0] += aa[0]*bj ;
-       for( i=1 ; i < cols ; i+=2 ){
+       for( i=1 ; i < cols ; i+=4 ){
          cc[i]   += aa[i]  *bj ;
          cc[i+1] += aa[i+1]*bj ;
+         cc[i+2] += aa[i+2]*bj ;
+         cc[i+3] += aa[i+3]*bj ;
        }
      }
     break ;
+
+    case 2:
+     for( j=0 ; j < rows ; j++ ){
+       aa = a.elts[j] ; bj = bb[j] ;
+       cc[0] += aa[0]*bj ;
+       cc[1] += aa[1]*bj ;
+       for( i=2 ; i < cols ; i+=4 ){
+         cc[i]   += aa[i]  *bj ;
+         cc[i+1] += aa[i+1]*bj ;
+         cc[i+2] += aa[i+2]*bj ;
+         cc[i+3] += aa[i+3]*bj ;
+       }
+     }
+    break ;
+
+    case 3:
+     for( j=0 ; j < rows ; j++ ){
+       aa = a.elts[j] ; bj = bb[j] ;
+       cc[0] += aa[0]*bj ;
+       cc[1] += aa[1]*bj ;
+       cc[2] += aa[1]*bj ;
+       for( i=3 ; i < cols ; i+=4 ){
+         cc[i]   += aa[i]  *bj ;
+         cc[i+1] += aa[i+1]*bj ;
+         cc[i+2] += aa[i+2]*bj ;
+         cc[i+3] += aa[i+3]*bj ;
+       }
+     }
   }
 #else
   for( j=0 ; j < rows ; j++ ){
