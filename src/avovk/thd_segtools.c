@@ -707,7 +707,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                      ADN_brick_fac , NULL           ,
                      ADN_prefix    , "OML!"   ,
                      ADN_none ) ;
-
+   /* MRI_float */
    if (oc.verb) {
       ININFO_message("loading results into %s\n",
                      DSET_PREFIX(*clust_set));
