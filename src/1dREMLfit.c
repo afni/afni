@@ -6,7 +6,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *inim , *outim ; float *iv ;
    int iarg , ii,jj , nreg , ntime , *tau=NULL , rnum ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
-   MTYPE rhomax=0.7 ; int rhonum=7 , delnum=10 ;
+   MTYPE rhomax=0.7 , bmax=0.7 ; int rhonum=7 , bnum=14 ;
    char *cgl , *rst ;
    matrix X ; vector y ;
    float cput ;
@@ -22,7 +22,8 @@ int main( int argc , char *argv[] )
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
       " -MAXrho rm  = Set the max allowed rho parameter to 'rm' (default=0.7).\n"
       " -Nrho nr    = Use 'nr' values for the rho parameter (default=7).\n"
-      " -Ndel nd    = Use 'nd' values for the del parameter (default=10).\n"
+      " -MAXb bm    = Set max allow MA b parameter to 'bm' (default=0.7).\n"
+      " -Nb nb      = Use 'nb' values for the b parameter (default=7).\n"
      ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -44,10 +45,16 @@ int main( int argc , char *argv[] )
         else if( rhonum > 20 ) rhonum = 20 ;
         iarg++ ; continue ;
       }
-      if( strcmp(argv[iarg],"-Ndel") == 0 ){
-        delnum = (int)strtod(argv[++iarg],NULL) ;
-             if( delnum <  2 ) delnum =  2 ;
-        else if( delnum > 20 ) delnum = 20 ;
+      if( strcmp(argv[iarg],"-MAXb") == 0 ){
+        bmax = (MTYPE)strtod(argv[++iarg],NULL) ;
+             if( bmax < 0.3 ) bmax = 0.3 ;
+        else if( bmax > 0.9 ) bmax = 0.9 ;
+        iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-Nb") == 0 ){
+        bnum = (int)strtod(argv[++iarg],NULL) ;
+             if( bnum <  2 ) bnum =  2 ;
+        else if( bnum > 20 ) bnum = 20 ;
         iarg++ ; continue ;
       }
 
@@ -130,10 +137,11 @@ int main( int argc , char *argv[] )
    }
 
    cput = COX_cpu_time() ;
-   REML_setup( &X , tau , rhonum,rhomax,delnum ) ;
+   REML_setup( &X , tau , rhonum,rhomax,bnum,bmax ) ;
    if( rrcol == NULL ) ERROR_exit("REML setup fails?" ) ;
    cput = COX_cpu_time() - cput ;
-   INFO_message("REML setup: rows=%d cols=%d CPU=%.2f",ntime,nreg,cput) ;
+   INFO_message("REML setup: rows=%d cols=%d %d cases CPU=%.2f",
+                ntime,nreg,rrcol->nset,cput) ;
 
    cput = COX_cpu_time() ;
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
@@ -141,10 +149,11 @@ int main( int argc , char *argv[] )
      iv = MRI_FLOAT_PTR(inim) + ntime*jj ;
      for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[ii] ;
      (void)REML_find_best_case( &y ) ;
-     INFO_message("Vector #%d: best_rho=%.2f best_lam=%.2f best_ssq=%g  olsq_ssq=%g",
-                  jj, REML_best_rho, REML_best_lam, REML_best_ssq, REML_olsq_ssq ) ;
+     INFO_message(
+       "Vector #%d: best_rho=%.2f best_b=%.2f best_lam=%.2f best_ssq=%g  olsq_ssq=%g",
+       jj, REML_best_rho, REML_best_bb, REML_best_lam, REML_best_ssq, REML_olsq_ssq ) ;
    }
    cput = COX_cpu_time() - cput ;
-   INFO_message("REML work: CPU=%.2f",cput) ;
+   INFO_message("REML fitting: CPU=%.2f",cput) ;
    exit(0) ;
 }
