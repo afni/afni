@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
+#include <math.h>
 #include "mrilib.h"
 #include "cluster.h"
+
 
 
 // from command.c file
@@ -327,6 +329,52 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
   return;
 }
 
+void getvoxlclusterdist(int* count, double** cdata, 
+			int* clusterid, double** data, char* jobname, 
+			int nclusters, int nrows, int ncols)
+{
+  int i, j, n;
+  char* filename4;
+  FILE *out4=NULL;
+  double* vcdata = malloc(nclusters*sizeof(double*));
+  double difference, difference1;
+
+  n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
+  
+  int dummy = nclusters;
+  do n++; while (dummy/=10);
+    
+    
+  filename4 = malloc(n*sizeof(char));
+  sprintf (filename4, "%s_K_G%d.vcd", jobname, nclusters);
+  out4 = fopen( filename4, "w" );
+
+  for (i = 0; i < nrows; i++){
+    difference = 0;
+    difference1 = 0;
+    for (j = 0; j < ncols; j++) {
+      difference1 = cdata[clusterid[i]][j]-data[i][j];
+      difference = difference + difference1*difference1;
+    }
+    vcdata[i] = sqrt(difference);
+  }
+  
+  printf ("------- writing Cluster assignments + distances from centroids to file:\t\t"
+          " %s_K_G%d.vcd\n",jobname, nclusters);
+  for (i = 0; i < nrows; i++)
+    fprintf (out4, "%09d\t%d\t%7.3f\n", i, clusterid[i], vcdata[i]);
+  fclose(out4); out4=NULL;
+
+  /*for (i = 0; i < nrows; i++){ 
+    free(vcdata[i]);
+    }*/
+  free(vcdata);
+  return;
+
+}
+
+
+
 /* ========================================================================= */
 
 
@@ -384,7 +432,6 @@ void example_kmeans( int nrows, int ncols,
       mask[nl][nc] = 1;
     }
    }
-
 
 
    n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
@@ -463,6 +510,19 @@ void example_kmeans( int nrows, int ncols,
    }
    fclose(out3); out3=NULL;
    printf("Done...\n");
+
+   /* call function to calculate distance between each voxel and centroid */
+   /* we will need: 
+      count - number of elements in cluster as we allready have it
+      cdata - cluster centroids
+      clusterid
+      data */
+
+
+      getvoxlclusterdist(count, cdata, clusterid, data, jobname, 
+nclusters, nrows, ncols);
+
+
    for (i = 0; i < nclusters; i++) free(index[i]);
    free(index);
    free(count);
