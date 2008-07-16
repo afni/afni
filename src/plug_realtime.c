@@ -234,6 +234,7 @@ typedef struct {
    /*-- Nov 2006 [rickr]: pass mask aves along with MP vals (for TRoss)    --*/
    byte *        mask ;           /* mask from g_mask_dset (from plugin)     */
    int           mask_nvals ;     /* number of non-zero mask values to use   */
+   int           mask_nset ;      /* number of set voxels in mask            */
    double *      mask_aves ;      /* averages over each mask value           */
    
 #endif
@@ -398,6 +399,13 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
     "None" , "2D:_realtime" , "2D:_at_end"
            , "3D:_realtime" , "3D:_at_end" , "3D:_estimate" } ;
 
+#define N_RT_MASK_METHODS 3     /* 15 Jul 2008 [rickr] */
+  static char * RT_mask_strings[N_RT_MASK_METHODS] = {
+    "None" , "ROI means" , "All Data" } ;
+
+  static char * RT_mask_strings_ENV[N_RT_MASK_METHODS] = {
+    "None" , "ROI_means" , "All_Data" } ;
+
 # define REGMODE_NONE      0
 # define REGMODE_2D_RTIME  1
 # define REGMODE_2D_ATEND  2
@@ -414,6 +422,7 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   ( (mm) == REGMODE_2D_RTIME || (mm) == REGMODE_2D_ATEND ||  \
     (mm) == REGMODE_3D_RTIME || (mm) == REGMODE_3D_ATEND   )
 
+  static int g_mask_val_type = 0 ;                /* RT_mask_strings index */
   static THD_3dim_dataset * g_mask_dset = NULL ;  /* mask aves w/ MP vals */
 #endif
 
@@ -618,6 +627,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       if( ff > 0.0 ) reg_yr = ff ;
    }
 
+   ept = getenv("AFNI_REALTIME_Mask_Vals")  ;  /* 15 Jul 2008 [rickr] */
+   if( ept != NULL ){
+      int ii = PLUTO_string_index(ept, N_RT_MASK_METHODS, RT_mask_strings_ENV);
+      if( ii >= 0 && ii < N_RT_MASK_METHODS ) g_mask_val_type = ii;
+   }
+
+
    PLUTO_add_option( plint , "" , "Graphing" , FALSE ) ;
    PLUTO_add_string( plint , "Graph" , NGRAPH , GRAPH_strings , reggraph ) ;
    PLUTO_add_number( plint , "NR [x-axis]" , 5,9999,0 , reg_nr , TRUE ) ;
@@ -628,6 +644,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_dataset( plint , "Mask", ANAT_ALL_MASK, FUNC_ALL_MASK,
                                       DIMEN_3D_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_hint( plint , "choose mask dataset for serial_helper" ) ;
+   PLUTO_add_string( plint , "Vals to Send" , N_RT_MASK_METHODS ,
+                             RT_mask_strings , g_mask_val_type ) ;
+   PLUTO_add_hint( plint , "choose which mask data to send to serial_helper" ) ;
 
 #endif
 
@@ -748,7 +767,15 @@ char * RT_main( PLUGIN_interface * plint )
             return "*************************\n"
                    "RT_opts: bad mask dataset\n"
                    "*************************" ;
-         if ( verbose ) fprintf(stderr,"-d RTM: found mask dataset\n");
+
+         str = PLUTO_get_string(plint) ;
+         g_mask_val_type = PLUTO_string_index(str , N_RT_MASK_METHODS ,
+                                                    RT_mask_strings ) ;
+
+         if (verbose)
+            fprintf(stderr,"-d RTM: found mask dataset, method '%s'\n",
+                           RT_mask_strings[g_mask_val_type]);
+
          continue ;
       }
 #endif
@@ -1611,6 +1638,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->mask       = NULL ;      /* mask averages, to send w/motion params */
    rtin->mask_aves  = NULL ;      /*                    10 Nov 2006 [rickr] */
    rtin->mask_nvals = 0 ;
+   rtin->mask_nset  = 0 ;
 
    rtin->is_oblique = 0 ;         /* oblique info       10 Jul 2008 [rickr] */
    memset(rtin->oblique_mat, 0, sizeof(rtin->oblique_mat)) ;
@@ -1863,42 +1891,69 @@ int RT_mp_comm_close( RT_input * rtin )
 -----------------------------------------------------------------------------*/
 int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 {
-    float data[524];            /* 2*(256 + 6) -> 2 blocks, at least */
-    int   rv, nvals, remain;
-    int   c, c2, mpindex, nblocks, bsize, err = 0;
+    static float * data = NULL;
+    static int     dvals = 0;
+    int   rv, b2send, remain, tr_vals;
+    int   c, c2, dind, mpindex, nblocks, bsize, err = 0;
 
-    if ( rtin->mp_tcp_use != 1 || nt <= 0 )
-        return 0;
+    if ( rtin->mp_tcp_use != 1 || nt <= 0 ) return 0;
 
-    if ( rtin->mp_tcp_sd <= 0 )
-        return -1;
+    if ( rtin->mp_tcp_sd <= 0 ) return -1;
 
-    /* hmmmm, Bob has a good function to test the socket... */
+    if( ! g_mask_dset || ! g_mask_val_type ) return 0;
+
+    /* verify that the socket is still good */
     if ( (rv = tcp_writecheck(rtin->mp_tcp_sd, 1)) == -1 ) {
         RT_mp_comm_close(rtin);
         return -1;
     }
 
-    bsize   = 6 + rtin->mask_nvals;          /* single block size per TR */
-    nblocks = 524 / bsize;                   /* max blocks per iteration */
+    /* how many values do we need to send? */
+    if( g_mask_dset && g_mask_val_type == 1 ) {
+        tr_vals = 256 + 6;    /* enough for many masks and motion */
+        bsize   = 6 + rtin->mask_nvals;          /* single block size per TR */
+    } else if( g_mask_dset && g_mask_val_type == 2 ) {
+        bsize   = 6 + rtin->mask_nset*8;         /* motion plus all vals */
+        tr_vals = bsize;
+    }
+
+    /* maybe we need more space for data */
+    if( !data || dvals < tr_vals*2 ) {
+        dvals = tr_vals * 2;
+        data = (float *)realloc(data, dvals*sizeof(float));
+        if(!data) {
+            fprintf(stderr,"** failed to alloc %d floats for mask data\n"
+                           "   closing MP communication...\n" ,dvals);
+            RT_mp_comm_close(rtin);
+            return -1;
+        }
+    }
+
+    nblocks = dvals / bsize;                 /* max blocks per iteration */
     mpindex = 0;            /* index into mp list (nvals may be partial) */
     while( mpindex < nt )
     {
         remain = nt - mpindex;
-        nvals = MIN(remain, nblocks);
+        b2send = MIN(remain, nblocks);
 
         /* copy floats to 'data' */
-        for ( c = 0; c < nvals; c++ )   /* for each block */
+        for ( c = 0; c < b2send; c++ )   /* for each block */
         {
             for ( c2 = 0; c2 < 6; c2++ )                /* send 6 mp params */
-                data[bsize*mpindex+c2] = mp[c2][mpindex];
+                data[bsize*c+c2] = mp[c2][mpindex];
 
-            /* and process mask, if desired */
-            if( g_mask_dset ) {
+            /* process mask, if desired (ROI averages or all set values) */
+            if( g_mask_dset && g_mask_val_type == 1 ) {
                 if( ! RT_get_mask_aves(rtin, sub+mpindex) )
                     for ( c2 = 0; c2 < rtin->mask_nvals; c2++ )
-                        data[bsize*mpindex+6+c2] = (float)rtin->mask_aves[c2+1];
+                        data[bsize*c+6+c2] = (float)rtin->mask_aves[c2+1];
                 else {  /* bad failure, close socket */
+                    RT_mp_comm_close(rtin);
+                    return -1;
+                }
+            } else if( g_mask_dset && g_mask_val_type == 2 ) {
+                dind = bsize*c+6;  /* note initial offset */
+                if( RT_mp_set_mask_data(rtin, data+dind, sub+mpindex) ) {
                     RT_mp_comm_close(rtin);
                     return -1;
                 }
@@ -1907,10 +1962,10 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
             mpindex++;  /* that was one TR */
         }
 
-        if ( send(rtin->mp_tcp_sd, data, bsize*nvals*sizeof(float), 0) == -1 )
+        if ( send(rtin->mp_tcp_sd, data, bsize*b2send*sizeof(float), 0) == -1 )
         {
             fprintf(stderr,"** failed to send %d floats, closing socket...\n",
-                    6*nvals);
+                    bsize*b2send);
             close(rtin->mp_tcp_sd);
             rtin->mp_tcp_sd  = 0;
             rtin->mp_tcp_use = 0;  /* allow a later re-try... */
@@ -1919,12 +1974,87 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 
         /* keep track of num messages and num param sets */
         rtin->mp_nmsg++;
-        rtin->mp_npsets += nvals;
+        rtin->mp_npsets += b2send;
     }
 
     return 0;
 }
 
+
+/*---------------------------------------------------------------------------
+   for each set mask voxel, fill data with 8 floats:
+        index  i  j  k  x  y  z  dset_value
+
+   return 0 on success
+-----------------------------------------------------------------------------*/
+int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
+{
+    THD_fvec3   fvec;
+    THD_ivec3   ivec;
+    void      * dptr;
+    float       ffac, x, y, z;
+    int         dind, vind, iv, nvox;
+    int         i, j, k, nx, nxy;
+
+    if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
+        fprintf(stderr,"** RT_get_mask_aves: not set for sub-brick %d\n",sub);
+        return -1;
+    }
+
+    if( !rtin->mask || !data || rtin->mask_nvals <= 0 ) {
+        fprintf(stderr,"** RT_get_mask_aves: no mask information to apply\n");
+        return -1;
+    }
+
+    /* note dimensions */
+    nvox = DSET_NVOX(g_mask_dset);
+    if( DSET_NVOX(rtin->reg_dset) != nvox ){
+        /* terminal: whine, blow away the mask and continue */
+        fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
+                       "   terminating mask processing...\n",
+                nvox, DSET_NVOX(rtin->reg_dset) );
+        return RT_mask_free(rtin);
+    }
+    nx = DSET_NX(g_mask_dset);
+    nxy = nx * DSET_NY(g_mask_dset);
+
+    ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
+    if( ffac == 0.0 ) ffac = 1.0;
+    
+    dind = 0;   /* index into output data array */
+    vind = 0;   /* mask counter */
+    dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
+    for( iv=0 ; iv < nvox ; iv++ ) {
+       if( !rtin->mask[iv] ) continue;  /* if not in mask, skip */
+
+       /* we have a good voxel, fill everything but value, first */
+       vind++;
+
+       IJK_TO_THREE(iv,i,j,k,nx,nxy);   /* get i,j,k indices */
+       LOAD_IVEC3(ivec,i,j,k);
+       data[dind++] = (float)iv;        /* set index and i,j,k */
+       data[dind++] = (float)i;
+       data[dind++] = (float)j;
+       data[dind++] = (float)k;
+
+       /* convert ijk to dicom xyz */
+       fvec = THD_3dind_to_3dmm_no_wod(g_mask_dset, ivec);
+       fvec = THD_3dmm_to_dicomm(g_mask_dset, fvec);
+
+       data[dind++] = fvec.xyz[0];      /* set x,y,z coords */
+       data[dind++] = fvec.xyz[1];
+       data[dind++] = fvec.xyz[2];
+
+       if( rtin->datum == MRI_short )   /* and finally set data value */
+           data[dind++] = ((short *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_float )
+           data[dind++] = ((float *)dptr)[iv]*ffac;
+       else if( rtin->datum == MRI_byte )
+           data[dind++] = ((byte *)dptr)[iv]*ffac;
+    }
+
+    return 0;
+}
 
 /*---------------------------------------------------------------------------
    Compute averages over mask ROIs for this sub-brick.    10 Nov 2006 [rickr]
@@ -1958,7 +2088,7 @@ int RT_get_mask_aves( RT_input * rtin, int sub )
         return RT_mask_free(rtin);
     }
 
-    /* verify local memory for sizes (mask is 0..nvals) */
+   /* verify local memory for sizes (mask is 0..nvals) */
     if( nval_len != (rtin->mask_nvals+1) ){
         nval_len = rtin->mask_nvals+1;
         nvals = (int *)realloc(nvals, nval_len * sizeof(int));
@@ -2057,6 +2187,7 @@ int RT_mask_free( RT_input * rtin )
 {
     if( rtin->mask )     { free(rtin->mask);      rtin->mask      = NULL; }
     if( rtin->mask_aves ){ free(rtin->mask_aves); rtin->mask_aves = NULL; }
+    rtin->mask_nset  = 0;
     rtin->mask_nvals = 0;
 
     return 1;
@@ -2188,9 +2319,11 @@ int RT_mp_comm_init_vars( RT_input * rtin )
         }
 
         /* now compute mask_nvals and allocate mask_aves */
-        for( c = 0, max = rtin->mask[0]; c < DSET_NVOX(g_mask_dset); c++ )
-            if( rtin->mask[c] > max )
-                max = rtin->mask[c];
+        rtin->mask_nset = 0;
+        for( c = 0, max = rtin->mask[0]; c < DSET_NVOX(g_mask_dset); c++ ) {
+            if( rtin->mask[c]       ) rtin->mask_nset++;
+            if( rtin->mask[c] > max ) max = rtin->mask[c];
+        }
 
         rtin->mask_nvals = max;
         if(!max){
