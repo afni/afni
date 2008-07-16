@@ -48,9 +48,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, JUL, 2008, RCR, "serial_helper", MINOR, TYPE_NEW_OPT,
+   "added -disp_all to give formatted display of 'all' mask data",
+   "This was added for P Kundu.\n"
+ } ,
+
+ { 16, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "added choice of 'Vals to Send' to serial_helper",
+   "Can now send index,i,j,k,x,y,z,value for every value in mask."
+ } ,
+
  { 14, JUL, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -sleep_init, -sleep_vol, -sleep_frac",
-   "these options control the timeout periods between data checks"
+   "These options control the timeout periods between data checks."
  } ,
 
  { 14, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_MODIFY,

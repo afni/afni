@@ -89,6 +89,7 @@ typedef struct{
     float   mp_max;
     int     sock_num;
     int     num_extra;          /* number of extra data values per TR */
+    int     disp_all;           /* flag to display all results */
     int     swap;
     int     debug;
 } optiondata;
@@ -113,6 +114,8 @@ typedef struct
 void  cleanup              ( int sig_num );
 int   close_data_ports     ( port_list * plist );
 int   disp_optiondata      ( char * info, optiondata * D );
+int   format_output        ( optiondata * opt, motparm * mp, char ** outstr,
+                                                             int * oslen);
 int   get_options          ( optiondata *opt, motparm * mp, port_list * plist,
                              int argc, char *argv[] );
 int   init_structs         ( optiondata *opt, motparm * mp, port_list * plist );
@@ -361,6 +364,16 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
             CHECK_ARG_COUNT(ac, "opt use: -debug DEBUG_LEVEL\n");
             opt->debug = atoi(argv[++ac]);
         }
+        else if ( !strncmp(argv[ac], "-disp_all", 9) )
+        {
+            CHECK_ARG_COUNT(ac, "opt use: -disp_all NVOXELS\n");
+            if( opt->num_extra > 0 ) {
+                fprintf(stderr,"** cannot use both -num_extra and -disp_all\n");
+                return -1;
+            }
+            opt->num_extra = atoi(argv[++ac]) * 8;
+            opt->disp_all = 1;
+        }
         else if ( !strncmp(argv[ac], "-mp_max", 6) )
         {
             CHECK_ARG_COUNT(ac, "opt use: -mp_max MAX_MP_VAL\n");
@@ -375,6 +388,10 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
             opt->no_serial = 1;
         else if ( !strncmp(argv[ac], "-num_extra", 7) )
         {
+            if( opt->disp_all ) {
+                fprintf(stderr,"** cannot use both -num_extra and -disp_all\n");
+                return -1;
+            }
             CHECK_ARG_COUNT(ac, "opt use: -num_extra NVALS\n");
             opt->num_extra = atoi(argv[++ac]);
         }
@@ -540,6 +557,12 @@ int usage( char * prog, int level )
             "\n"
             "        %s -no_serial -debug 3\n"
             "\n"
+            "    7a.run the program in socket test mode, without serial\n"
+            "       communication, and showing incoming via -disp_all\n"
+            "       (assumes real-time plugin mask has 2 voxels set)\n"
+            "\n"
+            "        %s -no_serial -disp_all 2\n"
+            "\n"
             "    8. same as 4, but use debug level 3 to see the parameters\n"
             "       that will be passed on, and duplicate all output to the\n"
             "       file, helper.output\n"
@@ -651,14 +674,35 @@ int usage( char * prog, int level )
             "        plugin has a mask with 3 ROIs in it (numbered 1,2,3).\n"
             "        The plugin would compute averages over each ROI per TR,\n"
             "        and send that data after the MP vals.\n"
-            "        \n"
+            "\n"
             "        In such a case, specify '-num_extra 3', so the program\n"
             "        knows 3 floats will be received after the MP data.\n"
+            "\n"
+            "        Note that -disp_all cannot be used with -num_extra.\n"
+            "\n"
+            "    -disp_all NVOX   : will receive NVOX*8 extra floats per TR\n"
+            "                     : e.g. -disp_all 5\n"
+            "                     : default is 0\n"
+            "\n"
+            "        Similar to -num_extra, here the program expect data on\n"
+            "        a per voxel basis, not averaged over ROIs.\n"
+            "\n"
+            "        Here the users specifies the number of voxels for which\n"
+            "        ALL_DATA will be sent (to serial_helper).  The 8 values\n"
+            "        per voxel are (still in float):\n"
+            "\n"
+            "            index  i  j  k  x  y  z data_value\n"
+            "\n"
+            "        Currently, serial_helper will output this inforamtion\n"
+            "        simply as 1 row per voxel.\n"
+            "\n"
+            "        Note that -disp_all cannot be used with -num_extra.\n"
+            "\n"
             "------------------------------------------------------------\n"
             "  Authors: R. Reynolds, T. Ross  (March, 2004)\n"
             "------------------------------------------------------------\n",
             prog, prog,
-            prog, prog, prog, prog, prog, prog, prog, prog, prog,
+            prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
             prog
             );
     }
@@ -705,7 +749,9 @@ int test_socket(int sd)
  */
 int read_socket(optiondata * opt, port_list * plist, motparm * mp)
 {
-    int    rv, len;
+    static char * outstring = NULL;
+    static int    oslen = 0;
+    int           rv, len;
 
     if ( (rv = test_socket(plist->tdata_sd)) < 0 )
         return -1;
@@ -743,19 +789,110 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
 
     mp->nread++;
 
-    if ( opt->debug > 2 )  /* display the data */
-    {
-        int c;
-        fprintf(stderr,"++ recv floats:");
-        for ( c = 0; c < mp->nvals; c++ )
-            fprintf(stderr,"  %f", mp->data[c]);
-        fputc('\n', stderr);
+    if ( opt->debug > 2 || opt->disp_all ) {
+        rv = format_output(opt, mp, &outstring, &oslen);
+        if( rv ) {
+            fprintf(stderr,"** failed to format output string\n");
+            if( outstring ) { free(outstring); outstring = NULL; }
+            return 1;
+        }
 
-        fprintf(stderr,"++ recv %d extra floats:", mp->nex);
-        for ( c = 0; c < mp->nex; c++ )
-            fprintf(stderr,"  %f", mp->extras[c]);
-        fputc('\n', stderr);
+        /* will probably want to send elsewhere, later */
+        fprintf(stderr,outstring);
     }
+
+    return 0;
+}
+
+#undef LENTEST
+#define LENTEST(bytes,posn,len) \
+    do { if( bytes > (len - posn) ) {                                     \
+             fprintf(stderr,"** format error: bytes %d exceeds %d-%d\n",  \
+                            bytes, len, posn);                            \
+             return 1;                                                    \
+         } else if (opt->debug > 4) {                                     \
+             fprintf(stderr, "-- bytes, posn, len = %d, %d, %d\n",        \
+                             bytes, posn, len);                           \
+         } } while(0)
+
+int format_output(optiondata * opt, motparm * mp, char ** outstr, int * oslen)
+{
+    char dhdr1[] = "++ recv floats:";
+    char dhdr2[] = "++ recv %d extra floats:";
+    int  ind, ind2, len, posn, bytes, nlines;
+
+    if( !opt || !mp || !outstr || !oslen ) return 1;
+    if( opt->debug > 3 ) fprintf(stderr,"-- formatting output...\n");
+
+    if( opt->disp_all && (mp->nex % 8) ) {
+        fprintf(stderr,"** num extras (%d) not multiple of 8\n",mp->nex);
+        return 1;
+    }
+
+    /* first compute needed length */
+    len = strlen(dhdr1) + strlen(dhdr2) + 10; /* headers and newlines */
+    len += mp->nvals*12;
+    len += mp->nex*12;
+    if(opt->disp_all) len += (mp->nex/8 * 6); /* extra spaces/newlines */
+    len += 10;                                /* a little extra padding */
+
+    if( !*outstr || *oslen < len ) {
+        /* allocate space for string */
+        *outstr = (char *)realloc(*outstr, len*sizeof(char));
+        if( !*outstr ) {
+            fprintf(stderr,"** failed to re-alloc %d bytes for ostr\n", len);
+            *oslen = 0;
+            return 1;
+        }
+        *oslen = len;
+    }
+
+    /* motion params - common output*/
+    posn = 0;
+    bytes = snprintf(*outstr+posn, len-posn, dhdr1);
+    posn += bytes;
+    for( ind = 0; ind < mp->nvals; ind++ ) {
+        bytes = snprintf(*outstr+posn, len-posn, "  %10f", mp->data[ind]);
+        LENTEST(bytes,posn,len);
+        posn += bytes;
+    }
+    strcat(*outstr, "\n");
+    posn++;
+
+    /* extras varies per debug or disp_all */
+    if ( opt->disp_all ) {
+        bytes = snprintf(*outstr+posn, len-posn,
+                         "++ recv %dx%d extra floats:\n", mp->nex/8, 8);
+        LENTEST(bytes,posn,len);
+        posn += bytes;
+
+        for( ind = 0; ind < mp->nex/8; ind++ ) {
+            strcat(*outstr, "    ");
+            posn += 4;
+            for( ind2 = 0; ind2 < 8; ind2++ ) {
+                bytes = snprintf(*outstr+posn, len-posn, " %11f",
+                                 mp->extras[ind*8+ind2]);
+                LENTEST(bytes,posn,len);
+                posn += bytes;
+            }
+            strcat(*outstr, "\n");
+            posn++;
+        }
+    } else if( opt->debug > 2 ) {
+        bytes = snprintf(*outstr+posn, len-posn, dhdr2, mp->nex);
+        LENTEST(bytes,posn,len);
+        posn += bytes;
+
+        for( ind = 0; ind < mp->nex; ind++ ) {
+            bytes = snprintf(*outstr+posn, len-posn, "  %10f", mp->extras[ind]);
+            LENTEST(bytes,posn,len);
+            posn += bytes;
+        }
+        strcat(*outstr, "\n");
+        posn++;
+    }
+
+    if( opt->debug > 3 ) fprintf(stderr,"++ posn, len = %d, %d\n",posn,len);
 
     return 0;
 }
