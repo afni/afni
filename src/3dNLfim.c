@@ -578,6 +578,12 @@ void get_options
          * (*dset_time)->dblk->diskptr->dimsizes[2] ;
        *ts_length = DSET_NUM_TIMES(*dset_time);
 
+       /* verify that we seem to have a time series */
+       if( DSET_NVALS(*dset_time) != *ts_length )
+          WARNING_message("dataset num_times (%d) != nvals (%d)\n"
+                          "   --> no time axis could be a problem!\n",
+                          *ts_length, DSET_NVALS(*dset_time));
+
      dsTR = DSET_TIMESTEP(*dset_time) ;
      if(output_datum==ILLEGAL_TYPE) {   /* if output_datum type is not specified by user*/
         output_datum = DSET_BRICK_TYPE(*dset_time,0);  /* get datum type from dataset */
