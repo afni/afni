@@ -10,6 +10,7 @@ int main( int argc , char *argv[] )
    char *cgl , *rst ;
    matrix X ; vector y ;
    float cput ;
+   reml_collection *rrcol ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -137,7 +138,7 @@ int main( int argc , char *argv[] )
    }
 
    cput = COX_cpu_time() ;
-   REML_setup( &X , tau , rhonum,rhomax,bnum,bmax ) ;
+   rrcol = REML_setup( &X , tau , rhonum,rhomax,bnum,bmax ) ;
    if( rrcol == NULL ) ERROR_exit("REML setup fails?" ) ;
    cput = COX_cpu_time() - cput ;
    INFO_message("REML setup: rows=%d cols=%d %d cases CPU=%.2f",
@@ -148,7 +149,7 @@ int main( int argc , char *argv[] )
    for( jj=0 ; jj < inim->ny ; jj++ ){
      iv = MRI_FLOAT_PTR(inim) + ntime*jj ;
      for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[ii] ;
-     (void)REML_find_best_case( &y ) ;
+     (void)REML_find_best_case( &y , rrcol ) ;
      INFO_message(
        "Vector #%d: best_rho=%.2f best_b=%.2f best_lam=%.2f best_ssq=%g  olsq_ssq=%g",
        jj, REML_best_rho, REML_best_bb, REML_best_lam, REML_best_ssq, REML_olsq_ssq ) ;
