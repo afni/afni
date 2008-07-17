@@ -1657,7 +1657,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 
 /*---------------------------------------------------------------------------*/
 /*! Given MxN matrix X, compute the NxN upper triangle factor R in X = QR.
-    Must have M >= N.
+    Must have M >= N (more rows than columns).
     Q is not computed.  If you want Q, then compute it as [Q] = [X] * inv[R].
 *//*-------------------------------------------------------------------------*/
 
@@ -1765,17 +1765,17 @@ int main( int argc , char *argv[] )
 void vector_rr_solve( matrix R , vector b , vector *x )
 {
    register int n , ii,jj ;
-   register double sum , *xp ;
+   register double sum , *xp , *bp , *rr ;
 
    n = R.rows ;
    if( n < 1 || R.cols != n || x == NULL ) return ;
 
-   vector_create_noinit( n , x ) ; xp = x->elts ;
+   vector_create_noinit( n , x ) ; xp = x->elts ; bp = b.elts ;
 
    for( ii=n-1 ; ii >= 0 ; ii-- ){
-     for( sum=b.elts[ii],jj=ii+1 ; jj < n ; jj++ )
-       sum -= R.elts[ii][jj] * xp[jj] ;
-     xp[ii] = sum / R.elts[ii][ii] ;
+     rr = R.elts[ii] ; sum = bp[ii] ;
+     for( jj=ii+1 ; jj < n ; jj++ ) sum -= rr[jj] * xp[jj] ;
+     xp[ii] = sum / rr[ii] ;
    }
 
    return ;
@@ -1787,18 +1787,26 @@ void vector_rr_solve( matrix R , vector b , vector *x )
 void vector_rrtran_solve( matrix R , vector b , vector *x )
 {
    register int n , ii,jj ;
-   register double sum , *xp ;
+   register double sum , *xp , *bp , *rr ;
 
    n = R.rows ;
    if( n < 1 || R.cols != n || x == NULL ) return ;
 
+   bp = b.elts ;
+#if 0             /* the obvious way */
    vector_create_noinit( n , x ) ; xp = x->elts ;
-
    for( ii=0 ; ii < n ; ii++ ){
-     for( sum=b.elts[ii],jj=0 ; jj < ii ; jj++ )
+     for( sum=bp[ii],jj=0 ; jj < ii ; jj++ )
        sum -= R.elts[jj][ii] * xp[jj] ;
      xp[ii] = sum / R.elts[ii][ii] ;
    }
+#else             /* the row ordered way, which is faster in cache */
+   vector_equate( b , x ) ; xp = x->elts ;
+   for( ii=0 ; ii < n ; ii++ ){
+     rr = R.elts[ii] ; sum = xp[ii] = xp[ii] / rr[ii] ;
+     for( jj=ii+1 ; jj < n ; jj++ ) xp[jj] -= rr[jj]*sum ;
+   }
+#endif
 
    return ;
 }

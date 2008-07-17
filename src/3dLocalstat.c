@@ -45,6 +45,7 @@ int LS_decode_parameters(char *str, float *params)
    
    RETURN(iparams);
 }
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL , *outset ;

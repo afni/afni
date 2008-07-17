@@ -17,14 +17,15 @@
 #undef DEBUG
 
 /*****
-  Struct to hold a sparse square matrix that is either symmetric,
-  or upper or lower triangular.
+  Struct to hold a banded square matrix that is either symmetric,
+  or upper or lower triangular (depending on the needs of the moment).
 *****/
 
 typedef struct {
   int nrc ;        /* # of rows and columns */
   short *len ;     /* in row/column #i, there are len[i] elements */
   MTYPE **rc ;     /* so the first column/row index is i+1-len[i] */
+                   /* diagonal element #i is in rc[i][len[i]-1]   */
 } rcmat ;
 
 #define ISVALID_RCMAT(rr)                                      \
@@ -42,8 +43,8 @@ typedef struct {
 typedef struct {
   int neq , mreg ;
   MTYPE rho , lam , barm ;
-  rcmat  *cc ;        /* banded matrix */
-  matrix *dd ;        /* upper triangular */
+  rcmat  *cc ;        /* banded matrix:    neq  X neq  */
+  matrix *dd ;        /* upper triangular: mreg X mreg */
   MTYPE cc_logdet , dd_logdet ;
 } reml_setup ;
 
@@ -306,7 +307,7 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 /*! Create the struct for REML calculations for a particular ARMA(1,1)
     set of parameters, and for a particular regression matrix X.       */
 
-static MTYPE logdet_Dzero = 0.0 ;
+static MTYPE logdet_Dzero = 0.0 ;  /* info just for fun */
 static MTYPE fixed_cost   = 0.0 ;
 
 reml_setup * setup_arma11_reml( int nt, int *tau,
@@ -406,7 +407,7 @@ INFO_message("REML setup: rho=%.3f lam=%.3f logdet[D]=%g logdet[C]=%g cost=%g",
 /** intermediate vectors to be saved in case of later need **/
 
 static vector *bb1=NULL,*bb2,*bb3,*bb4,*bb5,*bb6,*bb7 ;
-static MTYPE rsumq=0.0 ;
+static MTYPE rsumq=0.0 ;  /* sum of squares of residual */
 
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
@@ -499,17 +500,16 @@ void reml_collection_destroy( reml_collection *rcol )
 
 /*--------------------------------------------------------------------------*/
 
-static reml_collection *rrcol = NULL ;
-
-void REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop,
-                                        int nb  , MTYPE btop   )
+reml_collection * REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop,
+                                                     int nb  , MTYPE btop   )
 {
    int ii,jj,kk , nt , *ttau , nset ;
    MTYPE drho , db , bb , rho , lam , bbot ;
+   reml_collection *rrcol=NULL ;
 
-   if( X == NULL ) return ;
+   if( X == NULL ) return rrcol ;
 
-   nt = X->rows ; if( nt < 9 ) return ;
+   nt = X->rows ; if( nt < 9 ) return rrcol ;
 
    if( tau != NULL ){
      ttau = tau ;
@@ -535,14 +535,12 @@ void REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop,
 
    if( nrho == 0 && nb == 0 ){
      ERROR_message("REML_setup: max values of rho and b are both 0?") ;
-     return ;
+     return rrcol ;
    }
 
    drho = rhotop / MAX(1,nrho) ;
    db   = 2.0*btop / MAX(1,nb) ;
    bbot = -btop ;
-
-   if( rrcol != NULL ) reml_collection_destroy( rrcol ) ;
 
    rrcol = (reml_collection *)malloc(sizeof(reml_collection)) ;
 
@@ -582,7 +580,7 @@ INFO_message("setup %d REML cases",kk) ;
 #endif
 
    if( tau == NULL ) free((void *)ttau) ;
-   return ;
+   return rrcol ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -611,8 +609,11 @@ static vector REML_olsq_prewhitened_fitts_vector ;
 static vector REML_olsq_prewhitened_errts_vector ;
 
 /*--------------------------------------------------------------------------*/
+/* Inputs: y=data vector, rrcol=collection of REML setup stuff.
+   Output: stored in static data defined just above.
+*//*------------------------------------------------------------------------*/
 
-MTYPE REML_find_best_case( vector *y ) /* input=data vector; output is above */
+MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
 {
    MTYPE rbest , rval ;
    int   ibest , ii ;
@@ -624,7 +625,7 @@ MTYPE REML_find_best_case( vector *y ) /* input=data vector; output is above */
      vector_destroy( &REML_best_prewhitened_fitts_vector ) ;
      vector_destroy( &REML_best_prewhitened_errts_vector ) ;
      reml_func( NULL,NULL,NULL ) ;
-     reml_collection_destroy( rrcol ) ;
+     if( rrcol != NULL ) reml_collection_destroy( rrcol ) ;
      REML_status = -1 ; return -666.0 ;
    }
 
@@ -637,7 +638,7 @@ MTYPE REML_find_best_case( vector *y ) /* input=data vector; output is above */
    }
    REML_status = 0 ;
 
-   /* do the Ordinary Least Squares (olsq) case */
+   /* do the Ordinary Least Squares (olsq) case = #0 in rrcol */
 
    rbest = reml_func( y , rrcol->rs[0] , rrcol->X ) ; ibest = 0 ;
    vector_equate( *bb1 , &REML_olsq_prewhitened_data_vector ) ;
@@ -647,7 +648,7 @@ MTYPE REML_find_best_case( vector *y ) /* input=data vector; output is above */
    vector_equate( *bb7 , &REML_olsq_prewhitened_fitts_vector ) ;
    REML_olsq_ssq = rsumq ;
 
-   /* find the best case */
+   /* find the best case among all the others */
 
    for( ii=1 ; ii < rrcol->nset ; ii++ ){
      rval = reml_func( y , rrcol->rs[ii] , rrcol->X ) ;
@@ -680,10 +681,4 @@ MTYPE REML_find_best_case( vector *y ) /* input=data vector; output is above */
    REML_best_ind = ibest ;
 
    REML_status = 1 ; return rbest ;
-}
-
-/*--------------------------------------------------------------------------*/
-
-void REML_clear_setup(void){
-  (void)REML_find_best_case(NULL) ; return ;
 }
