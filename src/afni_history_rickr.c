@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, JUL, 2008, RCR, "3dNLfim", MINOR, TYPE_MODIFY,
+   "warn the user if DSET_NVALS is not the same as DSET_NUMTIMES",
+   "That would suggest the dataset has no time axis."
+ } ,
+
  { 16, JUL, 2008, RCR, "serial_helper", MINOR, TYPE_NEW_OPT,
    "added -disp_all to give formatted display of 'all' mask data",
    "This was added for P Kundu.\n"
