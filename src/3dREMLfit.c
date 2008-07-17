@@ -112,6 +112,7 @@ int main( int argc , char *argv[] )
       "         compare the REML estimations with the simpler OLSQ results.\n"
       "* All output datasets are in float format.  Calculations internally\n"
       "    are done in double precision.\n"
+      "* Despite my best efforts, this program is somewhat slow.\n"
       "\n"
       "-- RWCox - July 2008\n"
      ) ;
@@ -362,13 +363,13 @@ int main( int argc , char *argv[] )
    /*----- create output datasets -----*/
 
    Rbeta_dset = create_float_dataset( inset , nreg , Rbeta_prefix ) ;
-   Rvar_dset  = create_float_dataset( inset , 3    , Rvar_prefix  ) ;
+   Rvar_dset  = create_float_dataset( inset , 4    , Rvar_prefix  ) ;
 #if 0
    Rfitts_dset= create_float_dataset( inset , nfull, Rfitts_prefix) ;
 #endif
 
    Obeta_dset = create_float_dataset( inset , nreg , Obeta_prefix ) ;
-   Ovar_dset  = create_float_dataset( inset , 3    , Ovar_prefix  ) ;
+   Ovar_dset  = create_float_dataset( inset , 1    , Ovar_prefix  ) ;
 #if 0
    Ofitts_dset= create_float_dataset( inset , nfull, Ofitts_prefix) ;
 #endif
@@ -394,17 +395,16 @@ int main( int argc , char *argv[] )
      }
      if( Rvar_dset != NULL ){
        iv[0] = sqrt( REML_best_ssq / (ntime-nreg) ) ;
-       iv[1] = REML_best_rho ; iv[2] = REML_best_bb ;
-       THD_insert_series( vv , Rvar_dset , 3 , MRI_float , iv , 0 ) ;
+       iv[1] = REML_best_rho ; iv[2] = REML_best_bb ; iv[3] = REML_best_lam ;
+       THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
      }
      if( Obeta_dset != NULL ){
-       for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = REML_best_beta_vector.elts[ii] ;
+       for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = OLSQ_best_beta_vector.elts[ii] ;
        THD_insert_series( vv , Obeta_dset , nreg , MRI_float , iv , 0 ) ;
      }
      if( Ovar_dset != NULL ){
-       iv[0] = sqrt( REML_best_ssq / (ntime-nreg) ) ;
-       iv[1] = REML_best_rho ; iv[2] = REML_best_bb ;
-       THD_insert_series( vv , Ovar_dset , 3 , MRI_float , iv , 0 ) ;
+       iv[0] = sqrt( OLSQ_best_ssq / (ntime-nreg) ) ;
+       THD_insert_series( vv , Ovar_dset , 1 , MRI_float , iv , 0 ) ;
      }
 
    }
