@@ -49,6 +49,13 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 18 , JUL , 2008 , DRG , "to3d" , 
+    MINOR , TYPE_MODIFY, "Reverse order of slices in Siemens Mosaic data" ,
+    "Some Siemens Mosaic data can be in reverse order depending upon\n"
+    "obscure Siemens private DICOM tags.\n"
+    "Thanks to Doug Greve in Freesurfer group for edifying this situation"
+} ,
+
 { 15 , JUL , 2008 , DRG , "general" , 
     MINOR , TYPE_MODIFY, "Can turn off all obliquity warnings" ,
     "AFNI_NO_OBLIQUE_WARNING variable is extended to turn off warnings\n"
