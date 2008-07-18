@@ -49,7 +49,7 @@ int main( int argc , char *argv[] )
    float *iv ;
    int iarg, ii,jj, nreg, ntime, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
-   MTYPE rhomax=0.7 , bmax=0.7 ; int rhonum=7 , bnum=14 ;
+   MTYPE rhomax=0.8 , bmax=0.8 ; int rhonum=8 , bnum=16 ;
    char *cgl , *rst ;
    matrix X ; vector y ;
    float cput ;
@@ -98,10 +98,10 @@ int main( int argc , char *argv[] )
       "The following options control the ARMA(1,1)\n"
       "parameter estimation for each voxel time series\n"
       "-----------------------------------------------\n"
-      " -MAXrho rm = Set the max allowed rho parameter to 'rm' (default=0.7).\n"
-      " -Nrho nr   = Use 'nr' values for the rho parameter (default=7).\n"
-      " -MAXb bm   = Set max allow MA b parameter to 'bm' (default=0.7).\n"
-      " -Nb nb     = Use 'nb' values for the b parameter (default=14).\n"
+      " -MAXrho rm = Set the max allowed rho parameter to 'rm' (default=0.8).\n"
+      " -Nrho nr   = Use 'nr' values for the rho parameter (default=8).\n"
+      " -MAXb bm   = Set max allow MA b parameter to 'bm' (default=0.8).\n"
+      " -Nb nb     = Use 'nb' values for the b parameter (default=16).\n"
       "\n"
       "Notes\n"
       "-----\n"
@@ -141,7 +141,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-Nrho") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        rhonum = (int)strtod(argv[iarg],NULL) ;
-            if( rhonum <  2 ) rhonum =  2 ;
+            if( rhonum <  4 ) rhonum =  4 ;
        else if( rhonum > 20 ) rhonum = 20 ;
        iarg++ ; continue ;
      }
@@ -155,8 +155,8 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-Nb") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        bnum = (int)strtod(argv[iarg],NULL) ;
-            if( bnum <  2 ) bnum =  2 ;
-       else if( bnum > 20 ) bnum = 20 ;
+            if( bnum <  4 ) bnum =  4 ;
+       else if( bnum > 40 ) bnum = 40 ;
        iarg++ ; continue ;
      }
 
@@ -364,6 +364,12 @@ int main( int argc , char *argv[] )
 
    Rbeta_dset = create_float_dataset( inset , nreg , Rbeta_prefix ) ;
    Rvar_dset  = create_float_dataset( inset , 4    , Rvar_prefix  ) ;
+   if( Rvar_dset != NULL ){
+     EDIT_BRICK_LABEL( Rvar_dset , 0 , "Variance" ) ;
+     EDIT_BRICK_LABEL( Rvar_dset , 1 , "a" ) ;
+     EDIT_BRICK_LABEL( Rvar_dset , 2 , "b" ) ;
+     EDIT_BRICK_LABEL( Rvar_dset , 3 , "lam" ) ;
+   }
 #if 0
    Rfitts_dset= create_float_dataset( inset , nfull, Rfitts_prefix) ;
 #endif
@@ -399,11 +405,11 @@ int main( int argc , char *argv[] )
        THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
      }
      if( Obeta_dset != NULL ){
-       for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = OLSQ_best_beta_vector.elts[ii] ;
+       for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = REML_olsq_beta_vector.elts[ii] ;
        THD_insert_series( vv , Obeta_dset , nreg , MRI_float , iv , 0 ) ;
      }
      if( Ovar_dset != NULL ){
-       iv[0] = sqrt( OLSQ_best_ssq / (ntime-nreg) ) ;
+       iv[0] = sqrt( REML_olsq_ssq / (ntime-nreg) ) ;
        THD_insert_series( vv , Ovar_dset , 1 , MRI_float , iv , 0 ) ;
      }
 
