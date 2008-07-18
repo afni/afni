@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, JUL, 2008, RCR, "3dNLfim", MINOR, TYPE_MODIFY,
+   "listed signal and noise models in -help output",
+   NULL
+ } ,
+
  { 17, JUL, 2008, RCR, "3dNLfim", MINOR, TYPE_MODIFY,
    "warn the user if DSET_NVALS is not the same as DSET_NUMTIMES",
    "That would suggest the dataset has no time axis."
