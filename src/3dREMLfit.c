@@ -52,9 +52,8 @@ int main( int argc , char *argv[] )
    MTYPE rhomax=0.8 , bmax=0.8 ; int rhonum=8 , bnum=16 ;
    char *cgl , *rst ;
    matrix X ; vector y ;
-   float cput ;
    reml_collection *rrcol ;
-   int nprefix=0 , vstep ;
+   int nprefixO=0 , nprefixR=0 , vstep ;
    char *Rbeta_prefix  = NULL ; THD_3dim_dataset *Rbeta_dset  = NULL ;
    char *Rvar_prefix   = NULL ; THD_3dim_dataset *Rvar_dset   = NULL ;
    char *Rfitts_prefix = NULL ; THD_3dim_dataset *Rfitts_dset = NULL ;
@@ -63,6 +62,8 @@ int main( int argc , char *argv[] )
    char *Ofitts_prefix = NULL ; THD_3dim_dataset *Ofitts_dset = NULL ;
    int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL ;
    NI_int_array *giar ;
+   float mfilt_radius=0.0 , dx,dy,dz ; int do_mfilt=0 , do_dxyz , nx,ny,nz ;
+   MRI_IMAGE *aim , *bim ; float *aar , *bar ;
 
    /**------- help? -------**/
 
@@ -98,13 +99,41 @@ int main( int argc , char *argv[] )
       "The following options control the ARMA(1,1)\n"
       "parameter estimation for each voxel time series\n"
       "-----------------------------------------------\n"
-      " -MAXrho rm = Set the max allowed rho parameter to 'rm' (default=0.8).\n"
-      " -Nrho nr   = Use 'nr' values for the rho parameter (default=8).\n"
+      " -MAXa am   = Set max allowed AR a parameter to 'am' (default=0.8).\n"
+      "                The range of a scanned is from 0 to +am.\n"
+      " -Na na     = Use 'na' values for the a parameter grid (default=8).\n"
+      "\n"
       " -MAXb bm   = Set max allow MA b parameter to 'bm' (default=0.8).\n"
+      "                The range of b values scanned is from -bm to +bm.\n"
       " -Nb nb     = Use 'nb' values for the b parameter (default=16).\n"
       "\n"
-      "Notes\n"
-      "-----\n"
+      " -NEGcor    = Allows negative correlations to be used; the default\n"
+      "                is that only positive correlations are searched.\n"
+      "                If you use this, you should double Na, which\n"
+      "                will slow the program down.  When -NEGcor is used,\n"
+      "                the range of rho scanned is from -am to +am.\n"
+      " -POScor    = Do not allow negative correlations.  Since this is\n"
+      "                the default, you don't actually need this option.\n"
+      "                [FMRI data doesn't seem to need the modeling  ]\n"
+      "                [of negative correlations, but you never know.]\n"
+      "\n"
+      " -Mfilt mr  = After finding the best fit parameters for each voxel\n"
+      "                in the mask, do a 3D median filter to smooth these\n"
+      "                parameters over a ball with radius 'mr' mm, and then\n"
+      "                use THOSE parameters to compute the final output.\n"
+      "                N.B.: If mr < 0, -mr is the ball radius in voxels,\n"
+      "                      instead of millimeters.\n"
+      "                [No median filtering is done unless -Mfilt is used.]\n"
+      "\n"
+      " -CORcut cc = The exact ARMA(1,1) correlation matrix (for a != 0)\n"
+      "                has no non-zero entries.  The calculations in this\n"
+      "                program set correlations below a cutoff to zero.\n"
+      "                The default cutoff is %.3f, but can be altered with\n"
+      "                this option.  The only reason to use this option is\n"
+      "                to test the sensitivity of the results to the cutoff.\n"
+      "\n"
+      "Nota Bene\n"
+      "---------\n"
       "* ARMA(1,1) parameters 'a' (AR) and 'b' (MA) are estimated\n"
       "    only on a discrete grid, for the sake of CPU time.\n"
       "* Each voxel gets a separate pair of 'a' and 'b' parameters.\n"
@@ -113,8 +142,52 @@ int main( int argc , char *argv[] )
       "* All output datasets are in float format.  Calculations internally\n"
       "    are done in double precision.\n"
       "* Despite my best efforts, this program is somewhat slow.\n"
+      "    Partly because it solves many linear systems for each voxel,\n"
+      "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
       "\n"
-      "-- RWCox - July 2008\n"
+      "ARMA(1,1)\n"
+      "---------\n"
+      "* The correlation coefficient of noise samples 'k' units apart in time,\n"
+      "    for k >= 1, is given by r(k) = lam * a^(k-1)\n"
+      "    where                   lam  = (b+a)(1+a*b)/(1+2*a*b+b*b).\n"
+      "* lam can be bigger or smaller than a, depending on the sign of b.\n"
+      "* For the noise model which is the sum of AR(1) and white noise, lam < a.\n"
+      "* The natural range of a and b is -1..+1.  However, unless -NEGcor is\n"
+      "    used, only non-negative values of a will be used, and only values\n"
+      "    of b that give lam > 0 will be allowed.\n"
+      "* The program sets up the correlation matrix using the censoring and\n"
+      "    run start information in the header of the .xmat.1D matrix file.\n"
+      "\n"
+      "REML = REsidual (or REstricted) Maximum Likelihood\n"
+      "--------------------------------------------------\n"
+      "* Ordinary least squares (assuming the noise correlation matrix is the\n"
+      "    identity matrix) is consistent for estimating regression parameters,\n"
+      "    but is not consistent for estimating the noise variance if the\n"
+      "    noise is in fact correlated in time.\n"
+      "* Maximum likelihood estimation (ML) of the regression parameters and\n"
+      "    variance/correlation together is asymptotically consistent as the\n"
+      "    number of samples goes to infinity, but the variance estimates\n"
+      "    might still have significant bias at a 'reasonable' number of\n"
+      "    data points.\n"
+      "* REML estimates the variance/correlation parameters in a space\n"
+      "    of residuals -- the part of the data left after the model fit\n"
+      "    is subtracted.  The amusing part is that the model fit used is\n"
+      "    the one where the variance/correlation matrix is the one found\n"
+      "    by the REML fit itself.  This feature makes the process nonlinear,\n"
+      "    and the REML equations are usually solved iteratively, to maximize\n"
+      "    the log-likelihood in the restricted space.  In this program, the\n"
+      "    REML function is instead simply optimized over a finite grid of\n"
+      "    the correlation parameters a and b.  The matrices for each (a,b)\n"
+      "    pair are pre-calculated in the setup phase, and then are re-used\n"
+      "    in the voxel loop.\n"
+      "* REML estimates of the variance/correlation parameters are still\n"
+      "    biased, but are generally less biased than ML estimates.  Also,\n"
+      "    the regression parameters (betas) should be estimated somewhat\n"
+      "    more accurately.\n"
+      "\n"
+      "-----------------------\n"
+      "-- RWCox - July 2008 --\n"
+      "-----------------------\n" , corcut
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -131,14 +204,14 @@ int main( int argc , char *argv[] )
 
       /** ARMA params **/
 
-     if( strcmp(argv[iarg],"-MAXrho") == 0 ){
+     if( strcmp(argv[iarg],"-MAXrho") == 0 || strcmp(argv[iarg],"-MAXa") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        rhomax = (MTYPE)strtod(argv[iarg],NULL) ;
             if( rhomax < 0.3 ) rhomax = 0.3 ;
        else if( rhomax > 0.9 ) rhomax = 0.9 ;
        iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-Nrho") == 0 ){
+     if( strcmp(argv[iarg],"-Nrho") == 0 || strcmp(argv[iarg],"-Na") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        rhonum = (int)strtod(argv[iarg],NULL) ;
             if( rhonum <  4 ) rhonum =  4 ;
@@ -159,8 +232,30 @@ int main( int argc , char *argv[] )
        else if( bnum > 40 ) bnum = 40 ;
        iarg++ ; continue ;
      }
+     if( strcmp(argv[iarg],"-NEGcor") == 0 ){
+       REML_allow_negative_correlations(1) ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-POScor") == 0 ){
+       REML_allow_negative_correlations(0) ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-Mfilt") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       mfilt_radius = (float)strtod(argv[iarg],NULL) ;
+       do_mfilt = (mfilt_radius != 0.0f) ;
+       do_dxyz  = (mfilt_radius > 0.0f) ;
+       mri_medianfilter_usedxyz( do_dxyz ) ;
+       if( mfilt_radius < 0.0f ) mfilt_radius = -mfilt_radius ;
+       iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-CORcut") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       dx = (float)strtod(argv[iarg],NULL) ;
+       if( dx > 0.0f && dx <= 0.1f ) corcut = (MTYPE)dx ;
+       else WARNING_message("Illegal value after -CORcut -- ignoring it!") ;
+       iarg++ ; continue ;
+     }
 
-      /** -matrix **/
+     /** -matrix **/
 
      if( strcmp(argv[iarg],"-matrix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
@@ -209,7 +304,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-Rbeta_prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Rbeta_prefix = strdup(argv[iarg]) ; nprefix++ ;
+       Rbeta_prefix = strdup(argv[iarg]) ; nprefixR++ ;
        if( !THD_filename_ok(Rbeta_prefix) )
          ERROR_exit("Illegal string after -Rbeta_prefix") ;
        iarg++ ; continue ;
@@ -217,7 +312,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-Rvar_prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Rvar_prefix = strdup(argv[iarg]) ; nprefix++ ;
+       Rvar_prefix = strdup(argv[iarg]) ; nprefixR++ ;
        if( !THD_filename_ok(Rvar_prefix) )
          ERROR_exit("Illegal string after -Rvar_prefix") ;
        iarg++ ; continue ;
@@ -225,7 +320,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-Rfitts_prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Rfitts_prefix = strdup(argv[iarg]) ; nprefix++ ;
+       Rfitts_prefix = strdup(argv[iarg]) ; nprefixR++ ;
        if( !THD_filename_ok(Rfitts_prefix) )
          ERROR_exit("Illegal string after -Rfitts_prefix") ;
        iarg++ ; continue ;
@@ -233,7 +328,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-Obeta_prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Obeta_prefix = strdup(argv[iarg]) ; nprefix++ ;
+       Obeta_prefix = strdup(argv[iarg]) ; nprefixO++ ;
        if( !THD_filename_ok(Obeta_prefix) )
          ERROR_exit("Illegal string after -Obeta_prefix") ;
        iarg++ ; continue ;
@@ -241,7 +336,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-Ovar_prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Ovar_prefix = strdup(argv[iarg]) ; nprefix++ ;
+       Ovar_prefix = strdup(argv[iarg]) ; nprefixO++ ;
        if( !THD_filename_ok(Ovar_prefix) )
          ERROR_exit("Illegal string after -Ovar_prefix") ;
        iarg++ ; continue ;
@@ -249,7 +344,7 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-Ofitts_prefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Ofitts_prefix = strdup(argv[iarg]) ; nprefix++ ;
+       Ofitts_prefix = strdup(argv[iarg]) ; nprefixO++ ;
        if( !THD_filename_ok(Ofitts_prefix) )
          ERROR_exit("Illegal string after -Ofitts_prefix") ;
        iarg++ ; continue ;
@@ -260,17 +355,19 @@ int main( int argc , char *argv[] )
 
    /**-------- sanity checks, dataset input, maskifying --------**/
 
-   if( inset   == NULL ) ERROR_exit("No -input dataset?!") ;
-   if( nprefix == 0    ) ERROR_exit("No output prefixes given?!") ;
+   if( inset             == NULL ) ERROR_exit("No -input dataset?!") ;
+   if( nprefixR+nprefixO == 0    ) ERROR_exit("No output datasets?!") ;
+   if( nprefixR          == 0    ) WARNING_message("No REML output datasets?!") ;
 
    INFO_message("Loading input dataset into memory") ;
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
+   dx = fabsf(DSET_DX(inset)) ; nx = DSET_NX(inset) ;
+   dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ;
+   dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
 
    if( mask != NULL ){
-     if( mask_nx != DSET_NX(inset) ||
-         mask_ny != DSET_NY(inset) ||
-         mask_nz != DSET_NZ(inset)   )
+     if( mask_nx != nx || mask_ny != ny || mask_nz != nz )
        ERROR_exit("-mask dataset grid doesn't match input dataset") ;
 
    } else if( automask ){
@@ -278,7 +375,7 @@ int main( int argc , char *argv[] )
      mask = THD_automask( inset ) ;
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
-     mmm = THD_countmask( DSET_NVOX(inset) , mask ) ;
+     mmm = THD_countmask( nvox , mask ) ;
      INFO_message("Number of voxels in automask = %d",mmm) ;
      if( mmm < 2 ) ERROR_exit("Automask is too small to process") ;
    }
@@ -352,13 +449,11 @@ int main( int argc , char *argv[] )
 
    /**------- set up for REML estimation -------**/
 
-   cput = COX_cpu_time() ;
-   INFO_message("starting REML setup calculations: CPU=%.2f",cput) ;
+   INFO_message("starting REML setup calculations: total CPU=%.2f",COX_cpu_time()) ;
    rrcol = REML_setup( &X , tau , rhonum,rhomax,bnum,bmax ) ;
    if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
-   cput = COX_cpu_time() - cput ;
-   INFO_message("REML setup: rows=%d cols=%d %d cases; net CPU=%.2f",
-                ntime,nreg,rrcol->nset,cput) ;
+   INFO_message("REML setup: rows=%d cols=%d %d cases; total CPU=%.2f",
+                ntime,nreg,rrcol->nset,COX_cpu_time()) ;
 
    /*----- create output datasets -----*/
 
@@ -382,11 +477,17 @@ int main( int argc , char *argv[] )
 
    /***------- loop over voxels and process them ------***/
 
-   cput = COX_cpu_time() ;
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
    iv = (float *)malloc(sizeof(float)*nvals) ;
    vstep = (nvox > 999) ? nvox/50 : 0 ;
    if( vstep ) fprintf(stderr,"++ voxel loop: ") ;
+
+   if( do_mfilt ){
+     aim = mri_new_vol( nx,ny,nz , MRI_float ) ;
+     aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
+     bim = mri_new_vol( nx,ny,nz , MRI_float ) ;
+     bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
+   }
 
    for( vv=0 ; vv < nvox ; vv++ ){
      if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -395,16 +496,21 @@ int main( int argc , char *argv[] )
      for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
      (void)REML_find_best_case( &y , rrcol ) ;
 
-     if( Rbeta_dset != NULL ){
-       for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = REML_best_beta_vector.elts[ii] ;
-       THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
+     if( do_mfilt ){               /* save best REML index */
+       aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
+     } else {
+       if( Rbeta_dset != NULL ){   /* save best REML results */
+         for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = REML_best_beta_vector.elts[ii] ;
+         THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
+       }
+       if( Rvar_dset != NULL ){
+         iv[0] = sqrt( REML_best_ssq / (ntime-nreg) ) ;
+         iv[1] = REML_best_rho ; iv[2] = REML_best_bb ; iv[3] = REML_best_lam ;
+         THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
+       }
      }
-     if( Rvar_dset != NULL ){
-       iv[0] = sqrt( REML_best_ssq / (ntime-nreg) ) ;
-       iv[1] = REML_best_rho ; iv[2] = REML_best_bb ; iv[3] = REML_best_lam ;
-       THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
-     }
-     if( Obeta_dset != NULL ){
+
+     if( Obeta_dset != NULL ){     /* save OLSQ results regardless */
        for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = REML_olsq_beta_vector.elts[ii] ;
        THD_insert_series( vv , Obeta_dset , nreg , MRI_float , iv , 0 ) ;
      }
@@ -415,8 +521,56 @@ int main( int argc , char *argv[] )
 
    }
    if( vstep ) fprintf(stderr,"\n") ;
-   cput = COX_cpu_time() - cput ;
-   INFO_message("REML fitting: net CPU=%.2f",cput) ;
+   INFO_message("REML fitting done: total CPU=%.2f",COX_cpu_time()) ;
+
+   /**--- if doing median filter, must re-loop --**/
+
+   if( do_mfilt ){
+     MRI_IMAGE *afilt , *bfilt ;
+     INFO_message("Median filtering best fit ARMA models") ;
+     afilt = mri_medianfilter( aim , mfilt_radius , mask , 0 ) ;
+     bfilt = mri_medianfilter( bim , mfilt_radius , mask , 0 ) ;
+     if( afilt == NULL || bfilt == NULL ){
+       WARNING_message("Median filter failed?! This is weird.") ;
+     } else {
+       mri_free(aim) ; aim = afilt ; aar = MRI_FLOAT_PTR(aim) ;
+       mri_free(bim) ; bim = bfilt ; bar = MRI_FLOAT_PTR(bim) ;
+     }
+     if( vstep ) fprintf(stderr,"++ voxel loop: ") ;
+     for( vv=0 ; vv < nvox ; vv++ ){
+       if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
+       if( !INMASK(vv) ) continue ;
+       (void)THD_extract_array( vv , inset , 0 , iv ) ;
+       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
+       jj = IAB(rrcol,aar[vv],bar[vv]) ;  /* closest point in the grid */
+       if( rrcol->rs[jj] == NULL ){       /* try to fix up this oversight */
+         int ia = jj % (1+rrcol->na); MTYPE aaa = rrcol->abot + ia * rrcol->da;
+         int ib = jj / (1+rrcol->na); MTYPE bbb = rrcol->bbot + ib * rrcol->db;
+         rrcol->rs[jj] = REML_setup_one( &X , tau , aaa,bbb ) ;
+       }
+       if( rrcol->rs[jj] == NULL ){ /* should not happen */
+         ERROR_message("bad REML: voxel #%d (%d,%d,%d) has a=%.3f b=%.3f lam=%.3f jj=%d",
+                         vv, DSET_index_to_ix(inset,vv) ,
+                             DSET_index_to_jy(inset,vv) ,
+                             DSET_index_to_kz(inset,vv) ,
+                         aar[vv],bar[vv],LAMBDA(aar[vv],bar[vv]),jj) ;
+       } else {
+         (void)reml_func( &y , rrcol->rs[jj] , rrcol->X ) ;
+         if( Rbeta_dset != NULL ){
+           for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = bb5->elts[ii] ;
+           THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
+         }
+         if( Rvar_dset != NULL ){
+           iv[0] = sqrt( rsumq / (ntime-nreg) ) ;
+           iv[1] = rrcol->rs[jj]->rho ; iv[2] = rrcol->rs[jj]->barm ;
+           iv[3] = rrcol->rs[jj]->lam ;
+           THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
+         }
+       }
+     }
+     if( vstep ) fprintf(stderr,"\n") ;
+     INFO_message("Recalculating done: total CPU=%.2f",COX_cpu_time()) ;
+   }
 
    if( Rbeta_dset != NULL ){ DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); }
    if( Rvar_dset  != NULL ){ DSET_write(Rvar_dset) ; WROTE_DSET(Rvar_dset ); }
