@@ -63,7 +63,8 @@ typedef struct {
 #undef  IAB
 #define IAB(rc,a,b) ( (int)rint( ((a)-(rc)->abot) / (rc)->da )  \
      + (1+(rc)->na) * (int)rint( ((b)-(rc)->bbot) / (rc)->db ) )
- 
+
+static MTYPE corcut = 0.01 ;
 
 /****************************************************************************/
 /****** Generic functions to process a sparse matrix in rcmat format. *******/
@@ -250,16 +251,16 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    /* set maximum bandwidth */
 
    alam = fabs(lam) ;
-   if( alam > .01 ){
-     if( rho != 0.0 ) /* so that last element is about 0.01 */
-       bmax = 1 + (int)ceil( log(0.01/alam) / log(fabs(rho)) ) ;
+   if( alam >= corcut ){
+     if( rho != 0.0 ) /* bmax is such that last element is about 'corcut' */
+       bmax = 1 + (int)ceil( log(corcut/alam) / log(fabs(rho)) ) ;
      else
        bmax = 1 ;     /* pure MA(1) case */
    } else {
      bmax = 0 ;       /* identity matrix case */
    }
 
-   /* special case: identity matrix */
+   /* special and trivial case: identity matrix */
 
    if( bmax == 0 ){
      for( ii=0 ; ii < nt ; ii++ ){
@@ -312,9 +313,6 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 /*--------------------------------------------------------------------------*/
 /*! Create the struct for REML calculations for a particular ARMA(1,1)
     set of parameters, and for a particular regression matrix X.       */
-
-static MTYPE logdet_Dzero = 0.0 ;  /* info just for fun */
-static MTYPE fixed_cost   = 0.0 ;
 
 reml_setup * setup_arma11_reml( int nt, int *tau,
                                 MTYPE rho, MTYPE lam , matrix *X )
@@ -387,8 +385,6 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    }
    rset->dd_logdet = 2.0 * dsum ;
 
-   if( rho == 0.0 && lam == 0.0 ) logdet_Dzero = dsum ;
-
    /* and 2 * log det[C] */
 
    for( csum=0.0,ii=0 ; ii < nt ; ii++ ){
@@ -398,13 +394,18 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    }
    rset->cc_logdet = 2.0 * csum ;
 
-#if 0
-INFO_message("REML setup: rho=%.3f lam=%.3f logdet[D]=%g logdet[C]=%g cost=%g",
-             rho,lam,dsum,csum,dsum+csum-logdet_Dzero ) ;
-#endif
+   return rset ;
+}
 
-   fixed_cost = dsum+csum-logdet_Dzero ;
+/*--------------------------------------------------------------------------*/
 
+reml_setup * REML_setup_one( matrix *X , int *tau , MTYPE rho , MTYPE bb )
+{
+   reml_setup *rset ;
+   MTYPE lam = LAMBDA(rho,bb) ;
+
+   rset = setup_arma11_reml( X->rows , tau , rho , lam , X ) ;
+   if( rset != NULL ) rset->barm = bb ;
    return rset ;
 }
 
@@ -506,11 +507,16 @@ void reml_collection_destroy( reml_collection *rcol )
 
 /*--------------------------------------------------------------------------*/
 
+static int allow_negative_cor = 0 ;
+void REML_allow_negative_correlations( int i ){ allow_negative_cor = i ; }
+
+/*--------------------------------------------------------------------------*/
+
 reml_collection * REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop,
                                                      int nb  , MTYPE btop   )
 {
    int ii,jj,kk , nt , *ttau , nset ;
-   MTYPE drho , db , bb , rho , lam , bbot ;
+   MTYPE drho , db , bb , rho , lam , bbot , rbot ;
    reml_collection *rrcol=NULL ;
 
    if( X == NULL ) return rrcol ;              /* bad */
@@ -540,6 +546,7 @@ reml_collection * REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop,
      else if( nrho%2 == 1 ) nrho++ ;  /* must be even */
    } else {
      nrho = 0 ;  /* no scanning in the rho direction = MA(1) */
+     allow_negative_cor = 0 ;
    }
 
    if( nrho == 0 && nb == 0 ){  /* stoopid */
@@ -547,7 +554,10 @@ reml_collection * REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop,
      return rrcol ;
    }
 
-   drho = rhotop / MAX(1,nrho) ;  /* scan from 0 to rhotop */
+   if( allow_negative_cor ) rbot = -rhotop ;
+   else                     rbot = 0.0 ;
+   drho = (rhotop-rbot) / MAX(1,nrho) ;  /* scan from rbot to rhotop */
+
    db   = 2.0*btop / MAX(1,nb) ;  /* scan from -btop to btop */
    bbot = -btop ;
 
@@ -559,7 +569,7 @@ reml_collection * REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop,
    nset = (nb+1)*(nrho+1) ;  /* number of cases to create */
    rrcol->rs = (reml_setup **)calloc(sizeof(reml_setup *),nset) ;
 
-   rrcol->abot = 0.0  ; rrcol->da = drho ; rrcol->na = nrho ;
+   rrcol->abot = rbot ; rrcol->da = drho ; rrcol->na = nrho ;
    rrcol->bbot = bbot ; rrcol->db = db   ; rrcol->nb = nb   ;
 
    rrcol->izero = kk = IAB(rrcol,0.0,0.0) ;  /* index for a=b=0 case */
@@ -568,12 +578,13 @@ reml_collection * REML_setup( matrix *X , int *tau , int nrho, MTYPE rhotop,
 
    nset = 1 ;
    for( ii=0 ; ii <= nrho ; ii++ ){
-     rho = ii*drho ;                        /* AR parameter = a = rho */
+     rho = ii*drho + rbot ;                 /* AR parameter = a = rho */
      for( jj=0 ; jj <= nb ; jj++ ){
        bb  = jj*db + bbot ;                 /* MA parameter = b */
        lam = LAMBDA(rho,bb) ;               /* +1 super-diagonal element */
        kk  = ii + (1+nrho)*jj ;
-       if( kk != rrcol->izero && lam >= 0.05 ){
+       if( kk != rrcol->izero &&
+           ( lam >= corcut || (lam <= -corcut && allow_negative_cor) ) ){
          rrcol->rs[kk] = setup_arma11_reml( nt,ttau, rho,lam , X ) ;
          if( rrcol->rs[kk] != NULL ){ rrcol->rs[kk]->barm = bb ; nset++ ; }
        }
