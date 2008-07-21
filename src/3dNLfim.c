@@ -410,7 +410,7 @@ void display_help_menu()
     "                             (constant, linear)\n"
     "                             see model_linear.c\n"
     "\n"
-    "  Linear+ORG               : Linear+Ort Noise Model\n"
+    "  Linear+Ort               : Linear+Ort Noise Model\n"
     "                             (constant, linear, Ort)\n"
     "                             see model_linplusort.c\n"
     "\n"
