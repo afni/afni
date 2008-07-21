@@ -11633,13 +11633,7 @@ ENTRY("ISQ_handle_keypress") ;
          default:
          case ISQ_RNG_MINTOMAX: seq->opt.scale_range = ISQ_RNG_02TO98;  break;
          case ISQ_RNG_CLIPPED:  seq->opt.scale_range = ISQ_RNG_MINTOMAX;break;
-         case ISQ_RNG_02TO98:
-           if( 0.0f < seq->top_clip ){
-             seq->opt.scale_range = ISQ_RNG_CLIPPED; seq->redo_clip = 1 ;
-           } else {
-             seq->opt.scale_range = ISQ_RNG_MINTOMAX;
-           }
-         break;
+         case ISQ_RNG_02TO98:   seq->opt.scale_range = ISQ_RNG_MINTOMAX;break;
        }
 
        ISQ_redisplay( seq , -1 , isqDR_display ) ;

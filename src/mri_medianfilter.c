@@ -41,14 +41,12 @@ ENTRY("mri_medianfilter") ;
 
    if( !use_dxyz ){
      if( irad < 1.01f ) irad = 1.01f ;
-     dz = (imin->nz == 1) ? 666.0f : 1.0f ;
+     dz = (imin->nz == 1) ? 6666.0f : 1.0f ;
      cl = MCW_build_mask( 1.0f,1.0f,dz , irad ) ;
    } else {
      float dm ;
-     dz = (imin->nz == 1) ? 666.0f : imin->dz ;
-     dm = MIN(imin->dx,imin->dy) ;
-     if( imin->nz == 1 ){ dz = 666.0f ; }
-     else               { dz = imin->dz ; dm = MIN(dm,dz) ; }
+     dz = (imin->nz == 1) ? 6666.0f : imin->dz ;
+     dm = MIN(imin->dx,imin->dy) ; dm = MIN(dm,dz) ;
      dm *= 1.01f ; if( irad < dm ) irad = dm ;
      cl = MCW_build_mask( imin->dx,imin->dy,dz , irad ) ;
    }
