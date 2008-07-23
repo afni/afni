@@ -2,7 +2,7 @@
 
 AVOVKLIB = libsegtools.a
 
-AVOVK_SRCS = thd_segtools.c
+AVOVK_SRCS = thd_segtools_fNM.c # thd_segtools.c thd_segtools_fNM.c
        
 
 AVOVK_OBJS = ${AVOVK_SRCS:.c=.o}
@@ -14,7 +14,7 @@ AVOVK_INCLUDE_PATH = ${IFLAGS} -I../nifti/niftilib -I../nifti/nifticdf \
 AVOVK_LINK_PATH = ${LFLAGS} -L/usr/lib -L../ 
 AVOVK_LINK_LIB = ${LLIBS} -lmri
 
-AVOVK_HDRS = thd_segtools.h
+AVOVK_HDRS = thd_segtools_fNM.h # thd_segtools.h thd_segtools_fNM.h
 
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o \
@@ -37,9 +37,9 @@ AFWARPOBJS = ../afni_warp.o ../afni_slice_byte.o ../afni_slice_short.o      \
 AFNI_3dOBJS = ../parser.o ../parser_int.o
 
 #library only
-${AVOVKLIB} : ${AVOVK_OBJS} cluster.o
+${AVOVKLIB} : ${AVOVK_OBJS} cluster_floatNOMASK.o # cluster.o cluster_floatNOMASK.o
 	rm -f ${AVOVKLIB}
-	ar q ${AVOVKLIB} ${AVOVK_OBJS} cluster.o
+	ar q ${AVOVKLIB} ${AVOVK_OBJS} cluster_floatNOMASK.o #cluster.o cluster_floatNOMASK.o
 	echo "library Rebuilt ..."
 	$(RANLIB) ${AVOVKLIB} 
 
@@ -48,9 +48,13 @@ ${AVOVKLIB} : ${AVOVK_OBJS} cluster.o
 clean:
 	$(RM) *.o *.a
 
-cluster.o:cluster.c
+#cluster.o:cluster.c
+#	$(RM) $@
+#	${CC} ${CCOPT} ${WARNOPT} ${AVOVK_INCLUDE_PATH} -c cluster.c 
+
+cluster_floatNOMASK.o:cluster_floatNOMASK.c
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} ${AVOVK_INCLUDE_PATH} -c cluster.c 
+	${CC} ${CCOPT} ${WARNOPT} ${AVOVK_INCLUDE_PATH} -c cluster_floatNOMASK.c 
 
 .c.o:
 	${CC} ${CCOPT} ${WARNOPT} ${AVOVK_INCLUDE_PATH} -c $*.c 
@@ -63,7 +67,7 @@ fit_onesign:fit_onesign.c
          ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
 
-Aclustering:Aclustering.c cluster.o
+Aclustering:Aclustering_floatNOMASK.c cluster_floatNOMASK.o
 	$(RM) $@
 	${CC} -o $@ Aclustering.c \
          ${CCOPT} ${WARNOPT} \
@@ -79,16 +83,21 @@ Aclustering:Aclustering.c cluster.o
          ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
 
-3dAclustering:3dAclustering.c ${AVOVKLIB}
+#3dAclustering:3dAclustering.c ${AVOVKLIB}
+#	$(RM) $@
+#	${CC} -o $@ 3dAclustering.c \
+#         ${CCOPT} ${WARNOPT} \
+#         ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
+#         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
+         
+3dAclustering_fNM:3dAclustering_floatNM.c ${AVOVKLIB}
 	$(RM) $@
-	${CC} -o $@ 3dAclustering.c \
+	${CC} -o $@ 3dAclustering_floatNM.c \
          ${CCOPT} ${WARNOPT} \
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
          ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
-         
-
 	
-progs: fit_onesign Aclustering 3dfit_onesign 3dAclustering
+progs: fit_onesign Aclustering 3dfit_onesign 3dAclustering_fNM  # 3dAclustering 3dAclustering_fNM
 
 all: ${AVOVKLIB} progs install 
  
@@ -100,4 +109,5 @@ install:
 	@if [ -f  fit_onesign ]; then mv fit_onesign ${INSTALLDIR}; fi;
 	@if [ -f  Aclustering ]; then mv Aclustering ${INSTALLDIR}; fi;
 	@if [ -f  3dfit_onesign ]; then mv 3dfit_onesign ${INSTALLDIR}; fi;
-	@if [ -f  3dAclustering ]; then mv 3dAclustering ${INSTALLDIR}; fi;
+#	@if [ -f  3dAclustering ]; then mv 3dAclustering ${INSTALLDIR}; fi;
+	@if [ -f  3dAclustering_fNM ]; then mv 3dAclustering_fNM ${INSTALLDIR}; fi;	
