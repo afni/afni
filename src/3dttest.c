@@ -34,6 +34,8 @@ static int   TT_be_quiet   = 0 ;
 static int   TT_workmem    = 266 ; /* default = 266 Megabytes */
 static int   TT_voxel      = -1 ;  /* 0-based (but 1-based on cmd, like ANOVA)  */
 
+static char * TT_base_dname = NULL ;
+
 #define MEGA  1048576  /* 2^20 */
 
 static THD_string_array *TT_set1 = NULL ;  /* sets of dataset names */
@@ -205,13 +207,28 @@ DUMP2 ;
 
       /**** after this point, the options are no longer 'free floating' ****/
 
-      /** -base1 bval [sd1 n1] **/
+      /** -base1_dset dset  : similar to -base1, but bval differs by voxel **/
+      /** for M Beauchamp                              23 Jul 2008 [rickr] **/
+
+      if( strncmp(argv[nopt],"-base1_dset",8) == 0 ){
+         char *ch ;
+
+         if( ++nopt >= argc )    TT_syntax("-base1_dset needs a dastaset!");
+         if( TT_use_bval == -1 ) TT_syntax("-base1_dset with -set1 illegal!");
+         if( TT_use_bval ==  1 ) TT_syntax("-base1_dset with -base1 illegal!");
+         TT_base_dname = argv[nopt] ;
+         TT_use_bval = 1 ;
+         nopt++ ; continue ;  /* skip to next arg */
+      }
+
+      /** -base1 bval **/
 
       if( strncmp(argv[nopt],"-base1",6) == 0 ){
          char *ch ;
 
          if( ++nopt >= argc )    TT_syntax("-base1 needs a value!");
          if( TT_use_bval == -1 ) TT_syntax("-base1 with -set1 illegal!");
+         if( TT_use_bval ==  1 ) TT_syntax("-base1 with -base1_dset illegal!");
          TT_bval = strtod( argv[nopt] , &ch ) ;
          if( *ch != '\0' ) TT_syntax("value after -base1 is illegal!") ;
          TT_use_bval = 1 ;
@@ -371,6 +388,8 @@ void TT_syntax(char * msg)
     "Usage 2: 3dttest [options] -base1 bval -set2 datasets ...\n"
     "   for comparing the mean of 1 set of datasets against a constant.\n"
     "\n"
+    "   ** or use -base1_dset\n"
+    "\n"
 
     "OUTPUTS:\n"
     " A single dataset is created that is the voxel-by-voxel difference\n"
@@ -392,6 +411,8 @@ void TT_syntax(char * msg)
     "                   N.B.: -set1 and -base1 are mutually exclusive!\n"
     "  -base1 bval        = 'bval' is a numerical value that the mean of set2\n"
     "                         will be tested against with a 1-sample t-test.\n"
+    "  -base1_dset DSET   = Similar to -base1, but input a dataset where bval\n"
+    "                         can vary over voxels.\n"
     "  -sdn1  sd n1       = If this option is given along with '-base1', then\n"
     "                         'bval' is taken to have standard deviation 'sd'\n"
     "                         computed from 'n1' samples.  In this case, each\n"
@@ -511,7 +532,9 @@ int main( int argc , char *argv[] )
          num1_inv , num2_inv , num1m1_inv , num2m1_inv , dof ,
          dd,tt,q1,q2 , f1,f2 , tt_max=0.0 ;
    THD_3dim_dataset *dset=NULL , *new_dset=NULL ;
+   THD_3dim_dataset * base_dset;
    float *av1 , *av2 , *sd1 , *sd2 , *ffim , *gfim ;
+   float *base_ary=NULL;
 
    void  *vsp ;
    void  *vdif ;           /* output mean difference */
@@ -758,7 +781,19 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
    nice(2) ;  /** lower priority a little **/
 #endif
 
-   for( piece=0 ; piece < 1 ; piece++ ){  /* only 1 piece now   13 Dec 2005 [rickr] */
+
+   /* possibly open TT_base_dset now, and convert to floats */
+   if( TT_base_dname ) {
+      DOPEN(base_dset, TT_base_dname) ;
+      base_ary = (float *) malloc( sizeof(float) * nxyz ) ; MTEST(base_ary) ;
+      EDIT_coerce_scale_type(nxyz , DSET_BRICK_FACTOR(base_dset,0) ,
+              DSET_BRICK_TYPE(base_dset,0),DSET_ARRAY(base_dset,0), /* input */
+              MRI_float ,base_ary  ) ;                              /* output */
+      THD_delete_3dim_dataset( base_dset , False ) ; base_dset = NULL ;
+   }
+
+   /* only 1 'piece' now   13 Dec 2005 [rickr] */
+   for( piece=0 ; piece < 1 ; piece++ ){
 
       fim_offset = 0 ;
 
@@ -933,7 +968,7 @@ printf(" ** forming mean and sigma of set1\n") ;
         if( TT_paired || TT_n1 == 0 ){       /* the olde waye: 1 sample test */
           f2 = 1.0 / sqrt( (double) num2 ) ;
           for( ii=0 ; ii < nxyz ; ii++ ){
-            av2[ii] -= TT_bval ;  /* final mean */
+            av2[ii] -= (base_ary ? base_ary[ii] : TT_bval) ;  /* final mean */
             if( sd2[ii] > 0.0 ){
                num_tt++ ;
                tt      = av2[ii] / (f2 * sd2[ii]) ;
@@ -952,7 +987,7 @@ printf(" ** forming mean and sigma of set1\n") ;
           f1 = (TT_n1-1.0) * (1.0/TT_n1 + 1.0/num2) / (TT_n1+num2-2.0) ;
           f2 = (num2 -1.0) * (1.0/TT_n1 + 1.0/num2) / (TT_n1+num2-2.0) ;
           for( ii=0 ; ii < nxyz ; ii++ ){
-            av2[ii] -= TT_bval ;  /* final mean */
+            av2[ii] -= (base_ary ? base_ary[ii] : TT_bval) ;  /* final mean */
             q1 = f1 * TT_sd1*TT_sd1 + f2 * sd2[ii]*sd2[ii] ;
             if( q1 > 0.0 ){
               num_tt++ ;
