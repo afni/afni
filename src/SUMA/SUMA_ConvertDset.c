@@ -26,7 +26,8 @@
                  containing the various Surface Vewer Structures SUMAg_SVv 
                  contains SUMA_MAX_SURF_VIEWERS structures */
       int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
-      SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
+      SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object 
+                                 structure vector*/
       int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
    #endif
 #endif
@@ -285,7 +286,13 @@ int main (int argc,char *argv[])
       }
       
    }/* loop accross command ine options */
-   overwrite = THD_ok_overwrite();
+   
+   if (!prfx) {
+      prfx = "you_look_marvellous.niml.dset";
+      overwrite = 1;
+   } else {
+      overwrite = THD_ok_overwrite();
+   }
    pad_to_node = MRILIB_DomainMaxNodeIndex;
    
    if (oform == SUMA_NO_DSET_FORMAT) {

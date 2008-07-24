@@ -1525,9 +1525,12 @@ int main (int argc,char *argv[])
                   fprintf(SUMA_STDERR,"Error %s:\n Failed to allocate for fat edge mask\n", FuncName);
                   exit(1);
                }
-               EDIT_coerce_scale_type( DSET_NVOX(fatoutset) , DSET_BRICK_FACTOR(fatoutset,0) ,
-                              DSET_BRICK_TYPE(fatoutset,0), DSET_ARRAY(fatoutset, 0) ,      /* input  */
-                              MRI_float               , Opt->fatemask  ) ;   /* output */
+               EDIT_coerce_scale_type( 
+                     DSET_NVOX(fatoutset) ,
+                     DSET_BRICK_FACTOR(fatoutset,0) ,
+                     DSET_BRICK_TYPE(fatoutset,0), 
+                     DSET_ARRAY(fatoutset, 0) ,   /* input  */
+                     MRI_float               , Opt->fatemask  ) ;/* output */
 
                if (DSET_NVOX(fatoutset) != DSET_NVOX(outset) || DSET_NVOX(fatoutset) != DSET_NVOX(Opt->in_vol)) {
                   SUMA_S_Err("Bad news in tennis shoes!");

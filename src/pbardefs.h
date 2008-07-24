@@ -602,7 +602,7 @@ static char RED_CS[] = {
 /* amber variant for @AddEdge */
 static char ADD_EDGE[] = {                /* generated with: MakeColorMap -fn  */
    "Add_Edge "                            /*    Fiducials_Ncol -ahc Add_Edge   */
-   "#00FFFF #66FF00 #00FF00 #0000FF "     /*    -flipud  */
+   "#00FFFF #66FF00 #00FF00 #660000 "     /*    -flipud  */
    "#FF0000 #FFBF00 #FEBE00 #FDBD00 "     /* with Fiducials_Ncol containing */
    "#FBBD00 #FABC00 #F9BB00 #F8BA00 "     /* 0.4860    0.8913    0.7621   0 */
    "#F7B900 #F5B800 #F4B700 #F3B600 "     /* 0.7   0     0.7   1 */
@@ -613,7 +613,7 @@ static char ADD_EDGE[] = {                /* generated with: MakeColorMap -fn  *
    "#DEA700 #DDA600 #DCA500 #DBA400 "     /* 0.42     0.32  0     128 */
    "#D9A300 #D8A200 #D7A200 #D6A100 "     /* 1     0.75  0     250 */
    "#D5A000 #D39F00 #D29E00 #D19D00 "     /* 1     0     0     251 */
-   "#D09C00 #CF9B00 #CD9A00 #CC9A00 "     /* 0.0   0.0   1     252 */
+   "#D09C00 #CF9B00 #CD9A00 #CC9A00 "     /* 0.0   0.0   0.4     252 */
    "#CB9900 #CA9800 #C89700 #C79600 "     /* 0     1     0     253 */
    "#C69500 #C59400 #C49300 #C29200 "     /* 0.4   1     0     254 */
    "#C19100 #C09100 #BF9000 #BE8F00 "     /* 0     1     1     255  */

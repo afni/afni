@@ -69,6 +69,7 @@ void Segment_usage(void)
                "-T_met\n"
                "-Dist_met\n"
                "-max_loops\n"
+               "-use_global_estimates\n"
                "\n");
    EXRETURN;
 }
@@ -91,6 +92,7 @@ typedef struct {
    float na;
    int DistMetric;
    int N_loopmax;
+   int UseGlobal;
 } SEG_OPTS;
 
 SEG_OPTS *Segment_ParseInput (char *argv[], int argc)
@@ -123,6 +125,11 @@ SEG_OPTS *Segment_ParseInput (char *argv[], int argc)
    Opt->na = 4.0;
    Opt->DistMetric = SEG_METH_T;
    Opt->N_loopmax = 10;
+   Opt->UseGlobal = 0; /*  Uses global estimates of class medians, 
+                           to help when local samples of a particular 
+                           class are rare. Does not seem to help 
+                           much. The most critical remains a good
+                           initialization with the startup masks*/ 
    brk = 0;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -179,6 +186,11 @@ SEG_OPTS *Segment_ParseInput (char *argv[], int argc)
       
       if( strcmp(argv[kar],"-Dist_met") == 0 ){
          Opt->DistMetric = SEG_METH_DIST ;
+         brk = 1;
+      }
+      
+      if( strcmp(argv[kar],"-use_global_estimates") == 0 ){
+         Opt->UseGlobal = 1 ;
          brk = 1;
       }
       
@@ -255,7 +267,8 @@ SEG_OPTS *Segment_ParseInput (char *argv[], int argc)
 		}
       
       if (!brk) {
-			fprintf (stderr,"Option %s not understood. Try -help for usage\n", argv[kar]);
+			fprintf (stderr,"Option %s not understood. \n"
+                         "Try -help for usage\n", argv[kar]);
 			exit (1);
 		} else {	
 			brk = 0;
@@ -263,7 +276,10 @@ SEG_OPTS *Segment_ParseInput (char *argv[], int argc)
 		}
 
    }
-   if (!Opt->gminit_name || !Opt->csfinit_name || !Opt->wminit_name || !Opt->aset_name) {
+   if (  !Opt->gminit_name || 
+         !Opt->csfinit_name || 
+         !Opt->wminit_name || 
+         !Opt->aset_name) {
       ERROR_exit("Missing input");
    }
    
@@ -413,13 +429,19 @@ int Segment(SEG_OPTS *Opt)
    byte *vval=NULL, *csfmask=NULL, *gmmask=NULL, *wmmask=NULL, *mmask=NULL;
    float *aval = NULL;
    MRI_IMAGE *nbim_csf=NULL, *nbim_wm=NULL, *nbim_gm=NULL;
-   float dist_csf, dist_wm, dist_gm, min_dist, med_csf, med_wm, med_gm, mad_csf, mad_wm, mad_gm;
+   float dist_csf, dist_wm, dist_gm, min_dist, 
+         med_csf, med_wm, med_gm, mad_csf, mad_wm, mad_gm,
+         med_gm_global, mad_gm_global, med_wm_global, mad_wm_global,
+         med_csf_global, mad_csf_global;
    float dist_mad_rat, dist_mad_rat_csf, dist_mad_rat_wm, dist_mad_rat_gm ;
    float min_T, T_csf, T_gm, T_wm, vval_candidate;
    byte bb=0;
-   int ShowVoxSketchy=0, many = 0, far = 0, n_csf, n_gm, n_wm, n_m, iloop;
-   int N_code =0, code_vec[20];
-   float val_vec[20];
+   int   ShowVoxSketchy=0, many = 0, far = 0, 
+         n_csf, n_gm, n_wm, n_m, iloop, iii, nnn;
+   int N_code =0, code_vec[20], nl_csf=0, nl_gm = 0, nl_wm = 0;
+   float val_vec[20], Bcsf=0.0f, Bwm=0.0f, Bgm = 0.0f;
+   float *buff=NULL, *buffc=NULL, sfac=0.0, 
+         Exp_gm_frac=0.0, Exp_wm_frac=0.0, Exp_csf_frac=0.0;
    ENTRY("Segment");
    
    /* prep output */
@@ -446,9 +468,11 @@ int Segment(SEG_OPTS *Opt)
       ERROR_exit("Failed to allocate for vval or masks");
    }
    
-   EDIT_coerce_scale_type( DSET_NVOX(Opt->aset) , DSET_BRICK_FACTOR(Opt->aset,0) ,
-                  DSET_BRICK_TYPE(Opt->aset,0), DSET_ARRAY(Opt->aset, 0) ,      /* input  */
-                  MRI_float               , aval  ) ;   /* output */
+   EDIT_coerce_scale_type( DSET_NVOX(Opt->aset) , 
+                           DSET_BRICK_FACTOR(Opt->aset,0) ,
+                           DSET_BRICK_TYPE(Opt->aset,0), 
+                           DSET_ARRAY(Opt->aset, 0) ,      /* input  */
+                           MRI_float               , aval  ) ;   /* output */
 
    if( Opt->na < 0.0f ){ dx = dy = dz = 1.0f ; Opt->na = -Opt->na ; }
    else         { dx = fabsf(DSET_DX(Opt->aset)) ;
@@ -487,100 +511,250 @@ int Segment(SEG_OPTS *Opt)
       vstep = (Opt->debug && nxyz > 99999) ? nxyz/50 : 0 ;
       if( vstep ) fprintf(stderr,"++ voxel loop:") ;
 
-      SetSearchAboutMaskedVoxel(1); /* search the nighborhood of a voxel that is itself not in the mask 
-                                       The default behaviour for  THD_get_dset_nbhd is to return a NULL
-                                       if the voxel ii, jj, kk itself is not in the mask   */
+      SetSearchAboutMaskedVoxel(1);    /* search the neighborhood of a voxel that
+                                          is itself not in the mask. 
+                                          The default behaviour for  
+                                          THD_get_dset_nbhd is to return a NULL
+                                          if the voxel ii, jj, kk itself is not 
+                                          in the mask   */
+      /* get global stats for 3 classes */
+      if (!buff) buff =  (float *)calloc(sizeof(float), nxyz);
+      if (!buff) {
+         fprintf( stderr,"Failed to allocate for buff. Misere!");
+         return(0);
+      }
+      EDIT_coerce_scale_type( nxyz , 
+                              DSET_BRICK_FACTOR(Opt->aset,0) ,
+                              DSET_BRICK_TYPE(Opt->aset,0), 
+                              DSET_ARRAY(Opt->aset, 0) ,      /* input  */
+                              MRI_float               , buff  ) ;   /* output */
+      
+      /* get csf global stats */
+      med_csf_global=-1;
+      mad_csf_global=-1;
+      buffc = (float *)calloc(sizeof(float), n_csf);
+      if (!buffc) {
+         fprintf( stderr,"Failed to allocate for buffc. Misere!");
+         return(0);
+      }
+      nnn = 0;
+      for (iii=0; iii<nxyz;++iii) {
+         if (csfmask[iii]) { buffc[nnn] = buff[iii]; ++nnn; }
+      }
+      qmedmad_float_3dSeg( nnn , buffc , &med_csf_global , &mad_csf_global ) ;
+      free(buffc); buffc = NULL;
+      
+      /* get wm global stats */
+      med_wm_global=-1;
+      mad_wm_global=-1;
+      buffc = (float *)calloc(sizeof(float), n_wm);
+      if (!buffc) {
+         fprintf( stderr,"Failed to allocate for buffc. Misere!");
+         return(0);
+      }
+      nnn = 0;
+      for (iii=0; iii<nxyz;++iii) {
+         if (wmmask[iii]) { buffc[nnn] = buff[iii]; ++nnn; }
+      }
+      qmedmad_float_3dSeg( nnn , buffc , &med_wm_global , &mad_wm_global ) ;
+      free(buffc); buffc = NULL;
+
+      /* get gm global stats */
+      med_gm_global=-1;
+      mad_gm_global=-1;
+      buffc = (float *)calloc(sizeof(float), n_gm);
+      if (!buffc) {
+         fprintf( stderr,"Failed to allocate for buffc. Misere!");
+         return(0);
+      }
+      nnn = 0;
+      for (iii=0; iii<nxyz;++iii) {
+         if (gmmask[iii]) { buffc[nnn] = buff[iii]; ++nnn; }
+      }
+      qmedmad_float_3dSeg( nnn , buffc , &med_gm_global , &mad_gm_global ) ;
+      free(buffc); buffc = NULL;
+
+      free(buff); buff=NULL;
+      
+      if (Opt->debug) {
+         fprintf(stderr,"Global stats\n"
+                        "CSF: (med,mad) = (%5.2f,%5.2f)\n"
+                        " WM: (med,mad) = (%5.2f,%5.2f)\n"
+                        " GM: (med,mad) = (%5.2f,%5.2f)\n"
+                        ,
+                        med_csf_global , mad_csf_global,
+                        med_wm_global , mad_wm_global,
+                        med_gm_global , mad_gm_global);
+      }
+
       /* for each voxel in aset */
         far = 0; many = 0;
         code_vec[0] = NSTAT_MEDIAN;
         code_vec[1] = NSTAT_MAD;
-        N_code = 2;
+        code_vec[2] = NSTAT_NUM;
+        N_code = 3;
         for( ijk=kk=0 ; kk < nz ; kk++ ){
          for( jj=0 ; jj < ny ; jj++ ){
           for( ii=0 ; ii < nx ; ii++,ijk++ ){
             if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
-            if (mmask[ijk] && ( Opt->debug < 3 || (Opt->debug > 2 && Opt->idbg == ii && Opt->jdbg == jj && Opt->kdbg == kk) ) ) {
-               nbim_csf = THD_get_dset_nbhd( Opt->aset , 0  , csfmask , ii,jj,kk , nbhd ) ; 
-               nbim_wm  = THD_get_dset_nbhd( Opt->aset , 0  , wmmask  , ii,jj,kk , nbhd ) ;
-               nbim_gm  = THD_get_dset_nbhd( Opt->aset , 0  , gmmask  , ii,jj,kk , nbhd ) ;
+            if (  mmask[ijk] && 
+                  (  Opt->debug < 3 || 
+                     (  Opt->debug > 2 && Opt->idbg == ii && 
+                        Opt->jdbg == jj && Opt->kdbg == kk) ) ) {
+               nbim_csf = THD_get_dset_nbhd( Opt->aset , 0  , 
+                                             csfmask , ii,jj,kk , nbhd ) ; 
+               nbim_wm  = THD_get_dset_nbhd( Opt->aset , 0  , 
+                                             wmmask  , ii,jj,kk , nbhd ) ;
+               nbim_gm  = THD_get_dset_nbhd( Opt->aset , 0  , 
+                                             gmmask  , ii,jj,kk , nbhd ) ;
 
                dist_csf = dist_wm = dist_gm = -1.0;
                if (nbim_csf) {
-                  #if 0
-                  med_csf = mri_nstat( NSTAT_MEDIAN , nbim_csf ) ;
-                  mad_csf = mri_nstat( NSTAT_MAD    , nbim_csf ) ;
-                  #else
                   if (!mri_nstat_3dSeg( nbim_csf, code_vec, N_code, val_vec )) {
-                     fprintf(stderr,"Failed in mri_nstat_3dSeg @csf[%d %d %d]!\n", ii, jj, kk);
+                     fprintf( stderr,
+                              "Failed in mri_nstat_3dSeg @csf[%d %d %d]!\n", 
+                              ii, jj, kk);
                   }
                   med_csf = val_vec[0] ;
                   mad_csf = val_vec[1] ;
-                  #endif
-                  dist_csf = med_csf - aval[ijk]; if (dist_csf < 0.0) dist_csf = -dist_csf;
+                  nl_csf = val_vec[2];
                } else {
-                  if (Opt->debug > 2) fprintf(stderr,"NULL nbim_csf @[%d %d %d]\n", ii, jj, kk);
+                  if (Opt->debug > 2) 
+                     fprintf(stderr,"NULL nbim_csf @[%d %d %d]\n", ii, jj, kk);
                   med_csf = -1.0;
                   mad_csf = -1.0;
                }
                if (nbim_wm) {
-                  #if 0
-                  med_wm = mri_nstat( NSTAT_MEDIAN , nbim_wm ) ;
-                  mad_wm = mri_nstat( NSTAT_MAD    , nbim_wm ) ;
-                  #else
                   if (!mri_nstat_3dSeg( nbim_wm, code_vec, N_code, val_vec )) {
-                     fprintf(stderr,"Failed in mri_nstat_3dSeg @wm[%d %d %d]!\n", ii, jj, kk);
+                     fprintf(stderr,"Failed in mri_nstat_3dSeg @wm[%d %d %d]!\n",                                     ii, jj, kk);
                   }
                   med_wm = val_vec[0] ;
                   mad_wm = val_vec[1] ;
-                  #endif
-                  dist_wm  = med_wm  - aval[ijk]; if (dist_wm  < 0.0) dist_wm  = -dist_wm;
+                  nl_wm = val_vec[2];
                } else {
-                  if (Opt->debug > 2) fprintf(stderr,"NULL nbim_wm @[%d %d %d]\n", ii, jj, kk);
+                  if (Opt->debug > 2) 
+                     fprintf(stderr,"NULL nbim_wm @[%d %d %d]\n", ii, jj, kk);
                   med_wm = -1.0;
                   mad_wm = -1.0;
                }
                if (nbim_gm) {
-                  #if 0
-                  med_gm  = mri_nstat( NSTAT_MEDIAN , nbim_gm ) ;
-                  mad_gm = mri_nstat( NSTAT_MAD    , nbim_gm ) ;
-                  #else
                   if (!mri_nstat_3dSeg( nbim_gm, code_vec, N_code, val_vec )) {
-                     fprintf(stderr,"Failed in mri_nstat_3dSeg @gm[%d %d %d]!\n", ii, jj, kk);
+                     fprintf(stderr,"Failed in mri_nstat_3dSeg @gm[%d %d %d]!\n",                                     ii, jj, kk);
                   }
                   med_gm = val_vec[0] ;
                   mad_gm = val_vec[1] ;
-                  #endif
-                  dist_gm  = med_gm  - aval[ijk]; if (dist_gm  < 0.0) dist_gm  = -dist_gm;
+                  nl_gm = val_vec[2];
                } else {
-                  if (Opt->debug > 2) fprintf(stderr,"NULL nbim_gm @[%d %d %d]\n", ii, jj, kk);
+                  if (Opt->debug > 2) 
+                     fprintf(stderr,"NULL nbim_gm @[%d %d %d]\n", ii, jj, kk);
                   med_gm = -1.0;
                   mad_wm = -1.0;
                }
-
-
-               if (Opt->DistMetric == SEG_METH_DIST) {    /* distance based, what is the closest to Opt->aset[ijk] ? */
+               if (Opt->UseGlobal) { /* adjust median values by giving weight 
+                                       to global stats */
+                  if (nl_csf > nl_wm > nl_gm) {
+                     /* shading compensation comes from csf sample */
+                     sfac = med_csf / med_csf_global;
+                  } else if (nl_wm > nl_csf > nl_gm) {
+                     /* shading compensation comes from wm sample */
+                     sfac = med_wm / med_wm_global;
+                  } else {
+                     /* shading compensation comes from gm sample */
+                     sfac = med_gm / med_gm_global;
+                  }                      
+               } else {
+                  sfac = 1.0f;
+               }
+               
+               /* Now use previous calculations to get the distance 
+                  One of the classes, will get no correction because
+                  sfac was derived from its class*/
+               if (nbim_csf) {
+                  if (Opt->UseGlobal) {
+                     Exp_csf_frac = 0.2;  /* Expected fraction of csf 
+                                             in neighborhood */
+                     Bcsf =  (float)nl_csf/((float)nbhd->num_pt*Exp_csf_frac);
+                     if (Bcsf > 1.0) Bcsf = 1.0; /* only use B when too few 
+                                                   samples present*/
+                     med_csf = med_csf*Bcsf +
+                               med_csf_global*sfac*(1-Bcsf);
+                     mad_csf = mad_csf*Bcsf +
+                               mad_csf_global*sfac*(1-Bcsf);
+                  }
+                  dist_csf = med_csf - aval[ijk]; 
+                  if (dist_csf < 0.0) dist_csf = -dist_csf;
+               }
+               if (nbim_gm) {
+                  if (Opt->UseGlobal) {
+                     Exp_gm_frac = 0.4;/* Expected fraction of gm 
+                                             in neighborhood */
+                     Bgm =  (float)nl_gm/((float)nbhd->num_pt*Exp_gm_frac);
+                     if (Bgm > 1.0) Bgm = 1.0; /* only use B when too few 
+                                                   samples present*/
+                     med_gm = med_gm*Bgm +
+                               med_gm_global*sfac*(1-Bgm);
+                     mad_gm = mad_gm*Bgm +
+                               mad_gm_global*sfac*(1-Bgm);
+                  }
+                  dist_gm  = med_gm  - aval[ijk]; 
+                  if (dist_gm  < 0.0) dist_gm  = -dist_gm;
+               }
+               if (nbim_wm) {
+                  if (Opt->UseGlobal) {
+                     Exp_wm_frac = 0.4;/* Expected fraction of wm 
+                                             in neighborhood */
+                     Bwm =  (float)nl_wm/((float)nbhd->num_pt*Exp_wm_frac);
+                     if (Bwm > 1.0) Bwm = 1.0; /* only use B when too few 
+                                                   samples present*/
+                     med_wm = med_wm*Bwm +
+                               med_wm_global*sfac*(1-Bwm);
+                     mad_wm = mad_wm*Bwm +
+                               mad_wm_global*sfac*(1-Bwm);
+                  }
+                  dist_wm  = med_wm  - aval[ijk]; 
+                  if (dist_wm  < 0.0) dist_wm  = -dist_wm;
+               }
+               
+               
+               if (Opt->DistMetric == SEG_METH_DIST) {/* distance based, what is 
+                                                         the closest to
+                                                         Opt->aset[ijk] ? */
                   {
-                     vval_candidate = SEG_UNKNOWN;   min_dist = 1e30;  
-                     dist_mad_rat = dist_mad_rat_csf = dist_mad_rat_wm = dist_mad_rat_gm = 1e30;
+                     vval_candidate = SEG_UNKNOWN;   
+                     min_dist = 1e30;  
+                     dist_mad_rat = dist_mad_rat_csf = 
+                     dist_mad_rat_wm = dist_mad_rat_gm = 1e30;
                      if (dist_csf >= 0.0) {
                         dist_mad_rat_csf = dist_csf / mad_csf;
-                        if (dist_csf < min_dist) { vval_candidate = SEG_CSF; min_dist = dist_csf; dist_mad_rat = dist_mad_rat_csf; }
+                        if (dist_csf < min_dist) { 
+                           vval_candidate = SEG_CSF; 
+                           min_dist = dist_csf; 
+                           dist_mad_rat = dist_mad_rat_csf; }
                      }
                      if (dist_gm  >= 0.0) { 
                         dist_mad_rat_gm = dist_gm / mad_gm;
-                        if (dist_gm  < min_dist) { vval_candidate = SEG_GM ; min_dist = dist_gm;  dist_mad_rat = dist_mad_rat_gm;  }  
+                        if (dist_gm  < min_dist) { 
+                           vval_candidate = SEG_GM ; 
+                           min_dist = dist_gm;  
+                           dist_mad_rat = dist_mad_rat_gm;  }  
                      }
                      if (dist_wm  >= 0.0) { 
                         dist_mad_rat_wm = dist_wm / mad_wm;
-                        if (dist_wm  < min_dist) { vval_candidate = SEG_WM ; min_dist = dist_wm;  dist_mad_rat = dist_mad_rat_wm;  }
+                        if (dist_wm  < min_dist) { 
+                           vval_candidate = SEG_WM ; 
+                           min_dist = dist_wm;  
+                           dist_mad_rat = dist_mad_rat_wm;  }
                      }
                   }
                   /* some checks to see if decision was somewhat shaky */
                   ShowVoxSketchy = 0;
-                  if (dist_mad_rat > 2.0) { /* This decision is shaky, value quite far from median */ 
+                  if (dist_mad_rat > 2.0) { /* This decision is shaky, 
+                                                value quite far from median */ 
                      ShowVoxSketchy = 1;
                      ++far;   
-                  } else { /* decision is OK, do we have other possible ones? */
+                  } else { /* decision is OK, but 
+                              do we have other possible ones? */
+                     #if 1
                      if (vval_candidate == SEG_CSF) {
                         if (dist_mad_rat_wm < 2.0 || dist_mad_rat_gm < 2.0) {
                            ShowVoxSketchy = 2;
@@ -597,6 +771,27 @@ int Segment(SEG_OPTS *Opt)
                            ++many;
                         }
                      }
+                     #else  /* An alternative, but gives the same results. */
+                     if (vval_candidate == SEG_CSF) {
+                        if (  dist_mad_rat_wm < dist_mad_rat || 
+                              dist_mad_rat_gm < dist_mad_rat) {
+                           ShowVoxSketchy = 2;
+                           ++many;
+                        }
+                     }else if (vval_candidate == SEG_GM) {
+                        if (  dist_mad_rat_csf < dist_mad_rat || 
+                              dist_mad_rat_wm  < dist_mad_rat) {
+                           ShowVoxSketchy = 2;
+                           ++many;
+                        }
+                     }else if (vval_candidate == SEG_WM) {
+                        if (  dist_mad_rat_csf < dist_mad_rat || 
+                              dist_mad_rat_gm < dist_mad_rat) {
+                           ShowVoxSketchy = 2;
+                           ++many;
+                        }
+                     }
+                     #endif
                   }
                   
                   if (!ShowVoxSketchy) {
@@ -607,31 +802,54 @@ int Segment(SEG_OPTS *Opt)
                      if (iloop == Opt->N_loopmax) {
                         /* take what you can get */
                         vval[ijk] = vval_candidate;
-                        /* don't set mmask[ijk] = 0;, leave mmask's contents to flag sketchy voxels 
-                           mmask will reflect the choice made for sketchy voxels*/
+                        /* don't set mmask[ijk] = 0;, 
+                           leave mmask's contents to flag sketchy voxels 
+                           mmask will reflect the choice made for sketchy
+                           voxels*/
                         mmask[ijk] = vval_candidate;
                      }
                   }
                   
-                  if ((Opt->debug > 1 && ShowVoxSketchy) || (Opt->idbg == ii && Opt->jdbg == jj && Opt->kdbg == kk)) {
-                     if (ShowVoxSketchy == 1) fprintf(stdout,"\nSketchy, nothing close ");
-                     else if (ShowVoxSketchy == 2) fprintf(stdout,"\nSketchy, many close ");
+                  if (  (Opt->debug > 1 && ShowVoxSketchy) || 
+                        (Opt->idbg == ii && Opt->jdbg == jj && Opt->kdbg == kk)){
+                     if (ShowVoxSketchy == 1) 
+                        fprintf(stdout,"\nSketchy, nothing close ");
+                     else if (ShowVoxSketchy == 2) 
+                        fprintf(stdout,"\nSketchy, many close ");
                      else fprintf(stdout,"\nDebug ");
                      fprintf(stdout,"for voxel [%d %d %d], pass %d\n"
-                                    "aval    = %.2f\n"
-                                    "med:mad_csf = %.2f:%.2f, dist_csf = %.2f, dist_mad_rat_csf = %.2f, (%d) voxels in hood\n"
-                                    "med:mad_gm  = %.2f:%.2f, dist_gm  = %.2f, dist_mad_rat_gm  = %.2f, (%d) voxels in hood\n"
-                                    "med:mad_wm  = %.2f:%.2f, dist_wm  = %.2f, dist_mad_rat_wm  = %.2f, (%d) voxels in hood\n"
+                                    "aval    = %.2f, sfac = %.4f\n"
+                                    "med:mad_csf = %.2f:%.2f, dist_csf = %.2f, "
+                                    "dist_mad_rat_csf = %.2f, Bcsf = %.4f"
+                                    "(%d) voxels in hood\n"
+                                    "med:mad_gm  = %.2f:%.2f, dist_gm  = %.2f, "
+                                    "dist_mad_rat_gm  = %.2f,  Bgm = %.4f"
+                                    "(%d) voxels in hood\n"
+                                    "med:mad_wm  = %.2f:%.2f, dist_wm  = %.2f, "
+                                    "dist_mad_rat_wm  = %.2f,  Bwm = %.4f"
+                                    "(%d) voxels in hood\n"
                                     "Voxel set to %s\n",
                                     ii, jj, kk, iloop, 
-                                    aval[ijk],
-                                    med_csf, mad_csf, dist_csf,  (dist_mad_rat_csf < 5000 ? dist_mad_rat_csf : -1.0), ((nbim_csf) ? nbim_csf->nvox : 0),
-                                    med_gm , mad_gm,  dist_gm,   (dist_mad_rat_gm  < 5000 ? dist_mad_rat_gm  : -1.0), ((nbim_gm)  ? nbim_gm->nvox  : 0),
-                                    med_wm , mad_wm,  dist_wm,   (dist_mad_rat_wm  < 5000 ? dist_mad_rat_wm  : -1.0), ((nbim_wm)  ? nbim_wm->nvox  : 0),
+                                    aval[ijk], sfac,
+                                    med_csf, mad_csf, dist_csf,
+                                    (dist_mad_rat_csf < 5000 ? 
+                                       dist_mad_rat_csf : -1.0), Bcsf,
+                                    ((nbim_csf) ? nbim_csf->nvox : 0),
+                                    med_gm , mad_gm,  dist_gm,   
+                                    (dist_mad_rat_gm  < 5000 ? 
+                                       dist_mad_rat_gm  : -1.0), Bgm,
+                                    ((nbim_gm)  ? nbim_gm->nvox  : 0),
+                                    med_wm , mad_wm,  dist_wm,   
+                                    (dist_mad_rat_wm  < 5000 ? 
+                                       dist_mad_rat_wm  : -1.0), Bwm,
+                                    ((nbim_wm)  ? nbim_wm->nvox  : 0),
                                     SegValToSegName(vval[ijk]));
                   }
-               } else if (Opt->DistMetric == SEG_METH_T) {    /* T based, what is Opt->aset[ijk] closest to, based on the T value ?  (Forgive me Stat Gods)*/
-                  vval[ijk] = SEG_UNKNOWN;   min_dist = 1e30;  min_T = 1e30;
+               } else if (Opt->DistMetric == SEG_METH_T) { 
+                      /* T based, what is Opt->aset[ijk] closest to, 
+                         based on the T value ?  (Forgive me Stat Gods)*/
+                  vval[ijk] = SEG_UNKNOWN;   
+                  min_dist = 1e30;  min_T = 1e30;
                   T_csf = T_wm = T_gm = 1e30;
                   if (dist_csf >= 0.0) {
                      T_csf = dist_csf / ( mad_csf / sqrt (nbim_csf->nvox) );
@@ -649,15 +867,24 @@ int Segment(SEG_OPTS *Opt)
                      fprintf(stdout,"\nDebug ");
                      fprintf(stdout,"for voxel [%d %d %d]\n"
                                     "aval    = %.2f\n"
-                                    "med:mad_csf = %.2f:%.2f, dist_csf = %.2f, T_csf = %.2f, (%d) voxels in hood\n"
-                                    "med:mad_gm  = %.2f:%.2f, dist_gm  = %.2f, T_gm  = %.2f, (%d) voxels in hood\n"
-                                    "med:mad_wm  = %.2f:%.2f, dist_wm  = %.2f, T_wm  = %.2f, (%d) voxels in hood\n"
+                                    "med:mad_csf = %.2f:%.2f, dist_csf = %.2f, "
+                                    "T_csf = %.2f, (%d) voxels in hood\n"
+                                    "med:mad_gm  = %.2f:%.2f, dist_gm  = %.2f, "
+                                    "T_gm  = %.2f, (%d) voxels in hood\n"
+                                    "med:mad_wm  = %.2f:%.2f, dist_wm  = %.2f, "
+                                    "T_wm  = %.2f, (%d) voxels in hood\n"
                                     "Voxel set to %s\n",
                                     ii, jj, kk,
                                     aval[ijk],
-                                    med_csf, mad_csf, dist_csf,  (T_csf < 5000 ? T_csf : -1.0), ((nbim_csf) ? nbim_csf->nvox : 0),
-                                    med_gm , mad_gm,  dist_gm,   (T_gm  < 5000 ? T_gm  : -1.0), ((nbim_gm)  ? nbim_gm->nvox  : 0),
-                                    med_wm , mad_wm,  dist_wm,   (T_wm  < 5000 ? T_wm  : -1.0), ((nbim_wm)  ? nbim_wm->nvox  : 0),
+                                    med_csf, mad_csf, dist_csf,  
+                                    (T_csf < 5000 ? T_csf : -1.0), 
+                                    ((nbim_csf) ? nbim_csf->nvox : 0),
+                                    med_gm , mad_gm,  dist_gm,   
+                                    (T_gm  < 5000 ? T_gm  : -1.0), 
+                                    ((nbim_gm)  ? nbim_gm->nvox  : 0),
+                                    med_wm , mad_wm,  dist_wm,   
+                                    (T_wm  < 5000 ? T_wm  : -1.0), 
+                                    ((nbim_wm)  ? nbim_wm->nvox  : 0),
                                     SegValToSegName(vval[ijk]));
                   }
                }
@@ -669,20 +896,22 @@ int Segment(SEG_OPTS *Opt)
 
       if (Opt->debug) {
          if (Opt->DistMetric == SEG_METH_DIST) {
-            fprintf(stderr,"\nPass %d:\n"
-                           "Out of %d voxels in mask\n"
-                           "       %d (%.2f%%) were within 2 MAD of only one class\n"
-                           "       %d (%.2f%%) were far\n"
-                           "       %d (%.2f%%) had many close options\n",
-                           iloop, n_m, 
-                           n_m - (far + many), (float)(n_m - (far + many))/(float)n_m*100.0,
-                           far               , (float)far                 /(float)n_m*100.0,
-                           many              , (float)many                /(float)n_m*100.0 ); 
+            fprintf(stderr,
+               "\nPass %d:\n"
+               "Out of %d voxels in mask\n"
+               "       %d (%.2f%%) were within 2 MAD of only one class\n"
+               "       %d (%.2f%%) were far\n"
+               "       %d (%.2f%%) had many close options\n",
+               iloop, n_m, 
+               n_m - (far + many),(float)(n_m - (far + many))/(float)n_m*100.0 ,
+               far               ,(float)far                 /(float)n_m*100.0 ,
+               many              ,(float)many                /(float)n_m*100.0 );
          } else if (Opt->DistMetric == SEG_METH_T) {
 
          }
       }   
-      if (iloop == 0) { /* reset masks from initial guess to voxels that were a sure thing */
+      if (iloop == 0) { 
+         /* reset masks from initial guess to voxels that were a sure thing */
          for (ijk=0; ijk<nxyz; ++ijk) {
             csfmask[ijk] = wmmask[ijk] = gmmask[ijk] = SEG_UNKNOWN;
          }
@@ -693,8 +922,6 @@ int Segment(SEG_OPTS *Opt)
          else if (vval[ijk] == SEG_GM) gmmask[ijk] = SEG_GM;
          else if (vval[ijk] == SEG_WM) wmmask[ijk] = SEG_WM;
       }
-      
-      
       ++iloop;
    } while (iloop <= Opt->N_loopmax && Opt->DistMetric == SEG_METH_DIST);
    
