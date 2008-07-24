@@ -1462,7 +1462,7 @@ MRI_IMAGE * mri_float_blur2D( float sig , MRI_IMAGE *im )
 ENTRY("mri_float_blur2D") ;
 
    if( im == NULL || im->kind != MRI_float || sig <= 0.0f ) RETURN(NULL) ;
-   newim = mri_copy(im) ;
+   newim = mri_to_float(im) ;
    FIR_blur_volume_3d( newim->nx,newim->ny,1 , 1.0f,1.0f,1.0f ,
                        MRI_FLOAT_PTR(newim)  , sig,sig,0.0f    ) ;
    RETURN(newim) ;
@@ -1478,7 +1478,7 @@ MRI_IMAGE * mri_float_blur3D( float sig , MRI_IMAGE *im )
 ENTRY("mri_float_blur3D") ;
 
    if( im == NULL || im->kind != MRI_float || sig <= 0.0f ) RETURN(NULL) ;
-   newim = mri_copy(im) ;
+   newim = mri_to_float(im) ;
    FIR_blur_volume_3d( newim->nx,newim->ny,newim->nz , 1.0f,1.0f,1.0f ,
                        MRI_FLOAT_PTR(newim)  , sig,sig,sig             ) ;
    RETURN(newim) ;

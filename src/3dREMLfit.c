@@ -49,7 +49,7 @@ int main( int argc , char *argv[] )
    float *iv ;
    int iarg, ii,jj, nreg, ntime, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
-   MTYPE rhomax=0.8 , bmax=0.8 ; int rhonum=8 , bnum=16 ;
+   MTYPE rhomax=0.8 , bmax=0.8 ; int nlevab=3 ;
    char *cgl , *rst ;
    matrix X ; vector y ;
    reml_collection *rrcol ;
@@ -106,18 +106,21 @@ int main( int argc , char *argv[] )
       "parameter estimation for each voxel time series\n"
       "-----------------------------------------------\n"
       " -MAXa am   = Set max allowed AR a parameter to 'am' (default=0.8).\n"
-      "                The range of a scanned is from 0 to +am.\n"
-      " -Na na     = Use 'na' values for the a parameter grid (default=8).\n"
-      "\n"
       " -MAXb bm   = Set max allow MA b parameter to 'bm' (default=0.8).\n"
-      "                The range of b values scanned is from -bm to +bm.\n"
-      " -Nb nb     = Use 'nb' values for the b parameter (default=16).\n"
+      "                The range of b values scanned is -bm .. +bm.\n"
+      " -Pab pp    = Set the number of points in the (a,b) grid to be\n"
+      "                2^pp in each direction over the range 0..MAX.\n"
+      "                The default and minimum value for 'pp' is 3.\n"
+      "                Larger values will provide a finer resolution\n"
+      "                in a and b, but at the cost of CPU time.\n"
       "\n"
       " -NEGcor    = Allows negative correlations to be used; the default\n"
       "                is that only positive correlations are searched.\n"
-      "                If you use this, you should double Na, which\n"
-      "                will slow the program down.  When -NEGcor is used,\n"
-      "                the range of rho scanned is from -am to +am.\n"
+      "                When this option is used, the range of a scanned\n"
+      "                is -am .. +am; otherwise, it is 0 .. +am.\n"
+      "                Note that when -NEGcor is used, the number of grid\n"
+      "                points in the a direction doubles to cover the\n"
+      "                range -am .. 0; this will slow the program down.\n"
       " -POScor    = Do not allow negative correlations.  Since this is\n"
       "                the default, you don't actually need this option.\n"
       "                [FMRI data doesn't seem to need the modeling  ]\n"
@@ -226,11 +229,11 @@ int main( int argc , char *argv[] )
        else if( rhomax > 0.9 ) rhomax = 0.9 ;
        iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-Nrho") == 0 || strcmp(argv[iarg],"-Na") == 0 ){
+     if( strcmp(argv[iarg],"-2ab") == 0 || strcmp(argv[iarg],"-Pab") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       rhonum = (int)strtod(argv[iarg],NULL) ;
-            if( rhonum <  4 ) rhonum =  4 ;
-       else if( rhonum > 20 ) rhonum = 20 ;
+       nlevab = (int)strtod(argv[iarg],NULL) ;
+            if( nlevab < 3 ) nlevab = 3 ;
+       else if( nlevab > 9 ) nlevab = 9 ;
        iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-MAXb") == 0 ){
@@ -238,13 +241,6 @@ int main( int argc , char *argv[] )
        bmax = (MTYPE)strtod(argv[iarg],NULL) ;
             if( bmax < 0.3 ) bmax = 0.3 ;
        else if( bmax > 0.9 ) bmax = 0.9 ;
-       iarg++ ; continue ;
-     }
-     if( strcmp(argv[iarg],"-Nb") == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       bnum = (int)strtod(argv[iarg],NULL) ;
-            if( bnum <  4 ) bnum =  4 ;
-       else if( bnum > 40 ) bnum = 40 ;
        iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-NEGcor") == 0 ){
@@ -465,7 +461,7 @@ int main( int argc , char *argv[] )
    /**------- set up for REML estimation -------**/
 
    INFO_message("starting REML setup calculations: total CPU=%.2f",COX_cpu_time()) ;
-   rrcol = REML_setup( &X , tau , rhonum,rhomax,bnum,bmax ) ;
+   rrcol = REML_setup( &X , tau , nlevab,rhomax,bmax ) ;
    if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
    INFO_message("REML setup: rows=%d cols=%d %d cases; total CPU=%.2f",
                 ntime,nreg,rrcol->nset,COX_cpu_time()) ;
