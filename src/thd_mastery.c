@@ -174,6 +174,10 @@ fprintf(stderr,"dpt=%s\n",dpt) ;
             dset->dblk->master_bot = 1.0 ;
             dset->dblk->master_top = 0.0 ;
          }
+      } else {/* ZSS: Why not allow for <val> ? */
+         kk  = sscanf( bpt+1 , "%f" , &bot ) ;
+         dset->dblk->master_bot = bot ;
+         dset->dblk->master_top = bot ;
       }
    }
 

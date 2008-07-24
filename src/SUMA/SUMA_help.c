@@ -1380,6 +1380,7 @@ char *SUMA_All_Programs(void )
          "  SUMA_glxdino\n"
          "  SurfaceMetrics\n"
          "  SurfClust\n"
+         "  SurfDist\n"
          "  SurfDsetInfo\n"
          "  SurfInfo\n"
          "  SurfMeasures\n"
