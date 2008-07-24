@@ -1234,7 +1234,8 @@ SUMA_Boolean SUMA_Read_SpecFile (
    
    if (Spec->N_Surfs != -1) {
       fprintf(SUMA_STDERR,
-               "Error %s: Spec is not fresh after SUMA_AllocSpecFields.\n",
+               "Error %s: Spec is not fresh after SUMA_AllocSpecFields.\n"
+               "Perhaps you have redundant definitions of the input surface\n",
                FuncName);
       SUMA_RETURN (NOPE);
    }

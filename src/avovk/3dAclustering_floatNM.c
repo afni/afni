@@ -15,6 +15,10 @@ static void display_help(void)
   printf ("options:\n");
   printf ("  -v, --version Version information\n");
   printf ("  -f filename   File loading\n");
+  printf ("                You can specify multiple filenames in sequence\n"
+          "                and they will be catenated internally.\n"
+          "         e.g: -f F1+orig F2+orig F3+orig ...\n"
+          "           or -f F1+orig -f F2+orig -f F3+orig ...\n" );
   printf ("  -cg a|m       Specifies whether to center each row\n"
           "                in the data\n"
           "                a: Subtract the mean of each row\n"
@@ -55,14 +59,14 @@ static void display_help(void)
   printf ("  -r number     For k-means clustering, the number of times the\n"
           "                k-means clustering algorithm is run\n"
           "                (default: 1)\n");
-  printf ("  -m [msca]     Specifies which hierarchical clustering method to"
+  printf ("  -m [msca]     Specifies which hierarchical clustering method to\n"
           "                use:\n"
           "                m: Pairwise complete-linkage\n"
           "                s: Pairwise single-linkage\n"
           "                c: Pairwise centroid-linkage\n"
           "                a: Pairwise average-linkage\n"
           "                (default: m)\n");
-  return;
+  EXRETURN;
 }
 
 
@@ -77,7 +81,7 @@ int main(int argc, char **argv)
    //from command.c
 
    int i = 1;
-   char* filename = NULL;
+   char* filename[256];
    int l = 0;
    int s = 0;
    int x = 2;
@@ -94,43 +98,54 @@ int main(int argc, char **argv)
    THD_3dim_dataset *in_set=NULL, *clust_set=NULL;
    THD_3dim_dataset *mset =NULL, *dist_set=NULL;
    byte *mask=NULL;
-   int nmask=-1, mnx=-1, mny=-1, mnz=-1;
+   int nmask=-1, mnx=-1, mny=-1, mnz=-1, iset=0, N_iset=0;
    OPT_KMEANS oc;
-   
-   int n = 0;
+   float *dvec=NULL, **D=NULL;
+   int n = 0, Ncoltot=0, nc0=0, nx=0, ny=0, nz=0;
    char *prefixvcd = NULL;
 
+   mainENTRY("3dAclustering_fNM"); machdep();
+   PRINT_VERSION("3dAclustering_fNM"); AUTHOR("avovk") ;
+   
    oc.r = 1;
    oc.k = 0;
    oc.kh = 0;
    oc.jobname = NULL;
    oc.distmetric = 'u';
    oc.verb = 1;
+   N_iset = 0;
+   filename[N_iset] = NULL;
+   
+   if (argc < 2) {
+      display_help();
+      RETURN(0);
+   }
+
    while (i < argc)
    { const char* const argument = argv[i];
     i++;
     if (strlen(argument)<2)
     { printf("ERROR: missing argument\n");
-      return 0;
+      RETURN(0);
     }
     if (argument[0]!='-')
     { printf("ERROR: unknown argument\n");
-      return 0;
+      RETURN(0);
     }
     if(!strcmp(argument,"--version") || !strcmp(argument,"-v"))
     { clusterlib_display_version();
-      return 0;
+      RETURN(0);
     }
     if(     !strcmp(argument,"--help") 
          || !strcmp(argument,"-h") 
          || !strcmp(argument,"-help") )
     { display_help();
-      return 0;
+      RETURN(0);
     }
     if(!strcmp(argument,"-cg"))
     { if (i==argc || strlen(argv[i])>1 || !strchr("am",argv[i][0]))
       { printf ("Error reading command line argument cg\n");
-        return 0;
+        RETURN(0);
       }
       cg = argv[i][0];
       i++;
@@ -139,7 +154,7 @@ int main(int argc, char **argv)
     if(!strcmp(argument,"-ca"))
     { if (i==argc || strlen(argv[i])>1 || !strchr("am",argv[i][0]))
       { printf ("Error reading command line argument ca\n");
-        return 0;
+        RETURN(0);
       }
       ca = argv[i][0];
       i++;
@@ -148,7 +163,7 @@ int main(int argc, char **argv)
     if(!strcmp(argument,"-prefix"))
     { if (i==argc)
       { printf ("Need name after -prefix\n");
-        return 0;
+        RETURN(0);
       }
       prefix = argv[i];
       i++;
@@ -158,7 +173,7 @@ int main(int argc, char **argv)
    if(!strcmp(argument,"-mask"))
     { if (i==argc)
       { printf ("Need name after -mask\n");
-        return 0;
+        RETURN(0);
       }
       maskname = argv[i];
       i++;
@@ -178,7 +193,7 @@ int main(int argc, char **argv)
       { if (i==argc)
         { printf ("Error reading command line argument u: "
                   "no job name specified\n");
-          return 0;
+          RETURN(0);
         }
         oc.jobname = clusterlib_setjobname(argv[i],0);
         i++;
@@ -188,23 +203,30 @@ int main(int argc, char **argv)
       { if (i==argc)
         { printf ("Error reading command line argument f: "
                   "no file name specified\n");
-          return 0;
+          RETURN(0);
         }
-        filename = argv[i];
-        i++;
+        do {
+         filename[N_iset] = argv[i];
+         if (N_iset > 100) {
+            printf ("Too many input files!\n");
+            RETURN(0);
+         }
+         ++N_iset; filename[N_iset] = NULL;
+         i++;
+        } while (i< argc && argv[i][0] != '-');
         break;
       }
       case 'g':
       { int g;
         if (i==argc)
         { printf ("Error reading command line argument g: parameter missing\n");
-          return 0;
+          RETURN(0);
         }
         g = clusterlib_readnumber(argv[i]);
         if (g < 0 || g > 9)
         { printf ("Error reading command line argument g: "
                   "should be between 0 and 9 inclusive\n");
-          return 0;
+          RETURN(0);
         }
         i++;
         oc.distmetric = clusterlib_getmetric(g);
@@ -215,17 +237,17 @@ int main(int argc, char **argv)
       { if (i==argc)
         { printf ("Error reading command line argument k: "
                   "parameter missing\n");
-          return 0;
+          RETURN(0);
         }
         if (oc.kh > 0) {
             ERROR_message("-k and -c options are mutually exclusive\n");
-            return 0;
+            RETURN(0);
         }
         oc.k = clusterlib_readnumber(argv[i]);
         if (oc.k < 1)
         { printf ("Error reading command line argument k: "
                   "a positive integer is required\n");
-          return 0;
+          RETURN(0);
         }
         i++;
         break;
@@ -233,17 +255,17 @@ int main(int argc, char **argv)
     case 'c':
       { if (i==argc)
         { printf ("Error reading command line argument c: parameter missing\n");
-          return 0;
+          RETURN(0);
         }
         if (oc.k > 0) {
             ERROR_message("-k and -c options are mutually exclusive\n");
-            return 0;
+            RETURN(0);
         }
         oc.kh = clusterlib_readnumber(argv[i]);
         if (oc.kh < 1)
         { printf ("Error reading command line argument c: "
                   "a positive integer is required\n");
-          return 0;
+          RETURN(0);
         }
         i++;
         break;
@@ -251,13 +273,13 @@ int main(int argc, char **argv)
    case 'r':
       { if (i==argc)
         { printf ("Error reading command line argument r: parameter missing\n");
-          return 0;
+          RETURN(0);
         }
         oc.r = clusterlib_readnumber(argv[i]);
         if (oc.r < 1)
         { printf ("Error reading command line argument r: "
                   "a positive integer is required\n");
-          return 0;
+          RETURN(0);
         }
         i++;
         break;
@@ -266,7 +288,7 @@ int main(int argc, char **argv)
       { if (i==argc || strlen(argv[i])>1 || !strchr("msca",argv[i][0]))
 	  { printf ("Error reading command line argument m: "
                "should be 'm', 's', 'c', or 'a'\n");
-	    return 0;
+	    RETURN(0);
 	  }
         method = argv[i][0];
         i++;
@@ -274,24 +296,13 @@ int main(int argc, char **argv)
       }
       default: 
          printf ("Unknown option %s\n", argv[i-1]);
-         return 0;
+         RETURN(0);
     }
     
    }
    if (oc.k <= 0 && oc.kh <= 0) oc.k = 3;
    
-   if(oc.jobname == NULL) oc.jobname = clusterlib_setjobname(filename,1);
-
-   /*  else
-   { display_help();
-    return 0;
-   }
-   */
-
-    if (argc < 2) {
-      display_help();
-      return 0;
-    }
+   if(oc.jobname == NULL) oc.jobname = clusterlib_setjobname(filename[0],1);
 
    
    /* load dsets and prepare array data for sending to clustering functions */
@@ -301,14 +312,6 @@ int main(int argc, char **argv)
       THD_force_ok_overwrite(1) ;   /* don't worry about overwriting */
    }
    
-   /* Read in dset */
-   if (oc.verb) fprintf(stderr,"Patience, reading %s... ", filename);
-   in_set = THD_open_dataset(filename);
-   CHECK_OPEN_ERROR(in_set,filename) ;
-   ncol = DSET_NVALS(in_set);
-   nrow = DSET_NVOX(in_set);
-   DSET_load(in_set) ; CHECK_LOAD_ERROR(in_set) ;
-
    /* Read in mask */
    if (maskname) {
       mset = THD_open_dataset(maskname) ;
@@ -320,24 +323,92 @@ int main(int argc, char **argv)
       nmask = THD_countmask( mnx*mny*mnz , mask ) ;
       INFO_message("%d voxels in the [%dx%dx%d] mask",nmask, mnx, mny, mnz) ;
       if( nmask < 1 ) ERROR_exit("mask %s is empty?!", maskname) ;
-      if (  mask &&
-            (mnx != DSET_NX(in_set) || 
-             mny != DSET_NY(in_set) || 
-             mnz != DSET_NZ(in_set) ) ) {
-         ERROR_exit("Dimension mismatch between mask and input dset");      
+   }
+   Ncoltot=0;
+   /* Read in dset(s) and create D */
+   for (iset = 0; iset < N_iset; ++iset) {
+      if (oc.verb) fprintf(stderr,"Patience, reading %s's header, ", 
+                                 filename[iset]);
+      in_set = THD_open_dataset(filename[iset]);
+      CHECK_OPEN_ERROR(in_set,filename[iset]) ;
+      if (iset == 0) {
+         ncol = DSET_NVALS(in_set);
+         nrow = DSET_NVOX(in_set);
+         nx = DSET_NX(in_set); ny = DSET_NY(in_set); nz = DSET_NZ(in_set);
+         if (  mask &&
+               (mnx != DSET_NX(in_set) || 
+                mny != DSET_NY(in_set) || 
+                mnz != DSET_NZ(in_set) ) ) {
+            ERROR_exit("Dimension mismatch between mask and input dset");      
+         }
+         if (!mask) nmask = DSET_NVOX(in_set);
+      } else { /* check for consistency with previous input */
+         if (  (nx != DSET_NX(in_set) || 
+                ny != DSET_NY(in_set) || 
+                nz != DSET_NZ(in_set) ) ) {
+            ERROR_exit( "Dimension mismatch between input dset"
+                        " %s and preceding ones", filename[iset]);      
+         }     
+         ncol = DSET_NVALS(in_set);
+      }
+      if (oc.verb) fprintf(stderr," %d cols\n ", 
+                                 ncol);
+      Ncoltot += ncol;
+      /* get rid of dset */
+      DSET_delete (in_set);
+   }
+   
+   /* Now allocate for D */
+   D = (float **)calloc(sizeof(float*), nmask);
+   for (ii=0;ii<(nmask);++ii) {
+      if (!(D[ii] = (float *)calloc(sizeof(float), Ncoltot))) {
+         fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n", 
+                        nmask, Ncoltot);
+         RETURN(0);
       }
    }
 
+   dvec = (float * )malloc(sizeof(float)*Ncoltot) ;  /* array to hold series 
+                                                      longer than needed, but 
+                                                      less hassle*/
+   nc0 = 0;
+   for (iset = 0; iset < N_iset; ++iset) {
+      if (oc.verb) fprintf(stderr,"Patience, rereading %s...\n", filename[iset]);
+      in_set = THD_open_dataset(filename[iset]);
+      DSET_load(in_set) ; ncol = DSET_NVALS(in_set);
+
+      if (oc.verb) {
+         ININFO_message("Filling cols [%d..%d] of D(%dx%d) (mask=%p).\n", 
+                           nc0,nc0+ncol-1, nmask, Ncoltot, mask);
+      }
+      ii = 0;
+      for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
+         if (!mask || mask[nl]) {
+            THD_extract_array( nl , in_set , 0 , dvec ) ; 
+            for (nc=0; nc<ncol; ++nc) D[ii][nc0+nc] = dvec[nc]; 
+            ++ii;                              
+         }
+      }
+      nc0 += ncol;
+      if (iset != N_iset-1) DSET_delete(in_set);
+      else DSET_unload(in_set);
+   }
+   free(dvec); dvec = NULL;
+   
    /* Now call clustering function */
    if (!thd_Acluster ( in_set,
                      mask, nmask,
                      &clust_set,
                      &dist_set ,
-                     oc)) {
+                     oc, D, Ncoltot)) {
       ERROR_exit("Failed in thd_Acluster");                 
    }
    
-
+   /* freedom */
+   if (D) {
+      for (ii=0; ii<nmask; ++ii) if (D[ii]) free(D[ii]);
+      free(D); D = NULL;
+   }
    /* avovk; make prefix for other datasets, based on input prefix */
 
    n = 1 + strlen(prefix) + strlen("_vcd");
@@ -378,6 +449,6 @@ int main(int argc, char **argv)
    
 
    fprintf (stderr,"\n");
-   return 0;
+   RETURN(0);
    }
 

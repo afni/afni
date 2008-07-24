@@ -536,7 +536,7 @@ void example_kmeans( int nrows, int ncols,
    FILE *out2=NULL;
    FILE *out3=NULL;
 
-   int a;
+   float a, b;
    
    
    for (i = 0; i < nclusters; i++)
@@ -642,15 +642,14 @@ void example_kmeans( int nrows, int ncols,
 
       getvoxlclusterdist(count, cdata, clusterid, data, jobname, 
 		      nclusters, nrows, ncols, vcdata);
-
       getvoxlclustersdist(count, cdata, clusterid, data, jobname, 
 		      nclusters, nrows, ncols, vcdata);
-
 
       /*might want to make some calculations with vcdata*/
 
       /*lets calculate distance to centroid/sum(distance 2 all centroids)*/
 
+   #if 0
       for (i = 0; i < nrows; i++)
 	{
 	  a = 0;
@@ -658,6 +657,16 @@ void example_kmeans( int nrows, int ncols,
 	    a += vcdata[i][j+1];
 	  vcdata[i][nclusters+1] = 1000*vcdata[i][0]/a;
 	}
+   #else
+      for (i = 0; i < nrows; i++)
+	{
+	  a = vcdata[i][0];
+     b = a+1e10;
+	  for (j = 0; j < nclusters; j++)
+	    if (vcdata[i][j+1]>a && vcdata[i][j+1]< b) b = vcdata[i][j+1];
+	  vcdata[i][nclusters+1] = (1.0-a/b)*100.0;
+	}
+   #endif
       /* just a notice: first column is dist to centroid in THE cluster,
 	 then there are columns that describe distance to centroids from
          each cluster centroid 
@@ -681,25 +690,34 @@ void example_kmeans( int nrows, int ncols,
    END: functions based on command.c code from The C clustering library.
 **********************************************************************/
 /*!
-   Put some help like for function thd_polyfit
+   Andrej: Put some help like for function thd_polyfit
+   You can form the data array Dp outside of this function,
+   so if Dp is not NULL, then only header structure of in_set
+   is used. If Dp is NULL then it is formed inside the function
+   from the contents of in_set 
+   D_ncol is used to pass the number of columns in Dp. Note that
+   D_ncol may be different from the number of sub-bricks in in_set
+   because when Dp is filled externally, in_set can be one of the volumes
+   used to form Dp.
 */
 int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,
                   THD_3dim_dataset **dist_set,
-                  OPT_KMEANS oc )
+                  OPT_KMEANS oc,
+                  float **Dp, int D_ncol)
 {
-  int ii, nl, nc, j;
+   int ii, nl, nc, j;
    float **D=NULL, **distmatrix=NULL;  /* this double business is a waste of
                                            memory, at least for D..*/
    int ncol = -1;
    float *dvec=NULL;
    int* clusterid = NULL;
    short *sc = NULL;
-   
+   float *fc = NULL;
    float** vcdata = NULL; 
    int nvc; /*this will be for number of columns in vcdata matrix*/
-   
+   char lll[25]={"buffer"};
 
 
    ENTRY("thd_Acluster");
@@ -710,8 +728,44 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       RETURN(0);
    }
    if (!mask) nmask = DSET_NVOX(in_set);
-   ncol = DSET_NVALS(in_set); 
-   if (ncol < DSET_NUM_TIMES(in_set)) ncol = DSET_NUM_TIMES(in_set);
+   
+   if (!Dp) {
+      ncol = DSET_NVALS(in_set); 
+      if (ncol < DSET_NUM_TIMES(in_set)) ncol = DSET_NUM_TIMES(in_set);
+
+      /* make sure in_set is loaded */
+      DSET_load(in_set);
+      
+      /* Create data matrix */
+      D = (float **)calloc(sizeof(float*), nmask);
+      for (ii=0;ii<(nmask);++ii) {
+         if (!(D[ii] = (float *)calloc(sizeof(float), ncol))) {
+            fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n", 
+                           nmask, ncol);
+            RETURN(0);
+         }
+      }
+
+
+      dvec = (float * )malloc(sizeof(float)*ncol) ;  /* array to hold series */
+      if (oc.verb) {
+         ININFO_message("Filling D(%dx%d) (mask=%p).\n", nmask, ncol, mask);
+      }
+      ii = 0;
+      for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
+         if (!mask || mask[nl]) {
+            THD_extract_array( nl , in_set , 0 , dvec ) ; 
+            for (nc=0; nc<ncol; ++nc) D[ii][nc] = dvec[nc]; 
+            ++ii;                              
+         }
+      }
+      /* dump voxel values in in_set to free up memory, 
+         but keep header of in_set */
+      DSET_unload(in_set); 
+   } else {
+      ncol = D_ncol; 
+      D = Dp;
+   }   
    
    if (oc.verb) {
       ININFO_message("Have %d/%d voxels to process "
@@ -719,30 +773,6 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                      nmask, DSET_NVOX(in_set), ncol);
    }
    
-   /* Create data matrix */
-   D = (float **)calloc(sizeof(float*), nmask);
-   for (ii=0;ii<(nmask);++ii) {
-      if (!(D[ii] = (float *)calloc(sizeof(float), ncol))) {
-         fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n", 
-                        nmask, ncol);
-         RETURN(0);
-      }
-   }
-
-   
-   dvec = (float * )malloc(sizeof(float)*ncol) ;  /* array to hold series */
-   if (oc.verb) {
-      ININFO_message("Filling D(%dx%d) (mask=%p).\n", nmask, ncol, mask);
-   }
-   ii = 0;
-   for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
-      if (!mask || mask[nl]) {
-         THD_extract_array( nl , in_set , 0 , dvec ) ; 
-         for (nc=0; nc<ncol; ++nc) D[ii][nc] = dvec[nc]; 
-         ++ii;                              
-      }
-   }
-
    /* allocate for answer arrays */
    if (!(clusterid = (int *)calloc(sizeof(int), nmask))) {
       fprintf(stderr,"ERROR: Failed to allocate for clusterid\n");
@@ -794,7 +824,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    }
    
    /* create output datasets, if required*/
-   *clust_set = EDIT_empty_copy(in_set) ;
+   *clust_set = EDIT_empty_copy(in_set ) ;
    EDIT_dset_items(  *clust_set ,
                      ADN_nvals     , 1           ,
                      ADN_ntt       , 1          ,
@@ -820,50 +850,10 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    free(clusterid); clusterid = NULL;
    EDIT_substitute_brick( *clust_set , 0 , MRI_short , sc ) ;
    sc = NULL; /* array now in brick */
-   
- 
-
-#   if 0
-
-/* create another output datasets, voxel centroid distance*/
-   *dist_set = EDIT_empty_copy(in_set) ;
-   EDIT_dset_items(  *dist_set ,
-                     ADN_nvals     , 1           ,
-                     ADN_ntt       , 1          ,
-                     ADN_datum_all , MRI_short      ,
-                     ADN_brick_fac , NULL           ,
-                     ADN_prefix    , "vcd"   ,
-                     ADN_none ) ;
-   /* MRI_float */
-   if (oc.verb) {
-      ININFO_message("loading results into %s\n",
-                     DSET_PREFIX(*dist_set));
-   }
-   
-   /* transfer data in vcdata to shorts array */
-   sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));
-      ii = 0;
-   for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
-      if (!mask || mask[nl]) {
-         sc[nl] = (short)vcdata[ii][0]+1;
-         ++ii;
-      }
-   }
-
-   for (ii=0;ii<(nmask);++ii) {
-     free(vcdata[ii]);
-   }
-
-   free(vcdata); vcdata = NULL;
-   EDIT_substitute_brick( *dist_set , 0 , MRI_short , sc ) ;
-   sc = NULL; /* array now in brick */
-
-#endif
-  
-   
+     
    
    /* prepare output */
-      *dist_set = EDIT_empty_copy(in_set) ;
+   *dist_set = EDIT_empty_copy(in_set) ;
    EDIT_dset_items(  *dist_set ,
                      ADN_nvals     , nvc           ,
                      ADN_ntt       , nvc          ,
@@ -873,37 +863,41 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                      ADN_none ) ;
 
      for( j=0 ; j < nvc ; j++ ) /* create empty bricks to be filled below */
-        EDIT_substitute_brick( *dist_set , j , MRI_float , NULL ) ;
+        EDIT_substitute_brick( *dist_set , j , MRI_short , NULL ) ;
 
 /* transfer data in vcdata to shorts array */
  ININFO_message("loading results into %s\n",
    DSET_PREFIX(*dist_set));
 /* LOOP to pick vcdata[][fromclust] */
- /*sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));*/
-     for (j = 0; j < nvc; j++) {
-       ININFO_message("...%d,", j);
-       sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));
-       ii = 0;
-       for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
-	 if (!mask || mask[nl]) {
-	   sc[nl] = (short)vcdata[ii][j]+1;
-	   ++ii;
-	 }
-                 
-       }
-       EDIT_substitute_brick( *dist_set , j , MRI_short , sc ) ; 
+   for (j = 0; j < nvc; j++) {
+      ININFO_message("...%d,", j);
+      sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));
+      ii = 0;
+      for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
+	      if (!mask || mask[nl]) {
+	         sc[nl] = (short)vcdata[ii][j]+1;
+	         ++ii;
+	      }
+      }
+      EDIT_substitute_brick( *dist_set , j , MRI_short , sc ) ; 
                                        /* stick result in output */
-	 sc = NULL;  /*array now in brick */
+      /* label bricks */
+      if (j==0) 
+         EDIT_dset_items (*dist_set, ADN_brick_label_one + j, "Dc", ADN_none);
+      else if (j < nvc -1) {
+         sprintf(lll,"Dc%02d", j-1);
+         EDIT_dset_items (*dist_set, ADN_brick_label_one + j, lll, ADN_none);
+      } else {
+         EDIT_dset_items (*dist_set, ADN_brick_label_one + j, 
+                           "Dc_norm", ADN_none);
+      }
+	   sc = NULL;  /*array now in brick */
 
-     }
-     for (ii=0;ii<(nmask);++ii) {
-       free(vcdata[ii]);
-     }
-     free(vcdata); vcdata = NULL;
-
-
-
-
+   }
+   for (ii=0;ii<(nmask);++ii) {
+      free(vcdata[ii]);
+   }
+   free(vcdata); vcdata = NULL;
 
    if (oc.verb) {
       ININFO_message("Freedom");
@@ -912,11 +906,14 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    if (dvec) free(dvec); dvec=NULL;
 
 
-   // To free D 
-   for (ii=0;ii<nmask;++ii) {
-    if (D[ii]) free(D[ii]);
-   }
-   free(D); D = NULL;
+   if (D != Dp) {
+      // To free D 
+      for (ii=0;ii<nmask;++ii) {
+       if (D[ii]) free(D[ii]);
+      }
+      free(D); D = NULL;
+   }else D = NULL;
+   
    
    RETURN(1);
 }

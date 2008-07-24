@@ -46,6 +46,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,
                   THD_3dim_dataset **dist_set,
-                  OPT_KMEANS oc );
+                  OPT_KMEANS oc , 
+                  float **Dp, int Dp_ncol);
 
 #endif

@@ -11,13 +11,17 @@ set ax_geom = '777x702+433+334'
 set sag_geom = '540x360+4+436'
 set lay = ()
 set hostopt = '-host 127.0.0.1'
+set unlayed = 1
 PARSE:
    set Narg = $#
    set cnt = 1
    set ax_mont='2x2:24'
    set opa=9
+   set epionly = 0
    set argrem = ()
-   while ($cnt <= $Narg && $#argrem == 0)
+   set epi_edge_perc_thresh = 30
+   set anat_edge_perc_thresh = 30
+    while ($cnt <= $Narg && $#argrem == 0)
       set donext = 1;
       
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
@@ -32,6 +36,29 @@ PARSE:
          else
             @ cnt ++
             set ax_mont = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-single_edge") then
+         set epionly = 1
+         set donext = 0   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-no_layout") then
+         set unlayed = 0
+         set donext = 0   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-edge_percentile") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a percentile threshold value (default 30)"
+            goto END
+         else
+            @ cnt ++
+            set epi_edge_perc_thresh = $argv[$cnt]
+            set anat_edge_perc_thresh = $argv[$cnt]
             set donext = 0   
          endif   
       endif
@@ -94,7 +121,11 @@ PARSE:
          @ cnt ++
       endif
    end
-         
+
+if ($epionly && $do_rand) then
+   echo "Error: Cannot use -single_edge with ranomization"
+   goto END     
+endif    
 if ($#argrem == 0) goto DANCE
 
 #Notice, 3dresample is now done with -rmode Li instead of -rmode Cu
@@ -170,7 +201,9 @@ EPI_EDGES:
 3dedge3 -input $epi  -prefix  ${epipref}_e3
 
 
-set eth = `3dBrickStat -non-zero -percentile 30 1 30 ${epipref}_e3+orig`
+set eth = ` 3dBrickStat -non-zero \
+               -percentile  $epi_edge_perc_thresh 1 $epi_edge_perc_thresh \
+               ${epipref}_e3+orig`
 set eth = $eth[2]
 set eminval = `3dBrickStat -non-zero -min $epi`
 set emaxval = `3dBrickStat -non-zero -max $epi`
@@ -196,7 +229,9 @@ foreach anain ($analist)
 
    #Create an edgized anat and an edgized EPI for display
 
-   set ath = `3dBrickStat -non-zero -percentile 30 1 30 ${anatpref}_e3+orig`
+   set ath = `3dBrickStat -non-zero \
+                  -percentile $anat_edge_perc_thresh 1 $anat_edge_perc_thresh \
+                  ${anatpref}_e3+orig`
    set ath = $ath[2]
 
 
@@ -215,21 +250,23 @@ foreach anain ($analist)
       #Scale epi from 5 to 250
       rm -f ___ae.epi.sc* >& /dev/null
       @ScaleVolume   -input $epi -prefix ___ae.epi.sc \
-                     -perc_clip 2 98 -val_clip 5 250
+                     -perc_clip 2 98 -val_clip 6 249
       #put some of the anat edge in the epi image
       #Crazed equation
       #   line1: Keep value where there is no edge
-      #       2: Use 255 when both edges are present
-      #       3: Use 2   when ONLY epi  has an edge
-      #       4: Use 252 when ONLY anat has an edge
+      #       2: Use 252  (blue) when both edges are present
+      #       3: Use 255 (cyan) when ONLY epi  has an edge
+      #       4: Use 2 (purple) when ONLY anat has an edge
+      # Used to be 255, 2, 252 (paper figures made me change mapping)
       3dcalc   -a ___ae.epi.sc+orig \
                -b ${anatpref}_e3+orig \
                -c ${epipref}_e3+orig   \
+               -nscale -datum byte  \
                -overwrite -prefix ${epipref}_${anatpref}_e  \
                -expr "(1-step((step(c-$eth)+step(b-$ath))))*a\
-                     + step(step(c-$eth)+step(b-$ath)-1.9)*255 \
-                     + (1-step(b-$ath))*step(c-$eth)*2 \
-                     + (1-step(c-$eth))*step(b-$ath)*252"
+                     + step(step(c-$eth)+step(b-$ath)-1.9)*252 \
+                     + (1-step(b-$ath))*step(c-$eth)*255 \
+                     + (1-step(c-$eth))*step(b-$ath)*2"
       #rm -f ___ae.epi.sc* >& /dev/null              
    else
       ### Old highlighting method
@@ -310,6 +347,8 @@ if ($do_rand == 1) then
    #first copy first volume in list (never used!)
    set qlist = ($olist)
    set olist = ($qlist[1])
+   #Get name of epionlyvol, the one with _e3 in the name
+   set epionlyvol = `echo $olist | sed 's;_ec+;_e3+;'`
    
    echo "" >> ${uname}${dd}_randmap.txt   
    echo "$PWD `date` $uname" >> ${uname}${dd}_randmap.txt   
@@ -354,6 +393,10 @@ endif
 
 #It is time to dance
 plugout_drive $hostopt -com "RESCAN_THIS A" -quit
+
+#Get name of epionlyvol, the one with _e3 in the name
+set epionlyvol = `echo $olist[1] | sed 's;_ec+;_e3+;'`
+
 set cnt = 2
 while ($cnt < $#olist)
    set ilbl =  `ccalc -form int $cnt/2`
@@ -361,34 +404,49 @@ while ($cnt < $#olist)
    @ cnt ++
    set ep = `@GetAfniPrefix $olist[$cnt]`
    @ cnt ++
+   if ($epionly) then
+      set ana = `echo $ana | sed 's;_ec;;'`
+      set ep = `@GetAfniPrefix $epionlyvol`
+      set FUNC_RANGE = "SET_FUNC_RANGE A.1"
+   else
+      set FUNC_RANGE = "SET_FUNC_RANGE A.0"
+   endif
    plugout_drive $hostopt  \
       -com "SWITCH_UNDERLAY $ana"   \
       -com "SWITCH_OVERLAY  $ep"    \
       -com "SEE_OVERLAY +"          \
       -com "SET_THRESHOLD A.0"      \
       -com "SET_PBAR_ALL A.+99 1.0 Add_Edge" \
+      -com "$FUNC_RANGE"   \
       -quit
-   if ($lay == "") then
-   plugout_drive $hostopt  \
-      -com "OPEN_WINDOW A.axialimage mont=$ax_mont opacity=$opa"\
-      -com "OPEN_WINDOW A.axialimage ifrac=0.9"\
-      -com "OPEN_WINDOW A.axialimage geom=$ax_geom "\
-      -com "OPEN_WINDOW A.sagittalimage ifrac=0.9"\
-      -com "OPEN_WINDOW A.sagittalimage opacity=$opa"\
-      -com "OPEN_WINDOW A.sagittalimage geom=$sag_geom"\
-      -quit
-   else
-      set lcnt = 1
-      set nn = `sed -n "${lcnt}p" $lay`
-      #echo $nn $#nn
-      #set echo
-      while ($#nn > 0)
-         #echo $lcnt  $nn
-         plugout_drive $hostopt  \
-            -com "OPEN_WINDOW $nn" -quit
-         @ lcnt ++
+   if ($unlayed) then
+      #Take a breather, allow previous settings to finish and 
+      #connection to be closed. Else you will get errors
+      sleep 1
+      if ($lay == "") then
+      plugout_drive $hostopt  \
+         -com "OPEN_WINDOW A.axialimage mont=$ax_mont opacity=$opa"\
+         -com "OPEN_WINDOW A.axialimage ifrac=0.9"\
+         -com "OPEN_WINDOW A.axialimage geom=$ax_geom "\
+         -com "OPEN_WINDOW A.sagittalimage ifrac=0.9"\
+         -com "OPEN_WINDOW A.sagittalimage opacity=$opa"\
+         -com "OPEN_WINDOW A.sagittalimage geom=$sag_geom"\
+         -quit
+      else
+         set lcnt = 1
          set nn = `sed -n "${lcnt}p" $lay`
-      end
+         #echo $nn $#nn
+         #set echo
+         while ($#nn > 0)
+            echo $lcnt  $nn
+            plugout_drive $hostopt  \
+               -com "OPEN_WINDOW $nn" -quit
+            sleep 0.3
+            @ lcnt ++
+            set nn = `sed -n "${lcnt}p" $lay`
+         end
+      endif
+      set unlayed = 0 
    endif
    set ilst = 2
    set iii  = 0
