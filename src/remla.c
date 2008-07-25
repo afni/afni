@@ -33,6 +33,17 @@ typedef struct {
                     (rr)->rc  != NULL && (rr)->rc[0]  != NULL )
 
 /*****
+ Struct to hold a random sparse rectangular matrix.
+*****/
+
+typedef struct {
+   int rows , cols ;
+   int *cnum ;        /* cnum[j] is number of elements in col #j */
+   int **cii ;        /* cii[j][k] is the i-index of cee[j][k]   */
+   MTYPE **cee ;      /* for j=0..cols-1 , k=0..cnum[j]-1        */
+} sparsecolmat ;
+
+/*****
   Struct to hold the information needed to compute
   the REML log-likelihood for a given ARMA(1,1) case.
 *****/
@@ -56,7 +67,7 @@ typedef struct {
 typedef struct {
   int na,nb , pna,pnb , nset , izero ;
   MTYPE abot,da , bbot,db ;
-  matrix *X ;
+  matrix *X ; sparsecolmat *Xs ;
   reml_setup **rs ;
 } reml_collection ;
 
@@ -68,6 +79,88 @@ static MTYPE corcut = 0.01 ;
 
 #undef  TAU
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])
+
+/****************************************************************************/
+/**** Generic functions to process a sparse matrix in sparsecolmat form. ****/
+/****************************************************************************/
+
+/*--------------------------------------------------------------------------*/
+
+void vector_spc_multiply( sparsecolmat *a , MTYPE *b , MTYPE *c )
+{
+   int rows=a->rows , cols=a->cols ;
+   int k , j , cn , *ci ;
+   MTYPE *ce , bj ;
+
+   for( k=0 ; k < rows ; k++ ) c[k] = 0.0 ;
+
+   for( j=0 ; j < cols ; j++ ){
+     cn = a->cnum[j] ;
+     ci = a->cii[j] ;
+     ce = a->cee[j] ; bj = b[j] ;
+     for( k=0 ; k < cn ; k++ ) c[ci[k]] += ce[k] * bj ;
+   }
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void vector_spc_multiply_transpose( sparsecolmat *a , MTYPE *b , MTYPE *c )
+{
+   int rows=a->rows , cols=a->cols ;
+   int i , k , cn , *ci ;
+   MTYPE *ce , bj , sum ;
+
+   for( i=0 ; i < cols ; i++ ){
+     cn = a->cnum[i] ;
+     ci = a->cii[i] ;
+     ce = a->cee[i] ; sum = 0.0 ;
+     for( k=0 ; k < cn ; k++ ) sum += ce[k] * b[ci[k]] ;
+     c[i] = sum ;
+   }
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+MTYPE sparsity_fraction( matrix a )
+{
+   int rows=a.rows , cols=a.cols , i,j,k=0 ; MTYPE val ;
+   for( j=0 ; j < cols ; j++ )
+     for( i=0 ; i < rows ; i++ ) if( a.elts[i][j] != 0.0 ) k++ ;
+   val = k / (MTYPE)(rows*cols) ; return val ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+sparsecolmat * matrix_to_sparsecolmat( matrix a )
+{
+   int rows=a.rows , cols=a.cols ;
+   int i , j , k ;
+   sparsecolmat *sa ;
+   MTYPE *aa ;
+
+   sa = (sparsecolmat *)malloc(sizeof(sparsecolmat)) ;
+
+   sa->rows = rows ; sa->cols = cols ;
+   sa->cnum = (int *)   calloc(sizeof(int)    ,cols) ;
+   sa->cii  = (int **)  calloc(sizeof(int *)  ,cols) ;
+   sa->cee  = (MTYPE **)calloc(sizeof(MTYPE *),cols) ;
+
+   for( j=0 ; j < cols ; j++ ){
+     sa->cii[j] = (int *)  malloc(sizeof(int)  *rows) ;
+     sa->cee[j] = (MTYPE *)malloc(sizeof(MTYPE)*rows) ;
+     for( k=i=0 ; i < rows ; i++ ){
+       if( a.elts[i][j] != 0.0 ){
+         sa->cii[j][k] = i; sa->cee[j][k] = a.elts[i][j]; k++;
+       }
+     }
+     sa->cnum[j] = k ;
+     sa->cii[j]  = (int *)  realloc( (void *)sa->cii[j] , sizeof(int)  *k ) ;
+     sa->cee[j]  = (MTYPE *)realloc( (void *)sa->cee[j] , sizeof(MTYPE)*k ) ;
+   }
+   return sa ;
+}
 
 /****************************************************************************/
 /****** Generic functions to process a sparse matrix in rcmat format. *******/
@@ -177,24 +270,62 @@ int rcmat_choleski( rcmat *rcm )
 
 void rcmat_lowert_solve( rcmat *rcm , MTYPE *vec )
 {
-   int nn , ii,jj , jbot ; short *len ;
-   MTYPE **rc , *rii , sum ;
+   int nn , jbot ; short *len ; register int ii,jj ;
+   MTYPE **rc ; register MTYPE *rii , sum , *vv ;
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
 
    nn  = rcm->nrc ;
    rc  = rcm->rc ;
    len = rcm->len ;
+   vv  = vec ;
+
+#undef  RV
+#define RV(k) rii[k]*vv[k]
 
    for( ii=0 ; ii < nn ; ii++ ){
      if( len[ii] == 1 ){
-       vec[ii] = vec[ii] / rc[ii][0] ; continue ;
+       vv[ii] = vv[ii] / rc[ii][0] ; continue ;
      }
-     jbot = ii - len[ii] + 1 ;
-     rii  = rc[ii] - jbot ;
-     sum  = vec[ii] ;
-     for( jj=jbot ; jj < ii ; jj++ ) sum -= rii[jj]*vec[jj] ;
-     vec[ii] = sum / rii[ii] ;
+     jbot = ii - len[ii] + 1 ; rii = rc[ii] - jbot ;
+     switch( len[ii] ){
+       default:
+         sum = vv[ii] ;
+         for( jj=jbot ; jj < ii ; jj++ ) sum -= RV(jj) ;
+       break ;
+       case 2:
+         sum = vv[ii]-RV(ii-1) ; break ;
+       case 3:
+         sum = vv[ii]-RV(ii-2)-RV(ii-1) ; break ;
+       case 4:
+         sum = vv[ii]-RV(ii-3)-RV(ii-2)-RV(ii-1) ; break ;
+       case 5:
+         sum = vv[ii]-RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ; break ;
+       case 6:
+         sum = vv[ii]-RV(ii-5)-RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ; break ;
+       case 7:
+         sum = vv[ii]-RV(ii-6)-RV(ii-5)-RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ; break ;
+       case 8:
+         sum = vv[ii]-RV(ii-7)-RV(ii-6)-RV(ii-5)-RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
+       break ;
+       case 9:
+         sum = vv[ii]-RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
+                     -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
+       break ;
+       case 10:
+         sum = vv[ii]-RV(ii-9)-RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
+                     -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
+       break ;
+       case 11:
+         sum = vv[ii]-RV(ii-10)-RV(ii-9)-RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
+                     -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
+       break ;
+       case 12:
+         sum = vv[ii]-RV(ii-11)-RV(ii-10)-RV(ii-9)-RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
+                     -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
+       break ;
+     }
+     vv[ii] = sum / rii[ii] ;
    }
    return ;
 }
@@ -205,20 +336,21 @@ void rcmat_lowert_solve( rcmat *rcm , MTYPE *vec )
 
 void rcmat_uppert_solve( rcmat *rcm , MTYPE *vec )
 {
-   int nn , ii,jj , ibot ; short *len ;
-   MTYPE **rc , *rjj , xj ;
+   int nn , ibot ; short *len ; register int ii,jj ;
+   MTYPE **rc ; register MTYPE *rjj , *vv , xj ;
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
 
    nn  = rcm->nrc ;
    rc  = rcm->rc ;
    len = rcm->len ;
+   vv  = vec ;
 
    for( jj=nn-1 ; jj >= 0 ; jj-- ){
      ibot = jj - len[jj] + 1 ;
      rjj  = rc[jj] - ibot ;
-     xj = vec[jj] = vec[jj] / rjj[jj] ;
-     for( ii=ibot ; ii < jj ; ii++ ) vec[ii] -= rjj[ii] * xj ;
+     xj = vv[jj] = vv[jj] / rjj[jj] ;
+     for( ii=ibot ; ii < jj ; ii++ ) vv[ii] -= rjj[ii] * xj ;
    }
    return ;
 }
@@ -424,7 +556,7 @@ static MTYPE rsumq=0.0 ;  /* sum of squares of residual */
 /*! Compute the REML -log(likelihood) function for a particular case,
     given the case's setup and the data and the regression matrix X. */
 
-MTYPE reml_func( vector *y , reml_setup *rset , matrix *X )
+MTYPE reml_func( vector *y , reml_setup *rset , matrix *X , sparsecolmat *Xs )
 {
    int n=rset->neq , ii ;
    MTYPE val ;
@@ -457,15 +589,25 @@ MTYPE reml_func( vector *y , reml_setup *rset , matrix *X )
    vector_equate( *bb1 , bb2 ) ;
    rcmat_uppert_solve( rset->cc , bb2->elts ) ;      /* bb2 = C^(-1) bb1 */
 
-   vector_multiply_transpose( *X , *bb2 , bb3 ) ;    /* bb3 = X^T bb2 */
+   if( Xs != NULL ){
+     vector_create_noinit( Xs->cols , bb3 ) ;
+     vector_spc_multiply_transpose( Xs , bb2->elts , bb3->elts ) ;
+   } else {
+     vector_multiply_transpose( *X , *bb2 , bb3 ) ;  /* bb3 = X^T bb2 */
+   }
 
    vector_rrtran_solve( *(rset->dd) , *bb3 , bb4 ) ; /* bb4 = D^(-T) bb3 */
 
    vector_rr_solve( *(rset->dd) , *bb4 , bb5 ) ;     /* bb5 = D^(-1) bb4 */
                                                      /*    = beta_hat */
 
-   vector_multiply( *X , *bb5 , bb6 ) ;              /* bb6 = X bb5 */
-                                                     /* fitted model */
+   if( Xs != NULL ){
+     vector_create_noinit( Xs->rows , bb6 ) ;
+     vector_spc_multiply( Xs , bb5->elts , bb6->elts ) ;
+   } else {
+     vector_multiply( *X , *bb5 , bb6 ) ;            /* bb6 = X bb5 */
+   }                                                 /* fitted model */
+
    vector_equate( *bb6 , bb7 ) ;
    rcmat_lowert_solve( rset->cc , bb7->elts ) ;      /* bb7 = C^(-T) bb6 */
                                                      /* prewhitened fit */
@@ -546,6 +688,14 @@ reml_collection * REML_setup( matrix *X , int *tau ,
    rrcol->X = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(rrcol->X) ;
    matrix_equate( *X , rrcol->X ) ;
 
+   lam = sparsity_fraction( *X ) ;
+   if( lam <= 0.25 ) rrcol->Xs = matrix_to_sparsecolmat( *X ) ;
+   else              rrcol->Xs = NULL ;
+
+   INFO_message("X matrix sparsity = %.1f%% ==> %s",
+                100.0*lam ,
+                (rrcol->Xs==NULL) ? "NOT USED" : "USED for speedup" ) ;
+
    nset = (nb+1)*(na+1) ;  /* number of cases to create */
    rrcol->rs = (reml_setup **)calloc(sizeof(reml_setup *),nset) ;
 
@@ -619,7 +769,7 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
      vector_destroy( &REML_best_fitts_vector ) ;
      vector_destroy( &REML_best_prewhitened_fitts_vector ) ;
      vector_destroy( &REML_best_prewhitened_errts_vector ) ;
-     reml_func( NULL,NULL,NULL ) ;
+     reml_func( NULL,NULL,NULL,NULL ) ;
      if( rrcol != NULL ) reml_collection_destroy( rrcol ) ;
      REML_status = -1 ; RETURN(-666.0) ;
    }
@@ -633,6 +783,8 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
    }
    REML_status = 0 ;
 
+   /* copy (a,b) grid parameters to local variables */
+
    na = rrcol->na ; pna = rrcol->pna ;
    nb = rrcol->nb ; pnb = rrcol->pnb ;
 
@@ -641,7 +793,7 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
    kbest = rrcol->izero ;
    jbest = kbest / (1+na) ;
    ibest = kbest % (1+na) ;
-   rbest = reml_func( y , rrcol->rs[kbest] , rrcol->X ) ;
+   rbest = reml_func( y , rrcol->rs[kbest] , rrcol->X,rrcol->Xs ) ;
    vector_equate( *bb1 , &REML_olsq_prewhitened_data_vector ) ;
    vector_equate( *bb2 , &REML_olsq_prewhitened_errts_vector ) ;
    vector_equate( *bb5 , &REML_olsq_beta_vector ) ;
@@ -652,21 +804,18 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
    /** do power-of-2 descent through the (a,b) grid to find the best pair **/
 
    nab  = MIN(pna,pnb)  ; ltop = nab-2 ;
-   ibot = 0 ; itop = na ;
+   ibot = 0 ; itop = na ;                 /* scan from ibot..itop, jbot..jtop */
    jbot = 0 ; jtop = nb ;
-   for( lev=ltop ; lev >= 0 ; lev-- ){
-     dab = 1 << lev ; dab2 = 2*dab ;
-/* INFO_message("lev=%d dab=%d",lev,dab) ; */
+   for( lev=ltop ; lev >= 0 ; lev-- ){     /* lev = power-of-2 grid scan size */
+     dab = 1 << lev ; dab2 = 2*dab ;       /* dab = 2^lev = step size in scan */
      for( jb=jbot ; jb <= jtop ; jb+=dab ){
        for( ia=ibot ; ia <= itop ; ia+=dab ){
-/* INFO_message("ia=%d jb=%d",ia,jb) ; */
-         if( lev < ltop && jb%dab2 == 0 && ia%dab2 == 0 ) continue ;
+         if( lev < ltop && jb%dab2 == 0 && ia%dab2 == 0 ) continue; /* did it */
          kk = ia + jb*(na+1) ;
-         if( kk == rrcol->izero ) continue ;     /* OLSQ => did this already */
-         if( rrcol->rs[kk] == NULL ) continue ;
-         rval = reml_func( y , rrcol->rs[kk] , rrcol->X ) ;
-/* ININFO_message("rval=%g",rval) ; */
-         if( rval < rbest ){
+         if( kk == rrcol->izero ) continue ;      /* OLSQ => did this already */
+         if( rrcol->rs[kk] == NULL ) continue ;         /* invalid grid point */
+         rval = reml_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
+         if( rval < rbest ){                          /* the best so far seen */
            rbest = rval ; kbest = kk ; ibest = ia ; jbest = jb ;
            vector_equate( *bb1 , &REML_best_prewhitened_data_vector ) ;
            vector_equate( *bb2 , &REML_best_prewhitened_errts_vector ) ;
@@ -676,16 +825,16 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
            REML_best_ssq = rsumq ;
          }
        }
-     }
-     if( lev > 0 ){
+     } /* end of scan with step size dab */
+     if( lev > 0 ){                    /* set up to scan near the best so far */
        ibot = ibest-dab ; if( ibot < 0  ) ibot = 0  ;
        itop = ibest+dab ; if( itop > na ) itop = na ;
        jbot = jbest-dab ; if( jbot < 0  ) jbot = 0  ;
        jtop = jbest+dab ; if( jtop > nb ) jtop = nb ;
      }
-   }
+   } /* end of scan descent through different levels */
 
-   /* deal with the winner */
+   /*** deal with the winner ***/
 
    if( kbest == rrcol->izero ){                 /** OLSQ won! **/
      REML_best_ssq = REML_olsq_ssq ;
