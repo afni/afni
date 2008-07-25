@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, JUL, 2008, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "allow -sleep_vol to be very small without early run termination",
+   NULL
+ } ,
+
  { 23, JUL, 2008, RCR, "3dttest", MINOR, TYPE_NEW_OPT,
    "added -base1_dset option, where -base1 value can vary over voxels\n",
    "Added for M Beauchamp."
