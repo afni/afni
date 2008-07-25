@@ -1663,9 +1663,9 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 
 void matrix_qrr( matrix X , matrix *R )
 {
-   int m = X.rows , n = X.cols , ii,jj,kk ;
-   double *amat , *uvec , x1 ;
-   register double alp, sum ;
+   int m=X.rows , n=X.cols , ii,jj,kk , m1=m-1 ;
+   double *amat , x1 ;
+   register double alp, sum , *uvec, *Ak;
 
    if( m < 2 || n < 1 || m < n || R == NULL || X.elts == NULL ) return ;
 
@@ -1693,9 +1693,15 @@ void matrix_qrr( matrix X , matrix *R )
      x1 = uvec[jj] -= alp ; A(jj,jj) = alp ;
      alp = 2.0 / (sum+x1*x1) ;
      for( kk=jj+1 ; kk < n ; kk++ ){  /* process trailing columns */
-       for( sum=0.0,ii=jj ; ii < m ; ii++ ) sum += uvec[ii]*A(ii,kk) ;
+       Ak = amat + kk*m ;
+       for( sum=0.0,ii=jj ; ii < m1 ; ii+=2 )
+         sum += uvec[ii]*Ak[ii] + uvec[ii+1]*Ak[ii+1] ;
+       if( ii == m1 ) sum += uvec[m1]*Ak[m1] ;
        sum *= alp ;
-       for( ii=jj ; ii < m ; ii++ ) A(ii,kk) -= sum*uvec[ii] ;
+       for( ii=jj ; ii < m1 ; ii+=2 ){
+         Ak[ii] -= sum*uvec[ii] ; Ak[ii+1] -= sum*uvec[ii+1] ;
+       }
+       if( ii == m1 ) Ak[m1] -= sum*uvec[m1] ;
      }
    }
 
@@ -1764,17 +1770,19 @@ int main( int argc , char *argv[] )
 
 void vector_rr_solve( matrix R , vector b , vector *x )
 {
-   register int n , ii,jj ;
+   register int n , ii,jj , n1 ;
    register double sum , *xp , *bp , *rr ;
 
-   n = R.rows ;
+   n = R.rows ; n1 = n-1 ;
    if( n < 1 || R.cols != n || x == NULL ) return ;
 
    vector_create_noinit( n , x ) ; xp = x->elts ; bp = b.elts ;
 
    for( ii=n-1 ; ii >= 0 ; ii-- ){
      rr = R.elts[ii] ; sum = bp[ii] ;
-     for( jj=ii+1 ; jj < n ; jj++ ) sum -= rr[jj] * xp[jj] ;
+     for( jj=ii+1 ; jj < n1 ; jj+=2 )
+       sum -= rr[jj] * xp[jj] + rr[jj+1] * xp[jj+1] ;
+     if( jj == n1 ) sum -= rr[jj] * xp[jj] ;
      xp[ii] = sum / rr[ii] ;
    }
 
@@ -1786,10 +1794,10 @@ void vector_rr_solve( matrix R , vector b , vector *x )
 
 void vector_rrtran_solve( matrix R , vector b , vector *x )
 {
-   register int n , ii,jj ;
+   register int n , ii,jj , n1 ;
    register double sum , *xp , *bp , *rr ;
 
-   n = R.rows ;
+   n = R.rows ; n1 = n-1 ;
    if( n < 1 || R.cols != n || x == NULL ) return ;
 
    bp = b.elts ;
@@ -1804,7 +1812,10 @@ void vector_rrtran_solve( matrix R , vector b , vector *x )
    vector_equate( b , x ) ; xp = x->elts ;
    for( ii=0 ; ii < n ; ii++ ){
      rr = R.elts[ii] ; sum = xp[ii] = xp[ii] / rr[ii] ;
-     for( jj=ii+1 ; jj < n ; jj++ ) xp[jj] -= rr[jj]*sum ;
+     for( jj=ii+1 ; jj < n1 ; jj+=2 ){
+       xp[jj] -= rr[jj]*sum ; xp[jj+1] -= rr[jj+1]*sum ;
+     }
+     if( jj == n1 ) xp[jj] -= rr[jj]*sum ;
    }
 #endif
 
