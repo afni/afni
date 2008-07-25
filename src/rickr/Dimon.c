@@ -30,11 +30,14 @@ static char * g_history[] =
     "      - slight change in sleeping habits (no real effect)\n"
     "      - pass all 16 elements of oblique transform matrix\n",
     " 2.10 Jul 14, 2008 [rickr] - control over real-time sleep habits\n"
-    "      - added -sleep_init, -sleep_vol, -sleep_frac\n"
+    "      - added -sleep_init, -sleep_vol, -sleep_frac\n",
+    " 2.11 Jul 25, 2008 [rickr]\n"
+    "      - allow -sleep_vol to be very small w/out early run termination\n"
+    "      - limit search failures to 1, again\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.10 (July 14, 2008)"
+#define DIMON_VERSION "version 2.11 (July 25, 2008)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -134,7 +137,8 @@ static int alloc_x_im          ( im_store_t * is, int bytes );
 static int check_error         ( int * retry, float tr, char * note );
 static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_im_store_space( im_store_t * is, int num_images );
-static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
+static int check_stalled_run   ( int run, int seq_num, int naps, int tr_naps,
+                                 int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
 static int create_flist_file   ( param_t * p );
 static int create_gert_script  ( stats_t * s, param_t * p );
@@ -368,6 +372,8 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     int   fl_index;                     /* current index into p->flist    */
     int   naps;                         /* keep track of consecutive naps */
     int   nap_time;                     /* sleep time, in milliseconds    */
+    int   prev_nim;                     /* previous number of images read */
+    int   tr_naps;                      /* naps per TR                    */
 
     if ( v0 == NULL || p == NULL )
     {
@@ -387,11 +393,16 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     if( p->opts.sleep_vol > 0 ) nap_time = p->opts.sleep_vol;
     else nap_time = nap_time_in_ms(p->opts.tr, v0->geh.tr);
 
+    /* compute the number of naps per TR, for stalled run checks */
+    tr_naps = nap_time_in_ms(p->opts.tr, v0->geh.tr) / nap_time;
+
     if ( gD.level > 0 )                 /* status */
     {
         fprintf( stderr, "-- scanning for additional volumes...\n" );
         fprintf( stderr, "-- run %d: %d ", run, seq_num );
     }
+    if ( gD.level > 1 ) fprintf(stderr,"++ nap time = %d, tr_naps = %d\n",
+                                nap_time, tr_naps);
 
     /* give stats when user quits */
     signal( SIGHUP,  hf_signal );
@@ -468,6 +479,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 
         /* now we need new data - skip past last file name index */
 
+        prev_nim = 0;
         ret_val = read_ge_files( p, next_im, p->nalloc );
         fl_index = 0;                   /* reset flist index                 */
         naps = 0;                       /* do not accumulate for stall check */
@@ -475,7 +487,9 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
         while ( (ret_val >= 0 ) &&      /* no fatal error, and        */
                 (ret_val < v0->nim) )   /* didn't see full volume yet */
         {
-            if ( naps > 0 )
+            if ( ret_val != prev_nim )
+                naps = 0;               /* then start over */
+            else if ( naps >= tr_naps )
             {
                 if ( p->opts.quit )     /* then we are outta here */
                 {
@@ -487,13 +501,15 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                 }
 
                 /* continue, regardless */
-                if ( check_stalled_run( run, seq_num, naps, nap_time ) > 0 )
+                if( check_stalled_run(run,seq_num,naps,tr_naps,nap_time ) > 0 )
                     if ( ac->state == ART_STATE_IN_USE )
                         ART_send_end_of_run( ac, run, seq_num, gD.level );
-
-                if ( gD.level > 0 )     /* status */
-                    fprintf( stderr, ". " );
             }
+
+            prev_nim = ret_val;
+
+            if ( gD.level > 0 && !(naps % tr_naps) )
+                fprintf( stderr, ". " ); /* pacifier */
 
             iochan_sleep( nap_time );   /* wake after a couple of TRs */
             naps ++;
@@ -511,6 +527,10 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     return 0;   /* success */
 }
 
+
+/* maybe we should let volume search fail multiple times */
+#undef MAX_SEARCH_FAILURES
+#define MAX_SEARCH_FAILURES 1
 
 /*----------------------------------------------------------------------
  * volume_search:   scan p->flist for a complete volume
@@ -539,7 +559,7 @@ static int volume_search(
     float      delta;
     int        bound;                   /* upper bound on image slice  */
     static int prev_bound = -1;         /* note previous 'bound' value */
-    static int bound_cnt  =  0;         /* allow 3 checks */
+    static int bound_cnt  =  0;         /* allow some number of checks */
     int        first = start;           /* first image (start or s+1)  */
     int        last;                    /* final image in volume       */
     int        rv;
@@ -562,9 +582,8 @@ static int volume_search(
 
     /* maintain the state */
     if ( *state == 1 && bound == prev_bound ) {
-        if( bound_cnt < 3 ) bound_cnt++;
-        else *state = 2;  /* try to finish */
-        fprintf(stderr,"** bound_cnt %d, state %d\n", bound_cnt, *state);
+        bound_cnt++;
+        if( bound_cnt >= MAX_SEARCH_FAILURES ) *state = 2; /* try to finish */
     }
     else *state = 1;  /* continue mode */
     prev_bound = bound;
@@ -3898,10 +3917,14 @@ static int find_next_zoff( param_t * p, int start, float zoff )
 /* ----------------------------------------------------------------------
  * Given:  run     > 0
  *         seq_num > 0
+ *         naps
+ *         tr_naps
  *         naps_time    in ms
  *
  * If naps is too big, and the run is incomplete, print an obnoxious
  * warning message to the user.
+ *
+ * Too big means naps > tr_naps * MAX_RUN_NAPS.
  *
  * notes:   - print only 1 warning message per seq_num, per run
  *          - prev_run and prev_seq_num are for the previously found volume
@@ -3913,7 +3936,8 @@ static int find_next_zoff( param_t * p, int start, float zoff )
  *         -1 : function failure
  * ----------------------------------------------------------------------
 */
-static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
+static int check_stalled_run ( int run, int seq_num, int naps, int tr_naps,
+                               int nap_time )
 {
     static int func_failure =  0;
     static int prev_run     = -1;
@@ -3922,7 +3946,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
     if ( func_failure != 0 )
         return 0;
 
-    if ( ( run < 1 ) || ( seq_num < 1 ) || ( naps <= IFM_MAX_RUN_NAPS ) )
+    if ( (run < 1) || (seq_num < 1) || (naps <= tr_naps*IFM_MAX_RUN_NAPS) )
         return 0;
 
     /* verify that we have already taken note of the previous volume */
@@ -3950,7 +3974,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
                      "    first file of this run : %s\n"
                      "****************************************************\n",
                      run, seq_num, gS.nvols,
-                     naps*nap_time, gS.runs[run].f1name );
+                     naps*nap_time/1000, gS.runs[run].f1name );
 
             prev_run = run;
             prev_seq = seq_num;

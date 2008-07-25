@@ -9,7 +9,7 @@
 #define IFM_EPSILON       0.01       /* slice epsilon                    */
 #define IFM_STAT_ALLOC      20       /* allocation blocksize - run stats */
 #define IFM_MAX_IM_ALLOC    40       /* initial limit for read_ge_files  */
-#define IFM_MAX_RUN_NAPS     3       /* maximum number of mid-run naps   */
+#define IFM_MAX_RUN_NAPS     2       /* maximum number of mid-run naps   */
 #define IFM_MAX_GE_FAILURES  3       /* file read failures before exit   */
 #define IFM_MAX_NT       32767       /* maximum valid num time points    */
 #define IFM_SUFFIX_LEN      10       /* allocated space for I-file sufix */
