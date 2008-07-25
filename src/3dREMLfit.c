@@ -108,11 +108,19 @@ int main( int argc , char *argv[] )
       " -MAXa am   = Set max allowed AR a parameter to 'am' (default=0.8).\n"
       " -MAXb bm   = Set max allow MA b parameter to 'bm' (default=0.8).\n"
       "                The range of b values scanned is -bm .. +bm.\n"
-      " -Pab pp    = Set the number of points in the (a,b) grid to be\n"
-      "                2^pp in each direction over the range 0..MAX.\n"
+      " -Grid pp   = Set the number of grid divisions in the (a,b) grid\n"
+      "                to be 2^pp in each direction over the range 0..MAX.\n"
       "                The default and minimum value for 'pp' is 3.\n"
       "                Larger values will provide a finer resolution\n"
       "                in a and b, but at the cost of CPU time.\n"
+      "               * To be clear, the default settings use a grid\n"
+      "                   with 8 divisions in the a direction and 16 in\n"
+      "                   the b direction (since a is non-negative but\n"
+      "                   b can be either sign).\n"
+      "               * If -NEGcor is used, then -Grid 3 means 16 divisions\n"
+      "                   in each direction, so that the grid spacing is 0.1\n"
+      "                   if MAX=0.8.  Similarly, -Grid 4 means 32 divisions\n"
+      "                   in each direction, -Grid 5 means 64 divisions, etc.\n"
       "\n"
       " -NEGcor    = Allows negative correlations to be used; the default\n"
       "                is that only positive correlations are searched.\n"
@@ -225,22 +233,22 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-MAXrho") == 0 || strcmp(argv[iarg],"-MAXa") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        rhomax = (MTYPE)strtod(argv[iarg],NULL) ;
-            if( rhomax < 0.3 ) rhomax = 0.3 ;
-       else if( rhomax > 0.9 ) rhomax = 0.9 ;
+            if( rhomax < 0.3 ){ rhomax = 0.3; WARNING_message("-MAXa re-set to 0.3"); }
+       else if( rhomax > 0.9 ){ rhomax = 0.9; WARNING_message("-MAXa re-set to 0.9"); }
        iarg++ ; continue ;
      }
-     if( strcmp(argv[iarg],"-2ab") == 0 || strcmp(argv[iarg],"-Pab") == 0 ){
+     if( strcmp(argv[iarg],"-Grid") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        nlevab = (int)strtod(argv[iarg],NULL) ;
-            if( nlevab < 3 ) nlevab = 3 ;
-       else if( nlevab > 9 ) nlevab = 9 ;
+            if( nlevab < 3 ){ nlevab = 3; WARNING_message("-Grid re-set to 3"); }
+       else if( nlevab > 7 ){ nlevab = 7; WARNING_message("-Grid re-set to 7"); }
        iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-MAXb") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        bmax = (MTYPE)strtod(argv[iarg],NULL) ;
-            if( bmax < 0.3 ) bmax = 0.3 ;
-       else if( bmax > 0.9 ) bmax = 0.9 ;
+            if( bmax < 0.3 ){ bmax = 0.3; WARNING_message("-MAXb re-set to 0.3"); }
+       else if( bmax > 0.9 ){ bmax = 0.9; WARNING_message("-MAXb re-set to 0.9"); }
        iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-NEGcor") == 0 ){
@@ -566,7 +574,7 @@ int main( int argc , char *argv[] )
                              DSET_index_to_kz(inset,vv) ,
                          aar[vv],bar[vv],LAMBDA(aar[vv],bar[vv]),jj) ;
        } else {
-         (void)reml_func( &y , rrcol->rs[jj] , rrcol->X ) ;
+         (void)reml_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
          if( Rbeta_dset != NULL ){
            for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = bb5->elts[ii] ;
            THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
