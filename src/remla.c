@@ -44,6 +44,14 @@ typedef struct {
 } sparsecolmat ;
 
 /*****
+  Struct to hold the info needed for a partial-F statistic
+*****/
+
+typedef struct {
+   matrix *Jright , *Jleft ;
+} gltfactors ;
+
+/*****
   Struct to hold the information needed to compute
   the REML log-likelihood for a given ARMA(1,1) case.
 *****/
@@ -57,6 +65,9 @@ typedef struct {
   rcmat  *cc ;        /* banded matrix:    neq  X neq  */
   matrix *dd ;        /* upper triangular: mreg X mreg */
   MTYPE cc_logdet , dd_logdet ;
+
+  int        nglt ;
+  gltfactors *glt ;
 } reml_setup ;
 
 /*****
@@ -98,7 +109,10 @@ void vector_spc_multiply( sparsecolmat *a , MTYPE *b , MTYPE *c )
      cn = a->cnum[j] ;
      ci = a->cii[j] ;
      ce = a->cee[j] ; bj = b[j] ;
-     for( k=0 ; k < cn ; k++ ) c[ci[k]] += ce[k] * bj ;
+     if( cn == rows )   /* all entries present in this column */
+       for( k=0 ; k < cn ; k++ ) c[k] += ce[k] * bj ;
+     else
+       for( k=0 ; k < cn ; k++ ) c[ci[k]] += ce[k] * bj ;
    }
    return ;
 }
@@ -114,8 +128,12 @@ void vector_spc_multiply_transpose( sparsecolmat *a , MTYPE *b , MTYPE *c )
    for( i=0 ; i < cols ; i++ ){
      cn = a->cnum[i] ;
      ci = a->cii[i] ;
-     ce = a->cee[i] ; sum = 0.0 ;
-     for( k=0 ; k < cn ; k++ ) sum += ce[k] * b[ci[k]] ;
+     ce = a->cee[i] ;
+     sum = 0.0 ;
+     if( cn == rows )   /* all entries present in this column */
+       for( k=0 ; k < cn ; k++ ) sum += ce[k] * b[k] ;
+     else
+       for( k=0 ; k < cn ; k++ ) sum += ce[k] * b[ci[k]] ;
      c[i] = sum ;
    }
    return ;
@@ -138,7 +156,6 @@ sparsecolmat * matrix_to_sparsecolmat( matrix a )
    int rows=a.rows , cols=a.cols ;
    int i , j , k ;
    sparsecolmat *sa ;
-   MTYPE *aa ;
 
    sa = (sparsecolmat *)malloc(sizeof(sparsecolmat)) ;
 
@@ -156,8 +173,12 @@ sparsecolmat * matrix_to_sparsecolmat( matrix a )
        }
      }
      sa->cnum[j] = k ;
-     sa->cii[j]  = (int *)  realloc( (void *)sa->cii[j] , sizeof(int)  *k ) ;
-     sa->cee[j]  = (MTYPE *)realloc( (void *)sa->cee[j] , sizeof(MTYPE)*k ) ;
+     if( k < rows ){
+       sa->cii[j] = (int *)  realloc( (void *)sa->cii[j] , sizeof(int)  *k ) ;
+       sa->cee[j] = (MTYPE *)realloc( (void *)sa->cee[j] , sizeof(MTYPE)*k ) ;
+     } else {
+       free(sa->cii[j]); sa->cii[j] = NULL;  /* not needed if column is full */
+     }
    }
    return sa ;
 }
@@ -288,10 +309,14 @@ void rcmat_lowert_solve( rcmat *rcm , MTYPE *vec )
        vv[ii] = vv[ii] / rc[ii][0] ; continue ;
      }
      jbot = ii - len[ii] + 1 ; rii = rc[ii] - jbot ;
+#undef UNROLL
+#ifdef UNROLL
      switch( len[ii] ){
        default:
+#endif
          sum = vv[ii] ;
          for( jj=jbot ; jj < ii ; jj++ ) sum -= RV(jj) ;
+#ifdef UNROLL
        break ;
        case 2:
          sum = vv[ii]-RV(ii-1) ; break ;
@@ -321,10 +346,12 @@ void rcmat_lowert_solve( rcmat *rcm , MTYPE *vec )
                      -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
        break ;
        case 12:
-         sum = vv[ii]-RV(ii-11)-RV(ii-10)-RV(ii-9)-RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
+         sum = vv[ii]-RV(ii-11)-RV(ii-10)-RV(ii-9)
+                     -RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
                      -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
        break ;
      }
+#endif
      vv[ii] = sum / rii[ii] ;
    }
    return ;
@@ -498,7 +525,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    matrix_destroy(W) ; free((void *)W) ;
    if( D->rows <= 0 ){
 #ifdef DEBUG
-     ERROR_message("matrix_qrr fails") ;
+     ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
 #endif
      matrix_destroy(D) ; free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
    }
@@ -512,6 +539,9 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    rset->lam  = lam ;
    rset->cc   = rcm ;
    rset->dd   = D ;
+
+   rset->nglt = 0 ;
+   rset->glt  = NULL ;
 
    /* compute 2 * log det[D] */
 
@@ -689,12 +719,14 @@ reml_collection * REML_setup( matrix *X , int *tau ,
    matrix_equate( *X , rrcol->X ) ;
 
    lam = sparsity_fraction( *X ) ;
-   if( lam <= 0.25 ) rrcol->Xs = matrix_to_sparsecolmat( *X ) ;
+   if( lam <= 0.30 ) rrcol->Xs = matrix_to_sparsecolmat( *X ) ;
    else              rrcol->Xs = NULL ;
 
+#if 0
    INFO_message("X matrix sparsity = %.1f%% ==> %s",
                 100.0*lam ,
-                (rrcol->Xs==NULL) ? "NOT USED" : "USED for speedup" ) ;
+                (rrcol->Xs==NULL) ? "NOT USED for speedup" : "USED for speedup" ) ;
+#endif
 
    nset = (nb+1)*(na+1) ;  /* number of cases to create */
    rrcol->rs = (reml_setup **)calloc(sizeof(reml_setup *),nset) ;
@@ -854,4 +886,48 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
    REML_best_ind = kbest ;
 
    REML_status = 1 ; RETURN(rbest) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+gltfactors * REML_setup_gltfactors( matrix *D , matrix *G )
+{
+   int nn , rr ;
+   gltfactors *gf ;
+   matrix *JL , *JR , *GT , *E,*F,*Z  ;
+
+   if( D       == NULL    || G       == NULL    ) return NULL ;
+   if( D->rows != D->cols || D->rows != G->cols ) return NULL ;
+
+   nn = D->rows ; rr = G->cols ; if( nn < 1 || rr < 1 ) return NULL ;
+
+   GT = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(GT) ;
+   matrix_transpose( *G , GT ) ;
+
+   F = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(F) ;
+   matrix_rrtran_solve( *D , *GT , F ) ;
+   matrix_destroy(GT); free(GT);
+
+   if( rr == 1 ){
+     int i ; MTYPE sum=0.0 ;
+     for( i=0 ; i < nn ; i++ ) sum += F->elts[i][0] * F->elts[i][0] ;
+     sum = 1.0 / sum ;
+     for( i=0 ; i < nn ; i++ ) F->elts[i][0] *= sum ;
+     JR = F ;
+   } else {
+     E  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(E) ;
+     Z  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(Z) ;
+     JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
+     matrix_qrr( *F , E ) ;
+     matrix_rrtran_solve( *E , *G , Z ) ;
+     matrix_rr_solve( *E , *Z , JR ) ;
+     matrix_destroy(Z); free(Z); matrix_destroy(E); free(E);
+   }
+
+   JL = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JL) ;
+   matrix_rr_solve( *D , *F , JL ) ;
+   if( F != JR ){ matrix_destroy(F); free(F); }
+
+   gf = (gltfactors *)malloc(sizeof(gltfactors)) ;
+   gf->Jright = JR ; gf->Jleft = JL ; return gf ;
 }
