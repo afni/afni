@@ -302,12 +302,12 @@ void example_hierarchical(int nrows, int ncols, float** data, char* jobname, int
 
 void getvoxlclusterdist(int* count, float** cdata, 
 			int* clusterid, float** data, char* jobname, 
-			int nclusters, int nrows, int ncols)
+			int nclusters, int nrows, int ncols, float** vcdata)
 {
   int i, j, n;
   char* filename4;
   FILE *out4=NULL;
-  float* vcdata = malloc(nrows*sizeof(float*));
+  /* float** vcdata = malloc(nrows*sizeof(float*));*/
   float difference, difference1;
 
   n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
@@ -327,24 +327,67 @@ void getvoxlclusterdist(int* count, float** cdata,
       difference1 = cdata[clusterid[i]][j]-data[i][j];
       difference = difference + difference1*difference1;
     }
-    vcdata[i] = sqrt(difference);
+    vcdata[i][0] = sqrt(difference);
   }
   
   printf ("------- writing voxels-centroids distances to file:\t\t"
           " %s_K_G%d.vcd\n",jobname, nclusters);
   for (i = 0; i < nrows; i++)
-    fprintf (out4, "%09d\t%7.3f\n", i, vcdata[i]);
+    fprintf (out4, "%09d\t%7.3f\n", i, vcdata[i][0]);
   fclose(out4); out4=NULL;
 
   /*for (i = 0; i < nrows; i++){ 
     free(vcdata[i]);
-    }*/
-  free(vcdata);
+    }
+  free(vcdata);*/
   return;
 
 }
 
+/* ========================================================================= */
 
+
+void getvoxlclustersdist(int* count, float** cdata, 
+			int* clusterid, float** data, char* jobname, 
+			int nclusters, int nrows, int ncols, float **vcdata)
+{
+  int i, j, n, k;
+  char* filename4;
+  FILE *out4=NULL;
+  float difference, difference1;
+
+  /* n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
+  
+  int dummy = nclusters;
+  do n++; while (dummy/=10);
+    
+    
+  filename4 = malloc(n*sizeof(char));
+  sprintf (filename4, "%s_K_G%d.vcd", jobname, nclusters);
+  out4 = fopen( filename4, "w" );
+  */
+
+  for (k = 0; k < nclusters; k++){
+    for (i = 0; i < nrows; i++){
+      difference = 0;
+      difference1 = 0;
+      for (j = 0; j < ncols; j++) {   /*CHECK THIS LOOP ; j is going through fitcoef*/
+	difference1 = cdata[k][j]-data[i][j];
+	difference = difference + difference1*difference1;
+      }
+      vcdata[i][k+1] = sqrt(difference);
+    }
+  }
+  
+  printf ("------- writing voxels-centroids distances to ...:\t\t"
+          " %s_K_G%d.vcd\n",jobname, nclusters);
+  /*  for (i = 0; i < nrows; i++)
+    fprintf (out4, "%09d\t%7.3f\n", i, vcdata[i]);
+    fclose(out4); out4=NULL;*/
+
+  return;
+
+}
 
 /* ========================================================================= */
 
@@ -386,6 +429,18 @@ void example_kmeans( int nrows, int ncols,
    FILE *out2=NULL;
    FILE *out3=NULL;
    
+   float** vcdata=NULL;
+
+/* allocate for answer array distance voxel centroid */
+   vcdata = (float **)calloc(sizeof(float*), nrows);
+   for (ii=0;ii<(nrows);++ii) {
+     if (!(vcdata[ii] = (float *)calloc(sizeof(float), ncols+1))) {
+     fprintf(stderr,"ERROR: Failed to allocate for voxel cluster distance\n");
+     
+     }
+   }
+
+
    for (i = 0; i < nclusters; i++)
    { cdata[i] = malloc(ncols*sizeof(float));
 
@@ -480,7 +535,9 @@ void example_kmeans( int nrows, int ncols,
 
 
       getvoxlclusterdist(count, cdata, clusterid, data, jobname, 
-nclusters, nrows, ncols);
+			 nclusters, nrows, ncols, vcdata);
+      getvoxlclustersdist(count, cdata, clusterid, data, jobname, 
+			  nclusters, nrows, ncols, vcdata);
 
 
    for (i = 0; i < nclusters; i++) free(index[i]);
@@ -490,9 +547,14 @@ nclusters, nrows, ncols);
    for (i = 0; i < nclusters; i++){ 
       free(cdata[i]);
    }
-
-   
+ 
    free(cdata);
+
+   for (ii=0;ii<(nrows);++ii) {
+     free(vcdata[ii]);
+   }
+   free(vcdata); vcdata = NULL;
+
 
    free(clusterid);
    free(weight);
