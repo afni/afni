@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_BUG_FIX,
+   "alter check for bad socket: use tcp_alivecheck over tcp_writecheck",
+   NULL
+ } ,
+
  { 25, JUL, 2008, RCR, "Dimon", MINOR, TYPE_MODIFY,
    "allow -sleep_vol to be very small without early run termination",
    NULL
