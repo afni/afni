@@ -467,6 +467,7 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   void RT_registration_3D_onevol( RT_input * rtin , int tt ) ;
   void RT_registration_3D_realtime( RT_input * rtin ) ;
 
+  int  RT_mp_comm_alive       ( int, int, char * );
   int  RT_mp_comm_close       ( RT_input * rtin );
   int  RT_mp_comm_init        ( RT_input * rtin );
   int  RT_mp_comm_init_vars   ( RT_input * rtin );
@@ -1846,6 +1847,32 @@ void RT_check_info( RT_input * rtin , int prt )
 }
 
 #ifdef ALLOW_REGISTRATION
+
+/* mostly allow for verbose output */
+int RT_mp_comm_alive(int sock, int verb, char * mesg)
+{
+    char buf[4];
+    int  wc, rc, ac, tr = -2;
+
+    ac = tcp_alivecheck(sock);
+    if( !ac ) {
+        if( mesg ) fprintf(stderr,"** %s: socket has gone bad\n", mesg);
+        else       fprintf(stderr,"** RT_comm socket has gone bad\n");
+    }
+
+    if( verb ) {  /* check and print extra info */
+        wc = tcp_writecheck(sock, 1);
+        rc = tcp_readcheck(sock, 1);
+
+        if( rc ) tr = tcp_recv(sock, buf, 1, MSG_PEEK);
+
+        fprintf(stderr,"-- alive test: wc=%d, rc=%d, ac=%d, tr=%d\n",
+                wc, rc, ac, tr);
+    }
+
+    return ac;
+}
+
 /*---------------------------------------------------------------------------
    Close the socket connection.                        30 Mar 2004 [rickr]
 
@@ -1858,10 +1885,6 @@ int RT_mp_comm_close( RT_input * rtin )
 
     if ( rtin->mp_tcp_use != 1 || rtin->mp_tcp_sd <= 0 )
         return 0;
-
-    if ( (tcp_writecheck(rtin->mp_tcp_sd, 1)   == -1) ||
-         (send(rtin->mp_tcp_sd, magic_bye, 4, 0) == -1 ) )
-        fprintf(stderr,"** closing: our MP socket has gone bad?\n");
 
     fprintf(stderr,"RTM: closing motion param socket, "
                    "sent %d param sets over %d messages\n",
@@ -1903,7 +1926,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
     if( ! g_mask_dset || ! g_mask_val_type ) return 0;
 
     /* verify that the socket is still good */
-    if ( (rv = tcp_writecheck(rtin->mp_tcp_sd, 1)) == -1 ) {
+    if ( ! RT_mp_comm_alive(rtin->mp_tcp_sd, 0, "pre data send") ) {
         RT_mp_comm_close(rtin);
         return -1;
     }
@@ -1960,6 +1983,12 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
             }
 
             mpindex++;  /* that was one TR */
+        }
+
+        /* verify that the socket is still good */
+        if ( ! RT_mp_comm_alive(rtin->mp_tcp_sd, 0, "send data") ) {
+            RT_mp_comm_close(rtin);
+            return -1;
         }
 
         if ( send(rtin->mp_tcp_sd, data, bsize*b2send*sizeof(float), 0) == -1 )
