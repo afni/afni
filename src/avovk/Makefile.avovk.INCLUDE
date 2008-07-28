@@ -97,7 +97,9 @@ Aclustering:Aclustering_floatNOMASK.c cluster_floatNOMASK.o
          ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
          ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
 	
+
 progs: fit_onesign Aclustering 3dfit_onesign 3dAclustering_fNM  # 3dAclustering
+
 
 all: ${AVOVKLIB} progs install 
  

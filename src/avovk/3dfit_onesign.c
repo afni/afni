@@ -38,7 +38,7 @@ gcc -Wall -Wno-unused fit_onesign.c -lgsl -lgslcblas -lm -o fitanje_1sign -I/sw/
 #include <stdio.h>
 #include <gsl/gsl_multifit.h>
 
-#include "thd_segtools.h"
+#include "thd_segtools_fNM.h"
 
 #define POLORDERMAX 30
 
