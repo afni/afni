@@ -468,10 +468,10 @@ int main( int argc , char *argv[] )
 
    /**------- set up for REML estimation -------**/
 
-   INFO_message("starting REML setup calculations: total CPU=%.2f",COX_cpu_time()) ;
+   INFO_message("starting REML setup calculations") ;
    rrcol = REML_setup( &X , tau , nlevab,rhomax,bmax ) ;
    if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
-   INFO_message("REML setup: rows=%d cols=%d %d cases; total CPU=%.2f",
+   INFO_message("REML setup finished: matrix rows=%d cols=%d; %d cases; CPU=%.2f",
                 ntime,nreg,rrcol->nset,COX_cpu_time()) ;
 
    /*----- create output datasets -----*/
@@ -540,7 +540,7 @@ int main( int argc , char *argv[] )
 
    }
    if( vstep ) fprintf(stderr,"\n") ;
-   INFO_message("REML fitting done: total CPU=%.2f",COX_cpu_time()) ;
+   INFO_message("REML fitting done: CPU=%.2f",COX_cpu_time()) ;
 
    /**--- if doing median filter, must re-loop --**/
 
@@ -588,7 +588,7 @@ int main( int argc , char *argv[] )
        }
      }
      if( vstep ) fprintf(stderr,"\n") ;
-     INFO_message("Recalculating done: total CPU=%.2f",COX_cpu_time()) ;
+     INFO_message("Recalculating done: CPU=%.2f",COX_cpu_time()) ;
    }
 
    if( Rbeta_dset != NULL ){ DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); }

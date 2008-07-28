@@ -986,6 +986,14 @@ void column_to_vector (matrix m, int c, vector * v)
     v->elts[i] = m.elts[i][c];
 }
 
+void row_to_vector( matrix m , int r , vector *v )
+{
+   register int j , dim ;
+
+   dim = m.cols ; vector_create_noinit(dim,v) ;
+   for( j=0 ; j < dim ; j++ ) v->elts[j] = m.elts[r][j] ;
+}
+
 
 
 /*---------------------------------------------------------------------------*/
@@ -1683,7 +1691,7 @@ void matrix_qrr( matrix X , matrix *R )
    /* Householder transform each column of A in turn */
 
    for( jj=0 ; jj < n ; jj++ ){
-     if( jj == m-1 ) break ;  /* at last column AND have m==n */
+     if( jj == m1 ) break ;  /* at last column AND have m==n */
      x1 = uvec[jj] = A(jj,jj) ;
      for( sum=0.0,ii=jj+1 ; ii < m ; ii++ ){
        uvec[ii] = alp = A(ii,jj) ; sum += alp*alp ;
@@ -1820,4 +1828,44 @@ void vector_rrtran_solve( matrix R , vector b , vector *x )
 #endif
 
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void matrix_rr_solve( matrix R , matrix B , matrix *X )
+{
+   int n=R.rows , m=B.cols , i,j ;
+   vector *u, *v ;
+
+   if( R.cols != n || X == NULL ) return ;
+
+   vector_initialize(u) ; vector_initialize(v) ;
+   matrix_create( n , m , X ) ;
+
+   for( j=0 ; j < m ; j++ ){
+     column_to_vector( B , j , u ) ;
+     vector_rr_solve( R , *u , v ) ;
+     for( i=0 ; i < n ; i++ ) X->elts[i][j] = v->elts[i] ;
+   }
+   vector_destroy(v) ; vector_destroy(u) ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void matrix_rrtran_solve( matrix R , matrix B , matrix *X )
+{
+   int n=R.rows , m=B.cols , i,j ;
+   vector *u, *v ;
+
+   if( R.cols != n || X == NULL ) return ;
+
+   vector_initialize(u) ; vector_initialize(v) ;
+   matrix_create( n , m , X ) ;
+
+   for( j=0 ; j < m ; j++ ){
+     column_to_vector( B , j , u ) ;
+     vector_rrtran_solve( R , *u , v ) ;
+     for( i=0 ; i < n ; i++ ) X->elts[i][j] = v->elts[i] ;
+   }
+   vector_destroy(v) ; vector_destroy(u) ; return ;
 }

@@ -316,6 +316,7 @@ void array_to_vector (int dim, float * f, vector * v);
 */
 
 void column_to_vector (matrix m, int c, vector * v);
+void row_to_vector    (matrix m, int r, vector * v);
 
 
 /*---------------------------------------------------------------------------*/
@@ -380,8 +381,10 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2
 extern void matrix_psinv_seteps( double eps ) ; /* 02 Mar 2007 - MoJM */
 
 void matrix_qrr( matrix X , matrix *R ) ;  /* 03 Jul 2008 */
-void vector_rr_solve( matrix R , vector b , vector *x ) ;
+void vector_rr_solve    ( matrix R , vector b , vector *x ) ;
 void vector_rrtran_solve( matrix R , vector b , vector *x ) ;
+void matrix_rr_solve    ( matrix R , matrix B , matrix *X ) ;
+void matrix_rrtran_solve( matrix R , matrix B , matrix *X ) ;
 
 double get_matrix_flops(void) ;
 double get_matrix_dotlen(void) ;
