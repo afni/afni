@@ -8654,7 +8654,7 @@ char * AFNI_ttatlas_query( Three_D_View *im3d )
 
      /*-- get result string --*/
 
-     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2] ) ;
+     tlab = TT_whereami( tv.xyz[0] , tv.xyz[1] , tv.xyz[2], UNKNOWN_SPC ) ;
      return tlab ;
    }
 
