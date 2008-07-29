@@ -65,6 +65,18 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ 
+ { 29 , JUL , 2008 , ZSS , "afni" , MINOR , TYPE_MODIFY ,
+   "Changed transform used to crete mni coord. in interactive whereami",
+   "The transform from TLRC to MNI used to be via the manually TLRCed\n"
+   "N27 brain. However this created inconsistency in the second line of the \n"
+   "Focus point output (MNI Brain) on the order of a couple of mm\n"
+   "with the command-line whereami program. \n"
+   "Now both interactive and command-line whereami produce the same \n"
+   "Focus Point output. Note that the rest of the whereami\n"
+   "output remains unchanged."
+ },
+  
  { 29 , MAY , 2008 , ZSS , "3dfim+" , MINOR , TYPE_MODIFY ,
    "allowed for -polort -1 and for sub-brick selection with dataset names",
    NULL

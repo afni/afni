@@ -91,7 +91,7 @@ PARSE_COMMAND:
             goto END
 			else
             @ cnt ++
-            set prefix = "$argv[$cnt]"
+            set prefix = `@GetAfniPrefix "$argv[$cnt]"`
             set donext = 0	
          endif	
       endif
@@ -507,7 +507,8 @@ REGISTER:
                -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || \
                -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z || \
                -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.bz2)) then
-		   goto NO_VOLREG
+		   echo "Failed to find $SurfAnatPath/$VolRegPrefix$SurfAnatView"
+         goto NO_VOLREG
 	   endif
       #differing views?
 	   mv $SurfAnatPath/$VolRegPrefix* ./

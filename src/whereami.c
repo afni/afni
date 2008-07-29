@@ -1161,7 +1161,7 @@ int main(int argc, char **argv)
             if (output == 1) TT_whereami_set_outmode (TAB1_WAMI_ZONE_SORT);
             else TT_whereami_set_outmode (CLASSIC_WAMI_ZONE_SORT);
          }
-         string = TT_whereami(x,y,z);
+         string = TT_whereami(x,y,z, AFNI_TLRC_SPC);
          if (string) fprintf(stdout,"%s\n", string);
          else fprintf(stdout,"whereami NULL string out.\n");
          if (string) free(string); string = NULL;            
