@@ -1,4 +1,3 @@
-#define VERSION "1.6 (November 15, 2006)"
 
 /*----------------------------------------------------------------------
  * serial_helper.c    - pass data from plug_realtime to serial port
@@ -52,8 +51,17 @@ static char g_history[] =
  "\n"
  " 1.6  November 15, 2006 [rickr]\n"
  "    - encode nex in handshake byte written to serial port each TR\n"
+ "\n"
+ " 1.7  July 16, 2008 [rickr]\n"
+ "    - added -disp_all for P Kundu\n"
+ "\n"
+ " 1.8  July 16, 2008 [rickr]\n"
+ "    - captured more exit signals\n"
+ "    - enhanced failure text\n"
+ "    - flushed output buffer\n"
  "----------------------------------------------------------------------\n";
 
+#define VERSION "1.8 (Jul 29, 2008)"
 
 #include <stdio.h>   /* Standard input/output definitions */
 #include <string.h>  /* String function definitions */
@@ -104,14 +112,14 @@ typedef struct {
 
 typedef struct
 {
-    int debug;                  /* for global access in cleanup() */
+    int debug;                  /* for global access in clean_n_exit() */
     int sport;
     int tdata_sd;
     int tserver_sd;
 } port_list;
 
 
-void  cleanup              ( int sig_num );
+void  clean_n_exit         ( int sig_num );
 int   close_data_ports     ( port_list * plist );
 int   disp_optiondata      ( char * info, optiondata * D );
 int   format_output        ( optiondata * opt, motparm * mp, char ** outstr,
@@ -127,7 +135,7 @@ void  swap_4               ( void * data, int nswaps );
 int   usage                ( char * prog, int level );
 int   wait_for_socket      ( optiondata *opt, port_list * plist );
 
-/* global port numbers, for cleanup */
+/* global port numbers, for clean_n_exit */
 static port_list g_ports;
 
 static char g_magic_hi [] = { 0xab, 0xcd, 0xef, 0xab, 0 };  /* w/termination */
@@ -145,8 +153,11 @@ int main(int argc, char *argv[])
         return rv;
     
     /* register interrupt trap */
-    signal( SIGTERM, cleanup );
-    signal( SIGINT, cleanup );
+    signal( SIGHUP,  clean_n_exit );
+    signal( SIGINT,  clean_n_exit );
+    signal( SIGQUIT, clean_n_exit );
+    signal( SIGKILL, clean_n_exit );
+    signal( SIGTERM, clean_n_exit );
     
     if ( (rv = open_incoming_socket(&opt, plist)) < 0 )
         return rv;
@@ -156,15 +167,17 @@ int main(int argc, char *argv[])
         mp.nread = 0;           /* reset our counter */
 
         /* wait for AFNI to talk to us */
-        if ( (rv = wait_for_socket(&opt, plist)) < 0 )
+        if ( (rv = wait_for_socket(&opt, plist)) < 0 ) {
+            clean_n_exit(0);
             return rv;
+        }
 
         if ( ! opt.no_serial )
             if ( (rv = open_serial(&opt, plist)) != 0 )
                 return rv;
 
         /* read data while it is there */
-        while (read_socket(&opt, plist, &mp) == 0)
+        while ( (rv = read_socket(&opt, plist, &mp)) == 0)
             if ( ! opt.no_serial )
                 send_serial(&opt, plist, &mp);
 
@@ -174,6 +187,36 @@ int main(int argc, char *argv[])
     return 0;   /* should not be reached, of course */
 }
 
+#if 0
+int readnclose(int sd, int verb)
+{
+    struct timeval tv;
+    fd_set         fd;
+    char           buf[4];
+    int            rv;
+
+    if( sd <= 0 ) return 0;
+
+    FD_ZERO(&fd);  FD_SET(sd, &fd);
+
+    tv.tv_sec = 0; tv.tv_usec = 2;
+
+    rv = select(sd+1, &fd, NULL, NULL, &tv);
+    if( rv == -1 ) perror("socket bad on readnclose");
+
+    if( verb ) fprintf(stderr,"-- select returns %d for fd %d\n", rv, sd);
+
+    /* maybe we're done */
+    if( !rv ) { close(sd); return 0; }
+
+    /* otherwise, do a test read */
+    rv = recv(sd, buf, 1, MSG_PEEK);
+
+    if( verb ) fprintf(stderr,"-- recv returns %d for fd %d\n", rv, sd);
+
+    return rv;
+}
+#endif
 
 /* ----------------------------------------------------------------------
  * close serial port and data socket
@@ -181,8 +224,8 @@ int main(int argc, char *argv[])
  */
 int close_data_ports( port_list * plist )
 {
-    if ( plist->sport    != 0 ) close(plist->sport);
-    if ( plist->tdata_sd != 0 ) close(plist->tdata_sd);
+    if ( plist->sport      != 0 ) close(plist->sport);
+    if ( plist->tdata_sd   != 0 ) close(plist->tdata_sd);
 
     plist->sport = plist->tdata_sd = 0;
 
@@ -206,7 +249,7 @@ int wait_for_socket(optiondata *opt, port_list * plist)
     /* block until a connection is made */
     if ( (sd = accept(plist->tserver_sd, (struct sockaddr *)&sin, &len)) == -1 )
     {
-        perror("pe: accept");
+        perror("wait for socket: accept");
         return -1;
     }
 
@@ -217,13 +260,16 @@ int wait_for_socket(optiondata *opt, port_list * plist)
 
     if ( (len = recv(sd, data, g_magic_len, 0)) == -1 )
     {
-        perror("pe: recv");
+        perror("wait for socket: recv");
         return -1;
     }
 
+    /* rcr: possibly look for alternate magic_hi, and with it accept extra
+            info, like -num_extra */
+
     if ( strncmp(data, g_magic_hi, g_magic_len) != 0 )
     {
-        fprintf(stderr, "** bad data on socket: 0x%x%x%x%x\n",
+        fprintf(stderr, "** bad data on socket: 0x%02hhx%02hhx%02hhx%02hhx\n",
                 data[0], data[1], data[2], data[3] );
         return -1;
     }
@@ -231,8 +277,9 @@ int wait_for_socket(optiondata *opt, port_list * plist)
     /* Hey, they said the magic word! */
 
     if ( opt->debug > 0 )
-        fprintf(stderr,"++ got hello string '%s', ready for data...\n",
-                g_magic_hi);
+        fprintf(stderr,
+                "++ received hello on socket: 0x%02hhx%02hhx%02hhx%02hhx\n",
+                data[0], data[1], data[2], data[3]);
 
     return 0;
 }
@@ -256,7 +303,7 @@ int open_incoming_socket( optiondata * opt, port_list * plist )
     /* create a comm. endpoint */
     if ( (sd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
     {
-        perror("pe: socket");
+        perror("open incoming socket: socket");
         return sd;
     }
 
@@ -268,14 +315,14 @@ int open_incoming_socket( optiondata * opt, port_list * plist )
     /* actually bind the port to the socket */
     if ( bind(sd, (struct sockaddr *)&sin, sizeof(sin)) == -1 )
     {
-        perror("pe: bind");
+        perror("open incoming socket: bind");
         return -1;
     }
 
     /* announce that we are ready to accept connections */
     if ( listen(sd, 3) == -1 )
     {
-        perror("pe: listen");
+        perror("open incoming socket: listen");
         return -1;
     }
 
@@ -311,8 +358,10 @@ int init_structs( optiondata *opt, motparm * mp, port_list * plist )
 
 
 /* close any open ports (to possibly catch an interrupt) */
-void cleanup(int sig_num)
+void clean_n_exit(int sig_num)
 {
+    int ssec, count;
+
     if ( g_ports.debug > 0 )
     {
         fputs("-- final check: closing ports\n", stderr);
@@ -322,16 +371,20 @@ void cleanup(int sig_num)
                     g_ports.sport, g_ports.tdata_sd, g_ports.tserver_sd);
             fprintf(stderr,"-- sig_num = %d\n", sig_num);
         }
+        fflush(stderr);
     }
 
-    if ( g_ports.sport != 0)
-        close(g_ports.sport);
-    if (g_ports.tdata_sd != 0)
-        close(g_ports.tdata_sd);
-    if (g_ports.tserver_sd != 0)
-        close(g_ports.tserver_sd);
+    close_data_ports(&g_ports);
+    if ( g_ports.tserver_sd ) close(g_ports.tserver_sd); /* only at exit */
 
-    g_ports.sport = g_ports.tdata_sd = g_ports.tserver_sd = 0;
+    ssec = 5;
+    fprintf(stderr,"++ waiting %d sec for close reponse", ssec);
+    for( count = 0; count < ssec; count++ )
+        { fputc('.', stderr);  fflush(stderr);  sleep(1); }
+    fprintf(stderr," aaaaaaaugh...\n");
+    fflush(stderr);
+
+    exit(sig_num);
 }
         
 #define CHECK_ARG_COUNT(ac,str)         \
@@ -437,7 +490,7 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
     if ( opt->debug > 1 )
         disp_optiondata( "options read: ", opt );
 
-    plist->debug = opt->debug;          /* for cleanup() */
+    plist->debug = opt->debug;          /* for clean_n_exit() */
     mp->nvals    = 6;
 
     /* allocate space for extra data */
@@ -729,7 +782,7 @@ int test_socket(int sd)
     if ( (len = recv(sd, data, g_magic_len, MSG_PEEK)) == -1 )
     {
         fputs("** test_socket_failure\n", stderr);
-        perror("pe: recv");
+        perror("test_socket: recv");
         return -1;
     }
 
@@ -799,6 +852,7 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
 
         /* will probably want to send elsewhere, later */
         fprintf(stderr,outstring);
+        fflush(stderr);  /* may get buffered */
     }
 
     return 0;
@@ -878,7 +932,7 @@ int format_output(optiondata * opt, motparm * mp, char ** outstr, int * oslen)
             strcat(*outstr, "\n");
             posn++;
         }
-    } else if( opt->debug > 2 ) {
+    } else if( opt->debug > 2 && mp->nex > 0 ) {
         bytes = snprintf(*outstr+posn, len-posn, dhdr2, mp->nex);
         LENTEST(bytes,posn,len);
         posn += bytes;
