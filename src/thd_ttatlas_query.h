@@ -74,13 +74,6 @@ typedef struct {
 typedef enum { CLASSIC_WAMI_ATLAS_SORT = 1,  TAB1_WAMI_ATLAS_SORT = 2,     TAB2_WAMI_ATLAS_SORT = 3,
                CLASSIC_WAMI_ZONE_SORT,       TAB1_WAMI_ZONE_SORT,          TAB2_WAMI_ZONE_SORT } WAMI_SORT_MODES; 
 
-typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
-               AFNI_TLRC_SPC, /*!< The Classic */
-               MNI_SPC,       /*!< A la Canadienne */ 
-               MNI_ANAT_SPC,  /*!< Mit viele liebe */
-                 
-               NUMBER_OF_SPC  /*!< A flag for the number of spaces, leave for last */
-               } AFNI_STD_SPACES;
                
 typedef enum { UNKNOWN_ATLAS=0, /*!< Dunno */
                AFNI_TLRC_ATLAS, /*!< The Classic */

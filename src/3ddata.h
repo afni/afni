@@ -4549,7 +4549,16 @@ extern void   UNIQ_idcode_fill(char *) ;
 
 /*------------------------------------------------------------------------*/
 
-extern char * TT_whereami( float , float , float ) ;
+typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
+               AFNI_TLRC_SPC, /*!< The Classic */
+               MNI_SPC,       /*!< A la Canadienne */ 
+               MNI_ANAT_SPC,  /*!< Mit viele liebe */
+               
+               NUMBER_OF_SPC  /*!< A flag for the number of spaces, 
+                                    leave for last */
+               } AFNI_STD_SPACES;
+
+extern char * TT_whereami( float , float , float, AFNI_STD_SPACES ) ;
 extern char * TT_whereami_old( float , float , float ) ;
 extern int  TT_load_atlas (void);
 extern void TT_purge_atlas(void);

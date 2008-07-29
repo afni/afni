@@ -52,10 +52,19 @@ plugout_drive  -com 'OPEN_WINDOW B.sagittalimage \
                      keypress=v'           \
                -quit
 
-echo "Hit Enter to pause movie and stop"
+#Show how sub-brick selection can be done.
+#and how the threshold bar can be set
+echo "Hit Enter to pause movie and show sub-brick manipulation"
 set l = $<
 plugout_drive  -com 'OPEN_WINDOW B.sagittalgraph  keypress=space' \
-               -com 'QUIT' \
+               -com 'SET_SUBBRICKS B 13 3 4' \
+               -com 'SET_THRESHNEW B 0.001 *p'   \
+               -com 'SEE_OVERLAY B.+' \
+               -com 'SET_DICOM_XYZ B -42.6 32 5'                  \
                -quit   
+
+echo "Hit Enter to quit"
+set l = $<
+plugout_drive  -com 'QUIT' -quit
 
 END:
