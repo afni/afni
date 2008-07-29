@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, JUL, 2008, RCR, "serial_helper", MINOR, TYPE_MODIFY,
+   "captured and output more signal and error info, flushed output buffer",
+   NULL
+ } ,
+
  { 28, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_BUG_FIX,
    "alter check for bad socket: use tcp_alivecheck over tcp_writecheck",
    NULL
