@@ -416,7 +416,15 @@ void getvoxlclusterdist(int* count, float** cdata,
   char* filename4;
   FILE *out4=NULL;
   /*float* vcdata = malloc(nrows*sizeof(float*));*/
-    float difference, difference1;
+  float difference, difference1;
+  float* max_vcdata = NULL;
+
+  /* allocate for answer arrays */
+  if (!(max_vcdata = (float *)calloc(sizeof(float), nclusters))) {
+      fprintf(stderr,"ERROR: Failed to allocate for max_vcdata\n");
+      RETURN(0);
+   }
+
 
   n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
   
@@ -435,9 +443,31 @@ void getvoxlclusterdist(int* count, float** cdata,
       difference1 = cdata[clusterid[i]][j]-data[i][j];
       difference = difference + difference1*difference1;
     }
-    vcdata[i][0] = sqrt(difference);
+    vcdata[i][0] = 100/(1+sqrt(difference)); /* if values are close to 0 ?! */
   }
-  
+
+ /* avovk JULY29_2008 */ 
+  for (i = 0; i < nclusters; i++){
+    max_vcdata[i] = 0;
+  }
+
+  for (i = 0; i < nrows; i++){
+    if (vcdata[i][0] > max_vcdata[clusterid[i]]) {
+       max_vcdata[clusterid[i]] = vcdata[i][0];
+    }
+  }
+
+  printf("max distances within clusters\n");
+  for (i = 0; i < nclusters; i++){
+    printf("%7.3f\n",max_vcdata[i]);
+  }
+
+  for (i = 0; i < nrows; i++){
+    difference = vcdata[i][0];
+    vcdata[i][0] = 100*clusterid[i]+100*difference/(max_vcdata[clusterid[i]]);
+  }
+  /* avovk JULY29_2008 */
+
   printf ("------- writing voxels-centroids distances to file:\t\t"
           " %s_K_G%d.vcd\n",jobname, nclusters);
   for (i = 0; i < nrows; i++)
@@ -482,8 +512,8 @@ void getvoxlclustersdist(int* count, float** cdata,
 	difference1 = cdata[k][j]-data[i][j];
 	difference = difference + difference1*difference1;
       }
-      vcdata[i][k+1] = sqrt(difference);
-    }
+      vcdata[i][k+1] = 100/(1+sqrt(difference)); /* actually 1/distance */
+    }                                       /* some kind of scaled probability */
   }
   
   printf ("------- writing voxels-centroids distances to ...:\t\t"
@@ -496,7 +526,127 @@ void getvoxlclustersdist(int* count, float** cdata,
 
 }
 
-/* DO I DARE */
+
+/* avovkJULY30: it would be nice to have color pallete for cluster probability */
+
+void color_palette(int nclusters, char* jobname)
+{
+  int n = 0;
+  int i, j;
+  char* filename;
+  FILE *out=NULL;
+  float a, c;
+  int nsteps, step, colorv, hexp1, hexp2;
+  char* hexnumbers;
+  
+  hexnumbers = (char *)malloc(16*sizeof(char));
+  sprintf (hexnumbers, "0123456789abcdef");
+
+  n = 1 + strlen(jobname) + strlen(".pal");
+  filename = (char *)malloc(n*sizeof(char));
+  sprintf (filename, "%s.pal", jobname); /* output file name not good ! */
+  out = fopen( filename, "w" );
+  
+  c = nclusters;
+  a = 256/c;
+  nsteps = 256/nclusters;
+
+  printf("num of color steps per cluster: a b %7.2f %d \n",a,nsteps);
+
+  /* now we use those steps to create color fading to/from black*/
+  
+  step = 256/nsteps - 1; /* number of clusters -1, that we don't go to black*/
+
+
+  fprintf (out, "color_%d_clusters\n",nclusters);
+
+  /* for ( i = 0; i < nclusters; i++) {*/
+  
+  colorv = 255;
+  for ( j = 0; j < nsteps; j++) {
+    colorv = colorv - step;
+    hexp1 = colorv/16;
+    hexp2 = colorv - hexp1*16;
+
+    fprintf (out, "#%c%c0000\n", hexnumbers[hexp1], hexnumbers[hexp2]);
+
+  }
+
+
+  if (nclusters > 1) {
+    colorv = 255;
+    for ( j = 0; j < nsteps; j++) {
+      colorv = colorv - step;
+      hexp1 = colorv/16;
+      hexp2 = colorv - hexp1*16;
+      
+      fprintf (out, "#00%c%c00\n", hexnumbers[hexp1], hexnumbers[hexp2]);
+      
+    }
+  }
+
+  if (nclusters > 2) {
+    colorv = 255;
+    for ( j = 0; j < nsteps; j++) {
+      colorv = colorv - step;
+      hexp1 = colorv/16;
+      hexp2 = colorv - hexp1*16;
+      
+      fprintf (out, "#0000%c%c\n", hexnumbers[hexp1], hexnumbers[hexp2]);
+      
+    }
+  }
+
+
+  if (nclusters > 3) {
+    colorv = 255;
+    for ( j = 0; j < nsteps; j++) {
+      colorv = colorv - step;
+      hexp1 = colorv/16;
+      hexp2 = colorv - hexp1*16;
+      
+      fprintf (out, "#%c%c%c%c00\n", hexnumbers[hexp1], hexnumbers[hexp2], 
+	       hexnumbers[hexp1], hexnumbers[hexp2]);
+      
+    }
+  }
+
+  if (nclusters > 4) {
+    colorv = 255;
+    for ( j = 0; j < nsteps; j++) {
+      colorv = colorv - step;
+      hexp1 = colorv/16;
+      hexp2 = colorv - hexp1*16;
+      
+      fprintf (out, "#00%c%c%c%c\n", hexnumbers[hexp1], hexnumbers[hexp2], 
+	       hexnumbers[hexp1], hexnumbers[hexp2]);
+      
+    }
+  }
+
+  if (nclusters > 5) {
+    colorv = 255;
+    for ( j = 0; j < nsteps; j++) {
+      colorv = colorv - step;
+      hexp1 = colorv/16;
+      hexp2 = colorv - hexp1*16;
+      
+      fprintf (out, "#%c%c00%c%c\n", hexnumbers[hexp1], hexnumbers[hexp2], 
+	       hexnumbers[hexp1], hexnumbers[hexp2]);
+      
+    }
+  }
+
+  if (nclusters > 6) {
+    printf("COLOR PALETTE CAN HANDLE MAX & CLUSTERS FOR NOW!!!");
+  }
+  
+  printf ("------- color palette written to file:\t\t"
+	  "%s.pal\n",jobname);
+
+  fclose(out); out=NULL;
+
+}
 
 /* ========================================================================= */
 
@@ -645,6 +795,8 @@ void example_kmeans( int nrows, int ncols,
       getvoxlclustersdist(count, cdata, clusterid, data, jobname, 
 		      nclusters, nrows, ncols, vcdata);
 
+      color_palette(nclusters, jobname);
+      
       /*might want to make some calculations with vcdata*/
 
       /*lets calculate distance to centroid/sum(distance 2 all centroids)*/
