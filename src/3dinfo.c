@@ -78,10 +78,7 @@ int main( int argc , char *argv[] )
        }
 
        if( dset == NULL ){  /* still not open? */
-         WARNING_message("----------------------------------------") ;
-         WARNING_message("Can't open dataset %s",argv[iarg]) ;
-         WARNING_message("----------------------------------------") ;
-         continue ;
+         ERROR_exit("Can't open dataset %s\n", argv[iarg]) ;
        }
      }
 
@@ -93,9 +90,7 @@ int main( int argc , char *argv[] )
          puts(outbuf) ;
          free(outbuf) ; outbuf = NULL ;
        } else {
-         WARNING_message("----------------------------------------") ;
-         WARNING_message("Can't get info for dataset %s",argv[iarg]) ;
-         WARNING_message("----------------------------------------") ;
+         ERROR_exit("Can't get info for dataset %s",argv[iarg]) ;
        }
      }
      else   /*** get and output label ***/
