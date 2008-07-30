@@ -370,7 +370,9 @@ double vector_dotself (vector a);  /* 28 Dec 2002: RWCox */
 
 /*---------------------------------------------------------------------------*/
 
-double matrix_norm( matrix a ) ;   /* 03 Mar 2003: RWCox */
+double matrix_norm     ( matrix a ) ;              /* 03 Mar 2003: RWCox */
+double matrix_frobenius( matrix a ) ;              /* 30 Jul 2008 */
+void matrix_colsqsums  ( matrix a , vector *v ) ;  /* 30 Jul 2008 */
 
 int * matrix_check_columns( matrix a , double eps ) ; /* 14 Jul 2004: RWCox */
 
