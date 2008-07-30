@@ -1452,6 +1452,38 @@ double matrix_norm( matrix a )
 }
 
 /*---------------------------------------------------------------------------*/
+
+double matrix_frobenius( matrix a )  /* sum of squares of all elements */
+{
+   int i,j , rows=a.rows, cols=a.cols ;
+   double sum=0.0  , **aa=a.elts ;
+
+   for (i = 0;  i < rows;  i++){
+     for (j = 0;  j < cols;  j++) sum += aa[i][j] * aa[i][j] ;
+   }
+#ifdef ENABLE_FLOPS
+   flops += 2.0*rows*cols ;
+#endif
+   return sum ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void matrix_colsqsums( matrix a , vector *v )
+{
+   int i,j , rows=a.rows , cols=a.cols ;
+   double sum , **aa , *vp ;
+
+   vector_create_noinit( cols , v ) ; vp = v->elts ; aa = a.elts ;
+
+   for( j=0 ; j < cols ; j++ ){
+     for( sum=0.0,i=0 ; i < rows ; i++ ) sum += aa[i][j] * aa[i][j] ;
+     vp[j] = sum ;
+   }
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Search a matrix for nearly identical column pairs, where "nearly identical"
     means they are correlated closer than 1-eps.
 
@@ -1659,7 +1691,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    flops += n*n*(n+2.0*m+2.0) ;
 #endif
    free((void *)xfac); free((void *)sval);
-   free((void *)vmat); free((void *)umat); 
+   free((void *)vmat); free((void *)umat);
    return;
 }
 
