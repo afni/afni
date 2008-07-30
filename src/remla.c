@@ -48,7 +48,10 @@ typedef struct {
 *****/
 
 typedef struct {
-   matrix *Jright , *Jleft ;
+   int mpar , rglt ; /* [beta_R] = [Jleft] [Jright] [beta_Full] */
+   matrix *Jright ;  /* r X m matrix */
+   matrix *Jleft ;   /* m x r matrix */
+   vector *sig ;     /* rglt elements = normalized stdev */
 } gltfactors ;
 
 /*****
@@ -892,42 +895,60 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
 
 gltfactors * REML_setup_gltfactors( matrix *D , matrix *G )
 {
-   int nn , rr ;
+   int nn , rr , i,j ; MTYPE ete ;
    gltfactors *gf ;
-   matrix *JL , *JR , *GT , *E,*F,*Z  ;
+   matrix *JL , *JR , *GT , *E,*F,*Z ; vector *S ;
 
    if( D       == NULL    || G       == NULL    ) return NULL ;
    if( D->rows != D->cols || D->rows != G->cols ) return NULL ;
 
-   nn = D->rows ; rr = G->cols ; if( nn < 1 || rr < 1 ) return NULL ;
+   nn = D->rows ; rr = G->rows ; if( nn < 1 || rr < 1 ) return NULL ;
+
+   /* [D] is nn X nn (upper triangular); [G] is rr X nn, with rr < nn */
 
    GT = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(GT) ;
-   matrix_transpose( *G , GT ) ;
+   matrix_transpose( *G , GT ) ;          /* GT = [G'] = nn X rr matrix */
 
    F = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(F) ;
-   matrix_rrtran_solve( *D , *GT , F ) ;
+   matrix_rrtran_solve( *D , *GT , F ) ;  /* F = inv[D] [G'] = nn X rr matrix */
    matrix_destroy(GT); free(GT);
 
-   if( rr == 1 ){
-     int i ; MTYPE sum=0.0 ;
-     for( i=0 ; i < nn ; i++ ) sum += F->elts[i][0] * F->elts[i][0] ;
-     sum = 1.0 / sum ;
-     for( i=0 ; i < nn ; i++ ) F->elts[i][0] *= sum ;
-     JR = F ;
-   } else {
+   S = (vector *)malloc(sizeof(vector)) ; vector_initialize(S) ;
+
+   if( rr == 1 ){               /* F is really an nn-vector */
+     ete = matrix_frobenius( *F ) ;        /* sum of squares */
+     vector_create(rr,S) ; S->elts[0] = sqrt(ete) ; /* sigma */
+     ete = 1.0 / ete ;                       /* scale factor */
+     JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
+     matrix_create(rr,nn,JR) ;
+     for( i=0 ; i < nn ; i++ )
+       JR->elts[0][i] = G->elts[0][i] * ete ;  /* scale G to get JR */
+
+   } else {                     /* QR factor F to get E, then solve for JR */
      E  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(E) ;
      Z  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(Z) ;
      JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
      matrix_qrr( *F , E ) ;
      matrix_rrtran_solve( *E , *G , Z ) ;
-     matrix_rr_solve( *E , *Z , JR ) ;
-     matrix_destroy(Z); free(Z); matrix_destroy(E); free(E);
+     matrix_rr_solve( *E , *Z , JR ) ;  /* JR = inv[E] inv[E'] G = rr X nn */
+     matrix_colsqsums( *E , S ) ;       /* S = [sig] = rr vector */
+     matrix_destroy(Z); free(Z);
+     matrix_destroy(E); free(E);
    }
 
+   /* compute JL */
+
    JL = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JL) ;
-   matrix_rr_solve( *D , *F , JL ) ;
-   if( F != JR ){ matrix_destroy(F); free(F); }
+   matrix_rr_solve( *D , *F , JL ) ;  /* JL = inv[D] [F] = nn X rr matrix */
+   matrix_destroy(F); free(F);
+
+   /* save results into struct */
 
    gf = (gltfactors *)malloc(sizeof(gltfactors)) ;
-   gf->Jright = JR ; gf->Jleft = JL ; return gf ;
+   gf->mpar   = nn ;
+   gf->rglt   = rr ;
+   gf->Jright = JR ;
+   gf->Jleft  = JL ;
+   gf->sig    = S  ;
+   return gf ;
 }
