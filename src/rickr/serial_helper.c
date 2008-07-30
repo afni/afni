@@ -55,13 +55,17 @@ static char g_history[] =
  " 1.7  July 16, 2008 [rickr]\n"
  "    - added -disp_all for P Kundu\n"
  "\n"
- " 1.8  July 16, 2008 [rickr]\n"
+ " 1.8  July 29, 2008 [rickr]\n"
  "    - captured more exit signals\n"
  "    - enhanced failure text\n"
  "    - flushed output buffer\n"
+ "\n"
+ " 1.9  July 30, 2008 [rickr]\n"
+ "    - added handshake interface for HELLO version 1 (old is version 0)\n"
+ "    - added -show_times option\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION "1.8 (Jul 29, 2008)"
+#define VERSION "1.9 (Jul 30, 2008)"
 
 #include <stdio.h>   /* Standard input/output definitions */
 #include <string.h>  /* String function definitions */
@@ -73,6 +77,7 @@ static char g_history[] =
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/file.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -98,6 +103,7 @@ typedef struct{
     int     sock_num;
     int     num_extra;          /* number of extra data values per TR */
     int     disp_all;           /* flag to display all results */
+    int     show_times;         /* flag to diplay data times */
     int     swap;
     int     debug;
 } optiondata;
@@ -119,6 +125,7 @@ typedef struct
 } port_list;
 
 
+int   alloc_extras         ( motparm * mp, int nex );
 void  clean_n_exit         ( int sig_num );
 int   close_data_ports     ( port_list * plist );
 int   disp_optiondata      ( char * info, optiondata * D );
@@ -131,9 +138,10 @@ int   open_incoming_socket ( optiondata *opt, port_list * plist );
 int   open_serial          ( optiondata *opt, port_list * plist );
 int   read_socket          ( optiondata *opt, port_list * plist, motparm * mp );
 void  send_serial          ( optiondata * opt, port_list * plist, motparm *mot);
+int   show_time            ( char * mesg );
 void  swap_4               ( void * data, int nswaps );
 int   usage                ( char * prog, int level );
-int   wait_for_socket      ( optiondata *opt, port_list * plist );
+int   wait_for_socket      ( optiondata *opt, port_list * plist, motparm *mot );
 
 /* global port numbers, for clean_n_exit */
 static port_list g_ports;
@@ -167,7 +175,7 @@ int main(int argc, char *argv[])
         mp.nread = 0;           /* reset our counter */
 
         /* wait for AFNI to talk to us */
-        if ( (rv = wait_for_socket(&opt, plist)) < 0 ) {
+        if ( (rv = wait_for_socket(&opt, plist, &mp)) < 0 ) {
             clean_n_exit(0);
             return rv;
         }
@@ -239,11 +247,11 @@ int close_data_ports( port_list * plist )
  * we expect to read g_magic_hi 
  * ----------------------------------------------------------------------
  */
-int wait_for_socket(optiondata *opt, port_list * plist)
+int wait_for_socket(optiondata *opt, port_list * plist, motparm * mp)
 {
     struct sockaddr_in sin;
     char               data[8];
-    int                sd, len;
+    int                sd, len, ver, nex;
 
     len = sizeof(sin);
     /* block until a connection is made */
@@ -257,6 +265,8 @@ int wait_for_socket(optiondata *opt, port_list * plist)
 
     if ( opt->debug > 0 )
         fprintf(stderr,"++ accepting call from '%s'\n",inet_ntoa(sin.sin_addr));
+    if ( opt->show_times )
+        show_time("accepted connection");
 
     if ( (len = recv(sd, data, g_magic_len, 0)) == -1 )
     {
@@ -264,10 +274,8 @@ int wait_for_socket(optiondata *opt, port_list * plist)
         return -1;
     }
 
-    /* rcr: possibly look for alternate magic_hi, and with it accept extra
-            info, like -num_extra */
-
-    if ( strncmp(data, g_magic_hi, g_magic_len) != 0 )
+    /* check the first 3 bytes of magic_hi, with the 4th determining version */
+    if ( strncmp(data, g_magic_hi, g_magic_len-1) != 0 )
     {
         fprintf(stderr, "** bad data on socket: 0x%02hhx%02hhx%02hhx%02hhx\n",
                 data[0], data[1], data[2], data[3] );
@@ -281,7 +289,76 @@ int wait_for_socket(optiondata *opt, port_list * plist)
                 "++ received hello on socket: 0x%02hhx%02hhx%02hhx%02hhx\n",
                 data[0], data[1], data[2], data[3]);
 
+    /* check the hello version */
+    ver = data[3] - (char)0xab;
+    if( ver == 1 ) {
+        /* version 1: also receive num_extra over socket */
+        if ( (len = recv(sd, (void *)&nex, sizeof(int), 0)) == -1 )
+        {
+            perror("wait for socket: recv");
+            return -1;
+        } else if ( len != sizeof(int) ) {
+            fprintf(stderr,"** received only %d of 4 bytes for nextra\n",len);
+            return -1;
+        }
+        if ( opt->show_times ) show_time("received num_extra");
+
+        /* have num extra, apply it */
+        if ( opt->swap ) swap_4(&nex, 1);
+
+        fprintf(stderr,"++ applying received num_extra = %d (was %d)\n",
+                nex, mp->nex);
+
+        /* we may want to alloc some/more/less memory for this */
+        if( mp->nex != nex && alloc_extras(mp, nex) ) return -1;
+
+    } else if ( ver > 1 || ver < 0 ) {
+        fprintf(stderr,"** bad magic version from socket: %d\n",ver);
+        return -1;
+    } /* else, default hello version */
+
     return 0;
+}
+
+/* ----------------------------------------------------------------------
+ * if nex changes (maybe from 0) allocate an appropriate extras array
+ *
+ * return 0 on success
+ * ----------------------------------------------------------------------
+ */
+int alloc_extras(motparm * mp, int nex)
+{
+    if ( mp->nex == nex ) return 0;
+
+    mp->nex = nex;
+    mp->extras = (float *)realloc(mp->extras, mp->nex*sizeof(float));
+    if( !mp->extras )
+    {
+        fprintf(stderr,"** failed to alloc for %d extra floats\n", mp->nex);
+        return 1;
+    }
+
+    return 0;
+}
+
+/* ----------------------------------------------------------------------
+ * show the current time, at the ms resolution, modulo an hour
+ * ----------------------------------------------------------------------
+ */
+int show_time( char * mesg )
+{
+   struct timeval  tval ;
+   struct timezone tzone ;
+
+   gettimeofday( &tval , &tzone ) ;
+
+   if( mesg ) fprintf(stderr,"++ SH TIME (%s): ", mesg);
+   else       fprintf(stderr,"++ SH TIME : ");
+
+   fprintf(stderr,"%d seconds, %d ms\n", ((int)tval.tv_sec)%3600,
+                                         ((int)tval.tv_usec)/1000);
+
+   return 0;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -377,13 +454,6 @@ void clean_n_exit(int sig_num)
     close_data_ports(&g_ports);
     if ( g_ports.tserver_sd ) close(g_ports.tserver_sd); /* only at exit */
 
-    ssec = 5;
-    fprintf(stderr,"++ waiting %d sec for close reponse", ssec);
-    for( count = 0; count < ssec; count++ )
-        { fputc('.', stderr);  fflush(stderr);  sleep(1); }
-    fprintf(stderr," aaaaaaaugh...\n");
-    fflush(stderr);
-
     exit(sig_num);
 }
         
@@ -453,6 +523,8 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
             CHECK_ARG_COUNT(ac, "opt use: -serial_port SERIAL_FILENAME\n");
             opt->serial_port = argv[++ac];
         }
+        else if ( !strncmp(argv[ac], "-show_times", 5) )
+            opt->show_times = 1;
         else if ( !strncmp(argv[ac], "-sock_num", 7) )
         {
             CHECK_ARG_COUNT(ac, "opt use: -sock_num SOCKET_NUMBER\n");
@@ -492,18 +564,6 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
 
     plist->debug = opt->debug;          /* for clean_n_exit() */
     mp->nvals    = 6;
-
-    /* allocate space for extra data */
-    if ( opt->num_extra > 0 )
-    {
-        mp->nex = opt->num_extra;
-        mp->extras = (float *)malloc(mp->nex * sizeof(float));
-        if( !mp->extras )
-        {
-            fprintf(stderr,"** failed to alloc for %d extra floats\n", mp->nex);
-            return -1;
-        }
-    }
 
     return 0;
 }
@@ -629,6 +689,46 @@ int usage( char * prog, int level )
             "\n"
             "        %s -serial_port /dev/ttyS0 -num_extra 3\n"
             "\n"
+            "   10. Test the program with Dimon and afni.  For afni, set a\n"
+            "       few useful environment variables, run it in real-time\n"
+            "       mode, and set a mask (of one exists to play with).\n"
+            "       Note that the order of afni and serial helper does not\n"
+            "       matter.\n"
+            "\n"
+            "       Run serial_helper in debug mode to display output, and\n"
+            "       without output to any serial port (just terminal).  Note\n"
+            "       that serial_helper can be re-started if there is need.\n"
+            "\n"
+            "       Run Dimon to send data to afni.  This can simulate the\n"
+            "       scanner runs by running Dimon multiple times.  Neither\n"
+            "       afni nor serial_helper need be re-started.\n"
+            "\n"
+            "       a. start afni in RT mode, with some env vars (which are\n"
+            "          not necessary, but serve as an example)\n"
+            "\n"
+            "           setenv AFNI_REALTIME_Registration  3D:_realtime\n"
+            "           setenv AFNI_REALTIME_Graph         Realtime\n"
+            "           setenv AFNI_REALTIME_MP_HOST_PORT  localhost:53214\n"
+            "           setenv AFNI_REALTIME_HELLO_VER     1\n"
+            "           setenv AFNI_REALTIME_SHOW_TIMES    YES\n"
+            "\n"
+            "               (see README.environment for variable details)\n"
+            "\n"
+            "           afni -rt\n"
+            "\n"
+            "               (and possibly set a mask in the RT plugin)\n"
+            "\n"
+            "       b. start serial_helper in testing mode (note that since\n"
+            "          the plugin uses HELLO_VER 1, it is not necessary to\n"
+            "          use any -num_extra option)\n"
+            "\n"
+            "           serial_helper -no_serial -debug 3\n"
+            "\n"
+            "       c. run Dimon, simulating a 2 second TR at the scanner\n"
+            "          (might run it many times)\n"
+            "\n"
+            "           Dimon -rt -pause 2000 -infile_prefix run1/image\n"
+            "\n"
             "------------------------------------------------------------\n"
             "  program setup:\n"
             "\n"
@@ -705,6 +805,12 @@ int usage( char * prog, int level )
             "        If any incoming data is less than this value, it will\n"
             "        be set to this value.  The default of -12.7 is used to\n"
             "        scale incoming floats to signed bytes.\n"
+            "\n"
+            "    -show_times      : show communication times\n"
+            "                     : e.g. -show_times\n"
+            "\n"
+            "        Each time data is recived, display the current time.\n"
+            "        Time is at millisecond resolution, and wraps per hour.\n"
             "\n"
             "    -sock_num SOCK   : specify socket number to serve\n"
             "                     : e.g. -sock_num 53214\n"
@@ -820,9 +926,11 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
     if ( (rv = recv(plist->tdata_sd, (void *)mp->data, len, 0)) < len )
     {
         fprintf(stderr,"** read only %d of %d bytes on socket\n", rv, len);
-        perror("pe: recv");
+        perror("recv mot parm");
         return -1;
     }
+
+    if ( opt->show_times && opt->debug > 2 ) show_time("received mp data");
 
     if ( opt->swap ) swap_4(mp->data, mp->nvals);
 
@@ -833,7 +941,7 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
         if ( (rv = recv(plist->tdata_sd, (void *)mp->extras, len, 0)) < len )
         {
             fprintf(stderr,"** read only %d of %d Ebytes on socket\n", rv, len);
-            perror("pe: recv");
+            perror("recv extra floats");
             return -1;
         }
 
@@ -841,6 +949,12 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
     }
 
     mp->nread++;
+
+    if ( opt->show_times ) {
+        char mesg[32];
+        sprintf(mesg, "received mp data #%03d", mp->nread);
+        show_time(mesg);
+    }
 
     if ( opt->debug > 2 || opt->disp_all ) {
         rv = format_output(opt, mp, &outstring, &oslen);
