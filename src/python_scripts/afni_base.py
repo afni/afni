@@ -291,7 +291,7 @@ class shell_com:
          print "#Now running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
          sys.stdout.flush()
       elif self.eo == "dry_run":
-         print "#Would be running%s:\n   cd %s\n   %s" % (ms, self.dir, self.trimcom)
+         print "#Would be running%s:\n  %s" % (ms, self.trimcom)
          sys.stdout.flush()
       elif (self.eo == "script"):
          print "#Script is running%s:\n  %s" % (ms, self.trimcom)

@@ -49,6 +49,19 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 30 , JUL , 2008 , DRG , "3dinfo.c" , 
+    MICRO , TYPE_MODIFY, "Exit codes set to 1 on error" ,
+},
+
+{ 28 , JUL , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY, "Pre and post transformation matrices" ,
+    "Allow pre-transformation matrix instead of oblique transformation\n"
+    "and post-transformation instead of tlrc transformation.\n"
+    "Fixed concatenated matrices for oblique data. Master options\n"
+    "allow specification of dimension size on output. Script arguments\n"
+    "saved in output dataset."
+} ,
+
 { 18 , JUL , 2008 , DRG , "to3d" , 
     MINOR , TYPE_MODIFY, "Reverse order of slices in Siemens Mosaic data" ,
     "Some Siemens Mosaic data can be in reverse order depending upon\n"
