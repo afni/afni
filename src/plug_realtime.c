@@ -422,8 +422,9 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   ( (mm) == REGMODE_2D_RTIME || (mm) == REGMODE_2D_ATEND ||  \
     (mm) == REGMODE_3D_RTIME || (mm) == REGMODE_3D_ATEND   )
 
-  static int g_mask_val_type = 0 ;                /* RT_mask_strings index */
-  static THD_3dim_dataset * g_mask_dset = NULL ;  /* mask aves w/ MP vals */
+  static int g_mask_val_type = 1 ;                /* RT_mask_strings index   */
+  static int g_show_times = 0 ;                   /* show MP comm times      */
+  static THD_3dim_dataset * g_mask_dset = NULL ;  /* mask aves w/ MP vals    */
 #endif
 
 /************ global data for reading data *****************/
@@ -476,6 +477,8 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   void RT_set_grapher_pinnums ( int pinnum );
   int  RT_mask_free           ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
   int  RT_get_mask_aves       ( RT_input * rtin, int sub );
+
+  int  RT_mp_show_time        ( char * mesg ) ;
 #endif
 
 #define TELL_NORMAL  0
@@ -1923,7 +1926,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 
     if ( rtin->mp_tcp_sd <= 0 ) return -1;
 
-    if( ! g_mask_dset || ! g_mask_val_type ) return 0;
+    if( ! g_mask_val_type ) return 0;
 
     /* verify that the socket is still good */
     if ( ! RT_mp_comm_alive(rtin->mp_tcp_sd, 0, "pre data send") ) {
@@ -1938,6 +1941,9 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
     } else if( g_mask_dset && g_mask_val_type == 2 ) {
         bsize   = 6 + rtin->mask_nset*8;         /* motion plus all vals */
         tr_vals = bsize;
+    } else if( !g_mask_dset && g_mask_val_type == 1 ) {
+        tr_vals = 6;    /* enough for motion */
+        bsize   = 6;
     }
 
     /* maybe we need more space for data */
@@ -1999,6 +2005,12 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
             rtin->mp_tcp_sd  = 0;
             rtin->mp_tcp_use = 0;  /* allow a later re-try... */
             return -1;
+        }
+        if( g_show_times ) {
+           char mesg[64];
+           sprintf(mesg,"mp_comm_send_data %d floats for %d trs",
+                   bsize*b2send, nt);
+           RT_mp_show_time(mesg);
         }
 
         /* keep track of num messages and num param sets */
@@ -2222,6 +2234,23 @@ int RT_mask_free( RT_input * rtin )
     return 1;
 }
 
+/* show time at ms resolution, wrapping per hour */
+int RT_mp_show_time( char * mesg )
+{
+   struct timeval  tval ;
+   struct timezone tzone ;
+
+   gettimeofday( &tval , &tzone ) ;
+
+   if( mesg ) fprintf(stderr,"++ RT TIME (%s): ", mesg);
+   else       fprintf(stderr,"++ RT TIME : ");
+
+   fprintf(stderr,"%d seconds, %d ms\n", ((int)tval.tv_sec)%3600,
+                                         ((int)tval.tv_usec)/1000);
+
+   return 0;
+}
+
 /*---------------------------------------------------------------------------
    Initialize the motion parameter communications.        30 Mar 2004 [rickr]
 
@@ -2233,7 +2262,38 @@ int RT_mp_comm_init( RT_input * rtin )
     struct sockaddr_in   sin;
     struct hostent     * hostp;
     char                 magic_hi[] = { 0xab, 0xcd, 0xef, 0xab };
-    int                  sd;
+    char               * estr;
+    int                  sd, send_nvals = 0, ver = 0, rv;
+
+    /* do we want to spit out times? */
+    estr = getenv("AFNI_REALTIME_SHOW_TIMES") ;
+    g_show_times = (estr && (*estr == 'y' || *estr == 'Y'));
+    if( g_show_times ) RT_mp_show_time("mp_comm_init");
+
+    /* maybe the user wants to set the hello version */
+    estr = getenv("AFNI_REALTIME_HELLO_VER") ;
+    if( estr ) {
+        ver = *estr - '0';
+        if(ver > 0) fprintf(stderr,"RTM: setting hello version to %d\n",ver);
+
+        /* see if version is valid */
+        if ( ver != 0  && ver != 1) {
+            fprintf(stderr,"** invalid AFNI_REALTIME_HELLO_VER ver %s\n", estr);
+            ver = 0;
+        }
+    }
+
+    /* set the 'hello' mode:
+     *    0 : original magic_hi
+     *    1 : magic_hi[3] += 1   -> also send num_extra as int
+     *
+     * if we are prepared to send mask info, and hello mode == 1, then
+     * note to also send mask_nvals
+     */
+    if( ver == 1 && g_mask_val_type && g_mask_dset ) {
+        send_nvals = rtin->mask_nvals;
+        magic_hi[3] += 1;
+    }
 
     if ( rtin->mp_tcp_sd != 0 )
         fprintf(stderr,"** warning, did we not close the MP socket?\n");
@@ -2254,30 +2314,52 @@ int RT_mp_comm_init( RT_input * rtin )
     /* get a socket */
     if ( (sd = socket(AF_INET, SOCK_STREAM, 0)) == -1 )
     {
-        perror("pe: socket");
+        perror("** RT_mp_comm socket");
         rtin->mp_tcp_use = -1;   /* let us not try, try again */
         return -1;
     }
 
     if ( connect(sd, (struct sockaddr *)&sin, sizeof(sin)) == -1 )
     {
-        perror("pe: connect");
+        perror("** RT_mp_comm connect");
         rtin->mp_tcp_use = -1;
         return -1;
     }
 
     /* send the hello message */
-    if ( send(sd, magic_hi, 4*sizeof(char), 0) == -1 )
+    if ( (rv = send(sd, magic_hi, 4*sizeof(char), 0)) == -1 )
     {
-        perror("pe: send hello");
+        perror("** RT_mp_comm send hello");
         rtin->mp_tcp_use = -1;
+        RT_mp_comm_close(rtin);
         return -1;
+    } else if ( rv != 4*sizeof(char) ) {
+        fprintf(stderr,"** RT magic_hi: sent only %d of 4 bytes\n", rv);
+        RT_mp_comm_close(rtin);
+        return -1;
+    }
+
+    /* do we send nvals for an altered magic_hi? */
+    if ( send_nvals > 0 ) {
+        if ( (rv = send(sd, &send_nvals, sizeof(int), 0)) == -1 )
+        {
+            perror("** RT_mp_comm send hello nvals");
+            rtin->mp_tcp_use = -1;
+            RT_mp_comm_close(rtin);
+            return -1;
+        } else if ( rv != sizeof(int) ) {
+            fprintf(stderr,"** RT nextra: sent only %d of 4 bytes\n", rv);
+            RT_mp_comm_close(rtin);
+            return -1;
+        }
+        if( verbose )
+            fprintf(stderr,"RTM: sent nextra = %d with hello\n", send_nvals);
     }
 
     fprintf(stderr,"RTM: opened motion param socket to %s:%d\n",
             rtin->mp_host, rtin->mp_port);
 
-    /* everything worked out, we're good to van Gogh */
+    /* everything worked out, we're good to Vincent */
 
     rtin->mp_tcp_sd = sd;
 
@@ -4612,8 +4694,11 @@ void RT_registration_3D_realtime( RT_input * rtin )
       yar[6] = rtin->reg_theta + ttbot ;
 
       /* send the data off over tcp connection          30 Mar 2004 [rickr] */
-      if ( rtin->mp_tcp_use )
+      if ( rtin->mp_tcp_use ) {
           RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot, ttbot );
+          if( verbose > 1 )
+             fprintf(stderr,"RT MP, sending TRs %d..%d",ttbot,ntt-1);
+      }
 
       if( ttbot > 0 )  /* modify yar after send_data, when ttbot > 0 */
       {

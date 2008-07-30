@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "added HELLO version 1 and show_times option",
+   "These are set via AFNI_REALTIME_HELLO_VER and AFNI_REALTIME_SHOW_TIMES."
+ } ,
+
+ { 30, JUL, 2008, RCR, "serial_helper", MINOR, TYPE_NEW_OPT,
+   "added HELLO version 1 and -show_times option",
+   "See example #10 from 'serial_helper -help' for details."
+ } ,
+
+ { 29, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
+   "print more socket error info, send MP vals w/out mask",
+   NULL
+ } ,
+
  { 29, JUL, 2008, RCR, "serial_helper", MINOR, TYPE_MODIFY,
    "captured and output more signal and error info, flushed output buffer",
    NULL
