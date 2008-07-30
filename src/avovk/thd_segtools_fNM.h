@@ -28,7 +28,7 @@ void example_hierarchical( int nrows, int ncols,
 void getvoxlclusterdist(int* count, float** cdata, 
 			int* clusterid, float** data, char* jobname, 
 			int nclusters, int nrows, int ncols, float **vcdata);
-
+void color_palette(int nclusters, char* jobname);
 
 /**********************************************************************
    END: functions based on command.c code from The C clustering library.
