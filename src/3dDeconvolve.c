@@ -360,8 +360,9 @@
 /*------------ prototypes for routines far below (RWCox) ------------------*/
 
 void JPEG_matrix_gray( matrix X, char *fname );        /* save X matrix to JPEG */
-void ONED_matrix_save( matrix X, char *fname, void *,int,int *, matrix *Xf ,
-                       int nbl, int *bl ); /* save X matrix to .1D */
+void ONED_matrix_save( matrix X, char *fname,          /* save X matrix to .1D */
+                       void *,int,int *, matrix *Xf ,
+                       int nbl, int *bl, void *gst, void *sst ) ;
 
 void XSAVE_output( char * ) ;                      /* save X matrix into file */
 
@@ -539,6 +540,24 @@ static column_metadata *coldat = NULL ;  /* global info about matrix columns */
 #undef  USE_OLD_LABELS
 
 #define FIX_CONFLICTS   /* 23 Mar 2007 */
+
+/*---------------------------------------------------------------------------*/
+/* 31 July 2008: stuff to store all GLT and stim label/column correspondence */
+
+typedef struct {
+  int     glt_num ;
+  char  **glt_lab ;
+  matrix *glt_mat ;
+} glt_stuff ;
+
+typedef struct {
+   int nstim ;
+   int *cbot , *ctop ;
+   char **label ;
+} stimlabel_stuff ;
+
+static glt_stuff       *GLT_stuff       = NULL ;
+static stimlabel_stuff *STIMLABEL_stuff = NULL ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -1979,7 +1998,7 @@ void get_options
           {
             DC_error ("-glt s gltname  Require: s >= 1  (s = #rows in GLT)");
           }
-        s = ival;
+        s = ival;  /* number of rows to read in matrix file */
 
         if (option_data->num_glt == 0)
           initialize_glt_options (option_data, 10);   /* default limit on GLTs */
@@ -1990,15 +2009,12 @@ void get_options
         option_data->glt_rows[iglt] = s;
         nopt++;
 
-        option_data->glt_filename[iglt]
-          = malloc (sizeof(char)*THD_MAX_NAME);
+        option_data->glt_filename[iglt] = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->glt_filename[iglt]);
-        strcpy (option_data->glt_filename[iglt],
-              argv[nopt]);
+        strcpy (option_data->glt_filename[iglt], argv[nopt]);
         iglt++;
 
-        nopt++;
-        continue;
+        nopt++; continue;
       }
 
       /*---- -gltsym gltname [29 Jul 2004] -----*/
@@ -2538,7 +2554,7 @@ void read_input_data
   int num_glt;             /* number of general linear tests */
   int iglt;                /* general linear test index */
   column_metadata cd ;     /* 05 Mar 2007 */
-  int nblk,npol , p1,nc ;
+  int nblk,npol , p1,nc , nsl ;
   unsigned int mk,gp ;
   float dtloc=0.0f ;
 
@@ -3218,7 +3234,13 @@ for( ii=0 ; ii < nt ; ii++ ){
       option_data->coldat[p1++] = cd ;
     }
   }
-  for( is=0 ; is < num_stimts ; is++ ){
+
+  STIMLABEL_stuff        = (stimlabel_stuff *)malloc(sizeof(stimlabel_stuff)) ;
+  STIMLABEL_stuff->cbot  = (int *)            malloc(sizeof(int)*num_stimts) ;
+  STIMLABEL_stuff->ctop  = (int *)            malloc(sizeof(int)*num_stimts) ;
+  STIMLABEL_stuff->label = (char **)          malloc(sizeof(char *)*num_stimts);
+
+  for( nsl=is=0 ; is < num_stimts ; is++ ){
     if( basis_stim[is] != NULL ){
       nc = basis_stim[is]->nparm ;
       mk = 0 ; gp = is+1 ;
@@ -3226,6 +3248,11 @@ for( ii=0 ; ii < nt ; ii++ ){
       nc = max_lag[is] - min_lag[is] + 1 ;
       if( baseline[is] ){ mk = CM_BASELINE_MASK; gp = 0   ; }
       else              { mk = 0               ; gp = is+1; }
+    }
+    if( gp > 0 ){
+      STIMLABEL_stuff->cbot[nsl]  = p1 ;
+      STIMLABEL_stuff->ctop [nsl] = p1+nc-1 ;
+      STIMLABEL_stuff->label[nsl] = option_data->stim_label[is] ; nsl++ ;
     }
     for( it=0 ; it < nc ; it++ ){
       cd.mask  = mk ; cd.group = gp ;
@@ -3235,6 +3262,7 @@ for( ii=0 ; ii < nt ; ii++ ){
     }
   }
   coldat = option_data->coldat ;  /* global variable */
+  STIMLABEL_stuff->nstim = nsl ;
 
   /*----- Read the censorship file (John Ashcroft, we miss you) -----*/
 
@@ -5022,9 +5050,17 @@ ENTRY("calculate_results") ;
   min_lag = option_data->stim_minlag;
   max_lag = option_data->stim_maxlag;
   nptr    = option_data->stim_nptr;
+
   num_glt = option_data->num_glt;
   glt_label = option_data->glt_label;
   glt_rows = option_data->glt_rows;
+
+  if( num_glt > 0 ){
+    GLT_stuff          = (glt_stuff *)malloc(sizeof(glt_stuff)) ;
+    GLT_stuff->glt_num = num_glt ;
+    GLT_stuff->glt_lab = glt_label ;
+    GLT_stuff->glt_mat = glt_cmat ;
+  }
 
   polort = option_data->polort;
   qp = option_data->qp;
@@ -5118,14 +5154,15 @@ ENTRY("calculate_results") ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xdata , option_data->x1D_filename , cd , N,gl ,
-                      (is_xfull) ? &xfull : NULL , num_blocks,block_list ) ;
+                      (is_xfull) ? &xfull : NULL , num_blocks,block_list ,
+                      (void *)GLT_stuff , (void *)STIMLABEL_stuff ) ;
   }
   if( is_xfull && option_data->x1D_unc != NULL ){   /* 25 Mar 2007 */
     void *cd=(void *)coldat ; int *gl=good_list ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull,
-                      num_blocks,block_list ) ;
+                      num_blocks,block_list , NULL,NULL ) ;
   }
   if( option_data->x1D_stop ){   /* 28 Jun 2007 */
     INFO_message("3dDeconvolve exits: -x1D_stop option was given") ;
@@ -5227,7 +5264,8 @@ ENTRY("calculate_results") ;
     if( jpt == NULL )  jpt = strstr(fn,".1D") ;
     if( jpt == NULL )  jpt = fn + strlen(fn) ;
     strcpy(jpt,"_XtXinv.xmat.1D") ;
-    ONED_matrix_save( xtxinv_full,fn, NULL,0,NULL,NULL,0,NULL ) ; /* no column metadata */
+    ONED_matrix_save( xtxinv_full,fn,
+                      NULL,0,NULL,NULL,0,NULL,NULL,NULL ) ; /* no column metadata */
   }
 
   /*----- Save some of this stuff for later, dude -----*/
@@ -5321,7 +5359,8 @@ ENTRY("calculate_results") ;
                          jpt = strstr(fn,".1D") ; jsuf = ".1D" ;
       if( jpt == NULL )  jpt = fn + strlen(fn) ;
       strcpy(jpt,"_psinv") ; strcat(fn,jsuf) ;
-      ONED_matrix_save( xpsinv , fn , NULL,0,NULL,NULL,0,NULL ) ; /* no column metadata */
+      ONED_matrix_save( xpsinv , fn ,
+                        NULL,0,NULL,NULL,0,NULL,NULL,NULL ) ; /* no column metadata */
     }
 #endif
 
@@ -7304,11 +7343,13 @@ void JPEG_matrix_gray( matrix X , char *fname )
 /*! Save matrix to a .1D text file */
 
 void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
-                       matrix *Xff , int nbl, int *bl )
+                       matrix *Xff , int nbl, int *bl , void *gs, void *ss )
 {
-   int nx=X.rows , ny=X.cols , ii,jj ;
+   int nx=X.rows , ny=X.cols , ii,jj,kk ;
    column_metadata *cd = (column_metadata *)xd ;
    matrix Xf ; int nxf=0,nyf ;
+   glt_stuff       *gst = (glt_stuff *)      gs ;
+   stimlabel_stuff *sst = (stimlabel_stuff *)ss ;
 
    if( fname == NULL || *fname == '\0' ) return ;
 
@@ -7391,6 +7432,58 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
        NI_set_attribute( nel, "RunStart", lab ); NI_free((void *)lab); lab = NULL;
      }
 #endif
+#if 1
+     if( sst != NULL && sst->nstim > 0 ){   /* 31 Jul 2008 */
+       NI_int_array iar ;
+       sprintf(lll,"%d",sst->nstim) ;
+       NI_set_attribute( nel , "Nstim" , lll ) ;
+       iar.num = sst->nstim ;
+       iar.ar  = sst->cbot ;
+       lab = NI_encode_int_list( &iar , "," ) ;
+       NI_set_attribute( nel, "StimBots", lab );NI_free((void *)lab); lab = NULL;
+       iar.ar  = sst->ctop ;
+       lab = NI_encode_int_list( &iar , "," ) ;
+       NI_set_attribute( nel, "StimTops", lab );NI_free((void *)lab); lab = NULL;
+       for( jj=0 ; jj < sst->nstim ; jj++ ){
+         strcpy(lll,sst->label[jj]) ;
+         for( ii=0 ; lll[ii] != '\0' ; ii++ ) if( isspace(lll[ii]) ) lll[ii]='_';
+         if( jj < sst->nstim-1 ) strcat(lll," ; ") ;
+         lab = THD_zzprintf( lab , "%s" , lll ) ;
+       }
+       NI_set_attribute( nel, "StimLabels", lab ); free((void *)lab); lab = NULL;
+     }
+#endif
+#if 1
+     if( gst != NULL && gst->glt_num > 0 ){  /* 31 Jul 2008 */
+       matrix gm ; NI_float_array far ; int nn,mm ;
+       sprintf(lll,"%d",gst->glt_num) ;
+       NI_set_attribute( nel , "Nglt" , lll ) ;
+       for( kk=0 ; kk < gst->glt_num ; kk++ ){
+         strcpy(lll,gst->glt_lab[kk]) ;
+         for( ii=0 ; lll[ii] != '\0' ; ii++ ) if( isspace(lll[ii]) ) lll[ii]='_';
+         if( kk < gst->glt_num-1 ) strcat(lll," ; ") ;
+         lab = THD_zzprintf( lab , "%s" , lll ) ;
+       }
+       NI_set_attribute( nel, "GltLabels", lab ); free((void *)lab); lab = NULL;
+       for( kk=0 ; kk < gst->glt_num ; kk++ ){
+         gm = gst->glt_mat[kk] ;
+         nn = gm.rows ;
+         mm = gm.cols ;
+         far.num   = 2 + nn*mm ;
+         far.ar    = (float *)malloc(sizeof(float)*far.num) ;
+         far.ar[0] = (float)nn ;
+         far.ar[1] = (float)mm ;
+         for( ii=0 ; ii < nn ; ii++ )
+           for( jj=0 ; jj < mm ; jj++ )
+             far.ar[jj+2+ii*mm] = (float)gm.elts[ii][jj] ;
+         lab = NI_encode_float_list( &far , "," ) ;
+         sprintf(lll,"GltMatrix_%06d",kk) ;
+         NI_set_attribute( nel, lll, lab ); NI_free((void *)lab); lab = NULL;
+         free((void *)far.ar) ;
+       }
+     }
+#endif
+
      NI_write_element_tofile( fname, nel, NI_HEADERSHARP_FLAG | NI_TEXT_MODE );
      NI_free_element( nel ) ;
    }
