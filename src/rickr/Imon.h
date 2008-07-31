@@ -102,6 +102,7 @@ typedef struct  /* user options */
     float            tr;            /* user input TR, overrides files   */
     float            ep;            /* epsilon - defaut to IFM_EPSILON  */
     int              nt;            /* user input time points per run   */
+    int              num_slices;    /* first volume must match          */
     int              nice;          /* nice offset (must be >= 0)       */
     int              pause;         /* pause time between volumes (ms)  */
     float            sleep_frac;    /* TR fraction to sleep (default 2) */
