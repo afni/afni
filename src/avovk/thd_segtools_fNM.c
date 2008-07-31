@@ -542,20 +542,24 @@ void color_palette(int nclusters, char* jobname)
   hexnumbers = (char *)malloc(16*sizeof(char));
   sprintf (hexnumbers, "0123456789abcdef");
 
-  n = 1 + strlen(jobname) + strlen(".pal");
+  n = 1 + strlen(jobname) + strlen(".pal") + 2;
   filename = (char *)malloc(n*sizeof(char));
-  sprintf (filename, "%s.pal", jobname); /* output file name not good ! */
+  sprintf (filename, "%s_K%d.pal", jobname,nclusters); 
+  /* output file name not good ! */
   out = fopen( filename, "w" );
   
   c = nclusters;
-  a = 256/c;
+  
   nsteps = 256/nclusters;
 
-  printf("num of color steps per cluster: a b %7.2f %d \n",a,nsteps);
+  /*printf("num of color steps per cluster: %d \n",nsteps); */
 
   /* now we use those steps to create color fading to/from black*/
   
-  step = 256/nsteps - 1; /* number of clusters -1, that we don't go to black*/
+  step = 256/nsteps - 2; /* number of clusters -1, that we don't go to black*/
+
+  if (nclusters < 3) 
+    step = 256/nsteps - 1;
 
 
   fprintf (out, "color_%d_clusters\n",nclusters);
@@ -641,8 +645,8 @@ void color_palette(int nclusters, char* jobname)
     printf("COLOR PALETTE CAN HANDLE MAX & CLUSTERS FOR NOW!!!");
   }
   
-  printf ("------- color palette written to file:\t\t"
-	  "%s.pal\n",jobname);
+  printf ("------- Color palette written to file:\t\t"
+	  "%s_K%d.pal\n",jobname,nclusters);
 
   fclose(out); out=NULL;
 
