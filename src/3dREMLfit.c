@@ -63,8 +63,10 @@ int main( int argc , char *argv[] )
    char *Ovar_prefix   = NULL ; THD_3dim_dataset *Ovar_dset   = NULL ;
    char *Ofitts_prefix = NULL ; THD_3dim_dataset *Ofitts_dset = NULL ;
    int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL ;
-   NI_int_array *giar ;
+   NI_int_array *giar ; NI_str_array *gsar ; NI_float_array *gfar ;
    float mfilt_radius=0.0 , dx,dy,dz ; int do_mfilt=0 , do_dxyz , nx,ny,nz ;
+   int glt_num=0 ; matrix *glt_mat ; char **glt_lab ;
+   int stim_num=0; int *stim_bot , *stim_top ; char **stim_lab ;
 
    /**------- help? -------**/
 
@@ -81,6 +83,7 @@ int main( int argc , char *argv[] )
       "to the signal in that voxel.  Intended to generalize the results of\n"
       "3dDeconvolve to allow for serial correlation in the timeseries data.\n"
       "\n"
+      "-------------------------------------------\n"
       "Input Options (the first two are mandatory)\n"
       "-------------------------------------------\n"
       " -input ddd  = Read time series dataset 'ddd'.\n"
@@ -91,20 +94,22 @@ int main( int argc , char *argv[] )
       " -mask kkk   = Read dataset 'kkk' as a mask for the input.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
       "\n"
-      "Output Options (at least one must be given)\n"
-      "-------------------------------------------\n"
-      " -Rbeta_prefix  = dataset for beta weights from the REML estimation\n"
-      " -Rvar_prefix   = dataset for REML variance parameters\n"
+      "------------------------------------------------------------------------\n"
+      "Output Options (at least one must be given; 'ppp' = dataset prefix name)\n"
+      "------------------------------------------------------------------------\n"
+      " -Rvar  ppp  = dataset for REML variance parameters\n"
+      " -Rbeta ppp  = dataset for beta weights from the REML estimation\n"
 #if 0
-      " -Rfitts_prefix = dataset for REML fitted model\n"
+      " -Rfitts ppp = dataset for REML fitted model\n"
 #endif
       "\n"
-      " -Obeta_prefix  = dataset for beta weights from the OLSQ estimation\n"
-      " -Ovar_prefix   = dataset for OLSQ variance parameter\n"
+      " -Ovar ppp   = dataset for OLSQ variance parameter\n"
+      " -Obeta ppp  = dataset for beta weights from the OLSQ estimation\n"
 #if 0
-      " -Ofitts_prefix = dataset for OLSQ fitted model\n"
+      " -Ofitts ppp = dataset for OLSQ fitted model\n"
 #endif
       "\n"
+      "-------------------------------------------------------------------\n"
       "The following options control the ARMA(1,1) parameter estimation\n"
       "for each voxel time series; normally, you do not need these options\n"
       "-------------------------------------------------------------------\n"
@@ -170,14 +175,17 @@ int main( int argc , char *argv[] )
       "                   the program, which is the scan (for each voxel)\n"
       "                   to find the optimal (a,b) parameters.\n"
       "\n"
-      "--------------------------------------------------------------------------\n"
-      "---------------------------------  NOTES ---------------------------------\n"
+      "==========================================================================\n"
+      "=================================  NOTES  ================================\n"
+      "==========================================================================\n"
       "\n"
+      "------------------\n"
       "What is ARMA(1,1)?\n"
       "------------------\n"
-      "* The correlation coefficient of noise samples 'k' units apart in time,\n"
+      "* The correlation coefficient r(k) of noise samples k units apart in time,\n"
       "    for k >= 1, is given by r(k) = lam * a^(k-1)\n"
-      "    where                   lam  = (b+a)(1+a*b)/(1+2*a*b+b*b).\n"
+      "    where                   lam  = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
+      "    (N.B.: lam=a when b=0 -- the AR(1) case has r(k)=a^k for k >= 0).\n"
       "* lam can be bigger or smaller than a, depending on the sign of b.\n"
       "* For the noise model which is the sum of AR(1) and white noise, lam < a.\n"
       "* The natural range of a and b is -1..+1.  However, unless -NEGcor is\n"
@@ -186,13 +194,19 @@ int main( int argc , char *argv[] )
       "* The program sets up the correlation matrix using the censoring and\n"
       "    run start information in the header of the .xmat.1D matrix file, so\n"
       "    that the actual correlation matrix used will not be Toeplitz.\n"
+      "* The 'Rvar' dataset has 4 sub-bricks with variance parameter estimates:\n"
+      "    #0 = a = factor by which correlations decay from lag k to lag k+1\n"
+      "    #1 = b\n"
+      "    #2 = lam (see the formula above) = correlation at lag 1\n"
+      "    #3 = standard deviation of ARMA(1,1) noise\n"
       "\n"
+      "-----------------------------------------------------------\n"
       "What is REML = REsidual (or REstricted) Maximum Likelihood?\n"
       "-----------------------------------------------------------\n"
       "* Ordinary least squares (which assumes the noise correlation matrix is\n"
       "    the identity) is consistent for estimating regression parameters,\n"
       "    but is not consistent for estimating the noise variance if the\n"
-      "    noise is in fact correlated in time ('serial correlation').\n"
+      "    noise is significantly correlated in time ('serial correlation').\n"
       "* Maximum likelihood estimation (ML) of the regression parameters and\n"
       "    variance/correlation together is asymptotically consistent as the\n"
       "    number of samples goes to infinity, but the variance estimates\n"
@@ -219,6 +233,7 @@ int main( int argc , char *argv[] )
       "    directly estimate the a parameter without using REML.  This program\n"
       "    does not implement this special method.  Don't ask why.\n"
       "\n"
+      "--------------\n"
       "Other Comments\n"
       "--------------\n"
       "* ARMA(1,1) parameters 'a' (AR) and 'b' (MA) are estimated\n"
@@ -234,9 +249,10 @@ int main( int argc , char *argv[] )
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
       "\n"
+      "-------------\n"
       "Future Dreams\n"
       "-------------\n"
-      "* Add a -jobs option to use multiple CPUs.\n"
+      "* Add a -jobs option to use multiple CPUs (or multiple Steves?).\n"
       "* Add a -Rfitts option to get the fitted time series model for\n"
       "    each voxel.\n"
       "* Compute F and t statistics for the beta parameter collections,\n"
@@ -245,9 +261,9 @@ int main( int argc , char *argv[] )
       "    to the group analysis level.\n"
       "* Prove that Apery's constant is transcendental.\n"
       "\n"
-      "-----------------------\n"
-      "-- RWCox - July 2008 --\n"
-      "-----------------------\n" , corcut
+		"=======================\n"
+      "== RWCox - July 2008 ==\n"
+      "=======================\n" , corcut
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -493,9 +509,6 @@ int main( int argc , char *argv[] )
      if( mmm < 2 ) ERROR_exit("Automask is too small to process") ;
    }
 
-   INFO_message("Loading input dataset into memory") ;
-   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
-
    /**-------- process the matrix --------**/
 
    nreg  = nelmat->vec_num ;  /* number of matrix columns */
@@ -510,7 +523,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("Dataset has %d time points, but matrix indicates %d",
                 nvals , nfull ) ;
 
-   /* the goodlist = mapping from  matrix row index to time index */
+   /* the goodlist = mapping from matrix row index to time index */
 
    cgl = NI_get_attribute( nelmat , "GoodList" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'GoodList' attribute!") ;
@@ -526,7 +539,7 @@ int main( int argc , char *argv[] )
    rst = NI_get_attribute( nelmat , "RunStart" ) ;
    if( rst != NULL ){
      NI_int_array *riar = NI_decode_int_list( rst , ";,") ;
-     if( riar == NULL ) ERROR_exit("-matrix 'RunStart' badly formatted?") ;
+     if( riar == NULL ) ERROR_exit("Matrix 'RunStart' badly formatted?") ;
      Nruns = riar->num ; runs = riar->ar ;
    } else {
      INFO_message("Matrix missing 'RunStart' attribute ==> assuming 1 run");
@@ -560,10 +573,80 @@ int main( int argc , char *argv[] )
        for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (MTYPE)cd[ii] ;
      }
    } else {
-     ERROR_exit("-matrix file stored will illegal data type!?") ;
+     ERROR_exit("Matrix file stored will illegal data type!?") ;
+   }
+
+   /* extract stim information from matrix header */
+
+   cgl = NI_get_attribute( nelmat , "Nstim" ) ;
+   if( cgl != NULL ){
+     stim_num = (int)strtod(cgl,NULL) ;
+     if( stim_num <= 0 ) ERROR_exit("Nstim attribute in matrix is not positive!");
+
+     cgl = NI_get_attribute( nelmat , "StimBots" ) ;
+     if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimBots' attribute!") ;
+     giar = NI_decode_int_list( cgl , ";," ) ;
+     if( giar == NULL || giar->num < stim_num )
+       ERROR_exit("Matrix 'StimBots' badly formatted?!") ;
+     stim_bot = giar->ar ;
+
+     cgl = NI_get_attribute( nelmat , "StimTops" ) ;
+     if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimTops' attribute!") ;
+     giar = NI_decode_int_list( cgl , ";," ) ;
+     if( giar == NULL || giar->num < stim_num )
+       ERROR_exit("Matrix 'StimTops' badly formatted?!") ;
+     stim_top = giar->ar ;
+
+     cgl = NI_get_attribute( nelmat , "StimLabels" ) ;
+     if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimLabels' attribute!");
+     gsar = NI_decode_string_list( cgl , ";" ) ;
+     if( gsar == NULL || gsar->num < stim_num )
+       ERROR_exit("Matrix 'StimLabels' badly formatted?!") ;
+     stim_lab = gsar->str ;
+   } else {
+     WARNING_message("Matrix file is missing Stim attributes") ;
+   }
+
+   /* extract GLT information from matrix header */
+
+   cgl = NI_get_attribute( nelmat , "Nglt" ) ;
+   if( cgl != NULL ){
+     char lnam[32] ; int nn,mm ; matrix *gm ; float *far ;
+
+     glt_num = (int)strtod(cgl,NULL) ;
+     if( glt_num <= 0 ) ERROR_exit("Nglt attribute in matrix is not positive!");
+
+     cgl = NI_get_attribute( nelmat , "GltLabels" ) ;
+     if( cgl == NULL ) ERROR_exit("Matrix is missing 'GltLabels' attribute!");
+     gsar = NI_decode_string_list( cgl , ";" ) ;
+     if( gsar == NULL || gsar->num < glt_num )
+       ERROR_exit("Matrix 'GltLabels' badly formatted?!") ;
+     glt_lab = gsar->str ;
+
+     glt_mat = (matrix *)malloc(sizeof(matrix)*glt_num) ;
+     for( jj=0 ; jj < glt_num ; jj++ ){
+       sprintf(lnam,"GltMatrix_%06d",jj) ;
+       cgl = NI_get_attribute( nelmat , lnam ) ;
+       if( cgl == NULL ) ERROR_exit("Matrix is missing '%s' attribute!",lnam) ;
+       gfar = NI_decode_float_list( cgl , "," ) ;
+       if( gfar == NULL || gfar->num < 3 )
+         ERROR_exit("Matrix attribute '%s' is badly formatted?!",lnam) ;
+       far = gfar->ar ; nn = (int)far[0] ; mm = (int)far[1] ;
+       if( nn <= 0 ) ERROR_exit("GLT '%s' has %d rows?",lnam,nn) ;
+       if( mm != nreg )
+         ERROR_exit("GLT '%s' has %d columns (should be %d)?",lnam,mm,nreg) ;
+       gm = glt_mat + jj; matrix_initialize(gm); matrix_create( nn, mm, gm );
+       for( ii=0 ; ii < nn ; ii++ )
+         for( jj=0 ; jj < mm ; jj++ ) gm->elts[ii][jj] = far[jj+2+ii*mm] ;
+     }
+
+     INFO_message("Read %d GLTs from matrix header",glt_num) ;
    }
 
    /**------- set up for REML estimation -------**/
+
+   INFO_message("Loading input dataset into memory") ;
+   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
    INFO_message("starting REML setup calculations") ;
    rrcol = REML_setup( &X , tau , nlevab,rhomax,bmax ) ;
@@ -641,16 +724,20 @@ int main( int argc , char *argv[] )
    }
 
    /*-- at this point, aim and bim contain the (a,b) parameters --*/
+   /*-- (either from -ABfile or from REML loop just done above) --*/
+
+   /*-- now, use these values to compute the Generalized Least  --*/
+   /*-- Squares (GLSQ) solution at each voxel, and save results --*/
 
    Rbeta_dset = create_float_dataset( inset , nreg , Rbeta_prefix ) ;
    Rvar_dset  = create_float_dataset( inset , 4    , Rvar_prefix  ) ;
    if( Rvar_dset != NULL ){
-     EDIT_BRICK_LABEL( Rvar_dset , 0 , "Variance" ) ;
-     EDIT_BRICK_LABEL( Rvar_dset , 1 , "a" ) ;
-     EDIT_BRICK_LABEL( Rvar_dset , 2 , "b" ) ;
-     EDIT_BRICK_LABEL( Rvar_dset , 3 , "lam" ) ;
+     EDIT_BRICK_LABEL( Rvar_dset , 0 , "a" ) ;
+     EDIT_BRICK_LABEL( Rvar_dset , 1 , "b" ) ;
+     EDIT_BRICK_LABEL( Rvar_dset , 2 , "lam" ) ;
+     EDIT_BRICK_LABEL( Rvar_dset , 3 , "StDev" ) ;
    }
-   Rfitts_dset= create_float_dataset( inset , nfull, Rfitts_prefix) ;
+   Rfitts_dset = create_float_dataset( inset , nfull, Rfitts_prefix ) ;
 
    if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
    for( vv=0 ; vv < nvox ; vv++ ){
@@ -677,9 +764,8 @@ int main( int argc , char *argv[] )
          THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
        }
        if( Rvar_dset != NULL ){
-         iv[0] = sqrt( rsumq / (ntime-nreg) ) ;
-         iv[1] = rrcol->rs[jj]->rho ; iv[2] = rrcol->rs[jj]->barm ;
-         iv[3] = rrcol->rs[jj]->lam ;
+         iv[0] = rrcol->rs[jj]->rho ; iv[1] = rrcol->rs[jj]->barm ;
+         iv[2] = rrcol->rs[jj]->lam ; iv[3] = sqrt( rsumq / (ntime-nreg) ) ;
          THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
        }
      }
