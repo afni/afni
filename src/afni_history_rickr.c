@@ -48,14 +48,27 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, JUL, 2008, RCR, "serial_helper", MINOR, TYPE_NEW_OPT,
+   "added HELLO version 2 to work as -disp_all",
+   "See 'HELLO versions' from 'serial_helper -help' for details.\n"
+   "See 'example E' from 'Dimon -help' for a complete testing example."
+ } ,
+
+ { 31, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "enhancements to communication with serial helper",
+   "  - added 'Motion Only' to methods\n"
+   "  - parameter methods can easily be switched per run\n"
+   "  - SEND_VER replaces HELLO_VER as Y/N variable\n"
+ } ,
+
  { 30, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
    "added HELLO version 1 and show_times option",
-   "These are set via AFNI_REALTIME_HELLO_VER and AFNI_REALTIME_SHOW_TIMES."
+   "These are set via AFNI_REALTIME_SEND_VER and AFNI_REALTIME_SHOW_TIMES."
  } ,
 
  { 30, JUL, 2008, RCR, "serial_helper", MINOR, TYPE_NEW_OPT,
    "added HELLO version 1 and -show_times option",
-   "See example #10 from 'serial_helper -help' for details."
+   NULL
  } ,
 
  { 29, JUL, 2008, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
