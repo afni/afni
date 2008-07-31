@@ -388,27 +388,37 @@ NI_str_array * NI_decode_string_list( char *ss , char *sep )
 
 NI_float_array * NI_decode_float_list( char *ss , char *sep )
 {
-   NI_float_array *far ; float *ar ; int num , jj ;
-   NI_str_array *sar ;
+   NI_float_array *far ; float *ar,val ; int num , ii,jj , nadd ;
+   NI_str_array *sar ; char *cc, *dd ;
 
    sar = NI_decode_string_list( ss , sep ) ;
    if( sar == NULL ) return NULL ;
 
    far = NI_malloc(NI_float_array,sizeof(NI_float_array)) ;
-   num = far->num = sar->num ;
-   ar  = far->ar  = NI_malloc(float,sizeof(float)*num) ;
+   ar  = NULL ;
+   num = 0 ;
 
-   for( jj=0 ; jj < num ; jj++ )
-     ar[jj] = (float)strtod( sar->str[jj] , NULL ) ;
+   for( jj=0 ; jj < sar->num ; jj++ ){
+     cc = sar->str[jj] ; dd = strstr(cc,"@") ;
+     if( dd == NULL ){
+       val = (float)strtod(cc,NULL) ; nadd = 1 ;
+     } else {
+       (void)sscanf(cc,"%d@%f",&nadd,&val) ;
+       if( nadd <= 0 ) continue ;    /* bad */
+     }
+     ar = NI_realloc( ar , float , sizeof(float)*(num+nadd) ) ;
+     for( ii=0 ; ii < nadd ; ii++ ) ar[num++] = val ;
+   }
 
-   NI_delete_str_array(sar) ; return far ;
+   NI_delete_str_array(sar) ;
+   far->ar = ar ; far->num = num ; return far ;
 }
 
 /*--------------------------------------------------------------------*/
 
 char * NI_encode_float_list( NI_float_array *far , char *sep )
 {
-   float *ar ; int num,jj,ff ; char *car , cc='\0' , fbuf[32] ;
+   float *ar,val ; int num,jj,ii,ff ; char *car, cc='\0', fbuf[32] ;
 
    if( far == NULL || far->num < 1 ) return NULL ;
    if( sep != NULL ) cc = *sep ;
@@ -416,12 +426,37 @@ char * NI_encode_float_list( NI_float_array *far , char *sep )
 
    num = far->num ; ar = far->ar ;
    car = NI_malloc(char,sizeof(char)*num*16) ; *car = '\0' ;
-   for( jj=0 ; jj < num ; jj++ ){
-     sprintf(fbuf,"%12.6g",ar[jj]) ;
+
+   for( jj=0 ; jj < num ; ){  /* jj will be incremented inside */
+
+     /* encode ar[jj] value into fbuf */
+
+     val = ar[jj] ; ff = (int)val ;
+     if( val != (float)ff ) sprintf(fbuf,"%12.6g",val) ;
+     else                   sprintf(fbuf,"%d",ff) ;
+
+     /* strip trailing and leading blanks */
+
      for( ff=strlen(fbuf) ; fbuf[ff]==' ' ; ff-- ) fbuf[ff] = '\0' ;
      for( ff=0 ; fbuf[ff] == ' ' ; ff++ ) ;
-     if( jj < num-1 ) sprintf(car+strlen(car),"%s%c",fbuf+ff,cc) ;
-     else             sprintf(car+strlen(car),"%s"  ,fbuf+ff   ) ;
+
+     /** last one?  just print it and quit */
+
+     if( jj == num-1 ){
+       sprintf(car+strlen(car),"%s",fbuf+ff) ; break ;
+     }
+
+     /* scan for identical sequence of values */
+
+     for( ii=jj+1 ; ii < num && ar[ii]==val ; ii++ ) ; /*nada*/
+
+     if( ii > jj+1 )                             /* encode values [jj..ii-1] */
+       sprintf(car+strlen(car),"%d@%s",ii-jj,fbuf+ff) ;
+     else
+       sprintf(car+strlen(car),"%s",fbuf+ff) ;   /* just the [jj] value */
+     jj = ii ;                                   /* the next one to process */
+     if( jj < num ) sprintf(car+strlen(car),"%c",cc) ; /* add the separator */
+
    }
 
    num = strlen(car) ;
