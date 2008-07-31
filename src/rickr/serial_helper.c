@@ -291,8 +291,9 @@ int wait_for_socket(optiondata *opt, port_list * plist, motparm * mp)
 
     /* check the hello version */
     ver = data[3] - (char)0xab;
-    if( ver == 1 ) {
+    if( ver == 1 || ver == 2 ) {
         /* version 1: also receive num_extra over socket */
+        /* version 2: also receive disp_all voxels over socket */
         if ( (len = recv(sd, (void *)&nex, sizeof(int), 0)) == -1 )
         {
             perror("wait for socket: recv");
@@ -306,13 +307,20 @@ int wait_for_socket(optiondata *opt, port_list * plist, motparm * mp)
         /* have num extra, apply it */
         if ( opt->swap ) swap_4(&nex, 1);
 
-        fprintf(stderr,"++ applying received num_extra = %d (was %d)\n",
-                nex, mp->nex);
+        /* modify num_extras and disp_all, depending on the version */
+        if( ver == 2 ) {
+            opt->disp_all = 1;
+            nex *= 8;
+        } else
+            opt->disp_all = 0;
+
+        fprintf(stderr,"++ hello version %d, received nextra = %d (was %d)\n",
+                ver, nex, mp->nex);
 
         /* we may want to alloc some/more/less memory for this */
         if( mp->nex != nex && alloc_extras(mp, nex) ) return -1;
 
-    } else if ( ver > 1 || ver < 0 ) {
+    } else if ( ver != 0 ) {
         fprintf(stderr,"** bad magic version from socket: %d\n",ver);
         return -1;
     } /* else, default hello version */
@@ -331,6 +339,14 @@ int alloc_extras(motparm * mp, int nex)
     if ( mp->nex == nex ) return 0;
 
     mp->nex = nex;
+
+    if( nex <= 0 ) {    /* then free any pointer and return */
+        if( mp->extras ) { free(mp->extras); mp->extras = NULL; }
+        mp->nex = 0;
+        return 0;
+    }
+
+    /* else update the memory */
     mp->extras = (float *)realloc(mp->extras, mp->nex*sizeof(float));
     if( !mp->extras )
     {
@@ -552,12 +568,15 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
         fprintf(stderr,"** missing option '-serial_port'\n");
         return -1;
     }
+
     if ( opt->num_extra < 0 || opt->num_extra > 1000 )
     {
         fprintf(stderr,"** -num_extra %d is out of range [0,1000]\n",
                 opt->num_extra);
         return -1;
     }
+
+    if( opt->num_extra > 0 ) alloc_extras(mp, opt->num_extra);
 
     if ( opt->debug > 1 )
         disp_optiondata( "options read: ", opt );
@@ -689,45 +708,8 @@ int usage( char * prog, int level )
             "\n"
             "        %s -serial_port /dev/ttyS0 -num_extra 3\n"
             "\n"
-            "   10. Test the program with Dimon and afni.  For afni, set a\n"
-            "       few useful environment variables, run it in real-time\n"
-            "       mode, and set a mask (of one exists to play with).\n"
-            "       Note that the order of afni and serial helper does not\n"
-            "       matter.\n"
-            "\n"
-            "       Run serial_helper in debug mode to display output, and\n"
-            "       without output to any serial port (just terminal).  Note\n"
-            "       that serial_helper can be re-started if there is need.\n"
-            "\n"
-            "       Run Dimon to send data to afni.  This can simulate the\n"
-            "       scanner runs by running Dimon multiple times.  Neither\n"
-            "       afni nor serial_helper need be re-started.\n"
-            "\n"
-            "       a. start afni in RT mode, with some env vars (which are\n"
-            "          not necessary, but serve as an example)\n"
-            "\n"
-            "           setenv AFNI_REALTIME_Registration  3D:_realtime\n"
-            "           setenv AFNI_REALTIME_Graph         Realtime\n"
-            "           setenv AFNI_REALTIME_MP_HOST_PORT  localhost:53214\n"
-            "           setenv AFNI_REALTIME_HELLO_VER     1\n"
-            "           setenv AFNI_REALTIME_SHOW_TIMES    YES\n"
-            "\n"
-            "               (see README.environment for variable details)\n"
-            "\n"
-            "           afni -rt\n"
-            "\n"
-            "               (and possibly set a mask in the RT plugin)\n"
-            "\n"
-            "       b. start serial_helper in testing mode (note that since\n"
-            "          the plugin uses HELLO_VER 1, it is not necessary to\n"
-            "          use any -num_extra option)\n"
-            "\n"
-            "           serial_helper -no_serial -debug 3\n"
-            "\n"
-            "       c. run Dimon, simulating a 2 second TR at the scanner\n"
-            "          (might run it many times)\n"
-            "\n"
-            "           Dimon -rt -pause 2000 -infile_prefix run1/image\n"
+            " * See 'example E' from 'Dimon -help' for a complete real-time\n"
+            "   testing example.\n"
             "\n"
             "------------------------------------------------------------\n"
             "  program setup:\n"
@@ -758,6 +740,26 @@ int usage( char * prog, int level )
             "           Imon -start_dir 003 -quit -rt -host localhost\n"
             "\n"
             "       See 'Imon -help' for more information.\n"
+            "\n"
+            "------------------------------------------------------------\n"
+            " HELLO versions:\n"
+            "\n"
+            "    The version number is computed by subtracting 0xab from the\n"
+            "    last byte of the HELLO string (so that the default HELLO\n"
+            "    string means version 0).\n"
+            "\n"
+            "    version 0: This is the default, which means serial_helper\n"
+            "               must be told what to expect from the real-time\n"
+            "               plugin via -num_extra or -disp_all.\n"
+            "\n"
+            "    version 1: A 4-byte int will follow the HELLO string.  This\n"
+            "               number will be used as with -num_extra.\n"
+            "\n"
+            "    version 2: A 4-byte int will follow the HELLO string.  This\n"
+            "               number will be used as with -disp_all.\n"
+            "\n"
+            "    These versions can change with each new HELLO string.\n"
+            "\n"
             "------------------------------------------------------------\n"
             "  'required' parameter:\n"
             "\n"
