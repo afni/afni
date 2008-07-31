@@ -399,12 +399,12 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
     "None" , "2D:_realtime" , "2D:_at_end"
            , "3D:_realtime" , "3D:_at_end" , "3D:_estimate" } ;
 
-#define N_RT_MASK_METHODS 3     /* 15 Jul 2008 [rickr] */
+#define N_RT_MASK_METHODS 4     /* 15 Jul 2008 [rickr] */
   static char * RT_mask_strings[N_RT_MASK_METHODS] = {
-    "None" , "ROI means" , "All Data" } ;
+    "None" , "Motion Only", "ROI means" , "All Data" } ;
 
   static char * RT_mask_strings_ENV[N_RT_MASK_METHODS] = {
-    "None" , "ROI_means" , "All_Data" } ;
+    "None" , "Motion_Only", "ROI_means" , "All_Data" } ;
 
 # define REGMODE_NONE      0
 # define REGMODE_2D_RTIME  1
@@ -631,17 +631,21 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       if( ff > 0.0 ) reg_yr = ff ;
    }
 
+   PLUTO_add_option( plint , "" , "Graphing" , FALSE ) ;
+   PLUTO_add_string( plint , "Graph" , NGRAPH , GRAPH_strings , reggraph ) ;
+   PLUTO_add_number( plint , "NR [x-axis]" , 5,9999,0 , reg_nr , TRUE ) ;
+   PLUTO_add_number( plint , "YR [y-axis]" , 1,100,1 , (int)(reg_yr*10.0),TRUE);
+
+   /* try to set the mask vals option from the env */
    ept = getenv("AFNI_REALTIME_Mask_Vals")  ;  /* 15 Jul 2008 [rickr] */
    if( ept != NULL ){
       int ii = PLUTO_string_index(ept, N_RT_MASK_METHODS, RT_mask_strings_ENV);
       if( ii >= 0 && ii < N_RT_MASK_METHODS ) g_mask_val_type = ii;
    }
 
-
-   PLUTO_add_option( plint , "" , "Graphing" , FALSE ) ;
-   PLUTO_add_string( plint , "Graph" , NGRAPH , GRAPH_strings , reggraph ) ;
-   PLUTO_add_number( plint , "NR [x-axis]" , 5,9999,0 , reg_nr , TRUE ) ;
-   PLUTO_add_number( plint , "YR [y-axis]" , 1,100,1 , (int)(reg_yr*10.0) , TRUE ) ;
+   /* but if no HOST_PORT, it must be cleared */
+   ept = getenv("AFNI_REALTIME_MP_HOST_PORT") ;
+   if( ept == NULL ) g_mask_val_type = 0;
 
    /* mask dataset option line   10 Nov 2006 [rickr] */
    PLUTO_add_option( plint , "" , "Masking" , FALSE ) ;
@@ -777,7 +781,7 @@ char * RT_main( PLUGIN_interface * plint )
                                                     RT_mask_strings ) ;
 
          if (verbose)
-            fprintf(stderr,"-d RTM: found mask dataset, method '%s'\n",
+            fprintf(stderr,"RTM: found mask dataset, method '%s'\n",
                            RT_mask_strings[g_mask_val_type]);
 
          continue ;
@@ -1935,15 +1939,19 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
     }
 
     /* how many values do we need to send? */
-    if( g_mask_dset && g_mask_val_type == 1 ) {
-        tr_vals = 256 + 6;    /* enough for many masks and motion */
-        bsize   = 6 + rtin->mask_nvals;          /* single block size per TR */
-    } else if( g_mask_dset && g_mask_val_type == 2 ) {
-        bsize   = 6 + rtin->mask_nset*8;         /* motion plus all vals */
-        tr_vals = bsize;
-    } else if( !g_mask_dset && g_mask_val_type == 1 ) {
+    if( g_mask_val_type == 1 ) {
         tr_vals = 6;    /* enough for motion */
         bsize   = 6;
+    } else if( g_mask_dset && g_mask_val_type == 2 ) {
+        tr_vals = 256 + 6;    /* enough for many masks and motion */
+        bsize   = 6 + rtin->mask_nvals;          /* single block size per TR */
+    } else if( g_mask_dset && g_mask_val_type == 3 ) {
+        bsize   = 6 + rtin->mask_nset*8;         /* motion plus all vals */
+        tr_vals = bsize;
+    } else {
+        fprintf(stderr,"** need mask to send data\n");
+        RT_mp_comm_close(rtin);
+        return -1;
     }
 
     /* maybe we need more space for data */
@@ -1972,7 +1980,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
                 data[bsize*c+c2] = mp[c2][mpindex];
 
             /* process mask, if desired (ROI averages or all set values) */
-            if( g_mask_dset && g_mask_val_type == 1 ) {
+            if( g_mask_dset && g_mask_val_type == 2 ) {
                 if( ! RT_get_mask_aves(rtin, sub+mpindex) )
                     for ( c2 = 0; c2 < rtin->mask_nvals; c2++ )
                         data[bsize*c+6+c2] = (float)rtin->mask_aves[c2+1];
@@ -1980,7 +1988,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
                     RT_mp_comm_close(rtin);
                     return -1;
                 }
-            } else if( g_mask_dset && g_mask_val_type == 2 ) {
+            } else if( g_mask_dset && g_mask_val_type == 3 ) {
                 dind = bsize*c+6;  /* note initial offset */
                 if( RT_mp_set_mask_data(rtin, data+dind, sub+mpindex) ) {
                     RT_mp_comm_close(rtin);
@@ -2214,11 +2222,11 @@ int RT_get_mask_aves( RT_input * rtin, int sub )
     {
         if( nvals[c] ) rtin->mask_aves[c] /= (double)nvals[c];
         if( verbose > 1 )
-            fprintf(stderr,"-d RTM: sub-brick %d, mask %d: %d vals, mean %f\n",
+            fprintf(stderr,"RTM: sub-brick %d, mask %d: %d vals, mean %f\n",
                     sub, c, nvals[c], rtin->mask_aves[c]);
     }
     if( verbose == 1 ) /* then only first mask */
-        fprintf(stderr,"-d RTM: brick %d, mask %d (of %d): %d vals, mean %f\n",
+        fprintf(stderr,"RTM: brick %d, mask %d (of %d): %d vals, mean %f\n",
                 sub, 1, nval_len-1, nvals[1], rtin->mask_aves[1]);
 
     return 0;
@@ -2265,34 +2273,47 @@ int RT_mp_comm_init( RT_input * rtin )
     char               * estr;
     int                  sd, send_nvals = 0, ver = 0, rv;
 
+    if( ! g_mask_val_type ) {
+        rtin->mp_tcp_use = -1;
+        return -1;
+    }
+
     /* do we want to spit out times? */
     estr = getenv("AFNI_REALTIME_SHOW_TIMES") ;
     g_show_times = (estr && (*estr == 'y' || *estr == 'Y'));
     if( g_show_times ) RT_mp_show_time("mp_comm_init");
 
     /* maybe the user wants to set the hello version */
-    estr = getenv("AFNI_REALTIME_HELLO_VER") ;
-    if( estr ) {
-        ver = *estr - '0';
-        if(ver > 0) fprintf(stderr,"RTM: setting hello version to %d\n",ver);
-
-        /* see if version is valid */
-        if ( ver != 0  && ver != 1) {
-            fprintf(stderr,"** invalid AFNI_REALTIME_HELLO_VER ver %s\n", estr);
-            ver = 0;
-        }
+    estr = getenv("AFNI_REALTIME_SEND_VER") ;
+    if( estr && (*estr == 'y' || *estr == 'Y') ) {
+        ver = 1;
+        fprintf(stderr,"RTM: will send hello version\n");
     }
 
-    /* set the 'hello' mode:
+    /* set the 'hello' mode (based on the mask values choice)
      *    0 : original magic_hi
      *    1 : magic_hi[3] += 1   -> also send num_extra as int
+     *    2 : magic_hi[3] += 2   -> also send num_extra as int for ALL_DATA
      *
-     * if we are prepared to send mask info, and hello mode == 1, then
-     * note to also send mask_nvals
+     * if we are prepared to send mask info, and hello mode is set, then
+     * note to also send mask_nvals (or mask_nset)
      */
-    if( ver == 1 && g_mask_val_type && g_mask_dset ) {
-        send_nvals = rtin->mask_nvals;
-        magic_hi[3] += 1;
+    if( ver ) {  /* send VERSION info */
+        if ( g_mask_val_type == 1 ) {                       /* motion only */
+            send_nvals = 0;
+            magic_hi[3] += 1;
+        } else if ( g_mask_val_type == 2 && g_mask_dset ) { /* averages */
+            send_nvals = rtin->mask_nvals;
+            magic_hi[3] += 1;
+        } else if( g_mask_val_type == 3 && g_mask_dset ) {  /* all data */
+            send_nvals = rtin->mask_nset;
+            magic_hi[3] += 2;
+        } else {                                            /* bad combo */
+            fprintf(stderr,"** RTM init: mask is required with type %d\n",
+                    g_mask_val_type);
+            rtin->mp_tcp_use = -1;
+            return -1;
+        }
     }
 
     if ( rtin->mp_tcp_sd != 0 )
@@ -2340,7 +2361,7 @@ int RT_mp_comm_init( RT_input * rtin )
     }
 
     /* do we send nvals for an altered magic_hi? */
-    if ( send_nvals > 0 ) {
+    if ( ver ) {
         if ( (rv = send(sd, &send_nvals, sizeof(int), 0)) == -1 )
         {
             perror("** RT_mp_comm send hello nvals");
@@ -2389,8 +2410,10 @@ int RT_mp_comm_init_vars( RT_input * rtin )
 
     /* for now, we will only init this if the HOST:PORT env var exists */
     ept = getenv("AFNI_REALTIME_MP_HOST_PORT") ;  /* 09 Oct 2000 */
-    if( ept == NULL )
+    if( ept == NULL ) {
+        rtin->mp_tcp_use = -1;
         return 0;
+    }
 
     cp = strchr(ept, ':');      /* find ':' seperator */
 
@@ -2419,7 +2442,7 @@ int RT_mp_comm_init_vars( RT_input * rtin )
     /* now setup the mask data, if g_mask_dset is set */
     if( g_mask_dset )
     {   int c, max;
-        if( verbose > 1 ) fprintf(stderr,"-d RTM: setting up mask...\n");
+        if( verbose > 1 ) fprintf(stderr,"RTM: setting up mask...\n");
         if( rtin->mask ) free(rtin->mask) ; /* in case of change */
         if( thd_multi_mask_from_brick(g_mask_dset, 0, &rtin->mask) )
         {
@@ -2447,7 +2470,7 @@ int RT_mp_comm_init_vars( RT_input * rtin )
         /* and allocate, include unused index 0 */
         rtin->mask_aves = (double *)realloc(rtin->mask_aves,
                                             (max+1)*sizeof(double));
-        if( verbose ) fprintf(stderr,"-d RTM: have %d-value mask\n", max);
+        if( verbose ) fprintf(stderr,"RTM: have %d-value mask\n", max);
     }
 
     return 0;
@@ -4697,7 +4720,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
       if ( rtin->mp_tcp_use ) {
           RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot, ttbot );
           if( verbose > 1 )
-             fprintf(stderr,"RT MP, sending TRs %d..%d",ttbot,ntt-1);
+             fprintf(stderr,"RTM, sending TRs %d..%d\n",ttbot,ntt-1);
       }
 
       if( ttbot > 0 )  /* modify yar after send_data, when ttbot > 0 */
