@@ -69,8 +69,8 @@ typedef struct {
   matrix *dd ;        /* upper triangular: mreg X mreg */
   MTYPE cc_logdet , dd_logdet ;
 
-  int        nglt ;
-  gltfactors *glt ;
+  int         nglt ;
+  gltfactors **glt ;
 } reml_setup ;
 
 /*****
@@ -589,7 +589,7 @@ static MTYPE rsumq=0.0 ;  /* sum of squares of residual */
 /*! Compute the REML -log(likelihood) function for a particular case,
     given the case's setup and the data and the regression matrix X. */
 
-MTYPE reml_func( vector *y , reml_setup *rset , matrix *X , sparsecolmat *Xs )
+MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparsecolmat *Xs )
 {
    int n=rset->neq , ii ;
    MTYPE val ;
@@ -691,8 +691,8 @@ void REML_allow_negative_correlations( int i ){ allow_negative_cor = i ; }
 
 /*--------------------------------------------------------------------------*/
 
-reml_collection * REML_setup( matrix *X , int *tau ,
-                              int nlev , MTYPE atop , MTYPE btop )
+reml_collection * REML_setup_all( matrix *X , int *tau ,
+                                  int nlev , MTYPE atop , MTYPE btop )
 {
    int ii,jj,kk , nt , nset , pna,pnb , na,nb ;
    MTYPE da,db, bb,aa, lam , bbot,abot ;
@@ -804,7 +804,7 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
      vector_destroy( &REML_best_fitts_vector ) ;
      vector_destroy( &REML_best_prewhitened_fitts_vector ) ;
      vector_destroy( &REML_best_prewhitened_errts_vector ) ;
-     reml_func( NULL,NULL,NULL,NULL ) ;
+     REML_func( NULL,NULL,NULL,NULL ) ;
      if( rrcol != NULL ) reml_collection_destroy( rrcol ) ;
      REML_status = -1 ; RETURN(-666.0) ;
    }
@@ -828,7 +828,7 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
    kbest = rrcol->izero ;
    jbest = kbest / (1+na) ;
    ibest = kbest % (1+na) ;
-   rbest = reml_func( y , rrcol->rs[kbest] , rrcol->X,rrcol->Xs ) ;
+   rbest = REML_func( y , rrcol->rs[kbest] , rrcol->X,rrcol->Xs ) ;
    vector_equate( *bb1 , &REML_olsq_prewhitened_data_vector ) ;
    vector_equate( *bb2 , &REML_olsq_prewhitened_errts_vector ) ;
    vector_equate( *bb5 , &REML_olsq_beta_vector ) ;
@@ -849,7 +849,7 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
          kk = ia + jb*(na+1) ;
          if( kk == rrcol->izero ) continue ;      /* OLSQ => did this already */
          if( rrcol->rs[kk] == NULL ) continue ;         /* invalid grid point */
-         rval = reml_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
+         rval = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
          if( rval < rbest ){                          /* the best so far seen */
            rbest = rval ; kbest = kk ; ibest = ia ; jbest = jb ;
            vector_equate( *bb1 , &REML_best_prewhitened_data_vector ) ;
@@ -893,7 +893,7 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
 
 /*--------------------------------------------------------------------------*/
 
-gltfactors * REML_setup_gltfactors( matrix *D , matrix *G )
+gltfactors * REML_get_gltfactors( matrix *D , matrix *G )
 {
    int nn , rr , i,j ; MTYPE ete ;
    gltfactors *gf ;
@@ -951,4 +951,70 @@ gltfactors * REML_setup_gltfactors( matrix *D , matrix *G )
    gf->Jleft  = JL ;
    gf->sig    = S  ;
    return gf ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void REML_add_glt_to_one( reml_setup *rs , matrix *G )
+{
+   gltfactors *gf ; int ng ;
+
+   if( rs == NULL || G == NULL ) return ;
+
+   gf = REML_get_gltfactors( rs->dd , G ) ;
+   if( gf == NULL ) return ;
+
+   ng = rs->nglt ;
+   rs->glt = (gltfactors **)realloc( (void *)rs->glt ,
+                                     sizeof(gltfactors *)*(ng+1) ) ;
+
+   rs->glt[ng] = gf ; rs->nglt = ng+1 ; return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void REML_add_glt_to_all( reml_collection *rc , matrix *G )
+{
+   int ia,jb , na,nb , kk ;
+
+   if( rc == NULL || G == NULL ) return ;
+
+   for( jb=0 ; jb <= rc->nb ; jb++ ){
+     for( ia=0 ; ia <= rc->na ; ia++ ){
+       kk = ia + (1+rc->na)*jb ;
+       REML_add_glt_to_one( rc->rs[kk] , G ) ;
+   }}
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+MTYPE REML_compute_fstat( vector *y, vector *bfull, MTYPE fsumq ,
+                          reml_setup *rset, gltfactors *gf,
+                          matrix *X, sparsecolmat *Xs            )
+{
+   MTYPE fstat , rsumq ;
+   vector ba , bb , br ;
+
+   vector_initialize(&ba); vector_initialize(&bb); vector_initialize(&br);
+
+   vector_multiply( *(gf->Jright) , *bfull , &ba ) ;
+   vector_multiply( *(gf->Jleft)  , ba     , &bb ) ;
+   vector_subtract( *bfull , bb , &br ) ;
+
+   if( Xs != NULL ){
+     vector_create_noinit( Xs->cols , &ba ) ;
+     vector_spc_multiply( Xs , br.elts , ba.elts ) ;
+   } else {
+     vector_multiply( *X , br , &ba ) ;
+   }
+   vector_subtract( *y , ba , &bb ) ;
+   rcmat_lowert_solve( rset->cc , bb.elts ) ;
+   rsumq = vector_dotself(bb) ;
+
+   vector_destroy(&br); vector_destroy(&bb); vector_destroy(&ba);
+
+   fstat = ( (rsumq-fsumq) / gf->rglt ) / ( fsumq / (X->rows - X->cols) ) ;
+   if( fstat < 0.0 ) fstat = 0.0 ;
+   return fstat ;
 }
