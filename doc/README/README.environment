@@ -924,8 +924,53 @@ AFNI_GRAPH_AUTOGRID     = By default, if the number of time points in an
                           vertical grid lines changes.  If you don't
                           want this to happen, set this variable to NO.
 
+AFNI_REALTIME_MP_HOST_PORT = HOST:PORT
+
+        When this variable is set, the realtime plugin will attempt to open a
+        tcp socket to the corresponding host and port, and will send the six
+        registration correction parameters for each 3D volume received by the
+        plugin.  This applies only to the case of graphing 3D registration.
+        The socket will be opened at the start of each run, and will be closed
+        at the end.  A simple example of what to set this variable to is
+        localhost:53214.
+        See 'serial_helper -help' for more details.
+
+AFNI_REALTIME_SEND_VER   = Y/N
+
+        If AFNI_REALTIME_MP_HOST_PORT is set, the RT plugin has 3 choices
+        of what to send to that port (possibly to serial_helper):
+            0. the motion parameters
+            1. motion params, along with average EPI values over each ROI
+               in the mask dataset (if set)
+            2. motion params, along with all voxel values over the mask
+               dataset (including index, i,j,k and x,y,z values)
+        If AFNI_REALTIME_SEND_VER is set to YES, then the plugin will offset
+        the last byte of the communication HELLO string by the version number
+        (0, 1 or 2).  In the case of versions 1 or 2, the plugin will send
+        the number of ROIs/voxels in a 4-byte int after the HELLO string.
+
+AFNI_REALTIME_Mask_Vals  = String (one of the listed strings)
+
+        This allows the user to set the "Vals to Send" field from the RT
+        plugin's "Mask" line.  It determines what data are sent to the remote
+        MP program (e.g. serial_helper).  Valid strings are:
+
+            None        - send nothing
+            Motion_Only - send only the 6 registration parameters
+            ROI_means   - send the mean EPI value per mask ROI (value) per TR
+            All_Data    - send each voxel value (in mask) per TR
+
+AFNI_REALTIME_SHOW_TIMES = Y/N
+
+        If set, the RT plugin will output CPU times whenever motion parameters
+        are sent to the remote program, allowing evaluation of timing.  The
+        times are modulo one hour, and are at a millisecond resolution.
+
 For more information about how the realtime plugin works, read the file
 README.realtime.
+
+Also see "Dimon -help" (example E "for testing complete real-time system").
+Also see "serial_helper -help".
 
 ------------------------
 Variable: AFNI_FIM_IDEAL
@@ -2205,17 +2250,6 @@ that the way to get rid of these popups (before they vanish on their
 own after 30 seconds) is to click in them.  You know who you are.
 However, if you are advanced enough to read this file, then you probably
 aren't one of THEM.
-
-------------------------------------
-Variable: AFNI_REALTIME_MP_HOST_PORT (editable)
-------------------------------------
-When this variable is set, the realtime plugin will attempt to open a tcp
-socket to the corresponding host and port, and will send the six registration
-correction parameters for each 3D volume received by the plugin.  This applies
-only to the case of graphing 3D registration.  The socket will be opened at
-the start of each run, and will be closed at the end.  A simple example of
-what to set this variable to is localhost:53214.  See 'serial_helper -help'
-for more details.
 
 -----------------------------
 Variable: AFNI_X11_REDECORATE (editable)
