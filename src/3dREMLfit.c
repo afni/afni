@@ -42,6 +42,26 @@ THD_3dim_dataset * create_float_dataset( THD_3dim_dataset *tset ,
 
 /*--------------------------------------------------------------------------*/
 
+matrix * create_subset_matrix( int mpar , int nrow , int *set )
+{
+   matrix *gm ; int ii,jj ;
+
+   if( mpar < 1 || nrow < 1 || nrow > mpar || set == NULL ) return NULL ;
+
+   gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
+   matrix_create( nrow , mpar , gm ) ;
+   for( ii=0 ; ii < nrow ; ii++ ){
+     for( jj=0 ; jj < mpar ; jj++ ) gm->elts[ii][jj] = 0.0 ;
+   }
+   for( ii=0 ; ii < nrow ; ii++ ){
+     if( set[ii] < 0 || set[ii] >= mpar ){ free(gm); return NULL; }
+     gm->elts[ii][set[ii]] = 1.0 ;
+   }
+   return gm ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ;
@@ -49,7 +69,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar, *bar ;
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    float *iv ;
-   int iarg, ii,jj, nreg, ntime, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
+   int iarg, ii,jj,kk, nreg, ntime, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
    MTYPE rhomax=0.8 , bmax=0.8 ; int nlevab=3 ;
    char *cgl , *rst ;
@@ -65,8 +85,10 @@ int main( int argc , char *argv[] )
    int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL ;
    NI_int_array *giar ; NI_str_array *gsar ; NI_float_array *gfar ;
    float mfilt_radius=0.0 , dx,dy,dz ; int do_mfilt=0 , do_dxyz , nx,ny,nz ;
-   int glt_num=0 ; matrix *glt_mat ; char **glt_lab ;
+
+   int glt_num=0 ; matrix **glt_mat=NULL ; char **glt_lab=NULL ;
    int stim_num=0; int *stim_bot , *stim_top ; char **stim_lab ;
+   int do_fstat=0 , do_tstat=0 , do_stat=0 , do_stimstat=0 ;
 
    /**------- help? -------**/
 
@@ -443,6 +465,8 @@ int main( int argc , char *argv[] )
    dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ;
    dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
 
+   do_stimstat = do_stat = (do_fstat || do_tstat) ;
+
    /*-- check out and read the -ABfile, if there is one --*/
 
    if( abset != NULL ){
@@ -605,26 +629,69 @@ int main( int argc , char *argv[] )
      stim_lab = gsar->str ;
    } else {
      WARNING_message("Matrix file is missing Stim attributes") ;
+     if( do_stimstat ){
+       WARNING_message("==> Can't do statistics on the Stimuli") ;
+       do_stimstat = 0 ;
+     }
    }
 
-   /* extract GLT information from matrix header */
+   /* setup to do statistics on the stimuli betas, if desired */
 
+#undef  ADD_GLT
+#define ADD_GLT(lb,gg)                                                            \
+ do{ glt_lab = (char **  )realloc((void *)glt_lab, sizeof(char *  )*(glt_num+1)); \
+     glt_mat = (matrix **)realloc((void *)glt_mat, sizeof(matrix *)*(glt_num+1)); \
+     glt_lab[glt_num] = strdup(lb); glt_mat[glt_num] = gg; glt_num++;             \
+ } while(0)
+
+   if( do_stimstat ){
+     char lnam[32] ; int nn,mm ; matrix *gm ;
+     int *set ;
+
+     set = (int *)malloc(sizeof(int)*nreg) ;
+
+     /* first one is all stimuli */
+
+     for( kk=jj=0 ; jj < stim_num ; jj++ ){
+       for( ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
+     }
+     gm = create_subset_matrix( nreg , kk , set ) ;
+     if( gm == NULL ) ERROR_exit("Can't create G matrix for FullModel?!") ;
+     ADD_GLT( "FullModel" , gm ) ;
+
+#if 0
+     /* now do each stimulus separately */
+
+     if( stim_num > 0 ){
+       for( jj=0 ; jj < stim_num ; jj++ ){
+         for( kk=0,ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
+         gm = create_subset_matrix( nreg , kk , set ) ;
+         if( gm == NULL ) ERROR_exit("Can't create G matrix for %s?!",stim_lab[jj]);
+         ADD_GLT( stim_lab[jj] , gm ) ;
+       }
+     }
+#endif
+
+     free((void *)set) ;  /* not needed no more, no how */
+   }
+
+   /* extract other GLT information from matrix header */
+
+#if 0
    cgl = NI_get_attribute( nelmat , "Nglt" ) ;
-   if( cgl != NULL ){
-     char lnam[32] ; int nn,mm ; matrix *gm ; float *far ;
+   if( cgl != NULL && do_stat ){
+     char lnam[32] ; int nn,mm,ngl ; matrix *gm ; float *far ;
 
-     glt_num = (int)strtod(cgl,NULL) ;
-     if( glt_num <= 0 ) ERROR_exit("Nglt attribute in matrix is not positive!");
+     ngl = (int)strtod(cgl,NULL) ;
+     if( ngl <= 0 ) ERROR_exit("Nglt attribute in matrix is not positive!");
 
      cgl = NI_get_attribute( nelmat , "GltLabels" ) ;
      if( cgl == NULL ) ERROR_exit("Matrix is missing 'GltLabels' attribute!");
      gsar = NI_decode_string_list( cgl , ";" ) ;
-     if( gsar == NULL || gsar->num < glt_num )
+     if( gsar == NULL || gsar->num < ngl )
        ERROR_exit("Matrix 'GltLabels' badly formatted?!") ;
-     glt_lab = gsar->str ;
 
-     glt_mat = (matrix *)malloc(sizeof(matrix)*glt_num) ;
-     for( jj=0 ; jj < glt_num ; jj++ ){
+     for( jj=0 ; jj < ngl ; jj++ ){
        sprintf(lnam,"GltMatrix_%06d",jj) ;
        cgl = NI_get_attribute( nelmat , lnam ) ;
        if( cgl == NULL ) ERROR_exit("Matrix is missing '%s' attribute!",lnam) ;
@@ -635,13 +702,17 @@ int main( int argc , char *argv[] )
        if( nn <= 0 ) ERROR_exit("GLT '%s' has %d rows?",lnam,nn) ;
        if( mm != nreg )
          ERROR_exit("GLT '%s' has %d columns (should be %d)?",lnam,mm,nreg) ;
-       gm = glt_mat + jj; matrix_initialize(gm); matrix_create( nn, mm, gm );
-       for( ii=0 ; ii < nn ; ii++ )
+       gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
+       matrix_create( nn, mm, gm ) ;
+       for( ii=0 ; ii < nn ; ii++ ){
          for( jj=0 ; jj < mm ; jj++ ) gm->elts[ii][jj] = far[jj+2+ii*mm] ;
+       }
+       ADD_GLT( gsar->str[ii] , gm ) ;
      }
 
-     INFO_message("Read %d GLTs from matrix header",glt_num) ;
+     INFO_message("Read %d GLTs from matrix header",ngl) ;
    }
+#endif
 
    /**------- set up for REML estimation -------**/
 
@@ -649,8 +720,12 @@ int main( int argc , char *argv[] )
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
    INFO_message("starting REML setup calculations") ;
-   rrcol = REML_setup( &X , tau , nlevab,rhomax,bmax ) ;
+   rrcol = REML_setup_all( &X , tau , nlevab,rhomax,bmax ) ;
    if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
+
+   for( kk=0 ; kk < glt_num ; kk++ )
+     REML_add_glt_to_all( rrcol , glt_mat[kk]) ;
+
    INFO_message("REML setup finished: matrix rows=%d cols=%d; %d cases; CPU=%.2f",
                 ntime,nreg,rrcol->nset,COX_cpu_time()) ;
 
@@ -681,7 +756,7 @@ int main( int argc , char *argv[] )
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
        (void)REML_find_best_case( &y , rrcol ) ;
        aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
- 
+
        if( Obeta_dset != NULL ){     /* save OLSQ results? */
          for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = REML_olsq_beta_vector.elts[ii] ;
          THD_insert_series( vv , Obeta_dset , nreg , MRI_float , iv , 0 ) ;
@@ -750,6 +825,8 @@ int main( int argc , char *argv[] )
        int ia = jj % (1+rrcol->na); MTYPE aaa = rrcol->abot + ia * rrcol->da;
        int ib = jj / (1+rrcol->na); MTYPE bbb = rrcol->bbot + ib * rrcol->db;
        rrcol->rs[jj] = REML_setup_one( &X , tau , aaa,bbb ) ;
+       for( kk=0 ; kk < glt_num ; kk++ )
+         REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[kk]) ;
      }
      if( rrcol->rs[jj] == NULL ){ /* should never happen */
        ERROR_message("bad REML: voxel #%d (%d,%d,%d) has a=%.3f b=%.3f lam=%.3f jj=%d",
@@ -758,7 +835,7 @@ int main( int argc , char *argv[] )
                            DSET_index_to_kz(inset,vv) ,
                        aar[vv],bar[vv],LAMBDA(aar[vv],bar[vv]),jj) ;
      } else {
-       (void)reml_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
+       (void)REML_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
        if( Rbeta_dset != NULL ){
          for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = bb5->elts[ii] ;
          THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
