@@ -80,4 +80,5 @@ Updated in version UNRELEASED
     - RR added nifti_compiled_with_zlib()
     - RR added nifti_tool ability to add extensions via 'file:FILENAME'
     - RR added new tests to nifti_regress_test/commands
+    - RR added ANALYZE 7.5 support for swapping
 
