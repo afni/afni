@@ -48,6 +48,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, AUG, 2008, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
+   "added -help_ana, -disp_ana, -swap_as_analyze, -swap_as_nifti, -swap_as_old",
+   NULL
+ } ,
+
+ { 3, AUG, 2008, RCR, "nifticlib", MINOR, TYPE_MODIFY,
+   "added swap ability for ANALYZE 7.5 format, and made swapping complete",
+   "- added nifti_analyze75 struct\n"
+   "- modified swap_nifti_header to swap all fields (analyze or nifti)\n"
+   "- added regression testing script c16.rand.swap\n"
+   "These changes were motivated by C Burns."
+ } ,
+
  { 31, JUL, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -num_slices option, and full real-time example E",
    NULL
