@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, AUG, 2008, RCR, "to3d", MINOR, TYPE_BUG_FIX,
+   "re-added the deleted un16 fix from July 1",
+   NULL
+ } ,
+
  { 3, AUG, 2008, RCR, "nifti_tool", MINOR, TYPE_NEW_OPT,
    "added -help_ana, -disp_ana, -swap_as_analyze, -swap_as_nifti, -swap_as_old",
    NULL

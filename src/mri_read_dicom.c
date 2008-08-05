@@ -977,6 +977,9 @@ fprintf(stderr,"SLICE_LOCATION = %f\n",zz) ;
 
    /*-- 05 Jul 2006 - check for 16 bit overflow --*/
 
+   /* make sure im wasn't TRUNCATEd   1 Jul 2008 (and 5 Aug 2008) [rickr] */
+   im = IMARR_SUBIM(imar,0) ;
+
    if( un16 ){
      for( ov16=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
        short *sar = MRI_SHORT_PTR( IMARR_SUBIM(imar,ii) ) ;
