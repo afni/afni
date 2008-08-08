@@ -97,6 +97,7 @@ int main( int argc , char *argv[] )
    char *Obeta_prefix  = NULL ; THD_3dim_dataset *Obeta_dset  = NULL ;
    char *Ovar_prefix   = NULL ; THD_3dim_dataset *Ovar_dset   = NULL ;
    char *Ofitts_prefix = NULL ; THD_3dim_dataset *Ofitts_dset = NULL ;
+   char *Rfstat_prefix = NULL ; THD_3dim_dataset *Rfstat_dset = NULL ;
    int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL ;
    NI_int_array *giar ; NI_str_array *gsar ; NI_float_array *gfar ;
    float mfilt_radius=0.0 , dx,dy,dz ; int do_mfilt=0 , do_dxyz , nx,ny,nz ;
@@ -470,6 +471,15 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strncasecmp(argv[iarg],"-Rfstat_prefix",5) == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       Rfstat_prefix = strdup(argv[iarg]) ; nprefixO++ ;
+       if( !THD_filename_ok(Rfstat_prefix) )
+         ERROR_exit("Illegal string after -Rfstat_prefix") ;
+       do_fstat = 1 ;
+       iarg++ ; continue ;
+     }
+
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
 
@@ -835,6 +845,11 @@ int main( int argc , char *argv[] )
    }
    Rfitts_dset = create_float_dataset( inset , nfull, Rfitts_prefix ) ;
 
+   Rfstat_dset = create_float_dataset( inset , nfull, Rfstat_prefix ) ;
+   if( Rfstat_dset != NULL ){
+     EDIT_BRICK_LABEL( Rfstat_dset , 0 , "FullF" ) ;
+   }
+
    if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
    for( vv=0 ; vv < nvox ; vv++ ){
      if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -865,6 +880,15 @@ int main( int argc , char *argv[] )
          iv[0] = rrcol->rs[jj]->rho ; iv[1] = rrcol->rs[jj]->barm ;
          iv[2] = rrcol->rs[jj]->lam ; iv[3] = sqrt( rsumq / (ntime-nreg) ) ;
          THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
+       }
+       if( glt_num > 0 && Rfstat_dset != NULL ){
+         if( rrcol->rs[jj]->glt == NULL )
+           REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[0] ) ;
+
+         iv[0] = REML_compute_fstat( &y , bb5 , rsumq ,
+                                     rrcol->rs[jj] , rrcol->rs[jj]->glt[0] ,
+                                     rrcol->X , rrcol->Xs ) ;
+         THD_insert_series( vv , Rfstat_dset , 1 , MRI_float , iv , 0 ) ;
        }
      }
    }

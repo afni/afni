@@ -996,6 +996,8 @@ MTYPE REML_compute_fstat( vector *y, vector *bfull, MTYPE fsumq ,
    MTYPE fstat , rsumq ;
    vector ba , bb , br ;
 
+   if( y == NULL || bfull == NULL || rset == NULL || gf == NULL ) return 0.0 ;
+
    vector_initialize(&ba); vector_initialize(&bb); vector_initialize(&br);
 
    /* compute br = beta coefficients in subspace with [G][br] = 0
