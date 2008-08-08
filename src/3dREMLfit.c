@@ -6,6 +6,9 @@
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
+/*--------------------------------------------------------------------------*/
+/*! For voxel loop progress report. */
+
 static void vstep_print(void)
 {
    static char xx[10] = "0123456789" ; static int vn=0 ;
@@ -18,6 +21,8 @@ static void vstep_print(void)
 
 static int    Argc ;
 static char **Argv ;
+
+/*! To create an empty dataset. */
 
 THD_3dim_dataset * create_float_dataset( THD_3dim_dataset *tset ,
                                          int nvol , char *prefix )
@@ -41,6 +46,14 @@ THD_3dim_dataset * create_float_dataset( THD_3dim_dataset *tset ,
 }
 
 /*--------------------------------------------------------------------------*/
+/*! This function creates a G matrix (for GLTs) that selects a subset
+    of the full model;
+     - mpar = number of parameters in the full model
+            = number of columns in the output matrix
+     - nrow = number of parameters of the subset model
+            = number of rows in the output matrix
+     - set  = array of indexes to select (nrow of them)
+*//*------------------------------------------------------------------------*/
 
 matrix * create_subset_matrix( int mpar , int nrow , int *set )
 {
@@ -50,12 +63,14 @@ matrix * create_subset_matrix( int mpar , int nrow , int *set )
 
    gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
    matrix_create( nrow , mpar , gm ) ;
-   for( ii=0 ; ii < nrow ; ii++ ){
+   for( ii=0 ; ii < nrow ; ii++ ){    /* zero out entire matrix */
      for( jj=0 ; jj < mpar ; jj++ ) gm->elts[ii][jj] = 0.0 ;
    }
    for( ii=0 ; ii < nrow ; ii++ ){
      if( set[ii] < 0 || set[ii] >= mpar ){ free(gm); return NULL; }
-     gm->elts[ii][set[ii]] = 1.0 ;
+     for( jj=0 ; jj < ii ; jj++ )
+       if( set[ii] == set[jj] ){ free(gm); return NULL; }
+     gm->elts[ii][set[ii]] = 1.0 ;  /* ii-th row selects set[ii] param */
    }
    return gm ;
 }
@@ -89,8 +104,9 @@ int main( int argc , char *argv[] )
    int glt_num=0 ; matrix **glt_mat=NULL ; char **glt_lab=NULL ;
    int stim_num=0; int *stim_bot , *stim_top ; char **stim_lab ;
    int do_fstat=0 , do_tstat=0 , do_stat=0 , do_stimstat=0 ;
+   int num_allstim=0, *allstim=NULL , num_basetim=0, *basestim=NULL ;
 
-   /**------- help? -------**/
+   /**------- Get by with a little help from your friends? -------**/
 
    Argc = argc ; Argv = argv ;
 
@@ -207,20 +223,23 @@ int main( int argc , char *argv[] )
       "* The correlation coefficient r(k) of noise samples k units apart in time,\n"
       "    for k >= 1, is given by r(k) = lam * a^(k-1)\n"
       "    where                   lam  = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
-      "    (N.B.: lam=a when b=0 -- the AR(1) case has r(k)=a^k for k >= 0).\n"
+      "    (N.B.: lam=a when b=0 -- AR(1) noise has r(k)=a^k for k >= 0).\n"
+      "    (N.B.: lam=b when a=0 -- MA(1) noise has r(k)=b for k=1, r(k)=0 for k>1.\n"
       "* lam can be bigger or smaller than a, depending on the sign of b.\n"
       "* For the noise model which is the sum of AR(1) and white noise, lam < a.\n"
       "* The natural range of a and b is -1..+1.  However, unless -NEGcor is\n"
       "    given, only non-negative values of a will be used, and only values\n"
       "    of b that give lam > 0 will be allowed.\n"
-      "* The program sets up the correlation matrix using the censoring and\n"
-      "    run start information in the header of the .xmat.1D matrix file, so\n"
+      "* The program sets up the correlation matrix using the censoring and run\n"
+      "    start information saved in the header of the .xmat.1D matrix file, so\n"
       "    that the actual correlation matrix used will not be Toeplitz.\n"
       "* The 'Rvar' dataset has 4 sub-bricks with variance parameter estimates:\n"
       "    #0 = a = factor by which correlations decay from lag k to lag k+1\n"
-      "    #1 = b\n"
+      "    #1 = b parameter\n"
       "    #2 = lam (see the formula above) = correlation at lag 1\n"
       "    #3 = standard deviation of ARMA(1,1) noise\n"
+      "* The 'Rbeta' dataset has the beta (model fit) parameters estimates\n"
+      "    computed from the pre-whitened time series data in each voxel.\n"
       "\n"
       "-----------------------------------------------------------\n"
       "What is REML = REsidual (or REstricted) Maximum Likelihood?\n"
@@ -457,7 +476,7 @@ int main( int argc , char *argv[] )
    /**-------- sanity checks, dataset input, maskifying --------**/
 
    if( inset             == NULL ) ERROR_exit("No -input dataset?!") ;
-   if( nprefixR+nprefixO == 0    ) ERROR_exit("No output datasets?!") ;
+   if( nprefixR+nprefixO == 0    ) ERROR_exit("No output datasets at all?!") ;
    if( nprefixR          == 0    ) WARNING_message("No REML output datasets?!") ;
 
    nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
@@ -646,11 +665,9 @@ int main( int argc , char *argv[] )
 
    if( do_stimstat ){
      char lnam[32] ; int nn,mm ; matrix *gm ;
-     int *set ;
+     int *set = (int *)malloc(sizeof(int)*nreg) ;  /* list of columns to keep */
 
-     set = (int *)malloc(sizeof(int)*nreg) ;
-
-     /* first one is all stimuli */
+     /* first set is all stimuli */
 
      for( kk=jj=0 ; jj < stim_num ; jj++ ){
        for( ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
@@ -658,6 +675,10 @@ int main( int argc , char *argv[] )
      gm = create_subset_matrix( nreg , kk , set ) ;
      if( gm == NULL ) ERROR_exit("Can't create G matrix for FullModel?!") ;
      ADD_GLT( "FullModel" , gm ) ;
+
+     allstim = (int *)malloc(sizeof(int)*kk) ; num_allstim = kk ;
+     memcpy( allstim , set , sizeof(int)*num_allstim ) ;
+     qsort_int( num_allstim , allstim ) ;
 
 #if 0
      /* now do each stimulus separately */

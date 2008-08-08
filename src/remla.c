@@ -998,9 +998,15 @@ MTYPE REML_compute_fstat( vector *y, vector *bfull, MTYPE fsumq ,
 
    vector_initialize(&ba); vector_initialize(&bb); vector_initialize(&br);
 
+   /* compute br = beta coefficients in subspace with [G][br] = 0
+                 = [bfull] - [Jleft] [Jright] [bfull]
+                 = projection of beta coefficient in full model */
+
    vector_multiply( *(gf->Jright) , *bfull , &ba ) ;
    vector_multiply( *(gf->Jleft)  , ba     , &bb ) ;
    vector_subtract( *bfull , bb , &br ) ;
+
+   /* create fitted model [X][br] */
 
    if( Xs != NULL ){
      vector_create_noinit( Xs->cols , &ba ) ;
@@ -1008,11 +1014,17 @@ MTYPE REML_compute_fstat( vector *y, vector *bfull, MTYPE fsumq ,
    } else {
      vector_multiply( *X , br , &ba ) ;
    }
+
+   /* subtract from data, compute sum of squares of these residuals */
+
    vector_subtract( *y , ba , &bb ) ;
    rcmat_lowert_solve( rset->cc , bb.elts ) ;
    rsumq = vector_dotself(bb) ;
 
    vector_destroy(&br); vector_destroy(&bb); vector_destroy(&ba);
+
+   /* F stat measures the improvement in sum of squares of
+      residuals between this restricted model and the full model */
 
    fstat = ( (rsumq-fsumq) / gf->rglt ) / ( fsumq / (X->rows - X->cols) ) ;
    if( fstat < 0.0 ) fstat = 0.0 ;
