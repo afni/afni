@@ -419,10 +419,11 @@ void getvoxlclusterdist(int* count, float** cdata,
   float difference, difference1;
   float* max_vcdata = NULL;
 
+   ENTRY("getvoxlclusterdist");
   /* allocate for answer arrays */
   if (!(max_vcdata = (float *)calloc(sizeof(float), nclusters))) {
       fprintf(stderr,"ERROR: Failed to allocate for max_vcdata\n");
-      RETURN(0);
+      EXRETURN;
    }
 
 
@@ -478,7 +479,7 @@ void getvoxlclusterdist(int* count, float** cdata,
     free(vcdata[i]);
     }
     free(vcdata);*/
-  return;
+  EXRETURN;
 
   }
 /* ========================================================================= */
@@ -533,20 +534,25 @@ void color_palette(int nclusters, char* jobname)
 {
   int n = 0;
   int i, j;
-  char* filename;
+  char* filename=NULL;
   FILE *out=NULL;
   float a, c;
   int nsteps, step, colorv, hexp1, hexp2;
-  char* hexnumbers;
+  char* hexnumbers=NULL;
   
-  hexnumbers = (char *)malloc(16*sizeof(char));
+  hexnumbers = (char *)malloc(32*sizeof(char)); /* ANDREJ: you had 16 here, but that is too short
+                                           because sprintf will add a terminating NULL character
+                                           = '\0' at the end, pushing you to 17 chars .
+                                           I used 32 which is overkill but it is a nice number */
   sprintf (hexnumbers, "0123456789abcdef");
 
   n = 1 + strlen(jobname) + strlen(".pal") + 2;
   filename = (char *)malloc(n*sizeof(char));
   sprintf (filename, "%s_K%d.pal", jobname,nclusters); 
   /* output file name not good ! */
-  out = fopen( filename, "w" );
+  if (!(out = fopen( filename, "w" ))) {
+   fprintf(stderr,"Failed to open %s for writing\n", filename);
+  } 
   
   c = nclusters;
   
@@ -649,7 +655,7 @@ void color_palette(int nclusters, char* jobname)
 	  "%s_K%d.pal\n",jobname,nclusters);
 
   fclose(out); out=NULL;
-
+   free(hexnumbers); hexnumbers  = NULL; /* clean up */
 }
 
 /* ========================================================================= */
