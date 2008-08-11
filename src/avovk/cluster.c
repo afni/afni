@@ -1646,6 +1646,10 @@ The cluster number to which an element was assigned.
   /* Create a random permutation of the cluster assignments */
   for (i = 0; i < nelements; i++)
   { j = (int) (i + (nelements-i)*uniform());
+    if (j>=nelements) j=nelements-1;   /* ZSS:  This was causing memory
+                                                corruption, j can be equal to
+                                                nelements and that is illegal. */
+    
     k = clusterid[j];
     clusterid[j] = clusterid[i];
     clusterid[i] = k;

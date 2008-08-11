@@ -112,7 +112,7 @@ int main(int argc, char **argv)
    oc.kh = 0;
    oc.jobname = NULL;
    oc.distmetric = 'u';
-   oc.verb = 1;
+   oc.verb = 0;
    N_iset = 0;
    filename[N_iset] = NULL;
    

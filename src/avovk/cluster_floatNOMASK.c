@@ -1629,6 +1629,7 @@ The cluster number to which an element was assigned.
    * distribution, reserving ncluster elements to set independently
    * in order to guarantee that none of the clusters are empty.
    */
+     
   for (i = 0; i < nclusters-1; i++)
   { p = 1.0/(nclusters-i);
     j = binomial(n, p);
@@ -1639,9 +1640,13 @@ The cluster number to which an element was assigned.
   /* Assign the remaining elements to the last cluster */
   for ( ; k < nelements; k++) clusterid[k] = i;
 
+
   /* Create a random permutation of the cluster assignments */
   for (i = 0; i < nelements; i++)
   { j = (int) (i + (nelements-i)*uniform());
+    if (j>=nelements) j=nelements-1;   /* ZSS:  This was causing memory
+                                                corruption, j can be equal to
+                                                nelements and that is illegal. */
     k = clusterid[j];
     clusterid[j] = clusterid[i];
     clusterid[i] = k;
@@ -1720,6 +1725,7 @@ columns (microarrays) are specified.
 	  cdata[i][j] = 0.;
       }
     }
+    
     for (k = 0; k < nrows; k++)
     { i = clusterid[k];
       for (j = 0; j < ncolumns; j++)
@@ -2042,6 +2048,8 @@ kmeans(int nclusters, int nrows, int ncolumns, float** data,
 
   /* We save the clustering solution periodically and check if it reappears */
   int* saved = malloc(nelements*sizeof(int));
+  int verb = 1;
+  
   if (saved==NULL) return -1;
 
   *error = DBL_MAX;
@@ -2052,7 +2060,8 @@ kmeans(int nclusters, int nrows, int ncolumns, float** data,
     int period = 10;
 
     /* Perform the EM algorithm. First, randomly assign elements to clusters. */
-    if (npass!=0) randomassign (nclusters, nelements, tclusterid);
+
+   if (npass!=0) randomassign (nclusters, nelements, tclusterid);
 
     for (i = 0; i < nclusters; i++) counts[i] = 0;
     for (i = 0; i < nelements; i++) counts[tclusterid[i]]++;
@@ -2069,6 +2078,7 @@ kmeans(int nclusters, int nrows, int ncolumns, float** data,
       counter++;
 
       /* Find the center */
+
       getclustermeans(nclusters, nrows, ncolumns, data, tclusterid,
                       cdata, transpose);
 
@@ -2122,6 +2132,7 @@ kmeans(int nclusters, int nrows, int ncolumns, float** data,
       }
     }
     if (i==nelements) ifound++; /* break statement not encountered */
+
   } while (++ipass < npass);
 
   free(saved);
@@ -2332,7 +2343,8 @@ number of clusters is larger than the number of elements being clustered,
   int* counts;
   int* counts_bck;
   int* xclusterid;
-
+  int verb = 1;
+  
   if (nelements < nclusters)
   { *ifound = 0;
     return;
@@ -2348,9 +2360,10 @@ number of clusters is larger than the number of elements being clustered,
   if(!counts) return;
 
   /* Find out if the user specified an initial clustering */
-  if (npass<=1) tclusterid = clusterid;
-  else
-  { tclusterid = malloc(nelements*sizeof(int));
+  if (npass<=1) {
+   tclusterid = clusterid;
+  } else { 
+   tclusterid = malloc(nelements*sizeof(int));
     if (!tclusterid)
     { free(counts);
       return;
@@ -2381,6 +2394,7 @@ number of clusters is larger than the number of elements being clustered,
   
   if (method=='m')
   { float* cache = malloc(nelements*sizeof(float));
+    if (verb) fprintf(stderr,"doing kmedians\n");
     if(cache)
     { *ifound = kmedians(nclusters, nrows, ncolumns, data, weight,
                          transpose, npass, dist, cdata, clusterid, error,
@@ -2388,13 +2402,14 @@ number of clusters is larger than the number of elements being clustered,
       free(cache);
     }
   }
-  else
+  else {
+    if (verb) fprintf(stderr,"doing kmeans\n");
     *ifound = kmeans(nclusters, nrows, ncolumns, data, weight,
                      transpose, npass, dist, cdata, clusterid, error,
                      tclusterid, counts, mapping);
-
+  }  
   /*avovk; here rearange clusterids depending on counts*/
-   
+  if (verb) fprintf(stderr,"rearranging \n"); 
   for (i = 0; i < nrows; i++)
     xclusterid[i] = clusterid[i];
 
