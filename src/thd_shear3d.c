@@ -269,9 +269,13 @@ MCW_3shear shear_xzyx( THD_dmat33 *q , THD_dfvec3 *xyzdel )
       t32 = t13*t13;
 
       t34 = (-t19-3.0*t24+t27+3.0*t30)*t32 ;
+#if 0
+      t34 = cbrt(t34) ;
+#else
            if( t34 > 0.0 ) t34 =   pow(  t34 , 0.333333333333333 ) ;
       else if( t34 < 0.0 ) t34 = - pow( -t34 , 0.333333333333333 ) ;
       else                 t34 = 0.0 ;
+#endif
 
       if( t13 == 0.0 ) return shr ;
 
@@ -1085,8 +1089,8 @@ THD_dvecmat DLSQ_rotscl( int n, THD_dfvec3 *xx, THD_dfvec3 *yy , int ndim )
    wsum = DMAT_DET(aa); wsum = fabs(wsum);
    switch( ndim ){
      default:
-     case 3: wsum = pow(wsum,0.333333333333) ; break ;  /* 3D rotation */
-     case 2: wsum = sqrt(wsum)               ; break ;  /* 2D rotation */
+     case 3: wsum = cbrt(wsum) ; break ;  /* 3D rotation */
+     case 2: wsum = sqrt(wsum) ; break ;  /* 2D rotation */
    }
    out.mm = DMAT_SCALAR( cc , wsum ) ;
 
