@@ -393,7 +393,7 @@ int main( int argc , char * argv[] )
      if( matrix_type == ROTSCL ){
        fac = DMAT_DET(rt.mm); fac = fabs(fac);
        if( DSET_NZ(dset) == 1 ) fac = sqrt(fac) ;
-       else                     fac = pow(fac,0.33333333);
+       else                     fac = cbrt(fac) ;
      }
 
      costheta = 0.5 * sqrt(1.0 + DMAT_TRACE(rt.mm)/fac ) ;

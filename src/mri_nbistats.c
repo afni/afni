@@ -126,7 +126,7 @@ ENTRY("mri_localbistat") ;
    outar = MRI_FLOAT_PTR(outim) ;
    nx = outim->nx ; ny = outim->ny ; nz = outim->nz ;
 
-   ijk = (int)pow((double)nbhd->num_pt,0.33333) ;  /* for entropy, etc. */
+   ijk = (int)cbrt((double)nbhd->num_pt) ;  /* for entropy, etc. */
    set_2Dhist_hbin( ijk ) ;
 
    for( ijk=kk=0 ; kk < nz ; kk++ ){

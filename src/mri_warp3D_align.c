@@ -482,7 +482,7 @@ ENTRY("mri_warp3D_align_setup") ;
    else                        bas->imww = mri_to_float( bas->imwt ) ;
 
    if( bas->twoblur > 0.0f ){
-     float bmax = (float)pow((double)nxyz,0.33333333) * 0.03 ;
+     float bmax = cbrt((double)nxyz) * 0.03 ;
      if( bmax < bas->twoblur ){
        if( bas->verb )
          fprintf(stderr,"+   shrink bas->twoblur from %.3f to %.3f\n",
