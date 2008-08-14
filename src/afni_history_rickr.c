@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, AUG, 2008, RCR, "Dimon", MICRO, TYPE_MODIFY,
+   "moved num_slices check to separate function",
+   NULL
+ } ,
+
+ { 14, AUG, 2008, RCR, "3dBrickStat", MINOR, TYPE_BUG_FIX,
+   "do not automatically print -max along with -var",
+   NULL
+ } ,
+
  { 5, AUG, 2008, RCR, "to3d", MINOR, TYPE_BUG_FIX,
    "re-added the deleted un16 fix from July 1",
    NULL

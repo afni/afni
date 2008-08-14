@@ -37,10 +37,12 @@ static char * g_history[] =
     " 2.12 Jul 31, 2008 [rickr]\n"
     "      - added full real-time testing example to help (example E)\n",
     "      - added -num_slices option\n",
+    " 2.13 Aug 14, 2008 [rickr]\n"
+    "      - moved num_slices check to separate function\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.12 (July 31, 2008)"
+#define DIMON_VERSION "version 2.13 (Aug 14, 2008)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -158,6 +160,7 @@ static int init_extras         ( param_t * p, ART_comm * ac );
 static int init_options        ( param_t * p, ART_comm * a, int argc,
                                  char * argv[] );
 static int nap_time_in_ms      ( float, float );
+static int num_slices_ok       ( int, int, char * );
 static int path_to_dir_n_suffix( char * dir, char * suff, char * path );
 static int read_ge_files       ( param_t * p, int start, int max );
 static int read_ge_image       ( char * pathname, finfo_t * fp,
@@ -294,7 +297,8 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
         {
             if ( gD.level > 0 )
             {
-                fprintf( stderr, "\n-- first volume found\n" );
+                fprintf( stderr, "\n-- first volume found (%d slices)\n",
+                         v->nim );
                 if ( gD.level > 1 )
                 {
                     idisp_vol_t( "+d first volume : ", v );
@@ -788,21 +792,13 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
         fprintf(stderr,"+d cov: returning first, last, delta = %d, %d, %f\n",
                 first, last, delta);
 
-    /* If we were given num_slices, it must match.  This prevents stopping
-       too early at the scanner if the first slice of the second volume is
-       seen before the entire first volume. */
-    if ( p->opts.num_slices > 0 && (last-first+1 != p->opts.num_slices) )
-    {
-        if ( gD.level > 1 )
-          fprintf(stderr,"+d num_slices found (%d) does not match option %d"
-                         " still waiting...\n",
-                         last-first+1, p->opts.num_slices );
-        return 0;  /* not done yet */
-    }
-
     /* If we have found the same slice location, we are done. */
     if ( fabs(fp->geh.zoff - p->flist[first].geh.zoff) < gD_epsilon )
     {
+        /* maybe verify that we have the correct number of slices */
+        if ( ! num_slices_ok(p->opts.num_slices,last-first+1,"same location") )
+            return 0;
+
         if ( gD.level > 1 )
             fprintf(stderr,"+d found first slice of second volume\n");
         return 1;  /* success */
@@ -812,18 +808,57 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
        state 2, then we seem to have only a single volume to read. */
     if ( ( state == 2 && fabs(dz-delta)<gD_epsilon) && run1 == run0 )
     {
+        /* maybe verify that we have the correct number of slices */
+        if ( ! num_slices_ok(p->opts.num_slices,last-first+1,"data stall") )
+            return 0;
+
         if ( gD.level > 1 )
             fprintf(stderr,"+d no new data after finding sufficient slices\n"
                            "   --> assuming completed single volume\n");
         return 1;
     }
+
     /* otherwise, if we have not changed the delta or run, continue */
     if ( (fabs(dz - delta) < gD_epsilon) && (run1 == run0) ) /* not state 2 */
         return 0;  /* not done yet */
+
     if ( dz * delta < 0.0 ) return -1;   /* wrong direction */
 
     /* all other cases, until we hear of a new one to watch for */
     return -2;
+}
+
+
+/*----------------------------------------------------------------------
+ * check that num_slices matches the number seen
+ *
+ * Setting num_slices prevents early termination of the first volume when
+ * the first slice of second volume is seen before the entire first volume.
+ *----------------------------------------------------------------------
+*/
+static int num_slices_ok( int num_slices, int nfound, char * mesg )
+{
+    int ok = 0;
+
+    if( gD.level > 2 )
+        fprintf(stderr,"-- num_slices_ok (%s): checking %d against %d...\n",
+                mesg ? mesg : "no mesg", num_slices, nfound);
+
+    if( num_slices <= 0 ) return 1;     /* no use means ok */
+
+    ok = num_slices == nfound;
+
+    if ( gD.level > 1 ) {
+        if( ok )
+            fprintf(stderr,"+d (%s) num_slices found matches option, %d\n",
+                    mesg ? mesg : "no mesg", nfound);
+        else
+            fprintf(stderr,"+d (%s) num_slices found (%d) does not match"
+                           " option (%d), still waiting...\n",
+                    mesg ? mesg : "no mesg", nfound, num_slices);
+    }
+
+    return ok;
 }
 
 
