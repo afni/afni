@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, AUG, 2008, RCR, "afni", MICRO, TYPE_BUG_FIX,
+   "init graph->grid_spacing, to prevent potential div by 0 via DRIVE",
+   NULL
+ } ,
+
  { 14, AUG, 2008, RCR, "Dimon", MICRO, TYPE_MODIFY,
    "moved num_slices check to separate function",
    NULL
@@ -59,7 +64,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 5, AUG, 2008, RCR, "to3d", MINOR, TYPE_BUG_FIX,
-   "re-added the deleted un16 fix from July 1",
+   "re-added the un16 fix from July 1",
    NULL
  } ,
 

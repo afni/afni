@@ -62,6 +62,8 @@ ENTRY("new_MCW_grapher") ;
    grapher->parent = NULL ;
    grapher->valid  = 1 ;
 
+   grapher->grid_spacing    = 10;  /* prevent div by 0, 15 Aug 2008 [rickr] */
+
    grapher->dont_redraw     = 0 ;  /* 27 Jan 2004 */
    grapher->timer_id        = 0 ;  /* 04 Dec 2003 */
    grapher->never_drawn     = 1 ;
