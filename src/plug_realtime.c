@@ -422,8 +422,11 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   ( (mm) == REGMODE_2D_RTIME || (mm) == REGMODE_2D_ATEND ||  \
     (mm) == REGMODE_3D_RTIME || (mm) == REGMODE_3D_ATEND   )
 
+# define RT_DRIVE_LIMIT 4096
+
   static int g_mask_val_type = 1 ;                /* RT_mask_strings index   */
   static int g_show_times = 0 ;                   /* show MP comm times      */
+  static int g_MP_send_ver = 0 ;                  /* send MP version         */
   static THD_3dim_dataset * g_mask_dset = NULL ;  /* mask aves w/ MP vals    */
 #endif
 
@@ -470,6 +473,7 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
 
   int  RT_mp_comm_alive       ( int, int, char * );
   int  RT_mp_comm_close       ( RT_input * rtin );
+  int  RT_mp_getenv           ( void );
   int  RT_mp_comm_init        ( RT_input * rtin );
   int  RT_mp_comm_init_vars   ( RT_input * rtin );
   int  RT_mp_comm_send_data   ( RT_input * rtin, float *mp[6], int nt, int sub);
@@ -779,6 +783,11 @@ char * RT_main( PLUGIN_interface * plint )
          str = PLUTO_get_string(plint) ;
          g_mask_val_type = PLUTO_string_index(str , N_RT_MASK_METHODS ,
                                                     RT_mask_strings ) ;
+
+         /* since this is now read from the env, we need to put it there */
+         sprintf(buf, "AFNI_REALTIME_Mask_Vals %s",
+                      RT_mask_strings[g_mask_val_type]);
+         AFNI_setenv(buf);
 
          if (verbose)
             fprintf(stderr,"RTM: found mask dataset, method '%s'\n",
@@ -2260,6 +2269,48 @@ int RT_mp_show_time( char * mesg )
 }
 
 /*---------------------------------------------------------------------------
+   Check env vars for MP communication.
+
+   NOTE: anything applied here that is also in the interface needs to
+         be set as an env var if the interface is applied (so the most
+         recent action is effective).
+
+         currently includes: AFNI_REALTIME_Mask_Vals
+
+   return 0 on success
+-----------------------------------------------------------------------------*/
+int RT_mp_getenv( void )
+{
+    char * estr = NULL;
+
+    estr = getenv("AFNI_REALTIME_Mask_Vals");
+    if( estr != NULL ){
+        int ii = PLUTO_string_index(estr,N_RT_MASK_METHODS,RT_mask_strings_ENV);
+        if( ii >= 0 && ii < N_RT_MASK_METHODS ) g_mask_val_type = ii;
+        if(verbose>1) fprintf(stderr,"++ RTM getenv: mvals = %s\n",
+                              RT_mask_strings_ENV[g_mask_val_type]);
+    }
+
+    if( ! g_mask_val_type ) return 0;
+
+    /* do we want to spit out times? */
+    estr = getenv("AFNI_REALTIME_SHOW_TIMES") ;
+    g_show_times = (estr && (*estr == 'y' || *estr == 'Y'));
+    if(estr && verbose>1)
+        fprintf(stderr,"++ RTM getenv: show_times = %d\n", g_show_times);
+    if( g_show_times ) RT_mp_show_time("mp_comm_init");
+
+    /* maybe the user wants to set the hello version */
+    estr = getenv("AFNI_REALTIME_SEND_VER") ;
+    if( estr && (*estr == 'y' || *estr == 'Y') ) {
+        g_MP_send_ver = 1;
+        if( verbose ) fprintf(stderr,"RTM: will send hello version\n");
+    }
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------------
    Initialize the motion parameter communications.        30 Mar 2004 [rickr]
 
    return   0 : on success
@@ -2271,23 +2322,12 @@ int RT_mp_comm_init( RT_input * rtin )
     struct hostent     * hostp;
     char                 magic_hi[] = { 0xab, 0xcd, 0xef, 0xab };
     char               * estr;
-    int                  sd, send_nvals = 0, ver = 0, rv;
+    int                  sd, send_nvals = 0, rv;
 
-    if( ! g_mask_val_type ) {
+     /* if error or not in use, return */
+    if( RT_mp_getenv() || ! g_mask_val_type) { 
         rtin->mp_tcp_use = -1;
         return -1;
-    }
-
-    /* do we want to spit out times? */
-    estr = getenv("AFNI_REALTIME_SHOW_TIMES") ;
-    g_show_times = (estr && (*estr == 'y' || *estr == 'Y'));
-    if( g_show_times ) RT_mp_show_time("mp_comm_init");
-
-    /* maybe the user wants to set the hello version */
-    estr = getenv("AFNI_REALTIME_SEND_VER") ;
-    if( estr && (*estr == 'y' || *estr == 'Y') ) {
-        ver = 1;
-        fprintf(stderr,"RTM: will send hello version\n");
     }
 
     /* set the 'hello' mode (based on the mask values choice)
@@ -2298,7 +2338,7 @@ int RT_mp_comm_init( RT_input * rtin )
      * if we are prepared to send mask info, and hello mode is set, then
      * note to also send mask_nvals (or mask_nset)
      */
-    if( ver ) {  /* send VERSION info */
+    if( g_MP_send_ver ) {  /* send VERSION info */
         if ( g_mask_val_type == 1 ) {                       /* motion only */
             send_nvals = 0;
             magic_hi[3] += 1;
@@ -2361,7 +2401,7 @@ int RT_mp_comm_init( RT_input * rtin )
     }
 
     /* do we send nvals for an altered magic_hi? */
-    if ( ver ) {
+    if ( g_MP_send_ver ) {
         if ( (rv = send(sd, &send_nvals, sizeof(int), 0)) == -1 )
         {
             perror("** RT_mp_comm send hello nvals");
@@ -2891,12 +2931,15 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
             fprintf(stderr,"RT: received OBLIQUE_XFORM\n");
 
       } else if( STARTER("DRIVE_AFNI") ){   /* 30 Jul 2002 */
-         char cmd[1024]="\0" ;
-         int ii ;
-         if( strlen(buf) < 11 ){
+         char cmd[RT_DRIVE_LIMIT]="\0" ;
+         int ii, len = strlen(buf) ;
+         if( len < 11 ){
             fprintf(stderr,"RT: DRIVE_AFNI lacks command\n") ;
+         } else if ( len > RT_DRIVE_LIMIT ) {
+            fprintf(stderr,"RT: DRIVE_AFNI length exceeds %d bytes, ignoring\n",
+                    RT_DRIVE_LIMIT) ;
          } else {  /* the command is everything after "DRIVE_AFNI " */
-            MCW_strncpy(cmd,buf+11,1024) ;
+            MCW_strncpy(cmd,buf+11, RT_DRIVE_LIMIT) ;
             if( verbose == 2 )
                fprintf(stderr,"RT: command DRIVE_AFNI %s\n",cmd) ;
             ii = AFNI_driver( cmd ) ;  /* just do it */
