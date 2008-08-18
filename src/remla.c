@@ -899,10 +899,12 @@ gltfactors * REML_get_gltfactors( matrix *D , matrix *G )
    gltfactors *gf ;
    matrix *JL , *JR , *GT , *E,*F,*Z ; vector *S ;
 
-   if( D       == NULL    || G       == NULL    ) return NULL ;
-   if( D->rows != D->cols || D->rows != G->cols ) return NULL ;
+ENTRY("REML_get_gltfactors") ;
 
-   nn = D->rows ; rr = G->rows ; if( nn < 1 || rr < 1 ) return NULL ;
+   if( D       == NULL    || G       == NULL    ) RETURN( NULL );
+   if( D->rows != D->cols || D->rows != G->cols ) RETURN( NULL );
+
+   nn = D->rows ; rr = G->rows ; if( nn < 1 || rr < 1 ) RETURN( NULL );
 
    /* [D] is nn X nn (upper triangular); [G] is rr X nn, with rr < nn */
 
@@ -950,7 +952,7 @@ gltfactors * REML_get_gltfactors( matrix *D , matrix *G )
    gf->Jright = JR ;
    gf->Jleft  = JL ;
    gf->sig    = S  ;
-   return gf ;
+   RETURN( gf );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -959,16 +961,18 @@ void REML_add_glt_to_one( reml_setup *rs , matrix *G )
 {
    gltfactors *gf ; int ng ;
 
-   if( rs == NULL || G == NULL ) return ;
+ENTRY("REML_add_glt_to_one") ;
+
+   if( rs == NULL || G == NULL ) EXRETURN ;
 
    gf = REML_get_gltfactors( rs->dd , G ) ;
-   if( gf == NULL ) return ;
+   if( gf == NULL ) EXRETURN ;
 
    ng = rs->nglt ;
    rs->glt = (gltfactors **)realloc( (void *)rs->glt ,
                                      sizeof(gltfactors *)*(ng+1) ) ;
 
-   rs->glt[ng] = gf ; rs->nglt = ng+1 ; return ;
+   rs->glt[ng] = gf ; rs->nglt = ng+1 ; EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -977,14 +981,16 @@ void REML_add_glt_to_all( reml_collection *rc , matrix *G )
 {
    int ia,jb , na,nb , kk ;
 
-   if( rc == NULL || G == NULL ) return ;
+ENTRY("REML_add_glt_to_all") ;
+
+   if( rc == NULL || G == NULL ) EXRETURN ;
 
    for( jb=0 ; jb <= rc->nb ; jb++ ){
      for( ia=0 ; ia <= rc->na ; ia++ ){
        kk = ia + (1+rc->na)*jb ;
        REML_add_glt_to_one( rc->rs[kk] , G ) ;
    }}
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1011,7 +1017,7 @@ MTYPE REML_compute_fstat( vector *y, vector *bfull, MTYPE fsumq ,
    /* create fitted model [X][br] */
 
    if( Xs != NULL ){
-     vector_create_noinit( Xs->cols , &ba ) ;
+     vector_create_noinit( Xs->rows , &ba ) ;
      vector_spc_multiply( Xs , br.elts , ba.elts ) ;
    } else {
      vector_multiply( *X , br , &ba ) ;
