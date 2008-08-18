@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , AUG , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "add -force_TR option to override input dataset TR from header" ,
+   "Also added a printout of the dataset TR if the PSFB warning gets\n"
+   "printed." } ,
+
  { 15 , JUL , 2008 , RWC , "count" , MICRO , TYPE_BUG_FIX ,
    "Make '-suffix' work correctly for last item (per Fred Tam)." ,
    "Also, make '-sep' and '-suffix' work as separate items,\n"
