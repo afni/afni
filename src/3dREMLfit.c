@@ -754,6 +754,9 @@ int main( int argc , char *argv[] )
    rrcol = REML_setup_all( &X , tau , nlevab,rhomax,bmax ) ;
    if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
 
+   if( glt_num > 0 )
+     INFO_message("adding %d statistics matri%s to REML setup",
+                  glt_num , (glt_num==1)?"x":"ces" ) ;
    for( kk=0 ; kk < glt_num ; kk++ )
      REML_add_glt_to_all( rrcol , glt_mat[kk]) ;
 
@@ -845,7 +848,7 @@ int main( int argc , char *argv[] )
    }
    Rfitts_dset = create_float_dataset( inset , nfull, Rfitts_prefix ) ;
 
-   Rfstat_dset = create_float_dataset( inset , nfull, Rfstat_prefix ) ;
+   Rfstat_dset = create_float_dataset( inset , glt_num, Rfstat_prefix ) ;
    if( Rfstat_dset != NULL ){
      EDIT_BRICK_LABEL( Rfstat_dset , 0 , "FullF" ) ;
    }
@@ -903,6 +906,9 @@ int main( int argc , char *argv[] )
    }
    if( Rfitts_dset != NULL ){
      DSET_write(Rfitts_dset); WROTE_DSET(Rfitts_dset); DSET_delete(Rfitts_dset);
+   }
+   if( Rfstat_dset != NULL ){
+     DSET_write(Rfstat_dset); WROTE_DSET(Rfstat_dset); DSET_delete(Rfstat_dset);
    }
 
    exit(0) ;

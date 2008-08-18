@@ -147,7 +147,7 @@ double get_matrix_dotlen(void){ return (dotnum > 0.0) ? dotsum/dotnum : 0.0 ; }
 void matrix_error (char * message)
 {
   printf ("Matrix error: %s \n", message);
-  exit (1);
+  EXIT (1);
 }
 
 
@@ -974,22 +974,16 @@ void array_to_vector (int dim, float * f, vector * v)
   Convert column c of matrix m into vector v.
 */
 
-void column_to_vector (matrix m, int c, vector * v)
+void column_to_vector (matrix m, int c, vector *v)
 {
-  register int i;
-  register int dim;
-
-  dim = m.rows;
-  vector_create_noinit (dim, v);
-
-  for (i = 0;  i < dim;  i++)
-    v->elts[i] = m.elts[i][c];
+  register int i , dim ;
+  dim = m.rows; vector_create_noinit (dim, v);
+  for (i = 0;  i < dim;  i++) v->elts[i] = m.elts[i][c];
 }
 
 void row_to_vector( matrix m , int r , vector *v )
 {
    register int j , dim ;
-
    dim = m.cols ; vector_create_noinit(dim,v) ;
    for( j=0 ; j < dim ; j++ ) v->elts[j] = m.elts[r][j] ;
 }
@@ -1867,19 +1861,19 @@ void vector_rrtran_solve( matrix R , vector b , vector *x )
 void matrix_rr_solve( matrix R , matrix B , matrix *X )
 {
    int n=R.rows , m=B.cols , i,j ;
-   vector *u, *v ;
+   vector u, v ;
 
-   if( R.cols != n || X == NULL ) return ;
+   if( R.cols != n || B.rows != n || X == NULL ) return ;
 
-   vector_initialize(u) ; vector_initialize(v) ;
+   vector_initialize(&u) ; vector_initialize(&v) ;
    matrix_create( n , m , X ) ;
 
    for( j=0 ; j < m ; j++ ){
-     column_to_vector( B , j , u ) ;
-     vector_rr_solve( R , *u , v ) ;
-     for( i=0 ; i < n ; i++ ) X->elts[i][j] = v->elts[i] ;
+     column_to_vector( B , j , &u ) ;
+     vector_rr_solve( R , u , &v ) ;
+     for( i=0 ; i < n ; i++ ) X->elts[i][j] = v.elts[i] ;
    }
-   vector_destroy(v) ; vector_destroy(u) ; return ;
+   vector_destroy(&v) ; vector_destroy(&u) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1887,17 +1881,17 @@ void matrix_rr_solve( matrix R , matrix B , matrix *X )
 void matrix_rrtran_solve( matrix R , matrix B , matrix *X )
 {
    int n=R.rows , m=B.cols , i,j ;
-   vector *u, *v ;
+   vector u, v ;
 
-   if( R.cols != n || X == NULL ) return ;
+   if( R.cols != n || B.rows != n || X == NULL ) return ;
 
-   vector_initialize(u) ; vector_initialize(v) ;
+   vector_initialize(&u) ; vector_initialize(&v) ;
    matrix_create( n , m , X ) ;
 
    for( j=0 ; j < m ; j++ ){
-     column_to_vector( B , j , u ) ;
-     vector_rrtran_solve( R , *u , v ) ;
-     for( i=0 ; i < n ; i++ ) X->elts[i][j] = v->elts[i] ;
+     column_to_vector( B , j , &u ) ;
+     vector_rrtran_solve( R , u , &v ) ;
+     for( i=0 ; i < n ; i++ ) X->elts[i][j] = v.elts[i] ;
    }
-   vector_destroy(v) ; vector_destroy(u) ; return ;
+   vector_destroy(&v) ; vector_destroy(&u) ; return ;
 }
