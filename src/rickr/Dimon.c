@@ -39,27 +39,11 @@ static char * g_history[] =
     "      - added -num_slices option\n",
     " 2.13 Aug 14, 2008 [rickr]\n"
     "      - moved num_slices check to separate function\n"
+    " 2.14 Aug 18, 2008 [rickr] - help update\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.13 (Aug 14, 2008)"
-
-/*----------------------------------------------------------------------
- * todo:
- *
- *    - without -rt_cmd 'PREFIX ...', set from last dir in glob (data/time?)
- *    - if there is a change in valid volume size, restart
- * ok - add -sort_by_num_suffix option
- * ok - setup an infile sorting step that will organize the files
- * ok - re-write help
- * ok - add -infile_prefix for no wildcards (and no quotes)
- * ok - find memory leak in dicom reader
- * ok - make this work for a single volume (e.g. anatomical)
- * ok - process run of single-slice volumes
- * ok - process run of fewer than 3 slices
- * ok - remove tabs
- *----------------------------------------------------------------------
-*/
+#define DIMON_VERSION "version 2.14 (Aug 18, 2008)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2982,7 +2966,7 @@ static int usage ( char * prog, int level )
       "       -rt_cmd 'PREFIX eat.more.cheese'                    \\\n"
       "       -rt_cmd 'GRAPH_XRANGE 160'                          \\\n"
       "       -rt_cmd 'GRAPH_YRANGE 1.02'                         \\\n"
-      "       -rt_cmd 'GRAPH_EXPR sqrt((d*d+e*e+f*f)/3)'            \n"
+      "       -rt_cmd 'GRAPH_EXPR sqrt(d*d+e*e+f*f)'\n"
       "\n"
       "  -------------------------------------------\n"
       "  example E (for testing complete real-time system):\n"
@@ -3024,6 +3008,18 @@ static int usage ( char * prog, int level )
       "           Dimon -rt -pause 2000 -infile_prefix EPI_run1/8HRBRAIN\n"
       "    \n"
       "       Note that Dimon can be run many times at this point.\n"
+      "\n"
+      "    ------------------------------\n"
+      "\n"
+      "    c2. alternately, set some env vars via Dimon\n"
+      "\n"
+      "         Dimon -rt -pause 2000 -infile_prefix EPI_run1/8          \\\n"
+      "           -drive_afni 'SETENV AFNI_REALTIME_Mask_Vals=ROI_means' \\\n"
+      "           -drive_afni 'SETENV AFNI_REALTIME_SEND_VER=Yes'        \\\n"
+      "           -drive_afni 'SETENV AFNI_REALTIME_SHOW_TIMES=Yes'\n"
+      "\n"
+      "       Note that plugout_drive can also be used to set vars at\n"
+      "       run-time, though plugouts must be enabled to use it.\n"
       "\n"
       "  ---------------------------------------------------------------\n",
       prog, prog, prog, prog, prog, prog,
