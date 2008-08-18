@@ -48,7 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15, AUG, 2008, RCR, "afni", MICRO, TYPE_BUG_FIX,
+ { 18, AUG, 2008, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
+   "increase DRIVE_LIMIT to 4Kb, read env vars each run",
+   "These variables can now be controlled through drive_afni 'SETENV'\n"
+   "(either via 'plugout_drive' or 'Dimon -drive_afni'):\n"
+   "    - AFNI_REALTIME_Mask_Vals  : specify what gets sent to serial_helper\n"
+   "    - AFNI_REALTIME_SHOW_TIMES : specify whether to show data timestampts\n"
+   "    - AFNI_REALTIME_SEND_VER   : specify whether to send comm version"
+ } ,
+
+ { 15, AUG, 2008, RCR, "afni", MINOR, TYPE_BUG_FIX,
    "init graph->grid_spacing, to prevent potential div by 0 via DRIVE",
    NULL
  } ,
