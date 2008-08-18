@@ -581,6 +581,7 @@ typedef struct DC_options
   char * mask_filename;    /* input mask dataset */
   char * input1D_filename; /* input fMRI measurement time series */
   float  input1D_TR;       /* TR for input 1D time series */
+  float  force_TR;         /* force use of this TR for 3D time series */
   char * censor_filename;  /* input censor time series filename */
   char * concat_filename;  /* filename for list of concatenated runs */
   int nodata;              /* flag for 'no data' option */
@@ -731,6 +732,9 @@ void display_help_menu()
     "                       (here,   and  these  datasets  will  be)        \n"
     "                       (catenated  in time;   if you do this, )        \n"
     "                       ('-concat' is not needed and is ignored)        \n"
+    "[-force_TR TR]       Use this value of TR instead of the one in        \n"
+    "                     the -input dataset.                               \n"
+    "                     (It's better to fix the input using 3drefit.)     \n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
     "[-TR_1D tr1d]        tr1d = TR for .1D time series (default 1.0 sec).  \n"
     "                     This option has no effect without -input1D        \n"
@@ -1060,6 +1064,7 @@ void initialize_options
   option_data->nocond   = 0;   /* 15 Jul 2004 */
   option_data->nodata_NT= 0;   /* 27 Apr 2005 */
   option_data->nodata_TR= 0.0;
+  option_data->force_TR = 0.0;  /* 18 Aug 2008 */
   option_data->coldat   = NULL; /* 06 Mar 2007 */
 
   option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
@@ -1421,6 +1426,15 @@ void get_options
         MTEST (option_data->input1D_filename);
         strcpy (option_data->input1D_filename, argv[nopt]);
         nopt++;
+        continue;
+      }
+
+      /*-----   -force_TR  -------*/
+      if (strcmp(argv[nopt], "-force_TR") == 0)  /* 18 Aug 2008 */
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -force_TR ");
+        option_data->force_TR = (float)strtod(argv[nopt++],NULL) ;
         continue;
       }
 
@@ -2662,6 +2676,7 @@ ENTRY("read_input_data") ;
       if( basis_count > 0 ){
              if( option_data->nodata_TR > 0.0 ) basis_TR = option_data->nodata_TR ;
         else if( basis_dtout            > 0.0 ) basis_TR = basis_dtout ;
+        else if( option_data->force_TR  > 0.0 ) basis_TR = option_data->force_TR ;
         INFO_message("using TR=%g seconds for -stim_times and -nodata\n",basis_TR);
       }
 
@@ -2711,6 +2726,8 @@ ENTRY("read_input_data") ;
 
       if (option_data->input1D_TR > 0.0)
         dtloc = basis_TR = option_data->input1D_TR;
+      else if( option_data->force_TR > 0.0 )
+        dtloc = basis_TR = option_data->force_TR;
       if (verb) INFO_message("1D TR is %.3f seconds", basis_TR);
    }
 
@@ -2724,8 +2741,19 @@ ENTRY("read_input_data") ;
         DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
         if( verb ) MEM_MESSAGE ;
       }
+
+      if( option_data->force_TR > 0.0 ){   /* 18 Aug 2008 */
+        EDIT_dset_items( *dset_time ,
+                           ADN_ttdel , option_data->force_TR ,
+                           ADN_ntt   , DSET_NVALS(*dset_time) ,
+                           ADN_tunits, UNITS_SEC_TYPE ,
+                         ADN_none ) ;
+        INFO_message("-force_TR using TR=%.4f seconds for -input dataset" ,
+                     option_data->force_TR) ;
+      }
+
       if( (*dset_time)->taxis == NULL )
-        WARNING_message("dataset '%s' has no time axis",
+        WARNING_message("dataset '%s' has no time axis in its header; cf. 3dinfo",
                        option_data->input_filename) ;
 
       nt   = DSET_NUM_TIMES (*dset_time);
@@ -2762,8 +2790,8 @@ ENTRY("read_input_data") ;
           WARNING_message("no TR in dataset; setting TR=1 s (?)");
         }
       } else if( basis_TR <= 0.10f ){
-        WARNING_message("TR in dataset = %g s (less than 0.100 s) -- FYI",
-                        basis_TR ) ;  /* the PSFB syndrome */
+        INFO_message("TR in dataset = %g s (less than 0.100 s) -- FYI",
+                     basis_TR ) ;  /* one symptom of the PSFB syndrome */
       }
 
       if( DSET_IS_TCAT(*dset_time) ){  /** 04 Aug 2004: manufacture block list **/
@@ -3013,10 +3041,12 @@ ENTRY("read_input_data") ;
           WARNING_message(
            "'%s %d' (GLOBAL) has %d '*' fillers; do you want LOCAL times?",
            be->option , is+1 , nbad ) ;
-        if( nout )          /* warn about times outside the legal range */
+        if( nout ){         /* warn about times outside the legal range */
           WARNING_message(
            "'%s %d' (GLOBAL) has %d times outside range 0 .. %g [PSFB syndrome]",
            be->option , is+1 , nout , tmax ) ;
+          WARNING_message("dataset TR being used is %g s",basis_TR) ;
+        }
 
       } else {   /****---------- local times => 1 row per block ----------****/
         int nout ;
@@ -3038,10 +3068,12 @@ ENTRY("read_input_data") ;
                                  qar[ngood++] = tt/basis_TR+bst[jj] ;
             } else if( tt < big_time ) nout++ ; /* PSFB entries */
           }
-          if( nout )
+          if( nout ){
             WARNING_message(
              "'%s %d' (LOCAL) run#%d has %d times outside range 0 .. %g [PSFB syndrome]",
              be->option , is+1 , jj+1 , nout , tmax ) ;
+            WARNING_message("dataset TR being used is %g s",basis_TR) ;
+          }
         }
       } /* end of converting times into indexes */
 
@@ -5790,6 +5822,14 @@ void cubic_spline
   /*----- Initialize local variables -----*/
   dset = THD_open_dataset (option_data->input_filename);
   CHECK_OPEN_ERROR(dset,option_data->input_filename) ;
+
+  if( option_data->force_TR > 0.0 )   /* 18 Aug 2008 */
+    EDIT_dset_items( dset ,
+                       ADN_ttdel , option_data->force_TR ,
+                       ADN_ntt   , DSET_NVALS(dset) ,
+                       ADN_tunits, UNITS_SEC_TYPE ,
+                     ADN_none ) ;
+
   n = ts_length - 1;
   tdelta = dset->taxis->ttdel;
   nx = dset->daxes->nxx;   ny = dset->daxes->nyy;   nz = dset->daxes->nzz;
@@ -5944,6 +5984,14 @@ void write_ts_array
   input_filename = option_data->input_filename;
   dset = THD_open_dataset (input_filename);
   CHECK_OPEN_ERROR(dset,input_filename) ;
+
+  if( option_data->force_TR > 0.0 )   /* 18 Aug 2008 */
+    EDIT_dset_items( dset ,
+                       ADN_ttdel , option_data->force_TR ,
+                       ADN_ntt   , DSET_NVALS(dset) ,
+                       ADN_tunits, UNITS_SEC_TYPE ,
+                     ADN_none ) ;
+
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
   DSET_UNMSEC(dset) ;  /* 12 Aug 2005 */
   newtr = DSET_TIMESTEP(dset) / nptr;
@@ -6178,6 +6226,14 @@ void write_bucket_data
   /*----- read prototype dataset -----*/
   old_dset = THD_open_dataset (option_data->input_filename);
   CHECK_OPEN_ERROR(old_dset,option_data->input_filename);
+
+  if( option_data->force_TR > 0.0 )   /* 18 Aug 2008 */
+    EDIT_dset_items( old_dset ,
+                       ADN_ttdel , option_data->force_TR ,
+                       ADN_ntt   , DSET_NVALS(old_dset) ,
+                       ADN_tunits, UNITS_SEC_TYPE ,
+                     ADN_none ) ;
+
   DSET_UNMSEC(old_dset) ;  /* 12 Aug 2005 */
 
   bout = !option_data->nobout ;
@@ -9358,6 +9414,14 @@ void basis_write_iresp( int argc , char *argv[] ,
 
    in_dset = THD_open_dataset(option_data->input_filename);
    CHECK_OPEN_ERROR(in_dset,option_data->input_filename);
+
+  if( option_data->force_TR > 0.0 )   /* 18 Aug 2008 */
+    EDIT_dset_items( in_dset ,
+                       ADN_ttdel , option_data->force_TR ,
+                       ADN_ntt   , DSET_NVALS(in_dset) ,
+                       ADN_tunits, UNITS_SEC_TYPE ,
+                     ADN_none ) ;
+
    nvox    = in_dset->daxes->nxx * in_dset->daxes->nyy * in_dset->daxes->nzz;
    DSET_UNMSEC(in_dset) ;  /* 12 Aug 2005 */
 
@@ -9594,6 +9658,14 @@ void basis_write_sresp( int argc , char *argv[] ,
 
    in_dset = THD_open_dataset(option_data->input_filename);
    CHECK_OPEN_ERROR(in_dset,option_data->input_filename);
+
+  if( option_data->force_TR > 0.0 )   /* 18 Aug 2008 */
+    EDIT_dset_items( in_dset ,
+                       ADN_ttdel , option_data->force_TR ,
+                       ADN_ntt   , DSET_NVALS(in_dset) ,
+                       ADN_tunits, UNITS_SEC_TYPE ,
+                     ADN_none ) ;
+
    nvox    = in_dset->daxes->nxx * in_dset->daxes->nyy * in_dset->daxes->nzz;
    DSET_UNMSEC(in_dset) ;  /* 12 Aug 2005 */
 
