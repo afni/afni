@@ -91,6 +91,7 @@ int main( int argc , char *argv[] )
    matrix X ; vector y ;
    reml_collection *rrcol ;
    int nprefixO=0 , nprefixR=0 , vstep ;
+
    char *Rbeta_prefix  = NULL ; THD_3dim_dataset *Rbeta_dset  = NULL ;
    char *Rvar_prefix   = NULL ; THD_3dim_dataset *Rvar_dset   = NULL ;
    char *Rfitts_prefix = NULL ; THD_3dim_dataset *Rfitts_dset = NULL ;
@@ -98,14 +99,24 @@ int main( int argc , char *argv[] )
    char *Ovar_prefix   = NULL ; THD_3dim_dataset *Ovar_dset   = NULL ;
    char *Ofitts_prefix = NULL ; THD_3dim_dataset *Ofitts_dset = NULL ;
    char *Rfstat_prefix = NULL ; THD_3dim_dataset *Rfstat_dset = NULL ;
-   int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL ;
+   char *Ofstat_prefix = NULL ; THD_3dim_dataset *Ofstat_dset = NULL ;
+
+   char *Rbuckt_prefix = NULL ; THD_3dim_dataset *Rbuckt_dset = NULL ;
+   char *Obuckt_prefix = NULL ; THD_3dim_dataset *Obuckt_dset = NULL ;
+   int nbuckt=0 ;
+
+   int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL , izero ;
    NI_int_array *giar ; NI_str_array *gsar ; NI_float_array *gfar ;
    float mfilt_radius=0.0 , dx,dy,dz ; int do_mfilt=0 , do_dxyz , nx,ny,nz ;
+   int do_Ostuff=0 , do_Rstuff=0 ;
 
    int glt_num=0 ; matrix **glt_mat=NULL ; char **glt_lab=NULL ;
    int stim_num=0; int *stim_bot , *stim_top ; char **stim_lab ;
    int do_fstat=0 , do_tstat=0 , do_stat=0 , do_stimstat=0 ;
-   int num_allstim=0, *allstim=NULL , num_basetim=0, *basestim=NULL ;
+   int num_allstim=0, *allstim=NULL , num_basetim=0, *basetim=NULL ;
+   float *gv=NULL ;
+
+   char **beta_lab=NULL ;
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -138,12 +149,16 @@ int main( int argc , char *argv[] )
       "------------------------------------------------------------------------\n"
       " -Rvar  ppp  = dataset for REML variance parameters\n"
       " -Rbeta ppp  = dataset for beta weights from the REML estimation\n"
+      "                 (similar to the -cbucket output from 3dDeconvolve)\n"
+      " -Rbuck ppp  = dataset for beta + statistics from the REML estimation\n"
+      "                 (similar to the -bucket output from 3dDeconvolve)\n"
 #if 0
       " -Rfitts ppp = dataset for REML fitted model\n"
 #endif
       "\n"
       " -Ovar ppp   = dataset for OLSQ variance parameter\n"
       " -Obeta ppp  = dataset for beta weights from the OLSQ estimation\n"
+      " -Obuck ppp  = dataset for beta + statistics from the OLSQ estimation\n"
 #if 0
       " -Ofitts ppp = dataset for OLSQ fitted model\n"
 #endif
@@ -161,7 +176,7 @@ int main( int argc , char *argv[] )
       "\n"
       " -Grid pp   = Set the number of grid divisions in the (a,b) grid\n"
       "                to be 2^pp in each direction over the range 0..MAX.\n"
-      "                The default and minimum value for 'pp' is 3.\n"
+      "                The default (and minimum) value for 'pp' is 3.\n"
       "                Larger values will provide a finer resolution\n"
       "                in a and b, but at the cost of CPU time.\n"
       "               * To be clear, the default settings use a grid\n"
@@ -174,6 +189,7 @@ int main( int argc , char *argv[] )
       "                   in each direction, -Grid 5 means 64 divisions, etc.\n"
       "                   I see no reason why you would ever use a -Grid size\n"
       "                   greater than 5 (==> parameter resolution = 0.025).\n"
+      "                   The program becomes slower as the grid size expands.\n"
       "\n"
       " -NEGcor    = Allows negative correlations to be used; the default\n"
       "                is that only positive correlations are searched.\n"
@@ -245,7 +261,7 @@ int main( int argc , char *argv[] )
       "-----------------------------------------------------------\n"
       "What is REML = REsidual (or REstricted) Maximum Likelihood?\n"
       "-----------------------------------------------------------\n"
-      "* Ordinary least squares (which assumes the noise correlation matrix is\n"
+      "* Ordinary Least SQuares (which assumes the noise correlation matrix is\n"
       "    the identity) is consistent for estimating regression parameters,\n"
       "    but is not consistent for estimating the noise variance if the\n"
       "    noise is significantly correlated in time ('serial correlation').\n"
@@ -265,26 +281,31 @@ int main( int argc , char *argv[] )
       "    REML function is instead simply optimized over a finite grid of\n"
       "    the correlation matrix parameters a and b.  The matrices for each\n"
       "    (a,b) pair are pre-calculated in the setup phase, and then are\n"
-      "    re-used in the voxel loop.\n"
+      "    re-used in the voxel loop.  The purpose of this grid-based method\n"
+      "    is speed.\n"
       "* REML estimates of the variance/correlation parameters are still\n"
       "    biased, but are generally less biased than ML estimates.  Also,\n"
       "    the regression parameters (betas) should be estimated somewhat\n"
       "    more accurately (i.e., with smaller variance than OLSQ).\n"
+      "* After the (a,b) parameters are estimated, then the solution to the\n"
+      "    linear system is available via Generalized Least SQuares; that is,\n"
+      "    via pre-whitening using the Choleski factor of the estimated\n"
+      "    variance/covariance matrix.\n"
       "* In the case with b=0 (that is, AR(1) correlations), and if there are\n"
       "    no time gaps (no censoring, no run breaks), then it is possible to\n"
       "    directly estimate the a parameter without using REML.  This program\n"
-      "    does not implement this special method.  Don't ask why.\n"
+      "    does not implement such a special method.  Don't ask why.\n"
       "\n"
-      "--------------\n"
-      "Other Comments\n"
-      "--------------\n"
+      "----------------\n"
+      "Other Commentary\n"
+      "----------------\n"
       "* ARMA(1,1) parameters 'a' (AR) and 'b' (MA) are estimated\n"
       "    only on a discrete grid, for the sake of CPU time.\n"
       "* Each voxel gets a separate pair of 'a' and 'b' parameters.\n"
-      "* OLSQ = Ordinary Least Squares; these outputs can be used to\n"
-      "         compare the REML estimations with the simpler OLSQ results.\n"
-      "* The OLSQ datasets will NOT be computed if -ABfile is given, since\n"
-      "    these results are only calculated during the REML fitting phase.\n"
+      "* OLSQ = Ordinary Least SQuares; these outputs can be used to compare\n"
+      "         the REML/GLSQ estimations with the simpler OLSQ results.\n"
+      "* GLSQ = Generalized Least SQuares = estimated linear system solution\n"
+      "         taking into account the variance/covariance matrix of the noise.\n"
       "* All output datasets are in float format.  Calculations internally\n"
       "    are done in double precision.\n"
       "* Despite my best efforts, this program is somewhat slow.\n"
@@ -297,11 +318,12 @@ int main( int argc , char *argv[] )
       "* Add a -jobs option to use multiple CPUs (or multiple Steves?).\n"
       "* Add a -Rfitts option to get the fitted time series model for\n"
       "    each voxel.\n"
-      "* Compute F and t statistics for the beta parameter collections,\n"
-      "    and for GLTs.\n"
+      "* Compute t statistics for the beta parameter collections and GLTs.\n"
+      "    (Right now -Rbuck only does F statistics.)\n"
       "* Output variance estimates for the betas, so they can be carried\n"
       "    to the group analysis level.\n"
       "* Prove that Apery's constant is transcendental.\n"
+      "* Establish the nature of quantum mechanical 'observation'.\n"
       "\n"
 		"=======================\n"
       "== RWCox - July 2008 ==\n"
@@ -342,8 +364,8 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-Grid") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        nlevab = (int)strtod(argv[iarg],NULL) ;
-            if( nlevab < 3 ){ nlevab = 3; WARNING_message("-Grid re-set to 3"); }
-       else if( nlevab > 7 ){ nlevab = 7; WARNING_message("-Grid re-set to 7"); }
+            if( nlevab < 3 ){ nlevab = 3; WARNING_message("-Grid reset to 3"); }
+       else if( nlevab > 7 ){ nlevab = 7; WARNING_message("-Grid reset to 7"); }
        iarg++ ; continue ;
      }
      if( strcasecmp(argv[iarg],"-MAXb") == 0 ){
@@ -423,62 +445,29 @@ int main( int argc , char *argv[] )
 
      /** prefix options */
 
-     if( strncasecmp(argv[iarg],"-Rbeta_prefix",5) == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Rbeta_prefix = strdup(argv[iarg]) ; nprefixR++ ;
-       if( !THD_filename_ok(Rbeta_prefix) )
-         ERROR_exit("Illegal string after -Rbeta_prefix") ;
-       iarg++ ; continue ;
+#undef  PREFIX_OPTION
+#define PREFIX_OPTION(vnam)                                      \
+     if( strncasecmp(argv[iarg], "-" #vnam ,5) == 0 ){           \
+       if( ++iarg >= argc )                                      \
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;   \
+       vnam = strdup(argv[iarg]) ;                               \
+       if( (#vnam)[0] == 'R' ) nprefixR++ ; else nprefixO++ ;    \
+       if( !THD_filename_ok(vnam) )                              \
+         ERROR_exit("Illegal string after %s",argv[iarg-1]) ;    \
+       iarg++ ; continue ;                                       \
      }
 
-     if( strncasecmp(argv[iarg],"-Rvar_prefix",5) == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Rvar_prefix = strdup(argv[iarg]) ; nprefixR++ ;
-       if( !THD_filename_ok(Rvar_prefix) )
-         ERROR_exit("Illegal string after -Rvar_prefix") ;
-       iarg++ ; continue ;
-     }
+     PREFIX_OPTION(Rbeta_prefix)  ;
+     PREFIX_OPTION(Rvar_prefix)   ;
+     PREFIX_OPTION(Rfitts_prefix) ;
+     PREFIX_OPTION(Rfstat_prefix) ;
+     PREFIX_OPTION(Rbuckt_prefix) ;
 
-     if( strncasecmp(argv[iarg],"-Rfitts_prefix",5) == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Rfitts_prefix = strdup(argv[iarg]) ; nprefixR++ ;
-       if( !THD_filename_ok(Rfitts_prefix) )
-         ERROR_exit("Illegal string after -Rfitts_prefix") ;
-       iarg++ ; continue ;
-     }
-
-     if( strncasecmp(argv[iarg],"-Obeta_prefix",5) == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Obeta_prefix = strdup(argv[iarg]) ; nprefixO++ ;
-       if( !THD_filename_ok(Obeta_prefix) )
-         ERROR_exit("Illegal string after -Obeta_prefix") ;
-       iarg++ ; continue ;
-     }
-
-     if( strncasecmp(argv[iarg],"-Ovar_prefix",5) == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Ovar_prefix = strdup(argv[iarg]) ; nprefixO++ ;
-       if( !THD_filename_ok(Ovar_prefix) )
-         ERROR_exit("Illegal string after -Ovar_prefix") ;
-       iarg++ ; continue ;
-     }
-
-     if( strncasecmp(argv[iarg],"-Ofitts_prefix",5) == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Ofitts_prefix = strdup(argv[iarg]) ; nprefixO++ ;
-       if( !THD_filename_ok(Ofitts_prefix) )
-         ERROR_exit("Illegal string after -Ofitts_prefix") ;
-       iarg++ ; continue ;
-     }
-
-     if( strncasecmp(argv[iarg],"-Rfstat_prefix",5) == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       Rfstat_prefix = strdup(argv[iarg]) ; nprefixO++ ;
-       if( !THD_filename_ok(Rfstat_prefix) )
-         ERROR_exit("Illegal string after -Rfstat_prefix") ;
-       do_fstat = 1 ;
-       iarg++ ; continue ;
-     }
+     PREFIX_OPTION(Obeta_prefix)  ;
+     PREFIX_OPTION(Ovar_prefix)   ;
+     PREFIX_OPTION(Ofitts_prefix) ;
+     PREFIX_OPTION(Ofstat_prefix) ;
+     PREFIX_OPTION(Obuckt_prefix) ;
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
@@ -493,6 +482,9 @@ int main( int argc , char *argv[] )
    dx = fabsf(DSET_DX(inset)) ; nx = DSET_NX(inset) ;
    dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ;
    dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
+
+   do_fstat = (Rbuckt_prefix != NULL) || (Rfstat_prefix != NULL) ||
+              (Obuckt_prefix != NULL) || (Ofstat_prefix != NULL)   ;
 
    do_stimstat = do_stat = (do_fstat || do_tstat) ;
 
@@ -515,7 +507,7 @@ int main( int argc , char *argv[] )
      aim = DSET_BRICK(abset,0); abot = mri_min(aim); atop = mri_max(aim);
      bim = DSET_BRICK(abset,0); bbot = mri_min(bim); btop = mri_max(bim);
      if( abot < -0.9f || atop > 0.9f || bbot < -0.9f || btop > 0.9f )
-       ERROR_exit("-ABfile (a,b) values out of range -0.9..+0.9") ;
+       ERROR_exit("-ABfile (a,b) values out of range -0.9..+0.9 ?!") ;
 
      REML_allow_negative_correlations(1) ;
      if( do_mfilt ){
@@ -531,19 +523,6 @@ int main( int argc , char *argv[] )
 
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
      bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
-
-     if( Obeta_prefix != NULL ){
-       WARNING_message("-Obeta file won't be created due to -ABfile option");
-       Obeta_prefix = NULL ;
-     }
-     if( Ovar_prefix != NULL ){
-       WARNING_message("-Ovar file won't be created due to -ABfile option");
-       Ovar_prefix = NULL ;
-     }
-     if( Ofitts_prefix != NULL ){
-       WARNING_message("-Ofitts file won't be created due to -ABfile option");
-       Ofitts_prefix = NULL ;
-     }
    }
 
    /*-- process the mask --*/
@@ -567,7 +546,7 @@ int main( int argc , char *argv[] )
    nreg  = nelmat->vec_num ;  /* number of matrix columns */
    ntime = nelmat->vec_len ;  /* number of matrix rows */
 
-   /* number of rows in the full matrix */
+   /* number of rows in the full matrix (without censoring) */
 
    cgl = NI_get_attribute( nelmat , "NRowFull" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'NRowFull' attribute!") ;
@@ -576,7 +555,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("Dataset has %d time points, but matrix indicates %d",
                 nvals , nfull ) ;
 
-   /* the goodlist = mapping from matrix row index to time index */
+   /* the goodlist = mapping from matrix row index to time index
+                     (which allows for possible time point censoring) */
 
    cgl = NI_get_attribute( nelmat , "GoodList" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'GoodList' attribute!") ;
@@ -587,7 +567,7 @@ int main( int argc , char *argv[] )
    if( Ngoodlist != ntime )
      ERROR_exit("Matrix 'GoodList' incorrect length?!") ;
 
-   /* run starting points in time index */
+   /* run starting points in time indexes */
 
    rst = NI_get_attribute( nelmat , "RunStart" ) ;
    if( rst != NULL ){
@@ -606,33 +586,46 @@ int main( int argc , char *argv[] )
      jj = goodlist[ii] ;        /* time index of the ii-th matrix row */
                               /* then find which run this point is in */
      for( ; rnum+1 < Nruns && jj >= runs[rnum+1] ; rnum++ ) ;   /*nada*/
-     tau[ii] = jj + 10000*rnum ;  /* the 10000 means 'very far apart' */
+     tau[ii] = jj + 66666*rnum ;  /* the 66666 means 'very far apart' */
    }
 
-   /* re-create the regression matrix X */
+   /* re-create the regression matrix X, from the NIML data element */
 
    matrix_initialize( &X ) ;
    matrix_create( ntime , nreg , &X ) ;
-   if( nelmat->vec_typ[0] == NI_FLOAT ){
+   if( nelmat->vec_typ[0] == NI_FLOAT ){        /* from 3dDeconvolve_f */
      float *cd ;
      for( jj=0 ; jj < nreg ; jj++ ){
        cd = (float *)nelmat->vec[jj] ;
        for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (MTYPE)cd[ii] ;
      }
-   } else if( nelmat->vec_typ[0] == NI_DOUBLE ){
+   } else if( nelmat->vec_typ[0] == NI_DOUBLE ){  /* from 3dDeconvolve */
      double *cd ;
      for( jj=0 ; jj < nreg ; jj++ ){
        cd = (double *)nelmat->vec[jj] ;
        for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (MTYPE)cd[ii] ;
      }
    } else {
-     ERROR_exit("Matrix file stored will illegal data type!?") ;
+     ERROR_exit("Matrix file stored with illegal data type!?") ;
+   }
+
+   /* get column labels for the betas */
+
+   cgl = NI_get_attribute( nelmat , "ColumnLabels" ) ;
+   if( cgl == NULL ){
+     WARNING_message("ColumnLabels attribute in matrix is missing!?") ;
+   } else {
+     gsar = NI_decode_string_list( cgl , ";" ) ;
+     if( gsar == NULL || gsar->num < nreg )
+       ERROR_exit("ColumnLabels attribute in matrix is malformed!?") ;
+     beta_lab = gsar->str ;
    }
 
    /* extract stim information from matrix header */
 
    cgl = NI_get_attribute( nelmat , "Nstim" ) ;
    if( cgl != NULL ){
+
      stim_num = (int)strtod(cgl,NULL) ;
      if( stim_num <= 0 ) ERROR_exit("Nstim attribute in matrix is not positive!");
 
@@ -656,11 +649,17 @@ int main( int argc , char *argv[] )
      if( gsar == NULL || gsar->num < stim_num )
        ERROR_exit("Matrix 'StimLabels' badly formatted?!") ;
      stim_lab = gsar->str ;
-   } else {
+
+   } else {  /* don't have stim info in matrix header?! */
+
      WARNING_message("Matrix file is missing Stim attributes") ;
      if( do_stimstat ){
        WARNING_message("==> Can't do statistics on the Stimuli") ;
        do_stimstat = 0 ;
+     }
+     if( Rbuckt_prefix != NULL || Obuckt_prefix != NULL ){
+       WARNING_message("==> Can't create bucket datasets") ;
+       Rbuckt_prefix = Obuckt_prefix = NULL ;
      }
    }
 
@@ -677,7 +676,7 @@ int main( int argc , char *argv[] )
      char lnam[32] ; int nn,mm ; matrix *gm ;
      int *set = (int *)malloc(sizeof(int)*nreg) ;  /* list of columns to keep */
 
-     /* first set is all stimuli */
+     /* first set of indexes is all stimuli */
 
      for( kk=jj=0 ; jj < stim_num ; jj++ ){
        for( ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
@@ -690,25 +689,20 @@ int main( int argc , char *argv[] )
      memcpy( allstim , set , sizeof(int)*num_allstim ) ;
      qsort_int( num_allstim , allstim ) ;
 
-#if 0
-     /* now do each stimulus separately */
+     /* now do each labeled stimulus separately */
 
-     if( stim_num > 0 ){
-       for( jj=0 ; jj < stim_num ; jj++ ){
-         for( kk=0,ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
-         gm = create_subset_matrix( nreg , kk , set ) ;
-         if( gm == NULL ) ERROR_exit("Can't create G matrix for %s?!",stim_lab[jj]);
-         ADD_GLT( stim_lab[jj] , gm ) ;
-       }
+     for( jj=0 ; jj < stim_num ; jj++ ){
+       for( kk=0,ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
+       gm = create_subset_matrix( nreg , kk , set ) ;
+       if( gm == NULL ) ERROR_exit("Can't create G matrix for %s?!",stim_lab[jj]);
+       ADD_GLT( stim_lab[jj] , gm ) ;
      }
-#endif
 
-     free((void *)set) ;  /* not needed no more, no how */
+     free((void *)set) ;  /* not needed no more, no how, no way */
    }
 
    /* extract other GLT information from matrix header */
 
-#if 0
    cgl = NI_get_attribute( nelmat , "Nglt" ) ;
    if( cgl != NULL && do_stat ){
      char lnam[32] ; int nn,mm,ngl ; matrix *gm ; float *far ;
@@ -743,7 +737,6 @@ int main( int argc , char *argv[] )
 
      INFO_message("Read %d GLTs from matrix header",ngl) ;
    }
-#endif
 
    /**------- set up for REML estimation -------**/
 
@@ -751,8 +744,9 @@ int main( int argc , char *argv[] )
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
    INFO_message("starting REML setup calculations") ;
-   rrcol = REML_setup_all( &X , tau , nlevab,rhomax,bmax ) ;
+   rrcol = REML_setup_all( &X , tau , nlevab,rhomax,bmax ) ; /* takes a while */
    if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
+   izero = rrcol->izero ;  /* index of (a=0,b=0) case */
 
    if( glt_num > 0 )
      INFO_message("adding %d statistics matri%s to REML setup",
@@ -763,58 +757,33 @@ int main( int argc , char *argv[] )
    INFO_message("REML setup finished: matrix rows=%d cols=%d; %d cases; CPU=%.2f",
                 ntime,nreg,rrcol->nset,COX_cpu_time()) ;
 
-   /*----- create output datasets -----*/
-
-   Obeta_dset = create_float_dataset( inset , nreg , Obeta_prefix ) ;
-   Ovar_dset  = create_float_dataset( inset , 1    , Ovar_prefix  ) ;
-   Ofitts_dset= create_float_dataset( inset , nfull, Ofitts_prefix) ;
-
    /***------- loop over voxels, find best REML values ------***/
 
-   if( aim == NULL ){  /*--- if we don't already have (a,b) ---*/
+   vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
+   iv = (float *)malloc(sizeof(float)*(nvals+nreg+glt_num+9)) ;
+
+   if( aim == NULL ){  /*--- if we don't already have (a,b) from -ABfile ---*/
 
      aim = mri_new_vol( nx,ny,nz , MRI_float ) ;
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
      bim = mri_new_vol( nx,ny,nz , MRI_float ) ;
      bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
 
-     vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
-     iv = (float *)malloc(sizeof(float)*nvals) ;
      vstep = (nvox > 999) ? nvox/50 : 0 ;
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-     for( vv=0 ; vv < nvox ; vv++ ){
+     for( vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
-       (void)THD_extract_array( vv , inset , 0 , iv ) ;
+       (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
        (void)REML_find_best_case( &y , rrcol ) ;
        aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
-
-       if( Obeta_dset != NULL ){     /* save OLSQ results? */
-         for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = REML_olsq_beta_vector.elts[ii] ;
-         THD_insert_series( vv , Obeta_dset , nreg , MRI_float , iv , 0 ) ;
-       }
-       if( Ovar_dset != NULL ){
-         iv[0] = sqrt( REML_olsq_ssq / (ntime-nreg) ) ;
-         THD_insert_series( vv , Ovar_dset , 1 , MRI_float , iv , 0 ) ;
-       }
-
      }
      if( vstep ) fprintf(stderr,"\n") ;
      INFO_message("REML estimation done: CPU=%.2f",COX_cpu_time()) ;
 
-     if( Obeta_dset != NULL ){
-       DSET_write(Obeta_dset); WROTE_DSET(Obeta_dset); DSET_delete(Obeta_dset);
-     }
-     if( Ovar_dset  != NULL ){
-       DSET_write(Ovar_dset); WROTE_DSET(Ovar_dset); DSET_delete(Ovar_dset);
-     }
-     if( Ofitts_dset != NULL ){
-       DSET_write(Ofitts_dset); WROTE_DSET(Ofitts_dset); DSET_delete(Ofitts_dset);
-     }
-
-     /*-- median filter? --*/
+     /*-- median filter (a,b)? --*/
 
      if( do_mfilt ){
        MRI_IMAGE *afilt , *bfilt ;
@@ -830,7 +799,7 @@ int main( int argc , char *argv[] )
        }
      }
 
-   }
+   } /* end of REML estimation */
 
    /*-- at this point, aim and bim contain the (a,b) parameters --*/
    /*-- (either from -ABfile or from REML loop just done above) --*/
@@ -839,6 +808,11 @@ int main( int argc , char *argv[] )
    /*-- Squares (GLSQ) solution at each voxel, and save results --*/
 
    Rbeta_dset = create_float_dataset( inset , nreg , Rbeta_prefix ) ;
+   if( beta_lab != NULL ){
+     for( ii=0 ; ii < nreg ; ii++ )
+       EDIT_BRICK_LABEL( Rbeta_dset , ii , beta_lab[ii] ) ;
+   }
+
    Rvar_dset  = create_float_dataset( inset , 4    , Rvar_prefix  ) ;
    if( Rvar_dset != NULL ){
      EDIT_BRICK_LABEL( Rvar_dset , 0 , "a" ) ;
@@ -846,57 +820,176 @@ int main( int argc , char *argv[] )
      EDIT_BRICK_LABEL( Rvar_dset , 2 , "lam" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 3 , "StDev" ) ;
    }
+
    Rfitts_dset = create_float_dataset( inset , nfull, Rfitts_prefix ) ;
 
    Rfstat_dset = create_float_dataset( inset , glt_num, Rfstat_prefix ) ;
    if( Rfstat_dset != NULL ){
-     EDIT_BRICK_LABEL( Rfstat_dset , 0 , "FullF" ) ;
+     char lll[256] ;
+     for( ii=0 ; ii < glt_num ; ii++ ){
+       sprintf( lll , "%s_F" , glt_lab[ii] ) ;
+       EDIT_BRICK_LABEL( Rfstat_dset , ii , lll ) ;
+     }
    }
+
+   nbuckt = num_allstim + glt_num ;
+   Rbuckt_dset = create_float_dataset( inset , nbuckt , Rbuckt_prefix ) ;
+   if( Rbuckt_dset != NULL ){
+     char lll[256] ; kk = 0 ;
+     sprintf( lll , "%s_F" , glt_lab[0] ) ;
+     EDIT_BRICK_LABEL( Rbuckt_dset , 0 , lll ) ; kk++ ;
+     for( ii=0 ; ii < stim_num ; ii++ ){
+       for( jj=stim_bot[ii] ; jj <= stim_top[ii] ; jj++ ){
+         sprintf( lll , "%s#%d" , stim_lab[ii] , jj-stim_bot[ii] ) ;
+         EDIT_BRICK_LABEL( Rbuckt_dset , kk , lll ) ; kk++ ;
+       }
+       sprintf( lll , "%s_F" , stim_lab[ii] ) ;
+       EDIT_BRICK_LABEL( Rbuckt_dset , kk , lll ) ; kk++ ;
+     }
+     for( ii=stim_num+1 ; ii < glt_num ; ii++ ){
+       sprintf( lll , "%s_F" , glt_lab[ii] ) ;
+       EDIT_BRICK_LABEL( Rbuckt_dset , kk , lll ) ; kk++ ;
+     }
+   }
+
+   do_Rstuff = (Rfstat_dset != NULL) || (Rbeta_dset  != NULL)  ||
+               (Rvar_dset   != NULL) || (Rfitts_dset != NULL ) ||
+               (Rbuckt_dset != NULL) ;
+
+   if( glt_num > 0 )
+     gv = (float *)malloc(sizeof(float)*glt_num) ;
+
+   /*-- create OLSQ outputs, if any --*/
+
+   Obeta_dset = create_float_dataset( inset , nreg , Obeta_prefix ) ;
+   if( beta_lab != NULL ){
+     for( ii=0 ; ii < nreg ; ii++ )
+       EDIT_BRICK_LABEL( Obeta_dset , ii , beta_lab[ii] ) ;
+   }
+
+   Ovar_dset  = create_float_dataset( inset , 1    , Ovar_prefix  ) ;
+   if( Ovar_dset != NULL ){
+     EDIT_BRICK_LABEL( Ovar_dset , 0 , "StDev" ) ;
+   }
+
+   Ofitts_dset = create_float_dataset( inset , nfull, Ofitts_prefix ) ;
+
+   Ofstat_dset = create_float_dataset( inset , glt_num, Ofstat_prefix ) ;
+   if( Ofstat_dset != NULL ){
+     char lll[256] ;
+     for( ii=0 ; ii < glt_num ; ii++ ){
+       sprintf( lll , "%s_F" , glt_lab[ii] ) ;
+       EDIT_BRICK_LABEL( Ofstat_dset , ii , lll ) ;
+     }
+   }
+
+   do_Ostuff = (Ofstat_dset != NULL) || (Obeta_dset  != NULL) ||
+               (Ovar_dset   != NULL) || (Ofitts_dset != NULL ) ;
+
+   /*---- and do the second voxel loop ----*/
 
    if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
    for( vv=0 ; vv < nvox ; vv++ ){
      if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
      if( !INMASK(vv) ) continue ;
-     (void)THD_extract_array( vv , inset , 0 , iv ) ;
+     (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
      for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
-     jj = IAB(rrcol,aar[vv],bar[vv]) ;  /* closest point in the grid */
-     if( rrcol->rs[jj] == NULL ){       /* try to fix up this oversight */
-       int ia = jj % (1+rrcol->na); MTYPE aaa = rrcol->abot + ia * rrcol->da;
-       int ib = jj / (1+rrcol->na); MTYPE bbb = rrcol->bbot + ib * rrcol->db;
-       rrcol->rs[jj] = REML_setup_one( &X , tau , aaa,bbb ) ;
-       for( kk=0 ; kk < glt_num ; kk++ )
-         REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[kk]) ;
-     }
-     if( rrcol->rs[jj] == NULL ){ /* should never happen */
-       ERROR_message("bad REML: voxel #%d (%d,%d,%d) has a=%.3f b=%.3f lam=%.3f jj=%d",
-                       vv, DSET_index_to_ix(inset,vv) ,
-                           DSET_index_to_jy(inset,vv) ,
-                           DSET_index_to_kz(inset,vv) ,
-                       aar[vv],bar[vv],LAMBDA(aar[vv],bar[vv]),jj) ;
-     } else {
-       (void)REML_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
-       if( Rbeta_dset != NULL ){
-         for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = bb5->elts[ii] ;
-         THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
-       }
-       if( Rvar_dset != NULL ){
-         iv[0] = rrcol->rs[jj]->rho ; iv[1] = rrcol->rs[jj]->barm ;
-         iv[2] = rrcol->rs[jj]->lam ; iv[3] = sqrt( rsumq / (ntime-nreg) ) ;
-         THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
-       }
-       if( glt_num > 0 && Rfstat_dset != NULL ){
-         if( rrcol->rs[jj]->glt == NULL )
-           REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[0] ) ;
 
-         iv[0] = REML_compute_fstat( &y , bb5 , rsumq ,
-                                     rrcol->rs[jj] , rrcol->rs[jj]->glt[0] ,
-                                     rrcol->X , rrcol->Xs ) ;
-         THD_insert_series( vv , Rfstat_dset , 1 , MRI_float , iv , 0 ) ;
+     if( do_Rstuff ){
+       jj = IAB(rrcol,aar[vv],bar[vv]) ;  /* closest point in the grid */
+       if( rrcol->rs[jj] == NULL ){       /* try to fix up this oversight */
+         int ia = jj % (1+rrcol->na); MTYPE aaa = rrcol->abot + ia * rrcol->da;
+         int ib = jj / (1+rrcol->na); MTYPE bbb = rrcol->bbot + ib * rrcol->db;
+         rrcol->rs[jj] = REML_setup_one( &X , tau , aaa,bbb ) ;
+         for( kk=0 ; kk < glt_num ; kk++ )
+           REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[kk]) ;
        }
-     }
-   }
+       if( rrcol->rs[jj] == NULL ){ /* should never happen */
+         ERROR_message("bad REML! voxel #%d (%d,%d,%d) has a=%.3f b=%.3f lam=%.3f jj=%d",
+                         vv, DSET_index_to_ix(inset,vv) ,
+                             DSET_index_to_jy(inset,vv) ,
+                             DSET_index_to_kz(inset,vv) ,
+                         aar[vv],bar[vv],LAMBDA(aar[vv],bar[vv]),jj) ;
+       } else {
+         (void)REML_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
+         if( Rbeta_dset != NULL ){
+           for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = bb5->elts[ii] ;
+           THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
+         }
+         if( Rvar_dset != NULL ){
+           iv[0] = rrcol->rs[jj]->rho ; iv[1] = rrcol->rs[jj]->barm ;
+           iv[2] = rrcol->rs[jj]->lam ; iv[3] = sqrt( rsumq / (ntime-nreg) ) ;
+           THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
+         }
+         if( glt_num > 0 ){
+           for( kk=0 ; kk < glt_num ; kk++ )
+             iv[kk] = REML_compute_fstat( &y , bb5 , rsumq ,
+                                          rrcol->rs[jj] , rrcol->rs[jj]->glt[kk] ,
+                                          rrcol->X , rrcol->Xs ) ;
+         }
+         if( Rfstat_dset != NULL ){
+           THD_insert_series( vv , Rfstat_dset , glt_num , MRI_float , gv , 0 ) ;
+         }
+         if( Rbuckt_dset != NULL ){
+           kk = 0 ;
+           iv[kk] = gv[0] ; kk++ ;   /* Full F */
+           for( ii=0 ; ii < stim_num ; ii++ ){
+             for( jj=stim_bot[ii] ; jj <= stim_top[ii] ; jj++ ){
+               iv[kk] =  bb5->elts[jj] ; kk++ ;  /* betas for stim #ii */
+             }
+             iv[kk] = gv[ii+1] ; kk++ ; /* F for stim #ii */
+           }
+           for( ii=stim_num+1 ; ii < glt_num ; ii++ ){
+             iv[kk] = gv[ii] ; kk++ ;   /* extra GLT F stats */
+           }
+           THD_insert_series( vv , Rbuckt_dset , kk , MRI_float , iv , 0 ) ;
+         }
+       }
+     }  /* end of GLSQ stuff */
+
+     if( do_Ostuff ){
+       jj = izero ;
+       if( rrcol->rs[jj] == NULL ){       /* try to fix up this oversight */
+         int ia = jj % (1+rrcol->na); MTYPE aaa = rrcol->abot + ia * rrcol->da;
+         int ib = jj / (1+rrcol->na); MTYPE bbb = rrcol->bbot + ib * rrcol->db;
+         rrcol->rs[jj] = REML_setup_one( &X , tau , aaa,bbb ) ;
+         for( kk=0 ; kk < glt_num ; kk++ )
+           REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[kk]) ;
+       }
+       if( rrcol->rs[jj] == NULL ){ /* should never happen */
+         ERROR_message("bad OLSQ! voxel #%d (%d,%d,%d) jj=%d",
+                         vv, DSET_index_to_ix(inset,vv) ,
+                             DSET_index_to_jy(inset,vv) ,
+                             DSET_index_to_kz(inset,vv) , jj ) ;
+       } else {
+         (void)REML_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
+
+         if( Obeta_dset != NULL ){
+           for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = bb5->elts[ii] ;
+           THD_insert_series( vv , Obeta_dset , nreg , MRI_float , iv , 0 ) ;
+         }
+         if( Ovar_dset != NULL ){
+           iv[0] = sqrt( rsumq / (ntime-nreg) ) ;
+           THD_insert_series( vv , Ovar_dset , 1 , MRI_float , iv , 0 ) ;
+         }
+         if( glt_num > 0 && Ofstat_dset != NULL ){
+           if( rrcol->rs[jj]->glt == NULL )
+             REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[0] ) ;
+
+           iv[0] = REML_compute_fstat( &y , bb5 , rsumq ,
+                                       rrcol->rs[jj] , rrcol->rs[jj]->glt[0] ,
+                                       rrcol->X , rrcol->Xs ) ;
+           THD_insert_series( vv , Ofstat_dset , 1 , MRI_float , iv , 0 ) ;
+         }
+       }
+     } /* end of OLSQ stuff */
+
+   } /* end of voxel loop */
    if( vstep ) fprintf(stderr,"\n") ;
    INFO_message("GLSQ regression done: CPU=%.2f",COX_cpu_time()) ;
+   DSET_unload(inset) ;
+
+   /*----- write output data to disk -----*/
 
    if( Rbeta_dset != NULL ){
      DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); DSET_delete(Rbeta_dset);
@@ -909,6 +1002,25 @@ int main( int argc , char *argv[] )
    }
    if( Rfstat_dset != NULL ){
      DSET_write(Rfstat_dset); WROTE_DSET(Rfstat_dset); DSET_delete(Rfstat_dset);
+   }
+   if( Rbuckt_dset != NULL ){
+     DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_delete(Rbuckt_dset);
+   }
+
+   if( Obeta_dset != NULL ){
+     DSET_write(Obeta_dset); WROTE_DSET(Obeta_dset); DSET_delete(Obeta_dset);
+   }
+   if( Ovar_dset  != NULL ){
+     DSET_write(Ovar_dset); WROTE_DSET(Ovar_dset); DSET_delete(Ovar_dset);
+   }
+   if( Ofitts_dset != NULL ){
+     DSET_write(Ofitts_dset); WROTE_DSET(Ofitts_dset); DSET_delete(Ofitts_dset);
+   }
+   if( Ofstat_dset != NULL ){
+     DSET_write(Ofstat_dset); WROTE_DSET(Ofstat_dset); DSET_delete(Ofstat_dset);
+   }
+   if( Obuckt_dset != NULL ){
+     DSET_write(Obuckt_dset); WROTE_DSET(Obuckt_dset); DSET_delete(Obuckt_dset);
    }
 
    exit(0) ;
