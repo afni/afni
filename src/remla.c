@@ -909,10 +909,10 @@ ENTRY("REML_get_gltfactors") ;
    /* [D] is nn X nn (upper triangular); [G] is rr X nn, with rr < nn */
 
    GT = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(GT) ;
-   matrix_transpose( *G , GT ) ;          /* GT = [G'] = nn X rr matrix */
+   matrix_transpose( *G , GT ) ;         /* GT = [G'] = nn X rr matrix */
 
    F = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(F) ;
-   matrix_rrtran_solve( *D , *GT , F ) ;  /* F = inv[D] [G'] = nn X rr matrix */
+   matrix_rrtran_solve( *D , *GT , F ) ; /* F = inv[D'] [G'] = nn X rr matrix */
    matrix_destroy(GT); free(GT);
 
    S = (vector *)malloc(sizeof(vector)) ; vector_initialize(S) ;
@@ -995,14 +995,18 @@ ENTRY("REML_add_glt_to_all") ;
 
 /*--------------------------------------------------------------------------*/
 
-MTYPE REML_compute_fstat( vector *y, vector *bfull, MTYPE fsumq ,
-                          reml_setup *rset, gltfactors *gf,
-                          matrix *X, sparsecolmat *Xs            )
+static vector *betaG = NULL ;  /* GLT combinations */
+static vector *betaT = NULL ;  /* GLT t-statistics */
+
+MTYPE REML_compute_gltstat( vector *y, vector *bfull, MTYPE fsumq ,
+                            reml_setup *rset, gltfactors *gf,
+                            matrix *G, matrix *X, sparsecolmat *Xs )
 {
    MTYPE fstat , rsumq ;
    vector ba , bb , br ;
 
-   if( y == NULL || bfull == NULL || rset == NULL || gf == NULL ) return 0.0 ;
+   if( y == NULL || bfull == NULL ||
+                    rset  == NULL || gf == NULL || fsumq <= 0.0 ) return 0.0 ;
 
    vector_initialize(&ba); vector_initialize(&bb); vector_initialize(&br);
 
@@ -1035,6 +1039,23 @@ MTYPE REML_compute_fstat( vector *y, vector *bfull, MTYPE fsumq ,
       residuals between this restricted model and the full model */
 
    fstat = ( (rsumq-fsumq) / gf->rglt ) / ( fsumq / (X->rows - X->cols) ) ;
-   if( fstat < 0.0 ) fstat = 0.0 ;
+   if( fstat < 0.0 ) fstat = 0.0 ;  /* should not happen */
+
+   /* compute  GLT combinations of beta coefficients, and t-statistics */
+
+   if( betaG == NULL ){
+     betaG = (vector *)malloc(sizeof(vector)) ; vector_initialize(betaG) ;
+     betaT = (vector *)malloc(sizeof(vector)) ; vector_initialize(betaT) ;
+   }
+
+   if( G != NULL ){
+     MTYPE fsig ; int ii ;
+     fsig = sqrt( fsumq / (X->rows - X->cols) ) ;
+     vector_multiply( *G , *bfull , betaG ) ;
+     vector_create_noinit( betaG->dim , betaT ) ;
+     for( ii=0 ; ii < betaG->dim ; ii++ )
+       betaT->elts[ii] = betaG->elts[ii] / (gf->sig->elts[ii]*fsig) ;
+   }
+
    return fstat ;
 }
