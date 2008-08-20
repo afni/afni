@@ -1472,7 +1472,7 @@ void matrix_colsqsums( matrix a , vector *v )
 
    for( j=0 ; j < cols ; j++ ){
      for( sum=0.0,i=0 ; i < rows ; i++ ) sum += aa[i][j] * aa[i][j] ;
-     vp[j] = sum ;
+     vp[j] = sqrt(sum) ;
    }
    return ;
 }
@@ -1812,11 +1812,13 @@ void vector_rr_solve( matrix R , vector b , vector *x )
 
    vector_create_noinit( n , x ) ; xp = x->elts ; bp = b.elts ;
 
+   /* backwards loop, from last element to first */
+
    for( ii=n-1 ; ii >= 0 ; ii-- ){
      rr = R.elts[ii] ; sum = bp[ii] ;
-     for( jj=ii+1 ; jj < n1 ; jj+=2 )
+     for( jj=ii+1 ; jj < n1 ; jj+=2 )         /* unrolled by 2 */
        sum -= rr[jj] * xp[jj] + rr[jj+1] * xp[jj+1] ;
-     if( jj == n1 ) sum -= rr[jj] * xp[jj] ;
+     if( jj == n1 ) sum -= rr[jj] * xp[jj] ;  /* fix unroll if odd length */
      xp[ii] = sum / rr[ii] ;
    }
 
@@ -1835,7 +1837,7 @@ void vector_rrtran_solve( matrix R , vector b , vector *x )
    if( n < 1 || R.cols != n || x == NULL ) return ;
 
    bp = b.elts ;
-#if 0             /* the obvious way */
+#if 0             /* the obvious way, but is slower */
    vector_create_noinit( n , x ) ; xp = x->elts ;
    for( ii=0 ; ii < n ; ii++ ){
      for( sum=bp[ii],jj=0 ; jj < ii ; jj++ )
@@ -1846,10 +1848,10 @@ void vector_rrtran_solve( matrix R , vector b , vector *x )
    vector_equate( b , x ) ; xp = x->elts ;
    for( ii=0 ; ii < n ; ii++ ){
      rr = R.elts[ii] ; sum = xp[ii] = xp[ii] / rr[ii] ;
-     for( jj=ii+1 ; jj < n1 ; jj+=2 ){
+     for( jj=ii+1 ; jj < n1 ; jj+=2 ){     /* unrolled by 2 */
        xp[jj] -= rr[jj]*sum ; xp[jj+1] -= rr[jj+1]*sum ;
      }
-     if( jj == n1 ) xp[jj] -= rr[jj]*sum ;
+     if( jj == n1 ) xp[jj] -= rr[jj]*sum ; /* fix unroll if odd length */
    }
 #endif
 
@@ -1857,6 +1859,7 @@ void vector_rrtran_solve( matrix R , vector b , vector *x )
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Solve [R] [X] = [B] for matrix X, where R is upper triangular. */
 
 void matrix_rr_solve( matrix R , matrix B , matrix *X )
 {
@@ -1868,6 +1871,8 @@ void matrix_rr_solve( matrix R , matrix B , matrix *X )
    vector_initialize(&u) ; vector_initialize(&v) ;
    matrix_create( n , m , X ) ;
 
+   /* extract each column from B, solve, put resulting column into X */
+
    for( j=0 ; j < m ; j++ ){
      column_to_vector( B , j , &u ) ;
      vector_rr_solve( R , u , &v ) ;
@@ -1877,6 +1882,8 @@ void matrix_rr_solve( matrix R , matrix B , matrix *X )
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Solve [R'] [X] = [B] for matrix X, where R is upper triangular
+    (and so R' is lower triangular). */
 
 void matrix_rrtran_solve( matrix R , matrix B , matrix *X )
 {
@@ -1887,6 +1894,8 @@ void matrix_rrtran_solve( matrix R , matrix B , matrix *X )
 
    vector_initialize(&u) ; vector_initialize(&v) ;
    matrix_create( n , m , X ) ;
+
+   /* extract each column from B, solve, put resulting column into X */
 
    for( j=0 ; j < m ; j++ ){
      column_to_vector( B , j , &u ) ;

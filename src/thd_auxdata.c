@@ -253,11 +253,11 @@ void THD_store_datablock_stataux( THD_datablock *dblk ,
    myXtFree( dblk->brick_stataux[iv] ) ;  /* if any old stuff, toss it */
 
    if( kv > 0 ){
-      dblk->brick_stataux[iv] = (float *) XtMalloc( sizeof(float) * kv ) ;
-      for( jv=0 ; jv < npar ; jv++ )
-         dblk->brick_stataux[iv][jv] = par[jv] ; /* copy in */
-      for( ; jv < kv ; jv++ )
-         dblk->brick_stataux[iv][jv] = 0.0 ;     /* 0 fill */
+     dblk->brick_stataux[iv] = (float *) XtMalloc( sizeof(float) * kv ) ;
+     for( jv=0 ; jv < npar ; jv++ )
+       dblk->brick_stataux[iv][jv] = par[jv] ; /* copy in */
+     for( ; jv < kv ; jv++ )
+       dblk->brick_stataux[iv][jv] = 0.0 ;     /* 0 fill */
    }
 
    return ;
