@@ -423,8 +423,8 @@ extern int                EDIT_dset_items( THD_3dim_dataset * , ... ) ;
 extern THD_3dim_dataset * EDIT_geometry_constructor( char * , char * ) ; /* 05 Jan 2008 */
 extern char * EDIT_get_geometry_string( THD_3dim_dataset *dset ) ;
 
-extern int THD_volDXYZscale(  THD_dataxes  * daxes, 
-                              float xyzscale, 
+extern int THD_volDXYZscale(  THD_dataxes  *daxes,
+                              float xyzscale,
                               int reuse_shift);    /* ZSS Dec 07 */
 extern THD_3dim_dataset * EDIT_wod_copy( THD_3dim_dataset * ) ; /* 31 Jul 2002 */
 extern THD_datablock *    EDIT_empty_datablock(void) ;          /* 11 Mar 2005 */
@@ -517,9 +517,9 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
 #define ADN_brick_keywords_replace_one  (5*ADN_ONE_STEP)  /*=  char *   =*/
 #define ADN_brick_keywords_append_one   (6*ADN_ONE_STEP)  /*=  char *   =*/
 
-/*-----------------------------------------------------------------
-   These 2 macros added 14 Dec 1999
--------------------------------------------------------------------*/
+/*------------------------------------------------------------------*/
+/* These 2 macros added 14 Dec 1999 */
+/*------------------------------------------------------------------*/
 
 /*! Copy anat parent from old datasets ods to new dataset nds. */
 
@@ -533,6 +533,24 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
 #define EDIT_ZERO_ANATOMY_PARENT_ID(nds)                 \
   do{ if( ISVALID_DSET(nds) )                             \
          ZERO_IDCODE((nds)->anat_parent_idcode); } while(0)
+
+/*------------------------------------------------------------------*/
+/* These 2 macros added 20 Aug 2008 */
+/*------------------------------------------------------------------*/
+
+#define EDIT_TO_FUNC_BUCKET(ds)                        \
+  EDIT_dset_items( (ds) ,                              \
+                    ADN_type      , HEAD_FUNC_TYPE ,   \
+                    ADN_func_type , FUNC_BUCK_TYPE ,   \
+                    ADN_ntt       , 0              ,   \
+                   ADN_none )
+
+#define EDIT_TO_ANAT_BUCKET(ds)                        \
+  EDIT_dset_items( (ds) ,                              \
+                    ADN_type      , HEAD_ANAT_TYPE ,   \
+                    ADN_func_type , ANAT_BUCK_TYPE ,   \
+                    ADN_ntt       , 0              ,   \
+                   ADN_none )
 
 /*------------------------------------------------------------------*/
 
