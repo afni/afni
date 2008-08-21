@@ -469,6 +469,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    Opt->efrac = -1.0;
    Opt->match_area = 0;  
    Opt->xyz_scale = 1.0; 
+   Opt->cog[0]=-9000.0f;
+   Opt->cog[1]=-9000.0f;
+   Opt->cog[2]=-9000.0f;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -581,6 +584,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
             fprintf (SUMA_STDERR, "parameter after -perc_int should be -1 or between 0 and 10 (have %f) \n", Opt->PercInt);
 				exit (1);
          }
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-cog") == 0)) {
+         kar ++;
+			if (kar+2 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -cog \n");
+				exit (1);
+			}
+			Opt->cog[0] = atof(argv[kar]); ++kar;
+         Opt->cog[1] = atof(argv[kar]); ++kar;
+         Opt->cog[2] = atof(argv[kar]); 
          brk = YUP;
 		}
       
