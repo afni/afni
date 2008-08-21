@@ -744,12 +744,14 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
       if (! ISVALID_3DIM_DATASET(new_dset)) 
 	{
 	  fprintf (stderr,"*** Unable to open dataset file %s\n",
-		   DSET_HEADNAME(new_dset));
+		   DSET_BRIKNAME(new_dset));
 	  exit(1);
 	}      
 
       strcat (command_str, " ");
-      strcat (command_str, DSET_HEADNAME(new_dset));
+      strcat (command_str, DSET_BRIKNAME(new_dset));
+
+fprintf(stderr,"** applying BRICKNAME : %s\n", DSET_BRICKNAME(new_dset));
 
       switch( use_1D_filenames ){  /* 14 Mar 2003 - RWCox */
         default: break ;
