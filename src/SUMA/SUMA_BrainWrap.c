@@ -49,7 +49,7 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
    THD_fvec3 ncoord, ndicom;
    THD_ivec3 nind3;
    float vol=-1, mass=-1, volmass = -1, *CoordList = NULL;
-   float PercRange[2], PercRangeVal[2], *fvec_sort=NULL, *fvec=NULL;
+   float PercRange[2], PercRangeVal[2], *fvec_sort=NULL, *fvec=NULL, cog[3];
    SUMA_ISINSPHERE IsIn;
    SUMA_SurfaceObject *SOhullp = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -109,7 +109,7 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
       SUMA_SL_Err("Failed to allocate CoordList");
       SUMA_RETURN(vol);
    }
-   Opt->cog[0] = Opt->cog[1] = Opt->cog[2] = 0;
+   cog[0] = cog[1] = cog[2] = 0;
    nxx = DSET_NX(Opt->in_vol);
    nxy = DSET_NX(Opt->in_vol) * DSET_NY(Opt->in_vol);
    vol = 0.0; volmass = 0;
@@ -127,20 +127,32 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
          if (!Opt->SurfaceCoil) {
             mass = SUMA_MIN_PAIR(Opt->t98, Opt->fvec[i]);
          } else mass = 1.0;
-         Opt->cog[0] += mass * ndicom.xyz[0];
-         Opt->cog[1] += mass * ndicom.xyz[1];
-         Opt->cog[2] += mass * ndicom.xyz[2];
+         cog[0] += mass * ndicom.xyz[0];
+         cog[1] += mass * ndicom.xyz[1];
+         cog[2] += mass * ndicom.xyz[2];
          volmass += mass;
          ++vol;
       } 
    }
-   Opt->cog[0] = Opt->cog[0]/volmass; 
-   Opt->cog[1] = Opt->cog[1]/volmass; 
-   Opt->cog[2] = Opt->cog[2]/volmass; 
-   if (LocalHead) {
-      fprintf (SUMA_STDERR,
-         "%s: COG %f %f %f\n",
-         FuncName, Opt->cog[0], Opt->cog[1], Opt->cog[2]); 
+   cog[0] = cog[0]/volmass; 
+   cog[1] = cog[1]/volmass; 
+   cog[2] = cog[2]/volmass; 
+   
+   if (Opt->cog[0]< -8999.0f || Opt->cog[1]< -8999.0f || Opt->cog[2]< -8999.0f) {
+      Opt->cog[0] = cog[0];
+      Opt->cog[1] = cog[1];
+      Opt->cog[2] = cog[2];
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,
+            "%s: COG %f %f %f\n",
+            FuncName, Opt->cog[0], Opt->cog[1], Opt->cog[2]); 
+      }
+   } else {
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,
+            "%s: COG preset to %f %f %f\n",
+            FuncName, Opt->cog[0], Opt->cog[1], Opt->cog[2]); 
+      }
    }
    vol *= fabs(DSET_DX(Opt->in_vol) * 
                DSET_DY(Opt->in_vol) * 
