@@ -467,10 +467,17 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
    if( new_prefix || new_directory_name || new_view_type ){
       char *nprefix = THD_deplus_prefix( prefix ) ;
+      int   smode ;
 
       THD_init_diskptr_names( dset->dblk->diskptr ,
                               directory_name , NULL ,
                               nprefix , view_type , True ) ;
+
+      /* if the storage mode has been specified via the prefix, apply it */
+      /*                                             21 Aug 2008 [rickr] */
+      smode = storage_mode_from_filename(prefix);
+      if( smode != STORAGE_UNDEFINED )
+         dset->dblk->diskptr->storage_mode = smode;
 
       if( DSET_IS_1D(dset) || DSET_IS_3D(dset) ){         /* 21 Mar 2003 */
         char *fname = dset->dblk->diskptr->brick_name ;

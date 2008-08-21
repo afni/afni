@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, AUG, 2008, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "in edt_dsetitems, if storage mode can be inferred from prefix, apply it",
+   NULL
+ } ,
+
+ { 21, AUG, 2008, RCR, "ANOVA", MINOR, TYPE_MODIFY,
+   "use DSET_BRIKNAME for dataset control, as that is updated for smode",
+   NULL
+ } ,
+
  { 18, AUG, 2008, RCR, "plug_realtime", MINOR, TYPE_MODIFY,
    "increase DRIVE_LIMIT to 4Kb, read env vars each run",
    "These variables can now be controlled through drive_afni 'SETENV'\n"
