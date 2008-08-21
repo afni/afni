@@ -4405,6 +4405,8 @@ STATUS("making prog->rowcol") ;
 
    XtAddCallback( prog->quit_pb , XmNactivateCallback ,
                   AFNI_quit_CB , im3d ) ;
+   /* check for -disable_done                21 Aug 2008 [rickr] */
+   XtSetSensitive( prog->quit_pb, GLOBAL_argopt.disable_done == 0 ) ;
 
    MCW_register_help( prog->quit_pb , AFNI_quit_help ) ;
    MCW_register_hint( prog->quit_pb , "Click twice to close window" ) ;
@@ -4974,7 +4976,9 @@ ENTRY("new_AFNI_controller") ;
                      XmNdeleteResponse , XmDO_NOTHING , /* deletion handled below */
                   NULL ) ;
 
-   XmAddWMProtocolCallback(           /* make "Close" window menu work */
+   /* make "Close" window menu work if user has not blocked the action */
+   if( GLOBAL_argopt.disable_done == 0 )
+      XmAddWMProtocolCallback(
            im3d->vwid->top_shell ,
            XmInternAtom( dc->display , "WM_DELETE_WINDOW" , False ) ,
            AFNI_quit_CB , im3d ) ;
