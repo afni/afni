@@ -60,7 +60,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose        \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump   \
            3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     \
-           3dWavelets 3dfim+ imcutup imcat 3dWinsor 3dZeropad 3dTagalign 3dUndump     \
+           3dWavelets 3dfim+ imcutup imcat 3dWinsor 3dZeropad 3dTagalign        \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid        \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum     \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual 3dGetrow \
@@ -77,7 +77,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
-           3dLocalSVD 3dLocalCormat 3dErrtsCormat                               \
+           3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dUndump 3dREMLfit            \
            3dUpsample $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -105,7 +105,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
-                  3dLocalSVD 3dLocalCormat 3dErrtsCormat                            \
+                  3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dREMLfit                  \
                   afni_history 3dUpsample 1dUpsample                                \
                   $(EXTRAS)
 
@@ -135,7 +135,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool Imon 3dresample serial_helper im2niml 3dUpsample         \
-               nifti_tool 3dAFNItoRaw DTIStudioFibertoSegments Dimon              \
+               nifti_tool 3dAFNItoRaw DTIStudioFibertoSegments Dimon 3dREMLfit    \
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample
