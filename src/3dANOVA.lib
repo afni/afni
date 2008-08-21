@@ -751,8 +751,6 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
       strcat (command_str, " ");
       strcat (command_str, DSET_BRIKNAME(new_dset));
 
-fprintf(stderr,"** applying BRICKNAME : %s\n", DSET_BRICKNAME(new_dset));
-
       switch( use_1D_filenames ){  /* 14 Mar 2003 - RWCox */
         default: break ;
 
