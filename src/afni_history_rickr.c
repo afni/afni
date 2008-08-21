@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, AUG, 2008, RCR, "afni", MINOR, TYPE_NEW_OPT,
+   "added -disable_done option to safeguard real-time mode",
+   NULL
+ } ,
+
+ { 21, AUG, 2008, RCR, "Dimon", MICRO, TYPE_MODIFY,
+   "updated help and suggest -num_slices with -sleep_init",
+   NULL
+ } ,
+
  { 21, AUG, 2008, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "in edt_dsetitems, if storage mode can be inferred from prefix, apply it",
    NULL

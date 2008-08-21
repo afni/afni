@@ -428,6 +428,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
 
    GLOBAL_argopt.enable_suma    = 1 ;      /* 29 Aug 2001 */
+   GLOBAL_argopt.disable_done   = 0 ;      /* 21 Aug 2008 */
 
    GLOBAL_argopt.yes_niml       = AFNI_yesenv("AFNI_NIML_START") ;
    GLOBAL_argopt.port_niml      = 0 ;      /* 10 Dec 2002 */
@@ -658,6 +659,15 @@ ENTRY("AFNI_parse_args") ;
         }
 
         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*---- -disable_done [21 Aug 2008, rickr] ----*/
+      /*     This flag disables use of the "done" and X buttons.
+             Close afni via plugout_drive or kill.                  */
+
+      if( strcmp(argv[narg],"-disable_done") == 0 ){
+         GLOBAL_argopt.disable_done = 1 ;
+         narg++ ; continue ;
       }
 
       /*---- -niml [28 Feb 2002] -----*/
