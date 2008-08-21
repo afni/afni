@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , AUG , 2008 , RWC , "3dREMLfit" , SUPER , TYPE_NEW_PROG ,
+   "Program to mimic 3dDeconvolve, but with serial correlations" ,
+   "Uses ARMA(1,1) model of noise, separately for each voxel." } ,
+
  { 18 , AUG , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "add -force_TR option to override input dataset TR from header" ,
    "Also added a printout of the dataset TR if the PSFB warning gets\n"
