@@ -925,7 +925,6 @@ STATUS("make other GLTs") ;
        aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
      }
      if( vstep ) fprintf(stderr,"\n") ;
-     ININFO_message("REML voxel parameters estimated: total CPU=%.2f s",COX_cpu_time()) ;
 
      /*-- median filter (a,b)? --*/
 
@@ -942,6 +941,8 @@ STATUS("make other GLTs") ;
          mri_free(bim) ; bim = bfilt ; bar = MRI_FLOAT_PTR(bim) ;
        }
      }
+
+     ININFO_message("REML voxel parameters estimated: total CPU=%.2f s",COX_cpu_time()) ;
 
    } /* end of REML estimation */
 
