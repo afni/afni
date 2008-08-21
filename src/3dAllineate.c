@@ -1145,12 +1145,13 @@ int main( int argc , char *argv[] )
        if( dset_tmask == NULL )
          ERROR_exit("can't open -source_mask dataset '%s'",argv[iarg]);
        mmm = THD_makemask( dset_tmask , 0 , 1.0f,-1.0f ) ;
-       DSET_delete(dset_tmask) ;
        if( mmm == NULL )
          ERROR_exit("Can't use -source_mask '%s' for some reason",argv[iarg]) ;
        im_tmask = mri_new_vol_empty(
                    DSET_NX(dset_tmask),DSET_NY(dset_tmask),DSET_NZ(dset_tmask) ,
                    MRI_byte ) ;
+       DSET_delete(dset_tmask) ; /* ZSS: Moved here cause that's 
+                                    right and proper*/
        mri_fix_data_pointer( mmm , im_tmask ) ;
        ntmask = THD_countmask( im_tmask->nvox , mmm ) ;
        if( ntmask < 666 )
@@ -2141,7 +2142,11 @@ int main( int argc , char *argv[] )
 
      if( im_tmask->nx != nx_targ ||
          im_tmask->ny != ny_targ || im_tmask->nz != nz_targ )
-       ERROR_exit("-source_mask and -source datasets have different dimensions!") ;
+       ERROR_exit("-source_mask and -source datasets "
+                  "have different dimensions!\n"
+                  "Have: %d %d %d versus %d %d %d\n",
+                  im_tmask->nx, im_tmask->ny , im_tmask->nz,
+                  nx_targ, ny_targ, nz_targ) ;
    }
 
    /*-- load base dataset if defined --*/

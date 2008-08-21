@@ -40,6 +40,8 @@ int main( int argc , char * argv[] )
 
    int use_3dWarp=1 , matrix_type=ROTATION ;
 
+   mainENTRY("3dTagalign main");
+   
    /*--- help? ---*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -123,7 +125,6 @@ int main( int argc , char * argv[] )
    }
 
    /*- scan args -*/
-
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
@@ -451,7 +452,8 @@ int main( int argc , char * argv[] )
                          ADN_label1 , prefix ,
                       ADN_none ) ;
 
-     if( THD_deathcon() && THD_is_file(dset->dblk->diskptr->header_name) ){
+     if( !THD_ok_overwrite() && 
+         (THD_deathcon() && THD_is_file(dset->dblk->diskptr->header_name) )){
         fprintf(stderr,
                 "** Output file %s already exists -- cannot continue!\n",
                 dset->dblk->diskptr->header_name ) ;
