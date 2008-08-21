@@ -67,6 +67,7 @@ typedef struct {
       int enable_suma ;       /* 29 Aug 2001 */
 
       int quiet ;             /* 25 Aug 2001 */
+      int disable_done ;      /* 21 Aug 2008 [rickr] */
 
       int yes_niml ;          /* 28 Feb 2002 */
       int port_niml ;         /* 10 Dec 2002 */

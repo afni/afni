@@ -40,6 +40,7 @@ static char * g_history[] =
     " 2.13 Aug 14, 2008 [rickr]\n"
     "      - moved num_slices check to separate function\n"
     " 2.14 Aug 18, 2008 [rickr] - help update\n"
+    " 2.15 Aug 18, 2008 [rickr] - suggest -num_slices with -sleep_init\n"
     "----------------------------------------------------------------------\n"
 };
 
@@ -1616,7 +1617,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     if ( argc < 2 )
     {
-        usage( IFM_PROG_NAME, IFM_USE_SHORT );
+        usage( IFM_PROG_NAME, IFM_USE_LONG );
         return 1;
     }
 
@@ -2057,6 +2058,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             return 1;
         }
     }
+
+    if ( p->opts.sleep_init > 0 && p->opts.sleep_init < 1000
+             && p->opts.num_slices == 0 && gD.level > 0 )
+        fprintf(stderr,"\n** consider using -num_slices with -sleep_init");
 
     /* done processing argument list */
 
@@ -2924,6 +2929,7 @@ static int usage ( char * prog, int level )
       "       -rt -nt 120                           \\\n"
       "       -host some.remote.computer            \\\n"
       "       -rt_cmd \"PREFIX 2005_0513_run3\"     \\\n"
+      "       -num_slices 32                        \\\n"
       "       -sleep_frac 1.1                       \\\n"
       "       -quit                                 \n"
       "\n"
@@ -2932,7 +2938,14 @@ static int usage ( char * prog, int level )
       "    sending data to a computer called some.remote.computer.name\n"
       "    (where afni is running, and which considers THIS computer to\n"
       "    be trusted - see the AFNI_TRUSTHOST environment variable).\n"
-      "    The time to wait for new data is 1.1*TR.\n"
+      "    The time to wait for new data is 1.1*TR, and 32 slices are\n"
+      "    required for a volume\n"
+      "\n"
+      "    Note that -num_slices can be important in a real-time setup,\n"
+      "    as scanners do not always write the slices in order.   Slices\n"
+      "    from volume #1 can appear on disk before all slices from volume\n"
+      "    #0, in which case Dimon might determine an incorrect number of\n"
+      "    slices per volume.\n"
       "\n"
       "  -------------------------------------------\n"
       "    Multiple DRIVE_AFNI commands are passed through '-drive_afni'\n"
