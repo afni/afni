@@ -41,7 +41,7 @@ typedef struct {
    int *cnum ;        /* cnum[j] is number of elements in col #j */
    int **cii ;        /* cii[j][k] is the i-index of cee[j][k]   */
    MTYPE **cee ;      /* for j=0..cols-1 , k=0..cnum[j]-1        */
-} sparsecolmat ;
+} sparmat ;
 
 /*****
   Struct to hold the info needed for a partial-F statistic
@@ -81,7 +81,7 @@ typedef struct {
 typedef struct {
   int na,nb , pna,pnb , nset , izero ;
   MTYPE abot,da , bbot,db ;
-  matrix *X ; sparsecolmat *Xs ;
+  matrix *X ; sparmat *Xs ;
   reml_setup **rs ;
 } reml_collection ;
 
@@ -95,12 +95,12 @@ static MTYPE corcut = 0.01 ;
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])
 
 /****************************************************************************/
-/**** Generic functions to process a sparse matrix in sparsecolmat form. ****/
+/******* Generic functions to process a sparse matrix in sparmat form. ******/
 /****************************************************************************/
 
 /*--------------------------------------------------------------------------*/
 
-void vector_spc_multiply( sparsecolmat *a , MTYPE *b , MTYPE *c )
+void vector_spc_multiply( sparmat *a , MTYPE *b , MTYPE *c )
 {
    int rows=a->rows , cols=a->cols ;
    int k , j , cn , *ci ;
@@ -122,7 +122,7 @@ void vector_spc_multiply( sparsecolmat *a , MTYPE *b , MTYPE *c )
 
 /*--------------------------------------------------------------------------*/
 
-void vector_spc_multiply_transpose( sparsecolmat *a , MTYPE *b , MTYPE *c )
+void vector_spc_multiply_transpose( sparmat *a , MTYPE *b , MTYPE *c )
 {
    int rows=a->rows , cols=a->cols ;
    int i , k , cn , *ci ;
@@ -154,13 +154,13 @@ MTYPE sparsity_fraction( matrix a )
 
 /*--------------------------------------------------------------------------*/
 
-sparsecolmat * matrix_to_sparsecolmat( matrix a )
+sparmat * matrix_to_sparmat( matrix a )
 {
    int rows=a.rows , cols=a.cols ;
    int i , j , k ;
-   sparsecolmat *sa ;
+   sparmat *sa ;
 
-   sa = (sparsecolmat *)malloc(sizeof(sparsecolmat)) ;
+   sa = (sparmat *)malloc(sizeof(sparmat)) ;
 
    sa->rows = rows ; sa->cols = cols ;
    sa->cnum = (int *)   calloc(sizeof(int)    ,cols) ;
@@ -589,7 +589,7 @@ static MTYPE rsumq=0.0 ;  /* sum of squares of residual */
 /*! Compute the REML -log(likelihood) function for a particular case,
     given the case's setup and the data and the regression matrix X. */
 
-MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparsecolmat *Xs )
+MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs )
 {
    int n=rset->neq , ii ;
    MTYPE val ;
@@ -722,7 +722,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    matrix_equate( *X , rrcol->X ) ;
 
    lam = sparsity_fraction( *X ) ;
-   if( lam <= 0.30 ) rrcol->Xs = matrix_to_sparsecolmat( *X ) ;
+   if( lam <= 0.30 ) rrcol->Xs = matrix_to_sparmat( *X ) ;
    else              rrcol->Xs = NULL ;
 
 #if 0
@@ -1000,13 +1000,22 @@ static vector *betaT = NULL ;  /* GLT t-statistics */
 
 MTYPE REML_compute_gltstat( vector *y, vector *bfull, MTYPE fsumq ,
                             reml_setup *rset, gltfactors *gf,
-                            matrix *G, matrix *X, sparsecolmat *Xs )
+                            matrix *G, sparmat *Gs, matrix *X, sparmat *Xs )
 {
    MTYPE fstat , rsumq ;
    vector ba , bb , br ;
 
-   if( y == NULL || bfull == NULL ||
-                    rset  == NULL || gf == NULL || fsumq <= 0.0 ) return 0.0 ;
+ENTRY("REML_compute_gltstat") ;
+
+   if( betaG == NULL ){
+     betaG = (vector *)malloc(sizeof(vector)) ; vector_initialize(betaG) ;
+     betaT = (vector *)malloc(sizeof(vector)) ; vector_initialize(betaT) ;
+   }
+
+   if( y     == NULL || bfull == NULL ||
+       rset  == NULL || gf    == NULL || fsumq <= 0.0 ){
+     vector_destroy(betaG) ; vector_destroy(betaT) ; RETURN( 0.0 );
+   }
 
    vector_initialize(&ba); vector_initialize(&bb); vector_initialize(&br);
 
@@ -1043,19 +1052,19 @@ MTYPE REML_compute_gltstat( vector *y, vector *bfull, MTYPE fsumq ,
 
    /* compute  GLT combinations of beta coefficients, and t-statistics */
 
-   if( betaG == NULL ){
-     betaG = (vector *)malloc(sizeof(vector)) ; vector_initialize(betaG) ;
-     betaT = (vector *)malloc(sizeof(vector)) ; vector_initialize(betaT) ;
-   }
-
    if( G != NULL ){
      MTYPE fsig ; int ii ;
      fsig = sqrt( fsumq / (X->rows - X->cols) ) ;
-     vector_multiply( *G , *bfull , betaG ) ;
+     if( Gs != NULL ){
+       vector_create_noinit( Gs->rows , betaG ) ;
+       vector_spc_multiply( Gs , bfull->elts , betaG->elts ) ;
+     } else {
+       vector_multiply( *G , *bfull , betaG ) ;
+     }
      vector_create_noinit( betaG->dim , betaT ) ;
      for( ii=0 ; ii < betaG->dim ; ii++ )
        betaT->elts[ii] = betaG->elts[ii] / (gf->sig->elts[ii]*fsig) ;
    }
 
-   return fstat ;
+   RETURN( fstat );
 }
