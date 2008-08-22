@@ -2051,10 +2051,10 @@ void get_options
          int ss;
          char *fdup=option_data->glt_filename[iglt];
          ss = strlen(fdup)-1;
-         while (  ss >= 0 && 
-                  ( fdup[ss] == '\\' || isspace(fdup[ss]) ) ) { 
-            fdup[ss]='\0'; 
-            --ss; 
+         while (  ss >= 0 &&
+                  ( fdup[ss] == '\\' || isspace(fdup[ss]) ) ) {
+            fdup[ss]='\0';
+            --ss;
          }
        }
 
@@ -3093,7 +3093,7 @@ ENTRY("read_input_data") ;
             be->option , is+1 , option_data->stim_filename[is] , ndup,nndup ) ;
           if( nndup > 0 )
             ININFO_message(" Where 'near-duplicate' means within 5%% of one TR") ;
-          if( be->timetype == GLOBAL_TIMES ) 
+          if( be->timetype == GLOBAL_TIMES )
             ININFO_message(" You are using global times: do you want local times?") ;
         }
       }
@@ -5176,27 +5176,52 @@ ENTRY("calculate_results") ;
   init_indep_var_matrix (p, qp, polort, nt, N, good_list, block_list,
                    num_blocks, num_stimts, stimulus, stim_length,
                    min_lag, max_lag, nptr, option_data->stim_base , &xdata);
+
+  /*-- save the matrix in various ways, depending on the user's whimsy --*/
+
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
-  if( option_data->xjpeg_filename != NULL )    /* 21 Jul 2004 */
+  if( option_data->xjpeg_filename != NULL )    /* 21 Jul 2004 - a picture */
     JPEG_matrix_gray( xdata , option_data->xjpeg_filename ) ;
 
-  if( option_data->x1D_filename   != NULL ){   /* 28 Mar 2006 */
+  if( option_data->x1D_filename   != NULL ){   /* 28 Mar 2006 - a file */
     void *cd=(void *)coldat ; int *gl=good_list ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xdata , option_data->x1D_filename , cd , N,gl ,
                       (is_xfull) ? &xfull : NULL , num_blocks,block_list ,
                       (void *)GLT_stuff , (void *)STIMLABEL_stuff ) ;
+
+    if( cd != NULL && verb ){  /* 22 Aug 2008: 3dREMLfit notice */
+      char *iname=NULL ;  /* input filename for command echo */
+      if( option_data->input_filename != NULL ){
+        iname = calloc( sizeof(char) , strlen(option_data->input_filename)+9 ) ;
+        if( strchr(option_data->input_filename,' ') == NULL ){
+          strcpy(iname,option_data->input_filename) ;
+        } else {
+          strcpy(iname,"'") ;
+          strcat(iname,option_data->input_filename) ; strcat(iname,"'") ;
+        }
+      }
+      INFO_message(
+        "Linear regression with ARMA(1,1) modeling of serial correlation:\n"
+        "   3dREMLfit -matrix %s%s%s%s..." ,
+        option_data->x1D_filename ,
+        (iname==NULL) ? " " : " -input " ,
+        (iname==NULL) ? ""  : iname      , (iname==NULL) ? ""  : " " ) ;
+      if( iname != NULL ) free(iname) ;
+    }
   }
-  if( is_xfull && option_data->x1D_unc != NULL ){   /* 25 Mar 2007 */
+
+  if( is_xfull && option_data->x1D_unc != NULL ){   /* 25 Mar 2007 - full matrix? */
     void *cd=(void *)coldat ; int *gl=good_list ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull,
                       num_blocks,block_list , NULL,NULL ) ;
   }
-  if( option_data->x1D_stop ){   /* 28 Jun 2007 */
+
+  if( option_data->x1D_stop ){   /* 28 Jun 2007 -- my work here is done */
     INFO_message("3dDeconvolve exits: -x1D_stop option was given") ;
     exit(0) ;
   }
@@ -8489,7 +8514,7 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
    int ii,jj ;
 
 ENTRY("read_glt_matrix") ;
- 
+
    if( *nrows > 0 ){    /* standard read of numbers from a file*/
 
      matrix_file_read( fname , *nrows , ncol , cmat , 1 ) ;  /* mri_read_1D */
