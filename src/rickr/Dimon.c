@@ -41,10 +41,11 @@ static char * g_history[] =
     "      - moved num_slices check to separate function\n"
     " 2.14 Aug 18, 2008 [rickr] - help update\n"
     " 2.15 Aug 18, 2008 [rickr] - suggest -num_slices with -sleep_init\n"
+    " 2.16 Aug 22, 2008 [rickr] - added -drive_wait option\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.14 (Aug 18, 2008)"
+#define DIMON_VERSION "version 2.16 (Aug 22, 2008)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -1635,6 +1636,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     p->opts.use_dicom = 1;              /* will delete this later...  */
 
     empty_string_list( &p->opts.drive_list, 0 );
+    empty_string_list( &p->opts.wait_list, 0 );
     empty_string_list( &p->opts.rt_list, 0 );
 
     /* debug level 1 is now the default - by order of Wen-Ming :) */
@@ -1936,7 +1938,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             return 1;
         }
         /* real-time options */
-        else if ( ! strncmp( argv[ac], "-drive_afni", 6 ) )
+        else if ( ! strncmp( argv[ac], "-drive_afni", 8 ) )
         {
             if ( ++ac >= argc )
             {
@@ -1947,6 +1949,20 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( add_to_string_list( &p->opts.drive_list, argv[ac] ) != 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_list\n",argv[ac]);
+                return 1;
+            }
+        }
+        else if ( ! strncmp( argv[ac], "-drive_wait", 8 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -drive_wait COMMAND\n", stderr );
+                return 1;
+            }
+
+            if ( add_to_string_list( &p->opts.wait_list, argv[ac] ) != 0 )
+            {
+                fprintf(stderr,"** failed add '%s' to drive_wait\n",argv[ac]);
                 return 1;
             }
         }
@@ -2663,6 +2679,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
             "   host               = %s\n"
             "   drive_list(u,a,p)  = %d, %d, %p\n"
+            "   wait_list (u,a,p)  = %d, %d, %p\n"
             "   rt_list   (u,a,p)  = %d, %d, %p\n",
             opt,
             CHECK_NULL_STR(opt->start_file),
@@ -2682,6 +2699,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->rt, opt->swap, opt->rev_bo,
             CHECK_NULL_STR(opt->host),
             opt->drive_list.nused, opt->drive_list.nalloc, opt->drive_list.str,
+            opt->wait_list.nused, opt->wait_list.nalloc, opt->wait_list.str,
             opt->rt_list.nused, opt->rt_list.nalloc, opt->rt_list.str
             );
 
@@ -2952,6 +2970,13 @@ static int usage ( char * prog, int level )
       "    options, one requesting to open an axial image window, and\n"
       "    another requesting an axial graph, with 160 data points.\n"
       "\n"
+      "    Also, '-drive_wait' options may be used like '-drive_afni',\n"
+      "    except that the real-time plugin will wait until the first new\n"
+      "    volume is processed before executing those DRIVE_AFNI commands.\n"
+      "    One advantage of this is opening an image window for a dataset\n"
+      "    _after_ it is loaded, allowing afni to approriately set the\n"
+      "    window size.\n"
+      "\n"
       "    See README.driver for acceptable DRIVE_AFNI commands.\n"
       "\n"
       "    Also, multiple commands specific to the real-time plugin are\n"
@@ -2982,7 +3007,22 @@ static int usage ( char * prog, int level )
       "       -rt_cmd 'GRAPH_EXPR sqrt(d*d+e*e+f*f)'\n"
       "\n"
       "  -------------------------------------------\n"
-      "  example E (for testing complete real-time system):\n"
+      "\n"
+      "  example E (drive_wait):\n"
+      "\n"
+      "    Close windows and re-open them after data has arrived.\n"
+      "\n"
+      "    Dimon                                                    \\\n"
+      "       -infile_prefix EPI_run1/8HRBRAIN                      \\\n"
+      "       -rt                                                   \\\n"
+      "       -drive_afni 'OPEN_WINDOW axialimage keypress=q'       \\\n"
+      "       -drive_afni 'OPEN_WINDOW sagittalimage keypress=q'    \\\n"
+      "       -drive_wait 'OPEN_WINDOW axialimage geom=+20+20'      \\\n"
+      "       -drive_wait 'OPEN_WINDOW sagittalimage geom=+520+20'  \\\n"
+      "       -rt_cmd 'PREFIX brie.would.be.good'                   \\\n"
+      "\n"
+      "  -------------------------------------------\n"
+      "  example F (for testing complete real-time system):\n"
       "\n"
       "    Use Dimon to send volumes to afni's real-time plugin, simulating\n"
       "    TR timing with Dimon's -pause option.  Motion parameters and ROI\n"
@@ -3123,6 +3163,22 @@ static int usage ( char * prog, int level )
           "        Note: this option may be used multiple times.\n"
           "\n"
           "        See README.driver for more details.\n"
+          "\n"
+          "    -drive_wait CMND   : send delayed 'drive afni' command, CMND\n"
+          "\n"
+          "        e.g.  -drive_wait 'OPEN_WINDOW axialimage'\n"
+          "\n"
+          "        This option is used to pass a single DRIVE_AFNI command\n"
+          "        to afni.  For example, 'OPEN_WINDOW axialimage' will open\n"
+          "        such an axial view window on the afni controller.\n"
+          "\n"
+          "        This has the same effect as '-drive_afni', except that\n"
+          "        the real-time plugin will wait until the next completed\n"
+          "        volume to execute the command.\n"
+          "\n"
+          "        An example of where this is useful is so that afni 'knows'\n"
+          "        about a new dataset before opening the given image window,\n"
+          "        allowing afni to size the window appropriately.\n"
           "\n"
           "    -host HOSTNAME     : specify the host for afni communication\n"
           "\n"

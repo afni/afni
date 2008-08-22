@@ -200,6 +200,11 @@ DRIVE_AFNI command
   More than one DRIVE_AFNI command can be used in the realtime prolog.
  * This command is optional.
 
+DRIVE_WAIT command
+  This command works exacly like DRIVE_AFNI, except that the real-time
+  plugin waits for the next complete volume to execute the command.  The
+  purpose is to execute the command after the relevant data has arrived.
+
 NOTE text to attach to dataset
   This command lets you attach text notes to the dataset(s) being created
   by the realtime plugin.  All the text after "NOTE ", up to (not including)

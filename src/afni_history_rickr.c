@@ -48,6 +48,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, AUG, 2008, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
+   "added -drive_wait option",
+   NULL
+ } ,
+
+ { 22, AUG, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "added DRIVE_WAIT command string",
+   "The command will be executed after the first volume is processed,\n"
+   "which is good for opening windows appropriate to a new dataset."
+ } ,
+
  { 21, AUG, 2008, RCR, "afni", MINOR, TYPE_NEW_OPT,
    "added -disable_done option to safeguard real-time mode",
    NULL
