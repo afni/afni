@@ -575,6 +575,30 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
         }
     }
 
+    /* pass along any user specified drive_wait command(s) */
+    if ( ac->param->opts.wait_list.str )
+    {
+        string_list * list = &ac->param->opts.wait_list;
+        char        * cp;
+        int           ns;
+
+        for ( ns = 0; ns < list->nused; ns++ )
+        {
+            sprintf( tbuf, "DRIVE_WAIT %s", list->str[ns] );
+
+            /* sneaky... change any "\n" pairs to '\n' */
+            for ( cp = tbuf; cp < (tbuf + strlen(tbuf) - 1); cp++ )
+                if ( cp[0] == '\\' && cp[1] == 'n' )
+                {
+                    cp[0] = ' ';
+                    cp[1] = '\n';
+                    cp++;
+                }
+
+            ART_ADD_TO_BUF( ac->buf, tbuf );
+        }
+    }
+
     /* NOTE interface - add a note to the dataset: the actual Imon command */
     {
         int count, len, tot_len;
