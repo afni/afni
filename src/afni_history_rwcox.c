@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , AUG , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "Add FDR curves and -?fitts options." ,
+   NULL } ,
+
  { 21 , AUG , 2008 , RWC , "3dREMLfit" , SUPER , TYPE_NEW_PROG ,
    "Program to mimic 3dDeconvolve, but with serial correlations" ,
    "Uses ARMA(1,1) model of noise, separately for each voxel." } ,

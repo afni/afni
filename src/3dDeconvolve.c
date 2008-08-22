@@ -5192,8 +5192,8 @@ ENTRY("calculate_results") ;
                       (is_xfull) ? &xfull : NULL , num_blocks,block_list ,
                       (void *)GLT_stuff , (void *)STIMLABEL_stuff ) ;
 
-    if( cd != NULL && verb ){  /* 22 Aug 2008: 3dREMLfit notice */
-      char *iname=NULL ;  /* input filename for command echo */
+    if( cd != NULL && verb ){  /*-- 22 Aug 2008: 3dREMLfit notice --*/
+      char *iname=NULL ;  /* input filename for command echo below */
       if( option_data->input_filename != NULL ){
         iname = calloc( sizeof(char) , strlen(option_data->input_filename)+9 ) ;
         if( strchr(option_data->input_filename,' ') == NULL ){
@@ -5203,13 +5203,17 @@ ENTRY("calculate_results") ;
           strcat(iname,option_data->input_filename) ; strcat(iname,"'") ;
         }
       }
+      INFO_message("========= Things you can do with the matrix file =========") ;
       INFO_message(
-        "Linear regression with ARMA(1,1) modeling of serial correlation:\n"
-        "   3dREMLfit -matrix %s%s%s%s..." ,
+        "(a) Linear regression with ARMA(1,1) modeling of serial correlation:\n"
+        "      3dREMLfit -matrix %s%s%s%s..." ,
         option_data->x1D_filename ,
         (iname==NULL) ? " " : " -input " ,
         (iname==NULL) ? ""  : iname      , (iname==NULL) ? ""  : " " ) ;
       if( iname != NULL ) free(iname) ;
+      INFO_message("(b) Visualization/analysis of the matrix via ExamineXmat.R") ;
+      INFO_message("(c) Synthesis of sub-models using 3dSynthesize") ;
+      INFO_message("==========================================================") ;
     }
   }
 
