@@ -2417,9 +2417,17 @@ libgts.a:
 	$(CP) SUMA/libgts.a ${INSTALLDIR}; \
 	$(CP) SUMA/libgts.a ./;	)
 
+libGLws.a:
+	( cd SUMA ;	\
+	rm -f libGLws.a	;\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libGLws.a ;	\
+	cd ../	;	\
+	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
+	$(CP) SUMA/libGLws.a ${INSTALLDIR}; \
+	$(CP) SUMA/libGLws.a ./;	)
 ###
 #link executables but check for libraries first and create them if needed	
-suma_exec:libSUMA.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_exec:libGLws.a libSUMA.a libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces \
 	MakeColorMap ROI2dataset 3dVol2Surf \
