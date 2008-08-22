@@ -2420,7 +2420,13 @@ libgts.a:
 libGLws.a:
 	( cd SUMA ;	\
 	rm -f libGLws.a	;\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libGLws.a ;	\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libGLws.a 'INSTALLDIR=$(INSTALLDIR)' \
+	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
+	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
+	'RANLIB=$(RANLIB)' \
+        'MAKE=$(MAKE)'     \
+	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
+	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;	\
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
 	$(CP) SUMA/libGLws.a ${INSTALLDIR}; \
