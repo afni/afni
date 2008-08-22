@@ -708,7 +708,7 @@ int usage( char * prog, int level )
             "\n"
             "        %s -serial_port /dev/ttyS0 -num_extra 3\n"
             "\n"
-            " * See 'example E' from 'Dimon -help' for a complete real-time\n"
+            " * See 'example F' from 'Dimon -help' for a complete real-time\n"
             "   testing example.\n"
             "\n"
             "------------------------------------------------------------\n"

@@ -422,12 +422,19 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   ( (mm) == REGMODE_2D_RTIME || (mm) == REGMODE_2D_ATEND ||  \
     (mm) == REGMODE_3D_RTIME || (mm) == REGMODE_3D_ATEND   )
 
+typedef struct {
+   int     len;
+   char ** list;
+} rt_string_list;
+
 # define RT_DRIVE_LIMIT 4096
 
   static int g_mask_val_type = 1 ;                /* RT_mask_strings index   */
   static int g_show_times = 0 ;                   /* show MP comm times      */
   static int g_MP_send_ver = 0 ;                  /* send MP version         */
   static THD_3dim_dataset * g_mask_dset = NULL ;  /* mask aves w/ MP vals    */
+  static rt_string_list drive_wait_list = {0,NULL} ;      /* DRIVE_WAIT list */
+  static char g_drive_wait[RT_DRIVE_LIMIT] = "";  /* for -drive_wait command */
 #endif
 
 /************ global data for reading data *****************/
@@ -483,6 +490,10 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   int  RT_get_mask_aves       ( RT_input * rtin, int sub );
 
   int  RT_mp_show_time        ( char * mesg ) ;
+
+  static int add_to_rt_slist    ( rt_string_list * slist, char * str );
+  static int free_rt_string_list( rt_string_list * slist );
+  static int rt_run_drive_wait_commands( rt_string_list * slist );
 #endif
 
 #define TELL_NORMAL  0
@@ -2567,6 +2578,10 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
    if( rtin == NULL || info == NULL || ninfo == 0 ) return -1 ;
 
+   if( drive_wait_list.len > 0 && verbose )
+      fprintf(stderr,"** clearing old DRIVE_WAIT list\n");
+   free_rt_string_list( &drive_wait_list );
+
    for( nend=0 ; nend < ninfo && info[nend] != '\0' ; nend++ ) ; /* nada */
    if( nend == ninfo ){
       fprintf(stderr,"RT: info string not NUL-terminated!\a\n") ;
@@ -2940,11 +2955,21 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
                     RT_DRIVE_LIMIT) ;
          } else {  /* the command is everything after "DRIVE_AFNI " */
             MCW_strncpy(cmd,buf+11, RT_DRIVE_LIMIT) ;
-            if( verbose == 2 )
+            if( verbose > 1 )
                fprintf(stderr,"RT: command DRIVE_AFNI %s\n",cmd) ;
             ii = AFNI_driver( cmd ) ;  /* just do it */
             if( ii < 0 )
                fprintf(stderr,"RT: command DRIVE_AFNI %s **FAILS**\n",cmd) ;
+         }
+
+      } else if( STARTER("DRIVE_WAIT") ){   /* 21 Aug 2008 */
+         int ii, len = strlen(buf) ;
+
+         if( len < 11 ){
+            fprintf(stderr,"RT: DRIVE_WAIT lacks command\n") ;
+         } else {  /* the command is everything after "DRIVE_WAIT " */
+            add_to_rt_slist( &drive_wait_list, buf+11 );
+            if(verbose>1) fprintf(stderr,"RT: command DRIVE_WAIT %s\n",buf+11);
          }
 
       } else {                              /* this is bad news */
@@ -3813,6 +3838,10 @@ void RT_process_image( RT_input * rtin )
                fprintf(stderr,"RT: about to tell AFNI about dataset.\n") ;
             VMCHECK ;
             RT_tell_afni(rtin,TELL_NORMAL) ;
+
+            /* execute any pending DRIVE_WAIT commands   22 Aug 2008 [rickr] */
+            if( drive_wait_list.len > 0 )
+               rt_run_drive_wait_commands( &drive_wait_list );
          }
       }
 
@@ -5613,4 +5642,64 @@ int RT_fim_recurse( RT_input *rtin , int mode )
    }
 
    return 1 ;
+}
+
+/* for storing a list of strings (e.g. DRIVE_WAIT commands) */
+static int add_to_rt_slist( rt_string_list * slist, char * str )
+{
+    if( !slist || !str ) return 1;
+
+    /* add a pointer to the array */
+    slist->len++;
+    slist->list = (char **)realloc(slist->list, slist->len*sizeof(char *));
+    if( !slist->list ) {
+        fprintf(stderr,"** failed to realloc slist of %d items\n", slist->len);
+        slist->len = 0;
+        return 1;
+    }
+
+    slist->list[slist->len-1] = strdup(str);
+    if( !slist->list[slist->len-1] ) {
+        fprintf(stderr,"** failed to add string '%s' to slist\n", str);
+        free_rt_string_list(slist);
+        return 1;
+    }
+
+    return 0;
+}
+
+static int free_rt_string_list( rt_string_list * slist )
+{
+    int c;
+
+    if( !slist ) return 1;
+    if( !slist->list || slist->len <= 0 ) return 0;
+
+    for( c = 0; c < slist->len; c++ )
+        if( slist->list[c] ) free( slist->list[c] );
+    free(slist->list);
+    slist->list = NULL;
+    slist->len = 0;
+
+    return 0;
+}
+
+/* execute any pending DRIVE_WAIT commands   22 Aug 2008 [rickr] */
+static int rt_run_drive_wait_commands( rt_string_list * slist )
+{
+   char * cmd;
+   int    c;
+
+   if( !slist || !slist->list || slist->len <= 0 ) return 0 ;
+
+   for( c = 0; c < drive_wait_list.len; c++ ) {
+      cmd = drive_wait_list.list[c];
+      if( verbose > 1 ) fprintf(stderr,"RT: executing DRIVE_WAIT %s\n", cmd);
+      if( AFNI_driver( cmd ) < 0 )
+         fprintf(stderr,"RT: **FAILED DRIVE_WAIT** : %s \n", cmd) ;
+   }
+
+   free_rt_string_list(&drive_wait_list);  /* clear old commands */
+
+   return 0;
 }

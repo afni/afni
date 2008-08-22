@@ -131,6 +131,7 @@ typedef struct  /* user options */
     int              rev_bo;        /* reverse BYTEORDER command        */
     char           * host;          /* pointer to hostname              */
     string_list      drive_list;    /* list of DRIVE_AFNI commands      */
+    string_list      wait_list;     /* list of DRIVE_AFNI commands      */
     string_list      rt_list;       /* list of real-time commands       */
 } opts_t;
 
