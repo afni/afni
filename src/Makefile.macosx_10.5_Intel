@@ -58,6 +58,7 @@ LLIBS  = -lmri /sw/lib/libXm.a -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) $(LGI
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
+# ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a 
 
 # -------------------------------------------------------------------
 #  # OSX 10.5 has issues with libGL, where the multiple copies cause a cycle
@@ -70,7 +71,7 @@ SUMA_GL_DYLIB_CMD = -dylib_file $(SUMA_GLLIB): $(SUMA_GLLIB)
 SUMA_INCLUDE_PATH = -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib
 
-SUMA_LINK_LIB = /sw/lib/libXm.a -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = /sw/lib/libXm.a -lGLws -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 
