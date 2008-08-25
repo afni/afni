@@ -6,6 +6,18 @@
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
+#undef MEMORY_CHECK
+#ifdef USING_MCW_MALLOC
+# define MEMORY_CHECK                                                  \
+   do{ long long nb = mcw_malloc_total() ;                             \
+       if( nb > 0 ) ININFO_message("Memory usage now = %lld (%s)" ,    \
+                    nb , approximate_number_string((double)nb)     ) ; \
+   } while(0)
+#else
+# define MEMORY_CHECK /*nada*/
+#endif
+
+
 /*--------------------------------------------------------------------------*/
 /*! For voxel loop progress report. */
 
@@ -161,7 +173,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *abset=NULL ;
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar, *bar ;
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
-   float *iv ; int niv ;
+   float *iv , *jv ; int niv ;
    int iarg, ii,jj,kk, nreg,ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
    MTYPE rhomax=0.8 , bmax=0.8 ; int nlevab=3 ;
@@ -180,6 +192,10 @@ int main( int argc , char *argv[] )
    char *Rbuckt_prefix = NULL ; THD_3dim_dataset *Rbuckt_dset = NULL ;
    char *Obuckt_prefix = NULL ; THD_3dim_dataset *Obuckt_dset = NULL ;
    int nbuckt=0 , do_buckt=0 ;
+
+   char *Rerrts_prefix = NULL ; THD_3dim_dataset *Rerrts_dset = NULL ;
+   char *Oerrts_prefix = NULL ; THD_3dim_dataset *Oerrts_dset = NULL ;
+   char *Rwherr_prefix = NULL ; THD_3dim_dataset *Rwherr_dset = NULL ;
 
    int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL , izero ;
    NI_int_array *giar ; NI_str_array *gsar ; NI_float_array *gfar ;
@@ -207,7 +223,7 @@ int main( int argc , char *argv[] )
       "\n"
       "Uses a matrix .xmat.1D file from 3dDeconvolve; then, for each voxel\n"
       "finds the best ARMA(1,1) model for the noise, and then finds the\n"
-      "generalized (prewhitened) least squares fit of the matrix model\n"
+      "generalized (pre-whitened) least squares fit of the matrix model\n"
       "to the signal in that voxel.  Intended to generalize the results of\n"
       "3dDeconvolve to allow for serial correlation in the timeseries data.\n"
       "\n"
@@ -242,13 +258,30 @@ int main( int argc , char *argv[] )
       "                 (like 3dDeconvolve, a censored time point gets)\n"
       "                 (the actual data values from that time index!!)\n"
       "\n"
+      " -Rerrts ppp = dataset for REML residuals = data - fitted model\n"
+      "                 (like 3dDeconvolve,  a censored time)\n"
+      "                 (point gets its residual set to zero)\n"
+      " -Rwherr ppp = dataset for REML residual, whitened using the\n"
+      "                 estimated ARMA(1,1) correlation matrix of the noise\n"
+      "                 [Note that the whitening matrix used is the inverse  ]\n"
+      "                 [of the Choleski factor of the correlation matrix C; ]\n"
+      "                 [however, the whitening matrix isn't uniquely defined]\n"
+      "                 [(any matrix W with C=inv(W'W) will work), so other  ]\n"
+      "                 [whitening schemes could be used and these would give]\n"
+      "                 [different whitened residual time series datasets.   ]\n"
+      "\n"
       "These options let you get the Ordinary Least SQuares outputs\n"
-      "(without adjustment for serial correlation), for comparisons:\n"
+      "(without adjustment for serial correlation), for comparisons.\n"
+      "These datasets should be essentially identical to the results\n"
+      "you would get by running 3dDeconvolve:\n"
       "\n"
       " -Ovar ppp   = dataset for OLSQ st.dev. parameter (kind of boring)\n"
       " -Obeta ppp  = dataset for beta weights from the OLSQ estimation\n"
       " -Obuck ppp  = dataset for beta + statistics from the OLSQ estimation\n"
       " -Ofitts ppp = dataset for OLSQ fitted model\n"
+      " -Oerrts ppp = dataset for OLSQ residuals (data - fitted model)\n"
+      "                 (there is no -Owherr option; if you don't)\n"
+      "                 (see why, then think about it for a while)\n"
       "\n"
       "-------------------------------------------------------------------\n"
       "The following options control the ARMA(1,1) parameter estimation\n"
@@ -314,11 +347,15 @@ int main( int argc , char *argv[] )
       "                   squares problem.  For this reason, you may want\n"
       "                   to use '-Grid 5' to make the (a,b) grid finer.\n"
       "               * Using this option will skip the slowest part of\n"
-      "                   the program, which is the scan (for each voxel)\n"
+      "                   the program, which is the scan for each voxel\n"
       "                   to find its optimal (a,b) parameters.\n"
+      "               * One possible application of -ABfile:\n"
+      "                  + save (a,b) using -Rvar in 3dREMLfit\n"
+      "                  + process them in some way (spatial smoothing?)\n"
+      "                  + use these modified values for fitting in 3dREMLfit\n"
       "\n"
       "==========================================================================\n"
-      "=================================  NOTES  ================================\n"
+      "===========  Various Notes (as if this help weren't long enough) =========\n"
       "==========================================================================\n"
       "\n"
       "------------------\n"
@@ -330,6 +367,7 @@ int main( int argc , char *argv[] )
       "    (N.B.: lam=a when b=0 -- AR(1) noise has r(k)=a^k for k >= 0).\n"
       "    (N.B.: lam=b when a=0 -- MA(1) noise has r(k)=b for k=1, r(k)=0 for k>1.\n"
       "* lam can be bigger or smaller than a, depending on the sign of b.\n"
+      "* What I call (a,b) here is sometimes called (p,q) in the ARMA literature.\n"
       "* For the noise model which is the sum of AR(1) and white noise, lam < a.\n"
       "* The natural range of a and b is -1..+1.  However, unless -NEGcor is\n"
       "    given, only non-negative values of a will be used, and only values\n"
@@ -420,9 +458,12 @@ int main( int argc , char *argv[] )
       "    the way they are and you'll just have to live with it.\n"
       "* All output datasets are in float format.\n"
       "    Internal calculations are done in double precision.\n"
-      "* Despite my best efforts, this program is somewhat sluggish and torpid.\n"
+      "* Despite my best efforts, this program is a little sluggish and torpid.\n"
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
+      "    However, a careful choice of algorithms for solving the\n"
+      "    linear systems (QR method, sparse matrix operations, etc.) and\n"
+      "    some code optimizations should make running 3dREMLfit tolerable.\n"
       "\n"
       "-----------------------------------------------------------\n"
       "To Dream the Impossible Dream, to Write the Uncodeable Code\n"
@@ -430,8 +471,8 @@ int main( int argc , char *argv[] )
       "* Add a -jobs option to use multiple CPUs (or multiple Steves?).\n"
       "* Add options for -iresp/-sresp for -stim_times?\n"
       "* Output variance estimates for the betas, to be carried to the\n"
-      "    inter-subject (group) analysis level.\n"
-      "* Establish incontrovertibly the nature of quantum mechanical 'observation'.\n"
+      "    inter-subject (group) analysis level?\n"
+      "* Establish incontrovertibly the nature of quantum mechanical 'observation'!\n"
       "\n"
 		"==============================\n"
       "== RWCox - July/August 2008 ==\n"
@@ -442,6 +483,9 @@ int main( int argc , char *argv[] )
 
    /*------- official startup ------*/
 
+#ifdef USING_MCW_MALLOC
+   enable_mcw_malloc() ;
+#endif
    PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
 
@@ -588,6 +632,10 @@ int main( int argc , char *argv[] )
      PREFIX_OPTION(Obuckt_prefix) ;
      PREFIX_OPTION(Rfitts_prefix) ;
      PREFIX_OPTION(Ofitts_prefix) ;
+
+     PREFIX_OPTION(Rerrts_prefix) ;
+     PREFIX_OPTION(Oerrts_prefix) ;
+     PREFIX_OPTION(Rwherr_prefix) ;
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
@@ -889,6 +937,7 @@ STATUS("make other GLTs") ;
 
    INFO_message("Loading input dataset into memory") ;
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
+   MEMORY_CHECK ;
 
    INFO_message("starting REML setup calculations") ;
    rrcol = REML_setup_all( &X , tau , nlevab,rhomax,bmax ) ; /* takes a while */
@@ -904,12 +953,14 @@ STATUS("make other GLTs") ;
    ININFO_message(
       "REML setup finished: matrix rows=%d cols=%d; %d cases; total CPU=%.2f s",
       ntime,nreg,rrcol->nset,COX_cpu_time()) ;
+   MEMORY_CHECK ;
 
    /***------- loop over voxels, find best REML values ------***/
 
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
    niv = (nvals+nreg+glt_num+9)*2 ;
    iv  = (float *)malloc(sizeof(float)*(niv+1)) ;
+   jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
 
    vstep = (nvox > 999) ? nvox/50 : 0 ;
 
@@ -949,6 +1000,7 @@ STATUS("make other GLTs") ;
      }
 
      ININFO_message("ARMA voxel parameters estimated: total CPU=%.2f s",COX_cpu_time()) ;
+     MEMORY_CHECK ;
 
    } /***** end of REML estimation *****/
 
@@ -993,6 +1045,8 @@ STATUS("make other GLTs") ;
    }
 
    Rfitts_dset = create_float_dataset( inset , nfull, Rfitts_prefix,0 ) ;
+   Rerrts_dset = create_float_dataset( inset , nfull, Rerrts_prefix,0 ) ;
+   Rwherr_dset = create_float_dataset( inset , nfull, Rwherr_prefix,0 ) ;
 
    Rbuckt_dset = create_float_dataset( inset , nbuckt , Rbuckt_prefix,1 ) ;
    if( Rbuckt_dset != NULL ){
@@ -1014,15 +1068,19 @@ STATUS("make other GLTs") ;
          }
        }
        if( glt_ind[ii]->ftst_ind >= 0 ){
+/* if( ii == 0 )INFO_message("brick_label[%d] = %s",glt_ind[ii]->ftst_ind , glt_ind[ii]->ftst_lab  ) ; */
          EDIT_BRICK_LABEL( Rbuckt_dset , glt_ind[ii]->ftst_ind ,
                                          glt_ind[ii]->ftst_lab  ) ;
+/* if( ii == 0 )INFO_message("brick_to_fift[%d] = %d / %d",  glt_ind[ii]->ftst_ind , nr , ddof ) ; */
          EDIT_BRICK_TO_FIFT( Rbuckt_dset , glt_ind[ii]->ftst_ind , nr , ddof ) ;
        }
      }
+/* INFO_message("statcode[0] = %d",DSET_BRICK_STATCODE(Rbuckt_dset,0)) ; */
    }
 
    do_Rstuff = (Rbeta_dset  != NULL) || (Rvar_dset   != NULL) ||
-               (Rfitts_dset != NULL) || (Rbuckt_dset != NULL)   ;
+               (Rfitts_dset != NULL) || (Rbuckt_dset != NULL) ||
+               (Rerrts_dset != NULL) || (Rwherr_dset != NULL)   ;
 
    /*---- and do the second voxel loop ----*/
 
@@ -1032,6 +1090,7 @@ STATUS("make other GLTs") ;
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
        (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       memcpy( jv , iv , sizeof(float)*nfull ) ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = iv[goodlist[ii]] ;
 
        jj = IAB(rrcol,aar[vv],bar[vv]) ;  /* closest point in the (a,b,) grid */
@@ -1051,11 +1110,32 @@ STATUS("make other GLTs") ;
                          aar[vv],bar[vv],LAMBDA(aar[vv],bar[vv]),jj) ;
        } else {
 
+         /* do the fitting; various results are in the bb? vectors:
+              bb5 = estimated betas
+              bb6 = fitted model
+              bb7 = whitened fitted model [not used below]
+              bb1 = whitened data [not used below]
+              bb2 = whitened residuals (sum of squares of bb2 ==> noise variance) */
+
          (void)REML_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
 
-         if( Rfitts_dset != NULL ){
+         if( Rfitts_dset != NULL ){  /* note that iv still contains original data */
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6->elts[ii] ;
            THD_insert_series( vv , Rfitts_dset , nfull , MRI_float , iv , 0 ) ;
+         }
+
+         if( Rerrts_dset != NULL ){  /* jv contains copy of original data */
+           if( ntime < nfull ) memset( iv , sizeof(float)*nfull , 0 ) ;
+           for( ii=0 ; ii < ntime ; ii++ )
+             iv[goodlist[ii]] = jv[goodlist[ii]] - bb6->elts[ii] ;
+           THD_insert_series( vv , Rerrts_dset , nfull , MRI_float , iv , 0 ) ;
+         }
+
+         if( Rwherr_dset != NULL ){  /* note there is no Owherr dataset! */
+           if( ntime < nfull ) memset( iv , sizeof(float)*nfull , 0 ) ;
+           for( ii=0 ; ii < ntime ; ii++ )
+             iv[goodlist[ii]] = bb2->elts[ii] ;
+           THD_insert_series( vv , Rwherr_dset , nfull , MRI_float , iv , 0 ) ;
          }
 
          if( Rbeta_dset != NULL ){
@@ -1098,27 +1178,42 @@ STATUS("make other GLTs") ;
      } /* end of voxel loop */
      if( vstep ) fprintf(stderr,"\n") ;
      ININFO_message("GLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
+     MEMORY_CHECK ;
    }
 
    /*----- write output REML datasets to disk -----*/
 
    if( Rbeta_dset != NULL ){
      DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); DSET_delete(Rbeta_dset);
+     MEMORY_CHECK ;
    }
    if( Rvar_dset  != NULL ){
      DSET_write(Rvar_dset); WROTE_DSET(Rvar_dset); DSET_delete(Rvar_dset);
+     MEMORY_CHECK ;
    }
    if( Rfitts_dset != NULL ){
      DSET_write(Rfitts_dset); WROTE_DSET(Rfitts_dset); DSET_delete(Rfitts_dset);
+     MEMORY_CHECK ;
+   }
+   if( Rerrts_dset != NULL ){
+     DSET_write(Rerrts_dset); WROTE_DSET(Rerrts_dset); DSET_delete(Rerrts_dset);
+     MEMORY_CHECK ;
+   }
+   if( Rwherr_dset != NULL ){
+     DSET_write(Rwherr_dset); WROTE_DSET(Rwherr_dset); DSET_delete(Rwherr_dset);
+     MEMORY_CHECK ;
    }
    if( Rbuckt_dset != NULL ){
+/* INFO_message("statcode[0] = %d",DSET_BRICK_STATCODE(Rbuckt_dset,0)) ; */
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
        ii = THD_create_all_fdrcurves(Rbuckt_dset) ;
      else
        ii = 0 ;
-     if( ii > 0 ) INFO_message("Added %d FDR curve%s to -Rbuck dataset",
-                               ii , (ii==1)?"":"s" ) ;
+     if( ii > 0 ) ININFO_message("Added %d FDR curve%s to -Rbuck dataset",
+                                 ii , (ii==1)?"":"s" ) ;
+/* INFO_message("statcode[0] = %d",DSET_BRICK_STATCODE(Rbuckt_dset,0)) ; */
      DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_delete(Rbuckt_dset);
+     MEMORY_CHECK ;
    }
 
    /*-- create OLSQ outputs, if any --*/
@@ -1135,6 +1230,7 @@ STATUS("make other GLTs") ;
    }
 
    Ofitts_dset = create_float_dataset( inset , nfull, Ofitts_prefix,0 ) ;
+   Oerrts_dset = create_float_dataset( inset , nfull, Oerrts_prefix,0 ) ;
 
    Obuckt_dset = create_float_dataset( inset , nbuckt , Obuckt_prefix,1 ) ;
    if( Obuckt_dset != NULL ){
@@ -1164,7 +1260,8 @@ STATUS("make other GLTs") ;
    }
 
    do_Ostuff = (Obeta_dset  != NULL) || (Ovar_dset   != NULL) ||
-               (Ofitts_dset != NULL) || (Obuckt_dset != NULL)   ;
+               (Ofitts_dset != NULL) || (Obuckt_dset != NULL) ||
+               (Oerrts_dset != NULL)                            ;
 
    /*---- and do the third voxel loop ----*/
 
@@ -1174,6 +1271,7 @@ STATUS("make other GLTs") ;
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
        (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       memcpy( jv , iv , sizeof(float)*nfull ) ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
 
        jj = izero ;                       /* OLSQ (a,b)=(0,0) case */
@@ -1194,9 +1292,16 @@ STATUS("make other GLTs") ;
 
          (void)REML_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
 
-         if( Rfitts_dset != NULL ){
+         if( Ofitts_dset != NULL ){
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6->elts[ii] ;
-           THD_insert_series( vv , Rfitts_dset , nfull , MRI_float , iv , 0 ) ;
+           THD_insert_series( vv , Ofitts_dset , nfull , MRI_float , iv , 0 ) ;
+         }
+
+         if( Oerrts_dset != NULL ){  /* jv contains copy of original data */
+           if( ntime < nfull ) memset( iv , sizeof(float)*nfull , 0 ) ;
+           for( ii=0 ; ii < ntime ; ii++ )
+             iv[goodlist[ii]] = jv[goodlist[ii]] - bb6->elts[ii] ;
+           THD_insert_series( vv , Oerrts_dset , nfull , MRI_float , iv , 0 ) ;
          }
 
          if( Obeta_dset != NULL ){
@@ -1238,31 +1343,41 @@ STATUS("make other GLTs") ;
      } /* end of voxel loop */
      if( vstep ) fprintf(stderr,"\n") ;
      ININFO_message("OLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
+     MEMORY_CHECK ;
    }
 
    /*----- done with the input dataset -----*/
 
-   DSET_unload(inset) ;
+   DSET_unload(inset) ; free(jv) ; free(iv) ;
+   reml_collection_destroy(rrcol) ;
 
    /*----- write output OLSQ datasets to disk -----*/
 
    if( Obeta_dset != NULL ){
      DSET_write(Obeta_dset); WROTE_DSET(Obeta_dset); DSET_delete(Obeta_dset);
+     MEMORY_CHECK ;
    }
    if( Ovar_dset  != NULL ){
      DSET_write(Ovar_dset); WROTE_DSET(Ovar_dset); DSET_delete(Ovar_dset);
+     MEMORY_CHECK ;
    }
    if( Ofitts_dset != NULL ){
      DSET_write(Ofitts_dset); WROTE_DSET(Ofitts_dset); DSET_delete(Ofitts_dset);
+     MEMORY_CHECK ;
+   }
+   if( Oerrts_dset != NULL ){
+     DSET_write(Oerrts_dset); WROTE_DSET(Oerrts_dset); DSET_delete(Oerrts_dset);
+     MEMORY_CHECK ;
    }
    if( Obuckt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
        ii = THD_create_all_fdrcurves(Obuckt_dset) ;
      else
        ii = 0 ;
-     if( ii > 0 ) INFO_message("Added %d FDR curve%s to -Obuck dataset",
-                               ii , (ii==1)?"":"s" ) ;
+     if( ii > 0 ) ININFO_message("Added %d FDR curve%s to -Obuck dataset",
+                                 ii , (ii==1)?"":"s" ) ;
      DSET_write(Obuckt_dset); WROTE_DSET(Obuckt_dset); DSET_delete(Obuckt_dset);
+     MEMORY_CHECK ;
    }
 
    /*----- Free at last ----*/
