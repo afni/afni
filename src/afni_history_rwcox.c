@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , AUG , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "Added residual outputs to 3dREMLfit." ,
+   NULL } ,
+
  { 22 , AUG , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "Add FDR curves and -?fitts options." ,
    NULL } ,
