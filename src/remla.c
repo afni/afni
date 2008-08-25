@@ -186,6 +186,20 @@ sparmat * matrix_to_sparmat( matrix a )
    return sa ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+void sparmat_destroy( sparmat *sa )
+{
+   int i , cols ;
+   if( sa == NULL ) return ;
+   cols = sa->cols ;
+   for( i=0 ; i < cols ; i++ ){
+     if( sa->cii[i] != NULL ) free(sa->cii[i]) ;
+     if( sa->cee[i] != NULL ) free(sa->cee[i]) ;
+   }
+   free(sa->cee) ; free(sa->cii) ; free(sa->cnum) ; free(sa) ; return ;
+}
+
 /****************************************************************************/
 /****** Generic functions to process a sparse matrix in rcmat format. *******/
 /****************************************************************************/
@@ -594,6 +608,8 @@ MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs )
    int n=rset->neq , ii ;
    MTYPE val ;
 
+ENTRY("REML_func") ;
+
    if( y == NULL ){
      if( bb1 != NULL ){
        vector_destroy(bb1) ; bb1 = NULL ;
@@ -601,7 +617,7 @@ MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs )
        vector_destroy(bb4) ; vector_destroy(bb5) ;
        vector_destroy(bb6) ; vector_destroy(bb7) ;
      }
-     return -666.0 ;
+     RETURN(-666.0) ;
    }
 
    if( bb1 == NULL ){
@@ -654,7 +670,7 @@ MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs )
    else
      val = 0.0 ;
 
-   return val ;
+   RETURN(val) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -675,7 +691,8 @@ void reml_collection_destroy( reml_collection *rcol )
    int ii ;
 
    if( rcol == NULL ) return ;
-   if( rcol->X != NULL ) matrix_destroy( rcol->X ) ;
+   if( rcol->X  != NULL ) matrix_destroy ( rcol->X  ) ;
+   if( rcol->Xs != NULL ) sparmat_destroy( rcol->Xs ) ;
    if( rcol->rs != NULL ){
      for( ii=0 ; ii < rcol->nset ; ii++ ) reml_setup_destroy(rcol->rs[ii]) ;
      free((void *)rcol->rs) ;
@@ -796,7 +813,7 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
    int   na,nb , pna,pnb , ltop ;
    int   nab, lev, dab,dab2, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
 
-   ENTRY("REML_find_best_case") ;
+ENTRY("REML_find_best_case") ;
 
    if( y == NULL ){  /* memory cleanup */
      vector_destroy( &REML_best_prewhitened_data_vector ) ;
