@@ -2318,10 +2318,11 @@ int main( int argc , char *argv[] )
      DSET_delete(wset) ;
    }
 
+   /* initialize ntask, regardless     26 Aug 2008 [rickr] */
+   ntask = DSET_NVOX(dset_targ) ;
+   ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
    /* number of points to use for matching */
    if( nmask_frac < 0 ){
-      ntask = DSET_NVOX(dset_targ) ;
-      ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
       if( npt_match < 0 )   npt_match = (int)(-0.01f*npt_match*ntask) ;
       if( npt_match < 666 ) npt_match = 666 ;
    } else {
