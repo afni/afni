@@ -308,10 +308,8 @@ main_loop <- function (fn) {
 #main   
    #begin windgetting
    fn <- tclvalue(tkgetOpenFile(filetypes = "{{Xmat Files} {.xmat.1D}} {{All files} *}"))
-   if (!nchar(fn)) {
-      tkmessageBox(message="wass goin on bro?")
-      return(0)
-   } 
-
-   if (main_loop(fn)) cat ('error')
-
+   if (nchar(fn)) {
+      if (main_loop(fn)) cat ('error')
+   } else {
+      tkmessageBox(message="So long.")  
+   }
