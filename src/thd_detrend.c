@@ -632,8 +632,7 @@ ENTRY("THD_time_fit_dataset") ;
      ADDTO_IMARR(imar,qim) ;
    }
    qim = mri_new_conforming( DSET_BRICK(dset,0) , MRI_float ) ;
-   var = MRI_FLOAT_PTR(qim) ;
-   ADDTO_IMARR(imar,qim) ;
+   var = MRI_FLOAT_PTR(qim) ; ADDTO_IMARR(imar,qim) ;
 
    nvox = DSET_NVOX(dset) ; nval = DSET_NVALS(dset) ;
    far  = (float *)malloc(sizeof(float)*nval) ;

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , AUG , 2008 , RWC , "3dTcorrMap" , MINOR , TYPE_NEW_PROG ,
+   "Average correlations with every other voxel time series." ,
+   "Kind of slow.  For Kyle Simmons.  And I still don't recognize Missouri!" } ,
+
  { 25 , AUG , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "Added residual outputs to 3dREMLfit." ,
    NULL } ,
