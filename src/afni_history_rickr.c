@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, AUG, 2008, RCR, "3dAllineate", MINOR, TYPE_BUG_FIX,
+   "initialized ntask in all cases",
+   NULL
+ } ,
+
  { 22, AUG, 2008, RCR, "Dimon", MICRO, TYPE_NEW_OPT,
    "added -drive_wait option",
    NULL
