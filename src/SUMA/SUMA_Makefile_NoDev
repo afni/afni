@@ -77,6 +77,7 @@ ${SUMALIB} : libply.a libglut.a ${SUMA_OBJS}
 
 ${GLWLIB} : ${GLW_OBJS}
 	rm -f ${GLWLIB}
+	if [ ! -d GLw_local/GL ] ; then $(MKDIR) -p GLw_local/GL ; cd GLw_local; \ln -s GL GLw; cp *.h GL/ ; cd .. ; fi ; 
 	ar q ${GLWLIB} ${GLW_OBJS}
 	echo "library Rebuilt ..."
 	$(RANLIB) ${GLWLIB}
@@ -99,7 +100,7 @@ ${SUMAGTSLIB} : libply.a libglut.a ${SUMALIB} ${SUMA_GTS_OBJS}
 mainobj: ${SUMALIB} ${SUMA_SRCS_OBJS}
 
 clean:
-	$(RM) *.o
+	$(RM) *.o GLw_local/*.o
 
 .c.o:
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INPATH} -c $*.c 
