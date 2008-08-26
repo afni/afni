@@ -2504,7 +2504,7 @@ suma_anew:libmri.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot
 	cd ../	;)
 
 suma_clean:
-	$(RM) SUMA/libSUMA.a libSUMA.a	
+	$(RM) SUMA/libSUMA.a libSUMA.a SUMA/libGLws.a libGLws.a	
 	if [ -f SUMA/suma ]; then $(RM) SUMA/suma; fi;
 	if [ -f suma ]; then $(RM) suma; fi;
 	if [ -f SUMA/MakeColorMap ]; then $(RM) SUMA/MakeColorMap; fi;
