@@ -774,9 +774,11 @@ int main( int argc , char *argv[] )
         "===========================================\n"
         " -savehist sss = Save start and final 2D histograms as PGM\n"
         "                 files, with prefix 'sss' (cost: cr mi nmi hel).\n"
+#if 0
         " -seed iii     = Set random number seed (for coarse startup search)\n"
         "                 to 'iii'.\n"
         "                 [Default==7654321; if iii==0, a unique value is used]\n"
+#endif
         " -median       = Smooth with median filter instead of Gaussian blur.\n"
         " -powell m a   = Set the NEWUOA dimensional parameters to\n"
         "                 'm' and 'a' (cf. powell_int.c).\n"
@@ -2953,7 +2955,7 @@ int main( int argc , char *argv[] )
 
          stup.npt_match = ntask / 7 ;
               if( stup.npt_match < 9999  ) stup.npt_match = 9999 ;
-         else if( stup.npt_match > 99999 ) stup.npt_match = 99999 ;
+         /* else if( stup.npt_match > 99999 ) stup.npt_match = 99999 ; */
 
          /*-- now refine the tbest values saved already (from val_trial) --*/
 
@@ -2980,6 +2982,7 @@ int main( int argc , char *argv[] )
                tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
              if( verb > 1 )
                ININFO_message("- param set #%d has cost=%f",ib+1,stup.vbest) ;
+             if( verb > 2 ) PAROUT("--") ;
            }
          }
          if( verb > 1 )
@@ -2992,20 +2995,23 @@ int main( int argc , char *argv[] )
 
        } else {  /* if stoopid user did '-twobest 0' */
 
-         if( verb     ) ININFO_message("- Start coarse optimization") ;
+         if( verb     ) ININFO_message("- Start coarse optimization with -twobest 0") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
          nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 666 ) ;
+         if( verb > 2 ) PAROUT("--(a)") ;
          stup.npt_match = ntask / 10 ;
               if( stup.npt_match < 9999  ) stup.npt_match = 9999 ;
-         else if( stup.npt_match > 66666 ) stup.npt_match = 66666 ;
+         /* else if( stup.npt_match > 66666 ) stup.npt_match = 66666 ; */
          stup.smooth_radius_base *= 0.666 ;
          stup.smooth_radius_targ *= 0.666 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
          nfunc += mri_genalign_scalar_optim( &stup , 0.0333 , 0.00333 , 666 ) ;
+         if( verb > 2 ) PAROUT("--(b)") ;
          stup.smooth_radius_base *= 0.666 ;
          stup.smooth_radius_targ *= 0.666 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
          nfunc += mri_genalign_scalar_optim( &stup , 0.0166 , 0.00166 , 666 ) ;
+         if( verb > 2 ) PAROUT("--(c)") ;
          if( verb > 1 ) ININFO_message("- Coarse CPU time = %.1f s; %d funcs",
                                        COX_cpu_time()-ctim,nfunc) ;
          if( verb     ) ININFO_message("- Coarse optimization:  best cost=%f",
@@ -3061,22 +3067,49 @@ int main( int argc , char *argv[] )
        if( usetemp ) mri_purge( im_targ ) ;
      }
 
+     switch( tfdone ){
+        case 0: rad = 0.0345 ; break ;
+        case 1:
+        case 2: rad = 0.0123 ; break ;
+       default: rad = 0.0066 ; break ;
+     }
+     if( rad < 22.2f*conv_rad ) rad = 22.2f*conv_rad ;
+
      /*-- choose initial parameters, based on interp_code cost function --*/
 
      if( tfdone ){                           /* find best in tfparm array */
-       int kb=0 , ib ; float cbest=1.e+33 ;
+       int kb=0 , ib ; float cbest=1.e+33 , pini[MAXPAR] ;
+
        for( ib=0 ; ib < tfdone ; ib++ ){
-#if 0
-         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-           stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-#endif
          cost = mri_genalign_scalar_cost( &stup , tfparm[ib] ) ;
          if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",
                                        ib+1,cost,(cost<cbest)?'*':' ');
          if( cost < cbest ){ cbest=cost ; kb=ib ; }
        }
+#if 0
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )        /* copy best set */
          stup.wfunc_param[jj].val_init = tfparm[kb][jj] ; /* for fine work */
+#else
+       if( verb > 1 ) ININFO_message("a little optimization on these cases:") ;
+       cbest = 1.e+33 ;
+       for( ib=0 ; ib < tfdone ; ib++ ){
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+           stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
+         (void)mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 111 );
+         cost = stup.vbest ;
+         if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",
+                                       ib+1,cost,(cost<cbest)?'*':' ');
+         if( verb > 2 ) PAROUT("--") ;
+         if( cost < cbest ){
+           cbest = cost ;
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+             pini[jj] = stup.wfunc_param[jj].val_out ;
+         }
+       }
+       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+         stup.wfunc_param[jj].val_init = pini[jj] ;
+#endif
+
        cost_ini = cbest ;
 
      } else {  /*-- did not do first pass, so we start at default params --*/
@@ -3102,13 +3135,6 @@ int main( int argc , char *argv[] )
 
      if( powell_mm > 0.0f ) powell_set_mfac( powell_mm , powell_aa ) ;
      nfunc = 0 ;
-     switch( tfdone ){
-        case 0: rad = 0.0345 ; break ;
-        case 1:
-        case 2: rad = 0.0123 ; break ;
-       default: rad = 0.0066 ; break ;
-     }
-     if( rad < 22.2f*conv_rad ) rad = 22.2f*conv_rad ;
 
      /*-- start with some optimization with linear interp, for speed? --*/
 
