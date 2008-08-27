@@ -139,7 +139,7 @@ int main( int argc , char *argv[] )
    int tfdone=0;  /* stuff for -twofirst */
    float tfparm[PARAM_MAXTRIAL+1][MAXPAR];
    int skip_first=0 , didtwo , targ_kind , skipped=0 , nptwo=6 ;
-   double ctim,dtim , rad , conv_rad ;
+   double ctim=0.0,dtim , rad , conv_rad ;
    float **parsave=NULL ;
    mat44 *matsave=NULL ;
    mat44 targ_cmat,base_cmat,base_cmat_inv,targ_cmat_inv,mast_cmat,mast_cmat_inv,
@@ -149,7 +149,7 @@ int main( int argc , char *argv[] )
    int apply_nx=0, apply_ny=0, apply_mode=0, nparam_free , diffblur=1 ;
    float cost, cost_ini ;
    mat44 cmat_bout , cmat_tout , aff12_xyz ;
-   int   nxout,nyout,nzout ;
+   int   nxout=0,nyout=0,nzout=0 ;
    float dxout,dyout,dzout ;
    floatvec *allcost ;   /* 19 Sep 2007 */
    float     allpar[MAXPAR] ;
@@ -1949,7 +1949,7 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcmp(argv[iarg],"-blok") == 0 ){   /* hidden */
-       int ia ;
+       int ia=0 ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after -blok") ;
        if( strncmp(argv[iarg],"SPHERE(",7) == 0 ){
          ia = 7 ; bloktype = GA_BLOK_BALL ;
@@ -2160,7 +2160,7 @@ int main( int argc , char *argv[] )
      dy_base = fabsf(DSET_DY(dset_base)) ;
      dz_base = fabsf(DSET_DZ(dset_base)) ;
      if( im_base->nx < 2 || im_base->ny < 2 )
-       ERROR_exit("Base dataset has nx=%d ny=%d ???",nx_base,ny_base) ;
+       ERROR_exit("Base dataset has nx=%d ny=%d ???",im_base->nx,im_base->ny) ;
    } else {
      if( apply_mode == 0 )
        INFO_message("no -base option ==> base is #0 sub-brick of source") ;
@@ -2459,6 +2459,8 @@ int main( int argc , char *argv[] )
 
      mri_get_cmass_3D( im_base , &xc,&yc,&zc ) ;
      MAT44_VEC( base_cmat , xc,yc,zc , xbase,ybase,zbase ) ;
+     if( verb > 2 )
+       INFO_message("base center of mass = %.3f %.3f %.3f",xc,yc,zc) ;
      im_targ = THD_median_brick( dset_targ ) ;
      mri_get_cmass_3D( im_targ , &xc,&yc,&zc ) ; mri_free(im_targ) ;
      MAT44_VEC( targ_cmat , xc,yc,zc , xtarg,ytarg,ztarg ) ;
@@ -2490,7 +2492,7 @@ int main( int argc , char *argv[] )
         if( (do_cmass & 4) == 0 ) zc = 0.0f ;
      }
      if( verb > 2 && apply_mode == 0 ){
-       INFO_message("center of mass shifts = %.1f %.1f %.1f",xc,yc,zc) ;
+       INFO_message("center of mass shifts = %.3f %.3f %.3f",xc,yc,zc) ;
      }
    } else {
      xc = yc = zc = 0.0f ;

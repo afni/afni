@@ -766,11 +766,11 @@ int MREN_needs_data( void * ah )
    If rendering RGB bricks, returns an image of kind MRI_rgb.
 ---------------------------------------------------------------------------------*/
 
-MRI_IMAGE * MREN_render( void * ah , int npix )
+MRI_IMAGE * MREN_render( void *ah , int npix )
 {
-   MREN_stuff * ar = (MREN_stuff *) ah ;
+   MREN_stuff *ar = (MREN_stuff *) ah ;
    int isgray , isrgb ;
-   MRI_IMAGE * im ;
+   MRI_IMAGE *im=NULL ;
    byte * imar ;
    vpResult fred ;
 

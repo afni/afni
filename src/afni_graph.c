@@ -1242,7 +1242,7 @@ ENTRY("GRA_redraw_overlay") ;
      jj  = NBOT(grapher) ;                     /* first point to plot */
      xxx = NTOP(grapher) ;                     /* last */
      xxx = MIN (xxx , grapher->init_ignore) ;  /* point */
-     xxx = MIN (xxx , ii+grapher->nncen) ;     /* to plot */
+     xxx = MIN (xxx , jj+grapher->nncen) ;     /* to plot */
      for( ii=jj ; ii < xxx ; ii++ )
 #if 0
        GRA_overlay_circle( grapher , grapher->cen_line[ii-jj].x ,

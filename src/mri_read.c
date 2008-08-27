@@ -3183,13 +3183,13 @@ static void read_ascii_floats( char * fname, int * nff , float ** ff )
    [N.B.: if this routine is altered, don't forget mri_imcount!]
 ----------------------------------------------------------------*/
 
-MRI_IMARR * mri_read_3A( char * tname )
+MRI_IMARR * mri_read_3A( char *tname )
 {
    int nx , ny , nz , ii , nxyz,nxy , nff ;
    int ngood , length , kim , datum_type ;
    char fname[256]="\0" , buf[512] ;
-   MRI_IMARR * newar ;
-   MRI_IMAGE * newim , * flim ;
+   MRI_IMARR *newar ;
+   MRI_IMAGE *newim=NULL , * flim ;
    float * ff ;
 
 ENTRY("mri_read_3A") ;
@@ -3672,6 +3672,7 @@ ENTRY("mri_read3D_analyze75") ;
 
    INIT_IMARR(newar) ;
 
+   nxyz = nx*ny*nz ;
    for( kim=0 ; kim < nt ; kim++ ){
       koff = hglobal + (kim+1)*himage + datum_len*nxyz*kim ;
       fseek( fp , koff , SEEK_SET ) ;
@@ -4163,7 +4164,7 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
    MRI_IMARR *newar ;
    MRI_IMAGE *newim ;
    FILE      *imfile ;
-   long long length , nneed , hglob ;  /* 22 Mar 2007 */
+   long long length , nneed , hglob=0 ;  /* 22 Mar 2007 */
 
    /*** get info from 3D tname ***/
 

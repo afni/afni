@@ -45,7 +45,7 @@ void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata *mp ,
 {
    byte rrr=0,ggg=0,bbb=0 ;
    int ii , nline , same ;
-   float old_thick , old_color , new_color , new_thick , sthick ;
+   float old_thick , old_color , new_color , new_thick , sthick=0.0 ;
    float scal,xscal,yscal , xoff,yoff ;
    int x1,y1 , x2,y2 ;
    int skip ;

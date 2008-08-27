@@ -145,8 +145,8 @@ static void apply_xshear( float a , float b , float s ,
    float * fj0 , * fj1 ;
    int   nx1=nx-1    , ny1=ny-1    , nz1=nz-1    , nxy=nx*ny ;
    float nx2=0.5*nx1 , ny2=0.5*ny1 , nz2=0.5*nz1 ;
-   int ii,jj,kk , nup,nst ;
-   float a0 , a1 , st ;
+   int ii,jj,kk , nup=0,nst ;
+   float a0 , a1=0 , st ;
 
 ENTRY("apply_xshear") ;
 
@@ -184,8 +184,8 @@ static void apply_yshear( float a , float b , float s ,
    float * fj0 , * fj1 ;
    int   nx1=nx-1    , ny1=ny-1    , nz1=nz-1    , nxy=nx*ny ;
    float nx2=0.5*nx1 , ny2=0.5*ny1 , nz2=0.5*nz1 ;
-   int ii,jj,kk , nup,nst ;
-   float a0 , a1 , st ;
+   int ii,jj,kk , nup=0,nst ;
+   float a0 , a1=0 , st ;
 
 ENTRY("apply_yshear") ;
 
@@ -232,8 +232,8 @@ static void apply_zshear( float a , float b , float s ,
    float * fj0 , * fj1 ;
    int   nx1=nx-1    , ny1=ny-1    , nz1=nz-1    , nxy=nx*ny ;
    float nx2=0.5*nx1 , ny2=0.5*ny1 , nz2=0.5*nz1 ;
-   int ii,jj,kk , nup,nst ;
-   float a0 , a1 , st ;
+   int ii,jj,kk , nup=0,nst ;
+   float a0 , a1=0 , st ;
 
 ENTRY("apply_zshear") ;
 

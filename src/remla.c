@@ -419,7 +419,7 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    MTYPE **rc , *rii , alam ;
    int ii , jj , bmax , jbot , itt,jtt ;
 
-   if( nt < 2 || bmax < 1 ) return NULL ;
+   if( nt < 2 ) return NULL ;
 
    rcm = rcmat_init( nt ) ;  /* create sparse matrix struct */
    len = rcm->len ;

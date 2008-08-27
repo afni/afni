@@ -12,7 +12,7 @@ static int   setup=-1    ;
 
 int setup_mri_write_angif( void )
 {
-   char *pq,*pg,*pgs,*pwg ;
+   char *pq,*pg,*pgs,*pwg=NULL ;
 
    if( setup >= 0 ) return setup ;
 

@@ -159,9 +159,9 @@ int read_URL_http( char * url , int msec , char ** data )
 {
    IOCHAN * ioc ;
    char * buf=NULL , * cpt , qbuf[QBUF] , qname[256] ;
-   int ii,jj , nall , nuse , nget=0, nmeg=0 ;
+   int ii,jj , nall=0 , nuse , nget=0, nmeg=0 ;
    int cflag , first ;
-   FILE * cfile ;
+   FILE *cfile=NULL ;
 
    /* sanity check */
 

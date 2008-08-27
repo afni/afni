@@ -112,11 +112,12 @@ mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl )
 
 ENTRY("mri_clusterize_detailize") ;
 
-   if( cl == NULL || cl->num_pt <= 0 ){ cld.nvox = 0; RETURN(cld); }
+   memset( &cld , 0 , sizeof(mri_cluster_detail) ) ;
+   if( cl == NULL || cl->num_pt <= 0 ) RETURN(cld) ;
 
    cld.nvox   = cl->num_pt ;
    cld.volume = cl->num_pt ;
-   xcm = ycm = zcm = 0.0f ; vpk = 0.0f ;
+   xcm = ycm = zcm = 0.0f ; xpk = ypk = zpk = vpk = 0.0f ;
    for( vsum=ii=0 ; ii < cl->num_pt ; ii++ ){
      vvv = fabsf(cl->mag[ii]) ; vsum += vvv ;
      xcm += vvv*cl->i[ii] ; ycm += vvv*cl->j[ii] ; zcm += vvv*cl->k[ii] ;

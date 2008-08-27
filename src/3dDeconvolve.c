@@ -4766,7 +4766,7 @@ void report_evaluation
 {
   int m;                   /* parameter index */
   int is;                  /* stimulus index */
-  int ilag;                /* time lag index */
+  int ilag=0;              /* time lag index */
   int iglt;                /* general linear test index */
   int ilc;                 /* linear combination index */
   float stddev;            /* normalized parameter standard deviation */

@@ -1016,7 +1016,7 @@ void DRAW_copy_bbox_CB( Widget w, XtPointer client_data, XtPointer call_data )
 static void 
 Sensitize_copy_bbox(int  sens) 
 {
-   XtPointer clienttemp; 
+   XtPointer clienttemp=NULL; 
 
    SENSITIZE(copy_bbox->wbut[0], sens);
    SENSITIZE(copy_bbox->wbut[1], sens);

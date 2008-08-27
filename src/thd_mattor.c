@@ -13,7 +13,7 @@ THD_ivec3 THD_matrix_to_orientation( THD_mat33 R )
    double xi,xj,xk , yi,yj,yk , zi,zj,zk , val,detQ,detP ;
    THD_dmat33 P , Q , M ;
    THD_ivec3 vor ;
-   int i,j,k,p,q,r , ibest,jbest,kbest,pbest,qbest,rbest ;
+   int i=0,j=0,k=0,p,q,r , ibest,jbest,kbest,pbest,qbest,rbest ;
    double vbest ;
 
    LOAD_IVEC3(vor,ORI_R2L_TYPE,ORI_A2P_TYPE,ORI_I2S_TYPE) ; /* default */

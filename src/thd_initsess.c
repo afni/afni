@@ -17,11 +17,11 @@
 
 THD_session * THD_init_session( char * sessname )
 {
-   THD_session            * sess ;
-   XtPointer_array        * dblk_arrarr ;
-   THD_datablock_array    * dblk_arr ;
-   THD_3dim_dataset       * dset ;
-   THD_3dim_dataset_array * dset_arr ;
+   THD_session            *sess ;
+   XtPointer_array        *dblk_arrarr ;
+   THD_datablock_array    *dblk_arr ;
+   THD_3dim_dataset       *dset=NULL ;
+   THD_3dim_dataset_array *dset_arr ;
 
    int ibar , idset , iview  , nds ;
 
