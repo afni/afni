@@ -79,7 +79,9 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 	FILE*iv_file;
 	
 	SUMA_ENTRY;
-
+   
+   cnt3.quot = cnt3.rem = 0;
+   
 	/* intialize the number of points read to 0 */
 	*N_NodeList = 0;
 	

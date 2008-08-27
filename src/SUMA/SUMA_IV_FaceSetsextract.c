@@ -66,6 +66,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 	FILE*iv_file;
    static char FuncName[]={"SUMA_IV_FaceSetsextract"};
    
+   cnt4.quot = cnt4.rem = 0;
 
 	/* intialize the number of points read to 0 */
 	*N_FaceSetList = 0;

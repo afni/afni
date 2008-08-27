@@ -6648,7 +6648,7 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (
 {
    SUMA_DRAWN_ROI *D_ROI = NULL;
    static int ROI_index = 1;
-   char stmp[32], sd;
+   char stmp[32], sd='\0';
    SUMA_SurfaceObject *SO=NULL;
    static char FuncName[]={"SUMA_AllocateDrawnROI"};
    
