@@ -24,7 +24,7 @@ void THD_insert_series( int ind , THD_3dim_dataset * dset ,
                         int npt , int typ , void * dar , int raw )
 {
    int nv , ival , dtyp , ii ;
-   float * far=NULL , * fac ;
+   float *far=NULL , *fac=NULL ;
 
    if( ind < 0                ||
        npt <= 0               ||
@@ -48,12 +48,12 @@ void THD_insert_series( int ind , THD_3dim_dataset * dset ,
    else
       raw = 1 ;
 
-#define FAC(q) ( (fac[q] != 0.0) ? 1.0/fac[q] : 1.0 )
+#define FAC(q) ( (fac != NULL && fac[q] != 0.0) ? 1.0/fac[q] : 1.0 )
 
    if( dtyp == MRI_complex ){                             /* complex output ?! */
 
-      complex * car = (complex *) malloc( sizeof(complex) * npt ) ;
-      complex * bar ;
+      complex *car = (complex *) malloc( sizeof(complex) * npt ) ;
+      complex *bar ;
 
       switch( typ ){
          default:
@@ -64,19 +64,19 @@ void THD_insert_series( int ind , THD_3dim_dataset * dset ,
          break ;
 
          case MRI_float:{
-            float * a = (float *) dar ;
+            float *a = (float *) dar ;
             for( ii=0 ; ii < npt ; ii++ ){ car[ii].r = a[ii] ; car[ii].i = 0.0 ; }
          }
          break ;
 
          case MRI_short:{
-            short * a = (short *) dar ;
+            short *a = (short *) dar ;
             for( ii=0 ; ii < npt ; ii++ ){ car[ii].r = a[ii] ; car[ii].i = 0.0 ; }
          }
          break ;
 
          case MRI_byte:{
-            byte * a = (byte *) dar ;
+            byte *a = (byte *) dar ;
             for( ii=0 ; ii < npt ; ii++ ){ car[ii].r = a[ii] ; car[ii].i = 0.0 ; }
          }
          break ;

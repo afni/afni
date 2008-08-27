@@ -14,10 +14,10 @@ void mri_flatfilter_usedxyz  ( int i ){ use_dxyz = i; }
 MRI_IMAGE *mri_medianfilter( MRI_IMAGE *imin, float irad, byte *mask, int verb )
 {
    MRI_IMAGE *imout ;
-   float *fin , *fout , *tmp ;
-   short *sin ; byte *bin ; void *vin ;
+   float *fin=NULL , *fout , *tmp ;
+   short *sin=NULL ; byte *bin=NULL ; void *vin ;
    short *di , *dj , *dk ;
-   int nd, ii,jj,kk, ip,jp,kp, nx,ny,nz, nxy, ijk, dd,nt,pjk, kd  ;
+   int nd, ii,jj,kk, ip,jp,kp, nx,ny,nz, nxy, ijk, dd,nt=0,pjk, kd=0  ;
    MCW_cluster *cl ;
    float dz ;
 
@@ -135,10 +135,10 @@ ENTRY("mri_medianfilter") ;
 MRI_IMAGE *mri_flatfilter( MRI_IMAGE *imin, float irad, byte *mask, int verb )
 {
    MRI_IMAGE *imout ;
-   float *fin , *fout , *tmp ;
-   short *sin ; byte *bin ; void *vin ;
+   float *fin=NULL , *fout , *tmp ;
+   short *sin=NULL ; byte *bin=NULL ; void *vin ;
    short *di , *dj , *dk ;
-   int nd, ii,jj,kk, ip,jp,kp, nx,ny,nz, nxy, ijk, dd,nt,pjk, kd  ;
+   int nd, ii,jj,kk, ip,jp,kp, nx,ny,nz, nxy, ijk, dd,nt=0,pjk, kd=0  ;
    MCW_cluster *cl ;
    float dz , sum ;
 

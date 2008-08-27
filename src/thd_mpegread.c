@@ -158,7 +158,6 @@ void THD_load_mpeg( THD_datablock *dblk )
 {
    THD_diskptr *dkptr ;
    int nx,ny,nz,nv , nxy,nxyz,nxyzv , ibr,nbad , nbar ;
-   FILE *fp ;
    void *ptr ;
    MRI_IMARR *imar ;
    MRI_IMAGE *im ;
@@ -207,7 +206,7 @@ ENTRY("THD_load_mpeg") ;
          mri_fix_data_pointer( NULL , DBLK_BRICK(dblk,ibr) ) ;
        }
      }
-     fclose(fp) ; DESTROY_IMARR(imar) ; EXRETURN ;
+     DESTROY_IMARR(imar) ; EXRETURN ;
    }
 
    /*-- load data from image array into sub-brick arrays! --*/

@@ -101,7 +101,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
    float * dtr  = NULL ;  /* will be array of detrending coeff */
 
    float val , d0fac , d1fac , x0,x1;
-   double tzero , tdelta , ts_mean , ts_slope ;
+   double tzero=0 , tdelta , ts_mean , ts_slope ;
    int   ii , old_datum , nuse , use_fac , iz,izold, nxy,nvox , nbad ;
    register int kk ;
 

@@ -110,7 +110,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
    float *  val  = NULL ;  /* will be array of output values */
 
    float d0fac , d1fac , x0,x1;
-   double tzero , tdelta , ts_mean , ts_slope ;
+   double tzero=0 , tdelta , ts_mean , ts_slope ;
    int   ii , old_datum , nuse , use_fac , iz,izold, nxy,nvox , iv ;
    register int kk ;
    int nbad=0 ;        /* 08 Aug 2000 */

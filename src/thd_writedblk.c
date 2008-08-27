@@ -219,7 +219,7 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
       case STORAGE_BY_BRICK:{
          FILE *far ;
          Boolean purge_when_done = False , ok ;
-         int force_gzip=0 , csave ;
+         int force_gzip=0 , csave=COMPRESS_NONE ;
 
          /** if we have a mmap-ed file, copy into RAM (ugh) **/
 

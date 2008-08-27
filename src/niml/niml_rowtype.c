@@ -1412,7 +1412,7 @@ int NI_read_columns( NI_stream_type *ns,
                      int col_num, int   *col_typ,
                      int col_len, void **col_dpt, int tmode, int flags )
 {
-   int ii,jj , row , dim , nin , col , nn ;
+   int ii,jj , row , dim , nin , col , nn=0 ;
    char *ptr , **col_dat=(char **)col_dpt ;
 
    NI_rowtype **rt=NULL ;  /* array of NI_rowtype, 1 per column */

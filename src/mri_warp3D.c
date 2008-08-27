@@ -1044,7 +1044,7 @@ INLINE THD_3dim_dataset * THD_warp3D(
    int nxout,nyout,nzout ;
    float xbot,xtop , ybot,ytop , zbot,ztop ;
    int use_newgrid , use_oldgrid ;
-   float ddd_newgrid , fac ;
+   float ddd_newgrid=0.0 , fac ;
    MRI_IMAGE *inim , *outim , *wim ;
 
 ENTRY("THD_warp3D") ;

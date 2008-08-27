@@ -369,7 +369,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *inset=NULL, *outset=NULL, *baset=NULL, *wtset=NULL ;
    MRI_warp3D_align_basis abas ;
    char *prefix="warpdriven" ;
-   int warpdrive_code=-1 , nerr , nx,ny,nz , nopt=1 ;
+   int warpdrive_code=-1 , nerr=0 , nx,ny,nz , nopt=1 ;
    float dx,dy,dz , vp ;
    int kim , nvals , kpar , np , nfree ;
    MRI_IMAGE *qim , *tim , *fim ;

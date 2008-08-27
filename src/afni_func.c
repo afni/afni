@@ -2924,7 +2924,7 @@ if(PRINT_TRACING)
             /** if the name given is a directory, try to read it **/
 
             if( THD_is_directory(text) ){
-               int ii , eq ;
+               int ii , eq=0 ;
                THD_session *old_ss ;
 
                /** 1st check if this is the same as some other session **/

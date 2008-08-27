@@ -6058,7 +6058,7 @@ ENTRY("ISQ_place_widget") ;
    MCW_widget_geom( w     , &dw,&dh,&dx,&dy ) ;  /* of dialog */
 
    sh = HeightOfScreen(XtScreen(wmain)) ;
-   sh = WidthOfScreen (XtScreen(wmain)) ;
+   sw = WidthOfScreen (XtScreen(wmain)) ;
 
    xp = xx+wx+8 ;
    if( xp+dw > sw ) xp = xx-dw-8 ;

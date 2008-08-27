@@ -230,7 +230,7 @@ void THD_write_1D( char *sname, char *pname , THD_3dim_dataset *dset )
    char fname[THD_MAX_NAME] , *cpt ;
    int iv,nv , nx,ny,nz,nxyz,ii,jj,kk , qq ;
    FILE *fp=NULL ;
-   int binflag ; char shp ; float val[1] ;
+   int binflag=0 ; char shp ; float val[1] ;
 
 ENTRY("THD_write_1D") ;
 

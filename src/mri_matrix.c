@@ -548,7 +548,7 @@ mat44 THD_mat44_sqrt( mat44 A )  /* 30 Jul 2007 */
 
 double Plegendre( double x , int m )
 {
-   double pk, pkm1, pkm2 ; int k ;  /* for the recurrence, when m > 20 */
+   double pk=0.0, pkm1, pkm2 ; int k ;  /* for the recurrence, when m > 20 */
 
    if( m < 0 ) return 1.0 ;    /* bad input */
 

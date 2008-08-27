@@ -13,11 +13,11 @@ MRI_IMAGE *mri_to_byte( MRI_IMAGE *oldim )
    MRI_IMAGE *newim ;
    register int ii , npix ;
    double   imin,imax ;
-   register double scale ;
-   short  shbot ;
-   int    inbot ;
-   float  flbot ;
-   double dbbot ;
+   register double scale=1.0 ;
+   short  shbot=0 ;
+   int    inbot=0 ;
+   float  flbot=0.0 ;
+   double dbbot=0.0 ;
    byte *ar ;
 
 ENTRY("mri_to_byte") ;

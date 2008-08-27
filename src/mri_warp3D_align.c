@@ -695,7 +695,7 @@ MRI_IMAGE * mri_warp3D_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
    float  sdif , fitdif[NMEM] ;   /* 28 Sep 2005 */
    int    num_bad_diff ;
    float  best_dif , best_par[999] ;  /* 09 Jan 2006 */
-   int    best_ite ;
+   int    best_ite=0 ;
 
 ENTRY("mri_warp3D_align_one") ;
 

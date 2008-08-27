@@ -7769,7 +7769,7 @@ DCM_GetCompressedValue(DCM_OBJECT ** callerObject, DCM_TAG tag, void *buf,
     unsigned char *ptr;
     U32 size = 0;
     off_t fileOffset = 0;
-    unsigned long opt;
+    unsigned long opt=0 ;
     int byteOrder;
     int explicitVR;
     CTNBOOLEAN acceptVRMismatch = FALSE;
