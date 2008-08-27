@@ -1817,6 +1817,17 @@ ENTRY("mri_genalign_scalar_allcosts") ;
 }
 
 /*---------------------------------------------------------------------------*/
+
+#define MYa 62003u
+#define MYb 15485863u
+static float myunif(void)
+{
+  static unsigned int XX = 15482917u ;
+  XX = MYa * XX + MYb ;
+  return (XX / 4294967296.0f) ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Test some random starting points.  Sets val_init values in stup.
 -----------------------------------------------------------------------------*/
 
