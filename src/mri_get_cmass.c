@@ -12,7 +12,7 @@
 void mri_get_cmass_2D( MRI_IMAGE *im , float *xcm , float *ycm )
 {
    int ii,jj,joff , nx,ny ;
-   float xx , yy , sum , val , *far ;
+   double xx , yy , sum , val ; float *far ;
    MRI_IMAGE *flim ;
 
 ENTRY("mri_get_cmass_2D") ;
@@ -25,7 +25,7 @@ ENTRY("mri_get_cmass_2D") ;
    far = MRI_FLOAT_PTR(flim) ;
    nx  = im->nx ; ny = im->ny ;
 
-   sum = xx = yy = 0.0f ;
+   sum = xx = yy = 0.0 ;
    for( jj=0 ; jj < ny ; jj++ ){
       joff = jj * nx ;
       for( ii=0 ; ii < nx ; ii++ ){
@@ -37,10 +37,10 @@ ENTRY("mri_get_cmass_2D") ;
    }
    if( flim != im ) mri_free(flim) ;
 
-   if( sum > 0.0f ){ xx /= sum ; yy /= sum ; }
-   else            { xx = 0.5f*(nx-1); yy=0.5f*(ny-1); }
+   if( sum > 0.0 ){ xx /= sum ; yy /= sum ; }
+   else           { xx = 0.5*(nx-1); yy=0.5*(ny-1); }
 
-   *xcm = xx ; *ycm = yy ; EXRETURN ;
+   *xcm = (float)xx ; *ycm = (float)yy ; EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -49,7 +49,7 @@ ENTRY("mri_get_cmass_2D") ;
 void mri_get_cmass_3D( MRI_IMAGE *im, float *xcm, float *ycm, float *zcm )
 {
    int ii,jj,kk,koff,joff , nx,ny,nz,nxy ;
-   float xx,yy,zz , sum , val , *far ;
+   double xx,yy,zz , sum , val ; float *far ;
    MRI_IMAGE *flim ;
 
 ENTRY("mri_get_cmass_3D") ;
@@ -62,7 +62,7 @@ ENTRY("mri_get_cmass_3D") ;
    far = MRI_FLOAT_PTR(flim) ;
    nx  = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ;
 
-   sum = xx = yy = zz = 0.0f ;
+   sum = xx = yy = zz = 0.0 ;
    for( kk=0 ; kk < nz ; kk++ ){
      koff = kk * nxy ;
      for( jj=0 ; jj < ny ; jj++ ){
@@ -78,8 +78,8 @@ ENTRY("mri_get_cmass_3D") ;
    }
    if( flim != im ) mri_free(flim) ;
 
-   if( sum > 0.0f ){ xx /= sum ; yy /= sum ; zz /= sum ; }
-   else            { xx = 0.5f*(nx-1); yy=0.5f*(ny-1); zz=0.5f*(nz-1); }
+   if( sum > 0.0 ){ xx /= sum ; yy /= sum ; zz /= sum ; }
+   else           { xx = 0.5*(nx-1); yy=0.5*(ny-1); zz=0.5*(nz-1); }
 
-   *xcm = xx ; *ycm = yy ; *zcm = zz ; EXRETURN ;
+   *xcm = (float)xx ; *ycm = (float)yy ; *zcm = (float)zz ; EXRETURN ;
 }
