@@ -37,6 +37,20 @@ static int find_relprime_fixed( int n )  /* find number relatively prime to n */
    for( dj=n5 ; gcd(n,dj) > 1 ; dj++ ) ; /*nada*/
    return dj ;
 }
+
+/*---------------------------------------------------------------------------*/
+/* 27 Aug 2008: replace use of drand48 with myunif, for inter-system control */
+
+static const unsigned long long MYa=62003 ;
+static const unsigned long long MYb=15485863 ;
+static unsigned long long MYx=15482917 ;
+static float myunif(void)
+{
+  MYx = MYa * MYx + MYb ;
+  return ( ((unsigned int)MYx) / 4294967296.0f ) ;
+}
+static void myunif_reset(unsigned long long x){ MYx = x; return; }
+
 /*---------------------------------------------------------------------------*/
 /*! Smooth an image with a given method to a given radius.
     Assumes the dx,dy,dz parameters in the image struct are correct! */
@@ -1312,7 +1326,7 @@ ENTRY("mri_genalign_scalar_setup") ;
      if( stup->ajmask != NULL ){
        float *af, *qf ; byte *mmm ; float_pair quam ; float ubot,usiz , u1,u2;
        MRI_IMAGE *qim ; int nvox,pp ;
-       stup->ajimor = mri_copy(stup->ajim) ;
+       stup->ajimor = mri_copy(stup->ajim) ;  /* original image */
        if( stup->usetemp ) mri_purge( stup->ajimor ) ;
        af  = MRI_FLOAT_PTR(stup->ajim) ;
        mmm = MRI_BYTE_PTR (stup->ajmask) ;
@@ -1323,10 +1337,10 @@ ENTRY("mri_genalign_scalar_setup") ;
        ubot = quam.a ; usiz = (quam.b - quam.a)*0.5f ;
        if( usiz > 0.0f ){
          if( verb > 2 ) ININFO_message("source mask: ubot=%g usiz=%g",ubot,usiz);
+         myunif_reset(12345678) ;
          for( ii=0 ; ii < nvox ; ii++ ){
            if( !mmm[ii] ){
-             u1 = (float)drand48(); u2 = (float)drand48();
-             af[ii] = ubot + usiz*(u1+u2) ;
+             u1 = myunif(); u2 = myunif(); af[ii] = ubot + usiz*(u1+u2);
            }
          }
        }
@@ -1608,7 +1622,7 @@ ENTRY("mri_genalign_set_targmask") ;
          WARNING_message("mri_genalign_set_targmask: called after setup()?!") ;
        }
      }
-     stup->ajmask = mri_copy(im_tmask) ;
+     stup->ajmask = mri_to_byte(im_tmask) ;
    }
    EXRETURN ;
 }
@@ -1817,17 +1831,6 @@ ENTRY("mri_genalign_scalar_allcosts") ;
 }
 
 /*---------------------------------------------------------------------------*/
-
-#define MYa 62003u
-#define MYb 15485863u
-static float myunif(void)
-{
-  static unsigned int XX = 15482917u ;
-  XX = MYa * XX + MYb ;
-  return (XX / 4294967296.0f) ;
-}
-
-/*---------------------------------------------------------------------------*/
 /*! Test some random starting points.  Sets val_init values in stup.
 -----------------------------------------------------------------------------*/
 
@@ -1886,6 +1889,8 @@ ENTRY("mri_genalign_scalar_ransetup") ;
 
    if( verb ) fprintf(stderr," + - Scanning %d:",nrand+ngtot) ;
 
+   myunif_reset(3456789) ;  /* 27 Aug 2008 */
+
    for( ii=0 ; ii < nrand+ngtot ; ii++ ){
      if( ii < ngtot ){                     /* grid points */
        val = 0.5/(ngrid+1.0) ; ss = ii ;
@@ -1893,11 +1898,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
          kk = ss % ngrid; ss = ss / ngrid; wpar[qq] = 0.5+(kk+1)*val;
        }
      } else {                              /* random */
-#if 0
-       for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*drand48()) ;
-#else
        for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*myunif()) ;
-#endif
      }
 
      for( ss=0 ; ss < twof ; ss++ ){   /* try divers reflections */
