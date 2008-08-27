@@ -62,11 +62,9 @@ THD_3dim_dataset *
 DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag)
 {
   MRI_IMARR *Gradient_Im, *EV_Im, *phi_Im, *D_Im;
-  THD_3dim_dataset *D_dset, *tempdset;
+  THD_3dim_dataset *D_dset;
 
   ENTRY("DWIstructtensor");
-
-/*  tempdset = Copy_dset_to_float(DWI_dset, "tempani"); */  /* make another copy for smoothing */
 
   /*if(smooth_flag)
      Smooth_DWI_dset(tempdset,flag2D3D);*/    /* smooth DWI images a little with Gaussian
@@ -78,8 +76,6 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
 /*  THD_delete_3dim_dataset(tempdset , False ) ;*/  /* delete temporary copy */
   if(save_tempdsets_flag)
      Save_imarr_to_dset(Gradient_Im,DWI_dset, "Gradient");
-
-  /*Compute_IMARR_Max(Gradient_Im);*/
 
   /* smooth each component of gradient matrix more */
   if(smooth_flag)
@@ -93,8 +89,6 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
     Save_imarr_to_dset(EV_Im,DWI_dset, "Eigens");
 
   /*Compute_IMARR_Max(EV_Im);*/
-
-
    /* compute phi (kind of reciprocal of  eigenvalues) */
   /* replace first two eigenvalue sub-briks for phi_Im */
   phi_Im = Compute_Phi(EV_Im, flag2D3D, maskptr);
@@ -519,11 +513,10 @@ smooth_factor)
    float *ar,*gptr[6];
    static double a, b, c, d; 
    double dudx, dudy, dudz, dv0, dv1, dv2;
-   float v0, v1, v2, v3, v4, v5, v6, v7, v8, tempv, temp;
-   float vv[3][3][3];  /* voxel values for cubic stencil */
-   int nx, ny, nz, nxy, nxyz, endi, i, ii, nbriks, nout,ll ,kk, jj;
-   int vx, vy,vz, vi, baseoffset, yp1xp1, yp1xm1, nxp1, nyp1, nxm1, nym1, nzm1;
-   float *blur_data;
+   float v0, v1, v2, v3, v4, v5, v6, v7, v8, temp;
+   int nx, ny, nz, nxy, nxyz, i, ii, nbriks, nout;
+   int vx, vy,vz, vi, baseoffset, yp1xp1, yp1xm1, nxp1, nxm1, nym1, nzm1;
+   float *blur_data = NULL;
    float *vptr, *vptr0, *vptr1, *vptr2, *vptr3, *vptr5, *vptr6, *vptr7, *vptr8;
    float dz;
    int maskflag;
@@ -531,8 +524,7 @@ smooth_factor)
    float v9, v10, v11, v12, v13, v14, v15, v16, v17, v18;
    float v19, v20, v21, v22, v23, v24, v25, v26;
    float dv0600, dv0701, dv0802, dv1509, dv1610, dv1711, dv2418, dv2519, dv2620;
-   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305=0;
-   THD_dataxes   * daxes ;
+   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305;
    /*float dx = 1.0;*/   /* delta x - assume cubical voxels for now */
 
    ENTRY("Compute_Gradient_Matrix");
@@ -872,6 +864,7 @@ smooth_factor)
 		 sv0107 = v1 + v7;
         	 dv2103 = v21 - v3;
 		 dv2204 = v22 - v4;
+                 dv2305 = v23 - v5;  /* mod 08-27-2008 drg*/
               }
 
 	      else {  /* x>=1, y>=2 */
@@ -927,7 +920,6 @@ smooth_factor)
 		 sv0107 = sv0208;
                  dv2103 = dv2204;
 		 dv2204 = dv2305;
-		 
              }
 	     
 	     /* compute new sliding sums and differences  */
@@ -938,6 +930,8 @@ smooth_factor)
 	     sv2026 = v20 + v26;
 	     sv0208 = v2 + v8;
              dv2204 = v22 - v4;
+             dv2305 = v23 - v5; /* mod -drg oops for 3D case, missed this one*/
+
   /*
   v0  v1  v2    v9  v10 v11    v18 v19 v20
   v3  v4  v5    v12 v13 v14    v21 v22 v23
@@ -1049,23 +1043,21 @@ Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int
    MRI_IMAGE *im;
 
    byte *tempmaskptr;
-   float *ar,*gptr[3], *tempptr;
+   float *ar,*gptr[3];
    double a, b, c, d; 
    double dudx, dudy, dudz; 
 
    float *vptr, *vptr0, *vptr1, *vptr2, *vptr3, *vptr5, *vptr6, *vptr7, *vptr8;
-   float dz;
    float v0, v1, v2, v3, v4, v5,v6,v7,v8;
    float v9, v10, v11, v12, v13, v14, v15, v16, v17, v18;
    float v19, v20, v21, v22, v23, v24, v25, v26;
    float dv0600, dv0701, dv0802, dv1509, dv1610, dv1711, dv2418, dv2519, dv2620;
-   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305=0;
+   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305;
    
-   float dv0,dv1,dv2, vv[18], temp;
-   int nx, ny, nz, i, j, k, l, ii, nout, noutm1, nxm1, nym1, nzm1; 
+   float dv0,dv1,dv2, temp;
+   int nx, ny, nz, i, ii, nout, noutm1, nxm1, nym1, nzm1; 
    char maskflag;
    int yp1xp1, yp1xm1, nxy, nxyz, baseoffset;
-   float *far;
    int vx,vy,vz;
    int ybrik;
       
@@ -1380,6 +1372,7 @@ Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int
 		       sv0107 = v1 + v7;
         	       dv2103 = v21 - v3;
 		       dv2204 = v22 - v4;
+                       dv2305 = v23 - v5;  /* mod - 08-27-2008 drg */
 		    }
 		 }
               }
@@ -1445,6 +1438,7 @@ Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int
                        dv2103 = dv2204;
 		       dv2204 = dv2305;
                        dv2204 = v22 - v4; /* for dudz */
+                       dv2305 = v23 - v5;  /* mod - 08-27-2008 drg */
   	           }
 
 		 }
@@ -1572,7 +1566,6 @@ MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr)
    float maxim, tempmax0, tempmax2;
    double almostzero;
     double aa[9], e[3];
-    int i;
 
    ENTRY("Eig_Gradient");
    tempmaskptr = maskptr;

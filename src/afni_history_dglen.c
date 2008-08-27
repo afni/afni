@@ -49,6 +49,11 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 27 , AUG , 2008 , DRG , "3danisosmooth" , 
+    MINOR , TYPE_BUG_FIX , "Initialized variable for 3D case" ,
+    NULL
+} ,
+
 { 30 , JUL , 2008 , DRG , "3dinfo.c" , 
     MICRO , TYPE_MODIFY, "Exit codes set to 1 on error" ,
 },
