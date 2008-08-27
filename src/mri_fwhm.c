@@ -14,8 +14,8 @@ THD_fvec3 mriarr_estimate_FWHM_1dif( MRI_IMARR *imar, byte *mask, int unif )
    THD_fvec3 sv ;
    float cx,cy,cz , fx,fy,fz ;
    int   nx,ny,nz , nvox , kk ;
-   MRI_IMAGE *medim , *madim ;
-   float     *medar , *madar , *sar ;
+   MRI_IMAGE *medim=NULL , *madim=NULL ;
+   float     *medar=NULL , *madar=NULL , *sar=NULL ;
 
    unif = unif && (nar > 2) ;
    nvox = IMARR_SUBIM(imar,0)->nvox ;
@@ -323,8 +323,8 @@ MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *dset,
                                    byte *mask, int demed , int unif )
 {
    int iv , nvals , ii,nvox ;
-   MRI_IMAGE *bim , *outim , *medim , *madim ;
-   float *outar , fac ,      *medar , *madar , *bar ;
+   MRI_IMAGE *bim=NULL , *outim=NULL , *medim=NULL , *madim=NULL ;
+   float *outar , fac ,  *medar=NULL , *madar=NULL , *bar=NULL ;
    THD_fvec3 fw ;
 
 ENTRY("THD_estimate_FWHM_all") ;

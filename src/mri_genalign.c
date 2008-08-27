@@ -440,7 +440,7 @@ static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 {
    int    npar , ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy , clip=0 , npt ;
    float *wpar , v ;
-   float *imf , *jmf , *kmf ;
+   float *imf=NULL , *jmf=NULL , *kmf=NULL ;
    float *imw , *jmw , *kmw ;
    MRI_IMAGE *aim ;
 
@@ -2578,9 +2578,9 @@ void mri_genalign_bilinear( int npar, float *wpar ,
        dd.mat[2][1] =      dd_for[2][1][0]*uu + dd_for[2][1][1]*vv + dd_for[2][1][2]*ww;
        ee = MAT_INV(dd) ;
      } else {
-       ee.mat[0][0] = 1.0f / dd.mat[0][0] ;  /* diagonal dd matrix case */
-       ee.mat[1][1] = 1.0f / dd.mat[1][1] ;
-       ee.mat[2][2] = 1.0f / dd.mat[2][2] ;
+       LOAD_DIAG_MAT( ee , 1.0f / dd.mat[0][0] ,  /* diagonal dd matrix case */
+                           1.0f / dd.mat[1][1] ,
+                           1.0f / dd.mat[2][2]  ) ;
      }
 
      MAT44_VEC( gam , aa,bb,cc, uu,vv,ww ) ;  /* affine part of transformation */

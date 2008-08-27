@@ -109,14 +109,14 @@ MRI_IMARR * mri_read_dicom( char *fname )
    int nx,ny,nz , swap , shift=0 ;
    float dx,dy,dz,dt ;
    MRI_IMARR *imar ;
-   MRI_IMAGE *im ;
+   MRI_IMAGE *im=NULL ;
    void *iar ;
    FILE *fp ;
    int have_orients=0 ;
-   int ior,jor,kor ;
+   int ior=0,jor=0,kor=0 ;
    static int nzoff=0 ;   /* for determining z-axis orientation/offset from multiple calls */
-   int mosaic=0 , mos_nx,mos_ny , mos_ix,mos_iy,mos_nz ;  /* 28 Oct 2002 */
-   Siemens_extra_info sexinfo ;                           /* 31 Oct 2002 */
+   int mosaic=0 , mos_nx=0,mos_ny=0 , mos_ix=0,mos_iy=0,mos_nz=0 ;  /* 28 Oct 2002 */
+   Siemens_extra_info sexinfo ;                                     /* 31 Oct 2002 */
 #if DEBUG_ON
    short sbot,stop ;
    float xcen,ycen,zcen ;
@@ -701,7 +701,7 @@ fprintf(stderr,"MRILIB_orients=%s (from IMAGE_ORIENTATION)\n",MRILIB_orients) ;
 
    if( nzoff == 0 && have_orients && mosaic && sexinfo.good ){  /* 01 Nov 2002: use Siemens mosaic info */
      int qq ;
-     float z0, z1 ;
+     float z0=0.0, z1=0.0 ;
      /* 25 Feb 2003 changing error checking for mosaics missing one or more *
       * dimension of slice coordinates                                 KRH  */
      if (sexinfo.have_data[kor-1]) {
@@ -1444,7 +1444,7 @@ static char * extract_bytes_from_file( FILE *fp, off_t start, size_t len, int st
 
 static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
 {
-   char *cpt , *dpt, *ept ;
+   char *cpt=NULL , *dpt, *ept ;
    int nn , mm , snum , last_snum=-1 ;
    int have_x[2] = {0,0},
        have_y[2] = {0,0},

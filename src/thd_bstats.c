@@ -114,7 +114,7 @@ THD_brick_stats THD_get_brick_stats( MRI_IMAGE *im )
    switch( im->kind ){
 
      default:
-        INVALIDATE_BSTAT(bst) ;
+        INVALIDATE_BSTAT(bst) ; bot = top = 0 ;
      break ;
 
      case MRI_rgb:{

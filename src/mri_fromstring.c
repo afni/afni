@@ -13,7 +13,7 @@
 MRI_IMAGE * mri_1D_fromstring( char *str )
 {
    int ii,nnn,count , ntot=0 ;
-   float *far , value ;
+   float *far , value=0.0 ;
    NI_str_array *sar ;
    char sep ;
    MRI_IMAGE *flim ;
@@ -91,7 +91,7 @@ ENTRY("mri_1D_fromstring") ;
 MRI_IMAGE * mri_read_ragged_fromstring( char *str , float filler )
 {
    int ii,nnn,count , ntot=0 ;
-   float *far , value ;
+   float *far , value=0.0 ;
    NI_str_array *sar ;
    char sep , sval[256] ;
    MRI_IMAGE *flim ;

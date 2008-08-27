@@ -26,7 +26,7 @@ MRI_IMAGE * mri_cat2D(  int mx , int my , int gap ,
                         void *gapval , MRI_IMARR *imar )
 {
    int nx , ny , ii , jj , kind , ij , nxout , nyout , ijoff , jout,iout ;
-   MRI_IMAGE *imout , *imin ;
+   MRI_IMAGE *imout , *imin=NULL ;
    void *vout ;
 
 ENTRY("mri_cat2D") ;

@@ -804,7 +804,7 @@ void MCW_file_expand( int nin , char **fin , int *nout , char ***fout )
    char **gout ;
    char *fn , *ehome ;
    char prefix[4] , fpre[128] , fname[1024] ;
-   int  b1,b2,b3,b4,b5 , ib,ig , lpre ;
+   int  b1,b2,b3,b4,b5 , ib,ig , lpre=0 ;
    char *eee ;
 
    if( nin <= 0 ){ *nout = 0 ; return ; }

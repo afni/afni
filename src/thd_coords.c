@@ -194,7 +194,7 @@ THD_fvec3 THD_3dmm_to_dicomm( THD_3dim_dataset * dset ,
                               THD_fvec3 imv )
 {
    THD_fvec3 dicv ;
-   float xim,yim,zim , xdic,ydic,zdic ;
+   float xim,yim,zim , xdic=0,ydic=0,zdic=0 ;
 
    xim = imv.xyz[0] ; yim = imv.xyz[1] ; zim = imv.xyz[2] ;
 

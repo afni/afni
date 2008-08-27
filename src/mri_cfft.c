@@ -26,7 +26,7 @@
 #define IDMAX  1024
 #define LIDMAX 10
    static int idold = -999 ;
-   register int i0,i1,i2,i4,i5,m0, id = idim;
+   register int i0,i1,i2,i4,i5=0,m0, id = idim;
    float    f1,f3,f4,f5,al,co,si,md = mode;
    static   int    n,m[LIDMAX];
    static   float  f2,c[IDMAX/2],s[IDMAX/2];

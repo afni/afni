@@ -3017,7 +3017,7 @@ int NI_stream_readbuf( NI_stream_type *ns , char *buffer , int nbytes )
 int NI_stream_readbuf64( NI_stream_type *ns , char *buffer , int nbytes )
 {
    int ii , jj , bs , nout=0 ;
-   byte a ,b ,c  , w,x,y,z ;
+   byte a=0,b=0,c=0 , w,x,y,z ;
    byte ag,bg,cg ;
    int num_reread , bpos ;
 

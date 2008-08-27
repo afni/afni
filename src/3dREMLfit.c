@@ -171,8 +171,8 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ;
    THD_3dim_dataset *abset=NULL ;
-   MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar, *bar ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
+   MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar=NULL, *bar=NULL ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    float *iv , *jv ; int niv ;
    int iarg, ii,jj,kk, nreg,ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
@@ -205,7 +205,7 @@ int main( int argc , char *argv[] )
    int glt_num=0, glt_rtot=0 ; matrix **glt_mat=NULL ; char **glt_lab=NULL ;
    sparmat **glt_smat=NULL ;
    GLT_index **glt_ind=NULL ;
-   int stim_num=0; int *stim_bot , *stim_top ; char **stim_lab ;
+   int stim_num=0; int *stim_bot=NULL , *stim_top=NULL ; char **stim_lab=NULL ;
    int do_fstat=0 , do_tstat=0 , do_stat=0 ;
    int num_allstim=0, *allstim=NULL , num_basetim=0, *basetim=NULL ;
 
