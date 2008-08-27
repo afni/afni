@@ -2461,11 +2461,15 @@ int main( int argc , char *argv[] )
      mri_get_cmass_3D( im_base , &xc,&yc,&zc ) ;
      MAT44_VEC( base_cmat , xc,yc,zc , xbase,ybase,zbase ) ;
      if( verb > 2 )
-       INFO_message("base center of mass = %.3f %.3f %.3f",xc,yc,zc) ;
+       INFO_message("base center of mass = %.3f %.3f %.3f (index)",xc,yc,zc) ;
      im_targ = THD_median_brick( dset_targ ) ;
      mri_get_cmass_3D( im_targ , &xc,&yc,&zc ) ; mri_free(im_targ) ;
+     if( verb > 2 )
+       INFO_message("source center of mass = %.3f %.3f %.3f (index)",xc,yc,zc) ;
      MAT44_VEC( targ_cmat , xc,yc,zc , xtarg,ytarg,ztarg ) ;
      xc = xtarg-xbase ; yc = ytarg-ybase ; zc = ztarg-zbase ;
+     if( verb > 2 )
+       INFO_message("source-target CM = %.3f %.3f %.3f (xyz)",xc,yc,zc) ;
      if (do_cmass < 0) {
          /* try to figure what is OK, for partial coverage */
          if (fabs(xc) >= fabs(yc) && fabs(xc) >= fabs(zc)) {
