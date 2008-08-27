@@ -1893,7 +1893,11 @@ ENTRY("mri_genalign_scalar_ransetup") ;
          kk = ss % ngrid; ss = ss / ngrid; wpar[qq] = 0.5+(kk+1)*val;
        }
      } else {                              /* random */
+#if 0
        for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*drand48()) ;
+#else
+       for( qq=0 ; qq < nfr ; qq++ ) wpar[qq] = 0.5*(1.05+0.90*myunif()) ;
+#endif
      }
 
      for( ss=0 ; ss < twof ; ss++ ){   /* try divers reflections */
