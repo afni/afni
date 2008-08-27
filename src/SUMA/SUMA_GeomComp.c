@@ -3800,7 +3800,7 @@ SUMA_OFFSET_STRUCT *SUMA_FormNeighbOffset ( SUMA_SurfaceObject *SO, float Offset
    int i, ii, il, jl, ip, noffs,  DoProp = 0, iproc, N_mask;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    struct  timeval start_time;
-   double scl, ds2, sig, d;
+   double scl=0.0, ds2=0.0, sig, d;
    float etime_GetOffset, mean_N_Neighb, dist, dist_norm;   
    SUMA_OFFSET_STRUCT *OffS_out=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -5118,7 +5118,7 @@ SUMA_Boolean SUMA_Chung_Smooth_07_dset (SUMA_SurfaceObject *SO, double **wgt,
             *fout=NULL, *fin_next = NULL, *fin_orig = NULL, FWHM;
    double fp, dfp, fpj, minfn=0.0, maxfn=0.0, dfps=0.0;
    float *fin_float=NULL, *fsend=NULL, *fwhmg=NULL;
-   int n , k, j, niter, jj, nj, 
+   int n , k, j, niter=-1, jj, nj, 
       *icols=NULL, N_icols, N_nmask, kth_buf, niter_alloc;
    byte *bfull=NULL, stop = 0;
    char stmp[100];

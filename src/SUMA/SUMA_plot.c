@@ -61,6 +61,8 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
    if( cbs  == NULL || cbs->reason != XmCR_INPUT ) return ;  /* real bad */
    
    Kev = *(XKeyEvent *) &cbs->event->xkey;
+   Bev = *(XButtonEvent *) &cbs->event->xbutton;
+   Mev = *(XMotionEvent *) &cbs->event->xmotion;
    
    switch( Kev.type ){
 
