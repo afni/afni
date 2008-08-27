@@ -531,7 +531,7 @@ smooth_factor)
    float v9, v10, v11, v12, v13, v14, v15, v16, v17, v18;
    float v19, v20, v21, v22, v23, v24, v25, v26;
    float dv0600, dv0701, dv0802, dv1509, dv1610, dv1711, dv2418, dv2519, dv2620;
-   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305;
+   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305=0;
    THD_dataxes   * daxes ;
    /*float dx = 1.0;*/   /* delta x - assume cubical voxels for now */
 
@@ -1059,7 +1059,7 @@ Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int
    float v9, v10, v11, v12, v13, v14, v15, v16, v17, v18;
    float v19, v20, v21, v22, v23, v24, v25, v26;
    float dv0600, dv0701, dv0802, dv1509, dv1610, dv1711, dv2418, dv2519, dv2620;
-   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305;
+   float sv1824, sv1925, sv2026, sv0006, sv0107, sv0208, dv2103, dv2204, dv2305=0;
    
    float dv0,dv1,dv2, vv[18], temp;
    int nx, ny, nz, i, j, k, l, ii, nout, noutm1, nxm1, nym1, nzm1; 
