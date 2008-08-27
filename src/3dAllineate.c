@@ -1040,7 +1040,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-nmsetup") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        nmatch_setup = (int)strtod(argv[iarg],NULL) ;
-       if( nmatch_setup < 666 ) nmatch_setup = 23456 ;
+       if( nmatch_setup < 9999 ) nmatch_setup = 23456 ;
        iarg++ ; continue ;
      }
 
@@ -2323,8 +2323,9 @@ int main( int argc , char *argv[] )
    ntask = (ntask < nmask) ? (int)sqrt(ntask*(double)nmask) : nmask ;
    /* number of points to use for matching */
    if( nmask_frac < 0 ){
-      if( npt_match < 0 )   npt_match = (int)(-0.01f*npt_match*ntask) ;
-      if( npt_match < 666 ) npt_match = 666 ;
+      if( npt_match < 0     ) npt_match = (int)(-0.01f*npt_match*ntask) ;
+      if( npt_match < 9999  ) npt_match = 9999 ;
+      if( npt_match > ntask ) npt_match = ntask ;
    } else {
       npt_match = (int)(nmask_frac*(double)nmask);
    }
@@ -2878,7 +2879,7 @@ int main( int argc , char *argv[] )
        ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
        stup.interp_code = ccode ;
        stup.npt_match   = ntask / 20 ;
-            if( stup.npt_match <   666        ) stup.npt_match =   666 ;
+            if( stup.npt_match <   9999       ) stup.npt_match =  9999 ;
        else if( stup.npt_match > nmatch_setup ) stup.npt_match = nmatch_setup;
 
        stup.smooth_code        = sm_code ;
@@ -2947,7 +2948,7 @@ int main( int argc , char *argv[] )
            if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
 
          stup.npt_match = ntask / 7 ;
-              if( stup.npt_match < 666   ) stup.npt_match = 666 ;
+              if( stup.npt_match < 9999  ) stup.npt_match = 9999 ;
          else if( stup.npt_match > 99999 ) stup.npt_match = 99999 ;
 
          /*-- now refine the tbest values saved already (from val_trial) --*/
@@ -2991,7 +2992,7 @@ int main( int argc , char *argv[] )
          if( verb > 1 ) ctim = COX_cpu_time() ;
          nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 666 ) ;
          stup.npt_match = ntask / 10 ;
-              if( stup.npt_match < 666   ) stup.npt_match = 666 ;
+              if( stup.npt_match < 9999  ) stup.npt_match = 9999 ;
          else if( stup.npt_match > 66666 ) stup.npt_match = 66666 ;
          stup.smooth_radius_base *= 0.666 ;
          stup.smooth_radius_targ *= 0.666 ;
