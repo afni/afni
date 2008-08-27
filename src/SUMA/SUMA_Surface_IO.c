@@ -2867,10 +2867,12 @@ int * SUMA_BYU_PolyFaceToTriFace(int *face, int *N)
 /*! \brief Load a BYU surface model
 
 */
-SUMA_Boolean SUMA_BYU_Read(char *f_name, SUMA_SurfaceObject *SO, int debug, byte hide_negcols) 
+SUMA_Boolean SUMA_BYU_Read(char *f_name, SUMA_SurfaceObject *SO, 
+                           int debug, byte hide_negcols) 
 {
    static char FuncName[]={"SUMA_BYU_Read"};
-   int ok, nread, i, k, lessen, nodemin, nodemax, *face=NULL, n = -1, nalloc=-1;
+   int ok, nread, i, k, lessen=0, nodemin, nodemax, 
+      *face=NULL, n = -1, nalloc=-1;
    double dum;
    char *fl=NULL, *fli;
    SUMA_Boolean LocalHead = NOPE;
