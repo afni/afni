@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , AUG , 2008 , RWC , "miscellaneous" , MICRO , TYPE_BUG_FIX ,
+   "Fixed 'is used uninitialized' errors in several codes." ,
+   "Via the new macro ZZME() in 3ddata.h, which zeros out a struct." } ,
+
  { 28 , AUG , 2008 , RWC , "3dAllineate" , MAJOR , TYPE_MODIFY ,
    "A number of changes to improve robustness." ,
    "* Don't smooth noise added to source image outside of the mask\n"
