@@ -292,6 +292,7 @@ int main( int argc , char *argv[] )
          THD_dvecmat dvm ;
          THD_linear_mapping lmap ;
 
+         ZZME(lmap) ;
          if( ++iarg >= argc )
             errex("-matvec: Need argument after -matvec") ;
          if( warp != NULL )
