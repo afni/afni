@@ -555,7 +555,7 @@ int filter_type;	/* type of filter (VP_BOX_FILTER, etc.) */
     void *tmp1_array;
     int element_size;
     vpResult code;
-    vpContext *vpc;
+    vpContext *vpc=NULL;
     float *weights;
 
     /* compute size of array element and allocate intermediate arrays */
@@ -656,7 +656,7 @@ int filter_type;	/* type of filter (VP_BOX_FILTER, etc.) */
     void *tmp1_array, *tmp2_array;
     int element_size;
     vpResult code;
-    vpContext *vpc;
+    vpContext *vpc=NULL;
     float *weights;
 
     /* compute size of array element and allocate intermediate arrays */
