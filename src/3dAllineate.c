@@ -190,6 +190,7 @@ int main( int argc , char *argv[] )
    int nparopt                 = 0 ;
    MRI_IMAGE *matini           = NULL ;
    int tbest                   = 4 ;            /* default=try best 4 */
+   int skip_refinetwobest      = 0 ;            /* don't skip this step */
    param_opt paropt[MAXPAR] ;
    float powell_mm             = 0.0f ;
    float powell_aa             = 0.0f ;
@@ -213,7 +214,7 @@ int main( int argc , char *argv[] )
    int replace_base            = 0 ;            /* off by default */
    int replace_meth            = 0 ;            /* off by default */
    int usetemp                 = 0 ;            /* off by default */
-   int nmatch_setup            = 23456 ;
+   int nmatch_setup            = 98765 ;
    int ignout                  = 0 ;            /* 28 Feb 2007 */
    int    hist_mode            = 0 ;            /* 08 May 2007 */
    float  hist_param           = 0.0f ;
@@ -469,6 +470,19 @@ int main( int argc , char *argv[] )
 "               starting point, and the identity transformation is\n"
 "               used as the starting point.  [Default=4; min=0 max=7]\n"
 "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
+" -skip_rtb   = At the beginning of the fine pass, the best set of results\n"
+"               from the coarse pass are 'refined' a little by further\n"
+"               optimization, before the single best one is chosen for\n"
+"               for the final fine optimization.  If you want to skip\n"
+"               this step (which takes some CPU time), then use the\n"
+"               '-skip_rtb' (rtb='refine twobest') option; in that case,\n"
+"               the best of the coarse pass results is taken straight\n"
+"               to the final optimization pass.\n"
+"       **N.B.: If you use '-VERB', you will see that one extra case\n"
+"               is involved in this initial fine refinement step; that\n"
+"               case is starting with the identity transformation, which\n"
+"               is to insure against the chance that the coarse pass\n"
+"               optimizations ran amok.\n"
 " -fineblur x = Set the blurring radius to use in the fine resolution\n"
 "               pass to 'x' mm.  [Default == 0 mm]\n"
 "   **NOTES ON\n"
@@ -1152,7 +1166,7 @@ int main( int argc , char *argv[] )
        im_tmask = mri_new_vol_empty(
                    DSET_NX(dset_tmask),DSET_NY(dset_tmask),DSET_NZ(dset_tmask) ,
                    MRI_byte ) ;
-       DSET_delete(dset_tmask) ; /* ZSS: Moved here cause that's 
+       DSET_delete(dset_tmask) ; /* ZSS: Moved here cause that's
                                     right and proper*/
        mri_fix_data_pointer( mmm , im_tmask ) ;
        ntmask = THD_countmask( im_tmask->nvox , mmm ) ;
@@ -2746,6 +2760,13 @@ int main( int argc , char *argv[] )
 #define PAROUT(ss) PARDUMP(ss,val_out)
 #undef  PARINI
 #define PARINI(ss) PARDUMP(ss,val_init)
+#undef  PARVEC
+#define PARVEC(ss,vv)                              \
+  do{ fprintf(stderr," + %s Parameters =",ss) ;    \
+      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  \
+        fprintf(stderr," %.4f",vv[jj]) ;           \
+      fprintf(stderr,"\n") ;                       \
+  } while(0)
 
 #undef  PAR_CPY
 #define PAR_CPY(xxx)                              \
@@ -2884,9 +2905,8 @@ int main( int argc , char *argv[] )
        if( verb ) INFO_message("Start coarse pass") ;
        ccode            = (interp_code == MRI_NN) ? MRI_NN : MRI_LINEAR ;
        stup.interp_code = ccode ;
-       stup.npt_match   = ntask / 20 ;
-            if( stup.npt_match <   9999       ) stup.npt_match =  9999 ;
-       else if( stup.npt_match > nmatch_setup ) stup.npt_match = nmatch_setup;
+       stup.npt_match   = ntask / 15 ;
+       if( stup.npt_match < nmatch_setup ) stup.npt_match = nmatch_setup;
 
        stup.smooth_code        = sm_code ;
        stup.smooth_radius_base =
@@ -2954,8 +2974,7 @@ int main( int argc , char *argv[] )
            if( stup.wfunc_param[jj].fixed == 1 ) stup.wfunc_param[jj].fixed = 0 ;
 
          stup.npt_match = ntask / 7 ;
-              if( stup.npt_match < 9999  ) stup.npt_match = 9999 ;
-         /* else if( stup.npt_match > 99999 ) stup.npt_match = 99999 ; */
+         if( stup.npt_match < nmatch_setup  ) stup.npt_match = nmatch_setup ;
 
          /*-- now refine the tbest values saved already (from val_trial) --*/
 
@@ -2999,9 +3018,8 @@ int main( int argc , char *argv[] )
          if( verb > 1 ) ctim = COX_cpu_time() ;
          nfunc = mri_genalign_scalar_optim( &stup , 0.05 , 0.005 , 666 ) ;
          if( verb > 2 ) PAROUT("--(a)") ;
-         stup.npt_match = ntask / 10 ;
-              if( stup.npt_match < 9999  ) stup.npt_match = 9999 ;
-         /* else if( stup.npt_match > 66666 ) stup.npt_match = 66666 ; */
+         stup.npt_match = ntask / 7 ;
+         if( stup.npt_match < nmatch_setup  ) stup.npt_match = nmatch_setup ;
          stup.smooth_radius_base *= 0.666 ;
          stup.smooth_radius_targ *= 0.666 ;
          mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
@@ -3084,32 +3102,39 @@ int main( int argc , char *argv[] )
          cost = mri_genalign_scalar_cost( &stup , tfparm[ib] ) ;
          if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",
                                        ib+1,cost,(cost<cbest)?'*':' ');
+         if( verb > 2 ) PARVEC("--",tfparm[ib]) ;
          if( cost < cbest ){ cbest=cost ; kb=ib ; }
        }
-#if 0
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )        /* copy best set */
-         stup.wfunc_param[jj].val_init = tfparm[kb][jj] ; /* for fine work */
-#else
-       if( verb > 1 ) ININFO_message("a little optimization on these cases:") ;
-       cbest = 1.e+33 ;
-       for( ib=0 ; ib < tfdone ; ib++ ){
-         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-           stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-         (void)mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 111 );
-         cost = stup.vbest ;
-         if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",
-                                       ib+1,cost,(cost<cbest)?'*':' ');
-         if( verb > 2 ) PAROUT("--") ;
-         if( cost < cbest ){
-           cbest = cost ;
-           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-             pini[jj] = stup.wfunc_param[jj].val_out ;
-         }
-       }
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         stup.wfunc_param[jj].val_init = pini[jj] ;
-#endif
 
+       if( skip_refinetwobest ){  /* 27 Aug 2008 */
+
+         if( verb > 1 )
+           ININFO_message("-skip_rtb ==> pick best of the %d cases",tfdone);
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )        /* copy best set */
+           stup.wfunc_param[jj].val_init = tfparm[kb][jj] ; /* for fine work */
+
+       } else {                 /* try to make these a little better instead */
+
+         if( verb > 1 )
+           ININFO_message("-skip_rtb NOT used ==> refine all %d cases",tfdone);
+         cbest = 1.e+33 ;
+         for( ib=0 ; ib < tfdone ; ib++ ){
+           for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+             stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
+           (void)mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 111 );
+           cost = stup.vbest ;
+           if( verb > 1 ) ININFO_message("- cost(#%d)=%f %c",
+                                         ib+1,cost,(cost<cbest)?'*':' ');
+           if( verb > 2 ) PAROUT("--") ;
+           if( cost < cbest ){  /* save best case */
+             cbest = cost ;
+             for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+               pini[jj] = stup.wfunc_param[jj].val_out ;
+           }
+         }
+         for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
+           stup.wfunc_param[jj].val_init = pini[jj] ;
+       }
        cost_ini = cbest ;
 
      } else {  /*-- did not do first pass, so we start at default params --*/
