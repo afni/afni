@@ -19,6 +19,7 @@ THD_slist_find THD_dset_in_sessionlist( int find_type , void * target ,
    int jss ;
    THD_slist_find find ;
 
+   ZZME(find) ;
    /*-- sanity check --*/
 
    if( ! ISVALID_SESSIONLIST(ssl) || ssl->num_sess <= 0 ){
