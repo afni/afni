@@ -37,7 +37,7 @@ int main( int argc , char * argv[] )
 #define BOX_IJK  4
    int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 - RWCox */
    int nx,ny,nz,nxy,nxyz ;
-   unsigned int nrandseed ;
+   unsigned int nrandseed = 1234u ;
    
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
@@ -196,7 +196,7 @@ int main( int argc , char * argv[] )
 
    /* scan argument list */
 
-   narg = 1 ; nrandseed = 1234 ;
+   narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
 
       if( strcasecmp(argv[narg],"-niml") == 0 ){             /* 04 Feb 2008 */
