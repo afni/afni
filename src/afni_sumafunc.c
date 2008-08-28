@@ -413,7 +413,7 @@ int AFNI_find_closest_node( int num_ixyz , SUMA_ixyz *ixyz ,
                             float zbot , float ztop  )
 {
    int ii ,      ibest=-1 ;
-   float x,y,z , dbest, d ;
+   float x,y,z , dbest=0.0f, d ;
 
 ENTRY("AFNI_find_closest_node") ;
 

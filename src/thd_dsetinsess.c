@@ -20,9 +20,7 @@ THD_slist_find THD_dset_in_session( int find_type , void *target ,
    THD_slist_find find ;
 
    /*-- sanity check --*/
-
    ZZME(find) ;
-
    if( ! ISVALID_SESSION(sess) || target == NULL ){
       BADFIND(find) ; return find ;
    }
