@@ -311,6 +311,7 @@ THD_warp * AFNI_make_affwarp_12( float a11, float a12, float a13,  float s1 ,
    warp       = myXtNew( THD_warp ) ;
    warp->type = WARP_AFFINE_TYPE ;
 
+   ZZME(map) ;
    map.type = MAPPING_LINEAR_TYPE ;
 
    LOAD_MAT(map.mfor,a11,a12,a13,a21,a22,a23,a31,a32,a33) ;

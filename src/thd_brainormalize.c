@@ -474,6 +474,7 @@ static clipvec get_octant_clips( MRI_IMAGE *im , float mfrac )
 
 ENTRY("get_octant_clips") ;
 
+   ZZME(cv) ;
    cv.clip_000 = -1 ;  /* flags error return */
 
    if( im == NULL || im->kind != MRI_short ) RETURN(cv) ;

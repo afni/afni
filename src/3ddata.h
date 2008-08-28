@@ -193,6 +193,11 @@ typedef struct {
 
 #define TWO_TWO(x,y) TWO_ONE(x,y)
 
+/*! Zero out a variable */
+
+#undef  ZZME
+#define ZZME(x) memset(&(x),0,sizeof(x))
+
 /*! Copy n units of the given type "type * ptr", into a structure "str",
      starting at byte offset "off";
    N.B.: str is the structure itself, not a pointer to it
