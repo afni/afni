@@ -6375,10 +6375,10 @@ ENTRY("ISQ_statify_all") ;
 
 Boolean ISQ_statistics_WP( XtPointer client_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
    ISQ_glob_statistics * gl ;
 
-   MRI_IMAGE * im ;
+   MRI_IMAGE *im ;
    register int ntot , nser , nn ;
 
 ENTRY("ISQ_statistics_WP") ;
@@ -7951,18 +7951,18 @@ ENTRY("ISQ_arrowpad_CB") ;
    to the correct number (or things won't look good at all).
 ---------------------------------------------------------------------*/
 
-Boolean ISQ_setup_new( MCW_imseq * seq , XtPointer newaux )
+Boolean ISQ_setup_new( MCW_imseq *seq , XtPointer newaux )
 {
-   MCW_imseq_status * imstatus ;
+   MCW_imseq_status *imstatus ;
    int ii ;
-   MRI_IMAGE * tim ;
+   MRI_IMAGE *tim ;
 
 ENTRY("ISQ_setup_new") ;
 
    if( !ISQ_VALID(seq) ) RETURN( False );
 
 #if 0
-   imstatus = (MCW_imseq_status *) seq->getim(0,isqCR_getstatus,newaux);
+   imstatus = (MCW_imseq_status *)seq->getim(0,isqCR_getstatus,newaux);
 #else
    AFNI_CALL_VALU_3ARG( seq->getim , MCW_imseq_status *,imstatus ,
                         int,0 , int,isqCR_getstatus , XtPointer,newaux ) ;
