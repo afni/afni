@@ -56,7 +56,9 @@ typedef struct {
                               SUMA will use the same separator for all attributes of ni_type = "String".
                               Use Macros SUMA_2_AFNI_NI_PCS and AFNI_2_SUMA_NI_PCS if you need to change between SUMA- and AFNI-per-column-strings  
                               */
-#define SUMA_NI_CSS ";"    /* SUMA's NIML  Per-Column-String Separator (used to separate strings belonging to different columns of input)  */
+#define SUMA_NI_CSS ";"    /* SUMA's NIML  Per-Column-String Separator 
+                              (used to separate strings belonging to 
+                              different columns of input)  */
 #define SUMA_NI_cSS ';'
 
 #define SUMA_2_AFNI_NI_PCS(a) {\

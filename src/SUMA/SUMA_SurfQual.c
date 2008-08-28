@@ -244,6 +244,7 @@ int main (int argc,char *argv[])
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
    
+   memset(&SSQ, 0, sizeof(SUMA_SPHERE_QUALITY));
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);

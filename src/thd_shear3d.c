@@ -67,7 +67,8 @@ MCW_3shear permute_3shear( MCW_3shear shin , int ox1, int ox2, int ox3 )
 
    ZZME(shout) ;
    /* sanity check */
-
+   memset(&shout, 0, sizeof(MCW_3shear)); /* ZSS: avoiding 
+                                                  uninitialized warnings*/
    if( ! ISVALID_3SHEAR(shin) ){ INVALIDATE_3SHEAR(shout) ; return shout ; }
 
    pi[0] = ox1 ; pi[1] = ox2 ; pi[2] = ox3 ;
@@ -211,7 +212,7 @@ MCW_3shear shear_xzyx( THD_dmat33 *q , THD_dfvec3 *xyzdel )
    /* output variable */
 
    MCW_3shear shr ;
-
+   memset(&shr, 0, sizeof(MCW_3shear)); /* ZSS: avoiding uninitialized warnings*/
    /* internals (created by Maple) */
 
    double t1, t3, t4, t5, t6, t7, t8, t9, t10, t11,
@@ -1062,6 +1063,8 @@ THD_dvecmat DLSQ_rotscl( int n, THD_dfvec3 *xx, THD_dfvec3 *yy , int ndim )
    double wsum ;
 
    /*- check for bad inputs -*/
+   memset(&out, 0, sizeof(THD_dvecmat)); /* ZSS: avoiding 
+                                                 uninitialized warnings*/
 
    ZZME(out) ;
    if( n < 3 || xx == NULL || yy == NULL ){ LOAD_ZERO_DMAT(out.mm); return out; }
