@@ -306,6 +306,7 @@ mat44 THD_resample_mat44( mat44 old_mat ,
    mat44 new_mat ;
    float di,dj,dk , fi,fj,fk , aa,bb,cc , pp,qq,rr ;
 
+   ZZME(new_mat) ;
    new_mat.m[3][3] = 0.0f ;   /* mark output as bad; will fix later */
 
    if( !ISVALID_MAT44(old_mat)     ||

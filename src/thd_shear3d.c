@@ -65,6 +65,7 @@ MCW_3shear permute_3shear( MCW_3shear shin , int ox1, int ox2, int ox3 )
    MCW_3shear shout ;
    int ii , ain,aout , pi[3] ;
 
+   ZZME(shout) ;
    /* sanity check */
 
    if( ! ISVALID_3SHEAR(shin) ){ INVALIDATE_3SHEAR(shout) ; return shout ; }
@@ -228,6 +229,7 @@ MCW_3shear shear_xzyx( THD_dmat33 *q , THD_dfvec3 *xyzdel )
 
    /* initialize output to an invalid result */
 
+   ZZME(shr) ;
    INVALIDATE_3SHEAR(shr) ;
 
    /* load inputs into local variables */
@@ -534,6 +536,8 @@ MCW_3shear rot_to_shear( int ax1 , double th1 ,
 
    /* check if this is a duplicate call */
 
+   ZZME(p) ;
+
    if( ax1 == old_ax1  &&  ax2 == old_ax2  &&  ax3 == old_ax3  && dcode == old_dcode &&
        th1 == old_th1  &&  th2 == old_th2  &&  th3 == old_th3  &&
        dx  == old_dx   &&  dy  == old_dy   &&  dz  == old_dz   &&
@@ -555,6 +559,7 @@ MCW_3shear rot_to_shear( int ax1 , double th1 ,
       if( top < q.mat[1][1] ){ top = q.mat[1][1] ; itop = 1 ; }
       if( top < q.mat[2][2] ){ top = q.mat[2][2] ; itop = 2 ; }
       switch(itop){
+         default:
          case 0: i1 = 1 ; i2 = 2 ; LOAD_DIAG_DMAT(p, 1,-1,-1) ; break ;
          case 1: i1 = 0 ; i2 = 2 ; LOAD_DIAG_DMAT(p,-1, 1,-1) ; break ;
          case 2: i1 = 0 ; i2 = 1 ; LOAD_DIAG_DMAT(p,-1,-1, 1) ; break ;
@@ -655,6 +660,7 @@ MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec ,
       if( top < q.mat[1][1] ){ top = q.mat[1][1] ; itop = 1 ; }
       if( top < q.mat[2][2] ){ top = q.mat[2][2] ; itop = 2 ; }
       switch(itop){
+         default:
          case 0: i1 = 1 ; i2 = 2 ; LOAD_DIAG_DMAT(p, 1,-1,-1) ; break ;
          case 1: i1 = 0 ; i2 = 2 ; LOAD_DIAG_DMAT(p,-1, 1,-1) ; break ;
          case 2: i1 = 0 ; i2 = 1 ; LOAD_DIAG_DMAT(p,-1,-1, 1) ; break ;
@@ -917,6 +923,7 @@ THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 *xx, THD_dfvec3 *yy, double *ww )
 
    /*- check for bad inputs -*/
 
+   ZZME(out) ;
    if( n < 3 || xx == NULL || yy == NULL ){ LOAD_ZERO_DMAT(out.mm); return out; }
 
    /*- make a fake weight array, if none supplied -*/
@@ -1000,6 +1007,7 @@ THD_dvecmat DLSQ_affine( int n, THD_dfvec3 *xx, THD_dfvec3 *yy )
 
    /*- check for bad inputs -*/
 
+   ZZME(out) ;
    if( n < 3 || xx == NULL || yy == NULL ){ LOAD_ZERO_DMAT(out.mm); return out; }
 
    /*- compute centroids of each set of vectors -*/
@@ -1055,6 +1063,7 @@ THD_dvecmat DLSQ_rotscl( int n, THD_dfvec3 *xx, THD_dfvec3 *yy , int ndim )
 
    /*- check for bad inputs -*/
 
+   ZZME(out) ;
    if( n < 3 || xx == NULL || yy == NULL ){ LOAD_ZERO_DMAT(out.mm); return out; }
 
    /*- compute centroids of each set of vectors -*/
