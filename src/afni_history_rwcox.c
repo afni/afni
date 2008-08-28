@@ -44,6 +44,19 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , AUG , 2008 , RWC , "3dAllineate" , MAJOR , TYPE_MODIFY ,
+   "A number of changes to improve robustness." ,
+   "* Don't smooth noise added to source image outside of the mask\n"
+   "* Reduce default smoothing level for -lpc in coarse pass\n"
+   "* Increase number of points used for matching in the coarse pass\n"
+   "* More refinements of the twobest results in the coarse pass\n"
+   "* Refinements (-num_rtb option) of the twobest results in the fine pass\n"
+   "All this adds CPU time, but seems to make the program more reliably\n"
+   "convergent.  Also:\n"
+   "* Restored operation of the -check option, to restart the optimization\n"
+   "  at the final solution with other methods, to see what results they\n"
+   "  give compared to the original method." } ,
+
  { 26 , AUG , 2008 , RWC , "3dTcorrMap" , MINOR , TYPE_NEW_PROG ,
    "Average correlations with every other voxel time series." ,
    "Kind of slow.  For Kyle Simmons.  And I still don't recognize Missouri!" } ,

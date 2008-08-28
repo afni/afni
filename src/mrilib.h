@@ -1526,7 +1526,7 @@ typedef struct {
   MRI_IMAGE *bwght ;
 
   MRI_IMAGE *ajim , *ajims , *ajmask , *ajimor;
-  float ajbot,ajtop , ajclip ;
+  float ajbot,ajtop , ajclip , aj_ubot,aj_usiz ;
   int dim_avec , abdim ;
 
   int npt_match   ;            /* set by user */
