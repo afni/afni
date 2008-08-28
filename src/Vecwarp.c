@@ -291,8 +291,9 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[iarg],"-matvec") == 0 ){
          THD_dvecmat dvm ;
          THD_linear_mapping lmap ;
-
+         
          ZZME(lmap) ;
+         
          if( ++iarg >= argc )
             errex("-matvec: Need argument after -matvec") ;
          if( warp != NULL )
@@ -302,7 +303,7 @@ int main( int argc , char *argv[] )
             errex("-matvec: Can't read transformation") ;
 
          /* manufacture an AFNI linear map */
-
+         
          lmap.type = MAPPING_LINEAR_TYPE ;
          lmap.mfor.mat[0][0] = dvm.mm.mat[0][0] ;  /* copy matrix in */
          lmap.mfor.mat[0][1] = dvm.mm.mat[0][1] ;

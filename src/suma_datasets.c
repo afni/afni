@@ -6782,7 +6782,7 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
 {  
    static char FuncName[]={"SUMA_LoadDset_eng"};
    SUMA_DSET *dset = NULL, *dset_c = NULL;
-   int *RowSel, *ColSel, *NodeSel, i;
+   int *RowSel=NULL, *ColSel=NULL, *NodeSel=NULL, i;
    char *Name=NULL;
    byte *b_ColSel = NULL, *b_RowSel = NULL;
    SUMA_PARSED_NAME *pn=NULL;

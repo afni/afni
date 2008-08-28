@@ -2003,7 +2003,8 @@ int act_strip( nt_opts * opts )
 int act_rm_ext( nt_opts * opts )
 {
    nifti_image      * nim;
-   int                fc, ext_ind, num_ext;
+   int                fc, ext_ind, num_ext=-666; /* ZSS: num_ext was used with 
+                                                      no initialization */
 
    if( g_debug > 2 )
       fprintf(stderr,"+d removing %d extensions from %d files...\n",

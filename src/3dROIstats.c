@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     int num_ROI, ROI, mask_f2s = 0;
     int force_num_ROI = 0;	/* Added 5/00 */
     int narg = 1;
-    double *sum, *sumsq, *nzsum, sig, *sumallbriks;
+    double *sum, *sumsq, *nzsum, sig, *sumallbriks=NULL; 
     double *min, *max, *nzmin, *nzmax;		/* 07 July, 2004 [rickr] */
     long *voxels, *nzvoxels;
     float *input_data;
