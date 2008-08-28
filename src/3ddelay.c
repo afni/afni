@@ -799,7 +799,7 @@ float * read_one_time_series
   char subv[THD_MAX_NAME];       /* string containing column index */
   MRI_IMAGE * im, * flim;  /* pointers to image structures 
 			      -- used to read 1D ASCII */
-  float * far;             /* pointer to MRI_IMAGE floating point data */
+  float * far=NULL;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
   int ny;                  /* number of columns in time series file */
   int iy;                  /* time series file column index */
@@ -817,6 +817,7 @@ float * read_one_time_series
 
   
   /*----- Set pointer to data, and set dimensions -----*/
+  far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
   ny = flim->ny; iy = 0 ;
   if( ny > 1 ){
