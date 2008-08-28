@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 #define NBIN 32768
@@ -67,7 +67,7 @@ double chfit( double mu )
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * dset ;
-   double mu , ccc , mbest,cbest , perc , snr=2.5 , nlxx ;
+   double mu , ccc , mbest,cbest , perc , snr=2.5 , nlxx=0.0 ;
    int ii , narg=1 , blast=0 , iv , ncut , nnn , nvox , nl=0 ;
    int vmax ;
    short * bar ;
@@ -124,11 +124,11 @@ int main( int argc , char * argv[] )
    for( ; narg < argc ; narg++ ){
       dset = THD_open_one_dataset(argv[narg]) ;  /** NOT THD_open_dataset()! **/
       if( dset == NULL ){
-         printf("*** Can't open %s\n",argv[narg]) ;
+         ERROR_message("Can't open dataset '%s'",argv[narg]) ;
          continue ;
       }
 
-      fprintf(stderr,"%s",argv[narg]) ; fflush(stdout) ;
+      fprintf(stderr,"dataset %s",argv[narg]) ;
 
       init_histo() ;
       if( blast )
