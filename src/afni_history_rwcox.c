@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , AUG , 2008 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "More small changes, to speed the program up a little" ,
+   "* reduce the number of function evals used in the coarse refinements\n"
+   "* after coarse refinements, cast out parameter sets that are very close\n"
+   "  to the best set, to avoid duplicative work at the fine pass" } ,
+
  { 28 , AUG , 2008 , RWC , "miscellaneous" , MICRO , TYPE_BUG_FIX ,
    "Fixed 'is used uninitialized' errors in several codes." ,
    "Via the new macro ZZME() in 3ddata.h, which zeros out a struct." } ,
