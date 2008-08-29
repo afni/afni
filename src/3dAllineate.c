@@ -3132,6 +3132,7 @@ int main( int argc , char *argv[] )
      /*----------------------- do final resolution pass ----------------------*/
 
      if( verb ) INFO_message("*** Fine pass begins ***") ;
+     ctim = COX_cpu_time() ;
 
      stup.interp_code = interp_code ;  /* set interpolation   */
      stup.smooth_code = sm_code ;      /* and smoothing codes */
@@ -3205,7 +3206,7 @@ int main( int argc , char *argv[] )
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
            nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0777*rad,
-                                              (ib==tfdone-1) ? 3*num_rtb : num_rtb );
+                                              (ib==tfdone-1) ? 2*num_rtb : num_rtb );
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )       /* save refined */
              ffparm[ib][jj] = stup.wfunc_param[jj].val_out ; /* parameters */
            cost = stup.vbest ;
@@ -3236,9 +3237,8 @@ int main( int argc , char *argv[] )
      }
 
      if( verb > 1 ){
-       ININFO_message("- Initial cost = %f",cost_ini) ;
+       ININFO_message("- Initial  cost = %f",cost_ini) ;
        PARINI("- Initial fine") ;
-       ctim = COX_cpu_time() ;
      }
 
      if( powell_mm > 0.0f ) powell_set_mfac( powell_mm , powell_aa ) ;
@@ -3255,7 +3255,7 @@ int main( int argc , char *argv[] )
        if( verb > 1 ) ININFO_message("- start Intermediate optimization") ;
        /*** if( verb > 2 ) GA_do_params(1) ; ***/
 
-       nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 6666 );
+       nfunc = mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 333 );
 
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){
          pini[jj] = stup.wfunc_param[jj].val_init ;
@@ -3276,7 +3276,7 @@ int main( int argc , char *argv[] )
            PARINI("- Intrmed fine") ;
            ININFO_message("- Intrmed  cost = %f ; %d funcs",cost,nfunc) ;
          }
-         if( nfunc < 6666 ){
+         if( nfunc < 333 ){
            rad *= 0.246f ; if( rad < 9.99f*conv_rad ) rad = 9.99f*conv_rad ;
          }
        }
@@ -3303,7 +3303,7 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
        stup.need_hist_setup = 1 ;
-       nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
+       nfunc += mri_genalign_scalar_optim( &stup , 0.444f*rad, conv_rad,6666 );
      }
 
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
