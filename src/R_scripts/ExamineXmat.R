@@ -54,22 +54,22 @@ show_xmat <- function (ff, isel=1:1:ncol(ff), descr="") {
    if (length(isel) > 10) {
       tp = 'single'
       #Calculate normalized version for full display
-      ra = matrix(nrow=ncol(ff), ncol=3)
-      for (i in 1:ncol(ff)) {
-         ra[i,] <- as.vector(quantile(ff[,i], c(0,1,0.5)))
+      ffr <- ff[,isel]
+      ra = matrix(nrow=ncol(ffr), ncol=3)
+      for (i in 1:ncol(ffr)) {
+         ra[i,] <- as.vector(quantile(ffr[,i], c(0,1,0.5)))
       }
-      ffr <- ff
-      offs <-vector(length = ncol(ff), mode="numeric")
-      for (i in 1:ncol(ff)) {
-         ffr[,i] <- (ff[,i]-ra[i,1])/(ra[i,2]-ra[i,1])+1.4*i
+      offs <-vector(length = ncol(ffr), mode="numeric")
+      for (i in 1:ncol(ffr)) {
+         ffr[,i] <- (ffr[,i]-ra[i,1])/(ra[i,2]-ra[i,1])+1.4*i
          offs[i] = mean(ffr[,i])
       }
       if (is.null(dev.list())) x11()
-      plot(ffr[,isel], plot.type = tp,
+      plot(ffr, plot.type = tp,
            xy.labels = colnames(ff[,isel]), xy.lines = TRUE, 
            panel = lines, nc = 3, yax.flip = FALSE,
-           axes = TRUE, col = colvec[isel])
-      text (0, offs, colnames(ff), col = colvec[isel], adj=c(1,0))
+           axes = TRUE, col = colvec[isel], main = '')
+      text (0, offs, colnames(ff[,isel]), col = colvec[isel], adj=c(1,0))
    } else {
       tp = 'multiple'
       if (is.null(dev.list())) x11()
@@ -81,13 +81,13 @@ show_xmat <- function (ff, isel=1:1:ncol(ff), descr="") {
       plot(ff[,isel], plot.type = tp,
            xy.labels = colnames(ff[,isel]), xy.lines = TRUE, 
            panel = lines, nc = 1, yax.flip = FALSE,
-           axes = TRUE, col = colm) 
+           axes = TRUE, col = colm, main = '') 
    }
    
    cat           ( 'Xmat ', attr(ff,'FileName'), '\n',
-                  'Baseline indices: ', xmat_base_index(ff), '\n',
-                  'Motion indices: ', xmat_motion_index(ff), '\n',
-                  'Task indices: ', xmat_alltasks_index(ff), '\n');
+                  'Baseline indices: ', xmat_base_index(ff)-1, '\n',
+                  'Motion indices: ', xmat_motion_index(ff)-1, '\n',
+                  'Task indices: ', xmat_alltasks_index(ff)-1, '\n');
    
    view_cond <- kappa(ff[,isel], exact=TRUE)
    stim_cond <- kappa(ff[,xmat_alltasks_index(ff)], exact=TRUE)
@@ -98,7 +98,8 @@ show_xmat <- function (ff, isel=1:1:ncol(ff), descr="") {
                   'Rall-roni     : ', sprintf('%.2f', stim_cond),'\n',
                   'Rviewed       : ', sprintf('%.2f', view_cond),'\n');
       
-   title (paste('Xmat: ', attr(ff,'FileName'),'\n'));
+   #title (paste('Xmat: ', attr(ff,'FileName'),'\n'));
+   title ('');
    
    #update report window
    ttc <<- condition_report(ttc, ff, isel, descr=descr)
@@ -132,11 +133,11 @@ condition_report <- function(tt=NA, ff, isel=1:1:ncol(ff), descr="") {
       all_cond_no_mot <- kappa(ff[,-xmat_motion_index(ff)], exact=TRUE)
       stitcom = paste ( 
                   'Matrix file: ', attr(ff,'FileName'), '\n',
-                  '* Baseline indices: ', paste(xmat_base_index(ff),
+                  '* Baseline indices: ', paste(xmat_base_index(ff)-1,
                                              collapse=", "), '\n',
-                  '* Motion indices: ', paste(xmat_motion_index(ff),
+                  '* Motion indices: ', paste(xmat_motion_index(ff)-1,
                                              collapse=", "), '\n',
-                  '* Task indices: ', paste(xmat_alltasks_index(ff),
+                  '* Task indices: ', paste(xmat_alltasks_index(ff)-1,
                                              collapse=", "), '\n',
                   '* Task Labels: ', paste( attr(ff,'TaskNames'),
                                           collapse = ", "),'\n',
@@ -187,30 +188,81 @@ sel_gui <- function (tt, ff) {
    Name <- tclVar("")
    entry.Name <-tkentry(tt,width="20",textvariable=Name)
    tkgrid(tklabel(tt,
-                  text=paste(  "Enter indices (start at 1) \n",
-                           "or label identifiers\n",
-                           "example: 1:4 pos 7 9") ) )
+                  text=paste(  "Enter indices or label identifiers\n",
+                               "example: 0:3, ", attr(ff,'TaskNames')[1],", 7 9") ) )
    tkgrid(entry.Name)
    OnOK <- function()
    {
 	   #cat ('OnOK\n')
-      NameVal <- tclvalue(Name)
+      NameVal <- gsub("[,;\'\"]", " ",tclvalue(Name))
       show_sel(strsplit(NameVal, " ")[[1]],ff)
+      tkfocus(tt)
    }
    OnDone <- function()
    {
       tkdestroy(tt)
       exit_flag <<- TRUE
    }
+   OnHelp <- function()
+   {
+      ExamineXmat.help()
+   }
 
    OK.but <-tkbutton(tt,text=" OK ",command=OnOK)
    Done.but <- tkbutton(tt,text=" Done ",command=OnDone)
+   Help.but <- tkbutton(tt,text=" Help ",command=OnHelp)
    tkbind(entry.Name, "<Return>", OnOK)
-   tkgrid(OK.but, Done.but)
+   tkgrid(OK.but, Done.but, Help.but)
    tkfocus(tt)
    exit_flag <<- FALSE
 }
 
+ExamineXmat.help <- function() {
+   sh <- paste (
+'===============================================================\n',
+'ExamineXmat Help:\n',
+'-----------------\n',
+'ExamineXmat.R is an interactive tool to examine a design matrix.\n',   
+'The interface consists of 3 windows: Graph, Control, Results.\n',
+'\n',
+'The Graph window displays the entire design matrix or a subset \n',
+'designated by the user.\n',
+'The Control window allows users to designate which regressors\n',
+'to display.\n',
+'The Results window displays properties of the design matrix in \n',
+'its entirety and the condition number of the matrix formed \n',
+'by the designated (or viewed in the graph) regressors only.\n',
+'\n',
+'To select regressors, you can use regressor indices or regressor \n',
+'labels. For example, say your tasks (and therefore regressors) \n',
+'are labeled "house", "face", "random"\n',
+'Then to view house and face regressors only, select:\n',
+'"house, face" or "house face" or "h fa" etc.\n',
+'You can also use regressor indices (start at 0)\n',
+'So you can select "0, 5, 10:12" for regressors 0, 5, 10, 11, and 12\n',
+'You can also combine strings and integers in the same selection.\n',
+'Commas, semicolons, and quotes are ignored.\n',
+'\n',
+'When viewing more than 10 regressors, the regressors get automatically\n',
+'rescaled and displayed on the same axis. In this case, the amplitude\n',
+'of the Y axis is of no relevance. In this display mode, baseline \n',
+'regressors are black, motion are red, and each task group gets a distinct\n',
+'color.\n',
+'When 10 or less regressors are displayed simultaneously, each one\n',
+'gets its own subplot and the y axis represents the regressor amplitude\n',
+'as it is in the design matrix. Also, in this display mode, all regressors\n',
+'are drawn in black.\n',
+'===============================================================\n',
+'\n')
+   cat (sh)
+   #tkmessageBox(message=sh)     #ugly...
+   #use reults output instead
+   tkconfigure(txt, state="normal") #allow editing
+   tkinsert(txt,"0.0",sh)
+   tkconfigure(txt, state="disabled") #no more editing 
+   tkfocus(txt)
+   #tkmessageBox(message="See text in Results window") 
+}  
 show_sel <- function(sel, ff) {
    #cat(sel, 'length:' , length(sel), '\n')
    if (!is.na(sel) && length(sel)) {
@@ -221,7 +273,7 @@ show_sel <- function(sel, ff) {
                                  silent=TRUE),
                         "try-error")) {
             ilst <- append(ilst, 
-                           e,       
+                           e+1,       
                            after=length(ilst))
          } else {
             #cat("processing as string: ",isel,'\n')
@@ -230,7 +282,7 @@ show_sel <- function(sel, ff) {
       }
       if (length(ilst)) {
          ilst = unique(ilst)
-         cat ('selection is: ', ilst, '\n')
+         cat ('selection is: ', ilst-1, '\n')
          show_xmat(ff, ilst, descr=sel)
       }
    }
@@ -307,9 +359,11 @@ main_loop <- function (fn) {
 
 #main   
    #begin windgetting
-   fn <- tclvalue(tkgetOpenFile(filetypes = "{{Xmat Files} {.xmat.1D}} {{All files} *}"))
+   fn <- tclvalue(   tkgetOpenFile( filetypes = 
+                                    "{{Xmat Files} {.xmat.1D}} {{All files} *}",
+                                    title = 'Choose design matrix file'))
    if (nchar(fn)) {
       if (main_loop(fn)) cat ('error')
    } else {
-      tkmessageBox(message="So long.")  
+      #tkmessageBox(message="So long.")  
    }
