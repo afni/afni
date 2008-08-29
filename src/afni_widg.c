@@ -5160,7 +5160,7 @@ ENTRY("AFNI_initialize_controller") ;
    /* 07 Dec 2001: find "smallest" datasets */
 
    if( im3d->brand_new && AFNI_yesenv("AFNI_START_SMALL") ){
-     int jj,jb=0,qb ; float bb,mm ;
+     int jj,jb=0,qb=0 ; float bb,mm ;
      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
        if( ISANAT(im3d->ss_now->dsset[jj][0]) ){
          bb = DSET_bigness(im3d->ss_now->dsset[jj][0]) ;

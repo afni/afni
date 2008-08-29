@@ -2647,3 +2647,23 @@ suma_install:
 suma: suma_clean suma_exec suma_install
 suma_gts: suma_clean suma_exec suma_gts_progs suma_install
 suma_fromobjs: suma_link suma_install
+
+
+###
+#R toys
+#For compiling R programs, you'll need to do the following:
+# run tcsh ./@RmakeOpts and see that it creates Makefile.R.INCLUDE
+# add to the end of your Makefile line: 
+#     include Makefile.R.INCLUDE 
+# and then:            make 3dTsmoothR && mv 3dTsmoothR YOUR_ABIN/
+#
+AFNI_embeddedRCall.o: AFNI_embeddedRCall.c
+	$(RM)  AFNI_embeddedRCall.o
+	$(CC) $(RccCOMopt) -c AFNI_embeddedRCall.c $(INFLAGS) 
+
+3dTsmoothR: 3dTsmoothR.c AFNI_embeddedRCall.o
+	$(RM) 3dTsmoothR.o 3dTsmoothR
+	$(CC) $(RccCOMopt) -c 3dTsmoothR.c $(INFLAGS) 
+	$(CC) -o 3dTsmoothR 3dTsmoothR.o $(LFLAGS) \
+         $(LLIBS) -lf2c -lmri $(RccCOMlfl) AFNI_embeddedRCall.o
+   	   

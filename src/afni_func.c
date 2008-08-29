@@ -4212,7 +4212,7 @@ void AFNI_write_dataset_CB( Widget w, XtPointer cd, XtPointer cb )
    THD_3dim_dataset *dset = NULL ;
    THD_dataxes        new_daxes ;
    Widget wmsg ;
-   int resam_mode ;
+   int resam_mode = 0;
    Boolean good , destroy ;
 
 ENTRY("AFNI_write_dataset_CB") ;

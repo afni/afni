@@ -1,7 +1,7 @@
 /* A copy of embeddedRCall.h found in R's source directory 
    under tests/Embedding/ */
 #include <Rembedded.h>
-#include "embeddedRCall.h"
+#include "AFNI_embeddedRCall.h"
 
 int
 eval_R_command(const char *funcName, int argc, char *argv[])
