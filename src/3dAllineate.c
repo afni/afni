@@ -3024,7 +3024,7 @@ int main( int argc , char *argv[] )
          tb++ ;
 
          rad = 0.0444 ;  /* search radius in parameter space */
-         for( rr=0 ; rr < 3 ; rr++ , rad*=0.7071 ){ /* refine with less smoothing */
+         for( rr=0 ; rr < 3 ; rr++ , rad*=0.6789 ){ /* refine with less smoothing */
            if( verb > 1 )
              INFO_message("Start refinement #%d on %d coarse parameter sets",rr+1,tb);
            stup.smooth_radius_base *= 0.7071 ;
@@ -3035,7 +3035,7 @@ int main( int argc , char *argv[] )
            for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
                stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-             nfunc += mri_genalign_scalar_optim( &stup , rad , 0.0567*rad , 166 ) ;
+             nfunc += mri_genalign_scalar_optim( &stup , rad , 0.0666*rad , 111 ) ;
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save optimized params */
                tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
              tfcost[ib] = stup.vbest ; tfindx[ib] = ib ;
