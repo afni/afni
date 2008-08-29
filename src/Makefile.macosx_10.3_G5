@@ -5,7 +5,7 @@
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
 
-CC_G5  = -O3 -funroll-loops -fstrict-aliasing -fsched-interblock               \
+CC_G5  = -O2 -funroll-loops -fstrict-aliasing -fsched-interblock               \
          -falign-loops=32 -falign-jumps=16 -falign-functions=16                \
          -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural   \
          -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL                     \

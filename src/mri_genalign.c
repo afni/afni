@@ -44,7 +44,7 @@ static int find_relprime_fixed( int n )  /* find number relatively prime to n */
 static const unsigned long long MYa=62003 ;
 static const unsigned long long MYb=15485863 ;
 static unsigned long long MYx=15482917 ;
-static float myunif(void)
+INLINE float myunif(void)
 {
   MYx = MYa * MYx + MYb ;
   return ( ((unsigned int)MYx) / 4294967296.0f ) ;
@@ -55,7 +55,7 @@ static void myunif_reset(unsigned long long x){ MYx = x; return; }
 /*! Smooth an image with a given method to a given radius.
     Assumes the dx,dy,dz parameters in the image struct are correct! */
 
-static MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
+MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 {
    MRI_IMAGE *om=NULL ;
 
@@ -105,8 +105,8 @@ void GA_set_outval( float v ){ outval = v; }  /* 28 Feb 2007 */
 /*---------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using NN method. */
 
-static void GA_interp_NN( MRI_IMAGE *fim ,
-                          int npp, float *ip, float *jp, float *kp, float *vv )
+void GA_interp_NN( MRI_IMAGE *fim ,
+                   int npp, float *ip, float *jp, float *kp, float *vv )
 {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , ii,jj,kk , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -128,8 +128,8 @@ ENTRY("GA_interp_NN") ;
 /*---------------------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using linear method. */
 
-static void GA_interp_linear( MRI_IMAGE *fim ,
-                              int npp, float *ip, float *jp, float *kp, float *vv )
+void GA_interp_linear( MRI_IMAGE *fim ,
+                       int npp, float *ip, float *jp, float *kp, float *vv )
 {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -199,8 +199,8 @@ ENTRY("GA_interp_linear") ;
 /*------------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using cubic method. */
 
-static void GA_interp_cubic( MRI_IMAGE *fim ,
-                             int npp, float *ip, float *jp, float *kp, float *vv )
+void GA_interp_cubic( MRI_IMAGE *fim ,
+                      int npp, float *ip, float *jp, float *kp, float *vv )
 {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -301,8 +301,8 @@ ENTRY("GA_interp_cubic") ;
 /*--------------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using quintic method. */
 
-static void GA_interp_quintic( MRI_IMAGE *fim ,
-                               int npp, float *ip, float *jp, float *kp, float *vv )
+void GA_interp_quintic( MRI_IMAGE *fim ,
+                        int npp, float *ip, float *jp, float *kp, float *vv )
 {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -450,7 +450,7 @@ ENTRY("GA_interp_quintic") ;
       the results are calculated at ALL points in the base image.
 ----------------------------------------------------------------------*/
 
-static void GA_get_warped_values( int nmpar , double *mpar , float *avm )
+void GA_get_warped_values( int nmpar , double *mpar , float *avm )
 {
    int    npar , ii,jj,kk,qq,pp,npp,mm,nx,ny,nxy , clip=0 , npt ;
    float *wpar , v ;
@@ -631,7 +631,7 @@ void GA_do_params( int x ){
 
 /*---------------------------------------------------------------------------*/
 
-static void GA_setup_2Dhistogram( float *xar , float *yar )  /* 08 May 2007 */
+void GA_setup_2Dhistogram( float *xar , float *yar )  /* 08 May 2007 */
 {
 ENTRY("GA_setup_2Dhistogram") ;
 
@@ -769,10 +769,10 @@ typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
 /*----------------------------------------------------------------------------*/
 /*! Fill a struct with list of points contained in sub-bloks of the base. */
 
-static GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
-                                         float dx , float dy , float dz ,
-                                         int npt , float *im, float *jm, float *km ,
-                                         int bloktype , float blokrad , int minel )
+GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
+                                  float dx , float dy , float dz ,
+                                  int npt , float *im, float *jm, float *km ,
+                                  int bloktype , float blokrad , int minel )
 {
    GA_BLOK_set *gbs ;
    float dxp,dyp,dzp , dxq,dyq,dzq , dxr,dyr,dzr , xt,yt,zt ;
@@ -1080,8 +1080,8 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
     - wvm = weight image values
 -----------------------------------------------------------------------------*/
 
-static double GA_scalar_costfun( int meth , int npt ,
-                                 float *avm , float *bvm , float *wvm )
+double GA_scalar_costfun( int meth , int npt ,
+                          float *avm , float *bvm , float *wvm )
 {
   double val=0.0f ;
 
@@ -1168,7 +1168,7 @@ ENTRY("GA_scalar_costfun") ;
     (Smaller is a better match.)  For use as a NEWUOA optimization function.
 -----------------------------------------------------------------------------*/
 
-static double GA_scalar_fitter( int npar , double *mpar )
+double GA_scalar_fitter( int npar , double *mpar )
 {
   double val ;
   float *avm , *bvm , *wvm ;
@@ -1652,7 +1652,7 @@ ENTRY("mri_genalign_set_targmask") ;
 /*! Setup parameters for optimizing.
 -----------------------------------------------------------------------------*/
 
-static void GA_param_setup( GA_setup *stup )
+void GA_param_setup( GA_setup *stup )
 {
    int ii , qq ;
 
@@ -1950,7 +1950,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
      fprintf(stderr,"\n") ;
      fprintf(stderr," + - best %d costs found:\n",NKEEP) ;
      for(kk=0;kk<NKEEP;kk++){
-      fprintf(stderr,"   %2d v=%.6g:",kk,kval[kk]);
+      fprintf(stderr,"   %2d v=%.6f:",kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
@@ -1981,7 +1981,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    if( verb ){                    /* print out optimized results? */
      fprintf(stderr," + - costs of the above after a little optimization:\n") ;
      for(kk=0;kk<NKEEP;kk++){
-      fprintf(stderr,"  %c%2d %.6g:",(kk==jj)?'*':' ',kk,kval[kk]);
+      fprintf(stderr,"  %c%2d v=%.6f:",(kk==jj)?'*':' ',kk,kval[kk]);
       for( ii=qq=0 ; qq < stup->wfunc_numpar ; qq++ ){
        if( !stup->wfunc_param[qq].fixed ){
         val = stup->wfunc_param[qq].min+stup->wfunc_param[qq].siz*kpar[kk][ii];
@@ -2332,7 +2332,7 @@ void mri_genalign_set_pgmat( int p ){ pgmat = p; }
 
 /*--------------------------------------------------------------------------*/
 
-static mat44 GA_setup_affine( int npar , float *parvec )
+mat44 GA_setup_affine( int npar , float *parvec )
 {
    mat44 ss,dd,uu,aa,bb , gam ;
    THD_fvec3 vv ;

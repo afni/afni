@@ -1258,7 +1258,7 @@ printf("set pane %d to height %d\n",npane-1,sum) ; fflush(stdout) ;
 MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
 {
    MRI_IMAGE * im ;
-   int   ii,npix,kk,ll,jj , sum,hh ;
+   int   ii,npix,kk,ll,jj , sum,hh=0 ;
    float pmin,pmax , rhh,fhh , hfrac ;
    byte rr,gg,bb , *bar ;
 
