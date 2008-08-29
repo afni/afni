@@ -1,3 +1,8 @@
+/*
+#  WARNING: This script is solely for testing R and C interface
+#           It is needed by 3dTsmoothR.c and is not intended for
+#           anything but a demonstration of R & C in harmony
+*/
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
@@ -72,9 +77,15 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
- " A template for using R as a library.\n"
- "This program is NOT READY for prime time.\n"
  "\n"
+ " ******************** WARNING ******************** \n"
+ " This program is a template for using R as a library.\n"
+ " It is of absolutely no use to anyone processing real data\n"
+ " Program requires R script smooth.R \n"
+ " Example: 3dTsmoothR -prefix TSsmoothed TS+orig\n"
+ " ************************************************* \n"
+ "\n"
+#if 0 
  "Usage: 3dTsmoothR [options] dataset\n"
  "Smooths each voxel time series in a 3D+time dataset and produces\n"
  "as output a new 3D+time dataset (e.g., lowpass filter in time).\n"
@@ -121,8 +132,11 @@ int main( int argc , char * argv[] )
  "  -TREND  = compute a linear trend, and extrapolate BEFORE and AFTER\n"
  " The default is -EXTEND.  These options do NOT affect the operation\n"
  " of the 3 point filters described above, which always use -EXTEND.\n"
+#endif
            ) ;
+#if 0
       printf("\n" MASTER_SHORTHELP_STRING ) ;
+#endif
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -366,11 +380,17 @@ int main( int argc , char * argv[] )
    /***** loop over voxels *****/
 
    { 
+      char *pp=NULL;
       /* RRR init stuff */
    
       init_R(argc, argv);  /* AFNI's arguments will drive this bananas */
+      
       /* source smoothing functions */
-      PROTECT(rs=mkString("/Users/ziad/RRRRR/smooth.R"));
+      if (!(pp = Add_plausible_path("smooth.R"))) {
+         fprintf(stderr,"Failed to find smooth.R\n");
+         exit(1);
+      }
+      PROTECT(rs=mkString(pp));
       defineVar(install("sss"), rs, R_GlobalEnv);
       PROTECT(e=lang2(install("source"),install("sss")));
       eval(e, R_GlobalEnv);
@@ -387,6 +407,8 @@ int main( int argc , char * argv[] )
       PROTECT(e1=lang2(install("set_filteropt"),install("op")));    
       PROTECT(e=eval(e1,R_GlobalEnv));
       UNPROTECT(2);
+      
+      free(pp); pp=NULL;
    }
    for( ii=0 ; ii < nxyz ; ii++  ){  /* 1 time series at a time */
 
