@@ -212,7 +212,6 @@ MCW_3shear shear_xzyx( THD_dmat33 *q , THD_dfvec3 *xyzdel )
    /* output variable */
 
    MCW_3shear shr ;
-   memset(&shr, 0, sizeof(MCW_3shear)); /* ZSS: avoiding uninitialized warnings*/
    /* internals (created by Maple) */
 
    double t1, t3, t4, t5, t6, t7, t8, t9, t10, t11,
