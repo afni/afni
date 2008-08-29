@@ -307,8 +307,7 @@ THD_warp * AFNI_make_affwarp_12( float a11, float a12, float a13,  float s1 ,
    THD_warp *warp ;
    THD_linear_mapping map ;
    float dd , nn ;
-   memset(&map, 0, sizeof(THD_linear_mapping)); /* ZSS: avoiding uninitialized
-                                                   warnings*/
+
    warp       = myXtNew( THD_warp ) ;
    warp->type = WARP_AFFINE_TYPE ;
 
