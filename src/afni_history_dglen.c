@@ -49,6 +49,13 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 29 , AUG , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY, "Feature size, AddEdge, skullstrip,rat options" ,
+    "Added options to support searching for smaller structures,\n"
+    "an option for rat brain alignment, alternate options for 3dSkullstrip\n"
+    "and an optional call for @AddEdge"
+} ,
+
 { 27 , AUG , 2008 , DRG , "3danisosmooth" , 
     MINOR , TYPE_BUG_FIX , "Initialized variable for 3D case" ,
     NULL
