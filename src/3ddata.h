@@ -3682,6 +3682,7 @@ extern XtPointer_array * THD_init_alldir_datablocks( char * ) ;
 extern THD_session * THD_init_session( char * ) ;
 extern void          THD_order_session( THD_session * ) ;   /* 29 Jul 2003 */
 
+extern char * Add_plausible_path(char *fname);              /* ZSS:Aug. 08 */
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
 extern THD_3dim_dataset * THD_open_minc( char * ) ;         /* 29 Oct 2001 */

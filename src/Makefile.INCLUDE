@@ -2667,3 +2667,8 @@ AFNI_embeddedRCall.o: AFNI_embeddedRCall.c
 	$(CC) -o 3dTsmoothR 3dTsmoothR.o $(LFLAGS) \
          $(LLIBS) -lf2c -lmri $(RccCOMlfl) AFNI_embeddedRCall.o
    	   
+R_toy: R_toy.c AFNI_embeddedRCall.o
+	$(RM) R_toy.o R_toy
+	$(CC) $(RccCOMopt) -c R_toy.c $(INFLAGS) 
+	$(CC) -o R_toy R_toy.o $(LFLAGS) \
+         $(LLIBS) -lf2c -lmri $(RccCOMlfl) AFNI_embeddedRCall.o
