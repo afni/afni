@@ -1,11 +1,10 @@
 #!/usr/bin/env AFNI_Batch_R
-#iplots are quite cool, 
-#  but when it comes to plotting multiple time series (say 576 x 42) 
-#  it gets reaaaaal slow. JAVA SUCKS.
-#tkrplot has the stupid feature of not allowing autoresize of the plot.
-#  you can do it manually by setting hscale and vscale, but I'd rather
-#  play with a copperhead instead
-
+#
+#  WARNING: This script is solely for testing R and C interface
+#           It is needed by 3dTsmoothR.c and is not intended for
+#           anything but a demonstration of R & C in harmony
+#
+#
 require('graphics')
 require('tcltk')
 require('signal')
