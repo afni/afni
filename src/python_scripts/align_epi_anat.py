@@ -277,7 +277,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = 1.07 # software version (update for changes)
+      self.align_version = 1.08 # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -293,6 +293,7 @@ class RegWrap:
       self.volreg_flag = 0  # do volume registration on EPI
       self.deoblique_flag = 1  # deoblique datasets first
       self.deoblique_opt = "" # deobliquing/obliquing options
+      self.skullstrip_opt = "" # skullstripping options
       self.cmass = "" # no center of mass option for 3dAllineate
       self.epi_base = None  # don't assume representative epi
       self.reg_mat = "" # volume registration matrix 1D file
@@ -347,10 +348,13 @@ class RegWrap:
                                helpstr="Overwrite existing files")
       self.valid_opts.add_opt('-big_move', 0, [])
       self.valid_opts.add_opt('-partial_coverage', 0, [])
+      self.valid_opts.add_opt('-AddEdge', 0, [],\
+                               helpstr="Run @AddEdge script to create double"\
+                                       "edge images")
 
       self.valid_opts.add_opt('-Allineate_opts', -1,                       \
                              ["-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB"\
-                              " -warp aff"],\
+                              " -warp aff -source_automask+4 "],\
                                helpstr="Options passed to 3dAllineate.")
       self.valid_opts.add_opt('-perc', 1, ['90'])
 #      self.valid_opts.add_opt('-fresh', 0, [])
@@ -460,7 +464,19 @@ class RegWrap:
                  "applied similarly to the tlrc transformation and in\n"
                  "place of it.\n"
                  "Output datasets are kept in the 'orig' view")
-
+      self.valid_opts.add_opt('-skullstrip_opts', -1, [], \
+               helpstr="Alternate options for 3dSkullstrip.\n"
+                       "like -rat or -orig_vol")
+      self.valid_opts.add_opt('-feature_size', 1, [],\
+            helpstr="Minimal size in mm of structures in images to match.\n"\
+                    "Changes options for 3dAllineate for the coarse\n" \
+                    "blurring and lpc/lpa neighborhood sizes.May be useful\n" \
+                    "for rat brains, anat to anat and other\n" \
+                    "'non-standard' alignment")
+      self.valid_opts.add_opt('-rat_align', 0, [],\
+               helpstr="Set options appropriate for rat data - \n"
+                       "namely skullstrip and feature size options above.\n")
+      
       # create edge images
       # do edge-based alignment
 
@@ -481,6 +497,8 @@ class RegWrap:
       self.valid_opts.add_opt('-mask', -1, ['vent'], \
                helpstr="Not available yet.\n"
                        "Mask to apply to data.")
+
+  
   
    def dry_run(self):
       if self.oexec != "dry_run":
@@ -731,9 +749,36 @@ class RegWrap:
       #big_move?
       opt = self.user_opts.find_opt('-big_move')
       if opt == None:
-         ps.AlOpt.join(' -onepass')
+         ps.AlOpt = "%s -onepass " % ps.AlOpt
       else:
-         ps.AlOpt.join(' -twopass')
+         ps.AlOpt = "%s -twopass " % ps.AlOpt
+
+      opt = self.user_opts.find_opt('-feature_size')
+      if opt != None:
+         featuresize = float(opt.parlist[0])
+         blursize = 2.0 * featuresize
+         aljoin = '-twoblur %f -blok "RHDD(%f)"' % (blursize, featuresize)
+         ps.AlOpt = "%s %s" % (ps.AlOpt, aljoin)
+      else:
+         featuresize = 0.0
+
+      opt = self.user_opts.find_opt('-rat_align')
+      if opt != None:
+         if featuresize == 0.0 :
+            featuresize = 0.5
+            blursize = 1.0
+            aljoin = '-twoblur %f -blok "RHDD(%f)"' % (blursize, featuresize)
+            ps.AlOpt = "%s %s" % (ps.AlOpt, aljoin)
+         ps.skullstrip_opt = "-rat"         
+
+
+      #add edges
+      opt = self.user_opts.find_opt('-AddEdge')
+      if opt == None:
+         ps.AddEdge = 0
+      else:
+         ps.AddEdge = 1
+
       
       #get anat and epi
       opt = self.user_opts.find_opt('-epi')
@@ -777,6 +822,11 @@ class RegWrap:
          ps.reg_opt = string.join(opt.parlist, ' ')
       else:
          ps.reg_opt = ''
+
+      #get 3dSkullstrip options
+      opt = self.user_opts.find_opt('-skullstrip_opts')
+      if opt != None: 
+         ps.skullstrip_opt = string.join(opt.parlist, ' ')
 
       #get epi base type for alignment (specific sub-brick/median/mean)
       opt = self.user_opts.find_opt('-epi_base')
@@ -1042,7 +1092,7 @@ class RegWrap:
          com = shell_com(  \
                  "3dAllineate -%s "  # costfunction       \
                   "%s "              # weighting          \
-                  "-source %s -source_automask+4 "        \
+                  "-source %s "        \
                   "-prefix %s -base %s "                  \
                   "%s "  # center of mass options (cmass) \
                   "-1Dmatrix_save %s "                    \
@@ -1531,8 +1581,8 @@ class RegWrap:
          if (not n.exist() or ps.rewrite or ps.dry_run()):
             n.delete(ps.oexec)
             com = shell_com(  \
-                  "3dSkullStrip -input %s -prefix %s" \
-                  % (e.input(), n.out_prefix()) , ps.oexec)
+                  "3dSkullStrip %s -input %s -prefix %s" \
+                  % (skullstrip_opt, e.input(), n.out_prefix()) , ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print "** ERROR: Could not strip skull\n"
@@ -1607,7 +1657,14 @@ class RegWrap:
          return None
       
       return o
-      
+
+
+   # Create double edge images for later viewing
+   def add_edges(self, d1, d2, d3):
+      com = shell_com( 
+            "@AddEdge %s %s %s" \
+            % (d1.input(), d2.input(), d3.input()), ps.oexec)
+      com.run()
 
    # do the preprocessing of the EPI data    
    def process_epi(self, use_ss='3dSkullStrip', childflag=0):
@@ -1665,7 +1722,7 @@ class RegWrap:
       # remove outside brain or skull
       basesuff = "%s_ns" % basesuff
       prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
-      skullstrip_o = self.skullstrip_data( e, use_ss, "", prefix)
+      skullstrip_o = self.skullstrip_data( e, use_ss, ps.skullstrip_opt, prefix)
 
       return  tshift_o, volreg_o, skullstrip_o
 
@@ -1694,8 +1751,8 @@ class RegWrap:
             n.delete(ps.oexec)
             self.info_msg( "Removing skull from anatomical data")
             com = shell_com(  \
-                  "3dSkullStrip -input %s -prefix %s" \
-                  % (a.input(), n.out_prefix()), ps.oexec)
+                  "3dSkullStrip %s -input %s -prefix %s" \
+                  % (ps.skullstrip_opt, a.input(), n.out_prefix()), ps.oexec)
             com.run()
             if (not n.exist() and not ps.dry_run()):
                print "** ERROR: Could not strip skull\n"
@@ -1748,49 +1805,57 @@ class RegWrap:
       # save skull stripped anat
       if(ps.skullstrip):
          ao_ns = ain.new("%s_ns%s" % (ain.prefix, suf))
-         self.copy_dset( ps.anat_ns, ao_ns, "Creating final output: skullstripped anatomical data", ps.oexec)
+         self.copy_dset( ps.anat_ns, ao_ns, 
+          "Creating final output: skullstripped anatomical data", ps.oexec)
 
       # save anatomy aligned to epi 
       if (aae):
          # save aligned anatomy
          o = ain.new("%s%s" % (ain.prefix, suf))
-         self.copy_dset( aae, o, "Creating final output: anat data aligned to epi data", ps.oexec)
+         self.copy_dset( aae, o, 
+          "Creating final output: anat data aligned to epi data", ps.oexec)
          self.save_history(o,ps.oexec)
 
          # save the timeshifted EPI data
          if (self.epi_ts and self.tshift_flag) :
             eo = epi_in.new("%s_tshft%s" % (ein.prefix, suf))
-            self.copy_dset( self.epi_ts, eo,"Creating final output: time-shifted epi", ps.oexec)
+            self.copy_dset( self.epi_ts, eo,
+             "Creating final output: time-shifted epi", ps.oexec)
 
          # save the volume registered EPI data
          if (self.epi_vr and self.volreg_flag):
             eo = epi_in.new("%s_vr%s" % (ein.prefix, suf))
-            self.copy_dset( self.epi_vr, eo, \
-              "Creating final output: time series volume-registered epi", ps.oexec)
+            self.copy_dset( self.epi_vr, eo, 
+              "Creating final output: time series volume-registered epi",
+               ps.oexec)
 
       # save Allineate input datasets
       if(ps.save_Al_in):
          # save weight used in 3dAllineate
          if w:
             ow = ain.new("%s_wt_in_3dAl%s" % (ein.prefix,suf))
-            self.copy_dset( w, ow, "Creating final output: weighting data", ps.oexec)
+            self.copy_dset( w, ow, 
+             "Creating final output: weighting data", ps.oexec)
 
          #save a version of the epi as it went into 3dAllineate         
          if epi_in:
             eo = epi_in.new("%s_epi_in_3dAl%s" % (ein.prefix, suf))
             self.copy_dset( epi_in, eo,     \
-            "Creating final output: epi representative data as used by 3dAllineate", ps.oexec)
+             "Creating final output: "
+             "epi representative data as used by 3dAllineate", ps.oexec)
 
          #save a version of the anat as it went into 3dAllineate
          if anat_in:  
             ao = epi_in.new("%s_anat_in_3dAl%s" % (ain.prefix, suf))
-            self.copy_dset( anat_in, ao, "Creating final output: anat data as used by 3dAllineate", ps.oexec)
+            self.copy_dset( anat_in, ao, 
+            "Creating final output: anat data as used by 3dAllineate", ps.oexec)
 
       #Now create a version of the epi that is aligned to the anatomy
       if (eaa):
          #save the epi aligned to anat
          o = e.new("%s%s" % (ein.prefix, suf))
-         self.copy_dset( eaa, o, "Creating final output: epi data aligned to anat", ps.oexec)
+         self.copy_dset( eaa, o,
+          "Creating final output: epi data aligned to anat", ps.oexec)
          self.save_history(o,ps.oexec)
        
       return
@@ -1827,12 +1892,13 @@ class RegWrap:
       # do preprocessing of epi
       # do time shifting, volume registration of child epi data
       #   if requested; otherwise, just keep the input epi
-      if(childepi.input()==ps.epi.input()) :    # skip the parent if it's included
-         return                             #   in child list
+      if(childepi.input()==ps.epi.input()) : # skip the parent if it's included
+         return                              #   in child list
       child = copy.copy(ps)      
       
       child.epi = childepi
-      self.info_msg("Parent %s:  Child: %s" % (ps.epi.input(), child.epi.input()))
+      self.info_msg("Parent %s:  Child: %s" % 
+          (ps.epi.input(), child.epi.input()))
             
       child.epi_ts, child.epi_vr, child.epi_ns = \
           child.process_epi(childflag=1)
@@ -1905,8 +1971,12 @@ if __name__ == '__main__':
          ps.align_epi2anat(ps.epi_ts, a, ps.AlOpt, suf=ps.suffix)
       if (not ps.epi_alnd):
          ps.ciao(1)
+      if(ps.AddEdge):
+         ps.add_edges(a, e, ps.epi_alnd )
    else:
       ps.epi_alnd = ''
+      if(ps.AddEdge):
+         ps.add_edges(e, a, ps.anat_alnd )
       
    if (not ps.anat2epi):
       ps.anat_alnd = ''
@@ -1914,6 +1984,7 @@ if __name__ == '__main__':
    #Create final results
    ps.create_output(ps.anat_alnd, ps.anat_alndwt, ps.epi_alnd, \
         "%s" % ps.suffix, e, a)
+        
    
    # process the children
    if ps.child_epis != None: 
@@ -1926,4 +1997,8 @@ if __name__ == '__main__':
       ps.cleanup()
 
    print "\n# Finished alignment successfully"
+   if(ps.AddEdge):
+      print "To view edges produced by @AddEdge, type:"
+      print "afni -niml -yesplugouts &\n@AddEdge"
+
    ps.ciao(0)
