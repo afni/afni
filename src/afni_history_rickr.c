@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, AUG, 2008, RCR, "vol2surf", MINOR, TYPE_MODIFY,
+   "fill in COLMS_STATSYM attribute when writing .niml.dset dataset",
+   NULL
+ } ,
+
  { 26, AUG, 2008, RCR, "3dAllineate", MINOR, TYPE_BUG_FIX,
    "initialized ntask in all cases",
    NULL
