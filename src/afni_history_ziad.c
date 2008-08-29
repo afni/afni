@@ -66,7 +66,7 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
- { 29 , AUG , 2008 , ZSS , "afni-general" , MICRO,  NA,
+ { 29 , AUG , 2008 , ZSS , "afni-general" , MICRO,  TYPE_GENERAL,
    "Added toy programs 3dTsmoothR.c and toyR.c to test C<-->R interface",
    "The programs demonstrate how to call R functions from C.\n"
    "To build them one needs to run tcsh ./@RmakeOpts\n"
