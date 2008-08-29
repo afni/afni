@@ -476,6 +476,7 @@ ENTRY("THD_set_dataset_attributes") ;
    }
 
    /* and write out brick stataux parameters */
+   /* broken out to THD_make_statsym_string() */
 
    if( blk->brick_statcode != NULL &&    /* write out brick stataux */
        blk->brick_stataux  != NULL   ){  /* stuff, if it exists.    */
@@ -600,3 +601,71 @@ ENTRY("THD_set_dataset_attributes") ;
 
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------*/
+/*! return an allocated BRICK_STATSYM string
+ *
+ * if bindex >= 0, return the string for just that sub-brick
+ * otherwise,      return the string for all sub-bricks
+ *---------------------------------------------------------------------- */
+char * THD_make_statsym_string(THD_3dim_dataset * dset, int bindex)
+{
+    THD_datablock * blk;
+    float           p1, p2, p3;
+    char          * statsym, * sstr;
+    int             ind, code, np;
+    int             bot, top;
+
+    ENTRY("thd_make_statsym_string");
+
+    if( ! ISVALID_3DIM_DATASET(dset) || ! ISVALID_DATABLOCK(dset->dblk) )
+        RETURN(NULL);
+
+    blk = dset->dblk;
+    if( bindex >= 0 ) {
+        bot = top = bindex;
+    } else {
+        bot = 0;
+        top = blk->nvals-1;
+    }
+
+    if( ! blk->brick_statcode || ! blk->brick_stataux ) RETURN(NULL);
+
+    /* if there are no stat codes, just return NULL */
+
+    for( ind = bot; ind <= top; ind++ )
+        if( FUNC_IS_STAT(blk->brick_statcode[ind]) )
+            break;
+    if( ind > top) RETURN(NULL);        /* none found */
+
+    /* otherwise, build a string */
+
+    statsym = (char *)calloc(1,1);
+    if(!statsym){ fprintf(stderr,"** TMSS: calloc failure\n"); RETURN(NULL); }
+
+    for( ind = bot; ind <= top; ind++ ) {
+        code = blk->brick_statcode[ind];
+        if( FUNC_IS_STAT(code) ) {
+            p1 = p2 = p3 = 0.0f;
+            np = FUNC_need_stat_aux[code];
+            if( blk->brick_stataux[ind] ) {
+                if( np > 0 ) p1 = blk->brick_stataux[ind][0];
+                if( np > 1 ) p2 = blk->brick_stataux[ind][1];
+                if( np > 2 ) p3 = blk->brick_stataux[ind][2];
+            }
+            sstr = NI_stat_encode(code, p1, p2, p3 );
+        } else {
+            sstr = strdup("none");
+        }
+        code = strlen(sstr) + strlen(statsym) + 4;
+        statsym = (char *)realloc(statsym , code);
+        if(!statsym)
+            { fprintf(stderr,"** TMSS: realloc failure\n"); RETURN(NULL); }
+        if( ind > 0 ) strcat(statsym, ";");
+        strcat(statsym, sstr);
+        free(sstr);
+    }
+
+    RETURN(statsym);
+}
+
