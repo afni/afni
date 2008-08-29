@@ -66,6 +66,25 @@
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
  
+ { 29 , AUG , 2008 , ZSS , "afni-general" , MICRO,  NA,
+   "Added toy programs 3dTsmoothR.c and R_toy.c to test C<-->R interface",
+   "The programs demonstrate how to call R functions from C.\n"
+   "To build them one needs to run tcsh ./@RmakeOpts\n"
+   "Add 'include Makefile.R.INCLUDE' to Makefile\n"
+   "Then make 3dTsmoothR R_toy\n"
+   "The programs demonstrate time series processing and plotting in R."
+ },
+  
+ { 29 , AUG , 2008 , ZSS , "afni-general" , MAJOR,  TYPE_NEW_PROG,
+   "Wrote ExamineXmatR, which is an interactive tool to examine a design matrix",
+   NULL
+ },
+ 
+ { 29 , AUG , 2008 , ZSS , "3ddelay" , MINOR ,  TYPE_BUG_FIX,
+   "Unitialized pointer in 3ddelay",
+   NULL
+ },
+
  { 29 , JUL , 2008 , ZSS , "afni" , MINOR , TYPE_MODIFY ,
    "Changed transform used to crete mni coord. in interactive whereami",
    "The transform from TLRC to MNI used to be via the manually TLRCed\n"

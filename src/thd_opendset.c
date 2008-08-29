@@ -35,6 +35,97 @@ static char * file_extension_list[] = {
     ".gii", ".gii.dset"
 };
 
+/* 
+   Return a plausible path to a pathless filename, 
+   returns NULL if no file was found. 
+*/
+char * Add_plausible_path(char *fname) 
+{
+   char dname[THD_MAX_NAME], ename[THD_MAX_NAME], 
+         *elocal=NULL, *eee=NULL, *pp=NULL, *epath=NULL;
+   int epos=0, ll=0, ii=0, id = 0, kk=0;
+   FILE *fp=NULL;
+   
+   ENTRY("Add_plausible_path");
+   
+   if (!fname) RETURN(NULL);
+   
+   /* If file exists as is, go back */
+   if ((fp = fopen( fname , "r"))) { 
+      pp = (char *)malloc(sizeof(char)*(strlen(fname)+1));
+      pp = strcpy(pp, fname);
+      fclose(fp);
+      RETURN(pp);
+   }
+   
+   ii = strlen(fname);
+   while (ii >=0) {
+      if (fname[ii] == '/') { /* Have path in name, return whole thing, 
+                                 if file exists! */
+         if ((fp = fopen( fname , "r"))) { 
+            pp = (char *)malloc(sizeof(char)*(strlen(fname)+1));
+            pp = strcpy(pp, fname);
+            fclose(fp);
+            RETURN(pp);
+         } else {
+            RETURN(NULL);
+         }
+      }
+      --ii;
+   }
+   
+   /* have name, try different paths */
+                       epath = getenv("AFNI_R_PATH") ;
+   if( epath == NULL ) epath = getenv("AFNI_PLUGINPATH") ;
+   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
+   if( epath == NULL ) epath = getenv("PATH") ;
+   
+      
+   /* Next block is based on one in thd_ttatlas_query.c */   
+   /*----- copy path list into local memory -----*/
+
+   ll = strlen(epath) ;
+   elocal = AFMALL(char, sizeof(char) * (ll+2) ) ;
+
+   /*----- put a blank at the end -----*/
+
+   strcpy( elocal , epath ) ; elocal[ll] = ' ' ; elocal[ll+1] = '\0' ;
+
+   /*----- replace colons with blanks -----*/
+
+   for( ii=0 ; ii < ll ; ii++ )
+     if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
+
+   /*----- extract blank delimited strings;
+           use as directory names to look for atlas -----*/
+
+   epos = 0 ;
+
+   do{
+      ii = sscanf( elocal+epos , "%s%n" , ename , &id ); /* next substring */
+      if( ii < 1 ) break ;                               /* none -> done   */
+
+      epos += id ;                                 /* char after last scanned */
+
+      ii = strlen(ename) ;                         /* make sure name has   */
+      if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
+          ename[ii]  = '/' ; ename[ii+1] = '\0' ;
+      }
+      strcpy(dname,ename) ;
+      strcat(dname,fname) ;               /* add file name */
+
+      if ((fp = fopen( dname , "r"))) { 
+         pp = (char *)malloc(sizeof(char)*(strlen(dname)+1));   
+         pp = strcpy(pp, dname);
+         fclose(fp);
+         RETURN(pp);
+      }
+
+   } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
+   
+   
+   RETURN(pp);
+}
 
 /*----------------------------------------------------------------
    simply given a pathname, try to open it as a dataset
