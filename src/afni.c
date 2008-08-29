@@ -2293,7 +2293,7 @@ STATUS("creating memplot for image overlay") ;
       char str[32] , *eee ;
       float rx=RX ;         /* default rectangle halfsize */
       int   kkk=0 ;
-      float xyz=0.0,xyzp,xyzm , rxm,rxp ;
+      float xyz=0.0,xyzp=0.0,xyzm=0.0 , rxm,rxp ;
       int skip_boxes=1 , skip_lines=0 , skip_lcen=0, skip_ledg=1 ;
       float boxsize=RX , linewidth=0.0 ;      /* 23 Feb 2003 */
       int firstb ;                            /* 23 Jan 2004 */

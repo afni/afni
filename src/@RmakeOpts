@@ -11,7 +11,7 @@ if ( -f Makefile.R.INCLUDE ) then
 endif
  
 #Check R's version
-set Rvermin = 2.87   #lowest R version allowed
+set Rvermin = 2.7   #lowest R version allowed
 set Rver = `R --version`
 set rsort = `printf "$Rvermin\n$Rver[3]\n" | sort`
 if ("$rsort[1]" != "$Rvermin") then 
