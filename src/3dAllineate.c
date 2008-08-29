@@ -37,11 +37,13 @@ static float wt_gausmooth = 4.50f ;
 
 static int verb = 1 ; /* somewhat on by default */
 
-MRI_IMAGE * mri_weightize( MRI_IMAGE *, int, int, float,float ) ;  /* prototype */
+MRI_IMAGE * mri_weightize( MRI_IMAGE *, int, int, float,float ); /* prototype */
+
+float param_dist( GA_setup *stp , float *aa , float *bb ) ;      /* prototype */
 
 void AL_setup_warp_coords( int,int,int,int ,
                            int *, float *, mat44,
-                           int *, float *, mat44 ) ; /* prototype */
+                           int *, float *, mat44 ) ;             /* prototype */
 
 #undef MEMORY_CHECK
 #ifdef USING_MCW_MALLOC
@@ -138,7 +140,9 @@ int main( int argc , char *argv[] )
    int pad_xm=0,pad_xp=0 , pad_ym=0,pad_yp=0 , pad_zm=0,pad_zp=0 ;
    int tfdone=0;  /* stuff for -twofirst */
    float tfparm[PARAM_MAXTRIAL+2][MAXPAR];  /* +2 for some extra cases */
-   float ffparm[PARAM_MAXTRIAL+2][MAXPAR];
+   float ffparm[PARAM_MAXTRIAL+2][MAXPAR];  /* not really used yet */
+   float tfcost[PARAM_MAXTRIAL+2] ;
+   int   tfindx[PARAM_MAXTRIAL+2] ;
    int skip_first=0 , didtwo , targ_kind , skipped=0 , nptwo=6 ;
    double ctim=0.0,dtim , rad , conv_rad ;
    float **parsave=NULL ;
@@ -192,6 +196,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *matini           = NULL ;
    int tbest                   = 4 ;            /* default=try best 4 */
    int num_rtb                 = 99 ;           /* 28 Aug 2008 */
+   int nocast                  = 0 ;            /* 29 Aug 2008 */
    param_opt paropt[MAXPAR] ;
    float powell_mm             = 0.0f ;
    float powell_aa             = 0.0f ;
@@ -473,23 +478,6 @@ int main( int argc , char *argv[] )
 "               starting point, and the identity transformation is\n"
 "               used as the starting point.  [Default=4; min=0 max=7]\n"
 "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
-" -num_rtb n  = At the beginning of the fine pass, the best set of results\n"
-"               from the coarse pass are 'refined' a little by further\n"
-"               optimization, before the single best one is chosen for\n"
-"               for the final fine optimization.\n"
-"              * This option sets the maximum number of cost functional\n"
-"                evaluations to be used (for each set of parameters)\n"
-"                in this step.\n"
-"              * The default is 99; a larger value will take more CPU\n"
-"                time but may give more robust results.\n"
-"              * If you want to skip this step entirely, use '-num_rtb 0'.\n"
-"                then, the best of the coarse pass results is taken\n"
-"                straight to the final optimization passes.\n"
-"       **N.B.: If you use '-VERB', you will see that one extra case\n"
-"               is involved in this initial fine refinement step; that\n"
-"               case is starting with the identity transformation, which\n"
-"               is to insure against the chance that the coarse pass\n"
-"               optimizations ran amok.\n"
 " -fineblur x = Set the blurring radius to use in the fine resolution\n"
 "               pass to 'x' mm.  [Default == 0 mm]\n"
 "   **NOTES ON\n"
@@ -793,6 +781,27 @@ int main( int argc , char *argv[] )
         "===========================================\n"
         "** N.B.: Some of these are experimental ***\n"
         "===========================================\n"
+        " -num_rtb n  = At the beginning of the fine pass, the best set of results\n"
+        "               from the coarse pass are 'refined' a little by further\n"
+        "               optimization, before the single best one is chosen for\n"
+        "               for the final fine optimization.\n"
+        "              * This option sets the maximum number of cost functional\n"
+        "                evaluations to be used (for each set of parameters)\n"
+        "                in this step.\n"
+        "              * The default is 99; a larger value will take more CPU\n"
+        "                time but may give more robust results.\n"
+        "              * If you want to skip this step entirely, use '-num_rtb 0'.\n"
+        "                then, the best of the coarse pass results is taken\n"
+        "                straight to the final optimization passes.\n"
+        "       **N.B.: If you use '-VERB', you will see that one extra case\n"
+        "               is involved in this initial fine refinement step; that\n"
+        "               case is starting with the identity transformation, which\n"
+        "               is to insure against the chance that the coarse pass\n"
+        "               optimizations ran amok.\n"
+        " -nocast     = By default, parameter vectors that are too close to the\n"
+        "               best one are cast out at the end of the coarse pass\n"
+        "               refinement process. Use this option if you want to keep\n"
+        "               them all for the fine resolution pass.\n"
         " -savehist sss = Save start and final 2D histograms as PGM\n"
         "                 files, with prefix 'sss' (cost: cr mi nmi hel).\n"
 #if 0
@@ -1438,6 +1447,10 @@ int main( int argc , char *argv[] )
        else if( num_rtb <  66  ) num_rtb = 66 ;
        else if( num_rtb >  666 ) num_rtb = 666 ;
        iarg++ ; continue ;
+     }
+
+     if( strncmp(argv[iarg],"-nocast",6) == 0 ){
+       nocast = 1 ; iarg++ ; continue ;
      }
 
      /*-----*/
@@ -3004,7 +3017,7 @@ int main( int argc , char *argv[] )
            for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
              tfparm[ib][jj] = stup.wfunc_param[jj].val_trial[ib] ;
 
-         /* add identity to set */
+         /* add identity transform to set, for comparisons */
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            tfparm[tb][jj] = stup.wfunc_param[jj].val_pinit ;
@@ -3022,23 +3035,60 @@ int main( int argc , char *argv[] )
            for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
                stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-             nfunc += mri_genalign_scalar_optim( &stup , rad , 0.0567*rad , 345 ) ;
+             nfunc += mri_genalign_scalar_optim( &stup , rad , 0.0567*rad , 166 ) ;
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save optimized params */
                tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
+             tfcost[ib] = stup.vbest ; tfindx[ib] = ib ;
              if( verb > 1 )
                ININFO_message("- param set #%d has cost=%f",ib+1,stup.vbest) ;
              if( verb > 2 ) PAROUT("--") ;
            }
          }
+
+         tfdone = tb ;  /* number of parameter sets we've saved in tfparm */
+
+         /* 29 Aug 2008: sort tfparm by cost, then cast out the close ones */
+
+         if( !nocast && tfdone > 2 ){
+           int jb,ncast=0 ; float pdist ;
+
+           if( verb > 2 ) ININFO_message("-- sorting parameter sets by cost") ;
+           for( ib=0 ; ib < tfdone ; ib++ )        /* copy tfparm into ffparm */
+             memcpy( ffparm[ib], tfparm[ib], sizeof(float)*stup.wfunc_numpar );
+           qsort_floatint( tfdone , tfcost , tfindx ) ;       /* sort by cost */
+           for( ib=0 ; ib < tfdone ; ib++ ){         /* copy back into tfparm */
+             jb = tfindx[ib] ;
+             memcpy( tfparm[ib], ffparm[jb], sizeof(float)*stup.wfunc_numpar );
+           }
+
+           /* now cast out parameter sets that are very close to the best one */
+
+#undef  CTHRESH
+#define CTHRESH 0.02f
+           if( verb > 2 ) ININFO_message("-- scanning for distances from #1") ;
+           for( ib=1 ; ib < tfdone ; ib++ ){
+             pdist = param_dist( &stup , tfparm[0] , tfparm[ib] ) ;
+             if( verb > 2 ) ININFO_message("--- dist(#%d,#1) = %.3g",ib+1,pdist) ;
+             if( tfdone > 2 && pdist < CTHRESH ){
+               for( jb=ib+1 ; jb < tfdone ; jb++ )  /* copy those above down */
+                 memcpy( tfparm[jb-1], tfparm[jb], sizeof(float)*stup.wfunc_numpar );
+               ncast++ ; tfdone-- ;
+             }
+           }
+           if( ncast > 0 && verb > 1 )
+             ININFO_message(
+               "- cast out %d parameter set%s for being too close to best set" ,
+               ncast , (ncast==1)?"":"s" ) ;
+         }
+
          if( verb > 1 )
            ININFO_message("- Total coarse refinement CPU time = %.1f s; %d funcs",
                           COX_cpu_time()-ctim,nfunc ) ;
 
-         tfdone = tb ;  /* number we've saved in tfparm */
+         /* end of '-twobest x' for x > 0 */
 
-       /*- just optimize at coarse setup from default initial parameters -*/
-
-       } else {  /* if stoopid user did '-twobest 0' */
+       } else {  /*- if stoopid user did '-twobest 0' -*/
+                 /*- just optimize coarse setup from default parameters -*/
 
          if( verb     ) ININFO_message("- Start coarse optimization with -twobest 0") ;
          if( verb > 1 ) ctim = COX_cpu_time() ;
@@ -3063,8 +3113,9 @@ int main( int argc , char *argv[] )
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save best params */
            tfparm[0][jj] = stup.wfunc_param[jj].val_out ;
-         tfdone = 1 ;
-       }
+         tfdone = 1 ;  /* number of parameter sets saved in tfparm */
+
+       } /* end of '-twobest 0' */
 
        /*- 22 Sep 2006: add default init params to the tfparm list -*/
        /*-              (so there will be at least 2 sets there)   -*/
@@ -3185,7 +3236,7 @@ int main( int argc , char *argv[] )
      }
 
      if( verb > 1 ){
-       ININFO_message("- Initial  cost = %f",cost_ini) ;
+       ININFO_message("- Initial cost = %f",cost_ini) ;
        PARINI("- Initial fine") ;
        ctim = COX_cpu_time() ;
      }
@@ -3896,6 +3947,27 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
    }
 
    return wim ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Return the L_infinity distance between two parameter vectors. */
+
+float param_dist( GA_setup *stp , float *aa , float *bb )
+{
+   int jj ; float ap, bp, pdist, dmax ;
+
+   if( stp == NULL || aa == NULL || bb == NULL ) return 1.0f ;
+
+   dmax = 0.0f ;
+   for( jj=0 ; jj < stp->wfunc_numpar ; jj++ ){
+     if( !stp->wfunc_param[jj].fixed ){
+       ap = aa[jj] ; bp = bb[jj] ;
+       pdist = fabsf(ap-bp)
+              / (stp->wfunc_param[jj].max - stp->wfunc_param[jj].min) ;
+       if( pdist > dmax ) dmax = pdist ;
+     }
+   }
+   return dmax ;
 }
 
 /*---------------------------------------------------------------------------*/

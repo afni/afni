@@ -526,7 +526,7 @@ STATUS("NN resample has all outside") ;
             }
          } else {                                       /* at least some are inside */
 
-            int thz , tho , ob , ub ;
+            int thz , tho , ob , ub=0 ;
 
             fxi_base += 0.5 ; fyj_base += 0.5 ; fzk_base += 0.5 ;
 
@@ -1191,7 +1191,7 @@ STATUS("NN resample has all outside") ;
             }
          } else {                                       /* at least some are inside */
 
-            int thz, tho , ob , ub ;
+            int thz, tho , ob , ub=0 ;
 
             fxi_base += 0.5 ; fyj_base += 0.5 ; fzk_base += 0.5 ;
 
@@ -1829,7 +1829,7 @@ STATUS("NN resample has all outside") ;
             }
          } else {                                       /* at least some are inside */
 
-            int thz , tho , ob , ub ;
+            int thz , tho , ob , ub=0 ;
 
             fxi_base += 0.5 ; fyj_base += 0.5 ; fzk_base += 0.5 ;
 

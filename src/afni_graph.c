@@ -1678,7 +1678,7 @@ void plot_graphs( MCW_grapher *grapher , int code )
    MRI_IMARR *tsimar ;
    float     *tsar ;
    float       tsbot=0.0 , ftemp,fwid,foff , tstop ;
-   int i, m, index, ix, iy, xtemp,ytemp,ztemp , xoff,yoff , its,ibot,itop;
+   int i, m, index, ix, iy, xtemp,ytemp,ztemp, xoff=0,yoff=0, its,ibot,itop;
    int ptop,pbot,pnum,qnum , tbot,ttop,tnum , ntmax ;  /* 17 Mar 2004 */
 
    static int      *plot = NULL ;  /* arrays to hold plotting coordinates */
@@ -1691,7 +1691,7 @@ void plot_graphs( MCW_grapher *grapher , int code )
    MRI_IMARR *eximar ;
    int        iex ;
 
-   float nd_bot , nd_top , nd_dif ;                        /* 03 Feb 1998 */
+   float nd_bot=0 , nd_top=0 , nd_dif=0 ;                  /* 03 Feb 1998 */
    int   set_scale = ( (code & PLOTCODE_AUTOSCALE) != 0 ||
                        grapher->never_drawn ) ;
 
@@ -3179,7 +3179,7 @@ STATUS("allocating new Pixmap") ;
 
 void GRA_handle_keypress( MCW_grapher *grapher , char *buf , XEvent *ev )
 {
-   int ii ;
+   int ii=0 ;
 
 ENTRY("GRA_handle_keypress") ;
 
