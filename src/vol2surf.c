@@ -2359,8 +2359,8 @@ int v2s_write_outfile_NSD(v2s_results *sd, v2s_opts_t * sopt,
     SUMA_DSET  * sdset;
     NI_element * nel;
     void      ** elist = NULL;
-    char       * oname;
-    int          c, rv;
+    char       * oname, * statsym;
+    int          c, rv, ind;
 
 ENTRY("v2s_write_outfile_NSD");
 
@@ -2395,6 +2395,30 @@ ENTRY("v2s_write_outfile_NSD");
 
     set_ni_globs_from_env();   /* init niml globals from environment */
     set_gni_debug(sopt->debug);
+
+    /*--- add COLMS_STATSYM (probably already there) ---*/
+    if( sopt->gp_index >= 0 ) ind = sopt->gp_index;  /* pick one sub-brick  */
+    else if( p->over_steps )  ind = 0;               /* must be sub-brick 0 */
+    else                      ind = -1;              /* get all sub-bricks  */
+    statsym = THD_make_statsym_string(p->gpar, ind);
+    if( !statsym ) {
+        fprintf(stderr,"** failed to make statsym_string...\n");
+    } else {
+        nel = SUMA_FindDsetAttributeElement(sdset, "COLMS_STATSYM");
+        if( nel ) { /* if it exists, replace the old, else make one */
+            SUMA_NEL_REPLACE_STRING(nel, 0, 0, statsym);
+            if( sopt->debug > 2 )
+                fprintf(stderr,"++ replaced COLMS_STATSYM with '%s'\n",statsym);
+        } else {
+            nel = NI_new_data_element("AFNI_atr", 1);
+            NI_set_attribute(nel,"atr_name", "COLMS_STATSYM");
+            NI_add_column(nel, NI_STRING, &statsym);
+            NI_add_to_group(sdset->ngr, nel);
+            if( sopt->debug > 2 )
+                fprintf(stderr,"++ added COLMS_STATSYM as '%s'\n", statsym);
+        }
+        free(statsym);
+    }
 
     /* find the data element and set the output format */
     c = NI_search_group_shallow(sdset->ngr, "SPARSE_DATA", &elist);
