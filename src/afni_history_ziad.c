@@ -75,8 +75,8 @@ afni_history_struct ziad_history[] = {
    "The programs demonstrate time series processing and plotting in R."
  },
   
- { 29 , AUG , 2008 , ZSS , "afni-general" , MAJOR,  TYPE_NEW_PROG,
-   "Wrote ExamineXmatR, which is an interactive tool to examine a design matrix",
+ { 29 , AUG , 2008 , ZSS , "ExamineXmatR" , MAJOR,  TYPE_NEW_PROG,
+   "An interactive tool to examine a design matrix",
    NULL
  },
  
