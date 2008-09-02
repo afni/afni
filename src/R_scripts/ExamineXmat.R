@@ -69,7 +69,8 @@ show_xmat <- function (ff, isel=1:1:ncol(ff), descr="") {
            xy.labels = colnames(ff[,isel]), xy.lines = TRUE, 
            panel = lines, nc = 3, yax.flip = FALSE,
            axes = TRUE, col = colvec[isel], main = '')
-      text (0, offs, colnames(ff[,isel]), col = colvec[isel], adj=c(1,0))
+      xoff = ((1:length(isel))%%5)*(length(ff[,1])/frequency(ff)/5)
+      text (xoff, offs, colnames(ff[,isel]), col = colvec[isel], adj=c(0,0))
    } else {
       tp = 'multiple'
       if (is.null(dev.list())) x11()
@@ -265,8 +266,8 @@ ExamineXmat.help <- function() {
 }  
 show_sel <- function(sel, ff) {
    #cat(sel, 'length:' , length(sel), '\n')
-   if (!is.na(sel) && length(sel)) {
-      ilst = vector('integer');
+   ilst = vector('integer');
+   if (length(sel)) {
       for (isel in sel) {
          #cat("processing: ",isel,'\n')
          if (!inherits( e <- try(as.integer(eval(parse(text=isel))),
@@ -280,8 +281,13 @@ show_sel <- function(sel, ff) {
             ilst <- append(ilst, grep(isel, colnames(ff)), after=length(ilst))
          }
       }
+   } else {
+      ilst = 0:(ncol(ff)-1)
+   }
+
+   if (length(ilst)) {
+      ilst = unique(ilst[ilst >0 & ilst <ncol(ff)])
       if (length(ilst)) {
-         ilst = unique(ilst)
          cat ('selection is: ', ilst-1, '\n')
          show_xmat(ff, ilst, descr=sel)
       }
