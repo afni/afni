@@ -923,7 +923,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth); /* lgth is the length of edge by dist node0->node1 */
    
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: a = %f, b=%f, rad = %f, lgth = %f\n", FuncName, a, b, r, lgth);
+      fprintf(SUMA_STDERR,"%s: a = %f, b=%f, rad = %f, lgth = %f\nctr = [%f %f %f]\n", FuncName, a, b, r, lgth, ctr[0], ctr[1], ctr[2]);
    }
    /*assign ep to be 1/2 the lenth of the maximum final distance between two nodes
      (see LNB p3 / p29)*/
@@ -1034,11 +1034,18 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    numNodes = (nodePtCt+1)/3;
    numTri = (triPtCt+1)/3;
 
-   if (LocalHead) fprintf(SUMA_STDERR,"%s: There are %d nodes, %d triangles in the icosahedron.\n", FuncName, numNodes, numTri);
+   if (LocalHead) 
+      fprintf( SUMA_STDERR,
+               "%s: There are %d nodes, %d triangles in the icosahedron.\n", 
+               FuncName, numNodes, numTri);
 
    /* store in SO and get out */
    SO->isSphere = SUMA_GEOM_ICOSAHEDRON;
    SUMA_COPY_VEC(ctr,SO->SphereCenter,3, float, float);
+   SUMA_COPY_VEC(ctr,SO->Center,3, float, float);/* ZSS: This had not been set.
+                                                    Affects 3dSkullStrip after 
+                                                    addition of SO->SphereCenter
+                                                    Sept. 08 */
    SO->SphereRadius = r;
    SO->NodeList = icosaNode;
    SO->FaceSetList = icosaTri;
@@ -1052,29 +1059,43 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    
    /* check the winding ? */
    if (DoWind) {
-      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Making Edge list ....\n", FuncName); 
-      SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, 0, SO->idcode_str);
+      if (LocalHead) 
+         fprintf(SUMA_STDOUT, "%s: Making Edge list ....\n", FuncName); 
+      SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, 
+                                        SO->N_Node, SO->NodeList, 0, 
+                                        SO->idcode_str);
       if (SO->EL == NULL) {
-         fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List. Neighbor list will not be created\n", FuncName);
+         fprintf( SUMA_STDERR, 
+                  "Error %s: Failed in SUMA_Make_Edge_List.\n"
+                  "Neighbor list will not be created\n", FuncName);
          SUMA_Free_Surface_Object (SO);
          SUMA_RETURN (NULL);
       } else {
       }
       
-      if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 0, &trouble)) {
-         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MakeConsistent.\n", FuncName);
+      if (!SUMA_MakeConsistent ( SO->FaceSetList, SO->N_FaceSet, 
+                                 SO->EL, 0, &trouble)) {
+         fprintf( SUMA_STDERR,
+                  "Error %s: Failed in SUMA_MakeConsistent.\n", FuncName);
          SUMA_Free_Surface_Object (SO);
          SUMA_RETURN (NULL);
       }
       else {
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Eeeexcellent. All triangles consistent.\n", FuncName);
+         if (LocalHead) 
+            fprintf( SUMA_STDERR,
+                     "%s: Eeeexcellent. All triangles consistent.\n", FuncName);
       }
       /* determine the MemberFaceSets */
-      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Determining MemberFaceSets  ...\n", FuncName);
-      SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim, SO->idcode_str);
+      if (LocalHead) 
+         fprintf(SUMA_STDOUT, "%s: Determining MemberFaceSets  ...\n", FuncName);
+      SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList,
+                                   SO->N_FaceSet, SO->FaceSetDim, 
+                                   SO->idcode_str);
       if (SO->MF->NodeMemberOfFaceSet == NULL) {
-         fprintf(SUMA_STDERR,"Error %s: Error in SUMA_MemberFaceSets\n", FuncName);
-         SUMA_Free_Surface_Object (SO); /* that takes care of freeing leftovers in MF */
+         fprintf( SUMA_STDERR,
+                  "Error %s: Error in SUMA_MemberFaceSets\n", FuncName);
+         SUMA_Free_Surface_Object (SO); /* that takes care of freeing 
+                                           leftovers in MF */
          SUMA_RETURN (NULL);
       }else { /* create Inode to avoid whining upon cleanup */
       }
