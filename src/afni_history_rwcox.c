@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , SEP , 2008 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
+   "-allcostX1D option (for Chairman Z)" ,
+   NULL } ,
+
  { 29 , AUG , 2008 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "More small changes, to speed the program up a little" ,
    "* reduce the number of function evals used in the coarse refinements\n"
