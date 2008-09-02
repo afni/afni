@@ -4375,7 +4375,7 @@ Boolean AFNI_refashion_dataset( Three_D_View *im3d ,
    int native_order , save_order ;  /* 23 Nov 1999 */
 
    Boolean picturize ;
-   Pixmap brain_pixmap ;
+   Pixmap brain_pixmap=XmUNSPECIFIED_PIXMAP ;
 
 #ifndef DONT_USE_METER
    Widget meter = NULL ;
@@ -4389,7 +4389,6 @@ ENTRY("AFNI_refashion_dataset") ;
 
    if( picturize ){
       switch( ORIENT_xyz[daxes->zzorient] ){
-         default:  brain_pixmap = XmUNSPECIFIED_PIXMAP ; break ;
          case 'x': brain_pixmap = afni48sag_pixmap     ; break ;
          case 'y': brain_pixmap = afni48cor_pixmap     ; break ;
          case 'z': brain_pixmap = afni48axi_pixmap     ; break ;

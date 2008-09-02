@@ -535,7 +535,7 @@ rgbyte DC_spectrum_AJJ( double an , double gamm )
 void DC_init_im_col( MCW_DC * dc )
 {
    double da, an, c, s, sb, cb, ak, ab , a1,a2 , gamm ;
-   int i, r, g, b , nc ;
+   int i, r=0, g=0, b=0, nc ;
 
    a1 = 0.0   ;  /* range of spectrum -- hardwired for now */
    a2 = 240.0 ;

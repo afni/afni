@@ -684,10 +684,10 @@ MCW_imseq * open_MCW_imseq( MCW_DC *dc ,
                             get_ptr get_image , XtPointer aux )
 {
    MCW_imseq        *newseq ;
-   MCW_imseq_status *imstatus ;
+   MCW_imseq_status *imstatus=NULL ;
    int ii , xwide , yhigh , one_image ;
    float fac ;
-   MRI_IMAGE *tim ;
+   MRI_IMAGE *tim=NULL ;
    float minfrac=DEFAULT_MINFRAC ; char *eee ; /* 27 Feb 2001 */
    Widget wtemp ;                              /* 11 Mar 2002 */
    float maxfrac=DEFAULT_MAXFRAC ;             /* 13 Jun 2003 */
@@ -6378,7 +6378,7 @@ Boolean ISQ_statistics_WP( XtPointer client_data )
    MCW_imseq *seq = (MCW_imseq *) client_data ;
    ISQ_glob_statistics * gl ;
 
-   MRI_IMAGE *im ;
+   MRI_IMAGE *im=NULL ;
    register int ntot , nser , nn ;
 
 ENTRY("ISQ_statistics_WP") ;
@@ -7706,7 +7706,7 @@ static unsigned char record_bits[] = {
 
       case isqDR_options:{
          ISQ_options * newopt = (ISQ_options *) drive_data ;
-         int sf ;
+         int sf=0 ;
 
          if( ppmto_num > 0 )           /* 27 Mar 2002: keep the old */
            sf = seq->opt.save_filter ; /*              save filter  */
@@ -7953,7 +7953,7 @@ ENTRY("ISQ_arrowpad_CB") ;
 
 Boolean ISQ_setup_new( MCW_imseq *seq , XtPointer newaux )
 {
-   MCW_imseq_status *imstatus ;
+   MCW_imseq_status *imstatus=NULL ;
    int ii ;
    MRI_IMAGE *tim ;
 
@@ -10537,7 +10537,7 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
 
 char * ISQ_getlabel( int nn , MCW_imseq *seq )
 {
-   char *lab ;
+   char *lab=NULL ;
 
 ENTRY("ISQ_getlabel") ;
 
@@ -10556,7 +10556,7 @@ ENTRY("ISQ_getlabel") ;
 
 MEM_plotdata * ISQ_getmemplot( int nn , MCW_imseq *seq )
 {
-   MEM_plotdata *mp ;
+   MEM_plotdata *mp=NULL ;
    int           ntic ;
 
 ENTRY("ISQ_getmemplot") ;
@@ -10677,7 +10677,7 @@ ENTRY("ISQ_getmemplot") ;
 
 MRI_IMAGE * ISQ_getoverlay( int nn , MCW_imseq *seq )
 {
-   MRI_IMAGE *tim ;
+   MRI_IMAGE *tim=NULL ;
 
 ENTRY("ISQ_getoverlay") ;
 
@@ -10707,9 +10707,9 @@ ENTRY("ISQ_getoverlay") ;
 MRI_IMAGE * ISQ_getimage( int nn , MCW_imseq *seq )
 {
    int ii , rr , jj , ns , npix , ktim ;
-   MRI_IMAGE *tim , *qim , *fim ;
+   MRI_IMAGE *tim=NULL , *qim=NULL , *fim=NULL ;
    MRI_IMARR *imar ;
-   float *far , val , *qar , **iar ;
+   float *far , val=0.0f , *qar , **iar ;
 
 ENTRY("ISQ_getimage") ;
 
