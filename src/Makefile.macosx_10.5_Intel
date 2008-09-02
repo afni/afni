@@ -8,8 +8,8 @@
 
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
-# USE_GIFTI = -DHAVE_GIFTI
-# LGIFTI    = -lexpat
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = -lexpat
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC
@@ -51,6 +51,7 @@ SHOWOFF = -DSHOWOFF=macosx_10.5_Intel
 
 INSTALL_PREREQ = suma_gts
 #INSTALL_PREREQ = suma
+EXPROGS = gifti_tool
 
 # for dynamic linking
 

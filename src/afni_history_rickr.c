@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, SEP, 2008, RCR, "GIFTI", MICRO, TYPE_MODIFY,
+   "have distribution Makefiles build with GIFTI/expat/zlib",
+   NULL
+ } ,
+
  { 29, AUG, 2008, RCR, "vol2surf", MINOR, TYPE_MODIFY,
    "fill in COLMS_STATSYM attribute when writing .niml.dset dataset",
    NULL
