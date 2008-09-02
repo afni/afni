@@ -5,8 +5,8 @@
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
-# USE_GIFTI = -DHAVE_GIFTI
-# LGIFTI    = -lexpat
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = /usr/lib/libexpat.a
 
 # for LFS (large file support): -D_FILE_OFFSET_BITS=64
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
@@ -54,6 +54,7 @@ LIBDIR = $(INSTALLDIR)
 
 #INSTALL_PREREQ = suma
 INSTALL_PREREQ = suma_gts
+EXPROGS = gifti_tool
 
 # for dynamic linking
 
