@@ -1763,6 +1763,11 @@ int main (int argc,char *argv[])
          float U[3], Un, *a, P2[2][3], den=3;
          if (Opt->avoid_vent == 2) den = 10.0;
          else den = 3.0;
+         if (Opt->debug) 
+            fprintf (SUMA_STDERR,   
+                     "%s: Stretching to avoid ventricles.\n"
+                     "SO->Center is [%f %f %f]\n", 
+                     FuncName, SO->Center[0], SO->Center[1], SO->Center[2]);
          for (i=0; i<SO->N_Node; ++i) {
             /* stretch the top coordinates by d1 and the back too*/
             a = &(SO->NodeList[3*i]); 
@@ -1774,7 +1779,7 @@ int main (int argc,char *argv[])
                SO->NodeList[3*i+1] = P2[0][1]; 
                SO->NodeList[3*i+2] = P2[0][2];
             }
-         }   
+         }
       }
       /* allocate and fix zt */
       Opt->ztv = (float *)SUMA_malloc(sizeof(float)*SO->N_Node);

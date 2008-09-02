@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2 , SEP , 2008 , ZSS , "3dSkullStrip" , MINOR ,  TYPE_BUG_FIX,
+   "Starting sphere center was incorrectly initialized",
+   NULL
+ },
+
  
  { 29 , AUG , 2008 , ZSS , "afni-general" , MICRO,  TYPE_GENERAL,
    "Added toy programs 3dTsmoothR.c and toyR.c to test C<-->R interface",
