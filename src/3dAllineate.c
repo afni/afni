@@ -238,6 +238,9 @@ int main( int argc , char *argv[] )
 
    int do_allcost              = 0 ;            /* 19 Sep 2007 */
 
+   MRI_IMAGE *allcostX1D       = NULL ;         /* 02 Sep 2008 */
+   char *allcostX1D_outname    = NULL ;
+
    int   nwarp_pass            = 0 ;
    int   nwarp_type            = WARP_BILINEAR ;
    float nwarp_order           = 2.9f ;
@@ -802,6 +805,11 @@ int main( int argc , char *argv[] )
         "               best one are cast out at the end of the coarse pass\n"
         "               refinement process. Use this option if you want to keep\n"
         "               them all for the fine resolution pass.\n"
+        " -norefinal  = Do NOT re-start the fine iteration step after it\n"
+        "               has converged.  The default is to re-start it, which\n"
+        "               usually results in a small improvement to the result\n"
+        "               (at the cost of CPU time).\n"
+        "\n"
         " -savehist sss = Save start and final 2D histograms as PGM\n"
         "                 files, with prefix 'sss' (cost: cr mi nmi hel).\n"
 #if 0
@@ -848,6 +856,7 @@ int main( int argc , char *argv[] )
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
+        "\n"
         " -blok bbb     = Blok definition for the 'lp?' (Local Pearson) cost\n"
         "                 functions: 'bbb' is one of\n"
         "                   'BALL(r)' or 'CUBE(r)' or 'RHDD(r)' or 'TOHD(r)'\n"
@@ -856,14 +865,14 @@ int main( int argc , char *argv[] )
         "                   truncated octahedra\n"
         "                 where 'r' is the size parameter in mm.\n"
         "                 [Default is 'RHDD(6.54321)' (rhombic dodecahedron)]\n"
-        " -allcost      = Compute ALL available cost functions and print them\n"
-        "                 at various points.\n"
-        " -allcostX     = Compute and print ALL available cost functions for the\n"
-        "                 un-warped inputs, and then quit.\n"
-        " -norefinal    = Do NOT re-start the fine iteration step after it\n"
-        "                 has converged.  The default is to re-start it, which\n"
-        "                 usually results in a small improvement to the result\n"
-        "                 (at the cost of CPU time).\n"
+        "\n"
+        " -allcost        = Compute ALL available cost functions and print them\n"
+        "                   at various points.\n"
+        " -allcostX       = Compute and print ALL available cost functions for the\n"
+        "                   un-warped inputs, and then quit.\n"
+        " -allcostX1D p q = Compute ALL available cost functions for the set of\n"
+        "                   parameters given in the 1D file 'p' (12 values per row),\n"
+        "                   write them to the 1D file 'q', then exit. (For you, Zman)\n"
        ) ;
        printf("\n"
               " Hidden experimental cost functions:\n") ;
@@ -1001,6 +1010,19 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-allcostX") == 0 ){
        do_allcost = -1 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-allcostX1D") == 0 ){ /* 02 Sep 2008 */
+       MRI_IMAGE *qim ;
+       do_allcost = -2 ;
+       qim = mri_read_1D( argv[++iarg] ) ;
+       if( qim == NULL )
+         ERROR_exit("Can't read -allcostX1D '%s'",argv[iarg]) ;
+       allcostX1D = mri_transpose(qim) ; mri_free(qim) ;
+       if( allcostX1D->nx < 12 )
+         ERROR_exit("-allcostX1D '%s' has only %d values per row!" ,
+                    argv[iarg] , allcostX1D->nx ) ;
+       allcostX1D_outname = strdup(argv[++iarg]) ;
+       ++iarg ; continue ;
      }
 
      /*-----*/
@@ -2047,15 +2069,15 @@ int main( int argc , char *argv[] )
      }
    }
 
-   if( do_allcost == -1 && prefix != NULL ){  /* 19 Sep 2007 */
+   if( do_allcost < 0 && prefix != NULL ){  /* 19 Sep 2007 */
      prefix = NULL ;
      WARNING_message("-allcostX means -prefix is ignored!") ;
    }
-   if( do_allcost == -1 && param_save_1D != NULL ){
+   if( do_allcost < 0 && param_save_1D != NULL ){
      param_save_1D = NULL ;
      WARNING_message("-allcostX means -1Dparam_save is ignored!") ;
    }
-   if( do_allcost == -1 && matrix_save_1D != NULL ){
+   if( do_allcost < 0 && matrix_save_1D != NULL ){
      matrix_save_1D = NULL ;
      WARNING_message("-allcostX means -1Dmatrix_save is ignored!") ;
    }
@@ -2807,7 +2829,7 @@ int main( int argc , char *argv[] )
 
    /*-- the annunciation --*/
 
-   if( do_allcost != -1 && verb ){
+   if( do_allcost >= 0 && verb ){
      if( apply_1D == NULL )
        INFO_message("======= Allineation of %d sub-bricks using %s =======",
                     DSET_NVALS(dset_targ) , meth_username[meth_code-1] ) ;
@@ -2920,16 +2942,51 @@ int main( int argc , char *argv[] )
                            nxyz_targ, dxyz_targ, stup.targ_cmat ) ;
 
      if( do_allcost != 0 ){  /*-- print all cost functions, for fun? --*/
-       PAR_CPY(val_init) ;
        stup.interp_code = MRI_LINEAR ;
        stup.npt_match   = npt_match ;
        mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
-       allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
-       INFO_message("allcost output: init #%d",kk) ;
-       for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
-         fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
-       KILL_floatvec(allcost) ;
-       if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
+
+       if( allcostX1D == NULL ){ /* just do init parameters == the old way */
+
+         PAR_CPY(val_init) ;   /* copy init parameters into the allpar arrary */
+         allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
+         PARINI("initial") ;
+         INFO_message("allcost output: init #%d",kk) ;
+         for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
+           fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
+         KILL_floatvec(allcost) ;
+         if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
+
+       } else {  /* 02 Sep 2008: do a bunch of parameter vectors */
+
+         float *av=MRI_FLOAT_PTR(allcostX1D); int nxp=allcostX1D->nx; FILE *fp;
+
+         if( strcmp(allcostX1D_outname,"-")      == 0 ||
+             strcmp(allcostX1D_outname,"stdout") == 0   ){
+           fp = stdout ;
+         } else {
+           fp = fopen( allcostX1D_outname , "w" ) ;
+           if( fp == NULL )
+             ERROR_exit("Can't open file '%s' for -allcostX1D output!" ,
+                        allcostX1D_outname ) ;
+         }
+         INFO_message("Writing -allcostX1D results to '%s'",allcostX1D_outname) ;
+         fprintf( fp , "# 3dAllineate -allcostX1D results:\n" ) ;
+         fprintf( fp , "#" ) ;
+         for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
+           fprintf( fp , "  ___ %-3s ___",meth_shortname[jj]) ;
+         fprintf( fp , "\n") ;
+         for( ii=0 ; ii < allcostX1D->ny ; ii++ ){
+           allcost = mri_genalign_scalar_allcosts( &stup , av + ii*nxp ) ;
+           fprintf( fp , " " ) ;
+           for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
+             fprintf( fp , " %12.6f" , allcost->ar[jj] ) ;
+           fprintf( fp , "\n") ;
+           KILL_floatvec(allcost) ;
+         }
+         if( fp != stdout ) fclose(fp) ;
+         INFO_message("-allcostX1D finished") ; exit(0) ;
+       }
      }
 
      /*-------- do coarse resolution pass? --------*/
@@ -3240,7 +3297,7 @@ int main( int argc , char *argv[] )
      }
 
      if( do_allcost != 0 ){  /*-- print out all cost functions, for fun --*/
-       PAR_CPY(val_init) ;
+       PAR_CPY(val_init) ;   /* copy init parameters into allpar[] */
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
        INFO_message("allcost output: start fine #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
@@ -3294,7 +3351,7 @@ int main( int argc , char *argv[] )
        }
 
        if( do_allcost != 0 ){  /*-- all cost functions for fun again --*/
-         PAR_CPY(val_init) ;
+         PAR_CPY(val_init) ;   /* copy init parameters into allpar[] */
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
          INFO_message("allcost output: intermed fine #%d",kk) ;
          for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
@@ -3326,7 +3383,7 @@ int main( int argc , char *argv[] )
      if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",COX_cpu_time()-ctim) ;
 
      if( do_allcost != 0 ){  /*-- all costs at final affine solution? --*/
-       PAR_CPY(val_out) ;
+       PAR_CPY(val_out) ;    /* copy output parameters into allpar[] */
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
        INFO_message("allcost output: final fine #%d",kk) ;
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
@@ -3543,7 +3600,7 @@ int main( int argc , char *argv[] )
            ININFO_message("- Check CPU time=%.1f s; funcs=%d; dmax=%f jmax=%d",
                           COX_cpu_time()-ctim , nfunc , dmax , jmax ) ;
          if( do_allcost != 0 ){
-           PAR_CPY(val_out) ;
+           PAR_CPY(val_out) ;  /* copy output parameters into allpar */
            allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
            ININFO_message("allcost output: check %s",meth_shortname[mc-1]) ;
            for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
