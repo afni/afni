@@ -7,8 +7,10 @@
 #
 # Also, change "586" to "686" in the "-march" option.
 
-# USE_ZLIB = -DHAVE_ZLIB
-# LZLIB    = -lz
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = /usr/lib/libexpat.a
 
 GCC    = /usr/bin/gcc
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
@@ -46,6 +48,7 @@ LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=linux_glibc22
 
 INSTALL_PREREQ = suma
+EXPROGS = gifti_tool
 
 # for dynamic linking
 
@@ -53,7 +56,7 @@ INSTALL_PREREQ = suma
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -ldl -lc
+LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
@@ -75,7 +78,7 @@ SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
-SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 $(LZLIB) -lm 
+SUMA_LINK_LIB = -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 $(LZLIB) $(LGIFTI) -lm 
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
