@@ -2979,6 +2979,7 @@ int main( int argc , char *argv[] )
        /*- search for coarse start parameters, then optimize them? -*/
 
        if( tbest > 0 ){  /* default tbest==4 */
+         int nrefine ;
 
          if( verb ) ININFO_message("- Search for coarse starting parameters") ;
 
@@ -3000,7 +3001,9 @@ int main( int argc , char *argv[] )
               plus a few more good sets in val_trial for refinement */
 
          if( verb > 1 ) ctim = COX_cpu_time() ;
-         mri_genalign_scalar_ransetup( &stup , 31 ) ;
+
+         mri_genalign_scalar_ransetup( &stup , 31 ) ;  /* the initial search! */
+
          if( verb > 1 ) ININFO_message("- Search CPU time = %.1f s",COX_cpu_time()-ctim);
 
          /* unfreeze those that were temporarily frozen above */
@@ -3024,8 +3027,11 @@ int main( int argc , char *argv[] )
 
          tfdone = tb+1 ;  /* number of parameter sets now saved in tfparm */
 
+         nrefine = (int)AFNI_numenv("AFNI_TWOPASS_REFINE") ;
+         if( nrefine <= 0 || nrefine >= 3 ) nrefine = 3 ;
          rad = 0.0444 ;  /* initial search radius in parameter space */
-         for( rr=0 ; rr < 3 ; rr++ , rad*=0.6789 ){ /* refine with less smoothing */
+
+         for( rr=0 ; rr < nrefine ; rr++ , rad*=0.6789 ){ /* refine with less smoothing */
 
            if( verb > 1 )
              INFO_message("Start refinement #%d on %d coarse parameter sets",rr+1,tfdone);
@@ -3301,7 +3307,7 @@ int main( int argc , char *argv[] )
 
      /*** if( verb > 2 ) GA_do_params(1) ; ***/
 
-     nfunc += mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
+     nfunc = mri_genalign_scalar_optim( &stup , rad, conv_rad,6666 );
 
      if( do_refinal ){  /*-- 14 Nov 2007: a final final optimization? --*/
        if( verb > 1 )
@@ -3309,7 +3315,7 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
        stup.need_hist_setup = 1 ;
-       nfunc += mri_genalign_scalar_optim( &stup , 0.444f*rad, conv_rad,6666 );
+       nfunc = mri_genalign_scalar_optim( &stup , 0.444f*rad, conv_rad,6666 );
      }
 
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
