@@ -3021,65 +3021,71 @@ int main( int argc , char *argv[] )
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
            tfparm[tb][jj] = stup.wfunc_param[jj].val_pinit ;
-         tb++ ;
 
-         rad = 0.0444 ;  /* search radius in parameter space */
+         tfdone = tb+1 ;  /* number of parameter sets now saved in tfparm */
+
+         rad = 0.0444 ;  /* initial search radius in parameter space */
          for( rr=0 ; rr < 3 ; rr++ , rad*=0.6789 ){ /* refine with less smoothing */
+
            if( verb > 1 )
-             INFO_message("Start refinement #%d on %d coarse parameter sets",rr+1,tb);
-           stup.smooth_radius_base *= 0.7071 ;
+             INFO_message("Start refinement #%d on %d coarse parameter sets",rr+1,tfdone);
+
+           stup.smooth_radius_base *= 0.7071 ;  /* less smoothing */
            stup.smooth_radius_targ *= 0.7071 ;
-           stup.npt_match          *= 1.5 ;
+           stup.npt_match          *= 1.5 ;     /* more points for matching */
            mri_genalign_scalar_setup( NULL,NULL,NULL , &stup ) ;
 
-           for( ib=0 ; ib < tb ; ib++ ){                  /* loop over trials */
+           for( ib=0 ; ib < tfdone ; ib++ ){              /* loop over param sets */
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* load parameters */
                stup.wfunc_param[jj].val_init = tfparm[ib][jj] ;
-             nfunc += mri_genalign_scalar_optim( &stup , rad , 0.0666*rad , 111 ) ;
+
+             nfunc += mri_genalign_scalar_optim( &stup, rad, 0.0666*rad, 99 ) ;
+
              for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )  /* save optimized params */
                tfparm[ib][jj] = stup.wfunc_param[jj].val_out ;
-             tfcost[ib] = stup.vbest ; tfindx[ib] = ib ;
+
+             tfcost[ib] = stup.vbest ; tfindx[ib] = ib ;  /* save cost */
              if( verb > 1 )
                ININFO_message("- param set #%d has cost=%f",ib+1,stup.vbest) ;
              if( verb > 2 ) PAROUT("--") ;
            }
-         }
 
-         tfdone = tb ;  /* number of parameter sets we've saved in tfparm */
+           /* 29 Aug 2008: sort tfparm by cost, then cast out the close ones */
 
-         /* 29 Aug 2008: sort tfparm by cost, then cast out the close ones */
+           if( !nocast && tfdone > 2 ){
+             int jb,ncast=0 ; float pdist ;
 
-         if( !nocast && tfdone > 2 ){
-           int jb,ncast=0 ; float pdist ;
+             if( verb > 1 ) ININFO_message("- sorting parameter sets by cost") ;
+             for( ib=0 ; ib < tfdone ; ib++ )       /* copy tfparm into ffparm */
+               memcpy( ffparm[ib], tfparm[ib], sizeof(float)*stup.wfunc_numpar );
+             qsort_floatint( tfdone , tfcost , tfindx ) ;      /* sort by cost */
+             for( ib=0 ; ib < tfdone ; ib++ ){        /* copy back into tfparm */
+               jb = tfindx[ib] ;      /* jb = index in unsorted copy in ffparm */
+               memcpy( tfparm[ib], ffparm[jb], sizeof(float)*stup.wfunc_numpar );
+             }
 
-           if( verb > 2 ) ININFO_message("-- sorting parameter sets by cost") ;
-           for( ib=0 ; ib < tfdone ; ib++ )        /* copy tfparm into ffparm */
-             memcpy( ffparm[ib], tfparm[ib], sizeof(float)*stup.wfunc_numpar );
-           qsort_floatint( tfdone , tfcost , tfindx ) ;       /* sort by cost */
-           for( ib=0 ; ib < tfdone ; ib++ ){         /* copy back into tfparm */
-             jb = tfindx[ib] ;
-             memcpy( tfparm[ib], ffparm[jb], sizeof(float)*stup.wfunc_numpar );
-           }
-
-           /* now cast out parameter sets that are very close to the best one */
+             /* now cast out parameter sets that are very close to the best one */
 
 #undef  CTHRESH
 #define CTHRESH 0.02f
-           if( verb > 2 ) ININFO_message("-- scanning for distances from #1") ;
-           for( ib=1 ; ib < tfdone ; ib++ ){
-             pdist = param_dist( &stup , tfparm[0] , tfparm[ib] ) ;
-             if( verb > 2 ) ININFO_message("--- dist(#%d,#1) = %.3g",ib+1,pdist) ;
-             if( tfdone > 2 && pdist < CTHRESH ){
-               for( jb=ib+1 ; jb < tfdone ; jb++ )  /* copy those above down */
-                 memcpy( tfparm[jb-1], tfparm[jb], sizeof(float)*stup.wfunc_numpar );
-               ncast++ ; tfdone-- ;
+             if( verb > 1 ) ININFO_message("-- scanning for distances from #1") ;
+             for( ib=1 ; ib < tfdone ; ib++ ){
+               pdist = param_dist( &stup , tfparm[0] , tfparm[ib] ) ;
+               if( verb > 2 ) ININFO_message("--- dist(#%d,#1) = %.3g %s" ,
+                                             ib+1, pdist, (pdist<CTHRESH)?"*":"" ) ;
+               if( tfdone > 2 && pdist < CTHRESH ){
+                 for( jb=ib+1 ; jb < tfdone ; jb++ )  /* copy those above down */
+                   memcpy( tfparm[jb-1], tfparm[jb], sizeof(float)*stup.wfunc_numpar );
+                 ncast++ ; tfdone-- ;
+               }
              }
+             if( ncast > 0 && verb > 1 )
+               ININFO_message(
+                 "- cast out %d parameter set%s for being too close to best set" ,
+                 ncast , (ncast==1)?"":"s" ) ;
            }
-           if( ncast > 0 && verb > 1 )
-             ININFO_message(
-               "- cast out %d parameter set%s for being too close to best set" ,
-               ncast , (ncast==1)?"":"s" ) ;
-         }
+
+         } /* end of refinement loop (rr) */
 
          if( verb > 1 )
            ININFO_message("- Total coarse refinement CPU time = %.1f s; %d funcs",

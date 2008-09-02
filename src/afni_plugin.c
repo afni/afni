@@ -118,10 +118,10 @@ if(PRINT_TRACING)
    Routine to open and initialize a single plugin
 ------------------------------------------------------------------------*/
 
-AFNI_plugin * PLUG_read_plugin( char * fname )
+AFNI_plugin * PLUG_read_plugin( char *fname )
 {
-   AFNI_plugin * plin ;
-   PLUGIN_interface * plint ;
+   AFNI_plugin *plin ;
+   PLUGIN_interface *plint=NULL ;
    int nin ;
    static int firsterr=1 ;
 
@@ -2065,9 +2065,9 @@ ENTRY("PLUTO_turnoff_options") ;
 
 void PLUG_action_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
-   PLUGIN_interface * plint = (PLUGIN_interface *) cd ;
-   char * wname = XtName(w) ;
-   char * mesg ;
+   PLUGIN_interface *plint = (PLUGIN_interface *) cd ;
+   char *wname = XtName(w) ;
+   char *mesg=NULL ;
    int close , run , badrun=0 , help ;
 
 ENTRY("PLUG_action_CB") ;
@@ -3561,11 +3561,11 @@ ENTRY("AFNI_plugin_button") ;
 
 void PLUG_startup_plugin_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
-   PLUGIN_interface * plint = (PLUGIN_interface *) cd ;
-   XmAnyCallbackStruct * cbs = (XmAnyCallbackStruct *) cbd ;
-   char * mesg ;
+   PLUGIN_interface *plint = (PLUGIN_interface *) cd ;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) cbd ;
+   char *mesg=NULL ;
    Widget wpop ;
-   Three_D_View * im3d = NULL ;
+   Three_D_View *im3d = NULL ;
 
 ENTRY("PLUG_startup_plugin_CB") ;
 
