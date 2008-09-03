@@ -1106,7 +1106,7 @@ class RegWrap:
             if (not o.exist() or ps.rewrite or ps.dry_run()):
                o.delete(ps.oexec)
             else:
-               self.exists_msg(o.input)
+               self.exists_msg(o.input())
             # overall transformation A to E is (E2A^-1 PreShift/Oblique)
             # 1Dmatrix_apply takes E to A as input so inverse
             #    E to A = Obl^-1 E2A  
@@ -1127,7 +1127,7 @@ class RegWrap:
 
             com.run()
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
 
       if (not o.exist() and not ps.dry_run()):
          self.error_msg( "Could not square a circle " \
@@ -1339,7 +1339,7 @@ class RegWrap:
                      (atlrcpost.input()), ps.oexec)
                com.run()
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
             
 #          if (not o.exist() and not ps.dry_run()):
 #             self.error_msg("Could not apply tlrc transformation to epi data")
@@ -1380,7 +1380,7 @@ class RegWrap:
             print "** ERROR: Could not 3dTstat epi"
             return None
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
 
             
       return o
@@ -1399,7 +1399,7 @@ class RegWrap:
             print "** ERROR: Could not deoblique epi data\n"
             return None
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
 
       return o
 
@@ -1435,7 +1435,7 @@ class RegWrap:
             print "** ERROR: Could not oblique/shift anat to epi data\n"
             return None
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
 
       return o
 
@@ -1456,7 +1456,7 @@ class RegWrap:
             print "** ERROR: Could not do time shifting of epi data\n"
             return None
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
 
       return o
 
@@ -1550,7 +1550,7 @@ class RegWrap:
             self.error_msg( "Could not do volume registration")
             return None
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
 
       return o
 
@@ -1568,7 +1568,7 @@ class RegWrap:
             print "** ERROR: Could not resample\n"
             return None          
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
 
       return o
       
@@ -1588,7 +1588,7 @@ class RegWrap:
                print "** ERROR: Could not strip skull\n"
                return None
          else:
-            self.exists_msg(n.input)
+            self.exists_msg(n.input())
       elif use_ss == '3dAutomask': #Automask epi
          n = e.new(prefix)
          j = e.new("junk")
@@ -1605,7 +1605,7 @@ class RegWrap:
                return None
             j.delete(ps.oexec)
          else:
-            self.exists_msg(n.input)
+            self.exists_msg(n.input())
       else:
          n = e;
       return n
@@ -1650,7 +1650,7 @@ class RegWrap:
          o.delete(ps.oexec)
          com.run()
       else:
-         self.exists_msg(o.input)
+         self.exists_msg(o.input())
          
       if (not o.exist() and not ps.dry_run()):
          print "** ERROR: Could not create weight dset\n"
@@ -1740,7 +1740,7 @@ class RegWrap:
             print "** ERROR: Could not copy anat (%d)" % self.anat.exist()
             ps.ciao(1)
       else:
-         self.exists_msg(self.anat.input)
+         self.exists_msg(self.anat.input())
 
       a = self.anat;
 
@@ -1758,7 +1758,7 @@ class RegWrap:
                print "** ERROR: Could not strip skull\n"
                return None
          else:
-            self.exists_msg(o.input)
+            self.exists_msg(o.input())
       else:
          n = a
          
