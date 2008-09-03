@@ -188,6 +188,11 @@ SET_SESSION [c.]directoryname
   "wilhelm/frederick/von/guttenstein".
   ++ You can also use "SWITCH_SESSION" or "SWITCH_DIRECTORY" for the command.
 
+SET_VIEW [c.]view
+  Switches controller 'c' to the named "view", which can be one of
+  'orig', 'acpc' or 'tlrc'.  The underlay dataset must have an
+  appropriate transformation.
+
 SET_ANATOMY [c.]prefix [i]
   Switches controller 'c' to be looking at the anatomical dataset with
   the given prefix.  The prefix must be a perfect match - this is NOT
