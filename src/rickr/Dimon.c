@@ -41,11 +41,11 @@ static char * g_history[] =
     "      - moved num_slices check to separate function\n"
     " 2.14 Aug 18, 2008 [rickr] - help update\n"
     " 2.15 Aug 18, 2008 [rickr] - suggest -num_slices with -sleep_init\n"
-    " 2.16 Aug 22, 2008 [rickr] - added -drive_wait option\n"
+    " 2.16 Sep  3, 2008 [rickr] - added -drive_wait option\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.16 (Aug 22, 2008)"
+#define DIMON_VERSION "version 2.16 (Sep 3, 2008)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -3015,8 +3015,8 @@ static int usage ( char * prog, int level )
       "    Dimon                                                    \\\n"
       "       -infile_prefix EPI_run1/8HRBRAIN                      \\\n"
       "       -rt                                                   \\\n"
-      "       -drive_afni 'OPEN_WINDOW axialimage keypress=q'       \\\n"
-      "       -drive_afni 'OPEN_WINDOW sagittalimage keypress=q'    \\\n"
+      "       -drive_afni 'CLOSE_WINDOW axialimage'                 \\\n"
+      "       -drive_afni 'CLOSE_WINDOW sagittalimage'              \\\n"
       "       -drive_wait 'OPEN_WINDOW axialimage geom=+20+20'      \\\n"
       "       -drive_wait 'OPEN_WINDOW sagittalimage geom=+520+20'  \\\n"
       "       -rt_cmd 'PREFIX brie.would.be.good'                   \\\n"

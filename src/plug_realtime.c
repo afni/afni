@@ -3838,10 +3838,6 @@ void RT_process_image( RT_input * rtin )
                fprintf(stderr,"RT: about to tell AFNI about dataset.\n") ;
             VMCHECK ;
             RT_tell_afni(rtin,TELL_NORMAL) ;
-
-            /* execute any pending DRIVE_WAIT commands   22 Aug 2008 [rickr] */
-            if( drive_wait_list.len > 0 )
-               rt_run_drive_wait_commands( &drive_wait_list );
          }
       }
 
@@ -3918,6 +3914,10 @@ void RT_tell_afni( RT_input *rtin , int mode )
 
      sync() ;  /* 08 Mar 2000: sync disk */
    }
+
+   /* execute any pending DRIVE_WAIT commands  (moved) 3 Sep 2008 [rickr] */
+   if( drive_wait_list.len > 0 )
+      rt_run_drive_wait_commands( &drive_wait_list );
 
    return ;
 }
