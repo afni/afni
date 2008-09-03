@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, SEP, 2008, RCR, "plug_realtime", MICRO, TYPE_MODIFY,
+   "moved drive_wait execution to RT_tell_afni",
+   NULL
+ } ,
+
  { 2, SEP, 2008, RCR, "GIFTI", MICRO, TYPE_MODIFY,
    "have distribution Makefiles build with GIFTI/expat/zlib",
    NULL

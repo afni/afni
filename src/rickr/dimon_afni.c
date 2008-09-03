@@ -137,7 +137,7 @@ int    data_is_oblique(void);
 int    disp_obl_info(char * mesg);
 
 #undef  ALMOST
-#define ALMOST(a,b) ( fabs(a-b) < 0.0001 )
+#define ALMOST(a,b) ( fabs((a)-(b)) < 0.0001 )
 #undef  SFLT
 #define SFLT(p) ((float)strtod((p),NULL))   /* scan for a float */
 
@@ -1186,8 +1186,20 @@ static float *ComputeObliquity(oblique_info *obl_info)
       vec6 = NORMALIZE_FVEC3(dc3);
       fac = DOT_FVEC3(vec5, vec6);
       if(fac==0){
-         fprintf(stderr,
-                 "** Bad DICOM header - assuming oblique scaling direction");
+         float * f1 = vec5.xyz, * f2 = vec6.xyz;
+
+         /* if neither is a zero vector, whine a little */
+         if( (!ALMOST(f1[0],0.0) || !ALMOST(f1[1],0.0) || !ALMOST(f1[2],0.0)) &&
+             (!ALMOST(f2[0],0.0) || !ALMOST(f2[1],0.0) || !ALMOST(f2[2],0.0)) )
+            fprintf(stderr,
+                "** Bad DICOM header - assuming oblique scaling direction\n");
+
+         if( g_debug > 2 ) {
+            fprintf(stderr,"** DICOM hdr - oblique scale direction vectors\n");
+            fprintf(stderr,"++ fvec A: %f, %f, %f\n", f1[0], f1[1], f1[2]);
+            fprintf(stderr,"++ fvec B: %f, %f, %f\n", f2[0], f2[1], f2[2]);
+         }
+
          fac = 1;
       }
       else {
@@ -1198,7 +1210,7 @@ static float *ComputeObliquity(oblique_info *obl_info)
 
          if((fac!=1)&&(fac!=-1)) {
              fprintf(stderr,"** Image Positions not in same direction as"
-                     " cross product vector: %f", fac);
+                     " cross product vector: %f\n", fac);
          }
 
          if(fac >0) fac = 1;
