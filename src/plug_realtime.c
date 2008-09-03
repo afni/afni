@@ -5694,7 +5694,7 @@ static int rt_run_drive_wait_commands( rt_string_list * slist )
 
    for( c = 0; c < drive_wait_list.len; c++ ) {
       cmd = drive_wait_list.list[c];
-      if( verbose > 1 ) fprintf(stderr,"RT: executing DRIVE_WAIT %s\n", cmd);
+      if(verbose > 1) fprintf(stderr,"RT: executing DRIVE_WAIT cmd: %s\n",cmd);
       if( AFNI_driver( cmd ) < 0 )
          fprintf(stderr,"RT: **FAILED DRIVE_WAIT** : %s \n", cmd) ;
    }
