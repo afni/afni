@@ -5,6 +5,9 @@ function [err, v, Info, Com] = Read_1D (fname, p1)
 %   [err,M] = Read_1D (fname,[opt])
 % or
 %   M = Read_1D (fname, [opt])
+% or 
+%  open a GUI file selector if no arguments are passed 
+%
 %Purpose:
 %   Reads an AFNI 1D file into M
 %   
