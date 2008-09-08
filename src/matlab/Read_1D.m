@@ -66,8 +66,13 @@ FuncName = 'Read_1D';
 %Debug Flag
 DBG = 1;
 Com = '';
-
-if (nargin == 1),
+if (nargin == 0),
+   [ff,pp] = uiget1Dfile();
+   if (ff),
+      fname = sprintf('%s%c%s', pp, filesep(), ff);
+   end
+   verb = 1; Opt = []; 
+elseif (nargin == 1),
    verb = 1; Opt = [];
 else 
    if (isstruct(p1)),
