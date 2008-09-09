@@ -30,10 +30,10 @@ static int     TS_mode    = MRI_FOURIER ; /* one of MRI_FOURIER MRI_CUBIC
 int THD_dataset_tshift( THD_3dim_dataset * TS_dset , int ignore )
 {
    int nzz, ii,jj,kk , ntt,nxx,nyy,nxy , nup , freepat=0 ;
-   float tomax,tomin , tshift , fmin,fmax , gmin,gmax , f0,f1 , g0,g1 ;
-   float ffmin,ffmax , ggmin,ggmax ;
-   MRI_IMAGE * flim , * glim ;
-   float * far , * gar ;
+   float tomax,tomin , tshift , fmin,fmax , gmin=0,gmax=0 , f0,f1 , g0,g1 ;
+   float ffmin=0,ffmax=0 , ggmin=0,ggmax=0 ;
+   MRI_IMAGE *flim , *glim=NULL ;
+   float *far , *gar ;
 
 ENTRY("THD_dataset_tshift") ;
 

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , SEP , 2008 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
+   "add savehist to allcost output" ,
+   NULL } ,
+
  { 2 , SEP , 2008 , RWC , "3dAllineate" , MICRO , TYPE_NEW_OPT ,
    "-allcostX1D option (for Chairman Z)" ,
    NULL } ,
