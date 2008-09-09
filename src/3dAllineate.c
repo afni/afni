@@ -812,6 +812,10 @@ int main( int argc , char *argv[] )
         "\n"
         " -savehist sss = Save start and final 2D histograms as PGM\n"
         "                 files, with prefix 'sss' (cost: cr mi nmi hel).\n"
+        "                * if filename contains 'FF', floats is written\n"
+        "                * these are the weighted histograms!\n"
+        "                * -savehist will also save histogram files when\n"
+        "                  the -allcost evaluations takes place\n"
 #if 0
         " -seed iii     = Set random number seed (for coarse startup search)\n"
         "                 to 'iii'.\n"
@@ -2850,6 +2854,30 @@ int main( int argc , char *argv[] )
       matsave = (mat44 * )calloc(sizeof(mat44),DSET_NVALS(dset_targ)) ; /* 23 Jul 2007 */
    }
 
+#undef  SAVEHIST
+#define SAVEHIST(nnn,docc)                                                 \
+ do{ int nbin ; float *xyc ;                                               \
+     if( docc ) (void)mri_genalign_scalar_cost( &stup , NULL ) ;           \
+     nbin = retrieve_2Dhist( &xyc ) ;                                      \
+     if( nbin > 0 && xyc != NULL ){                                        \
+       char fname[256] ; MRI_IMAGE *fim ; double ftop ;                    \
+       fim = mri_new(nbin,nbin,MRI_float); mri_fix_data_pointer(xyc,fim);  \
+       if( strstr(save_hist,"FF") == NULL ){                               \
+         ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ; \
+         mri_clear_data_pointer(fim); mri_free(fim);                       \
+         fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);                \
+         sprintf(fname,"%s_%s_%04d.pgm",save_hist,nnn,kk) ;                \
+         mri_write_pnm(fname,fim); mri_free(fim);                          \
+       } else {                                                            \
+         qim = mri_flippo(MRI_ROT_90,0,fim);                               \
+         mri_clear_data_pointer(fim); mri_free(fim);                       \
+         sprintf(fname,"%s_%s_%04d.mri",save_hist,nnn,kk) ;                \
+         mri_write(fname,qim); mri_free(qim);                              \
+       }                                                                   \
+       if( verb ) ININFO_message("- Saved histogram to %s",fname) ;        \
+     }                                                                     \
+ } while(0)
+
    /***-------------------- loop over target sub-bricks --------------------***/
 
    im_bset = im_base ;  /* base image for first loop */
@@ -2955,6 +2983,8 @@ int main( int argc , char *argv[] )
          for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
            fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
          KILL_floatvec(allcost) ;
+
+         if( save_hist != NULL ) SAVEHIST("allcost_init",0) ;
          if( do_allcost == -1 ) continue ;  /* skip to next sub-brick */
 
        } else {  /* 02 Sep 2008: do a bunch of parameter vectors */
@@ -2983,6 +3013,9 @@ int main( int argc , char *argv[] )
              fprintf( fp , " %12.6f" , allcost->ar[jj] ) ;
            fprintf( fp , "\n") ;
            KILL_floatvec(allcost) ;
+           if( save_hist != NULL ){
+             char fn[32] ; sprintf(fn,"allcost%06d",ii) ; SAVEHIST(fn,0) ;
+           }
          }
          if( fp != stdout ) fclose(fp) ;
          INFO_message("-allcostX1D finished") ; exit(0) ;
@@ -3010,28 +3043,7 @@ int main( int argc , char *argv[] )
          mri_purge(im_targ); mri_purge(im_base); mri_purge(im_weig);
        }
 
-       if( save_hist != NULL ){  /* Save start 2D histogram: 28 Sep 2006 */
-         int nbin ; float *xyc ;
-         (void)mri_genalign_scalar_cost( &stup , NULL ) ; /* to force histo */
-         nbin = retrieve_2Dhist( &xyc ) ;
-         if( nbin > 0 && xyc != NULL ){
-           char fname[256] ; MRI_IMAGE *fim ; double ftop ;
-           fim = mri_new(nbin,nbin,MRI_float); mri_fix_data_pointer(xyc,fim);
-           if( strstr(save_hist,"FF") == NULL ){
-             ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ;
-             mri_clear_data_pointer(fim); mri_free(fim);
-             fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);
-             sprintf(fname,"%s_start_%04d.pgm",save_hist,kk) ;
-             mri_write_pnm(fname,fim); mri_free(fim);
-           } else {
-             qim = mri_flippo(MRI_ROT_90,0,fim);
-             mri_clear_data_pointer(fim); mri_free(fim);
-             sprintf(fname,"%s_start_%04d.mri",save_hist,kk) ;
-             mri_write(fname,qim); mri_free(qim);
-           }
-           if( verb > 1 ) ININFO_message("- Saved histogram to %s",fname) ;
-         }
-       }
+       if( save_hist != NULL ) SAVEHIST("start",1) ;
 
        /*- search for coarse start parameters, then optimize them? -*/
 
@@ -3303,6 +3315,7 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
          fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
+       if( save_hist != NULL ) SAVEHIST("allcost_finestart",0) ;
      }
 
      if( verb > 1 ){
@@ -3357,6 +3370,7 @@ int main( int argc , char *argv[] )
          for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
            fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
          KILL_floatvec(allcost) ;
+         if( save_hist != NULL ) SAVEHIST("allcost_fineintermed",0) ;
        }
      }
 
@@ -3382,6 +3396,8 @@ int main( int argc , char *argv[] )
      if( verb > 1 && meth_check_count < 1 ) PAROUT("Final fine fit") ;
      if( verb > 1 ) ININFO_message("- Fine CPU time = %.1f s",COX_cpu_time()-ctim) ;
 
+     if( save_hist != NULL ) SAVEHIST("final",1) ;
+
      if( do_allcost != 0 ){  /*-- all costs at final affine solution? --*/
        PAR_CPY(val_out) ;    /* copy output parameters into allpar[] */
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
@@ -3389,6 +3405,7 @@ int main( int argc , char *argv[] )
        for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
          fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
        KILL_floatvec(allcost) ;
+       if( save_hist != NULL ) SAVEHIST("allcost_finefinal",0) ;
      }
 
 #if 0
@@ -3399,31 +3416,6 @@ int main( int argc , char *argv[] )
      INFO_message("Recomputed final cost = %g",cost) ;
      if( verb > 1 ) mri_genalign_verbose(verb-1) ;
 #endif
-
-     if( save_hist != NULL ){  /* Save final 2D histogram: 28 Sep 2006 */
-       int nbin ; float *xyc ;
-       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
-         stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
-       (void)mri_genalign_scalar_cost( &stup , NULL ) ; /* force histo */
-       nbin = retrieve_2Dhist( &xyc ) ;
-       if( nbin > 0 && xyc != NULL ){
-         char fname[256] ; MRI_IMAGE *fim ; double ftop ;
-         fim = mri_new(nbin,nbin,MRI_float); mri_fix_data_pointer(xyc,fim);
-         if( strstr(save_hist,"FF") == NULL ){
-           ftop = mri_max(fim) ; qim = mri_to_byte_scl(255.4/ftop,0.0,fim) ;
-           mri_clear_data_pointer(fim); mri_free(fim);
-           fim = mri_flippo(MRI_ROT_90,0,qim); mri_free(qim);
-           sprintf(fname,"%s_final_%04d.pgm",save_hist,kk) ;
-           mri_write_pnm(fname,fim); mri_free(fim);
-         } else {
-           qim = mri_flippo(MRI_ROT_90,0,fim);
-           mri_clear_data_pointer(fim); mri_free(fim);
-           sprintf(fname,"%s_final_%04d.mri",save_hist,kk) ;
-           mri_write(fname,qim); mri_free(qim);
-         }
-         if( verb > 1 ) ININFO_message("- Saved histogram to %s",fname) ;
-       }
-     }
 
      /*--------------- Nonlinear warp improvement? --------------------------*/
 
@@ -3606,6 +3598,10 @@ int main( int argc , char *argv[] )
            for( jj=0 ; jj < GA_MATCH_METHNUM_SCALAR ; jj++ )
              fprintf(stderr,"   %-3s = %g\n",meth_shortname[jj],allcost->ar[jj]) ;
            KILL_floatvec(allcost) ;
+           if( save_hist != NULL ){
+             char fn[64] ; sprintf(fn,"allcost_check_%s",meth_shortname[mc-1]);
+             SAVEHIST(fn,0);
+           }
          }
 
          for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
