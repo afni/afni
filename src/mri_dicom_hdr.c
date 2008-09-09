@@ -2174,7 +2174,7 @@ DCM_ScanParseObject(DCM_OBJECT ** callerObject, void *buf, size_t bufferSize,
     CTNBOOLEAN
 	found;
     U32
-	l;
+	l=0;
     char
        *p;
 
@@ -7723,7 +7723,7 @@ static void
 copySequence(PRIVATE_OBJECT ** dstObj, DCM_ELEMENT * e)
 {
     LST_HEAD *lst;
-    DCM_SEQUENCE_ITEM *sqItem;
+    DCM_SEQUENCE_ITEM *sqItem=NULL;
     DCM_ELEMENT newElement;
 
     lst = LST_Create();
@@ -11209,7 +11209,7 @@ LST_Sort(LST_HEAD ** list, size_t nodeSize, int (*compare) ())
 	*head;
     CTNBOOLEAN
 	inserted;
-    int ccc ;
+    int ccc=0 ;
 
     if ((*list)->head == NULL) {/* list is empty     */
 	return LST_NORMAL;

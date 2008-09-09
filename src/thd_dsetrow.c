@@ -42,7 +42,7 @@ void * THD_get_dset_row( THD_3dim_dataset *dset, int ival,
                          int dcode , int xx,int yy,int zz  )
 {
    void *row , *brick ;
-   int nrow , kind , nx,ny,nz,nxy , kbot,kdel,kk,ii ;
+   int nrow , kind , nx,ny,nz,nxy , kbot=0,kdel=0,kk,ii ;
 
 ENTRY("THD_get_dset_row") ;
 
@@ -56,6 +56,8 @@ ENTRY("THD_get_dset_row") ;
    /*-- We will extract brick[kbot+i*kdel] for i=0..nrow-1 --*/
 
    switch( dcode ){
+      default: RETURN(NULL) ;  /* bad user */
+
       case 1: case -1:
          if( yy < 0 || yy >= ny || zz < 0 || zz >= nz ) RETURN(NULL) ;
          kbot = yy*nx + zz*nxy ; kdel = 1 ;
@@ -147,8 +149,8 @@ MRI_IMAGE * mri_get_dset_row( THD_3dim_dataset *dset, int ival,
                               int dcode , int xx,int yy,int zz  )
 {
    void *rawrow ;
-   MRI_IMAGE *im ;
-   float *fim , fac ;
+   MRI_IMAGE *im=NULL ;
+   float *fim=NULL , fac ;
    int ii , nrow , kind ;
 
 ENTRY("MRI_get_dset_row") ;
@@ -213,7 +215,7 @@ void THD_put_dset_row( THD_3dim_dataset *dset, int ival,
                        int dcode, int xx,int yy,int zz, void *row )
 {
    void *brick ;
-   int nrow , kind , nx,ny,nz,nxy , kbot,kdel,kk,ii ;
+   int nrow , kind , nx,ny,nz,nxy , kbot=0,kdel=0,kk,ii ;
 
 ENTRY("THD_put_dset_row") ;
 
@@ -227,6 +229,8 @@ ENTRY("THD_put_dset_row") ;
    /*-- We will insert brick[kbot+i*kdel] for i=0..nrow-1 --*/
 
    switch( dcode ){
+      default: EXRETURN ; /* bad user */
+
       case 1: case -1:
          if( yy < 0 || yy >= ny || zz < 0 || zz >= nz ) EXRETURN ;
          kbot = yy*nx + zz*nxy ; kdel = 1 ;
