@@ -479,7 +479,7 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   void RT_registration_3D_realtime( RT_input * rtin ) ;
 
   int  RT_mp_comm_alive       ( int, int, char * );
-  int  RT_mp_comm_close       ( RT_input * rtin );
+  int  RT_mp_comm_close       ( RT_input * rtin, int );
   int  RT_mp_getenv           ( void );
   int  RT_mp_comm_init        ( RT_input * rtin );
   int  RT_mp_comm_init_vars   ( RT_input * rtin );
@@ -1903,15 +1903,25 @@ int RT_mp_comm_alive(int sock, int verb, char * mesg)
 /*---------------------------------------------------------------------------
    Close the socket connection.                        30 Mar 2004 [rickr]
 
+   new_tcp_use should be set to either 0 or -1, where -1 means not
+   to allow any init again (this run)
+
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
-int RT_mp_comm_close( RT_input * rtin )
+int RT_mp_comm_close( RT_input * rtin, int new_tcp_use )
 {
     char magic_bye[] = { 0xde, 0xad, 0xde, 0xad, 0 };
+    int  rv;
 
-    if ( rtin->mp_tcp_use != 1 || rtin->mp_tcp_sd <= 0 )
+    if ( rtin->mp_tcp_use <= 0 || rtin->mp_tcp_sd <= 0 )
         return 0;
+
+    if( tcp_alivecheck(rtin->mp_tcp_sd) && tcp_writecheck(rtin->mp_tcp_sd,0) ){
+        if( verbose > 1 ) fprintf(stderr,"RTM: sending magic_bye...\n");
+        if( (rv = send(rtin->mp_tcp_sd, magic_bye, 4, 0)) <= 0 )
+            fprintf(stderr,"** bad return of %d closing RT MP socket\n",rv);
+    }
 
     fprintf(stderr,"RTM: closing motion param socket, "
                    "sent %d param sets over %d messages\n",
@@ -1920,7 +1930,8 @@ int RT_mp_comm_close( RT_input * rtin )
     /* in any case, close the socket */
     close(rtin->mp_tcp_sd);
     rtin->mp_tcp_sd  = 0;
-    rtin->mp_tcp_use = 0;
+    /* verifythat tcp_use goes to either 0 or -1 */
+    rtin->mp_tcp_use = (new_tcp_use == -1) ? new_tcp_use : 0;
     rtin->mp_npsets  = 0;
     rtin->mp_nmsg    = 0;
 
@@ -1954,7 +1965,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 
     /* verify that the socket is still good */
     if ( ! RT_mp_comm_alive(rtin->mp_tcp_sd, 0, "pre data send") ) {
-        RT_mp_comm_close(rtin);
+        RT_mp_comm_close(rtin, 0);
         return -1;
     }
 
@@ -1970,7 +1981,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
         tr_vals = bsize;
     } else {
         fprintf(stderr,"** need mask to send data\n");
-        RT_mp_comm_close(rtin);
+        RT_mp_comm_close(rtin, 0);
         return -1;
     }
 
@@ -1981,7 +1992,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
         if(!data) {
             fprintf(stderr,"** failed to alloc %d floats for mask data\n"
                            "   closing MP communication...\n" ,dvals);
-            RT_mp_comm_close(rtin);
+            RT_mp_comm_close(rtin, 0);
             return -1;
         }
     }
@@ -2005,13 +2016,13 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
                     for ( c2 = 0; c2 < rtin->mask_nvals; c2++ )
                         data[bsize*c+6+c2] = (float)rtin->mask_aves[c2+1];
                 else {  /* bad failure, close socket */
-                    RT_mp_comm_close(rtin);
+                    RT_mp_comm_close(rtin, 0);
                     return -1;
                 }
             } else if( g_mask_dset && g_mask_val_type == 3 ) {
                 dind = bsize*c+6;  /* note initial offset */
                 if( RT_mp_set_mask_data(rtin, data+dind, sub+mpindex) ) {
-                    RT_mp_comm_close(rtin);
+                    RT_mp_comm_close(rtin, 0);
                     return -1;
                 }
             }
@@ -2021,7 +2032,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 
         /* verify that the socket is still good */
         if ( ! RT_mp_comm_alive(rtin->mp_tcp_sd, 0, "send data") ) {
-            RT_mp_comm_close(rtin);
+            RT_mp_comm_close(rtin, 0);
             return -1;
         }
 
@@ -2029,9 +2040,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
         {
             fprintf(stderr,"** failed to send %d floats, closing socket...\n",
                     bsize*b2send);
-            close(rtin->mp_tcp_sd);
-            rtin->mp_tcp_sd  = 0;
-            rtin->mp_tcp_use = 0;  /* allow a later re-try... */
+            RT_mp_comm_close(rtin, 0);
             return -1;
         }
         if( g_show_times ) {
@@ -2402,13 +2411,11 @@ int RT_mp_comm_init( RT_input * rtin )
     if ( (rv = send(sd, magic_hi, 4*sizeof(char), 0)) == -1 )
     {
         perror("** RT_mp_comm send hello");
-        rtin->mp_tcp_use = -1;
-        RT_mp_comm_close(rtin);
+        RT_mp_comm_close(rtin, -1);
         return -1;
     } else if ( rv != 4*sizeof(char) ) {
         fprintf(stderr,"** RT magic_hi: sent only %d of 4 bytes\n", rv);
-        RT_mp_comm_close(rtin);
-        return -1;
+        RT_mp_comm_close(rtin, -1);
     }
 
     /* do we send nvals for an altered magic_hi? */
@@ -2416,12 +2423,11 @@ int RT_mp_comm_init( RT_input * rtin )
         if ( (rv = send(sd, &send_nvals, sizeof(int), 0)) == -1 )
         {
             perror("** RT_mp_comm send hello nvals");
-            rtin->mp_tcp_use = -1;
-            RT_mp_comm_close(rtin);
+            RT_mp_comm_close(rtin, -1);
             return -1;
         } else if ( rv != sizeof(int) ) {
             fprintf(stderr,"** RT nextra: sent only %d of 4 bytes\n", rv);
-            RT_mp_comm_close(rtin);
+            RT_mp_comm_close(rtin, -1);
             return -1;
         }
         if( verbose )
@@ -4349,8 +4355,8 @@ void RT_finish_dataset( RT_input * rtin )
    }
 
    /* close any open tcp connection */
-   if ( rtin->mp_tcp_use )
-      RT_mp_comm_close( rtin );
+   if ( rtin->mp_tcp_use > 0 )
+      RT_mp_comm_close( rtin, 0 );
 
    /* if we have a parser expression, free it */
    if ( rtin->p_code )
@@ -4764,7 +4770,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
 
          /* set up comm for motion params    30 Mar 2004 [rickr] */
          RT_mp_comm_init_vars( rtin ) ;
-         if ( rtin->mp_tcp_use ) RT_mp_comm_init( rtin ) ;
+         if ( rtin->mp_tcp_use > 0 ) RT_mp_comm_init( rtin ) ;
       }
    }
 
@@ -4776,7 +4782,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
       RT_registration_3D_onevol( rtin , tt ) ;
 
    /* even if user closed graph window, proceed if mp_tcp_use is set */
-   if( ntt > ttbot && (rtin->mp || rtin->mp_tcp_use) ){
+   if( ntt > ttbot && (rtin->mp || rtin->mp_tcp_use > 0) ){
       float        * yar[7] ;
       int            ycount = -6 ;
 
@@ -4789,7 +4795,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
       yar[6] = rtin->reg_theta + ttbot ;
 
       /* send the data off over tcp connection          30 Mar 2004 [rickr] */
-      if ( rtin->mp_tcp_use ) {
+      if ( rtin->mp_tcp_use > 0 ) {
           RT_mp_comm_send_data( rtin, yar+1, ntt-ttbot, ttbot );
           if( verbose > 1 )
              fprintf(stderr,"RTM, sending TRs %d..%d\n",ttbot,ntt-1);

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, SEP, 2008, RCR, "plug_realtime", MICRO, TYPE_BUG_FIX,
+   "re-added sending of magic_bye string on MP socket close",
+   NULL
+ } ,
+
  { 3, SEP, 2008, RCR, "plug_realtime", MICRO, TYPE_MODIFY,
    "moved drive_wait execution to RT_tell_afni",
    NULL
