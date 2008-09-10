@@ -18,17 +18,17 @@ int main( int argc , char *argv[] )
    XtPointer_array *dsar ;
    int ntime , nvar=0 , polort=-1,npol=0 ;
    char *prefix="Tfitter" ;
-   int meth=2 , nbad=0,ngood=0 ;
+   int meth=2 , nbad=0,ngood=0,nskip=0 ;
    intvec *convec=NULL , *kvec=NULL ;
-   byte *mask=NULL ; int mnx,mny,mnz ;
+   byte *mask=NULL ; int mnx=0,mny=0,mnz=0 ;
    floatvec *bfit ;
    float *dvec , **rvec=NULL , *cvec=NULL ;
    char **lab=NULL ; int nlab=0 ;
    int verb=1 ;
 
    THD_3dim_dataset *fal_set=NULL ; MRI_IMAGE *fal_im=NULL ;
-   char *fal_pre ; int fal_pencod, fal_klen=0 , fal_dcon=0 ;
-   float *fal_kern=NULL , fal_penfac ;
+   char *fal_pre=NULL ; int fal_pencod=1, fal_klen=0 , fal_dcon=0 ;
+   float *fal_kern=NULL , fal_penfac=0.0f ;
    THD_3dim_dataset *defal_set=NULL ;
    int nvoff=0 ;
 
@@ -186,6 +186,9 @@ int main( int argc , char *argv[] )
       "              ++ There is no guarantee that the automatic selection of\n"
       "                 of the penalty factor will give usable results for\n"
       "                 your problem!\n"
+      "              ++ You should probably use a mask dataset with -FALTUNG,\n"
+      "                 since deconvolution can often fail on pure noise\n"
+      "                 time series.\n"
       "\n"
       "  -lsqfit   = Solve equations via least squares [the default method].\n"
       "             * '-l2fit' is a synonym for this option\n"
@@ -258,8 +261,11 @@ int main( int argc , char *argv[] )
       "  -mask ms  = Read in dataset 'ms' as a mask; only voxels with nonzero\n"
       "              values in the mask will be processed.  Voxels falling\n"
       "              outside the mask will be set to all zeros in the output.\n"
+      "             * Voxels whose time series are all zeros will not be\n"
+      "               processed.\n"
       "\n"
       "  -quiet    = Don't print the fun fun fun progress report messages.\n"
+      "             * Why would you want to hide these delightful missives?\n"
       "\n"
       "----------------------\n"
       "ENVIRONMENT VARIABLES:\n"
@@ -799,17 +805,23 @@ int main( int argc , char *argv[] )
 
      THD_extract_array( ii , rhset , 0 , dvec ) ;   /* get RHS data vector */
 
+     for( jj=0 ; jj < ntime && dvec[jj]==0.0f ; jj++ ) ; /*nada*/
+     if( jj == ntime ){ nskip++; continue; }   /*** skip all zero vector ***/
+
+     THD_fitter_voxid(ii) ;             /* 10 Sep 2008: for error messages */
+
      for( jj=0 ; jj < nlhs ; jj++ ){               /* get LHS data vectors */
-       if( XTARR_IC(dsar,jj) == IC_DSET ){
+       if( XTARR_IC(dsar,jj) == IC_DSET ){         /* out of LHS datasets  */
          lset = (THD_3dim_dataset *)XTARR_XT(dsar,jj) ;
          kk = kvec->ar[jj] ;
          THD_extract_array( ii , lset , 0 , rvec[kk] ) ;
        }
      }
 
-     /** do the fitting work **/
+     /***** do the fitting work *****/
 
-     if( fal_klen > 0 ){
+     if( fal_klen > 0 ){      /*-- deconvolution --*/
+
        if( fal_set != NULL )  /* get decon kernel if from a 3D+time dataset */
          THD_extract_array( ii , fal_set , 0 , fal_kern ) ;
 
@@ -817,8 +829,11 @@ int main( int argc , char *argv[] )
                               0 , fal_klen-1 , fal_kern ,
                               nvar , rvec , meth , cvec , fal_dcon ,
                               fal_pencod , fal_penfac               ) ;
-     } else {
+
+     } else {                 /*-- simple fitting --*/
+
        bfit = THD_fitter( ntime , dvec , nvar , rvec , meth , cvec ) ;
+
      }
 
      if( bfit == NULL ){ nbad++; continue; } /*** bad voxel ***/
@@ -841,13 +856,14 @@ int main( int argc , char *argv[] )
    } /* end of loop over voxels */
 
    if( vstep > 0 ) fprintf(stderr," Done!\n") ;
+   if( nskip > 0 ) WARNING_message("Skipped %d voxels for being all zero") ;
 
    /*----- clean up and go away -----*/
 
    if( nbad > 0 )
      WARNING_message("Fit worked in %d voxels; failed in %d",ngood,nbad) ;
    else if( verb )
-     INFO_message("Fit worked on all %d voxels",ngood) ;
+     INFO_message("Fit worked on all %d voxels attempted",ngood) ;
 
    if( fset != NULL ){
      if( verb ) ININFO_message("Writing parameter dataset: %s",prefix) ;
