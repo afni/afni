@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , SEP , 2008 , RWC , "3dTfitter" , MICRO , TYPE_MODIFY ,
+   "skip all zero voxels; add voxel ID to error messages" ,
+   NULL } ,
+
  { 9 , SEP , 2008 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
    "add savehist to allcost output" ,
    NULL } ,

@@ -10,6 +10,9 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
                                           int meth   , float *ccon  , int dcon   ,
                                           int pencode, float *penfac_used         );
 
+static int voxid = 0 ;
+void THD_fitter_voxid( int i ){ voxid = i; }
+
 /*------------------------------------------------------------------*/
 /* Least squares fitting without constraints. (cf mri_matrix.c) */
 /*------------------------------------------------------------------*/
@@ -527,7 +530,10 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
                                   pencode , NPFAC , pfac , pres,psiz ) ;
 
    if( fvv == NULL ){
-     ERROR_message("THD_deconvolve_autopen failed") ; return NULL ;
+     ERROR_message(
+       "THD_deconvolve_autopen failed to solve initial problems: voxel ID=%d",
+       voxid ) ;
+     return NULL ;
    }
 
    /* find the best combination of residual and solution size */
@@ -562,7 +568,10 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    if( ipk < 0 || ppk == 0.0f ){  /* all fits failed?! */
      for( ii=0 ; ii < NPFAC ; ii++ ) KILL_floatvec(fvv[ii]) ;
      free((void *)fvv) ;
-     ERROR_message("THD_deconvolve_autopen fails") ; return NULL ;
+     ERROR_message(
+       "THD_deconvolve_autopen fails to find initial good fit: voxel ID=%d",
+       voxid);
+     return NULL;
    }
 
    fv = fvv[ipk] ; if( do_fitv ){ COPY_floatvec(gv,ggfitvv[ipk]); }
@@ -585,7 +594,7 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
                                   pencode , NPFAC , pfac , pres,psiz ) ;
 
    if( fvv == NULL ){  /* failed ==> return what we found earlier */
-     ERROR_message("THD_deconvolve_autopen semi-failed") ;
+     ERROR_message("THD_deconvolve_autopen semi-failed: voxel ID=%d",voxid) ;
      if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
      return fv ;
    }
@@ -620,7 +629,7 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    if( ipk < 0 || ppk == 0.0f ){ /* all failed?  use old result */
      for( ii=0 ; ii < NPFAC ; ii++ ) KILL_floatvec(fvv[ii]) ;
      free((void *)fvv) ;
-     ERROR_message("THD_deconvolve_autopen semi-fails") ;
+     ERROR_message("THD_deconvolve_autopen semi-fails: voxel ID=%d",voxid) ;
      if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
      return fv ;
    }
