@@ -4059,6 +4059,7 @@ extern floatvec * THD_fitter_fitts( int npt, floatvec *fv,
 
 extern void       THD_fitter_do_fitts(int qq) ;
 extern floatvec * THD_retrieve_fitts(void) ;
+extern void       THD_fitter_voxid( int i ) ;  /* 10 Sep 2008 */
 
 /*--------------- routines that are in thd_detrend.c ---------------*/
 
