@@ -856,7 +856,7 @@ int main( int argc , char *argv[] )
    } /* end of loop over voxels */
 
    if( vstep > 0 ) fprintf(stderr," Done!\n") ;
-   if( nskip > 0 ) WARNING_message("Skipped %d voxels for being all zero") ;
+   if( nskip > 0 ) WARNING_message("Skipped %d voxels for being all zero",nskip) ;
 
    /*----- clean up and go away -----*/
 
