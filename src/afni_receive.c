@@ -672,6 +672,8 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
               - THREED_MODE      ==> points are in 3D (not planar)
                                       (not currently possible)
               - UNDO_MODE        ==> undo last drawing action
+              - INCVAL_MODE      ==> add 1 to drawing value
+              - DECVAL_MODE      ==> subtract 1 from drawing value
 
     - xd[i] = x index of point i, for i=0..npts-1
     - yd[i] = y index of point i, for i=0..npts-1
