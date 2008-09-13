@@ -2241,6 +2241,16 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
            return ;
          }
 
+         if( mode == INCVAL_MODE || mode == DECVAL_MODE ){ /* 13 Sep 2008 */
+           float nval ;
+           nval = value_float + ((mode==INCVAL_MODE) ? (1.0f) : (-1.0f)) ;
+           AV_assign_fval( value_av , nval ) ;
+           value_int   = value_av->ival ;
+           value_float = value_av->fval ;
+           DRAW_set_value_label() ;
+           return ;
+         }
+
          /*-- Did we get points? --*/
 
          if( np <= 0 ) return ;

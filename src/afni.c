@@ -3661,6 +3661,12 @@ if(PRINT_TRACING)
           case XK_Delete:
             AFNI_process_drawing( im3d , UNDO_MODE , 0,NULL,NULL,NULL ) ;
           break ;
+
+          case XK_F4:
+          case XK_F3:  /* 13 Sep 2008 */
+            AFNI_process_drawing( im3d ,
+             (ks==XK_F3) ? DECVAL_MODE : INCVAL_MODE , 0,NULL,NULL,NULL ) ;
+          break ;
         }
       }
       break ; /* end of button2 mode keypress */
@@ -5249,7 +5255,8 @@ static char * AFNI_image_help =
  "r/R = Ricochet image sequence up/down\n"
  "i/I = image fraction down/up\n"
  "z/Z = zoom out/in\n"
- "Del = drawing undo       F2= drawing pencil\n"
+ "Del = drawing undo       F2 = drawing pencil\n"
+ "F3  = drawing value --   F4 = drawing value ++\n"
  "Left/Right/Up/Down arrow keys\n"
  "    = move crosshairs OR pan image\n" ;
 

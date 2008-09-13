@@ -1622,7 +1622,9 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define PLANAR_MODE           2000
 #define THREED_MODE           3000
 #define SPECIAL_MODE        100000
-#define UNDO_MODE           101000
+#define UNDO_MODE           102000
+#define INCVAL_MODE         103000
+#define DECVAL_MODE         104000
 
 extern void AFNI_toggle_drawing ( Three_D_View * ) ;
 extern int AFNI_receive_init    ( Three_D_View *, int, gen_func *, void *, char * ) ;
