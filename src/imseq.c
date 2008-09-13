@@ -11467,17 +11467,29 @@ ENTRY("ISQ_handle_keypress") ;
                               " Drawing!! \n ", MCW_USER_KILL );
            XBell(seq->dc->display,100); busy=0; RETURN(0);
          }
-
          ISQ_set_cursor_state( seq ,
                                (seq->cursor_state == CURSOR_PENCIL)
                                ? CURSOR_NORMAL : CURSOR_PENCIL ) ;
        }
        break ;
 
+       case XK_F4:
+       case XK_F3:{                     /* 13 Sep 2008 */
+         ISQ_cbs cbs ;
+         if( !seq->button2_enabled ){
+           MCW_popup_message( seq->wimage,
+                              " \n Only when \n"
+                              " Drawing!! \n ", MCW_USER_KILL );
+           XBell(seq->dc->display,100); busy=0; RETURN(0);
+         }
+         cbs.reason = isqCR_button2_key ;
+         cbs.key    = (int)ks ;
+         SEND(seq,cbs) ;
+       }
+       break ;
+
        default:
        case XK_Home:
-       case XK_F3:
-       case XK_F4:
        case XK_F5:
        case XK_F6:
        case XK_F7:
