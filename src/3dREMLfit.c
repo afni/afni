@@ -724,6 +724,9 @@ STATUS("options done") ;
      mmm = THD_countmask( nvox , mask ) ;
      INFO_message("Number of voxels in automask = %d",mmm) ;
      if( mmm < 2 ) ERROR_exit("Automask is too small to process") ;
+
+   } else {
+     INFO_message("No mask ==> computing for all %d voxels",nvox) ;
    }
 
    /**-------- process the matrix --------**/
