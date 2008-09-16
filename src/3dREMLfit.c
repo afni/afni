@@ -218,7 +218,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
-      "Usage: 3dREMLfit [option]\n"
+      "Usage: 3dREMLfit [options]\n"
       "Least squares fit with REML estimation of the ARMA(1,1) noise.\n"
       "\n"
       "Uses a matrix .xmat.1D file from 3dDeconvolve; then, for each voxel\n"
@@ -226,6 +226,9 @@ int main( int argc , char *argv[] )
       "generalized (pre-whitened) least squares fit of the matrix model\n"
       "to the signal in that voxel.  Intended to generalize the results of\n"
       "3dDeconvolve to allow for serial correlation in the timeseries data.\n"
+      "\n"
+      "3dDeconvolve outputs (to stderr) a command line for running 3dREMLfit,\n"
+      "which should get you started with relatively little pain.\n"
       "\n"
       "-------------------------------------------\n"
       "Input Options (the first two are mandatory)\n"
@@ -288,11 +291,14 @@ int main( int argc , char *argv[] )
       "for each voxel time series; normally, you do not need these options\n"
       "-------------------------------------------------------------------\n"
       " -MAXa am   = Set max allowed AR a parameter to 'am' (default=0.8).\n"
-      "                The range of a values scanned is 0 .. +am (-POScor)\n"
-      "                or is -am .. +am (-NEGcor).\n"
+      "                The range of a values scanned is   0 .. +am (-POScor)\n"
+      "                                           or is -am .. +am (-NEGcor).\n"
       "\n"
       " -MAXb bm   = Set max allow MA b parameter to 'bm' (default=0.8).\n"
       "                The range of b values scanned is -bm .. +bm.\n"
+      "               * The smallest value allowed for am and bm is 0.1.\n"
+      "               * For a nearly pure AR(1) model, use '-MAXb 0.1'\n"
+      "               * For a nearly pure MA(1) model, use '-MAXa 0.1'\n"
       "\n"
       " -Grid pp   = Set the number of grid divisions in the (a,b) grid\n"
       "                to be 2^pp in each direction over the range 0..MAX.\n"
@@ -307,9 +313,9 @@ int main( int argc , char *argv[] )
       "                   in each direction, so that the grid spacing is 0.1\n"
       "                   if MAX=0.8.  Similarly, -Grid 4 means 32 divisions\n"
       "                   in each direction, -Grid 5 means 64 divisions, etc.\n"
-      "                   I see no reason why you would ever use a -Grid size\n"
+      "               * I see no reason why you would ever use a -Grid size\n"
       "                   greater than 5 (==> parameter resolution = 0.025).\n"
-      "                   The program becomes slower as the grid size expands.\n"
+      "               * The program becomes slower as the grid size expands.\n"
       "\n"
       " -NEGcor    = Allows negative correlations to be used; the default\n"
       "                is that only positive correlations are searched.\n"
@@ -364,8 +370,8 @@ int main( int argc , char *argv[] )
       "* The correlation coefficient r(k) of noise samples k units apart in time,\n"
       "    for k >= 1, is given by r(k) = lam * a^(k-1)\n"
       "    where                   lam  = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
-      "    (N.B.: lam=a when b=0 -- AR(1) noise has r(k)=a^k for k >= 0).\n"
-      "    (N.B.: lam=b when a=0 -- MA(1) noise has r(k)=b for k=1, r(k)=0 for k>1.\n"
+      "    (N.B.: lam=a when b=0 -- AR(1) noise has r(k)=a^k for k >= 0)\n"
+      "    (N.B.: lam=b when a=0 -- MA(1) noise has r(k)=b for k=1, r(k)=0 for k>1)\n"
       "* lam can be bigger or smaller than a, depending on the sign of b.\n"
       "* What I call (a,b) here is sometimes called (p,q) in the ARMA literature.\n"
       "* For the noise model which is the sum of AR(1) and white noise, lam < a.\n"
@@ -409,11 +415,18 @@ int main( int argc , char *argv[] )
       "    the correlation matrix parameters a and b.  The matrices for each\n"
       "    (a,b) pair are pre-calculated in the setup phase, and then are\n"
       "    re-used in the voxel loop.  The purpose of this grid-based method\n"
-      "    is speed.\n"
+      "    is speed -- optimizing iteratively to a highly accurate (a,b)\n"
+      "    estimation for each voxel would be very time consuming, and pretty\n"
+      "    pointless.  If you are concerned about the sensitivity of the\n"
+      "    results to the resolution of the (a,b) grid, you can use the\n"
+      "    '-Grid 5' option to increase this resolution and see if your\n"
+      "    activation maps change significantly.\n"
       "* REML estimates of the variance/correlation parameters are still\n"
-      "    biased, but are generally less biased than ML estimates.  Also,\n"
-      "    the regression parameters (betas) should be estimated somewhat\n"
-      "    more accurately (i.e., with smaller variance than OLSQ).\n"
+      "    biased, but are generally significantly less biased than ML estimates.\n"
+      "    Also, the regression parameters (betas) should be estimated somewhat\n"
+      "    more accurately (i.e., with smaller variance than OLSQ).  However,\n"
+      "    this effect is generally small in FMRI data, and probably won't affect\n"
+      "    your group results noticeably.\n"
       "* After the (a,b) parameters are estimated, then the solution to the\n"
       "    linear system is available via Generalized Least SQuares; that is,\n"
       "    via pre-whitening using the Choleski factor of the estimated\n"
@@ -462,8 +475,8 @@ int main( int argc , char *argv[] )
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
       "    However, a careful choice of algorithms for solving the\n"
-      "    linear systems (QR method, sparse matrix operations, etc.) and\n"
-      "    some code optimizations should make running 3dREMLfit tolerable.\n"
+      "    linear systems (QR method, sparse matrix operations, etc.) and some\n"
+      "    other code optimizations should make running 3dREMLfit tolerable.\n"
       "\n"
       "-----------------------------------------------------------\n"
       "To Dream the Impossible Dream, to Write the Uncodeable Code\n"
@@ -516,7 +529,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-MAXrho") == 0 || strcasecmp(argv[iarg],"-MAXa") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        rhomax = (MTYPE)strtod(argv[iarg],NULL) ;
-            if( rhomax < 0.3 ){ rhomax = 0.3; WARNING_message("-MAXa re-set to 0.3"); }
+            if( rhomax < 0.1 ){ rhomax = 0.1; WARNING_message("-MAXa re-set to 0.1"); }
        else if( rhomax > 0.9 ){ rhomax = 0.9; WARNING_message("-MAXa re-set to 0.9"); }
        iarg++ ; continue ;
      }
@@ -530,7 +543,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-MAXb") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        bmax = (MTYPE)strtod(argv[iarg],NULL) ;
-            if( bmax < 0.3 ){ bmax = 0.3; WARNING_message("-MAXb re-set to 0.3"); }
+            if( bmax < 0.1 ){ bmax = 0.1; WARNING_message("-MAXb re-set to 0.1"); }
        else if( bmax > 0.9 ){ bmax = 0.9; WARNING_message("-MAXb re-set to 0.9"); }
        iarg++ ; continue ;
      }
