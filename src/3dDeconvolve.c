@@ -1771,7 +1771,7 @@ void get_options
 
       /*-----  -stim_times k sname rtype [10 Aug 2004]  -----*/
       if( strncmp(argv[nopt],"-stim_times",11) == 0 ){
-        char *suf = argv[nopt]+11 , *sopt=argv[nopt] ; int nc ;
+        char *suf = argv[nopt]+11 , *sopt=argv[nopt] ; int nc=0 ;
         nopt++ ;
         if( nopt+2 >= argc )
           ERROR_exit("need 3 arguments after %s",sopt) ;
@@ -2555,8 +2555,8 @@ void read_input_data
 {
   char message[THD_MAX_NAME];    /* error message */
   int it;                  /* time point index */
-  int nt;                  /* number of input data time points */
-  int nxyz;                /* number of voxels */
+  int nt=0;                /* number of input data time points */
+  int nxyz=0;              /* number of voxels */
   int num_stimts;          /* number of stimulus time series arrays */
   int * baseline;          /* flag for baseline stimulus function */
   int * min_lag;           /* minimum time delay for impulse response */
@@ -2947,7 +2947,7 @@ ENTRY("read_input_data") ;
   if( basis_count > 0 ){             /* if there are any, that is */
     MRI_IMAGE *tim , *qim , *aim , *bim ;
     float     *tar , *qar , *aar , *zar ;
-    float toff , tmax,tt,ss , zbar ;
+    float toff , tmax,tt,ss , zbar=0.0f ;
     int   ii,jj , kk , ngood , nx,ny , nf,dd , btyp , nbas ;
     int   nbl=*num_blocks , *bst=*block_list ;
     basis_expansion *be ;
@@ -3160,7 +3160,7 @@ ENTRY("read_input_data") ;
       if( qar != NULL ){
         int imin,imax , ibot,itop ;
         float *bv = MRI_FLOAT_PTR(basis_vect[is]) ;
-        float dbot,dtop , fnt=(float)nt , z1,z2 ;
+        float dbot,dtop , fnt=(float)nt , z1,z2=0.0f ;
 
 #if 0
 fprintf(stderr,"%s %d: adjusted time indexes follow:\n",be->option,is+1) ;
@@ -5194,26 +5194,83 @@ ENTRY("calculate_results") ;
 
     if( cd != NULL && verb ){  /*-- 22 Aug 2008: 3dREMLfit notice --*/
       char *iname=NULL ;  /* input filename for command echo below */
+      char *cname=NULL ;  /* command to be output for user's wisdom */
+      int iadd=0 , ilen;
       if( option_data->input_filename != NULL ){
         iname = calloc( sizeof(char) , strlen(option_data->input_filename)+9 ) ;
         if( strchr(option_data->input_filename,' ') == NULL ){
           strcpy(iname,option_data->input_filename) ;
         } else {
-          strcpy(iname,"'") ;
-          strcat(iname,option_data->input_filename) ; strcat(iname,"'") ;
+          strcpy(iname,"\"") ;
+          strcat(iname,option_data->input_filename) ; strcat(iname,"\"") ;
         }
       }
-      INFO_message("========= Things you can do with the matrix file =========") ;
+      cname = THD_zzprintf( cname ,
+                            "3dREMLfit -matrix %s", option_data->x1D_filename );
+      if( iname != NULL ){
+        if( *iname != '"' )
+          cname = THD_zzprintf( cname , " -input %s \\\n" , iname ) ;
+        else
+          cname = THD_zzprintf( cname , " \\\n -input %s \\\n" , iname ) ;
+        free(iname) ;
+      }
+      if( option_data->mask_filename ){
+        ilen  = strlen(cname) ;
+        cname = THD_zzprintf( cname , " -mask %s" , option_data->mask_filename );
+        iadd += strlen(cname)-ilen ;
+      } else if( option_data->automask ){
+        ilen  = strlen(cname) ;
+        cname = THD_zzprintf( cname , " -automask" );
+        iadd += strlen(cname)-ilen ;
+      }
+      if( CoefFilename != NULL ){
+        if( iadd > 60 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        ilen  = strlen(cname) ;
+        cname = THD_zzprintf( cname ,
+                              " -Rbeta %s_REML" , CoefFilename ) ;
+        iadd += strlen(cname)-ilen ;
+      }
+      if( option_data->bucket_filename != NULL ){
+        if( iadd > 50 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        ilen  = strlen(cname) ;
+        if( option_data->fout ) cname = THD_zzprintf( cname , " -fout") ;
+        if( option_data->tout ) cname = THD_zzprintf( cname , " -tout") ;
+        cname = THD_zzprintf( cname ,
+                              " -Rbuck %s_REML" , option_data->bucket_filename);
+        cname = THD_zzprintf( cname ,
+                              " -Rvar %s_REMLvar",option_data->bucket_filename);
+        iadd += strlen(cname)-ilen ;
+      }
+      if( option_data->fitts_filename != NULL ){
+        if( iadd > 60 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        ilen  = strlen(cname) ;
+        cname = THD_zzprintf( cname ,
+                              " -Rfitts %s_REML", option_data->fitts_filename );
+        iadd += strlen(cname)-ilen ;
+      }
+      if( option_data->errts_filename != NULL ){
+        if( iadd > 60 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        ilen  = strlen(cname) ;
+        cname = THD_zzprintf( cname ,
+                              " -Rerrts %s_REML", option_data->errts_filename );
+        iadd += strlen(cname)-ilen ;
+      }
+      if( option_data->errts_filename != NULL ){
+        if( iadd > 60 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        ilen  = strlen(cname) ;
+        cname = THD_zzprintf( cname ,
+                              " -Rerrts %s_REML", option_data->errts_filename );
+        iadd += strlen(cname)-ilen ;
+      }
+
+      INFO_message("========= Things you can do with the matrix file =========");
       INFO_message(
-        "(a) Linear regression with ARMA(1,1) modeling of serial correlation:\n"
-        "      3dREMLfit -matrix %s%s%s%s..." ,
-        option_data->x1D_filename ,
-        (iname==NULL) ? " " : " -input " ,
-        (iname==NULL) ? ""  : iname      , (iname==NULL) ? ""  : " " ) ;
-      if( iname != NULL ) free(iname) ;
-      INFO_message("(b) Visualization/analysis of the matrix via ExamineXmat.R") ;
-      INFO_message("(c) Synthesis of sub-models using 3dSynthesize") ;
-      INFO_message("==========================================================") ;
+        "(a) Linear regression with ARMA(1,1) modeling of serial correlation:\n\n"
+        "%s\n " , cname ) ;
+      free(cname) ;
+      INFO_message("(b) Visualization/analysis of the matrix via ExamineXmat.R");
+      INFO_message("(c) Synthesis of sub-model datasets using 3dSynthesize") ;
+      INFO_message("==========================================================");
     }
   }
 
@@ -8101,7 +8158,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
          ***glt_tcoef_vol=NULL ,
          ** glt_fstat_vol=NULL ,
          ** glt_rstat_vol=NULL  ;
-   float *cdar=NULL , ssef , *volume ;
+   float *cdar=NULL , ssef=0.0f , *volume ;
    int ivol , nvol , nbuck , vstep ;
 
    /*----- Check for GLT options -----*/
@@ -8988,7 +9045,7 @@ static float basis_legendre( float x, float bot, float top, float n, void *q )
 
    /** if here, m > 20 ==> use recurrence relation **/
 
-   { float pk, pkm1, pkm2 ; int k ;
+   { float pk=0, pkm1, pkm2 ; int k ;
      pkm2 = basis_legendre( x , -1.0f , 1.0f , 19.0f , NULL ) ;
      pkm1 = basis_legendre( x , -1.0f , 1.0f , 20.0f , NULL ) ;
      for( k=21 ; k <= m ; k++ , pkm2=pkm1 , pkm1=pk )
