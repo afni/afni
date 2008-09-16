@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, SEP, 2008, RCR, "3drefit", MINOR, TYPE_BUG_FIX,
+   "allow attribute editing of NIfTI datasets",
+   NULL
+ } ,
+
  { 10, SEP, 2008, RCR, "plug_realtime", MICRO, TYPE_BUG_FIX,
    "re-added sending of magic_bye string on MP socket close",
    NULL
