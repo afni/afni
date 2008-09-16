@@ -1,0 +1,111 @@
+#!/bin/tcsh -f
+if ("$1" == "-h" || "$1" == "-help") goto HELP
+
+set tmpico = __ico10
+
+suma -niml &
+
+echo patience while suma starts up...
+sleep 3
+
+if ( ! -f ${tmpico}_surf.asc) CreateIcosahedron -ld 10 -prefix ${tmpico}
+DriveSuma   -com show_surf -label ${tmpico} \
+            -i_fs ${tmpico}_surf.asc
+
+echo ""
+echo ">>> Hit enter for node-based segments object"
+set kk = $<
+
+#Type 1: #node-based_segments  or #node-based_oriented_segments 
+set pr = '__nbs'
+rm -f $pr.1D.do
+echo "#node-based_segments" >> $pr.1D.do
+echo "1 2  9" >> $pr.1D.do
+echo "2 5  1" >> $pr.1D.do
+DriveSuma   -com viewer_cont -load_do $pr.1D.do 
+
+echo ""
+echo ">>> Hit enter for node-based oriented segments"
+set kk = $<
+
+set pr = '__onbs'
+rm -f $pr.1D.do
+echo "#node-based_oriented_segments" >> $pr.1D.do
+echo "10 1    1 0 0 1" >> $pr.1D.do
+echo "694 662    1 1 0 1" >> $pr.1D.do
+DriveSuma   -com viewer_cont -load_do $pr.1D.do 
+
+echo ""
+echo ">>> Hit enter for node-based oriented segments with differing thickness"
+set kk = $<
+
+set pr = '__onbst'
+rm -f $pr.1D.do
+echo "#node-based_oriented_segments" >> $pr.1D.do
+echo "10 1    1 0 0 1 8" >> $pr.1D.do
+echo "694 662    1 1 0 1 2" >> $pr.1D.do
+DriveSuma   -com viewer_cont -load_do $pr.1D.do 
+
+echo ""
+echo ">>> Hit enter for coordinate-based segments"
+set kk = $<
+
+#Type 1: #oriented_segments  or #segments
+set pr = '__os'
+rm -f $pr.1D.do
+echo "#oriented_segments" >> $pr.1D.do
+echo "-21.9 13.1 86.9   100, -81.8, 8.5  0 1 1 1" >> $pr.1D.do
+echo "-80 -40  -20   -21.9 13.1 80     0 1 0 1" >> $pr.1D.do
+DriveSuma   -com viewer_cont -load_do $pr.1D.do 
+
+echo ""
+echo ">>> Hit enter for spheres"
+set kk = $<
+
+#Type 2: #spheres
+set pr = '__sp'
+rm -f $pr.1D.do
+echo "#spheres" >> $pr.1D.do
+echo "-90 0 10  1 1 1 1 15 1" >> $pr.1D.do
+echo "-5.2 -82.3 59  1 1 0 1 10 2 " >> $pr.1D.do
+DriveSuma   -com viewer_cont -load_do $pr.1D.do 
+
+echo ""
+echo ">>> Hit enter for vectors"
+set kk = $<
+
+#Type 3: #vectors
+set pr = '__sp'
+rm -f $pr.1D.do
+SurfaceMetrics -spec ${tmpico}.spec -surf_A ${tmpico} -face_normals -prefix $pr
+DriveSuma   -com viewer_cont -load_do $pr.TriNormSeg.1D
+
+echo ""
+echo ">>> Hit enter for planes"
+set kk = $<
+
+#Type 4: #planes
+set pr = '__pl'
+rm -f $pr.1D.do
+echo "#planes" >> $pr.1D.do
+echo "1 1 1 0 -5.2 -82.3 59" >> $pr.1D.do
+DriveSuma   -com viewer_cont -load_do $pr.1D.do
+
+echo ""
+echo ">>> Hit enter for cleanup"
+set kk = $<
+
+rm -f __*.1D.do ${tmpico}*.*
+
+goto END
+
+HELP:
+echo "Usage: `basename $0` "
+echo "A script to illustrate the use of Displayable Objects in SUMA."
+echo "See SUMA's interactive help (ctrl+h) section for Ctrl+Alt+s for"
+echo "details on SUMA's Displayable objects."
+echo ""
+goto END
+
+END:
+
