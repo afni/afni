@@ -1165,8 +1165,6 @@ int main( int argc , char * argv[] )
 
       INFO_message("Processing AFNI dataset %s\n",argv[iarg]) ;
 
-      tross_Make_History( "3drefit" , argc,argv, dset ) ;
-
       /* 21 Dec 2004: -label2 option */
 
       if( new_label2 != NULL ){
@@ -1624,9 +1622,25 @@ int main( int argc , char * argv[] )
 
       /* Do we want to force new attributes into output ? ZSS Jun 06*/
       /* (only if -atrcopy or -atrstring)       28 Jul 2006 [rickr] */
-      if ( saveatr && atrmod )
-       THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
-                              dset->dblk->diskptr->header_name);
+      if ( saveatr && atrmod ) {
+         char * bname = NULL;
+
+         /* may need to preserve name, before THD_datablock_from_atr()
+            calls THD_init_diskptr_names()         16 Sep 2008 [rickr] */
+         if ( write_output ) 
+            bname = nifti_strdup(dset->dblk->diskptr->brick_name);
+
+         THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
+                                dset->dblk->diskptr->header_name);
+
+         if ( write_output ) {
+           strcpy(dset->dblk->diskptr->brick_name, bname);
+           free(bname);
+         }
+      }
+
+      /* moved, in case the history is edited      16 Sep 2008 [rickr] */
+      tross_Make_History( "3drefit" , argc,argv, dset ) ;
 
       if( denote ) THD_anonymize_write(1) ;   /* 08 Jul 2005 */
 
