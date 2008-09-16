@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , SEP , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
+   "Made 3dREMLfit command echo more complete for user's convenience" ,
+   NULL } ,
+
  { 15 , SEP , 2008 , RWC , "Draw Dataset plugin" , MINOR , TYPE_MODIFY ,
    "Keystrokes F3 and F3 now decrement/increment drawing value in plugin" ,
    NULL } ,

@@ -210,7 +210,7 @@ double legendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 #else
    /** if here, m > 20 ==> use recurrence relation **/
 
-   { double pk, pkm1, pkm2 ; int k ;
+   { double pk=0, pkm1, pkm2 ; int k ;
      pkm2 = legendre( x , 19 ) ;
      pkm1 = legendre( x , 20 ) ;
      for( k=21 ; k <= m ; k++ , pkm2=pkm1 , pkm1=pk )
@@ -265,7 +265,7 @@ int init_indep_var_matrix
   int ilag;                 /* time lag index */
   int ib;                   /* block (run) index */
   int nfirst, nlast;        /* time boundaries of a block (run) */
-  int mfirst, mlast;        /* column boundaries of baseline parameters
+  int mfirst=0, mlast=0;    /* column boundaries of baseline parameters
 			       for a block (run) */
 
   float * stim_array;       /* stimulus function time series */
