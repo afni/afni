@@ -46,10 +46,12 @@ Options: -files file1.1D file2.1D ...   : specify stim files
          -nt     NT                     : number of TRs per run
          -tr     TR                     : TR time, in seconds
          -offset OFFSET                 : add OFFSET to all output times
+         -labels LAB1 LAB2 ...          : provide labels for filenames
+         -show_valid_opts               : output all options
          -verb   LEVEL                  : provide verbose output
 
-other options:
-         -amplitudes                    : Marry times with amplitudes
+complex options:
+         -amplitudes                    : "marry" times with amplitudes
 
                 This is to make files for -stim_times_AM1 or -stim_times_AM2
                 in 3dDeconvolve (for 2-parameter amplitude modulation).
@@ -94,10 +96,12 @@ examples:
                                -nruns 7 -nt 100 -offset 1.25
 
     4. An appropriate conversion of stim_files to stim_times for the 
-       example in AFNI_data2 (HowTo #5).
+       example in AFNI_data2 (HowTo #5).  The labels will appear in the
+       resulting filenames.
 
             make_stim_times.py -prefix stim_times -tr 1.0 -nruns 10 -nt 272 \\
-                               -files misc_files/all_stims.1D
+                           -files misc_files/all_stims.1D                   \\
+                           -labels ToolMovie HumanMovie ToolPoint HumanPoint
 
     5. Generate files for 2-term amplitude modulation in 3dDeconvolve (i.e.
        for use with -stim_times_AM2).  For any TR that has a non-zero value
@@ -122,9 +126,11 @@ g_mst_history = """
          - added options -hist, -ver
     1.2  May 21, 2008:
          - added -amplitudes for Rutvik Desai
-    1.3  June 19, 1008:
+    1.3  June 19, 2008:
          - help update and change ':' separator to '*' when using -amplitudes
          - added -show_valid_opts
+    1.4  Sep 17, 2008:
+         - added -labels option
 """
 
 g_mst_version = "version 1.3, May 21, 2008"
@@ -155,6 +161,8 @@ def get_opts():
                    helpstr='set the number of runs')
     okopts.add_opt('-offset', 1, [],    \
                    helpstr='specify offset to add to all output times')
+    okopts.add_opt('-labels', -1, [],   \
+                   helpstr='add these labels to the file names')
     okopts.add_opt('-verb', 1, [],      \
                    helpstr='set the verbosity level')
     okopts.trailers = 1
@@ -220,8 +228,14 @@ def proc_mats(uopts):
         print "** error: -nt must be int, have '%s'" % opt.parlist[0]
         return
 
+    opt = uopts.find_opt('-labels')
+    if opt: labels = opt.parlist
+    else:   labels = []
+    nlab = len(labels)
+
     # print some info
-    if verb: print "-- nt = %d, nruns = %d, TR = %s" % (nt, nruns, str(tr))
+    if verb: print "-- nt = %d, nruns = %d, TR = %s, %d labels" % \
+                   (nt, nruns, str(tr), nlab)
 
     # new option, -amplitudes (columns of amplitudes to Marry, not just 1s)
     use_amp = 0
@@ -248,7 +262,15 @@ def proc_mats(uopts):
 
         for row in mat:
 
-            newp = "%s.%02d" % (prefix,newfile_index)
+            # maybe add a label to the file name
+            if newfile_index <= nlab: label = ".%s" % labels[newfile_index-1]
+            elif nlab == 0:           label = ""
+            else:
+                print "** %d labels given, but we are on column %d..." % \
+                      (nlab, newfile_index)
+                label = ".label%d" % (newfile_index)
+
+            newp = "%s.%02d%s" % (prefix,newfile_index,label)
             newfile = afni_util.change_path_basename(file, newp, ".1D")
             if newfile == None: return
             fp = open(newfile, 'w')

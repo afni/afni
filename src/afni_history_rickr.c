@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, SEP, 2008, RCR, "make_stim_times.py", MINOR, TYPE_NEW_OPT,
+   "added -labels option, for including labels in filenames",
+   NULL
+ } ,
+
  { 16, SEP, 2008, RCR, "3drefit", MINOR, TYPE_BUG_FIX,
    "allow attribute editing of NIfTI datasets",
    NULL
