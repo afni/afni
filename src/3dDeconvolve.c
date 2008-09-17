@@ -5195,7 +5195,8 @@ ENTRY("calculate_results") ;
     if( cd != NULL && verb ){  /*-- 22 Aug 2008: 3dREMLfit notice --*/
       char *iname=NULL ;  /* input filename for command echo below */
       char *cname=NULL ;  /* command to be output for user's wisdom */
-      int iadd=0 , ilen;
+      int iadd=0 , ilen , oneline=AFNI_yesenv("AFNI_3dDeconvolve_oneline") ;
+      char *lbreak ;
       if( option_data->input_filename != NULL ){
         iname = calloc( sizeof(char) , strlen(option_data->input_filename)+9 ) ;
         if( strchr(option_data->input_filename,' ') == NULL ){
@@ -5207,12 +5208,15 @@ ENTRY("calculate_results") ;
       }
       cname = THD_zzprintf( cname ,
                             "3dREMLfit -matrix %s", option_data->x1D_filename );
+      lbreak = (oneline) ? "" : " \\\n" ;
       if( iname != NULL ){
         if( *iname != '"' )
-          cname = THD_zzprintf( cname , " -input %s \\\n" , iname ) ;
+          cname = THD_zzprintf( cname , " -input %s%s" , iname,lbreak ) ;
         else
-          cname = THD_zzprintf( cname , " \\\n -input %s \\\n" , iname ) ;
+          cname = THD_zzprintf( cname , "%s -input %s%s" , lbreak,iname,lbreak ) ;
         free(iname) ;
+      } else if( !oneline ){
+          cname = THD_zzprintf( cname , "%s" , lbreak ) ;
       }
       if( option_data->mask_filename ){
         ilen  = strlen(cname) ;
@@ -5224,17 +5228,19 @@ ENTRY("calculate_results") ;
         iadd += strlen(cname)-ilen ;
       }
       if( CoefFilename != NULL ){
-        if( iadd > 60 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
         cname = THD_zzprintf( cname ,
                               " -Rbeta %s_REML" , CoefFilename ) ;
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->bucket_filename != NULL ){
-        if( iadd > 50 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
         if( option_data->fout ) cname = THD_zzprintf( cname , " -fout") ;
         if( option_data->tout ) cname = THD_zzprintf( cname , " -tout") ;
+        iadd += strlen(cname)-ilen ; ilen = strlen(cname) ;
+        if( iadd > 40 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         cname = THD_zzprintf( cname ,
                               " -Rbuck %s_REML" , option_data->bucket_filename);
         cname = THD_zzprintf( cname ,
@@ -5242,21 +5248,21 @@ ENTRY("calculate_results") ;
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->fitts_filename != NULL ){
-        if( iadd > 60 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
         cname = THD_zzprintf( cname ,
                               " -Rfitts %s_REML", option_data->fitts_filename );
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->errts_filename != NULL ){
-        if( iadd > 60 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
         cname = THD_zzprintf( cname ,
                               " -Rerrts %s_REML", option_data->errts_filename );
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->errts_filename != NULL ){
-        if( iadd > 60 ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+        if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
         cname = THD_zzprintf( cname ,
                               " -Rerrts %s_REML", option_data->errts_filename );
