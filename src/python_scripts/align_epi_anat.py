@@ -79,14 +79,7 @@ g_help_string = """
          3dAllineate -cubic -1Dmatrix_apply epi_r1_al_mat.aff12.1D  \\
                      -prefix epi_alman epi_r2+orig
 
-        Also, because input volumes are preprocessed before using 3dAllineate,
-        the script outputs copies of the preprocessed volumes as they were used
-        in 3dAllineate.
-
-         EPI_epi_in_3dAl_al+orig : EPI volume for 3dAllineate's -base
-         ANAT_epi_in_3dAl_al+orig: ANAT volume for 3dAllineate's -input
-         EPI_wt_3dAl_al+orig     : weight volume for 3dAllineate's -weight
-               
+             
     The goodness of the alignment should always be assessed. At the face of it,
     most of 3dAllineate's cost functions, and those of registration programs
     from other packages, will produce a plausible alignment but it may not be
@@ -97,8 +90,9 @@ g_help_string = """
     it is difficult to judge alignment quality by just looking at the two
     volumes. This is the case, even when you toggle quickly between one volume
     and the next; turning overlay off and using 'u' key in the slice window.
-    To aid with the assessment of alignment, you can use the script
-    @AddEdge. See the help for @AddEdge for more information on that script.
+    To aid with the assessment of alignment, you can use the -AddEdge option or
+    call the @AddEdge script directly. See the help for @AddEdge for more
+    information on that script.
         
     ---------------------------------------------
     REQUIRED OPTIONS:
@@ -125,7 +119,12 @@ g_help_string = """
     -big_move   : indicates that large displacement is needed to align the
                   two volumes. This option is off by default.
     -partial_coverage: indicates that the EPI dataset covers only a part of 
-                  the brain.    
+                  the brain. Alignment will try to guess which direction should
+                  not be shifted If EPI slices are known to be a specific 
+                  orientation, use one of these other partial_xxxx options.
+    -partial_axial
+    -partial_coronal 
+    -partial_sagittal
 
     -keep_rm_files : keep all temporary files (default is to remove them)
     -prep_only  : do preprocessing steps only
@@ -251,10 +250,19 @@ g_help_string = """
       http://afni.nimh.nih.gov/sscc/rwcox/abstracts
 
 """   
+
+#        Also, because input volumes are preprocessed before using 3dAllineate,
+#        the script outputs copies of the preprocessed volumes as they were used
+#        in 3dAllineate.
+#
+#         EPI_epi_in_3dAl_al+orig : EPI volume for 3dAllineate's -base
+#         ANAT_epi_in_3dAl_al+orig: ANAT volume for 3dAllineate's -input
+#         EPI_wt_3dAl_al+orig     : weight volume for 3dAllineate's -weight
+ 
 #   -cost          : cost function used by 3dAllineate. Default is lpc, anything
 #                    else is inferior!
 #    -cmass cmass+ss: center of mass option for 3dAllineate 
-#                     ('cmass+a','cmass+xy','nocmass',...) Default is cmass+xy.
+#                     ('cmass+a','cmass+xy','nocmass',...) Default is cmass+a.
 #    -child_anat dset1 dset2 ... : specify other anatomical datasets to align.
 #        The anatomical data will be aligned first to the parent
 #                 structural dataset. If aligning to EPI data, then the
@@ -277,7 +285,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = 1.08 # software version (update for changes)
+      self.align_version = 1.09 # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -289,8 +297,9 @@ class RegWrap:
       self.rmrm = 1   # remove temporary files
       self.prep_only = 0  # do preprocessing only
       self.odir = os.getcwd()    
-      self.tshift_flag = 0  # do time shifting on EPI
-      self.volreg_flag = 0  # do volume registration on EPI
+      self.tshift_flag = 1  # do time shifting on EPI
+      self.volreg_flag = 1  # do volume registration on EPI
+      self.resample_flag = 1 # do resample
       self.deoblique_flag = 1  # deoblique datasets first
       self.deoblique_opt = "" # deobliquing/obliquing options
       self.skullstrip_opt = "" # skullstripping options
@@ -298,8 +307,17 @@ class RegWrap:
       self.epi_base = None  # don't assume representative epi
       self.reg_mat = "" # volume registration matrix 1D file
       self.obl_a2e_mat = ""  # oblique anat to epi matrix
-
+      self.edge = 0        # don't use edges for alignment
+     
+      # options for saving temporary datasets permanently
       self.save_Al_in = 0  # don't save 3dAllineate input files
+      self.save_tsh = 0    # don't save tshifted epi
+      self.save_vr = 0     # don't save volume registered epi
+      self.save_skullstrip = 0 # don't save skullstripped (not aligned)
+      self.save_rep = 0     # don't save representative tstat epi
+      self.save_resample = 0 # don't save resampled epi
+      self.save_epi_ns = 0  # don't save skull-stripped epi
+
       self.master_epi_option = '-master SOURCE'
       self.master_tlrc_option = '-master SOURCE'  # changed to min dimension below
       self.master_anat_option = ''
@@ -314,8 +332,10 @@ class RegWrap:
                helpstr="EPI dataset to align or to which to align")
       self.valid_opts.add_opt('-anat', 1, [], \
                helpstr="Anatomical dataset to align or to which to align")
-      self.valid_opts.add_opt('-keep_rm_files', 0, [])
-      self.valid_opts.add_opt('-prep_only', 0, [])
+      self.valid_opts.add_opt('-keep_rm_files', 0, [], \
+               helpstr="Don't delete any of the temporary files created here")
+      self.valid_opts.add_opt('-prep_only', 0, [], \
+               helpstr="Do preprocessing steps only without alignment")
       self.valid_opts.add_opt('-help', 0, [], \
                helpstr="The main help describing this program")
       self.valid_opts.add_opt('-full_help', 0, [], \
@@ -326,16 +346,23 @@ class RegWrap:
                helpstr="Show version number and exit")
       self.valid_opts.add_opt('-ver', 0, [], \
                helpstr="Show version number and exit")
-      self.valid_opts.add_opt('-verb', 1, [])
-      self.valid_opts.add_opt('-align_centers', 1, ['no'], ['yes', 'no'])
-      self.valid_opts.add_opt('-anat_has_skull', 1, ['yes'], ['yes', 'no'])
+      self.valid_opts.add_opt('-verb', 1, [], \
+               helpstr="Be verbose in messages and options" )
+      self.valid_opts.add_opt('-align_centers', 1, ['no'], ['yes', 'no'],  \
+               helpstr="align centers of datasets based on spatial\n"      \
+                       "extents of the original volume.\n"                 \
+                       "Not currently enabled. Please use @Align_Centers")
+      self.valid_opts.add_opt('-anat_has_skull', 1, ['yes'], ['yes', 'no'],\
+               helpstr="Do not skullstrip anat dataset")
       self.valid_opts.add_opt('-epi_strip', 1, ['3dSkullStrip'],           \
-                              ['3dSkullStrip', '3dAutomask', 'None'])
+                              ['3dSkullStrip', '3dAutomask', 'None'],      \
+               helpstr="Method to remove skull for EPI data")
+
       self.valid_opts.add_opt('-volreg_method', 1, ['3dvolreg'], \
-                              ['3dvolreg', '3dWarpDrive', '3dAllineate'],\
-                      helpstr="Time series volume registration method\n" \
-                              "3dvolreg: rigid body least squares\n"     \
-                              "3dWarpDrive: 12 parameter least squares\n"\
+                              ['3dvolreg', '3dWarpDrive', '3dAllineate'],  \
+                      helpstr="Time series volume registration method\n"   \
+                              "3dvolreg: rigid body least squares\n"       \
+                              "3dWarpDrive: 12 parameter least squares\n"  \
                               "3dAllineate: 12 parameter mutual info\n")
       self.valid_opts.add_opt('-ex_mode', 1, ['script'],                   \
                               ['quiet', 'echo', 'dry_run', 'script'],      \
@@ -346,8 +373,15 @@ class RegWrap:
 
       self.valid_opts.add_opt('-overwrite', 0, [],\
                                helpstr="Overwrite existing files")
-      self.valid_opts.add_opt('-big_move', 0, [])
-      self.valid_opts.add_opt('-partial_coverage', 0, [])
+      self.valid_opts.add_opt('-big_move', 0, [], \
+               helpstr="Large movement between epi and anat.\n"           \
+                       "Uses twopass option for 3dAllineate.\n"           \
+                       "Consider cmass options or @Align_Centers")
+      self.valid_opts.add_opt('-partial_coverage', 0, [],                  \
+               helpstr="partial_xxxx options control center of mass adjustment")
+      self.valid_opts.add_opt('-partial_axial', 0, [])
+      self.valid_opts.add_opt('-partial_coronal', 0, [])
+      self.valid_opts.add_opt('-partial_sagittal', 0, [])
       self.valid_opts.add_opt('-AddEdge', 0, [],\
                                helpstr="Run @AddEdge script to create double"\
                                        "edge images")
@@ -359,14 +393,16 @@ class RegWrap:
       self.valid_opts.add_opt('-perc', 1, ['90'])
 #      self.valid_opts.add_opt('-fresh', 0, [])
       self.valid_opts.add_opt('-suffix', 1,['_al'])
-      self.valid_opts.add_opt('-cost', 1,['lpc'])
+      self.valid_opts.add_opt('-cost', 1,[])
 #      self.valid_opts.add_opt('-fat', 1, ['1'])
 
       # transform anat to epi by default, but allow the other way
       # the resulting transformation will be done at the end to include
       #  any volreg and oblique transformations
-      self.valid_opts.add_opt('-epi2anat', 0, [])
-      self.valid_opts.add_opt('-anat2epi', 0, [])
+      self.valid_opts.add_opt('-epi2anat', 0, [], \
+               helpstr = "align EPI dataset to anat dataset")
+      self.valid_opts.add_opt('-anat2epi', 0, [], \
+               helpstr = "align anat dataset to EPI dataset")
       
       # select base EPI dataset type
       self.valid_opts.add_opt('-epi_base', 1, [], [],                  \
@@ -393,8 +429,17 @@ class RegWrap:
       self.valid_opts.add_opt('-deoblique', 1, ['on'], ['on','off'])
       self.valid_opts.add_opt('-deoblique_opts', -1, [])
 
+      # resampling epi to anat
+      self.valid_opts.add_opt('-resample', 1, ['on'], ['on', 'off'])
+      
+      # turn off all pre-processing steps
+      self.valid_opts.add_opt('-prep_off', 0, [], \
+              helpstr = "turn off all pre-processing steps including\n" \
+                        "deoblique, tshift, volreg and resample")
       # 3dAllineate cmass options
-      self.valid_opts.add_opt('-cmass', 1, ['cmass+xy'] )
+      self.valid_opts.add_opt('-cmass', 1, [], [], \
+              helpstr = "center of mass options for 3dAllineate\n" \
+                        "Valid options include cmass+a, cmass+xy, nocmass\n" )
       
       # talairach transformed anatomical parent dataset
       self.valid_opts.add_opt('-tlrc_apar', 1, [], \
@@ -479,11 +524,38 @@ class RegWrap:
       
       # create edge images
       # do edge-based alignment
+      self.valid_opts.add_opt('-edge', 0, [],\
+               helpstr="Use internal edges to do alignment")
+
 
       self.valid_opts.trailers = 0   # do not allow unknown options
+      
+      # saving optional output datasets
       # save datasets used as input to 3dAllineate
       self.valid_opts.add_opt('-save_Al_in', 0, [],    \
                helpstr = "Save datasets used as input to 3dAllineate")
+      # save vr dataset
+      self.valid_opts.add_opt('-save_vr', 0, [],    \
+               helpstr = "Save motion-corrected epi dataset")
+      # save timeshifted dataset
+      self.valid_opts.add_opt('-save_tsh', 0, [],    \
+               helpstr = "Save time-series corrected dataset")
+      # save skullstripped anat before alignment
+      self.valid_opts.add_opt('-save_skullstrip', 0, [],    \
+               helpstr = "Save unaligned, skullstripped dataset")
+      # save skullstripped epi before alignment
+      self.valid_opts.add_opt('-save_epi_ns', 0, [],    \
+               helpstr = "Save unaligned, skullstripped EPI dataset")
+      # save representative epi tstat epi before alignment
+      self.valid_opts.add_opt('-save_rep', 0, [],    \
+               helpstr = "Save unaligned representative tstat EPI dataset")
+      # save resampled epi dataset before alignment
+      self.valid_opts.add_opt('-save_resample', 0, [],    \
+               helpstr = "Save unaligned EPI dataset resampled to anat grid")
+
+      # save all the optional datasets
+      self.valid_opts.add_opt('-save_all', 0, [],    \
+               helpstr = "Save all optional datasets")
 
       
       # weighting mask options
@@ -551,6 +623,7 @@ class RegWrap:
 
       opt = opt_list.find_opt('-cost')    
       if opt != None: self.cost = opt.parlist[0]
+      else: self.cost = 'lpc'
       
       opt = opt_list.find_opt('-pow_mask')    
       if opt != None: self.sqmask = opt.parlist[0]
@@ -568,6 +641,15 @@ class RegWrap:
          opt = opt_list.find_opt('-anat2epi')    # align anat to epi
          if opt != None: self.anat2epi = 1
 
+      opt = opt_list.find_opt('-prep_off')    # turn off all preprocessing steps
+      if opt != None: 
+          self.deoblique_flag = 0
+          self.tshift_flag = 0
+          self.volreg_flag = 0
+          self.resample_flag = 0
+          self.info_msg("turning off deobliquing tshift, volume registration, resampling")
+          # note - individual flags can be turned on, if desired
+
       opt = opt_list.find_opt('-deoblique')    # deoblique data
       if opt != None: 
           if(opt.parlist[0]=='on'):
@@ -577,8 +659,6 @@ class RegWrap:
           else:
               self.error_msg("deoblique option not on/off")
               self.ciao(1)
-      else:
-          self.deoblique_flag = 1              
 
       opt = opt_list.find_opt('-tshift')    # do time shifting
       if opt != None: 
@@ -589,9 +669,6 @@ class RegWrap:
           else:
               self.error_msg("tshift option not on/off")
               self.ciao(1)
-      else:
-          self.tshift_flag = 1              
-
 
       opt = opt_list.find_opt('-volreg')    # do volume registration
       if opt != None: 
@@ -603,11 +680,44 @@ class RegWrap:
           else:
               self.error_msg("volreg option not on/off");
               self.ciao(1)
-      else:
-          self.volreg_flag = 1              
 
-      opt = opt_list.find_opt('-save_Al_in')  # save 3dAllineate input datasets
+      opt = opt_list.find_opt('-resample')    # resample epi to anat
+      if opt != None: 
+          if(opt.parlist[0]=='on'):
+              self.resample_flag = 1
+          elif(opt.parlist[0]=='off'):
+              self.resample_flag = 0
+              self.info_msg("turning off resampling")
+          else:
+              self.error_msg("resample option not on/off");
+              self.ciao(1)
+
+
+      # optional data to save
+      opt = opt_list.find_opt('-save_Al_in')       # save 3dAllineate input datasets
       if opt != None: self.save_Al_in = 1
+      opt = opt_list.find_opt('-save_tsh')         # save timeshifted data
+      if opt != None: self.save_tsh = 1
+      opt = opt_list.find_opt('-save_vr')          # save volume registered epi data
+      if opt != None: self.save_vr = 1
+      opt = opt_list.find_opt('-save_skullstrip')  # save unaligned skullstripped
+      if opt != None: self.save_skullstrip = 1
+      opt = opt_list.find_opt('-save_epi_ns')      # save unaligned skullstripped epi
+      if opt != None: self.save_epi_ns = 1
+      opt = opt_list.find_opt('-save_rep')         # save unaligned representative epi
+      if opt != None: self.save_rep = 1
+      opt = opt_list.find_opt('-save_resample')    # save unaligned resampled epi
+      if opt != None: self.save_resample = 1
+
+      opt = opt_list.find_opt('-save_all')  # save all optional output datasets
+      if ((opt != None) or self.prep_only):
+         self.save_Al_in = 1      # save 3dAllineate input files
+         self.save_tsh = 1        # save tshifted epi           
+         self.save_vr = 1         # save volume registered epi  
+         self.save_skullstrip = 1 # save skullstripped (not aligned)
+         self.save_rep = 1        # save representative tstat epi
+         self.save_resample = 1   # save resampled epi
+         self.save_epi_ns = 1     # save skull-stripped epi
 
      
    def get_user_opts(self):
@@ -854,11 +964,27 @@ class RegWrap:
       #check for various center of mass options
       optc = self.user_opts.find_opt('-cmass')
       if optc == None :
-         ps.cmass = 'cmass+xy'
-         #if no  cmass option entered, partial coverage?
+         ps.cmass = 'nocmass' # was cmass+xy by default
+         #if no cmass option entered, partial coverage?
+         cmass_opts = 0
          opt = self.user_opts.find_opt('-partial_coverage')
          if opt != None:
-            ps.cmass = 'nocmass'
+            ps.cmass = 'cmass+a'
+            cmass_opts += 1
+         opt = self.user_opts.find_opt('-partial_axial')
+         if opt != None:
+            ps.cmass = 'cmass+xy'
+            cmass_opts += 1
+         opt = self.user_opts.find_opt('-partial_coronal')
+         if opt != None:
+            ps.cmass = 'cmass+xz'
+            cmass_opts += 1
+         opt = self.user_opts.find_opt('-partial_sagittal')
+         if opt != None:
+            ps.cmass = 'cmass+yz'
+            cmass_opts += 1
+         if cmass_opts > 1:
+            self.error_msg("Can only use a single partial_xxx coverage option")
       else:
          ps.cmass = optc.parlist[0]
 
@@ -978,6 +1104,16 @@ class RegWrap:
       if opt != None:
          ps.rewrite = 1
 
+      opt = self.user_opts.find_opt('-edge')  # use internal edges to drive alignment
+      if (opt != None):
+         self.edge = 1
+         opt = self.user_opts.find_opt('-cost')    
+         if opt == None: self.cost = 'lpa'  # just use least squares cost for aligning edges
+         if(featuresize==0):                 # set feature size if not already set
+            featuresize = 0.5
+            blursize = 2.0 * featuresize
+            aljoin = '-twoblur %f -blok "RHDD(%f)"' % (blursize, featuresize)
+            ps.AlOpt = "%s %s" % (ps.AlOpt, aljoin)
 
       # all inputs look okay  - this goes after all inputs. ##########
       return 1
@@ -1008,6 +1144,7 @@ class RegWrap:
        if(min_dx==0.0):
            min_dx = 1.0
        return (min_dx)
+
    
    # determine if dataset has time shifts in slices
    def tshiftable_dset( self, dset=None) :
@@ -1101,28 +1238,35 @@ class RegWrap:
                     cmass, self.anat_mat, self.master_anat_3dAl_option, alopt), ps.oexec)
          com.run()
 
-         if(ps.obl_a2e_mat!="") :
+         if((ps.obl_a2e_mat!="")  or ps.edge) :
             o = a.new("%s%s" % (ps.anat0.prefix, suf)) # save the permanent data
             if (not o.exist() or ps.rewrite or ps.dry_run()):
                o.delete(ps.oexec)
             else:
                self.exists_msg(o.input())
-            # overall transformation A to E is (E2A^-1 PreShift/Oblique)
-            # 1Dmatrix_apply takes E to A as input so inverse
-            #    E to A = Obl^-1 E2A  
-            obl_mat = "%s -I" % ps.obl_a2e_mat
-            e2a_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.out_prefix(),suf)
-            # combine transformations
-            # earliest transformation is last as input to cat_matvec
-            com = shell_com(  \
-                  "cat_matvec -ONELINE %s %s > %s" % \
-                  (self.anat_mat, obl_mat, e2a_mat), ps.oexec)
-            com.run();
-            self.info_msg( "Combining anat to epi and oblique transformations")
+
+            # for oblique and edge data, need to apply matrix to skullstripped anat
+            if(ps.obl_a2e_mat!=""): 
+               # overall transformation A to E is (E2A^-1 PreShift/Oblique)
+               # 1Dmatrix_apply takes E to A as input so inverse
+               #    E to A = Obl^-1 E2A  
+               obl_mat = "%s -I" % ps.obl_a2e_mat
+               e2a_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.out_prefix(),suf)
+               # combine transformations
+               # earliest transformation is last as input to cat_matvec
+               com = shell_com(  \
+                     "cat_matvec -ONELINE %s %s > %s" % \
+                     (self.anat_mat, obl_mat, e2a_mat), ps.oexec)
+               com.run();
+               self.info_msg( "Combining anat to epi and oblique transformations")
+            else:   # just apply the matrix to the original data (edges)
+               e2a_mat = self.anat_mat
+               self.info_msg( "Applying transformation to skullstripped anat")
+
             com = shell_com(  \
                   "3dAllineate -base %s -1Dmatrix_apply %s " \
                   "-prefix %s -input %s  %s "   %  \
-                  ( e.input(), e2a_mat, o.out_prefix(), ps.anat0.input(),\
+                  ( e.input(), e2a_mat, o.out_prefix(), ps.anat_ns0.input(),\
                     self.master_anat_3dAl_option ), ps.oexec)
 
             com.run()
@@ -1382,8 +1526,68 @@ class RegWrap:
       else:
          self.exists_msg(o.input())
 
+      return o
+
+   # create edge dataset of internal brain structure edges
+   def edge_dset(self, e=None, prefix = "temp_edge", binarize=0):
+      o = e.new(prefix)
+
+      if (not o.exist() or ps.rewrite or ps.dry_run()):
+         o.delete(ps.oexec)
+         self.info_msg("Creating edge dataset")
+         com = shell_com("3dAutomask -overwrite -erode 5 -prefix %s_edge_mask %s" \
+                         % (prefix, e.input()), ps.oexec)
+         com.run()
+
+         if(binarize):
+            lprefix = "%s_edge_cvar" % prefix
+         else:
+            lprefix = prefix
+
+         com = shell_com("3dLocalstat -overwrite -mask %s_edge_mask+orig -nbhd 'RECT(-1,-1,0)'" \
+                         " -stat cvar -prefix %s %s" % \
+                         (prefix, lprefix, e.input()), ps.oexec)
+         com.run();
+
+         if(binarize):
+            com = shell_com("3dhistog -omit 0 -max 1 -nbins 1000 %s_edge_cvar+orig " \
+                            " > %s_edge_histo.1D" % (prefix, prefix), ps.oexec)
+            com.run()
+
+            com = shell_com("3dTstat -argmax -prefix %s_edge_histomax " \
+                            "%s_edge_histo.1D'[1]'\\' " %               \
+                            (prefix, prefix), ps.oexec)
+            com.run()
+
+            com = shell_com("1dcat %s_edge_histomax.1D" % prefix, ps.oexec, capture=1)
+            com.run()
+
+            if(ps.dry_run()): edgeindex = 123
+            else:  edgeindex = int(com.val(0,0))
+
+            com = shell_com("1dcat %s_edge_histo.1D'[0]{%d}'" % \
+                  (prefix, edgeindex), ps.oexec, capture=1)
+            com.run()
+
+            if(ps.dry_run()): edgevalue = 0.0123
+            else:  edgevalue = float(com.val(0,0))
+
+            # threshold anatomical and EPI edge data
+            self.info_msg("Thresholding edges at %f" % edgevalue)
+            com = shell_com('3dcalc -a %s_edge_cvar+orig -overwrite -expr "step(a-%f)"' \
+                ' -prefix %s' % (prefix, edgevalue, o.out_prefix()), ps.oexec)
+            com.run()
+
+         if (not o.exist() and not ps.dry_run()):
+            print "** ERROR: Could not create edge dataset"
+            return None
+      else:
+         self.exists_msg(o.input())
+
             
       return o
+
+
 
    # deoblique epi dataset
    def deoblique_epi(self, e=None, deoblique_opt="", prefix="temp_deob"):
@@ -1480,15 +1684,18 @@ class RegWrap:
          else:
             vrcom = '3dvolreg'
 
+         if (vrcom == '3dWarpDrive'):
+            vrcom = '3dWarpDrive -affine_general'
+            
          # find base for registration
          # could be: if number just use that as base
          # if((ps.volreg_base=='median') or (ps.volreg_base=='max') 
          #   or (ps.volreg_base=='mean')):   
          # choose a statistic as representative
          # if an integer, choose a single sub-brick
-         if(childflag):
+         if(childflag) or (vrcom != "3dvolreg") :
             base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
-         elif(ps.volreg_base.isdigit()): 
+         elif(ps.volreg_base.isdigit()):
             base = "%s" % ps.volreg_base
 
          # otherwise median, mean or max
@@ -1660,10 +1867,33 @@ class RegWrap:
 
 
    # Create double edge images for later viewing
-   def add_edges(self, d1, d2, d3):
+   def add_edges(self, d1, d2, d3, d1name, d2name, d3name):
+      if (d1name==""):
+         d1AE = d1
+      else:
+         d1AE = d1.new("%s" % d1name)
+      if (d2name==""):
+         d2AE = d2
+      else:
+         d2AE = d2.new("%s" % d2name)
+      if (d3name==""):
+         d3AE = d3
+      else:
+         d3AE = d3.new("%s" % d3name)
+      
+      com = shell_com("mkdir AddEdge", ps.oexec)
+      com.run()
+
+      com = shell_com("3dcopy %s AddEdge/%s" % (d1.input(), d1AE.prefix), ps.oexec)
+      com.run()
+      com = shell_com("3dcopy %s AddEdge/%s" % (d2.input(), d2AE.prefix), ps.oexec)
+      com.run()
+      com = shell_com("3dcopy %s AddEdge/%s" % (d3.input(), d3AE.prefix), ps.oexec)
+      com.run()
+
       com = shell_com( 
-            "@AddEdge %s %s %s" \
-            % (d1.input(), d2.input(), d3.input()), ps.oexec)
+            "cd AddEdge; @AddEdge %s %s %s; cd .. " \
+            % (d1AE.input(), d2AE.input(), d3AE.input()), ps.oexec)
       com.run()
 
    # do the preprocessing of the EPI data    
@@ -1671,17 +1901,20 @@ class RegWrap:
       basesuff = ""
       basename = self.epi.prefix
       o = self.epi;
-      if childflag:    # no temporary files for children
-         prepre = ""
-      else:
-         prepre = "__tt_"
-      suff = ps.suffix
+#      if childflag:    # no temporary files for children with exceptions below
+#         prepre = ""
+#      else:
+#         prepre = "__tt_"
+#      suff = ps.suffix
  
       # time shift epi data, prepend a prefix
       if(self.tshift_flag):
          if(self.tshiftable_dset(o)) :
             basesuff = "%s_tsh" % basesuff
-            prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
+            if(ps.save_tsh):
+                prefix = "%s%s" % (basename,basesuff)
+            else:
+                prefix = "__tt_%s%s" % (basename,basesuff)
             o = self.tshift_epi( o, ps.tshift_opt, prefix=prefix)
          else:
             self.info_msg("Can not do time shifting of slices. "
@@ -1695,7 +1928,10 @@ class RegWrap:
          if(ps.dry_run() or \
 	   (not ps.dry_run() and (dset_dims(o.input())[3] > 1))) :
              basesuff = "%s_vr" % basesuff
-             prefix = "%s%s%s" % (basename,basesuff,suff) # don't use prepre
+             if(ps.save_vr):
+                prefix = "%s%s" % (basename,basesuff) # don't use prepre
+             else:
+                prefix = "__tt_%s%s" % (basename,basesuff) # don't save
              o = self.register_epi( o, ps.reg_opt, prefix, childflag=childflag)
          else:
             self.info_msg("Skipping time series volume registration. "
@@ -1711,18 +1947,43 @@ class RegWrap:
  
       # reduce epi to a single representative sub-brick
       basesuff = "%s_ts" % basesuff
-      prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
+      if(ps.save_rep):
+         prefix = "%s%s" % (basename,basesuff)
+      else:
+         prefix = "__tt_%s%s" % (basename,basesuff)
+
       o = self.tstat_epi(o, ps.tstat_opt, prefix)
 
       # resample epi to match anat
-      basesuff = "%s_rs" % basesuff
-      prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
-      e = self.resample_epi( o,"", prefix)
+      if(self.resample_flag) :
+         basesuff = "%s_rs" % basesuff
+         if(ps.save_resample):
+            prefix = "%s%s" % (basename,basesuff)
+         else:
+            prefix = "__tt_%s%s" % (basename,basesuff)
+         
+         e = self.resample_epi( o,"", prefix)
+      else:
+         e = o  # no need to resample
 
       # remove outside brain or skull
       basesuff = "%s_ns" % basesuff
-      prefix = "%s%s%s%s" % (prepre,basename,basesuff,suff)
+      if(self.save_epi_ns) :
+         prefix = "%s%s" % (basename,basesuff)
+      else:
+         prefix = "__tt_%s%s" % (basename,basesuff)
+      
       skullstrip_o = self.skullstrip_data( e, use_ss, ps.skullstrip_opt, prefix)
+
+      # use edges to align optionally
+      if(ps.edge) :
+         basesuff = "%s_edge" % basesuff
+         if(ps.save_rep):
+            prefix = "%s%s" % (basename,basesuff)
+         else:
+            prefix = "__tt_%s%s" % (basename,basesuff)
+
+         skullstrip_o = self.edge_dset(skullstrip_o, prefix, binarize=0)
 
       return  tshift_o, volreg_o, skullstrip_o
 
@@ -1762,6 +2023,8 @@ class RegWrap:
       else:
          n = a
          
+      ps.anat_ns0 = n    # pre-obliquing or edging skullstripped anat
+
       # match obliquity of anat to epi data
       if(self.deoblique_flag):
          # if either anat or epi is oblique or there is a pre-transformation matrix,
@@ -1775,7 +2038,12 @@ class RegWrap:
                 self.info_msg("Spacing for anat to oblique EPI alignment is %f" % min_d)
                
             n = self.oblique_anat2epi(n, ps.epi, ps.deoblique_opt)
-      
+
+      # use edges to match optionally
+      if(self.edge):
+         prefix = "%s_edge" % a.prefix
+         n = self.edge_dset(n, prefix,binarize=0)
+
       #do we need to shift?
 #      optc = self.user_opts.find_opt('-align_centers')
 #      if optc != None and optc.parlist[0] == 'yes': 
@@ -1802,9 +2070,9 @@ class RegWrap:
       opt = ps.user_opts.find_opt('-epi')
       ein = afni_name(opt.parlist[0])
 
-      # save skull stripped anat
-      if(ps.skullstrip):
-         ao_ns = ain.new("%s_ns%s" % (ain.prefix, suf))
+      # save skull stripped anat before alignment
+      if(ps.skullstrip and ps.save_skullstrip):
+         ao_ns = ain.new("%s_ns" % ain.prefix)
          self.copy_dset( ps.anat_ns, ao_ns, 
           "Creating final output: skullstripped anatomical data", ps.oexec)
 
@@ -1816,18 +2084,20 @@ class RegWrap:
           "Creating final output: anat data aligned to epi data", ps.oexec)
          self.save_history(o,ps.oexec)
 
-         # save the timeshifted EPI data
-         if (self.epi_ts and self.tshift_flag) :
-            eo = epi_in.new("%s_tshft%s" % (ein.prefix, suf))
-            self.copy_dset( self.epi_ts, eo,
-             "Creating final output: time-shifted epi", ps.oexec)
+         if (ps.save_tsh):
+            # save the timeshifted EPI data
+            if (self.epi_ts and self.tshift_flag) :
+               eo = epi_in.new("%s_tshft" % ein.prefix)
+               self.copy_dset( self.epi_ts, eo,
+                "Creating final output: time-shifted epi", ps.oexec)
 
          # save the volume registered EPI data
-         if (self.epi_vr and self.volreg_flag):
-            eo = epi_in.new("%s_vr%s" % (ein.prefix, suf))
-            self.copy_dset( self.epi_vr, eo, 
-              "Creating final output: time series volume-registered epi",
-               ps.oexec)
+         if (ps.save_vr):
+            if (self.epi_vr and self.volreg_flag):
+               eo = epi_in.new("%s_vr" % ein.prefix)
+               self.copy_dset( self.epi_vr, eo, 
+                 "Creating final output: time series volume-registered epi",
+                  ps.oexec)
 
       # save Allineate input datasets
       if(ps.save_Al_in):
@@ -1909,7 +2179,7 @@ class RegWrap:
       a = ps.anat0       # use parent anat
 
       if(ps.prep_only):  # if preprocessing only, exit now
-         ps.ciao(0)
+         return
 
       if (ps.epi2anat) :   # does the user want the epi aligned to the anat
          # compute transformation just from applying inverse
@@ -1953,9 +2223,12 @@ if __name__ == '__main__':
    a = ps.anat_ns
       
    #Create a weight for final pass
-   ps.epi_wt = \
-      ps.create_weight( e, float(ps.sqmask), ps.boxmask, \
+   if(not(ps.edge)):
+      ps.epi_wt = \
+         ps.create_weight( e, float(ps.sqmask), ps.boxmask, \
                         ps.binmask, ps.perc, -1, suf = "_wt")
+   else: ps.epi_wt = e  # use binary edge image for weight too
+   
    if(ps.prep_only):  # if preprocessing only, exit now
       ps.ciao(0)
       
@@ -1971,34 +2244,42 @@ if __name__ == '__main__':
          ps.align_epi2anat(ps.epi_ts, a, ps.AlOpt, suf=ps.suffix)
       if (not ps.epi_alnd):
          ps.ciao(1)
-      if(ps.AddEdge):
-         ps.add_edges(a, e, ps.epi_alnd )
    else:
       ps.epi_alnd = ''
-      if(ps.AddEdge):
-         ps.add_edges(e, a, ps.anat_alnd )
       
    if (not ps.anat2epi):
       ps.anat_alnd = ''
+   if(ps.AddEdge):
+      com = shell_com(  "rm -f AddEdge/*", ps.oexec)
+      com.run()     
+      if (ps.epi2anat):
+         ps.add_edges(ps.anat_ns, ps.epi_ns, ps.epi_alnd,"anat_ns","epi_ns","" )
+      if (ps.anat2epi):
+         ps.add_edges(ps.epi_ns, ps.anat_ns, ps.anat_alnd,"epi_ns","anat_ns","" )
+
       
    #Create final results
    ps.create_output(ps.anat_alnd, ps.anat_alndwt, ps.epi_alnd, \
         "%s" % ps.suffix, e, a)
         
+
+   #cleanup?
+   if (ps.rmrm):
+      ps.cleanup()
    
    # process the children
    if ps.child_epis != None: 
       for child_epi_name in ps.child_epis.parlist:
          child_epi = afni_name(child_epi_name) 
          ps.process_child_epi(child_epi)
+         if (ps.rmrm):  # cleanup after the children, remove any extra files
+            ps.fresh_start(child_epi.prefix, apref="", rmold=0)
 
-   #cleanup?
-   if (ps.rmrm):
-      ps.cleanup()
 
    print "\n# Finished alignment successfully"
    if(ps.AddEdge):
       print "To view edges produced by @AddEdge, type:"
+      print "cd AddEdge"
       print "afni -niml -yesplugouts &\n@AddEdge"
 
    ps.ciao(0)

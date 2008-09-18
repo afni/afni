@@ -49,7 +49,18 @@
 */
 
 afni_history_struct dglen_history[] = {
-{ 29 , AUG , 2008 , DRG , "align_epi_anat.py" , 
+{ 18 , SEP , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY, "More options",
+    "Intermediate file saved optionally now,\n"
+    "partial_axial,sagittal,coronal options\n"
+    "Edge-based method, nocmass default, resample step optional,\n"
+    "Added options to support searching for smaller structures,\n"
+    "3dWarpDrive can be used optionally as aligning program\n"
+    "prep_off option to turn off several preprocessing steps\n"
+    "AddEdge option uses simplified names in output in new directory"
+} ,
+{
+ 29 , AUG , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_MODIFY, "Feature size, AddEdge, skullstrip,rat options" ,
     "Added options to support searching for smaller structures,\n"
     "an option for rat brain alignment, alternate options for 3dSkullstrip\n"
