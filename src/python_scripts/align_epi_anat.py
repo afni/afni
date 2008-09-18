@@ -418,19 +418,19 @@ class RegWrap:
                         "Valid choices can be, for example, 0,5,median")
 
       # do volume registration of EPI as part of this whole mess
-      self.valid_opts.add_opt('-volreg', 1, ['on'], ['on','off'])
+      self.valid_opts.add_opt('-volreg', 1, [], ['on','off'])
       self.valid_opts.add_opt('-volreg_opts', -1, ["-cubic"])
  
       # do time shifting
-      self.valid_opts.add_opt('-tshift', 1, ['on'], ['on','off'])
+      self.valid_opts.add_opt('-tshift', 1, [], ['on','off'])
       self.valid_opts.add_opt('-tshift_opts', -1, [])
 
       # obliquity options
-      self.valid_opts.add_opt('-deoblique', 1, ['on'], ['on','off'])
+      self.valid_opts.add_opt('-deoblique', 1, [], ['on','off'])
       self.valid_opts.add_opt('-deoblique_opts', -1, [])
 
       # resampling epi to anat
-      self.valid_opts.add_opt('-resample', 1, ['on'], ['on', 'off'])
+      self.valid_opts.add_opt('-resample', 1, [], ['on', 'off'])
       
       # turn off all pre-processing steps
       self.valid_opts.add_opt('-prep_off', 0, [], \
