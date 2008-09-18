@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+/***** 3dREMLfit.c *****/
+
 #undef FLOATIZE      /* we will use double precision for matrices */
 #include "remla.c"   /* do NOT change this to FLOATIZE !!! */
 
@@ -34,7 +36,7 @@ static void vstep_print(void)
 static int    Argc ;
 static char **Argv ;
 
-/*! To create an empty dataset. */
+/*! To create an empty dataset, with zero-filled sub-bricks. */
 
 THD_3dim_dataset * create_float_dataset( THD_3dim_dataset *tset ,
                                          int nvol , char *prefix, int func )
@@ -114,6 +116,16 @@ typedef struct {
   char **beta_lab , **ttst_lab , *ftst_lab ;
 } GLT_index ;
 
+/*-------------------------------------------------------------------------*/
+/*! Create a struct for putting values from a GLT into a bucket dataset:
+     * ivfirst = index of first sub-brick to get a value
+     * nrow    = number of rows in the GLT
+     * do_beta = whether to include beta values in the output
+     * do_ttst = whether to include t-statistics in the output
+     * do_ftst = whether to include F-statistics in the output
+     * name    = prefix name for this GLT (for sub-brick labels)
+*//*-----------------------------------------------------------------------*/
+
 GLT_index * create_GLT_index( int ivfirst , int nrow ,
                               int do_beta , int do_ttst , int do_ftst ,
                               char *name )
@@ -165,7 +177,8 @@ GLT_index * create_GLT_index( int ivfirst , int nrow ,
    gin->ivbot = ivfirst ; gin->ivtop = iv-1 ; return gin ;
 }
 
-/*--------------------------------------------------------------------------*/
+/*==========================================================================*/
+/********************************** Main program ****************************/
 
 int main( int argc , char *argv[] )
 {
