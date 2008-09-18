@@ -176,7 +176,7 @@ int main( int argc , char *argv[] )
    float xx,yy,zz ;
    int nn , ii , good=0 ;
    byte old_surefit_mode = 1;
-   THD_3dim_dataset *aset=NULL , *oset=NULL ;
+   THD_3dim_dataset *aset=NULL , *oset=NULL ; char *oname=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) Syntax() ;
 
@@ -275,12 +275,15 @@ int main( int argc , char *argv[] )
          sprintf(lbuf,"%s%s+orig.HEAD", aset->dblk->diskptr->directory_name,
                                         aset->dblk->diskptr->prefix         );
 
-         oset = THD_open_dataset(lbuf) ;
+         oname = strdup(lbuf) ;
+         oset  = THD_open_dataset(lbuf) ;
+#if 0
          if( !ISVALID_DSET(oset) ){
             char str[NBUF] ;
             sprintf(str,"-apar: Can't open dataset %s",lbuf) ;
             errex(str) ;
          }
+#endif
 
          warp = aset->warp ;
          iarg++ ; continue ;
@@ -361,6 +364,13 @@ int main( int argc , char *argv[] )
 
    if( strstr(cpt,"BeginHeader") != NULL ) itype = SUREFIT ;
    else                                    itype = AFNI_1D ;
+
+   if( itype == SUREFIT && oset == NULL ){
+     ERROR_exit(
+        "SureFit transformation requires that the +orig dataset also exists:\n"
+        "   %s" ,
+      oname ) ;
+   }
 
    /*-- if SureFit, echo all header stuff to the output --*/
 
