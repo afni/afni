@@ -99,17 +99,17 @@ static char * gifti_history[] =
   "     - added gifti_free_CS_list, gifti_add_empty_CS\n"
   "\n"
   "------------------------ initial release version -----------------------\n",
-  "1.0.0  13 May, 2008 : release version of gifticlib\n",
+  "1.0  13 May, 2008 : release version of gifticlib\n",
   "     - allowed external data\n"
   "     - added gifti_read/write_extern_DA_data() and\n"
   "             gifti_set_extern_filelist()\n"
-  "1.0.1  02 June, 2008 :\n",
+  "1.1  02 June, 2008 :\n",
   "     - added CMakeLists.txt and XMLCALL update from Simon Warfield\n"
   "       (define XMLCALL for pre-1.95.7 versions of expat)\n"
   "     - added LICENSE.gifti\n"
 };
 
-static char gifti_version[] = "gifti library version 1.0.1, 2 June, 2008";
+static char gifti_version[] = "gifti library version 1.1, 2 June, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
