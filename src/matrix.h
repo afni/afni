@@ -160,6 +160,7 @@ void array_to_matrix (int rows, int cols, float ** f, matrix * m);
 */
 
 void matrix_equate (matrix a, matrix * b);
+void matrix_enlarge (matrix a, int nradd, int ncadd, matrix *b);
 
 
 /*---------------------------------------------------------------------------*/

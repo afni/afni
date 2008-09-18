@@ -225,6 +225,9 @@ int main( int argc , char *argv[] )
    char **beta_lab=NULL ;
    int do_FDR = 1 ;
 
+   MRI_IMARR *imar_addbase=NULL ;
+   int        ncol_addbase=0 , nrega=0 , nbad ;
+
    /**------- Get by with a little help from your friends? -------**/
 
    Argc = argc ; Argv = argv ;
@@ -267,9 +270,22 @@ int main( int argc , char *argv[] )
       "\n"
       " -matrix mmm = Read the matrix 'mmm', which should have been\n"
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
+      "              * N.B.: 3dREMLfit will NOT work with all zero columns,\n"
+      "                      unlike 3dDeconvolve.\n"
       "\n"
       " -mask kkk   = Read dataset 'kkk' as a mask for the input.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
+#if 0
+      "\n"
+      " -addbase bb = You can add baseline model columns to the matrix with\n"
+      "                 this option.  Each column in the .1D file 'bb' will\n"
+      "                 be appended to the matrix.  This file must have at\n"
+      "                 least as many rows as the matrix does.\n"
+      "              * Multiple -addbase options can be used, if needed.\n"
+      "              * If the matrix from 3dDeconvolve was censored, then
+      "                  this file must be censored to match.  3dREMLfit\n"
+      "                  will NOT censor the 'bb' time series for you!\n"
+#endif
       "\n"
       "------------------------------------------------------------------------\n"
       "Output Options (at least one must be given; 'ppp' = dataset prefix name)\n"
@@ -544,6 +560,18 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc ){
 
+     if( strcasecmp(argv[iarg],"-addbase") == 0 ){
+       MRI_IMAGE *im ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       im = mri_read_1D( argv[iarg] ) ;
+       if( im == NULL ) ERROR_exit("Can't read -addbase file '%s'",argv[iarg]) ;
+       if( imar_addbase == NULL ) INIT_IMARR(imar_addbase) ;
+       mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
+       ADDTO_IMARR( imar_addbase , im ) ;
+       ncol_addbase += im->ny ;
+       iarg++ ; continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-noFDR") == 0 ){
        do_FDR = 0 ; iarg++ ; continue ;
      }
@@ -695,6 +723,7 @@ STATUS("options done") ;
    /**-------- sanity checks, dataset input, maskifying --------**/
 
    if( inset             == NULL ) ERROR_exit("No -input dataset?!") ;
+   if( nelmat            == NULL ) ERROR_exit("No -matrix file?!") ;
    if( nprefixR+nprefixO == 0    ) ERROR_exit("No output datasets at all?!") ;
    if( nprefixR          == 0    ) WARNING_message("No REML output datasets?!") ;
 
@@ -864,6 +893,68 @@ STATUS("re-create matrix") ;
        ERROR_exit("ColumnLabels attribute in matrix is malformed!?") ;
      beta_lab = gsar->str ;
    }
+
+   /**** check -addbase images for column lengths, etc. ****/
+
+   if( imar_addbase != NULL ){
+     MRI_IMAGE *im ; int pp ; matrix Xa ; float *iar ;
+
+     nrega = nreg + ncol_addbase ;  /* new number of regressors */
+
+     for( nbad=ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
+       im = IMARR_SUBIM( imar_addbase , ii ) ;
+       if( im->nx < ntime ){
+         ERROR_message("-addbase file '%s' has %d rows, less than matrix's %d",
+                       im->name , im->nx , ntime ) ;
+         nbad++ ;
+       } else if( im->nx > ntime ){
+         WARNING_message("-addbase file '%s' has %d rows, more than matrix's %d",
+                         im->name , im->nx , ntime ) ;
+       }
+     }
+     if( nbad > 0 ) ERROR_exit("Cannot continue after -addbase errors!") ;
+
+     ddof  = ntime - nrega ;
+     if( ddof < 1 )
+       ERROR_exit("matrix has more columns than rows after -addbase!") ;
+
+     /* make up extra labels for these columns */
+
+     if( beta_lab != NULL ){
+       char lll[32] ;
+       beta_lab = (char **)realloc( beta_lab , sizeof(char *)*nrega ) ;
+       for( kk=nreg,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
+         im = IMARR_SUBIM( imar_addbase , ii ) ;
+         for( jj=0 ; jj < im->ny ; jj++ ){
+           if( im->ny > 1 ) sprintf(lll,"%.16s[%d]",im->name,jj) ;
+           else             sprintf(lll,"%.16s"    ,im->name   ) ;
+           beta_lab[kk++] = strdup(lll) ;
+         }
+       }
+     }
+
+     /* make up a new matrix, add the columns to it, and proceed */
+
+     matrix_initialize( &Xa ) ;
+     matrix_enlarge( X , 0 , ncol_addbase , &Xa ) ;
+     for( kk=nreg,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
+       im = IMARR_SUBIM(imar_addbase,ii) ; iar = MRI_FLOAT_PTR(im) ;
+       for( jj=0 ; jj < im->ny ; jj++,iar+=im->nx ){
+         for( pp=0 ; pp < ntime ; pp++ ) Xa.elts[pp][kk] = (MTYPE)iar[pp] ;
+       }
+     }
+     matrix_destroy( &X ) ; X = Xa ; nreg = nrega ;
+   }
+
+   /** check matrix for all zero columns **/
+
+   for( nbad=jj=0 ; jj < nreg ; jj++ ){
+     for( ii=0 ; ii < ntime && X.elts[ii][jj]==0.0 ; ii++ ) ; /*nada*/
+     if( ii==ntime ){
+       ERROR_message("matrix column #%d is all zero!?",jj) ; nbad++ ;
+     }
+   }
+   if( nbad > 0 ) ERROR_exit("Cannot continue with all zero columns!") ;
 
    /* extract stim information from matrix header */
 
@@ -1121,10 +1212,8 @@ STATUS("make other GLTs") ;
          }
        }
        if( glt_ind[ii]->ftst_ind >= 0 ){
-/* if( ii == 0 )INFO_message("brick_label[%d] = %s",glt_ind[ii]->ftst_ind , glt_ind[ii]->ftst_lab  ) ; */
          EDIT_BRICK_LABEL( Rbuckt_dset , glt_ind[ii]->ftst_ind ,
                                          glt_ind[ii]->ftst_lab  ) ;
-/* if( ii == 0 )INFO_message("brick_to_fift[%d] = %d / %d",  glt_ind[ii]->ftst_ind , nr , ddof ) ; */
          EDIT_BRICK_TO_FIFT( Rbuckt_dset , glt_ind[ii]->ftst_ind , nr , ddof ) ;
        }
      }

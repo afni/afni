@@ -453,6 +453,32 @@ void matrix_equate (matrix a, matrix * b)
 
 /*---------------------------------------------------------------------------*/
 /*!
+  Make a copy of the first matrix,
+    extending it with nradd rows and ncadd columns (zero-filled).
+*/
+
+void matrix_enlarge(matrix a, int nradd, int ncadd, matrix *b)
+{
+  register int i;
+  register int rows, cols;
+
+  if( ncadd < 0 ) ncadd = 0 ;  /* no subtraction allowed */
+  if( nradd < 0 ) nradd = 0 ;
+
+  rows = a.rows;
+  cols = a.cols;
+
+  matrix_create (rows+nradd, cols+ncadd, b) ;  /* zero-filled */
+
+  for (i = 0;  i < rows;  i++){
+    if( cols > 0 )
+      memcpy( b->elts[i] , a.elts[i] , sizeof(double)*cols ) ;
+  }
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*!
   Extract p columns (specified by list) from matrix a.  Result is matrix b.
 */
 
