@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , SEP , 2008 , RWC , "Vecwarp" , MICRO , TYPE_BUG_FIX ,
+   "Only require +orig dataset if user actually NEEDS it" ,
+   "Program required the +orig version of the -apar dataset, which is needed\n"
+   "for SureFit work, even if it wasn't actually going to be used.  Not any\n"
+   "more." } ,
+
  { 16 , SEP , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_MODIFY ,
    "Made 3dREMLfit command echo more complete for user's convenience" ,
    NULL } ,
