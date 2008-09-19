@@ -6,7 +6,7 @@
 #include "remla.c"   /* do NOT change this to FLOATIZE !!! */
 
 #undef  INMASK
-#define INMASK(i) ( mask == NULL || mask[i] != 0 )
+#define INMASK(i) ( mask[i] != 0 )
 
 #undef MEMORY_CHECK
 #ifdef USING_MCW_MALLOC
@@ -187,7 +187,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar=NULL, *bar=NULL ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
    float *iv , *jv ; int niv ;
-   int iarg, ii,jj,kk, nreg,ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
+   int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
    MTYPE rhomax=0.8 , bmax=0.8 ; int nlevab=3 ;
    char *cgl , *rst ;
@@ -212,7 +212,7 @@ int main( int argc , char *argv[] )
 
    int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL , izero ;
    NI_int_array *giar ; NI_str_array *gsar ; NI_float_array *gfar ;
-   float mfilt_radius=0.0 , dx,dy,dz ; int do_mfilt=0 , do_dxyz , nx,ny,nz ;
+   float mfilt_radius=0.0 , dx,dy,dz ; int do_mfilt=0 , do_dxyz , nx,ny,nz,nxy ;
    int do_Ostuff=0 , do_Rstuff=0 ;
 
    int glt_num=0, glt_rtot=0 ; matrix **glt_mat=NULL ; char **glt_lab=NULL ;
@@ -225,8 +225,12 @@ int main( int argc , char *argv[] )
    char **beta_lab=NULL ;
    int do_FDR = 1 ;
 
-   MRI_IMARR *imar_addbase=NULL ;
-   int        ncol_addbase=0 , nrega=0 , nbad ;
+   MRI_IMARR *imar_addbase=NULL ; int ncol_addbase=0 ;
+   MRI_IMARR *imar_slibase=NULL ; int ncol_slibase=0 ;
+   int nrega,nrego , nbad , ss ;
+   int               nsli , nsliper ;
+   matrix          **Xsli =NULL ;
+   reml_collection **RCsli=NULL ;
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -275,16 +279,29 @@ int main( int argc , char *argv[] )
       "\n"
       " -mask kkk   = Read dataset 'kkk' as a mask for the input.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
-#if 0
       "\n"
+#if 0
       " -addbase bb = You can add baseline model columns to the matrix with\n"
       "                 this option.  Each column in the .1D file 'bb' will\n"
       "                 be appended to the matrix.  This file must have at\n"
       "                 least as many rows as the matrix does.\n"
       "              * Multiple -addbase options can be used, if needed.\n"
-      "              * If the matrix from 3dDeconvolve was censored, then
+      "              * If the matrix from 3dDeconvolve was censored, then\n"
       "                  this file must be censored to match.  3dREMLfit\n"
       "                  will NOT censor the 'bb' time series for you!\n"
+      "              * More than 1 file can be specified, as in\n"
+      "                  -addbase fred.1D ethel.1D elvis.1D\n"
+      "              * No .1D filename can start with the '-' character.\n"
+      "\n"
+      " -slibase bb = Similar to -addbase in concept, BUT each .1D file 'bb'\n"
+      "                 must have EXACTLY the same number of columns as the\n"
+      "                 input dataset has slices; then, separate regression\n"
+      "                 matrices are generated for each slice, with the\n"
+      "                 [0] column of 'bb' appended to the matrix for\n"
+      "                 the #0 slice of the dataset, et cetera.\n"
+      "              * Intended to help model physiological noise in FMRI.\n"
+      "              * Will slow the program down some, and make it use\n"
+      "                  more memory (to hold all the matrix stuff).\n"
 #endif
       "\n"
       "------------------------------------------------------------------------\n"
@@ -563,13 +580,31 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-addbase") == 0 ){
        MRI_IMAGE *im ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       im = mri_read_1D( argv[iarg] ) ;
-       if( im == NULL ) ERROR_exit("Can't read -addbase file '%s'",argv[iarg]) ;
-       if( imar_addbase == NULL ) INIT_IMARR(imar_addbase) ;
-       mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
-       ADDTO_IMARR( imar_addbase , im ) ;
-       ncol_addbase += im->ny ;
-       iarg++ ; continue ;
+       do{
+         im = mri_read_1D( argv[iarg] ) ;
+         if( im == NULL ) ERROR_exit("Can't read -addbase file '%s'",argv[iarg]) ;
+         if( imar_addbase == NULL ) INIT_IMARR(imar_addbase) ;
+         mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
+         ADDTO_IMARR( imar_addbase , im ) ;
+         ncol_addbase += im->ny ;
+         iarg++ ;
+       } while( iarg < argc && argv[iarg][0] != '-' ) ;
+       continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-slibase") == 0 ){
+       MRI_IMAGE *im ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
+       do{
+         im = mri_read_1D( argv[iarg] ) ;
+         if( im == NULL ) ERROR_exit("Can't read -slibase file '%s'",argv[iarg]) ;
+         if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
+         mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
+         ADDTO_IMARR( imar_slibase , im ) ;
+         ncol_slibase++ ;  /* only 1 regressor added per file */
+         iarg++ ;
+       } while( iarg < argc && argv[iarg][0] != '-' ) ;
+       continue ;
      }
 
      if( strcasecmp(argv[iarg],"-noFDR") == 0 ){
@@ -729,7 +764,7 @@ STATUS("options done") ;
 
    nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
    dx = fabsf(DSET_DX(inset)) ; nx = DSET_NX(inset) ;
-   dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ;
+   dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ; nxy = nx*ny ;
    dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
 
    do_buckt = (Rbuckt_prefix != NULL) || (Obuckt_prefix != NULL) ;
@@ -806,16 +841,20 @@ STATUS("options done") ;
 
    } else {
      INFO_message("No mask ==> computing for all %d voxels",nvox) ;
+     mask = (byte *)malloc(sizeof(byte)*nvox) ;
+     memset( mask , 1 , sizeof(byte)*nvox ) ;
    }
 
    /**-------- process the matrix --------**/
 
 STATUS("process matrix") ;
 
-   nreg  = nelmat->vec_num ;  /* number of matrix columns */
+   nrego = nelmat->vec_num ;  /* number of matrix columns */
+   nrega = nrego ;            /* 'o'=original 'a'=after -addbase */
    ntime = nelmat->vec_len ;  /* number of matrix rows */
-   ddof  = ntime - nreg ;
-   if( ddof < 1 ) ERROR_exit("matrix has more columns than rows!") ;
+   ddof  = ntime - nrego ;
+   if( ddof < 1 )             /* should not happen! */
+     ERROR_exit("matrix has more columns than rows!") ;
 
    /* number of rows in the full matrix (without censoring) */
 
@@ -865,16 +904,16 @@ STATUS("process matrix") ;
 STATUS("re-create matrix") ;
 
    matrix_initialize( &X ) ;
-   matrix_create( ntime , nreg , &X ) ;
+   matrix_create( ntime , nrego , &X ) ;
    if( nelmat->vec_typ[0] == NI_FLOAT ){        /* from 3dDeconvolve_f */
      float *cd ;
-     for( jj=0 ; jj < nreg ; jj++ ){
+     for( jj=0 ; jj < nrego ; jj++ ){
        cd = (float *)nelmat->vec[jj] ;
        for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (MTYPE)cd[ii] ;
      }
    } else if( nelmat->vec_typ[0] == NI_DOUBLE ){  /* from 3dDeconvolve */
      double *cd ;
-     for( jj=0 ; jj < nreg ; jj++ ){
+     for( jj=0 ; jj < nrego ; jj++ ){
        cd = (double *)nelmat->vec[jj] ;
        for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (MTYPE)cd[ii] ;
      }
@@ -889,17 +928,20 @@ STATUS("re-create matrix") ;
      WARNING_message("ColumnLabels attribute in matrix is missing!?") ;
    } else {
      gsar = NI_decode_string_list( cgl , ";" ) ;
-     if( gsar == NULL || gsar->num < nreg )
+     if( gsar == NULL || gsar->num < nrego )
        ERROR_exit("ColumnLabels attribute in matrix is malformed!?") ;
      beta_lab = gsar->str ;
    }
 
-   /**** check -addbase images for column lengths, etc. ****/
+   /**** process -addbase images ****/
 
    if( imar_addbase != NULL ){
-     MRI_IMAGE *im ; int pp ; matrix Xa ; float *iar ;
+     MRI_IMAGE *im ; int pp ; float *iar ;
 
-     nrega = nreg + ncol_addbase ;  /* new number of regressors */
+     nrega += ncol_addbase ;  /* new number of regressors */
+
+     INFO_message("Adding %d column%s to X matrix via '-addbase'" ,
+                  ncol_addbase , (ncol_addbase==1) ? "" : "s"      ) ;
 
      for( nbad=ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
        im = IMARR_SUBIM( imar_addbase , ii ) ;
@@ -912,43 +954,46 @@ STATUS("re-create matrix") ;
                          im->name , im->nx , ntime ) ;
        }
      }
-     if( nbad > 0 ) ERROR_exit("Cannot continue after -addbase errors!") ;
 
-     ddof  = ntime - nrega ;
-     if( ddof < 1 )
-       ERROR_exit("matrix has more columns than rows after -addbase!") ;
+     ddof = ntime - nrega ;
+     if( ddof < 1 ){
+       ERROR_exit("matrix has more columns (%d) than rows (%d) after -addbase!" ,
+                  nrega , ntime ) ;
+       nbad++ ;
+     }
+
+     if( nbad > 0 ) ERROR_exit("Cannot continue after -addbase errors!") ;
 
      /* make up extra labels for these columns */
 
      if( beta_lab != NULL ){
        char lll[32] ;
-       beta_lab = (char **)realloc( beta_lab , sizeof(char *)*nrega ) ;
-       for( kk=nreg,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
+       beta_lab = NI_realloc( beta_lab , char * , sizeof(char *)*nrega ) ;
+       for( kk=nrego,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
          im = IMARR_SUBIM( imar_addbase , ii ) ;
          for( jj=0 ; jj < im->ny ; jj++ ){
            if( im->ny > 1 ) sprintf(lll,"%.16s[%d]",im->name,jj) ;
            else             sprintf(lll,"%.16s"    ,im->name   ) ;
-           beta_lab[kk++] = strdup(lll) ;
+           beta_lab[kk++] = NI_strdup(lll) ;
          }
        }
      }
 
-     /* make up a new matrix, add the columns to it, and proceed */
+     /* enlarge the matrix, add the new columns to it, and proceed */
 
-     matrix_initialize( &Xa ) ;
-     matrix_enlarge( X , 0 , ncol_addbase , &Xa ) ;
-     for( kk=nreg,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
+     matrix_enlarge( 0 , ncol_addbase , &X ) ;
+     for( kk=nrego,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
        im = IMARR_SUBIM(imar_addbase,ii) ; iar = MRI_FLOAT_PTR(im) ;
-       for( jj=0 ; jj < im->ny ; jj++,iar+=im->nx ){
-         for( pp=0 ; pp < ntime ; pp++ ) Xa.elts[pp][kk] = (MTYPE)iar[pp] ;
+       for( jj=0 ; jj < im->ny ; jj++,kk++,iar+=im->nx ){
+         for( pp=0 ; pp < ntime ; pp++ ) X.elts[pp][kk] = (MTYPE)iar[pp] ;
        }
      }
-     matrix_destroy( &X ) ; X = Xa ; nreg = nrega ;
-   }
+
+   } /**** end of -addbase stuff ****/
 
    /** check matrix for all zero columns **/
 
-   for( nbad=jj=0 ; jj < nreg ; jj++ ){
+   for( nbad=jj=0 ; jj < nrega ; jj++ ){
      for( ii=0 ; ii < ntime && X.elts[ii][jj]==0.0 ; ii++ ) ; /*nada*/
      if( ii==ntime ){
        ERROR_message("matrix column #%d is all zero!?",jj) ; nbad++ ;
@@ -956,7 +1001,85 @@ STATUS("re-create matrix") ;
    }
    if( nbad > 0 ) ERROR_exit("Cannot continue with all zero columns!") ;
 
-   /* extract stim information from matrix header */
+   /**** process -slibase images ****/
+
+   if( imar_slibase == NULL ){  /** no per-slice regressors */
+
+     Xsli    = (matrix **)malloc(sizeof(matrix *)) ;
+     Xsli[0] = &X ;
+     nsli    = 1 ;
+     nsliper = (1<<30) ;
+
+   } else {                     /** have per-slice regressors **/
+
+     MRI_IMAGE *im ; int pp,nregq ; float *iar ; matrix *Xs ;
+
+     nregq   = nrega ;         /* save this for a little bit */
+     nrega  += ncol_slibase ;  /* new number of regressors */
+     nsli    = nz ;
+     nsliper = nxy ;
+
+     INFO_message("Adding %d column%s to X matrix via '-slibase'" ,
+                  ncol_slibase , (ncol_slibase==1) ? "" : "s"      ) ;
+
+     for( nbad=ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
+       im = IMARR_SUBIM( imar_slibase , ii ) ;
+       if( im->nx < ntime ){
+         ERROR_message("-slibase file '%s' has %d rows, less than matrix's %d",
+                       im->name , im->nx , ntime ) ;
+         nbad++ ;
+       } else if( im->nx > ntime ){
+         WARNING_message("-slibase file '%s' has %d rows, more than matrix's %d",
+                         im->name , im->nx , ntime ) ;
+       }
+       if( im->ny != nsli ){
+         ERROR_message("-slibase file '%s' has %d columns but dataset has %d slices",
+                       im->name , im->ny , nsli ) ;
+         nbad++ ;
+       }
+     }
+
+     ddof = ntime - nrega ;
+     if( ddof < 1 ){
+       ERROR_exit("matrix has more columns (%d) than rows (%d) after -slibase!" ,
+                  nrega , ntime ) ;
+       nbad++ ;
+     }
+
+     if( nbad > 0 ) ERROR_exit("Cannot continue after -slibase errors!") ;
+
+     /* make up extra labels for these columns */
+
+     if( beta_lab != NULL ){
+       char lll[32] ;
+       beta_lab = NI_realloc( beta_lab , char * , sizeof(char *)*nrega ) ;
+       for( kk=nregq,ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
+         im = IMARR_SUBIM( imar_slibase , ii ) ;
+         sprintf(lll,"%.16s",im->name) ;
+         beta_lab[kk++] = NI_strdup(lll) ;
+       }
+     }
+
+     /* for each slice, make up a new matrix, add columns to it */
+
+     Xsli = (matrix **)malloc(sizeof(matrix *)*nsli) ;
+
+     for( ss=0 ; ss < nsli ; ss++ ){
+       Xs = (matrix *)malloc(sizeof(matrix)) ;
+       matrix_initialize(Xs) ;
+       matrix_equate( X , Xs ) ;
+       matrix_enlarge( 0 , ncol_slibase , Xs ) ;
+       for( kk=nregq,ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
+         im  = IMARR_SUBIM(imar_slibase,ii) ;
+         iar = MRI_FLOAT_PTR(im) ; iar += ss * im->nx ;
+         for( pp=0 ; pp < ntime ; pp++ ) Xs->elts[pp][kk] = (MTYPE)iar[pp] ;
+       }
+       Xsli[ss] = Xs ;
+     }
+
+   } /**** end of -slibase stuff ****/
+
+   /*** extract stim information from matrix header ***/
 
    cgl = NI_get_attribute( nelmat , "Nstim" ) ;
    if( cgl != NULL ){
@@ -1007,7 +1130,7 @@ STATUS("re-create matrix") ;
 
    if( do_stat ){
      char lnam[32] ; int nn,mm ; matrix *gm ;
-     int *set = (int *)malloc(sizeof(int)*nreg) ;  /* list of columns to keep */
+     int *set = (int *)malloc(sizeof(int)*nrega) ;  /* list of columns to keep */
 
 STATUS("make stim GLTs") ;
      /* first set of indexes is all stimuli */
@@ -1015,7 +1138,7 @@ STATUS("make stim GLTs") ;
      for( kk=jj=0 ; jj < stim_num ; jj++ ){
        for( ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
      }
-     gm = create_subset_matrix( nreg , kk , set ) ;
+     gm = create_subset_matrix( nrega , kk , set ) ;
      if( gm == NULL ) ERROR_exit("Can't create G matrix for FullModel?!") ;
      ADD_GLT( "Full" , gm ) ;
 
@@ -1027,7 +1150,7 @@ STATUS("make stim GLTs") ;
 
      for( jj=0 ; jj < stim_num ; jj++ ){
        for( kk=0,ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
-       gm = create_subset_matrix( nreg , kk , set ) ;
+       gm = create_subset_matrix( nrega , kk , set ) ;
        if( gm == NULL ) ERROR_exit("Can't create G matrix for %s?!",stim_lab[jj]);
        ADD_GLT( stim_lab[jj] , gm ) ;
      }
@@ -1061,10 +1184,10 @@ STATUS("make other GLTs") ;
          ERROR_exit("Matrix attribute '%s' is badly formatted?!",lnam) ;
        far = gfar->ar ; nn = (int)far[0] ; mm = (int)far[1] ;
        if( nn <= 0 ) ERROR_exit("GLT '%s' has %d rows?",lnam,nn) ;
-       if( mm != nreg )
-         ERROR_exit("GLT '%s' has %d columns (should be %d)?",lnam,mm,nreg) ;
+       if( mm != nrego )
+         ERROR_exit("GLT '%s' has %d columns (should be %d)?",lnam,mm,nrego) ;
        gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
-       matrix_create( nn, mm, gm ) ;
+       matrix_create( nn, nrega, gm ) ;
        for( ii=0 ; ii < nn ; ii++ ){
          for( jj=0 ; jj < mm ; jj++ ) gm->elts[ii][jj] = far[jj+2+ii*mm] ;
        }
@@ -1077,6 +1200,10 @@ STATUS("make other GLTs") ;
 #endif
    }
 
+   /*** done with nelmat ***/
+
+   NI_free_element(nelmat) ;
+
    /**------- set up for REML estimation -------**/
 
    INFO_message("Loading input dataset into memory") ;
@@ -1084,31 +1211,38 @@ STATUS("make other GLTs") ;
    MEMORY_CHECK ;
 
    INFO_message("starting REML setup calculations") ;
-   rrcol = REML_setup_all( &X , tau , nlevab,rhomax,bmax ) ; /* takes a while */
-   if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
-   izero = rrcol->izero ;  /* index of (a=0,b=0) case */
+   RCsli = (reml_collection **)malloc(sizeof(reml_collection *)*nsli) ;
+   for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
+     rrcol = REML_setup_all( Xsli[ss] , tau , nlevab,rhomax,bmax ) ;
+     if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
+     RCsli[ss] = rrcol ;
+   }
+   izero = RCsli[0]->izero ;  /* index of (a=0,b=0) case */
 
    if( glt_num > 0 )
      ININFO_message("adding %d statistics matri%s to REML setup",
                     glt_num , (glt_num==1)?"x":"ces" ) ;
-   for( kk=0 ; kk < glt_num ; kk++ )
-     REML_add_glt_to_all( rrcol , glt_mat[kk] ) ;
+   for( ss=0 ; ss < nsli ; ss++ )
+     for( kk=0 ; kk < glt_num ; kk++ )
+       REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
 
    ININFO_message(
       "REML setup finished: matrix rows=%d cols=%d; %d cases; total CPU=%.2f s",
-      ntime,nreg,rrcol->nset,COX_cpu_time()) ;
+      ntime,nrega,RCsli[0]->nset,COX_cpu_time()) ;
    MEMORY_CHECK ;
 
    /***------- loop over voxels, find best REML values ------***/
 
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
-   niv = (nvals+nreg+glt_num+9)*2 ;
+
+   niv = (nvals+nrega+glt_num+9)*2 ;
    iv  = (float *)malloc(sizeof(float)*(niv+1)) ;
    jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
 
    vstep = (nvox > 999) ? nvox/50 : 0 ;
 
    if( aim == NULL ){  /*--- if we don't already have (a,b) from -ABfile ---*/
+     int nzz ;
 
      aim = mri_new_vol( nx,ny,nz , MRI_float ) ;
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
@@ -1117,15 +1251,23 @@ STATUS("make other GLTs") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-     for( vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
+     for( nbad=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
        (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
-       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
-       (void)REML_find_best_case( &y , rrcol ) ;
+       for( nzz=ii=0 ; ii < ntime ; ii++ ){
+         y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
+         nzz += (y.elts[ii] == 0.0) ;
+       }
+       ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
+       if( nzz == ntime ){ mask[vv] = 0 ; nbad++ ; continue ; }
+       else              (void)REML_find_best_case( &y , RCsli[ss] ) ;
        aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
      }
      if( vstep ) fprintf(stderr,"\n") ;
+     if( nbad > 0 )
+       ININFO_message("masked off %d voxel%s for being all zero" ,
+                      nbad , (nbad==1) ? "" : "s" ) ;
 
      /*-- median filter (a,b)? --*/
 
@@ -1174,9 +1316,9 @@ STATUS("make other GLTs") ;
    /*-- now, use these values to compute the Generalized Least  --*/
    /*-- Squares (GLSQ) solution at each voxel, and save results --*/
 
-   Rbeta_dset = create_float_dataset( inset , nreg , Rbeta_prefix,1 ) ;
+   Rbeta_dset = create_float_dataset( inset , nrega , Rbeta_prefix,1 ) ;
    if( Rbeta_dset != NULL && beta_lab != NULL ){
-     for( ii=0 ; ii < nreg ; ii++ )
+     for( ii=0 ; ii < nrega ; ii++ )
        EDIT_BRICK_LABEL( Rbeta_dset , ii , beta_lab[ii] ) ;
    }
 
@@ -1217,7 +1359,6 @@ STATUS("make other GLTs") ;
          EDIT_BRICK_TO_FIFT( Rbuckt_dset , glt_ind[ii]->ftst_ind , nr , ddof ) ;
        }
      }
-/* INFO_message("statcode[0] = %d",DSET_BRICK_STATCODE(Rbuckt_dset,0)) ; */
    }
 
    do_Rstuff = (Rbeta_dset  != NULL) || (Rvar_dset   != NULL) ||
@@ -1235,16 +1376,21 @@ STATUS("make other GLTs") ;
        memcpy( jv , iv , sizeof(float)*nfull ) ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = iv[goodlist[ii]] ;
 
-       jj = IAB(rrcol,aar[vv],bar[vv]) ;  /* closest point in the (a,b,) grid */
+       ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
 
-       if( rrcol->rs[jj] == NULL ){       /* try to fix up this oversight */
-         int ia = jj % (1+rrcol->na); MTYPE aaa = rrcol->abot + ia * rrcol->da;
-         int ib = jj / (1+rrcol->na); MTYPE bbb = rrcol->bbot + ib * rrcol->db;
-         rrcol->rs[jj] = REML_setup_one( &X , tau , aaa,bbb ) ;
+       jj = IAB(RCsli[ss],aar[vv],bar[vv]) ;  /* closest point in the (a,b,) grid */
+
+       if( RCsli[ss]->rs[jj] == NULL ){       /* try to fix up this oversight */
+         int   ia  = jj % (1+RCsli[ss]->na);
+         int   ib  = jj / (1+RCsli[ss]->na);
+         MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
+         MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
+
+         RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;
          for( kk=0 ; kk < glt_num ; kk++ )
-           REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[kk] ) ;
+           REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk] ) ;
        }
-       if( rrcol->rs[jj] == NULL ){ /* should never happen */
+       if( RCsli[ss]->rs[jj] == NULL ){ /* should never happen */
          ERROR_message("bad REML! voxel #%d (%d,%d,%d) has a=%.3f b=%.3f lam=%.3f jj=%d",
                          vv, DSET_index_to_ix(inset,vv) ,
                              DSET_index_to_jy(inset,vv) ,
@@ -1259,7 +1405,7 @@ STATUS("make other GLTs") ;
               bb1 = whitened data [not used below]
               bb2 = whitened residuals (sum of squares of bb2 ==> noise variance) */
 
-         (void)REML_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
+         (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ) ;
 
          if( Rfitts_dset != NULL ){  /* note that iv still contains original data */
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6->elts[ii] ;
@@ -1281,13 +1427,13 @@ STATUS("make other GLTs") ;
          }
 
          if( Rbeta_dset != NULL ){
-           for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = bb5->elts[ii] ;
-           THD_insert_series( vv , Rbeta_dset , nreg , MRI_float , iv , 0 ) ;
+           for( ii=0 ; ii < nrega ; ii++ ) iv[ii] = bb5->elts[ii] ;
+           THD_insert_series( vv , Rbeta_dset , nrega , MRI_float , iv , 0 ) ;
          }
 
          if( Rvar_dset != NULL ){
-           iv[0] = rrcol->rs[jj]->rho ; iv[1] = rrcol->rs[jj]->barm ;
-           iv[2] = rrcol->rs[jj]->lam ; iv[3] = sqrt( rsumq / ddof ) ;
+           iv[0] = RCsli[ss]->rs[jj]->rho ; iv[1] = RCsli[ss]->rs[jj]->barm ;
+           iv[2] = RCsli[ss]->rs[jj]->lam ; iv[3] = sqrt( rsumq / ddof ) ;
            THD_insert_series( vv , Rvar_dset , 4 , MRI_float , iv , 0 ) ;
          }
 
@@ -1298,9 +1444,9 @@ STATUS("make other GLTs") ;
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
              gv = REML_compute_gltstat( &y , bb5 , rsumq ,
-                                        rrcol->rs[jj], rrcol->rs[jj]->glt[kk],
+                                        RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
-                                        rrcol->X , rrcol->Xs        ) ;
+                                        RCsli[ss]->X , RCsli[ss]->Xs        ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind] = gv ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
                for( ii=0 ; ii < nr ; ii++ ){
@@ -1346,23 +1492,21 @@ STATUS("make other GLTs") ;
      MEMORY_CHECK ;
    }
    if( Rbuckt_dset != NULL ){
-/* INFO_message("statcode[0] = %d",DSET_BRICK_STATCODE(Rbuckt_dset,0)) ; */
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
        ii = THD_create_all_fdrcurves(Rbuckt_dset) ;
      else
        ii = 0 ;
      if( ii > 0 ) ININFO_message("Added %d FDR curve%s to -Rbuck dataset",
                                  ii , (ii==1)?"":"s" ) ;
-/* INFO_message("statcode[0] = %d",DSET_BRICK_STATCODE(Rbuckt_dset,0)) ; */
      DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_delete(Rbuckt_dset);
      MEMORY_CHECK ;
    }
 
    /*-- create OLSQ outputs, if any --*/
 
-   Obeta_dset = create_float_dataset( inset , nreg , Obeta_prefix,1 ) ;
+   Obeta_dset = create_float_dataset( inset , nrega , Obeta_prefix,1 ) ;
    if( Obeta_dset != NULL && beta_lab != NULL ){
-     for( ii=0 ; ii < nreg ; ii++ )
+     for( ii=0 ; ii < nrega ; ii++ )
        EDIT_BRICK_LABEL( Obeta_dset , ii , beta_lab[ii] ) ;
    }
 
@@ -1417,22 +1561,26 @@ STATUS("make other GLTs") ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
 
        jj = izero ;                       /* OLSQ (a,b)=(0,0) case */
+       ss = vv / nsliper ;
 
-       if( rrcol->rs[jj] == NULL ){       /* try to fix up this oversight */
-         int ia = jj % (1+rrcol->na); MTYPE aaa = rrcol->abot + ia * rrcol->da;
-         int ib = jj / (1+rrcol->na); MTYPE bbb = rrcol->bbot + ib * rrcol->db;
-         rrcol->rs[jj] = REML_setup_one( &X , tau , aaa,bbb ) ;
+       if( RCsli[ss]->rs[jj] == NULL ){       /* try to fix up this oversight */
+         int   ia  = jj % (1+RCsli[ss]->na);
+         int   ib  = jj / (1+RCsli[ss]->na);
+         MTYPE aaa = RCsli[ss]->abot + ia * RCsli[ss]->da;
+         MTYPE bbb = RCsli[ss]->bbot + ib * RCsli[ss]->db;
+
+         RCsli[ss]->rs[jj] = REML_setup_one( Xsli[ss] , tau , aaa,bbb ) ;
          for( kk=0 ; kk < glt_num ; kk++ )
-           REML_add_glt_to_one( rrcol->rs[jj] , glt_mat[kk]) ;
+           REML_add_glt_to_one( RCsli[ss]->rs[jj] , glt_mat[kk]) ;
        }
-       if( rrcol->rs[jj] == NULL ){ /* should never happen */
+       if( RCsli[ss]->rs[jj] == NULL ){ /* should never happen */
          ERROR_message("bad OLSQ! voxel #%d (%d,%d,%d) jj=%d",
                          vv, DSET_index_to_ix(inset,vv) ,
                              DSET_index_to_jy(inset,vv) ,
                              DSET_index_to_kz(inset,vv) , jj ) ;
        } else {
 
-         (void)REML_func( &y , rrcol->rs[jj] , rrcol->X , rrcol->Xs ) ;
+         (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ) ;
 
          if( Ofitts_dset != NULL ){
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6->elts[ii] ;
@@ -1447,8 +1595,8 @@ STATUS("make other GLTs") ;
          }
 
          if( Obeta_dset != NULL ){
-           for( ii=0 ; ii < nreg ; ii++ ) iv[ii] = bb5->elts[ii] ;
-           THD_insert_series( vv , Obeta_dset , nreg , MRI_float , iv , 0 ) ;
+           for( ii=0 ; ii < nrega ; ii++ ) iv[ii] = bb5->elts[ii] ;
+           THD_insert_series( vv , Obeta_dset , nrega , MRI_float , iv , 0 ) ;
          }
 
          if( Ovar_dset != NULL ){
@@ -1463,9 +1611,9 @@ STATUS("make other GLTs") ;
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
              gv = REML_compute_gltstat( &y , bb5 , rsumq ,
-                                        rrcol->rs[jj], rrcol->rs[jj]->glt[kk],
+                                        RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
-                                        rrcol->X , rrcol->Xs        ) ;
+                                        RCsli[ss]->X , RCsli[ss]->Xs        ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind] = gv ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
                for( ii=0 ; ii < nr ; ii++ ){
@@ -1490,8 +1638,15 @@ STATUS("make other GLTs") ;
 
    /*----- done with the input dataset -----*/
 
-   DSET_unload(inset) ; free(jv) ; free(iv) ;
-   reml_collection_destroy(rrcol) ;
+   ININFO_message("unloading input dataset and REML matrices") ;
+   DSET_unload(inset) ; free(jv) ; free(iv) ; free(mask) ; free(tau) ;
+   for( ss=0 ; ss < nsli ; ss++ ){
+     reml_collection_destroy(RCsli[ss]) ; matrix_destroy(Xsli[ss]) ;
+   }
+   free(RCsli) ; free(Xsli) ;
+   if( abset != NULL ) DSET_unload(abset) ;
+   else               { mri_free(aim) ; mri_free(bim) ; }
+   MEMORY_CHECK ;
 
    /*----- write output OLSQ datasets to disk -----*/
 
