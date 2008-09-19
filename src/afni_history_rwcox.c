@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , SEP , 2008 , RWC , "NIML library" , MICRO , TYPE_GENERAL ,
+   "modify NI_alter_veclen to allow conversion to non-empty from empty" ,
+   NULL } ,
+
  { 18 , SEP , 2008 , RWC , "Vecwarp" , MICRO , TYPE_BUG_FIX ,
    "Only require +orig dataset if user actually NEEDS it" ,
    "Program required the +orig version of the -apar dataset, which is needed\n"

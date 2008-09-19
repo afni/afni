@@ -453,27 +453,37 @@ void matrix_equate (matrix a, matrix * b)
 
 /*---------------------------------------------------------------------------*/
 /*!
-  Make a copy of the first matrix,
-    extending it with nradd rows and ncadd columns (zero-filled).
+    Extending a matrix with nradd rows and ncadd columns (zero-filled).
 */
 
-void matrix_enlarge(matrix a, int nradd, int ncadd, matrix *b)
+void matrix_enlarge( int nradd , int ncadd , matrix *a )
 {
-  register int i;
-  register int rows, cols;
+  int i , rows, cols ;
+  matrix *b ;
 
   if( ncadd < 0 ) ncadd = 0 ;  /* no subtraction allowed */
   if( nradd < 0 ) nradd = 0 ;
 
-  rows = a.rows;
-  cols = a.cols;
+  if( nradd == 0 && ncadd == 0 ) return ;  /* nothing to do? */
 
-  matrix_create (rows+nradd, cols+ncadd, b) ;  /* zero-filled */
+  rows = a->rows ; cols = a->cols ;
+
+  /* create new matrix big with extra rows/columns */
+
+  b = (matrix *)malloc(sizeof(matrix)) ;
+  matrix_initialize( b ) ;
+  matrix_create( rows+nradd , cols+ncadd, b ) ;  /* zero-filled */
+
+  /* copy rows from a into b */
 
   for (i = 0;  i < rows;  i++){
     if( cols > 0 )
-      memcpy( b->elts[i] , a.elts[i] , sizeof(double)*cols ) ;
+      memcpy( b->elts[i] , a->elts[i] , sizeof(double)*cols ) ;
   }
+
+  /* destroy contents of a, replace with contents of b */
+
+  matrix_destroy(a) ; *a = *b ; return ;
 }
 
 
