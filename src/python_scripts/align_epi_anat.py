@@ -118,6 +118,9 @@ g_help_string = """
         
     -big_move   : indicates that large displacement is needed to align the
                   two volumes. This option is off by default.
+    -giant_move : even larger movement required - uses cmass, two passes and
+                  very large angles and shifts. May miss finding the solution
+                  in the vastness of space, so use with caution
     -partial_coverage: indicates that the EPI dataset covers only a part of 
                   the brain. Alignment will try to guess which direction should
                   not be shifted If EPI slices are known to be a specific 
@@ -285,7 +288,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = 1.09 # software version (update for changes)
+      self.align_version = 1.10 # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -303,7 +306,7 @@ class RegWrap:
       self.deoblique_flag = 1  # deoblique datasets first
       self.deoblique_opt = "" # deobliquing/obliquing options
       self.skullstrip_opt = "" # skullstripping options
-      self.cmass = "" # no center of mass option for 3dAllineate
+      self.cmass = "nocmass" # no center of mass option for 3dAllineate
       self.epi_base = None  # don't assume representative epi
       self.reg_mat = "" # volume registration matrix 1D file
       self.obl_a2e_mat = ""  # oblique anat to epi matrix
@@ -377,6 +380,11 @@ class RegWrap:
                helpstr="Large movement between epi and anat.\n"           \
                        "Uses twopass option for 3dAllineate.\n"           \
                        "Consider cmass options or @Align_Centers")
+      self.valid_opts.add_opt('-giant_move', 0, [], \
+               helpstr="Even larger movement between epi and anat.\n"     \
+                       "Uses twopass option for 3dAllineate.\n"           \
+                       "cmass options and wide angles and shifts")
+
       self.valid_opts.add_opt('-partial_coverage', 0, [],                  \
                helpstr="partial_xxxx options control center of mass adjustment")
       self.valid_opts.add_opt('-partial_axial', 0, [])
@@ -773,10 +781,11 @@ class RegWrap:
       
    # save the script command arguments to the dataset history
    def save_history(self, dset, exec_mode):
+      tempstr =  dset.shortinput() 
       self.info_msg("Saving history")  # sounds dramatic, doesn't it?
-      cmdline = args_as_command(sys.argv, "3dNotes -h '", "' %s" % dset.input())
-      # cmdline = args_as_command(sys.argv)
-      com = shell_com(  cmdline, exec_mode)
+      cmdline = args_as_command(sys.argv, \
+                 '3dNotes -h "', '" %s' % dset.shortinput())
+      com = shell_com(  "%s\n" % cmdline, exec_mode)
       com.run()
 
    # show help
@@ -857,11 +866,19 @@ class RegWrap:
          ps.AlOpt = ''
 
       #big_move?
-      opt = self.user_opts.find_opt('-big_move')
-      if opt == None:
+      opt1 = self.user_opts.find_opt('-big_move')
+      #giant_move?
+      opt2 = self.user_opts.find_opt('-giant_move')
+      if(not (opt1 or opt2)):
          ps.AlOpt = "%s -onepass " % ps.AlOpt
-      else:
+         
+      if(opt1):
          ps.AlOpt = "%s -twopass " % ps.AlOpt
+         
+      if(opt2):
+         ps.AlOpt = "-twopass -VERB -maxrot 45 -maxshf 40"
+         ps.cmass = "cmass"
+ 
 
       opt = self.user_opts.find_opt('-feature_size')
       if opt != None:
@@ -964,7 +981,6 @@ class RegWrap:
       #check for various center of mass options
       optc = self.user_opts.find_opt('-cmass')
       if optc == None :
-         ps.cmass = 'nocmass' # was cmass+xy by default
          #if no cmass option entered, partial coverage?
          cmass_opts = 0
          opt = self.user_opts.find_opt('-partial_coverage')
@@ -1204,7 +1220,7 @@ class RegWrap:
                         #m is the weight brick
       # for oblique data or pre and post transformed data, save anat to epi transformation
       #   matrix in separate temporary 1D file
-      if((ps.obl_a2e_mat!="") or (ps.pre_matrix!="")) :
+      if((ps.obl_a2e_mat!="") or (ps.pre_matrix!="")) or (ps.edge):
          o = a.new("%s_temp%s" % (a.prefix, suf))
          self.anat_mat = "%s%s_e2a_only_mat.aff12.1D" %  \
             (ps.anat0.out_prefix(),suf)
@@ -1238,7 +1254,7 @@ class RegWrap:
                     cmass, self.anat_mat, self.master_anat_3dAl_option, alopt), ps.oexec)
          com.run()
 
-         if((ps.obl_a2e_mat!="")  or ps.edge) :
+         if((ps.obl_a2e_mat!="")  or ps.edge ) :
             o = a.new("%s%s" % (ps.anat0.prefix, suf)) # save the permanent data
             if (not o.exist() or ps.rewrite or ps.dry_run()):
                o.delete(ps.oexec)
