@@ -49,13 +49,18 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 19 , SEP , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY, "-giant_move option",
+    "For data that are very far apart\n"
+    "Fixed bug using long path names"
+} ,
 { 18 , SEP , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_MODIFY, "More options",
     "Intermediate file saved optionally now,\n"
     "partial_axial,sagittal,coronal options\n"
     "Edge-based method, nocmass default, resample step optional,\n"
     "Added options to support searching for smaller structures,\n"
-    "3dWarpDrive can be used optionally as aligning program\n"
+    "3dWarpDrive can be used optionally as volume registration program\n"
     "prep_off option to turn off several preprocessing steps\n"
     "AddEdge option uses simplified names in output in new directory"
 } ,
