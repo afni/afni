@@ -408,6 +408,24 @@ void NI_free_element_data( void *nini )
 }
 
 /*-----------------------------------------------------------------------*/
+
+static void NI_init_veclen( NI_element *nel , int veclen )
+{
+   if( veclen == 0 ){                      /* empty element */
+     nel->vec_len      = 0 ;
+     nel->vec_filled   = 0 ;
+     nel->vec_rank     = 0 ;
+     nel->vec_axis_len = NULL ;
+   } else {                                /* element with data to */
+     nel->vec_len         = veclen ;       /* come via NI_add_column */
+     nel->vec_filled      = veclen ;
+     nel->vec_rank        = 1 ;
+     nel->vec_axis_len    = NI_malloc(int, sizeof(int)) ;
+     nel->vec_axis_len[0] = veclen ;
+   }
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Create a new data element.
 
     - name   = string name for header.
@@ -439,18 +457,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
 
-   if( veclen == 0 ){                      /* empty element */
-     nel->vec_len      = 0 ;
-     nel->vec_filled   = 0 ;
-     nel->vec_rank     = 0 ;
-     nel->vec_axis_len = NULL ;
-   } else {                                /* element with data to */
-     nel->vec_len         = veclen ;       /* come via NI_add_column */
-     nel->vec_filled      = veclen ;
-     nel->vec_rank        = 1 ;
-     nel->vec_axis_len    = NI_malloc(int, sizeof(int)) ;
-     nel->vec_axis_len[0] = veclen ;
-   }
+   NI_init_veclen( nel , veclen ) ;  /* 19 Sep 2008 */
 
    nel->vec_axis_delta  = NULL ;
    nel->vec_axis_origin = NULL ;
@@ -646,8 +653,10 @@ void NI_remove_column(NI_element *nel, int irm)
      - If the columns are longer, they will be zero filled.
      - New values can be inserted later with NI_insert_value().
      - If the columns are shorter, data will be lost.
-     - You cannot use this to convert an element to/from being empty;
-       that is, newlen > 0 is required, as is nel->vec_len on input.
+     - You can use this to convert an element from empty to non-empty
+       by entering newlen > 0 when the original vec_len is 0.
+     - But, you cannot use this to convert an element to empty from
+       non-empty, by entering newlen == 0 when vec_len > 0!
 --------------------------------------------------------------------------*/
 
 void NI_alter_veclen( NI_element *nel , int newlen )
@@ -656,12 +665,14 @@ void NI_alter_veclen( NI_element *nel , int newlen )
    NI_rowtype *rt ;
    char *pt ;
 
-   if( nel          == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
-   if( nel->vec_len <= 0    || newlen    <= 0               ) return ;
+   if( nel    == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
+   if( newlen <= 0                                    ) return ;
 
    if( nel->vec_num == 0 ){                       /* if have no data yet */
      nel->vec_len = nel->vec_filled = newlen; return;
    }
+
+   if( nel->vec_len == 0 ) NI_init_veclen( nel , newlen ) ;  /* 19 Sep 2008 */
 
    oldlen = nel->vec_len ; if( oldlen == newlen ) return ;
 
