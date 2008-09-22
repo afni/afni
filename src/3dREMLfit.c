@@ -557,7 +557,7 @@ int main( int argc , char *argv[] )
       "    inter-subject (group) analysis level?\n"
       "* Establish incontrovertibly the nature of quantum mechanical 'observation'!\n"
       "\n"
-		"============================\n"
+      "============================\n"
       "== RWCox - July-Sept 2008 ==\n"
       "============================\n" , corcut
      ) ;
@@ -577,6 +577,8 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc ){
 
+     /** -addbase **/
+
      if( strcasecmp(argv[iarg],"-addbase") == 0 ){
        MRI_IMAGE *im ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
@@ -591,6 +593,8 @@ int main( int argc , char *argv[] )
        } while( iarg < argc && argv[iarg][0] != '-' ) ;
        continue ;
      }
+
+     /** -slibase **/
 
      if( strcasecmp(argv[iarg],"-slibase") == 0 ){
        MRI_IMAGE *im ;
@@ -607,6 +611,8 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
+     /** -noFDR and -FDR **/
+
      if( strcasecmp(argv[iarg],"-noFDR") == 0 ){
        do_FDR = 0 ; iarg++ ; continue ;
      }
@@ -614,7 +620,7 @@ int main( int argc , char *argv[] )
        do_FDR = 1 ; iarg++ ; continue ;
      }
 
-      /** ABfile **/
+     /** ABfile **/
 
      if( strcasecmp(argv[iarg],"-ABfile") == 0 ){
        if( abset != NULL ) ERROR_exit("Can't have 2 '%s' options",argv[iarg]) ;
@@ -715,6 +721,8 @@ int main( int argc , char *argv[] )
        automask = 1 ; iarg++ ; continue ;
      }
 
+     /** statistics options **/
+
      if( strcasecmp(argv[iarg],"-fout") == 0 ){
        do_fstat = 1 ; iarg++ ; continue ;
      }
@@ -749,6 +757,8 @@ int main( int argc , char *argv[] )
      PREFIX_OPTION(Rerrts_prefix) ;
      PREFIX_OPTION(Oerrts_prefix) ;
      PREFIX_OPTION(Rwherr_prefix) ;
+
+     /** bad users must be punished **/
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
@@ -824,7 +834,7 @@ STATUS("options done") ;
      bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
    }
 
-   /*-- process the mask --*/
+   /*-- process the mask somehow --*/
 
    if( mask != NULL ){
      if( mask_nx != nx || mask_ny != ny || mask_nz != nz )
@@ -938,6 +948,8 @@ STATUS("re-create matrix") ;
    if( imar_addbase != NULL ){
      MRI_IMAGE *im ; int pp ; float *iar ;
 
+STATUS("process -addbase images") ;
+
      nrega += ncol_addbase ;  /* new number of regressors */
 
      INFO_message("Adding %d column%s to X matrix via '-addbase'" ,
@@ -1013,6 +1025,8 @@ STATUS("re-create matrix") ;
    } else {                     /** have per-slice regressors **/
 
      MRI_IMAGE *im ; int pp,nregq ; float *iar ; matrix *Xs ;
+
+STATUS("process -slibase images") ;
 
      nregq   = nrega ;         /* save this for a little bit */
      nrega  += ncol_slibase ;  /* new number of regressors */
@@ -1125,7 +1139,16 @@ STATUS("re-create matrix") ;
      glt_smat= (sparmat **)realloc((void *)glt_smat,sizeof(sparmat *)*(glt_num+1)); \
      glt_lab[glt_num] = strdup(lb) ; glt_mat[glt_num] = (gg) ;                      \
      glt_smat[glt_num]= (SKIP_SMAT) ? NULL : matrix_to_sparmat(*gg) ;               \
-     glt_num++; glt_rtot+= gg->rows ;                                               \
+     glt_num++ ; glt_rtot += gg->rows ;                                             \
+ } while(0)
+
+#undef  KILL_ALL_GLTS
+#define KILL_ALL_GLTS                                      \
+ do{ for( ii=0 ; ii < glt_num ; ii++ ){                    \
+       free(glt_lab[ii]) ; sparmat_destroy(glt_smat[ii]) ; \
+       matrix_destroy(glt_mat[ii]) ; free(glt_mat[ii]) ;   \
+     }                                                     \
+     free(glt_lab); free(glt_mat); free(glt_smat);         \
  } while(0)
 
    if( do_stat ){
@@ -1639,13 +1662,14 @@ STATUS("make other GLTs") ;
    /*----- done with the input dataset -----*/
 
    ININFO_message("unloading input dataset and REML matrices") ;
-   DSET_unload(inset) ; free(jv) ; free(iv) ; free(mask) ; free(tau) ;
+   DSET_delete(inset) ; free(jv) ; free(iv) ; free(mask) ; free(tau) ;
    for( ss=0 ; ss < nsli ; ss++ ){
      reml_collection_destroy(RCsli[ss]) ; matrix_destroy(Xsli[ss]) ;
    }
    free(RCsli) ; free(Xsli) ;
    if( abset != NULL ) DSET_unload(abset) ;
    else               { mri_free(aim) ; mri_free(bim) ; }
+   KILL_ALL_GLTS ;
    MEMORY_CHECK ;
 
    /*----- write output OLSQ datasets to disk -----*/

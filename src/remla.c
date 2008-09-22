@@ -675,11 +675,26 @@ ENTRY("REML_func") ;
 
 /*--------------------------------------------------------------------------*/
 
+void gltfactors_destroy( gltfactors *gf )
+{
+   if( gf == NULL ) return ;
+   if( gf->Jright != NULL ){ matrix_destroy(gf->Jright); free(gf->Jright); }
+   if( gf->Jleft  != NULL ){ matrix_destroy(gf->Jleft ); free(gf->Jleft ); }
+   if( gf->sig    != NULL ){ vector_destroy(gf->sig   ); free(gf->sig   ); }
+   free(gf) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 void reml_setup_destroy( reml_setup *rset )
 {
+   int ii ;
+
    if( rset == NULL ) return ;
    if( rset->cc != NULL ) rcmat_destroy( rset->cc ) ;
-   if( rset->dd != NULL ) matrix_destroy( rset->dd ) ;
+   if( rset->dd != NULL ){ matrix_destroy( rset->dd ); free(rset->dd); }
+   for( ii=0 ; ii < rset->nglt ; ii++ ) gltfactors_destroy( rset->glt[ii] ) ;
+   if( rset->glt != NULL ) free(rset->glt) ;
    free((void *)rset) ;
    return ;
 }
@@ -688,13 +703,14 @@ void reml_setup_destroy( reml_setup *rset )
 
 void reml_collection_destroy( reml_collection *rcol )
 {
-   int ii ;
+   int ii , itop ;
 
    if( rcol == NULL ) return ;
    if( rcol->X  != NULL ) matrix_destroy ( rcol->X  ) ;
    if( rcol->Xs != NULL ) sparmat_destroy( rcol->Xs ) ;
    if( rcol->rs != NULL ){
-     for( ii=0 ; ii < rcol->nset ; ii++ ) reml_setup_destroy(rcol->rs[ii]) ;
+     itop = (1+rcol->na) * (1+rcol->nb) ;
+     for( ii=0 ; ii < itop ; ii++ ) reml_setup_destroy(rcol->rs[ii]) ;
      free((void *)rcol->rs) ;
    }
    free((void *)rcol) ;
