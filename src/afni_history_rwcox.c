@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , SEP , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
+   "got rid of some big memory leaks" ,
+   NULL } ,
+
  { 19 , SEP , 2008 , RWC , "NIML library" , MICRO , TYPE_GENERAL ,
    "modify NI_alter_veclen to allow conversion to non-empty from empty" ,
    NULL } ,
