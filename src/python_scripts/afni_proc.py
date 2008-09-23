@@ -432,6 +432,8 @@ g_help_string = """
             At the end of the output script, create a 'preproc.data' directory,
             and move most of the files there (dfile, outcount, pb*, rm*).
 
+            See also -remove_preproc_files.
+
         -no_proc_command        : do not print afni_proc.py command in script
 
                 e.g. -no_proc_command
@@ -446,6 +448,13 @@ g_help_string = """
 
             The AFNI processing script will create this directory and perform
             all processing in it.
+
+        -remove_preproc_files   : delete pre-processed data
+
+            At the end of the output script, delete the intermetiate data (to
+            save disk space).  Delete dfile*, outcount*, pb* and rm*.
+
+            See also -move_preproc_files.
 
         -script SCRIPT_NAME     : specify the name of the resulting script
 
@@ -1171,10 +1180,11 @@ g_history = """
          - added -regress_no_mask, -regress_errts_prefix and -show_valid_opts
     1.29 Jun 12 2008 : move code to afni_util.get_dset_reps_tr
     1.30 Jun 30 2008 : added -gen_epi_review and -no_epi_review options
+    1.31 Sep 23 2008 : added -remove_preproc_files
 
 """
 
-g_version = "version 1.29, June 12, 2008"
+g_version = "version 1.31, Sep 23, 2008"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1275,6 +1285,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-no_epi_review', 0, [])
         self.valid_opts.add_opt('-keep_rm_files', 0, [])
         self.valid_opts.add_opt('-move_preproc_files', 0, [])
+        self.valid_opts.add_opt('-remove_preproc_files', 0, [])
         self.valid_opts.add_opt('-tlrc_anat', 0, [])
         self.valid_opts.add_opt('-tlrc_base', 1, [])
         self.valid_opts.add_opt('-tlrc_no_ss', 0, [])
@@ -1647,6 +1658,11 @@ class SubjProcSream:
               "# move preprocessing files to 'preproc.data' directory\n"   \
               "mkdir preproc.data\n"                                       \
               "mv dfile.r??.1D outcount* pb??.$subj.r??.* rm.* preproc.data\n\n"
+            self.fp.write(add_line_wrappers(cmd_str))
+        elif self.user_opts.find_opt('-remove_preproc_files'):
+            cmd_str = \
+              "# remove preprocessing files to save disk space\n"   \
+              "\\rm dfile.r??.1D pb??.$subj.r??.* rm.*\n\n"
             self.fp.write(add_line_wrappers(cmd_str))
 
         if self.user_opts.find_opt('-tlrc_anat'):
