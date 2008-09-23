@@ -308,7 +308,7 @@ int main( int argc , char *argv[] )
       "                 the #0 slice of the dataset, et cetera.\n"
       "              * Intended to help model physiological noise in FMRI.\n"
       "              * Will slow the program down some, and make it use\n"
-      "                  more memory (to hold all the matrix stuff).\n"
+      "                  a lot more memory (to hold all the matrix stuff).\n"
       "\n"
       " -quiet      = turn off most progress messages\n"
       " -verb       = turn on more progress messages\n"
@@ -437,14 +437,13 @@ int main( int argc , char *argv[] )
       "                  + save (a,b) using -Rvar in 3dREMLfit\n"
       "                  + process them in some way (spatial smoothing?)\n"
       "                  + use these modified values for fitting in 3dREMLfit\n"
-#if 0
       "               * Special case:\n"
-      "                     -ABfile =0.2,0.3\n"
-      "                   means to use a=0.2 and b=0.3 for all voxels (e.g.).\n"
+      "                     -ABfile =0.7,-0.3\n"
+      "                   e.g., means to use a=0.7 and b=-0.3 for all voxels.\n"
       "                   The program detects this special case by looking for\n"
       "                   '=' as the first character of the string 'ff' and\n"
       "                   looking for a comma in the middle of the string.\n"
-#endif
+      "                   The values of a and b must be in the range -0.9..+0.9.\n"
       "\n"
       "==========================================================================\n"
       "===========  Various Notes (as if this help weren't long enough) =========\n"
@@ -463,19 +462,21 @@ int main( int argc , char *argv[] )
       "* For a noise model which is the sum of AR(1) and white noise, 0 < lam < |a|.\n"
       "* The natural range of a and b is -1..+1.  However, unless -NEGcor is\n"
       "    given, only non-negative values of a will be used, and only values\n"
-      "    of b that give lam > 0 will be allowed.\n"
+      "    of b that give lam > 0 will be allowed.  Also, the program doesn't\n"
+      "    allow values of a or b to be outside the range -0.9..+0.9.\n"
       "* The program sets up the correlation matrix using the censoring and run\n"
       "    start information saved in the header of the .xmat.1D matrix file, so\n"
-      "    that the actual correlation matrix used will not be Toeplitz.\n"
+      "    that the actual correlation matrix used will not always be Toeplitz.\n"
       "* The 'Rvar' dataset has 4 sub-bricks with variance parameter estimates:\n"
       "    #0 = a = factor by which correlations decay from lag k to lag k+1\n"
       "    #1 = b parameter\n"
       "    #2 = lam (see the formula above) = correlation at lag 1\n"
-      "    #3 = standard deviation of ARMA(1,1) noise\n"
+      "    #3 = standard deviation of ARMA(1,1) noise in that voxel\n"
       "* The 'Rbeta' dataset has the beta (model fit) parameters estimates\n"
-      "    computed from the pre-whitened time series data in each voxel.\n"
+      "    computed from the pre-whitened time series data in each voxel,\n"
+      "    as in 3dDeconvolve's '-cbucket' output.\n"
       "* The 'Rbuck' dataset has the beta parameters and their statistics\n"
-      "    mixed together.\n"
+      "    mixed together, as in 3dDeconvolve's '-bucket' output.\n"
       "\n"
       "-----------------------------------------------------------\n"
       "What is REML = REsidual (or REstricted) Maximum Likelihood?\n"
@@ -557,7 +558,7 @@ int main( int argc , char *argv[] )
       "    the way they are and you'll just have to live with it.\n"
       "* All output datasets are in float format.\n"
       "    Internal calculations are done in double precision.\n"
-      "* Despite my best efforts, this program is a little sluggish and torpid.\n"
+      "* Despite my best efforts, this program is somewhat slow.\n"
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
       "    However, a careful choice of algorithms for solving the linear\n"
@@ -1309,7 +1310,8 @@ STATUS("make other GLTs") ;
 
    if( verb ){
      INFO_message("starting REML setup calculations") ;
-     if( abfixed ) ININFO_message(" using fixed a=%.4f b=%.4f",afix,bfix) ;
+     if( abfixed ) ININFO_message(" using fixed a=%.4f b=%.4f lam=%.4f",
+                                  afix,bfix,LAMBDA(afix,bfix) ) ;
    }
    RCsli = (reml_collection **)malloc(sizeof(reml_collection *)*nsli) ;
    for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
