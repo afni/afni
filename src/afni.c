@@ -8328,6 +8328,11 @@ ENTRY("AFNI_crosshair_pop_CB") ;
   callback for non-marker buttons on the popup
 --------------------------------------------------------------------*/
 
+static char *last_jumpto_xyz_string = NULL ;  /* 23 Sep 2008 */
+static char *last_jumpto_ijk_string = NULL ;
+static char *last_mnito_string      = NULL ;
+static char *last_sumato_string     = NULL ;
+
 void AFNI_imag_pop_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
@@ -8370,7 +8375,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       if( ISQ_REALZ(seq) ){
         sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
-        MCW_choose_string( seq->wbar , tbuf , NULL ,
+        MCW_choose_string( seq->wbar , tbuf , last_jumpto_xyz_string ,
                            AFNI_jumpto_CB , (XtPointer) im3d ) ;
       }
    }
@@ -8379,7 +8384,7 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW             ){
 
       if( ISQ_REALZ(seq) ){
-         MCW_choose_string( seq->wbar , "Enter new i j k:" , NULL ,
+         MCW_choose_string( seq->wbar , "Enter new i j k:" , last_jumpto_ijk_string ,
                             AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
       }
    }
@@ -8390,7 +8395,7 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW        ){
 
       if( ISQ_REALZ(seq) && CAN_TALTO(im3d) ){
-         MCW_choose_string( seq->wbar , "Enter MNI x,y,z:" , NULL ,
+         MCW_choose_string( seq->wbar , "Enter MNI x,y,z:" , last_mnito_string ,
                             AFNI_mnito_CB , (XtPointer) im3d ) ;
       } else {
          XBell(XtDisplay(w),100) ; /* should never happen */
@@ -8404,7 +8409,7 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW         ){
 
       if( ISQ_REALZ(seq) ){
-         MCW_choose_string( seq->wbar , "Enter SUMA node ID:" , NULL ,
+         MCW_choose_string( seq->wbar , "Enter SUMA node ID:" , last_sumato_string ,
                             AFNI_sumato_CB , (XtPointer) im3d ) ;
       }
    }
@@ -8719,6 +8724,9 @@ ENTRY("AFNI_mnito_CB") ;
       EXRETURN ;
    }
 
+   if( last_mnito_string != NULL ) free(last_mnito_string) ;
+   last_mnito_string = strdup(cbs->cval) ;
+
    nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
    if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
 
@@ -8755,6 +8763,9 @@ ENTRY("AFNI_jumpto_CB") ;
 
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
+
+   if( last_jumpto_xyz_string != NULL ) free(last_jumpto_xyz_string) ;
+   last_jumpto_xyz_string = strdup(cbs->cval) ;
 
    nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
    if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
@@ -8829,10 +8840,13 @@ void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
    int nn ;
    char dum1[32],dum2[32];
 
-ENTRY("AFNI_jumpto_CB") ;
+ENTRY("AFNI_jumpto_ijk_CB") ;
 
    if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
+
+   if( last_jumpto_ijk_string != NULL ) free(last_jumpto_ijk_string) ;
+   last_jumpto_ijk_string = strdup(cbs->cval) ;
 
    nn = sscanf( cbs->cval , "%d%[ ,]%d%[ ,]%d" , &ii,dum1,&jj,dum2,&kk ) ;
    if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
@@ -8858,6 +8872,9 @@ ENTRY("AFNI_sumato_CB") ;
    if( !IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string )                         EXRETURN ;
    if( !SESSION_HAS_SUMA(im3d->ss_now) )                     EXRETURN ;
+
+   if( last_sumato_string != NULL ) free(last_sumato_string) ;
+   last_sumato_string = strdup(cbs->cval) ;
 
    nn = -1 ;
    sscanf( cbs->cval , "%d" , &nn ) ;

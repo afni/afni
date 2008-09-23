@@ -778,7 +778,6 @@ STATUS("making imag->rowcol") ;
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-
       XtAddCallback( imag->pop_jumpto_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
    } else {
@@ -794,7 +793,6 @@ STATUS("making imag->rowcol") ;
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-
       XtAddCallback( imag->pop_jumpto_ijk_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
    } else {
@@ -812,7 +810,6 @@ STATUS("making imag->rowcol") ;
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-
       XtAddCallback( imag->pop_mnito_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
    } else {
@@ -830,7 +827,6 @@ STATUS("making imag->rowcol") ;
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-
       XtAddCallback( imag->pop_sumato_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
    } else {
@@ -848,10 +844,8 @@ STATUS("making imag->rowcol") ;
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-
       XtAddCallback( imag->pop_talto_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
-
       if( TT_load_atlas() > 0 ){
          imag->pop_whereami_pb =        /* 10 Jul 2001 */
             XtVaCreateManagedWidget(
@@ -861,7 +855,6 @@ STATUS("making imag->rowcol") ;
                   XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
-
          XtAddCallback( imag->pop_whereami_pb , XmNactivateCallback ,
                         AFNI_imag_pop_CB , im3d ) ;
 
@@ -873,7 +866,6 @@ STATUS("making imag->rowcol") ;
                   XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
-
          XtAddCallback( imag->pop_ttren_pb , XmNactivateCallback ,
                         AFNI_imag_pop_CB , im3d ) ;
 
@@ -904,7 +896,6 @@ STATUS("making imag->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( imag->pop_imageonly_pb , XmNactivateCallback ,
                   AFNI_imag_pop_CB , im3d ) ;
 
