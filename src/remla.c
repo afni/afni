@@ -79,7 +79,7 @@ typedef struct {
 *****/
 
 typedef struct {
-  int na,nb , pna,pnb , nset , izero ;
+  int na,nb , nab , pna,pnb , nset , izero , istwo ;
   MTYPE abot,da , bbot,db ;
   matrix *X ; sparmat *Xs ;
   reml_setup **rs ;
@@ -605,12 +605,12 @@ static MTYPE rsumq=0.0 ;  /* sum of squares of residual */
 
 MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs )
 {
-   int n=rset->neq , ii ;
+   int n , ii ;
    MTYPE val ;
 
 ENTRY("REML_func") ;
 
-   if( y == NULL ){
+   if( y == NULL || rset == NULL || X == NULL ){
      if( bb1 != NULL ){
        vector_destroy(bb1) ; bb1 = NULL ;
        vector_destroy(bb2) ; vector_destroy(bb3) ;
@@ -629,6 +629,8 @@ ENTRY("REML_func") ;
      bb6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb6) ;
      bb7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb7) ;
    }
+
+   n = rset->neq ;
 
    /** Seven steps to compute the prewhitened residuals */
 
@@ -709,8 +711,7 @@ void reml_collection_destroy( reml_collection *rcol )
    if( rcol->X  != NULL ) matrix_destroy ( rcol->X  ) ;
    if( rcol->Xs != NULL ) sparmat_destroy( rcol->Xs ) ;
    if( rcol->rs != NULL ){
-     itop = (1+rcol->na) * (1+rcol->nb) ;
-     for( ii=0 ; ii < itop ; ii++ ) reml_setup_destroy(rcol->rs[ii]) ;
+     for( ii=0 ; ii < rcol->nab ; ii++ ) reml_setup_destroy(rcol->rs[ii]) ;
      free((void *)rcol->rs) ;
    }
    free((void *)rcol) ;
@@ -737,17 +738,22 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 
    /* set grid in a and b parameters */
 
-   if( nlev < 3 ) nlev = 3 ;
-   if( btop < 0.0 || btop > 0.9 ) btop = 0.9 ;
-   nb = 1 << (nlev+1) ; pnb = nlev+1 ; bbot = -btop ; db = 2.0*btop / nb ;
+   if( nlev > 0 ){
+     if( nlev < 3 ) nlev = 3 ;
+     if( btop < 0.0 || btop > 0.9 ) btop = 0.9 ;
+     nb = 1 << (nlev+1) ; pnb = nlev+1 ; bbot = -btop ; db = 2.0*btop / nb ;
 
-   if( atop < 0.0 || atop > 0.9 ) atop = 0.9 ;
-   if( allow_negative_cor ){
-     na = 1 << (nlev+1) ; pna = nlev+1 ; abot = -atop ;
-   } else {
-     na = 1 << (nlev)   ; pna = nlev   ; abot = 0.0   ;
+     if( atop < 0.0 || atop > 0.9 ) atop = 0.9 ;
+     if( allow_negative_cor ){
+       na = 1 << (nlev+1) ; pna = nlev+1 ; abot = -atop ;
+     } else {
+       na = 1 << (nlev)   ; pna = nlev   ; abot = 0.0   ;
+     }
+     da = (atop-abot) / na ;
+   } else {                        /* special case of just 2 (a,b) pairs */
+     da = db = 0.0 ; na = nb = pna = pnb = 0 ;
+     abot = atop ; bbot = btop ;
    }
-   da = (atop-abot) / na ;
 
    rrcol = (reml_collection *)malloc(sizeof(reml_collection)) ;
 
@@ -764,29 +770,50 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
                 (rrcol->Xs==NULL) ? "NOT USED for speedup" : "USED for speedup" ) ;
 #endif
 
-   nset = (nb+1)*(na+1) ;  /* number of cases to create */
-   rrcol->rs = (reml_setup **)calloc(sizeof(reml_setup *),nset) ;
+   if( nlev > 0 ){
+     rrcol->nab   = (nb+1)*(na+1) ;  /* number of cases to create */
+     rrcol->istwo = 0 ;
+   } else {
+     rrcol->nab   = 2; 
+     rrcol->istwo = 1 ;
+   }
+   rrcol->rs = (reml_setup **)calloc(sizeof(reml_setup *),rrcol->nab) ;
 
    rrcol->abot = abot ; rrcol->da = da ; rrcol->na = na ; rrcol->pna = pna ;
    rrcol->bbot = bbot ; rrcol->db = db ; rrcol->nb = nb ; rrcol->pnb = pnb ;
 
-   rrcol->izero = kk = IAB(rrcol,0.0,0.0) ;  /* index for a=b=0 case */
-   rrcol->rs[kk] = setup_arma11_reml( nt , tau , 0.0 , 0.0 , X ) ;
-   rrcol->rs[kk]->barm = 0.0 ;
+   /** set up the (a,b)=(0,0) case **/
 
-   nset = 1 ;
-   for( ii=0 ; ii <= na ; ii++ ){
-     aa = ii*da + abot ;                    /* AR parameter */
-     for( jj=0 ; jj <= nb ; jj++ ){
-       bb  = jj*db + bbot ;                 /* MA parameter */
-       lam = LAMBDA(aa,bb) ;                /* +1 super-diagonal element */
-       kk  = ii + (1+na)*jj ;
-       if( kk != rrcol->izero &&
-           ( lam >= corcut || (lam <= -corcut && allow_negative_cor) ) ){
-         rrcol->rs[kk] = setup_arma11_reml( nt,tau, aa,lam , X ) ;
-         if( rrcol->rs[kk] != NULL ){ rrcol->rs[kk]->barm = bb ; nset++ ; }
+   if( nlev > 0 ){
+     rrcol->izero = kk = IAB(rrcol,0.0,0.0) ;  /* index for a=b=0 case */
+   } else {
+     rrcol->izero = kk = 0 ;
+   }
+   rrcol->rs[kk] = setup_arma11_reml( nt , tau , 0.0 , 0.0 , X ) ;
+   rrcol->rs[kk]->barm = 0.0 ; nset = 1 ;
+
+   if( nlev == 0 ){  /* special setup with just 2 (a,b) cases */
+
+     bb = bbot ; aa = abot ; lam = LAMBDA(aa,bb) ; kk = 1 ;
+     rrcol->rs[kk] = setup_arma11_reml( nt,tau , aa,lam , X ) ;
+     if( rrcol->rs[kk] != NULL ){ rrcol->rs[kk]->barm = bb ; nset++ ; }
+
+   } else {          /* general setup case with an (a,b) grid of cases */
+
+     for( ii=0 ; ii <= na ; ii++ ){
+       aa = ii*da + abot ;                    /* AR parameter */
+       for( jj=0 ; jj <= nb ; jj++ ){
+         bb  = jj*db + bbot ;                 /* MA parameter */
+         lam = LAMBDA(aa,bb) ;                /* +1 super-diagonal element */
+         kk  = ii + (1+na)*jj ;
+         if( kk != rrcol->izero &&
+             ( lam >= corcut || (lam <= -corcut && allow_negative_cor) ) ){
+           rrcol->rs[kk] = setup_arma11_reml( nt,tau, aa,lam , X ) ;
+           if( rrcol->rs[kk] != NULL ){ rrcol->rs[kk]->barm = bb ; nset++ ; }
+         }
        }
      }
+
    }
 
    rrcol->nset = nset ;
@@ -802,6 +829,7 @@ static MTYPE  REML_best_lam = 0.0 ;
 static MTYPE  REML_best_bb  = 0.0 ;
 static MTYPE  REML_best_ssq = 0.0 ;
 static int    REML_best_ind = 0   ;
+
 static vector REML_best_prewhitened_data_vector ;     /* in bb1 */
 static vector REML_best_beta_vector ;                 /* in bb5 */
 static vector REML_best_fitts_vector ;                /* in bb6 */
@@ -812,6 +840,7 @@ static MTYPE  REML_olsq_rho = 0.0 ;
 static MTYPE  REML_olsq_lam = 0.0 ;
 static MTYPE  REML_olsq_bb  = 0.0 ;
 static MTYPE  REML_olsq_ssq = 0.0 ;
+
 static vector REML_olsq_prewhitened_data_vector ;
 static vector REML_olsq_beta_vector ;
 static vector REML_olsq_fitts_vector ;
@@ -842,6 +871,7 @@ ENTRY("REML_find_best_case") ;
      REML_status = -1 ; RETURN(-666.0) ;
    }
 
+#if 0
    if( REML_status == -1 ){ /* memory setup */
      vector_initialize( &REML_best_prewhitened_data_vector ) ;
      vector_initialize( &REML_best_beta_vector ) ;
@@ -849,6 +879,7 @@ ENTRY("REML_find_best_case") ;
      vector_initialize( &REML_best_prewhitened_fitts_vector ) ;
      vector_initialize( &REML_best_prewhitened_errts_vector ) ;
    }
+#endif
    REML_status = 0 ;
 
    /* copy (a,b) grid parameters to local variables */
@@ -862,11 +893,13 @@ ENTRY("REML_find_best_case") ;
    jbest = kbest / (1+na) ;
    ibest = kbest % (1+na) ;
    rbest = REML_func( y , rrcol->rs[kbest] , rrcol->X,rrcol->Xs ) ;
+#if 0
    vector_equate( *bb1 , &REML_olsq_prewhitened_data_vector ) ;
    vector_equate( *bb2 , &REML_olsq_prewhitened_errts_vector ) ;
    vector_equate( *bb5 , &REML_olsq_beta_vector ) ;
    vector_equate( *bb6 , &REML_olsq_fitts_vector ) ;
    vector_equate( *bb7 , &REML_olsq_prewhitened_fitts_vector ) ;
+#endif
    REML_olsq_ssq = rsumq ;
 
    /** do power-of-2 descent through the (a,b) grid to find the best pair **/
@@ -885,11 +918,13 @@ ENTRY("REML_find_best_case") ;
          rval = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
          if( rval < rbest ){                          /* the best so far seen */
            rbest = rval ; kbest = kk ; ibest = ia ; jbest = jb ;
+#if 0
            vector_equate( *bb1 , &REML_best_prewhitened_data_vector ) ;
            vector_equate( *bb2 , &REML_best_prewhitened_errts_vector ) ;
            vector_equate( *bb5 , &REML_best_beta_vector ) ;
            vector_equate( *bb6 , &REML_best_fitts_vector ) ;
            vector_equate( *bb7 , &REML_best_prewhitened_fitts_vector ) ;
+#endif
            REML_best_ssq = rsumq ;
          }
        }
@@ -906,6 +941,7 @@ ENTRY("REML_find_best_case") ;
 
    if( kbest == rrcol->izero ){                 /** OLSQ won! **/
      REML_best_ssq = REML_olsq_ssq ;
+#if 0
      vector_equate( REML_olsq_prewhitened_data_vector,
                    &REML_best_prewhitened_data_vector ) ;
      vector_equate( REML_olsq_prewhitened_errts_vector,
@@ -914,6 +950,7 @@ ENTRY("REML_find_best_case") ;
      vector_equate( REML_olsq_fitts_vector, &REML_best_fitts_vector ) ;
      vector_equate( REML_olsq_prewhitened_fitts_vector,
                    &REML_best_prewhitened_fitts_vector ) ;
+#endif
    }
 
    REML_best_rho = rrcol->rs[kbest]->rho ;
@@ -1018,11 +1055,16 @@ ENTRY("REML_add_glt_to_all") ;
 
    if( rc == NULL || G == NULL ) EXRETURN ;
 
-   for( jb=0 ; jb <= rc->nb ; jb++ ){
-     for( ia=0 ; ia <= rc->na ; ia++ ){
-       kk = ia + (1+rc->na)*jb ;
-       REML_add_glt_to_one( rc->rs[kk] , G ) ;
-   }}
+   if( rc->istwo ){
+     REML_add_glt_to_one( rc->rs[0] , G ) ;
+     REML_add_glt_to_one( rc->rs[1] , G ) ;
+   } else {
+     for( jb=0 ; jb <= rc->nb ; jb++ ){
+       for( ia=0 ; ia <= rc->na ; ia++ ){
+         kk = ia + (1+rc->na)*jb ;
+         REML_add_glt_to_one( rc->rs[kk] , G ) ;
+     }}
+   }
    EXRETURN ;
 }
 
@@ -1047,7 +1089,9 @@ ENTRY("REML_compute_gltstat") ;
 
    if( y     == NULL || bfull == NULL ||
        rset  == NULL || gf    == NULL || fsumq <= 0.0 ){
-     vector_destroy(betaG) ; vector_destroy(betaT) ; RETURN( 0.0 );
+     vector_destroy(betaG) ; vector_destroy(betaT) ;
+     free(betaG) ; free(betaT) ; betaG = betaT = NULL ;
+     RETURN( 0.0 );
    }
 
    vector_initialize(&ba); vector_initialize(&bb); vector_initialize(&br);

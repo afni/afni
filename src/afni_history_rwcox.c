@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , SEP , 2008 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "save last jumpto_xyz string, etc." ,
+   NULL } ,
+
  { 22 , SEP , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
    "got rid of some big memory leaks" ,
    NULL } ,

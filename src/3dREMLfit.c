@@ -44,7 +44,9 @@ THD_3dim_dataset * create_float_dataset( THD_3dim_dataset *tset ,
 {
    THD_3dim_dataset *nset ; int kk ;
 
-   if( tset == NULL || nvol < 1 || prefix == NULL ) return NULL ;
+ENTRY("create_float_dataset") ;
+
+   if( tset == NULL || nvol < 1 || prefix == NULL ) RETURN(NULL) ;
 
    nset = EDIT_empty_copy( tset ) ;
    EDIT_dset_items( nset ,
@@ -59,7 +61,7 @@ THD_3dim_dataset * create_float_dataset( THD_3dim_dataset *tset ,
   tross_Make_History( "3dREMLfit" , Argc,Argv , nset ) ;
   for( kk=0 ; kk < nvol ; kk++ )
     EDIT_substitute_brick( nset , kk , MRI_float , NULL ) ;
-  return nset ;
+  RETURN(nset) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -76,7 +78,9 @@ matrix * create_subset_matrix( int mpar , int nrow , int *set )
 {
    matrix *gm ; int ii,jj ;
 
-   if( mpar < 1 || nrow < 1 || nrow > mpar || set == NULL ) return NULL ;
+ENTRY("create_subset_matrix") ;
+
+   if( mpar < 1 || nrow < 1 || nrow > mpar || set == NULL ) RETURN(NULL) ;
 
    gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
    matrix_create( nrow , mpar , gm ) ;
@@ -84,12 +88,12 @@ matrix * create_subset_matrix( int mpar , int nrow , int *set )
      for( jj=0 ; jj < mpar ; jj++ ) gm->elts[ii][jj] = 0.0 ;
    }
    for( ii=0 ; ii < nrow ; ii++ ){
-     if( set[ii] < 0 || set[ii] >= mpar ){ free(gm); return NULL; }
+     if( set[ii] < 0 || set[ii] >= mpar ){ free(gm); RETURN(NULL); }
      for( jj=0 ; jj < ii ; jj++ )
-       if( set[ii] == set[jj] ){ free(gm); return NULL; }
+       if( set[ii] == set[jj] ){ free(gm); RETURN(NULL); }
      gm->elts[ii][set[ii]] = 1.0 ;  /* ii-th row selects set[ii] param */
    }
-   return gm ;
+   RETURN(gm) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -133,8 +137,10 @@ GLT_index * create_GLT_index( int ivfirst , int nrow ,
 {
    GLT_index *gin ; char lll[256] ; int ii,iv=ivfirst ;
 
-   if( !do_beta && !do_ttst && !do_ftst ) return NULL ; /* bad */
-   if( ivfirst < 0 || nrow < 1 || name == NULL ) return NULL ;
+ENTRY("create_GLT_index") ;
+
+   if( !do_beta && !do_ttst && !do_ftst        ) RETURN(NULL) ; /* bad */
+   if( ivfirst < 0 || nrow < 1 || name == NULL ) RETURN(NULL) ;
 
    gin = (GLT_index *)calloc(1,sizeof(GLT_index)) ;
 
@@ -175,7 +181,7 @@ GLT_index * create_GLT_index( int ivfirst , int nrow ,
      gin->ftst_lab = NULL ;
    }
 
-   gin->ivbot = ivfirst ; gin->ivtop = iv-1 ; return gin ;
+   gin->ivbot = ivfirst ; gin->ivtop = iv-1 ; RETURN(gin) ;
 }
 
 /*==========================================================================*/
@@ -184,9 +190,9 @@ GLT_index * create_GLT_index( int ivfirst , int nrow ,
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ;
-   THD_3dim_dataset *abset=NULL ;
+   THD_3dim_dataset *abset=NULL ; int abfixed=0 ; float afix,bfix ;
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar=NULL, *bar=NULL ;
-   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0, automask=0, nmask;
    float *iv , *jv ; int niv ;
    int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
@@ -303,6 +309,9 @@ int main( int argc , char *argv[] )
       "              * Intended to help model physiological noise in FMRI.\n"
       "              * Will slow the program down some, and make it use\n"
       "                  more memory (to hold all the matrix stuff).\n"
+      "\n"
+      " -quiet      = turn off most progress messages\n"
+      " -verb       = turn on more progress messages\n"
 #endif
       "\n"
       "------------------------------------------------------------------------\n"
@@ -322,8 +331,6 @@ int main( int argc , char *argv[] )
       "                 (-tout, then the program assumes -fout is activated)\n"
       " -noFDR      = do NOT add FDR curve data to bucket datasets\n"
       "                 (FDR curves can take a while if -tout is used)\n"
-      " -quiet      = turn off most progress messages\n"
-      " -verb       = turn on more progress messages\n"
       "\n"
       " -Rfitts ppp = dataset for REML fitted model\n"
       "                 (like 3dDeconvolve, a censored time point gets)\n"
@@ -430,6 +437,14 @@ int main( int argc , char *argv[] )
       "                  + save (a,b) using -Rvar in 3dREMLfit\n"
       "                  + process them in some way (spatial smoothing?)\n"
       "                  + use these modified values for fitting in 3dREMLfit\n"
+#if 0
+      "               * Special case:\n"
+      "                     -ABfile =0.2,0.3\n"
+      "                   means to use a=0.2 and b=0.3 for all voxels (e.g.).\n"
+      "                   The program detects this special case by looking for\n"
+      "                   '=' as the first character of the string 'ff' and\n"
+      "                   looking for a comma in the middle of the string.\n"
+#endif
       "\n"
       "==========================================================================\n"
       "===========  Various Notes (as if this help weren't long enough) =========\n"
@@ -635,10 +650,21 @@ int main( int argc , char *argv[] )
      /** ABfile **/
 
      if( strcasecmp(argv[iarg],"-ABfile") == 0 ){
-       if( abset != NULL ) ERROR_exit("Can't have 2 '%s' options",argv[iarg]) ;
+       if( abset != NULL || abfixed )
+         ERROR_exit("Can't have 2 '%s' options",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
-       abset = THD_open_dataset( argv[iarg] ) ;
-       CHECK_OPEN_ERROR(abset,argv[iarg]) ;
+       if( argv[iarg][0] == '=' && strchr(argv[iarg],',') != NULL ){
+         afix = bfix = -66.0f ;
+         sscanf( argv[iarg] , "=%f,%f" , &afix , &bfix ) ;
+         if( afix < -0.9f || afix > 0.9f ||
+             bfix < -0.9f || bfix > 0.9f   )
+           ERROR_exit("%s %s has illegal fixed values of a and/or b!",
+                      argv[iarg-1] , argv[iarg] ) ;
+         abfixed = 1 ;
+       } else {
+         abset = THD_open_dataset( argv[iarg] ) ;
+         CHECK_OPEN_ERROR(abset,argv[iarg]) ;
+       }
        iarg++ ; continue ;
      }
 
@@ -713,7 +739,7 @@ int main( int argc , char *argv[] )
      /** -mask **/
 
      if( strcasecmp(argv[iarg],"-mask") == 0 ){
-       THD_3dim_dataset *mset ; int mmm ;
+       THD_3dim_dataset *mset ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
@@ -722,9 +748,9 @@ int main( int argc , char *argv[] )
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
-       mmm = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
-       if( verb ) INFO_message("Number of voxels in mask = %d",mmm) ;
-       if( mmm < 2 ) ERROR_exit("Mask is too small to process") ;
+       nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
+       if( verb || nmask < 1 ) INFO_message("Number of voxels in mask = %d",nmask) ;
+       if( nmask < 1 ) ERROR_exit("Mask is too small to process") ;
        iarg++ ; continue ;
      }
 
@@ -814,6 +840,7 @@ STATUS("options done") ;
 
    if( abset != NULL ){
      float abot,atop , bbot,btop ;
+
      if( DSET_NX(abset) != nx || DSET_NY(abset) != ny || DSET_NZ(abset) != nz )
        ERROR_exit("-input and -ABfile datasets don't match grid sizes!") ;
      if( DSET_NVALS(abset) < 2 )
@@ -846,6 +873,14 @@ STATUS("options done") ;
 
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
      bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
+
+   } else if( abfixed ){
+
+     REML_allow_negative_correlations(1) ;
+     if( do_mfilt ){
+       do_mfilt = 0 ; WARNING_message("-ABfile disables -Mfilt") ;
+     }
+
    }
 
    /*-- process the mask somehow --*/
@@ -855,19 +890,18 @@ STATUS("options done") ;
        ERROR_exit("-mask dataset grid doesn't match input dataset") ;
 
    } else if( automask ){
-     int mmm ;
      mask = THD_automask( inset ) ;
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
-     mmm = THD_countmask( nvox , mask ) ;
-     if( verb )
-       INFO_message("Number of voxels in automask = %d",mmm) ;
-     if( mmm < 2 ) ERROR_exit("Automask is too small to process") ;
+     nmask = THD_countmask( nvox , mask ) ;
+     if( verb || nmask < 1 )
+       INFO_message("Number of voxels in automask = %d",nmask) ;
+     if( nmask < 1 ) ERROR_exit("Automask is too small to process") ;
 
    } else {
      if( verb )
        INFO_message("No mask ==> computing for all %d voxels",nvox) ;
-     mask = (byte *)malloc(sizeof(byte)*nvox) ;
+     mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
      memset( mask , 1 , sizeof(byte)*nvox ) ;
    }
 
@@ -1148,7 +1182,7 @@ STATUS("process -slibase images") ;
        ERROR_exit(" ==> Can't do statistics on the Stimuli") ;
    }
 
-   /* setup to do statistics on the stimuli betas, if desired */
+   /*** setup to do statistics on the stimuli betas, if desired ***/
 
 #define SKIP_SMAT 1
 #undef  ADD_GLT
@@ -1246,16 +1280,43 @@ STATUS("make other GLTs") ;
 
    NI_free_element(nelmat) ;
 
-   /**------- set up for REML estimation -------**/
+   /**--- load time series dataset, check for all zero voxels ---**/
 
    if( verb ) INFO_message("Loading input dataset into memory") ;
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    MEMORY_CHECK ;
 
-   if( verb ) INFO_message("starting REML setup calculations") ;
+   vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
+   niv = (nvals+nrega+glt_num+9)*2 ;
+   iv  = (float *)malloc(sizeof(float)*(niv+1)) ;
+   jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
+
+   for( nbad=vv=0 ; vv < nvox ; vv++ ){
+     if( !INMASK(vv) ) continue ;
+     (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+     for( ii=0 ; ii < ntime && iv[goodlist[ii]]==0.0f ; ii++ ) ; /*nada*/
+     if( ii == ntime ){ mask[vv] = 0 ; nbad++ ; }
+   }
+   if( nbad > 0 ){
+     nmask = THD_countmask( nvox , mask ) ;
+     if( verb || nmask < 1 )
+       ININFO_message("masked off %d voxel%s for being all zero; %d left in mask" ,
+                      nbad , (nbad==1) ? "" : "s" , nmask ) ;
+     if( nmask < 1 ) ERROR_exit("Can't continue after mask shrinks to nothing!") ;
+   }
+
+   /**------- set up for REML estimation -------**/
+
+   if( verb ){
+     INFO_message("starting REML setup calculations") ;
+     if( abfixed ) ININFO_message(" using fixed a=%.4f b=%.4f",afix,bfix) ;
+   }
    RCsli = (reml_collection **)malloc(sizeof(reml_collection *)*nsli) ;
    for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
-     rrcol = REML_setup_all( Xsli[ss] , tau , nlevab,rhomax,bmax ) ;
+     if( abfixed )
+       rrcol = REML_setup_all( Xsli[ss] , tau , 0     , afix  ,bfix ) ;
+     else
+       rrcol = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
      if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
      RCsli[ss] = rrcol ;
    }
@@ -1269,16 +1330,9 @@ STATUS("make other GLTs") ;
 
    /***------- loop over voxels, find best REML values ------***/
 
-   vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
-
-   niv = (nvals+nrega+glt_num+9)*2 ;
-   iv  = (float *)malloc(sizeof(float)*(niv+1)) ;
-   jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
-
    vstep = (verb && nvox > 999) ? nvox/50 : 0 ;
 
-   if( aim == NULL ){  /*--- if we don't already have (a,b) from -ABfile ---*/
-     int nzz ;
+   if( aim == NULL && !abfixed ){ /*--- if don't have (a,b) via -ABfile ---*/
 
      aim = mri_new_vol( nx,ny,nz , MRI_float ) ;
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
@@ -1287,23 +1341,16 @@ STATUS("make other GLTs") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-     for( nbad=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
+     for( vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
        (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
-       for( nzz=ii=0 ; ii < ntime ; ii++ ){
-         y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
-         nzz += (y.elts[ii] == 0.0) ;
-       }
+       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
-       if( nzz == ntime ){ mask[vv] = 0 ; nbad++ ; continue ; }
-       else              (void)REML_find_best_case( &y , RCsli[ss] ) ;
+       (void)REML_find_best_case( &y , RCsli[ss] ) ;
        aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
      }
      if( vstep ) fprintf(stderr,"\n") ;
-     if( nbad > 0 && verb )
-       ININFO_message("masked off %d voxel%s for being all zero" ,
-                      nbad , (nbad==1) ? "" : "s" ) ;
 
      /*-- median filter (a,b)? --*/
 
@@ -1431,7 +1478,10 @@ STATUS("make other GLTs") ;
 
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
 
-       jj = IAB(RCsli[ss],aar[vv],bar[vv]) ;  /* closest point in the (a,b,) grid */
+       if( abfixed )  /* special case */
+         jj = 1 ;
+       else
+         jj = IAB(RCsli[ss],aar[vv],bar[vv]) ;  /* closest point in the (a,b) grid */
 
        if( RCsli[ss]->rs[jj] == NULL ){       /* try to fix up this oversight */
          int   ia  = jj % (1+RCsli[ss]->na);
@@ -1525,19 +1575,19 @@ STATUS("make other GLTs") ;
    /*----- write output REML datasets to disk -----*/
 
    if( Rbeta_dset != NULL ){
-     DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); DSET_delete(Rbeta_dset);
+     DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); DSET_deletepp(Rbeta_dset);
    }
    if( Rvar_dset  != NULL ){
-     DSET_write(Rvar_dset); WROTE_DSET(Rvar_dset); DSET_delete(Rvar_dset);
+     DSET_write(Rvar_dset); WROTE_DSET(Rvar_dset); DSET_deletepp(Rvar_dset);
    }
    if( Rfitts_dset != NULL ){
-     DSET_write(Rfitts_dset); WROTE_DSET(Rfitts_dset); DSET_delete(Rfitts_dset);
+     DSET_write(Rfitts_dset); WROTE_DSET(Rfitts_dset); DSET_deletepp(Rfitts_dset);
    }
    if( Rerrts_dset != NULL ){
-     DSET_write(Rerrts_dset); WROTE_DSET(Rerrts_dset); DSET_delete(Rerrts_dset);
+     DSET_write(Rerrts_dset); WROTE_DSET(Rerrts_dset); DSET_deletepp(Rerrts_dset);
    }
    if( Rwherr_dset != NULL ){
-     DSET_write(Rwherr_dset); WROTE_DSET(Rwherr_dset); DSET_delete(Rwherr_dset);
+     DSET_write(Rwherr_dset); WROTE_DSET(Rwherr_dset); DSET_deletepp(Rwherr_dset);
    }
    if( Rbuckt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
@@ -1547,7 +1597,7 @@ STATUS("make other GLTs") ;
      if( ii > 0 && verb > 1 )
        ININFO_message("Added %d FDR curve%s to -Rbuck dataset",
                       ii , (ii==1)?"":"s" ) ;
-     DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_delete(Rbuckt_dset);
+     DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_deletepp(Rbuckt_dset);
    }
 
    /*-- create OLSQ outputs, if any --*/
@@ -1558,7 +1608,7 @@ STATUS("make other GLTs") ;
        EDIT_BRICK_LABEL( Obeta_dset , ii , beta_lab[ii] ) ;
    }
 
-   Ovar_dset  = create_float_dataset( inset , 1    , Ovar_prefix,1  ) ;
+   Ovar_dset  = create_float_dataset( inset , 1 , Ovar_prefix,1  ) ;
    if( Ovar_dset != NULL ){
      EDIT_BRICK_LABEL( Ovar_dset , 0 , "StDev" ) ;
    }
@@ -1693,24 +1743,25 @@ STATUS("make other GLTs") ;
      reml_collection_destroy(RCsli[ss]) ; matrix_destroy(Xsli[ss]) ;
    }
    free(RCsli) ; free(Xsli) ;
-   if( abset != NULL ) DSET_unload(abset) ;
-   else               { mri_free(aim) ; mri_free(bim) ; }
+        if( abset != NULL ) DSET_delete(abset) ;
+   else if( aim   != NULL ) { mri_free(aim) ; mri_free(bim) ; }
    KILL_ALL_GLTS ;
+   (void)REML_func(NULL,NULL,NULL,NULL) ;
    MEMORY_CHECK ;
 
    /*----- write output OLSQ datasets to disk -----*/
 
    if( Obeta_dset != NULL ){
-     DSET_write(Obeta_dset); WROTE_DSET(Obeta_dset); DSET_delete(Obeta_dset);
+     DSET_write(Obeta_dset); WROTE_DSET(Obeta_dset); DSET_deletepp(Obeta_dset);
    }
    if( Ovar_dset  != NULL ){
-     DSET_write(Ovar_dset); WROTE_DSET(Ovar_dset); DSET_delete(Ovar_dset);
+     DSET_write(Ovar_dset); WROTE_DSET(Ovar_dset); DSET_deletepp(Ovar_dset);
    }
    if( Ofitts_dset != NULL ){
-     DSET_write(Ofitts_dset); WROTE_DSET(Ofitts_dset); DSET_delete(Ofitts_dset);
+     DSET_write(Ofitts_dset); WROTE_DSET(Ofitts_dset); DSET_deletepp(Ofitts_dset);
    }
    if( Oerrts_dset != NULL ){
-     DSET_write(Oerrts_dset); WROTE_DSET(Oerrts_dset); DSET_delete(Oerrts_dset);
+     DSET_write(Oerrts_dset); WROTE_DSET(Oerrts_dset); DSET_deletepp(Oerrts_dset);
    }
    if( Obuckt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
@@ -1720,12 +1771,15 @@ STATUS("make other GLTs") ;
      if( ii > 0 && verb > 1 )
        ININFO_message("Added %d FDR curve%s to -Obuck dataset",
                       ii , (ii==1)?"":"s" ) ;
-     DSET_write(Obuckt_dset); WROTE_DSET(Obuckt_dset); DSET_delete(Obuckt_dset);
+     DSET_write(Obuckt_dset); WROTE_DSET(Obuckt_dset); DSET_deletepp(Obuckt_dset);
    }
 
    /*----- Free at last ----*/
 
    INFO_message("3dREMLfit is all done! total CPU=%.2f s",COX_cpu_time()) ;
    MEMORY_CHECK ;
+#ifdef USING_MCW_MALLOC
+   if( verb > 3 ) mcw_malloc_dump() ;
+#endif
    exit(0) ;
 }
