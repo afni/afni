@@ -154,6 +154,8 @@ STATUS("destroy taxis") ;
 
    THD_delete_datablock( dset->dblk ) ;
 
+   myXtFree( dset->vox_warp ) ;  /* 23 Sep 2008 */
+
 STATUS("KILL_KILL") ;
    KILL_KILL( dset->kl ) ;
 

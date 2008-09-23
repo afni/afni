@@ -3163,6 +3163,9 @@ extern float THD_fdrcurve_zval( THD_3dim_dataset *, int, float ) ;
 */
 #define DSET_delete(ds) THD_delete_3dim_dataset((ds),False)
 
+#define DSET_deletepp(ds) \
+  do{ THD_delete_3dim_dataset((ds),False); myXtFree((ds)); } while(0)
+
 /*! Write dataset ds to disk.
 
     Also loads the sub-brick statistics
