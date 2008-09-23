@@ -12,8 +12,9 @@
 #ifdef USING_MCW_MALLOC
 # define MEMORY_CHECK                                                  \
    do{ long long nb = mcw_malloc_total() ;                             \
-       if( nb > 0 ) ININFO_message("Memory usage now = %lld (%s)" ,    \
-                    nb , approximate_number_string((double)nb)     ) ; \
+       if( nb > 0 && verb > 1 )                                        \
+         ININFO_message("Memory usage now = %lld (%s)" ,               \
+                        nb , approximate_number_string((double)nb) ) ; \
    } while(0)
 #else
 # define MEMORY_CHECK /*nada*/
@@ -193,7 +194,7 @@ int main( int argc , char *argv[] )
    char *cgl , *rst ;
    matrix X ; vector y ;
    reml_collection *rrcol ;
-   int nprefixO=0 , nprefixR=0 , vstep=0 ;
+   int nprefixO=0 , nprefixR=0 , vstep=0 , verb=1 ;
 
    char *Rbeta_prefix  = NULL ; THD_3dim_dataset *Rbeta_dset  = NULL ;
    char *Rvar_prefix   = NULL ; THD_3dim_dataset *Rvar_dset   = NULL ;
@@ -321,6 +322,8 @@ int main( int argc , char *argv[] )
       "                 (-tout, then the program assumes -fout is activated)\n"
       " -noFDR      = do NOT add FDR curve data to bucket datasets\n"
       "                 (FDR curves can take a while if -tout is used)\n"
+      " -quiet      = turn off most progress messages\n"
+      " -verb       = turn on more progress messages\n"
       "\n"
       " -Rfitts ppp = dataset for REML fitted model\n"
       "                 (like 3dDeconvolve, a censored time point gets)\n"
@@ -577,6 +580,15 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc ){
 
+     /** verbosity **/
+
+     if( strcasecmp(argv[iarg],"-verb") == 0 ){
+       verb++ ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-quiet") == 0 ){
+       verb = 0 ; iarg++ ; continue ;
+     }
+
      /** -addbase **/
 
      if( strcasecmp(argv[iarg],"-addbase") == 0 ){
@@ -711,7 +723,7 @@ int main( int argc , char *argv[] )
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
        mmm = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
-       INFO_message("Number of voxels in mask = %d",mmm) ;
+       if( verb ) INFO_message("Number of voxels in mask = %d",mmm) ;
        if( mmm < 2 ) ERROR_exit("Mask is too small to process") ;
        iarg++ ; continue ;
      }
@@ -792,7 +804,8 @@ STATUS("options done") ;
 
    if( do_buckt && !do_fstat && !do_tstat ){
      do_fstat = 1 ;
-     INFO_message("assuming -fout since you asked for a bucket dataset") ;
+     if( verb )
+       INFO_message("assuming -fout since you asked for a bucket dataset") ;
    }
 
    do_stat = (do_fstat || do_tstat) ;
@@ -827,8 +840,9 @@ STATUS("options done") ;
      btop = fabsf(btop) ; bbot = fabsf(bbot) ; bmax   = MAX(bbot,btop) ;
      if( rhomax < 0.1 ) rhomax = 0.1 ;
      if( bmax   < 0.1 ) bmax   = 0.1 ;
-     INFO_message("-ABfile sets (a,b) grid to %+.3f..%+.3f X %+.3f..%+.3f",
-                  -rhomax,rhomax , -bmax,bmax ) ;
+     if( verb )
+       INFO_message("-ABfile sets (a,b) grid to %+.3f..%+.3f X %+.3f..%+.3f",
+                    -rhomax,rhomax , -bmax,bmax ) ;
 
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
      bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
@@ -846,11 +860,13 @@ STATUS("options done") ;
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
      mmm = THD_countmask( nvox , mask ) ;
-     INFO_message("Number of voxels in automask = %d",mmm) ;
+     if( verb )
+       INFO_message("Number of voxels in automask = %d",mmm) ;
      if( mmm < 2 ) ERROR_exit("Automask is too small to process") ;
 
    } else {
-     INFO_message("No mask ==> computing for all %d voxels",nvox) ;
+     if( verb )
+       INFO_message("No mask ==> computing for all %d voxels",nvox) ;
      mask = (byte *)malloc(sizeof(byte)*nvox) ;
      memset( mask , 1 , sizeof(byte)*nvox ) ;
    }
@@ -895,7 +911,8 @@ STATUS("process matrix") ;
      if( riar == NULL ) ERROR_exit("Matrix 'RunStart' badly formatted?") ;
      Nruns = riar->num ; runs = riar->ar ;
    } else {
-     INFO_message("Matrix missing 'RunStart' attribute ==> assuming 1 run");
+     if( verb )
+       INFO_message("Matrix missing 'RunStart' attribute ==> assuming 1 run");
      Nruns = 1 ; runs = calloc(sizeof(int),1) ;
    }
 
@@ -952,8 +969,9 @@ STATUS("process -addbase images") ;
 
      nrega += ncol_addbase ;  /* new number of regressors */
 
-     INFO_message("Adding %d column%s to X matrix via '-addbase'" ,
-                  ncol_addbase , (ncol_addbase==1) ? "" : "s"      ) ;
+     if( verb )
+       INFO_message("Adding %d column%s to X matrix via '-addbase'" ,
+                    ncol_addbase , (ncol_addbase==1) ? "" : "s"      ) ;
 
      for( nbad=ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
        im = IMARR_SUBIM( imar_addbase , ii ) ;
@@ -1033,8 +1051,9 @@ STATUS("process -slibase images") ;
      nsli    = nz ;
      nsliper = nxy ;
 
-     INFO_message("Adding %d column%s to X matrix via '-slibase'" ,
-                  ncol_slibase , (ncol_slibase==1) ? "" : "s"      ) ;
+     if( verb )
+       INFO_message("Adding %d column%s to X matrix via '-slibase'" ,
+                    ncol_slibase , (ncol_slibase==1) ? "" : "s"      ) ;
 
      for( nbad=ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
        im = IMARR_SUBIM( imar_slibase , ii ) ;
@@ -1229,11 +1248,11 @@ STATUS("make other GLTs") ;
 
    /**------- set up for REML estimation -------**/
 
-   INFO_message("Loading input dataset into memory") ;
+   if( verb ) INFO_message("Loading input dataset into memory") ;
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    MEMORY_CHECK ;
 
-   INFO_message("starting REML setup calculations") ;
+   if( verb ) INFO_message("starting REML setup calculations") ;
    RCsli = (reml_collection **)malloc(sizeof(reml_collection *)*nsli) ;
    for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
      rrcol = REML_setup_all( Xsli[ss] , tau , nlevab,rhomax,bmax ) ;
@@ -1242,14 +1261,8 @@ STATUS("make other GLTs") ;
    }
    izero = RCsli[0]->izero ;  /* index of (a=0,b=0) case */
 
-   if( glt_num > 0 )
-     ININFO_message("adding %d statistics matri%s to REML setup",
-                    glt_num , (glt_num==1)?"x":"ces" ) ;
-   for( ss=0 ; ss < nsli ; ss++ )
-     for( kk=0 ; kk < glt_num ; kk++ )
-       REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
-
-   ININFO_message(
+   if( verb > 1 )
+     ININFO_message(
       "REML setup finished: matrix rows=%d cols=%d; %d cases; total CPU=%.2f s",
       ntime,nrega,RCsli[0]->nset,COX_cpu_time()) ;
    MEMORY_CHECK ;
@@ -1262,7 +1275,7 @@ STATUS("make other GLTs") ;
    iv  = (float *)malloc(sizeof(float)*(niv+1)) ;
    jv  = (float *)malloc(sizeof(float)*(niv+1)) ;
 
-   vstep = (nvox > 999) ? nvox/50 : 0 ;
+   vstep = (verb && nvox > 999) ? nvox/50 : 0 ;
 
    if( aim == NULL ){  /*--- if we don't already have (a,b) from -ABfile ---*/
      int nzz ;
@@ -1288,7 +1301,7 @@ STATUS("make other GLTs") ;
        aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
      }
      if( vstep ) fprintf(stderr,"\n") ;
-     if( nbad > 0 )
+     if( nbad > 0 && verb )
        ININFO_message("masked off %d voxel%s for being all zero" ,
                       nbad , (nbad==1) ? "" : "s" ) ;
 
@@ -1296,7 +1309,8 @@ STATUS("make other GLTs") ;
 
      if( do_mfilt ){
        MRI_IMAGE *afilt , *bfilt ;
-       ININFO_message("Median filtering best fit ARMA parameters") ;
+       if( verb > 1 )
+         ININFO_message("Median filtering best fit ARMA parameters") ;
        afilt = mri_medianfilter( aim , mfilt_radius , mask , 0 ) ;
        bfilt = mri_medianfilter( bim , mfilt_radius , mask , 0 ) ;
        if( afilt == NULL || bfilt == NULL ){
@@ -1308,13 +1322,29 @@ STATUS("make other GLTs") ;
        }
      }
 
-     ININFO_message("ARMA voxel parameters estimated: total CPU=%.2f s",COX_cpu_time()) ;
+     if( verb )
+       ININFO_message(
+         "ARMA voxel parameters estimated: total CPU=%.2f s",COX_cpu_time()) ;
      MEMORY_CHECK ;
 
    } /***** end of REML estimation *****/
 
    /*-- at this point, aim and bim contain the (a,b) parameters --*/
    /*-- (either from -ABfile or from REML loop just done above) --*/
+
+   /** add GLTs to the REML setup structures **/
+
+   if( glt_num > 0 ){
+     for( ss=0 ; ss < nsli ; ss++ )
+       for( kk=0 ; kk < glt_num ; kk++ )
+         REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
+     if( verb > 1 ){
+       ININFO_message(
+         "added %d statistics matri%s to REML setup; total CPU=%.2f s",
+         glt_num , (glt_num==1)?"x":"ces" , COX_cpu_time() ) ;
+     }
+     MEMORY_CHECK ;
+   }
 
    /*-- set up indexing and labels needed for bucket dataset creation --*/
 
@@ -1488,41 +1518,36 @@ STATUS("make other GLTs") ;
        }
      } /* end of voxel loop */
      if( vstep ) fprintf(stderr,"\n") ;
-     ININFO_message("GLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
-     MEMORY_CHECK ;
+     if( verb )
+       ININFO_message("GLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
    }
 
    /*----- write output REML datasets to disk -----*/
 
    if( Rbeta_dset != NULL ){
      DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); DSET_delete(Rbeta_dset);
-     MEMORY_CHECK ;
    }
    if( Rvar_dset  != NULL ){
      DSET_write(Rvar_dset); WROTE_DSET(Rvar_dset); DSET_delete(Rvar_dset);
-     MEMORY_CHECK ;
    }
    if( Rfitts_dset != NULL ){
      DSET_write(Rfitts_dset); WROTE_DSET(Rfitts_dset); DSET_delete(Rfitts_dset);
-     MEMORY_CHECK ;
    }
    if( Rerrts_dset != NULL ){
      DSET_write(Rerrts_dset); WROTE_DSET(Rerrts_dset); DSET_delete(Rerrts_dset);
-     MEMORY_CHECK ;
    }
    if( Rwherr_dset != NULL ){
      DSET_write(Rwherr_dset); WROTE_DSET(Rwherr_dset); DSET_delete(Rwherr_dset);
-     MEMORY_CHECK ;
    }
    if( Rbuckt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
        ii = THD_create_all_fdrcurves(Rbuckt_dset) ;
      else
        ii = 0 ;
-     if( ii > 0 ) ININFO_message("Added %d FDR curve%s to -Rbuck dataset",
-                                 ii , (ii==1)?"":"s" ) ;
+     if( ii > 0 && verb > 1 )
+       ININFO_message("Added %d FDR curve%s to -Rbuck dataset",
+                      ii , (ii==1)?"":"s" ) ;
      DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_delete(Rbuckt_dset);
-     MEMORY_CHECK ;
    }
 
    /*-- create OLSQ outputs, if any --*/
@@ -1655,13 +1680,14 @@ STATUS("make other GLTs") ;
        }
      } /* end of voxel loop */
      if( vstep ) fprintf(stderr,"\n") ;
-     ININFO_message("OLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
-     MEMORY_CHECK ;
+     if( verb > 1 )
+       ININFO_message("OLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
    }
 
    /*----- done with the input dataset -----*/
 
-   ININFO_message("unloading input dataset and REML matrices") ;
+   MEMORY_CHECK ;
+   if( verb > 1 ) ININFO_message("unloading input dataset and REML matrices");
    DSET_delete(inset) ; free(jv) ; free(iv) ; free(mask) ; free(tau) ;
    for( ss=0 ; ss < nsli ; ss++ ){
      reml_collection_destroy(RCsli[ss]) ; matrix_destroy(Xsli[ss]) ;
@@ -1676,33 +1702,30 @@ STATUS("make other GLTs") ;
 
    if( Obeta_dset != NULL ){
      DSET_write(Obeta_dset); WROTE_DSET(Obeta_dset); DSET_delete(Obeta_dset);
-     MEMORY_CHECK ;
    }
    if( Ovar_dset  != NULL ){
      DSET_write(Ovar_dset); WROTE_DSET(Ovar_dset); DSET_delete(Ovar_dset);
-     MEMORY_CHECK ;
    }
    if( Ofitts_dset != NULL ){
      DSET_write(Ofitts_dset); WROTE_DSET(Ofitts_dset); DSET_delete(Ofitts_dset);
-     MEMORY_CHECK ;
    }
    if( Oerrts_dset != NULL ){
      DSET_write(Oerrts_dset); WROTE_DSET(Oerrts_dset); DSET_delete(Oerrts_dset);
-     MEMORY_CHECK ;
    }
    if( Obuckt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
        ii = THD_create_all_fdrcurves(Obuckt_dset) ;
      else
        ii = 0 ;
-     if( ii > 0 ) ININFO_message("Added %d FDR curve%s to -Obuck dataset",
-                                 ii , (ii==1)?"":"s" ) ;
+     if( ii > 0 && verb > 1 )
+       ININFO_message("Added %d FDR curve%s to -Obuck dataset",
+                      ii , (ii==1)?"":"s" ) ;
      DSET_write(Obuckt_dset); WROTE_DSET(Obuckt_dset); DSET_delete(Obuckt_dset);
-     MEMORY_CHECK ;
    }
 
    /*----- Free at last ----*/
 
    INFO_message("3dREMLfit is all done! total CPU=%.2f s",COX_cpu_time()) ;
+   MEMORY_CHECK ;
    exit(0) ;
 }
