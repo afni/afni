@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, SEP, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -remove_preproc_files option (akin to -move_preproc_files)",
+   NULL
+ } ,
+
+ { 23, SEP, 2008, RCR, "gen_epi_review.py", MINOR, TYPE_MODIFY,
+   "in script, check for existence of given datasets\n",
+   NULL
+ } ,
+
  { 17, SEP, 2008, RCR, "make_stim_times.py", MINOR, TYPE_NEW_OPT,
    "added -labels option, for including labels in filenames",
    NULL
