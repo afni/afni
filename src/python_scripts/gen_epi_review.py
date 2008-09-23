@@ -163,12 +163,14 @@ geometry arguments (optional):
 g_history = """
     gen_epi_review.py history:
 
-    0.1  June 27, 2008: initial version
-    0.2  June 30, 2008:
+    0.1  Jun 27, 2008: initial version
+    0.2  Jun 30, 2008:
          - make script executable, decrease sleep time and add usage comment
+    0.3  Sep 23, 2008: 
+         - in script, check for existence of given datasets
 """
 
-g_version = "version 0.2, June 30, 2008"
+g_version = "version 0.3, Sep 23, 2008"
 
 gDEF_VERB       = 1             # default verbose level
 gDEF_IM_SIZE    = [300,300]     # image size, in pixels
@@ -364,6 +366,13 @@ class GenEPIReview:
               "# set the list of datasets\n"                                \
               "set dsets = ( %s )\n\n" %                                    \
                  ' '.join([dset.prefix for dset in self.adsets])
+
+        c2 += '# ------------------------------------------------------\n'  \
+              '# verify that the input data exists\n'                       \
+              'if ( ! -f $dsets[1]+orig.HEAD ) then\n'                      \
+              '    echo "** missing data to review (e.g. $dsets[1])"\n'     \
+              '    exit\n'                                                  \
+              'endif\n\n'
 
         c2 += '# ------------------------------------------------------\n'  \
               '# start afni is listening mode, and take a brief nap\n\n'    \
