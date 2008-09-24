@@ -581,6 +581,7 @@ int main( int argc , char *argv[] )
       "    other code optimizations should make running 3dREMLfit tolerable.\n"
       "    Depending on the matrix and the options, you might expect CPU time\n"
       "    to be about 1..3 times that of the corresponding 3dDeconvolve run.\n"
+      "    (Slower than that if you use -slibase, however.)\n"
       "\n"
       "-----------------------------------------------------------\n"
       "To Dream the Impossible Dream, to Write the Uncodeable Code\n"
