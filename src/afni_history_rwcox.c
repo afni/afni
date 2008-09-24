@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , SEP , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "-addbase and -slibase options to add baseline columns to matrix" ,
+   "In particular, -slibase is intended for per-slice modeling of\n"
+   "physiological noise effects.  Sucks up a lot of memory and CPU time." } ,
+
  { 23 , SEP , 2008 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "save last jumpto_xyz string, etc." ,
    NULL } ,
