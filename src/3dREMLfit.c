@@ -234,7 +234,7 @@ int main( int argc , char *argv[] )
 
    MRI_IMARR *imar_addbase=NULL ; int ncol_addbase=0 ;
    MRI_IMARR *imar_slibase=NULL ; int ncol_slibase=0 ;
-   int nrega,nrego , nbad , ss ;
+   int nrega,nrego , nbad , ss,ssold , dmbase=1 ;
    int               nsli , nsliper ;
    matrix          **Xsli =NULL ;
    reml_collection **RCsli=NULL ;
@@ -281,13 +281,15 @@ int main( int argc , char *argv[] )
       "\n"
       " -matrix mmm = Read the matrix 'mmm', which should have been\n"
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
-      "              * N.B.: 3dREMLfit will NOT work with all zero columns,\n"
-      "                      unlike 3dDeconvolve.\n"
+      "            *** N.B.: 3dREMLfit will NOT work with all zero columns,\n"
+      "                      unlike 3dDeconvolve!\n"
       "\n"
       " -mask kkk   = Read dataset 'kkk' as a mask for the input.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
       "\n"
-#if 0
+      "-----------------------------------------------\n"
+      "Options to Add Columns to the Regression Matrix\n"
+      "-----------------------------------------------\n"
       " -addbase bb = You can add baseline model columns to the matrix with\n"
       "                 this option.  Each column in the .1D file 'bb' will\n"
       "                 be appended to the matrix.  This file must have at\n"
@@ -307,12 +309,13 @@ int main( int argc , char *argv[] )
       "                 [0] column of 'bb' appended to the matrix for\n"
       "                 the #0 slice of the dataset, et cetera.\n"
       "              * Intended to help model physiological noise in FMRI.\n"
-      "              * Will slow the program down some, and make it use\n"
+      "              * Will slow the program down a lot, and make it use\n"
       "                  a lot more memory (to hold all the matrix stuff).\n"
       "\n"
-      " -quiet      = turn off most progress messages\n"
-      " -verb       = turn on more progress messages\n"
-#endif
+      " -nodmbase   = By default, baseline columns added to the matrix\n"
+      "                 via '-addbase' or '-slibase' will each have their\n"
+      "                 mean removed (as is done in 3dDeconvolve).  If you\n"
+      "                 do NOT want this operation performed, use '-nodmbase'.\n"
       "\n"
       "------------------------------------------------------------------------\n"
       "Output Options (at least one must be given; 'ppp' = dataset prefix name)\n"
@@ -445,6 +448,12 @@ int main( int argc , char *argv[] )
       "                   looking for a comma in the middle of the string.\n"
       "                   The values of a and b must be in the range -0.9..+0.9.\n"
       "\n"
+      "---------------------\n"
+      "Miscellaneous Options\n"
+      "---------------------\n"
+      " -quiet = turn off most progress messages\n"
+      " -verb  = turn on more progress messages\n"
+      "\n"
       "==========================================================================\n"
       "===========  Various Notes (as if this help weren't long enough) =========\n"
       "==========================================================================\n"
@@ -457,9 +466,11 @@ int main( int argc , char *argv[] )
       "    where                   lam  = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
       "    (N.B.: lam=a when b=0 -- AR(1) noise has r(k)=a^k for k >= 0)\n"
       "    (N.B.: lam=b when a=0 -- MA(1) noise has r(k)=b for k=1, r(k)=0 for k>1)\n"
-      "* lam can be bigger or smaller than a, depending on the sign of b.\n"
+      "* lam can be bigger or smaller than a, depending on the sign of b:\n"
+      "    b > 0 means lam > a;  b < 0 means lam < a.\n"
       "* What I call (a,b) here is sometimes called (p,q) in the ARMA literature.\n"
-      "* For a noise model which is the sum of AR(1) and white noise, 0 < lam < |a|.\n"
+      "* For a noise model which is the sum of AR(1) and white noise, 0 < lam < a\n"
+      "    (i.e., a > 0 and b < 0 ).\n"
       "* The natural range of a and b is -1..+1.  However, unless -NEGcor is\n"
       "    given, only non-negative values of a will be used, and only values\n"
       "    of b that give lam > 0 will be allowed.  Also, the program doesn't\n"
@@ -474,13 +485,15 @@ int main( int argc , char *argv[] )
       "    #3 = standard deviation of ARMA(1,1) noise in that voxel\n"
       "* The 'Rbeta' dataset has the beta (model fit) parameters estimates\n"
       "    computed from the pre-whitened time series data in each voxel,\n"
-      "    as in 3dDeconvolve's '-cbucket' output.\n"
+      "    as in 3dDeconvolve's '-cbucket' output, in the order in which\n"
+      "    they occur in the matrix.  -addbase and -slibase beta values\n"
+      "    come last in this file.\n"
       "* The 'Rbuck' dataset has the beta parameters and their statistics\n"
       "    mixed together, as in 3dDeconvolve's '-bucket' output.\n"
       "\n"
-      "-----------------------------------------------------------\n"
-      "What is REML = REsidual (or REstricted) Maximum Likelihood?\n"
-      "-----------------------------------------------------------\n"
+      "-------------------------------------------------------------------\n"
+      "What is REML = REsidual (or REstricted) Maximum Likelihood, anyway?\n"
+      "-------------------------------------------------------------------\n"
       "* Ordinary Least SQuares (which assumes the noise correlation matrix is\n"
       "    the identity) is consistent for estimating regression parameters,\n"
       "    but is not consistent for estimating the noise variance if the\n"
@@ -507,7 +520,9 @@ int main( int argc , char *argv[] )
       "    pointless.  If you are concerned about the sensitivity of the\n"
       "    results to the resolution of the (a,b) grid, you can use the\n"
       "    '-Grid 5' option to increase this resolution and see if your\n"
-      "    activation maps change significantly.\n"
+      "    activation maps change significantly.  In test cases, the resulting\n"
+      "    betas and statistics have not changed appreciably between '-Grid 3'\n"
+      "    and '-Grid 5'; however, you might want to test this on your own data.\n"
       "* REML estimates of the variance/correlation parameters are still\n"
       "    biased, but are generally significantly less biased than ML estimates.\n"
       "    Also, the regression parameters (betas) should be estimated somewhat\n"
@@ -531,7 +546,7 @@ int main( int argc , char *argv[] )
       "* Each voxel gets a separate pair of 'a' and 'b' parameters.\n"
       "    There is no option to estimate global values for 'a' and 'b'\n"
       "    and use those for all voxels.  Such an approach might be called\n"
-      "    'kindergarten statistics' by some people.\n"
+      "    'kindergarten++ statistics' by some people.\n"
       "* OLSQ = Ordinary Least SQuares; these outputs can be used to compare\n"
       "         the REML/GLSQ estimations with the simpler OLSQ results\n"
       "         (and to test this program vs. 3dDeconvolve).\n"
@@ -558,7 +573,7 @@ int main( int argc , char *argv[] )
       "    the way they are and you'll just have to live with it.\n"
       "* All output datasets are in float format.\n"
       "    Internal calculations are done in double precision.\n"
-      "* Despite my best efforts, this program is somewhat slow.\n"
+      "* Despite my best efforts, this program is somewhat sluggish.\n"
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
       "    However, a careful choice of algorithms for solving the linear\n"
@@ -603,6 +618,12 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[iarg],"-quiet") == 0 ){
        verb = 0 ; iarg++ ; continue ;
+     }
+
+     /** -nodmbase **/
+
+     if( strcasecmp(argv[iarg],"-nodmbase") == 0 ){
+       dmbase = 0 ; iarg++ ; continue ;
      }
 
      /** -addbase **/
@@ -1008,6 +1029,8 @@ STATUS("process -addbase images") ;
        INFO_message("Adding %d column%s to X matrix via '-addbase'" ,
                     ncol_addbase , (ncol_addbase==1) ? "" : "s"      ) ;
 
+     /* check each image for OK-ness == right length in time */
+
      for( nbad=ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
        im = IMARR_SUBIM( imar_addbase , ii ) ;
        if( im->nx < ntime ){
@@ -1050,6 +1073,12 @@ STATUS("process -addbase images") ;
      for( kk=nrego,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
        im = IMARR_SUBIM(imar_addbase,ii) ; iar = MRI_FLOAT_PTR(im) ;
        for( jj=0 ; jj < im->ny ; jj++,kk++,iar+=im->nx ){
+         if( dmbase ){       /* demean the column? */
+           float csum=0.0f ;
+           for( pp=0 ; pp < ntime ; pp++ ) csum += iar[pp] ;
+           csum /= ntime ;
+           for( pp=0 ; pp < ntime ; pp++ ) iar[pp] -= csum ;
+         }
          for( pp=0 ; pp < ntime ; pp++ ) X.elts[pp][kk] = (MTYPE)iar[pp] ;
        }
      }
@@ -1089,6 +1118,8 @@ STATUS("process -slibase images") ;
      if( verb )
        INFO_message("Adding %d column%s to X matrix via '-slibase'" ,
                     ncol_slibase , (ncol_slibase==1) ? "" : "s"      ) ;
+
+     /* check each file for right length in time and in column count */
 
      for( nbad=ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
        im = IMARR_SUBIM( imar_slibase , ii ) ;
@@ -1132,18 +1163,31 @@ STATUS("process -slibase images") ;
 
      Xsli = (matrix **)malloc(sizeof(matrix *)*nsli) ;
 
-     for( ss=0 ; ss < nsli ; ss++ ){
-       Xs = (matrix *)malloc(sizeof(matrix)) ;
+     for( nbad=ss=0 ; ss < nsli ; ss++ ){       /* ss = slice index */
+       Xs = (matrix *)malloc(sizeof(matrix)) ;  /* new matrix */
        matrix_initialize(Xs) ;
-       matrix_equate( X , Xs ) ;
-       matrix_enlarge( 0 , ncol_slibase , Xs ) ;
+       matrix_equate( X , Xs ) ;                /* copy in existing matrix */
+       matrix_enlarge( 0,ncol_slibase , Xs ) ;  /* make new one bigger */
        for( kk=nregq,ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
-         im  = IMARR_SUBIM(imar_slibase,ii) ;
-         iar = MRI_FLOAT_PTR(im) ; iar += ss * im->nx ;
+         im  = IMARR_SUBIM(imar_slibase,ii) ;   /* ii-th -slibase image */
+         iar = MRI_FLOAT_PTR(im) ; iar += ss * im->nx ; /* ss-th column */
+         if( dmbase ){
+           float csum=0.0f ;
+           for( pp=0 ; pp < ntime ; pp++ ) csum += iar[pp] ;
+           csum /= ntime ;
+           for( pp=0 ; pp < ntime ; pp++ ) iar[pp] -= csum ;
+         }
          for( pp=0 ; pp < ntime ; pp++ ) Xs->elts[pp][kk] = (MTYPE)iar[pp] ;
+
+         for( pp=0 ; pp < ntime && iar[pp]==0.0f ; pp++ ) ; /*nada*/
+         if( pp == ntime ){
+           ERROR_message("-slibase file %s col #%d is all zero",im->name,ss) ;
+           nbad++ ;
+         }
        }
        Xsli[ss] = Xs ;
      }
+     if( nbad > 0 ) ERROR_exit("Cannot continue after -slibase errors!") ;
 
    } /**** end of -slibase stuff ****/
 
@@ -1313,7 +1357,7 @@ STATUS("make other GLTs") ;
      if( abfixed ) ININFO_message(" using fixed a=%.4f b=%.4f lam=%.4f",
                                   afix,bfix,LAMBDA(afix,bfix) ) ;
    }
-   RCsli = (reml_collection **)malloc(sizeof(reml_collection *)*nsli) ;
+   RCsli = (reml_collection **)calloc(sizeof(reml_collection *),nsli) ;
    for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
      if( abfixed )
        rrcol = REML_setup_all( Xsli[ss] , tau , 0     , afix  ,bfix ) ;
@@ -1326,8 +1370,8 @@ STATUS("make other GLTs") ;
 
    if( verb > 1 )
      ININFO_message(
-      "REML setup finished: matrix rows=%d cols=%d; %d cases; total CPU=%.2f s",
-      ntime,nrega,RCsli[0]->nset,COX_cpu_time()) ;
+      "REML setup finished: matrix rows=%d cols=%d; %d*%d cases; total CPU=%.2f s",
+      ntime,nrega,RCsli[0]->nset,nsli,COX_cpu_time()) ;
    MEMORY_CHECK ;
 
    /***------- loop over voxels, find best REML values ------***/
@@ -1380,20 +1424,6 @@ STATUS("make other GLTs") ;
 
    /*-- at this point, aim and bim contain the (a,b) parameters --*/
    /*-- (either from -ABfile or from REML loop just done above) --*/
-
-   /** add GLTs to the REML setup structures **/
-
-   if( glt_num > 0 ){
-     for( ss=0 ; ss < nsli ; ss++ )
-       for( kk=0 ; kk < glt_num ; kk++ )
-         REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
-     if( verb > 1 ){
-       ININFO_message(
-         "added %d statistics matri%s to REML setup; total CPU=%.2f s",
-         glt_num , (glt_num==1)?"x":"ces" , COX_cpu_time() ) ;
-     }
-     MEMORY_CHECK ;
-   }
 
    /*-- set up indexing and labels needed for bucket dataset creation --*/
 
@@ -1467,18 +1497,29 @@ STATUS("make other GLTs") ;
                (Rfitts_dset != NULL) || (Rbuckt_dset != NULL) ||
                (Rerrts_dset != NULL) || (Rwherr_dset != NULL)   ;
 
-   /*---- and do the second voxel loop ----*/
+   /*---- and do the second (GLSQ) voxel loop ----*/
 
    if( do_Rstuff ){
      if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
-     for( vv=0 ; vv < nvox ; vv++ ){
+     for( ss=-1,vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
        (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
        memcpy( jv , iv , sizeof(float)*nfull ) ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = iv[goodlist[ii]] ;
 
-       ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
+       ssold = ss ; ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
+
+       /* if at a new slice:
+            remove REML setups (except a=b=0 case) for previous slice
+            add GLT setups to the new slice
+          the purpose of doing it this way is to save memory allocation */
+
+       if( ss > ssold ){
+         if( ssold >= 0 ) reml_collection_destroy( RCsli[ssold] , 1 ) ;
+         for( kk=0 ; kk < glt_num ; kk++ )
+           REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
+       }
 
        if( abfixed )  /* special case */
          jj = 1 ;
@@ -1570,8 +1611,10 @@ STATUS("make other GLTs") ;
        }
      } /* end of voxel loop */
      if( vstep ) fprintf(stderr,"\n") ;
+     reml_collection_destroy( RCsli[nsli-1] , 1 ) ;
      if( verb )
        ININFO_message("GLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
+     MEMORY_CHECK ;
    }
 
    /*----- write output REML datasets to disk -----*/
@@ -1649,7 +1692,7 @@ STATUS("make other GLTs") ;
                (Ofitts_dset != NULL) || (Obuckt_dset != NULL) ||
                (Oerrts_dset != NULL)                            ;
 
-   /*---- and do the third voxel loop ----*/
+   /*---- and do the third (OLSQ) voxel loop ----*/
 
    if( do_Ostuff ){
      if( vstep ) fprintf(stderr,"++ OLSQ voxel loop: ") ;
@@ -1742,7 +1785,7 @@ STATUS("make other GLTs") ;
    if( verb > 1 ) ININFO_message("unloading input dataset and REML matrices");
    DSET_delete(inset) ; free(jv) ; free(iv) ; free(mask) ; free(tau) ;
    for( ss=0 ; ss < nsli ; ss++ ){
-     reml_collection_destroy(RCsli[ss]) ; matrix_destroy(Xsli[ss]) ;
+     reml_collection_destroy(RCsli[ss],0) ; matrix_destroy(Xsli[ss]) ;
    }
    free(RCsli) ; free(Xsli) ;
         if( abset != NULL ) DSET_delete(abset) ;

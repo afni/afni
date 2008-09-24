@@ -703,18 +703,22 @@ void reml_setup_destroy( reml_setup *rset )
 
 /*--------------------------------------------------------------------------*/
 
-void reml_collection_destroy( reml_collection *rcol )
+void reml_collection_destroy( reml_collection *rcol , int zsave )
 {
    int ii , itop ;
 
    if( rcol == NULL ) return ;
-   if( rcol->X  != NULL ) matrix_destroy ( rcol->X  ) ;
-   if( rcol->Xs != NULL ) sparmat_destroy( rcol->Xs ) ;
+   if( !zsave && rcol->X  != NULL ) matrix_destroy ( rcol->X  ) ;
+   if( !zsave && rcol->Xs != NULL ) sparmat_destroy( rcol->Xs ) ;
    if( rcol->rs != NULL ){
-     for( ii=0 ; ii < rcol->nab ; ii++ ) reml_setup_destroy(rcol->rs[ii]) ;
-     free((void *)rcol->rs) ;
+     for( ii=0 ; ii < rcol->nab ; ii++ ){
+       if( !(ii == rcol->izero && zsave) ){
+         reml_setup_destroy(rcol->rs[ii]) ; rcol->rs[ii] = NULL ;
+       }
+     }
+     if( !zsave ) free((void *)rcol->rs) ;
    }
-   free((void *)rcol) ;
+   if( !zsave ) free((void *)rcol) ;
    return ;
 }
 
@@ -867,7 +871,6 @@ ENTRY("REML_find_best_case") ;
      vector_destroy( &REML_best_prewhitened_fitts_vector ) ;
      vector_destroy( &REML_best_prewhitened_errts_vector ) ;
      REML_func( NULL,NULL,NULL,NULL ) ;
-     if( rrcol != NULL ) reml_collection_destroy( rrcol ) ;
      REML_status = -1 ; RETURN(-666.0) ;
    }
 
