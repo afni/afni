@@ -221,8 +221,26 @@ rcmat * rcmat_init( int n )
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Duplicate a rcmat struct. */
+/*! Delete a rcmat structure. */
 
+void rcmat_destroy( rcmat *rcm )
+{
+   int      nn = rcm->nrc , ii ;
+   MTYPE ** rc = rcm->rc ;
+   short  *len = rcm->len ;
+
+   if( rc != NULL ){
+     for( ii=0 ; ii < nn ; ii++ ) if( rc[ii] != NULL ) free((void *)rc[ii]) ;
+     free((void *)rc) ;
+   }
+   if( len != NULL ) free((void *)len) ;
+   free((void *)rcm) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Duplicate a rcmat struct. */
+#if 0
 rcmat * rcmat_copy( rcmat *rcm )
 {
    rcmat *qcm ;
@@ -239,22 +257,105 @@ rcmat * rcmat_copy( rcmat *rcm )
    }
    return qcm ;
 }
+#endif
 
 /*--------------------------------------------------------------------------*/
-/*! Delete a rcmat structure. */
+/*! Write an rcmat struct to a file. */
 
-void rcmat_destroy( rcmat *rcm )
+void rcmat_writebin( FILE *fp , rcmat *rcm )
 {
-   int      nn = rcm->nrc , ii ;
-   MTYPE ** rc = rcm->rc ;
-   short  *len = rcm->len ;
+   int ii ;
 
-   if( rc != NULL ){
-     for( ii=0 ; ii < nn ; ii++ ) if( rc[ii] != NULL ) free((void *)rc[ii]) ;
-     free((void *)rc) ;
-   }
-   if( len != NULL ) free((void *)len) ;
-   free((void *)rcm) ;
+   if( fp == NULL || rcm == NULL || rcm->nrc < 1 ) return ;
+
+   fwrite( &(rcm->nrc) , sizeof(int) , 1 , fp ) ;
+   fwrite( &(rcm->len) , sizeof(short) , rcm->nrc , fp ) ;
+   for( ii=0 ; ii < rcm->nrc ; ii++ )
+     fwrite( rcm->rc[ii] , sizeof(MTYPE) , rcm->len[ii] , fp ) ;
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Read an rcmat struct from a file. */
+
+rcmat * rcmat_readbin( FILE *fp )
+{
+   rcmat *qcm ; int ii,nn=-666 ;
+
+   if( fp == NULL ) return NULL ;
+
+   fread( &nn , sizeof(int) , 1 , fp ) ;
+   if( nn < 1 || nn > 999999 ) return NULL ;
+   qcm = rcmat_init(nn) ;
+   fread( qcm->len , sizeof(short) , nn , fp ) ;
+   for( ii=0 ; ii < nn ; ii++ )
+     fread( qcm->rc[ii] , sizeof(MTYPE) , qcm->len[ii] , fp ) ;
+
+   return qcm ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Write a matrix to a file. */
+
+void matrix_writebin( FILE *fp , matrix *a )
+{
+   int ii ;
+
+   if( fp == NULL || a == NULL || a->rows < 1 || a->cols < 1 ) return ;
+
+   fwrite( &(a->rows) , sizeof(int) , 1 , fp ) ;
+   fwrite( &(a->cols) , sizeof(int) , 1 , fp ) ;
+
+   for( ii=0 ; ii < a->rows ; ii++ )
+     fwrite( a->elts[ii] , sizeof(MTYPE) , a->cols , fp ) ;
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Read a matrix from a file. */
+
+matrix * matrix_readbin( FILE *fp )
+{
+   int rows=-666,cols=-666,ii ; matrix *a ;
+
+   if( fp == NULL ) return NULL ;
+
+   fread( &rows , sizeof(int) , 1 , fp ) ; if( rows < 1 || rows > 999999 ) return NULL ;
+   fread( &cols , sizeof(int) , 1 , fp ) ; if( cols < 1 || cols > 999999 ) return NULL ;
+
+   a = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(a) ;
+   matrix_create( rows , cols , a ) ;
+   for( ii=0 ; ii < rows ; ii++ )
+     fread( a->elts[ii] , sizeof(MTYPE) , cols , fp ) ;
+
+   return a ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Save the matrices in a reml_setup struct to a file. */
+
+void reml_setup_savemat( FILE *fp , reml_setup *rs )
+{
+   if( fp     == NULL || rs     == NULL ) return ;
+   if( rs->cc == NULL || rs->dd == NULL ) return ;
+
+   rcmat_writebin (fp,rs->cc); rcmat_destroy (rs->cc);               rs->cc = NULL;
+   matrix_writebin(fp,rs->dd); matrix_destroy(rs->dd); free(rs->dd); rs->dd = NULL;
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Restore the matrices in a reml_setup struct from a file. */
+
+void reml_setup_restoremat( FILE *fp , reml_setup *rs )
+{
+   if( fp     == NULL || rs     == NULL ) return ;
+   if( rs->cc != NULL || rs->dd != NULL ) return ;
+
+   rs->cc = rcmat_readbin(fp) ; rs->dd = matrix_readbin(fp) ;
    return ;
 }
 
@@ -778,7 +879,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
      rrcol->nab   = (nb+1)*(na+1) ;  /* number of cases to create */
      rrcol->istwo = 0 ;
    } else {
-     rrcol->nab   = 2; 
+     rrcol->nab   = 2 ;
      rrcol->istwo = 1 ;
    }
    rrcol->rs = (reml_setup **)calloc(sizeof(reml_setup *),rrcol->nab) ;
