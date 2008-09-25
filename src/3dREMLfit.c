@@ -238,6 +238,7 @@ int main( int argc , char *argv[] )
    int               nsli , nsliper ;
    matrix          **Xsli =NULL ;
    reml_collection **RCsli=NULL ;
+   int usetemp = 0 ;
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -254,8 +255,8 @@ int main( int argc , char *argv[] )
       "    it allows for serial correlation in the time series noise.\n"
       "* It solves the linear equations for each voxel in the generalized\n"
       "    (prewhitened) least squares sense, using the REML estimation method\n"
-      "    to find a best-fit ARMA(1,1) model for the time series noise in\n"
-      "    each voxel.\n"
+      "    to find a best-fit ARMA(1,1) model for the time series noise\n"
+      "    correlation matrix in each voxel.\n"
       "* You must run 3dDeconvolve first to generate the input matrix\n"
       "    (.xmat.1D) file, which contains the hemodynamic regression\n"
       "    model, censoring and catenation information, the GLTs, etc.\n"
@@ -267,7 +268,7 @@ int main( int argc , char *argv[] )
       "    the corresponding results from 3dDeconvolve, to make it\n"
       "    easy to adapt your scripts for further processing.\n"
       "* Is this type of analysis important?\n"
-      "    That depends on your point of view, and on your application.\n"
+      "    That depends on your point of view, your data, and your goals.\n"
       "    If you really want to know the answer, you should run\n"
       "    your analyses both ways (with 3dDeconvolve and 3dREMLfit),\n"
       "    through to the final step (e.g., group analysis), and then\n"
@@ -308,9 +309,45 @@ int main( int argc , char *argv[] )
       "                 matrices are generated for each slice, with the\n"
       "                 [0] column of 'bb' appended to the matrix for\n"
       "                 the #0 slice of the dataset, et cetera.\n"
-      "              * Intended to help model physiological noise in FMRI.\n"
-      "              * Will slow the program down a lot, and make it use\n"
-      "                  a lot more memory (to hold all the matrix stuff).\n"
+      "              * Intended to help model physiological noise in FMRI,\n"
+      "                 or other effects you want to regress out that might\n"
+      "                 change significantly in the inter-slice time intervals.\n"
+      "              * Slices are the 3rd dimension in the dataset storage\n"
+      "                 order -- 3dinfo can tell you what that direction is:\n"
+      "                   Data Axes Orientation:\n"
+      "                     first  (x) = Right-to-Left\n"
+      "                     second (y) = Anterior-to-Posterior\n"
+      "                     third  (z) = Inferior-to-Superior   [-orient RAI]\n"
+      "                 In the above example, the slice direction is from\n"
+      "                 Inferior to Superior, so the columns in the '-slibase'\n"
+      "                 input file should be ordered in that direction as well.\n"
+      "              * Will slow the program down, and make it use a\n"
+      "                  lot more memory (to hold all the matrix stuff).\n"
+      "\n"
+      " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
+      "                 Using this option might be necessary to run with\n"
+      "                 '-slibase' and with '-Grid' values above the default,\n"
+      "                 since the program has to store a large number of\n"
+      "                 matrices for such a problem: two for every slice and\n"
+      "                 for every (a,b) pair in the ARMA parameter grid.\n"
+      "              * '-usetemp' only operates when you're also using '-slibase',\n"
+      "                   since that is the case where lots of memory is needed.\n"
+      "              * Temporary files are written to the directory given\n"
+      "                  in environment variable TMPDIR, or in /tmp, or in ./\n"
+      "                  (preference is in that order).\n"
+      "                 + If the program crashes, these files are named\n"
+      "                     REML_somethingrandom, and you might have to\n"
+      "                     delete them manually.\n"
+      "                 + If the program ends normally, it will delete\n"
+      "                     these temporary files before it exits.\n"
+      "                 + Several gigabytes of disk space might be used\n"
+      "                     for this temporary storage.\n"
+      "              * If the program crashes with a 'malloc failure' type of\n"
+      "                  message, then try '-usetemp' (malloc=memory allocator).\n"
+#ifdef USING_MCW_MALLOC
+      "              * If you use '-verb', then memory usage is printed out\n"
+      "                  at various points along the way.\n"
+#endif
       "\n"
       " -nodmbase   = By default, baseline columns added to the matrix\n"
       "                 via '-addbase' or '-slibase' will each have their\n"
@@ -396,7 +433,8 @@ int main( int argc , char *argv[] )
       "               * In my limited experiments, there was little appreciable\n"
       "                   difference in activation maps between '-Grid 3' and\n"
       "                   '-Grid 5', especially at the group analysis level.\n"
-      "               * The program is somewhat slower as the Grid size expands.\n"
+      "               * The program is somewhat slower as the -Grid size expands.\n"
+      "                   And uses more memory.\n"
       "\n"
       " -NEGcor    = Allows negative correlations to be used; the default\n"
       "                is that only positive correlations are searched.\n"
@@ -414,8 +452,8 @@ int main( int argc , char *argv[] )
       "                in the mask, do a 3D median filter to smooth these\n"
       "                parameters over a ball with radius 'mr' mm, and then\n"
       "                use THOSE parameters to compute the final output.\n"
-      "               *  N.B.: If mr < 0, -mr is the ball radius in voxels,\n"
-      "                        instead of millimeters.\n"
+      "               * If mr < 0, -mr is the ball radius in voxels,\n"
+      "                   instead of millimeters.\n"
       "                [No median filtering is done unless -Mfilt is used.]\n"
       "\n"
       " -CORcut cc = The exact ARMA(1,1) correlation matrix (for a != 0)\n"
@@ -470,7 +508,7 @@ int main( int argc , char *argv[] )
       "    b > 0 means lam > a;  b < 0 means lam < a.\n"
       "* What I call (a,b) here is sometimes called (p,q) in the ARMA literature.\n"
       "* For a noise model which is the sum of AR(1) and white noise, 0 < lam < a\n"
-      "    (i.e., a > 0 and b < 0 ).\n"
+      "    (i.e., a > 0  and  -a < b < 0 ).\n"
       "* The natural range of a and b is -1..+1.  However, unless -NEGcor is\n"
       "    given, only non-negative values of a will be used, and only values\n"
       "    of b that give lam > 0 will be allowed.  Also, the program doesn't\n"
@@ -581,7 +619,7 @@ int main( int argc , char *argv[] )
       "    other code optimizations should make running 3dREMLfit tolerable.\n"
       "    Depending on the matrix and the options, you might expect CPU time\n"
       "    to be about 1..3 times that of the corresponding 3dDeconvolve run.\n"
-      "    (Slower than that if you use -slibase, however.)\n"
+      "    (Slower than that if you use '-slibase' and/or '-Grid 5', however.)\n"
       "\n"
       "-----------------------------------------------------------\n"
       "To Dream the Impossible Dream, to Write the Uncodeable Code\n"
@@ -590,7 +628,7 @@ int main( int argc , char *argv[] )
       "* Add options for -iresp/-sresp for -stim_times?\n"
       "* Output variance estimates for the betas, to be carried to the\n"
       "    inter-subject (group) analysis level?\n"
-      "* Establish incontrovertibly the nature of quantum mechanical 'observation'!\n"
+      "* Establish incontrovertibly the nature of quantum mechanical observation!\n"
       "\n"
       "============================\n"
       "== RWCox - July-Sept 2008 ==\n"
@@ -621,10 +659,13 @@ int main( int argc , char *argv[] )
        verb = 0 ; iarg++ ; continue ;
      }
 
-     /** -nodmbase **/
+     /** -nodmbase and -usetemp **/
 
      if( strcasecmp(argv[iarg],"-nodmbase") == 0 ){
        dmbase = 0 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-usetemp") == 0 ){
+       usetemp = 1 ; iarg++ ; continue ;
      }
 
      /** -addbase **/
@@ -837,6 +878,27 @@ STATUS("options done") ;
    dx = fabsf(DSET_DX(inset)) ; nx = DSET_NX(inset) ;
    dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ; nxy = nx*ny ;
    dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
+
+   if( usetemp ){
+     if( ncol_slibase == 0 || nz == 1 ){
+       INFO_message(
+         "-usetemp is disabled since -slibase is not being used") ;
+       usetemp = 0 ;
+     } else if( abfixed ){
+       INFO_message(
+         "-usetemp is disabled since fixed (a,b) values are being used") ;
+       usetemp = 0 ;
+     } else {
+       INFO_message(
+         "-usetemp filenames will be of the form\n"
+         "       %s/REML_%s*\n"
+         "   If 3dREMLfit crashes, you may have to 'rm' these manually" ,
+         mri_purge_get_tmpdir() , mri_purge_get_tsuf() ) ;
+     }
+   } else if( ncol_slibase > 0 && nz > 1 ){
+     INFO_message(
+       "-slibase: if program runs out of memory, re-run with -usetemp option");
+   }
 
    do_buckt = (Rbuckt_prefix != NULL) || (Obuckt_prefix != NULL) ;
 
@@ -1358,22 +1420,41 @@ STATUS("make other GLTs") ;
      if( abfixed ) ININFO_message(" using fixed a=%.4f b=%.4f lam=%.4f",
                                   afix,bfix,LAMBDA(afix,bfix) ) ;
    }
-   RCsli = (reml_collection **)calloc(sizeof(reml_collection *),nsli) ;
-   for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
-     if( abfixed )
-       rrcol = REML_setup_all( Xsli[ss] , tau , 0     , afix  ,bfix ) ;
-     else
-       rrcol = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
-     if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
-     RCsli[ss] = rrcol ;
-   }
-   izero = RCsli[0]->izero ;  /* index of (a=0,b=0) case */
 
-   if( verb > 1 )
-     ININFO_message(
-      "REML setup finished: matrix rows=%d cols=%d; %d*%d cases; total CPU=%.2f s",
-      ntime,nrega,RCsli[0]->nset,nsli,COX_cpu_time()) ;
-   MEMORY_CHECK ;
+   RCsli = (reml_collection **)calloc(sizeof(reml_collection *),nsli) ;
+
+   if( !usetemp ){  /* set up them all */
+
+     for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
+       if( abfixed )
+         rrcol = REML_setup_all( Xsli[ss] , tau , 0     , afix  ,bfix ) ;
+       else
+         rrcol = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
+       if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
+       RCsli[ss] = rrcol ;
+     }
+
+     if( verb > 1 )
+       ININFO_message(
+        "REML setup finished: matrix rows=%d cols=%d; %d*%d cases; total CPU=%.2f s",
+        ntime,nrega,RCsli[0]->nset,nsli,COX_cpu_time()) ;
+     MEMORY_CHECK ;
+
+   } else {  /* just set up the first one (slice #0) */
+
+     rrcol = REML_setup_all( Xsli[0] , tau , nlevab, rhomax,bmax ) ;
+     if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
+     RCsli[0] = rrcol ;
+
+     if( verb > 1 )
+       ININFO_message(
+        "REML setup #0 finished: matrix rows=%d cols=%d; %d cases; total CPU=%.2f s",
+        ntime,nrega,RCsli[0]->nset,COX_cpu_time()) ;
+     MEMORY_CHECK ;
+
+   }
+
+   izero = RCsli[0]->izero ;  /* index of (a=0,b=0) case */
 
    /***------- loop over voxels, find best REML values ------***/
 
@@ -1388,16 +1469,24 @@ STATUS("make other GLTs") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-     for( vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
+     for( ss=-1,vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
        (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
-       ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
+       ssold = ss ; ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
+       if( usetemp && ss > ssold && ssold >= 0 )  /* purge to disk */
+         reml_collection_save( RCsli[ssold] ) ;
+       if( RCsli[ss] == NULL ){                   /* create this now */
+         if( verb > 1 && vstep ) fprintf(stderr,"+") ;
+         RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
+         if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ;
+       }
        (void)REML_find_best_case( &y , RCsli[ss] ) ;
        aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
      }
      if( vstep ) fprintf(stderr,"\n") ;
+     if( usetemp ) reml_collection_save( RCsli[nsli-1] ) ;  /* purge to disk */
 
      /*-- median filter (a,b)? --*/
 
@@ -1511,13 +1600,23 @@ STATUS("make other GLTs") ;
 
        ssold = ss ; ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
 
-       /* if at a new slice:
-            remove REML setups (except a=b=0 case) for previous slice
-            add GLT setups to the new slice
-          the purpose of doing it this way is to save memory allocation */
+       /* If at a new slice:
+            remove REML setups (except a=b=0 case) for previous slice;
+            create new slice matrices, if they don't exist already, OR
+            get new slice matrices back from disk, if they were purged earlier;
+            add GLT setups to the new slice.
+          The purpose of doing it this way is to save memory space. */
 
        if( ss > ssold ){
          if( ssold >= 0 ) reml_collection_destroy( RCsli[ssold] , 1 ) ;
+         if( RCsli[ss] == NULL ){                   /* create this now */
+           if( verb > 1 && vstep ) fprintf(stderr,"+") ;
+           RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
+           if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ;
+         } else if( RC_SAVED(RCsli[ss]) ){          /* restore from disk */
+           if( verb > 1 && vstep ) fprintf(stderr,"+") ;
+           reml_collection_restore( RCsli[ss] ) ;
+         }
          for( kk=0 ; kk < glt_num ; kk++ )
            REML_add_glt_to_all( RCsli[ss] , glt_mat[kk] ) ;
        }

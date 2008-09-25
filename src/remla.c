@@ -83,7 +83,12 @@ typedef struct {
   MTYPE abot,da , bbot,db ;
   matrix *X ; sparmat *Xs ;
   reml_setup **rs ;
+  char *savfil ;
 } reml_collection ;
+
+#undef  RC_SAVED
+#define RC_SAVED(rc) \
+  ( (rc)->savfil != NULL && (rc)->rs[(rc)->izero]->cc == NULL )
 
 #undef  IAB
 #define IAB(rc,a,b) ( (int)rint( ((a)-(rc)->abot) / (rc)->da )  \
@@ -211,13 +216,15 @@ rcmat * rcmat_init( int n )
 {
    rcmat *rcm ;
 
-   if( n <= 1 ) return NULL ;
+ENTRY("rcmat_init") ;
+
+   if( n <= 1 ) RETURN(NULL) ;
 
    rcm      = (rcmat *)malloc( sizeof(rcmat) ) ;
    rcm->nrc = n ;
    rcm->len = (short  *)calloc( n , sizeof(short  ) ) ;
    rcm->rc  = (MTYPE **)calloc( n , sizeof(MTYPE *) ) ;
-   return rcm ;
+   RETURN(rcm) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -260,20 +267,35 @@ rcmat * rcmat_copy( rcmat *rcm )
 #endif
 
 /*--------------------------------------------------------------------------*/
+
+static void my_fwrite( const void *ptr, size_t size, size_t nitems, FILE *fp )
+{
+   size_t jj ;
+
+   jj = fwrite( ptr , size , nitems , fp ) ;
+   if( jj < nitems )
+     ERROR_exit("Failure to write -usetemp data! Is disk full? Check files\n"
+                "    %s/REML_%s*" ,
+                mri_purge_get_tmpdir() , mri_purge_get_tsuf() ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Write an rcmat struct to a file. */
 
 void rcmat_writebin( FILE *fp , rcmat *rcm )
 {
-   int ii ;
+   int ii , jj ;
+ENTRY("rcmat_writebin") ;
 
-   if( fp == NULL || rcm == NULL || rcm->nrc < 1 ) return ;
+   if( fp == NULL || rcm == NULL || rcm->nrc < 1 ) EXRETURN ;
 
-   fwrite( &(rcm->nrc) , sizeof(int) , 1 , fp ) ;
-   fwrite( &(rcm->len) , sizeof(short) , rcm->nrc , fp ) ;
+   my_fwrite( &(rcm->nrc) , sizeof(int) , 1 , fp ) ;
+   my_fwrite( rcm->len    , sizeof(short) , rcm->nrc , fp ) ;
    for( ii=0 ; ii < rcm->nrc ; ii++ )
-     fwrite( rcm->rc[ii] , sizeof(MTYPE) , rcm->len[ii] , fp ) ;
+     my_fwrite( rcm->rc[ii] , sizeof(MTYPE) , rcm->len[ii] , fp ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -282,17 +304,20 @@ void rcmat_writebin( FILE *fp , rcmat *rcm )
 rcmat * rcmat_readbin( FILE *fp )
 {
    rcmat *qcm ; int ii,nn=-666 ;
+ENTRY("rcmat_readbin") ;
 
-   if( fp == NULL ) return NULL ;
+   if( fp == NULL ) RETURN(NULL) ;
 
    fread( &nn , sizeof(int) , 1 , fp ) ;
-   if( nn < 1 || nn > 999999 ) return NULL ;
+   if( nn < 1 || nn > 999999 ) RETURN(NULL) ;
    qcm = rcmat_init(nn) ;
    fread( qcm->len , sizeof(short) , nn , fp ) ;
-   for( ii=0 ; ii < nn ; ii++ )
+   for( ii=0 ; ii < nn ; ii++ ){
+     qcm->rc[ii] = malloc( sizeof(MTYPE)*qcm->len[ii] ) ;
      fread( qcm->rc[ii] , sizeof(MTYPE) , qcm->len[ii] , fp ) ;
+   }
 
-   return qcm ;
+   RETURN(qcm) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -301,16 +326,17 @@ rcmat * rcmat_readbin( FILE *fp )
 void matrix_writebin( FILE *fp , matrix *a )
 {
    int ii ;
+ENTRY("matrix_writebin") ;
 
-   if( fp == NULL || a == NULL || a->rows < 1 || a->cols < 1 ) return ;
+   if( fp == NULL || a == NULL || a->rows < 1 || a->cols < 1 ) EXRETURN ;
 
-   fwrite( &(a->rows) , sizeof(int) , 1 , fp ) ;
-   fwrite( &(a->cols) , sizeof(int) , 1 , fp ) ;
+   my_fwrite( &(a->rows) , sizeof(int) , 1 , fp ) ;
+   my_fwrite( &(a->cols) , sizeof(int) , 1 , fp ) ;
 
    for( ii=0 ; ii < a->rows ; ii++ )
-     fwrite( a->elts[ii] , sizeof(MTYPE) , a->cols , fp ) ;
+     my_fwrite( a->elts[ii] , sizeof(MTYPE) , a->cols , fp ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -320,31 +346,34 @@ matrix * matrix_readbin( FILE *fp )
 {
    int rows=-666,cols=-666,ii ; matrix *a ;
 
-   if( fp == NULL ) return NULL ;
+ENTRY("matrix_readbin") ;
 
-   fread( &rows , sizeof(int) , 1 , fp ) ; if( rows < 1 || rows > 999999 ) return NULL ;
-   fread( &cols , sizeof(int) , 1 , fp ) ; if( cols < 1 || cols > 999999 ) return NULL ;
+   if( fp == NULL ) RETURN(NULL) ;
+
+   fread( &rows , sizeof(int) , 1 , fp ) ; if( rows < 1 || rows > 999999 ) RETURN(NULL);
+   fread( &cols , sizeof(int) , 1 , fp ) ; if( cols < 1 || cols > 999999 ) RETURN(NULL);
 
    a = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(a) ;
    matrix_create( rows , cols , a ) ;
    for( ii=0 ; ii < rows ; ii++ )
      fread( a->elts[ii] , sizeof(MTYPE) , cols , fp ) ;
 
-   return a ;
+   RETURN(a) ;
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Save the matrices in a reml_setup struct to a file. */
+/*! Save the matrices in a reml_setup struct to a file (and erase them). */
 
 void reml_setup_savemat( FILE *fp , reml_setup *rs )
 {
-   if( fp     == NULL || rs     == NULL ) return ;
-   if( rs->cc == NULL || rs->dd == NULL ) return ;
+ENTRY("reml_setup_savemat") ;
+   if( fp     == NULL || rs     == NULL ) EXRETURN ;
+   if( rs->cc == NULL || rs->dd == NULL ) EXRETURN ;
 
    rcmat_writebin (fp,rs->cc); rcmat_destroy (rs->cc);               rs->cc = NULL;
    matrix_writebin(fp,rs->dd); matrix_destroy(rs->dd); free(rs->dd); rs->dd = NULL;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -352,11 +381,12 @@ void reml_setup_savemat( FILE *fp , reml_setup *rs )
 
 void reml_setup_restoremat( FILE *fp , reml_setup *rs )
 {
-   if( fp     == NULL || rs     == NULL ) return ;
-   if( rs->cc != NULL || rs->dd != NULL ) return ;
+ENTRY("reml_setup_restoremat") ;
+   if( fp     == NULL || rs     == NULL ) EXRETURN ;
+   if( rs->cc != NULL || rs->dd != NULL ) EXRETURN ;
 
    rs->cc = rcmat_readbin(fp) ; rs->dd = matrix_readbin(fp) ;
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -802,11 +832,135 @@ void reml_setup_destroy( reml_setup *rset )
    return ;
 }
 
+/*----------------------------------------------------------------------------*/
+/* Functions to save a list of REML_* files, so that they can
+   be deleted at program rundown, if they weren't deleted already.
+   If mainENTRY() was used, then even a program crash might do cleanup, since
+   the most common fatal signals are caught and will end up invoking exit(),
+   which will in turn invoke remla_atexit().
+------------------------------------------------------------------------------*/
+
+static int atexit_called = 0 ;   /* was atexit() already called for this? */
+
+static int    npurge = 0 ;       /* number of filenames in qpurge array */
+static char **qpurge = NULL ;    /* filenames of REML_* files still alive */
+
+static void remla_atexit(void) /*--- called by exit(): delete REML_* files ---*/
+{
+   int ii , nn ;
+   char *tmpdir=mri_purge_get_tmpdir() , *tsuf=mri_purge_get_tsuf() ;
+
+   for( nn=ii=0 ; ii < npurge ; ii++ ){
+     if( qpurge[ii] != NULL ){
+       ININFO_message("removing temporary REML file %s",qpurge[ii]) ;
+       remove(qpurge[ii]) ; nn++ ;
+     }
+   }
+   if( tmpdir != NULL && nn > 0 && tsuf[0] != '\0' )
+     ININFO_message("-usetemp: Check for other %s/REML_%s* files",tmpdir,tsuf);
+   return ;
+}
+
+static void add_purge( char *fn ) /*-------- add fn to the qpurge list ----*/
+{
+   int ii ;
+   if( fn == NULL || *fn == '\0' ) return ;
+   for( ii=0 ; ii < npurge ; ii++ )  /* see if already in list */
+     if( qpurge[ii] != NULL && strcmp(qpurge[ii],fn) == 0 ) break ;
+   if( ii < npurge ) return ;        /* already in list! */
+   for( ii=0 ; ii < npurge ; ii++ )  /* find an empty slot */
+     if( qpurge[ii] == NULL ) break ;
+   if( ii == npurge )                /* make new empty slot */
+     qpurge = (char **)realloc(qpurge,sizeof(char *)*(++npurge)) ;
+   qpurge[ii] = strdup(fn) ;         /* fill empty slot */
+   return ;
+}
+
+static void kill_purge( char *fn ) /*---- remove fn from the qpurge list ----*/
+{
+   int ii ;
+   if( fn == NULL || *fn == '\0' || qpurge == NULL ) return ;
+   for( ii=0 ; ii < npurge ; ii++ )  /* find in list */
+     if( qpurge[ii] != NULL && strcmp(qpurge[ii],fn) == 0 ) break ;
+   if( ii < npurge ){ free(qpurge[ii]) ; qpurge[ii] = NULL ; }
+   return ;
+}
+
 /*--------------------------------------------------------------------------*/
+/*! Save a reml_collection struct to disk. */
+
+void reml_collection_save( reml_collection *rcol )
+{
+   int ii ;
+   char *pg , *un , *ts ;
+   FILE *fp ;
+
+ENTRY("reml_collection_save") ;
+
+   if( rcol == NULL || rcol->rs[rcol->izero] == NULL ) EXRETURN ;
+   if( rcol->savfil != NULL ){
+     kill_purge(rcol->savfil) ;
+     remove(rcol->savfil) ; free(rcol->savfil) ; rcol->savfil = NULL ;
+   }
+
+   if( !atexit_called ){ atexit(remla_atexit); atexit_called = 1; }
+
+   pg = mri_purge_get_tmpdir() ; ts = mri_purge_get_tsuf() ;
+   un = UNIQ_idcode() ;
+   un[0] = 'R' ; un[1] = 'E'   ; un[2] = 'M'   ; un[3] = 'L' ;
+   un[4] = '_' ; un[5] = ts[0] ; un[6] = ts[1] ; un[7] = ts[2] ;
+   rcol->savfil = malloc(strlen(pg)+64) ;
+   strcpy(rcol->savfil,pg); strcat(rcol->savfil,"/"); strcat(rcol->savfil,un);
+   free(un) ;
+
+   fp = fopen( rcol->savfil , "wb" ) ;
+   if( fp == NULL ){
+     ERROR_message("3dREMLfit can't write to -usetemp file %s",rcol->savfil) ;
+     free(rcol->savfil) ; rcol->savfil = NULL ;
+     EXRETURN ;
+   }
+   add_purge( rcol->savfil ) ;  /* add to list of files to be purged at exit */
+
+   for( ii=0 ; ii < rcol->nab ; ii++ )
+     if( rcol->rs[ii] != NULL ) reml_setup_savemat( fp , rcol->rs[ii] ) ;
+
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void reml_collection_restore( reml_collection *rcol )
+{
+   int ii ; FILE *fp ;
+
+ENTRY("reml_collection_restore") ;
+
+   if( rcol == NULL || rcol->savfil == NULL ) EXRETURN ;
+
+   fp = fopen( rcol->savfil , "rb" ) ;
+   if( fp == NULL ){
+     ERROR_message("3dREMLfit can't read from -usetemp file %s",rcol->savfil) ;
+     free(rcol->savfil) ; rcol->savfil = NULL ;
+     EXRETURN ;
+   }
+
+   for( ii=0 ; ii < rcol->nab ; ii++ )
+     if( rcol->rs[ii] != NULL ) reml_setup_restoremat( fp , rcol->rs[ii] ) ;
+
+   fclose(fp) ;
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Destroy a reml_collection struct:
+     - if zsave!=0, then it just
+       destroys all but the izero component and leaves that behind;
+     - if zsave==0, then it destroys and frees everything
+*//*------------------------------------------------------------------------*/
 
 void reml_collection_destroy( reml_collection *rcol , int zsave )
 {
-   int ii , itop ;
+   int ii ;
 
    if( rcol == NULL ) return ;
    if( !zsave && rcol->X  != NULL ) matrix_destroy ( rcol->X  ) ;
@@ -818,6 +972,10 @@ void reml_collection_destroy( reml_collection *rcol , int zsave )
        }
      }
      if( !zsave ) free((void *)rcol->rs) ;
+   }
+   if( rcol->savfil != NULL ){
+     kill_purge(rcol->savfil) ;
+     remove(rcol->savfil) ; free(rcol->savfil) ; rcol->savfil = NULL ;
    }
    if( !zsave ) free((void *)rcol) ;
    return ;
@@ -921,7 +1079,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 
    }
 
-   rrcol->nset = nset ;
+   rrcol->nset = nset ; rrcol->savfil = NULL ;
    return rrcol ;
 }
 

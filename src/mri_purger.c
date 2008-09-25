@@ -21,18 +21,19 @@ static char tsuf[8] = "\0" ;
 
 /*! Function to set TIM suffix for this process */
 
-static void purge_set_tsuf(void)  /* 01 Feb 2007 */
+static void purge_set_tsuf(int v)  /* 01 Feb 2007 */
 {
    char *un ;
    if( tsuf[0] != '\0' ) return ;
    un = UNIQ_idcode();
    tsuf[0] = un[5] ; tsuf[1] = un[6] ; tsuf[2] = un[7] ; tsuf[3] = '\0' ;
-   INFO_message("temp files: if program crashes, do /bin/rm -f %s/TIM_%s*",
-                mri_purge_get_tmpdir() , tsuf ) ;
+   if( v )
+     INFO_message("temp files: if program crashes, do /bin/rm -f %s/TIM_%s*",
+                  mri_purge_get_tmpdir() , tsuf ) ;
    return ;
 }
 
-char * mri_purge_get_tsuf(void){ purge_set_tsuf(); return tsuf; }
+char * mri_purge_get_tsuf(void){ purge_set_tsuf(0); return tsuf; }
 
 /*----------------------------------------------------------------------------*/
 /* Functions to save a list of TIM_* mri_purge() files, so that they can
@@ -119,7 +120,7 @@ ENTRY("mri_purge") ;
 
    /* make up a unique name for the purge file */
 
-   pg        = mri_purge_get_tmpdir() ; purge_set_tsuf() ;
+   pg        = mri_purge_get_tmpdir() ; purge_set_tsuf(1) ;
    im->fname = malloc(strlen(pg)+64) ;
    un = UNIQ_idcode();
    un[0] = 'T'     ; un[1] = 'I'     ; un[2] = 'M'     ; un[3] = '_' ;

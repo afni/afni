@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , SEP , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "added -usetemp option" ,
+   "Saves REML setup matrices for various cases to tmp disk files.  Is\n"
+   "necessary for -slibase and -Grid 5 combined, if anyone ever actually\n"
+   "wants to run such a case." } ,
+
  { 24 , SEP , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "-addbase and -slibase options to add baseline columns to matrix" ,
    "In particular, -slibase is intended for per-slice modeling of\n"
