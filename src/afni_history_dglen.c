@@ -49,6 +49,10 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 26 , SEP , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY, "-child_anat option",
+    "Convenience option to align follower anat datasets to epi"
+} ,
 { 19 , SEP , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_MODIFY, "-giant_move option",
     "For data that are very far apart\n"
