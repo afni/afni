@@ -115,6 +115,12 @@ g_help_string = """
     -child_epi dset1 dset2 ... : specify other EPI datasets to align.
         Time series volume registration will be done to the same
         base as the main parent EPI dataset. 
+
+    -child_anat dset1 dset2 ... : specify other anatomical datasets to align.
+        The same transformation that is computed for the parent anatomical
+        dataset is applied to each of the child datasets. This only makes
+        sense for anat2epi transformations. Skullstripping is not done for
+        the child anatomical dataset.
         
     -big_move   : indicates that large displacement is needed to align the
                   two volumes. This option is off by default.
@@ -288,7 +294,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = 1.10 # software version (update for changes)
+      self.align_version = "1.10" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -482,8 +488,7 @@ class RegWrap:
 
       # child anat datasets
       self.valid_opts.add_opt('-child_anat', -1,[],\
-                               helpstr="Not available yet.\n"
-                               "Names of child anatomical datasets")
+                               helpstr="Names of child anatomical datasets")
 
       # master resampling options for alignment
       self.valid_opts.add_opt('-master_epi', 1,['SOURCE'],\
@@ -1054,6 +1059,19 @@ class RegWrap:
                      % child_epi.input())
             else:
                self.info_msg("Found child epi %s" % child_epi.input())
+
+      ps.child_anats = self.user_opts.find_opt('-child_anat')
+      if ps.child_anats != None: 
+         self.info_msg("-child_anat option given")
+         for child_anat_name in ps.child_anats.parlist:
+            child_anat = afni_name(child_anat_name) 
+            # it's 11:00, do you know where your children are?
+            if not child_anat.exist():
+               self.error_msg("Could not find child anat\n %s "
+                     % child_anat.input())
+            else:
+               self.info_msg("Found child anat %s" % child_anat.input())
+
        
       opt = self.user_opts.find_opt('-master_epi')  # epi to anat resolution
       if opt != None: 
@@ -1243,17 +1261,20 @@ class RegWrap:
             
          self.info_msg( "Aligning anatomical data to epi data")
          com = shell_com(  \
-                 "3dAllineate -%s "  # costfunction       \
-                  "%s "              # weighting          \
-                  "-source %s "        \
-                  "-prefix %s -base %s "                  \
-                  "%s "  # center of mass options (cmass) \
-                  "-1Dmatrix_save %s "                    \
-                  "%s %s "  # master grid, other 3dAllineate options (may be user specified) \
-                  % (costfunction, wtopt, a.input(), o.out_prefix(), e.input(),\
-                    cmass, self.anat_mat, self.master_anat_3dAl_option, alopt), ps.oexec)
+            "3dAllineate -%s "  # costfunction       \
+             "%s "              # weighting          \
+             "-source %s "        \
+             "-prefix %s -base %s "                  \
+             "%s "  # center of mass options (cmass) \
+             "-1Dmatrix_save %s "                    \
+             "%s %s "  # master grid, other 3dAllineate options \
+                       #   (may be user specified)   \
+             % (costfunction, wtopt, a.input(), o.out_prefix(), e.input(),\
+               cmass, self.anat_mat, self.master_anat_3dAl_option, alopt), \
+               ps.oexec)
          com.run()
-
+         e2a_mat = self.anat_mat
+ 
          if((ps.obl_a2e_mat!="")  or ps.edge ) :
             o = a.new("%s%s" % (ps.anat0.prefix, suf)) # save the permanent data
             if (not o.exist() or ps.rewrite or ps.dry_run()):
@@ -1261,7 +1282,8 @@ class RegWrap:
             else:
                self.exists_msg(o.input())
 
-            # for oblique and edge data, need to apply matrix to skullstripped anat
+            # for oblique and edge data, 
+            # need to apply matrix to skullstripped anat
             if(ps.obl_a2e_mat!=""): 
                # overall transformation A to E is (E2A^-1 PreShift/Oblique)
                # 1Dmatrix_apply takes E to A as input so inverse
@@ -1293,6 +1315,28 @@ class RegWrap:
          self.error_msg( "Could not square a circle " \
                          "(3dAllineate could not align anat to epi)")
          return None
+
+      # process the children
+      if ps.child_anats != None: 
+         if (ps.anat2epi):
+            for child_anat_name in ps.child_anats.parlist:
+               child_anat = afni_name(child_anat_name) 
+               # skip the parent if it's included
+               if(child_anat.input()==ps.anat0.input()) :
+                  child_anat_out = afni_name("%s_child%s" % \
+                    (child_anat.out_prefix(),suf))
+               else:
+                  child_anat_out=afni_name("%s%s" % \
+                    (child_anat.out_prefix(),suf))               
+               self.info_msg("Processing child anat: %s" % child_anat.prefix)
+               com = shell_com(  \
+                     "3dAllineate -base %s -1Dmatrix_apply %s "          \
+                     "-prefix %s -input %s  %s "   %                     \
+                     ( e.input(), e2a_mat, child_anat_out.out_prefix(),  \
+                       child_anat.input(),                               \
+                       self.master_anat_3dAl_option ), ps.oexec)
+
+               com.run()
       return o, ow
 
 # Some notes on this alignment matrix mechanics are sorely needed
