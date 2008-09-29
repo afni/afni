@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, SEP, 2008, RCR, "3dmatmult", MAJOR, TYPE_NEW_PROG,
+   "program to multiply AFNI datasets slice-by-slice as matrices",
+   NULL
+ } ,
+
  { 23, SEP, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -remove_preproc_files option (akin to -move_preproc_files)",
    NULL

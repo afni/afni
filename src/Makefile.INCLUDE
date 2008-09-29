@@ -1938,6 +1938,10 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(RM) $@
 	$(CC) -o 3dmaxima 3dmaxima.o maxima.o $(LFLAGS) $(LLIBS)
 
+3dmatmult: 3dmatmult.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dmatmult 3dmatmult.o $(LFLAGS) $(LLIBS)
+
 3dresample: 3dresample.o libmri.a $(AFWARPOBJS)
 	$(RM) $@
 	$(CC) -o 3dresample 3dresample.o $(AFWARPOBJS) $(LFLAGS) $(LLIBS)
