@@ -240,6 +240,12 @@ int main( int argc , char *argv[] )
    reml_collection **RCsli=NULL ;
    int usetemp = 0 ;
 
+   int        nSymStim = 0    ;
+   SYM_irange *SymStim = NULL ;
+   int        eglt_num = 0 ;
+   char      *eglt_lab = NULL ;
+   char      *eglt_sym = NULL ;
+
    /**------- Get by with a little help from your friends? -------**/
 
    Argc = argc ; Argv = argv ;
@@ -387,6 +393,20 @@ int main( int argc , char *argv[] )
       "                 [(any matrix W with C=inv(W'W) will work), so other  ]\n"
       "                 [whitening schemes could be used and these would give]\n"
       "                 [different whitened residual time series datasets.   ]\n"
+#if 0
+      "\n"
+      " -gltsym g h = read a symbolic GLT from file 'g' and label it with\n"
+      "                 string 'h'\n"
+      "                * As in 3dDeconvolve, you can also use the 'SYM:' method\n"
+      "                    to put the definition of the GLT directly on the\n"
+      "                    command line.\n"
+      "                * The symbolic labels for the stimuli are as provided\n"
+      "                    in the matrix file, from 3dDeconvolve.\n"
+      "                * These GLTs are in addition to those stored in the\n"
+      "                    matrix file, from 3dDeconvolve.\n"
+      "                * If you don't create a bucket dataset (-Rbuck / -Obuck),\n"
+      "                    using -gltsym is kind of pointless!\n"
+#endif
       "\n"
       "The options below let you get the Ordinary Least SQuares outputs\n"
       "(without adjustment for serial correlation), for comparisons.\n"
@@ -655,6 +675,16 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
    while( iarg < argc ){
+
+     /** -gltsym **/
+
+     if( strcasecmp(argv[iarg],"-gltsym") == 0 ){
+       if( ++iarg >= argc-1 ) ERROR_exit("Need 2 arguments after '%s'",argv[iarg-1]) ;
+       eglt_lab = (char **)realloc( eglt_lab , sizeof(char *)*(eglt_num+1) )
+       eglt_sym = (char **)realloc( eglt_sym , sizeof(char *)*(eglt_num+1) )
+       eglt_lab[eglt_num] = argv[iarg++] ;
+       eglt_sym[eglt_num] = argv[iarg++] ; eglt_num++ ; continue ;
+     }
 
      /** verbosity **/
 
@@ -1289,11 +1319,25 @@ STATUS("process -slibase images") ;
        ERROR_exit("Matrix 'StimLabels' badly formatted?!") ;
      stim_lab = gsar->str ;
 
+     nSymStim = stim_num+1 ;
+     SymStim  = (SYM_irange *)calloc(sizeof(SYM_irange),nSymStim) ;
+     strcpy( SymStim[num_stimts].name , "Ort" ) ;
+     SymStim[num_stimts].nbot = 0 ;
+     SymStim[num_stimts].ntop = stim_bot[0] - 1 ;
+     SymStim[num_stimts].gbot = 0 ;
+     for( ss=0 ; ss < stim_num ; ss++ ){
+       SymStim[ss].nbot = 0 ;
+       SymStim[ss].ntop = stim_top[ss]-stim_bot[ss]+1 ;
+       SymStim[ss].gbot = stim_bot[ss] ;
+       MCW_strncpy( SymStim[ss].name , stim_lab[ss] , 64 ) ;
+     }
+
    } else {  /* don't have stim info in matrix header?! */
 
      WARNING_message("-matrix file is missing Stim attributes (old 3dDeconvolve?)") ;
      if( do_stat || do_buckt )
        ERROR_exit(" ==> Can't do statistics on the Stimuli") ;
+     eglt_num = 0 ;
    }
 
    /*** setup to do statistics on the stimuli betas, if desired ***/
