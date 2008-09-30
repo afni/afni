@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , SEP , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "added -gltsym option" ,
+   "Makes it easy for the user to add GLTs without using 3dDeconvolve." } ,
+
  { 25 , SEP , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "added -usetemp option" ,
    "Saves REML setup matrices for various cases to tmp disk files.  Is\n"

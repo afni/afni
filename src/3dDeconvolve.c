@@ -388,6 +388,7 @@ static char *xrestore_filename = NULL ;
 static int NumTimePoints=0 , NumRegressors=0 ;
 
 static int verb = 1 ;
+static char *commandline = NULL ;
 
 static int goforit = 0 ;  /* 07 Mar 2007 */
 static int badlev  = 0 ;
@@ -5195,8 +5196,10 @@ ENTRY("calculate_results") ;
     if( cd != NULL && verb ){  /*-- 22 Aug 2008: 3dREMLfit notice --*/
       char *iname=NULL ;  /* input filename for command echo below */
       char *cname=NULL ;  /* command to be output for user's wisdom */
+      FILE *fp ;
       int iadd=0 , ilen , oneline=AFNI_yesenv("AFNI_3dDeconvolve_oneline") ;
       char *lbreak ;
+
       if( option_data->input_filename != NULL ){
         iname = calloc( sizeof(char) , strlen(option_data->input_filename)+9 ) ;
         if( strchr(option_data->input_filename,' ') == NULL ){
@@ -5273,10 +5276,18 @@ ENTRY("calculate_results") ;
       INFO_message(
         "(a) Linear regression with ARMA(1,1) modeling of serial correlation:\n\n"
         "%s\n " , cname ) ;
-      free(cname) ;
       INFO_message("(b) Visualization/analysis of the matrix via ExamineXmat.R");
       INFO_message("(c) Synthesis of sub-model datasets using 3dSynthesize") ;
       INFO_message("==========================================================");
+
+      fp = fopen("3dDeconvolve.info","w") ;
+      if( fp != NULL ){
+        fprintf( fp, "# %s\n", (commandline!=NULL) ? commandline : PROGRAM_NAME );
+        fprintf( fp, "\n%s\n", cname ) ;
+        fclose(fp) ;
+      }
+
+      free(cname) ;
     }
   }
 
@@ -6098,14 +6109,11 @@ void write_ts_array
   /*----- Record history of dataset -----*/
   tross_Copy_History( dset , new_dset ) ;
 
-  { char *commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
-    sprintf (label, "Output prefix: %s", output_filename);
-    if( commandline != NULL )
-       tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
-    else
-       tross_Append_History ( new_dset, label);
-    free(commandline) ;
-  }
+  sprintf (label, "Output prefix: %s", output_filename);
+  if( commandline != NULL )
+     tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
+  else
+     tross_Append_History ( new_dset, label);
 
   /*----- Delete prototype dataset -----*/
   THD_delete_3dim_dataset (dset, False);  dset = NULL ;
@@ -7258,6 +7266,8 @@ int main
    mainENTRY(PROGRAM_NAME " main") ; machdep() ;
   SET_message_file( PROGRAM_NAME ".err" ) ;
 
+  commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
+
   /*----- start the elapsed time counter -----*/
   (void) COX_clock_time() ;
 
@@ -7629,6 +7639,11 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
          NI_set_attribute( nel, lll, lab ); NI_free((void *)lab); lab = NULL;
          free((void *)far.ar) ;
        }
+     }
+#endif
+#if 1
+     if( commandline != NULL ){
+       NI_set_attribute( nel , "CommandLine" , commandline ) ;
      }
 #endif
 
@@ -8638,6 +8653,7 @@ ENTRY("read_glt_matrix") ;
      free((void *)far) ;
 
      if( !AFNI_noenv("AFNI_GLTSYM_PRINT") ){
+       printf("------------------------------------------------------------\n");
        printf("GLT matrix from '%s':\n",fname) ;
        if( str_echo != NULL ){ printf("%s",str_echo); free(str_echo); }
        matrix_print( *cmat ) ;
@@ -9499,7 +9515,7 @@ void basis_write_iresp( int argc , char *argv[] ,
    short *bar ;
    THD_3dim_dataset *in_dset = NULL;
    THD_3dim_dataset *out_dset = NULL;
-   char *commandline , label[512] ;
+   char label[512] ;
    const float EPSILON = 1.0e-10 ;
 
    /* open input 3D+time dataset to get some parameters */
@@ -9528,13 +9544,11 @@ void basis_write_iresp( int argc , char *argv[] ,
 
    /* historicize the output */
 
-   commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
    sprintf( label , "Impulse response: %s" , output_filename ) ;
    if( commandline != NULL )
      tross_multi_Append_History( out_dset , commandline,label,NULL ) ;
    else
      tross_Append_History ( out_dset, label);
-   free((void *)commandline) ;
 
    ts_length = 1 + (int)ceil( (be->ttop - be->tbot)/dt ) ; /* 13 Apr 2005: +1 */
 
@@ -9656,7 +9670,7 @@ void basis_write_iresp_1D( int argc , char *argv[] ,
    register int pp, ib ;
    float *wt , *tt , **hout , factor , **bb ;
    short *bar ;
-   char *commandline , label[512] ;
+   char label[512] ;
    const float EPSILON = 1.0e-10 ;
 
    nvox = 1 ;  /* from basis_write_iresp(), but use 1 voxel */
@@ -9743,7 +9757,7 @@ void basis_write_sresp( int argc , char *argv[] ,
    short *bar ;
    THD_3dim_dataset *in_dset = NULL;
    THD_3dim_dataset *out_dset = NULL;
-   char *commandline , label[512] ;
+   char label[512] ;
    const float EPSILON = 1.0e-10 ;
 
    /* open input 3D+time dataset to get some parameters */
@@ -9772,13 +9786,11 @@ void basis_write_sresp( int argc , char *argv[] ,
 
    /* historicize the output */
 
-   commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
    sprintf( label , "Sigma response: %s" , output_filename ) ;
    if( commandline != NULL )
      tross_multi_Append_History( out_dset , commandline,label,NULL ) ;
    else
      tross_Append_History ( out_dset, label);
-   free((void *)commandline) ;
 
    ts_length = 1 + (int)ceil( (be->ttop - be->tbot)/dt ) ;
 
