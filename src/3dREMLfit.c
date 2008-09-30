@@ -184,6 +184,89 @@ ENTRY("create_GLT_index") ;
    gin->ivbot = ivfirst ; gin->ivtop = iv-1 ; RETURN(gin) ;
 }
 
+/*-------------------------------------------------------------------------*/
+
+static int        nSymStim = 0    ;
+static SYM_irange *SymStim = NULL ;
+
+/*! Create a GLT matrix from the symbolic string. */
+
+matrix * create_gltsym( char *sym , int ncol )
+{
+   int ii,jj , nr=0 , iv ;
+   floatvecvec *fvv ;
+   float **far=NULL ;
+   char *str_echo=NULL ;
+   matrix *cmat ;
+
+ENTRY("create_gltsym") ;
+
+   if( sym == NULL || ncol < 1 || nSymStim < 1 )
+     ERROR_exit("Bad call to create_gltsym!") ;
+
+   if( strncmp(sym,"SYM:",4) == 0 ){  /* read directly from sym string */
+
+     char *fdup=strdup(sym+4) , *fpt , *buf ;
+     int ss , ns ;
+     buf = fdup ;
+     while(1){
+                         fpt = strchr(buf,'\\'); /* find end of 'line' */
+       if( fpt == NULL ) fpt = strchr(buf,'|') ;
+       if( fpt != NULL ) *fpt = '\0' ;           /* mark end of line with NUL */
+       fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
+       if( fvv == NULL || fvv->nvec < 1 ) continue ;  /* bad?  blank? */
+       far = (float **)realloc((void *)far , sizeof(float *)*(nr+fvv->nvec)) ;
+       for( iv=0 ; iv < fvv->nvec ; iv++ ) far[nr++] = fvv->fvar[iv].ar ;
+       free((void *)fvv->fvar) ; free((void *)fvv) ;
+       if( fpt == NULL ) break ;   /* reached end of string? */
+       buf = fpt+1 ;               /* no, so loop back for next 'line' */
+     }
+     free((void *)fdup) ;
+
+   } else {                             /* read from file */
+
+     char buf[8192] , *cpt ;
+     FILE *fp = fopen( sym , "r" ) ;
+     if( fp == NULL ) ERROR_exit("Can't open GLT matrix file '%s'",sym) ;
+     while(1){
+       cpt = fgets( buf , 8192 , fp ) ;   /* read next line */
+       if( cpt == NULL ) break ;          /* end of input? */
+       str_echo = THD_zzprintf(str_echo," : %s",cpt) ;
+       fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
+       if( fvv == NULL || fvv->nvec < 1 ) continue ;
+       far = (float **)realloc((void *)far , sizeof(float *)*(nr+fvv->nvec)) ;
+       for( iv=0 ; iv < fvv->nvec ; iv++ ) far[nr++] = fvv->fvar[iv].ar ;
+       free((void *)fvv->fvar) ; free((void *)fvv) ;
+     }
+     fclose(fp) ;
+
+   }
+
+   if( nr == 0 ) ERROR_exit("Can't read GLT matrix from file '%s'",sym) ;
+   cmat = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(cmat) ;
+   array_to_matrix( nr , ncol , far , cmat ) ;
+
+   for( ii=0 ; ii < nr ; ii++ ) free((void *)far[ii]) ;
+   free((void *)far) ;
+
+   if( !AFNI_noenv("AFNI_GLTSYM_PRINT") ){
+     printf("------------------------------------------------------------\n");
+     printf("GLT matrix from '%s':\n",sym) ;
+     if( str_echo != NULL ){ printf("%s",str_echo); free(str_echo); }
+     matrix_print( *cmat ) ;
+   }
+
+   /** check for all zero rows, which will cause trouble later **/
+
+   for( ii=0 ; ii < nr ; ii++ ){
+     for( jj=0 ; jj < ncol && cmat->elts[ii][jj] == 0.0 ; jj++ ) ; /*nada*/
+     if( jj == ncol )
+       ERROR_message("Row #%d of GLT matrix '%s' is all zero!", ii+1 , sym ) ;
+   }
+
+   RETURN(cmat) ;
+}
+
 /*==========================================================================*/
 /********************************** Main program ****************************/
 
@@ -240,11 +323,9 @@ int main( int argc , char *argv[] )
    reml_collection **RCsli=NULL ;
    int usetemp = 0 ;
 
-   int        nSymStim = 0    ;
-   SYM_irange *SymStim = NULL ;
-   int        eglt_num = 0 ;
-   char      *eglt_lab = NULL ;
-   char      *eglt_sym = NULL ;
+   int    eglt_num = 0    ;   /* extra GLTs from the command line */
+   char **eglt_lab = NULL ;
+   char **eglt_sym = NULL ;
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -680,10 +761,16 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-gltsym") == 0 ){
        if( ++iarg >= argc-1 ) ERROR_exit("Need 2 arguments after '%s'",argv[iarg-1]) ;
-       eglt_lab = (char **)realloc( eglt_lab , sizeof(char *)*(eglt_num+1) )
-       eglt_sym = (char **)realloc( eglt_sym , sizeof(char *)*(eglt_num+1) )
-       eglt_lab[eglt_num] = argv[iarg++] ;
-       eglt_sym[eglt_num] = argv[iarg++] ; eglt_num++ ; continue ;
+       eglt_sym = (char **)realloc( eglt_sym , sizeof(char *)*(eglt_num+1) ) ;
+       eglt_lab = (char **)realloc( eglt_lab , sizeof(char *)*(eglt_num+1) ) ;
+       eglt_sym[eglt_num] = argv[iarg++] ;
+       if( argv[iarg][0] != '-' ){
+         eglt_lab[eglt_num] = argv[iarg++] ;
+       } else {
+         eglt_lab[eglt_num] = (char *)malloc(sizeof(char)*16) ;
+         sprintf( eglt_lab[eglt_num] , "GLTsym%02d" , eglt_num+1 ) ;
+       }
+       eglt_num++ ; continue ;
      }
 
      /** verbosity **/
@@ -1321,13 +1408,13 @@ STATUS("process -slibase images") ;
 
      nSymStim = stim_num+1 ;
      SymStim  = (SYM_irange *)calloc(sizeof(SYM_irange),nSymStim) ;
-     strcpy( SymStim[num_stimts].name , "Ort" ) ;
-     SymStim[num_stimts].nbot = 0 ;
-     SymStim[num_stimts].ntop = stim_bot[0] - 1 ;
-     SymStim[num_stimts].gbot = 0 ;
+     strcpy( SymStim[stim_num].name , "Ort" ) ;
+     SymStim[stim_num].nbot = 0 ;
+     SymStim[stim_num].ntop = stim_bot[0] - 1 ;
+     SymStim[stim_num].gbot = 0 ;
      for( ss=0 ; ss < stim_num ; ss++ ){
        SymStim[ss].nbot = 0 ;
-       SymStim[ss].ntop = stim_top[ss]-stim_bot[ss]+1 ;
+       SymStim[ss].ntop = stim_top[ss]-stim_bot[ss] ;
        SymStim[ss].gbot = stim_bot[ss] ;
        MCW_strncpy( SymStim[ss].name , stim_lab[ss] , 64 ) ;
      }
@@ -1427,11 +1514,27 @@ STATUS("make other GLTs") ;
        }
        lll = gsar->str[kk] ; if( lll == NULL || *lll == '\0' ) lll = lnam ;
        ADD_GLT( lll , gm ) ;
+#if 1
+       printf("------------------------------------------------------------\n");
+       printf("GLT matrix from '%s':\n",lll) ;
+       matrix_print( *gm ) ;
+#endif
      }
 
 #if 0
      INFO_message("Read %d GLT%s from matrix header",ngl,(ngl==1)?"":"s") ;
 #endif
+
+     /* now process any extra GLTs on our local command line */
+
+     for( nbad=kk=0 ; kk < eglt_num ; kk++ ){
+       gm = create_gltsym( eglt_sym[kk] , nrega ) ;
+       if( gm != NULL ) ADD_GLT( eglt_lab[kk] , gm ) ;
+       else             nbad++ ;
+     }
+     if( nbad > 0 || SYM_expand_errcount() > 0 )
+       ERROR_exit("Can't continue after -gltsym errors!") ;
+
    }
 
    /*** done with nelmat ***/
