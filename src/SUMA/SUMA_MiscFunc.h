@@ -85,6 +85,9 @@ void SUMA_disp_vecdmat (int *v,int nr, int nc , int SpcOpt,
                         SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
 void SUMA_disp_vecucmat (unsigned char *v,int nr, int nc , int SpcOpt, 
                         SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
+void SUMA_disp_veccmat (char *v,int nr, int nc , int SpcOpt, 
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd);
 void SUMA_disp_vecdoubmat (double *v,int nr, int nc , int SpcOpt, 
                         SUMA_INDEXING_ORDER d_order, FILE *fout, SUMA_Boolean AddRowInd);
 void SUMA_disp_veccompmat (complex *v,int nr, int nc , int SpcOpt, 

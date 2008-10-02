@@ -273,6 +273,8 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
       case PL_type:
          SUMA_free_PlaneDO ((SUMA_PlaneDO *)dov->OP);
          break;
+      case NIDO_type:
+         SUMA_free_NIDO((SUMA_NIDO*)dov->OP);
          
    }   
 
@@ -1685,7 +1687,7 @@ ans = SUMA_isNBDOrelated (NBDO, SO);
 \param NBV (SUMA_NB_DO * ) pointer to NBV/NBSP object
 \param SO (SUMA_SurfaceObject *) pointer to surface object
 \return ans (SUMA_Boolean) YUP/NOPE
-
+\sa SUMA_isNIDOrelated
 */
 SUMA_Boolean SUMA_isNBDOrelated (SUMA_NB_DO *SDO, SUMA_SurfaceObject *SO)
 {
@@ -1710,6 +1712,64 @@ SUMA_Boolean SUMA_isNBDOrelated (SUMA_NB_DO *SDO, SUMA_SurfaceObject *SO)
    
    /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
    SO_NB = SUMA_findSOp_inDOv(SDO->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+   
+   if (!SO_NB) {
+      SUMA_SL_Err("Could not find surface of SDO->Parent_idcode_str");
+      SUMA_RETURN (NOPE);
+   }
+   
+   if ( SUMA_isRelated (SO, SO_NB, 1)) { /*  relationship of the 1st order only */ 
+      SUMA_RETURN (YUP);
+   }
+   
+   /* If you get here, you have SO_NB so return happily */
+   SUMA_RETURN (NOPE);
+}
+
+SUMA_Boolean SUMA_isNIDO_SurfBased(SUMA_NIDO *nido)
+{
+   static char FuncName[]={"SUMA_isNIDO_SurfBased"};
+   char *atr=NULL;
+
+   SUMA_ENTRY;
+
+   atr = NI_get_attribute(nido->ngr,"bond");
+   if (!atr) SUMA_RETURN(NOPE);
+
+   if (atr[0] == 's') SUMA_RETURN(YUP);
+
+   SUMA_RETURN(NOPE);
+}
+
+/*!
+   If you make changes here, look into  SUMA_isNBDOrelated  
+   */
+SUMA_Boolean SUMA_isNIDOrelated (SUMA_NIDO *SDO, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_isNIDOrelated"};
+   SUMA_SurfaceObject *SO_NB = NULL;
+   char *Parent_idcode_str=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* Just compare the idcodes, not allowing 
+   for kinship yet but code below could do that */
+   if ((Parent_idcode_str = NI_get_attribute(SDO->ngr, "Parent_idcode_str")) &&
+       strcmp(SO->idcode_str, Parent_idcode_str) == 0) {
+      SUMA_RETURN(YUP);
+   } else {
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR, "%s: %s SO->LocalDomainParentID\n", FuncName, SO->LocalDomainParentID);
+      fprintf (SUMA_STDERR, "%s: %s SDO->Parent_idcode_str\n", FuncName, Parent_idcode_str);
+      fprintf (SUMA_STDERR, "%s: %s SO->idcode_str\n", FuncName, SO->idcode_str);
+   }
+   
+   /* find the pointer to the surface having for an idcode_str: ROI->Parent_idcode_str */
+   SO_NB = SUMA_findSOp_inDOv(Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
    
    if (!SO_NB) {
       SUMA_SL_Err("Could not find surface of SDO->Parent_idcode_str");

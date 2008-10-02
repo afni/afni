@@ -1029,7 +1029,7 @@ SUMA_Boolean SUMA_Sort_ClustersList (DList *list, SUMA_SURF_CLUST_SORT_MODES Sor
    SUMA_RETURN(YUP);
 }
 
-#define SUMA_LOCAL_STATS_NODE_DBG { \
+#define SUMA_WORLD_STATS_NODE_DBG { \
    if (n == ndbg ) {  \
       if (OffS_out) {  \
           FILE *mf ;    \
@@ -1277,7 +1277,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                         if (OffS_out[n].Neighb_dist[j] <= rhood) { fp += fin_orig[nj]; ++nval; }
                      }/* for j*/
                         fout[n] = fp/(float)(nval);
-                        SUMA_LOCAL_STATS_NODE_DBG;
+                        SUMA_WORLD_STATS_NODE_DBG;
                   } /* for n */
                } else {
                   SUMA_LH("Have mask");
@@ -1292,7 +1292,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                            } 
                         }/* for j*/
                         fout[n] = fp/(float)nval;
-                        SUMA_LOCAL_STATS_NODE_DBG;
+                        SUMA_WORLD_STATS_NODE_DBG;
                      } else {
                         fout[n] = fin_orig[n];
                      }
@@ -1357,7 +1357,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                            }
                            if (n==ndbg) SUMA_SetDbgFWHM(0);
                         }  
-                     SUMA_LOCAL_STATS_NODE_DBG;
+                     SUMA_WORLD_STATS_NODE_DBG;
                      /* reset mask */
                      fwhm_mask[n] = 0; 
                      for (j=0; j<OffS_out[n].N_Neighb; ++j) {
@@ -1402,7 +1402,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                               }
                               if (n==ndbg) SUMA_SetDbgFWHM(0);
                            }  
-                        SUMA_LOCAL_STATS_NODE_DBG;
+                        SUMA_WORLD_STATS_NODE_DBG;
                         /* reset mask */
                         fwhm_mask[n] = 0; 
                         for (j=0; j<OffS_out[n].N_Neighb; ++j) {
@@ -1453,7 +1453,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                      if (nval > 6) fout[n] = SUMA_estimate_FWHM_1dif( SO, fin_orig, fwhm_mask, 1);
                      else fout[n] = -1.0;
                      if (n==ndbg) SUMA_SetDbgFWHM(0);
-                     SUMA_LOCAL_STATS_NODE_DBG;
+                     SUMA_WORLD_STATS_NODE_DBG;
                      
                   } /* for n */
                } else {
@@ -1482,7 +1482,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(SUMA_SurfaceObject *SO, SUMA_DSET *din,
                         } else {
                            fout[n] = -1.0;
                         }
-                        SUMA_LOCAL_STATS_NODE_DBG;
+                        SUMA_WORLD_STATS_NODE_DBG;
                      } else {
                         fout[n] = 0.0; nval = 0;/* Non, rien de rien */
                      }

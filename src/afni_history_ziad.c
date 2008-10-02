@@ -65,11 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16 , SEP , 2008 , ZSS , "DriveSuma" , MINOR ,  TYPE_NEW_OPT,
+   "-load_do sends SUMA Displayable Objects to be rendered",
+   "See SUMA's interactive help for ctrl+alt+s for more information\n"
+   "on Displayable Objects.\n"
+ },
+
+ { 16 , SEP , 2008 , ZSS , "SurfDist" , MINOR ,  TYPE_NEW_OPT,
+   "-node_path_do outputs the shortest path between two nodes",
+   "The shortest path(s) are stored as a SUMA Displayable Object\n"
+   "which can be loaded into SUMA with ctrl+alt+s or using DriveSuma.\n"
+ },
+
  { 2 , SEP , 2008 , ZSS , "3dSkullStrip" , MINOR ,  TYPE_BUG_FIX,
    "Starting sphere center was incorrectly initialized",
    NULL
  },
-
  
  { 29 , AUG , 2008 , ZSS , "afni-general" , MICRO,  TYPE_GENERAL,
    "Added toy programs 3dTsmoothR.c and toyR.c to test C<-->R interface",

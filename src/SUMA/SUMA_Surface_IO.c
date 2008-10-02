@@ -4468,7 +4468,7 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    /* put those ROIs in SUMAg_DOv */
    for (i=0; i < N_ROI; ++i) {
       /* add ROI to DO list */
-      if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIv[i], ROIdO_type, SUMA_LOCAL)) {
+      if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIv[i], ROIdO_type, SUMA_WORLD)) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
       }
    }

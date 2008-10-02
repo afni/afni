@@ -1,6 +1,3 @@
-/*USE This sample to start writing standalone programs.
-Change SurfDist to the program name of your choosing.
-*/
 #include "SUMA_suma.h"
 
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
@@ -33,12 +30,20 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
                "     echo make a toy surface\n"
                "     CreateIcosahedron\n"
                "     echo Create some nodepairs\n"
-               "     echo 13 344 > nodelist.1D\n"
+               "     echo 2 344 > nodelist.1D\n"
+               "     echo 416 489 >> nodelist.1D\n"
                "     echo 123 32414 >> nodelist.1D\n"
                "     echo Get distances and write out results in a 1D file\n"
                "     SurfDist -i CreateIco_surf.asc \\\n"
-               "              -input nodelist.1D > example.1D\n"
-               "     less example.1D\n"
+               "              -input nodelist.1D \\\n"
+               "              -node_path_do node_path   > example.1D\n"
+               "     echo 'The internode distances are in this file:'\n"
+               "     cat example.1D\n"
+               "     echo 'And you can visualize the paths this way:'\n"
+               "     suma -niml &\n"
+               "     DriveSuma -com show_surf -label ico \\\n"
+               "                       -i_fs CreateIco_surf.asc \\\n"
+               "               -com viewer_cont -load_do node_path.1D.do\n"
                "\n"
                "%s"
                "%s"
@@ -66,6 +71,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct(); 
    Opt->ps = ps;  /* just hold it there for convenience */
    Opt->ps = ps; /* for convenience */
+   Opt->bases_prefix =NULL;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -90,6 +96,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-node_path_do") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a name after -node_path_do \n");
+            exit (1);
+         }
+         
+         Opt->bases_prefix = argv[++kar];
+         brk = YUP;
+      }
+      
       if (!brk && !ps->arg_checked[kar]) {
 			SUMA_S_Errv("Option %s not understood.\n"
                      "Try -help for usage\n", 
@@ -99,6 +117,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
 			brk = NOPE;
 			kar ++;
 		}
+      
    }
    
    SUMA_RETURN(Opt);
@@ -112,21 +131,24 @@ int main (int argc,char *argv[])
    SUMA_DSET_FORMAT iform = SUMA_NO_DSET_FORMAT;
    SUMA_DSET *din=NULL, *dout=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
-   int ii, N_Spec, N_inmask = -1;
+   int ii, N_Spec, N_inmask = -1, jj, kk;
    int *nPath = NULL;
    int Nfrom=-1, Nto=-1, N_n=-1;
-   float nDistance;
+   float nDistance; 
+   char *npout = NULL, *nout = NULL;
+   SUMA_Boolean *dm=NULL;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   FILE *fpout = NULL, *fout = SUMA_STDOUT;
+   float cout[4];
    
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-s;-sv;-spec;-dset;"); 
-                                       /* -mask could be used if needed, see 
-                                          comment on masks below*/
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-s;-sv;-spec;-dset;-mask;-cmap"); 
+
    
    if (argc < 2) {
       usage_SurfDist(ps);
@@ -146,7 +168,16 @@ int main (int argc,char *argv[])
       SUMA_S_Errv("Failed to load dset named %s\n", Opt->ps->dsetname[0]);
       exit(1);
    }
-   
+   if (Opt->bases_prefix) {
+      npout = SUMA_AfniPrefix(Opt->bases_prefix, NULL, NULL, NULL);
+      npout = SUMA_append_replace_string(npout, ".1D.do", "", 1);
+      if (!(fpout = fopen(npout,"w"))) {
+         SUMA_S_Errv("Failed to open %s for writing.\n", npout);
+         exit(1);
+      }
+      fprintf(fpout, "#node-based_segments\n"
+                     "# Have %d paths in file\n", N_n);
+   }
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -185,32 +216,53 @@ int main (int argc,char *argv[])
       exit(1);
    }
    /* work  the node pairs */
-   fprintf(SUMA_STDOUT, "#Internodal distance along graph of surface %s\n"
+   fprintf(fout, "#Internodal distance along graph of surface %s\n"
                         "#A distance of -1 indicates an error of sorts.\n", 
                         SO->Label);
-   fprintf(SUMA_STDOUT, "#%-6s %-6s %-6s\n",
+   fprintf(fout, "#%-6s %-6s %-6s\n",
                         "From" , "to", "Dist." );
-   /* no making is being used at the moment. You
-   can't just pass Opt->nmask because Dijkstra destroys its contents.
-   You'll need to keep an original copy of it or patch it each time 
-   it gets modified. */
+   if (Opt->nmask) {
+      if (!(dm = (SUMA_Boolean *)SUMA_malloc(sizeof(SUMA_Boolean)*SO->N_Node))) {
+         SUMA_S_Err("Failed to allocate");
+         exit(1);
+      }
+   }
    for (ii=0; ii<SDSET_VECLEN(din); ++ii) {
+      if (!SUMA_a_good_col(Opt->ps->cmap, ii, cout)) {
+         SUMA_S_Errv("Failed to get color from map %s\n", Opt->ps->cmap);
+         exit(1);
+      }
+
       Nfrom = (int)SUMA_GetDsetValInCol2(din, 0, ii);
       Nto = (int)SUMA_GetDsetValInCol2(din, 1, ii);
+      if (Opt->nmask) for(jj=0; jj<SO->N_Node; ++jj) dm[jj] = Opt->nmask[jj];
       if (!(nPath = SUMA_Dijkstra ( SO, Nfrom, Nto, 
-                              NULL, NULL, 1, 
+                              dm, NULL, 1, 
                               &nDistance, &N_n))) {
          nDistance = -1.0;
       } else {
+         if (fpout) {
+            for(kk=1; kk<N_n; ++kk) 
+               fprintf(fpout, 
+                        "%d %d %.2f %.2f %.2f 1.0\n", 
+                        nPath[kk-1], nPath[kk], 
+                        cout[0], cout[1], cout[2]); 
+            fprintf(fpout, "\n");
+         }
          SUMA_free(nPath); nPath = NULL;
       }
       
-      fprintf(SUMA_STDOUT, " %-6d %-6d %-4.2f\n", 
+      fprintf(fout, " %-6d %-6d %-4.2f\n", 
                            Nfrom, Nto, nDistance
                            );
             
    }
-   
+   if (npout) SUMA_free(npout); npout = NULL;
+   if (nout) SUMA_free(nout); nout = NULL;
+   if (dm) SUMA_free(dm); dm = NULL;
+   if (fpout && fpout!= SUMA_STDERR && fpout != SUMA_STDOUT) 
+      fclose(fpout); fpout = NULL;
+   if (fout!= SUMA_STDERR && fout != SUMA_STDOUT) fclose(fout); fout = NULL;
    if (!SUMA_FreeSpecFields(Spec)) {
       SUMA_S_Err("Failed to free Spec fields");
    } SUMA_free(Spec); Spec = NULL;

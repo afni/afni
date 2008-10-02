@@ -1,28 +1,39 @@
 #!/bin/tcsh -f
+
+#!/bin/tcsh -f
 if ("$1" == "-h" || "$1" == "-help") goto HELP
 
-set tmpico = __ico10
+set tmpico = __donut
+
+#goto NIDO
 
 suma -niml &
 
 echo patience while suma starts up...
 sleep 3
 
-if ( ! -f ${tmpico}_surf.asc) CreateIcosahedron -ld 10 -prefix ${tmpico}
+#if ( ! -f ${tmpico}_surf.asc) CreateIcosahedron -ld 10 -prefix ${tmpico}
+#DriveSuma   -com show_surf -label ${tmpico} \
+#            -i_fs ${tmpico}_surf.asc
+IsoSurface -shape 3 64 -o_ply ${tmpico}.ply
+quickspec -spec ${tmpico}.spec -tn ply ${tmpico}.ply
 DriveSuma   -com show_surf -label ${tmpico} \
-            -i_fs ${tmpico}_surf.asc
+            -i ${tmpico}.ply \
+            -com viewer_cont -viewer_size 1000 1000 \
+                              -key m -key left
 
 echo ""
 echo ">>> Hit enter for node-based segments object"
 set kk = $<
 
-#Type 1: #node-based_segments  or #node-based_oriented_segments 
+#node-based_segments  or #node-based_oriented_segments 
 set pr = '__nbs'
 rm -f $pr.1D.do
 echo "#node-based_segments" >> $pr.1D.do
-echo "1 2  9" >> $pr.1D.do
-echo "2 5  1" >> $pr.1D.do
-DriveSuma   -com viewer_cont -load_do $pr.1D.do 
+echo "616 574  9" >> $pr.1D.do
+echo "554 634  1" >> $pr.1D.do
+DriveSuma   -com viewer_cont -load_do $pr.1D.do \
+                           -key p
 
 echo ""
 echo ">>> Hit enter for node-based oriented segments"
@@ -31,8 +42,8 @@ set kk = $<
 set pr = '__onbs'
 rm -f $pr.1D.do
 echo "#node-based_oriented_segments" >> $pr.1D.do
-echo "10 1    1 0 0 1" >> $pr.1D.do
-echo "694 662    1 1 0 1" >> $pr.1D.do
+echo "313 160    1 0 0 1" >> $pr.1D.do
+echo "314 331    1 1 0 1" >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do 
 
 echo ""
@@ -42,68 +53,151 @@ set kk = $<
 set pr = '__onbst'
 rm -f $pr.1D.do
 echo "#node-based_oriented_segments" >> $pr.1D.do
-echo "10 1    1 0 0 1 8" >> $pr.1D.do
-echo "694 662    1 1 0 1 2" >> $pr.1D.do
+echo "327 1    1 0 0 1 8" >> $pr.1D.do
+echo "116 532    1 1 0 1 2" >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do 
 
 echo ""
 echo ">>> Hit enter for coordinate-based segments"
 set kk = $<
 
-#Type 1: #oriented_segments  or #segments
+#oriented_segments  or #segments
 set pr = '__os'
 rm -f $pr.1D.do
 echo "#oriented_segments" >> $pr.1D.do
-echo "-21.9 13.1 86.9   100, -81.8, 8.5  0 1 1 1" >> $pr.1D.do
-echo "-80 -40  -20   -21.9 13.1 80     0 1 0 1" >> $pr.1D.do
+echo "230.3 261.1 210.9  240 220.8 198.5  0 1 1 1" >> $pr.1D.do
+echo "240.1 280.2 185.23   240.9 250.1 180     0 1 0 1" >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do 
 
 echo ""
 echo ">>> Hit enter for spheres"
 set kk = $<
 
-#Type 2: #spheres
+#spheres
 set pr = '__sp'
 rm -f $pr.1D.do
 echo "#spheres" >> $pr.1D.do
-echo "-90 0 10  1 1 1 1 15 1" >> $pr.1D.do
-echo "-5.2 -82.3 59  1 1 0 1 10 2 " >> $pr.1D.do
+echo "240 230.8 208.5  1 1 1 1 15 1" >> $pr.1D.do
+echo "235  201  215    1 1  0 1 10 2 " >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do 
 
 echo ""
 echo ">>> Hit enter for vectors"
 set kk = $<
 
-#Type 3: #vectors
-set pr = '__sp'
-rm -f $pr.1D.do
-SurfaceMetrics -spec ${tmpico}.spec -surf_A ${tmpico} -face_normals -prefix $pr
-DriveSuma   -com viewer_cont -load_do $pr.TriNormSeg.1D
+#vectors
+set pr = '__vec'
+rm -f $pr.TriNormSeg.1D
+SurfaceMetrics -spec ${tmpico}.spec -surf_A ${tmpico} \
+               -face_normals -normals_scale -10 -prefix $pr
+#get a  random colection
+set nout = `3dnvals -all ${pr}.TriNormSeg.1D`
+set nout = `ccalc -int $nout[1] - 1`
+1dcat $pr.TriNormSeg.1D"{count 0 $nout S50}" > $pr.mini.TriNormSeg.1D
+
+DriveSuma   -com viewer_cont -load_do $pr.mini.TriNormSeg.1D
 
 echo ""
 echo ">>> Hit enter for planes"
 set kk = $<
 
-#Type 4: #planes
+PLANES:
 set pr = '__pl'
 rm -f $pr.1D.do
 echo "#planes" >> $pr.1D.do
-echo "1 1 1 0 -5.2 -82.3 59" >> $pr.1D.do
+echo "1 1 1 0 286.766998, 281.160004, 236." >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do
 
 echo ""
-echo ">>> Hit enter for cleanup"
+echo ">>> Hit enter for node path on surface"
 set kk = $<
 
-rm -f __*.1D.do ${tmpico}*.*
+DriveSuma   -com viewer_cont -key:r3:s0.8 p
+
+NODE_PATH:
+set pr = '__np'
+rm -f $pr.1D.do
+echo 2 344 > nodelist.1D
+echo 416 489 >> nodelist.1D
+echo 1215 2309 >> nodelist.1D
+echo 1256 1095 >> nodelist.1D
+set echo
+SurfDist -i ${tmpico}.ply \
+         -input nodelist.1D \
+         -node_path_do $pr   > surfdist.1D
+DriveSuma   -com viewer_cont -load_do $pr.1D.do
+
+echo ""
+echo ">>> Hit enter for NIML displayable objects (NIDO)"
+set kk = $<
+
+NIDO:
+#Displayable objects (DO) action
+      set spath = `which suma`
+      set spath = $spath:h
+      cp $spath/demo.fixed.niml.do ./fixed.niml.do
+      cp $spath/demo.mobile.niml.do ./mobile.niml.do
+      if ( ! -f fixed.niml.do || ! -f mobile.niml.do ) then
+         echo "could not find demo .do files."
+         goto END
+      endif
+      
+      echo ""
+      echo ">>> Hit enter to see images, and text in fixed coord_type."
+      set kk = $<
+
+      #Hide the textures
+      sed "s;\<Tex;\<\#Tex;g" fixed.niml.do > __fixed.niml.do
+      DriveSuma -com viewer_cont -load_do __fixed.niml.do 
+      
+      echo ""
+      echo ">>> Hit enter to see texture images added, fixed coord_type."
+      set kk = $<
+      cp fixed.niml.do __fixed.niml.do
+      DriveSuma -com viewer_cont -load_do __fixed.niml.do
+      
+      echo ""
+      echo ">>> Hit enter to see images, texture and text in, mobile coord_type."
+      set kk = $<
+      
+      #first hide all content of fixed, to reduce confusion
+      sed "s;\<;\<#;g" fixed.niml.do > __fixed.niml.do
+      DriveSuma -com viewer_cont -load_do __fixed.niml.do
+      rm -f __fixed.niml.do
+      
+      #Now load the mobile one
+      DriveSuma -com viewer_cont -load_do mobile.niml.do 
+      
+      echo ""
+      echo ">>> Hit enter to see all NIDO elements together"
+      set kk = $<
+
+      DriveSuma -com viewer_cont -load_do fixed.niml.do
+      
+      sleep 3
+      DriveSuma -com viewer_cont -key:r8 Z
+      sleep 3
+      DriveSuma -com viewer_cont -key:r8 Z  
+           
+echo ""
+echo ">>> Enter 'c' if you want to cleanup before quitting."
+set kk = $<
+
+if ("$kk" == "c") then
+   rm -f __*.1D.do ${tmpico}*.*  __*.niml.do
+   cd ..
+   rm -rf suma_tmp
+else 
+   cd ..
+endif
 
 goto END
 
 HELP:
 echo "Usage: `basename $0` "
 echo "A script to illustrate the use of Displayable Objects in SUMA."
-echo "See SUMA's interactive help (ctrl+h) section for Ctrl+Alt+s for"
-echo "details on SUMA's Displayable objects."
+echo "Read this script and see SUMA's interactive help (ctrl+h) "
+echo "section for Ctrl+Alt+s for more details on SUMA's Displayable objects."
 echo ""
 goto END
 

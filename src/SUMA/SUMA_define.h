@@ -165,15 +165,20 @@ typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED,
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE, SUMA_XML_SURF, SUMA_XML_ASCII_SURF,  SUMA_XML_B64_SURF, SUMA_XML_B64GZ_SURF } SUMA_SO_File_Format;
 typedef enum { type_not_set = -1,
                no_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
-               GO_type, LS_type, OLS_type, NBV_type, ONBV_type, SP_type,
+               GO_type, LS_type, NBLS_type, OLS_type, NBOLS_type,
+               NBV_type, ONBV_type, SP_type,
                NBSP_type, PL_type,
-               NBT_type, SBT_type, DBT_type} SUMA_DO_Types;   
+               NBT_type, SBT_type, DBT_type,
+               NIDO_type } SUMA_DO_Types;   
 
 /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 
                                                                                     ROId: Region of interest drawn type,
                                                                                     LS_type: line segment
-                                                                                    OLS_type: oriented line segment
+                                                                                    NBLS_type: Node-based line segment
+                 
+  OLS_type: oriented line segment
+                                                                                    NBOLS_type: Node-based oriented line segment
                                                                                     NBV_type: Node-Based vector (displayed as a line from node)
                                                                                     ONBV_type: NBV with a ball on the bottom (slower to render)
                                                                                     SP_type: spherical markers
@@ -183,9 +188,34 @@ typedef enum { type_not_set = -1,
                                                                                     SBT_type: Screen-based text
                                                                                     DBT_type: Dicom-based text
                                                                                     */
-typedef enum {SUMA_SCREEN, SUMA_LOCAL} SUMA_DO_CoordType; /*!< Coordinate system that Displayable object is attached to
-                                                                  SCREEN is for a fixed system, LOCAL is for a mobile system,
-                                                                  ie one that is rotated by the mouse movements */
+typedef enum { SUMA_COORD_TYPE_ERROR=0, 
+                  SUMA_SCREEN, 
+                  SUMA_WORLD} SUMA_DO_CoordType; /*!< Coordinate system that 
+                          Displayable object that is attached to SCREEN is for a
+                          fixed system, WORLD is for a mobile system, ie one 
+                          that is rotated by the mouse movements */
+typedef enum { SUMA_COORD_UNITS_ERROR=0,
+               SUMA_NORM_SCREEN_UNIT, /* XYZ coordinates between [0,1] relative
+                                       to the drawing screen X Y are the fixed
+                                       eye axes and Z is 1 closest to users and
+                                       Z = 0 is all the way back. Z=0.5 is where
+                                       the fixed eye axes lies. To display an 
+                                       object at such a location, it needs to be
+                                       transformed to SUMA_WORLD_UNIT with the 
+                                       function SUMA_NormScreenToWorld. If the
+                                       latter function is called with only the 
+                                       projection matrix set, i.e. before the                                           rotation and translations are applied,
+                                       as is done when SUMA_DO_CoordType is set 
+                                       to SUMA_SCREEN then the location does not
+                                       move with moving surface (mouse 
+                                       movements). If SUMA_DO_CoordType is set 
+                                       to SUMA_WORLD then the transformed 
+                                       location will track moving surface 
+                                       because rotation and translation matrices
+                                       are taken into account. */
+              SUMA_WORLD_UNIT }   SUMA_DO_CoordUnits;                      
+          
+                                       
 typedef enum {SUMA_SOLID_LINE, SUMA_DASHED_LINE} SUMA_STIPPLE;
 
 typedef enum {SUMA_Button_12_Motion, SUMA_Button_2_Shift_Motion, SUMA_Button_1_Motion, SUMA_Button_2_Motion, SUMA_Button_3_Motion} SUMA_MOTION_TYPES; /*!< Types of mouse motion */
@@ -1359,33 +1389,17 @@ typedef struct {
    GLfloat NormVect[3]; /*!< normal vector of faceset, two triangles are drawn at a small distance from the selected FaceSet */
 }SUMA_FaceSetMarker;
 
+
 /*!
-   Structure containg a bunch of text defined at various locations
+   Structure containing NIML formatted displayable objects
 */
 typedef struct {
    char *idcode_str;    /*!< unique idcode for DO */
    char *Label; /*!< ascii label for DO */ 
    SUMA_DO_Types do_type;
    
-   int NodeBased; /*!< flag: 1 if text is displayed relative to surface nodes */
-   char *Parent_idcode_str; /*!< Parent surface's id 
-                                 (only used if NodeBased = 1
-                                 NULL if NodeBased)*/
-   int *NodeID; /*!< ID of the node at which the vector is represented
-                     NULL if NodeBased = 0 */
-
-   char **text; /*! vector containing N_n strings */
-   GLfloat *x; /*!< vector containing XYZ of text locations (3*N_n elements long)
-                     NULL if NodeBased*/
-   int N_n; /*!< Number of elements in x */
-   void *FontSize; /*!< Common FontSize of all text 
-                     (based on constants in glut.h) */
-   GLfloat FontCol[4]; /*!< Common FontColor of all text*/
-   int *colv; /*!< Vector of text colors, 4 elements per segment. 
-                        NULL if using LineCol */
-   void **sizev; /*!< Vector of text size, 1 elements per segment. 
-                        NULL if using LineWidth */   
-} SUMA_TextDO;
+   NI_group *ngr;
+} SUMA_NIDO;
 
 /*!
    Structure containg a bunch of segments defined between n0 and n1
@@ -1401,7 +1415,8 @@ typedef struct {
                                  NULL if NodeBased)*/
    int *NodeID; /*!< ID of the node at which the vector is represented
                      NULL if NodeBased = 0 */
-
+   int *NodeID1; /*!< Used to define the 2 node of vectors that are fully
+                      nodebased */
    GLfloat *n0; /*!< vector containing XYZ of nodes 1 (3*N_n elements long)
                      NULL if NodeBased*/
    GLfloat *n1; /*!< vector containing XYZ of nodes 2 (3*N_n elements long)*/
@@ -1458,7 +1473,8 @@ typedef struct {
    char *Label; /*!< ascii label for DO */ 
    SUMA_DO_Types do_type;
    
-   int NodeBased; /*!< flag: 1 if segments are formed by vectors at surface nodes */
+   int NodeBased; /*!< flag: 1 if segments are formed by 
+                        vectors at surface nodes */
    char *Parent_idcode_str; /*!< Parent surface's id 
                                  (only used if NodeBased = 1
                                  NULL if NodeBased)*/
@@ -2110,7 +2126,9 @@ typedef struct {
    
    SUMA_X_SurfCont *SurfCont;/*!< pointer to structure containing surface  
                                   controller widget structure */
-   
+   NI_element *texnel;  /*!< a copy of a pointer to a texture element.
+                         This should be set only before drawing and turned
+                         back to NULL immediately after that */
 }SUMA_SurfaceObject; /*!< \sa Alloc_SurfObject_Struct in SUMA_DOmanip.c
                      \sa SUMA_Free_Surface_Object in SUMA_Load_Surface_Object.c
                      \sa SUMA_Print_Surface_Object in SUMA_Load_Surface_Object.c

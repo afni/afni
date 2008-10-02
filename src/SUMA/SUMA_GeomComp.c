@@ -167,10 +167,12 @@ void SUMA_Set_SurfSmooth_NodeDebug(int n)
    to be subdivided. Bad idea, for very large triangles, such as produced
    by convex hull, you could end up with nodes that have hundreds of neighbors...
 */
-int SUMA_Subdivide_Mesh(float **NodeListp, int *N_Nodep, int **FaceSetListp, int *N_FaceSetp, float maxarea)
+int SUMA_Subdivide_Mesh(   float **NodeListp, int *N_Nodep, int **FaceSetListp, 
+                           int *N_FaceSetp, float maxarea)
 {
    static char FuncName[]={"SUMA_Subdivide_Mesh"};
-   int in, it, N_NodeAlloc, N_FaceSetAlloc, N_Node, N_FaceSet, it3, in0, in1, in2, inc3, inc, itn, itn3;
+   int in, it, N_NodeAlloc, N_FaceSetAlloc, N_Node, 
+         N_FaceSet, it3, in0, in1, in2, inc3, inc, itn, itn3;
    float c[3];
    float *NodeList = NULL, a, *n1, *n2, *n0;
    int *FaceSetList = NULL;
@@ -186,7 +188,8 @@ int SUMA_Subdivide_Mesh(float **NodeListp, int *N_Nodep, int **FaceSetListp, int
    NodeList = *NodeListp;
    FaceSetList = *FaceSetListp;
    SO->NodeList = NodeList; SO->FaceSetList = FaceSetList;
-   if (!NodeList || !FaceSetList) { SUMA_SL_Err("NULL input"); SUMA_RETURN(NOPE); }
+   if (!NodeList || !FaceSetList) { 
+      SUMA_SL_Err("NULL input"); SUMA_RETURN(NOPE); }
    
    it = 0; /* triangle index */
    while (it < N_FaceSet) {
@@ -6397,7 +6400,8 @@ SUMA_Boolean SUMA_Offset_Smooth_dset(
    SUMA_COMM_STRUCT *cs, byte *nmask, byte strict_mask) 
 {
    static char FuncName[]={"SUMA_Offset_Smooth_dset"};
-   float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL, *fin_orig = NULL;
+   float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, 
+         *fin_next = NULL, *fin_orig = NULL;
    float fp, dfp, fpj, wt, wts, sig, fwhm_orig, fwhm_out;
    double dj, ds2, scl;
    int n , k, j, niter, vnk, os, jj, nj=-1, *icols=NULL, N_icols, N_nmask;
@@ -7939,7 +7943,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
       if (!ROIe) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
       } else {
-         if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIe, ROIO_type, SUMA_LOCAL)) {
+         if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIe, ROIO_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
          }
       }
@@ -7951,7 +7955,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
       if (!ROIt) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
       } else {
-         if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIt, ROIO_type, SUMA_LOCAL)) {
+         if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIt, ROIO_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
          }
       }
@@ -8032,7 +8036,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
                if (ROId) SUMA_FreeROIDatum (ROId);
                SUMA_RETURN(NULL);   
             }
-            if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIts, ROIO_type, SUMA_LOCAL)) {
+            if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIts, ROIO_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
                if (ROIn) SUMA_freeROI(ROIn);
                if (ROIts) SUMA_freeROI(ROIts);
@@ -8056,7 +8060,7 @@ SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom
                if (ROId) SUMA_FreeROIDatum (ROId);
                SUMA_RETURN(NULL);
             }
-            if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIn, ROIO_type, SUMA_LOCAL)) {
+            if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIn, ROIO_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
                if (ROIn) SUMA_freeROI(ROIn);
                if (ROIts) SUMA_freeROI(ROIts);
@@ -8447,7 +8451,7 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
    }
    if (sv) {
       SUMA_SegmentDO *SDO = NULL;
-      if ((SDO = SUMA_Alloc_SegmentDO (SPI->N_IntersEdges, "Show_SPI_segs", 0, NULL, LS_type))) {
+      if ((SDO = SUMA_Alloc_SegmentDO (SPI->N_IntersEdges, "Show_SPI_segs", 0, NULL, 0, LS_type))) {
          SDO->do_type = LS_type;
          for (i=0; i < SPI->N_IntersEdges; ++i) {
             for (j=0; j<3;++j) {
@@ -8456,7 +8460,7 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
             }
          }   
          /* addDO */
-         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_LOCAL)) {
+         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
             SUMA_RETURNe;
          }
@@ -8501,7 +8505,7 @@ SUMA_Boolean SUMA_Show_SPI (SUMA_SURF_PLANE_INTERSECT *SPI, FILE * Out, SUMA_Sur
             }
          }
          /* addDO */
-         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, SP_type, SUMA_LOCAL)) {
+         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, SP_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
             SUMA_RETURNe;
          }
@@ -8659,22 +8663,28 @@ int SUMA_Find_Edge_Nhost (SUMA_EDGE_LIST  *EL, int *IsInter, int N_IsInter, int 
       The subset of nodes is stored in isNodeInMesh. This subset is typically specified in SUMA_Surf_Plane_Intersect.
       
       
- Path = SUMA_Dijkstra (SO, Nx,  Ny, isNodeInMesh, N_isNodeInMesh, Method_Number, Path_length, N_Path)
-\param SO (SUMA_SurfaceObject *) The surface Object structure. NodeList, EL and FN are needed. 
+ Path = SUMA_Dijkstra ( SO, Nx,  Ny, 
+                        isNodeInMesh, N_isNodeInMesh, Method_Number, 
+                        Path_length, N_Path)
+\param SO (SUMA_SurfaceObject *) The surface Object structure. 
+            NodeList, EL and FN are needed. 
 \param Nx (int) The node index (referring to SO's nodes) where the search begins.
 \param Ny (int) The node index (referring to SO's nodes) where the search ends.
-\param isNodeInMesh (SUMA_Boolean *) Pointer to SO->N_Node long vector such that 
-                                       if (isNodeInMesh[i]) then node i is part of the 
-                                       mesh that is used in the search path. This mesh is a subset 
-                                       of SO->FaceSetList and is typically obtained when one 
-                                       runs SUMA_Surf_Plane_Intersect. Running SUMA_Dijkstra on 
-                                       a complete surface is only for very patient people.
-                                NOTE:  This vector is modified as a node is visited. Make sure you 
-                                       do not use it after this function has been called.
-                                       Set to NULL if you want all nodes used.
-\param N_isNodeInMesh (int *) Pointer to the total number of nodes that make up the mesh (subset of SO)
-               This parameter is passed as a pointer because as nodes in the mesh are visited, that
-               number is reduced and represents when the function returns, the number of nodes that were
+\param isNodeInMesh (SUMA_Boolean *) 
+         Pointer to SO->N_Node long vector such that 
+         if (isNodeInMesh[i]) then node i is part of the 
+         mesh that is used in the search path. This mesh is a subset 
+         of SO->FaceSetList and is typically obtained when one 
+         runs SUMA_Surf_Plane_Intersect. Running SUMA_Dijkstra on 
+         a complete surface is only for very patient people.
+   NOTE:  This vector is modified as a node is visited. Make sure you 
+         do not use it after this function has been called.
+         Set to NULL if you want all nodes used.
+\param N_isNodeInMesh (int *) Pointer to the total number of nodes that 
+               make up the mesh (subset of SO)
+               This parameter is passed as a pointer because as nodes in the mesh
+               are visited, that number is reduced and represents when the
+               function returns, the number of nodes that were
                never visited in the search. 
                Set to NULL, if isNodeInMesh is NULL
 \param Method_Number (int) selector for which algorithm to use. Choose from:

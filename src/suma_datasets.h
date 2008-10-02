@@ -628,6 +628,7 @@ static byte NI_GOT;
       val[0] = '\0'; \
    }  \
 }
+
 #define NI_GET_STR_CP(ngr, name, val)  {\
    char *m_s = NI_get_attribute(ngr, name);  \
    if (m_s) {  \
@@ -646,6 +647,35 @@ static byte NI_GOT;
    char *m_s = NI_get_attribute(ngr, name);  \
    if (m_s) { NI_GOT = 1; val = atoi(m_s); } else { NI_GOT = 0; val = 0; }\
 }
+#define NI_SET_INTv(ngr, name, valv, n) {\
+   char m_stmp[400]; int m_i=0;  m_stmp[0] = '\0';\
+   for (m_i=0; m_i<n;++m_i) snprintf(m_stmp, 390*sizeof(char), "%s %d", m_stmp, valv[m_i]);   \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+
+#define NI_GET_INTv(ngr, name, valv, n, verb) {\
+   char *m_s = NI_get_attribute(ngr, name);  \
+   int m_nr, m_i; int *m_iv;  \
+   for (m_i=0; m_i<n; ++m_i) valv[m_i] = 0.0;   \
+   if (m_s) {  \
+      NI_GOT = 1; \
+      m_iv = (int *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_int); \
+      if (m_iv) {\
+         if (!verb) { \
+            if (m_nr < n) { \
+               SUMA_S_Warn("Fewer values in field\nProceeding..."); }  \
+            else  if (m_nr > n) { \
+               SUMA_S_Warn("More values in field\nProceeding..."); }  \
+         }  \
+         for (m_i=0; m_i<SUMA_MIN_PAIR(n, m_nr);++m_i) valv[m_i] = m_iv[m_i];    \
+         SUMA_free(m_iv);  \
+      } else {    \
+         NI_GOT = 1; \
+         if (verb) SUMA_S_Warn("NULL vec, filling with zeros"); \
+      }  \
+   } else { NI_GOT = 0; }  \
+}
+
 #define NI_SET_FLOAT(ngr, name, val)  {\
    char m_stmp[100]; sprintf(m_stmp,"%f", val);   \
    NI_set_attribute(ngr, name, m_stmp);  \
@@ -654,12 +684,14 @@ static byte NI_GOT;
    char *m_s = NI_get_attribute(ngr, name);  \
    if (m_s) { NI_GOT = 1; val = atof(m_s); } else { NI_GOT = 0; val = 0.0; }\
 }
+
 #define NI_SET_FLOATv(ngr, name, valv, n) {\
    char m_stmp[400]; int m_i=0;  m_stmp[0] = '\0';\
    for (m_i=0; m_i<n;++m_i) snprintf(m_stmp, 390*sizeof(char), "%s %f", m_stmp, valv[m_i]);   \
    NI_set_attribute(ngr, name, m_stmp);  \
 }
-#define NI_GET_FLOATv(ngr, name, valv, n) {\
+
+#define NI_GET_FLOATv(ngr, name, valv, n, verb) {\
    char *m_s = NI_get_attribute(ngr, name);  \
    int m_nr, m_i; float *m_fv;  \
    for (m_i=0; m_i<n; ++m_i) valv[m_i] = 0.0;   \
@@ -667,17 +699,23 @@ static byte NI_GOT;
       NI_GOT = 1; \
       m_fv = (float *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_float); \
       if (m_fv) {\
-         if (m_nr < n) { SUMA_S_Warn("Fewer values in field\nProceeding..."); }  \
-         if (m_nr > n) { SUMA_S_Warn("More values in field\nProceeding..."); }  \
-         for (m_i=0; m_i<SUMA_MIN_PAIR(n, m_nr);++m_i) valv[m_i] = m_fv[m_i];    \
+         if (verb) {\
+            if (m_nr < n) { \
+               SUMA_S_Warn("Fewer values in field\nProceeding..."); }  \
+            else if (m_nr > n) { \
+               SUMA_S_Warn("More values in field\nProceeding..."); }  \
+         }  \
+         for (m_i=0; m_i<SUMA_MIN_PAIR(n, m_nr);++m_i) \
+            valv[m_i] = m_fv[m_i];    \
          SUMA_free(m_fv);  \
       } else {    \
          NI_GOT = 1; \
-         SUMA_S_Warn("NULL vec, filling with zeros"); \
+         if (verb) SUMA_S_Warn("NULL vec, filling with zeros"); \
       }  \
    } else { NI_GOT = 0; }  \
 }
 #define NI_IS_STR_ATTR_EQUAL(ngr, name, stmp) ( (!name || !NI_get_attribute(ngr,name) || !stmp || strcmp(NI_get_attribute(ngr,name), stmp) ) ? 0:1 )
+#define NI_IS_STR_ATTR_EMPTY(ngr, name) ( (!name || !NI_get_attribute(ngr,name) || !strlen(NI_get_attribute(ngr,name))  ) ? 0:1 )
 
 #define NI_YES_ATTR(ngr, name) ( \
    (  !name || \
@@ -1295,7 +1333,9 @@ float SUMA_fdrcurve_zval( SUMA_DSET *dset , int iv , float thresh );
    }
 char * SUMA_to_lower(char *s) ;
 int SUMA_filexists (char *f_name);
+int SUMA_search_file(char **fnamep, char *epath);
 char *SUMA_help_basics();
+char *SUMA_help_cmap();
 char *SUMA_help_talk();
 char *SUMA_help_mask();
 char *SUMA_help_dset();

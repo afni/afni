@@ -583,14 +583,18 @@ int main (int argc,char *argv[])
    #if 0
    SUMA_S_Note("KILL ME");
    { 
-      int i,j; 
-      SUMA_TextBoxSize("Hello\nMr Bond! How are you?\nzs", &i,&j,NULL); 
-      SUMA_TextBoxSize("Hello\nMr Bond! How are you?\nzs", 
-                        &i,&j,GLUT_BITMAP_8_BY_13); 
+      int i,j, nl; 
+      SUMA_TextBoxSize("Hello", &i,&j,&nl,NULL); 
+      SUMA_TextBoxSize("", 
+                        &i,&j,&nl,GLUT_BITMAP_8_BY_13); 
+      SUMA_TextBoxSize("O", 
+                        &i,&j,&nl,GLUT_BITMAP_8_BY_13); 
+                        SUMA_TextBoxSize(NULL, 
+                        &i,&j,&nl,GLUT_BITMAP_8_BY_13); 
    }
-   SUMA_ReadTextDO("/Users/ziad/SUMA_test_dirs/sample.niml", NULL);   
-      
+   SUMA_ReadNIDO("/Users/ziad/SUMA_test_dirs/DO/TextDO/sample.niml.do", NULL);   
    exit(1);
+      
    #endif
       
    /* Make surface loading pacifying */
@@ -617,7 +621,8 @@ int main (int argc,char *argv[])
 	}
 
 	if(!SUMA_Assign_HostName (SUMAg_CF, AfniHostName, -1)) {
-		fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_HostName\n", FuncName);
+		fprintf (SUMA_STDERR, 
+         "Error %s: Failed in SUMA_Assign_HostName\n", FuncName);
 		exit (1);
 	}
    
@@ -626,7 +631,8 @@ int main (int argc,char *argv[])
    {
       int *jnk;
       jnk = SUMA_disaster();
-      SUMA_free(jnk); /* without the -trace, you'll get a warning here if jnk is corrupted */
+      SUMA_free(jnk); /* without the -trace, you'll get a 
+                           warning here if jnk is corrupted */
    }
    #endif
    

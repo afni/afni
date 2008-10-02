@@ -2572,7 +2572,7 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov, int *N
 
       /* Store it into dov, if not there already */
       if (SUMA_whichDO(SO->idcode_str, dov, *N_dov) < 0) {
-         if (!SUMA_AddDO(dov, N_dov, (void *)SO,  SO_type, SUMA_LOCAL)) {
+         if (!SUMA_AddDO(dov, N_dov, (void *)SO,  SO_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
             SUMA_RETURN(NOPE);
          }
@@ -2744,7 +2744,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (
             SO->ShowMeshAxis = NOPE;
 
             /* Store it into dov */
-            if (!SUMA_AddDO(dov, N_dov, (void *)SO,  SO_type, SUMA_LOCAL)) {
+            if (!SUMA_AddDO(dov, N_dov, (void *)SO,  SO_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
                SUMA_RETURN(NOPE);
             }
@@ -4054,15 +4054,30 @@ void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps)
    
    if (!ps) { fprintf(SUMA_STDERR,"NULL ps\n"); SUMA_RETURNe; }
    
-   if (ps->accept_t) fprintf(SUMA_STDERR,"accepting -t* options\n");
-   if (ps->accept_s) fprintf(SUMA_STDERR,"accepting -surf_* options\n");
-   if (ps->accept_i) fprintf(SUMA_STDERR,"accepting -i_* options\n");
-   if (ps->accept_ipar) fprintf(SUMA_STDERR,"accepting -ipar_* options\n");
-   if (ps->accept_o) fprintf(SUMA_STDERR,"accepting -o_* options\n");
-   if (ps->accept_spec) fprintf(SUMA_STDERR,"accepting -spec option\n");
-   if (ps->accept_sv) fprintf(SUMA_STDERR,"accepting -sv option\n");
-   if (ps->accept_talk_suma) fprintf(SUMA_STDERR,"accepting -talk_suma options\n");
-   fprintf(SUMA_STDERR,"Check for input surface files: %d\n", ps->check_input_surf);
+   fprintf(SUMA_STDERR,"%saccepting -t* options\n",
+      ps->accept_t ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -surf_* options\n",
+      ps->accept_s ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -i_* options\n",
+      ps->accept_i ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -ipar_* options\n",
+      ps->accept_ipar ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -o_* options\n",
+      ps->accept_o ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -spec option\n",
+      ps->accept_spec ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -sv option\n",
+      ps->accept_sv ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -talk_suma options\n",
+      ps->accept_talk_suma ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -mask options\n",
+      ps->accept_mask ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -cmap options\n",
+      ps->accept_cmap ? "":"not");
+   fprintf(SUMA_STDERR,"%saccepting -dset options\n",
+      ps->accept_dset ? "":"not");
+   fprintf(SUMA_STDERR,
+            "Check for input surface files: %d\n", ps->check_input_surf);
    fprintf(SUMA_STDERR,"%d sv:\n", ps->N_sv);
    if (ps->N_sv) {
       for (i=0; i<ps->N_sv; ++i) {
