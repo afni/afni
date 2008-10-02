@@ -2892,6 +2892,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
    ps->nmaskname = NULL;
    ps->bmaskname = NULL;
    
+   ps->cmap = NULL;
+   ps->cmapfile = NULL;
+   ps->cmapdb = NULL;
+   
    ps->cs = NULL;
    
    for (i=0;i<SUMA_MAX_SURF_ON_COMMAND; ++i) {
@@ -2951,16 +2955,28 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags)
    }
    ps->N_args = 0;
    
-   if (SUMA_iswordin(optflags,"-t;")) ps->accept_t = 1; else ps->accept_t = 0;
-   if (SUMA_iswordin(optflags,"-i;")) ps->accept_i = 1; else ps->accept_i = 0;
-   if (SUMA_iswordin(optflags,"-ipar;")) ps->accept_ipar = 1; else ps->accept_ipar = 0;
-   if (SUMA_iswordin(optflags,"-s;")) ps->accept_s = 1; else ps->accept_s = 0;
-   if (SUMA_iswordin(optflags,"-o;")) ps->accept_o = 1; else ps->accept_o = 0;
-   if (SUMA_iswordin(optflags,"-spec;")) ps->accept_spec = 1; else ps->accept_spec = 0;
-   if (SUMA_iswordin(optflags,"-sv;")) ps->accept_sv = 1; else ps->accept_sv = 0;
-   if (SUMA_iswordin(optflags,"-talk;")) ps->accept_talk_suma = 1; else ps->accept_talk_suma = 0;
-   if (SUMA_iswordin(optflags,"-m;")||SUMA_iswordin(optflags,"-mask;")) ps->accept_mask = 1; else ps->accept_mask = 0;
-   if (SUMA_iswordin(optflags,"-dset;")||SUMA_iswordin(optflags,"-d;")) ps->accept_dset = 1; else ps->accept_dset = 0;
+   if (SUMA_iswordin(optflags,"-t;")) 
+      ps->accept_t = 1; else ps->accept_t = 0;
+   if (SUMA_iswordin(optflags,"-i;")) 
+      ps->accept_i = 1; else ps->accept_i = 0;
+   if (SUMA_iswordin(optflags,"-ipar;")) 
+      ps->accept_ipar = 1; else ps->accept_ipar = 0;
+   if (SUMA_iswordin(optflags,"-s;")) 
+      ps->accept_s = 1; else ps->accept_s = 0;
+   if (SUMA_iswordin(optflags,"-o;")) 
+      ps->accept_o = 1; else ps->accept_o = 0;
+   if (SUMA_iswordin(optflags,"-spec;")) 
+      ps->accept_spec = 1; else ps->accept_spec = 0;
+   if (SUMA_iswordin(optflags,"-sv;")) 
+      ps->accept_sv = 1; else ps->accept_sv = 0;
+   if (SUMA_iswordin(optflags,"-talk;")) 
+      ps->accept_talk_suma = 1; else ps->accept_talk_suma = 0;
+   if (SUMA_iswordin(optflags,"-m;")||SUMA_iswordin(optflags,"-mask;")) 
+      ps->accept_mask = 1; else ps->accept_mask = 0;
+   if (SUMA_iswordin(optflags,"-dset;")||SUMA_iswordin(optflags,"-d;")) 
+      ps->accept_dset = 1; else ps->accept_dset = 0;
+   if (SUMA_iswordin(optflags,"-cmap;")) 
+      ps->accept_cmap = 1; else ps->accept_cmap = 0;
    
    ps->check_input_surf = 1;
    
@@ -3009,6 +3025,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_FreeGenericArgParse(SUMA_GENERIC_ARGV_PARSE *ps)
       if (ps->nmaskname) SUMA_free(ps->nmaskname); ps->nmaskname = NULL;
       if (ps->bmaskname) SUMA_free(ps->nmaskname); ps->nmaskname = NULL;
       if (ps->cmask) SUMA_free(ps->cmask); ps->cmask = NULL;
+      if (ps->cmap) SUMA_free(ps->cmap); ps->cmap = NULL;
+      if (ps->cmapdb) SUMA_free(ps->cmapdb); ps->cmapdb = NULL;
+      if (ps->cmapfile) SUMA_free(ps->cmapfile); ps->cmapfile = NULL;
+      
       if (ps->cs) SUMA_Free_CommSrtuct(ps->cs); ps->cs = NULL;
       SUMA_free(ps); ps = NULL;  
    } 
@@ -3023,6 +3043,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    
    SUMA_ENTRY;
    SS = SUMA_StringAppend (NULL, NULL);
+   
    
    if (opt->accept_i) {
       SS = SUMA_StringAppend (SS, 
@@ -3180,6 +3201,17 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    
    if (opt->accept_mask) {
       st = SUMA_help_mask();
+      SS = SUMA_StringAppend_va (SS,
+                  "\n"
+                  "%s"
+                  "\n", 
+                  st
+      );
+      SUMA_free(st); st = NULL;
+   }
+   
+   if (opt->accept_cmap) {
+      st = SUMA_help_cmap();
       SS = SUMA_StringAppend_va (SS,
                   "\n"
                   "%s"
@@ -3423,6 +3455,118 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
    kar = 1;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
+      /* allow for users to set cmap */
+      if (!brk && ps->accept_cmap) {   
+         if (!brk && (  (strcmp(argv[kar], "-cmap") == 0) ||
+                        (strcmp(argv[kar], "-cmapfile") == 0)  ) ) {
+            if (ps->cmap || ps->cmapfile) {
+               fprintf (SUMA_STDERR,"Cmap already set to %s\n"
+                                    "Option %s is redundant\n", 
+                                    ps->cmap, argv[kar]);
+               exit(1);
+            }
+            ps->arg_checked[kar]=1; kar ++;
+            if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 1 argument after %s \n",
+                                     argv[kar]);
+				   exit (1);
+			   }
+            /* put the flags up */
+            if (strcmp(argv[kar], "-cmap") == 0) {
+               ps->cmap = SUMA_copy_string(argv[kar]); 
+            } else {
+               SUMA_DSET_FORMAT form;
+               SUMA_COLOR_MAP *Cmap=NULL;
+               SUMA_PARSED_NAME * pn=NULL;
+
+               if (!SUMA_filexists(argv[kar])) {
+                  fprintf (SUMA_STDERR,"cmap file %s not found\n",
+                                       argv[kar]);
+                  exit(1);
+               }
+
+               /* take a stab at the format */
+               form = SUMA_GuessFormatFromExtension(argv[kar], NULL);
+   
+               /* load the baby */
+               Cmap = NULL;
+               switch (form) {
+                  case  SUMA_1D:
+                     Cmap = SUMA_Read_Color_Map_1D (argv[kar]);
+                     if (Cmap == NULL) {
+                        fprintf (SUMA_STDERR,"Could not load colormap %s.\n",
+                                             argv[kar]);
+                     }
+                     break;
+                  case SUMA_ASCII_NIML:
+                  case SUMA_BINARY_NIML:
+                  case SUMA_NIML:
+                     fprintf (SUMA_STDERR,
+                              "Not ready for this cmap format yet.\n");
+                     break;
+                  default:
+                     fprintf (SUMA_STDERR,  "Cmap format not recognized.\n"
+                                    "I won't try to guess.\n"
+                                    "Do use the proper extension.\n");
+                     break;
+               }
+               if (!Cmap) exit(1);
+
+               /* have Cmap, add to dbase */
+
+               /* remove path from name for pretty purposes */
+               pn = SUMA_ParseFname(Cmap->Name, NULL);
+               SUMA_STRING_REPLACE(Cmap->Name, pn->FileName_NoExt);
+               SUMA_Free_Parsed_Name(pn); pn = NULL;
+               if (  !SUMAg_CF->scm && 
+                     !(SUMAg_CF->scm = SUMA_Build_Color_maps())) {
+                  fprintf (SUMA_STDERR, "Failed to build color maps.\n");
+                  exit(1);
+               }
+               SUMAg_CF->scm->CMv = 
+                  SUMA_Add_ColorMap (Cmap, SUMAg_CF->scm->CMv, 
+                                     &(SUMAg_CF->scm->N_maps)); 
+               ps->cmapfile = SUMA_copy_string(argv[kar]); 
+               ps->cmap = SUMA_copy_string(Cmap->Name);
+            }
+            ps->arg_checked[kar]=1; 
+			   brk = YUP;
+            
+         }
+         if (!brk && (  (strcmp(argv[kar], "-cmapdb") == 0) ) ) {
+            if (ps->cmapdb) {
+               fprintf (SUMA_STDERR,"Cmapdb already set to %s\n", 
+                                    ps->cmapdb);
+               exit(1);
+            }
+            ps->arg_checked[kar]=1; kar ++;
+            if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 1 argument after %s \n",
+                                     argv[kar]);
+				   exit (1);
+			   }
+            if (!SUMA_filexists(argv[kar])) {
+               fprintf (SUMA_STDERR,"cmapdb file %s not found\n",
+                                    argv[kar]);
+               exit(1);
+            }
+            ps->cmapdb = SUMA_copy_string(argv[kar]); 
+            /* load the database */
+            if (  !SUMAg_CF->scm && 
+                     !(SUMAg_CF->scm = SUMA_Build_Color_maps())) {
+                  fprintf (SUMA_STDERR, "Failed to build color maps.\n");
+                  exit(1);
+            }
+            if (SUMA_AFNI_Extract_Colors ( ps->cmapdb, SUMAg_CF->scm ) < 0) {
+               fprintf (SUMA_STDERR,
+                        "Failed to read %s color database file.\n", 
+                        ps->cmapdb);
+               exit(1);
+            }
+            ps->arg_checked[kar]=1; 
+			   brk = YUP;
+         }
+      }
       if (!brk && ps->accept_mask) {
          if (!brk && (strcmp(argv[kar], "-n_mask") == 0)) {
             ps->arg_checked[kar]=1; kar ++;
@@ -3434,7 +3578,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ps->arg_checked[kar]=1; 
 			   brk = YUP;
 		   }
-         if (!brk && (strcmp(argv[kar], "-cmask") == 0 || strcmp(argv[kar], "-c_mask") == 0)) {
+         if (!brk && (strcmp(argv[kar], "-cmask") == 0 || 
+                      strcmp(argv[kar], "-c_mask") == 0)) {
             ps->arg_checked[kar]=1; kar ++;
 			   if (kar >= argc)  {
 		  		   fprintf (SUMA_STDERR, "need 1 argument after -c_mask \n");
@@ -3466,7 +3611,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                ps->arg_checked[kar]=1; ++kar;
                /* do we have a - as the first char ? */
                if (argv[kar][0] == '-') {
-                  fprintf (SUMA_STDERR, "no option should directly follow -input \n");
+                  fprintf (SUMA_STDERR, 
+                           "no option should directly follow -input \n");
 				      exit (1);
                }
 			      if (ps->N_dsetname+1 < SUMA_MAX_DSET_ON_COMMAND) {
@@ -3474,11 +3620,14 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                   SUMA_LHv("Got %s\n", ps->dsetname[ps->N_dsetname]);
                   ++ps->N_dsetname;
                } else {
-                  SUMA_S_Errv("Too many dsets on command line.\nMaximum of %d is allowed.\n", SUMA_MAX_DSET_ON_COMMAND);
+                  SUMA_S_Errv("Too many dsets on command line.\n"
+                              "Maximum of %d is allowed.\n", 
+                              SUMA_MAX_DSET_ON_COMMAND);
                   exit (1);
                }
                ps->arg_checked[kar]=1;
-               if (kar+1>= argc || argv[kar+1][0] == '-') { SUMA_LH("No more input"); MoreInput = 0; }
+               if (kar+1>= argc || argv[kar+1][0] == '-') { 
+                  SUMA_LH("No more input"); MoreInput = 0; }
                else { SUMA_LH("More input"); MoreInput = 1; }
             } while (MoreInput);             
 			   brk = YUP;
@@ -3507,7 +3656,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   }
 			   ps->cs->kth = atoi(argv[kar]);
             if (ps->cs->kth <= 0) {
-               fprintf (SUMA_STDERR, "Bad value (%d) for send_kth\n", ps->cs->kth);
+               fprintf (SUMA_STDERR, 
+                        "Bad value (%d) for send_kth\n", ps->cs->kth);
 				   exit (1);
             }
 
@@ -3636,9 +3786,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 		      }
 		      ind = argv[kar][6] - 'A';
             if (ind < 0 || ind >= 'Z') {
-               fprintf (SUMA_STDERR,   "Error %s:\n -surf_X SURF_NAME option is out of range.\n"
-                                       "Only %d surfaces are allowed. \n"
-                                       "Must start with surf_A for first surface.\n", FuncName, 'Z');
+               fprintf (SUMA_STDERR,   
+                        "Error %s:\n -surf_X SURF_NAME option is out of range.\n"
+                        "Only %d surfaces are allowed. \n"
+                        "Must start with surf_A for first surface.\n", 
+                        FuncName, 'Z');
 			      exit (1);
             }
             kar ++;
@@ -3797,7 +3949,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
          
-         if (!brk && ( (strcmp(tmp_i, "-i_sf") == 0) || (strcmp(tmp_i, "-i_SF") == 0)) ){
+         if (!brk && (  (strcmp(tmp_i, "-i_sf") == 0) || 
+                        (strcmp(tmp_i, "-i_SF") == 0)) ){
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar+1 >= argc)  {
@@ -3857,7 +4010,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
 
-         if (!brk && (     (strcmp(tmp_i, "-i_ply") == 0) || (strcmp(tmp_i, "-i_Ply") == 0) 
+         if (!brk && (  (strcmp(tmp_i, "-i_ply") == 0) || 
+                        (strcmp(tmp_i, "-i_Ply") == 0) 
                         || (strcmp(tmp_i, "-i_PLY") == 0))) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -3875,7 +4029,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (!brk && (  (strcmp(tmp_i, "-i_DX") == 0) || (strcmp(tmp_i, "-i_dx") == 0) 
+         if (!brk && (  (strcmp(tmp_i, "-i_DX") == 0) || 
+                        (strcmp(tmp_i, "-i_dx") == 0) 
                      || (strcmp(tmp_i, "-i_Dx") == 0))) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -3893,7 +4048,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->i_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(tmp_i, "-i_iv") == 0) || (strcmp(tmp_i, "-i_IV") == 0) )) {
+         if (!brk && (  (strcmp(tmp_i, "-i_iv") == 0) || 
+                        (strcmp(tmp_i, "-i_IV") == 0) )) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3914,7 +4070,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
       }
       
       if (!brk && ps->accept_ipar) {
-         if (!brk && ( (strcmp(argv[kar], "-ipar_bv") == 0) || (strcmp(argv[kar], "-ipar_BV") == 0) ) ) {
+         if (!brk && ( (strcmp(argv[kar], "-ipar_bv") == 0) ||                                           (strcmp(argv[kar], "-ipar_BV") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3925,14 +4081,16 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                       SUMA_copy_string(argv[kar]);
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_BRAIN_VOYAGER;
             ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_BINARY;
             ++ps->ipar_N_surfnames;
             brk = YUP;
          }
          
-         if (!brk && ( (strcmp(argv[kar], "-ipar_byu") == 0) || (strcmp(argv[kar], "-ipar_BYU") == 0) ) ) {
+         if (!brk && (  (strcmp(argv[kar], "-ipar_byu") == 0) || 
+                        (strcmp(argv[kar], "-ipar_BYU") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3943,7 +4101,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                    SUMA_copy_string(argv[kar]);
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_BYU;
             ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
             ++ps->ipar_N_surfnames;
@@ -3971,7 +4130,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
 
-         if (!brk && ( (strcmp(argv[kar], "-ipar_fs") == 0) || (strcmp(argv[kar], "-ipar_FS") == 0)) ) {
+         if (!brk && (  (strcmp(argv[kar], "-ipar_fs") == 0) || 
+                        (strcmp(argv[kar], "-ipar_FS") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -3982,9 +4142,11 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                       SUMA_copy_string(argv[kar]);
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_FREE_SURFER;
-            if (SUMA_isExtension(ps->ipar_surfnames[ps->ipar_N_surfnames], ".asc")) 
+            if (SUMA_isExtension(ps->ipar_surfnames[ps->ipar_N_surfnames], 
+                                 ".asc")) 
                ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
             else
                ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_BINARY_BE;
@@ -3992,7 +4154,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
          
-         if (!brk && ( (strcmp(argv[kar], "-ipar_sf") == 0) || (strcmp(argv[kar], "-ipar_SF") == 0)) ){
+         if (!brk && (  (strcmp(argv[kar], "-ipar_sf") == 0) || 
+                        (strcmp(argv[kar], "-ipar_SF") == 0)) ){
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar+1 >= argc)  {
@@ -4022,8 +4185,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
 
-         if (!brk && ( (strcmp(argv[kar], "-ipar_vec") == 0) || (strcmp(argv[kar], "-ipar_1d") == 0) ||
-                       (strcmp(argv[kar], "-ipar_VEC") == 0) || (strcmp(argv[kar], "-ipar_1D") == 0) ) ) {
+         if (!brk && (  (strcmp(argv[kar], "-ipar_vec") == 0) || 
+                        (strcmp(argv[kar], "-ipar_1d") == 0) ||
+                        (strcmp(argv[kar], "-ipar_VEC") == 0) || 
+                        (strcmp(argv[kar], "-ipar_1D") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar+1 >= argc)  {
@@ -4053,7 +4218,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             brk = YUP;
          }
 
-         if (!brk && ( (strcmp(argv[kar], "-ipar_ply") == 0) || (strcmp(argv[kar], "-ipar_Ply") == 0) || (strcmp(argv[kar], "-ipar_PLY") == 0))) {
+         if (!brk && (  (strcmp(argv[kar], "-ipar_ply") == 0) || 
+                        (strcmp(argv[kar], "-ipar_Ply") == 0) || 
+                        (strcmp(argv[kar], "-ipar_PLY") == 0))) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -4064,13 +4231,16 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                       SUMA_copy_string(argv[kar]);
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_PLY;
             ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
             ++ps->ipar_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(argv[kar], "-ipar_DX") == 0) || (strcmp(argv[kar], "-ipar_dx") == 0) || (strcmp(argv[kar], "-ipar_Dx") == 0))) {
+         if (!brk && (  (strcmp(argv[kar], "-ipar_DX") == 0) || 
+                        (strcmp(argv[kar], "-ipar_dx") == 0) || 
+                        (strcmp(argv[kar], "-ipar_Dx") == 0))) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -4081,13 +4251,15 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                       SUMA_copy_string(argv[kar]);
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_OPENDX_MESH;
             ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
             ++ps->ipar_N_surfnames;
             brk = YUP;
          }
-         if (!brk && ( (strcmp(argv[kar], "-ipar_iv") == 0) || (strcmp(argv[kar], "-ipar_IV") == 0) )) {
+         if (!brk && (  (strcmp(argv[kar], "-ipar_iv") == 0) || 
+                        (strcmp(argv[kar], "-ipar_IV") == 0) )) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
             if (kar >= argc)  {
@@ -4098,7 +4270,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->ipar_surfnames[ps->ipar_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                       SUMA_copy_string(argv[kar]);
             ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_INVENTOR_GENERIC;
             ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
             ++ps->ipar_N_surfnames;
@@ -4120,7 +4293,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             }
             /* get the type */
             ps->t_FT[ps->t_N_surfnames] = SUMA_SurfaceTypeCode(argv[kar]);
-            if (ps->t_FT[ps->t_N_surfnames] == SUMA_FT_ERROR || ps->t_FT[ps->t_N_surfnames] == SUMA_FT_NOT_SPECIFIED) {
+            if (  ps->t_FT[ps->t_N_surfnames] == SUMA_FT_ERROR || 
+                  ps->t_FT[ps->t_N_surfnames] == SUMA_FT_NOT_SPECIFIED) {
                fprintf (SUMA_STDERR, "%s is a bad file type.\n", argv[kar]);
                exit(1);
             }
@@ -4284,7 +4458,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
          } else {
             tmp_o = SUMA_copy_string(argv[kar]);
          }
-         if (!brk && ( (strcmp(tmp_o, "-o_fs") == 0) || (strcmp(tmp_o, "-o_FS") == 0) ) ) {
+         if (!brk && (  (strcmp(tmp_o, "-o_fs") == 0) || 
+                        (strcmp(tmp_o, "-o_FS") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
 			   if (kar >= argc)  {
@@ -4295,14 +4470,16 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER);
+            ps->o_surfnames[ps->o_N_surfnames] = 
+               SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER);
             ps->o_FT[ps->o_N_surfnames] = SUMA_FREE_SURFER;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
             ++ps->o_N_surfnames;    
 			   brk = YUP;
 		   }
       
-         if (!brk && ( (strcmp(tmp_o, "-o_fsp") == 0) || (strcmp(tmp_o, "-o_FSP") == 0) ) ) {
+         if (!brk && (  (strcmp(tmp_o, "-o_fsp") == 0) || 
+                        (strcmp(tmp_o, "-o_FSP") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
 			   if (kar >= argc)  {
@@ -4314,14 +4491,16 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                exit(1);   
             }
 			   
-			   ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER_PATCH); 
+			   ps->o_surfnames[ps->o_N_surfnames] = 
+               SUMA_RemoveSurfNameExtension(argv[kar], SUMA_FREE_SURFER_PATCH); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_FREE_SURFER_PATCH;
             ps->o_FF[ps->o_N_surfnames] = SUMA_BINARY;
 			   ++ps->o_N_surfnames;   
             brk = YUP;
 		   }
 
-         if (!brk && ( (strcmp(tmp_o, "-o_sf") == 0) || (strcmp(tmp_o, "-o_SF") == 0)) ) {
+         if (!brk && (  (strcmp(tmp_o, "-o_sf") == 0) || 
+                        (strcmp(tmp_o, "-o_SF") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
 			   if (kar >= argc)  {
@@ -4332,17 +4511,20 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-            ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_SUREFIT);
+            ps->o_surfnames[ps->o_N_surfnames] = 
+               SUMA_RemoveSurfNameExtension(argv[kar], SUMA_SUREFIT);
             ps->o_FT[ps->o_N_surfnames] = SUMA_SUREFIT;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
             /* is there another argument ?*/
             if (kar+1 < argc)  {
 		  		   if (argv[kar+1][0] == '-') {
                   /* that is an option flag */ 
-                  ps->o_surftopo[ps->o_N_surfnames] = SUMA_copy_string(ps->o_surfnames[ps->o_N_surfnames]);
+                  ps->o_surftopo[ps->o_N_surfnames] = 
+                     SUMA_copy_string(ps->o_surfnames[ps->o_N_surfnames]);
                } else {
                   kar ++; ps->arg_checked[kar]=1;
-                  ps->o_surftopo[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_SUREFIT);
+                  ps->o_surftopo[ps->o_N_surfnames] = 
+                     SUMA_RemoveSurfNameExtension(argv[kar], SUMA_SUREFIT);
                }
 			   }
             ++ps->o_N_surfnames;   
@@ -4350,8 +4532,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 		   }
       
       
-         if (!brk && (  (strcmp(tmp_o, "-o_vec") == 0) || (strcmp(tmp_o, "-o_1d") == 0)  ||
-                        (strcmp(tmp_o, "-o_VEC") == 0) || (strcmp(tmp_o, "-o_1D") == 0) ) ) {
+         if (!brk && (  (strcmp(tmp_o, "-o_vec") == 0) || 
+                        (strcmp(tmp_o, "-o_1d") == 0)  ||
+                        (strcmp(tmp_o, "-o_VEC") == 0) || 
+                        (strcmp(tmp_o, "-o_1D") == 0) ) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
 			   if (kar >= argc)  {
@@ -4382,7 +4566,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   brk = YUP;
 		   }
       
-         if (!brk && ( (strcmp(tmp_o, "-o_dx") == 0) || (strcmp(tmp_o, "-o_DX") == 0) 
+         if (!brk && (  (strcmp(tmp_o, "-o_dx") == 0) || 
+                        (strcmp(tmp_o, "-o_DX") == 0) 
                      || (strcmp(tmp_o, "-o_Dx") == 0)) ) {
             ps->arg_checked[kar]=1;
             kar ++; ps->arg_checked[kar]=1;
@@ -4394,7 +4579,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
                exit(1);   
             }
-			   ps->o_surfnames[ps->o_N_surfnames] = SUMA_RemoveSurfNameExtension(argv[kar], SUMA_OPENDX_MESH); 
+			   ps->o_surfnames[ps->o_N_surfnames] = 
+               SUMA_RemoveSurfNameExtension(argv[kar], SUMA_OPENDX_MESH); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_OPENDX_MESH;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
 			   ++ps->o_N_surfnames;  
@@ -4475,8 +4661,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 		kar ++;
    }   
    
-   if (ps->cs->rps > 0) { ps->cs->nelps = (float)ps->cs->talk_suma * ps->cs->rps; }
-   else { ps->cs->nelps = (float) ps->cs->talk_suma * -1.0; }
+   if (ps->cs->rps > 0) { 
+      ps->cs->nelps = (float)ps->cs->talk_suma * ps->cs->rps; 
+   } else { ps->cs->nelps = (float) ps->cs->talk_suma * -1.0; }
 
     
    SUMA_RETURN(ps);

@@ -7399,7 +7399,8 @@ SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension_core(char *Name)
    SUMA_ENTRY;
    
    if (!Name) { SUMA_RETURN(form); }
-   if (SUMA_isExtension(Name, ".niml.dset")) form = SUMA_NIML;
+   if (SUMA_isExtension(Name, ".niml.dset") ||
+       SUMA_isExtension(Name, ".niml.do") ) form = SUMA_NIML;
    if (  SUMA_isExtension(Name, ".gii.dset") ||
          SUMA_isExtension(Name, ".gii") ) form = SUMA_XML_DSET;
    if (SUMA_isExtension(Name, ".1D.dset")) form = SUMA_1D;
@@ -9288,7 +9289,8 @@ SUMA_DSET *SUMA_afnidset2sumadset(
    THD_3dim_dataset *dset = NULL;
    SUMA_DSET *newset=NULL;
    NI_group *ngr=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
    
    if (!dsetp) { SUMA_S_Err("Null of Null you are!"); SUMA_RETURN(newset); }
@@ -9311,7 +9313,10 @@ SUMA_DSET *SUMA_afnidset2sumadset(
          SUMA_RETURN(newset);
       }
    }
-   if (cleardset) { SUMA_LH("Clearing dset ..."); DSET_delete(dset); *dsetp = NULL; }
+   if (cleardset) { 
+      SUMA_LH("Clearing dset ..."); 
+      DSET_delete(dset); *dsetp = NULL; 
+   }
     
    SUMA_RETURN(newset);
 }    
@@ -9480,6 +9485,73 @@ char *SUMA_help_dset()
       "              For example:\n"
       "              dset[44,10..20] is the same as dset[10..20,44]\n" 
       "\n");
+   SUMA_SS2S(SS,s);               
+   SUMA_RETURN(s);
+}
+
+char *SUMA_help_cmap()
+{
+   SUMA_STRING *SS = NULL;
+   char *s=NULL;
+   static char FuncName[]={"SUMA_help_mask"};
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   SS = SUMA_StringAppend(SS,
+" Selecting Colormaps: \n"
+"    -cmap MapName:\n"
+"       choose one of the standard colormaps available with SUMA:\n"
+"       RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BYR64, \n"
+"       ROI64, ROI128. See Suma's colormap chooser for a list of names.\n"
+"    -cmapdb Palfile: read color maps from AFNI .pal file\n"
+"       In addition to the default paned AFNI colormaps, you\n"
+"       can load colormaps from a .pal file.\n"
+"       To access maps in the Palfile you must use the -cmap option\n"
+"       with the label formed by the name of the palette, its sign\n"
+"       and the number of panes. For example, to following palette:\n"
+"       ***PALETTES deco [13]\n"
+"       should be accessed with -cmap deco_n13\n"
+"       ***PALETTES deco [13+]\n"
+"       should be accessed with -cmap deco_p13\n"  
+"    -cmapfile Mapfile: read color map from Mapfile.\n"
+"       Mapfile:1D formatted ascii file containing colormap.\n"
+"               each row defines a color in one of two ways:\n"
+"               R  G  B        or\n"
+"               R  G  B  f     \n"
+"       where R, G, B specify the red, green and blue values, \n"
+"       between 0 and 1 and f specifies the fraction of the range\n"
+"       reached at this color. THINK values of right of AFNI colorbar.\n"
+"       The use of fractions (it is optional) would allow you to create\n"
+"       non-linear color maps where colors cover differing fractions of \n"
+"       the data range.\n"
+"       Sample colormap with positive range only (a la AFNI):\n"
+"               0  0  1  1.0\n"
+"               0  1  0  0.8\n"
+"               1  0  0  0.6\n"
+"               1  1  0  0.4\n"
+"               0  1  1  0.2\n"
+"       Note the order in which the colors and fractions are specified.\n"
+"       The bottom color of the +ve colormap should be at the bottom of the\n"
+"       file and have the lowest +ve fraction. The fractions here define a\n"
+"       a linear map so they are not necessary but they illustrate the format\n"
+"       of the colormaps.\n"
+"       Comparable colormap with negative range included:\n"
+"               0  0  1   1.0\n"
+"               0  1  0   0.6\n"
+"               1  0  0   0.2\n"
+"               1  1  0  -0.2\n"
+"               0  1  1  -0.6\n"
+"       The bottom color of the -ve colormap should have the \n"
+"       lowest -ve fraction. \n"
+"       You can use -1 -1 -1 for a color to indicate a no color\n"
+"       (like the 'none' color in AFNI). Values mapped to this\n"
+"       'no color' will be masked as with the -msk option.\n"
+"       If your 1D color file has more than three or 4 columns,\n"
+"       you can use the [] convention adopted by AFNI programs\n"
+"       to select the columns you need.\n"   
+      );
+
    SUMA_SS2S(SS,s);               
    SUMA_RETURN(s);
 }
@@ -10267,7 +10339,7 @@ int SUMA_filexists (char *f_name)
    SUMA_ENTRY;
 
     outfile = fopen (f_name,"r");
-    if (outfile == NULL) {
+   if (outfile == NULL) {
        SUMA_RETURN(0); 
    }
     else {
@@ -10278,6 +10350,88 @@ int SUMA_filexists (char *f_name)
        
 }/*SUMA_filexists*/
 
+/*! \brief A function that attempts to find a file that is readable.
+   If *fname has a full path, then returns 1 if readable, 0 otherwise
+   If *fname has no path,
+      Try finding file under SUMAg_cwd/ if found -> 1, else, continue
+      If a search path is given, then that path is searched
+         if file is found -> 1 else -> 0
+      If no search path is given, then path from user's environment is searched.
+   If file is found, old name is freed and new one put in its place.
+*/
+
+int SUMA_search_file(char **fnamep, char *epath) 
+{
+   static char FuncName[]={"SUMA_search_file"};
+   SUMA_PARSED_NAME *pn = NULL;
+   char dname[THD_MAX_NAME], ename[THD_MAX_NAME], *elocal=NULL;
+   int epos=0, ll=0, ii=0, id = 0;
+   
+   SUMA_ENTRY;
+   
+   /* does it exist? */
+   if ( SUMA_filexists(*fnamep) ) {
+      SUMA_RETURN(YUP); /* all is well */
+   }
+   
+   #if defined SUMA_COMPILED
+   /* else, the hard work, first check with cwd options 
+   for suma programs*/
+   pn = SUMA_ParseFname(*fnamep, SUMAg_CF->cwd);
+   if ( SUMA_filexists(pn->FullName) ) {
+      SUMA_free(*fnamep); 
+      *fnamep = SUMA_copy_string(pn->FullName);
+      pn = SUMA_Free_Parsed_Name(pn);
+      SUMA_RETURN(YUP); /* all is well */
+   }
+   pn = SUMA_Free_Parsed_Name(pn);
+   #endif
+   
+   /* Now work the path (based on code form get_altas function */
+   if (!epath)    epath = getenv("PATH") ;
+   if( epath == NULL ) SUMA_RETURN(NOPE) ; /* nothing left to do */
+
+   /*----- copy path list into local memory -----*/
+
+   ll = strlen(epath) ;
+   elocal = (char *)SUMA_calloc(ll+2, sizeof(char));
+
+   /*----- put a blank at the end -----*/
+   strcpy( elocal , epath ) ; elocal[ll] = ' ' ; elocal[ll+1] = '\0' ;
+
+   /*----- replace colons with blanks -----*/
+   for( ii=0 ; ii < ll ; ii++ )
+     if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
+
+   /*----- extract blank delimited strings;
+           use as directory names to look for atlas -----*/
+   epos = 0 ;
+   do{
+      ii = sscanf( elocal+epos , "%s%n" , ename , &id ); /* next substring */
+      if( ii < 1 ) break ;                               /* none -> done   */
+
+      epos += id ;                                 /* char after last scanned */
+
+      ii = strlen(ename) ;                         /* make sure name has   */
+      if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
+          ename[ii]  = '/' ; ename[ii+1] = '\0' ;
+      }
+      strcpy(dname,ename) ;
+      strcat(dname,*fnamep) ;               /* add dataset name */
+
+      if ( SUMA_filexists(dname) ) {
+         SUMA_free(*fnamep); *fnamep = SUMA_copy_string(dname);
+         SUMA_free(elocal); elocal=NULL;
+         SUMA_RETURN(YUP); /* all is well */
+      }
+
+   } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
+
+   /* nothing */
+   SUMA_free(elocal); elocal=NULL;
+   
+   SUMA_RETURN(0); /* bummer */
+}
 
 /*!
    \brief function that tests whether a string contains N numbers

@@ -5481,7 +5481,9 @@ void SUMA_LoadCmapFile (char *filename, void *data)
    SO = (SUMA_SurfaceObject *)data;
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: Received request to load %s for surface %s.\n", FuncName, filename, SO->Label);
+      fprintf (SUMA_STDERR,
+               "%s: Received request to load %s for surface %s.\n", 
+               FuncName, filename, SO->Label);
    }
 
    /* find out if file exists and how many values it contains */

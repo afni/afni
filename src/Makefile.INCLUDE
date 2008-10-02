@@ -152,7 +152,8 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @float_fix @escape- 3dPAR2AFNI.pl @DriveAfni @DriveSuma @AddEdge        \
           @SurfSmooth.HEAT_07.examples @SUMA_FSvolToBRIK @isOblique afni_run_R    \
           @GetAfniDims @GetAfniRes @NoisySkullStrip @statauxcode @ScaleVolume    \
-          @ShowDynamicRange AFNI_Batch_R 
+          @ShowDynamicRange AFNI_Batch_R @DO.examples demo.fixed.niml.do       \
+          demo.mobile.niml.do
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py

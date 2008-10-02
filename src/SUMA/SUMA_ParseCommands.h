@@ -98,9 +98,15 @@ typedef struct {
    byte check_input_surf;
    byte accept_mask;
    byte accept_dset;
+   byte accept_cmap;
    
    /* flags for help */
    byte hverb; /* help verbosity */
+
+   /* flags for cmap selection */
+   char *cmap;
+   char *cmapfile;
+   char *cmapdb;
 } SUMA_GENERIC_ARGV_PARSE;
 
 typedef struct {

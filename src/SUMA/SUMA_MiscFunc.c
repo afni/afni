@@ -3343,6 +3343,50 @@ void SUMA_disp_vecucmat (unsigned char *v,int nr, int nc , int SpcOpt,
    }
    SUMA_RETURNe;
 }/*SUMA_disp_vecucmat*/
+void SUMA_disp_veccmat (char *v,int nr, int nc , int SpcOpt, 
+                        SUMA_INDEXING_ORDER d_order, FILE *fout, 
+                        SUMA_Boolean AddRowInd)
+{/*SUMA_disp_veccmat*/
+   char spc [40]; 
+   int i,j;
+   FILE *foutp;
+   static char FuncName[]={"SUMA_disp_veccmat"};
+      
+   SUMA_ENTRY;
+
+   if (!fout) foutp = stdout;
+   else foutp = fout;
+   
+   if (!SpcOpt)
+      sprintf(spc," ");
+   else if (SpcOpt == 1)
+      sprintf(spc,"\t");
+   else
+      sprintf(spc," , ");
+   
+   if (!fout) fprintf (SUMA_STDOUT,"\n"); /* a blank 1st line when writing to screen */
+   switch (d_order) {
+      case SUMA_ROW_MAJOR:
+         for (i=0; i < nr; ++i) {
+            if (AddRowInd) fprintf (foutp, "%d%s", i, spc);
+            for (j=0; j < nc; ++j) fprintf (foutp, "%d%s",v[i*nc+j],spc);
+            fprintf (foutp,"\n");
+         }
+         break;
+      case SUMA_COLUMN_MAJOR:
+         for (i=0; i < nr; ++i) {
+            if (AddRowInd) fprintf (foutp, "%d%s", i, spc);
+            for (j=0; j < nc; ++j) fprintf (foutp, "%d%s",v[i+j*nr],spc);
+            fprintf (foutp,"\n");
+         }
+         break;
+      default:
+         SUMA_SL_Err("Bad order.\n");
+         SUMA_RETURNe;
+         break;
+   }
+   SUMA_RETURNe;
+}/*SUMA_disp_vecucmat*/
 
 /*!
    Set *N_dims to -1 if you don't have dims setup and are willing to take whatever is in Name

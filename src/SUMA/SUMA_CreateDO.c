@@ -612,7 +612,7 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    static char FuncName[]={"SUMA_Guess_DO_Type"};
    SUMA_DO_Types dotp = no_type;
    FILE *fid=NULL;
-   char sbuf[200];
+   char sbuf[2000];
    int i;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -626,7 +626,9 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    fid = fopen(s,"r");
    
    if (!fid) {
-      SUMA_SLP_Err("Could not open file for read");
+      sprintf(sbuf,"Could not open file %s for reading.\n"
+                   "cwd is set to: %s\n",s, SUMAg_CF->cwd);
+      SUMA_SLP_Err(sbuf);
       SUMA_RETURN(dotp);
    }
    
@@ -651,6 +653,10 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = LS_type;
    } else if (strstr(sbuf,"#oriented_segments")) {
       dotp = OLS_type;
+   } else if (strstr(sbuf,"#node-based_segments")) {
+      dotp = NBLS_type;
+   } else if (strstr(sbuf,"#node-based_oriented_segments")) {
+      dotp = NBOLS_type;
    } else if (strstr(sbuf,"#node-based_vectors")) {
       dotp = NBV_type; 
    } else if (strstr(sbuf,"#node-based_ball-vectors")) {
@@ -663,6 +669,8 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
       dotp = DBT_type;
    } else if (strstr(sbuf,"#screen_based_text")) {
       dotp = SBT_type;
+   } else if (strstr(sbuf,"nido_head")) {
+      dotp = NIDO_type;
    } 
    if (LocalHead) {
       fprintf( SUMA_STDERR,
@@ -675,107 +683,58 @@ SUMA_DO_Types SUMA_Guess_DO_Type(char *s)
    SUMA_RETURN(dotp);
 }
 
-SUMA_TextDO * SUMA_Alloc_TextDO (int N_n, char *Label, 
-                                 char *Parent_idcode_str, SUMA_DO_Types type)
+SUMA_NIDO * SUMA_Alloc_NIDO ( char *idcode_str, char *Label, 
+                              char *Parent_idcode_str)
 {
-   static char FuncName[]={"SUMA_Alloc_TextDO"};
-   SUMA_TextDO * TDO= NULL;
-   char *hs = NULL;
-   
+   static char FuncName[]={"SUMA_Alloc_NIDO"};
+   SUMA_NIDO * nido= NULL;
+   float FontCol[4]={1.0, 0.3, 1.0, 1.0};
+
    SUMA_ENTRY;
    
-   TDO = (SUMA_TextDO *) SUMA_calloc(1,sizeof (SUMA_TextDO));
-   if (!TDO) {
-      fprintf(stderr,"Error %s: Failed to allocate for TDO\n", FuncName);
-      SUMA_RETURN (TDO);
+   nido = (SUMA_NIDO *) SUMA_calloc(1,sizeof (SUMA_NIDO));
+   if (!nido) {
+      fprintf(stderr,"Error %s: Failed to allocate for nido\n", FuncName);
+      SUMA_RETURN (nido);
    }
-   TDO->do_type = type;
    
-   if (N_n > 0) {
-      if (!Parent_idcode_str) {
-         TDO->NodeBased = 0;
-         TDO->NodeID = NULL;
-         TDO->Parent_idcode_str = NULL;
-         TDO->x = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
-      } else {
-         TDO->NodeBased = 1;
-         TDO->x = NULL;
-         TDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
-         TDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
-      }
-      TDO->text = (char **)SUMA_calloc(N_n, sizeof(char *));
+   if (Label) nido->Label = SUMA_copy_string(Label);
+   else nido->Label = SUMA_copy_string("nuda");
    
-      if (  (!TDO->NodeBased && !TDO->x) || 
-            (TDO->NodeBased && !TDO->NodeID) ||
-            !TDO->text ) {
-         SUMA_S_Crit("Failed to allocate for TDO elements");
-         SUMA_free_TextDO(TDO);
-         SUMA_RETURN (NULL);
-      }
+   if (idcode_str) nido->idcode_str = SUMA_copy_string(idcode_str);
+   else nido->idcode_str = UNIQ_hashcode(nido->Label);
+   
+   nido->ngr = NI_new_group_element();
+   NI_rename_group(nido->ngr, "nido_head");
+   
+   nido->do_type = NIDO_type;
+   if (Parent_idcode_str) {
+      NI_set_attribute(nido->ngr, "Parent_idcode_str", Parent_idcode_str);
    } else {
-      TDO->NodeID = NULL;
-      TDO->NodeBased = 0;
-      TDO->Parent_idcode_str = NULL;
-      TDO->x = NULL;
-      TDO->text = NULL;
-      TDO->N_n = 0;
+      NI_set_attribute(nido->ngr, "Parent_idcode_str", "");
    }
    
-   /* create a string to hash an idcode */
-   if (Label) hs = SUMA_copy_string(Label);
-   else hs = SUMA_copy_string("NULL_");
-   if (Parent_idcode_str) 
-      hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
-   else hs = SUMA_append_replace_string(hs,"NULL","",1);
-   TDO->idcode_str = UNIQ_hashcode(hs);
-   SUMA_free(hs); hs = NULL;
-   
-   if (Label) {
-      TDO->Label = (char *)SUMA_calloc (strlen(Label)+1, sizeof(char));
-      TDO->Label = strcpy (TDO->Label, Label);
-   } else {
-      TDO->Label = NULL;
-   }
-   
-   TDO->N_n = N_n;
-
-
-   /* setup some default values */
-   TDO->FontSize = GLUT_BITMAP_HELVETICA_18;
-   TDO->FontCol[0] = 1.0; 
-   TDO->FontCol[1] = 0.3; 
-   TDO->FontCol[2] = 1.0; 
-   TDO->FontCol[3] = 1.0; 
-   
-   TDO->colv = NULL;
-   TDO->sizev = NULL;
+   /* setup some default values for NIDOs*/
+   NI_set_attribute(nido->ngr,"default_font", "helvetica_18");
+   NI_SET_FLOATv(nido->ngr,"default_color", FontCol,4);
       
-   SUMA_RETURN (TDO);
+   SUMA_RETURN (nido);
 }
 
-SUMA_TextDO *SUMA_free_TextDO(SUMA_TextDO *TDO) 
+SUMA_NIDO *SUMA_free_NIDO(SUMA_NIDO *NIDO) 
 {
-   static char FuncName[]={"SUMA_free_TextDO"};   
+   static char FuncName[]={"SUMA_free_NIDO"};   
    int i;
    
    SUMA_ENTRY;
    
-   if (!TDO) SUMA_RETURN(NULL);
-   if (TDO->x) SUMA_free(TDO->x);
-   if (TDO->colv) SUMA_free(TDO->colv);
-   if (TDO->sizev) SUMA_free(TDO->sizev);
-   if (TDO->text){
-      for (i=0; i<TDO->N_n; ++i) if (TDO->text[i]) SUMA_free(TDO->text[i]);
-      SUMA_free(TDO->text);
-   }
-   if (TDO->NodeID) SUMA_free(TDO->NodeID);
-   if (TDO->Parent_idcode_str) SUMA_free(TDO->Parent_idcode_str);
-   if (TDO->Label) SUMA_free(TDO->Label);
-   if (TDO->idcode_str) SUMA_free(TDO->idcode_str);
+   if (!NIDO) SUMA_RETURN(NULL);
+   if (NIDO->ngr) NI_free_element(NIDO->ngr);
+   if (NIDO->idcode_str) SUMA_free(NIDO->idcode_str);
+   if (NIDO->Label) SUMA_free(NIDO->Label);
+   SUMA_free(NIDO); NIDO = NULL;
    
-   SUMA_free(TDO); TDO = NULL;
-   
-   SUMA_RETURN(TDO);
+   SUMA_RETURN(NIDO);
 }
 
 /*!
@@ -787,11 +746,19 @@ SUMA_TextDO *SUMA_free_TextDO(SUMA_TextDO *TDO)
       else SDO->n0 and n1 = NULL
    \param Label (char *) label of segment DO. Pass NULL for no labels
    \param Parent_idcode_str (char *) Parent surface of SegmentDO.
-                                     For the moment, if not NULL this means the segment is NodeBased
+                                     It should not be NULL 
+                                     if the DO is node based 
+   \param NodeBased (int) -1: (old usage) set to 0 if !Parent_idcode_str
+                                                1 if Parent_idcode_str
+                          0: segment ends specified with XYZ coords
+                          1: One end is specified by node index, second is by XYZ
+                          2: Both ends are specified by node index.
    \returns SDO (SUMA_SegmentDO *) 
      
 */
-SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char *Parent_idcode_str, SUMA_DO_Types type)
+SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, 
+                                       char *Parent_idcode_str, int NodeBased, 
+                                       SUMA_DO_Types type)
 {
    static char FuncName[]={"SUMA_Alloc_SegmentDO"};
    SUMA_SegmentDO * SDO= NULL;
@@ -805,32 +772,59 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char 
          SUMA_RETURN (SDO);
    }
    SDO->do_type = type;
-   
+   if (NodeBased == -1) {
+      /* backward comaptibility */
+      if (Parent_idcode_str) NodeBased = 1;
+      else NodeBased = 0;
+   }  
+   if (!Parent_idcode_str && NodeBased > 0) {
+      SUMA_S_Warnv(
+            "Bad combination! Parent_idcode_str is NULL and NodeBased = %d\n",
+            NodeBased );
+   }
    if (N_n > 0) {
-      if (!Parent_idcode_str) {
+      if (!Parent_idcode_str) { /*  NodeBased must be = 0 */
          SDO->NodeBased = 0;
          SDO->NodeID = NULL;
+         SDO->NodeID1 = NULL;
          SDO->Parent_idcode_str = NULL;
          SDO->n0 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+         SDO->n1 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
       } else {
-         SDO->NodeBased = 1;
-         SDO->n0 = NULL;
-         SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
-         SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
+         if (NodeBased == 1) {
+            SDO->NodeBased = 1;
+            SDO->n0 = NULL;
+            SDO->n1 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
+            SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
+            SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
+            SDO->NodeID1 = NULL;
+         } else if (NodeBased == 2) {
+            SDO->NodeBased = 2;
+            SDO->n0 = NULL;
+            SDO->n1 = NULL;
+            SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
+            SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
+            SDO->NodeID1 = (int*) SUMA_calloc(N_n, sizeof(int));
+         } 
       }
-      SDO->n1 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
    
-      if ( (!SDO->NodeBased && !SDO->n0) || (SDO->NodeBased && !SDO->NodeID) || !SDO->n1) {
-         fprintf(stderr,"Error %s: Failed to allocate for SDO-n1 or SDO->n0\n", FuncName);
+      if (  (!SDO->NodeBased && !(SDO->n0 && SDO->n1)) || 
+            (SDO->NodeBased == 1 && !(SDO->NodeID && SDO->n1)) || 
+            (SDO->NodeBased == 2 && !(SDO->NodeID && SDO->NodeID1)) ) {
+         fprintf(stderr,
+                  "Error %s: Failed to allocate for SDO-n1 or SDO->n0\n", 
+                  FuncName);
          if (SDO->n0) SUMA_free (SDO->n0);
          if (SDO->n1) SUMA_free (SDO->n1);
          if (SDO->NodeID) SUMA_free(SDO->NodeID);
+         if (SDO->NodeID1) SUMA_free(SDO->NodeID1);
          if (SDO->Parent_idcode_str) SUMA_free(SDO->Parent_idcode_str);
          if (SDO) SUMA_free (SDO);
          SUMA_RETURN (NULL);
       }
    } else {
       SDO->NodeID = NULL;
+      SDO->NodeID1 = NULL;
       SDO->NodeBased = 0;
       SDO->Parent_idcode_str = NULL;
       SDO->n0 = NULL;
@@ -841,7 +835,8 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char 
    /* create a string to hash an idcode */
    if (Label) hs = SUMA_copy_string(Label);
    else hs = SUMA_copy_string("NULL_");
-   if (Parent_idcode_str) hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
+   if (Parent_idcode_str) 
+      hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
    else hs = SUMA_append_replace_string(hs,"NULL","",1);
    SDO->idcode_str = UNIQ_hashcode(hs);
    SUMA_free(hs); hs = NULL;
@@ -857,7 +852,8 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label, int oriented, char 
    SDO->Stipple = SUMA_SOLID_LINE;
    /* setup some default values */
    SDO->LineWidth = 4.0;
-   SDO->LineCol[0] = 1.0; SDO->LineCol[1] = 0.3; SDO->LineCol[2] = 1.0; SDO->LineCol[3] = 1.0; 
+   SDO->LineCol[0] = 1.0; SDO->LineCol[1] = 0.3; 
+   SDO->LineCol[2] = 1.0; SDO->LineCol[3] = 1.0; 
    
    SDO->colv = NULL;
    SDO->thickv = NULL;
@@ -879,6 +875,7 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    if (!SDO) SUMA_RETURNe;
    if (SDO->Parent_idcode_str) SUMA_free(SDO->Parent_idcode_str);
    if (SDO->NodeID) SUMA_free(SDO->NodeID); 
+   if (SDO->NodeID1) SUMA_free(SDO->NodeID1); 
    if (SDO->n0) SUMA_free(SDO->n0);
    if (SDO->n1) SUMA_free(SDO->n1);
    if (SDO->idcode_str) SUMA_free(SDO->idcode_str);
@@ -960,117 +957,110 @@ coord = "0.31 0.14 330"
 col = "0.21 0.41 0.61"
 /> 
 
-See two sample files in:  /Users/ziad/SUMA_test_dirs/TextDO 
+See two sample files in:  /Users/ziad/SUMA_test_dirs/DO/TextDO 
 
 Also, see function SUMA_TextBoxSize for finding text size in pixels
  
 */
-SUMA_TextDO *SUMA_ReadTextDO (char *fname, char *parent_SO_id)
+SUMA_NIDO *SUMA_ReadNIDO (char *fname, char *parent_so_id)
 {
-   static char FuncName[]={"SUMA_ReadTextDO"};
-   char  *fl=NULL, *FLO=NULL, *FLE=NULL, 
-         *fls=NULL, *fln=NULL;
-   SUMA_TextDO *TDO = NULL;
-   int nread = 0, N_n=0, found = 0, N_word=0, N_cols=0;
-   char  *tkey[]={ "<T>","</T>", NULL};
-   int    tgap[]={   -1,  500,    -1};
-   char stmp[36];
-   char *niname=NULL;
+   static char FuncName[]={"SUMA_ReadNIDO"};
+   SUMA_NIDO *nido = NULL;
+   char *niname=NULL, *atr = NULL;
+   float col[4];
    NI_element *nini=NULL;
    NI_stream ns=NULL;
-   SUMA_Boolean LocalHead = YUP;
-   
+   SUMA_Boolean LocalHead = NOPE;
+
+
    SUMA_ENTRY;
    
    if (!fname) SUMA_RETURN(NULL);
-   
    if (SUMA_GuessFormatFromExtension(fname, NULL)==SUMA_NIML) {
       niname = SUMA_append_string("file:", fname);
       ns = NI_stream_open(niname, "r");
       while ((nini = NI_read_element(ns, 1))) {
-         SUMA_ShowNel(nini);
-         NI_free_element(nini); nini = NULL;
+         if (SUMA_iswordin(nini->name,"nido_head")) {/* fill special fields */
+            if (nido) {
+               SUMA_S_Err("Not ready for a second header!");
+               SUMA_RETURN(NULL);
+            } else { /* time to create */
+               /* is there an SO_label? */
+               if ((atr = NI_get_attribute(nini,"SO_label"))) {
+                  /* try to get parent */
+               }
+               atr = NI_get_attribute(nini,"bond");
+               if (atr && atr[0] == 's' && !parent_so_id) {
+                  SUMA_S_Err( "No surface available to which\n"
+                              "the NIDO can bond");
+                  SUMA_RETURN(NULL);
+               }
+               nido = SUMA_Alloc_NIDO(NULL, fname, parent_so_id);
+               NI_set_attribute(nido->ngr, "bond", atr);
+            }
+            if ((atr = NI_get_attribute(nini,"coord_type"))) {
+               if (SUMA_CoordType(atr) != SUMA_COORD_TYPE_ERROR) {
+                  NI_set_attribute(nido->ngr, "coord_type", atr);
+               } else {
+                  SUMA_S_Errv("coord_type attribute (%s) must be one of\n"
+                              "local or screen, using default %s\n", 
+                              atr, SUMA_CoordTypeName(SUMA_CoordType(NULL)));
+                  NI_set_attribute( nido->ngr, 
+                                    "coord_type", 
+                                    SUMA_CoordTypeName(SUMA_CoordType(NULL)));
+               }
+            } else {
+               SUMA_LH("Defaulting to coord_type = world");
+               NI_set_attribute( nido->ngr, "coord_type",
+                                 SUMA_CoordTypeName(SUMA_CoordType(NULL)));
+            }
+            if ((atr = NI_get_attribute(nini,"default_font"))) {
+               if (SUMA_glutBitmapFont(atr)) {
+                  NI_set_attribute(nido->ngr, "default_font", atr);
+               } else {
+                  SUMA_S_Errv("default_font %s not found.\n"
+                              "Defaulting to %s \n", atr,
+                           SUMA_glutBitmapFontName(SUMA_glutBitmapFont(NULL)));
+                  NI_set_attribute(nido->ngr, "default_font", 
+                           SUMA_glutBitmapFontName(SUMA_glutBitmapFont(NULL)));
+               }
+            } else {
+               SUMA_LHv("Defaulting to font %s\n",
+                        SUMA_glutBitmapFontName(SUMA_glutBitmapFont(NULL)));
+               NI_set_attribute(nido->ngr, "default_font", 
+                        SUMA_glutBitmapFontName(SUMA_glutBitmapFont(NULL)));
+            }
+            if ((atr = NI_get_attribute(nini,"default_color"))) {
+               NI_GET_FLOATv(nini, "default_color", col, 4, LocalHead);
+               if (NI_GOT) {
+                  NI_set_attribute(nido->ngr, "default_color", atr);
+               } else {
+                  SUMA_S_Errv("default_color %s not found.\n"
+                              "Defaulting to default_color = 1 1 1 1\n", atr);
+                  NI_set_attribute(nido->ngr, "default_color", 
+                                              "1.0 1.0 1.0 1.0");
+               }
+            } else {
+               SUMA_LH("Defaulting to default_color = 1 1 1 1");
+               NI_set_attribute(nido->ngr, "default_color", "1.0 1.0 1.0 1.0");
+            }
+         } else {
+            if (!nido) {
+               SUMA_S_Err("Found element before header!");
+               SUMA_RETURN(NOPE);
+            }
+            NI_add_to_group(nido->ngr, nini);
+            if (LocalHead) SUMA_ShowNel(nini);
+         }
       } 
       NI_stream_close( ns ) ; ns = NULL;
       SUMA_free(niname); niname=NULL;
-   } else {
-      nread = SUMA_suck_file( fname , &fl ) ;
-      if (!fl) {
-         SUMA_S_Errv("Failed to read file  %s\n", fname);
-         SUMA_RETURN(NULL);
-      }
-
-      if (LocalHead) 
-         fprintf(SUMA_STDERR,"%s: Read in %d chars\n", FuncName, nread);
-
-      FLE = fl+nread; /* eof string */
-      FLO = fl; /* very beginning of string */
-
-      /* count the number of text entries */
-      #if 0 /* here the idea was to have <T> and </T> delimit the text field. */
-      N_n = 0;
-      do {
-         SUMA_ADVANCE_PAST_SEQUENCE(fl, FLE, fls, tkey, tgap, found, 1);
-         if (found) {
-            SUMA_ADVANCE_PAST(fls, FLE, tkey[0], found, 1);
-            if (LocalHead) 
-               SUMA_ShowFromTo(fls, fl-strlen(tkey[1]), "Le Text:\n");
-            fls = fl;
-            SUMA_SKIP_LINE(fl, FLE);
-
-            SUMA_ShowFromTo(fls, fl,"Les params:\n");
-            ++N_n;
-         }
-      } while (found);
-      #else
-      /* Be lazy, count the number of text entries first */
-      fl = FLO;
-      N_n = 0;
-      do {
-         fls = fl;
-         SUMA_GET_BETWEEN_BLANKS(fls, FLE, fl);
-         if (fl > fls) {
-            SUMA_SKIP_BLANK(fl, FLE);
-            fln = fl;              /* mark the beginning of post text stuff */
-            SUMA_SKIP_LINE(fl, FLE);  
-            /* How many words in between? */
-            SUMA_COUNT_WORDS(fln, fl, N_word); 
-            if (!N_cols) N_cols = N_word;
-            else if (N_cols != N_word) {
-               SUMA_S_Errv("Entry %d has a different number\n"
-                           " of parameters following text.\n"
-                           "Expected %d, found %d\n", 
-                           N_n+1, N_cols, N_word);
-               SUMA_ShowFromTo(fln, fl-1,"   Bad Entry Values:\n");
-               SUMA_RETURN(TDO);
-            }  
-            ++N_n;
-         }
-      } while (fl <= FLE && fl > fls);
-      SUMA_LHv("Have %d text entries, with %d cols of data\n", 
-               N_n, N_word);
-
-      /* now more slowly, with storage */
-      fl = FLO;
-      N_n = 0;
-      N_cols = 0;
-      do {
-         fls = fl;
-         SUMA_GET_BETWEEN_BLANKS(fls, FLE, fl);
-         if (fl > fls) {
-            if (LocalHead) SUMA_ShowFromTo(fls+1, fl-1, "Le Text:\n");
-            SUMA_SKIP_BLANK(fl, FLE);
-            fln = fl;                 /* mark the beginning of post text stuff */
-            SUMA_SKIP_LINE(fl, FLE);   /* Now fl is at the next line */
-            if (LocalHead) SUMA_ShowFromTo(fln, fl-1,"Param Chunk:");
-            /* take in the data */
-            ++N_n;
-         }
-      } while (fl <= FLE && fl > fls);
-      #endif
-      SUMA_LHv("Have %d text entries\n", N_n);
+      if (LocalHead) SUMA_ShowNel(nido->ngr); 
+   } else  {
+      SUMA_S_Err("Only .niml.do format accepted");
+      SUMA_RETURN(NULL);
    }
-   SUMA_RETURN(TDO);
+   SUMA_RETURN(nido);
 }
 
 SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
@@ -1125,25 +1115,29 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
    switch (nrow) {
       case 3:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "vx vy vz\n", FuncName, buf, s);
+                              "vx vy vz\n", 
+                              FuncName, buf, s);
          icol_vec = 0;
          break;
       case 4:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "n vx vy vz\n", FuncName, buf, s);
+                              "n vx vy vz\n", 
+                              FuncName, buf, s);
          icol_id = 0;
          icol_vec = 1;
          break;
       case 5:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "n vx vy vz th\n", FuncName, buf, s);
+                              "n vx vy vz th\n", 
+                              FuncName, buf, s);
          icol_id = 0;
          icol_vec = 1;
          icol_thick = 4;
          break;
       case 8:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "n vx vy vz c0 c1 c2 c3\n", FuncName, buf, s);
+                              "n vx vy vz c0 c1 c2 c3\n", 
+                              FuncName, buf, s);
          
          icol_id = 0;
          icol_vec = 1;
@@ -1151,7 +1145,8 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
          break;
       case 9:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "n vx vy vz c0 c1 c2 c3 th\n", FuncName, buf, s);
+                              "n vx vy vz c0 c1 c2 c3 th\n", 
+                              FuncName, buf, s);
          
          icol_id = 0;
          icol_vec = 1;
@@ -1166,7 +1161,7 @@ SUMA_SegmentDO * SUMA_ReadNBVecDO (char *s, int oriented, char *parent_SO_id)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, parent_SO_id, dotp);
+   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, parent_SO_id, 1, dotp);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1278,21 +1273,25 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
    switch (nrow) {
       case 6:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "x0 y0 z0 x1 y1 z1\n", FuncName, buf, s);
+                              "x0 y0 z0 x1 y1 z1\n", 
+                              FuncName, buf, s);
          break;
       case 7:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "x0 y0 z0 x1 y1 z1 th\n", FuncName, buf, s);
+                              "x0 y0 z0 x1 y1 z1 th\n", 
+                              FuncName, buf, s);
          icol_thick = 6;
          break;
       case 10:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3\n", FuncName, buf, s);
+                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3\n", 
+                              FuncName, buf, s);
          icol_col = 6;
          break;
       case 11:
          fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
-                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th\n", FuncName, buf, s);
+                              "x0 y0 z0 x1 y1 z1 c0 c1 c2 c3 th\n", 
+                              FuncName, buf, s);
          icol_col = 6;
          icol_thick = 10;
          break;
@@ -1304,7 +1303,7 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
    }
 
    /* allocate for segments DO */
-   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, NULL, dotp);
+   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, NULL, 0, dotp);
    if (!SDO) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
       SUMA_RETURN(NULL);
@@ -1359,6 +1358,134 @@ SUMA_SegmentDO * SUMA_ReadSegDO (char *s, int oriented, char *parent_SO_id)
    SUMA_RETURN(SDO);
 }
 
+SUMA_SegmentDO * SUMA_ReadNBSegDO (char *s, int oriented, char *parent_SO_id)
+{
+   static char FuncName[]={"SUMA_ReadNBSegDO"};
+   SUMA_SegmentDO *SDO = NULL;
+   MRI_IMAGE * im = NULL;
+   float *far=NULL;
+   int itmp, itmp2, icol_thick = -1, icol_col=-1;
+   int nrow=-1, ncol=-1;
+   int NodeBased = 2;
+   char buf[30];
+   SUMA_DO_Types dotp;
+   
+   SUMA_ENTRY;
+   
+   if (!s) {
+      SUMA_SLP_Err("NULL s");
+      SUMA_RETURN(NULL);
+   }
+   
+   im = mri_read_1D (s);
+
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (oriented) {
+      dotp = NBOLS_type;
+      sprintf(buf,"Oriented Node-Based segment");
+   } else {
+      dotp = NBLS_type;
+      sprintf(buf,"Node-Based Segment");
+   }
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+
+   if (!ncol) {
+      SUMA_SLP_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
+   
+   icol_col = -1;
+   icol_thick = -1;
+   switch (nrow) {  
+      case 2:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n0 n1\n", 
+                              FuncName, buf, s);
+         break;
+      case 3:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n0 n1 th\n", 
+                              FuncName, buf, s);
+         icol_thick = 2;
+         break;
+      case 6:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n0 n1 c0 c1 c2 c3\n", 
+                              FuncName, buf, s);
+         icol_col = 2;
+         break;
+      case 7:
+         fprintf(SUMA_STDERR,"%s: %s file %s's format:\n"
+                              "n0 n1 c0 c1 c2 c3 th\n", 
+                              FuncName, buf, s);
+         icol_col = 2;
+         icol_thick = 6;
+         break;
+      default:
+         SUMA_SLP_Err("File must have\n"
+                   "2, 3, 6, or 7 columns.");
+         mri_free(im); im = NULL;   /* done with that baby */
+         SUMA_RETURN(NULL);
+   }
+
+   /* allocate for segments DO */
+   SDO = SUMA_Alloc_SegmentDO (ncol, s, oriented, 
+                               parent_SO_id, NodeBased, dotp);
+   if (!SDO) {
+      fprintf(SUMA_STDERR,
+               "Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+
+   /* fill up SDO */
+   itmp = 0;
+   while (itmp < SDO->N_n) {
+      SDO->NodeID[itmp]  = far[itmp       ];
+      SDO->NodeID1[itmp] = far[itmp+  ncol];
+      ++itmp;
+   } 
+   
+   if (icol_col > 0) {
+      SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->colv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual colors */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         itmp2 = 4*itmp;
+         SDO->colv[itmp2]     = far[itmp+(icol_col  )*ncol];
+         SDO->colv[itmp2+1]   = far[itmp+(icol_col+1)*ncol];
+         SDO->colv[itmp2+2]   = far[itmp+(icol_col+2)*ncol];
+         SDO->colv[itmp2+3]   = far[itmp+(icol_col+3)*ncol];
+         ++itmp;
+      } 
+   }
+   if (icol_thick > 0) {
+      SDO->thickv = (GLfloat *)SUMA_malloc(sizeof(GLfloat)*SDO->N_n);
+      if (!SDO->thickv) {
+         SUMA_SL_Crit("Failed in to allocate for colv.");
+         SUMA_RETURN(NULL);
+      }
+      /* fill up idividual thickness */
+      itmp = 0;
+      while (itmp < SDO->N_n) {
+         SDO->thickv[itmp]     = far[itmp+(icol_thick  )*ncol];
+         ++itmp;
+      } 
+   }
+   
+   mri_free(im); im = NULL; far = NULL;
+
+   SUMA_RETURN(SDO);
+}
 
 
 NI_group *SUMA_SDO2niSDO(SUMA_SegmentDO *SDO) 
@@ -1390,7 +1517,13 @@ NI_group *SUMA_SDO2niSDO(SUMA_SegmentDO *SDO)
       NI_add_column(nel, NI_INT, SDO->NodeID);
       NI_add_to_group( ngr, nel); 
    }
-   if (sizeof(GLfloat)!=sizeof(float)) { SUMA_S_Err("I hate life"); SUMA_RETURN(NULL); }
+   if (SDO->NodeID1) {
+      nel = NI_new_data_element("NodeID1", SDO->N_n);
+      NI_add_column(nel, NI_INT, SDO->NodeID1);
+      NI_add_to_group( ngr, nel); 
+   }
+   if (sizeof(GLfloat)!=sizeof(float)) { 
+      SUMA_S_Err("I hate life"); SUMA_RETURN(NULL); }
    if (SDO->n0) {
       nel = NI_new_data_element("n0", 3*SDO->N_n);
       NI_add_column(nel, NI_FLOAT, SDO->n0);
@@ -1421,7 +1554,7 @@ SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr)
    static char FuncName[]={"SUMA_niSDO2SDO"};
    SUMA_SegmentDO *SDO=NULL;
    NI_element *nel = NULL;
-   int N_n, oriented, ncp=0;
+   int N_n, oriented, ncp=0, NodeBased=-1;
    SUMA_DO_Types type;
    char att[500], *Parent_idcode_str=NULL, *Label=NULL, *idcode_str=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -1439,8 +1572,10 @@ SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr)
    NI_GET_INT(ngr, "oriented",oriented);
    NI_GET_INT(ngr, "N_n",N_n);
    NI_GET_INT(ngr, "do_type",type);
+   NI_GET_INT(ngr, "NodeBased", NodeBased);   
+   if (!NI_GOT) { NodeBased = -1; }
    
-   SDO = SUMA_Alloc_SegmentDO(N_n, Label, oriented, Parent_idcode_str, type);
+   SDO = SUMA_Alloc_SegmentDO(N_n, Label, oriented, Parent_idcode_str, NodeBased, type);
    if (Label) SUMA_free(Label); Label = NULL; 
    if (Parent_idcode_str) SUMA_free(Parent_idcode_str); Parent_idcode_str = NULL;
    
@@ -1453,14 +1588,25 @@ SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr)
       SUMA_LH("Have no id in niml");
    }
    
-   NI_GET_INT(ngr, "NodeBased", SDO->NodeBased);   
    NI_GET_FLOAT(ngr, "LineWidth", SDO->LineWidth);
-   NI_GET_FLOATv(ngr, "LineCol", SDO->LineCol, 4);
+   NI_GET_FLOATv(ngr, "LineCol", SDO->LineCol, 4,LocalHead);
    nel = SUMA_FindNgrNamedElement(ngr, "NodeID");
    if (!nel) {
       SDO->NodeID = NULL;
    } else {
-      SDO->NodeID = (int *)SUMA_Copy_Part_Column(nel->vec[0], NI_rowtype_find_code(nel->vec_typ[0]), nel->vec_len, NULL, 0, &ncp);
+      SDO->NodeID = 
+            (int *)SUMA_Copy_Part_Column(nel->vec[0], 
+                              NI_rowtype_find_code(nel->vec_typ[0]), 
+                              nel->vec_len, NULL, 0, &ncp);
+   }
+   nel = SUMA_FindNgrNamedElement(ngr, "NodeID1");
+   if (!nel) {
+      SDO->NodeID1 = NULL;
+   } else {
+      SDO->NodeID1 = 
+            (int *)SUMA_Copy_Part_Column(nel->vec[0], 
+                              NI_rowtype_find_code(nel->vec_typ[0]), 
+                              nel->vec_len, NULL, 0, &ncp);
    }
    nel = SUMA_FindNgrNamedElement(ngr, "n0");
    if (!nel) {
@@ -1495,7 +1641,7 @@ SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr)
 SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, int Stipple,
                                        char *Label, char *idcode_str, char *Parent_idcode_str,
                                        float LineWidth, float *LineCol,
-                                       int *NodeID, float *n0, float *n1,
+                                       int *NodeID, int *NodeID1, float *n0, float *n1,
                                        float *colv, float *thickv 
                                        ) 
 {
@@ -1510,7 +1656,7 @@ SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, int
    if (oriented) type = LS_type;
    else type = OLS_type;
    
-   SDO = SUMA_Alloc_SegmentDO(N_n, Label, oriented, Parent_idcode_str, type);
+   SDO = SUMA_Alloc_SegmentDO(N_n, Label, oriented, Parent_idcode_str, NodeBased, type);
    if (idcode_str) SUMA_STRING_REPLACE(SDO->idcode_str, idcode_str);   
    SDO->NodeBased = NodeBased;
    SDO->Stipple = Stipple;
@@ -1521,6 +1667,9 @@ SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, int
    if (NodeID) {
       SDO->NodeID = (int *)SUMA_Copy_Part_Column((void*)NodeID, NI_rowtype_find_code(NI_INT), N_n, NULL, 0, &ncp);
    } else SDO->NodeID = NULL;   
+   if (NodeID1) {
+      SDO->NodeID1 = (int *)SUMA_Copy_Part_Column((void*)NodeID1, NI_rowtype_find_code(NI_INT), N_n, NULL, 0, &ncp);
+   } else SDO->NodeID1 = NULL; 
    if (!n0) {
       SDO->n0 = NULL;
    } else {
@@ -2595,7 +2744,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawSegmentDO"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, N_n3, i3, n3, n;
+   int i, N_n3, i3, n3, n, n1=0, n13=0;
    byte *msk=NULL;
    float origwidth=0.0, rad = 0.0, gain = 1.0;
    SUMA_SurfaceObject *SO = NULL;
@@ -2638,64 +2787,152 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
          SUMA_RETURN(NOPE);
    }
    
-   if (!SDO->thickv || SDO->NodeBased) {
-      glBegin(GL_LINES);
-      if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); /*turn on emissivity  */
-      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
-      glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
-
-      if (!SDO->NodeBased) {
-         i = 0;
-         N_n3 = 3*SDO->N_n;
-         while (i < N_n3) {
-            if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
-            glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
-            glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
-            i += 3;
-         }
-      } else {
-         SUMA_LH("Drawing vectors ");
-         i = 0;
-         gain = 1.0;
-         while (i < SDO->N_n) {
-            n = SDO->NodeID[i]; n3 = 3*n;
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: %d/%d, %d\n", FuncName, i, SDO->N_n, n);
-            if (n<SO->N_Node) {
-               i3 = 3*i;
-               if (SDO->thickv) {
-                  gain = SDO->thickv[i]; 
-               } else {
-                  /* gain = 1.0; no need, set above */  
-               }
-               if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i)]));
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: SDO->n1 = [%f %f %f]\n", FuncName, SDO->n1[i3  ], SDO->n1[i3+1],SDO->n1[i3+2]); 
-               glVertex3f(SO->NodeList[n3], SO->NodeList[n3+1], SO->NodeList[n3+2]);
-               glVertex3f( SO->NodeList[n3]  +(gain * SDO->n1[i3  ]), 
-                           SO->NodeList[n3+1]+(gain * SDO->n1[i3+1]), 
-                           SO->NodeList[n3+2]+(gain * SDO->n1[i3+2])); 
-            }
-            i += 1;
-         }
-      }
-      glEnd();
-   } else { /* slow slow slow */
-      if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
-      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
-      glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
-      
-      if (!SDO->NodeBased) {
+   if (SDO->NodeBased == 0) {
+      if (SDO->thickv) {/* slow slow slow */
+         SUMA_LH("Drawing xyz to xyz with thickness ");
+         if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
+         glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+            /* turn off ambient and diffuse components */
+         glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
          i = 0;
          N_n3 = 3*SDO->N_n;
          while (i < N_n3) {
             if (SDO->thickv) glLineWidth(SDO->thickv[i/3]);   
             glBegin(GL_LINES);
-            if (SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
+            if (SDO->colv) 
+               glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
             glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
             glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
             i += 3;
             glEnd();
          }
+      } else {
+         SUMA_LH("Drawing xyz to xyz ");
+         glBegin(GL_LINES);
+         if (!SDO->colv) 
+            glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); 
+                  /*turn on emissivity  */
+         glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+                  /* turn off ambient and diffuse components */
+         glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+
+         if (!SDO->NodeBased) {
+            i = 0;
+            N_n3 = 3*SDO->N_n;
+            while (i < N_n3) {
+               if (SDO->colv) 
+                  glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i/3)]));
+               glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
+               glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
+               i += 3;
+            }
+         } 
+         glEnd();
+      }   
+   } else if (  SDO->NodeBased == 1 ) {
+      glBegin(GL_LINES);
+      if (!SDO->colv) 
+         glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); 
+               /*turn on emissivity  */
+      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+               /* turn off ambient and diffuse components */
+      glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);      
+      SUMA_LH("Drawing vectors ");
+      i = 0;
+      gain = 1.0;
+      while (i < SDO->N_n) {
+         n = SDO->NodeID[i]; n3 = 3*n;
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s: %d/%d, %d\n", FuncName, i, SDO->N_n, n);
+         if (n<SO->N_Node) {
+            i3 = 3*i;
+            if (SDO->thickv) {
+               gain = SDO->thickv[i]; 
+            } else {
+               /* gain = 1.0; no need, set above */  
+            }
+            if (SDO->colv) 
+               glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i)]));
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: SDO->n1 = [%f %f %f]\n", 
+                     FuncName, SDO->n1[i3  ], SDO->n1[i3+1],SDO->n1[i3+2]); 
+            glVertex3f( SO->NodeList[n3], SO->NodeList[n3+1], 
+                        SO->NodeList[n3+2]);
+            glVertex3f( SO->NodeList[n3]  +(gain * SDO->n1[i3  ]), 
+                        SO->NodeList[n3+1]+(gain * SDO->n1[i3+1]), 
+                        SO->NodeList[n3+2]+(gain * SDO->n1[i3+2])); 
+         }
+         i += 1;
       }
+      glEnd();
+   } else if (  SDO->NodeBased == 2 ) {
+      if (!SDO->thickv) {
+         glBegin(GL_LINES);
+         if (!SDO->colv) 
+            glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); 
+                  /*turn on emissivity  */
+         glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+                  /* turn off ambient and diffuse components */
+         glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);      
+
+         SUMA_LH("two-node vectors ");
+         i = 0;
+         gain = 1.0;
+         while (i < SDO->N_n) {
+            n = SDO->NodeID[i]; n3 = 3*n;
+            n1 = SDO->NodeID1[i]; n13 = 3*n1;
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: %d/%d, %d,%d\n", 
+                        FuncName, i, SDO->N_n, n, n1);
+            if (n<SO->N_Node && n1 < SO->N_Node) {
+               i3 = 3*i;
+               
+               if (SDO->colv) 
+                  glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i)]));
+               
+               glVertex3f( SO->NodeList[n3], SO->NodeList[n3+1], 
+                           SO->NodeList[n3+2]);
+               glVertex3f( SO->NodeList[n13  ], 
+                           SO->NodeList[n13+1], 
+                           SO->NodeList[n13+2]); 
+            }
+            i += 1;
+         }
+         glEnd();
+      } else {/* slow slow slow */
+         if (!SDO->colv) glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol);
+         glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
+            /* turn off ambient and diffuse components */
+         glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
+
+         SUMA_LH("two-node vectors, with thickness ");
+         i = 0;
+         while (i < SDO->N_n) {
+            n = SDO->NodeID[i]; n3 = 3*n;
+            n1 = SDO->NodeID1[i]; n13 = 3*n1;
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: %d/%d, %d,%d\n", 
+                        FuncName, i, SDO->N_n, n, n1);
+            if (n<SO->N_Node && n1 < SO->N_Node) {
+               i3 = 3*i;
+               if (SDO->thickv) glLineWidth(SDO->thickv[i]); 
+               glBegin(GL_LINES);
+               if (SDO->colv) 
+                  glMaterialfv(GL_FRONT, GL_EMISSION, &(SDO->colv[4*(i)]));
+               
+               glVertex3f( SO->NodeList[n3], SO->NodeList[n3+1], 
+                           SO->NodeList[n3+2]);
+               glVertex3f( SO->NodeList[n13  ], 
+                           SO->NodeList[n13+1], 
+                           SO->NodeList[n13+2]); 
+               glEnd();
+            }
+            i += 1;
+         }
+      }
+   } else {
+      SUMA_S_Err("Oh no. Bad logic");
+      goto GETOUT;
    }
    
    switch (SDO->Stipple) {
@@ -2782,6 +3019,884 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO, SUMA_SurfaceViewer *sv)
    
 }
 
+SUMA_Boolean SUMA_LoadImageNIDOnel(NI_element *nel)
+{
+   static char FuncName[]={"SUMA_LoadImageNIDOnel"};
+   MRI_IMAGE *im=NULL;
+   int ir, ic, i1d, i1df, imx, i1d3, i1d4;
+   byte *rgb = NULL, *imar=NULL;
+   float alf = 0.0;
+   char *fname=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (  !nel || 
+         (  strcmp(nel->name,"I") && 
+            strcmp(nel->name,"Tex" ) ) )
+      SUMA_RETURN(NOPE);
+   
+   if (NI_IS_STR_ATTR_EQUAL(nel, "read_status", "read")) SUMA_RETURN(YUP);
+    
+   NI_set_attribute(nel,"read_status","fail");
+   
+   if (! (fname = SUMA_copy_string(NI_get_attribute(nel,"filename"))) )
+      SUMA_RETURN(NOPE);
+   if (!SUMA_search_file(&fname, NULL)) { /* can't find it */ 
+      SUMA_free(fname); fname = NULL;
+      SUMA_RETURN(NOPE);
+   }
+   if (!(im = mri_read_just_one(fname))) {
+      SUMA_S_Errv("Failed to read image %s (READ from %s)\n", 
+                  NI_get_attribute(nel,"filename"),
+                  fname);
+      SUMA_free(fname); fname = NULL;
+      SUMA_RETURN(NOPE);
+   }
+   
+   rgb = MRI_BYTE_PTR(im) ;
+   NI_SET_INT(nel,"height",im->ny);
+   NI_SET_INT(nel,"width", im->nx);
+
+   if (im->kind != MRI_rgb && im->kind != MRI_byte) {
+      SUMA_S_Errv("Image %s (read from %s) must be RGB or byte type.\n", 
+                  NI_get_attribute(nel,"filename"),
+                  fname);
+      mri_free(im) ;
+      SUMA_free(fname); fname = NULL;
+      SUMA_RETURN(NOPE); 
+   }
+
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,
+               "%s:\nNx (width) = %d, Ny (height) = %d\n", 
+               FuncName, im->nx, im->ny);
+
+   /* Now you can call  NI_alter_veclen, although all it does
+   here is set vec_len to the new number ... */
+   NI_alter_veclen(nel, (int)(im->nx * im->ny * 4));
+   if (LocalHead) {
+      SUMA_LH("veclen altered");
+      SUMA_ShowNel(nel);
+   }
+   NI_add_column (nel, NI_BYTE, NULL); 
+   if (!nel->vec[0]) {
+      SUMA_SL_Crit("Failed to allocate.");
+      mri_free(im) ;
+      SUMA_free(fname); fname = NULL;
+      SUMA_RETURN(NOPE); 
+   }
+   SUMA_LH("Filling");
+   imar = (byte *)nel->vec[0];
+   if (im->kind == MRI_rgb) {
+      SUMA_LH("RGB");
+      for (ir = 0; ir < im->ny; ++ir) {
+         for (ic = 0; ic < im->nx; ++ic) {
+            i1d = ic + ir * im->nx; /* equivalent 1d index into row 
+                                       major image data */
+            i1df = ic + (im->ny - ir - 1) * im->nx; /* column flipped index */
+            i1d4 = 4 * i1d; i1d3 = 3*i1df; 
+            imar[i1d4] = rgb[i1d3];    alf  = (float)imar[i1d4];   
+                  ++i1d3; ++i1d4; 
+            imar[i1d4] = rgb[i1d3];    alf += (float)imar[i1d4];   
+                  ++i1d3; ++i1d4; 
+            imar[i1d4] = rgb[i1d3];    alf += (float)imar[i1d4];                                      ++i1d4; 
+            imar[i1d4] = 200; /* got no alpha to work with*/
+         }
+      }
+   } else if (im->kind == MRI_byte) {  /* inefficient, but easy for now */
+      SUMA_LH("BYTE");
+      for (ir = 0; ir < im->ny; ++ir) {
+         for (ic = 0; ic < im->nx; ++ic) {
+            i1d = ic + ir * im->nx; /* equivalent 1d index into row 
+                                       major image data */
+            i1df = ic + (im->ny - ir - 1) * im->nx; /* column flipped index */
+            i1d4 = 4 * i1d;  
+            imar[i1d4] = (byte)rgb[i1df];       
+                          ++i1d4; 
+            imar[i1d4] = (byte)rgb[i1df];       
+                          ++i1d4; 
+            imar[i1d4] = (byte)rgb[i1df];                                                                   ++i1d4; 
+            imar[i1d4] = (byte)rgb[i1df]; 
+         }
+      }
+   } else {
+      SUMA_S_Err("Image must be RGB or byte type.\nShould not be here!");
+      mri_free(im) ;
+      SUMA_free(fname); fname = NULL;
+      SUMA_RETURN(NOPE); 
+   }
+   if (LocalHead) {
+      FILE *fid=NULL;
+      fid = fopen("junk2.img", "w");
+      SUMA_disp_vecbytemat ( imar, im->nx*im->ny, 
+                           4, 1, SUMA_ROW_MAJOR, fid, NOPE);
+      fclose(fid);
+   }
+   
+   SUMA_LH("Freedom");
+   mri_free(im) ; im = NULL;
+   SUMA_free(fname); fname = NULL;
+
+   NI_set_attribute(nel,"read_status","read");
+      
+   SUMA_RETURN(YUP);
+}
+
+#define UseAlphaAndBlend 0   /* to hide calls that would be useful 
+                              for alpha testing and/or blending */
+SUMA_Boolean SUMA_DrawImageNIDOnel( NI_element *nel, 
+                                    SUMA_SurfaceObject *default_SO,
+                                    SUMA_DO_CoordUnits default_coord_units,
+                                    float *default_color, 
+                                    void *default_font,
+                                    SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_DrawImageNIDOnel"};
+   float txloc[3] = {0.0, 0.0, 0.0};
+   char  *string=NULL, *atr=NULL;
+   GLfloat rpos[4];
+   float Dx = 0.0;
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   GLdouble pfront[3] = {0.0, 0.0, 0.0}, pback[3]= {0.0, 0.0, 0.0};
+   GLboolean valid;
+   GLint viewport[4];
+   int orthoreset = 0;
+   int id=0, is = 0, sz[2]={0, 0};
+   GLboolean TexOn2D=0, TexOnGenT=0, TexOnGenS=0;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_DO_CoordUnits coord_units = default_coord_units;
+   
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!nel || strcmp(nel->name,"I")) SUMA_RETURN(NOPE);
+   
+   if (NI_IS_STR_ATTR_EQUAL(nel,"read_status","fail")) {
+      /* can't be read */
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!NI_IS_STR_ATTR_EQUAL(nel,"read_status","read")) { /* read it */
+      if (!SUMA_LoadImageNIDOnel(nel)) {
+         SUMA_RETURN(NOPE);
+      }
+   } 
+   
+   
+   /* has the box size been determined ?*/
+   NI_GET_INTv(nel,"box_size", sz, 2, LocalHead);
+   if (!NI_GOT) {
+      NI_GET_INT(nel,"width", sz[0]);
+      NI_GET_INT(nel,"height", sz[1]);
+      NI_SET_INTv(nel,"box_size", sz, 2);
+   }
+   
+   /* set up projection conditions and coordinates */
+   if (!SUMA_PrepForNIDOnelPlacement(sv, nel, default_SO, 
+                                     txloc, NULL, sz, 
+                                     &orthoreset, coord_units)) {
+      SUMA_RETURN(NOPE);
+   }    
+
+   /* how about that rendering mode ? */
+   if (sv->PolyMode != SRM_Fill) {
+      /* fill it up */
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+   }
+   
+   /* texture's on? */
+   if (TexOn2D = glIsEnabled(GL_TEXTURE_2D)) { 
+      /* turn off or affect image drawing */
+      glDisable(GL_TEXTURE_2D);
+   }
+   if (TexOnGenT = glIsEnabled(GL_TEXTURE_GEN_T)) glDisable(GL_TEXTURE_GEN_T);
+   if (TexOnGenS = glIsEnabled(GL_TEXTURE_GEN_S))  glDisable(GL_TEXTURE_GEN_S);
+                  
+   /* have image, go for it */
+   SUMA_LH(  "Drawing the image.");
+
+   glRasterPos3f( txloc[0], txloc[1], txloc[2]);
+   
+   #if UseAlphaAndBlend
+      initTest = glIsEnabled(GL_ALPHA_TEST);
+      initBlend = glIsEnabled(GL_BLEND);
+      
+      /* here you set up your alpha testing, problem 
+      at the moment, is that image reading routines 
+      provide no alpha. But nel->vec[0] does contain
+      alpha and thus can be used eventually for that.
+      Note that parameters for ALPHA_TEST and BLEND 
+      can easily be added to nel in the future*/
+      
+      glAlphaFunc(GL_GEQUAL, 0.25); /* this only needs to be called
+               if it is changed elsewhere. If it is set differently
+               per image, then we'll need to call it everytime. 
+               I think it is easiest to call it repeatedly...
+              to set GL_ALPHA_TEST's behaviour. Choose from:
+              GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL, GL_GREATER, GL_NOTEQUAL, 
+              GL_GEQUAL, and GL_ALWAYS */
+      glEnable(GL_ALPHA_TEST);
+      
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glEnable(GL_BLEND);
+   #endif
+   
+
+   glDrawPixels(sz[0], sz[1], GL_RGBA,
+                GL_UNSIGNED_BYTE, nel->vec[0]);
+   
+   #if UseAlphaAndBlend
+      if (initTest == GL_FALSE) glDisable(GL_ALPHA_TEST);
+      else {
+         /* need to spend time, putting restoring
+         glBlendFunc and glAlphaFunc settings before
+         this function altered them*/
+      }
+      if (initBlend == GL_FALSE) glDisable(GL_BLEND);
+      else {
+         /* need to spend time, putting restoring
+         glBlendFunc and glAlphaFunc settings before
+         this function altered them*/
+      }
+   #endif
+
+   if (orthoreset) {/* return value */
+      /* and just pop what you'd pushed in */
+      glPopMatrix();
+   }
+   
+   if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
+      SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+   }
+   
+   if (TexOn2D) {   /* put it back on if needed */
+      glEnable(GL_TEXTURE_2D);
+   }
+   if (TexOnGenT) glEnable(GL_TEXTURE_GEN_T);
+   if (TexOnGenS) glEnable(GL_TEXTURE_GEN_S);
+ 
+   SUMA_RETURN(YUP);   
+}
+
+/* Returns parameter that controls what happens when texture 
+  falls on top of vertex with color:
+   GL_DECAL, GL_REPLACE, GL_MODULATE, GL_BLENDGL_REPLACE, GL_MODULATE */
+int SUMA_NIDO_TexEnvMode(NI_element *nel, int def) 
+{
+   char *atr=NI_get_attribute(nel,"mix_mode");
+   if (!atr) return(def);
+   if (!strcmp(atr,"decal")) return(GL_DECAL);
+   else if (!strcmp(atr,"blend")) return(GL_BLEND);
+   else if (!strcmp(atr,"replace")) return(GL_REPLACE);
+   else if (!strcmp(atr,"modulate")) return(GL_MODULATE);
+   else return(def);
+} 
+int SUMA_NIDO_TexCoordGen(NI_element *nel) 
+{
+   char *atr=NI_get_attribute(nel,"coord_gen");
+   if (!atr) return(GL_SPHERE_MAP);
+   if (!strcmp(atr,"object")) return(GL_OBJECT_LINEAR);
+   else if (!strcmp(atr,"eye")) return(GL_EYE_LINEAR);
+   else if (!strcmp(atr,"sphere")) return(GL_SPHERE_MAP);
+   else return(GL_SPHERE_MAP);
+}
+SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel, 
+                                    SUMA_SurfaceObject *default_SO,
+                                    SUMA_DO_CoordUnits default_coord_units,
+                                    float *default_color, 
+                                    void *default_font,
+                                    SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_DrawTextureNIDOnel"};
+   float txloc[3] = {0.0, 0.0, 0.0};
+   float texcoord[12] = {0.0, 0.0, 0.0,
+                         0.0, 1.0, 0.0,
+                         1.0, 1.0, 0.0,
+                         1.0, 0.0, 0.0};
+   char  *string=NULL, *atr=NULL, *target = NULL;
+   GLfloat rpos[4];
+   float Dx = 0.0;
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   GLdouble pfront[3] = {0.0, 0.0, 0.0}, pback[3]= {0.0, 0.0, 0.0};
+   GLboolean valid;
+   GLint viewport[4];
+   int orthoreset = 0;
+   int id=0, ii = 0, sz[3]={0, 0, 0};
+   int N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+   SUMA_SurfaceObject *SOt=NULL;
+   static GLuint texName;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_DO_CoordUnits coord_units = default_coord_units;
+   
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!nel || strcmp(nel->name,"Tex")) SUMA_RETURN(NOPE);
+   
+   if (NI_IS_STR_ATTR_EQUAL(nel,"read_status","fail")) {
+      /* can't be read */
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (!NI_IS_STR_ATTR_EQUAL(nel,"read_status","read")) { /* read it */
+      if (!SUMA_LoadImageNIDOnel(nel)) {
+         SUMA_RETURN(NOPE);
+      }
+   } 
+   
+   
+   /* has the box size been determined (only 2 dimensions needed)?*/
+   NI_GET_INTv(nel,"box_size", sz, 2, LocalHead);
+   if (!NI_GOT) {
+      NI_GET_INT(nel,"width", sz[0]);
+      NI_GET_INT(nel,"height", sz[1]);
+      NI_SET_INTv(nel,"box_size", sz, 2);
+   }
+   
+   /* set up projection conditions and coordinates */
+   if (!SUMA_PrepForNIDOnelPlacement(sv, nel, default_SO, 
+                                     txloc, texcoord, sz, 
+                                     &orthoreset, coord_units)) {
+      SUMA_RETURN(NOPE);
+   }    
+
+   /* how about that rendering mode ? */
+   if (sv->PolyMode != SRM_Fill) {
+      /* fill it up */
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+   }
+   
+   /* does this have its own coordinates ? */
+   target = NI_get_attribute(nel,"target");
+   if (target && strcmp(target, "FRAME")==0) {
+      SUMA_LH(  "Creating texture, see init pp 359 in \n"
+                "OpenGL programming guide, 3rd ed.");
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+      glGenTextures(1, &texName);
+      glBindTexture(GL_TEXTURE_2D, texName);
+      glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
+      glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT); 
+      glTexParameteri(  GL_TEXTURE_2D,
+                        GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(  GL_TEXTURE_2D,
+                        GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexImage2D(  GL_TEXTURE_2D, 0, GL_RGBA, 
+                     sz[0], sz[1], 0, GL_RGBA, 
+                     GL_UNSIGNED_BYTE, nel->vec[0]);
+      glEnable(GL_TEXTURE_2D);
+      glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
+                  SUMA_NIDO_TexEnvMode(nel, GL_REPLACE));
+         /* GL_DECAL, GL_REPLACE, GL_MODULATE, GL_BLEND */
+      glBindTexture(GL_TEXTURE_2D, texName); 
+      SUMA_LHv("Texture as image\n"
+                   "coords:\n"
+                   "%.3f %.3f %.3f\n%.3f %.3f %.3f\n"
+                   "%.3f %.3f %.3f\n%.3f %.3f %.3f\n",
+                   texcoord[0], texcoord[1], texcoord[2],
+                   texcoord[3], texcoord[4], texcoord[5],
+                   texcoord[6], texcoord[7], texcoord[8],
+                   texcoord[9], texcoord[10], texcoord[11]);
+      /* Texture does not belong to surface to be rendered later,
+      manually generate coordinates*/
+      glBegin(GL_QUADS);
+      glTexCoord2f(0.0, 0.0);glVertex3f(texcoord[0], texcoord[1], texcoord[2]);
+      glTexCoord2f(0.0, 1.0);glVertex3f(texcoord[3], texcoord[4], texcoord[5]);
+      glTexCoord2f(1.0, 1.0);glVertex3f(texcoord[6], texcoord[7], texcoord[8]);
+      glTexCoord2f(1.0, 0.0);glVertex3f(texcoord[9], texcoord[10], texcoord[11]);
+      glEnd();
+      glFlush();
+      glDisable(GL_TEXTURE_2D);
+   } else {
+      /* THIS block must be executed Immediately before a surface is drawn,
+         otherwise, the texture will apply to other objects that are drawn
+         next. To do this, set a texnel flag for those surfaces involved and 
+         have DrawMesh set the textures there.  */
+      N_SOlist = SUMA_VisibleSOs(sv, SUMAg_DOv, SOlist);
+      if (!target || strncmp(target, "ALL_SURF",8)==0) {
+         for (ii=0; ii < N_SOlist; ++ii) {
+            SOt = (SUMA_SurfaceObject *)SUMAg_DOv[SOlist[ii]].OP;
+            SOt->texnel = nel; /* better not keep texnel long after it is drawn!
+                                 nel could be blown away after drawing! */
+         }
+      } else {
+         for (ii=0; ii < N_SOlist; ++ii) {
+            SOt = (SUMA_SurfaceObject *)SUMAg_DOv[SOlist[ii]].OP;
+            if (SUMA_iswordin(SOt->Label,target)) 
+               SOt->texnel = nel; /* SOt->texnel copy of nel should not be kept 
+                                    after drawing! */
+         }
+      }   
+   }
+   
+   if (orthoreset) {/* return value */
+      /* and just pop what you'd pushed in */
+      glPopMatrix();
+   }
+   
+   if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
+      SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+   }
+   
+   SUMA_RETURN(YUP);   
+}
+
+SUMA_Boolean SUMA_PrepForNIDOnelPlacement (  SUMA_SurfaceViewer *sv,
+                                             NI_element *nel, 
+                                             SUMA_SurfaceObject *default_SO,
+                                             float *txloc, float *texcoord,
+                                             int *sz, 
+                                             int *orthoreset,
+                                             SUMA_DO_CoordUnits coord_units)
+{
+   static char FuncName[]={"SUMA_PrepForNIDOnelPlacement"};
+   int id = 0, id3=0, k=0;
+   char *atr=NULL;
+   SUMA_SurfaceObject *SO = NULL;
+   float Ex=0.0, hln=0.0;
+   GLdouble pfront[3] = {0.0, 0.0, 0.0}, pback[3]= {0.0, 0.0, 0.0};
+   GLint viewport[4];
+   static int iwarn=0;
+   int N_texcoord = 4;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   *orthoreset = 0;
+   /* is this node based ?*/
+   NI_GET_INT(nel, "node", id);
+   if (NI_GOT) {
+      if (coord_units == SUMA_NORM_SCREEN_UNIT && !(iwarn)) {
+         SUMA_S_Note("It makes litle sense to specify node\n"
+                     "attribute when coord_type is 'fixed'.\n"
+                     "This notice will not be issued again.\n");
+         ++iwarn;
+      }
+      /* special surface? */
+      if ((atr=NI_get_attribute(nel,"SO_label"))) {
+         SO = SUMA_findSOp_inDOv(
+                  SUMA_find_SOidcode_from_label(atr, 
+                                 SUMAg_DOv, SUMAg_N_DOv),
+                  SUMAg_DOv, SUMAg_N_DOv);
+      } else { SO = default_SO; }
+      if (!SO) {
+         if (atr) { 
+            SUMA_S_Errv("Could not find surface called %s\n",
+                              atr);
+         } else { 
+            SUMA_S_Err("Got no daddy");
+         }
+         SUMA_RETURN(NOPE);
+      } 
+      txloc[0] = SO->NodeList[3*id];
+      txloc[1] = SO->NodeList[3*id+1];
+      txloc[2] = SO->NodeList[3*id+2];
+      SUMA_LHv(  "Have surface %s for node %d.\n"
+                     "[%.3f   %.3f  %.3f]\n", 
+                     SO->Label, id,
+                     txloc[0], txloc[1], txloc[2]);
+   } else {
+      NI_GET_FLOATv(nel,"coord",txloc,3, LocalHead);
+      if (texcoord && NI_get_attribute(nel, "frame_coords")) {
+         N_texcoord = 4;
+         NI_GET_FLOATv( nel, "frame_coords", 
+                        texcoord, 3*N_texcoord, LocalHead);
+         if (!NI_GOT) N_texcoord = 0;
+      }                       
+            
+      /* If this is screen-based coordinate, do the change,
+      the function SUMA_NormScreenToWorld assumes that the OpenGL
+      matrices are set appropriately already */
+      /* justify */
+      {
+         SUMA_LHv("sz=[%d, %d, %d]\n", sz[0], sz[1], sz[2]);
+         glGetIntegerv(GL_VIEWPORT, viewport);
+         
+         if (atr = NI_get_attribute(nel,"h_align")) {
+            if (atr[0] == 'c' || atr[0] == 'C') { /* center */
+               txloc[0] = txloc[0] - ((float)sz[0]/2.0 / (float)viewport[2]);
+            } else if (atr[0] == 'r' || atr[0] == 'R') { /* right */
+               txloc[0] = txloc[0] - ((float)sz[0] / (float)viewport[2]);
+            }
+         }
+         if (nel->name[0] == 'T') { /* special treatment for text */
+            if (atr = NI_get_attribute(nel,"v_align")) {
+               hln = sz[1]/sz[2]; /* height of one line, recalculated!*/
+               Ex = (1-sz[2])*hln;  /* shift for text of more than one line */
+               if (atr[0] == 'c' || atr[0] == 'C') { /* center */
+                  txloc[1] = txloc[1] * 
+                              (1.0 - ( ((float)hln/2.0 + Ex)  / 
+                                       (float)viewport[3]));
+               } else if (atr[0] == 't' || atr[0] == 'T') { /* top */
+                  txloc[1] = txloc[1] *
+                              (1.0 - ((float)hln / (float)viewport[3]));
+               } else if ( sz[2] && /* needs work for multiline case*/
+                     (atr[0] == 'b' || atr[0] == 'B')) { 
+                  txloc[1] = txloc[1] - ( Ex / (float)viewport[3]);
+               }
+            }
+         } else {
+            if (atr = NI_get_attribute(nel,"v_align")) {
+               if (atr[0] == 'c' || atr[0] == 'C') { /* center */
+                  txloc[1] = txloc[1] - ((float)sz[1]/2.0 / (float)viewport[3]);
+               } else if (atr[0] == 't' || atr[0] == 'T') { /* top */
+                  txloc[1] = txloc[1] - ((float)sz[1] / (float)viewport[3]);
+               }
+            }
+         }
+      }
+      if (coord_units == SUMA_NORM_SCREEN_UNIT) {
+         SUMA_LHv("initial coords: [%f %f %f]\n",
+                  txloc[0], txloc[1], txloc[2]);
+         for (id=0; id<3;++id) {
+            if (txloc[id] >= 0.999999) txloc[id] = 0.999999;
+               /*else it can get clipped*/
+            else if (txloc[id] <= 0.000001) txloc[id] = 0.000001;
+         }         
+         if (!sv->ortho) {/*  for screen-based drawing, 
+                              you do not want perspective. But no need to do 
+                              this if in ortho mode already since for this
+                              type of coordinate (SUMA_SCREEN) drawing
+                              is done before any translation and rotation.
+                              All one needs is to be sure projection is
+                              orthographic.
+                              It is not efficient to keep changing this 
+                              for each text being displayed. But I do not expect
+                              a lot of those to be displayed. Will see ...
+                              I could make the calling function send a list of 
+                              nels that ought to be displayed with the same
+                              projection settings. */
+            glPushMatrix();/* start fresh to avoid messing up current setting */
+            *orthoreset = 1; /* keep track in order to pop matrix later */
+            SUMA_SET_GL_PROJECTION(sv, 1);
+         }
+         
+         SUMA_NormScreenToWorld(NULL, (double)txloc[0], (double)txloc[1],
+                             pfront, pback);
+         
+         txloc[0] = (float)( pfront[0] + 
+                            (double)txloc[0]*( pback[0] - pfront[0] ) );
+         txloc[1] = (float)( pfront[1] + 
+                            (double)txloc[1]*( pback[1] - pfront[1] ) );
+         txloc[2] = (float)( pfront[2] + 
+                            (double)txloc[2]*( pback[2] - pfront[2] ) );
+         
+         SUMA_LHv("pfront coords: [%f %f %f]\n"
+                  "pback  coords: [%f %f %f]\n"
+                  "txloc  coords: [%f %f %f]\n",
+                  pfront[0], pfront[1], pfront[2],
+                  pback[0], pback[1], pback[2],
+                  txloc[0], txloc[1], txloc[2]);
+         
+         /* do the same if you have a list of texture image coordinates */
+         if (texcoord) {
+            for (id=0; id<N_texcoord; ++id) {
+               id3=3*id;
+               for (k=0;k<3;++k) {
+                  if       (texcoord[id3+k] > 0.999999) 
+                     texcoord[id3+k] = 0.999999;
+                  else if  (texcoord[id3+k] < 0.000001) 
+                     texcoord[id3+k] = 0.000001;
+               }
+               SUMA_NormScreenToWorld( NULL, 
+                                       (double)texcoord[id3  ], 
+                                       (double)texcoord[id3+1],
+                                       pfront, pback);
+               texcoord[id3  ]= (float)( pfront[0] + 
+                            (double)texcoord[id3  ]*(pback[0] - pfront[0]) );
+               texcoord[id3+1]= (float)( pfront[1] + 
+                            (double)texcoord[id3+1]*(pback[1] - pfront[1]) );
+               texcoord[id3+2]= (float)( pfront[2] + 
+                            (double)texcoord[id3+2]*(pback[2] - pfront[2]) );
+            }
+         }
+      }
+   }
+   SUMA_RETURN(YUP);
+}   
+
+
+SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel, 
+                                    SUMA_SurfaceObject *default_SO,
+                                    SUMA_DO_CoordUnits default_coord_units,
+                                    float *default_color, 
+                                    void *default_font,
+                                    SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_DrawTextNIDOnel"};
+   char  *string=NULL, *atr=NULL;
+   GLfloat rpos[4];
+   float Dx = 0.0;
+   void *font=NULL;
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   float txloc[3] = {0.0, 0.0, 0.0};
+   GLfloat txcol[4];
+   GLboolean valid;
+   int orthoreset = 0;
+   int id=0, is = 0, sz[3]={0, 0,0};
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_DO_CoordUnits coord_units = default_coord_units;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!nel || strcmp(nel->name,"T")) SUMA_RETURN(NOPE); 
+
+   SUMA_LHv(  "default_coord_units %d\n", default_coord_units);
+    
+   if (atr = NI_get_attribute(nel, "font")) {
+      if (!(font = SUMA_glutBitmapFont(atr))) {
+         SUMA_S_Errv("Bad font %s, using default for group\n", 
+                     atr);
+         font = default_font;
+      }
+   } else {
+      font = default_font;
+   }
+   
+   NI_GET_FLOATv(nel,"col", txcol, 4, LocalHead);
+   
+   if (!NI_GOT) {
+      txcol[0] = default_color[0];
+      txcol[1] = default_color[1];
+      txcol[2] = default_color[2];
+      txcol[3] = default_color[3];
+   }
+   
+   /* has the box size been determined , 3rd dim is number of lines */
+   NI_GET_INTv(nel,"box_size", sz, 3, LocalHead);
+   if (!NI_GOT) {
+      SUMA_TextBoxSize(NI_get_attribute(nel,"text"), sz, sz+1, sz+2, font);
+      NI_SET_INTv(nel,"box_size", sz, 3);
+   }
+   /* set up projection conditions and coordinates */
+   if (!SUMA_PrepForNIDOnelPlacement(sv, nel, default_SO, 
+                                     txloc, NULL, sz, 
+                                     &orthoreset, coord_units)) {
+      SUMA_RETURN(NOPE);
+   }    
+
+   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+   glMaterialfv(GL_FRONT, GL_EMISSION, txcol); 
+      /*turn on emissivity for text*/
+   
+   /* Recall: This next call will still subject txloc to the projection
+      and the modelview matrices! */   
+   glRasterPos3f( txloc[0], txloc[1], txloc[2]);
+   glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
+   glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
+   SUMA_LHv("%s: Raster position (%.3f,%.3f, %3f) is %s\n",
+            FuncName, rpos[0], rpos[1], rpos[2], 
+            valid ? "valid" : "INVALID");
+
+   /* do some text action */
+   glColor3fv(txcol);
+   string = NI_get_attribute(nel,"text"); 
+   SUMA_LHv(  "text:\n"
+              ">>>%s<<<\n", string);
+   for (is=0; string && string[is] != '\0'; is++) {
+      if (string[is] == '\n') {
+         glBitmap( 0, 0, 0, 0, 
+                  -(float) Dx, -(float) SUMA_glutBitmapFontHeight(font), 
+                  NULL );
+         Dx = 0; 
+      } else {
+         glutBitmapCharacter(font, string[is]);
+         Dx = Dx+(float) glutBitmapWidth(font, string[is]);
+      }
+   }
+
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+      /*turn off emissidity for text*/   
+
+   if (orthoreset) {/* return value */
+      /* and just pop what you'd pushed in */
+      glPopMatrix();
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+
+SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_DrawNIDO"};
+   int ip=0;
+   int is;
+   byte *msk=NULL;
+   SUMA_SurfaceObject *default_SO = NULL;
+   NI_element *nel=NULL;
+   NI_group *ngr = NULL;
+   void * default_font=GLUT_BITMAP_9_BY_15;
+   float txcol[4] = {0.2, 0.5, 1, 1.0};
+   float default_color[4] = {0.2, 0.5, 1, 1.0};
+   SUMA_DO_CoordType coord_type = SUMA_WORLD;
+   SUMA_DO_CoordUnits default_coord_units = SUMA_WORLD_UNIT;
+   char *atr=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SDO) {
+      fprintf(stderr,"Error %s: NULL pointer.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   
+   /* setup defaults based on group settings */
+   default_SO = NULL;
+   /* is there a surface in question or could we find a crutch? */
+   default_SO = SUMA_findSOp_inDOv(
+               NI_get_attribute(SDO->ngr, "Parent_idcode_str"), 
+               SUMAg_DOv, SUMAg_N_DOv);
+   SUMA_LHv("default_SO is now %p\n", default_SO);
+   if (!default_SO) { /* keep trying */
+      if ((atr = NI_get_attribute(SDO->ngr,"default_SO_label"))) {
+         if (!strcmp(atr,"CURRENT")) { 
+            SUMA_LH("Getting current SO");
+            default_SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+            /* last ditch */
+            if (!default_SO) {
+               SUMA_LH("No current SO, trying any");
+               default_SO = SUMA_findanySOp_inDOv(SUMAg_DOv, SUMAg_N_DOv);
+            }
+            if (!default_SO) {
+               SUMA_S_Err("Could not find any surface to work with \n");
+               SUMA_RETURN (NOPE);
+            }
+         } else {
+            char *SOid = SUMA_find_SOidcode_from_label(
+                              atr, SUMAg_DOv, SUMAg_N_DOv);
+            if (SOid) {
+               default_SO = SUMA_findSOp_inDOv (SOid, SUMAg_DOv, SUMAg_N_DOv);
+            }
+            if (!default_SO) {
+               SUMA_S_Errv("Could not find surface labeled %s\n", atr);
+               SUMA_RETURN (NOPE);
+            }
+         }
+      }  else {
+         SUMA_LH("No default_label, finding Any...");
+         default_SO = SUMA_findanySOp_inDOv(SUMAg_DOv, SUMAg_N_DOv);
+         /* OK if you fail here ... */
+      } 
+   }
+   SUMA_LHv("Default_SO %p\n", default_SO);
+   if (SUMA_isNIDO_SurfBased(SDO) && !default_SO) {
+         SUMA_SL_Err("Object's parent surface not found.");
+         SUMA_RETURN (NOPE);
+   } 
+   
+   ngr = SDO->ngr;
+   {
+      SUMA_LH("Setting up other nido defaults:");
+      
+      /* set up group defaults */
+         if (atr = NI_get_attribute(ngr, "default_font")) {
+            if (!(default_font = SUMA_glutBitmapFont(atr))) {
+               SUMA_S_Errv("Bad font %s, using default %s", 
+                           atr,
+                  SUMA_glutBitmapFontName(SUMA_glutBitmapFont(NULL)));
+               default_font=SUMA_glutBitmapFont(NULL);
+            }
+         }
+         
+         NI_GET_FLOATv(ngr,"default_color", txcol, 4,LocalHead);
+         if (NI_GOT) {
+            default_color[0] = txcol[0];
+            default_color[1] = txcol[1]; 
+            default_color[2] = txcol[2]; 
+            default_color[3] = txcol[3]; 
+         }
+         if (atr = NI_get_attribute(ngr, "coord_type")) {
+            if ((coord_type = SUMA_CoordType(atr))
+                 == SUMA_COORD_TYPE_ERROR) {
+               SUMA_S_Errv("Bad coord_type %s,"
+                           "using default %s",
+                           atr, 
+                           SUMA_CoordTypeName(SUMA_CoordType(NULL)));
+               coord_type = SUMA_CoordType(NULL);
+            }
+         }
+         /* Now set default coordinate units */
+         if (coord_type == SUMA_WORLD) {
+            /* if users want object to move, then odds ar
+            coords are in world units (rotating objects units */ 
+            default_coord_units = SUMA_WORLD_UNIT;
+         } else if (coord_type == SUMA_SCREEN) {
+            /* If users want object to remain fixed relative to
+            screen, then odds are coords are in normalized screen
+            units */
+            default_coord_units = SUMA_NORM_SCREEN_UNIT;
+         }
+         SUMA_LHv("Have coord_type %d and default_coord_units %d\n"
+                  "default_color = %f %f %f %f\n"
+                  "Group has %d parts in it.\n",
+                coord_type, default_coord_units,
+                default_color[0], default_color[1],
+                default_color[2], default_color[3],
+                SDO->ngr->part_num);  
+   }
+
+   /* loop through the elements */
+   for( ip=0 ; ip < SDO->ngr->part_num ; ip++ ){ 
+      nel = NULL;
+      switch( SDO->ngr->part_typ[ip] ){
+         /*-- a sub-group ==> recursion! --*/
+         case NI_GROUP_TYPE:
+            break ;
+         case NI_ELEMENT_TYPE:
+            nel = (NI_element *)SDO->ngr->part[ip] ;
+            if (0 && LocalHead)  {
+               SUMA_ShowNel(nel);
+            }
+            break;
+         default:
+            SUMA_SL_Err(
+               "Don't know what to make of this group element, ignoring.");
+            break;
+      }
+      if (nel) { /* something to display */
+         SUMA_LHv("Attempting to draw %s\n", nel->name);
+         if (! strcmp(nel->name,"T")) {
+            if (!SUMA_DrawTextNIDOnel( nel, default_SO, 
+                                       default_coord_units,
+                                       default_color, 
+                                       default_font, sv)) {
+               SUMA_S_Warnv("Failed to draw %s\n", nel->name);
+            }
+         } else if (! strcmp(nel->name,"I")) {
+            if (!SUMA_DrawImageNIDOnel(nel, default_SO, 
+                                       default_coord_units,
+                                       default_color, 
+                                       default_font, sv)) {
+               SUMA_S_Warnv("Failed to draw %s\n", nel->name);
+            }
+         } else if (! strcmp(nel->name,"Tex")) {
+            if (!SUMA_DrawTextureNIDOnel(nel, default_SO, 
+                                       default_coord_units,
+                                       default_color, 
+                                       default_font, sv)) {
+               SUMA_S_Warnv("Failed to draw %s\n", nel->name);
+            }
+         } else if (strcmp(nel->name,"nido_head")) {
+            if (nel->name[0] != '#') {
+               SUMA_S_Errv("Not ready for nel->name %s\n", nel->name);
+            } else {
+               if (LocalHead) SUMA_LHv("Skipping element %s\n", nel->name);  
+            }
+         }      
+      }
+      
+   }
+   
+   GETOUT:
+     
+   SUMA_RETURN (YUP);
+   
+}
 
 
 /*!
@@ -3254,44 +4369,6 @@ SUMA_Boolean SUMA_AxisText(SUMA_AxisSegmentInfo *ASIp, double *Ps)
    SUMA_RETURN(YUP);
 }
 
-/*!
-   \brief writes a text somewhere
-*/
-SUMA_Boolean SUMA_DrawText(char *txt, float *Ps)
-{
-   static char FuncName[]={"SUMA_DrawText"};
-   GLboolean valid;
-   GLfloat rpos[4];
-   int is;
-   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   static float txcol[3] = {1, 1, 1};
-   static int width, height;
-   SUMA_Boolean LocalHead = NOPE;
-
-   SUMA_ENTRY;
-
-   if (!txt) SUMA_RETURN(YUP);
-      
-   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor); 
-   glMaterialfv(GL_FRONT, GL_EMISSION, txcol); /*turn on emissidity for text*/
-   glRasterPos3f(Ps[0], Ps[1], Ps[2]);
-   glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
-   glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
-   if (LocalHead) fprintf(SUMA_STDERR, "%s: Raster position (%g,%g, %g) is %s\n",
-      FuncName, rpos[0], rpos[1], rpos[2], valid ? "valid" : "INVALID");
-
-   /* do some text action */
-   if (valid) {
-      glColor3fv(txcol); 
-      for (is=0; txt[is] != '\0'; is++) {
-         glutBitmapCharacter(GLUT_BITMAP_9_BY_15, txt[is]);
-      }  
-   }
-   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);  
-      /*turn off emissidity for text*/ 
-      
-   SUMA_RETURN(YUP);
-}
 
 /*! 
    \brief glutBitmapLength does not work, so here is a local version
@@ -3311,7 +4388,7 @@ int SUMA_glutBitmapLength(void *font, char *txt, char *txte)
 /*!
    \brief Font height in pixels 
 */
-int SUMA_glutBitmapHeight(void *font) 
+int SUMA_glutBitmapFontHeight(void *font) 
 {
    if (!font) return(0);
    if (font == GLUT_BITMAP_9_BY_15)
@@ -3333,6 +4410,79 @@ int SUMA_glutBitmapHeight(void *font)
    
 }
 
+void * SUMA_glutBitmapFont(char *fontname)
+{
+   if (!fontname) return(GLUT_BITMAP_9_BY_15); /* default*/
+   else if (strcmp(fontname,"f8") == 0 ||
+       strcmp(fontname,"font8") == 0 ) return(GLUT_BITMAP_8_BY_13);
+   else if (strcmp(fontname,"f9") == 0 ||
+       strcmp(fontname,"font9") == 0 ) return(GLUT_BITMAP_9_BY_15);
+   else if (strcmp(fontname,"tr10") == 0 ||
+       strcmp(fontname,"times_roman10") == 0 )
+         return(GLUT_BITMAP_TIMES_ROMAN_10);
+   else if (strcmp(fontname,"tr24") == 0 ||
+       strcmp(fontname,"times_roman24") == 0 )
+         return(GLUT_BITMAP_TIMES_ROMAN_24);
+   else if (strcmp(fontname,"he10") == 0 ||
+       strcmp(fontname,"helvetica10") == 0 )
+         return(GLUT_BITMAP_HELVETICA_10);
+   else if (strcmp(fontname,"he12") == 0 ||
+       strcmp(fontname,"helvetica12") == 0 )
+         return(GLUT_BITMAP_HELVETICA_12);
+   else if (strcmp(fontname,"he18") == 0 ||
+       strcmp(fontname,"helvetica18") == 0 )
+         return(GLUT_BITMAP_HELVETICA_18);
+   else return(NULL);
+}
+
+char * SUMA_glutBitmapFontName(void * font)
+{
+      if (!font) {
+         return("NULL font");
+      } else if (font == GLUT_BITMAP_8_BY_13) {
+         return("font8");
+      } else if (font == GLUT_BITMAP_9_BY_15) {
+         return("font9");
+      } else if (font == GLUT_BITMAP_TIMES_ROMAN_10) {
+         return("times_roman10");
+      } else if (font == GLUT_BITMAP_TIMES_ROMAN_24) {
+         return("times_roman24");
+      } else if (font == GLUT_BITMAP_HELVETICA_10) {
+         return("helvetica10");
+      } else if (font == GLUT_BITMAP_HELVETICA_12) {
+         return("helvetica12");
+      } else if (font == GLUT_BITMAP_HELVETICA_18) {
+         return("helvetica18");
+      } else {
+         return("bad font pointer");
+      }
+}
+
+char *SUMA_CoordTypeName (SUMA_DO_CoordType tp)
+{
+   switch(tp) {
+      case SUMA_SCREEN:
+         return("fixed");
+      case SUMA_WORLD:
+         return("mobile");
+      case SUMA_COORD_TYPE_ERROR:
+         return("Bad coordinate type");
+   }
+}
+SUMA_DO_CoordType SUMA_CoordType (char *atr)
+{
+   if (!atr) return(SUMA_WORLD);
+   if (  !strcmp(atr,"mobile") ||
+         !strcmp(atr,"world") ) {
+      return(SUMA_WORLD);
+   }  else if (!strcmp(atr,"fixed") ||
+               !strcmp(atr,"screen")) {
+      return(SUMA_SCREEN);
+   }else {
+      return(SUMA_COORD_TYPE_ERROR);
+   }
+}
+
 
 /*!
    \brief Figures out box size for some text
@@ -3341,18 +4491,18 @@ int SUMA_glutBitmapHeight(void *font)
                glutBitmapWidth
    (some good tips here: http://www.lighthouse3d.com/opengl/glut )            
 */
-SUMA_Boolean SUMA_TextBoxSize (char *txt, int *w, int *h, void *font)
+SUMA_Boolean SUMA_TextBoxSize (char *txt, int *w, int *h, int *nl, void *font)
 {
    static char FuncName[]={"SUMA_TextBoxSize"};
    char *op=NULL, *ops=NULL, *OPE=NULL;
    int nc=0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    *w = 0;
    *h = 0;
-   
+   *nl = 0;
    if (!txt || !strlen(txt)) SUMA_RETURN(YUP);
    
 
@@ -3369,20 +4519,28 @@ SUMA_Boolean SUMA_TextBoxSize (char *txt, int *w, int *h, void *font)
             nc = op-ops;
             if (nc > *w) *w = nc;
          } else {
-            *h = *h + SUMA_glutBitmapHeight(font);
-            nc = SUMA_glutBitmapLength(font, ops, op-1);
+            *h = *h + SUMA_glutBitmapFontHeight(font);
+            if (*op == '\0') {
+               nc = SUMA_glutBitmapLength(font, ops, op);
+            } else {
+               nc = SUMA_glutBitmapLength(font, ops, op-1);
+            }
             if (nc > *w) *w = nc;
          }
+         ++(*nl);
       }
       ops = op;
    } while (op < OPE);
    
    if (!font) {
-      SUMA_LHv("Need %d lines with a max of %d chars on one line\n",
-            *h,*w);
+      SUMA_LHv("For >>>%s<<<\nNeed %d lines with a max of %d chars on one line\n"
+               "number of lines: %d\n",
+            txt, *h,*w, *nl);
    } else {
-      SUMA_LHv("Need %d pixels with a max of %d pixels on one line\n",
-            *h,*w);
+      SUMA_LHv("For >>>%s<<<\n"
+               "Need %d pixels with a max of %d pixels on one line\n"
+               "number of lines: %d\n",
+            txt, *h,*w, *nl);
    }
        
        
@@ -3534,7 +4692,7 @@ SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA
       dSyT = (float)fabs(ASIp->screen_length_y) / (float)nTick[1];
       MinYstep = 15 ; /* height of letters in pixels 
                         (using GLUT_BITMAP_9_BY_15) 
-                        Might want to use SUMA_glutBitmapHeight
+                        Might want to use SUMA_glutBitmapFontHeight
                         if you're using differing fonts*/
       MinXstep = 9 * 5; /* length of string in pixels 
                            (around 5 chars, including sign, using %.1f )*/
@@ -3716,7 +4874,8 @@ SUMA_Boolean SUMA_Draw_SO_NBSP (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, 
 }
 
 /*! Create Node-based vectors for a particular surface */
-SUMA_Boolean SUMA_Draw_SO_NBV (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_Draw_SO_NBV (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
+                                 int N_do, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Draw_SO_NBV"};
    int i;
@@ -3724,16 +4883,19 @@ SUMA_Boolean SUMA_Draw_SO_NBV (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
    for (i=0; i < N_do; ++i) {
       switch (dov[i].ObjectType) { /* case Object Type */
          case ONBV_type:
          case NBV_type:
+         case NBOLS_type:
+         case NBLS_type:
             SDO = (SUMA_SegmentDO *)dov[i].OP;
             if (SUMA_isNBDOrelated ((SUMA_NB_DO *)SDO, SO)) { /* draw it */
-               if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing vec field \n", FuncName);
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR, "%s: Drawing vec field \n", FuncName);
                if (!SUMA_DrawSegmentDO (SDO, sv)) {
-                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
+                  fprintf(SUMA_STDERR, 
+                     "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
                }
             }
          default:
@@ -3743,6 +4905,42 @@ SUMA_Boolean SUMA_Draw_SO_NBV (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
 
    SUMA_RETURN(YUP);
 }
+
+/*! Create NIML DOs that are attached to a surface */
+SUMA_Boolean SUMA_Draw_SO_NIDO (  SUMA_SurfaceObject *SO, SUMA_DO* dov, 
+                                  int N_do, SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_Draw_SO_NIDO"};
+   int i;
+   SUMA_NIDO *SDO = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   for (i=0; i < N_do; ++i) {
+      switch (dov[i].ObjectType) { /* case Object Type */
+         case NIDO_type:
+            SDO = (SUMA_NIDO *)dov[i].OP;
+            SUMA_LHv("Testing NIDO\n"
+                      "isSurfBased: %d\n"
+                      "isNIDOrelated: %d\n", 
+                      SUMA_isNIDO_SurfBased(SDO),
+                      SUMA_isNIDOrelated (SDO, SO));
+            if (  SUMA_isNIDO_SurfBased(SDO) && 
+                  SUMA_isNIDOrelated (SDO, SO)) { /* draw it */
+               if (!SUMA_DrawNIDO (SDO, sv)) {
+                  fprintf(SUMA_STDERR, 
+                     "Error %s: Failed in SUMA_DrawNIDO.\n", FuncName);
+               }
+            } else {
+            }
+         default:
+            break;
+      }
+   }
+
+   SUMA_RETURN(YUP);
+}
+
 
 /*! Create the ROIs for a particular surface */
 SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, SUMA_SurfaceViewer *sv)
@@ -5006,28 +6204,19 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
    SUMA_RETURNe;
 }
 
-#define TestImage 0 
-#define TestTexture 0 /* needs TestImage to be active */
 /*! Create a tesselated mesh */
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {  
    static char FuncName[]={"SUMA_DrawMesh"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    GLfloat *colp = NULL;
-   int i, ii, ND, id, ip, NP, PolyMode;
+   int i, ii, ND, id, ip, NP, PolyMode, sz[2]={0, 0};
    SUMA_DRAWN_ROI *DrawnROI = NULL;
-   static unsigned char *image=NULL;
    static GLuint texName;
    SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
    
-   #if TestImage
-   if (image) {
-      SUMA_SL_Note("Binding texture");
-      glBindTexture(GL_TEXTURE_2D, texName);
-   }
-   #endif
       
    SUMA_LH("Poly Mode");
    
@@ -5042,7 +6231,51 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(SurfObj->PolyMode); 
    }
-      
+
+   if (SurfObj->texnel) {
+      SUMA_LH(  "Creating texture, see init pp 415 in \n"
+                "OpenGL programming guide, 3rd ed.");
+      NI_GET_INTv(SurfObj->texnel,"box_size", sz, 2, LocalHead);
+
+      /* For cool textures, see 
+         http://www.filterforge.com/filters/category42-page1.html */
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+      glGenTextures(1, &texName);
+      glBindTexture(GL_TEXTURE_2D, texName);
+      glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
+               /* GL_REPEAT, GL_CLAMP */
+      glTexParameteri(  GL_TEXTURE_2D,
+                        GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(  GL_TEXTURE_2D,
+                        GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+         /* cotnrols interpolation of zoomed in/out texture,
+         GL_LINEAR, GL_NEAREST, ... */
+      glTexImage2D(  GL_TEXTURE_2D, 0, GL_RGBA, 
+                     sz[0], sz[1], 0, GL_RGBA, 
+                     GL_UNSIGNED_BYTE, SurfObj->texnel->vec[0]);
+      glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
+                  SUMA_NIDO_TexEnvMode(SurfObj->texnel, GL_MODULATE));
+
+      /* texture goes on surface which will be drawn later, 
+         Set automatic texture coordinate generation */
+      glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, 
+                  SUMA_NIDO_TexCoordGen(SurfObj->texnel)); 
+            /* GL_SPHERE_MAP, GL_EYE_LINEAR, GL_OBJECT_LINEAR */
+      glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+      glEnable(GL_TEXTURE_GEN_S);
+      glEnable(GL_TEXTURE_GEN_T);
+      glEnable(GL_TEXTURE_2D);
+                     #if 0
+                     SUMA_S_Note("I do not need all this");
+                     glEnable(GL_CULL_FACE);
+                     glEnable(GL_LIGHTING);
+                     glEnable(GL_LIGHT0);
+                     glEnable(GL_AUTO_NORMAL);
+                     glEnable(GL_NORMALIZE);
+                     glMaterialf(GL_FRONT, GL_SHININESS, 64.0); 
+                     #endif     
+   }
+         
    SUMA_LH("Draw Method");
    ND = SurfObj->NodeDim;
    NP = SurfObj->FaceSetDim;
@@ -5063,7 +6296,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             ip = NP * i;
             id = ND * SurfObj->FaceSetList[ip];
             glNormal3fv(&SurfObj->NodeNormList[id]);
-            glVertex3fv(&SurfObj->NodeList[id]); /* glVertex3f(0.1, 0.9, 0.0); */
+            glVertex3fv(&SurfObj->NodeList[id]); 
+               /* glVertex3f(0.1, 0.9, 0.0); */
 
             id = ND * SurfObj->FaceSetList[ip+1];
             glNormal3fv(&SurfObj->NodeNormList[id]);
@@ -5097,7 +6331,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             glColorPointer (4, GL_FLOAT, 0, colp); 
                   /* ZSS: Used to be: 
                   glColorPointer (  4, GL_FLOAT, 0, 
-                                    SUMA_GetColorList (sv, SurfObj->idcode_str));
+                                    SUMA_GetColorList (sv, 
+                                       SurfObj->idcode_str));
                  A redundant call, to say the least! */
          }
          glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
@@ -5120,115 +6355,16 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                break;
          } /* switch RENDER_METHOD */
          
-         #if TestImage
-         if (1){
-            GLboolean valid;
-            GLfloat rpos[4];
-            char  string[]= {"Yo Baby sssup? 1 2 3, 4.2 mm"};
-            int is;
-            int ShowString = 1;
-            int ShowImage = 1;
-            int ShowTexture = 1;
-            float txcol[3] = {0.2, 0.5, 1};
-            static int width, height;
-
-            SUMA_SL_Note(  "Doing the splat and the text thing\n"
-                           "from Kilgard's renderSplat in splatlogo.c\n"
-                           "to understand scaling operations.\n");
-            
-            if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
-               id = ND * SurfObj->SelectedNode;
-            } else { id = 0; }
-            
-            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
-            glMaterialfv(GL_FRONT, GL_EMISSION, txcol); 
-               /*turn on emissidity for text*/
-            glRasterPos3f( SurfObj->NodeList[id], 
-                           SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-            glGetFloatv(GL_CURRENT_RASTER_POSITION, rpos);
-            glGetBooleanv(GL_CURRENT_RASTER_POSITION_VALID, &valid);
-            printf("%s: Raster position (%g,%g, %g) is %s\n",
-               FuncName, rpos[0], rpos[1], rpos[2], valid ? "valid" : "INVALID");
-
-            /* do some text action */
-            SUMA_SL_Note(  "Some colored text\n"
-                           "Might affect la drawing\n"
-                           "color elsewhere");
-            glColor3fv(txcol); 
-            for (is=0; ShowString && string[is] != '\0'; is++) {
-               glutBitmapCharacter(GLUT_BITMAP_9_BY_15, string[is]);
-            }  
-            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
-               /*turn off emissidity for text*/
-
-            if (!image) {
-               FILE *fid;
-               char imtex[] = {"/Users/ziad/Pictures/IMG_0526.ppm"}; 
-                  /* IMG_0526.ppm, 1910.ppm,  1615-small.ppm*/
-               SUMA_SL_Note(  "Reading the image.");
-               image = SUMA_read_ppm(imtex, 
-                                    &width, &height, 1);
-               
-               if (!image) {
-                  SUMA_SL_Err("Failed to read image.");
-               }else if (ShowTexture) {
-                  #if TestTexture
-                  SUMA_SL_Note(  "Creating texture, see init pp 415 in \n"
-                                 "OpenGL programming guide, 3red");
-                  /* see 
-                     http://www.filterforge.com/filters/category42-page1.html */
-                  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-                  glGenTextures(1, &texName);
-                  glBindTexture(GL_TEXTURE_2D, texName);
-                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
-                           /* GL_REPEAT, GL_CLAMP */
-                  glTexParameteri(  GL_TEXTURE_2D,
-                                    GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                  glTexParameteri(  GL_TEXTURE_2D,
-                                    GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                  glTexImage2D(  GL_TEXTURE_2D, 0, GL_RGBA, 
-                                 width, height, 0, GL_RGBA, 
-                                 GL_UNSIGNED_BYTE, image);
-                  glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE); 
-                                 /* GL_REPLACE, GL_MODULATE */
-                  glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP); 
-                        /* GL_SPHERE_MAP, GL_EYE_LINEAR, GL_OBJECT_LINEAR */
-                  glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
-                  glEnable(GL_TEXTURE_GEN_S);
-                  glEnable(GL_TEXTURE_GEN_T);
-                  glEnable(GL_TEXTURE_2D);
-                  glEnable(GL_CULL_FACE);
-                  glEnable(GL_LIGHTING);
-                  glEnable(GL_LIGHT0);
-                  glEnable(GL_AUTO_NORMAL);
-                  glEnable(GL_NORMALIZE);
-                  glMaterialf(GL_FRONT, GL_SHININESS, 64.0);
-                  #endif
-               }
-               /*
-               fid = fopen("junk.img", "w");
-               SUMA_disp_vecucmat ( image, width*height, 
-                                    4, 1, SUMA_ROW_MAJOR, fid, NOPE);
-               fclose(fid);
-               */
-               
-            }
-            if (ShowImage && image) {
-               SUMA_SL_Note(  "Drawing the image.");
-               /* NOTE. The raster position has been pushed aside by the string.
-               If you want it back, you need a new call to glRasterPos3f */
-               glRasterPos3f( SurfObj->NodeList[id],
-                              SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-               glAlphaFunc(GL_GEQUAL, 0.25);
-                  /* Should do this only once, not each time you render ...*/
-               glEnable(GL_ALPHA_TEST);
-               glDrawPixels(width, height, GL_RGBA,
-                  GL_UNSIGNED_BYTE, image);
-               glDisable(GL_ALPHA_TEST);
-            }
+        
+         if (SurfObj->texnel) {
+            /* kill baby kill */
+            SurfObj->texnel = NULL; /* don't leave this function 
+                                       with pointer copy */
+            glDisable(GL_TEXTURE_2D);
+            glDisable(GL_TEXTURE_GEN_T);
+            glDisable(GL_TEXTURE_GEN_S);
          }
-         #endif
-
+         
          /*fprintf(stdout, "Disabling clients\n");*/
          glDisableClientState (GL_COLOR_ARRAY);   
          glDisableClientState (GL_VERTEX_ARRAY);
@@ -5259,10 +6395,17 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          }
          
          /* Draw node-based spheres */
-         SUMA_LH("NBV");
+         SUMA_LH("NBSP");
          if (!SUMA_Draw_SO_NBSP (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
             fprintf (SUMA_STDERR, 
                      "Error %s: Failed in drawing NBSP objects.\n", FuncName);
+         }
+         
+         /* Draw node-based NIDOs */
+         SUMA_LH("NIDO");
+         if (!SUMA_Draw_SO_NIDO (SurfObj, SUMAg_DOv, SUMAg_N_DOv, sv)) {
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed in drawing NIDO objects.\n", FuncName);
          }
          
          /* Draw Selected Node Highlight */
@@ -5458,6 +6601,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (SO->VolPar) SUMA_Free_VolPar(SO->VolPar); 
    
    if (SO->aSO) SO->aSO = SUMA_FreeAfniSurfaceObject(SO->aSO);
+   
+   if (SO->texnel) SO->texnel = NULL;
    
    if (SO) SUMA_free(SO);
    
@@ -5972,6 +7117,15 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       sprintf (stmp,"\n");
       SS = SUMA_StringAppend (SS,stmp);
       
+      if (SO->PolyArea == NULL) {
+         sprintf (stmp,"SO->texnel = NULL\n\n") ;
+         SS = SUMA_StringAppend (SS,stmp);
+      } else {
+         sprintf (stmp,"SO->texnel = an element named %s\n\n", 
+                  SO->texnel->name) ;
+         SS = SUMA_StringAppend (SS,stmp);
+      }
+      
       if (DsetList) {
          float *Cx = NULL;
          Cx = (float *)SUMA_GetCx(SO->idcode_str, DsetList, 0);
@@ -6478,6 +7632,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].parent_vol_idcode_str = NULL;
       
       SO[i].aSO = NULL;
+      
+      SO[i].texnel = NULL;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

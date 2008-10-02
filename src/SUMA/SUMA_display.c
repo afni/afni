@@ -427,7 +427,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
    if (SUMA_iswordin_ci(DispOptions, "ShowEdges") == 1) {
       if (N_allEpath) {
          SUMA_LHv("Building SDO of %d edges from %d strips\n", N_allEpath, dlist_size(striplist));
-         if ((SDO = SUMA_Alloc_SegmentDO (N_allEpath, "SUMA_SPI_to_EdgeStrips_segs", 0, NULL, LS_type))) {
+         if ((SDO = SUMA_Alloc_SegmentDO (N_allEpath, "SUMA_SPI_to_EdgeStrips_segs", 0, NULL, 0, LS_type))) {
             SDO->do_type = LS_type;
             SDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SDO->N_n);
             SDO->LineWidth = 4;
@@ -465,7 +465,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                ++kstrip;
             }  while (elmlist != dlist_tail(striplist)); 
             /* addDO */
-            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_LOCAL)) {
+            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
                SUMA_RETURNe;
             }
@@ -480,8 +480,11 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
        
    if (SUMA_iswordin_ci(DispOptions, "ShowConnectedPoints") == 1) {
       if (N_allEpath) {
-         SUMA_LHv("Building SPDO of %d points from %d strips\n", N_allEpath, dlist_size(striplist));
-         if ((SEDO = SUMA_Alloc_SegmentDO (N_allEpath, "SUMA_SPI_to_EdgeStrips_pointsegs", 1, NULL, OLS_type))) {
+         SUMA_LHv("Building SPDO of %d points from %d strips\n", 
+                  N_allEpath, dlist_size(striplist));
+         if ((SEDO = SUMA_Alloc_SegmentDO (N_allEpath, 
+                        "SUMA_SPI_to_EdgeStrips_pointsegs", 1, 
+                        NULL, 0, OLS_type))) {
             SEDO->do_type = LS_type;
             SEDO->colv = (GLfloat *)SUMA_malloc(4*sizeof(GLfloat)*SEDO->N_n);
             SEDO->LineWidth = 2;
@@ -494,15 +497,22 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                N_Ppath = dlist_size(strip->Points);
                isclosed = SUMA_isEdgeStripClosed(strip->Edges, SO);
                if (isclosed) { 
-                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
-                  col_middle[1] = col_middle[3] = 1.0; col_middle[0] = col_middle[2] = 0.0;
-                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+                  col_first[0] = col_first[3] = 1.0; 
+                  col_first[1] = col_first[2] = 0.0;
+                  col_middle[1] = col_middle[3] = 1.0; 
+                  col_middle[0] = col_middle[2] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  
+                  col_last[2] = col_last[3] = 1.0;
                } else {
-                  col_first[0] = col_first[3] = 1.0; col_first[1] = col_first[2] = 0.0;
-                  col_middle[0] = col_middle[1] = col_middle[3] = 1.0; col_middle[2] = 0.0;
-                  col_last[0] = col_last[1] = 0.0;  col_last[2] = col_last[3] = 1.0;
+                  col_first[0] = col_first[3] = 1.0; 
+                  col_first[1] = col_first[2] = 0.0;
+                  col_middle[0] = col_middle[1] = 
+                  col_middle[3] = 1.0; col_middle[2] = 0.0;
+                  col_last[0] = col_last[1] = 0.0;  
+                  col_last[2] = col_last[3] = 1.0;
                }
-               SUMA_LHv("   SEDO's strip #%d of %d edges (isclosed = %d)\n", kstrip, N_Ppath, isclosed);
+               SUMA_LHv("   SEDO's strip #%d of %d edges (isclosed = %d)\n", 
+                           kstrip, N_Ppath, isclosed);
                elm=NULL;
                do{
                   if (!elm) elm = dlist_head(strip->Points);
@@ -524,7 +534,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                ++kstrip;
             }  while (elmlist != dlist_tail(striplist)); 
             /* addDO */
-            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SEDO, OLS_type, SUMA_LOCAL)) {
+            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SEDO, OLS_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
                SUMA_RETURNe;
             }
@@ -578,7 +588,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
                ++kstrip;
             } while (elmlist != dlist_tail(striplist)); 
             /* addDO */
-            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SPDO, SP_type, SUMA_LOCAL)) {
+            if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SPDO, SP_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
                SUMA_RETURNe;
             }
@@ -612,6 +622,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    SUMA_SurfaceViewer *sv;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_DO_Types dotp=no_type;
+   SUMA_DO_CoordType coord_type=SUMA_WORLD;
    void *VDO = NULL;
    
    SUMA_ENTRY;
@@ -626,7 +637,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
       /* assume segments */
       dotp = LS_type;
    }
-   
+   coord_type = SUMA_WORLD;
    switch (dotp) {
       case ONBV_type:
       case NBV_type:
@@ -650,7 +661,8 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          break;
       case NBSP_type:
          if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
-            SUMA_SL_Err("No surface in focus to which the spheres would be attached.\n");
+            SUMA_SL_Err("No surface in focus to which "
+                        "the spheres would be attached.\n");
             SUMA_RETURNe;
          }
          if (!(VDO = (void*)SUMA_ReadNBSphDO(s, SO->idcode_str))) {
@@ -675,6 +687,32 @@ void SUMA_LoadSegDO (char *s, void *csvp )
          SDO->do_type = dotp;
          VDO = (void *)SDO;
          break;
+      case NBOLS_type:
+         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+            SUMA_SL_Err("No surface in focus to which "
+                        "the spheres would be attached.\n");
+            SUMA_RETURNe;
+         }
+         if (!(SDO = SUMA_ReadNBSegDO(s, 1, SO->idcode_str))) {
+            SUMA_SL_Err("Failed to read segments file.\n");
+            SUMA_RETURNe;
+         }
+         SDO->do_type = dotp;
+         VDO = (void *)SDO;
+         break;
+      case NBLS_type:
+         if (!(SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP)) {
+            SUMA_SL_Err("No surface in focus to which "
+                        "the spheres would be attached.\n");
+            SUMA_RETURNe;
+         }
+         if (!(SDO = SUMA_ReadNBSegDO(s, 0, SO->idcode_str))) {
+            SUMA_SL_Err("Failed to read segments file.\n");
+            SUMA_RETURNe;
+         }
+         SDO->do_type = dotp;
+         VDO = (void *)SDO;
+         break;
       
       case SP_type:
          if (!(VDO = (void *)SUMA_ReadSphDO(s))) {
@@ -689,6 +727,24 @@ void SUMA_LoadSegDO (char *s, void *csvp )
             SUMA_RETURNe;
          }
          ((SUMA_SphereDO * )VDO)->do_type = dotp;
+         break;
+      case NIDO_type:
+         if (sv->Focus_SO_ID >=0) 
+            SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+         else
+            SO = NULL;
+         if (!(VDO = (void *)SUMA_ReadNIDO(s, SO->idcode_str))) {
+            SUMA_SL_Err("Failed to read spheres file.\n");
+            SUMA_RETURNe;
+         }
+         ((SUMA_NIDO * )VDO)->do_type = dotp;
+         coord_type = SUMA_CoordType(
+                  NI_get_attribute(((SUMA_NIDO * )VDO)->ngr,
+                                    "coord_type"));
+         if (!coord_type) {
+            SUMA_SL_Err("Bad coord_type");
+            SUMA_RETURNe;
+         }   
          break;
       default:
          SUMA_SL_Err("Should not get here");
@@ -718,7 +774,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    #endif
    
    /* addDO */
-   if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, VDO, dotp, SUMA_LOCAL)) {
+   if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, VDO, dotp, coord_type)) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
       SUMA_RETURNe;
    }
@@ -744,18 +800,25 @@ void SUMA_LoadSegDO (char *s, void *csvp )
    m_fail is 1 if no such attribute is found
             2 if the number of values read is not = m_n
 */
+static int shutup;
+
 #define SUMA_S2FV_ATTR(m_nel, m_attr, m_fv, m_n, m_fail) {\
    char *m_atmp = NULL; \
    int m_nr = 0; \
    m_fail = 0; \
    m_atmp = NI_get_attribute(m_nel, m_attr); \
    if (!m_atmp) {   \
-      fprintf(SUMA_STDERR,"Error %s:\nNo such attribute (%s).", FuncName, m_attr);  \
+      if (LocalHead) \
+         fprintf( SUMA_STDERR,\
+                  "Error %s:\nNo such attribute (%s).", FuncName, m_attr);  \
       m_fail = 1; \
    }  \
    m_nr = SUMA_StringToNum(m_atmp, m_fv, m_n);  \
    if (m_nr != m_n) {  \
-      fprintf(SUMA_STDERR,"Error %s:\nBad attribute (%s) length.\nExpected %d, found %d\n",   \
+      if (LocalHead) \
+         fprintf( SUMA_STDERR,\
+                  "Error %s:\nBad attribute (%s) length.\n"\
+                  "Expected %d, found %d\n",   \
                            FuncName, m_attr, m_n, m_nr);  \
       m_fail = 2; \
    }  \
@@ -883,7 +946,8 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    char *fnamestmp=NULL, *fnamestmp2=NULL;
    float quat[4], Aspect[1], FOV[1], tran[2],
          WindWidth[1], WindHeight[1], clear_color[4], 
-         BF_Cull[1], Back_Modfact[1], PolyMode[1], ShowEyeAxis[1], ShowWorldAxis[1],
+         BF_Cull[1], Back_Modfact[1], PolyMode[1], ShowEyeAxis[1], 
+         ShowWorldAxis[1],
          ShowMeshAxis[1], ShowCrossHair[1], ShowForeground[1], 
          ShowBackground[1];   char *atmp;
    SUMA_Boolean LocalHead = NOPE;
@@ -896,40 +960,74 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
    }
    
    /* don't crash if you fail here and there, try your best ...*/
-   SUMA_S2FV_ATTR(nel, "currentQuat", quat, 4, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "translateVec", tran, 2, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "FOV", FOV, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "Aspect", Aspect, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "WindWidth", WindWidth, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "WindHeight", WindHeight, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "clear_color", clear_color, 4, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "BF_Cull", BF_Cull, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "Back_Modfact", Back_Modfact, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "PolyMode", PolyMode, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowEyeAxis", ShowEyeAxis, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowMeshAxis", ShowMeshAxis, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowWorldAxis", ShowWorldAxis, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowCrossHair", ShowCrossHair, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowForeground", ShowForeground, 1, feyl); if (feyl) {SUMA_BEEP};
-   SUMA_S2FV_ATTR(nel, "ShowBackground", ShowBackground, 1, feyl); if (feyl) {SUMA_BEEP};
-   
-   /* set the values */
-   SUMA_COPY_VEC(quat, csv->GVS[csv->StdView].currentQuat, 4, float, float);
-   SUMA_COPY_VEC(tran, csv->GVS[csv->StdView].translateVec, 2, float, float);
-   csv->FOV[csv->iState] = FOV[0];
-   csv->Aspect = Aspect[0]; /* That gets recalculated when SUMA_resize is called */
-   csv->WindWidth = (int)WindWidth[0]; /* That gets recalculated when SUMA_resize is called */
-   csv->WindHeight = (int)WindHeight[0]; /* That gets recalculated when SUMA_resize is called */
-   SUMA_COPY_VEC(clear_color, csv->clear_color, 4, float, float);
-   csv->BF_Cull = (SUMA_Boolean)BF_Cull[0];
-   csv->Back_Modfact = Back_Modfact[0];
-   csv->PolyMode = (SUMA_RENDER_MODES)PolyMode[0];
-   csv->ShowEyeAxis = (int)ShowEyeAxis[0];
-   csv->ShowMeshAxis = (int)ShowMeshAxis[0];
-   csv->ShowWorldAxis = (int)ShowWorldAxis[0];
-   csv->ShowCrossHair = (int)ShowCrossHair[0];
-   csv->ShowForeground = (SUMA_Boolean)ShowForeground[0];
-   csv->ShowForeground = (SUMA_Boolean)ShowForeground[0];
+   SUMA_S2FV_ATTR(nel, "currentQuat", quat, 4, feyl); 
+      if (!feyl) {
+         SUMA_COPY_VEC( quat, csv->GVS[csv->StdView].currentQuat, 4, 
+                        float, float);
+      }
+   SUMA_S2FV_ATTR(nel, "translateVec", tran, 2, feyl); 
+      if (!feyl) {
+         SUMA_COPY_VEC( tran, csv->GVS[csv->StdView].translateVec, 2, 
+                        float, float);
+      }
+   SUMA_S2FV_ATTR(nel, "FOV", FOV, 1, feyl); 
+      if (!feyl) {   
+         csv->FOV[csv->iState] = FOV[0];
+      }
+   SUMA_S2FV_ATTR(nel, "Aspect", Aspect, 1, feyl); 
+      if (!feyl) {   
+         csv->Aspect = Aspect[0]; /* gets set when SUMA_resize is called */
+      }
+   SUMA_S2FV_ATTR(nel, "WindWidth", WindWidth, 1, feyl); 
+      if (!feyl) {
+         csv->WindWidth = (int)WindWidth[0];
+            /* gets set when SUMA_resize is called */
+      }
+   SUMA_S2FV_ATTR(nel, "WindHeight", WindHeight, 1, feyl); 
+      if (!feyl) {
+         csv->WindHeight = (int)WindHeight[0]; 
+            /* That gets recalculated when SUMA_resize is called */
+      }
+   SUMA_S2FV_ATTR(nel, "clear_color", clear_color, 4, feyl); 
+      if (!feyl) {
+         SUMA_COPY_VEC(clear_color, csv->clear_color, 4, float, float);
+      }
+   SUMA_S2FV_ATTR(nel, "BF_Cull", BF_Cull, 1, feyl); 
+      if (!feyl) {
+         csv->BF_Cull = (SUMA_Boolean)BF_Cull[0];
+      }
+   SUMA_S2FV_ATTR(nel, "Back_Modfact", Back_Modfact, 1, feyl); 
+      if (!feyl) {
+         csv->Back_Modfact = Back_Modfact[0];
+      }
+   SUMA_S2FV_ATTR(nel, "PolyMode", PolyMode, 1, feyl); 
+      if (!feyl) {
+         csv->PolyMode = (SUMA_RENDER_MODES)PolyMode[0];
+      }
+   SUMA_S2FV_ATTR(nel, "ShowEyeAxis", ShowEyeAxis, 1, feyl); 
+      if (!feyl) {
+         csv->ShowEyeAxis = (int)ShowEyeAxis[0];
+      }
+   SUMA_S2FV_ATTR(nel, "ShowMeshAxis", ShowMeshAxis, 1, feyl); 
+      if (!feyl) {
+         csv->ShowMeshAxis = (int)ShowMeshAxis[0];
+      }
+   SUMA_S2FV_ATTR(nel, "ShowWorldAxis", ShowWorldAxis, 1, feyl); 
+      if (!feyl) {
+         csv->ShowWorldAxis = (int)ShowWorldAxis[0];
+      }
+   SUMA_S2FV_ATTR(nel, "ShowCrossHair", ShowCrossHair, 1, feyl); 
+      if (!feyl) {
+         csv->ShowCrossHair = (int)ShowCrossHair[0];
+      }
+   SUMA_S2FV_ATTR(nel, "ShowForeground", ShowForeground, 1, feyl); 
+      if (!feyl) {
+         csv->ShowForeground = (SUMA_Boolean)ShowForeground[0];
+      }
+   SUMA_S2FV_ATTR(nel, "ShowBackground", ShowBackground, 1, feyl); 
+      if (!feyl) {
+         csv->ShowForeground = (SUMA_Boolean)ShowForeground[0];
+      }
    
    /* do a resize (does not matter if dimensions did not change, call is simple.
    This call will also generate a SUMA_resize call */
@@ -1037,25 +1135,33 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       SUMA_DUMP_TRACE("Trace At display call");
    }
    
-   /* now you need to set the clear_color since it can be changed per viewer Thu Dec 12 2002 */
-   glClearColor (csv->clear_color[0], csv->clear_color[1], csv->clear_color[2], csv->clear_color[3]);
+   /* now you need to set the clear_color since 
+      it can be changed per viewer Thu Dec 12 2002 */
+   glClearColor ( csv->clear_color[0], csv->clear_color[1], 
+                  csv->clear_color[2], csv->clear_color[3]);
    
    if (csv->NewGeom) { 
       /* This function makes calls that are repeated in SUMA_OpenGLStateReset */
       SUMA_NewGeometryInViewer(SUMAg_DOv, SUMAg_N_DOv, csv);
       csv->NewGeom = NOPE;
-      csv->ResetGLStateVariables = NOPE; /*  SUMA_NewGeometryInViewer contains SUMA_OpenGLStateReset
+      csv->ResetGLStateVariables = NOPE; /*  SUMA_NewGeometryInViewer contains 
+                                             SUMA_OpenGLStateReset
                                              stuff and lots more ...*/
    } else {
-      /* You cannot just rely on csv->ResetGLStateVariables because it is hard to set 
-      for all conditions. For example, if you have multiple viewers open and you have surfaces 
-      moving on momentum in all viewers, then you will have to call SUMA_OpenGLStateReset before
-      each display otherwise the openGL settings for one of them will affect the others.
-      At any rate, that function is not costly to run so there's no harm in running it anytime
-      you have a display call and more than one viewer open */ 
+      /* You cannot just rely on csv->ResetGLStateVariables because 
+         it is hard to set for all conditions. 
+         For example, if you have multiple viewers open and you have surfaces 
+         moving on momentum in all viewers, then you will have to call 
+         SUMA_OpenGLStateReset before each display otherwise the openGL 
+         settings for one of them will affect the others.
+         At any rate, that function is not costly to run so there's no harm in 
+         running it anytime you have a display call and more than one viewer 
+         open */ 
 
       if (SUMAg_N_SVv > 1 || csv->ResetGLStateVariables) {
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
+         if (LocalHead) 
+            fprintf( SUMA_STDERR, 
+                     "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
          SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, csv);
          csv->ResetGLStateVariables = NOPE;
       }
@@ -1065,26 +1171,33 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (csv->ShowMeshAxis || csv->ShowWorldAxis) {
       yList[0] = csv->WindHeight;
       xList[0] = 0;
-      SUMA_GetSelectionLine (csv, csv->WindWidth/2, csv->WindHeight/2, csv->Pcenter_close, csv->Pcenter_far, 1, xList, yList, csv->Plist_close);
+      SUMA_GetSelectionLine ( csv, csv->WindWidth/2, csv->WindHeight/2, 
+                              csv->Pcenter_close, csv->Pcenter_far, 1, 
+                              xList, yList, csv->Plist_close);
    }
    /* decide on color mixing needs */
    if (!SUMA_MixColors (csv)) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MixColors. Aborting.\n", FuncName);
+      fprintf( SUMA_STDERR,
+               "Error %s: Failed in SUMA_MixColors. Aborting.\n", FuncName);
       exit(1);
    }
    
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Building Rotation matrix ...\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT,"%s: Building Rotation matrix ...\n", FuncName);
    SUMA_build_rotmatrix(rotationMatrix, csv->GVS[csv->StdView].currentQuat);
     
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: performing glClear ...\n", FuncName);
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer 
+                                                         and the depth buffer */
    
-   SUMA_SET_GL_PROJECTION(csv);
+   SUMA_SET_GL_PROJECTION(csv, csv->ortho);
    
-   if (SUMAg_CF->N_ClipPlanes) { /* clipping parts in fixed (screen)  coordinate space */
+   if (SUMAg_CF->N_ClipPlanes) { /* clipping parts in fixed (screen)  
+                                    coordinate space */
       for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i) {
          if (SUMAg_CF->ClipPlaneType[i] == SUMA_SCREEN_CLIP) {
-            glClipPlane(SUMA_index_to_clip_plane(i), &(SUMAg_CF->ClipPlanes[4*i]));
+            glClipPlane(SUMA_index_to_clip_plane(i), 
+                        &(SUMAg_CF->ClipPlanes[4*i]));
             glEnable(SUMA_index_to_clip_plane(i));
          }
       }
@@ -1116,8 +1229,6 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
          window coords to 3d coords.
          
          */ 
-         SUMA_S_Note("make me DO");
-         SUMA_DrawText("YeeeeHaw", Ps);
       }
    #endif
    i = 0;
@@ -1156,12 +1267,27 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
             case NBV_type:
             case OLS_type:
             case LS_type:
-               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
-                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
+            case NBOLS_type:
+            case NBLS_type:
+               if (!SUMA_DrawSegmentDO (
+                     (SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, 
+                     csv)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawSegmentDO.\n", 
+                           FuncName);
                }
                break;
             case PL_type:
                SUMA_SL_Warn("Not ready yet!");
+               break;
+            case NIDO_type:
+               SUMA_LH("Doing Screen NIDO");
+               if (!SUMA_DrawNIDO ((SUMA_NIDO*)dov[csv->RegisteredDO[i]].OP, 
+                     csv)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawNIDO.\n", 
+                           FuncName);
+               }
                break;
          }
       }
@@ -1170,14 +1296,18 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    
    SUMA_SET_GL_MODELVIEW(csv);
 
-   /* cycle through csv->RegisteredDO and display those things that have a Local CoordType*/
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Creating objects with local coordinates ...\n", FuncName);
+   /* cycle through csv->RegisteredDO and display 
+      those things that have a Local CoordType*/
+   if (LocalHead) 
+      fprintf (SUMA_STDOUT,
+               "%s: Creating objects with local coordinates ...\n", FuncName);
 
    /* cuting plane for all? */
    if (SUMAg_CF->N_ClipPlanes) { /* clipping parts in object coordinate space */
       for (i=0; i<SUMAg_CF->N_ClipPlanes; ++i) {
          if (SUMAg_CF->ClipPlaneType[i] == SUMA_ALL_OBJECT_CLIP) {
-            glClipPlane(SUMA_index_to_clip_plane(i), &(SUMAg_CF->ClipPlanes[4*i]));
+            glClipPlane(SUMA_index_to_clip_plane(i), 
+                        &(SUMAg_CF->ClipPlanes[4*i]));
             glEnable(SUMA_index_to_clip_plane(i));
          }
       }
@@ -1185,7 +1315,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    
    i = 0;
    while (i < csv->N_DO) {
-      if (dov[csv->RegisteredDO[i]].CoordType == SUMA_LOCAL) {
+      if (dov[csv->RegisteredDO[i]].CoordType == SUMA_WORLD) {
          switch (dov[csv->RegisteredDO[i]].ObjectType) {
             case SO_type:
                SO = (SUMA_SurfaceObject *)dov[csv->RegisteredDO[i]].OP;
@@ -1199,8 +1329,10 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case AO_type:
                if (csv->ShowMeshAxis) {
-                  if (!SUMA_DrawAxis ((SUMA_Axis*)dov[csv->RegisteredDO[i]].OP, csv)) {
-                     fprintf(stderr,"display error: Could not display Mesh AXIS\n");
+                  if (!SUMA_DrawAxis ((SUMA_Axis*)dov[csv->RegisteredDO[i]].OP, 
+                                       csv)) {
+                     fprintf( stderr,
+                              "display error: Could not display Mesh AXIS\n");
                   }
                }
                break;
@@ -1214,25 +1346,46 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case ONBV_type:
             case NBV_type:
+            case NBLS_type:
+            case NBOLS_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
             case OLS_type:
             case LS_type:
-               if (!SUMA_DrawSegmentDO ((SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
-                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSegmentDO.\n", FuncName);
+               if (!SUMA_DrawSegmentDO (
+                     (SUMA_SegmentDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawSegmentDO.\n", 
+                           FuncName);
                }
                break;
             case NBSP_type:
                /* those are drawn by SUMA_DrawMesh */
                break;
             case SP_type:
-               if (!SUMA_DrawSphereDO ((SUMA_SphereDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
-                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSphereDO.\n", FuncName);
+               if (!SUMA_DrawSphereDO (
+                     (SUMA_SphereDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawSphereDO.\n", FuncName);
                }
                break;
             case PL_type:
-               if (!SUMA_DrawPlaneDO ((SUMA_PlaneDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
-                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawPlaneDO.\n", FuncName);
+               if (!SUMA_DrawPlaneDO (
+                     (SUMA_PlaneDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                  fprintf(SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawPlaneDO.\n", FuncName);
+               }
+               break;
+            case NIDO_type:
+               if (SUMA_isNIDO_SurfBased(
+                     (SUMA_NIDO *)dov[csv->RegisteredDO[i]].OP)) { 
+                  /* this is done in SUMA_DrawMesh */
+               } else {
+                  if (!SUMA_DrawNIDO (
+                        (SUMA_NIDO *)dov[csv->RegisteredDO[i]].OP, csv)) {
+                     fprintf(SUMA_STDERR, 
+                              "Error %s: Failed in SUMA_DrawNIDO.\n", FuncName);
+                  }
                }
                break;
             case type_not_set:
@@ -1280,7 +1433,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    #endif
       
    glPopMatrix();   
-
+   
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Flushing or swapping ...\n", FuncName);
    if (csv->X->DOUBLEBUFFER)
     glXSwapBuffers(csv->X->DPY, XtWindow(csv->X->GLXAREA));
@@ -2835,8 +2988,9 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    a child of SUMA_display
    \sa SUMA_GetSelectionLine
 */
-SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double *WorldList, 
-                              double *ScreenList, int *Quad, SUMA_Boolean ApplyXform)
+SUMA_Boolean SUMA_World2ScreenCoords (
+                     SUMA_SurfaceViewer *sv, int N_List, double *WorldList, 
+                     double *ScreenList, int *Quad, SUMA_Boolean ApplyXform)
 {
    static char FuncName[]={"SUMA_World2ScreenCoords"};
    GLfloat rotationMatrix[4][4];
@@ -2849,48 +3003,69 @@ SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double
    SUMA_ENTRY;
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR, "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", \
-       FuncName, sv->GVS[sv->StdView].currentQuat[0], sv->GVS[sv->StdView].currentQuat[1], \
-       sv->GVS[sv->StdView].currentQuat[2],sv->GVS[sv->StdView].currentQuat[3]);
-      fprintf (SUMA_STDERR, "%s: Translation Vector of view #%d: %.4f, %.4f, %.4f\n", \
-         FuncName, sv->StdView, sv->GVS[sv->StdView].translateVec[0], sv->GVS[sv->StdView].translateVec[1], \
-         sv->GVS[sv->StdView].translateVec[2]);
-      fprintf (SUMA_STDERR, "%s: RotaCenter of view #%d: %.4f, %.4f, %.4f\n", \
-         FuncName, sv->StdView, sv->GVS[sv->StdView].RotaCenter[0], sv->GVS[sv->StdView].RotaCenter[1], \
-         sv->GVS[sv->StdView].RotaCenter[2]);
+      fprintf (SUMA_STDERR, 
+               "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", 
+               FuncName, sv->GVS[sv->StdView].currentQuat[0],           
+               sv->GVS[sv->StdView].currentQuat[1], 
+               sv->GVS[sv->StdView].currentQuat[2],
+               sv->GVS[sv->StdView].currentQuat[3]);
+      fprintf (SUMA_STDERR, 
+               "%s: Translation Vector of view #%d: %.4f, %.4f, %.4f\n", 
+               FuncName, sv->StdView, sv->GVS[sv->StdView].translateVec[0], 
+               sv->GVS[sv->StdView].translateVec[1], 
+               sv->GVS[sv->StdView].translateVec[2]);
+      fprintf (SUMA_STDERR, 
+               "%s: RotaCenter of view #%d: %.4f, %.4f, %.4f\n", 
+               FuncName, sv->StdView, sv->GVS[sv->StdView].RotaCenter[0], 
+               sv->GVS[sv->StdView].RotaCenter[1], 
+               sv->GVS[sv->StdView].RotaCenter[2]);
    }
       
    
    if (ApplyXform) {
-      /* go through the ModelView transforms as you would in display since the modelview matrix is popped
-      after each display call */
+      /* go through the ModelView transforms as you would 
+         in display since the modelview matrix is popped
+         after each display call */
       SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
       glMatrixMode(GL_MODELVIEW);
-      /* The next line appears to fix some bug with GL_MODELVIEW's matrix. When you clicked button3 for the first time in a viewer, 
-      the chosen point was off. The next click in the identical position would select the correct point and subsequent clicks are OK.
-      None of the parameters used for the selection would change between the first click and the next but it appears that going from one
-      viewer to the next caused GL_MODELVIEW to change (sometimes) slightly. Putting the line glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
-      to check (and debug) what was happening to GL_MODELVIEW matrix between one viewer and the next fixed the clicking problem. So, we keep
-      it here as a fix until a better one comes along. PS: This was also the source of the Z (blue) eye axis showing up when it should not. */  
+      /* The next line appears to fix some bug with GL_MODELVIEW's matrix. 
+         When you clicked button3 for the first time in a viewer, 
+         the chosen point was off. The next click in the identical position would          select the correct point and subsequent clicks are OK.
+         None of the parameters used for the selection would change between the  
+         first click and the next but it appears that going from one
+         viewer to the next caused GL_MODELVIEW to change (sometimes) slightly.            Putting the line glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+         to check (and debug) what was happening to GL_MODELVIEW matrix between 
+         one viewer and the next fixed the clicking problem. So, we keep
+         it here as a fix until a better one comes along. PS: This was also the 
+         source of the Z (blue) eye axis showing up when it should not. */  
          glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
          if (LocalHead) {
             int itmp = 0;
             fprintf (SUMA_STDERR, "%s: Initial Modelview:\nMV=[ ", FuncName);
-            while (itmp < 16) { fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+            while (itmp < 16) { 
+               fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
             fprintf (SUMA_STDERR, "]\n");
          }
       glPushMatrix();
-      glTranslatef (sv->GVS[sv->StdView].translateVec[0], sv->GVS[sv->StdView].translateVec[1], 0.0);
-      glTranslatef (sv->GVS[sv->StdView].RotaCenter[0], sv->GVS[sv->StdView].RotaCenter[1], sv->GVS[sv->StdView].RotaCenter[2]);
+      glTranslatef ( sv->GVS[sv->StdView].translateVec[0], 
+                     sv->GVS[sv->StdView].translateVec[1], 0.0);
+      glTranslatef ( sv->GVS[sv->StdView].RotaCenter[0], 
+                     sv->GVS[sv->StdView].RotaCenter[1], 
+                     sv->GVS[sv->StdView].RotaCenter[2]);
       glMultMatrixf(&rotationMatrix[0][0]);
-         glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+      glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
          if (LocalHead) {
             int itmp = 0;
-            fprintf (SUMA_STDERR, "%s: Modelview After Translation & Rotation:\nMVtr=[ ", FuncName);
-            while (itmp < 16) { fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
+            fprintf (SUMA_STDERR, 
+                     "%s: Modelview After Translation & Rotation:\nMVtr=[ ", 
+                     FuncName);
+            while (itmp < 16) { 
+               fprintf (SUMA_STDERR, "%.4f, ", mvmatrix[itmp]); ++itmp;}
             fprintf (SUMA_STDERR, "]\n");
          }
-      glTranslatef (-sv->GVS[sv->StdView].RotaCenter[0], -sv->GVS[sv->StdView].RotaCenter[1], -sv->GVS[sv->StdView].RotaCenter[2]);
+      glTranslatef ( -sv->GVS[sv->StdView].RotaCenter[0], 
+                     -sv->GVS[sv->StdView].RotaCenter[1], 
+                     -sv->GVS[sv->StdView].RotaCenter[2]);
    } 
    glGetIntegerv(GL_VIEWPORT, viewport);
    glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
@@ -2898,20 +3073,30 @@ SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double
    
    for (i=0;i<N_List; ++i) {
       i3 = 3*i;
-      gluProject( (GLdouble)WorldList[i3], (GLdouble)WorldList[i3+1], (GLdouble)WorldList[i3+2],  
-                  mvmatrix, projmatrix, viewport, \
-                  (GLdouble*)(&(ScreenList[i3])), (GLdouble*)(&(ScreenList[i3+1])), (GLdouble*)(&(ScreenList[i3+2])) );
-      ScreenList[i3+1] = viewport[3] - ScreenList[i3+1] - 1; /* change from OpenGL's y to screen's y */
+      gluProject( (GLdouble)WorldList[i3], 
+                  (GLdouble)WorldList[i3+1], (GLdouble)WorldList[i3+2],  
+                  mvmatrix, projmatrix, viewport, 
+                  (GLdouble*)(&(ScreenList[i3])), 
+                  (GLdouble*)(&(ScreenList[i3+1])), 
+                  (GLdouble*)(&(ScreenList[i3+2])) );
+      ScreenList[i3+1] = viewport[3] - ScreenList[i3+1] - 1; /* change from 
+                                                   OpenGL's y to screen's y */
       if (ScreenList[i3] < sv->WindWidth/2) {
-         if (ScreenList[i3+1] > sv->WindHeight/2) Quad[i] = SUMA_LOWER_LEFT_SCREEN;
+         if (ScreenList[i3+1] > sv->WindHeight/2) 
+            Quad[i] = SUMA_LOWER_LEFT_SCREEN;
          else Quad[i] = SUMA_UPPER_LEFT_SCREEN;
       } else {
-         if (ScreenList[i3+1] > sv->WindHeight/2) Quad[i] = SUMA_LOWER_RIGHT_SCREEN;
+         if (ScreenList[i3+1] > sv->WindHeight/2) 
+            Quad[i] = SUMA_LOWER_RIGHT_SCREEN;
          else Quad[i] = SUMA_UPPER_RIGHT_SCREEN;
       }
-      if (LocalHead) fprintf (SUMA_STDOUT, "%s: World: [%.2f %.2f %.2f] \t Screen [%.2f %.2f %.2f] \t Quad %d\n", 
-                              FuncName, WorldList[i3],WorldList[i3+1], WorldList[i3+2], 
-                              ScreenList[i3], ScreenList[i3+1],ScreenList[i3+2], Quad[i]);
+      if (LocalHead) 
+         fprintf (SUMA_STDOUT, 
+                  "%s: World: [%.2f %.2f %.2f] \t "
+                  "Screen [%.2f %.2f %.2f] \t Quad %d\n", 
+                  FuncName, 
+                  WorldList[i3],WorldList[i3+1], WorldList[i3+2], 
+                  ScreenList[i3], ScreenList[i3+1],ScreenList[i3+2], Quad[i]);
    
    }
 
@@ -2920,6 +3105,56 @@ SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double
    SUMA_RETURN (YUP);
 }
 
+/* Take normalized x,y screen corrdinates and turn them to world coordinates 
+Based on code from SUMA_GetSelectionLine 
+ASSUMES GL_MODELVIEW_MATRIX and GL_PROJECTION_MATRIX are current! */
+SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv, 
+                                    double xn, double yn, 
+                                    GLdouble *pfront, GLdouble *pback)
+{
+   static char FuncName[]={"SUMA_NormScreenToWorld"};
+   GLdouble ox, oy;
+   GLint viewport[4];
+   GLdouble mvmatrix[16], projmatrix[16];
+   
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+      
+   glGetIntegerv(GL_VIEWPORT, viewport);
+   glGetDoublev(GL_MODELVIEW_MATRIX, mvmatrix);
+   glGetDoublev(GL_PROJECTION_MATRIX, projmatrix);
+   
+   /* get OpenGL screen coords */
+   ox = xn*(double)viewport[2];
+   oy = yn*(double)viewport[3];
+   
+   /* unproject to world */
+   if (pfront) {
+      gluUnProject(  ox, oy, 0.0,
+                     mvmatrix, projmatrix, viewport, 
+                     pfront, pfront+1, pfront+2);
+   }
+   if (pback) {
+      gluUnProject(  ox, oy, 1.0,
+                     mvmatrix, projmatrix, viewport, 
+                     pback, pback+1, pback+2);
+   }
+   
+   SUMA_LHv("Normalized screen coords: [%.4f %.4f]\n"
+            "OpenGl screen coords: [%.4f %.4f]\n"
+            "pfront (%p): [%.4f %.4f %.4f]\n"
+            "pback  (%p): [%.4f %.4f %.4f]\n",
+            xn, yn, ox, oy,
+            pfront, pfront ? pfront[0] : 0 , 
+                    pfront ? pfront[1] : 0 , 
+                    pfront ? pfront[2] : 0 ,
+            pback,  pback  ? pback[0] : 0 , 
+                    pback  ? pback[1] : 0 , 
+                    pback  ? pback[2] : 0 );
+      
+   SUMA_RETURN(YUP);
+}
 /*!
    Purpose: Takes a the x,y positions of the cursor and sets 
             the Pick0 and Pick1 values (usually sv's) 
@@ -2937,7 +3172,7 @@ SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double
                                 of Pick0 for the values in xList and yList
    \return YUP/NOPE
    \sa SUMA_input, button3 pick
-   \sa 
+   \sa SUMA_NormScreenToWorld
 */
 SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, 
                                     GLdouble *Pick0, GLdouble *Pick1, 
@@ -2953,10 +3188,13 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
+    
    
    
    if (LocalHead) {
+      fprintf (SUMA_STDERR, 
+               "%s: Selection x, y=[%d, %d]\n",
+               FuncName, x, y);                 
       fprintf (SUMA_STDERR, 
                "%s: Current Quat: %.4f, %.4f, %.4f, %.4f.\n", 
                 FuncName, 
@@ -3033,14 +3271,18 @@ SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y,
 
    if (LocalHead) 
       fprintf (SUMA_STDOUT, 
-               "%s: Coordinates at cursor are (%4d, %4d)\n", 
-               FuncName, x, realy);
+               "%s: Coordinates at cursor are (%4d, %4d)\n"
+               "Viewport is %d %d %d %d\n"
+               "Normalized coords: (%.3f %.3f)\n", 
+               FuncName, x, realy, 
+               viewport[0], viewport[1], viewport[2], viewport[3],
+               (double)x/(double)viewport[2], (double)y/viewport[3]);
 
    /* set the pick points at both ends of the clip planes */
    if (Pick0) {
       gluUnProject(  (GLdouble)x, (GLdouble)realy, 0.0,
                      mvmatrix, projmatrix, viewport, 
-         &           (Pick0[0]), &(Pick0[1]), &(Pick0[2]));
+                     &(Pick0[0]), &(Pick0[1]), &(Pick0[2]));
       if (LocalHead) 
          fprintf (SUMA_STDOUT, 
                   "World Coords at z=0.0 (near clip plane) are (%f, %f, %f)\n",
@@ -3109,7 +3351,7 @@ SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv,
                                  2, 
                                  xlist, ylist, 
                                  PickList);
-         SUMA_SET_GL_PROJECTION(sv);
+         SUMA_SET_GL_PROJECTION(sv, sv->ortho);
          SUMA_SET_GL_MODELVIEW(sv);
          glMaterialfv(GL_FRONT, GL_EMISSION, LineCol);
          glLineWidth(SUMA_CROSS_HAIR_LINE_WIDTH);

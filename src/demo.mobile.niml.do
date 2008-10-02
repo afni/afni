@@ -4,7 +4,7 @@ default_SO_label = "CURRENT"
 bond = "surface"
 />
 <T
-coord = "0.1 0.4 30"
+coord = "280 200 210"
 col = "0.9 0.1 0.1"
 text = "Text positioned
 In 3D"
@@ -22,9 +22,9 @@ filename = "face_hamepark.jpg"
 <Tex
 target = "FRAME"
 frame_coords = "
-20.0 20.0 60
-20.0 40.0 60
-40.0 40.0 60
-40.0 20.0 60"
+200.0 200.0 260
+200.0 240.0 260
+240.0 240.0 260
+240.0 200.0 260"
 filename = "face_sumabucks.jpg"
 />
