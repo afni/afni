@@ -34,9 +34,10 @@ static char * g_history[] =
   "     - added -copy_gifti_meta, -copy_DA_meta\n"
   "1.0  13 May, 2008: based on release library version 1.0\n",
   "     - added -set_extern_filelist\n"
+  "1.1  02 Oct, 2008: mention NITRC web site in help\n"
 };
 
-static char g_version[] = "gifti_tool version 1.0, 13 March 2008";
+static char g_version[] = "gifti_tool version 1.1, 2 October 2008";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -1397,7 +1398,6 @@ static int show_help()
     );
     printf (
     "  ----------------------------------------\n"
-    "\n"
     "  MetaData copy options\n"
     "\n"
     "     -copy_gifti_meta MD_NAME      : copy MetaData with name MD_NAME\n"
@@ -1424,6 +1424,12 @@ static int show_help()
     "\n"
     );
     printf (
+    "------------------------------------------------------------\n"
+    "see the GIfTI community web site at:\n"
+    "\n"
+    "           http://www.nitrc.org/projects/gifti\n"
+    "\n"
+    "R Reynolds, National Institues of Health\n"
     "------------------------------------------------------------\n"
     );
     return 0;

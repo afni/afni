@@ -1951,7 +1951,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
         default : 
             fprintf(stderr,"** decode_ascii cannot decode type %d\n",type);
             return -1;
-        case 2: {       /* NIFTI_TYPE_UINT8 */
+        case NIFTI_TYPE_UINT8: {
             unsigned char * ptr = (unsigned char *)dptr;
             p1 = cdata;
             prev = p1;
@@ -1968,7 +1968,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 4: {       /* NIFTI_TYPE_INT16 */
+        case NIFTI_TYPE_INT16: {
             short * ptr = (short *)dptr;
             p1 = cdata;
             prev = p1;
@@ -1984,7 +1984,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 8: {       /* NIFTI_TYPE_INT32 */
+        case NIFTI_TYPE_INT32: {
             int * ptr = (int *)dptr;
             p1 = cdata;
             prev = p1;
@@ -2000,7 +2000,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 16: {      /* NIFTI_TYPE_FLOAT32 */
+        case NIFTI_TYPE_FLOAT32: {
             float * ptr = (float *)dptr;
             p1 = cdata;
             prev = p1;
@@ -2016,7 +2016,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 64: {      /* NIFTI_TYPE_FLOAT64 */
+        case NIFTI_TYPE_FLOAT64: {
             double * ptr = (double *)dptr;
             p1 = cdata;
             prev = p1;
@@ -2032,7 +2032,24 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 512: {     /* NIFTI_TYPE_UINT16 */
+        case NIFTI_TYPE_INT8: {
+            char * ptr = (char *)dptr;
+            p1 = cdata;
+            prev = p1;
+            /* vals could be < 0, but we must care for promotion to size_t */
+            while( (vals < 0 || vals < *nvals) && p1 ) {
+                lval = strtol(p1, &p2, 10);   /* try to read next value */
+                if( p1 == p2 ) break;   /* nothing read, terminate loop */
+                prev = p1;              /* store old success ptr */
+                p1 = p2;                /* move to next posn */
+                ptr[vals] = lval;       /* assign new value  */
+                if(xd->verb>6)fprintf(stderr,"  v %d (%ld)",ptr[vals],lval);
+                vals++;                 /* count new value   */
+            }
+            if(xd->verb > 6) fputc('\n', stderr);
+            break;
+        }
+        case NIFTI_TYPE_UINT16: {
             unsigned short * ptr = (unsigned short *)dptr;
             p1 = cdata;
             prev = p1;
@@ -2043,6 +2060,23 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
                 p1 = p2;                /* move to next posn */
                 ptr[vals] = lval;       /* assign new value  */
                 if(xd->verb>6)fprintf(stderr,"  v %d (%ld)",ptr[vals],lval);
+                vals++;                 /* count new value   */
+            }
+            if(xd->verb > 6) fputc('\n', stderr);
+            break;
+        }
+        case NIFTI_TYPE_INT64: {
+            long long * ptr = (long long *)dptr;
+            long long llval;
+            p1 = cdata;
+            prev = p1;
+            while( (vals < 0 || vals < *nvals) && p1 ) {
+                llval = strtoll(p1, &p2, 10);   /* try to read next value */
+                if( p1 == p2 ) break;   /* nothing read, terminate loop */
+                prev = p1;              /* store old success ptr */
+                p1 = p2;                /* move to next posn */
+                ptr[vals] = llval;      /* assign new value  */
+                if(xd->verb>6)fprintf(stderr,"  v %lld (%lld)",ptr[vals],llval);
                 vals++;                 /* count new value   */
             }
             if(xd->verb > 6) fputc('\n', stderr);

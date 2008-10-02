@@ -99,17 +99,21 @@ static char * gifti_history[] =
   "     - added gifti_free_CS_list, gifti_add_empty_CS\n"
   "\n"
   "------------------------ initial release version -----------------------\n",
-  "1.0  13 May, 2008 : release version of gifticlib\n",
+  "1.00 13 May, 2008 : release version of gifticlib\n",
   "     - allowed external data\n"
   "     - added gifti_read/write_extern_DA_data() and\n"
   "             gifti_set_extern_filelist()\n"
-  "1.1  02 June, 2008 :\n",
+  "1.01 02 June, 2008 :\n",
   "     - added CMakeLists.txt and XMLCALL update from Simon Warfield\n"
   "       (define XMLCALL for pre-1.95.7 versions of expat)\n"
   "     - added LICENSE.gifti\n"
+  "1.02 02 October, 2008 :\n",
+  "     - separate diffs in DAs from those in gifti_image\n"
+  "     - decode additional data types: INT8, UINT16, INT64\n"
+  "     - add link flags to libgiftiio_la target\n"
 };
 
-static char gifti_version[] = "gifti library version 1.1, 2 June, 2008";
+static char gifti_version[] = "gifti library version 1.02, 2 October, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -2397,7 +2401,7 @@ int gifti_copy_all_DA_meta(giiDataArray *dest, giiDataArray *src)
 int gifti_compare_gifti_images(const gifti_image * g1, const gifti_image * g2,
                                int comp_data, int verb)
 {
-    int diffs = 0, data_diffs = 0, c, rv, numDA;
+    int diffs = 0, data_diffs = 0, gdiffs = 0, c, rv, numDA;
     int lverb = verb;           /* possibly override passed 'verb' */
 
     if( G.verb > 3 ) lverb = 3;
@@ -2413,7 +2417,7 @@ int gifti_compare_gifti_images(const gifti_image * g1, const gifti_image * g2,
     if( gifti_compare_gims_only(g1, g2, lverb) ) {
         if( lverb > 0 ) printf("++ gifti_images differ\n");
         if( lverb < 2 ) return 1;        /* all we need to know */
-        diffs++;
+        gdiffs++;
     }
 
     /* get min numDA, just to be safe */
@@ -2430,14 +2434,17 @@ int gifti_compare_gifti_images(const gifti_image * g1, const gifti_image * g2,
         }
     }
 
-    /* maybe we should state data diffs separately */
+    if( diffs && G.verb > 0 )
+        fprintf(stderr,"-- differences found in %d of %d DAs\n", diffs, numDA);
+
+    /* state data diffs separately */
     if( G.verb > 2 && comp_data ) {
         if( ! data_diffs ) fprintf(stderr,"-- no data differences found\n");
         else fprintf(stderr,"-- data differences found in %d of %d DAs\n",
                             data_diffs, numDA);
     }
 
-    if( diffs ) return 1;
+    if( diffs || gdiffs ) return 1;
     return 0;
 }
 
