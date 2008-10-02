@@ -23,7 +23,7 @@ v_align = 'center'
 />
 <T
 font = 'f9'
-coord = '0.75 0.80 1'
+coord = '0.75 0.80 0.9'
 col = '0.91 0.41 0.61'
 text = 'BACK'
 />
@@ -51,7 +51,7 @@ text = 'UpOnTop'
 v_align = 'top'
 /T>
 <I
-coord = '1 0 1'
+coord = '1 0 0.9'
 filename = 'face_alexmartin2.jpg'
 h_align = 'right'
 v_align = 'bot'
@@ -64,7 +64,7 @@ text = "Attached to node 0's initial position"
 mix_mode = "decal"
 coord_gen = "sphere"
 target = "ALL_SURFS"
-filename = "face_afniman.jpg"
+filename = "face_sumabucks.jpg"
 />
 <Tex
 target = "FRAME"
@@ -73,5 +73,5 @@ frame_coords = "
 0.0 1.0 1
 1.0 1.0 1
 1.0 0.0 1"
-filename = "face_sumabucks.jpg"
+filename = "face_afniman.jpg"
 />

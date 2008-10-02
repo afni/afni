@@ -90,22 +90,33 @@ sets the select color of the widget to its foreground color */
    m_s = (char *)n;  \
 }
 
-#define SUMA_SET_GL_PROJECTION(csv) {  \
-   if (!csv->ortho) { \
-      if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName); \
+#define SUMA_SET_GL_PROJECTION(csv, ortho) {  \
+   if (!ortho) { \
+      if (LocalHead) \
+         fprintf (SUMA_STDOUT,\
+                  "%s: Setting up matrix mode and perspective ...\n", \
+                  FuncName); \
       glMatrixMode (GL_PROJECTION); \
       glLoadIdentity ();   \
-      gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/   \
+      gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, \
+                     SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); \
+                     /*lower angle is larger zoom,*/   \
    }  else { \
-      GLdouble m_sz = 0.5 *tan(SUMA_PI * csv->FOV[csv->iState] / 180.0)*csv->GVS[csv->StdView].ViewFrom[2];  \
+      GLdouble m_sz = \
+         0.5 *tan(SUMA_PI * csv->FOV[csv->iState] / 180.0) * \
+         csv->GVS[csv->StdView].ViewFrom[2];  \
       GLdouble m_szx = m_sz * csv->Aspect;   \
       GLdouble m_szy = m_sz ;   \
-      if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and orthographic projection (m_szx = %g, m_szy=%g)...\n", FuncName, m_szx, m_szy); \
+      if (LocalHead) \
+         fprintf (SUMA_STDOUT,\
+                  "%s: Setting up matrix mode and orthographic projection "\
+                  "(m_szx = %g, m_szy=%g)...\n", FuncName, m_szx, m_szy); \
       glMatrixMode (GL_PROJECTION); \
       glLoadIdentity ();   \
       glOrtho( -m_szx, m_szx, \
                -m_szy, m_szy, \
-               SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/   \
+               SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is  \
+                                                               larger zoom,*/   \
    }  \
 }
 
@@ -113,17 +124,24 @@ sets the select color of the widget to its foreground color */
    if (LocalHead) {  \
       int m_i; \
       fprintf(stdout,"Translation Vector: %f %f\n", \
-         csv->GVS[csv->StdView].translateVec[0], csv->GVS[csv->StdView].translateVec[1]); \
+         csv->GVS[csv->StdView].translateVec[0], \
+         csv->GVS[csv->StdView].translateVec[1]); \
       fprintf(stdout,"Rotation Matrix:\n");  \
       for (m_i=0; m_i<4; ++m_i){ fprintf(stdout, "%f\t%f\t%f\t%f\n",   \
-         rotationMatrix[m_i][0], rotationMatrix[m_i][1], rotationMatrix[m_i][2], rotationMatrix[m_i][3]); }   \
+         rotationMatrix[m_i][0], rotationMatrix[m_i][1], \
+         rotationMatrix[m_i][2], rotationMatrix[m_i][3]); }   \
    }  \
    glMatrixMode(GL_MODELVIEW);   \
    glPushMatrix();   \
-   glTranslatef (csv->GVS[csv->StdView].translateVec[0], csv->GVS[csv->StdView].translateVec[1], 0.0);   \
-   glTranslatef (csv->GVS[csv->StdView].RotaCenter[0], csv->GVS[csv->StdView].RotaCenter[1], csv->GVS[csv->StdView].RotaCenter[2]); \
+   glTranslatef ( csv->GVS[csv->StdView].translateVec[0], \
+                  csv->GVS[csv->StdView].translateVec[1], 0.0);   \
+   glTranslatef ( csv->GVS[csv->StdView].RotaCenter[0], \
+                  csv->GVS[csv->StdView].RotaCenter[1], \
+                  csv->GVS[csv->StdView].RotaCenter[2]); \
    glMultMatrixf(&rotationMatrix[0][0]);  \
-   glTranslatef (-csv->GVS[csv->StdView].RotaCenter[0], -csv->GVS[csv->StdView].RotaCenter[1], -csv->GVS[csv->StdView].RotaCenter[2]); \
+   glTranslatef (-csv->GVS[csv->StdView].RotaCenter[0], \
+                  -csv->GVS[csv->StdView].RotaCenter[1], \
+                  -csv->GVS[csv->StdView].RotaCenter[2]); \
 }   
 
 
@@ -147,8 +165,13 @@ int SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned i
 GLvoid *SUMA_grabPixels(int inColor, unsigned int width, unsigned int height);
 SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO* dov);
 void SUMA_context_Init(SUMA_SurfaceViewer *sv);
-SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, GLdouble *Pick0, GLdouble *Pick1, 
-                                    int N_List, int *xList, int *yList, GLdouble *Pick0List);
+SUMA_Boolean SUMA_NormScreenToWorld(SUMA_SurfaceViewer *sv, 
+                                    double xn, double yn, 
+                                    GLdouble *pfront, GLdouble *pback);
+SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, 
+                                    GLdouble *Pick0, GLdouble *Pick1, 
+                                    int N_List, int *xList, int *yList, 
+                                    GLdouble *Pick0List);
 int SUMA_viewSurfaceCont(Widget w, SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv);
 void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData);

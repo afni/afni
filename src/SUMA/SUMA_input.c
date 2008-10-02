@@ -434,7 +434,7 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             else { SUMA_S_Note(stmp); }
          }
 
-         SUMA_SET_GL_PROJECTION(sv);
+         SUMA_SET_GL_PROJECTION(sv, sv->ortho);
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          break; 
       default:
@@ -3789,7 +3789,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke
          overlay them accordingly */
       /* Add the ROI to DO */
       if (!SUMA_AddDO ( SUMAg_DOv, &SUMAg_N_DOv, 
-                        (void *)DrawnROI, ROIdO_type, SUMA_LOCAL)) {
+                        (void *)DrawnROI, ROIdO_type, SUMA_WORLD)) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
       }
 

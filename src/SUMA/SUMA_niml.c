@@ -838,7 +838,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          }
          /* add this surface to DOv */
          if (BrandNew) {
-            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)SO,  SO_type, SUMA_LOCAL)) {
+            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)SO,  SO_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
                SUMA_RETURN(NOPE);
             }
@@ -1337,7 +1337,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* add this surface to DOv */
          if (BrandNew) {
-            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)SOn,  SO_type, SUMA_LOCAL)) {
+            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)SOn,  SO_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
                SUMA_RETURN(NOPE);
             }
@@ -1353,7 +1353,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       } else if (strcmp(ngr->name,"Segment_DO") == 0) {
          SUMA_SegmentDO *SDO = SUMA_niSDO2SDO(ngr);
          /* addDO (mixing is taken care of internally)*/
-         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, SDO->do_type, SUMA_LOCAL)) {
+         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, SDO->do_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
             SUMA_RETURN(NOPE);
          }

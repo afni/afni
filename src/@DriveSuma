@@ -81,11 +81,14 @@ cd tmp_suma
                       -view_surf_cont n -I_range -0.05 0.14
        DriveSuma -com surf_cont -load_cmap bbr.1D.cmap
 
-        echo 'Hit Enter to quit.'
-        set l = $<
+       echo 'Hit Enter to quit'
+       set l = $<
 
+      
 #Adieu
-       DriveSuma -com kill_suma
+      DriveSuma -com kill_suma
        
        
+
+END:
 

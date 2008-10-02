@@ -1270,9 +1270,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   ivec.n = N_Send;
                   ED = SUMA_InitializeEngineListData (SE_SetAfniSurfList);
                   if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
-                                                         SEF_ivec, (void *)(&ivec), 
-                                                         SES_Suma, (void *)sv, NOPE, 
-                                                         SEI_Tail, NULL))) {
+                                                  SEF_ivec, (void *)(&ivec), 
+                                                  SES_Suma, (void *)sv, 
+                                                  NOPE, 
+                                                  SEI_Tail, NULL))) {
                      fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
                      break;
                   }
@@ -2528,7 +2529,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_S_Err("Empty Save_As");
                      goto CLEAN_RECORDER_CONT;
                   }
-                  fn = SUMA_ParseFname(stmp, NI_get_attribute(EngineData->ngr, "Caller_Working_Dir"));
+                  fn = SUMA_ParseFname(stmp, 
+                                       NI_get_attribute(EngineData->ngr, 
+                                       "Caller_Working_Dir"));
                   if (!(sname = SUMA_copy_string(fn->FileName_NoExt))) {
                      sname = SUMA_copy_string("no_name");
                   }
@@ -2563,7 +2566,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      SUMA_S_Err("Empty Save_As");
                      goto CLEAN_RECORDER_CONT;
                   }
-                  fn = SUMA_ParseFname(stmp, NI_get_attribute(EngineData->ngr, "Caller_Working_Dir"));
+                  fn = SUMA_ParseFname(stmp, 
+                                       NI_get_attribute( EngineData->ngr, 
+                                                         "Caller_Working_Dir"));
                   if (!(sname = SUMA_copy_string(fn->FileName_NoExt))) {
                      sname = SUMA_copy_string("no_name");
                   }
@@ -2641,6 +2646,7 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    char *SOid=NULL, *svid=NULL, *name=NULL, *SOlabel=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfaceViewer *sv = NULL;
+   SUMA_PARSED_NAME *fn = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2729,14 +2735,17 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    switch (cc) {
        case SE_niSetSurfCont:
          if (!SO->SurfCont) {
-            SUMA_S_Err("Unexpected NULL SurfCont\nPlease report error to author.");
+            SUMA_S_Err( "Unexpected NULL SurfCont\n"
+                        "Please report error to author.");
             SUMA_RETURN(Ret);
          }
-         if (!SO->SurfCont->TopLevelShell) { /* better have a controller before going crazy */
+         if (!SO->SurfCont->TopLevelShell) { /* better have a controller 
+                                                before going crazy */
             ED = SUMA_InitializeEngineListData (SE_OpenSurfCont);
             if (!SUMA_RegisterEngineListCommand (  list, ED,
                                                    SEF_vp, (void *)SO,
-                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SES_SumaFromAny, (void *)sv, 
+                                                   NOPE,
                                                    SEI_Head, NULL)) {
                fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
             }
@@ -2748,13 +2757,15 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
             ED = SUMA_InitializeEngineListData (SE_OpenDsetFile);
             if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
                                                       SEF_vp, (void *)SO,
-                                                      SES_SumaFromAny, (void *)sv, NOPE,
+                                                      SES_SumaFromAny, 
+                                                      (void *)sv, NOPE,
                                                       SEI_Tail, NULL))) {
                   fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
             }
             if (!SUMA_RegisterEngineListCommand (  list, ED,
                                                       SEF_cp, (void *)name,
-                                                      SES_SumaFromAny, (void *)sv, NOPE,
+                                                      SES_SumaFromAny, 
+                                                      (void *)sv, NOPE,
                                                       SEI_In, el)) {
                   fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
             }
@@ -2763,42 +2774,71 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
          ED = SUMA_InitializeEngineListData (SE_SetSurfCont);
          if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
                                                    SEF_ngr, (void *)ngr,
-                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SES_SumaFromAny, (void *)sv, 
+                                                   NOPE,
                                                    SEI_Tail, NULL))) {
                fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
          }
          if (!SUMA_RegisterEngineListCommand (  list, ED,
                                                    SEF_vp, (void *)SO,
-                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SES_SumaFromAny, (void *)sv, 
+                                                   NOPE,
                                                    SEI_In, el)) {
                fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
          }
          break; 
       case SE_niSetViewerCont:
          if ((name = NI_get_attribute(ngr,"VVS_FileName"))) {
-            /* Have a vvs to load, do it straight up, no need to call some SE_SetViewerCont, a la SE_SetSurfCont yet */
-            SUMA_LoadVisualState(name, (void *)sv);
+            /* Have a vvs to load, do it straight up, 
+               no need to call some SE_SetViewerCont, a la SE_SetSurfCont yet */
+            if ((fn = SUMA_ParseFname(name, 
+                                 NI_get_attribute(ngr, 
+                                       "Caller_Working_Dir")))) {
+               SUMA_LoadVisualState(fn->FullName, (void *)sv);
+            }
+            if (fn) fn = SUMA_Free_Parsed_Name(fn);
+         }
+         if ((name = NI_get_attribute(ngr,"DO_FileName"))) {
+            /* Have a DO to load, straight up too*/
+            if ((fn = SUMA_ParseFname(name, 
+                                 NI_get_attribute(ngr, 
+                                       "Caller_Working_Dir")))) {
+               SUMA_LoadSegDO(fn->FullName, (void *)sv);
+            }
+            if (fn) fn = SUMA_Free_Parsed_Name(fn);
+         }
+         if ((name = NI_get_attribute(ngr,"DoViewerSetup"))) {
+            /* have something to do with viewer setup */
+            if (!SUMA_ApplyVisualState((NI_element *)ngr, sv)) {
+               SUMA_S_Err("Failed to apply state");
+               SUMA_RETURNe;
+            }
          }
          /* all the rest can be handled in one engine call */
          ED = SUMA_InitializeEngineListData (SE_SetViewerCont);
          if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
                                                    SEF_ngr, (void *)ngr,
-                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SES_SumaFromAny, (void *)sv, 
+                                                   NOPE,
                                                    SEI_Tail, NULL))) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed to register command.\n", FuncName);
          }
          if (!SUMA_RegisterEngineListCommand (  list, ED,
                                                    SEF_vp, (void *)SO,
-                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SES_SumaFromAny, (void *)sv, 
+                                                   NOPE,
                                                    SEI_In, el)) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed to register command.\n", FuncName);
          }
          break;    
       case SE_niSetRecorderCont:
          ED = SUMA_InitializeEngineListData (SE_SetRecorderCont);
          if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
                                                    SEF_ngr, (void *)ngr,
-                                                   SES_SumaFromAny, (void *)sv, NOPE,
+                                                   SES_SumaFromAny, (void *)sv, 
+                                                   NOPE,
                                                    SEI_Tail, NULL))) {
                fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
          }
@@ -3706,7 +3746,7 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer 
 
    #if 0
    /* force an axis drawing to set the projection matrix correctly */
-   SUMA_SET_GL_PROJECTION(sv);   
+   SUMA_SET_GL_PROJECTION(sv, sv->ortho);   
    #endif
    
    /* You still need to call SUMA_display via SUMA_postRedisplay but that is done after this function returns */ 
