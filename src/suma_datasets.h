@@ -648,8 +648,12 @@ static byte NI_GOT;
    if (m_s) { NI_GOT = 1; val = atoi(m_s); } else { NI_GOT = 0; val = 0; }\
 }
 #define NI_SET_INTv(ngr, name, valv, n) {\
-   char m_stmp[400]; int m_i=0;  m_stmp[0] = '\0';\
-   for (m_i=0; m_i<n;++m_i) snprintf(m_stmp, 390*sizeof(char), "%s %d", m_stmp, valv[m_i]);   \
+   char m_stmp[400]; int m_i=0, m_s=0; m_stmp[0] = '\0';\
+   for (m_i=0; m_i<n && m_s < 350; ++m_i) { \
+      sprintf(m_stmp+m_s, " %d", valv[m_i]);   \
+      m_s += strlen(m_stmp);  \
+      if (m_s >= 350) { SUMA_S_Warn("Too long a vector, might get truncated"); }\
+   }\
    NI_set_attribute(ngr, name, m_stmp);  \
 }
 
@@ -686,8 +690,12 @@ static byte NI_GOT;
 }
 
 #define NI_SET_FLOATv(ngr, name, valv, n) {\
-   char m_stmp[400]; int m_i=0;  m_stmp[0] = '\0';\
-   for (m_i=0; m_i<n;++m_i) snprintf(m_stmp, 390*sizeof(char), "%s %f", m_stmp, valv[m_i]);   \
+   char m_stmp[400]; int m_i=0, m_s=0;  m_stmp[0] = '\0';\
+   for (m_i=0; m_i<n && m_s < 350; ++m_i) { \
+      sprintf(m_stmp+m_s, " %f", valv[m_i]);   \
+      m_s += strlen(m_stmp);  \
+      if (m_s >= 350) { SUMA_S_Warn("Too long a vector, might get truncated"); }\
+   }\
    NI_set_attribute(ngr, name, m_stmp);  \
 }
 
