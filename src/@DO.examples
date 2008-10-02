@@ -152,6 +152,7 @@ NIDO:
       
       echo ""
       echo ">>> Hit enter to see texture images added, fixed coord_type."
+      echo "    This may slow rendering speeds considerably on some machines." 
       set kk = $<
       cp fixed.niml.do __fixed.niml.do
       DriveSuma -com viewer_cont -load_do __fixed.niml.do
@@ -163,7 +164,6 @@ NIDO:
       #first hide all content of fixed, to reduce confusion
       sed "s;\<;\<#;g" fixed.niml.do > __fixed.niml.do
       DriveSuma -com viewer_cont -load_do __fixed.niml.do
-      rm -f __fixed.niml.do
       
       #Now load the mobile one
       DriveSuma -com viewer_cont -load_do mobile.niml.do 
