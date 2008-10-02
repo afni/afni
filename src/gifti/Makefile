@@ -4,7 +4,6 @@
 # might not have zlib
 APPLY_ZLIB = -DHAVE_ZLIB
 
-# NIFTI_DIR = ../../nifti/Clibs
 NIFTI_DIR = ../nifti
 
 LIBTOOL = libtool
@@ -35,9 +34,9 @@ gifti_test: gifti_test.o gifti_io.o gifti_xml.o
 	      $(LFLAGS) -lexpat -lniftiio -lznz -lz -lm
 
 libgiftiio_la:
-	$(LIBTOOL) --mode=compile $(CC) -o gifti_io.lo -c gifti_io.c
-	$(LIBTOOL) --mode=compile $(CC) -o gifti_xml.lo -c gifti_xml.c
-	$(LIBTOOL) --mode=link $(CC) -release $(VER) -o libgiftiio.la gifti_io.lo gifti_xml.lo -rpath $(INST_DIR) -lexpat -lniftiio -lznz -lz -lm
+	$(LIBTOOL) --mode=compile $(CC) $(IFLAGS) -o gifti_io.lo -c gifti_io.c
+	$(LIBTOOL) --mode=compile $(CC) $(IFLAGS) -o gifti_xml.lo -c gifti_xml.c
+	$(LIBTOOL) --mode=link $(CC) -release $(VER) -o libgiftiio.la gifti_io.lo gifti_xml.lo -rpath $(INST_DIR) $(LFLAGS) -lexpat -lniftiio -lznz -lz -lm
 
 libgiftiio: libgiftiio_la
 	$(LIBTOOL) --mode=install install -c libgiftiio.la $(INST_DIR)
