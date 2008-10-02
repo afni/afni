@@ -2347,6 +2347,7 @@ void get_options
     } else if( option_data->input1D_filename != NULL ){ /* use 1D filename? */
       pref = strdup(option_data->input1D_filename) ;
       cpt = strstr(pref,".1D") ; if( cpt != NULL ) *cpt = '\0' ;
+      cpt = strstr(pref,"1D:") ; if( cpt != NULL ) strcpy(pref,"1D") ;
     } else if( option_data->nodata ){                   /* no data? */
       pref = strdup("nodata") ;
     } else {                                            /* default */
@@ -5196,13 +5197,14 @@ ENTRY("calculate_results") ;
     if( cd != NULL && verb ){  /*-- 22 Aug 2008: 3dREMLfit notice --*/
       char *iname=NULL ;  /* input filename for command echo below */
       char *cname=NULL ;  /* command to be output for user's wisdom */
+      char *pref , *cpt ;
       FILE *fp ;
       int iadd=0 , ilen , oneline=AFNI_yesenv("AFNI_3dDeconvolve_oneline") ;
       char *lbreak ;
 
       if( option_data->input_filename != NULL ){
         iname = calloc( sizeof(char) , strlen(option_data->input_filename)+9 ) ;
-        if( strchr(option_data->input_filename,' ') == NULL ){
+        if( THD_filename_ok(option_data->input_filename) ){
           strcpy(iname,option_data->input_filename) ;
         } else {
           strcpy(iname,"\"") ;
@@ -5276,18 +5278,32 @@ ENTRY("calculate_results") ;
       INFO_message(
         "(a) Linear regression with ARMA(1,1) modeling of serial correlation:\n\n"
         "%s\n " , cname ) ;
-      INFO_message("(b) Visualization/analysis of the matrix via ExamineXmat.R");
-      INFO_message("(c) Synthesis of sub-model datasets using 3dSynthesize") ;
-      INFO_message("==========================================================");
 
-      fp = fopen("3dDeconvolve.info","w") ;
+      if( option_data->bucket_filename != NULL ){         /* use bucket name? */
+        pref = strdup(option_data->bucket_filename) ;
+        cpt = strstr(pref,".") ; if( cpt != NULL ) *cpt = '\0' ;
+      } else if( option_data->input1D_filename != NULL ){ /* use 1D filename? */
+        pref = strdup(option_data->input1D_filename) ;
+        cpt = strstr(pref,".1D") ; if( cpt != NULL ) *cpt = '\0' ;
+        cpt = strstr(pref,"1D:") ; if( cpt != NULL ) strcpy(pref,"1D") ;
+      } else if( option_data->nodata ){                   /* no data? */
+        pref = strdup("nodata") ;
+      } else {                                            /* default */
+        pref = strdup("3dDeconvolve") ;
+      }
+      pref = (char *)realloc(pref,strlen(pref)+16) ; strcat(pref,".REML_cmd") ;
+      fp = fopen(pref,"w") ;
       if( fp != NULL ){
         fprintf( fp, "# %s\n", (commandline!=NULL) ? commandline : PROGRAM_NAME );
         fprintf( fp, "\n%s\n", cname ) ;
         fclose(fp) ;
+        INFO_message("N.B.: 3dREMLfit command above written to file %s",pref) ;
       }
+      free(pref) ; free(cname) ;
 
-      free(cname) ;
+      INFO_message("(b) Visualization/analysis of the matrix via ExamineXmat.R");
+      INFO_message("(c) Synthesis of sub-model datasets using 3dSynthesize") ;
+      INFO_message("==========================================================");
     }
   }
 
