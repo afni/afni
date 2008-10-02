@@ -133,52 +133,53 @@ set kk = $<
 
 NIDO:
 #Displayable objects (DO) action
-      set spath = `which suma`
-      set spath = $spath:h
-      cp $spath/demo.fixed.niml.do ./fixed.niml.do
-      cp $spath/demo.mobile.niml.do ./mobile.niml.do
-      if ( ! -f fixed.niml.do || ! -f mobile.niml.do ) then
-         echo "could not find demo .do files."
-         goto END
-      endif
-      
-      echo ""
-      echo ">>> Hit enter to see images, and text in fixed coord_type."
-      set kk = $<
+set spath = `which suma`
+set spath = $spath:h
+cp $spath/demo.fixed.niml.do ./fixed.niml.do
+cp $spath/demo.mobile.niml.do ./mobile.niml.do
+if ( ! -f fixed.niml.do || ! -f mobile.niml.do ) then
+   echo "could not find demo .do files."
+   goto END
+endif
 
-      #Hide the textures
-      sed "s;\<Tex;\<\#Tex;g" fixed.niml.do > __fixed.niml.do
-      DriveSuma -com viewer_cont -load_do __fixed.niml.do 
-      
-      echo ""
-      echo ">>> Hit enter to see texture images added, fixed coord_type."
-      echo "    This may slow rendering speeds considerably on some machines." 
-      set kk = $<
-      cp fixed.niml.do __fixed.niml.do
-      DriveSuma -com viewer_cont -load_do __fixed.niml.do
-      
-      echo ""
-      echo ">>> Hit enter to see images, texture and text in, mobile coord_type."
-      set kk = $<
-      
-      #first hide all content of fixed, to reduce confusion
-      sed "s;\<;\<#;g" fixed.niml.do > __fixed.niml.do
-      DriveSuma -com viewer_cont -load_do __fixed.niml.do
-      
-      #Now load the mobile one
-      DriveSuma -com viewer_cont -load_do mobile.niml.do 
-      
-      echo ""
-      echo ">>> Hit enter to see all NIDO elements together"
-      set kk = $<
+echo ""
+echo ">>> Hit enter to see images, and text in fixed coord_type."
+set kk = $<
 
-      DriveSuma -com viewer_cont -load_do fixed.niml.do
-      
-      sleep 3
-      DriveSuma -com viewer_cont -key:r8 Z
-      sleep 3
-      DriveSuma -com viewer_cont -key:r8 Z  
-           
+#Hide the textures
+sed "s;\<Tex;\<\#Tex;g" fixed.niml.do > __fixed.niml.do
+DriveSuma -com viewer_cont -load_do __fixed.niml.do 
+
+echo ""
+echo ">>> Hit enter to see texture images added, fixed coord_type."
+echo "    This may slow rendering speeds considerably on some machines." 
+set kk = $<
+cp fixed.niml.do __fixed.niml.do
+DriveSuma -com viewer_cont -load_do __fixed.niml.do
+
+echo ""
+echo ">>> Hit enter to see images, texture and text in, mobile coord_type."
+set kk = $<
+
+#first hide all content of fixed, to reduce confusion
+sed "s;\<;\<#;g" fixed.niml.do > __fixed.niml.do
+DriveSuma -com viewer_cont -load_do __fixed.niml.do
+
+#Now load the mobile one
+DriveSuma -com viewer_cont -load_do mobile.niml.do 
+
+echo ""
+echo ">>> Hit enter to see all NIDO elements together"
+set kk = $<
+
+DriveSuma -com viewer_cont -load_do fixed.niml.do
+
+sleep 3
+DriveSuma -com viewer_cont -key:r8 Z
+sleep 3
+DriveSuma -com viewer_cont -key:r8 Z  
+
+QUIT:
 echo ""
 echo ">>> Enter 'c' if you want to cleanup before quitting."
 set kk = $<

@@ -865,6 +865,8 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    char *fnamestmp=NULL, *fnamestmp2=NULL;
    int feyl;
    SUMA_SurfaceViewer *csv;
+   Position X, Y;
+   Dimension ScrW, ScrH;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -899,6 +901,26 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    NI_set_attribute (nel, "WindWidth", stmp);
    sprintf(stmp, "%d", csv->WindHeight);
    NI_set_attribute (nel, "WindHeight", stmp);
+   if (csv->X && csv->X->TOPLEVEL) {            
+      ScrW = WidthOfScreen (XtScreen(csv->X->TOPLEVEL));
+      ScrH = HeightOfScreen (XtScreen(csv->X->TOPLEVEL));
+      XtVaGetValues (csv->X->TOPLEVEL, /* Get the positions of New */
+         XmNx, &X,
+         XmNy, &Y,
+         NULL);
+      if ((int)X >= 0 && (int)X < ScrW ) { 
+         NI_SET_INT (nel, "WindX", (int)X);
+      } else {
+         SUMA_S_Warnv("X position is %d, outside of [0,%d[\n",
+                      X, ScrW);
+      }
+      if ((int)Y >= 0 && (int)Y < ScrH ) { 
+         NI_SET_INT (nel, "WindY", (int)Y);
+      } else {
+         SUMA_S_Warnv("Y position is %d, outside of [0,%d[\n",
+                      Y, ScrH);
+      }
+   }
    sprintf(stmp, "%d", (int)csv->BF_Cull);
    NI_set_attribute (nel, "BF_Cull", stmp);
    sprintf(stmp, "%f", csv->Back_Modfact);
@@ -949,7 +971,9 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
          BF_Cull[1], Back_Modfact[1], PolyMode[1], ShowEyeAxis[1], 
          ShowWorldAxis[1],
          ShowMeshAxis[1], ShowCrossHair[1], ShowForeground[1], 
-         ShowBackground[1];   char *atmp;
+         ShowBackground[1], WindX[1], WindY[1];
+   Dimension ScrW, ScrH;   
+   char *atmp;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -988,6 +1012,35 @@ int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv)
          csv->WindHeight = (int)WindHeight[0]; 
             /* That gets recalculated when SUMA_resize is called */
       }
+   if (csv->X && csv->X->TOPLEVEL) {
+      Position Xi, Yi;            
+      ScrW = WidthOfScreen (XtScreen(csv->X->TOPLEVEL));
+      ScrH = HeightOfScreen (XtScreen(csv->X->TOPLEVEL));
+      SUMA_S2FV_ATTR(nel, "WindX", WindX, 1, feyl); 
+      if (!feyl) {
+         if ((int)WindX[0] < 0 && (int)WindX[0] >= ScrW ) { 
+            SUMA_S_Warnv("X position is %d, outside of [0,%d[\n",
+                   (int)WindX[0], ScrW);
+            WindX[0] = -1.0;
+         }
+      } else WindX[0] = -1.0;
+      SUMA_S2FV_ATTR(nel, "WindY", WindY, 1, feyl); 
+      if (!feyl) {
+         if ((int)WindY[0] < 0 && (int)WindY[0] >= ScrW ) { 
+            SUMA_S_Warnv("Y position is %d, outside of [0,%d[\n",
+                   (int)WindY[0], ScrW);
+            WindY[0] = -1.0;
+         }
+      } else WindY[0] = -1.0;
+      
+      if (WindY[0] >= 0 && WindY[0] >= 0) {
+         XtVaSetValues (csv->X->TOPLEVEL, /* Get the positions of New */
+            XmNx, (Position)((int)WindX[0]),
+            XmNy, (Position)((int)WindY[0]),
+            NULL);
+       }
+   }
+
    SUMA_S2FV_ATTR(nel, "clear_color", clear_color, 4, feyl); 
       if (!feyl) {
          SUMA_COPY_VEC(clear_color, csv->clear_color, 4, float, float);
@@ -2131,11 +2184,12 @@ SUMA_MenuItem DrawROI_WhatDist_Menu[]= {
          
    {NULL},
 };      
+
 SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 {
    static char FuncName[]={"SUMA_X_SurfaceViewer_Create"};
    static int CallNum = 0;
-   int ic = 0;
+   int ic = 0, icr=0;
    char *vargv[1]={ "[A] SUMA" };
    int cargc = 1;
    SUMA_Boolean NewCreation = NOPE, Found=NOPE, Inherit = NOPE;
@@ -2347,7 +2401,28 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       }
       /* keep track of count */
       SUMAg_N_SVv += 1;
-             
+      /* position window next to the previous one open */
+      {
+         Found = NOPE;
+         icr = SUMA_MAX_SURF_VIEWERS - 1;
+         while (icr >= 0 && !Found) {
+            if (icr != ic && SUMAg_SVv[icr].Open) {
+               Found = YUP;
+            } else {
+               --icr;
+            }
+         }
+         if (Found) {
+            SUMA_PositionWindowRelative(SUMAg_SVv[ic].X->TOPLEVEL,
+                                        SUMAg_SVv[icr].X->TOPLEVEL,
+                                        SWP_TOP_RIGHT);
+         } else {
+            SUMA_PositionWindowRelative(SUMAg_SVv[ic].X->TOPLEVEL,
+                                        NULL,
+                                        SWP_POINTER);
+         }
+      
+      }       
    } else { /* widget already set up, just undo whatever was done in SUMA_ButtClose_pushed */
       
       #ifdef SUMA_USE_WITHDRAW
@@ -3790,7 +3865,8 @@ void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callDat
 void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_createViewerCont"};
-   Widget tl, rc, pb, ViewerFrame, SwitchFrame, QuitFrame, rc_left, rc_right, rc_mamma;
+   Widget   tl, rc, pb, ViewerFrame, SwitchFrame, 
+            QuitFrame, rc_left, rc_right, rc_mamma;
    Display *dpy;
    SUMA_SurfaceViewer *sv;
    int isv;    
@@ -3803,7 +3879,9 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    isv = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
    
    if (sv->X->ViewCont->TopLevelShell) {
-      fprintf (SUMA_STDERR,"Error %s: sv->X->ViewCont->TopLevelShell!=NULL. Should not be here.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: sv->X->ViewCont->TopLevelShell!=NULL. \n"
+               "Should not be here.\n", FuncName);
       SUMA_RETURNe;
    }
    tl = SUMA_GetTopShell(w); /* top level widget */
@@ -3812,7 +3890,8 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    sprintf(slabel,"[%c] Viewer Controller", 65+isv);
    
    
-   #if SUMA_CONTROLLER_AS_DIALOG /*xmDialogShellWidgetClass, topLevelShellWidgetClass*/
+   #if SUMA_CONTROLLER_AS_DIALOG 
+      /*xmDialogShellWidgetClass, topLevelShellWidgetClass*/
    SUMA_LH("Create a popup");
    sv->X->ViewCont->TopLevelShell = XtVaCreatePopupShell (slabel,
       xmDialogShellWidgetClass, tl,
@@ -3821,8 +3900,10 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       NULL);    
    #else
    SUMA_LH("Create an App");
-   /** Feb 03/03: I was using XtVaCreatePopupShell to create a topLevelShellWidgetClass. 
-   XtVaCreatePopupShell is used to create dialog shells not toplevel or appshells */
+   /** Feb 03/03: I was using XtVaCreatePopupShell to create a 
+      topLevelShellWidgetClass. 
+      XtVaCreatePopupShell is used to create dialog shells not 
+      toplevel or appshells */
    sv->X->ViewCont->TopLevelShell = XtVaAppCreateShell (slabel, "Suma",
       topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
       XmNdeleteResponse, XmDO_NOTHING,
@@ -3898,8 +3979,10 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
             XmNmarginWidth , SUMA_MARGIN ,
             NULL);
 
-      /*put a label containing the surface name, number of nodes and number of facesets */
-      snprintf(slabel, 40*sizeof(char), "Group: %s, State: %s", sv->CurGroupName, sv->State);
+      /*put a label containing the surface name, 
+         number of nodes and number of facesets */
+      snprintf(slabel, 40*sizeof(char), 
+               "Group: %s, State: %s", sv->CurGroupName, sv->State);
       sv->X->ViewCont->Info_lb = XtVaCreateManagedWidget (slabel, 
                xmLabelWidgetClass, rc,
                NULL);
@@ -3911,18 +3994,23 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       sv->X->ViewCont->ViewerInfo_pb = XtVaCreateWidget ("more", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (sv->X->ViewCont->ViewerInfo_pb, XmNactivateCallback, SUMA_cb_moreViewerInfo, (XtPointer) sv);
-      XtVaSetValues (sv->X->ViewCont->ViewerInfo_pb, XmNuserData, (XtPointer)sv, NULL); /* store sv in userData
-                                                                  I think it is more convenient than as data
-                                                                  in the call back structure. This way it will
-                                                                  be easy to change the sv that this same button
-                                                                  might refer to. 
-                                                                  This is only for testing purposes, the pb_close
-                                                                  button still expects sv in clientData
-                                                                  Feb 23 04: UserData works well, but other 
-                                                                  functions don't use it much so also store sv in clientData*/
-      MCW_register_hint( sv->X->ViewCont->ViewerInfo_pb , "More info on Viewer" ) ;
-      MCW_register_help( sv->X->ViewCont->ViewerInfo_pb , SUMA_moreViewerInfo_help ) ;
+      XtAddCallback (sv->X->ViewCont->ViewerInfo_pb, XmNactivateCallback, 
+                     SUMA_cb_moreViewerInfo, (XtPointer) sv);
+      XtVaSetValues (sv->X->ViewCont->ViewerInfo_pb, 
+                     XmNuserData, (XtPointer)sv, NULL); 
+                     /* store sv in userData
+                     I think it is more convenient than as data
+                     in the call back structure. This way it will
+                     be easy to change the sv that this same button
+                     might refer to. 
+                     This is only for testing purposes, the pb_close
+                     button still expects sv in clientData
+                     Feb 23 04: UserData works well, but other 
+                     functions don't use it much so also store sv in clientData*/
+      MCW_register_hint( sv->X->ViewCont->ViewerInfo_pb , 
+                           "More info on Viewer" ) ;
+      MCW_register_help( sv->X->ViewCont->ViewerInfo_pb , 
+                           SUMA_moreViewerInfo_help ) ;
       XtManageChild (sv->X->ViewCont->ViewerInfo_pb); 
 
       XtManageChild (rc);
@@ -3958,7 +4046,8 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       
       /* put a button for swiching groups */
       snprintf(slabel, 40*sizeof(char), "[%c] Switch Group", 65 + isv);
-      sv->X->ViewCont->SwitchGrouplst = SUMA_AllocateScrolledList (slabel, SUMA_LSP_SINGLE, 
+      sv->X->ViewCont->SwitchGrouplst = 
+            SUMA_AllocateScrolledList (slabel, SUMA_LSP_SINGLE, 
                               NOPE, YUP,
                               sv->X->ViewCont->TopLevelShell, SWP_TOP_LEFT,
                               SUMA_cb_SelectSwitchGroup, (void *)sv,
@@ -3969,7 +4058,8 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       pb = XtVaCreateWidget ("Group", 
          xmPushButtonWidgetClass, rc, 
          NULL);
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ViewerCont_SwitchGroup, (XtPointer) sv);
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_ViewerCont_SwitchGroup, (XtPointer) sv);
       MCW_register_hint( pb , "Switch Group" ) ;
       MCW_register_help( pb , "Switch Group" ) ;
       XtManageChild (pb);
@@ -3978,7 +4068,8 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       pb = XtVaCreateWidget ("State", 
          xmPushButtonWidgetClass, rc, 
          NULL);
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ViewerCont_SwitchState, (XtPointer) sv);
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_ViewerCont_SwitchState, (XtPointer) sv);
       MCW_register_hint( pb , "Switch State" ) ;
       MCW_register_help( pb , "Switch State" ) ;
       XtManageChild (pb);
@@ -4028,7 +4119,8 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       pb_close = XtVaCreateWidget ("Close", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb_close, XmNactivateCallback, SUMA_cb_closeViewerCont, (XtPointer) sv);
+      XtAddCallback (pb_close, XmNactivateCallback, 
+                     SUMA_cb_closeViewerCont, (XtPointer) sv);
       MCW_register_hint( pb_close , "Close Viewer controller" ) ;
       MCW_register_help( pb_close , SUMA_closeViewerCont_help ) ;
       XtManageChild (pb_close); 
@@ -4038,7 +4130,9 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
          NULL);
       XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
       MCW_register_help(pb_bhelp , SUMA_help_help ) ;
-      MCW_register_hint(pb_bhelp  , "Press this button then click on a button/label/menu for more help." ) ;
+      MCW_register_hint(pb_bhelp  , 
+                        "Press this button then click on a "
+                        "button/label/menu for more help." ) ;
 
       XtManageChild (pb_bhelp); 
 
@@ -4058,7 +4152,8 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    
    #if SUMA_CONTROLLER_AS_DIALOG    
    #else
-   /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, you should do the popping after all the widgets have been created.
+   /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, 
+   you should do the popping after all the widgets have been created.
    Otherwise, the window does not size itself correctly when open */
    XtPopup(sv->X->ViewCont->TopLevelShell, XtGrabNone);
    #endif
@@ -9314,7 +9409,8 @@ void SUMA_WidgetResize (Widget New, int width, int height)
    \param Ref (Widget) the widget relative to which New is placed (could pass NULL if positioning relative to pointer)
    \param Loc (SUMA_WINDOW_POSITION) the position of New relative to Ref
 */
-void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION Loc)
+void SUMA_PositionWindowRelative (  Widget New, Widget Ref, 
+                                    SUMA_WINDOW_POSITION Loc)
 {
    static char FuncName[]={"SUMA_PositionWindowRelative"};
    Position RefX, RefY, NewX, NewY, Dx=5;
@@ -9337,13 +9433,14 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
          NULL);
 
    if (Ref) { /* get the positions of Ref */
-      SUMA_LH("Getting Ref Positions");
       XtVaGetValues (Ref,
          XmNwidth, &RefW,
          XmNheight, &RefH,
          XmNx, &RefX,
          XmNy, &RefY,
          NULL);
+      SUMA_LHv("Got Ref Positions, %d %d, %d %d\n",
+                  RefX, RefY, RefW, RefH);
    } else {
       if (LocalHead) fprintf(SUMA_STDERR, "%s: NULL Ref.\n", FuncName);
       RefX = 10;
