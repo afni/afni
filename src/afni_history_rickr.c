@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, OCT, 2008, RCR, "GIFTI", MICRO, TYPE_MODIFY,
+   "minor changes",
+   "- separate diffs in DAs from those in gifti_image\n"
+   "- decode additional data types: INT8, UINT16, INT64\n"
+   "- add link flags to libgiftiio_la target"
+ } ,
+
  { 29, SEP, 2008, RCR, "3dmatmult", MAJOR, TYPE_NEW_PROG,
    "program to multiply AFNI datasets slice-by-slice as matrices",
    NULL

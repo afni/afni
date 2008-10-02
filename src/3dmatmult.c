@@ -49,7 +49,7 @@ int main( int argc, char *argv[] )
    options_t        * opts = &g_opts;
    int                rv;
 
-   if( argc < 2 ) { show_help();  PRINT_COMPILE_DATE;  return 0; }
+   if( argc < 2 ) { show_help();  return 0; }
 
    mainENTRY("3dmatmult main"); machdep(); AFNI_logger("3dmatmult",argc,argv);
 
@@ -342,19 +342,19 @@ int show_help(void)
    "        The default level is 1, while 0 is considered 'quiet'.\n"
    "\n"
    "----------------------------------------\n"
-   "* If you need to re-orient a 3D dataset so that the rows, columns,\n"
+   "* If you need to re-orient a 3D dataset so that the rows, columns\n"
    "  and slices are correct for 3dmatmult, you can use the one of the\n"
    "  programs 3daxialize or 3dresample for this purpose.\n"
    "\n"
    "* To multiply a constant matrix into a vector at each voxel, the\n"
    "  program 3dmatcalc is the proper tool.\n"
    "\n"
-   "----------------------------------------\n"
+   "----------------------------------------------------------------------\n"
    "R. Reynolds    (requested by W. Gaggl)\n"
    "\n"
    );
 
-   printf("compiled: %s\n%s\n\n", __DATE__, g_version);
+   printf("%s\ncompiled: %s\n\n", g_version, __DATE__);
 
    RETURN(0);
 }
