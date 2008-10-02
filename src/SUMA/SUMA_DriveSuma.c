@@ -213,6 +213,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                                     the current viewer.\n"
 "        -viewer_size WIDTH HEIGHT : Convenient combo of -viewer_width \n"
 "                                    and -viewer_height\n"
+"        -viewer_position X Y: Set position on the screen\n"
 "     + Example viewer_cont (assumes all previous examples have\n"
 "       been executed and suma is still running).\n"
 "        - a series of commands that should be obvious.\n"
@@ -961,7 +962,34 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
-      
+      if (  !brk && 
+            (  (strcmp(argt[kar], "-viewer_position") == 0)  ) )
+      {
+         if (kar+2 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need 2 numbers after %s \n", argt[kar]);
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';++kar;
+         if (atoi(argt[kar]) < 10 || atoi(argt[kar]) > 4000) {
+            fprintf (SUMA_STDERR, 
+               "Have %d for X in pixels! \n", atoi(argt[kar]));
+            SUMA_RETURN(0);
+         }
+         NI_set_attribute(ngr, "WindX", argt[kar]);
+         argt[kar][0] = '\0';++kar;
+         if (atoi(argt[kar]) < 10 || atoi(argt[kar]) > 4000) {
+            fprintf (SUMA_STDERR, 
+               "Have %d for Y in pixels! \n", atoi(argt[kar]));
+            SUMA_RETURN(0);
+         }
+         NI_set_attribute(ngr, "WindY", argt[kar]);
+         NI_set_attribute(ngr, "DoViewerSetup","y"); /* flag indicating 
+                                                      need to setup viewer, 
+                                                      a la vvs */
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
       if (0 && !brk) { /* do not enforce this here */
 			fprintf (SUMA_STDERR,
                   "Error %s:\n"
