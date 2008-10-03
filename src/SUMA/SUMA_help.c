@@ -148,6 +148,11 @@ static ENV_SPEC envlist[] = {
       " Values are SMALL, BIG (old style).",
       "SUMA_SurfContFontSize",
       "SMALL"},
+   {  "Where to position SUMA window when first opened.\n"
+      " Values are POINTER (at the mouse pointer's location)\n"
+      "            DEFAULT (let the window manager decide)\n",
+      "SUMA_StartUpLocation",
+      "DEFAULT"},
    {  NULL, NULL, NULL  }
 };
       
