@@ -2417,9 +2417,13 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                                         SUMAg_SVv[icr].X->TOPLEVEL,
                                         SWP_TOP_RIGHT);
          } else {
-            SUMA_PositionWindowRelative(SUMAg_SVv[ic].X->TOPLEVEL,
+            if (SUMA_isEnv("SUMA_StartUpLocation", "POINTER"))
+               SUMA_PositionWindowRelative(SUMAg_SVv[ic].X->TOPLEVEL,
                                         NULL,
                                         SWP_POINTER);
+            else {
+               /*default, do nothing */
+            }
          }
       
       }       
@@ -9407,15 +9411,17 @@ void SUMA_WidgetResize (Widget New, int width, int height)
    
    \param New (Widget) the widget to place
    \param Ref (Widget) the widget relative to which New is placed (could pass NULL if positioning relative to pointer)
+   
    \param Loc (SUMA_WINDOW_POSITION) the position of New relative to Ref
 */
 void SUMA_PositionWindowRelative (  Widget New, Widget Ref, 
                                     SUMA_WINDOW_POSITION Loc)
 {
    static char FuncName[]={"SUMA_PositionWindowRelative"};
-   Position RefX, RefY, NewX, NewY, Dx=5;
+   Position RefX, RefY, NewX, NewY, Dx=5, RootX, RootY;
    Dimension RefW, RefH, ScrW, ScrH, NewW, NewH;
-   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_Boolean LocalHead=YUP;
    
    SUMA_ENTRY;
    
@@ -9439,8 +9445,40 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
          XmNx, &RefX,
          XmNy, &RefY,
          NULL);
-      SUMA_LHv("Got Ref Positions, %d %d, %d %d\n",
-                  RefX, RefY, RefW, RefH);
+      if (0) {
+         /* stupid gig to figure out window manager position offsets,
+         Does not work ..... */
+         XtVaSetValues (Ref,  /* set the positions to where WM told you it is */
+            XmNx, RefX+20,
+            XmNy, RefY+12,
+            NULL);
+         /* Now query again */
+         XtVaGetValues (Ref,   /* get the positions after you've just set them */
+            XmNx, &RootX,
+            XmNy, &RootY,
+            NULL);
+         SUMA_LHv( "Nothing changed.....:\n"
+                  "Asked for: %d %d\n"
+                  "Got      : %d %d\n",
+                  RefX+20, RefY+12, RootX, RootY);
+      }
+
+   /* These positions do not seem to properly account for window positioning.
+    According to documentation, XmNx and Xmny are the coordinates relative to 
+    the shell's parent window, usually the window manager's frame window. 
+    (tip from ftp://ftp.x.org/contrib/faqs/FAQ-Xt). 
+    Use XtTranslateCoords() to translate to root coordinate space. But that does
+    not work on my mac (maybe two displays...) and that makes the problem 
+    worse. So I won't be using it. Other folksy remedies include setting
+    some resource to False but that did nothing. There are also indications
+    that this is a quartz problem... Will live with this for now...*/
+      /* Get the root position*/
+      XtTranslateCoords(Ref, RefX, RefY, &RootX, &RootY);
+      SUMA_LHv("Got Ref Positions,  %d %d, %d %d\n"
+               "    Root Positions, %d %d\n",
+                  RefX, RefY, RefW, RefH, 
+                  RootX, RootY);
+      /* RefX = RootX; RefY=RootY; Does not work, at least on macs... */
    } else {
       if (LocalHead) fprintf(SUMA_STDERR, "%s: NULL Ref.\n", FuncName);
       RefX = 10;
