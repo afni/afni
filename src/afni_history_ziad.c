@@ -65,6 +65,28 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 03 , OCT , 2008 , ZSS , "@DO.examples" , MINOR ,  TYPE_NEW_PROG,
+   "A script that demonstrates the use of Displayable Objects",
+   "See SUMA's interactive help for ctrl+alt+s for more information\n"
+   "on Displayable Objects (DOs). "
+ },
+
+ { 03 , OCT , 2008 , ZSS , "suma" , MINOR ,  TYPE_NEW_OPT,
+   "SUMA accepts text, images, and textures as Displayable Objects",
+   "See SUMA's interactive help for ctrl+alt+s for more information\n"
+   "on Displayable Objects (DOs). The new DOs are in a simple \n"
+   "NIML format. It is simplest to look at the script @DO.examples\n"
+   "for illustrations of the various forms of DOs that SUMA supports.\n"
+   "Sample NIML DOs (called NIDOs) are now provided with the distribution\n"
+   "They are called demo.*.niml.do."
+ },
+
+ { 03 , OCT , 2008 , ZSS , "DriveSuma" , MINOR ,  TYPE_NEW_OPT,
+   "-viewer_position/_width/_height/_size to control window placement",
+   "See DriveSuma -help for details."
+ },
+
+
  { 16 , SEP , 2008 , ZSS , "DriveSuma" , MINOR ,  TYPE_NEW_OPT,
    "-load_do sends SUMA Displayable Objects to be rendered",
    "See SUMA's interactive help for ctrl+alt+s for more information\n"
