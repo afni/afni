@@ -108,6 +108,7 @@ ENTRY("mri_scale_to_float") ;
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
    far   = MRI_FLOAT_PTR(newim) ;
+   if( far == NULL ){ mri_free(newim); RETURN(NULL); }
 
    switch( oldim->kind ){
 
