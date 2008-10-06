@@ -100,7 +100,7 @@ MRI_IMAGE *mri_scale_to_float( float scl , MRI_IMAGE *oldim )
 
 ENTRY("mri_scale_to_float") ;
 
-   if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
+   if( oldim == NULL || mri_data_pointer(oldim) == NULL ) RETURN(NULL) ;
 
    fac = scl ;
    if( fac==0.0f || fac==1.0f ){ newim = mri_to_float(oldim); RETURN(newim); }
