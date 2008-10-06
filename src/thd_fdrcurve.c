@@ -69,7 +69,12 @@ float THD_fdrcurve_zval( THD_3dim_dataset *dset , int iv , float thresh )
 
    if( !ISVALID_DSET(dset) || iv < 0 || iv >= DSET_NVALS(dset) ) return 0.0f ;
 
-   fv = DSET_BRICK_FDRCURVE(dset,iv) ; if( fv == NULL ) return 0.0f ;
+   fv = DSET_BRICK_FDRCURVE(dset,iv) ;
+   if( fv == NULL ){
+     if( dset->warp_parent != NULL )
+       fv = DSET_BRICK_FDRCURVE(dset->warp_parent,iv) ;
+     if( fv == NULL ) return 0.0f ;
+   }
 
    return ( interp_floatvec(fv,thresh) ) ;
 }

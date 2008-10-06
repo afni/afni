@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , OCT , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "FDR curves can now be fetched from warp_parent" ,
+   "If a func dataset is missing FDR curves, then the program tries to get\n"
+   "them from the warp_parent dataset.  Also, AFNI no longer allows you to\n"
+   "add FDR curves to a dataset without actual bricks (warp-on-demand)." } ,
+
  { 30 , SEP , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "added -gltsym option" ,
    "Makes it easy for the user to add GLTs without using 3dDeconvolve." } ,
