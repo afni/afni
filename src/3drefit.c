@@ -6,6 +6,9 @@
 
 #include "mrilib.h"
 
+static ATR_float *Update_float_atr(char *aname, char *fvstring);
+static ATR_int *Update_int_atr(char *aname, char *ivstring);
+
 void Syntax(char *str)
 {
    int ii ;
@@ -208,6 +211,17 @@ void Syntax(char *str)
     "                  communicating information between programs.  However,\n"
     "                  when most AFNI programs write a new dataset, they will\n"
     "                  not preserve any such non-standard attributes.\n"
+    "  -atrfloat name 'values'\n"
+    "  -atrint name 'values'\n"
+    "                  Create or modify floating point or integer attributes.\n"
+    "                  The input values may be specified as a single string\n"
+    "                  in quotes or as a 1D filename or string. For example,\n"
+    "     3drefit -atrfloat IJK_TO_DICOM_REAL '1 0 0 0 0 1 0 0 0 0 0 1'"
+          " dset+orig\n"  
+    "     3drefit -atrfloat IJK_TO_DICOM_REAL flipZ.1D dset+orig\n"
+    "     3drefit -atrfloat IJK_TO_DICOM_REAL '1D:1,3@0,0,1,2@0,2@0,1,0'"
+          " dset+orig\n"
+    "                  Almost all afni attributes can be modified in this way\n"
     "  -saveatr        (default) Copy the attributes that are known to AFNI into \n"
     "                  the dset->dblk structure thereby forcing changes to known\n"
     "                  attributes to be present in the output.\n"
@@ -383,12 +397,15 @@ int main( int argc , char * argv[] )
 
    int   num_atrcopy = 0 ;    /* 03 Aug 2005 */
    ATR_any **atrcopy = NULL ;
+   ATR_float  *atr_flt ;
+
    int saveatr = 1;
    int atrmod = 0;  /* if no ATR is modified, don't overwrite normal changes */
                                                       /* 28 Jul 2006 [rickr] */
    THD_dmat33 tmat ;
    THD_dfvec3 tvec ;
 
+   int code, acount;
 
    /*-------------------------- help me if you can? --------------------------*/
 
@@ -444,7 +461,8 @@ int main( int argc , char * argv[] )
                                        sizeof(ATR_any *)*(num_atrcopy+1) ) ;
         atrcopy[num_atrcopy++] = THD_copy_atr( atr ) ;
         /* atr_print( atr, NULL , NULL, '\0', 1) ;  */
-        DSET_delete(qset) ; atrmod = 1;  /* replaced new_stuff   28 Jul 2006 rcr */
+        DSET_delete(qset) ; 
+        atrmod = 1;  /* replaced new_stuff   28 Jul 2006 rcr */
 
       atrcopy_done:
         iarg++ ; continue ;
@@ -479,6 +497,117 @@ int main( int argc , char * argv[] )
        atrstring_done:
         iarg++ ; continue ;
       }
+
+
+      /*----- -atrfloat name "xx.xx yy.yy ..." [02 Oct 2008] -----*/
+      if( strcmp(argv[iarg],"-atrfloat") == 0 ){
+        ATR_float *atr ;
+
+        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrfloat!") ;
+        atr = Update_float_atr(argv[iarg+1], argv[iarg+2]);
+        if(atr) {
+           /* add this float attribute to list of attributes being modified */
+           atrcopy = (ATR_any **)realloc( (void *)atrcopy ,
+                                       sizeof(ATR_any *)*(num_atrcopy+1) ) ;
+           atrcopy[num_atrcopy++] = (ATR_any *)atr ;
+
+           atrmod = 1;  /* replaced new_stuff++   28 Jul 2006 [rickr] */
+        }
+
+        iarg+=3 ; continue ;
+      }
+
+      /*----- -atrint name "xx.xx yy.yy ..." [06 Oct 2008] -----*/
+      if( strcmp(argv[iarg],"-atrint") == 0 ){
+        ATR_int *atr ;
+
+        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrint!") ;
+        atr = Update_int_atr(argv[iarg+1], argv[iarg+2]);
+        if(atr) {
+           /* add this int attribute to list of attributes being modified */
+           atrcopy = (ATR_any **)realloc( (void *)atrcopy ,
+                                       sizeof(ATR_any *)*(num_atrcopy+1) ) ;
+           atrcopy[num_atrcopy++] = (ATR_any *)atr ;
+
+           atrmod = 1;  /* new or modified attribute */
+        }
+
+        iarg+=3 ; continue ;
+      }
+
+#if 0
+
+      /*----- -atrfloat or -atrint name "xx.xx yy.yy ..." [06 Oct 2008] -----*/
+      if( (strcmp(argv[iarg],"-atrint")==0 ) || 
+          (strcmp(argv[iarg],"-atrfloat")==0)){
+        ATR_any *atr ; char *aname , *xx ;
+        MRI_IMAGE *mri_matrix = NULL;
+        float *fptr;
+        int *iptr;
+        int nx, ny, nxy;
+
+        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrint!") ;
+
+        aname = argv[++iarg] ; /* attribute name, e.g. IJK_TO_DICOM_REAL */
+        if( !THD_filename_pure(aname) ){
+           WARNING_message("Illegal -atrint name %s",aname) ;
+           iarg++ ; goto atrstring_done ;
+        }
+
+        xx  = argv[++iarg] ;    /* actual int values in a string */
+
+        /* parse ints from string to attribute */
+        /* try reading as int file or 1D: expression */
+        mri_matrix = mri_read_1D(xx);  /* string could be file name or commandline string */
+        if (mri_matrix == NULL)   {
+           mri_matrix = mri_1D_fromstring(xx);
+        }
+
+        if (mri_matrix == NULL)   {
+           WARNING_message("Error reading float/integer attribute list");
+           goto atrint_done;
+        }
+
+        /* number of floats or ints in attribute */
+        nx = mri_matrix->nx; ny = mri_matrix->ny; acount = nx*ny;            
+        fptr = MRI_FLOAT_PTR (mri_matrix);
+        atr = (ATR_any *)XtMalloc(sizeof(ATR_any)) ;
+        if(strcmp(argv[iarg],"-atrfloat")==0){
+           ATR_float *aa = (ATR_float *) atr ;
+           atr->type = ATR_FLOAT_TYPE ;
+           aa->type = ATR_FLOAT_TYPE ;
+           aa->name = XtNewString( aname ) ;
+           aa->nfl  = acount ;
+           aa->fl   = (float *) XtMalloc( sizeof(float) * acount ) ;
+           for( ii=0 ; ii < acount ; ii++ ){
+              aa->fl[ii] = *fptr++;
+           }
+        }
+        else{ /* integer attribute */
+           ATR_int *aa = (ATR_int *) atr ;
+           atr->type = ATR_INT_TYPE ;
+           aa->type = ATR_INT_TYPE ;
+           aa->name = XtNewString( aname ) ;
+           aa->nin  = acount ;
+           aa->in   = (int *) XtMalloc( sizeof(int) * acount ) ;
+           for( ii=0 ; ii < acount ; ii++ ){
+              aa->in[ii] = (int) *fptr++;
+           }
+        }
+
+        /* check for enough elements */
+        /* add this int attribute to list of attributes being modified */
+        atrcopy = (ATR_any **)realloc( (void *)atrcopy ,
+                                       sizeof(ATR_any *)*(num_atrcopy+1) ) ;
+        atrcopy[num_atrcopy++] = (ATR_any *)atr ;
+
+        atrmod = 1;  /* at least one attribute has been added or modified */
+
+        atrint_done:
+          iarg++ ; continue ;
+      }
+#endif
+
 
       if( strcmp(argv[iarg],"-saveatr") == 0 ){
         saveatr = 1 ; iarg++ ; continue ;
@@ -1165,6 +1294,8 @@ int main( int argc , char * argv[] )
 
       INFO_message("Processing AFNI dataset %s\n",argv[iarg]) ;
 
+      tross_Make_History( "3drefit" , argc,argv, dset ) ;
+
       /* 21 Dec 2004: -label2 option */
 
       if( new_label2 != NULL ){
@@ -1605,11 +1736,12 @@ int main( int argc , char * argv[] )
       }
 
       /* 03 Aug 2005: implement atrcopy */
-
-      for( ii=0 ; ii < num_atrcopy ; ii++ ) {
-        THD_insert_atr( dset->dblk , atrcopy[ii] ) ;
+      {
+           ATR_any *atr;
+         for( ii=0 ; ii < num_atrcopy ; ii++ ) {
+           THD_insert_atr( dset->dblk , atrcopy[ii] ) ;
+         }
       }
-
       /* 23 Jan 2008: the FDR stuff */
 
       if( do_FDR ){
@@ -1622,25 +1754,13 @@ int main( int argc , char * argv[] )
 
       /* Do we want to force new attributes into output ? ZSS Jun 06*/
       /* (only if -atrcopy or -atrstring)       28 Jul 2006 [rickr] */
-      if ( saveatr && atrmod ) {
-         char * bname = NULL;
-
-         /* may need to preserve name, before THD_datablock_from_atr()
-            calls THD_init_diskptr_names()         16 Sep 2008 [rickr] */
-         if ( write_output ) 
-            bname = nifti_strdup(dset->dblk->diskptr->brick_name);
-
+      if ( saveatr && atrmod ){
+         /* apply attributes to header - dataxes and dblk*/
+INFO_message("applying attributes");
          THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
-                                dset->dblk->diskptr->header_name);
-
-         if ( write_output ) {
-           strcpy(dset->dblk->diskptr->brick_name, bname);
-           free(bname);
-         }
+                                  dset->dblk->diskptr->header_name);
+         THD_datablock_apply_atr(dset ); 
       }
-
-      /* moved, in case the history is edited      16 Sep 2008 [rickr] */
-      tross_Make_History( "3drefit" , argc,argv, dset ) ;
 
       if( denote ) THD_anonymize_write(1) ;   /* 08 Jul 2005 */
 
@@ -1658,4 +1778,89 @@ int main( int argc , char * argv[] )
 
    INFO_message("3drefit processed %d datasets",ndone) ;
    exit(0) ;
+}
+
+/* read float values from string or file into float attribute */
+static ATR_float *
+Update_float_atr(char *aname, char *fvstring)
+{
+   ATR_float *atr ;
+   MRI_IMAGE *mri_matrix = NULL;
+   float *fptr;
+   int nx, ny, nxy,ii, acount;
+
+   ENTRY("Update_float_atr");
+   if( !THD_filename_pure(aname) ){
+     WARNING_message("Illegal atrfloat name %s",aname) ;
+     RETURN(NULL) ;
+   }
+
+   atr = (ATR_float *)XtMalloc(sizeof(ATR_float)) ;
+   atr->type = ATR_FLOAT_TYPE ;
+   atr->name = XtNewString( aname ) ;
+
+   /* parse floats from string to attribute */
+   /* try reading as float file or 1D: expression */
+   mri_matrix = mri_read_1D(fvstring);  /* string could be file name or commandline string */
+   if (mri_matrix == NULL)   {
+      mri_matrix = mri_1D_fromstring(fvstring);
+   }
+
+   if (mri_matrix == NULL)   {
+      printf("Error reading floating point attribute file");
+      RETURN(NULL);
+   }
+
+   /* number of floats in attribute */
+   nx = mri_matrix->nx; ny = mri_matrix->ny; acount = nx*ny;
+   atr->nfl  = acount ;
+   atr->fl   = (float *) XtMalloc( sizeof(float) * acount ) ;
+   fptr = MRI_FLOAT_PTR (mri_matrix);
+   for( ii=0 ; ii < acount ; ii++ ){
+      atr->fl[ii] = *fptr++;
+   }
+   RETURN(atr);
+}
+
+/* read integer values from string or file into int attribute */
+static ATR_int *
+Update_int_atr(char *aname, char *ivstring)
+{
+   ATR_int *atr ;
+   MRI_IMAGE *mri_matrix = NULL;
+   float *fptr;
+   int nx, ny, nxy,ii, acount;
+
+   ENTRY("Update_int_atr");
+   if( !THD_filename_pure(aname) ){
+     WARNING_message("Illegal atrint name %s",aname) ;
+     RETURN(NULL) ;
+   }
+
+   atr = (ATR_int *)XtMalloc(sizeof(ATR_int)) ;
+   atr->type = ATR_INT_TYPE ;
+   atr->name = XtNewString( aname ) ;
+
+   /* parse floats from string to attribute */
+   /* try reading as float file or 1D: expression */
+   mri_matrix = mri_read_1D(ivstring);  /* string could be file name or commandline string */
+   if (mri_matrix == NULL)   {
+      mri_matrix = mri_1D_fromstring(ivstring);
+   }
+
+   if (mri_matrix == NULL)   {
+      WARNING_message("Error reading integer attribute file");
+      RETURN(NULL);
+   }
+
+   /* number of floats in attribute */
+   nx = mri_matrix->nx; ny = mri_matrix->ny; acount = nx*ny;
+   atr->nin  = acount ;
+   atr->in   = (int *) XtMalloc( sizeof(int) * acount ) ;
+   fptr = MRI_FLOAT_PTR (mri_matrix);
+   for( ii=0 ; ii < acount ; ii++ ){
+      atr->in[ii] = *fptr++;
+   }
+
+   RETURN(atr);
 }

@@ -1,7 +1,7 @@
 /*****************************************************************************
-   Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+Major portions of this software are copyrighted by the Medical College of
+Wisconsin, 1994-2000, and are released under the Gnu General Public License,
+Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -446,6 +446,54 @@ ENTRY("THD_datablock_from_atr") ;
 
    RETURN(1) ;
 }
+
+#if 0
+/* update daxes structure in dataset header from datablock attributes */
+int THD_daxes_from_atr( THD_datablock *dblk, THD_dataxes *daxes)
+{
+   ATR_int           *atr_rank , *atr_dimen , *atr_scene , *atr_btype ;
+   ATR_float         *atr_flt ;
+   ATR_string        *atr_labs ;
+   int   ii , view_type , func_type , dset_type , 
+         nx,ny,nz,nvox , nvals , ibr,typ ;
+   Boolean ok ;
+   char prefix[THD_MAX_NAME]="Unknown" ;
+   MRI_IMAGE *qim ;
+   int brick_ccode ;
+
+ENTRY("THD_daxes_from_atr") ;
+
+   if( dblk == NULL || dblk->natr <= 0 ) RETURN(0) ; /* bad input */
+
+   dkptr = dblk->diskptr ;
+
+   /*-- get relevant attributes: rank, dimensions, view_type & func_type --*/
+
+   atr_rank  = THD_find_int_atr( dblk , ATRNAME_DATASET_RANK ) ;
+   atr_dimen = THD_find_int_atr( dblk , ATRNAME_DATASET_DIMENSIONS ) ;
+   atr_scene = THD_find_int_atr( dblk , ATRNAME_SCENE_TYPE ) ;
+
+   /*-- missing an attribute ==> quit now --*/
+
+   if( atr_rank == NULL || atr_dimen == NULL || atr_scene == NULL ) RETURN(0) ;
+
+   /*-- load type codes from SCENE attribute --*/
+
+   STATUS("loading *_type from SCENE") ;
+
+   view_type = atr_scene->in[0] ;
+   func_type = atr_scene->in[1] ;
+   dset_type = atr_scene->in[2] ;
+
+   /*-- load other values from attributes into relevant places --*/
+
+   ok   = True ;
+   nvox = 1 ;
+
+   RETURN(1) ;
+}
+
+#endif
 
 /*-------------------------------------------------------------------*/
 /*!  Given a 12 parameter affine transform created a la 3dWarpDrive's
@@ -1022,6 +1070,16 @@ ENTRY("THD_datablock_apply_atr") ;
          sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 ) ;
        }
      }
+   }
+
+   if(atr_flt = THD_find_float_atr( blk, "IJK_TO_DICOM_REAL" )){
+      /* load oblique transformation matrix */
+      if(atr_flt) {
+        LOAD_MAT44(dset->daxes->ijk_to_dicom_real, \
+            atr_flt->fl[0], atr_flt->fl[1], atr_flt->fl[2], atr_flt->fl[3], \
+            atr_flt->fl[4], atr_flt->fl[5], atr_flt->fl[6], atr_flt->fl[7], \
+            atr_flt->fl[8], atr_flt->fl[9], atr_flt->fl[10], atr_flt->fl[11]);
+      }
    }
 
    EXRETURN ;
