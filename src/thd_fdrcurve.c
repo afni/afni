@@ -22,6 +22,7 @@ ENTRY("THD_create_one_fdrcurve") ;
    if( bim->kind != MRI_float ){
      float fac = DSET_BRICK_FACTOR(dset,iv) ;
      qim = mri_scale_to_float( fac , bim ) ;
+     if( qim == NULL ) RETURN(0) ;
    } else {
      qim = bim ;
    }
