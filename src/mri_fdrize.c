@@ -56,6 +56,7 @@ ENTRY("mri_fdrize") ;
   /* convert to p-value? */
 
   if( FUNC_IS_STAT(statcode) ){     /* conversion to p-value */
+STATUS("convert to p-value") ;
     for( ii=0 ; ii < nvox ; ii++ ){
       if( far[ii] != 0.0f )
         far[ii] = THD_stat_to_pval( fabsf(far[ii]), statcode,stataux ) ;
@@ -63,12 +64,22 @@ ENTRY("mri_fdrize") ;
         far[ii] = 1.0f ;
     }
   } else {                          /* already supposed to be p-value */
+STATUS("input is p-value") ;
     for( ii=0 ; ii < nvox ; ii++ )
       if( far[ii] < 0.0f || far[ii] > 1.0f ) far[ii] = 1.0f ;
   }
 
-  qq   = (float *)malloc(sizeof(float)*nvox) ;
-  iq   = (int   *)malloc(sizeof(int  )*nvox) ;
+  qq = (float *)malloc(sizeof(float)*nvox) ;
+  iq = (int   *)malloc(sizeof(int  )*nvox) ;
+
+  if( qq == NULL || iq == NULL ){
+    ERROR_message("mri_fdrize: out of memory!") ;
+    if( qq != NULL ) free(qq) ;
+    if( iq != NULL ) free(iq) ;
+    RETURN(0) ;
+  }
+
+STATUS("find reasonable p-values") ;
   fbad = (doz) ? 0.0f : 1.0f ;  /* output value for masked voxels */
   for( nq=ii=0 ; ii < nvox ; ii++ ){
     if( far[ii] >= 0.0f && far[ii] < PMAX ){  /* reasonable p-value */
@@ -78,12 +89,14 @@ ENTRY("mri_fdrize") ;
     }
   }
 
-  if( nq > 0 ){  /* something to process! */
+  if( nq > 9 ){  /* something to process! */
+STATUS("sorting p-values") ;
     qsort_floatint( nq , qq , iq ) ;  /* sort into increasing order */
                                       /* iq[] tracks where its from */
     qmin = 1.0 ;
     nthr = (flags&1) ? nvox : nq ;
     if( (flags&2) && nthr > 1 ) nthr *= (logf(nthr)+0.5772157f) ;
+STATUS("convert to q/z") ;
     for( jj=nq-1 ; jj >= 0 ; jj-- ){           /* convert to q, then z */
       qval = (nthr * qq[jj]) / (jj+1.0) ;
       if( qval > qmin ) qval = qmin; else qmin = qval;
@@ -96,6 +109,7 @@ ENTRY("mri_fdrize") ;
     }
   }
 
+STATUS("finished") ;
   free(iq); free(qq); RETURN(nq);
 }
 
@@ -127,6 +141,7 @@ ENTRY("mri_fdr_curve") ;
 
   /* make a copy of the statistics and convert them to z(q) scores */
 
+STATUS("copy statistics image") ;
   cim = mri_to_float(im) ; car = MRI_FLOAT_PTR(cim) ;
 
   nq = mri_fdrize( cim , statcode , stataux , 0 ) ;
@@ -134,8 +149,14 @@ ENTRY("mri_fdr_curve") ;
 
   /* create iq[] = list of voxels that were validly FDR-ized */
 
+STATUS("make list of valid q's") ;
   nvox = im->nvox ;
   iq   = (int *)malloc(sizeof(int)*nvox) ;
+  if( iq == NULL ){
+    ERROR_message("mri_fdr_curve: out of memory!") ;
+    mri_free(cim); RETURN(NULL);
+  }
+
   for( nq=ii=0 ; ii < nvox ; ii++ ){      /* make list of voxels with */
     if( car[ii] > 0.0f ) iq[nq++] = ii ;  /* meaningful z(q) values   */
   }
@@ -145,11 +166,20 @@ ENTRY("mri_fdr_curve") ;
 
   zar = (float *)malloc(sizeof(float)*nq) ;  /* z(q) values */
   tar = (float *)malloc(sizeof(float)*nq) ;  /* statistics */
+  if( zar == NULL || tar == NULL ){
+    ERROR_message("mri_fdr_curve: out of memory!") ;
+    if( zar != NULL ) free(zar) ;
+    if( tar != NULL ) free(tar) ;
+    free(iq); mri_free(cim); RETURN(NULL);
+  }
+
+STATUS("make list of z(q) vs. statistic") ;
   for( ii=0 ; ii < nq ; ii++ ){
     zar[ii] = car[iq[ii]] ; tar[ii] = fabsf(far[iq[ii]]) ;
   }
   free(iq) ; mri_free(cim) ;   /* toss the trash */
 
+STATUS("sort the list") ;
   qsort_floatfloat( nq , zar , tar ) ;  /* sort into increasing z */
 
   /* find the largest z(q) that isn't beyond the top value we like */
@@ -163,6 +193,7 @@ ENTRY("mri_fdr_curve") ;
   tbot = tar[0] ; ttop = tar[klast] ; dt = (ttop-tbot)/(NCURV-1) ;
   zbot = zar[0] ; ztop = zar[klast] ;
 
+STATUS("make the floatvec") ;
   MAKE_floatvec(fv,NCURV) ; fv->dx = dt ; fv->x0 = tbot ;
   fv->ar[0] = zbot ;
   for( jj=ii=1 ; ii < NCURV-1 ; ii++ ){
@@ -174,5 +205,6 @@ ENTRY("mri_fdr_curve") ;
   }
   fv->ar[NCURV-1] = ztop ;
 
+STATUS("finished") ;
   free(tar) ; free(zar) ; RETURN(fv) ;
 }
