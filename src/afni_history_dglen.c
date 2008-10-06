@@ -49,6 +49,13 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 6 , OCT , 2008 , DRG , "3drefit" , 
+    MINOR , TYPE_MODIFY, "-atrfloat and -atrint options",
+    "Allows addition and modification of dataset attributes\n"
+    "including modifying IJK_TO_DICOM_REAL. Not all attributes\n"
+    "can be modified if fairly basic to dataset."
+} ,
+
 { 26 , SEP , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_MODIFY, "-child_anat option",
     "Convenience option to align follower anat datasets to epi"
