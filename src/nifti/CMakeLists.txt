@@ -67,6 +67,7 @@ ELSE("${ITK_VERSION_MAJOR}" GREATER 0.0)
     SUBDIRS(examples)
   ENDIF(USE_FSL_CODE)
   ENABLE_TESTING()
+  INCLUDE(Dart)
 
   ####################################
   ### Define information necessary for packaging with CPACK (http://www.cmake.org/Wiki/CMake:Packaging_With_CPack)
