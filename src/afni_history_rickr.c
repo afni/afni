@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7, OCT, 2008, RCR, "NIFTI", MICRO, TYPE_MODIFY,
+   "added nifti_NBL_matches_nim() check for write_bricks()",
+   NULL
+ } ,
+
  { 2, OCT, 2008, RCR, "GIFTI", MICRO, TYPE_MODIFY,
    "minor changes",
    "- separate diffs in DAs from those in gifti_image\n"
