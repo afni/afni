@@ -319,9 +319,11 @@ static char * gni_history[] =
   "   - added nifti_analyze75 structure and nifti_swap_as_analyze()\n"
   "   - previous swap_nifti_header is saved as old_swap_nifti_header\n"
   "   - also swap UNUSED fields in nifti_1_header struct\n",
+  "1.36 07 Oct 2008 [rickr]\n",
+  "   - added nifti_NBL_matches_nim() check for write_bricks()\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.35 (3 Aug, 2008)";
+static char gni_version[] = "nifti library version 1.36 (7 Oct, 2008)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
@@ -393,6 +395,8 @@ static int  nifti_alloc_NBL_mem(  nifti_image * nim, int nbricks,
                                   nifti_brick_list * nbl);
 static int  nifti_copynsort(int nbricks, const int *blist, int **slist,
                             int **sindex);
+static int  nifti_NBL_matches_nim(const nifti_image *nim,
+                                  const nifti_brick_list *NBL);
 
 /* for nifti_read_collapsed_image: */
 static int  rci_read_data(nifti_image *nim, int *pivots, int *prods, int nprods,
@@ -1019,7 +1023,7 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
       if( (blist[c] < 0) || (blist[c] >= nsubs) ){
          if( disp_error || g_opts.debug > 1 )
             fprintf(stderr,
-               "-d ** bad sub-brick chooser %d (#%d), valid range is [0,%d]\n",
+               "** volume index %d (#%d) is out of range [0,%d]\n",
                blist[c], c, nsubs-1);
          return 0;
       }
@@ -1027,22 +1031,57 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
    return 1;  /* all is well */
 }
 
-#if 0
-/* set any non-positive values to 1 */
-static int int_force_positive( int * list, int nel )
+/*----------------------------------------------------------------------*/
+/* verify that NBL struct is a valid data source for the image
+ *
+ * return 1 if so, 0 otherwise
+*//*--------------------------------------------------------------------*/
+static int nifti_NBL_matches_nim(const nifti_image *nim,
+                                 const nifti_brick_list *NBL)
 {
-   int c;
-   if( !list || nel < 0 ){
+   size_t volbytes = 0;     /* bytes per volume */
+   int    ind, errs = 0, nvols = 0;
+
+
+   if( !nim || !NBL ) {
       if( g_opts.debug > 0 )
-         fprintf(stderr,"** int_force_positive: bad params (%p,%d)\n",
-                 (void *)list,nel);
-      return -1;
+         fprintf(stderr,"** nifti_NBL_matches_nim: NULL pointer(s)\n");
+      return 0;
    }
-   for( c = 0; c < nel; c++ )
-      if( list[c] <= 0 ) list[c] = 1;
-   return 0;
+
+   /* for nim, compute volbytes and nvols */
+   if( nim->ndim > 0 ) {
+      /* first 3 indices are over a single volume */
+      volbytes = (size_t)nim->nbyper;
+      for( ind = 1; ind <= nim->ndim && ind < 4; ind++ )
+         volbytes *= (size_t)nim->dim[ind];
+
+      for( ind = 4, nvols = 1; ind <= nim->ndim; ind++ )
+         nvols *= nim->dim[ind];
+   }
+
+   if( volbytes != NBL->bsize ) {
+      if( g_opts.debug > 1 )
+         fprintf(stderr,"** NBL/nim mismatch, volbytes = %u, %u\n",
+                 (unsigned)NBL->bsize, (unsigned)volbytes);
+      errs++;
+   }
+
+   if( nvols != NBL->nbricks ) {
+      if( g_opts.debug > 1 )
+         fprintf(stderr,"** NBL/nim mismatch, nvols = %d, %d\n",
+                 NBL->nbricks, nvols);
+      errs++;
+   }
+
+   if( errs ) return 0;
+   else if ( g_opts.debug > 2 )
+      fprintf(stderr,"-- nim/NBL match, (nvols, nbytes) = %d, %u\n",
+              nvols, (unsigned)volbytes);
+
+   return 1;
 }
-#endif
+
 /* end of new nifti_image_read_bricks() functionality */
 
 /*----------------------------------------------------------------------*/
@@ -5363,6 +5402,9 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
    if( ! nim                              ) ERREX("NULL input") ;
    if( ! nifti_validfilename(nim->fname)  ) ERREX("bad fname input") ;
    if( write_data && ! nim->data && ! NBL ) ERREX("no image data") ;
+
+   if( write_data && NBL && ! nifti_NBL_matches_nim(nim, NBL) )
+      ERREX("NBL does not match nim");
 
    nifti_set_iname_offset(nim);
 
