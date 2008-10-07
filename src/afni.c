@@ -60,9 +60,9 @@
  " ** If these terms are not acceptable, you aren't allowed to use AFNI.**\n"  \
  " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"\
  " **** If you DO find AFNI useful, please cite this paper:\n"                 \
- "      RW Cox. AFNI: Software for analysis and visualization of\n"            \
- "      functional magnetic resonance neuroimages.\n"                          \
- "      Computers and Biomedical Research, 29:162-173, 1996.\n\n"
+ "    RW Cox. AFNI: Software for analysis and visualization of\n"              \
+ "    functional magnetic resonance neuroimages.\n"                            \
+ "    Computers and Biomedical Research, 29:162-173, 1996.\n\n"
 #else
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
@@ -74,9 +74,9 @@
  " ** If these terms are not acceptable, you aren't allowed to use AFNI.**\n"  \
  " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"\
  " **** If you DO find AFNI useful, please cite this paper:\n"                 \
- "      RW Cox. AFNI: Software for analysis and visualization of\n"            \
- "      functional magnetic resonance neuroimages.\n"                          \
- "      Computers and Biomedical Research, 29:162-173, 1996.\n\n"
+ "    RW Cox. AFNI: Software for analysis and visualization of\n"              \
+ "    functional magnetic resonance neuroimages.\n"                            \
+ "    Computers and Biomedical Research, 29:162-173, 1996.\n\n"
 #endif
 
 #ifdef AFNI_DEBUG

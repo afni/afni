@@ -119,6 +119,8 @@
 
 #include "mrilib.h"
 
+static int do_FDR = 1 ;  /* 07 Oct 2008 */
+
 /*---------------------------------------------------------------------------*/
 /*--------- Global variables for multiple process execution - RWCox. --------*/
 /*--------- All names start with "proc_", so search for that string. --------*/
@@ -302,6 +304,10 @@ void display_help_menu()
      "[-brick m resid label]     std. dev. of the full model fit residuals  \n"
      "[-brick m rsqr  label]     R^2 (coefficient of multiple determination)\n"
      "[-brick m fstat label]     F-stat for significance of the regression  \n"
+     "\n"
+     "[-noFDR]                   Don't write the FDR (q vs. threshold)\n"
+     "                           curves into the output dataset.\n"
+     "                           (Same as 'setenv AFNI_AUTOMATIC_FDR NO')\n"
      "                                                                      \n"
      "     --- These options write time series fit for ---                  \n"
      "     --- each voxel to an AFNI 3d+time dataset   ---                  \n"
@@ -641,6 +647,11 @@ void get_options
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
+      /*-----   -noFDR   -----*/
+
+      if( strcasecmp(argv[nopt],"-noFDR") == 0 ){
+        do_FDR = 0 ; nopt++ ; continue ;
+      }
 
       /*-----   -input filename   -----*/
       if (strcmp(argv[nopt], "-input") == 0)
@@ -1735,7 +1746,8 @@ void proc_finalize_shm_volumes(void)
        "** SUGGESTION:  Run on a 64-bit computer system, instead of 32-bit.\n"
       , psum,twogig) ;
    else
-     INFO_message("total shared memory needed = %lld bytes",psum) ;
+     INFO_message("total shared memory needed = %lld bytes (about %s)" ,
+                  psum , approximate_number_string((double)psum) ) ;
 
    proc_shmsize = psum ;  /* global variable */
 #if 0
@@ -1758,6 +1770,10 @@ void proc_finalize_shm_volumes(void)
    if( proc_shmptr == NULL || proc_shmptr == (void *)(-1) ){
      perror("** FATAL ERROR: Can't create shared mmap() segment\n"
             "** Unix message") ;
+     INFO_message("\n\n"
+       "** SUGGESTION:  Use 3dZcutup to slice dataset into smaller pieces\n"
+       "**                and then 3dZcat to glue results back together.\n"
+       "** SUGGESTION:  Run on a 64-bit computer system, instead of 32-bit.\n ");
      exit(1) ;
    }
 
@@ -2537,7 +2553,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
-  if( !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
+  if( do_FDR && !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
   { int ii = THD_create_all_fdrcurves( new_dset ) ;
     if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;
   }
@@ -2598,7 +2614,7 @@ void write_bucket_data
   int brick_coef;           /* regression coefficient index for sub-brick */
   char * brick_label;       /* character string label for sub-brick */
   int ierror;               /* number of errors in editing data */
-  float * volume;           /* volume of floating point data */
+  float *volume=NULL;       /* volume of floating point data */
   int dimension;            /* dimension of full model = p + q */
   char label[80];           /* label for output file history */ 
   void * imptr;             /* pointer to volume in correct datum type to actually write out*/
@@ -2753,7 +2769,7 @@ void write_bucket_data
 
   INFO_message("Writing bucket dataset: %s",DSET_BRIKNAME(new_dset)) ;
 
-  if( !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
+  if( do_FDR && !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
   { int ii = THD_create_all_fdrcurves( new_dset ) ;
     if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;
   }
