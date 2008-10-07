@@ -3783,11 +3783,21 @@ STATUS(old_ss->sessname) ;
 int AFNI_rescan_session( int sss )
 {
    char *eee = getenv("AFNI_RESCAN_METHOD") ;
-   int use_new ;
+   int use_new , use_rep ;
+   static int first=1 ;
 
-   use_new = ( eee == NULL                      ||
-               strcasecmp(eee,"REPLACE") != 0   ||
-               AFNI_yesenv("AFNI_AUTO_RESCAN")    ) ;
+   use_rep = ( eee != NULL && strcasecmp(eee,"REPLACE") == 0 ) ;
+
+   use_new = ( AFNI_yesenv("AFNI_AUTO_RESCAN")      ||
+               AFNI_yesenv("AFNI_RESCAN_AT_SWITCH") || !use_rep ) ;
+
+   if( use_rep && use_new && first ){  /* 07 Oct 2008 */
+     WARNING_message(
+       " \n"
+       "   AFNI_RESCAN_METHOD = REPLACE is incompatible with\n"
+       "   AFNI_AUTO_RESCAN = YES  and/or  AFNI_RESCAN_AT_SWITCH = YES" ) ;
+     first = 0 ;
+   }
 
    return (use_new) ? AFNI_rescan_session_NEW( sss )
                     : AFNI_rescan_session_OLD( sss ) ;
