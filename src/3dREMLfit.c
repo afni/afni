@@ -745,6 +745,7 @@ int main( int argc , char *argv[] )
       "* Add options for -iresp/-sresp for -stim_times?\n"
       "* Output variance estimates for the betas, to be carried to the\n"
       "    inter-subject (group) analysis level?\n"
+      "* Prevent Daniel Glen from referring to this program as 3dARMAgeddon.\n"
       "* Establish incontrovertibly the nature of quantum mechanical observation!\n"
       "\n"
       "============================\n"
