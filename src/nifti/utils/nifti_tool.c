@@ -152,9 +152,10 @@ static char * g_history[] =
   "1.21 03 Aug 2008 [rickr] - ANALYZE 7.5 support\n"
   "   - added -help_ana, -disp_ana,\n"
   "    -swap_as_analyze, -swap_as_nifti, -swap_as_old\n"
+  "1.22 08 Oct 2008 [rickr] - allow cbl with indices in 0..nt*nu*nv*nw-1\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.21 (Aug 3, 2008)";
+static char g_version[] = "version 1.22 (Oct 8, 2008)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -162,7 +163,8 @@ static int  g_debug = 1;
 #include "nifti_tool.h"
 
 /* local prototypes */
-static int free_opts_mem( nt_opts * nopt );
+static int free_opts_mem(nt_opts * nopt);
+static int num_volumes(nifti_image * nim);
 static char * read_file_text(char * filename, int * length);
 
 #define NTL_FERR(func,msg,file)                                      \
@@ -3859,6 +3861,19 @@ int clear_float_zeros( char * str )
    return 0;
 }
 
+/* return the number of volumes in the nifti_image */
+static int num_volumes(nifti_image * nim)
+{
+   int ind, nvols = 1;
+
+   if( nim->dim[0] < 1 ) return 0;
+
+   for( ind = 4; ind <= nim->dim[0]; ind++ )
+        nvols *= nim->dim[ind];
+
+   return nvols;
+}
+
 
 /*----------------------------------------------------------------------
  * create a new dataset using sub-brick selection
@@ -3904,7 +3919,7 @@ int act_cbl( nt_opts * opts )
    if( !nim ) return 1;
       
    /* since nt can be zero now (sigh), check for it   02 Mar 2006 [rickr] */
-   blist = nifti_get_intlist(nim->nt > 0 ? nim->nt : 1, selstr);
+   blist = nifti_get_intlist(nim->nt > 0 ? num_volumes(nim) : 1, selstr);
    nifti_image_free(nim);             /* throw away, will re-load */
    if( !blist ){
       fprintf(stderr,"** failed sub-brick selection using '%s'\n",selstr);

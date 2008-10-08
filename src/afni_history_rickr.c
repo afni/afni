@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, OCT, 2008, RCR, "NIFTI", MICRO, TYPE_MODIFY,
+   "allow cbl with indices in 0..nt*nu*nv*nw-1",
+   NULL
+ } ,
+
  { 7, OCT, 2008, RCR, "NIFTI", MICRO, TYPE_MODIFY,
    "added nifti_NBL_matches_nim() check for write_bricks()",
    NULL

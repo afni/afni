@@ -452,13 +452,20 @@ void nifti_disp_lib_version( void )
  *                     (must be a valid pointer)
  *
  *  \return
- *     <br> nim      - same as nifti_image_read, but nim->data will be NULL
- *     <br> NBL      - filled with data
+ *     <br> nim      - same as nifti_image_read, but
+ *                          nim->nt       = NBL->nbricks (or nt*nu*nv*nw)
+ *                          nim->nu,nv,nw = 1
+ *                          nim->data     = NULL
+ *     <br> NBL      - filled with data volumes
  *
  * By default, this function will read the nifti dataset and break the data
  * into a list of nt*nu*nv*nw sub-bricks, each having size nx*ny*nz elements.
  * That is to say, instead of reading the entire dataset as a single array,
- * break it up into sub-bricks, each of size nx*ny*nz elements.
+ * break it up into sub-bricks (volumes), each of size nx*ny*nz elements.
+ *
+ * Note: in the returned nifti_image, nu, nv and nw will always be 1.  The
+ *       intention of this function is to collapse the dataset into a single
+ *       array of volumes (of length nbricks or nt*nu*nv*nw).
  *
  * If 'blist' is valid, it is taken to be a list of sub-bricks, of length
  * 'nbricks'.  The data will still be separated into sub-bricks of size
@@ -478,7 +485,7 @@ void nifti_disp_lib_version( void )
  * }
  * </pre>
  *
- * Here, nim_orig gets the entire dataset, where NB_orig.nbricks = 11.  But
+ * Here, nim_orig gets the entire dataset, where NB_orig.nbricks = 12.  But
  * nim_select has NB_select.nbricks = 5.
  *
  * Note that the first case is not quite the same as just calling the
@@ -1076,7 +1083,7 @@ static int nifti_NBL_matches_nim(const nifti_image *nim,
 
    if( errs ) return 0;
    else if ( g_opts.debug > 2 )
-      fprintf(stderr,"-- nim/NBL match, (nvols, nbytes) = %d, %u\n",
+      fprintf(stderr,"-- nim/NBL agree: nvols = %d, nbytes = %u\n",
               nvols, (unsigned)volbytes);
 
    return 1;
