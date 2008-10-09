@@ -150,6 +150,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
 "   [-all_latest_news] Shows the history of latest news.\n"
 "   [-progs] Lists all the programs in the SUMA package.\n"
 "   [-sources] Lists code sources used in parts of SUMA.\n"
+"   [-help_nido] Help message for displayable objects of type NIDO\n"
 "\n"
 "   For help on interacting with SUMA, press 'ctrl+h' with the mouse \n"
 "   pointer inside SUMA's window.\n"     
@@ -422,6 +423,12 @@ int main (int argc,char *argv[])
           exit (0);
 		}
       
+      if (strcmp(argv[kar], "-help_nido") == 0) {
+         s = SUMA_NIDO_Info();
+         fprintf (SUMA_STDOUT,"%s\n", s); 
+         SUMA_free(s); s = NULL;
+         exit (0);
+      }
       if (strcmp(argv[kar], "-all_latest_news") == 0) {
 			 s = SUMA_New_Additions (-1.0, 0);
           fprintf (SUMA_STDOUT,"%s\n", s); 

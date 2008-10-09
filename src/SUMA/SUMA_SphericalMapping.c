@@ -4871,7 +4871,7 @@ int main (int argc, char *argv[])
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char avgFileNm[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char *input;
-   SUMA_Boolean brk, LocalHead=YUP, cut, tmpCut;
+   SUMA_Boolean brk, LocalHead=NOPE, cut, tmpCut;
    
    int kar, i, j=0, k;
    int mx_ndx, tmpNumVal, numNoCut, i_currRng; 
@@ -4880,8 +4880,12 @@ int main (int argc, char *argv[])
    int *avgIndex=NULL, *i_locInfo=NULL;
    SUMA_1dData **data=NULL;
    
+   SUMA_S_Warn("Obsolete program. No longer supported");
+   exit(1);
    /* allocate space for CommonFields structure */
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,
+               "%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
    SUMAg_CF = SUMA_Create_CommonFields ();
    if (SUMAg_CF == NULL) {

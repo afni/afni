@@ -1112,6 +1112,15 @@ void SUMA_Standalone_GLUT_Window_Init(void)
    SUMA_RETURNe;
 }
 
+void SUMA_volume_render_help(void) 
+{
+   fprintf(SUMA_STDOUT,
+"Usage: volume_render <INPUT>\n"
+"  where INPUT is either an AFNI volume, or a NIDO with a 3DTex element.\n"
+"  This program is only for testing.\n"
+" \n");
+   return;
+}
 main(int argc, char *argv[])
 {
    static char FuncName[]={"volume"};
@@ -1127,6 +1136,14 @@ main(int argc, char *argv[])
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
 
+   if (argc != 2) {
+      SUMA_volume_render_help();
+      exit(1);
+   } else if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
+      SUMA_volume_render_help();
+      exit(0);
+   }
+     
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 

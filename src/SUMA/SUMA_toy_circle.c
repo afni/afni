@@ -378,7 +378,7 @@ int main (int argc,char *argv[])
    MyCircle *Ci = NULL;
    vector Wv;
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;

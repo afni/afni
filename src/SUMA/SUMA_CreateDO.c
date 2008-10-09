@@ -3375,7 +3375,13 @@ SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel,
       SUMA_LH(  "Creating texture, see init pp 359 in \n"
                 "OpenGL programming guide, 3rd ed.");
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-      glGenTextures(1, &texName);
+      NI_GET_INT(nel,"texName",texName);
+      if (!NI_GOT) {
+         /* Need to generate texture */
+         glGenTextures(1, &texName);
+         /* Now store it */
+         NI_SET_INT(nel,"texName",texName);
+      }
       glBindTexture(GL_TEXTURE_2D, texName);
       glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
       glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT); 
@@ -3880,6 +3886,18 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
                                        default_color, 
                                        default_font, sv)) {
                SUMA_S_Warnv("Failed to draw %s\n", nel->name);
+            }
+         } else if (! strcmp(nel->name,"3DTex")) {
+            if (SUMAg_CF->Dev) {
+               if (!SUMA_Init3DTextureNIDOnel(nel, default_SO, 
+                                          default_coord_units,
+                                          default_color, 
+                                          default_font, sv)) {
+                  SUMA_S_Warnv("Failed to draw %s\n", nel->name);
+               }
+            } else {
+               SUMA_S_Note("3DTex available in developer mode "
+                           "(suma -dev) mode only.\n");
             }
          } else if (strcmp(nel->name,"nido_head")) {
             if (nel->name[0] != '#') {
@@ -6240,7 +6258,13 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       /* For cool textures, see 
          http://www.filterforge.com/filters/category42-page1.html */
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-      glGenTextures(1, &texName);
+      NI_GET_INT(SurfObj->texnel,"texName",texName);
+      if (!NI_GOT) {
+         /* Need to generate texture */
+         glGenTextures(1, &texName);
+         /* Now store it */
+         NI_SET_INT(SurfObj->texnel,"texName",texName);
+      }
       glBindTexture(GL_TEXTURE_2D, texName);
       glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
                /* GL_REPEAT, GL_CLAMP */
@@ -6439,7 +6463,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                   "Error SUMA_DrawMesh: Failed in SUMA_DrawFaceSetMarker\b");
             }
          } 
-
          break;
 
    } /* switch DRAW_METHOD */
@@ -6450,7 +6473,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
    }   
-
+   
+   
    SUMA_LH("Done");
    SUMA_RETURNe;
 } /* SUMA_DrawMesh */

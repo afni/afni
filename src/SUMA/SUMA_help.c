@@ -324,6 +324,9 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
          "    o Use of '[i]' to select node index from surface dset\n"
          "    o Scroll lists for I T and B selectors in SUMA\n"
          "    o Graphing of dset content with 'g'\n"
+         "    o Display of text and images, see suma -nido \n"
+         "  + SurfDist:\n"
+         "    o Output of node path along with shortest distance.\n"  
          "  + ConvertDset:\n"
          "    o Output of full dsets if needed\n"
          "  + ROIgrow:\n"
@@ -767,7 +770,7 @@ char * SUMA_NIDO_Info(void)
 "     'FRAME'. Choose from: 'sphere', 'object', 'eye'. Default is 'sphere'\n"
 "     For detail, see OpenGL's GL_SPHERE_MAP, GL_OBJECT_LINEAR, etc.\n"
 "\n"
-"  Try the script '@SUMA_DO_demo' for concrete examples on displayable \n"
+"  Try the script '@DO.examples' for concrete examples on displayable \n"
 "  objects.\n"  
 "\n"
 ); 
@@ -1320,6 +1323,10 @@ char * SUMA_help_message_Info(void)
       "                 There are no node-based planes at the moment.\n"
       "                 They are a little inefficient to reproduce with\n"
       "                 each redraw. Complain if you need them.\n"
+      "         Type 6: Another class of displayble objects is described in\n"
+      "                 the output of suma -nido and the demonstration script\n"
+      "                 @DO.examples. This new class allows for displaying \n"
+      "                 text and figures in both screen and world space.\n"
       );
    SS = SUMA_StringAppend (SS, 
       "     Alt+s: Switch mouse buttons 1 and 3.\n\n");
