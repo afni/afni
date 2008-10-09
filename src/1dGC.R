@@ -313,7 +313,7 @@ checkCov <- as.integer(readline("Check significance of covariates (0: no; 1: yes
 if (checkCov) {
    anotherCovPth <- TRUE
    while (anotherCovPth) {
-	   pCovThresh <- as.numeric(readline("p threshold for covariates (e.g., 0.05)? "))
+	   pCovThresh <- as.numeric(readline("p-threshold for covariates (e.g., 0.05)? "))
 		#Info about all the covariates:
 		#lapply(coef(fm), function(x) x[(nROIs*nLags+1):(nROIs*nLags+(nPoly+1)*nBreaks+nCOVs),])
 		covPList <- lapply(coef(fm), function(x) x[(nROIs*nLags+1):(nROIs*nLags+(nPoly+1)*nBreaks+nCOVs),4]<=pCovThresh)
@@ -328,7 +328,7 @@ if (checkCov) {
 			print("show up in the above list, only if the highest order of the polynominals")
 			print("indicates insignificant would you try decreasing the order.")
 	   } else print(sprintf("All covarates show significance in the model with a threshold of %f.", pCovThresh))
-		anotherCovPth <- as.integer(readline("Want to try another p threshold (0: no; 1: yes)? "))
+		anotherCovPth <- as.integer(readline("Want to try another p-threshold for covariates (0: no; 1: yes)? "))
 	} #
 }	
 } # model quality check
@@ -430,7 +430,7 @@ while (anotherPth) {
 
 print(sprintf("There are totally %i paths in the model. Select a low p value ", nLags*nROIs^2))
 print("if you're concerned about multiple comparisons issue:")
-pThresh <- as.numeric(readline("p threshold for causal effects (e.g., 0.05)? "))
+pThresh <- as.numeric(readline("p-threshold for causal effects (e.g., 0.05)? "))
 
 # connection goes from row to column, which is the default in network
 netMat <- array(data=NA, dim=c(nLags+1, nROIs, nROIs))  # thresholded network
@@ -493,7 +493,7 @@ if (nLags>1) {   # overall network
 	
 
 print("#++++++++++++++++++++++++++++++++++++++++++++")
-anotherPth <- as.integer(readline("Want to try another p threshold (0: no; 1: yes)? "))
+anotherPth <- as.integer(readline("Want to try another p-threshold/plotting set-up for network (0: no; 1: yes)? "))
 }
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 anotherLag <- as.integer(readline("Want to try another number of lags for VAR (0: no; 1: yes)? "))
@@ -573,7 +573,7 @@ grpP <- matrix(unlist(pList), nrow=nROIsG, ncol=nROIsG, dimnames = list(roiNames
 anotherPthG <- TRUE
 while (anotherPthG) {
 						
-pThreshG <- as.numeric(readline("p threshold for group analysis (e.g., 0.05)? "))
+pThreshG <- as.numeric(readline("p-threshold for group analysis (e.g., 0.05)? "))
 surviveT <- as.numeric(grpP<=pThreshG)*grpT
 surviveP <- as.numeric(grpP<=pThreshG)*grpP
 print("Group t matrix with insignificant ones masked with 0s:")
@@ -598,7 +598,7 @@ selfLoop <- as.integer(readline("Show self-loops in the network (0: no; 1: yes)?
 	plotNet(surviveT, selfLoop, surviveT*edgeScaleG, arrowScaleG, 3-sign(surviveT), sprintf("Group network with %s subjects", nSubjs))
 } # if (plotNetG)
 
-anotherPthG <- as.integer(readline("Want to try another p threshold (0: no; 1: yes)? "))
+anotherPthG <- as.integer(readline("Want to try another p-threshold/plotting set-up for group network (0: no; 1: yes)? "))
 } # while (anotherPthG)
 
 doneGrp <- as.integer(readline("Next (0: done; 1: another group analysis)? "))
