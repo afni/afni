@@ -748,12 +748,14 @@ int main( int argc , char *argv[] )
       "* Prevent Daniel Glen from referring to this program as 3dARMAgeddon.\n"
       "* Establish incontrovertibly the nature of quantum mechanical observation!\n"
       "\n"
+      "----------------------------------------------------------\n"
+      "** For more information, see the contents of\n"
+      "     http://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/\n"
+      "----------------------------------------------------------\n"
+      "\n"
       "============================\n"
       "== RWCox - July-Sept 2008 ==\n"
       "============================\n"
-      "\n"
-      "For more information, see the contents of\n"
-      "  http://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/\n"
 
       , corcut
      ) ;
