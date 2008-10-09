@@ -89,7 +89,7 @@ while (anotherAna==1) {
 maxLags <- 8
 
 nROIs <- as.integer(readline("Number of regions/nodes (e.g., 6)? "))     # number of ROIs
-print("Header with one line of labels is allowed in one-column files, but NOT in multi-column files.")
+print("Header with one line of labels is optional in multi-column files, but NOT allowed in one-column files.")
 yForm <- as.integer(readline("ROI time series data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))     # input format
 
 if (yForm) { # read ROI file (in dataframe), and take label from the header
@@ -151,7 +151,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++")
 COV <- as.integer(readline("Any other covariates or confounding effects than drifting (0: no; 1: yes)? ")) 
 if (as.logical(COV)) {
    nCOVs <- as.integer(readline("Number of covariates (e.g., 6)? "))     # number of regions: 6
-	print("Header with one line of labels is allowed in one-column files, but NOT in multi-column files.")
+	print("Header with one line of labels is optional in multi-column files, but NOT allowed in one-column files.")
 	covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))     # covariates format
    if (covForm) {
       fncov <- tclvalue( tkgetOpenFile( filetypes = 
