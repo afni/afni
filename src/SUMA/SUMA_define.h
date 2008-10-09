@@ -1643,6 +1643,25 @@ typedef struct {
 
 typedef enum {  SUMA_NO_WAX, SUMA_THREE_WAX, SUMA_THREE_TEXT_WAX, SUMA_BOX_WAX, SUMA_BOX_TEXT_WAX, SUMA_N_WAX_OPTIONS } SUMA_WORLD_AXIS_TOGGLE_METHODS;
 /*! structure defining the state of a viewer window */
+
+typedef struct {
+   int DEPTH_TEST;
+   int TEXTURE_3D_EXT;
+   int TEXTURE_GEN_S;
+   int TEXTURE_GEN_T;
+   int TEXTURE_GEN_R;
+   int CLIP_PLANE0;
+   int CLIP_PLANE1;
+   int CLIP_PLANE2;
+   int CLIP_PLANE3;
+   int CLIP_PLANE4;
+   int CLIP_PLANE5;
+   int LIGHTING;
+   int LIGHT0;
+   int BLEND;
+} SUMA_EnablingRecord;
+
+
 typedef struct {
    int N_DO;      /*!< Total number of surface objects registered with the viewer */
    int *RegisteredDO;    /*!< RegisteredDO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
@@ -1742,6 +1761,9 @@ typedef struct {
    SUMA_REDISPLAY_CAUSE rdc;  /*!< Why has a redisplay been requested */
    SUMA_BLEND_MODES Blend_Mode; /*!< blending mode */
    int FreezeZoomXstates; /*!< if 1, keep zoom constant across states */
+   
+   int Do_3Drender;
+   SUMA_EnablingRecord SER;
 } SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */

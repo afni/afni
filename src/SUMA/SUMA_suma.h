@@ -122,6 +122,7 @@
    #include "SUMA_Color.h"
    #include "SUMA_GeomComp.h"
    #include "SUMA_CreateDO.h"
+   #include "SUMA_volume_render.h"
    #include "SUMA_Load_Surface_Object.h"
    #include "SUMA_Surface_IO.h"
    #include "SUMA_SphericalMapping.h"
