@@ -750,7 +750,12 @@ int main( int argc , char *argv[] )
       "\n"
       "============================\n"
       "== RWCox - July-Sept 2008 ==\n"
-      "============================\n" , corcut
+      "============================\n"
+      "\n"
+      "For more information, see the contents of\n"
+      "  http://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/\n"
+
+      , corcut
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
