@@ -516,6 +516,9 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->rdc = SUMA_RDC_NOT_SET;
       
       SV->Blend_Mode = SUMA_NO_BLEND;
+      
+      SV->Do_3Drender = 0;
+      memset(&(SV->SER), 0, sizeof(SUMA_EnablingRecord));
    }
    SUMA_RETURN (SVv);
 }
@@ -1281,6 +1284,10 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS, "\nStandard viewing mode: %d\n", SV->StdView );
    SS = SUMA_StringAppend_va(SS, "\nBackground Modulation Factor= %f\n", SV->Back_Modfact);
    SS = SUMA_StringAppend_va(SS, "\nLast non mappable visited %d\n", SV->LastNonMapStateID);
+   
+   s = SUMA_EnablingState_Info(SV->SER);
+   SS = SUMA_StringAppend_va(SS,"Enabling state in sv->SER\n%s",s); 
+      SUMA_free(s); s = NULL;
    
    SS = SUMA_StringAppend(SS,"\n");
    

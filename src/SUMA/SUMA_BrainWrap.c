@@ -1891,7 +1891,7 @@ float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIO
    float *touchup=NULL, targ[3]; 
    float *overshish=NULL, *undershish=NULL, *gradovershish=NULL;
    static FILE *GradOut = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
       

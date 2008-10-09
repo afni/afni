@@ -53,7 +53,7 @@ int main (int argc,char *argv[])
    int found = 0, NoStride = 0;
    byte *bt=NULL;
    SUMA_DSET * dset = NULL, *ndset=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;

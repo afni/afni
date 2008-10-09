@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 03 , OCT , 2008 , ZSS , "suma" , MICRO ,  TYPE_NEW_ENV,
+   "SUMA_StartUpLocation to control initial window placement ",
+   "See output for suma -environment for details."
+ },
+ 
  { 03 , OCT , 2008 , ZSS , "@DO.examples" , MINOR ,  TYPE_NEW_PROG,
    "A script that demonstrates the use of Displayable Objects",
    "See SUMA's interactive help for ctrl+alt+s for more information\n"

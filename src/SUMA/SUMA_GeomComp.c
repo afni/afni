@@ -177,9 +177,15 @@ int SUMA_Subdivide_Mesh(   float **NodeListp, int *N_Nodep, int **FaceSetListp,
    float *NodeList = NULL, a, *n1, *n2, *n0;
    int *FaceSetList = NULL;
    SUMA_SurfaceObject SObuf, *SO=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   SUMA_S_Warn("Function is very basic\n"
+               "Divisions are done by adding a node at the centroid of the\n"
+               "triangle to be subdivided. Bad idea, for very large triangles,\n"
+               "such as those produced by convex hull. You could end up with\n"
+               "nodes that have hundreds of neighbors\n");
    
    SO = &SObuf;
    
@@ -5799,10 +5805,9 @@ double SUMA_SigForFWHM(float AvgLe, double dfwhm, int *niterest, double *beta)
    value. The blurring is done on all columns of the data but the testing is done on column indexed
    icol
    If MaskZeros is set to 1 then nodes having a value of 0 are not considered
-   
-   I am not convinced, this solves much. Go back and see effect on 1D sample in matlab...
 */
-SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset, byte *nmask, 
+SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset, 
+                                       byte *nmask, 
                                        int icol, SUMA_Boolean MaskZeros) 
 {
    static char FuncName[]={"SUMA_FixNN_Oversampling"};
@@ -5815,7 +5820,7 @@ SUMA_Boolean SUMA_FixNN_Oversampling ( SUMA_SurfaceObject *SO, SUMA_DSET *dset, 
    SUMA_Boolean SameZone=YUP; /* if YUP, then keep blurring the first zone detected.
                                  if NOPE, then zone changes with each pass (results in many interpolation artifacts at edges 
                                          of shrinking zone...*/
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -6408,7 +6413,7 @@ SUMA_Boolean SUMA_Offset_Smooth_dset(
    byte *bfull=NULL;
    SUMA_OFFSET_STRUCT *OffS_out = NULL;
    
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
    

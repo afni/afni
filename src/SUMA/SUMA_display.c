@@ -31,7 +31,9 @@ extern SUMA_CommonFields *SUMAg_CF;
 static int snglBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
    GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1,  None};
 static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
-  GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_DOUBLEBUFFER, None};
+  GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1,
+  GLX_DOUBLEBUFFER,
+  None};
 
 static String fallbackResources_default[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
@@ -1187,6 +1189,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) {
       SUMA_DUMP_TRACE("Trace At display call");
    }
+
    
    /* now you need to set the clear_color since 
       it can be changed per viewer Thu Dec 12 2002 */
@@ -1366,6 +1369,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       }
    }
    
+
    i = 0;
    while (i < csv->N_DO) {
       if (dov[csv->RegisteredDO[i]].CoordType == SUMA_WORLD) {
@@ -1450,6 +1454,27 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       ++i;
    }
    
+   if (SUMAg_CF->Dev) {
+      if (csv->Do_3Drender) {
+         SUMA_S_Note("Put this Do_3Drender in the right place");
+         SUMA_LH("Going to render");
+         SUMA_ShowEnablingState(csv->SER,stderr,"Before Rendering (saved)\n");
+         /* Enable texture stuff*/
+         SUMA_Enable3DRendering();
+         SUMA_3DTex_redraw();
+         SUMA_ShowEnablingState( SUMA_RecordEnablingState(),stderr,
+                                 "After Rendering\n");
+         /* restore to before rendering */
+         SUMA_RestoreEnablingState(csv->SER);
+         SUMA_ShowEnablingState(SUMA_RecordEnablingState(),stderr,"Restored\n");
+      } else {
+         if (LocalHead) {
+            csv->SER = SUMA_RecordEnablingState();
+            SUMA_ShowEnablingState(csv->SER,stderr,"With no rendering done\n");
+         }
+      }
+   }
+
    /* Show the Cross Hair, if required */
    if (csv->ShowCrossHair) {
       /*fprintf(SUMA_STDOUT,"Showing Cross Hair \n");*/
@@ -1484,6 +1509,10 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       glDisable(GL_LINE_STIPPLE);
    }
    #endif
+ 
+   
+   
+   FLUSH_AND_OUT:
       
    glPopMatrix();   
    
@@ -2420,7 +2449,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
             if (SUMA_isEnv("SUMA_StartUpLocation", "POINTER"))
                SUMA_PositionWindowRelative(SUMAg_SVv[ic].X->TOPLEVEL,
                                         NULL,
-                                        SWP_POINTER);
+                                        SWP_POINTER_OFF);
             else {
                /*default, do nothing */
             }
@@ -9421,7 +9450,7 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
    Position RefX, RefY, NewX, NewY, Dx=5, RootX, RootY;
    Dimension RefW, RefH, ScrW, ScrH, NewW, NewH;
    
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
    
@@ -9520,7 +9549,8 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
             } else {
                wind = XtWindow(New);
             }
-            XQueryPointer(XtDisplay(New), wind, &root, &child, &root_x, &root_y, &win_x, &win_y, &keys_buttons);
+            XQueryPointer( XtDisplay(New), wind, &root, &child, 
+                           &root_x, &root_y, &win_x, &win_y, &keys_buttons);
             NewX = root_x;
             NewY = root_y;
          }
@@ -9541,7 +9571,8 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
             } else {
                wind = XtWindow(New);
             }
-            XQueryPointer(XtDisplay(New), wind, &root, &child, &root_x, &root_y, &win_x, &win_y, &keys_buttons);
+            XQueryPointer( XtDisplay(New), wind, &root, &child, 
+                           &root_x, &root_y, &win_x, &win_y, &keys_buttons);
             NewX = root_x - (int)NewW/2;
             NewY = root_y - (int)NewH + Dx;
          }
