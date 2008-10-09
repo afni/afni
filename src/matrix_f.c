@@ -223,8 +223,8 @@ void matrix_print (matrix m)
   float val ;
   int ipr ;
 
-  rows = m.rows;
-  cols = m.cols;
+  rows = m.rows; if( rows < 1 ) return ;
+  cols = m.cols; if( cols < 1 ) return ;
 
   for( i=0 ; i < rows ; i++ ){
     for( j=0 ; j < cols ; j++ ){
