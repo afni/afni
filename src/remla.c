@@ -14,8 +14,6 @@
 # define MPAIR float_pair
 #endif
 
-#undef DEBUG
-
 /*****
   Struct to hold a banded square matrix that is either symmetric,
   or upper or lower triangular (depending on the needs of the moment).
@@ -94,7 +92,7 @@ typedef struct {
 #define IAB(rc,a,b) ( (int)rint( ((a)-(rc)->abot) / (rc)->da )  \
      + (1+(rc)->na) * (int)rint( ((b)-(rc)->bbot) / (rc)->db ) )
 
-static MTYPE corcut = 0.01 ;
+static MTYPE corcut = 0.0025 ;
 
 #undef  TAU
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])
@@ -634,23 +632,31 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    matrix *W , *D ;
    MTYPE *vec , csum,dsum,val ;
 
-   if( nt < 2 || X == NULL || X->rows != nt ) return NULL ;
+   if( nt < 2 || X == NULL || X->rows != nt ){
+     if( verb ) ERROR_message("setup_arma11_reml: bad inputs?!") ;
+     return NULL ;
+   }
 
    mm = X->cols ;  /* number of regression parameters */
-   if( mm >= nt || mm <= 0 ) return NULL ;
+   if( mm >= nt || mm <= 0 ){
+     if( verb ) ERROR_message("setup_arma11_reml: bad inputs?!") ;
+     return NULL ;
+   }
 
    /* Form R = correlation matrix for ARMA(1,1) model */
 
    rcm = rcmat_arma11( nt , tau , rho , lam ) ;
-   if( rcm == NULL ) return NULL ;  /* should not transpire */
+   if( rcm == NULL ){
+     if( verb ) ERROR_message("rcmat_arma11 fails!?") ;
+     return NULL ;
+   }
 
    /* form C = Choleski factor of R (in place) */
 
    ii = rcmat_choleski( rcm ) ;
    if( ii != 0 ){
-#ifdef DEBUG
-     ERROR_message("rcmat_choleski fails with code=%d: rho=%f lam=%f",ii,rho,lam) ;
-#endif
+     if( verb > 1 )
+       ERROR_message("rcmat_choleski fails with code=%d: rho=%f lam=%f",ii,rho,lam) ;
      rcmat_destroy(rcm); return NULL;
    }
 
@@ -672,9 +678,8 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    matrix_qrr( *W , D ) ;
    matrix_destroy(W) ; free((void *)W) ;
    if( D->rows <= 0 ){
-#ifdef DEBUG
-     ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
-#endif
+     if( verb > 1 )
+       ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
      matrix_destroy(D) ; free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
    }
 
