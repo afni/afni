@@ -2,12 +2,11 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.8,  Oct. 8, 2008")
+print("Version 0.0.8,  Oct. 10, 2008")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-
 
 libLoad <- function(myLib) {
    sucLoad <- FALSE
@@ -163,7 +162,7 @@ if (as.logical(COV)) {
 		if (covHeader == 1) exData <- read.table(fncov, header=TRUE) else {
          exData <- read.table(fncov, header=FALSE)
          for (ii in 1:nROIs) names(exData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
-      }
+      }whYnOT6834
    } else {
 #      covn <- vector('list', nCOVs)
       exData <- data.frame(matrix(data=NA, nrow=nTotal, ncol=nCOVs, dimnames = NULL))
@@ -217,7 +216,7 @@ if (nPoly > -1) {
 	  trendMat[(jumpPts+1):(jumpPts+nPts[ii]),(1+(nPoly+1)*(ii-1)):((nPoly+1)*ii)] <- 
 	      t(legendre_Pl_array(nPoly, seq(from=-1,to=1,len=nPts[ii])))    
       names(trendMat)[(1+(nPoly+1)*(ii-1)):((nPoly+1)*ii)] <- sprintf("Run%iTrend%i", ii, seq(nPoly+1)-1)
-      if (ii < nBreaks) jumpPts <- jumpPts+nPtsSys.getenv("PATH")[ii]
+      if (ii < nBreaks) jumpPts <- jumpPts+nPts[ii]
    }
    if (is.null(exData)) exMat <- trendMat else exMat <- cbind(trendMat, exData)
 } else exMat <- exData # if no baseline and trend, do nothing
