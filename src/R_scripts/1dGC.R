@@ -8,6 +8,7 @@ print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
+
 libLoad <- function(myLib) {
    sucLoad <- FALSE
    sucCheck <- FALSE
