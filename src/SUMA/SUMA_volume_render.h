@@ -2,7 +2,7 @@
 #define SUMA_VOLUME_INCLUDED
 
 
-SUMA_Boolean SUMA_Init3DTextureNIDOnel(  NI_element *nel, 
+SUMA_Boolean SUMA_Draw3DTextureNIDOnel(  NI_element *nel, 
                                     SUMA_SurfaceObject *SO, 
                                     SUMA_DO_CoordUnits default_coord_type,
                                     float *default_txcol, 

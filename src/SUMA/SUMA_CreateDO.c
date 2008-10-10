@@ -1638,11 +1638,12 @@ SUMA_SegmentDO *SUMA_niSDO2SDO(NI_group *ngr)
 }
 
 
-SUMA_SegmentDO *SUMA_CreateSegmentDO(  int N_n, int oriented, int NodeBased, int Stipple,
-                                       char *Label, char *idcode_str, char *Parent_idcode_str,
-                                       float LineWidth, float *LineCol,
-                                       int *NodeID, int *NodeID1, float *n0, float *n1,
-                                       float *colv, float *thickv 
+SUMA_SegmentDO *SUMA_CreateSegmentDO(  
+         int N_n, int oriented, int NodeBased, int Stipple,
+         char *Label, char *idcode_str, char *Parent_idcode_str,
+         float LineWidth, float *LineCol,
+         int *NodeID, int *NodeID1, float *n0, float *n1,
+         float *colv, float *thickv 
                                        ) 
 {
    static char FuncName[]={"SUMA_CreateSegmentDO"};
@@ -3741,7 +3742,7 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
    SUMA_DO_CoordType coord_type = SUMA_WORLD;
    SUMA_DO_CoordUnits default_coord_units = SUMA_WORLD_UNIT;
    char *atr=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -3889,12 +3890,14 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
             }
          } else if (! strcmp(nel->name,"3DTex")) {
             if (SUMAg_CF->Dev) {
-               if (!SUMA_Init3DTextureNIDOnel(nel, default_SO, 
+               SUMA_LH("Going to draw 3DTexture");
+               if (!SUMA_Draw3DTextureNIDOnel(nel, default_SO, 
                                           default_coord_units,
                                           default_color, 
                                           default_font, sv)) {
                   SUMA_S_Warnv("Failed to draw %s\n", nel->name);
                }
+               SUMA_LH("Done drawing 3DTexture");
             } else {
                SUMA_S_Note("3DTex available in developer mode "
                            "(suma -dev) mode only.\n");
