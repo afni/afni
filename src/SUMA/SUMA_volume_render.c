@@ -280,7 +280,7 @@ remaptex(void)
 
 #ifdef GL_EXT_texture3D
     SUMA_S_Note("Running GL_EXT_texture3D...\n");
-    glTexImage3DEXT(GL_TEXTURE_3D_EXT, 0, GL_LUMINANCE_ALPHA,
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA,
 		    tex_num[0], tex_num[1], tex_num[2],
 		    0,
 		    GL_RGBA, GL_UNSIGNED_BYTE, tex3ddata);
@@ -292,18 +292,22 @@ remaptex(void)
     CHECK_ERROR("OpenGL Error in remaptex()");
 }
 
+static GLuint texName = -1;
 void SUMA_SetTexImage(void) 
 {
    static char FuncName[]={"SUMA_SetTexImage"};
    SUMA_ENTRY;
    #ifdef GL_EXT_texture3D
        SUMA_S_Note("Setting GL_EXT_texture3D...\n");
-
-       glTexParameteri(GL_TEXTURE_3D_EXT, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-       glTexImage3DEXT(GL_TEXTURE_3D_EXT, 0, GL_LUMINANCE_ALPHA,
+       glEnable(GL_TEXTURE_3D);
+       if (texName < 0) glGenTextures(1, &texName);
+       glBindTexture(GL_TEXTURE_3D, texName);
+       glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+       glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA,
 		       tex_num[0], tex_num[1], tex_num[2],
 		       0,
 		       GL_RGBA, GL_UNSIGNED_BYTE, tex3ddata);
+      glDisable(GL_TEXTURE_3D);
    #endif
    SUMA_RETURNe;
 }      
@@ -323,8 +327,8 @@ void SUMA_CreateSphereList(void)
       GLUquadricObj *qobj = gluNewQuadric();
       glPushAttrib(GL_LIGHTING_BIT);
       glEnable(GL_LIGHTING);
-      glEnable(GL_LIGHT0);
-      glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
+      glEnable(GL_LIGHT2);
+      glLightfv(GL_LIGHT2, GL_POSITION, lightpos);
       glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, material);
       gluSphere(qobj, 20.f, 20, 20);
       gluDeleteQuadric(qobj);
@@ -344,6 +348,7 @@ SUMA_EnablingRecord SUMA_RecordEnablingState(void)
    
    SER.DEPTH_TEST = glIsEnabled(GL_DEPTH_TEST);
    SER.TEXTURE_3D_EXT = glIsEnabled(GL_TEXTURE_3D_EXT);
+   SER.TEXTURE_3D = glIsEnabled(GL_TEXTURE_3D);
    SER.TEXTURE_GEN_S = glIsEnabled(GL_TEXTURE_GEN_S);
    SER.TEXTURE_GEN_T = glIsEnabled(GL_TEXTURE_GEN_T);
    SER.TEXTURE_GEN_R = glIsEnabled(GL_TEXTURE_GEN_R);
@@ -355,6 +360,8 @@ SUMA_EnablingRecord SUMA_RecordEnablingState(void)
    SER.CLIP_PLANE5 = glIsEnabled(GL_CLIP_PLANE5);
    SER.LIGHTING = glIsEnabled(GL_LIGHTING);
    SER.LIGHT0 = glIsEnabled(GL_LIGHT0);
+   SER.LIGHT1 = glIsEnabled(GL_LIGHT1);
+   SER.LIGHT2 = glIsEnabled(GL_LIGHT2);
    SER.BLEND = glIsEnabled(GL_BLEND);
    /* SER. = glIsEnabled(GL_); */
    
@@ -371,6 +378,8 @@ void SUMA_RestoreEnablingState(SUMA_EnablingRecord SER)
    else glDisable(GL_DEPTH_TEST);
    if (SER.TEXTURE_3D_EXT) glEnable(GL_TEXTURE_3D_EXT);
    else glDisable(GL_TEXTURE_3D_EXT);
+   if (SER.TEXTURE_3D) glEnable(GL_TEXTURE_3D);
+   else glDisable(GL_TEXTURE_3D);
    if (SER.TEXTURE_GEN_S) glEnable(GL_TEXTURE_GEN_S);
    else glDisable(GL_TEXTURE_GEN_S);
    if (SER.TEXTURE_GEN_T) glEnable(GL_TEXTURE_GEN_T);
@@ -393,6 +402,10 @@ void SUMA_RestoreEnablingState(SUMA_EnablingRecord SER)
    else glDisable(GL_LIGHTING);
    if (SER.LIGHT0) glEnable(GL_LIGHT0);
    else glDisable(GL_LIGHT0);
+   if (SER.LIGHT1) glEnable(GL_LIGHT1);
+   else glDisable(GL_LIGHT1);
+   if (SER.LIGHT2) glEnable(GL_LIGHT2);
+   else glDisable(GL_LIGHT2);
    if (SER.BLEND) glEnable(GL_BLEND);
    else glDisable(GL_BLEND);
    /* if (SER.) glEnable(); */
@@ -413,6 +426,8 @@ char *SUMA_EnablingState_Info(SUMA_EnablingRecord SER)
                         SER.DEPTH_TEST ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_TEXTURE_3D_EXT is %s\n", 
                         SER.TEXTURE_3D_EXT ? "Enabled":"Disabled"); 
+   SUMA_StringAppend_va(SS,"GL_TEXTURE_3D is %s\n", 
+                        SER.TEXTURE_3D ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_TEXTURE_GEN_S is %s\n", 
                         SER.TEXTURE_GEN_S ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_TEXTURE_GEN_T is %s\n", 
@@ -435,6 +450,10 @@ char *SUMA_EnablingState_Info(SUMA_EnablingRecord SER)
                         SER.LIGHTING ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_LIGHT0 is %s\n", 
                         SER.LIGHT0 ? "Enabled":"Disabled"); 
+   SUMA_StringAppend_va(SS,"GL_LIGHT1 is %s\n", 
+                        SER.LIGHT1 ? "Enabled":"Disabled"); 
+   SUMA_StringAppend_va(SS,"GL_LIGHT2 is %s\n", 
+                        SER.LIGHT2 ? "Enabled":"Disabled"); 
    SUMA_StringAppend_va(SS,"GL_BLEND is %s\n", 
                         SER.BLEND ? "Enabled":"Disabled"); 
 
@@ -469,7 +488,7 @@ void SUMA_Enable3DRendering(void)
    
    glEnable(GL_DEPTH_TEST);
    #ifdef GL_EXT_texture3D
-   glEnable(GL_TEXTURE_3D_EXT);
+   glEnable(GL_TEXTURE_3D);
    #endif
 
    glEnable(GL_TEXTURE_GEN_S);
@@ -486,9 +505,9 @@ void SUMA_Enable3DRendering(void)
 
    #ifdef GL_EXT_texture3D
    /* to avoid boundary problems */
-   glTexParameteri(GL_TEXTURE_3D_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP);
-   glTexParameteri(GL_TEXTURE_3D_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP);
-   glTexParameteri(GL_TEXTURE_3D_EXT, GL_TEXTURE_WRAP_R_EXT, GL_CLAMP);
+   glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+   glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+   glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
    #endif
 
    glEnable(GL_CLIP_PLANE0);
@@ -498,8 +517,8 @@ void SUMA_Enable3DRendering(void)
    glEnable(GL_CLIP_PLANE4);
    glEnable(GL_CLIP_PLANE5);
 
-   glDisable(GL_LIGHT0);
-   glLightfv(GL_LIGHT0, GL_POSITION, lightpos);
+   glDisable(GL_LIGHT2);
+   glLightfv(GL_LIGHT2, GL_POSITION, lightpos);
 
    SUMA_RETURNe;
 }
@@ -535,8 +554,9 @@ void SUMA_dset_slice_corners( int slc, float *orig, float *del,
 void SUMA_3DTex_redraw(void)
 {
    static char FuncName[]={"SUMA_3DTex_redraw"};
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    int i, k;
+   GLfloat colcol[3] = {1.0 , 1.0 , 0.0};
    GLfloat slc_corn[12];
    
    GLfloat offS, offT, offR; /* mapping texture to planes */
@@ -565,7 +585,8 @@ void SUMA_3DTex_redraw(void)
             clipplane4[W], clipplane5[W],
             tex_num[0], tex_num[1], tex_num[2],
             slices );
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT); 
+
 
    if(map) {
       SUMA_LH("Remaping texture");
@@ -655,41 +676,49 @@ void SUMA_3DTex_redraw(void)
     
     if(texture) {
 #ifdef GL_EXT_texture3D
-       glEnable(GL_TEXTURE_3D_EXT);
+       glEnable(GL_TEXTURE_3D);
 #endif
     } else {
 #ifdef GL_EXT_texture3D
-       glDisable(GL_TEXTURE_3D_EXT);
+       glDisable(GL_TEXTURE_3D);
 #endif
        glEnable(GL_LIGHTING);
-       glEnable(GL_LIGHT0);
+       glEnable(GL_LIGHT2);
     }
 
     
    SUMA_LH("Drawing Quads");
+
    for(i = 0; i < slices; i++) {
          SUMA_dset_slice_corners( i, vox_orig, vox_del, 
                                   vox_num, slc_corn)     ;
          glBegin(GL_QUADS);
+         /* 
          for (k=0; k<4; ++k) {
-            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
+             glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
          }
+         */
+         glVertex3f(-100.0, -100.0, i);
+         glVertex3f(-100.0, 100.0, i);
+         glVertex3f(100.0, 100.0, i);
+         glVertex3f(100.0, -100.0, i);
+         
          glEnd();
    }
 
    #ifdef GL_EXT_texture3D
-   glDisable(GL_TEXTURE_3D_EXT);
+   glDisable(GL_TEXTURE_3D);
    #endif
    if(!texture) {
     glDisable(GL_LIGHTING);
    }
    glDisable(GL_BLEND);
 
-   SUMA_LH("Attenuating");
    glPopMatrix(); /* back to identity */
    glMatrixMode(GL_MODELVIEW);
 
    if(operator == ATTENUATE) {
+      SUMA_LH("Attenuating");
       glPixelTransferf(GL_RED_SCALE, 3.f); /* brighten image */
       glPixelTransferf(GL_GREEN_SCALE, 3.f);
       glPixelTransferf(GL_BLUE_SCALE, 3.f);
@@ -905,10 +934,13 @@ SUMA_Boolean SUMA_Init3DTextureNIDOnel (NI_element *nel,
                                  
 
       tex3ddata = (byte *)nel->vec[0];
-
+      
+      /* that call makes all go to black */
       SUMA_SetTexImage();
-
-      SUMA_CreateSphereList();
+      
+      
+      SUMA_CreateSphereList(); 
+      
    } 
    
   

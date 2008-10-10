@@ -1454,19 +1454,34 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       ++i;
    }
    
+   /* Show the World Axis if required */
+   if (csv->ShowWorldAxis) {
+      /* fprintf(SUMA_STDOUT,"Showing World Axis \n");  */
+      if (!SUMA_DrawAxis (csv->WAx, csv)) {
+         fprintf(stderr,"display error: Failed to Create WAx\n");
+      }
+   }
+
    if (SUMAg_CF->Dev) {
       if (csv->Do_3Drender) {
          SUMA_S_Note("Put this Do_3Drender in the right place");
          SUMA_LH("Going to render");
-         SUMA_ShowEnablingState(csv->SER,stderr,"Before Rendering (saved)\n");
+         if (LocalHead) 
+            SUMA_ShowEnablingState(csv->SER,stderr,"Before Rendering (saved)\n");
          /* Enable texture stuff*/
+         glPushAttrib(GL_ALL_ATTRIB_BITS); /* save all stackable states */
          SUMA_Enable3DRendering();
          SUMA_3DTex_redraw();
-         SUMA_ShowEnablingState( SUMA_RecordEnablingState(),stderr,
+         if (LocalHead) {
+            SUMA_ShowEnablingState( SUMA_RecordEnablingState(),stderr,
                                  "After Rendering\n");
+         }
          /* restore to before rendering */
          SUMA_RestoreEnablingState(csv->SER);
-         SUMA_ShowEnablingState(SUMA_RecordEnablingState(),stderr,"Restored\n");
+         glPopAttrib();
+         if (LocalHead) 
+            SUMA_ShowEnablingState(SUMA_RecordEnablingState(),
+                                    stderr,"Restored\n");
       } else {
          if (LocalHead) {
             csv->SER = SUMA_RecordEnablingState();
@@ -1483,14 +1498,6 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       }
    }
    
-   /* Show the World Axis if required */
-   if (csv->ShowWorldAxis) {
-      /* fprintf(SUMA_STDOUT,"Showing World Axis \n");  */
-      if (!SUMA_DrawAxis (csv->WAx, csv)) {
-         fprintf(stderr,"display error: Failed to Create WAx\n");
-      }
-   }
-
 
    #if 0
    /* Show the pick line, you may want place this as a DO later on */

@@ -1647,6 +1647,7 @@ typedef enum {  SUMA_NO_WAX, SUMA_THREE_WAX, SUMA_THREE_TEXT_WAX, SUMA_BOX_WAX, 
 typedef struct {
    int DEPTH_TEST;
    int TEXTURE_3D_EXT;
+   int TEXTURE_3D;
    int TEXTURE_GEN_S;
    int TEXTURE_GEN_T;
    int TEXTURE_GEN_R;
@@ -1658,6 +1659,8 @@ typedef struct {
    int CLIP_PLANE5;
    int LIGHTING;
    int LIGHT0;
+   int LIGHT1;
+   int LIGHT2;
    int BLEND;
 } SUMA_EnablingRecord;
 
