@@ -2,6 +2,8 @@
 
 /***** 3dREMLfit.c *****/
 
+static int verb=1 ;
+
 #undef FLOATIZE      /* we will use double precision for matrices */
 #include "remla.c"   /* do NOT change this to FLOATIZE !!! */
 
@@ -286,7 +288,7 @@ int main( int argc , char *argv[] )
    char *cgl , *rst ;
    matrix X ; vector y ;
    reml_collection *rrcol ;
-   int nprefixO=0 , nprefixR=0 , vstep=0 , verb=1 ;
+   int nprefixO=0 , nprefixR=0 , vstep=0 ;
 
    char *Rbeta_prefix  = NULL ; THD_3dim_dataset *Rbeta_dset  = NULL ;
    char *Rvar_prefix   = NULL ; THD_3dim_dataset *Rvar_dset   = NULL ;
@@ -302,6 +304,9 @@ int main( int argc , char *argv[] )
    char *Rerrts_prefix = NULL ; THD_3dim_dataset *Rerrts_dset = NULL ;
    char *Oerrts_prefix = NULL ; THD_3dim_dataset *Oerrts_dset = NULL ;
    char *Rwherr_prefix = NULL ; THD_3dim_dataset *Rwherr_dset = NULL ;
+
+   char *Rglt_prefix   = NULL ; THD_3dim_dataset *Rglt_dset   = NULL ;
+   int neglt=0 , do_eglt=0 ;
 
    int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL , izero ;
    NI_int_array *giar ; NI_str_array *gsar ; NI_float_array *gfar ;
@@ -329,6 +334,7 @@ int main( int argc , char *argv[] )
    int    eglt_num = 0    ;   /* extra GLTs from the command line */
    char **eglt_lab = NULL ;
    char **eglt_sym = NULL ;
+   int    oglt_num = 0    ;   /* number of 'original' GLTs */
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -1004,6 +1010,10 @@ int main( int argc , char *argv[] )
      PREFIX_OPTION(Oerrts_prefix) ;
      PREFIX_OPTION(Rwherr_prefix) ;
 
+#if 0
+     PREFIX_OPTION(Rglt_prefix) ;
+#endif
+
      /** bad users must be punished **/
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
@@ -1044,9 +1054,15 @@ STATUS("options done") ;
        "-slibase: if program runs out of memory, re-run with -usetemp option");
    }
 
-   do_buckt = (Rbuckt_prefix != NULL) || (Obuckt_prefix != NULL) ;
+   if( eglt_num == 0 && Rglt_prefix != NULL ){
+     WARNING_message("-Rglt disabled since no GLTs on 3dREMLfit command line") ;
+     Rglt_prefix = NULL ;
+   }
 
-   if( !do_buckt ){
+   do_buckt = (Rbuckt_prefix != NULL) || (Obuckt_prefix != NULL) ;
+   do_eglt  = (Rglt_prefix   != NULL) ;
+
+   if( !do_buckt && !do_eglt ){
      if( do_fstat ){
        WARNING_message("-fout disabled because no bucket dataset will be output");
        do_fstat = 0 ;
@@ -1057,7 +1073,7 @@ STATUS("options done") ;
      }
    }
 
-   if( do_buckt && !do_fstat && !do_tstat ){
+   if( (do_buckt || do_eglt) && !do_fstat && !do_tstat ){
      do_fstat = 1 ;
      if( verb )
        INFO_message("assuming -fout since you asked for a bucket dataset") ;
@@ -1092,8 +1108,8 @@ STATUS("options done") ;
        do_mfilt = 0 ; WARNING_message("-ABfile disables -Mfilt") ;
      }
 
-     atop = fabsf(atop) ; abot = fabsf(abot) ; rhomax = MAX(abot,atop) ;
-     btop = fabsf(btop) ; bbot = fabsf(bbot) ; bmax   = MAX(bbot,btop) ;
+     atop = fabsf(atop) ; abot = fabsf(abot) ; rhomax = 1.001*MAX(abot,atop) ;
+     btop = fabsf(btop) ; bbot = fabsf(bbot) ; bmax   = 1.001*MAX(bbot,btop) ;
      if( rhomax < 0.1 ) rhomax = 0.1 ;
      if( bmax   < 0.1 ) bmax   = 0.1 ;
      if( verb )
@@ -1102,6 +1118,8 @@ STATUS("options done") ;
 
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
      bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
+
+     for( ii=2 ; ii < DSET_NVALS(abset) ; ii++ ) DSET_unload_one(abset,ii) ;
 
    } else if( abfixed ){
 
@@ -1446,7 +1464,7 @@ STATUS("process -slibase images") ;
    } else {  /* don't have stim info in matrix header?! */
 
      WARNING_message("-matrix file is missing Stim attributes (old 3dDeconvolve?)") ;
-     if( do_stat || do_buckt )
+     if( do_stat || do_buckt || do_eglt )
        ERROR_exit(" ==> Can't do statistics on the Stimuli") ;
      eglt_num = 0 ;
    }
@@ -1550,6 +1568,8 @@ STATUS("make other GLTs") ;
 #endif
 
      /* now process any extra GLTs on our local command line */
+
+     oglt_num = glt_num ;  /* number of 'original' GLTs */
 
      for( nbad=kk=0 ; kk < eglt_num ; kk++ ){
        gm = create_gltsym( eglt_sym[kk] , nrega ) ;
@@ -1694,7 +1714,7 @@ STATUS("make other GLTs") ;
 
    /*-- set up indexing and labels needed for bucket dataset creation --*/
 
-   if( do_buckt && glt_num > 0 ){
+   if( (do_buckt || do_eglt) && glt_num > 0 ){
      glt_ind = (GLT_index **)calloc( sizeof(GLT_index *) , glt_num ) ;
      if( do_fstat ){
        glt_ind[0] = create_GLT_index( 0 , glt_mat[0]->rows ,
@@ -1710,6 +1730,8 @@ STATUS("make other GLTs") ;
        kk = glt_ind[ii]->ivtop + 1 ;
      }
      nbuckt = glt_ind[glt_num-1]->ivtop + 1 ;  /* number of sub-bricks */
+     if( do_eglt )
+       neglt = glt_ind[glt_num-1]->ivtop - glt_ind[oglt_num-1]->ivtop ;
    }
 
    /*-- now, use these values to compute the Generalized Least  --*/
@@ -1760,9 +1782,37 @@ STATUS("make other GLTs") ;
      }
    }
 
+   Rglt_dset = create_float_dataset( inset , neglt , Rglt_prefix,1 ) ;
+   if( Rglt_dset != NULL ){
+     int nr , isub = glt_ind[oglt_num]->ivbot ;
+     for( ii=oglt_num ; ii < glt_num ; ii++ ){
+       if( glt_ind[ii] == NULL ) continue ;
+       nr = glt_ind[ii]->nrow ;
+       if( glt_ind[ii]->beta_ind != NULL ){
+         for( jj=0 ; jj < nr ; jj++ )
+           EDIT_BRICK_LABEL( Rglt_dset , glt_ind[ii]->beta_ind[jj]-isub ,
+                                           glt_ind[ii]->beta_lab[jj]  ) ;
+           EDIT_BRICK_TO_NOSTAT( Rglt_dset , glt_ind[ii]->beta_ind[jj]-isub ) ;
+       }
+       if( glt_ind[ii]->ttst_ind != NULL ){
+         for( jj=0 ; jj < nr ; jj++ ){
+           EDIT_BRICK_LABEL( Rglt_dset , glt_ind[ii]->ttst_ind[jj]-isub ,
+                                           glt_ind[ii]->ttst_lab[jj]  ) ;
+           EDIT_BRICK_TO_FITT( Rglt_dset , glt_ind[ii]->ttst_ind[jj]-isub , ddof ) ;
+         }
+       }
+       if( glt_ind[ii]->ftst_ind >= 0 ){
+         EDIT_BRICK_LABEL( Rglt_dset , glt_ind[ii]->ftst_ind-isub ,
+                                         glt_ind[ii]->ftst_lab  ) ;
+         EDIT_BRICK_TO_FIFT( Rglt_dset , glt_ind[ii]->ftst_ind-isub , nr , ddof ) ;
+       }
+     }
+   }
+
    do_Rstuff = (Rbeta_dset  != NULL) || (Rvar_dset   != NULL) ||
                (Rfitts_dset != NULL) || (Rbuckt_dset != NULL) ||
-               (Rerrts_dset != NULL) || (Rwherr_dset != NULL)   ;
+               (Rerrts_dset != NULL) || (Rwherr_dset != NULL) ||
+               (Rglt_dset   != NULL)                             ;
 
    /*---- and do the second (GLSQ) voxel loop ----*/
 
@@ -1885,6 +1935,32 @@ STATUS("make other GLTs") ;
            THD_insert_series( vv , Rbuckt_dset , nbuckt , MRI_float , iv , 0 ) ;
          }
 
+         if( Rglt_dset != NULL ){
+           MTYPE gv ; GLT_index *gin ; int nr , isub ;
+           memset( iv , 0 , sizeof(float)*niv ) ;
+           isub = glt_ind[oglt_num]->ivbot ;
+           for( kk=oglt_num ; kk < glt_num ; kk++ ){
+             gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
+             nr = gin->nrow ;
+             gv = REML_compute_gltstat( &y , bb5 , rsumq ,
+                                        RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
+                                        glt_mat[kk] , glt_smat[kk] ,
+                                        RCsli[ss]->X , RCsli[ss]->Xs        ) ;
+             if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind-isub] = gv ;
+             if( gin->beta_ind != NULL && betaG->dim >= nr ){
+               for( ii=0 ; ii < nr ; ii++ ){
+                 iv[gin->beta_ind[ii]-isub] = betaG->elts[ii] ;
+               }
+             }
+             if( gin->ttst_ind != NULL && betaT->dim >= nr ){
+               for( ii=0 ; ii < nr ; ii++ ){
+                 iv[gin->ttst_ind[ii]-isub] = betaT->elts[ii] ;
+               }
+             }
+           }
+           THD_insert_series( vv , Rglt_dset , neglt , MRI_float , iv , 0 ) ;
+         }
+
        }
      } /* end of voxel loop */
      if( vstep ) fprintf(stderr,"\n") ;
@@ -1920,6 +1996,16 @@ STATUS("make other GLTs") ;
        ININFO_message("Added %d FDR curve%s to -Rbuck dataset",
                       ii , (ii==1)?"":"s" ) ;
      DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_deletepp(Rbuckt_dset);
+   }
+   if( Rglt_dset != NULL ){
+     if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
+       ii = THD_create_all_fdrcurves(Rglt_dset) ;
+     else
+       ii = 0 ;
+     if( ii > 0 && verb > 1 )
+       ININFO_message("Added %d FDR curve%s to -Rglt dataset",
+                      ii , (ii==1)?"":"s" ) ;
+     DSET_write(Rglt_dset); WROTE_DSET(Rglt_dset); DSET_deletepp(Rglt_dset);
    }
 
    /*-- create OLSQ outputs, if any --*/
