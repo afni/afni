@@ -469,19 +469,22 @@ int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                switch (sv->Blend_Mode) {
                   case SUMA_NO_BLEND:
                      glDisable(GL_BLEND);
-                     if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Blending  disabled."); }
+                     if (callmode && strcmp(callmode, "interactive") == 0) { 
+                           SUMA_SLP_Note ("Blending  disabled."); }
                      else { SUMA_S_Note ("Blending  disabled."); }
                      break;
                   case SUMA_BLEND1:
                      glEnable (GL_BLEND);
                      glBlendFunc(GL_ONE,GL_SRC_ALPHA);
-                     if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Blending mode1."); }
+                     if (callmode && strcmp(callmode, "interactive") == 0) { 
+                              SUMA_SLP_Note ("Blending mode1."); }
                      else { SUMA_S_Note ("Blending  mode1."); }
                      break;
                   case SUMA_BLEND2:
                      glEnable (GL_BLEND);
                      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                     if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_SLP_Note ("Blending mode2.");}
+                     if (callmode && strcmp(callmode, "interactive") == 0) { 
+                           SUMA_SLP_Note ("Blending mode2.");}
                      else { SUMA_S_Note ("Blending  mode2."); }
                      break;
                   default:
@@ -492,7 +495,8 @@ int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             }
          } else {
             sv->BF_Cull = (sv->BF_Cull+1)%3;
-            if (callmode && strcmp(callmode, "interactive") == 0) { SUMA_CullOption(sv, "Apply");}
+            if (callmode && strcmp(callmode, "interactive") == 0) { 
+                  SUMA_CullOption(sv, "Apply");}
             else { SUMA_CullOption(sv, "Restore");}
             SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          }
@@ -505,7 +509,8 @@ int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                                 SEF_Empty, NULL,
                                                 SES_Suma, (void *)sv, NOPE,
                                                 SEI_Head, NULL)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to register command.\n", FuncName);
          }
 
          ED = SUMA_InitializeEngineListData (SE_Redisplay);
@@ -513,7 +518,8 @@ int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                                 SEF_Empty, NULL,
                                                 SES_Suma, (void *)sv, NOPE,
                                                 SEI_Head, NULL)) {
-            fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to register command.\n", FuncName);
          }
 
          if (!SUMA_Engine (&list)) {
@@ -2178,6 +2184,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
 
+         case XK_3:
+            sv->Do_3Drender =  !sv->Do_3Drender;
+            SUMA_S_Notev("wtf!!!!!!!!!!!!!!%d!!!!!!!\n", sv->Do_3Drender);
+            break;
+      
          case XK_8:
             {
                char stmp[100];
