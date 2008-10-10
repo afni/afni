@@ -1463,29 +1463,34 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    }
 
    if (SUMAg_CF->Dev) {
-      if (csv->Do_3Drender) {
-         SUMA_S_Note("Put this Do_3Drender in the right place");
-         SUMA_LH("Going to render");
-         if (LocalHead) 
-            SUMA_ShowEnablingState(csv->SER,stderr,"Before Rendering (saved)\n");
-         /* Enable texture stuff*/
-         glPushAttrib(GL_ALL_ATTRIB_BITS); /* save all stackable states */
-         SUMA_Enable3DRendering();
-         SUMA_3DTex_redraw();
-         if (LocalHead) {
-            SUMA_ShowEnablingState( SUMA_RecordEnablingState(),stderr,
-                                 "After Rendering\n");
-         }
-         /* restore to before rendering */
-         SUMA_RestoreEnablingState(csv->SER);
-         glPopAttrib();
-         if (LocalHead) 
-            SUMA_ShowEnablingState(SUMA_RecordEnablingState(),
-                                    stderr,"Restored\n");
-      } else {
-         if (LocalHead) {
-            csv->SER = SUMA_RecordEnablingState();
-            SUMA_ShowEnablingState(csv->SER,stderr,"With no rendering done\n");
+      SUMA_S_Note("KILL THIS");
+      if (0) {
+         if (csv->Do_3Drender) {
+            SUMA_S_Note("Put this Do_3Drender in the right place");
+            SUMA_LH("Going to render");
+            if (LocalHead) 
+               SUMA_ShowEnablingState(csv->SER,stderr,
+                                       "Before Rendering (saved)\n");
+            /* Enable texture stuff*/
+            glPushAttrib(GL_ALL_ATTRIB_BITS); /* save all stackable states */
+            SUMA_Enable3DRendering();
+            SUMA_3DTex_redraw();
+            if (LocalHead) {
+               SUMA_ShowEnablingState( SUMA_RecordEnablingState(),stderr,
+                                    "After Rendering\n");
+            }
+            /* restore to before rendering */
+            SUMA_RestoreEnablingState(csv->SER);
+            glPopAttrib();
+            if (LocalHead) 
+               SUMA_ShowEnablingState(SUMA_RecordEnablingState(),
+                                       stderr,"Restored\n");
+         } else {
+            if (LocalHead) {
+               csv->SER = SUMA_RecordEnablingState();
+               SUMA_ShowEnablingState(csv->SER,stderr,
+                                       "With no rendering done\n");
+            }
          }
       }
    }

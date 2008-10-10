@@ -253,7 +253,7 @@ remaptex(void)
     static char FuncName[]={"remaptex"};
     int i, size;
     GLfloat *map;
-
+SUMA_ENTRY;
    fprintf(stderr,"remaptex called.\n");
     glPixelTransferi(GL_MAP_COLOR, GL_TRUE);
 
@@ -290,6 +290,7 @@ remaptex(void)
     free(map);
 
     CHECK_ERROR("OpenGL Error in remaptex()");
+SUMA_RETURNe;
 }
 
 static GLuint texName = -1;
@@ -751,6 +752,7 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
    int Texcomps=1, max3dtexdims=0;
    float fv[12];
    int iv[12];
+   int NewNx=0, NewNy=0, NewNz=0;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -783,17 +785,22 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
    orcode[2] = ORIENT_typestr[dset->daxes->zzorient][0] ;
    orcode[3] = '\0';
    SUMA_LHv("dset orcode is %s\n", orcode);
-   #if 0
+   
+   /* texture is to be power of two in each direction, 
+   so get new dimensions, this is no longer necessary
+   with OpenGL > 1.2, remove restriction in the future */
+   NewNx = makepow2(DSET_NX(dset));
+   NewNy = makepow2(DSET_NY(dset));
+   NewNz = makepow2(DSET_NZ(dset));
    if (  strcmp(orcode,"RAI") || 
-         DSET_NX(dset) != 128 || 
-         DSET_NY(dset) != 128 || 
-         DSET_NZ(dset) != 128) {
+         DSET_NX(dset) != NewNx || 
+         DSET_NY(dset) != NewNy || 
+         DSET_NZ(dset) != NewNz) {
       /* resample into RAI, assuming that is needed */
-      odset = r_new_resam_dset(dset, NULL, 128, 128, 128, 
+      odset = r_new_resam_dset(dset, NULL, NewNx, NewNy, NewNz, 
                                "RAI", MRI_LINEAR, NULL, 1);
       DSET_delete(dset); dset = odset; odset = NULL;
    }
-   #endif
    
    EDIT_coerce_scale_type( 
                DSET_NVOX(dset) ,
@@ -836,6 +843,7 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
 
    SUMA_RETURN(YUP);
 }
+
 void SUMA_SetRenderModelView(void)
 {
    static char FuncName[]={"SUMA_SetRenderModelView"};
@@ -952,6 +960,226 @@ SUMA_Boolean SUMA_Init3DTextureNIDOnel (NI_element *nel,
   SUMA_RETURN(YUP);
 }
 
+void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset, 
+                              GLfloat *tcorners, GLfloat *corners)
+{
+   static char FuncName[]={"SUMA_dset_slice_corners"};   
+   int kk=0;
+   float orig[3] = { 0, 0, 0}, del[3] = { 0, 0, 0};
+   int nvox[3] = { 0, 0, 0};
+    
+   SUMA_ENTRY;
+   
+   orig[0] = dset->daxes->xxorg ; 
+   orig[1] = dset->daxes->yyorg ; 
+   orig[2] = dset->daxes->zzorg ; 
+   nvox[0] = DSET_NX(dset);
+   nvox[1] = DSET_NY(dset);
+   nvox[2] = DSET_NZ(dset);
+   del[0] = dset->daxes->xxdel ; 
+   del[1] = dset->daxes->yydel ; 
+   del[2] = dset->daxes->zzdel ; 
+
+   
+    corners[kk] = orig[0] + 0       * del[0]; 
+   tcorners[kk] = 0;                            ++kk;
+    corners[kk] = orig[1] + 0       * del[1]; 
+   tcorners[kk] = 0;                            ++kk;
+    corners[kk] = orig[2] + slc     * del[2]; 
+   tcorners[kk] = ((float)slc+0.5)/(float)nvox[2];++kk;
+   
+    corners[kk] = orig[0] + nvox[0] * del[0];  
+   tcorners[kk] = 1;                            ++kk;
+    corners[kk] = orig[1] + 0       * del[1]; 
+   tcorners[kk] = 0;                            ++kk;
+    corners[kk] = orig[2] + slc     * del[2]; 
+   tcorners[kk] = tcorners[2];                  ++kk;
+
+   
+    corners[kk] = orig[0] + nvox[0] * del[0]; 
+   tcorners[kk] = 1;                            ++kk;
+    corners[kk] = orig[1] + nvox[1] * del[1]; 
+   tcorners[kk] = 1;                            ++kk;
+    corners[kk] = orig[2] + slc     * del[2]; 
+   tcorners[kk] = tcorners[2];                  ++kk;
+
+    corners[kk] = orig[0] + 0       * del[0]; 
+   tcorners[kk] = 0;                            ++kk;
+    corners[kk] = orig[1] + nvox[1] * del[1]; 
+   tcorners[kk] = 1;                            ++kk;
+    corners[kk] = orig[2] + slc     * del[2]; 
+   tcorners[kk] = tcorners[2];                  ++kk;
+   
+   SUMA_RETURNe;
+}
+
+
+SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel, 
+                                    SUMA_SurfaceObject *SO, 
+                                    SUMA_DO_CoordUnits default_coord_type,
+                                    float *default_txcol, 
+                                    void *default_font,
+                                    SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_Draw3DTextureNIDOnel"};
+   static GLuint texName;
+   int i = 0, k = 0;
+   GLfloat tex_corn[12] ;
+   GLfloat slc_corn[12] ;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+
+   
+   if (!nel || strcmp(nel->name,"3DTex")) SUMA_RETURN(NOPE);
+   
+   if (NI_IS_STR_ATTR_EQUAL(nel,"read_status","fail")) {
+      /* can't be read */
+      SUMA_RETURN(NOPE);
+   }
+   
+   
+   if (!NI_IS_STR_ATTR_EQUAL(nel,"read_status","read")) { /* read it */
+      if (!SUMA_Load3DTextureNIDOnel(nel)) {
+         SUMA_RETURN(NOPE);
+      }
+      /* At this moment, dset is static variable, this should later be folded 
+      somewhere into SUMA's global structures */
+      SUMA_LH("Initializing and creating texture");
+      /* initialization */
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 1); /* Have no padding at the 
+                                                end of texel rows*/
+      NI_GET_INT(nel,"texName",texName);
+      if (!NI_GOT) {
+         /* As expected, brand new. Need to generate texture */
+         glGenTextures(1, &texName);   /* I just need 1 */
+         /* Now store it */
+         NI_SET_INT(nel,"texName",texName);
+      } else {
+         SUMA_S_Err("I don't know how this happened");
+         SUMA_RETURN(NOPE);
+      }
+   
+      glBindTexture(GL_TEXTURE_3D, texName); /* make texName be the current one 
+                                             This will also create texture object
+                                             since this is the first time it is
+                                             called*/
+      
+      /* Should texture repeat or no ? - This does not need to be set with 
+         every draw call, it should be done at init time*/
+      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+
+      /* How should magnification and reduction be handled? */
+      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      
+      SUMA_LHv("Storing texture: %d %d %d\n", 
+               DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset));
+      /* And store the image poiner in question */
+      glTexImage3D   (  GL_TEXTURE_3D, 
+                        0, /* texture level, highest resolution */
+                        GL_RGBA, /* RGBA baby*/
+                        DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset),
+		                  0, /* border is 0 wide. Might have to do borders and 
+                              split texture into two, if
+                              volume is too big to fit into kangaroo's pouch */
+                        GL_RGBA, GL_UNSIGNED_BYTE, 
+                        nel->vec[0]);
+      SUMA_LH("Texture Stored");
+      /* planes for automatice texture generation */
+      splane[0] = 1.f/(float)DSET_NX(dset);
+      splane[1] = 0.f;
+      splane[2] = 0.f;
+      splane[3] = dset->daxes->xxdel/2.0;
+      rplane[0] = 0.f;
+      rplane[1] = 1.f/(float)DSET_NY(dset);
+      rplane[2] = 0.f;
+      rplane[3] = dset->daxes->yydel/2.0;
+      tplane[0] = 0.f;
+      tplane[1] = 0.f;
+      tplane[2] = 1.f/(float)DSET_NZ(dset);
+      tplane[3] = dset->daxes->zzdel/2.0;
+   }
+   
+   if (sv->PolyMode != SRM_Fill) {
+      /* fill it up */
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+   }
+   
+   NI_GET_INT(nel,"texName",texName);
+   if (!NI_GOT) {
+      SUMA_S_Errv("Weird, texture %d should have been created by now (%d)", 
+                  texName, glIsTexture(texName));
+      SUMA_RETURN(NOPE);
+   }
+   
+
+   /* Now we need to draw the sucker */
+   SUMA_LHv("About to draw texture %d\n", texName);
+   glEnable(GL_TEXTURE_3D);
+   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
+                  SUMA_NIDO_TexEnvMode(nel, GL_REPLACE)); /* what happens if 
+                              there is color already on a vertex (I would likely
+                              not need this for 3D textures...*/
+   glBindTexture(GL_TEXTURE_3D, texName); /* make texName be current */
+   /* Now generate the coordinates */
+   SUMA_LH( "About to generate polygons, need to preserve states well here\n"
+            "perhaps just by doing glPushAttrib()"); 
+   glShadeModel(GL_FLAT);        /* This should be reverted to sv's settings */
+   glEnable(GL_DEPTH_TEST);      /* This should be reverted to sv's settings */
+   glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   #if 0
+   /* slice by slice drawing, visible artifact */
+   for(i = 0; i < DSET_NZ(dset); i++) {
+      glBegin(GL_QUADS);
+         SUMA_dset_tex_slice_corners( i, dset, tex_corn, slc_corn)     ;
+         glBegin(GL_QUADS);
+         for (k=0; k<4; ++k) {
+            glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tex_corn[3*k+2]);
+            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
+         }
+      glEnd();
+   }
+   #else /* automatic texture coordinate generation, same artifact, and more complicated splane and rplane stuff */
+    glEnable(GL_TEXTURE_GEN_S);
+    glEnable(GL_TEXTURE_GEN_T);
+    glEnable(GL_TEXTURE_GEN_R);
+
+    glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+    glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+
+    glTexGenfv(GL_S, GL_OBJECT_PLANE, splane);  /* THis ordering of the planes */
+    glTexGenfv(GL_T, GL_OBJECT_PLANE, rplane);  /* resulted in proper axis */
+    glTexGenfv(GL_R, GL_OBJECT_PLANE, tplane);  /*  alignment ...*/
+   
+      
+      
+    for(i = 0; i < DSET_NZ(dset); i++) {
+      glBegin(GL_QUADS);
+         SUMA_dset_tex_slice_corners( i, dset, tex_corn, slc_corn)     ;
+         glBegin(GL_QUADS);
+         for (k=0; k<4; ++k) {
+            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
+         }
+      glEnd();
+   }
+   glDisable(GL_TEXTURE_GEN_S);
+   glDisable(GL_TEXTURE_GEN_T);
+   glDisable(GL_TEXTURE_GEN_R);
+   #endif
+   glFlush();
+   glDisable(GL_TEXTURE_3D);
+   glDisable(GL_BLEND); 
+   if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
+      SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+   }
+   
+   SUMA_RETURN(YUP);     
+}
 
 #ifdef DO_VOLUME_MAIN
 void
