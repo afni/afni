@@ -29,9 +29,9 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_niml.o afni_sumafunc.o afni_slice_rgbyte.o        \
             afni_version.o afni_lock.o afni_vol2surf.o       
 
-AFWARPOBJS = afni_warp.o afni_slice_byte.o afni_slice_short.o      \
-             afni_slice_float.o afni_slice_complex.o               \
-             afni_slice_rgbyte.o
+SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
+	      afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o  \
+	      parser.o
 
 T3OBJS  = to3d.o
 
@@ -425,12 +425,9 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dcopy 3dcopy.o $(LFLAGS) $(LLIBS)
 
-3daxialize:3daxialize.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
-           afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o
+3daxialize:3daxialize.o
 	$(RM) $@
-	$(CC) -o 3daxialize 3daxialize.o afni_warp.o afni_slice_byte.o \
-                 afni_slice_short.o afni_slice_float.o afni_slice_complex.o \
-                 afni_slice_rgbyte.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3daxialize 3daxialize.o $(LFLAGS) $(LLIBS)
 
 3dfractionize:3dfractionize.o
 	$(RM) $@
@@ -696,11 +693,11 @@ d3dmerge:3dmerge.c
 	  cd .. ;)
 whereami:whereami.c
 	$(RM) $@
-	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lmri -lf2c $(LLIBS)
+	$(CC) -o whereami whereami.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dSegment:3dSegment.c
 	$(RM) $@
-	$(CC) -o 3dSegment 3dSegment.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) $(AFWARPOBJS) -lmri -lf2c $(LLIBS)
+	$(CC) -o 3dSegment 3dSegment.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dUniformize:3dUniformize.o
 	$(RM) $@
@@ -805,8 +802,7 @@ qm:qm.o
 3dAllineate:3dAllineate.o mri_genalign.o thd_correlate.o
 	$(RM) $@
 	$(CCFAST) -o 3dAllineate 3dAllineate.o \
-				afni_warp.o afni_slice_byte.o afni_slice_short.o afni_slice_float.o \
-				afni_slice_complex.o afni_slice_rgbyte.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+			$(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dAcost:3dAcost.o
 	$(RM) $@
@@ -948,12 +944,9 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CC) -o 3dExtrema 3dExtrema.o $(LFLAGS) $(LLIBS)
 
-adwarp:adwarp.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
-                afni_slice_float.o  afni_slice_complex.o afni_slice_rgbyte.o
+adwarp:adwarp.o
 	$(RM) $@
-	$(CC) -o adwarp adwarp.o afni_warp.o afni_slice_byte.o \
-	         afni_slice_short.o afni_slice_float.o afni_slice_complex.o \
-	         afni_slice_rgbyte.o $(LFLAGS) $(LLIBS)
+	$(CC) -o adwarp adwarp.o $(LFLAGS) $(LLIBS)
 
 2dImReg:2dImReg.o
 	$(RM) $@
@@ -1246,7 +1239,7 @@ iochan_relay:iochan_relay.o
 
 3dSpatNorm:3dSpatNorm.o
 	$(RM) $@
-	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(AFWARPOBJS) $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(LFLAGS) $(LLIBS)
 
 ### These programs are from Fred Tam
 
@@ -1266,7 +1259,7 @@ suma_algorithms.o: suma_algorithms.c
 testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o
 	$(RM) $@
 	$(CC) -o testdsetio SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o \
-            -ISUMA/ $(INFLAGS) $(AFWARPOBJS) $(LFLAGS) $(LLIBS)
+            -ISUMA/ $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 ### Sort of clean
 
@@ -1652,11 +1645,11 @@ MISC_OBJS  = afni_suma.o vol2surf.o nifti1_io.o znzlib.o list_struct.o  \
 
 libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                \
          $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS) \
-         $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h 3ddata.h
+         $(SUMA_OBJS) $(MISC_OBJS) niml.h mrilib.h 3ddata.h $(SOMEAFOBJS)
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)        \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)  \
-		$(SUMA_OBJS) $(MISC_OBJS)
+		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
 	$(RANLIB) libmri.a
 
 libmrix.so:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
@@ -1674,10 +1667,6 @@ vol2surf.o:vol2surf.h
 
 ###################################################################
 # shared objects (go into the shared_lib directory)
-
-SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
-	      afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o  \
-	      parser.o
 
 # same as .a, but build as a shared object
 libmri.so:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
@@ -1943,9 +1932,9 @@ r_misc.o: rickr/r_misc.c rickr/r_misc.h
 	$(RM) $@
 	$(CC) -o 3dmatmult 3dmatmult.o $(LFLAGS) $(LLIBS)
 
-3dresample: 3dresample.o libmri.a $(AFWARPOBJS)
+3dresample: 3dresample.o libmri.a
 	$(RM) $@
-	$(CC) -o 3dresample 3dresample.o $(AFWARPOBJS) $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dresample 3dresample.o $(LFLAGS) $(LLIBS)
 
 file_tool: ge4_header.o
 	( cd rickr ;                                                    \
