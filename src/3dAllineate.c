@@ -159,6 +159,7 @@ int main( int argc , char *argv[] )
    floatvec *allcost ;   /* 19 Sep 2007 */
    float     allpar[MAXPAR] ;
    float xsize , ysize , zsize ;  /* 06 May 2008: box size */
+   float bfac ;                   /* 14 Oct 2008: brick factor */
 
    /*----- input parameters, to be filled in from the options -----*/
 
@@ -300,8 +301,12 @@ int main( int argc , char *argv[] )
 "\n"
 " -floatize   = Write result dataset as floats.  Internal calculations\n"
 " -float        are all done on float copies of the input datasets.\n"
-"               [Default=convert output dataset to data format of]\n"
-"               [        source dataset, without any scale factor]\n"
+"               [Default=convert output dataset to data format of  ]\n"
+"               [        source dataset; if the source dataset was ]\n"
+"               [        shorts with a scale factor, then the new  ]\n"
+"               [        dataset will get a scale factor as well;  ]\n"
+"               [        if the source dataset was shorts with no  ]\n"
+"               [        scale factor, the result will be unscaled.]\n"
 "\n"
 " -1Dparam_save ff   = Save the warp parameters in ASCII (.1D) format into\n"
 "                      file 'ff' (1 row per sub-brick in source).\n"
@@ -2900,6 +2905,8 @@ int main( int argc , char *argv[] )
 
      ZERO_MAT44(aff12_xyz) ; /* 23 Jul 2007: invalidate */
 
+     bfac = DSET_BRICK_FACTOR(dset_targ,kk) ;  /* 14 Oct 2008 */
+
      skipped = 0 ;
      if( kk == 0 && skip_first ){  /* skip first image since it == im_base */
        if( verb )
@@ -2921,8 +2928,7 @@ int main( int argc , char *argv[] )
 
      if( verb ) INFO_message("========== sub-brick #%d ==========",kk) ;
 
-     im_targ = mri_scale_to_float( DSET_BRICK_FACTOR(dset_targ,kk) ,
-                                   DSET_BRICK(dset_targ,kk)         ) ;
+     im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
      DSET_unload_one(dset_targ,kk) ;
 
      /*** if we are just applying input parameters, set up for that now ***/
@@ -3778,8 +3784,9 @@ DUMP_MAT44("aff12_ijk",qmat) ;
          EDIT_substitute_brick( dset_out,kk,MRI_float, MRI_FLOAT_PTR(im_targ) );
          mri_clear_data_pointer(im_targ) ;  /* data in im_targ saved directly */
        } else {
-         EDIT_substscale_brick( dset_out,kk,MRI_float, MRI_FLOAT_PTR(im_targ) ,
-                                            targ_kind, 1.0f ) ;
+         EDIT_substscale_brick( dset_out,kk,MRI_float, MRI_FLOAT_PTR(im_targ),
+                                targ_kind ,
+                                (bfac == 0.0f) ? 1.0f : 0.0f ) ;
        }
        mri_free(im_targ) ; im_targ = NULL ;
 
