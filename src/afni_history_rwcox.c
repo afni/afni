@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , OCT , 2008 , RWC , "3dAllineate" , MINOR , TYPE_BUG_FIX ,
+   "If source=scaled shorts, then output will be scaled as well." ,
+   NULL } ,
+
  { 6 , OCT , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "FDR curves can now be fetched from warp_parent" ,
    "If a func dataset is missing FDR curves, then the program tries to get\n"
