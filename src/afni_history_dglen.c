@@ -49,6 +49,16 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 14 , OCT , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_MODIFY, "minor updates",
+    "AddEdge option enhanced and help updated"
+} ,
+
+{ 14 , OCT , 2008 , DRG , "@AddEdge" , 
+    MINOR , TYPE_MODIFY, "Help and options",
+    "More user options, improved help, removed temporary files "
+} ,
+
 { 6 , OCT , 2008 , DRG , "3drefit" , 
     MINOR , TYPE_MODIFY, "-atrfloat and -atrint options",
     "Allows addition and modification of dataset attributes\n"
