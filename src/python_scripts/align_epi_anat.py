@@ -95,20 +95,22 @@ g_help_string = """
     information on that script.
 
     The default options assume the epi and anat datasets start off fairly close,
-    as is normally the case when the epi dataset precedes or follows an anatomical dataset
-    acquisition. If the two data are acquired over separate sessions, or accurate
-    coordinate data is not available in the dataset header (as sometimes occurs for
-    oblique data), various options allow for larger movement including "-cmass cmass",
-    "-big_move" and "-giant_move". Each of these options is described below. If datasets
-    do not share the same space at all, it may be necessary to use the @Align_Centers
-    script first.
+    as is normally the case when the epi dataset precedes or follows an 
+    anatomical dataset acquisition. If the two data are acquired over separate
+    sessions, or accurate coordinate data is not available in the dataset header
+    (as sometimes occurs for oblique data), various options allow for larger
+    movement including "-cmass cmass", "-big_move" and "-giant_move". Each of
+    these options is described below. If datasets do not share the same space
+    at all, it may be necessary to use the @Align_Centers script first.
     
-    Although this script has been developed primarily for aligning anatomical T1 data
-    with EPI BOLD data, it has also been successfully applied for aligning similar modality
-    data together also including T1-SPGR to T1-SPGR, T1-FLAIR to T1-SPGR, EPI to EPI,
-    T1-SPGR at 7T to T1-SPGR at 3T, EPI-rat1 to EPI-rat2, .... If this kind of alignment
-    is required, the default cost function, the localized Pearson Correlation (lpc), is
-    not appropriate. Other cost functions like lpa or nmi have been seen to work well.
+    Although this script has been developed primarily for aligning anatomical T1
+    data with EPI BOLD data, it has also been successfully applied for aligning
+    similar modality data together also including T1-SPGR to T1-SPGR, T1-FLAIR
+    to T1-SPGR, EPI to EPI, T1-SPGR at 7T to T1-SPGR at 3T, EPI-rat1 to
+    EPI-rat2, .... If this kind of alignment is required, the default cost
+    function, the localized Pearson Correlation (lpc), is not appropriate.
+    Other cost functions like lpa or nmi have been seen to work well using 
+    "-cost lpa".
         
     ---------------------------------------------
     REQUIRED OPTIONS:
@@ -187,14 +189,15 @@ g_help_string = """
 
     Other options:
     -ex_mode       : execute mode (echo/dry_run/quiet/[script]). "dry_run" can
-                     be used to show the commands that would be executed without
-                     actually running them. "echo" shows the commands as they 
-                     are executed."quiet" doesn't display commands at all.
+                     be used to show the commands that would be executed 
+                     without actually running them. 
+                     "echo" shows the commands as they are executed.
+                     "quiet" doesn't display commands at all.
                      "script" is like echo but doesn't show stdout, stderr 
-                     header lines and "cd" lines. The "dry_run" option can be
-                     used to generate scripts which can be further customized
-                     beyond what may be available through the options of this
-                     program.
+                     header lines and "cd" lines.
+                     "dry_run" can be used to generate scripts which can be
+                     further customized beyond what may be available through
+                     the options of this program.
     -Allineate_opts '-ssss  -sss' : options to use with 3dAllineate. Default
                      options are 
                      "-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB -warp aff "
@@ -204,8 +207,8 @@ g_help_string = """
     -volreg_base   : the epi base used in time series volume registration.
                      The default is to use the same base as the epi_base.
                      If another subbrick or base type is used, an additional
-                     transformation will be computed between volume registration
-                     and the epi_base
+                     transformation will be computed between the volume
+                     registration and the epi_base
                      (0/mean/median/max/subbrick#)
 
     -tshift        : do time shifting of EPI dataset before alignment ([on]/off)
@@ -244,8 +247,8 @@ g_help_string = """
                      
                      The default value for master_tlrc is MIN_DXYZ.
 
-    Other obscure and experimental options that should only be handled with care,
-       lest they get out, are visible with -full_help or -option_help.
+    Other obscure and experimental options that should only be handled with 
+       care, lest they get out, are visible with -full_help or -option_help.
 
     Examples:
       # align anat to sub-brick 5 of epi+orig. In addition, do slice timing
@@ -423,9 +426,8 @@ class RegWrap:
       self.valid_opts.add_opt('-partial_axial', 0, [])
       self.valid_opts.add_opt('-partial_coronal', 0, [])
       self.valid_opts.add_opt('-partial_sagittal', 0, [])
-      self.valid_opts.add_opt('-AddEdge', 0, [],\
-                               helpstr="Run @AddEdge script to create double"\
-                                       "edge images")
+      self.valid_opts.add_opt('-AddEdge', 0, [], helpstr=                  \
+                              "Run @AddEdge script to create double-edge images")
 
       self.valid_opts.add_opt('-Allineate_opts', -1,                       \
                              ["-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB"\
@@ -519,19 +521,20 @@ class RegWrap:
 
       # master resampling options for alignment
       self.valid_opts.add_opt('-master_epi', 1,['SOURCE'],\
-             helpstr="-master grid resolution for epi to anat alignment\n" \
+             helpstr="-master grid resolution for epi to anat alignment\n"
                     "MIN_DXYZ uses the smallest dimension\n"
                     "Other options are SOURCE and BASE as in 3dAllineate\n"
                     "help. For cases where either dataset is oblique, the\n"
                     "default becomes MIN_DXYZ")
       self.valid_opts.add_opt('-master_tlrc', 1,['MIN_DXYZ'],\
-             helpstr="-master grid resolution for epi to tlrc anat alignment\n"\
+             helpstr="-master grid resolution for epi to tlrc anat\n"
+                    "alignment\n"
                     "MIN_DXYZ uses the smallest dimension\n"
                     "Other options are SOURCE and BASE as in 3dAllineate\n"
                     "help")
       self.valid_opts.add_opt('-master_anat', 1,['MIN_DXYZ'],\
-             helpstr="-master grid resolution for anat to epi obliquing\n"\
-                       "MIN_DXYZ uses the smallest dimension\n"
+             helpstr="-master grid resolution for anat to epi obliquing\n"
+                    "MIN_DXYZ uses the smallest dimension\n"
                     "Other options are ddd mm or gridset")
 
       # apply pre/post-transformation matrice
