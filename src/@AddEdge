@@ -7,7 +7,7 @@ set olist = ()
 set dd = $PWD:t
 set uname = `whoami`
 set prs = "_ae."
-
+set PLUGOUT_OPTIONS = "-name @AddEdge -com QUIET_PLUGOUTS"
 # turn off recording jpeg images by default
 set auto_record = 0
 # remove temporary files by default
@@ -30,8 +30,8 @@ PARSE:
    set opa=9
    set epionly = 0
    set argrem = ()
-   set epi_edge_perc_thresh = 30
-   set anat_edge_perc_thresh = 30
+   set epi_edge_perc_thresh = 10
+   set anat_edge_perc_thresh = 10
     while ($cnt <= $Narg && $#argrem == 0)
       set donext = 1;
       
@@ -70,7 +70,7 @@ PARSE:
       if ($donext && "$argv[$cnt]" == "-edge_percentile") then
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
-            echo "Need a percentile threshold value (default 30)"
+            echo "Need a percentile threshold value (default 10)"
             goto END
          else
             @ cnt ++
@@ -422,7 +422,7 @@ else
 endif
 
 #It is time to dance
-plugout_drive $hostopt -com "RESCAN_THIS A" -quit
+plugout_drive $hostopt $PLUGOUT_OPTIONS -com "RESCAN_THIS A" -quit
 
 #Get name of epionlyvol, the one with _e3 in the name
 set epionlyvol = `echo $olist[1] | sed 's;_ec+;_e3+;'`
@@ -577,7 +577,7 @@ while ($cnt < $#olist)
       set cnt = `ccalc -form int $nx\*2`
    endif
    if ($cnt > $#olist) set cnt = 2 
-   echo "Opening @GetAfniPrefix $olist[$cnt] results"
+   echo "Opening "`@GetAfniPrefix $olist[$cnt]`" results"
 end
 
 goto END
