@@ -769,7 +769,25 @@ char * SUMA_NIDO_Info(void)
 "     Specifies how texture coordinate generation is done, when target is not\n"
 "     'FRAME'. Choose from: 'sphere', 'object', 'eye'. Default is 'sphere'\n"
 "     For detail, see OpenGL's GL_SPHERE_MAP, GL_OBJECT_LINEAR, etc.\n"
-"\n"
+"\n");
+   if (SUMAg_CF->Dev) {
+      SS = SUMA_StringAppend(SS,
+"3DTexture element example:\n"
+"<3DTex\n"
+"filename = 'cube256+tlrc.BRIK'\n"
+"/>\n"
+"  filename attribute:\n"
+"     Specifies the filename of the 3D Texture (volume) image.\n"
+"     This image is anything that AFNI can read as a dataset.\n"
+"     For the moment, it is only tested on single brick dsets.\n"
+"  For testing, try the following from ~/Work/VolumeRender:\n"
+"     suma -i surf.ply -niml -dev & ; \\\n"
+"     sleep 3 && \\\n"
+"     DriveSuma -com viewer_cont -load_do mobile.niml.do ; \\\n"
+"     set l = $< ; DriveSuma -com kill_suma\n"
+"\n");
+   }
+   SS = SUMA_StringAppend(SS,
 "  Try the script '@DO.examples' for concrete examples on displayable \n"
 "  objects.\n"  
 "\n"

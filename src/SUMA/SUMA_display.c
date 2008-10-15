@@ -1369,6 +1369,19 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       }
    }
    
+   /* Show the World Axis if required,
+   Do this before DOs because with Depth test enabled (as it should
+   for axis drawing, you can have a large texture volume, with many outer voxels
+   of zeros obscuring the axis because of the depth test. 
+   One could deactivate the 
+   depth test and play with color blending but that is a pain. */
+   if (csv->ShowWorldAxis) {
+      /* fprintf(SUMA_STDOUT,"Showing World Axis \n");  */
+      if (!SUMA_DrawAxis (csv->WAx, csv)) {
+         fprintf(stderr,"display error: Failed to Create WAx\n");
+      }
+   }
+
 
    i = 0;
    while (i < csv->N_DO) {
@@ -1454,48 +1467,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       ++i;
    }
    
-   /* Show the World Axis if required */
-   if (csv->ShowWorldAxis) {
-      /* fprintf(SUMA_STDOUT,"Showing World Axis \n");  */
-      if (!SUMA_DrawAxis (csv->WAx, csv)) {
-         fprintf(stderr,"display error: Failed to Create WAx\n");
-      }
-   }
-
-   if (SUMAg_CF->Dev) {
-      SUMA_S_Note("KILL THIS");
-      if (0) {
-         if (csv->Do_3Drender) {
-            SUMA_S_Note("Put this Do_3Drender in the right place");
-            SUMA_LH("Going to render");
-            if (LocalHead) 
-               SUMA_ShowEnablingState(csv->SER,stderr,
-                                       "Before Rendering (saved)\n");
-            /* Enable texture stuff*/
-            glPushAttrib(GL_ALL_ATTRIB_BITS); /* save all stackable states */
-            SUMA_Enable3DRendering();
-            SUMA_3DTex_redraw();
-            if (LocalHead) {
-               SUMA_ShowEnablingState( SUMA_RecordEnablingState(),stderr,
-                                    "After Rendering\n");
-            }
-            /* restore to before rendering */
-            SUMA_RestoreEnablingState(csv->SER);
-            glPopAttrib();
-            if (LocalHead) 
-               SUMA_ShowEnablingState(SUMA_RecordEnablingState(),
-                                       stderr,"Restored\n");
-         } else {
-            if (LocalHead) {
-               csv->SER = SUMA_RecordEnablingState();
-               SUMA_ShowEnablingState(csv->SER,stderr,
-                                       "With no rendering done\n");
-            }
-         }
-      }
-   }
-
-   /* Show the Cross Hair, if required */
+   /* Show the Cross Hair, if required leave this at the end because
+   it does not care about depth tests which could be a problem when doing
+   texture volumes*/
    if (csv->ShowCrossHair) {
       /*fprintf(SUMA_STDOUT,"Showing Cross Hair \n");*/
       if (!SUMA_DrawCrossHair (csv)) {
@@ -1510,6 +1484,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
       static GLfloat LineColor[] = {1.0, 0.0, 1.0, 0.0};
       glLineWidth(1.0);
+      glDisable(GL_DEPTH_TEST);
       glEnable(GL_LINE_STIPPLE);
       glLineStipple (1, 0x1C47); /* dashed, see OpenGL Prog guide, page 55 */
       glBegin(GL_LINES);
