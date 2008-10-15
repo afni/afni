@@ -107,6 +107,18 @@ STATUS("convert to q/z") ;
       }
       far[iq[jj]] = (float)qval ;
     }
+
+    if( AFNI_yesenv("MZERO") ){
+      float mzero , mz ;
+      mzero = (nq-1)/(1.0f-qq[1]) ;
+      for( jj=2 ; jj < nq ; jj++ ){
+        mz    = mzero ;
+        mzero = (nq-jj)/(1.0f-qq[jj]) ;
+        if( mzero > mz ) break ;
+      }
+      mzero = (int)mzero ; if( mzero > nq ) mzero = nq ;
+      INFO_message("mzero=%g  nq=%d  jj=%d  p=%g",mzero,nq,jj,qq[jj]) ;
+    }
   }
 
 STATUS("finished") ;
