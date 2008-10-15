@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , OCT , 2008 , RWC , "fdrval" , MINOR , TYPE_NEW_PROG ,
+   "Compute FDR value on command line, from dataset header" ,
+   NULL } ,
+
  { 15 , OCT , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
    "Fixed errts (etc) outputs: censored values not set to zero!" ,
    NULL } ,
