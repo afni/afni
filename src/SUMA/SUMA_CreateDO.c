@@ -2100,17 +2100,17 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name, SUMA_DO_Types type)
    Ax->XaxisColor[0] = 1.0;
    Ax->XaxisColor[1] = 0.0;
    Ax->XaxisColor[2] = 0.0;
-   Ax->XaxisColor[3] = 0.0;
+   Ax->XaxisColor[3] = 1.0;
    
    Ax->YaxisColor[0] = 0.0;
    Ax->YaxisColor[1] = 1.0;
    Ax->YaxisColor[2] = 0.0;
-   Ax->YaxisColor[3] = 0.0;
+   Ax->YaxisColor[3] = 1.0;
    
    Ax->ZaxisColor[0] = 0.0;
    Ax->ZaxisColor[1] = 0.0;
    Ax->ZaxisColor[2] = 1.0;
-   Ax->ZaxisColor[3] = 0.0;
+   Ax->ZaxisColor[3] = 1.0;
    
    Ax->LineWidth = 1.0;
    Ax->Stipple = SUMA_SOLID_LINE;
@@ -3742,7 +3742,7 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
    SUMA_DO_CoordType coord_type = SUMA_WORLD;
    SUMA_DO_CoordUnits default_coord_units = SUMA_WORLD_UNIT;
    char *atr=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -5965,6 +5965,7 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    static GLdouble radsph, fac;
    static GLfloat gapch, radch;
+   GLboolean gl_dt;
    float origwidth = 0.0;
    SUMA_CrossHair* Ch = sv->Ch;
    
@@ -5974,7 +5975,8 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    radsph = Ch->sphrad*fac*sqrt(SUMA_sv_fov_original(sv)/FOV_INITIAL);
    gapch = Ch->g*fac;
    radch = Ch->r*fac;
-
+   if (gl_dt = glIsEnabled(GL_DEPTH_TEST)) 
+      glDisable(GL_DEPTH_TEST); /*cross hair always on top */
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    glLineWidth(Ch->LineWidth);
    /*fprintf(SUMA_STDOUT, "Center: %f, %f, %f. Gap %f, Radius: %f\n",\
@@ -6038,6 +6040,7 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    }
    
    glLineWidth(origwidth);
+   if (gl_dt) glEnable(GL_DEPTH_TEST);
    SUMA_RETURN (YUP);
 }
 
@@ -6059,17 +6062,17 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
    Ch->XaxisColor[0] = 1.0;
    Ch->XaxisColor[1] = 0.0;
    Ch->XaxisColor[2] = 0.0;
-   Ch->XaxisColor[3] = 0.0;
+   Ch->XaxisColor[3] = 1.0;
    
    Ch->YaxisColor[0] = 0.0;
    Ch->YaxisColor[1] = 1.0;
    Ch->YaxisColor[2] = 0.0;
-   Ch->YaxisColor[3] = 0.0;
+   Ch->YaxisColor[3] = 1.0;
    
    Ch->ZaxisColor[0] = 0.0;
    Ch->ZaxisColor[1] = 0.0;
    Ch->ZaxisColor[2] = 1.0;
-   Ch->ZaxisColor[3] = 0.0;
+   Ch->ZaxisColor[3] = 1.0;
    
    Ch->LineWidth = SUMA_CROSS_HAIR_LINE_WIDTH;
    Ch->Stipple = SUMA_SOLID_LINE;

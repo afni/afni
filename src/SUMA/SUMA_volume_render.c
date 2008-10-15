@@ -1,13 +1,5 @@
 #include "SUMA_suma.h"
 
- SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
-                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
- int SUMAg_N_SVv; /*!< Number of SVs realized by X  */
-/* extern SUMA_SurfaceViewer *SUMAg_cSV; */ /* This variable is no longer used in this file Tue Aug 13 15:27:53 EDT 2002*/ 
- int SUMAg_N_DOv; 
- SUMA_DO *SUMAg_DOv;
- SUMA_CommonFields *SUMAg_CF; 
-
 /* Volume rendering code, based on GLUT-3.7's advanced97/volume.c 
 See also SUMA_GLUT_volumedemo.c*/
 
@@ -33,65 +25,17 @@ makepow2(int val)
 {                                                                  \
     GLenum error;                                                  \
     if(error = glGetError())                                       \
-       printf("GL Error: %s (%s)\n", gluErrorString(error), str);  \
+       fprintf(stderr,"**************GL Error: %s (%s)\n", \
+         gluErrorString(error), str);  \
 }
 
-enum {X, Y, Z, W};
-enum {R, G, B, A};
-enum {OVER, ATTENUATE, NONE, LASTOP}; /* blend modes */
-/* mouse modes */
-enum {OBJ_ANGLE, SLICES, CUTTING, GEOMXY, GEOMZ, MINBOOST, BOOSTWID, BOOST}; 
-enum {NOLIST, SPHERE}; /* display list */
-
-/* window dimensions */
-GLboolean polmode = GL_TRUE;
-int winWidth = 512;
-int winHeight = 512;
-int active;
-int operator = OVER;
-GLboolean texture = GL_TRUE;
-GLboolean dblbuf = GL_TRUE;
-GLboolean cut = GL_FALSE;
-GLboolean geom = GL_FALSE;
-GLboolean map = GL_FALSE;
-GLint cutbias = 50;
-int hasBlendColor = 0;
-
-GLfloat objangle[2] = {0.f, 0.f};
-GLfloat objpos[3] = {0.f, 0.f, 0.f};
-GLfloat dyxz[3] = { 1.f, 1.f, 1.f};
-GLfloat ori[3] = { -127.f, -112.f, -117.f};
-
-GLfloat minboost = 0.f, boostwid = .03f, boost = 3.f; /* transfer function */
 
 THD_3dim_dataset *dset=NULL;
 
-GLdouble clipplane0[] = {-1.,  0.,  0., 100.}; /* x < 100 out */
-GLdouble clipplane1[] = { 1.,  0.,  0., 100.}; /* x > 100 out */
-GLdouble clipplane2[] = { 0., -1.,  0., 100.}; /* y < 100 out */
-GLdouble clipplane3[] = { 0.,  1.,  0., 100.}; /* y > 100 out */
-GLdouble clipplane4[] = { 0.,  0., -1., 100.}; /* z < 100 out */
-GLdouble clipplane5[] = { 0.,  0.,  1., 100.}; /* z > 100 out */
-
-static GLfloat splane[4] = {1.f/200.f, 0.f, 0.f, .5f};
-static GLfloat rplane[4] = {0, 1.f/200.f, 0, .5f};
-static GLfloat tplane[4] = {0, 0, 1.f/200.f, .5f};
 static GLfloat lightpos[4] = {150., 150., 150., 1.f};
 
 /* define a cutting plane */
 GLdouble cutplane[] = {0.f, -.5f, -2.f, 50.f};
-/* initialization for 128x128x128 volume */
-GLfloat vox_orig[3] = { -100.f, -100.f, -100.f};
-GLint   vox_num[3]  = {128, 128, 128};
-GLfloat vol_center[3] = { 100.f, 100.f, 100.f};
-GLint   tex_num[3] = {128, 128, 128}; /* this would be texwid, texht, textdepth*/
-GLfloat vox_del[3] = { 1.0, 1.0, 1.0}; 
-GLubyte *tex3ddata; /* pointer to 3D texture data */
-int slices;
-
-
-GLfloat *lighttex = 0;
-GLboolean lightchanged[2] = {GL_TRUE, GL_TRUE};
 
 GLubyte *
 dset_to_tex3d(THD_3dim_dataset *dset)
@@ -129,189 +73,7 @@ dset_to_tex3d(THD_3dim_dataset *dset)
     return tex3ddata;
 }
 
-void SUMA_3dTexParameter_setup(THD_3dim_dataset *dset) {
-   static char FuncName[]={"SUMA_3dTexParameter_setup"};
-   GLint max3dtexdims; /* maximum allowed 3d texture dimension */
-   GLint newval;
-   SUMA_Boolean LocalHead = NOPE;
-   
-   SUMA_ENTRY;
 
-   tex_num[0] = DSET_NX(dset);   
-   tex_num[1] = DSET_NY(dset);
-   tex_num[2] = DSET_NZ(dset);
-   vox_orig[0] = dset->daxes->xxorg ; 
-   vox_orig[1] = dset->daxes->yyorg ; 
-   vox_orig[2] = dset->daxes->zzorg ; 
-   vox_num[0] = DSET_NX(dset);
-   vox_num[1] = DSET_NY(dset);
-   vox_num[2] = DSET_NZ(dset);
-   vox_del[0] = dset->daxes->xxdel ; 
-   vox_del[1] = dset->daxes->yydel ; 
-   vox_del[2] = dset->daxes->zzdel ; 
-   
-   vol_center[0] = vox_orig[0] + ((float)(vox_num[0]-1)*vox_del[0])/2.0f;
-   vol_center[1] = vox_orig[1] + ((float)(vox_num[1]-1)*vox_del[1])/2.0f;
-   vol_center[2] = vox_orig[2] + ((float)(vox_num[2]-1)*vox_del[2])/2.0f;
-      
-   slices = tex_num[2];
-
-   SUMA_LHv("nel dset:\n"
-            "vox_orig: %.2f %.2f %.2f\n"
-            "vox_num : %d %d %d\n"
-            "vox_del: %.2f %.2f %.2f\n"
-            "vox_center:%.2f %.2f %.2f\n"
-            "init tex_num:%2d %2d %2d\n"
-            "init slices: %d\n",
-            vox_orig[0], vox_orig[1], vox_orig[2],
-            vox_num[0], vox_num[1], vox_num[2],
-            vox_del[0], vox_del[1], vox_del[2],
-            vol_center[0], vol_center[1], vol_center[2],
-            tex_num[0], tex_num[1], tex_num[2],
-            slices);
-
-/* setting up OpenGL */
-   /* adjust *plane */
-   splane[0] = 1.f/(float)vox_num[0];
-   splane[1] = 0.f;
-   splane[2] = 0.f;
-   splane[3] = vox_del[0]/2.0;
-   rplane[0] = 0.f;
-   rplane[1] = 1.f/(float)vox_num[1];
-   rplane[2] = 0.f;
-   rplane[3] = vox_del[1]/2.0;
-   tplane[0] = 0.f;
-   tplane[1] = 0.f;
-   tplane[2] = 1.f/(float)vox_num[2];
-   tplane[3] = vox_del[2]/2.0;
-   
-   SUMA_LH("Adjusting texture dimensions");
-   max3dtexdims = 0;
-
-#ifdef GL_EXT_texture3D
-    glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE_EXT, &max3dtexdims);
-#endif
-   SUMA_LHv("Max texdims = %d\n", max3dtexdims);
-
-    /* adjust width */
-    newval = tex_num[0];
-    if(tex_num[0] > max3dtexdims)
-	newval = max3dtexdims;
-    if(NOTPOW2(tex_num[0]))
-        newval = makepow2(tex_num[0]);
-    if(newval != tex_num[0])
-    {
-	glPixelStorei(GL_UNPACK_ROW_LENGTH, tex_num[0]);
-	glPixelStorei(GL_UNPACK_SKIP_PIXELS, (tex_num[0] - newval)/2);
-	tex_num[0] = newval;
-    }
-
-    /* adjust height */
-    newval = tex_num[1];
-    if(tex_num[1] > max3dtexdims)
-	newval = max3dtexdims;
-    if(NOTPOW2(tex_num[1]))
-        newval = makepow2(tex_num[1]);
-    if(tex_num[1] > newval)
-    {
-#ifdef GL_EXT_texture3D
-	glPixelStorei(GL_UNPACK_IMAGE_HEIGHT_EXT, tex_num[1]);
-#endif
-	glPixelStorei(GL_UNPACK_SKIP_ROWS, (tex_num[1] - newval)/2);
-	tex_num[1] = newval;
-    }
-
-    /* adjust depth */
-    newval = tex_num[2];
-    if(tex_num[2] > max3dtexdims)
-	newval = max3dtexdims;
-    if(NOTPOW2(tex_num[2]))
-        newval = makepow2(tex_num[2]);
-    if(tex_num[2] > newval)
-    {
-	tex_num[2] = newval;
-    }
-  
-   slices = tex_num[2];
-   
-   SUMA_LHv("Adjusted tex_num: %2d %2d %2d\nslices = %d\n"
-            "check on what happens to slices around here in original code.\n",
-            tex_num[0], tex_num[1], tex_num[2],
-            slices);
-
-   SUMA_RETURNe;
-
-}
-
-
-
-
-/* use pixel path to remap 3D texture data */
-void
-remaptex(void)
-{
-    static char FuncName[]={"remaptex"};
-    int i, size;
-    GLfloat *map;
-SUMA_ENTRY;
-   fprintf(stderr,"remaptex called.\n");
-    glPixelTransferi(GL_MAP_COLOR, GL_TRUE);
-
-    glGetIntegerv(GL_MAX_PIXEL_MAP_TABLE, &size);
-
-    map = (GLfloat *)malloc(sizeof(GLfloat) * size);
-    for(i = 0; i < size;i++)
-    {
-	map[i] = (GLfloat)i/(size - 1);
-	   if(((GLfloat)i/size > minboost) &&
-	      ((GLfloat)i/size < minboost + boostwid))
-	   {
-	       map[i] *= boost;
-	   }
-	   else
-	       map[i] /= boost;
-          
-    }
-      
-    glPixelMapfv(GL_PIXEL_MAP_R_TO_R, size, map);
-    glPixelMapfv(GL_PIXEL_MAP_G_TO_G, size, map);
-    glPixelMapfv(GL_PIXEL_MAP_B_TO_B, size, map);
-    glPixelMapfv(GL_PIXEL_MAP_A_TO_A, size, map);
-
-#ifdef GL_EXT_texture3D
-    SUMA_S_Note("Running GL_EXT_texture3D...\n");
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA,
-		    tex_num[0], tex_num[1], tex_num[2],
-		    0,
-		    GL_RGBA, GL_UNSIGNED_BYTE, tex3ddata);
-#endif
-
-    glPixelTransferi(GL_MAP_COLOR, GL_FALSE);
-    free(map);
-
-    CHECK_ERROR("OpenGL Error in remaptex()");
-SUMA_RETURNe;
-}
-
-static GLuint texName = -1;
-void SUMA_SetTexImage(void) 
-{
-   static char FuncName[]={"SUMA_SetTexImage"};
-   SUMA_ENTRY;
-   #ifdef GL_EXT_texture3D
-       SUMA_S_Note("Setting GL_EXT_texture3D...\n");
-       glEnable(GL_TEXTURE_3D);
-       if (texName < 0) glGenTextures(1, &texName);
-       glBindTexture(GL_TEXTURE_3D, texName);
-       glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-       glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE_ALPHA,
-		       tex_num[0], tex_num[1], tex_num[2],
-		       0,
-		       GL_RGBA, GL_UNSIGNED_BYTE, tex3ddata);
-      glDisable(GL_TEXTURE_3D);
-   #endif
-   SUMA_RETURNe;
-}      
 
 void SUMA_CreateSphereList(void)
 {
@@ -321,7 +83,7 @@ void SUMA_CreateSphereList(void)
 
    SUMA_S_Note("Making sphere display list");
    /* make a display list containing a sphere */
-   glNewList(SPHERE, GL_COMPILE);
+   glNewList(1, GL_COMPILE);
    {
       static GLfloat lightpos[] = {150.f, 150.f, 150.f, 1.f};
       static GLfloat material[] = {1.f, .5f, 1.f, 1.f};
@@ -480,49 +242,6 @@ void SUMA_ShowEnablingState(SUMA_EnablingRecord SER, FILE *out, char *preamble) 
    
    SUMA_RETURNe;
 }
-void SUMA_Enable3DRendering(void) 
-{
-   static char FuncName[]={"SUMA_Enable3DRendering"};
-   SUMA_EnablingRecord SER;
-   
-   SUMA_ENTRY;
-   
-   glEnable(GL_DEPTH_TEST);
-   #ifdef GL_EXT_texture3D
-   glEnable(GL_TEXTURE_3D);
-   #endif
-
-   glEnable(GL_TEXTURE_GEN_S);
-   glEnable(GL_TEXTURE_GEN_T);
-   glEnable(GL_TEXTURE_GEN_R);
-
-   glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-   glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-   glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
-
-   glTexGenfv(GL_S, GL_OBJECT_PLANE, splane);
-   glTexGenfv(GL_T, GL_OBJECT_PLANE, tplane);
-   glTexGenfv(GL_R, GL_OBJECT_PLANE, rplane);
-
-   #ifdef GL_EXT_texture3D
-   /* to avoid boundary problems */
-   glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-   glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-   glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-   #endif
-
-   glEnable(GL_CLIP_PLANE0);
-   glEnable(GL_CLIP_PLANE1);
-   glEnable(GL_CLIP_PLANE2);
-   glEnable(GL_CLIP_PLANE3);
-   glEnable(GL_CLIP_PLANE4);
-   glEnable(GL_CLIP_PLANE5);
-
-   glDisable(GL_LIGHT2);
-   glLightfv(GL_LIGHT2, GL_POSITION, lightpos);
-
-   SUMA_RETURNe;
-}
 
 
 void SUMA_dset_slice_corners( int slc, float *orig, float *del, 
@@ -551,196 +270,6 @@ void SUMA_dset_slice_corners( int slc, float *orig, float *del,
    SUMA_RETURNe;
 }
 
-/* draw the object unlit without surface texture */
-void SUMA_3DTex_redraw(void)
-{
-   static char FuncName[]={"SUMA_3DTex_redraw"};
-   SUMA_Boolean LocalHead = YUP;
-   int i, k;
-   GLfloat colcol[3] = {1.0 , 1.0 , 0.0};
-   GLfloat slc_corn[12];
-   
-   GLfloat offS, offT, offR; /* mapping texture to planes */
-    
-   SUMA_ENTRY;
-   
-   SUMA_LH("Calculating offsets");
-   
-   offS = vox_del[0];
-   offT = vox_del[1];
-   offR = vox_del[2];
-
-   clipplane0[W] = -vox_orig[0] - offS;
-   clipplane1[W] = -vox_orig[0] - offS;
-   clipplane2[W] = -vox_orig[1] - offT;
-   clipplane3[W] = -vox_orig[1] - offT;
-   clipplane4[W] = -vox_orig[2] - offR;
-   clipplane5[W] = -vox_orig[2] - offR;
-   SUMA_LHv("off: [%f %f %f]\n"
-            "clp: [%f %f \t%f %f \t%f %f]\n"
-            "tex_num: [%d %d %d]\n"
-            "slices: %d\n",
-            offS, offT, offR,
-            clipplane0[W], clipplane1[W], 
-            clipplane2[W], clipplane3[W], 
-            clipplane4[W], clipplane5[W],
-            tex_num[0], tex_num[1], tex_num[2],
-            slices );
-   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT); 
-
-
-   if(map) {
-      SUMA_LH("Remaping texture");
-	   remaptex();
-   }
-   
-   /* GL_MODELVIEW */
-   if(cut) {
-      SUMA_LH("Cutting planes");
-      cutplane[W] = cutbias;
-      glClipPlane(GL_CLIP_PLANE5, cutplane);
-   }
-
-   SUMA_LH("Draw Clipping");
-   glPushMatrix(); /* identity */
-   glRotatef(objangle[X], 0.f, 1.f, 0.f);
-   glRotatef(objangle[Y], 1.f, 0.f, 0.f);
-   glClipPlane(GL_CLIP_PLANE0, clipplane0);
-   glClipPlane(GL_CLIP_PLANE1, clipplane1);
-   glClipPlane(GL_CLIP_PLANE2, clipplane2);
-   glClipPlane(GL_CLIP_PLANE3, clipplane3);
-   glClipPlane(GL_CLIP_PLANE4, clipplane4);
-   if(!cut)
-      glClipPlane(GL_CLIP_PLANE5, clipplane5);
-   glPopMatrix(); /* back to identity */
-   SUMA_LHv("Clipping angles: [%f %f]\n", 
-            objangle[X], objangle[Y]);
-   
-   SUMA_LH("Draw opaque geometry");
-   /* draw opaque geometry here */
-   glDisable(GL_CLIP_PLANE0);
-   glDisable(GL_CLIP_PLANE1);
-   glDisable(GL_CLIP_PLANE2);
-   glDisable(GL_CLIP_PLANE3);
-   glDisable(GL_CLIP_PLANE4);
-   if(geom) {
-      SUMA_LH("Drawing geom");
-	   if(!cut)
-	       glDisable(GL_CLIP_PLANE5);
-	   glPushMatrix();
-	   glTranslatef(objpos[X], objpos[Y], objpos[Z]);
-	   glCallList(SPHERE);
-	   glPopMatrix();
-   }
-   
-   SUMA_LH("Draw texture");
-   glMatrixMode(GL_TEXTURE);
-   glEnable(GL_CLIP_PLANE0);
-   glEnable(GL_CLIP_PLANE1);
-   glEnable(GL_CLIP_PLANE2);
-   glEnable(GL_CLIP_PLANE3);
-   glEnable(GL_CLIP_PLANE4);
-   glEnable(GL_CLIP_PLANE5);
-
-   glMatrixMode(GL_TEXTURE);
-   glPushMatrix(); /* identity */
-   glTranslatef( .5f,  .5f, .5f);
-   glRotatef(objangle[Y], 1.f, 0.f, 0.f);
-   glRotatef(objangle[X], 0.f, 0.f, 1.f);
-   glTranslatef( -.5f,  -.5f, -.5f);
-
-   SUMA_LHv("Switching blending operator, slices = %d, blend %d\n", 
-            slices, operator);
-    switch(operator)
-    {
-    case OVER:
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	break;
-    case ATTENUATE:
-#ifdef GL_EXT_blend_color
-        if (hasBlendColor){
-	    glEnable(GL_BLEND);
-	    glBlendFunc(GL_CONSTANT_ALPHA_EXT, GL_ONE);
-	    glBlendColorEXT(1.f, 1.f, 1.f, 1.f/slices);
-        } else
-#endif
-        {
-            fprintf(stderr, "volume: attenuate not supported!\n");
-        }
-        break;
-    case NONE:
-	/* don't blend */
-	break;
-    }
-
-    
-    if(texture) {
-#ifdef GL_EXT_texture3D
-       glEnable(GL_TEXTURE_3D);
-#endif
-    } else {
-#ifdef GL_EXT_texture3D
-       glDisable(GL_TEXTURE_3D);
-#endif
-       glEnable(GL_LIGHTING);
-       glEnable(GL_LIGHT2);
-    }
-
-    
-   SUMA_LH("Drawing Quads");
-
-   for(i = 0; i < slices; i++) {
-         SUMA_dset_slice_corners( i, vox_orig, vox_del, 
-                                  vox_num, slc_corn)     ;
-         glBegin(GL_QUADS);
-         /* 
-         for (k=0; k<4; ++k) {
-             glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
-         }
-         */
-         glVertex3f(-100.0, -100.0, i);
-         glVertex3f(-100.0, 100.0, i);
-         glVertex3f(100.0, 100.0, i);
-         glVertex3f(100.0, -100.0, i);
-         
-         glEnd();
-   }
-
-   #ifdef GL_EXT_texture3D
-   glDisable(GL_TEXTURE_3D);
-   #endif
-   if(!texture) {
-    glDisable(GL_LIGHTING);
-   }
-   glDisable(GL_BLEND);
-
-   glPopMatrix(); /* back to identity */
-   glMatrixMode(GL_MODELVIEW);
-
-   if(operator == ATTENUATE) {
-      SUMA_LH("Attenuating");
-      glPixelTransferf(GL_RED_SCALE, 3.f); /* brighten image */
-      glPixelTransferf(GL_GREEN_SCALE, 3.f);
-      glPixelTransferf(GL_BLUE_SCALE, 3.f);
-      glCopyPixels(0, 0, winWidth, winHeight, GL_COLOR);
-   }
-    
-   SUMA_LH("Checking error"); 
-    CHECK_ERROR("OpenGL Error in redraw()");
-   
-   #ifdef DO_VOLUME_MAIN
-   /* only if using program in stand-alone mode */
-   SUMA_LH("Swap or flush"); 
-   if(dblbuf)
-	   glutSwapBuffers(); 
-   else
-	   glFlush(); 
-   #endif
-   SUMA_RETURNe;
-    
-}
-
 
 SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
 {
@@ -750,10 +279,10 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
    byte *bytevol=NULL, *bp=NULL;
    char *fname=NULL, orcode[6];
    int Texcomps=1, max3dtexdims=0;
-   float fv[12];
+   float fv[12], vo0[3], voN[3];
    int iv[12];
    int NewNx=0, NewNy=0, NewNz=0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -786,6 +315,9 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
    orcode[3] = '\0';
    SUMA_LHv("dset orcode is %s\n", orcode);
    
+   SUMA_S_Note("Relax power of 2 restriction\n"
+               "Decide whether it is worth restricting\n"
+               "yourself to RAI...\n");
    /* texture is to be power of two in each direction, 
    so get new dimensions, this is no longer necessary
    with OpenGL > 1.2, remove restriction in the future */
@@ -816,7 +348,7 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
    }
    NI_add_column (nel, NI_BYTE, NULL); 
    if (!nel->vec[0]) {
-      SUMA_SL_Crit("Failed to allocate.");
+      SUMA_S_Crit("Failed to allocate.");
       DSET_delete(dset);
       SUMA_free(fname); fname = NULL;
       SUMA_free(bytevol);
@@ -835,6 +367,11 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
    
    SUMA_free(fname); fname = NULL;
 
+   /* Set the box limits, assuming you are in RAI */
+   SUMA_dset_extreme_corners(dset, vo0, voN);
+   NI_SET_FLOATv(nel,"FirstVoxel", vo0, 3);
+   NI_SET_FLOATv(nel,"LastVoxel", voN, 3);
+   
    NI_set_attribute(nel,"read_status","read");
    
    SUMA_S_Note("dset is not freed anywhere here");
@@ -844,126 +381,41 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel)
    SUMA_RETURN(YUP);
 }
 
-void SUMA_SetRenderModelView(void)
+/*!
+   centers of first and last voxels in volume */
+void SUMA_dset_extreme_corners( THD_3dim_dataset *dset, 
+                                float * mincorner, float *maxcorner)
 {
-   static char FuncName[]={"SUMA_SetRenderModelView"};
-
+   static char FuncName[]={"SUMA_dset_extreme_corners"};   
+   int kk=0;
+   float orig[3] = { 0, 0, 0}, del[3] = { 0, 0, 0};
+   int nvox[3] = { 0, 0, 0};
+    
    SUMA_ENTRY;
-   /* set the perspective */
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity ();   
-   gluPerspective(30.0, 1.0, 1., 900.);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-   gluLookAt ( vol_center[0], vol_center[1], vol_center[2]+450., 
-               vol_center[0], vol_center[1], vol_center[2],
-               0., 1., 0.);      
+   
+   mincorner[0] = dset->daxes->xxorg ; 
+   mincorner[1] = dset->daxes->yyorg ; 
+   mincorner[2] = dset->daxes->zzorg ; 
+   nvox[0] = DSET_NX(dset);
+   nvox[1] = DSET_NY(dset);
+   nvox[2] = DSET_NZ(dset);
+   del[0] = dset->daxes->xxdel ; 
+   del[1] = dset->daxes->yydel ; 
+   del[2] = dset->daxes->zzdel ; 
+
+   maxcorner[0] = mincorner[0] +  (nvox[0]-1) * del[0];
+   maxcorner[1] = mincorner[1] +  (nvox[1]-1) * del[1];
+   maxcorner[2] = mincorner[2] +  (nvox[2]-1) * del[2];
+   
+   
    SUMA_RETURNe;
 }
 
-void SUMA_Init3DTextureDSET (char *dsetname)
-{ 
-   static char FuncName[]={"SUMA_Init3DTextureDSET"};
-   
-   SUMA_ENTRY;
-         
-   dset = THD_open_dataset( dsetname );
-
-   DSET_load(dset);
-
-   /* setup global values for dset */
-   SUMA_3dTexParameter_setup(dset);
-
-   /* Initialize OpenGL State */
-   SUMA_SetRenderModelView();
-
-   SUMA_Enable3DRendering();
-
-   tex3ddata = dset_to_tex3d(dset);
-
-   SUMA_SetTexImage();
-
-   SUMA_CreateSphereList();
-
-   SUMA_RETURNe;
-}
-
-SUMA_Boolean SUMA_Init3DTextureNIDOnel (NI_element *nel, 
-                                    SUMA_SurfaceObject *SO, 
-                                    SUMA_DO_CoordUnits default_coord_type,
-                                    float *default_txcol, 
-                                    void *default_font,
-                                    SUMA_SurfaceViewer *sv)
-{
-   static char FuncName[]={"SUMA_Init3DTextureNIDOnel"};
-   SUMA_Boolean LocalHead = YUP;
-   
-   SUMA_ENTRY;
-
-   
-   if (!nel || strcmp(nel->name,"3DTex")) SUMA_RETURN(NOPE);
-   
-   if (NI_IS_STR_ATTR_EQUAL(nel,"read_status","fail")) {
-      /* can't be read */
-      SUMA_RETURN(NOPE);
-   }
-   
-   if (LocalHead) {
-      SUMA_S_Note("for debugging force geom to be displayed...");
-      geom = 1;
-   }
-   
-   if (!NI_IS_STR_ATTR_EQUAL(nel,"read_status","read")) { /* read it */
-      if (!SUMA_Load3DTextureNIDOnel(nel)) {
-         SUMA_RETURN(NOPE);
-      }
-      
-       /* setup global values for dset */
-       SUMA_3dTexParameter_setup(dset);
-
-       if (sv) {
-         sv->SER = SUMA_RecordEnablingState();
-         if (LocalHead) SUMA_ShowEnablingState(sv->SER,stderr,
-                                 "In SUMA_Init3DTextureNIDOnel "
-                                 "before any rendering\n");
-       
-       } else { 
-         #ifdef DO_VOLUME_MAIN
-            SUMA_SetRenderModelView();
-         #endif
-       }
-       SUMA_Enable3DRendering(); /* This needs to be done just
-                                    once (when dset is first loaded)
-                                    if you are just rendering in a window
-                                    However, you will need to disable 
-                                    (or revert to previous settings) the 
-                                    various parameters that interfer with
-                                    surface rendering in the same viewer... */
-                                 
-
-      tex3ddata = (byte *)nel->vec[0];
-      
-      /* that call makes all go to black */
-      SUMA_SetTexImage();
-      
-      
-      SUMA_CreateSphereList(); 
-      
-   } 
-   
-  
-  if (sv) {
-      /* set the rendering flag, the redraw function 
-      is called from within SUMA_display */
-      sv->Do_3Drender = 1; 
-   }
-  SUMA_RETURN(YUP);
-}
-
+/*! Note that corners returned correspond to voxel centers */
 void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset, 
                               GLfloat *tcorners, GLfloat *corners)
 {
-   static char FuncName[]={"SUMA_dset_slice_corners"};   
+   static char FuncName[]={"SUMA_dset_tex_slice_corners"};   
    int kk=0;
    float orig[3] = { 0, 0, 0}, del[3] = { 0, 0, 0};
    int nvox[3] = { 0, 0, 0};
@@ -988,7 +440,7 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
     corners[kk] = orig[2] + slc     * del[2]; 
    tcorners[kk] = ((float)slc+0.5)/(float)nvox[2];++kk;
    
-    corners[kk] = orig[0] + nvox[0] * del[0];  
+    corners[kk] = orig[0] + (nvox[0]-1) * del[0];  
    tcorners[kk] = 1;                            ++kk;
     corners[kk] = orig[1] + 0       * del[1]; 
    tcorners[kk] = 0;                            ++kk;
@@ -996,16 +448,16 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
    tcorners[kk] = tcorners[2];                  ++kk;
 
    
-    corners[kk] = orig[0] + nvox[0] * del[0]; 
+    corners[kk] = orig[0] + (nvox[0]-1) * del[0]; 
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[1] + nvox[1] * del[1]; 
+    corners[kk] = orig[1] + (nvox[1]-1) * del[1]; 
    tcorners[kk] = 1;                            ++kk;
     corners[kk] = orig[2] + slc     * del[2]; 
    tcorners[kk] = tcorners[2];                  ++kk;
 
     corners[kk] = orig[0] + 0       * del[0]; 
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[1] + nvox[1] * del[1]; 
+    corners[kk] = orig[1] + (nvox[1]-1) * del[1]; 
    tcorners[kk] = 1;                            ++kk;
     corners[kk] = orig[2] + slc     * del[2]; 
    tcorners[kk] = tcorners[2];                  ++kk;
@@ -1013,6 +465,17 @@ void SUMA_dset_tex_slice_corners( int slc, THD_3dim_dataset *dset,
    SUMA_RETURNe;
 }
 
+#define SUMA_GL_MAT_SHOW(mm,str) {\
+   int i;   \
+   glGetDoublev(mm, dmatrix); \
+   fprintf(stderr,"%s", str); \
+   for (i=0; i<4; ++i) {   \
+      fprintf(stderr,"\t");  \
+      fprintf(stderr,"%+3.3f\t%+3.3f\t%+3.3f\t%+3.3f\t", \
+               dmatrix[i],dmatrix[4+i],dmatrix[8+i],dmatrix[12+i]); \
+      fprintf(stderr,"\n");  \
+   }\
+}
 
 SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel, 
                                     SUMA_SurfaceObject *SO, 
@@ -1023,10 +486,22 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
 {
    static char FuncName[]={"SUMA_Draw3DTextureNIDOnel"};
    static GLuint texName;
-   int i = 0, k = 0;
+   int i = 0, k = 0, j=0;
+   float iq[4]={0, 0, 0, 0}, vo0[3], voN[3];
+   static int ipass=0;
    GLfloat tex_corn[12] ;
    GLfloat slc_corn[12] ;
-   SUMA_Boolean LocalHead = YUP;
+   GLfloat rotationMatrix[4][4], rt[4][4];
+   GLboolean gl_dt, gl_bl;
+   static GLdouble clipplane0[] = {-1.,  0.,  0., 50.}; /* default */
+   static GLdouble clipplane1[] = { 1.,  0.,  0., 50.}; /* clipping  */
+   static GLdouble clipplane2[] = { 0., -1.,  0., 50.}; /* plane */
+   static GLdouble clipplane3[] = { 0.,  1.,  0., 50.}; /* values */
+   static GLdouble clipplane4[] = { 0.,  0., -1., 50.}; /* ...... */
+   static GLdouble clipplane5[] = { 0.,  0.,  1., 50.}; /* ...... */
+   static GLfloat init_rotationMatrix[4][4];
+   static GLdouble dmatrix[16], init_mv_matrix[16];
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
@@ -1038,6 +513,7 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
       SUMA_RETURN(NOPE);
    }
    
+   /*glPushAttrib(GL_ALL_ATTRIB_BITS);    be safe push all attributes down */
    
    if (!NI_IS_STR_ATTR_EQUAL(nel,"read_status","read")) { /* read it */
       if (!SUMA_Load3DTextureNIDOnel(nel)) {
@@ -1049,6 +525,22 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
       /* initialization */
       glPixelStorei(GL_UNPACK_ALIGNMENT, 1); /* Have no padding at the 
                                                 end of texel rows*/
+      SUMA_S_Note(
+         "Need to allow user to specify more than one texture.\n"
+         "This would happen if each new nel got its own texName\n"
+         "But this operation might fail if lots of textures are \n"
+         "loaded, so I should guard against that.\n"
+         "Regarding multiple textures, the simplest is to have\n"
+         "anatomy and function in each texture and then render one\n"
+         "after the other.\n"
+         "Also, should check how and when textures are to be deleted\n"
+         "and whether texture nel (and other NIDOs) are being properly\n"
+         "disposed of when a DO is freed\n"
+         "Lastly, is the issue of the dset header that I loath to \n"
+         "duplicate into nel. I should just keep dset's header around\n"
+         "somehow. For the moment, dset is one static variable in this\n"
+         "file and that is clearly not appropriate. So have to deal with\n"
+         "that problem too.\n");
       NI_GET_INT(nel,"texName",texName);
       if (!NI_GOT) {
          /* As expected, brand new. Need to generate texture */
@@ -1087,20 +579,37 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
                               volume is too big to fit into kangaroo's pouch */
                         GL_RGBA, GL_UNSIGNED_BYTE, 
                         nel->vec[0]);
-      SUMA_LH("Texture Stored");
-      /* planes for automatice texture generation */
-      splane[0] = 1.f/(float)DSET_NX(dset);
-      splane[1] = 0.f;
-      splane[2] = 0.f;
-      splane[3] = dset->daxes->xxdel/2.0;
-      rplane[0] = 0.f;
-      rplane[1] = 1.f/(float)DSET_NY(dset);
-      rplane[2] = 0.f;
-      rplane[3] = dset->daxes->yydel/2.0;
-      tplane[0] = 0.f;
-      tplane[1] = 0.f;
-      tplane[2] = 1.f/(float)DSET_NZ(dset);
-      tplane[3] = dset->daxes->zzdel/2.0;
+      
+      /* initialize clipping planes, assuming RAI.
+      Even numbered planes cut above the coordinate
+      Odd numbered planes cut below the coordinate.
+      For a plane P, Objects at X,Y,Z where 
+         p[0]X+p[1]Y+p[2]Z+p[3]>=0 are displayed
+      Those planes are applied in object space.
+      */
+      
+      NI_GET_FLOATv(nel,"FirstVoxel", vo0,3,1);
+      NI_GET_FLOATv(nel,"LastVoxel", voN,3,1);
+      
+      SUMA_S_Note("The cut off points should be interactive\n"
+                  "so this next assignment should be done \n"
+                  "with each drawing operation.\n"
+                  "These default values, based on First and Last Voxel\n"
+                  "should be saved in nel.\n")
+      clipplane0[3] = voN[0]; /* Xmore */
+      clipplane1[3] = -vo0[0]; /* Xless */
+      clipplane2[3] = voN[1]; /* Ymore */
+      clipplane3[3] = -vo0[1]; /* Yless */
+      clipplane4[3] = voN[2]; /* Zmore */
+      clipplane5[3] = -vo0[2]; /* Zless */
+      
+      clipplane0[0] = -1.0;   /* cut coords > Xmore along x axis */
+      clipplane1[0] =  1.0;   /* cut coords < -Xless along x axis */
+      clipplane2[1] = -1.0;   /* cut coords > Ymore along y axis */
+      clipplane3[1] =  1.0;   /* cut coords < -Yless along y axis */
+      clipplane4[2] = -1.0;   /* cut coords > Zmore along z axis */
+      clipplane5[2] =  1.0;   /* cut coords < -Zless along z axis */
+      
    }
    
    if (sv->PolyMode != SRM_Fill) {
@@ -1115,35 +624,158 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
       SUMA_RETURN(NOPE);
    }
    
+   
+   SUMA_S_Note( "Draw Clipping planes without modelview matrix enabled\n"
+            "So planes are fixed in space.\n"
+            "We're more used to creating cutting planes that \n"
+            "are attached to the object. So should look into that\n"
+            "instead. \n"
+            "Note that the use of these clipping planes\n"
+            "seem necessary when the volume is not padded with zeros.\n"
+            "I don't quite know what that is, but I suspect it has to do\n"
+            "with alphas being non zero at the tip and the placement of\n"
+            "texture quads\n"  );
+   glClipPlane(GL_CLIP_PLANE0, clipplane0);
+   glClipPlane(GL_CLIP_PLANE1, clipplane1);
+   glClipPlane(GL_CLIP_PLANE2, clipplane2);
+   glClipPlane(GL_CLIP_PLANE3, clipplane3);
+   glClipPlane(GL_CLIP_PLANE4, clipplane4);
+   glClipPlane(GL_CLIP_PLANE5, clipplane5); /* play with this 
+                                             one to change cuts*/
+
 
    /* Now we need to draw the sucker */
    SUMA_LHv("About to draw texture %d\n", texName);
+   CHECK_ERROR("OpenGL Error pre texture");
    glEnable(GL_TEXTURE_3D);
+   
+   /* enable clipping planes. */
+   glEnable(GL_CLIP_PLANE0);
+   glEnable(GL_CLIP_PLANE1);
+   glEnable(GL_CLIP_PLANE2);
+   glEnable(GL_CLIP_PLANE3);
+   glEnable(GL_CLIP_PLANE4);
+   glEnable(GL_CLIP_PLANE5);
+
    glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
                   SUMA_NIDO_TexEnvMode(nel, GL_REPLACE)); /* what happens if 
                               there is color already on a vertex (I would likely
                               not need this for 3D textures...*/
    glBindTexture(GL_TEXTURE_3D, texName); /* make texName be current */
    /* Now generate the coordinates */
-   SUMA_LH( "About to generate polygons, need to preserve states well here\n"
-            "perhaps just by doing glPushAttrib()"); 
+   SUMA_LH( "About to generate polygons"); 
    glShadeModel(GL_FLAT);        /* This should be reverted to sv's settings */
-   glEnable(GL_DEPTH_TEST);      /* This should be reverted to sv's settings */
-   glEnable(GL_BLEND);
+   if (!(gl_dt = glIsEnabled(GL_DEPTH_TEST))) glEnable(GL_DEPTH_TEST);      
+   if (!(gl_bl = glIsEnabled(GL_BLEND))) glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-   #if 0
-   /* slice by slice drawing, visible artifact */
+   if (LocalHead) {
+      SUMA_GL_MAT_SHOW(GL_TEXTURE_MATRIX,"Tx PreSetup\n");
+      SUMA_GL_MAT_SHOW(GL_MODELVIEW_MATRIX,"MV PreSetup\n");
+   }
+   CHECK_ERROR("OpenGL Error pre setup");
+   
+   /* The modelview matrix for drawing the quad vertices should remain the same,
+   the texture matrix will reflect object rotations.
+   IF you do want to see the 'slices', i.e. a stack of axial slices (for RAI dset), rather than volume rendering image, then allo the quads to be drawn
+   with the scene's current modelview matrix and keep the texture matrix
+   as the identity matrix. 
+   This slice rendering could be useful to show
+   a triplet of slices (Ax, Sa, and Co), rather than the entire volume say. 
+   But that should
+   be done as a separate nel, or perhaps a different way of drawing a dset 
+   within SUMA. One should also decide whether that display is better done
+   as 3 2D textures, rather than storing an entire 3D texture and just drawing
+   a few quads from it */
+   if (!ipass) {
+      /* store the Modelview_matrix to reuse later 
+      Later on, this should be created automatically, when
+      dset is loaded. I am not sure if using whatever was there
+      when dset was first loaded is ideal in terms of artifact reduction
+      The important thing however, is that the quads are drawn with the
+      same rotation matrix, translation should be applied normally. 
+      It is the texture matrix that is changed
+      with mouse movements, thereby allowing the volume to appear to move
+      with other objects in the scene */
+      
+      if (LocalHead) {
+         SUMA_GL_MAT_SHOW(GL_MODELVIEW_MATRIX,"MV PreRecord\n");
+      }
+      glGetDoublev(GL_MODELVIEW_MATRIX, init_mv_matrix); 
+      if (LocalHead) {
+         fprintf(stderr,"init_mv_matrix initialized to:\n");
+         for (i=0;i<16;++i) fprintf(stderr,"%.3f\t", init_mv_matrix[i]);
+         fprintf(stderr,"\n");
+      }
+      /* also store the rotation matrix at initialization, this is 
+      done to account for any prerotations already present on the scene */
+      SUMA_build_rotmatrix(init_rotationMatrix, 
+                           sv->GVS[sv->StdView].currentQuat); 
+      SUMA_S_Note("The use of this ipass variable is silly and would\n"
+                  "only work when we are loading one texture only once.\n"
+                  "The parameters recorded here, should be part of nel,\n"
+                  "at the initialization stage and not stored this way.\n"
+                  "The same rant goes for silly clipping planes.\n"  );  
+      ++ipass;                            
+   } else {
+      if (LocalHead) {
+         fprintf(stderr,"init_mv_matrix recorded to be:\n");
+         for (i=0;i<16;++i) fprintf(stderr,"%.3f\t", init_mv_matrix[i]);
+         fprintf(stderr,"\n");       
+      }
+   }
+   /* first set the modelview to the one existing when the texture was
+      first rendered*/
+      glMatrixMode(GL_MODELVIEW); glPushMatrix(); /* get a new one*/
+      glLoadIdentity(); /* set to identity*/
+      /* Now apply constant Modelview for Quads*/
+      glTranslatef ( sv->GVS[sv->StdView].translateVec[0], 
+                  sv->GVS[sv->StdView].translateVec[1], 0.0);   
+      glMultMatrixd(init_mv_matrix);
+      
+   /* now for the texture coordinates, these should be transformed by
+      the inverse of what is done to the objects in the scene */
+      glMatrixMode(GL_TEXTURE); glPushMatrix(); /* get a new one*/
+      glLoadIdentity(); /* set to identity*/
+      
+      /* Now apply the inverse rotation params to the texture coordinates */
+      SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
+      SUMA_TRANSP_4MATRIX(rotationMatrix); /* transpose = inverse 
+                                             for rotation matrix*/
+         
+      glTranslatef ( 0.5, 0.5, 0.5); 
+      glMultMatrixf(&rotationMatrix[0][0]);
+      glMultMatrixf(&init_rotationMatrix[0][0]);  /* Need to multiply by
+                                                     initial rotation applied
+                                                     to the scene. (initial=at 
+                                                     the time quads were 1st
+                                                     drawn*/
+      glTranslatef (-0.5, 
+                     -0.5, 
+                     -0.5);  
+      
+
+   if (LocalHead) {
+      SUMA_GL_MAT_SHOW(GL_TEXTURE_MATRIX,"Tx PreDraw\n");
+      SUMA_GL_MAT_SHOW(GL_MODELVIEW_MATRIX,"MV PreDraw\n");
+   }
+   
+   CHECK_ERROR("OpenGL Error pre draw");
+   #if 1
+   /* slice by slice drawing, doing the deed by hand*/
    for(i = 0; i < DSET_NZ(dset); i++) {
       glBegin(GL_QUADS);
          SUMA_dset_tex_slice_corners( i, dset, tex_corn, slc_corn)     ;
-         glBegin(GL_QUADS);
          for (k=0; k<4; ++k) {
             glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tex_corn[3*k+2]);
-            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
+                  /* this one is affected by the Texture MatrixMode */
+            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]); 
+                  /* this one is affected by the Modelview matrixMode*/
          }
       glEnd();
    }
-   #else /* automatic texture coordinate generation, same artifact, and more complicated splane and rplane stuff */
+   #else /* automatic texture coordinate generation, 
+            same artifact, and more complicated splane and rplane stuff, leave it
+            just in case I'll need it. */
     glEnable(GL_TEXTURE_GEN_S);
     glEnable(GL_TEXTURE_GEN_T);
     glEnable(GL_TEXTURE_GEN_R);
@@ -1161,7 +793,6 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
     for(i = 0; i < DSET_NZ(dset); i++) {
       glBegin(GL_QUADS);
          SUMA_dset_tex_slice_corners( i, dset, tex_corn, slc_corn)     ;
-         glBegin(GL_QUADS);
          for (k=0; k<4; ++k) {
             glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
          }
@@ -1171,304 +802,31 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
    glDisable(GL_TEXTURE_GEN_T);
    glDisable(GL_TEXTURE_GEN_R);
    #endif
+    CHECK_ERROR("OpenGL Error ddd");
+
+   glMatrixMode(GL_TEXTURE); glPopMatrix(); /* pop matrix of GL_TEXTURE */
+   glMatrixMode(GL_MODELVIEW);  glPopMatrix();/* and Modelview*/
+
    glFlush();
+   
+   /* glPopAttrib(); put all attributes back where they were */
+   /* disable the clipping planes */
+   glDisable(GL_CLIP_PLANE0);
+   glDisable(GL_CLIP_PLANE1);
+   glDisable(GL_CLIP_PLANE2);
+   glDisable(GL_CLIP_PLANE3);
+   glDisable(GL_CLIP_PLANE4);
+   glDisable(GL_CLIP_PLANE5);
+
    glDisable(GL_TEXTURE_3D);
-   glDisable(GL_BLEND); 
+   if (!gl_dt) glDisable(GL_DEPTH_TEST);
+   if (!gl_bl) glDisable(GL_BLEND);
    if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
       SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    }
    
+               
+   
    SUMA_RETURN(YUP);     
 }
 
-#ifdef DO_VOLUME_MAIN
-void
-reshape(int wid, int ht)
-{
-    winWidth = wid;
-    winHeight = ht;
-    glViewport(0, 0, wid, ht);
-}
-
-
-void
-motion(int x, int y)
-{
-    switch(active)
-    {
-    case OBJ_ANGLE:
-	objangle[X] = (x - winWidth/2) * 360./winWidth;
-	objangle[Y] = (y - winHeight/2) * 360./winHeight;
-	glutPostRedisplay();
-	break;
-    case SLICES:
-	slices = x * tex_num[0]/winWidth;
-	glutPostRedisplay();
-	break;
-    case CUTTING:
-	cutbias = (x - winWidth/2) * 300/winWidth;
-	glutPostRedisplay();
-	break;
-    case GEOMXY:
-	objpos[X] = (x - winWidth/2) * 300/winWidth;
-	objpos[Y] = (winHeight/2 - y) * 300/winHeight;
-	glutPostRedisplay();
-	break;
-    case GEOMZ:
-	objpos[Z] = (x - winWidth/2) * 300/winWidth;
-	glutPostRedisplay();
-	break;
-    case MINBOOST:
-	minboost = x * .25f/winWidth;
-	glutPostRedisplay();
-	break;
-    case BOOSTWID:
-	boostwid = x * .5f/winWidth;
-	glutPostRedisplay();
-	break;
-    case BOOST:
-	boost = x * 20.f/winWidth;
-	glutPostRedisplay();
-	break;
-    }
-}
-
-void
-mouse(int button, int state, int x, int y)
-{
-    if(state == GLUT_DOWN)
-	switch(button)
-	{
-	case GLUT_LEFT_BUTTON: /* rotate the data volume */
-	    if(map)
-		active = MINBOOST;
-	    else
-		active = OBJ_ANGLE;
-	    motion(x, y);
-	    break;
-	case GLUT_MIDDLE_BUTTON:
-	    if(map)
-		active = BOOSTWID;
-	    else
-		if(cut)
-		    active = CUTTING; /* move cutting plane */
-		else
-		    active = GEOMXY; /* move geometry */
-	    motion(x, y);
-	    break;
-	case GLUT_RIGHT_BUTTON: /* move the polygon */
-	    if(map)
-		active = BOOST;
-	    else
-		if(geom)
-		    active = GEOMZ;
-		else
-		    active = SLICES;
-	    motion(x, y);
-	    break;
-	}
-}
-/* ARGSUSED1 */
-void key(unsigned char key, int x, int y)
-{
-    switch(key)
-    {
-    case 'm': /* remap texture values */
-	if(map)
-	{
-	    fprintf(stderr, "remapping off\n");
-	    map = GL_FALSE;
-	}
-	else
-	{
-	    fprintf(stderr, "remapping on:\n"
-		            "left mouse moves emphasize value\n"
-		            "middle mouse moves emphasize width\n"
-		            "right mouse adjusts gain\n");
-	    map = GL_TRUE;
-	}
-
-	remaptex();
-	glutPostRedisplay();
-	break;
-   case 'p':
-      polmode = !polmode;  /* NO RENDERING without GL_FILL */
-      if (polmode) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-      else glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      glutPostRedisplay();
-	   break;
-    case 'o':
-	operator++;
-	if(operator == LASTOP)
-	    operator = OVER;
-	glutPostRedisplay();
-	break;
-    case 't':
-	if(texture)
-	    texture = GL_FALSE;
-	else
-	    texture = GL_TRUE;
-	glutPostRedisplay();
-	break;
-    case 'c':
-	if(cut)
-	{
-	    fprintf(stderr, "cutting plane off\n");
-	    cut = GL_FALSE;
-	}
-	else
-	{
-	    fprintf(stderr, 
-		    "Cutting plane on: "
-		    "middle mouse (horizontal) moves cutting plane\n");
-	    cut = GL_TRUE;
-	}
-	glutPostRedisplay();
-	break;
-    case 'g': /* toggle geometry */
-	if(geom)
-	    geom = GL_FALSE;
-	else
-	    geom = GL_TRUE;
-	glutPostRedisplay();
-	break;
-    case '\033':
-	exit(0);
-	break;
-    case '?':
-    case 'h':
-    default:
-	fprintf(stderr, 
-		"Keyboard Commands\n"
-		"m - toggle transfer function (remapping)\n"
-		"o - toggle operator\n"
-		"t - toggle 3D texturing\n"
-		"c - toggle cutting plane\n"
-		"g - toggle geometry\n");
-	break;
-    }
-}
-
-
-
-void SUMA_Standalone_GLUT_Window_Init(void)
-{
-   static char FuncName[]={"SUMA_Standalone_GLUT_Window_Init"};
-   
-   SUMA_ENTRY;
-   
-   if(dblbuf)
-      glutInitDisplayMode(GLUT_RGBA|GLUT_DEPTH|GLUT_DOUBLE);
-   else
-      glutInitDisplayMode(GLUT_RGBA|GLUT_DEPTH);
-
-   (void)glutCreateWindow("volume rendering demo");
-   glutDisplayFunc(SUMA_3DTex_redraw);
-   glutReshapeFunc(reshape);
-   glutMouseFunc(mouse);
-   glutMotionFunc(motion);
-   glutKeyboardFunc(key);
-
-   SUMA_RETURNe;
-}
-
-void SUMA_volume_render_help(void) 
-{
-   fprintf(SUMA_STDOUT,
-"Usage: volume_render <INPUT>\n"
-"  where INPUT is either an AFNI volume, or a NIDO with a 3DTex element.\n"
-"  This program is only for testing.\n"
-" \n");
-   return;
-}
-main(int argc, char *argv[])
-{
-   static char FuncName[]={"volume"};
-   int ip;
-   static GLfloat splane[4] = {1.f/200.f, 0.f, 0.f, .5f};
-   static GLfloat rplane[4] = {0, 1.f/200.f, 0, .5f};
-   static GLfloat tplane[4] = {0, 0, 1.f/200.f, .5f};
-   static GLfloat lightpos[4] = {150., 150., 150., 1.f};
-   SUMA_NIDO *SDO = NULL;
-   NI_element *nel=NULL;
-   SUMA_Boolean LocalHead = YUP;
-   
-   SUMA_STANDALONE_INIT;
-	SUMA_mainENTRY;
-
-   if (argc != 2) {
-      SUMA_volume_render_help();
-      exit(1);
-   } else if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
-      SUMA_volume_render_help();
-      exit(0);
-   }
-     
-   /* Allocate space for DO structure */
-	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-
-   #ifndef GL_EXT_texture3D
-      SUMA_S_Err("Program needs GL_EXT_texture3D");
-      exit(1);
-   #endif
-    glutInit(&argc, argv);
-    glutInitWindowSize(winWidth, winHeight);
-   
-   nel = NULL;
-   if (SUMA_GuessFormatFromExtension_core(argv[1]) == SUMA_NIML) {
-      SDO = SUMA_ReadNIDO (argv[1], NULL);
-      /* loop through the elements to find 1st 3DTex if any */
-      nel = NULL;
-      for( ip=0 ; ip < SDO->ngr->part_num && !nel; ip++ ){ 
-         switch( SDO->ngr->part_typ[ip] ){
-            /*-- a sub-group ==> recursion! --*/
-            case NI_GROUP_TYPE:
-               break ;
-            case NI_ELEMENT_TYPE:
-               nel = (NI_element *)SDO->ngr->part[ip] ;
-               if (strcmp(nel->name,"3DTex")) nel = NULL;
-               break;
-            default:
-               SUMA_SL_Err(
-                  "Don't know what to make of this group element, ignoring.");
-               break;
-         }
-      }
-   } else {
-      /* brick will be loaded below */
-   }
-
-   /* setup rendering vindow and callbacks */
-   
-   SUMA_Standalone_GLUT_Window_Init();
-    if (!nel) {
-      SUMA_Init3DTextureDSET (argv[1]);
-    } else {
-      SUMA_Init3DTextureNIDOnel (nel, 
-                                 NULL, 
-                                 0,
-                                 NULL, 
-                                 NULL,
-                                 NULL);
-    }
-    key('?', 0, 0); /* print usage message */
-
-    CHECK_ERROR("end of main");
-
-    
-    if(!glutExtensionSupported("GL_EXT_texture3d")) {
-      /* this one gives a false warning. texture 3d is in newer OpenGL */      
-      /* fprintf(stderr,
-        "volume: requires OpenGL texture 3D extension to operate correctly.\n");          */
-    }
-    hasBlendColor = glutExtensionSupported("GL_EXT_blend_color");
-    if(!hasBlendColor) {
-      fprintf(stderr,
-        "volume: needs OpenGL blend color extension to attenuate.\n");
-    }
-
-    glutMainLoop();
-    return 0;             /* ANSI C requires main to return int. */
-}
-
-#endif
