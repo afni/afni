@@ -82,6 +82,8 @@ static int AFNI_open_panel             ( char *cmd ) ; /* 05 Feb 2003 */
 static int AFNI_drive_purge_memory     ( char *cmd ) ; /* 09 Dec 2004 */
 static int AFNI_redisplay              ( char *cmd ) ;
 static int AFNI_read_niml_file         ( char *cmd ) ; /* 01 Feb 2008 */
+static int AFNI_drive_quiet_plugouts   ( char *cmd);   /* 15 Oct 2008 */
+static int AFNI_drive_noisy_plugouts   ( char *cmd);   /* 15 Oct 2008 */
 
 static int AFNI_trace                  ( char *cmd ) ; /* 04 Oct 2005 */
 
@@ -186,6 +188,8 @@ static AFNI_driver_pair dpair[] = {
  { "READ_NIML_DATA"     , AFNI_read_niml_file          } ,
 
  { "TRACE"              , AFNI_trace                   } , /* debugging */
+ { "QUIET_PLUGOUTS"     , AFNI_drive_quiet_plugouts    } , /* 15 Oct 2008 */
+ { "NOISY_PLUGOUTS"     , AFNI_drive_noisy_plugouts    } , /* 15 Oct 2008 */
 
  { NULL , NULL }  /* flag that we've reached the end times */
 } ;
@@ -393,6 +397,21 @@ ENTRY("AFNI_rescan_controller") ;
    AFNI_rescan_CB( NULL , (XtPointer)im3d , NULL ) ;
    RETURN(0) ;
 }
+
+/* make AFNI quiet when communicating with plugouts */
+static int AFNI_drive_quiet_plugouts( char *cmd)
+{
+   iochan_enable_perror(0) ;
+   AFNI_plugout_verb(0);
+}
+
+/* make AFNI verbose when communicating with plugouts */
+static int AFNI_drive_noisy_plugouts( char *cmd)
+{
+   iochan_enable_perror(1) ;
+   AFNI_plugout_verb(1);
+}
+
 
 /*-----------------------------------------------------------------
   Switch to a new directory in a controller.
