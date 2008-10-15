@@ -64,7 +64,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid        \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum     \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual 3dGetrow \
-           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM            \
+           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM fdrval     \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 3dAFNItoNIFTI  \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC 3dBrickStat  \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
@@ -84,7 +84,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim imupsam \
                   p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit    \
-                  waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp        \
+                  waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp fdrval \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna      \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot    \
                   24swap 3dTsmooth RSFgen float_scan 3dDeconvolve_f 1ddot 1dsvd     \
@@ -613,6 +613,10 @@ p2t:p2t.o
 cdf:cdf.o
 	$(RM) $@
 	$(CC) -o cdf cdf.o $(LFLAGS) $(LLIBS)
+
+fdrval:fdrval.o
+	$(RM) $@
+	$(CC) -o fdrval fdrval.o $(LFLAGS) $(LLIBS)
 
 hide:hide.o
 	$(RM) $@
