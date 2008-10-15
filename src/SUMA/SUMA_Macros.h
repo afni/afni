@@ -165,6 +165,16 @@
    ai.r = a.r/m_a;   ai.i = -a.i/m_a; \
 }
 
+/*! Transpose a 4x4 matrix */
+#define SUMA_TRANSP_4MATRIX(mm){\
+   double tt;\
+   tt=mm[1][0]; mm[1][0] = mm[0][1]; mm[0][1]=tt;  \
+   tt=mm[2][0]; mm[2][0] = mm[0][2]; mm[0][2]=tt;  \
+   tt=mm[3][0]; mm[3][0] = mm[0][3]; mm[0][3]=tt;  \
+   tt=mm[1][2]; mm[1][2] = mm[2][1]; mm[2][1]=tt;  \
+   tt=mm[1][3]; mm[1][3] = mm[3][1]; mm[3][1]=tt;  \
+   tt=mm[3][2]; mm[3][2] = mm[2][3]; mm[2][3]=tt;  \
+}
 #define SUMA_POW2(a) ((a)*(a))
 
 #define SUMA_POW3(a) ((a)*(a)*(a))
