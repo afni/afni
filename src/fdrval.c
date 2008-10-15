@@ -2,19 +2,27 @@
 
 int main( int argc , char *argv[] )
 {
-   int iarg , ival ;
+   int iarg , ival , do_pval=0 ;
    THD_3dim_dataset *dset ;
    floatvec *fv ;
-   float val , zval , qval ;
+   float val , zval , qval=0.0f , pval=0.0f ;
 
    if( argc < 4 || strcmp(argv[1],"-help") == 0 ){
      printf(
-       "Usage: fdrval dset sub val [val ...]\n"
+       "Usage: fdrval [options] dset sub val [val ...]\n"
        "\n"
        "Reads FDR curve data from the header of dset for sub-brick\n"
        "#sub and computes the q-value when the sub-brick statistical\n"
        "threshold is set to val.\n"
        "\n"
+       "OPTIONS\n"
+       "-------\n"
+       " -pval   = also output the p-value (on the same line, after q)\n"
+       " -ponly  = don't output q-values, just p-values\n"
+       " -qonly  = don't output p-values, just q-values [the default]\n"
+       "\n"
+       "NOTES\n"
+       "-----\n"
        "* Output for each 'val' is written to stdout.\n"
        "* If the q-value can't be computed, then 1.0 is output.\n"
        "* Example:\n"
@@ -34,14 +42,31 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ;
 
-   /* if there were any options, they'd be scanned for here */
+   /* check for options */
+
+   while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcasecmp(argv[iarg],"-pval") == 0 ){
+       do_pval = 1 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-ponly") == 0 ){
+       do_pval = 2 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-qonly") == 0 ){
+       do_pval = 0 ; iarg++ ; continue ;
+     }
+
+     ERROR_exit("Unknown option '%s'",argv[iarg]) ;
+   }
 
    /* read the required 'dset' and 'sub' arguments */
 
+   if( iarg >= argc ) ERROR_exit("No 'dset' argument?!") ;
    dset = THD_open_dataset( argv[iarg] ) ;
    CHECK_OPEN_ERROR(dset,argv[iarg]) ;
    iarg++ ;
 
+   if( iarg >= argc ) ERROR_exit("No 'sub' argument?!") ;
    ival = (int)strtod(argv[iarg],NULL) ;
    if( ival < 0 || ival >= DSET_NVALS(dset) )
      ERROR_exit("fdrval dataset '%s' doesn't have sub-brick #%d",
@@ -49,20 +74,41 @@ int main( int argc , char *argv[] )
 
    /* check if there is an FDR curve for this sub-brick */
 
-   fv = DSET_BRICK_FDRCURVE(dset,ival) ;
-   if( fv == NULL )
-     ERROR_exit("fdrval dataset '%s' doesn't have FDR curve #%d",
-                argv[iarg-1],ival) ;
+   if( do_pval != 2 ){
+     fv = DSET_BRICK_FDRCURVE(dset,ival) ;
+     if( fv == NULL )
+       ERROR_exit("fdrval dataset '%s[%d]' doesn't have FDR curve",
+                  argv[iarg-1],ival) ;
+   }
+   if( do_pval != 0 ){
+     if( !FUNC_IS_STAT(DSET_BRICK_STATCODE(dset,ival)) ){
+       WARNING_message("fdrval dataset '%s[%d]' doesn't have statistic codes",
+                       argv[iarg-1],ival) ;
+       if( do_pval == 2 ) ERROR_exit("Nothing left to do!") ;
+       else               do_pval = 0 ;
+     }
+   }
    iarg++ ;
 
    /* read val, convert to z-score, convert to q-value, print, loop back */
 
+   if( iarg >= argc ) ERROR_exit("No 'val' argument?!") ;
    while( iarg < argc ){
      val = (float)strtod( argv[iarg] , NULL ) ;
-     zval = THD_fdrcurve_zval( dset , ival , val ) ;
-     if( zval > 0.0f ) qval = 2.0*qg(zval) ;
-     else              qval = 1.0f ;
-     printf(" %.5g\n",qval) ;
+     if( do_pval != 2 ){
+       zval = THD_fdrcurve_zval( dset , ival , val ) ;
+       if( zval > 0.0f ) qval = 2.0*qg(zval) ;
+       else              qval = 1.0f ;
+     }
+     if( do_pval != 0 ){
+       pval = THD_stat_to_pval( val , DSET_BRICK_STATCODE(dset,ival) ,
+                                      DSET_BRICK_STATAUX (dset,ival)  ) ;
+     }
+     switch( do_pval ){
+       default: printf(" %.5g\n"      ,qval)      ; break ;
+       case 1:  printf(" %.5g  %.5g\n",qval,pval) ; break ;
+       case 2:  printf(" %.5g\n"      ,pval)      ; break ;
+     }
      iarg++ ;                   /* next arg */
    }
 
