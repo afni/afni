@@ -5273,6 +5273,12 @@ ENTRY("calculate_results") ;
                               " -Rerrts %s_REML", option_data->errts_filename );
         iadd += strlen(cname)-ilen ;
       }
+#if 0
+      if( iadd > 70 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
+#endif
+      ilen  = strlen(cname) ;
+      cname = THD_zzprintf( cname , " -verb" ) ;
+      iadd += strlen(cname)-ilen ;
 
       INFO_message("========= Things you can do with the matrix file =========");
       INFO_message(

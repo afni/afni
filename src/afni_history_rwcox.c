@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , OCT , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
+   "Fixed errts (etc) outputs: censored values not set to zero!" ,
+   NULL } ,
+
  { 14 , OCT , 2008 , RWC , "3dAllineate" , MINOR , TYPE_BUG_FIX ,
    "If source=scaled shorts, then output will be scaled as well." ,
    NULL } ,

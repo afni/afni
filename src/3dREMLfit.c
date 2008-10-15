@@ -1822,7 +1822,7 @@ STATUS("make other GLTs") ;
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
        (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
-       memcpy( jv , iv , sizeof(float)*nfull ) ;
+       memcpy( jv , iv , sizeof(float)*nfull ) ;         /* copy of data */
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = iv[goodlist[ii]] ;
 
        ssold = ss ; ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
@@ -1886,14 +1886,14 @@ STATUS("make other GLTs") ;
          }
 
          if( Rerrts_dset != NULL ){  /* jv contains copy of original data */
-           if( ntime < nfull ) memset( iv , sizeof(float)*nfull , 0 ) ;
+           if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = jv[goodlist[ii]] - bb6->elts[ii] ;
            THD_insert_series( vv , Rerrts_dset , nfull , MRI_float , iv , 0 ) ;
          }
 
          if( Rwherr_dset != NULL ){  /* note there is no Owherr dataset! */
-           if( ntime < nfull ) memset( iv , sizeof(float)*nfull , 0 ) ;
+           if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = bb2->elts[ii] ;
            THD_insert_series( vv , Rwherr_dset , nfull , MRI_float , iv , 0 ) ;
@@ -2094,7 +2094,7 @@ STATUS("make other GLTs") ;
          }
 
          if( Oerrts_dset != NULL ){  /* jv contains copy of original data */
-           if( ntime < nfull ) memset( iv , sizeof(float)*nfull , 0 ) ;
+           if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
              iv[goodlist[ii]] = jv[goodlist[ii]] - bb6->elts[ii] ;
            THD_insert_series( vv , Oerrts_dset , nfull , MRI_float , iv , 0 ) ;
