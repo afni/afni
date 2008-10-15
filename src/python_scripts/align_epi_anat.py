@@ -324,7 +324,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.11" # software version (update for changes)
+      self.align_version = "1.12" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1083,28 +1083,46 @@ class RegWrap:
       ps.child_epis = self.user_opts.find_opt('-child_epi')
       if ps.child_epis != None: 
          self.info_msg("-child_epi option given")
-         for child_epi_name in ps.child_epis.parlist:
-            child_epi = afni_name(child_epi_name) 
-            # it's 11:00, do you know where your children are?
-            if not child_epi.exist():
-               self.error_msg("Could not find child epi\n %s "
-                     % child_epi.input())
-            else:
-               self.info_msg("Found child epi %s" % child_epi.input())
+         if (not ps.epi2anat) :
+            if (self.save_Al_in or self.save_tsh or self.save_vr or self.save_rep or
+                self.save_resample or self.save_epi_ns):
+                self.info_msg("Child epis will be processed although not aligning\n"
+                             "epi to anat datasets with -epi2anat because a save\n"
+                             "preprocessing option such as -save_vr is selected")
+                for child_epi_name in ps.child_epis.parlist:
+                   child_epi = afni_name(child_epi_name) 
+                   # it's 11:00, do you know where your children are?
+                   if not child_epi.exist():
+                      self.error_msg("Could not find child epi\n %s "
+                            % child_epi.input())
+                   else:
+                      self.info_msg("Found child epi %s" % child_epi.input())
+
+            else :
+                self.error_msg("Child epis are not processed unless aligning epi\n"
+                             "to anat datasets with -epi2anat or a save preprocessing\n"
+                             "option such as -save_vr is also selected")
+                ps.child_epis = None
+            
 
       ps.child_anats = self.user_opts.find_opt('-child_anat')
       if ps.child_anats != None: 
          self.info_msg("-child_anat option given")
-         for child_anat_name in ps.child_anats.parlist:
-            child_anat = afni_name(child_anat_name) 
-            # it's 11:00, do you know where your children are?
-            if not child_anat.exist():
-               self.error_msg("Could not find child anat\n %s "
-                     % child_anat.input())
-            else:
-               self.info_msg("Found child anat %s" % child_anat.input())
+         if (not ps.anat2epi) :
+            self.error_msg("child anat datasets are not processed unless aligning anat\n"
+                           "to epi datasets")
+            ps.child_anats = None
+         else :
+            for child_anat_name in ps.child_anats.parlist:
+               child_anat = afni_name(child_anat_name) 
+               # it's 11:00, do you know where your children are?
+               if not child_anat.exist():
+                  self.error_msg("Could not find child anat\n %s "
+                        % child_anat.input())
+               else:
+                  self.info_msg("Found child anat %s" % child_anat.input())
 
-       
+      # output resolution options 
       opt = self.user_opts.find_opt('-master_epi')  # epi to anat resolution
       if opt != None: 
           # output grid could be SOURCE, BASE or dataset
@@ -1275,7 +1293,8 @@ class RegWrap:
          self.anat_mat = "%s%s_e2a_only_mat.aff12.1D" %  \
             (ps.anat0.out_prefix(),suf)
       else:
-         o = a.new("%s%s" % (a.out_prefix(), suf))
+         o = a.new("%s%s" % (ps.anat0.out_prefix(), suf)) # save the permanent data
+#         o = a.new("%s%s" % (a.out_prefix(), suf))
          self.anat_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.out_prefix(),suf)
          
       ow = a.new("%s%s_wtal" % (a.out_prefix(), suf))
@@ -2412,9 +2431,11 @@ if __name__ == '__main__':
                       % ps.anat0.out_prefix(),\
                       "%s_ns" % ps.epi.out_prefix(), "%s%s" % \
                        (ps.epi.out_prefix(), ps.suffix ))
+
       if (ps.anat2epi):
          ps.add_edges(ein_rs, ps.anat_ns, ps.anat_alnd,"%s_ns" % ps.epi.out_prefix(),\
-                      "%s_ns" % ps.anat0.out_prefix(), "")
+                      "%s_ns" % ps.anat0.out_prefix(), 
+                      "%s%s" % (ps.anat0.out_prefix(), ps.suffix))
 
       
    #Create final results

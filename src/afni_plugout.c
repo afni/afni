@@ -21,12 +21,14 @@ static PLUGOUT_spec **pout = NULL ;    /* malloc-ed array of plugouts */
 #undef RETRY
 
 static int verbose = 0 ;  /* 28 April 1998 */
-
+static int po_verbose = 1; /*15 Oct 2008 */
 static int started = 0 ;  /* 07 Nov 2001 */
 
 /*-----------------------------------------------------------------------*/
 
 int AFNI_have_plugouts( void ){ return started ; }  /* 07 Nov 2001 */
+
+void AFNI_plugout_verb(int verblevel){ po_verbose = verblevel; }  /* 14 Oct 2008 */
 
 /*-----------------------------------------------------------------------
   Initialize plugouts: setup the work process
@@ -154,8 +156,9 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
         char * pobuf ;
 
         /** check if the connection is trustworthy **/
-
-        fprintf(stderr,"PO: plugout connection from host %s\n",ioc_control[cc]->name) ;
+        if(po_verbose)
+           fprintf(stderr, \
+             "PO: plugout connection from host %s\n",ioc_control[cc]->name) ;
 
         if( !TRUST_host(ioc_control[cc]->name) ){
           fprintf(stderr,"PO: untrusted host: %s -- connection denied\n" ,
@@ -205,7 +208,8 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
           if( pp->do_ack ) PO_ACK_OK(ioc_control[cc]) ;
           AFNI_sleep(LONG_DELAY) ;
           iochan_set_cutoff(ioc_control[cc]) ; IOCHAN_CLOSE(ioc_control[cc]) ;
-          fprintf(stderr,"PO: plugout connection name is %s\n",pp->po_name) ;
+          if(po_verbose)
+             fprintf(stderr,"PO: plugout connection name is %s\n",pp->po_name) ;
         }
 
         if( npout == 0 ){
@@ -317,9 +321,10 @@ int AFNI_process_plugout( PLUGOUT_spec *pp )
    jj = iochan_readcheck( pp->ioc , SHORT_DELAY ) ;
 
    if( jj < 0 ){    /* something bad happened */
-      fprintf(stderr,"PO: plugout %s has broken connection!\n",pp->po_name) ;
+      if( po_verbose )
+         fprintf(stderr,"PO: plugout %s has broken connection!\n",pp->po_name) ;
       spt = iochan_error_string() ;
-      if( spt != NULL ) fprintf(stderr,"  : %s\n",spt) ;
+      if( spt != NULL && po_verbose ) fprintf(stderr,"  : %s\n",spt) ;
       return(-1) ;
    }
 
@@ -329,14 +334,18 @@ int AFNI_process_plugout( PLUGOUT_spec *pp )
 
      npobuf = iochan_recv( pp->ioc , pobuf , PO_BUFSIZE ) ;
      if( npobuf <= 0 ){                                /* this error is unlikely */
-        fprintf(stderr,"PO: failure to read data from plugout %s!\n",pp->po_name) ;
-        spt = iochan_error_string() ;
-        if( spt != NULL ) fprintf(stderr,"  : %s\n",spt) ;
+        if(po_verbose){
+           fprintf(stderr, \
+             "PO: failure to read data from plugout %s!\n",pp->po_name) ;
+           spt = iochan_error_string() ;
+           if( spt != NULL ) fprintf(stderr,"  : %s\n",spt) ;
+        }
         return(-1) ;
      }
 
      if( verbose )
-        fprintf(stderr,"PO: plugout %s sent %d bytes of data\n",pp->po_name,npobuf ) ;
+        fprintf(stderr,  \
+          "PO: plugout %s sent %d bytes of data\n",pp->po_name,npobuf ) ;
 
      /** ensure data is NUL terminated **/
 

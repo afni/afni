@@ -49,6 +49,10 @@
 */
 
 afni_history_struct dglen_history[] = {
+{ 15 , OCT , 2008 , DRG , "afni plugouts, @AddEdge" , 
+    MINOR , TYPE_MODIFY, "quiet communications",
+    "@AddEdge silences communications as plugout"
+} ,
 { 14 , OCT , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_MODIFY, "minor updates",
     "AddEdge option enhanced and help updated"
