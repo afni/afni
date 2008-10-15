@@ -1740,11 +1740,18 @@ void proc_finalize_shm_volumes(void)
    if( psum >= twogig )                               /* too much for shmem */
 #endif
      ERROR_exit(
-       "Total shared memory needed = %lld >= %lld (2 GB)\n"
-       "** SUGGESTION:  Use 3dZcutup to slice dataset into smaller pieces\n"
-       "**                and then 3dZcat to glue results back together.\n"
-       "** SUGGESTION:  Run on a 64-bit computer system, instead of 32-bit.\n"
-      , psum,twogig) ;
+     "Total shared memory needed = %lld >= %lld (2 GB)\n"
+     "** SUGGESTION 1:  Use 3dAutobox to automatically eliminate non-brain\n"
+     "   areas from the 3d+time input dataset and reduce memory \n"
+     "   requirements,  e.g.\n"
+     "     3dAutobox -prefix Subj1AllRuns_Smaller -input Subj1AllRuns\n"
+     "   Then run 3dNLfim again with the smaller 3d+time input dataset\n"
+     "\n"
+     "** SUGGESTION 2:  Use 3dZcutup to slice dataset into smaller pieces\n"
+     "**                and then 3dZcat to glue results back together.\n"
+     "\n"
+     "** SUGGESTION 3:  Run on a 64-bit computer system, instead of 32-bit.\n"
+     , psum,twogig) ;
    else
      INFO_message("total shared memory needed = %lld bytes (about %s)" ,
                   psum , approximate_number_string((double)psum) ) ;
