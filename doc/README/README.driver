@@ -368,8 +368,14 @@ SLEEP ms
   Causes AFNI to sleep for "ms" milliseconds.  The main use would be in
   a script file to provide a pause between some effects.
 
+QUIET_PLUGOUTS
+  Turns off normal plugout communications messages
+
+NOISY_PLUGOUTS
+  Turns on normal plugout communication messages
+
 TRACE {YES | NO}
-  Turns debug tracig on or off.  Mostly for AFNI developers.
+  Turns debug tracing on or off.  Mostly for AFNI developers.
 
 
 ==============================================================================
