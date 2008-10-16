@@ -561,7 +561,23 @@ ENTRY("THD_copy_dset_subs");
       RETURN(NULL);
     }
 
+    /* verify that the input sub-brick list hold valid indices */
+    subs = dlist[0];
+    for ( sub = 0; sub < subs; sub++ )
+    {
+        if( dlist[sub+1] < 0 || dlist[sub+1] >= din->dblk->nvals )
+        {
+            fprintf(stderr,
+            "** THD_copy_dset_subs: index %d outside sub-brick range [0,%d]\n",
+                    dlist[sub+1], din->dblk->nvals);
+            RETURN(NULL);
+        }
+    }
+
+    /* create initial dataset */
     dout = EDIT_empty_copy(din);
+
+    /* use mastery to copy selected labels, statistics, etc. */
     rv = THD_setup_mastery(dout, dlist);
     if ( rv != 0 )
     {
@@ -577,10 +593,7 @@ ENTRY("THD_copy_dset_subs");
       RETURN(NULL);
     }
 
-    /* a basic warp is needed if header is written out - PLUTO_add_dset() */
-    dout->warp  = myXtNew( THD_warp );
-    *dout->warp = IDENTITY_WARP;
-    ADDTO_KILL( dout->kl, dout->warp );
+    /* do not create any warp structure here, since data will be inserted */
 
     dout->dblk->diskptr->byte_order   = mri_short_order();
     dout->dblk->diskptr->storage_mode = STORAGE_BY_BRICK;
@@ -602,6 +615,13 @@ ENTRY("THD_copy_dset_subs");
 
         memcpy(newdata,DSET_ARRAY(din,dlist[sub+1]), nxyz*dsize);
         EDIT_substitute_brick(dout, sub, kind, (void *)newdata);
+    }
+
+    /* clear mastery information, since data is already stored */
+    if( DBLK_IS_MASTERED(dout->dblk) ){
+        dout->dblk->master_nvals = 0;
+        myXtFree( dout->dblk->master_ival );
+        myXtFree( dout->dblk->master_bytes );
     }
 
     dout->dblk->malloc_type = DATABLOCK_MEM_MALLOC;
