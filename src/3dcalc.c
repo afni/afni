@@ -780,7 +780,7 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
 
    for( ii=0 ; ii < 26 ; ii++ ){
      if( IJKAR_flim[ii] != NULL ){
-       int siz ;
+       int siz=0 ;
        switch( IJKAR_dcod[ii] ){
          case  8: siz = DSET_NX(CALC_dset[ids]) ; break ;
          case  9: siz = DSET_NY(CALC_dset[ids]) ; break ;
@@ -1429,6 +1429,7 @@ void CALC_Syntax(void)
     "\n"
     " As noted above, datasets are referred to by single letter variable names.\n"
     PARSER_HELP_STRING 
+    "\n"
     "** If you modify a statistical sub-brick, you may want to use program\n"
     "  '3drefit' to modify the dataset statistical auxiliary parameters.\n"
     "\n"
@@ -1441,7 +1442,7 @@ void CALC_Syntax(void)
     "** Try the 'ccalc' program to see how the expression evaluator works.\n"
     "   The arithmetic parser and evaluator is written in Fortran-77 and\n"
     "   is derived from a program written long ago by RW Cox to facilitate\n"
-    "   compiling on an array processor hooked up to a VAX.  It's a mess, but\n"
+    "   compiling on an array processor hooked up to a VAX. (It's a mess, but\n"
     "   it works - somewhat slowly - but hey, computers are fast these days.)\n"
    ) ;
 
@@ -2094,7 +2095,7 @@ int main( int argc , char *argv[] )
       case MRI_byte:         /* modified 31 Mar 1999 to scale each sub-brick  */
       case MRI_short:{       /* with its own factor, rather than use the same */
          void **dfim ;       /* factor for each sub-brick -- RWCox            */
-         float gtop , fimfac , gtemp ;
+         float gtop=0.0f , fimfac , gtemp ;
 
          if( CALC_verbose )
            INFO_message("Scaling output to type %s brick(s)\n",
