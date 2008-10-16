@@ -262,7 +262,9 @@ def transpose(matrix):
 # line wrapper functions
 
 # add line wrappers ('\'), and align them all
-def add_line_wrappers(commands):
+def add_line_wrappers(commands, wrapstr='\\\n'):
+    """wrap long lines with 'wrapstr' (probably '\\\n' or just '\n')
+       if '\\\n', align all wrapstr strings"""
     new_cmd = ''
     posn = 0
     while needs_wrapper(commands, 79, posn):
@@ -276,12 +278,15 @@ def add_line_wrappers(commands):
             continue
 
         # command needs wrapping
-        new_cmd += insert_wrappers(commands, posn, end)
+        new_cmd += insert_wrappers(commands, posn, end, wstring=wrapstr)
 
         posn = end + 1     # else, update posn and continue
 
+    result = new_cmd + commands[posn:]
+
     # wrappers are in, now align them
-    return align_wrappers(new_cmd + commands[posn:])
+    if wrapstr == '\\\n': return align_wrappers(result)
+    else:                 return result
 
 # align all '\\\n' string to be the largest offset from the previous '\n'
 def align_wrappers(command):
@@ -323,7 +328,7 @@ def align_wrappers(command):
 # insert any '\\' chars for the given command
 #
 # return a new string, in any case
-def insert_wrappers(command, start=0, end=-1):
+def insert_wrappers(command, start=0, end=-1, wstring='\\\n'):
     if end < 0: end = len(command) - start - 1
 
     nfirst = num_leading_line_spaces(command,start,1) # note initial indent
@@ -340,7 +345,7 @@ def insert_wrappers(command, start=0, end=-1):
             maxlen = 78 - plen
 
             if nfirst+cur < lposn:   # woohoo, wrap away (at lposn)
-                newcmd = newcmd + command[cur:lposn+1] + '\\\n' + prefix
+                newcmd = newcmd + command[cur:lposn+1] + wstring + prefix
                 cur = lposn+1
                 continue
 

@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, OCT, 2008, RCR, "thd_mastery", MICRO, TYPE_MODIFY,
+   "THD_copy_dset_subs should not need to add a warp structure",
+   NULL
+ } ,
+
+ { 14, OCT, 2008, RCR, "thd_mastery", MICRO, TYPE_MODIFY,
+   "verify sub-brick list in THD_copy_dset_subs()",
+   NULL
+ } ,
+
+ { 14, OCT, 2008, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "added wrap string param to add_line_wrappers (to wrap with newlines)",
+   NULL
+ } ,
+
  { 8, OCT, 2008, RCR, "NIFTI", MICRO, TYPE_MODIFY,
    "allow cbl with indices in 0..nt*nu*nv*nw-1",
    NULL
