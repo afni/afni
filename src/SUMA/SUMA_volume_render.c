@@ -513,7 +513,6 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
       SUMA_RETURN(NOPE);
    }
    
-   /*glPushAttrib(GL_ALL_ATTRIB_BITS);    be safe push all attributes down */
    
    if (!NI_IS_STR_ATTR_EQUAL(nel,"read_status","read")) { /* read it */
       if (!SUMA_Load3DTextureNIDOnel(nel)) {
@@ -809,7 +808,6 @@ SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
 
    glFlush();
    
-   /* glPopAttrib(); put all attributes back where they were */
    /* disable the clipping planes */
    glDisable(GL_CLIP_PLANE0);
    glDisable(GL_CLIP_PLANE1);

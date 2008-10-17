@@ -81,6 +81,7 @@ static char *INIT_labovr[DEFAULT_NCOLOVR] = {
    "white"  , "gry-dd"    , "gry-bb"    , "black"
 } ;
 
+static char wintit[256] = { "Images" } ;
 /*------------------------------------------------------------------------*/
 
 static void killer( void *pt ){ exit(0); }
@@ -113,7 +114,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
-      "Usage: aiv [-v] [-q] [-p xxxx ] image ...\n"
+      "Usage: aiv [-v] [-q] [-title] [-p xxxx ] image ...\n"
       "AFNI Image Viewer program.\n"
       "Shows the 2D images on the command line in an AFNI-like image viewer.\n"
       "Can also read images in NIML '<MRI_IMAGE...>' format from a TCP/IP socket.\n"
@@ -129,6 +130,10 @@ int main( int argc , char *argv[] )
       "\n"
       "The '-q' option tells the program to be very quiet.\n"
       "\n"
+      "The '-title WORD' option titles the window WORD. \n"
+      "The default is the name of the image file if only one is \n"
+      "specified on the command line. If many images are read in\n"
+      "the default window title is 'Images'.\n"
       "The '-p xxxx' option will make aiv listen to TCP/IP port 'xxxx'\n"
       "for incoming images in the NIML '<MRI_IMAGE...>' format.  The\n"
       "port number must be between 1024 and 65535, inclusive.  For\n"
@@ -169,12 +174,21 @@ int main( int argc , char *argv[] )
    /* options? */
 
    while( iarg < argc && argv[iarg][0] == '-' ){
-
+     /*-- title --*/
+     if( strncmp(argv[iarg],"-title",6) == 0 ){
+         if (iarg+1 > argc) {
+            ERROR_message("Need a string after -title");
+            /* ignore option */
+         } else {
+            snprintf(wintit,128*sizeof(char),"%s", argv[++iarg]); 
+         }
+         iarg++; continue; 
+     } 
      /*-- verbosity --*/
 
      if( strncmp(argv[iarg],"-v",2) == 0 ){ verb=1; iarg++; continue; }
      if( strncmp(argv[iarg],"-q",2) == 0 ){ quiet=1; iarg++; continue; }
-
+      
      /*-- port or sherry? --*/
 
      if( strncmp(argv[iarg],"-p",2) == 0 ){
@@ -219,6 +233,9 @@ int main( int argc , char *argv[] )
 
    for( ii=0 ; ii < gnim ; ii++ ){
      if( !THD_filename_ok(gname[ii]) ) continue ;  /* 23 Apr 2003 */
+     if (!strcmp(wintit,"Images") && gnim == 1) { /* give window a useful name */
+         snprintf(wintit,128*sizeof(char),"%s", gname[ii]);
+     }
      if( verb ) fprintf(stderr,"+") ;
      qar = mri_read_file( gname[ii] ) ;  /* may have more than 1 2D image */
      if( qar == NULL || IMARR_COUNT(qar) < 1 ){
@@ -357,7 +374,7 @@ ENTRY("AIVVV_imseq_popup") ;
    /* make it popup */
 
    drive_MCW_imseq( psq->seq , isqDR_realize, NULL ) ;
-   drive_MCW_imseq( psq->seq , isqDR_title, "Images" ) ;
+   drive_MCW_imseq( psq->seq , isqDR_title, wintit ) ;
 
    if( ntot == 1 )
      drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_offwid );

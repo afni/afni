@@ -733,6 +733,8 @@ extern double mri_min( MRI_IMAGE * ) ;
 extern double mri_maxabs( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
+extern int mri_cut_many_2D(MRI_IMARR *,  int,int,int,int ); 
+
 extern MRI_IMAGE * mri_cut_3D( MRI_IMAGE * , int,int,int,int,int,int ) ;
 
 /** 15 Apr 1999 **/
