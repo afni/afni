@@ -1286,7 +1286,6 @@ void get_options
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
-
       if( strcmp(argv[nopt],"-OK") == 0 ){ nopt++; continue; } /* 14 Jul 2004 */
 
       /*-----   -nocond           ------*/
@@ -1548,9 +1547,9 @@ void get_options
 
      /* 27 Apr 2005: check for additional numeric values */
 
-        if( isdigit(argv[nopt][0]) ){  /* get NT */
+        if( nopt < argc && isdigit(argv[nopt][0]) ){  /* get NT */
           option_data->nodata_NT = (int)strtol(argv[nopt++],NULL,10) ;
-          if( isdigit(argv[nopt][0]) ){  /* also get TR */
+          if( nopt < argc && isdigit(argv[nopt][0]) ){  /* also get TR */
             option_data->nodata_TR = (float)strtod(argv[nopt++],NULL) ;
           }
         }
