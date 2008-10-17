@@ -57,7 +57,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *inim , *flim ;
    float *far ;
    XtAppContext app ;
-   Widget shell ;
+   Widget shell=(Widget)NULL ;
    int use_stdin=0 ; /* 01 Aug 2001 */
    int out_ps   =0 ; /* 29 Nov 2002 */
    int nopush   =0 ;
@@ -375,7 +375,7 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-use") == 0 ){
+     if( strcmp(argv[iarg],"-use") == 0 || strcmp(argv[iarg],"-num") == 0 ){
         use = strtod( argv[++iarg] , NULL ) ;
         if( use < 2 ) ERROR_exit("Illegal -use value!\n") ;
         iarg++ ; continue ;
@@ -506,7 +506,7 @@ int main( int argc , char *argv[] )
 
      } else {                              /* multiple inputs [05 Mar 2003] */
        MRI_IMARR *imar ;                   /* read them & glue into 1 image */
-       int iarg_first=iarg, nysum=0, ii,jj,nx ;
+       int iarg_first=iarg, nysum=0, ii,jj,nx=1 ;
        float *far,*iar ;
 
        INIT_IMARR(imar) ;
