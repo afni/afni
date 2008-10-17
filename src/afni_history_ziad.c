@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 17 , OCT , 2008 , ZSS , "imcat" , MICRO ,  TYPE_NEW_OPT,
+   "-crop is a new option for cropping an image ",
+   NULL
+ },
+ 
  { 03 , OCT , 2008 , ZSS , "suma" , MICRO ,  TYPE_NEW_ENV,
    "SUMA_StartUpLocation to control initial window placement ",
    "See output for suma -environment for details."

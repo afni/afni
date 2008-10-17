@@ -889,79 +889,7 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    SUMA_RETURNe;
 }
 
-/*!
-   This function needs some thinking. 
-   A format for a text DO can start to become complicated
-   You can stick with simple formats like:
-         Text           Font  Node  Col
-      "djjf   jffjj'"   H10   7     0.4 0.6 1.0
-      "And a multi   
-      line
-      Version"          H8    19    1.0 0.2 0.3
-      
-      and allow for replacing Node with XYZ, etc.
-   
-   But then when you consider an ImageDO, it will
-   be largely similar to TextDO, with the Text representing
-   an image file. But then you might want to mix the two
-   and if you do then you need, Text, ImageName, etc.
-   
-   So wouldn't something like:
-   <T> Text</T> <I> Image </I> <F> H10 </F> <C> 0.4 0.6 1.0 </C>  etc.
-   be better?  
-   
-   And when you start down that path, is it not better to be more
-   precise by doing: <T> Text <F> H10 </F> </T> with nested deeds
-   to specify attributes that are relevant for one thing and not another?
-   And if you go that route, should you not go NIML or XML and use available
-   parsers?
-   
-   Got to think about it some more...      
-   
-   At the moment, all ReadTextDO does is to start parsing a simple 
-   file like:
-"Some 'Text' for showing" H7  3 0.2 0.4 0.5
-"Multi   
-Line 
-Text" H8 9 1.0 0.8 0.1
 
-Results are not stored in a structure yet nor is SUMA_TextDO handled 
-in all places.
-
-You'll also need a section in a viewer to be reserved for displaying some text and possibly an image. But what would you show there ? Possibly text sent from
-DriveSuma for now...   
-
-a niml format can be easy to write, see the .vvs samples. But putting data becomes tricky because users wil need to set ni_dimen and ni_type and now we're
-getting complicated. 
-
-Note, for transmitting images, rather than their file names, look at im2niml and
-nicat programs...
-
-Example:
-   im2niml face_ZangYF.jpg | nicat "file:ZangYF.niml"
-   or 
-   im2niml face_ZangYF.jpg | nicat "stdout:"
-
-So a simple niml format like this would be quite simple.
-a list of NI_elements, without data won't be much to ask,
-and they can be readily transmitted, perhaps in a group:
-
-<T
-font = "ff"
-coord = "0.1 0.4 30"
-col = "0.1 0.1 0.1"
-/T>
-<T
-font = "ff2"
-coord = "0.31 0.14 330"
-col = "0.21 0.41 0.61"
-/> 
-
-See two sample files in:  /Users/ziad/SUMA_test_dirs/DO/TextDO 
-
-Also, see function SUMA_TextBoxSize for finding text size in pixels
- 
-*/
 SUMA_NIDO *SUMA_ReadNIDO (char *fname, char *parent_so_id)
 {
    static char FuncName[]={"SUMA_ReadNIDO"};
@@ -6236,7 +6164,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    GLfloat *colp = NULL;
    int i, ii, ND, id, ip, NP, PolyMode, sz[2]={0, 0};
    SUMA_DRAWN_ROI *DrawnROI = NULL;
-   static GLuint texName;
+   static GLuint texName; 
+   GLfloat rotationMatrix[4][4];
    SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
@@ -6274,6 +6203,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       glBindTexture(GL_TEXTURE_2D, texName);
       glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_REPEAT); 
                /* GL_REPEAT, GL_CLAMP */
+      glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_REPEAT); 
       glTexParameteri(  GL_TEXTURE_2D,
                         GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameteri(  GL_TEXTURE_2D,
@@ -6291,7 +6221,8 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
       glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, 
                   SUMA_NIDO_TexCoordGen(SurfObj->texnel)); 
             /* GL_SPHERE_MAP, GL_EYE_LINEAR, GL_OBJECT_LINEAR */
-      glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+      glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, 
+                  SUMA_NIDO_TexCoordGen(SurfObj->texnel));
       glEnable(GL_TEXTURE_GEN_S);
       glEnable(GL_TEXTURE_GEN_T);
       glEnable(GL_TEXTURE_2D);
@@ -6479,7 +6410,6 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
    }   
-   
    
    SUMA_LH("Done");
    SUMA_RETURNe;
