@@ -1,14 +1,12 @@
 #include "mrilib.h"
 
 #undef  PMAX
-#define PMAX 0.9999f  /* don't process p-values >= PMAX */
+#define PMAX 0.9999f  /*** don't process p-values >= PMAX ***/
 
-#undef QTOZ  /* convert q-value to z-score */
-#if 0
-#  define QTOZ(x) normal_p2t(x)  /* the olde waye */
-#else
-#  define QTOZ(x) qginv(0.5*x)   /* a little faster */
-#endif
+#undef  QTOZ                  /* convert q-value to z-score */
+#undef  ZTOQ                  /* vice-versa */
+#define QTOZ(x) qginv(0.5*x)
+#define ZTOQ(x) (2.0*qg(x))
 
 #undef  ZTOP
 #undef  QBOT
@@ -19,15 +17,9 @@
 #undef  QSTHRESH
 #define QSTHRESH 0.10      /* q threshold for computing m1 */
 
-static int FDR_nq = 0 ;
-static int FDR_m1 = 0 ;
-
-int_pair mri_fdrize_getaux(void)
-{
-   int_pair ip ;
-   ip.i = FDR_nq ; ip.j = FDR_m1 ;
-   return ip ;
-}
+static int    FDR_nq  = 0 ;
+static int    FDR_m1  = 0 ;
+static float *FDR_mdf = NULL ;
 
 /*--------------------------------------------------------------------------*/
 /*! Take an image of statistics and convert to FDR-ized z-scores (in place):
@@ -63,6 +55,7 @@ int mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
 ENTRY("mri_fdrize") ;
 
   FDR_nq = FDR_m1 = 0 ;
+  if( FDR_mdf != NULL ){ free(FDR_mdf) ; FDR_mdf = NULL ; }
 
   if( im == NULL || im->kind != MRI_float )   RETURN(0) ;
   far  = MRI_FLOAT_PTR(im); if( far == NULL ) RETURN(0) ;
@@ -127,10 +120,13 @@ STATUS("convert to q/z") ;
 
     FDR_nq = nq ;
 
-    if( qsmal && nq >= 100 ){
+    if( qsmal && nq >= 100 && AFNI_yesenv("AFNI_MISSED_FDR") ){
       float *m1 , ms , mone=0.0f ; int kk , dk ;
-STATUS("computing m1") ;
+STATUS("computing mdf") ;
       m1 = (float *)malloc(sizeof(float)*(qsmal+1)) ;
+      if( m1 == NULL ){
+        ERROR_message("mri_fdr_curve: out of memory!") ; goto finished ;
+      }
       dk = (int)(0.3333*sqrt((double)nq)) ;
       for( kk=dk ; kk <= qsmal ; kk++ ){
         for( ms=0.0f,jj=kk-dk+1 ; jj <= kk ; jj++ ) ms += (nq-jj)/(1.0f-qq[jj]);
@@ -139,11 +135,41 @@ STATUS("computing m1") ;
       }
       free(m1) ; mone = (int)mone ; if( mone > nq ) mone = nq ;
       FDR_m1 = mone ;
-      if( AFNI_yesenv("AFNI_MZERO") )
-        INFO_message("FDR: m1=%d nq=%d kk=%d qsmal=%d p=%g",FDR_m1,nq,kk,qsmal,qq[kk]) ;
+#if 0
+      if( AFNI_yesenv("AFNI_MZERO") ) printf(" %d\n",FDR_m1) ;
+  INFO_message("FDR: m1=%d nq=%d kk=%d qsmal=%d p=%g",FDR_m1,nq,kk,qsmal,qq[kk]) ;
+#endif
+
+      if( FDR_m1 > 0 ){
+        FDR_mdf = (float *)malloc(sizeof(float)*nq) ;
+        if( FDR_mdf == NULL ){
+          ERROR_message("mri_fdr_curve: out of memory!") ; goto finished ;
+        }
+        qmin = 1.0 ;
+        for( jj=nq-1 ; jj >=0 ; jj-- ){
+          qval = (nthr * qq[jj]) / (jj+1.0) ;
+          if( qval > qmin ) qval = qmin; else qmin = qval;
+          FDR_mdf[jj] = 1.0 - (1.0-qval)*(jj+1) / mone ;
+               if( FDR_mdf[jj] < 0.0f ) FDR_mdf[jj] = 0.0f ;
+          else if( FDR_mdf[jj] > 1.0f ) FDR_mdf[jj] = 1.0f ;
+        }
+        for( jj=1 ; jj < nq ; jj++ ){
+          if( FDR_mdf[jj] > FDR_mdf[jj-1] ) FDR_mdf[jj] = FDR_mdf[jj-1] ;
+        }
+        ms = FDR_mdf[nq-1] ;
+        if( ms > 0.0f ){
+          float alp=1.0f/(1.0f-ms) , bet=alp*ms ;
+          for( jj=0 ; jj < nq ; jj++ ) FDR_mdf[jj] = alp*FDR_mdf[jj]-bet ;
+        }
+#if 1
+printf("# m1=%d\n# p mdf\n",FDR_m1) ;
+for( jj=0 ; jj < nq ; jj++ ) printf("%g %g\n",qq[jj],FDR_mdf[jj]) ;
+#endif
+      }
     }
   }
 
+finished:
 STATUS("finished") ;
   free(iq); free(qq); RETURN(nq);
 }
