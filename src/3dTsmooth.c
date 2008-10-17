@@ -224,7 +224,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]) ; exit(1) ;
    }
 
-   ntime = DSET_NUM_TIMES(old_dset) ;
+   ntime = DSET_NVALS(old_dset) ;
    nxyz  = DSET_NVOX(old_dset) ;
 
    if( ntime < 4 ){
