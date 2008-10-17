@@ -64,7 +64,7 @@ text = "Attached to node 0's initial position"
 mix_mode = "decal"
 coord_gen = "sphere"
 target = "ALL_SURFS"
-filename = "face_sumabucks.jpg"
+filename = "face_daveperlman.jpg"
 />
 <Tex
 target = "FRAME"

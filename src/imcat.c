@@ -19,7 +19,8 @@ int main( int argc , char * argv[] )
    char suffix[50] = "\0";
    char *scale_image = NULL;
    int iarg , ii,jj , nx,ny , nxim,nyim ;
-   int nmode = XYNUM, nxin, nyin ;
+   int nmode = XYNUM, nxin, nyin, nbad = 0;
+   int cutL=0, cutR=0, cutT=0, cutB=0;
    int gap = 0, ScaleInt=0, force_rgb_out = 0, matrix_size_from_scale = 0;
    byte  gap_col[3] = {255, 20, 128} ;
    MRI_IMAGE *imscl=NULL;
@@ -56,6 +57,9 @@ int main( int argc , char * argv[] )
  "  -res_in RX RY: Set resolution of all input images to RX by RY pixels.\n"
  "                 Default is to make all input have the same\n"
  "                 resolution as the first image.\n"
+ "  -crop L R T B: Crop images by L (Left), R (Right), T (Top), B (Bottom)\n"
+ "                 pixels. Cutting is performed after any resolution change, \n"
+ "                 if any, is to be done.\n"
  " ++ Options for output:\n"
  "  -zero_wrap: If number of images is not enough to fill matrix\n"
  "              blank images are used.\n"
@@ -113,10 +117,13 @@ int main( int argc , char * argv[] )
       exit(0) ;
     }
 
-
     ScaleInt = 0;
     resix=-1;
     resiy=-1;
+    cutL=0;
+    cutB=0;
+    cutT=0;
+    cutR=0;
     force_rgb_out = 0;
     iarg = 1 ;
       nx = -1; ny = -1;
@@ -129,6 +136,19 @@ int main( int argc , char * argv[] )
          }
          nx = (int) strtod( argv[++iarg] , NULL ) ;
          ny = (int) strtod( argv[++iarg] , NULL ) ;
+          iarg++ ; continue ;
+       }
+       
+       if( strcmp(argv[iarg],"-crop") == 0 ){
+         if (iarg+4 > argc) {
+            fprintf(stderr,
+                     "*** ERROR: Need four positive integers after -crop\n");
+            exit(1);
+         }
+         cutL = (int) strtod( argv[++iarg] , NULL ) ;
+         cutR = (int) strtod( argv[++iarg] , NULL ) ;
+         cutT = (int) strtod( argv[++iarg] , NULL ) ;
+         cutB = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
        
@@ -272,6 +292,18 @@ int main( int argc , char * argv[] )
    } else if( inimar->num < 1 ){
       fprintf(stderr,"*** less than 1 input image read!\a\n") ;
       exit(1) ;
+   }
+   /* crop all images if needed */
+   if (cutL || cutR || cutT || cutB) {
+      /* original image size */
+      nxin = IMAGE_IN_IMARR(inimar,0)->nx;
+      nyin = IMAGE_IN_IMARR(inimar,0)->ny;
+      
+      nbad = mri_cut_many_2D(inimar, cutL, nxin-1-cutR, cutT, nyin-1-cutB);
+      if (nbad) {
+         fprintf(stderr,"*** failed (%d) in cropping operation!\a\n", nbad) ;
+         exit(1) ;
+      }
    }
    
    /* figure out the count */
@@ -471,7 +503,11 @@ int main( int argc , char * argv[] )
 
    }
 
-   sprintf(fnam,"%s.ppm",prefix);
+   if (!(STRING_HAS_SUFFIX_CASE(prefix,".jpg"))) {
+      sprintf(fnam,"%s.ppm",prefix);
+   } else {
+      sprintf(fnam,"%s",prefix);
+   }
    fprintf(stderr,"+++ Writing image to %s\n", fnam);
    mri_write(fnam,im) ;
    
