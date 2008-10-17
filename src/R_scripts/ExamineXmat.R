@@ -89,16 +89,27 @@ show_xmat <- function (ff, isel=1:1:ncol(ff), descr="") {
                   'Baseline indices: ', xmat_base_index(ff)-1, '\n',
                   'Motion indices: ', xmat_motion_index(ff)-1, '\n',
                   'Task indices: ', xmat_alltasks_index(ff)-1, '\n');
-   
-   view_cond <- kappa(ff[,isel], exact=TRUE)
-   stim_cond <- kappa(ff[,xmat_alltasks_index(ff)], exact=TRUE)
+   if (length(isel)) {
+      view_cond <- kappa(ff[,isel], exact=TRUE)
+   }else{
+      view_cond <- 0
+   }
+   if (length(xmat_alltasks_index(ff))) {
+      stim_cond <- kappa(ff[,xmat_alltasks_index(ff)], exact=TRUE)
+   } else {
+      stim_cond <- 0
+   }  
    all_cond <- kappa(ff, exact=TRUE)
-   all_cond_no_mot <- kappa(ff[,-xmat_motion_index(ff)], exact=TRUE)
+   if (length(xmat_motion_index(ff))) {
+      all_cond_no_mot <- kappa(ff[,-xmat_motion_index(ff)], exact=TRUE)
+   } else {
+      all_cond_no_mot <- 0
+   }
    stit = paste ( 'Rall          : ', sprintf('%.2f', all_cond), '\n',
                   'Rall-motion   : ', sprintf('%.2f', all_cond_no_mot), '\n',
                   'Rall-roni     : ', sprintf('%.2f', stim_cond),'\n',
                   'Rviewed       : ', sprintf('%.2f', view_cond),'\n');
-      
+   
    #title (paste('Xmat: ', attr(ff,'FileName'),'\n'));
    title ('');
    
@@ -129,9 +140,17 @@ condition_report <- function(tt=NA, ff, isel=1:1:ncol(ff), descr="") {
       tkgrid.configure(scr,sticky="ns")
       
       #Numbers that will stay constant
-      stim_cond <- kappa(ff[,xmat_alltasks_index(ff)], exact=TRUE)
+      if (length(xmat_alltasks_index(ff))) {
+         stim_cond <- kappa(ff[,xmat_alltasks_index(ff)], exact=TRUE)
+      } else {
+         stim_cond <-  0 
+      }
       all_cond <- kappa(ff, exact=TRUE)
-      all_cond_no_mot <- kappa(ff[,-xmat_motion_index(ff)], exact=TRUE)
+      if (length(xmat_motion_index(ff))) {
+         all_cond_no_mot <- kappa(ff[,-xmat_motion_index(ff)], exact=TRUE)
+      } else {
+         all_cond_no_mot <- all_cond
+      }
       stitcom = paste ( 
                   'Matrix file: ', attr(ff,'FileName'), '\n',
                   '* Baseline indices: ', paste(xmat_base_index(ff)-1,
@@ -153,7 +172,11 @@ condition_report <- function(tt=NA, ff, isel=1:1:ncol(ff), descr="") {
    }
    
    #cat ('Calculating conditions\n')
-   view_cond <- kappa(ff[,isel], exact=TRUE)
+   if (length(isel)) {
+      view_cond <- kappa(ff[,isel], exact=TRUE)
+   } else {
+      view_cond  = 0
+   }
    stit = paste ( stitcom,
                   '   Rviewed       : ', sprintf('%.2f', view_cond),'\n',
                   '----------------------------------------------\n');
