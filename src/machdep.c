@@ -13,6 +13,7 @@
 
 void machdep()
 {
+   long seed ;
    /*-- force use of mcw_malloc.c functions - 05 Nov 2001 --*/
 
 #ifdef USING_MCW_MALLOC
@@ -24,6 +25,9 @@ void machdep()
 #if defined(LINUX) && defined(M_MMAP_MAX)
    mallopt( M_MMAP_MAX , 1 ) ;
 #endif
+
+   seed = AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
+   if( seed != 0) srand48(seed) ;
 
 }
 

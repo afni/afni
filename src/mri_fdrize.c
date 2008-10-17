@@ -16,6 +16,20 @@
 #define QBOT 2.25718e-19   /* smallest value of q to return */
 
 /*--------------------------------------------------------------------------*/
+#undef  QSTHRESH
+#define QSTHRESH 0.10      /* q threshold for computing m1 */
+
+static int FDR_nq = 0 ;
+static int FDR_m1 = 0 ;
+
+int_pair mri_fdrize_getaux(void)
+{
+   int_pair ip ;
+   ip.i = FDR_nq ; ip.j = FDR_m1 ;
+   return ip ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Take an image of statistics and convert to FDR-ized z-scores (in place):
       - im must be in float format
       - if statcode > 0, the data is a statistic to be converted to
@@ -43,10 +57,12 @@
 int mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
 {
   float *far ;
-  int ii,jj , nvox , doz ;
+  int ii,jj , nvox , doz , qsmal=0 ;
   float *qq , nthr , fbad ; int *iq , nq ; double qval , qmin ;
 
 ENTRY("mri_fdrize") ;
+
+  FDR_nq = FDR_m1 = 0 ;
 
   if( im == NULL || im->kind != MRI_float )   RETURN(0) ;
   far  = MRI_FLOAT_PTR(im); if( far == NULL ) RETURN(0) ;
@@ -100,6 +116,7 @@ STATUS("convert to q/z") ;
     for( jj=nq-1 ; jj >= 0 ; jj-- ){           /* convert to q, then z */
       qval = (nthr * qq[jj]) / (jj+1.0) ;
       if( qval > qmin ) qval = qmin; else qmin = qval;
+      if( qsmal == 0 && qval <= QSTHRESH ) qsmal = jj ;
       if( doz ){                               /**** convert q to z ****/
              if( qval <  QBOT ) qval = ZTOP ;  /* honking big z-score  */
         else if( qval >= 1.0  ) qval =  0.0 ;  /* very non-significant */
@@ -108,16 +125,22 @@ STATUS("convert to q/z") ;
       far[iq[jj]] = (float)qval ;
     }
 
-    if( AFNI_yesenv("MZERO") ){
-      float mzero , mz ;
-      mzero = (nq-1)/(1.0f-qq[1]) ;
-      for( jj=2 ; jj < nq ; jj++ ){
-        mz    = mzero ;
-        mzero = (nq-jj)/(1.0f-qq[jj]) ;
-        if( mzero > mz ) break ;
+    FDR_nq = nq ;
+
+    if( qsmal && nq >= 100 ){
+      float *m1 , ms , mone=0.0f ; int kk , dk ;
+STATUS("computing m1") ;
+      m1 = (float *)malloc(sizeof(float)*(qsmal+1)) ;
+      dk = (int)(0.3333*sqrt((double)nq)) ;
+      for( kk=dk ; kk <= qsmal ; kk++ ){
+        for( ms=0.0f,jj=kk-dk+1 ; jj <= kk ; jj++ ) ms += (nq-jj)/(1.0f-qq[jj]);
+        mone = m1[kk] = nq - ms/dk ;
+        if( kk-dk >= dk && m1[kk] < m1[kk-dk] ) break ;
       }
-      mzero = (int)mzero ; if( mzero > nq ) mzero = nq ;
-      INFO_message("mzero=%g  nq=%d  jj=%d  p=%g",mzero,nq,jj,qq[jj]) ;
+      free(m1) ; mone = (int)mone ; if( mone > nq ) mone = nq ;
+      FDR_m1 = mone ;
+      if( AFNI_yesenv("AFNI_MZERO") )
+        INFO_message("FDR: m1=%d nq=%d kk=%d qsmal=%d p=%g",FDR_m1,nq,kk,qsmal,qq[kk]) ;
     }
   }
 
