@@ -60,9 +60,10 @@ Returns  0 for success
 ---------------------------------------------------------------------*/
 int mri_cut_many_2D(MRI_IMARR *mar,  int xa, int xb, int ya, int yb ) 
 {
-   ENTRY("mri_cut_many_2D");
    MRI_IMAGE *img=NULL;
    int kk=0, nbad = 0;
+
+   ENTRY("mri_cut_many_2D");
    
    if (!mar ||
          xa < 0 || xb < xa ||
