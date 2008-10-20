@@ -52,18 +52,24 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
   
+  { 9 , OCT , 2008 , GC , "1dGC.R" , SUPER , TYPE_NEW_PROG ,
+    "An R program that runs Granger causality analysis in AFNI.\n",	
+
+    "See more details at http://afni.nimh.nih.gov/sscc/gangc/VAR.html" 
+  } ,
+  
   { 29 , FEB , 2008 , GC , "3dICA.R" , SUPER , TYPE_NEW_PROG ,
     "An R program that runs independent component analysis in AFNI.\n",	
 
     "This testing program for ICA only takes one dataset that presumably has \n"
-    "already been properly pre-processed. See more details on: \n"
+    "already been properly pre-processed. See more details at \n"
     "http://afni.nimh.nih.gov/sscc/gangc/ica.html" 
   } ,
   
   { 20 , SEP , 2007 , GC , "3dLME.R" , SUPER , TYPE_NEW_PROG ,
     "An R program that runs linear mixed-effects analysis at group level in AFNI.\n",
 	 
-    "See more details on: http://afni.nimh.nih.gov/sscc/gangc/lme.html" 
+    "See more details at http://afni.nimh.nih.gov/sscc/gangc/lme.html" 
   } ,
   
   { 17 , JAN , 2007 , GC , "1dSEM" , SUPER , TYPE_NEW_PROG ,
