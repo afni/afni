@@ -28,6 +28,7 @@ static int AFNI_drive_open_window( char *cmd ) ;
 static int AFNI_drive_close_window( char *cmd ) ;
 static int AFNI_drive_quit( char *cmd ) ;
 static int AFNI_drive_setenv( char *cmd ) ;
+static int AFNI_drive_getenv( char *cmd );          /* 20 Oct 2008 */
 
 static int AFNI_drive_set_subbricks( char *cmd ) ;  /* 30 Nov 2005 */
 
@@ -177,6 +178,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_FUNC_RESAM"     , AFNI_set_func_resam          } ,
  { "SLEEP"              , AFNI_sleeper                 } ,
  { "SETENV"             , AFNI_drive_setenv            } ,
+ { "GETENV"             , AFNI_drive_getenv            } , /* 20 Oct 2008,rcr */
  { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
  { "DEFINE_COLOR_SCALE" , AFNI_define_colorscale       } ,
  { "OPEN_PANEL"         , AFNI_open_panel              } ,
@@ -2388,6 +2390,30 @@ int AFNI_drive_setenv( char *cmd )
    }
 
    return(0) ;
+}
+
+/*------------------------------------------------------------------*/
+/*! GETENV name         - print env value       20 Oct 2008 [rickr] */
+
+int AFNI_drive_getenv( char *cmd )
+{
+   char nam[256]="\0" , *eee ;
+
+   if( cmd == NULL || strlen(cmd) < 3 ) return(-1) ;
+
+   /*-- scan for the name --*/
+
+   sscanf( cmd , "%255s" , nam ) ;
+
+   if( nam[0] == '\0' ) return(-1) ;
+
+   /*-- get and the actual environment variable --*/
+
+   eee = my_getenv(nam);
+   printf("%s = %s\n", nam, eee ? eee : "<UNSET>");
+   fflush(stdout);
+
+   return 0;
 }
 
 /*------------------------------------------------------------------*/

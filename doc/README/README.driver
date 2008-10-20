@@ -361,6 +361,15 @@ SETENV name value
   Only when you instigate something that this variable controls will
   anything change in AFNI.  Thus, you may want to 'REDISPLAY' afterwards.
 
+GETENV name
+  Get the value of environment variable "name", and print to the terminal.
+  For example:
+    GETENV AFNI_PLUGINPATH
+  would show the directory that plugins were loaded from, if set:
+    AFNI_PLUGINPATH = /home/elvis/abin
+  If a variable is not set, the output says as much:
+    AFNI_PLUGINPATH = <UNSET>
+
 REDISPLAY
   Forces all images and graphs to be redrawn.
 

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, OCT, 2008, RCR, "afni_driver.c", MINOR, TYPE_NEW_OPT,
+   "added 'GETENV' to the list of DRIVE_AFNI commands",
+   NULL
+ } ,
+
  { 16, OCT, 2008, RCR, "thd_mastery", MICRO, TYPE_MODIFY,
    "THD_copy_dset_subs should not need to add a warp structure",
    NULL
