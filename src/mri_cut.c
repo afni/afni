@@ -53,23 +53,23 @@ ENTRY("mri_cut_2D") ;
 /*-------------------------------------------------------------------*/
 /*! Perform cut outs on an array of images and replaces contents of
 input image array with cropped images. If cutting fails on a particular
-image, the original image is left unchanged.  
+image, the original image is left unchanged.
 Returns  0 for success
          1 for number of failures
          -1 for bad input                ZSS -- Oct 17 2008.
 ---------------------------------------------------------------------*/
-int mri_cut_many_2D(MRI_IMARR *mar,  int xa, int xb, int ya, int yb ) 
+int mri_cut_many_2D(MRI_IMARR *mar,  int xa, int xb, int ya, int yb )
 {
    MRI_IMAGE *img=NULL;
    int kk=0, nbad = 0;
 
-   ENTRY("mri_cut_many_2D");
-   
+ENTRY("mri_cut_many_2D");
+
    if (!mar ||
          xa < 0 || xb < xa ||
          ya < 0 || yb < ya) RETURN(-1);
-   
-   
+
+
    for (kk=0; kk<mar->num; ++kk) { /* crop each image */
       img = mri_cut_2D(IMAGE_IN_IMARR(mar,kk), xa, xb, ya, yb);
       if (!img) {
@@ -81,8 +81,7 @@ int mri_cut_many_2D(MRI_IMARR *mar,  int xa, int xb, int ya, int yb )
          IMAGE_IN_IMARR(mar,kk) = img; img = NULL;
       }
    }
-   
-   
+
    RETURN(nbad);
 }
 
