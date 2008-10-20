@@ -20,6 +20,29 @@
 static int    FDR_nq  = 0 ;
 static int    FDR_m1  = 0 ;
 static float *FDR_mdf = NULL ;
+/*--------------------------------------------------------------------------*/
+
+static int estimate_m1( int nq , float *qq )
+{
+   int jj , kk , nh=0 , hist[16] , mone ;
+
+   if( nq < 999 || qq == NULL ) return -1.0f ;
+
+   for( kk=0 ; kk < 16 ; kk++ ) hist[kk] = 0.0f ;
+   for( jj=0 ; jj < nq ; jj++ ){
+     kk = (int)( (qq[jj]-0.15f)*20.0f ) ; if( kk < 0 || kk > 15 ) continue ;
+     hist[kk]++ ; nh++ ;
+   }
+   if( nh < 160 ) return -1.0f ;
+#if 1
+  printf("# hist=");
+  for(kk=0;kk<16;kk++) printf(" %d",hist[kk]) ;
+  printf("\n") ;
+#endif
+   qsort_int( 16 , hist ) ;
+   mone = nq - 20.0f * ( hist[6] + 2*hist[7] + 2*hist[8] + hist[9] ) / 6.0f ;
+   return mone ;
+}
 
 /*--------------------------------------------------------------------------*/
 /*! Take an image of statistics and convert to FDR-ized z-scores (in place):
@@ -121,26 +144,12 @@ STATUS("convert to q/z") ;
     FDR_nq = nq ;
 
     if( qsmal && nq >= 100 && AFNI_yesenv("AFNI_MISSED_FDR") ){
-      float *m1 , ms , mone=0.0f ; int kk , dk ;
 STATUS("computing mdf") ;
-      m1 = (float *)malloc(sizeof(float)*(qsmal+1)) ;
-      if( m1 == NULL ){
-        ERROR_message("mri_fdr_curve: out of memory!") ; goto finished ;
-      }
-      dk = (int)(0.3333*sqrt((double)nq)) ;
-      for( kk=dk ; kk <= qsmal ; kk++ ){
-        for( ms=0.0f,jj=kk-dk+1 ; jj <= kk ; jj++ ) ms += (nq-jj)/(1.0f-qq[jj]);
-        mone = m1[kk] = nq - ms/dk ;
-        if( kk-dk >= dk && m1[kk] < m1[kk-dk] ) break ;
-      }
-      free(m1) ; mone = (int)mone ; if( mone > nq ) mone = nq ;
-      FDR_m1 = mone ;
-#if 0
-      if( AFNI_yesenv("AFNI_MZERO") ) printf(" %d\n",FDR_m1) ;
-  INFO_message("FDR: m1=%d nq=%d kk=%d qsmal=%d p=%g",FDR_m1,nq,kk,qsmal,qq[kk]) ;
-#endif
 
-      if( FDR_m1 > 0 ){
+      FDR_m1 = estimate_m1( nq , qq ) ;
+
+      if( FDR_m1 > 1 ){
+        float mone=(float)FDR_m1 , ms ;
         FDR_mdf = (float *)malloc(sizeof(float)*nq) ;
         if( FDR_mdf == NULL ){
           ERROR_message("mri_fdr_curve: out of memory!") ; goto finished ;
@@ -163,7 +172,11 @@ STATUS("computing mdf") ;
         }
 #if 1
 printf("# m1=%d\n# p mdf\n",FDR_m1) ;
-for( jj=0 ; jj < nq ; jj++ ) printf("%g %g\n",qq[jj],FDR_mdf[jj]) ;
+for( jj=0 ; jj < nq ; jj++ ){
+  if( jj == 0 || FDR_mdf[jj] != FDR_mdf[jj-1] )
+    printf("%g %g\n",qq[jj],FDR_mdf[jj]);
+  if( FDR_mdf[jj]==0.0f )break;
+}
 #endif
       }
     }
