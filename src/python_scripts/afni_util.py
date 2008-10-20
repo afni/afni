@@ -13,6 +13,31 @@ def change_path_basename(orig, prefix, suffix):
     if head == '': return "%s%s" % (prefix, suffix)
     return "%s/%s%s" % (head, prefix, suffix)
 
+# write text to a file
+def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
+    """write the given text to the given file
+          fname   : file name to write (or append) to
+          text    : text to write
+          mode    : optional write mode 'w' or 'a' [default='w']
+          wrap    : optional wrap flag [default=0]
+          wrapstr : optional wrap string: if wrap, apply this string
+    """
+
+    if not text or not fname:
+        print "** WTTF: missing text or filename"
+        return
+
+    if wrap: text = add_line_wrappers(text, warpstr)
+    
+    try:
+        fp = open(fname, mode)
+    except:
+        print "** failed to open text file '%s' for writing" % fname
+        return
+
+    fp.write(text)
+    fp.close()
+
 # given a list of text elements, return a new list where any
 # existing quotes are escaped, and then if there are special
 # characters, put the whole string in single quotes
