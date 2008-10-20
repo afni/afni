@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, OCT, 2008, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "added write_text_to_file function",
+   NULL
+ } ,
+
  { 20, OCT, 2008, RCR, "afni_driver.c", MINOR, TYPE_NEW_OPT,
    "added 'GETENV' to the list of DRIVE_AFNI commands",
    NULL
