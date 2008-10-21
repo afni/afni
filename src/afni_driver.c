@@ -2407,7 +2407,7 @@ int AFNI_drive_getenv( char *cmd )
 
    if( nam[0] == '\0' ) return(-1) ;
 
-   /*-- get and the actual environment variable --*/
+   /*-- get and printf the actual environment variable --*/
 
    eee = my_getenv(nam);
    printf("%s = %s\n", nam, eee ? eee : "<UNSET>");
