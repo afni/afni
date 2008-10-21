@@ -1286,6 +1286,7 @@ class RegWrap:
                                "-maxshf 10 -VERB -warp aff ",\
                         suf = "_alnd_epi", costfunction = "lpc"):
                         #m is the weight brick
+      self.info_msg( "Aligning anatomical data to epi data")
       # for oblique data or pre and post transformed data, save anat to epi transformation
       #   matrix in separate temporary 1D file
       if((ps.obl_a2e_mat!="") or (ps.pre_matrix!="")) or (ps.edge):
@@ -1310,7 +1311,6 @@ class RegWrap:
          else:
             cmass = "-%s" % ps.cmass
             
-         self.info_msg( "Aligning anatomical data to epi data")
          com = shell_com(  \
             "3dAllineate -%s "  # costfunction       \
              "%s "              # weighting          \
@@ -1783,15 +1783,15 @@ class RegWrap:
  
    # do volume registration of EPI dataset
    def register_epi(self, e=None, reg_opt="-quintic", prefix="temp_vr", \
-                      childflag=0):
+                      motion_prefix = "temp_vr", childflag=0):
       o = e.new(prefix)
 
       if (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
          # save the volreg output to file names based on original epi name
          #  (not temporary __tt_ names)
-         self.mot_1D = "%s_motion.1D" % o.out_prefix()      # prefix
-         self.reg_mat = "%s_mat.aff12.1D" % o.out_prefix()  # prefix
+         self.mot_1D = "%s_motion.1D" % motion_prefix    # motion parameters output
+         self.reg_mat = "%s_mat.aff12.1D" % o.out_prefix()  # volreg transformation matrix
          self.info_msg( "Volume registration for epi data")
          # user option for which registration program (3dvolreg,3dWarpDrive,...)
          opt = self.user_opts.find_opt('-volreg_method')
@@ -1992,7 +1992,13 @@ class RegWrap:
 
 
    # Create double edge images for later viewing
-   def add_edges(self, d1, d2, d3, d1name, d2name, d3name):
+   def add_edges(self, d1, d2, d3, d1name, d2name, d3name, listlog = ""):
+      # specified examinelist for output name or use default in @AddEdge
+      if (listlog == ""):
+         aelistlog = ""
+      else :
+         aelistlog = "-examinelist %s" % listlog
+         
       if (d1name==""):
          d1AE = d1
       else:
@@ -2010,18 +2016,18 @@ class RegWrap:
       com.run()
 
       com = shell_com( \
-        "3dcopy %s AddEdge/%s" % (d1.input(), d1AE.out_prefix()), ps.oexec)
+        "3dcopy -overwrite %s AddEdge/%s" % (d1.input(), d1AE.out_prefix()), ps.oexec)
       com.run()
       com = shell_com( \
-        "3dcopy %s AddEdge/%s" % (d2.input(), d2AE.out_prefix()), ps.oexec)
+        "3dcopy -overwrite %s AddEdge/%s" % (d2.input(), d2AE.out_prefix()), ps.oexec)
       com.run()
       com = shell_com( \
-        "3dcopy %s AddEdge/%s" % (d3.input(), d3AE.out_prefix()), ps.oexec)
+        "3dcopy -overwrite %s AddEdge/%s" % (d3.input(), d3AE.out_prefix()), ps.oexec)
       com.run()
 
       com = shell_com( 
-            "cd AddEdge; @AddEdge %s %s %s; cd .. " \
-            % (d1AE.input(), d2AE.input(), d3AE.input()), ps.oexec)
+            "cd AddEdge; @AddEdge %s %s %s %s; cd .. " \
+            % (aelistlog, d1AE.input(), d2AE.input(), d3AE.input()), ps.oexec)
       com.run()
 
    # do the preprocessing of the EPI data    
@@ -2060,7 +2066,13 @@ class RegWrap:
                 prefix = "%s%s" % (basename,basesuff) # don't use prepre
              else:
                 prefix = "__tt_%s%s" % (basename,basesuff) # don't save
-             o = self.register_epi( o, ps.reg_opt, prefix, childflag=childflag)
+             # if aligning epi to anat or saving volreg output, save motion parameters
+             if(ps.epi2anat):
+                motion_prefix = "%s%s" % (basename,basesuff) # don't use prepre
+             else:
+                motion_prefix = prefix
+             o = self.register_epi( o, ps.reg_opt, prefix, motion_prefix,
+                                    childflag=childflag)
          else:
             self.info_msg("Skipping time series volume registration. "
                           "Must have more than a single sub-brick.")
@@ -2410,6 +2422,14 @@ if __name__ == '__main__':
          ein_rs = ps.resample_epi(e, "","__tt_%s_rs_in" % \
            ps.epi.out_prefix())
 
+      if (ps.epi2anat and ps.anat2epi):
+         listlog_a2e = "a2e_examine_list.log"
+         listlog_e2a = "e2a_examine_list.log"
+      else :
+         listlog_a2e = ""
+         listlog_e2a = ""
+     
+      
       if (ps.epi2anat):    # if aligning epi to anatomical
          # for the edge image, we need a dataset at the resolution of the
          # anatomical and the specific epi sub-brick we used as the epi_base
@@ -2430,12 +2450,14 @@ if __name__ == '__main__':
          ps.add_edges(ps.anat_ns, ein_rs, ps.epi_alnd_rs,"%s_ns"  \
                       % ps.anat0.out_prefix(),\
                       "%s_ns" % ps.epi.out_prefix(), "%s%s" % \
-                       (ps.epi.out_prefix(), ps.suffix ))
+                       (ps.epi.out_prefix(), ps.suffix ),
+                       listlog = listlog_e2a) 
 
       if (ps.anat2epi):
          ps.add_edges(ein_rs, ps.anat_ns, ps.anat_alnd,"%s_ns" % ps.epi.out_prefix(),\
                       "%s_ns" % ps.anat0.out_prefix(), 
-                      "%s%s" % (ps.anat0.out_prefix(), ps.suffix))
+                      "%s%s" % (ps.anat0.out_prefix(), ps.suffix),
+                      listlog = listlog_a2e)
 
       
    #Create final results
@@ -2460,6 +2482,11 @@ if __name__ == '__main__':
    if(ps.AddEdge):
       print "To view edges produced by @AddEdge, type:"
       print "cd AddEdge"
-      print "afni -niml -yesplugouts &\n@AddEdge"
+      print "afni -niml -yesplugouts &"
+      if (ps.epi2anat and ps.anat2epi):
+         print "@AddEdge -examinelist %s" % listlog_a2e
+         print "@AddEdge -examinelist %s" % listlog_e2a
+      else:
+         print "@AddEdge"
 
    ps.ciao(0)
