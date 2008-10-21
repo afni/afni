@@ -23,6 +23,7 @@ set sag_geom = '540x360+4+436'
 set lay = ()
 set hostopt = '-host 127.0.0.1'
 set unlayed = 1
+
 PARSE:
    set Narg = $#
    set cnt = 1
@@ -129,7 +130,19 @@ PARSE:
             set donext = 0   
          endif   
       endif
-      
+
+      if ($donext && "$argv[$cnt]" == "-examinelist") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a layout file after -examinelist"
+            goto END
+         else
+            @ cnt ++
+            set listlog = "$argv[$cnt]"
+            set donext = 0
+         endif
+      endif
+
       if ($donext) then
          #no more options, this is assumed to be the list of datasets 
          set argrem = ($argv[$cnt-])
@@ -178,7 +191,12 @@ foreach ana ($analist)
    if ("$ana" != "$anabox") then
       3dresample -master $anabox -inset $ana -prefix $anapref -rmode Li
    else
-      3dcopy $ana $anapref
+      # want data in AFNI format here
+      set afni_type = `@CheckForAfniDset $ana`
+      if($afni_type == 3) then
+         echo "Copying dataset to AFNI format"
+         3dcopy $ana $anapref
+      endif
    endif
    
    #deoblique if necessary
@@ -207,7 +225,7 @@ if ($#analist > 1) then
    3dMean -overwrite -prefix tmp_avg $analist
 else
    rm -f tmp_avg+????.* >& /dev/null
-   3dcopy $analist        tmp_avg 
+   3dcopy $analist tmp_avg 
 endif
 #Get a nice cropping box
 3dAutobox   -input "3dcalc( -a tmp_avg+orig -b $epi -expr ((a+b)/2.0) )" \
@@ -760,6 +778,8 @@ HELP:
    echo "Available options (must precede the dataset names):"
    echo ""
    echo " -help         : this help screen"
+   echo " -examinelist mmmm : use list of paired datasets from file mmmm"
+   echo "               (default is _ae.ExamineList.log)"
    echo " -ax_mont 'montformat': axial montage string (default='2x2:24')"
    echo " -ax_geom 'geomformat': axial image window geometry"
    echo "               (default = '777x702+433+334')"
