@@ -309,7 +309,7 @@ void AFNI_thresh_lock_carryout( Three_D_View *im3d )
    Three_D_View *qq3d ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
    int glock , cc,ii , dopval,dothresh ;
-   float thresh , pval , tval ;
+   float thresh , pval=0.0f , tval ;
    char cmd[64] , *eee ;
 
 ENTRY("AFNI_thresh_lock_carryout") ;
@@ -472,7 +472,7 @@ void AFNI_thrdrag_lock_carryout( Three_D_View *im3d )
    Three_D_View *qq3d ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
    int glock , cc,ii , dothresh,dopval , ival , stop ;
-   float thresh , pval , tval ;
+   float thresh , pval=0.0f , tval ;
    char *eee ;
 
 ENTRY("AFNI_thrdrag_lock_carryout") ;

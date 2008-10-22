@@ -593,6 +593,21 @@ ENTRY("THD_set_dataset_attributes") ;
      }
    }
 
+   for( ibr=0 ; ibr < blk->nvals ; ibr++ ){  /* 22 Oct 2008 */
+     sprintf(name,"MDFCURVE_%06d",ibr) ;
+     fv = DBLK_BRICK_MDFCURVE(blk,ibr) ;
+     if( fv == NULL || fv->ar == NULL ){
+        THD_erase_one_atr( blk , name ) ;
+     } else {
+       int nv = fv->nar ;
+       float *far = (float *)malloc(sizeof(float)*(nv+2)) ;
+       far[0] = fv->x0 ; far[1] = fv->dx ;
+       memcpy(far+2,fv->ar,sizeof(float)*nv) ;
+       THD_set_float_atr( blk , name , nv+2 , far ) ;
+       free(far) ;
+     }
+   }
+
    /******/
    /****** N.B.: we do NOT set the byte order attribute here *****/
    /******/

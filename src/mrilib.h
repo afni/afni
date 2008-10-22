@@ -1313,6 +1313,7 @@ extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl ) ;
 
 extern int mri_fdrize( MRI_IMAGE *, int, float *, int ) ; /* 17 Jan 2008 */
 extern floatvec * mri_fdr_curve( MRI_IMAGE *, int , float * ) ;
+extern floatvec * mri_fdr_getmdf(void) ;                  /* 22 Oct 2008 */
 
 /*------------------------------------------------------------------------*/
 /*--- Functions in mri_matrix.c (matrix operations, stored as images) ----*/

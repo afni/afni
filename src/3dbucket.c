@@ -542,6 +542,9 @@ int main( int argc , char * argv[] )
          exit(1);
       }
       if( BUCK_verb ) printf("-verb: adding fdrcurve list\n");
+
+      new_dset->dblk->brick_mdfcurve = (floatvec **)calloc(sizeof(floatvec *),
+                         /* 22 Oct 2008 */                 new_nvals) ;
    }
 
    /*** loop over input datasets ***/
@@ -634,6 +637,12 @@ int main( int argc , char * argv[] )
                   nfdr++;
                }
                else new_dset->dblk->brick_fdrcurve[ivout] = NULL ;
+
+               if(dset->dblk->brick_mdfcurve && dset->dblk->brick_mdfcurve[iv]){
+                  COPY_floatvec(new_dset->dblk->brick_mdfcurve[ivout],
+                                    dset->dblk->brick_mdfcurve[iv]) ;
+               }
+               else new_dset->dblk->brick_mdfcurve[ivout] = NULL ;
             }
 
             /** print a message? **/

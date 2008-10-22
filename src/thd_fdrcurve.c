@@ -8,7 +8,7 @@
 int THD_create_one_fdrcurve( THD_3dim_dataset *dset , int iv )
 {
    int sc ;
-   floatvec *fv ;
+   floatvec *fv , *mv ;
    MRI_IMAGE *bim , *qim=NULL ;
 
 ENTRY("THD_create_one_fdrcurve") ;
@@ -40,6 +40,19 @@ ENTRY("THD_create_one_fdrcurve") ;
        KILL_floatvec( dset->dblk->brick_fdrcurve[iv] ) ;
 
      dset->dblk->brick_fdrcurve[iv] = fv ;
+
+     fv = mri_fdr_getmdf() ;  /* 22 Oct 2008 */
+     if( fv != NULL ){
+       COPY_floatvec(mv,fv) ;
+       if( dset->dblk->brick_mdfcurve == NULL )
+         dset->dblk->brick_mdfcurve = (floatvec **)calloc(sizeof(floatvec *),
+                                                          dset->dblk->nvals  ) ;
+       else if( dset->dblk->brick_mdfcurve[iv] != NULL )
+         KILL_floatvec( dset->dblk->brick_mdfcurve[iv] ) ;
+
+       dset->dblk->brick_mdfcurve[iv] = mv ;
+     }
+
    }
 
    RETURN(1) ;
@@ -77,4 +90,24 @@ float THD_fdrcurve_zval( THD_3dim_dataset *dset , int iv , float thresh )
    }
 
    return ( interp_floatvec(fv,thresh) ) ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+float THD_mdfcurve_mval( THD_3dim_dataset *dset , int iv , float pval )
+{
+   floatvec *fv ; float plog , val ;
+
+   if( !ISVALID_DSET(dset) || iv < 0 || iv >= DSET_NVALS(dset) ) return -1.0f ;
+   if( pval <= 0.0f || pval >= 1.0f ) return -1.0f ;
+
+   fv = DSET_BRICK_MDFCURVE(dset,iv) ;
+   if( fv == NULL ){
+     if( dset->warp_parent != NULL )
+       fv = DSET_BRICK_MDFCURVE(dset->warp_parent,iv) ;
+     if( fv == NULL ) return -1.0f ;
+   }
+
+   plog = log10(pval) ;
+   return ( interp_floatvec(fv,plog) ) ;
 }

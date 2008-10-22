@@ -15,32 +15,40 @@
 
 /*--------------------------------------------------------------------------*/
 #undef  QSTHRESH
-#define QSTHRESH 0.10      /* q threshold for computing m1 */
+#define QSTHRESH 0.15      /* q threshold for computing FDR_mdfv */
 
-static int    FDR_nq  = 0 ;
-static int    FDR_m1  = 0 ;
-static float *FDR_mdf = NULL ;
+static floatvec *FDR_mdfv = NULL ;  /* missed detection fraction vs. log10(p) */
+
+floatvec *mri_fdr_getmdf(void){ return FDR_mdfv; }  /* 22 Oct 2008 */
+
 /*--------------------------------------------------------------------------*/
+/* Estimate m1 = number of true positives.
+   Actually, estimates m0 = number of true negatives, then m1 = nq-m0.
+   Build a histogram of large-ish p-values [0.15..0.95], which should be
+   approximately uniformly distribued, then find m0 by estimating the
+   average-ish level of this histogram.  If something bad happens,
+   return value is -1.
+----------------------------------------------------------------------------*/
 
 static int estimate_m1( int nq , float *qq )
 {
    int jj , kk , nh=0 , hist[16] , mone ;
 
-   if( nq < 999 || qq == NULL ) return -1.0f ;
+   if( nq < 299 || qq == NULL ) return -1 ;
 
    for( kk=0 ; kk < 16 ; kk++ ) hist[kk] = 0.0f ;
-   for( jj=0 ; jj < nq ; jj++ ){
+   for( jj=0 ; jj < nq ; jj++ ){  /* histogram bin width is 0.05 */
      kk = (int)( (qq[jj]-0.15f)*20.0f ) ; if( kk < 0 || kk > 15 ) continue ;
      hist[kk]++ ; nh++ ;
    }
-   if( nh < 160 ) return -1.0f ;
-#if 1
-  printf("# hist=");
-  for(kk=0;kk<16;kk++) printf(" %d",hist[kk]) ;
-  printf("\n") ;
-#endif
-   qsort_int( 16 , hist ) ;
+   if( nh < 160 ) return -1 ; /* too few p-values in [0.15..0.95] range */
+   qsort_int( 16 , hist ) ;   /* sort; use central values to get 'average' */
+#if 0
    mone = nq - 20.0f * ( hist[6] + 2*hist[7] + 2*hist[8] + hist[9] ) / 6.0f ;
+#else
+   mone = nq - 20.0f * (    hist[5] + 2*hist[6] + 2*hist[7]
+                        + 2*hist[8] + 2*hist[9] +   hist[10] ) / 10.0f ;
+#endif
    return mone ;
 }
 
@@ -77,15 +85,14 @@ int mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
 
 ENTRY("mri_fdrize") ;
 
-  FDR_nq = FDR_m1 = 0 ;
-  if( FDR_mdf != NULL ){ free(FDR_mdf) ; FDR_mdf = NULL ; }
+  KILL_floatvec(FDR_mdfv) ; FDR_mdfv = NULL ; /* erase the past */
 
   if( im == NULL || im->kind != MRI_float )   RETURN(0) ;
   far  = MRI_FLOAT_PTR(im); if( far == NULL ) RETURN(0) ;
   nvox = im->nvox ;
   doz  = (flags&4) == 0 ;
 
-  /* convert to p-value? */
+  /*----- convert to p-value first? -----*/
 
   if( FUNC_IS_STAT(statcode) ){     /* conversion to p-value */
 STATUS("convert to p-value") ;
@@ -93,16 +100,16 @@ STATUS("convert to p-value") ;
       if( far[ii] != 0.0f )
         far[ii] = THD_stat_to_pval( fabsf(far[ii]), statcode,stataux ) ;
       else
-        far[ii] = 1.0f ;
+        far[ii] = 1.0f ;            /* will be ignored */
     }
   } else {                          /* already supposed to be p-value */
 STATUS("input is p-value") ;
-    for( ii=0 ; ii < nvox ; ii++ )
+    for( ii=0 ; ii < nvox ; ii++ )  /* scan for bad values */
       if( far[ii] < 0.0f || far[ii] > 1.0f ) far[ii] = 1.0f ;
   }
 
-  qq = (float *)malloc(sizeof(float)*nvox) ;
-  iq = (int   *)malloc(sizeof(int  )*nvox) ;
+  qq = (float *)malloc(sizeof(float)*nvox) ;  /* array of p-values */
+  iq = (int   *)malloc(sizeof(int  )*nvox) ;  /* voxel indexes */
 
   if( qq == NULL || iq == NULL ){
     ERROR_message("mri_fdrize: out of memory!") ;
@@ -111,20 +118,33 @@ STATUS("input is p-value") ;
     RETURN(0) ;
   }
 
+  /*---- build array of p-values into qq and source voxel indexes into iq ----*/
+
 STATUS("find reasonable p-values") ;
   fbad = (doz) ? 0.0f : 1.0f ;  /* output value for masked voxels */
   for( nq=ii=0 ; ii < nvox ; ii++ ){
     if( far[ii] >= 0.0f && far[ii] < PMAX ){  /* reasonable p-value */
       qq[nq] = far[ii] ; iq[nq] = ii ; nq++ ;
     } else {
-      far[ii] = fbad ;  /* clear out such criminal voxels */
+      far[ii] = fbad ;  /* clear out such criminal voxels in the result array */
     }
   }
 
-  if( nq > 9 ){  /* something to process! */
+  /*----- process p-values to get q-values -----*/
+
+  if( nq > 19 ){  /* something to process! */
+
+    if( nvox-nq > 3333 ){  /* free up space, if significant */
+      qq = (float *)realloc( qq , sizeof(float)*nq ) ;
+      iq = (int   *)realloc( iq , sizeof(int  )*nq ) ;
+    }
+
 STATUS("sorting p-values") ;
-    qsort_floatint( nq , qq , iq ) ;  /* sort into increasing order */
-                                      /* iq[] tracks where its from */
+    qsort_floatint( nq , qq , iq ) ;  /* sort into increasing order; */
+                                      /* iq[] tracks where it's from */
+
+    /* downward scan from large p's to calculate q's */
+
     qmin = 1.0 ;
     nthr = (flags&1) ? nvox : nq ;
     if( (flags&2) && nthr > 1 ) nthr *= (logf(nthr)+0.5772157f) ;
@@ -138,53 +158,104 @@ STATUS("convert to q/z") ;
         else if( qval >= 1.0  ) qval =  0.0 ;  /* very non-significant */
         else                    qval = QTOZ(qval) ; /* meaningful z(q) */
       }
-      far[iq[jj]] = (float)qval ;
+      far[iq[jj]] = (float)qval ;   /* store q or z into result array */
+    }
+    free(iq) ; iq = NULL ;
+
+    /* replace p-values == 0 with something small */
+
+    for( jj=0 ; jj < nq && qq[jj]==0.0f ; jj++ ) ; /*nada*/
+    if( jj > 0 && jj < nq ){
+      float qs = qq[jj] ;
+      for( jj-- ; jj >= 0 ; jj-- ) qq[jj] = qs ;
     }
 
-    FDR_nq = nq ;
+    /* compute missed detection fraction vs. log10(p) */
 
-    if( qsmal && nq >= 100 && AFNI_yesenv("AFNI_MISSED_FDR") ){
+    if( qsmal && nq > 199 && qq[0] > 0.0f && AFNI_yesenv("AFNI_MISSED_FDR") ){
 STATUS("computing mdf") ;
+      int mm1 = estimate_m1( nq , qq ) ;  /* number of true positives? */
 
-      FDR_m1 = estimate_m1( nq , qq ) ;
-
-      if( FDR_m1 > 1 ){
-        float mone=(float)FDR_m1 , ms ;
-        FDR_mdf = (float *)malloc(sizeof(float)*nq) ;
-        if( FDR_mdf == NULL ){
+      if( mm1 > 9 ){
+        float mone=(float)mm1 , ms , dpl ; int jtop , npp , kk ;
+        float *mdf=(float *)malloc(sizeof(float)*nq) ;
+        floatvec *fv ; float p1,p2,m1,m2,pf,mf , pl,pv ;
+        if( mdf == NULL ){
           ERROR_message("mri_fdr_curve: out of memory!") ; goto finished ;
         }
         qmin = 1.0 ;
-        for( jj=nq-1 ; jj >=0 ; jj-- ){
+        for( jj=nq-1 ; jj >=0 ; jj-- ){      /* scan down again to get q */
           qval = (nthr * qq[jj]) / (jj+1.0) ;
           if( qval > qmin ) qval = qmin; else qmin = qval;
-          FDR_mdf[jj] = 1.0 - (1.0-qval)*(jj+1) / mone ;
-               if( FDR_mdf[jj] < 0.0f ) FDR_mdf[jj] = 0.0f ;
-          else if( FDR_mdf[jj] > 1.0f ) FDR_mdf[jj] = 1.0f ;
+
+          /* Number of values above this threshold is jj+1;
+             Approximately qval*(jj+1) of these are false positive detections
+               (that's what FDR means, dude);
+             So about (1-qval)*(jj+1) are true positive detections;
+             So about (1-qval)*(jj+1)/mone is the ratio
+               of true detections to the number of true positives;
+             So about 1-(1-qval)*(jj+1)/mone is about the
+               fraction of missed true detections;
+             If you believe this, I've got a bridge in Brooklyn for sale. */
+
+          mdf[jj] = 1.0 - (1.0-qval)*(jj+1) / mone ;
+               if( mdf[jj] < 0.0f ) mdf[jj] = 0.0f ;  /* make sure mdf */
+          else if( mdf[jj] > 1.0f ) mdf[jj] = 1.0f ;  /* is reasonable */
         }
-        for( jj=1 ; jj < nq ; jj++ ){
-          if( FDR_mdf[jj] > FDR_mdf[jj-1] ) FDR_mdf[jj] = FDR_mdf[jj-1] ;
+        for( jj=1 ; jj < nq ; jj++ ){  /* mdf decreases as p-value increases */
+          if( mdf[jj] > mdf[jj-1] ) mdf[jj] = mdf[jj-1] ;
         }
-        ms = FDR_mdf[nq-1] ;
+        ms = mdf[nq-1] ;  /* cheapo trick: make sure mdf -> 0 as p -> 1 */
         if( ms > 0.0f ){
           float alp=1.0f/(1.0f-ms) , bet=alp*ms ;
-          for( jj=0 ; jj < nq ; jj++ ) FDR_mdf[jj] = alp*FDR_mdf[jj]-bet ;
+          for( jj=0 ; jj < nq ; jj++ ) mdf[jj] = alp*mdf[jj]-bet ;
+          mdf[nq-1] = 0.0f ;
         }
-#if 1
-printf("# m1=%d\n# p mdf\n",FDR_m1) ;
-for( jj=0 ; jj < nq ; jj++ ){
-  if( jj == 0 || FDR_mdf[jj] != FDR_mdf[jj-1] )
-    printf("%g %g\n",qq[jj],FDR_mdf[jj]);
-  if( FDR_mdf[jj]==0.0f )break;
-}
+        /* now find last nonzero mdf */
+        for( jj=nq-2 ; jj > 0 && mdf[jj] == 0.0f ; jj-- ) ; /*nada*/
+        if( jj <= 1 || qq[jj+1] <= qq[0] ){ free(mdf) ; goto finished ; }
+        jtop = jj+1 ;  /* mdf[jtop] = 0 */
+        /* build a table of mdf vs log10(p) */
+        ms   = log10( qq[jtop] / qq[0] ) ;    /* will be positive */
+        npp  = (int)( 0.99f + 5.0f * ms ) ;   /* number of grid points */
+        if( npp < 3 ){ free(mdf) ; goto finished ; }
+        dpl = ms / (npp-1) ;                    /* grid spacing in log10(p) */
+        MAKE_floatvec(fv,npp) ; fv->x0 = log10(qq[0]) ; fv->dx = dpl ;
+        fv->ar[0] = mdf[0] ;
+        for( jj=kk=1 ; kk < npp-1 ; kk++ ){
+          pl = fv->x0 + kk*dpl ;   /* kk-th grid point in log10(p) */
+          pv = powf(10.0f,pl) ;    /* kk-th grid poit in p */
+          for( ; jj < jtop && qq[jj] < pv ; jj++ ) ; /*nada*/
+          /* linearly interpolate mdf in log10(p) */
+          p1 = log10(qq[jj-1]) ; p2 = log10(qq[jj]) ; pf = (pl-p1)/(p2-p1) ;
+          m1 = mdf[jj-1]       ; m2 = mdf[jj]       ; mf = pf*m2 + (1.0f-pf)*m1;
+          fv->ar[kk] = mf ;
+        }
+        fv->ar[npp-1] = 0.0f ;
+        FDR_mdfv = fv ;        /* record the results for posterity */
+        free(mdf) ;
+
+#if 0
+printf("# m1 = %d\n",mm1) ;
+printf("# log10(p0) = %g  d(log10(p)) = %g\n",fv->x0,fv->dx) ;
+for( kk=0 ; kk < npp ; kk++ ) printf("%g %g\n",fv->x0+kk*fv->dx,fv->ar[kk]) ;
 #endif
-      }
+
+      } /* end of producing mdf values */
+      else {              STATUS("smal m1   ==> no mdf") ; }
+    } else {
+      if( !qsmal        ) STATUS("no qsmal  ==> no mdf") ;
+      if( nq < 200      ) STATUS("small nq  ==> no mdf") ;
+      if( qq[0] <= 0.0f ) STATUS("bad qq[0] ==> no mdf") ;
     }
-  }
+
+  } /* end of producing q-values */
 
 finished:
 STATUS("finished") ;
-  free(iq); free(qq); RETURN(nq);
+  if( iq != NULL ) free(iq);
+  if( qq != NULL ) free(qq);
+  RETURN(nq);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -193,7 +264,7 @@ STATUS("finished") ;
 #define NCURV 101
 
 /*! Create a curve that gives the FDR z(q) value vs. the statistical
-    threshold.  Stored as a mri_floatvec struct, with the statistical
+    threshold.  Stored as a floatvec struct, with the statistical
     value give as x0+i*dx and the corresponding z(q) value in ar[i].  */
 
 floatvec * mri_fdr_curve( MRI_IMAGE *im, int statcode, float *stataux )
@@ -208,6 +279,8 @@ floatvec * mri_fdr_curve( MRI_IMAGE *im, int statcode, float *stataux )
 ENTRY("mri_fdr_curve") ;
 
   /* check for legal inputs */
+
+  KILL_floatvec(FDR_mdfv) ;  /* erase the past */
 
   if( !FUNC_IS_STAT(statcode) )              RETURN(NULL) ;
   if( im == NULL || im->kind != MRI_float )  RETURN(NULL) ;

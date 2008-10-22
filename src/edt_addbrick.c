@@ -114,8 +114,13 @@ ENTRY("EDIT_add_bricklist") ;
    if( dblk->brick_fdrcurve != NULL ){
      dblk->brick_fdrcurve = (floatvec **) realloc( (void *)dblk->brick_fdrcurve ,
                                                   sizeof(floatvec *) * new_nvals ) ;
-     for( ibr=0 ; ibr < nbr ; ibr++ )
-       dblk->brick_fdrcurve[nvals+ibr] = NULL ;
+     for( ibr=0 ; ibr < nbr ; ibr++ ) dblk->brick_fdrcurve[nvals+ibr] = NULL ;
+   }
+
+   if( dblk->brick_mdfcurve != NULL ){  /* 22 Oct 2008 */
+     dblk->brick_mdfcurve = (floatvec **) realloc( (void *)dblk->brick_mdfcurve ,
+                                                  sizeof(floatvec *) * new_nvals ) ;
+     for( ibr=0 ; ibr < nbr ; ibr++ ) dblk->brick_mdfcurve[nvals+ibr] = NULL ;
    }
 
    EXRETURN;

@@ -53,7 +53,7 @@ int main( int argc , char *argv[] )
 {
    int iarg , ii , ny , ignore=0 , use=0 , install=0 ;
    float dx=1.0 , xzero=0.0 ;
-   char *cpt , *xfile=NULL;
+   char *cpt , *xfile=NULL;   int xl10=0 ;
    MRI_IMAGE *inim , *flim ;
    float *far ;
    XtAppContext app ;
@@ -95,6 +95,7 @@ int main( int argc , char *argv[] )
             "              Note that X.1D should have one column\n"
             "              of the same length as the columns in tsfile. \n"
             " N.B.: -x will override -dx and -xzero; -xaxis still has effects\n"
+            " -xl10 X.1D = Use log10(X.1D) as the X axis.\n"
             "\n"
             " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
             "                [default = 1]\n"
@@ -264,7 +265,11 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[iarg],"-x") == 0 ){   /* ZSS: April 2007 */
-       xfile = argv[++iarg];
+       xfile = argv[++iarg]; xl10 = 0 ;
+       iarg++; continue;
+     }
+     if( strcasecmp(argv[iarg],"-xl10") == 0 ){
+       xfile = argv[++iarg]; xl10 = 1 ;
        iarg++; continue;
      }
 
@@ -588,6 +593,8 @@ int main( int argc , char *argv[] )
       xar = (float *) malloc( sizeof(float) * nx ) ;
       for( ii=0 ; ii < nx ; ii++ ) xar[ii] = far[ii+ignore] ;
       mri_free(inimx); inimx=NULL; far = NULL;
+      if( xl10 )
+        for( ii=0 ; ii < nx ; ii++ ) xar[ii] = log10(fabs(xar[ii])) ;
    }
 
    /*--- start X11 ---*/
