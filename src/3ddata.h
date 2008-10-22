@@ -1148,6 +1148,7 @@ typedef struct {
       MRI_IMAGE *vedim ;      /*!< Volume edit-on-the-fly result */
 
       floatvec **brick_fdrcurve ; /*!< FDR z(q) as a function of statistic */
+      floatvec **brick_mdfcurve ; /*!< FDR mdf as a function of log10(p) */
 
 } THD_datablock ;
 
@@ -3066,9 +3067,34 @@ static char tmp_dblab[8] ;
 
 #define DSET_BRICK_FDRCURVE_ALLKILL(ds) DBLK_BRICK_FDRCURVE_ALLKILL((ds)->dblk)
 
+/*---- same for MDF curves [22 Oct 2008] -----*/
+
+#define DBLK_BRICK_MDFCURVE(db,ii) \
+ ( ((db)->brick_mdfcurve==NULL) ? NULL : (db)->brick_mdfcurve[ii] )
+
+#define DSET_BRICK_MDFCURVE(ds,ii) DBLK_BRICK_MDFCURVE((ds)->dblk,(ii))
+
+#define DBLK_BRICK_MDFCURVE_KILL(db,ii)                                      \
+ do{ if( (db)->brick_mdfcurve != NULL ){                                     \
+       floatvec *fv = (db)->brick_mdfcurve[ii] ;                             \
+       if( fv != NULL ){ KILL_floatvec(fv); (db)->brick_mdfcurve[ii]=NULL; } \
+ }} while(0)
+
+#define DSET_BRICK_MDFCURVE_KILL(ds,ii) DBLK_BRICK_MDFCURVE_KILL((ds)->dblk,(ii))
+
+#define DBLK_BRICK_MDFCURVE_ALLKILL(db)                                    \
+ do{ if( (db)->brick_mdfcurve != NULL ){                                   \
+      int qq;                                                              \
+      for( qq=0; qq < (db)->nvals; qq++ ) DBLK_BRICK_MDFCURVE_KILL(db,qq); \
+      free((db)->brick_mdfcurve) ; (db)->brick_mdfcurve = NULL ;           \
+ }} while(0)
+
+#define DSET_BRICK_MDFCURVE_ALLKILL(ds) DBLK_BRICK_MDFCURVE_ALLKILL((ds)->dblk)
+
 extern int   THD_create_one_fdrcurve( THD_3dim_dataset *, int ) ;
 extern int   THD_create_all_fdrcurves( THD_3dim_dataset * ) ;
 extern float THD_fdrcurve_zval( THD_3dim_dataset *, int, float ) ;
+extern float THD_mdfcurve_mval( THD_3dim_dataset *, int, float ) ;
 
 /*! Macro to load the self_name and labels of a dataset
     with values computed from the filenames;

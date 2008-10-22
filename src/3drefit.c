@@ -1673,6 +1673,7 @@ int main( int argc , char * argv[] )
 
       if( do_FDR ){
         DSET_BRICK_FDRCURVE_ALLKILL(dset) ;
+        DSET_BRICK_MDFCURVE_ALLKILL(dset) ;  /* 22 Oct 2008 */
         if( do_FDR > 0 ){
           int nf = THD_create_all_fdrcurves(dset) ;
           ININFO_message("created %d FDR curves in dataset header",nf) ;

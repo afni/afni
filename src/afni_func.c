@@ -93,7 +93,7 @@ ENTRY("AFNI_func_autothresh_CB") ;
 }
 
 /*-----------------------------------------------------------------------*/
-/*! 29 Jan 2008 */
+/*! 29 Jan 2008: add FDR curves to the functional dataset */
 
 void AFNI_func_fdr_CB( Widget w, XtPointer cd, XtPointer cb)
 {
@@ -208,12 +208,16 @@ ENTRY("AFNI_thr_scale_CB") ;
    MCW_discard_events_all( w , ButtonPressMask ) ;  /* 20 Mar 2007 */
 
    if( im3d->vinfo->func_pval >= 0.0 && im3d->vinfo->func_pval <= 1.0 ){
-     char pstr[64] ;
+     char pstr[128] ; float mval ;
      sprintf( pstr , "Uncorrected p=%.4e" , im3d->vinfo->func_pval ) ;
      if( im3d->vinfo->func_qval >= 0.0 && im3d->vinfo->func_qval <= 1.0 )
        sprintf(pstr+strlen(pstr),"; FDR q=%.4e",im3d->vinfo->func_qval) ;
      else
        sprintf(pstr+strlen(pstr),"; FDR q=N/A") ;
+     mval = THD_mdfcurve_mval( im3d->fim_now, im3d->vinfo->thr_index ,
+                                              im3d->vinfo->func_pval  ) ;
+     if( mval >= 0.0f )
+       sprintf(pstr+strlen(pstr),"; MDF=%.1f%%",100.0f*mval) ;
      MCW_register_hint( im3d->vwid->func->thr_pval_label , pstr ) ;
    } else {
      MCW_register_hint( im3d->vwid->func->thr_pval_label ,
