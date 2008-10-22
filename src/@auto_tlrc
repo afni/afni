@@ -26,6 +26,7 @@ PARSE:
    set maxite = ''
    set accept_maxite = 0
    set acpciate = 0
+   set npass = -twopass
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -210,6 +211,14 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-OK_maxite") then
          set accept_maxite = 1
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-onepass") then
+         set npass = ''
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-twopass") then
+         set npass = '-twopass'
          set donext = 0		
       endif
       if ($donext && "$argv[$cnt]" == "-ncr") then
@@ -552,7 +561,7 @@ AUTO_TLRC_MODE:
    set Converged = 0
    while ($Converged == 0 && $pass < 3)
       rm -f ${ns_pref}_WarpDrive.log >& /dev/null
-      3dWarpDrive ${maxite} ${spopt}  -twopass \
+      3dWarpDrive ${maxite} ${spopt}  ${npass} \
                   -${xform_type} -cubic  \
                   -final ${rmode} -1Dmatrix_save ${ns_pref}.Xaff12.1D \
                   -base ${ref_pref_pad}${ref_view} \
@@ -949,8 +958,11 @@ echo "                       See 3dSkullStrip -help for more details."
 echo "      -ncr           : 3dWarpDrive option -coarserot is now a default."
 echo "                       It will cause no harm, only good shall come of it."
 echo "                       -ncr is there however, should you choose NOT TO"
-echo "                       want coarserot"
-echo "                       used for some reason"
+echo "                       want coarserot used for some reason"
+echo "      -onepass       : Turns off -twopass option for 3dWarpDrive. This will"
+echo "                       speed up the registration but it might fail if the "
+echo "                       datasets are far apart.          "
+echo "      -twopass       : Opposite of -onepass, default."
 echo "      -maxite NITER  : Maximum number of iterations for 3dWarpDrive."
 echo "                       Note that the script will try to increase the "
 echo "                       number of iterations if needed. "
