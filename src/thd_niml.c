@@ -1033,6 +1033,10 @@ ENTRY("THD_dset_to_ni_surf_dset");
     for (ibr=0; ibr<DSET_NVALS(dset); ++ibr) {
       sprintf(name,"FDRCURVE_%06d",ibr) ;
       nsd_add_atr_to_group(name, NULL, blk, ngr);
+#if 0
+      sprintf(name,"MDFCURVE_%06d",ibr) ;
+      nsd_add_atr_to_group(name, NULL, blk, ngr);
+#endif
     }
     
     nsd_fill_index_list(ngr, dset);                  /* add INDEX_LIST */

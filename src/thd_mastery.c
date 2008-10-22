@@ -211,6 +211,7 @@ static int THD_setup_mastery( THD_3dim_dataset *dset , int *ivlist )
    int *   old_brick_statcode ;
    float **old_brick_stataux ;
    floatvec **old_brick_fdrcurve ;  /* 23 Jan 2008 */
+   floatvec **old_brick_mdfcurve ;  /* 22 Oct 2008 */
 
 ENTRY("THD_setup_mastery") ;
 
@@ -237,6 +238,7 @@ ENTRY("THD_setup_mastery") ;
    old_brick_statcode = dblk->brick_statcode ; dblk->brick_statcode = NULL ;
    old_brick_stataux  = dblk->brick_stataux  ; dblk->brick_stataux  = NULL ;
    old_brick_fdrcurve = dblk->brick_fdrcurve ; dblk->brick_fdrcurve = NULL ;
+   old_brick_mdfcurve = dblk->brick_mdfcurve ; dblk->brick_mdfcurve = NULL ;
 
    /** setup new dataset brick structure **/
 
@@ -307,6 +309,16 @@ ENTRY("THD_setup_mastery") ;
      }
    }
 
+   if( old_brick_mdfcurve != NULL ){  /* 22 Oct 2008 */
+     floatvec *fv , *nv ;
+     dblk->brick_mdfcurve = (floatvec **)calloc(sizeof(floatvec *),new_nvals) ;
+     for( ibr=0 ; ibr < new_nvals ; ibr++ ){
+       fv = old_brick_mdfcurve[ivl[ibr]] ;
+       if( fv == NULL ){ nv = NULL; } else { COPY_floatvec(nv,fv); }
+       dblk->brick_mdfcurve[ibr] = nv ;
+     }
+   }
+
    /** setup master stuff now **/
 
    dblk->master_nvals = old_nvals ;
@@ -338,6 +350,11 @@ ENTRY("THD_setup_mastery") ;
      for( ibr=0 ; ibr < old_nvals ; ibr++ )
        KILL_floatvec( old_brick_fdrcurve[ibr] ) ;
      free(old_brick_fdrcurve) ;
+   }
+   if( old_brick_mdfcurve != NULL ){               /* 22 Oct 2008 */
+     for( ibr=0 ; ibr < old_nvals ; ibr++ )
+       KILL_floatvec( old_brick_mdfcurve[ibr] ) ;
+     free(old_brick_mdfcurve) ;
    }
 
    /** if dataset has statistics, rearrange them **/

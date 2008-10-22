@@ -89,6 +89,13 @@ STATUS("free brick_ stuff") ;
      }
      free((void *)dblk->brick_fdrcurve) ;
    }
+   if( dblk->brick_mdfcurve != NULL ){ /* 22 Oct 2008 */
+     floatvec *fv ;
+     for( ibr=0 ; ibr < dblk->nvals ; ibr++ ){
+       fv = dblk->brick_mdfcurve[ibr] ; KILL_floatvec(fv);
+     }
+     free((void *)dblk->brick_mdfcurve) ;
+   }
 
    if( DBLK_IS_MASTERED(dblk) ){       /* 11 Jan 1999 */
       myXtFree( dblk->master_ival ) ;
