@@ -324,7 +324,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.12" # software version (update for changes)
+      self.align_version = "1.13" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1294,9 +1294,14 @@ class RegWrap:
          self.anat_mat = "%s%s_e2a_only_mat.aff12.1D" %  \
             (ps.anat0.out_prefix(),suf)
       else:
-         o = a.new("%s%s" % (ps.anat0.out_prefix(), suf)) # save the permanent data
-#         o = a.new("%s%s" % (a.out_prefix(), suf))
+         # save transformation matrix with original anatomical name,suf,...
          self.anat_mat = "%s%s_mat.aff12.1D" %  (ps.anat0.out_prefix(),suf)
+         if (ps.anat2epi):
+            o = a.new("%s%s" % (ps.anat0.out_prefix(), suf)) # save the permanent data
+         else:
+            o = a.new("__tt_%s%s" % (ps.anat0.out_prefix(), suf)) # save temporary copy
+
+#         o = a.new("%s%s" % (a.out_prefix(), suf))
          
       ow = a.new("%s%s_wtal" % (a.out_prefix(), suf))
       if (not o.exist() or ps.rewrite or ps.dry_run()):
