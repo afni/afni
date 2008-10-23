@@ -534,3 +534,15 @@ def vals_are_multiples(num, vals, digits=4):
 
     return 1
 
+def lists_are_same(list1, list2):
+   """return 1 if the lists have identical values, else 0"""
+   if not list1 and not list2: return 1
+   if not list1: return 0
+   if not list2: return 0
+   if len(list1) != len(list2): return 0
+
+   for ind in range(len(list1)):
+      if list1[ind] != list2[ind]: return 0
+
+   return 1
+
