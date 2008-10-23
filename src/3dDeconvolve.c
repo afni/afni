@@ -5250,6 +5250,7 @@ ENTRY("calculate_results") ;
         ilen  = strlen(cname) ;
         if( option_data->fout ) cname = THD_zzprintf( cname , " -fout") ;
         if( option_data->tout ) cname = THD_zzprintf( cname , " -tout") ;
+        if( option_data->rout ) cname = THD_zzprintf( cname , " -rout") ;
         iadd += strlen(cname)-ilen ; ilen = strlen(cname) ;
         if( iadd > 40 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         cname = THD_zzprintf( cname ,

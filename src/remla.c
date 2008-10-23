@@ -1336,9 +1336,12 @@ ENTRY("REML_add_glt_to_all") ;
 }
 
 /*--------------------------------------------------------------------------*/
+/* Return value is F statistic. */
 
-static vector *betaG = NULL ;  /* GLT combinations */
-static vector *betaT = NULL ;  /* GLT t-statistics */
+static vector *betaG = NULL ;  /* GLT combinations  */
+static vector *betaT = NULL ;  /* GLT t-statistics  */
+static MTYPE   betaR = 0.0  ;  /* GLT R^2 statistic */
+static MTYPE   betaF = 0.0  ;  /* GLT F statistic   */
 
 MTYPE REML_compute_gltstat( vector *y, vector *bfull, MTYPE fsumq ,
                             reml_setup *rset, gltfactors *gf,
@@ -1357,7 +1360,7 @@ ENTRY("REML_compute_gltstat") ;
    if( y     == NULL || bfull == NULL ||
        rset  == NULL || gf    == NULL || fsumq <= 0.0 ){
      vector_destroy(betaG) ; vector_destroy(betaT) ;
-     free(betaG) ; free(betaT) ; betaG = betaT = NULL ;
+     free(betaG) ; free(betaT) ; betaG = betaT = NULL ; betaR = 0.0 ;
      RETURN( 0.0 );
    }
 
@@ -1393,8 +1396,14 @@ ENTRY("REML_compute_gltstat") ;
 
    fstat = ( (rsumq-fsumq) / gf->rglt ) / ( fsumq / (X->rows - X->cols) ) ;
    if( fstat < 0.0 ) fstat = 0.0 ;  /* should not happen */
+   betaF = fstat ;
 
-   /* compute  GLT combinations of beta coefficients, and t-statistics */
+   /* 23 Oct 2008: generalized correlation coefficient squared */
+
+   if( rsumq > 0.0 ) betaR = 1.0 - fsumq / rsumq ;
+   else              betaR = 0.0 ;
+
+   /* compute GLT combinations of beta coefficients, and t-statistics */
 
    if( G != NULL ){
      MTYPE fsig ; int ii ;
