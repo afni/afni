@@ -114,6 +114,8 @@ ENTRY("create_subset_matrix") ;
      ttst_lab[i] = label for i-th beta value
      ftst_ind    = index for ftst value (-1 if not to be saved)
      ftst_lab    = label for ftst value
+     rtst_ind    = index for R^2 value (-1 if not to be saved)
+     rtst_lab    = label for R^2 value
   Note that the 'built-in' GLTs for each stimulus (group of regressors) have
   as their matrices 0-1 callouts of the appropriate regression coefficients.
   So their GLT coefficients returned will just be the regression
@@ -122,8 +124,8 @@ ENTRY("create_subset_matrix") ;
 
 typedef struct {
   int nrow , ivbot , ivtop ;
-  int   *beta_ind ,  *ttst_ind ,  ftst_ind ;
-  char **beta_lab , **ttst_lab , *ftst_lab ;
+  int   *beta_ind ,  *ttst_ind ,  ftst_ind ,  rtst_ind ;
+  char **beta_lab , **ttst_lab , *ftst_lab , *rtst_lab ;
 } GLT_index ;
 
 /*-------------------------------------------------------------------------*/
@@ -132,20 +134,21 @@ typedef struct {
      * nrow    = number of rows in the GLT
      * do_beta = whether to include beta values in the output
      * do_ttst = whether to include t-statistics in the output
-     * do_ftst = whether to include F-statistics in the output
+     * do_ftst = whether to include F-statistic in the output
+     * do_rtst = whether to include R^2 statistic in the output
      * name    = prefix name for this GLT (for sub-brick labels)
 *//*-----------------------------------------------------------------------*/
 
 GLT_index * create_GLT_index( int ivfirst , int nrow ,
-                              int do_beta , int do_ttst , int do_ftst ,
-                              char *name )
+                              int do_beta , int do_ttst ,
+                              int do_ftst , int do_rtst , char *name )
 {
    GLT_index *gin ; char lll[256] ; int ii,iv=ivfirst ;
 
 ENTRY("create_GLT_index") ;
 
-   if( !do_beta && !do_ttst && !do_ftst        ) RETURN(NULL) ; /* bad */
-   if( ivfirst < 0 || nrow < 1 || name == NULL ) RETURN(NULL) ;
+   if( !do_beta && !do_ttst && !do_ftst && !do_rtst ) RETURN(NULL) ; /* bad */
+   if( ivfirst < 0 || nrow < 1 || name == NULL      ) RETURN(NULL) ;
 
    gin = (GLT_index *)calloc(1,sizeof(GLT_index)) ;
 
@@ -175,6 +178,15 @@ ENTRY("create_GLT_index") ;
          gin->ttst_lab[ii] = strdup(lll) ;
        }
      }
+   }
+
+   if( do_rtst ){                  /* 23 Oct 2008 */
+     gin->rtst_ind = iv++ ;
+     sprintf( lll , "%.32s_R^2" , name ) ;
+     gin->rtst_lab = strdup(lll) ;
+   } else {
+     gin->rtst_ind = -1 ;
+     gin->rtst_lab = NULL ;
    }
 
    if( do_ftst ){
@@ -317,7 +329,7 @@ int main( int argc , char *argv[] )
    sparmat **glt_smat=NULL ;
    GLT_index **glt_ind=NULL ;
    int stim_num=0; int *stim_bot=NULL , *stim_top=NULL ; char **stim_lab=NULL ;
-   int do_fstat=0 , do_tstat=0 , do_stat=0 ;
+   int do_fstat=0 , do_tstat=0 , do_stat=0 , do_rstat=0 ;
    int num_allstim=0, *allstim=NULL , num_basetim=0, *basetim=NULL ;
 
    char **beta_lab=NULL ;
@@ -463,6 +475,7 @@ int main( int argc , char *argv[] )
       "                 (similar to the -bucket output from 3dDeconvolve)\n"
       "\n"
       " -fout       = put F-statistics into the bucket dataset\n"
+      " -rout       = put R^2 statistics into the bucket dataset\n"
       " -tout       = put t-statistics into the bucket dataset\n"
       "                 (if you use -Rbuck and do not give either -fout or)\n"
       "                 (-tout, then the program assumes -fout is activated)\n"
@@ -981,6 +994,9 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-tout") == 0 ){
        do_tstat = 1 ; iarg++ ; continue ;
      }
+     if( strcasecmp(argv[iarg],"-rout") == 0 ){  /* 23 Oct 2008 */
+       do_rstat = 1 ; iarg++ ; continue ;
+     }
 
      /** prefix options */
 
@@ -1071,15 +1087,19 @@ STATUS("options done") ;
        WARNING_message("-tout disabled because no bucket dataset will be output");
        do_tstat = 0 ;
      }
+     if( do_rstat ){
+       WARNING_message("-rout disabled because no bucket dataset will be output");
+       do_rstat = 0 ;
+     }
    }
 
-   if( (do_buckt || do_eglt) && !do_fstat && !do_tstat ){
+   if( (do_buckt || do_eglt) && !do_fstat && !do_tstat && !do_rstat ){
      do_fstat = 1 ;
      if( verb )
        INFO_message("assuming -fout since you asked for a bucket dataset") ;
    }
 
-   do_stat = (do_fstat || do_tstat) ;
+   do_stat = (do_fstat || do_tstat || do_rstat) ;
 
    /*-- check out and read the -ABfile, if there is one --*/
 
@@ -1716,16 +1736,23 @@ STATUS("make other GLTs") ;
 
    if( (do_buckt || do_eglt) && glt_num > 0 ){
      glt_ind = (GLT_index **)calloc( sizeof(GLT_index *) , glt_num ) ;
-     if( do_fstat ){
-       glt_ind[0] = create_GLT_index( 0 , glt_mat[0]->rows ,
-                                      0 , 0 , 1 , glt_lab[0] ) ;
+#if 0
+     if( do_fstat || do_rstat ){
+       glt_ind[0] = create_GLT_index( 0, glt_mat[0]->rows,
+                                      0, 0, do_fstat, do_rstat, glt_lab[0] ) ;
        kk = glt_ind[0]->ivtop + 1 ;
      } else {
        glt_ind[0] = NULL ; kk = 0 ;
      }
+#else
+     glt_ind[0] = create_GLT_index( 0, glt_mat[0]->rows,
+                                    0, 0, 1 , do_rstat , glt_lab[0] ) ;
+     kk = glt_ind[0]->ivtop + 1 ;
+#endif
      for( ii=1 ; ii < glt_num ; ii++ ){
-       glt_ind[ii] = create_GLT_index( kk , glt_mat[ii]->rows ,
-                                       1 , do_tstat , do_fstat , glt_lab[ii] ) ;
+       glt_ind[ii] = create_GLT_index( kk, glt_mat[ii]->rows ,
+                                       1 , do_tstat ,
+                                           do_fstat , do_rstat , glt_lab[ii] ) ;
        if( glt_ind[ii] == NULL ) ERROR_exit("Can't create GLT_index[%d]!?",ii) ;
        kk = glt_ind[ii]->ivtop + 1 ;
      }
@@ -1779,6 +1806,11 @@ STATUS("make other GLTs") ;
                                          glt_ind[ii]->ftst_lab  ) ;
          EDIT_BRICK_TO_FIFT( Rbuckt_dset , glt_ind[ii]->ftst_ind , nr , ddof ) ;
        }
+       if( glt_ind[ii]->rtst_ind >= 0 ){
+         EDIT_BRICK_LABEL( Rbuckt_dset , glt_ind[ii]->rtst_ind ,
+                                         glt_ind[ii]->rtst_lab  ) ;
+         EDIT_BRICK_TO_FIBT( Rbuckt_dset , glt_ind[ii]->rtst_ind, 0.5*nr,0.5*ddof );
+       }
      }
    }
 
@@ -1805,6 +1837,11 @@ STATUS("make other GLTs") ;
          EDIT_BRICK_LABEL( Rglt_dset , glt_ind[ii]->ftst_ind-isub ,
                                          glt_ind[ii]->ftst_lab  ) ;
          EDIT_BRICK_TO_FIFT( Rglt_dset , glt_ind[ii]->ftst_ind-isub , nr , ddof ) ;
+       }
+       if( glt_ind[ii]->rtst_ind >= 0 ){
+         EDIT_BRICK_LABEL( Rglt_dset , glt_ind[ii]->rtst_ind-isub ,
+                                         glt_ind[ii]->rtst_lab  ) ;
+         EDIT_BRICK_TO_FIBT( Rglt_dset , glt_ind[ii]->rtst_ind-isub, 0.5*nr,0.5*ddof );
        }
      }
    }
@@ -1921,6 +1958,7 @@ STATUS("make other GLTs") ;
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind] = gv ;
+             if( gin->rtst_ind >= 0 ) iv[gin->rtst_ind] = betaR ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
                for( ii=0 ; ii < nr ; ii++ ){
                  iv[gin->beta_ind[ii]] = betaG->elts[ii] ;
@@ -1947,6 +1985,7 @@ STATUS("make other GLTs") ;
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind-isub] = gv ;
+             if( gin->rtst_ind >= 0 ) iv[gin->rtst_ind-isub] = betaR ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
                for( ii=0 ; ii < nr ; ii++ ){
                  iv[gin->beta_ind[ii]-isub] = betaG->elts[ii] ;
@@ -2048,6 +2087,11 @@ STATUS("make other GLTs") ;
                                          glt_ind[ii]->ftst_lab  ) ;
          EDIT_BRICK_TO_FIFT( Obuckt_dset , glt_ind[ii]->ftst_ind , nr , ddof ) ;
        }
+       if( glt_ind[ii]->rtst_ind >= 0 ){
+         EDIT_BRICK_LABEL( Obuckt_dset , glt_ind[ii]->rtst_ind ,
+                                         glt_ind[ii]->rtst_lab  ) ;
+         EDIT_BRICK_TO_FIBT( Obuckt_dset , glt_ind[ii]->rtst_ind, 0.5*nr,0.5*ddof );
+       }
      }
    }
 
@@ -2121,6 +2165,7 @@ STATUS("make other GLTs") ;
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
              if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind] = gv ;
+             if( gin->rtst_ind >= 0 ) iv[gin->rtst_ind] = betaR ;
              if( gin->beta_ind != NULL && betaG->dim >= nr ){
                for( ii=0 ; ii < nr ; ii++ ){
                  iv[gin->beta_ind[ii]] = betaG->elts[ii] ;

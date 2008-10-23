@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , OCT , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "Added -rout option, by popular 'demand'" ,
+   NULL } ,
+
  { 23 , OCT , 2008 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Add MDF estimate to FDR q-value" ,
    "MDF = Missed Detection Fraction = estimate of what fraction of true\n"
