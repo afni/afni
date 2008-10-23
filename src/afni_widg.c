@@ -2737,23 +2737,22 @@ STATUS("making func->rowcol") ;
          NULL ) ;
 
    MCW_register_help( func->thr_pval_label ,
-      "Shows the estimated significance\n"
-      "(p-value) of the threshold above,\n"
-      "if possible.\n"
-      "* If not possible, will display as\n"
-      "   '[N/A]' instead.\n"
-      "* p's that display as 1.2-7 should\n"
-      "   be interpreted as 1.2 x 10^(-7).\n"
-      "* p-value here is significance PER VOXEL.\n"
-      "* If FDR curves are pre-computed in\n"
-      "   the dataset header, then the False\n"
-      "   Discovery Rate q-value will also\n"
-      "   be shown.\n"
-      "* You can add FDR curves to a dataset\n"
-      "   with '3drefit -addFDR' or by using\n"
-      "   the 'Add FDR Curves' button on the\n"
-      "   right-click popup menu on the label\n"
-      "   atop the threshold slider.\n"
+      " \n"
+      " Shows the estimated significance (p-value) of the threshold\n"
+      " slider if possible.  This is the 'uncorrected' or per-voxel\n"
+      " value of 'p'.\n"
+      "* If not possible, will display as '[N/A]' instead.\n"
+      "* p's that display as 1.2-7 mean 1.2 x 10^(-7).\n"
+      "* If FDR curves are pre-computed in the dataset header,\n"
+      "  then the False Discovery Rate q-value will also be shown.\n"
+      "* You can add FDR curves to a dataset with '3drefit -addFDR'\n"
+      "   or by using the 'Add FDR Curves' button on the right-click\n"
+      "   popup menu on the label atop the threshold slider.\n"
+      "* FDR q = estimate of the fraction of above-threshold voxels\n"
+      "   that are false detections.\n"
+      "* MDF = CRUDE estimate of the fraction of true positive voxels\n"
+      "   that are below the current threshold.\n"
+      "* MDF is shown in the hint for the label below the slider.\n "
    ) ;
    MCW_register_hint( func->thr_pval_label , "Nominal p-value per voxel; FDR q-value" ) ;
 
@@ -5036,8 +5035,7 @@ ENTRY("new_AFNI_controller") ;
    /* Feb 1998: receive stuff, including drawing */
    /* Mar 1999: modified to allow for multiple receivers */
 
-   im3d->vinfo->receiver          = AFMALL( AFNI_receiver*,
-					    sizeof(AFNI_receiver *));
+   im3d->vinfo->receiver          = AFMALL( AFNI_receiver*, sizeof(AFNI_receiver *));
    im3d->vinfo->receiver[0]       = NULL ;
    im3d->vinfo->num_receiver      = 0 ;
    im3d->vinfo->drawing_enabled   = 0 ;
