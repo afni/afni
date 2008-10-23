@@ -313,7 +313,9 @@ void THD_erase_all_atr( THD_datablock *blk )
    int ia ;
    ATR_any *next_atr ;
 
-   if( !ISVALID_DATABLOCK(blk) || blk->natr == 0 || blk->atr == NULL ) return ;
+ENTRY("THD_erase_all_atr") ;
+
+   if( !ISVALID_DATABLOCK(blk) || blk->natr == 0 || blk->atr == NULL ) EXRETURN ;
 
    for( ia=0 ; ia < blk->natr ; ia++ ){
       next_atr = blk->atr + ia ;
@@ -345,7 +347,7 @@ void THD_erase_all_atr( THD_datablock *blk )
    }
 
    blk->natr = 0 ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -356,12 +358,14 @@ void THD_erase_one_atr( THD_datablock *blk , char *name )
 {
    ATR_any *next_atr ;
 
+ENTRY("THD_erase_one_atr") ;
+
    if( ! ISVALID_DATABLOCK(blk) || name     == NULL ||
-       blk->natr == 0           || blk->atr == NULL   ) return ;
+       blk->natr == 0           || blk->atr == NULL   ) EXRETURN ;
 
    next_atr = THD_find_atr( blk , name ) ;
 
-   if( next_atr == NULL ) return ;
+   if( next_atr == NULL ) EXRETURN ;
 
    switch( next_atr->type ){
       case ATR_FLOAT_TYPE:{
@@ -387,7 +391,7 @@ void THD_erase_one_atr( THD_datablock *blk , char *name )
    }
 
    next_atr->type = ILLEGAL_TYPE ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -496,6 +500,8 @@ ENTRY("THD_set_atr") ;
 
    if( acount < 0 || ar == NULL || aname == NULL )
      THD_FATAL_ERROR( "Illegal input data in THD_set_atr" ) ;
+
+   STATUS(aname) ;
 
    old_atr = THD_find_atr( blk , aname ) ;  /* find matching name */
 

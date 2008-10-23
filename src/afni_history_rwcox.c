@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , OCT , 2008 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Add MDF estimate to FDR q-value" ,
+   "MDF = Missed Detection Fraction = estimate of what fraction of true\n"
+   "positives are below any given threshold (analogous to FDR = estimate of\n"
+   "what fraction of above threshold voxels are true negatives).  Displays\n"
+   "in the hint attached to the label below the threshold slider.  Purely\n"
+   "experimental, since estimating the number of true positives in a given\n"
+   "collection of p-values is not a well-defined concept by any means." } ,
+
  { 15 , OCT , 2008 , RWC , "fdrval" , MINOR , TYPE_NEW_PROG ,
    "Compute FDR value on command line, from dataset header" ,
    NULL } ,

@@ -207,23 +207,6 @@ ENTRY("AFNI_thr_scale_CB") ;
 
    MCW_discard_events_all( w , ButtonPressMask ) ;  /* 20 Mar 2007 */
 
-   if( im3d->vinfo->func_pval >= 0.0 && im3d->vinfo->func_pval <= 1.0 ){
-     char pstr[128] ; float mval ;
-     sprintf( pstr , "Uncorrected p=%.4e" , im3d->vinfo->func_pval ) ;
-     if( im3d->vinfo->func_qval >= 0.0 && im3d->vinfo->func_qval <= 1.0 )
-       sprintf(pstr+strlen(pstr),"; FDR q=%.4e",im3d->vinfo->func_qval) ;
-     else
-       sprintf(pstr+strlen(pstr),"; FDR q=N/A") ;
-     mval = THD_mdfcurve_mval( im3d->fim_now, im3d->vinfo->thr_index ,
-                                              im3d->vinfo->func_pval  ) ;
-     if( mval >= 0.0f )
-       sprintf(pstr+strlen(pstr),"; MDF=%.1f%%",100.0f*mval) ;
-     MCW_register_hint( im3d->vwid->func->thr_pval_label , pstr ) ;
-   } else {
-     MCW_register_hint( im3d->vwid->func->thr_pval_label ,
-                        "Nominal p-value per voxel"       ) ;
-   }
-
    if( ! DOING_REALTIME_WORK ) AFNI_redisplay_func( im3d ) ;
 
    AFNI_thresh_lock_carryout(im3d) ;  /* 06 Feb 2004 */
@@ -408,6 +391,26 @@ if(PRINT_TRACING)
    }
 
    MCW_set_widget_label( im3d->vwid->func->thr_pval_label , buf ) ;
+
+   if( im3d->vinfo->func_pval >= 0.0f && im3d->vinfo->func_pval <= 1.0f ){
+     char pstr[128] ; float mval ;
+     sprintf( pstr , "Uncorrected p=%.4e" , im3d->vinfo->func_pval ) ;
+     if( im3d->vinfo->func_qval >= 0.0f && im3d->vinfo->func_qval <= 1.0f )
+       sprintf(pstr+strlen(pstr),"; FDR q=%.4e",im3d->vinfo->func_qval) ;
+     else
+       sprintf(pstr+strlen(pstr),"; FDR q=N/A") ;
+     mval = THD_mdfcurve_mval( im3d->fim_now, im3d->vinfo->thr_index ,
+                                              im3d->vinfo->func_pval  ) ;
+     if( mval >= 0.0f )
+       sprintf(pstr+strlen(pstr),"; MDF=%.1f%%",100.0f*mval) ;
+     else
+       strcat(pstr,"; MDF=N/A") ;
+     MCW_register_hint( im3d->vwid->func->thr_pval_label , pstr ) ;
+   } else {
+     MCW_register_hint( im3d->vwid->func->thr_pval_label ,
+                        "Uncorrected p-value per voxel"    ) ;
+   }
+
    FIX_SCALE_SIZE(im3d) ;
    EXRETURN ;
 }
