@@ -106,14 +106,15 @@ float THD_mdfcurve_mval( THD_3dim_dataset *dset , int iv , float pval )
    floatvec *fv ; float plog , val ;
 
    if( !ISVALID_DSET(dset) || iv < 0 || iv >= DSET_NVALS(dset) ) return -1.0f ;
-   if( pval <= 0.0f || pval >= 1.0f ) return -1.0f ;
 
    fv = DSET_BRICK_MDFCURVE(dset,iv) ;
    if( fv == NULL ){
      if( dset->warp_parent != NULL )
        fv = DSET_BRICK_MDFCURVE(dset->warp_parent,iv) ;
-     if( fv == NULL ) return -1.0f ;
+     if( fv == NULL ) return -3.0f ;
    }
+        if( pval <= 0.0f ) return 0.999f ;
+   else if( pval >= 1.0f ) return 0.000f ;
 
    plog = log10(pval) ;
    return ( interp_floatvec(fv,plog) ) ;

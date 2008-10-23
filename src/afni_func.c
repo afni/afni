@@ -401,10 +401,14 @@ if(PRINT_TRACING)
        sprintf(pstr+strlen(pstr),"; FDR q=N/A") ;
      mval = THD_mdfcurve_mval( im3d->fim_now, im3d->vinfo->thr_index ,
                                               im3d->vinfo->func_pval  ) ;
+#if 1
      if( mval >= 0.0f )
        sprintf(pstr+strlen(pstr),"; MDF=%.1f%%",100.0f*mval) ;
      else
        strcat(pstr,"; MDF=N/A") ;
+#else
+       sprintf(pstr+strlen(pstr),"; MDF=%.1f%%",100.0f*mval) ;
+#endif
      MCW_register_hint( im3d->vwid->func->thr_pval_label , pstr ) ;
    } else {
      MCW_register_hint( im3d->vwid->func->thr_pval_label ,
