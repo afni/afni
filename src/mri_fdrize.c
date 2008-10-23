@@ -12,6 +12,7 @@
 #undef  QBOT
 #define ZTOP 9.0           /* largest value of z(q) to output */
 #define QBOT 2.25718e-19   /* smallest value of q to return */
+#define PBOT 1.e-15        /* smallest value of p to use */
 
 /*--------------------------------------------------------------------------*/
 #undef  QSTHRESH
@@ -124,7 +125,8 @@ STATUS("find reasonable p-values") ;
   fbad = (doz) ? 0.0f : 1.0f ;  /* output value for masked voxels */
   for( nq=ii=0 ; ii < nvox ; ii++ ){
     if( far[ii] >= 0.0f && far[ii] < PMAX ){  /* reasonable p-value */
-      qq[nq] = far[ii] ; iq[nq] = ii ; nq++ ;
+      qq[nq] = (far[ii] > PBOT) ? far[ii] : PBOT ;
+      iq[nq] = ii ; nq++ ;
     } else {
       far[ii] = fbad ;  /* clear out such criminal voxels in the result array */
     }
@@ -162,22 +164,14 @@ STATUS("convert to q/z") ;
     }
     free(iq) ; iq = NULL ;
 
-    /* replace p-values == 0 with something small */
-
-    for( jj=0 ; jj < nq && qq[jj]==0.0f ; jj++ ) ; /*nada*/
-    if( jj > 0 && jj < nq ){
-      float qs = qq[jj] ;
-      for( jj-- ; jj >= 0 ; jj-- ) qq[jj] = qs ;
-    }
-
     /* compute missed detection fraction vs. log10(p) */
 
-    if( qsmal && nq > 199 && qq[0] > 0.0f && AFNI_yesenv("AFNI_MISSED_FDR") ){
+    if( qsmal && nq > 199 && qq[0] > 0.0f ){
 STATUS("computing mdf") ;
       int mm1 = estimate_m1( nq , qq ) ;  /* number of true positives? */
 
       if( mm1 > 9 ){
-        float mone=(float)mm1 , ms , dpl ; int jtop , npp , kk ;
+        float mone=(float)mm1 , ms , dpl ; int jtop,jbot , npp , kk ;
         float *mdf=(float *)malloc(sizeof(float)*nq) ;
         floatvec *fv ; float p1,p2,m1,m2,pf,mf , pl,pv ;
         if( mdf == NULL ){
@@ -187,6 +181,7 @@ STATUS("computing mdf") ;
         for( jj=nq-1 ; jj >=0 ; jj-- ){      /* scan down again to get q */
           qval = (nthr * qq[jj]) / (jj+1.0) ;
           if( qval > qmin ) qval = qmin; else qmin = qval;
+          if( qval < QBOT ) qval = QBOT;
 
           /* Number of values above this threshold is jj+1;
              Approximately qval*(jj+1) of these are false positive detections
@@ -213,18 +208,33 @@ STATUS("computing mdf") ;
         }
         /* now find last nonzero mdf */
         for( jj=nq-2 ; jj > 0 && mdf[jj] == 0.0f ; jj-- ) ; /*nada*/
-        if( jj <= 1 || qq[jj+1] <= qq[0] ){ free(mdf) ; goto finished ; }
+        if( jj <= 1 || qq[jj+1] <= qq[0] ){
+          if( jj       <= 1     ) STATUS("all mdf zero? ==> no mdf") ;
+          if( qq[jj+1] <= qq[0] ) STATUS("qq=const? ==> no mdf") ;
+          free(mdf) ; goto finished ;
+        }
         jtop = jj+1 ;  /* mdf[jtop] = 0 */
+        /* now find first mdf below 99.9% */
+        for( jj=1 ; jj < jtop && mdf[jj] >= 0.999f ; jj++ ) ; /*nada*/
+        jbot = (jj < jtop-9) ? jj-1 : 0 ;
         /* build a table of mdf vs log10(p) */
-        ms   = log10( qq[jtop] / qq[0] ) ;    /* will be positive */
+        ms   = log10( qq[jtop] / qq[jbot] ) ; /* will be positive */
         npp  = (int)( 0.99f + 5.0f * ms ) ;   /* number of grid points */
-        if( npp < 3 ){ free(mdf) ; goto finished ; }
+        if( npp < 3 ){
+          if( PRINT_TRACING ){
+            char str[256] ;
+            sprintf(str,"nq=%d npp=%d jbot=%d jtop=%d qq[jtop]=%g qq[jbot]=%g ==> no mdf",
+                    nq , npp , jbot,jtop , qq[jtop] , qq[jbot] ) ;
+            STATUS(str) ;
+          }
+          free(mdf); goto finished;
+        }
         dpl = ms / (npp-1) ;                    /* grid spacing in log10(p) */
-        MAKE_floatvec(fv,npp) ; fv->x0 = log10(qq[0]) ; fv->dx = dpl ;
-        fv->ar[0] = mdf[0] ;
-        for( jj=kk=1 ; kk < npp-1 ; kk++ ){
+        MAKE_floatvec(fv,npp) ; fv->x0 = log10(qq[jbot]) ; fv->dx = dpl ;
+        fv->ar[0] = mdf[jbot] ;
+        for( jj=jbot,kk=1 ; kk < npp-1 ; kk++ ){
           pl = fv->x0 + kk*dpl ;   /* kk-th grid point in log10(p) */
-          pv = powf(10.0f,pl) ;    /* kk-th grid poit in p */
+          pv = powf(10.0f,pl) ;    /* kk-th grid point in p */
           for( ; jj < jtop && qq[jj] < pv ; jj++ ) ; /*nada*/
           /* linearly interpolate mdf in log10(p) */
           p1 = log10(qq[jj-1]) ; p2 = log10(qq[jj]) ; pf = (pl-p1)/(p2-p1) ;
@@ -233,6 +243,10 @@ STATUS("computing mdf") ;
         }
         fv->ar[npp-1] = 0.0f ;
         FDR_mdfv = fv ;        /* record the results for posterity */
+        if( PRINT_TRACING ){
+          char str[256]; sprintf(str,"MDF: npp=%d x0=%g dx=%g",npp,fv->x0,fv->dx);
+          STATUS(str) ;
+        }
         free(mdf) ;
 
 #if 0

@@ -27,6 +27,9 @@ ENTRY("THD_create_one_fdrcurve") ;
      qim = bim ;
    }
 
+   if( PRINT_TRACING ){
+     char str[256]; sprintf(str,"FDR-izing sub-brick #%d",iv); STATUS(str);
+   }
    fv = mri_fdr_curve( qim , sc , DSET_BRICK_STATAUX(dset,iv) ) ;
 
    if( qim != bim ) mri_free(qim) ;
@@ -49,6 +52,10 @@ ENTRY("THD_create_one_fdrcurve") ;
                                                           dset->dblk->nvals  ) ;
        else if( dset->dblk->brick_mdfcurve[iv] != NULL )
          KILL_floatvec( dset->dblk->brick_mdfcurve[iv] ) ;
+
+       if( PRINT_TRACING ){
+         char str[256]; sprintf(str,"MDF-izing sub-brick #%d",iv); STATUS(str);
+       }
 
        dset->dblk->brick_mdfcurve[iv] = mv ;
      }
