@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, OCT, 2008, RCR, "xmat_tool.py", SUPER, TYPE_NEW_PROG,
+   "program to inspect a .xmat.1D X-matrix, possibly against a time series",
+   "This is a Graphical tool for plotting a design matrix, reviewing\n"
+   "condition numbers or the correlation matrix, and fitting to a 1D\n"
+   "time series."
+ } ,
+
  { 23, OCT, 2008, RCR, "Makefile.INCLUDE", MINOR, TYPE_BUG_FIX,
    "removed reference to cdflib, for 'make afni_src.tgz'",
    NULL
