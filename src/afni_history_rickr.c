@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, OCT, 2008, RCR, "Makefile.INCLUDE", MINOR, TYPE_BUG_FIX,
+   "removed reference to cdflib, for 'make afni_src.tgz'",
+   NULL
+ } ,
+
  { 23, OCT, 2008, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
    "added lists_are_same function",
    NULL
