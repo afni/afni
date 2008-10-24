@@ -27,18 +27,19 @@ floatvec *mri_fdr_getmdf(void){ return FDR_mdfv; }  /* 22 Oct 2008 */
    Actually, estimates m0 = number of true negatives, then m1 = nq-m0.
    Build a histogram of large-ish p-values [0.15..0.95], which should be
    approximately uniformly distribued, then find m0 by estimating the
-   average-ish level of this histogram.  If something bad happens,
-   return value is -1.
+   average-ish level of this histogram, and then multiplying by the number
+   of bins that would cover the entire p-range of 0..1.
+   If something bad happens, return value is -1.
 ----------------------------------------------------------------------------*/
 
 static int estimate_m1( int nq , float *qq )
 {
    int jj , kk , nh=0 , hist[16] , mone ;
 
-   if( nq < 299 || qq == NULL ) return -1 ;
+   if( nq < 299 || qq == NULL ) return -1 ;  /* not enuf data */
 
    for( kk=0 ; kk < 16 ; kk++ ) hist[kk] = 0.0f ;
-   for( jj=0 ; jj < nq ; jj++ ){  /* histogram bin width is 0.05 */
+   for( jj=0 ; jj < nq ; jj++ ){  /* histogram bin width is 0.05 = 1/20 */
      kk = (int)( (qq[jj]-0.15f)*20.0f ) ; if( kk < 0 || kk > 15 ) continue ;
      hist[kk]++ ; nh++ ;
    }
@@ -168,7 +169,10 @@ STATUS("convert to q/z") ;
 
     if( qsmal && nq > 199 && qq[0] > 0.0f ){
 STATUS("computing mdf") ;
-      int mm1 = estimate_m1( nq , qq ) ;  /* number of true positives? */
+      int mm1 = estimate_m1( nq , qq ) ;  /* number of true positives */
+
+                          /* could at this point reduce all q's estimated
+                             above by factor of (nq-mm1)/nq, but won't bother */
 
       if( mm1 > 9 ){
         float mone=(float)mm1 , ms , dpl ; int jtop,jbot , npp , kk ;
@@ -177,36 +181,46 @@ STATUS("computing mdf") ;
         if( mdf == NULL ){
           ERROR_message("mri_fdr_curve: out of memory!") ; goto finished ;
         }
+
         qmin = 1.0 ;
         for( jj=nq-1 ; jj >=0 ; jj-- ){      /* scan down again to get q */
           qval = (nthr * qq[jj]) / (jj+1.0) ;
           if( qval > qmin ) qval = qmin; else qmin = qval;
           if( qval < QBOT ) qval = QBOT;
 
-          /* Number of values above this threshold is jj+1;
-             Approximately qval*(jj+1) of these are false positive detections
+          /* The reasoning involved to get MDF as a function of threshold:
+            * Number of values above this threshold is jj+1;
+            * Approximately qval*(jj+1) of these are false positive detections
                (that's what FDR means, dude);
-             So about (1-qval)*(jj+1) are true positive detections;
-             So about (1-qval)*(jj+1)/mone is the ratio
+            * So about (1-qval)*(jj+1) are true positive detections;
+            * So about (1-qval)*(jj+1)/mone is the ratio
                of true detections to the number of true positives;
-             So about 1-(1-qval)*(jj+1)/mone is about the
-               fraction of missed true detections;
-             If you believe this, I've got a bridge in Brooklyn for sale. */
+            * So about 1-(1-qval)*(jj+1)/mone is about the
+               fraction of missed true detections (MDF);
+            * If you believe this, I've got a bridge in Brooklyn for sale. */
 
           mdf[jj] = 1.0 - (1.0-qval)*(jj+1) / mone ;
                if( mdf[jj] < 0.0f ) mdf[jj] = 0.0f ;  /* make sure mdf */
           else if( mdf[jj] > 1.0f ) mdf[jj] = 1.0f ;  /* is reasonable */
         }
-        for( jj=1 ; jj < nq ; jj++ ){  /* mdf decreases as p-value increases */
+
+        /* However, MDF should only decrease as p-value increases */
+
+        for( jj=1 ; jj < nq ; jj++ ){
           if( mdf[jj] > mdf[jj-1] ) mdf[jj] = mdf[jj-1] ;
         }
-        ms = mdf[nq-1] ;  /* cheapo trick: make sure mdf -> 0 as p -> 1 */
+
+        /* cheapo trick: adjust MDF to make sure it -> 0 as p -> 1 */
+
+        ms = mdf[nq-1] ;  /* last MDF, nearest to p=1 */
         if( ms > 0.0f ){
           float alp=1.0f/(1.0f-ms) , bet=alp*ms ;
           for( jj=0 ; jj < nq ; jj++ ) mdf[jj] = alp*mdf[jj]-bet ;
           mdf[nq-1] = 0.0f ;
         }
+
         /* now find last nonzero mdf */
+
         for( jj=nq-2 ; jj > 0 && mdf[jj] == 0.0f ; jj-- ) ; /*nada*/
         if( jj <= 1 || qq[jj+1] <= qq[0] ){
           if( jj       <= 1     ) STATUS("all mdf zero? ==> no mdf") ;
@@ -214,12 +228,17 @@ STATUS("computing mdf") ;
           free(mdf) ; goto finished ;
         }
         jtop = jj+1 ;  /* mdf[jtop] = 0 */
+
         /* now find first mdf below 99.9% */
+
         for( jj=1 ; jj < jtop && mdf[jj] >= 0.999f ; jj++ ) ; /*nada*/
         jbot = (jj < jtop-9) ? jj-1 : 0 ;
+
         /* build a table of mdf vs log10(p) */
-        ms   = log10( qq[jtop] / qq[jbot] ) ; /* will be positive */
-        npp  = (int)( 0.99f + 5.0f * ms ) ;   /* number of grid points */
+
+        ms  = log10( qq[jtop] / qq[jbot] ) ; /* will be positive */
+        npp = (int)( 0.99f + 5.0f * ms ) ;   /* number of grid points */
+
         if( npp < 3 ){
           if( PRINT_TRACING ){
             char str[256] ;
@@ -229,7 +248,8 @@ STATUS("computing mdf") ;
           }
           free(mdf); goto finished;
         }
-        dpl = ms / (npp-1) ;                    /* grid spacing in log10(p) */
+
+        dpl = ms / (npp-1) ;                 /* grid spacing in log10(p) */
         MAKE_floatvec(fv,npp) ; fv->x0 = log10(qq[jbot]) ; fv->dx = dpl ;
         fv->ar[0] = mdf[jbot] ;
         for( jj=jbot,kk=1 ; kk < npp-1 ; kk++ ){
@@ -249,14 +269,10 @@ STATUS("computing mdf") ;
         }
         free(mdf) ;
 
-#if 0
-printf("# m1 = %d\n",mm1) ;
-printf("# log10(p0) = %g  d(log10(p)) = %g\n",fv->x0,fv->dx) ;
-for( kk=0 ; kk < npp ; kk++ ) printf("%g %g\n",fv->x0+kk*fv->dx,fv->ar[kk]) ;
-#endif
-
       } /* end of producing mdf values */
+
       else {              STATUS("smal m1   ==> no mdf") ; }
+
     } else {
       if( !qsmal        ) STATUS("no qsmal  ==> no mdf") ;
       if( nq < 200      ) STATUS("small nq  ==> no mdf") ;
