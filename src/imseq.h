@@ -273,6 +273,8 @@ typedef struct {
 #define isqCR_getstatus   403
 #define isqCR_getqimage   404
 #define isqCR_getopacim   405  /* 26 Sep 2007 */
+#define isqcR_getulayim   406  /* 24 Oct 2008 */
+#define isqcR_getolayim   407  /* 24 Oct 2008 */
 
 #define isqCR_getxynim    411  /* 30 Dec 1998 */
 
