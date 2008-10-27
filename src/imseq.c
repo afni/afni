@@ -4778,6 +4778,7 @@ ENTRY("ISQ_draw_winfo") ;
      sprintf(buf+strlen(buf)," %s",seq->scl_label) ;
    if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) )
      sprintf(buf+strlen(buf)," s=%d",(int)(10.0*seq->sharp_fac+.01)) ;
+   if( seq->render_mode ) strcat(buf,"#") ;
 
    if( seq->im_label[0] == '\0' || strcmp(buf,seq->im_label) != 0 ){
      char qbuf[128] ; qbuf[0] = '\0' ;
@@ -11855,6 +11856,7 @@ ENTRY("ISQ_handle_keypress") ;
        int rr = (seq->render_mode + 1) % (1+RENDER_LASTMODE) ;
        seq->render_mode = rr ;
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
+       ISQ_draw_winfo( seq ) ;
        busy=0 ; RETURN(1) ;
      }
      break ;
