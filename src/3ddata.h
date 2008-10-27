@@ -4043,6 +4043,7 @@ typedef struct FD_brick {
    char namecode[32] ;          /*!< June 1997 */
 
    XtPointer parent ;           /*!< struct owner */
+   XtPointer brother;
 } FD_brick ;
 
 /*! rotate the three numbers (a,b,c) to (b,c,a) into (na,nb,nc) */

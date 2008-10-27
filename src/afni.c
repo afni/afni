@@ -2871,21 +2871,31 @@ STATUS("drawing crosshairs") ;
 
    /*--- underlay image # n ---*/
 
-   if( type == isqCR_getimage || type == isqCR_getqimage ){
+   if( type == isqCR_getimage  || type == isqCR_getqimage ||
+       type == isqCR_getulayim || type == isqCR_getolayim   ){
+
       Three_D_View *im3d = (Three_D_View *)br->parent ;
-      int ival ;
+      FD_brick *brr=NULL ;
+      int ival , banat ;
+
+      banat = EQUIV_DSETS(br->dset,im3d->anat_now) ;
+      switch( type ){
+        case isqCR_getulayim: brr = (banat) ? br : br->brother ; break ;
+        case isqCR_getolayim: brr = (banat) ? br->brother : br ; break ;
+      }
+      if( brr == NULL ) brr = br ;
 
       /*** decide which 3D brick to extract data from (ival) ***/
 
-      if( EQUIV_DSETS(br->dset,im3d->anat_now) )      /* underlay dataset */
+      if( EQUIV_DSETS(brr->dset,im3d->anat_now) )      /* underlay dataset */
         ival = im3d->vinfo->anat_index ;
-      else if( EQUIV_DSETS(br->dset,im3d->fim_now) )  /* overlay dataset */
+      else if( EQUIV_DSETS(brr->dset,im3d->fim_now) )  /* overlay dataset */
         ival = im3d->vinfo->fim_index ;
       else
-        ival = 0 ;                                    /* shouldn't happen */
+        ival = 0 ;                                     /* shouldn't happen */
 
-           if( type == isqCR_getqimage      ) ival = -1 ; /* get empty image */
-      else if( ival >= DSET_NVALS(br->dset) ) ival = br->dset->dblk->nvals -1 ;
+           if( type == isqCR_getqimage       ) ival = -1; /* get empty image */
+      else if( ival >= DSET_NVALS(brr->dset) ) ival = brr->dset->dblk->nvals-1;
 
 if(PRINT_TRACING)
 { char str[256] ;
@@ -2895,7 +2905,7 @@ if(PRINT_TRACING)
       LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
       AFNI_set_ignore_vedit(1) ; /* 28 Jan 2008 */
-      im = FD_warp_to_mri( n , ival , br ) ; /* actually get image from dataset */
+      im = FD_warp_to_mri( n , ival , brr ) ; /* get image from dataset */
       AFNI_set_ignore_vedit(0) ;
 
       if( ival < 0 ) RETURN( (XtPointer) im ) ;  /* return fake image */
@@ -2903,7 +2913,8 @@ if(PRINT_TRACING)
       /* Load value of current pixel into display label */
       /* April 1996: only if image is at current slice  */
 
-      { char buf[64] = "\0" ; int ibest=-1 ;
+      if( brr == br ){
+        char buf[64] = "\0" ; int ibest=-1 ;
         AFNI_set_valabel( br , n , im , buf ) ;
         if( buf[0] != '\0' ){
           if( im3d->vinfo->underlay_type == UNDERLAY_ANAT )
@@ -7416,6 +7427,14 @@ STATUS("forcing function WOD") ;
       myXtFree(im3d->b231_fim) ; im3d->b231_fim = fbr[1] ;
       myXtFree(im3d->b312_fim) ; im3d->b312_fim = fbr[2] ;
       myXtFree(fbr) ;
+
+      im3d->b123_fim->brother = (XtPointer)im3d->b123_anat ;
+      im3d->b231_fim->brother = (XtPointer)im3d->b231_anat ;
+      im3d->b312_fim->brother = (XtPointer)im3d->b312_anat ;
+
+      im3d->b123_anat->brother = (XtPointer)im3d->b123_fim ;
+      im3d->b231_anat->brother = (XtPointer)im3d->b231_fim ;
+      im3d->b312_anat->brother = (XtPointer)im3d->b312_fim ;
 
       im3d->b123_fim->parent =
         im3d->b231_fim->parent =
