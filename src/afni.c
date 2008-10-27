@@ -5262,6 +5262,7 @@ static char * AFNI_image_help =
  "< = Page Down = backward 1 image (e.g., slice)\n"
  "o = toggle (color) overlay on/off\n"
  "u = toggle background from underlay/overlay dataset\n"
+ "# = toggle underlay/overlay checkerboard display\n"
  "v/V = Video image sequence up/down\n"
  "r/R = Ricochet image sequence up/down\n"
  "i/I = image fraction down/up\n"

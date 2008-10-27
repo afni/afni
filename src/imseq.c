@@ -804,8 +804,8 @@ if( PRINT_TRACING ){
    newseq->bot    = 0 ;
    newseq->top    = dc->ncol_im-1 ;
 
-   newseq->clbot  = newseq->cltop  = 0.0 ;     /* 29 Jul 2001 */
-   newseq->barbot = newseq->bartop = 0.0 ;
+   newseq->clbot  = newseq->cltop  = 0.0f ;     /* 29 Jul 2001 */
+   newseq->barbot = newseq->bartop = 0.0f ;
 
    strcpy( newseq->im_label , "hi bob" ) ;
    newseq->scl_label[0] = '\0' ;
@@ -1720,6 +1720,8 @@ STATUS("creation: widgets created") ;
 
      newseq->timer_id = 0 ;  /* 03 Dec 2003 */
 
+     newseq->render_mode = RENDER_DEFAULT ;
+
      /*-- labels stuff --*/
 
      iii = 0 ;
@@ -1775,7 +1777,7 @@ STATUS("creation: widgets created") ;
                         "Tick Div." ,
                         MCW_AV_optmenu ,      /* option menu style */
                         0 ,                   /* first option */
-                        20 ,                  /* last option */
+                        21 ,                  /* last option */
                         0 ,                   /* initial selection */
                         MCW_AV_readtext ,     /* ignored but needed */
                         0 ,                   /* ditto */
@@ -1804,6 +1806,30 @@ STATUS("creation: widgets created") ;
    AVOPT_columnize(newseq->wbar_ticsiz_av,2) ;
    MCW_reghint_children( newseq->wbar_ticsiz_av->wrowcol ,
                          "Size of tick marks around image edges" ) ;
+
+   /** 27 Oct 2008: menu item to control checkerboarding */
+
+   (void) XtVaCreateManagedWidget( "menu",
+                                   xmSeparatorWidgetClass, newseq->wbar_menu,
+                                     XmNseparatorType , XmSINGLE_LINE ,
+                                   NULL ) ;
+   newseq->wbar_checkbrd_av =
+      new_MCW_arrowval( newseq->wbar_menu ,
+                        "CheckBrd#" ,
+                        MCW_AV_optmenu ,      /* option menu style */
+                        0 ,                   /* first option */
+                        43 ,                  /* last option */
+                        0 ,                   /* initial selection */
+                        MCW_AV_readtext ,     /* ignored but needed */
+                        0 ,                   /* ditto */
+                        ISQ_wbar_label_CB ,   /* callback when changed */
+                        (XtPointer)newseq ,   /* data for above */
+                        NULL                , /* text creation routine */
+                        NULL                  /* data for above */
+                      ) ;
+   AVOPT_columnize(newseq->wbar_checkbrd_av,4) ;
+   MCW_reghint_children( newseq->wbar_checkbrd_av->wrowcol ,
+                         "Size of checks in the checkerboard display [# key]" );
 
    newseq->top_clip = 0.0f ; /* 17 Sep 2007 */
    newseq->redo_clip = 0 ;
@@ -2353,9 +2379,7 @@ ENTRY("ISQ_overlay") ;
       /* now scale gs values */
       bb = (MaxGain - MinGain)/(maxgs-mings);
       for( ii=0 ; ii < npix ; ii++ ){
-         if( gs[ii] ){
-            gs[ii] =  bb * (gs[ii]-mings)+MinGain;
-         }  
+         if( gs[ii] ) gs[ii] =  bb * (gs[ii]-mings)+MinGain;
       }
       for( jj=ii=0 ; ii < npix ; ii++,jj+=3 ){
          if( gs[ii] ){ /* Colors will change here, not just a brightness
@@ -2364,10 +2388,10 @@ ENTRY("ISQ_overlay") ;
                bb = (gs[ii])*orr[jj  ]  ;  /* mix colors */
                if (bb > 255) our[jj  ] = 255;
                else our[jj  ] = (byte)bb;
-               bb = (gs[ii])*orr[jj+1]  ;  
+               bb = (gs[ii])*orr[jj+1]  ;
                if (bb > 255) our[jj+1] = 255;
                else our[jj+1] = (byte)bb;
-               bb = (gs[ii])*orr[jj+2]  ; 
+               bb = (gs[ii])*orr[jj+2]  ;
                if (bb > 255) our[jj+2] = 255;
                else our[jj+2] = (byte)bb;
          }
@@ -2458,25 +2482,28 @@ ENTRY("ISQ_make_image") ;
    if( im == NULL ){
       float new_width_mm , new_height_mm ;
 
-      tim = ISQ_getimage( seq->im_nr , seq ) ;
+      switch( seq->render_mode ){
+        default:
+          tim = ISQ_getimage( seq->im_nr , seq ) ;
+          if( tim == NULL ) EXRETURN ;
+          seq->last_image_type = tim->kind ;
+          seq->set_orim = (seq->need_orim != 0) ;  /* 30 Dec 1998 */
+          seq->imim = im = ISQ_process_mri( seq->im_nr , seq , tim ) ;
+          KILL_1MRI(tim) ;
+          seq->set_orim = 0 ;
+          seq->barbot = seq->clbot ; /* 29 Jul 2001 */
+          seq->bartop = seq->cltop ;
+        break ;
 
-      if( tim == NULL ){
-#if 0
-         fprintf(stderr,
-                 "\n*** error in ISQ_make_image: NULL image returned for display! ***\n") ;
-#endif
-         EXRETURN ;
+        case RENDER_CHECK_UO:
+        case RENDER_CHECK_OU:
+          seq->set_orim = 0 ;
+          seq->imim = im = ISQ_getchecked( seq->im_nr ,seq ) ;
+          if( im == NULL ) EXRETURN ;
+          seq->last_image_type = im->kind ;
+          seq->barbot = seq->bartop = 0.0f ;
+        break ;
       }
-
-      seq->last_image_type = tim->kind ;
-
-      seq->set_orim = (seq->need_orim != 0) ;  /* 30 Dec 1998 */
-      seq->imim = im = ISQ_process_mri( seq->im_nr , seq , tim ) ;
-      KILL_1MRI(tim) ;
-      seq->set_orim = 0 ;
-
-      seq->barbot = seq->clbot ; /* 29 Jul 2001 */
-      seq->bartop = seq->cltop ;
       ISQ_set_barhint(seq,NULL) ;
 
       /* fix window dimensions if image size is different from before */
@@ -4805,7 +4832,7 @@ ENTRY("ISQ_draw_winfo") ;
   Put a range hint on the color bar, if possible -- 29 Jul 2001
 -------------------------------------------------------------------------*/
 
-void ISQ_set_barhint( MCW_imseq * seq , char * lab )
+void ISQ_set_barhint( MCW_imseq *seq , char *lab )
 {
    char sbot[16],stop[16] , hint[64] , *sb,*st ;
 
@@ -8081,7 +8108,7 @@ ENTRY("ISQ_wbar_plots_CB") ;
 
 void ISQ_wbar_label_CB( MCW_arrowval *av , XtPointer cd )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *)cd ;
 
 ENTRY("ISQ_wbar_label_CB") ;
 
@@ -8586,11 +8613,21 @@ ENTRY("ISQ_manufacture_one") ;
 
    /** Not an overlay image **/
 
-   if( ! overlay ){
-     tim = ISQ_getimage( nim , seq ) ;
-     if( tim == NULL ) RETURN( NULL );
-     im = ISQ_process_mri( nim , seq , tim ) ; mri_free(tim) ;
-     RETURN( im );
+   if( !overlay ){
+     switch( seq->render_mode ){
+       default:
+         tim = ISQ_getimage( nim , seq ) ;
+         if( tim == NULL ) RETURN(NULL) ;
+         im = ISQ_process_mri( nim , seq , tim ) ; mri_free(tim) ;
+       break ;
+
+       case RENDER_CHECK_UO:
+       case RENDER_CHECK_OU:
+         im = ISQ_getchecked( nim , seq ) ;
+         if( im == NULL ) RETURN(NULL) ;
+       break ;
+     }
+     RETURN(im) ;
    }
 
    /** Get the overlay image **/
@@ -10848,6 +10885,101 @@ ENTRY("ISQ_getimage") ;
 }
 
 /*---------------------------------------------------------------------*/
+
+MRI_IMAGE * ISQ_cropim( MRI_IMAGE *tim , MCW_imseq *seq )
+{
+   if( tim == NULL || !seq->cropit ) return NULL ;
+
+   if( seq->crop_nxorg < 0 || seq->crop_nyorg < 0 ){ /* orig image size not set yet */
+     seq->crop_nxorg = tim->nx ;
+     seq->crop_nyorg = tim->ny ;
+   }
+
+   if( tim->nx != seq->crop_nxorg ||    /* image changed size? */
+       tim->ny != seq->crop_nyorg   ){  /* => turn cropping off */
+
+     seq->cropit = 0 ; seq->crop_nxorg = seq->crop_nyorg = -1 ;
+
+     if( seq->crop_drag ){              /* should not happen */
+       MCW_invert_widget( seq->crop_drag_pb ) ;
+       seq->crop_drag = 0 ;
+     }
+
+   } else {
+     MRI_IMAGE *cim ;
+     if( seq->crop_xb >= seq->crop_nxorg ) seq->crop_xb = seq->crop_nxorg - 1 ;
+     if( seq->crop_yb >= seq->crop_nyorg ) seq->crop_yb = seq->crop_nyorg - 1 ;
+     cim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
+                            seq->crop_ya,seq->crop_yb ) ;
+     if( cim != NULL ){ MRI_COPY_AUX(cim,tim); return cim; }
+   }
+
+   return NULL ;
+}
+
+/*---------------------------------------------------------------------*/
+
+MRI_IMAGE * ISQ_getulay( int nn , MCW_imseq *seq )
+{
+   MRI_IMAGE *tim=NULL , *cim ;
+
+   AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,tim ,
+                        int,nn , int,isqCR_getulayim , XtPointer,seq->getaux ) ;
+
+   cim = ISQ_cropim( tim , seq ) ;
+   if( cim != NULL ){ mri_free(tim) ; tim = cim ; }
+   return tim ;
+}
+
+/*---------------------------------------------------------------------*/
+
+MRI_IMAGE * ISQ_getolay( int nn , MCW_imseq *seq )
+{
+   MRI_IMAGE *tim=NULL , *cim ;
+
+   AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,tim ,
+                        int,nn , int,isqCR_getolayim , XtPointer,seq->getaux ) ;
+
+   cim = ISQ_cropim( tim , seq ) ;
+   if( cim != NULL ){ mri_free(tim) ; tim = cim ; }
+   return tim ;
+}
+
+/*---------------------------------------------------------------------*/
+
+MRI_IMAGE *ISQ_getchecked( int nn , MCW_imseq *seq )
+{
+   MRI_IMAGE *qim=NULL , *uim , *oim ; float dx,dy ;
+
+ENTRY("ISQ_getchecked") ;
+
+   qim = ISQ_getimage(nn,seq) ; if( qim == NULL ) RETURN(NULL) ;
+   dx  = qim->dx ; dy = qim->dy ;
+   uim = ISQ_process_mri(nn,seq,qim) ; mri_free(qim) ;
+
+   qim = ISQ_getolay (nn,seq) ; if( qim == NULL ) RETURN(uim) ;
+   oim = ISQ_process_mri(nn,seq,qim) ; mri_free(qim) ;
+
+   if( uim->kind == MRI_rgb && oim->kind == MRI_short ){
+     qim = ISQ_index_to_rgb( seq->dc , 0 , oim ) ;
+     mri_free(oim) ; oim = qim ;
+   } else if( uim->kind == MRI_short && oim->kind == MRI_rgb ){
+     qim = ISQ_index_to_rgb( seq->dc , 0 , uim ) ;
+     mri_free(uim) ; uim = qim ;
+   }
+
+   if( seq->render_mode == RENDER_CHECK_OU )
+     qim = mri_check_2D( seq->wbar_checkbrd_av->ival , oim , uim ) ;
+   else
+     qim = mri_check_2D( seq->wbar_checkbrd_av->ival , uim , oim ) ;
+
+   mri_free(oim) ;
+   if( qim == NULL ){ uim->dx = dx ; uim->dy = dy ; RETURN(uim) ; }
+
+   mri_free(uim) ;    qim->dx = dx ; qim->dy = dy ; RETURN(qim) ;
+}
+
+/*---------------------------------------------------------------------*/
 /*! Deal with dragging a crop window after a button has been pressed.
 -----------------------------------------------------------------------*/
 
@@ -11717,6 +11849,14 @@ ENTRY("ISQ_handle_keypress") ;
        if( (seq->opt.save_one || seq->status->num_total > 1) )
          ISQ_but_save_CB( seq->wbut_bot[NBUT_SAVE] , seq , NULL ) ;
        busy=0 ; RETURN(1) ;
+     break ;
+
+     case '#':{
+       int rr = (seq->render_mode + 1) % (1+RENDER_LASTMODE) ;
+       seq->render_mode = rr ;
+       ISQ_redisplay( seq , -1 , isqDR_display ) ;
+       busy=0 ; RETURN(1) ;
+     }
      break ;
 
 #if 0
