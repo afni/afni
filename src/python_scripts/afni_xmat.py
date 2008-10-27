@@ -242,14 +242,14 @@ class AfniXmat:
         del(means)
         del(norms)
 
-    def list_cormat_problems(self, cutoff=0.4):
+    def list_cormat_warnings(self, cutoff=0.4):
 
         if not self.ready:
             return '** no X-matrix to compute correlation matrix from'
 
         if not self.cormat_ready: self.set_cormat() # create cormat
         if not self.cormat_ready: # then failure
-            print '** cormat_problems_string: failed to create cormat'
+            print '** cormat_warnings: failed to create cormat'
             return 1
 
         cmat = self.cormat
