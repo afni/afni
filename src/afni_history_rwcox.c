@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , OCT , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Checkerboard underlay and overlay images" ,
+   "For Ziad -- to help judge image alignment.  Use the # key to turn\n"
+   "checkerboarding on and off.  The grayscale intensity bar popup menu has\n"
+   "a new sub-menu to select the check size in units of underlay pixels.  At\n"
+   "this time, checkerboarding does NOT work with image Save, RowGraphs, or\n"
+   "SurfGraph, or just about any other feature.  If you want a picture of a\n"
+   "checkerboarded image, you'll have to use a snapshot utility to grab the\n"
+   "window." } ,
+
  { 23 , OCT , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "Added -rout option, by popular 'demand'" ,
    NULL } ,

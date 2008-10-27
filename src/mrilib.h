@@ -725,6 +725,8 @@ extern int         mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
 #define mri_zero_image(iq) \
    memset(mri_data_pointer(iq),0,(iq)->nvox*(iq)->pixel_size)
 
+extern int mri_allzero( MRI_IMAGE *im ) ;  /* check if all pixels are 0 */
+
 extern MRI_IMAGE * mri_zeropad_3D( int,int,int,int,int,int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_zeropad_2D( int,int,int,int, MRI_IMAGE * ) ;
 
@@ -734,6 +736,8 @@ extern double mri_maxabs( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
 extern int mri_cut_many_2D(MRI_IMARR *,  int,int,int,int ); 
+
+extern MRI_IMAGE * mri_check_2D( int , MRI_IMAGE * , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_cut_3D( MRI_IMAGE * , int,int,int,int,int,int ) ;
 
