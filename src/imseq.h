@@ -273,8 +273,8 @@ typedef struct {
 #define isqCR_getstatus   403
 #define isqCR_getqimage   404
 #define isqCR_getopacim   405  /* 26 Sep 2007 */
-#define isqcR_getulayim   406  /* 24 Oct 2008 */
-#define isqcR_getolayim   407  /* 24 Oct 2008 */
+#define isqCR_getulayim   406  /* 24 Oct 2008 */
+#define isqCR_getolayim   407  /* 24 Oct 2008 */
 
 #define isqCR_getxynim    411  /* 30 Dec 1998 */
 
@@ -530,7 +530,15 @@ typedef struct MCW_imseq {
 
      float top_clip ;                                 /* 14 Sep 2007 */
      int   redo_clip ;                                /* 17 Sep 2007 */
+
+     int render_mode ;                                /* 25 Oct 2008 */
+     MCW_arrowval *wbar_checkbrd_av ;
 } MCW_imseq ;
+
+#define RENDER_DEFAULT    0
+#define RENDER_CHECK_UO   1
+#define RENDER_CHECK_OU   2
+#define RENDER_LASTMODE   1   /* 1 ==> doesn't allow 'OU' checkerboard */
 
 #define ISQ_TIMERFUNC_INDEX  701
 #define ISQ_TIMERFUNC_BOUNCE 702
@@ -723,6 +731,7 @@ extern MRI_IMAGE    * ISQ_getimage  ( int , MCW_imseq * ) ; /* 31 Jan 2002 */
 extern MRI_IMAGE    * ISQ_getoverlay( int , MCW_imseq * ) ; /* 11 Jun 2002 */
 extern MEM_plotdata * ISQ_getmemplot( int , MCW_imseq * ) ;
 extern char         * ISQ_getlabel  ( int , MCW_imseq * ) ;
+extern MRI_IMAGE    * ISQ_getchecked( int nn , MCW_imseq *seq ) ;
 
 extern void ISQ_free_alldata( MCW_imseq * ) ;
 

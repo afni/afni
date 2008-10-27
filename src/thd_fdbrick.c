@@ -234,6 +234,7 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset * dset ,
    br->dset       = dset ;               /* dataset */
    br->resam_code = RESAM_NN_TYPE ;      /* crudest type */
    br->parent     = NULL ;
+   br->brother    = NULL ;
 
    br->thr_resam_code = RESAM_NN_TYPE ;  /* 09 Dec 1997 */
 
