@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, OCT, 2008, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "added -offset option",
+   NULL
+ } ,
+
+ { 27, OCT, 2008, RCR, "make_random_timing.py", MINOR, TYPE_BUG_FIX,
+   "actually applied -min_rest, sorry...",
+   NULL
+ } ,
+
  { 24, OCT, 2008, RCR, "xmat_tool.py", SUPER, TYPE_NEW_PROG,
    "program to inspect a .xmat.1D X-matrix, possibly against a time series",
    "This is a Graphical tool for plotting a design matrix, reviewing\n"
