@@ -25,7 +25,7 @@ from matplotlib.ticker import FormatStrFormatter
 
 import afni_util as UTIL
 import afni_xmat as AM
-import xmat_comp as C
+import ui_xmat as UIX
 
 # ----------------------------------------------------------------------
 # globals
@@ -40,7 +40,10 @@ g_help_string = """
 g_history = """
     xmat_tool.py history:
 
-    0.1  Oct  24, 2008: and then there was xmat_tool.py ...
+    0.1  Oct 24, 2008: and then there was xmat_tool.py ...
+    0.2  Oct 26, 2008:
+         - renamed xmat_comp.py to ui_xmat.py
+         - upon loading X-matrix, warn user of duplicate regressors
 """
 
 g_version = "xmat_tool, version 0.1, 24 Oct 2008"
@@ -75,18 +78,18 @@ ID_APPLY_CHOICE     = 501
 # values for global text display list
 gSTR_BLANK              = ''
 
-gSTR_1D_FILE            = '1D timeseries file: '
-gSTR_XMAT_FILE          = 'X-matrix file: '
-gSTR_COLS_HDR           = '   -- COLUMNS -- '
-gSTR_COLS_CHOSEN        = '   chosen columns: '
-gSTR_COLS_ALL           = '   all columns: '
-gSTR_COLS_MAIN          = '   cols of main regs: '
-gSTR_COLS_BASE          = '   cols of baseline regs: '
-gSTR_COLS_MOTION        = '   cols of motion regs: '
+gSTR_1D_FILE            = ' 1D timeseries file: '
+gSTR_XMAT_FILE          = ' X-matrix file: '
+gSTR_COLS_HDR           = '   -- COLUMNS (regressors) by type-- '
+gSTR_COLS_CHOSEN        = '   cols of chosen regressors: '
+gSTR_COLS_ALL           = '   cols of ALL regressors: '
+gSTR_COLS_MAIN          = '   cols of main regressors: '
+gSTR_COLS_BASE          = '   cols of baseline regressors: '
+gSTR_COLS_MOTION        = '   cols of motion regressors: '
 gSTR_COND_HDR           = '   -- CONDITION NUMBERS -- '
 gSTR_COND_CHOSEN        = '   cond of chosen columns: '
-gSTR_COND_ALL           = '   cond of all regs: '
-gSTR_COND_MAIN          = '   cond of main regs: '
+gSTR_COND_ALL           = '   cond of all regressors: '
+gSTR_COND_MAIN          = '   cond of main regressors: '
 gSTR_COND_M_BASE        = '   cond of main+baseline: '
 gSTR_COND_M_MOT         = '   cond of main+motion: '
 gSTR_COND_BASE_MOT      = '   cond of baseline+motion: '
@@ -95,7 +98,8 @@ g_textnames = [
         gSTR_1D_FILE,                                           gSTR_BLANK,
         gSTR_XMAT_FILE,                                         gSTR_BLANK,
         gSTR_COLS_HDR, gSTR_COLS_CHOSEN, gSTR_COLS_ALL,
-        gSTR_COLS_MAIN, gSTR_COLS_BASE, gSTR_COLS_MOTION,       gSTR_BLANK,
+        gSTR_COLS_MAIN,                                         gSTR_BLANK,
+        gSTR_COLS_BASE, gSTR_COLS_MOTION,                       gSTR_BLANK,
         gSTR_COND_HDR, gSTR_COND_CHOSEN, gSTR_COND_ALL,
         gSTR_COND_MAIN,                                         gSTR_BLANK,
         gSTR_COND_M_BASE, gSTR_COND_M_MOT, gSTR_COND_BASE_MOT ]
@@ -109,7 +113,7 @@ g_textlist = [
    [gSTR_COLS_HDR,      0, '', None],
    [gSTR_COLS_CHOSEN,   1, '', None],
    [gSTR_COLS_ALL,      1, '', None],
-   [gSTR_COLS_MAIN,     1, '', None],
+   [gSTR_COLS_MAIN,     1, '', None], [gSTR_BLANK,         1, '', None],
    [gSTR_COLS_BASE,     1, '', None],
    [gSTR_COLS_MOTION,   1, '', None], [gSTR_BLANK,         1, '', None],
    [gSTR_COND_HDR,      0, '', None],
@@ -139,7 +143,7 @@ class XmatGUI(wx.App):
          Note that the top-level GUI will contain nothing but the MainFrame,
          which will store the GUI and XmatInterface data."""
 
-      if not XM: XM = C.XmatInterface(verb)
+      if not XM: XM = UIX.XmatInterface(verb)
 
       self.Gframe = MainFrame(None, -1, "xmat_tool.py", xinter=XM)
       self.Gframe.Show(True)
@@ -190,7 +194,7 @@ class MainFrame(wx.Frame):
    def add_text_widgets(self):
 
       panel1 = wx.Panel(self, -1)
-      st = wx.StaticText(panel1, -1, '  Choose Columns : ')
+      st = wx.StaticText(panel1, -1, '  Choose Matrix Columns : ')
       self.choicectrl = wx.TextCtrl(panel1, -1, size=(160,-1))
       button = wx.Button(panel1, ID_APPLY_CHOICE, 'apply')
       button.SetForegroundColour('red')
@@ -226,9 +230,9 @@ class MainFrame(wx.Frame):
 
       # and fill in sizer
       sizer = wx.BoxSizer(wx.VERTICAL)
-      sizer.AddSpacer(20)
+      sizer.AddSpacer((20,20))
       sizer.Add(panel1, 0)
-      sizer.AddSpacer(20)
+      sizer.AddSpacer((20,20))
       sizer.Add(panel2, 0)
       self.SetSizerAndFit(sizer)
 
@@ -271,9 +275,9 @@ class MainFrame(wx.Frame):
       menubar = wx.MenuBar()
       # File menu
       menu = wx.Menu()
-      menu.Append(ID_LOAD_XMAT, "load &X matrix", "load X matrix from file")
+      menu.Append(ID_LOAD_XMAT, "load X &matrix", "load X matrix from file")
       menu.Append(ID_LOAD_1D, "load &1D file", "load 1d time series")
-      menu.Append(ID_EXIT, "&Exit", "terminate program")
+      menu.Append(ID_EXIT, "E&xit", "terminate program")
       menubar.Append(menu, "&File")
       # Show menu
       menu = wx.Menu()
@@ -282,7 +286,7 @@ class MainFrame(wx.Frame):
                   "Show Xmat &conds", "Show Xmat condition numbers")
       menu.Append(ID_SHOW_CORMAT, "Show X-Cor&mat",
                                   "Show correlation matrix (of X-matrix)")
-      menu.Append(ID_SHOW_CORMAT_EVIL, "Show X-Cormat &Evil",
+      menu.Append(ID_SHOW_CORMAT_EVIL, "Show X-Cormat &Warnings",
                          "Show problematic entries in correlation matrix")
       menu.Append(ID_SHOW_1D, "Show &1D", "Show info about time series")
       menu.Append(ID_SHOW_FIT_BETAS, "Show &Fit Betas",
@@ -290,7 +294,7 @@ class MainFrame(wx.Frame):
       menubar.Append(menu, "&Show")
       # Plot menu
       menu = wx.Menu()
-      menu.Append(ID_PLOT_XMAT, "Plot Xmat", "Graph selected X matrix columns")
+      menu.Append(ID_PLOT_XMAT, "Plot &Xmat", "Graph selected X matrix columns")
       menu.Append(ID_PLOT_1D, "Plot 1D", "Graph 1D time series")
       menu.Append(ID_PLOT_BEST_FIT, "Plot Best Fit",
             "Graph best fit of selected X matrix columns against 1D array")
@@ -318,7 +322,7 @@ class MainFrame(wx.Frame):
       wx.EVT_MENU(self, ID_SHOW_XMAT, self.cb_show_mat)
       wx.EVT_MENU(self, ID_SHOW_XMAT_CONDS, self.cb_show_xmat_conds)
       wx.EVT_MENU(self, ID_SHOW_CORMAT, self.cb_show_xmat_cormat)
-      wx.EVT_MENU(self, ID_SHOW_CORMAT_EVIL, self.cb_show_xmat_cormat_evil)
+      wx.EVT_MENU(self, ID_SHOW_CORMAT_EVIL, self.cb_show_xmat_cormat_warns)
       wx.EVT_MENU(self, ID_SHOW_1D, self.cb_show_mat)
       wx.EVT_MENU(self, ID_SHOW_FIT_BETAS, self.cb_show_fit_betas)
 
@@ -360,28 +364,14 @@ class MainFrame(wx.Frame):
 
    def gui_show_fit_betas(self):
       """create a text window describing the fit betas"""
-      if self.XM.fit_xmat_to_1D(self.XM.col_list):
-         self.popup_warning("X-matrix fitting failed")
-         return
 
       clist = self.XM.col_list
       if not clist: clist = range(len(self.XM.col_list))
 
+      # ignore failure, to show error string in text window
+      rv, rstr = self.XM.make_matrix_fit_string(clist)
       title = 'Matrix to 1D Fit Betas'
-      mstr = 'Beta Weights:\n\n'
-      labs = self.XM.matX.labels
-      betas = self.XM.matbetas.mat
-
-      maxlab = 0
-      if labs: maxlab = max([len(lab) for lab in labs])
-
-      for ind in range(len(clist)):
-         col = clist[ind]
-         if labs: mstr += 'col % 3d:   %-*s   : %9.3f\n' %    \
-                          (col,maxlab, labs[col],betas[ind][0])
-         else   : mstr += 'col %03d: %s\n' % (ind, betas[ind][0])
-
-      self.show_text_window(mstr, title)
+      self.show_text_window(rstr, title)
 
    def cb_show_xmat_cormat(self, event):
       self.gui_show_xmat_cormat()
@@ -400,16 +390,16 @@ class MainFrame(wx.Frame):
          mat.set_cormat()
 
       # mstr = 'Correlation Matrix:\n\n%s\n' % str(mat.cormat)
-      mstr = self.XM.make_cormat_string()
+      rv, mstr = self.XM.make_cormat_string()
 
       title = os.path.basename(self.XM.fname_mat) + ' correlation matrix'
 
       self.show_text_window(mstr, title, wrap=0)
 
-   def cb_show_xmat_cormat_evil(self, event):
-      self.gui_show_xmat_cormat_evil()
+   def cb_show_xmat_cormat_warns(self, event):
+      self.gui_show_xmat_cormat_warns()
 
-   def gui_show_xmat_cormat_evil(self):
+   def gui_show_xmat_cormat_warns(self):
 
       mat = self.XM.matX
 
@@ -419,9 +409,9 @@ class MainFrame(wx.Frame):
       elif not mat.ready:
          return
 
-      mstr = self.XM.make_cormat_problems_string()
+      rv, mstr = self.XM.make_cormat_warnings_string()
 
-      title = os.path.basename(self.XM.fname_mat) + ' correlation problems'
+      title = os.path.basename(self.XM.fname_mat) + ' correlation warnings'
 
       self.show_text_window(mstr, title, wrap=0)
 
@@ -525,8 +515,9 @@ class MainFrame(wx.Frame):
 
       self.gui_close_plot_fit() # nuke any existing frame, regardless
          
-      if self.XM.fit_xmat_to_1D(self.XM.col_list):
-         self.popup_warning("X-matrix fitting failed")
+      rv, mesg = self.XM.fit_xmat_to_1D(self.XM.col_list)
+      if rv:
+         self.popup_warning("X-matrix fitting failed\n\n(%s)" % mesg)
          return
 
       bothmats = self.XM.mat1D.copy()
@@ -604,6 +595,12 @@ class MainFrame(wx.Frame):
 
       # fill screen display data for this matrix
       self.update_textlist_from_xmat()
+
+      badlist = self.XM.matX.list_cormat_warnings()
+      if badlist:
+         self.popup_warning("duplicate regressors found in matrix\n\n"  \
+                         "'Show: X-Cormat Warnings' for complete list")
+         del(badlist)
 
    def gui_load_1D(self, fname):
       if self.XM.verb > 2:
@@ -1240,7 +1237,7 @@ def test(test_gui=1):
       gui.init_gui(verb=4)
       gui.MainLoop()
    else:
-      C.test()
+      UIX.test()
 
    return None
 

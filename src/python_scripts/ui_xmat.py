@@ -26,16 +26,17 @@ class XmatInterface:
       # other variables
       self.verb            = verb
 
-   def fit_xmat_to_1D(self, cols):
-      """compute the best model fit of the matrix columns to the time series"""
+   def fit_xmat_to_1D(self, cols=[]):
+      """compute the best model fit of the matrix columns to the time series
+         return error code (0 on success), error string"""
       if not self.matX or not self.mat1D:
-         print '** cannot fit without matrix and 1D data'
-         return 1
+         return 1, 'cannot fit without matrix and 1D data'
       if not self.matX.ready or not self.mat1D.ready:
-         print '** matrix and 1D data not ready for fit'
-         return 1
+         return 1, 'matrix and 1D data not ready for fit'
 
-      if not cols: cols = range(self.matX.ncols)
+      if not cols: cols = self.col_list
+      if not cols:
+         return 1, "no cols to fit to (neither 'cols' or 'col_list')"
 
       if self.matfit:   del(self.matfit)
       if self.matbetas: del(self.matbetas)
@@ -44,20 +45,46 @@ class XmatInterface:
       try:
          err, self.matbetas = self.matX.solve_against_1D(self.mat1D, acols=cols)
       except:
-         print '** fit_xmat: matfit solver failed!'
-         return 1
+         return 1, 'matfit solver failed!'
 
       if err != 0:
-         print '** fit_xmat: matfit solver failed!'
-         return 1
+         return 1, 'matfit solver failed!'
 
       err, self.matfit = self.matX.linear_combo(self.matbetas, acols=cols)
 
       if err != 0:
-         print '** fit_xmat: linear combo failed (err = %s)!' % err
-         return 1
+         return 1, 'fit_xmat: linear combo failed (err = %s)!' % err
 
-      return 0
+      return 0, ''
+
+   def make_matrix_fit_string(self, clist=[]):
+      """return a string describing best model fit to 1D time series
+            clist : optional list of X-matrix columns to use for fit
+                    (use self.col_list if empty)
+         return error code (0=success) and message
+      """
+
+      # compute fit and return if it fails
+      rv, mesg = self.fit_xmat_to_1D(clist)
+      if rv: return 1, '** X-matrix fitting failed\n\n(%s)' % mesg
+
+      if not clist: clist = self.col_list       # need cols for labels
+
+      # create return string
+      rstr = 'Beta Weights of chosen columns fit to time series:\n\n'
+      labs = self.matX.labels
+      betas = self.matbetas.mat
+
+      maxlab = 0
+      if labs: maxlab = max([len(lab) for lab in labs])
+
+      for ind in range(len(clist)):
+         col = clist[ind]
+         if labs: rstr += 'col % 3d:   %-*s   : %9.3f\n' %    \
+                          (col,maxlab, labs[col],betas[ind][0])
+         else   : rstr += 'col %03d: %s\n' % (ind, betas[ind][0])
+
+      return 0, rstr
 
    def set_xmat(self, fname):
       """read and store the X matrix from file 'fname'
@@ -112,11 +139,13 @@ class XmatInterface:
       return 0
 
    def make_cormat_string(self):
+      """return a string of the correlation matrix
+         (return error code (0=success) and cormat string)"""
 
       mat = self.matX
 
       if not mat.ready:
-         return '** no X-matrix to compute correlation matrix from'
+         return 1, '** no X-matrix to compute correlation matrix from'
 
       if not mat.cormat_ready:    # then set it
          mat.set_cormat()
@@ -127,65 +156,59 @@ class XmatInterface:
              mstr += '%.3f  ' % mat.cormat[r,c]
          mstr += '\n'
 
-      return mstr
+      return 0, mstr
 
-   def make_cormat_problems_string(self, cut0=1.0, cut1=0.7, cut2=0.4):
+   def make_cormat_warnings_string(self, cut0=1.0, cut1=0.7, cut2=0.4):
       """make a string for any entires above cutoffs
             cut0, cut1, cut2 are cutoff levels (cut0=highest) that
             determine the severity of the correlation
             (anything below cut2 is ignored)
 
-         return the 'problem' string"""
+         return error code (0=success) and 'warnings' string"""
 
       mat = self.matX
 
       if not mat.ready:
-         return '** no X-matrix to compute correlation matrix from'
+         return 1, '** no X-matrix to compute correlation matrix from'
 
       if not mat.cormat_ready: mat.set_cormat() # create cormat
       if not mat.cormat_ready: # then failure
-         return '** cormat_problems_string: failed to create cormat'
+         return 1, '** cormat_warnings_string: failed to create cormat'
 
-      badlist = mat.list_cormat_problems(cutoff=cut2)
+      badlist = mat.list_cormat_warnings(cutoff=cut2)
       blen = len(badlist)
 
-      if blen == 0: return '-- no innapropriate values in correlation matrix--'
+      if blen == 0: return 0, '-- no warnings for correlation matrix--'
 
-      mstr = 'evil values in correlation matrix:\n'
+      mstr = 'Warnings regarding Correlation Matrix:\n\n'         \
+             '    severity      correlation  regressor pair\n'    \
+             '    --------      -----------  --------------------------------\n'
+      cutstrs = [ '    IDENTICAL:   ', '  high:        ', '  medium:      ']
 
-      cuts = [cut0, cut1, cut2]
-      cutstrs = [ '\n    --- IDENTICAL   pairs  (epitome of evil) ---\n\n',
-                  '\n    --- very evil   pairs ---\n\n',
-                  '\n    --- mildly evil pairs ---\n\n' ]
-      ind = 0
-      for cind in range(len(cuts)):             # for each cutoff point...
-         mstr += cutstrs[cind]
-         cut = cuts[cind]
-         while ind < blen:
-            val, row, col = badlist[ind]        # get next entry
-            if val < cut: break                 # to outer loop
+      for val, row, col in badlist:
+         if   val >= cut0: cs = cutstrs[0]
+         elif val >= cut1: cs = cutstrs[1]
+         else:             cs = cutstrs[2]
 
-            # otherwise, we have an appropriately evil entry...
-            if self.matX.labels:
-               lr = self.matX.labels[row]
-               lc = self.matX.labels[col]
-               mstr += '        %5.3f :  %s  vs.  %s\n' % (val, lr, lc)
-            else:
-               mstr += '        %5.3f :  #%d  vs.  #%d\n' % (val, row, col)
+         # we have an appropriately evil entry...
+         if mat.labels:
+            mstr += '%-8s    %5.3f     (%d vs. %d)  %s  vs.  %s\n' % \
+                    (cs, val, col, row, mat.labels[col], mat.labels[row])
+         else:
+            mstr += '%-8s    %5.3f     #%d  vs.  #%d\n' % (cs, val, col, row)
 
-            ind += 1    # increment in badlist
-
-      return mstr
+      return 0, mstr
 
    def cleanup_memory(self):
       gc.collect()
       # sys.exc_clear()
       # sys.exc_traceback = sys.last_traceback = None
 
-def test():
+def test(verb=3):
    # init
    print '------------------------ initial reads -----------------------'
    xi = XmatInterface()
+   xi.verb = verb
    xi.set_xmat('X.xmat.1D')
    xi.set_1D('norm.022_043_012.1D')
 
@@ -200,10 +223,22 @@ def test():
    xi.set_1D('no1D')
 
    # more tests
-   print '------------------------ xmatrix -----------------------'
+   print '------------------------- xmatrix --------------------------'
    xi.matX.show()
-   print '------------------------ 1D file -----------------------'
+   print '------------------------- 1D file --------------------------'
    xi.mat1D.show()
+
+   print '------------------------ matrix fit ------------------------'
+   rv, fstr = xi.make_matrix_fit_string()
+   print fstr
+
+   print '-------------------------- cormat --------------------------'
+   rv, fstr = xi.make_cormat_string()
+   print fstr
+
+   print '--------------------- cormat warnings ----------------------'
+   rv, fstr = xi.make_cormat_warnings_string()
+   print fstr
 
    return None
 
