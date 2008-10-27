@@ -10,10 +10,15 @@ use Cwd;
 
 my %Options = ();
 my $ok = getopts("hsnvg24o:a", \%Options);
+# codes indicating the cardinal plane in which the data was acquired 
+my $TRANSVERSE = 1;
+my $SAGITTAL = 2;
+my $CORONAL = 3;
 
 sub usage(){
 
   print "3dPAR2ANFI\n";
+  print "Version: 2008/07/18 11:12\n\n";
   print "Command line Options:\n";
   print "-h     This help message.\n";
   print "-v     Be verbose in operation.\n";
@@ -36,7 +41,7 @@ sub usage(){
 
   print "Sample invocations:\n";
   print "3dPAR2AFNI subject1.PAR\n";
-  print "       Converts the subject1.PAR file to subject1+orig.{HEAD,BRIK}\n";
+  print "	Converts the file subject1.PAR file to subject1+orig.{HEAD,BRIK}\n";
   print "3dPAR2AFNI -s subject1.PAR\n";
   print "       Same as above but skip the outlier test\n";
   print "3dPAR2AFNI -n subject1.PAR\n";
@@ -67,8 +72,12 @@ sub convertPar($) {
   my $outputDirectory =  $Options{"o"};
   my $outliers="";
   my $parFile = shift;
+  my $sliceOrder = undef;
   my ($rootname, $extension, %fov, %angulation, %origin, $slices, $tr, $volumes, $bitdepth, %reconres, $prefixargs);
   my ($timeargs, $totalslices, $anterior, $posterior, $foot, $head, $right, $left, $FOVargs, $filespec, $session);
+
+  # the maximum number of pieces of header info needed from the PAR file
+  my $maxHeaders = 9;
 
   if ($outputDirectory){
     if ( ! -d $outputDirectory ) {
@@ -92,7 +101,7 @@ sub convertPar($) {
 
   open(PFH, $parFile) || die "Unable to open $parFile for reading: $!.\n";
   my @buffer = ();
-
+  my $foundAllHeaderInfo = 0;
   while (<PFH>) {
     chomp;                      # strip record separator
 
@@ -100,62 +109,101 @@ sub convertPar($) {
     if ($#buffer > 2){
       shift @buffer;
     }
-
-    if ($lineCount <= 91 ) {
+    #print "foundAllHeaderInfo is $foundAllHeaderInfo\n";
+    if ($foundAllHeaderInfo <  $maxHeaders) {
+      #print $_;
       # file version
-      if (/# CLINICAL TRYOUT             Research image export tool     V([0-9])/) {
+      if (/#\s+CLINICAL\s+TRYOUT\s+Research\s+image\s+export\s+tool\s+V(\d+(\.\d+)?)/) {
         my $fileVersion = $1;
-        if ($fileVersion != 4 ) {
-          print "This program can only handle Version 4 PAR/REC files. Exiting.";
+	if ($verbose) {
+	  print "This PAR file is from research image export tool version $fileVersion\n";
+	}
+        if (!($fileVersion eq "4" or $fileVersion eq "4.2")) {
+          print "This program has only been tested to work with Version 4 or 4.2 PAR/REC files. Exiting.";
           exit;
         }
+	$foundAllHeaderInfo++; #print "foundAllHeaderInfo 1\n"; #1
       }
 
       # field of view
-      if (/FOV \((..),(..),(..)\) \[.*\].*:\ *([0-9]+\.[0-9]+)\ *([0-9]+\.[0-9]+)\ *([0-9]+\.[0-9]+)/) {
+      if (/FOV \((..),(..),(..)\) \[.*\].*:\s*(\d+\.\d+)\s*(\d+\.\d+)\s*(\d+\.\d+)/) {
         $fov{$1}=$4;
         $fov{$2}=$5;
         $fov{$3}=$6;
+	$foundAllHeaderInfo++;  #print "foundAllHeaderInfo 2\n";#2
       }
       # matrix size
 
       # angulation
-      if (/Angulation midslice\((..),(..),(..)\)\[.*\].*:\ *(-?[0-9]+\.[0-9]+)\ *(-?[0-9]+\.[0-9]+)\ *(-?[0-9]+\.[0-9]+)/) {
+      if (/Angulation midslice\((..),(..),(..)\)\[.*\].*:\s*(-?\d+\.\d+)\s*(-?\d+\.\d+)\s*(-?\d+\.\d+)/) {
         $angulation{$1}=$4;
         $angulation{$2}=$5;
         $angulation{$3}=$6;
+	$foundAllHeaderInfo++;  #print "foundAllHeaderInfo 3\n";#3
       }
+
       # distance from origin of FOV center
-      if (/Off Centre midslice\((..),(..),(..)\) \[.*\].*:\ *(-?[0-9]+\.[0-9]+)\ *(-?[0-9]+\.[0-9]+)\ *(-?[0-9]+\.[0-9]+)/) {
+      if (/Off Centre midslice\((..),(..),(..)\) \[.*\].*:\s*(-?\d+\.\d+)\s*(-?\d+\.\d+)\s*(-?\d+\.\d+)/) {
         $origin{$1}=$4;
         $origin{$2}=$5;
         $origin{$3}=$6;
+	$foundAllHeaderInfo++;  #print "foundAllHeaderInfo 5\n";; #5
       }
 
       # number of slices
-      if (/number of slices.*:\ *([0-9]+)/) {
+      if (/number of slices.*:\s*(\d+)/) {
         $slices=$1;
+	$foundAllHeaderInfo++;  #print "foundAllHeaderInfo 6\n"; #6
       }
 
       # TR
-      if (/Repetition time.*:\ *([0-9]+\.[0-9]+)/) {
+      if (/Repetition time.*:\s*(\d+\.\d+)/) {
         $tr=$1;
+	$foundAllHeaderInfo++;  #print "foundAllHeaderInfo 7\n"; #7
       }
       # number of volumes
-      if (/number of dynamics.*:\ *([0-9]+)/) {
+      if (/number of dynamics.*:\s*(\d+)/) {
         $volumes=$1;
+	$foundAllHeaderInfo++;  #print "foundAllHeaderInfo 8\n"; #8
       }
 
-      if (/\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*([0-9]*)\s*[0-9]*\s*([0-9]*)\s*([0-9]*).*/) {
-        $bitdepth=$1;
-        $reconres{"x"}=$2;
-        $reconres{"y"}=$3;
+      # matrix size
+
+      # this branch of the must execute twice inorder to determine the
+      # slice order. on the first line of image information the
+      # dynamic number will naturally be 1. it is only by looking at
+      # the second line that we can determine whether the data is in
+      # tz or zt order.  maxHeaders must be set to be one higher than
+      # the actual number of pieces of header information we
+      # need. this allows this branch to execute twice because it will
+      # match each line in the image information section.
+
+      if (/\s*\d+\s+\d+\s+(\d+)\s+(?:\d+\s+){4}(\d+)\s+\d+\s+(\d+)\s+(\d+)\s+(?:[+-]?(?:\d+\.\d+|\d+\.|\.\d+|\d+)(?:[eE][+-]?\d+)?\s+){14}(\d{1}).*/) {
+	my $dynamicNumber = $1;
+        $bitdepth=$2;
+        $reconres{"x"}=$3;
+        $reconres{"y"}=$4;
+	$reconres{"orientation"}=$5;
+	$foundAllHeaderInfo++;  #print "foundAllHeaderInfo 9\n"; #9
+	if ($verbose) {
+	  print "*** The dynamic number is $dynamicNumber"; 
+	}
+	if ($dynamicNumber != 1 ) {
+	    $sliceOrder = "tz";
+	  }
+	else {
+	  $sliceOrder = "zt";
+	}
       }
     }
+    # don't try to be clever and put a else { last; } here. if you do
+    # that the script does not read the rest of the par file and
+    # consequently cannot determine the number of volumes. moral of
+    # the story the script must read every line in the PAR file.
     $lineCount++;
   } # end of while (<PFH>)
 
-  if (shift(@buffer) =~ /\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*[0-9]*\s*([0-9]*).*/){
+  if (shift(@buffer) =~ /\s*\d*\s+\d*\s+\d*\s+\d*\s+\d*\s+\d*\s+(\d*).*/){
     my $numberOfImages = $1 + 1;
     if ($verbose) {
       print "*** Number of images is $numberOfImages";
@@ -172,13 +220,14 @@ sub convertPar($) {
 
   if ($verbose) {
     print "$rootname.$extension";
-    print "** Field of View ***";
+    print "*** Field of View ***";
     print "ap=$fov{ap}";
     print "fh=$fov{fh}";
     print "rl=$fov{rl}";
     print "*** Reconstruction Matrix ***";
     print "x=$reconres{x}";
     print "y=$reconres{y}";
+    print "orientation=$reconres{orientation}";
     print "*** Angulation ***";
     print "ap=$angulation{ap}";
     print "fh=$angulation{fh}";
@@ -190,6 +239,7 @@ sub convertPar($) {
     print "*** Slices = $slices ***";
     print "*** Bit Depth = $bitdepth ***";
     print "*** TR = $tr ***";
+    print "*** Slice order is $sliceOrder";
   }
 
   # -----------calculate values and args for AFNI to3d to convert REC file
@@ -224,8 +274,12 @@ sub convertPar($) {
     if ($verbose) {
       print "$volumes timepoints";
     }
-    $timeargs = "-time:tz $volumes $slices ${tr}ms zero";
-    #    $timeargs = "-time:zt $slices $volumes ${tr}ms zero";
+    if ($sliceOrder eq "tz" ) {
+      $timeargs = "-time:tz  $volumes $slices ${tr}ms zero";
+    }
+    elsif ($sliceOrder eq "zt") {
+	$timeargs = "-time:zt $slices $volumes ${tr}ms zero";
+      }
     $totalslices=$volumes*$slices;
     if ($skipOutliers) {
       $outliers="-skip_outliers";
@@ -240,7 +294,19 @@ sub convertPar($) {
   $right    = abs($origin{rl}-$fov{rl}/2);
   $left     = abs($origin{rl}+$fov{rl}/2);
 
-  $FOVargs = "-xFOV ${right}R-${left}L -yFOV ${anterior}A-${posterior}P -zFOV ${foot}I-${head}S";
+  if ($reconres{orientation} == $TRANSVERSE ) {
+    if ($verbose) {
+      print "Data was acquired in the TRANSVERSE plane\n";
+    }
+    $FOVargs = "-xFOV ${right}R-${left}L -yFOV ${anterior}A-${posterior}P -zFOV ${foot}I-${head}S";
+  } elsif ($reconres{orientation} == $SAGITTAL ) {
+    #$FOVargs = "-xFOV ${right}R-${left}L -yFOV ${anterior}A-${posterior}P -zFOV ${foot}I-${head}S";
+    die "Sorry this program cannot convert files that were acquired in the SAGITTAL plane\n";
+  }
+  elsif ($reconres{orientation} == $CORONAL ) {
+    #$FOVargs = "-xFOV ${right}R-${left}L -yFOV ${anterior}A-${posterior}P -zFOV ${foot}I-${head}S";
+    die "Sorry this program cannot convert files that were acquired in the CORONAL plane\n";
+  }
 
   #file specification
   my $recextension="rec";
@@ -255,26 +321,23 @@ sub convertPar($) {
     print my $command="to3d $session $swap $outliers $prefixargs $timeargs $FOVargs $filespec";
     system $command;
     if ($analyze) {
-        print my $command="3dAFNItoANALYZE $rootname $rootname+orig.HEAD";
-        system $command;
-        print $command="rm -f  $rootname+orig.{HEAD,BRIK}";
-        system $command;
+      print my $command="3dAFNItoANALYZE $rootname $rootname+orig.HEAD";
+      system $command;
+      print $command="rm -f  $rootname+orig.{HEAD,BRIK}";
+      system $command;
     }
     if ($gzip) {
       if ($nifti) {
         $command="gzip -9v $rootname.nii";
-      }
-      elsif ($analyze) {
+      } elsif ($analyze) {
         $command="gzip -9v $rootname.img";
-      }
-      else {
+      } else {
         $command="gzip -9v $rootname+orig.BRIK";
       }
       print $command;
       system $command;
     }
-  }
-  else {
+  } else {
     print "Skipping $parFile: The corresponding REC file is 0 bytes in length\n";
 
   }
