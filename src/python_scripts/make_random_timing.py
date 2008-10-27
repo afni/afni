@@ -1039,6 +1039,9 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, sdur_list, tinitial,
               (reps_list, sdur_list)
         return
 
+    # steal a copy of sdur_list so that we can trash it with min_rest
+    stim_durs = sdur_list[:]
+
     # if multi runs and ctrl_breaks, add max stim time (-tgran) to tfinal
     if nruns > 1 and ctrl_breaks:
         smax = max(sdur_list)
@@ -1053,16 +1056,16 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, sdur_list, tinitial,
         if verb > 1:
             print '++ applying min_rest by adding %.2f (min_rest - tgran)' \
                   '   to all stim_times' % min_rest
-        for ind in range(nstim): sdur_list[ind] += min_rest
+        for ind in range(nstim): stim_durs[ind] += min_rest
 
     # compute total stim time across all runs together
     stime = 0.0 
     for ind in range(nstim):
-        if reps_list[ind] < 0 or sdur_list[ind] < 0:
+        if reps_list[ind] < 0 or stim_durs[ind] < 0:
             print '** invalid negative reps or stimes list entry in %s, %s' \
-                  % (reps_list, sdur_list)
+                  % (reps_list, stim_durs)
             return
-        stime += reps_list[ind]*sdur_list[ind]
+        stime += reps_list[ind]*stim_durs[ind]
 
     # compute rest time across all runs together
     rtime = nruns * (run_time - tinitial - tfinal) - stime
@@ -1114,7 +1117,7 @@ def make_rand_timing(nruns, run_time, nstim, reps_list, sdur_list, tinitial,
             eind = event - 1                # event is one more than index
             atime = ctime+offset            # add any requested offset
             slist[eind][run].append(atime)  # append cur time to event's list
-            ctime += sdur_list[eind]        # increment time by this stim
+            ctime += stim_durs[eind]        # increment time by this stim
 
     if verb > 3:
         for stim in range(nstim):
