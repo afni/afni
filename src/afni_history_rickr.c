@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, OCT, 2008, RCR, "module_test_lib.py", MINOR, TYPE_NEW_PROG,
+   "library/program to test python module imports",
+   NULL
+ } ,
+
+ { 28, OCT, 2008, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
+   "use module_test_lib to test imports",
+   NULL
+ } ,
+
  { 27, OCT, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_motion_file option",
    NULL
