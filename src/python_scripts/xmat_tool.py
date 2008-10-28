@@ -1242,7 +1242,7 @@ def test(test_gui=1):
 
    if test_gui:
       gui = XmatGUI()
-      gui.init_gui(verb=4)
+      gui.init_gui(verb=1)
       gui.MainLoop()
    else:
       UIX.test()
