@@ -618,6 +618,12 @@ def db_mod_regress(block, proc, user_opts):
     if uopt and not bopt: block.opts.add_opt('-regress_no_motion',0,[])
     elif not uopt and bopt: block.opts.del_opt('-regress_no_motion',0,[])
 
+    # maybe the user wants to specify a motion file
+    uopt = user_opts.find_opt('-regress_motion_file')
+    if uopt:  # and make sure we have labels
+        proc.mot_file = uopt.parlist[0]
+        proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
+
     # maybe the user does not want to convert stim_files to stim_times
     uopt = user_opts.find_opt('-regress_use_stim_files')
     if not uopt: uopt = user_opts.find_opt('-regress_no_stim_times')
@@ -633,7 +639,7 @@ def db_mod_regress(block, proc, user_opts):
 
     block.valid = 1
 
-# here we need to concatenate the dfiles, and possibly create stim_times files
+# possibly create stim_times files
 #
 # without stim_times, use stim_files to generate stim_times
 # without stim_labels, use stim_times to create labels
@@ -722,9 +728,10 @@ def db_cmd_regress(proc, block):
     if len(proc.mot_labs) > 0:
         first = len(proc.stims) + 1 # first stim index
         for ind in range(len(proc.mot_labs)):
-            cmd = cmd + "    -stim_file %d dfile.rall.1D'[%d]' "  \
-                        "-stim_base %d -stim_label %d %s  \\\n"   \
-                % (ind+first, ind, ind+first, ind+first, proc.mot_labs[ind])
+            cmd = cmd + "    -stim_file %d %s'[%d]' "           \
+                        "-stim_base %d -stim_label %d %s  \\\n" \
+                % (ind+first, proc.mot_file, ind, ind+first, ind+first,
+                   proc.mot_labs[ind])
 
     # see if the user wants the fit time series
     opt = block.opts.find_opt('-regress_fitts_prefix')
