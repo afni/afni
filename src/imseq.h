@@ -538,7 +538,7 @@ typedef struct MCW_imseq {
 #define RENDER_DEFAULT    0
 #define RENDER_CHECK_UO   1
 #define RENDER_CHECK_OU   2
-#define RENDER_LASTMODE   1   /* 1 ==> doesn't allow 'OU' checkerboard */
+#define RENDER_LASTMODE   2
 
 #define ISQ_TIMERFUNC_INDEX  701
 #define ISQ_TIMERFUNC_BOUNCE 702
