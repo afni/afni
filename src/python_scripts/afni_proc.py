@@ -908,6 +908,20 @@ g_help_string = """
             Please see '3dDeconvolve -help' and '3dTstat -help'.
             See also -regress_basis, -regress_no_ideals.
 
+        -regress_motion_file FILE.1D  : use FILE.1D for motion parameters
+
+                e.g. -regress_motion_file motion.1D
+
+            Particularly if the user performs motion correction outside of
+            afni_proc.py, they may wish to specify a motion parameter file
+            other than dfile.rall.1D (the default generated in the volreg
+            block).
+
+            If the motion parameter file is in an external directory, the
+            user should copy it via the -copy_files option.
+
+            See also -copy_files.
+
         -regress_no_fitts       : do not supply -fitts to 3dDeconvolve
 
                 e.g. -regress_no_fitts
@@ -1181,10 +1195,11 @@ g_history = """
     1.29 Jun 12 2008 : move code to afni_util.get_dset_reps_tr
     1.30 Jun 30 2008 : added -gen_epi_review and -no_epi_review options
     1.31 Sep 23 2008 : added -remove_preproc_files
+    1.32 Oct 27 2008 : added -regress_motion_file
 
 """
 
-g_version = "version 1.31, Sep 23, 2008"
+g_version = "version 1.32, Oct 27, 2008"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -1221,6 +1236,7 @@ class SubjProcSream:
         self.stims_orig = []            # orig list of stim files to apply
         self.stims      = []            # list of stim files to apply
         self.mot_labs   = []            # labels for motion params
+        self.mot_file   = 'dfile.rall.1D' # motion parameter file
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
@@ -1329,6 +1345,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_stim_times', 0, [])
         self.valid_opts.add_opt('-regress_stim_times_offset', 1, [])
         self.valid_opts.add_opt('-regress_use_stim_files', 0, [])
+        self.valid_opts.add_opt('-regress_motion_file', 1, [])
 
         self.valid_opts.add_opt('-regress_est_blur_epits', 0, [])
         self.valid_opts.add_opt('-regress_est_blur_errts', 0, [])
