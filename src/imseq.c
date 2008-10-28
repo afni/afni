@@ -1720,7 +1720,7 @@ STATUS("creation: widgets created") ;
 
      newseq->timer_id = 0 ;  /* 03 Dec 2003 */
 
-     newseq->render_mode = RENDER_DEFAULT ;
+     newseq->render_mode = RENDER_DEFAULT ;  /* 0 */
 
      /*-- labels stuff --*/
 
@@ -11852,8 +11852,10 @@ ENTRY("ISQ_handle_keypress") ;
        busy=0 ; RETURN(1) ;
      break ;
 
+     case '3':
      case '#':{
-       int rr = (seq->render_mode + 1) % (1+RENDER_LASTMODE) ;
+       int rr = (key == '#') ? RENDER_CHECK_UO : RENDER_CHECK_OU ;
+       if( seq->render_mode == rr ) rr = 0 ;
        seq->render_mode = rr ;
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        ISQ_draw_winfo( seq ) ;
