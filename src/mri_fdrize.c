@@ -168,8 +168,9 @@ STATUS("convert to q/z") ;
     /* compute missed detection fraction vs. log10(p) */
 
     if( qsmal && nq > 199 && qq[0] > 0.0f ){
+      int mm1 ;
 STATUS("computing mdf") ;
-      int mm1 = estimate_m1( nq , qq ) ;  /* number of true positives */
+      mm1 = estimate_m1( nq , qq ) ;  /* number of true positives */
 
                           /* could at this point reduce all q's estimated
                              above by factor of (nq-mm1)/nq, but won't bother */
