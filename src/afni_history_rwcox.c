@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , OCT , 2008 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "add '3' checkerboard (inverse stippling to '#' key)" ,
+   NULL } ,
+
  { 27 , OCT , 2008 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Checkerboard underlay and overlay images" ,
    "For Ziad -- to help judge image alignment.  Use the # key to turn\n"
