@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 
-g_has_SL = 1
+import sys
+import module_test_lib
+g_testlibs = ['sys', 'math', 'numpy']
+if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
+    
 
 # import libraries
-import sys, math
+import math
 import copy
+import numpy as N
 
-try:  import numpy as N
-except:
-      print "** failed to import numpy"
-      print "   may want to install the package: numpy"
-      sys.exit(1)
+# might handle scipy separately
+g_has_SL = 1
 try:  from scipy import linalg as SL
 except:
       print "** failed to import scipy.linalg, will not evaluate matrices..."
