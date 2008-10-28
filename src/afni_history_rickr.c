@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, OCT, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_motion_file option",
+   NULL
+ } ,
+
  { 27, OCT, 2008, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "added -offset option",
    NULL
