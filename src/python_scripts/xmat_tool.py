@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 
-import os, sys, gc
+import sys
+
+# verify system libraries
+import module_test_lib
+g_testlibs = ['os', 'gc', 'numpy', 'wx', 'matplotlib']
+if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
+
+import os, gc
 
 import numpy as N
 
@@ -44,9 +51,10 @@ g_history = """
     0.2  Oct 26, 2008:
          - renamed xmat_comp.py to ui_xmat.py
          - upon loading X-matrix, warn user of duplicate regressors
+    0.3  Oct 27, 2008: test imports via module_test_lib
 """
 
-g_version = "xmat_tool, version 0.1, 24 Oct 2008"
+g_version = "xmat_tool, version 0.3, 27 Oct 2008"
 
 # --------------------------------------------------
 # global widget IDs
