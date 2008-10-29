@@ -238,6 +238,3 @@ def num_import_failures(liblist=[], details=1, verb=1):
 
    return errs
 
-if __name__ == '__main__':
-   print "\nnumber of python import failures = %d" % num_import_failures(verb=1)
-
