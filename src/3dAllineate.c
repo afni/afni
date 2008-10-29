@@ -780,14 +780,17 @@ int main( int argc , char *argv[] )
       "** From Webster's Dictionary: Allineate == 'to align' **\n"
      ) ;
 
+     /*......................................................................*/
+
      if( argc > 1 &&
-        (strcmp(argv[1],"-HELP")==0 || strcmp(argv[1],"-POMOC")==0) ){
+        ( strcmp(argv[1],"-HELP") ==0 ||
+          strcmp(argv[1],"-POMOC")==0 || AFNI_yesenv("AFNI_POMOC") ) ){ 
        printf(
         "\n"
         "===========================================\n"
         "TOP SECRET HIDDEN OPTIONS (-HELP or -POMOC)\n"
         "===========================================\n"
-        "** N.B.: Some of these are experimental ***\n"
+        "** N.B.: Most of these are experimental ***\n"
         "===========================================\n"
         " -num_rtb n  = At the beginning of the fine pass, the best set of results\n"
         "               from the coarse pass are 'refined' a little by further\n"
@@ -913,6 +916,7 @@ int main( int argc , char *argv[] )
         "-------------\n"
         "* -nwarp is slow!\n"
         "* Check the results to make sure the optimizer didn't run amok!\n"
+        "   (You should always do this with any registration software.)\n"
         "* If you use -1Dparam_save, then you can apply the bilinear\n"
         "   warp to another dataset using -1Dparam_apply in a later\n"
         "   3dAllineate run. To do so, use '-nwarp bilinear' in both\n"
@@ -930,8 +934,8 @@ int main( int argc , char *argv[] )
         "        Xout = output vector (source dataset coordinates)\n"
         "        Xc   = center of coordinates used for nonlinearity\n"
         "               (will be the center of the base dataset volume)\n"
-        "        A    = matrix representing affine transformation (12 params)\n"
-        "        I    = identity matrix\n"
+        "        A    = 3x3 matrix representing affine transformation (12 params)\n"
+        "        I    = 3x3 identity matrix\n"
         "    D1,D2,D3 = three 3x3 matrices (the 27 'new' parameters)\n"
         "               * when all 27 parameters == 0, warp is purely affine\n"
         "     {P|Q|R} = 3x3 matrix formed by adjoining the 3-vectors P,Q,R\n"
@@ -939,15 +943,22 @@ int main( int argc , char *argv[] )
         "* The inverse of a bilinear transformation is another bilinear\n"
         "   transformation.  Someday, I may write a program that will let\n"
         "   you compute that inverse transformation, so you can use it for\n"
-        "   some hideous purpose.\n"
+        "   some cunning and devious purpose.\n"
+        "* If you expand the inv[...] part of the above formula in a 1st\n"
+        "   order Taylor series, you'll see that a bilinear warp is basically\n"
+        "   a quadratic warp, with the additional feature that its inverse\n"
+        "   is directly computable (unlike a pure quadratic warp).\n"
+        "* Is this useful?  Try it and tell me!\n"
 #endif
         "=================================================================\n"
        ) ;
 
      } else {
+
        printf(
         "\n"
         "[[[ To see a few advanced/experimental options, use '-HELP'. ]]]\n");
+
      }
 
      PRINT_COMPILE_DATE ; exit(0);
@@ -3423,6 +3434,7 @@ int main( int argc , char *argv[] )
      if( verb > 1 ) mri_genalign_verbose(verb-1) ;
 #endif
 
+     /*----------------------------------------------------------------------*/
      /*--------------- Nonlinear warp improvement? --------------------------*/
 
      if( nwarp_pass ){
