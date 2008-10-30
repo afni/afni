@@ -784,7 +784,7 @@ int main( int argc , char *argv[] )
 
      if( argc > 1 &&
         ( strcmp(argv[1],"-HELP") ==0 ||
-          strcmp(argv[1],"-POMOC")==0 || AFNI_yesenv("AFNI_POMOC") ) ){ 
+          strcmp(argv[1],"-POMOC")==0 || AFNI_yesenv("AFNI_POMOC") ) ){
        printf(
         "\n"
         "===========================================\n"
@@ -939,7 +939,7 @@ int main( int argc , char *argv[] )
         "        Xout = output vector (source dataset coordinates)\n"
         "        Xc   = center of coordinates used for nonlinearity\n"
         "               (will be the center of the base dataset volume)\n"
-        "        A    = 3x3 matrix representing affine transformation (12 params)\n"
+        "        A    = matrix representing affine transformation (12 params)\n"
         "        I    = 3x3 identity matrix\n"
         "    D1,D2,D3 = three 3x3 matrices (the 27 'new' parameters)\n"
         "               * when all 27 parameters == 0, warp is purely affine\n"
@@ -2527,6 +2527,7 @@ int main( int argc , char *argv[] )
      stup.wfunc_param[p].val_init = (id) ;        \
      stup.wfunc_param[p].val_pinit= (id) ;        \
      stup.wfunc_param[p].val_fixed= (id) ;        \
+     stup.wfunc_param[p].val_out  = (id) ;        \
      strcpy( stup.wfunc_param[p].name , (nm) ) ;  \
      stup.wfunc_param[p].fixed  = 0 ;             \
  } while(0)
@@ -2830,8 +2831,10 @@ int main( int argc , char *argv[] )
 #undef  PARDUMP
 #define PARDUMP(ss,xxx)                                     \
   do{ fprintf(stderr," + %s Parameters =",ss) ;             \
-      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )           \
+      for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){          \
+        if( jj == 12 ) fprintf(stderr," |") ;               \
         fprintf(stderr," %.4f",stup.wfunc_param[jj].xxx) ;  \
+      }                                                     \
       fprintf(stderr,"\n") ;                                \
   } while(0)
 #undef  PAROUT
@@ -3169,7 +3172,7 @@ int main( int argc , char *argv[] )
              for( ib=1 ; ib < tfdone ; ib++ ){
                pdist = param_dist( &stup , tfparm[0] , tfparm[ib] ) ;
                if( verb > 2 ) ININFO_message("--- dist(#%d,#1) = %.3g %s" ,
-                                             ib+1, pdist, (pdist<CTHRESH)?"*":"" ) ;
+                                             ib+1, pdist, (pdist<CTHRESH)?"XXX":"" ) ;
                if( tfdone > 2 && pdist < CTHRESH ){
                  for( jb=ib+1 ; jb < tfdone ; jb++ )  /* copy those above down */
                    memcpy( tfparm[jb-1], tfparm[jb], sizeof(float)*stup.wfunc_numpar );
@@ -3446,16 +3449,9 @@ int main( int argc , char *argv[] )
 
        if( nwarp_type == WARP_BILINEAR ){  /*------ special case ------------*/
 
-         float xr,yr,zr,rr , xcen,ycen,zcen , brad ; int nbf ;
+         float rr , xcen,ycen,zcen , brad ; int nbf ;
 
-#if 0
-         xr = 0.5f * dx_base * nx_base ;
-         yr = 0.5f * dy_base * ny_base ;
-         zr = 0.5f * dz_base * nz_base ;
-#else
-         xr = xsize ; yr = ysize ; zr = zsize ;
-#endif
-         rr = MAX(xr,yr) ; rr = MAX(zr,rr) ; rr = 1.2f / rr ;
+         rr = MAX(xsize,ysize) ; rr = MAX(zsize,rr) ; rr = 1.2f / rr ;
 
          SETUP_BILINEAR_PARAMS ;  /* nonlinear params */
 
@@ -3527,26 +3523,119 @@ int main( int argc , char *argv[] )
          if( verb > 1 ) PAROUT("- Bilinear final") ;
 
        } else {   /*----------------------- general nonlinear expansion -----*/
-         char str[16] ;
-         Warpfield *wf ;
-         int wf_nparam ;
 
-         ERROR_exit("Warpfield not yet fully implemented -- SORRY") ;
+#define GSIZ 3
+#define NHH  2
+
+         char str[16] , xyz[4]="xyz" ;
+         Warpfield *wf ;   /* cf. mri_warpfield.[ch] */
+         int wf_nparam , nbf , ngrp , gg , hh ;
+         float xbot,ybot,zbot, xtop,ytop,ztop, xcen,ycen,zcen , brad , rr,vv ;
+
+         MAT44_VEC( stup.base_cmat,
+                    0.5f*nx_base, 0.5f*ny_base, 0.5f*nz_base,
+                    xcen        , ycen        , zcen         ) ;
+
+         MAT44_VEC( stup.base_cmat,
+                    0.5f*nx_base-0.5f*xsize/dx_base-0.99f ,
+                    0.5f*ny_base-0.5f*ysize/dy_base-0.99f ,
+                    0.5f*nz_base-0.5f*zsize/dz_base-0.99f ,
+                    xbot , ybot , zbot ) ;
+
+         MAT44_VEC( stup.base_cmat,
+                    0.5f*nx_base+0.5f*xsize/dx_base+0.99f ,
+                    0.5f*ny_base+0.5f*ysize/dy_base+0.99f ,
+                    0.5f*nz_base+0.5f*zsize/dz_base+0.99f ,
+                    xtop , ytop , ztop ) ;
+
+         if( xbot > xtop ){ brad=xbot ; xbot=xtop ; xtop=brad; }
+         if( ybot > ytop ){ brad=ybot ; ybot=ytop ; ytop=brad; }
+         if( zbot > ztop ){ brad=zbot ; zbot=ztop ; ztop=brad; }
 
          wf = Warpfield_init( nwarp_type , nwarp_order , 0 , NULL ) ;
+         if( wf == NULL )
+           ERROR_exit("Can't setup nonlinear Warpfield!?") ;
          mri_genalign_warpfield_set(wf) ;
 
+         ngrp              = (wf->nfun + GSIZ-1) / GSIZ ;
          stup.wfunc_numpar = wf_nparam = 12 + 3*wf->nfun ;
          stup.wfunc        = mri_genalign_warpfield ;
          stup.wfunc_param  = (GA_param *)realloc( (void *)stup.wfunc_param ,
                                                   wf_nparam*sizeof(GA_param) ) ;
          for( jj=12 ; jj < wf_nparam ; jj++ ){
-           sprintf(str,"#%03d",jj+1) ;
+           sprintf(str,"%c#%03d",xyz[jj%3],(jj-9)/3) ;
            DEFPAR( jj,str, -0.05f,0.05f , 0.0f,0.0f,0.0f ) ;
          }
-         for( jj=0 ; jj < 12 ; jj++ ) stup.wfunc_param[jj].fixed = 1 ;
-       }
-     }
+
+         /* affine part is fixed at results of work thus far */
+
+         for( jj=0 ; jj < 12 ; jj++ ){
+           stup.wfunc_param[jj].val_init =
+            stup.wfunc_param[jj].val_fixed = stup.wfunc_param[jj].val_out;
+           stup.wfunc_param[jj].fixed = 1 ;
+         }
+
+         stup.need_hist_setup = 1 ;
+         mri_genalign_scalar_setup( NULL,NULL,NULL, &stup );
+
+         if( verb > 0 ){
+           INFO_message("----------- Start Warpfield optimization -----------");
+           if( verb > 1 )
+             ININFO_message(" %d warp parameters per dimension",wf->nfun) ;
+         }
+
+         mri_genalign_set_boxsize( xbot,xtop , ybot,ytop , zbot,ztop ) ;
+
+         if( verb > 1 ) PARINI("- Warpfield initial") ;
+         rr   = MAX(xsize,ysize)     ; rr = MAX(zsize,rr) ;
+         vv   = MAX(dx_base,dy_base) ; vv = MAX(vv,dz_base) ;
+         brad = 2.0f * vv / rr ;
+         if( brad < 0.003f ) brad = 0.005f ; else if( brad > 0.03f ) brad = 0.03f ;
+         rad  = 12.345f * brad ;
+         if( verb > 1 ) ININFO_message(" - convergence radius = %.4f",brad) ;
+
+         for( hh=0 ; hh < NHH ; hh++ ){
+           for( gg=0 ; gg < ngrp ; gg++ ){
+
+             for( jj=12 ; jj < wf_nparam ; jj++ ){
+               if( (jj-12)/(3*GSIZ) == gg ){   /* activate */
+                 stup.wfunc_param[jj].fixed = 0 ;
+                 stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
+               } else {                        /* deactivate */
+                 stup.wfunc_param[jj].fixed = 1 ;
+                 stup.wfunc_param[jj].val_fixed = stup.wfunc_param[jj].val_out ;
+               }
+             }
+
+             ctim = COX_cpu_time() ;
+             nbf  = mri_genalign_scalar_optim( &stup , rad, 2.345f*brad, 33*GSIZ );
+             dtim = COX_cpu_time() ;
+             if( verb ){
+               ININFO_message("- Warpfield#%d/%d cost = %f ; %d funcs ; CPU = %.1f s",
+                              hh*ngrp+gg+1,NHH*ngrp,stup.vbest,nbf,dtim-ctim) ;
+               if( verb > 1 ) PAROUT("- Warpfield") ;
+             }
+           }
+           rad *= 0.777f ;
+         }
+
+         for( jj=12 ; jj < wf_nparam ; jj++ ){
+           stup.wfunc_param[jj].fixed = 0 ;
+           stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out ;
+         }
+         if( verb ) ININFO_message("Start global Warpfield optimization") ;
+         ctim = COX_cpu_time() ;
+         nbf  = mri_genalign_scalar_optim( &stup , 6.66f*brad, brad, 11*wf->nfun );
+         dtim = COX_cpu_time() ;
+         if( verb ){
+           ININFO_message("- Warpfield final cost = %f ; %d funcs ; CPU = %.1f s",
+                          stup.vbest,nbf,dtim-ctim) ;
+           if( verb > 1 ) PAROUT("- Warpfield final") ;
+         }
+
+       } /* end of Warpfield */
+
+     } /* end of nonlinear warp */
 
      /*-------- FINALLY HAVE FINISHED -----------------------------*/
 
