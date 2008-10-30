@@ -48,7 +48,13 @@
 
 */
 
+
 afni_history_struct dglen_history[] = {
+{ 30 , OCT , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, "AddEdge with epi2anat",
+    "fixed AddEdge option for epi2anat output"
+} ,
+
 { 15 , OCT , 2008 , DRG , "afni plugouts, @AddEdge" , 
     MINOR , TYPE_MODIFY, "quiet communications",
     "@AddEdge silences communications as plugout"
