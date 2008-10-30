@@ -48,9 +48,14 @@
 
 afni_history_struct rickr_history[] = {
 
- { 28, OCT, 2008, RCR, "module_test_lib.py", MINOR, TYPE_NEW_PROG,
-   "library/program to test python module imports",
+ { 29, OCT, 2008, RCR, "python_module_test.py", MINOR, TYPE_NEW_PROG,
+   "program to test python module imports (interface to module_test_lib.py)",
    NULL
+ } ,
+
+ { 28, OCT, 2008, RCR, "module_test_lib.py", MINOR, TYPE_NEW_PROG,
+   "library to test python module imports",
+   "One might want to apply this module at the top of any python file."
  } ,
 
  { 28, OCT, 2008, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
