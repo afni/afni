@@ -2681,12 +2681,16 @@ void mri_genalign_set_boxsize( float xbot, float xtop,
    LOAD_DIAG_MAT44(fr_cube,fr_cube_ax,fr_cube_ay,fr_cube_az) ;
    LOAD_MAT44_VEC (fr_cube,fr_cube_bx,fr_cube_by,fr_cube_bz) ;
 
+   if( verb )
+     ININFO_message("Warpfield boxsize: %.1f..%.1f X %.1f..%.1f X %.1f..%.1f",
+                    xbot,xtop , ybot,ytop , zbot,ztop ) ;
+
    return ;
 }
 
 /*--------------------------------------------------------------------------*/
 
-static Warpfield *wfield  = NULL ;
+static Warpfield *wfield = NULL ;
 
 Warpfield * mri_genalign_warpfield_setup( int ttt , float ord , int flags )
 {
