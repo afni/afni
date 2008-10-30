@@ -106,12 +106,12 @@ def get_py_ver_float():
    if pv[0] == '1': return float('%c.%c' % (pv[0],pv[1]))
    else:            return float('%s.%s' % (pv[0],pv[1]))
 
-# not for general use
-def _show_mesg(libname):
+# not for general use: return message for libname
+def _get_mesg(libname):
    for mpair in g_mesglist:
       if mpair[0] == libname:
-         print mpair[1]
-         return
+         return mpair[1]
+   return ''
 
 
 # function definition string for if we are running pythong 2.5 +
@@ -129,8 +129,12 @@ import_find_test_25_def =       \
    try: fp, pname, desc = imp.find_module(libname)
    except:
       if verb > 0:
+         if details: mesg = _get_mesg(libname)
+         else:       mesg = ''
+         if mesg:
+            print "---------------------------------------------------------"
          print "** python module not found: %s" % libname
-         if details: _show_mesg(libname)
+         if mesg: print mesg
             
       return None
 
@@ -166,8 +170,12 @@ import_find_test_24_def =       \
    try: fp, pname, desc = imp.find_module(libname)
    except:
       if verb > 0:
+         if details: mesg = _get_mesg(libname)
+         else:       mesg = ''
+         if mesg:
+            print "---------------------------------------------------------"
          print "** python module not found: %s" % libname
-         if details: _show_mesg(libname)
+         if mesg: print mesg
       return None
 
    if verb>2: print "++ module '%s' found at %s" % (libname, pname)
