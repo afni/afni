@@ -329,7 +329,7 @@ foreach anain ($analist)
    set olist = (  $olist \
                   ${ooo}+orig.HEAD)               
    if($rm_ae_temp == 1) then
-     rm -f ${anatpref}_e+orig* ${anatpref}_e3+orig* ${epipref}_${anatpref}_e+orig* 
+     rm -f ${anatpref}_e+orig* ${epipref}_${anatpref}_e+orig* 
    endif
 end
 
