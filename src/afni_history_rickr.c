@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, OCT, 2008, RCR, "xmat_tool.py", MINOR, TYPE_MODIFY,
+   "if the X-matrix has a constant regressor, do not de-mean it",
+   "In such a case, the cormat would not exactly be a correlation matrix."
+ } ,
+
  { 29, OCT, 2008, RCR, "python_module_test.py", MINOR, TYPE_NEW_PROG,
    "program to test python module imports (interface to module_test_lib.py)",
    NULL

@@ -183,7 +183,7 @@ class XmatInterface:
       mstr = 'Warnings regarding Correlation Matrix:\n\n'         \
              '    severity      correlation  regressor pair\n'    \
              '    --------      -----------  --------------------------------\n'
-      cutstrs = [ '    IDENTICAL:   ', '  high:        ', '  medium:      ']
+      cutstrs = [ '    IDENTICAL:   ', '    high:        ', '    medium:      ']
 
       for val, row, col in badlist:
          if   val >= cut0: cs = cutstrs[0]
