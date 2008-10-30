@@ -9,7 +9,7 @@ function afni_fig_interface(src, evnt)
    end
    
    if (  lower(evnt.Character) == 'l'  ),
-      ud.axes_lock = ~ud.axes_lock
+      ud.axes_lock = ~ud.axes_lock;
       set (src,'UserData',ud);
       if ud.axes_lock, set (src,'Name','L');
       else set (src,'Name','');
@@ -59,7 +59,6 @@ function zoom_axis(a,h)
          if (  ~(a(ia) - lower(a(ia))) ),
             dv = 1;
          end
-         dv
          if (~(lower(a(ia)) - 'x')), se = [1 2];
          elseif (~(lower(a(ia)) - 'y')), se = [3 4];
          elseif (~(lower(a(ia)) - 'z')), se = [5 6];
