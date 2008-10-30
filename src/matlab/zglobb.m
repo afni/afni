@@ -124,9 +124,12 @@ if (cnt == 0),
 	return;
 end
 
-
-err = 0;
-ErrMessage = '';
+if (nargout <= 1),
+   err = NameList;
+else,
+   err = 0;
+   ErrMessage = '';
+end
 return;
 
 function cl = zstr2cell(ll)
