@@ -324,7 +324,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.13" # software version (update for changes)
+      self.align_version = "1.14" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2441,11 +2441,13 @@ if __name__ == '__main__':
          # Use 3dAllineate to create the resampled, skullstripped EPI
          # from the same representative sub-brick used to align anat to epi
          ps.epi_alnd_rs = e.new("__tt_%s_alnd_rs" % ps.epi.out_prefix())
-         epi_mat = "%s%s_reg_mat.aff12.1D" % (ps.epi.out_prefix(), ps.suffix)
+         epi_mat = "%s%s_mat.aff12.1D" % (ps.epi.out_prefix(), ps.suffix)
+         if((ps.volreg_flag) and (ps.epi_base.isdigit())):
+            epi_mat  = "%s{%s}" % (epi_mat, ps.epi_base) 
 
          ps.info_msg( "Applying transformation for epi to anat for @AddEdge")
          com = shell_com(  \
-            "3dAllineate -base %s -1Dmatrix_apply %s " \
+            "3dAllineate -base %s -1Dmatrix_apply '%s' " \
             "-prefix %s -input %s  -master BASE"   %  \
             ( ps.anat0.input(), epi_mat, ps.epi_alnd_rs.out_prefix(), \
               ein_rs.input()), ps.oexec)
