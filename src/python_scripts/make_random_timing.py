@@ -250,13 +250,20 @@ examples:
                    -stim_labels A B A1 A2 B1 B2 -min_rest 1.5 -seed 54321   \\
                    -offset 8.0 -save_3dd_cmd @cmd.3dd.G -prefix stimesG 
 
-          d. Finally, modify the 3dDeconvolve command in @cmd.3dd.G to use the
-             updated timing files stimesG_A_all.1D and stimesG_B_all.1D (from
-             step b), replacing files stimesG_01_A.1D and stimesG_01_B.1D.
+          d. Finally, fix the 3dDeconvolve command in @cmd.3dd.G.
+
+             1. Use the timing files stimesG_A_all.1D and stimesG_B_all.1D from
+                step b, replacing files stimesG_01_A.1D and stimesG_01_B.1D.
+
+             2. Update the stimulus durations of A1, A2, B1 and B2 from 16
+                seconds to the correct 8 seconds (the second half of the 16
+                second intervals).
 
              This is necessary because the command in step (c) does not know
-             about the updated A/B files from step (b).  Step (c) was used only
-             to add 8 seconds to the times for regressors A1, A2, B1 and B2.
+             about the updated A/B files from step (b).  The first half of each
+             16 second A1/A2 stimulus is actually stimulus A, while the second
+             half is really A1 or A2.  Similarly for B.
+             
         
        The resulting files are kept (and applied in and 3dDeconvolve commands):
 

@@ -221,10 +221,13 @@ class AfniXmat:
         mat = copy.deepcopy(self.mat)
         xtn = N.transpose(mat)
 
-        # demean (the stupid, ugly, loser transpose)
+        # demean each row, unless it is all 1's
         means = [N.mean(col) for col in xtn]
-        for c in range(self.ncols):     # demean each row
-            xtn[c] -= means[c]
+        for c in range(self.ncols):
+            min = xtn[c].min()
+            max = xtn[c].max()
+            if min != 1.0 or max != 1.0:
+               xtn[c] -= means[c]
 
         # and normalize
         norms = [SL.norm(col) for col in xtn]
@@ -484,7 +487,7 @@ class AfniXmat:
                  return []
            groups.extend([g for g in self.groups if g > 0])
         if len(groups) < 1 or len(self.groups) < 1: return []
-        if not list2_is_in_list1(self.groups, groups, "groups"): return []
+        # if not list2_is_in_list1(self.groups, groups, "groups"): return []
         return [val for val in range(self.ncols) if self.groups[val] in groups]
         
     def cols_by_label_list(self, labels):

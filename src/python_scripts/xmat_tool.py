@@ -52,6 +52,9 @@ g_history = """
          - renamed xmat_comp.py to ui_xmat.py
          - upon loading X-matrix, warn user of duplicate regressors
     0.3  Oct 27, 2008: test imports via module_test_lib
+    0.4  Oct 30, 2008:
+         - modified the correlation matrix so that a constant regressor is not
+           zeroed out (de-meaned), so not quite a correlation matrix
 """
 
 g_version = "xmat_tool, version 0.3, 27 Oct 2008"
@@ -289,10 +292,10 @@ class MainFrame(wx.Frame):
       menubar.Append(menu, "&File")
       # Show menu
       menu = wx.Menu()
-      menu.Append(ID_SHOW_XMAT, "Show &Xmat", "Show info about Xmat")
+      menu.Append(ID_SHOW_XMAT, "Show X&mat", "Show info about Xmat")
       menu.Append(ID_SHOW_XMAT_CONDS,
-                  "Show Xmat &conds", "Show Xmat condition numbers")
-      menu.Append(ID_SHOW_CORMAT, "Show X-Cor&mat",
+                  "Show Xmat co&nds", "Show Xmat condition numbers")
+      menu.Append(ID_SHOW_CORMAT, "Show X-&Cormat",
                                   "Show correlation matrix (of X-matrix)")
       menu.Append(ID_SHOW_CORMAT_EVIL, "Show X-Cormat &Warnings",
                          "Show problematic entries in correlation matrix")
@@ -302,11 +305,11 @@ class MainFrame(wx.Frame):
       menubar.Append(menu, "&Show")
       # Plot menu
       menu = wx.Menu()
-      menu.Append(ID_PLOT_XMAT, "Plot &Xmat", "Graph selected X matrix columns")
-      menu.Append(ID_PLOT_1D, "Plot 1D", "Graph 1D time series")
-      menu.Append(ID_PLOT_BEST_FIT, "Plot Best Fit",
+      menu.Append(ID_PLOT_XMAT, "Plot X&mat", "Graph selected X matrix columns")
+      menu.Append(ID_PLOT_1D, "Plot &1D", "Graph 1D time series")
+      menu.Append(ID_PLOT_BEST_FIT, "Plot Best &Fit",
             "Graph best fit of selected X matrix columns against 1D array")
-      menu.Append(ID_PLOT_CORMAT, "Graph Corr Mat", "Graph Correlation Matrix")
+      menu.Append(ID_PLOT_CORMAT, "Graph &Corr Mat", "Graph Correlation Matrix")
       menubar.Append(menu, "&Plot")
       # Help menu
       menu = wx.Menu()
@@ -604,7 +607,7 @@ class MainFrame(wx.Frame):
       # fill screen display data for this matrix
       self.update_textlist_from_xmat()
 
-      badlist = self.XM.matX.list_cormat_warnings()
+      badlist = self.XM.matX.list_cormat_warnings(cutoff=1.0)
       if badlist:
          self.popup_warning("duplicate regressors found in matrix\n\n"  \
                          "'Show: X-Cormat Warnings' for complete list")
