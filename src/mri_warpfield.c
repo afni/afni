@@ -11,18 +11,18 @@
 
 typedef void (*bfunc1D)(int,int,float *,float *) ;
 
-static void Warpfield_trigfun  (int,void *,int,float *,float *,float *,float *);
-static void Warpfield_legfun   (int,void *,int,float *,float *,float *,float *);
-static void Warpfield_gegenfun (int,void *,int,float *,float *,float *,float *);
+void Warpfield_trigfun  (int,void *,int,float *,float *,float *,float *);
+void Warpfield_legfun   (int,void *,int,float *,float *,float *,float *);
+void Warpfield_gegenfun (int,void *,int,float *,float *,float *,float *);
 
-static void * Warpfield_prodfun_setup(float,int *,int,void *) ;
+void * Warpfield_prodfun_setup(float,int *,int,void *) ;
 
-static void Wtrig    (int,int,float *,float *) ;
-static void Wlegendre(int,int,float *,float *) ;
-static void Wgegen   (int,int,float *,float *) ;
+void Wtrig    (int,int,float *,float *) ;
+void Wlegendre(int,int,float *,float *) ;
+void Wgegen   (int,int,float *,float *) ;
 
-static void Warpfield_prodfun( int kfun, void *vpar, bfunc1D bf , int npt ,
-                               float *x, float *y, float *z, float *val    ) ;
+void Warpfield_prodfun( int kfun, void *vpar, bfunc1D bf , int npt ,
+                        float *x, float *y, float *z, float *val    ) ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -104,6 +104,9 @@ void Warpfield_destroy( Warpfield *wf )
    free((void *)wf) ; return ;
 }
 
+/*****************************************************************************/
+/********************** Stuff that isn't used anywhere yet. ******************/
+#if 0
 /*---------------------------------------------------------------------------*/
 /*! Change the expansion order of a warpfield. */
 
@@ -134,9 +137,9 @@ void Warpfield_change_order( Warpfield *wf , float neword )
     evaluated at (xi,yi,zi) is a least squares fit to (xw,yw,zw).
 *//*-------------------------------------------------------------------------*/
 
-static float Warpfield_lsqfit( Warpfield *wf , int flags , float order ,
-                               int npt, float *xi , float *yi , float *zi ,
-                                        float *xw , float *yw , float *zw  )
+float Warpfield_lsqfit( Warpfield *wf , int flags , float order ,
+                        int npt, float *xi , float *yi , float *zi ,
+                                 float *xw , float *yw , float *zw  )
 {
    MRI_IMAGE *imbase , *imbinv ;
    float     *bar    , *iar    , *car,*dar,*ear , qsum ;
@@ -229,6 +232,7 @@ Warpfield * Warpfield_inverse( Warpfield *wf , float *rmserr )
 
    /* its matrix is the inverse of the input's */
 
+   memset( &ub , 0 , sizeof(mat44) ) ;
    if( !WARPFIELD_SKIPAFF(wf) ){
      wa = wf->aa ; ub = uf->aa = MAT44_INV(wa) ;
    }
@@ -363,6 +367,9 @@ Warpfield * Warpfield_approx( Warpfield *wf , float ord , float *rmserr )
 float Warpfield_compose(void)  /* TBD */
 {
 }
+#endif
+/*****************************************************************************/
+/*****************************************************************************/
 
 /*---------------------------------------------------------------------------*/
 /* Stuff for tensor product basis functions */
@@ -382,7 +389,7 @@ typedef struct { int a,b,c ; float m ; } fvm ;
 #undef  CFV
 #define CFV(p,q) ( ((p)<(q)) ? -1 : ((p)>(q)) ? 1 : 0 )
 
-static int cmp_fvm( const fvm *v , const fvm *w )  /* for sorting */
+int cmp_fvm( const fvm *v , const fvm *w )  /* for sorting */
 {
   int cc ; float dd ;
   dd = v->m - w->m ;
@@ -395,7 +402,7 @@ static int cmp_fvm( const fvm *v , const fvm *w )  /* for sorting */
 
 /*---------------------------------------------------------------------------*/
 
-static tenprodpar * Warpfield_tenprod_setup( float order )
+tenprodpar * Warpfield_tenprod_setup( float order )
 {
    tenprodpar *spar ;
    int nk , ii,jj,kk , qq,pp ;
@@ -442,7 +449,7 @@ static tenprodpar * Warpfield_tenprod_setup( float order )
 
 /*---------------------------------------------------------------------------*/
 
-static void * Warpfield_prodfun_setup( float order, int *nfun, int flags, void *vp )
+void * Warpfield_prodfun_setup( float order, int *nfun, int flags, void *vp )
 {
    tenprodpar *spar ;
 
@@ -468,8 +475,8 @@ static void * Warpfield_prodfun_setup( float order, int *nfun, int flags, void *
 
 /*----------------------------------------------------------------------------*/
 
-static void Warpfield_prodfun( int kfun, void *vpar, bfunc1D bff , int npt ,
-                               float *x, float *y, float *z, float *val     )
+void Warpfield_prodfun( int kfun, void *vpar, bfunc1D bff , int npt ,
+                        float *x, float *y, float *z, float *val     )
 {
    tenprodpar *spar = (tenprodpar *)vpar ;
    int kx, ky, kz ;
@@ -509,10 +516,12 @@ static void Warpfield_prodfun( int kfun, void *vpar, bfunc1D bff , int npt ,
 
    /* taper downwards for values far from center */
 
+#if 0
    for( ii=0 ; ii < npt ; ii++ ){
      qq = x[ii]*x[ii] + y[ii]*y[ii] + z[ii]*z[ii] ;
      val[ii] /= (1.0f+qq*qq*qq) ;
    }
+#endif
 
    return ;
 }
@@ -520,7 +529,7 @@ static void Warpfield_prodfun( int kfun, void *vpar, bfunc1D bff , int npt ,
 /*---------------------------------------------------------------------------*/
 /* Trig functions in 1D. */
 
-static void Wtrig( int m , int npt , float *xx , float *v )
+void Wtrig( int m , int npt , float *xx , float *v )
 {
   register int ii ;
   register float fac ;
@@ -564,7 +573,7 @@ static void Wtrig( int m , int npt , float *xx , float *v )
 
 /*----------------------------------------------------------------------------*/
 
-static void Wlegendre( int m , int npt , float *xx , float *v )
+void Wlegendre( int m , int npt , float *xx , float *v )
 {
   register int ii ;
   register float x , xq , xt ;
@@ -638,7 +647,7 @@ static void Wlegendre( int m , int npt , float *xx , float *v )
 
 /*----------------------------------------------------------------------------*/
 
-static void Wgegen( int m , int npt , float *xx , float *v )
+void Wgegen( int m , int npt , float *xx , float *v )
 {
   register int ii ;
   register float x,xq,xt ;
@@ -686,28 +695,28 @@ static void Wgegen( int m , int npt , float *xx , float *v )
 
 /*---------------------------------------------------------------------------*/
 
-static void Warpfield_trigfun( int kfun, void *vpar,
-                               int npt , float *x, float *y, float *z, float *val )
+void Warpfield_trigfun( int kfun, void *vpar,
+                        int npt , float *x, float *y, float *z, float *val )
 {
    static int first = 1 ;
-   if( first ){ INFO_message("trigfun"); first = 0; }
+   if( first ){ INFO_message("Warpfield trigfun initialized"); first = 0; }
    Warpfield_prodfun( kfun , vpar , Wtrig , npt , x,y,z , val ) ;
 }
 
 /*----------------------------------------------------------------------------*/
 
-static void Warpfield_legfun( int kfun, void *vpar,
-                              int npt , float *x, float *y, float *z, float *val )
+void Warpfield_legfun( int kfun, void *vpar,
+                       int npt , float *x, float *y, float *z, float *val )
 {
    static int first = 1 ;
-   if( first ){ INFO_message("legfun"); first = 0; }
+   if( first ){ INFO_message("Warpfield legfun initialized"); first = 0; }
    Warpfield_prodfun( kfun , vpar , Wlegendre , npt , x,y,z , val ) ;
 }
 
 /*----------------------------------------------------------------------------*/
 
-static void Warpfield_gegenfun( int kfun, void *vpar,
-                                int npt , float *x, float *y, float *z, float *val )
+void Warpfield_gegenfun( int kfun, void *vpar,
+                         int npt , float *x, float *y, float *z, float *val )
 {
    static int first = 1 ;
    if( first ){ INFO_message("gegenfun"); first = 0; }
@@ -715,6 +724,9 @@ static void Warpfield_gegenfun( int kfun, void *vpar,
 }
 
 /*---------------------------------------------------------------------------*/
+/* Note that if SKIPAFF is turned on, then (xo,yo,zo) inputs are added to,
+   but if SKIPAFF is off, then (xo,yo,zo) inputs are cast aside like trash.
+*//*-------------------------------------------------------------------------*/
 
 void Warpfield_eval_array( Warpfield *wf ,
                            int npt, float *xi, float *yi, float *zi,
