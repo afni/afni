@@ -419,6 +419,9 @@ void getvoxlclusterdist(int* count, float** cdata,
   float difference, difference1;
   float* max_vcdata = NULL;
 
+  char* filename5;
+  FILE *out5=NULL;
+
    ENTRY("getvoxlclusterdist");
   /* allocate for answer arrays */
   if (!(max_vcdata = (float *)calloc(sizeof(float), nclusters))) {
@@ -437,6 +440,10 @@ void getvoxlclusterdist(int* count, float** cdata,
   sprintf (filename4, "%s_K_G%d.vcd", jobname, nclusters);
   out4 = fopen( filename4, "w" );
 
+  filename5 = malloc((n+2)*sizeof(char));
+  sprintf (filename5, "%s_K_G%d.info2", jobname, nclusters);
+  out5 = fopen( filename5, "a" );
+
   for (i = 0; i < nrows; i++){
     difference = 0;
     difference1 = 0;
@@ -447,7 +454,7 @@ void getvoxlclusterdist(int* count, float** cdata,
     vcdata[i][0] = 100/(1+sqrt(difference)); /* if values are close to 0 ?! */
   }
 
- /* avovk JULY29_2008 */ 
+ /* avovk JULY29_2008, sept 05 */ 
   for (i = 0; i < nclusters; i++){
     max_vcdata[i] = 0;
   }
@@ -461,20 +468,22 @@ void getvoxlclusterdist(int* count, float** cdata,
   printf("max distances within clusters\n");
   for (i = 0; i < nclusters; i++){
     printf("%7.3f\n",max_vcdata[i]);
+    fprintf(out5,"cluster %d: %7.3f\n",i,max_vcdata[i]);
   }
 
   for (i = 0; i < nrows; i++){
     difference = vcdata[i][0];
     vcdata[i][0] = 100*clusterid[i]+100*difference/(max_vcdata[clusterid[i]]);
   }
-  /* avovk JULY29_2008 */
+  /* avovk JULY29_2008, sept 05 */
 
   printf ("------- writing voxels-centroids distances to file:\t\t"
           " %s_K_G%d.vcd\n",jobname, nclusters);
   for (i = 0; i < nrows; i++)
     fprintf (out4, "%09d\t%7.3f\n", i, vcdata[i][0]);
   fclose(out4); out4=NULL;
-  
+  fclose(out5); out5=NULL;
+
   /*for (i = 0; i < nrows; i++){ 
     free(vcdata[i]);
     }
@@ -692,10 +701,11 @@ void example_kmeans( int nrows, int ncols,
    char* filename;
    char* filename2;
    char* filename3;
+   char* filename4;
    FILE *out1=NULL;
    FILE *out2=NULL;
    FILE *out3=NULL;
-
+   FILE *out4=NULL;
    float a, b;
    
    
@@ -718,18 +728,20 @@ void example_kmeans( int nrows, int ncols,
    filename = (char *)malloc(n*sizeof(char));
    filename2 = (char *)malloc(n*sizeof(char));
    filename3 = (char *)malloc(n*sizeof(char));
+   filename4 = (char *)malloc((n+2)*sizeof(char));
    sprintf (filename, "%s_K_G%d.kgg", jobname, nclusters);
    out1 = fopen( filename, "w" );
    sprintf (filename2, "%s_K_G%d.dis", jobname, nclusters);
    out2 = fopen( filename2, "w" );
    sprintf (filename3, "%s_K_G%d.cen", jobname, nclusters);
-   out3 = fopen( filename3, "w" );
-
+   out3 = fopen( filename3, "a" );
+   sprintf (filename4, "%s_K_G%d.info1", jobname, nclusters);
+   out4 = fopen( filename4, "a" );
    printf("======================== k-means clustering"
          " ========================\n");
 
    printf ("\n");
-   printf ("----- doing %d passes... go stretch your legs...\n",npass);
+   printf ("----- doing %d pass-es... go stretch your legs...\n",npass);
    //npass = 3;
    /* ANDREJ: This function returns different answers each time it is 
       executed. Does the library provide for ways to initialize the
@@ -742,6 +754,10 @@ void example_kmeans( int nrows, int ncols,
                clusterid, &error, &ifound);
    printf ("Solution found %d times; ", ifound);
    printf ("within-cluster sum of distances is %f\n", error);
+
+   fprintf (out4,"within-cluster sum of distances: %f\n",error);
+   fclose(out4); out4=NULL;
+
    printf ("------- writing Cluster assignments to file:\t\t"
           " %s_K_G%d.kgg\n",jobname, nclusters);
    for (i = 0; i < nrows; i++)
@@ -772,6 +788,7 @@ void example_kmeans( int nrows, int ncols,
 				      index[j], 'e', 'a', 0); 
 	   fprintf(out2,"Distance between %d and %d: %7.3f\n", 
 		   i, j, distance);
+	   
 	 }
      }
 
@@ -779,14 +796,15 @@ void example_kmeans( int nrows, int ncols,
 
    printf ("------- writing Cluster centroids to file:\t\t"
           "%s_K_G%d.cen\n",jobname, nclusters);
-   fprintf (out3,"------- Cluster centroids:\n");
+
+   /*fprintf (out3,"------- Cluster centroids:\n");*/
    getclustercentroids(nclusters, nrows, ncols, data, clusterid,
                       cdata, 0, 'a');
-   fprintf(out3,"   coefficients:");
-   for(i=0; i<ncols; i++) fprintf(out3,"\t%7d", i);
-   fprintf(out3,"\n");
+   /*   fprintf(out3,"   coefficients:");
+	for(i=0; i<ncols; i++) fprintf(out3,"\t%7d", i);
+	fprintf(out3,"\n");*/
    for (i = 0; i < nclusters; i++){ 
-      fprintf(out3,"Cluster %2d:", i);
+     /*      fprintf(out3,"Cluster %2d:", i);*/
       for (j = 0; j < ncols; j++) fprintf(out3,"\t%7.3f", cdata[i][j]);
       fprintf(out3,"\n");
    }
