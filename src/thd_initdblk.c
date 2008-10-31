@@ -1111,6 +1111,50 @@ ENTRY("THD_datablock_apply_atr") ;
       }
    }
 
+   /* update attributes for time axes - copied from thd_dsetdblk.c */
+   /*--- read time-dependent information, if any ---*/
+   atr_int = THD_find_int_atr  ( blk , ATRNAME_TAXIS_NUMS ) ;
+   atr_flt = THD_find_float_atr( blk , ATRNAME_TAXIS_FLOATS ) ;
+   if( atr_int != NULL && atr_flt != NULL ){
+     int isfunc , nvals ;
+
+     dset->taxis = myXtNew( THD_timeaxis ) ;
+
+     dset->taxis->type    = TIMEAXIS_TYPE ;
+     dset->taxis->ntt     = atr_int->in[0] ;
+     dset->taxis->nsl     = atr_int->in[1] ;
+     dset->taxis->ttorg   = atr_flt->fl[0] ;
+     dset->taxis->ttdel   = atr_flt->fl[1] ;
+     dset->taxis->ttdur   = atr_flt->fl[2] ;
+     dset->taxis->zorg_sl = atr_flt->fl[3] ;
+     dset->taxis->dz_sl   = atr_flt->fl[4] ;
+
+     dset->taxis->units_type = atr_int->in[2] ;    /* 21 Oct 1996 */
+     if( dset->taxis->units_type < 0 )             /* assign units */
+       dset->taxis->units_type = UNITS_SEC_TYPE ;  /* to the time axis */
+
+     if( dset->taxis->nsl > 0 ){
+       atr_flt = THD_find_float_atr( blk , ATRNAME_TAXIS_OFFSETS ) ;
+       if( atr_flt == NULL || atr_flt->nfl < dset->taxis->nsl ){
+         dset->taxis->nsl     = 0 ;
+         dset->taxis->toff_sl = NULL ;
+         dset->taxis->zorg_sl = 0.0 ;
+         dset->taxis->dz_sl   = 0.0 ;
+       } else {
+         int ii ;
+         dset->taxis->toff_sl = (float *) XtMalloc(sizeof(float)*dset->taxis->nsl) ;
+         for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
+           dset->taxis->toff_sl[ii] = atr_flt->fl[ii] ;
+       }
+     } else {
+       dset->taxis->nsl     = 0 ;
+       dset->taxis->toff_sl = NULL ;
+       dset->taxis->zorg_sl = 0.0 ;
+       dset->taxis->dz_sl   = 0.0 ;
+     }
+
+   }
+
    EXRETURN ;
 }
 
