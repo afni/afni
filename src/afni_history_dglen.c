@@ -50,6 +50,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 31 , OCT , 2008 , DRG , "3drefit" , 
+    MINOR , TYPE_MODIFY, "Time axis attributes",
+    "Added support in 3drefit for applying time axis attributes"
+} ,
+
 { 30 , OCT , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, "AddEdge with epi2anat",
     "fixed AddEdge option for epi2anat output"
