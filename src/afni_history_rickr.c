@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, OCT, 2008, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "added -show_timing_stats option",
+   "Also, made a small change affecting timing (old results will not match)."
+ } ,
+
  { 29, OCT, 2008, RCR, "xmat_tool.py", MINOR, TYPE_MODIFY,
    "if the X-matrix has a constant regressor, do not de-mean it",
    "In such a case, the cormat would not exactly be a correlation matrix."

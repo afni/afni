@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, random, os
+import sys, random, os, math
 import option_list, afni_util as UTIL
 
 g_help_string = """
@@ -130,14 +130,16 @@ examples:
        well as after the last.
 
        Also, add labels for the 3 stimulus classes: houses, faces, donuts.
-       They will be appended to the respective filenames.
+       They will be appended to the respective filenames.  And finally, display
+       timing statistics for the user.
 
        The output will be written to stimesB_01.houses.1D, etc.
 
             make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
                 -stim_dur 3.5 -num_reps 8 -prefix stimesB                \\
                 -pre_stim_rest 20 -post_stim_rest 20                     \\
-                -stim_labels houses faces donuts
+                -stim_labels houses faces donuts                         \\
+                -show_timing_stats
 
        Consider adding the -save_3dd_cmd option.
 
@@ -176,7 +178,7 @@ examples:
                 -stim_dur 3.5 -num_reps 8 -prefix stimesE                \\
                 -pre_stim_rest 20 -post_stim_rest 20                     \\
                 -min_rest 0.7 -t_gran 0.001 -seed 17 -verb 2             \\
-                -save_3dd_cmd @cmd.3dd
+                -show_timing_stats -save_3dd_cmd @cmd.3dd
 
     6. Example with varying number of events.
 
@@ -324,19 +326,6 @@ required arguments:
 
             see also: -across_runs
 
-    -stim_dur TIME              : set the duration for a single stimulus
-
-        e.g. -stim_dur 3.5
-        e.g. -stim_dur 3.5 1.0 4.2
-
-        This specifies the length of time taken for a single stimulus, in
-        seconds.  These stimulation intervals never overlap (with either rest
-        or other stimulus intervals) in the output timing files.
-
-        If a single TIME parameter is given, it applies to all of the stimulus
-        classes.  Otherwise, the user can provide a list of durations, one per
-        stimulus class.
-
     -prefix    PREFIX           : set the prefix for output filenames
 
         e.g. -prefix stim_times
@@ -352,6 +341,28 @@ required arguments:
         any labels, in the order that they are given to this program.
 
             see also -stim_labels
+
+    -show_timing_stats          : show statistics from the timing
+
+        e.g. -show_timing_stats
+
+        If this option is set, the program will output statistical information
+        regarding the stimulus timing, and on ISIs (inter-stimulus intervals)
+        in particular.  One might want to be able to state what the min, mean,
+        max and stdev of the ISI are.
+
+    -stim_dur TIME              : set the duration for a single stimulus
+
+        e.g. -stim_dur 3.5
+        e.g. -stim_dur 3.5 1.0 4.2
+
+        This specifies the length of time taken for a single stimulus, in
+        seconds.  These stimulation intervals never overlap (with either rest
+        or other stimulus intervals) in the output timing files.
+
+        If a single TIME parameter is given, it applies to all of the stimulus
+        classes.  Otherwise, the user can provide a list of durations, one per
+        stimulus class.
 
 ----------------------------------------
 optional arguments:
@@ -533,9 +544,12 @@ g_history = """
     0.4  Oct 27, 2008:
          - actually implemented -min_rest, which I apparently forgot to do
          - added -offsets option
+    0.5  Oct 31, 2008:
+         - added -show_timing_stats option
+         - made small change that affects timing (old results will not match)
 """
 
-g_version = "version 0.4, October 27, 2008"
+g_version = "version 0.5, October 31, 2008"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -582,6 +596,12 @@ class RandTiming:
                                         # to post_stim_rest
         self.file_3dd_cmd   = None      # file for 3dD -nodata command
 
+        # statistics
+        self.show_timing_stats = 0      # do we show ISI statistics?
+        self.isi            = []        # list of isi's, per run
+        self.prerest        = []        # pre-stim rest, per run
+        self.postrest       = []        # post-stim rest, per run
+
     def init_opts(self):
         global g_help_string
         self.valid_opts = option_list.OptionList('for input')
@@ -627,6 +647,8 @@ class RandTiming:
                         helpstr='file for "3dDeconvolve -nodata" command')
         self.valid_opts.add_opt('-seed', 1, [],
                         helpstr='seed for random number generation (integer)')
+        self.valid_opts.add_opt('-show_timing_stats', 0, [],
+                        helpstr='show statistics for inter-stimulus intervals)')
         self.valid_opts.add_opt('-stim_labels', -1, [],
                         helpstr='specify stimulus labels for filenames')
         self.valid_opts.add_opt('-t_digits', 1, [],
@@ -747,6 +769,9 @@ class RandTiming:
         if self.seed == None: self.seed = None
         elif err: return 1
 
+        if self.verb > 1 or self.user_opts.find_opt('-show_timing_stats'):
+            self.show_timing_stats = 1
+
         self.t_gran, err = self.user_opts.get_type_opt(float,'-t_gran')
         if err: return 1
         # check the result after -tr_locked
@@ -820,11 +845,7 @@ class RandTiming:
 
         # possibly get timing across all runs at once
         if self.across_runs:
-            self.stimes = make_rand_timing(self.num_runs, self.run_time[0],
-                                self.num_stim, self.num_reps, self.stim_dur,
-                                self.pre_stim_rest, self.post_stim_rest,
-                                self.min_rest, self.offset, self.control_breaks,
-                                tgran=self.t_gran, verb=self.verb)
+            self.stimes = self.make_rand_timing(self.num_runs, self.run_time[0])
 
             if self.stimes == None: return 1
             if len(self.stimes) != self.num_stim or     \
@@ -842,11 +863,7 @@ class RandTiming:
 
             for run in range(self.num_runs):
                 # get timing for current run
-                stim_list = make_rand_timing(1, self.run_time[run],
-                                self.num_stim, self.num_reps, self.stim_dur,
-                                self.pre_stim_rest, self.post_stim_rest,
-                                self.min_rest, self.offset, self.control_breaks,
-                                tgran=self.t_gran, verb=self.verb)
+                stim_list = self.make_rand_timing(1, self.run_time[run])
 
                 # check for failure
                 if stim_list == None:
@@ -943,6 +960,7 @@ class RandTiming:
         if os.path.isfile(self.file_3dd_cmd):
             print "** 3dD command file '%s' already exists, failing..." \
                         % self.file_3dd_cmd
+            return
 
         if len(self.fnames) != self.num_stim:
             print '** fname list does not have expected length'
@@ -996,6 +1014,250 @@ class RandTiming:
         fp.write(cmd)
         fp.close()
 
+    def disp_time_stats(self):
+        """display statistics of ISIs (inter-stimulus intervals)"""
+
+        if not self.isi:
+            if self.verb: print '-- no ISI stats to show'
+            return
+
+        print '\nISI statistics :\n\n'                                  \
+              'data              min      mean     max     stdev\n'     \
+              '-----------     -------  -------  -------  -------'
+
+        print 'pre-rest        %7.3f  %7.3f  %7.3f  %7.3f' %            \
+              (min_mean_max_stdev(self.prerest))
+
+        print 'post-rest       %7.3f  %7.3f  %7.3f  %7.3f\n' %          \
+              (min_mean_max_stdev(self.postrest))
+
+        for ind in range(len(self.isi)):
+           m0, m1, m2, s = min_mean_max_stdev(self.isi[ind])
+           print 'run #%d ISI      %7.3f  %7.3f  %7.3f  %7.3f' %        \
+                 (ind, m0, m1, m2, s)
+
+        allruns = []
+        for run in self.isi: allruns.extend(run)
+
+        print '\nall runs ISI    %7.3f  %7.3f  %7.3f  %7.3f\n' %        \
+              (min_mean_max_stdev(allruns))
+
+        if self.verb > 3:
+            for ind in range(len(self.isi)):
+                print '\nISI #%d  :  %s' % (ind, self.isi[ind])
+                
+        if self.verb > 3:
+            for ind in range(len(self.isi)):
+                self.isi[ind].sort()
+                print '\nsorted ISI #%d  :  %s' % (ind, self.isi[ind])
+                
+
+    def make_rand_timing(self, nruns, run_time):
+        """Create random timing for stimuli over all runs (or for a single run),
+           where the random placement of stimuli is over all runs at once (so
+           the number per run will probably vary).
+
+           This can be called per run, or for all runs at once.
+
+            nruns           : number of runs
+            run_time        : total time, per run (in seconds)
+            nstim           : number of stimulus classes
+            reps_list       : number of repetitions per class (total over runs)
+            sdur_list       : duration of each stimulus class
+            min_rest        : minimum duration between any 2 stimuli
+            offset          : time offset to add to each stimulus time
+            tinitial        : initial rest time, per run
+            tfinal          : final rest time, per run
+
+            ctrl_breaks     : multi-runs: add max stim time to tfinal
+            tgran           : granularity of time, to partition rest
+            verb            : verbose level
+        """
+
+        nstim       = self.num_stim             # number of stimulus types
+        reps_list   = self.num_reps             # num reps of each stim class
+        sdur_list   = self.stim_dur             # duration per class
+        tinitial    = self.pre_stim_rest
+        tfinal      = self.post_stim_rest
+        min_rest    = self.min_rest
+        offset      = self.offset
+        ctrl_breaks = self.control_breaks
+        tgran       = self.t_gran
+        verb        = self.verb
+
+        if verb > 2:
+            print '-- make_rand_timing: nruns = %d' % nruns
+            print '   rtime, offset, tinit, tfinal = %.1f, %.1f, %.1f, %.1f' \
+                      % (run_time, offset, tinitial, tfinal)
+            print '   reps_list  = %s' % reps_list
+            print '   sdur_list = %s' % sdur_list
+            print '   tgran = %.3f, verb = %d' % (tgran, verb)
+
+        # verify inputs
+        if nruns <= 0:
+            print '** make_rand_timing error: nruns = %d' % nruns
+            return
+        if run_time <= 0.0 or nstim <= 0 or tinitial < 0 or tfinal < 0:
+            print '** bad rand_timing inputs: rtime, nstim, tinit, tfinal = '+ \
+                  '%.1f, %d, %.1f, %.1f' % (run_time, nstim, tinitial, tfinal)
+            return
+        if tgran < gDEF_MIN_T_GRAN:
+            print '** time granularity (%f) below minimum (%f)' %   \
+                  (tgran, gDEF_MIN_T_GRAN)
+        if not reps_list or not sdur_list or       \
+           len(reps_list) != nstim or len(sdur_list) != nstim:
+            print '** invalid rand_timing input lists: reps, stimes = %s %s '% \
+                  (reps_list, sdur_list)
+            return
+
+        # steal a copy of sdur_list so that we can trash it with min_rest
+        stim_durs = sdur_list[:]
+
+        # if multi runs and ctrl_breaks, add max stim time (-tgran) to tfinal
+        if nruns > 1 and ctrl_breaks:
+            smax = max(sdur_list)
+            if verb > 1:
+                print '++ adding max stim (%.1f) to post_stim_rest' % smax
+            tfinal += smax
+
+        # compute total stim time across all runs together
+        # min_rest is essentially added to each stimulus time
+        stime = 0.0 
+        for ind in range(nstim):
+            if reps_list[ind] < 0 or stim_durs[ind] < 0:
+                print '** invalid negative reps or stimes list entry in %s, %s'\
+                      % (reps_list, stim_durs)
+                return
+            stime += reps_list[ind]*stim_durs[ind]
+
+        # compute rest time across all runs together
+        tot_rest  = nruns * run_time - stime
+        isi_rtime = nruns * (run_time - tinitial - tfinal) - stime
+
+        # account for min_rest, and apply with stim_durs
+        if min_rest < 0.0: min_rest = 0.0
+        rtime = isi_rtime - min_rest * sum(reps_list)
+        nrest = int(rtime / tgran)
+
+        if verb > 1 or self.show_timing_stats:
+            print '\n++ total time = %.1f, (stim = %.1f, rest = %.1f)\n'     \
+                  '   init rest = %.1f, end rest = %.1f\n'                   \
+                  '   min_rest following stimuli = %.1f (= %.1f * %d)\n'     \
+                  '   total ISI = %.1f, rand ISI = %.1f\n'                   \
+                  '   rand ISI rest time = %d intervals of %.3f seconds\n' % \
+                  (nruns*run_time, stime, tot_rest, tinitial, tfinal,
+                  min_rest * sum(reps_list), min_rest, sum(reps_list),
+                  isi_rtime, rtime, nrest, tgran)
+
+        if rtime == 0: print '** warning, exactly no time remaining for rest...'
+        elif rtime < 0:
+            print '** required stim and rest time exceed run length, failing...'
+            return
+            
+        # create a list of all events, repeated stimuli and rest
+        elist = []
+        for stim in range(nstim):
+            elist += [(stim+1) for i in range(reps_list[stim])]
+        elist.extend([0 for i in range(nrest)])
+
+        if verb > 2: print '++ elist (len %d, sorted): %s' % (len(elist), elist)
+
+        # random.shuffle(elist)
+        shuffle(elist)  # local version
+
+        if verb > 2:
+            print '++ elist (len %d, random): %s' % (len(elist), elist)
+            for stim in range(nstim):
+                print '   number of type %d = %d' % (stim+1,elist.count(stim+1))
+
+        # convert the event list into a list of stimulus lists
+        slist = [[[] for i in range(nruns)] for j in range(nstim)]
+
+        # keep some statistics
+        s_isi = []                  # isi's, per run
+        s_first = 1                 # first event, per run
+        s_laststim = 0              # end of last stimulus (in current run)
+        ctime = tinitial
+        run = 0
+        for event in elist:
+            # maybe we are done with this run
+            if ctime >= run_time - tfinal:
+                # statistics
+                s_first = 1                 # have first event in this run
+                self.isi.append(s_isi)      # store previous list
+                s_isi = []
+                self.postrest.append(run_time - s_laststim)
+                s_laststim = 0
+
+                # normal work
+                run += 1
+                ctime = tinitial
+                if run >= nruns:    # we've gone beyond our bounds
+                    print '** failure!  total run time has been exeeded...'
+                    return
+
+            if not event:
+                ctime += tgran                  # rest event: tgran seconds
+            else:
+                # statistics
+                if s_first:                     # then first event in this run
+                    self.prerest.append(ctime)
+                    s_first = 0
+                else:
+                    s_isi.append(ctime - s_laststim)
+
+                eind = event - 1                # event is one more than index
+                atime = ctime+offset            # add any requested offset
+                slist[eind][run].append(atime)  # append cur time to event list
+                ctime += stim_durs[eind]        # increment time by this stim
+                s_laststim = ctime              # store the stim end time
+                ctime += min_rest               # and rest
+
+        # and set end-of-run stats
+        self.postrest.append(run_time - s_laststim)
+        self.isi.append(s_isi)
+
+        if verb > 3:
+            for stim in range(nstim):
+                print '++ stim list[%d] = %s' % (stim+1,slist[stim])
+
+        return slist
+
+def min_mean_max_stdev(data):
+    """return 4 values for data: min, max, mean, stdev (unbiased)"""
+    if not data: return 0,0,0,0
+    length = len(data)
+    if length <  1: return 0,0,0,0
+    if length == 1: return data[0], data[0], data[0], 0.0
+
+    minval  = min(data)
+    maxval  = max(data)
+    meanval = sum(data)/float(length)
+
+    return minval, meanval, maxval, stdev_ub(data)
+
+def stdev_ub(data):
+    """unbiased standard deviation"""
+    length = len(data)
+    if length <  2: return 0.0
+
+    meanval = sum(data)/float(length)
+    # compute standard deviation
+    ssq = 0.0
+    for val in data: ssq += val*val
+    return math.sqrt((ssq - length*meanval*meanval)/(length-1.0))
+
+def stdev(data):
+    """(biased) standard deviation"""
+    length = len(data)
+    if length <  2: return 0.0
+
+    meanval = sum(data)/float(length)
+    # compute standard deviation
+    ssq = 0.0
+    for val in data: ssq += val*val
+    return math.sqrt((ssq - length*meanval*meanval)/length)
+
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%.1f,1)'" % stim_len
     else: return 'GAM'
@@ -1008,141 +1270,6 @@ def make_concat_from_times(run_times, tr):
         cind += round(run_times[ind]/tr)
         str += ' %d' % cind
     return str + "' \\\n"
-
-def make_rand_timing(nruns, run_time, nstim, reps_list, sdur_list, tinitial,
-                     tfinal, min_rest=0.0, offset=0.0, ctrl_breaks=1,
-                     tgran=gDEF_T_GRAN, verb=gDEF_VERB):
-    """Create random timing for stimuli over all runs (or for a single run),
-       where the random placement of stimuli is over all runs at once (so
-       the number per run will probably vary).
-
-       This can be called per run, or for all runs at once.
-
-        nruns           : number of runs
-        run_time        : total time, per run (in seconds)
-        nstim           : number of stimulus classes
-        reps_list       : number of repetitions per class (total for all runs)
-        sdur_list       : duration of each stimulus class
-        min_rest        : minimum duration between any 2 stimuli
-        offset          : time offset to add to each stimulus time
-        tinitial        : initial rest time, per run
-        tfinal          : final rest time, per run
-
-        ctrl_breaks     : multi-runs: add max stim time to tfinal
-        tgran           : granularity of time, to partition rest
-        verb            : verbose level
-    """
-
-    if verb > 2:
-        print '-- make_rand_timing: nruns = %d' % nruns
-        print '   rtime, offset, tinit, tfinal = %.1f, %.1f, %.1f, %.1f' \
-                  % (run_time, offset, tinitial, tfinal)
-        print '   reps_list  = %s' % reps_list
-        print '   sdur_list = %s' % sdur_list
-        print '   tgran = %.3f, verb = %d' % (tgran, verb)
-
-    # verify inputs
-    if nruns <= 0:
-        print '** make_rand_timing error: nruns = %d' % nruns
-        return
-    if run_time <= 0.0 or nstim <= 0 or tinitial < 0 or tfinal < 0:
-        print '** bad rand_timing inputs: rtime, nstim, tinit, tfinal = ' +  \
-              '%.1f, %d, %.1f, %.1f' % (run_time, nstim, tinitial, tfinal)
-        return
-    if tgran < gDEF_MIN_T_GRAN:
-        print '** time granularity (%f) below minimum (%f)' %   \
-              (tgran, gDEF_MIN_T_GRAN)
-    if not reps_list or not sdur_list or       \
-       len(reps_list) != nstim or len(sdur_list) != nstim:
-        print '** invalid rand_timing input lists: reps, stimes = %s %s ' % \
-              (reps_list, sdur_list)
-        return
-
-    # steal a copy of sdur_list so that we can trash it with min_rest
-    stim_durs = sdur_list[:]
-
-    # if multi runs and ctrl_breaks, add max stim time (-tgran) to tfinal
-    if nruns > 1 and ctrl_breaks:
-        smax = max(sdur_list)
-        if verb > 1:
-            print '++ adding max stim (%.1f) to post_stim_rest' % smax
-        tfinal += smax
-
-    # if min_rest is given (and is greater than the granularity), add
-    # (min_rest-gran) to all stimulus durations
-    if min_rest > tgran:
-        min_rest -= tgran
-        if verb > 1:
-            print '++ applying min_rest by adding %.2f (min_rest - tgran)' \
-                  '   to all stim_times' % min_rest
-        for ind in range(nstim): stim_durs[ind] += min_rest
-
-    # compute total stim time across all runs together
-    stime = 0.0 
-    for ind in range(nstim):
-        if reps_list[ind] < 0 or stim_durs[ind] < 0:
-            print '** invalid negative reps or stimes list entry in %s, %s' \
-                  % (reps_list, stim_durs)
-            return
-        stime += reps_list[ind]*stim_durs[ind]
-
-    # compute rest time across all runs together
-    rtime = nruns * (run_time - tinitial - tfinal) - stime
-    nrest = int(rtime / tgran)
-
-    if verb > 1:
-        print '++ total stim_time = %.1f, rest_time = %.1f' % (stime,rtime)
-        print '   (rest time = %d intervals of %.3f seconds)' % \
-                       (nrest, tgran)
-
-    if rtime == 0: print '** warning, exactly no time remaining for rest...'
-    elif rtime < 0:
-        print '** required stim and rest time exceed run length, failing...'
-        return
-        
-    # create a list of all events, repeated stimuli and rest
-    elist = []
-    for stim in range(nstim):
-        elist += [(stim+1) for i in range(reps_list[stim])]
-    elist.extend([0 for i in range(nrest)])
-
-    if verb > 2: print '++ elist (len %d, sorted): %s' % (len(elist), elist)
-
-    # random.shuffle(elist)
-    shuffle(elist)  # rcr: replace this, as not all lists are possible
-
-    if verb > 2:
-        print '++ elist (len %d, random): %s' % (len(elist), elist)
-        for stim in range(nstim):
-            print '   number of type %d = %d' % (stim+1,elist.count(stim+1))
-
-    # convert the event list into a list of stimulus lists
-    slist = [[[] for i in range(nruns)] for j in range(nstim)]
-
-    ctime = tinitial
-    run = 0
-    for event in elist:
-        # maybe we are done with this run
-        if ctime >= run_time - tfinal:
-            run += 1
-            ctime = tinitial
-            if run >= nruns:    # we've gone beyond our bounds
-                print '** failure!  total run time has been exeeded...'
-                return
-
-        if not event:
-            ctime += tgran                  # rest event: tgran seconds
-        else:
-            eind = event - 1                # event is one more than index
-            atime = ctime+offset            # add any requested offset
-            slist[eind][run].append(atime)  # append cur time to event's list
-            ctime += stim_durs[eind]        # increment time by this stim
-
-    if verb > 3:
-        for stim in range(nstim):
-            print '++ stim list[%d] = %s' % (stim+1,slist[stim])
-
-    return slist
 
 def shuffle(vlist):
     """mostly like RSFgen, but for each index, search for swap in [index,n]
@@ -1197,6 +1324,8 @@ def process():
         return rv
 
     if timing.file_3dd_cmd: timing.make_3dd_cmd()  # ignore return value
+
+    if timing.show_timing_stats: timing.disp_time_stats() # ignore return value
 
     return 0
 
