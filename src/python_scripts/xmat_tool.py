@@ -261,7 +261,7 @@ class MainFrame(wx.Frame):
 
       ncols = self.XM.matX.ncols
 
-      clist = AM.decode_1D_ints(self.choicectrl.GetValue(), max=ncols-1)
+      clist = UTIL.decode_1D_ints(self.choicectrl.GetValue(), max=ncols-1)
       if not clist: 
          self.popup_warning("invalid column list\n\n"   \
                             "--> please use AFNI sub-brick notation")
@@ -647,27 +647,25 @@ class MainFrame(wx.Frame):
       ccols = self.XM.col_list
       if self.XM.verb > 1: print '++ updating text for columns: %s' % ccols
 
-      # self.choicectrl.SetValue(AM.encode_1D_ints(ccols))
-
       ind = self.textlist_index(gSTR_XMAT_FILE)
       if ind >= 0: self.tw_stlist[ind].SetLabel(os.path.basename(matx.fname))
 
       # show columns
 
       self.set_textlist_label(self.textlist_index(gSTR_COLS_CHOSEN),
-                              str=AM.encode_1D_ints(ccols))
+                              str=UTIL.encode_1D_ints(ccols))
 
       self.set_textlist_label(self.textlist_index(gSTR_COLS_ALL),
-                              str=AM.encode_1D_ints(range(matx.ncols)))
+                              str=UTIL.encode_1D_ints(range(matx.ncols)))
 
       self.set_textlist_label(self.textlist_index(gSTR_COLS_MAIN),
-                  str=AM.encode_1D_ints(matx.cols_by_group_list([],allroi=1)))
+                  str=UTIL.encode_1D_ints(matx.cols_by_group_list([],allroi=1)))
 
       self.set_textlist_label(self.textlist_index(gSTR_COLS_BASE),
-                  str=AM.encode_1D_ints(matx.cols_by_group_list([-1])))
+                  str=UTIL.encode_1D_ints(matx.cols_by_group_list([-1])))
 
       self.set_textlist_label(self.textlist_index(gSTR_COLS_MOTION),
-                  str=AM.encode_1D_ints(matx.cols_by_group_list([0])))
+                  str=UTIL.encode_1D_ints(matx.cols_by_group_list([0])))
 
       # show select condition numbers
 
@@ -1185,7 +1183,7 @@ class CanvasFrame(wx.Frame):
 
       for i in range(ncols):
          if i == 0: title = '%s [%s]' % (os.path.basename(amat.fname),
-                                         AM.encode_1D_ints(cols))
+                                         UTIL.encode_1D_ints(cols))
          else     : title = ''
          # subplot = 100*ncols + 10*1 + i+1
          ax = self.figure.add_subplot(ncols,1,i+1,title=title)

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, OCT, 2008, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "moved functions encode_1D_ints and decode_1D_ints here",
+   NULL
+ } ,
+
  { 31, OCT, 2008, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "added -show_timing_stats option",
    "Also, made a small change affecting timing (old results will not match)."
