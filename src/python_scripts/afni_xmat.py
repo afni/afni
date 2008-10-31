@@ -11,6 +11,8 @@ import math
 import copy
 import numpy as N
 
+import afni_util as UTIL
+
 # might handle scipy separately
 g_has_SL = 1
 try:  from scipy import linalg as SL
@@ -551,7 +553,7 @@ class AfniXmat:
                               (len(self.labels), self.ncols)
                         self.labels = None
                 elif label == 'ColumnGroups':
-                    self.groups = decode_1D_ints(data)
+                    self.groups = UTIL.decode_1D_ints(data)
                     if self.groups:
                         if len(self.groups) != self.ncols:
                             print "** ColumnGroups len %d != ncols %d" % \
@@ -563,7 +565,7 @@ class AfniXmat:
                     if self.verb > 1:
                         print "-- label %s: TR %s" % (label,self.tr)
                 elif label == 'GoodList':
-                    self.goodlist = decode_1D_ints(data)
+                    self.goodlist = UTIL.decode_1D_ints(data)
                     if self.goodlist:
                         if len(self.goodlist) != self.nrows:
                             print "** GoodList missing %d rows" % \
@@ -579,82 +581,6 @@ class AfniXmat:
             except:
                 print "** failed to process comment label '%s'" % label
 
-# convert columns to encoded int string
-def encode_1D_ints(cols):
-   """convert a list of columns to a ',' and '..' separated string"""
-   if not cols: return ''
-   if len(cols) < 1: return ''
-
-   text = '%d' % cols[0]
-   prev = cols[0]
-   ind  = 1
-   while ind < len(cols):
-      ncontinue = consec_len(cols, ind-1) - 1
-      if ncontinue <= 1:     # then no '..' continuation, use ','
-         text = text + ', %d' % cols[ind]
-         ind += 1
-      else:
-         text = text + '..%d' % cols[ind+ncontinue-1]
-         ind += ncontinue
-
-   return text
-
-def consec_len(cols, start):
-   """return the length of consecutive numbers - always at least 1"""
-   prev = cols[start]
-   length = len(cols)
-   ind  = start
-   for ind in range(start+1, length+1):
-      if ind == length: break
-      if cols[ind] != prev + 1:
-         break
-      prev = cols[ind]
-   if ind == start:  length = 1
-   else:             length = ind-start        
-
-   return length
-
-
-# encoded int string to column list
-def decode_1D_ints(str, verb=1, max=-1):
-    """Decode a comma-delimited string of ints, ranges and A@B syntax,
-       and AFNI-style sub-brick selectors (including A..B(C)).
-       If the A..B format is used, and B=='$', then B gets 'max'.
-       - return a list of ints"""
-    slist = str.split(',')
-    if len(slist) == 0:
-        if verb > 1: print "-- empty 1D_ints from string '%s'" % str
-        return None
-    ilist = []                  # init return list
-    for s in slist:
-        try:
-            if s.find('@') >= 0:        # then expect "A@B"
-                [N, val] = [int(n) for n in s.split('@')]
-                ilist.extend([val for i in range(N)])
-            elif s.find('..') >= 0:     # then expect "A..B"
-                pos = s.find('..')
-                if s.find('(', pos) > 0:    # look for "A..B(C)"
-                   [v1, v2] = [n for n in s.split('..')]
-                   v1 = int(v1)
-                   [v2, step] = v2.split('(')
-                   if v2 == '$': v2 = max
-                   else:         v2 = int(v2)
-                   # have start and end values, get step
-                   step, junk = step.split(')')
-                   step = int(step)
-                   ilist.extend([i for i in range(v1, v2+1, step)])
-                else:
-                   [v1, v2] = [n for n in s.split('..')]
-                   v1 = int(v1)
-                   if v2 == '$': v2 = max
-                   else:         v2 = int(v2)
-                   ilist.extend([i for i in range(v1, v2+1)])
-            else:
-                ilist.extend([int(s)])
-        except:
-            print "** cannot decode_1D '%s' in '%s'" % (s, str)
-            return None
-    return ilist
 
 def c1D_line2labelNdata(cline, verb=1):
     """expect cline to be of the form: '# LABEL = "DATA"'
