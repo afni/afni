@@ -890,6 +890,8 @@ int main( int argc , char *argv[] )
         " -allcostX1D p q = Compute ALL available cost functions for the set of\n"
         "                   parameters given in the 1D file 'p' (12 values per row),\n"
         "                   write them to the 1D file 'q', then exit. (For you, Zman)\n"
+        "                  * N.B.: If -fineblur is used, that amount of smoothing\n"
+        "                          will be applied prior to the -allcostX evaluations.\n"
        ) ;
        printf("\n"
               " Hidden experimental cost functions:\n") ;
@@ -2995,8 +2997,14 @@ int main( int argc , char *argv[] )
                            nxyz_targ, dxyz_targ, stup.targ_cmat ) ;
 
      if( do_allcost != 0 ){  /*-- print all cost functions, for fun? --*/
+
        stup.interp_code = MRI_LINEAR ;
        stup.npt_match   = npt_match ;
+       if( do_allcost < 0 && fine_rad > 0.0f ){
+         stup.smooth_code        = sm_code ;
+         stup.smooth_radius_base = stup.smooth_radius_targ = fine_rad ;
+       }
+
        mri_genalign_scalar_setup( im_bset , im_wset , im_targ , &stup ) ;
 
        if( allcostX1D == NULL ){ /* just do init parameters == the old way */
