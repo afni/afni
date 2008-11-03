@@ -408,7 +408,7 @@ void display_help_menu()
     "                             (no parameters)\n"
     "                             see model_zero.c\n"
     "\n"
-    "  constant                 : Constant Noise Model\n"
+    "  Constant                 : Constant Noise Model\n"
     "                             (constant)\n"
     "                             see model_constant.c\n"
     "\n"
