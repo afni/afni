@@ -1725,7 +1725,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_sinewave_ap.$(SO) model_sinewave_apf.$(SO)               \
         model_squarewave_ap.$(SO) model_squarewave_apf.$(SO)           \
         model_trnglwave_ap.$(SO) model_trnglwave_apf.$(SO)             \
-        model_diffexp.$(SO) model_gammavar.$(SO)                       \
+        model_exp.$(SO) model_diffexp.$(SO) model_gammavar.$(SO)       \
         model_convgamma.$(SO) model_convgamma2a.$(SO)                  \
         model_michaelis_menton.$(SO) model_linplusort.$(SO)            \
 	model_zero.$(SO) model_demri_3.$(SO) model_conv_diffgamma.$(SO)

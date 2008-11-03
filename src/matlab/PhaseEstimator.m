@@ -93,14 +93,11 @@ else, %phase based on amplitude
 end
 
 for (icol=1:1:length(R)),
-   %Now get the phase at each of the slices:
-   slcoff = [0:Opt.volTR./Opt.Nsclices:Opt.volTR-Opt.volTR./Opt.Nsclices]; 
-      %this timing vector ought to be extracted from .HEAD
-   R(icol).tst = [0:Opt.volTR:max(R(icol).t)-Opt.volTR]; %time series time vector
+   R(icol).tst = [0:Opt.VolTR:max(R(icol).t)-Opt.VolTR]; %time series time vector
    R(icol).phz_slc = zeros(length(R(icol).tst),Opt.Nsclices);
    R(icol).phz_slc_reg = zeros(length(R(icol).tst),4,Opt.Nsclices);
    for (isl=1:1:Opt.Nsclices),
-      tslc = R(icol).tst+slcoff(isl);
+      tslc = R(icol).tst+Opt.SliceOffset(isl);
       for (i=1:1:length(R(icol).tst)),
          [mi,imin] = min(abs(tslc(i)-R(icol).t));
          R(icol).phz_slc(i,isl) = R(icol).phz(imin);
@@ -112,7 +109,7 @@ for (icol=1:1:length(R)),
       R(icol).phz_slc_reg(:,4, isl) = cos(2.*R(icol).phz_slc(:,isl));
    end
 
-   if (~Opt.quiet),
+   if (~Opt.Quiet),
       fprintf(2,[ '--> Calculated phase\n',...
                   '\n']);
 

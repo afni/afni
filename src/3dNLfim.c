@@ -368,6 +368,10 @@ void display_help_menu()
     "                             (amplitude, phase, frequency)\n"
     "                             see model_trnglwave_apf.c\n"
     "\n"
+    "  Exp                      : Exponential Function\n"
+    "                             (a,b): a * exp(b * t)\n"
+    "                             see model_exp.c\n"
+    "\n"
     "  DiffExp                  : Differential-Exponential Drug Response\n"
     "                             (t0, k, alpha1, alpha2)\n"
     "                             see model_diffexp.c\n"
@@ -805,8 +809,10 @@ void get_options
        if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -sconstr ");
 
        sscanf (argv[nopt], "%d", &ival);
-       if ((ival < 0) || (ival >= *p))
-         NLfit_error ("illegal argument after -sconstr ");
+       if ((ival < 0) || (ival >= *p)) {
+        fprintf(stderr,"*p = %d, ival = %d\n", *p, ival);
+        NLfit_error ("illegal argument after -sconstr");
+      }
        index = ival;
        nopt++;
 
