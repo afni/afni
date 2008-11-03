@@ -45,6 +45,11 @@ OptE = Opt; OptE.fcutoff = 3; %lots of noise, cut at 3Hz
 %Get the peaks for R and E
 R = PeakFinder(lll(1).name,OptR); 
 E = PeakFinder(lll(2).name,OptE);
+%get the phase
+OptR.AmpPhase = 1;            %amplitude based phase for respiration
+R = PhaseEstimator(R,OptR);
+OptR.AmpPhase = 0;            %time based phase for cardiac signal
+E = PhaseEstimator(E,OptE);
 
 %Now do the RVT for Respiration
 R = RVT_from_PeakFinder(R, OptR);
