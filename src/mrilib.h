@@ -407,9 +407,9 @@ extern int mri_dimensionality(MRI_IMAGE *) ;     /* 12 Dec 2007 */
 /*! Array of MRI_IMAGE pointers. */
 
 typedef struct MRI_IMARR {
-      int num ;              /*!< Number of actual MRI_IMAGE here */
-      int nall ;             /*!< Size of imarr array currently allocated */
-      MRI_IMAGE ** imarr ;   /*!< Array of MRI_IMAGE pointers */
+      int num ;             /*!< Number of actual MRI_IMAGE here */
+      int nall ;            /*!< Size of imarr array currently allocated */
+      MRI_IMAGE **imarr ;   /*!< Array of MRI_IMAGE pointers */
 } MRI_IMARR ;
 
 /*! Get the nn-th image from the image array "name". */
@@ -736,6 +736,8 @@ extern double mri_maxabs( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
 extern int mri_cut_many_2D(MRI_IMARR *,  int,int,int,int ); 
+
+extern MRI_IMAGE * mri_subset_x2D( int , int * , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_check_2D( int , MRI_IMAGE * , MRI_IMAGE * ) ;
 
