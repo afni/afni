@@ -7,43 +7,43 @@ function [R] = PeakFinder(vvec, Opt)
 keep('vvec', 'Opt');
 
 if (nargin < 2) Opt = struct(); end
-if (~isfield(Opt,'fs')  | isempty(Opt.fs)),
-   Opt.fs= 1/0.025; %sampling frequency
+if (~isfield(Opt,'fs')  | isempty(Opt.PhysFS)),
+   Opt.PhysFS= 1/0.025; %sampling frequency
 end
 if (~isfield(Opt,'zerophaseoffset') | isempty(Opt.zerophaseoffset) ),
    Opt.zerophaseoffset = 0.5;  %Fraction of the period that corresponds 
                            %to a phase of 0
                        %0.5 means the middle of the period, 0 means the 1st peak
 end
-if (~isfield(Opt,'quiet') | isempty(Opt.quiet)),
-   Opt.quiet = 0;
+if (~isfield(Opt,'Quiet') | isempty(Opt.Quiet)),
+   Opt.Quiet = 0;
 end
-if (~isfield(Opt,'sTR') | isempty(Opt.slcTR)),
-   Opt.slcTR = 1./Opt.fs;
+if (~isfield(Opt,'ResampFS') | isempty(Opt.ResampFS)),
+   Opt.ResampFS = Opt.PhysFS;
 end
 if (~isfield(Opt,'fcutoff') | isempty(Opt.fcutoff)),
    Opt.fcutoff = 10;
 end
-if (~isfield(Opt,'fir_order') | isempty(Opt.fir_order)),
-   Opt.fir_order = 40;
+if (~isfield(Opt,'FIROrder') | isempty(Opt.FIROrder)),
+   Opt.FIROrder = 40;
 end
-if (~isfield(Opt,'resam_kernel') | isempty(Opt.resam_kernel)),
-   Opt.resam_kernel = 'linear';
+if (~isfield(Opt,'ResamKernel') | isempty(Opt.ResamKernel)),
+   Opt.ResamKernel = 'linear';
 end
-if (~isfield(Opt,'demo') | isempty(Opt.demo)),
-   Opt.demo = 0;
+if (~isfield(Opt,'Demo') | isempty(Opt.Demo)),
+   Opt.Demo = 0;
 end
 
-if (Opt.demo),
-   Opt.quiet = 0; 
+if (Opt.Demo),
+   Opt.Quiet = 0; 
 else 
    pause off 
 end
 
 %some filtering
-fnyq = Opt.fs./2;
+fnyq = Opt.PhysFS./2;
 w = Opt.fcutoff/fnyq;    % cut off frequency normalized
-b = fir1(Opt.fir_order, w);     %FIR filter of order 40
+b = fir1(Opt.FIROrder, w);     %FIR filter of order 40
 NoDups = 1; % remove duplicates that might come up when improving peak location
   
 if (ischar(vvec)),
@@ -90,7 +90,7 @@ for (icol = 1:1:nl),
                                  %can use hilbert
    
    nt = length(R(icol).X);
-   R(icol).t = [0:1/Opt.fs:(nt-1)/Opt.fs];
+   R(icol).t = [0:1/Opt.PhysFS:(nt-1)/Opt.PhysFS];
    iz = find( imag(R(icol).X(1:nt-1)).*imag(R(icol).X(2:nt)) <= 0);
    polall = -sign(imag(R(icol).X(1:nt-1)) - imag(R(icol).X(2:nt)));
 
@@ -105,7 +105,7 @@ for (icol = 1:1:nl),
    ppp = find(pol<0);
    ntrace = pk(ppp);
    tntrace = tiz(ppp);
-   if (~Opt.quiet),
+   if (~Opt.Quiet),
       fprintf(2,[ '--> Load signal\n',...
                   '--> Smooth signal\n',...
                   '--> Calculate analytic signal Z\n',...
@@ -135,7 +135,7 @@ for (icol = 1:1:nl),
 
    %Some polishing
    if (1),
-      nww = ceil(windwidth/2 * Opt.fs);
+      nww = ceil(windwidth/2 * Opt.PhysFS);
       pkp = pk;
       R(icol).iz = iz;
       for (i=1:1:length(iz)),
@@ -166,7 +166,7 @@ for (icol = 1:1:nl),
                      remove_duplicates(R(icol).tntrace, R(icol).ntrace);
       end
       
-      if (~Opt.quiet),
+      if (~Opt.Quiet),
          fprintf(2,[ '--> Improved peak location\n',...
                      '--> Removed duplicates (not necessary)?\n',...
                      '\n']);
@@ -193,7 +193,7 @@ for (icol = 1:1:nl),
                             + R(icol).ptrace(1:nptrc-1) ) ./2.0;
    R(icol).tmidprd = (  R(icol).tptrace(2:nptrc) ...
                       + R(icol).tptrace(1:nptrc-1)) ./2.0;
-   if (~Opt.quiet),
+   if (~Opt.Quiet),
          fprintf(2,[ '--> Calculated the period (from beat to beat)\n',...
                      '\n']);
       plot (R(icol).tmidprd, R(icol).ptracemidprd,'kx');
@@ -204,15 +204,15 @@ for (icol = 1:1:nl),
       pause;
    end
    
-   if (~isempty(Opt.resam_kernel)),
+   if (~isempty(Opt.ResamKernel)),
       %interpolate to slice sampling time grid:
-      R(icol).tR = [0:Opt.slcTR:max(R(icol).t)];
+      R(icol).tR = [0:1./Opt.ResampFS:max(R(icol).t)];
       R(icol).ptraceR = interp1( R(icol).tptrace', R(icol).ptrace, ... 
-                                 R(icol).tR,Opt.resam_kernel);
+                                 R(icol).tR,Opt.ResamKernel);
       R(icol).ntraceR = interp1( R(icol).tntrace', R(icol).ntrace, ... 
-                                 R(icol).tR,Opt.resam_kernel);
+                                 R(icol).tR,Opt.ResamKernel);
       R(icol).prdR = interp1(R(icol).tmidprd, R(icol).prd, ... 
-                             R(icol).tR,Opt.resam_kernel);
+                             R(icol).tR,Opt.ResamKernel);
       %you get NaN when tR exceeds original signal time, so set those 
       %to the last interpolated value
       R(icol).ptraceR = clean_resamp(R(icol).ptraceR);
@@ -223,7 +223,7 @@ for (icol = 1:1:nl),
  if (icol ~= nl), input ('Hit enter to proceed...','s'); end
 
 end
-   if (~Opt.quiet),   plotsign2(1); end
+   if (~Opt.Quiet),   plotsign2(1); end
    
 return;
 

@@ -1,10 +1,10 @@
 function R = RVT_from_PeakFinder(R, Opt)
-   if (~isfield(Opt,'demo') | isempty(Opt.demo)),
-      Opt.demo = 0;
+   if (~isfield(Opt,'Demo') | isempty(Opt.Demo)),
+      Opt.Demo = 0;
    end
 
-   if (Opt.demo),
-      Opt.quiet = 0; 
+   if (Opt.Demo),
+      Opt.Quiet = 0; 
    else 
       pause off 
    end
@@ -21,11 +21,11 @@ function R = RVT_from_PeakFinder(R, Opt)
       if (isfield(R(icol),'ptraceR')),
          R(icol).RVR = (R(icol).ptraceR-R(icol).ntraceR); 
          R(icol).RVTR = R(icol).RVR./R(icol).prdR;
-         %smooth RVT so that we can resample it at volTR later
-         fnyq = Opt.fs./2; %nyquist of physio signal
-         fcut = 2./Opt.volTR ;%cut below nyquist for volume TR
+         %smooth RVT so that we can resample it at VolTR later
+         fnyq = Opt.PhysFS./2; %nyquist of physio signal
+         fcut = 2./Opt.VolTR ;%cut below nyquist for volume TR
          w = Opt.fcutoff/fnyq;    % cut off frequency normalized
-         b = fir1(Opt.fir_order, w) ;    
+         b = fir1(Opt.FIROrder, w) ;    
          v = R(icol).RVTR; mv  =   mean(v);  
          %remove the mean
          v = (v - mv);
@@ -38,16 +38,16 @@ function R = RVT_from_PeakFinder(R, Opt)
       R(icol).RVTRS_slc = zeros(length(R(icol).tst), length(Opt.RVTshifts));
       for (i=1:1:length(Opt.RVTshifts)),
          shf = Opt.RVTshifts(i);
-         nsamp = round(shf*Opt.fs);
+         nsamp = round(shf*Opt.PhysFS);
          sind = [1:1:length(R(icol).t)]+nsamp;
          sind(find(sind<1)) = 1;
          sind(find(sind>length(R(icol).t))) = length(R(icol).t);
          rvt_shf = interp1(R(icol).t, R(icol).RVTRS(sind),...
-                           R(icol).tst, Opt.resam_kernel);
+                           R(icol).tst, Opt.ResamKernel);
          R(icol).RVTRS_slc(:,i) = rvt_shf;
       end
 
-      if (~Opt.quiet),
+      if (~Opt.Quiet),
          fprintf(2,[ '--> Calculated RVT \n',...
                      '--> Created RVT regressors\n',...
                      '\n']);
