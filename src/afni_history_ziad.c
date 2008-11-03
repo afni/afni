@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 03 , NOV , 2008 , ZSS , "3dNLfim" , MICRO ,  TYPE_NEW_OPT,
+   "Added Exp (single exponential) model ",
+   NULL
+ },
+ 
  { 17 , OCT , 2008 , ZSS , "imcat" , MICRO ,  TYPE_NEW_OPT,
    "-crop is a new option for cropping an image ",
    NULL
