@@ -296,7 +296,8 @@ int main( int argc , char *argv[] )
    float *iv , *jv ; int niv ;
    int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
-   MTYPE rhomax=0.8 , bmax=0.8 ; int nlevab=3 ;
+   MTYPE rhomax=0.8 , bmax  =0.8 ; int nlevab=3 ;
+   MTYPE rm_set=0.0 , bm_set=0.0 ;
    char *cgl , *rst ;
    matrix X ; vector y ;
    reml_collection *rrcol ;
@@ -318,6 +319,7 @@ int main( int argc , char *argv[] )
    char *Rwherr_prefix = NULL ; THD_3dim_dataset *Rwherr_dset = NULL ;
 
    char *Rglt_prefix   = NULL ; THD_3dim_dataset *Rglt_dset   = NULL ;
+   char *Oglt_prefix   = NULL ; THD_3dim_dataset *Oglt_dset   = NULL ;
    int neglt=0 , do_eglt=0 ;
 
    int Ngoodlist,*goodlist=NULL , Nruns,*runs=NULL , izero ;
@@ -404,12 +406,25 @@ int main( int argc , char *argv[] )
       "                 be appended to the matrix.  This file must have at\n"
       "                 least as many rows as the matrix does.\n"
       "              * Multiple -addbase options can be used, if needed.\n"
-      "              * If the matrix from 3dDeconvolve was censored, then\n"
-      "                  this file must be censored to match.  3dREMLfit\n"
-      "                  will NOT censor the 'bb' time series for you!\n"
       "              * More than 1 file can be specified, as in\n"
       "                  -addbase fred.1D ethel.1D elvis.1D\n"
       "              * No .1D filename can start with the '-' character.\n"
+      "              * If the matrix from 3dDeconvolve was censored, then\n"
+      "                  this file (and '-slibase' files) can either be\n"
+      "                  censored to match, OR 3dREMLfit will censor these\n"
+      "                  .1D files for you.\n"
+      "               + If the column length (number of rows) of the .1D file\n"
+      "                   is the same as the column length of the censored\n"
+      "                   matrix, then the .1D file WILL NOT be censored.\n"
+      "               + If the column length of the .1D file is the same\n"
+      "                   as the column length of the uncensored matrix,\n"
+      "                   then the .1D file WILL be censored -- the same\n"
+      "                   rows excised from the matrix in 3dDeconvolve will\n"
+      "                   be resected from the .1D file before the .1D file's\n"
+      "                   columns are appended to the matrix.\n"
+      "               + The censoring information from 3dDeconvolve is stored\n"
+      "                   in the matrix file header, and you don't have to\n"
+      "                   provide it again on the 3dREMLfit command line!\n"
       "\n"
       " -slibase bb = Similar to -addbase in concept, BUT each .1D file 'bb'\n"
       "                 must have EXACTLY the same number of columns as the\n"
@@ -440,7 +455,9 @@ int main( int argc , char *argv[] )
       "                 for every (a,b) pair in the ARMA parameter grid.\n"
       "              * '-usetemp' only operates when you're also using '-slibase',\n"
       "                   since that is the case where lots of memory is needed.\n"
-      "              * '-usetemp' can actually speed the program up, interestingly.\n"
+      "              * '-usetemp' can actually speed the program up, interestingly,\n"
+      "                   even if you have enough RAM to hold all the intermediate\n"
+      "                   matrices needed with '-slibase'.  YMMV.\n"
       "              * Temporary files are written to the directory given\n"
       "                  in environment variable TMPDIR, or in /tmp, or in ./\n"
       "                  (preference is in that order).\n"
@@ -473,6 +490,15 @@ int main( int argc , char *argv[] )
       "                 also contains the results of any GLT analysis requested\n"
       "                 in the 3dDeconvolve setup.\n"
       "                 (similar to the -bucket output from 3dDeconvolve)\n"
+      " -Rglt  ppp  = dataset for beta + statistics from the REML estimation,\n"
+      "                 but ONLY for the GLTs added on the 3dREMLfit command\n"
+      "                 line itself via '-gltsym'; GLTs from 3dDeconvolve's\n"
+      "                 command line will NOT be included.\n"
+      "               * Intended to give an easy way to get extra contrasts\n"
+      "                   after an earlier 3dREMLfit run.\n"
+      "               * Use with '-ABfile vvv' to read the (a,b) parameters\n"
+      "                   from the earlier run, where 'vvv' is the '-Rvar'\n"
+      "                   dataset output from that run.\n"
       "\n"
       " -fout       = put F-statistics into the bucket dataset\n"
       " -rout       = put R^2 statistics into the bucket dataset\n"
@@ -497,7 +523,6 @@ int main( int argc , char *argv[] )
       "                 [(any matrix W with C=inv(W'W) will work), so other  ]\n"
       "                 [whitening schemes could be used and these would give]\n"
       "                 [different whitened residual time series datasets.   ]\n"
-#if 0
       "\n"
       " -gltsym g h = read a symbolic GLT from file 'g' and label it with\n"
       "                 string 'h'\n"
@@ -514,18 +539,19 @@ int main( int argc , char *argv[] )
       "                    unless environment variable AFNI_GLTSYM_PRINT is NO.\n"
       "                * These GLTs are in addition to those stored in the\n"
       "                    matrix file, from 3dDeconvolve.\n"
-      "                * If you don't create a bucket dataset (-Rbuck / -Obuck),\n"
-      "                    using -gltsym is completely pointless!\n"
-#endif
+      "                * If you don't create a bucket dataset using one of\n"
+      "                    -Rbuck or -Rglt (or -Obuck / -Oglt), using\n"
+      "                    -gltsym is completely pointless!\n"
       "\n"
       "The options below let you get the Ordinary Least SQuares outputs\n"
       "(without adjustment for serial correlation), for comparisons.\n"
       "These datasets should be essentially identical to the results\n"
       "you would get by running 3dDeconvolve:\n"
       "\n"
-      " -Ovar ppp   = dataset for OLSQ st.dev. parameter (kind of boring)\n"
-      " -Obeta ppp  = dataset for beta weights from the OLSQ estimation\n"
-      " -Obuck ppp  = dataset for beta + statistics from the OLSQ estimation\n"
+      " -Ovar   ppp = dataset for OLSQ st.dev. parameter (kind of boring)\n"
+      " -Obeta  ppp = dataset for beta weights from the OLSQ estimation\n"
+      " -Obuck  ppp = dataset for beta + statistics from the OLSQ estimation\n"
+      " -Oglt   ppp = dataset for beta + statistics from '-gltsym' options\n"
       " -Ofitts ppp = dataset for OLSQ fitted model\n"
       " -Oerrts ppp = dataset for OLSQ residuals (data - fitted model)\n"
       "                 (there is no -Owherr option; if you don't)\n"
@@ -533,9 +559,8 @@ int main( int argc , char *argv[] )
       "\n"
       "Note that you don't have to use any of the '-R' options; you could\n"
       "use 3dREMLfit just for the '-O' options if you want.  In that case,\n"
-      "to avoid the pointless and time consuming ARMA(1,1) estimation for\n"
-      "each voxel, use option '-ABfile =0,0', and the program will run\n"
-      "pretty quickly.\n"
+      "the program will skip the time consuming ARMA(1,1) estimation for\n"
+      "each voxel, by pretending you used the option '-ABfile =0,0'.\n"
       "\n"
       "-------------------------------------------------------------------\n"
       "The following options control the ARMA(1,1) parameter estimation\n"
@@ -608,7 +633,8 @@ int main( int argc , char *argv[] )
       "                   be mapped to the nearest ones on the (a,b) grid\n"
       "                   before being used to solve the generalized least\n"
       "                   squares problem.  For this reason, you may want\n"
-      "                   to use '-Grid 5' to make the (a,b) grid finer.\n"
+      "                   to use '-Grid 5' to make the (a,b) grid finer, if\n"
+      "                   you are not using (a,b) values from a -Rvar file.\n"
       "               * Using this option will skip the slowest part of\n"
       "                   the program, which is the scan for each voxel\n"
       "                   to find its optimal (a,b) parameters.\n"
@@ -616,6 +642,10 @@ int main( int argc , char *argv[] )
       "                  + save (a,b) using -Rvar in 3dREMLfit\n"
       "                  + process them in some way (spatial smoothing?)\n"
       "                  + use these modified values for fitting in 3dREMLfit\n"
+      "                      (you should use '-Grid 5' for such a case)\n"
+      "               * Another possible application of -ABfile:\n"
+      "                  + use (a,b) from -Rvar to speed up a run with -Rglt\n"
+      "                      when you want to run some more contrast tests.\n"
       "               * Special case:\n"
       "                     -ABfile =0.7,-0.3\n"
       "                   e.g., means to use a=0.7 and b=-0.3 for all voxels.\n"
@@ -802,7 +832,7 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    while( iarg < argc ){
 
-     /** -gltsym **/
+     /**==========   -gltsym  ==========**/
 
      if( strcasecmp(argv[iarg],"-gltsym") == 0 ){
        if( ++iarg >= argc-1 ) ERROR_exit("Need 2 arguments after '%s'",argv[iarg-1]) ;
@@ -818,7 +848,7 @@ int main( int argc , char *argv[] )
        eglt_num++ ; continue ;
      }
 
-     /** verbosity **/
+     /**==========   verbosity  ==========**/
 
      if( strcasecmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
@@ -827,7 +857,7 @@ int main( int argc , char *argv[] )
        verb = 0 ; iarg++ ; continue ;
      }
 
-     /** -nodmbase and -usetemp **/
+     /**==========   -nodmbase and -usetemp  ==========**/
 
      if( strcasecmp(argv[iarg],"-nodmbase") == 0 ){
        dmbase = 0 ; iarg++ ; continue ;
@@ -836,7 +866,7 @@ int main( int argc , char *argv[] )
        usetemp = 1 ; iarg++ ; continue ;
      }
 
-     /** -addbase **/
+     /**==========   -addbase  ==========**/
 
      if( strcasecmp(argv[iarg],"-addbase") == 0 ){
        MRI_IMAGE *im ;
@@ -853,7 +883,7 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
-     /** -slibase **/
+     /**==========   -slibase  ==========**/
 
      if( strcasecmp(argv[iarg],"-slibase") == 0 ){
        MRI_IMAGE *im ;
@@ -870,7 +900,7 @@ int main( int argc , char *argv[] )
        continue ;
      }
 
-     /** -noFDR and -FDR **/
+     /**==========   -noFDR and -FDR  ==========**/
 
      if( strcasecmp(argv[iarg],"-noFDR") == 0 ){
        do_FDR = 0 ; iarg++ ; continue ;
@@ -879,7 +909,7 @@ int main( int argc , char *argv[] )
        do_FDR = 1 ; iarg++ ; continue ;
      }
 
-     /** ABfile **/
+     /**==========   -ABfile  ==========**/
 
      if( strcasecmp(argv[iarg],"-ABfile") == 0 ){
        if( abset != NULL || abfixed )
@@ -900,14 +930,14 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-      /** ARMA params **/
+      /**==========   ARMA params  ==========**/
 
      if( strcasecmp(argv[iarg],"-MAXrho") == 0 || strcasecmp(argv[iarg],"-MAXa") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        rhomax = (MTYPE)strtod(argv[iarg],NULL) ;
             if( rhomax < 0.1 ){ rhomax = 0.1; WARNING_message("-MAXa re-set to 0.1"); }
        else if( rhomax > 0.9 ){ rhomax = 0.9; WARNING_message("-MAXa re-set to 0.9"); }
-       iarg++ ; continue ;
+       rm_set = rhomax ; iarg++ ; continue ;
      }
      if( strcasecmp(argv[iarg],"-Grid") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
@@ -921,7 +951,7 @@ int main( int argc , char *argv[] )
        bmax = (MTYPE)strtod(argv[iarg],NULL) ;
             if( bmax < 0.1 ){ bmax = 0.1; WARNING_message("-MAXb re-set to 0.1"); }
        else if( bmax > 0.9 ){ bmax = 0.9; WARNING_message("-MAXb re-set to 0.9"); }
-       iarg++ ; continue ;
+       bm_set = bmax ; iarg++ ; continue ;
      }
      if( strcasecmp(argv[iarg],"-NEGcor") == 0 ){
        REML_allow_negative_correlations(1) ; iarg++ ; continue ;
@@ -946,7 +976,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     /** -matrix **/
+     /**==========   -matrix  ==========**/
 
      if( strcasecmp(argv[iarg],"-matrix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
@@ -958,7 +988,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-      /** -input **/
+      /**==========   -input  ==========**/
 
      if( strcasecmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL  ) ERROR_exit("Can't have two -input options!?") ;
@@ -968,7 +998,7 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     /** -mask **/
+     /**==========   -mask  ==========**/
 
      if( strcasecmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ;
@@ -991,7 +1021,7 @@ int main( int argc , char *argv[] )
        automask = 1 ; iarg++ ; continue ;
      }
 
-     /** statistics options **/
+     /**==========   statistics options  ==========**/
 
      if( strcasecmp(argv[iarg],"-fout") == 0 ){
        do_fstat = 1 ; iarg++ ; continue ;
@@ -1003,7 +1033,7 @@ int main( int argc , char *argv[] )
        do_rstat = 1 ; iarg++ ; continue ;
      }
 
-     /** prefix options */
+     /**==========   prefix options  ==========**/
 
 #undef  PREFIX_OPTION
 #define PREFIX_OPTION(vnam)                                      \
@@ -1031,23 +1061,26 @@ int main( int argc , char *argv[] )
      PREFIX_OPTION(Oerrts_prefix) ;
      PREFIX_OPTION(Rwherr_prefix) ;
 
-#if 0
      PREFIX_OPTION(Rglt_prefix) ;
-#endif
+     PREFIX_OPTION(Oglt_prefix) ;
 
-     /** bad users must be punished **/
+     /**==========   bad users must be punished  ==========**/
 
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
 
 STATUS("options done") ;
 
-   /**-------- sanity checks, dataset input, maskifying --------**/
+   /**--------------- sanity checks, dataset input, maskifying --------------**/
 
    if( inset             == NULL ) ERROR_exit("No -input dataset?!") ;
    if( nelmat            == NULL ) ERROR_exit("No -matrix file?!") ;
    if( nprefixR+nprefixO == 0    ) ERROR_exit("No output datasets at all?!") ;
-   if( nprefixR          == 0    ) WARNING_message("No REML output datasets?!") ;
+   if( nprefixR          == 0    ){
+     WARNING_message("No -R* output datasets? Skipping REML(a,b) estimation!") ;
+     afix = bfix = 0.0f ; abfixed = 1 ;
+     if( abset != NULL ){ DSET_delete(abset) ; abset = NULL ; }
+   }
 
    nvals = DSET_NVALS(inset) ; nvox = DSET_NVOX(inset) ;
    dx = fabsf(DSET_DX(inset)) ; nx = DSET_NX(inset) ;
@@ -1075,13 +1108,13 @@ STATUS("options done") ;
        "-slibase: if program runs out of memory, re-run with -usetemp option");
    }
 
-   if( eglt_num == 0 && Rglt_prefix != NULL ){
-     WARNING_message("-Rglt disabled since no GLTs on 3dREMLfit command line") ;
-     Rglt_prefix = NULL ;
+   if( eglt_num == 0 && (Rglt_prefix != NULL || Oglt_prefix != NULL) ){
+     WARNING_message("-Rglt/-Oglt disabled since no GLTs on 3dREMLfit command line") ;
+     Rglt_prefix = Oglt_prefix = NULL ;
    }
 
    do_buckt = (Rbuckt_prefix != NULL) || (Obuckt_prefix != NULL) ;
-   do_eglt  = (Rglt_prefix   != NULL) ;
+   do_eglt  = (Rglt_prefix   != NULL) || (Oglt_prefix   != NULL) ;
 
    if( !do_buckt && !do_eglt ){
      if( do_fstat ){
@@ -1106,10 +1139,10 @@ STATUS("options done") ;
 
    do_stat = (do_fstat || do_tstat || do_rstat) ;
 
-   /*-- check out and read the -ABfile, if there is one --*/
+   /*--------- check out and read the -ABfile, if there is one ---------*/
 
    if( abset != NULL ){
-     float abot,atop , bbot,btop ;
+     float abot,atop , bbot,btop ; ATR_float *atr ; MTYPE atm ;
 
      if( DSET_NX(abset) != nx || DSET_NY(abset) != ny || DSET_NZ(abset) != nz )
        ERROR_exit("-input and -ABfile datasets don't match grid sizes!") ;
@@ -1120,26 +1153,36 @@ STATUS("options done") ;
                        DSET_NVALS(abset) ) ;
      if( DSET_BRICK_TYPE(abset,0) != MRI_float ||
          DSET_BRICK_TYPE(abset,1) != MRI_float   )
-       ERROR_exit("-ABfile sub-bricks are not stored as floats!") ;
+       ERROR_exit("-ABfile sub-bricks are not stored as floats!?") ;
 
      DSET_load(abset) ; CHECK_LOAD_ERROR(abset) ;
      aim = DSET_BRICK(abset,0); abot = mri_min(aim); atop = mri_max(aim);
-     bim = DSET_BRICK(abset,0); bbot = mri_min(bim); btop = mri_max(bim);
+     bim = DSET_BRICK(abset,1); bbot = mri_min(bim); btop = mri_max(bim);
      if( abot < -0.9f || atop > 0.9f || bbot < -0.9f || btop > 0.9f )
        ERROR_exit("-ABfile (a,b) values out of range -0.9..+0.9 ?!") ;
 
      REML_allow_negative_correlations(1) ;
      if( do_mfilt ){
-       do_mfilt = 0 ; WARNING_message("-ABfile disables -Mfilt") ;
+       do_mfilt = 0 ; WARNING_message("-ABfile disables -Mfilt !!") ;
      }
 
-     atop = fabsf(atop) ; abot = fabsf(abot) ; rhomax = 1.001*MAX(abot,atop) ;
-     btop = fabsf(btop) ; bbot = fabsf(bbot) ; bmax   = 1.001*MAX(bbot,btop) ;
-     if( rhomax < 0.1 ) rhomax = 0.1 ;
-     if( bmax   < 0.1 ) bmax   = 0.1 ;
+     atop = fabsf(atop) ; abot = fabsf(abot) ; rhomax = MAX(abot,atop) ;
+     btop = fabsf(btop) ; bbot = fabsf(bbot) ; bmax   = MAX(bbot,btop) ;
+     if( rhomax < 0.1    ) rhomax = 0.1 ;
+     if( bmax   < 0.1    ) bmax   = 0.1 ;
+     if( rhomax < rm_set ) rhomax = rm_set ;
+     if( bmax   < bm_set ) bmax   = bm_set ;
+     atr = THD_find_float_atr( abset->dblk , "REMLFIT_abmax" ) ;
+     if( atr != NULL && atr->nfl >= 3 ){
+       atm = (MTYPE)atr->fl[0] ; if( atm > rhomax ) rhomax = atm ;
+       atm = (MTYPE)atr->fl[1] ; if( atm > bmax   ) bmax   = atm ;
+       ii  = (int)  atr->fl[2] ; if( ii  > nlevab ) nlevab = ii  ;
+     }
+     rhomax *= 1.00001 ; bmax *= 1.00001 ;
      if( verb )
-       INFO_message("-ABfile sets (a,b) grid to %+.3f..%+.3f X %+.3f..%+.3f",
-                    -rhomax,rhomax , -bmax,bmax ) ;
+       INFO_message(
+         "-ABfile: (a,b) Grid = %+.3f..%+.3f x %+.3f..%+.3f Levels = %d",
+         -rhomax,rhomax , -bmax,bmax , nlevab ) ;
 
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
      bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
@@ -1155,7 +1198,7 @@ STATUS("options done") ;
 
    }
 
-   /*-- process the mask somehow --*/
+   /*-------------- process the mask somehow --------------*/
 
    if( mask != NULL ){
      if( mask_nx != nx || mask_ny != ny || mask_nz != nz )
@@ -1177,7 +1220,7 @@ STATUS("options done") ;
      memset( mask , 1 , sizeof(byte)*nvox ) ;
    }
 
-   /**-------- process the matrix --------**/
+   /**-------------------- process the matrix --------------------**/
 
 STATUS("process matrix") ;
 
@@ -1191,7 +1234,7 @@ STATUS("process matrix") ;
    cgl = NI_get_attribute( nelmat , "CommandLine" ) ;
    if( cgl != NULL ) commandline = strdup(cgl) ;
 
-   /* number of rows in the full matrix (without censoring) */
+   /*--- number of rows in the full matrix (without censoring) ---*/
 
    cgl = NI_get_attribute( nelmat , "NRowFull" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'NRowFull' attribute!") ;
@@ -1200,8 +1243,8 @@ STATUS("process matrix") ;
      ERROR_exit("-input dataset has %d time points, but matrix indicates %d",
                 nvals , nfull ) ;
 
-   /* the goodlist = mapping from matrix row index to time index
-                     (which allows for possible time point censoring) */
+   /*--- the goodlist = mapping from matrix row index to time index
+                        (which allows for possible time point censoring) ---*/
 
    cgl = NI_get_attribute( nelmat , "GoodList" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'GoodList' attribute!") ;
@@ -1212,7 +1255,7 @@ STATUS("process matrix") ;
    if( Ngoodlist != ntime )
      ERROR_exit("Matrix 'GoodList' incorrect length?!") ;
 
-   /* run starting points in time indexes */
+   /*----- run starting points in time indexes -----*/
 
    rst = NI_get_attribute( nelmat , "RunStart" ) ;
    if( rst != NULL ){
@@ -1225,7 +1268,7 @@ STATUS("process matrix") ;
      Nruns = 1 ; runs = calloc(sizeof(int),1) ;
    }
 
-   /* set up pseudo-time tau[] vector for R matrix formation */
+   /*----- set up pseudo-time tau[] vector for R matrix formation -----*/
 
    rnum = 0 ; tau = (int *)malloc(sizeof(int)*ntime) ;
    for( ii=0 ; ii < ntime ; ii++ ){
@@ -1235,7 +1278,7 @@ STATUS("process matrix") ;
      tau[ii] = jj + 66666*rnum ;  /* the 66666 means 'very far apart' */
    }
 
-   /* re-create the regression matrix X, from the NIML data element */
+   /*--- re-create the regression matrix X, from the NIML data element ---*/
 
 STATUS("re-create matrix") ;
 
@@ -1257,7 +1300,7 @@ STATUS("re-create matrix") ;
      ERROR_exit("Matrix file stored with illegal data type!?") ;
    }
 
-   /* get column labels for the betas */
+   /*--------------- get column labels for the betas ---------------*/
 
    cgl = NI_get_attribute( nelmat , "ColumnLabels" ) ;
    if( cgl == NULL ){
@@ -1269,7 +1312,7 @@ STATUS("re-create matrix") ;
      beta_lab = gsar->str ;
    }
 
-   /**** process -addbase images ****/
+   /****------------------ process -addbase images ------------------****/
 
    if( imar_addbase != NULL ){
      MRI_IMAGE *im ; int pp ; float *iar ;
@@ -1282,18 +1325,22 @@ STATUS("process -addbase images") ;
        INFO_message("Adding %d column%s to X matrix via '-addbase'" ,
                     ncol_addbase , (ncol_addbase==1) ? "" : "s"      ) ;
 
-     /* check each image for OK-ness == right length in time */
+     /*--- check each image for OK-ness == right length in time ---*/
 
      for( nbad=ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
        im = IMARR_SUBIM( imar_addbase , ii ) ;
-       if( im->nx < ntime ){
-         ERROR_message("-addbase file '%s' has %d rows, less than matrix's %d",
-                       im->name , im->nx , ntime ) ;
-         nbad++ ;
-       } else if( im->nx > ntime ){
-         WARNING_message("-addbase file '%s' has %d rows, more than matrix's %d",
-                         im->name , im->nx , ntime ) ;
+       if( im->nx == ntime ) continue ; /* OK */
+       if( im->nx == nfull ){           /* must be censored */
+         MRI_IMAGE *imb = mri_subset_x2D( ntime , goodlist , im ) ;
+         mri_free(im) ; IMARR_SUBIM(imar_addbase,ii) = imb ;
+         if( verb )
+           INFO_message("Censored -addbase file '%s' from %d down to %d rows" ,
+                        im->name , nfull , ntime ) ;
+         continue ;
        }
+       ERROR_message("-addbase file '%s' has %d rows, but matrix has %d !?" ,
+                     im->name , im->nx , ntime ) ;
+       nbad++ ;
      }
 
      ddof = ntime - nrega ;
@@ -1305,7 +1352,7 @@ STATUS("process -addbase images") ;
 
      if( nbad > 0 ) ERROR_exit("Cannot continue after -addbase errors!") ;
 
-     /* make up extra labels for these columns */
+     /*------ make up extra labels for these columns ------*/
 
      if( beta_lab != NULL ){
        char lll[32] ;
@@ -1320,7 +1367,7 @@ STATUS("process -addbase images") ;
        }
      }
 
-     /* enlarge the matrix, add the new columns to it, and proceed */
+     /*--- enlarge the matrix, add the new columns to it, and proceed ---*/
 
      matrix_enlarge( 0 , ncol_addbase , &X ) ;
      for( kk=nrego,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
@@ -1338,7 +1385,7 @@ STATUS("process -addbase images") ;
 
    } /**** end of -addbase stuff ****/
 
-   /** check matrix for all zero columns **/
+   /**--------------- check matrix for all zero columns ---------------**/
 
    for( nbad=jj=0 ; jj < nrega ; jj++ ){
      for( ii=0 ; ii < ntime && X.elts[ii][jj]==0.0 ; ii++ ) ; /*nada*/
@@ -1348,7 +1395,7 @@ STATUS("process -addbase images") ;
    }
    if( nbad > 0 ) ERROR_exit("Cannot continue with all zero columns!") ;
 
-   /**** process -slibase images ****/
+   /****------------------ process -slibase images ------------------****/
 
    if( imar_slibase == NULL ){  /** no per-slice regressors */
 
@@ -1372,23 +1419,28 @@ STATUS("process -slibase images") ;
        INFO_message("Adding %d column%s to X matrix via '-slibase'" ,
                     ncol_slibase , (ncol_slibase==1) ? "" : "s"      ) ;
 
-     /* check each file for right length in time and in column count */
+     /*--- check each file for right length in time and in column count ---*/
 
      for( nbad=ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
        im = IMARR_SUBIM( imar_slibase , ii ) ;
-       if( im->nx < ntime ){
-         ERROR_message("-slibase file '%s' has %d rows, less than matrix's %d",
-                       im->name , im->nx , ntime ) ;
-         nbad++ ;
-       } else if( im->nx > ntime ){
-         WARNING_message("-slibase file '%s' has %d rows, more than matrix's %d",
-                         im->name , im->nx , ntime ) ;
-       }
        if( im->ny != nsli ){
-         ERROR_message("-slibase file '%s' has %d columns but dataset has %d slices",
-                       im->name , im->ny , nsli ) ;
-         nbad++ ;
+         ERROR_message(
+           "-slibase file '%s' has %d columns but dataset has %d slices",
+           im->name , im->ny , nsli ) ;
+         nbad++ ; continue ;
        }
+       if( im->nx == ntime ) continue ; /* OK */
+       if( im->nx == nfull ){
+         MRI_IMAGE *imb = mri_subset_x2D( ntime , goodlist , im ) ;
+         mri_free(im) ; IMARR_SUBIM(imar_addbase,ii) = imb ;
+         if( verb )
+           INFO_message("Censored -slibase file '%s' from %d down to %d rows" ,
+                        im->name , nfull , ntime ) ;
+         continue ;
+       }
+       ERROR_message("-slibase file '%s' has %d rows, but matrix has %d" ,
+                     im->name , im->nx , ntime ) ;
+       nbad++ ;
      }
 
      ddof = ntime - nrega ;
@@ -1400,7 +1452,7 @@ STATUS("process -slibase images") ;
 
      if( nbad > 0 ) ERROR_exit("Cannot continue after -slibase errors!") ;
 
-     /* make up extra labels for these columns */
+     /*--------- make up extra labels for these columns ---------*/
 
      if( beta_lab != NULL ){
        char lll[32] ;
@@ -1412,7 +1464,7 @@ STATUS("process -slibase images") ;
        }
      }
 
-     /* for each slice, make up a new matrix, add columns to it */
+     /*------ for each slice, make up a new matrix, add columns to it ------*/
 
      Xsli = (matrix **)malloc(sizeof(matrix *)*nsli) ;
 
@@ -1444,7 +1496,7 @@ STATUS("process -slibase images") ;
 
    } /**** end of -slibase stuff ****/
 
-   /*** extract stim information from matrix header ***/
+   /***---------- extract stim information from matrix header ----------***/
 
    cgl = NI_get_attribute( nelmat , "Nstim" ) ;
    if( cgl != NULL ){
@@ -1490,11 +1542,13 @@ STATUS("process -slibase images") ;
 
      WARNING_message("-matrix file is missing Stim attributes (old 3dDeconvolve?)") ;
      if( do_stat || do_buckt || do_eglt )
-       ERROR_exit(" ==> Can't do statistics on the Stimuli") ;
-     eglt_num = 0 ;
+       ERROR_exit(" ==> Can't do statistics or GLTs on the Stimuli") ;
+     else if( eglt_num > 0 )
+       ERROR_exit(" ==> Can't process GLTs") ;
+
    }
 
-   /*** setup to do statistics on the stimuli betas, if desired ***/
+   /***--- setup to do statistics on the stimuli betas, if desired ---***/
 
 #define SKIP_SMAT 1
 #undef  ADD_GLT
@@ -1521,7 +1575,8 @@ STATUS("process -slibase images") ;
      int *set = (int *)malloc(sizeof(int)*nrega) ;  /* list of columns to keep */
 
 STATUS("make stim GLTs") ;
-     /* first set of indexes is all stimuli */
+
+     /*------ first set of indexes is all stimuli ------*/
 
      for( kk=jj=0 ; jj < stim_num ; jj++ ){
        for( ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
@@ -1534,7 +1589,7 @@ STATUS("make stim GLTs") ;
      memcpy( allstim , set , sizeof(int)*num_allstim ) ;
      qsort_int( num_allstim , allstim ) ;
 
-     /* now do each labeled stimulus separately */
+     /*--- now do each labeled stimulus separately ---*/
 
      for( jj=0 ; jj < stim_num ; jj++ ){
        for( kk=0,ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
@@ -1546,55 +1601,50 @@ STATUS("make stim GLTs") ;
      free((void *)set) ;  /* not needed no more, no how, no way */
    }
 
-   /* extract other GLT information from matrix header */
+   /*------ extract other GLT information from matrix header ------*/
 
    cgl = NI_get_attribute( nelmat , "Nglt" ) ;
-   if( cgl != NULL && do_stat ){
+   if( do_stat && (cgl != NULL || eglt_num > 0) ){
      char lnam[32],*lll ; int nn,mm,ngl ; matrix *gm ; float *far ;
 
-STATUS("make other GLTs") ;
 
-     ngl = (int)strtod(cgl,NULL) ;
-     if( ngl <= 0 ) ERROR_exit("Nglt attribute in matrix is not positive!");
+     if( cgl != NULL ){
+STATUS("make GLTs from matrix file") ;
+       ngl = (int)strtod(cgl,NULL) ;
+       if( ngl <= 0 ) ERROR_exit("Nglt attribute in matrix is not positive!");
 
-     cgl = NI_get_attribute( nelmat , "GltLabels" ) ;
-     if( cgl == NULL ) ERROR_exit("Matrix is missing 'GltLabels' attribute!");
-     gsar = NI_decode_string_list( cgl , ";" ) ;
-     if( gsar == NULL || gsar->num < ngl )
-       ERROR_exit("Matrix 'GltLabels' badly formatted?!") ;
+       cgl = NI_get_attribute( nelmat , "GltLabels" ) ;
+       if( cgl == NULL ) ERROR_exit("Matrix is missing 'GltLabels' attribute!");
+       gsar = NI_decode_string_list( cgl , ";" ) ;
+       if( gsar == NULL || gsar->num < ngl )
+         ERROR_exit("Matrix 'GltLabels' badly formatted?!") ;
 
-     for( kk=0 ; kk < ngl ; kk++ ){
-       sprintf(lnam,"GltMatrix_%06d",kk) ;
-       cgl = NI_get_attribute( nelmat , lnam ) ;
-       if( cgl == NULL ) ERROR_exit("Matrix is missing '%s' attribute!",lnam) ;
-       gfar = NI_decode_float_list( cgl , "," ) ;
-       if( gfar == NULL || gfar->num < 3 )
-         ERROR_exit("Matrix attribute '%s' is badly formatted?!",lnam) ;
-       far = gfar->ar ; nn = (int)far[0] ; mm = (int)far[1] ;
-       if( nn <= 0 ) ERROR_exit("GLT '%s' has %d rows?",lnam,nn) ;
-       if( mm != nrego )
-         ERROR_exit("GLT '%s' has %d columns (should be %d)?",lnam,mm,nrego) ;
-       gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
-       matrix_create( nn, nrega, gm ) ;
-       for( ii=0 ; ii < nn ; ii++ ){
-         for( jj=0 ; jj < mm ; jj++ ) gm->elts[ii][jj] = far[jj+2+ii*mm] ;
+       for( kk=0 ; kk < ngl ; kk++ ){
+         sprintf(lnam,"GltMatrix_%06d",kk) ;
+         cgl = NI_get_attribute( nelmat , lnam ) ;
+         if( cgl == NULL ) ERROR_exit("Matrix is missing '%s' attribute!",lnam) ;
+         gfar = NI_decode_float_list( cgl , "," ) ;
+         if( gfar == NULL || gfar->num < 3 )
+           ERROR_exit("Matrix attribute '%s' is badly formatted?!",lnam) ;
+         far = gfar->ar ; nn = (int)far[0] ; mm = (int)far[1] ;
+         if( nn <= 0 ) ERROR_exit("GLT '%s' has %d rows?",lnam,nn) ;
+         if( mm != nrego )
+           ERROR_exit("GLT '%s' has %d columns (should be %d)?",lnam,mm,nrego) ;
+         gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
+         matrix_create( nn, nrega, gm ) ;
+         for( ii=0 ; ii < nn ; ii++ ){
+           for( jj=0 ; jj < mm ; jj++ ) gm->elts[ii][jj] = far[jj+2+ii*mm] ;
+         }
+         lll = gsar->str[kk] ; if( lll == NULL || *lll == '\0' ) lll = lnam ;
+         ADD_GLT( lll , gm ) ;
        }
-       lll = gsar->str[kk] ; if( lll == NULL || *lll == '\0' ) lll = lnam ;
-       ADD_GLT( lll , gm ) ;
-#if 0
-       printf("------------------------------------------------------------\n");
-       printf("GLT matrix from '%s':\n",lll) ;
-       matrix_print( *gm ) ;
-#endif
-     }
+     } /* end of GLTs from the matrix file */
 
-#if 0
-     INFO_message("Read %d GLT%s from matrix header",ngl,(ngl==1)?"":"s") ;
-#endif
-
-     /* now process any extra GLTs on our local command line */
+     /**------ now process any extra GLTs on our local command line ------**/
 
      oglt_num = glt_num ;  /* number of 'original' GLTs */
+
+     if( eglt_num > 0 ) STATUS("make GLTs from command line") ;
 
      for( nbad=kk=0 ; kk < eglt_num ; kk++ ){
        gm = create_gltsym( eglt_sym[kk] , nrega ) ;
@@ -1604,13 +1654,13 @@ STATUS("make other GLTs") ;
      if( nbad > 0 || SYM_expand_errcount() > 0 )
        ERROR_exit("Can't continue after -gltsym errors!") ;
 
-   }
+   } /* end of GLT setup */
 
-   /*** done with nelmat ***/
+   /***--------- done with nelmat ---------***/
 
-   NI_free_element(nelmat) ;
+   NI_free_element(nelmat) ;  /* save some memory */
 
-   /**--- load time series dataset, check for all zero voxels ---**/
+   /**------ load time series dataset, check for all zero voxels ------**/
 
    if( verb ) INFO_message("Loading input dataset into memory") ;
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
@@ -1635,7 +1685,7 @@ STATUS("make other GLTs") ;
      if( nmask < 1 ) ERROR_exit("Can't continue after mask shrinks to nothing!") ;
    }
 
-   /**------- set up for REML estimation -------**/
+   /**---------------------- set up for REML estimation ---------------------**/
 
    if( verb ){
      INFO_message("starting REML setup calculations") ;
@@ -1678,7 +1728,7 @@ STATUS("make other GLTs") ;
 
    izero = RCsli[0]->izero ;  /* index of (a=0,b=0) case */
 
-   /***------- loop over voxels, find best REML values ------***/
+   /***------------- loop over voxels, find best REML values ------------***/
 
    vstep = (verb && nvox > 999) ? nvox/50 : 0 ;
 
@@ -1710,7 +1760,7 @@ STATUS("make other GLTs") ;
      if( vstep ) fprintf(stderr,"\n") ;
      if( usetemp ) reml_collection_save( RCsli[nsli-1] ) ;  /* purge to disk */
 
-     /*-- median filter (a,b)? --*/
+     /*----- median filter (a,b)? -----*/
 
      if( do_mfilt ){
        MRI_IMAGE *afilt , *bfilt ;
@@ -1734,8 +1784,8 @@ STATUS("make other GLTs") ;
 
    } /***** end of REML estimation *****/
 
-   /*-- at this point, aim and bim contain the (a,b) parameters --*/
-   /*-- (either from -ABfile or from REML loop just done above) --*/
+   /*------- at this point, aim and bim contain the (a,b) parameters -------*/
+   /*------- (either from -ABfile or from REML loop just done above) -------*/
 
    /*-- set up indexing and labels needed for bucket dataset creation --*/
 
@@ -1766,8 +1816,8 @@ STATUS("make other GLTs") ;
        neglt = glt_ind[glt_num-1]->ivtop - glt_ind[oglt_num-1]->ivtop ;
    }
 
-   /*-- now, use these values to compute the Generalized Least  --*/
-   /*-- Squares (GLSQ) solution at each voxel, and save results --*/
+   /*----- now, use these values to compute the Generalized Least  -----*/
+   /*----- Squares (GLSQ) solution at each voxel, and save results -----*/
 
    Rbeta_dset = create_float_dataset( inset , nrega , Rbeta_prefix,1 ) ;
    if( Rbeta_dset != NULL && beta_lab != NULL ){
@@ -1777,10 +1827,13 @@ STATUS("make other GLTs") ;
 
    Rvar_dset  = create_float_dataset( inset , 4    , Rvar_prefix,1 ) ;
    if( Rvar_dset != NULL ){
+     float abar[3] ;
      EDIT_BRICK_LABEL( Rvar_dset , 0 , "a" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 1 , "b" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 2 , "lam" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 3 , "StDev" ) ;
+     abar[0] = rhomax ; abar[1] = bmax ; abar[2] = (float)nlevab ;
+     THD_set_float_atr( Rvar_dset->dblk , "REMLFIT_abmax" , 3 , abar ) ;
    }
 
    Rfitts_dset = create_float_dataset( inset , nfull, Rfitts_prefix,0 ) ;
@@ -1823,7 +1876,7 @@ STATUS("make other GLTs") ;
    if( Rglt_dset != NULL ){
      int nr , isub = glt_ind[oglt_num]->ivbot ;
      for( ii=oglt_num ; ii < glt_num ; ii++ ){
-       if( glt_ind[ii] == NULL ) continue ;
+       if( glt_ind[ii] == NULL ) continue ;  /* should not happen! */
        nr = glt_ind[ii]->nrow ;
        if( glt_ind[ii]->beta_ind != NULL ){
          for( jj=0 ; jj < nr ; jj++ )
@@ -1856,7 +1909,7 @@ STATUS("make other GLTs") ;
                (Rerrts_dset != NULL) || (Rwherr_dset != NULL) ||
                (Rglt_dset   != NULL)                             ;
 
-   /*---- and do the second (GLSQ) voxel loop ----*/
+   /*---------------- and do the second (GLSQ) voxel loop ----------------*/
 
    if( do_Rstuff ){
      if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
@@ -1869,12 +1922,12 @@ STATUS("make other GLTs") ;
 
        ssold = ss ; ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
 
-       /* If at a new slice:
-            remove REML setups (except a=b=0 case) for previous slice;
-            create new slice matrices, if they don't exist already, OR
-            get new slice matrices back from disk, if they were purged earlier;
-            add GLT setups to the new slice.
-          The purpose of doing it this way is to save memory space. */
+       /*=== If at a new slice:
+               remove REML setups (except a=b=0 case) for previous slice;
+               create new slice matrices, if they don't exist already, OR
+               get new slice matrices back from disk, if they were purged
+               earlier; add GLT setups to the new slice.
+             The purpose of doing it this way is to save memory space.  ======*/
 
        if( ss > ssold ){
          if( ssold >= 0 ) reml_collection_destroy( RCsli[ssold] , 1 ) ;
@@ -1913,14 +1966,17 @@ STATUS("make other GLTs") ;
                          aar[vv],bar[vv],LAMBDA(aar[vv],bar[vv]),jj) ;
        } else {
 
-         /* do the fitting; various results are in the bb? vectors:
-              bb5 = estimated betas
-              bb6 = fitted model
-              bb7 = whitened fitted model [not used below]
-              bb1 = whitened data [not used below]
-              bb2 = whitened residuals (sum of squares of bb2 ==> noise variance) */
+         /*--- do the fitting; various results are in the bb? vectors:
+                bb5 = estimated betas
+                bb6 = fitted model
+                bb7 = whitened fitted model [not used below]
+                bb1 = whitened data [not used below]
+                bb2 = whitened residuals
+                      (sum of squares of bb2 ==> noise variance) -------------*/
 
          (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ) ;
+
+         /*--------- scatter the results to various datasets ---------*/
 
          if( Rfitts_dset != NULL ){  /* note that iv still contains original data */
            for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6->elts[ii] ;
@@ -1981,7 +2037,7 @@ STATUS("make other GLTs") ;
          if( Rglt_dset != NULL ){
            MTYPE gv ; GLT_index *gin ; int nr , isub ;
            memset( iv , 0 , sizeof(float)*niv ) ;
-           isub = glt_ind[oglt_num]->ivbot ;
+           isub = glt_ind[oglt_num]->ivbot ;  /* first index in first extra GLT */
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
@@ -2014,7 +2070,7 @@ STATUS("make other GLTs") ;
      MEMORY_CHECK ;
    }
 
-   /*----- write output REML datasets to disk -----*/
+   /*----------------- write output REML datasets to disk -----------------*/
 
    if( Rbeta_dset != NULL ){
      DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); DSET_deletepp(Rbeta_dset);
@@ -2052,7 +2108,7 @@ STATUS("make other GLTs") ;
      DSET_write(Rglt_dset); WROTE_DSET(Rglt_dset); DSET_deletepp(Rglt_dset);
    }
 
-   /*-- create OLSQ outputs, if any --*/
+   /*---------------------- create OLSQ outputs, if any ----------------------*/
 
    Obeta_dset = create_float_dataset( inset , nrega , Obeta_prefix,1 ) ;
    if( Obeta_dset != NULL && beta_lab != NULL ){
@@ -2100,11 +2156,43 @@ STATUS("make other GLTs") ;
      }
    }
 
+   Oglt_dset = create_float_dataset( inset , neglt , Oglt_prefix,1 ) ;
+   if( Oglt_dset != NULL ){
+     int nr , isub = glt_ind[oglt_num]->ivbot ;
+     for( ii=oglt_num ; ii < glt_num ; ii++ ){
+       if( glt_ind[ii] == NULL ) continue ;  /* should not happen! */
+       nr = glt_ind[ii]->nrow ;
+       if( glt_ind[ii]->beta_ind != NULL ){
+         for( jj=0 ; jj < nr ; jj++ )
+           EDIT_BRICK_LABEL( Oglt_dset , glt_ind[ii]->beta_ind[jj]-isub ,
+                                           glt_ind[ii]->beta_lab[jj]  ) ;
+           EDIT_BRICK_TO_NOSTAT( Oglt_dset , glt_ind[ii]->beta_ind[jj]-isub ) ;
+       }
+       if( glt_ind[ii]->ttst_ind != NULL ){
+         for( jj=0 ; jj < nr ; jj++ ){
+           EDIT_BRICK_LABEL( Oglt_dset , glt_ind[ii]->ttst_ind[jj]-isub ,
+                                           glt_ind[ii]->ttst_lab[jj]  ) ;
+           EDIT_BRICK_TO_FITT( Oglt_dset , glt_ind[ii]->ttst_ind[jj]-isub , ddof ) ;
+         }
+       }
+       if( glt_ind[ii]->ftst_ind >= 0 ){
+         EDIT_BRICK_LABEL( Oglt_dset , glt_ind[ii]->ftst_ind-isub ,
+                                         glt_ind[ii]->ftst_lab  ) ;
+         EDIT_BRICK_TO_FIFT( Oglt_dset , glt_ind[ii]->ftst_ind-isub , nr , ddof ) ;
+       }
+       if( glt_ind[ii]->rtst_ind >= 0 ){
+         EDIT_BRICK_LABEL( Oglt_dset , glt_ind[ii]->rtst_ind-isub ,
+                                         glt_ind[ii]->rtst_lab  ) ;
+         EDIT_BRICK_TO_FIBT( Oglt_dset , glt_ind[ii]->rtst_ind-isub, 0.5*nr,0.5*ddof );
+       }
+     }
+   }
+
    do_Ostuff = (Obeta_dset  != NULL) || (Ovar_dset   != NULL) ||
                (Ofitts_dset != NULL) || (Obuckt_dset != NULL) ||
-               (Oerrts_dset != NULL)                            ;
+               (Oerrts_dset != NULL) || (Oglt_dset   != NULL)   ;
 
-   /*---- and do the third (OLSQ) voxel loop ----*/
+   /*---------------- and do the third (OLSQ) voxel loop ----------------*/
 
    if( do_Ostuff ){
      if( vstep ) fprintf(stderr,"++ OLSQ voxel loop: ") ;
@@ -2185,6 +2273,33 @@ STATUS("make other GLTs") ;
            THD_insert_series( vv , Obuckt_dset , nbuckt , MRI_float , iv , 0 ) ;
          }
 
+         if( Oglt_dset != NULL ){
+           MTYPE gv ; GLT_index *gin ; int nr , isub ;
+           memset( iv , 0 , sizeof(float)*niv ) ;
+           isub = glt_ind[oglt_num]->ivbot ;  /* first index in first extra GLT */
+           for( kk=oglt_num ; kk < glt_num ; kk++ ){
+             gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
+             nr = gin->nrow ;
+             gv = REML_compute_gltstat( &y , bb5 , rsumq ,
+                                        RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
+                                        glt_mat[kk] , glt_smat[kk] ,
+                                        RCsli[ss]->X , RCsli[ss]->Xs        ) ;
+             if( gin->ftst_ind >= 0 ) iv[gin->ftst_ind-isub] = gv ;
+             if( gin->rtst_ind >= 0 ) iv[gin->rtst_ind-isub] = betaR ;
+             if( gin->beta_ind != NULL && betaG->dim >= nr ){
+               for( ii=0 ; ii < nr ; ii++ ){
+                 iv[gin->beta_ind[ii]-isub] = betaG->elts[ii] ;
+               }
+             }
+             if( gin->ttst_ind != NULL && betaT->dim >= nr ){
+               for( ii=0 ; ii < nr ; ii++ ){
+                 iv[gin->ttst_ind[ii]-isub] = betaT->elts[ii] ;
+               }
+             }
+           }
+           THD_insert_series( vv , Oglt_dset , neglt , MRI_float , iv , 0 ) ;
+         }
+
        }
      } /* end of voxel loop */
      if( vstep ) fprintf(stderr,"\n") ;
@@ -2192,7 +2307,7 @@ STATUS("make other GLTs") ;
        ININFO_message("OLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
    }
 
-   /*----- done with the input dataset -----*/
+   /*----------------- done with the input dataset -----------------*/
 
    MEMORY_CHECK ;
    if( verb > 1 ) ININFO_message("unloading input dataset and REML matrices");
@@ -2207,7 +2322,7 @@ STATUS("make other GLTs") ;
    (void)REML_func(NULL,NULL,NULL,NULL) ;
    MEMORY_CHECK ;
 
-   /*----- write output OLSQ datasets to disk -----*/
+   /*-------------- write output OLSQ datasets to disk --------------*/
 
    if( Obeta_dset != NULL ){
      DSET_write(Obeta_dset); WROTE_DSET(Obeta_dset); DSET_deletepp(Obeta_dset);
@@ -2231,13 +2346,23 @@ STATUS("make other GLTs") ;
                       ii , (ii==1)?"":"s" ) ;
      DSET_write(Obuckt_dset); WROTE_DSET(Obuckt_dset); DSET_deletepp(Obuckt_dset);
    }
+   if( Oglt_dset != NULL ){
+     if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
+       ii = THD_create_all_fdrcurves(Oglt_dset) ;
+     else
+       ii = 0 ;
+     if( ii > 0 && verb > 1 )
+       ININFO_message("Added %d FDR curve%s to -Oglt dataset",
+                      ii , (ii==1)?"":"s" ) ;
+     DSET_write(Oglt_dset); WROTE_DSET(Oglt_dset); DSET_deletepp(Oglt_dset);
+   }
 
-   /*----- Free at last ----*/
+   /*----------------------------- Free at last ----------------------------*/
 
    INFO_message("3dREMLfit is all done! total CPU=%.2f s",COX_cpu_time()) ;
    MEMORY_CHECK ;
 #ifdef USING_MCW_MALLOC
-   if( verb > 3 ) mcw_malloc_dump() ;
+   if( verb > 4 ) mcw_malloc_dump() ;
 #endif
    exit(0) ;
 }

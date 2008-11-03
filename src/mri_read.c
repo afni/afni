@@ -2653,13 +2653,18 @@ ENTRY("mri_read_1D") ;
        }
      }
 
-     outim = mri_new( nts , ny , MRI_float ) ; /* make output image */
-     far   = MRI_FLOAT_PTR( flim ) ;
-     oar   = MRI_FLOAT_PTR( outim ) ;
+     if( AFNI_yesenv("AFNI_TEST_SUBSETTER") ){
+       INFO_message("Calling mri_subset_x2D") ;
+       outim = mri_subset_x2D( nts , ivl , flim ) ;
+     } else {
+       outim = mri_new( nts , ny , MRI_float ) ; /* make output image */
+       far   = MRI_FLOAT_PTR( flim ) ;
+       oar   = MRI_FLOAT_PTR( outim ) ;
 
-     for( ii=0 ; ii < nts ; ii++ )             /* copy desired columns */
-       for( jj=0 ; jj < ny ; jj++ )
-         oar[ii+jj*nts] = far[ivl[ii]+jj*nx] ;
+       for( ii=0 ; ii < nts ; ii++ )             /* copy desired columns */
+         for( jj=0 ; jj < ny ; jj++ )
+           oar[ii+jj*nts] = far[ivl[ii]+jj*nx] ;
+     }
 
      mri_free(flim); free(sslist); flim = outim;
    }

@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , NOV , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "Several changes" ,
+   "Finished -gltsym, -Rglt, and -Oglt options = add GLTs on the 3dREMLfit\n"
+   "command line and output those exclusively to new files.\n"
+   "\n"
+   "Modified -addbase and -slibase to do censoring if input 1D files are the\n"
+   "same length as the uncensored matrix.\n"
+   "\n"
+   "Also fixed bugs in -ABfile.  Oopsie." } ,
+
  { 28 , OCT , 2008 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "add '3' checkerboard (inverse stippling to '#' key)" ,
    NULL } ,

@@ -41,5 +41,5 @@ ENTRY("mri_checkboard") ;
      }
    }
 
-   RETURN(imc) ;
+   MRI_COPY_AUX(imc,ima) ; RETURN(imc) ;
 }

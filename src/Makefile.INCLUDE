@@ -1565,7 +1565,8 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_genalign.o mri_clusterize.o mri_nbistats.o mri_fwhm.o           \
            mri_blur3d_variable.o mri_purger.o mri_counter.o mri_to_imarr.o     \
            mri_pcvector.o mri_fdrize.o mri_floatvec.o mri_sort.o               \
-           mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o
+           mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
+           mri_subset.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
