@@ -9,7 +9,7 @@ function Opt = RetroTS(SN)
 %     Respfile: Respiration data file
 %     Cardfile: Cardiac data file
 %     PhysFS: Physioliogical signal sampling frequency in Hz.
-%     Nsclices: Number of slices
+%     Nslices: Number of slices
 %     VolTR: Volume TR in seconds
 %     Optional:
 %     ---------
@@ -33,7 +33,7 @@ function Opt = RetroTS(SN)
 %  Opt.Respfile = 'Resp_epiRT_scan_14.dat'
 %  Opt.Cardfile = 'ECG_epiRT_scan_14.dat'
 %  Opt.VolTR = 2
-%  Opt.Nsclices = 20;
+%  Opt.Nslices = 20;
 %  Opt.PhysFS = 1./0.02;   %20 msec sampling period
 %  RetroTS(Opt);
 %
@@ -45,7 +45,8 @@ function Opt = RetroTS(SN)
 %
 % Output:
 %  Opt: Struture of options including default settings.
-%       
+% 
+      
 %Implementation Notes:
 %%%%%%%%%%%%%%%%%%%%%%
 % The script is intended as a prototype for development in C or Python 
@@ -80,7 +81,7 @@ if (~isstruct(SN)), %mode 1, toy mode
    ns = length(s);
    pat = 'RT Physio:\W*sampling\W*';                 
    Opt.PhysFS = 1000/str2num(strtok(s(regexp(s,pat,'end'):ns)));        
-   Opt.Nsclices = 20;
+   Opt.Nslices = 20;
    Opt.VolTR = 2;
    Opt.ResampFS = Opt.PhysFS; %upsampling frequency in Hz
    Opt.Quiet = 1;
@@ -95,7 +96,7 @@ if (~isstruct(SN)), %mode 1, toy mode
    Opt.Respfile = lll(1).name;
    Opt.Cardfile = lll(1).name;
    Opt.SliceOffset = ... 
-      [0:Opt.VolTR./Opt.Nsclices:Opt.VolTR-Opt.VolTR./Opt.Nsclices]; 
+      [0:Opt.VolTR./Opt.Nslices:Opt.VolTR-Opt.VolTR./Opt.Nslices]; 
    Opt.Prefix = sprintf('%d',iscan);
    clear ('s');
    clear ('SN');
@@ -114,8 +115,8 @@ else,
       fprintf(2,'Missing field PhysFS\n');
       return;
    end
-   if ( ~isfield(Opt,'Nsclices') | isempty(Opt.Nsclices)),
-      fprintf(2,'Missing field Nsclices\n');
+   if ( ~isfield(Opt,'Nslices') | isempty(Opt.Nslices)),
+      fprintf(2,'Missing field Nslices\n');
       return;
    end
    if ( ~isfield(Opt,'VolTR') | isempty(Opt.VolTR)),
@@ -186,7 +187,7 @@ Show_RVT_Peak(R,1);
 Show_RVT_Peak(E,2);
 
 %write retroicor regressors
-for (i=1:1:Opt.Nsclices),
+for (i=1:1:Opt.Nslices),
    fname = sprintf('%s.RetroCard.slc%02d.1D', Opt.Prefix, i);
    wryte3(E.phz_slc_reg(:,:,i), fname, 1);
    fname = sprintf('%s.RetroResp.slc%02d.1D', Opt.Prefix, i);
