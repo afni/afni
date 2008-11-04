@@ -854,9 +854,9 @@ rtfeedme:rtfeedme.o
 	$(RM) $@
 	$(CC) -o 3dANOVA3 3dANOVA3.o $(LFLAGS) $(LLIBS)
 
-3dNLfim:3dNLfim.o NLfit.c NLfit.h NLfit_model.c NLfit_model.h simplex.c
+3dNLfim:3dNLfim.o NLfit.c NLfit.h NLfit_model.c NLfit_model.h simplex.c  parser.o parser_int.o
 	$(RM) $@
-	$(CCFAST) -o 3dNLfim 3dNLfim.o $(PLFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CCFAST) -o 3dNLfim 3dNLfim.o $(PLFLAGS) $(LFLAGS)  parser.o parser_int.o -lmri -lf2c $(LLIBS)
 
 3dNLfim_n:3dNLfim_n.o NLfit.c NLfit.h NLfit_model.c NLfit_model.h simplex.c
 	$(RM) $@
@@ -1728,7 +1728,8 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_exp.$(SO) model_diffexp.$(SO) model_gammavar.$(SO)       \
         model_convgamma.$(SO) model_convgamma2a.$(SO)                  \
         model_michaelis_menton.$(SO) model_linplusort.$(SO)            \
-	model_zero.$(SO) model_demri_3.$(SO) model_conv_diffgamma.$(SO)
+        model_zero.$(SO) model_demri_3.$(SO) model_expr2.$(SO)         \
+        model_conv_diffgamma.$(SO)
 
 # Contributed plugins go last, since they might not compile well
 

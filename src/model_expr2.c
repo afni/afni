@@ -1,7 +1,34 @@
-/*
+/******************************************************************************
   This file contains routines to initialize and implement the
-  parser-based expr model for 3dNLfim.
-*/
+  parser-based 'Expr2' model for 3dNLfim.
+
+  Usage:
+   * setenv AFNI_NLFIM_EXPR2 'expression'
+
+   * 'expression' should use exactly 3 variables (letter):
+     't' for the time dimension;
+     any other 2 letters for the free variables (to be found by 3dNLfim);
+     Example: 'a*sin(t/b)'
+
+   * You will have to set the variable ranges to values that make sense for
+     your problem, as in 3dNLfim options
+       -sconstr 0 1 9 -sconstr 1 1 5
+     to restrain the first (alphabetically) variable to be between 0 and 9,
+     and to make the second (alphabetically) variable be between 1 and 5.
+     The default constraints are between 0 and 1, which is probably useless.
+
+   * This model will be SLOW, since the parser evaluation will be sluggish
+     compared to optimized and compiled C code.  But it might be useful
+     for quick-and-dirty jobs.
+
+   * Example:
+       1deval -expr '3.5*sin(t/1.5)+gran(0,.1)' -num 100 > q.1D
+       setenv AFNI_NLFIM_EXPR2 'a*sin(t/b)'
+       3dNLfim -input q.1D\' -noise Zero -signal Expr2 \
+               -sconstr 0 1 9 -sconstr 1 1 5 -bucket 0 qqq -BOTH
+     Output (file qqq.1D) gives the estimated parameters as a=3.47268 b=1.50005
+     Note input of a 1D file (with TR=1) using the \' notation.
+*******************************************************************************/
 
 
 /*---------------------------------------------------------------------------*/
@@ -96,12 +123,13 @@ ENTRY("model_expr2") ;
     expr = getenv("AFNI_NLFIM_EXPR2") ;
     if( expr == NULL )
       ERROR_exit("Can't find AFNI_NLFIM_EXPR2 in environment!") ;
+    INFO_message("AFNI_NLFIM_EXPR2 expression = '%s'",expr) ;
     pcode = PARSER_generate_code( expr ) ;
     if( pcode == NULL )
-      ERROR_exit("AFNI_NLFIM_EXPR2 contains illegal expression!") ;
+      ERROR_exit("AFNI_NLFIM_EXPR2 contains un-parse-able expression!") ;
     sym[0] = 'T' ; sym[1] = '\0' ;
     if( !PARSER_has_symbol(sym,pcode) )
-      ERROR_exit("AFNI_NLFIM_EXPR2 expression doesn't contain 't' symbol!") ;
+      ERROR_exit("AFNI_NLFIM_EXPR2 expression doesn't contain 't' (time) symbol!") ;
     for( qvar=ii=0 ; ii < 26 ; ii++ ){
       sym[0] = 'A' + ii ; sym[1] = '\0' ; if( sym[0] == 'T' ) continue ;
       if( PARSER_has_symbol(sym,pcode) ){
