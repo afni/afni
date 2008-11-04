@@ -94,9 +94,9 @@ end
 
 for (icol=1:1:length(R)),
    R(icol).tst = [0:Opt.VolTR:max(R(icol).t)-Opt.VolTR]; %time series time vector
-   R(icol).phz_slc = zeros(length(R(icol).tst),Opt.Nsclices);
-   R(icol).phz_slc_reg = zeros(length(R(icol).tst),4,Opt.Nsclices);
-   for (isl=1:1:Opt.Nsclices),
+   R(icol).phz_slc = zeros(length(R(icol).tst),Opt.Nslices);
+   R(icol).phz_slc_reg = zeros(length(R(icol).tst),4,Opt.Nslices);
+   for (isl=1:1:Opt.Nslices),
       tslc = R(icol).tst+Opt.SliceOffset(isl);
       for (i=1:1:length(R(icol).tst)),
          [mi,imin] = min(abs(tslc(i)-R(icol).t));
