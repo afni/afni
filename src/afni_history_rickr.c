@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, NOV, 2008, RCR, "plug_vol2surf", MICRO, TYPE_MODIFY,
+   "fail if NIML output dataset does end in .niml.dset",
+   NULL
+ } ,
+
+ {  4, NOV, 2008, RCR, "3dVol2Surf", MICRO, TYPE_MODIFY,
+   "fail if NIML output dataset does end in .niml.dset",
+   NULL
+ } ,
+
+ {  4, NOV, 2008, RCR, "vol2surf", MICRO, TYPE_MODIFY,
+   "only complain about statsym_string in debug mode",
+   NULL
+ } ,
+
  { 31, OCT, 2008, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
    "moved functions encode_1D_ints and decode_1D_ints here",
    NULL

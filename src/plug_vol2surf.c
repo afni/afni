@@ -583,6 +583,18 @@ ENTRY("PV2S_process_args");
             }
 
             str = PLUTO_get_string(plint);
+
+            /* make sure the string looks like *.niml.dset    4 Nov 2008 */
+            val = strlen(str);
+            if ( val > 0 && (val < 11 || strcmp(str+val-10,".niml.dset")) )
+            {
+                sprintf( mesg,  "-----------------------------------\n"
+                                "NIML dataset must end in .niml.dset\n"
+                                "have: %s\n"
+                                "-----------------------------------", str );
+                RETURN(1);
+            }
+
             if ( strlen(str) > 0 )
             {
                 sopt->outfile_niml = (char *)calloc(strlen(str)+1,sizeof(char));

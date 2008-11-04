@@ -1323,6 +1323,14 @@ ENTRY("init_options");
             }
 
             opts->outfile_niml = argv[++ac];
+            ind = strlen(opts->outfile_niml);
+            /* make sure the filename ends with .niml.dset     4 Nov 2008 */
+            if ( ind > 0 && (ind < 11 ||
+                             strcmp(opts->outfile_niml+ind-10, ".niml.dset")) )
+            {
+                fputs( "** -out_niml name must end in .niml.dset\n\n",stderr);
+                RETURN(-1);
+            }
         }
         else if ( ! strncmp(argv[ac], "-reverse_norm_dir", 8) )
         {
