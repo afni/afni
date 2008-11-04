@@ -37,6 +37,7 @@ function Opt = RetroTS(SN)
 %  Opt.PhysFS = 1./0.02;   %20 msec sampling period
 %  RetroTS(Opt);
 %
+
 % Input Mode 2 (for testing purposes only):
 %  Opt: Scan number for file triplet to be processed.
 %      Files called Resp*SN*, ECG*SN*, and scan*SN* are presumed to
