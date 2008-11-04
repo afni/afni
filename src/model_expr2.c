@@ -3,6 +3,8 @@
   parser-based 'Expr2' model for 3dNLfim.
 
   Usage:
+   * signal model name is 'Expr2'
+
    * setenv AFNI_NLFIM_EXPR2 'expression'
 
    * 'expression' should use exactly 3 variables (letter):
