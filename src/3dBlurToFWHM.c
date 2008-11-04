@@ -23,14 +23,14 @@ int main( int argc , char *argv[] )
    char *prefix="./blurto" ;
    float fwhm_goal=0.0f , fwhm_subgoal ; int fwhm_2D=0 ;
    MCW_cluster *nbhd=NULL ;
-   byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 , nmask ;
+   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 , nmask ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    MRI_IMARR *bmar ; MRI_IMAGE *bmed , *bmim ; int ibm ;
    MRI_IMARR *dsar ; MRI_IMAGE *dsim ;         int ids ;
    MRI_IMAGE *fxim=NULL , *fyim=NULL , *fzim=NULL ;
    float     *fxar=NULL , *fyar=NULL , *fzar=NULL ;
-   float dx,dy,dz , hx,hy,hz , qx,qy,qz ;
-   float gx,gy,gz , val , maxfxyz , maxfx,maxfy,maxfz ;
+   float dx,dy,dz=0.0f , hx,hy,hz=0.0f , qx,qy,qz=0.0f ;
+   float gx,gy,gz=0.0f , val , maxfxyz , maxfx,maxfy,maxfz ;
    int   nite , bmeqin=0 , maxite=0 , numfxyz , nd,nblur , xdone,ydone,zdone ;
    int   xstall , ystall , zstall ;
    float bx,by,bz ;
@@ -42,10 +42,10 @@ int main( int argc , char *argv[] )
    float blurfac , blurmax=BLURMAX ;
    float xrat,yrat,zrat , dmin ;
    int temperize=0 , temper_fx=0, temper_fy=0, temper_fz=0 ;
-   float fx_tbot,fx_ttop,fy_tbot,fy_ttop,fz_tbot,fz_ttop ;
-   float fx_trat,fy_trat,fz_trat ;
+   float fx_tbot=0.0f,fx_ttop=0.0f,fy_tbot=0.0f,fy_ttop=0.0f,fz_tbot=0.0f,fz_ttop=0.0f ;
+   float fx_trat=0.0f,fy_trat=0.0f,fz_trat=0.0f ;
    int bmall=0,do_unif=0 ;           /* 11 Dec 2006 */
-   MRI_IMARR *imar ; MRI_IMAGE *imed, *imad ; float *imedar, *imadar, *bar ;
+   MRI_IMARR *imar ; MRI_IMAGE *imed, *imad ; float *imedar=NULL, *imadar=NULL, *bar ;
 
    int corder_bm=-1 , corder_in=0 ;   /* 04 Jun 2007: detrending */
    MRI_IMARR *corder_inar=NULL ; MRI_IMAGE *corder_invv ;
@@ -481,6 +481,8 @@ int main( int argc , char *argv[] )
    if( DSET_NVALS(bmset) == 1 ){
 
      bmed = THD_median_brick(bmset) ;   /* scaled to floats, if need be */
+     if( mri_allzero(bmed) )
+       ERROR_exit("blurmaster dataset has 1 sub-brick, which is all zero!") ;
      ADDTO_IMARR(bmar,bmed) ;
      if( do_unif )
        WARNING_message("Can't apply -unif: only 1 sub-brick in blurmaster dataset") ;
@@ -494,9 +496,18 @@ int main( int argc , char *argv[] )
      MRI_IMAGE *smed ;
      float *mar , *sar ;
      int ntouse , nvb=DSET_NVALS(bmset) , ibot , idel , nzs ;
+     int *az=(int *)malloc(sizeof(int)*nvb) , naz=0 , jbm , jj ;
+
+     for( jj=0 ; jj < nvb ; jj++ ){
+       az[jj] = mri_allzero(DSET_BRICK(bmset,jj)); if( az[jj] ) naz++;
+     }
+     if( corder_bm > 0 && naz > 0 ){                       /* 04 Nov 2008 */
+       corder_bm = 0 ;
+       WARNING_message("blurmaster detrend disabled: %d all zero sub-bricks found",naz) ;
+     }
 
      if( corder_bm > 0 ){                                  /*--- 04 Jun 2007 ---*/
-       int nref=2*corder_bm+3, jj,iv,kk ;
+       int nref=2*corder_bm+3, iv,kk ;
        float **ref , tm,fac,fq ;
        THD_3dim_dataset *newset ;
        INFO_message("detrending blurmaster: %d ref funcs, %d time points",nref,nvb) ;
@@ -542,17 +553,35 @@ int main( int argc , char *argv[] )
      if( verb ) INFO_message("Using blurmaster sub-bricks [%d..%d(%d)]",
                              ibot,ibot+(ntouse-1)*idel,idel);
      for( ibm=ibot ; ibm < nvb && IMARR_COUNT(bmar) < ntouse  ; ibm+=idel ){
-       bmim = mri_scale_to_float(DSET_BRICK_FACTOR(bmset,ibm),DSET_BRICK(bmset,ibm));
+       jbm = ibm ;
+       if( az[jbm] ){
+         if( idel == 1 ){
+           WARNING_message("skip blurmaster sub-brick #%d because it is all zero",ibm) ;
+           continue ;
+         }
+         for( jbm=ibm-1 ; jbm >= 0 && jbm > ibm-idel && az[jbm] ; jbm-- ) ; /*nada*/
+         if( jbm < 0 || jbm == ibm-idel || az[jbm] ){
+           WARNING_message("skip blurmaster sub-brick #%d because it is all zero",ibm) ;
+           continue ;
+         }
+         if( verb )
+           INFO_message("replace blurmaster all zero sub-brick #%d with #%d",ibm,jbm) ;
+       }
+       bmim = mri_scale_to_float(DSET_BRICK_FACTOR(bmset,jbm),DSET_BRICK(bmset,jbm));
        bar  = MRI_FLOAT_PTR(bmim) ;
        if( do_unif )
          for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = (bar[ii]-mar[ii])*sar[ii] ;
        else if( corder_bm == 0 )
          for( ii=0 ; ii < nvox ; ii++ ) bar[ii] = bar[ii]-mar[ii] ;
        ADDTO_IMARR(bmar,bmim) ;
-       if( !bmeqin ) DSET_unload_one(bmset,ibm) ;
+       if( !bmeqin ) DSET_unload_one(bmset,jbm) ;
      }
-     DESTROY_IMARR(imar) ;
+     DESTROY_IMARR(imar) ;  /* median and MAD bricks */
+     free(az) ;
+     if( IMARR_COUNT(bmar) == 0 )
+       ERROR_exit("Can't create blurmaster subset collection? Help me, Mr. Wizard!") ;
    }
+
    if( !bmeqin ) DSET_unload(bmset) ;
    for( ibm=0 ; ibm < IMARR_COUNT(bmar) ; ibm++ ){
      IMARR_SUBIM(bmar,ibm)->dx = dx ;

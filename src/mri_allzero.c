@@ -1,5 +1,8 @@
 #include "mrilib.h"
 
+/*! Return 1 if an image is all zero (or NULL),
+    or return 0 if it is not all zero (bytewise) */
+
 int mri_allzero( MRI_IMAGE *im )
 {
    char *ar ; unsigned int ii , nch ;

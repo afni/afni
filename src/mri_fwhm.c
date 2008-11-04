@@ -82,7 +82,7 @@ THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE *im , byte *mask )
 
   LOAD_FVEC3(fw_xyz,sx,sy,sz) ;  /* load with error flags */
 
-  if( im == NULL ) return fw_xyz ;
+  if( im == NULL || mri_allzero(im) ) return fw_xyz ;
   lim = (im->kind == MRI_float) ? im : mri_to_float(im) ;
   fim = MRI_FLOAT_PTR(lim) ;
   nx = lim->nx; ny = lim->ny; nz = lim->nz; nxy = nx*ny; nxyz = nx*ny*nz;
@@ -352,6 +352,9 @@ ENTRY("THD_estimate_FWHM_all") ;
    }
 
    for( iv=0 ; iv < nvals ; iv++ ){
+     if( mri_allzero(DSET_BRICK(dset,iv)) ){
+       outar[0+3*iv] = outar[1+3*iv] = outar[2+3*iv] = 0.0f ; continue ;
+     }
      bim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,iv), DSET_BRICK(dset,iv) );
      if( demed ){
        bar = MRI_FLOAT_PTR(bim) ;
