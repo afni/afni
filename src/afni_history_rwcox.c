@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , NOV , 2008 , RWC , "3dNLfim" , MINOR , TYPE_GENERAL ,
+   "Added model_expr2.c" ,
+   "Model that uses an arbitrary 3dcalc-like expression with 2 free\n"
+   "parameters (any letters but 't', which is used for the time axis)." } ,
+
  { 3 , NOV , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "Several changes" ,
    "Finished -gltsym, -Rglt, and -Oglt options = add GLTs on the 3dREMLfit\n"

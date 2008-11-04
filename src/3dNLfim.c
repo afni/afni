@@ -214,8 +214,8 @@ void display_help_menu()
      "                     to indicate which voxels to analyze (a sub-brick \n"
      "                     selector is allowed)  [default = use all voxels] \n"
      "[-ignore num]      num   = skip this number of initial images in the  \n"
-     "                     time series for regresion analysis;              \n"
-     "                     default = 0 (default till US election day 08 was 3)\n"
+     "                     time series for regresion analysis; default = 0  \n"
+     "               ****N.B.: default changed from 3 down to 0!            \n"
      "[-inTR]            set delt = TR of the input 3d+time dataset         \n"
      "                     [The default is to compute with delt = 1.0 ]     \n"
      "                     [The model functions are calculated using a      \n"
@@ -406,6 +406,11 @@ void display_help_menu()
     "                             (v, vmax, k12, k21, mag)\n"
     "                             see model_michaelis_menton.c\n"
     "\n"
+    "  Expr2                    : generic (3dcalc-like) expression with\n"
+    "                             exactly 2 'free' parameters and using\n"
+    "                             symbol 't' as the time variable;\n"
+    "                             see model_expr2.c for details.\n"
+    "\n"
     "----------------------------------------\n"
     "Noise Models (see the appropriate model_*.c file for exact details) :\n"
     "\n"
@@ -484,7 +489,7 @@ void initialize_options
 
 
   /*----- initialize default values -----*/
-  *ignore = -1;          /* ZSS, election day 08 */
+  *ignore = 0;
   *nabs = 0;
   *nrand = DEFAULT_NRAND;
   *nbest = DEFAULT_NBEST; 
@@ -648,6 +653,8 @@ void get_options
                 tncoef_filename, tscoef_filename,
                 sfit_filename, snfit_filename, option_data); 
 
+  if( *ignore == 0 )
+    INFO_message("NOTICE: Default value of -ignore is now 0; it used to be 3.") ;
   
   /*----- main loop over input options -----*/
   while (nopt < argc )
@@ -681,6 +688,7 @@ void get_options
        *nxyz =  (*dset_time)->dblk->diskptr->dimsizes[0]
          * (*dset_time)->dblk->diskptr->dimsizes[1]
          * (*dset_time)->dblk->diskptr->dimsizes[2] ;
+#if 0
        *ts_length = DSET_NUM_TIMES(*dset_time);
 
        /* verify that we seem to have a time series */
@@ -688,8 +696,16 @@ void get_options
           WARNING_message("dataset num_times (%d) != nvals (%d)\n"
                           "   --> no time axis could be a problem!\n",
                           *ts_length, DSET_NVALS(*dset_time));
+#else
+       *ts_length = DSET_NVALS(*dset_time);
+       if( *ts_length > 1 )
+         INFO_message("time series length = %d points",*ts_length) ;
+       else
+         ERROR_exit  ("time series length = %d points",*ts_length) ;
+#endif
 
      dsTR = DSET_TIMESTEP(*dset_time) ;
+
      if(output_datum==ILLEGAL_TYPE) {   /* if output_datum type is not specified by user*/
         output_datum = DSET_BRICK_TYPE(*dset_time,0);  /* get datum type from dataset */
      }	
@@ -2212,8 +2228,11 @@ void read_ts_array
   float * ar;              /* pointer to float data */
   int it;                  /* time index */
 
+ENTRY("read_ts_array") ;
+
 
   /*----- Extract time series from 3d+time data set into MRI_IMAGE -----*/
+STATUS("extracting time series") ;
   im = THD_extract_series (iv, dset_time, 0);
 
 
@@ -2222,6 +2241,7 @@ void read_ts_array
 
 
   /*----- Now extract time series from MRI_IMAGE -----*/
+STATUS("loading into ts_array") ;
   ar = MRI_FLOAT_PTR (im);
   for (it = 0;  it < ts_length;  it++)
     {
@@ -2231,7 +2251,7 @@ void read_ts_array
 
   /*----- Release memory -----*/
   mri_free (im);   im = NULL;
-   
+  EXRETURN ;
 }
 
 
@@ -3586,11 +3606,13 @@ int main
  
 
       /*----- calculate the reduced (noise) model -----*/
+STATUS("call calc_reduced_model") ;
       calc_reduced_model (ts_length, r, x_array, ts_array, 
                  par_rdcd, &sse_rdcd);
 
 
       /*----- calculate the full (signal+noise) model -----*/
+STATUS("call calc_full_model") ;
       calc_full_model (nmodel, smodel, r, p,  
                  min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                  ts_length, x_array, ts_array, par_rdcd, sse_rdcd, nabs,
@@ -3598,6 +3620,7 @@ int main
 
 
       /*----- calculate statistics for the full model -----*/
+STATUS("call analyze_results") ;
       analyze_results (nmodel, smodel, r, p, novar,
                  min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
                  ts_length, x_array,
