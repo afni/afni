@@ -214,7 +214,8 @@ void display_help_menu()
      "                     to indicate which voxels to analyze (a sub-brick \n"
      "                     selector is allowed)  [default = use all voxels] \n"
      "[-ignore num]      num   = skip this number of initial images in the  \n"
-     "                     time series for regresion analysis; default = 3  \n"
+     "                     time series for regresion analysis;              \n"
+     "                     default = 0 (default till US election day 08 was 3)\n"
      "[-inTR]            set delt = TR of the input 3d+time dataset         \n"
      "                     [The default is to compute with delt = 1.0 ]     \n"
      "                     [The model functions are calculated using a      \n"
@@ -483,7 +484,7 @@ void initialize_options
 
 
   /*----- initialize default values -----*/
-  *ignore = 3;
+  *ignore = -1;          /* ZSS, election day 08 */
   *nabs = 0;
   *nrand = DEFAULT_NRAND;
   *nbest = DEFAULT_NBEST; 
@@ -1441,7 +1442,11 @@ void get_options
       NLfit_error (message);
       
     }
-
+   if (*ignore < 0) {
+      fprintf(stderr,"\n** NOTICE: "
+                     "ignore option now defaults to 0 instead of 3.\n\n");
+      *ignore = 0;
+   } 
   
   /*----- discard the model array -----*/
   DESTROY_MODEL_ARRAY (model_array) ;
