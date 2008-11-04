@@ -449,6 +449,8 @@ void RAN_setup
    float * par ;
    float * ts ;
 
+ENTRY("RAN_setup") ;
+
    /*** check if the signal model is dead on arrival ***/
 
    if( smodel == NULL ){
@@ -458,7 +460,7 @@ void RAN_setup
       if( OLD_max_sconstr != NULL ){ free(OLD_max_sconstr); OLD_max_sconstr = NULL; }
       if( RAN_spar        != NULL ){ free(RAN_spar)       ; RAN_spar        = NULL; }
       if( RAN_sts         != NULL ){ free(RAN_sts )       ; RAN_sts         = NULL; }
-      return ;
+      EXRETURN ;
    }
 
    /*** check if the signal model has changed ***/
@@ -474,9 +476,7 @@ void RAN_setup
 
       /* save parameters of new signal model */
 
-#if 0
-      fprintf(stderr,"++ NLfit: initializing random signal models") ;
-#endif
+STATUS("initializing random signal models") ;
 
       OLD_smodel    = smodel ;
       OLD_p         = p ;
@@ -484,6 +484,7 @@ void RAN_setup
       OLD_nrand     = nrand ;
       OLD_x0        = x_array[0][1] ;
       OLD_x1        = x_array[1][1] ;
+STATUS("creating space for OLD values") ;
       if( OLD_min_sconstr != NULL ) free(OLD_min_sconstr) ;
       if( OLD_max_sconstr != NULL ) free(OLD_max_sconstr) ;
       OLD_min_sconstr = (float *) malloc(sizeof(float)*p) ;
@@ -493,6 +494,7 @@ void RAN_setup
 
       /* create space for new random signal model vectors */
 
+STATUS("creating space for RAN vectors") ;
       if( RAN_spar != NULL ) free(RAN_spar) ;
       if( RAN_sts  != NULL ) free(RAN_sts ) ;
       RAN_spar = (float *) malloc(sizeof(float)*nrand*p) ;
@@ -500,6 +502,7 @@ void RAN_setup
 
       /* compute new random signal vectors */
 
+STATUS("computing random signal vectors") ;
       for( ipt=0 ; ipt < nrand ; ipt++ ){
 
          par = RAN_spar + (ipt*p) ;         /* ipt-th parameter vector */
@@ -508,6 +511,7 @@ void RAN_setup
          for( ip=0 ; ip < p ; ip++ )                 /* parameter vector */
             par[ip] = get_random_value(min_sconstr[ip], max_sconstr[ip]) ;
 
+         if( ipt == 0 ) STATUS("calling signal model") ;
 #if 0
          smodel( par , ts_length , x_array , ts ) ;  /* time series vector */
 #else
@@ -522,7 +526,7 @@ void RAN_setup
 #endif
    } /* end of signal model stowage */
 
-   return ;
+   EXRETURN ;
 }
 /*===========================================================================*/
 #endif /* SAVE_RAN */
@@ -894,6 +898,8 @@ void calc_full_model
   float * sse = NULL;            /* array of sse's */
   int winner , ivb ;
 
+ENTRY("calc_full_model") ;
+
 
   /*----- if this is the null signal model,
           or if rms error for reduced model is very small,
@@ -904,7 +910,7 @@ void calc_full_model
       for (ip = 0;  ip < r  ;  ip++) par_full[ip] = par_rdcd[ip];
       for (ip = r;  ip < r+p;  ip++) par_full[ip] = 0.0;
       *sse_full = sse_rdcd;
-      return;
+      EXRETURN;
     }
   else
     *novar = 0;
@@ -917,6 +923,8 @@ void calc_full_model
   initialize_full_model (r+p, nbest, &parameters, &sse);
 
   /*----- evaluate randomly chosen vectors in the parameter space -----*/
+
+STATUS("call random_search") ;
   random_search (nmodel, smodel, r, p, nabs,
                  min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                  ts_length, x_array, ts_array, par_rdcd, nrand, nbest,
@@ -928,6 +936,7 @@ void calc_full_model
   winner = 0 ; ivb = 0 ; *sse_full = 1.0e+30 ;
   for (iv = 0;  iv < nbest;  iv++)
     {
+STATUS("call generic_optimization") ;
       generic_optimization (nmodel, smodel, r, p,
                             min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                             nabs, ts_length, x_array, ts_array, par_rdcd,
@@ -947,6 +956,7 @@ void calc_full_model
   }
 
   /*----- release memory space -----*/
+STATUS("release memory") ;
   for (iv = 0;  iv < nbest;  iv++)
     {
       free (parameters[iv]);
@@ -955,6 +965,7 @@ void calc_full_model
   free (parameters);       parameters = NULL;
   free (sse);              sse = NULL;
 
+  EXRETURN ;
 }
 
 
