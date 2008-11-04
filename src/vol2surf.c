@@ -2401,9 +2401,7 @@ ENTRY("v2s_write_outfile_NSD");
     else if( p->over_steps )  ind = 0;               /* must be sub-brick 0 */
     else                      ind = -1;              /* get all sub-bricks  */
     statsym = THD_make_statsym_string(p->gpar, ind);
-    if( !statsym ) {
-        fprintf(stderr,"** failed to make statsym_string...\n");
-    } else {
+    if( statsym ) {
         nel = SUMA_FindDsetAttributeElement(sdset, "COLMS_STATSYM");
         if( nel ) { /* if it exists, replace the old, else make one */
             SUMA_NEL_REPLACE_STRING(nel, 0, 0, statsym);
@@ -2418,7 +2416,8 @@ ENTRY("v2s_write_outfile_NSD");
                 fprintf(stderr,"++ added COLMS_STATSYM as '%s'\n", statsym);
         }
         free(statsym);
-    }
+    } else if ( sopt->debug > 1 )
+        fprintf(stderr,"** failed to make statsym_string...\n");
 
     /* find the data element and set the output format */
     c = NI_search_group_shallow(sdset->ngr, "SPARSE_DATA", &elist);
