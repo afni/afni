@@ -1,5 +1,5 @@
-function Opt = RetroTS(SN)
-%    Opt = RetroTS(Opt)
+function [Opt, R, E] = RetroTS(SN)
+%    [Opt, OptR, OptE] = RetroTS(Opt)
 %This function creates slice-based regressors for regressing out 
 % components of heart rate, respiration and respiration volume per time.
 %
@@ -187,17 +187,72 @@ R = RVT_from_PeakFinder(R, OptR);
 Show_RVT_Peak(R,1);
 Show_RVT_Peak(E,2);
 
-%write retroicor regressors
-for (i=1:1:Opt.Nslices),
-   fname = sprintf('%s.RetroCard.slc%02d.1D', Opt.Prefix, i);
-   wryte3(E.phz_slc_reg(:,:,i), fname, 1);
-   fname = sprintf('%s.RetroResp.slc%02d.1D', Opt.Prefix, i);
-   wryte3(R.phz_slc_reg(:,:,i), fname, 1);
+if (0),
+   %write retroicor regressors
+   for (i=1:1:Opt.Nslices),
+      fname = sprintf('%s.RetroCard.slc%02d.1D', Opt.Prefix, i);
+      wryte3(E.phz_slc_reg(:,:,i), fname, 1);
+      fname = sprintf('%s.RetroResp.slc%02d.1D', Opt.Prefix, i);
+      wryte3(R.phz_slc_reg(:,:,i), fname, 1);
+   end
+
+   %and write the RVT puppy, plus or minus a few seconds delay
+   fname = sprintf('%s.RetroRVT.1D', Opt.Prefix);
+   wryte3(R.RVTRS_slc, fname, 1);
 end
 
-%and write the RVT puppy, plus or minus a few seconds delay
-fname = sprintf('%s.RetroRVT.1D', Opt.Prefix);
-wryte3(R.RVTRS_slc, fname, 1);
+%also generate files as 3dREMLfit likes them
+Opt.RemlOut = zeros(  length(R.tst),... 
+                  Opt.Nsclices .* ...
+                     (  size(R.RVTRS_slc,2) + ...
+                        size(R.phz_slc_reg,2) + ...
+                        size(E.phz_slc_reg,2) ) );
+cnt = 0;
+head = sprintf([ '# <RetoTSout\n',...
+                  '# ni_type = "%d*double"\n'...
+                  '# ni_dimen = "%d"\n'...
+                  '# ColumnLabels = "'],...
+                  size(Opt.RemlOut,2), size(Opt.RemlOut,1) );
+tail = sprintf('"\n# >\n');
+tailclose = sprintf('# </RetoTSout>\n');
+
+label = head;
+%RVT
+for (j=1:1:size(R.RVTRS_slc,2)),
+   for (i=1:1:Opt.Nslices),
+      cnt = cnt + 1;
+      Opt.RemlOut(:,cnt) = R.RVTRS_slc(:,j); %same for each slice 
+      label = sprintf('%s s%d.RVT%d ;', label, i-1, j-1);
+    end
+end
+%Resp
+for (j=1:1:size(R.phz_slc_reg,2)),
+   for (i=1:1:Opt.Nslices),
+      cnt = cnt + 1;
+      Opt.RemlOut(:,cnt) = R.phz_slc_reg(:,j,i);
+      label = sprintf('%s s%d.Resp%d ;', label, i-1, j-1);
+   end
+end
+%Card
+for (j=1:1:size(E.phz_slc_reg,2)),
+   for (i=1:1:Opt.Nslices),
+      cnt = cnt + 1;
+      Opt.RemlOut(:,cnt) = E.phz_slc_reg(:,j,i);
+      label = sprintf('%s s%d.Card%d ;', label, i-1, j-1);
+   end
+end
+%remove very last ';'
+label = label(1:end-1);
+
+fid = fopen(sprintf('%s.retrots.1D', Opt.Prefix),'w');
+fprintf(fid,'%s',label);
+fprintf(fid,'%s ',tail);
+for(i=1:1:size(Opt.RemlOut,1)),
+   fprintf(fid,'%g ', Opt.RemlOut(i,:));
+   fprintf(fid,'\n ');
+end
+fprintf(fid,'%s',tailclose);
+fclose(fid);
 
 Opt.err = 0;
 
