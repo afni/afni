@@ -2820,6 +2820,10 @@ extern int    THD_deconflict_prefix( THD_3dim_dataset * ) ;          /* 23 Mar 2
 
 #define DSET_NVOX(ds) ( (ds)->daxes->nxx * (ds)->daxes->nyy * (ds)->daxes->nzz )
 
+/*! Return total size of dataset in bytes. */
+
+#define DSET_TOTALBYTES(ds) ((ds)->dblk->total_bytes)
+
 /*! Return number of voxels along x-axis of dataset ds */
 
 #define DSET_NX(ds) ((ds)->daxes->nxx)
@@ -4067,6 +4071,32 @@ extern MRI_IMAGE * THD_extract_series( int , THD_3dim_dataset * , int ) ;
 extern MRI_IMARR * THD_extract_many_series( int, int *, THD_3dim_dataset * );
 extern MRI_IMAGE * THD_dset_to_1Dmri( THD_3dim_dataset *dset ) ;
 
+/*---------------------------------------------------------------------------*/
+
+typedef struct {
+  int    nvec , nvals ;
+  int   *ivec ;
+  float *fvec ;
+} MRI_vectim ;
+
+#undef  MRV_PTR
+#define MRV_PTR(mv,j) ((mv)->fvec + (j)*(mv)->nvals)
+
+#undef  MRV_extract
+#define MRV_extract(mv,j,aa) \
+  memcpy( (aa) , MRV_PTR((mv),(j)) , sizeof(float)*(mv)->nvals )
+
+#undef  MRV_destroy
+#define MRV_destroy(mv) \
+ do{ free((mv)->fvec); free((mv)->ivec); free((mv)); } while(0)
+
+extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset , byte *mask ) ;
+extern int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask ) ;
+extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
+extern int bsearch_int( int tt , int nar , int *ar ) ;
+
+/*---------------------------------------------------------------------------*/
+
 extern int THD_extract_array( int, THD_3dim_dataset *, int, void * ) ;
 
 extern MRI_IMAGE * THD_extract_float_brick( int , THD_3dim_dataset * ) ;
@@ -4588,10 +4618,10 @@ extern void   UNIQ_idcode_fill(char *) ;
 
 typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
                AFNI_TLRC_SPC, /*!< The Classic */
-               MNI_SPC,       /*!< A la Canadienne */ 
+               MNI_SPC,       /*!< A la Canadienne */
                MNI_ANAT_SPC,  /*!< Mit viele liebe */
-               
-               NUMBER_OF_SPC  /*!< A flag for the number of spaces, 
+
+               NUMBER_OF_SPC  /*!< A flag for the number of spaces,
                                     leave for last */
                } AFNI_STD_SPACES;
 

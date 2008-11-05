@@ -290,11 +290,12 @@ ENTRY("create_gltsym") ;
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL ;
+   MRI_vectim   *inset_mrv=NULL ; /* 05 Nov 2008 */
    THD_3dim_dataset *abset=NULL ; int abfixed=0 ; float afix,bfix ;
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar=NULL, *bar=NULL ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0, automask=0, nmask;
    float *iv , *jv ; int niv ;
-   int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv ;
+   int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv,rv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
    MTYPE rhomax=0.8 , bmax  =0.8 ; int nlevab=3 ;
    MTYPE rm_set=0.0 , bm_set=0.0 ;
@@ -446,6 +447,8 @@ int main( int argc , char *argv[] )
       "                 input file should be ordered in that direction as well.\n"
       "              * Will slow the program down, and make it use a\n"
       "                  lot more memory (to hold all the matrix stuff).\n"
+      "            *** At this time, 3dSynthesize has no way of incorporating\n"
+      "                  the extra baseline timeseries from -addbase or -slibase.\n"
       "\n"
       " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
       "                 Using this option might be necessary to run with\n"
@@ -1685,6 +1688,19 @@ STATUS("make GLTs from matrix file") ;
      if( nmask < 1 ) ERROR_exit("Can't continue after mask shrinks to nothing!") ;
    }
 
+   /* 05 Nov 2008: convert input to a vector image struct, if it saves memory */
+
+   { float vsiz = (float)THD_vectim_size( inset , mask ) ;
+     float dsiz = (float)DSET_TOTALBYTES(inset) ;
+     if( vsiz < 0.9f*dsiz && vsiz > 10.0e+6 ){
+       if( verb ) INFO_message("Converting dataset to vector image to save memory") ;
+       inset_mrv = THD_dset_to_vectim( inset , mask ) ;
+       if( inset_mrv != NULL ) DSET_unload(inset) ;
+       else                    ERROR_message("Can't create vector image!?") ;
+       MEMORY_CHECK ;
+     }
+   }
+
    /**---------------------- set up for REML estimation ---------------------**/
 
    if( verb ){
@@ -1741,10 +1757,13 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-     for( ss=-1,vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
+     for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
-       (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       if( inset_mrv != NULL ){ /* 05 Nov 2008 */
+         MRV_extract( inset_mrv , rv , iv ) ; rv++ ;
+       } else
+         (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
        ssold = ss ; ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( usetemp && ss > ssold && ssold >= 0 )  /* purge to disk */
@@ -1913,10 +1932,13 @@ STATUS("make GLTs from matrix file") ;
 
    if( do_Rstuff ){
      if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
-     for( ss=-1,vv=0 ; vv < nvox ; vv++ ){
+     for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
-       (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       if( inset_mrv != NULL ){ /* 05 Nov 2008 */
+         MRV_extract( inset_mrv , rv , iv ) ; rv++ ;
+       } else
+         (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
        memcpy( jv , iv , sizeof(float)*nfull ) ;         /* copy of data */
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = iv[goodlist[ii]] ;
 
@@ -2074,18 +2096,23 @@ STATUS("make GLTs from matrix file") ;
 
    if( Rbeta_dset != NULL ){
      DSET_write(Rbeta_dset); WROTE_DSET(Rbeta_dset); DSET_deletepp(Rbeta_dset);
+     MEMORY_CHECK ;
    }
    if( Rvar_dset  != NULL ){
      DSET_write(Rvar_dset); WROTE_DSET(Rvar_dset); DSET_deletepp(Rvar_dset);
+     MEMORY_CHECK ;
    }
    if( Rfitts_dset != NULL ){
      DSET_write(Rfitts_dset); WROTE_DSET(Rfitts_dset); DSET_deletepp(Rfitts_dset);
+     MEMORY_CHECK ;
    }
    if( Rerrts_dset != NULL ){
      DSET_write(Rerrts_dset); WROTE_DSET(Rerrts_dset); DSET_deletepp(Rerrts_dset);
+     MEMORY_CHECK ;
    }
    if( Rwherr_dset != NULL ){
      DSET_write(Rwherr_dset); WROTE_DSET(Rwherr_dset); DSET_deletepp(Rwherr_dset);
+     MEMORY_CHECK ;
    }
    if( Rbuckt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
@@ -2096,6 +2123,7 @@ STATUS("make GLTs from matrix file") ;
        ININFO_message("Added %d FDR curve%s to -Rbuck dataset",
                       ii , (ii==1)?"":"s" ) ;
      DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_deletepp(Rbuckt_dset);
+     MEMORY_CHECK ;
    }
    if( Rglt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
@@ -2106,6 +2134,7 @@ STATUS("make GLTs from matrix file") ;
        ININFO_message("Added %d FDR curve%s to -Rglt dataset",
                       ii , (ii==1)?"":"s" ) ;
      DSET_write(Rglt_dset); WROTE_DSET(Rglt_dset); DSET_deletepp(Rglt_dset);
+     MEMORY_CHECK ;
    }
 
    /*---------------------- create OLSQ outputs, if any ----------------------*/
@@ -2196,10 +2225,13 @@ STATUS("make GLTs from matrix file") ;
 
    if( do_Ostuff ){
      if( vstep ) fprintf(stderr,"++ OLSQ voxel loop: ") ;
-     for( vv=0 ; vv < nvox ; vv++ ){
+     for( rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
        if( !INMASK(vv) ) continue ;
-       (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       if( inset_mrv != NULL ){ /* 05 Nov 2008 */
+         MRV_extract( inset_mrv , rv , iv ) ; rv++ ;
+       } else
+         (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
        memcpy( jv , iv , sizeof(float)*nfull ) ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
 
@@ -2311,6 +2343,7 @@ STATUS("make GLTs from matrix file") ;
 
    MEMORY_CHECK ;
    if( verb > 1 ) ININFO_message("unloading input dataset and REML matrices");
+   if( inset_mrv != NULL ) MRV_destroy(inset_mrv) ; /* 05 Nov 2008 */
    DSET_delete(inset) ; free(jv) ; free(iv) ; free(mask) ; free(tau) ;
    for( ss=0 ; ss < nsli ; ss++ ){
      reml_collection_destroy(RCsli[ss],0) ; matrix_destroy(Xsli[ss]) ;
@@ -2326,15 +2359,19 @@ STATUS("make GLTs from matrix file") ;
 
    if( Obeta_dset != NULL ){
      DSET_write(Obeta_dset); WROTE_DSET(Obeta_dset); DSET_deletepp(Obeta_dset);
+     MEMORY_CHECK ;
    }
    if( Ovar_dset  != NULL ){
      DSET_write(Ovar_dset); WROTE_DSET(Ovar_dset); DSET_deletepp(Ovar_dset);
+     MEMORY_CHECK ;
    }
    if( Ofitts_dset != NULL ){
      DSET_write(Ofitts_dset); WROTE_DSET(Ofitts_dset); DSET_deletepp(Ofitts_dset);
+     MEMORY_CHECK ;
    }
    if( Oerrts_dset != NULL ){
      DSET_write(Oerrts_dset); WROTE_DSET(Oerrts_dset); DSET_deletepp(Oerrts_dset);
+     MEMORY_CHECK ;
    }
    if( Obuckt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
@@ -2345,6 +2382,7 @@ STATUS("make GLTs from matrix file") ;
        ININFO_message("Added %d FDR curve%s to -Obuck dataset",
                       ii , (ii==1)?"":"s" ) ;
      DSET_write(Obuckt_dset); WROTE_DSET(Obuckt_dset); DSET_deletepp(Obuckt_dset);
+     MEMORY_CHECK ;
    }
    if( Oglt_dset != NULL ){
      if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
@@ -2355,12 +2393,12 @@ STATUS("make GLTs from matrix file") ;
        ININFO_message("Added %d FDR curve%s to -Oglt dataset",
                       ii , (ii==1)?"":"s" ) ;
      DSET_write(Oglt_dset); WROTE_DSET(Oglt_dset); DSET_deletepp(Oglt_dset);
+     MEMORY_CHECK ;
    }
 
    /*----------------------------- Free at last ----------------------------*/
 
    INFO_message("3dREMLfit is all done! total CPU=%.2f s",COX_cpu_time()) ;
-   MEMORY_CHECK ;
 #ifdef USING_MCW_MALLOC
    if( verb > 4 ) mcw_malloc_dump() ;
 #endif
