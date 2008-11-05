@@ -1,9 +1,12 @@
 #include "mrilib.h"
 
 /*-----------------------------------------------------------------*/
-/*! Convert a dataset to the MRI_vectim format (float timeseries). */
+/*! Convert a dataset to the MRI_vectim format, where each time
+    series is a contiguous set of values in an array, and the
+    voxel indexes whence came the values are also stored.
+*//*---------------------------------------------------------------*/
 
-MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset , byte *mask )
+MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask )
 {
    byte *mmm=mask ;
    MRI_vectim *mrv=NULL ;
@@ -18,10 +21,10 @@ ENTRY("THD_dset_to_vectim") ;
    nvox  = DSET_NVOX(dset) ;
 
    if( mmm != NULL ){
-     nmask = THD_countmask( nvox , mmm ) ;
+     nmask = THD_countmask( nvox , mmm ) ;  /* number to keep */
      if( nmask <= 0 ) RETURN(NULL) ;
    } else {
-     nmask = nvox ;
+     nmask = nvox ;                         /* keep them all */
      mmm   = (byte *)malloc(sizeof(byte)*nmask) ;
      if( mmm == NULL ){
        ERROR_message("THD_dset_to_vectim: out of memory") ;
@@ -46,6 +49,8 @@ ENTRY("THD_dset_to_vectim") ;
      free(mrv->ivec) ; free(mrv) ; if( mmm != mask ) free(mmm) ;
      RETURN(NULL) ;
    }
+
+   /* store desired voxel time series */
 
    for( kk=iv=0 ; iv < nvox ; iv++ ){
      if( mmm[iv] == 0 ) continue ;
@@ -96,6 +101,12 @@ int bsearch_int( int tt , int nar , int *ar )
         if( targ >  ar[jj] ) return -1 ;  /* not found */
    else if( targ == ar[jj] ) return jj ;  /* at end!   */
 
+   /* at the start of this loop, we've already checked
+      indexes ii and jj, so check the middle of them (kk),
+      and if that doesn't work, make the middle the
+      new ii or the new jj -- so again we will have
+      checked both ii and jj when the loop iterates back. */
+
    while( jj-ii > 1 ){
      kk = (ii+jj) / 2 ;         /* midpoint */
      nn = ar[kk] - targ ;       /* sign of difference */
@@ -112,6 +123,6 @@ int bsearch_int( int tt , int nar , int *ar )
 
 int THD_vectim_ifind( int iv , MRI_vectim *mrv )
 {
-   if( mrv == NULL ) return -1 ;
+   if( mrv == NULL ) return -1 ;  /* stoopid user */
    return bsearch_int( iv , mrv->nvec , mrv->ivec ) ;
 }
