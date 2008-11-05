@@ -26,12 +26,33 @@
      for quick-and-dirty jobs, where you can't be bothered to write a C model.
 
    * Example:
+
        1deval -expr '3.5*sin(t/1.5)+gran(0,.1)' -num 100 > q.1D
+
        3dNLfim -DAFNI_NLFIM_EXPR2='a*sin(t/b)'                    \
                -input q.1D\' -noise Zero -signal Expr2            \
                -sconstr 0 1 9 -sconstr 1 1 5 -bucket 0 qqq -BOTH
+
      Output (file qqq.1D) gives the estimated parameters as a=3.47268 b=1.50005
      Note input of a 1D file (with default TR=1) using the \' notation.
+
+   * Generalization to other than 2 parameters is possible:
+
+     + set environment variable AFNI_NLFIM_EXPR2_NPAR to parameter count
+       (between 1 and 9, inclusive)
+
+     + make sure the expression has that many variable names (not counting 't')
+
+     + make sure to provide appropriate values for -sconstr for all the
+       parameters
+
+     + Cheap example using the above data:
+
+       3dNLfim -DAFNI_NLFIM_EXPR2_NPAR=3                          \
+               -DAFNI_NLFIM_EXPR2='a*sin(t/b)+c-0.5'              \
+               -input q.1D\' -noise Zero -signal Expr2            \
+               -sconstr 0 1 9 -sconstr 1 1 5 -bucket 0 qqq -BOTH
+
 *******************************************************************************/
 
 
@@ -48,6 +69,7 @@ void signal_model
   float * ts_array           /* estimated signal model time series */
 );
 
+static int npar = 0 ;
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -61,6 +83,7 @@ DEFINE_MODEL_PROTOTYPE
 MODEL_interface * initialize_model ()
 {
   MODEL_interface * mi = NULL;
+  int ii ; char lab[4] ;
 
 
   /*----- allocate memory space for model interface -----*/
@@ -76,15 +99,16 @@ MODEL_interface * initialize_model ()
   mi->model_type = MODEL_SIGNAL_TYPE;
 
   /*----- number of parameters in the model -----*/
-  mi->params = 2;
 
-  /*----- parameter labels -----*/
-  strcpy (mi->plabel[0], "a");
-  strcpy (mi->plabel[1], "b");
+  npar = (int)AFNI_numenv("AFNI_NLFIM_EXPR2_NPAR") ;
+  if( npar < 1 || npar > 9 ) npar = 2 ;
+  mi->params = npar ;
 
-  /*----- minimum and maximum parameter constraints -----*/
-  mi->min_constr[0] =   0.00;   mi->max_constr[0] =    1.00;
-  mi->min_constr[1] =   0.00;   mi->max_constr[1] =    1.00;
+  /*----- parameter labels & constraints -----*/
+  for( ii=0 ; ii < npar ; ii++ ){
+    mi->plabel[ii][0]  = 'a' + ii ; mi->plabel[ii][1]  = '\0' ;
+    mi->min_constr[ii] = 0.00     ; mi->max_constr[ii] = 1.00 ;
+  }
 
   /*----- function which implements the model -----*/
   mi->call_func = &signal_model;
@@ -113,17 +137,19 @@ void signal_model
 )
 
 {
-  int ii , kk ;
+  int ii , kk , jj ; double val ;
 
   static char *expr=NULL ;
   static PARSER_code *pcode ;
-  static int ia , ib , vlen=0 ;
+  static int iab[9] , vlen=0 ;
   static double *atoz[26] , *temp ;
 
 ENTRY("model_expr2") ;
 
   if( expr == NULL ){
     int qvar ; char sym[4] ;
+    if( npar <= 0 )
+      ERROR_exit("Number of parameters not set for signal model Expr2") ;
     expr = getenv("AFNI_NLFIM_EXPR2") ;
     if( expr == NULL )
       ERROR_exit("Can't find AFNI_NLFIM_EXPR2 in environment!") ;
@@ -137,13 +163,13 @@ ENTRY("model_expr2") ;
     for( qvar=ii=0 ; ii < 26 ; ii++ ){
       sym[0] = 'A' + ii ; sym[1] = '\0' ; if( sym[0] == 'T' ) continue ;
       if( PARSER_has_symbol(sym,pcode) ){
-        qvar++ ; if( qvar == 1 ) ia = ii ; else if( qvar == 2 ) ib = ii ;
+        qvar++ ;
+        if( qvar <= npar ) iab[qvar-1] = ii ;
       }
     }
-    if( qvar != 2 )
-      ERROR_exit("AFNI_NLFIM_EXPR2 expression has %d free variables: should be 2",qvar) ;
-    else
-      INFO_message("AFNI_NLFIM_EXPR2: variable #1=%c  variable #2=%c",'A'+ia,'A'+ib) ;
+    if( qvar != npar )
+      ERROR_exit("AFNI_NLFIM_EXPR2 expression has %d free variables: should be %d",qvar,npar) ;
+
     for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = NULL ;
     temp = NULL ;
   }
@@ -154,10 +180,12 @@ ENTRY("model_expr2") ;
     temp = (double *)realloc(temp,sizeof(double)*vlen) ;
   }
 
+  for( kk=0 ; kk < npar ; kk++ ){
+    jj = iab[kk] ; val = (double)gs[kk] ;
+    for( ii=0 ; ii < ts_length ; ii++ ) atoz[jj][ii] = val ;
+  }
   for( ii=0 ; ii < ts_length ; ii++ ){
-    atoz[ia][ii] = (double)gs[0] ;
-    atoz[ib][ii] = (double)gs[1] ;
-    atoz[19][ii] = (double)x_array[ii][1] ;
+    atoz[19][ii] = (double)x_array[ii][1] ;  /* 't' */
   }
 
   PARSER_evaluate_vector( pcode , atoz , ts_length , temp ) ;
