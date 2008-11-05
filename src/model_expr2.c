@@ -5,31 +5,33 @@
   Usage:
    * signal model name is 'Expr2'
 
-   * setenv AFNI_NLFIM_EXPR2 'expression'
+   * set environment AFNI_NLFIM_EXPR2 to an 'expression'
+     (see the 3DNLfim command line example below for one way to do this)
 
-   * 'expression' should use exactly 3 variables (letter):
-     't' for the time dimension;
-     any other 2 letters for the free variables (to be found by 3dNLfim);
-     Example: 'a*sin(t/b)'
+   * 'expression' should use exactly 3 variables (letters):
+     + 't' is reserved for the time dimension;
+     + any other 2 letters for the free variables
+         (i.e., the values to be found by 3dNLfim);
+     + Example: 'a*sin(t/b)'
 
    * You will have to set the variable ranges to values that make sense for
      your problem, as in 3dNLfim options
        -sconstr 0 1 9 -sconstr 1 1 5
      to restrain the first (alphabetically) variable to be between 0 and 9,
      and to make the second (alphabetically) variable be between 1 and 5.
-     The default constraints are between 0 and 1, which is probably useless.
+     The default constraints are between 0 and 1, which are probably useless.
 
    * This model will be SLOW, since the parser evaluation will be sluggish
-     compared to optimized and compiled C code.  But it might be useful
-     for quick-and-dirty jobs.
+     compared to optimized and compiled C code.  But it should be useful
+     for quick-and-dirty jobs, where you can't be bothered to write a C model.
 
    * Example:
        1deval -expr '3.5*sin(t/1.5)+gran(0,.1)' -num 100 > q.1D
-       setenv AFNI_NLFIM_EXPR2 'a*sin(t/b)'
-       3dNLfim -input q.1D\' -noise Zero -signal Expr2 \
+       3dNLfim -DAFNI_NLFIM_EXPR2='a*sin(t/b)'                    \
+               -input q.1D\' -noise Zero -signal Expr2            \
                -sconstr 0 1 9 -sconstr 1 1 5 -bucket 0 qqq -BOTH
      Output (file qqq.1D) gives the estimated parameters as a=3.47268 b=1.50005
-     Note input of a 1D file (with TR=1) using the \' notation.
+     Note input of a 1D file (with default TR=1) using the \' notation.
 *******************************************************************************/
 
 

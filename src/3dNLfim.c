@@ -184,6 +184,7 @@ typedef struct NL_options
 static float DELT = 1.0;        /* default */
 static int   inTR = 0 ;         /* set to 1 if -inTR option is used */
 static float dsTR = 0.0 ;       /* TR of the input file */
+static float uuTR = 0.0 ;
 static int   g_voxel_count = 0; /* display current voxel counter */
                                          /* 25 Jan 2006 [rickr]  */
 
@@ -221,6 +222,9 @@ void display_help_menu()
      "                     [The default is to compute with delt = 1.0 ]     \n"
      "                     [The model functions are calculated using a      \n"
      "                      time grid of: 0, delt, 2*delt, 3*delt, ... ]    \n"
+     "[-TR delt]         directly set the TR of the time series model;      \n"
+     "                     can be useful if the input file is a .1D file    \n"
+     "                     (transposed with the \\' operator)               \n"
      "[-time fname]      fname = ASCII file containing each time point      \n"
      "                     in the time series. Defaults to even spacing     \n"
      "                     given by TR (this option overrides -inTR).       \n"
@@ -230,6 +234,8 @@ void display_help_menu()
      "                      c <= gs[k] <= d                                 \n"
      "                 **N.B.: It is important to set the parameter         \n"
      "                         constraints with care!                       \n"
+     "                 **N.B.: -sconstr and -nconstr options must appear    \n"
+     "                         AFTER -signal and -noise on the command line \n"
      "-nconstr k c d     constraints for kth noise parameter:               \n"
      "                      c+b[k] <= gn[k] <= d+b[k]                       \n"
      "[-nabs]            use absolute constraints for noise parameters:     \n"
@@ -254,6 +260,7 @@ void display_help_menu()
      "                     [slowest, but should be most accurate]           \n"
      "                                                                      \n"
      "--- These options generate individual AFNI 2 sub-brick datasets ---   \n"
+     "--- [All these options must be AFTER options -signal and -noise]---   \n"
      "                                                                      \n"
      "[-freg fname]      perform f-test for significance of the regression; \n"
      "                     output 'fift' is written to prefix filename fname\n"
@@ -760,6 +767,13 @@ void get_options
          nopt++ ; continue ;
       }
 
+      if( strcmp(argv[nopt],"-TR") == 0 ){
+        uuTR = (float)strtod(argv[++nopt],NULL) ;
+        if( uuTR <= 0.0f )
+          ERROR_message("value after -TR is not positive!") ;
+        nopt++ ; continue ;
+      }
+
       /*-----   -ignore num  -----*/
       if (strcmp(argv[nopt], "-ignore") == 0)
      {
@@ -784,6 +798,26 @@ void get_options
        nopt++;
        continue;
      }
+      
+      /*-----   -nabs  -----*/
+      if (strcmp(argv[nopt], "-nabs") == 0)
+     {
+       *nabs = 1;
+       nopt++;
+       continue;
+     }
+
+      /*-----  -POWELL  -----*/
+
+      if( strcmp(argv[nopt],"-POWELL") == 0 ){   /* 20 Jul 2006 */
+        N_newuoa = 1 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-SIMPLEX") == 0 ){
+        N_newuoa = 0 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-BOTH") == 0 ){
+        N_newuoa = 2 ; nopt++ ; continue ;
+      }
       
       
       /*-----   -signal slabel  -----*/
@@ -816,79 +850,7 @@ void get_options
        nopt++;
        continue;
      }
-
-
-      /*----- check that user has specified the signal and noise models -----*/
-      if ((*smodel) == NULL)  NLfit_error ("Must specify signal model");
-      if ((*nmodel) == NULL)  NLfit_error ("Must specify noise model");
       
-      /*-----   -sconstr k min max  -----*/
-      if (strcmp(argv[nopt], "-sconstr") == 0)
-     {
-       nopt++;
-       if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -sconstr ");
-
-       sscanf (argv[nopt], "%d", &ival);
-       if ((ival < 0) || (ival >= *p)) {
-        fprintf(stderr,"*p = %d, ival = %d\n", *p, ival);
-        ERROR_exit("Illegal 'k' index after -sconstr: legal range is 0..%d",*p-1) ;
-      }
-       index = ival;
-       nopt++;
-
-       sscanf (argv[nopt], "%f", &fval); 
-       (*min_sconstr)[index] = fval;
-       nopt++;
-
-       sscanf (argv[nopt], "%f", &fval); 
-       (*max_sconstr)[index] = fval;
-       nopt++;
-       continue;
-     }
-      
-      
-      /*-----   -nconstr k min max  -----*/
-      if (strcmp(argv[nopt], "-nconstr") == 0)
-     {
-       nopt++;
-       if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -nconstr ");
-
-       sscanf (argv[nopt], "%d", &ival);
-       if ((ival < 0) || (ival >= *r))
-         NLfit_error ("illegal argument after -nconstr ");
-       index = ival;
-       nopt++;
-
-       sscanf (argv[nopt], "%f", &fval); 
-       (*min_nconstr)[index] = fval;
-       nopt++;
-
-       sscanf (argv[nopt], "%f", &fval); 
-       (*max_nconstr)[index] = fval;
-       nopt++;
-       continue;
-     }
-      
-      
-      /*-----   -nabs  -----*/
-      if (strcmp(argv[nopt], "-nabs") == 0)
-     {
-       *nabs = 1;
-       nopt++;
-       continue;
-     }
-
-      /*-----  -POWELL  -----*/
-
-      if( strcmp(argv[nopt],"-POWELL") == 0 ){   /* 20 Jul 2006 */
-        N_newuoa = 1 ; nopt++ ; continue ;
-      }
-      if( strcmp(argv[nopt],"-SIMPLEX") == 0 ){
-        N_newuoa = 0 ; nopt++ ; continue ;
-      }
-      if( strcmp(argv[nopt],"-BOTH") == 0 ){
-        N_newuoa = 2 ; nopt++ ; continue ;
-      }
       
       /*-----   -nrand n  -----*/
       if (strcmp(argv[nopt], "-nrand") == 0)
@@ -961,6 +923,77 @@ void get_options
      {
        nopt++;
        g_voxel_count = 1;
+       continue;
+     }
+
+      /*-----   -jobs J   -----*/
+      if( strcmp(argv[nopt],"-jobs") == 0 ){   /* RWCox */
+        nopt++ ;
+        if (nopt >= argc)  NLfit_error ("need J parameter after -jobs ");
+#ifdef PROC_MAX
+        proc_numjob = strtol(argv[nopt],NULL,10) ;
+        if( proc_numjob < 1 ){
+          fprintf(stderr,"** setting number of processes to 1!\n") ;
+          proc_numjob = 1 ;
+        } else if( proc_numjob > PROC_MAX ){
+          fprintf(stderr,"** setting number of processes to %d!\n",PROC_MAX);
+          proc_numjob = PROC_MAX ;
+        }
+#else
+        fprintf(stderr,"** -jobs not supported in this version\n") ;
+#endif
+        nopt++; continue;
+      }
+
+
+      /*----- check that user has specified the signal and noise models -----*/
+      if ((*smodel) == NULL)  ERROR_exit("Must specify signal model before '%s'",argv[nopt]);
+      if ((*nmodel) == NULL)  ERROR_exit("Must specify noise model before '%s'" ,argv[nopt]);
+      
+      /*-----   -sconstr k min max  -----*/
+      if (strcmp(argv[nopt], "-sconstr") == 0)
+     {
+       nopt++;
+       if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -sconstr ");
+
+       sscanf (argv[nopt], "%d", &ival);
+       if ((ival < 0) || (ival >= *p)) {
+        fprintf(stderr,"*p = %d, ival = %d\n", *p, ival);
+        ERROR_exit("Illegal 'k' index after -sconstr: legal range is 0..%d",*p-1) ;
+      }
+       index = ival;
+       nopt++;
+
+       sscanf (argv[nopt], "%f", &fval); 
+       (*min_sconstr)[index] = fval;
+       nopt++;
+
+       sscanf (argv[nopt], "%f", &fval); 
+       (*max_sconstr)[index] = fval;
+       nopt++;
+       continue;
+     }
+      
+      
+      /*-----   -nconstr k min max  -----*/
+      if (strcmp(argv[nopt], "-nconstr") == 0)
+     {
+       nopt++;
+       if (nopt+2 >= argc)  NLfit_error("need 3 arguments after -nconstr ");
+
+       sscanf (argv[nopt], "%d", &ival);
+       if ((ival < 0) || (ival >= *r))
+         NLfit_error ("illegal argument after -nconstr ");
+       index = ival;
+       nopt++;
+
+       sscanf (argv[nopt], "%f", &fval); 
+       (*min_nconstr)[index] = fval;
+       nopt++;
+
+       sscanf (argv[nopt], "%f", &fval); 
+       (*max_nconstr)[index] = fval;
+       nopt++;
        continue;
      }
       
@@ -1436,25 +1469,6 @@ void get_options
      }      
 
 
-      /*-----   -jobs J   -----*/
-      if( strcmp(argv[nopt],"-jobs") == 0 ){   /* RWCox */
-        nopt++ ;
-        if (nopt >= argc)  NLfit_error ("need J parameter after -jobs ");
-#ifdef PROC_MAX
-        proc_numjob = strtol(argv[nopt],NULL,10) ;
-        if( proc_numjob < 1 ){
-          fprintf(stderr,"** setting number of processes to 1!\n") ;
-          proc_numjob = 1 ;
-        } else if( proc_numjob > PROC_MAX ){
-          fprintf(stderr,"** setting number of processes to %d!\n",PROC_MAX);
-          proc_numjob = PROC_MAX ;
-        }
-#else
-        fprintf(stderr,"** -jobs not supported in this version\n") ;
-#endif
-        nopt++; continue;
-      }
-
       
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
@@ -1466,6 +1480,8 @@ void get_options
                      "ignore option now defaults to 0 instead of 3.\n\n");
       *ignore = 0;
    } 
+
+  if( uuTR > 0.0f ) dsTR = uuTR ;
   
   /*----- discard the model array -----*/
   DESTROY_MODEL_ARRAY (model_array) ;
@@ -2051,7 +2067,7 @@ void initialize_program
   /*----- initialize independent variable matrix -----*/
   if (*tfilename == NULL)
     {
-     if( inTR && dsTR > 0.0 ){   /* 22 July 1998 */
+     if( (inTR || uuTR > 0.0f) && dsTR > 0.0 ){   /* 22 July 1998 */
         DELT = dsTR ;
         fprintf(stderr,"--- computing with TR = %g\n",DELT) ;
      }
