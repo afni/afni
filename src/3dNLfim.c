@@ -215,7 +215,8 @@ void display_help_menu()
      "                     selector is allowed)  [default = use all voxels] \n"
      "[-ignore num]      num   = skip this number of initial images in the  \n"
      "                     time series for regresion analysis; default = 0  \n"
-     "               ****N.B.: default changed from 3 down to 0!            \n"
+     "               ****N.B.: default ignore value changed from 3 to 0,    \n"
+     "                         on 04 Nov 2008 (BHO day).                    \n"
      "[-inTR]            set delt = TR of the input 3d+time dataset         \n"
      "                     [The default is to compute with delt = 1.0 ]     \n"
      "                     [The model functions are calculated using a      \n"
@@ -227,6 +228,8 @@ void display_help_menu()
      "-noise  nlabel     nlabel = name of (linear) noise model              \n"
      "-sconstr k c d     constraints for kth signal parameter:              \n"
      "                      c <= gs[k] <= d                                 \n"
+     "                 **N.B.: It is important to set the parameter         \n"
+     "                         constraints with care!                       \n"
      "-nconstr k c d     constraints for kth noise parameter:               \n"
      "                      c+b[k] <= gn[k] <= d+b[k]                       \n"
      "[-nabs]            use absolute constraints for noise parameters:     \n"
@@ -654,7 +657,8 @@ void get_options
                 sfit_filename, snfit_filename, option_data); 
 
   if( *ignore == 0 )
-    INFO_message("NOTICE: Default value of -ignore is now 0; it used to be 3.") ;
+    INFO_message("NOTICE: Default value of -ignore is now 0;\n"
+                 "           Before 04 Nov 2008, default value was 3" ) ;
   
   /*----- main loop over input options -----*/
   while (nopt < argc )
@@ -818,7 +822,6 @@ void get_options
       if ((*smodel) == NULL)  NLfit_error ("Must specify signal model");
       if ((*nmodel) == NULL)  NLfit_error ("Must specify noise model");
       
-      
       /*-----   -sconstr k min max  -----*/
       if (strcmp(argv[nopt], "-sconstr") == 0)
      {
@@ -828,7 +831,7 @@ void get_options
        sscanf (argv[nopt], "%d", &ival);
        if ((ival < 0) || (ival >= *p)) {
         fprintf(stderr,"*p = %d, ival = %d\n", *p, ival);
-        NLfit_error ("illegal argument after -sconstr");
+        ERROR_exit("Illegal 'k' index after -sconstr: legal range is 0..%d",*p-1) ;
       }
        index = ival;
        nopt++;
