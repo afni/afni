@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , NOV , 2008 , RWC , "model_expr2.c" , MICRO , TYPE_GENERAL ,
+   "Modified to allow up to 9 parameters -- see code for details." ,
+   NULL } ,
+
+ { 5 , NOV , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
+   "If it saves memory, convert dataset to new MRI_vectim format." ,
+   "That is, an array of time series vectors, of voxels in the mask.  Will\n"
+   "save memory if the number of voxels in the mask is less than 1/2 the\n"
+   "volume." } ,
+
  { 4 , NOV , 2008 , RWC , "3dBlurToFWHM" , MINOR , TYPE_BUG_FIX ,
    "skip all zero sub-bricks in the blurmaster - for Tomski Rosski" ,
    NULL } ,
