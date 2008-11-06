@@ -18,6 +18,9 @@ import afni_base
 #   06 June 2008 [rickr]:
 #     - get_*_opt functions now return an error code along with the result
 #
+#   06 Nov 2008 [rickr]:
+#     - added 'opt' param to get_type_opt and get_type_list
+#       (to skip find_)
 
 # ---------------------------------------------------------------------------
 # This class provides functionality for processing lists of comopt elements.
@@ -104,11 +107,16 @@ class OptionList:
         if not opt or not opt.parlist or len(opt.parlist) < 1: return None,0
         return opt.parlist, 0
 
-    def get_type_opt(self, type, opt_name):
+    def get_type_opt(self, type, opt_name, opt=None):
         """return the option param value converted to the given type, and err
-           (err = 0 on success, 1 on failure)"""
+           (err = 0 on success, 1 on failure)
 
-        opt = self.find_opt(opt_name)
+           If the opt element is passed, we don't need to find it.
+        """
+
+        # if no opt was passed, try to find it
+        if opt == None: opt = self.find_opt(opt_name)
+
         if not opt or not opt.parlist: return None, 0
         if len(opt.parlist) != 1:
             print '** option %s takes exactly 1 parameter, have: %s' % \
@@ -121,7 +129,7 @@ class OptionList:
 
         return val, 0
 
-    def get_type_list(self, type, opt_name, length, len_name, verb=1):
+    def get_type_list(self, type, opt_name, length, len_name, opt=None, verb=1):
         """return a list of values of the given type, and err
 
             err will be set (1) if there is an error
@@ -130,13 +138,14 @@ class OptionList:
             opt_name  : option name to find in opts list
             length    : expected length of option parameters (or 1)
             len_name  : name of option that would define expected length
+            opt       : optionally provide a comopt element
             verb      : verbose level
 
             Find opt_name in opts list.  Verify that the parlist values are of
             the proper type and that there are either 1 or 'length' of them.
             If 1, duplicate it to length."""
 
-        opt = self.find_opt(opt_name)
+        if opt == None: opt = self.find_opt(opt_name)
         if not opt or not opt.parlist: return None, 0
         olen = len(opt.parlist)
         if olen != 1 and olen != length:

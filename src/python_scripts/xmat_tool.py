@@ -37,27 +37,16 @@ import ui_xmat as UIX
 # ----------------------------------------------------------------------
 # globals
 
-g_help_string = """
-    ======================================================================
-    please get help
+gui_help_string = """
+   ======================================================================
+   please get help
 
-    ======================================================================
+        xmat_tool: GUI help
+                 displayed via -help_gui or from the GUI Help
+
+   for option help, please see "xmat_tool.py -help"
+   ======================================================================
 """
-
-g_history = """
-    xmat_tool.py history:
-
-    0.1  Oct 24, 2008: and then there was xmat_tool.py ...
-    0.2  Oct 26, 2008:
-         - renamed xmat_comp.py to ui_xmat.py
-         - upon loading X-matrix, warn user of duplicate regressors
-    0.3  Oct 27, 2008: test imports via module_test_lib
-    0.4  Oct 30, 2008:
-         - modified the correlation matrix so that a constant regressor is not
-           zeroed out (de-meaned), so not quite a correlation matrix
-"""
-
-g_version = "xmat_tool, version 0.3, 27 Oct 2008"
 
 # --------------------------------------------------
 # global widget IDs
@@ -65,7 +54,8 @@ ID_CLOSE            = 111
 ID_EXIT             = 112
 ID_ABOUT            = 121
 ID_HELP             = 122
-ID_HIST             = 123
+ID_HELP_CMD         = 123
+ID_HIST             = 131
 ID_SAVE             = 151
 
 ID_LOAD_XMAT        = 201
@@ -84,6 +74,8 @@ ID_PLOT_BEST_FIT    = 403
 ID_PLOT_CORMAT      = 411
 
 ID_APPLY_CHOICE     = 501
+
+ID_PLOT_AS_ONE      = 1001      # check item in menu
 
 # --------------------------------------------------
 # values for global text display list
@@ -177,6 +169,7 @@ class MainFrame(wx.Frame):
       self.help_frame     = None        # Help window
       self.hist_frame     = None        # History window
       self.plotx_frame    = None
+      self.plot_as_one    = 0
       self.plotx_cols     = []
       self.plot1D_frame   = None
       self.plot1D_redo    = 0           # do we need to re-create the plot
@@ -252,26 +245,31 @@ class MainFrame(wx.Frame):
      
 
    # ------------------------------------------------------------
+   # apply user-specified options
+   def apply_options(self):
+      """call this to update GUI from UIX data"""
+
+      for opt in self.XM.gui_opts:
+         if opt.name == '-gui_plot_xmat_as_one':
+            self.plot_as_one = 1
+         else:
+            print "** unknown -gui option '%s'" % opt.name
+
+      # in case either has previousely been set...
+      self.update_textlist_from_xmat()
+      self.update_textlist_from_1D()
+      self.check_plot_as_one.Check(self.plot_as_one)
+
+   # ------------------------------------------------------------
    # main callback to apply new choice of columns
    def cb_apply_col_choice(self, event):
 
-      if not self.XM.matX:
-         self.popup_warning("please load an X matrix, first")
-         return
+      ret = self.XM.set_cols_from_string(self.choicectrl.GetValue())
+      if ret == None:
+         self.update_textlist_from_xmat()
+      else:
+         self.popup_warning(ret)
 
-      ncols = self.XM.matX.ncols
-
-      clist = UTIL.decode_1D_ints(self.choicectrl.GetValue(), max=ncols-1)
-      if not clist: 
-         self.popup_warning("invalid column list\n\n"   \
-                            "--> please use AFNI sub-brick notation")
-         return
-      elif not AM.list2_is_in_list1(range(ncols), clist): 
-         self.popup_warning("column list outside xmat cols 0..%d" % (ncols-1))
-         return
-
-      self.XM.col_list = clist
-      self.update_textlist_from_xmat()
       return
 
    # ------------------------------------------------------------
@@ -306,6 +304,11 @@ class MainFrame(wx.Frame):
       # Plot menu
       menu = wx.Menu()
       menu.Append(ID_PLOT_XMAT, "Plot X&mat", "Graph selected X matrix columns")
+      self.check_plot_as_one =  \
+           menu.Append(ID_PLOT_AS_ONE, "   plot Xmat as &one",
+                  help='plot all regressors in one graph', kind=wx.ITEM_CHECK)
+      # maintain the check box in case this is updated externally
+      self.check_plot_as_one.Check(self.plot_as_one)
       menu.Append(ID_PLOT_1D, "Plot &1D", "Graph 1D time series")
       menu.Append(ID_PLOT_BEST_FIT, "Plot Best &Fit",
             "Graph best fit of selected X matrix columns against 1D array")
@@ -314,7 +317,8 @@ class MainFrame(wx.Frame):
       # Help menu
       menu = wx.Menu()
       menu.Append(ID_ABOUT, "&About", "information about this program")
-      menu.Append(ID_HELP, "H&elp", "program help")
+      menu.Append(ID_HELP, "Help (&GUI)", "help using graphical user interface")
+      menu.Append(ID_HELP_CMD, "Help (&Command-line)", "help for command-line")
       menu.Append(ID_HIST, "H&istory", "program history")
       menubar.Append(menu, "&Help")
 
@@ -325,6 +329,7 @@ class MainFrame(wx.Frame):
       wx.EVT_MENU(self, ID_EXIT, self.cb_exit)
       wx.EVT_MENU(self, ID_ABOUT, self.cb_about)
       wx.EVT_MENU(self, ID_HELP, self.cb_help)
+      wx.EVT_MENU(self, ID_HELP_CMD, self.cb_help_cmd)
       wx.EVT_MENU(self, ID_HIST, self.cb_history)
 
       wx.EVT_MENU(self, ID_LOAD_XMAT, self.cb_load_mat)
@@ -338,9 +343,17 @@ class MainFrame(wx.Frame):
       wx.EVT_MENU(self, ID_SHOW_FIT_BETAS, self.cb_show_fit_betas)
 
       wx.EVT_MENU(self, ID_PLOT_XMAT, self.cb_plot_mat)
+      wx.EVT_MENU(self, ID_PLOT_AS_ONE, self.cb_plot_as_one)
       wx.EVT_MENU(self, ID_PLOT_1D, self.cb_plot_1D)
       wx.EVT_MENU(self, ID_PLOT_BEST_FIT, self.cb_plot_fit)
       wx.EVT_MENU(self, ID_PLOT_CORMAT, self.cb_graph_corr_mat)
+
+   # ----------------------------------------------------------------------
+   # In general, the cb_ functions are the callbacks that call the respective
+   # action functions.  Those action functions, which depend only on the main
+   # class (and not the event, say) are driving functions that can be called
+   # from elsewhere.  For example, to close a window, plot, or possibly even
+   # drive the program from the command line (not sure if I'll do that).
 
    def cb_show_mat(self, event):        # gui event
 
@@ -471,10 +484,15 @@ class MainFrame(wx.Frame):
 
    def cb_close_grid(self, event):
       if self.cormat_grid:
-         print '-- destroying cormat_grid'
+         if self.XM.verb > 2: print '-- destroying cormat_grid'
          self.cormat_grid.Destroy()
          self.cormat_grid = None
          self.XM.cleanup_memory()
+
+   def cb_plot_as_one(self, event):        # gui event
+      self.plot_as_one = 1 - self.plot_as_one
+      if self.XM.verb > 1:
+         print '++ toggling plot_as_one to %d' % self.plot_as_one
 
    def cb_plot_mat(self, event):        # gui event
       self.gui_plot_xmat()
@@ -500,7 +518,7 @@ class MainFrame(wx.Frame):
          self.popup_warning("no columns chosen for X matrix")
          return
 
-      self.plotx_frame = CanvasFrame()
+      self.plotx_frame = CanvasFrame(as_one=self.plot_as_one)
       self.plotx_cols  = cols           # keep track of what was used
 
       self.plotx_frame.Show(True)
@@ -717,7 +735,7 @@ class MainFrame(wx.Frame):
 
    def gui_close_plot(self):
       if self.plotx_frame:
-         print '-- destroying plotx'
+         if self.XM.verb > 2: print '-- destroying plotx'
          self.plotx_frame.Destroy()
          self.plotx_frame = None
          del(self.plotx_cols)
@@ -729,7 +747,7 @@ class MainFrame(wx.Frame):
 
    def gui_close_plot_1D(self):
       if self.plot1D_frame:
-         print '-- destroying plot1D'
+         if self.XM.verb > 2: print '-- destroying plot1D'
          self.plot1D_frame.Destroy()
          self.plot1D_frame = None
          self.plot1D_redo = 0
@@ -739,12 +757,12 @@ class MainFrame(wx.Frame):
 
    def gui_close_plot_fit(self):
       if self.plotfit_frame:
-         print '-- destroying plotfit'
+         if self.XM.verb > 2: print '-- destroying plotfit'
          self.plotfit_frame.Destroy()
          self.plotfit_frame = None
 
    def cb_exit(self, event):
-      print 'exiting...'
+      if self.XM.verb > 1: print 'exiting GUI...'
       if self.plotx_frame:
          self.cb_close_plot(1)
       self.Destroy()
@@ -754,22 +772,28 @@ class MainFrame(wx.Frame):
       dlg = wx.MessageDialog(self,
                 "%s\n\n"
                 "This program is for inspecting\n"
-                "and evaluating X matrices." % g_version,
+                "and evaluating X matrices." % UIX.g_version,
                 "About Program", wx.OK | wx.ICON_INFORMATION)
       dlg.ShowModal()
       dlg.Destroy()
 
-   def cb_help(self, event):            # gui event
+   def cb_help(self, event):
       self.gui_show_help()
 
    def gui_show_help(self):
-      self.show_text_window(g_help_string, 'Program Help')
+      self.show_text_window(gui_help_string, 'Program Help (for GUI)')
 
-   def cb_history(self, event):         # gui event
+   def cb_help_cmd(self, event):
+      self.gui_show_help_cmd()
+
+   def gui_show_help_cmd(self):
+      self.show_text_window(UIX.g_help_string,'Program Help (for command line)')
+
+   def cb_history(self, event):
       self.gui_show_history()
 
    def gui_show_history(self):
-      self.show_text_window(g_history, 'Program History')
+      self.show_text_window(UIX.g_history, 'Program History')
 
    def popup_warning(self, mesg):
       dlg = wx.MessageDialog(self, mesg, "warning: ", wx.OK|wx.ICON_EXCLAMATION)
@@ -884,7 +908,7 @@ class MainFrame(wx.Frame):
    def cb_close_win(self, event):       # no gui_ for generic close
       win = event.GetEventObject()
       win = win.GetTopLevelParent()
-      if self.XM.verb > 3:
+      if self.XM.verb > 2:
          print "-- closing window '%s' ..." % win.GetTitle()
       win.Destroy()
 
@@ -1061,7 +1085,7 @@ class MatGrid(wx.grid.Grid):
 # This canvas is only used for plotting graphs of matrices.
 
 class CanvasFrame(wx.Frame):
-   def __init__(self):
+   def __init__(self, as_one=0):
       wx.Frame.__init__(self, None, -1, 'CanvasFrame', size=(400,300))
       self.figure = Figure()
       self.canvas = FigureCanvas(self, -1, self.figure)
@@ -1069,10 +1093,17 @@ class CanvasFrame(wx.Frame):
       self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
       self.SetSizer(self.sizer)
 
+      self.canvas.mpl_connect('key_press_event', self.cb_keypress)
+      self.as_one  = as_one
+
       self.toolbar = NavigationToolbar2Wx(self.canvas)
       self.toolbar.Realize()
       self.sizer.Add(self.toolbar, 0, wx.LEFT | wx.EXPAND)
       self.toolbar.update()
+
+   def cb_keypress(self, event):
+      if event.key == 'q':
+         self.Close()
 
    def plot_matlist(self, matlist, title='', ylabels=[], ftcolors=0, verb=1):
       """plot AfniMatrix list, one graph per AfniMatrix
@@ -1185,8 +1216,12 @@ class CanvasFrame(wx.Frame):
          if i == 0: title = '%s [%s]' % (os.path.basename(amat.fname),
                                          UTIL.encode_1D_ints(cols))
          else     : title = ''
-         # subplot = 100*ncols + 10*1 + i+1
-         ax = self.figure.add_subplot(ncols,1,i+1,title=title)
+
+         if self.as_one:
+            # then only create one axis
+            if i == 0: ax = self.figure.add_subplot(1,1,1,title=title)
+         else:
+            ax = self.figure.add_subplot(ncols,1,i+1,title=title)
          data = mat[:,i]
          ax.plot(data)
 
@@ -1201,26 +1236,30 @@ class CanvasFrame(wx.Frame):
          ax.yaxis.set_major_formatter(yformat)
          amax = round(data.max(),1)
 
-         if amax == 1.0 and ymin == 0.0: ax.set_yticks(N.array([ymin,amax]))
-         elif ncols > 10:                ax.set_yticks(N.array([ymin,ymax]))
-         else:                         ax.set_yticks(N.array([ymin,ymean,ymax]))
+         if self.as_one:                   pass # use default yticks
+         elif amax == 1.0 and ymin == 0.0: ax.set_yticks(N.array([ymin,amax]))
+         elif ncols > 10:                  ax.set_yticks(N.array([ymin,ymax]))
+         else:                       ax.set_yticks(N.array([ymin,ymean,ymax]))
 
          # now that yticks are set, prevent tight limits
-         if ymin == data.min():
-            ymin -= 0.15 * width
-            ax.set_ylim((ymin, ymax))
+         if not self.as_one:
+            if ymin == data.min():
+               ymin -= 0.15 * width
+               ax.set_ylim((ymin, ymax))
 
-         if ymax == data.max():
-            ymax += 0.15 * width
-            ax.set_ylim((ymin, ymax))
+            if ymax == data.max():
+               ymax += 0.15 * width
+               ax.set_ylim((ymin, ymax))
 
-         if amat.run_len > 10 and amat.nruns > 1:
-            ax.set_xticks(N.array([r*amat.run_len
-                              for r in range(amat.nruns+1)]))
+            if amat.run_len > 10 and amat.nruns > 1:
+               ax.set_xticks(N.array([r*amat.run_len
+                                      for r in range(amat.nruns+1)]))
+
          if i < ncols - 1: ax.set_xticklabels([])
          else:             ax.set_xlabel('TRs')
 
-         if amat.labels:
+         if self.as_one: ax.set_ylabel('')
+         elif amat.labels:
             ax.set_ylabel('%-*s ' % (maxlen,labels[i]), rotation='horizontal')
             pl, pb, pw, ph = ax.get_position()
             ax.set_position((0.2, pb, pw, ph))
@@ -1251,8 +1290,23 @@ def test(test_gui=1):
    return None
 
 def main():
-   test(1)
+   # test(1)
+
+   XM = UIX.XmatInterface()
+   if not XM: return 1
+
+   if XM.show_gui_help: print gui_help_string
+
+   if XM.use_gui:
+      gui = XmatGUI()
+      if not gui: return 1
+
+      gui.init_gui(XM)
+      gui.Gframe.apply_options()
+      gui.MainLoop()
+
+   return XM.status
 
 if __name__ == '__main__':
-   main()
+   sys.exit(main())
 
