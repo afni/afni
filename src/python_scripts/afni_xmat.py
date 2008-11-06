@@ -61,6 +61,7 @@ class AfniXmat:
 
         # computed variables
         self.cormat       = None        # correlation mat (normed xtx)
+        self.cosmat       = None        # cosine matrix (no de-meaned xtx)
         self.cormat_ready = 0           # correlation mat is set
 
         # initialize...
@@ -120,6 +121,8 @@ class AfniXmat:
         self.goodlist = None
         del(self.cormat)
         self.cormat = None
+        del(self.cosmat)
+        self.cosmat = None
         self.cormat_ready = 0
 
         return 0
@@ -209,7 +212,14 @@ class AfniXmat:
             
 
     def set_cormat(self):
-        """set xt, norms and cormat, the correlation matrix"""
+        """set cormat (the correlation matrix) and cosmat (cos0 matrix),
+           and finally cormat.ready
+
+           Note that the (Pearson's) correlations are de-meaned, and so the
+           constant baseline terms can be highly correlated.
+
+           The cosine matrix might also be quite helpful.
+        """
         if not self.ready: return
         if self.cormat_ready: return
 
@@ -221,9 +231,10 @@ class AfniXmat:
 
         # make normalized transpose (unit vector lengths) ...
         mat = copy.deepcopy(self.mat)
-        xtn = N.transpose(mat)
+        xtn = N.transpose(mat)          # for cormat (correlations)
+        ctn = copy.deepcopy(xtn)        # for cosmat (cosines)
 
-        # demean each row, unless it is all 1's
+        # demean each row (for cormat), unless it is all 1's
         means = [N.mean(col) for col in xtn]
         for c in range(self.ncols):
             min = xtn[c].min()
@@ -235,11 +246,16 @@ class AfniXmat:
         norms = [SL.norm(col) for col in xtn]
         for c in range(self.ncols):     # normalize each row
             xtn[c] /= norms[c]
+        norms = [SL.norm(col) for col in ctn]
+        for c in range(self.ncols):     # normalize each cos0 row
+            ctn[c] /= norms[c]
 
         xn = N.transpose(xtn)           # transpose back to normalized xmat
+        cn = N.transpose(ctn)          # transpose back to normalized xmat
 
-        # finally, assign cormat
+        # finally, assign cormat and cosmat
         self.cormat = N.matrix(xtn) * N.matrix(xn)
+        self.cosmat = N.matrix(ctn) * N.matrix(cn)
         self.cormat_ready = 1
 
         # nuke temporary (normalized) matrices
@@ -250,6 +266,8 @@ class AfniXmat:
         del(norms)
 
     def list_cormat_warnings(self, cutoff=0.4):
+        """return a list of corval, cosval, row, col
+           for each cormat value with abs() > cutoff"""
 
         if not self.ready:
             return '** no X-matrix to compute correlation matrix from'
@@ -260,28 +278,30 @@ class AfniXmat:
             return 1
 
         cmat = self.cormat
+        cosmat = self.cosmat
 
         basecols = self.cols_by_group_list([-1])
         motcols  = self.cols_by_group_list([0])
         roicols  = self.cols_by_group_list([],allroi=1)
 
         if self.verb > 2:
-            print '-- LCP: len(base, mot, roi) = (%d, %d, %d)' % \
-                  (len(basecols), len(motcols), len(roicols))
+            print '-- LCP: len(base, mot, roi) = (%d, %d, %d), cut = %.2f' % \
+                  (len(basecols), len(motcols), len(roicols), cutoff)
 
-        # make a list of (values,r,c) triples in the lower triangle
+        # make a list of (abs(val),val,cos,r,c) tuples in lower triangle
         clist = []
-        for row in range(1,self.ncols-1):
+        for row in range(1,self.ncols):
             for col in range(row):
-                clist.append((cmat[row, col], row, col))
+                clist.append((abs(cmat[row, col]), cmat[row,col],
+                             cosmat[row, col], row, col))
 
         clist.sort(reverse=True)  # largest to smallest
 
         # now make a list of evil-doers
         badlist = []
-        for val, r, c in clist:
-            if val == 1.0:
-                badlist.append((val, r, c)) # flag duplication
+        for aval, val, cval, r, c in clist:
+            if aval == 1.0:
+                badlist.append((val, cval, r, c)) # flag duplication
                 continue
 
             # skip motion against either motion or baseline
@@ -293,12 +313,76 @@ class AfniXmat:
             if cmot and (rbase or rmot): continue
             if cbase and rmot: continue
 
-            if val < cutoff: break
+            if aval < cutoff: break
 
-            badlist.append((val, r, c))         # so keep this one
+            badlist.append((val, cval, r, c))         # so keep this one
 
         if self.verb > 1:
             print '-- LCP: badlist length = %d' % len(badlist)
+
+        del(clist)
+
+        return badlist
+
+    def list_cosmat_warnings(self, cutoff=0.4, check_mot_base=0):
+        """return a list of cosval, corval, row, col
+           for each cosmat value with abs(cosval) >= cutoff
+
+                cutoff         : cutoff for what is considered bad
+                check_mot_base : flag to compare motion vs mot/base
+        """
+
+        if not self.ready:
+            return '** no X-matrix to compute cosine matrix from'
+
+        if not self.cormat_ready: self.set_cormat() # create cormat
+        if not self.cormat_ready: # then failure
+            print '** cosmat_warnings: failed to create cormat'
+            return 1
+
+        cmat = self.cormat
+        cosmat = self.cosmat
+
+        basecols = self.cols_by_group_list([-1])
+        motcols  = self.cols_by_group_list([0])
+        roicols  = self.cols_by_group_list([],allroi=1)
+
+        if self.verb > 2:
+            print '-- LCP: len(base, mot, roi) = (%d, %d, %d), cut = %.2f' % \
+                  (len(basecols), len(motcols), len(roicols), cutoff)
+
+        # make a list of (abs(cos),cos,cor,r,c) tuples in lower triangle
+        clist = []
+        for row in range(1,self.ncols):
+            for col in range(row):
+                clist.append((abs(cosmat[row, col]), cosmat[row,col],
+                             cmat[row, col], row, col))
+
+        clist.sort(reverse=True)  # largest to smallest
+
+        # now make a list of evil-doers
+        badlist = []
+        for aval, val, rval, r, c in clist:
+            if aval == 1.0:
+                badlist.append((val, rval, r, c)) # flag duplication
+                continue
+
+            # maybe we do not check motion vs mot/base
+            if not check_mot_base:
+               rbase = r in basecols
+               cbase = c in basecols
+               rmot  = r in motcols
+               cmot  = c in motcols
+
+               if cmot and (rbase or rmot): continue
+               if cbase and rmot: continue
+
+            if aval < cutoff: break
+
+            badlist.append((val, rval, r, c))         # so keep this one
+
+        if self.verb > 1:
+            print '-- LCosW: badlist length = %d' % len(badlist)
 
         del(clist)
 
@@ -611,7 +695,7 @@ def read_1D_file(fname):
     """read 1D file, returning the data in a matrix, and comments in clines"""
     try: fp = open(fname, 'r')
     except:
-        print "** failed to open 1D file '%s'" % fname
+        print "** failed to open file '%s'" % fname
         return None, None
 
     fmat = []           # data lines
@@ -630,10 +714,11 @@ def read_1D_file(fname):
         try:
             fmat.append([float(x) for x in lary])
         except:
-            print "** failed to convert line '%s' to floats" % line
+            print "** failed to convert line '%s' to floats in %s" %    \
+                  (line,fname)
             return None, None
         if len(lary) != len(fmat[0]):
-            print "** matrix is not square at line %d" % lind
+            print "** matrix is not square at line %d of %s" % (lind,fname)
             return None, None
 
     return fmat, clines
