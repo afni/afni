@@ -9646,8 +9646,8 @@ void basis_write_iresp( int argc , char *argv[] ,
        else                   factor = 1.0f / factor ;
        EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
 
-      EDIT_misfit_report( DSET_PREFIX(out_dset) , ib ,
-                          nvox , factor , bar , hout[ib] ) ;
+       EDIT_misfit_report( DSET_PREFIX(out_dset) , ib ,
+                           nvox , factor , bar , hout[ib] ) ;
 
        free((void *)hout[ib]) ;
      }
