@@ -50,6 +50,12 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 06 , NOV , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, "Oblique children handling",
+    "fixed combination of oblique with child epis for epi2anat output"
+} ,
+
 { 31 , OCT , 2008 , DRG , "3drefit" , 
     MINOR , TYPE_MODIFY, "Time axis attributes",
     "Added support in 3drefit for applying time axis attributes"
