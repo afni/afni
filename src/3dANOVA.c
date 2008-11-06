@@ -1365,7 +1365,7 @@ void calculate_differences (anova_options * option_data)
    int nvoxel;                         /* output voxel # */
    int num_diffs;                      /* number of user requested diffs. */
    int idiff;                          /* index for requested differences */
-   int i, j;                           /* factor level indices */
+   int i=-1, j=-1;                     /* factor level indices */
    int ni, nj;                         /* number of obs. at levels i and j */
    int df;                             /* degrees of freedom */
    float fval;                         /* for calculating std. dev. */

@@ -22,11 +22,11 @@ void EDIT_coerce_type( int nxyz , int itype,void *ivol , int otype,void *ovol )
 {
    register int ii ;
 
-   complex * cin , * cout ;
-   short   * sin , * sout ;
-   float   * fin , * fout ;
-   byte    * bin , * bout ;
-   double  * din , * dout ;  /* 10 Jan 1999 */
+   complex *cin , *cout ;
+   short   *sin , *sout ;
+   float   *fin , *fout ;
+   byte    *bin , *bout ;
+   double  *din , *dout ;  /* 10 Jan 1999 */
 
 ENTRY("EDIT_coerce_type") ;
 #ifdef AFNI_DEBUG
@@ -197,11 +197,11 @@ void EDIT_coerce_scale_type( int nxyz , float scl ,
    register int ii ;
    register float fac = scl , val ;
 
-   complex * cin , * cout ;
-   short   * sin , * sout ;
-   float   * fin , * fout ;
-   byte    * bin , * bout ;
-   double  * din , * dout ;   /* 11 Jan 1999 */
+   complex *cin , *cout ;
+   short   *sin , *sout ;
+   float   *fin , *fout ;
+   byte    *bin , *bout ;
+   double  *din , *dout ;   /* 11 Jan 1999 */
 
 ENTRY("EDIT_coerce_scale_type") ;
 #ifdef AFNI_DEBUG
@@ -405,7 +405,7 @@ ENTRY("EDIT_coerce_autoscale") ;
 
   So for output integers not to be scaled, they must be bounded by
   limit and come from integral values.
-  
+
      nxy   = # values
      itype = input data type
      ivol  = pointer to input data (memory must exist)
@@ -484,4 +484,83 @@ ENTRY("EDIT_clip_float") ;
       else if( vol[ii] < bot ) vol[ii] = bot ;
 
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*!
+  Convert one volume to another type, autoscaling:
+     nxy   = # voxels
+     itype = input datum type
+     ivol  = pointer to input volume
+     otype = output datum type
+     ovol  = pointer to output volume (again, must be pre-malloc-ed)
+  Return value is the scaling factor used (0.0 --> no scaling).
+*/
+
+float EDIT_coerce_autoscale_new( int nxyz , int itype ,
+                                 void *ivol , int otype , void *ovol )
+{
+  float fac=0.0 , top ;
+
+ENTRY("EDIT_coerce_autoscale_new") ;
+
+  if( MRI_IS_INT_TYPE(otype) ){
+    top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
+    if (top == 0.0)  fac = 0.0;
+    else  fac = MRI_TYPE_maxval[otype]/top;
+  }
+
+  EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
+  RETURN ( fac );
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Compute a measure of how good a scaled short array fits a float array.
+    Smaller is better (0 is perfection, 1 is catastrophe).
+*//*-------------------------------------------------------------------------*/
+
+float EDIT_scale_misfit( int nxyz , float fac , short *sar , float *far )
+{
+   float sf , ff , sum=0.0f ;
+   int ii , nf=0 ;
+
+ENTRY("EDIT_scale_misfit") ;
+
+   if( nxyz <= 0 || sar == NULL || far == NULL ) RETURN(0.0f) ;
+
+   if( fac == 0.0f ) fac = 1.0f ;
+
+   for( ii=0 ; ii < nxyz ; ii++ ){
+     ff = far[ii] ; if( ff == 0.0f ) continue ;
+     sf = fac*sar[ii] ;
+     if( sf == 0.0f ){
+       sum += 1.0f ;
+     } else {
+       sf = fabsf((sf-ff)/ff) ; if( sf > 1.0f ) sf = 1.0f ; sum += sf ;
+     }
+     nf++ ;
+   }
+
+   if( nf > 0 ) sum /= nf ;
+   RETURN(sum) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void EDIT_misfit_report( char *name, int ib,
+                         int nxyz, float fac, short *sar, float *far )
+{
+   float mf ; int im ;
+   static char *msg[4] = { "* Caution"  , "** Warning"     ,
+                           "*** Beware" , "**** Red Alert ****"  } ;
+
+   mf = 100.0f * EDIT_scale_misfit( nxyz , fac , sar , far ) ;
+        if( mf < 2.5f ) return ;
+        if( mf < 3.5f ) im = 0 ;
+   else if( mf < 5.0f ) im = 1 ;
+   else if( mf < 9.9f ) im = 2 ;
+   else                 im = 3 ;
+   WARNING_message("%s[%d] scale to shorts misfit = %.2f%% -- %s",
+                   name , ib , mf , msg[im] ) ;
+   return ;
 }

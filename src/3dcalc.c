@@ -1428,7 +1428,7 @@ void CALC_Syntax(void)
     "----------- \n"
     "\n"
     " As noted above, datasets are referred to by single letter variable names.\n"
-    PARSER_HELP_STRING 
+    PARSER_HELP_STRING
     "\n"
     "** If you modify a statistical sub-brick, you may want to use program\n"
     "  '3drefit' to modify the dataset statistical auxiliary parameters.\n"
@@ -2179,6 +2179,12 @@ int main( int argc , char *argv[] )
 
            EDIT_coerce_scale_type( CALC_nvox , fimfac ,
                                    MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
+
+           if( CALC_datum == MRI_short )
+             EDIT_misfit_report( DSET_PREFIX(new_dset) , ii ,
+                                 CALC_nvox , (fimfac != 0.0f) ? 1.0f/fimfac : 0.0f ,
+                                 dfim[ii] , buf[ii] ) ;
+
            free( buf[ii] ) ; buf[ii] = NULL ;
 
            /* put result into output dataset */
