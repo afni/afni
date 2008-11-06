@@ -1665,7 +1665,7 @@ void get_options
         if( nopt >= argc ) DC_error("need argument after -datum");
              if( strcmp(argv[nopt],"float") == 0 ) floatout = 1 ;
         else if( strcmp(argv[nopt],"short") == 0 ) floatout = 0 ;
-        else              DC_error("illegal name after -datum") ;
+        else              DC_error("illegal type name after -datum") ;
         nopt++ ; continue ;
       }
 
@@ -5876,36 +5876,6 @@ ENTRY("calculate_results") ;
   EXRETURN ;
 }
 
-
-/*---------------------------------------------------------------------------*/
-/*
-  Convert one volume to another type, autoscaling:
-     nxy   = # voxels
-     itype = input datum type
-     ivol  = pointer to input volume
-     otype = output datum type
-     ovol  = pointer to output volume (again, must be pre-malloc-ed)
-  Return value is the scaling factor used (0.0 --> no scaling).
-*/
-
-float EDIT_coerce_autoscale_new( int nxyz ,
-                         int itype,void *ivol , int otype,void *ovol )
-{
-  float fac=0.0 , top ;
-
-ENTRY("EDIT_coerce_autoscale_new") ;
-
-  if( MRI_IS_INT_TYPE(otype) ){
-    top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
-    if (top == 0.0)  fac = 0.0;
-    else  fac = MRI_TYPE_maxval[otype]/top;
-  }
-
-  EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
-  RETURN ( fac );
-}
-
-
 /*---------------------------------------------------------------------------*/
 /*
   Use cubic spline interpolation to time shift the estimated impulse response
@@ -6209,6 +6179,9 @@ void write_ts_array
           if (factor < EPSILON)  factor = 0.0;
           else                   factor = 1.0 / factor;
           EDIT_BRICK_FACTOR( new_dset , ib , factor ) ;
+
+          EDIT_misfit_report( DSET_PREFIX(new_dset) , ib ,
+                              nxyz , factor , bar , volume ) ;
         }
       }
    }
@@ -6267,6 +6240,9 @@ ENTRY("attach_sub_brick") ;
     factor = EDIT_coerce_autoscale_new(nxyz, MRI_float,volume, MRI_short,sbr);
     if (factor < EPSILON)  factor = 0.0;
     else                   factor = 1.0 / factor;
+
+    EDIT_misfit_report( DSET_PREFIX(new_dset) , ibrick ,
+                        nxyz , factor , sbr , volume ) ;
    }
 
    /*----- edit the sub-brick -----*/
@@ -9669,6 +9645,10 @@ void basis_write_iresp( int argc , char *argv[] ,
        if( factor < EPSILON ) factor = 0.0f ;          /* if brick is all zero */
        else                   factor = 1.0f / factor ;
        EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
+
+      EDIT_misfit_report( DSET_PREFIX(out_dset) , ib ,
+                          nvox , factor , bar , hout[ib] ) ;
+
        free((void *)hout[ib]) ;
      }
      EDIT_BRICK_FACTOR( out_dset , ib , factor ) ;
@@ -9906,6 +9886,10 @@ void basis_write_sresp( int argc , char *argv[] ,
        if( factor < EPSILON ) factor = 0.0f ;          /* if brick is all zero */
        else                   factor = 1.0f / factor ;
        EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
+
+       EDIT_misfit_report( DSET_PREFIX(out_dset) , ib ,
+                           nvox , factor , bar , hout[ib] ) ;
+
        free((void *)hout[ib]) ;
      }
      EDIT_BRICK_FACTOR( out_dset , ib , factor ) ;

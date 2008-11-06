@@ -384,6 +384,12 @@ extern float EDIT_coerce_autoscale( int , int,void * , int,void * ) ;
 extern float EDIT_convert_dtype   ( int , int,void * , int,void *, int ) ;
 extern int   is_integral_data     ( int , int , void * ) ;
 
+extern float EDIT_coerce_autoscale_new( int nxyz , int itype ,
+                                        void *ivol , int otype , void *ovol ) ;
+extern float EDIT_scale_misfit( int nxyz, float fac, short *sar, float *far ) ;
+extern void EDIT_misfit_report( char *name, int ib,
+                                int nxyz, float fac, short *sar, float *far ) ;
+
 extern void EDIT_floatize_dataset( THD_3dim_dataset *dset ) ;
 extern int DSET_pure_type( THD_3dim_dataset *dset ) ;
 

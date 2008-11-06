@@ -2426,33 +2426,6 @@ void save_results
   
 }
 
-
-/*---------------------------------------------------------------------------*/
-/*
-  Convert one volume to another type, autoscaling:
-     nxy   = # voxels
-     itype = input datum type
-     ivol  = pointer to input volume
-     otype = output datum type
-     ovol  = pointer to output volume (again, must be pre-malloc-ed)
-  Return value is the scaling factor used (0.0 --> no scaling).
-*/
-
-float EDIT_coerce_autoscale_new( int nxyz ,
-                     int itype,void *ivol , int otype,void *ovol )
-{
-  float fac=0.0 , top ;
-  
-  if( MRI_IS_INT_TYPE(otype) ){
-    top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
-    if (top == 0.0)  fac = 0.0;
-    else  fac = MRI_TYPE_maxval[otype]/top;
-  }
-  
-  EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
-  return ( fac );
-}
-
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI data set.
@@ -2809,6 +2782,11 @@ void write_bucket_data
       }
      if (factor < EPSILON)  factor = 0.0;
      else factor = 1.0 / factor;
+
+     if( output_datum == MRI_short )
+       EDIT_misfit_report( DSET_PREFIX(new_dset) , ib ,
+                           nxyz , factor , imptr , volume ) ;
+
       
       /*----- edit the sub-brick -----*/
       EDIT_BRICK_LABEL (new_dset, ib, brick_label);
@@ -2950,6 +2928,9 @@ void write_3dtime
 	 fbuf[ib] = factor;
          /*----- attach bar[ib] to be sub-brick #ib -----*/
          mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+
+       EDIT_misfit_report( DSET_PREFIX(new_dset) , ib ,
+                           nxyz , factor , bar[ib] , volume ) ;
       }
       else {
 	 /*----- Allocate memory for output sub-brick -----*/

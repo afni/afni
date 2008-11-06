@@ -411,21 +411,6 @@ void read_afni_data (anova_options * option_data,
 
 /*---------------------------------------------------------------------------*/
 /*
-  Convert one volume to another type, autoscaling:
-     nxy   = # voxels
-     itype = input datum type
-     ivol  = pointer to input volume
-     otype = output datum type
-     ovol  = pointer to output volume (again, must be pre-malloc-ed)
-  Return value is the scaling factor used (0.0 --> no scaling).
-*/
-
-float EDIT_coerce_autoscale_new( int nxyz ,
-				 int itype,void *ivol , int otype,void *ovol );
-
-
-/*---------------------------------------------------------------------------*/
-/*
   Routine to write one AFNI data set.
   
   This data set may be either 'fitt' type (intensity + t-statistic)

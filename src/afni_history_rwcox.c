@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , NOV , 2008 , RWC , "3dDeconvolve" , MINOR , TYPE_GENERAL ,
+   "Add 'scale to shorts misfit' warning messages." ,
+   NULL } ,
+
  { 5 , NOV , 2008 , RWC , "model_expr2.c" , MICRO , TYPE_GENERAL ,
    "Modified to allow up to 9 parameters -- see code for details." ,
    NULL } ,
