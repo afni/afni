@@ -1821,6 +1821,9 @@ void write_ts_array
 
       /*----- attach bar[ib] to be sub-brick #ib -----*/
       mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+
+      EDIT_misfit_report( DSET_PREFIX(new_dset) , ib ,
+                          nxyz , factor , bar[ib] , volume ) ;
     }
 
 

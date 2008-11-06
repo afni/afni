@@ -1163,6 +1163,9 @@ void process_subbrick (THD_3dim_dataset * dset, int ibrick)
 				      DSET_BRICK_TYPE(dset,ibrick), vfim);  
     if (factor < EPSILON)  factor = 0.0;
     else factor = 1.0 / factor;
+    if( DSET_BRICK_TYPE(dset,ibrick) == MRI_short )
+      EDIT_misfit_report( DSET_PREFIX(dset) , ibrick ,
+                          FDR_nxyz , factor , vfim , ffim ) ;
   } else {                          /*** if -float was given ***/
     EDIT_substitute_brick( dset , ibrick , MRI_float , ffim ) ;
     ffim = NULL ; factor = 0.0f ;
