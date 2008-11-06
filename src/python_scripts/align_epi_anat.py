@@ -324,7 +324,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.14" # software version (update for changes)
+      self.align_version = "1.15" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -2471,11 +2471,6 @@ if __name__ == '__main__':
    ps.create_output(ps.anat_alnd, ps.anat_alndwt, ps.epi_alnd, \
         "%s" % ps.suffix, e, a)
         
-
-   #cleanup?
-   if (ps.rmrm):
-      ps.cleanup()
-   
    # process the children
    if ps.child_epis != None: 
       for child_epi_name in ps.child_epis.parlist:
@@ -2483,6 +2478,10 @@ if __name__ == '__main__':
          ps.process_child_epi(child_epi)
          if (ps.rmrm):  # cleanup after the children, remove any extra files
             ps.fresh_start(child_epi.out_prefix(), apref="", rmold=0)
+
+   #cleanup after the parents too?
+   if (ps.rmrm):
+      ps.cleanup()
 
 
    print "\n# Finished alignment successfully"
