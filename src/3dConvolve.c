@@ -1714,34 +1714,6 @@ void calculate_results
   if (errts != NULL)      { free (errts);     errts    = NULL; }
 }
 
-
-/*---------------------------------------------------------------------------*/
-/*
-  Convert one volume to another type, autoscaling:
-     nxy   = # voxels
-     itype = input datum type
-     ivol  = pointer to input volume
-     otype = output datum type
-     ovol  = pointer to output volume (again, must be pre-malloc-ed)
-  Return value is the scaling factor used (0.0 --> no scaling).
-*/
-
-float EDIT_coerce_autoscale_new( int nxyz ,
-				 int itype,void *ivol , int otype,void *ovol )
-{
-  float fac=0.0 , top ;
-  
-  if( MRI_IS_INT_TYPE(otype) ){
-    top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
-    if (top == 0.0)  fac = 0.0;
-    else  fac = MRI_TYPE_maxval[otype]/top;
-  }
-  
-  EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
-  return ( fac );
-}
-
-
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI 3d+time data set. 

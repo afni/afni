@@ -2503,36 +2503,6 @@ void calculate_results
 
 }
 
-
-/*---------------------------------------------------------------------------*/
-/*
-  Convert one volume to another type, autoscaling:
-  Return value is the scaling factor used (0.0 --> no scaling).
-*/
-
-float EDIT_coerce_autoscale_new
-( 
-  int nxyz,             /* number of voxels */
-  int itype,            /* input datum type */
-  void *ivol,           /* pointer to input volume */
-  int otype,            /* output datum type */
-  void *ovol            /* pointer to output volume (must be pre-malloc-ed) */
-)
-
-{
-  float fac=0.0 , top ;
-  
-  if( MRI_IS_INT_TYPE(otype) ){
-    top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
-    if (top == 0.0)  fac = 0.0;
-    else  fac = MRI_TYPE_maxval[otype]/top;
-  }
-  
-  EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
-  return ( fac );
-}
-
-
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI data set.

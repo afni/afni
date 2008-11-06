@@ -537,32 +537,6 @@ void read_afni_data (anova_options * option_data,
 
 /*---------------------------------------------------------------------------*/
 /*
-  Convert one volume to another type, autoscaling:
-     nxy   = # voxels
-     itype = input datum type
-     ivol  = pointer to input volume
-     otype = output datum type
-     ovol  = pointer to output volume (again, must be pre-malloc-ed)
-  Return value is the scaling factor used (0.0 --> no scaling).
-*/
-
-float EDIT_coerce_autoscale_new( int nxyz ,
-				 int itype,void *ivol , int otype,void *ovol )
-{
-  float fac=0.0 , top ;
-  
-  if( MRI_IS_INT_TYPE(otype) ){
-    top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
-    if (top == 0.0)  fac = 0.0;
-    else  fac = MRI_TYPE_maxval[otype]/top;
-  }
-  
-  EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
-  return ( fac );
-}
-
-/*---------------------------------------------------------------------------*/
-/*
   Routine to write one AFNI data set.
   
   This data set may be either 'fitt' type (intensity + t-statistic)
@@ -624,7 +598,7 @@ void write_afni_data (anova_options * option_data,  char * filename,
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
   
   if (dendof == 0) func_type = FUNC_TT_TYPE;
-  else func_type = FUNC_FT_TYPE;
+  else             func_type = FUNC_FT_TYPE;
   
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
@@ -670,6 +644,10 @@ void write_afni_data (anova_options * option_data,  char * filename,
 				      MRI_float, ffim, 
 				      output_datum, vdif);
   if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
+
+  if( output_datum == MRI_short )
+    EDIT_misfit_report( DSET_PREFIX(new_dset) , 0 ,
+                        nxyz , fimfac , vdif , ffim ) ;
   
 #define TOP_SS  32700
   
@@ -696,6 +674,9 @@ void write_afni_data (anova_options * option_data,  char * filename,
 	tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
 
     }
+
+    EDIT_misfit_report( DSET_PREFIX(new_dset) , 1 ,
+                        nxyz , 1.0f/func_scale_short , tsp , ftr ) ;
   
 
   /*----- write afni data set -----*/
