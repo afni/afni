@@ -1904,7 +1904,9 @@ void attach_sub_brick
   
   if (factor < EPSILON)  factor = 0.0;
   else factor = 1.0 / factor;
-  
+
+  EDIT_misfit_report( DSET_PREFIX(new_dset) , ibrick ,
+                      nxyz , factor , bar[ibrick] , volume ) ;
 
   /*----- edit the sub-brick -----*/
   EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
