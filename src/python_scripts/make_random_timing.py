@@ -727,17 +727,17 @@ class RandTiming:
 
         # set num_reps list of length num_runs
         self.run_time, err = self.user_opts.get_type_list(float, '-run_time',
-                                       self.num_runs, 'num_runs', self.verb)
+                                    self.num_runs, 'num_runs', verb=self.verb)
         if self.run_time == None or err: return 1
 
         # set num_reps list of length num_runs
         self.num_reps, err = self.user_opts.get_type_list(int, '-num_reps',
-                                      self.num_stim, 'num_stim', self.verb)
+                                   self.num_stim, 'num_stim', verb=self.verb)
         if self.num_reps == None or err: return 1
 
         # set stim_dur list of length num_stim
         self.stim_dur, err = self.user_opts.get_type_list(float, '-stim_dur',
-                                       self.num_stim, 'num_stim', self.verb)
+                                    self.num_stim, 'num_stim', verb=self.verb)
         if self.stim_dur == None or err: return 1
 
         # ----------------------------------------

@@ -321,7 +321,7 @@ class GenEPIReview:
         # ----------------------------------------
         # image coordinates
         self.im_size, err = self.user_opts.get_type_list(int, '-im_size',
-                                2, 'two', self.verb)
+                                2, 'two', verb=self.verb)
         if err: return 1
         if not self.im_size: self.im_size = gDEF_IM_SIZE
 
@@ -337,7 +337,7 @@ class GenEPIReview:
         # ----------------------------------------
         # graph coordinates
         self.gr_size, err = self.user_opts.get_type_list(int, '-gr_size',
-                                2, 'two', self.verb)
+                                2, 'two', verb=self.verb)
         if err: return 1
         if not self.gr_size: self.gr_size = gDEF_GR_SIZE
 

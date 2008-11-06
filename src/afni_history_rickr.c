@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, NOV, 2008, RCR, "python_module_test.py", MINOR, TYPE_NEW_OPT,
+   "added option -full_test",
+   NULL
+ } ,
+
  {  4, NOV, 2008, RCR, "plug_vol2surf", MICRO, TYPE_MODIFY,
    "fail if NIML output dataset does end in .niml.dset",
    NULL

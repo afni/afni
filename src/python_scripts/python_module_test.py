@@ -31,6 +31,10 @@ examples:
 
       python_module_test.py -python_ver -platform_info
 
+   d. Perform a complete test (applies commands a and c).
+
+      python_module_test.py -full_test
+
 ------------------------------------------------------------
 informational options:
 
@@ -41,6 +45,10 @@ informational options:
 
 ----------------------------------------
 other options:
+
+   -full_test                   : perform all of the standard tests
+
+      This option applies -platform_info, -python_ver and -test_defaults.
 
    -platform_info               : display system information
 
@@ -73,9 +81,10 @@ g_history = """
     python_module_test.py history:
 
     0.1  Oct 30, 2008: submitted
+    0.2  Nov 06, 2008: added -full_test
 """
 
-g_version = "version 0.1, October 30, 2008"
+g_version = "version 0.2, November 6, 2008"
 
 
 # main module for defining and processing use options
@@ -110,6 +119,9 @@ class ModuleTest:
                       helpstr='display valid program options')
 
       # options
+      self.valid_opts.add_opt('-full_test', 0, [],                      \
+                      helpstr='test default modules and get python info')
+
       self.valid_opts.add_opt('-platform_info', 0, [],                  \
                       helpstr='display platform information')
 
@@ -164,6 +176,12 @@ class ModuleTest:
       self.verb, err = self.user_opts.get_type_opt(int, '-verb')
       if self.verb == None: self.verb = 1
       elif err: return 1
+
+      if self.user_opts.find_opt('-full_test'):
+         self.modlist = [] # pass nothing to use defaults
+         self.show_modtest = 1
+         self.show_platform = 1
+         self.show_pyver = 1
 
       if self.user_opts.find_opt('-test_defaults'):
          self.modlist = [] # pass nothing to use defaults
