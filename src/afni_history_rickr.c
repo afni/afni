@@ -48,6 +48,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_MODIFY,
+   "more updates:",
+   "- scipy is only tested for when necessary\n"
+   "- compute norms locally if no scipy\n"
+   "- solve_against_1D, linear_combo: return error string instead of code\n"
+   "- added -chrono option, to make all options chronological\n"
+   "  (so options are essentially scriptable)"
+ } ,
+
  {  6, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
    "pre-release updates:",
    "  - added many initial command-line options\n"

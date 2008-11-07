@@ -37,17 +37,6 @@ import ui_xmat as UIX
 # ----------------------------------------------------------------------
 # globals
 
-gui_help_string = """
-   ======================================================================
-   please get help
-
-        xmat_tool: GUI help
-                 displayed via -help_gui or from the GUI Help
-
-   for option help, please see "xmat_tool.py -help"
-   ======================================================================
-"""
-
 # --------------------------------------------------
 # global widget IDs
 ID_CLOSE            = 111
@@ -781,7 +770,7 @@ class MainFrame(wx.Frame):
       self.gui_show_help()
 
    def gui_show_help(self):
-      self.show_text_window(gui_help_string, 'Program Help (for GUI)')
+      self.show_text_window(UIX.gui_help_string, 'Program Help (for GUI)')
 
    def cb_help_cmd(self, event):
       self.gui_show_help_cmd()
