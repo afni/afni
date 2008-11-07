@@ -6180,7 +6180,7 @@ void write_ts_array
           else                   factor = 1.0 / factor;
           EDIT_BRICK_FACTOR( new_dset , ib , factor ) ;
 
-          EDIT_misfit_report( DSET_PREFIX(new_dset) , ib ,
+          EDIT_misfit_report( DSET_FILECODE(new_dset) , ib ,
                               nxyz , factor , bar , volume ) ;
         }
       }
@@ -6241,7 +6241,7 @@ ENTRY("attach_sub_brick") ;
     if (factor < EPSILON)  factor = 0.0;
     else                   factor = 1.0 / factor;
 
-    EDIT_misfit_report( DSET_PREFIX(new_dset) , ibrick ,
+    EDIT_misfit_report( DSET_FILECODE(new_dset) , ibrick ,
                         nxyz , factor , sbr , volume ) ;
    }
 
@@ -9646,7 +9646,7 @@ void basis_write_iresp( int argc , char *argv[] ,
        else                   factor = 1.0f / factor ;
        EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
 
-       EDIT_misfit_report( DSET_PREFIX(out_dset) , ib ,
+       EDIT_misfit_report( DSET_FILECODE(out_dset) , ib ,
                            nvox , factor , bar , hout[ib] ) ;
 
        free((void *)hout[ib]) ;
@@ -9887,7 +9887,7 @@ void basis_write_sresp( int argc , char *argv[] ,
        else                   factor = 1.0f / factor ;
        EDIT_substitute_brick( out_dset , ib , MRI_short , bar ) ;
 
-       EDIT_misfit_report( DSET_PREFIX(out_dset) , ib ,
+       EDIT_misfit_report( DSET_FILECODE(out_dset) , ib ,
                            nvox , factor , bar , hout[ib] ) ;
 
        free((void *)hout[ib]) ;
