@@ -1156,7 +1156,7 @@ ENTRY("AFNI_clus_action_CB") ;
    /*--------- SaveTable button ---------*/
 
    if( w == cwid->savetable_pb ){
-     char fnam[128] , *ppp ; FILE *fp ; int ff ;
+     char fnam[128+THD_MAX_NAME] , *ppp ; FILE *fp ; int ff ;
      float px,py,pz , mx,my,mz , xx,yy,zz ;
 
      nclu = im3d->vwid->func->clu_num ;
@@ -1166,7 +1166,8 @@ ENTRY("AFNI_clus_action_CB") ;
      ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
      if( !THD_filename_pure(ppp) ) ppp = "Clust" ;
      if( strcmp(ppp,"-") != 0 ){
-       sprintf(fnam,"%s_table.1D",ppp) ;
+       char *dnam = DSET_DIRNAME(im3d->fim_now) ;
+       sprintf(fnam,"%s%s_table.1D",dnam,ppp) ;
        ff = THD_is_file(fnam) ;
        fp = fopen(fnam,"w") ;
      } else {

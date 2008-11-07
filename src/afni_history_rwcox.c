@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , NOV , 2008 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Write Clust_table.1D into dataset directory, not startup directory." ,
+   NULL } ,
+
  { 6 , NOV , 2008 , RWC , "3dDeconvolve" , MINOR , TYPE_GENERAL ,
    "Add 'scale to shorts misfit' warning messages." ,
    "Also added to 3dcalc and some other programs." } ,
