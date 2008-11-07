@@ -48,6 +48,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
+   "pre-release updates:",
+   "  - added many initial command-line options\n"
+   "  - added plot_xmat_as_one toggle button\n"
+   "  - added computation of cosine matrix and cosmat_warnings\n"
+   "  - separated GUI code into new file gui_xmat.py"
+ } ,
+
+ {  6, NOV, 2008, RCR, "option_list.py", MICRO, TYPE_NEW_OPT,
+   "added opt param to get_type_opt and get_type_list",
+   "had to modify calls in make_random_timing.py and gen_epi_review.py"
+ } ,
+
  {  6, NOV, 2008, RCR, "python_module_test.py", MINOR, TYPE_NEW_OPT,
    "added option -full_test",
    NULL
