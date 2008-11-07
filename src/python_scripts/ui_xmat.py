@@ -19,6 +19,17 @@ g_help_string = """
    ========================================================================
 """
 
+gui_help_string = """
+   ======================================================================
+   please get help
+
+        xmat_tool: GUI help
+                 displayed via -help_gui or from the GUI Help
+
+   for option help, please see "xmat_tool.py -help"
+   ======================================================================
+"""
+
 g_history = """
    xmat_tool.py history:
 
@@ -34,9 +45,15 @@ g_history = """
         - added many initial command-line options
         - added plot_xmat_as_one toggle button
         - compute cosine matrix and cosmat_warnings
+   0.6  Nov 07 2008:
+        - scipy is only tested for when necessary
+        - compute norms locally if no scipy
+        - solve_against_1D, linear_combo: return error string instead of code
+        - added -chrono option, to make all options chronological
+          (so options are essentially scriptable)
 """
 
-g_version = "xmat_tool version 0.5, November 6, 2008"
+g_version = "xmat_tool version 0.6, November 7, 2008"
 
 
 class XmatInterface:
@@ -59,7 +76,7 @@ class XmatInterface:
       self.matbetas        = None
 
       # user options
-      self.show_gui_help   = 0
+      self.chrono          = 0          # are options processed chronologically
       self.verb            = verb
       self.cosmat_cut      = -1         # if >= 0, apply for cosmat warnings
       self.cosmat_motion   = 0          # check_mot_base in cosmat warnings
@@ -111,6 +128,8 @@ class XmatInterface:
                       helpstr='display info about the given 1D time series')
 
       # general options
+      self.valid_opts.add_opt('-chrono', 0, [], 
+                      helpstr='process options chronologically')
       self.valid_opts.add_opt('-cosmat_cutoff', 1, [], 
                       helpstr='set the cosine matrix warning cutoff')
       self.valid_opts.add_opt('-cosmat_motion', 0, [], 
@@ -137,7 +156,7 @@ class XmatInterface:
          return 0
 
       if '-help_gui' in sys.argv:
-         self.show_gui_help = 1
+         print gui_help_string
          return 0
 
       if '-hist' in sys.argv:
@@ -159,37 +178,74 @@ class XmatInterface:
       if not uopts: return 1            # error condition
 
       # ------------------------------------------------------------
-      # selection and process options:
-      #    process sequentially, to make them like a script
+      # check general options, esp. chrono
 
-      for opt in uopts.olist:
+      if uopts.find_opt('-chrono'): self.chrono = 1
+
+      # if options are not chronological, process general options now
+      # (so -show options are still in order)
+      if not self.chrono:
+
+         # general options might affect selection options
+         val, err = self.user_opts.get_type_opt(float, '-cosmat_cutoff')
+         if val != None and not err: self.cosmat_cut = val
+
+         val, err = self.user_opts.get_type_opt(float, '-cosmat_motion')
+         if val != None and not err: self.cosmat_motion = 1
+
+         val, err = self.user_opts.get_type_opt(int, '-verb')
+         if val != None and not err: self.verb = val
+
          # selection options
-         if opt.name == '-load_xmat':
-            if self.set_xmat(opt.parlist[0]):   return 1
-         elif opt.name == '-load_1D':
-            if self.set_1D(opt.parlist[0]):     return 1
-         elif opt.name == '-choose_cols':
-            rstr = self.set_cols_from_string(opt.parlist[0])
+         val, err = uopts.get_string_opt('-load_xmat')
+         if val and not err:
+            if self.set_xmat(val): return 1
+
+         val, err = uopts.get_string_opt('-load_1D')
+         if val and not err:
+            if self.set_1D(val): return 1
+
+         val, err = uopts.get_string_opt('-choose_cols')
+         if val and not err:
+            rstr = self.set_cols_from_string(val)
             if rstr:
                print "** failed to apply '-choose_cols':\n%s" % rstr
                return 1
 
-         # general options
-         elif opt.name == '-cosmat_cutoff':
-            val, err = self.user_opts.get_type_opt(float, '', opt=opt)
-            if err: return 1
-            else: self.cosmat_cut = val
+      # ------------------------------------------------------------
+      # selection and process options:
+      #    process sequentially, to make them like a script
 
-         elif opt.name == '-cosmat_motion':
-            self.cosmat_motion = 1
+      for opt in uopts.olist:
+         # if all options are chronological, check load and general, too
+         if self.chrono:
+            # selection options
+            if opt.name == '-load_xmat':
+               if self.set_xmat(opt.parlist[0]):   return 1
+            elif opt.name == '-load_1D':
+               if self.set_1D(opt.parlist[0]):     return 1
+            elif opt.name == '-choose_cols':
+               rstr = self.set_cols_from_string(opt.parlist[0])
+               if rstr:
+                  print "** failed to apply '-choose_cols':\n%s" % rstr
+                  return 1
 
-         elif opt.name == '-verb':
-            val, err = self.user_opts.get_type_opt(int, '', opt=opt)
-            if err: return 1
-            else: self.verb = val
+            # general options
+            elif opt.name == '-cosmat_cutoff':
+               val, err = self.user_opts.get_type_opt(float, '', opt=opt)
+               if val != None and err: return 1
+               else: self.cosmat_cut = val
+
+            elif opt.name == '-cosmat_motion':
+               self.cosmat_motion = 1
+
+            elif opt.name == '-verb':
+               val, err = self.user_opts.get_type_opt(int, '', opt=opt)
+               if val != None and err: return 1
+               else: self.verb = val
 
          # 'show' options (allow these to fail?)
-         elif opt.name == '-show_1D_fit':
+         if opt.name == '-show_1D_fit':
             err, rstr = self.make_matrix_fit_string()
             print rstr
          elif opt.name == '-show_conds':
@@ -265,18 +321,12 @@ class XmatInterface:
       if self.matbetas: del(self.matbetas)
       self.matfit = None
 
-      try:
-         err, self.matbetas = self.matX.solve_against_1D(self.mat1D, acols=cols)
-      except:
-         return 1, 'matfit solver failed!'
+      emesg, self.matbetas = self.matX.solve_against_1D(self.mat1D, acols=cols)
+      if emesg: return 1, emesg
 
-      if err != 0:
-         return 1, 'matfit solver failed!'
+      emesg, self.matfit = self.matX.linear_combo(self.matbetas, acols=cols)
 
-      err, self.matfit = self.matX.linear_combo(self.matbetas, acols=cols)
-
-      if err != 0:
-         return 1, 'fit_xmat: linear combo failed (err = %s)!' % err
+      if emesg: return 1, emesg
 
       return 0, ''
 
@@ -289,7 +339,7 @@ class XmatInterface:
 
       # compute fit and return if it fails
       rv, mesg = self.fit_xmat_to_1D(clist)
-      if rv: return 1, '** X-matrix fitting failed\n\n(%s)' % mesg
+      if rv: return 1, '** X-matrix fitting failed\n\n   (%s)\n' % mesg
 
       if not clist: clist = self.col_list       # need cols for labels
 
@@ -317,7 +367,7 @@ class XmatInterface:
          del(mat)
          return 1
 
-      if self.verb > 0: print "++ read xmat from '%s'" % fname
+      if self.verb > 1: print "++ read xmat from '%s'" % fname
 
       # delete any old copy
       if self.matX:
@@ -341,13 +391,13 @@ class XmatInterface:
    def set_1D(self, fname):
       """read and store the timeseries from file 'fname'
          return 0 on success, 1 on error"""
-      mat = AM.AfniXmat(fname)
+      mat = AM.AfniXmat(fname, verb=self.verb)
       if not mat.ready:
          print "** failed to read timeseries from '%s'" % fname
          del(mat)
          return 1
 
-      if self.verb > 0: print "++ read timeseries from '%s'" % fname
+      if self.verb > 1: print "++ read timeseries from '%s'" % fname
 
       # delete any old copy
       if self.mat1D:
@@ -400,7 +450,8 @@ class XmatInterface:
       badlist = mat.list_cormat_warnings(cutoff=cut2)
       blen = len(badlist)
 
-      if blen == 0: return 0, '-- no warnings for correlation matrix --'
+      if blen == 0:
+         return 0, '-- no warnings for correlation matrix (cut = %.3f) --'%cut2
 
       mstr = 'Warnings regarding Correlation Matrix:\n\n'               \
         '(cosine is of the angle between the regresssors)\n\n\n'        \
@@ -452,9 +503,11 @@ class XmatInterface:
       badlist = mat.list_cosmat_warnings(cutoff=cutoff, check_mot_base=motion)
       blen = len(badlist)
 
-      if blen == 0: return 0, '-- no warnings for cosine matrix --'
+      if blen == 0:
+         return 0, '-- no warnings for cosine matrix (cut = %.3f) --' % cutoff
 
-      mstr = 'Warnings regarding Cosine Matrix:\n\n'                    \
+      mstr = 'Warnings regarding Cosine Matrix (cut = %.3f):\n\n' % cutoff
+      mstr +=                                                           \
         "(corr is the Pearson's Correlation value)\n\n\n"               \
         '  angle (deg)   cosine    corr    regressor pair\n'            \
         '  -----------   ------   ------   ' + 40*'-' + '\n'

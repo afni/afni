@@ -24,8 +24,6 @@ def main():
    XM = UIX.XmatInterface()
    if not XM: return 1
 
-   if XM.show_gui_help: print gui_help_string
-
    if XM.use_gui:
       import gui_xmat
       gui = gui_xmat.XmatGUI()
