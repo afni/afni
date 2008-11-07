@@ -1,4 +1,3 @@
-
 /** cf. afni_history.h **/
 
 #include "afni_history.h"
@@ -50,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 07 , NOV , 2008 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, "tlrc view handling",
+    "fixed view name of tlrc output with tlrc_master set to SOURCE"
+} ,
 
 { 06 , NOV , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, "Oblique children handling",
