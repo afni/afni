@@ -2784,7 +2784,7 @@ void write_bucket_data
      else factor = 1.0 / factor;
 
      if( output_datum == MRI_short )
-       EDIT_misfit_report( DSET_PREFIX(new_dset) , ib ,
+       EDIT_misfit_report( DSET_FILECODE(new_dset) , ib ,
                            nxyz , factor , imptr , volume ) ;
 
       
@@ -2929,7 +2929,7 @@ void write_3dtime
          /*----- attach bar[ib] to be sub-brick #ib -----*/
          mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
 
-       EDIT_misfit_report( DSET_PREFIX(new_dset) , ib ,
+       EDIT_misfit_report( DSET_FILECODE(new_dset) , ib ,
                            nxyz , factor , bar[ib] , volume ) ;
       }
       else {

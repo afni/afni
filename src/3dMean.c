@@ -416,7 +416,7 @@ int main( int argc , char * argv[] )
             EDIT_coerce_scale_type( nxyz , fimfac ,
                                     MRI_float, sum[kk] , datum,dfim[kk] ) ;
             if( datum == MRI_short )
-              EDIT_misfit_report( DSET_PREFIX(outset) , kk ,
+              EDIT_misfit_report( DSET_FILECODE(outset) , kk ,
                                   nxyz , (fimfac != 0.0f) ? 1.0f/fimfac : 0.0f ,
                                   dfim[kk] , sum[kk] ) ;
             free( sum[kk] ) ;

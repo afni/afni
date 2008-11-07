@@ -158,10 +158,13 @@ ENTRY("EDIT_substscale_brick") ;
        }
      }
      STATUS("putting into dataset") ;
-     EDIT_substitute_brick( dset,ival,MRI_short,sar) ;
+     EDIT_substitute_brick( dset,ival,MRI_short,sar ) ;
      fac = (fac==1.0f) ? 0.0f : 1.0f/fac ;
      STATUS("setting scale factor") ;
      EDIT_BRICK_FACTOR( dset,ival,fac ) ;
+
+     EDIT_misfit_report( DSET_FILECODE(dset), ival,
+                         nvox , fac , sar , far  ) ;
 
    } else if( stype == MRI_byte ){
 
@@ -174,7 +177,7 @@ ENTRY("EDIT_substscale_brick") ;
          val = fac*far[ii] ; bar[ii] = BYTEIZE(val) ;
        }
      }
-     EDIT_substitute_brick( dset,ival,MRI_byte,bar) ;
+     EDIT_substitute_brick( dset,ival,MRI_byte,bar ) ;
      fac = (fac==1.0f) ? 0.0f : 1.0f/fac ;
      EDIT_BRICK_FACTOR( dset,ival,fac ) ;
    }
