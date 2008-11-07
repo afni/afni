@@ -324,7 +324,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.15" # software version (update for changes)
+      self.align_version = "1.16" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1593,11 +1593,30 @@ class RegWrap:
                      ps.master_tlrc_option), ps.oexec)
             com.run()
 
-            # deoblique dataset header info if already applied deobliquing
-            if(oblique_mat!="") and (atlrcpost.type == 'BRIK'):
-               com = shell_com ("3drefit -deoblique %s" %     \
-                     (atlrcpost.input()), ps.oexec)
-               com.run()
+            # remove obliquity from output
+            if(atlrcpost.type == 'BRIK'):
+              # force +tlrc output for master SOURCE option - 3dAllineate saves this as +orig
+              if((ps.master_tlrc_option=='-master SOURCE') and (ps.tlrc_apar!="")):
+                 com = shell_com ("3drefit -deoblique -view tlrc %s+orig" %     \
+                        (atlrcpost.out_prefix()), ps.oexec)
+                 com.run()
+              else:
+                 if(oblique_mat!=""):
+                    com = shell_com ("3drefit -deoblique %s" %     \
+                      (atlrcpost.input()), ps.oexec)
+                    com.run()
+
+            if 0:
+               # deoblique dataset header info if already applied deobliquing
+               if(oblique_mat!="") and (atlrcpost.type == 'BRIK'):
+                  if((ps.master_tlrc_option=='-master SOURCE') and (ps.tlrc_apar!="")):
+                     com = shell_com ("3drefit -deoblique -view tlrc %s" %     \
+                           (atlrcpost.input()), ps.oexec)
+                  else:
+                     com = shell_com ("3drefit -deoblique %s" %     \
+                           (atlrcpost.input()), ps.oexec)
+                  com.run()
+               
       else:
          self.exists_msg(o.input())
             
