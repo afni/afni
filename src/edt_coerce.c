@@ -551,7 +551,7 @@ void EDIT_misfit_report( char *name, int ib,
                          int nxyz, float fac, short *sar, float *far )
 {
    float mf ; int im ;
-   static char *msg[4] = { "* Caution"  , "** Warning"     ,
+   static char *msg[4] = { "* Caution"  , "** Take Care"     ,
                            "*** Beware" , "**** Red Alert ****"  } ;
 
    mf = 100.0f * EDIT_scale_misfit( nxyz , fac , sar , far ) ;

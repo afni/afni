@@ -2181,7 +2181,7 @@ int main( int argc , char *argv[] )
                                    MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
 
            if( CALC_datum == MRI_short )
-             EDIT_misfit_report( DSET_PREFIX(new_dset) , ii ,
+             EDIT_misfit_report( DSET_FILECODE(new_dset) , ii ,
                                  CALC_nvox , (fimfac != 0.0f) ? 1.0f/fimfac : 0.0f ,
                                  dfim[ii] , buf[ii] ) ;
 
