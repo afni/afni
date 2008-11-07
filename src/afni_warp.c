@@ -216,7 +216,7 @@ STATUS("scaling slice to floats") ;
       }
    } /* end of if on dataset brick existing */
 
-   /*------------------ must warp from parent dataset -------------------*/
+   /*-------------------- must warp from parent dataset ---------------------*/
 
    if( dset->warp != NULL ){
 STATUS("setting parent_to_child_warp to stored warp") ;
@@ -240,25 +240,31 @@ if(PRINT_TRACING)
       parent_dset = dset->warp_parent ;
       DSET_load(parent_dset) ;          /* 17 Oct 2006 */
    } else {
-STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
+STATUS("setting parent_dset to self") ;
       parent_dset = dset ;                    /* self-parenting */
 
-      if( dset->self_warp != NULL )
+      if( dset->self_warp != NULL ){
+STATUS("setting parent_to_child_warp to self_warp") ;
         parent_to_child_warp = *(dset->self_warp) ;  /* 26 Aug 2002 */
-      else
+      } else {
+STATUS("setting parent_to_child_warp to IDENTITY_WARP") ;
         parent_to_child_warp = IDENTITY_WARP ;  /* use identity warp */
+      }
    }
 
    /*----- make the voxel-to-voxel warp, if needed -----*/
 
    if( ! ISVALID_WARP(dset->vox_warp) ){
-      THD_warp * qwarp ;
+      THD_warp *qwarp ;
+STATUS("making voxwarp") ;
       qwarp = AFNI_make_voxwarp( &parent_to_child_warp, parent_dset, dset ) ;
 
       if( dset->vox_warp == NULL ){    /* totally new */
+STATUS("adding new voxwarp to dataset") ;
          dset->vox_warp = qwarp ;
          ADDTO_KILL(dset->kl,dset->vox_warp) ;
       } else {
+STATUS("copying new voxwarp into dataset") ;
          *(dset->vox_warp) = *qwarp ;  /* just copy insides */
          myXtFree( qwarp ) ;
       }
@@ -268,7 +274,7 @@ STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
       Boolean good ;
       good = THD_load_datablock( parent_dset->dblk ) ;
       if( ! good ){
-         STATUS("couldn't load parent dataset!") ;
+STATUS("couldn't load parent dataset!") ;
          mri_free(newim) ;
          RETURN(NULL) ;  /* couldn't load data --> return nothing */
       }
@@ -277,21 +283,22 @@ STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
    /* 05 Sep 2006: substitution of volume edited brick, if available */
 
    if( parent_dset == dset && do_vedit ){
-     STATUS("substituting vedim in dset") ;
+STATUS("substituting vedim in dset") ;
      bar = mri_data_pointer(dset->dblk->vedim) ;
      if( bar == NULL ){
        ERROR_message("vedim array is NULL!?"); bar = DSET_ARRAY(dset,ival);
      }
    } else {
+STATUS("setting brick from which to extract data") ;
      bar = DSET_ARRAY(parent_dset,ival) ;  /* default brick to use */
    }
 
    if( bar == NULL ){
-     STATUS("failed to load parent dataset!") ;
+STATUS("failed to load parent dataset!") ;
      mri_free(newim) ; RETURN(NULL) ;
    }
 
-   STATUS("doing warp-on-demand data extraction") ;
+STATUS("doing warp-on-demand data extraction") ;
 
    /******************************************************************/
    /*** Select warp routine based on data type and slice direction ***/
