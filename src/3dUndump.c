@@ -618,14 +618,24 @@ int main( int argc , char * argv[] )
             }
             break ;
             case MRI_short:{
+              static int first=1 ;
               sv = SHORTIZE(vv) ;
+              if( first && vv != (float)sv ){
+                WARNING_message("Truncating non-short data values to 16-bit integers!") ;
+                first = 0 ;
+              }
               if( sbr[ijk] != fval_short && sbr[ijk] != sv )
                 fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
               sbr[ijk] = sv ;
             }
             break ;
             case MRI_byte:{
+              static int first=1 ;
               bv = BYTEIZE(vv) ;
+              if( first && vv != (float)bv ){
+                WARNING_message("Truncating non-byte data values to 8-bit integers!") ;
+                first = 0 ;
+              }
               if( bbr[ijk] != fval_byte && bbr[ijk] != bv )
                 fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
               bbr[ijk] = bv ;
