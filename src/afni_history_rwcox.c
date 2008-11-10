@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , NOV , 2008 , RWC , "3dUndump" , MICRO , TYPE_MODIFY ,
+   "Add warning if non-integer values are being saved to shorts/bytes." ,
+   NULL } ,
+
  { 7 , NOV , 2008 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Write Clust_table.1D into dataset directory, not startup directory." ,
    NULL } ,
