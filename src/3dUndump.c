@@ -17,12 +17,8 @@
 
 /*------------------------------------------------------------------------*/
 
-void Syntax(char * msg)
+void Syntax(void)
 {
-   if( msg != NULL ){
-      fprintf(stderr,"*** %s\n",msg) ; exit(1) ;
-   }
-
    printf(
     "Usage: 3dUndump [options] infile ...\n"
     "Assembles a 3D dataset from an ASCII list of coordinates and\n"
@@ -110,20 +106,32 @@ void Syntax(char * msg)
     "Notes:\n"
     "* This program creates a 1 sub-brick file.  You can 'glue' multiple\n"
     "   files together using 3dbucket or 3dTcat to make multi-brick datasets.\n"
-    "* If an input filename is '-', then stdin is used for input.\n"
+    "\n"
+    "* If one input filename is '-', then stdin will be used for input.\n"
+    "\n"
     "* If no input files are given, an 'empty' dataset is created.\n"
+    "   For example, to create an all zero dataset with 1 million voxels:\n"
+    "     3dUndump -dimen 100 100 100 -prefix AllZero\n"
+    "\n"
     "* By default, the output dataset is of type '-fim', unless the -master\n"
     "   dataset is an anat type. You can change the output type using 3drefit.\n"
+    "\n"
     "* You could use program 1dcat to extract specific columns from a\n"
     "   multi-column rectangular file (e.g., to get a specific sub-brick\n"
     "   from the output of 3dmaskdump), and use the output of 1dcat as input\n"
     "   to this program.\n"
+    "\n"
     "* [19 Feb 2004] The -mask and -srad options were added this day.\n"
     "   Also, a fifth value on an input line, if present, is taken as a\n"
     "   sphere radius to be used for that input point only.  Thus, input\n"
     "      3.3 4.4 5.5 6.6 7.7\n"
     "   means to put the value 6.6 into a sphere of radius 7.7 mm centered\n"
     "   about (x,y,z)=(3.3,4.4,5.5).\n"
+    "\n"
+    "* [10 Nov 2008] Commas (',') inside an input line are converted to\n"
+    "   spaces (' ') before the line is interpreted.  This feature is for\n"
+    "   convenience for people write files in the CSV (Comma Separated Values)\n"
+    "   format.\n"
     "\n"
     "-- RWCox -- October 2000\n"
    ) ;
@@ -159,7 +167,7 @@ int main( int argc , char * argv[] )
 
    /*-- help? --*/
 
-   if( argc < 3 || strcmp(argv[1],"-help") == 0 ) Syntax(NULL) ;
+   if( argc < 3 || strcmp(argv[1],"-help") == 0 ) Syntax() ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
@@ -187,9 +195,9 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          if( iarg+1 >= argc )
-            Syntax("-prefix: no argument follows!?") ;
+            ERROR_exit("-prefix: no argument follows!?") ;
          else if( !THD_filename_ok(argv[++iarg]) )
-            Syntax("-prefix: Illegal prefix given!") ;
+            ERROR_exit("-prefix: Illegal prefix given!") ;
          prefix = argv[iarg] ;
          iarg++ ; continue ;
       }
@@ -198,15 +206,15 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-master") == 0 ){
          if( iarg+1 >= argc )
-            Syntax("-master: no argument follows!?") ;
+            ERROR_exit("-master: no argument follows!?") ;
          else if( mset != NULL )
-            Syntax("-master: can't have two -master options!") ;
+            ERROR_exit("-master: can't have two -master options!") ;
          else if( dimen_ii > 0 )
-            Syntax("-master: conflicts with previous -dimen!") ;
+            ERROR_exit("-master: conflicts with previous -dimen!") ;
 
          mset = THD_open_dataset( argv[++iarg] ) ;
          if( mset == NULL )
-            Syntax("-master: can't open dataset" ) ;
+            ERROR_exit("-master: can't open dataset" ) ;
 
          iarg++ ; continue ;
       }
@@ -215,13 +223,13 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
         if( iarg+1 >= argc )
-          Syntax("-mask: no argument follows!?") ;
+          ERROR_exit("-mask: no argument follows!?") ;
         else if( maskset != NULL )
-          Syntax("-mask: can't have two -mask options!") ;
+          ERROR_exit("-mask: can't have two -mask options!") ;
 
         maskset = THD_open_dataset( argv[++iarg] ) ;
         if( maskset == NULL )
-          Syntax("-mask: can't open dataset" ) ;
+          ERROR_exit("-mask: can't open dataset" ) ;
 
         iarg++ ; continue ;
       }
@@ -230,16 +238,16 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-dimen") == 0 ){
          if( iarg+3 >= argc )
-            Syntax("-dimen: don't have 3 arguments following!?") ;
+            ERROR_exit("-dimen: don't have 3 arguments following!?") ;
          else if( mset != NULL )
-            Syntax("-dimen: conflicts with previous -master!") ;
+            ERROR_exit("-dimen: conflicts with previous -master!") ;
          else if( dimen_ii > 0 )
-            Syntax("-dimen: can't have two -dimen options!") ;
+            ERROR_exit("-dimen: can't have two -dimen options!") ;
          dimen_ii = strtol(argv[++iarg],NULL,10) ;
          dimen_jj = strtol(argv[++iarg],NULL,10) ;
          dimen_kk = strtol(argv[++iarg],NULL,10) ;
          if( dimen_ii < 1 || dimen_jj < 1 || dimen_kk < 1 )
-            Syntax("-dimen: values following are not all >= 1!") ;
+            ERROR_exit("-dimen: values following are not all >= 1!") ;
 
          iarg++ ; continue ;
       }
@@ -248,7 +256,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-datum") == 0 ){
          if( ++iarg >= argc )
-            Syntax("-datum: no argument follows?!") ;
+            ERROR_exit("-datum: no argument follows?!") ;
 
          if( strcmp(argv[iarg],"short") == 0 )
             datum = MRI_short ;
@@ -257,7 +265,7 @@ int main( int argc , char * argv[] )
          else if( strcmp(argv[iarg],"byte") == 0 )
             datum = MRI_byte ;
          else
-            Syntax("-datum: illegal type given!") ;
+            ERROR_exit("-datum: illegal type given!") ;
 
          iarg++ ; continue ;
       }
@@ -266,11 +274,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-srad") == 0 ){   /* 19 Feb 2004 */
         if( iarg+1 >= argc )
-          Syntax("-srad: no argument follows!?") ;
+          ERROR_exit("-srad: no argument follows!?") ;
 
         srad = strtod( argv[++iarg] , NULL ) ;
         if( srad <= 0.0 ){
-          fprintf(stderr,"++ WARNING: -srad value of %g is ignored!\n",srad);
+          WARNING_message("-srad value of %g is ignored!",srad);
           srad = 0.0 ;
         }
         iarg++ ; continue ;
@@ -280,7 +288,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-dval") == 0 ){
          if( iarg+1 >= argc )
-            Syntax("-dval: no argument follows!?") ;
+            ERROR_exit("-dval: no argument follows!?") ;
 
          dval_float = strtod( argv[++iarg] , NULL ) ;
          dval_short = (short) rint(dval_float) ;
@@ -292,7 +300,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-fval") == 0 ){
          if( iarg+1 >= argc )
-            Syntax("-fval: no argument follows!?") ;
+            ERROR_exit("-fval: no argument follows!?") ;
 
          fval_float = strtod( argv[++iarg] , NULL ) ;
          fval_short = (short) rint(fval_float) ;
@@ -323,22 +331,22 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-orient") == 0 ){
          int xx,yy,zz ;
          if( iarg+1 >= argc )
-            Syntax("-orient: no argument follows!?") ;
+            ERROR_exit("-orient: no argument follows!?") ;
 
          orcode = argv[++iarg] ;
          if( strlen(orcode) != 3 )
-            Syntax("-orient: illegal argument follows") ;
+            ERROR_exit("-orient: illegal argument follows") ;
 
          xx = ORCODE(orcode[0]) ; yy = ORCODE(orcode[1]) ; zz = ORCODE(orcode[2]) ;
          if( xx < 0 || yy < 0 || zz < 0 || !OR3OK(xx,yy,zz) )
-            Syntax("-orient: illegal argument follows") ;
+            ERROR_exit("-orient: illegal argument follows") ;
 
          iarg++ ; continue ;
       }
 
       /*-----*/
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
+      ERROR_exit("Unknown option: %s",argv[iarg]) ;
 
    } /* end of loop over command line options */
 
@@ -346,20 +354,20 @@ int main( int argc , char * argv[] )
 
 #if 0
    if( iarg >= argc && !do_head_only)
-      Syntax("No input files on command line!?") ;
+      ERROR_exit("No input files on command line!?") ;
 #endif
 
    if( do_ijk == 0 && mset == NULL )
-      Syntax("Can't use -xyz without -master also!") ;
+      ERROR_exit("Can't use -xyz without -master also!") ;
 
    if( mset == NULL && dimen_ii < 2 )
-      Syntax("Must use exactly one of -master or -dimen options on command line");
+      ERROR_exit("Must use exactly one of -master or -dimen options on command line");
 
    if( (datum == MRI_short && dval_short == fval_short) ||
        (datum == MRI_float && dval_float == fval_float) ||
        (datum == MRI_byte  && dval_byte  == fval_byte )   ){
 
-      fprintf(stderr,"+++ Warning: -dval and -fval are the same!\n") ;
+      WARNING_message("-dval and -fval are the same!") ;
    }
 
    /*-- set orcode to value from -master, if this is needed --*/
@@ -423,7 +431,7 @@ int main( int argc , char * argv[] )
    }
 
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(dset)) )
-      Syntax("Output dataset already exists -- can't overwrite") ;
+      ERROR_exit("Output dataset already exists -- can't overwrite") ;
 
    if (do_head_only) {
       DSET_write_header(dset);
@@ -442,19 +450,19 @@ int main( int argc , char * argv[] )
        ( DSET_NX(maskset) != nx ||
          DSET_NY(maskset) != ny ||
          DSET_NZ(maskset) != nz   ) )
-     Syntax("-mask dataset doesn't match dimension of output dataset") ;
+     ERROR_exit("-mask dataset doesn't match dimension of output dataset") ;
 
    if( maskset != NULL ){
      mmask = THD_makemask( maskset , 0 , 1.0,-1.0 ) ;
      if( mmask == NULL ){
-       fprintf(stderr,"++ WARNING: can't create mask for some reason!\n") ;
+       WARNING_message("Can't create mask for some reason!") ;
      } else {
        int nmask = THD_countmask( nxyz , mmask ) ;
        if( nmask == 0 ){
-         fprintf(stderr,"++ WARNING: 0 voxels in mask -- ignoring it!\n") ;
+         WARNING_message("0 voxels in mask -- ignoring it!") ;
          free((void *)mmask) ; mmask = NULL ;
        } else {
-         fprintf(stderr,"++ %d voxels found in mask\n",nmask) ;
+         INFO_message("%d voxels found in mask",nmask) ;
        }
      }
      DSET_delete(maskset) ;
@@ -485,23 +493,21 @@ int main( int argc , char * argv[] )
    dy = fabs(dset->daxes->yydel) ; if( dy <= 0.0 ) dy = 1.0 ;
    dz = fabs(dset->daxes->zzdel) ; if( dz <= 0.0 ) dz = 1.0 ;
 
-   if( !do_ijk ){
 #ifndef EXTEND_BBOX
-      xxdown = dset->daxes->xxmin - 0.501 * dx ;
-      xxup   = dset->daxes->xxmax + 0.501 * dx ;
-      yydown = dset->daxes->yymin - 0.501 * dy ;
-      yyup   = dset->daxes->yymax + 0.501 * dy ;
-      zzdown = dset->daxes->zzmin - 0.501 * dz ;
-      zzup   = dset->daxes->zzmax + 0.501 * dz ;
+   xxdown = dset->daxes->xxmin - 0.501 * dx ;
+   xxup   = dset->daxes->xxmax + 0.501 * dx ;
+   yydown = dset->daxes->yymin - 0.501 * dy ;
+   yyup   = dset->daxes->yymax + 0.501 * dy ;
+   zzdown = dset->daxes->zzmin - 0.501 * dz ;
+   zzup   = dset->daxes->zzmax + 0.501 * dz ;
 #else
-      xxdown = dset->daxes->xxmin ;
-      xxup   = dset->daxes->xxmax ;
-      yydown = dset->daxes->yymin ;
-      yyup   = dset->daxes->yymax ;
-      zzdown = dset->daxes->zzmin ;
-      zzup   = dset->daxes->zzmax ;
+   xxdown = dset->daxes->xxmin ;
+   xxup   = dset->daxes->xxmax ;
+   yydown = dset->daxes->yymin ;
+   yyup   = dset->daxes->yymax ;
+   zzdown = dset->daxes->zzmin ;
+   zzup   = dset->daxes->zzmax ;
 #endif
-   }
 
    /*-- loop over input files and read them line by line --*/
 
@@ -517,9 +523,8 @@ int main( int argc , char * argv[] )
       } else {                            /* OK, open the damn file */
          fp = fopen( argv[iarg] , "r" ) ;
          if( fp == NULL ){
-            fprintf(stderr,
-                    "+++ Warning: can't open input file %s -- skipping it\n",
-                    argv[iarg]) ;
+            WARNING_message("Can't open input file %s -- skipping it" ,
+                            argv[iarg]) ;
             continue ;                    /* skip to end of iarg loop */
          }
       }
@@ -541,13 +546,17 @@ int main( int argc , char * argv[] )
          if( linbuf[ii] == '/' && linbuf[ii+1] == '/' ) continue ; /* comment */
          if( linbuf[ii] == '#'                        ) continue ; /* comment */
 
+         /* changes commas to blanks [10 Nov 2008] */
+
+         for( jj=ii ; jj < kk ; jj++ ) if( linbuf[ii] == ',' ) linbuf[ii] = ' ' ;
+
          /* scan line for data */
 
          vv   = dval_float ;   /* if not scanned in below, use the default value */
          vrad = srad ;         /* 19 Feb 2004: default sphere radius */
          nn   = sscanf(linbuf+ii , "%f%f%f%f%f" , &xx,&yy,&zz,&vv,&vrad ) ;
          if( nn < 3 ){
-           fprintf(stderr,"+++ Warning: file %s line %d: incomplete\n",argv[iarg],ll) ;
+           WARNING_message("File %s line %d: incomplete",argv[iarg],ll) ;
            continue ;
          }
 
@@ -557,21 +566,18 @@ int main( int argc , char * argv[] )
 
             ii = (int) rint(xx) ; jj = (int) rint(yy) ; kk = (int) rint(zz) ;
             if( ii < 0 || ii >= nx ){
-               fprintf(stderr,
-                       "+++ Warning: file %s line %d: i index=%d is invalid\n",
-                       argv[iarg],ll,ii) ;
+               WARNING_message("File %s line %d: i index=%d is invalid",
+                               argv[iarg],ll,ii) ;
                continue ;
             }
             if( jj < 0 || jj >= ny ){
-               fprintf(stderr,
-                       "+++ Warning: file %s line %d: j index=%d is invalid\n",
-                       argv[iarg],ll,jj) ;
+               WARNING_message("File %s line %d: j index=%d is invalid",
+                               argv[iarg],ll,jj) ;
                continue ;
             }
             if( kk < 0 || kk >= nz ){
-               fprintf(stderr,
-                       "+++ Warning: file %s line %d: k index=%d is invalid\n",
-                       argv[iarg],ll,kk) ;
+               WARNING_message("File %s line %d: k index=%d is invalid",
+                               argv[iarg],ll,kk) ;
                continue ;
             }
 
@@ -587,18 +593,18 @@ int main( int argc , char * argv[] )
             /* 24 Nov 2000: check (xx,yy,zz) for being inside the box */
 
             if( mv.xyz[0] < xxdown || mv.xyz[0] > xxup ){
-               fprintf(stderr,"+++ Warning: file %s line %d: x coord=%g is outside %g .. %g\n" ,
-                       argv[iarg],ll,mv.xyz[0] , xxdown,xxup ) ;
+               WARNING_message("File %s line %d: x coord=%g is outside %g .. %g" ,
+                               argv[iarg],ll,mv.xyz[0] , xxdown,xxup ) ;
                continue ;
             }
             if( mv.xyz[1] < yydown || mv.xyz[1] > yyup ){
-               fprintf(stderr,"+++ Warning: file %s line %d: y coord=%g is outside %g .. %g\n" ,
-                       argv[iarg],ll,mv.xyz[1] , yydown , yyup ) ;
+               WARNING_message("File %s line %d: y coord=%g is outside %g .. %g" ,
+                               argv[iarg],ll,mv.xyz[1] , yydown , yyup ) ;
                continue ;
             }
             if( mv.xyz[2] < zzdown || mv.xyz[2] > zzup ){
-               fprintf(stderr,"+++ Warning: file %s line %d: z coord=%g is outside %g .. %g\n" ,
-                       argv[iarg],ll,mv.xyz[2] , zzdown , zzup ) ;
+               WARNING_message("File %s line %d: z coord=%g is outside %g .. %g" ,
+                               argv[iarg],ll,mv.xyz[2] , zzdown , zzup ) ;
                continue ;
             }
 
@@ -613,7 +619,7 @@ int main( int argc , char * argv[] )
           switch( datum ){
             case MRI_float:{
               if( fbr[ijk] != fval_float && fbr[ijk] != vv )
-                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+                WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
               fbr[ijk] = vv ;
             }
             break ;
@@ -625,7 +631,7 @@ int main( int argc , char * argv[] )
                 first = 0 ;
               }
               if( sbr[ijk] != fval_short && sbr[ijk] != sv )
-                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+                WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
               sbr[ijk] = sv ;
             }
             break ;
@@ -637,7 +643,7 @@ int main( int argc , char * argv[] )
                 first = 0 ;
               }
               if( bbr[ijk] != fval_byte && bbr[ijk] != bv )
-                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+                WARNING_message("Overwrite voxel %d %d %d",ii,jj,kk) ;
               bbr[ijk] = bv ;
             }
             break ;
@@ -691,6 +697,6 @@ int main( int argc , char * argv[] )
 
    tross_Make_History( "3dUndump" , argc,argv , dset ) ;
    DSET_write(dset) ;
-   fprintf(stderr,"+++ Wrote results to dataset %s\n",DSET_BRIKNAME(dset)) ;
+   WROTE_DSET(dset) ;
    exit(0) ;
 }

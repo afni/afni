@@ -55,7 +55,7 @@ ENTRY("THD_dset_to_vectim") ;
    for( kk=iv=0 ; iv < nvox ; iv++ ){
      if( mmm[iv] == 0 ) continue ;
      mrv->ivec[kk] = iv ;
-     (void)THD_extract_array( iv , dset , 0 , MRV_PTR(mrv,kk) ) ;
+     (void)THD_extract_array( iv , dset , 0 , VECTIM_PTR(mrv,kk) ) ;
      kk++ ;
    }
 
@@ -125,4 +125,26 @@ int THD_vectim_ifind( int iv , MRI_vectim *mrv )
 {
    if( mrv == NULL ) return -1 ;  /* stoopid user */
    return bsearch_int( iv , mrv->nvec , mrv->ivec ) ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Note that the dataset must already have bricks set up!  Or else!    */
+
+void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset )
+{
+   int nvals , nvec ,  kk ;
+
+ENTRY("THD_vectim_to_dset") ;
+
+   if( mrv == NULL || !ISVALID_DSET(dset) ) EXRETURN ;
+   if( mrv->nvals != DSET_NVALS(dset)     ) EXRETURN ;
+
+   nvec  = mrv->nvec ;
+   nvals = mrv->nvals ;
+
+   for( kk=0 ; kk < nvec ; kk++ )
+     THD_insert_series( mrv->ivec[kk] , dset ,
+                        nvals , MRI_float , VECTIM_PTR(mrv,kk) , 0 ) ;
+
+   EXRETURN ;
 }

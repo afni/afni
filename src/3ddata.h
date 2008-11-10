@@ -4079,21 +4079,42 @@ typedef struct {
   float *fvec ;
 } MRI_vectim ;
 
-#undef  MRV_PTR
-#define MRV_PTR(mv,j) ((mv)->fvec + (j)*(mv)->nvals)
+#undef  MAKE_VECTIM
+#define MAKE_VECTIM(nam,nvc,nvl)                                  \
+ do{ (nam) = (MRI_vectim *)malloc(sizeof(MRI_vectim)) ;           \
+     (nam)->nvec  = (nvc) ;                                       \
+     (nam)->nvals = (nvl) ;                                       \
+     (nam)->ivec  = (int *)  malloc(sizeof(int)  *(nvc)) ;        \
+     (nam)->fvec  = (float *)malloc(sizeof(float)*(nvc)*(nvl)) ;  \
+ } while(0)
 
-#undef  MRV_extract
-#define MRV_extract(mv,j,aa) \
-  memcpy( (aa) , MRV_PTR((mv),(j)) , sizeof(float)*(mv)->nvals )
+#undef  ISVALID_VECTIM
+#define ISVALID_VECTIM(mv)                                        \
+ ( (mv) != NULL && (mv)->ivec != NULL && (mv)->fvec != NULL )
 
-#undef  MRV_destroy
-#define MRV_destroy(mv) \
- do{ free((mv)->fvec); free((mv)->ivec); free((mv)); } while(0)
+#undef  VECTIM_PTR
+#define VECTIM_PTR(mv,j) ((mv)->fvec + (j)*(mv)->nvals)
+
+#undef  VECTIM_extract
+#define VECTIM_extract(mv,j,aa) \
+  memcpy( (aa) , VECTIM_PTR((mv),(j)) , sizeof(float)*(mv)->nvals )
+
+#undef  VECTIM_insert
+#define VECTIM_insert(mv,j,aa) \
+  memcpy( VECTIM_PTR((mv),(j)) , (aa) , sizeof(float)*(mv)->nvals )
+
+#undef  VECTIM_destroy
+#define VECTIM_destroy(mv)                       \
+ do{ if( (mv)->fvec != NULL ) free((mv)->fvec);  \
+     if( (mv)->ivec != NULL ) free((mv)->ivec);  \
+     free((mv)); (mv) = NULL;                    \
+ } while(0)
 
 extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset , byte *mask ) ;
 extern int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask ) ;
 extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
 extern int bsearch_int( int tt , int nar , int *ar ) ;
+extern void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset ) ;
 
 /*---------------------------------------------------------------------------*/
 
