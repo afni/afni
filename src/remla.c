@@ -878,6 +878,8 @@ static void add_purge( char *fn ) /*-------- add fn to the qpurge list ----*/
    if( ii == npurge )                /* make new empty slot */
      qpurge = (char **)realloc(qpurge,sizeof(char *)*(++npurge)) ;
    qpurge[ii] = strdup(fn) ;         /* fill empty slot */
+
+   if( !atexit_called ){ atexit(remla_atexit); atexit_called = 1; }
    return ;
 }
 
@@ -889,6 +891,21 @@ static void kill_purge( char *fn ) /*---- remove fn from the qpurge list ----*/
      if( qpurge[ii] != NULL && strcmp(qpurge[ii],fn) == 0 ) break ;
    if( ii < npurge ){ free(qpurge[ii]) ; qpurge[ii] = NULL ; }
    return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void reml_setup_savfilnam( char **fnam )
+{
+   char *pg , *un , *ts ;
+
+   pg = mri_purge_get_tmpdir() ; ts = mri_purge_get_tsuf() ;
+   un = UNIQ_idcode() ;
+   un[0] = 'R' ; un[1] = 'E'   ; un[2] = 'M'   ; un[3] = 'L' ;
+   un[4] = '_' ; un[5] = ts[0] ; un[6] = ts[1] ; un[7] = ts[2] ;
+   *fnam = malloc(strlen(pg)+64) ;
+   strcpy(*fnam,pg); strcat(*fnam,"/"); strcat(*fnam,un);
+   free(un) ; return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -908,15 +925,7 @@ ENTRY("reml_collection_save") ;
      remove(rcol->savfil) ; free(rcol->savfil) ; rcol->savfil = NULL ;
    }
 
-   if( !atexit_called ){ atexit(remla_atexit); atexit_called = 1; }
-
-   pg = mri_purge_get_tmpdir() ; ts = mri_purge_get_tsuf() ;
-   un = UNIQ_idcode() ;
-   un[0] = 'R' ; un[1] = 'E'   ; un[2] = 'M'   ; un[3] = 'L' ;
-   un[4] = '_' ; un[5] = ts[0] ; un[6] = ts[1] ; un[7] = ts[2] ;
-   rcol->savfil = malloc(strlen(pg)+64) ;
-   strcpy(rcol->savfil,pg); strcat(rcol->savfil,"/"); strcat(rcol->savfil,un);
-   free(un) ;
+   reml_setup_savfilnam( &(rcol->savfil) ) ;
 
    fp = fopen( rcol->savfil , "wb" ) ;
    if( fp == NULL ){

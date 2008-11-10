@@ -289,6 +289,12 @@ fprintf(stderr,"Entropy=%g ==> forcing write gzip on %s\n",entrop,dkptr->brick_n
 #endif
 
          far = COMPRESS_fopen_write( dkptr->brick_name , compress_mode ) ;
+         if( far == NULL ){
+           if( compress_mode != COMPRESS_NONE ){
+             compress_mode = COMPRESS_NONE ; force_gzip = 0 ;
+             far = COMPRESS_fopen_write( dkptr->brick_name , compress_mode ) ;
+           }
+         }
          if( far == NULL )
            WRITE_ERR("cannot open output brick file - do you have write permission?") ;
 
