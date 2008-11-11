@@ -42,6 +42,9 @@ static char *commandline = NULL ;  /* from 3dDeconvolve */
 
 static int usetemp = 0 ;
 
+#undef  MTHRESH
+#define MTHRESH (int64_t)7654321  /* 7.6+ million bytes */
+
 /*! To create an empty dataset, with zero-filled sub-bricks. */
 
 THD_3dim_dataset * create_float_dataset( THD_3dim_dataset *tset ,
@@ -69,10 +72,11 @@ ENTRY("create_float_dataset") ;
     tross_multi_Append_History( nset , "Matrix source:" , commandline , NULL ) ;
   tross_Make_History( "3dREMLfit" , Argc,Argv , nset ) ;
 
-  if( usetemp && fnam != NULL && fp != NULL ){
+  if( usetemp && fnam != NULL && fp != NULL &&
+      DSET_TOTALBYTES(nset) > MTHRESH         ){
     reml_setup_savfilnam( fnam ) ;
     *fp = fopen( *fnam , "w+b" ) ;
-    if( *fp == NULL ) ERROR_exit("3dREMLfit can't open -usetemp file %s",*fnam) ;
+    if( *fp == NULL ) ERROR_exit("3dREMLfit can't open -usetemp file %s",*fnam);
     add_purge(*fnam) ;
   } else {
     for( kk=0 ; kk < nvol ; kk++ )
@@ -86,13 +90,10 @@ ENTRY("create_float_dataset") ;
 
 void save_series( int vv, THD_3dim_dataset *dset, int npt, float *var, FILE *fp )
 {
-   if( fp == NULL ){
+   if( fp == NULL )
      THD_insert_series( vv , dset , npt , MRI_float , var , 0 ) ;
-   } else {
-     int kk = vv ;
-     my_fwrite( &kk , sizeof(int)   , 1   , fp ) ;
+   else
      my_fwrite( var , sizeof(float) , npt , fp ) ;
-   }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -121,12 +122,8 @@ ENTRY("populate_dataset") ;
 
    for( kk=0 ; kk < nvox ; kk++ ){
      if( !INMASK(kk) ) continue ;
-     (void)fread( &vv , sizeof(int)   , 1     , fp ) ;
      (void)fread( var , sizeof(float) , nvals , fp ) ;
-     if( vv >= 0 & vv < nvox )
-       THD_insert_series( vv , dset , nvals , MRI_float , var , 0 ) ;
-     else
-       ERROR_message("bad vv=%d/%d kk=%d in populate_dataset '%s'!",vv,nvox,kk,DSET_FILECODE(dset)) ;
+     THD_insert_series( kk , dset , nvals , MRI_float , var , 0 ) ;
    }
 
    free(var) ; fclose(fp) ;
