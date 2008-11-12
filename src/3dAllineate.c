@@ -99,6 +99,21 @@ static char *meth_username[NMETH] =    /* descriptive names */
     "Signed Pearson Correlation"            ,  /* hidden */
     "Local Pearson Correlation Signed"      ,  /* hidden */
     "Local Pearson Correlation Abs"       } ;  /* hidden */
+
+static char *meth_costfunctional[NMETH] =  /* describe cost functional */
+  { "1 - abs(Pearson correlation coefficient)"                 ,
+    "1 - abs(Spearman correlation coefficient)"                ,
+    "- Mutual Information = H(base,source)-H(base)-H(source)"  ,
+    "1 - abs[ CR(base,source) * CR(source,base) ]"             ,
+    "Normalized MI = H(base,source)/[H(base)+H(source)]"       ,
+    "H(base,source) = joint entropy of image pair"             ,
+    "- Hellinger distance(base,source)"                        ,
+    "1 - abs[ CR(base,source) + CR(source,base) ]"             ,
+    "CR(source,base) = Var(source|base) / Var(source)"         ,
+    "Pearson correlation coefficient between image pair"       ,
+    "nonlinear average of Pearson cc over local neighborhoods" ,
+    "1 - abs(lpc)"
+  } ;
 /*---------------------------------------------------------------------------*/
 
 #define SETUP_BILINEAR_PARAMS                                                \
@@ -314,10 +329,10 @@ int main( int argc , char *argv[] )
 "\n"
 " -1Dparam_apply aa  = Read warp parameters from file 'aa', apply them to \n"
 "                      the source dataset, and produce a new dataset.\n"
-"                      (Must also use the '-prefix' option for this to work! )\n"
-"                      (In this mode of operation, there is no optimization  )\n"
-"                      (of the cost function by changing the warp parameters;)\n"
-"                      (previously computed parameters are applied directly. )\n"
+"                      (Must also use the '-prefix' option for this to work!  )\n"
+"                      (In this mode of operation, there is no optimization of)\n"
+"                      (the cost functional by changing the warp parameters;  )\n"
+"                      (previously computed parameters are applied directly.  )\n"
 "               *N.B.: A historical synonym for this is '-1Dapply'.\n"
 "               *N.B.: If you use -1Dparam_apply, you may also want to use\n"
 "                       -master to control the grid on which the new\n"
@@ -378,7 +393,7 @@ int main( int argc , char *argv[] )
                   meth_shortname[ii] , meth_longname[ii] , meth_username[ii] ) ;
 
       printf(
-"               You can also specify the cost function using an option\n"
+"               You can also specify the cost functional using an option\n"
 "               of the form '-mi' rather than '-cost mi', if you like\n"
 "               to keep things terse and cryptic (as I do).\n"
 "               [Default == '-hel'.]\n"
@@ -434,7 +449,7 @@ int main( int argc , char *argv[] )
 " -nousetemp  = Don't use temporary workspace on disk [the default].\n"
 "\n"
 #ifdef ALLOW_METH_CHECK
-" -check kkk  = After cost function optimization is done, start at the\n"
+" -check kkk  = After cost functional optimization is done, start at the\n"
 "               final parameters and RE-optimize using the new cost\n"
 "               function 'kkk'.  If the results are too different, a\n"
 "               warning message will be printed.  However, the final\n"
@@ -446,11 +461,11 @@ int main( int argc , char *argv[] )
 "       **N.B.: You can put more than one function after '-check', as in\n"
 "                 -nmi -check mi hel crU crM\n"
 "               to register with Normalized Mutual Information, and\n"
-"               then check the results against 4 other cost functions.\n"
+"               then check the results against 4 other cost functionsal.\n"
 #if 0
 "       **N.B.: If you use '-CHECK' instead of '-check', AND there are\n"
 "               at least two extra check functions specified (in addition\n"
-"               to the primary cost function), then the output parameter\n"
+"               to the primary cost functional), then the output parameter\n"
 "               set will be the median of all the final parameter sets\n"
 "               generated at this stage (including the primary set).\n"
 "                 **** '-CHECK' is experimental and CPU intensive ****\n"
@@ -537,13 +552,13 @@ int main( int argc , char *argv[] )
       ) ;
       if( visible_noweights ){
          printf(
-"       **N.B.: Some cost functions do not allow -autoweight, and\n"
+"       **N.B.: Some cost functionals do not allow -autoweight, and\n"
 "               will use -automask instead.  A warning message\n"
 "               will be printed if you run into this situation.\n"
 "               If a clip level '+xxx' is appended to '-autoweight',\n"
 "               then the conversion into '-automask' will NOT happen.\n"
 "               Thus, using a small positive '+xxx' can be used trick\n"
-"               -autoweight into working on any cost function.\n"
+"               -autoweight into working on any cost functional.\n"
          ) ;
       }
       printf(
@@ -555,7 +570,7 @@ int main( int argc , char *argv[] )
 "               box that holds the irregular mask.\n"
 "       **N.B.: This is the default mode of operation!\n"
 "               For intra-modality registration, '-autoweight' may be better!\n"
-"               If the cost function is 'ls', then '-autoweight' will be\n"
+"               If the cost functional is 'ls', then '-autoweight' will be\n"
 "               the default, instead of '-autobox'.\n"
 " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
 "               also used, then every voxel will be counted equally.\n"
@@ -883,22 +898,47 @@ int main( int argc , char *argv[] )
         "                 where 'r' is the size parameter in mm.\n"
         "                 [Default is 'RHDD(6.54321)' (rhombic dodecahedron)]\n"
         "\n"
-        " -allcost        = Compute ALL available cost functions and print them\n"
+        " -allcost        = Compute ALL available cost functionals and print them\n"
         "                   at various points.\n"
-        " -allcostX       = Compute and print ALL available cost functions for the\n"
+        " -allcostX       = Compute and print ALL available cost functionals for the\n"
         "                   un-warped inputs, and then quit.\n"
-        " -allcostX1D p q = Compute ALL available cost functions for the set of\n"
+        " -allcostX1D p q = Compute ALL available cost functionals for the set of\n"
         "                   parameters given in the 1D file 'p' (12 values per row),\n"
         "                   write them to the 1D file 'q', then exit. (For you, Zman)\n"
         "                  * N.B.: If -fineblur is used, that amount of smoothing\n"
         "                          will be applied prior to the -allcostX evaluations.\n"
        ) ;
        printf("\n"
-              " Hidden experimental cost functions:\n") ;
+              " Hidden experimental cost functionals:\n") ;
        for( ii=0 ; ii < NMETH ; ii++ )
         if( !meth_visible[ii] )
           printf( "   %-4s *OR*  %-16s= %s\n" ,
                   meth_shortname[ii] , meth_longname[ii] , meth_username[ii] );
+
+       printf("\n"
+              " Cost functional descriptions (for use with -allcost output):\n") ;
+       for( ii=0 ; ii < NMETH ; ii++ )
+         printf("   %-4s:: %s\n",
+                meth_shortname[ii] , meth_costfunctional[ii] ) ;
+
+       printf("\n") ;
+       printf(" * N.B.: Some cost functional values (as output by 3dAllineate)\n"
+              "   are negated (e.g., 'hel' and 'mi') so that the best image\n"
+              "   alignment will be found where the cost is minimized.\n"     );
+       printf("\n") ;
+       printf(" * For more information about the 'lpc' functional, see\n"
+              "     http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"  ) ;
+       printf("\n") ;
+       printf(" * For more information about the 'cr' functionals, see\n"
+              "     http://en.wikipedia.org/wiki/Correlation_ratio\n"
+              "   Note that CR(x,y) is not the same as CR(y,x), which\n"
+              "   is why there are symmetrized versions of it available.\n") ;
+       printf("\n") ;
+       printf(" * For more information about the 'mi' functionals, see\n"
+              "     http://en.wikipedia.org/wiki/Mutual_information\n"     ) ;
+       printf("\n") ;
+       printf(" * For more information about the 'hel' functional, see\n"
+              "     http://en.wikipedia.org/wiki/Hellinger_distance\n"     ) ;
 
        printf("\n"
         "=================================================================\n"
@@ -2996,7 +3036,7 @@ int main( int argc , char *argv[] )
                            nxyz_base, dxyz_base, stup.base_cmat,
                            nxyz_targ, dxyz_targ, stup.targ_cmat ) ;
 
-     if( do_allcost != 0 ){  /*-- print all cost functions, for fun? --*/
+     if( do_allcost != 0 ){  /*-- print all cost functionals, for fun? --*/
 
        stup.interp_code = MRI_LINEAR ;
        stup.npt_match   = npt_match ;
@@ -3286,7 +3326,7 @@ int main( int argc , char *argv[] )
      }
      if( rad < 22.2f*conv_rad ) rad = 22.2f*conv_rad ;
 
-     /*-- choose initial parameters, based on interp_code cost function --*/
+     /*-- choose initial parameters, based on interp_code cost functional --*/
 
      if( tfdone ){                           /* find best in tfparm array */
        int kb=0 , ib ; float cbest=1.e+33 ;
@@ -3341,7 +3381,7 @@ int main( int argc , char *argv[] )
 
      }
 
-     if( do_allcost != 0 ){  /*-- print out all cost functions, for fun --*/
+     if( do_allcost != 0 ){  /*-- print out all cost functionals, for fun --*/
        PAR_CPY(val_init) ;   /* copy init parameters into allpar[] */
        allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
        INFO_message("allcost output: start fine #%d",kk) ;
@@ -3396,7 +3436,7 @@ int main( int argc , char *argv[] )
          }
        }
 
-       if( do_allcost != 0 ){  /*-- all cost functions for fun again --*/
+       if( do_allcost != 0 ){  /*-- all cost functionals for fun again --*/
          PAR_CPY(val_init) ;   /* copy init parameters into allpar[] */
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
          INFO_message("allcost output: intermed fine #%d",kk) ;
@@ -3651,7 +3691,7 @@ int main( int argc , char *argv[] )
 
 #ifdef ALLOW_METH_CHECK
      /*--- 27 Sep 2006: check if results are stable when
-                        we optimize a different cost function ---*/
+                        we optimize a different cost functional ---*/
 
      if( meth_check_count > 0 ){
        float pval[MAXPAR] , pdist , dmax ; int jmax,jtop ;
