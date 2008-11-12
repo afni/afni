@@ -150,6 +150,20 @@ static int   CALC_taxis_num = 0 ;    /* 28 Apr 2003 */
 #define CX_PHASE     3
 static int CUR_cxcode = CX_MAGNITUDE ;  /* default conversion method */
 
+/*----------------------------------------------------------------------------*/
+static char *tempfnam = NULL ;  /* 18 Oct 2005: -usetemp stuff */
+static FILE *tempfile = NULL ;
+
+static void calc_atexit(void) /*-- called by exit(): delete tempfile --*/
+{
+   if( tempfile != NULL ){ fclose(tempfile) ; tempfile = NULL ; }
+   if( tempfnam != NULL ){
+     INFO_message("Deleting -usetemp file %s",tempfnam) ;
+     remove(tempfnam) ; tempfnam = NULL ;
+   }
+   return ;
+}
+
 /*--------------------------- prototypes ---------------------------*/
 void CALC_read_opts( int , char ** ) ;
 void CALC_Syntax(void) ;
@@ -1102,6 +1116,9 @@ void CALC_Syntax(void)
     "                  hold intermediate results.  This will make the program\n"
     "                  run slower, but can be useful when creating huge      \n"
     "                  datasets that won't all fit in memory at once.        \n"
+    "                * The program prints out the name of the temporary      \n"
+    "                  file; if 3dcalc crashes, you might have to delete     \n"
+    "                  this file manually.                                   \n"
     "               ** N.B.: -usetemp and -gscale are incompatible!!         \n"
     "                                                                        \n"
     "  -dt tstep     = Use 'tstep' as the TR for \"manufactured\" 3D+time    \n"
@@ -1468,8 +1485,6 @@ int main( int argc , char *argv[] )
    int   iii,jjj,kkk , nx,nxy ;
    THD_dataxes * daxes ;
 
-   char *tempfnam = NULL ;  /* 18 Oct 2005: -usetemp stuff */
-   FILE *tempfile = NULL ;
    size_t tempnum , tempsiz ;
 
    /*** read input options ***/
@@ -1596,9 +1611,12 @@ int main( int argc , char *argv[] )
    buf = (float **) malloc(sizeof(float *) * ntime_max);
 
    if( CALC_usetemp ){                  /* 18 Oct 2005: -usetemp? */
-     tempfnam = UNIQ_idcode() ;
-     tempfile = fopen( tempfnam , "w+b" ) ;
-     if( CALC_verbose ) INFO_message("-usetemp filename = %s",tempfnam) ;
+     tempfnam    = UNIQ_idcode() ;
+     tempfnam[0] = 'C'; tempfnam[1] = 'A';
+     tempfnam[2] = 'L'; tempfnam[3] = 'C'; tempfnam[4] = '_' ;
+     tempfile    = fopen( tempfnam , "w+b" ) ;
+     INFO_message("Creating -usetemp file %s",tempfnam) ;
+     atexit(calc_atexit) ;
    }
    tempsiz = ((size_t)CALC_nvox) * sizeof(float) ;
 
@@ -2198,7 +2216,9 @@ int main( int argc , char *argv[] )
    }
 
    if( tempfile != NULL ){                   /* 18 Oct 2005 */
-     fclose(tempfile) ; remove(tempfnam) ;
+     INFO_message("Deleting -usetemp file %s",tempfnam) ;
+     fclose(tempfile) ; tempfile = NULL ;
+     remove(tempfnam) ; tempfnam = NULL ;
    }
 
    if( CALC_verbose ) INFO_message("Computing output statistics\n") ;
@@ -2207,7 +2227,7 @@ int main( int argc , char *argv[] )
    DSET_BRICK_FDRCURVE_ALLKILL(new_dset) ;  /* 24 Jan 2008 */
 
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
-   if( CALC_verbose ) WROTE_DSET(new_dset) ;
+   WROTE_DSET(new_dset) ;
 
    exit(0) ;
 }
