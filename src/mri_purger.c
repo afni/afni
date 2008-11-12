@@ -3,15 +3,30 @@
 /*----------------------------------------------------------------------------*/
 static char *tmpdir = NULL ;
 
+static int test_tmpdir_write(void)
+{
+   char *un , *tf ; FILE *fp ; size_t bb=0 ;
+   if( tmpdir==NULL || *tmpdir=='\0' || !THD_is_directory(tmpdir) ) return 0 ;
+   un = UNIQ_idcode() ;
+   tf = malloc(strlen(un)+strlen(tmpdir)+8) ;
+   strcpy(tf,tmpdir) ; strcat(tf,"/") ; strcat(tf,un) ; free(un) ;
+   fp = fopen(tf,"w+b") ;
+   if( fp == NULL ){ free(tf) ; return 0 ; }
+   bb = fwrite( &bb , sizeof(size_t) , 1 , fp ) ;
+   fclose(fp) ; remove(tf) ; free(tf) ;
+   return ( bb == 1 ) ;
+}
+
+/*----------------------------------------------------------------------------*/
 /*! Function to get name of the directory to store TIM_* mri_purge() files. */
 
 char * mri_purge_get_tmpdir(void)
 {
    if( tmpdir == NULL ){
-                                             tmpdir = getenv( "TMPDIR" ) ;
-     if( tmpdir == NULL || *tmpdir == '\0' ) tmpdir = getenv( "TEMPDIR" ) ;
-     if( tmpdir == NULL || *tmpdir == '\0' ) tmpdir = "/tmp" ;
-     if( !THD_is_directory(tmpdir) )         tmpdir = "." ;
+                                tmpdir = getenv( "TMPDIR" ) ;
+     if( !test_tmpdir_write() ) tmpdir = getenv( "TEMPDIR" ) ;
+     if( !test_tmpdir_write() ) tmpdir = "/tmp" ;
+     if( !test_tmpdir_write() ) tmpdir = "." ;
    }
    return tmpdir ;
 }
