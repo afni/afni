@@ -26,7 +26,7 @@ char * mri_purge_get_tmpdir(void)
                                 tmpdir = getenv( "TMPDIR" ) ;
      if( !test_tmpdir_write() ) tmpdir = getenv( "TEMPDIR" ) ;
      if( !test_tmpdir_write() ) tmpdir = "/tmp" ;
-     if( !test_tmpdir_write() ) tmpdir = "." ;
+     if( !test_tmpdir_write() ) tmpdir = "." ;    /* the last resort */
    }
    return tmpdir ;
 }
