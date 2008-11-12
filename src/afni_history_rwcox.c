@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , NOV , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
+   "-usetemp now also saves output dataset stuff to TMPDIR." ,
+   NULL } ,
+
  { 10 , NOV , 2008 , RWC , "3dUndump" , MICRO , TYPE_MODIFY ,
    "Add warning if non-integer values are being saved to shorts/bytes." ,
    NULL } ,
