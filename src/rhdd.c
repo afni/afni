@@ -64,7 +64,8 @@ float rhddc0( float x, float y, float z )
 
 /*---------------------------------------------------------------------------*/
 /*! C2 basis function with RHDD(2) support (piecewise quintic).
-    These should be spaced on the RHDD lattice with a=1.
+    These should be spaced on the RHDD lattice with a=1
+    (i.e., they overlap with their nearest neighbors).
 *//*-------------------------------------------------------------------------*/
 
 float rhddc2( float x, float y, float z )
@@ -77,7 +78,7 @@ float rhddc2( float x, float y, float z )
    ISWAP(zz,yy) ;  /* sort so that xx >= yy >= zz */
    ISWAP(zz,xx) ; ISWAP(yy,xx) ;
 
-   /* Entezari paper is in terms of RHDD(4), so scale coords by 2 */
+   /* Entezari paper is in terms of RHDD(4) support, so scale coords by 2 */
 
    xx *= 2.0f ;  yy *= 2.0f ; zz *= 2.0f ;
    tt = xx+yy-4.0f ;
@@ -89,42 +90,34 @@ float rhddc2( float x, float y, float z )
 #define PA ALPHA * tt*tt*tt                                           \
            * ( -3.0f*xx*yy - 5.0f*zz*zz + 2.0f*(xx+yy) + 20.0f*zz     \
               + xx*xx + yy*yy - 24.0f )
-
 #undef  PB1
 #define PB1 BETA * xz2*xz2*xz2                                        \
             * (  xx*xx - 9.0f*xx - 3.0f*xx*zz + 10.0f*yy - 5.0f*yy*yy \
                + 14.0f + 11.0f*zz + zz*zz )
-
 #undef  PB2
 #define PB2 BETA * yz2*yz2*yz2                                        \
             * (  46.0f - 30.0f*xx - zz - yy + 3.0f*zz*yy + 5.0f*xx*xx \
                - yy*yy - zz*zz )
 
-   /* Region 1 */
-
-   if( xy2 <= 0.0f ){
+   if( xy2 <= 0.0f ){             /** Region 1 **/
      return (  PA + PB1 + PB2
              - GAMMA * xy2*xy2*xy2
               * ( xx*xx + xx - 3.0f*xx*yy - 5.0f*zz*zz + yy*yy + yy - 6.0f ) ) ;
    }
 
-   /* Region 2 */
-
-   if( xz2 <= 0.0f ){
+   if( xz2 <= 0.0f ){             /** Region 2 **/
      return ( PA + PB1 + PB2 ) ;
    }
 
-   /* Region 3 */
+   if( yz2 <= 0.0f ){             /** Region 3 **/
 
-   if( yz2 <= 0.0f ){
-
-     if( xx-zz >= 2.0f ){  /* Region 3A */
+     if( xx-zz >= 2.0f ){         /* Region 3A */
 
        return ( ALPHA * tt*tt*tt
                * ( -xx*xx + 8.0f*xx + 3.0f*xx*yy - yy*yy + 5.0f*zz*zz
                    -16.0f - 12.0f*yy ) ) ;
 
-     } else {            /* Region 3B */
+     } else {                     /* Region 3B */
 
        return( PA + PB2 ) ;
 
@@ -134,5 +127,5 @@ float rhddc2( float x, float y, float z )
 
    /* Region 4 */
 
-   return ( PA ) ;
+   return ( PA ) ;                /** Region 4 **/
 }
