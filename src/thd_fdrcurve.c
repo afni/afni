@@ -1,6 +1,25 @@
 #include "mrilib.h"
 
 /*-------------------------------------------------------------------------*/
+/*! Count how many FDR curves need to be created. [12 Nov 2008] */
+
+int THD_count_fdrwork( THD_3dim_dataset *dset )
+{
+   int iv , nfdr , sc ;
+
+ENTRY("THD_count_fdrwork") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(0) ;
+
+   for( nfdr=iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
+     sc = DSET_BRICK_STATCODE(dset,iv) ;
+     if( FUNC_IS_STAT(sc) ) nfdr++ ;
+   }
+
+   RETURN(nfdr) ;
+}
+
+/*-------------------------------------------------------------------------*/
 /*! Create the FDR curve for the iv-th sub-brick, if it is a statistical
     sub-brick, and store it in the dataset struct.
 *//*-----------------------------------------------------------------------*/
@@ -69,13 +88,13 @@ ENTRY("THD_create_one_fdrcurve") ;
 
 int THD_create_all_fdrcurves( THD_3dim_dataset *dset )
 {
-   int iv , nfdr=0 ;
+   int iv , nfdr ;
 
 ENTRY("THD_create_all_fdrcurves") ;
 
    if( !ISVALID_DSET(dset) ) RETURN(0) ;
 
-   for( iv=0 ; iv < dset->dblk->nvals ; iv++ )
+   for( nfdr=iv=0 ; iv < dset->dblk->nvals ; iv++ )
      nfdr += THD_create_one_fdrcurve( dset , iv ) ;
 
    RETURN(nfdr) ;

@@ -114,6 +114,12 @@ ENTRY("populate_dataset") ;
 
    if( mask == NULL || fp == NULL ) EXRETURN ;
 
+   if( verb > 1 && fnam != NULL ){
+     INFO_message("Populating dataset %s from file %s",
+                  DSET_FILECODE(dset) , fnam ) ;
+     MEMORY_CHECK ;
+   }
+
    var  = (float *)calloc(sizeof(float),nvals) ;
    nvox = DSET_NVOX(dset) ;
 
@@ -573,7 +579,7 @@ int main( int argc , char *argv[] )
       "                 (if you use -Rbuck and do not give any of -fout, -tout,)\n"
       "                 (or -rout, then the program assumes -fout is activated.)\n"
       " -noFDR      = do NOT add FDR curve data to bucket datasets\n"
-      "                 (FDR curves can take a while if -tout is used)\n"
+      "                 (FDR curves can take a long time if -tout is used)\n"
       "\n"
       " -Rfitts ppp = dataset for REML fitted model\n"
       "                 (like 3dDeconvolve, a censored time point gets)\n"
@@ -2148,6 +2154,23 @@ STATUS("make GLTs from matrix file") ;
      MEMORY_CHECK ;
    }
 
+   /* macro to add FDR curves to a dataset and print a message */
+
+#undef  FDRIZE
+#define FDRIZE(ds)                                                            \
+ do{ if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") ){                       \
+       ii = THD_count_fdrwork(ds) ;                                           \
+       if( verb > 1 && ii*nmask > 666666 )                                    \
+         INFO_message("creating FDR curves in dataset %s",DSET_FILECODE(ds)); \
+       ii = THD_create_all_fdrcurves(ds) ;                                    \
+     } else {                                                                 \
+       ii = 0 ;                                                               \
+     }                                                                        \
+     if( ii > 0 && verb > 1 )                                                 \
+       ININFO_message("Added %d FDR curve%s to dataset %s",                   \
+                      ii , (ii==1)?"":"s" , DSET_FILECODE(ds) ) ;             \
+ } while(0)
+
    /*----------------- write output REML datasets to disk -----------------*/
 
    if( Rbeta_dset != NULL ){
@@ -2177,25 +2200,13 @@ STATUS("make GLTs from matrix file") ;
    }
    if( Rbuckt_dset != NULL ){
      populate_dataset( Rbuckt_dset , mask , Rbuckt_fn,Rbuckt_fp ) ;
-     if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
-       ii = THD_create_all_fdrcurves(Rbuckt_dset) ;
-     else
-       ii = 0 ;
-     if( ii > 0 && verb > 1 )
-       ININFO_message("Added %d FDR curve%s to -Rbuck dataset",
-                      ii , (ii==1)?"":"s" ) ;
+     FDRIZE(Rbuckt_dset) ;
      DSET_write(Rbuckt_dset); WROTE_DSET(Rbuckt_dset); DSET_deletepp(Rbuckt_dset);
      MEMORY_CHECK ;
    }
    if( Rglt_dset != NULL ){
      populate_dataset( Rglt_dset , mask , Rglt_fn,Rglt_fp ) ;
-     if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
-       ii = THD_create_all_fdrcurves(Rglt_dset) ;
-     else
-       ii = 0 ;
-     if( ii > 0 && verb > 1 )
-       ININFO_message("Added %d FDR curve%s to -Rglt dataset",
-                      ii , (ii==1)?"":"s" ) ;
+     FDRIZE(Rglt_dset) ;
      DSET_write(Rglt_dset); WROTE_DSET(Rglt_dset); DSET_deletepp(Rglt_dset);
      MEMORY_CHECK ;
    }
@@ -2442,25 +2453,13 @@ STATUS("make GLTs from matrix file") ;
    }
    if( Obuckt_dset != NULL ){
      populate_dataset( Obuckt_dset , mask , Obuckt_fn,Obuckt_fp ) ;
-     if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
-       ii = THD_create_all_fdrcurves(Obuckt_dset) ;
-     else
-       ii = 0 ;
-     if( ii > 0 && verb > 1 )
-       ININFO_message("Added %d FDR curve%s to -Obuck dataset",
-                      ii , (ii==1)?"":"s" ) ;
+     FDRIZE(Obuckt_dset) ;
      DSET_write(Obuckt_dset); WROTE_DSET(Obuckt_dset); DSET_deletepp(Obuckt_dset);
      MEMORY_CHECK ;
    }
    if( Oglt_dset != NULL ){
      populate_dataset( Oglt_dset , mask , Oglt_fn,Oglt_fp ) ;
-     if( do_FDR || !AFNI_noenv("AFNI_AUTOMATIC_FDR") )
-       ii = THD_create_all_fdrcurves(Oglt_dset) ;
-     else
-       ii = 0 ;
-     if( ii > 0 && verb > 1 )
-       ININFO_message("Added %d FDR curve%s to -Oglt dataset",
-                      ii , (ii==1)?"":"s" ) ;
+     FDRIZE(Oglt_dset) ;
      DSET_write(Oglt_dset); WROTE_DSET(Oglt_dset); DSET_deletepp(Oglt_dset);
      MEMORY_CHECK ;
    }
