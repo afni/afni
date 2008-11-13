@@ -857,9 +857,14 @@ int main( int argc , char *argv[] )
         "                 [Default==7654321; if iii==0, a unique value is used]\n"
 #endif
         " -median       = Smooth with median filter instead of Gaussian blur.\n"
-        "                 (somewhat slower, and not obviously useful)\n"
-        " -powell m a   = Set the NEWUOA dimensional parameters to\n"
+        "                 (Somewhat slower, and not obviously useful!)\n"
+        " -powell m a   = Set the Powell NEWUOA dimensional parameters to\n"
         "                 'm' and 'a' (cf. source code in powell_int.c).\n"
+        "                 The number of points used for approximating the\n"
+        "                 cost functional is m*N+a, where N is the number\n"
+        "                 of parameters being optimized.  The default values\n"
+        "                 are m=2 and a=3.  Larger values will probably slow\n"
+        "                 the program down for no good reason.\n"
         " -target ttt   = Same as '-source ttt'.  In the earliest versions,\n"
         "                 what I now call the 'source' dataset was called the\n"
         "                 'target' dataset:\n"
@@ -941,9 +946,9 @@ int main( int argc , char *argv[] )
        printf("\n") ;
        printf(" * For more information about the 'lpc' functional, see\n"
               "     ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, RW Cox.\n"
-              "     'A new method for improving functional-to-structural\n"
-              "      MRI alignment using local Pearson correlation'.\n"
-              "     NeuroImage (in press).\n"
+              "       'A new method for improving functional-to-structural\n"
+              "       MRI alignment using local Pearson correlation'.\n"
+              "       NeuroImage (in press).\n"
               "     http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
               "   The '-blok' option can be used to control the regions\n"
               "   (size and shape) used to compute the local correlations.\n");
@@ -956,7 +961,7 @@ int main( int argc , char *argv[] )
        printf(" * For more information about the 'mi', 'nmi', and 'je'\n"
               "   cost functionals, see\n"
               "     http://en.wikipedia.org/wiki/Mutual_information\n"
-              "     http://en.wikipedia.org/wiki/Joint_entropy\n" 
+              "     http://en.wikipedia.org/wiki/Joint_entropy\n"
               "     http://www.cs.jhu.edu/~cis/cista/746/papers/mutual_info_survey.pdf\n");
        printf("\n") ;
        printf(" * For more information about the 'hel' functional, see\n"
@@ -968,6 +973,14 @@ int main( int argc , char *argv[] )
               "   (e.g., '-histbin', etc.) can be used to control the\n"
               "   number of bins used in the histogram on each axis.\n"
               "   (If you care to control the program in such detail!)\n"  ) ;
+       printf("\n") ;
+       printf(" * Minimization of the chosen cost functional is done via\n"
+              "   the NEWUOA software, described in detail in\n"
+              "     MJD Powell. 'The NEWUOA software for unconstrained\n"
+              "       optimization without derivatives.' In: GD Pillo,\n"
+              "       M Roma (Eds), Large-Scale Nonlinear Optimization.\n"
+              "       Springer, 2006.\n"
+              "     http://www.damtp.cam.ac.uk/user/na/NA_papers/NA2004_08.pdf\n");
 
        printf("\n"
         "===========================================================================\n"
