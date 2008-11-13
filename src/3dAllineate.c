@@ -300,9 +300,17 @@ int main( int argc , char *argv[] )
 "               (Target must be stored as floats, shorts, or bytes.)\n"
 "\n"
 " * NOTA BENE: The base and source dataset do NOT have to be defined *\n"
-" *            on the same grids; the alignment process uses the     *\n"
+" *            on the same 3D grids; the alignment process uses the  *\n"
 " *            coordinate systems defined in the dataset headers to  *\n"
 " *            make the match between spatial locations.             *\n"
+" *       -->> However, this coordinate-based matching requires that *\n"
+" *            image volumes be defined on roughly the same patch of *\n"
+" *            of (x,y,z) space, in order to find a decent starting  *\n"
+" *            point for the transformation.  You might need to use  *\n"
+" *            the script @Align_Centers to do this, if the 3D       *\n"
+" *            spaces occupied by the images do not overlap much.    *\n"
+" *       -->> Or the '-cmass' option to this program might be       *\n"
+" *            sufficient to solve this problem, maybe.              *\n"
 "\n"
 " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
 "   *OR*        option is NOT given, no dataset will be output!  The\n"
@@ -823,7 +831,7 @@ int main( int argc , char *argv[] )
         "               is involved in this initial fine refinement step; that\n"
         "               case is starting with the identity transformation, which\n"
         "               helps insure against the chance that the coarse pass\n"
-        "               optimizations ran amok.\n"
+        "               optimizations ran totally amok.\n"
         " -nocast     = By default, parameter vectors that are too close to the\n"
         "               best one are cast out at the end of the coarse pass\n"
         "               refinement process. Use this option if you want to keep\n"
@@ -908,6 +916,9 @@ int main( int argc , char *argv[] )
         "                  * N.B.: If -fineblur is used, that amount of smoothing\n"
         "                          will be applied prior to the -allcostX evaluations.\n"
        ) ;
+
+       printf("\n"
+        "===========================================================================\n" );
        printf("\n"
               " Hidden experimental cost functionals:\n") ;
        for( ii=0 ; ii < NMETH ; ii++ )
@@ -922,26 +933,45 @@ int main( int argc , char *argv[] )
                 meth_shortname[ii] , meth_costfunctional[ii] ) ;
 
        printf("\n") ;
-       printf(" * N.B.: Some cost functional values (as output by 3dAllineate)\n"
-              "   are negated (e.g., 'hel' and 'mi') so that the best image\n"
-              "   alignment will be found where the cost is minimized.\n"     );
+       printf(" * N.B.: Some cost functional values (as printed out herein)\n"
+              "   are negated (e.g., 'hel', 'mi'), so that the best image\n"
+              "   alignment will be found when the cost is minimized.  See\n"
+              "   the descriptions above and the references below for more\n"
+              "   details for each functional.\n");
        printf("\n") ;
        printf(" * For more information about the 'lpc' functional, see\n"
-              "     http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"  ) ;
+              "     ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, RW Cox.\n"
+              "     'A new method for improving functional-to-structural\n"
+              "      MRI alignment using local Pearson correlation'.\n"
+              "     NeuroImage (in press).\n"
+              "     http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
+              "   The '-blok' option can be used to control the regions\n"
+              "   (size and shape) used to compute the local correlations.\n");
        printf("\n") ;
        printf(" * For more information about the 'cr' functionals, see\n"
               "     http://en.wikipedia.org/wiki/Correlation_ratio\n"
               "   Note that CR(x,y) is not the same as CR(y,x), which\n"
               "   is why there are symmetrized versions of it available.\n") ;
        printf("\n") ;
-       printf(" * For more information about the 'mi' functionals, see\n"
-              "     http://en.wikipedia.org/wiki/Mutual_information\n"     ) ;
+       printf(" * For more information about the 'mi', 'nmi', and 'je'\n"
+              "   cost functionals, see\n"
+              "     http://en.wikipedia.org/wiki/Mutual_information\n"
+              "     http://en.wikipedia.org/wiki/Joint_entropy\n" 
+              "     http://www.cs.jhu.edu/~cis/cista/746/papers/mutual_info_survey.pdf\n");
        printf("\n") ;
        printf(" * For more information about the 'hel' functional, see\n"
               "     http://en.wikipedia.org/wiki/Hellinger_distance\n"     ) ;
+       printf("\n") ;
+       printf(" * Some cost functionals (e.g., 'mi', 'cr', 'hel') are\n"
+              "   computed by creating a 2D joint histogram of the\n"
+              "   base and source image pair.  Various options above\n"
+              "   (e.g., '-histbin', etc.) can be used to control the\n"
+              "   number of bins used in the histogram on each axis.\n"
+              "   (If you care to control the program in such detail!)\n"  ) ;
 
        printf("\n"
-        "=================================================================\n"
+        "===========================================================================\n"
+        "\n"
 #if 0
         " -nwarp [type [order]] = Experimental nonlinear warp\n"
         "                         'type' = 'bilinear'  or\n"
@@ -995,16 +1025,17 @@ int main( int argc , char *argv[] )
         "   order Taylor series, you'll see that a bilinear warp is basically\n"
         "   a quadratic warp, with the additional feature that its inverse\n"
         "   is directly computable (unlike a pure quadratic warp).\n"
-        "* Is this useful?  Try it and tell me!\n"
+        "* Is '-nwarp bilinear' useful?  Try it and tell me!\n"
 #endif
-        "=================================================================\n"
+        "\n"
+        "===========================================================================\n"
        ) ;
 
      } else {
 
        printf(
         "\n"
-        "[[[ To see a few advanced/experimental options, use '-HELP'. ]]]\n");
+        "[[[ To see a plethora of advanced/experimental options, use '-HELP'. ]]]\n");
 
      }
 
