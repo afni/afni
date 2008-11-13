@@ -105,7 +105,7 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "1 - abs(Spearman correlation coefficient)"                ,
     "- Mutual Information = H(base,source)-H(base)-H(source)"  ,
     "1 - abs[ CR(base,source) * CR(source,base) ]"             ,
-    "Normalized MI = H(base,source)/[H(base)+H(source)]"       ,
+    "1/Normalized MI = H(base,source)/[H(base)+H(source)]"     ,
     "H(base,source) = joint entropy of image pair"             ,
     "- Hellinger distance(base,source)"                        ,
     "1 - abs[ CR(base,source) + CR(source,base) ]"             ,
@@ -276,7 +276,8 @@ int main( int argc , char *argv[] )
 "\n"
 "Program to align one dataset (the 'source') to a base dataset.\n"
 "Options are available to control:\n"
-" ++ How the matching between the source and the base is computed.\n"
+" ++ How the matching between the source and the base is computed\n"
+"    (e.g., the 'cost functional' measuring image mismatch).\n"
 " ++ How the resliced source is interpolated to the base space.\n"
 " ++ The complexity of the spatial transformation ('warp') used.\n"
 " ++ And many technical options to control the process in detail,\n"
@@ -323,7 +324,8 @@ int main( int argc , char *argv[] )
 "               be estimated, but not applied.  You can save the matrix\n"
 "               for later use using the '-1Dmatrix_save' option.\n"
 "        *N.B.: By default, the new dataset is computed on the grid of the\n"
-"                base dataset; see the '-master' option to change this grid.\n"
+"                base dataset; see the '-master' and/or the '-mast_dxyz'\n"
+"                options to change this grid.\n"
 "        *N.B.: If 'ppp' is 'NULL', then no output dataset will be produced.\n"
 "                This option is for compatibility with 3dvolreg.\n"
 "\n"
@@ -440,7 +442,11 @@ int main( int argc , char *argv[] )
 "               [Default == zero-pad, if needed; -verb shows how much]\n"
 "\n"
 " -conv mmm   = Convergence test is set to 'mmm' millimeters.\n"
-"               [Default == 0.05 mm]\n"
+"               This doesn't mean that the results will be accurate\n"
+"               to 'mmm' millimeters!  It just means that the program\n"
+"               stops trying to improve the alignment when the optimizer\n"
+"               (NEWUOA) reports it has narrowed the search radius\n"
+"               down to this level.  [Default == 0.05 mm]\n"
 "\n"
 " -verb       = Print out verbose progress reports.\n"
 "               [Using '-VERB' will give even more prolix reports.]\n"
@@ -475,6 +481,10 @@ int main( int argc , char *argv[] )
 "                 -nmi -check mi hel crU crM\n"
 "               to register with Normalized Mutual Information, and\n"
 "               then check the results against 4 other cost functionals.\n"
+"       **N.B.: On the other hand, some cost functionals give better\n"
+"               results than others for specific problems, and so\n"
+"               a warning that 'mi' was significantly different than\n"
+"               'hel' might not actually mean anything (e.g.).\n"
 #if 0
 "       **N.B.: If you use '-CHECK' instead of '-check', AND there are\n"
 "               at least two extra check functions specified (in addition\n"
@@ -501,8 +511,9 @@ int main( int argc , char *argv[] )
 "               your voxels are unusually small or unusually large\n"
 "               (e.g., outside the range 1-4 mm on each axis).\n"
 " -twofirst   = Use -twopass on the first image to be registered, and\n"
-"               then on all subsequent images, use the results from\n"
-"               the first image's coarse pass to start the fine pass.\n"
+"               then on all subsequent images from the source dataset,\n"
+"               use results from the first image's coarse pass to start\n"
+"               the fine pass.\n"
 "               (Useful when there may be large motions between the   )\n"
 "               (source and the base, but only small motions within   )\n"
 "               (the source dataset itself; since the coarse pass can )\n"
@@ -530,8 +541,6 @@ int main( int argc , char *argv[] )
 "                 then the default '-twofirst' makes sense if you don't expect\n"
 "                 large movements WITHIN the source, but expect large motions\n"
 "                 between the source and base.\n"
-"               * '-fineblur' is experimental, and if you use it, the\n"
-"                 value should probably be small (1 mm?).\n"
       ) ;
 
       printf(
@@ -585,7 +594,7 @@ int main( int argc , char *argv[] )
 "               box that holds the irregular mask.\n"
 "       **N.B.: This is the default mode of operation!\n"
 "               For intra-modality registration, '-autoweight' may be better!\n"
-"               If the cost functional is 'ls', then '-autoweight' will be\n"
+"             * If the cost functional is 'ls', then '-autoweight' will be\n"
 "               the default, instead of '-autobox'.\n"
 " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
 "               also used, then every voxel will be counted equally.\n"
@@ -804,13 +813,13 @@ int main( int argc , char *argv[] )
 
      printf(
       "\n"
-      "================================================\n"
-      "  RWCox - September 2006 - Live Long and Prosper\n"
-      "================================================\n"
+      "            ==================================================\n"
+      "        ===== RWCox - September 2006 - Live Long and Prosper =====\n"
+      "            ==================================================\n"
       "\n"
-      "********************************************************\n"
-      "** From Webster's Dictionary: Allineate == 'to align' **\n"
-      "********************************************************\n"
+      "         ********************************************************\n"
+      "        *** From Webster's Dictionary: Allineate == 'to align' ***\n"
+      "         ********************************************************\n"
      ) ;
 
      /*......................................................................*/
@@ -825,6 +834,7 @@ int main( int argc , char *argv[] )
         "---------------------------------------------------------------------------\n"
         "                ** N.B.: Most of these are experimental! **\n"
         "===========================================================================\n"
+        "\n"
         " -num_rtb n  = At the beginning of the fine pass, the best set of results\n"
         "               from the coarse pass are 'refined' a little by further\n"
         "               optimization, before the single best one is chosen for\n"
