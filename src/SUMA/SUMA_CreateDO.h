@@ -126,6 +126,11 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
                                     float *default_txcol, 
                                     void *default_font,
                                     SUMA_SurfaceViewer *sv) ;
+SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel, 
+                                    SUMA_SurfaceObject *SO, 
+                                    SUMA_DO_CoordUnits default_coord_type,
+                                    float *default_txcol, 
+                                    SUMA_SurfaceViewer *sv) ;
 SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv);
 SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA_Boolean AddText);
 DList *SUMA_SortedAxisSegmentList ( SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, 

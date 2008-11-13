@@ -1437,21 +1437,26 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    #if 0
       if (Kev.state & ShiftMask) {
          fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);
-      }else if (Kev.state & ControlMask){
-         fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);
-      }else if (Kev.state & Mod1Mask){
-         fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);
-      }else if (Kev.state & Mod2Mask){
-         fprintf (SUMA_STDERR,"%s: Mod2 down (apple on mac)\n", FuncName);
-      }else if (Kev.state & Mod3Mask){
-         fprintf (SUMA_STDERR,"%s: Mod3 down\n", FuncName);
-      }else if (Kev.state & Mod4Mask){
-         fprintf (SUMA_STDERR,"%s: Mod4 down\n", FuncName);
-      }else if (Kev.state & Mod5Mask){
-         fprintf (SUMA_STDERR,"%s: Mod5 down\n", FuncName);
-      }else {
-         /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
       }
+      if (Kev.state & ControlMask){
+         fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);
+      }
+      if (Kev.state & Mod1Mask){
+         fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);
+      }
+      if (Kev.state & Mod2Mask){
+         fprintf (SUMA_STDERR,"%s: Mod2 down (apple on mac)\n", FuncName);
+      }
+      if (Kev.state & Mod3Mask){
+         fprintf (SUMA_STDERR,"%s: Mod3 down\n", FuncName);
+      }
+      if (Kev.state & Mod4Mask){
+         fprintf (SUMA_STDERR,"%s: Mod4 down\n", FuncName);
+      }
+      if (Kev.state & Mod5Mask){
+         fprintf (SUMA_STDERR,"%s: Mod5 down\n", FuncName);
+      }
+      fprintf (SUMA_STDERR,"\n\n");
    #endif
    
   switch (Kev.type) { /* switch event type */
