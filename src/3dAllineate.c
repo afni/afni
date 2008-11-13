@@ -276,16 +276,21 @@ int main( int argc , char *argv[] )
 "\n"
 "Program to align one dataset (the 'source') to a base dataset.\n"
 "Options are available to control:\n"
-" + How the matching between the source and the base is computed.\n"
-" + How the resliced source is interpolated to the base space.\n"
-" + The complexity of the spatial transformation ('warp') used.\n"
-" + And many technical options to control the process in detail,\n"
-"    if you know what you are doing.\n"
+" ++ How the matching between the source and the base is computed.\n"
+" ++ How the resliced source is interpolated to the base space.\n"
+" ++ The complexity of the spatial transformation ('warp') used.\n"
+" ++ And many technical options to control the process in detail,\n"
+"    if you know what you are doing (or just like to play around).\n"
 "\n"
 "====\n"
 "NOTE: If you want to align EPI volumes to a T1-weighted structural\n"
 "====  volume, the script align_epi_anat.py is recommended.  It will\n"
 "      use 3dAllineate in the recommended way for this type of problem.\n"
+" -->> This script can also be used for other alignment purposes, such\n"
+"      as T1-weighted alignment between field strengths using the\n"
+"      '-lpa' cost functional.  Investigate align_epi_anat.py\n"
+"      to see if it will do what you need -- you might make your life\n"
+"      a little easier and nicer.\n"
 "\n"
 "OPTIONS:\n"
 "=======\n"
@@ -297,20 +302,20 @@ int main( int argc , char *argv[] )
 " -source ttt = Read the source dataset from 'ttt'.  If no -source\n"
 "   *OR*        (or -input) option is given, then the source dataset\n"
 " -input ttt    is the last argument on the command line.\n"
-"               (Target must be stored as floats, shorts, or bytes.)\n"
+"               (Source must be stored as floats, shorts, or bytes.)\n"
 "\n"
-" * NOTA BENE: The base and source dataset do NOT have to be defined *\n"
-" *            on the same 3D grids; the alignment process uses the  *\n"
-" *            coordinate systems defined in the dataset headers to  *\n"
-" *            make the match between spatial locations.             *\n"
-" *       -->> However, this coordinate-based matching requires that *\n"
-" *            image volumes be defined on roughly the same patch of *\n"
-" *            of (x,y,z) space, in order to find a decent starting  *\n"
-" *            point for the transformation.  You might need to use  *\n"
-" *            the script @Align_Centers to do this, if the 3D       *\n"
-" *            spaces occupied by the images do not overlap much.    *\n"
-" *       -->> Or the '-cmass' option to this program might be       *\n"
-" *            sufficient to solve this problem, maybe.              *\n"
+"  * NOTA BENE: The base and source dataset do NOT have to be defined *\n"
+"  *            on the same 3D grids; the alignment process uses the  *\n"
+"  *            coordinate systems defined in the dataset headers to  *\n"
+"  *            make the match between spatial locations.             *\n"
+"  *       -->> However, this coordinate-based matching requires that *\n"
+"  *            image volumes be defined on roughly the same patch of *\n"
+"  *            of (x,y,z) space, in order to find a decent starting  *\n"
+"  *            point for the transformation.  You might need to use  *\n"
+"  *            the script @Align_Centers to do this, if the 3D       *\n"
+"  *            spaces occupied by the images do not overlap much.    *\n"
+"  *       -->> Or the '-cmass' option to this program might be       *\n"
+"  *            sufficient to solve this problem, maybe.              *\n"
 "\n"
 " -prefix ppp = Output the resulting dataset to file 'ppp'.  If this\n"
 "   *OR*        option is NOT given, no dataset will be output!  The\n"
@@ -381,15 +386,15 @@ int main( int argc , char *argv[] )
 "                      with either *_apply option, so that the coordinate\n"
 "                      system that the matrix refers to is correctly loaded.\n"
 "\n"
-" ** The -1Dmatrix_* options can be used to save and re-use the transformation\n"
-" ** matrices.  In combination with the program cat_matvec, which can multiply\n"
-" ** saved transformation matrices, you can also adjust these matrices to\n"
-" ** other alignments.\n"
-" **\n"
-" ** The script 'align_epi_anat.py' uses 3dAllineate and 3dvolreg to align EPI\n"
-" ** datasets to T1-weighted anatomical datasets, using saved matrices between\n"
-" ** the two programs.  This script is our currently recommended method for\n"
-" ** doing such intra-subject alignments.\n"
+"  * The -1Dmatrix_* options can be used to save and re-use the transformation *\n"
+"  * matrices.  In combination with the program cat_matvec, which can multiply *\n"
+"  * saved transformation matrices, you can also adjust these matrices to      *\n"
+"  * other alignments.                                                         *\n"
+"\n"
+"  * The script 'align_epi_anat.py' uses 3dAllineate and 3dvolreg to align EPI *\n"
+"  * datasets to T1-weighted anatomical datasets, using saved matrices between *\n"
+"  * the two programs.  This script is our currently recommended method for    *\n"
+"  * doing such intra-subject alignments.                                      *\n"
 "\n"
 " -cost ccc   = Defines the 'cost' function that defines the matching\n"
 "               between the source and the base; 'ccc' is one of\n"
@@ -469,7 +474,7 @@ int main( int argc , char *argv[] )
 "       **N.B.: You can put more than one function after '-check', as in\n"
 "                 -nmi -check mi hel crU crM\n"
 "               to register with Normalized Mutual Information, and\n"
-"               then check the results against 4 other cost functionsal.\n"
+"               then check the results against 4 other cost functionals.\n"
 #if 0
 "       **N.B.: If you use '-CHECK' instead of '-check', AND there are\n"
 "               at least two extra check functions specified (in addition\n"
@@ -510,7 +515,9 @@ int main( int argc , char *argv[] )
 "               used as the starting point.  [Default=4; min=0 max=7]\n"
 "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
 " -fineblur x = Set the blurring radius to use in the fine resolution\n"
-"               pass to 'x' mm.  [Default == 0 mm]\n"
+"               pass to 'x' mm.  A small amount (1-2 mm?) of blurring at\n"
+"               the fine step may help with convergence, if there is\n"
+"               some problem.  [Default == 0 mm]\n"
 "   **NOTES ON\n"
 "   **STRATEGY: * If you expect only small-ish (< 2 voxels?) image movement,\n"
 "                 then using '-onepass' or '-twobest 0' makes sense.\n"
@@ -704,14 +711,14 @@ int main( int argc , char *argv[] )
        "               You can also use 'BASE', which is of course the default.\n"
        "\n"
        " -mast_dxyz del = Write the output dataset using grid spacings of\n"
-       "                  'del' mm.  If this option is NOT given, then the\n"
-       "                  grid spacings in the master dataset will be used.\n"
+       "  *OR*            'del' mm.  If this option is NOT given, then the\n"
+       " -newgrid del     grid spacings in the master dataset will be used.\n"
        "                  This option is useful when registering low resolution\n"
        "                  data (e.g., EPI time series) to high resolution\n"
        "                  datasets (e.g., MPRAGE) where you don't want to\n"
        "                  consume vast amounts of disk space interpolating\n"
        "                  the low resolution data to some artificially fine\n"
-       "                  spatial grid.\n"
+       "                  (and meaningless) spatial grid.\n"
      ) ;
 
      printf(
@@ -800,7 +807,10 @@ int main( int argc , char *argv[] )
       "================================================\n"
       "  RWCox - September 2006 - Live Long and Prosper\n"
       "================================================\n"
+      "\n"
+      "********************************************************\n"
       "** From Webster's Dictionary: Allineate == 'to align' **\n"
+      "********************************************************\n"
      ) ;
 
      /*......................................................................*/
@@ -810,11 +820,11 @@ int main( int argc , char *argv[] )
           strcmp(argv[1],"-POMOC")==0 || AFNI_yesenv("AFNI_POMOC") ) ){
        printf(
         "\n"
-        "===========================================\n"
-        "TOP SECRET HIDDEN OPTIONS (-HELP or -POMOC)\n"
-        "===========================================\n"
-        "** N.B.: Most of these are experimental ***\n"
-        "===========================================\n"
+        "===========================================================================\n"
+        "                TOP SECRET HIDDEN OPTIONS (-HELP or -POMOC)\n"
+        "---------------------------------------------------------------------------\n"
+        "                ** N.B.: Most of these are experimental! **\n"
+        "===========================================================================\n"
         " -num_rtb n  = At the beginning of the fine pass, the best set of results\n"
         "               from the coarse pass are 'refined' a little by further\n"
         "               optimization, before the single best one is chosen for\n"
@@ -857,7 +867,7 @@ int main( int argc , char *argv[] )
         "                 [Default==7654321; if iii==0, a unique value is used]\n"
 #endif
         " -median       = Smooth with median filter instead of Gaussian blur.\n"
-        "                 (Somewhat slower, and not obviously useful!)\n"
+        "                 (Somewhat slower, and not obviously useful.)\n"
         " -powell m a   = Set the Powell NEWUOA dimensional parameters to\n"
         "                 'm' and 'a' (cf. source code in powell_int.c).\n"
         "                 The number of points used for approximating the\n"
@@ -996,7 +1006,7 @@ int main( int argc , char *argv[] )
         " -nwarp type = Experimental nonlinear warp:\n"
         "              * At present, the only 'type' is 'bilinear',\n"
         "                as in 3dWarpDrive, with 39 parameters.\n"
-        "              * I plan to implement higher order nonlinear\n"
+        "              * I plan to implement more complicated nonlinear\n"
         "                warps in the future, someday ....\n"
         "              * -nwarp can only be applied to a source dataset\n"
         "                that has a single sub-brick!\n"
@@ -1190,7 +1200,10 @@ int main( int argc , char *argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[iarg],"-mast_dxyz") == 0 || strcmp(argv[iarg],"-dxyz_mast") == 0 ){
+     if( strcmp(argv[iarg],"-mast_dxyz") == 0 ||
+         strcmp(argv[iarg],"-dxyz_mast") == 0 ||
+         strcmp(argv[iarg],"-newgrid"  ) == 0   ){
+
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        dxyz_mast = strtod(argv[iarg],NULL) ;
        if( dxyz_mast <= 0.0 )
@@ -2294,7 +2307,7 @@ int main( int argc , char *argv[] )
    dxyz_targ[0] = dx_targ; dxyz_targ[1] = dy_targ; dxyz_targ[2] = dz_targ;
 
    if( nx_targ < 2 || ny_targ < 2 )
-     ERROR_exit("Target dataset has nx=%d ny=%d ???",nx_targ,ny_targ) ;
+     ERROR_exit("Source dataset has nx=%d ny=%d ???",nx_targ,ny_targ) ;
 
    /*-- 07 Aug 2007: make target automask? --*/
 
