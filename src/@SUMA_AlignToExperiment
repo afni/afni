@@ -41,6 +41,8 @@ PARSE_COMMAND:
 	
    #continue parsing for new options
    set followers = ()
+   set alli_opt = ""
+   set skstr_opt = ""
    set folinterp = NN
    set cleanup = 1
    set Narg = $#
@@ -55,6 +57,7 @@ PARSE_COMMAND:
    set StripSkull = 0
    set okchangeview = 0
    set no_center = 1;	
+   set OutResOpt = ""
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-dxyz") then
@@ -65,11 +68,30 @@ PARSE_COMMAND:
 			else
             @ cnt ++
             set DownSample = "$argv[$cnt]"
-            if ($DownSample < 0.3 || $DownSample > 4) then
+            if ( ! `ccalc -i "ispositive($DownSample - 0.3)"` || \
+                 ! `ccalc -i "ispositive(4 - $DownSample)"` ) then
                echo "Error: Bad value for dxyz ($argv[$cnt])"
                echo ""
                goto END
             endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-out_dxyz") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need value after -out_dxyz"
+            goto END
+			else
+            @ cnt ++
+            set OutResOpt = "$argv[$cnt]"
+            if ( ! `ccalc -i "ispositive($OutResOpt - 0.1)"` || \
+                 ! `ccalc -i "ispositive(4 - $OutResOpt)"` ) then
+               echo "Error: Bad value for out_dxyz ($argv[$cnt])"
+               echo ""
+               goto END
+            endif
+            set OutResOpt = "-mast_dxyz $OutResOpt "
             set donext = 0	
          endif	
       endif
@@ -123,6 +145,33 @@ PARSE_COMMAND:
          set donext = 0		
       endif
       
+      if ($donext && "$argv[$cnt]" == "-al") then
+         set UseWarp = 2;		
+         set donext = 0		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-al_opt") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need parameter(s) after -al_opt"
+            goto END
+			else
+            @ cnt ++
+            set alli_opt = "$argv[$cnt]"		
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-skull_strip_opt") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need parameter(s) after -skull_strip_opt"
+            goto END
+			else
+            @ cnt ++
+            set skstr_opt = "$argv[$cnt]"		
+            set donext = 0	
+         endif	
+      endif
       if ($donext && "$argv[$cnt]" == "-align_centers") then
          set no_center = 0;		
          set donext = 0		
@@ -347,7 +396,7 @@ STRIP_EXP_VOL:
 		   echo ""
 	   endif
       if ($Skip == 0) then
-         3dSkullStrip -input $ExpAnat -prefix $ExpAnat_NoSkull
+         3dSkullStrip -input $ExpAnat -prefix $ExpAnat_NoSkull $skstr_opt
          if (`@CheckForAfniDset $ExpAnat_NoSkull` < 2) then
             goto NO_SS
          endif
@@ -380,7 +429,7 @@ STRIP_EXP_VOL:
 		   echo ""
 	   endif
       if ($Skip == 0) then
-         3dSkullStrip -input $SurfAnatPath/$SurfAnat -prefix $SurfAnatPath/$SurfAnat_NoSkull
+         3dSkullStrip -input $SurfAnatPath/$SurfAnat -prefix $SurfAnatPath/$SurfAnat_NoSkull $skstr_opt
          if (`@CheckForAfniDset $SurfAnatPath/$SurfAnat_NoSkull` < 2) then
             goto NO_SS
          endif
@@ -523,7 +572,7 @@ REGISTER:
       else
          set fview = $SurfAnatView
       endif
-   else      
+   else if ($UseWarp == 1) then      
       set tmpref = '___tmp__zp'"$ExpAnatPrefix$SurfAnatPrefix"
       rm -rf ${tmpref}*.???? >& /dev/null
       set pd = 8
@@ -586,6 +635,67 @@ REGISTER:
       if ($cleanup == 1) then
          rm -rf ${tmpref}*.???? ${tmpref}*.????.* >& /dev/null
       endif
+   else
+      set tmpref = '___tmp__zp'"$ExpAnatPrefix$SurfAnatPrefix"
+      rm -rf ${tmpref}*.???? >& /dev/null
+      set pd = 8
+      
+      echo "3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \"
+      echo "          -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat"
+      echo ""
+      
+      3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+                  -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
+      3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+                  -mm -prefix ./${tmpref}_refpad $ExpAnat
+      if ( -f ${VolRegPrefix}.A2E.1D) rm -f ${VolRegPrefix}.A2E.1D 
+      3dAllineate -twopass -verb -warp affine_general \
+                  -cubic -final quintic \
+                  -1Dmatrix_save ${VolRegPrefix}.A2E.1D \
+                  -base ./${tmpref}_refpad$SurfAnatView \
+                  -cost lpa   \
+                  -prefix ./${tmpref}_pad_al ./${tmpref}_pad$SurfAnatView  \
+                  $alli_opt   
+	   if ($StripSkull >= 2) then
+         #Have to apply same transform to original SurfAnat
+         3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+                     -mm \
+                     -prefix ./${tmpref}_padori $SurfAnatPath/$SurfAnatOri
+         3dAllineate -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
+            -input ./${tmpref}_padori$SurfAnatView \
+            -prefix ./${tmpref}_pad_alori  \
+            -overwrite  \
+            -final quintic
+         set wdnext = ${tmpref}_pad_alori  
+      else
+         set wdnext = ${tmpref}_pad_al   
+      endif
+      
+      3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd \
+                  -mm \
+                  -prefix ./$VolRegPrefix ${wdnext}$SurfAnatView
+	   #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+      3drefit  -atrcopy ${wdnext}$SurfAnatView \
+               ALLINEATE_MATVEC_B2S_000000 $VolRegPrefix$SurfAnatView
+      3drefit  -atrcopy ${wdnext}$SurfAnatView \
+               ALLINEATE_MATVEC_S2B_000000 $VolRegPrefix$SurfAnatView
+      #differing views?
+      if ("$SurfAnatView" != "$ExpAnatView") then
+         echo "Changing view from $SurfAnatView to $ExpAnatView."
+         3drefit -view $ExpAnatView $VolRegPrefix$SurfAnatView
+         set fview = $ExpAnatView
+      else
+         set fview = $SurfAnatView
+      endif
+      if ( ! ( -f ./$VolRegPrefix$fview.BRIK || \
+               -f ./$VolRegPrefix$fview.BRIK.gz || \
+               -f ./$VolRegPrefix$fview.BRIK.Z || \
+               -f ./$VolRegPrefix$fview.BRIK.bz2)) then
+		   goto NO_WARPDRIVE
+	   endif
+      if ($cleanup == 1) then
+         rm -rf ${tmpref}*.???? ${tmpref}*.????.* >& /dev/null
+      endif   
    endif
 	
 	#If have center shift, combine and reapply
@@ -594,23 +704,26 @@ REGISTER:
       mv ${VolRegPrefix}.A2E.1D ${VolRegPrefix}".A2E_shft".1D
       cat_matvec -ONELINE $center_mat -I ${VolRegPrefix}".A2E_shft".1D \
          > ${VolRegPrefix}.A2E.1D 
+      #cat_matvec -ONELINE ${VolRegPrefix}".A2E_shft".1D $center_mat \
+      #  > ${VolRegPrefix}.A2E.1D 
       #set echo
       3dAllineate -master $ExpAnatOrig \
             -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
             -input $SurfAnatPath/$SurfAnat \
             -prefix ./${VolRegPrefix}$fview  \
             -overwrite  \
+            $OutResOpt  \
             -final quintic
    else  
-      if (0) then
+      if ("$OutResOpt" != "") then
          #Reproduce output with 3dAllineate, when no shifting is needed.
-         echo "WARNING! Unnecessary here, but for testing."
          set echo
          3dAllineate -master $ExpAnatOrig \
                -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
                -input $SurfAnatPath/$SurfAnat \
                -prefix ./${VolRegPrefix}$fview  \
                -overwrite  \
+               $OutResOpt  \
                -final quintic
       endif
    endif
@@ -777,6 +890,8 @@ echo "        registration. That is only necessary if 3dvolreg runs out of memor
 echo "        You MUST have 3dvolreg that comes with afni distributions newer than "
 echo "        version 2.45l. It contains an option for reducing memory usage and "
 echo "        thus allow the registration of large data sets."
+echo "   [-out_dxyz DXYZ]: Output the final aligned volume at a cubic voxelsize"
+echo "                     of DXYZmm. The default is based on the grid of ExpVol."
 echo "   [-wd]: Use 3dWarpDrive's general affine transform (12 param) instead of "
 echo "        3dvolreg's 6 parameters."
 echo "        If the anatomical coverage differs markedly between 'Experiment "
@@ -790,6 +905,10 @@ echo "        should make the program more robust. If you want to try running wi
 echo "        the add -ncr with -wd"
 echo "        I would be interested in examining cases where -wd option failed to "
 echo "        produce a good alignment."
+echo "   [-al]: Use 3dAllineate to do the 12 parameter alignment. Cost function"
+echo "          is lpa"
+echo "   [-al_opt 'Options for 3dAllineate']: Specify set of options between quotes"
+echo "                                           to pass to 3dAllineate.   "
 echo "   [-ok_change_view]: Be quiet when view of registered volume is changed"
 echo "                      to match that of the Experiment_Anatomy, even when"
 echo "                      rigid body registration is used."
@@ -799,6 +918,8 @@ echo "                         one of 'exp_anat' or 'both'. In the first case,"
 echo "                         the skull is removed from Experiment_Anatomy"
 echo "                         dataset. With 'both' the skull is removed from"
 echo "                         Experiment_Anatomy and Surface_Anatomy."
+echo "   [-skull_strip_opt 'Options For 3dSkullStrip']: Pass the options between"
+echo "                         quotes to 3dSkullStrip."
 echo "   [-align_centers]: Adds an additional transformation to align the volume"
 echo "                     centers. This is a good option to use when volumes"
 echo "                     are severely out of alignment."
@@ -843,6 +964,13 @@ echo "@SUMA_AlignToExperiment -exp_anat ABanat+orig. -surf_anat DemoSubj_SurfVol
 echo "                       -wd -prefix DemoSubj_SurfVol_WD_Alnd_Exp \"
 echo "                       -EA_clip_below -30"
 echo ""
+echo "Example 3: For two monkey T1 volumes with very different resolutions and severe"
+echo "           shading artifacts."
+echo "@SUMA_AlignToExperiment    -surf_anat MOanat+orig. -al \"
+echo "                           -exp_anat MoExpanat+orig. \"
+echo "                           -strip_skull both -skull_strip_opt -monkey \"
+echo "                           -align_centers \"
+echo "                           -out_dxyz 0.3"
 echo "More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
 echo ""
 echo "Ziad Saad (saadz@mail.nih.gov)"

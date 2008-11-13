@@ -807,7 +807,9 @@ char MNI_Anatomical_Side(ATLAS_COORD ac)
    }
 
    if (dseCA_EZ_LR == NULL) {
-      if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS));
+      if (LocalHead) 
+         fprintf(stderr,"Loading %s\n", 
+                 Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS));
       ii = CA_EZ_LR_load_atlas();
       if (ii == 0 && !n_warn) {
          WARNING_message("Could not read LR atlas (dset %s+tlrc)",
@@ -1001,7 +1003,8 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami,
       LOAD_FVEC3(m,ac.x,ac.y,ac.z);
       t = THD_tta_to_mnia_N27(m);
       /* find the LR, if possible from mask */
-      sprintf(xlab[2],"%4.0f mm [%c]",-t.xyz[0], TO_UPPER(MNI_Anatomical_Side(ac))) ;
+      sprintf( xlab[2],
+               "%4.0f mm [%c]",-t.xyz[0], TO_UPPER(MNI_Anatomical_Side(ac))) ;
       sprintf(ylab[2],"%4.0f mm [%c]",-t.xyz[1], (ac.y<0.0)?'A':'P') ;
       sprintf(zlab[2],"%4.0f mm [%c]",t.xyz[2], (ac.z<0.0)?'I':'S') ;
       sprintf(clab[2],"{MNI Anat.}");
@@ -2133,7 +2136,9 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id)
 
    /* change any '.' surrounded by digits to a 0 */
    for (k=1; k<nc-1; ++k) {
-      if (lbl[k] == '.' && IS_NUMBER(lbl[k+1]) && IS_NUMBER(lbl[k-1])) lbl[k] = '0';
+      if (  lbl[k] == '.' && 
+            IS_NUMBER(lbl[k+1]) && 
+            IS_NUMBER(lbl[k-1]) ) lbl[k] = '0';
    }
 
    ic = 0;
@@ -2157,7 +2162,8 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id)
          sd = '\0';
          if (aar->N_chnks == 0) { /* check on side */
             sd = Is_Side_Label(lachunk, NULL);
-            if (LocalHead) fprintf(stderr,"Side check on %s returned %c\n", lachunk, sd);
+            if (LocalHead) 
+               fprintf(stderr,"Side check on %s returned %c\n", lachunk, sd);
             if (sd == 'l' || sd == 'r' || sd == 'b') {
                aar->side = sd;
             } else {
@@ -2167,7 +2173,8 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id)
          }
          if (sd == '\0') { /* new, non left/right chunk */
             /* store lachunk, skip to next char or number */
-            aar->chnks = (char **)realloc(aar->chnks, sizeof(char*)*(aar->N_chnks+1));
+            aar->chnks = (char **)realloc(aar->chnks, 
+                                          sizeof(char*)*(aar->N_chnks+1));
             aar->chnks[aar->N_chnks] = strdup(lachunk);
             ++ aar->N_chnks;
          }
@@ -2186,7 +2193,8 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id)
       sd = '\0';
       if (aar->N_chnks == 0) { /* check on side */
          sd = Is_Side_Label(lachunk, NULL);
-         if (LocalHead) fprintf(stderr,"Side check on %s returned %c\n", lachunk, sd);
+         if (LocalHead) 
+            fprintf(stderr,"Side check on %s returned %c\n", lachunk, sd);
          if (sd == 'l' || sd == 'r' || sd == 'b') {
             aar->side = sd;
          } else {
@@ -2195,7 +2203,8 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id)
          }
       }
       if (sd == '\0') { /* new, non left/right chunk */
-         aar->chnks = (char **)realloc(aar->chnks, sizeof(char*)*(aar->N_chnks+1));
+         aar->chnks = (char **)realloc(aar->chnks, 
+                                       sizeof(char*)*(aar->N_chnks+1));
          aar->chnks[aar->N_chnks] = strdup(lachunk);
          ++ aar->N_chnks;
       }
@@ -2396,17 +2405,20 @@ AFNI_ATLAS_REGION *ROI_String_Decode(char *str, AFNI_ATLAS_CODES *ac)
    /* get the atlas name, 1st item*/
    for (k=icol[0]; k<icol[1]; ++k) atlas_name[k] = str[k];
    atlas_name[icol[1]] = '\0';
-   /* fprintf(stderr,"atlas_name from %s is: %s\n", str, atlas_name); */
+   if (LocalHead > 2) 
+      fprintf(stderr,"atlas_name from %s is: %s\n", str, atlas_name); 
    *ac = Atlas_Name_to_Atlas_Code(atlas_name);
    /* is this an OK atlas */
    if (*ac <= UNKNOWN_ATLAS || *ac >= NUMBER_OF_ATLASES) {
       if (LocalHead) {
-         ERROR_message("Atlas %s not recognized\nAvailable atlas names are:\n", atlas_name);
+         ERROR_message( "Atlas %s not recognized\n"
+                        "Available atlas names are:\n", atlas_name);
          for (k=UNKNOWN_ATLAS+1; k<NUMBER_OF_ATLASES; ++k) {
             fprintf(stderr,"   %s (code %d)\n", Atlas_Code_to_Atlas_Name(k), k);
          }
       }
-      if (LocalHead) WARNING_message("Proceeding with hope for an impossible miracle...\n");
+      if (LocalHead) 
+         WARNING_message("Proceeding with hope for an impossible miracle...\n");
    }
 
    /* get the label, last item */
@@ -2414,7 +2426,8 @@ AFNI_ATLAS_REGION *ROI_String_Decode(char *str, AFNI_ATLAS_CODES *ac)
    shft = icol[ncol]+1;
    for (k=shft; k<nc; ++k) lbl[k-shft] = str[k];
    lbl[nc-shft] = '\0';
-   /*fprintf(stderr,"lbl from %s(%d to %d) is : '%s'\n", str, shft, nc, lbl); */
+   if (LocalHead > 2) 
+      fprintf(stderr,"lbl from %s(%d to %d) is : '%s'\n", str, shft, nc, lbl); 
 
    /* Now get aar */
    if (!(aar = Atlas_Chunk_Label(lbl, 0))) {
@@ -2427,7 +2440,8 @@ AFNI_ATLAS_REGION *ROI_String_Decode(char *str, AFNI_ATLAS_CODES *ac)
    /* set the side if possible */
    if (ncol == 2 && (icol[2] - icol[1] > 1)) {
       aar->side = TO_LOWER(str[icol[1]+1]);
-      if (aar->side != 'l' && aar->side != 'r' &&  aar->side != 'u'  &&  aar->side != 'b') {
+      if (  aar->side != 'l' && aar->side != 'r' 
+            &&  aar->side != 'u'  &&  aar->side != 'b') {
          if (LocalHead) ERROR_message("Bad side specifier");
          aar = Free_Atlas_Region(aar);
          RETURN(aar) ;
@@ -4129,7 +4143,9 @@ THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar)
    }
 
    if (LocalHead) {
-      fprintf(stderr,"User seeks the following region in atlas %s:\n", Atlas_Code_to_Atlas_Name(ac));
+      fprintf( stderr,
+               "User seeks the following region in atlas %s:\n", 
+               Atlas_Code_to_Atlas_Name(ac));
       Show_Atlas_Region(aar);
    }
 
@@ -4155,7 +4171,8 @@ THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar)
       if (LocalHead) fprintf(stderr,"%s\n", string);
       free(string); string = NULL;
    } else {
-      if (LocalHead) ERROR_message("NULL string returned"); /* something went wrong, although I care not for string ... */
+      if (LocalHead) ERROR_message("NULL string returned"); 
+            /* something went wrong, although I care not for string ... */
       RETURN(maskset);
    }
    /* Now we know what matches, give me a mask */
