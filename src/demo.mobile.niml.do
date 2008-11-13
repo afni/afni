@@ -28,3 +28,11 @@ frame_coords = "
 240.0 200.0 260"
 filename = "face_sumabucks.jpg"
 />
+<S
+node = '0'
+col = '0.9 0.1 0.61'
+rad = '35'
+style = 'silhouette'
+stacks = '20'
+slices = '20'
+/>

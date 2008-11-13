@@ -21,6 +21,13 @@ text =
 h_align = 'center'
 v_align = 'center'
 />
+<S
+coord = '0.5 0.5 0'
+col = '0.21 0.21 0.21'
+rad = '10'
+stacks = '10'
+slices = '10'
+/>
 <T
 font = 'f9'
 coord = '0.75 0.80 0.9'
@@ -74,4 +81,11 @@ frame_coords = "
 1.0 1.0 1
 1.0 0.0 1"
 filename = "face_afniman.jpg"
+/>
+<S
+node = '0'
+col = '0.9 0.9 0.61'
+rad = '30'
+stacks = '20'
+slices = '20'
 />

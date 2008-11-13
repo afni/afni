@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13 , NOV , 2008 , ZSS , "suma" , MINOR ,  TYPE_NEW_OPT,
+   "Added a NIDO sphere as Displayable Object ",
+   "See suma -help_nido for details."
+ },
+ 
+ { 13 , NOV , 2008 , ZSS , "@SUMA_AlignToExperiment" , MINOR ,  TYPE_NEW_OPT,
+   "Added -al option to use 3dAllineate -lpa ",
+   NULL
+ },
+ 
  { 03 , NOV , 2008 , ZSS , "3dNLfim" , MICRO ,  TYPE_NEW_OPT,
    "Added Exp (single exponential) model ",
    NULL
