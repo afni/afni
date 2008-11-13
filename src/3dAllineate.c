@@ -277,7 +277,7 @@ int main( int argc , char *argv[] )
 "Program to align one dataset (the 'source') to a base dataset.\n"
 "Options are available to control:\n"
 " ++ How the matching between the source and the base is computed\n"
-"    (e.g., the 'cost functional' measuring image mismatch).\n"
+"    (i.e., the 'cost functional' measuring image mismatch).\n"
 " ++ How the resliced source is interpolated to the base space.\n"
 " ++ The complexity of the spatial transformation ('warp') used.\n"
 " ++ And many technical options to control the process in detail,\n"
