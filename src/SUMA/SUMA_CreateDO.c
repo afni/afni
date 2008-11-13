@@ -2231,7 +2231,8 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
    if (!SDO->radv) rad = SDO->CommonRad;
    if (!SDO->stylev) {
       gluQuadricDrawStyle (SDO->sphobj, SDO->CommonStyle); 
-      if (SDO->CommonStyle == GLU_FILL) gluQuadricNormals (SDO->sphobj , GLU_SMOOTH);
+      if (SDO->CommonStyle == GLU_FILL) 
+         gluQuadricNormals (SDO->sphobj , GLU_SMOOTH);
       else gluQuadricNormals (SDO->sphobj , GLU_NONE); 
    }
    
@@ -2244,7 +2245,8 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
       if (SDO->radv) rad = SDO->radv[i];
       if (SDO->stylev) {
          gluQuadricDrawStyle (SDO->sphobj, SDO->stylev[i]); 
-         if (SDO->stylev[i] == GLU_FILL) gluQuadricNormals (SDO->sphobj , GLU_SMOOTH);
+         if (SDO->stylev[i] == GLU_FILL) 
+            gluQuadricNormals (SDO->sphobj , GLU_SMOOTH);
          else gluQuadricNormals (SDO->sphobj , GLU_NONE); 
       }
       if (SDO->NodeBased) {
@@ -2253,7 +2255,8 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
          cent = &(SDO->cxyz[i3]);
       }
       glTranslatef (cent[0], cent[1], cent[2]);
-      gluSphere(SDO->sphobj, rad/* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)  User set values, not cool to play with dimensions! */, 
+      gluSphere(SDO->sphobj, rad/* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)  
+                     User set values, not cool to play with dimensions! */, 
                 SDO->CommonSlices, SDO->CommonStacks);
       glTranslatef (-cent[0], -cent[1], -cent[2]);
    }
@@ -2265,7 +2268,9 @@ SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv)
    
 }
 
-SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_str, SUMA_DO_Types type)
+SUMA_SphereDO * SUMA_Alloc_SphereDO (  int N_n, char *Label, 
+                                       char *Parent_idcode_str, 
+                                       SUMA_DO_Types type)
 {
    static char FuncName[]={"SUMA_Alloc_SphereDO"};
    SUMA_SphereDO* SDO;
@@ -2288,7 +2293,8 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_s
          SDO->cxyz = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
 
          if (!SDO->cxyz) {
-            fprintf(stderr,"Error %s: Failed to allocate for SDO->cxyz\n", FuncName);
+            fprintf( stderr,
+                     "Error %s: Failed to allocate for SDO->cxyz\n", FuncName);
             if (SDO) SUMA_free (SDO);
             SUMA_RETURN (NULL);
          }
@@ -2297,7 +2303,8 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_s
          SDO->Parent_idcode_str = SUMA_copy_string(Parent_idcode_str);
          SDO->NodeID = (int*) SUMA_calloc(N_n, sizeof(int));
          if (!SDO->NodeID) {
-            fprintf(stderr,"Error %s: Failed to allocate for SDO->NodeID\n", FuncName);
+            fprintf(stderr,
+                     "Error %s: Failed to allocate for SDO->NodeID\n", FuncName);
             if (SDO) SUMA_free (SDO);
             SUMA_RETURN (NULL);
          }
@@ -2315,7 +2322,8 @@ SUMA_SphereDO * SUMA_Alloc_SphereDO (int N_n, char *Label, char *Parent_idcode_s
    /* create a string to hash an idcode */
    if (Label) hs = SUMA_copy_string(Label);
    else hs = SUMA_copy_string("NULL_");
-   if (Parent_idcode_str) hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
+   if (Parent_idcode_str) 
+      hs = SUMA_append_replace_string(hs,Parent_idcode_str,"_",1);
    else hs = SUMA_append_replace_string(hs,"NULL","",1);
    SDO->idcode_str = UNIQ_hashcode(hs);
    SUMA_free(hs); hs = NULL;
@@ -2373,7 +2381,8 @@ SUMA_Boolean SUMA_CreatePlaneQuads(SUMA_PlaneDO *SDO)
 {
    static char FuncName[]={"SUMA_CreatePlaneQuads"};
    int i, j, N_n3, i3, n, k;
-   GLfloat *boxdimv, xlim[2], ylim[2], zlim[2], xtmp[4], ytmp[4], ztmp[4], eqn[3], *eq, a;
+   GLfloat *boxdimv, xlim[2], ylim[2], zlim[2], 
+            xtmp[4], ytmp[4], ztmp[4], eqn[3], *eq, a;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3231,6 +3240,17 @@ int SUMA_NIDO_TexCoordGen(NI_element *nel)
    else if (!strcmp(atr,"sphere")) return(GL_SPHERE_MAP);
    else return(GL_SPHERE_MAP);
 }
+int SUMA_NIDO_QuadricStyle(NI_element *nel) 
+{
+   char *atr=NI_get_attribute(nel,"style");
+   if (!atr) return(GLU_FILL);
+   if (!strcmp(atr,"fill")) return(GLU_FILL);
+   else if (!strcmp(atr,"line")) return(GLU_LINE);
+   else if (!strcmp(atr,"silhouette")) return(GLU_SILHOUETTE);
+   else if (!strcmp(atr,"point")) return(GLU_POINT);
+   else return(GLU_FILL);
+}
+
 SUMA_Boolean SUMA_DrawTextureNIDOnel( NI_element *nel, 
                                     SUMA_SurfaceObject *default_SO,
                                     SUMA_DO_CoordUnits default_coord_units,
@@ -3654,6 +3674,100 @@ SUMA_Boolean SUMA_DrawTextNIDOnel(  NI_element *nel,
    SUMA_RETURN(YUP);
 }
 
+SUMA_Boolean SUMA_DrawSphereNIDOnel(  NI_element *nel, 
+                                    SUMA_SurfaceObject *default_SO,
+                                    SUMA_DO_CoordUnits default_coord_units,
+                                    float *default_color, 
+                                    SUMA_SurfaceViewer *sv) 
+{
+   static char FuncName[]={"SUMA_DrawSphereNIDOnel"};
+   char  *string=NULL, *atr=NULL;
+   GLfloat rpos[4];
+   float Dx = 0.0;
+   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   float txloc[3] = {0.0, 0.0, 0.0};
+   GLfloat txcol[4];
+   GLfloat rad = 0.0;
+   int orthoreset = 0;
+   int id=0, is = 0, sz[3]={0, 0,0}, slices, stacks;
+   GLfloat origwidth=0.0, LineWidth=2.0;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_DO_CoordUnits coord_units = default_coord_units;
+   static GLUquadricObj *sphobj=NULL;
+   GLenum style=GLU_FILL;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY; 
+
+   if (!nel || strcmp(nel->name,"S")) SUMA_RETURN(NOPE); 
+
+   SUMA_LHv(  "default_coord_units %d\n", default_coord_units);
+   
+   if (!sphobj) sphobj = gluNewQuadric(); /* This is created once 
+                                             BUT NEVER freed. So technically
+                                             it is a memory leak */
+   
+       
+   NI_GET_FLOATv(nel,"col", txcol, 4, LocalHead);
+   
+   if (!NI_GOT) {
+      txcol[0] = default_color[0];
+      txcol[1] = default_color[1];
+      txcol[2] = default_color[2];
+      txcol[3] = default_color[3];
+   }
+   
+   /* set up projection conditions and coordinates */
+   if (!SUMA_PrepForNIDOnelPlacement(sv, nel, default_SO, 
+                                     txloc, NULL, sz, 
+                                     &orthoreset, coord_units)) {
+      SUMA_RETURN(NOPE);
+   }    
+
+   glGetFloatv(GL_LINE_WIDTH, &origwidth);
+   NI_GET_FLOAT(nel,"line_width", LineWidth);
+   if (!NI_GOT) LineWidth = 2;
+   glLineWidth(LineWidth);
+      
+   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, txcol);
+   glMaterialfv(GL_FRONT, GL_EMISSION, txcol);
+   glColor3fv(txcol); 
+   
+   NI_GET_FLOAT(nel,"rad", rad);
+   if (!NI_GOT) rad = 10;
+
+   NI_GET_INT(nel,"slices", slices);
+   if (!NI_GOT) slices = 10;
+   NI_GET_INT(nel,"stacks", stacks);
+   if (!NI_GOT) stacks = 10;
+
+   style = SUMA_NIDO_QuadricStyle(nel);
+   gluQuadricDrawStyle (sphobj, style);
+   if (style == GLU_FILL) 
+      gluQuadricNormals (sphobj , GLU_SMOOTH);
+   else
+      gluQuadricNormals (sphobj , GLU_NONE);
+   
+   glTranslatef (txloc[0], txloc[1], txloc[2]);
+   gluSphere(sphobj, rad/* *SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06)  
+                  User set values, not cool to play with dimensions! */, 
+             slices, stacks);
+   glTranslatef (-txloc[0], -txloc[1], -txloc[2]);
+   
+   glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+   glLineWidth(origwidth);
+
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
+      /*turn off emissidity */   
+
+   if (orthoreset) {/* return value */
+      /* and just pop what you'd pushed in */
+      glPopMatrix();
+   }
+   
+   SUMA_RETURN(YUP);
+}
 
 SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
 {
@@ -3800,6 +3914,13 @@ SUMA_Boolean SUMA_DrawNIDO (SUMA_NIDO *SDO, SUMA_SurfaceViewer *sv)
                                        default_coord_units,
                                        default_color, 
                                        default_font, sv)) {
+               SUMA_S_Warnv("Failed to draw %s\n", nel->name);
+            }
+         } else if (! strcmp(nel->name,"S")) {
+            if (!SUMA_DrawSphereNIDOnel( nel, default_SO, 
+                                       default_coord_units,
+                                       default_color, 
+                                       sv)) {
                SUMA_S_Warnv("Failed to draw %s\n", nel->name);
             }
          } else if (! strcmp(nel->name,"I")) {
@@ -4809,9 +4930,12 @@ SUMA_Boolean SUMA_Draw_SO_NBSP (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, 
          case NBSP_type:
             SDO = (SUMA_SphereDO *)dov[i].OP;
             if (SUMA_isNBDOrelated ((SUMA_NB_DO *)SDO, SO)) { /* draw it */
-               if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing spheres \n", FuncName);
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR, "%s: Drawing spheres \n", FuncName);
                if (!SUMA_DrawSphereDO (SDO, sv)) {
-                  fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_DrawSphereDO.\n", FuncName);
+                  fprintf( SUMA_STDERR, 
+                           "Error %s: Failed in SUMA_DrawSphereDO.\n", 
+                           FuncName);
                }
             }
          default:
