@@ -209,6 +209,8 @@ HELP:
    echo "Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp] [-child CHILD_2 ... CHILD_N] "
    echo ""
    echo "   Moves the center of DSET to the center of BASE."
+   echo "   Center refers to the center of the volume's voxel grid, "
+   echo "   and not the brain's center of mass."
    echo ""
    echo "   AND/OR creates the transform matrix needed for this shift."
    echo "   The transform can be used with 3dAllineate's -1D_matrix_apply"
