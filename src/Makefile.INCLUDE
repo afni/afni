@@ -2210,6 +2210,9 @@ rmz:rmz.o
 uncomment:uncomment.o
 	$(CC) -o uncomment uncomment.o $(LFLAGS) $(LLIBS)
 
+help_format:help_format.o
+	$(CC) -o help_format help_format.o
+
 ibinom:ibinom.o
 	$(CC) -o ibinom ibinom.o $(LFLAGS) $(LLIBS)
 

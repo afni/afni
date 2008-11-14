@@ -966,8 +966,8 @@ int main( int argc , char *argv[] )
        printf("\n") ;
        printf(" * For more information about the 'lpc' functional, see\n"
               "     ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, RW Cox.\n"
-              "       'A new method for improving functional-to-structural\n"
-              "       MRI alignment using local Pearson correlation'.\n"
+              "       A new method for improving functional-to-structural\n"
+              "       MRI alignment using local Pearson correlation.\n"
               "       NeuroImage (in press).\n"
               "     http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
               "   The '-blok' option can be used to control the regions\n"

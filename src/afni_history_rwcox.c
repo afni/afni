@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , NOV , 2008 , RWC , "help_format" , MICRO , TYPE_NEW_PROG ,
+   "For formatting -help output into Web pages with hyperlinks." ,
+   "To be used with the dist_help script for making the help Web pages from\n"
+   "the -help outputs of all AFNI programs." } ,
+
  { 11 , NOV , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
    "-usetemp now also saves output dataset stuff to TMPDIR." ,
    NULL } ,
