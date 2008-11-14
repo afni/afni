@@ -52,7 +52,7 @@ LIBDIR = $(INSTALLDIR)
 
 #INSTALL_PREREQ = suma
 INSTALL_PREREQ = suma_gts
-EXPROGS = gifti_tool
+EXPROGS = gifti_tool help_format
 
 # for dynamic linking
 
