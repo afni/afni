@@ -37,7 +37,7 @@ interpolation method can be used instead if speed is vital.  The
 registration and rotation routines in 3dvolreg (and plug_volreg)
 have been carefully written for efficiency.  As a result, 3dvolreg
 is several times faster than AIR 3.08 (available from Roger Woods
-at http://bishopw.loni.ucla.edu/AIR3/index.html).  Using Fourier
+at http://bishopw.loni.ucla.edu/AIR3/index.html ).  Using Fourier
 interpolation in 3dvolreg and trilinear interpolation in AIR, 3dvolreg
 was 2-3 times faster on some typical FMRI datasets (128x128x30x80).
 Dropping to 7th order (heptic) polynomial interpolation speeds up
