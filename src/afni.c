@@ -365,6 +365,21 @@ void AFNI_syntax(void)
    ) ;
 
    printf(
+    "--------------------\n"
+    "Educational Material\n"
+    "--------------------\n"
+    "The presentations used in our AFNI teaching classes at the NIH can\n"
+    "all be found at\n"
+    " http://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
+    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/ (PDF directory)\n"
+    "\n"
+    "For help with AFNI problems, please use the AFNI Message Board:\n"
+    " http://afni.nimh.nih.gov/afni/community/board/\n"
+    "If an AFNI program crashes, please include the EXACT error messages\n"
+    "it outputs in your message board posting.\n"
+   ) ;
+
+   printf(
     "\n"
     "----------\n"
     "REFERENCES\n"
@@ -377,6 +392,7 @@ void AFNI_syntax(void)
     "\n"
     "  * The first AFNI paper, and the one I prefer you cite if you want to\n"
     "    refer to the AFNI package as a whole.\n"
+    "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/CBM_1996.pdf\n"
     "\n"
     "RW Cox, A Jesmanowicz, and JS Hyde.  Real-time functional magnetic\n"
     "  resonance imaging.  Magnetic Resonance in Medicine, 33: 230-236, 1995.\n"
@@ -394,11 +410,21 @@ void AFNI_syntax(void)
     "\n"
     "  * Describes the algorithm used for image registration in 3dvolreg\n"
     "    and in the realtime plugin.\n"
+    "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/RealtimeRegistration.pdf\n"
     "\n"
     "ZS Saad, KM Ropella, RW Cox, and EA DeYoe.  Analysis and use of FMRI\n"
     "  response delays.  Human Brain Mapping, 13: 74-93, 2001.\n"
     "\n"
     "  * Describes the algorithm used in 3ddelay (cf. '3ddelay -help').\n"
+    "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/Delays2001.pdf\n"
+    "\n"
+    "ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, RW Cox.\n"
+    "  A new method for improving functional-to-structural MRI alignment\n"
+    "  using local Pearson correlation.  NeuroImage (in press).\n"
+    "\n"
+    "  * Describes the algorithm used in 3dAllineate for EPI-to-structural\n"
+    "    volume image registration.\n"
+    "  * http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
    ) ;
 
    PRINT_COMPILE_DATE ; exit(0) ;
