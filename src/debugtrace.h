@@ -120,7 +120,13 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
                    "  Compile date = " __DATE__ "\n" );
 #endif
 
-   fprintf(stderr,"** Program Abort **\n") ; fflush(stderr) ;
+   fprintf(stderr,"** Program Abort **\n") ;
+   if( sig != SIGINT && sig != SIGTERM )
+   fprintf(stderr,"** If you report this crash to the AFNI message board,\n"
+                  "** please copy the error messages EXACTLY, and give\n"
+                  "** the command line you used to run the program, and\n"
+                  "** any other information needed to repeat the problem.\n");
+   fflush(stderr) ;
    MPROBE ; exit(1) ;
 }
 
