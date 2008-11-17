@@ -1,4 +1,5 @@
 #include "afni.h"
+#include "afni_plugout.h"
 #include <X11/keysym.h>
 
 /******************************************************************************
@@ -405,6 +406,7 @@ static int AFNI_drive_quiet_plugouts( char *cmd)
 {
    iochan_enable_perror(0) ;
    AFNI_plugout_verb(0);
+   RETURN(0) ;
 }
 
 /* make AFNI verbose when communicating with plugouts */
@@ -412,6 +414,7 @@ static int AFNI_drive_noisy_plugouts( char *cmd)
 {
    iochan_enable_perror(1) ;
    AFNI_plugout_verb(1);
+   RETURN(0) ;
 }
 
 
