@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.8,  Oct. 10, 2008")
+print("Version 0.1.0,  Nov. 17, 2008")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -20,24 +20,38 @@ libLoad <- function(myLib) {
 }
 
 # header assumed for multi-column files, but not for one-column ones
-readMultiFiles <- function(nFiles, dim, inData) { 
-   inFile <- vector('list', nFiles)  # list of file names with path attached
+# readMultiFiles <- function(nFiles, dim, inData) { 
+#    inFile <- vector('list', nFiles)  # list of file names with path attached
+# 	fn <- vector('list', nFiles)      # ist of file names
+#    for (ii in 1:nFiles) {
+#       inFile[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
+#          "{{Files} {.1D}} {{All files} *}",
+#          title = paste('Choose number', ii, 'input file')))
+#       fn[[ii]] <- strsplit(inFile[[ii]], "/")[[1]][length(strsplit(inFile[[ii]], "/")[[1]])]
+# 		print(sprintf("No. %i file just read in: %s", ii, fn[[ii]]))
+# 		if (dim==1) inData[,ii] <- read.table(inFile[[ii]], header=FALSE)
+# 		if (dim==2) inData[[ii]] <- read.table(inFile[[ii]], header=TRUE)    
+#    }
+# 	return(inData)
+# }
+
+readMultiFiles <- function(nFiles, dim, inData) {
+   inFile <- vector('list', nFiles) # list of file names with path attached
 	fn <- vector('list', nFiles)      # ist of file names
-   for (ii in 1:nFiles) {
-      inFile[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
-         "{{Files} {.1D}} {{All files} *}",
-         title = paste('Choose number', ii, 'input file')))
-      fn[[ii]] <- strsplit(inFile[[ii]], "/")[[1]][length(strsplit(inFile[[ii]], "/")[[1]])]
+	for (ii in 1:nFiles) {
+	   inFile[[ii]] <- readline(sprintf("No. %i ROI time series file name: ", ii))
+		fn[[ii]] <- strsplit(inFile[[ii]], "/")[[1]][length(strsplit(inFile[[ii]], "/")[[1]])]
 		print(sprintf("No. %i file just read in: %s", ii, fn[[ii]]))
 		if (dim==1) inData[,ii] <- read.table(inFile[[ii]], header=FALSE)
-		if (dim==2) inData[[ii]] <- read.table(inFile[[ii]], header=TRUE)    
-   }
-	return(list(fn, inData))
+		if (dim==2) inData[[ii]] <- read.table(inFile[[ii]], header=TRUE)
+	}
+	return(inData)
 }
+
 
 plotTS <- function(dataFrame, nCurves, msg) {
    if (nCurves <= 5) {
-      x11(); par(mfrow=c(nCurves, 1))
+      dev.new(); par(mfrow=c(nCurves, 1))
 	   for (ii in 1:nCurves) {
 	      plot(dataFrame[,ii], ann=FALSE, axes=TRUE)
 		   if (ii==1) title(msg)
@@ -46,7 +60,7 @@ plotTS <- function(dataFrame, nCurves, msg) {
       }
 		mtext("time", side=1, line=2.5)
 	} else for (ii in 1:nCurves) {
-		   x11()
+		   dev.new()
 		   plot(dataFrame[,ii], ann=FALSE, axes=TRUE)
 			title(msg)
 			lines(dataFrame[,ii])
@@ -58,7 +72,7 @@ plotTS <- function(dataFrame, nCurves, msg) {
 # plot network
 plotNet <- function(net, selfLoop, edgeWd, arrScl, edgeCol, msg) {
 	netData <- network(net, loops=selfLoop, directed=TRUE)
-	X11()
+	dev.new()
 	plot.network(netData, displaylabels=selfLoop, mode="circle", edge.lwd=edgeWd,
 		arrowhead.cex=arrScl, edge.col=edgeCol, loop.cex=5, 
 		boxed.label=FALSE, label.pos=0, vertex.col=3)
@@ -93,10 +107,11 @@ print("Header with one line of labels is optional in multi-column files, but NOT
 yForm <- as.integer(readline("ROI time series data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))     # input format
 
 if (yForm) { # read ROI file (in dataframe), and take label from the header
-   fn <- tclvalue( tkgetOpenFile( filetypes = 
-      "{{ROI files in multi-column 1D format} {.1D}} {{All files} *}",
-      title = paste('Choose ROIs time series file')))
-   print(sprintf("File just read in: %s", strsplit(fn, "/")[[1]][length(strsplit(fn, "/")[[1]])]))
+#   fn <- tclvalue( tkgetOpenFile( filetypes = 
+#      "{{ROI files in multi-column 1D format} {.1D}} {{All files} *}",
+#      title = paste('Choose ROIs time series file')))
+   fn <- readline("ROIs time series file name: ")
+	print(sprintf("File just read in: %s", strsplit(fn, "/")[[1]][length(strsplit(fn, "/")[[1]])]))
    yHeader <- as.integer(readline("Does this multi-column file have a header (0: no; 1: yes)? ")) 
    if (yHeader == 1) myData <- read.table(fn, header=TRUE) else {
       myData <- read.table(fn, header=FALSE)
@@ -107,35 +122,36 @@ if (yForm) { # read ROI file (in dataframe), and take label from the header
 } else {
 
    fn <- vector('list', nROIs)
-   fn[[1]] <- tclvalue(tkgetOpenFile(filetypes = 
-      "{{ROI files in one-column 1D format} {.1D}} {{All files} *}",
-      title = paste('Choose number', 1, 'ROI time series file')))
-   print(sprintf("No. %i file just read in: %s", 1, strsplit(fn[[1]], "/")[[1]][length(strsplit(fn[[1]], "/")[[1]])]))
+#   fn[[1]] <- tclvalue(tkgetOpenFile(filetypes = 
+#      "{{ROI files in one-column 1D format} {.1D}} {{All files} *}",
+#      title = paste('Choose number', 1, 'ROI time series file')))
+   fn[[1]] <- readline(sprintf("No. 1 ROI time series file name: "))
+	print(sprintf("No. %i file just read in: %s", 1, strsplit(fn[[1]], "/")[[1]][length(strsplit(fn[[1]], "/")[[1]])]))
    myData <- data.frame(matrix(data=NA, nrow=dim(read.table(fn[[1]], header=FALSE))[1], ncol=nROIs, dimnames = NULL))
    myData[,1] <- read.table(fn[[1]], header=FALSE)
    for (ii in 2:nROIs) { # read ROI 1D file (in 1 column)
-   fn[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
-      "{{ROI files in one-column format} {.1D}} {{All files} *}",
-      title = paste('Choose number', ii, 'ROI time series file')))
-   print(sprintf("No. %i file just read in: %s", ii, strsplit(fn[[ii]], "/")[[1]][length(strsplit(fn[[ii]], "/")[[1]])]))
+#   fn[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
+#      "{{ROI files in one-column format} {.1D}} {{All files} *}",
+#      title = paste('Choose number', ii, 'ROI time series file')))
+   fn[[ii]] <- readline(sprintf("No. %i ROI time series file name: ", ii))
+	print(sprintf("No. %i file just read in: %s", ii, strsplit(fn[[ii]], "/")[[1]][length(strsplit(fn[[ii]], "/")[[1]])]))
 	myData[,ii] <- read.table(fn[[ii]], header=FALSE)    
-} #for (ii in 2:nROIs)
-
+   } #for (ii in 2:nROIs)
+	for (ii in 1:nROIs) names(myData)[ii] <- readline(sprintf("Name for region/node number %i? ", ii))
 # take labels from the filenames
-ROIlab <- vector('list', nROIs)
-for (ii in 1:nROIs) ROIlab[[ii]] <- strsplit(strsplit(fn[[ii]], "/")[[1]][length(strsplit(fn[[ii]], "/")[[1]])], ".1D")[[1]]
-
-names(myData) <- ROIlab 
-nTotal <- dim(myData)[1]
+#   ROIlab <- vector('list', nROIs)
+#   for (ii in 1:nROIs) ROIlab[[ii]] <- strsplit(strsplit(fn[[ii]], "/")[[1]][length(strsplit(fn[[ii]], "/")[[1]])], ".1D")[[1]]
+#   names(myData) <- ROIlab
+   nTotal <- dim(myData)[1]
 }
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 print("If there are n consecutive chunks of data, enter n-1 here.")
 print("If all the time series are consecutive, enter 0 breaks.")
-nBreaks <- as.integer(readline("Number of breaks in the time series? "))+1     # number of runs
+nChunks <- as.integer(readline("Number of breaks in the time series? "))+1     # number of runs
 
-nPts <- array(data = NA, dim=nBreaks)
-if (nBreaks == 1) nPts[1] <- nTotal else
-for (ii in 1:nBreaks) nPts[ii] <- as.integer(readline(paste("Length of number", ii, "run/segment? ")))
+nPts <- array(data = NA, dim=nChunks)
+if (nChunks == 1) nPts[1] <- nTotal else
+for (ii in 1:nChunks) nPts[ii] <- as.integer(readline(paste("Length of number", ii, "run/segment? ")))
 
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -154,20 +170,20 @@ if (as.logical(COV)) {
 	print("Header with one line of labels is optional in multi-column files, but NOT allowed in one-column files.")
 	covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))     # covariates format
    if (covForm) {
-      fncov <- tclvalue( tkgetOpenFile( filetypes = 
-      "{{Covariate File} {.1D}} {{All files} *}",
-      title = paste('Choose covariates file in multi-column format')))
-      
+#      fncov <- tclvalue( tkgetOpenFile( filetypes = 
+#      "{{Covariate File} {.1D}} {{All files} *}",
+#      title = paste('Choose covariates file in multi-column format')))
+      fncov <- readline("Covariates file name: ")
 		covHeader <- as.integer(readline("Does this multi-column file have a header (0: no; 1: yes)? "))
 		if (covHeader == 1) exData <- read.table(fncov, header=TRUE) else {
          exData <- read.table(fncov, header=FALSE)
          for (ii in 1:nROIs) names(exData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
-      }whYnOT6834
+      }
    } else {
 #      covn <- vector('list', nCOVs)
       exData <- data.frame(matrix(data=NA, nrow=nTotal, ncol=nCOVs, dimnames = NULL))
-      exTmp <- readMultiFiles(nCOVs, 1, exData)
-		covFN <- exTmp[[1]]; exData <- exTmp[[2]]
+      exData <- readMultiFiles(nCOVs, 1, exData)
+#		covFN <- exTmp[[1]]; exData <- exTmp[[2]]
 			
 #		for (ii in 1:nCOVs) {
 #         covn[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
@@ -176,11 +192,12 @@ if (as.logical(COV)) {
 #         print(sprintf("No. %i file just read in: %s", ii, strsplit(covn[[ii]], "/")[[1]][length(strsplit(covn[[ii]], "/")[[1]])]))
 #			exData[,ii] <- read.table(covn[[ii]], header=FALSE)    
 #      }
-      COVlab <- vector('list', nCOVs)
-      for (ii in 1:nCOVs) COVlab[[ii]] <- strsplit(covFN[[ii]], ".1D")[[1]]
-      names(exData) <- COVlab
+      for (ii in 1:nCOVs) names(exData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
+#		COVlab <- vector('list', nCOVs)
+#      for (ii in 1:nCOVs) COVlab[[ii]] <- strsplit(covFN[[ii]], ".1D")[[1]]
+#      names(exData) <- COVlab
    }
-} else exData <- NULL
+} else {exData <- NULL; nCOVs <- 0}
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
 # plot out the time series, and let the user make sure they look OK
@@ -201,22 +218,22 @@ print(sprintf("If normalization was NOT performed during pre-processing, you can
 scaleTS <- as.integer(readline("Scale the ROI time series (0: no; 1: yes)? "))
 if (scaleTS) {
    jumpPts <- 0
-   for (ii in 1:nBreaks) {
+   for (ii in 1:nChunks) {
       for (jj in 1:nROIs) newData[(jumpPts+1):(jumpPts+nPts[ii]),jj] <- 
          myData[(jumpPts+1):(jumpPts+nPts[ii]),jj]/mean(myData[(jumpPts+1):(jumpPts+nPts[ii]),jj])
-	  if (ii < nBreaks) jumpPts <- jumpPts+nPts[ii]
+	  if (ii < nChunks) jumpPts <- jumpPts+nPts[ii]
 	}
 }
 
 # create exogenous variables with Legendre polynomials from gsl
 if (nPoly > -1) {
-   trendMat <- as.data.frame(array(0, dim = c(nTotal, (nPoly+1)*nBreaks)))
+   trendMat <- as.data.frame(array(0, dim = c(nTotal, (nPoly+1)*nChunks)))
    jumpPts <- 0
-   for (ii in 1:nBreaks) {
+   for (ii in 1:nChunks) {
 	  trendMat[(jumpPts+1):(jumpPts+nPts[ii]),(1+(nPoly+1)*(ii-1)):((nPoly+1)*ii)] <- 
 	      t(legendre_Pl_array(nPoly, seq(from=-1,to=1,len=nPts[ii])))    
       names(trendMat)[(1+(nPoly+1)*(ii-1)):((nPoly+1)*ii)] <- sprintf("Run%iTrend%i", ii, seq(nPoly+1)-1)
-      if (ii < nBreaks) jumpPts <- jumpPts+nPts[ii]
+      if (ii < nChunks) jumpPts <- jumpPts+nPts[ii]
    }
    if (is.null(exData)) exMat <- trendMat else exMat <- cbind(trendMat, exData)
 } else exMat <- exData # if no baseline and trend, do nothing
@@ -243,10 +260,10 @@ while (anotherLag) {
 nLags <- as.integer(readline("Select order of VAR model based on above criteria (e.g., 3)? "))
 
 # generate intervention dummy variables for across-run/block breaks: nLags dummies per run
-if (nBreaks > 1) {
-	breakMat <- as.data.frame(array(0, dim = c(nTotal, (nBreaks-1)*nLags)))
+if (nChunks > 1) {
+	breakMat <- as.data.frame(array(0, dim = c(nTotal, (nChunks-1)*nLags)))
 	jumpPts <- 0
-	for (ii in 1:(nBreaks-1)) {
+	for (ii in 1:(nChunks-1)) {
 		jumpPts <- jumpPts+nPts[ii]
 		for (jj in 1:(nLags)) {
 		   breakMat[,(ii-1)*nLags+jj] <- c(rep(0, jumpPts+jj-1), 1, rep(0, nTotal-jumpPts-jj))
@@ -279,7 +296,7 @@ print("-----------------")
 print("Autoregressive conditional heteroskedasticity (ARCH) test")
 print(arch.test(fm))
 archPlot <- as.integer(readline("Plot out ARCH test result (0: no; 1: yes)? "))
-if (archPlot) {X11(); plot(arch.test(fm))}
+if (archPlot) {dev.new(); plot(arch.test(fm))}
 print("-----------------")
 statPlot <- as.integer(readline("Plot out stability test (0: no; 1: yes)? "))
 if (statPlot) {	
@@ -303,7 +320,7 @@ if (statPlot) {
    if (procNo==6) procType <- "ME"
    if (procNo==7) procType <- "Score-CUSUM"
    if (procNo==8) procType <- "Score-CUSUM"
-   X11(); plot(stability(fm, type = procType, h = 0.15, dynamic = FALSE, rescale = TRUE))
+   dev.new(); plot(stability(fm, type = procType, h = 0.15, dynamic = FALSE, rescale = TRUE))
    anotherType <- as.integer(readline("Want to plot stability with another type (0: no; 1: yes)? "))
    } # while (anotherType)
 } # if (statPlot)
@@ -312,12 +329,13 @@ print("-----------------")
 checkCov <- as.integer(readline("Check significance of covariates (0: no; 1: yes)? "))
 if (checkCov) {
    anotherCovPth <- TRUE
+	totCOVs <- (nPoly+1)*nChunks+nCOVs  # total covariates
    while (anotherCovPth) {
 	   pCovThresh <- as.numeric(readline("p-threshold for covariates (e.g., 0.05)? "))
 		#Info about all the covariates:
-		#lapply(coef(fm), function(x) x[(nROIs*nLags+1):(nROIs*nLags+(nPoly+1)*nBreaks+nCOVs),])
-		covPList <- lapply(coef(fm), function(x) x[(nROIs*nLags+1):(nROIs*nLags+(nPoly+1)*nBreaks+nCOVs),4]<=pCovThresh)
-		#covSigList <- vector(mode="logical", (nPoly+1)*nBreaks+nCOVs)
+		#lapply(coef(fm), function(x) x[nROIs*nLags+(1:totCOVs),])
+		covPList <- lapply(coef(fm), function(x) x[nROIs*nLags+(1:totCOVs),4]<=pCovThresh)
+		#covSigList <- vector(mode="logical", totCOVs)
 		#for (ii in 1:nROIs) covSigList <- covSigList+covPList[[ii]]
 		covSigList <- apply(do.call(cbind, covPList), 1, sum)
 		# detailed info: apply(do.call(cbind, covPList), c(1,2), sum)
@@ -371,7 +389,7 @@ if (nLags>1) { # overall network with all lags collapsed
    netCMatP <- matrix(data=NA, nrow=nROIs, ncol=nROIs, dimnames = list(names(myData), names(myData)))
 	fTest <- vector("list", nROIs)  # initialization for F test name list
 	for (ii in 1:nROIs) for (jj in 1:nLags)
-	fTest[[ii]] <- c(fTest[[ii]], sprintf("%s.l%d",names(myData)[ii],jj))
+	   fTest[[ii]] <- c(fTest[[ii]], sprintf("%s.l%d",names(myData)[ii],jj))
 	for (ii in 1:nROIs) for (jj in 1:nROIs) {
 	   ltTmp <- linear.hypothesis(fm$varresult[[ii]], fTest[[jj]])
 		netCMatF[jj, ii] <- ltTmp$F[2]; netCMatP[jj, ii] <- ltTmp$Pr[2]	
@@ -396,6 +414,12 @@ if (nLags>1) { # overall network with all lags collapsed
       write.table(netCMatP, file=sprintf("%s.1D", matCPName), append=FALSE)
    }	   	
    print("-----------------")
+#	totCOVs <- (nPoly+1)*nChunks+nCOVs
+#	fCovTest <- vector("list", totCOVs)  # initialization for covariate F test name list
+#	for (ii in 1:totCOVs)
+#	   fCovTest[[ii]] <- names(myData)[ii],jj)
+		
+		
 } # if (nLags>1)	
 
 print("Covariance matrix of residuals:")
@@ -423,7 +447,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++")
 plotFit <- as.integer(readline("Plot out the model fit, residuals, residual ACF and PACF (0: no; 1: yes)? "))
 print("-----------------")
 
-if (plotFit) { X11(); plot(fm) }
+if (plotFit) { dev.new(); plot(fm) }
 
 anotherPth <- TRUE
 while (anotherPth) {
@@ -520,7 +544,7 @@ while (doneGrp) {
 nSubjs <- as.integer(readline("Number of subjects (e.g., 12)? "))     # number of subjects
 #gfn <- vector('list', nSubjs)
 pathList <- vector('list', nSubjs)
-pathList <- readMultiFiles(nSubjs, 2, pathList)[[2]]
+pathList <- readMultiFiles(nSubjs, 2, pathList)
 
 #for (ii in 1:nSubjs) { # read in path matrices
 #   fn[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
@@ -532,6 +556,8 @@ pathList <- readMultiFiles(nSubjs, 2, pathList)[[2]]
 
 nROIsG <- dim(pathList[[1]])[1]
 roiNames <- names(pathList[[1]])
+
+pthType <- as.integer(readline("Input type (0: path coefficients; 1: path t values; 2: path F values)? "))
 
 #zArray <- array(data=unlist(lapply(pathList, fisherz)), dim=c(nROIsG, nROIsG, nSubjs))
 #grpMat <- array(data=NA, dim=c(nROIsG, nROIsG, 2))
@@ -545,6 +571,12 @@ roiNames <- names(pathList[[1]])
 
 # Instead of looping, we can also use the following aggregation approach
 zList <- lapply(pathList, fisherz)  # sapply(pathList, fisherz, simplify = FALSE)
+
+if (pthType==0) 
+   zList <- lapply(pathList, fisherz)  # sapply(pathList, fisherz, simplify = FALSE)
+if (pthType==1)
+	zList <- lapply(pathList, function(x) log(x^2))
+
 resList <- apply(do.call(rbind, lapply(lapply(zList, as.matrix), c)), 2, t.test)
 tList <- lapply(resList, function(x) as.numeric(x$statistic))
 pList <- lapply(resList, function(x) as.numeric(x$p.value))
@@ -611,6 +643,6 @@ if (anaType==0 || anotherAna==0 || doneGrp==0) {
    quitMe <- as.integer(readline("Quit R (0: no; 1: yes)? "))
 	print("***********Thanks for using the program!***********")
 	print("Any feedback would be welcome - Gang Chen (gangchen@mail.nih.gov)")
-   if (quitMe) q()
+   if (quitMe) {dev.off(); q()}
 }
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
