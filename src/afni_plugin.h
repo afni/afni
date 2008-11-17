@@ -48,9 +48,17 @@ struct AFNI_plugin_array ; /* incomplete definition */
    HP-UX is different).
 *******************************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef int int_func() ;     /* generic function returning integer */
 typedef void * vptr_func() ; /* generic function returning void *  */
 typedef char * cptr_func() ; /* generic function returning char *  */
+
+#ifdef __cplusplus
+}
+#endif
 
 /***************** The dlfcn.h and dl library ****************/
 
@@ -60,6 +68,10 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 #  include <dlfcn.h>
 #else
 #  include "dlcompat/dlfcn.h"
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
    typedef void * DYNAMIC_handle ;
@@ -78,6 +90,10 @@ typedef char * cptr_func() ; /* generic function returning char *  */
       (address) = dlsym( (handle) , (symbol) )
 
 #  define DYNAMIC_suffix ".so"
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
 /****************** The dl.h and dld library ******************/
@@ -86,6 +102,9 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 #  include <dl.h>
 #  include <errno.h>  /* 18 May 2001 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
    typedef shl_t DYNAMIC_handle ;
 
 #  define ISVALID_DYNAMIC_handle(handle) ((handle) != (DYNAMIC_handle) 0)
@@ -104,6 +123,13 @@ typedef char * cptr_func() ; /* generic function returning char *  */
                               TYPE_UNDEFINED , &(address) ) ; } while(0)
 
 #  define DYNAMIC_suffix ".sl"
+#ifdef __cplusplus
+}
+#endif
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #ifdef NO_DYNAMIC_LOADING             /* this stuff is not actually used,  */
@@ -704,5 +730,9 @@ extern Boolean PLUG_workprocess( XtPointer ) ;
 extern void PLUTO_register_timeout( int, generic_func *, XtPointer ) ;
 extern double PLUTO_cpu_time(void) ;
 extern double PLUTO_elapsed_time(void) ;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _AFNI_PLUGIN_HEADER_ */

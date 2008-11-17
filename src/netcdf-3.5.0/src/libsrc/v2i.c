@@ -72,14 +72,14 @@ nvdims(int ncid, int varid)
 /*
  * Error code
  */
-int ncerr = NC_NOERR ;
+int afni_ncerr = NC_NOERR ;
 
 
 /*
  * The subroutines in error.c emit no messages unless NC_VERBOSE bit is on.
  * They call exit() when NC_FATAL bit is on.
  */
-int ncopts = (NC_FATAL | NC_VERBOSE) ;
+int afni_ncopts = (NC_FATAL | NC_VERBOSE) ;
 
 
 /*
@@ -105,11 +105,11 @@ nc_advise(const char *routine_name, int err, const char *fmt,...)
 	va_list args;
 
 	if(NC_ISSYSERR(err))
-		ncerr = NC_SYSERR;
+		afni_ncerr = NC_SYSERR;
 	else
-		ncerr = err;
+		afni_ncerr = err;
 
-	if( ncopts & NC_VERBOSE )
+	if( afni_ncopts & NC_VERBOSE )
 	{
 		(void) fprintf(stderr,"%s: ", routine_name);
 		va_start(args ,fmt);
@@ -124,9 +124,9 @@ nc_advise(const char *routine_name, int err, const char *fmt,...)
 		(void) fflush(stderr);	/* to ensure log files are current */
 	}
 
-	if( (ncopts & NC_FATAL) && err != NC_NOERR )
+	if( (afni_ncopts & NC_FATAL) && err != NC_NOERR )
 	{
-		exit(ncopts);
+		exit(afni_ncopts);
 	}
 }
 
