@@ -189,7 +189,7 @@ EXTERNL const char *
 nc_inq_libvers(void);
 
 EXTERNL const char *
-nc_strerror(int ncerr);
+nc_strerror(int afni_ncerr);
 
 EXTERNL int
 nc__create(const char *path, int cmode, size_t initialsz,
@@ -815,7 +815,7 @@ nc_inq_base_pe(int ncid, int *pe);
 /*
  * Global error status
  */
-EXTERNL int ncerr;
+EXTERNL int afni_ncerr;
 
 #define NC_ENTOOL       NC_EMAXNAME   /* Backward compatibility */
 #define	NC_EXDR		(-32)	/* */
@@ -836,7 +836,7 @@ EXTERNL int ncerr;
 #define	NC_FATAL	1
 #define	NC_VERBOSE	2
 
-EXTERNL int ncopts;	/* default is (NC_FATAL | NC_VERBOSE) */
+EXTERNL int afni_ncopts;	/* default is (NC_FATAL | NC_VERBOSE) */
 
 EXTERNL void
 nc_advise(const char *cdf_routine_name, int err, const char *fmt,...);

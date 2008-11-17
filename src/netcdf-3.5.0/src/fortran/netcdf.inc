@@ -179,11 +179,11 @@
       external       nf_inq_libvers
 
       character*80   nf_strerror
-!                         (integer             ncerr)
+!                         (integer             afni_ncerr)
       external       nf_strerror
 
       logical        nf_issyserr
-!                         (integer             ncerr)
+!                         (integer             afni_ncerr)
       external       nf_issyserr
 
 !
