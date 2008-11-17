@@ -14,6 +14,7 @@
                                      
 extern void AFNI_init_plugouts( void ) ;  /* prototypes */
 extern int AFNI_have_plugouts( void ) ;   /* 07 Nov 2001 */
+extern void AFNI_plugout_verb( int ) ; /* 14 Oct 2008 */
 
 #ifdef ALLOW_PLUGINS
 
