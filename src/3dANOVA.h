@@ -11,17 +11,17 @@
    File:    3dANOVA.h
    Author:  B. D. Ward
    Date:    20 January 1997
-   
+
    Mod:     Added command -diskspace to print out how much disk space is
             required to execute the problem.
    Date:    23 January 1997
 
-   Mod:     Change to routine write_afni_data to reduce truncation error.    
+   Mod:     Change to routine write_afni_data to reduce truncation error.
    Date:    27 January 1997
-	    
+	
    Mod:     Added machine specific code for checking disk space.
    Date:    29 January 1997
-            
+
    Mod:     Extensive changes required to implement the 'bucket' dataset.
    Date:    30 December 1997
 
@@ -39,7 +39,7 @@
             to allow operator selection of individual sub-bricks for input.
    Date:    02 December 1999
 
-   Mod:     Increased maximum number of user requested means, differences, 
+   Mod:     Increased maximum number of user requested means, differences,
             and contrasts.
    Date:    31 January 2000
 
@@ -105,7 +105,7 @@ static char * commandline = NULL ;         /* command line for history notes */
 #endif
 
 
-#define MAX_LEVELS 300           /* max. number of factor levels */  
+#define MAX_LEVELS 300           /* max. number of factor levels */
 #define MAX_OBSERVATIONS 300     /* max. number of observations per cell */
 #define MAX_MEANS 50             /* max. number of user requested means */
 #define MAX_DIFFS 50             /* max. number of user requested diffs. */
@@ -114,19 +114,19 @@ static char * commandline = NULL ;         /* command line for history notes */
 
 
 typedef struct anova_options
-{ 
+{
   int   datum;                  /* data type for "intensity" data subbrick */
   char  session[MAX_NAME_LENGTH];     /* name of output directory */
 
   int   diskspace;              /* if positive, print out how much disk space
                                    is required for program execution */
-  
+
   int   nvoxel;                 /* number of voxel for special output */
 
   int   model;                  /* indicates type of ANOVA model to be used:
 				  model=1   A,B,C fixed;          AxBxC
 				  model=2   A,B,C random;         AxBxC
-				  model=3   A fixed; B,C random;  AxBxC 
+				  model=3   A fixed; B,C random;  AxBxC
 				  model=4   A,B fixed; C random;  AxBxC
 				  model=5   A,B fixed; C random;  AxB,BxC,C(A)
                                 */
@@ -142,13 +142,13 @@ typedef struct anova_options
   int   c;                      /* number of levels for factor C */
   int   n;                      /* number of observations in each cell */
   int   nt;                     /* total number of observations */
-  
+
   int   na[MAX_LEVELS];         /* number of observations at each level
                                    of factor A (for 3dANOVA only) */
 
   char  ***** xname;            /* names of the input data files */
   char  * first_dataset;        /* name of the first data set */
-   
+
   int   nx, ny, nz;             /* data set dimensions */
   int   nxyz;                   /* number of voxels per image */
 
@@ -171,15 +171,15 @@ typedef struct anova_options
   char  * fabcname;             /* name of output file for A*B*C interaction */
 
 
-  int   num_ameans;             /* number of factor A level means */ 
+  int   num_ameans;             /* number of factor A level means */
   int   ameans[MAX_MEANS];      /* calc means for these factor A levels */
   char  * amname[MAX_MEANS];    /* names of output files for factor A means */
-  
-  int   num_bmeans;             /* number of factor B level means */ 
+
+  int   num_bmeans;             /* number of factor B level means */
   int   bmeans[MAX_MEANS];      /* calc means for these factor B levels */
   char  * bmname[MAX_MEANS];    /* names of output files for factor B means */
-  
-  int   num_cmeans;             /* number of factor C level means */ 
+
+  int   num_cmeans;             /* number of factor C level means */
   int   cmeans[MAX_MEANS];      /* calc means for these factor C levels */
   char  * cmname[MAX_MEANS];    /* names of output files for factor C means */
 
@@ -190,33 +190,33 @@ typedef struct anova_options
   int   num_adiffs;             /* num of diffs in factor A level means */
   int   adiffs[MAX_DIFFS][2];   /* calc diffs in these factor A level means */
   char  * adname[MAX_DIFFS];    /* names of output files for A differences */
-  
+
   int   num_bdiffs;             /* num of diffs in factor B level means */
   int   bdiffs[MAX_DIFFS][2];   /* calc diffs in these factor B level means */
   char  * bdname[MAX_DIFFS];    /* names of output files for B differences */
-  
+
   int   num_cdiffs;             /* num of diffs in factor C level means */
   int   cdiffs[MAX_DIFFS][2];   /* calc diffs in these factor C level means */
   char  * cdname[MAX_DIFFS];    /* names of output files for C differences */
-  
+
   int   num_xdiffs;               /* num of diffs in cell means */
   int   xdiffs[MAX_DIFFS][2][3];  /* calc diffs in these cell means */
   char  * xdname[MAX_DIFFS];      /* names of output files for cell diffs */
-  
+
   int   num_acontr;             /* number of factor A contrasts */
   float acontr[MAX_CONTR][MAX_LEVELS];     /* factor A contrast vectors */
   char  * acname[MAX_CONTR];    /* names of output files for A contrasts */
-  
+
   int   num_bcontr;             /* number of factor B contrasts */
   float bcontr[MAX_CONTR][MAX_LEVELS];     /* factor B contrast vectors */
   char  * bcname[MAX_CONTR];    /* names of output files for B contrasts */
-  
+
   int   num_ccontr;             /* number of factor C contrasts */
   float ccontr[MAX_CONTR][MAX_LEVELS];     /* factor C contrast vectors */
   char  * ccname[MAX_CONTR];    /* names of output files for C contrasts */
 
   int   num_xcontr;             /* number of contrasts of cell means */
-  float xcontr[MAX_CONTR][MAX_LEVELS][MAX_LEVELS];     
+  float xcontr[MAX_CONTR][MAX_LEVELS][MAX_LEVELS];
                                 /* cell means contrast vectors */
   char  * xcname[MAX_CONTR];    /* names of output files for cell contrasts */
 
@@ -243,10 +243,10 @@ typedef struct anova_options
   char  * Abdname[MAX_DIFFS];   /* names of output files for Ab diffs       */
 
   /* -abmeans: at fixed A level and fixed B level       16 Dec 2005 [rickr] */
-  int   num_abmeans;            /* number of AB level means */ 
+  int   num_abmeans;            /* number of AB level means */
   int   abmeans[MAX_MEANS][2];  /* calc means at each A-level B-level pair  */
   char  * abmname[MAX_MEANS];   /* names of output files for AB means */
-  
+
   char * bucket_filename;       /* file name for bucket dataset */
 
   int    debug;                 /* for more verbose output */
@@ -260,7 +260,7 @@ typedef struct anova_options
 
 void initialize_options (anova_options * option_data);
 
-   
+
 /*---------------------------------------------------------------------------*/
 
 /** macro to open a dataset and make it ready for processing **/
@@ -389,7 +389,7 @@ void check_one_output_file (anova_options * option_data, char * filename);
 
 int max (int n1, int n2);
 
-   
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to determine if sufficient disk space exists for storing
@@ -401,31 +401,31 @@ void check_disk_space (anova_options * option_data);
 
 /*---------------------------------------------------------------------------*/
 /*
-  Routine to read one AFNI data set from file 'filename'. 
+  Routine to read one AFNI data set from file 'filename'.
   The data is converted to floating point (in ffim).
 */
 
-void read_afni_data (anova_options * option_data, 
+void read_afni_data (anova_options * option_data,
 		     char * filename, float * ffim);
 
 
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI data set.
-  
+
   This data set may be either 'fitt' type (intensity + t-statistic)
                            or 'fift' type (intensity + F-statistic).
-  
+
   The intensity data is in ffim, and the corresponding statistic is in ftr.
-  
+
   numdof = numerator degrees of freedom
   dendof = denominator degrees of freedom
-  
+
   Note:  if dendof = 0, then write 'fitt' type data set;
          if dendof > 0, then write 'fift' type data set.
 */
 
-void write_afni_data (anova_options * option_data,  char * filename,  
+void write_afni_data (anova_options * option_data,  char * filename,
                       float * ffim,  float * ftr,  int numdof,  int dendof);
 
 
@@ -434,7 +434,7 @@ void write_afni_data (anova_options * option_data,  char * filename,
    Routine to add file name to command string.
 */
 
-void add_file_name (THD_3dim_dataset * new_dset, char * filename, 
+void add_file_name (THD_3dim_dataset * new_dset, char * filename,
 		    char * command_str);
 
 
@@ -464,3 +464,22 @@ int contrasts_are_valid (anova_options * option_data, int show_errs, int level);
 
 /*---------------------------------------------------------------------------*/
 
+#undef  ANOVA_FLOAT_HELP
+#define ANOVA_FLOAT_HELP                                                            \
+   "-------------------------------------------------------------------------\n"    \
+   "STORAGE FORMAT:\n"                                                              \
+   "---------------\n"                                                              \
+   "The default output format is to store the results as scaled short\n"            \
+   "(16-bit) integers.  This truncantion might cause significant errors.\n"         \
+   "If you receive warnings that look like this:\n"                                 \
+   "  *+ WARNING: TvsF[0] scale to shorts misfit = 8.09%% -- *** Beware\n"          \
+   "then you can force the results to be saved in float format by\n"                \
+   "defining the environment variable AFNI_FLOATIZE to be YES\n"                    \
+   "before running the program.  For convenience, you can do this\n"                \
+   "on the command line, as in\n"                                                   \
+   "  3dANOVA -DAFNI_FLOATIZE=YES ... other options ... \n"                         \
+   "Also see the following links:\n"                                                \
+   " http://afni.nimh.nih.gov/pub/dist/doc/program_help/common_options.html\n"      \
+   " http://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html\n"
+
+/*---------------------------------------------------------------------------*/
