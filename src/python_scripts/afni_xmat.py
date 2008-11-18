@@ -490,9 +490,10 @@ class AfniXmat:
     def show_conds(self):
         print self.make_show_conds_str()
 
-    def make_show_conds_str(self):
+    def make_show_conds_str(self, extra_cols=[]):
         """return a string that displays condition numbers for matrix of:
                 - all columns
+                - (optional) chosen columns
                 - main regressors
                 - main + baseline
                 - main + motion
@@ -502,8 +503,15 @@ class AfniXmat:
         if not self.have_SL():
             return '** missing scipy.linalg, cannot evaluate X matrix'
 
-        mesg = 'Condition Numbers:\n\n'                       \
+        if len(extra_cols) > 0:
+            extra_str = '    chosen regressors   : %.1f\n\n' %  \
+                    self.cond_num_by_cols(extra_cols)
+        else:
+            extra_str = ''
+
+        mesg = 'Condition Numbers:\n\n'              \
                '    all regressors      : %.1f\n\n'  \
+               '%s'                                  \
                '    main regressors     : %.1f\n'    \
                '    main + baseline     : %.1f\n'    \
                '    main + motion       : %.1f\n\n'  \
@@ -511,6 +519,7 @@ class AfniXmat:
                '    baseline            : %.1f\n'    \
                '    motion              : %.1f\n'    \
               % ( self.cond_num_by_cols(range(self.ncols)),
+                  extra_str,
                   self.cond_num_by_cols(self.cols_by_group_list([],allroi=1)),
                   self.cond_num_by_cols(self.cols_by_group_list([-1],allroi=1)),
                   self.cond_num_by_cols(self.cols_by_group_list([0],allroi=1)),

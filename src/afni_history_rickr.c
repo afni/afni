@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  18, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -test, -show_col_types, -show_cosmat, -show_fit_ts, -cormat_cutoff",
+   "also added the main help"
+ } ,
+
+ {  18, NOV, 2008, RCR, "afni_xmat.py", MICRO, TYPE_MODIFY,
+   "added extra_cols param to make_show_conds_str",
+   NULL
+ } ,
+
  {  7, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_MODIFY,
    "more updates:",
    "- scipy is only tested for when necessary\n"
