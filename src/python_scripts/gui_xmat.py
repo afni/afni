@@ -382,7 +382,7 @@ class MainFrame(wx.Frame):
       if not clist: clist = range(len(self.XM.col_list))
 
       # ignore failure, to show error string in text window
-      rv, rstr = self.XM.make_matrix_fit_string(clist)
+      rv, rstr = self.XM.make_matrix_fit_betas_string(clist)
       title = 'Matrix to 1D Fit Betas'
       self.show_text_window(rstr, title)
 
