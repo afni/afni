@@ -372,11 +372,17 @@ void AFNI_syntax(void)
     "all be found at\n"
     " http://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
     " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/ (PDF directory)\n"
-    "\n"
+    "And for the interactive AFNI program in particular, see\n"
+    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
+    " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
     "For help with AFNI problems, please use the AFNI Message Board:\n"
     " http://afni.nimh.nih.gov/afni/community/board/\n"
     "If an AFNI program crashes, please include the EXACT error messages\n"
-    "it outputs in your message board posting.\n"
+    "it outputs in your message board posting, as well as any other\n"
+    "information needed to reproduce the problem.\n"
+    "\n"
+    "For some fun, see this image:\n"
+    "http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
    ) ;
 
    printf(
@@ -392,13 +398,14 @@ void AFNI_syntax(void)
     "\n"
     "  * The first AFNI paper, and the one I prefer you cite if you want to\n"
     "    refer to the AFNI package as a whole.\n"
-    "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/CBM_1996.pdf\n"
+    " ** http://afni.nimh.nih.gov/sscc/rwcox/papers/CBM_1996.pdf\n"
     "\n"
     "RW Cox, A Jesmanowicz, and JS Hyde.  Real-time functional magnetic\n"
     "  resonance imaging.  Magnetic Resonance in Medicine, 33: 230-236, 1995.\n"
     "\n"
     "  * The first paper on realtime FMRI; describes the algorithm used in\n"
     "    3dfim+, the interactive FIM calculations, and in the realtime plugin.\n"
+    "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/Realtime_FMRI.pdf\n"
     "\n"
     "RW Cox and JS Hyde.  Software tools for analysis and visualization of\n"
     "  FMRI Data.  NMR in Biomedicine, 10: 171-178, 1997.\n"
@@ -410,6 +417,8 @@ void AFNI_syntax(void)
     "\n"
     "  * Describes the algorithm used for image registration in 3dvolreg\n"
     "    and in the realtime plugin.\n"
+    "  * I think the first paper to demonstrate realtime MRI volume image\n"
+    "    registration running on a standard workstation (not a supercomputer).\n"
     "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/RealtimeRegistration.pdf\n"
     "\n"
     "ZS Saad, KM Ropella, RW Cox, and EA DeYoe.  Analysis and use of FMRI\n"
@@ -1241,13 +1250,14 @@ void AFNI_sigfunc_alrm(int sig)
      "Don't cry because it's over; smile because it happened"       ,
      "Farewell! Thou art too dear for my possessing"                ,
      "Farewell, farewell, you old rhinoceros"                       ,
-     "Is that you, Jerzy?"                                          ,
+     "Is that you, Jerzy? Do widzenia"                              ,
      "A farewell is necessary before we can meet again"             ,
      "Absent from thee I languish"                                  ,
      "The return makes one love the farewell"                       ,
      "Every goodbye makes the next hello closer"                    ,
      "The song is ended, but the melody lingers on"                 ,
-     "A star will shine upon the hour of our next meeting"
+     "A star will shine upon the hour of our next meeting"          ,
+     "Au revoir, Ciao, Sayonara, Hasta luego, Czesc, and Zai jian"
    } ;
    int nn = (lrand48()>>3) % NMSG ;
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") )
