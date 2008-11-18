@@ -2813,6 +2813,10 @@ If this YES/NO variable is set to YES, then 3dDeconvolve and 3dcalc
 will write their outputs in floating point format (unless they are
 forced to do otherwise with the '-datum short' type of option).  In
 the future, other programs may also be affected by this variable.
+Later [18 Nov 2008]: Now 3dANOVA, 3dANOVA2, and 3dANOVA3 will also
+use this flag to determine if their outputs should be written in
+float format.  For example:
+  3dANOVA -DAFNI_FLOATIZE=YES ... other options ...
 
 ----------------------------
 Variable: AFNI_AUTOMATIC_FDR

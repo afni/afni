@@ -6,23 +6,23 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-   This file contains routines used by the three ANOVA programs:  3dANOVA, 
+   This file contains routines used by the three ANOVA programs:  3dANOVA,
    3dANOVA2, and 3dANOVA3.
 
    File:    3dANOVA.lib
    Author:  B. D. Ward
    Date:    5 January 1998
-   
+
    Mod:     Added command -diskspace to print out how much disk space is
             required to execute the problem.
    Date:    23 January 1997
 
-   Mod:     Change to routine write_afni_data to reduce truncation error.    
+   Mod:     Change to routine write_afni_data to reduce truncation error.
    Date:    27 January 1997
-	    
+	
    Mod:     Added machine specific code for checking disk space.
    Date:    29 January 1997
-            
+
    Mod:     Extensive changes required to implement the 'bucket' dataset.
    Date:    30 December 1997
 
@@ -44,7 +44,7 @@
             deallocation for option_data->first_dataset.
    Date:    01 August 2001
 
-   Mod:     Modified routine write_afni_data so that all output subbricks 
+   Mod:     Modified routine write_afni_data so that all output subbricks
             will now have the scaled short integer format.
    Date:    14 March 2002
 
@@ -76,10 +76,10 @@ int required_data_files (anova_options * option_data);
 void initialize_options (anova_options * option_data)
 {
   int i, j, k;
-  
+
   option_data->datum = ILLEGAL_TYPE;
   strcpy (option_data->session, "./");
- 
+
   option_data->diskspace = 0;
 
   option_data->nvoxel = -1;
@@ -87,19 +87,19 @@ void initialize_options (anova_options * option_data)
   option_data->model = 1;
 
   option_data->old_method = 0;
-  
+
   option_data->a = 0;
   option_data->b = 0;
   option_data->c = 0;
   option_data->n = 0;
   option_data->nt = 0;
- 
+
   for (i = 0;  i < MAX_LEVELS;  i++)
     option_data->na[i] = 0;
 
   option_data->xname = NULL;
   option_data->first_dataset = NULL;
-  
+
   option_data->nx = 0;
   option_data->ny = 0;
   option_data->nz = 0;
@@ -143,7 +143,7 @@ void initialize_options (anova_options * option_data)
       for (j = 0;  j < 2;  j++)
 	option_data->abmeans[i][j] = 0;
     }
-  
+
   option_data->num_adiffs  = 0;
   option_data->num_bdiffs  = 0;
   option_data->num_cdiffs  = 0;
@@ -171,7 +171,7 @@ void initialize_options (anova_options * option_data)
       option_data->aBdlevel[i]  = 0;
       option_data->Abdlevel[i]  = 0;
     }
-  
+
   option_data->num_acontr  = 0;
   option_data->num_bcontr  = 0;
   option_data->num_ccontr  = 0;
@@ -207,7 +207,7 @@ void initialize_options (anova_options * option_data)
   option_data->debug = 0; /* 8 Dec 2005 [rickr] */
 }
 
-   
+
 /*---------------------------------------------------------------------------*/
 /*
    Routine to print error message and stop.
@@ -228,7 +228,7 @@ void ANOVA_error (char * message)
 
 int volume_write_count (char * filename,  float * fout,  int size)
 {
-  char sfilename[MAX_NAME_LENGTH];   /* output file name */ 
+  char sfilename[MAX_NAME_LENGTH];   /* output file name */
   char message[MAX_NAME_LENGTH];     /* error message */
   FILE * far;                        /* floating point output file */
   int count;                         /* number of data items written to disk */
@@ -242,15 +242,15 @@ int volume_write_count (char * filename,  float * fout,  int size)
    far = fopen (sfilename, "r");
    if (far != NULL)
    {
-      sprintf (message, "file %s already exists. ", sfilename); 
+      sprintf (message, "file %s already exists. ", sfilename);
       ANOVA_error (message);
    }
 
    /*----- open temporary data file for output -----*/
    far = fopen (sfilename, "w");
-   if (far == NULL) 
+   if (far == NULL)
       ANOVA_error ("unable to write file ");
-     
+
    /*----- write 3d data set -----*/
    count = fwrite (fout, sizeof(float), size, far);
    fclose (far);
@@ -268,11 +268,11 @@ int volume_write_count (char * filename,  float * fout,  int size)
 void volume_write (char * filename,  float * fout,  int size)
 {
   int count;                       /* number of data items written to disk */
-  
-  
+
+
   /*----- attempt to write 3d volume of data -----*/
   count = volume_write_count (filename, fout, size);
-   
+
   /*----- error in writing file? -----*/
   if (count != size)  ANOVA_error ("error in writing data file ");
 }
@@ -289,27 +289,27 @@ void volume_read (char * filename,  float * fin,  int size)
   char message[MAX_NAME_LENGTH];     /* error message */
   FILE * far;                        /* floating point input file */
   int count;                         /* number of data items read from disk */
-  
-  
+
+
   /*----- input file name -----*/
   strcpy (sfilename, filename);
   strcat (sfilename, SUFFIX);
-  
+
   /*----- open temporary data file for input -----*/
   far = fopen (sfilename, "r");
-  if (far == NULL) 
+  if (far == NULL)
     {
       sprintf (message, "Unable to open temporary file %s", sfilename);
       ANOVA_error (message);
     }
-  
+
   /*----- read 3d data file -----*/
-  count = fread (fin, sizeof(float), size, far);   
+  count = fread (fin, sizeof(float), size, far);
   fclose (far);
-  
+
   /*----- error in reading file? -----*/
   if (count != size)  ANOVA_error ("error in reading data file ");
-  
+
 }
 
 
@@ -321,14 +321,14 @@ void volume_read (char * filename,  float * fin,  int size)
 void volume_delete (char * filename)
 {
   char sfilename[MAX_NAME_LENGTH];            /* file name */
-  
+
   /*----- build file name -----*/
   strcpy (sfilename, filename);
   strcat (sfilename, SUFFIX);
 
   /*----- delete 3d data file -----*/
   remove (sfilename);
-  
+
 }
 
 
@@ -340,7 +340,7 @@ void volume_delete (char * filename)
 void volume_zero (float * f,  int size)
 {
   int i;
-  
+
   for (i = 0;  i < size;  i++)
     f[i] = 0.0;
 }
@@ -353,14 +353,14 @@ void volume_zero (float * f,  int size)
 
 void get_dimensions (anova_options * option_data)
 {
-  
+
    THD_3dim_dataset * dset=NULL;
 
    /*----- read first dataset to get dimensions, etc. -----*/
 
    dset = THD_open_dataset( option_data->first_dataset ) ;
    if( ! ISVALID_3DIM_DATASET(dset) ){
-      fprintf(stderr,"*** Unable to open dataset file %s\n", 
+      fprintf(stderr,"*** Unable to open dataset file %s\n",
               option_data->first_dataset);
       exit(1) ;
    }
@@ -368,7 +368,7 @@ void get_dimensions (anova_options * option_data)
    /*----- data set dimensions in voxels -----*/
    option_data->nx = dset->daxes->nxx ;
    option_data->ny = dset->daxes->nyy ;
-   option_data->nz = dset->daxes->nzz ;       
+   option_data->nz = dset->daxes->nzz ;
    option_data->nxyz = option_data->nx * option_data->ny * option_data->nz ;
 
    THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
@@ -386,18 +386,18 @@ void check_one_temporary_file (char * filename)
   FILE * far;                               /* temporary file pointer */
   char sfilename[MAX_NAME_LENGTH];          /* temporary file name */
   char message[MAX_NAME_LENGTH];            /* error message */
-  
-  
+
+
   /*-----  see if file already exists -----*/
   strcpy (sfilename, filename);
   strcat (sfilename, SUFFIX);
   far = fopen (sfilename, "r");
   if (far != NULL)
     {
-      sprintf (message, "temporary file %s already exists. ", sfilename); 
+      sprintf (message, "temporary file %s already exists. ", sfilename);
       ANOVA_error (message);
     }
-  
+
 }
 
 
@@ -411,8 +411,8 @@ void check_one_output_file (anova_options * option_data, char * filename)
   THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
-  
-  
+
+
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset ) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
@@ -420,37 +420,37 @@ void check_one_output_file (anova_options * option_data, char * filename)
 	    option_data->first_dataset);
     exit(1) ;
   }
-  
+
   /*-- make an empty copy of this dataset --*/
   new_dset = EDIT_empty_copy( dset ) ;
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_directory_name , option_data->session ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE :
                                			      GEN_FUNC_TYPE ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 ){
     fprintf(stderr,
 	    "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
 	    new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -467,7 +467,7 @@ int max (int n1, int n2)
     return n2;
 }
 
-   
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to determine if sufficient disk space exists for storing
@@ -487,7 +487,7 @@ void check_disk_space (anova_options * option_data)
   /*----- first, determine the maximum number of files required -----*/
   nmax = required_data_files (option_data);
 
-  printf("\nThis problem requires approximately %d MB of free disk space.\n", 
+  printf("\nThis problem requires approximately %d MB of free disk space.\n",
 	  (4*nmax*nxyz/1000000) + 1);
 
 
@@ -503,34 +503,34 @@ void check_disk_space (anova_options * option_data)
 
 /*---------------------------------------------------------------------------*/
 /*
-  Routine to read one AFNI data set from file 'filename'. 
+  Routine to read one AFNI data set from file 'filename'.
   The data is converted to floating point (in ffim).
 */
 
-void read_afni_data (anova_options * option_data, 
+void read_afni_data (anova_options * option_data,
 		     char * filename, float * ffim)
 {
   int iv;                          /* index number of intensity sub-brick */
   THD_3dim_dataset * dset=NULL;    /* data set pointer */
   void * vfim = NULL;              /* image data pointer */
   int nx, ny, nz, nxyz;            /* data set dimensions in voxels */
-  
+
   nx = option_data->nx;
   ny = option_data->ny;
   nz = option_data->nz;
   nxyz = option_data->nxyz;
-  
-  
+
+
   /*----- read in the data -----*/
   DOPEN(dset,filename) ;
   iv = DSET_PRINCIPAL_VALUE(dset) ;
-  
+
   /*----- convert it to floats (in ffim) -----*/
   SUB_POINTER(dset,iv,0,vfim) ;
   EDIT_coerce_scale_type( nxyz , DSET_BRICK_FACTOR(dset,iv) ,
 			  DSET_BRICK_TYPE(dset,iv),vfim ,      /* input  */
 			  MRI_float               ,ffim  ) ;   /* output */
-  
+
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 }
 
@@ -538,20 +538,20 @@ void read_afni_data (anova_options * option_data,
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI data set.
-  
+
   This data set may be either 'fitt' type (intensity + t-statistic)
                            or 'fift' type (intensity + F-statistic).
-  
+
   The intensity data is in ffim, and the corresponding statistic is in ftr.
-  
+
   numdof = numerator degrees of freedom
   dendof = denominator degrees of freedom
-  
+
   Note:  if dendof = 0, then write 'fitt' type data set;
          if dendof > 0, then write 'fift' type data set.
 */
 
-void write_afni_data (anova_options * option_data,  char * filename,  
+void write_afni_data (anova_options * option_data,  char * filename,
                       float * ffim,  float * ftr,  int numdof,  int dendof)
 {
   int nxyz;                           /* number of voxels */
@@ -561,18 +561,18 @@ void write_afni_data (anova_options * option_data,  char * filename,
   int ierror;                         /* number of errors in editing data */
   int ibuf[32];                       /* integer buffer */
   float fbuf[MAX_STAT_AUX];           /* float buffer */
-  float fimfac;                       /* scale factor for short data */
+  float fimfac=0.0f ;                 /* scale factor for short data */
   int output_datum;                   /* data type for output data */
-  short * tsp;                        /* 2nd sub-brick data pointer */
-  void  * vdif;                       /* 1st sub-brick data pointer */
+  void  *tsp;                         /* 2nd sub-brick data pointer */
+  void  *vdif;                        /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
-  float top, func_scale_short;        /* parameters for scaling data */
-  char label[80];                     /* label for output file history */ 
-  
-  
+  float top, func_scale_short=0.0f;   /* parameters for scaling data */
+  char label[80];                     /* label for output file history */
+
+
   /*----- initialize local variables -----*/
   nxyz = option_data->nxyz;
-  
+
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
@@ -580,10 +580,10 @@ void write_afni_data (anova_options * option_data,  char * filename,
 	    option_data->first_dataset);
     exit(1) ;
   }
-  
+
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
-  
+
 
   /*----- Record history of dataset -----*/
 
@@ -593,104 +593,116 @@ void write_afni_data (anova_options * option_data,  char * filename,
   else
      tross_Append_History ( new_dset, label);
 
-  
+#define ALLOW_FLOATIZE
+#ifdef ALLOW_FLOATIZE
+  output_datum = AFNI_yesenv("AFNI_FLOATIZE") ? MRI_float : MRI_short ;
+  ibuf[0] = output_datum ; ibuf[1] = output_datum ;
+#else
   output_datum = MRI_short ;
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
-  
+#endif
+
   if (dendof == 0) func_type = FUNC_TT_TYPE;
   else             func_type = FUNC_FT_TYPE;
-  
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_directory_name , option_data->session ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE :
 			                              GEN_FUNC_TYPE ,
 			    ADN_func_type , func_type ,
 			    ADN_nvals , FUNC_nvals[func_type] ,
 			    ADN_datum_array , ibuf ,
-			    ADN_malloc_type, DATABLOCK_MEM_MALLOC ,  
+			    ADN_malloc_type, DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 ){
     fprintf(stderr,
           "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
 	    new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-  
-  /*----- deleting exemplar dataset -----*/ 
-  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-  
-  
-  /*----- allocate memory for output data -----*/
-  vdif = (void *)  malloc( mri_datum_size(output_datum) * nxyz ) ;
-  tsp  = (short *) malloc( sizeof(short) * nxyz )                ;
-  
-  /*----- attach bricks to new data set -----*/
-  mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0)); 
-  mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));  
-  
-  
-  /*----- convert data type to output specification -----*/
-  fimfac = EDIT_coerce_autoscale_new (nxyz, 
-				      MRI_float, ffim, 
-				      output_datum, vdif);
-  if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
 
-  if( output_datum == MRI_short )
+  /*----- deleting exemplar dataset -----*/
+  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
+
+
+  /*----- allocate memory for output data -----*/
+  vdif = (void *) malloc( mri_datum_size(ibuf[0]) * nxyz ) ;
+  tsp  = (void *) malloc( mri_datum_size(ibuf[1]) * nxyz ) ;
+
+  /*----- attach bricks to new data set -----*/
+  mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0));
+  mri_fix_data_pointer (tsp , DSET_BRICK(new_dset,1));
+
+  /*----- convert data type to output specification -----*/
+
+  if( ibuf[0] == MRI_short ){
+    fimfac = EDIT_coerce_autoscale_new( nxyz,
+                                      MRI_float, ffim, ibuf[0], vdif ) ;
+    if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
     EDIT_misfit_report( DSET_PREFIX(new_dset) , 0 ,
                         nxyz , fimfac , vdif , ffim ) ;
-  
+  } else {
+    memcpy( vdif , ffim , sizeof(float)*nxyz ) ;
+  }
+
 #define TOP_SS  32700
-  
-  if (dendof == 0)   /* t-statistic */
-    { 
-      top = TOP_SS/FUNC_TT_SCALE_SHORT;
-      func_scale_short = FUNC_TT_SCALE_SHORT;
-    }
-  else               /* F-statistic */
-    {
-      top = TOP_SS/FUNC_FT_SCALE_SHORT;
-      func_scale_short = FUNC_FT_SCALE_SHORT;
-    }
-  
-  for (ii = 0;  ii < nxyz;  ii++)
-    {
-      if (ftr[ii] > top)
-	tsp[ii] = TOP_SS;
-      else  if (ftr[ii] < -top)
-	tsp[ii] = -TOP_SS;
-      else  if (ftr[ii] >= 0.0)
-	tsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
-      else
-	tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
 
-    }
+  if( ibuf[1] == MRI_short ){
+    short *qsp = (short *)tsp ;
+    if (dendof == 0)   /* t-statistic */
+      {
+        top = TOP_SS/FUNC_TT_SCALE_SHORT;
+        func_scale_short = FUNC_TT_SCALE_SHORT;
+      }
+    else               /* F-statistic */
+      {
+        top = TOP_SS/FUNC_FT_SCALE_SHORT;
+        func_scale_short = FUNC_FT_SCALE_SHORT;
+      }
 
-    EDIT_misfit_report( DSET_PREFIX(new_dset) , 1 ,
-                        nxyz , 1.0f/func_scale_short , tsp , ftr ) ;
-  
+    for (ii = 0;  ii < nxyz;  ii++)
+      {
+        if (ftr[ii] > top)
+	        qsp[ii] = TOP_SS;
+        else  if (ftr[ii] < -top)
+	        qsp[ii] = -TOP_SS;
+        else  if (ftr[ii] >= 0.0)
+	        qsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
+        else
+	        qsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
+      }
+
+      EDIT_misfit_report( DSET_PREFIX(new_dset) , 1 ,
+                          nxyz , 1.0f/func_scale_short , qsp , ftr ) ;
+  } else {
+    memcpy( tsp , ftr , sizeof(float)*nxyz ) ;
+  }
+
 
   /*----- write afni data set -----*/
   INFO_message("Writing combined dataset into %s",
                new_dset->dblk->diskptr->header_name) ;
-  
-  fbuf[0] = numdof;   
+
+  fbuf[0] = numdof;
   fbuf[1] = dendof;
   for( ii=2 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
-  
-  fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
-  fbuf[1] = 1.0 / func_scale_short ;
-  (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+
+  if( output_datum == MRI_short ){
+    fbuf[0] = (fimfac != 1.0f) ? fimfac : 0.0f ;
+    fbuf[1] = 1.0f / func_scale_short ;
+    (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+  }
 
   ii = !AFNI_noenv("AFNI_AUTOMATIC_FDR") ? THD_create_all_fdrcurves(new_dset)
                                          : 0 ;
@@ -698,10 +710,10 @@ void write_afni_data (anova_options * option_data,  char * filename,
 
   THD_load_statistics( new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -714,20 +726,20 @@ static void USE_1D_filenames( int uu ){ use_1D_filenames=uu; }
    Routine to add file name to command string.
 */
 
-void add_file_name (THD_3dim_dataset * new_dset, char * filename, 
+void add_file_name (THD_3dim_dataset * new_dset, char * filename,
 		    char * command_str)
 
 {
-      EDIT_dset_items (new_dset, 
+      EDIT_dset_items (new_dset,
 		       ADN_prefix, filename,
 		       ADN_none);
 
-      if (! ISVALID_3DIM_DATASET(new_dset)) 
+      if (! ISVALID_3DIM_DATASET(new_dset))
 	{
 	  fprintf (stderr,"*** Unable to open dataset file %s\n",
 		   DSET_BRIKNAME(new_dset));
 	  exit(1);
-	}      
+	}
 
       strcat (command_str, " ");
       strcat (command_str, DSET_BRIKNAME(new_dset));
@@ -755,7 +767,7 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
 void remove_dataset (THD_3dim_dataset * new_dset, char * filename)
 
 {
-  EDIT_dset_items (new_dset, 
+  EDIT_dset_items (new_dset,
 		   ADN_prefix, filename,
 		   ADN_none);
 
@@ -802,12 +814,12 @@ void destroy_anova_options (anova_options * option_data)
 {
   int i, j, k, m;
 
-  
+
   /*----- deallocate memory -----*/
   for (i = 0;  i < option_data->a;  i++)
     for (j = 0;  j < option_data->b;  j++)
       for (k = 0;  k < option_data->c;  k++)
-	for (m = 0;  m < option_data->n;  m++)   
+	for (m = 0;  m < option_data->n;  m++)
 	  {
 	    free (option_data->xname[i][j][k][m]);
 	    option_data->xname[i][j][k][m] = NULL;
@@ -818,7 +830,7 @@ void destroy_anova_options (anova_options * option_data)
       free (option_data->ftrname);
       option_data->ftrname = NULL;
     }
-  if (option_data->nfa)    
+  if (option_data->nfa)
     {
       free (option_data->faname);
       option_data->faname = NULL;
@@ -855,90 +867,90 @@ void destroy_anova_options (anova_options * option_data)
     }
 
   if (option_data->num_ameans)
-    for (i=0; i < option_data->num_ameans; i++)  
+    for (i=0; i < option_data->num_ameans; i++)
       {
 	free (option_data->amname[i]);
 	option_data->amname[i] = NULL;
       }
-  
+
   if (option_data->num_bmeans)
-    for (i=0; i < option_data->num_bmeans; i++)  
+    for (i=0; i < option_data->num_bmeans; i++)
       {
 	free (option_data->bmname[i]);
 	option_data->bmname[i] = NULL;
       }
-  
+
   if (option_data->num_cmeans)
-    for (i=0; i < option_data->num_cmeans; i++)  
+    for (i=0; i < option_data->num_cmeans; i++)
       {
 	free (option_data->cmname[i]);
 	option_data->cmname[i] = NULL;
       }
-  
+
   if (option_data->num_xmeans)
-    for (i=0; i < option_data->num_xmeans; i++)  
+    for (i=0; i < option_data->num_xmeans; i++)
       {
 	free (option_data->xmname[i]);
 	option_data->xmname[i] = NULL;
       }
-  
+
   if (option_data->num_adiffs)
-    for (i=0; i < option_data->num_adiffs; i++)  
+    for (i=0; i < option_data->num_adiffs; i++)
       {
 	free (option_data->adname[i]);
 	option_data->adname[i] = NULL;
       }
-  
+
   if (option_data->num_bdiffs)
-    for (i=0; i < option_data->num_bdiffs; i++)  
+    for (i=0; i < option_data->num_bdiffs; i++)
       {
 	free (option_data->bdname[i]);
 	option_data->bdname[i] = NULL;
       }
-  
+
   if (option_data->num_cdiffs)
-    for (i=0; i < option_data->num_cdiffs; i++)  
+    for (i=0; i < option_data->num_cdiffs; i++)
       {
 	free (option_data->cdname[i]);
 	option_data->cdname[i] = NULL;
       }
-  
+
   if (option_data->num_xdiffs)
-    for (i=0; i < option_data->num_xdiffs; i++)  
+    for (i=0; i < option_data->num_xdiffs; i++)
       {
 	free (option_data->xdname[i]);
 	option_data->xdname[i] = NULL;
       }
-  
+
   if (option_data->num_acontr)
-    for (i=0; i < option_data->num_acontr; i++)  
+    for (i=0; i < option_data->num_acontr; i++)
       {
 	free (option_data->acname[i]);
 	option_data->acname[i] = NULL;
       }
-  
+
   if (option_data->num_bcontr)
-    for (i=0; i < option_data->num_bcontr; i++)  
+    for (i=0; i < option_data->num_bcontr; i++)
       {
 	free (option_data->bcname[i]);
 	option_data->bcname[i] = NULL;
       }
 
   if (option_data->num_ccontr)
-    for (i=0; i < option_data->num_ccontr; i++)  
+    for (i=0; i < option_data->num_ccontr; i++)
       {
 	free (option_data->ccname[i]);
 	option_data->ccname[i] = NULL;
       }
 
   if (option_data->num_xcontr)
-    for (i=0; i < option_data->num_xcontr; i++)  
+    for (i=0; i < option_data->num_xcontr; i++)
       {
 	free (option_data->xcname[i]);
 	option_data->xcname[i] = NULL;
       }
 }
- 
+
 /*---------------------------------------------------------------------------*/
 /*
     Indicate whether -old_method should be considered.    2 Dec 2005 [rickr]

@@ -2,11 +2,14 @@
 
 /*---------------------------------------------------------------------------*/
 /* C0 and C2 box splines with rhombic dodecahedron (RHDD) support.  From
-     Entezari, van de Mille, and Moller, IEEE Trans. Vis. Comp. Graph.
-   Each function is 1 at (0,0,0) and goes to 0 at the edge of its support.
-   RHDD(a) is defined as the set
+    A Entezari, D van de Ville, T Moeller.
+    Practical Box Splines for Reconstruction on the Body Centered Cubic Lattice.
+    IEEE Transactions on Visualization and Computer Graphics  14:313-328, 2008.
+    http://doi.ieeecomputersociety.org/10.1109/TVCG.2007.70429
+   Each function is 1 at (x,y,z)=(0,0,0) and goes to 0 at the edge of its RHDD.
+   RHDD(a) is defined as the 12 sided polyhedron set
      { (x,y,z) such that max(|x|+|y|,|x|+|z|,|y|+|z|) < a }
-   The 14 vertices are given by the points
+   It has volume 2*a^3.  The 14 vertices are given by the points
      (a/2,a/2,a/2) {8 points = each coordinate independently can be + or -}
      (a,0,0) (0,a,0) (0,0,a) {6 more points, with + or -}
    To fill space with overlapping RHDD(a) objects, sprinkle them on the
@@ -64,8 +67,8 @@ float rhddc0( float x, float y, float z )
 
 /*---------------------------------------------------------------------------*/
 /*! C2 basis function with RHDD(2) support (piecewise quintic).
-    These should be spaced on the RHDD lattice with a=1
-    (i.e., they overlap with their nearest neighbors).
+    These should be spaced on the RHDD lattice with a=1 to make a basis
+    set for 3D functions (i.e., they overlap with their nearest neighbors).
 *//*-------------------------------------------------------------------------*/
 
 float rhddc2( float x, float y, float z )
