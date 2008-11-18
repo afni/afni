@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , NOV , 2008 , RWC , "3dANOVA programs" , MINOR , TYPE_NEW_OPT ,
+   "Add option to output float-valued datasets." ,
+   "Set the AFNI_FLOATIZE environment variable to YES, and the output of\n"
+   "3dANOVA, 3dANOVA2, and 3dANOVA3 will be stored in float format instead\n"
+   "of in scaled short format.  [Per the request of Paul Hamilton]" } ,
+
  { 14 , NOV , 2008 , RWC , "help_format" , MICRO , TYPE_NEW_PROG ,
    "For formatting -help output into Web pages with hyperlinks." ,
    "To be used with the dist_help script for making the help Web pages from\n"

@@ -6,7 +6,7 @@
 
 /*
    This program calculates the single-factor analysis of variance (ANOVA)
-   for 3 dimensional AFNI data sets. 
+   for 3 dimensional AFNI data sets.
 
    File:    3dANOVA.c
    Author:  B. D. Ward
@@ -52,13 +52,13 @@
 
    Mod:     Setup to use .1D dataset filenames on output if these are input.
    Date:    14 March 2003 - RWCox
-   
+
    Mod:     -help menu modified.
    Date:    21 July 2005 - P Christidis
-   
+
    Mod:     small -help correction
    Date:    25 Nov 2005 [rickr]
-   
+
    Mod:     Modified contrast t-stat computations, and added -old_method,
             -OK, -assume_sph and -debug options.
    Date:    08 Dec 2005 [rickr]
@@ -86,7 +86,7 @@
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
     "This program performs single factor Analysis of Variance (ANOVA)\n"
     "on 3D datasets\n"
@@ -95,7 +95,7 @@ void display_help_menu()
     "\n"
     "Usage:\n"
     "-----\n"
-    "\n"     
+    "\n"
     "3dANOVA\n"
     "   -levels r                   : r = number of factor levels\n"
     "\n"
@@ -119,11 +119,11 @@ void display_help_menu()
     "   prefix file name.)\n"
     "\n"
     "  [-ftr prefix]                : F-statistic for treatment effect\n"
-    "\n"  
+    "\n"
     "  [-mean i prefix]             : estimate of factor level i mean\n"
-    "\n"  
+    "\n"
     "  [-diff i j prefix]           : difference between factor levels\n"
-    "\n" 
+    "\n"
     "  [-contr c1...cr prefix]      : contrast in factor levels\n"
     "\n"
      "Modified ANOVA computation options:    (December, 2005)\n"
@@ -163,7 +163,7 @@ void display_help_menu()
     "      more than 1 sub-brick, a sub-brick selector must be used,\n"
     "      e.g., -dset 2 'fred+orig[3]'\n"
      );
-   
+
   printf
    ("\n"
     "Example of 3dANOVA:\n"
@@ -196,15 +196,17 @@ void display_help_menu()
     "         -contr -1  1  1 FvsHD         \\\n"
     "         -contr  1 -1  1 FDvsH         \\\n"
     "         -bucket fred_n_ethel_ANOVA\n"
-    ); 
- 
+    );
+
   printf("\n" MASTER_SHORTHELP_STRING );
 
   printf("---------------------------------------------------\n"
    "Also see HowTo#5 - Group Analysis on the AFNI website:\n"
    "http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht05_group/html/index.shtml\n"
      "\n" );
-     
+
+  printf(ANOVA_FLOAT_HELP) ;
+
   PRINT_COMPILE_DATE; exit(0);
 }
 
@@ -217,8 +219,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 {
   int nopt = 1;                  /* input option argument counter */
   int ival;                      /* integer input */
-  int i, j, k;                   /* factor level counter */                   
-  int nijk;                      /* number of data files in cell i */     
+  int i, j, k;                   /* factor level counter */
+  int nijk;                      /* number of data files in cell i */
   float fval;                    /* float input */
   THD_3dim_dataset * dset=NULL;             /* test whether data set exists */
   char message[MAX_NAME_LENGTH];            /* error message */
@@ -228,20 +230,20 @@ void get_options (int argc, char ** argv, anova_options * option_data)
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
 
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
   /*----- initialize the input options -----*/
   initialize_options (option_data);
 
-  
+
   /*----- main loop over input options -----*/
   while (nopt < argc)
     {
-      
+
       /*----- allocate memory for storing data file names -----*/
       if ((option_data->xname == NULL) && (option_data->a > 0))
 	{
-	  option_data->xname = 
+	  option_data->xname =
 	    (char *****) malloc (sizeof(char ****) * option_data->a);
 	  for (i = 0;  i < option_data->a;  i++)
 	    {
@@ -268,7 +270,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++ ; continue ;  /* go to next arg */
 	}
 
-      
+
       /*-----   -debug level     8 Dec 2005 [rickr] -----*/
       if( strncmp(argv[nopt],"-debug",4) == 0 ) {
 	if( ++nopt >= argc ) ANOVA_error("need a level after -debug!") ;
@@ -276,7 +278,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++ ; continue ;  /* go to next arg */
 	}
 
-      
+
       /*-----   -datum type   -----*/
       if( strncmp(argv[nopt],"-datum",6) == 0 ){
 	if( ++nopt >= argc ) ANOVA_error("need an argument after -datum!") ;
@@ -300,9 +302,9 @@ void get_options (int argc, char ** argv, anova_options * option_data)
                if -OK, all contrasts are okay
                else if -assume_sph, contrasts adding to 0 are okay
                else complain and fail
-                                                                                
+
            bits: -old_method = 001, -OK = 010, -assume_sph = 100
-                                                                                
+
            valid bit patterns:
                000 - use the new method
                011 - use the old method
@@ -344,8 +346,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	strcpy(option_data->session , argv[nopt++]) ;
 	continue ;
       }
-      
-      
+
+
       /*-----   -voxel num  -----*/
       if (strncmp(argv[nopt], "-voxel", 6) == 0)
 	{
@@ -358,8 +360,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -levels r  -----*/
       if (strncmp(argv[nopt], "-levels", 7) == 0)
 	{
@@ -372,8 +374,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -dset level filename   -----*/
       if (strncmp(argv[nopt], "-dset", 5) == 0)
 	{
@@ -382,12 +384,12 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -dset ");
-	  
+	
 	  option_data->na[ival-1] += 1;
 	  nijk = option_data->na[ival-1];
 	  if (nijk > MAX_OBSERVATIONS)
 	    ANOVA_error ("too many data files");
-	  
+	
 	  /*--- check whether input files exist ---*/
 	  nopt++;
 	  dset = THD_open_dataset( argv[nopt] ); CHECK_OPEN_ERROR(dset,argv[nopt]);
@@ -401,17 +403,17 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	    }
 
 	  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-	  
-	  option_data->xname[ival-1][0][0][nijk-1] 
+	
+	  option_data->xname[ival-1][0][0][nijk-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  strcpy (option_data->xname[ival-1][0][0][nijk-1], 
+	  strcpy (option_data->xname[ival-1][0][0][nijk-1],
 		  argv[nopt]);
 
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -ftr filename   -----*/
       if (strncmp(argv[nopt], "-ftr", 4) == 0)
 	{
@@ -423,88 +425,88 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -mean level filename   -----*/
       if (strncmp(argv[nopt], "-mean", 5) == 0)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  ANOVA_error ("need 2 arguments after -mean ");
-	  
+	
 	  option_data->num_ameans++;
 	  if (option_data->num_ameans > MAX_MEANS)
 	    ANOVA_error ("too many factor level mean estimates");
-	  
+	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -mean ");
 	  option_data->ameans[option_data->num_ameans-1] = ival - 1;
 	  nopt++;
-	  
-	  option_data->amname[option_data->num_ameans-1] 
+	
+	  option_data->amname[option_data->num_ameans-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->amname[option_data->num_ameans-1], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -diff level1 level2 filename   -----*/
       if (strncmp(argv[nopt], "-diff", 5) == 0)
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  ANOVA_error ("need 3 arguments after -diff ");
-	  
+	
 	  option_data->num_adiffs++;
 	  if (option_data->num_adiffs > MAX_DIFFS)
 	    ANOVA_error ("too many factor level differences");
-	  
+	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -diff ");
 	  option_data->adiffs[option_data->num_adiffs-1][0] = ival - 1;
 	  nopt++;
-	  
+	
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -diff ");
 	  option_data->adiffs[option_data->num_adiffs-1][1] = ival - 1;
 	  nopt++;
-	  
-	  option_data->adname[option_data->num_adiffs-1] 
+	
+	  option_data->adname[option_data->num_adiffs-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->adname[option_data->num_adiffs-1], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -contr c1 ... cr filename   -----*/
       if (strncmp(argv[nopt], "-contr", 6) == 0)
 	{
 	  nopt++;
-	  if (nopt + option_data->a >= argc)  
+	  if (nopt + option_data->a >= argc)
             ANOVA_error ("need r+1 arguments after -contr ");
-	  
+	
 	  option_data->num_acontr++;
 	  if (option_data->num_acontr > MAX_CONTR)
 	    ANOVA_error ("too many factor level contrasts");
-	  
+	
 	  for (i = 0;  i < option_data->a;  i++)
 	    {
-	      sscanf (argv[nopt], "%f", &fval); 
+	      sscanf (argv[nopt], "%f", &fval);
 	      option_data->acontr[option_data->num_acontr - 1][i] = fval ;
 	      nopt++;
 	    }
-	  
-	  option_data->acname[option_data->num_acontr-1] 
+	
+	  option_data->acname[option_data->num_acontr-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->acname[option_data->num_acontr-1], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -bucket filename   -----*/
       if (strncmp(argv[nopt], "-bucket", 4) == 0)
 	{
@@ -515,8 +517,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*----- unknown command -----*/
       sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
       ANOVA_error (message);
@@ -533,7 +535,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 
 void check_temporary_files (anova_options * option_data)
 {
-   char filename[MAX_NAME_LENGTH];           /* temporary file name */ 
+   char filename[MAX_NAME_LENGTH];           /* temporary file name */
 
    int i;                                    /* file counter */
 
@@ -552,7 +554,7 @@ void check_temporary_files (anova_options * option_data)
    check_one_temporary_file ("ssto");
    check_one_temporary_file ("sstr");
    check_one_temporary_file ("sse");
- 
+
 }
 
 
@@ -565,7 +567,7 @@ void check_output_files (anova_options * option_data)
 {
   int i;       /* index */
 
-  if (option_data->nftr > 0)   
+  if (option_data->nftr > 0)
     check_one_output_file (option_data, option_data->ftrname);
 
   if (option_data->num_ameans > 0)
@@ -594,11 +596,11 @@ void check_for_valid_inputs (anova_options * option_data)
 {
   int i;                               /* factor level index */
   char message[MAX_NAME_LENGTH];       /* error message */
-  
+
   if (option_data->a < 2)
     ANOVA_error ("must specify number of factor levels (r>1) ");
-  
-  if (option_data->nt < option_data->a + 1) 
+
+  if (option_data->nt < option_data->a + 1)
     ANOVA_error ("too few data sets for ANOVA");
 
   for (i = 0;  i < option_data->a;  i++)
@@ -621,7 +623,7 @@ void check_for_valid_inputs (anova_options * option_data)
 int required_data_files (anova_options * option_data)
 {
   int r;                           /* number of factor levels */
-  int nftr;                        /* number of F-treatment output files 
+  int nftr;                        /* number of F-treatment output files
 				      (0 or 1) */
   int nmeans;                      /* number of estimated mean output files */
   int ndiffs;                      /* number of difference output files */
@@ -641,7 +643,7 @@ int required_data_files (anova_options * option_data)
   nmax = r + 2 + nout;
   if (option_data->bucket_filename != NULL)
     nmax = max (nmax, 2*nout);
-  
+
   return (nmax);
 }
 
@@ -654,21 +656,21 @@ int required_data_files (anova_options * option_data)
 void initialize (int argc,  char ** argv,  anova_options ** option_data)
 {
   int i;                               /* factor level index */
-  
-  
+
+
 
   /*----- save command line for history notes -----*/
   commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
 
 
-  /*----- allocate memory space for input data -----*/   
+  /*----- allocate memory space for input data -----*/
   *option_data = (anova_options *) malloc(sizeof(anova_options));
   if (*option_data == NULL)
     ANOVA_error ("memory allocation error");
-  
+
   /*----- get command line inputs -----*/
   get_options(argc, argv, *option_data);
-  
+
   /*----- use first data set to get data set dimensions -----*/
   (*option_data)->first_dataset = (*option_data)->xname[0][0][0][0];
   get_dimensions (*option_data);
@@ -677,7 +679,7 @@ void initialize (int argc,  char ** argv,  anova_options ** option_data)
 	  (*option_data)->nz, (*option_data)->nxyz);
   if ((*option_data)->nvoxel > (*option_data)->nxyz)
     ANOVA_error ("argument of -voxel is too large");
-  
+
   /*----- count number of observations per treatment level -----*/
   (*option_data)->nt = 0;
   for (i = 0;  i < (*option_data)->a;  i++)
@@ -685,13 +687,13 @@ void initialize (int argc,  char ** argv,  anova_options ** option_data)
 
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (*option_data);
-    
+
   /*----- check whether temporary files already exist -----*/
   check_temporary_files (*option_data);
- 
+
   /*----- check whether output files already exist -----*/
   if( THD_deathcon() ) check_output_files (*option_data);
-  
+
   /*----- check whether there is sufficient disk space -----*/
   if ((*option_data)->diskspace)  check_disk_space (*option_data);
 }
@@ -834,7 +836,7 @@ void calc_contr(anova_options * option_data, float * contr,
 /*
    Routine to sum over the observations within one treatment level.
    Output is stored (temporarily) in data file y"i".3danova, where
-   "i" = treatment level. 
+   "i" = treatment level.
 */
 
 void calculate_y (anova_options * option_data)
@@ -853,13 +855,13 @@ void calculate_y (anova_options * option_data)
    r = option_data->a;
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
- 
+
    /*----- allocate memory space for calculations -----*/
    x = (float *) malloc(sizeof(float)*nxyz);
    y = (float *) malloc(sizeof(float)*nxyz);
    if ((x == NULL) || (y == NULL))
       ANOVA_error ("unable to allocate sufficient memory");
-  
+
 
    /*----- loop over treatment levels -----*/
    for (i = 0;  i < r;  i++)
@@ -868,17 +870,17 @@ void calculate_y (anova_options * option_data)
       volume_zero (y, nxyz);
       for (j = 0;  j < option_data->na[i];  j++)
       {
-	 read_afni_data (option_data, 
+	 read_afni_data (option_data,
 			 option_data->xname[i][0][0][j], x);
 	 if (nvoxel > 0)
 	    printf ("y[%d][%d] = %f \n", i+1, j+1, x[nvoxel-1]);
          for (ixyz = 0;  ixyz < nxyz;  ixyz++)
             y[ixyz] += x[ixyz];
       }
- 
+
       /*----- save the sum for this treatment level -----*/
       if (nvoxel > 0)
-  	 printf ("y[%d]. = %f \n", i+1, y[nvoxel-1]); 
+  	 printf ("y[%d]. = %f \n", i+1, y[nvoxel-1]);
       sprintf (filename, "y.%d", i);
       volume_write (filename, y, nxyz);
    }
@@ -909,18 +911,18 @@ void calculate_ysum (anova_options * option_data)
    /*----- initialize local variables -----*/
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
-  
+
    /*----- allocate memory space for calculations -----*/
    y = (float *) malloc(sizeof(float)*nxyz);
    ysum = (float *) malloc(sizeof(float)*nxyz);
    if ((y == NULL) || (ysum == NULL))
       ANOVA_error ("unable to allocate sufficient memory");
-  
+
 
    /*----- sum over all observations -----*/
    volume_zero (ysum, nxyz);
    for (i = 0;  i < option_data->a;  i++)
-   { 
+   {
       sprintf (filename, "y.%d", i);
       volume_read (filename, y, nxyz);
       for (ixyz = 0;  ixyz < nxyz;  ixyz++)
@@ -955,12 +957,12 @@ void calculate_ss (anova_options * option_data)
    int nvoxel;                         /* output voxel # */
    float xval;                         /* float input data */
 
- 
+
    /*----- initialize local variables -----*/
    r = option_data->a;
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
-  
+
    /*----- allocate memory space for calculations -----*/
    x = (float *) malloc(sizeof(float)*nxyz);
    ss = (float *) malloc(sizeof(float)*nxyz);
@@ -971,8 +973,8 @@ void calculate_ss (anova_options * option_data)
    volume_zero (ss, nxyz);
    for (i = 0;  i < r;  i++)
       for (j = 0;  j < option_data->na[i];  j++)
-      {  
-	 read_afni_data (option_data, 
+      {
+	 read_afni_data (option_data,
 			 option_data->xname[i][0][0][j], x);
          for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	 {
@@ -1011,16 +1013,16 @@ void calculate_ssto (anova_options * option_data)
    nt = option_data->nt;
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
- 
+
    /*----- allocate memory space for calculations -----*/
    ysum = (float *) malloc(sizeof(float)*nxyz);
    ssto = (float *) malloc(sizeof(float)*nxyz);
    if ((ysum == NULL) || (ssto == NULL))
       ANOVA_error ("unable to allocate sufficient memory");
- 
+
    /*-----  SSTO = SS - ((YSUM)^2)/nt  -----*/
    volume_read ("ss", ssto, nxyz);
-   volume_read ("ysum", ysum, nxyz); 
+   volume_read ("ysum", ysum, nxyz);
    for (ixyz = 0;  ixyz < nxyz;  ixyz++)
    {
       yval = ysum[ixyz];
@@ -1030,7 +1032,7 @@ void calculate_ssto (anova_options * option_data)
    /*----- ss data file is no longer needed -----*/
    volume_delete ("ss");
 
-   /*----- save total (corrected) sum of squares -----*/ 
+   /*----- save total (corrected) sum of squares -----*/
    if (nvoxel > 0)
       printf ("SSTO = %f \n", ssto[nvoxel-1]);
    volume_write ("ssto", ssto, nxyz);
@@ -1064,13 +1066,13 @@ void calculate_sstr (anova_options * option_data)
    nt = option_data->nt;
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
- 
+
    /*----- allocate memory space for calculations -----*/
    y = (float *) malloc(sizeof(float)*nxyz);
    sstr = (float *) malloc(sizeof(float)*nxyz);
    if ((y == NULL) || (sstr == NULL))
       ANOVA_error ("unable to allocate sufficient memory");
- 
+
    volume_zero (sstr, nxyz);
    for (i = 0;  i < option_data->a;  i++)
    {
@@ -1080,7 +1082,7 @@ void calculate_sstr (anova_options * option_data)
       for (ixyz = 0;  ixyz < nxyz;  ixyz++)
       {
 	 yval = y[ixyz];
-         sstr[ixyz] += yval * yval / ni; 
+         sstr[ixyz] += yval * yval / ni;
       }
    }
 
@@ -1126,13 +1128,13 @@ void calculate_sse (anova_options * option_data)
    /*----- assign local variables -----*/
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
-   
+
    /*----- allocate memory space for calculations -----*/
    sstr = (float *) malloc(sizeof(float)*nxyz);
    sse = (float *) malloc(sizeof(float)*nxyz);
    if ((sstr == NULL) || (sse == NULL))
       ANOVA_error ("unable to allocate sufficient memory");
-   
+
    /*----- read SSTO (total sum of squares) -----*/
    volume_read ("ssto", sse, nxyz);
 
@@ -1167,10 +1169,10 @@ void calculate_sse (anova_options * option_data)
    Routine to calculate the F-statistic for treatment, F = MSTR / MSE,
       where MSTR = SSTR / (r-1),
       and   MSE  = SSE  / (n-r).
- 
-   The output is stored as a 2 sub-brick AFNI data set.  The first sub-brick 
-   contains the square root of MSTR (mean sum of squares due to treatment), 
-   and the second sub-brick contains the corresponding F-statistic. 
+
+   The output is stored as a 2 sub-brick AFNI data set.  The first sub-brick
+   contains the square root of MSTR (mean sum of squares due to treatment),
+   and the second sub-brick contains the corresponding F-statistic.
 */
 
 void calculate_f_statistic (anova_options * option_data)
@@ -1185,16 +1187,16 @@ void calculate_f_statistic (anova_options * option_data)
    int nvoxel;                          /* output voxel # */
    float fval;                          /* float value used in calculations */
    float mse;                           /* mean square error */
- 
+
 
    /*----- initialize local variables -----*/
    r = option_data->a;
    nt = option_data->nt;
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
-   
+
    /*----- allocate memory space for calculations -----*/
-   /*----- Note:  the order in which memory allocations take place  
+   /*----- Note:  the order in which memory allocations take place
                   is important! -----*/
    ftr = (float *) malloc(sizeof(float)*nxyz);
    mstr = (float *) malloc(sizeof(float)*nxyz);
@@ -1204,7 +1206,7 @@ void calculate_f_statistic (anova_options * option_data)
 
 
    /*----- calculate mean SS due to treatments -----*/
-   volume_read ("sstr", fin, nxyz);   
+   volume_read ("sstr", fin, nxyz);
    fval = 1.0 / (r - 1.0);
    for (ixyz = 0;  ixyz < nxyz;  ixyz++)
       mstr[ixyz] = fin[ixyz] * fval;     /*---  MSTR = SSTR / (r-1)  ---*/
@@ -1212,7 +1214,7 @@ void calculate_f_statistic (anova_options * option_data)
       printf ("MSTR = %f \n", mstr[nvoxel-1]);
 
    /*----- calculate F-statistic  FTR = MSTR / MSE  -----*/
-   volume_read ("sse", fin, nxyz);     
+   volume_read ("sse", fin, nxyz);
    fval = 1.0 / (nt - r);
    for (ixyz = 0;  ixyz < nxyz;  ixyz++)
      {
@@ -1247,7 +1249,7 @@ void calculate_f_statistic (anova_options * option_data)
 /*
    Routine to calculate the mean treatment effect at the user specified
    treatment level.  The output is stored as a 2 sub-brick AFNI data set.
-   The first sub-brick contains the estimated mean at this treatment level, 
+   The first sub-brick contains the estimated mean at this treatment level,
    and the second sub-brick contains the corresponding t-statistic.
 */
 
@@ -1270,7 +1272,7 @@ void calculate_means (anova_options * option_data)
    float fval;                        /* for calculating std. dev. */
    float stddev;                      /* est. std. dev. of factor mean */
    char filename[MAX_NAME_LENGTH];    /* input data file name */
- 
+
 
    /*----- initialize local variables -----*/
    r = option_data->a;
@@ -1283,10 +1285,10 @@ void calculate_means (anova_options * option_data)
    mean = (float *) malloc(sizeof(float)*nxyz);
    tmean = (float *) malloc(sizeof(float)*nxyz);
    contr = (float *) malloc(sizeof(float)*r);
-   if ((mean == NULL) || (tmean == NULL) || (contr == NULL))  
+   if ((mean == NULL) || (tmean == NULL) || (contr == NULL))
       ANOVA_error ("unable to allocate sufficient memory");
-   
-   /*----- loop over user specified treatment means -----*/ 
+
+   /*----- loop over user specified treatment means -----*/
    for (imean = 0;  imean < num_means;  imean++)
    {
       level = option_data->ameans[imean];
@@ -1300,15 +1302,15 @@ void calculate_means (anova_options * option_data)
           fin = (float *) malloc(sizeof(float)*nxyz);
           if (fin == NULL)
              ANOVA_error ("unable to allocate sufficient memory");
-     
+
           /*----- estimate factor mean for this treatment level -----*/
-          sprintf (filename, "y.%d", level); 
+          sprintf (filename, "y.%d", level);
           volume_read (filename, fin, nxyz);
           for (ixyz = 0;  ixyz < nxyz;  ixyz++)
              mean[ixyz] =  fin[ixyz] / ni;
 
           /*----- divide by estimated standard deviation of factor mean -----*/
-          volume_read ("sse", fin, nxyz);      
+          volume_read ("sse", fin, nxyz);
           fval = (1.0 / (nt-r)) * (1.0 / ni);
           for (ixyz = 0;  ixyz < nxyz;  ixyz++)
           {
@@ -1332,9 +1334,9 @@ void calculate_means (anova_options * option_data)
          printf ("Mean [%d] = %f \n", level+1, mean[nvoxel-1]);
          printf ("t-Mean [%d] = %f, df = %d\n", level+1, tmean[nvoxel-1], df);
       }
- 
+
       /*----- write out afni data file -----*/
-      write_afni_data (option_data, option_data->amname[imean], 
+      write_afni_data (option_data, option_data->amname[imean],
                        mean, tmean, df, 0);
    }
 
@@ -1379,7 +1381,7 @@ void calculate_differences (anova_options * option_data)
    num_diffs = option_data->num_adiffs;
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
-   
+
    /*----- allocate memory space for calculations -----*/
    diff = (float *) malloc(sizeof(float)*nxyz);
    tdiff = (float *) malloc(sizeof(float)*nxyz);
@@ -1390,7 +1392,7 @@ void calculate_differences (anova_options * option_data)
    /*----- loop over user specified treatment differences -----*/
    for (idiff = 0;  idiff < num_diffs;  idiff++)
    {
- 
+
       if (option_data->old_method)      /* old method    8 Dec 2005 [rickr] */
       {
          df = nt - r;
@@ -1398,12 +1400,12 @@ void calculate_differences (anova_options * option_data)
          /*----- allocate temporary memory space -----*/
          fin = (float *) malloc(sizeof(float)*nxyz);
          if (fin == NULL)  ANOVA_error ("unable to allocate sufficient memory");
-     
+
          /*----- read first treatment level mean -----*/
          i = option_data->adiffs[idiff][0];
          ni = option_data->na[i];
          sprintf (filename, "y.%d", i);
-         volume_read (filename, fin, nxyz); 
+         volume_read (filename, fin, nxyz);
          for (ixyz = 0;  ixyz < nxyz;  ixyz++)
             diff[ixyz] = fin[ixyz] / ni;
 
@@ -1425,7 +1427,7 @@ void calculate_differences (anova_options * option_data)
               tdiff[ixyz] = 0.0;
             else
               tdiff[ixyz] = diff[ixyz] / stddev;
-         }          
+         }
       } else {  /* new method */
          for (ixyz = 0; ixyz < r; ixyz++ ) contr[ixyz] = 0.0; /* clear old */
          contr[option_data->adiffs[idiff][0]] = 1.0;
@@ -1444,7 +1446,7 @@ void calculate_differences (anova_options * option_data)
       free (fin);   fin = NULL;
 
       /*----- write out afni data file -----*/
-      write_afni_data (option_data, option_data->adname[idiff], 
+      write_afni_data (option_data, option_data->adname[idiff],
                        diff, tdiff, df, 0);
 
    }
@@ -1459,7 +1461,7 @@ void calculate_differences (anova_options * option_data)
 /*
    Routine to estimate a user specified contrast in treatment levels.
    The output is stored as a 2 sub-brick AFNI data set.  The first
-   sub-brick contains the estimated contrast.  The second sub-brick contains 
+   sub-brick contains the estimated contrast.  The second sub-brick contains
    the corresponding t-statistic.
 */
 
@@ -1490,7 +1492,7 @@ void calculate_contrasts (anova_options * option_data)
    num_contr = option_data->num_acontr;
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
-   
+
    /*----- allocate memory space for calculations -----*/
    contr  = (float *) malloc(sizeof(float)*nxyz);
    tcontr = (float *) malloc(sizeof(float)*nxyz);
@@ -1511,9 +1513,9 @@ void calculate_contrasts (anova_options * option_data)
 
          for (level = 0;  level < r;  level++)
          {
-            c = option_data->acontr[icontr][level]; 
-            if (c == 0.0) continue; 
-       
+            c = option_data->acontr[icontr][level];
+            if (c == 0.0) continue;
+
             /*----- add c * treatment level mean to contrast -----*/
             sprintf (filename, "y.%d", level);
             volume_read (filename, fin, nxyz);
@@ -1532,7 +1534,7 @@ void calculate_contrasts (anova_options * option_data)
               tcontr[ixyz] = 0.0;
             else
               tcontr[ixyz] = contr[ixyz] / stddev;
-         }   
+         }
       } else {  /* new method */
          calc_contr(option_data, option_data->acontr[icontr], contr, tcontr);
          df = df_for_contr(option_data, option_data->acontr[icontr]);
@@ -1544,7 +1546,7 @@ void calculate_contrasts (anova_options * option_data)
       }
 
       /*----- write out afni data file -----*/
-      write_afni_data (option_data, option_data->acname[icontr], 
+      write_afni_data (option_data, option_data->acname[icontr],
                        contr, tcontr, df, 0);
    }
 
@@ -1565,7 +1567,7 @@ void calculate_anova (anova_options * option_data)
 
    /*-----  sum observations within treatment -----*/
    calculate_y (option_data);
- 
+
    /*-----  sum all observations  -----*/
    calculate_ysum (option_data);
 
@@ -1591,7 +1593,7 @@ void calculate_anova (anova_options * option_data)
 
 void analyze_results (anova_options * option_data)
 {
- 
+
    /*-----  calculate F-statistic for treatment effect  -----*/
    if (option_data->nftr > 0)  calculate_f_statistic (option_data);
 
@@ -1631,12 +1633,12 @@ void create_bucket (anova_options * option_data)
 
        if( DSET_IS_1D(dset) ) USE_1D_filenames(1) ; /* 14 Mar 2003 */
   else if( DSET_IS_3D(dset) ) USE_1D_filenames(3) ; /* 21 Mar 2003 */
-  
+
 
   /*----- make an empty copy of this dataset -----*/
   new_dset = EDIT_empty_copy( dset ) ;
   THD_delete_3dim_dataset (dset , False);   dset = NULL;
-  EDIT_dset_items (new_dset, 
+  EDIT_dset_items (new_dset,
 		   ADN_directory_name, option_data->session,
 		   ADN_none);
 
@@ -1651,7 +1653,7 @@ void create_bucket (anova_options * option_data)
   strcpy (refit_str, "3drefit ");
   ibrick = -1;
 
- 
+
   /*----- make F-statistic sub-bricks -----*/
   if (option_data->nftr != 0)
     {
@@ -1663,12 +1665,12 @@ void create_bucket (anova_options * option_data)
       strcat (refit_str, str);
 
       ibrick++;
-      sprintf (str, " -sublabel %d %s:F-stat ", 
+      sprintf (str, " -sublabel %d %s:F-stat ",
 	       ibrick, option_data->ftrname);
       strcat (refit_str, str);
     }
-      
-  
+
+
   /*----- make factor level mean sub-bricks -----*/
   if (option_data->num_ameans > 0)
     for (i = 0; i < option_data->num_ameans; i++)
@@ -1676,16 +1678,16 @@ void create_bucket (anova_options * option_data)
 	add_file_name (new_dset, option_data->amname[i], bucket_str);
 
 	ibrick++;
-	sprintf (str, " -sublabel %d %s:Mean ", 
+	sprintf (str, " -sublabel %d %s:Mean ",
 		 ibrick, option_data->amname[i]);
 	strcat (refit_str, str);
 
 	ibrick++;
-	sprintf (str, " -sublabel %d %s:t-stat ", 
+	sprintf (str, " -sublabel %d %s:t-stat ",
 		 ibrick, option_data->amname[i]);
 	strcat (refit_str, str);
       }
-  
+
 
   /*----- make difference in factor level means sub-bricks -----*/
   if (option_data->num_adiffs > 0)
@@ -1694,16 +1696,16 @@ void create_bucket (anova_options * option_data)
 	add_file_name (new_dset, option_data->adname[i], bucket_str);
 
 	ibrick++;
-	sprintf (str, " -sublabel %d %s:Diff ", 
+	sprintf (str, " -sublabel %d %s:Diff ",
 		 ibrick, option_data->adname[i]);
 	strcat (refit_str, str);
 
 	ibrick++;
-	sprintf (str, " -sublabel %d %s:t-stat ", 
+	sprintf (str, " -sublabel %d %s:t-stat ",
 		 ibrick, option_data->adname[i]);
 	strcat (refit_str, str);
       }
-  
+
 
   /*----- make contrast in factor level means sub-bricks -----*/
   if (option_data->num_acontr > 0)
@@ -1712,12 +1714,12 @@ void create_bucket (anova_options * option_data)
 	add_file_name (new_dset, option_data->acname[i], bucket_str);
 
 	ibrick++;
-	sprintf (str, " -sublabel %d %s:Contr ", 
+	sprintf (str, " -sublabel %d %s:Contr ",
 		 ibrick, option_data->acname[i]);
 	strcat (refit_str, str);
 
 	ibrick++;
-	sprintf (str, " -sublabel %d %s:t-stat ", 
+	sprintf (str, " -sublabel %d %s:t-stat ",
 		 ibrick, option_data->acname[i]);
 	strcat (refit_str, str);
       }
@@ -1739,7 +1741,7 @@ void create_bucket (anova_options * option_data)
 
   /*----- release memory -----*/
   THD_delete_3dim_dataset (new_dset , False);   new_dset = NULL;
-  
+
 }
 
 
@@ -1766,13 +1768,13 @@ void terminate (anova_options * option_data)
       sprintf (filename, "y.%d", i);
       volume_delete (filename);
     }
-  
-  
+
+
   /*----- create bucket dataset -----*/
   if (option_data->bucket_filename != NULL)
     create_bucket (option_data);
 
-  
+
   /*----- if 'bucket' datset was created, remove the individual 2-subbrick
           data files -----*/
   if (option_data->bucket_filename != NULL)
@@ -1781,35 +1783,35 @@ void terminate (anova_options * option_data)
       /*----- read first dataset -----*/
       dset = THD_open_dataset (option_data->first_dataset) ;
       CHECK_OPEN_ERROR(dset,option_data->first_dataset) ;
-      
+
       /*----- make an empty copy of this dataset -----*/
       new_dset = EDIT_empty_copy (dset);
       THD_delete_3dim_dataset (dset , False);   dset = NULL;
-      EDIT_dset_items (new_dset, 
+      EDIT_dset_items (new_dset,
 		       ADN_directory_name, option_data->session,
 		       ADN_none);
-      
+
       /*----- remove F-statistic data file -----*/
       if (option_data->nftr != 0)
 	remove_dataset (new_dset, option_data->ftrname);
-      
+
       /*----- remove mean factor level data files -----*/
       if (option_data->num_ameans > 0)
 	for (i = 0; i < option_data->num_ameans; i++)
 	  remove_dataset (new_dset, option_data->amname[i]);
-      
+
       /*----- remove difference in factor levels data files -----*/
       if (option_data->num_adiffs > 0)
 	for (i = 0; i < option_data->num_adiffs; i++)
 	  remove_dataset (new_dset, option_data->adname[i]);
-      
+
       /*----- remove contrast in factor levels data files -----*/
       if (option_data->num_acontr > 0)
 	for (i = 0; i < option_data->num_acontr; i++)
 	  remove_dataset (new_dset, option_data->acname[i]);
-      
+
       THD_delete_3dim_dataset (new_dset , False);   new_dset = NULL;
-    }  
+    }
 
 
   /*----- deallocate memory -----*/
@@ -1822,7 +1824,7 @@ void terminate (anova_options * option_data)
 /*
    Single factor analysis of variance (ANOVA).
 */
- 
+
 int main (int argc, char ** argv)
 {
    anova_options * option_data = NULL;
@@ -1831,7 +1833,7 @@ int main (int argc, char ** argv)
    /*----- Identify software -----*/
    printf ("\n\n");
    printf ("Program:          %s \n", PROGRAM_NAME);
-   printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+   printf ("Author:           %s \n", PROGRAM_AUTHOR);
    printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
    printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
    printf ("\n");
