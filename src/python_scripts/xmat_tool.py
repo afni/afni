@@ -7,20 +7,7 @@
 import sys
 import ui_xmat as UIX
 
-def test(test_gui=1):
-
-   if test_gui:
-      gui = XmatGUI()
-      gui.init_gui(verb=1)
-      gui.MainLoop()
-   else:
-      UIX.test()
-
-   return None
-
 def main():
-   # test(1)
-
    XM = UIX.XmatInterface()
    if not XM: return 1
 
