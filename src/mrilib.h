@@ -1566,7 +1566,7 @@ typedef struct {
 } GA_setup ;
 
 #undef  IFREE
-#define IFREE(x) do{ if((x)!=NULL)free(x); }while(0)
+#define IFREE(x) do{ if((x)!=NULL)free(x); (x)=NULL; }while(0)
 
 #undef  FREE_GA_setup
 #define FREE_GA_setup(st)                                                   \
