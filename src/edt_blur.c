@@ -65,9 +65,9 @@ void EDIT_blur_volume( int nx, int ny, int nz,
      - also see EDIT_blur_allow_fir() and FIR_blur_volume_3d()
 --------------------------------------------------------------------------*/
 
-void EDIT_blur_volume_3d( int nx, int ny, int nz,
+void EDIT_blur_volume_3d( int   nx, int   ny, int   nz,
                           float dx, float dy, float dz,
-                          int ftype , void * vfim ,
+                          int ftype , void *vfim ,
                           float sigmax, float sigmay, float sigmaz )
 {
    int jj,kk , nxy , base,nby2 ;
@@ -199,7 +199,7 @@ STATUS("start x FFTs") ;
 
    switch( ftype ){
       case MRI_short:{
-         register short * qfim ;
+         register short *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
             for( jj=0 ; jj < ny ; jj+=2 ){
                base = jj*nx + kk*nxy ;
@@ -222,7 +222,7 @@ STATUS("start x FFTs") ;
       break ;
 
       case MRI_float:{
-         register float * qfim ;
+         register float *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
             for( jj=0 ; jj < ny ; jj+=2 ){
                base = jj*nx + kk*nxy ;
@@ -245,7 +245,7 @@ STATUS("start x FFTs") ;
       break ;
 
       case MRI_byte:{
-         register byte * qfim ;
+         register byte *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
             for( jj=0 ; jj < ny ; jj+=2 ){
                base = jj*nx + kk*nxy ;
@@ -268,7 +268,7 @@ STATUS("start x FFTs") ;
       break ;
 
       case MRI_complex:{
-         register complex * qfim ;
+         register complex *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
             for( jj=0 ; jj < ny ; jj++ ){
                base = jj*nx + kk*nxy ;
@@ -327,7 +327,7 @@ STATUS("start y FFTs") ;
 
    switch( ftype ){
       case MRI_short:{
-         register short * qfim ;
+         register short *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
             for( jj=0 ; jj < nx ; jj+=2 ){
                base = jj + kk*nxy ;
@@ -350,7 +350,7 @@ STATUS("start y FFTs") ;
       break ;
 
       case MRI_byte:{
-         register byte * qfim ;
+         register byte *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
             for( jj=0 ; jj < nx ; jj+=2 ){
                base = jj + kk*nxy ;
@@ -373,7 +373,7 @@ STATUS("start y FFTs") ;
       break ;
 
       case MRI_float:{
-         register float * qfim ;
+         register float *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
             for( jj=0 ; jj < nx ; jj+=2 ){
                base = jj + kk*nxy ;
@@ -396,7 +396,7 @@ STATUS("start y FFTs") ;
       break ;
 
       case MRI_complex:{
-         register complex * qfim ;
+         register complex *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
             for( jj=0 ; jj < nx ; jj++ ){
                base = jj + kk*nxy ;
@@ -455,7 +455,7 @@ STATUS("start z FFTs") ;
 
    switch( ftype ){
       case MRI_short:{
-         register short * qfim ;
+         register short *qfim ;
          for( kk=0 ; kk < ny ; kk++ ){
             for( jj=0 ; jj < nx ; jj+=2 ){
                base = jj + kk*nx ;
@@ -478,7 +478,7 @@ STATUS("start z FFTs") ;
       break ;
 
       case MRI_float:{
-         register float * qfim ;
+         register float *qfim ;
          for( kk=0 ; kk < ny ; kk++ ){
             for( jj=0 ; jj < nx ; jj+=2 ){
                base = jj + kk*nx ;
@@ -501,7 +501,7 @@ STATUS("start z FFTs") ;
       break ;
 
       case MRI_byte:{
-         register byte * qfim ;
+         register byte *qfim ;
          for( kk=0 ; kk < ny ; kk++ ){
             for( jj=0 ; jj < nx ; jj+=2 ){
                base = jj + kk*nx ;
@@ -524,7 +524,7 @@ STATUS("start z FFTs") ;
       break ;
 
       case MRI_complex:{
-         register complex * qfim ;
+         register complex *qfim ;
          for( kk=0 ; kk < ny ; kk++ ){
             for( jj=0 ; jj < nx ; jj++ ){
                base = jj + kk*nx ;
@@ -574,6 +574,26 @@ STATUS("start z FFTs") ;
 
    EXRETURN ;
 }
+
+#if 0
+/*-------------------------------------------------------------------*/
+/*! Partition of unity function:
+
+      n=+infinity
+    sum            partu(x-n) = 1 identically
+      n=-infinity
+
+    and support of partu(x) is interval [-1,1]
+*//*-----------------------------------------------------------------*/
+
+static INLINE float partu( float x )
+{
+  register float ax ;
+  ax = fabsf(x) ;
+  if( ax >= 1.0f ) return 0.0f ;
+  return (x*x*(20.0f*ax+10.0f)+4.0f*ax+1.0f) ;
+}
+#endif
 
 /*-------------------------------------------------------------------*/
 /*! Function to blur a 3D volume in-place with a symmetric FIR filter
