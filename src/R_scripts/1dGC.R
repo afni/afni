@@ -80,7 +80,7 @@ plotNet <- function(net, selfLoop, edgeWd, arrScl, edgeCol, msg) {
 }
 
 libLoad("network")  # network drawing
-libLoad('tcltk')    # for graphics
+#libLoad('tcltk')    # for graphics
 
 print("################################################################")
 print("Visit http://afni.nimh.nih.gov/sscc/gangc/VAR.html and makse sure")
