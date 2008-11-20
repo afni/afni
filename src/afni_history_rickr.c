@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  20, NOV, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "incorportated real-time volume writing from V. Roopchansingh of MCW",
+   NULL,
+ } ,
+
  {  18, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
    "added -test, -show_col_types, -show_cosmat, -show_fit_ts, -cormat_cutoff",
    "also added the main help"
