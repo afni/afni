@@ -2524,6 +2524,7 @@ void mri_genalign_mat44( int npar, float *wpar,
 }
 
 /*--------------------------------------------------------------------------*/
+/*! A wfunc function for bilinear warp alignment. */
 
 void mri_genalign_bilinear( int npar, float *wpar ,
                             int npt , float *xi, float *yi, float *zi ,
@@ -2769,3 +2770,86 @@ void mri_genalign_warpfield( int npar, float *wpar ,
 
    return ;
 }
+
+#if 0
+/****************************************************************************/
+/************** Nonlinear sum of basis fields stored in arrays **************/
+
+static int wsum_npar = 0 ;
+
+static int wsum_nx=0 , wsum_ny=0 , wsum_nz=0 , wsum_nxy=0 , wsum_nxyz=0 ;
+static float wsum_dx , wsum_dy , wsum_dz ;
+
+static float  *wsum_xinit  = NULL ;
+static float  *wsum_yinit  = NULL ;
+static float  *wsum_zinit  = NULL ;
+static float **wsum_xbasis = NULL ;
+static float **wsum_ybasis = NULL ;
+static float **wsum_zbasis = NULL ;
+static float  *wsum_param  = NULL ;
+
+/*--------------------------------------------------------------------------*/
+
+void mri_genalign_warpsum_set_dimen( int   nx, int   ny, int   nz,
+                                     float dx, float dy, float dz )
+{
+   int ii ;
+
+   if( nx < 1 ){ nx = ny = nz = 0 ; }
+
+   wsum_nx = nx ;
+   wsum_ny = ny ; wsum_nxy  = nx*ny ;
+   wsum_nz = nz ; wsum_nxyz = wsum_nx * nz ;
+   wsum_dx = dx ; wsum_dy = dy ; wsum_dz = dz ;
+
+   IFREE(wsum_xinit); IFREE(wsum_yinit); IFREE(wsum_zinit); IFREE(wsum_param);
+
+   if( wsum_xbasis != NULL ){
+     for( ii=0 ; ii < wsum_npar ; ii++ ){
+       IFREE(wsum_xbasis[ii]); IFREE(wsum_ybasis[ii]); IFREE(wsum_zbasis[ii]);
+     }
+     IFREE(wsum_xbasis); IFREE(wsum_ybasis); IFREE(wsum_zbasis);
+   }
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! A wfunc function for nonlinear transformations. */
+/*--------------------------------------------------------------------------*/
+
+void mri_genalign_warpsum( int npar, float *wpar ,
+                           int npt , float *xi, float *yi, float *zi ,
+                                     float *xo, float *yo, float *zo  )
+{
+   register int ii,jj , pp,qq,rr , pqr ;
+   register float xv,yv,zv , *wp ;
+
+   /** new parameters **/
+
+   if( npar > 0 && wpar != NULL ){
+     memcpy( wsum_param , wpar , sizeof(float)*npar ) ;
+   }
+   wp = wsum_param ;
+
+   /* nothing to transform? */
+
+   if( npt <= 0 || xi == NULL || xo == NULL ) return ;
+
+   /* multiply matrix times input vectors */
+
+   for( ii=0 ; ii < npt ; ii++ ){
+     pp  = (int)xi[ii] ; qq = (int)yi[ii] ; rr = (int)zi[ii] ;
+     pqr = pp + qq*wsum_nx + rr*wsum_nxy ;
+     xv  = wsum_xinit[pqr] ; yv  = wsum_yinit[pqr] ; zv  = wsum_zinit[pqr] ;
+     for( jj=0 ; jj < wsum_npar ; jj++ ){
+       xv += wp[jj] * wsum_xbasis[jj][pqr] ;
+       yv += wp[jj] * wsum_ybasis[jj][pqr] ;
+       zv += wp[jj] * wsum_zbasis[jj][pqr] ;
+     }
+     xo[ii] = xv ; yo[ii] = yv ; zo[ii] = zv ;
+   }
+
+   return ;
+}
+#endif
