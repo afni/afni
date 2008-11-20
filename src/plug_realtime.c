@@ -71,6 +71,7 @@
 /** 10 May 2005: added TPATTERN command to set timing pattern        [rickr] **/
 /** 13 Sep 2005: add empty markers to appropriate datasets           [rickr] **/
 /** 11 Nov 2006: pass ROI means via RT_mp_*, one per ROI per TR      [rickr] **/
+/** 16 Oct 2008: added capability to write data to disk in real time [vinai] **/
 
 
 /**************************************************************************/
@@ -330,6 +331,17 @@ static char helpstring[] =
    "                  how many repetitions (TR's) to expect.\n"
    " YR [y-axis]  = If a realtime graph is generated, this entry specifies\n"
    "                  the vertical range for each motion parameter.\n"
+   "\n"
+   " Mask         = Turns on sending extra data to serial_helper port.\n"
+   "                * Motion Only       : send only the 6 motion parameters\n"
+   "                * ROI Means         : also send a mean for each Mask ROI\n"
+   "                * All Data          : send all Mask voxel data\n"
+   "\n"
+   "                  --> see example F from 'Dimon -help'\n"
+   "\n"
+   " RT Write     = Turns on real time writing of individual time point data\n"
+   "                  sets (either the acquired or volume registered data) to\n"
+   "                  disk.\n"
 #endif
    "\n"
    "MULTICHANNEL ACQUISITION [Aug 2002]:\n"
@@ -406,6 +418,16 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   static char * RT_mask_strings_ENV[N_RT_MASK_METHODS] = {
     "None" , "Motion_Only", "ROI_means" , "All_Data" } ;
 
+/* Variables to enable writing individual time-point volumes to disk */
+#define RT_WRITE_NOTHING       0
+#define RT_WRITE_ACQUIRED      1
+#define RT_WRITE_REGISTERED    2
+#define N_RT_WRITE_MODES       3
+  static char * RT_write_strings[N_RT_WRITE_MODES] = {"Off", "Acquired",
+                                                      "Registered"};
+  static int    RTdatamode = 0 ;      /* mode of writing to disk in real time */
+  static int    RT_written[MAX_CHAN]; /* num time points already written out */
+
 # define REGMODE_NONE      0
 # define REGMODE_2D_RTIME  1
 # define REGMODE_2D_ATEND  2
@@ -434,7 +456,6 @@ typedef struct {
   static int g_MP_send_ver = 0 ;                  /* send MP version         */
   static THD_3dim_dataset * g_mask_dset = NULL ;  /* mask aves w/ MP vals    */
   static rt_string_list drive_wait_list = {0,NULL} ;      /* DRIVE_WAIT list */
-  static char g_drive_wait[RT_DRIVE_LIMIT] = "";  /* for -drive_wait command */
 #endif
 
 /************ global data for reading data *****************/
@@ -486,6 +507,7 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   int  RT_mp_comm_send_data   ( RT_input * rtin, float *mp[6], int nt, int sub);
   int  RT_parser_init         ( RT_input * rtin );
   void RT_set_grapher_pinnums ( int pinnum );
+  int  RT_mp_set_mask_data    ( RT_input * rtin, float * data, int sub );
   int  RT_mask_free           ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
   int  RT_get_mask_aves       ( RT_input * rtin, int sub );
 
@@ -673,6 +695,12 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 #endif
 
+   /* Adding options for writing individual time-point volumes to disk */
+
+   PLUTO_add_option( plint , "" , "DataWriting" , FALSE ) ;
+   PLUTO_add_string( plint , "RT Write" , N_RT_WRITE_MODES, RT_write_strings,
+                     RTdatamode ) ;
+
    /***** Register a work process *****/
 
 #ifndef USE_RT_STARTUP
@@ -807,6 +835,13 @@ char * RT_main( PLUGIN_interface * plint )
          continue ;
       }
 #endif
+
+      if( strcmp(tag,"DataWriting") == 0 ){
+         str        = PLUTO_get_string(plint) ;
+         RTdatamode = PLUTO_string_index( str , N_RT_WRITE_MODES,
+                                                RT_write_strings ) ;
+         continue ;
+      }
 
       /** How the hell did this happen? **/
 
@@ -1954,8 +1989,8 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 {
     static float * data = NULL;
     static int     dvals = 0;
-    int   rv, b2send, remain, tr_vals;
-    int   c, c2, dind, mpindex, nblocks, bsize, err = 0;
+    int   b2send, remain, tr_vals;
+    int   c, c2, dind, mpindex, nblocks, bsize;
 
     if ( rtin->mp_tcp_use != 1 || nt <= 0 ) return 0;
 
@@ -2070,7 +2105,7 @@ int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
     THD_fvec3   fvec;
     THD_ivec3   ivec;
     void      * dptr;
-    float       ffac, x, y, z;
+    float       ffac;
     int         dind, vind, iv, nvox;
     int         i, j, k, nx, nxy;
 
@@ -2341,7 +2376,6 @@ int RT_mp_comm_init( RT_input * rtin )
     struct sockaddr_in   sin;
     struct hostent     * hostp;
     char                 magic_hi[] = { 0xab, 0xcd, 0xef, 0xab };
-    char               * estr;
     int                  sd, send_nvals = 0, rv;
 
      /* if error or not in use, return */
@@ -2969,7 +3003,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          }
 
       } else if( STARTER("DRIVE_WAIT") ){   /* 21 Aug 2008 */
-         int ii, len = strlen(buf) ;
+         int len = strlen(buf) ;
 
          if( len < 11 ){
             fprintf(stderr,"RT: DRIVE_WAIT lacks command\n") ;
@@ -3432,6 +3466,8 @@ void RT_start_dataset( RT_input * rtin )
      rtin->im[cc]   = rtin->sbr[cc] ;  /* place to put first image in sub-brick */
      rtin->nsl[cc]  = 0 ;              /* number of slices gathered so far */
      rtin->nvol[cc] = 0 ;              /* number of volumes gathered so far */
+
+     RT_written[cc] = 0 ;              /* for real time data writing to disk */
    }
 
    /** if there is already data stored in the temporary buffer
@@ -3691,7 +3727,7 @@ static void RT_image_kfun(void * kdata)                /* 28 Apr 2000 */
 
 void RT_process_image( RT_input * rtin )
 {
-   int vdone , cc = rtin->cur_chan ;
+   int vdone=0 , cc = rtin->cur_chan ;
 
    /** 28 Apr 2000: Image Only mode stuff **/
 
@@ -3776,10 +3812,85 @@ void RT_process_image( RT_input * rtin )
       }
 #endif /* ALLOW_REGISTRATION */
 
+      /* Seems like a good place to write individual volumes to disk in *
+       * near real time - vinai.                                        */
+
+      if ( RTdatamode )	/* if not zero, and writing data in real time   */
+      {
+         THD_3dim_dataset * tmp_dset = NULL ;
+         char               RT_prefix[THD_MAX_PREFIX] ;
+         int                cc, RT_sub_brick_id[2];
+
+         RT_sub_brick_id[0] = 1;
+
+         if ( RTdatamode == RT_WRITE_ACQUIRED ) /* write acquired data */
+         {
+            for( cc=0 ; cc < rtinp->num_chan ; cc++ )
+            {
+               for ( ; RT_written[cc] < rtin->dset[cc]->dblk->nvals ; )
+               {
+                  RT_sub_brick_id[1] = RT_written[cc];
+
+                  /* copy acquired data sets for writing now */
+                  tmp_dset = THD_copy_dset_subs(rtin->dset[cc],RT_sub_brick_id);
+
+                  /* add channel and rep index to the name of the written *
+                   * RT data sets                                         */
+                  sprintf ( RT_prefix, "%s_ch%03d_nr_%06d",
+                            rtin->dset[cc]->dblk->diskptr->prefix,
+                            cc, RT_sub_brick_id[1] ) ;
+                  EDIT_dset_items(tmp_dset, ADN_prefix, RT_prefix, ADN_none);
+
+                  if( verbose > 0 )
+                     fprintf(stderr,"RT: writing acquired volume %s\n",
+                             RT_prefix);
+
+                  DSET_overwrite ( tmp_dset ) ; /* write...        */
+                  DSET_delete( tmp_dset ) ;     /* and delete copy */
+                  tmp_dset = NULL ;
+
+                  RT_written[cc] += 1;
+               }
+            }
+         }
+
+#ifdef ALLOW_REGISTRATION
+         if ( RTdatamode == RT_WRITE_REGISTERED )   /* write registered data */
+         {
+            /* check to make sure we are past the base registration brik */
+            if ( rtin->reg_dset->dblk->nvals >= rtin->reg_base_index )
+            {
+               for ( ; RT_written[0] < rtin->reg_dset->dblk->nvals ; )
+               {
+                  RT_sub_brick_id[1] = RT_written[0];
+
+                  tmp_dset = THD_copy_dset_subs(rtin->reg_dset,RT_sub_brick_id);
+
+                  /* again - modify name for RT sets as needed */
+                  sprintf ( RT_prefix, "%s_nr_%06d",
+                            rtin->reg_dset->dblk->diskptr->prefix,
+                            RT_written[0] ) ; 
+                  EDIT_dset_items(tmp_dset, ADN_prefix, RT_prefix, ADN_none);
+
+                  if( verbose > 0 )
+                     fprintf(stderr,"RT: writing registered volume %s\n",
+                             RT_prefix);
+
+                  DSET_overwrite ( tmp_dset ) ; /* write...        */
+                  DSET_delete( tmp_dset ) ;     /* and delete copy */
+                  tmp_dset = NULL ;
+
+                  RT_written[0] += 1;
+               }
+            }
+         }
+#endif /* ALLOW_REGISTRATION */
+      }
+
       /** compute function, maybe? **/
 
       if( rtin->func_code > 0 ){
-         int jj ;
+         int jj=0 ;
 
          /** if needed, initialize the function computations **/
 
@@ -3849,7 +3960,7 @@ void RT_process_image( RT_input * rtin )
 
    } else {  /** need to add more slices before volume is done **/
 
-      int noff ;  /* slice position in output brick */
+      int noff=0 ;  /* slice position in output brick */
 
       if( rtin->zorder == ZORDER_SEQ ){  /* sequential:       */
                                          /* slice position is */
@@ -3936,10 +4047,10 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 {
    Three_D_View * im3d ;
    THD_session * sess ;
-   THD_3dim_dataset * old_anat ;
+   THD_3dim_dataset * old_anat=NULL ;
    int ii , id , afni_init=0 ;
-   char clll , *cstr ;
-   MCW_arrowval * tav ;
+   char clll=0 , *cstr ;
+   MCW_arrowval * tav=NULL ;
 
    /** sanity check **/
 
@@ -4984,7 +5095,7 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
 {
    MRI_IMAGE * rim , * qim ;
    char * qar ;
-   float dx,dy,dz , roll,pitch,yaw , ddx,ddy,ddz ;
+   float dx,dy,dz , roll,pitch,yaw , ddx=0.0,ddy=0.0,ddz=0.0 ;
    int   nest ;
 
    /*-- sanity check --*/
