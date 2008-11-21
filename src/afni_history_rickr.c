@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  21, NOV, 2008, RCR, "python_module_test.py", MINOR, TYPE_NEW_OPT,
+   "removed 'R' from basic test list, and applied verb 2 to base usage",
+   NULL,
+ } ,
+
  {  20, NOV, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
    "incorportated real-time volume writing from V. Roopchansingh of MCW",
    NULL,

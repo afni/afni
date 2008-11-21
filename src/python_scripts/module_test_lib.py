@@ -40,8 +40,9 @@
 
 import imp, sys
 
+# add 'R' if needed
 genlibs  = ['os', 'sys', 'string', 'glob', 'copy', 'gc']
-mathlibs = ['math', 'random', 'numpy', 'scipy', 'R']
+mathlibs = ['math', 'random', 'numpy', 'scipy']
 guilibs  = ['wx', 'matplotlib']
 
 alllibs  = []
@@ -56,26 +57,36 @@ g_mesglist = [
              [ 'numpy', 
 """
      -> consider downloading 'numpy' from www.scipy.org
-        or via yum: "sudo yum install numpy"
+           or on Linux: "sudo yum install numpy"
+           or on OS X:  "sudo fink install numpy-py25"
 """ ],
              [ 'matplotlib', 
 """
      -> consider downloading 'matplotlib' from matplotlib.sourceforge.net
-        or via yum: "sudo yum install python-matplotlib"
+           or on Linux: "sudo yum install python-matplotlib"
+           or on OS X:  "sudo fink install matplotlib-py25"
 """ ],
              [ 'R', 
 """
      -> consider downloading 'R' from a site in the mirror list:
         http://cran.r-project.org/mirrors.html
-        or via yum: "sudo yum install R"
+           or on Linux: "sudo yum install R"
 
         consider also installing the developer sub-package 'R-devel'
-        "sudo yum install R-devel"
+           "sudo yum install R-devel"
 """ ],
              [ 'scipy', 
 """
      -> consider downloading 'scipy' from www.scipy.org
-        or via yum: "sudo yum install scipy"
+           or on Linux: "sudo yum install scipy"
+           or on OS X:  "sudo fink install scipy-py25"
+""" ],
+             [ 'wx', 
+"""
+     -> consider downloading 'wxpython' from www.wxpython.org
+           or on Linux: "sudo yum install wxPython"
+           or on OS X:  "sudo fink install wxpython-py25"
+                        Note: wxpython-py25 is not available on OS X 10.4
 """ ]
 ]
 
@@ -214,8 +225,8 @@ def test_import(libname, details=1, verb=1):
       exec(import_find_test_25_def)
       imptest = import_find_test_25
 
-   if imptest(libname, verb): return 0
-   else:                      return 1
+   if imptest(libname, details, verb): return 0
+   else:                               return 1
 
 def num_import_failures(liblist=[], details=1, verb=1):
    """try to import a list of library names as strings
