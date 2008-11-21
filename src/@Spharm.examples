@@ -1,0 +1,19 @@
+#surfaces in this example come from SUMA's N27 tlrc surfaces
+set surf1 = lh.pial.tlrc.ply
+set sph1 = lh.sphere.asc
+set spec = N27_lh_tlrc.spec
+set ld = 35
+set order = 30
+set sigma = 0
+
+DOMAIN:  #Change the density of the mesh (not necessary)
+   MapIcosahedron -spec $spec -ld $ld -morph sphere -prefix ld${ld}.lh
+   CreateIcosahedron -rad 1.0 -ld $ld -prefix ld${ld}.unitsph 
+   set surf1 = ld${ld}.lh_std.pial.ply
+   set sph1 = ld35.unitsph_surf.asc
+
+SpharmDeco  -i $sph1 -unit_sph ${sph1} \
+            -i ${surf1} -l ${order} \
+            -bases_prefix ld${ld}.unitsph_harmo \
+            -o_fs {$surf1:r}_reco${order} \
+            -sigma $sigma
