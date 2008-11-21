@@ -217,8 +217,10 @@ xmat_tool     - a tool for evaluating an AFNI X-matrix
       -show_conds                     : display a list of condition numbers
 
           The condition number is the ratio of the largest eigen value to
-          the smallest.  It can provide an indication of how correlated the
-          regressors are.
+          the smallest.  It provides an indication of how sensitive results
+          of linear regression are to small changes in the data.  Condition
+          numbers will tend to be larger with regressors that are more highly
+          correlated.
 
           This option requests to display condition numbers for the X-matrix,
           restricted to the given sets of columns (regressors):
