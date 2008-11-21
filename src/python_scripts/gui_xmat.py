@@ -58,8 +58,10 @@ ID_LOAD_1D          = 202
 
 ID_SHOW_XMAT        = 301
 ID_SHOW_XMAT_CONDS  = 302
-ID_SHOW_CORMAT      = 303
-ID_SHOW_CORMAT_EVIL = 304
+ID_SHOW_CORMAT      = 311
+ID_SHOW_CORMAT_EVIL = 312
+ID_SHOW_COSMAT      = 316
+ID_SHOW_COSMAT_EVIL = 317
 ID_SHOW_1D          = 321
 ID_SHOW_FIT_BETAS   = 331
 
@@ -69,6 +71,10 @@ ID_PLOT_BEST_FIT    = 403
 ID_PLOT_CORMAT      = 411
 
 ID_APPLY_CHOICE     = 501
+
+ID_OPT_CORMAT_CUT   = 601
+ID_OPT_COSMAT_CUT   = 602
+ID_OPT_VERB         = 611
 
 ID_PLOT_AS_ONE      = 1001      # check item in menu
 
@@ -291,7 +297,11 @@ class MainFrame(wx.Frame):
       menu.Append(ID_SHOW_CORMAT, "Show X-&Cormat",
                                   "Show correlation matrix (of X-matrix)")
       menu.Append(ID_SHOW_CORMAT_EVIL, "Show X-Cormat &Warnings",
-                         "Show problematic entries in correlation matrix")
+                         "Show questionable entries in correlation matrix")
+      menu.Append(ID_SHOW_COSMAT, "Show X-Co&smat",
+                                  "Show cosine matrix (of X-matrix)")
+      menu.Append(ID_SHOW_COSMAT_EVIL, "Show X-Cosmat Warnings",
+                         "Show questionable entries in cosine matrix")
       menu.Append(ID_SHOW_1D, "Show &1D", "Show info about time series")
       menu.Append(ID_SHOW_FIT_BETAS, "Show &Fit Betas",
                         "Show info about the Betas of the fitts")
@@ -309,6 +319,15 @@ class MainFrame(wx.Frame):
             "Graph best fit of selected X matrix columns against 1D array")
       menu.Append(ID_PLOT_CORMAT, "Graph &Corr Mat", "Graph Correlation Matrix")
       menubar.Append(menu, "&Plot")
+      # Opt menu
+      menu = wx.Menu()
+      menu.Append(ID_OPT_CORMAT_CUT, "set co&rmat cutoff",
+                              "set cutoff for correlation matrix warnings")
+      menu.Append(ID_OPT_COSMAT_CUT, "set co&smat cutoff",
+                              "set cutoff for cosine matrix warnings")
+      menu.Append(ID_OPT_VERB, "set &verb level",
+                              "set verbose level")
+      menubar.Append(menu, "&Options")
       # Help menu
       menu = wx.Menu()
       menu.Append(ID_ABOUT, "&About", "information about this program")
@@ -334,6 +353,8 @@ class MainFrame(wx.Frame):
       wx.EVT_MENU(self, ID_SHOW_XMAT_CONDS, self.cb_show_xmat_conds)
       wx.EVT_MENU(self, ID_SHOW_CORMAT, self.cb_show_xmat_cormat)
       wx.EVT_MENU(self, ID_SHOW_CORMAT_EVIL, self.cb_show_xmat_cormat_warns)
+      wx.EVT_MENU(self, ID_SHOW_COSMAT, self.cb_show_xmat_cosmat)
+      wx.EVT_MENU(self, ID_SHOW_COSMAT_EVIL, self.cb_show_xmat_cosmat_warns)
       wx.EVT_MENU(self, ID_SHOW_1D, self.cb_show_mat)
       wx.EVT_MENU(self, ID_SHOW_FIT_BETAS, self.cb_show_fit_betas)
 
@@ -342,6 +363,10 @@ class MainFrame(wx.Frame):
       wx.EVT_MENU(self, ID_PLOT_1D, self.cb_plot_1D)
       wx.EVT_MENU(self, ID_PLOT_BEST_FIT, self.cb_plot_fit)
       wx.EVT_MENU(self, ID_PLOT_CORMAT, self.cb_graph_corr_mat)
+
+      wx.EVT_MENU(self, ID_OPT_CORMAT_CUT, self.cb_set_cormat_cutoff)
+      wx.EVT_MENU(self, ID_OPT_COSMAT_CUT, self.cb_set_cosmat_cutoff)
+      wx.EVT_MENU(self, ID_OPT_VERB, self.cb_set_verb)
 
    # ----------------------------------------------------------------------
    # In general, the cb_ functions are the callbacks that call the respective
@@ -415,6 +440,25 @@ class MainFrame(wx.Frame):
 
       self.show_text_window(mstr, title, wrap=0)
 
+   def cb_show_xmat_cosmat(self, event):
+
+      mat = self.XM.matX
+
+      if not mat:
+         self.popup_warning("please load an X matrix, first")
+         return
+      elif not mat.ready:
+         return
+
+      if not mat.cormat_ready:    # then set it
+         mat.set_cormat()
+
+      rv, mstr = self.XM.make_cosmat_string()
+
+      title = os.path.basename(self.XM.fname_mat) + ' cosine matrix'
+
+      self.show_text_window(mstr, title, wrap=0)
+
    def cb_show_xmat_cormat_warns(self, event):
       self.gui_show_xmat_cormat_warns()
 
@@ -431,6 +475,22 @@ class MainFrame(wx.Frame):
       rv, mstr = self.XM.make_cormat_warnings_string()
 
       title = os.path.basename(self.XM.fname_mat) + ' correlation warnings'
+
+      self.show_text_window(mstr, title, wrap=0)
+
+   def cb_show_xmat_cosmat_warns(self, event):
+
+      mat = self.XM.matX
+
+      if not mat:
+         self.popup_warning("please load an X matrix, first")
+         return
+      elif not mat.ready:
+         return
+
+      rv, mstr = self.XM.make_cosmat_warnings_string()
+
+      title = os.path.basename(self.XM.fname_mat) + ' cosine warnings'
 
       self.show_text_window(mstr, title, wrap=0)
 
@@ -513,7 +573,7 @@ class MainFrame(wx.Frame):
          self.popup_warning("no columns chosen for X matrix")
          return
 
-      self.plotx_frame = CanvasFrame(as_one=self.plot_as_one)
+      self.plotx_frame = CanvasFrame(title='X-matrix', as_one=self.plot_as_one)
       self.plotx_cols  = cols           # keep track of what was used
 
       self.plotx_frame.Show(True)
@@ -554,7 +614,7 @@ class MainFrame(wx.Frame):
 
       if self.XM.verb > 1: print '++ showing fit plot'
 
-      self.plotfit_frame = CanvasFrame()
+      self.plotfit_frame = CanvasFrame(title='fit time series')
       self.plotfit_redo = 0
 
       self.plotfit_frame.Show(True)
@@ -585,7 +645,7 @@ class MainFrame(wx.Frame):
 
       if self.XM.verb > 1: print '++ showing 1D plot'
 
-      self.plot1D_frame = CanvasFrame()
+      self.plot1D_frame = CanvasFrame(title='1D time series')
       self.plot1D_redo = 0
 
       self.plot1D_frame.Show(True)
@@ -595,6 +655,49 @@ class MainFrame(wx.Frame):
       self.plot1D_frame.Bind(wx.EVT_CLOSE, self.cb_close_plot_1D)
 
       if self.XM.verb > 1: print '-- plot 1D done'
+
+   def cb_set_cormat_cutoff(self, event):
+      dlg = wx.TextEntryDialog(self, 'correlation warning cutoff',
+                                     'cormat cutoff')
+      val = self.XM.cormat_cut
+      if val < 0.0: val = UIX.g_cormat_cut
+      dlg.SetValue('%.3f' % val)
+
+      if dlg.ShowModal() == wx.ID_OK:
+         try: val = float(dlg.GetValue())
+         except: pass
+         else:
+            self.XM.cormat_cut = val
+            if self.XM.verb > 1: print '++ applying new cormat_cut = %s' % val
+      dlg.Destroy()
+
+   def cb_set_cosmat_cutoff(self, event):
+      dlg = wx.TextEntryDialog(self, 'cosine warning cutoff',
+                                     'cosmat cutoff')
+      val = self.XM.cosmat_cut
+      if val < 0.0: val = UIX.g_cosmat_cut
+      dlg.SetValue('%.3f' % val)
+
+      if dlg.ShowModal() == wx.ID_OK:
+         try: val = float(dlg.GetValue())
+         except: pass
+         else: self.XM.cosmat_cut = val
+         if self.XM.verb > 1: print '++ applying new cosmat_cut = %s' % val
+      dlg.Destroy()
+
+   def cb_set_verb(self, event):
+      dlg = wx.TextEntryDialog(self, 'set verbose level',
+                                     'verbose level')
+      val = self.XM.verb
+      dlg.SetValue('%d' % val)
+
+      if dlg.ShowModal() == wx.ID_OK:
+         try: val = int(dlg.GetValue())
+         except: pass
+         else:
+            self.XM.verb = val
+            if self.XM.verb > 1: print '++ applying new verb = %s' % val
+      dlg.Destroy()
 
    def cb_load_mat(self, event):        # gui event
       fname = wx.FileSelector(default_path=os.getcwd(),default_extension='1D',
@@ -1080,8 +1183,8 @@ class MatGrid(wx.grid.Grid):
 # This canvas is only used for plotting graphs of matrices.
 
 class CanvasFrame(wx.Frame):
-   def __init__(self, as_one=0):
-      wx.Frame.__init__(self, None, -1, 'CanvasFrame', size=(400,300))
+   def __init__(self, title='', as_one=0):
+      wx.Frame.__init__(self, None, -1, title, size=(400,300))
       self.figure = Figure()
       self.canvas = FigureCanvas(self, -1, self.figure)
       self.sizer = wx.BoxSizer(wx.VERTICAL)
