@@ -9,7 +9,7 @@ set l = `which afni`
 if ($status) then
    echo NO_afni_FOUND
 else
-   echo $l:h/
+   echo $l:h
 endif
 
 END:
