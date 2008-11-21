@@ -5,7 +5,13 @@ import sys
 # verify system libraries
 import module_test_lib
 g_testlibs = ['os', 'gc', 'numpy', 'wx', 'matplotlib']
-if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
+if module_test_lib.num_import_failures(g_testlibs,details=0):
+   print """
+     -- for details, consider xmat_tool -test_libs
+     -- also, many computations do not require the GUI
+        (e.g. 'xmat_tool -load_xmat X.xmat.1D -show_cormat_warnings')
+   """
+   sys.exit(1)
 
 import os, gc
 
