@@ -82,9 +82,12 @@ g_history = """
 
     0.1  Oct 30, 2008: submitted
     0.2  Nov 06, 2008: added -full_test
+    0.3  Nov 21, 2008:
+         - removed R from basic test list
+         - in base usage, set verb level to 2
 """
 
-g_version = "version 0.2, November 6, 2008"
+g_version = "version 0.3, November 21, 2008"
 
 
 # main module for defining and processing use options
@@ -226,7 +229,7 @@ class ModuleTest:
 def process():
    if len(sys.argv) <= 1:       # default behavior, run general test
       print ""
-      nfail = module_test_lib.num_import_failures(verb=1)
+      nfail = module_test_lib.num_import_failures(verb=2)
       print "\nnumber of python import failures = %d\n" % nfail
       return nfail
 
