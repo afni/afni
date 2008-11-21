@@ -49,18 +49,23 @@
 afni_history_struct rickr_history[] = {
 
  {  21, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
+   "added Options menu, Show Cosmat and GUI help",
+   "This is the initial release version, 1.0."
+ } ,
+
+ {  21, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
    "added -test_libs option",
-   NULL,
+   NULL
  } ,
 
  {  21, NOV, 2008, RCR, "python_module_test.py", MINOR, TYPE_NEW_OPT,
    "removed 'R' from basic test list, and applied verb 2 to base usage",
-   NULL,
+   NULL
  } ,
 
  {  20, NOV, 2008, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
    "incorportated real-time volume writing from V. Roopchansingh of MCW",
-   NULL,
+   NULL
  } ,
 
  {  18, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
