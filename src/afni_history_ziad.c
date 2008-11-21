@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13 , NOV , 2008 , ZSS , "@fast_roi" , MINOR ,  TYPE_NEW_PROG,
+   "Added a NIDO sphere as Displayable Object ",
+   "See suma -help_nido for details."
+ },
+ 
  { 13 , NOV , 2008 , ZSS , "suma" , MINOR ,  TYPE_NEW_OPT,
    "Added a NIDO sphere as Displayable Object ",
    "See suma -help_nido for details."
