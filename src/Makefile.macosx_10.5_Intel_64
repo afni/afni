@@ -1,0 +1,87 @@
+# This Makefile is for Mac OSX 10.5 (Panther) for 64 bit AFNI
+
+USE_ZLIB  = -DHAVE_ZLIB
+LZLIB     = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = /usr/local/lib/libexpat64.a
+LXm       = /usr/local/lib/libXm64.a
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC
+CC     = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CCFAST = cc -O3 -ftree-vectorize -ffast-math -DDARWIN $(CEXTRA)
+CCMIN  = cc -m64
+CCD    = $(CC) $(CCDEBS)
+
+IFLAGS = -I. -I/usr/local/include -I/sw/include -I/usr/X11R6/include
+LFLAGS = -L. -L/usr/local/lib -L/sw/lib -L/usr/X11R6/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+
+CCSVD  = cc -m64 -O0 -no-cpp-precomp
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -m64 -bundle -flat_namespace -undefined suppress -Wl,-x
+PLUGIN_CC     = $(CC) -dynamic -fno-common
+PLFLAGS       = -m64 -dynamic -L. -L/usr/local/lib -L/sw/lib -L/usr/X11R6/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+
+# include the line below if you want to include vector arith in 3dDeconvolve_f
+# SPECIAL = -framework Accelerate -DUSE_ACCELERATE
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /usr/bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /usr/bin/gzip
+LD     = cc
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = macosx_10.5_Intel_64
+LIBDIR = $(INSTALLDIR)
+SHOWOFF = -DSHOWOFF=macosx_10.5_Intel_64
+
+INSTALL_PREREQ = suma
+#INSTALL_PREREQ = suma
+EXPROGS = gifti_tool
+
+# for dynamic linking
+
+LLIBS  = -lmri $(LXm) -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lmri $(LXm) -lc
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma 
+# ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a 
+
+# -------------------------------------------------------------------
+#  # OSX 10.5 has issues with libGL, where the multiple copies cause a cycle
+# (somehow).  Get around this by using -dylib_file (in a strange way).
+
+SUMA_GLLIB = /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+SUMA_GL_DYLIB_CMD = -dylib_file $(SUMA_GLLIB): $(SUMA_GLLIB)
+# -------------------------------------------------------------------
+
+GLw_IPATH  =
+GLw_LIB = -lGLw
+#uncomment next two lines if you want to use libGLws.a, SUMA's copy of GLw
+GLw_IPATH  = -IGLw_local 
+GLw_LIB = libGLws.a
+
+
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I/usr/local/include -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
+SUMA_LINK_PATH = -L/usr/local/lib -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L./
+
+SUMA_LINK_LIB = $(LXm) $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) $(LXm) -lm -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE
