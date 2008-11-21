@@ -1,0 +1,219 @@
+#!/bin/tcsh -f
+
+set eee = `date '+%H %M %S'`
+goto PARSE
+
+DEED:
+set inpref = `@GetAfniPrefix $input`
+
+if ($ShowTime) echo "Stripping Anat at `date '+%H:%M:%S'`"
+if (`@CheckForAfniDset nosk.${inpref}+orig` < 2) then
+   3dSkullStrip -no_pushout -no_use_edge \
+                     -prefix nosk.${inpref}  -perc_int 0.1 \
+                     -overwrite  \
+                     -input ${inpref}+orig   >>& log.tlrc.${prefix}
+else
+   echo "Reusing nosk.${inpref}+orig.HEAD"
+endif
+
+#Now tlrc
+if ($ShowTime) echo "TLRC transformation at `date '+%H:%M:%S'`"
+if (`@CheckForAfniDset nosk.${inpref}+tlrc` < 2) then
+   @auto_tlrc -base $basetlrc \
+                  -input nosk.${inpref}+orig. \
+                  -no_ss -onepass -suffix NONE >>& log.tlrc.${prefix}
+else
+   echo "Reusing nosk.${inpref}+tlrc.HEAD"
+endif
+
+CALC_DEED:
+#Now create a mask of a particular region (see whereami -help for details):
+if ($ShowTime) echo "TLRC mask generation at `date '+%H:%M:%S'`"
+set noglob
+3dcalc   $regionlist  \
+               -expr "$eq" \
+               -prefix ROIt.${prefix} -overwrite >>& log.tlrc.${prefix}
+unset noglob                  
+         
+#Now put the mask in orig space 
+if ($ShowTime) echo "Orig mask generation at `date '+%H:%M:%S'`"
+3dfractionize -template $mask_grid  \
+                     -input ROIt.${prefix}+tlrc   \
+                     -prefix ROI.${prefix}  \
+                     -warp  nosk.${inpref}+tlrc  \
+                     -preserve -overwrite \
+                     -clip 0.5 >>& log.tlrc.${prefix}
+
+
+set eee2 = `date '+%H %M %S'`
+set etime = `ccalc "    ($eee2[1] - $eee[1])*3600 \
+                     +  ($eee2[2] - $eee[2])*60 \
+                     +  ($eee2[3] - $eee[3])  "`
+set et = ( 0 0 0 )
+set et[1] = `ccalc -fint " $etime / 3600"`
+set et[2] = `ccalc -fint " ( $etime - $et[1] * 3600 ) / 60"`
+set et[3] = `ccalc -fint " ( $etime - $et[1] * 3600 - $et[2] * 60 ) "`
+
+if ($ShowTime) echo "Elapsed time $et[1]h:$et[2]m:$et[3]s"
+
+goto END
+
+HELP:
+   echo  "Usage: `basename $0` <-region REGION1> [<-region REGION2> ...]"
+   echo  "                     <-base TLRC_BASE> <-anat ANAT> "
+   echo  "                     <-roi_grid GRID >"
+   echo  "                     <-prefix PREFIX >"
+   echo  "                     [-time] [-help]"
+   echo  "Creates Atlas-based ROI masked in ANAT's original space."
+   echo  "The script is meant to work rapidly for realtime fmri applications"
+   echo  "Parameters:"
+   echo  "  -region REGION: Symbolic atlas-based region name. "
+   echo  "                  See whereami -help for details."
+   echo  "                 You can use repeated instances of this option"
+   echo  "                 to specify a mask of numerous regions."
+   echo  "                 Each region is assigned a power of 2 integer"
+   echo  "                 in the output mask"
+   echo  "  -base TLRC_BASE:  Name of reference TLRC volume. See @auto_tlrc"
+   echo  "                    for more details on this option. Note that"
+   echo  "                    for the purposes of speeding up the process,"
+   echo  "                    you might want to create a lower resolution"
+   echo  "                    version of the templates in the AFNI. In the"
+   echo  "                    example shown below, TT_N27_r2+tlrc was created"
+   echo  "                    with: "
+   echo  "           3dresample  -dxyz 2 2 2 -rmode Li -prefix ./TT_N27_r2 \"
+   echo  "                       -input `@GetAfniBin`/TT_N27+tlrc. "
+   echo  "                    where TT_N27+tlrc is usually in the directory "
+   echo  "                    under which afni resides."
+   echo  "  -anat ANAT: Anat is the volume to be put in std space. It does not"
+   echo  "              need to be a T1 weighted volume but you need to choose"
+   echo  "              a similarly weighted TLRC_BASE."
+   echo  "  -roi_grid GRID: The volume that defines the final ROI's grid."
+   echo  "  -prefix PREFIX: PREFIX is used to tag the names the ROIs output."
+   echo  "  -time: A flag to make the script output elapsed time reports."
+   echo  "  -help: Output this message."
+   echo  ""
+   echo  "The ROI of interest is in a volume called ROI.PREFIX+orig."
+   echo  ""
+   echo  "The script follows the following steps:"
+   echo  "  1- Strip skull off of ANAT+orig "
+   echo  "     Output is called nosk.ANAT+orig and is reused if present."
+   echo  "  2- Transform nosk.ANAT+orig to TLRC space."
+   echo  "     Output is called nosk.ANAT+tlrc and is reused if present." 
+   echo  "  3- Create ROI in TLRC space using 3dcalc."
+   echo  "     Output is ROIt.PREFIX+tlrc and is overwritten if present."
+   echo  "  4- Create ROI in GRID's orig space using 3dFractionize."
+   echo  "     Output is ROI.PREFIX+orig and is overwritten if present."
+   echo  ""
+   echo  "Examples ( require AFNI_data3/afni, and "
+   echo  "           3dresample's output from command shown above):"
+   echo  "     @fast_roi  -region CA_N27_ML::Hip -region CA_N27_ML::Amygda \"
+   echo  "                 -base TT_N27_r2+tlrc. -anat anat1+orig.HEAD  \"
+   echo  "                 -roi_grid epi_r1+orig -prefix toy -time"
+   echo  ""
+   echo  "    If you want another ROI given the same -anat and -base volumes:"
+   echo  "     @fast_roi  -region CA_N27_ML::Superior_Temporal_Gyrus \"
+   echo  "                 -region CA_N27_ML::Putamen \"
+   echo  "                 -base TT_N27_r2+tlrc. -anat anat1+orig.HEAD  \"
+   echo  "                 -roi_grid epi_r1+orig -prefix toy -time"
+   echo  ""
+   goto END
+   
+PARSE:
+   set cnum = 140
+   set input = ""
+   set basetlrc = "TT_N27+tlrc"
+   set region1 = 'CA_N27_ML::Amygda'
+   set region2 = 'CA_N27_ML::Hip'
+   set mask_grid = "" 
+   set Narg = $#
+   set prefix = "nosk"
+   set cnt = 1
+   set regionlist = ()
+   set valregionlist = ()
+   set eq = (" (0 ") 
+   set ShowTime = 0
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt      
+         if ($pLoc  == $Narg) then
+            echo "Need string after -prefix"
+            goto END
+         else
+            @ cnt ++
+            set prefix = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-base") then
+         set pLoc = $cnt      
+         if ($pLoc  == $Narg) then
+            echo "Need volume after -base"
+            goto END
+         else
+            @ cnt ++
+            set basetlrc = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-roi_grid") then
+         set pLoc = $cnt      
+         if ($pLoc  == $Narg) then
+            echo "Need volume after -roi_grid"
+            goto END
+         else
+            @ cnt ++
+            set mask_grid = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-anat") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need volume after -anat"
+            goto END
+         else
+            @ cnt ++
+            set input = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-region") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need region name after -region"
+            goto END
+         else
+            @ cnt ++
+            set cnum = `expr $cnum + 1`
+            set varname = `printf "\$cnum" `
+            set regionlist = ($regionlist `printf "%s\$cnum %s" '-' $argv[$cnt]`)
+            set eq = ("$eq" " + $varname " "*" " (2**$#valregionlist)") 
+            set valregionlist  = ($valregionlist `ccalc "2**($#valregionlist)"`)
+            set donext = 0  
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-time") then
+         set ShowTime = 1
+         set donext = 0   
+      endif
+      
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+   set eq = ("$eq )")
+   #echo "$eq"
+   goto DEED
+
+END:
