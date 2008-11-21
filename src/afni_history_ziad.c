@@ -65,9 +65,9 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 13 , NOV , 2008 , ZSS , "@fast_roi" , MINOR ,  TYPE_NEW_PROG,
-   "Added a NIDO sphere as Displayable Object ",
-   "See suma -help_nido for details."
+ { 21 , NOV , 2008 , ZSS , "@fast_roi" , MINOR ,  TYPE_NEW_PROG,
+   "Creates Atlas-based ROIs in original space for real-time experiments ",
+   NULL
  },
  
  { 13 , NOV , 2008 , ZSS , "suma" , MINOR ,  TYPE_NEW_OPT,
