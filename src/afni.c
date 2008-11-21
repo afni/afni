@@ -364,7 +364,7 @@ void AFNI_syntax(void)
      , DEFAULT_NGRAY
    ) ;
 
-   printf(
+   printf("\n"
     "--------------------\n"
     "Educational Material\n"
     "--------------------\n"
