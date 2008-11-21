@@ -36,44 +36,54 @@ xmat_tool     - a tool for evaluating an AFNI X-matrix
       performs any requested actions and terminates, without opening a GUI
       (graphical user interface).
 
+      0. Basic commands:
+
+            xmat_tool -help
+            xmat_tool -help_gui
+            xmat_tool -hist
+            xmat_tool -show_valid_opts
+            xmat_tool -test
+            xmat_tool -test_libs
+            xmat_tool -ver
+
       1. Load an X-matrix and display the condition numbers.
 
-         xmat_tool.py -no_gui -load_xmat X.xmat.1D -show_conds
+            xmat_tool.py -no_gui -load_xmat X.xmat.1D -show_conds
 
       2. Load an X-matrix and display correlation and cosine warnings.
 
-         xmat_tool.py -no_gui -load_xmat X.xmat.1D      \\
-             -show_cormat_warnings -show_cosmat_warnings
+            xmat_tool.py -no_gui -load_xmat X.xmat.1D      \\
+                -show_cormat_warnings -show_cosmat_warnings
 
       3. Load an X-matrix and a 1D time series.  Display beta weights for
          the best fit to all regressors (specifed as columns 0 to the last).
 
-         xmat_tool.py -no_gui -load_xmat X.xmat.1D -load_1D norm.ts.1D \\
-             -choose_cols '0..$' -show_fit_betas
+            xmat_tool.py -no_gui -load_xmat X.xmat.1D -load_1D norm.ts.1D \\
+                -choose_cols '0..$' -show_fit_betas
 
       4. Similar to 3, but show the actual fit time series.  Also, redirect
          the output to save the results in a 1D file.
 
-         xmat_tool.py -no_gui -load_xmat X.xmat.1D -load_1D norm.ts.1D \\
-             -choose_cols '0..$' -show_fit_ts > fitts.1D
+            xmat_tool.py -no_gui -load_xmat X.xmat.1D -load_1D norm.ts.1D \\
+                -choose_cols '0..$' -show_fit_ts > fitts.1D
 
       5. Show many things.  Load an X-matrix and time series, and display
          conditions and warnings (but setting own cutoff values), as well as
          fit betas.
 
-         xmat_tool.py -no_gui -load_xmat X.xmat.1D -load_1D norm.ts.1D  \\
-             -choose_cols '0..$'                                        \\
-             -show_conds                                                \\
-             -cormat_cutoff 0.3 -cosmat_cutoff 0.25                     \\
-             -show_cormat_warnings -show_cosmat_warnings                \\
-             -show_fit_betas
+            xmat_tool.py -no_gui -load_xmat X.xmat.1D -load_1D norm.ts.1D  \\
+                -choose_cols '0..$'                                        \\
+                -show_conds                                                \\
+                -cormat_cutoff 0.3 -cosmat_cutoff 0.25                     \\
+                -show_cormat_warnings -show_cosmat_warnings                \\
+                -show_fit_betas
 
       6. Script many operations.  Load a sequence of X-matrices, and display
          condition numbers and warnings for each.
 
          Note that with -chrono, options are applied chronologically.
 
-         xmat_tool.py -no_gui -chrono                                   \\
+            xmat_tool.py -no_gui -chrono                                \\
                 -load_xmat X.1.xmat.1D                                  \\
                 -show_conds -show_cormat_warnings -show_cosmat_warnings \\
                 -load_xmat X.2.xmat.1D                                  \\
@@ -99,6 +109,7 @@ xmat_tool     - a tool for evaluating an AFNI X-matrix
       -show_valid_opts                : show all valid options
       -test                           : run a basic test
                                (requires X.xmat.1D and norm.022_043_012.1D)
+      -test_libs                      : test for required python libraries
       -ver                            : show the version number
 
    ------------------------------------------
@@ -325,9 +336,10 @@ g_history = """
         - added options -test, -show_col_types, -show_cosmat,
                         -show_fit_ts and -cormat_cutoff
         - wrote main help
+   0.8  Nov 21 2008: added -test_libs option
 """
 
-g_version = "xmat_tool version 0.7, November 18, 2008"
+g_version = "xmat_tool version 0.8, November 21, 2008"
 
 
 class XmatInterface:
@@ -377,6 +389,8 @@ class XmatInterface:
                       helpstr='display all valid options')
       self.valid_opts.add_opt('-test', 0, [],           \
                       helpstr='run a basic test with known files')
+      self.valid_opts.add_opt('-test_libs', 0, [],           \
+                      helpstr='test for existence of neede python libraries')
       self.valid_opts.add_opt('-ver', 0, [],            \
                       helpstr='display the current version number')
 
@@ -455,6 +469,9 @@ class XmatInterface:
       if '-test' in sys.argv:
          self.test()
          return 0
+
+      if '-test_libs' in sys.argv:
+         return self.test_libraries()
 
       if '-ver' in sys.argv:
          print g_version
@@ -916,6 +933,13 @@ class XmatInterface:
       gc.collect()
       # sys.exc_clear()
       # sys.exc_traceback = sys.last_traceback = None
+
+   def test_libraries(self):
+      """test for existence of needed python libraries"""
+      import module_test_lib as MLT
+      g_testlibs = ['os', 'gc', 'numpy', 'wx', 'matplotlib', 'scipy']
+      if MLT.num_import_failures(g_testlibs,details=1): return 1
+      else: return 0
 
    def test(self, verb=3):
       # init
