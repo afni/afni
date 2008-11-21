@@ -14,7 +14,7 @@ import afni_util as UTIL
 
 g_help_string = """
 =============================================================================
-xmat_tool     - a tool for evaluating an AFNI X-matrix
+xmat_tool.py    - a tool for evaluating an AFNI X-matrix
 
    This program gives the user the ability to evaluate a regression matrix
    (often referred to as an X-matrix).  With an AFNI X-matrix specified via
@@ -38,13 +38,13 @@ xmat_tool     - a tool for evaluating an AFNI X-matrix
 
       0. Basic commands:
 
-            xmat_tool -help
-            xmat_tool -help_gui
-            xmat_tool -hist
-            xmat_tool -show_valid_opts
-            xmat_tool -test
-            xmat_tool -test_libs
-            xmat_tool -ver
+            xmat_tool.py -help
+            xmat_tool.py -help_gui
+            xmat_tool.py -hist
+            xmat_tool.py -show_valid_opts
+            xmat_tool.py -test
+            xmat_tool.py -test_libs
+            xmat_tool.py -ver
 
       1. Load an X-matrix and display the condition numbers.
 
@@ -202,11 +202,6 @@ xmat_tool     - a tool for evaluating an AFNI X-matrix
           meaning 'quiet', 1 being the default, and 5 being the most verbose.
 
  ------------------------------------------
- GUI (graphical user interface) options:
-
-      -gui_plot_xmat_as_one           : plot Xmat columns on single axis
-
- ------------------------------------------
  show options:
 
       -show_col_types                 : display columns by regressor types
@@ -246,6 +241,13 @@ xmat_tool     - a tool for evaluating an AFNI X-matrix
           Values near +/-1.0 are highly correlated (go up and down together,
           or in reverse).  A value of 0.0 would mean they are orthogonal.
 
+      -show_cormat_warnings           : show correlation matrix warnings
+
+          Correlations for regressor pairs that are highly correlated
+          (abs(r) >= 0.4, say) are displayed, unless it is for a motion
+          regressor with either another motion regressor or a baseline
+          regressor.
+
       -show_cosmat                    : show the cosine matrix
 
           Display the entire cosine matrix as text.
@@ -256,13 +258,6 @@ xmat_tool     - a tool for evaluating an AFNI X-matrix
           M-dimensional space).  A value of 0 means they are at right angles,
           which is to say orthogonal.
          
-      -show_cormat_warnings           : show correlation matrix warnings
-
-          Correlations for regressor pairs that are highly correlated
-          (abs(r) >= 0.4, say) are displayed, unless it is for a motion
-          regressor with either another motion regressor or a baseline
-          regressor.
-
       -show_cosmat_warnings           : show cosine matrix warnings
 
           Cosines for regressor pairs that are pointed similar directions
@@ -300,6 +295,11 @@ xmat_tool     - a tool for evaluating an AFNI X-matrix
           This will display some general information from the 1D time series
           file.
 
+ ------------------------------------------
+ GUI (graphical user interface) options:
+
+      -gui_plot_xmat_as_one           : plot Xmat columns on single axis
+
 -----------------------------------------------------------------------------
 R Reynolds    October 2008
 =============================================================================
@@ -307,9 +307,142 @@ R Reynolds    October 2008
 
 gui_help_string = """
 =============================================================================
-xmat_tool: GUI help     (displayed via -help_gui or from the GUI Help)
+xmat_tool.py: GUI help
 
-for option help, please see "xmat_tool.py -help"
+   The xmat_tool.py GUI (Graphical User Interface) has essentially the same
+   features as are available without the GUI, plus the ability to Plot images.
+   Note that all command-line options are processed before the GUI is launched.
+   If the -no_gui option is provided, the GUI does not appear).
+
+   Typically, one would load an AFNI X-matrix (via File -> load X matrix) and
+   possibly some MRI time series (via File -> load 1D file), and play around.
+
+   Perhaps the most important operation to perform is Show Cormat Warnings,
+   under Show -> Show X-Cormat Warnings.  Highly correlated regressors (which
+   might be also suggested by a large condition number) can be seen.
+
+   Main menus:
+
+        File:    load data or exit
+        Show:    open a text window with data (can be edited/saved)
+        Plot:    graph a time series or spread sheet
+        Options: modify an internal variable
+        Help:    get help here
+
+   ------------------------------
+
+   Note that the program detects which regressor columns are for the baseline,
+   motion parameters or main regressors.  The columns indices for these sets
+   are listed in the "COLUMNS" section of the main window.
+
+   Note that columns are listed in the AFNI sub-brick selection style, where
+   2..7 is short for 2,3,4,5,6,7, for example.  
+
+   The user can select a set of "chosen regressor" columns at the top (and
+   "apply" it).  Chosen columns default to those of the main regressors, and
+   are used for:
+
+        o  plotting the X-matrix (Plot -> Plot Xmat)
+        o  computing Fit Betas (Show -> Show Fit Betas)
+        o  plotting the best fit time series (Plot -> Plot Best Fit)
+
+   ------------------------------
+
+   Sample usage (of the GUI):
+
+      0. Download the X-matrix and sample time series from the AFNI_data4
+         class data (from the "Soup to Nuts" hands-on class).
+
+         wget http://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded/AFNI_data4/misc_files/X.AD4.xmat.1D
+
+         wget http://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded/AFNI_data4/misc_files/norm.022_043_012.1D
+
+         Note that norm.022_043_012.1D file was created from the all_runs
+         dataset via the commands:
+
+            3dmaskdump -noijk -ibox 22 43 12 all_runs.sb23.blk+orig. > t.1D
+            1dtranspose t.1D norm.022_043_012.1D
+
+         This voxel (22 43 12) data has a high F-stat from the full model.
+
+      1. Either load this X-matrix and time series via the "Load" menu, or
+         load them at startup:
+
+            xmat_tool.py -load_xmat X.AD4.xmat.1D -load_1D norm.022_043_012.1D
+
+      2. Display the condition numbers for various sub-matrices.
+
+            GUI: Show -> Show Xmat conds
+
+         Note that these match the condition numbers on the main window.
+
+      3. Display any correlation matrix warnings.
+
+            GUI: Show -> Show X-Cormat Warnings
+
+         Note that no warnings appear in this case.  To see some warnings,
+         change the cutoff from 0.4 to 0.2, and re-display the warnings.
+
+            GUI: Options -> set cormat cutoff -> 0.2
+            GUI: Show -> Show X-Cormat Warnings
+
+      4. Plot the X-matrix (chosen columns (27..35), only).
+
+            GUI: Plot -> Plot X-mat
+
+      5. Show the beta weights for the best fit and plot the fit time series.
+         Note that these will not be terribly useful, since only regressors
+         27..35 are currently being used for the fit.
+
+            GUI: Show -> Show Fit Betas
+            GUI: Plot -> Plot Best Fit
+
+         Note that the 'best fit' is plot on top of the original '1D' data.
+
+      6. Choose all columns for the fit, rather than just columns 27..35
+         (in order to get an useful fit time series).
+
+            GUI: Choose Matrix Columns: -> 0..$ -> apply
+
+         Note that 0..$ is the same as 0..41 in this case.
+
+      7. Again, show the betas and plot the fit time series.
+
+            GUI: Show -> Show Fit Betas
+            GUI: Plot -> Plot Best Fit
+
+   ------------------------------
+
+   Random notes:
+
+   1. For details on the actions, please see the descriptions in the command
+      line help (Help -> Command-line).  The command-line help can also be
+      shown via "xmat_tool.py -help".  This GUI help can also be shown via
+      "xmat_tool.py -help_gui".
+
+   2. Menus may be accessed via keystrokes, keeping in mind which letters of 
+      menu items are underlined.  For example, to show correlation matrix
+      warnings (on a Linux system, with the main window in focus):
+
+         alt-s : for Show (the 'S' is underlined)
+         x     : for warnings ('w' in "Show X-Cormat Warnings" is underlined)
+
+      Between these keystrokes and alt-tab, the user does not need to touch
+      the mouse at all.  :)
+
+      On OS X, the "apple" key should be used in place of "alt".
+   
+   3. The only tab fields on the main window are the column chooser box and the
+      "apply" button.
+
+   4. Text from any of the 'Show' windows can be modified by the user and
+      saved to a file.  The user can simply type into the text window and
+      then apply the 'Save' button.
+
+   5. Text and Graph windows can be resized.
+
+-----------------------------------------------------------------------------
+R Reynolds    October 2008
 =============================================================================
 """
 
@@ -339,10 +472,16 @@ g_history = """
                         -show_fit_ts and -cormat_cutoff
         - wrote main help
    0.8  Nov 21 2008: added -test_libs option
+
+   1.0  Nov 21 2008: initial release
+        - added Options menu and Show Cosmat
+        - added GUI help
 """
 
-g_version = "xmat_tool version 0.8, November 21, 2008"
+g_version = "xmat_tool.py version 1.0, November 21, 2008"
 
+g_cormat_cut = 0.4
+g_cosmat_cut = 0.3827
 
 class XmatInterface:
    """interface class for X matrix"""
@@ -796,7 +935,7 @@ class XmatInterface:
          return 1, '** cormat_warnings_string: failed to create cormat'
 
       # assign base cutoff
-      if self.cormat_cut < 0.0: cutoff = 0.4
+      if self.cormat_cut < 0.0: cutoff = g_cormat_cut
       else:                     cutoff = self.cormat_cut
 
       cut0 = 1.0
@@ -875,7 +1014,7 @@ class XmatInterface:
          return 1, '** cosmat_warnings_string: failed to create cormat'
 
       # assign base cutoff
-      if self.cosmat_cut < 0.0: cutoff = 0.3827
+      if self.cosmat_cut < 0.0: cutoff = g_cosmat_cut
       else:                     cutoff = self.cosmat_cut
 
       badlist = mat.list_cosmat_warnings(cutoff=cutoff,
