@@ -42,10 +42,11 @@ static char * g_history[] =
     " 2.14 Aug 18, 2008 [rickr] - help update\n"
     " 2.15 Aug 18, 2008 [rickr] - suggest -num_slices with -sleep_init\n"
     " 2.16 Sep  3, 2008 [rickr] - added -drive_wait option\n"
+    " 2.17 Nov 24, 2008 [rickr] - added -infile_list and -show_sorted_list\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.16 (Sep 3, 2008)"
+#define DIMON_VERSION "version 2.17 (Nov 24, 2008)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -74,6 +75,7 @@ static char * g_history[] =
  *   examples:    Dimon -infile_pattern 's12345/i*'
  *                Dimon -help
  *                Dimon -version
+ *                Dimon -infile_list my_files.txt -quit
  *                Dimon -infile_prefix 's12345/i' -rt -host pickle -quit
  *----------------------------------------------------------------------
 */
@@ -151,6 +153,7 @@ static int path_to_dir_n_suffix( char * dir, char * suff, char * path );
 static int read_ge_files       ( param_t * p, int start, int max );
 static int read_ge_image       ( char * pathname, finfo_t * fp,
                                  int get_image, int need_memory );
+static int read_file_list      ( param_t  * p );
 static int scan_ge_files       ( param_t * p, int next, int nfiles );
 static int set_nice_level      ( int level );
 static int set_volume_stats    ( param_t * p, stats_t * s, vol_t * v );
@@ -180,6 +183,7 @@ static int usage                ( char * prog, int level );
 
 /* local copy of AFNI function */
 unsigned long l_THD_filesize( char * pathname );
+static   char * l_strdup(char * text);
 
 /*----------------------------------------------------------------------*/
 
@@ -1100,8 +1104,9 @@ static int read_ge_files(
         return -1;
     }
 
-    /* clear away old file list, unless we are using the DICOM organizer */
-    if ( p->fnames && !p->opts.dicom_org )
+    /* clear away old file list, unless we are using the DICOM organizer
+     * or have a given file_list */
+    if ( p->fnames && !p->opts.dicom_org && !p->opts.infile_list )
     {
         if ( p->nfiles <= 0 )
         {
@@ -1116,7 +1121,16 @@ static int read_ge_files(
     /* get files (check for dicom) */
     if ( p->opts.use_dicom )
     {
-        if ( p->opts.dicom_org ) /* organize? */
+        if ( p->opts.infile_list )
+        {
+            if ( org_todo )
+            {
+                if ( read_file_list(p) ) return -1;
+                if( p->opts.dicom_org && dicom_order_files( p ) ) return -1;
+                org_todo = 0;  /* now don't do it, again */
+            }
+        }
+        else if ( p->opts.dicom_org ) /* organize? */
         {
             if( org_todo )       /* may be used only once */
             {
@@ -1206,6 +1220,107 @@ static int read_ge_files(
 
     /* may be negative for an error condition */
     return p->nused;
+}
+
+/*----------------------------------------------------------------------
+ * read_file_list:
+ *
+ * Get the list of files from the input file.
+ *
+ * return 0 on success
+ *----------------------------------------------------------------------
+*/
+static int read_file_list ( param_t  * p )
+{
+    FILE   * fp;
+    char   * fname, *text, *infname = p->opts.infile_list;
+    size_t   nread;
+    int      flen, nalloc;
+
+    if ( ! infname ) return 1;
+
+    /* first, allocate memory for the file text */
+    flen = l_THD_filesize(infname);
+
+    if ( flen <= 0 ) {
+        fprintf(stderr,"** no text in -file_list file, '%s'\n", infname);
+        return 1;
+    }
+
+    fp = fopen(infname, "r");
+    if( !fp ) {
+        fprintf(stderr,"** failed to open -file_list file, '%s'\n", infname);
+        return 1;
+    }
+
+    if( p->opts.debug > 1 )
+        fprintf(stderr,"++ reading file list from %s, size %d\n",infname,flen);
+
+    text = (char *)malloc((flen+1)*sizeof(char));
+    if( !text ) {
+        fprintf(stderr,"** failed to alloc for read of %d byte file '%s'\n",
+                flen, infname);
+        fclose(fp);
+        return 1;
+    }
+
+    nread = fread(text, sizeof(char), flen, fp);
+
+    if( nread != flen ) {
+        fprintf(stderr,"** RFL: read %d of %d bytes from %s\n",
+                (int)nread, flen, infname);
+        free(text);
+        fclose(fp);
+        return 1;
+    }
+
+    /* now actually parse the file */
+
+    p->nfiles = 0;
+    p->fnames = NULL;
+    nalloc = 0;
+    fname = strtok(text, " \n\r\t\f");
+    while( fname ) {
+        if( nalloc <= p->nfiles ) {
+            nalloc += 1000;
+            p->fnames = (char  **)realloc(p->fnames, nalloc*sizeof(char *));
+            if( !p->fnames ){
+                fprintf(stderr,"** RFL: failed realloc of %d ptrs\n", nalloc);
+                free(text);
+                fclose(fp);
+            }
+        }
+        p->fnames[p->nfiles] = l_strdup(fname);
+        p->nfiles++;
+        fname = strtok(NULL, " \n\r\t\f");
+    }
+
+    if( p->opts.debug > 1 )
+        fprintf(stderr,"++ read %d filenames from '%s'\n", p->nfiles, infname);
+
+    free(text);
+    fclose(fp);
+
+    return 0;
+}
+
+/* return an allocated string */
+static char * l_strdup(char * text)
+{
+    char * ret;
+    int    len;
+
+    if( !text ) return NULL;
+    len = strlen(text);
+    ret = (char *)malloc((len+1)*sizeof(char));
+    if( ! ret ) {
+        fprintf(stderr,"** failed to alloc %d bytes for l_strdup\n", len);
+        return NULL;
+    }
+
+    strcpy(ret, text);
+
+    return ret;
 }
 
 /*----------------------------------------------------------------------
@@ -1404,6 +1519,15 @@ static int dicom_order_files( param_t * p )
     if( gD.level > 1 && p->nfiles > dcount )
        fprintf(stderr,"-d first non-DICOM file is '%s', index %d\n",
                p->fnames[flist[dcount].index], flist[dcount].index);
+    if( gD.level > 2 || p->opts.show_sorted_list ) {
+       fprintf(stderr,"-d sorted DICOM file list:\n");
+       for( c = 0; c < dcount; c++ )
+          fprintf(stderr,"   run %3d   index %06d  findex %06d : %s\n",
+                  flist[c].geh.uv17, flist[c].geh.index, flist[c].index,
+                  p->fnames[flist[c].index]);
+    }
+
+    if( p->opts.show_sorted_list ) return -1;
 
     /* test the sort */
     bad = 0;
@@ -1730,6 +1854,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             usage( IFM_PROG_NAME, IFM_USE_HIST );
             return 1;
         }
+        else if ( ! strncmp( argv[ac], "-infile_list", 12 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -infile_list FILE\n", stderr );
+                return 1;
+            }
+            /* just append a '*' to the PREFIX */
+            p->opts.infile_list = argv[ac];
+        }
         else if ( ! strncmp( argv[ac], "-infile_pattern", 11 ) ||
                   ! strncmp( argv[ac], "-dicom_glob", 9 ) )
         {
@@ -1851,6 +1985,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             }
 
             p->opts.flist_file = argv[ac];
+        }
+        else if ( ! strncmp( argv[ac], "-show_sorted_list", 12 ) )
+        {
+            p->opts.show_sorted_list = 1;
         }
         else if ( ! strncmp( argv[ac], "-sleep_frac", 11 ) )
         {
@@ -2043,6 +2181,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         return 1;
     }
 
+    if ( p->opts.use_dicom && p->opts.show_sorted_list && !p->opts.dicom_org )
+    {
+        fputs( "error: -dicom_org is required with -show_sorted_list", stderr );
+        usage( IFM_PROG_NAME, IFM_USE_SHORT );
+        return 1;
+    }
+
     if ( p->opts.rev_bo && p->opts.swap )
     {
         fprintf( stderr, "error: options '-rev_byte_order' and '-swap' "
@@ -2063,7 +2208,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     if ( p->opts.use_dicom )
     {   
-        if( ! p->opts.dicom_glob )
+        if( ! p->opts.dicom_glob && ! p->opts.infile_list )
         {
             fprintf(stderr,"** missing -infile_pattern option\n");
             return 1;
@@ -2656,6 +2801,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   start_file         = %s\n"
             "   start_dir          = %s\n"
             "   dicom_glob         = %s\n"
+            "   infile_list        = %s\n"
             "   sp                 = %s\n"
             "   gert_outdir        = %s\n"
             "   (argv, argc)       = (%p, %d)\n"
@@ -2667,6 +2813,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sleep_vol          = %d\n"
             "   debug              = %d\n"
             "   quit, use_dicom    = %d, %d\n"
+            "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
             "   gert_prefix        = %s\n"
@@ -2685,12 +2832,14 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->start_file),
             CHECK_NULL_STR(opt->start_dir),
             CHECK_NULL_STR(opt->dicom_glob),
+            CHECK_NULL_STR(opt->infile_list),
             CHECK_NULL_STR(opt->sp),
             CHECK_NULL_STR(opt->gert_outdir),
             opt->argv, opt->argc,
             opt->tr, opt->ep, opt->nt, opt->num_slices, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
-            opt->debug, opt->quit, opt->use_dicom, opt->gert_reco,
+            opt->debug, opt->quit, opt->use_dicom,
+            opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix), opt->gert_nz,
             opt->dicom_org, opt->sort_num_suff,
@@ -2909,19 +3058,24 @@ static int usage ( char * prog, int level )
       "  ---------------------------------------------------------------\n"
       "  usage: %s [options] -infile_prefix PREFIX\n"
       "     OR: %s [options] -infile_pattern \"PATTERN\"\n"
+      "     OR: %s [options] -infile_list FILES.txt\n"
       "\n"
       "  ---------------------------------------------------------------\n"
       "  examples:\n"
       "\n"
       "  A. no real-time options:\n"
       "\n"
-      "    %s -infile_pattern 's8912345/i*'\n"
       "    %s -infile_prefix   s8912345/i\n"
+      "    %s -infile_pattern 's8912345/i*'\n"
+      "    %s -infile_list     my_files.txt\n"
       "    %s -help\n"
       "    %s -infile_prefix   s8912345/i  -quit\n"
       "    %s -infile_prefix   s8912345/i  -nt 120 -quit\n"
       "    %s -infile_prefix   s8912345/i  -debug 2\n"
       "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco -quit\n"
+      "\n"
+      "  A2. investigate a list of files: \n"
+      "    %s -infile_pattern '*' -dicom_org -show_sorted_list\n"
       "\n"
       "  B. for GERT_Reco:\n"
       "\n"
@@ -3075,7 +3229,7 @@ static int usage ( char * prog, int level )
       "       run-time, though plugouts must be enabled to use it.\n"
       "\n"
       "  ---------------------------------------------------------------\n",
-      prog, prog, prog, prog, prog, prog,
+      prog, prog, prog, prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog,
       prog, prog, prog, prog, prog, prog, prog );
@@ -3131,6 +3285,14 @@ static int usage ( char * prog, int level )
           "        Note also that it is necessary to provide a '/' at the\n"
           "        end, if the prefix is a directory (e.g. use run1/ instead\n"
           "        of simply run1).\n"
+          "\n"
+          "    -infile_list MY_FILES.txt : filenames are in MY_FILES.txt\n"
+          "\n"
+          "        e.g. -infile_list subject_17_files\n"
+          "\n"
+          "        If the user would rather specify a list of DICOM files to\n"
+          "        read, those files can be enumerated in a text file, the\n"
+          "        name of which would be passed to the program.\n"
           "\n"
           "  ---------------------------------------------------------------\n"
           "  real-time options:\n"
@@ -3227,6 +3389,15 @@ static int usage ( char * prog, int level )
           "        Note: this option may be used multiple times.\n"
           "\n"
           "        See README.realtime for more details.\n"
+          "\n"
+          "    -show_sorted_list  : display -dicom_org info and quit\n"
+          "\n"
+          "        After the -dicom_org has taken effect, display the list\n"
+          "        of run index, image index and filenames that results.\n"
+          "        This option can be used as a simple review of the files\n"
+          "        under some directory tree, say.\n"
+          "\n"
+          "        See the -show_sorted_list example under example A2.\n"
           "\n"
           "    -sleep_init MS    : time to sleep between initial data checks\n"
           "\n"

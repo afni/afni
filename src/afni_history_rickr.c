@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  24, NOV, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added options -infile_list and -show_sorted_list",
+   "The -show_sorted_list option will print a list of files by run/index."
+ } ,
+
  {  21, NOV, 2008, RCR, "xmat_tool.py", MINOR, TYPE_NEW_OPT,
    "added Options menu, Show Cosmat and GUI help",
    "This is the initial release version, 1.0."
