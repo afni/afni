@@ -22,11 +22,11 @@ void EDIT_coerce_type( int nxyz , int itype,void *ivol , int otype,void *ovol )
 {
    register int ii ;
 
-   complex *cin , *cout ;
-   short   *sin , *sout ;
-   float   *fin , *fout ;
-   byte    *bin , *bout ;
-   double  *din , *dout ;  /* 10 Jan 1999 */
+   complex *cin=NULL , *cout ;
+   short   *sin=NULL , *sout ;
+   float   *fin=NULL , *fout ;
+   byte    *bin=NULL , *bout ;
+   double  *din=NULL , *dout ;  /* 10 Jan 1999 */
 
 ENTRY("EDIT_coerce_type") ;
 #ifdef AFNI_DEBUG
@@ -197,11 +197,11 @@ void EDIT_coerce_scale_type( int nxyz , float scl ,
    register int ii ;
    register float fac = scl , val ;
 
-   complex *cin , *cout ;
-   short   *sin , *sout ;
-   float   *fin , *fout ;
-   byte    *bin , *bout ;
-   double  *din , *dout ;   /* 11 Jan 1999 */
+   complex *cin=NULL , *cout ;
+   short   *sin=NULL , *sout ;
+   float   *fin=NULL , *fout ;
+   byte    *bin=NULL , *bout ;
+   double  *din=NULL , *dout ;   /* 11 Jan 1999 */
 
 ENTRY("EDIT_coerce_scale_type") ;
 #ifdef AFNI_DEBUG
