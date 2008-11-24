@@ -95,6 +95,7 @@ typedef struct  /* user options */
     char           * start_file;    /* user-specified starting file     */
     char           * start_dir;     /* user input starting directory    */
     char           * dicom_glob;    /* globbing form for dicom files    */
+    char           * infile_list;   /* file holding input filenames     */
     char           * sp;            /* slice acquisition pattern        */
     char           * gert_outdir;   /* output directory for GERT_Reco2  */
     char          ** argv;          /* passed to the program            */
@@ -111,6 +112,7 @@ typedef struct  /* user options */
     int              debug;         /* debug level                      */
     int              quit;          /* quit when no new images found    */
     int              use_dicom;     /* flag for dicom (not GE) images   */
+    int              show_sorted_list; /* display sorted list and quit  */
 
     /* GERT_Reco options */
     int              gert_reco;     /* output GERT_Reco script          */
