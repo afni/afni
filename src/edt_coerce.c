@@ -553,6 +553,7 @@ void EDIT_misfit_report( char *name, int ib,
    float mf ; int im ;
    static char *msg[4] = { "* Caution"  , "** Take Care"     ,
                            "*** Beware" , "**** Red Alert ****"  } ;
+   static int first=1 ;
 
    mf = 100.0f * EDIT_scale_misfit( nxyz , fac , sar , far ) ;
         if( mf < 2.5f ) return ;
@@ -562,5 +563,9 @@ void EDIT_misfit_report( char *name, int ib,
    else                 im = 3 ;
    WARNING_message("%s[%d] scale to shorts misfit = %.2f%% -- %s",
                    name , ib , mf , msg[im] ) ;
+   if( first ){
+     INFO_message("Consider writing datasets out in float format.") ;
+     first = 0 ;
+   }
    return ;
 }
