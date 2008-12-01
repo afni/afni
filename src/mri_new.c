@@ -127,21 +127,55 @@ ENTRY("mri_new_7D_generic") ;
 }
 
 /*---------------------------------------------------------------------*/
-/* Does not properly move old data around, if there is any! */
+/* Should properly move old data around, if there is any. */
 
 void mri_adjust_fvectim( MRI_IMAGE *im , int vdim )
 {
-   void *vpt ;
+   void *vpt ; int vdold ;
 
    if( im == NULL || im->kind != MRI_fvect || vdim < 1 ) return ;
 
-   im->vdim = vdim ;
-
+   vdold          = im->vdim ;
+   im->vdim       = vdim ;
    im->pixel_size = sizeof(float)*vdim ;
-   if( im->im == NULL )
+
+   mri_unpurge(im) ;
+
+   if( im->im == NULL ){       /** no data, so create some **/
+
      vpt = calloc( im->pixel_size , im->nvox ) ;
-   else
+
+   } else if( vdold < vdim ){  /** making each vector longer **/
+
      vpt = realloc( im->im , im->pixel_size*im->nvox ) ;
+     if( vpt != NULL ){
+       int nvox , ii,jj ; float *far ;
+       far = (float *)vpt ; nvox = im->nvox ;
+       for( ii=nvox-1 ; ii >= 0 ; ii-- ){  /* move each old vect to new spot */
+         for( jj=0 ; jj < vdold ; jj++ ) far[vdim*ii+jj] = far[vdold*ii+jj] ;
+         for(      ; jj < vdim  ; jj++ ) far[vdim*ii+jj] = 0.0f ;
+       }
+     }
+
+   } else if( vdold > vdim ){  /** making each vector shorter **/
+
+     vpt = calloc( im->pixel_size , im->nvox ) ;  /* new space */
+     if( vpt != NULL ){
+       int nvox , ii,jj ; float *far , *gar ;
+       far = (float *)vpt ; gar = (float *)im->im ; nvox = im->nvox ;
+       for( ii=0 ; ii < nvox ; ii++ ){  /* move each old vect to new spot */
+         for( jj=0 ; jj < vdim ; jj++ ) far[vdim*ii+jj] = gar[vdold*ii+jj] ;
+       }
+     }
+     free(im->im) ; /* will be replaced below */
+
+   } else {                    /** nothing to be done?! **/
+
+     vpt = im->im ;
+
+   }
+
+   /** make sure modified image has data space ready **/
 
    if( vpt == NULL ){
      fprintf(stderr,"malloc failure for fvectim space: %d bytes\n",

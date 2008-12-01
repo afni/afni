@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+/*! Convert an image of vectors to an array of single-valued images. */
+
 MRI_IMARR * mri_fvect_to_imarr( MRI_IMAGE *inim )
 {
    float *iar ;

@@ -3045,7 +3045,7 @@ MRI_IMAGE * mri_read_ascii_ragged_complex( char *fname , float filler )
    char *buf , *ptr ;
    NI_str_array *sar ; int nsar ;
 
-ENTRY("mri_read_ascii_complex") ;
+ENTRY("mri_read_ascii_ragged_complex") ;
 
    if( fname == NULL || *fname == '\0' ) RETURN(NULL) ;
 
@@ -3090,6 +3090,106 @@ ENTRY("mri_read_ascii_complex") ;
          cxar[nrow*ncol+ii] = decode_complex( sar->str[ii] , filler ) ;
        for( ; ii < ncol ; ii++ )
          cxar[nrow*ncol+ii] = cval ;            /* fill row with junk */
+       NI_delete_str_array(sar) ;               /* done with this */
+     }
+     nrow++ ;                                   /* added one complete row */
+   }
+
+   free(buf); fclose( fts ); (void) my_fgets(NULL,0,NULL);  /* cleanup */
+
+   mri_add_name(fname,outim) ; RETURN(outim) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Decode pairs of numbers separated by a single non-space character;
+    return value is number actually decoded.  vec==NULL is OK for testing.
+*//*-------------------------------------------------------------------------*/
+
+static int decode_fvect( char *str, float filler, int vdim, float *vec )
+{
+   int ii,nn,mm ; float aa ;
+
+   if( vec != NULL ) for( ii=0 ; ii < vdim ; ii++ ) vec[ii] = filler ;
+   if( str == NULL || *str == '\0' ) return 0 ;
+
+   for( ii=0 ; ii < vdim ; ii++ ){
+     mm = sscanf( str , "%f%n" , &aa , &nn ) ;
+     if( mm == 0 ){ str++ ; if( *str == '\0' ) return (ii+1); else continue; }
+     if( vec != NULL ) vec[ii] = aa ;
+     str += nn ; if( *str == '\0' ) return (ii+1) ;
+     str++ ;     if( *str == '\0' ) return (ii+1) ;
+   }
+   return vdim ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Ragged read tuples of values into a fvect image.
+    vdim = length of vectors to be read;
+           can be zero, in which case will be determined from the data.
+*//*-------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_read_ascii_ragged_fvect( char *fname, float filler, int vdim )
+{
+   MRI_IMAGE *outim ; float *var ;
+   int ii,jj , ncol,nrow ;
+   FILE *fts ;
+   char *buf , *ptr ;
+   NI_str_array *sar ; int nsar , nvdim ;
+
+ENTRY("mri_read_ascii_ragged_fvect") ;
+
+   if( fname == NULL || *fname == '\0' ) RETURN(NULL) ;
+
+   fts = fopen(fname,"r"); if( fts == NULL ) RETURN(NULL) ;
+
+   buf = (char *)malloc(LBUF) ;
+
+   /** step 1: read in ALL lines, see how many numbers are in each,
+               in order to get the maximum row length and # of rows **/
+
+   (void) my_fgets( NULL , 0 , NULL ) ;  /* reset */
+   ncol = nrow = 0 ; nvdim = 0 ;
+   while(1){
+     ptr = my_fgets( buf , LBUF , fts ) ;       /* read line */
+     if( ptr==NULL || *ptr=='\0' ) break ;      /* fails? end of data */
+     sar = NI_decode_string_list( buf , "~" ) ; /* break into pieces */
+     if( sar != NULL ){
+       nsar = sar->num ;                        /* number of pieces */
+       if( nsar > 0 ){ nrow++; ncol = MAX(ncol,nsar); }
+       if( nsar > 0 && vdim == 0 ){             /* number of components */
+         for( jj=0 ; jj < nsar ; jj++ ){
+           ii = decode_fvect( sar->str[jj] , filler , 9999 , NULL ) ;
+           nvdim = MAX(nvdim,ii) ;
+         }
+       }
+       NI_delete_str_array(sar) ;               /* recycle this */
+     }
+   }
+   if( vdim == 0 ) vdim = nvdim ;               /* set vdim from data */
+   if( nrow == 0 || ncol == 0 || vdim == 0 ){
+     fclose(fts); free(buf); RETURN(NULL);
+   }
+
+   /** At this point, ncol is the number of vectors to be read from each line **/
+
+   rewind(fts) ;  /* start over at top of file */
+
+   outim = mri_new_fvectim( ncol , nrow , 1 , vdim ) ;
+   var   = (float *)outim->im ;
+   for( ii=0 ; ii < ncol*nrow*vdim ; ii++ ) var[ii] = filler ;
+
+   /** read lines, convert to floats, store **/
+
+   nrow = 0 ;
+   while( 1 ){
+     ptr = my_fgets( buf , LBUF , fts ) ;       /* read line */
+     if( ptr==NULL || *ptr=='\0' ) break ;      /* failure --> end of data */
+     sar = NI_decode_string_list( buf , "~" ) ; /* break up */
+     if( sar != NULL ){
+       nsar = sar->num ;                        /* number of pieces */
+       for( ii=0 ; ii < nsar ; ii++ )           /* decode each piece */
+         (void)decode_fvect( sar->str[ii] , filler , vdim ,
+                             var + (nrow*ncol+ii)*vdim     ) ;
        NI_delete_str_array(sar) ;               /* done with this */
      }
      nrow++ ;                                   /* added one complete row */
