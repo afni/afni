@@ -623,3 +623,42 @@ def lists_are_same(list1, list2):
 
    return 1
 
+# ----------------------------------------------------------------------
+# matematical functions
+
+def min_mean_max_stdev(data):
+    """return 4 values for data: min, max, mean, stdev (unbiased)"""
+    if not data: return 0,0,0,0
+    length = len(data)
+    if length <  1: return 0,0,0,0
+    if length == 1: return data[0], data[0], data[0], 0.0
+
+    minval  = min(data)
+    maxval  = max(data)
+    meanval = sum(data)/float(length)
+
+    return minval, meanval, maxval, stdev_ub(data)
+
+def stdev_ub(data):
+    """unbiased standard deviation"""
+    length = len(data)
+    if length <  2: return 0.0
+
+    meanval = sum(data)/float(length)
+    # compute standard deviation
+    ssq = 0.0
+    for val in data: ssq += val*val
+    return math.sqrt((ssq - length*meanval*meanval)/(length-1.0))
+
+def stdev(data):
+    """(biased) standard deviation"""
+    length = len(data)
+    if length <  2: return 0.0
+
+    meanval = sum(data)/float(length)
+    # compute standard deviation
+    ssq = 0.0
+    for val in data: ssq += val*val
+    return math.sqrt((ssq - length*meanval*meanval)/length)
+
+
