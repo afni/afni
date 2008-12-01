@@ -763,6 +763,9 @@ extern MRI_IMAGE * mri_new_fvectim( int nx, int ny, int nz, int vdim ) ;
 
 extern MRI_IMAGE * mri_read_ascii_ragged_complex(char *,float); /* 08 Mar 2007 */
 
+extern MRI_IMAGE * mri_read_ascii_ragged_fvect( char *, float, int ) ;
+extern MRI_IMARR * mri_fvect_to_imarr( MRI_IMAGE *inim ) ;
+
 extern MRI_IMAGE * mri_read_ragged_fromstring( char *, float); /* 05 Jan 2007 */
 
 extern MRI_IMAGE * mri_read_1D( char * ) ;               /* 16 Nov 1999 */
