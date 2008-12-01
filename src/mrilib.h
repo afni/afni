@@ -126,7 +126,9 @@ typedef struct { byte r,g,b,a ; } rgba ;  /* 24 Aug 2001 */
 
 typedef enum MRI_TYPE {
          MRI_byte , MRI_short  , MRI_int  ,
-        MRI_float , MRI_double , MRI_complex , MRI_rgb , MRI_rgba } MRI_TYPE ;
+        MRI_float , MRI_double , MRI_complex , MRI_rgb , MRI_rgba ,
+        MRI_fvect
+ } MRI_TYPE ;
 
 #define MRI_KIND MRI_TYPE ;   /* to alleviate stupidity */
 #define MRI_type MRI_TYPE ;
@@ -140,8 +142,10 @@ typedef enum MRI_TYPE {
 
 /*! String names for MRI_TYPE. */
 
-static char * MRI_TYPE_name[8] =
-  { "byte", "short", "int", "float", "double", "complex", "rgb", "RGBA" } ;
+static char * MRI_TYPE_name[9] =
+  { "byte"  , "short", "int", "float", "double", "complex", "rgb", "RGBA" ,
+    "fvect"
+  } ;
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 
@@ -161,8 +165,8 @@ static char * MRI_TYPE_name[8] =
 
 /*! Max values for various types, if they have them. */
 
-static float MRI_TYPE_maxval[7] =
-  { 255.0 , 32767.0 , 2147483647.0 , 0.0,0.0,0.0 , 255.0 } ;
+static float MRI_TYPE_maxval[9] =
+  { 255.0f, 32767.0f, 2147483647.0f, 0.0f,0.0f,0.0f, 255.0f, 255.0f, 0.0f } ;
 
 /*! Force a float into a short. */
 
@@ -197,6 +201,12 @@ typedef struct { float a,b ; } float_pair ;
 #ifndef TYPEDEF_float_triple
 #define TYPEDEF_float_triple
 typedef struct { float a,b,c ; } float_triple ;
+#define float_trip float_triple
+#endif
+
+#ifndef TYPEDEF_float_quad
+#define TYPEDEF_float_quad
+typedef struct { float a,b,c,d ; } float_quad ;
 #endif
 
 #ifndef TYPEDEF_double_pair
@@ -236,25 +246,6 @@ static rgbyte tEMp_rgbyte_aAa ;
                         tEMp_rgbyte_aAa.b = (q)         & 0xff , tEMp_rgbyte_aAa )
 /*-------*/
 
-/*! A union type to hold all possible MRI_IMAGE types.
-    This was created before I really understood how to use void *. */
-
-#undef USE_UNION_DATA
-#ifdef USE_UNION_DATA
-  typedef union MRI_DATA {
-            byte     *byte_data ;
-            short    *short_data ;
-            int      *int_data ;
-            float    *float_data ;
-            double   *double_data ;
-            complex  *complex_data ;
-            byte     *rgb_data ;      /* Apr 1996: not well supported yet */
-            rgba     *rgba_data ;     /* Mar 2002 */
-  } MRI_DATA ;
-#else
-# define MRI_DATA void *              /* 21 Dec 2006: the big changeover */
-#endif
-
 /** Mar 1996: Extended to images up to 7D;
               Not all routines work with images > 2D --
               check top of file for "7D SAFE" comments **/
@@ -292,7 +283,7 @@ typedef struct MRI_IMAGE {
           int pixel_size ;    /*!< bytes per pixel */
 
           MRI_TYPE kind ;     /*!< one of the MRI_TYPE codes above */
-          MRI_DATA im ;       /*!< pointer to actual pixel data */
+          void    *im ;       /*!< pointer to actual pixel data */
           char *name ;        /*!< string attached; may be NULL; might be filename */
 
           float dx ;          /*!< physical pixel size, if != 0 */
@@ -325,6 +316,7 @@ typedef struct MRI_IMAGE {
          int fondisk ;   /*!< flag to indicate if is on disk (?) */
 
          int was_swapped ; /* 07 Mar 2002 */
+         int vdim ;        /* 28 Nov 2008 */
 } MRI_IMAGE ;
 
 #ifdef USE_MRI_LABELS
@@ -620,7 +612,7 @@ extern int mri_counter( MRI_IMAGE * , float , float ) ; /* 16 Jul 2007 */
 #define MRI_HAS_DATA(iq)                                    \
   ( (iq)!= NULL &&                                          \
     ( ( (iq)->fondisk==IS_PURGED && (iq)->fname!=NULL ) ||  \
-      mri_data_pointer_unvarnished(iq) != NULL         )  )
+      (iq)->im != NULL                                 )  )
 
 extern int mri_equal( MRI_IMAGE *, MRI_IMAGE * ) ; /* 30 Jun 2003 */
 
@@ -695,12 +687,6 @@ extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 
 #define MRI_FREE(iq) do{ mri_free(iq); (iq)=NULL; } while(0)
 
-#ifdef USE_UNION_DATA
-  extern void * mri_data_pointer_unvarnished( MRI_IMAGE *im ) ;
-#else
-# define mri_data_pointer_unvarnished(iq) ((iq)->im)
-#endif
-
 extern char * mri_dicom_header( char * ) ;  /* 15 Jul 2002 */
 extern void   mri_dicom_pxlarr( off_t *, unsigned int * ) ;
 extern void   mri_dicom_noname( int ) ;
@@ -735,7 +721,7 @@ extern double mri_min( MRI_IMAGE * ) ;
 extern double mri_maxabs( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
-extern int mri_cut_many_2D(MRI_IMARR *,  int,int,int,int ); 
+extern int mri_cut_many_2D(MRI_IMARR *,  int,int,int,int );
 
 extern MRI_IMAGE * mri_subset_x2D( int , int * , MRI_IMAGE * ) ;
 
@@ -772,8 +758,10 @@ extern int mri_write_raw( char * , MRI_IMAGE * ) ;       /* 05 Jan 2000 */
 extern void mri_write_analyze( char * , MRI_IMAGE * ) ;  /* 29 Nov 2001 */
 extern char * mri_1D_tostring( MRI_IMAGE *im ) ;          /* 15 Nov 2007 */
 
-extern MRI_IMAGE * mri_read_ascii_ragged_complex(char *,float); /* 08 Mar 2007 */
+extern void mri_adjust_fvectim( MRI_IMAGE *im, int vdim ) ;  /* 28 Nov 2008 */
+extern MRI_IMAGE * mri_new_fvectim( int nx, int ny, int nz, int vdim ) ;
 
+extern MRI_IMAGE * mri_read_ascii_ragged_complex(char *,float); /* 08 Mar 2007 */
 
 extern MRI_IMAGE * mri_read_ragged_fromstring( char *, float); /* 05 Jan 2007 */
 

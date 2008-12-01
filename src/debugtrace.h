@@ -84,6 +84,19 @@ extern "C" {
 
    char last_status[1024] = "\0" ;  /* 22 Apr 2002 */
 
+/*------------------------------------------------------*/
+#ifdef SHOWOFF
+# undef  SHSH
+# undef  SHSHSH
+# undef  SHSTRING
+# define SHSH(x)   #x
+# define SHSHSH(x) SHSH(x)
+# define SHSTRING  SHSHSH(SHOWOFF)   /* now in "quotes" */
+#else
+# undef  SHSTRING
+#endif
+/*------------------------------------------------------*/
+
 void DBG_traceback(void)
 { int tt ;
   MCHECK ;
@@ -119,13 +132,17 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    fprintf(stderr,"** AFNI version = " AFNI_VERSION_LABEL
                    "  Compile date = " __DATE__ "\n" );
 #endif
+#ifdef SHSTRING
+   fprintf(stderr,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n");
+#endif
 
    fprintf(stderr,"** Program Abort **\n") ;
    if( sig != SIGINT && sig != SIGTERM )
    fprintf(stderr,"** If you report this crash to the AFNI message board,\n"
                   "** please copy the error messages EXACTLY, and give\n"
                   "** the command line you used to run the program, and\n"
-                  "** any other information needed to repeat the problem.\n");
+                  "** any other information needed to repeat the problem.\n"
+                  "** You may later be asked to upload data to help debug.\n");
    fflush(stderr) ;
    MPROBE ; exit(1) ;
 }

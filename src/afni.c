@@ -1217,6 +1217,9 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;
    fprintf(stderr,"** AFNI version = " VERSION "  Compile date = " __DATE__ "\n" );
+#ifdef SHSTRING
+   fprintf(stderr,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
+#endif
    fprintf(stderr,"** Program Abort **\n") ;
    if( sig != SIGINT && sig != SIGTERM )
    fprintf(stderr,"** If you report this crash to the AFNI message\n"
