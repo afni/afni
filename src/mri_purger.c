@@ -183,7 +183,7 @@ void mri_unpurge( MRI_IMAGE *im )
 ENTRY("mri_unpurge") ;
 
    if( im == NULL || !MRI_IS_PURGED(im) ) EXRETURN ;
-   iar = mri_data_pointer_unvarnished(im) ; if( iar != NULL ) EXRETURN ;
+   iar = im->im ; if( iar != NULL ) EXRETURN ;
 
    fp = fopen( im->fname , "rb" ) ;
    if( fp == NULL ){

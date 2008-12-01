@@ -27,7 +27,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o    \
             afni_ttren.o afni_pplug_1dfunc.o afni_driver.o         \
             afni_niml.o afni_sumafunc.o afni_slice_rgbyte.o        \
-            afni_version.o afni_lock.o afni_vol2surf.o       
+            afni_version.o afni_lock.o afni_vol2surf.o
 
 SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 	      afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o  \
@@ -153,7 +153,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @SurfSmooth.HEAT_07.examples @SUMA_FSvolToBRIK @isOblique afni_run_R    \
           @GetAfniDims @GetAfniRes @NoisySkullStrip @statauxcode @ScaleVolume    \
           @ShowDynamicRange AFNI_Batch_R @DO.examples demo.fixed.niml.do       \
-          demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi 
+          demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
@@ -1364,7 +1364,9 @@ install_exe: $(INSTALLDIR)
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
        afni_graph.h afni_setup.h machdep.h
 
-debugtrace.o:debugtrace.h
+debugtrace.o:debugtrace.h debugtrace.c
+	$(RM) $@
+	$(CC) -c debugtrace.c $(INFLAGS) $(SHOWOFF)
 
 afni_vcheck.o:afni.h
 
@@ -1677,11 +1679,11 @@ vol2surf.o:vol2surf.h
 libmri.so:$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h mrilib.h 3ddata.h   \
-          shared_netcdf_attr 
+          shared_netcdf_attr
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS) \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
-		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)  
+		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS)
 	$(RM) netcdf_attr.o
 
 # remake netcdf objects with PIC
@@ -1779,7 +1781,7 @@ plug_drealtime.$(SO):plug_realtime.c
 plug_crender.$(SO):plug_crender.c
 	$(RM) $@
 	$(PLUGIN_CC) -c plug_crender.c $(INFLAGS)
-	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L. 
+	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L.
 
 plug_maxima.$(SO):plug_maxima.c maxima.o
 	$(RM) $@
@@ -1804,7 +1806,7 @@ plug_3dsvm.$(SO):svm/plug_3dsvm.c svm/svm_common.c svm/svm_learn.c svm/3dsvm_com
 		$(LD) $(PLUGIN_LFLAGS) -o plug_3dsvm.$(SO) plug_3dsvm.o 3dsvm_common.o svm_common.o svm_hideo.o -L. -L.. ; \
 	   cp plug_3dsvm.$(SO) ..  ;  \
 	   cd .. ;  )
-      
+
 # Stuff for plugins on CYGWIN:
 # Each plugin must be listed here and have 2 corresponding lines in fixed_plugins.h
 #
@@ -2656,22 +2658,22 @@ suma_fromobjs: suma_link suma_install
 #R toys
 #For compiling R programs, you'll need to do the following:
 # run tcsh ./@RmakeOpts and see that it creates Makefile.R.INCLUDE
-# add to the end of your Makefile line: 
-#     include Makefile.R.INCLUDE 
+# add to the end of your Makefile line:
+#     include Makefile.R.INCLUDE
 # and then:            make 3dTsmoothR && mv 3dTsmoothR YOUR_ABIN/
 #
 AFNI_embeddedRCall.o: AFNI_embeddedRCall.c
 	$(RM)  AFNI_embeddedRCall.o
-	$(CC) $(RccCOMopt) -c AFNI_embeddedRCall.c $(INFLAGS) 
+	$(CC) $(RccCOMopt) -c AFNI_embeddedRCall.c $(INFLAGS)
 
 3dTsmoothR: 3dTsmoothR.c AFNI_embeddedRCall.o
 	$(RM) 3dTsmoothR.o 3dTsmoothR
-	$(CC) $(RccCOMopt) -c 3dTsmoothR.c $(INFLAGS) 
+	$(CC) $(RccCOMopt) -c 3dTsmoothR.c $(INFLAGS)
 	$(CC) -o 3dTsmoothR 3dTsmoothR.o $(LFLAGS) \
          $(LLIBS) -lf2c -lmri $(RccCOMlfl) AFNI_embeddedRCall.o
-   	   
+
 toyR: toyR.c AFNI_embeddedRCall.o
 	$(RM) toyR.o toyR
-	$(CC) $(RccCOMopt) -c toyR.c $(INFLAGS) 
+	$(CC) $(RccCOMopt) -c toyR.c $(INFLAGS)
 	$(CC) -o toyR toyR.o $(LFLAGS) \
          $(LLIBS) -lf2c -lmri $(RccCOMlfl) AFNI_embeddedRCall.o

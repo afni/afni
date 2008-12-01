@@ -30,7 +30,9 @@ typedef struct { byte r,g,b,a ; } rgba ;  /* 24 Aug 2001 */
 
 typedef enum MRI_TYPE {
          MRI_byte , MRI_short  , MRI_int  ,
-        MRI_float , MRI_double , MRI_complex , MRI_rgb , MRI_rgba } MRI_TYPE ;
+        MRI_float , MRI_double , MRI_complex , MRI_rgb , MRI_rgba ,
+        MRI_fvect
+ } MRI_TYPE ;
 
 #define MRI_KIND MRI_TYPE ;   /* to alleviate stupidity */
 #define MRI_type MRI_TYPE ;
@@ -80,25 +82,6 @@ typedef struct rgbyte { byte r,g,b ; } rgbyte ;  /* 15 Feb 1999 */
 
 /*-------*/
 
-/*! A union type to hold all possible MRI_IMAGE types.
-    This was created before I really understood how to use void *. */
-
-#undef USE_UNION_DATA
-#ifdef USE_UNION_DATA
-typedef union MRI_DATA {
-         byte     *byte_data ;
-         short    *short_data ;
-         int      *int_data ;
-         float    *float_data ;
-         double   *double_data ;
-         complex  *complex_data ;
-         byte     *rgb_data ;      /* Apr 1996: not well supported yet */
-         rgba     *rgba_data ;     /* Mar 2002 */
-} MRI_DATA ;
-#else
-# define MRI_DATA void *           /* 21 Dec 2006 */
-#endif
-
 /** Mar 1996: Extended to images up to 7D;
               Not all routines work with images > 2D --
               check top of file for "7D SAFE" comments **/
@@ -136,7 +119,7 @@ typedef struct MRI_IMAGE {
           int pixel_size ;    /*!< bytes per pixel */
 
           MRI_TYPE kind ;     /*!< one of the MRI_TYPE codes above */
-          MRI_DATA im ;       /*!< pointer to actual pixel data */
+          void    *im ;       /*!< pointer to actual pixel data */
           char *name ;        /*!< string attached; may be NULL; might be filename */
 
           float dx ;          /*!< physical pixel size, if != 0 */
@@ -169,6 +152,7 @@ typedef struct MRI_IMAGE {
          int fondisk ;   /*!< flag to indicate if is on disk (?) */
 
          int was_swapped ; /* 07 Mar 2002 */
+         int vdim ;
 } MRI_IMAGE ;
 
 #ifdef USE_MRI_LABELS
@@ -214,12 +198,6 @@ typedef struct MRI_IMAGE {
 extern int mri_dimensionality(MRI_IMAGE *) ;
 
 extern void *mri_data_pointer( MRI_IMAGE * ) ;
-
-#ifdef USE_UNION_DATA
- extern void *mri_data_pointer_unvarnished( MRI_IMAGE *im ) ;
-#else
-# define mri_data_pointer_unvarnished(iq) ((iq)->im)
-#endif
 
 #define MRI_BYTE_PTR(iq)    ((byte *)mri_data_pointer(iq))
 #define MRI_SHORT_PTR(iq)   ((short *)mri_data_pointer(iq))
