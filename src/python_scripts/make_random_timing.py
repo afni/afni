@@ -146,7 +146,7 @@ examples:
     3. Distribute stimuli over all runs at once.
 
        Similar to #2, but distribute the 8 events per class over all 4 runs.
-       In #2, each stim class has 8 events per run (so 32 total events).
+       In #2, each stim class has 8 events per run (so 24 total events).
        Here each stim class has a total of 8 events.  Just add -across_runs.
 
             make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
@@ -170,17 +170,17 @@ examples:
        Similar to #2, but require an additional 0.7 seconds of rest after
        each stimulus (exactly the same as adding 0.7 to the stim_dur), set
        the granularity of random sequencing to 0.001 seconds, apply a random
-       number seed of 17, and set the verbose level to 2.
+       number seed of 31415, and set the verbose level to 2.
 
        Save a 3dDeconvolve -nodata command in @cmd.3dd .
        
             make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
                 -stim_dur 3.5 -num_reps 8 -prefix stimesE                \\
                 -pre_stim_rest 20 -post_stim_rest 20                     \\
-                -min_rest 0.7 -t_gran 0.001 -seed 17 -verb 2             \\
+                -min_rest 0.7 -t_gran 0.001 -seed 31415 -verb 2          \\
                 -show_timing_stats -save_3dd_cmd @cmd.3dd
 
-    6. Example with varying number of events.
+    6. Example with varying number of events, durations and run times.
 
     ** Note that this does not make for a balanced design.
 
@@ -190,9 +190,11 @@ examples:
        -num_reps option takes either 1 or -num_stim parameters.  Here, 3
        are supplied.
 
-            make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
-                -stim_dur 3.5 -num_reps 8 10 15 -prefix stimesF          \\
-                -pre_stim_rest 20 -post_stim_rest 20
+            make_random_timing.py -num_stim 3 -num_runs 4       \\
+                -run_time 200 190 185 225                       \\
+                -stim_dur 3.5 4.5 3 -num_reps 8 10 15           \\
+                -pre_stim_rest 20 -post_stim_rest 20            \\
+                -prefix stimesF
 
     7. Catch trials.
 
@@ -547,9 +549,12 @@ g_history = """
     0.5  Oct 31, 2008:
          - added -show_timing_stats option
          - made small change that affects timing (old results will not match)
+    0.6  Dec 01, 2008:
+         - moved min_mean_max_stdev to afni_util.py
+         - modified examples to correspond with those in timing_tool.py
 """
 
-g_version = "version 0.5, October 31, 2008"
+g_version = "version 0.6, December 1, 2008"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -1026,13 +1031,13 @@ class RandTiming:
               '-----------     -------  -------  -------  -------'
 
         print 'pre-rest        %7.3f  %7.3f  %7.3f  %7.3f' %            \
-              (min_mean_max_stdev(self.prerest))
+              (UTIL.min_mean_max_stdev(self.prerest))
 
         print 'post-rest       %7.3f  %7.3f  %7.3f  %7.3f\n' %          \
-              (min_mean_max_stdev(self.postrest))
+              (UTIL.min_mean_max_stdev(self.postrest))
 
         for ind in range(len(self.isi)):
-           m0, m1, m2, s = min_mean_max_stdev(self.isi[ind])
+           m0, m1, m2, s = UTIL.min_mean_max_stdev(self.isi[ind])
            print 'run #%d ISI      %7.3f  %7.3f  %7.3f  %7.3f' %        \
                  (ind, m0, m1, m2, s)
 
@@ -1040,7 +1045,7 @@ class RandTiming:
         for run in self.isi: allruns.extend(run)
 
         print '\nall runs ISI    %7.3f  %7.3f  %7.3f  %7.3f\n' %        \
-              (min_mean_max_stdev(allruns))
+              (UTIL.min_mean_max_stdev(allruns))
 
         if self.verb > 3:
             for ind in range(len(self.isi)):
@@ -1222,41 +1227,6 @@ class RandTiming:
                 print '++ stim list[%d] = %s' % (stim+1,slist[stim])
 
         return slist
-
-def min_mean_max_stdev(data):
-    """return 4 values for data: min, max, mean, stdev (unbiased)"""
-    if not data: return 0,0,0,0
-    length = len(data)
-    if length <  1: return 0,0,0,0
-    if length == 1: return data[0], data[0], data[0], 0.0
-
-    minval  = min(data)
-    maxval  = max(data)
-    meanval = sum(data)/float(length)
-
-    return minval, meanval, maxval, stdev_ub(data)
-
-def stdev_ub(data):
-    """unbiased standard deviation"""
-    length = len(data)
-    if length <  2: return 0.0
-
-    meanval = sum(data)/float(length)
-    # compute standard deviation
-    ssq = 0.0
-    for val in data: ssq += val*val
-    return math.sqrt((ssq - length*meanval*meanval)/(length-1.0))
-
-def stdev(data):
-    """(biased) standard deviation"""
-    length = len(data)
-    if length <  2: return 0.0
-
-    meanval = sum(data)/float(length)
-    # compute standard deviation
-    ssq = 0.0
-    for val in data: ssq += val*val
-    return math.sqrt((ssq - length*meanval*meanval)/length)
 
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%.1f,1)'" % stim_len

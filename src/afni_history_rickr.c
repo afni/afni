@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, DEC, 2008, RCR, "timing_tool.py", MAJOR, TYPE_NEW_PROG,
+   "a tool for manipulating and evaluating stimulus timing files",
+   "This is useful for getting statistics on rest timing."
+ } ,
+
+ {  1, DEC, 2008, RCR, "option_list.py", MICRO, TYPE_MODIFY,
+   "added 'opt' param to more get_* functions",
+   NULL
+ } ,
+
+ {  1, DEC, 2008, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "moved min_mean_max_stdev to afni_util.py and modified help examples",
+   NULL
+ } ,
+
  {  24, NOV, 2008, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added options -infile_list and -show_sorted_list",
    "The -show_sorted_list option will print a list of files by run/index."

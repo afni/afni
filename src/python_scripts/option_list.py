@@ -21,6 +21,10 @@ import afni_base
 #   06 Nov 2008 [rickr]:
 #     - added 'opt' param to get_type_opt and get_type_list
 #       (to skip find_)
+#
+#   01 Dec 2008 [rickr]:
+#     - added 'opt' param to get_string_opt and get_string_list
+#     - initialized more parameters (to get_*) to make them optional
 
 # ---------------------------------------------------------------------------
 # This class provides functionality for processing lists of comopt elements.
@@ -88,11 +92,12 @@ class OptionList:
                     del self.olist[index]
                     return 1
 
-    def get_string_opt(self, opt_name):
+    def get_string_opt(self, opt_name, opt=None):
         """return the option parameter string and err
+           (if opt is passed, we don't need to find it)
            err = 0 on success, 1 on failure"""
 
-        opt = self.find_opt(opt_name)
+        if opt == None: opt = self.find_opt(opt_name)
         if not opt or not opt.parlist: return None, 0
         if len(opt.parlist) != 1:
             print '** option %s takes exactly 1 parameter, have: %s' % \
@@ -100,14 +105,15 @@ class OptionList:
             return None, 1
         return opt.parlist[0], 0
 
-    def get_string_list(self, opt_name):
-        """return the option parameter string and an error code"""
+    def get_string_list(self, opt_name, opt=None):
+        """return the option parameter string and an error code
+           (if opt is passed, we don't need to find it)"""
 
-        opt = self.find_opt(opt_name)
+        if opt == None: opt = self.find_opt(opt_name)
         if not opt or not opt.parlist or len(opt.parlist) < 1: return None,0
         return opt.parlist, 0
 
-    def get_type_opt(self, type, opt_name, opt=None):
+    def get_type_opt(self, type, opt_name='', opt=None):
         """return the option param value converted to the given type, and err
            (err = 0 on success, 1 on failure)
 
@@ -129,7 +135,8 @@ class OptionList:
 
         return val, 0
 
-    def get_type_list(self, type, opt_name, length, len_name, opt=None, verb=1):
+    def get_type_list(self, type, opt_name='', length=0, len_name='',
+                      opt=None, verb=1):
         """return a list of values of the given type, and err
 
             err will be set (1) if there is an error
@@ -137,6 +144,7 @@ class OptionList:
             type      : expected conversion type
             opt_name  : option name to find in opts list
             length    : expected length of option parameters (or 1)
+                        (if length == 0, return whatever is found)
             len_name  : name of option that would define expected length
             opt       : optionally provide a comopt element
             verb      : verbose level
@@ -148,16 +156,16 @@ class OptionList:
         if opt == None: opt = self.find_opt(opt_name)
         if not opt or not opt.parlist: return None, 0
         olen = len(opt.parlist)
-        if olen != 1 and olen != length:
+        if length > 0 and olen != 1 and olen != length:
             print '** %s takes 1 or %s (%d) values, have %d: %s' % \
                   (opt_name, len_name, length, olen, ', '.join(opt.parlist))
             return 1, 1
         try:
             tlist = map(type,opt.parlist)
         except:
-            print "** %s takes only %s, have: %s" % (opt_name,type,opt.parlist)
+            print "** %s takes only %ss, have: %s" % (opt_name,type,opt.parlist)
             return None, 1
-        if olen != length:     # expand the list
+        if length > 0 and olen != length:     # expand the list
             tlist = [tlist[0] for i in range(length)]
             if verb > 1: print '++ expanding %s to list %s' % (opt_name, tlist)
         elif verb > 1: print '-- have %s list %s' % (opt_name, tlist)
