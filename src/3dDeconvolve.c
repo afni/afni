@@ -1794,7 +1794,12 @@ void get_options
             ERROR_exit("'%s %d' can't read any data from file '%s'",
                        sopt , ival , argv[nopt] ) ;
         } else {                 /* 2 numbers per time */
+#define USE_FVECT
+#ifndef USE_FVECT
           basis_times[k] = mri_read_ascii_ragged_complex(argv[nopt],basis_filler);
+#else
+          basis_times[k] = mri_read_ascii_ragged_fvect(argv[nopt],basis_filler,2);
+#endif
         }
         if( basis_times[k] == NULL )
           ERROR_exit("'%s %d' can't read file '%s'\n",
@@ -2993,11 +2998,19 @@ ENTRY("read_input_data") ;
       tim = basis_times[is] ;        /* image that contains times */
       nx = tim->nx ; ny = tim->ny ;  /* read in from user's file */
 
+#ifndef USE_FVECT
       if( tim->kind == MRI_complex ){     /* 08 Mar 2007: pairs */
         MRI_IMARR *qimar=mri_complex_to_pair(tim); /* split them up */
         bim = IMARR_SUBIM(qimar,0); aim = IMARR_SUBIM(qimar,1);
         aar = MRI_FLOAT_PTR(aim);   tar = MRI_FLOAT_PTR(bim);
         FREE_IMARR(qimar);
+#else
+      if( tim->kind == MRI_fvect ){       /* 01 Dec 2008: pairs */
+        MRI_IMARR *qimar=mri_fvect_to_imarr(tim); /* split them up */
+        bim = IMARR_SUBIM(qimar,0); aim = IMARR_SUBIM(qimar,1);
+        aar = MRI_FLOAT_PTR(aim);   tar = MRI_FLOAT_PTR(bim);
+        FREE_IMARR(qimar);
+#endif
       } else {
         tar = MRI_FLOAT_PTR(tim);  /* just times, no paired value */
       }
@@ -3125,7 +3138,11 @@ ENTRY("read_input_data") ;
         zim = mri_new_vol_empty(ngood,1,1,MRI_float) ;
         zar = (float *)realloc((void *)zar,sizeof(float)*ngood) ;
         mri_fix_data_pointer( zar , zim ) ;  /* image of paired vals */
+#ifndef USE_FVECT
         qim = mri_pair_to_complex(yim,zim) ; /* join them! */
+#else
+        qim = mri_pair_to_fvect(yim,zim) ;
+#endif
         mri_free(aim); mri_free(bim);        /* created earlier */
         mri_clear_data_pointer(yim); mri_free(yim); /* qar and zar */
         mri_clear_data_pointer(zim); mri_free(zim); /* are needed below */
