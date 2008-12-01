@@ -207,25 +207,6 @@ static rgbyte tEMp_rgbyte_aAa ;
                         tEMp_rgbyte_aAa.b = (q)         & 0xff , tEMp_rgbyte_aAa )
 /*-------*/
 
-/*! A union type to hold all possible MRI_IMAGE types.
-    This was created before I really understood how to use void *. */
-
-#undef USE_UNION_DATA
-#ifdef USE_UNION_DATA
-  typedef union MRI_DATA {
-            byte     *byte_data ;
-            short    *short_data ;
-            int      *int_data ;
-            float    *float_data ;
-            double   *double_data ;
-            complex  *complex_data ;
-            byte     *rgb_data ;      /* Apr 1996: not well supported yet */
-            rgba     *rgba_data ;     /* Mar 2002 */
-  } MRI_DATA ;
-#else
-# define MRI_DATA void *              /* 21 Dec 2006: the big changeover */
-#endif
-
 /** Mar 1996: Extended to images up to 7D;
               Not all routines work with images > 2D --
               check top of file for "7D SAFE" comments **/
@@ -263,7 +244,7 @@ typedef struct MRI_IMAGE {
           int pixel_size ;    /*!< bytes per pixel */
 
           MRI_TYPE kind ;     /*!< one of the MRI_TYPE codes above */
-          MRI_DATA im ;       /*!< pointer to actual pixel data */
+          void    *im ;       /*!< pointer to actual pixel data */
           char *name ;        /*!< string attached; may be NULL; might be filename */
 
           float dx ;          /*!< physical pixel size, if != 0 */
@@ -646,11 +627,7 @@ extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 
 #define MRI_FREE(iq) do{ mri_free(iq); (iq)=NULL; } while(0)
 
-#ifdef USE_UNION_DATA
-  extern void * mri_data_pointer_unvarnished( MRI_IMAGE *im ) ;
-#else
-# define mri_data_pointer_unvarnished(iq) ((iq)->im)
-#endif
+#define mri_data_pointer_unvarnished(iq) ((iq)->im)
 
 extern char * mri_dicom_header( char * ) ;  /* 15 Jul 2002 */
 extern void   mri_dicom_pxlarr( off_t *, int * ) ;
@@ -1065,43 +1042,9 @@ void *mri_data_pointer( MRI_IMAGE *im )
       mri_unpurge( im ) ;
 #endif
 
-#ifdef USE_UNION_DATA
-   switch( im->kind ){
-      case MRI_byte:   data = im->im.byte_data   ; break ;
-      case MRI_short:  data = im->im.short_data  ; break ;
-      case MRI_int:    data = im->im.int_data    ; break ;
-      case MRI_float:  data = im->im.float_data  ; break ;
-      case MRI_double: data = im->im.double_data ; break ;
-      case MRI_complex:data = im->im.complex_data; break ;
-      case MRI_rgb:    data = im->im.rgb_data    ; break ;
-      case MRI_rgba:   data = im->im.rgba_data   ; break ;
-      default:         data = NULL               ; break ;
-   }
-#else
    data = im->im ;
-#endif
    return data ;
 }
-
-/*-------------------------------------------------------------------------*/
-#ifdef USE_UNION_DATA
-void *mri_data_pointer_unvarnished( MRI_IMAGE *im )
-{
-   void *data ;
-   switch( im->kind ){
-      case MRI_byte:   data = im->im.byte_data   ; break ;
-      case MRI_short:  data = im->im.short_data  ; break ;
-      case MRI_int:    data = im->im.int_data    ; break ;
-      case MRI_float:  data = im->im.float_data  ; break ;
-      case MRI_double: data = im->im.double_data ; break ;
-      case MRI_complex:data = im->im.complex_data; break ;
-      case MRI_rgb:    data = im->im.rgb_data    ; break ;
-      case MRI_rgba:   data = im->im.rgba_data   ; break ;
-      default:         data = NULL               ; break ;
-   }
-   return data ;
-}
-#endif
 
 /*-------------------------------------------------------------------------*/
 /*! Modify the data pointer in an MRI_IMAGE struct.
@@ -1110,20 +1053,7 @@ void *mri_data_pointer_unvarnished( MRI_IMAGE *im )
 void mri_fix_data_pointer( void *ptr , MRI_IMAGE *im )
 {
    if( im == NULL ) return ;
-#ifdef USE_UNION_DATA
-   switch( im->kind ){
-      case MRI_byte:   im->im.byte_data   = (byte *)    ptr; break ;
-      case MRI_short:  im->im.short_data  = (short *)   ptr; break ;
-      case MRI_int:    im->im.int_data    = (int   *)   ptr; break ;
-      case MRI_float:  im->im.float_data  = (float *)   ptr; break ;
-      case MRI_double: im->im.double_data = (double *)  ptr; break ;
-      case MRI_complex:im->im.complex_data= (complex *) ptr; break ;
-      case MRI_rgb:    im->im.byte_data   = (byte *)    ptr; break ;
-      case MRI_rgba:   im->im.rgba_data   = (rgba *)    ptr; break ;
-   }
-#else
    im->im = ptr ;
-#endif
    return ;
 }
 
@@ -1528,78 +1458,6 @@ ENTRY("mri_new_7D_generic") ;
 
    npix = newim->nvox ;
 
-#ifdef USE_UNION_DATA
-   switch( kind ){
-
-      case MRI_byte:
-         if( make_space )
-            newim->im.byte_data = (byte *)calloc( npix,sizeof(byte) ) ;
-         else
-            newim->im.byte_data = NULL ;
-         newim->pixel_size = sizeof(byte) ;
-      break ;
-
-      case MRI_short:
-         if( make_space )
-            newim->im.short_data = (short *)calloc( npix,sizeof(short) ) ;
-         else
-            newim->im.short_data = NULL ;
-         newim->pixel_size = sizeof(short) ;
-      break ;
-
-      case MRI_int:
-         if( make_space )
-            newim->im.int_data = (int *)calloc( npix,sizeof(int) ) ;
-         else
-            newim->im.int_data = NULL ;
-         newim->pixel_size = sizeof(int) ;
-      break ;
-
-      case MRI_float:
-         if( make_space )
-            newim->im.float_data = (float *)calloc( npix,sizeof(float) ) ;
-         else
-            newim->im.float_data = NULL ;
-         newim->pixel_size = sizeof(float) ;
-      break ;
-
-      case MRI_double:
-         if( make_space )
-            newim->im.double_data = (double *)calloc( npix,sizeof(double) ) ;
-         else
-            newim->im.double_data = NULL ;
-         newim->pixel_size = sizeof(double) ;
-      break ;
-
-      case MRI_complex:
-         if( make_space )
-            newim->im.complex_data = (complex *)calloc( npix,sizeof(complex) ) ;
-         else
-            newim->im.complex_data = NULL ;
-         newim->pixel_size = sizeof(complex) ;
-      break ;
-
-      case MRI_rgb:
-         if( make_space )
-            newim->im.rgb_data = (byte *)calloc( 3*npix,sizeof(byte) ) ;
-         else
-            newim->im.rgb_data = NULL ;
-         newim->pixel_size = 3 * sizeof(byte) ;
-      break ;
-
-      case MRI_rgba:
-         if( make_space )
-            newim->im.rgba_data = (rgba *)calloc( npix,sizeof(rgba) ) ;
-         else
-            newim->im.rgb_data = NULL ;
-         newim->pixel_size = sizeof(rgba) ;
-      break ;
-
-      default:
-         fprintf( stderr , "mri_new: unrecognized image kind %d\n",(int)kind ) ;
-         MRI_FATAL_ERROR ;
-   }
-#else
    switch( kind ){
       case MRI_byte:    newim->pixel_size = sizeof(byte)     ; break ;
       case MRI_short:   newim->pixel_size = sizeof(short)    ; break ;
@@ -1616,7 +1474,6 @@ ENTRY("mri_new_7D_generic") ;
    }
    if( make_space ) newim->im = calloc( newim->pixel_size , npix ) ;
    else             newim->im = NULL ;
-#endif
 
    if( make_space && mri_data_pointer_unvarnished(newim) == NULL ){
      fprintf(stderr,"malloc failure for image space: %d bytes\n",npix*newim->pixel_size);

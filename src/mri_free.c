@@ -23,43 +23,9 @@ void *mri_data_pointer( MRI_IMAGE *im )
    else if( MRI_IS_PURGED(im) ) /* 20 Dec 2006 */
       mri_unpurge( im ) ;
 
-#ifdef USE_UNION_DATA
-   switch( im->kind ){
-      case MRI_byte:   data = im->im.byte_data   ; break ;
-      case MRI_short:  data = im->im.short_data  ; break ;
-      case MRI_int:    data = im->im.int_data    ; break ;
-      case MRI_float:  data = im->im.float_data  ; break ;
-      case MRI_double: data = im->im.double_data ; break ;
-      case MRI_complex:data = im->im.complex_data; break ;
-      case MRI_rgb:    data = im->im.rgb_data    ; break ;
-      case MRI_rgba:   data = im->im.rgba_data   ; break ;
-      default:         data = NULL               ; break ;
-   }
-#else
    data = im->im ;
-#endif
    return data ;
 }
-
-/*-------------------------------------------------------------------------*/
-#ifdef USE_UNION_DATA
-void *mri_data_pointer_unvarnished( MRI_IMAGE *im )
-{
-   void *data ;
-   switch( im->kind ){
-      case MRI_byte:   data = im->im.byte_data   ; break ;
-      case MRI_short:  data = im->im.short_data  ; break ;
-      case MRI_int:    data = im->im.int_data    ; break ;
-      case MRI_float:  data = im->im.float_data  ; break ;
-      case MRI_double: data = im->im.double_data ; break ;
-      case MRI_complex:data = im->im.complex_data; break ;
-      case MRI_rgb:    data = im->im.rgb_data    ; break ;
-      case MRI_rgba:   data = im->im.rgba_data   ; break ;
-      default:         data = NULL               ; break ;
-   }
-   return data ;
-}
-#endif
 
 /*-------------------------------------------------------------------------*/
 /*! Modify the data pointer in an MRI_IMAGE struct.
@@ -68,20 +34,7 @@ void *mri_data_pointer_unvarnished( MRI_IMAGE *im )
 void mri_fix_data_pointer( void *ptr , MRI_IMAGE *im )
 {
    if( im == NULL ) return ;
-#ifdef USE_UNION_DATA
-   switch( im->kind ){
-      case MRI_byte:   im->im.byte_data   = (byte *)    ptr; break ;
-      case MRI_short:  im->im.short_data  = (short *)   ptr; break ;
-      case MRI_int:    im->im.int_data    = (int   *)   ptr; break ;
-      case MRI_float:  im->im.float_data  = (float *)   ptr; break ;
-      case MRI_double: im->im.double_data = (double *)  ptr; break ;
-      case MRI_complex:im->im.complex_data= (complex *) ptr; break ;
-      case MRI_rgb:    im->im.byte_data   = (byte *)    ptr; break ;
-      case MRI_rgba:   im->im.rgba_data   = (rgba *)    ptr; break ;
-   }
-#else
    im->im = ptr ;
-#endif
    return ;
 }
 

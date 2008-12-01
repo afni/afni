@@ -8,7 +8,7 @@
 
 /*** 7D SAFE ***/
 
-/*** get a new 2D image ***/
+/***-------------------------- get a new 2D image --------------------------***/
 
 MRI_IMAGE *mri_new( int nx , int ny , MRI_TYPE kind )
 {
@@ -18,7 +18,7 @@ MRI_IMAGE *mri_new( int nx , int ny , MRI_TYPE kind )
    return newim ;
 }
 
-/*** get a new 3D image, but with no data inside ***/
+/***-------------- get a new 3D image, but with no data inside -------------***/
 
 MRI_IMAGE *mri_new_vol_empty( int nx , int ny , int nz , MRI_TYPE kind )
 {
@@ -27,7 +27,7 @@ MRI_IMAGE *mri_new_vol_empty( int nx , int ny , int nz , MRI_TYPE kind )
    return newim ;
 }
 
-/*** get a new 3D image ***/
+/***------------------------ get a new 3D image ------------------------***/
 
 MRI_IMAGE *mri_new_vol( int nx , int ny , int nz , MRI_TYPE kind )
 {
@@ -36,7 +36,7 @@ MRI_IMAGE *mri_new_vol( int nx , int ny , int nz , MRI_TYPE kind )
    return newim ;
 }
 
-/*** make a new 7D image ***/
+/***---------------------- make a new 7D image -------------------------***/
 
 MRI_IMAGE *mri_new_7D_generic(
             int nx, int ny, int nz, int nt, int nu, int nv, int nw,
@@ -82,6 +82,7 @@ ENTRY("mri_new_7D_generic") ;
    newim->to = newim->uo = newim->vo = newim->wo = 0.0f;  /* default offsets */
 
    newim->was_swapped = 0 ;  /* 07 Mar 2002 - flag that bytes were swapped */
+   newim->vdim        = 0 ;
 
 #ifdef USE_MRI_LABELS
    newim->xlab[0] = '\0' ;          /* default labels */
@@ -98,78 +99,6 @@ ENTRY("mri_new_7D_generic") ;
 
    npix = newim->nvox ;
 
-#ifdef USE_UNION_DATA
-   switch( kind ){
-
-      case MRI_byte:
-         if( make_space )
-            newim->im.byte_data = (byte *)calloc( npix,sizeof(byte) ) ;
-         else
-            newim->im.byte_data = NULL ;
-         newim->pixel_size = sizeof(byte) ;
-      break ;
-
-      case MRI_short:
-         if( make_space )
-            newim->im.short_data = (short *)calloc( npix,sizeof(short) ) ;
-         else
-            newim->im.short_data = NULL ;
-         newim->pixel_size = sizeof(short) ;
-      break ;
-
-      case MRI_int:
-         if( make_space )
-            newim->im.int_data = (int *)calloc( npix,sizeof(int) ) ;
-         else
-            newim->im.int_data = NULL ;
-         newim->pixel_size = sizeof(int) ;
-      break ;
-
-      case MRI_float:
-         if( make_space )
-            newim->im.float_data = (float *)calloc( npix,sizeof(float) ) ;
-         else
-            newim->im.float_data = NULL ;
-         newim->pixel_size = sizeof(float) ;
-      break ;
-
-      case MRI_double:
-         if( make_space )
-            newim->im.double_data = (double *)calloc( npix,sizeof(double) ) ;
-         else
-            newim->im.double_data = NULL ;
-         newim->pixel_size = sizeof(double) ;
-      break ;
-
-      case MRI_complex:
-         if( make_space )
-            newim->im.complex_data = (complex *)calloc( npix,sizeof(complex) ) ;
-         else
-            newim->im.complex_data = NULL ;
-         newim->pixel_size = sizeof(complex) ;
-      break ;
-
-      case MRI_rgb:
-         if( make_space )
-            newim->im.rgb_data = (byte *)calloc( 3*npix,sizeof(byte) ) ;
-         else
-            newim->im.rgb_data = NULL ;
-         newim->pixel_size = 3 * sizeof(byte) ;
-      break ;
-
-      case MRI_rgba:
-         if( make_space )
-            newim->im.rgba_data = (rgba *)calloc( npix,sizeof(rgba) ) ;
-         else
-            newim->im.rgb_data = NULL ;
-         newim->pixel_size = sizeof(rgba) ;
-      break ;
-
-      default:
-         fprintf( stderr , "mri_new: unrecognized image kind %d\n",(int)kind ) ;
-         MRI_FATAL_ERROR ;
-   }
-#else
    switch( kind ){
       case MRI_byte:    newim->pixel_size = sizeof(byte)     ; break ;
       case MRI_short:   newim->pixel_size = sizeof(short)    ; break ;
@@ -179,6 +108,8 @@ ENTRY("mri_new_7D_generic") ;
       case MRI_complex: newim->pixel_size = sizeof(complex)  ; break ;
       case MRI_rgb:     newim->pixel_size = 3 * sizeof(byte) ; break ;
       case MRI_rgba:    newim->pixel_size = sizeof(rgba)     ; break ;
+      case MRI_fvect:   newim->pixel_size = sizeof(float)    ;
+                        newim->vdim       = 1                ; break ;
 
       default:
         fprintf( stderr , "mri_new: unrecognized image kind %d\n",(int)kind ) ;
@@ -186,12 +117,48 @@ ENTRY("mri_new_7D_generic") ;
    }
    if( make_space ) newim->im = calloc( newim->pixel_size , npix ) ;
    else             newim->im = NULL ;
-#endif
 
-   if( make_space && mri_data_pointer_unvarnished(newim) == NULL ){
+   if( make_space && newim->im == NULL ){
      fprintf(stderr,"malloc failure for image space: %d bytes\n",npix*newim->pixel_size);
      MRI_FATAL_ERROR ;
    }
 
    RETURN(newim) ;
+}
+
+/*---------------------------------------------------------------------*/
+/* Does not properly move old data around, if there is any! */
+
+void mri_adjust_fvectim( MRI_IMAGE *im , int vdim )
+{
+   void *vpt ;
+
+   if( im == NULL || im->kind != MRI_fvect || vdim < 1 ) return ;
+
+   im->vdim = vdim ;
+
+   im->pixel_size = sizeof(float)*vdim ;
+   if( im->im == NULL )
+     vpt = calloc( im->pixel_size , im->nvox ) ;
+   else
+     vpt = realloc( im->im , im->pixel_size*im->nvox ) ;
+
+   if( vpt == NULL ){
+     fprintf(stderr,"malloc failure for fvectim space: %d bytes\n",
+             im->pixel_size*im->nvox );
+     MRI_FATAL_ERROR ;
+   }
+
+   im->im = vpt ; return ;
+}
+
+/*---------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_new_fvectim( int nx , int ny , int nz , int vdim )
+{
+   MRI_IMAGE *im ;
+
+   im = mri_new_vol_empty( nx , ny , nz , MRI_fvect ) ;
+   mri_adjust_fvectim( im , vdim ) ;
+   return(im) ;
 }
