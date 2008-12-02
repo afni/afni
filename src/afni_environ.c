@@ -74,7 +74,8 @@ static int afni_env_done = 0 ;
 
 /*---------------------------------------------------------------------------*/
 
-void AFNI_mark_environ_done(void){ afni_env_done = 1 ; return ; }
+void AFNI_mark_environ_done(void)   { afni_env_done = 1 ; return ; }
+void AFNI_mark_environ_undone(void) { afni_env_done = 0 ; return ; }
 
 /*---------------------------------------------------------------------------*/
 
@@ -94,7 +95,8 @@ int AFNI_process_environ( char *fname )
 {
    int   nbuf , nused , ii ;
    char *fbuf , *fptr ;
-   char str[NSBUF] , left[NSBUF] , middle[NSBUF] , right[NSBUF] ;
+   char  str[NSBUF] , left[NSBUF] , middle[NSBUF] , 
+         right[NSBUF], fname_str[NSBUF] = {"not_set"};
    int nenv=0 , senv=0 ; static int first=1 ;  /* 13 Mar 2008 */
 
 ENTRY("AFNI_process_environ") ;
@@ -112,7 +114,8 @@ ENTRY("AFNI_process_environ") ;
      }
      afni_env_done = 1 ;
    }
-
+   strcpy(fname_str,str) ; /* ZSS: Nov. 25 08 */
+   
    fbuf = AFNI_suck_file( str ) ; if( fbuf == NULL ) RETURN(nenv) ;
    nbuf = strlen(fbuf) ;          if( nbuf == 0    ) RETURN(nenv) ;
 
@@ -139,7 +142,7 @@ ENTRY("AFNI_process_environ") ;
       /**-- ENVIRONMENT section [04 Jun 1999] --**/
 
       if( strcmp(str,"***ENVIRONMENT") == 0 ){ /* loop: find environment eqns */
-         char *enveqn ; int nl , nr ;
+         char *enveqn , *eee=NULL; int nl , nr ;
          senv = 1 ;
 
          while(1){                        /* loop, looking for 'name = value' */
@@ -150,7 +153,14 @@ ENTRY("AFNI_process_environ") ;
             nl = strlen(left) ; nr = strlen(right) ;
             enveqn = (char *) malloc(nl+nr+4) ;
             strcpy(enveqn,left) ; strcat(enveqn,"=") ; strcat(enveqn,right) ;
-            putenv(enveqn) ; nenv++ ;
+            if (!(eee = getenv(left))) {          /* ZSS Nov. 25 08 */
+               putenv(enveqn) ; 
+            } else {
+               INFO_message(  "Environment variable %s already set to '%s'. "
+                                 "Value of '%s' from %s is ignored.", 
+                                 left, eee, right, fname_str);
+            }
+            nenv++ ;
          }
 
          continue ;  /* to end of outer while */
