@@ -34,17 +34,18 @@ enum modes { NOTHING, TRAIN, TEST, TRAIN_AND_TEST }; /* modes */
 typedef struct ASLoptions{
   /* initialize at instantiation */
   char labelFile[MAX_FILE_NAME_LENGTH];         /* training input - class (label) file */
-  char censorFile[MAX_FILE_NAME_LENGTH];         /* training input - censor (ignore) file */
+  char censorFile[MAX_FILE_NAME_LENGTH];        /* training input - censor (ignore) file */
   char trainFile[MAX_FILE_NAME_LENGTH];         /* training input - dataset file */
   char maskFile[MAX_FILE_NAME_LENGTH];          /* mask dataset */
   char modelFile[MAX_FILE_NAME_LENGTH];         /* training output - model file */
-  int	outModelNoMask;	   /* flag signifying that no mask should be applied to output model */
+  int  outModelNoMask;	   /* flag signifying that no mask should be applied to output model */
   int  noPredDetrend;	   /* flag signifying that no detrending should be applied to output predictions in test mode */
   int  classout;	   /* flag signifying thresholded class predictions should be written to prediction files (rather than continuous valued "distances") */
+  char multiclass[LONG_STRING];	                /* testing input - type of classifyer for a mulitclass dataset */
   char modelAlphaFile[MAX_FILE_NAME_LENGTH];
   char modelWeightFile[MAX_FILE_NAME_LENGTH];
   char testFile[MAX_FILE_NAME_LENGTH];          /* testing input - dataset file */
-  char testLabelFile[MAX_FILE_NAME_LENGTH];	   /* testing input - target classes for test samples */
+  char testLabelFile[MAX_FILE_NAME_LENGTH];	/* testing input - target classes for test samples */
   char predFile[MAX_FILE_NAME_LENGTH];          /* testing output - predictions file */
 
 }ASLoptions;
@@ -53,8 +54,9 @@ typedef struct labels {
   LabelType *lbls;			/* the class labels indicating the stimulus categories for fMRI data */
   LabelType *cnsrs;			/* indicates which labels to ignore (value == 0) or use (value == 1) */
   int       class_list[CLASS_MAX];	/* hold class numbers appearing in classfile */
-  int       n_classes;			/* number of different classes allowed (for multiclass) */
+  int       n_classes;		/* number of different classes allowed (for multiclass) */
   long      n;				/* the number of labels and censors */
+  int       n_cnsrs;         /* the number of censors (JL) */
 }LABELS;
 
 typedef struct afniSvmModelHead {
@@ -112,7 +114,7 @@ static char plugin_helpstring[] = "\n"
 
 "This plugin provides the ability to perform support vector machine \n"
 "(SVM) analyses (training and testing) using SVM-Light (version 5),\n"
-"developed by Thorsten Joachims, (http://svmlight.joachims.org/ ).\n"
+"developed by Thorsten Joachims, (http://svmlight.joachims.org/).\n"
 "\n"
 "General notes:\n"
 "--------------\n"
@@ -264,7 +266,7 @@ static char cl_helpstring[] = "\n"
 "\n"
 "   This program provides the ability to perform support vector machine\n"
 "   (SVM) learning on AFNI datasets using the SVM-light package (version 5)\n"
-"   developed by Thorsten Joachims (http://svmlight.joachims.org/ ).\n"
+"   developed by Thorsten Joachims (http://svmlight.joachims.org/).\n"
 "\n"
 "-----------------------------------------------------------------------------\n"
 "Usage:\n"
@@ -386,7 +388,7 @@ static char cl_helpstring[] = "\n"
 "                       support vectors written out to a functional (fim) \n"
 "                       brik file. This is one means of generating an \n"
 "                       \"activation map\" from linear kernel SVMS \n"
-"                       (see LaConte et al, 2003). \n"
+"                       (see LaConte et al, 2005). \n"
 "\n"
 "-mask mname            mname must be is a byte-format brik file used to\n"
 "                       mask voxels in the analysis. For example, a mask\n"
@@ -446,5 +448,36 @@ static char cl_helpstring[] = "\n"
 "                       calculations are not made. Format is the same as \n"
 "                       lname specified for -trainlabels. \n"
 "\n"
+"-multiclass mctype     mctype specifies the multiclass algorithm for classification\n"
+"                       current implementations use 1-vs-1 two-class SVM models\n"
+"\n"
+"                       mctype must be one of the following: \n"
+"\n"
+"                             DAG     [Default]:  Directed Acyclic Graph\n"
+"                             vote             :  Max Wins from votes of all 1-vs-1 models\n"
+"\n"
+"                       see http:\\\\cpu.bcm.edu\\laconte\\3dsvm for details and references.\n"
+"\n"
+"------------------- INFORMATION OPTIONS --------------------------------------------\n"
+"-help                  this help\n"
+"\n"
+"-change_summary        describes chages of note and rough dates of their implementation\n"
+"\n"
 "\n\n";
 
+/*----- String that briefly describes changes -------------------*/
+static char change_string[] = "\n"
+"Changes of note:\n"
+"\n"
+"Circa Nov/Dec 2008\n"
+"Note that 3dsvm's -predictions files have always been correct, however changes 1 and 3 (below)\n"
+"are important for those who only rely on prediction accuracy summaries.\n"
+"1) Fixed a bug in calculating prediction accuracies.\n"
+"2) Changed multiclass for testvols - old method may have had problems in special cases.\n"
+"Now using DAG and Max Wins voting.\n"
+"3) improved handling of prediction accuracy calculations for censored test data labels\n"
+"4) this change_summary flag added!\n"
+"\n"
+"\n"
+"-enjoy\n"
+"\n\n";
