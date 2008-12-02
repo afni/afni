@@ -453,7 +453,8 @@ SUMA_MX_VEC *SUMA_matrix2MxVec(matrix c)
    SUMA_RETURN(mxv);
 }
 
-SUMA_MX_VEC *SUMA_CoerceMxVec(SUMA_MX_VEC *va, SUMA_VARTYPE tp, int abs, SUMA_MX_VEC *recycle) 
+SUMA_MX_VEC *SUMA_CoerceMxVec(SUMA_MX_VEC *va, SUMA_VARTYPE tp, 
+                              int abs, SUMA_MX_VEC *recycle) 
 {
    static char FuncName[]={"SUMA_CoerceMxVec"};
    SUMA_MX_VEC *vt=NULL;
@@ -473,7 +474,8 @@ SUMA_MX_VEC *SUMA_CoerceMxVec(SUMA_MX_VEC *va, SUMA_VARTYPE tp, int abs, SUMA_MX
          SUMA_RETURN(NULL);
       }
       if (recycle->tp != tp) {
-         SUMA_S_Errv("Mismatch between recycle->tp=%d and tp=%d\n", recycle->tp , tp);
+         SUMA_S_Errv("Mismatch between recycle->tp=%d and tp=%d\n", 
+                     recycle->tp , tp);
          SUMA_RETURN(NULL);
       }
       vt = recycle;
@@ -3535,22 +3537,28 @@ int SUMA_WriteMxVec(SUMA_MX_VEC *mxv, char *Name, char *title)
     
    switch (mxv->tp) {
       case SUMA_byte:
-         SUMA_disp_vecbytemat((byte *)mxv->v, d0, d1, 1, SUMA_COLUMN_MAJOR, out, 0);
+         SUMA_disp_vecbytemat((byte *)mxv->v, d0, d1, 1, 
+                              SUMA_COLUMN_MAJOR, out, 0);
          break;
       case SUMA_short:
-         SUMA_disp_vecshortmat((short *)mxv->v, d0, d1, 1, SUMA_COLUMN_MAJOR, out, 0);
+         SUMA_disp_vecshortmat((short *)mxv->v, d0, d1, 1, 
+                                 SUMA_COLUMN_MAJOR, out, 0);
          break;
       case SUMA_int:
-         SUMA_disp_vecdmat((int *)mxv->v, d0, d1, 1, SUMA_COLUMN_MAJOR, out, 0);
+         SUMA_disp_vecdmat((int *)mxv->v, d0, d1, 1, 
+                           SUMA_COLUMN_MAJOR, out, 0);
          break;
       case SUMA_float:
-         SUMA_disp_vecmat((float *)mxv->v, d0, d1, 1, SUMA_COLUMN_MAJOR, out, 0);
+         SUMA_disp_vecmat((float *)mxv->v, d0, d1, 1, 
+                           SUMA_COLUMN_MAJOR, out, 0);
          break;
       case SUMA_double:
-         SUMA_disp_vecdoubmat((double *)mxv->v, d0, d1, 1, SUMA_COLUMN_MAJOR, out, 0);
+         SUMA_disp_vecdoubmat((double *)mxv->v, d0, d1, 1, 
+                              SUMA_COLUMN_MAJOR, out, 0);
          break;
       case SUMA_complex:
-         SUMA_disp_veccompmat((complex *)mxv->v, d0, d1, 1, SUMA_COLUMN_MAJOR, out, 0);
+         SUMA_disp_veccompmat((complex *)mxv->v, d0, d1, 1, 
+                              SUMA_COLUMN_MAJOR, out, 0);
          break;
       default:
          SUMA_SL_Err("Type not supported");

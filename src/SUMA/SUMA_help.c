@@ -80,7 +80,7 @@ static ENV_SPEC envlist[] = {
       "SUMA_UseCrossTicks",
       "NO" },
    {  "Warn if 1D file looks like it needs a transpose",
-      "SUMA_1D_Transponse_Warn",
+      "SUMA_1D_Transpose_Warn",
       "YES" },
    {  "Adjust roation and translation factor of mouse with changes \n"
       " in zoom levels ",
@@ -314,6 +314,8 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
          "  + imcat: Program to catenate images.\n"
          "  + Surf2VolCoord: Surface-node to voxel correspondence.\n"
          "  + SurfDist: Program to calculate internodal distances.\n"
+         "  + SpharmDeco: Spherical harmonics decomposition.\n"
+         "  + SpharmReco: Spherical harmonics reconstruction.\n"
          "Modifications:\n"
          "  + SUMA:\n"
          "    o Addition of new Displayable Objects (DO)(ctrl+Alt+s)\n"

@@ -1238,8 +1238,13 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label,
 int *SUMA_GetDsetColIndex (SUMA_DSET *dset, SUMA_COL_TYPE tp, int *N_i);
 int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i);
 int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, float *V, int FilledOnly, byte *replacemask);
+int SUMA_Vec2DsetCol (SUMA_DSET *dset, int ind, 
+                        void *V, SUMA_VARTYPE Vtp,
+                        int FilledOnly, 
+                        byte *replacemask);
 int * SUMA_DsetCol2Int (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly);
+double * SUMA_DsetCol2Double (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
 int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, float range[2], int loc[2]);
 int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, float range[2], int loc[2], int addifmissing);
@@ -1306,9 +1311,17 @@ int SUMA_NewMxAllocVec(SUMA_MX_VEC *mxv) ;
 SUMA_MX_VEC *SUMA_NewMxNullVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first);
 SUMA_MX_VEC *SUMA_VecToMxVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte first_dim_first, void *vec);
 int * SUMA_FindNumericDataDsetCols(SUMA_DSET *dset, int *N_icols);
-float * SUMA_DsetCol2FloatFullSortedColumn(  SUMA_DSET *dset, int ico, byte **nmaskp, float fillval,
-                                             int N_Node, int *N_inmask, SUMA_Boolean MergeMask);
+float * SUMA_DsetCol2FloatFullSortedColumn(  
+            SUMA_DSET *dset, int ico, byte **nmaskp, float fillval,
+            int N_Node, int *N_inmask, SUMA_Boolean MergeMask);
+double * SUMA_DsetCol2DoubleFullSortedColumn(  
+            SUMA_DSET *dset, int ico, byte **nmaskp, double fillval,
+            int N_Node, int *N_inmask, SUMA_Boolean MergeMask);
 SUMA_Boolean SUMA_MakeSparseColumnFullSorted(float **vp, int N_v, float mask_val, byte **bmp, SUMA_DSET *dset, int N_Node);
+SUMA_Boolean SUMA_MakeSparseDoubleColumnFullSorted (
+      double **vp, int N_v, 
+      double mask_val, byte **bmp, 
+      SUMA_DSET *dset, int N_Node);
 SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node); 
 int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind);
 SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn);
@@ -1398,7 +1411,8 @@ NI_str_array *SUMA_comp_str_2_NI_str_ar(char *s, char *sep);
 char *SUMA_NI_str_ar_2_comp_str (NI_str_array *nisa, char *sep);
 NI_str_array *SUMA_free_NI_str_array(NI_str_array *nisa);
 char *SUMA_Get_Sub_String(char *cs, char *sep, int ii);
-int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep, int insert_mode);
+int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, 
+                              char *sep, int insert_mode);
 NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep );
 char  * SUMA_NI_get_ith_string( char *ss , char *sep, int i );
 SUMA_VARTYPE SUMA_CTypeName2VarType (char *vt);
