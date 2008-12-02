@@ -1250,7 +1250,7 @@ void compute_data( MCB mc , int obj_type)
 {
   float x,y,z      ;
   float sx,sy,sz   ;
-  float tx,ty,tz , val  ;
+  float tx,ty,tz , val = 0 ;
   int i, j, k;
   float r,R, a, b, c, d;
   int WriteVol = debug;
