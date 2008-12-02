@@ -65,7 +65,31 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 21 , NOV , 2008 , ZSS , "@fast_roi" , MINOR ,  TYPE_NEW_PROG,
+ { 2, DEC , 2008 , ZSS , "@NoisySkullStrip" , MAJOR ,  TYPE_NEW_PROG,
+   "A script to improve skull stripping in noisy of heavily shaded data",
+   NULL
+ },
+
+ { 2, DEC , 2008 , ZSS , "@Spharm.examples" , MAJOR ,  TYPE_NEW_PROG,
+   "A script to demonstrate the usage of SpharmDeco and SpharmReco",
+   NULL
+ },
+
+ { 2, DEC , 2008 , ZSS , "SpharmReco" , MAJOR ,  TYPE_NEW_PROG,
+   "Reconstructs data from spherical harmonics decomposition.",
+   "See SpharmDeco -help and the demo script @Spharm.examples\n"
+   "for details."
+ },
+
+ { 2, DEC , 2008 , ZSS , "SpharmDeco" , MAJOR ,  TYPE_NEW_PROG,
+   "Performs spherical harmonics decomposition.",
+   "This program performs spherical harmonics decomposition\n"
+   "for surfaces' geometry and/or surface-based data\n"
+   "See SpharmReco -help and the demo script @Spharm.examples\n"
+   "for details."
+ },
+ 
+ { 21 , NOV , 2008 , ZSS , "@fast_roi" , MAJOR ,  TYPE_NEW_PROG,
    "Creates Atlas-based ROIs in original space for real-time experiments ",
    NULL
  },

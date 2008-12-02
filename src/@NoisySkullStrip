@@ -23,8 +23,6 @@ goto END
 
 MAKE_MASK:
 set t = __MA
-set ap = `@GetAfniPrefix $in`
-set av = `@GetAfniView $in`
 set nbin = 1000
 
 3dLocalstat -overwrite -prefix $t"_ls" \
@@ -205,6 +203,9 @@ PARSE_COMMAND:
       goto END
    endif
 
+   set ap = `@GetAfniPrefix $in`
+   set av = `@GetAfniView $in`
+
 goto Ret_PARSE_COMMAND
 
 USAGE:
@@ -219,10 +220,9 @@ echo ""
 echo "This script does some pre-processing before running 3dSkullStrip"
 echo "If you're intrigued, read the code."
 echo ""
-echo "This script is experimental and has only been tested on all of TWO nasty"
+echo "This script is experimental and has only been tested on a dozen nasty"
 echo "datasets. So use it ONLY when you need it, i.e. when 3dSkullStrip "
-echo "fails on its own."
-echo "on its own and you have low SNR"
+echo "fails on its own and you have low SNR"
 echo ""
 echo "Examples of use:"
 echo "   For a normal anatomy with low SNR"
