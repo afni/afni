@@ -113,7 +113,7 @@ int main (int argc,char *argv[])
                                     NULL,    /* no idcode, let the function create one from the filename*/
                                     NULL,       /* no domain str specified */
                                     N_Alloc    /* Number of nodes allocated for */
-                                    ); /* DO NOT free dset, it is store in DsetList */
+                                    ); /* DO NOT free dset, if it is stored in DsetList */
       #ifdef SUMA_COMPILED
       SUMA_LH("inserting dset pointer into list");
       if (!SUMA_InsertDsetPointer(&dset, SUMAg_CF->DsetList,0)) {

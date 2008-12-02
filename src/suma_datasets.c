@@ -226,7 +226,8 @@ int SUMA_MxVecInit(SUMA_MX_VEC *mxv, void *val)
       case SUMA_complex:
          cc = *((complex *)val);
          mxv->cv = (complex *)mxv->v;         
-         for (i=0; i<mxv->N_vals; ++i) { mxv->cv[i].r = cc.r; mxv->cv[i].i = cc.i; } 
+         for (i=0; i<mxv->N_vals; ++i) 
+            { mxv->cv[i].r = cc.r; mxv->cv[i].i = cc.i; } 
          break;
       default:
          SUMA_SL_Err("Bad type");
@@ -2063,8 +2064,9 @@ int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2])
    
    Can also use SUMA_InsertDsetNelCol, tiz more flexible.
 */
-int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp, void *col, 
-                     void *col_attr, int stride)
+int SUMA_AddDsetNelCol (   SUMA_DSET *dset, char *col_label, 
+                           SUMA_COL_TYPE ctp, void *col, 
+                           void *col_attr, int stride)
 {
    static char FuncName[]={"SUMA_AddDsetNelCol"};
    SUMA_Boolean LocalHead = NOPE;
@@ -6033,7 +6035,7 @@ byte * SUMA_indexlist_2_bytemask(
                  will not change, so you can pass NULL for nmaskp.
                  
                  Note that if you specify no mask to begin with 
-                 and dset is not sparse, then you'll *nmaskp will
+                 and dset is not sparse, then  *nmaskp will
                  be NULL on return
    \param  fillval (float) value to put in c[i] where i is a node
                  not present in the dset.
@@ -6046,7 +6048,11 @@ byte * SUMA_indexlist_2_bytemask(
                                    merger is needed. Set to YUP the 
                                    first time you call this function
                                    for a particular dataset. 
-   \sa   SUMA_MakeSparseColumnFullSorted and   SUMA_DsetCol2Float    
+   \sa   SUMA_MakeSparseColumnFullSorted and   SUMA_DsetCol2Float 
+   \sa   SUMA_DsetCol2DoubleFullSortedColumn   
+   
+   MAKE SURE YOU ALSO MODIFY Double version of this function when you make
+   changes here
 */       
 float * SUMA_DsetCol2FloatFullSortedColumn(  
             SUMA_DSET *dset, int ico, byte **nmaskp, 
@@ -6128,6 +6134,89 @@ float * SUMA_DsetCol2FloatFullSortedColumn(
 
    SUMA_RETURN(fin_orig);
 }
+/*! double precision version of SUMA_DsetCol2FloatFullSortedColumn */
+double * SUMA_DsetCol2DoubleFullSortedColumn(  
+            SUMA_DSET *dset, int ico, byte **nmaskp, 
+            double fillval, int N_Node, int *N_inmask, 
+            SUMA_Boolean MergeMask)
+{
+   static char FuncName[]={"SUMA_DsetCol2DoubleFullSortedColumn"};
+   double *fin_orig = NULL;
+   byte *locmask = NULL;
+   byte *nmask = NULL;
+   int n=0, N_nmask=0, jj=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (nmaskp) nmask = *nmaskp;
+   *N_inmask =  -1;
+
+   /* get a double copy of the data column */
+   fin_orig = SUMA_DsetCol2Double (dset, ico , 1);
+   if (!fin_orig) {
+      SUMA_SL_Crit("Failed to get copy of column. Woe to thee!");
+      SUMA_RETURN(NULL);
+   }
+
+   /* make sure column is not sparse, one value per node */
+   if (MergeMask) { /* masks may need merging */
+      SUMA_LH( "Mask merger");
+      locmask = NULL;
+      if (!SUMA_MakeSparseDoubleColumnFullSorted(
+               &fin_orig, SDSET_VECFILLED(dset), fillval, 
+               &locmask, dset, N_Node)) {
+         SUMA_S_Err("Failed to get full column vector");
+         SUMA_RETURN(NULL);
+      }
+      if (locmask) {
+         SUMA_LH( "Something was filled in"
+                  "SUMA_MakeSparseDoubleColumnFullSorted\n" );
+         /* something was filled in good old 
+            SUMA_MakeSparseDoubleColumnFullSorted */
+         if (nmask) {   /* combine locmask with nmask */
+            SUMA_LH( "Merging masks\n" );
+            for (jj=0; jj < N_Node; ++jj) { 
+               if (nmask[jj] && !locmask[jj]) nmask[jj] = 0; 
+            }   
+         } else { nmask = locmask; }
+      } 
+      if (nmask) {
+         N_nmask = 0;
+         for (n=0; n<N_Node; ++n) { if (nmask[n]) ++ N_nmask; }
+         if (LocalHead) 
+            fprintf( SUMA_STDERR, 
+                     "%s: Node mask has %d nodes in mask)\n", 
+                     FuncName, N_nmask);
+         if (!N_nmask) {
+            SUMA_S_Warn("Empty mask, nothing to do");
+         }
+      } else {
+         N_nmask = N_Node;
+      }
+      if (nmaskp) { /* return the mask that we have created or modified*/
+         *nmaskp = nmask; 
+         if (locmask && nmask != locmask) { /* free locally created mask */
+            SUMA_free(locmask);
+         }
+         locmask = NULL;
+      }
+      *N_inmask = N_nmask; 
+   } else {
+      SUMA_LH( "going to SUMA_MakeSparseDoubleColumnFullSorted");
+      if (!SUMA_MakeSparseDoubleColumnFullSorted(
+               &fin_orig, SDSET_VECFILLED(dset), 
+               fillval, NULL, dset, N_Node)) {
+         SUMA_S_Err("Failed to get full column vector");
+         SUMA_RETURN(NULL);
+      }
+      /* no need for reworking nmask and locmask on this pass...*/
+      *N_inmask =  -1; /* nothing to do */
+   }
+
+
+   SUMA_RETURN(fin_orig);
+}
 
 /*!
    \brief Make the contents of a sparse node-based data column (vector)
@@ -6144,7 +6233,9 @@ float * SUMA_DsetCol2FloatFullSortedColumn(
    \return  YUP: OK
             NOPE: NOK 
             
-   \sa SUMA_DsetCol2FloatFullSortedColumn  
+   \sa SUMA_DsetCol2FloatFullSortedColumn 
+   MAKE SURE YOU ALSO MODIFY Double version of this function when you make
+   changes here 
 */
 SUMA_Boolean SUMA_MakeSparseColumnFullSorted (
       float **vp, int N_v, 
@@ -6247,6 +6338,110 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted (
    /* Should not get here */
    SUMA_RETURN(NOPE);
 }
+
+/*! double precision version of SUMA_MakeSparseColumnFullSorted */
+SUMA_Boolean SUMA_MakeSparseDoubleColumnFullSorted (
+      double **vp, int N_v, 
+      double mask_val, byte **bmp, 
+      SUMA_DSET *dset, int N_Node)
+{
+   static char FuncName[]={"SUMA_MakeSparseDoubleColumnFullSorted"};
+   double *v=NULL, *vn=NULL;
+   byte *bm = NULL; 
+   float range[2];
+   int  loc[2], *nip=NULL, i;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!vp || !*vp) {
+      SUMA_S_Err("NULL vp!");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* the column vector */
+   v = *vp; 
+   
+   /* get the node index column */
+   if (!(nip = SUMA_GetNodeDef(dset))) {
+      /* No node index column, check based on number of values */
+      if (N_v == N_Node) {
+         SUMA_LH( "Fullness established based on \n"
+                  "number of nodes and values in v");
+         SUMA_RETURN(YUP);
+      } else {
+         SUMA_S_Err("Not full and cannot fill it");
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+      /* make sure column range does not exceed N_Node */
+      if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc, 1)) {
+         SUMA_S_Err("Failed to get nodedef range");
+         SUMA_RETURN(NOPE);
+      }
+      
+      if (range[0] < 0 || range[1] >= N_Node) {
+         SUMA_S_Err("Node index range is outside [0, N_Node[");
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* have node index */
+      if (N_v != SDSET_VECFILLED(dset)) {   /* oops, not good */
+         SUMA_S_Err( "Number of values in v not equal to vec_filled.\n"
+                     "Cannot proceed.");
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* number of values is same as filled values, good, now proceed */
+      if (  SDSET_VECFILLED(dset) == N_Node && 
+            nip[SDSET_VECFILLED(dset)-1] == N_Node -1 &&
+            nip[SDSET_VECFILLED(dset)-1-SDSET_VECFILLED(dset)/2] == 
+                  N_Node -1 -SDSET_VECFILLED(dset)/2 &&
+            nip[SDSET_VECFILLED(dset)-1-SDSET_VECFILLED(dset)/3] == 
+                  N_Node -1 -SDSET_VECFILLED(dset)/3 &&
+            SDSET_IS_SORTED(dset)) {   /* likely a full column */
+         SUMA_LH( "Fullness established by loose examination \n"
+                  "of node defintion column.");
+         SUMA_RETURN(YUP);   
+      }
+      /* if you get here then you do not have a 
+         full list or the list is not sorted*/
+      SUMA_LH("Creating vn");
+      vn = (double *)SUMA_calloc(N_Node, sizeof(double));
+      if (bmp) {
+         if (*bmp) {
+            SUMA_S_Err("*bmp must be NULL");
+            SUMA_RETURN(NOPE);
+         }
+         bm = (byte *)SUMA_calloc(N_Node, sizeof(byte));
+      } else bm = NULL;
+      
+      if (!vn || (bmp && !bm)) {
+         SUMA_S_Crit("Failed to allocate");
+         SUMA_RETURN(NOPE);
+      }
+      for (i=0; i<N_Node; ++i) {
+         vn[i] = mask_val; /* if (bm) bm[i] = 0; */
+      }
+      for (i=0; i<SDSET_VECFILLED(dset); ++i) {
+         vn[nip[i]] = v[i]; 
+         if (bm) bm[nip[i]] = 1;
+      }
+      
+      
+      /* Now free old v */
+      SUMA_free(v); v = NULL;
+      
+      /* stow away for return */
+      if (bmp) { *bmp = bm; bm = NULL; }  
+      *vp = vn; vn = NULL;
+      
+      SUMA_RETURN(YUP);
+   }
+   
+   /* Should not get here */
+   SUMA_RETURN(NOPE);
+}
  
 /*!
    \brief Copies the contents of a float vector into a NI_element column 
@@ -6262,10 +6457,25 @@ SUMA_Boolean SUMA_MakeSparseColumnFullSorted (
    The values in V replace those in nel!
    No new columns in nel are created.
    
-   \sa SUMA_DsetCol2Float 
+   \sa SUMA_DsetCol2Float , SUMA_Vec2DsetCol
 */
 void SUMA_BadOptimizerBadBad(void){ return; }
 
+#define SUMA_COL_FILL(vv, VV, tp){\
+   if (!replacemask) {\
+      if (nip)  for (i=0; i<N_read; ++i) vv[i] = (tp)VV[nip[i]]; \
+      else for (i=0; i<N_read; ++i) vv[i] = (tp)VV[i];  \
+   } else { \
+     if (nip)  \
+         for (i=0; i<N_read; ++i)   \
+            if (replacemask[nip[i]]) { \
+               vv[i] = (tp)VV[nip[i]]; \
+               SUMA_BadOptimizerBadBad(); /* Dec. 03 07 */ \
+            }  \
+      else for (i=0; i<N_read; ++i) \
+            if (replacemask[i]) vv[i] = (int)VV[i];   \
+   }  \
+}
 int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind, 
                         float *V, int FilledOnly, 
                         byte *replacemask)
@@ -6299,36 +6509,11 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind,
    switch (vtp) {
       case SUMA_int:
          iv = (int *)dset->dnel->vec[ind];
-         if (!replacemask) {
-            if (nip)  for (i=0; i<N_read; ++i) iv[i] = (int)V[nip[i]];
-            else for (i=0; i<N_read; ++i) iv[i] = (int)V[i];
-         } else {
-            if (nip)  
-               for (i=0; i<N_read; ++i) 
-                  if (replacemask[nip[i]]) {
-                     iv[i] = (int)V[nip[i]];
-                     SUMA_BadOptimizerBadBad(); /* Dec. 03 07 */
-                  }
-            else for (i=0; i<N_read; ++i) 
-                  if (replacemask[i]) iv[i] = (int)V[i];
-         }
+         SUMA_COL_FILL(iv, V, int);
          break;
       case SUMA_float:
          fv = (float *)dset->dnel->vec[ind];
-         if (!replacemask) {
-            if (nip)  for (i=0; i<N_read; ++i) fv[i] = V[nip[i]];
-            else for (i=0; i<N_read; ++i) fv[i] = V[i];
-         } else {
-            if (nip)  
-               for (i=0; i<N_read; ++i) {
-                  if (replacemask[nip[i]]) {
-                     fv[i] = V[nip[i]];
-                     SUMA_BadOptimizerBadBad(); /* Dec. 03 07 */
-                  }
-               }
-            else for (i=0; i<N_read; ++i) 
-                  if (replacemask[i]) fv[i] = V[i];
-         }
+         SUMA_COL_FILL(fv, V, float);
          break;
       default:
          SUMA_SL_Err("This type is not supported.\n");
@@ -6336,6 +6521,126 @@ int SUMA_Float2DsetCol (SUMA_DSET *dset, int ind,
          break;
    }
    
+   /* reset generic attributes */
+   SUMA_AddGenDsetColAttr (dset, ctp, dset->dnel->vec[ind], 1, ind, 0);
+  
+   SUMA_RETURN(1);
+}
+/*!
+   \brief Copies the contents of a vector into a NI_element column 
+   SUMA_Vec2DsetCol (dset,  ind,  V, Vtp, FilledOnly, replacemask);
+   
+   \param nel (NI_element *)
+   \param ind (int) index of column to be filled with values in V
+   \param V (float *) vector containing the column's contents 
+               (see number of values copied below).
+   \param Vtp (SUMA_VARTYPE) type of data in V
+   \param FilledOnly (int) 0 = copy from index 0 to dset->dnel->vec_len 
+                                                 or SDSET_VECLEN(dset)
+                           1 = copy from index 0 to dset->dnel->vec_filled 
+                                                 or SDSET_VECFILLED(dset)
+   \param replacemask (byte *) if not null, then copy value in index i 
+                                             only IF replacemask[i] == 1
+                               if null, copy all indices i
+   The values in V replace those in nel!
+   No new columns in nel are created.
+   
+   \sa SUMA_DsetCol2Float 
+*/
+int SUMA_Vec2DsetCol (SUMA_DSET *dset, int ind, 
+                        void *V, SUMA_VARTYPE Vtp,
+                        int FilledOnly, 
+                        byte *replacemask)
+{
+   static char FuncName[]={"SUMA_Vec2DsetCol"};
+   int i = -1, N_read = -1, *iv = NULL, *iV=NULL, *nip=NULL, nnn=-1;
+   float *fv = NULL, *fV=NULL;
+   double *dV=NULL;
+   SUMA_COL_TYPE ctp;
+   SUMA_VARTYPE vtp;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+      
+   if (!dset) { SUMA_RETURN(0); }
+   if (!V) {
+      SUMA_S_Err("NULL V");
+      SUMA_RETURN(0);
+   }
+   if (ind < 0 || ind > SDSET_VECNUM(dset) - 1) {
+      SUMA_SL_Err("Bad col index");
+      SUMA_RETURN(0);
+   }
+   
+   if (FilledOnly) {
+      N_read = SDSET_VECFILLED(dset);
+   } else {
+      N_read = SDSET_VECLEN(dset);
+   }
+   
+   if (LocalHead) SUMA_ShowDset(dset, 0, NULL);
+   ctp = SUMA_TypeOfDsetColNumb(dset, ind); 
+   vtp = SUMA_ColType2TypeCast (ctp) ;
+   nip = SUMA_GetNodeDef(dset);
+   switch (Vtp) {
+     case SUMA_int:
+         iV = (int *)V;
+         switch (vtp) {
+            case SUMA_int:
+               iv = (int *)dset->dnel->vec[ind];
+               SUMA_COL_FILL(iv, iV, int);
+               break;
+            case SUMA_float:
+               fv = (float *)dset->dnel->vec[ind];
+               SUMA_COL_FILL(fv, iV, float);
+               break;
+            default:
+               SUMA_SL_Err("This type is not supported.\n");
+               SUMA_RETURN(0);
+               break;
+         }
+         break;
+      case SUMA_float:
+         fV = (float *)V;
+         switch (vtp) {
+            case SUMA_int:
+               iv = (int *)dset->dnel->vec[ind];
+               SUMA_COL_FILL(iv, fV, int);
+               break;
+            case SUMA_float:
+               fv = (float *)dset->dnel->vec[ind];
+               SUMA_COL_FILL(fv, fV, float);
+               break;
+            default:
+               SUMA_SL_Err("This type is not supported.\n");
+               SUMA_RETURN(0);
+               break;
+         }
+         break;
+      case SUMA_double:
+         dV = (double *)V;
+         switch (vtp) {
+            case SUMA_int:
+               iv = (int *)dset->dnel->vec[ind];
+               SUMA_COL_FILL(iv, dV, int);
+               break;
+            case SUMA_float:
+               fv = (float *)dset->dnel->vec[ind];
+               SUMA_COL_FILL(fv, dV, float);
+               break;
+            default:
+               SUMA_SL_Err("This type is not supported.\n");
+               SUMA_RETURN(0);
+               break;
+         }
+         break;
+      
+      default:
+         SUMA_SL_Err("This type is not supported.\n");
+         SUMA_RETURN(0);
+         break;
+   }   
+  
    /* reset generic attributes */
    SUMA_AddGenDsetColAttr (dset, ctp, dset->dnel->vec[ind], 1, ind, 0);
   
@@ -6441,6 +6746,54 @@ int * SUMA_DsetCol2Int (SUMA_DSET *dset, int ind, int FilledOnly)
       case SUMA_float:
          fv = (float *)dset->dnel->vec[ind];
          for (i=0; i<N_read; ++i) V[i] = (int)fv[i];
+         break;
+      default:
+         SUMA_SL_Err("This type is not supported.\n");
+         SUMA_free(V);
+         SUMA_RETURN(NULL);
+         break;
+   }
+   
+   SUMA_RETURN(V);
+}
+double * SUMA_DsetCol2Double (SUMA_DSET *dset, int ind, int FilledOnly)
+{
+   static char FuncName[]={"SUMA_DsetCol2Double"};
+   int i = -1, N_read = -1, *iv = NULL;
+   double *V=NULL;
+   float *fv = NULL;
+   SUMA_COL_TYPE ctp;
+   SUMA_VARTYPE vtp;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+      
+   if (!dset) { SUMA_RETURN(NULL); }
+   
+   if (ind < 0 || ind > SDSET_VECNUM(dset) - 1) {
+      SUMA_SL_Err("Bad index");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (FilledOnly) {
+      N_read = SDSET_VECFILLED(dset);
+   } else {
+      N_read = SDSET_VECLEN(dset);
+   }
+   
+   ctp = SUMA_TypeOfDsetColNumb(dset, ind); 
+
+   V = (double *)SUMA_calloc(N_read, sizeof(double));
+   if (!V) { SUMA_SL_Crit("Failed to allocate for V."); SUMA_RETURN(NULL); }
+   vtp = SUMA_ColType2TypeCast (ctp) ;
+   switch (vtp) {
+      case SUMA_int:
+         iv = (int *)dset->dnel->vec[ind];
+         for (i=0; i<N_read; ++i) V[i] = (float)iv[i];
+         break;
+      case SUMA_float:
+         fv = (float *)dset->dnel->vec[ind];
+         for (i=0; i<N_read; ++i) V[i] = fv[i];
          break;
       default:
          SUMA_SL_Err("This type is not supported.\n");
@@ -6793,6 +7146,9 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    
    if (!iName) { SUMA_SL_Err("NULL Name"); goto GOODBYE; }
    
+   if (LocalHead) {
+      fprintf(stderr,"%s: Have %s to work with\n", FuncName, iName);
+   }
    /* parse the name please. */
    RowSel = ColSel = NodeSel = NULL;
    if (!(pn = SUMA_ParseFname(iName, NULL))) {
@@ -7395,19 +7751,37 @@ SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension_core(char *Name)
 {
    static char FuncName[]={"SUMA_GuessFormatFromExtension_core"};
    SUMA_DSET_FORMAT form = SUMA_NO_DSET_FORMAT;
+   SUMA_PARSED_NAME *fn=NULL;
+   SUMA_Boolean LocalHead = NOPE;
      
    SUMA_ENTRY;
    
    if (!Name) { SUMA_RETURN(form); }
-   if (SUMA_isExtension(Name, ".niml.dset") ||
-       SUMA_isExtension(Name, ".niml.do") ) form = SUMA_NIML;
-   if (  SUMA_isExtension(Name, ".gii.dset") ||
-         SUMA_isExtension(Name, ".gii") ) form = SUMA_XML_DSET;
-   if (SUMA_isExtension(Name, ".1D.dset")) form = SUMA_1D;
-   if (SUMA_isExtension(Name, ".niml.cmap")) form = SUMA_NIML;
-   if (SUMA_isExtension(Name, ".1D.cmap")) form = SUMA_1D; 
-   if (SUMA_isExtension(Name, ".dx")) form = SUMA_ASCII_OPEN_DX_DSET; 
-   if (SUMA_isExtension(Name, ".dx.dset")) form = SUMA_ASCII_OPEN_DX_DSET; 
+
+   fn=SUMA_ParseFname (Name, NULL);
+   if (LocalHead) SUMA_ShowParsedFname(fn, NULL);
+   
+   if (SUMA_isExtension(fn->FileName, ".niml.dset") ||
+       SUMA_isExtension(fn->FileName, ".niml.do") ) 
+      form = SUMA_NIML;
+   else if (  SUMA_isExtension(fn->FileName, ".gii.dset") ||
+         SUMA_isExtension(fn->FileName, ".gii") ) 
+      form = SUMA_XML_DSET;
+   else if (SUMA_isExtension(fn->FileName, ".1D.dset")) 
+      form = SUMA_1D;
+   else if (SUMA_isExtension(fn->FileName, ".niml.cmap")) 
+      form = SUMA_NIML;
+   else if (SUMA_isExtension(fn->FileName, ".1D.cmap")) 
+      form = SUMA_1D; 
+   else if (SUMA_isExtension(fn->FileName, ".dx.dset")) 
+      form = SUMA_ASCII_OPEN_DX_DSET; 
+   else if (SUMA_isExtension(fn->FileName, ".dx")) 
+      form = SUMA_ASCII_OPEN_DX_DSET;
+   else if (SUMA_isExtension(fn->FileName, ".1D")) 
+      form = SUMA_1D; 
+   
+   SUMA_Free_Parsed_Name(fn); fn = NULL;
+    
    SUMA_RETURN(form);
 }
 
@@ -8284,15 +8658,28 @@ SUMA_DSET *SUMA_far2dset_eng( char *FullName, char *dset_id, char *dom_id,
 
    SUMA_ENTRY;
    
-   if (!FullName) { SUMA_PushErrLog("SL_Err", "Need a FullName", FuncName); SUMA_RETURN(dset); }
-   if (!farp) { SUMA_PushErrLog("SL_Err", "NULL farp", FuncName); SUMA_RETURN(dset); }
+   if (!FullName) { 
+      SUMA_PushErrLog("SL_Err", "Need a FullName", FuncName); 
+      SUMA_RETURN(dset); 
+   }
+   if (!farp) { 
+      SUMA_PushErrLog("SL_Err", "NULL farp", FuncName); SUMA_RETURN(dset); 
+   }
    far = *farp;
-   if (!far) { SUMA_PushErrLog("SL_Err", "NULL *farp", FuncName); SUMA_RETURN(dset); }
-   if (vec_len < 0 || vec_num < 0) { SUMA_PushErrLog("SL_Err", "Negative vec_len or vec_num", FuncName); SUMA_RETURN(dset); }
-   if (ptr_cpy) { SUMA_PushErrLog("SL_Err", "Pointer copy not supported yet", FuncName); SUMA_RETURN(dset); }
+   if (!far) { 
+      SUMA_PushErrLog("SL_Err", "NULL *farp", FuncName); SUMA_RETURN(dset); 
+   }
+   if (vec_len < 0 || vec_num < 0) { 
+      SUMA_PushErrLog("SL_Err", "Negative vec_len or vec_num", FuncName);
+      SUMA_RETURN(dset); 
+   }
+   if (ptr_cpy) { 
+      SUMA_PushErrLog("SL_Err", "Pointer copy not supported yet", FuncName); 
+      SUMA_RETURN(dset); 
+   }
    
    if (vec_num > 200 * vec_len || vec_num > 50000) { /* a warning for MSB's mishap */
-      char *eee = getenv("SUMA_1D_Transponse_Warn");
+      char *eee = getenv("SUMA_1D_Transpose_Warn");
       int Warn = 1;
       static int nwarn = 0;
       Warn = 1;
@@ -8320,7 +8707,7 @@ SUMA_DSET *SUMA_far2dset_eng( char *FullName, char *dset_id, char *dom_id,
                         "formatted. This warning will\n"
                         "no be shown again in this session.\n"
                         "Set the environment variable \n"
-                        "SUMA_1D_Transponse_Warn = NO\n"
+                        "SUMA_1D_Transpose_Warn = NO\n"
                         "in .sumarc if you do not want to see\n"
                         "this warning ever again.\n"
                         , FuncName);
@@ -9371,7 +9758,11 @@ void SUMA_process_environ(void)
    char *sumarc = NULL, *homeenv=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
-   sumarc = (char *)malloc(sizeof(char)*(SUMA_MAX_NAME_LENGTH+SUMA_MAX_DIR_LENGTH+1));
+   if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Entering SUMA_process_environ\n", FuncName);
+   
+   sumarc = (char *)malloc( sizeof(char)*
+                           (SUMA_MAX_NAME_LENGTH+SUMA_MAX_DIR_LENGTH+1));
 
    /* load the environment variables from .sumarc and .afnirc*/
    homeenv = getenv("HOME");
@@ -9379,7 +9770,8 @@ void SUMA_process_environ(void)
    if (!homeenv) sprintf(sumarc, ".sumarc");
    else sprintf(sumarc,"%s/.sumarc", homeenv);
    if (stat(sumarc, &stbuf) != -1) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
       AFNI_process_environ(sumarc); 
    } else {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
@@ -9388,13 +9780,20 @@ void SUMA_process_environ(void)
    if (!homeenv) sprintf(sumarc, ".afnirc");
    else sprintf(sumarc,"%s/.afnirc", homeenv);
    if (stat(sumarc, &stbuf) != -1) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
       AFNI_process_environ(sumarc); 
    } else {
       if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
    }   
 
    if (sumarc) free(sumarc); sumarc = NULL; /* allocated before CommonFields */
+   
+   AFNI_mark_environ_done(); /* flag environment rc files as read */
+   
+   if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Exiting SUMA_process_environ\n", FuncName);
+         
    return;
 }
 
@@ -11314,6 +11713,55 @@ char  * SUMA_NI_get_ith_string( char *ss , char *sep, int i )
    /* not found, return with NULL */
    SUMA_RETURN( str );
 }
+/*--------------------------------------------------------------------*/
+/*! \brief Returns a the number of composite strings in a string list. 
+\sa SUMA_NI_decode_string_list ( on which this function is based)
+----------------------------------------------------------------------*/
+
+int SUMA_NI_get_num_strings( char *ss , char *sep)
+{
+   static char FuncName[]={"SUMA_NI_get_num_strings"};
+   char *str =NULL;
+   int num , nn,id,jd , lss ;
+   
+   SUMA_ENTRY;
+   
+   if( ss == NULL || ss[0] == '\0') SUMA_RETURN( -1 ) ; /* bad input */
+
+   if( sep == NULL || sep[0] == '\0' ) sep = "," ;  /* default sep */
+
+
+   /* scan for sub-strings */
+
+   lss = NI_strlen(ss) ;
+   num = id = 0 ;
+   while( id < lss ){
+
+      /* skip current position ahead over whitespace */
+
+      while( id < lss && isspace(ss[id]) ) id++ ;
+      if( id == lss ) break ;                           /* ran out of string */
+
+      jd = id ;               /* save current position (start of new string) */
+
+      /* skip ahead until ss[id] is a separator [or a space - 10 Dec 2002 ZSS I don't like that one, 
+                              gives me funny looking results with legitimate spaces ,
+                              line below was: while( id < lss && strchr(sep,ss[id]) == NULL  && !isspace(ss[id])) id++; ] */
+
+      while( id < lss && strchr(sep,ss[id]) == NULL ) id++;
+      if( id == jd ){ id++; continue; }    /* is only a separator? */
+
+
+
+      nn = id-jd ;                                   /* length of sub-string */
+       
+      ++num;   
+      id++ ;                                         /* skip separator  */
+   }
+
+   SUMA_RETURN( num );
+}
+
 void SUMA_Show_NI_str_ar(NI_str_array *nisa, FILE *out)
 {
    static char FuncName[]={"SUMA_Show_NI_str_ar"};
@@ -11459,6 +11907,13 @@ char *SUMA_Get_Sub_String(char *cs, char *sep, int ii)
 
 /*!
    \brief replace the col th string attribute in a one-string nel
+   
+   Warning: 
+   This function gets non-linearly slower for dsets with very large numbers
+   of columns. This is going to hurt some day.... The problem is that there 
+   are numerous instances of string allocating, copying, appending, freeing,
+   over and over and over.
+   
 */
 int SUMA_AddColAtt_CompString(NI_element *nel, int col, 
                               char *lbl, char *sep, int insertmode)
@@ -11466,7 +11921,7 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
    static char FuncName[]={"SUMA_AddColAtt_CompString"};
    NI_str_array *nisa = NULL;
    char *cs=NULL, *ns=NULL;
-   int i;
+   int i, num_string_components=0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -11482,24 +11937,55 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col,
       SUMA_RETURN(YUP);
    }
    
+   /* if (!(col % 1000)) 
+      fprintf(stderr,"%d\n", col); *//* To illustrate the slowdown with 
+                                    increasing numbers of columns */
+   
+   num_string_components = SUMA_NI_get_num_strings(cs, sep);
+   
+   if (num_string_components < 0 || col != num_string_components) {
+      nisa = SUMA_comp_str_2_NI_str_ar(cs, sep);
+      if (!nisa) { 
+         SUMA_SL_Err("Failed in SUMA_comp_str_2_NI_str_ar"); SUMA_RETURN(NOPE); }
 
-   nisa = SUMA_comp_str_2_NI_str_ar(cs, sep);
-   if (!nisa) { 
-      SUMA_SL_Err("Failed in SUMA_comp_str_2_NI_str_ar"); SUMA_RETURN(NOPE); }
+      if (LocalHead) {
+         fprintf(SUMA_STDERR, 
+                  "%s: col = %d, num_string_components = %d nisa->num = %d\n", 
+                   FuncName, col, num_string_components, nisa->num);
+      }
+      if (col > nisa->num) { 
+         SUMA_SL_Err("col > nisa->num"); SUMA_DUMP_TRACE("nisa nisa"); 
+         SUMA_RETURN(NOPE); }
+      num_string_components = nisa->num;
+   } 
    
-   if (LocalHead) {
-      fprintf(SUMA_STDERR, "%s: col = %d, nisa->num = %d\n", 
-                           FuncName, col, nisa->num);
-   }
-   if (col > nisa->num) { 
-      SUMA_SL_Err("col > nisa->num"); SUMA_DUMP_TRACE("nisa nisa"); 
-      SUMA_RETURN(NOPE); }
-   
-   if (col == nisa->num) { /* add at the end */
+   if (col == num_string_components) { /* add at the end */
       if (LocalHead) 
          fprintf(SUMA_STDERR,"%s: append %s to end of %s\n", FuncName, lbl, cs);
+      #if 0 /* this gets real slow when adding column after column for 
+               dsets with a very large number of columns */
       ns = SUMA_append_replace_string(cs, lbl, sep, 0);
       SUMA_NEL_REPLACE_STRING(nel, 0, 0, ns);   
+      #else /* ZSS: Nov 26 08 modify the pointer directly 
+               (still slow, but less so...)*/
+      { 
+      char **rc;
+      int n0, n1, n2;
+      if (cs) n0 = strlen(cs); else n0 = 0; 
+      if (sep) n1 = strlen(sep); else n1 = 0; 
+      if (lbl) n2 = strlen(lbl); else n2 = 0;
+      cs = (char *)NI_realloc(cs, char,
+                  (n0+n1+n2+1)*sizeof(char));
+      i = 0; while(sep[i]) { cs[n0++] = sep[i]; ++i; }            
+      i = 0; while(lbl[i]) { cs[n0++] = lbl[i]; ++i; }
+      cs[n0] = '\0';
+      rc = (char **)(nel->vec[0]);
+      rc[0] = cs; 
+      if (LocalHead) 
+         fprintf(SUMA_STDERR,"%s: cs (%d strings) now: %s\n", 
+                              FuncName, SUMA_NI_get_num_strings(cs, sep), cs);
+      }  
+      #endif
    } else if (!insertmode) { /* REPLACE! in middle */
       if (nisa->str[col]) NI_free(nisa->str[col]); nisa->str[col] = NULL;
       if (lbl) {

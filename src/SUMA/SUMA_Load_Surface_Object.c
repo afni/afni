@@ -4090,7 +4090,10 @@ void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps)
          fprintf(SUMA_STDERR,"   %d: %s\n", i, ps->vp[i]);
       }
    }
-
+   fprintf(SUMA_STDERR,"bmaskname: %s\n", CHECK_NULL_STR(ps->bmaskname));
+   fprintf(SUMA_STDERR,"nmaskname: %s\n", CHECK_NULL_STR(ps->nmaskname));
+   fprintf(SUMA_STDERR,"cmask: %s\n", CHECK_NULL_STR(ps->cmask));
+   
    fprintf(SUMA_STDERR,"%d spec names:\n", ps->N_spec_names);
    for (i=0; i<ps->N_spec_names; ++i) {
       fprintf(SUMA_STDERR,"   %d: %s\n", i, ps->spec_names[i]);

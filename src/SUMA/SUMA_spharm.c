@@ -134,7 +134,8 @@ SUMA_MX_VEC *SUMA_Y_l(int *lp, SUMA_MX_VEC *theta, SUMA_MX_VEC *phi, int debug)
       ++i;
    } while (i<=2*l && OK);
    if (!OK) {
-      SUMA_S_Warnv("Degree of %d causes overflow. Limiting to %d\n", l, (i+1)/2-1);
+      SUMA_S_Warnv("Degree of %d causes overflow. Limiting to %d\n", 
+                     l, (i+1)/2-1);
       l = (i+1)/2-1;
    }
    /** Create clm vector */
@@ -311,7 +312,8 @@ int SUMA_SphericalCoordsUnitSphere(SUMA_SurfaceObject *SO, SUMA_MX_VEC **phip, S
       if (phip) {
          for (i=0; i<SO->N_Node; ++i) {
             i3 = 3*i;
-            mxvd1(phi, i) = sph_coord[i3+1] + d_phi; if (mxvd1(phi, i) > two_pi) mxvd1(phi, i) -= two_pi;
+            mxvd1(phi, i) = sph_coord[i3+1] + d_phi; 
+            if (mxvd1(phi, i) > two_pi) mxvd1(phi, i) -= two_pi;
          }
          *phip = phi;
       }
@@ -339,7 +341,8 @@ int SUMA_SphericalCoordsUnitSphere(SUMA_SurfaceObject *SO, SUMA_MX_VEC **phip, S
       }
       if (theta) {
          sph_out=fopen("theta_suma.1D.dset","w");
-         SUMA_S_Notev("Writing spherical coords to %s...\n", "theta_suma.1D.dset");
+         SUMA_S_Notev(  "Writing spherical coords to %s...\n", 
+                        "theta_suma.1D.dset");
          if (sph_out) {
             for (i=0; i<SO->N_Node; ++i) {
                fprintf(sph_out, "%d %f \n", 
@@ -369,8 +372,10 @@ int SUMA_SphericalCoordsUnitSphere(SUMA_SurfaceObject *SO, SUMA_MX_VEC **phip, S
    else if (sph_coord) SUMA_free(sph_coord); 
    
    if (LocalHead) {
-      SUMA_ShowMxVec(*thetap, 1, NULL, "\nTheta in SUMA_SphericalCoordsUnitSphere\n");
-      SUMA_ShowMxVec(*phip, 1, NULL, "\nPhi in SUMA_SphericalCoordsUnitSphere\n");
+      SUMA_ShowMxVec(*thetap, 1, NULL, 
+                     "\nTheta in SUMA_SphericalCoordsUnitSphere\n");
+      SUMA_ShowMxVec(*phip, 1, NULL, 
+                     "\nPhi in SUMA_SphericalCoordsUnitSphere\n");
    }
    SUMA_RETURN(1);
 }
@@ -389,7 +394,7 @@ SUMA_MX_VEC *SUMA_Spherical_Bases(int *lp, SUMA_OPT_SPHERICAL_BASES  *opt)
    SUMA_ENTRY;
    
    if (!opt) {
-      SUMA_S_Note("Init/Cleanup mode.\n");
+      SUMA_LH("Init/Cleanup mode.\n");
       if (sph_coord) SUMA_free(sph_coord); sph_coord = NULL;
       if (theta) theta = SUMA_FreeMxVec(theta);
       if (phi) phi = SUMA_FreeMxVec(phi);
@@ -397,7 +402,8 @@ SUMA_MX_VEC *SUMA_Spherical_Bases(int *lp, SUMA_OPT_SPHERICAL_BASES  *opt)
    }
    
    if (opt->SOu) {
-      SUMA_LHv("Calculating bases of order %d using unit sphere %s\n", l, opt->SOu->Label);
+      SUMA_LHv("Calculating bases of order %d using unit sphere %s\n", 
+               l, opt->SOu->Label);
       if (!theta) {
          if (!(SUMA_SphericalCoordsUnitSphere(opt->SOu, &phi, &theta, NULL))) {
             SUMA_S_Err("Failed to calculate spherical coords.");
@@ -416,12 +422,15 @@ SUMA_MX_VEC *SUMA_Spherical_Bases(int *lp, SUMA_OPT_SPHERICAL_BASES  *opt)
             *lp = lc;
          }
          if (opt->SaveBases) {
-            sprintf(stmp, "%d.1D", l);
+            sprintf(stmp, ".sph%02d.1D", l);
             oname = SUMA_append_string(opt->SaveBases, stmp);
             if (l==0) {
-               SUMA_S_Notev("Saving bases of order %d to %s\nMessage muted for higher l.\n", l, oname); 
+               SUMA_S_Notev(  "Saving bases of order %d to %s\n"
+                              "Message muted for higher l.\n", l, oname); 
             }
-            SUMA_WriteMxVec(y_l, oname, "#Aloha\n");
+            sprintf(stmp,"#Spherical Harmonic of order %d\n"
+                         "#Domain has %d nodes.", l, opt->SOu->N_Node);
+            SUMA_WriteMxVec(y_l, oname, stmp );
          }
       } 
    } else {
@@ -429,10 +438,11 @@ SUMA_MX_VEC *SUMA_Spherical_Bases(int *lp, SUMA_OPT_SPHERICAL_BASES  *opt)
          SUMA_S_Err("NULL BasesFileRoot");
          goto CLEANUP;
       }
-         sprintf(stmp, "%d.1D", l);
+         sprintf(stmp, ".sph%02d.1D", l);
          oname = SUMA_append_string(opt->BasesFileRoot, stmp);
          if (l==0) {
-            SUMA_S_Notev("Loading bases of order %d from file %s ...\nMessage muted for higher l.", l, oname);
+            SUMA_S_Notev("Loading bases of order %d from file %s ...\n"
+                         "Message muted for higher l.\n", l, oname);
          }
          cv = SUMA_LoadComplex1D_eng (oname, &ncol, &nrow, 0, 0);
          SUMA_LH("   Done Reloading!");
@@ -441,7 +451,8 @@ SUMA_MX_VEC *SUMA_Spherical_Bases(int *lp, SUMA_OPT_SPHERICAL_BASES  *opt)
             goto  CLEANUP;
          } else {
             dims[0] = nrow; dims[1] = ncol;
-            y_l = SUMA_VecToMxVec(SUMA_complex, 2, dims, 1, (void *)cv); cv = NULL; /* cv should be nulled, pointer copied into output*/
+            y_l = SUMA_VecToMxVec(SUMA_complex, 2, dims, 1, (void *)cv); 
+            cv = NULL; /* cv should be nulled, pointer copied into output*/
          }
    }
    

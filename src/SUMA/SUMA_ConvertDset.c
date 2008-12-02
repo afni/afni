@@ -294,7 +294,7 @@ int main (int argc,char *argv[])
       overwrite = THD_ok_overwrite();
    }
    pad_to_node = MRILIB_DomainMaxNodeIndex;
-   
+
    if (oform == SUMA_NO_DSET_FORMAT) {
       if (prfx) {
          /* try to guess */

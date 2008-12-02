@@ -142,7 +142,7 @@ SUMA_SurfaceObject* GtsToSuma( GtsSurface *gs)
    
    SUMA_ENTRY;
    
-   GTS_OUT("shit.surf", gs);
+   GTS_OUT("fails.surf", gs);
    
    SO = (SUMA_SurfaceObject *)SUMA_malloc(sizeof(SUMA_SurfaceObject));
 	SO->N_Node = gts_surface_vertex_number(gs);

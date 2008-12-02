@@ -176,7 +176,9 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
    SUMA_ENTRY;
 
    if (!SO) SUMA_RETURN(NULL);
-   if (!NodeList && !FaceSetList && replace ) { SUMA_SL_Err("Nothing to do"); }
+   if (!NodeList && !FaceSetList && replace ) { 
+      SUMA_SL_Err("Nothing to do"); 
+   }
 
    if (NodeList) { 
       if (N_Node != SO->N_Node) {
@@ -210,7 +212,9 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
          SOn->NodeDim = SO->NodeDim;
          SOn->N_Node = SO->N_Node;
          SOn->NodeList = (float *)SUMA_malloc(SOn->N_Node*3*sizeof(float));
-         if (!SOn->NodeList) { SUMA_SL_Crit("Failed to allocate."); SUMA_RETURN(NULL); }
+         if (!SOn->NodeList) { 
+            SUMA_SL_Crit("Failed to allocate."); SUMA_RETURN(NULL); 
+         }
          SUMA_COPY_VEC(SO->NodeList, SOn->NodeList, SOn->N_Node*3, float, float);
          RedoNormals = YUP;
       }
@@ -222,10 +226,13 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
          SUMA_S_Err("Should not be here");
          SUMA_RETURN(NULL);
       }
-      SOn->FaceSetList = FaceSetList; SOn->N_FaceSet = N_FaceSet; SOn->FaceSetDim = SO->FaceSetDim;
+      SOn->FaceSetList = FaceSetList; 
+      SOn->N_FaceSet = N_FaceSet; 
+      SOn->FaceSetDim = SO->FaceSetDim;
       /* Need a new edge list */
       if (!SUMA_SurfaceMetrics(SOn, "EdgeList, MemberFace", NULL)) {
-         SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+         SUMA_SL_Warn(  "Failed to compute metrics\n"
+                        "Returing with whatever is salvageable");
       }
       RedoNormals = YUP;
    } else {
@@ -237,13 +244,18 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
          SUMA_LH("Copying old FaceSet list");
          SOn->N_FaceSet = SO->N_FaceSet;
          SOn->FaceSetDim = SO->FaceSetDim;
-         SOn->FaceSetList = (int *)SUMA_malloc(SOn->N_FaceSet*SOn->FaceSetDim*sizeof(int));
-         if (!SOn->FaceSetList) { SUMA_SL_Crit("Failed to allocate."); SUMA_RETURN(NULL); }
-         SUMA_COPY_VEC(SO->FaceSetList, SOn->FaceSetList, SOn->N_FaceSet*SOn->FaceSetDim, int, int);
+         SOn->FaceSetList = 
+            (int *)SUMA_malloc(SOn->N_FaceSet*SOn->FaceSetDim*sizeof(int));
+         if (!SOn->FaceSetList) { 
+            SUMA_SL_Crit("Failed to allocate."); SUMA_RETURN(NULL); 
+         }
+         SUMA_COPY_VEC( SO->FaceSetList, SOn->FaceSetList, 
+                        SOn->N_FaceSet*SOn->FaceSetDim, int, int);
          RedoNormals = YUP;
          /* Need to inherit edge list */
          if (0 &&!SUMA_SurfaceMetrics(SOn, "EdgeList, MemberFace", SO)) {
-            SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+            SUMA_SL_Warn(  "Failed to compute metrics\n"
+                           "Returing with whatever is salvageable");
          }
       }
    }
@@ -252,7 +264,8 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
       SUMA_LH("Recalculating normals and convexitation");
       SUMA_RECOMPUTE_NORMALS(SOn);
       if (0 &&!SUMA_SurfaceMetrics(SOn, "Convexity", SO)) {
-         SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+         SUMA_SL_Warn("Failed to compute metrics\n"
+                      "Returing with whatever is salvageable");
       }
    }
 
@@ -261,6 +274,7 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
       SOn->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));  
       UNIQ_idcode_fill (SOn->idcode_str);
       SOn->LocalDomainParentID = SUMA_copy_string(SO->LocalDomainParentID);
+      SOn->Label = SUMA_append_string("cp.", SO->Label);
    }
 
    /* the stupid copies */
