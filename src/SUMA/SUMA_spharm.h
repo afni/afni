@@ -1,6 +1,26 @@
 #ifndef SUMA_SPHARM_INCLUDED
 #define SUMA_SPHARM_INCLUDED
 
+static char SpharmEquation[]={
+"Given a data vector 'd' defined over the domain of N nodes of surface 'S'\n"
+"The weighted spherical harmonics representation of d (termed Sd) is given by:\n"
+"            L    l  -l(l+1)s                         \n"
+"    Sd = SUM  SUM  e         B     Y                 \n"
+"          l=0 m=-l            l,m   l,m              \n"
+" where\n"
+" L: Largest degree of spherical harmonics\n"
+" Y    : Sperical harmonic of degree l and order m\n"
+"  l,m\n"
+"        Y is an (L+1 by N) complex matrix.\n"
+" B    : Coefficient associated with harmonic Y    \n"
+"  l,m                                         l,m \n"
+" s: Smoothing parameter ranging between 0 for no smoothing\n"
+"    and 0.1 for the extreme smoothing. The larger s, the higher\n"
+"    the attenuation of higher degree harmonics. \n"
+"    Small values of s (0.005) can be used to reduce Gibbs ringing artifacts.\n"
+"\n"
+};
+
 typedef struct {
    SUMA_SurfaceObject *SOu;   /* DO NOT FREE */
    char *BasesFileRoot;     /* DO NOT FREE */

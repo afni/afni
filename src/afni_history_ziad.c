@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 2, DEC , 2008 , ZSS , "general" , MICRO ,  TYPE_BUG_FIX,
+   "Environment vars. set in the shell override those in .afnirc or .sumarc",
+   NULL
+ },
+
  { 2, DEC , 2008 , ZSS , "@NoisySkullStrip" , MAJOR ,  TYPE_NEW_PROG,
    "A script to improve skull stripping in noisy of heavily shaded data",
    NULL

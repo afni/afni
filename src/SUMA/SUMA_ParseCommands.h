@@ -304,6 +304,10 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void);
 SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt);
 SUMA_Boolean SUMA_isOutputFormatFromArg(char *arg, SUMA_DSET_FORMAT *o_formp);
+SUMA_Boolean SUMA_isInputFormatFromArg(char *arg, SUMA_DSET_FORMAT *o_formp);
+SUMA_Boolean SUMA_isFormatFromArg(char *arg, SUMA_DSET_FORMAT *o_formp);
+SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp, 
+                                    int *io);
 
 /*!
    \brief Macro that adds a command to the head of command list.

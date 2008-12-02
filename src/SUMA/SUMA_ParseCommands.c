@@ -3238,11 +3238,65 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    
 }
 
-SUMA_Boolean SUMA_isOutputFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp)
+SUMA_Boolean SUMA_isOutputFormatFromArg(char *argi, SUMA_DSET_FORMAT *oform)
 {
    static char FuncName[]={"SUMA_isOutputFormatFromArg"};
+   SUMA_DSET_FORMAT oforml = SUMA_NO_DSET_FORMAT;
+   int sgn = 0;
+   SUMA_Boolean isformat=NOPE;
+   
+   SUMA_ENTRY;
+   
+   isformat = SUMA_isIOFormatFromArg(argi, &oforml, &sgn);
+   if (isformat && sgn > 0) {/* that is output */
+      *oform = oforml;
+      SUMA_RETURN(YUP);
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+SUMA_Boolean SUMA_isInputFormatFromArg(char *argi, SUMA_DSET_FORMAT *oform)
+{
+   static char FuncName[]={"SUMA_isInputFormatFromArg"};
+   SUMA_DSET_FORMAT oforml = SUMA_NO_DSET_FORMAT;
+   int sgn = 0;
+   SUMA_Boolean isformat=NOPE;
+   
+   SUMA_ENTRY;
+   
+   isformat = SUMA_isIOFormatFromArg(argi, &oforml, &sgn);
+   if (isformat && sgn < 0) {/* that is input */
+      *oform = oforml;
+      SUMA_RETURN(YUP);
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+SUMA_Boolean SUMA_isFormatFromArg(char *argi, SUMA_DSET_FORMAT *oform)
+{
+   static char FuncName[]={"SUMA_isFormatFromArg"};
+   SUMA_DSET_FORMAT oforml = SUMA_NO_DSET_FORMAT;
+   int sgn = 0;
+   SUMA_Boolean isformat=NOPE;
+   
+   SUMA_ENTRY;
+   
+   isformat = SUMA_isIOFormatFromArg(argi, &oforml, &sgn);
+   if (isformat) {/* that is input */
+      *oform = oforml;
+      SUMA_RETURN(YUP);
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
+SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp, 
+                                    int *io)
+{
+   static char FuncName[]={"SUMA_isIOFormatFromArg"};
    SUMA_Boolean brk = NOPE;
    char *arg=NULL;
+   int sgn=0;
    SUMA_DSET_FORMAT oform = SUMA_NO_DSET_FORMAT;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -3252,11 +3306,17 @@ SUMA_Boolean SUMA_isOutputFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp)
    
    
    if (  !strncmp(argi,"-o_",3) ||
-         !strncmp(argi,"-O_",3)) arg = SUMA_copy_string(argi+3);
-   else if (!strncmp(argi,"-i_",3) ||
-         !strncmp(argi,"-I_",3)) arg = SUMA_copy_string(argi+3); 
-   else arg = SUMA_copy_string(argi);
-   
+         !strncmp(argi,"-O_",3)) {
+         arg = SUMA_copy_string(argi+3);
+      sgn = 1;
+   } else if (!strncmp(argi,"-i_",3) ||
+         !strncmp(argi,"-I_",3)) {
+            arg = SUMA_copy_string(argi+3);
+      sgn = -1; 
+   } else {
+      arg = SUMA_copy_string(argi);
+      sgn = 0;
+   }
    SUMA_TO_LOWER(arg);
    SUMA_LHv("%s-->%s\n", argi, arg);
    
@@ -3411,6 +3471,7 @@ SUMA_Boolean SUMA_isOutputFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp)
    }
    
    
+   if (io) *io = sgn;
    
    if (oformp && oform != SUMA_NO_DSET_FORMAT) {
       *oformp = oform;
