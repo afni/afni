@@ -103,6 +103,55 @@ void print_help_learn()
   printf("    2002.\n\n");
 }
 
+
+void detrend_linear_cnsrs(float *data, float *data_cnsrs, LABELS *labels)
+{
+  int nt, ntc, n_t, n_tcnsrs;
+
+  n_t = labels->n;
+  n_tcnsrs = n_t - labels->n_cnsrs;
+
+  for(nt = 0, ntc = 0; nt < n_t, ntc < n_tcnsrs; nt++) {
+    if((labels->lbls[nt] != 9999) && (labels->lbls[nt] != -9999)) {
+      data_cnsrs[ntc] = data[nt];
+      ntc++;
+      }
+  }
+
+  DETREND_linear(n_t, data);
+  DETREND_linear(n_tcnsrs, data_cnsrs);
+ 
+  for(nt = 0, ntc = 0; nt < n_t, ntc < n_tcnsrs; nt++) {
+    if((labels->lbls[nt] != 9999) && (labels->lbls[nt] != -9999)) {
+      data[nt] = data_cnsrs[ntc];
+      ntc++;
+      }
+  }
+  return; 
+}
+
+unsigned long int getFileSize(char *fileName)
+{
+    FILE *fp;
+    unsigned long int lineCount=0;
+    char str[400];
+
+    if( (fp = fopen(fileName, "r")) == NULL ) {
+        fprintf(stderr,"getFileSize: error - can not open file\n");
+        exit(0);
+    }
+
+    while( !feof(fp) ) {
+        fgets(str,390,fp);
+        lineCount ++;
+    }
+    lineCount --;
+
+    fclose(fp);
+
+    return(lineCount);
+}
+
 /****************************************************************
  * Allocate2f()                                                 *
  * farr[index1][index2]				                *
@@ -775,9 +824,13 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
 {
   FILE *fp;
   int class_exists_flag = 0;
-  long i,j,k, cc, dd;
+  int nine_exists_flag = 0;
+  long i,j,k;
 
    ENTRY("getLabels");
+
+  labels->n = getFileSize(labelFile);
+     
   /*----- RETRIEVE LABEL FILE --------------*/
   labels->lbls = (LabelType*)malloc(sizeof(LabelType)*labels->n);
   if( labels->lbls == NULL ) {
@@ -790,17 +843,8 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
     exit(0);
   }
 
-  i = 0;
-  while( !feof(fp) ) {
-    if (i < labels->n) {
+  for(i = 0; i < labels->n; i++) {
       fscanf( fp,"%lf\n",&(labels->lbls[i]) );
-    }
-    else  {
-      fprintf(stderr,"warning: labelFile (%s) is longer than expected length( %ld ).",labelFile, labels->n); 
-      fprintf(stderr,"Make sure there are no extra lines at the end of this file.\n");
-      exit(0);
-    }
-    ++i;
   }
   fclose(fp);
 
@@ -815,9 +859,16 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
   ** k increments as each new class label is found
   */
   labels->n_classes = 0;
+  labels->n_cnsrs = 0;
   k = 0;
   for( i=0; i < labels->n; ++i ) {
-    if( (labels->lbls[i] != 9999) & (labels->lbls[i] != -9999) ) {
+    if (labels->lbls[i] < 0.0 && labels->lbls[i] != -9999) {
+      fprintf(stderr, "\n"
+                      "ERROR: labelfile contains a negative entry in line %ld. \n" 
+                      "       Check labelfile '%s' \n\n", i+1, labelFile);
+      exit(-1);
+    }
+    if( (labels->lbls[i] != 9999) && (labels->lbls[i] != -9999) ) {
       for( j=0; j < CLASS_MAX; ++j ) {
         if( labels->lbls[i] == labels->class_list[j] ) {
           ++j;
@@ -832,6 +883,10 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
       else {
         class_exists_flag = 0;
       }
+    }
+    else { 
+      labels->n_cnsrs++;
+      nine_exists_flag = 1;
     }
   }
 
@@ -862,6 +917,13 @@ void getLabels(LABELS *labels, char *labelFile, char *censorFile)
     if( (fp = fopen(censorFile,"r")) == NULL ) {
       fprintf(stderr,"Could not open .1D censor file: %s\n",censorFile);
       exit(0);
+    }
+    if (nine_exists_flag == 1) { // Hey SL, You may want do this only if verbosity >= 2
+      // -SL- I just might. Let's wait and see. Hey JL, how was your weekend?
+      fprintf(stderr, "\n"
+                      "WARNING: labelfile '%s' contains censor information and \n"
+                      "         censorfile '%s' was specified as well. \n"
+                      "         Censoring data specified in both files. \n",labelFile, censorFile);
     }
     i = 0;
     while( !feof(fp) ) {
@@ -898,21 +960,47 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
   DatasetType **dsetTestArray;	/* array to hold test dataset values */
   DatasetType **dsetModelArray;	/* array to hold model dataset values */
   DatasetType *tmp_dsetArray;	/* temporary array to hold dataset values */
-  MaskType *dsetMaskArray;
+  MaskType *dsetMaskArray=NULL; /*ZSS: init to NULL*/
   float dist_tmp;
   float *dist;  /* really want this to be double, but am detrending - should do something smarter soon!*/
-  double *multiclass_dist;
-  double multiclassTmp;
-  FILE *fp;
+  float *dist_cnsrs;
+  /* double *multiclass_dist;
+   * double multiclassTmp;
+   *
+   * original variables for multiclass. For now only supporting directed acyclic graph. Future will
+   * provide more options for users
+   * 
+   */
+float **multiclass_dist;	/* doing all of the pairwise tests and storing them */
+				/* in principle, don't have to do this with directed, acyclic graph (DAG)*/
+				/* but each test does not take that long, and we may build in more options in the future. */
+				/* this was originally a 1D array, and used "truth table" type of approach that could have */
+				/* been slightly more robust but relied on the assumption that most distances would be */
+				/* inside of their range ([-1,1] or transformed to [0,1]), for now, I think it is better */
+				/* to stick with the DAG */
+
+
+  FILE *fp=NULL;  /*ZSS: init to NULL*/
+
   char predictionsFile[MAX_FILE_NAME_LENGTH];
-  long i,j;
+  long i,j,c;
   LABELS testLabels;
-  LabelType *tmp_labels;
+  LabelType *tmp_labels=NULL; /*ZSS: init to NULL*/
   char p[100],*q; /* used for strtok magic */
   long cc, dd;
   long sampleCount = 0;			/* number of samples used in training */
-  long correct,incorrect,no_accuracy;
+  float correct=0.0,incorrect=0.0,no_accuracy=0.0; /*ZSS: init to 0.0*/
   long res_a,res_b,res_c,res_d;
+  int DAG=0; /* abbreviation for Directed Acyclic Graph: 
+               index variable for traversing multiclass_dist   ZSS: init to 0 */
+  short edgeFlag; /* DAG related */
+  int classAssignment; /* multi-class related */
+  float *classCorrect, *classIncorrect;
+  long *nClass;
+  int *classVote;    /* mulit-class vote */
+  int currentComb, class0, class1, winningCount;    /* mulit-class vote */
+  enum mctypes { MCTYPE_DAG, MCTYPE_VOTE };  /* classifyer types for multiclass */
+  enum mctypes mctype = MCTYPE_DAG;          /* default value */
 
   /*----- LOAD TEST DATA --------*/
   dsetTest = THD_open_one_dataset( options->testFile );
@@ -926,8 +1014,15 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
 
   /* GET TEST LABELS */
   if( options->testLabelFile[0] ) {
-    testLabels.n = nt;
-    getLabels(&testLabels,options->testLabelFile, ""); //could censor test data in the future
+    getLabels(&testLabels,options->testLabelFile, options->censorFile); // included censorfile for testing (JL) 
+    if(testLabels.n != nt) {
+	fprintf(stderr,"\n"
+            "ERROR: number of labels do not match the length of the test dataset: \n"
+	    "       labelfile '%s' contains %ld labels, but the \n"
+	    "       testfile '%s' contains %ld entries. \n\n",options->testLabelFile, testLabels.n, 
+           options->testFile, nt);
+           exit(0);
+    }
 
     /*----- ALLOCATE tmp_labels --------------*/
     tmp_labels = (LabelType*)malloc(sizeof(LabelType)*testLabels.n);             /* for timeseries data */
@@ -982,6 +1077,43 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
 
   readAllocateAfniModel(dsetModel, &afniModel);
 
+ 
+  /*----- SETTING MCTYPE FOR MULTICLASS -----*/
+  if ((options->multiclass[0]) && (afniModel.class_count > 2)) { 
+      if ( !strcmp(options->multiclass,"DAG") ) mctype = MCTYPE_DAG;
+      else if ( !strcmp(options->multiclass,"vote") ) mctype = MCTYPE_VOTE;
+      else { 
+          fprintf(stderr,"\n" 
+		       "WARNING: -multiclass was specified with an unknown option: mctype = '%s'. \n"
+               "         Setting mctype = DAG [Default]. \n", options->multiclass);       
+        mctype = MCTYPE_DAG;
+     }
+  }
+  else {
+    if(verbosity >= 2) printf("\n Setting multiclass type to DAG [Default].\n");
+  }
+
+  /*----- ERROR CHECKING FOR MULTICLASS ----- */
+   if ( options->testLabelFile[0] && verbosity >= 2 ) {
+       if ( testLabels.n_classes != afniModel.class_count ) {     
+            printf("\n"
+		  "NOTE: number of class categories do not match:\n"
+                  "         labelfile: '%s' contains %d categories, but the \n"
+                  "         modelfile: '%s' contains %d categories. \n", options->testLabelFile, testLabels.n_classes, 
+           options->modelFile, afniModel.class_count); 
+       } 
+   }        
+
+   if ( (options->multiclass[0]) && (options->testLabelFile[0]) ) {
+      if ( testLabels.n_classes < 3 ) { 
+         printf("\n"
+		"NOTE: -multiclass was specified, but labelfile '%s' contains only %d categories. \n", 
+                 options->testLabelFile,testLabels.n_classes);
+      }
+   }
+ 
+
+
   /*----- FILL DOC STRUCTURE FROM TEST DATASET -----*/
   docsTest = (DOC*)malloc(sizeof(DOC)*nt);                           /* svm-light data structure */
   AllocateDOCwords(docsTest, nt, afniModel.total_masked_features[0]);
@@ -994,7 +1126,15 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
 
   /*----- Allocate test predictions arrays --------*/
   dist = (float *)malloc(sizeof(float)*nt);
-  multiclass_dist = (double *)calloc(sizeof(double),nt);
+  dist_cnsrs = (float *)malloc(sizeof(float)*(nt-testLabels.n_cnsrs));
+  /* Note: if not multiclass these may not get used - moreover, if only one multiclass approach
+   *       still not everything will get used. So perhaps being a little inneficient here */
+  /* multiclass_dist = (double *)calloc(sizeof(double),nt); -- SL Aug. 08*/
+  multiclass_dist = Allocate2f((long) afniModel.combinations, (long) nt);
+  classCorrect = (float *)malloc(sizeof(float)*afniModel.class_count);
+  classIncorrect = (float *)malloc(sizeof(float)*afniModel.class_count);
+  nClass = (long *)malloc(sizeof(long)*afniModel.class_count);
+  classVote = (int *)malloc(sizeof(long)*afniModel.class_count);
 
   for(i = 0; i < afniModel.combinations; ++i ) {
     if(verbosity >= 1) {
@@ -1037,9 +1177,24 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
       dist_tmp=classify_example_linear(model,&docsTest[j]);
       /* should do something smarter than re-casting double to float */
       dist[j]= (float) dist_tmp;
+    }
+   
+    /* Nov. 08 : Changed detrending for censored timepoints */
+    if( (testLabels.n_cnsrs != 0) && (!options->noPredDetrend)) {
+      detrend_linear_cnsrs(dist, dist_cnsrs, &testLabels);
+    }
+    else {
+      /* WC and SL Aug. 08 : moved this up so that detrending is done before accuracies are calculated */
+      /* detrend in place - assuming no intercept (bias towards one class), or slope */
+      if(!options->noPredDetrend) {
+        DETREND_linear( (int) nt, dist );
+      }
+    }
 
+    /* WC and SL Aug. 08 : now calculate the percent accuracy with the detrended data*/
+    for(j = 0; j < nt; ++j){
       if( options->testLabelFile[0] && abs(tmp_labels[j]) != 9999) {
-        if(dist_tmp>0) {
+        if(dist[j]>0) {
           if(tmp_labels[j]>0) correct++; else incorrect++;
           if(tmp_labels[j]>0) res_a++; else res_b++;
         }
@@ -1048,27 +1203,25 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
           if(tmp_labels[j]>0) res_c++; else res_d++;
         }
       }
-
     }
+
     if(options->testLabelFile[0] && (verbosity>=1)) {
-      printf("Accuracy on test set: %.2f%% (%ld correct, %ld incorrect, %ld total)\n",(float)(correct)*100.0/sampleCount,correct,incorrect,sampleCount);
+      printf("Accuracy on test set: %.2f%% (%d correct, %d incorrect, %ld total)\n",
+              (float)(correct)*100.0/sampleCount,(int)rint(correct),(int)rint(incorrect),sampleCount);
       //can put this in after it is included for overall multiclass
       //printf("Precision/recall on test set: %.2f%%/%.2f%%\n",(float)(res_a)*100.0/(res_a+res_b),(float)(res_a)*100.0/(res_a+res_c));
     }
 
-    /* detrend in place - assuming no intercept (bias towards one class), or slope */
-    if(!options->noPredDetrend) {
-      DETREND_linear( (int) nt, dist );
-    }
 
     for(j = 0; j < nt; ++j){
-      multiclass_dist[j] += dist[j];
+      /* multiclass_dist[j] += dist[j]; -- SL Aug. 08*/
+      multiclass_dist[i][j] += dist[j];
       dist[j] = 0.5*( dist[j] + 1 ); /* convert output prediction to {0,1} class scale */
-      if(options->classout) {  /* output integer class memberships */
-	dist[j] = rint(dist[j]); /* round (no rintf) */
-	if(dist[j] > 1) dist[j] = 1.0;
-	if(dist[j] < 0) dist[j] = 0.0;
-      }
+        if(options->classout) {  /* output integer class memberships */
+	      dist[j] = rint(dist[j]); /* round (no rintf) */
+	      if(dist[j] > 1) dist[j] = 1.0;
+ 	      if(dist[j] < 0) dist[j] = 0.0;
+       }
       fprintf(fp,"%.8g\n",dist[j]);  
     }
 
@@ -1076,6 +1229,201 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
     if(verbosity >= 1)  printf("predictions written to %s\n",predictionsFile);
   }
 
+  if(afniModel.class_count > 2) {
+
+    if(mctype == MCTYPE_VOTE) {
+        sprintf(predictionsFile, "%s_overall_vote.1D", options->predFile);
+        if( (fp = fopen( predictionsFile, "w" )) == NULL ) {
+            fprintf( stderr, "Could not open file for writing predictions: %s\n", predictionsFile );
+            exit(0);
+        }
+    }
+    else { // if (mctype == MCTYPE_DAG)
+        sprintf(predictionsFile, "%s_overall_DAG.1D", options->predFile);
+        if( (fp = fopen( predictionsFile, "w" )) == NULL ) {
+            fprintf( stderr, "Could not open file for writing predictions: %s\n", predictionsFile );
+            exit(0);
+        }  
+    }
+
+    if( options->testLabelFile[0] ) {
+      correct=0.0; 
+      incorrect=0.0;
+      no_accuracy=0.0;
+      res_a=0.0;
+      res_b=0.0;
+      res_c=0.0;
+      res_d=0.0;
+      for(c = 0; c < afniModel.class_count; ++c) {
+	classCorrect[c] = 0.0;
+	classIncorrect[c] = 0.0;
+	nClass[c] = 0L;
+      }
+    }
+
+    /* Multiclass: voting method */
+    if (mctype == MCTYPE_VOTE) {
+    if(verbosity >= 1) printf("\n---------------------------------- vote ----------------------------------------\n");
+        for(j = 0; j < nt; ++j) {
+        /* code largely duplicated in DAG ................. */
+	    if(verbosity >=2) {
+                for(i = 0; i < afniModel.combinations; ++i) { 
+                    printf("model number:%ld time point:%ld classifier output=%f\n",i,j,multiclass_dist[i][j]);
+	    	    }
+            }
+            for(c = 0; c < afniModel.class_count; ++c) {
+                classVote[c] = 0;
+	        }
+            classAssignment = 0;
+            winningCount = 0;
+            currentComb = 0; 
+            for(class0 = 0; class0 < afniModel.class_count-1; ++class0) { 
+                for(class1 = class0+1; class1 < afniModel.class_count; ++class1) { 
+                
+                    if(multiclass_dist[currentComb][j] < 0) {
+                        classVote[class0]++; 
+                        if(classVote[class0] > winningCount) {
+                            winningCount = classVote[class0];
+                            classAssignment = class0;
+                        }
+                    }
+                    else {
+                        classVote[class1]++;
+                        if(classVote[class1] > winningCount) { 
+                            winningCount = classVote[class1];
+                            classAssignment = class1;
+                        }
+                    }
+                
+                currentComb++;
+                }
+            }
+           
+            if(verbosity >=2) printf("point number %ld:    ",j);
+            for(i = 0; i < afniModel.class_count; ++i) { 
+                if(verbosity >=2) printf("classVote[%ld] = %d;   ",i, classVote[i]);
+            }
+            if(verbosity >=2) printf("\n");
+           
+            /* code is largely duplicated in DAG ................. */
+            if(verbosity >=2) printf("voting result: observation number=%ld model number=%d, classAssignment = %d\n",j, DAG, classAssignment);
+            fprintf(fp,"%d\n", classAssignment);  
+           
+            if( (options->testLabelFile[0]) && ((int)testLabels.lbls[j] != 9999 )) {
+                nClass[(int)testLabels.lbls[j]]++;
+                if (classAssignment == testLabels.lbls[j] ) {
+                    correct++; 
+                    classCorrect[(int)testLabels.lbls[j]]++; 
+                }
+                else {
+                    incorrect++;
+                    classIncorrect[(int)testLabels.lbls[j]]++;
+                }
+                if(verbosity >=2) {
+                    printf("Overall:  test labels=%d, current number correct = %d   incorrect = %d\n", (int) rint(testLabels.lbls[j]),
+                            (int) rint(correct), (int) rint(incorrect));
+                    for(c = 0; c < afniModel.class_count; ++c) {
+		        printf( "Class Specific:  classLabel=%ld, current number correct = %d   incorrect = %d\n", c,
+                                (int) rint(classCorrect[c]), (int) rint(classIncorrect[c]) );
+                    }
+                }
+            }
+        }
+    }
+   
+    else { // if (mctype == MCTYPE_DAG)		
+      if(verbosity >= 1) printf("\n---------------------------------- DAG -----------------------------------------\n");
+      /* Multiclass:  Directed acyclic graph (DAG) */
+        /*  Directed acyclic graph of pairwise classifiers
+         *
+         *  Example: N = 5
+         *
+         * array index(DAG) 0  1  2  3      4  5  6      7  8      9
+         *  class pair   01 02 03 04  |  12 13 14  |  23 24  |  34
+         *
+         * set start index = N-2
+         *
+         *
+         *                                           0 vs 4 (DAG=3)
+         *L=1                                     -1/           \+N-L-1
+         *                               0 vs 3 (DAG=2)            1 vs 4 (DAG=6)
+         *L=2                         -1/          \+N-L      -1/           \+N-L-1
+         *                  0 vs 2 (DAG=1)            1 vs 3 (DAG=5)             2 vs 4 (DAG=8)
+         *L=3            -1/           \+N-L     -1/           \+N-L      -1/           \+N-L-1
+         *     0 vs 1 (DAG=0)             1 vs 2 (DAG=4)            2 vs 3 (DAG=7)             3 vs 4 (DAG=9)
+         *     ------------             ------------            ------------             ------------
+         *     0                 1                        2                      3                  4
+         *
+         *
+         * Right hand edge is sequence N-2  +N-2 +N-3 + N-4 ...
+         * And! if you leave that edge, you can't get back
+         *
+         * everytime you go left, take one away from classAssignment N-1 
+         ***************************************************************************/
+    
+        if(verbosity >=2) printf("Verbosity >= 2: multiclass details (note decision threshold =0):\n");
+        for(j = 0; j < nt; ++j) {
+	        if(verbosity >=2) {
+	            for(i = 0; i < afniModel.combinations; ++i) { 
+		            printf("model number:%ld time point:%ld classifier output=%f\n",i,j,multiclass_dist[i][j]);
+	            }
+	        }  
+	        DAG = afniModel.class_count - 2;
+	        if(verbosity >= 2) printf("model number=%d:  ", DAG);
+	        classAssignment = afniModel.class_count - 1; /* assuming class values [0,...,N-1] */
+	        edgeFlag = 1;
+	        for(i = 1; i < afniModel.class_count; ++i) { /* note: starting index at 1, and going through class_count-1 times*/
+	            if(verbosity >= 2) printf("classifier output = %f  ",multiclass_dist[DAG][j]);
+	            if(multiclass_dist[DAG][j]>0) {
+		            if(edgeFlag) {
+		                DAG += afniModel.class_count - i - 1;
+		                if(verbosity >=2) printf("next model number=%d, current max possible classAssignment = %d\n", DAG, classAssignment);
+		            }
+		            else {
+		                DAG += afniModel.class_count - i;
+		                if(verbosity >=2) printf("next model number=%d, current max possible classAssignment = %d\n", DAG, classAssignment);
+		           }
+	            }
+	            else {
+		            edgeFlag = 0;
+		            DAG--;
+		            classAssignment--;
+		            if(verbosity >=2) printf("next model number=%d, current max possible classAssignment = %d\n", DAG, classAssignment);
+	           }
+	        }
+
+	        if(verbosity >=2) printf("DAG result: observation number=%ld model number=%d, classAssignment = %d\n",j, DAG, classAssignment);
+            fprintf(fp,"%d\n", classAssignment);  
+
+            if((options->testLabelFile[0]) && ((int)(testLabels.lbls[j] != 9999))) {
+	            nClass[(int)testLabels.lbls[j]]++;
+	            if (classAssignment == testLabels.lbls[j])  {
+                    correct++; 
+		            classCorrect[(int)testLabels.lbls[j]]++; 
+	            }
+	            else {
+		            incorrect++;
+		            classIncorrect[(int)testLabels.lbls[j]]++;
+	            }
+	            if(verbosity >= 2) {
+		            printf("Overall:  test labels=%d, current number correct = %d   incorrect = %d\n", (int) rint(testLabels.lbls[j]),
+                            (int) rint(correct), (int) rint(incorrect));
+		            for(c = 0; c < afniModel.class_count; ++c) {
+		                printf("Class Specific:  classLabel=%ld, current number correct = %d   incorrect = %d\n", c, 
+                               (int) rint(classCorrect[c]),(int) rint(classIncorrect[c]) );
+		            }
+	            }
+            }
+        }
+     }
+  }
+
+  fclose(fp);
+  if(verbosity >= 1)  printf("predictions for all categories written to %s\n",predictionsFile);
+
+
+/* this was original multiclass. For now only supporting 2-class DAG and voting - will add different methods in future. */
+#if 0 
   if(afniModel.class_count > 2) {
     if(verbosity >= 1) printf("--------------------------------------------------------------------------------\n");
     sprintf(predictionsFile, "%s_overall.1D", options->predFile);
@@ -1100,6 +1448,8 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
       if(multiclassTmp < 0) multiclassTmp = 0.0;
 
       if( options->testLabelFile[0] ) {
+	/*** SL - Aug. 08 - probably a mistake right here. index i should probably be j
+ 	 *** 			moot for now since not currently using this approach ***/
 	if (multiclassTmp == testLabels.lbls[i] ) correct++; else incorrect++;
       }
 
@@ -1112,11 +1462,25 @@ void test_routine (ASLoptions *options, MODEL *model, THD_3dim_dataset *dsetTest
     fclose(fp);
     if(verbosity >= 1)  printf("predictions for all categories written to %s\n",predictionsFile);
   }
+#endif
 
-  if(afniModel.class_count > 2 && (verbosity>=1)) {
-      printf("Overall accuracy on multiclass test set: %.2f%% (%ld correct, %ld incorrect, %ld total)\n",(float)(correct)*100.0/nt,correct,incorrect,nt);
+  if(options->testLabelFile[0] && afniModel.class_count > 2 && (verbosity>=1)) {
+      printf("Overall accuracy on multiclass test set: %.2f%% (%d correct, %d incorrect, %d total)\n",
+             (float)(correct)*100.0/((int)rint(correct)+(int)rint(incorrect)),(int)rint(correct),(int)rint(incorrect),(int)rint(correct)+(int)rint(incorrect));
+      printf( "Individual Breakdown:\n" );
+      for(c = 0; c < afniModel.class_count; ++c) {
+	  /* possible nan output if no examples of the current class, c (in otherwords divide by nClass = 0)*/
+	      printf( "                       classLabel=%ld: %.2f%% (%d correct, %d incorrect, %ld total)\n", 
+                  c, (float)(classCorrect[c])*100.0/nClass[c], (int)rint(classCorrect[c]), (int)rint(classIncorrect[c]), nClass[c] );
+      }
   }
 
+  free(dist);
+  free(dist_cnsrs);
+  free(classCorrect);
+  free(classIncorrect);
+  free(nClass);
+  free(classVote);
   freeModel( model, &afniModel);
   freeAfniModel(&afniModel);
   freeDOCwords(docsTest, nt);
@@ -1302,7 +1666,7 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
 {
   long i;
   char type[200];
-  int parseFlag; 
+  int parseFlag = 0;    /*ZSS: init to 0*/
   int aFlag = 0; 
   int alphaFlag = 0;
   *mode = NOTHING;
@@ -1348,6 +1712,7 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
   optionsData->outModelNoMask = 0;
   optionsData->noPredDetrend = 0;
   optionsData->classout = 0;
+  strcpy(optionsData->multiclass, "");
   strcpy(optionsData->modelAlphaFile, "");
   strcpy(optionsData->modelWeightFile, "");
   strcpy(optionsData->testFile, "");
@@ -1397,6 +1762,7 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
     if( !strcmp(argv[i],"-alpha") )         { parseFlag = 1; ++i; strcpy(optionsData->modelAlphaFile, argv[i]); alphaFlag = 1;}
     if( !strcmp(argv[i],"-trainvol") )      { parseFlag = 1; ++i; strcpy(optionsData->trainFile, argv[i]); }
     if( !strcmp(argv[i],"-testvol") )       { parseFlag = 1; ++i; strcpy(optionsData->testFile, argv[i]); }
+    if( !strcmp(argv[i],"-multiclass") )    { parseFlag = 1; ++i; strcpy(optionsData->multiclass, argv[i]); }
     if( !strcmp(argv[i],"-trainlabels") )   { parseFlag = 1; ++i; strcpy(optionsData->labelFile, argv[i]); }
     if( !strcmp(argv[i],"-censor") )        { parseFlag = 1; ++i; strcpy(optionsData->censorFile, argv[i]); }
     if( !strcmp(argv[i],"-mask") )          { parseFlag = 1; ++i; strcpy(optionsData->maskFile, argv[i]); }
@@ -1419,7 +1785,7 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
       printf("Original version written by JP and SL, August 2006 \n");
       printf("Released to general public, July 2007 \n");
       printf("\n");
-      printf("Questions/Comments/Bugs - email slaconte@bme.emory.edu \n");
+      printf("Questions/Comments/Bugs - email slaconte@cpu.bcm.edu \n");
       printf("\n");
       printf("Reference:\n");
       printf("LaConte, S., Strother, S., Cherkassky, V. and Hu, X. 2005. Support vector\n"); 
@@ -1428,6 +1794,39 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
       
       exit(0); 
     }
+    if( !strcmp(argv[i],"-change_summary") ) {
+      printf( change_string ); 
+      
+      exit(0); 
+    }
+
+    if( !parseFlag ) { printf("++ Program %s:\n** ILLEGAL OPTION: %s\n\n\n** cannot continue\n\n try '%s -help'\n", argv[0], argv[i], argv[0]); exit(0); }
+
+    }
+
+    /* Set mode and do some error checking */
+    if( optionsData->trainFile[0] ) {
+      if( !(optionsData->labelFile[0]) ) {
+        //fprintf( stderr, "Must specify timeseries file if training!\n" );
+        //exit(0);
+        strcpy(errorString,"Must specify timeseries file if training!\n");
+      }
+      if( !(optionsData->testFile[0]) )
+        *mode = TRAIN;
+      else
+        *mode = TRAIN_AND_TEST;
+    }
+    else {
+      if( !(optionsData->testFile[0]) ) {
+        //fprintf( stderr, "Must specify training or test file!\n" );
+        //exit(0);
+        strcpy(errorString,"Must specify training or test file!\n");
+      }
+      else
+        *mode = TEST;
+    }
+    if( !(*mode == TRAIN_AND_TEST) && !(optionsData->modelFile[0]) ) { 
+      //fprintf( stderr, "Must specify a model file!\n" );
 
     if( !parseFlag ) { printf("++ Program %s:\n** ILLEGAL OPTION: %s\n\n\n** cannot continue\n\n try '%s -help'\n", argv[0], argv[i], argv[0]); exit(0); }
 
@@ -1462,6 +1861,11 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
     /* at some point may want to check for TRAIN/TEST specific mode options */
     /* e.g. nodetrend only applies in test mode                             */
 
+    /* check for multiclass errors 
+     * multiclass only implemented for 'testing', more error checking in function: 'train_routine' */
+    if( (optionsData->multiclass[0]) && (optionsData->trainFile[0]) )
+        fprintf(stderr,"WARNING: -multiclass only implemented for testing purposes\n"); 
+    	
     /* check for other errors */
     if( aFlag  && alphaFlag ) {/* if both -a and -alpha are specified, both files need to match */
         fprintf(stderr,"WARNING: both -a and -alpha were specified. Using filename  %s \n", optionsData->modelAlphaFile);
