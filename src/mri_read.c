@@ -2033,7 +2033,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
          if(isalpha(buf[ii])){
             /* skip past alphabetics in a row*/
             jj = ii;
-            for( ; jj < blen && isalpha(buf[jj]) ; jj++ ) ; 
+            for( ; jj < blen && isalpha(buf[jj]) ; jj++ ) ;
             incr = jj - ii - 1; /* only move if more than 1 char long */
             if(incr) ii = jj;
         }
@@ -2045,7 +2045,7 @@ static floatvec * decode_linebuf( char *buf )  /* 20 Jul 2004 */
              buf[temppos] = ' ' ;
          /* turn on "slow mo" reading if non-numeric */
          if( !slowmo &&
-           (buf[temppos] == '*' || buf[temppos] == '@' || 
+           (buf[temppos] == '*' || buf[temppos] == '@' ||
             isalpha(buf[temppos])) ) slowmo = 1;
    }
 
@@ -2116,7 +2116,7 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
          if(isalpha(buf[ii])){
             /* skip past alphabetics in a row*/
             jj = ii;
-            for( ; jj < blen && isalpha(buf[jj]) ; jj++ ) ; 
+            for( ; jj < blen && isalpha(buf[jj]) ; jj++ ) ;
             incr = jj - ii - 1; /* only move if more than 1 char long */
             if(incr) ii = jj;
         }
@@ -2128,7 +2128,7 @@ static doublevec * decode_double_linebuf( char *buf )  /* 20 Jul 2004 */
              buf[temppos] = ' ' ;
          /* turn on "slow mo" reading if non-numeric */
          if( !slowmo &&
-           (buf[temppos] == '*' || buf[temppos] == '@' || 
+           (buf[temppos] == '*' || buf[temppos] == '@' ||
             isalpha(buf[temppos])) ) slowmo = 1;
    }
 
@@ -3113,8 +3113,8 @@ static int decode_fvect( char *str, float filler, int vdim, float *vec )
    if( str == NULL || *str == '\0' ) return 0 ;
 
    for( ii=0 ; ii < vdim ; ii++ ){
-     mm = sscanf( str , "%f%n" , &aa , &nn ) ;
-     if( mm == 0 ){ str++ ; if( *str == '\0' ) return (ii+1); else continue; }
+     nn = 0 ; mm = sscanf( str , "%f%n" , &aa , &nn ) ;
+     if( mm == 0 ) return (ii) ;
      if( vec != NULL ) vec[ii] = aa ;
      str += nn ; if( *str == '\0' ) return (ii+1) ;
      str++ ;     if( *str == '\0' ) return (ii+1) ;
