@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, DEC, 2008, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "added balloon target for M Belmonte",
+   "Also modified Makefile.linux_xorg7_64 and macosx_10.4_G5/Intel and 5_Int*."
+ } ,
+
  {  1, DEC, 2008, RCR, "timing_tool.py", MAJOR, TYPE_NEW_PROG,
    "a tool for manipulating and evaluating stimulus timing files",
    "This is useful for getting statistics on rest timing."
