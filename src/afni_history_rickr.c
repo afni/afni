@@ -48,9 +48,14 @@
 
 afni_history_struct rickr_history[] = {
 
- {  4, DEC, 2008, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+ {  4, DEC, 2008, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
    "added balloon target for M Belmonte",
    "Also modified Makefile.linux_xorg7_64 and macosx_10.4_G5/Intel and 5_Int*."
+ } ,
+
+ {  4, DEC, 2008, RCR, "balloon", MICRO, TYPE_NEW_PROG,
+   "new program by M Belmonte",
+   NULL
  } ,
 
  {  1, DEC, 2008, RCR, "timing_tool.py", MAJOR, TYPE_NEW_PROG,
