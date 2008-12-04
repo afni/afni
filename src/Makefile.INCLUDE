@@ -1251,6 +1251,12 @@ iochan_relay:iochan_relay.o
 	$(RM) $@
 	$(CC) -o 3dretroicor 3dretroicor.o retroicor.o $(LFLAGS) $(LLIBS)
 
+### These programs are from Matthew Belmonte
+
+balloon:balloon.o
+	$(RM) $@
+	$(CC) -o balloon balloon.o $(LFLAGS) -lgsl -lgslcblas
+
 ### Test area for  surface datasets Placed here by ZSS for RickR
 suma_datasets.o: suma_datasets.c
 	$(RM) $@
