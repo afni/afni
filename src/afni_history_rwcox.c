@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , DEC , 2008 , RWC , "1dMarry" , MINOR , TYPE_MODIFY ,
+   "Allow multiple marriages, to go with 3dDeconvolve changes" ,
+   NULL } ,
+
+ { 4 , DEC , 2008 , RWC , "3dDeconvolve" , MINOR , TYPE_NEW_OPT ,
+   "Extend -stim_times_AM2 option to allow multiple amplitudes" ,
+   NULL } ,
+
  { 18 , NOV , 2008 , RWC , "3dANOVA programs" , MINOR , TYPE_NEW_OPT ,
    "Add option to output float-valued datasets." ,
    "Set the AFNI_FLOATIZE environment variable to YES, and the output of\n"
