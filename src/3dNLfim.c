@@ -738,6 +738,10 @@ void get_options
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      if( strncmp(argv[nopt],"-float",6) == 0 ){        /* 04 Dec 2008 */
+        output_datum = MRI_float ; nopt++ ; continue ;
+      }
+
 
       /**** -mask mset [18 May 2000] ****/
 
