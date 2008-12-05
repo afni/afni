@@ -158,6 +158,10 @@ void Syntax(char *str)
 "                  This option DOES NOT deoblique the volume. To do so\n"
 "                  you should use 3dWarp -deoblique. This option is not \n"
 "                  to be used unless you really know what you're doing.\n\n"
+"  -oblique_origin\n"
+"                  assume origin and orientation from oblique transformation\n"
+"                  matrix rather than traditional cardinal information\n\n"
+
 "  -byteorder bbb  Sets the byte order string in the header.\n"
 "                  Allowable values for 'bbb' are:\n"
 "                     LSB_FIRST   MSB_FIRST   NATIVE_ORDER\n"
@@ -370,6 +374,7 @@ int main( int argc , char * argv[] )
    int keepcen        = 0 ;          /* 17 Jul 2006 [RWCox] */
    float xyzscale     = 0.0f ;       /* 17 Jul 2006 */
    int deoblique  = 0;               /* 20 Jun 2007 [drg] */
+   int use_oblique_origin = 0;       /* 01 Dec 2008 */
    int do_FDR = 0 ;                  /* 23 Jan 2008 [RWCox] */
    int do_killSTAT = 0 ;             /* 24 Jan 2008 [RWCox] */
    int   ndone=0 ;                   /* 18 Jul 2006 */
@@ -1110,6 +1115,14 @@ int main( int argc , char * argv[] )
          new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -oblique_origin option [01 Dec 2008] -----*/
+
+      if( strcmp(argv[iarg],"-oblique_origin") == 0 ){
+         use_oblique_origin = 1 ;
+         THD_set_oblique_report(0,0); /* turn off obliquity warning */
+         new_stuff++ ; iarg++ ; continue ;  /* go to next arg */
+      }
+
 
       /** anything else must be a -type **/
       /*  try the anatomy prefixes */
@@ -1426,6 +1439,14 @@ int main( int argc , char * argv[] )
              tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
              tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
       }
+
+
+      /* if user has selected, get origin from obliquity */
+      /*   overriding all the previous command-line options */
+      if(use_oblique_origin)
+         Obliquity_to_coords(dset);
+
+
       /*-- change time axis --*/
 
       if( new_TR ){

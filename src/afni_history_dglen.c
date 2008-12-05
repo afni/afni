@@ -50,6 +50,13 @@
 
 afni_history_struct dglen_history[] = {
 
+{ 05 , DEC , 2008 , DRG , "to3d" , 
+    MINOR , TYPE_BUG_FIX, "Siemens DICOM handling",
+    "added -oblique_origin and -reverse_list to help handle Siemens"
+    "DICOM data. oblique_origin option added to to3d and 3drefit"
+    "Rick added flipped slice handling to oblique mosaic handling"
+} ,
+
 { 07 , NOV , 2008 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, "tlrc view handling",
     "fixed view name of tlrc output with tlrc_master set to SOURCE"
