@@ -3,6 +3,7 @@
 
 /*-----------------------------------------------------------------------------------*/
 #undef DEBUG_ON
+/*#define DEBUG_ON 1*/
 
 #define NWMAX 2  /* max number of warning message of each type to print */
 
@@ -33,14 +34,16 @@ typedef struct {
    float Tr_dicom[4][4];            /* transformation matrix */
    float slice_xyz[2][3];           /* coordinates for 1st and last slices */
    int mos_sliceinfo;               /* flag for existence of coordinate info */
+   int flip_slices;
 } oblique_info;
 
 oblique_info obl_info;
 
 /* mod -16 May 2007 */
 /* compute Tr transformation matrix for oblique data */
-static int read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar, int datum, Siemens_extra_info *mi, \
-                              int bpp, int kor, int swap, float dx, float dy, float dz, float dt);
+static int read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar,
+          int datum, Siemens_extra_info *mi, int * flip_slices,
+          int bpp, int kor, int swap, float dx, float dy, float dz, float dt);
 static int flip_slices_mosaic (Siemens_extra_info *mi, int kor);
 
 static float *ComputeObliquity(oblique_info *obl_info);
@@ -139,7 +142,6 @@ MRI_IMARR * mri_read_dicom( char *fname )
    static int obliqueflag = 0;
    float xc1=0.0,xc2=0.0,xc3=0.0 , yc1=0.0,yc2=0.0,yc3=0.0 ;
    float xn,yn ; int qq ;
-   int flip_slices = 0;
 
 ENTRY("mri_read_dicom") ;
 
@@ -971,7 +973,8 @@ fprintf(stderr,"SLICE_LOCATION = %f\n",zz) ;
 
    }
    else {         /*copy images from mosaic data into an image array */
-      read_mosaic_data( fp, im, imar, datum, &sexinfo, bpp, kor, swap,dx,dy,dz, dt);
+      read_mosaic_data( fp, im, imar, datum, &sexinfo, &obl_info.flip_slices,
+                        bpp, kor, swap,dx,dy,dz, dt);
    }
    fclose(fp) ;     /* 10 Sep 2002: oopsie - forgot to close file */
 
@@ -1601,18 +1604,18 @@ flip_slices_mosaic (Siemens_extra_info *mi, int kor)
 /* copy data from mosaic input to image array */
 static int
 read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar, int datum,
-   Siemens_extra_info *mi, int bpp, int kor, int swap,
+   Siemens_extra_info *mi, int *flip_slices, int bpp, int kor, int swap,
    float dx, float dy, float dz, float dt)
 {   /*-- 28 Oct 2002:  is a 2D mosaic --*******************/
 
    char *dar , *iar ;
    int last_ii=-1, nvox, yy, xx, nxx, XX, YY, ii, jj, slice ;
    int mos_nx, mos_ny, mos_nz, mos_ix, mos_iy, mosaic_num;
-   int flip_slices;
 
    ENTRY("read_mosaic_data");
 
-   flip_slices = flip_slices_mosaic(mi, kor); /* determine if slices should be reversed */
+   /* determine if slices should be reversed */
+   *flip_slices = flip_slices_mosaic(mi, kor);
 
    /* just to make it a little easier to read */
    mos_nx = mi->mos_nx;   mos_ny = mi->mos_ny;
@@ -1620,7 +1623,8 @@ read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar, int datum,
    mos_nz = mos_ix * mos_iy ;   /* number of slices in mosaic */
 
 #if DEBUG_ON
-  printf("read_mosaic_data flip_slices %d mos_nx,ny,nz = %d,%d,%d  mos_ix = %d\n", flip_slices,mos_nx,mos_ny,mos_nz, mos_ix);
+printf("read_mosaic_data flip_slices %d mos_nx,ny,nz = %d,%d,%d  mos_ix = %d\n",
+*flip_slices,mos_nx,mos_ny,mos_nz, mos_ix);
 #endif
 
    mosaic_num = mi->mosaic_num;
@@ -1647,29 +1651,17 @@ read_mosaic_data( FILE *fp, MRI_IMAGE *im, MRI_IMARR *imar, int datum,
 
    for (ii=0;ii<mosaic_num;ii++) {
       /* find right slice - may be reading the series of slices backwards */
-      if(flip_slices) slice = mosaic_num - ii -1;
+      if(*flip_slices) slice = mosaic_num - ii -1;
       else slice = ii;
       xx = slice % mos_ix;   /* xx,yy are indices for position in mosaic matrix */
       yy = slice / mos_iy;
+      im = mri_new( mos_nx , mos_ny , datum ) ;
+      iar = mri_data_pointer( im ) ;             /* sub-image array */
 
-
-       im = mri_new( mos_nx , mos_ny , datum ) ;
-       iar = mri_data_pointer( im ) ;             /* sub-image array */
-
-       /* copy data rows from dar into iar */
-       if(flip_slices) {          /* reorganize slices - needed for some Siemens */
-         XX = mos_ix - xx - 1 - (mos_ix*mos_iy - mosaic_num);
-         YY = mos_iy - yy - 1;
-       }
-       else {
-         XX = xx;
-         YY = yy;
-       }
-
-       for( jj=0 ; jj < mos_ny ; jj++ )  /* loop over rows inside sub-image */
-         memcpy( iar + jj*mos_nx*bpp ,
-                 dar + xx*mos_nx*bpp + (jj+yy*mos_ny)*nxx*bpp ,
-                 mos_nx*bpp                                    ) ;
+      for( jj=0 ; jj < mos_ny ; jj++ )  /* loop over rows inside sub-image */
+        memcpy( iar + jj*mos_nx*bpp ,
+                dar + xx*mos_nx*bpp + (jj+yy*mos_ny)*nxx*bpp ,
+                mos_nx*bpp                                    ) ;
 
        if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
          im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
@@ -1758,6 +1750,9 @@ static void
 Clear_obl_info(oblique_info *obl_info)
 {
    int i,j;
+
+   /* start with a full clearing */
+   memset(obl_info, 0, sizeof(*obl_info));
 
    LOAD_FVEC3(obl_info->dfpos1,0.0,0.0,0.0);
    LOAD_FVEC3(obl_info->dfpos2,0.0,0.0,0.0);
@@ -1924,7 +1919,7 @@ static float *ComputeObliquity(oblique_info *obl_info)
    THD_fvec3 vec3, vec4, vec5, vec6, dc1, dc2, dc3, dc4 ;
    THD_fvec3 offsetxvec, offsetyvec,offsetzvec, Cm, Orgin, Cx;
 /*   double dotp, angle, aangle;*/
-   float fac;
+   float fac=1;
    int altsliceinfo = 0;
    Siemens_extra_info *siem;
    int ii,jj;
@@ -2028,11 +2023,14 @@ DUMP_FVEC3("dc4", dc4);
    /* compute central mosaic point - in funny way */
    offsetxvec = SCALE_FVEC3(dc1, ((obl_info->nx)/2.0));
    offsetyvec = SCALE_FVEC3(dc2, ((obl_info->ny)/2.0));
+
    offsetzvec = SCALE_FVEC3(dc3, ((obl_info->mos_nslice - 1.0)*fac/2.0));
+   if( obl_info->flip_slices ) 
+      offsetzvec = SCALE_FVEC3(offsetzvec, -1.0);
 
    Cm = ADD_FVEC3(obl_info->dfpos1, offsetxvec);
-   Cm  = ADD_FVEC3(Cm, offsetyvec);
-   Cm  = ADD_FVEC3(Cm, offsetzvec);
+   Cm = ADD_FVEC3(Cm, offsetyvec);
+   Cm = ADD_FVEC3(Cm, offsetzvec);
 
   /* find origin using single slice info */
    offsetxvec = SCALE_FVEC3(dc1, ((obl_info->mos_nx - 1.0)/2.0));
@@ -2092,11 +2090,13 @@ DUMP_FVEC3("dc4", dc4);
          DUMP_FVEC3("Slice-based Center", Cx);
       }
       else
-         INFO_message("Slice based center matches mosaic center\n");
+         INFO_message("Slice based center matches mosaic center - good!\n");
    }
-
+   
+#ifdef DEBUG_ON
    DUMP_FVEC3("Mosaic Center", Cm);
    DUMP_FVEC3("Origin Coordinates", Orgin);
+#endif
 
    /* update 4th column of transformation matrix with computed origin */
    obl_info->Tr_dicom[0][3] = Orgin.xyz[0];
@@ -2170,3 +2170,64 @@ void mri_read_dicom_get_obliquity(float *Tr)
 
    return;
 }
+
+
+/* externally available function to set origin and orientation from obliquity */
+/* transformation matrix */
+void
+Obliquity_to_coords(THD_3dim_dataset *tdset)
+{
+   THD_ivec3 orixyz;
+
+   mat44 nmat; int icod, jcod, kcod;
+   int orimap[7] = { 6 , 1 , 0 , 2 , 3 , 4 , 5 } ;
+   float dxtmp, dytmp, dztmp ;
+   THD_dataxes      * daxes   = NULL ;
+
+   daxes = tdset->daxes;
+   nmat = daxes->ijk_to_dicom_real;
+   /* negate first two rows to go from RAI to LPI definition for nifti */
+   nmat.m[0][0] = -nmat.m[0][0];
+   nmat.m[0][1] = -nmat.m[0][1];
+   nmat.m[0][2] = -nmat.m[0][2];
+   nmat.m[0][3] = -nmat.m[0][3];
+   nmat.m[1][0] = -nmat.m[1][0];
+   nmat.m[1][1] = -nmat.m[1][1];
+   nmat.m[1][2] = -nmat.m[1][2];
+   nmat.m[1][3] = -nmat.m[1][3];
+   /* from thd_niftiread.c */
+   /* convert nifti orientation codes to AFNI codes and store in vector */
+
+   nifti_mat44_to_orientation( nmat , &icod, &jcod, &kcod ) ;
+   LOAD_IVEC3( orixyz , orimap[icod] ,
+                        orimap[jcod] ,
+                        orimap[kcod] ) ;
+
+   /* load the offsets and the grid spacings */
+
+   daxes->xxorg = daxes->ijk_to_dicom_real.m[ORIENT_xyzint[orixyz.ijk[0]] - 1][3] ;
+   daxes->yyorg = daxes->ijk_to_dicom_real.m[ORIENT_xyzint[orixyz.ijk[1]] - 1][3] ;
+   daxes->zzorg = daxes->ijk_to_dicom_real.m[ORIENT_xyzint[orixyz.ijk[2]] - 1][3] ;
+
+   daxes->xxorient = orimap[icod] ;
+   daxes->yyorient = orimap[jcod] ;
+   daxes->zzorient = orimap[kcod] ;
+
+   dxtmp = fabs(daxes->xxdel);
+   dytmp = fabs(daxes->yydel);
+   dztmp = fabs(daxes->zzdel);
+
+   daxes->xxdel =  (ORIENT_sign[orixyz.ijk[0]]=='+') ? dxtmp : -dxtmp ;
+   daxes->yydel =  (ORIENT_sign[orixyz.ijk[1]]=='+') ? dytmp : -dytmp ;
+   daxes->zzdel =  (ORIENT_sign[orixyz.ijk[2]]=='+') ? dztmp : -dztmp ;
+
+ #if DEBUG_ON
+ printf("Orients = %d %d % d\n", daxes->xxorient, daxes->yyorient, \
+       daxes->zzorient);
+ printf("daxes origins = %f %f %f\n", daxes->xxorg, daxes->yyorg, \
+       daxes->zzorg);
+ #endif
+ /*     daxes->xxdel    =   user_inputs.xsize ;
+   daxes->yydel    =   user_inputs.ysize ;*/
+
+ }
