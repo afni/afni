@@ -97,8 +97,10 @@ g_mesglist = [
 
 def get_py_ver():
    "return the python version as a list, allow for older versions"
+   vlist = ['0', '0']
    try:
       import platform
+      vlist = platform.python_version_tuple()
    except:
       if sys.version[0] == '1':
          import string
@@ -107,8 +109,6 @@ def get_py_ver():
       else:
          ver = sys.version.split()
          vlist = ver[0].split('.')
-   else:
-      vlist = platform.python_version_tuple()
 
    return vlist
 
