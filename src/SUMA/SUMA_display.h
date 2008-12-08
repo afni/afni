@@ -314,7 +314,7 @@ void SUMA_PromptHelp_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_PromptActivate_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_PromptUnmap_cb (Widget w, XtPointer data, XtPointer calldata);
 void SUMA_FreePromptDialogStruct(SUMA_PROMPT_DIALOG_STRUCT *prmpt);
-void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data);
+void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_ColPlane_NewOrder (void *data);
 void SUMA_ColPlane_NewOpacity (void *data);
 void SUMA_ColPlane_NewDimFact (void *data);

@@ -92,7 +92,7 @@ if (~isstruct(SN)), %mode 1, toy mode
    Opt.Demo = 0;
    Opt.zerophaseoffset = 0;
    Opt.fcutoff = 10; %cut off frequency for filter
-   Opt.RespCutoffFreq = 10;
+   Opt.RespCutoffFreq = 3;
    Opt.CardCutoffFreq = 3;
    Opt.Respfile = lll(1).name;
    Opt.Cardfile = lll(1).name;
@@ -131,7 +131,7 @@ else,
       Opt.ResampFS=Opt.PhysFS;
    end
    if ( ~isfield(Opt,'RespCutoffFreq') | isempty(Opt.RespCutoffFreq)),
-      Opt.RespCutoffFreq=10;
+      Opt.RespCutoffFreq=3;
    end
    if ( ~isfield(Opt,'CardCutoffFreq') | isempty(Opt.CardCutoffFreq)),
       Opt.CardCutoffFreq=3;
@@ -203,7 +203,7 @@ end
 
 %also generate files as 3dREMLfit likes them
 Opt.RemlOut = zeros(  length(R.tst),... 
-                  Opt.Nsclices .* ...
+                  Opt.Nslices .* ...
                      (  size(R.RVTRS_slc,2) + ...
                         size(R.phz_slc_reg,2) + ...
                         size(E.phz_slc_reg,2) ) );

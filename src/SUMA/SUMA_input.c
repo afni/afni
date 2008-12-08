@@ -2189,11 +2189,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
 
+         #if 0
          case XK_3:
             sv->Do_3Drender =  !sv->Do_3Drender;
-            SUMA_S_Notev("wtf!!!!!!!!!!!!!!%d!!!!!!!\n", sv->Do_3Drender);
+            SUMA_S_Notev("!!!!!!!!!!!!!!%d!!!!!!!\n", sv->Do_3Drender);
             break;
-      
+         #endif
          case XK_8:
             {
                char stmp[100];
