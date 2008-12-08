@@ -49,7 +49,7 @@
 afni_history_struct rickr_history[] = {
 
  {  8, DEC, 2008, RCR, "balloon", MICRO, TYPE_GENERAL,
-   "added Makefile.macosx_10.4_G4",
+   "added Makefile.macosx_10.5_G4",
    NULL
  } ,
 
