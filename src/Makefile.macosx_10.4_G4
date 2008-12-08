@@ -1,0 +1,98 @@
+# This Makefile is for Mac OSX 10.5, G4 CPU.
+# Do NOT use "cc -fast", since that produces incorrect code for 3dDeconvolve!
+# The options below are supposed to be equivalent to "-fast".
+
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = -lexpat
+
+CC_G4  = -O3 -funroll-loops -fstrict-aliasing -fsched-interblock               \
+         -falign-loops=32 -falign-jumps=16 -falign-functions=16                \
+         -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural   \
+         -ffast-math -mtune=G4 -mcpu=G4 -force_cpusubtype_ALL -fPIC
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp
+CCFAST = cc $(CC_G4) -DDARWIN $(CEXTRA)
+# CCFAST = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CC     = $(CCFAST)
+CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
+CCMIN  = cc
+CCD    = $(CC) $(CCDEBS)
+# IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
+IFLAGS = -I. -I/usr/X11R6/include -I/sw/include
+LFLAGS = -L. -L/usr/X11R6/lib -L/sw/lib -Wl,-multiply_defined -Wl,suppress
+
+CCSVD  = cc -O0 -fPIC -no-cpp-precomp
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress
+PLUGIN_CC     = $(CC) -dynamic -fno-common
+PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib -L/sw/lib -Wl,-multiply_defined -Wl,suppress
+
+SPECIAL = -faltivec -framework Accelerate -DUSE_ACCELERATE
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /usr/bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /usr/bin/gzip
+LD     = cc
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+SHOWOFF = -DSHOWOFF=macosx_10.5_G4
+INSTALLDIR = ./macosx_10.5_G4
+LIBDIR = $(INSTALLDIR)
+
+INSTALL_PREREQ = suma_gts
+#INSTALL_PREREQ = suma
+EXPROGS = gifti_tool
+
+# LIBDL = libdl.a
+
+# for dynamic linking
+LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lmri -lc
+# LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lmri -lc
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma
+# ZSS Aug. 08. LibGLw.a now made locally and called libGLws.a 
+
+# -------------------------------------------------------------------
+# OSX 10.5 has issues with libGL, where the multiple copies cause a cycle
+# (somehow).  Get around this by using -dylib_file (in a strange way).
+
+SUMA_GLLIB = /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib
+SUMA_GL_DYLIB_CMD = -dylib_file $(SUMA_GLLIB): $(SUMA_GLLIB)
+# -------------------------------------------------------------------
+
+GLw_IPATH  =
+GLw_LIB = -lGLw
+#uncomment next two lines if you want to use libGLws.a, SUMA's copy of GLw
+GLw_IPATH  = -IGLw_local 
+GLw_LIB = libGLws.a
+
+
+
+SUMA_GLIB_VER = -2.0
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I/usr/X11R6/include -I./ -I../ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include -I/sw/include
+SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L./ -L/usr/local/lib -L/sw/lib
+
+SUMA_LINK_LIB = -lXm $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib -bind_at_load $(SUMA_GL_DYLIB_CMD)
+
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE
