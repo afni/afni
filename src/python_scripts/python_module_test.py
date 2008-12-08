@@ -212,8 +212,10 @@ class ModuleTest:
          print 'python version: %s' % vstr
 
       if self.show_platform:
-         import platform
-         print 'platform: %s' % platform.platform()
+         try:
+            import platform
+            print 'platform: %s' % platform.platform()
+         except: print 'platform: ** module not found'
 
       if self.show_modtest:
          nfail = module_test_lib.num_import_failures(self.modlist,
