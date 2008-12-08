@@ -1884,6 +1884,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->N_ForeSmooth_prmpt = NULL;
    cf->X->Clip_prmpt = NULL;
    cf->X->ClipObj_prmpt = NULL;
+   cf->X->TableTextFontList = NULL;   
    {
       char *eee = getenv("SUMA_NumForeSmoothing");
       if (eee) {

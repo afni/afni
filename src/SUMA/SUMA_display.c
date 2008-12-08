@@ -47,6 +47,7 @@ static String fallbackResources_default[] = {
    "*font8*fontList:        8x13=charset1"        ,
    "*font7*fontList:        7x13=charset1"        ,
    "*font6*fontList:        6x10=charset1"        ,
+   "*table*fontList:        9x15bold=charset1"    ,
    "*background:            gray50"               ,
    "*menu*background:       gray30"               ,
    "*borderColor:           gray30"               ,
@@ -121,6 +122,7 @@ static String fallbackResources_EURO[] = {
    "*font8*fontList:        8x13=charset1"        ,
    "*font7*fontList:        7x13=charset1"        ,
    "*font6*fontList:        6x10=charset1"        ,
+   "*table*fontList:        9x15bold=charset1"    ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
    "*background:            black"               ,
@@ -160,6 +162,7 @@ static String fallbackResources_Bonaire[] = {
    "*font8*fontList:        8x13=charset1"        ,
    "*font7*fontList:        7x13=charset1"        ,
    "*font6*fontList:        6x10=charset1"        ,
+   "*table*fontList:        9x15bold=charset1"    ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
    "*background:            navy"               ,
@@ -4440,7 +4443,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       pb = XtVaCreateWidget ("Dsets", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, 
+      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ToggleManagementColPlaneWidget, 
                      (XtPointer) SO->SurfCont->curSOp);
       MCW_register_hint( pb , 
                         "Show/Hide Dataset (previously Color Plane) "
@@ -4518,8 +4521,9 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
       /* create the widgets for the colormap stuff */
       SUMA_CreateCmapWidgets(rcv, SO);
-      
+
       XtManageChild(rcv);
+
       XtManageChild(SO->SurfCont->DsetMap_fr);
    }
 
@@ -4785,7 +4789,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    XtManageChild (rc_left);
    XtManageChild (rc_mamma);
    XtManageChild (SO->SurfCont->Mainform);
-   
+
    #if SUMA_CONTROLLER_AS_DIALOG    
    #else
    /** Feb 03/03: pop it up if it is a topLevelShellWidgetClass, you should do the popping after all the widgets have been created.
@@ -4798,7 +4802,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    
    SUMA_free (slabel);
    
-   /* initialize the left side (no need here, that's done in SUMA_cb_viewSurfaceCont)*/
+   /* initialize the left side 
+      (no need here, that's done in SUMA_cb_viewSurfaceCont)*/
    /* SUMA_Init_SurfCont_SurfParam(SO); */
    
    /* initialize the ColorPlane frame if possible 
@@ -4830,7 +4835,14 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SUMA_SwitchColPlaneCmap(SO, SUMA_CmapOfPlane(SO->SurfCont->curColPlane));
       #endif
    }
-   
+
+   #if USING_LESSTIF
+   /* A quick fix to ensure Dset_Mapping 
+      gets displayed properly the first time */
+   SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&SO), NULL);
+   SUMA_cb_ToggleManagementColPlaneWidget(NULL, (XtPointer)(&SO), NULL);
+   #endif
+
    SUMA_RETURNe;
 }
 
@@ -10555,41 +10567,63 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
 }
 
 /* This function is for hiding the color plane frame */
-void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data)
+void  SUMA_cb_ToggleManagementColPlaneWidget(Widget w, XtPointer data, 
+                                             XtPointer client_data)
 {
-   static char FuncName[]={"SUMA_cb_UnmanageWidget"};
+   static char FuncName[]={"SUMA_cb_ToggleManagementColPlaneWidget"};
    static int ncall=1;
    SUMA_SurfaceObject *SO = NULL;
    void **curSOp;
-   int xx, yy;
+   int xx, yy, notest = 0;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
    curSOp = (void **)data;
    SO = (SUMA_SurfaceObject *)(*curSOp);
    
+#ifdef USING_LESSTIF
+      notest = 1;
+#endif
+
    if (ncall > 0) {
-      if (XtIsManaged(SO->SurfCont->ColPlane_fr)) XtUnmanageChild(SO->SurfCont->ColPlane_fr);
-      /* if nothing else remains in the parent of ColPlane, then unmanage its parent (rc_right) too. 
-       *** Parent of that frame is now rc_left    May 25 04*/
-      /*XtUnmanageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
+      if (XtIsManaged(SO->SurfCont->ColPlane_fr)) {
+         SUMA_LHv("UnM.ch: ColPlane_fr, ncall %d\n", ncall);
+         XtUnmanageChild(SO->SurfCont->ColPlane_fr);
+      }
+      if( notest ) {
+         SUMA_LHv("UnM.ch: DsetMap_fr, ncall %d\n", ncall);
+         XtUnmanageChild(SO->SurfCont->DsetMap_fr); /* needed */
+      }   
+      /* if nothing else remains in the parent of ColPlane, 
+         then unmanage its parent (rc_right) too. 
+         *** Parent of that frame is now rc_left    May 25 04*/
+      /* XtUnmanageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
       if (XtIsManaged(SO->SurfCont->DsetMap_fr)) {
+         SUMA_LHv("UnM.ch: DsetMap_fr, par(DsetMap_fr), ncall %d\n", ncall);
          XtUnmanageChild(SO->SurfCont->DsetMap_fr);
          XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
       }
    } else {
       /* XtManageChild(XtParent(SO->SurfCont->ColPlane_fr)); May 25 04*/
-      if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") != 0) { /* not an RGB dset */
+      if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") != 0) { 
+         SUMA_LHv("Not explicit, ncall = %d\n", ncall);
+         /* not an RGB dset */
          if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {
+            SUMA_LHv("M.ch: par(DsetMap_fr) DsetMap_fr, ncall = %d\n", ncall);
             XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
             XtManageChild((Widget)SO->SurfCont->DsetMap_fr);
          }
       }
+
+      SUMA_LHv("M.ch: ColPlane_fr, ncall = %d\n", ncall);
       XtManageChild((Widget)SO->SurfCont->ColPlane_fr);
-      XMapRaised (XtDisplay(SO->SurfCont->ColPlane_fr), XtWindow(SO->SurfCont->TopLevelShell));
+      
+      SUMA_LHv("Map.R: ColPlane_fr, ncall = %d\n", ncall);
+      XMapRaised (XtDisplay(SO->SurfCont->ColPlane_fr), 
+                  XtWindow(SO->SurfCont->TopLevelShell));
    }
    
-
    ncall *= -1;
    SUMA_RETURNe;
 }

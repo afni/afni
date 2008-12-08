@@ -1309,42 +1309,60 @@ typedef struct {
    XtWorkProcId REDISPLAYID;
    XtIntervalId MOMENTUMID;
    GC gc;
-   SUMA_X_ViewCont *ViewCont; /*!< pointer to structure containing viewer controller widget structure */
-   Widget ToggleCrossHair_View_tglbtn; /*!< OBSOLETE Toggle button in View-> menu */
+   SUMA_X_ViewCont *ViewCont; /*!< pointer to structure containing viewer 
+                                    controller widget structure */
+   Widget ToggleCrossHair_View_tglbtn; /*!< OBSOLETE Toggle button in 
+                                             View-> menu */
    Widget FileMenu[SW_N_File]; /*!< Vector of widgets under File Menu */       
    Widget ToolsMenu[SW_N_Tools]; /*!< Vector of widgets under File Menu */       
    Widget ViewMenu[SW_N_View]; /*!< Vector of widgets under View Menu */
    Widget HelpMenu[SW_N_Help]; /*!< Vector of widgets under Help Menu */
-   SUMA_PROMPT_DIALOG_STRUCT *LookAt_prmpt; /*!< structure for the LookAt dialog */
-   SUMA_PROMPT_DIALOG_STRUCT *SetRot_prmpt; /*!< structure for the set rotation dialog */
-   SUMA_PROMPT_DIALOG_STRUCT *JumpIndex_prmpt; /*!< structure for the Jump To Index dialog */
-   SUMA_PROMPT_DIALOG_STRUCT *JumpXYZ_prmpt; /*!< structure for the Jump To XYZ dialog */
-   SUMA_PROMPT_DIALOG_STRUCT *JumpFocusNode_prmpt; /*!< structure for setting the Focus Node dialog */
-   SUMA_PROMPT_DIALOG_STRUCT *JumpFocusFace_prmpt; /*!< structure for setting the Focus FaceSet dialog */
-   SUMA_PROMPT_DIALOG_STRUCT *HighlightBox_prmpt; /*!<  structure for highlighting nodes in Box dialog */ 
+   SUMA_PROMPT_DIALOG_STRUCT *LookAt_prmpt; /*!< structure for LookAt dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *SetRot_prmpt; /*!< structure for set rotation 
+                                                dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *JumpIndex_prmpt; /*!< structure for the 
+                                                   Jump To Index dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *JumpXYZ_prmpt; /*!< structure for the 
+                                                   Jump To XYZ dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *JumpFocusNode_prmpt; /*!< structure for setting the                                                         Focus Node dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *JumpFocusFace_prmpt; /*!< structure for setting the                                                         Focus FaceSet dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *HighlightBox_prmpt; /*!<  structure for 
+                                             highlighting nodes in Box dialog */ 
 }SUMA_X;
 
 /*! structure containg X vars common to all viewers */
 typedef struct {
-   SUMA_X_SumaCont *SumaCont; /*!< structure containing widgets for Suma's controller */
-   SUMA_X_DrawROI *DrawROI; /*!< structure containing widgets for DrawROI window */
+   SUMA_X_SumaCont *SumaCont; /*!< structure containing widgets 
+                                    for Suma's controller */
+   SUMA_X_DrawROI *DrawROI; /*!< structure containing widgets for 
+                                 DrawROI window */
    XtAppContext App; /*!< Application Context for SUMA */
    Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
-   SUMA_XRESOURCES X_Resources; /*!< flag specifying the types of resources to use */
-   SUMA_CREATE_TEXT_SHELL_STRUCT *Help_TextShell; /*!< structure containing widgets and options of SUMA_help window */
-   SUMA_CREATE_TEXT_SHELL_STRUCT *Help_Cmap_TextShell; /*!< structure containing widgets and options of colormap help window */
+   SUMA_XRESOURCES X_Resources; /*!< flag specifying the types of 
+                                    resources to use */
+   SUMA_CREATE_TEXT_SHELL_STRUCT *Help_TextShell; /*!< structure containing 
+                                    widgets and options of SUMA_help window */
+   SUMA_CREATE_TEXT_SHELL_STRUCT *Help_Cmap_TextShell; /*!< structure containing
+                                 widgets and options of colormap help window */
    SUMA_CREATE_TEXT_SHELL_STRUCT *Help_Plot_TextShell;
-   SUMA_CREATE_TEXT_SHELL_STRUCT *Log_TextShell; /*!<  structure containing widgets and options of SUMA_log window */
-   SUMA_SELECTION_DIALOG_STRUCT *FileSelectDlg; /*!< structure containing widgets and options of a generic file selection dialog */
-   SUMA_PROMPT_DIALOG_STRUCT *N_ForeSmooth_prmpt; /*!< structure for the number of foreground smoothingLookAt dialog */
-   int NumForeSmoothing;   /*!< Number of steps for smoothing the foreground colors 
-                                 prior to mixing with background. Default is set
-                                 by environment variable SUMA_NumForeSmoothing which 
-                                 is set to 0 (No smoothing). */
-   SUMA_Boolean WarnClose; /*!< Pops up a window to double check before SUMA quits */
+   SUMA_CREATE_TEXT_SHELL_STRUCT *Log_TextShell; /*!<  structure containing
+                                       widgets and options of SUMA_log window */
+   SUMA_SELECTION_DIALOG_STRUCT *FileSelectDlg; /*!< structure containing widgets
+                              and options of a generic file selection dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *N_ForeSmooth_prmpt; /*!< structure for the number  
+                           of foreground smoothing dialog */
+   int NumForeSmoothing;   /*!< Number of steps for smoothing the foreground  
+                                colors prior to mixing with background. Default 
+                                is set by environment variable 
+                                SUMA_NumForeSmoothing which 
+                                is set to 0 (No smoothing). */
+   SUMA_Boolean WarnClose; /*!< Pops up a window to double check 
+                                 before SUMA quits */
    SUMA_LIST_WIDGET *SwitchCmapLst; /*!< list widget for switching colormaps */
-   SUMA_PROMPT_DIALOG_STRUCT *Clip_prmpt; /*!< structure for the LookAt dialog */
-   SUMA_PROMPT_DIALOG_STRUCT *ClipObj_prmpt; /*!< structure for the LookAt dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *Clip_prmpt; /*!< structure for clipping dialog */
+   SUMA_PROMPT_DIALOG_STRUCT *ClipObj_prmpt; /*!< structure for clip obj dialg */
+   
+   XmFontList TableTextFontList; /*! Font list for table's text fields */
 }SUMA_X_AllView;
 
 /*! structure defining a cross hair */
@@ -2514,26 +2532,32 @@ typedef struct {
 #define SUMA_MAX_N_TIMER 50
 /*! structure containing information global to all surface viewers */
 typedef struct {
-   SUMA_Boolean Dev; /*!< Flag for developer option (allows the use of confusing or kludge options) */
-   SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function is entered or exited */ 
+   SUMA_Boolean Dev; /*!< Flag for developer option 
+                     (allows the use of confusing or kludge options) */
+   SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function 
+                                 is entered or exited */ 
    int InOut_Level; /*!< level of nested function calls */
    
    int N_OpenSV; /*!< Number of open (visible) surface viewers.
                      Do not confuse this with the number of surface viewers
                      created (SUMAg_N_SVv)*/
    
-   SUMA_MEMTRACE_STRUCT *Mem; /*!< structure used to keep track of memory usage */
-   SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage (must also set SUMA_MEMTRACE_FLAG ) */
+   SUMA_MEMTRACE_STRUCT *Mem; /*!< structure used to keep track of 
+                                    memory usage */
+   SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage 
+                              (must also set SUMA_MEMTRACE_FLAG ) */
 
-   char HostName_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH];   /*!<  name or ipaddress of hosts maximum allowed name is 20
-                                                                      chars less than allocated for, see SUMA_Assign_AfniHostName
-                                                                      *** Dec. 19 03: This field used to be called AfniHostName
-                                                                      It is now a vector of hostnmes allowing for multiple
-                                                                      connections. 
-                                                                      AfniHostName = HostName_v[SUMA_AFNI_STREAM_INDEX]*/ 
-   char NimlStream_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH]; /*!< niml stream name for communicating with other programs 
-                                                                 *** Dec. 19 03: This field used to be called AfniNimlStream
-                                                                 AfniNimlStream = NimlStream_v[SUMA_AFNI_STREAM_INDEX]*/
+   char HostName_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH];   
+         /*!<  name or ipaddress of hosts maximum allowed name is 20
+             chars less than allocated for, see SUMA_Assign_AfniHostName
+             *** Dec. 19 03: This field used to be called AfniHostName
+             It is now a vector of hostnmes allowing for multiple
+             connections. 
+             AfniHostName = HostName_v[SUMA_AFNI_STREAM_INDEX]*/ 
+   char NimlStream_v[SUMA_MAX_STREAMS][SUMA_MAX_NAME_LENGTH]; 
+         /*!< niml stream name for communicating with other programs 
+           *** Dec. 19 03: This field used to be called AfniNimlStream
+           AfniNimlStream = NimlStream_v[SUMA_AFNI_STREAM_INDEX]*/
    NI_stream ns_v[SUMA_MAX_STREAMS]; /*!< 
                      *** Pre: Dec 19 03:
                      Stream used to communicate with AFNI. 
@@ -2549,44 +2573,70 @@ typedef struct {
    int ns_flags_v[SUMA_MAX_STREAMS];
    int TCP_port[SUMA_MAX_STREAMS];
    
-   SUMA_Boolean Connected_v[SUMA_MAX_STREAMS]; /*!< YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI 
-                                                   *** Dec. 19 03
-                                                   Vectorized Connected like fields above*/
-   int TrackingId_v[SUMA_MAX_STREAMS]; /*!<  for keeping track of serial number of incoming nels 
-                                             0 if not keeping track. So start numbering at 1*/
-   
+   SUMA_Boolean Connected_v[SUMA_MAX_STREAMS]; 
+     /*!< YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI 
+         *** Dec. 19 03
+         Vectorized Connected like fields above*/
+   int TrackingId_v[SUMA_MAX_STREAMS]; 
+      /*!<  for keeping track of serial number of incoming nels 
+            0 if not keeping track. So start numbering at 1*/
+
    SUMA_Boolean Listening; /*!< SUMA is listening for connections */
    SUMA_Boolean niml_work_on; /*!< Flag indicating that niml workprocess is ON */
-   SUMA_LINK_TYPES Locked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that Locked[i] != SUMA_No_Lock have their cross hair locked together */   
-   SUMA_Boolean ViewLocked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that ViewLocked[i] = YUP have their view point locked together */    
-   SUMA_Boolean SwapButtons_1_3; /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
-   SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
-   DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
-   SUMA_Boolean ROI_mode; /*!< Flag specifying that SUMA is in ROI drawing mode */
-   SUMA_Boolean Pen_mode;  /*!< Flag specifying that a pen is being used for drawing */
-   SUMA_COLOR_MAP *ROI_CM; /*!< Color map used to map an ROI's index to a color */
-   SUMA_ROI_FILL_MODES ROI_FillMode; /*!< flag indicating how to fill a closed contour */
-   SUMA_COL_MIX_MODE ColMixMode; /*!< controls the way colors from multiple planes are mixed together */
+   SUMA_LINK_TYPES Locked[SUMA_MAX_SURF_VIEWERS]; 
+         /*!< All viewers i such that Locked[i] != SUMA_No_Lock 
+               have their cross hair locked together */   
+   SUMA_Boolean ViewLocked[SUMA_MAX_SURF_VIEWERS]; 
+         /*!< All viewers i such that ViewLocked[i] = YUP 
+               have their view point locked together */    
+   SUMA_Boolean SwapButtons_1_3; 
+         /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
+   SUMA_X_AllView *X; 
+         /*!< structure containing widgets and other X related 
+               variables that are common to all viewers */ 
+   DList *MessageList; 
+      /*!< a doubly linked list with data elements 
+           containing notices, warnings and error messages*/
+   SUMA_Boolean ROI_mode; 
+      /*!< Flag specifying that SUMA is in ROI drawing mode */
+   SUMA_Boolean Pen_mode;  
+      /*!< Flag specifying that a pen is being used for drawing */
+   SUMA_COLOR_MAP *ROI_CM; 
+      /*!< Color map used to map an ROI's index to a color */
+   SUMA_ROI_FILL_MODES ROI_FillMode; 
+      /*!< flag indicating how to fill a closed contour */
+   SUMA_COL_MIX_MODE ColMixMode; 
+      /*!< controls the way colors from multiple planes are mixed together */
    SUMA_Boolean ROI2afni; /*!< Send ROIs to afni as you draw them*/
    int nimlROI_Datum_type; /*!< the code for nimlROI_Datum_type */
 
    char **GroupList; /*!< Names of surface groups */
    int N_Group;   /*!< number of groups  available */
 
-   SUMA_AFNI_COLORS *scm;  /*!< a structure containing all the colormaps available to SUMA */
+   SUMA_AFNI_COLORS *scm;  
+      /*!< a structure containing all the colormaps available to SUMA */
    DList *DsetList;  /*!< List containing datasets */
-   SUMA_Boolean Allow_Dset_Replace; /*!< Allow replacement of old dset with new dset having same id */
+   SUMA_Boolean Allow_Dset_Replace; 
+      /*!< Allow replacement of old dset with new dset having same id */
    
    int SUMA_ThrScalePowerBias;
    int SUMA_SnapshotOverSampling; 
-   SUMA_Boolean IgnoreVolreg; /*!< if YUP then ignore any Volreg or TagAlign transform in the header of the surface volume */
-   SUMA_Boolean isGraphical; /*!< if YUP then Named afni colors will get resolved when creating color maps. 
-                                  Otherwise they are set to gray. Only suma and ScaleToMap will need to set 
-                                  this variable to YUP, for the moment June 3 05 */
+   SUMA_Boolean IgnoreVolreg; 
+      /*!< if YUP then ignore any Volreg or TagAlign 
+         transform in the header of the surface volume */
+   SUMA_Boolean isGraphical; 
+      /*!<if YUP then Named afni colors will 
+          get resolved when creating color maps. 
+          Otherwise they are set to gray. 
+          Only suma and ScaleToMap will need to set 
+          this variable to YUP, for the moment June 3 05 */
 
-   int N_ClipPlanes; /*!< Number of screen clipping planes, 3 max allowed */
-   GLdouble ClipPlanes[4*SUMA_MAX_N_CLIP_PLANES]; /*!< Equations of  clipping planes */
-   SUMA_CLIP_PLANE_TYPES ClipPlaneType[SUMA_MAX_N_CLIP_PLANES]; /*!< Screen clipping, object clipping, etc. */
+   int N_ClipPlanes; 
+      /*!< Number of screen clipping planes, 3 max allowed */
+   GLdouble ClipPlanes[4*SUMA_MAX_N_CLIP_PLANES]; 
+      /*!< Equations of  clipping planes */
+   SUMA_CLIP_PLANE_TYPES ClipPlaneType[SUMA_MAX_N_CLIP_PLANES]; 
+      /*!< Screen clipping, object clipping, etc. */
    char ClipPlanesLabels[SUMA_MAX_N_CLIP_PLANES][9]; 
    
    int NoDuplicatesInRecorder;

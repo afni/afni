@@ -3,6 +3,7 @@
 
 #define SUMA_CMAP_WIDTH    20
 #define SUMA_CMAP_HEIGHT   300
+#define SUMA_SCALE_SLIDER_WIDTH 18
 #define SUMA_SCALE_WIDTH 70
 #define SUMA_SCALE_HEIGHT  SUMA_CMAP_HEIGHT   
 #define SUMA_CMAP_ORIGIN   0.0,  0.0,     0.0
@@ -113,6 +114,9 @@ FIX_SCALE_SIZE*/
 }
 
 void SUMA_ShowMeTheChildren(Widget w);
+void SUMA_UnmanageTheChildren(Widget w);
+void SUMA_ManageTheChildren(Widget w);
+void SUMA_DoForTheChildren(Widget w, int i, int lvl, int rec);
 XImage *SUMA_cmap_to_XImage (Widget wid, SUMA_COLOR_MAP *cm);
 void SUMA_DrawCmap(SUMA_COLOR_MAP *Cmap);
 void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO);

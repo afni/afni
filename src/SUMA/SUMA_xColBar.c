@@ -1978,6 +1978,73 @@ void  SUMA_SetCellEditMode(SUMA_TABLE_FIELD *TF, int i, int j, int Mode)
    SUMA_RETURNe;
 }
 
+/* 
+Appends a font of a some name to a fontlist. 
+You'll almost always want to call the function with the same 1st argument and
+the returned variable. The function will free the old one and return a new one.
+Read function for more detail.
+ 
+   fontlist = SUMA_AppendToFontList(fontlist, w, "6x10", NULL);
+
+Font lesson from http://www-h.eng.cam.ac.uk/help/tpl/graphics/Motif/mt3 :
+-------------------------------------------------------------------------
+"""Begin quote 
+[How do you find out which font names are valid on your system? Generally,
+type the command:
+
+	xlsfonts -fn "*" > out,
+
+and then look at "out". All the font names will be in the file. Some of 
+them are short, like "6x10" used above, but some are monsters, as shown 
+in the fragment of my "out" file copied below:
+
+-adobe-times-bold-i-normal--24-240-75-75-p-128-iso8859-1
+-adobe-times-bold-i-normal--25-180-100-100-p-128-iso8859-1
+-adobe-times-bold-i-normal--34-240-100-100-p-170-iso8859-1
+
+To use one of these fonts, I can say:
+	
+	 namestring="*times*-25-*";
+
+in the above code. This will get a 25 point times font. If I want a specific
+times font I can be more specific, like "*times*bold*-25-*". The "*" is
+a wildcard like it is in a file name.]
+"""End quote
+
+*/
+XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
+                                 char *fontname, char *tag)
+{
+   static char FuncName[]={"SUMA_AppendToFontList"};
+   XFontStruct *font = NULL;
+   XmFontList fontlist = NULL;
+   XmFontListEntry entry = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!tag) tag = XmFONTLIST_DEFAULT_TAG;
+   
+   if (!(font = XLoadQueryFont(XtDisplay(w), fontname))) {
+      SUMA_S_Errv("Failed to get font named %s\n", fontname);
+      SUMA_RETURN(fontlist);
+   }
+   #if 0
+      /* OBSOLETE, do not use. If you use it, you'll also need to take care 
+      of clean up */
+   fontlist = XmFontListCreate(font, XmSTRING_DEFAULT_CHARSET);
+   #else
+      entry = XmFontListEntryCreate(tag, 
+                                    XmFONT_IS_FONT, font);
+      /* Do not free font after this call. 
+         Unless all other lists referencing it are feed */
+      fontlist = XmFontListAppendEntry(fontlisti, entry);
+         /* fontlisti is taken care of inside XmFontListAppendEntry */
+      XmFontListEntryFree(&entry); entry = NULL;
+   #endif
+   
+   SUMA_RETURN(fontlist);
+} 
+
 /*!
    \brief create a table widget
    \param parent (Widget) 
@@ -2079,10 +2146,12 @@ void SUMA_CreateTable(  Widget parent,
          XmNmarginWidth, 0, 
          NULL);
       
-      if (i == 0 && TF->HasColTit) { /* This is left here to show that I tried using different packing methods
-                                       to get the title to appear centered with the cell entries below.
-                                       That did nothing. Setting packing to tight in all cases and padding
-                                       the titles to fit the cell entry widths works fine */
+      if (i == 0 && TF->HasColTit) { 
+         /* This is left here to show that I 
+            tried using different packing methods
+            to get the title to appear centered with the cell entries below.
+            That did nothing. Setting packing to tight in all cases and padding
+            the titles to fit the cell entry widths works fine */
          XtVaSetValues (rcc, XmNpacking, XmPACK_TIGHT, NULL); 
       } else {
          XtVaSetValues (rcc, XmNpacking, XmPACK_TIGHT, NULL); 
@@ -2092,43 +2161,55 @@ void SUMA_CreateTable(  Widget parent,
          n = j * TF->Ni + i;
          switch (SUMA_cellvariety(TF, n)) {
             case SUMA_ROW_TIT_CELL: /* row's title */
-               if (LocalHead) fprintf(SUMA_STDERR,"%s:\nAdding [%d %d] (%d) %s\n", FuncName, i, j, n, row_tit[i]);
+               if (LocalHead) 
+                  fprintf( SUMA_STDERR,
+                           "%s:\nAdding [%d %d] (%d) %s\n", 
+                           FuncName, i, j, n, row_tit[i]);
                #if 0
                   TF->cells[n] = XtVaCreateManagedWidget(row_tit[i],  
                                                 xmLabelWidgetClass, rcc, 
                                                 NULL);
                #else
-                  TF->cells[n] = XtVaCreateManagedWidget("column title",   
-                                                   xmTextFieldWidgetClass, rcc,
-                                                   XmNvalue, row_tit[i],
-                                                   XmNmarginHeight, 0,
-                                                   XmNmarginWidth, 0,
-                                                   XmNmarginTop, 0,
-                                                   XmNmarginBottom, 0,
-                                                   XmNmarginLeft, 0,
-                                                   XmNmarginRight, 0,
-                                                   XmNeditable, False, 
-                                                   XmNshadowThickness , 0,          /* hide the border */
-                                                   XmNcursorPositionVisible, False, /* hide the cursor */
-                                                   XmNcolumns, strlen(row_tit[i]), 
-                                                   NULL);
+                  TF->cells[n] = 
+                     XtVaCreateManagedWidget("table",   
+                           xmTextFieldWidgetClass, rcc,
+                           XmNvalue, row_tit[i],
+                           XmNmarginHeight, 0,
+                           XmNmarginWidth, 0,
+                           XmNmarginTop, 0,
+                           XmNmarginBottom, 0,
+                           XmNmarginLeft, 0,
+                           XmNmarginRight, 0,
+                           XmNeditable, False, 
+                           XmNshadowThickness , 0,          /* hide the border */
+                           XmNcursorPositionVisible, False, /* hide the cursor */
+                           XmNcolumns, strlen(row_tit[i]), 
+                           NULL);
+   
+
                #endif
-               if (!TF->TitLabelEVHandlerData) cd = (XtPointer) TF; else cd = (XtPointer)TF->TitLabelEVHandlerData;
+               if (!TF->TitLabelEVHandlerData) 
+                  cd = (XtPointer) TF; 
+               else cd = (XtPointer)TF->TitLabelEVHandlerData;
                if (TF->TitLabelEVHandler) {
                   /* insert handler to catch clicks on titles */
-                  XtInsertEventHandler( TF->cells[n] ,      /* handle events in title cell */
-                              ButtonPressMask ,  /* button presses */
-                              FALSE ,            /* nonmaskable events? */
-                              TF->TitLabelEVHandler,  /* handler */
-                              cd ,   /* client data */
-                              XtListTail ) ; 
+                  XtInsertEventHandler( 
+                     TF->cells[n] ,      /* handle events in title cell */
+                     ButtonPressMask ,  /* button presses */
+                     FALSE ,            /* nonmaskable events? */
+                     TF->TitLabelEVHandler,  /* handler */
+                     cd ,   /* client data */
+                     XtListTail ) ; 
                }
                if (row_hint)  MCW_register_hint( TF->cells[n], row_hint[i] );
                if (row_help)  MCW_register_help( TF->cells[n], row_help[i] ) ;
                break;
                
             case SUMA_COL_TIT_CELL: /* column's title */
-               if (LocalHead) fprintf(SUMA_STDERR,"%s:\nAdding [%d %d] (%d) %s\n", FuncName, i, j, n, col_tit[j]);
+               if (LocalHead) 
+                  fprintf( SUMA_STDERR,
+                           "%s:\nAdding [%d %d] (%d) %s\n", 
+                           FuncName, i, j, n, col_tit[j]);
                /* padd to fit cell entry fields*/
                if (i == 0 && j != 0 && TF->HasColTit) { 
                   titw = TF->cwidth[j]; 
@@ -2144,41 +2225,49 @@ void SUMA_CreateTable(  Widget parent,
                                                 xmLabelWidgetClass, rcc,
                                                 NULL);
                #else 
-                  TF->cells[n] = XtVaCreateManagedWidget("column title",   
-                                                   xmTextFieldWidgetClass, rcc,
-                                                   XmNvalue, col_tit[j],
-                                                   XmNmarginHeight, 0,
-                                                   XmNmarginWidth, xmw,
-                                                   XmNmarginTop, 0,
-                                                   XmNmarginBottom, 0,
-                                                   XmNmarginLeft, 0,
-                                                   XmNmarginRight, 0,
-                                                   XmNeditable, False, 
-                                                   XmNshadowThickness , 0,          /* hide the border */
-                                                   XmNcursorPositionVisible, False, /* hide the cursor */
-                                                   XmNcolumns, titw, 
-                                                   NULL);
+                  TF->cells[n] = 
+                     XtVaCreateManagedWidget("table",   
+                           xmTextFieldWidgetClass, rcc,
+                           XmNvalue, col_tit[j],
+                           XmNmarginHeight, 0,
+                           XmNmarginWidth, xmw,
+                           XmNmarginTop, 0,
+                           XmNmarginBottom, 0,
+                           XmNmarginLeft, 0,
+                           XmNmarginRight, 0,
+                           XmNeditable, False, 
+                           XmNshadowThickness , 0,          /* hide the border */
+                           XmNcursorPositionVisible, False, /* hide the cursor */
+                           XmNcolumns, titw, 
+                           NULL);
                #endif
                if (i == 0 && j != 0) { 
-                  XtVaSetValues( TF->cells[n], XmNalignment, XmALIGNMENT_BEGINNING, NULL);
+                  XtVaSetValues( TF->cells[n], 
+                                 XmNalignment, XmALIGNMENT_BEGINNING, NULL);
                }
                
                /* insert handler to catch clicks on titles */
-               if (!TF->TitLabelEVHandlerData) cd = (XtPointer) TF; else cd = (XtPointer)TF->TitLabelEVHandlerData;
+               if (!TF->TitLabelEVHandlerData) 
+                  cd = (XtPointer) TF; 
+               else cd = (XtPointer)TF->TitLabelEVHandlerData;
                if (TF->TitLabelEVHandler) {
                   /* insert handler to catch clicks on titles */
-                  XtInsertEventHandler( TF->cells[n] ,      /* handle events in title cell */
-                              ButtonPressMask ,  /* button presses */
-                              FALSE ,            /* nonmaskable events? */
-                              TF->TitLabelEVHandler,  /* handler */
-                              cd ,   /* client data */
-                              XtListTail ) ; 
+                  XtInsertEventHandler( 
+                     TF->cells[n] ,      /* handle events in title cell */
+                     ButtonPressMask ,  /* button presses */
+                     FALSE ,            /* nonmaskable events? */
+                     TF->TitLabelEVHandler,  /* handler */
+                     cd ,   /* client data */
+                     XtListTail ) ; 
                }                 
                if (col_hint)  MCW_register_hint( TF->cells[n], col_hint[j] );
                if (col_help)  MCW_register_help( TF->cells[n], col_help[j] ) ;
                break;
             case SUMA_ENTRY_CELL: /* entry cell */
-               if (LocalHead) fprintf(SUMA_STDERR,"%s:\nAdding [%d %d] (%d) entry cell\n", FuncName, i, j, n);
+               if (LocalHead) 
+                  fprintf( SUMA_STDERR,
+                           "%s:\nAdding [%d %d] (%d) entry cell\n", 
+                           FuncName, i, j, n);
                TF->cells[n] = XtVaCreateManagedWidget("entry",  
                                                    xmTextFieldWidgetClass, rcc,
                                                    XmNuserData, (XtPointer)n,
@@ -2191,17 +2280,31 @@ void SUMA_CreateTable(  Widget parent,
                   MCW_register_help( TF->cells[n], "Hints and help messages\n"
                                                    "are attached to table's\n"
                                                    "column and row titles."  ) ;
-               if (TF->cwidth[j] > 0) {  XtVaSetValues(TF->cells[n], XmNcolumns, TF->cwidth[j], NULL); }
+               if (TF->cwidth[j] > 0) {  
+                  XtVaSetValues(TF->cells[n], XmNcolumns, TF->cwidth[j], NULL); 
+               }
                if (!TF->editable) { 
                   SUMA_SetCellEditMode(TF, i, j, 0);
                } else {
                   SUMA_SetCellEditMode(TF, i, j, 1);
                }
+               /* set the font */
+               if (!SUMAg_CF->X->TableTextFontList) {
+                  SUMAg_CF->X->TableTextFontList = 
+                     SUMA_AppendToFontList( SUMAg_CF->X->TableTextFontList, 
+                                          TF->cells[n], "*8x13*", NULL);
+               }
+               XtVaSetValues( TF->cells[n], 
+                              XmNfontList, SUMAg_CF->X->TableTextFontList,
+                              NULL);
+
                /* insert handlers if any */
-               if (!TF->CellEVHandlerData) cd = (XtPointer) TF; else cd = (XtPointer)TF->CellEVHandlerData;
+               if (!TF->CellEVHandlerData) cd = (XtPointer) TF; 
+                  else cd = (XtPointer)TF->CellEVHandlerData;
                if (TF->CellEVHandler) {
                   /* insert handler to catch clicks on cells */
-                  XtInsertEventHandler( TF->cells[n] ,      /* handle events in cell */
+                  XtInsertEventHandler( 
+                              TF->cells[n] ,      /* handle events in cell */
                               ButtonPressMask ,  /* button presses */
                               FALSE ,            /* nonmaskable events? */
                               TF->CellEVHandler,  /* handler */
@@ -4638,6 +4741,13 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
                                           xmScaleWidgetClass, rct,
                                           XtVaNestedList, arglist,
                                           NULL);
+#ifdef USING_LESSTIF
+   if (LocalHead) fprintf(stderr,"\n========= setting width to %d\n",
+                                 SUMA_SCALE_SLIDER_WIDTH);
+   XtVaSetValues( SO->SurfCont->thr_sc, 
+                  XmNscaleWidth, SUMA_SCALE_SLIDER_WIDTH , NULL ) ;
+#endif
+
 
       XtAddCallback (SO->SurfCont->thr_sc, 
                      XmNvalueChangedCallback, 
@@ -4682,7 +4792,8 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
       SO->SurfCont->cmaptit_lb = XtVaCreateManagedWidget (slabel, 
                                           xmLabelWidgetClass, rcc,
                                           NULL);
-      /* need another rc for the cmap to avoid having the glxarea resized by cmaptit_lb
+      /* need another rc for the cmap to avoid having 
+      the glxarea resized by cmaptit_lb
       and SwitchCmapMenu */
       rcc2 = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, rcc,
@@ -4702,21 +4813,30 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_SurfaceObject *SO)
              XmNheight,  SUMA_CMAP_HEIGHT,
              NULL);
       #else
-         SO->SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
-                                             glwDrawingAreaWidgetClass, rcc2,
-                                             GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
-                                             XtNcolormap, SUMAg_SVv[0].X->CMAP,
-                                             XmNwidth,   SUMA_CMAP_WIDTH,
-                                             XmNheight,  SUMA_CMAP_HEIGHT,
-                                             NULL);
+         SO->SurfCont->cmp_ren->cmap_wid = 
+               XtVaCreateManagedWidget("glxarea",
+                                       glwDrawingAreaWidgetClass, rcc2,
+                                       GLwNvisualInfo, SUMAg_SVv[0].X->VISINFO,
+                                       XtNcolormap, SUMAg_SVv[0].X->CMAP,
+                                       XmNwidth,   SUMA_CMAP_WIDTH,
+                                       XmNheight,  SUMA_CMAP_HEIGHT,
+                                       NULL);
       #endif
       XtManageChild (rcc2);
       
       /* add me some callbacks */
-      XtAddCallback(SO->SurfCont->cmp_ren->cmap_wid, GLwNginitCallback, SUMA_cmap_wid_graphicsInit, (XtPointer )SO);
-      XtAddCallback(SO->SurfCont->cmp_ren->cmap_wid, GLwNexposeCallback, SUMA_cmap_wid_expose, (XtPointer )SO);
-      XtAddCallback(SO->SurfCont->cmp_ren->cmap_wid, GLwNresizeCallback, SUMA_cmap_wid_resize, (XtPointer )SO);
-      XtAddCallback(SO->SurfCont->cmp_ren->cmap_wid, GLwNinputCallback, SUMA_cmap_wid_input, (XtPointer )SO);
+      XtAddCallback( SO->SurfCont->cmp_ren->cmap_wid, 
+                     GLwNginitCallback, SUMA_cmap_wid_graphicsInit, 
+                     (XtPointer )SO);
+      XtAddCallback( SO->SurfCont->cmp_ren->cmap_wid, 
+                     GLwNexposeCallback, SUMA_cmap_wid_expose, 
+                     (XtPointer )SO);
+      XtAddCallback( SO->SurfCont->cmp_ren->cmap_wid, 
+                     GLwNresizeCallback, SUMA_cmap_wid_resize, 
+                     (XtPointer )SO);
+      XtAddCallback( SO->SurfCont->cmp_ren->cmap_wid, 
+                     GLwNinputCallback, SUMA_cmap_wid_input, 
+                     (XtPointer )SO);
       
       XtManageChild (rcc);
    }  /* the colorbar */
@@ -4810,11 +4930,29 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, in
    SUMA_RETURN (menu);
 }
 
-void SUMA_ShowMeTheChildren(Widget w)
+void SUMA_ShowMeTheChildren(Widget w) {
+   SUMA_DoForTheChildren(w,0, 0, 0);
+}
+
+void SUMA_UnmanageTheChildren(Widget w) {
+   SUMA_DoForTheChildren(w, -1, 0, 0);
+}
+void SUMA_ManageTheChildren(Widget w) {
+   SUMA_DoForTheChildren(w, 1, 0, 0);
+}
+
+/*!
+   Perform operation on the children of a widget
+   i = 0: Write out the names of the widgets
+       1: Manage widgets
+      -1: Unmanage widgets
+*/ 
+void SUMA_DoForTheChildren(Widget w, int i, int lvl, int rec)
 {
-   static char FuncName[]={"SUMA_ShowMeTheChildren"};
+   static char FuncName[]={"SUMA_DoForTheChildren"};
    Widget * children ;
-   int  num_children , ic , Nbutt=0;
+   int  num_children, num_children2, ic , Nbutt=0, kk=0;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -4822,16 +4960,47 @@ void SUMA_ShowMeTheChildren(Widget w)
                               XmNnumChildren , &num_children , 
                               XmNbuttonCount, &Nbutt,
                               NULL ) ;
-   
-   fprintf (SUMA_STDERR, "%s: The (%d) children of %s (%d N_butts):\n", FuncName, num_children, XtName(w), Nbutt);
    for( ic=0 ; ic < num_children ; ic++ ){
-      /* what's the name jane ? */
-      XtVaGetValues (children[ic], XmNbuttonCount, &Nbutt, NULL);
-      fprintf (SUMA_STDERR, "%d: %s (%d N_butts)\n", ic, XtName(children[ic]), Nbutt);
+      if (rec) { /* recursive, but ugly output */
+         XtVaGetValues( children[ic] , XmNnumChildren , &num_children2, NULL);
+         if (num_children2) SUMA_DoForTheChildren(children[ic],i, lvl+1, rec);
+      }
+      if (LocalHead) {
+         /* what's the name jane ? */
+         XtVaGetValues (children[ic], XmNbuttonCount, &Nbutt, NULL);
+         for (kk=0; kk<lvl; ++kk) fprintf (SUMA_STDERR,"  "); 
+         fprintf (SUMA_STDERR,   "%d.%d: %s (%d N_butts)\n", 
+                                 lvl, ic, XtName(children[ic]), Nbutt);
+      }
+      switch (i) {
+         case 1: 
+            XtManageChild(children[ic]);
+            break;
+         case -1:
+            XtUnmanageChild(children[ic]);
+            break;
+         case 0:
+            /* what's the name jane ? */
+            XtVaGetValues (children[ic], XmNbuttonCount, &Nbutt, NULL);
+            for (kk=0; kk<lvl; ++kk) fprintf (SUMA_STDERR,"  "); 
+            fprintf (SUMA_STDERR,   "%d.%d: %s (%d N_butts)\n", 
+                                     lvl,  ic, XtName(children[ic]), Nbutt);
+            break;
+         default:
+            SUMA_S_Err("Action %d unknown");
+            SUMA_RETURNe;
+      }
    }
    
+   if (i==0 || LocalHead) {
+      for (kk=0; kk<lvl; ++kk) fprintf (SUMA_STDERR,"  "); 
+      fprintf (SUMA_STDERR, 
+            "%s: Widget '%s' (lvl %d) has (%d) children (%d N_butts):\n", 
+            FuncName, XtName(w), lvl, num_children, Nbutt);
+   }
    SUMA_RETURNe;
 }
+
 
 SUMA_MenuItem *SUMA_FormSwitchCmapMenuVector(SUMA_COLOR_MAP **CMv, int N_maps)
 {
