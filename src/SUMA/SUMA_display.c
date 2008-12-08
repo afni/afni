@@ -2300,8 +2300,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          SUMAg_SVv[ic].X->DOUBLEBUFFER = SUMAg_SVv[0].X->DOUBLEBUFFER;
       }
 		
-      #ifdef LESSTIF 
-         SUMA_S_Warn("Using LessTif Libraries. Bad idea.");
+      #ifdef USING_LESSTIF 
+         SUMA_LH("Using LessTif Libraries.");
       #else
          SUMA_LH("Using Open Motif libraries");
       #endif

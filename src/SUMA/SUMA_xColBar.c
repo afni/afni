@@ -2079,7 +2079,7 @@ void SUMA_CreateTable(  Widget parent,
                         SUMA_TABLE_FIELD *TF) 
 {
    static char FuncName[]={"SUMA_CreateTable"};
-   int i, j, n, titw, xmw;
+   int i, j, n, titw, xmw, shad;
    char *tmp;
    Widget rco, rcc;
    XtPointer cd;
@@ -2087,6 +2087,21 @@ void SUMA_CreateTable(  Widget parent,
    
    SUMA_ENTRY;                        
 
+   if (!parent) { SUMA_SL_Err("NULL parent"); SUMA_RETURNe; }
+   
+   /* initialize font list if need be */
+   if (!SUMAg_CF->X->TableTextFontList) {
+      if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
+         SUMAg_CF->X->TableTextFontList = 
+               SUMA_AppendToFontList( SUMAg_CF->X->TableTextFontList, 
+                                       parent, "*9x15*", NULL);
+      } else {
+         SUMAg_CF->X->TableTextFontList = 
+               SUMA_AppendToFontList( SUMAg_CF->X->TableTextFontList, 
+                                       parent, "*8x13*", NULL);
+      }    
+   }
+   
    if (!TF) { SUMA_SL_Err("NULL TF"); SUMA_RETURNe; }
    TF->Ni = Ni; TF->Nj = Nj; TF->editable = editable; 
    TF->cwidth = (int *)SUMA_calloc(TF->Nj, sizeof(int)); 
@@ -2125,7 +2140,8 @@ void SUMA_CreateTable(  Widget parent,
       XmNmarginHeight, 0,
       XmNmarginWidth, 0,
       NULL);
-       
+               
+    
    /* Le row column to contain the table's columns*/
    rco = XtVaCreateManagedWidget ("rowcolumn",
       xmRowColumnWidgetClass, TF->rc,
@@ -2185,7 +2201,9 @@ void SUMA_CreateTable(  Widget parent,
                            XmNcursorPositionVisible, False, /* hide the cursor */
                            XmNcolumns, strlen(row_tit[i]), 
                            NULL);
-   
+                  XtVaSetValues( TF->cells[n], 
+                                 XmNfontList, 
+                                 SUMAg_CF->X->TableTextFontList, NULL);
 
                #endif
                if (!TF->TitLabelEVHandlerData) 
@@ -2215,10 +2233,12 @@ void SUMA_CreateTable(  Widget parent,
                   titw = TF->cwidth[j]; 
                   /* set the margins to meet those of cell entries */
                   xmw = 5;
+                  shad = 1;
                } else {
                   titw = TF->cwidth[j];
                   /* set the margins to meet those of Labels */
                   xmw = 0;
+                  shad = 0;
                }
                #if 0
                   TF->cells[n] = XtVaCreateManagedWidget(tmp,  
@@ -2230,16 +2250,47 @@ void SUMA_CreateTable(  Widget parent,
                            xmTextFieldWidgetClass, rcc,
                            XmNvalue, col_tit[j],
                            XmNmarginHeight, 0,
-                           XmNmarginWidth, xmw,
+                           XmNmarginWidth, xmw+shad,/*include shadow size 
+                                                     of text entry cells*/
                            XmNmarginTop, 0,
                            XmNmarginBottom, 0,
                            XmNmarginLeft, 0,
                            XmNmarginRight, 0,
                            XmNeditable, False, 
-                           XmNshadowThickness , 0,          /* hide the border */
+                           XmNshadowThickness , 0,       /* hide the border */
                            XmNcursorPositionVisible, False, /* hide the cursor */
-                           XmNcolumns, titw, 
+                              /* Keep these two out: See warning below ...
+                              XmNfontList, SUMAg_CF->X->TableTextFontList,
+                              XmNcolumns, titw,
+                              */ 
                            NULL);
+                  
+                  /* WARNING: At least with LESSTIF:
+                     The order in which one sets XmNfontList
+                     and XmNcolumns matters. For example, adding:
+                        XmNfontList, SUMAg_CF->X->TableTextFontList,
+                        XmNcolumns, titw,
+                     to XtVaCreateManagedWidget above does not 
+                     work. You need to call XtVaSetValues for these
+                     variables separately. 
+                     
+                     Also, simply adding the XtVaSetValues lines
+                     below WITHOUT removing the two lines:
+                        XmNfontList, SUMAg_CF->X->TableTextFontList,
+                        XmNcolumns, titw,
+                     from XtVaCreateManagedWidget does not work quite well.
+                     
+                     Also, note that the shadow adds to the size of the 
+                     TextFieldWdiget, it does not eat 'into' it. So to
+                     improve title alignment, I added the shadow thickness
+                     into the margin width. */
+                  
+                  XtVaSetValues( TF->cells[n], 
+                                 XmNfontList, 
+                                 SUMAg_CF->X->TableTextFontList, NULL);
+                  XtVaSetValues( TF->cells[n], XmNcolumns, titw, 
+                           NULL);
+                        
                #endif
                if (i == 0 && j != 0) { 
                   XtVaSetValues( TF->cells[n], 
@@ -2268,14 +2319,19 @@ void SUMA_CreateTable(  Widget parent,
                   fprintf( SUMA_STDERR,
                            "%s:\nAdding [%d %d] (%d) entry cell\n", 
                            FuncName, i, j, n);
-               TF->cells[n] = XtVaCreateManagedWidget("entry",  
-                                                   xmTextFieldWidgetClass, rcc,
-                                                   XmNuserData, (XtPointer)n,
-                                                   XmNvalue, "-",
-                                                   XmNmarginHeight, 0,
-                                                   XmNmarginTop, 0,
-                                                   XmNmarginBottom, 0, 
-                                                   NULL);
+               TF->cells[n] = XtVaCreateManagedWidget(
+                              "entry",  
+                              xmTextFieldWidgetClass, rcc,
+                              XmNuserData, (XtPointer)n,
+                              XmNvalue, "-",
+                              XmNmarginHeight, 0,
+                              XmNmarginTop, 0,
+                              XmNmarginBottom, 0,
+                              XmNmarginWidth, 5, 
+                              NULL);
+                  XtVaSetValues( TF->cells[n], 
+                                 XmNfontList, 
+                                 SUMAg_CF->X->TableTextFontList, NULL);
                if (col_help || col_hint || row_help || row_hint)  
                   MCW_register_help( TF->cells[n], "Hints and help messages\n"
                                                    "are attached to table's\n"
@@ -2288,15 +2344,6 @@ void SUMA_CreateTable(  Widget parent,
                } else {
                   SUMA_SetCellEditMode(TF, i, j, 1);
                }
-               /* set the font */
-               if (!SUMAg_CF->X->TableTextFontList) {
-                  SUMAg_CF->X->TableTextFontList = 
-                     SUMA_AppendToFontList( SUMAg_CF->X->TableTextFontList, 
-                                          TF->cells[n], "*8x13*", NULL);
-               }
-               XtVaSetValues( TF->cells[n], 
-                              XmNfontList, SUMAg_CF->X->TableTextFontList,
-                              NULL);
 
                /* insert handlers if any */
                if (!TF->CellEVHandlerData) cd = (XtPointer) TF; 
