@@ -127,8 +127,9 @@ for (icol=1:1:length(R)),
       grid on
       %title it
       title (R(icol).vname, 'Interpreter', 'None');
-      drawnow;
-      pause;
+               drawnow ;
+         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+
    end
 end
 return;

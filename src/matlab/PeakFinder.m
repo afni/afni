@@ -42,8 +42,12 @@ end
 
 %some filtering
 fnyq = Opt.PhysFS./2;
-w = Opt.fcutoff/fnyq;    % cut off frequency normalized
-b = fir1(Opt.FIROrder, w);     %FIR filter of order 40
+%w(1) = 0.1/fnyq;  %cut frequencies below 0.1Hz
+%w(2) = Opt.fcutoff/fnyq;    % upper cut off frequency normalized
+%b = fir1(Opt.FIROrder, w, 'bandpass');     %FIR filter of order 40
+w = Opt.fcutoff/fnyq;    % upper cut off frequency normalized
+b = fir1(Opt.FIROrder, w, 'low');     %FIR filter of order 40
+
 NoDups = 1; % remove duplicates that might come up when improving peak location
   
 if (ischar(vvec)),
@@ -119,7 +123,7 @@ for (icol = 1:1:nl),
       plot (tptrace, ptrace, 'ro'); 
       plot (tntrace, ntrace, 'bo'); 
       %plot (R(icol).t, abs(R(icol).X),'k');   
-      
+
       subplot (413); 
       vn = real(R(icol).X)./(abs(R(icol).X)+eps);
       plot (R(icol).t, vn, 'g'); hold on
@@ -128,7 +132,8 @@ for (icol = 1:1:nl),
       ppp = find(pol<0);
       plot (tiz(ppp), vn(iz(ppp)), 'bo'); 
       
-      pause;
+         drawnow ;
+         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
    end
    
 
@@ -175,7 +180,8 @@ for (icol = 1:1:nl),
                R(icol).tptrace, R(icol).ptrace,'r');
          plot( R(icol).tntrace, R(icol).ntrace,'b+',...
                R(icol).tntrace, R(icol).ntrace,'b');
-         pause;
+         drawnow ;
+         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
       end
    else
       tizp = tiz;
@@ -201,7 +207,8 @@ for (icol = 1:1:nl),
        text( R(icol).tmidprd(i), R(icol).ptracemidprd(i),...
              sprintf('%.2f', R(icol).prd(i)));
       end
-      pause;
+         drawnow ;
+         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
    end
    
    if (~isempty(Opt.ResamKernel)),

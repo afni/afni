@@ -60,7 +60,8 @@ function R = RVT_from_PeakFinder(R, Opt)
                   zscale(R(icol).RVTRS, max(R(icol).ptrace),...
                   min(R(icol).ptrace)), 'm');
          end
-         pause;
+         drawnow ;
+         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
       end
    end
 return;
