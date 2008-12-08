@@ -48,7 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
- {  8, DEC, 2008, RCR, "balloon", MICRO, TYPE_GENERAL,
+ {  8, DEC, 2008, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
+   "allow -test_libs to proceed without numpy",
+   NULL
+ } ,
+
+ {  8, DEC, 2008, RCR, "Makefile", MICRO, TYPE_GENERAL,
    "added Makefile.macosx_10.5_G4",
    NULL
  } ,

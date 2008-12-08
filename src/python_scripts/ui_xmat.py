@@ -6,7 +6,6 @@ import gc, math
 
 # AFNI libraries
 import option_list as OL
-import afni_xmat as AM
 import afni_util as UTIL
 
 # ----------------------------------------------------------------------
@@ -476,9 +475,11 @@ g_history = """
    1.0  Nov 21 2008: initial release
         - added Options menu and Show Cosmat
         - added GUI help
+
+   1.1  Dec 08 2008: allow -test_libs to proceed without numpy
 """
 
-g_version = "xmat_tool.py version 1.0, November 21, 2008"
+g_version = "xmat_tool.py version 1.1, December 8, 2008"
 
 g_cormat_cut = 0.4
 g_cosmat_cut = 0.3827
@@ -488,6 +489,7 @@ class XmatInterface:
    def __init__(self, verb=1):
       # main variables
       self.status          = 0                       # exit value
+      self.AM              = None                    # local afni_xmat module
       self.valid_opts      = None
       self.user_opts       = None
       self.gui_opts        = []
@@ -512,9 +514,22 @@ class XmatInterface:
       # initialize valid_opts
       self.init_options()
 
+      # if we terminate just return
+      if self.check_terminal_options(): return
+
       # process options - if a failure occurs, block gui
-      self.status = self.process_options()
+      if not self.status: self.status = self.process_options()
       if self.status: self.use_gui = 0
+
+   def set_afni_xmat(self):
+      """load afni_xmat locally as AM"""
+      try:
+         import afni_xmat
+         self.AM = afni_xmat
+      except:
+         print "\n--> use 'xmat_tool.py -test_libs' to test all modules\n"
+         self.status = 1
+      return self.status
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -587,42 +602,54 @@ class XmatInterface:
 
       return 0
 
-   def process_options(self):
+   def check_terminal_options(self):
 
       # process terminal options without the option_list interface
 
       if '-help' in sys.argv:
          print g_help_string
-         return 0
+         return 1
 
       if '-help_gui' in sys.argv:
          print gui_help_string
-         return 0
+         return 1
 
       if '-hist' in sys.argv:
          print g_history
-         return 0
+         return 1
 
       if '-show_valid_opts' in sys.argv:
          self.valid_opts.show('', 1)
-         return 0
+         return 1
 
       if '-test' in sys.argv:
          self.test()
-         return 0
-
-      if '-test_libs' in sys.argv:
-         return self.test_libraries()
+         return 1
 
       if '-ver' in sys.argv:
          print g_version
-         return 0
+         return 1
+
+      return 0
+
+   def process_options(self):
 
       # ============================================================
       # read options specified by the user
       self.user_opts = OL.read_options(sys.argv, self.valid_opts)
       uopts = self.user_opts            # convenience variable
       if not uopts: return 1            # error condition
+
+      # ------------------------------------------------------------
+      # check -test_libs separately, as we may want to apply -verb
+
+      if '-test_libs' in sys.argv:
+         val, err = self.user_opts.get_type_opt(int, '-verb')
+         if val == None or err: val = 2
+         return self.test_libraries(verb=val)
+
+      # attempting real work, load AM (locally)
+      self.set_afni_xmat()
 
       # ------------------------------------------------------------
       # check general options, esp. chrono
@@ -760,7 +787,7 @@ class XmatInterface:
       clist = UTIL.decode_1D_ints(cstr, max=ncols-1)
       if not clist:
          return "invalid column list\n\n--> please use AFNI sub-brick notation"
-      elif not AM.list2_is_in_list1(range(ncols), clist):
+      elif not self.AM.list2_is_in_list1(range(ncols), clist):
          return "column list outside xmat cols 0..%d" % (ncols-1)
 
       self.col_list = clist
@@ -847,7 +874,7 @@ class XmatInterface:
    def set_xmat(self, fname):
       """read and store the X matrix from file 'fname'
          return 0 on success, 1 on error"""
-      mat = AM.AfniXmat(fname, verb=self.verb)
+      mat = self.AM.AfniXmat(fname, verb=self.verb)
       if not mat.ready:
          del(mat)
          return 1
@@ -876,7 +903,7 @@ class XmatInterface:
    def set_1D(self, fname):
       """read and store the timeseries from file 'fname'
          return 0 on success, 1 on error"""
-      mat = AM.AfniXmat(fname, verb=self.verb)
+      mat = self.AM.AfniXmat(fname, verb=self.verb)
       if not mat.ready:
          print "** failed to read timeseries from '%s'" % fname
          del(mat)
@@ -1075,14 +1102,15 @@ class XmatInterface:
       # sys.exc_clear()
       # sys.exc_traceback = sys.last_traceback = None
 
-   def test_libraries(self):
+   def test_libraries(self,verb=2):
       """test for existence of needed python libraries"""
       import module_test_lib as MLT
-      g_testlibs = ['os', 'gc', 'numpy', 'wx', 'matplotlib', 'scipy']
-      if MLT.num_import_failures(g_testlibs,details=1): return 1
+      libs = ['os', 'gc', 'numpy', 'wx', 'matplotlib', 'scipy']
+      if MLT.num_import_failures(libs,details=1,verb=verb): return 1
       else: return 0
 
    def test(self, verb=3):
+      self.set_afni_xmat() # this might not be loaded
       # init
       print '------------------------ initial reads -----------------------'
       self.verb = verb
