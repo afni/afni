@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , DEC , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "Expand -stim_times_AM modulation abilities even more." ,
+   "Now allow 'duration modulation' via the 'dmBLOCK' response model.  A\n"
+   "general facility for allowing up to 3 nonlinear function parameters has\n"
+   "been built into the code, for future expansion.  'dmBLOCK' can also be\n"
+   "amplitude modulated." } ,
+
  { 4 , DEC , 2008 , RWC , "1dMarry" , MINOR , TYPE_MODIFY ,
    "Allow multiple marriages, to go with 3dDeconvolve changes" ,
    NULL } ,
