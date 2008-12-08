@@ -4262,7 +4262,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    
    /* March 12 08: Made font8 default for surface controller */
    if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
-      sss = slabel;
+      sss = "font9";
    } else {
       sss = "font8";
    }

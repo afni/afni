@@ -1891,9 +1891,10 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          int rotval = (int)strtod(eee, NULL);
          if (rotval >= 0) cf->X->NumForeSmoothing = rotval;
          else {
-            fprintf (SUMA_STDERR,   "Warning %s:\n"
-                                    "Bad value for environment variable SUMA_NumForeSmoothing\n"
-                                    "Assuming default of 0", FuncName);
+            fprintf (SUMA_STDERR,   
+               "Warning %s:\n"
+               "Bad value for environment variable SUMA_NumForeSmoothing\n"
+               "Assuming default of 0", FuncName);
             cf->X->NumForeSmoothing = 0;
          }
       } else cf->X->NumForeSmoothing = 0;

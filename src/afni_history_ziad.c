@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 8, DEC , 2008 , ZSS , "suma" , MICRO ,  TYPE_BUG_FIX,
+   "SUMA works now with LESSTIF, interface is almost the same as in MOTIF.",
+   NULL
+ },
+
  { 2, DEC , 2008 , ZSS , "general" , MICRO ,  TYPE_BUG_FIX,
    "Environment vars. set in the shell override those in .afnirc or .sumarc",
    NULL
