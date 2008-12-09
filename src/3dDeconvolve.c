@@ -9600,7 +9600,7 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[0].a = 1.0f;   /* duration; will come from timing file */
      be->bfunc[0].b = 1.0f ;  /* fix peak value = 1 */
      be->bfunc[0].c = 0.0f ;
-     be->vfun       = 1 ;     /* indicate needs 1 param from timing file */
+     be->vfun       = 1 ;     /* needs 1 param from timing file */
 
    /*--- BLOCKn(duration,peak) for n=4 or 5 ---*/
 
