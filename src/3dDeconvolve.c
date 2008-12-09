@@ -898,8 +898,11 @@ void display_help_menu()
     "   with amplitude parameters 5 and 3,                                  \n"
     "   and with duration 12 s.                                             \n"
     " The unmodulated peak response of dmBLOCK is set to 1.                 \n"
-    " (N.B.: the maximum allowed dmBLOCK duration is 999 s.)                \n"
-    " (N.B.: you can't use dmBLOCK with -stim_times or -stim_times_IM.)     \n"
+    " *N.B.: the maximum allowed dmBLOCK duration is 999 s.                 \n"
+    " *N.B.: you can also use dmBLOCK with -stim_times_IM, in which case    \n"
+    "        each time in the 'tname' file should have just one extra       \n"
+    "        parameter -- the duration -- married to it, as in '30:15',     \n"
+    "        meaning a block of duration 15 seconds starting at t=30 s.     \n"
     " For some graphs of what dmBLOCK regressors look like, see             \n"
     "   http://afni.nimh.nih.gov/pub/dist/doc/misc/Decon/AMregression.pdf   \n"
     "                                                                       \n"
@@ -1822,77 +1825,112 @@ void get_options
 
       /*-----  -stim_times k sname rtype [10 Aug 2004]  -----*/
       if( strncmp(argv[nopt],"-stim_times",11) == 0 ){
-        char *suf = argv[nopt]+11 , *sopt=argv[nopt] ; int nc=0,vdim=0,vmod=0 ;
+        char *suf = argv[nopt]+11 , *sopt=argv[nopt] ;
+        int nc=0,vdim=0,vmod=0 ; MRI_IMAGE *tim ;
+
         nopt++ ;
 
         /* check for errors */
 
+        if( *suf != '\0'            &&
+            strcmp(suf,"_AM1") != 0 &&
+            strcmp(suf,"_AM2") != 0 &&
+            strcmp(suf,"_AMx") != 0 &&
+            strcmp(suf,"_IM" ) != 0   )
+          ERROR_exit("Unrecognized -stim_times variant: '%s'",sopt) ;
+
         if( nopt+2 >= argc )
           ERROR_exit("need 3 arguments after %s",sopt) ;
 
+        /* get stim number */
+
         ival = -1 ; sscanf( argv[nopt] , "%d" , &ival ) ;
+
         if( ival < 1 || ival > option_data->num_stimts )
           ERROR_exit("'-stim_times %d' value out of range 1..%d\n",
                      ival , option_data->num_stimts ) ;
+
         k = ival-1 ; nopt++ ;                         /* k = stim array index */
+
+        /* get stim timing image */
 
         if( option_data->stim_filename[k] != NULL )
           ERROR_exit("'%s %d' trying to over-write previous stimulus?!",
                      sopt , ival ) ;
+
         option_data->stim_filename[k] = strdup( argv[nopt] ) ;
 
-        /** cases: 1 number per time point: -stim_times or -stim_times_IM **/
+        basis_times[k] = mri_read_ascii_ragged_fvect(argv[nopt],basis_filler,0);
 
-        if( *suf == '\0' || strcmp(suf,"_IM") == 0 ){
+        if( basis_times[k] == NULL || basis_times[k]->vdim <= 0 )
+          ERROR_exit("'%s %d' can't read file '%s'\n",
+                     sopt , ival , argv[nopt] ) ;
 
-          basis_times[k] = mri_read_ascii_ragged( argv[nopt] , basis_filler ) ;
-          nc = mri_counter( basis_times[k] , 0.0f , 1.0e+9 ) ;
-          if( nc == 0 )  /* 0 is okay, < 0 is not   26 Jul 2007 [rickr] */
-            WARNING_message("'%s %d' didn't read any good times from file '%s'",
-                       sopt , ival , argv[nopt] ) ;
-          else if( nc < 0 )
-            ERROR_exit("'%s %d' couldn't read any data from file '%s'",
-                       sopt , ival , argv[nopt] ) ;
+        if( basis_times[k]->vdim == 1 ){      /* scalar image */
+          basis_times[k]->vdim = 0 ;
+          basis_times[k]->kind = MRI_float ;  /* convert to float type */
+          tim = basis_times[k] ;
+        } else {
+          tim = mri_fvect_subimage( basis_times[k] , 0 ) ; /* extract times */
+        }
 
-        /** cases: multiple numbers per time point: -stim_times_AM? **/
+        /* check number of reasonable times */
+
+        nc = mri_counter( tim , 0.0f , 1.0e+9 ) ;
+
+        if( nc == 0 )  /* 0 is okay, < 0 is not   26 Jul 2007 [rickr] */
+          WARNING_message("'%s %d' didn't read any good times from file '%s'",
+                          sopt , ival , argv[nopt] ) ;
+        else if( nc < 0 )
+          ERROR_exit("'%s %d' couldn't read valid times from file '%s'",
+                     sopt , ival , argv[nopt] ) ;
+
+        if( tim != basis_times[k] ) mri_free(tim) ;
+
+        /** case: 1 number per time point: -stim_times **/
+
+        if( *suf == '\0' ){
+
+          if( basis_times[k]->vdim > 0 )
+            ERROR_exit("'%s %d' file '%s' has %d auxiliary values per time point",
+                       sopt , ival , argv[nopt] , basis_times[k]->vdim-1 ) ;
+
+
+        /** case: 1 or more numbers per time point: -stim_times_IM **/
+
+        } else if( strcmp(suf,"_IM") == 0 ){
+
+          vdim = basis_times[k]->vdim ;  /* will be 0 if there is aux data */
+ 
+        /** cases: multiple numbers per time point: -stim_times_AM* **/
 
         } else if( strncmp(suf,"_AM",3) == 0 ){
 
-          basis_times[k] = mri_read_ascii_ragged_fvect(argv[nopt],basis_filler,0);
-          if( basis_times[k] != NULL ){
-            vdim = basis_times[k]->vdim ;  /* number of values per point */
-            if( vdim < 2 )                 /* need at least 2 (time and amplitude) */
-              ERROR_exit(
-                "'%s %d' file '%s' doesn't have auxiliary values per time point!",
-                sopt , ival , argv[nopt] ) ;
-            else if( vdim-1 > BASIS_MAX_VDIM ) /* over the limit */
-              ERROR_exit(
-                "'%s %d' file '%s' has too many auxiliary values per time point!",
-                sopt , ival , argv[nopt] ) ;
-            else                               /* juuusst right */
-              INFO_message(
-                "'%s %d %s' has %d auxiliary values per time point",
-                sopt , ival , argv[nopt] , vdim-1 ) ;
-          }
+          vdim = basis_times[k]->vdim ;  /* number of values per point */
+          if( vdim < 2 )                 /* need at least 2 (time and amplitude) */
+            ERROR_exit(
+              "'%s %d' file '%s' doesn't have auxiliary values per time point!",
+              sopt , ival , argv[nopt] ) ;
+          else if( vdim-1 > BASIS_MAX_VDIM ) /* over the limit */
+            ERROR_exit(
+              "'%s %d' file '%s' has too many auxiliary values per time point!",
+              sopt , ival , argv[nopt] ) ;
+          else                               /* juuusst right */
+            INFO_message(
+              "'%s %d %s' has %d auxiliary values per time point",
+              sopt , ival , argv[nopt] , vdim-1 ) ;
 
-        /** case: unknown suffix -- kill the user **/
-
-        } else {
+        } else {  /* should not happen */
 
           ERROR_exit("Unknown -stim_times type of option: '%s'",sopt) ;
 
         }
 
-        /** check for bad times file read **/
-
-        if( basis_times[k] == NULL )
-          ERROR_exit("'%s %d' can't read file '%s'\n",
-                     sopt , ival , argv[nopt] ) ;
-        nopt++ ;
-
         /** build regression model from symbolic name **/
         /** [05 Dec 2008] will also set vfun component
             = # of nonlinear function parameters from timing file **/
+
+        nopt++ ;
 
         basis_stim[k] = basis_parser( argv[nopt] ) ;
 
@@ -1906,7 +1944,7 @@ void get_options
         /** + Note that vmod+vfun+1 = vdim is required when vdim > 0;  **/
         /**   the extra '+1' is for the actual stimulus time itself!   **/
         /** + The order of 'married' parameters in the timing file is: **/
-        /**     stimtime,amp#1,...,amp#vmod,parm#1,...parm#vfun        **/
+        /**     stimtime*amp#1,...,amp#vmod:parm#1,...parm#vfun        **/
         /**   where 'amp#k' is the k-th amplitude modulation parameter **/
         /**   and 'parm#j' is the j-th nonlinear parameter that will   **/
         /**   be passed to the basis function evaluator (e.g., width)  **/
@@ -1939,7 +1977,7 @@ void get_options
 
           basis_stim[k]->vmod = vmod = vdim - 1 ;
 
-        } else {                /* no parameters */
+        } else {                /* no auxiliary parameters */
 
           basis_stim[k]->vmod = vmod = 0 ;
 
@@ -1961,6 +1999,13 @@ void get_options
           basis_stim[k]->nparm *= nc ;  /* nc = number of time points */
           INFO_message("'%s %d %s' will have %d regressors",
                        sopt,ival,argv[nopt-1],basis_stim[k]->nparm) ;
+
+          if( vmod != 0 )
+            ERROR_exit("'%s %d %s' has %d amplitude modulation parameters - not legal!",
+                       sopt,ival,argv[nopt-1],vmod) ;
+          if( basis_stim[k]->vfun > 0 && basis_stim[k]->vfun != vdim-1 )
+            ERROR_exit("'%s %d %s' needs %d functional parameters but has %d",
+                       sopt,ival,argv[nopt-1],basis_stim[k]->vfun,vdim-1) ;
 
         } else if( strcmp(suf,"_AM1") == 0 ){
                                                       /* amplitude */

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , DEC , 2008 , RWC , "3dDeconvolve" , MINOR , TYPE_MODIFY ,
+   "Added 'dmBLOCK' to the '-stim_times_IM' repertoire." ,
+   NULL } ,
+
  { 8 , DEC , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "Expand -stim_times_AM modulation abilities even more." ,
    "Now allow 'duration modulation' via the 'dmBLOCK' response model.  A\n"
