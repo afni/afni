@@ -872,6 +872,7 @@ void display_help_menu()
     "[-stim_times_AM2 k tname Rmodel]                                       \n"
     "   Similar, but generates 2 response models: one with the mean         \n"
     "   amplitude and one with the differences from the mean.               \n"
+    "                                                                       \n"
     "** NOTE [04 Dec 2008] **                                               \n"
     " -stim_times_AM1 and -stim_times_AM2 now take files with more          \n"
     "   than 1 amplitude attached to each time; for example,                \n"
