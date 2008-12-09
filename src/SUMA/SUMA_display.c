@@ -1840,7 +1840,12 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
    
    SUMA_ENTRY;
 
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Here.\n", FuncName);
+   if (!menu_title) {
+      SUMA_S_Warn("menu_title is NULL, alert Rick Reynolds!");
+      menu_title = "";
+   }
+   
+   SUMA_LHv("Entered. menu_title %s.\n", menu_title);
       
    if (menu_type == XmMENU_PULLDOWN || menu_type == XmMENU_OPTION)
      menu = XmCreatePulldownMenu (parent, "_pulldown", NULL, 0);
@@ -1873,7 +1878,7 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
      /* Option menus are a special case, but not hard to handle */
      Arg args[10];
      int n = 0;
-     SUMA_LH("Here");
+     SUMA_LHv("XmMENU_OPTION %s", menu_title);
      str = XmStringCreateLocalized (menu_title);
      XtSetArg (args[n], XmNsubMenuId, menu); n++;
      XtSetArg (args[n], XmNlabelString, str); n++;
@@ -1889,7 +1894,6 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
       * we're going to return at the end of the function.
       */
      cascade = XmCreateOptionMenu (parent, menu_title, args, n);
-     
      XmStringFree (str);
    }
    
@@ -1904,7 +1908,10 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
    
    /* Now add the menu items */
    for (i = 0; items[i].label != NULL; i++) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Adding label # %d - %s\n", FuncName, i, items[i].label);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: Adding label # %d - %s\n", 
+                  FuncName, i, items[i].label);
      /* If subitems exist, create the pull-right menu by calling this
       * function recursively.  Since the function returns a cascade
       * button, the widget returned is used..
@@ -1915,12 +1922,18 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
              continue;
          } 
          else {
-             if (LocalHead) fprintf (SUMA_STDERR, "%s: Going for sub-menu.\n", FuncName);
-             SUMA_BuildMenu (menu, XmMENU_PULLDOWN, items[i].label, 
-                 items[i].mnemonic, tear_off, items[i].subitems, ContID, hint, help, MenuWidgets);
+             if (LocalHead) 
+               fprintf (SUMA_STDERR, "%s: Going for sub-menu.\n", FuncName);
+             SUMA_BuildMenu ( menu, XmMENU_PULLDOWN, items[i].label, 
+                              items[i].mnemonic, tear_off, 
+                              items[i].subitems, ContID, 
+                              hint, help, MenuWidgets);
          }
      else {
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating widgets MenuWidgets[%d]\n", FuncName, (int)items[i].callback_data);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+                     "%s: Creating widgets MenuWidgets[%d]\n", 
+                     FuncName, (int)items[i].callback_data);
          if (nchar > 0) {
             snprintf(nlabel, nchar*sizeof(char), "%s", items[i].label);
             MenuWidgets[i_wid] = XtVaCreateManagedWidget (nlabel,
@@ -1937,15 +1950,18 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
       /* Whether the item is a real item or a cascade button with a
       * menu, it can still have a mnemonic.
       */
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting Mnemonic ...\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, "%s: Setting Mnemonic ...\n", FuncName);
       if (items[i].mnemonic)
-         XtVaSetValues (MenuWidgets[i_wid], XmNmnemonic, items[i].mnemonic, NULL);
+         XtVaSetValues (MenuWidgets[i_wid], XmNmnemonic, 
+                        items[i].mnemonic, NULL);
 
       /* any item can have an accelerator, except cascade menus. But,
       * we don't worry about that; we know better in our declarations.
       */
 
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting accelerator ...\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, "%s: Setting accelerator ...\n", FuncName);
       if (items[i].accelerator) {
          str = XmStringCreateLocalized (items[i].accel_text);
          XtVaSetValues (MenuWidgets[i_wid],
@@ -1963,10 +1979,13 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
           
       }
      
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting callback ...\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, "%s: Setting callback ...\n", FuncName);
       if (items[i].callback) {
          SUMA_MenuCallBackData *CBp=NULL;
-         CBp = (SUMA_MenuCallBackData *)calloc(1,sizeof(SUMA_MenuCallBackData)); /* There is no freeing of this pointer in SUMA. Once created, a widget is only destroyed when SUMA is killed */
+         CBp = (SUMA_MenuCallBackData *)calloc(1,sizeof(SUMA_MenuCallBackData));                      /* There is no freeing of this pointer in SUMA. 
+                     Once created, a widget is only destroyed when 
+                     SUMA is killed */
          /* prepare the callback pointer */
          CBp->callback_data = (XtPointer) items[i].callback_data;
          CBp->ContID = ContID;
@@ -1982,7 +2001,8 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
 
    #if 0
     {
-      SUMA_LH("Adding event handler. Crashes when dealing with File: cascade buttons ....");
+      SUMA_LH( "Adding event handler." 
+               "Crashes when dealing with File: cascade buttons ....");
       if (menu_type == XmMENU_POPUP) {
          SUMA_ShowMeTheChildren(menu);
       } else {
@@ -2006,7 +2026,9 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
    * the cascade button; option menus, return the thing returned
    * from XmCreateOptionMenu().  This isn't a menu, or a cascade button!
    */
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Returning %d widgets created.\n", FuncName, i_wid);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Returning %d widgets created.\n", FuncName, i_wid);
    SUMA_RETURN (i_wid);
 }
 
@@ -5568,7 +5590,7 @@ void SUMA_CreateDrawROIWindow(void)
    /* Saving Mode */
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
-                               NULL, '\0', YUP, DrawROI_SaveMode_Menu, 
+                               "", '\0', YUP, DrawROI_SaveMode_Menu, 
                                "Frm.", "File format for saving ROI", SUMA_DrawROI_SaveFormat_help, 
                                SUMAg_CF->X->DrawROI->SaveModeMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu[SW_DrawROI_SaveMode]);
@@ -5576,7 +5598,7 @@ void SUMA_CreateDrawROIWindow(void)
    /* Saving what ? */
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
-                               NULL, '\0', YUP, DrawROI_SaveWhat_Menu, 
+                               "", '\0', YUP, DrawROI_SaveWhat_Menu, 
                                "What", "Which ROIs to save?", SUMA_DrawROI_SaveWhat_help,   
                                SUMAg_CF->X->DrawROI->SaveWhatMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveWhatMenu[SW_DrawROI_SaveWhat]);
