@@ -31,6 +31,32 @@ ENTRY("mri_fvect_to_imarr") ;
 }
 
 /*-------------------------------------------------------------------*/
+/*! Extract 1 float sub-image from an fvect image. [09 Dec 2008] */
+
+MRI_IMAGE * mri_fvect_subimage( MRI_IMAGE *inim , int kk )
+{
+   float *var ;
+   MRI_IMAGE *aim ; float *aar ;
+   int nvox , vd , ii ;
+
+ENTRY("mri_fvect_to_subimage") ;
+
+   if( inim == NULL || inim->kind != MRI_fvect ) RETURN(NULL) ;
+   if( kk < 0 || kk >= inim->vdim ) RETURN(NULL) ;
+
+   var = mri_data_pointer(inim) ; if( var == NULL ) RETURN(NULL) ;
+
+   vd   = inim->vdim ; if( vd <= 0 ) RETURN(NULL) ;
+   nvox = inim->nvox ;
+
+   aim = mri_new_conforming( inim , MRI_float ) ;
+   aar = MRI_FLOAT_PTR(aim) ;
+   for( ii=0 ; ii < nvox ; ii++ ) aar[ii] = var[ii*vd+kk] ;
+   MRI_COPY_AUX(aim,inim) ;
+   RETURN(aim) ;
+}
+
+/*-------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_imarr_to_fvect( MRI_IMARR *imar )
 {

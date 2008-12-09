@@ -767,6 +767,7 @@ extern MRI_IMAGE * mri_read_ascii_ragged_fvect( char *, float, int ) ;
 extern MRI_IMARR * mri_fvect_to_imarr( MRI_IMAGE *inim ) ;
 extern MRI_IMAGE * mri_imarr_to_fvect( MRI_IMARR *imar ) ;
 extern MRI_IMAGE * mri_pair_to_fvect( MRI_IMAGE *aim , MRI_IMAGE *bim ) ;
+extern MRI_IMAGE * mri_fvect_subimage( MRI_IMAGE *inim , int kk ) ;
 
 extern MRI_IMAGE * mri_read_ragged_fromstring( char *, float); /* 05 Jan 2007 */
 
