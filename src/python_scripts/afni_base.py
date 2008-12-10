@@ -57,6 +57,10 @@ class afni_name:
       rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
       s = "%s%s%s" % (rp, self.prefix, self.view)
       return s
+   def rpve(self): # relative path, prefix, view (no leading './'), extension
+      rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
+      s = "%s%s%s%s" % (rp, self.prefix, self.view, self.extension)
+      return s
    def pp(self):
       return "%s%s" % (self.p(), self.prefix)
    def pv(self):

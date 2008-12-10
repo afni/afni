@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, DEC, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added new options for extra stimuli, RONI and an external volreg base",
+   "- allow NIfTI datasets as input (but process as AFNI)\n"
+   "- added -regress_extra_stim_files and -regress_extra_stim_labels\n"
+   "- added -regress_RONI and -volreg_base_dset (for Jill Weisberg)"
+ } ,
+
  {  8, DEC, 2008, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
    "allow -test_libs to proceed without numpy",
    NULL
