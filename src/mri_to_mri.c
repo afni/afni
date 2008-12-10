@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** 7D SAFE ***/
@@ -12,13 +12,29 @@
   Convert input image to the type given by "datum".
 -------------------------------------------------------*/
 
-MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE * oldim )
+MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE *oldim )
 {
-   MRI_IMAGE * newim ;
+   MRI_IMAGE *newim ;
 
 ENTRY("mri_to_mri") ;
 
    if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
+
+   if( oldim->kind == datum ){
+     newim = mri_copy(oldim) ; RETURN(newim) ;   /* 10 Dec 2008 */
+   }
+
+   if( oldim->kind == MRI_fvect ){               /* 10 Dec 2008 */
+     MRI_IMAGE *qim = mri_fvect_subimage(oldim,0) ;
+     if( datum == MRI_float ){
+       newim = qim ;
+     } else {
+       newim = mri_to_mri(datum,qim) ; mri_free(qim) ;
+     }
+     RETURN(newim) ;
+   }
+
+   /*-- return to the normal conversion cases --*/
 
    switch( datum ){
       default:

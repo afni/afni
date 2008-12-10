@@ -803,7 +803,7 @@ qm:qm.o
 	$(RM) $@
 	$(CC) -o qm qm.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-3dAllineate:3dAllineate.o mri_genalign.o thd_correlate.o
+3dAllineate:3dAllineate.o mri_genalign.o mri_genalign_util.o thd_correlate.o
 	$(RM) $@
 	$(CCFAST) -o 3dAllineate 3dAllineate.o \
 			$(LFLAGS) -lmri -lf2c $(LLIBS)
@@ -1494,6 +1494,10 @@ mri_genalign.o:mri_genalign.c
 	$(RM) $@
 	$(CCFAST) -c mri_genalign.c $(INFLAGS)
 
+mri_genalign_util.o:mri_genalign_util.c
+	$(RM) $@
+	$(CCFAST) -c mri_genalign_util.c $(INFLAGS)
+
 cl1.o:cl1.c
 	$(RM) $@
 	$(CCFAST) -c cl1.c $(INFLAGS)
@@ -1574,7 +1578,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_blur3d_variable.o mri_purger.o mri_counter.o mri_to_imarr.o     \
            mri_pcvector.o mri_fdrize.o mri_floatvec.o mri_sort.o               \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
-           mri_subset.o mri_to_fvect.o
+           mri_subset.o mri_to_fvect.o mri_genalign_util.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
