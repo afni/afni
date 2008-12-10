@@ -12,10 +12,10 @@
   Copy an image.
 -------------------------------------------------------*/
 
-MRI_IMAGE * mri_copy( MRI_IMAGE * oldim )
+MRI_IMAGE * mri_copy( MRI_IMAGE *oldim )
 {
-   MRI_IMAGE * newim ;
-   void * oar , * nar ;
+   MRI_IMAGE *newim ;
+   void *oar , *nar ;
 
 ENTRY("mri_copy") ;
 
