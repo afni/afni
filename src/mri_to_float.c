@@ -20,6 +20,11 @@ ENTRY("mri_to_float") ;
 
    if( oldim == NULL || mri_data_pointer(oldim) == NULL ) RETURN(NULL) ;
 
+   if( oldim->kind == MRI_fvect ){              /* 10 Dec 2008: special case */
+     newim = mri_fvect_subimage( oldim , 0 ) ;
+     RETURN(newim) ;
+   }
+
    newim = mri_new_conforming( oldim , MRI_float ) ;
    npix  = oldim->nvox ;
    far   = MRI_FLOAT_PTR(newim) ;

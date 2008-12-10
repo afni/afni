@@ -1599,7 +1599,27 @@ extern void GA_do_dots(int) ;
 extern void GA_do_cost(int, byte) ;
 extern void GA_do_params(int) ;
 extern float mri_genalign_scalar_cost( GA_setup * , float *) ;
-extern void GA_set_outval( float ) ;   /* 28 Feb 2007 */
+extern void GA_set_outval( float ) ;
+extern float GA_get_outval(void) ;
+
+/**------ these functions are now in mri_genalign_util.c [10 Dec 2008] ------**/
+
+extern void GA_interp_NN     ( MRI_IMAGE *fim , int npp,
+                               float *ip, float *jp, float *kp, float *vv ) ;
+extern void GA_interp_linear ( MRI_IMAGE *fim , int npp,
+                               float *ip, float *jp, float *kp, float *vv ) ;
+extern void GA_interp_cubic  ( MRI_IMAGE *fim , int npp,
+                               float *ip, float *jp, float *kp, float *vv ) ;
+extern void GA_interp_quintic( MRI_IMAGE *fim , int npp,
+                               float *ip, float *jp, float *kp, float *vv ) ;
+extern int GA_gcd(int,int) ;
+extern int GA_find_relprime_fixed(int) ;
+extern MRI_IMAGE * GA_smooth( MRI_IMAGE *im, int meth, float rad ) ;
+extern void GA_set_outval(float) ;
+
+extern MRI_IMAGE * GA_indexwarp( MRI_IMAGE *, int, MRI_IMAGE * ) ;
+extern void GA_affine_edit_warp( mat44 aff , MRI_IMAGE *wpim ) ;
+/*----------------------------------------------------------------------------*/
 
 extern void mri_genalign_set_boxsize( float xbot, float xtop,
                                       float ybot, float ytop,
