@@ -681,7 +681,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
      if( verb > 1 )
        ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
      matrix_destroy(D) ; free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
-   } else if( ii > 0 && verb ){
+   } else if( ii > 0 ){
      static int iold=0 ;
      if( ii != iold ){
        WARNING_message(
@@ -1286,7 +1286,7 @@ ENTRY("REML_get_gltfactors") ;
      Z  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(Z) ;
      JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
      i = matrix_qrr( *F , E ) ;
-     if( i > 0 && verb ){
+     if( i > 0 ){
        static int iold = 0 ;
        if( i != iold ){
          WARNING_message(
