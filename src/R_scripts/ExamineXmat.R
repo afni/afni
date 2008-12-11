@@ -151,8 +151,12 @@ condition_report <- function(tt=NA, ff, isel=1:1:ncol(ff), descr="") {
       } else {
          all_cond_no_mot <- all_cond
       }
+      #attr(ff,'TR')
+      #attr(ff,'dim')
       stitcom = paste ( 
                   'Matrix file: ', attr(ff,'FileName'), '\n',
+                  '* TR: ', attr(ff,'TR'), '\n',
+                  '* N: ', length(ff[,1]), '\n',
                   '* Baseline indices: ', paste(xmat_base_index(ff)-1,
                                              collapse=", "), '\n',
                   '* Motion indices: ', paste(xmat_motion_index(ff)-1,
@@ -323,17 +327,22 @@ read_xmat <- function (xmatfile, nheadmax=10) {
    ff <- scan(xmatfile, what = 'character', nmax = nheadmax, sep = '\n')
 
    #Search for ColumnLabels and split string
-   ffs <- strsplit(ff[grep('ColumnLabels', ff)], '=')[[1]][2]
-      #remove bad chars and split into labels
-      ffs <- gsub("[;\"]","", ffs)
-      ffsv <- strsplit(ffs," ")[[1]]
-      #some components are blanks to be killed
-      labels <- ffsv[which(nchar(ffsv)!=0)]
+   icl = grep('ColumnLabels', ff)
+   if (length(icl)){
+      ffs <- strsplit(ff[icl], '=')[[1]][2]
+         #remove bad chars and split into labels
+         ffs <- gsub("[;\"]","", ffs)
+         ffsv <- strsplit(ffs," ")[[1]]
+         #some components are blanks to be killed
+         labels <- ffsv[which(nchar(ffsv)!=0)]
+   }else {
+      labels = ""
+   }
    #Get the TR
    ffs <- strsplit(ff[grep('RowTR', ff)], '=')[[1]][2]
       #remove bad chars and change to number
       TR = as.double(gsub("[;\" *]","", ffs))
-
+      
    #Get the ColumnGroups
    ffs <- strsplit(ff[grep('ColumnGroups', ff)], '=')[[1]][2]
    colg = expand_1D_string (gsub("[;\" *]","", ffs))
@@ -345,6 +354,9 @@ read_xmat <- function (xmatfile, nheadmax=10) {
    #cat ("insterting colg: ", colg, "\n")
    attr(ff,'ColumnGroups') <- colg
    
+   #add TR for the record
+   attr(ff, 'TR') <- TR
+      
    #add filename for the record
    attr(ff,'FileName') <- xmatfile
    
