@@ -684,10 +684,12 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    } else if( ii > 0 ){
      static int iold=0 ;
      if( ii != iold ){
+       WARNING_message("-----") ;
        WARNING_message(
-         "QR decomposition of wh(X) had %d tiny diagonal"
-         " element%s reset -- collinearity!",
+         "QR decomposition of X had %d tiny diagonal"
+         " element%s adjusted -- collinearity!",
          ii , (ii==1) ? "\0" : "s"                       ) ;
+       WARNING_message("-----") ;
        iold = ii ;
      }
    }
@@ -1291,7 +1293,7 @@ ENTRY("REML_get_gltfactors") ;
        if( i != iold ){
          WARNING_message(
            "QR decomposition of GLT matrix had %d tiny diagonal"
-           " element%s reset -- collinearity!",
+           " element%s adjusted -- collinearity!",
            i , (i==1) ? "\0" : "s"                             ) ;
          iold = i ;
        }
