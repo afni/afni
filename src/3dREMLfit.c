@@ -1437,8 +1437,8 @@ STATUS("process -addbase images") ;
      matrix_enlarge( 0 , ncol_addbase , &X ) ;
      for( kk=nrego,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
        im = IMARR_SUBIM(imar_addbase,ii) ; iar = MRI_FLOAT_PTR(im) ;
-       for( jj=0 ; jj < im->ny ; jj++,kk++,iar+=im->nx ){
-         if( dmbase ){       /* demean the column? */
+       for( jj=0 ; jj < im->ny ; jj++,kk++,iar+=im->nx ){  /* kk = matrix col */
+         if( dmbase ){       /* demean the column? */      /* jj = input col */
            float csum=0.0f ;
            for( pp=0 ; pp < ntime ; pp++ ) csum += iar[pp] ;
            csum /= ntime ;
@@ -1467,7 +1467,7 @@ STATUS("process -addbase images") ;
      Xsli    = (matrix **)malloc(sizeof(matrix *)) ;
      Xsli[0] = &X ;
      nsli    = 1 ;
-     nsliper = (1<<30) ;
+     nsliper = (1<<30) ;  /* number of voxels per slice = 1 beellion */
 
    } else {                     /** have per-slice regressors **/
 
@@ -1478,7 +1478,7 @@ STATUS("process -slibase images") ;
      nregq   = nrega ;         /* save this for a little bit */
      nrega  += ncol_slibase ;  /* new number of regressors */
      nsli    = nz ;
-     nsliper = nxy ;
+     nsliper = nxy ;           /** number of voxels per slice **/
 
      if( verb )
        INFO_message("Adding %d column%s to X matrix via '-slibase'" ,
@@ -1531,14 +1531,14 @@ STATUS("process -slibase images") ;
 
      /*------ for each slice, make up a new matrix, add columns to it ------*/
 
-     Xsli = (matrix **)malloc(sizeof(matrix *)*nsli) ;
+     Xsli = (matrix **)malloc(sizeof(matrix *)*nsli) ;  /* array of matrices */
 
      for( nbad=ss=0 ; ss < nsli ; ss++ ){       /* ss = slice index */
        Xs = (matrix *)malloc(sizeof(matrix)) ;  /* new matrix */
        matrix_initialize(Xs) ;
        matrix_equate( X , Xs ) ;                /* copy in existing matrix */
        matrix_enlarge( 0,ncol_slibase , Xs ) ;  /* make new one bigger */
-       for( kk=nregq,ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
+       for( kk=nregq,ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++,kk++ ){
          im  = IMARR_SUBIM(imar_slibase,ii) ;   /* ii-th -slibase image */
          iar = MRI_FLOAT_PTR(im) ; iar += ss * im->nx ; /* ss-th column */
          if( dmbase ){
@@ -1555,7 +1555,7 @@ STATUS("process -slibase images") ;
            nbad++ ;
          }
        }
-       Xsli[ss] = Xs ;
+       Xsli[ss] = Xs ;  /* save this matrix in the array */
      }
      if( nbad > 0 ) ERROR_exit("Cannot continue after -slibase errors!") ;
 
@@ -1605,11 +1605,12 @@ STATUS("process -slibase images") ;
 
    } else {  /* don't have stim info in matrix header?! */
 
-     WARNING_message("-matrix file is missing Stim attributes (old 3dDeconvolve?)") ;
+     WARNING_message("-matrix file is missing Stim attributes") ;
      if( do_stat || do_buckt || do_eglt )
-       ERROR_exit(" ==> Can't do statistics or GLTs on the Stimuli") ;
+       ERROR_exit(
+         " ==> Can't do statistics or GLTs on the Stimuli (e.g., -Rbuck, -Rglt)") ;
      else if( eglt_num > 0 )
-       ERROR_exit(" ==> Can't process GLTs") ;
+       ERROR_exit(" ==> Can't process GLTs (e.g., -Rbuck, -Rglt)") ;
 
    }
 
