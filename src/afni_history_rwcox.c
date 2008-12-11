@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , DEC , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
+   "Fixed -slibase bug." ,
+   "Oopsie.  -slibase didn't work properly with more than 1 added column per\n"
+   "slice.  Also, per the request of ZSS, you can now input more than 1\n"
+   "column set per image file, in repetitive slice order:\n"
+   "  0 1 2 3 0 1 2 3 0 1 2 3\n"
+   "if there are 4 slices in the dataset, for example." } ,
+
  { 9 , DEC , 2008 , RWC , "3dDeconvolve" , MINOR , TYPE_MODIFY ,
    "Added 'dmBLOCK' to the '-stim_times_IM' repertoire." ,
    NULL } ,
