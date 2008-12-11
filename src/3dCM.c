@@ -6,7 +6,7 @@ int main( int argc , char * argv[] )
 {
    int narg=1, do_automask=0 , iv , nxyz , do_set=0 ;
    THD_3dim_dataset *xset ;
-   byte *mmm=NULL ; int nmask=0 , nvox_mask ;
+   byte *mmm=NULL ; int nmask=0 , nvox_mask=0 ;
    THD_fvec3 cmv , setv ;
    /*-- read command line arguments --*/
 
@@ -26,6 +26,7 @@ int main( int argc , char * argv[] )
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
+   LOAD_FVEC3(setv,0,0,0) ;   /* ZSS: To quiet init. warnings */
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
 
@@ -104,7 +105,9 @@ int main( int argc , char * argv[] )
        nvox_mask = DSET_NVOX(xset) ;
        nmask = THD_countmask( nvox_mask , mmm ) ;
        if( mmm == NULL || nmask <= 0 ){
-         fprintf(stderr,"+++ Can't make automask from dataset %s -- skipping\n",argv[narg]) ;
+         fprintf( stderr,
+                  "+++ Can't make automask from dataset %s "
+                  "-- skipping\n",argv[narg]) ;
          DSET_delete(xset) ; continue ;
        }
      }
@@ -133,6 +136,7 @@ int main( int argc , char * argv[] )
          xset->daxes->zzorg = ov.xyz[2] ;
          /* allow overwriting header for all types of output data */
          putenv("AFNI_DECONFLICT=OVERWRITE") ;
+         tross_Make_History( "3dCM" , argc,argv , xset ) ; /* ZSS   Dec. 09 08 */
 	 if(DSET_IS_BRIK(xset)) {
            INFO_message("Rewriting header %s",DSET_HEADNAME(xset)) ;
            DSET_overwrite_header( xset ) ;

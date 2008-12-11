@@ -128,8 +128,9 @@ for (icol=1:1:length(R)),
       %title it
       title (R(icol).vname, 'Interpreter', 'None');
                drawnow ;
+      if (Opt.Demo),
          uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
-
+      end
    end
 end
 return;

@@ -13,6 +13,7 @@ function [Opt, R, E] = RetroTS(SN)
 %     VolTR: Volume TR in seconds
 %     Optional:
 %     ---------
+%     Prefix: Prefix of output file
 %     SliceOffset: Vector of slice acquisition time offsets.
 %                  (default is equivalent of alt+z)
 %     RVTshifts: Vector of shifts in seconds of RVT signal. 

@@ -9,6 +9,7 @@ PARSE:
    set v1i = ""
    set usecp = 1
    set xmat_only = 0
+   set mode = 'grid'
    if ("$1" == '') goto HELP
    while ($cnt <= $Narg)
       set donext = 1;
@@ -29,6 +30,14 @@ PARSE:
          endif   
       endif
 
+      if ($donext && "$argv[$cnt]" == "-cm") then
+         set mode = 'cm'
+         set donext = 0   
+      endif
+      if ($donext && "$argv[$cnt]" == "-grid") then
+         set mode = 'grid'
+         set donext = 0   
+      endif
       if ($donext && "$argv[$cnt]" == "-no_cp") then
          set usecp = 0
          set donext = 0   
@@ -101,8 +110,7 @@ SETCENTER:
 
    set v1_pref = `@GetAfniPrefix $v1i`
    set v1 = $v1_pth/$v1_pref$v1_vw
-
-
+if ($mode == 'grid') then
    #orientation of v1
    set v1_orient = `@GetAfniOrient $v1`
    #center of v1, in native orientation
@@ -119,18 +127,7 @@ SETCENTER:
    #echo "del: $del"
    set del_RAI = `@ToRAI -xyz $del -or $v1_orient`
    #echo "del_RAI: $del_RAI"
-   #Output xform matrix for allineating
-   set del_xform = ()
-   foreach delx ($del_RAI)
-      set del_xform = ($del_xform `ccalc -eval "$delx * -1"`)
-   end
-   echo "1 0 0 $del_xform[1] 0 1 0 $del_xform[2] 0 0 1 $del_xform[3]" \
-         > ${v1_pref}_shft.1D
-   if ($xmat_only == 1) then
-      goto END
-   else
-      #echo "Proceeding..."
-   endif
+   
    
    #multiply deltas by axis signs
    set mp = `@AfniOrientSign $v1_orient`
@@ -154,7 +151,48 @@ SETCENTER:
    else
       3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
    endif
+else
    
+   #get the center of mass of the base and apply delta
+   set v2_center_RAI = `3dCM -automask $v2i`
+   if ($usecp == 1) then
+      if ( `@CheckForAfniDset $v1_pth/${v1_pref}_shft$v1_vw` != 0 ) then
+         echo ""
+         echo "Error `basename $0`"
+         echo "Dset $v1_pth/${v1_pref}_shft$v1_vw found, cleanup first!"
+         echo ""
+         goto END
+      endif
+
+      3dcopy $v1  $v1_pth/${v1_pref}_shft
+      set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1_pth/${v1_pref}_shft$v1_vw`
+   else
+      set v1_center_RAI = `3dCM -automask -set $v2_center_RAI $v1`
+   endif
+   
+   set del_RAI = ( 0 0 0 )
+   foreach i (1 2 3)
+      set del_RAI[$i] = `ccalc -eval "$v2_center_RAI[$i] - $v1_center_RAI[$i]"`
+   end
+   echo base: $v2_center_RAI
+   echo dset: $v1_center_RAI
+   echo delta: $del_RAI
+endif   
+
+DELTA_TO_XMAT:
+   #Output xform matrix for allineating
+   set del_xform = ()
+   foreach delx ($del_RAI)
+      set del_xform = ($del_xform `ccalc -eval "$delx * -1"`)
+   end
+   echo "1 0 0 $del_xform[1] 0 1 0 $del_xform[2] 0 0 1 $del_xform[3]" \
+         > ${v1_pref}_shft.1D
+   if ($xmat_only == 1) then
+      goto END
+   else
+      #echo "Proceeding..."
+   endif
+
    
 SETCHILDREN:
 foreach v1foli ( $v1_list )
@@ -206,15 +244,18 @@ goto END
 
 HELP:
    echo ""
-   echo "Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp] [-child CHILD_2 ... CHILD_N] "
+   echo "Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp] "
+   echo "                     [-child CHILD_2 ... CHILD_N] "
    echo ""
    echo "   Moves the center of DSET to the center of BASE."
-   echo "   Center refers to the center of the volume's voxel grid, "
-   echo "   and not the brain's center of mass."
+   echo "   By default, center refers to the center of the volume's voxel grid."
+   echo "   Use -cm to use the brain's center of mass instead."
    echo ""
-   echo "   AND/OR creates the transform matrix needed for this shift."
-   echo "   The transform can be used with 3dAllineate's -1D_matrix_apply"
-   echo "   option."
+   echo "   AND/OR creates the transform matrix XFORM.1D needed for this shift."
+   echo "   The transform can be used with 3dAllineate's -1Dmatrix_apply "
+   echo "      3dAllineate   -1Dmatrix_apply XFORM.1D "
+   echo "                    -prefix PREFIX -master BASE"
+   echo "                    -input DSET"
    echo ""
    echo "   -1Dmat_only: Only output the transfrom needed to align"
    echo "                the centers. Do not shift the volumes."
@@ -230,6 +271,7 @@ HELP:
    echo "           This is a good option if you know what you "
    echo "           are doing. It will save you a lot of space."
    echo "           See NOTE below before using it."
+   echo ""
    echo "    DSET and CHILD_'*' are typically all the datasets "
    echo "    from a particular scanning session that"
    echo "    you want to eventually align to BASE."
@@ -240,6 +282,11 @@ HELP:
    echo " if the wildcard substitution would contain DSET "
    echo " and possibly even BASE. The script will not process"
    echo " a dataset twice in one execution."
+   echo "
+   echo " Center options:"
+   echo "   -grid: (default) Center is that of the volume's grid"
+   echo "   -cm : Center is the center of mass of the volume."
+   echo "" 
    echo ""
    echo "   See also @Center_Distance"
    echo ""

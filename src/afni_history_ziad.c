@@ -65,8 +65,23 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 9, DEC , 2008 , ZSS , "@Align_Centers" , MINOR ,  TYPE_NEW_OPT,
+   "Added -cm option to allow centering based on the center of mass",
+   NULL
+ },
+
+ { 9, DEC , 2008 , ZSS , "suma" , MINOR ,  TYPE_BUG_FIX,
+   "Fixed (potential) SUMA crash when Draw ROI interface is first opened",
+   NULL
+ },
+
+ { 9, DEC , 2008 , ZSS , "3dCM" , MICRO ,  TYPE_MODIFY,
+   "Added history note to 3dCM",
+   NULL
+ },
+ 
  { 8, DEC , 2008 , ZSS , "suma" , MICRO ,  TYPE_BUG_FIX,
-   "SUMA works now with LESSTIF, interface is almost the same as in MOTIF.",
+   "SUMA works now with LESSTIF, interface is almost the same as in MOTIF",
    NULL
  },
 

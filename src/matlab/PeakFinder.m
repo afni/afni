@@ -7,7 +7,7 @@ function [R] = PeakFinder(vvec, Opt)
 keep('vvec', 'Opt');
 
 if (nargin < 2) Opt = struct(); end
-if (~isfield(Opt,'fs')  | isempty(Opt.PhysFS)),
+if (~isfield(Opt,'PhysFS')  | isempty(Opt.PhysFS)),
    Opt.PhysFS= 1/0.025; %sampling frequency
 end
 if (~isfield(Opt,'zerophaseoffset') | isempty(Opt.zerophaseoffset) ),
@@ -133,7 +133,9 @@ for (icol = 1:1:nl),
       plot (tiz(ppp), vn(iz(ppp)), 'bo'); 
       
          drawnow ;
-         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+         if (Opt.Demo),
+            uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+         end
    end
    
 
@@ -181,7 +183,9 @@ for (icol = 1:1:nl),
          plot( R(icol).tntrace, R(icol).ntrace,'b+',...
                R(icol).tntrace, R(icol).ntrace,'b');
          drawnow ;
-         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+         if (Opt.Demo),
+            uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+         end
       end
    else
       tizp = tiz;
@@ -208,7 +212,9 @@ for (icol = 1:1:nl),
              sprintf('%.2f', R(icol).prd(i)));
       end
          drawnow ;
-         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+         if (Opt.Demo),
+            uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+         end
    end
    
    if (~isempty(Opt.ResamKernel)),
