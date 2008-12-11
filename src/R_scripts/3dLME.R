@@ -257,7 +257,7 @@ if (NoConst) {
 	   NoCoef <- length(fm$coefficients)
 	}
 	NoBrick <- NoBrick + 2*NoCoef	
-}	
+}	else NoCoef <- NA
 # to avoid the ambiguity with the case of no intercept	
 BrickCnt <- NoBrick - 2*ncontr - 2*nCov  
 
