@@ -393,7 +393,13 @@ ENTRY("GA_interp_quintic") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Output image will be on the same grid as the input, of course. */
+/* Output image will be on the same grid as the input, of course.
+   Input image format --> output format
+              fvect   --> fvect
+              rgb     --> rgb
+              complex --> complex
+              other   --> float
+*//*-------------------------------------------------------------------------*/
 
 MRI_IMAGE * GA_indexwarp( MRI_IMAGE *inim, int interp_code, MRI_IMAGE *wpim )
 {
@@ -451,7 +457,7 @@ ENTRY("GA_indexwarp") ;
      DESTROY_IMARR(qimar) ; RETURN(outim) ;
    }
 
-   /*------------------ here, input image is a scalar ------------------*/
+   /*------------------ here, input image is scalar-values ------------------*/
 
    fim = (inim->kind == MRI_float ) ? inim : mri_to_float(inim) ;
    far = MRI_FLOAT_PTR(fim) ;
@@ -531,6 +537,7 @@ ENTRY("GA_indexwarp") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Apply a matrix to a set of warp vectors. */
 
 void GA_affine_edit_warp( mat44 aff , MRI_IMAGE *wpim )
 {

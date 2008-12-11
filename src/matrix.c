@@ -1729,15 +1729,17 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 /*! Given MxN matrix X, compute the NxN upper triangle factor R in X = QR.
     Must have M >= N (more rows than columns).
     Q is not computed.  If you want Q, then compute it as [Q] = [X] * inv[R].
+    The return value is the number of diagonal elements that were adjusted
+    because they were very tiny (should be 0 except in collinear cases).
 *//*-------------------------------------------------------------------------*/
 
-void matrix_qrr( matrix X , matrix *R )
+int matrix_qrr( matrix X , matrix *R )
 {
    int m=X.rows , n=X.cols , ii,jj,kk , m1=m-1 ;
    double *amat , x1 ;
    register double alp, sum , *uvec, *Ak;
 
-   if( m < 2 || n < 1 || m < n || R == NULL || X.elts == NULL ) return ;
+   if( m < 2 || n < 1 || m < n || R == NULL || X.elts == NULL ) return (-1) ;
 
 #undef  A
 #define A(i,j) amat[(i)+(j)*m]
@@ -1787,15 +1789,26 @@ void matrix_qrr( matrix X , matrix *R )
        for( jj=ii ; jj < n ; jj++ ) R->elts[ii][jj] = -A(ii,jj) ;
    }
 
+   /* adjust tiny (or zero) diagonal elements, for solution stability */
+
+   for( kk=ii=0 ; ii < n ; ii++ ){
+     sum = 0.0 ;
+     for( jj=0    ; jj < ii ; jj++ ) sum += fabs( R->elts[jj][ii] ) ;
+     for( jj=ii+1 ; jj < n  ; jj++ ) sum += fabs( R->elts[ii][jj] ) ;
+     if( sum == 0.0 ) sum = 1.0 ;
+     sum *= 1.e-9 ;
+     if( R->elts[ii][ii] < sum ){ R->elts[ii][ii] = sum ; kk++ ; }
+   }
+
 #ifdef ENABLE_FLOPS
    flops += n*n*(2*m-0.666*n) ;
 #endif
 
    free((void *)uvec) ; free((void *)amat) ;
-   return ;
+   return (kk) ;
 }
 
-/*--- below is a test program for matrix_qrr() ---*/
+/*----------------- below is a test program for matrix_qrr() -----------------*/
 
 #if 0
 #include <stdlib.h>

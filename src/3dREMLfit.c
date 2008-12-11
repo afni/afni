@@ -868,6 +868,18 @@ int main( int argc , char *argv[] )
       "    the way they are and you'll just have to live with it.\n"
       "* All output datasets are in float format.\n"
       "    Internal calculations are done in double precision.\n"
+      "* If the regression matrix (including any added columns from '-addbase'\n"
+      "    or '-slibase') is rank-deficient (e.g., has collinear columns),\n"
+      "    then the program will print a message something like\n"
+      "      *+ WARNING: QR decomposition of wh(X) had 1 tiny diagonal element reset -- collinearity!\n"
+      "    The program will still produce a solution.  However, since\n"
+      "    3dREMLfit uses a different linear algebra approach than\n"
+      "    3dDeconvolve for solving the equations, the solution for the\n"
+      "    beta-weights involved in the collinearity will probably differ\n"
+      "    from what 3dDeconvolve would produce in such a situation (for OLSQ).\n"
+      "    If you receive such a warning, you should examine your results\n"
+      "    carefully to make sure they are reasonable (e.g., look at\n"
+      "    the fitted model overlay on the input time series).\n"
       "* Despite my best efforts, this program is somewhat sluggish.\n"
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
@@ -1461,6 +1473,8 @@ STATUS("process -addbase images") ;
        }
      }
 
+     DESTROY_IMARR(imar_addbase) ;
+
    } /**** end of -addbase stuff ****/
 
    /**--------------- check matrix for all zero columns ---------------**/
@@ -1597,6 +1611,8 @@ STATUS("process -slibase images") ;
      } /* end of loop over slices */
 
      if( nbad > 0 ) ERROR_exit("Cannot continue after -slibase errors!") ;
+
+     DESTROY_IMARR(imar_slibase) ;
 
    } /**** end of -slibase stuff ****/
 
