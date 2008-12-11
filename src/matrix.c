@@ -1795,9 +1795,11 @@ int matrix_qrr( matrix X , matrix *R )
      sum = 0.0 ;
      for( jj=0    ; jj < ii ; jj++ ) sum += fabs( R->elts[jj][ii] ) ;
      for( jj=ii+1 ; jj < n  ; jj++ ) sum += fabs( R->elts[ii][jj] ) ;
-     if( sum == 0.0 ) sum = 1.0 ;
-     sum *= 1.e-9 ;
-     if( R->elts[ii][ii] < sum ){ R->elts[ii][ii] = sum ; kk++ ; }
+     sum = (sum==0.0) ? 1.0 : sum/n ;
+     sum *= 1.e-7 ; alp = R->elts[ii][ii] ;  /* alp >= 0 from above */
+     if( alp < sum ){
+       kk++ ; R->elts[ii][ii] = alp + sum*(sum-alp)/(sum+alp) ;
+     }
    }
 
 #ifdef ENABLE_FLOPS
