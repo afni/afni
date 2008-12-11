@@ -70,20 +70,24 @@ read.AFNI <- function(filename) {
   } else {
     weights <- NULL
   }
-  
+#  browser()
   if (as.integer(size) == size) {
     conbrik <- file(filename.brik,"rb")
-    myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt*size, size=size, signed=TRUE, endian=endian)
+  # modified below by GC 12/2/2008
+  if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt*size, size=size, signed=TRUE, endian=endian) # unsigned charater or short
+  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt*size, size=size, signed=TRUE, endian=endian) # float        
     close(conbrik)
     dim(myttt) <- c(dx,dy,dz,dt)
-    for (k in 1:dt) {
-      if (scale[k] != 0) {
-        cat("scale",k,"with",scale[k],"\n")
-        cat(range(myttt[,,,k]),"\n")
-        myttt[,,,k] <- scale[k] * myttt[,,,k]
-        cat(range(myttt[,,,k]),"\n")
-      }
-    }
+#    for (k in 1:dt) {
+#      if (scale[k] != 0) {
+#        cat("scale",k,"with",scale[k],"\n")
+#        cat(range(myttt[,,,k]),"\n")
+#        myttt[,,,k] <- scale[k] * myttt[,,,k]
+#        cat(range(myttt[,,,k]),"\n")
+#      }
+#    }
+    for (k in 1:dt) if (scale[k] != 0) myttt[,,,k] <- scale[k] * myttt[,,,k]
+
   mask <- array(TRUE,c(dx,dy,dz))
   mask[myttt[,,,1] < quantile(myttt[,,,1],0.75)] <- FALSE
     z <-
@@ -99,9 +103,6 @@ read.AFNI <- function(filename) {
   attr(z,"file") <- paste(filename,".HEAD/BRIK",sep="")
   invisible(z)
 }
-
-
-
 
 write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4,4,4), idcode="WIAS_noid") {
   ## TODO:
