@@ -61,7 +61,9 @@ function R = RVT_from_PeakFinder(R, Opt)
                   min(R(icol).ptrace)), 'm');
          end
          drawnow ;
-         uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+         if (Opt.Demo),
+            uiwait(msgbox('Press button to resume', 'Pausing', 'modal'));
+         end
       end
    end
 return;
