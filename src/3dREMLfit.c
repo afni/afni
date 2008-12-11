@@ -409,7 +409,7 @@ int main( int argc , char *argv[] )
    int usetemp_rcol=0 ;
 
    MRI_IMARR *imar_addbase=NULL ; int ncol_addbase=0 ;
-   MRI_IMARR *imar_slibase=NULL ; int ncol_slibase=0 ;
+   MRI_IMARR *imar_slibase=NULL ; int ncol_slibase=0 , nfile_slibase=0 ;
    int nrega,nrego , nbad , ss,ssold , dmbase=1 ;
    int               nsli , nsliper ;
    matrix          **Xsli =NULL ;
@@ -497,11 +497,20 @@ int main( int argc , char *argv[] )
       "                   provide it again on the 3dREMLfit command line!\n"
       "\n"
       " -slibase bb = Similar to -addbase in concept, BUT each .1D file 'bb'\n"
-      "                 must have EXACTLY the same number of columns as the\n"
-      "                 input dataset has slices; then, separate regression\n"
+      "                 must have an integer multiple of the number of slices\n"
+      "                 in the input dataset; then, separate regression\n"
       "                 matrices are generated for each slice, with the\n"
       "                 [0] column of 'bb' appended to the matrix for\n"
-      "                 the #0 slice of the dataset, et cetera.\n"
+      "                 the #0 slice of the dataset, the [1] column of 'bb'\n"
+      "                 appended to the matrix for the #1 slice of the dataset,\n"
+      "                 and so on.  For example, if the dataset has 3 slices\n"
+      "                 and file 'bb' has 6 columns, then the order of use is\n"
+      "                     bb[0] --> slice #0 matrix\n"
+      "                     bb[1] --> slice #1 matrix\n"
+      "                     bb[2] --> slice #2 matrix\n"
+      "                     bb[3] --> slice #0 matrix\n"
+      "                     bb[4] --> slice #1 matrix\n"
+      "                     bb[5] --> slice #2 matrix\n"
       "              * Intended to help model physiological noise in FMRI,\n"
       "                 or other effects you want to regress out that might\n"
       "                 change significantly in the inter-slice time intervals.\n"
@@ -552,6 +561,10 @@ int main( int argc , char *argv[] )
       "                 via '-addbase' or '-slibase' will each have their\n"
       "                 mean removed (as is done in 3dDeconvolve).  If you\n"
       "                 do NOT want this operation performed, use '-nodmbase'.\n"
+      "              * Using '-nodmbase' would make sense if you used\n"
+      "                 '-polort -1' to set up the matrix 3dDeconvolve, and/or\n"
+      "                 you actually care about the fit coefficients of the\n"
+      "                 extra baseline columns.\n"
       "\n"
       "------------------------------------------------------------------------\n"
       "Output Options (at least one must be given; 'ppp' = dataset prefix name)\n"
@@ -950,7 +963,7 @@ int main( int argc , char *argv[] )
          if( imar_addbase == NULL ) INIT_IMARR(imar_addbase) ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
          ADDTO_IMARR( imar_addbase , im ) ;
-         ncol_addbase += im->ny ;
+         ncol_addbase += im->ny ;  /* number of columns to add to the matrix */
          iarg++ ;
        } while( iarg < argc && argv[iarg][0] != '-' ) ;
        continue ;
@@ -967,7 +980,7 @@ int main( int argc , char *argv[] )
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
          ADDTO_IMARR( imar_slibase , im ) ;
-         ncol_slibase++ ;  /* only 1 regressor added per file */
+         nfile_slibase++ ;
          iarg++ ;
        } while( iarg < argc && argv[iarg][0] != '-' ) ;
        continue ;
@@ -1162,13 +1175,13 @@ STATUS("options done") ;
 
    usetemp_rcol = usetemp ;
    if( usetemp ){
-     if( abfixed || ncol_slibase == 0 || nz == 1 ) usetemp_rcol = 0 ;
+     if( abfixed || nfile_slibase == 0 || nz == 1 ) usetemp_rcol = 0 ;
      INFO_message(
          "-usetemp filenames will be of the form\n"
          "       %s/REML_%s*\n"
          "   If 3dREMLfit crashes, you may have to 'rm' these manually" ,
          mri_purge_get_tmpdir() , mri_purge_get_tsuf() ) ;
-   } else if( ncol_slibase > 0 && nz > 1 ){
+   } else if( nfile_slibase > 0 && nz > 1 ){
      INFO_message(
        "If program runs out of memory, try re-running with -usetemp option");
    }
@@ -1471,29 +1484,25 @@ STATUS("process -addbase images") ;
 
    } else {                     /** have per-slice regressors **/
 
-     MRI_IMAGE *im ; int pp,nregq ; float *iar ; matrix *Xs ;
+     MRI_IMAGE *im ; int pp,nregq,nc,cc ; float *iar ; matrix *Xs ;
 
 STATUS("process -slibase images") ;
 
-     nregq   = nrega ;         /* save this for a little bit */
-     nrega  += ncol_slibase ;  /* new number of regressors */
-     nsli    = nz ;
-     nsliper = nxy ;           /** number of voxels per slice **/
+     /* figure out how many columns will be added */
 
-     if( verb )
-       INFO_message("Adding %d column%s to X matrix via '-slibase'" ,
-                    ncol_slibase , (ncol_slibase==1) ? "" : "s"      ) ;
-
-     /*--- check each file for right length in time and in column count ---*/
+     nsli = nz ; ncol_slibase = 0 ;
 
      for( nbad=ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
        im = IMARR_SUBIM( imar_slibase , ii ) ;
-       if( im->ny != nsli ){
+       nc = im->ny / nsli ;  /* how many slice sets are in this image */
+       kk = im->ny % nsli ;  /* how many left over (should be zero) */
+       if( kk != 0 ){
          ERROR_message(
            "-slibase file '%s' has %d columns but dataset has %d slices",
            im->name , im->ny , nsli ) ;
          nbad++ ; continue ;
        }
+       ncol_slibase += nc ;  /* total number of columns to add to matrix */
        if( im->nx == ntime ) continue ; /* OK */
        if( im->nx == nfull ){
          MRI_IMAGE *imb = mri_subset_x2D( ntime , goodlist , im ) ;
@@ -1508,10 +1517,18 @@ STATUS("process -slibase images") ;
        nbad++ ;
      }
 
+     nregq   = nrega ;         /* save this for a little bit */
+     nrega  += ncol_slibase ;  /* new number of regressors */
+     nsliper = nxy ;           /** number of voxels per slice **/
+
+     if( verb )
+       INFO_message("Adding %d column%s to X matrix via '-slibase'" ,
+                    ncol_slibase , (ncol_slibase==1) ? "" : "s"      ) ;
+
      ddof = ntime - nrega ;
      if( ddof < 1 ){
-       ERROR_exit("matrix has more columns (%d) than rows (%d) after -slibase!" ,
-                  nrega , ntime ) ;
+       ERROR_message("matrix has more columns (%d) than rows (%d) after -slibase!" ,
+                     nrega , ntime ) ;
        nbad++ ;
      }
 
@@ -1522,10 +1539,9 @@ STATUS("process -slibase images") ;
      if( beta_lab != NULL ){
        char lll[32] ;
        beta_lab = NI_realloc( beta_lab , char * , sizeof(char *)*nrega ) ;
-       for( kk=nregq,ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
-         im = IMARR_SUBIM( imar_slibase , ii ) ;
-         sprintf(lll,"%.16s",im->name) ;
-         beta_lab[kk++] = NI_strdup(lll) ;
+       for( kk=nregq,ii=0 ; ii < ncol_slibase ; ii++,kk++ ){
+         sprintf(lll,"slibase#%d",ii+1) ;
+         beta_lab[kk] = NI_strdup(lll) ;
        }
      }
 
@@ -1533,30 +1549,53 @@ STATUS("process -slibase images") ;
 
      Xsli = (matrix **)malloc(sizeof(matrix *)*nsli) ;  /* array of matrices */
 
+     /* loop over slice indexes */
+
      for( nbad=ss=0 ; ss < nsli ; ss++ ){       /* ss = slice index */
+
        Xs = (matrix *)malloc(sizeof(matrix)) ;  /* new matrix */
        matrix_initialize(Xs) ;
        matrix_equate( X , Xs ) ;                /* copy in existing matrix */
        matrix_enlarge( 0,ncol_slibase , Xs ) ;  /* make new one bigger */
-       for( kk=nregq,ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++,kk++ ){
-         im  = IMARR_SUBIM(imar_slibase,ii) ;   /* ii-th -slibase image */
-         iar = MRI_FLOAT_PTR(im) ; iar += ss * im->nx ; /* ss-th column */
-         if( dmbase ){
-           float csum=0.0f ;
-           for( pp=0 ; pp < ntime ; pp++ ) csum += iar[pp] ;
-           csum /= ntime ;
-           for( pp=0 ; pp < ntime ; pp++ ) iar[pp] -= csum ;
-         }
-         for( pp=0 ; pp < ntime ; pp++ ) Xs->elts[pp][kk] = (MTYPE)iar[pp] ;
 
-         for( pp=0 ; pp < ntime && iar[pp]==0.0f ; pp++ ) ; /*nada*/
-         if( pp == ntime ){
-           ERROR_message("-slibase file %s col #%d is all zero",im->name,ss) ;
-           nbad++ ;
-         }
-       }
-       Xsli[ss] = Xs ;  /* save this matrix in the array */
-     }
+       /* loop over slibase image files:
+           ii = image file index
+           kk = column index in matrix to get new data
+           nc = number of slices sets in ii-th image (nsli columns per set)
+           cc = loop index over slice sets (skipping nsli columns in image) */
+
+       for( kk=nregq,ii=0 ; ii < IMARR_COUNT(imar_slibase) ; ii++ ){
+
+         im  = IMARR_SUBIM(imar_slibase,ii) ;   /* ii-th slibase image */
+         nc  = im->ny / nsli ;
+         iar = MRI_FLOAT_PTR(im) ;  /* pointer to data */
+         iar += ss * im->nx ;       /* pointer to ss-th column */
+
+         /* loop over the ss-th slice set in this file:
+             skip head nsli columns in iar at each iteration */
+
+         for( cc=0 ; cc < nc ; cc++,kk++,iar+=nsli*im->nx ){
+           if( dmbase ){        /* de-mean the column */
+             float csum=0.0f ;
+             for( pp=0 ; pp < ntime ; pp++ ) csum += iar[pp] ;
+             csum /= ntime ;
+             for( pp=0 ; pp < ntime ; pp++ ) iar[pp] -= csum ;
+           }
+           for( pp=0 ; pp < ntime ; pp++ ) Xs->elts[pp][kk] = (MTYPE)iar[pp] ;
+
+           for( pp=0 ; pp < ntime && iar[pp]==0.0f ; pp++ ) ; /*nada*/
+           if( pp == ntime ){
+             ERROR_message("-slibase file %s col #%d is all zero",im->name,ss) ;
+             nbad++ ;
+           }
+         } /* end of loop over cc = slice set */
+
+       } /* end of loop over input files, extracting for the ss-th slice */
+
+       Xsli[ss] = Xs ;  /* save this completed matrix in the array */
+
+     } /* end of loop over slices */
+
      if( nbad > 0 ) ERROR_exit("Cannot continue after -slibase errors!") ;
 
    } /**** end of -slibase stuff ****/
