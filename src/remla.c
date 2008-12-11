@@ -675,12 +675,21 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
    /* compute QR decomposition of W, save R factor into D, toss W */
 
    D = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(D) ;
-   matrix_qrr( *W , D ) ;
+   ii = matrix_qrr( *W , D ) ;
    matrix_destroy(W) ; free((void *)W) ;
    if( D->rows <= 0 ){
      if( verb > 1 )
        ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
      matrix_destroy(D) ; free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
+   } else if( ii > 0 && verb ){
+     static int iold=0 ;
+     if( ii != iold ){
+       WARNING_message(
+         "QR decomposition of wh(X) had %d tiny diagonal"
+         " element%s reset -- collinearity!",
+         ii , (ii==1) ? "\0" : "s"                       ) ;
+       iold = ii ;
+     }
    }
 
    /* create the setup struct, save stuff into it */
@@ -1276,7 +1285,17 @@ ENTRY("REML_get_gltfactors") ;
      E  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(E) ;
      Z  = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(Z) ;
      JR = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(JR) ;
-     matrix_qrr( *F , E ) ;
+     i = matrix_qrr( *F , E ) ;
+     if( i > 0 && verb ){
+       static int iold = 0 ;
+       if( i != iold ){
+         WARNING_message(
+           "QR decomposition of GLT matrix had %d tiny diagonal"
+           " element%s reset -- collinearity!",
+           i , (i==1) ? "\0" : "s"                             ) ;
+         iold = i ;
+       }
+     }
      matrix_rrtran_solve( *E , *G , Z ) ;
      matrix_rr_solve( *E , *Z , JR ) ;  /* JR = inv[E] inv[E'] G = rr X nn */
      matrix_colsqsums( *E , S ) ;       /* S = [sig] = rr vector */

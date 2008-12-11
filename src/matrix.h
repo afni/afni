@@ -383,13 +383,13 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2
 
 extern void matrix_psinv_seteps( double eps ) ; /* 02 Mar 2007 - MoJM */
 
-void matrix_qrr( matrix X , matrix *R ) ;  /* 03 Jul 2008 */
-void vector_rr_solve    ( matrix R , vector b , vector *x ) ;
-void vector_rrtran_solve( matrix R , vector b , vector *x ) ;
-void matrix_rr_solve    ( matrix R , matrix B , matrix *X ) ;
-void matrix_rrtran_solve( matrix R , matrix B , matrix *X ) ;
+extern int  matrix_qrr( matrix X , matrix *R ) ;  /* 03 Jul 2008 */
+extern void vector_rr_solve    ( matrix R , vector b , vector *x ) ;
+extern void vector_rrtran_solve( matrix R , vector b , vector *x ) ;
+extern void matrix_rr_solve    ( matrix R , matrix B , matrix *X ) ;
+extern void matrix_rrtran_solve( matrix R , matrix B , matrix *X ) ;
 
-double get_matrix_flops(void) ;
-double get_matrix_dotlen(void) ;
+extern double get_matrix_flops(void) ;
+extern double get_matrix_dotlen(void) ;
 
 #endif

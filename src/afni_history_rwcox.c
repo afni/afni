@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , DEC , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_MODIFY ,
+   "Should behave better with ocllinear regression matrix." ,
+   "Modified the QR decomposition to adjust 'tiny' diagonal elements of R,\n"
+   "to avoid division by zero (or near-zero).  Prints a warning message when\n"
+   "this adjustment is made." } ,
+
  { 11 , DEC , 2008 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
    "Fixed -slibase bug." ,
    "Oopsie.  -slibase didn't work properly with more than 1 added column per\n"
