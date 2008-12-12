@@ -381,6 +381,8 @@ double * matrix_singvals( matrix X ) ; /* 14 Jul 2004 */
 
 void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt ) ;  /* 19 Jul 2004 */
 
+extern int matrix_collinearity_fixup( matrix X , matrix *Xa ) ; /* 12 Dec 2008 */
+
 extern void matrix_psinv_seteps( double eps ) ; /* 02 Mar 2007 - MoJM */
 
 extern int  matrix_qrr( matrix X , matrix *R ) ;  /* 03 Jul 2008 */
