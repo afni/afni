@@ -144,7 +144,7 @@ double get_matrix_dotlen(void){ return (dotnum > 0.0) ? dotsum/dotnum : 0.0 ; }
   Routine to print and error message and stop.
 */
 
-void matrix_error (char * message)
+void matrix_error (char *message)
 {
   printf ("Matrix error: %s \n", message);
   EXIT (1);
@@ -156,7 +156,7 @@ void matrix_error (char * message)
   Initialize matrix data structure.
 */
 
-void matrix_initialize (matrix * m)
+void matrix_initialize (matrix *m)
 {
   m->rows = 0;
   m->cols = 0;
@@ -172,7 +172,7 @@ void matrix_initialize (matrix * m)
   Destroy matrix data structure by deallocating memory.
 */
 
-void matrix_destroy (matrix * m)
+void matrix_destroy (matrix *m)
 {
   if (m->elts != NULL){
 #ifdef DONT_USE_MATRIX_MAT
@@ -1638,6 +1638,9 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    sval = (double *)calloc( sizeof(double),n   ) ;  /* singular values */
    xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
 
+#undef  A
+#undef  U
+#undef  V
 #define A(i,j) amat[(i)+(j)*m]
 #define U(i,j) umat[(i)+(j)*m]
 #define V(i,j) vmat[(i)+(j)*n]
@@ -1726,6 +1729,100 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Check a matrix for column collinearity and adjust it (via the SVD)
+    if it needs it.  Return value is -1 if there is an error, 0 if no
+    fix was made, or the number of bad singular values if a fix was made
+    -- in which case the adjusted matrix is in Xa.
+*//*-------------------------------------------------------------------------*/
+
+int matrix_collinearity_fixup( matrix X , matrix *Xa )
+{
+   int m = X.rows , n = X.cols , ii,jj,kk , nbad ;
+   double *amat , *umat , *vmat , *sval , *xfac , smax,del,sum ;
+
+   if( m < 1 || n < 1 || m < n ) return (-1) ;
+
+   amat = (double *)calloc( sizeof(double),m*n ) ; /* input matrix */
+   umat = (double *)calloc( sizeof(double),m*n ) ; /* left singular vectors */
+   vmat = (double *)calloc( sizeof(double),n*n ) ; /* right singular vectors */
+   sval = (double *)calloc( sizeof(double),n   ) ; /* singular values */
+   xfac = (double *)calloc( sizeof(double),n   ) ; /* column norms of [a] */
+
+#undef  A
+#undef  U
+#undef  V
+#define A(i,j) amat[(i)+(j)*m]
+#define U(i,j) umat[(i)+(j)*m]
+#define V(i,j) vmat[(i)+(j)*n]
+
+   /* copy input matrix into amat */
+
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = X.elts[ii][jj] ;
+
+   /* scale each column to have L2 norm 1 */
+
+   for( jj=0 ; jj < n ; jj++ ){
+     sum = 0.0 ;
+     for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
+     xfac[jj] = sqrt(sum) ;
+     if( sum > 0.0 ){
+       sum = 1.0 / xfac[jj] ;
+       for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ;
+     }
+   }
+
+   /* compute SVD of scaled matrix */
+
+   svd_double( m , n , amat , sval , umat , vmat ) ;
+
+   free((void *)amat) ;  /* done with this */
+
+   /* find largest singular value */
+
+   if( sval[0] < 0.0 ) sval[0] = 0.0 ;
+   smax = sval[0] ;
+   for( ii=1 ; ii < n ; ii++ ){
+          if( sval[ii] > smax ) smax = sval[ii] ;
+     else if( sval[ii] < 0.0  ) sval[ii] = 0.0 ;
+   }
+
+   if( smax == 0.0 ){                        /* this is bad */
+     free((void *)xfac); free((void *)sval);
+     free((void *)vmat); free((void *)umat); return (-1);
+   }
+
+   /* adjust small singular values upwards */
+
+   del = 1.e-6 * smax ;
+   for( nbad=ii=0 ; ii < n ; ii++ )
+     if( sval[ii] < del ){ sval[ii] = del ; nbad++ ; }
+
+   /* if all were OK, then nothing more needs to be done */
+
+   if( nbad == 0 || Xa == NULL ){
+     free((void *)xfac); free((void *)sval);
+     free((void *)vmat); free((void *)umat); return (nbad);
+   }
+
+   /* create and compute output matrix */
+
+   matrix_create( m , n , Xa ) ;
+
+   for( ii=0 ; ii < m ; ii++ ){
+     for( jj = 0 ; jj < n ; jj++ ){
+       sum = 0.0 ;
+       for( kk=0 ; kk < n ; kk++ )
+         sum += sval[kk] * U(ii,kk) * V(jj,kk) ;
+       Xa->elts[ii][jj] = sum * xfac[jj] ;
+     }
+   }
+
+   free((void *)xfac); free((void *)sval);
+   free((void *)vmat); free((void *)umat); return (nbad);
+}
+
+/*---------------------------------------------------------------------------*/
 /*! Given MxN matrix X, compute the NxN upper triangle factor R in X = QR.
     Must have M >= N (more rows than columns).
     Q is not computed.  If you want Q, then compute it as [Q] = [X] * inv[R].
@@ -1789,6 +1886,7 @@ int matrix_qrr( matrix X , matrix *R )
        for( jj=ii ; jj < n ; jj++ ) R->elts[ii][jj] = -A(ii,jj) ;
    }
 
+#if 0
    /* adjust tiny (or zero) diagonal elements, for solution stability */
 
    for( kk=ii=0 ; ii < n ; ii++ ){
@@ -1801,13 +1899,14 @@ int matrix_qrr( matrix X , matrix *R )
        kk++ ; R->elts[ii][ii] = alp + sum*(sum-alp)/(sum+alp) ;
      }
    }
+#endif
 
 #ifdef ENABLE_FLOPS
    flops += n*n*(2*m-0.666*n) ;
 #endif
 
    free((void *)uvec) ; free((void *)amat) ;
-   return (kk) ;
+   return (0) ;
 }
 
 /*----------------- below is a test program for matrix_qrr() -----------------*/
