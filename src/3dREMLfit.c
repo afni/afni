@@ -22,6 +22,7 @@ static int verb=1 ;
 # define MEMORY_CHECK /*nada*/
 #endif
 
+#undef PATCHX
 
 /*--------------------------------------------------------------------------*/
 /*! For voxel loop progress report. */
@@ -871,7 +872,10 @@ int main( int argc , char *argv[] )
       "* If the regression matrix (including any added columns from '-addbase'\n"
       "    or '-slibase') is rank-deficient (e.g., has collinear columns),\n"
       "    then the program will print a message something like\n"
-      "      *+ WARNING: QR decomposition of X had 1 tiny diagonal element adjusted -- collinearity!\n"
+      "      ** ERROR: X matrix has 1 tiny singular value -- collinearity\n"
+#ifndef PATCHX
+      "    At this time, the program will NOT continue past this error.\n"
+#else
       "    The program will still produce a solution.  However, since\n"
       "    3dREMLfit uses a different linear algebra approach than\n"
       "    3dDeconvolve for solving the equations, the solution for the\n"
@@ -880,6 +884,7 @@ int main( int argc , char *argv[] )
       "    If you receive such a warning, you should examine your results\n"
       "    carefully to make sure they are reasonable (e.g., look at\n"
       "    the fitted model overlay on the input time series).\n"
+#endif
       "* Despite my best efforts, this program is somewhat sluggish.\n"
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) pre-whitening matrix.\n"
@@ -1617,8 +1622,6 @@ STATUS("process -slibase images") ;
    } /**** end of -slibase stuff ****/
 
    /**---- check X matrices for collinearity ----**/
-
-#undef PATCHX
 
    { matrix *Xa=NULL ; char lab[32]="\0" ; int nfatal ;
      for( nfatal=ss=0 ; ss < nsli ; ss++ ){
