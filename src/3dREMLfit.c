@@ -1616,6 +1616,48 @@ STATUS("process -slibase images") ;
 
    } /**** end of -slibase stuff ****/
 
+   /**---- check X matrices for collinearity ----**/
+
+#undef PATCHX
+
+   { matrix *Xa=NULL ; char lab[32]="\0" ; int nfatal ;
+     for( nfatal=ss=0 ; ss < nsli ; ss++ ){
+#ifdef PATCHX
+       Xa = (matrix *)malloc(sizeof(matrix)) ;  /* new matrix */
+       matrix_initialize(Xa) ;
+#endif
+       nbad = matrix_collinearity_fixup( *(Xsli[ss]) , Xa ) ;
+       if( nsli > 1 ) sprintf(lab,"in slice #%d",ss) ;
+       if( nbad > 0 ){
+         nfatal++ ;
+#ifdef PATCHX
+         WARNING_message(
+           "Adjusted X matrix for %d tiny singular value%s -- collinearity %s",
+           nbad , (nbad==1) ? "\0" : "s" , lab ) ;
+         matrix_destroy( Xsli[ss] ) ;
+         Xsli[ss] = Xa ;
+#else
+         ERROR_message(
+           "X matrix has %d tiny singular value%s -- collinearity %s",
+           nbad , (nbad==1) ? "\0" : "s" , lab ) ;
+#endif
+       } else {
+#ifdef PATCHX
+         matrix_destroy(Xa) ; free(Xa) ;
+#endif
+         if( nbad < 0 ){  /* should not happen */
+           ERROR_message("Can't check X matrix for singularity!? %s",lab) ;
+           nfatal++ ;
+         }
+       }
+     }
+
+#ifndef PATCHX
+     if( nfatal > 0 )
+       ERROR_exit("Can't continue after collinearity detection") ;
+#endif
+   }
+
    /***---------- extract stim information from matrix header ----------***/
 
    cgl = NI_get_attribute( nelmat , "Nstim" ) ;
