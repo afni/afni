@@ -25,6 +25,12 @@ ENTRY("mri_medianfilter") ;
 
    if( imin == NULL || irad <= 0.0f ) RETURN(NULL) ;
 
+   /** deal with vector-valued images [15 Dec 2008] -- see mrilib.h **/
+
+#undef  CALLME
+#define CALLME(inn,out) (out) = mri_medianfilter( (inn), irad,mask,verb )
+    if( ISVECTIM(imin) ){ VECTORME(imin,imout) ; RETURN(imout) ; }
+
    /** if not a good input data type, floatize and try again **/
 
    if( imin->kind != MRI_float &&
@@ -145,6 +151,12 @@ MRI_IMAGE *mri_flatfilter( MRI_IMAGE *imin, float irad, byte *mask, int verb )
 ENTRY("mri_flatfilter") ;
 
    if( imin == NULL || irad <= 0.0f ) RETURN(NULL) ;
+
+   /** deal with vector-valued images [15 Dec 2008] -- see mrilib.h **/
+
+#undef  CALLME
+#define CALLME(inn,out) (out) = mri_flatfilter( (inn), irad,mask,verb )
+    if( ISVECTIM(imin) ){ VECTORME(imin,imout) ; RETURN(imout) ; }
 
    /** if not a good input data type, floatize and try again **/
 
