@@ -295,12 +295,14 @@ ENTRY("create_gltsym") ;
      char *fdup=strdup(sym+4) , *fpt , *buf ;
      int ss , ns ;
      buf = fdup ;
-     while(1){
+STATUS("SYM: gltsym") ;
+     while(*buf != '\0'){
                          fpt = strchr(buf,'\\'); /* find end of 'line' */
        if( fpt == NULL ) fpt = strchr(buf,'|') ;
        if( fpt != NULL ) *fpt = '\0' ;           /* mark end of line with NUL */
+STATUS(buf) ;
        fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
-       if( fvv == NULL || fvv->nvec < 1 ) continue ;  /* bad?  blank? */
+       if( fvv == NULL || fvv->nvec < 1 ){ buf=fpt+1; continue; }  /* bad?  blank? */
        far = (float **)realloc((void *)far , sizeof(float *)*(nr+fvv->nvec)) ;
        for( iv=0 ; iv < fvv->nvec ; iv++ ) far[nr++] = fvv->fvar[iv].ar ;
        free((void *)fvv->fvar) ; free((void *)fvv) ;
@@ -328,7 +330,7 @@ ENTRY("create_gltsym") ;
 
    }
 
-   if( nr == 0 ) ERROR_exit("Can't read GLT matrix from file '%s'",sym) ;
+   if( nr == 0 ) ERROR_exit("Can't read GLT matrix from '%s'",sym) ;
    cmat = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(cmat) ;
    array_to_matrix( nr , ncol , far , cmat ) ;
 
@@ -397,7 +399,7 @@ int main( int argc , char *argv[] )
    float mfilt_radius=0.0 , dx,dy,dz ; int do_mfilt=0 , do_dxyz , nx,ny,nz,nxy ;
    int do_Ostuff=0 , do_Rstuff=0 ;
 
-   int glt_num=0, glt_rtot=0 ; matrix **glt_mat=NULL ; char **glt_lab=NULL ;
+   int glt_num=0, glt_rtot=0 , do_glt=1 ; matrix **glt_mat=NULL ; char **glt_lab=NULL ;
    sparmat **glt_smat=NULL ;
    GLT_index **glt_ind=NULL ;
    int stim_num=0; int *stim_bot=NULL , *stim_top=NULL ; char **stim_lab=NULL ;
@@ -1706,11 +1708,20 @@ STATUS("process -slibase images") ;
    } else {  /* don't have stim info in matrix header?! */
 
      WARNING_message("-matrix file is missing Stim attributes") ;
-     if( do_stat || do_buckt || do_eglt )
-       ERROR_exit(
-         " ==> Can't do statistics or GLTs on the Stimuli (e.g., -Rbuck, -Rglt)") ;
-     else if( eglt_num > 0 )
-       ERROR_exit(" ==> Can't process GLTs (e.g., -Rbuck, -Rglt)") ;
+     if( do_buckt )
+       WARNING_message(" ==> bucket dataset output is disabled") ;
+     do_buckt = do_glt = 0 ; Rbuckt_prefix = Obuckt_prefix = NULL ;
+
+     /* some fake names */
+
+     nSymStim = nrega ;
+     SymStim  = (SYM_irange *)calloc(sizeof(SYM_irange),nSymStim) ;
+     for( ss=0 ; ss < nrega ; ss++ ){
+       SymStim[ss].nbot = 0 ;
+       SymStim[ss].ntop = 0 ;
+       SymStim[ss].gbot = ss ;
+       sprintf( SymStim[ss].name , "C%d" , ss ) ;
+     }
 
    }
 
@@ -1736,7 +1747,7 @@ STATUS("process -slibase images") ;
      free(glt_lab); free(glt_mat); free(glt_smat);         \
  } while(0)
 
-   if( do_stat ){
+   if( do_stat && do_glt ){
      char lnam[32] ; int nn,mm ; matrix *gm ;
      int *set = (int *)malloc(sizeof(int)*nrega) ;  /* list of columns to keep */
 
@@ -1773,8 +1784,9 @@ STATUS("make stim GLTs") ;
    if( do_stat && (cgl != NULL || eglt_num > 0) ){
      char lnam[32],*lll ; int nn,mm,ngl ; matrix *gm ; float *far ;
 
+     /*----- process GLTs from the matrix header -----*/
 
-     if( cgl != NULL ){
+     if( cgl != NULL && do_glt ){
 STATUS("make GLTs from matrix file") ;
        ngl = (int)strtod(cgl,NULL) ;
        if( ngl <= 0 ) ERROR_exit("Nglt attribute in matrix is not positive!");
@@ -1972,6 +1984,7 @@ STATUS("make GLTs from matrix file") ;
    /*-- set up indexing and labels needed for bucket dataset creation --*/
 
    if( (do_buckt || do_eglt) && glt_num > 0 ){
+STATUS("setting up glt_ind") ;
      glt_ind = (GLT_index **)calloc( sizeof(GLT_index *) , glt_num ) ;
 #if 0
      if( do_fstat || do_rstat ){
@@ -2003,6 +2016,7 @@ STATUS("make GLTs from matrix file") ;
 
    Rbeta_dset = create_float_dataset( inset , nrega , Rbeta_prefix,1 , &Rbeta_fn,&Rbeta_fp ) ;
    if( Rbeta_dset != NULL && beta_lab != NULL ){
+STATUS("labelizing Rbeta") ;
      for( ii=0 ; ii < nrega ; ii++ )
        EDIT_BRICK_LABEL( Rbeta_dset , ii , beta_lab[ii] ) ;
    }
@@ -2010,6 +2024,7 @@ STATUS("make GLTs from matrix file") ;
    Rvar_dset  = create_float_dataset( inset , 4    , Rvar_prefix,1 , NULL,NULL ) ;
    if( Rvar_dset != NULL ){
      float abar[3] ;
+STATUS("labelizing Rvar") ;
      EDIT_BRICK_LABEL( Rvar_dset , 0 , "a" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 1 , "b" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 2 , "lam" ) ;
@@ -2025,6 +2040,7 @@ STATUS("make GLTs from matrix file") ;
    Rbuckt_dset = create_float_dataset( inset , nbuckt,Rbuckt_prefix,1 , &Rbuckt_fn,&Rbuckt_fp ) ;
    if( Rbuckt_dset != NULL ){
      int nr ;
+STATUS("setting up Rbuckt") ;
      for( ii=0 ; ii < glt_num ; ii++ ){
        if( glt_ind[ii] == NULL ) continue ;
        nr = glt_ind[ii]->nrow ;
@@ -2057,6 +2073,7 @@ STATUS("make GLTs from matrix file") ;
    Rglt_dset = create_float_dataset( inset , neglt , Rglt_prefix,1 , &Rglt_fn,&Rglt_fp ) ;
    if( Rglt_dset != NULL ){
      int nr , isub = glt_ind[oglt_num]->ivbot ;
+STATUS("setting up Rglt") ;
      for( ii=oglt_num ; ii < glt_num ; ii++ ){
        if( glt_ind[ii] == NULL ) continue ;  /* should not happen! */
        nr = glt_ind[ii]->nrow ;
