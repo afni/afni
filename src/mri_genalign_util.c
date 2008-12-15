@@ -31,7 +31,13 @@ MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 
    ENTRY("GA_smooth") ;
 
-   if( im == NULL || im->kind != MRI_float || rad <= 0.0f ) RETURN(NULL) ;
+   if( im == NULL || rad <= 0.0f ) RETURN(NULL) ;
+
+#undef  CALLME
+#define CALLME(inp,out) (out) = GA_smooth( (inp), meth,rad )
+   if( ISVECTIM(im) ){ VECTORME(im,om) ; RETURN(om) ; }
+
+   if( im->kind != MRI_float ) RETURN(NULL) ;
 
    switch( meth ){
      default:
@@ -412,52 +418,17 @@ ENTRY("GA_indexwarp") ;
 
    if( inim == NULL || wpim == NULL || wpim->kind != MRI_fvect ) RETURN(NULL);
    if( mri_data_pointer(inim) == NULL ||
-       mri_data_pointer(wpim) == NULL || wpim->vdim <= 0 )       RETURN(NULL);
+       mri_data_pointer(wpim) == NULL || wpim->vdim != 3 )       RETURN(NULL);
    if( inim->nx != wpim->nx ||
        inim->ny != wpim->ny || inim->nz != wpim->nz )            RETURN(NULL);
 
    /*- if input is itself a vector, use recursion to process each sub-image -*/
 
-   if( inim->kind == MRI_fvect ||
-       inim->kind == MRI_rgb   || inim->kind == MRI_complex ){
+#undef  CALLME
+#define CALLME(inee,outee) outee = GA_indexwarp( (inee), interp_code, wpim )
+   if( ISVECTIM(inim) ){ VECTORME(inim,outim) ; RETURN(outim) ; }
 
-     int vv ; MRI_IMARR *qimar=NULL ;
-
-     /* convert components to standalone images */
-
-     switch( inim->kind ){
-       case MRI_fvect:   qimar = mri_fvect_to_imarr(inim) ; break ;
-       case MRI_rgb:     qimar = mri_rgb_to_3float (inim) ; break ;
-       case MRI_complex: qimar = mri_complex_to_pair(inim); break ;
-     }
-     if( qimar == NULL ) RETURN(NULL) ;  /* should not happen */
-
-     /* warp each image, replace it qimar */
-
-     for( vv=0 ; vv < IMARR_COUNT(qimar) ; vv++ ){
-       fim = GA_indexwarp( IMARR_SUBIM(qimar,vv) , interp_code , wpim ) ;
-       mri_free(IMARR_SUBIM(qimar,vv)) ;
-       IMARR_SUBIM(qimar,vv) = fim ;
-     }
-
-     /* put Humpty-Dumpty back together again */
-
-     switch( inim->kind ){
-       case MRI_fvect:   outim = mri_imarr_to_fvect(qimar) ;
-                         break ;
-       case MRI_rgb:     outim = mri_3to_rgb(IMARR_SUBIM(qimar,0),
-                                             IMARR_SUBIM(qimar,1),
-                                             IMARR_SUBIM(qimar,2) ) ;
-                         break ;
-       case MRI_complex: outim = mri_pair_to_complex(IMARR_SUBIM(qimar,0),
-                                                     IMARR_SUBIM(qimar,1) ) ;
-                         break ;
-     }
-
-     DESTROY_IMARR(qimar) ; RETURN(outim) ;
-   }
-
-   /*------------------ here, input image is scalar-values ------------------*/
+   /*------------------ here, input image is scalar-valued ------------------*/
 
    fim = (inim->kind == MRI_float ) ? inim : mri_to_float(inim) ;
    far = MRI_FLOAT_PTR(fim) ;
@@ -468,25 +439,15 @@ ENTRY("GA_indexwarp") ;
    nx = fim->nx; ny = fim->ny; nz = fim->nz; nxy = nx*ny; nvox = nx*ny*nz;
 
    iim = mri_fvect_subimage( wpim , 0 ) ;
-   if( iim == NULL ){                               /* should not happen */
-     iim = mri_new_conforming( fim , MRI_float ) ;
-     iar = MRI_FLOAT_PTR(iim) ;
-     for( ii=0 ; ii < nvox ; ii++ ) iar[ii] = ii % nx ;
-   }
-
    jjm = mri_fvect_subimage( wpim , 1 ) ;
-   if( jjm == NULL ){                               /* no j-direction info */
-     jjm = mri_new_conforming( fim , MRI_float ) ;  /* so make some up */
-     jar = MRI_FLOAT_PTR(jjm) ;
-     for( ii=0 ; ii < nvox ; ii++ ) jar[ii] = (ii/nx) % ny ;
-   }
-
    kkm = mri_fvect_subimage( wpim , 2 ) ;
+#if 0
    if( kkm == NULL ){                               /* no k-direction info */
      kkm = mri_new_conforming( fim , MRI_float ) ;  /* so make some up */
      kar = MRI_FLOAT_PTR(kkm) ;
      for( ii=0 ; ii < nvox ; ii++ ) kar[ii] = (ii/nxy) ;
    }
+#endif
 
    iar = MRI_FLOAT_PTR(iim) ;
    jar = MRI_FLOAT_PTR(jjm) ;
@@ -542,7 +503,7 @@ ENTRY("GA_indexwarp") ;
 void GA_affine_edit_warp( mat44 aff , MRI_IMAGE *wpim )
 {
    int ii , nvox ;
-   float *war , aa,bb,cc , xx,yy,zz ;
+   float *war , aa,bb,cc ;
 
 ENTRY("GA_affine_edit_warp") ;
 
@@ -558,11 +519,27 @@ ENTRY("GA_affine_edit_warp") ;
      aa = war[3*ii  ] ;
      bb = war[3*ii+1] ;
      cc = war[3*ii+2] ;
-     MAT44_VEC( aff , aa,bb,cc , xx,yy,zz ) ;
-     war[3*ii  ] = xx ;
-     war[3*ii+1] = yy ;
-     war[3*ii+2] = zz ;
+     MAT44_VEC( aff , aa,bb,cc , war[3*ii],war[3*ii+1],war[3*ii+2] ) ;
    }
 
    EXRETURN ;
 }
+
+/*---------------------------------------------------------------------------*/
+/* B(A(x)) */
+
+#if 0
+MRI_IMAGE * GA_compose_indexwarp( MRI_IMAGE *awpim , MRI_IMAGE *bwpim )
+{
+
+ENTRY("GA_compose_indexwarp") ;
+
+   if( awpim == NULL || awpim->kind != MRI_fvect )           RETURN(NULL);
+   if( bwpim == NULL || bwpim->kind != MRI_fvect )           RETURN(NULL);
+   if( mri_data_pointer(awpim) == NULL || awpim->vdim != 3 ) RETURN(NULL) ;
+   if( mri_data_pointer(bwpim) == NULL || bwpim->vdim != 3 ) RETURN(NULL) ;
+   if( awpim->nx != bwpim->nx ||
+       awpim->ny != bwpim->ny || awpim->nz != bwpim->nz )    RETURN(NULL);
+
+   cwpim = GA_indexwarp( bwpim
+#endif

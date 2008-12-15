@@ -1696,4 +1696,54 @@ void *Percentate (void *vec, byte *mm, int nxyz,
                   int option, double *perc ,
                   int zero_flag, int positive_flag, int negative_flag);
 
+/*----------------------------------------------------------------------------*/
+/** Test if a image is vector-valued (fvect, rgb, or complex) **/
+
+#undef  ISVECTIM
+#define ISVECTIM(tim) ((tim)->kind==MRI_fvect || (tim)->kind==MRI_rgb \
+                                              || (tim)->kind==MRI_complex)
+
+/** Vectorize a call to an image producing function that takes as input
+    1 float image and produces as output 1 float image.  To use this macro,
+    first #define the CALLME macro which takes 2 arguments, the input image
+    pointer and the output image name.  For example, to median filter a
+    possible vector image named 'inim' into the output 'outim' do
+
+ #undef  CALLME
+ #define CALLME(inn,out) (out) = mri_medianfilter( (inn), irad,mask,verb )
+ if( ISVECTIM(inim) ){ VECTORME(inim,outim) ; return outim ; }
+ ... normal processing of a scalar image goes here 
+ ... idea is that the CALLME macro is recursive to the local function
+ ... this example would be inserted into source code mri_medianfilter.c **/
+
+#undef  VECTORME
+#define VECTORME(inpp,outp)                                                   \
+ do{ int vv ; MRI_IMARR *qimar=NULL ; MRI_IMAGE *fim ;                        \
+     (outp) = NULL ;                                                          \
+     switch( (inpp)->kind ){                                                  \
+       case MRI_fvect:   qimar = mri_fvect_to_imarr(inpp) ; break ;           \
+       case MRI_rgb:     qimar = mri_rgb_to_3float (inpp) ; break ;           \
+       case MRI_complex: qimar = mri_complex_to_pair(inpp); break ;           \
+     }                                                                        \
+     if( qimar == NULL ) break ;                                              \
+     for( vv=0 ; vv < IMARR_COUNT(qimar) ; vv++ ){                            \
+       CALLME( IMARR_SUBIM(qimar,vv) , fim ) ;                                \
+       mri_free(IMARR_SUBIM(qimar,vv)) ;                                      \
+       IMARR_SUBIM(qimar,vv) = fim ;                                          \
+     }                                                                        \
+     switch( (inpp)->kind ){                                                  \
+       case MRI_fvect:   (outp) = mri_imarr_to_fvect(qimar) ;                 \
+                         break ;                                              \
+       case MRI_rgb:     (outp) = mri_3to_rgb(IMARR_SUBIM(qimar,0),           \
+                                              IMARR_SUBIM(qimar,1),           \
+                                              IMARR_SUBIM(qimar,2) ) ;        \
+                         break ;                                              \
+       case MRI_complex: (outp) = mri_pair_to_complex(IMARR_SUBIM(qimar,0),   \
+                                                      IMARR_SUBIM(qimar,1) ); \
+                         break ;                                              \
+     }                                                                        \
+     DESTROY_IMARR(qimar) ;                                                   \
+   } while(0)
+/*----------------------------------------------------------------------------*/
+
 #endif /* _MCW_MRILIB_HEADER_ */
