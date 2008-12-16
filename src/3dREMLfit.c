@@ -1484,6 +1484,14 @@ STATUS("process -addbase images") ;
 
    } /**** end of -addbase stuff ****/
 
+#if 0
+{ double *sv = matrix_singvals(X) ;
+  fprintf(stderr,"X singular values:") ;
+  for( ii=0 ; ii < X.cols ; ii++ ) fprintf(stderr," %g",sv[ii]) ;
+  fprintf(stderr,"\n") ; free(sv) ;
+}
+#endif
+
    /**--------------- check matrix for all zero columns ---------------**/
 
    for( nbad=jj=0 ; jj < nrega ; jj++ ){
