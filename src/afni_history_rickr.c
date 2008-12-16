@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, DEC, 2008, RCR, "Makefile", MICRO, TYPE_MODIFY,
+   "added USE_LESSTIF directive",
+   "Modified Makefile.linux_xorg7[_64], Makefile.macosx_10.5_Intel[_64]."
+ } ,
+
  { 10, DEC, 2008, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added new options for extra stimuli, RONI and an external volreg base",
    "- allow NIfTI datasets as input (but process as AFNI)\n"

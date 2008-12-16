@@ -7,8 +7,17 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/lib64/libexpat.a
 
+# uncomment USE_LESSTIF to use lesstif instead of openmotif
+# USE_LESSTIF = 1
+ifdef USE_LESSTIF
+    LESSTIF_DEFS = -DUSING_LESSTIF
+    MOTIF_LIB = -lXm
+else
+    MOTIF_LIB = /usr/lib64/libXm.a
+endif
+
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY $(LESSTIF_DEFS)
 
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
@@ -63,12 +72,12 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri /usr/lib64/libXm.a -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS  = -lmri $(MOTIF_LIB) -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
 # LLIBS = -lmri -ldl               \
-#         /usr/lib/libXm.a   \
+#        /usr/lib/libXm.a   \
 #        /usr/lib/libXpm.a  \
 #        /usr/lib/libXext.a \
 #        /usr/lib/libXmu.a  \
