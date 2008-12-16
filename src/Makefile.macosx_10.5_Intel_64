@@ -4,7 +4,15 @@ USE_ZLIB  = -DHAVE_ZLIB
 LZLIB     = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/local/lib/libexpat64.a
-LXm       = /usr/local/lib/libXm64.a
+
+# uncomment USE_LESSTIF to use lesstif instead of openmotif
+# USE_LESSTIF = 1
+ifdef USE_LESSTIF
+    LESSTIF_DEFS = -DUSING_LESSTIF
+    MOTIF_LIB = -lXm
+else
+    MOTIF_LIB = /usr/local/lib/libXm64.a
+endif
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -m64 -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC
@@ -52,7 +60,7 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 
-LLIBS  = -lmri $(LXm) -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lmri $(LXm) -lc
+LLIBS  = -lmri $(MOTIF_LIB) -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
@@ -76,7 +84,7 @@ GLw_LIB = libGLws.a
 SUMA_INCLUDE_PATH = $(GLw_IPATH) -I/usr/local/include -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/local/lib -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L./
 
-SUMA_LINK_LIB = $(LXm) $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) $(LXm) -lm -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(MOTIF_LIB) $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 
