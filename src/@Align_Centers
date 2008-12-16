@@ -282,7 +282,7 @@ HELP:
    echo " if the wildcard substitution would contain DSET "
    echo " and possibly even BASE. The script will not process"
    echo " a dataset twice in one execution."
-   echo "
+   echo ""
    echo " Center options:"
    echo "   -grid: (default) Center is that of the volume's grid"
    echo "   -cm : Center is the center of mass of the volume."
