@@ -468,17 +468,18 @@ void matrix_enlarge( int nradd , int ncadd , matrix *a )
 
   rows = a->rows ; cols = a->cols ;
 
-  /* create new matrix big with extra rows/columns */
+  /* create bigger matrix with extra rows/columns */
 
   b = (matrix *)malloc(sizeof(matrix)) ;
   matrix_initialize( b ) ;
   matrix_create( rows+nradd , cols+ncadd, b ) ;  /* zero-filled */
 
-  /* copy rows from a into b */
+  /* copy row data from a into b */
 
-  for (i = 0;  i < rows;  i++){
-    if( cols > 0 )
+  if( cols > 0 ){
+    for( i=0 ; i < rows ; i++ ){
       memcpy( b->elts[i] , a->elts[i] , sizeof(double)*cols ) ;
+    }
   }
 
   /* destroy contents of a, replace with contents of b */
@@ -1275,7 +1276,7 @@ void vector_multiply_transpose (matrix a, vector b, vector * c)
        aa = a.elts[j] ; bj = bb[j] ;
        cc[0] += aa[0]*bj ;
        cc[1] += aa[1]*bj ;
-       cc[2] += aa[1]*bj ;
+       cc[2] += aa[2]*bj ;
        for( i=3 ; i < cols ; i+=4 ){
          cc[i]   += aa[i]  *bj ;
          cc[i+1] += aa[i+1]*bj ;
@@ -1885,6 +1886,12 @@ int matrix_qrr( matrix X , matrix *R )
      else
        for( jj=ii ; jj < n ; jj++ ) R->elts[ii][jj] = -A(ii,jj) ;
    }
+
+#if 0
+fprintf(stderr,"matrix_qrr diagonal:") ;
+for( ii=0 ; ii < n ; ii++ ) fprintf(stderr," %g",R->elts[ii][ii]) ;
+fprintf(stderr,"\n") ;
+#endif
 
 #if 0
    /* adjust tiny (or zero) diagonal elements, for solution stability */

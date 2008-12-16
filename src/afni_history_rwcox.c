@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , DEC , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
+   "Fixed bug in linear solution when #columns%4==3 (unrolling)." ,
+   "Actually in matrix.c, in function vector_multiply_transpose(), which is\n"
+   "only  used in remla.c,  which is only used in 3dREMLfit.c." } ,
+
  { 11 , DEC , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_MODIFY ,
    "Should behave better with ocllinear regression matrix." ,
    "Modified the QR decomposition to adjust 'tiny' diagonal elements of R,\n"

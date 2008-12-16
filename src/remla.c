@@ -1052,10 +1052,12 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    if( lam <= 0.30 ) rrcol->Xs = matrix_to_sparmat( *X ) ;
    else              rrcol->Xs = NULL ;
 
-#if 0
-   INFO_message("X matrix sparsity = %.1f%% ==> %s",
-                100.0*lam ,
-                (rrcol->Xs==NULL) ? "NOT USED for speedup" : "USED for speedup" ) ;
+#if 1
+   if( verb > 1 )
+     INFO_message("X matrix sparsity = %.1f%% ==> %s",
+                  100.0*lam ,
+                  (rrcol->Xs==NULL) ? "NOT USED for speedup"
+                                    : "USED for speedup"    ) ;
 #endif
 
    if( nlev > 0 ){
