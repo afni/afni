@@ -52,10 +52,17 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
   
-  { 9 , OCT , 2008 , GC , "1dGC.R" , SUPER , TYPE_NEW_PROG ,
-    "An R program that runs Granger causality analysis in AFNI.\n",	
+  { 16 , DEC , 2008 , GC , "3dGC.R" , MAJOR , TYPE_NEW_PROG ,
+    "An R program that runs Granger causality analysis of a seed region versus the\n
+	 "rest of the brain.\n",	
 
-    "See more details at http://afni.nimh.nih.gov/sscc/gangc/VAR.html" 
+    "See more details at http://afni.nimh.nih.gov/sscc/gangc/3dGC" 
+  } ,
+  
+  { 9 , OCT , 2008 , GC , "1dGC.R" , SUPER , TYPE_NEW_PROG ,
+    "An R program that runs Granger causality analysis among a few pre-select regions.\n",	
+
+    "See more details at http://afni.nimh.nih.gov/sscc/gangc/1dGC" 
   } ,
   
   { 29 , FEB , 2008 , GC , "3dICA.R" , SUPER , TYPE_NEW_PROG ,
