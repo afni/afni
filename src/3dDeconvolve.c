@@ -3858,7 +3858,7 @@ void check_one_output_file
 
 #ifdef FIX_CONFLICTS
   ierror = THD_deconflict_prefix( new_dset ) ;
-  if( ierror > 0 ){
+  if( ierror > 0 && !THD_ok_overwrite() ){   /* ZSS: Dec. 16 08 */
     char *pfx = DSET_PREFIX(new_dset) ;
     WARNING_message("Filename conflict: changing '%s' to '%s'",
                     filename , pfx ) ;
@@ -6413,9 +6413,11 @@ void write_ts_array
           "Output dataset file %s already exists -- can't continue!",
           new_dset->dblk->diskptr->header_name ) ;
 #else
-  if( THD_deconflict_prefix(new_dset) > 0 )
+  if(!THD_ok_overwrite() &&          /* ZSS: Dec. 16 08 */
+      THD_deconflict_prefix(new_dset) > 0 ) {  
     WARNING_message("Filename conflict: changing '%s' to '%s'",
                     output_filename,DSET_PREFIX(new_dset) ) ;
+  }
 #endif
 
 
@@ -6680,9 +6682,12 @@ void write_bucket_data
           "Bucket dataset file %s already exists--cannot continue!",
           DSET_HEADNAME(new_dset));
 #else
-  if( strcmp(output_prefix,"Decon") != 0 && THD_deconflict_prefix(new_dset) > 0 )
+  if( strcmp(output_prefix,"Decon") != 0 &&              
+      !THD_ok_overwrite() &&                   /* ZSS: Dec. 16 08 */
+      THD_deconflict_prefix(new_dset) > 0 ) { 
     WARNING_message("Filename conflict: changing '%s' to '%s'",
                     output_prefix,DSET_PREFIX(new_dset) ) ;
+   }
 #endif
 
   if( CoefFilename != NULL ){
@@ -6708,9 +6713,11 @@ void write_bucket_data
         "Coefficient dataset file %s already exists--cannot continue!",
         DSET_HEADNAME(coef_dset));
 #else
-  if( THD_deconflict_prefix(coef_dset) > 0 )
-    WARNING_message("Filename conflict: changing '%s' to '%s'",
-                    CoefFilename,DSET_PREFIX(coef_dset) ) ;
+     if( !THD_ok_overwrite() &&                   /* ZSS: Dec. 16 08 */
+          THD_deconflict_prefix(coef_dset) > 0 )   {
+       WARNING_message("Filename conflict: changing '%s' to '%s'",
+                       CoefFilename,DSET_PREFIX(coef_dset) ) ;
+     }
 #endif
   }
 
@@ -9882,9 +9889,11 @@ void basis_write_iresp( int argc , char *argv[] ,
      DSET_delete(out_dset) ; return ;
    }
 #else
-   if( THD_deconflict_prefix(out_dset) > 0 )
+   if( !THD_ok_overwrite() &&                /* ZSS: Dec. 16 08 */
+        THD_deconflict_prefix(out_dset) > 0 )  {
     WARNING_message("Filename conflict: changing '%s' to '%s'",
-                    output_filename,DSET_PREFIX(out_dset) ) ;
+                    output_filename, DSET_PREFIX(out_dset) ) ;
+   }
 #endif
 
    /* create output bricks (float for now, will scale to shorts later) */
@@ -10128,9 +10137,11 @@ void basis_write_sresp( int argc , char *argv[] ,
      DSET_delete(out_dset) ; return ;
    }
 #else
-   if( THD_deconflict_prefix(out_dset) > 0 )
+   if( !THD_ok_overwrite() &&       /* ZSS: Dec. 16 08 */
+         THD_deconflict_prefix(out_dset) > 0 ) {
     WARNING_message("Filename conflict: changing '%s' to '%s'",
                     output_filename,DSET_PREFIX(out_dset) ) ;
+   }
 #endif
 
    /* create output bricks (float for now, will scale to shorts later) */
