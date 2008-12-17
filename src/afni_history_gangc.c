@@ -53,64 +53,60 @@ afni_history_struct gangc_history[] = {
   /* can copy to and change one of the examples here */
   
   { 16 , DEC , 2008 , GC , "3dGC.R" , MAJOR , TYPE_NEW_PROG ,
-    "An R program that runs Granger causality analysis of a seed region versus the\n
-	 "rest of the brain.\n",	
-
-    "See more details at http://afni.nimh.nih.gov/sscc/gangc/3dGC" 
+    "Bivariate Granger causality analysis",
+	 "This is an R program that runs Granger causality analysis with a\n" 
+    "seed region versus thenrest of the brain. See more details at\n"
+	 "http://afni.nimh.nih.gov/sscc/gangc/3dGC" 
   } ,
   
   { 9 , OCT , 2008 , GC , "1dGC.R" , SUPER , TYPE_NEW_PROG ,
-    "An R program that runs Granger causality analysis among a few pre-select regions.\n",	
-
-    "See more details at http://afni.nimh.nih.gov/sscc/gangc/1dGC" 
+    "Multivariate Granger causality analysis",
+	 "This is an R program that runs Granger causality analysis among a few\n"
+	 "pre-select regions.See more details at\n"
+    "http://afni.nimh.nih.gov/sscc/gangc/1dGC" 
   } ,
   
   { 29 , FEB , 2008 , GC , "3dICA.R" , SUPER , TYPE_NEW_PROG ,
-    "An R program that runs independent component analysis in AFNI.\n",	
-
-    "This testing program for ICA only takes one dataset that presumably has \n"
-    "already been properly pre-processed. See more details at \n"
+    "Independent component analysis",
+	 "This is an R program that runs independent component analysis. It\n"
+	 "takes one dataset that presumably has already been properly\n"     
+    "pre-processed.already been properly pre-processed. See more details at\n"
     "http://afni.nimh.nih.gov/sscc/gangc/ica.html" 
   } ,
   
   { 20 , SEP , 2007 , GC , "3dLME.R" , SUPER , TYPE_NEW_PROG ,
-    "An R program that runs linear mixed-effects analysis at group level in AFNI.\n",
-	 
+    "An R program for linear mixed-effects analysis at group level in AFNI", 
     "See more details at http://afni.nimh.nih.gov/sscc/gangc/lme.html" 
   } ,
   
   { 17 , JAN , 2007 , GC , "1dSEM" , SUPER , TYPE_NEW_PROG ,
-    "An AFNI program that runs path analysis (or structural equation modeling) at \n"
-	 "group level.\n",
+    "Path analysis (or structural equation modeling) at group level.",
 	 
     "See more details on: http://afni.nimh.nih.gov/sscc/gangc/PathAna.html" 
   } ,
   
   { 1 , DEC , 2005 , GC , "3dANOVA3" , MAJOR , TYPE_NEW_OPT ,
-    "New options were made to run 2nd-order general linear contrasts in 3dANOVA3. \n",
-	 
+    "New options to run 2nd-order general linear contrasts in 3dANOVA3. \n",	 
     "See more details on: http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html" 
   } ,
   
   { 23 , SEP , 2005 , GC , "3dANOVA2 and 3dANOVA3" , SUPER , TYPE_BUG_FIX ,
-    "Significant modifications were made to avoid statistics inflation for \n"
-	 "general linear contrasts when coefficients don't add up to 0. \n",
-	 
-    "See more details on: http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html" 
+    "Significant modifications in 3dANOVA2 and 3dANOVA3",
+    "The changes were made to avoid statistics inflation for general linear\n"
+	 "contrasts when coefficients don't add up to 0. See more details at\n"	 
+    "http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html" 
   } ,
   
   { 27 , JUL , 2004 , GC , "PathAna" , SUPER , TYPE_NEW_PROG ,
-    "A Matlab package that runs group analysis of up to 5-way ANOVA \n",
-	 
-    "This packages adopts the conventional ANOVA approach to handling gorup \n"
+    "A Matlab package that runs group analysis of up to 5-way ANOVA",	 
+    "This package adopts the conventional ANOVA approach to handling gorup\n"
 	 "analysis. And it requires Statistics Toolbox other than the basic Matlab.\n"
 	 "See more details on: http://afni.nimh.nih.gov/sscc/gangc" 
   } ,
   
   { 27 , JUL , 2004 , GC , "IndiAna" , SUPER , TYPE_NEW_PROG ,
-    "A Matlab package that individual subject analysis in an interactive fashion.\n",
-	 
-	 "See more details on: http://afni.nimh.nih.gov/sscc/gangc" 
+    "A Matlab package for individual subject analysis",	 
+	 "See more details at http://afni.nimh.nih.gov/sscc/gangc" 
   } ,
   
 
