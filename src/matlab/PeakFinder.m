@@ -25,7 +25,7 @@ if (~isfield(Opt,'fcutoff') | isempty(Opt.fcutoff)),
    Opt.fcutoff = 10;
 end
 if (~isfield(Opt,'FIROrder') | isempty(Opt.FIROrder)),
-   Opt.FIROrder = 40;
+   Opt.FIROrder = 80;
 end
 if (~isfield(Opt,'ResamKernel') | isempty(Opt.ResamKernel)),
    Opt.ResamKernel = 'linear';
@@ -33,6 +33,16 @@ end
 if (~isfield(Opt,'Demo') | isempty(Opt.Demo)),
    Opt.Demo = 0;
 end
+if (~isfield(Opt,'as_windwidth') | isempty(Opt.as_windwidth)),
+   Opt.as_windwidth = 0;
+end
+if (~isfield(Opt,'as_percover') | isempty(Opt.as_percover)),
+   Opt.as_percover = 0;
+end
+if (~isfield(Opt,'as_fftwin') | isempty(Opt.as_fftwin)),
+   Opt.as_fftwin = 0;
+end
+
 
 if (Opt.Demo),
    Opt.Quiet = 0; 
@@ -90,9 +100,14 @@ for (icol = 1:1:nl),
    v = filter(b,1,v); v = flipud(v); v = filter(b,1,v); v = flipud(v);
    
    %get the analytic signal
-   R(icol).X = analytic_signal(v); %using local version to illustrate, 
-                                 %can use hilbert
-   
+   R(icol).X = analytic_signal(v, Opt.as_windwidth.*Opt.PhysFS,... 
+                               Opt.as_percover, Opt.as_fftwin); 
+         %using local version to illustrate, can use hilbert
+         %Doing ffts over smaller windows can improve peak detection
+         %in the few instances that go undetected but what value to use
+         %is not clear and there seems to be at times more errors introduced
+         %in the lower envelope . 
+         
    nt = length(R(icol).X);
    R(icol).t = [0:1/Opt.PhysFS:(nt-1)/Opt.PhysFS];
    iz = find( imag(R(icol).X(1:nt-1)).*imag(R(icol).X(2:nt)) <= 0);
@@ -270,18 +285,92 @@ function [t,v] =  remove_duplicates(t,v)
    v = v(1:j);
    return;
 
-function h = analytic_signal(v),
-   nv = length(v);
-   fv = fft(v); 
-   wind = zeros(size(v));
-   %zero negative frequencies, double positive frequencies
-   if (iseven(nv)), 
-      wind([1 nv/2+1]) = 1; %keep DC
-      wind([2:nv/2]) = 2;   %double pos. freq
-   else
-      wind([1]) = 1;
-      wind([2:(nv+1)/2]) = 2;
+function h = analytic_signal(vi, windwidth, percover, win),
+   nvi = length(vi);
+   h = zeros(size(vi));
+   [bli, ble, num] = fftsegs (windwidth, percover, nvi);
+   
+   for (ii=1:1:length(bli)),
+      v = vi(bli(ii):ble(ii));
+      nv = length(v);
+      if (win == 1),
+         fv = fft(v.*hamming(nv)); 
+      else,
+         fv = fft(v);
+      end
+      wind = zeros(size(v));
+      %zero negative frequencies, double positive frequencies
+      if (iseven(nv)), 
+         wind([1 nv/2+1]) = 1; %keep DC
+         wind([2:nv/2]) = 2;   %double pos. freq
+      else
+         wind([1]) = 1;
+         wind([2:(nv+1)/2]) = 2;
+      end
+      h(bli(ii):ble(ii)) = h(bli(ii):ble(ii)) + ifft(fv.*wind);
    end
-   h = ifft(fv.*wind);
+   h = h./num;
    return
+
+function [bli, ble, num] = fftsegs (ww, po, nv)
+% Returns the segements that are to be used for fft
+% calculations.
+%  ww: Segment width (in number of samples)
+%  po: Percent segment overlap
+%  nv: Total number of samples in original symbol
+% Returns:
+% bli, ble: Two Nblck x 1 vectors defining the segments'
+%           starting and ending indices
+% num: An nv x 1 vector containing the number of segments
+%      each sample belongs to
+%example
+% [bli, ble, num] = fftsegs (100, 70, 1000);
+
+   if (ww==0),
+      po = 0;
+      ww = nv;
+   elseif (ww < 32 | ww > nv),
+      fprintf(2,'Error fftsegs: Bad value for window width of %d\n', ww);
+      return;
+   end
+   out = 0;
+   while (out == 0),
+      clear bli ble
+      %How many blocks?
+      jmp = floor((100-po)*ww/100); %jump from block to block
+      nblck = nv./jmp;  %number of jumps
+
+      ib = 1;
+      cnt = 0;
+      while (cnt < 1 | ble(cnt)< nv),
+         cnt = cnt + 1;
+         bli(cnt) = ib;
+         ble(cnt) = min(ib+ww-1, nv);
+         ib = ib + jmp;
+      end
+      %if the last block is too small, spread the love
+      if (ble(cnt) - bli(cnt) < 0.1.*ww), % too small a last block, merge 
+         ble(cnt-1) = ble(cnt);           % into previous
+         cnt = cnt -1;
+         ble = ble(1:cnt); bli = bli(1:cnt);
+         out = 1;
+      elseif (ble(cnt) - bli(cnt) < 0.75.*ww), % too large to merge, spread it
+         ww = ww+floor((ble(cnt)-bli(cnt))./nblck);
+         out = 0;
+      else %last block big enough, proceed
+         out = 1;
+      end
+   %ble - bli + 1
+   %out
+   end
+   %bli
+   %ble
+   %ble - bli + 1
+   %now figure out the number of estimates each point of the time series gets
+   num = zeros(nv,1); 
+   cnt = 1;
+   while (cnt <= length(ble)),
+      num(bli(cnt):ble(cnt)) = num(bli(cnt):ble(cnt))+ ones(ble(cnt)-bli(cnt)+1,1);
+      cnt = cnt + 1;
+   end
 
