@@ -18,9 +18,8 @@ function [Opt, R, E] = RetroTS(SN)
 %                  (default is equivalent of alt+z)
 %     RVTshifts: Vector of shifts in seconds of RVT signal. 
 %                (default is [0:5:20])
-%     ResampFS: Frequency of resampled signal (default is same as PhysFS)
 %     RespCutoffFreq: Cut off frequency in Hz for respiratory lowpass filter
-%                     (default 10 Hz)
+%                     (default 3 Hz)
 %     CardCutoffFreq: Cut off frequency in Hz for cardiac lowpass filter
 %                     (default 3 Hz)
 %     ResamKernel: Resampling kernel. 
@@ -49,6 +48,9 @@ function [Opt, R, E] = RetroTS(SN)
 %  Opt: Struture of options including default settings.
 % 
       
+% This option is not to be used because window width calculations do not use it
+%     ResampFS: Frequency of resampled signal (default is same as PhysFS)
+
 %Implementation Notes:
 %%%%%%%%%%%%%%%%%%%%%%
 % The script is intended as a prototype for development in C or Python 
@@ -92,7 +94,7 @@ if (~isstruct(SN)), %mode 1, toy mode
    Opt.RVTshifts = [0:5:20];  %shifts, in seconds, applied to RVT curve
    Opt.Demo = 0;
    Opt.zerophaseoffset = 0;
-   Opt.fcutoff = 10; %cut off frequency for filter
+   Opt.fcutoff = 3; %cut off frequency for filter
    Opt.RespCutoffFreq = 3;
    Opt.CardCutoffFreq = 3;
    Opt.Respfile = lll(1).name;
@@ -169,6 +171,9 @@ end
    OptR = Opt; 
       OptR.fcutoff = Opt.RespCutoffFreq;  
       OptR.AmpPhase = 1;   %amplitude based phase for respiration
+      %OptR.as_percover = 50; %percent overlap of windows for fft
+      %OptR.as_windwidth = 0; %window width in seconds for fft, 0 for full window
+      %OptR.as_fftwin = 0 ; %1 == hamming window. 0 == no windowing
    OptE = Opt; 
       OptE.fcutoff = Opt.CardCutoffFreq;  
       OptE.AmpPhase = 0;   %time based phase for cardiac signal
@@ -218,34 +223,60 @@ tail = sprintf('"\n# >\n');
 tailclose = sprintf('# </RetoTSout>\n');
 
 label = head;
-%RVT
-for (j=1:1:size(R.RVTRS_slc,2)),
-   for (i=1:1:Opt.Nslices),
-      cnt = cnt + 1;
-      Opt.RemlOut(:,cnt) = R.RVTRS_slc(:,j); %same for each slice 
-      label = sprintf('%s s%d.RVT%d ;', label, i-1, j-1);
-    end
-end
-%Resp
-for (j=1:1:size(R.phz_slc_reg,2)),
-   for (i=1:1:Opt.Nslices),
-      cnt = cnt + 1;
-      Opt.RemlOut(:,cnt) = R.phz_slc_reg(:,j,i);
-      label = sprintf('%s s%d.Resp%d ;', label, i-1, j-1);
+
+if (0), %old approach, not handy for 3dREMLfit
+   %RVT
+   for (j=1:1:size(R.RVTRS_slc,2)),
+      for (i=1:1:Opt.Nslices),
+         cnt = cnt + 1;
+         Opt.RemlOut(:,cnt) = R.RVTRS_slc(:,j); %same for each slice 
+         label = sprintf('%s s%d.RVT%d ;', label, i-1, j-1);
+       end
    end
-end
-%Card
-for (j=1:1:size(E.phz_slc_reg,2)),
-   for (i=1:1:Opt.Nslices),
-      cnt = cnt + 1;
-      Opt.RemlOut(:,cnt) = E.phz_slc_reg(:,j,i);
-      label = sprintf('%s s%d.Card%d ;', label, i-1, j-1);
+   %Resp
+   for (j=1:1:size(R.phz_slc_reg,2)),
+      for (i=1:1:Opt.Nslices),
+         cnt = cnt + 1;
+         Opt.RemlOut(:,cnt) = R.phz_slc_reg(:,j,i);
+         label = sprintf('%s s%d.Resp%d ;', label, i-1, j-1);
+      end
    end
+   %Card
+   for (j=1:1:size(E.phz_slc_reg,2)),
+      for (i=1:1:Opt.Nslices),
+         cnt = cnt + 1;
+         Opt.RemlOut(:,cnt) = E.phz_slc_reg(:,j,i);
+         label = sprintf('%s s%d.Card%d ;', label, i-1, j-1);
+      end
+   end
+   fid = fopen(sprintf('%s.retrots.1D', Opt.Prefix),'w');
+else
+   for (i=1:1:Opt.Nslices),
+      %RVT
+      for (j=1:1:size(R.RVTRS_slc,2)),
+         cnt = cnt + 1;
+         Opt.RemlOut(:,cnt) = R.RVTRS_slc(:,j); %same regressor for each slice 
+         label = sprintf('%s s%d.RVT%d ;', label, i-1, j-1);
+      end
+      %Resp
+      for (j=1:1:size(R.phz_slc_reg,2)),
+         cnt = cnt + 1;
+         Opt.RemlOut(:,cnt) = R.phz_slc_reg(:,j,i);
+         label = sprintf('%s s%d.Resp%d ;', label, i-1, j-1);
+      end
+      %Card
+      for (j=1:1:size(E.phz_slc_reg,2)),
+         cnt = cnt + 1;
+         Opt.RemlOut(:,cnt) = E.phz_slc_reg(:,j,i);
+         label = sprintf('%s s%d.Card%d ;', label, i-1, j-1);
+      end
+   end
+   fid = fopen(sprintf('%s.slibase.1D', Opt.Prefix),'w');
 end
+
 %remove very last ';'
 label = label(1:end-1);
 
-fid = fopen(sprintf('%s.retrots.1D', Opt.Prefix),'w');
 fprintf(fid,'%s',label);
 fprintf(fid,'%s ',tail);
 for(i=1:1:size(Opt.RemlOut,1)),

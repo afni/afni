@@ -46,7 +46,8 @@
 
 #define METH_ACCUMULATE   25  /* RCR 04 Mar 2008 */
 
-#define MAX_NUM_OF_METHS  26
+#define METH_SUM_SQUARES  26  /* ZSS 17 12 2008 */
+#define MAX_NUM_OF_METHS  27
 
 static int meth[MAX_NUM_OF_METHS]  = {METH_MEAN};
 static int nmeths                  = 0;
@@ -61,7 +62,7 @@ static char *meth_names[] = {
    "AutoReg"       , "Absolute Max" , "ArgMax"        , "ArgMin"      ,
    "ArgAbsMax"     , "Sum"          , "Duration"      , "Centroid"    ,
    "CentDuration"  , "Absolute Sum" , "Non-zero Mean" , "Onset"       ,
-   "Offset"        , "Accumulate"
+   "Offset"        , "Accumulate" , "SS",
 };
 
 static void STATS_tsfunc( double tzero , double tdelta ,
@@ -87,76 +88,78 @@ int main( int argc , char *argv[] )
    /*----- Help the pitiful user? -----*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dTstat [options] dataset\n"
-             "Computes one or more voxel-wise statistics for a 3D+time dataset\n"
-             "and stores them in a bucket dataset.  If no statistic option is\n"
-             "given, computes just the mean of each voxel time series.\n"
-             "Multiple statistics options may be given, and will result in\n"
-             "a multi-volume dataset.\n"
-             "\n"
-             "Statistics Options:\n"
-             " -mean   = compute mean of input voxels\n"
-             " -sum    = compute sum of input voxels\n"
-             " -abssum = compute absolute sum of input voxels\n"
-             " -slope  = compute mean slope of input voxels vs. time\n"
-             " -stdev  = compute standard deviation of input voxels\n"
-             "             [N.B.: this is computed after    ]\n"
-             "             [      the slope has been removed]\n"
-             " -cvar   = compute coefficient of variation of input\n"
-             "             voxels = stdev/fabs(mean)\n"
-             "   **N.B.: You can add NOD to the end of the above 2\n"
-             "           options only, to turn off detrending, as in\n"
-             "             -stdevNOD  and/or  -cvarNOD\n"
-             "\n"
-             " -MAD    = compute MAD (median absolute deviation) of\n"
-             "             input voxels = median(|voxel-median(voxel)|)\n"
-             "             [N.B.: the trend is NOT removed for this]\n"
-             " -DW    = compute Durbin-Watson Statistic of input voxels\n"
-             "             [N.B.: the trend IS removed for this]\n"
-             " -median = compute median of input voxels  [undetrended]\n"
-             " -min    = compute minimum of input voxels [undetrended]\n"
-             " -max    = compute maximum of input voxels [undetrended]\n"
-             " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
-             " -argmin    = index of minimum of input voxels [undetrended]\n"
-             " -argmax    = index of maximum of input voxels [undetrended]\n"
-             " -argabsmax = index of absolute maximum of input voxels [undetrended]\n"
-             " -duration  = compute number of points around max above a threshold\n"
-             "              Use basepercent option to set limits\n"
-             " -onset     = beginning of duration around max where value\n"
-             "              exceeds basepercent\n"
-             " -offset    = end of duration around max where value\n"
-             "              exceeds basepercent\n"
-             " -centroid  = compute centroid of data time curves\n"
-             "              (sum(i*f(i)) / sum(f(i)))\n"
-             " -centduration = compute duration using centroid's index as center\n"
-             " -nzmean    = compute mean of non-zero voxels\n"
-             "\n"
-             " -autocorr n = compute autocorrelation function and return\n"
-             "               first n coefficients\n"
-             " -autoreg n = compute autoregression coefficients and return\n"
-             "               first n coefficients\n"
-             "   [N.B.: -autocorr 0 and/or -autoreg 0 will return number\n"
-             "          coefficients equal to the length of the input data]\n"
-             "\n"
-             " -accumulate = accumulate time series values (partial sums)\n"
-             "               val[i] = sum old_val[t] over t = 0..i\n"
-             "               (output length = input length)\n"
-             "\n"
-             " ** If no statistic option is given, then '-mean' is assumed **\n"
-             "\n"
-             "Other Options:\n"
-             " -prefix p = use string 'p' for the prefix of the\n"
-             "               output dataset [DEFAULT = 'stat']\n"
-             " -datum d  = use data type 'd' for the type of storage\n"
-             "               of the output, where 'd' is one of\n"
-             "               'byte', 'short', or 'float' [DEFAULT=float]\n"
-             " -basepercent nn = percentage of maximum for duration calculation\n"
-             "\n"
-             "If you want statistics on a detrended dataset and the option\n"
-             "doesn't allow that, you can use program 3dDetrend first.\n"
-             "\n"
-             "The output is a bucket dataset.  The input dataset may\n"
-             "use a sub-brick selection list, as in program 3dcalc.\n"
+      printf(
+"Usage: 3dTstat [options] dataset\n"
+ "Computes one or more voxel-wise statistics for a 3D+time dataset\n"
+ "and stores them in a bucket dataset.  If no statistic option is\n"
+ "given, computes just the mean of each voxel time series.\n"
+ "Multiple statistics options may be given, and will result in\n"
+ "a multi-volume dataset.\n"
+ "\n"
+ "Statistics Options:\n"
+ " -mean   = compute mean of input voxels\n"
+ " -sum    = compute sum of input voxels\n"
+ " -abssum = compute absolute sum of input voxels\n"
+ " -slope  = compute mean slope of input voxels vs. time\n"
+ " -sos    = compute sum of squares\n"
+ " -stdev  = compute standard deviation of input voxels\n"
+ "             [N.B.: this is computed after    ]\n"
+ "             [      the slope has been removed]\n"
+ " -cvar   = compute coefficient of variation of input\n"
+ "             voxels = stdev/fabs(mean)\n"
+ "   **N.B.: You can add NOD to the end of the above 2\n"
+ "           options only, to turn off detrending, as in\n"
+ "             -stdevNOD  and/or  -cvarNOD\n"
+ "\n"
+ " -MAD    = compute MAD (median absolute deviation) of\n"
+ "             input voxels = median(|voxel-median(voxel)|)\n"
+ "             [N.B.: the trend is NOT removed for this]\n"
+ " -DW    = compute Durbin-Watson Statistic of input voxels\n"
+ "             [N.B.: the trend IS removed for this]\n"
+ " -median = compute median of input voxels  [undetrended]\n"
+ " -min    = compute minimum of input voxels [undetrended]\n"
+ " -max    = compute maximum of input voxels [undetrended]\n"
+ " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
+ " -argmin    = index of minimum of input voxels [undetrended]\n"
+ " -argmax    = index of maximum of input voxels [undetrended]\n"
+ " -argabsmax = index of absolute maximum of input voxels [undetrended]\n"
+ " -duration  = compute number of points around max above a threshold\n"
+ "              Use basepercent option to set limits\n"
+ " -onset     = beginning of duration around max where value\n"
+ "              exceeds basepercent\n"
+ " -offset    = end of duration around max where value\n"
+ "              exceeds basepercent\n"
+ " -centroid  = compute centroid of data time curves\n"
+ "              (sum(i*f(i)) / sum(f(i)))\n"
+ " -centduration = compute duration using centroid's index as center\n"
+ " -nzmean    = compute mean of non-zero voxels\n"
+ "\n"
+ " -autocorr n = compute autocorrelation function and return\n"
+ "               first n coefficients\n"
+ " -autoreg n = compute autoregression coefficients and return\n"
+ "               first n coefficients\n"
+ "   [N.B.: -autocorr 0 and/or -autoreg 0 will return number\n"
+ "          coefficients equal to the length of the input data]\n"
+ "\n"
+ " -accumulate = accumulate time series values (partial sums)\n"
+ "               val[i] = sum old_val[t] over t = 0..i\n"
+ "               (output length = input length)\n"
+ "\n"
+ " ** If no statistic option is given, then '-mean' is assumed **\n"
+ "\n"
+ "Other Options:\n"
+ " -prefix p = use string 'p' for the prefix of the\n"
+ "               output dataset [DEFAULT = 'stat']\n"
+ " -datum d  = use data type 'd' for the type of storage\n"
+ "               of the output, where 'd' is one of\n"
+ "               'byte', 'short', or 'float' [DEFAULT=float]\n"
+ " -basepercent nn = percentage of maximum for duration calculation\n"
+ "\n"
+ "If you want statistics on a detrended dataset and the option\n"
+ "doesn't allow that, you can use program 3dDetrend first.\n"
+ "\n"
+ "The output is a bucket dataset.  The input dataset may\n"
+ "use a sub-brick selection list, as in program 3dcalc.\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -201,6 +204,11 @@ int main( int argc , char *argv[] )
 
       if( strcmp(argv[nopt],"-sum") == 0 ){
          meth[nmeths++] = METH_SUM ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-sos") == 0 ){
+         meth[nmeths++] = METH_SUM_SQUARES ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -552,7 +560,16 @@ static void STATS_tsfunc( double tzero, double tdelta ,
         val[out_index] = sum;
       }
       break;
-
+      
+      case METH_SUM_SQUARES:{           /* 18 Dec 2008 */
+        register int ii ;
+        register float sum ;
+        sum = 0.0;
+        for(ii=0; ii< npts; ii++) sum += ts[ii]*ts[ii];
+        val[out_index] = sum;
+      }
+      break;
+      
       case METH_SLOPE: val[out_index] = ts_slope ; break ;
 
       case METH_CVAR_NOD:
