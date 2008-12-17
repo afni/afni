@@ -631,6 +631,18 @@ int main( int argc , char *argv[] )
       "                * If you don't create a bucket dataset using one of\n"
       "                    -Rbuck or -Rglt (or -Obuck / -Oglt), using\n"
       "                    -gltsym is completely pointless!\n"
+      "               ** Besides the stimulus labels read from the matrix\n"
+      "                    file (put there by 3dDeconvolve), you can refer\n"
+      "                    to regressor columns in the matrix using the\n"
+      "                    symbolic name 'Col', which collectively means\n"
+      "                    all the columns in the matrix.  'Col' is a way\n"
+      "                    to test '-addbase' and/or '-slibase' regressors\n"
+      "                    for significance; for example, if you have a\n"
+      "                    matrix with 10 columns from 3dDeconvolve and\n"
+      "                    add 2 extra columns to it, then you could use\n"
+      "                      -gltsym 'SYM: Col[[10..11]]' Addons -tout -fout\n"
+      "                    to create a GLT to include both of the added\n"
+      "                    columns (numbers 10 and 11).\n"
       "\n"
       "The options below let you get the Ordinary Least SQuares outputs\n"
       "(without adjustment for serial correlation), for comparisons.\n"
@@ -1700,12 +1712,19 @@ STATUS("process -slibase images") ;
        ERROR_exit("Matrix 'StimLabels' badly formatted?!") ;
      stim_lab = gsar->str ;
 
-     nSymStim = stim_num+1 ;
+     nSymStim = stim_num+2 ;
      SymStim  = (SYM_irange *)calloc(sizeof(SYM_irange),nSymStim) ;
-     strcpy( SymStim[stim_num].name , "Ort" ) ;
+
+     strcpy( SymStim[stim_num].name , "Ort" ) ;    /* pre-stim baselines */
      SymStim[stim_num].nbot = 0 ;
      SymStim[stim_num].ntop = stim_bot[0] - 1 ;
      SymStim[stim_num].gbot = 0 ;
+
+     strcpy( SymStim[stim_num+1].name , "Col" ) ;  /* all regressors */
+     SymStim[stim_num+1].nbot = 0 ;
+     SymStim[stim_num+1].ntop = nrega-1 ;
+     SymStim[stim_num+1].gbot = 0 ;
+
      for( ss=0 ; ss < stim_num ; ss++ ){
        SymStim[ss].nbot = 0 ;
        SymStim[ss].ntop = stim_top[ss]-stim_bot[ss] ;
@@ -1720,16 +1739,14 @@ STATUS("process -slibase images") ;
        WARNING_message(" ==> bucket dataset output is disabled") ;
      do_buckt = do_glt = 0 ; Rbuckt_prefix = Obuckt_prefix = NULL ;
 
-     /* some fake names */
+     /* a fake name */
 
-     nSymStim = nrega ;
+     nSymStim = 1 ;
      SymStim  = (SYM_irange *)calloc(sizeof(SYM_irange),nSymStim) ;
-     for( ss=0 ; ss < nrega ; ss++ ){
-       SymStim[ss].nbot = 0 ;
-       SymStim[ss].ntop = 0 ;
-       SymStim[ss].gbot = ss ;
-       sprintf( SymStim[ss].name , "C%d" , ss ) ;
-     }
+     strcpy( SymStim[0].name , "Col" ) ;
+     SymStim[0].nbot = 0 ;
+     SymStim[0].ntop = nrega-1 ;
+     SymStim[0].gbot = 0 ;
 
    }
 
@@ -1992,22 +2009,19 @@ STATUS("make GLTs from matrix file") ;
    /*-- set up indexing and labels needed for bucket dataset creation --*/
 
    if( (do_buckt || do_eglt) && glt_num > 0 ){
+     int ibot ;
 STATUS("setting up glt_ind") ;
      glt_ind = (GLT_index **)calloc( sizeof(GLT_index *) , glt_num ) ;
-#if 0
-     if( do_fstat || do_rstat ){
+
+     if( do_glt ){
        glt_ind[0] = create_GLT_index( 0, glt_mat[0]->rows,
-                                      0, 0, do_fstat, do_rstat, glt_lab[0] ) ;
-       kk = glt_ind[0]->ivtop + 1 ;
+                                      0, 0, 1 , do_rstat , glt_lab[0] ) ;
+       kk = glt_ind[0]->ivtop + 1 ; ibot = 1 ;
      } else {
-       glt_ind[0] = NULL ; kk = 0 ;
+       kk = 0 ; ibot = 0 ;
      }
-#else
-     glt_ind[0] = create_GLT_index( 0, glt_mat[0]->rows,
-                                    0, 0, 1 , do_rstat , glt_lab[0] ) ;
-     kk = glt_ind[0]->ivtop + 1 ;
-#endif
-     for( ii=1 ; ii < glt_num ; ii++ ){
+     for( ii=ibot ; ii < glt_num ; ii++ ){
+STATUS(" creating glt_ind") ;
        glt_ind[ii] = create_GLT_index( kk, glt_mat[ii]->rows ,
                                        1 , do_tstat ,
                                            do_fstat , do_rstat , glt_lab[ii] ) ;
@@ -2015,8 +2029,12 @@ STATUS("setting up glt_ind") ;
        kk = glt_ind[ii]->ivtop + 1 ;
      }
      nbuckt = glt_ind[glt_num-1]->ivtop + 1 ;  /* number of sub-bricks */
-     if( do_eglt )
-       neglt = glt_ind[glt_num-1]->ivtop - glt_ind[oglt_num-1]->ivtop ;
+     if( do_eglt ){
+       if( do_glt )
+         neglt = glt_ind[glt_num-1]->ivtop - glt_ind[oglt_num-1]->ivtop ;
+       else
+         neglt = glt_ind[glt_num-1]->ivtop + 1 ;
+     }
    }
 
    /*----- now, use these values to compute the Generalized Least  -----*/
