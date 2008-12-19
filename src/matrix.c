@@ -1735,7 +1735,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
     fix was made, or the number of bad singular values if a fix was made
     -- in which case the adjusted matrix is in Xa.
 *//*-------------------------------------------------------------------------*/
-
+#if 0
 int matrix_collinearity_fixup( matrix X , matrix *Xa )
 {
    int m = X.rows , n = X.cols , ii,jj,kk , nbad ;
@@ -1822,6 +1822,7 @@ int matrix_collinearity_fixup( matrix X , matrix *Xa )
    free((void *)xfac); free((void *)sval);
    free((void *)vmat); free((void *)umat); return (nbad);
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*! Given MxN matrix X, compute the NxN upper triangle factor R in X = QR.
