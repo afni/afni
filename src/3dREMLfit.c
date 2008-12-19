@@ -3,6 +3,7 @@
 /***** 3dREMLfit.c *****/
 
 static int verb=1 ;
+static int goforit=0 ;
 
 #undef FLOATIZE      /* we will use double precision for matrices */
 #include "remla.c"   /* do NOT change this to FLOATIZE !!! */
@@ -24,7 +25,79 @@ static int verb=1 ;
 
 #undef PATCHX
 
-/*--------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/*! Check matrix condition number.  Return value is the
+    number of bad things that were detected.
+-----------------------------------------------------------------------------*/
+
+int check_matrix_condition( matrix xdata , char *xname )
+{
+    double *ev, ebot,emin,emax ;
+    int i,nsmall=0, ssing=(verb>2), bad=0 ;
+
+#define PSINV_EPS      1.e-14
+#define CN_VERYGOOD   20.0
+#define CN_GOOD      400.0
+#define CN_OK       8000.0
+#define CN_BEWARE 160000.0
+
+    if( xname == NULL ) xname = "\0" ;
+    ev   = matrix_singvals( xdata ) ;
+    emax = ev[0] ;
+    for( i=1 ; i < xdata.cols ; i++ ) if( ev[i] > emax ) emax = ev[i] ;
+    ebot = sqrt(PSINV_EPS)*emax ; emin = 1.e+38 ;
+    for( i=0 ; i < xdata.cols ; i++ ){
+      if( ev[i] >= ebot && ev[i] < emin ) emin = ev[i] ;
+      if( ev[i] <  ebot ) nsmall++ ;
+    }
+
+    if( emin <= 0.0 || emax <= 0.0 ){
+      ERROR_message("----- !! %s matrix condition:  UNDEFINED ** VERY BAD **\n" ,
+                     xname ) ;
+      ssing = 1 ; bad++ ;
+    } else {
+      double cond=sqrt(emax/emin) ; char *rating ;
+           if( cond < CN_VERYGOOD )  rating = "++ VERY GOOD ++"    ;
+      else if( cond < CN_GOOD     )  rating = "++ GOOD ++"         ;
+      else if( cond < CN_OK       )  rating = "++ OK ++"           ;
+      else if( cond < CN_BEWARE   )  rating = "++ A LITTLE BIG ++" ;
+      else                         { rating = "** BEWARE **" ; bad++; ssing = 1; }
+      if( strstr(rating,"*") == NULL ){
+        if( verb > 1 ){
+          INFO_message("----- %s matrix condition (%dx%d):  %g  %s\n",
+                  xname,
+                  xdata.rows,xdata.cols , cond , rating ) ;
+        }
+      } else {
+        WARNING_message("----- !! %s matrix condition (%dx%d):  %g  %s\n",
+                xname,
+                xdata.rows,xdata.cols , cond , rating ) ;
+      }
+    }
+
+    if( nsmall > 0 ){
+      WARNING_message(
+        "!! in %s matrix:\n"
+        " * Largest singular value=%g\n"
+        " * %d singular value%s less than cutoff=%g\n"
+        " * Implies strong collinearity in the matrix columns! \n",
+        xname , emax , nsmall , (nsmall==1)?" is":"s are" , ebot ) ;
+      ssing = 1 ; bad++ ;
+    }
+
+    if( ssing ){
+      INFO_message("%s matrix singular values:\n",xname) ;
+      for( i=0; i < xdata.cols ; i++ ){
+        fprintf(stderr," %13g",ev[i]) ;
+        if( i < xdata.cols-1 && i%5 == 4 ) fprintf(stderr,"\n") ;
+      }
+      fprintf(stderr,"\n") ;
+    }
+
+    free((void *)ev) ; return bad ;
+}
+
+/*---------------------------------------------------------------------------*/
 /*! For voxel loop progress report. */
 
 static void vstep_print(void)
@@ -46,7 +119,9 @@ static int usetemp = 0 ;
 #undef  MTHRESH
 #define MTHRESH (int64_t)7654321  /* 7.6+ million bytes */
 
-/*! To create an empty dataset, with zero-filled sub-bricks. */
+/*--------------------------------------------------------------------------*/
+/*! To create an empty dataset, with zero-filled sub-bricks,
+    or with the data to be saved on disk temporarily (if fnam, fp != NULL). */
 
 THD_3dim_dataset * create_float_dataset( THD_3dim_dataset *tset ,
                                          int nvol , char *prefix, int func ,
@@ -88,6 +163,8 @@ ENTRY("create_float_dataset") ;
 }
 
 /*----------------------------------------------------------------------------*/
+/*! Save a series of floats into a dataset,
+    either directly into the bricks, or to a temp file to be restored later. */
 
 void save_series( int vv, THD_3dim_dataset *dset, int npt, float *var, FILE *fp )
 {
@@ -97,7 +174,26 @@ void save_series( int vv, THD_3dim_dataset *dset, int npt, float *var, FILE *fp 
      my_fwrite( var , sizeof(float) , npt , fp ) ;
 }
 
+/*--------------------------------------------------------------------------*/
+/*! Check a dataset for float errors. */
+
+void check_dataset( THD_3dim_dataset *dset )
+{
+   int nn ; static int first=1 ;
+   nn = dset_floatscan( dset ) ;
+   if( nn > 0 ){
+     WARNING_message("Zero-ed %d float errors in dataset %s",DSET_BRIKNAME(dset));
+     if( first ){
+       ININFO_message(" ==> Check matrix setup! Check inputs! Check results!") ;
+       first = 0 ;
+     }
+   }
+   return ;
+}
+
 /*----------------------------------------------------------------------------*/
+/*! If fp!=NULL, load the dataset's data from that file.
+    Otherwise, there's nothing to do, so vamoose the ranch. */
 
 void populate_dataset( THD_3dim_dataset *dset, byte *mask,
                                                char *fnam, FILE *fp  )
@@ -107,7 +203,9 @@ void populate_dataset( THD_3dim_dataset *dset, byte *mask,
 
 ENTRY("populate_dataset") ;
 
-   if( !ISVALID_DSET(dset) || fp == NULL ) EXRETURN ;
+   if( !ISVALID_DSET(dset) || fp == NULL ){
+     check_dataset(dset) ; EXRETURN ;
+   }
 
    nvals = DSET_NVALS(dset) ;
    for( kk=0 ; kk < nvals ; kk++ )
@@ -135,7 +233,7 @@ ENTRY("populate_dataset") ;
 
    free(var) ; fclose(fp) ;
    if( fnam != NULL ){ kill_purge(fnam) ; remove(fnam) ; }
-   EXRETURN ;
+   check_dataset(dset) ; EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -354,6 +452,9 @@ STATUS(buf) ;
 
    RETURN(cmat) ;
 }
+
+/*-------------------------------------------------------------------------*/
+
 
 /*==========================================================================*/
 /********************************** Main program ****************************/
@@ -647,7 +748,7 @@ int main( int argc , char *argv[] )
       "The options below let you get the Ordinary Least SQuares outputs\n"
       "(without adjustment for serial correlation), for comparisons.\n"
       "These datasets should be essentially identical to the results\n"
-      "you would get by running 3dDeconvolve:\n"
+      "you would get by running 3dDeconvolve (with the '-float' option!):\n"
       "\n"
       " -Ovar   ppp = dataset for OLSQ st.dev. parameter (kind of boring)\n"
       " -Obeta  ppp = dataset for beta weights from the OLSQ estimation\n"
@@ -754,6 +855,14 @@ int main( int argc , char *argv[] )
       "                   '=' as the first character of the string 'ff' and\n"
       "                   looking for a comma in the middle of the string.\n"
       "                   The values of a and b must be in the range -0.9..+0.9.\n"
+      "\n"
+      " -GOFORIT   = 3dREMLfit checks the regression matrix for tiny singular\n"
+      "                values (as 3dDeconvolve does).  If the matrix is too\n"
+      "                close to being rank-deficient, then the program will\n"
+      "                not proceed.  You can use this option to force the\n"
+      "                program to continue past such a failed collinearity\n"
+      "                check, but you must check your results to see if they\n"
+      "                make sense!\n"
       "\n"
       "---------------------\n"
       "Miscellaneous Options\n"
@@ -946,6 +1055,8 @@ int main( int argc , char *argv[] )
 
    /**------- scan command line --------**/
 
+   if( AFNI_yesenv("AFNI_3dDeconvolve_GOFORIT") ) goforit++ ;
+
    iarg = 1 ;
    while( iarg < argc ){
 
@@ -972,6 +1083,14 @@ int main( int argc , char *argv[] )
      }
      if( strcasecmp(argv[iarg],"-quiet") == 0 ){
        verb = 0 ; iarg++ ; continue ;
+     }
+     if( strcasecmp(argv[iarg],"-GOFORIT") == 0 ){
+       iarg++ ;
+       if( iarg < argc && isdigit(argv[iarg][0]) )
+         goforit += (int)strtod(argv[iarg++],NULL) ;
+       else
+         goforit++ ;
+       continue ;
      }
 
      /**==========   -nodmbase and -usetemp  ==========**/
@@ -1645,42 +1764,20 @@ STATUS("process -slibase images") ;
 
    /**---- check X matrices for collinearity ----**/
 
-   { matrix *Xa=NULL ; char lab[32]="\0" ; int nfatal ;
-     for( nfatal=ss=0 ; ss < nsli ; ss++ ){
-#ifdef PATCHX
-       Xa = (matrix *)malloc(sizeof(matrix)) ;  /* new matrix */
-       matrix_initialize(Xa) ;
-#endif
-       nbad = matrix_collinearity_fixup( *(Xsli[ss]) , Xa ) ;
-       if( nsli > 1 ) sprintf(lab,"in slice #%d",ss) ;
-       if( nbad > 0 ){
-         nfatal++ ;
-#ifdef PATCHX
-         WARNING_message(
-           "Adjusted X matrix for %d tiny singular value%s -- collinearity %s",
-           nbad , (nbad==1) ? "\0" : "s" , lab ) ;
-         matrix_destroy( Xsli[ss] ) ;
-         Xsli[ss] = Xa ;
-#else
-         ERROR_message(
-           "X matrix has %d tiny singular value%s -- collinearity %s",
-           nbad , (nbad==1) ? "\0" : "s" , lab ) ;
-#endif
+   { char lab[32]="\0" ;
+     for( nbad=ss=0 ; ss < nsli ; ss++ ){
+       if( nsli > 1 ) sprintf(lab,"slice #%d",ss) ;
+       nbad += check_matrix_condition( *(Xsli[ss]) , lab ) ;
+     }
+     if( nbad > 0 ) {
+       if( !goforit ){
+         ERROR_exit("Can't continue after matrix condition errors!\n"
+                    "** you might try -GOFORIT, but be careful! (cf. '-help')");
        } else {
-#ifdef PATCHX
-         matrix_destroy(Xa) ; free(Xa) ;
-#endif
-         if( nbad < 0 ){  /* should not happen */
-           ERROR_message("Can't check X matrix for singularity!? %s",lab) ;
-           nfatal++ ;
-         }
+         WARNING_message("-GOFORIT ==> Continuing on despite my grave misgivings!") ;
+         ININFO_message (" Check results carefully!") ;
        }
      }
-
-#ifndef PATCHX
-     if( nfatal > 0 )
-       ERROR_exit("Can't continue after collinearity detection") ;
-#endif
    }
 
    /***---------- extract stim information from matrix header ----------***/
@@ -1734,7 +1831,8 @@ STATUS("process -slibase images") ;
 
    } else {  /* don't have stim info in matrix header?! */
 
-     WARNING_message("-matrix file is missing Stim attributes") ;
+     WARNING_message("-matrix file is missing Stim attributes:") ;
+     ININFO_message ("can only use symbolic name 'Col' in GLTs (cf. '-help')" ) ;
      if( do_buckt )
        WARNING_message(" ==> bucket dataset output is disabled") ;
      do_buckt = do_glt = 0 ; Rbuckt_prefix = Obuckt_prefix = NULL ;

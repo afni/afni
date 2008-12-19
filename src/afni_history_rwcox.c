@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , DEC , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_MODIFY ,
+   "Added condition number checking and -GOFORIT" ,
+   "Also added floatscan checking for all output datasets, to be careful." } ,
+
  { 16 , DEC , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
    "Fixed bug in linear solution when #columns%4==3 (unrolling)." ,
    "Actually in matrix.c, in function vector_multiply_transpose(), which is\n"
