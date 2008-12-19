@@ -324,7 +324,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.16" # software version (update for changes)
+      self.align_version = "1.17" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1798,7 +1798,7 @@ class RegWrap:
          com.run();
          if (not o.exist() and not ps.dry_run()):
             print "** ERROR: Could not do time shifting of epi data\n"
-            return None
+            return e
       else:
          self.exists_msg(o.input())
 
