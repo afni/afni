@@ -27,7 +27,7 @@ static int goforit=0 ;
 
 /*---------------------------------------------------------------------------*/
 /*! Check matrix condition number.  Return value is the
-    number of bad things that were detected.
+    number of bad things that were detected.  Hopefully, zero.
 -----------------------------------------------------------------------------*/
 
 int check_matrix_condition( matrix xdata , char *xname )
@@ -35,7 +35,7 @@ int check_matrix_condition( matrix xdata , char *xname )
     double *ev, ebot,emin,emax ;
     int i,nsmall=0, ssing=(verb>2), bad=0 ;
 
-#define PSINV_EPS      1.e-14
+#define PSINV_EPS      1.e-14  /* double precision */
 #define CN_VERYGOOD   20.0
 #define CN_GOOD      400.0
 #define CN_OK       8000.0
@@ -184,6 +184,7 @@ void check_dataset( THD_3dim_dataset *dset )
    if( nn > 0 ){
      WARNING_message("Zero-ed %d float errors in dataset %s",DSET_BRIKNAME(dset));
      if( first ){
+       ININFO_message(" Float errors include NaN and Infinity values") ;
        ININFO_message(" ==> Check matrix setup! Check inputs! Check results!") ;
        first = 0 ;
      }
@@ -192,8 +193,9 @@ void check_dataset( THD_3dim_dataset *dset )
 }
 
 /*----------------------------------------------------------------------------*/
-/*! If fp!=NULL, load the dataset's data from that file.
-    Otherwise, there's nothing to do, so vamoose the ranch. */
+/*! If fp!=NULL, load the dataset's data from that file (-usetemp).
+    Otherwise, there's nothing to do, so vamoose the ranch.
+    [19 Dec 2008] Also, check the dataset for float errors. */
 
 void populate_dataset( THD_3dim_dataset *dset, byte *mask,
                                                char *fnam, FILE *fp  )
@@ -203,15 +205,17 @@ void populate_dataset( THD_3dim_dataset *dset, byte *mask,
 
 ENTRY("populate_dataset") ;
 
-   if( !ISVALID_DSET(dset) || fp == NULL ){
-     check_dataset(dset) ; EXRETURN ;
+   if( !ISVALID_DSET(dset) || fp == NULL ){  /* fp != NULL means to */
+     check_dataset(dset) ; EXRETURN ;        /* read data from file */
    }
+
+   /* create empty bricks to receive data from file */
 
    nvals = DSET_NVALS(dset) ;
    for( kk=0 ; kk < nvals ; kk++ )
      EDIT_substitute_brick( dset , kk , MRI_float , NULL ) ;
 
-   if( mask == NULL || fp == NULL ) EXRETURN ;
+   if( mask == NULL || fp == NULL ) EXRETURN ;  /* should not happen */
 
    if( verb > 1 && fnam != NULL ){
      INFO_message("Populating dataset %s from file %s",
@@ -219,17 +223,21 @@ ENTRY("populate_dataset") ;
      MEMORY_CHECK ;
    }
 
-   var  = (float *)calloc(sizeof(float),nvals) ;
+   var  = (float *)calloc(sizeof(float),nvals) ; /* space for 1 voxel's data */
    nvox = DSET_NVOX(dset) ;
 
    kk = fseek(fp,0,SEEK_SET) ;
    if( kk != 0 ) perror("rewind") ;
+
+   /* load data from file */
 
    for( kk=0 ; kk < nvox ; kk++ ){
      if( !INMASK(kk) ) continue ;
      (void)fread( var , sizeof(float) , nvals , fp ) ;
      THD_insert_series( kk , dset , nvals , MRI_float , var , 0 ) ;
    }
+
+   /* done */
 
    free(var) ; fclose(fp) ;
    if( fnam != NULL ){ kill_purge(fnam) ; remove(fnam) ; }
@@ -1084,7 +1092,10 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-quiet") == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
-     if( strcasecmp(argv[iarg],"-GOFORIT") == 0 ){
+
+     /**==========  -GOFORIT babee!  =========**/
+
+     if( strcasecmp(argv[iarg],"-GOFORIT") == 0 ){  /* 19 Dec 2008 */
        iarg++ ;
        if( iarg < argc && isdigit(argv[iarg][0]) )
          goforit += (int)strtod(argv[iarg++],NULL) ;
