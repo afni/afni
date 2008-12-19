@@ -14,7 +14,7 @@ ifdef USE_LESSTIF
     LESSTIF_DEFS = -DUSING_LESSTIF
     MOTIF_LIB = -lXm
 else
-    MOTIF_LIB = /usr/lib64/libXm.a
+    MOTIF_LIB = /usr/lib/libXm.a
 endif
 
 # for LFS (large file support): -D_FILE_OFFSET_BITS=64
