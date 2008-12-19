@@ -50,10 +50,16 @@
 
 afni_history_struct dglen_history[] = {
 
+{ 19 , DEC , 2008 , DRG , "align_epi_anat.py" , 
+    MICRO , TYPE_BUG_FIX, "Slice timing for children can be ignored",
+    "If child epi data does not need slice timing correction, script will\n"
+    "continue instead of exiting"
+} ,
+
 { 05 , DEC , 2008 , DRG , "to3d" , 
-    MINOR , TYPE_BUG_FIX, "Siemens DICOM handling",
-    "added -oblique_origin and -reverse_list to help handle Siemens"
-    "DICOM data. oblique_origin option added to to3d and 3drefit"
+    MINOR , TYPE_MODIFY, "Siemens DICOM handling",
+    "added -oblique_origin and -reverse_list to help handle Siemens\n"
+    "DICOM data. oblique_origin option added to to3d and 3drefit\n"
     "Rick added flipped slice handling to oblique mosaic handling"
 } ,
 
