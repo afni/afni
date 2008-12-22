@@ -52,10 +52,17 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
   
+  { 22 , DEC , 2008 , GC , "3dICC.R" , MAJOR , TYPE_NEW_PROG ,
+    "IntraClass Correlation (ICC)",
+	 "This is an R program that calculates ICC on 3D volume data based on a\n" 
+    "two- or three-way random-effects ANOVA scheme. See more details at\n"
+	 "http://afni.nimh.nih.gov/sscc/gangc/ICC" 
+  } ,
+  
   { 16 , DEC , 2008 , GC , "3dGC.R" , MAJOR , TYPE_NEW_PROG ,
     "Bivariate Granger causality analysis",
 	 "This is an R program that runs Granger causality analysis with a\n" 
-    "seed region versus thenrest of the brain. See more details at\n"
+    "seed region versus the rest of the brain. See more details at\n"
 	 "http://afni.nimh.nih.gov/sscc/gangc/3dGC" 
   } ,
   
