@@ -270,7 +270,7 @@ ENTRY("GA_interp_cubic") ;
 #undef  BP
 #define PHI(x)  sqrtf(1.0f-8.0f*(x)*(1.0f-(x)))
 #define PSI(x)  sqrtf(28.0f*(x)*((x)-1.0f)+10.0f+(6.0f-12.0f*(x))*PHI(x))
-#define BP      0.7611165f
+#define BP      0.7611165f        /* = (11+sqrt(33))/22 */
 #define V_M1(x) 0.25f*(1-PHI(x))
 #define V_P2    V_M1
 #define V_00(x) (((x) < BP) ? (0.08333333f*PHI(x)+0.1666667f*PSI(x)+0.25f) \
@@ -283,6 +283,7 @@ ENTRY("GA_interp_cubic") ;
 void GA_interp_varpres( MRI_IMAGE *fim ,
                         int npp, float *ip, float *jp, float *kp, float *vv )
 {
+  /* a little more work here */
 }
 
 /*---------------------------------------------------------------------------*/
