@@ -259,6 +259,33 @@ ENTRY("GA_interp_cubic") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* define variance preserving interpolation functions */
+
+#undef  V_M1
+#undef  V_00
+#undef  V_P1
+#undef  V_P2
+#undef  PHI
+#undef  PSI
+#undef  BP
+#define PHI(x)  sqrtf(1.0f-8.0f*(x)*(1.0f-(x)))
+#define PSI(x)  sqrtf(28.0f*(x)*((x)-1.0f)+10.0f+(6.0f-12.0f*(x))*PHI(x))
+#define BP      0.7611165f
+#define V_M1(x) 0.25f*(1-PHI(x))
+#define V_P2    V_M1
+#define V_00(x) (((x) < BP) ? (0.08333333f*PHI(x)+0.1666667f*PSI(x)+0.25f) \
+                            : (0.08333333f*PHI(x)-0.1666667f*PSI(x)+0.25f))
+#define V_P1(x) V_00(1.0f-(x))
+
+/*------------------------------------------------------------------*/
+/*! Interpolate an image at npp (index) points, using VP method. */
+
+void GA_interp_varpres( MRI_IMAGE *fim ,
+                        int npp, float *ip, float *jp, float *kp, float *vv )
+{
+}
+
+/*---------------------------------------------------------------------------*/
 
 /* define quintic interpolation polynomials (Lagrange) */
 
