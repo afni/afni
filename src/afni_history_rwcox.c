@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , DEC , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
+   "Program wouldn't read a -stim_times file that was all '*'" ,
+   "Actual change was in mri_read.c." } ,
+
  { 19 , DEC , 2008 , RWC , "3dREMLfit" , MICRO , TYPE_MODIFY ,
    "Added condition number checking and -GOFORIT" ,
    "Also added floatscan checking for all output datasets, to be careful." } ,

@@ -495,6 +495,8 @@ void basis_write_sresp( int argc , char *argv[] ,
 static basis_expansion **basis_stim  = NULL ; /* equations for response model */
 static MRI_IMAGE       **basis_times = NULL ; /* times for each response      */
 static MRI_IMAGE       **basis_vect  = NULL ; /* vectors generated from above */
+static int               basis_nstim = 0    ; /* number of basis_stim entries */
+static int               basis_nused = 0    ; /* number that are not NULL */
 static float             basis_TR    = 1.0f ; /* data time step in seconds */
 static int               basis_count = 0    ; /* any -stim_times inputs? */
 static float             basis_dtout = 0.0f ; /* IRF time step in seconds */
@@ -2589,7 +2591,7 @@ void get_options
 
   /* check stimuli for decent and humane values */
 
-  nerr = 0 ;
+  nerr = 0 ; basis_nstim = option_data->num_stimts ; basis_nused = 0 ;
   for( k=0 ; k < option_data->num_stimts ; k++ ){
 
     if( strncmp(option_data->stim_label[k],"Stim#",5) == 0 )
@@ -2605,6 +2607,8 @@ void get_options
     if( basis_stim[k] != NULL ){    /* checking -stim_times input */
 
       basis_stim[k]->name = strdup( option_data->stim_label[k] ) ;
+
+      basis_nused++ ;
 
       if( option_data->sresp_filename[k] != NULL ) basis_need_mse = 1 ;
 
@@ -7809,6 +7813,7 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
 
      MRI_IMAGE *xim = mri_new( nx , ny , MRI_float ) ;
      float     *xar = MRI_FLOAT_PTR(xim) ;
+
      for( jj=0 ; jj < ny ; jj++ )
        for( ii=0 ; ii < nx ; ii++ ) xar[ii+jj*nx] = X.elts[ii][jj] ;
      if( THD_is_file(fname) ) remove(fname) ;  /* 09 Mar 2007 */
@@ -7818,6 +7823,7 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
 
      NI_element *nel ; NI_stream ns ; MTYPE *col ;
      char *lab=NULL,lll[128] ;
+
      nel = NI_new_data_element( "matrix" , nx ) ;
      col = (MTYPE *)malloc(sizeof(MTYPE)*nx) ;
      for( jj=0 ; jj < ny ; jj++ ){
@@ -7926,6 +7932,21 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
          free((void *)far.ar) ;
        }
      }
+#endif
+#if 1
+    if( basis_nused > 0 ){
+      sprintf(lll,"%d",basis_nstim) ;
+      NI_set_attribute( nel, "BasisNstim", lll ) ;
+      for( kk=0 ; kk < basis_nstim ; kk++ ){
+        if( basis_stim[kk] == NULL ) continue ;
+        sprintf(lll,"BasisOption_%06d",kk+1) ;
+        NI_set_attribute( nel, lll, basis_stim[kk]->option ) ;
+        sprintf(lll,"BasisName_%06d",kk+1) ;
+        NI_set_attribute( nel, lll, basis_stim[kk]->name ) ;
+        sprintf(lll,"BasisFormula_%06d",kk+1) ;
+        NI_set_attribute( nel, lll, basis_stim[kk]->symfun ) ;
+      }
+    }
 #endif
 #if 1
      if( commandline != NULL ){
