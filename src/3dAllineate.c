@@ -1676,10 +1676,10 @@ int main( int argc , char *argv[] )
        if( apply_1D != NULL || apply_mode != 0 )
          ERROR_exit("Can't have multiple 'apply' options!") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
-       if( !THD_filename_ok(argv[iarg]) )
+       if( strncmp(argv[iarg],"1D:",3) != 0 && !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
        apply_1D = argv[iarg] ; qim = mri_read_1D(apply_1D) ;
-       if( qim == NULL ) ERROR_exit("Can't read -1Dapply '%s'",apply_1D) ;
+       if( qim == NULL ) ERROR_exit("Can't read %s '%s'",argv[iarg-1],apply_1D) ;
        apply_im  = mri_transpose(qim); mri_free(qim);
        apply_far = MRI_FLOAT_PTR(apply_im) ;
        apply_nx  = apply_im->nx ;  /* # of values per row */
@@ -1724,6 +1724,9 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-quintic",4)==0 || strncmp(argv[iarg],"-triquintic",6)==0 ){
        interp_code = MRI_QUINTIC ; iarg++ ; continue ;
      }
+     if( strcasecmp(argv[iarg],"-VARP1") == 0 ){
+       interp_code = MRI_VARP1 ; iarg++ ; continue ;
+     }
      if( strncmp(argv[iarg],"-interp",5)==0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( strcmp(argv[iarg],"NN")==0 || strncmp(argv[iarg],"nearest",5)==0 )
@@ -1737,6 +1740,9 @@ int main( int argc , char *argv[] )
        else
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          interp_code = MRI_QUINTIC ;
+       else
+       if( strcasecmp(argv[iarg],"VARP1")==0 )
+         interp_code = MRI_VARP1 ;
        else
          ERROR_exit("Unknown code '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;
        iarg++ ; continue ;
@@ -1754,6 +1760,9 @@ int main( int argc , char *argv[] )
        else
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          final_interp = MRI_QUINTIC ;
+       else
+       if( strcasecmp(argv[iarg],"VARP1")==0 )
+         final_interp = MRI_VARP1 ;
        else
          ERROR_exit("Unknown code '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;
        iarg++ ; continue ;

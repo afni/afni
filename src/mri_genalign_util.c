@@ -261,29 +261,102 @@ ENTRY("GA_interp_cubic") ;
 /*---------------------------------------------------------------------------*/
 /* define variance preserving interpolation functions */
 
-#undef  V_M1
-#undef  V_00
-#undef  V_P1
-#undef  V_P2
-#undef  PHI
-#undef  PSI
 #undef  BP
-#define PHI(x)  sqrtf(1.0f-8.0f*(x)*(1.0f-(x)))
-#define PSI(x)  sqrtf(28.0f*(x)*((x)-1.0f)+10.0f+(6.0f-12.0f*(x))*PHI(x))
-#define BP      0.7611165f        /* = (11+sqrt(33))/22 */
-#define V_M1(x) 0.25f*(1-PHI(x))
-#define V_P2    V_M1
-#define V_00(x) (((x) < BP) ? (0.08333333f*PHI(x)+0.1666667f*PSI(x)+0.25f) \
-                            : (0.08333333f*PHI(x)-0.1666667f*PSI(x)+0.25f))
-#define V_P1(x) V_00(1.0f-(x))
+#define BP   0.7611164839f        /* = (11+sqrt(33))/22 */
+#undef  PSI
+#define PSI (xb>-0.001f && xb<0.001f)                                       \
+            ? (1.2222222f+0.52008386f*xb)*xb                                \
+            : 0.16666667f*xb                                                \
+              * sqrtf(  ( 28.0f*xxx*(xxx-1.0f)+10.0f+(6.0f-12.0f*xxx)*phi ) \
+                      / (xb*xb) )
+#undef  VPWT
+#define VPWT(x)                                                         \
+ { float xxx=(x) , xb , px , psi ;                                      \
+   float phi = sqrtf(1.0f-8.0f*xxx*(xxx-1.0f)) ;                        \
+   wt_m1 = wt_p2 = 0.25f * (1.0f-phi) ; px = 0.25f + 0.08333333f*phi ;  \
+                    xb = xxx-BP ; psi = PSI ; wt_00 = px - psi ;        \
+   xxx = 1.0f-xxx ; xb = xxx-BP ; psi = PSI ; wt_p1 = px - psi ; }
 
 /*------------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using VP method. */
 
-void GA_interp_varpres( MRI_IMAGE *fim ,
+void GA_interp_varp1( MRI_IMAGE *fim ,
                         int npp, float *ip, float *jp, float *kp, float *vv )
 {
-  /* a little more work here */
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float fx,fy,fz ;
+   float *far = MRI_FLOAT_PTR(fim) ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
+
+   int ix_m1,ix_00,ix_p1,ix_p2 ;     /* interpolation indices */
+   int jy_m1,jy_00,jy_p1,jy_p2 ;
+   int kz_m1,kz_00,kz_p1,kz_p2 ;
+   float wt_m1,wt_00,wt_p1,wt_p2 ;   /* interpolation weights */
+   float f_jm1_km1, f_j00_km1, f_jp1_km1, f_jp2_km1, /* interpolants */
+         f_jm1_k00, f_j00_k00, f_jp1_k00, f_jp2_k00,
+         f_jm1_kp1, f_j00_kp1, f_jp1_kp1, f_jp2_kp1,
+         f_jm1_kp2, f_j00_kp2, f_jp1_kp2, f_jp2_kp2,
+         f_km1    , f_k00    , f_kp1    , f_kp2     ;
+
+ENTRY("GA_interp_varp1") ;
+
+   for( pp=0 ; pp < npp ; pp++ ){
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
+
+     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
+     kz = floorf(zz) ;  fz = zz - kz ;
+
+     ix_m1 = ix-1    ; ix_00 = ix      ; ix_p1 = ix+1    ; ix_p2 = ix+2    ;
+     CLIP(ix_m1,nx1) ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ; CLIP(ix_p2,nx1) ;
+
+     jy_m1 = jy-1    ; jy_00 = jy      ; jy_p1 = jy+1    ; jy_p2 = jy+2    ;
+     CLIP(jy_m1,ny1) ; CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ; CLIP(jy_p2,ny1) ;
+
+     kz_m1 = kz-1    ; kz_00 = kz      ; kz_p1 = kz+1    ; kz_p2 = kz+2    ;
+     CLIP(kz_m1,nz1) ; CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ; CLIP(kz_p2,nz1) ;
+
+     VPWT(fx) ;  /* interpolation weights in x direction */
+
+#undef  XINT
+#define XINT(j,k) wt_m1*FAR(ix_m1,j,k)+wt_00*FAR(ix_00,j,k)  \
+                 +wt_p1*FAR(ix_p1,j,k)+wt_p2*FAR(ix_p2,j,k)
+
+     /* interpolate to location ix+fx at each jy,kz level */
+
+     f_jm1_km1 = XINT(jy_m1,kz_m1) ; f_j00_km1 = XINT(jy_00,kz_m1) ;
+     f_jp1_km1 = XINT(jy_p1,kz_m1) ; f_jp2_km1 = XINT(jy_p2,kz_m1) ;
+     f_jm1_k00 = XINT(jy_m1,kz_00) ; f_j00_k00 = XINT(jy_00,kz_00) ;
+     f_jp1_k00 = XINT(jy_p1,kz_00) ; f_jp2_k00 = XINT(jy_p2,kz_00) ;
+     f_jm1_kp1 = XINT(jy_m1,kz_p1) ; f_j00_kp1 = XINT(jy_00,kz_p1) ;
+     f_jp1_kp1 = XINT(jy_p1,kz_p1) ; f_jp2_kp1 = XINT(jy_p2,kz_p1) ;
+     f_jm1_kp2 = XINT(jy_m1,kz_p2) ; f_j00_kp2 = XINT(jy_00,kz_p2) ;
+     f_jp1_kp2 = XINT(jy_p1,kz_p2) ; f_jp2_kp2 = XINT(jy_p2,kz_p2) ;
+
+     /* interpolate to jy+fy at each kz level */
+
+     VPWT(fy) ;  /* interpolation weights in y direction */
+
+     f_km1 =  wt_m1 * f_jm1_km1 + wt_00 * f_j00_km1
+            + wt_p1 * f_jp1_km1 + wt_p2 * f_jp2_km1 ;
+     f_k00 =  wt_m1 * f_jm1_k00 + wt_00 * f_j00_k00
+            + wt_p1 * f_jp1_k00 + wt_p2 * f_jp2_k00 ;
+     f_kp1 =  wt_m1 * f_jm1_kp1 + wt_00 * f_j00_kp1
+            + wt_p1 * f_jp1_kp1 + wt_p2 * f_jp2_kp1 ;
+     f_kp2 =  wt_m1 * f_jm1_kp2 + wt_00 * f_j00_kp2
+            + wt_p1 * f_jp1_kp2 + wt_p2 * f_jp2_kp2 ;
+
+     /* interpolate to kz+fz to get output */
+
+     VPWT(fz) ;  /* interpolation weights in z direction */
+
+     vv[pp] =  wt_m1 * f_km1 + wt_00 * f_k00
+             + wt_p1 * f_kp1 + wt_p2 * f_kp2 ;
+   }
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -502,6 +575,10 @@ ENTRY("GA_indexwarp") ;
 
      case MRI_CUBIC:
        GA_interp_cubic( fim , nvox , iar,jar,kar , outar ) ;
+     break ;
+
+     case MRI_VARP1:
+       GA_interp_varp1( fim , nvox , iar,jar,kar , outar ) ;
      break ;
 
      default:        /* for higher order methods not implemented here */

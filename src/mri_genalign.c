@@ -161,6 +161,11 @@ ENTRY("GA_get_warped_values") ;
          GA_interp_cubic( aim , npp , imw,jmw,kmw , avm+pp ) ;
        break ;
 
+       case MRI_VARP1:
+         clip = 1 ;
+         GA_interp_varp1( aim , npp , imw,jmw,kmw , avm+pp ) ;
+       break ;
+
        default:        /* for higher order methods not implemented here */
        case MRI_QUINTIC:
          clip = 1 ;
@@ -1793,6 +1798,10 @@ ENTRY("mri_genalign_scalar_warpone") ;
 
        case MRI_CUBIC:
          GA_interp_cubic( inim , npp , imw,jmw,kmw , war+pp ) ;
+       break ;
+
+       case MRI_VARP1:
+         GA_interp_varp1( inim , npp , imw,jmw,kmw , war+pp ) ;
        break ;
 
        default:        /* for higher order methods not implemented here */

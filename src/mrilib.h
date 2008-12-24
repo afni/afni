@@ -557,6 +557,8 @@ static int MRI_mm ;
 #define MRI_HEPTIC    (5)
 #define MRI_TSSHIFT   (6)   /* Dec 1999 */
 
+#define MRI_VARP1    (71)   /* 24 Dec 2009 */
+
 #define MRI_FOURIER_NOPAD (66)  /* 13 May 2003 */
 
 #define MRI_HIGHORDER(x) ((x) != MRI_NN && (x) != MRI_LINEAR)
@@ -1611,6 +1613,8 @@ extern void GA_interp_linear ( MRI_IMAGE *fim , int npp,
 extern void GA_interp_cubic  ( MRI_IMAGE *fim , int npp,
                                float *ip, float *jp, float *kp, float *vv ) ;
 extern void GA_interp_quintic( MRI_IMAGE *fim , int npp,
+                               float *ip, float *jp, float *kp, float *vv ) ;
+extern void GA_interp_varp1  ( MRI_IMAGE *fim , int npp,
                                float *ip, float *jp, float *kp, float *vv ) ;
 extern int GA_gcd(int,int) ;
 extern int GA_find_relprime_fixed(int) ;
