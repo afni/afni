@@ -11,11 +11,14 @@ import module_test_lib
 g_testlibs = ['sys', 'math', 'copy']
 if module_test_lib.num_import_failures(g_testlibs): sys.exit(1)
    
-
 # import libraries
 import math
 import copy
 import afni_util as UTIL
+
+# ----------------------------------------------------------------------
+# two timing classes: AfniTiming and AfniMarriedTiming
+# ----------------------------------------------------------------------
 
 class AfniTiming:
    def __init__(self, filename="", dur=0, from_a1d=0, a1d=None, verb=1):
@@ -578,9 +581,10 @@ class AfniMarriedTiming:
       rtot_stim = [] ; rtot_isi = [] ; rtot_rest = []
       stim_list = [] ; isi_list = [] ; nstim_list = []
       for rind in range(self.nrows):
-         rtot_stim.append(sum(all_stim[rind]))
-         rtot_rest.append(pre_time[rind] + sum(all_isi[rind]) + post_time[rind])
-         rtot_isi.append(sum(all_isi[rind]))
+         rtot_stim.append(UTIL.loc_sum(all_stim[rind]))
+         rtot_rest.append(pre_time[rind] + UTIL.loc_sum(all_isi[rind]) +
+                          post_time[rind])
+         rtot_isi.append(UTIL.loc_sum(all_isi[rind]))
          stim_list.extend(all_stim[rind])
          isi_list.extend(all_isi[rind])
          nstim_list.append(len(all_stim[rind]))
@@ -592,21 +596,21 @@ class AfniMarriedTiming:
       print '                        total      per run'
       print '                       ------      ------------------------------'
       print '    total time         %6.1f     %s'   % \
-                 (sum(run_time), float_list_string(run_time, ndec=1))
+                 (UTIL.loc_sum(run_time), float_list_string(run_time, ndec=1))
       print '    total time: stim   %6.1f     %s'   % \
-                 (sum(rtot_stim), float_list_string(rtot_stim, 7, ndec=1))
+                 (UTIL.loc_sum(rtot_stim),float_list_string(rtot_stim,7,ndec=1))
       print '    total time: rest   %6.1f     %s'   % \
-                 (sum(rtot_rest), float_list_string(rtot_rest, 7, ndec=1))
+                 (UTIL.loc_sum(rtot_rest),float_list_string(rtot_rest,7,ndec=1))
       print ''
       print '    rest: total isi    %6.1f     %s'   % \
-                 (sum(rtot_isi), float_list_string(rtot_isi, 7, ndec=1))
+                 (UTIL.loc_sum(rtot_isi), float_list_string(rtot_isi,7,ndec=1))
       print '    rest: pre stim     %6.1f     %s'   % \
-                 (sum(pre_time), float_list_string(pre_time, 7, ndec=1))
+                 (UTIL.loc_sum(pre_time), float_list_string(pre_time,7,ndec=1))
       print '    rest: post stim    %6.1f     %s'   % \
-                 (sum(post_time), float_list_string(post_time, 7, ndec=1))
+                 (UTIL.loc_sum(post_time),float_list_string(post_time,7,ndec=1))
       print ''
       print '    num stimuli      %6d     %s'   % \
-                 (sum(nstim_list), float_list_string(nstim_list, 7, ndec=0))
+            (UTIL.loc_sum(nstim_list), float_list_string(nstim_list,7,ndec=0))
       print '\n'
 
       print '                         min      mean     max     stdev'
