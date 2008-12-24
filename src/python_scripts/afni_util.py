@@ -626,6 +626,14 @@ def lists_are_same(list1, list2):
 # ----------------------------------------------------------------------
 # matematical functions
 
+# in case 'sum' does not exist, such as on old machines
+def loc_sum(vals):
+   try: tot = sum(vals)
+   except:
+      tot = 0
+      for val in vals: tot += val
+   return tot
+
 def min_mean_max_stdev(data):
     """return 4 values for data: min, max, mean, stdev (unbiased)"""
     if not data: return 0,0,0,0
@@ -635,7 +643,7 @@ def min_mean_max_stdev(data):
 
     minval  = min(data)
     maxval  = max(data)
-    meanval = sum(data)/float(length)
+    meanval = loc_sum(data)/float(length)
 
     return minval, meanval, maxval, stdev_ub(data)
 
@@ -644,7 +652,7 @@ def stdev_ub(data):
     length = len(data)
     if length <  2: return 0.0
 
-    meanval = sum(data)/float(length)
+    meanval = loc_sum(data)/float(length)
     # compute standard deviation
     ssq = 0.0
     for val in data: ssq += val*val
@@ -655,7 +663,7 @@ def stdev(data):
     length = len(data)
     if length <  2: return 0.0
 
-    meanval = sum(data)/float(length)
+    meanval = loc_sum(data)/float(length)
     # compute standard deviation
     ssq = 0.0
     for val in data: ssq += val*val
