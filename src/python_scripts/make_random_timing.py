@@ -552,9 +552,10 @@ g_history = """
     0.6  Dec 01, 2008:
          - moved min_mean_max_stdev to afni_util.py
          - modified examples to correspond with those in timing_tool.py
+    0.7  Dec 24, 2008: redefine 'sum' for old python versions
 """
 
-g_version = "version 0.6, December 1, 2008"
+g_version = "version 0.7, December 24, 2008"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -976,7 +977,7 @@ class RandTiming:
         elif self.t_gran > 1.0: tr = self.t_gran
         else:                   tr = 1.0
 
-        nt = round(sum(self.run_time) / tr)
+        nt = round(UTIL.loc_sum(self.run_time) / tr)
 
         cmd  = '# -------------------------------------------------------\n' \
                '# create 3dDeconvolve -nodata command\n\n'      \
@@ -1141,7 +1142,7 @@ class RandTiming:
 
         # account for min_rest, and apply with stim_durs
         if min_rest < 0.0: min_rest = 0.0
-        rtime = isi_rtime - min_rest * sum(reps_list)
+        rtime = isi_rtime - min_rest * UTIL.loc_sum(reps_list)
         nrest = int(rtime / tgran)
 
         if verb > 1 or self.show_timing_stats:
@@ -1151,8 +1152,8 @@ class RandTiming:
                   '   total ISI = %.1f, rand ISI = %.1f\n'                   \
                   '   rand ISI rest time = %d intervals of %.3f seconds\n' % \
                   (nruns*run_time, stime, tot_rest, tinitial, tfinal,
-                  min_rest * sum(reps_list), min_rest, sum(reps_list),
-                  isi_rtime, rtime, nrest, tgran)
+                  min_rest * UTIL.loc_sum(reps_list), min_rest,
+                  UTIL.loc_sum(reps_list), isi_rtime, rtime, nrest, tgran)
 
         if rtime == 0: print '** warning, exactly no time remaining for rest...'
         elif rtime < 0:

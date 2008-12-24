@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, DEC, 2008, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
+   "redefine 'sum' for older python versions",
+   "This also affects afni_util.py and make_random_timing.py."
+ } ,
+
  { 15, DEC, 2008, RCR, "Makefile", MICRO, TYPE_MODIFY,
    "added USE_LESSTIF directive",
    "Modified Makefile.linux_xorg7[_64], Makefile.macosx_10.5_Intel[_64]."
