@@ -240,15 +240,24 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
    MRI_IMAGE *imp=NULL ; float *pmat ;
    register double sum ;
    int do_svd= (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
+   int allz ;
 
 ENTRY("mri_matrix_psinv") ;
 
    if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
    m    = imc->nx ;
    n    = imc->ny ;
+   if( PRINT_TRACING ){ char str[222]; sprintf(str,"m=%d n=%d",m,n); STATUS(str); }
    rmat = MRI_FLOAT_PTR(imc) ;
    amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
    xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
+
+   if( amat == NULL || xfac == NULL ){  /* 29 Dec 2008 */
+     ERROR_message("mri_matrix_psinv: can't malloc matrix workspace!") ;
+     if( amat != NULL ) free(amat) ;
+     if( xfac != NULL ) free(xfac) ;
+     RETURN(NULL) ;
+   }
 
 #undef  PSINV_EPS
 #define PSINV_EPS 1.e-12
@@ -268,6 +277,7 @@ ENTRY("mri_matrix_psinv") ;
 
    /* copy input matrix into amat */
 
+STATUS("copy matrix") ;
    for( ii=0 ; ii < m ; ii++ )
      for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = R(ii,jj) ;
 
@@ -282,6 +292,7 @@ ENTRY("mri_matrix_psinv") ;
 
    /* scale each column to have norm 1 */
 
+STATUS("scale matrix") ;
    for( jj=0 ; jj < n ; jj++ ){
      sum = 0.0 ;
      for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
@@ -294,11 +305,18 @@ ENTRY("mri_matrix_psinv") ;
 
    vmat = (double *)calloc( sizeof(double),n*n );
 
+   if( vmat == NULL ){  /* 29 Dec 2008 */
+     ERROR_message("mri_matrix_psinv: can't malloc vmat workspace!") ;
+     free(amat) ; free(xfac) ; RETURN(NULL) ;
+   }
+
    if( do_svd ) goto SVD_PLACE ;
 
    /*** Try the Choleski method first ***/
 
+STATUS("form normal eqns") ;
    for( ii=0 ; ii < n ; ii++ ){       /* form normal equations */
+     if( ii%1000==999 ) STATUS("999") ;
      for( jj=0 ; jj <= ii ; jj++ ){
        sum = 0.0 ;
        for( kk=0 ; kk < m ; kk++ ) sum += A(kk,ii) * A(kk,jj) ;
@@ -309,9 +327,12 @@ ENTRY("mri_matrix_psinv") ;
 
    /* Choleski factor V in place */
 
+STATUS("Choleski") ;
    for( ii=0 ; ii < n ; ii++ ){
-     for( jj=0 ; jj < ii ; jj++ ){
+     if( ii%1000==999 ) STATUS("999") ;
+     for( allz=1,jj=0 ; jj < ii ; jj++ ){
        sum = V(ii,jj) ;
+       if( allz ){ if( sum == 0.0 ) continue ; else allz = 0 ; }
        for( kk=0 ; kk < jj ; kk++ ) sum -= V(ii,kk) * V(jj,kk) ;
        V(ii,jj) = sum / V(jj,jj) ;
      }
@@ -333,7 +354,9 @@ ENTRY("mri_matrix_psinv") ;
 
    sval = (double *)calloc( sizeof(double),n ) ; /* row #jj of A */
 
+STATUS("psinv from Choleski") ;
    for( jj=0 ; jj < m ; jj++ ){
+     if( jj%1000==999 ) STATUS("999") ;
      for( ii=0 ; ii < n ; ii++ ) sval[ii] = A(jj,ii) ; /* extract row */
 
      for( ii=0 ; ii < n ; ii++ ){  /* forward solve */
@@ -358,10 +381,17 @@ ENTRY("mri_matrix_psinv") ;
      vmat = (double *)calloc( sizeof(double),n*n ); /* right singular vectors */
 #endif
      umat = (double *)calloc( sizeof(double),m*n ); /* left singular vectors */
+
+     if( umat == NULL ){  /* 29 Dec 2008 */
+       ERROR_message("mri_matrix_psinv: can't malloc umat workspace!") ;
+       free(amat) ; free(xfac) ; RETURN(NULL) ;
+     }
+
      sval = (double *)calloc( sizeof(double),n   ); /* singular values */
 
      /* compute SVD of scaled matrix */
 
+STATUS("SVD") ;
      svd_double( m , n , amat , sval , umat , vmat ) ;
 
      free((void *)amat) ;  /* done with this */
@@ -393,6 +423,7 @@ ENTRY("mri_matrix_psinv") ;
      imp  = mri_new( n , m , MRI_float ) ;   /* recall that m > n */
      pmat = MRI_FLOAT_PTR(imp) ;
 
+STATUS("psinv from SVD") ;
      for( ii=0 ; ii < n ; ii++ ){
        for( jj=0 ; jj < m ; jj++ ){
          sum = 0.0 ;
@@ -405,6 +436,7 @@ ENTRY("mri_matrix_psinv") ;
   RESCALE_PLACE:
    /** from either method, must now rescale rows from norming */
 
+STATUS("rescale") ;
    for( ii=0 ; ii < n ; ii++ ){
      for( jj=0 ; jj < m ; jj++ ) P(ii,jj) *= xfac[ii] ;
    }

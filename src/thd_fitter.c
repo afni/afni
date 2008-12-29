@@ -24,6 +24,8 @@ static float * new_lsqfit( int npt  , float *far   ,
   MRI_IMAGE *rmat,*pmat,*smat ;
   float *rar;
 
+ENTRY("new_lsqfit") ;
+
   /* compute pseudo-inverse of matrix into pmat */
 
   rmat = mri_new(npt,nref,MRI_float ); rar = MRI_FLOAT_PTR(rmat);
@@ -31,7 +33,7 @@ static float * new_lsqfit( int npt  , float *far   ,
     memcpy( rar+jj*npt , ref[jj] , sizeof(float)*npt ) ;
   pmat = mri_matrix_psinv(rmat,NULL,0.0f) ;
   mri_free(rmat) ;
-  if( pmat == NULL ) return NULL ;  /* should not happen */
+  if( pmat == NULL ) RETURN(NULL) ;  /* should not happen */
 
   /* create vector of data and multiply by pseudo-inverse */
 
@@ -39,14 +41,43 @@ static float * new_lsqfit( int npt  , float *far   ,
   mri_fix_data_pointer( far , rmat ) ;
   smat = mri_matrix_mult( pmat , rmat ) ;
   mri_free(pmat); mri_clear_data_pointer(rmat); mri_free(rmat);
-  if( smat == NULL ) return NULL ;  /* should not happen */
+  if( smat == NULL ) RETURN(NULL) ;  /* should not happen */
 
   /* get pointer to results array and return it */
 
   rar = MRI_FLOAT_PTR(smat);
   mri_clear_data_pointer(smat); mri_free(smat);
-  return rar ;
+  RETURN(rar) ;
 }
+
+/*------------------------------------------------------------------*/
+
+#if 0
+static float * sparse_lsqfit( int npt  , float *far   ,
+                              int nref , float *ref[]  )
+{
+   int ii , jj ;
+   int *first , *last ;
+   float *rar;
+
+ENTRY("sparse_lsqfit") ;
+
+   /* find first and last nonzero values in each column */
+
+   first = (int *)malloc(sizeof(int)*nref) ;
+   last  = (int *)malloc(sizeof(int)*nref) ;
+   for( jj=0 ; jj < nref ; jj++ ){
+     for( ii=0 ; ii < npt && ref[jj][ii] == 0.0f ; ii++ ) ; /*nada*/
+     first[jj] = ii ;
+     for( ii=npt-1; ii >=0 && ref[jj][ii] == 0.0f ; ii-- ) ; /*nada */
+     last[jj] = ii ;
+   }
+
+   /** UNFINISHED **/
+
+   RETURN(rar) ;
+}
+#endif
 
 /*------------------------------------------------------------------*/
 
@@ -83,14 +114,16 @@ floatvec * THD_fitter( int npt , float *far  ,
    float *qfit=NULL, val , qmax ;
    floatvec *fv=NULL ;
 
+ENTRY("THD_fitter") ;
+
    KILL_floatvec(gfitv) ;  /* 05 Mar 2008 */
 
    /* check inputs for stupid users */
 
    if( npt  <= 1 || far == NULL ||
-       nref <= 0 || ref == NULL || nref >= npt-1 ) return NULL ;
+       nref <= 0 || ref == NULL || nref >= npt-1 ) RETURN(NULL) ;
 
-   for( jj=0 ; jj < nref ; jj++ ) if( ref[jj] == NULL ) return NULL ;
+   for( jj=0 ; jj < nref ; jj++ ) if( ref[jj] == NULL ) RETURN(NULL) ;
 
    /*--- 08 Apr 2008: check if some columns are way small;
                       if so, excise them and solve smaller problem ---*/
@@ -100,7 +133,7 @@ floatvec * THD_fitter( int npt , float *far  ,
      for( val=0.0f,ii=0 ; ii < npt ; ii++ ) val += fabsf(ref[jj][ii]) ;
      qfit[jj] = val ; if( val > qmax ) qmax = val ;
    }
-   if( qmax == 0.0f ){ free((void *)qfit); return NULL; }
+   if( qmax == 0.0f ){ free((void *)qfit); RETURN(NULL); }
    qmax *= 0.000333f ;
    for( nbad=jj=0 ; jj < nref ; jj++ ) if( qfit[jj] <= qmax ) nbad++ ;
 
@@ -118,12 +151,12 @@ floatvec * THD_fitter( int npt , float *far  ,
      qv = THD_fitter( npt , far , ngood , qref , meth , qcon ) ;
      if( qcon != NULL ) free((void *)qcon) ;
      free((void *)qref) ;
-     if( qv == NULL ){ free((void *)qfit); return NULL; }
+     if( qv == NULL ){ free((void *)qfit); RETURN(NULL); }
      MAKE_floatvec(fv,nref) ;
      for( ii=jj=0 ; jj < nref ; jj++ ){
        if( qfit[jj] > qmax ) fv->ar[jj] = qv->ar[ii++] ;
      }
-     KILL_floatvec(qv) ; free((void *)qfit) ; return fv ;
+     KILL_floatvec(qv) ; free((void *)qfit) ; RETURN(fv) ;
    }
 
    free((void *)qfit) ; qfit = NULL ;
@@ -132,7 +165,7 @@ floatvec * THD_fitter( int npt , float *far  ,
 
    switch( meth ){
 
-     default: return NULL ;  /* stupid user */
+     default: RETURN(NULL) ;  /* stupid user */
 
      /*-- least squares --*/
 
@@ -157,14 +190,14 @@ floatvec * THD_fitter( int npt , float *far  ,
      break ;
    }
 
-   if( qfit == NULL ) return NULL ;  /* bad: didn't get output array */
+   if( qfit == NULL ) RETURN(NULL) ;  /* bad: didn't get output array */
 
    MAKE_floatvec(fv,nref) ;                      /* copy output array */
    memcpy( fv->ar, qfit, sizeof(float)*nref ) ;  /* into floatvec and */
    free(qfit) ;                                  /* free the trashola */
    if( do_fitv )                                    /* compute fitts? */
      gfitv = THD_fitter_fitts( npt,fv,nref,ref,NULL ); /* 05 Mar 2008 */
-   return fv ;                                    /* return to caller */
+   RETURN(fv) ;                                   /* return to caller */
 }
 
 /*-------------------------------------------------------------------------*/
@@ -181,8 +214,10 @@ floatvec * THD_fitter_fitts( int npt , floatvec *fv ,
    float sum , *qar , pval ;
    floatvec *qv ;
 
+ENTRY("THD_fitter_fitts") ;
+
    if( npt < 1 || fv == NULL || fv->nar < nref ||
-                  nref < 1   || ref == NULL      ) return NULL ;
+                  nref < 1   || ref == NULL      ) RETURN(NULL) ;
 
    MAKE_floatvec(qv,npt) ; qar = qv->ar ;
    for( jj=0 ; jj < nref ; jj++ ){
@@ -192,15 +227,15 @@ floatvec * THD_fitter_fitts( int npt , floatvec *fv ,
    if( far != NULL )
      for( ii=0 ; ii < npt ; ii++ ) qar[ii] -= far[ii] ;
 
-   return qv ;
+   RETURN(qv) ;
 }
 
 /*-------------------------------------------------------------------------*/
 
 #if 0
-# define ERREX(s) do { ERROR_message(s); return NULL; } while(0)
+# define ERREX(s) do { ERROR_message(s); RETURN(NULL); } while(0)
 #else
-# define ERREX(s) return(NULL)
+# define ERREX(s) RETURN(NULL)
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -242,6 +277,8 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
    int nref,nlag,npen,nplu ; float **ref ;
    int p0,p1,p2 , np0,np1,np2 , rp0,rp1,rp2 , ipf ;
    float penfac,fmed,fsig , *qfac , p1scl,p2scl,p1fac,p2fac ;
+
+ENTRY("THD_deconvolve_multipen") ;
 
    if( nggfitvv > 0 ){
      for( ii=0 ; ii < nggfitvv ; ii++ ) KILL_floatvec(ggfitvv[ii]) ;
@@ -440,7 +477,7 @@ floatvec ** THD_deconvolve_multipen( int npt    , float *far   ,
    for( jj=0 ; jj < nref ; jj++ ) free((void *)ref[jj]) ;
    free((void *)ref) ;
 
-   return fvv ;
+   RETURN(fvv) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -454,6 +491,8 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
 {
    floatvec **fvv , *fv=NULL ; float pfac=penfac ;
 
+ENTRY("THD_deconvolve") ;
+
    if( pfac == -666.0f || pfac == 0.0f ){
      fv = THD_deconvolve_autopen( npt , far , minlag , maxlag , kern ,
                                   nbase , base , meth , ccon , dcon ,
@@ -465,7 +504,7 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
 
      if( fvv != NULL ){ fv = fvv[0]; free((void *)fvv); }
    }
-   return fv ;
+   RETURN(fv) ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -519,6 +558,8 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    float pbot,ptop , ppk , val , rpk,spk ;
    int ii , ipk ;
 
+ENTRY("THD_deconvolve_autopen") ;
+
    /*--- solve many problems, using a crude mesh in pfac ---*/
 
    fillerup( -0.01f , -10.0f , NPFAC , pfac ) ;
@@ -533,7 +574,7 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
      ERROR_message(
        "THD_deconvolve_autopen failed to solve initial problems: voxel ID=%d",
        voxid ) ;
-     return NULL ;
+     RETURN(NULL) ;
    }
 
    /* find the best combination of residual and solution size */
@@ -571,7 +612,7 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
      ERROR_message(
        "THD_deconvolve_autopen fails to find initial good fit: voxel ID=%d",
        voxid);
-     return NULL;
+     RETURN(NULL) ;
    }
 
    fv = fvv[ipk] ; if( do_fitv ){ COPY_floatvec(gv,ggfitvv[ipk]); }
@@ -596,7 +637,7 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
    if( fvv == NULL ){  /* failed ==> return what we found earlier */
      ERROR_message("THD_deconvolve_autopen semi-failed: voxel ID=%d",voxid) ;
      if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
-     return fv ;
+     RETURN(fv) ;
    }
 
    ipk = -1 ; ppk = 0.0f ;
@@ -631,7 +672,7 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
      free((void *)fvv) ;
      ERROR_message("THD_deconvolve_autopen semi-fails: voxel ID=%d",voxid) ;
      if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
-     return fv ;
+     RETURN(fv) ;
    }
 
    KILL_floatvec(fv) ; fv = fvv[ipk] ;
@@ -643,5 +684,5 @@ static floatvec * THD_deconvolve_autopen( int npt    , float *far   ,
      ININFO_message("Optimal penfac_used#%d = %g",ipk,pfac[ipk]) ;
 
    if( do_fitv ){ KILL_floatvec(gfitv); gfitv = gv; }
-   return fv ;
+   RETURN(fv) ;
 }
