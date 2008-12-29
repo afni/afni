@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , DEC , 2008 , RWC , "3dTfitter" , MICRO , TYPE_GENERAL ,
+   "Added better error messages if program runs out of memory." ,
+   NULL } ,
+
  { 23 , DEC , 2008 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
    "Program wouldn't read a -stim_times file that was all '*'" ,
    "Actual change was in mri_read.c." } ,

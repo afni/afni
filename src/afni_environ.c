@@ -95,7 +95,7 @@ int AFNI_process_environ( char *fname )
 {
    int   nbuf , nused , ii ;
    char *fbuf , *fptr ;
-   char  str[NSBUF] , left[NSBUF] , middle[NSBUF] , 
+   char  str[NSBUF] , left[NSBUF] , middle[NSBUF] ,
          right[NSBUF], fname_str[NSBUF] = {"not_set"};
    int nenv=0 , senv=0 ; static int first=1 ;  /* 13 Mar 2008 */
 
@@ -115,7 +115,7 @@ ENTRY("AFNI_process_environ") ;
      afni_env_done = 1 ;
    }
    strcpy(fname_str,str) ; /* ZSS: Nov. 25 08 */
-   
+
    fbuf = AFNI_suck_file( str ) ; if( fbuf == NULL ) RETURN(nenv) ;
    nbuf = strlen(fbuf) ;          if( nbuf == 0    ) RETURN(nenv) ;
 
@@ -154,10 +154,10 @@ ENTRY("AFNI_process_environ") ;
             enveqn = (char *) malloc(nl+nr+4) ;
             strcpy(enveqn,left) ; strcat(enveqn,"=") ; strcat(enveqn,right) ;
             if (!(eee = getenv(left))) {          /* ZSS Nov. 25 08 */
-               putenv(enveqn) ; 
+               putenv(enveqn) ;
             } else {
                INFO_message(  "Environment variable %s already set to '%s'. "
-                                 "Value of '%s' from %s is ignored.", 
+                                 "Value of '%s' from %s is ignored.",
                                  left, eee, right, fname_str);
             }
             nenv++ ;
@@ -246,6 +246,15 @@ int AFNI_setenv( char *cmd )
 
    sprintf(eqn,"%s=%s",nam,val) ;
    eee = strdup(eqn) ; putenv(eee) ;
+
+   if( strcmp(nam,"AFNI_DEBUG") == 0 ){  /* 29 Dec 2008 */
+     switch( val[0] ){
+       default:  DBG_trace = 0 ; break ;
+       case 'y': DBG_trace = 1 ; break ;
+       case 'Y': DBG_trace = 2 ; break ;
+     }
+   }
+
    return(0) ;
 }
 

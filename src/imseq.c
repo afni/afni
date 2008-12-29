@@ -9410,8 +9410,7 @@ ENTRY("ISQ_rowgraph_draw") ;
      SEND(seq,cbs) ;
 #endif
    if( cbs.xim < 0 || cbs.yim < 0 ){
-     fprintf(stderr,
-      "*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
+     ERROR_message("in ISQ_rowgraph_draw: xim=%d yim=%d",cbs.xim,cbs.yim) ;
      EXRETURN ;  /* bad result */
    }
    ISQ_unflipxy( seq , &(cbs.xim) , &(cbs.yim) ) ;
@@ -9420,7 +9419,7 @@ ENTRY("ISQ_rowgraph_draw") ;
    /* get pointers to data rows */
 
    if( jbot < 0 || jbot >= seq->orim->ny ){
-      fprintf(stderr,"*** error in ISQ_rowgraph_draw: jbot=%d\n",jbot) ;
+      ERROR_message("in ISQ_rowgraph_draw: jbot=%d",jbot) ;
       EXRETURN ;  /* no data? */
    }
 
@@ -9437,7 +9436,7 @@ ENTRY("ISQ_rowgraph_draw") ;
 
    mp = plot_ts_mem( nx , NULL , nrow,ymask,yar , "Column (pixels)",NULL,NULL,NULL ) ;
    if( mp == NULL ){
-      fprintf(stderr,"*** error in ISQ_rowgraph_draw: can't make plot_ts_mem\n") ;
+      ERROR_message("in ISQ_rowgraph_draw: can't make plot_ts_mem") ;
       EXRETURN ;  /* error */
    }
 
@@ -9486,7 +9485,8 @@ ENTRY("ISQ_rowgraph_draw") ;
 
    } else {  /* make a new plot window */
 
-      seq->rowgraph_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_rowgraph_mtdkill ) ;
+      seq->rowgraph_mtd = memplot_to_topshell( seq->dc->display, mp,
+                                               ISQ_rowgraph_mtdkill ) ;
 
       if( seq->rowgraph_mtd == NULL ){ delete_memplot( mp ); EXRETURN; }
 
