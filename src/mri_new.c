@@ -115,11 +115,21 @@ ENTRY("mri_new_7D_generic") ;
         fprintf( stderr , "mri_new: unrecognized image kind %d\n",(int)kind ) ;
         MRI_FATAL_ERROR ;
    }
+
+   if( PRINT_TRACING ){
+     char str[245] ;
+     sprintf(str,"nx=%d ny=%d nz=%d kind=%d bytes=%u %s",
+             nx,ny,nz,(int)kind,(unsigned int)newim->pixel_size*npix,
+             make_space ? "(calloc)" : "(null)" ) ;
+     STATUS(str) ;
+   }
+
    if( make_space ) newim->im = calloc( newim->pixel_size , npix ) ;
    else             newim->im = NULL ;
 
    if( make_space && newim->im == NULL ){
-     fprintf(stderr,"malloc failure for image space: %d bytes\n",npix*newim->pixel_size);
+     ERROR_message("malloc failure for image space: %u bytes\n",
+                   (unsigned int)npix*newim->pixel_size);
      MRI_FATAL_ERROR ;
    }
 
