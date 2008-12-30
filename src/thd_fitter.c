@@ -52,35 +52,6 @@ ENTRY("new_lsqfit") ;
 
 /*------------------------------------------------------------------*/
 
-#if 0
-static float * sparse_lsqfit( int npt  , float *far   ,
-                              int nref , float *ref[]  )
-{
-   int ii , jj ;
-   int *first , *last ;
-   float *rar;
-
-ENTRY("sparse_lsqfit") ;
-
-   /* find first and last nonzero values in each column */
-
-   first = (int *)malloc(sizeof(int)*nref) ;
-   last  = (int *)malloc(sizeof(int)*nref) ;
-   for( jj=0 ; jj < nref ; jj++ ){
-     for( ii=0 ; ii < npt && ref[jj][ii] == 0.0f ; ii++ ) ; /*nada*/
-     first[jj] = ii ;
-     for( ii=npt-1; ii >=0 && ref[jj][ii] == 0.0f ; ii-- ) ; /*nada */
-     last[jj] = ii ;
-   }
-
-   /** UNFINISHED **/
-
-   RETURN(rar) ;
-}
-#endif
-
-/*------------------------------------------------------------------*/
-
 #undef  GOOD_METH
 #define GOOD_METH(m) ( (m)==1 || (m)==2 )
 
@@ -93,6 +64,8 @@ floatvec * THD_retrieve_fitts(void){ return gfitv; }
 
 static int       nggfitvv = 0 ;
 static floatvec **ggfitvv = NULL ;
+
+static int use_rcmat = 0 ;
 
 /*------------------------------------------------------------------*/
 /* Fit the npt-long vector far[] to the nref vectors in ref[].
@@ -171,7 +144,10 @@ ENTRY("THD_fitter") ;
 
      case 2:
        if( ccon == NULL ){                            /* unconstrained */
-         qfit = new_lsqfit( npt, far, nref, ref ) ;
+         if( use_rcmat )
+           qfit = rcmat_lsqfit( npt, far, nref, ref ) ; /* 30 Dec 2008 */
+         else
+           qfit = new_lsqfit  ( npt, far, nref, ref ) ;
        } else {                                         /* constrained */
          qfit = (float *)malloc(sizeof(float)*nref);   /* output array */
          memcpy(qfit,ccon,sizeof(float)*nref) ;
@@ -197,6 +173,7 @@ ENTRY("THD_fitter") ;
    free(qfit) ;                                  /* free the trashola */
    if( do_fitv )                                    /* compute fitts? */
      gfitv = THD_fitter_fitts( npt,fv,nref,ref,NULL ); /* 05 Mar 2008 */
+
    RETURN(fv) ;                                   /* return to caller */
 }
 
@@ -493,6 +470,12 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
 
 ENTRY("THD_deconvolve") ;
 
+#if 0
+   use_rcmat = AFNI_yesenv("RCMAT") ;
+#else
+   use_rcmat = 1 ;
+#endif
+
    if( pfac == -666.0f || pfac == 0.0f ){
      fv = THD_deconvolve_autopen( npt , far , minlag , maxlag , kern ,
                                   nbase , base , meth , ccon , dcon ,
@@ -504,6 +487,9 @@ ENTRY("THD_deconvolve") ;
 
      if( fvv != NULL ){ fv = fvv[0]; free((void *)fvv); }
    }
+
+   use_rcmat = 0 ;
+
    RETURN(fv) ;
 }
 

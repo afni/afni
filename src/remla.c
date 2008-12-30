@@ -8,27 +8,11 @@
 # include "matrix.h"
 # define MTYPE double
 # define MPAIR double_pair
-#else
+#else                           /*** do NOT define FLOATIZE! ***/
 # include "matrix_f.h"
 # define MTYPE float
 # define MPAIR float_pair
 #endif
-
-/*****
-  Struct to hold a banded square matrix that is either symmetric,
-  or upper or lower triangular (depending on the needs of the moment).
-*****/
-
-typedef struct {
-  int nrc ;        /* # of rows and columns */
-  short *len ;     /* in row/column #i, there are len[i] elements */
-  MTYPE **rc ;     /* so the first column/row index is i+1-len[i] */
-                   /* diagonal element #i is in rc[i][len[i]-1]   */
-} rcmat ;
-
-#define ISVALID_RCMAT(rr)                                      \
-  ( (rr) != NULL && (rr)->len != NULL && (rr)->len[0] == 1 &&  \
-                    (rr)->rc  != NULL && (rr)->rc[0]  != NULL )
 
 /*****
  Struct to hold a random sparse rectangular matrix.
@@ -203,67 +187,8 @@ void sparmat_destroy( sparmat *sa )
    free(sa->cee) ; free(sa->cii) ; free(sa->cnum) ; free(sa) ; return ;
 }
 
-/****************************************************************************/
-/****** Generic functions to process a sparse matrix in rcmat format. *******/
-/****************************************************************************/
-
 /*--------------------------------------------------------------------------*/
-/*! Create a rcmat struct, ready to be filled up. */
-
-rcmat * rcmat_init( int n )
-{
-   rcmat *rcm ;
-
-ENTRY("rcmat_init") ;
-
-   if( n <= 1 ) RETURN(NULL) ;
-
-   rcm      = (rcmat *)malloc( sizeof(rcmat) ) ;
-   rcm->nrc = n ;
-   rcm->len = (short  *)calloc( n , sizeof(short  ) ) ;
-   rcm->rc  = (MTYPE **)calloc( n , sizeof(MTYPE *) ) ;
-   RETURN(rcm) ;
-}
-
-/*--------------------------------------------------------------------------*/
-/*! Delete a rcmat structure. */
-
-void rcmat_destroy( rcmat *rcm )
-{
-   int      nn = rcm->nrc , ii ;
-   MTYPE ** rc = rcm->rc ;
-   short  *len = rcm->len ;
-
-   if( rc != NULL ){
-     for( ii=0 ; ii < nn ; ii++ ) if( rc[ii] != NULL ) free((void *)rc[ii]) ;
-     free((void *)rc) ;
-   }
-   if( len != NULL ) free((void *)len) ;
-   free((void *)rcm) ;
-   return ;
-}
-
-/*--------------------------------------------------------------------------*/
-/*! Duplicate a rcmat struct. */
-#if 0
-rcmat * rcmat_copy( rcmat *rcm )
-{
-   rcmat *qcm ;
-   int ii,nn ;
-
-   if( !ISVALID_RCMAT(rcm) ) return NULL ;
-
-   nn  = rcm->nrc ;
-   qcm = rcmat_init(nn) ;
-   memcpy( qcm->len , rcm->len , sizeof(short)*nn ) ;
-   for( ii=0 ; ii < nn ; ii++ ){
-     qcm->rc[ii] = malloc( sizeof(MTYPE)*qcm->len[ii] ) ;
-     memcpy( qcm->rc[ii] , rcm->rc[ii] , sizeof(MTYPE)*qcm->len[ii] ) ;
-   }
-   return qcm ;
-}
-#endif
-
+/*============ Functions to save and restore REML stuff to disk ============*/
 /*--------------------------------------------------------------------------*/
 
 static void my_fwrite( const void *ptr, size_t size, size_t nitems, FILE *fp )
@@ -387,149 +312,9 @@ ENTRY("reml_setup_restoremat") ;
    EXRETURN ;
 }
 
+/****************************************************************************/
 /*--------------------------------------------------------------------------*/
-/*! Consider a rcmat struct as a symmetric matrix, and
-    Choleski factor it in place.  Return value is 0 if all is OK.
-    A positive return indicates the row/column that had trouble. */
-
-int rcmat_choleski( rcmat *rcm )
-{
-   int ii,jj,kk , nn , jbot,kbot ; short *len ;
-   MTYPE sum , **rc , *rii , *rjj ;
-
-   if( !ISVALID_RCMAT(rcm) ) return 999999999 ;
-
-   nn  = rcm->nrc ;
-   rc  = rcm->rc ;
-   len = rcm->len ;
-
-   for( ii=0 ; ii < nn ; ii++ ){
-     if( len[ii] == 1 ){
-       if( rc[ii][0] <= 0.0 ) return (ii+1) ;
-       rc[ii][0] = sqrt(rc[ii][0]) ; continue ;
-     }
-     jbot = ii - len[ii] + 1 ;
-     rii  = rc[ii] - jbot ;
-     for( jj=jbot ; jj <= ii ; jj++ ){
-       if( len[jj] == 1 ){
-         rii[jj] = rii[jj] / rc[jj][0] ;
-         continue ;
-       }
-       kbot = jj - len[jj] + 1 ;
-       rjj  = rc[jj] - kbot ;
-       sum  = rii[jj] ;
-       if( kbot < jbot ) kbot = jbot ;
-       for( kk=kbot ; kk < jj ; kk++ ) sum -= rii[kk]*rjj[kk] ;
-       if( jj < ii ){
-         rii[jj] = sum / rjj[jj] ;
-       } else {
-         if( sum <= 0.0 ) return (ii+1) ;
-         rii[ii] = sqrt(sum) ;
-       }
-     }
-   }
-   return 0 ;
-}
-
-/*--------------------------------------------------------------------------*/
-/*! Consider a rcmat struct as a lower triangular matrix,
-    and solve the matrix-vector equation [rcm][x] = [vec], in place. */
-
-void rcmat_lowert_solve( rcmat *rcm , MTYPE *vec )
-{
-   int nn , jbot ; short *len ; register int ii,jj ;
-   MTYPE **rc ; register MTYPE *rii , sum , *vv ;
-
-   if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
-
-   nn  = rcm->nrc ;
-   rc  = rcm->rc ;
-   len = rcm->len ;
-   vv  = vec ;
-
-#undef  RV
-#define RV(k) rii[k]*vv[k]
-
-   for( ii=0 ; ii < nn ; ii++ ){
-     if( len[ii] == 1 ){
-       vv[ii] = vv[ii] / rc[ii][0] ; continue ;
-     }
-     jbot = ii - len[ii] + 1 ; rii = rc[ii] - jbot ;
-#undef UNROLL
-#ifdef UNROLL
-     switch( len[ii] ){
-       default:
-#endif
-         sum = vv[ii] ;
-         for( jj=jbot ; jj < ii ; jj++ ) sum -= RV(jj) ;
-#ifdef UNROLL
-       break ;
-       case 2:
-         sum = vv[ii]-RV(ii-1) ; break ;
-       case 3:
-         sum = vv[ii]-RV(ii-2)-RV(ii-1) ; break ;
-       case 4:
-         sum = vv[ii]-RV(ii-3)-RV(ii-2)-RV(ii-1) ; break ;
-       case 5:
-         sum = vv[ii]-RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ; break ;
-       case 6:
-         sum = vv[ii]-RV(ii-5)-RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ; break ;
-       case 7:
-         sum = vv[ii]-RV(ii-6)-RV(ii-5)-RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ; break ;
-       case 8:
-         sum = vv[ii]-RV(ii-7)-RV(ii-6)-RV(ii-5)-RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
-       break ;
-       case 9:
-         sum = vv[ii]-RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
-                     -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
-       break ;
-       case 10:
-         sum = vv[ii]-RV(ii-9)-RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
-                     -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
-       break ;
-       case 11:
-         sum = vv[ii]-RV(ii-10)-RV(ii-9)-RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
-                     -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
-       break ;
-       case 12:
-         sum = vv[ii]-RV(ii-11)-RV(ii-10)-RV(ii-9)
-                     -RV(ii-8)-RV(ii-7)-RV(ii-6)-RV(ii-5)
-                     -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
-       break ;
-     }
-#endif
-     vv[ii] = sum / rii[ii] ;
-   }
-   return ;
-}
-
-/*--------------------------------------------------------------------------*/
-/*! Consider a rcmat struct as an upper triangular matrix,
-    and solve the matrix-vector equation [rcm][x] = [vec], in place. */
-
-void rcmat_uppert_solve( rcmat *rcm , MTYPE *vec )
-{
-   int nn , ibot ; short *len ; register int ii,jj ;
-   MTYPE **rc ; register MTYPE *rjj , *vv , xj ;
-
-   if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
-
-   nn  = rcm->nrc ;
-   rc  = rcm->rc ;
-   len = rcm->len ;
-   vv  = vec ;
-
-   for( jj=nn-1 ; jj >= 0 ; jj-- ){
-     ibot = jj - len[jj] + 1 ;
-     rjj  = rc[jj] - ibot ;
-     xj = vv[jj] = vv[jj] / rjj[jj] ;
-     for( ii=ibot ; ii < jj ; ii++ ) vv[ii] -= rjj[ii] * xj ;
-   }
-   return ;
-}
-
-/*--------------------------------------------------------------------------*/
-/*! Setup sparse correlation matrix
+/*! Setup sparse banded correlation matrix (as an rcmat struct):
       [ 1 lam lam*rho lam*rho^2 lam*rho^3 ... ]
     which is the ARMA(1,1) model with the AR parameter a = rho,
     and the MA parameter b such that (b+a)*(1+a*b)/(1+2*a*b+b*b) = lam.
