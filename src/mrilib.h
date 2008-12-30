@@ -1298,6 +1298,8 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 #include "r_idisp.h"
 #include "r_misc.h"
 
+#include "rcmat.h"            /* 30 Dec 2008 */
+
 /*------------------------------------------------------------------------*/
 /* some of these clusterize prototypes require editvol.h */
 
