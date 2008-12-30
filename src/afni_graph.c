@@ -6004,6 +6004,9 @@ void GRA_mapmenu_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
 ENTRY("GRA_mapmenu_CB") ;
 
+   #ifdef USING_LESSTIF 
+      EXRETURN; /* 30 Dec 2008, the LESSTIF patrol */
+   #endif
    if( AFNI_yesenv("AFNI_DONT_MOVE_MENUS") ) EXRETURN ;  /* 08 Aug 2001 */
 
    MCW_widget_geom( w                     , &ww,&hh , &xx,&yy ) ;
