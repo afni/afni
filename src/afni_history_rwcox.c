@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , DEC , 2008 , RWC , "3dTfitter" , MINOR , TYPE_MODIFY ,
+   "For FALTUNG, use sparse matrix operations for pure least squares." ,
+   "Deconvolution + penalty matrix is sparse.  Uses the 'rcmat' functions\n"
+   "originally developed for 3dREMLfit.  Speeds things up a lot when the\n"
+   "time series is long." } ,
+
  { 29 , DEC , 2008 , RWC , "3dTfitter" , MICRO , TYPE_GENERAL ,
    "Added better error messages if program runs out of memory." ,
    NULL } ,
