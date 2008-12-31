@@ -196,6 +196,13 @@ int main( int argc , char *argv[] )
       "                 is normally the fastest solution method for deconvolution.\n"
       "                 This, however, may only matter if you have a very long input\n"
       "                 time series dataset (e.g., more than 1000 time points).\n"
+      "              ++ For unconstrained least squares deconvolution, a special\n"
+      "                 sparse matrix algorithm is used for speed.  If you wish to\n"
+      "                 disable this for some reason, set environment variable\n"
+      "                 AFNI_FITTER_RCMAT to NO before running the program.\n"
+      "              ++ Nevertheless, a problem with more than 1000 time points\n"
+      "                 will probably take a LONG time to run, especially if\n"
+      "                 'fac' is chosen to be 0.\n"
       "\n"
       "  -lsqfit   = Solve equations via least squares [the default method].\n"
       "             * '-l2fit' is a synonym for this option\n"
@@ -279,6 +286,7 @@ int main( int argc , char *argv[] )
       "----------------------\n"
       " AFNI_TFITTER_VERBOSE  =  YES means to print out information during\n"
       "                          the fitting calculations.\n"
+      "                         ++ Automatically turned on for 1 voxel -RHS inputs.\n"
       " AFNI_TFITTER_P1SCALE  =  number > 0 will scale the P1 penalty by\n"
       "                          this value (e.g., to count it more)\n"
       " AFNI_TFITTER_P2SCALE  =  number > 0 will scale the P2 penalty by\n"
@@ -626,6 +634,9 @@ int main( int argc , char *argv[] )
 
    nx = DSET_NX(rhset); ny = DSET_NY(rhset); nz = DSET_NZ(rhset);
    nvox = nx*ny*nz;
+
+   if( my_getenv("AFNI_TFITTER_VERBOSE") == NULL )  /* 31 Dec 2008 */
+     AFNI_setenv("AFNI_TFITTER_VERBOSE=YES") ;
 
    if( mask != NULL && (mnx != nx || mny != ny || mnz != nz) )
      ERROR_exit("mask and RHS datasets don't match in grid size") ;

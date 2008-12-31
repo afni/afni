@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 31 , DEC , 2008 , RWC , "3dUndump" , MICRO , TYPE_MODIFY ,
+   "Make sure NaN values don't get into the dataset!" ,
+   NULL } ,
+
  { 30 , DEC , 2008 , RWC , "3dTfitter" , MINOR , TYPE_MODIFY ,
    "For FALTUNG, use sparse matrix operations for pure least squares." ,
    "Deconvolution + penalty matrix is sparse.  Uses the 'rcmat' functions\n"
