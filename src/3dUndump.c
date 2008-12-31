@@ -130,8 +130,12 @@ void Syntax(void)
     "\n"
     "* [10 Nov 2008] Commas (',') inside an input line are converted to\n"
     "   spaces (' ') before the line is interpreted.  This feature is for\n"
-    "   convenience for people write files in the CSV (Comma Separated Values)\n"
+    "   convenience for people writing files in CSV (Comma Separated Values)\n"
     "   format.\n"
+    "\n"
+    "* [31 Dec 2008] Inputs of 'NaN' are explicitly converted to zero, and\n"
+    "  a warning message is printed.  AFNI programs do not deal with NaN\n"
+    "  floating point values!\n"
     "\n"
     "-- RWCox -- October 2000\n"
    ) ;
@@ -277,7 +281,7 @@ int main( int argc , char * argv[] )
           ERROR_exit("-srad: no argument follows!?") ;
 
         srad = strtod( argv[++iarg] , NULL ) ;
-        if( srad <= 0.0 ){
+        if( srad <= 0.0 || thd_floatscan(1,&srad) ){
           WARNING_message("-srad value of %g is ignored!",srad);
           srad = 0.0 ;
         }
@@ -291,6 +295,8 @@ int main( int argc , char * argv[] )
             ERROR_exit("-dval: no argument follows!?") ;
 
          dval_float = strtod( argv[++iarg] , NULL ) ;
+         if( thd_floatscan(1,&dval_float) )
+           ERROR_exit("Illegal value entered for -dval!") ;
          dval_short = (short) rint(dval_float) ;
          dval_byte  = (byte)  dval_short ;
          iarg++ ; continue ;
@@ -303,6 +309,8 @@ int main( int argc , char * argv[] )
             ERROR_exit("-fval: no argument follows!?") ;
 
          fval_float = strtod( argv[++iarg] , NULL ) ;
+         if( thd_floatscan(1,&fval_float) )
+           ERROR_exit("Illegal value entered for -fval!") ;
          fval_short = (short) rint(fval_float) ;
          fval_byte  = (byte)  fval_short ;
          iarg++ ; continue ;
@@ -319,7 +327,7 @@ int main( int argc , char * argv[] )
          do_ijk = 0 ;
          iarg++ ; continue ;
       }
-      
+
       /*-----*/
 
       if( strcmp(argv[iarg],"-head_only") == 0 ){
@@ -437,7 +445,7 @@ int main( int argc , char * argv[] )
       DSET_write_header(dset);
       exit(0);
    }
-   
+
    /*-- make empty brick array for dataset --*/
 
    EDIT_substitute_brick( dset , 0 , datum , NULL ) ;  /* will make array */
@@ -558,6 +566,14 @@ int main( int argc , char * argv[] )
          if( nn < 3 ){
            WARNING_message("File %s line %d: incomplete",argv[iarg],ll) ;
            continue ;
+         }
+         if( thd_floatscan(1,&vv) ){
+           WARNING_message("File %s line %d: replaced illegal value with 0",
+                           argv[iarg],ll ) ;
+         }
+         if( thd_floatscan(1,&vrad) ){
+           WARNING_message("File %s line %d: replaced illegal radius with 0",
+                           argv[iarg],ll ) ;
          }
 
          /* get voxel index into (ii,jj,kk) */
