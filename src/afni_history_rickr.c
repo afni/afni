@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, DEC, 2008, RCR, "afni", MINOR, TYPE_BUG_FIX,
+   "fix for lesstif crash on 'where am i', along with ziad",
+   NULL
+ } ,
+
  { 24, DEC, 2008, RCR, "timing_tool.py", MICRO, TYPE_MODIFY,
    "redefine 'sum' for older python versions",
    "This also affects afni_util.py and make_random_timing.py."
