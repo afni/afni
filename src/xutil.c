@@ -1306,7 +1306,21 @@ ENTRY("new_MCW_textwin_2001") ;
       XmString xstr ;
       XmFontList xflist ;
 
+      /* In lesstif, the text length is limited by the XmTextGetMaxLength
+       * resource, however setting it via XmTextSetMaxLength does not work.
+       * The string lengths seems to be limited to perhaps 100, even though
+       * XmTextGetMaxLength might return 256.
+       *
+       * The solution is to use XmTextSetString(w, str) to set the text.
+       * After that, XmTextGetMaxLength returns an updated value.
+       *
+       * 31 Dec, 2008 [lesstif patrol] */
+#ifdef USING_LESSTIF
+      XmTextSetString( tw->wtext , msg ) ;
+#else
       XtVaSetValues( tw->wtext , XmNvalue , msg , NULL ) ;
+#endif
+
       XtVaGetValues( tw->wtext , XmNfontList , &xflist , NULL ) ;
 
       cmax = 20 ; nlin = 1 ;
