@@ -214,7 +214,7 @@ ENTRY("rcmat_writebin") ;
    if( fp == NULL || rcm == NULL || rcm->nrc < 1 ) EXRETURN ;
 
    my_fwrite( &(rcm->nrc) , sizeof(int) , 1 , fp ) ;
-   my_fwrite( rcm->len    , sizeof(short) , rcm->nrc , fp ) ;
+   my_fwrite( rcm->len    , sizeof(LENTYP) , rcm->nrc , fp ) ;
    for( ii=0 ; ii < rcm->nrc ; ii++ )
      my_fwrite( rcm->rc[ii] , sizeof(MTYPE) , rcm->len[ii] , fp ) ;
 
@@ -234,7 +234,7 @@ ENTRY("rcmat_readbin") ;
    fread( &nn , sizeof(int) , 1 , fp ) ;
    if( nn < 1 || nn > 999999 ) RETURN(NULL) ;
    qcm = rcmat_init(nn) ;
-   fread( qcm->len , sizeof(short) , nn , fp ) ;
+   fread( qcm->len , sizeof(LENTYP) , nn , fp ) ;
    for( ii=0 ; ii < nn ; ii++ ){
      qcm->rc[ii] = malloc( sizeof(MTYPE)*qcm->len[ii] ) ;
      fread( qcm->rc[ii] , sizeof(MTYPE) , qcm->len[ii] , fp ) ;
@@ -328,8 +328,8 @@ ENTRY("reml_setup_restoremat") ;
 
 rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
 {
-   rcmat *rcm ;
-   short *len ;
+   rcmat  *rcm ;
+   LENTYP *len ;
    MTYPE **rc , *rii , alam ;
    int ii , jj , bmax , jbot , itt,jtt ;
 

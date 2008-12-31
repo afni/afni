@@ -240,7 +240,6 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
    MRI_IMAGE *imp=NULL ; float *pmat ;
    register double sum ;
    int do_svd= (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
-   int allz ;
 
 ENTRY("mri_matrix_psinv") ;
 
@@ -294,11 +293,12 @@ STATUS("copy matrix") ;
 
 STATUS("scale matrix") ;
    for( jj=0 ; jj < n ; jj++ ){
-     sum = 0.0 ;
-     for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
+     for( sum=0.0,ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
      if( sum > 0.0 ) sum = 1.0/sqrt(sum) ; else do_svd = 1 ;
      xfac[jj] = sum ;
-     for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ;
+     if( sum > 0.0 ){
+       for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ;
+     }
    }
 
    /*** computations follow, via SVD or Choleski ***/
@@ -325,14 +325,22 @@ STATUS("form normal eqns") ;
      V(ii,ii) += alp ;   /* note V(ii,ii)==1 before this */
    }
 
+#if 0
+fprintf(stderr,"mri_psinv: V matrix (%dx%d)\n",n,n) ;
+for( ii=0 ; ii < n ; ii++ ){
+  fprintf(stderr,"%2d:",ii) ;
+  for( jj=0 ; jj <= ii ; jj++ ) fprintf(stderr," %11.4g",V(ii,jj)) ;
+  fprintf(stderr,"\n") ;
+}
+#endif
+
    /* Choleski factor V in place */
 
 STATUS("Choleski") ;
    for( ii=0 ; ii < n ; ii++ ){
      if( ii%1000==999 ) STATUS("999") ;
-     for( allz=1,jj=0 ; jj < ii ; jj++ ){
+     for( jj=0 ; jj < ii ; jj++ ){
        sum = V(ii,jj) ;
-       if( allz ){ if( sum == 0.0 ) continue ; else allz = 0 ; }
        for( kk=0 ; kk < jj ; kk++ ) sum -= V(ii,kk) * V(jj,kk) ;
        V(ii,jj) = sum / V(jj,jj) ;
      }

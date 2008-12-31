@@ -6,9 +6,12 @@
   or upper or lower triangular (depending on the needs of the moment).
 *****/
 
+#undef  LENTYP
+#define LENTYP unsigned short
+
 typedef struct {
   int     nrc ;    /* # of rows and columns */
-  short  *len ;    /* in row/column #i, there are len[i] elements */
+  LENTYP *len ;    /* in row/column #i, there are len[i] elements */
   double **rc ;    /* so the first column/row index is i+1-len[i] */
                    /* diagonal element #i is in rc[i][len[i]-1]   */
 } rcmat ;

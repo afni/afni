@@ -17,7 +17,7 @@ ENTRY("rcmat_init") ;
 
    rcm      = (rcmat *)malloc( sizeof(rcmat) ) ;
    rcm->nrc = n ;
-   rcm->len = (short  * )calloc( n , sizeof(short   ) ) ;
+   rcm->len = (LENTYP * )calloc( n , sizeof(LENTYP  ) ) ;
    rcm->rc  = (double **)calloc( n , sizeof(double *) ) ;
    RETURN(rcm) ;
 }
@@ -29,7 +29,7 @@ void rcmat_destroy( rcmat *rcm )
 {
    int      nn = rcm->nrc , ii ;
    double **rc = rcm->rc ;
-   short  *len = rcm->len ;
+   LENTYP *len = rcm->len ;
 
    if( rc != NULL ){
      for( ii=0 ; ii < nn ; ii++ ) if( rc[ii] != NULL ) free((void *)rc[ii]) ;
@@ -52,7 +52,7 @@ rcmat * rcmat_copy( rcmat *rcm )
 
    nn  = rcm->nrc ;
    qcm = rcmat_init(nn) ;
-   memcpy( qcm->len , rcm->len , sizeof(short)*nn ) ;
+   memcpy( qcm->len , rcm->len , sizeof(LENTYP)*nn ) ;
    for( ii=0 ; ii < nn ; ii++ ){
      qcm->rc[ii] = malloc( sizeof(double)*qcm->len[ii] ) ;
      memcpy( qcm->rc[ii] , rcm->rc[ii] , sizeof(double)*qcm->len[ii] ) ;
@@ -67,7 +67,7 @@ rcmat * rcmat_copy( rcmat *rcm )
 
 int rcmat_choleski( rcmat *rcm )
 {
-   int ii,jj,kk , nn , jbot,kbot ; short *len ;
+   int ii,jj,kk , nn , jbot,kbot ; LENTYP *len ;
    double sum , **rc , *rii , *rjj ;
 
    if( !ISVALID_RCMAT(rcm) ) return 999999999 ;
@@ -110,7 +110,7 @@ int rcmat_choleski( rcmat *rcm )
 
 void rcmat_lowert_solve( rcmat *rcm , double *vec )
 {
-   int nn , jbot ; short *len ; register int ii,jj ;
+   int nn , jbot ; LENTYP *len ; register int ii,jj ;
    double **rc ; register double *rii , sum , *vv ;
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
@@ -182,7 +182,7 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
 
 void rcmat_uppert_solve( rcmat *rcm , double *vec )
 {
-   int nn , ibot ; short *len ; register int ii,jj ;
+   int nn , ibot ; LENTYP *len ; register int ii,jj ;
    double **rc ; register double *rjj , *vv , xj ;
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
@@ -203,18 +203,25 @@ void rcmat_uppert_solve( rcmat *rcm , double *vec )
 
 /*--------------------------------------------------------------------------*/
 
-static int *rbot = NULL ;
-static int *rtop = NULL ;
+#undef  EPS
+#define EPS 1.e-12
+#undef  DM
+#define DM(a,b) ((double)(a))*((double)(b))  /* double multiply */
+
+static int   *rbot = NULL ;
+static int   *rtop = NULL ;
+static float *rfac = NULL ;
 
 static void free_rbotop(void)
 {
   if( rbot != NULL ){ free(rbot) ; rbot = NULL ; }
   if( rtop != NULL ){ free(rtop) ; rtop = NULL ; }
+  if( rfac != NULL ){ free(rfac) ; rfac = NULL ; }
 }
 
 static void set_rbotop( int npt , int nref , float *ref[] )
 {
-   int jj , ii ; float *rj ;
+   int jj , ii , nerr ; float *rj ; register double sum ;
 
    free_rbotop() ;
    if( npt < 1 || nref < 1 || ref == NULL ) return ;
@@ -223,14 +230,30 @@ static void set_rbotop( int npt , int nref , float *ref[] )
       N.B.: if column #j is all zero, then rbot[j] > rtop[j] */
 
    rbot = (int *)malloc(sizeof(int)*nref) ;
+   for( jj=0 ; jj < nref ; jj++ ){
+     rj = ref[jj] ; if( rj == NULL ){ free_rbotop(); return; }
+     for( ii=0 ; ii < npt && rj[ii] == 0.0f ; ii++ ) ; /*nada*/
+     rbot[jj] = ii ;
+   }
+
    rtop = (int *)malloc(sizeof(int)*nref) ;
    for( jj=0 ; jj < nref ; jj++ ){
-     rj = ref[jj] ; if( rj == NULL ){free(rbot);free(rtop);return;}
-     for( ii=0    ; ii < npt && rj[ii] == 0.0f ; ii++ ) ; /*nada*/
-     rbot[jj] = ii ;
-     for( ii=npt-1; ii >= 0  && rj[ii] == 0.0f ; ii-- ) ; /*nada */
+     rj = ref[jj] ;
+     for( ii=npt-1; ii >= 0 && rj[ii] == 0.0f ; ii-- ) ; /*nada */
      rtop[jj] = ii ;
    }
+
+   /* compute reciprocal of L2 norm of each column;
+      any zero value will abort the calculations and kill everything */
+
+   rfac = (float *)malloc(sizeof(float)*nref) ;
+   for( jj=0 ; jj < nref ; jj++ ){
+     rj = ref[jj] ;
+     for( sum=0.0,ii=rbot[jj] ; ii <= rtop[jj] ; ii++ ) sum += DM(rj[ii],rj[ii]) ;
+     if( sum == 0.0 ){ free_rbotop(); return; }
+     rfac[jj] = 1.0/sqrt(sum) ;
+   }
+
    return ;
 }
 
@@ -239,8 +262,8 @@ static void set_rbotop( int npt , int nref , float *ref[] )
 
 rcmat * rcmat_normeqn( int npt , int nref , float *ref[] )
 {
-   rcmat *rcm=NULL ;
-   short *len ;
+   rcmat  *rcm=NULL ;
+   LENTYP *len ;
    double **rc ;
    int jj,kk , kbot,ibot,itop,rjb,rjt,rkb,rkt ; register int ii ;
    register float *rj, *rk ;
@@ -261,33 +284,16 @@ ENTRY("rcmat_normeqn") ;
    len = rcm->len ;
    rc  = rcm->rc ;
 
-#undef  EPS
-#define EPS 1.e-12
-#undef  DM
-#define DM(a,b) ((double)(a))*((double)(b))
-
    /* create first row */
 
    jj = 0 ;
    len[jj] = 1 ; rc[jj] = malloc(sizeof(double)) ;
-   rj = ref[jj] ; rjb = rbot[jj] ; rjt = rtop[jj] ;
-   if( rjb > rjt ){                                   /* ref[jj] is all zero */
-     sum = EPS ;
-   } else {
-     for( sum=0.0,ii=rjb ; ii <= rjt ; ii++ ) sum += DM(rj[ii],rj[ii]) ;
-   }
-   rc[0][0] = sum ;
+   rc[jj][0] = 1.0 + EPS ;
 
    /* create subsequent rows */
 
    for( jj=1 ; jj < nref ; jj++ ){
      rj = ref[jj] ; rjb = rbot[jj] ; rjt = rtop[jj] ;
-
-     if( rjb > rjt ){                                 /* ref[jj] is all zero */
-       len[jj] = 1 ;
-       rc[jj] = malloc(sizeof(double)) ; rc[jj][0] = EPS ;
-       continue ;
-     }
 
      for( kk=0 ; kk < jj ; kk++ ){ /* find 1st ref[kk] that overlaps ref[jj] */
        rkb = rbot[kk] ; rkt = rtop[kk] ;
@@ -302,14 +308,28 @@ ENTRY("rcmat_normeqn") ;
 
      for( kk=kbot ; kk < jj ; kk++ ){    /* dot product of ref[kk] & ref[jj] */
        rkb = rbot[kk] ; rkt = rtop[kk] ; if( rkb > rkt ) continue ;  /* zero */
-       ibot = MAX(rkb,rjb) ; itop = MIN(rkt,rjb) ; rk = ref[kk] ;
+       ibot = MAX(rkb,rjb) ; itop = MIN(rkt,rjt) ; rk = ref[kk] ;
        for( sum=0.0,ii=ibot ; ii <= itop ; ii++ ) sum += DM(rj[ii],rk[ii]) ;
-       rcjj[kk] = sum ;
+       rcjj[kk] = sum * rfac[jj] * rfac[kk] ;           /* scale by L2 norms */
      }
 
-     for( sum=0.0,ii=rjb ; ii <= rjt ; ii++ ) sum += DM(rj[ii],rj[ii]) ;
-     rcjj[jj] = sum ;               /* diagonal element = ref[jj] dot itself */
+     rcjj[jj] = 1.0 + EPS ;          /* diagonal element, scaled by L2 norms */
    }
+
+#if 0
+fprintf(stderr,"rcmat_normeqn\n") ;
+for( ii=0 ; ii < nref ; ii++ ){
+  fprintf(stderr,"%2d:",ii) ;
+  kk = ii - len[ii] + 1 ;
+  for( jj=0 ; jj <= ii ; jj++ )
+    fprintf(stderr," %11.4g", (jj < kk) ? 0.0 : rc[ii][jj-kk] ) ;
+  fprintf(stderr,"\n") ;
+}
+for( ii=0 ; ii < nref ; ii++ ){
+  fprintf(stderr,"%2d: rbot=%d rtop=%d rfac=%11.4g len=%d\n",
+          ii,rbot[ii],rtop[ii],rfac[ii],len[ii]) ;
+}
+#endif
 
    RETURN(rcm) ;
 }
@@ -327,6 +347,7 @@ ENTRY("rcmat_lsqfit") ;
 
    free_rbotop() ;
 
+STATUS("normal eqns") ;
    rcm = rcmat_normeqn( npt , nref , ref ) ; if( rcm == NULL ) RETURN(NULL) ;
 
 STATUS("choleski") ;
@@ -341,16 +362,16 @@ STATUS("make dt") ;
    for( ii=0 ; ii < nref ; ii++ ){
      ri = ref[ii] ; rib = rbot[ii] ; rit = rtop[ii] ;
      for( sum=0.0,jj=rib ; jj <= rit ; jj++ ) sum += DM(far[jj],ri[jj]) ;
-     dt[ii] = sum ;
+     dt[ii] = sum * rfac[ii] ;
    }
 STATUS("solve") ;
    rcmat_lowert_solve( rcm , dt ) ;
    rcmat_uppert_solve( rcm , dt ) ;
-   free_rbotop() ; rcmat_destroy(rcm) ;
+   rcmat_destroy(rcm) ;
 
 STATUS("copy") ;
    wt = (float *)malloc(sizeof(float)*nref) ;
-   for( ii=0 ; ii < nref ; ii++ ) wt[ii] = dt[ii] ;
+   for( ii=0 ; ii < nref ; ii++ ) wt[ii] = dt[ii] * rfac[ii] ;
 
-   free(dt) ; RETURN(wt) ;
+   free_rbotop() ; free(dt) ; RETURN(wt) ;
 }
