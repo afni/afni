@@ -144,9 +144,15 @@ ENTRY("THD_fitter") ;
 
      case 2:
        if( ccon == NULL ){                            /* unconstrained */
-         if( use_rcmat )
+         if( use_rcmat ){
+           int first=1 ;
            qfit = rcmat_lsqfit( npt, far, nref, ref ) ; /* 30 Dec 2008 */
-         else
+           if( qfit == NULL && first ){
+             WARNING_message("sparse matrix least squares fails: trying pseudo-inverse") ;
+             first = 0 ;
+           }
+         }
+         if( qfit == NULL )
            qfit = new_lsqfit  ( npt, far, nref, ref ) ;
        } else {                                         /* constrained */
          qfit = (float *)malloc(sizeof(float)*nref);   /* output array */
@@ -470,11 +476,7 @@ floatvec * THD_deconvolve( int npt    , float *far   ,
 
 ENTRY("THD_deconvolve") ;
 
-#if 0
-   use_rcmat = AFNI_yesenv("RCMAT") ;
-#else
-   use_rcmat = 1 ;
-#endif
+   use_rcmat = !AFNI_noenv("AFNI_FITTER_RCMAT") ;  /* 30 Dec 2008 */
 
    if( pfac == -666.0f || pfac == 0.0f ){
      fv = THD_deconvolve_autopen( npt , far , minlag , maxlag , kern ,
