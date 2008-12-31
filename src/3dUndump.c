@@ -711,6 +711,7 @@ int main( int argc , char * argv[] )
 
    } /* end of loop over input files */
 
+   dset_floatscan(dset) ;
    tross_Make_History( "3dUndump" , argc,argv , dset ) ;
    DSET_write(dset) ;
    WROTE_DSET(dset) ;
