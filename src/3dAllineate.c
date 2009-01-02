@@ -427,6 +427,19 @@ int main( int argc , char *argv[] )
 "\n"
 " -final iii  = Defines the interpolation mode used to create the\n"
 "               output dataset.  [Default == 'cubic']\n"
+"             ** N.B.: For '-final' ONLY, you can use 'wsinc5' to specify\n"
+"                        that the final interpolation be done using a\n"
+"                        weighted sinc interpolation method.  This method\n"
+"                        is so slow that you aren't allowed to use it for\n"
+"                        the registration itself -- 515 points are used\n"
+"                        to interpolate each output value (those within\n"
+"                        a radius of 5 grid points in all directions).\n"
+"                   ++ wsinc5 interpolation is highly accurate and should\n"
+"                        minimize the smoothing artifacts from lower\n"
+"                        order interpolation methods (which are most\n"
+"                        visible if you interpolate an EPI time series\n"
+"                        to high resolution and then make an image of\n"
+"                        the voxel-wise variance).\n"
 "\n"
 "TECHNICAL OPTIONS (used for fine control of the program):\n"
 "=================\n"
@@ -1724,9 +1737,14 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-quintic",4)==0 || strncmp(argv[iarg],"-triquintic",6)==0 ){
        interp_code = MRI_QUINTIC ; iarg++ ; continue ;
      }
+#if 0
      if( strcasecmp(argv[iarg],"-VARP1") == 0 ){
        interp_code = MRI_VARP1 ; iarg++ ; continue ;
      }
+     if( strcasecmp(argv[iarg],"-WSINC5") == 0 ){
+       interp_code = MRI_WSINC5 ; iarg++ ; continue ;
+     }
+#endif
      if( strncmp(argv[iarg],"-interp",5)==0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        if( strcmp(argv[iarg],"NN")==0 || strncmp(argv[iarg],"nearest",5)==0 )
@@ -1740,9 +1758,14 @@ int main( int argc , char *argv[] )
        else
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          interp_code = MRI_QUINTIC ;
+#if 0
        else
        if( strcasecmp(argv[iarg],"VARP1")==0 )
          interp_code = MRI_VARP1 ;
+       else
+       if( strcasecmp(argv[iarg],"WSINC5")==0 )
+         interp_code = MRI_WSINC5 ;
+#endif
        else
          ERROR_exit("Unknown code '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;
        iarg++ ; continue ;
@@ -1760,9 +1783,14 @@ int main( int argc , char *argv[] )
        else
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          final_interp = MRI_QUINTIC ;
+#if 0
        else
        if( strcasecmp(argv[iarg],"VARP1")==0 )
          final_interp = MRI_VARP1 ;
+#endif
+       else
+       if( strcasecmp(argv[iarg],"WSINC5")==0 )
+         final_interp = MRI_WSINC5 ;
        else
          ERROR_exit("Unknown code '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;
        iarg++ ; continue ;

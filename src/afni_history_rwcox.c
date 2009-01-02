@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , JAN , 2009 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Add '-final wsinc5' interpolation mode." ,
+   "Slow but accurate.  Weight function is 'designed' to reduce the variance\n"
+   "smoothing artifact." } ,
+
  { 31 , DEC , 2008 , RWC , "3dUndump" , MICRO , TYPE_MODIFY ,
    "Make sure NaN values don't get into the dataset!" ,
    NULL } ,

@@ -359,8 +359,105 @@ ENTRY("GA_interp_varp1") ;
    EXRETURN ;
 }
 
-/*---------------------------------------------------------------------------*/
+/*------------------------------------------------------------------*/
+/* cutoff point for taper */
+#undef  WCUT
+#define WCUT 0.5f
 
+/* width of sinc interpolation (float) */
+#undef  WRAD
+#define WRAD 5.0001f
+
+/* width of sinc interpolation (int) */
+#undef  IRAD
+#define IRAD 5
+
+/* PI in float */
+#undef  PIF
+#define PIF 3.1415927f
+
+/* sinc function = sin(PI*x)/(PI*x) */
+
+#undef  sinc
+#define sinc(x) ( (fabsf(x)>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
+                                   : 1.0f - 1.6449341f*(x)*(x) )
+
+/* Weight (taper) function, declining from ww(0)=1 to ww(1)=0 */
+/* Note that the input to ww will always be between 0 and 1. */
+
+#undef  ww
+#define ww(x) ( ((x)<=WCUT) ? 1.0f   \
+                            : 0.5f+0.5f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
+
+/*---------------------------------------------------------------------------*/
+/*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
+
+void GA_interp_wsinc5( MRI_IMAGE *fim ,
+                       int npp, float *ip, float *jp, float *kp, float *vv )
+{
+   static MCW_cluster *smask=NULL ; static int nmask=0 ;
+   static short *di=NULL , *dj=NULL , *dk=NULL ;
+
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float fx,fy,fz ;
+   float *far = MRI_FLOAT_PTR(fim) ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
+
+   float xw,yw,zw,rr , sum,wsum,wt ;
+   int   iq,jq,kq , qq ;
+   float xsin[1+2*IRAD] , ysin[1+2*IRAD] , zsin[1+2*IRAD] ;
+
+ENTRY("GA_interp_wsinc5") ;
+
+   /*----- first time in: build spherical mask -----*/
+
+   if( smask == NULL ){
+     smask = MCW_spheremask( 1.0f,1.0f,1.0f , WRAD ) ;
+     nmask = smask->num_pt ;
+     di    = smask->i ;
+     dj    = smask->j ;
+     dk    = smask->k ;
+     if( PRINT_TRACING ){
+       char str[256]; sprintf(str,"sinc mask=%d points",nmask); STATUS(str);
+     }
+   }
+
+   /*----- loop over points -----*/
+
+   for( pp=0 ; pp < npp ; pp++ ){
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
+
+     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
+     kz = floorf(zz) ;  fz = zz - kz ;
+
+     /*- compute sinc at all points plus/minus 5 indexes from current locale -*/
+
+     for( qq=-IRAD ; qq <= IRAD ; qq++ ){
+       xw = fx - qq ; xsin[qq+IRAD] = sinc(xw) ;
+       yw = fy - qq ; ysin[qq+IRAD] = sinc(yw) ;
+       zw = fz - qq ; zsin[qq+IRAD] = sinc(zw) ;
+     }
+
+     for( wsum=sum=0.0f,qq=0 ; qq < nmask ; qq++ ){
+       iq = ix + di[qq] ; CLIP(iq,nx1) ; xw = fx - (float)di[qq] ;
+       jq = jy + dj[qq] ; CLIP(jq,ny1) ; yw = fy - (float)dj[qq] ;
+       kq = kz + dk[qq] ; CLIP(kq,nz1) ; zw = fz - (float)dk[qq] ;
+       rr = sqrtf(xw*xw+yw*yw+zw*zw) / WRAD ; if( rr >= 1.0f ) continue ;
+       wt = ww(rr) * xsin[di[qq]+IRAD] * ysin[dj[qq]+IRAD] * zsin[dk[qq]+IRAD] ;
+       wsum += wt ; sum += FAR(iq,jq,kq) * wt ;
+     }
+
+     vv[pp] = sum / wsum ;
+   }
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* define quintic interpolation polynomials (Lagrange) */
 
 #undef  Q_M2
@@ -579,6 +676,10 @@ ENTRY("GA_indexwarp") ;
 
      case MRI_VARP1:
        GA_interp_varp1( fim , nvox , iar,jar,kar , outar ) ;
+     break ;
+
+     case MRI_WSINC5:
+       GA_interp_wsinc5( fim , nvox , iar,jar,kar , outar ) ;
      break ;
 
      default:        /* for higher order methods not implemented here */
