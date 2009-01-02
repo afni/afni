@@ -557,7 +557,8 @@ static int MRI_mm ;
 #define MRI_HEPTIC    (5)
 #define MRI_TSSHIFT   (6)   /* Dec 1999 */
 
-#define MRI_VARP1    (71)   /* 24 Dec 2009 */
+#define MRI_VARP1    (71)   /* 24 Dec 2008 */
+#define MRI_WSINC5   (72)   /* 02 Jan 2009 */
 
 #define MRI_FOURIER_NOPAD (66)  /* 13 May 2003 */
 
@@ -768,7 +769,8 @@ extern MRI_IMAGE * mri_read_ascii_ragged_complex(char *,float); /* 08 Mar 2007 *
 extern MRI_IMAGE * mri_read_ascii_ragged_fvect( char *, float, int ) ;
 extern MRI_IMARR * mri_fvect_to_imarr( MRI_IMAGE *inim ) ;
 extern MRI_IMAGE * mri_imarr_to_fvect( MRI_IMARR *imar ) ;
-extern MRI_IMAGE * mri_pair_to_fvect( MRI_IMAGE *aim , MRI_IMAGE *bim ) ;
+extern MRI_IMAGE * mri_pair_to_fvect( MRI_IMAGE *, MRI_IMAGE * ) ;
+extern MRI_IMAGE * mri_triple_to_fvect( MRI_IMAGE *, MRI_IMAGE *, MRI_IMAGE *) ;
 extern MRI_IMAGE * mri_fvect_subimage( MRI_IMAGE *inim , int kk ) ;
 
 extern MRI_IMAGE * mri_read_ragged_fromstring( char *, float); /* 05 Jan 2007 */
@@ -1617,6 +1619,8 @@ extern void GA_interp_cubic  ( MRI_IMAGE *fim , int npp,
 extern void GA_interp_quintic( MRI_IMAGE *fim , int npp,
                                float *ip, float *jp, float *kp, float *vv ) ;
 extern void GA_interp_varp1  ( MRI_IMAGE *fim , int npp,
+                               float *ip, float *jp, float *kp, float *vv ) ;
+extern void GA_interp_wsinc5 ( MRI_IMAGE *fim , int npp,
                                float *ip, float *jp, float *kp, float *vv ) ;
 extern int GA_gcd(int,int) ;
 extern int GA_find_relprime_fixed(int) ;

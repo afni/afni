@@ -103,3 +103,20 @@ ENTRY("mri_pair_to_fvect") ;
    FREE_IMARR(imar) ;
    RETURN(vim) ;
 }
+
+/*-------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_triple_to_fvect( MRI_IMAGE *aim , MRI_IMAGE *bim , MRI_IMAGE *cim )
+{
+   MRI_IMARR *imar ; MRI_IMAGE *vim ;
+
+ENTRY("mri_triple_to_fvect") ;
+
+   if( aim == NULL || bim == NULL || cim == NULL ) RETURN(NULL) ;
+
+   INIT_IMARR(imar) ;
+   ADDTO_IMARR(imar,aim) ; ADDTO_IMARR(imar,bim) ; ADDTO_IMARR(imar,cim) ;
+   vim = mri_imarr_to_fvect( imar ) ;
+   FREE_IMARR(imar) ;
+   RETURN(vim) ;
+}
