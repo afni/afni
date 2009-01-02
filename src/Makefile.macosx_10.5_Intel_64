@@ -55,7 +55,7 @@ SHOWOFF = -DSHOWOFF=macosx_10.5_Intel_64
 INSTALL_PREREQ = suma
 #INSTALL_PREREQ = suma
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
-GSLPROGS = balloon
+# GSLPROGS = balloon
 EXPROGS = gifti_tool $(GSLPROGS)
 
 # for dynamic linking
