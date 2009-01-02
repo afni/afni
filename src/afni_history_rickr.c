@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, DEC, 2009, RCR, "Makefile", MICRO, TYPE_MODIFY,
+   "do not build balloon in Makefile.macosx_10.5_Intel_64 - libgsl is 32-bit",
+   NULL
+ } ,
+
  { 2, DEC, 2009, RCR, "afni_environ.c", MICRO, TYPE_BUG_FIX,
    "fixed bad lvalue when USE_TRACING is not defined",
    "also fixed define for USE_TRACING in solaris and cygwin Makefiles"
