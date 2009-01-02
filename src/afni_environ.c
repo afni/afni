@@ -247,6 +247,7 @@ int AFNI_setenv( char *cmd )
    sprintf(eqn,"%s=%s",nam,val) ;
    eee = strdup(eqn) ; putenv(eee) ;
 
+#ifdef USE_TRACING  /* else DBG_trace is #defined to 0   2 Jan 2008 [rickr] */
    if( strcmp(nam,"AFNI_DEBUG") == 0 ){  /* 29 Dec 2008 */
      switch( val[0] ){
        default:  DBG_trace = 0 ; break ;
@@ -254,6 +255,7 @@ int AFNI_setenv( char *cmd )
        case 'Y': DBG_trace = 2 ; break ;
      }
    }
+#endif
 
    return(0) ;
 }

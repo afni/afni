@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 2, DEC, 2009, RCR, "afni_environ.c", MICRO, TYPE_BUG_FIX,
+   "fixed bad lvalue when USE_TRACING is not defined",
+   "also fixed define for USE_TRACING in solaris and cygwin Makefiles"
+ } ,
+
  { 31, DEC, 2008, RCR, "afni", MINOR, TYPE_BUG_FIX,
    "fix for lesstif crash on 'where am i', along with ziad",
    NULL
