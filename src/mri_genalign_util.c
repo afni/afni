@@ -359,22 +359,26 @@ ENTRY("GA_interp_varp1") ;
    EXRETURN ;
 }
 
-/*------------------------------------------------------------------*/
-/* cutoff point for taper */
+/*---------------------------------------------------------------------------*/
+/* Interpolation with weighted (tapered) sinc in 3D.
+   ++ Taper function ww(r) is defined to be 1 for 0 <= r <= WCUT
+       and for WCUT < r < 1 is a raised c sine dropping down to ww(r=1) = 0.
+       This choice was made to keep the variance smoothing artifact low.
+   ++ Radius of sinc window is WRAD, so that the actual taper used is
+       ww(r/WRAD) where r = sqrt(di*di+dj*dj+dk*dk), and di=change in i index.
+*//*-------------------------------------------------------------------------*/
+
 #undef  WCUT
-#define WCUT 0.5f
+#define WCUT 0.5f    /* cutoff point for taper */
 
-/* width of sinc interpolation (float) */
 #undef  WRAD
-#define WRAD 5.0001f
+#define WRAD 5.0001f /* width of sinc interpolation (float) */
 
-/* width of sinc interpolation (int) */
 #undef  IRAD
-#define IRAD 5
+#define IRAD 5       /* width of sinc interpolation (int) */
 
-/* PI in float */
 #undef  PIF
-#define PIF 3.1415927f
+#define PIF 3.1415927f /* PI in float */
 
 /* sinc function = sin(PI*x)/(PI*x) */
 
@@ -382,12 +386,11 @@ ENTRY("GA_interp_varp1") ;
 #define sinc(x) ( (fabsf(x)>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
                                    : 1.0f - 1.6449341f*(x)*(x) )
 
-/* Weight (taper) function, declining from ww(0)=1 to ww(1)=0 */
-/* Note that the input to ww will always be between 0 and 1. */
+/* Weight (taper) function, declining from ww(WCUT)=1 to ww(1)=0 */
+/* Note that the input to ww will always be between WCUT and 1. */
 
 #undef  ww
-#define ww(x) ( ((x)<=WCUT) ? 1.0f   \
-                            : 0.5f+0.5f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
+#define ww(x) ( 0.5f+0.5f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
 
 /*---------------------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
@@ -405,12 +408,13 @@ void GA_interp_wsinc5( MRI_IMAGE *fim ,
    int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
 
    float xw,yw,zw,rr , sum,wsum,wt ;
-   int   iq,jq,kq , qq ;
+   int   iq,jq,kq , qq , ddi,ddj,ddk ;
    float xsin[1+2*IRAD] , ysin[1+2*IRAD] , zsin[1+2*IRAD] ;
 
 ENTRY("GA_interp_wsinc5") ;
 
-   /*----- first time in: build spherical mask -----*/
+   /*----- first time in: build spherical mask  -----*/
+   /*((((( WRAD=5 ==> mask will have 515 points )))))*/
 
    if( smask == NULL ){
      smask = MCW_spheremask( 1.0f,1.0f,1.0f , WRAD ) ;
@@ -443,11 +447,13 @@ ENTRY("GA_interp_wsinc5") ;
      }
 
      for( wsum=sum=0.0f,qq=0 ; qq < nmask ; qq++ ){
-       iq = ix + di[qq] ; CLIP(iq,nx1) ; xw = fx - (float)di[qq] ;
-       jq = jy + dj[qq] ; CLIP(jq,ny1) ; yw = fy - (float)dj[qq] ;
-       kq = kz + dk[qq] ; CLIP(kq,nz1) ; zw = fz - (float)dk[qq] ;
+       ddi = di[qq] ; ddj = dj[qq] ; ddk = dk[qq] ;
+       iq = ix + ddi ; CLIP(iq,nx1) ; xw = fx - (float)ddi ;
+       jq = jy + ddj ; CLIP(jq,ny1) ; yw = fy - (float)ddj ;
+       kq = kz + ddk ; CLIP(kq,nz1) ; zw = fz - (float)ddk ;
        rr = sqrtf(xw*xw+yw*yw+zw*zw) / WRAD ; if( rr >= 1.0f ) continue ;
-       wt = ww(rr) * xsin[di[qq]+IRAD] * ysin[dj[qq]+IRAD] * zsin[dk[qq]+IRAD] ;
+       wt = xsin[ddi+IRAD] * ysin[ddj+IRAD] * zsin[ddk+IRAD] ;
+       if( rr > WCUT ) wt *= ww(rr) ;
        wsum += wt ; sum += FAR(iq,jq,kq) * wt ;
      }
 
