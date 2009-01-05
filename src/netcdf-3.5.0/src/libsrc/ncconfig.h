@@ -46,7 +46,7 @@
 /* #undef NO_STRERROR */
 
 /* The number of bytes in a size_t */
-#define SIZEOF_SIZE_T 4
+#define SIZEOF_SIZE_T 8
 
 /* The number of bytes in a off_t */
 #define SIZEOF_OFF_T 8
@@ -73,7 +73,7 @@
 #define SIZEOF_INT 4
 
 /* The number of bytes in a long.  */
-#define SIZEOF_LONG 4
+#define SIZEOF_LONG 8
 
 /* The number of bytes in a short.  */
 #define SIZEOF_SHORT 2
