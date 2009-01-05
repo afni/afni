@@ -3103,7 +3103,9 @@ int main( int argc , char *argv[] )
 
      /* make copy of target brick, and deal with that */
 
-     if( verb ) INFO_message("========== sub-brick #%d ==========",kk) ;
+     if( verb )
+       INFO_message("========== sub-brick #%d ========== [total CPU=%.1f s]",
+                    kk , COX_cpu_time() ) ;
 
      im_targ = mri_scale_to_float( bfac , DSET_BRICK(dset_targ,kk) ) ;
      DSET_unload_one(dset_targ,kk) ;
