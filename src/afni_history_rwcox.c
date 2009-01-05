@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , JAN , 2009 , RWC , "3dAllineate" , MICRO , TYPE_MODIFY ,
+   "Change wsinc5 interpolation from radial to tensor product weight." ,
+   "Speedup is about a factor of 6, which is worth the effort." } ,
+
  { 2 , JAN , 2009 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Add '-final wsinc5' interpolation mode." ,
    "Slow but accurate.  Weight function is 'designed' to reduce the variance\n"
