@@ -395,8 +395,8 @@ ENTRY("GA_interp_varp1") ;
 /*---------------------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
 
-void GA_interp_wsinc5( MRI_IMAGE *fim ,
-                       int npp, float *ip, float *jp, float *kp, float *vv )
+void GA_interp_wsinc5s( MRI_IMAGE *fim ,
+                        int npp, float *ip, float *jp, float *kp, float *vv )
 {
    static MCW_cluster *smask=NULL ; static int nmask=0 ;
    static short *di=NULL , *dj=NULL , *dk=NULL ;
@@ -411,7 +411,7 @@ void GA_interp_wsinc5( MRI_IMAGE *fim ,
    int   iq,jq,kq , qq , ddi,ddj,ddk ;
    float xsin[1+2*IRAD] , ysin[1+2*IRAD] , zsin[1+2*IRAD] ;
 
-ENTRY("GA_interp_wsinc5") ;
+ENTRY("GA_interp_wsinc5s") ;
 
    /*----- first time in: build spherical mask  -----*/
    /*((((( WRAD=5 ==> mask will have 515 points )))))*/
@@ -461,6 +461,114 @@ ENTRY("GA_interp_wsinc5") ;
    }
 
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
+
+void GA_interp_wsinc5p( MRI_IMAGE *fim ,
+                        int npp, float *ip, float *jp, float *kp, float *vv )
+{
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float fx,fy,fz ;
+   float *far = MRI_FLOAT_PTR(fim) ;
+   int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
+
+   float xw,yw,zw,rr , sum,wsum,wt ;
+   int   iq,jq,kq , qq,jj,kk , ddi,ddj,ddk ;
+   float xsin[2*IRAD] , ysin[2*IRAD]        , zsin[2*IRAD] ;
+   float wtt[2*IRAD]  , fjk[2*IRAD][2*IRAD] , fk[2*IRAD]   ;
+   int   iqq[2*IRAD]  ;
+
+ENTRY("GA_interp_wsinc5p") ;
+
+   /*----- loop over points -----*/
+
+   for( pp=0 ; pp < npp ; pp++ ){
+     xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
+     yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
+     zz = kp[pp] ; if( zz < -0.499f || zz > nzh ){ vv[pp]=outval; continue; }
+
+     ix = floorf(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floorf(yy) ;  fy = yy - jy ;   /* fractional coords */
+     kz = floorf(zz) ;  fz = zz - kz ;
+
+     /*- x interpolations -*/
+
+     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+       xw = fx - qq ;
+       wt = sinc(xw) ;
+       xw = fabsf(xw) / WRAD ; if( xw > WCUT ) wt *= ww(xw) ;
+       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
+       iq = ix+qq ; CLIP(iq,nx1) ; iqq[qq+(IRAD-1)] = iq ;
+     }
+     wsum = 1.0f / wsum ;
+     for( qq=-IRAD+1 ; qq <= IRAD ; qq++ ) wtt[qq+(IRAD-1)] *= wsum ;
+
+     for( jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
+       jq = jy+jj ; CLIP(jq,ny1) ;
+       for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+         kq = kz+kk ; CLIP(kq,nz1) ;
+         for( sum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+           iq = iqq[qq+(IRAD-1)] ; sum += FAR(iq,jq,kq) * wtt[qq+(IRAD-1)] ;
+         }
+         fjk[jj+(IRAD-1)][kk+(IRAD-1)] = sum ;
+       }
+     }
+
+     /*- y interpolations -*/
+
+     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+       yw = fy - qq ;
+       wt = sinc(yw) ;
+       yw = fabsf(yw) / WRAD ; if( yw > WCUT ) wt *= ww(yw) ;
+       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
+     }
+     wsum = 1.0f / wsum ;
+     for( qq=-IRAD+1 ; qq <= IRAD ; qq++ ) wtt[qq+(IRAD-1)] *= wsum ;
+
+     for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+       for( sum=0.0f,jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
+         sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)] ;
+       }
+       fk[kk+(IRAD-1)] = sum ;
+     }
+
+     /*- z interpolation -*/
+
+     for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
+       zw = fz - qq ;
+       wt = sinc(zw) ;
+       zw = fabsf(zw) / WRAD ; if( zw > WCUT ) wt *= ww(zw) ;
+       wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
+     }
+     wsum = 1.0f / wsum ;
+     for( qq=-IRAD+1 ; qq <= IRAD ; qq++ ) wtt[qq+(IRAD-1)] *= wsum ;
+
+     for( sum=0.0f,kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+       sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)] ;
+     }
+
+     vv[pp] = sum ;
+   }
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#define USE_5P 1  /* use product-weighted sinc (5p),
+                     rather than spherical weighted (5s), which is very slow */
+
+void GA_interp_wsinc5( MRI_IMAGE *fim ,
+                       int npp, float *ip, float *jp, float *kp, float *vv )
+{
+#ifdef USE_5P
+   GA_interp_wsinc5p( fim,npp,ip,jp,kp,vv ) ;
+#else
+   GA_interp_wsinc5s( fim,npp,ip,jp,kp,vv ) ;
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -604,11 +712,12 @@ ENTRY("GA_interp_quintic") ;
 
 /*---------------------------------------------------------------------------*/
 /* Output image will be on the same grid as the input, of course.
-   Input image format --> output format
-              fvect   --> fvect
-              rgb     --> rgb
-              complex --> complex
-              other   --> float
+   Input image format ==> output format:
+   ------------------     -------------
+              fvect   ==> fvect
+              rgb     ==> rgb
+              complex ==> complex
+              other   ==> float
 *//*-------------------------------------------------------------------------*/
 
 MRI_IMAGE * GA_indexwarp( MRI_IMAGE *inim, int interp_code, MRI_IMAGE *wpim )
@@ -627,12 +736,14 @@ ENTRY("GA_indexwarp") ;
        inim->ny != wpim->ny || inim->nz != wpim->nz )            RETURN(NULL);
 
    /*- if input is itself a vector, use recursion to process each sub-image -*/
+   /*- (for usage of VECTORME macro, via CALLME, see mrilib.h) -*/
 
 #undef  CALLME
 #define CALLME(inee,outee) outee = GA_indexwarp( (inee), interp_code, wpim )
    if( ISVECTIM(inim) ){ VECTORME(inim,outim) ; RETURN(outim) ; }
 
    /*------------------ here, input image is scalar-valued ------------------*/
+   /*                   (convert to float type, if needed)                   */
 
    fim = (inim->kind == MRI_float ) ? inim : mri_to_float(inim) ;
    far = MRI_FLOAT_PTR(fim) ;
@@ -641,6 +752,8 @@ ENTRY("GA_indexwarp") ;
    outar = MRI_FLOAT_PTR(outim) ;
 
    nx = fim->nx; ny = fim->ny; nz = fim->nz; nxy = nx*ny; nvox = nx*ny*nz;
+
+   /* component images of 3D warp */
 
    iim = mri_fvect_subimage( wpim , 0 ) ;
    jjm = mri_fvect_subimage( wpim , 1 ) ;
@@ -666,29 +779,31 @@ ENTRY("GA_indexwarp") ;
      }
    }
 
+   /*-- the actual interpolation work is outsourced --*/
+
    switch( interp_code ){
 
      case MRI_NN:
-       GA_interp_NN( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_NN     ( fim , nvox , iar,jar,kar , outar ) ;
      break ;
 
      case MRI_LINEAR:
-       GA_interp_linear( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_linear ( fim , nvox , iar,jar,kar , outar ) ;
      break ;
 
      case MRI_CUBIC:
-       GA_interp_cubic( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_cubic  ( fim , nvox , iar,jar,kar , outar ) ;
      break ;
 
      case MRI_VARP1:
-       GA_interp_varp1( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_varp1  ( fim , nvox , iar,jar,kar , outar ) ;
      break ;
 
      case MRI_WSINC5:
-       GA_interp_wsinc5( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_wsinc5 ( fim , nvox , iar,jar,kar , outar ) ;
      break ;
 
-     default:        /* for higher order methods not implemented here */
+     default:
      case MRI_QUINTIC:
        GA_interp_quintic( fim , nvox , iar,jar,kar , outar ) ;
      break ;
@@ -710,7 +825,7 @@ ENTRY("GA_indexwarp") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Apply a matrix to a set of warp vectors. */
+/* Apply a matrix to a set of warp vectors (in place). */
 
 void GA_affine_edit_warp( mat44 aff , MRI_IMAGE *wpim )
 {
