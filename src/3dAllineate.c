@@ -452,6 +452,8 @@ int main( int argc , char *argv[] )
 "                       wsinc5 interpolation, per 1 million voxels output.\n"
 "                       For comparison, quintic interpolation takes about\n"
 "                       0.3 s per 1 million voxels: 8 times faster than wsinc5.\n"
+"                  ++ The '5' refers to the width of the sinc interpolation\n"
+"                       weights: plus/minus 5 grid points in each direction.\n"
 "\n"
 "TECHNICAL OPTIONS (used for fine control of the program):\n"
 "=================\n"
