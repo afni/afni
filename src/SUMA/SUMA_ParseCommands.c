@@ -487,6 +487,92 @@ const char *SUMA_niCommandString (SUMA_NI_COMMAND_CODE code)
 }
 
 /*!
+   \brief Returns the name (string) of a surface format
+*/
+const char * SUMA_SurfaceFormatString (SUMA_SO_File_Format ff)
+{
+   static char FuncName[]={"SUMA_SurfaceFormatString"};
+   
+   SUMA_ENTRY; 
+   switch (ff) {
+      case SUMA_FF_NOT_SPECIFIED:
+         SUMA_RETURN("NotSpecified");
+         break;
+      case SUMA_ASCII:
+         SUMA_RETURN("ASCII");
+         break;
+      case SUMA_BINARY:
+         SUMA_RETURN("BINARY");
+         break;
+      case SUMA_BINARY_BE:
+         SUMA_RETURN("BINARY_BE"); 
+         break;
+      case SUMA_BINARY_LE:
+         SUMA_RETURN("BINARY_LE"); 
+         break;
+      case SUMA_XML_SURF:
+         SUMA_RETURN("XML_SURF");
+         break;
+      case SUMA_XML_ASCII_SURF:
+         SUMA_RETURN("XML_ASCII_SURF");
+         break;
+      case SUMA_XML_B64_SURF:
+         SUMA_RETURN("XML_B64_SURF");
+         break;
+      case SUMA_XML_B64GZ_SURF:
+         SUMA_RETURN("XML_B64GZ_SURF");
+         break;
+      case SUMA_FF_ERROR:        
+         SUMA_RETURN ("Error");
+      default:        
+         SUMA_RETURN ("Error");
+   }
+}
+/*!
+   \brief Returns the code for a surface's file format
+*/
+SUMA_SO_File_Format SUMA_SurfaceFormatCode (char *cd)
+{
+   static char FuncName[]={"SUMA_SurfaceFormatCode"};
+   
+   SUMA_ENTRY;
+   
+   if (!cd) { SUMA_RETURN(SUMA_FF_ERROR); }
+   
+   if (!strcmp(cd, "NotSpecified")) {  
+      SUMA_RETURN(SUMA_FF_NOT_SPECIFIED ); 
+   }
+   if (!strcmp(cd, "ASCII")) {  
+      SUMA_RETURN(SUMA_ASCII ); 
+   }
+   if (!strcmp(cd, "BINARY")) {  
+      SUMA_RETURN( SUMA_BINARY); 
+   }
+   if (!strcmp(cd, "BINARY_BE")) {  
+      SUMA_RETURN( SUMA_BINARY_BE); 
+   }
+   if (!strcmp(cd, "BINARY_LE")) {  
+      SUMA_RETURN( SUMA_BINARY_LE); 
+   }
+   if (!strcmp(cd, "XML_SURF")) {  
+      SUMA_RETURN( SUMA_XML_SURF); 
+   }
+   if (!strcmp(cd, "XML_ASCII_SURF")) {  
+      SUMA_RETURN( SUMA_XML_ASCII_SURF); 
+   }
+   if (!strcmp(cd, "XML_B64_SURF")) {  
+      SUMA_RETURN( SUMA_XML_B64_SURF); 
+   }
+   if (!strcmp(cd, "XML_B64GZ_SURF")) {  
+      SUMA_RETURN(SUMA_XML_B64GZ_SURF); 
+   }
+   if (!strcmp(cd, "Error")) {  
+      SUMA_RETURN( SUMA_FF_ERROR); 
+   }
+   
+   SUMA_RETURN( SUMA_FF_ERROR); 
+}
+/*!
    \brief Returns the name (string) of a surface type
 */
 const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp)
@@ -544,18 +630,47 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    
    if (!cd) { SUMA_RETURN(SUMA_FT_ERROR); }
    
-   if (!strcmp(cd, "NotSpecified")) { SUMA_RETURN(SUMA_FT_NOT_SPECIFIED ); }
-   if (!strcmp(cd, "FreeSurfer") || !strcmp(cd, "FS") || !strcmp(cd, "fs")) { SUMA_RETURN( SUMA_FREE_SURFER); }
-   if (!strcmp(cd, "SureFit") || !strcmp(cd, "SF") || !strcmp(cd, "sf")) { SUMA_RETURN( SUMA_SUREFIT); }
-   if (!strcmp(cd, "GenericInventor") || !strcmp(cd, "INV") || !strcmp(cd, "inv")) { SUMA_RETURN(SUMA_INVENTOR_GENERIC ); }
-   if (!strcmp(cd, "Ply") || !strcmp(cd, "PLY") || !strcmp(cd, "ply")) { SUMA_RETURN( SUMA_PLY); }
-   if (!strcmp(cd, "DX") || !strcmp(cd, "dx") || !strcmp(cd, "OpenDX") || !strcmp(cd, "opendx")) { SUMA_RETURN( SUMA_OPENDX_MESH); }
-   if (!strcmp(cd, "BrainVoyager") || !strcmp(cd, "BV") || !strcmp(cd, "bv")) { SUMA_RETURN( SUMA_BRAIN_VOYAGER); }
-   if (!strcmp(cd, "BYU") || !strcmp(cd, "Byu") || !strcmp(cd, "byu")) { SUMA_RETURN( SUMA_BYU); }
-   if (!strcmp(cd, "GIFTI") || !strcmp(cd, "Gifti") || !strcmp(cd, "gifti") || 
-         !strcmp(cd, "gii") ) { SUMA_RETURN( SUMA_GIFTI); }
-   if (!strcmp(cd, "1D") || !strcmp(cd, "VEC") || !strcmp(cd, "1d")) { SUMA_RETURN(SUMA_VEC ); }
-   if (!strcmp(cd, "Error")) { SUMA_RETURN(SUMA_FT_ERROR ); }
+   if (!strcmp(cd, "NotSpecified")) {  
+      SUMA_RETURN(SUMA_FT_NOT_SPECIFIED ); 
+   }
+   if (  !strcmp(cd, "FreeSurfer") || !strcmp(cd, "FS") || 
+         !strcmp(cd, "fs")) {          
+      SUMA_RETURN( SUMA_FREE_SURFER); 
+   }
+   if (!strcmp(cd, "SureFit") || !strcmp(cd, "SF") || 
+       !strcmp(cd, "sf")) {            
+      SUMA_RETURN( SUMA_SUREFIT); 
+   }
+   if (  !strcmp(cd, "GenericInventor") || !strcmp(cd, "INV") || 
+         !strcmp(cd, "inv")) { 
+      SUMA_RETURN(SUMA_INVENTOR_GENERIC ); 
+   }
+   if (  !strcmp(cd, "Ply") || !strcmp(cd, "PLY") || 
+         !strcmp(cd, "ply")) { 
+      SUMA_RETURN( SUMA_PLY); 
+   }
+   if (  !strcmp(cd, "DX") || !strcmp(cd, "dx") || 
+         !strcmp(cd, "OpenDX") || !strcmp(cd, "opendx")) { 
+      SUMA_RETURN( SUMA_OPENDX_MESH); 
+   }
+   if (  !strcmp(cd, "BrainVoyager") || !strcmp(cd, "BV") || 
+         !strcmp(cd, "bv")) { 
+      SUMA_RETURN( SUMA_BRAIN_VOYAGER); 
+   }
+   if (  !strcmp(cd, "BYU") || !strcmp(cd, "Byu") || 
+         !strcmp(cd, "byu")) { 
+      SUMA_RETURN( SUMA_BYU); 
+   }
+   if (  !strcmp(cd, "GIFTI") || !strcmp(cd, "Gifti") || !strcmp(cd, "gifti") || 
+         !strcmp(cd, "gii") ) { 
+      SUMA_RETURN( SUMA_GIFTI); 
+   }
+   if (!strcmp(cd, "1D") || !strcmp(cd, "VEC") || !strcmp(cd, "1d")) { 
+      SUMA_RETURN(SUMA_VEC ); 
+   }
+   if (!strcmp(cd, "Error")) { 
+      SUMA_RETURN(SUMA_FT_ERROR ); 
+   }
    /* if (!strcmp(cd, "")) { SUMA_RETURN( ); } */
    SUMA_RETURN(SUMA_FT_ERROR); 
    

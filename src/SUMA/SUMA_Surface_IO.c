@@ -159,7 +159,8 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
          break;
       case SUMA_VEC:
          tmp  =  SUMA_Extension(Name, ".1D.coord", YUP);
-         noex  =  SUMA_Extension(tmp, ".1D.topo", YUP); SUMA_free(tmp); tmp = NULL;
+         noex  =  SUMA_Extension(tmp, ".1D.topo", YUP); 
+         SUMA_free(tmp); tmp = NULL;
          break;
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
@@ -185,7 +186,8 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
          noex  =  SUMA_Extension(Name,".gii" , YUP); 
          break;
       default:
-         /* do nothing, get back fprintf (SUMA_STDERR,"Warning %s: Bad format.\n", FuncName); */
+         /* do nothing, 
+         get back fprintf (SUMA_STDERR,"Warning %s: Bad format.\n", FuncName); */
          noex = SUMA_copy_string(Name);
          break;
    }
@@ -197,7 +199,9 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
    \brief much like SUMA_Prefix2SurfaceName, but handles the case where namecoord and nametopo are not the same
    consider it a more general version of SUMA_Prefix2SurfaceName
 */
-void * SUMA_2Prefix2SurfaceName (char *namecoord, char *nametopo, char *path, char *vp_name, SUMA_SO_File_Type oType, SUMA_Boolean *exists)
+void * SUMA_2Prefix2SurfaceName (char *namecoord, char *nametopo, char *path, 
+                                 char *vp_name, SUMA_SO_File_Type oType, 
+                                 SUMA_Boolean *exists)
 {
    static char FuncName[]={"SUMA_2Prefix2SurfaceName"};
    SUMA_Boolean exist1, exist2;
@@ -209,12 +213,19 @@ void * SUMA_2Prefix2SurfaceName (char *namecoord, char *nametopo, char *path, ch
    
    if (!nametopo && !namecoord) { SUMA_RETURN(NULL); }
    
-   if (!nametopo) SUMA_RETURN(SUMA_Prefix2SurfaceName (namecoord, path, vp_name, oType, exists));
-   if (!namecoord) SUMA_RETURN(SUMA_Prefix2SurfaceName (nametopo, path, vp_name, oType, exists));
+   if (!nametopo) 
+      SUMA_RETURN(SUMA_Prefix2SurfaceName (namecoord, path, vp_name, 
+                                           oType, exists));
+   if (!namecoord) SUMA_RETURN(SUMA_Prefix2SurfaceName (nametopo, path, vp_name, 
+                                                        oType, exists));
    
-   if (strcmp(namecoord, nametopo) == 0) SUMA_RETURN(SUMA_Prefix2SurfaceName (nametopo, path, vp_name, oType, exists));
+   if (strcmp(namecoord, nametopo) == 0) 
+      SUMA_RETURN(SUMA_Prefix2SurfaceName (nametopo, path, vp_name, 
+                                           oType, exists));
    if (oType != SUMA_SUREFIT && oType != SUMA_VEC) {
-      SUMA_SL_Err("Wrong usage of function, namecoord and nametopo are different but surface type is neither SUMA_SUREFIT nor SUMA_VEC");
+      SUMA_SL_Err("Wrong usage of function, namecoord and nametopo \n"
+                  "are different but surface type is neither "
+                  "SUMA_SUREFIT nor SUMA_VEC");
       SUMA_RETURN(NULL);
    }
    
@@ -249,7 +260,8 @@ void * SUMA_2Prefix2SurfaceName (char *namecoord, char *nametopo, char *path, ch
    \sa SUMA_2Prefix2SurfaceName if you have a surface with different names for coord and topo )
 */
 
-void * SUMA_Prefix2SurfaceName (char *prefix_in, char *path, char *vp_name, SUMA_SO_File_Type oType, SUMA_Boolean *exists)
+void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name, 
+                                 SUMA_SO_File_Type oType, SUMA_Boolean *exists)
 {
    static char FuncName[]={"SUMA_Prefix2SurfaceName"};
    SUMA_SFname *SF_name = NULL;
