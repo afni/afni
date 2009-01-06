@@ -1377,6 +1377,7 @@ SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension(char *Name, char *fallbackname);
 const char *SUMA_ExtensionOfDsetFormat (SUMA_DSET_FORMAT form);
 SUMA_Boolean SUMA_isExtension(char *filename, char *ext);
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
+char *SUMA_FnameGet(char *Fname, char *sel, char *cwd);
 int SUMA_StringToNum (char *s, float *fv, int N);
 int SUMA_isNumString (char *s, void *p);
 int SUMA_CleanNumString (char *s, void *p);

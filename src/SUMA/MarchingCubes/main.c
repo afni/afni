@@ -76,7 +76,7 @@ int main (int argc, char **argv)
 //-----------------------------------------------------------------------------
 {
   MCB *mcp ;
-  int obj_type;
+  int obj_type=0;
   int Resx = 256, Resy =256, Resz =256;
   char *fname = NULL;
   

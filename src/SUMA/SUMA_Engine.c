@@ -40,7 +40,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    SUMA_SurfaceObject *SO = NULL;
    float delta_t, ftmp = -1.0;
    struct  timeval tt;
-   int it, Wait_tot, nn=0, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], iv200[200];
+   int it, Wait_tot, nn=0, N_SOlist, 
+            SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], iv200[200];
    float ft, **fm, fv15[15];
    XtPointer elvis=NULL;
    NI_element *nel;
@@ -48,8 +49,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    SUMA_SurfaceViewer *svi;
    SUMA_SurfaceViewer *sv = NULL;
    static char Command[]={"OBSOLETE-since:Thu Jan 23 16:55:03 EST 2003"};
-   SUMA_EngineData *EngineData=NULL, *ED = NULL; /* EngineData is what get passed from a list element, 
-                                                   ED is what gets added to the list inside SUMA_Engine */ 
+   SUMA_EngineData *EngineData=NULL, *ED = NULL; 
+      /* EngineData is what get passed from a list element, 
+         ED is what gets added to the list inside SUMA_Engine */ 
    DListElmt *NextElem_CANT_TOUCH_THIS, *LocElm=NULL;
    DList *list= NULL;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL, *LogShell=NULL;
@@ -59,7 +61,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    
    SUMA_ENTRY;
    
-   list = *listp; /* listp is now passed instead of list so that I can set list to NULL from within this function */
+   list = *listp;    /* listp is now passed instead of list so that I can 
+                        set list to NULL from within this function */
    
    if (!list) {
       fprintf (SUMA_STDERR, "Error %s: Nothing to do.\n", FuncName);
@@ -68,12 +71,14 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: ", FuncName);
    while (list->size) {/* cycle through NextComs */
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Fetching next element\n", FuncName);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: Fetching next element\n", FuncName);
      /* get the next command from the head of the list */
       NextElem_CANT_TOUCH_THIS = dlist_head(list);
       EngineData = (SUMA_EngineData *)NextElem_CANT_TOUCH_THIS->data;
       
-      /* decide on what Srcp might be. Currently only sv is passed when the source is Suma*/
+      /* decide on what Srcp might be. Currently only sv is passed 
+         when the source is Suma*/
       sv = NULL;
       switch (EngineData->Src) {
          case SES_Suma: 
@@ -141,7 +146,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                /* SUMA_ShowNel((void*)nel); */
                
-               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
+               if (NI_write_element(   SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
+                                       nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
@@ -162,7 +168,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                /* SUMA_ShowNel((void*)nel); */
                
-               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
+               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
+                                     nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
@@ -177,7 +184,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                nel = NI_new_data_element("ni_do", 0);
                NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
                NI_set_attribute ( nel, "ni_object", "SET_FUNC_AUTORANGE A.-");
-               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
+               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
+                                     nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   cmap = NULL;
@@ -192,7 +200,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                sprintf(sbuf," %d", cmap->N_Col);
                stmp = SUMA_append_string("SET_FUNC_RANGE A.", sbuf);
                NI_set_attribute ( nel, "ni_object", stmp);
-               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
+               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
+                                     nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
@@ -207,63 +216,87 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
          case SE_OpenDrawnROIFileSelection:
             /* opens the open ROI file selection window. 
-            Expects NULL in vp (to be used later and a position reference widget typecast to ip, the latter can be null.*/
-            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+            Expects NULL in vp (to be used later and a position reference widget 
+            typecast to ip, the latter can be null.*/
+            if (  EngineData->vp_Dest != NextComCode || 
+                  EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
                break;
             }
             /* open the ROI file */
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_OpenDrawnROI, (void *)EngineData->vp,
-                                                        NULL, NULL,
-                                                        "*.roi",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct ( sv->X->TOPLEVEL, 
+                                                   SUMA_FILE_OPEN, YUP,
+                                                   SUMA_OpenDrawnROI, 
+                                                   (void *)EngineData->vp,
+                                                   NULL, NULL,
+                                                   "*.roi", 
+                                                   SUMAg_CF->X->FileSelectDlg);
             } else {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_OpenDrawnROI, (void *)EngineData->vp,
-                                                        NULL, NULL,
-                                                        "*.roi",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, 
+                                                   SUMA_FILE_OPEN, YUP,
+                                                   SUMA_OpenDrawnROI, 
+                                                   (void *)EngineData->vp,
+                                                   NULL, NULL,
+                                                   "*.roi",      
+                                                   SUMAg_CF->X->FileSelectDlg);
             }
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select ROI File to Open", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = 
+               SUMA_CreateFileSelectionDialog ( "Select ROI File to Open", 
+                                                &SUMAg_CF->X->FileSelectDlg);
             break;
             
          case SE_SaveDrawnROIFileSelection:
             /* opens the save roi  file selection window. 
-            Expects NULL in vp (to be used later and a position reference widget typecast to ip, the latter can be null.*/
-            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+            Expects NULL in vp (to be used later and a position reference 
+            widget typecast to ip, the latter can be null.*/
+            if (  EngineData->vp_Dest != NextComCode || 
+                  EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
                break;
             }
             
             /* save ROI to file */
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
-                                                        SUMA_SaveDrawnROI, (void *)EngineData->vp,
-                                                        NULL, NULL,
-                                                        "*.roi",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct ( sv->X->TOPLEVEL,      
+                                                   SUMA_FILE_SAVE, YUP,
+                                                   SUMA_SaveDrawnROI, 
+                                                   (void *)EngineData->vp,
+                                                   NULL, NULL,
+                                                   "*.roi",
+                                                   SUMAg_CF->X->FileSelectDlg);
             } else {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
-                                                        SUMA_SaveDrawnROI, (void *)EngineData->vp,
-                                                        NULL, NULL,
-                                                        "*.roi",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, 
+                                                   SUMA_FILE_SAVE, YUP,
+                                                   SUMA_SaveDrawnROI, 
+                                                   (void *)EngineData->vp,
+                                                   NULL, NULL,
+                                                   "*.roi",
+                                                   SUMAg_CF->X->FileSelectDlg);
             }
             
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select ROI Filename", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = 
+               SUMA_CreateFileSelectionDialog ( "Select ROI Filename", 
+                                                &SUMAg_CF->X->FileSelectDlg);
             
             break;
 
          case SE_SaveSOFileSelection:
             /* saves a surface and its node colors to ascii files */
-            /* expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
-            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+            /* expects SO in vp and a position reference widget typecast 
+               to ip, the latter can be null.*/
+            if (EngineData->vp_Dest != NextComCode || 
+                  EngineData->ip_Dest != NextComCode ) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
                   FuncName, NextCom, NextComCode);
                break;
@@ -450,7 +483,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_OpenDsetFile:
             /* opens the dataset file, Expects SO in vp and a name in cp*/
-            if (EngineData->vp_Dest != NextComCode || EngineData->cp_Dest != NextComCode ) {
+            if (EngineData->vp_Dest != NextComCode || 
+                  EngineData->cp_Dest != NextComCode ) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
                   FuncName, NextCom, NextComCode);
                break;
@@ -462,7 +496,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* opens the Cmap file selection window. 
             Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
             
-            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+            if (EngineData->vp_Dest != NextComCode || 
+                  EngineData->ip_Dest != NextComCode ) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
                   FuncName, NextCom, NextComCode);
                break;
@@ -491,7 +526,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* opens the color file selection window. 
             Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
             
-            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+            if (EngineData->vp_Dest != NextComCode || 
+                  EngineData->ip_Dest != NextComCode ) {
                fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
                   FuncName, NextCom, NextComCode);
                break;
@@ -708,19 +744,29 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_Load_Group:
             /* Does not need a sv 
                expects  a pointer to .spec filename in cp, 
-                        if cp is NULL then it will look for a spec structure pointer in ip (sorry, ran out of places...) 
-                        it will also determine if surfaces in a spec structure pointer have already been loaded from f (really, ran out of places...)
-                        a VolumeParent name in vp,
-                        the indices of the viewers to register the surfaces with in iv15. 
+                        if cp is NULL then it will look for a spec structure 
+                        pointer in ip (sorry, ran out of places...) 
+                        it will also determine if surfaces in a spec structure 
+                        pointer have already been loaded from f (really, ran out 
+                        of places...) a VolumeParent name in vp,
+                        the indices of the viewers to register the surfaces with 
+                        in iv15. 
                         and the number of viewers specified in iv15 in i.
                         Surfaces are registered with all i viewers in iv15*/
             
-            if (EngineData->cp_Dest != NextComCode || EngineData->vp_Dest != NextComCode 
-               || EngineData->iv15_Dest != NextComCode || EngineData->i_Dest != NextComCode
-               || EngineData->ip_Dest != NextComCode || EngineData->f_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n%d %d %d %d %d %d\n", \
-                  FuncName, NextCom, NextComCode, EngineData->cp_Dest, EngineData->vp_Dest, 
-                  EngineData->iv15_Dest, EngineData->i_Dest , EngineData->ip_Dest, EngineData->f_Dest);
+            if (  EngineData->cp_Dest != NextComCode || 
+                  EngineData->vp_Dest != NextComCode 
+               || EngineData->iv15_Dest != NextComCode || 
+                  EngineData->i_Dest != NextComCode
+               || EngineData->ip_Dest != NextComCode || 
+                  EngineData->f_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n"
+                        "%d %d %d %d %d %d\n", 
+                        FuncName, NextCom, NextComCode, EngineData->cp_Dest, 
+                        EngineData->vp_Dest, 
+                        EngineData->iv15_Dest, EngineData->i_Dest , 
+                        EngineData->ip_Dest, EngineData->f_Dest);
                break;
             } 
             {
@@ -732,30 +778,49 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                if (specfilename) {
                   /* Load The spec file */
-		            if (LocalHead) fprintf (SUMA_STDERR, "%s: Reading Spec File ...\n", FuncName);
-                  if (!SUMA_AllocSpecFields(&Spec)) { SUMA_S_Err("Failed to initialize spec fields."); exit(1); }
+		            if (LocalHead) 
+                     fprintf (SUMA_STDERR, 
+                              "%s: Reading Spec File ...\n", FuncName);
+                  if (!SUMA_AllocSpecFields(&Spec)) { 
+                     SUMA_S_Err("Failed to initialize spec fields."); 
+                     exit(1); 
+                  }
                   if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
-			            fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile.\n", FuncName);
+			            fprintf( SUMA_STDERR,
+                              "Error %s: Error in SUMA_Read_SpecFile.\n", 
+                              FuncName);
 			            exit(1);
 		            }	
                } else {
                   if (!EngineData->ip) {
-                     fprintf(SUMA_STDERR,"Error %s: Nothing in ip, nothing to do !\n", FuncName); exit(1);
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Nothing in ip, nothing to do !\n", 
+                              FuncName); 
+                     exit(1);
                   }
                   Spec = *((SUMA_SurfSpecFile *)EngineData->ip); 
                }
                
                /* make sure only one group was read in */
 		         if (Spec.N_Groups != 1) {
-			         fprintf(SUMA_STDERR,"Error %s: One and only one group of surfaces is allowed at the moment (%d found).\n", FuncName, Spec.N_Groups);
+			         fprintf( SUMA_STDERR,
+                           "Error %s: "
+                           "One and only one group of surfaces is allowed "
+                           "at the moment (%d found).\n", 
+                           FuncName, Spec.N_Groups);
 			         exit(1);
 		         }
 
 		         if (!EngineData->f) {
                   /* load the surfaces specified in the specs file, one by one*/			
-		            if (LocalHead) fprintf (SUMA_STDERR, "%s: Loading Surfaces in Spec File ...\n", FuncName);
-		            if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName, 0, SUMAg_CF->DsetList)) {
-			            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
+		            if (LocalHead) 
+                     fprintf (SUMA_STDERR, 
+                              "%s: Loading Surfaces in Spec File ...\n", 
+                              FuncName);
+		            if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, 
+                                          VolParName, 0, SUMAg_CF->DsetList)) {
+			            fprintf( SUMA_STDERR,
+                              "Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
 			            exit(1);
 		            }
                }
@@ -767,20 +832,32 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   break;
                }
                
-	            /* Register the surfaces in Spec file with the surface viewer and perform setups */
+	            /* Register the surfaces in Spec file with the 
+                  surface viewer and perform setups */
                
                for (ii = 0; ii < EngineData->i; ++ii) {
-	               if (LocalHead) fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewer %d/%d ...\n", FuncName, ii, EngineData->i);
-                  if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &(SUMAg_SVv[EngineData->iv15[ii]]), 0)) {
-			            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
+	               if (LocalHead) 
+                     fprintf (SUMA_STDERR, 
+                              "%s: Registering surfaces with surface viewer "
+                              "%d/%d ...\n", FuncName, ii, EngineData->i);
+                  if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, 
+                                       &(SUMAg_SVv[EngineData->iv15[ii]]), 0)) {
+			            fprintf (SUMA_STDERR, 
+                              "Error %s: "
+                              "Failed in SUMA_SetupSVforDOs function.\n", 
+                              FuncName);
 			            exit(1);
 		            }
 	            }
 
-               if (LocalHead) fprintf (SUMA_STDERR, "%s: Adding call to Home and Redisplay \n", FuncName);
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR, 
+                           "%s: Adding call to Home and Redisplay \n", FuncName);
                /* add a call to Home and a redisplay */
                if (!list) {
-                  fprintf (SUMA_STDERR, "Error %s: Should not be inside SUMA_Engine: ZSS Feb 02 05.\n", FuncName);
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Should not be inside "
+                           "SUMA_Engine: ZSS Feb 02 05.\n", FuncName);
                   /* list = SUMA_CreateList();*/
                   break;
                }else {
@@ -791,7 +868,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                       SEF_Empty, NULL, 
                                                       SES_Afni, NULL, NOPE, 
                                                       SEI_Tail, NULL )) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed to register command\n", FuncName);
                   break;
                }
                ED = SUMA_InitializeEngineListData (SE_Redisplay_AllVisible);
@@ -799,26 +877,32 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                       SEF_Empty, NULL, 
                                                       SES_Afni, NULL, NOPE, 
                                                       SEI_Tail, NULL )) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed to register command\n", FuncName);
                   break;
                }
                
                if (specfilename) {
                   /* locally created spec, free contents */
-                  if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Failed to free spec fields"); break;}
+                  if (!SUMA_FreeSpecFields(&Spec)) { 
+                     SUMA_S_Err("Failed to free spec fields"); 
+                     break;
+                  }
                   
                }
 
    
             }
-            if (LocalHead) fprintf (SUMA_STDERR, "%s: Done in SE_Load_Spec.\n", FuncName);
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, "%s: Done in SE_Load_Spec.\n", FuncName);
             break;
             
          case SE_SetClip:
             {
                int iplane = -1, Delete = 0;
                /* expects a clipping plane name in EngineData->s, equation in fv15 and type in i*/
-               if (EngineData->fv15_Dest != NextComCode || EngineData->s_Dest != NextComCode  || EngineData->i_Dest != NextComCode ) {
+               if (EngineData->fv15_Dest != NextComCode || 
+                  EngineData->s_Dest != NextComCode  || EngineData->i_Dest != NextComCode ) {
                   fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                   break;
                }
@@ -1106,7 +1190,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             { int nels_sent, N_Send, *SendList;
               char *stmp = NULL; 
               static char LastPrefix[THD_MAX_PREFIX+1] = {"nuda"};
-               if (EngineData->ivec_Dest != NextComCode || EngineData->s_Dest != NextComCode || EngineData->i_Dest != NextComCode) {
+               if (EngineData->ivec_Dest != NextComCode || 
+                  EngineData->s_Dest != NextComCode || 
+                  EngineData->i_Dest != NextComCode) {
                   fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
                   break;
                }
@@ -1301,7 +1387,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects an idcode_str in EngineData->cp and what needs to be sent in EngineData->s for surface to be sent to AFNI */
             {
                SUMA_IVEC ivec;
-               if (EngineData->s_Dest != NextComCode || EngineData->cp_Dest != NextComCode || EngineData->i_Dest != NextComCode) {
+               if (EngineData->s_Dest != NextComCode || 
+                  EngineData->cp_Dest != NextComCode || 
+                  EngineData->i_Dest != NextComCode) {
                   fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s ((%d %d %d) %d).\n",
                      FuncName, NextCom,  EngineData->s_Dest, EngineData->cp_Dest, EngineData->i_Dest, NextComCode);
                   break;

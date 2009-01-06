@@ -47,6 +47,9 @@ void SUMA_CreateIcosahedron_usage ()
 "\n"
 "   -prefix fout: prefix for output files. \n"
 "       (optional, default CreateIco)\n"
+"                 The surface is written out in FreeSurfer's .asc\n"
+"                 format by default. To change that, include a\n"
+"                 valid extension to the prefix such as: fout.gii \n"       
 "\n"
 "   -help: help message\n"
 "\n");
@@ -73,8 +76,11 @@ int main (int argc, char *argv[])
    char *histnote=NULL;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char surfFileNm[1000], outSpecFileNm[1000];
-   SUMA_SpecSurfInfo *surfaces;
+   char  outSpecFileNm[1000], *fouts=NULL;
+   SUMA_SurfSpecFile *stdSpec = NULL;
+   void *vbufp=NULL;
+   SUMA_SO_File_Format FileFormat = SUMA_ASCII;
+   SUMA_SO_File_Type FileType = SUMA_FREE_SURFER;
 
    SUMA_mainENTRY;
    
@@ -188,7 +194,9 @@ int main (int argc, char *argv[])
          }   
 
       if (!brk) {
-         fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+         fprintf (SUMA_STDERR,
+                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
          exit (1);
       } else {   
          brk = NOPE;
@@ -198,7 +206,9 @@ int main (int argc, char *argv[])
    }/* loop accross command ine options */
    histnote = SUMA_HistString (NULL, argc, argv, NULL);
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Recursion depth %d, Size %f.\n", FuncName, depth, r);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Recursion depth %d, Size %f.\n", FuncName, depth, r);
 
    if (NumOnly) {
       /* output counts and quit */
@@ -214,20 +224,35 @@ int main (int argc, char *argv[])
       }
       
       SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth);
-      A = 1/4.0 * lgth * lgth * sqrt(3.0);   /* surface area, equation from mathworld.wolfram.com */
-      V = 5.0 / 12.0 * ( 3 + sqrt(5.0) ) * lgth * lgth * lgth; /* volume, equation from mathworld.wolfram.com*/
-      if (NumOnly == 1) fprintf (SUMA_STDOUT,"#Nvert\t\tNtri\t\tNedge\t\tArea\t\t\tVolume\n %d\t\t%d\t\t%d\t\t%f\t\t%f\n", Nvert, Ntri, Nedge, A, V);
-      else fprintf (SUMA_STDOUT," %d\t\t%d\t\t%d\t\t%f\t\t%f\n", Nvert, Ntri, Nedge, A, V);
+      A = 1/4.0 * lgth * lgth * sqrt(3.0);   
+         /* surface area, equation from mathworld.wolfram.com */
+      V = 5.0 / 12.0 * ( 3 + sqrt(5.0) ) * lgth * lgth * lgth; 
+         /* volume, equation from mathworld.wolfram.com*/
+      if (NumOnly == 1) 
+         fprintf (SUMA_STDOUT,
+                  "#Nvert\t\tNtri\t\tNedge\t\tArea\t\t\tVolume\n" 
+                  "%d\t\t%d\t\t%d\t\t%f\t\t%f\n", 
+                  Nvert, Ntri, Nedge, A, V);
+      else fprintf (SUMA_STDOUT," %d\t\t%d\t\t%d\t\t%f\t\t%f\n", 
+                                 Nvert, Ntri, Nedge, A, V);
       
       exit(0);
    }
    /**assign output file names */
-   sprintf (surfFileNm, "%s_surf.asc", fout);
-   sprintf (outSpecFileNm, "%s.spec", fout);   
+   FileType = SUMA_GuessSurfFormatFromExtension(fout, "toy.asc"); 
+   fouts = SUMA_RemoveSurfNameExtension(fout, FileType);
+   SUMA_S_Notev("%s, %s\n", fout, fouts);
+   sprintf( outSpecFileNm, 
+            "%s%s.spec",
+            SUMA_FnameGet(fouts,"pa", SUMAg_CF->cwd), 
+            SUMA_FnameGet(fouts,"f", SUMAg_CF->cwd));
 
-   if ( SUMA_filexists(surfFileNm) || SUMA_filexists(outSpecFileNm)) {
-      fprintf (SUMA_STDERR,"Error %s: At least one of output files %s, %s exists.\nWill not overwrite.\n", \
-               FuncName, surfFileNm, outSpecFileNm);
+   if (SUMA_filexists(outSpecFileNm)) {
+      fprintf (SUMA_STDERR,
+               "Error %s: \n"
+               "Spec filename %s and maybe surface file for prefix %s exists.\n"
+               "Will not overwrite.\n", 
+               FuncName, outSpecFileNm, fout);
       exit(1);
    }
 
@@ -235,35 +260,83 @@ int main (int argc, char *argv[])
    /**create icosahedron*/
    SO = SUMA_CreateIcosahedron (r, depth, ctr, bin, ToSphere);
    if (!SO) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateIcosahedron.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in SUMA_CreateIcosahedron.\n", FuncName);
       exit (1);
    }
+   SO->FileFormat = FileFormat;
+   SO->FileType = FileType;
+
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Now writing surface %s to disk ...\n", FuncName, fout);
+
+
+   if (!(vbufp = SUMA_Save_Surface_Object_Wrap(fouts, fouts, SO, 
+                               SO->FileType, SO->FileFormat,
+                               NULL))) {
+         SUMA_S_Err("Failed to write icosahedron");
+         exit(1);
+   }
+   SUMA_free(fouts); fouts = NULL;
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Now writing surface %s to disk ...\n", FuncName, surfFileNm);
-
-
-   /**write tesselated icosahedron to file*/
-   SUMA_writeFSfile (SO, "!ascii version in FreeSurfer format (CreateIcosahedron)", surfFileNm);
-
    /**write spec file*/
-   surfaces = (SUMA_SpecSurfInfo *) SUMA_calloc(1, sizeof(SUMA_SpecSurfInfo));
-
-   strcpy (surfaces[0].format, "ASCII");  strcpy (surfaces[0].type, "FreeSurfer");   
-   sprintf (surfaces[0].fileToRead, "%s", surfFileNm); strcpy( surfaces[0].mapRef, "SAME");  
-   strcpy (surfaces[0].state, "icosahedron"); strcpy (surfaces[0].dim, "3");
-  
-   SUMA_writeSpecFile ( surfaces, 1, FuncName, fout, outSpecFileNm, histnote );
-   fprintf (SUMA_STDERR, "\n* To view in SUMA, run:\n suma -spec %s \n\n", outSpecFileNm);
+   stdSpec = (SUMA_SurfSpecFile *)SUMA_malloc(sizeof(SUMA_SurfSpecFile));
+   if (!SUMA_AllocSpecFields(stdSpec)) {
+      SUMA_S_Err("Failed to initialize stdSpec\n" );
+      exit(1);
+   }
+   stdSpec->N_Surfs = 0;
+   stdSpec->N_States = 1;
+   sprintf( stdSpec->Group[0], "Icosahedron");
+   sprintf( stdSpec->StateList,"icos.%dvert.%dtri|", 
+            SO->N_Node/3, SO->N_FaceSet/3);
+   stdSpec->N_Groups = 1;
+   strcpy(stdSpec->SpecFilePath, SUMA_FnameGet(fouts,"pa", SUMAg_CF->cwd));
+   strcpy(stdSpec->SpecFileName, SUMA_FnameGet(fouts,"f", SUMAg_CF->cwd));  
+   
+   ++stdSpec->N_Surfs;
+   /*add to spec*/
+   sprintf  (stdSpec->State[stdSpec->N_Surfs-1], 
+             "icos.%dvert.%dtri", 
+             SO->N_Node/3, SO->N_FaceSet/3);
+   strcpy  (stdSpec->SurfaceType[stdSpec->N_Surfs-1],    
+            SUMA_SurfaceTypeString(SO->FileType));
+   strcpy  (stdSpec->SurfaceFormat[stdSpec->N_Surfs-1],  
+            SUMA_SurfaceFormatString(SO->FileFormat));
+   strcpy  (stdSpec->LocalDomainParent[stdSpec->N_Surfs-1], "./SAME");
+   strcpy  (stdSpec->AnatCorrect[stdSpec->N_Surfs-1], "N");
+   if (  SO->FileType == SUMA_SUREFIT || 
+         SO->FileType == SUMA_VEC ) {
+      strcpy  (stdSpec->TopoFile[stdSpec->N_Surfs-1], 
+               ((SUMA_SFname *)vbufp)->name_topo);
+      strcpy  (stdSpec->CoordFile[stdSpec->N_Surfs-1], 
+               ((SUMA_SFname *)vbufp)->name_coord);
+   } else {
+      strcpy  (stdSpec->SurfaceFile[stdSpec->N_Surfs-1], (char *)vbufp);
+   }
+   stdSpec->EmbedDim[stdSpec->N_Surfs-1] = 3;
+   SUMA_free(vbufp); vbufp = NULL; 
+   
+    if (!SUMA_Write_SpecFile(stdSpec, outSpecFileNm, FuncName, histnote)) {
+      SUMA_S_Err("Failed to write spec file!");
+      exit(1);
+   }
+   
+   fprintf (SUMA_STDERR, 
+            "\n* To view in SUMA, run:\n suma -spec %s \n\n", outSpecFileNm);
 
    /* free the surface object */
-   if (LocalHead) fprintf(SUMA_STDERR, "\n... before free surf in createIco\n\n");
+   if (LocalHead) 
+      fprintf(SUMA_STDERR, "\n... before free surf in createIco\n\n");
    SUMA_Free_Surface_Object (SO);
-   if (LocalHead) fprintf(SUMA_STDERR, "\n... after free surf in createIco\n\n");
-   SUMA_free(surfaces);
 
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+      SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    
    if (histnote) SUMA_free(histnote);
+   if (fouts) SUMA_free(fouts);
    
    SUMA_RETURN(0);
   

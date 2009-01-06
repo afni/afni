@@ -65,6 +65,19 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 5, JAN , 2009 , ZSS , "MapIcosahedron" , MINOR ,  TYPE_NEW_OPT,
+   "Program no longer confined to FreeSurfer surfaces",
+   "The program now allows the user to specify any morph sphere,\n"
+   "not just sphere.reg or sphere. This required rewriting much of\n"
+   "of the program's main section but the algorithm for the mapping\n"
+   "remains unchanged."
+ },
+
+ { 5, JAN , 2009 , ZSS , "CreateIcosahedron" , MICRO ,  TYPE_NEW_OPT,
+   "Program uses new Spec writing function and writes different surface formats",
+   NULL
+ },
+
  { 9, DEC , 2008 , ZSS , "@Align_Centers" , MINOR ,  TYPE_NEW_OPT,
    "Added -cm option to allow centering based on the center of mass",
    NULL

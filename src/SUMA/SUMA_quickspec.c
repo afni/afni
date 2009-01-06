@@ -72,7 +72,8 @@ int main (int argc,char *argv[])
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		fprintf( SUMA_STDERR,
+               "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
    
@@ -120,12 +121,14 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
          TypeC[N_surf] = SUMA_SurfaceTypeCode(argv[kar]);
-         if (TypeC[N_surf] == SUMA_FT_ERROR || TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
+         if (TypeC[N_surf] == SUMA_FT_ERROR || 
+             TypeC[N_surf] == SUMA_FT_NOT_SPECIFIED) {
             fprintf (SUMA_STDERR, "%s is a bad file type.\n", argv[kar]);
             exit(1);
          }
          /* get the name */
-         if (TypeC[N_surf] == SUMA_SUREFIT || TypeC[N_surf] == SUMA_VEC) N_name = 2;
+         if (TypeC[N_surf] == SUMA_SUREFIT || TypeC[N_surf] == SUMA_VEC) 
+            N_name = 2;
          else N_name = 1;
          if (kar+N_name >= argc)  {
 		  		fprintf (SUMA_STDERR, "need %d elements for NAME \n", N_name);

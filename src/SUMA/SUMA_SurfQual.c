@@ -383,10 +383,11 @@ int main (int argc,char *argv[])
   
    if (trouble) { /* put winding problem here to make it visible */
       fprintf (SUMA_STDERR,"\n");
-      SUMA_S_Warn("Mesh is not consistent, use ConvertSurface's -make_consistent \n"
-                  "option to fix the problem before proceeding further.\n"
-                  "Other results reported by this and other programs\n"
-                  "may be incorrect if mesh is not consistently wound.\n" ); 
+      SUMA_S_Warn(
+         "Mesh is not consistent, use ConvertSurface's -make_consistent \n"
+         "option to fix the problem before proceeding further.\n"
+         "Other results reported by this and other programs\n"
+         "may be incorrect if mesh is not consistently wound.\n" ); 
       consistent = 0;
    } else {
       consistent = 1;
@@ -400,8 +401,12 @@ int main (int argc,char *argv[])
    }
    if ((SO->EL->min_N_Hosts == 1 || SO->EL->max_N_Hosts == 1)) {
          fprintf (SUMA_STDERR,"\n");
-         fprintf(SUMA_STDERR,"Warning %s:\n Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
-         fprintf(SUMA_STDERR," You have edges that form a border in the surface.\n");
+         fprintf(SUMA_STDERR,
+                 "Warning %s:\n"
+                 " Min/Max number of edge hosting triangles: [%d/%d] \n", 
+                 FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
+         fprintf( SUMA_STDERR,
+                  " You have edges that form a border in the surface.\n");
    }
    if (SO->EL->min_N_Hosts == 2 && SO->EL->max_N_Hosts == 2) {
       fprintf (SUMA_STDERR,"\n");
@@ -409,17 +414,25 @@ int main (int argc,char *argv[])
    }
    if (SO->EL->min_N_Hosts > 2 || SO->EL->max_N_Hosts > 2) {
       fprintf (SUMA_STDERR,"\n");
-      fprintf(SUMA_STDERR, "Warning %s:\n"
-                           "Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
-      fprintf(SUMA_STDERR, "Warning %s:\n"
-                           " You have edges that belong to more than two triangles.\n"
-                           " Bad for analysis assuming surface is a 2-manifold.\n", FuncName);
+      fprintf( SUMA_STDERR, 
+               "Warning %s:\n"
+               "Min/Max number of edge hosting triangles: [%d/%d] \n", 
+               FuncName, SO->EL->min_N_Hosts, SO->EL->max_N_Hosts);
+      fprintf(SUMA_STDERR, 
+         "Warning %s:\n"
+         " You have edges that belong to more than two triangles.\n"
+         " Bad for analysis assuming surface is a 2-manifold.\n", 
+         FuncName);
       if (1) {
          int iii=0;
-         fprintf(SUMA_STDERR, " These edges are formed by the following nodes:\n");
+         fprintf( SUMA_STDERR, 
+                  " These edges are formed by the following nodes:\n");
          for (iii = 0; iii < SO->EL->N_EL; ++iii) { 
-            if (SO->EL->ELps[iii][2] > 2) fprintf (SUMA_STDERR," %d: Edge [%d %d] shared by %d triangles.\n", 
-                                             iii+1, SO->EL->EL[iii][0], SO->EL->EL[iii][1] , SO->EL->ELps[iii][2] );
+            if (SO->EL->ELps[iii][2] > 2) 
+               fprintf (SUMA_STDERR,
+                        " %d: Edge [%d %d] shared by %d triangles.\n", 
+                        iii+1, SO->EL->EL[iii][0], SO->EL->EL[iii][1] , 
+                        SO->EL->ELps[iii][2] );
          }
       }
    }
@@ -435,25 +448,36 @@ int main (int argc,char *argv[])
       fprintf( SUMA_STDERR, "\n\nChecking for intersections...:\n");
       nsi = SUMA_isSelfIntersect(SO, 500, report);
       if (nsi) {
-         fprintf(SUMA_STDERR, " Surface is self intersecting.\n%d segments were found to intersect the surface.\n", nsi);
+         fprintf( SUMA_STDERR, 
+                  " Surface is self intersecting.\n"
+                  "%d segments were found to intersect the surface.\n", nsi);
          if (nsi >= 500) {
-            fprintf(SUMA_STDERR, " It is possible that you have additional segments intersecting the surface.\n");
+            fprintf( SUMA_STDERR, 
+                     " It is possible that you have additional segments"
+                     " intersecting the surface.\n");
          }
          if (report) {
             if (Opt->N_surf > 1) {
                sprintf(ext,"_%c", 65+i);
-               OutName = SUMA_append_replace_string (prefix, "_IntersNodes.1D.dset", ext, 0);
+               OutName = SUMA_append_replace_string ( prefix, 
+                                                      "_IntersNodes.1D.dset", 
+                                                      ext, 0);
             } else { 
                OutName = SUMA_append_string (prefix, "_IntersNodes.1D.dset");
             }
             fout = fopen(OutName, "w");
             if (fout) {
-               fprintf(fout,  "#List of nodes that are part of segments which intersect the surface\n"
-                              "#%s\n"
-                              "#A total of %d segments (search limit is 500) were found to intersect the surface.\n"
-                              "#Col.1 : Node index\n"
-                              "#Col.2 : Dummy flag, always 1\n", SUMA_CHECK_NULL_STR(SO->Label), nsi );
-               for (iii=0; iii<SO->N_Node; ++iii) if (report[iii]) fprintf(fout, "%d\t1\n", iii);
+               fprintf(fout,  
+                  "#List of nodes that are part of segments which intersect "
+                  "the surface\n"
+                  "#%s\n"
+                  "#A total of %d segments (search limit is 500) were found to "
+                  "intersect the surface.\n"
+                  "#Col.1 : Node index\n"
+                  "#Col.2 : Dummy flag, always 1\n", 
+                        SUMA_CHECK_NULL_STR(SO->Label), nsi );
+               for (iii=0; iii<SO->N_Node; ++iii) 
+                  if (report[iii]) fprintf(fout, "%d\t1\n", iii);
                fclose(fout); fout = NULL;
             } else {
                SUMA_SL_Err("Failed to open file for output.");
