@@ -136,6 +136,9 @@ void AFNI_syntax(void)
      "   -purge       Conserve memory by purging data to disk.\n"
      "                  [Use this if you run out of memory when running AFNI.]\n"
      "                  [This will slow the code down, so use only if needed.]\n"
+#else
+     "   -nopurge     Disable the automatic purging of unused datasets from\n"
+     "                  memory, which is invoked when you switch datasets.\n"
 #endif
      "   -posfunc     Set up the color 'pbar' to use only positive function values.\n"
      "   -R           Recursively search each session_directory for more session\n"
@@ -836,6 +839,10 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-purge",4) == 0 ){
          GLOBAL_argopt.auto_purge = True ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+      if( strncmp(argv[narg],"-nopurge",6) == 0 ){
+         GLOBAL_argopt.auto_purge = False ;
          narg++ ; continue ;  /* go to next arg */
       }
 
