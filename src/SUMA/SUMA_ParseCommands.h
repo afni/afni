@@ -293,6 +293,8 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 const char *SUMA_ColMixModeString (SUMA_COL_MIX_MODE mode);
 SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd);
 const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp);
+const char * SUMA_SurfaceFormatString (SUMA_SO_File_Format ff);
+SUMA_SO_File_Format SUMA_SurfaceFormatCode (char *cd);
 SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str);
 SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name);
 SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension(

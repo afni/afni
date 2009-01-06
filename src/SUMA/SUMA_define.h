@@ -162,7 +162,7 @@ typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED,
                SUMA_BRAIN_VOYAGER , 
                SUMA_OPENDX_MESH, SUMA_BYU, SUMA_GIFTI, 
                   SUMA_N_SO_FILE_TYPE} SUMA_SO_File_Type; /* add types always between SUMA_FT_NOT_SPECIFIED AND SUMA_N_SO_FILE_TYPE */
-typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE, SUMA_XML_SURF, SUMA_XML_ASCII_SURF,  SUMA_XML_B64_SURF, SUMA_XML_B64GZ_SURF } SUMA_SO_File_Format;
+typedef enum { SUMA_FF_ERROR = -1, SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE, SUMA_XML_SURF, SUMA_XML_ASCII_SURF,  SUMA_XML_B64_SURF, SUMA_XML_B64GZ_SURF } SUMA_SO_File_Format;
 typedef enum { type_not_set = -1,
                no_type, SO_type, AO_type, ROIdO_type, ROIO_type, 
                GO_type, LS_type, NBLS_type, OLS_type, NBOLS_type,
@@ -709,147 +709,57 @@ typedef struct {
 Stucture to hold the contents of the specs file 
 */
 typedef struct {
-   char SurfaceType[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Type of surface loaded: 
-                                                                        FreeSurfer, SureFit/Caret, 1D format, inventor, Ply */ 
-   char SurfaceFormat[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];  /*!< ASCII or Binary */
-   char TopoFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH]; /*!< Surface Topology (mesh) file 
-                                                                     renamed from SureFitTopo because 1D uses it too */ 
-   char CoordFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH]; /*!< Surface Coordinate (XYZ) file
-                                                                      renamed from SureFitCoord because 1D uses it too  */ 
-   char MappingRef[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH]; /*!< Becoming obsolete. Jan 2 03 */
-   char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH]; /*!< For SureFit only: Name of file containing anatomical
-                                                                             coordinates modification. */
-   char SurfaceFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH];  /*!< File containing topology and geometry of surface. */
-   char VolParName[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH];   /*!< Now known as surface volume in the documentation 
-                                                                          This is the volume from which the surface was created,
-                                                                          aligned to the experiment's data. Alignment transforms
-                                                                          added by 3dVolreg or 3dAnatNudge that are stored in this 
-                                                                          volume ar applied to the surface. Also, tlrc transforms of
-                                                                          this volume can be applied to the surface. */
-   char *IDcode[SUMA_MAX_N_SURFACE_SPEC];                            /*!< Unique identifier for the surface object */
-   char State[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];       /*!< Geometrical state of the surface. For example:
-                                                                           pial, white, inflated, spherical, etc... */
-                                                                           
-   char Group[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];        /*!< Some identifier, best thought of as the name of 
-                                                                           the subject */
-   char SurfaceLabel[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH]; /*!< A user defined "short" label to use in GUI */
-   int EmbedDim[SUMA_MAX_N_SURFACE_SPEC];                            /*!< 2 for flat surfaces, 3 for 3D dwelling ones. */
-   
-   /* modifications to the lame MappingRef field */
-   char AnatCorrect[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Does surface geometry match the anatomy ?*/
-   char Hemisphere[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];     /*!< Left/Right */
-   char DomainGrandParentID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!< Grandparent's mesh ID 
-                                                                                    (icosahedron's for std-meshes) */
-   char OriginatorID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!<  ID common to surfaces from one subject that are created
-                                                                              at one point in time. Surfaces of the same subject,
-                                                                              created at different points in time (like in a longitudinal
-                                                                              study) will have differing OriginatorID fields */
-   char LocalCurvatureParent[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH];   /*!<  Name of surface (in current spec file)
-                                                                                 from which the curvature will be borrowed.
-                                                                                 The LocalCurvatureParent must be isotopic to 
-                                                                                 the child surface. This Parent used to be
-                                                                                 the MappingRef field*/
-   char LocalDomainParent[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_FP_NAME_LENGTH];       /*!< Name of surface (in current spec file)
-                                                                                 from which EdgeLists and other shared information
-                                                                                 will be borrowed. This field used to be 
-                                                                                 the MappingRef field. Naturally, Parent and 
-                                                                                 Child must be isotopic.
-                                                                                 You must have at least one of the surfaces loaded
-                                                                                 into SUMA be the Parent. Use SAME for this field when
-                                                                                 a surface is a LocalDomainParent.
-                                                                                 */
-   #if 0
-   /* Not being used yet, but in the SurfaceObject structure */
-   int NodeDim; /*!< 3 for nodes specified in 3D, 2 for X,Y only (not really supported...) */
-   int MeshDim; /*!< 3 for triangles, 4 for quadrilaterals (not quite supported) */
-   /* you can also envision ID fields that point to surface attributes that are time consuming 
-   to calculate and do not change often. I use none at the moment, but will do so, perhaps in the future.
-   For example:
-   A sorted EdgeList (for fast topological shenanigans, I swear by this one)
-   A node curvature list,
-   Interpolation weights,
-   Datasets containing ROI or parcellation information  
-   etc...
-   */  
-   #endif
-   
-   int N_Surfs;                                                      /*!< Number of surfaces, in the spec file */
-   int N_States;                                                     
-   int N_Groups;
-   char StateList[SUMA_MAX_N_SURFACE_SPEC*100];
-   char SpecFilePath[SUMA_MAX_DIR_LENGTH];
-   char SpecFileName[SUMA_MAX_NAME_LENGTH];
-} SUMA_SurfSpecFile_OLD_DELETEME_SOON;
-
-/*! 
-Stucture to hold the contents of the specs file 
-*/
-typedef struct {
    char **SurfaceType;    /*!< Type of surface loaded: 
-                                                                        FreeSurfer, SureFit/Caret, 1D format, inventor, Ply */ 
+                               FreeSurfer, SureFit/Caret, 1D format, 
+                               inventor, Ply */ 
    char **SurfaceFormat;  /*!< ASCII or Binary */
    char **TopoFile; /*!< Surface Topology (mesh) file 
-                                                                     renamed from SureFitTopo because 1D uses it too */ 
+                         renamed from SureFitTopo because 1D uses it too */ 
    char **CoordFile; /*!< Surface Coordinate (XYZ) file
-                                                                      renamed from SureFitCoord because 1D uses it too  */ 
+                          renamed from SureFitCoord because 1D uses it too  */ 
    char **MappingRef; /*!< Becoming obsolete. Jan 2 03 */
-   char **SureFitVolParam; /*!< For SureFit only: Name of file containing anatomical
-                                                                             coordinates modification. */
+   char **SureFitVolParam; /*!<  For SureFit only: Name of file containing 
+                                 anatomical coordinates modification. */
    char **SurfaceFile;  /*!< File containing topology and geometry of surface. */
    char **VolParName;   /*!< Now known as surface volume in the documentation 
-                                                                          This is the volume from which the surface was created,
-                                                                          aligned to the experiment's data. Alignment transforms
-                                                                          added by 3dVolreg or 3dAnatNudge that are stored in this 
-                                                                          volume ar applied to the surface. Also, tlrc transforms of
-                                                                          this volume can be applied to the surface. */
-   char **IDcode;                            /*!< Unique identifier for the surface object */
+                             This is the volume from which the surface was 
+                             created, aligned to the experiment's data. Alignment                              transforms added by 3dVolreg or 3dAnatNudge that are                              stored in this volume ar applied to the surface.  
+                             Also, tlrc transforms of this volume can be applied 
+                             to the surface. */
+   char **IDcode;      /*!< Unique identifier for the surface object */
    char **State;       /*!< Geometrical state of the surface. For example:
-                                                                           pial, white, inflated, spherical, etc... */
+                            pial, white, inflated, spherical, etc... */
                                                                            
    char **Group;        /*!< Some identifier, best thought of as the name of 
-                                                                           the subject */
+                             the subject */
    char **SurfaceLabel; /*!< A user defined "short" label to use in GUI */
-   int *EmbedDim;                            /*!< 2 for flat surfaces, 3 for 3D dwelling ones. */
+   int *EmbedDim;       /*!< 2 for flat surfaces, 3 for 3D dwelling ones. */
    
    /* modifications to the lame MappingRef field */
    char **AnatCorrect;    /*!< Does surface geometry match the anatomy ?*/
    char **Hemisphere;     /*!< Left/Right */
    char **DomainGrandParentID;   /*!< Grandparent's mesh ID 
-                                                                                    (icosahedron's for std-meshes) */
-   char **OriginatorID;   /*!<  ID common to surfaces from one subject that are created
-                                                                              at one point in time. Surfaces of the same subject,
-                                                                              created at different points in time (like in a longitudinal
-                                                                              study) will have differing OriginatorID fields */
+                                    (icosahedron's for std-meshes) */
+   char **OriginatorID;   /*!<  ID common to surfaces from one subject that are 
+                                 created at one point in time. Surfaces of the 
+                                 same subject, created at different points in 
+                                 time (like in a longitudinal study) will have 
+                                 differing OriginatorID fields */
    char **LocalCurvatureParent;   /*!<  Name of surface (in current spec file)
-                                                                                 from which the curvature will be borrowed.
-                                                                                 The LocalCurvatureParent must be isotopic to 
-                                                                                 the child surface. This Parent used to be
-                                                                                 the MappingRef field*/
+                      from which the curvature will be borrowed.
+                      The LocalCurvatureParent must be isotopic to 
+                      the child surface. This Parent used to be
+                      the MappingRef field*/
    char **LocalDomainParent;       /*!< Name of surface (in current spec file)
-                                                                                 from which EdgeLists and other shared information
-                                                                                 will be borrowed. This field used to be 
-                                                                                 the MappingRef field. Naturally, Parent and 
-                                                                                 Child must be isotopic.
-                                                                                 You must have at least one of the surfaces loaded
-                                                                                 into SUMA be the Parent. Use SAME for this field when
-                                                                                 a surface is a LocalDomainParent.
-                                                                                 */
-   #if 0
-   /* Not being used yet, but in the SurfaceObject structure */
-   int NodeDim; /*!< 3 for nodes specified in 3D, 2 for X,Y only (not really supported...) */
-   int MeshDim; /*!< 3 for triangles, 4 for quadrilaterals (not quite supported) */
-   /* you can also envision ID fields that point to surface attributes that are time consuming 
-   to calculate and do not change often. I use none at the moment, but will do so, perhaps in the future.
-   For example:
-   A sorted EdgeList (for fast topological shenanigans, I swear by this one)
-   A node curvature list,
-   Interpolation weights,
-   Datasets containing ROI or parcellation information  
-   etc...
-   */  
-   #endif
+                       from which EdgeLists and other shared information                                 will be borrowed. This field used to be 
+                       the MappingRef field. Naturally, Parent and 
+                       Child must be isotopic.
+                       You must have at least one of the surfaces loaded
+                       into SUMA be the Parent. Use SAME for this field when
+                       a surface is a LocalDomainParent.
+                      */
    
-   int N_Surfs;                                                      /*!< Number of surfaces, in the spec file */
+   int N_Surfs;         /*!< Number of surfaces, in the spec file */
    int N_States;                                                     
    int N_Groups;
    char *StateList;

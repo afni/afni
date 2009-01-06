@@ -955,8 +955,10 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    for (i=0; i<N_dov; ++i) {
       if (dov[i].ObjectType == SO_type) {
          SO = (SUMA_SurfaceObject *)dov[i].OP;
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Comparing \n\t:%s:to\n\t:%s:\n", \
-                  FuncName, idcode, SO->idcode_str);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+                     "%s: Comparing \n\t:%s:to\n\t:%s:\n", 
+                     FuncName, idcode, SO->idcode_str);
          if (strcmp(idcode, SO->idcode_str)== 0) {
             SUMA_RETURN (i);
          }
@@ -971,7 +973,8 @@ int SUMA_findSO_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    searches all SO_type DO objects for idcode
    
    \param idcode (char *) idcode of SO you are searching for
-   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, typically SUMAg_DOv
+   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, 
+                         typically SUMAg_DOv
    \param N_dov (int) number of DOs in dov
    \return SO (SUMA_SurfaceObject *) pointer of SO with matching idcode 
        NULL if not found

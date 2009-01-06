@@ -191,7 +191,8 @@ char *SUMA_NI_AttrOfNamedElement(NI_group *ngr, char *elname, char *attrname)
    SUMA_ENTRY;
    
    if (!ngr || !elname || !attrname) { 
-      SUMA_S_Err("NULL input "); 
+      SUMA_S_Err("NULL input");
+      fprintf(SUMA_STDERR,"%s: %p %p %p\n", FuncName, ngr, elname, attrname); 
       SUMA_RETURN(NULL); 
    }
    nel = SUMA_FindNgrNamedElement(ngr, elname);

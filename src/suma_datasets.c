@@ -10467,9 +10467,8 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
             NewName->Ext[i-iExt] = FileName[i];
          NewName->Ext[i-iExt] = '\0';
       } else {
-         NewName->FileName_NoExt = (char *)SUMA_malloc(sizeof(char));
+         NewName->FileName_NoExt = SUMA_copy_string(NewName->FileName);
          NewName->Ext = (char *)SUMA_malloc(sizeof(char));
-         NewName->FileName_NoExt[0] = '\0';
          NewName->Ext[0] = '\0';
       }
       
@@ -10557,6 +10556,104 @@ SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName, char *ucwd)
 	SUMA_RETURN (NewName);
 }/*SUMA_ParseFname*/
 
+/*!
+   \brief Lazy function calls to get at various parts of a file name without the
+          pains of freeing and allocating. Do NOT free the returned string 
+          
+   Valid options for sel:
+      "pa": path
+      "Pa": Absolute path
+      "e": Extension
+      "fne": filename without path and without extension
+      "f": filename without path
+      "F": filename with path
+      
+   Note that the function can leak ONE allocated and filed SUMA_PARSED_NAME in
+   a program's life cycle, unless one calls  SUMA_FnameGet(NULL, NULL) at the end
+   
+   WARNING: You can't use this function more than MAX_NUM_STR_FG times as  
+            argument to a *printf command. Otherwise, you'll end up with the  
+            repeated strings for call numbers that exceed MAX_NUM_STR_FG!
+*/
+#define MAX_NUM_STR_FG 10
+char *SUMA_FnameGet(char *Fname, char *sel, char *cccwd)
+{
+   static char FuncName[]={"SUMA_FnameGet"};
+   static char str[MAX_NUM_STR_FG]
+                  [SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+20]={""};
+   static char lastid[SUMA_IDCODE_LENGTH]={""};
+   char *currid=NULL;
+   static int istr=-1;
+   static SUMA_PARSED_NAME *ParsedFname=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   istr = (istr+1) % 10;
+   str[istr][0] = '\0';
+    
+   if (!Fname) {
+      /* cleanup */
+      if (ParsedFname) SUMA_Free_Parsed_Name(ParsedFname); ParsedFname = NULL;
+      SUMA_RETURN(str[istr]);
+   }
+   if (!sel) {
+      SUMA_S_Err("no selection"); 
+      SUMA_RETURN(str[istr]);
+   }   
+   
+
+   /* is this a new name?*/
+   if (!lastid[0]) { /* a fresh start, ParsedFname should be NULL */
+      if (ParsedFname) {
+         SUMA_S_Err("Oh boy oh boy, that's not good!"); 
+         SUMA_RETURN(str[istr]);
+      }
+      if (!(ParsedFname = SUMA_ParseFname(Fname, cccwd))) 
+         SUMA_RETURN(str[istr]);
+      currid = UNIQ_hashcode(Fname);
+      strcpy (lastid, currid);   /* store id */
+      free(currid); currid = NULL;
+   } else {
+      currid = UNIQ_hashcode(Fname);
+      if (strcmp(currid,lastid)) { /* different name */
+         if (ParsedFname) SUMA_Free_Parsed_Name(ParsedFname);  /* free the old */
+         if (!(ParsedFname = SUMA_ParseFname(Fname, cccwd))) 
+            SUMA_RETURN(str[istr]);
+         strcpy (lastid, currid);   /* store id */
+      } else { /* same name, reuse old stuff */
+         free(currid); currid = NULL;
+      }
+   }
+   /* Now that you have the parsed name, return what user wants */
+   if       (sel[0] == 'p' && sel[1] == 'a') 
+      strcpy (str[istr], ParsedFname->Path);
+   else if  (sel[0] == 'P' && sel[1] == 'a') 
+      strcpy (str[istr], ParsedFname->AbsPath); 
+   else if  (sel[0] == 'f' && sel[1] == '\0')
+      strcpy (str[istr], ParsedFname->FileName);
+   else if  (sel[0] == 'F' && sel[1] == '\0')
+      strcpy (str[istr], ParsedFname->FullName);
+   else if  (sel[0] == 'e' && sel[1] == '\0')
+      strcpy (str[istr], ParsedFname->Ext); 
+   else if  (sel[0] == 'f' && sel[1] == 'n' && sel[2] == 'e' )
+      strcpy (str[istr], ParsedFname->FileName_NoExt); 
+   else {
+      SUMA_S_Err("Selection not understood");
+   }
+
+   if (LocalHead) {
+      SUMA_ShowParsedFname(ParsedFname, NULL);
+      fprintf(SUMA_STDERR,
+            "++   %s\n"
+            "for >>%s<<\n"
+            "sel >>%s<<\n"
+            "ret.>>%s<<\n",
+            FuncName, Fname, sel, str[istr]);
+   }
+   
+   SUMA_RETURN(str[istr]);
+}
 
 /*!
    \brief ans = SUMA_isExtension(filename, ext);
@@ -10665,7 +10762,10 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
       NoMatch = NOPE;
       i = 0;
       do {
-         if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing %c %c\n", FuncName, filename[ifile+i], ext[i]);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s: Comparing %c %c\n", 
+                     FuncName, filename[ifile+i], ext[i]);
          if (filename[ifile+i] != ext[i]) NoMatch = YUP;
          ++i;
       }  while (ifile < nfilename && i < next && !NoMatch);

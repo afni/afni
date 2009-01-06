@@ -15,14 +15,17 @@ void usage_SUMA_inspec()
    char * s = NULL;
       
    printf ( "\n"
-            "Usage: inspec <-spec specfile> [-detail d] [-h/-help]\n"
+            "Usage: inspec <-spec specfile> \n"
+            "              [-detail d] [-prefix newspecname] [-h/-help]\n"
             "Outputs information found from specfile.\n" 
             "    -spec specfile: specfile to be read\n"
+            "    -prefix newspecname: rewrite spec file.\n"
             "    -detail d: level of output detail default is 1.\n"
             "               Available levels are 1, 2 and 3.\n"
             "    -h or -help: This message here.\n" );
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-   printf ( "      Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n     Dec 2 03\n"
+   printf ( "      Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n"
+            "     Dec 2 03\n"
             "\n");   
    return;
 }
@@ -30,7 +33,7 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"inspec"};
    int detail, kar;
-   char *spec_name;
+   char *spec_name=NULL, *outname=NULL;
    SUMA_SurfSpecFile Spec;   
    SUMA_Boolean brk;
    
@@ -39,7 +42,8 @@ int main (int argc,char *argv[])
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		fprintf(SUMA_STDERR,
+         "Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
 		exit(1);
 	}
    
@@ -59,7 +63,16 @@ int main (int argc,char *argv[])
 			 usage_SUMA_inspec();
           exit (1);
 		}
-		if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
+		if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -prefix ");
+				exit (1);
+			}
+         outname = SUMA_Extension(argv[kar], ".spec", NOPE);
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -spec ");
@@ -67,7 +80,8 @@ int main (int argc,char *argv[])
 			}
          spec_name = argv[kar];
 			if (!SUMA_filexists(spec_name)) {
-            fprintf (SUMA_STDERR, "File %s not found or not readable.\n", spec_name);
+            fprintf (SUMA_STDERR, 
+                     "File %s not found or not readable.\n", spec_name);
             exit(1);
          }
 			brk = YUP;
@@ -87,7 +101,9 @@ int main (int argc,char *argv[])
 		}
       
       if (!brk) {
-			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -112,6 +128,10 @@ int main (int argc,char *argv[])
       exit(1);
    }
    
+   if (outname) {
+      SUMA_Write_SpecFile(&Spec, outname, NULL, NULL);
+      SUMA_free(outname); outname = NULL;
+   }
    if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Error freeing"); exit(1); }
    
    if (!SUMA_Free_CommonFields(SUMAg_CF)) {
