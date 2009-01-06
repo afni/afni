@@ -393,6 +393,11 @@ ENTRY("GA_interp_varp1") ;
 #define ww(x) ( 0.5f+0.5f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
 
 /*---------------------------------------------------------------------------*/
+#define USE_5P 1  /* use product-weighted sinc (5p),
+                     rather than spherical weighted (5s), which is very slow */
+
+#ifndef USE_5P    /* USE_5P is off */
+/*---------------------------------------------------------------------------*/
 /*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
 
 void GA_interp_wsinc5s( MRI_IMAGE *fim ,
@@ -464,6 +469,8 @@ ENTRY("GA_interp_wsinc5s") ;
 }
 
 /*---------------------------------------------------------------------------*/
+#else /* USE_5P is on */
+
 /*! Interpolate an image at npp (index) points, using weighted sinc (slow!). */
 
 void GA_interp_wsinc5p( MRI_IMAGE *fim ,
@@ -555,11 +562,14 @@ ENTRY("GA_interp_wsinc5p") ;
 
    EXRETURN ;
 }
+#endif /* USE_5P */
+
+#undef  WCUT
+#undef  WRAD
+#undef  IRAD
+#undef  PIF
 
 /*---------------------------------------------------------------------------*/
-
-#define USE_5P 1  /* use product-weighted sinc (5p),
-                     rather than spherical weighted (5s), which is very slow */
 
 void GA_interp_wsinc5( MRI_IMAGE *fim ,
                        int npp, float *ip, float *jp, float *kp, float *vv )
