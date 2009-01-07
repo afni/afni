@@ -484,12 +484,27 @@ ENTRY("new_MCW_grapher") ;
 
    /*** top of menu = a label to click on that does nothing at all ***/
 
+#ifdef USING_LESSTIF     
+               /* Using  xmLabelWidgetClass causes X11 to hang until
+               afni is terminated. The hangup occurs after an option
+               button, like:   
+                   ignore --> |-3|
+               is set and then -- Cancel -- is clicked upon. 
+                           LessTif patrole      Jan. 07 09  */                                   
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , grapher->opt_menu ,
+               LABEL_ARG("--- Cancel ---") ,
+               XmNrecomputeSize , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+#else
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , grapher->opt_menu ,
                LABEL_ARG("--- Cancel ---") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
+#endif
 
    MENU_SLINE(opt_menu) ;
 
@@ -5378,13 +5393,27 @@ ENTRY("AFNI_new_fim_menu") ;
  } while(0)
 
    /*** top of menu = a label to click on that does nothing at all ***/
-
+#ifdef USING_LESSTIF     
+               /* Using  xmLabelWidgetClass causes X11 to hang until
+               afni is terminated. The hangup occurs after an option
+               button, like:   
+                   ignore --> |-3|
+               is set and then -- Cancel -- is clicked upon. 
+                           LessTif patrole      Jan. 07 09  */                                   
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , fmenu->fim_menu ,
+               LABEL_ARG("--- Cancel ---") ,
+               XmNrecomputeSize , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+#else
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , fmenu->fim_menu ,
                LABEL_ARG("--- Cancel ---") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
+#endif
 
    MENU_SLINE(fim_menu) ;
 
