@@ -489,8 +489,14 @@ ENTRY("new_MCW_grapher") ;
                afni is terminated. The hangup occurs after an option
                button, like:   
                    ignore --> |-3|
-               is set and then -- Cancel -- is clicked upon. 
-                           LessTif patrole      Jan. 07 09  */                                   
+               is set and then -- Cancel -- is clicked upon.
+               Also, it seems that the hangup does not occur unless we have:
+                  an 'option menu' inside a 'pulldown menu' which is in 
+                  another  'pulldown menu' !
+               
+               So, not all Cancel LabelWidgets will be modified.
+               
+                           LessTif patrol      Jan. 07 09  */                                   
    (void) XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , grapher->opt_menu ,
                LABEL_ARG("--- Cancel ---") ,
@@ -5394,12 +5400,12 @@ ENTRY("AFNI_new_fim_menu") ;
 
    /*** top of menu = a label to click on that does nothing at all ***/
 #ifdef USING_LESSTIF     
+               
                /* Using  xmLabelWidgetClass causes X11 to hang until
-               afni is terminated. The hangup occurs after an option
-               button, like:   
-                   ignore --> |-3|
-               is set and then -- Cancel -- is clicked upon. 
-                           LessTif patrole      Jan. 07 09  */                                   
+               afni is terminated. For details, see preceding comment.
+               for another --- Cancel --- button.
+               
+                           LessTif patrol      Jan. 07 09  */                                   
    (void) XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , fmenu->fim_menu ,
                LABEL_ARG("--- Cancel ---") ,
