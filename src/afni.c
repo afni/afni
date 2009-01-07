@@ -449,7 +449,7 @@ void AFNI_syntax(void)
     "  * http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
     "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
     "\n"
-    "POSTERS on varied subject from the AFNI development group can be found at\n"
+    "POSTERS on varied subjects from the AFNI development group can be found at\n"
     "  * http://afni.nimh.nih.gov/sscc/posters\n"
    ) ;
 
@@ -562,7 +562,7 @@ ENTRY("AFNI_parse_args") ;
 #if MMAP_THRESHOLD > 0
    GLOBAL_argopt.auto_purge    = INIT_purge ;
 #else
-   GLOBAL_argopt.auto_purge    = True ;
+   GLOBAL_argopt.auto_purge    = (Boolean)!AFNI_noenv("AFNI_AUTOPURGE") ;
 #endif
    GLOBAL_argopt.resize_images = False ;       /* False means all images must match */
    GLOBAL_argopt.keep_logo     = False ;       /* For making pretty pictures? */
