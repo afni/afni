@@ -516,6 +516,7 @@ ENTRY("GA_interp_wsinc5p") ;
      }
      wfac = wsum ;
 
+  /* OMP doesn't work in my gcc-4.2 test for some reason! */
 #pragma omp parallel for shared(fjk,iqq,wt,far) private(jj,kk,qq,sum,farjk,jq,kq,iq,iqp)
      for( jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
        jq = jy+jj ; CLIP(jq,ny1) ;
@@ -527,11 +528,17 @@ ENTRY("GA_interp_wsinc5p") ;
          }
 #else
          farjk = FARJK(jq,kq) ;
+#if IRAD != 5
          for( sum=0.0f,qq=-IRAD+1 ; qq <  IRAD ; qq+=2 ){  /* unrolled by 2 */
            iq = iqq[qq+(IRAD-1)] ; iqp = iqq[qq+IRAD] ;
            sum += farjk[iq]  * wtt[qq+(IRAD-1)]
                  +farjk[iqp] * wtt[qq+ IRAD   ] ;
          }
+#else
+# define FW(i) farjk[iqq[i]]*wtt[i]
+         sum = FW(0)+FW(1)+FW(2)+FW(3)+FW(4)+FW(5)+FW(6)+FW(7)+FW(8)+FW(9) ;
+# undef  FW
+#endif
 #endif
          fjk[jj+(IRAD-1)][kk+(IRAD-1)] = sum ;
        }
