@@ -560,13 +560,27 @@ ENTRY("new_MCW_grapher") ;
         sprintf( toplabel , "--- %s ---" , grapher->status->namecode ) ;
         xstr = XmStringCreateLtoR( toplabel , XmFONTLIST_DEFAULT_TAG ) ;
 
+#ifdef USING_LESSTIF     
+               
+               /* Using  xmLabelWidgetClass causes X11 to hang until
+               afni is terminated. For details, see preceding comment.
+               for another --- Cancel --- button.
+               
+                           LessTif patrol      Jan. 07 09  */                                   
+        (void) XtVaCreateManagedWidget(
+                 "dialog" , xmPushButtonWidgetClass , grapher->opt_colors_menu ,
+                    XmNlabelString , xstr ,
+                    XmNrecomputeSize , False ,
+                    XmNinitialResourcesPersistent , False ,
+                 NULL ) ;
+#else
         (void) XtVaCreateManagedWidget(
                  "dialog" , xmLabelWidgetClass , grapher->opt_colors_menu ,
                     XmNlabelString , xstr ,
                     XmNrecomputeSize , False ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
-
+#endif
         XmStringFree( xstr ) ;
 
         MENU_DLINE(opt_colors_menu) ;
