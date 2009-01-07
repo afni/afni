@@ -368,9 +368,9 @@ void AFNI_syntax(void)
    ) ;
 
    printf("\n"
-    "--------------------\n"
-    "Educational Material\n"
-    "--------------------\n"
+    "--------------------------------------\n"
+    "Educational and Informational Material\n"
+    "--------------------------------------\n"
     "The presentations used in our AFNI teaching classes at the NIH can\n"
     "all be found at\n"
     " http://afni.nimh.nih.gov/pub/dist/edu/latest/      (PowerPoint directories)\n"
@@ -378,14 +378,16 @@ void AFNI_syntax(void)
     "And for the interactive AFNI program in particular, see\n"
     " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni01_intro/afni01_intro.pdf\n"
     " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni03_interactive/afni03_interactive.pdf\n"
-    "For help with AFNI problems, please use the AFNI Message Board:\n"
+    "For help with AFNI problems, and to keep up with AFNI news, please use the\n"
+    "AFNI Message Board:\n"
     " http://afni.nimh.nih.gov/afni/community/board/\n"
-    "If an AFNI program crashes, please include the EXACT error messages\n"
-    "it outputs in your message board posting, as well as any other\n"
-    "information needed to reproduce the problem.\n"
+    "If an AFNI program crashes, please include the EXACT error messages it outputs\n"
+    "in your message board posting, as well as any other information needed to\n"
+    "reproduce the problem.  Just saying 'program X crashed, what's the issue?'\n"
+    "is not helpful!\n"
     "\n"
     "For some fun, see this image:\n"
-    "http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
+    " http://afni.nimh.nih.gov/pub/dist/doc/program_help/images/afni_splashes.gif\n"
    ) ;
 
    printf(
@@ -447,6 +449,7 @@ void AFNI_syntax(void)
     "  * http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
     "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
     "\n"
+    "-------\n"
     "POSTERS on varied subject from the AFNI development group can be found at\n"
     "  * http://afni.nimh.nih.gov/sscc/posters\n"
    ) ;
