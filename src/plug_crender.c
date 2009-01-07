@@ -5432,6 +5432,10 @@ ENTRY( "RCREND_func_widgets" );
    XtVaSetValues( wfunc_thr_scale , XmNuserData , (XtPointer) sel_height , NULL ) ;
 #endif
 
+#ifdef USING_LESSTIF    /* 7 Jan 2009 [lesstif patrol] */
+   XtVaSetValues( wfunc_thr_scale , XmNscaleWidth,24 , NULL ) ;
+#endif
+
    XtAddCallback( wfunc_thr_scale , XmNvalueChangedCallback ,
                   RCREND_thr_scale_CB , NULL ) ;
 
