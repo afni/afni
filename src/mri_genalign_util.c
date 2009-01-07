@@ -70,6 +70,9 @@ MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 #undef  FAR
 #define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]
 
+#undef  FARJK
+#define FARJK(j,k) (far+(j)*nx+(k)*nxy)
+
 /* clip value mm to range 0..nn */
 
 #undef  CLIP
@@ -380,11 +383,11 @@ ENTRY("GA_interp_varp1") ;
 #undef  PIF
 #define PIF 3.1415927f /* PI in float */
 
-/* sinc function = sin(PI*x)/(PI*x) */
+/* sinc function = sin(PI*x)/(PI*x) [N.B.: x will always be >= 0] */
 
 #undef  sinc
-#define sinc(x) ( (fabsf(x)>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
-                                   : 1.0f - 1.6449341f*(x)*(x) )
+#define sinc(x) ( ((x)>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
+                              : 1.0f - 1.6449341f*(x)*(x) )
 
 /* Weight (taper) function, declining from ww(WCUT)=1 to ww(1)=0 */
 /* Note that the input to ww will always be between WCUT and 1. */
@@ -393,6 +396,8 @@ ENTRY("GA_interp_varp1") ;
 #define ww(x) ( 0.5f+0.5f*cosf(PIF*((x)-WCUT)/(1.0f-WCUT)) )
 
 /*---------------------------------------------------------------------------*/
+#define UNROLL    /* unroll some loops */
+
 #define USE_5P 1  /* use product-weighted sinc (5p),
                      rather than spherical weighted (5s), which is very slow */
 
@@ -446,9 +451,9 @@ ENTRY("GA_interp_wsinc5s") ;
      /*- compute sinc at all points plus/minus 5 indexes from current locale -*/
 
      for( qq=-IRAD ; qq <= IRAD ; qq++ ){
-       xw = fx - qq ; xsin[qq+IRAD] = sinc(xw) ;
-       yw = fy - qq ; ysin[qq+IRAD] = sinc(yw) ;
-       zw = fz - qq ; zsin[qq+IRAD] = sinc(zw) ;
+       xw = fabsf(fx - qq) ; xsin[qq+IRAD] = sinc(xw) ;
+       yw = fabsf(fy - qq) ; ysin[qq+IRAD] = sinc(yw) ;
+       zw = fabsf(fz - qq) ; zsin[qq+IRAD] = sinc(zw) ;
      }
 
      for( wsum=sum=0.0f,qq=0 ; qq < nmask ; qq++ ){
@@ -479,11 +484,11 @@ void GA_interp_wsinc5p( MRI_IMAGE *fim ,
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float fx,fy,fz ;
-   float *far = MRI_FLOAT_PTR(fim) ;
+   float *far = MRI_FLOAT_PTR(fim) , *farjk ;
    int nx1=nx-1,ny1=ny-1,nz1=nz-1, ix,jy,kz ;
 
-   float xw,yw,zw,rr , sum,wsum,wt ;
-   int   iq,jq,kq , qq,jj,kk , ddi,ddj,ddk ;
+   float xw,yw,zw,rr , sum,wsum,wfac,wt ;
+   int   iq,jq,kq,iqp , qq,jj,kk , ddi,ddj,ddk ;
    float xsin[2*IRAD] , ysin[2*IRAD]        , zsin[2*IRAD] ;
    float wtt[2*IRAD]  , fjk[2*IRAD][2*IRAD] , fk[2*IRAD]   ;
    int   iqq[2*IRAD]  ;
@@ -504,22 +509,29 @@ ENTRY("GA_interp_wsinc5p") ;
      /*- x interpolations -*/
 
      for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-       xw = fx - qq ;
-       wt = sinc(xw) ;
-       xw = fabsf(xw) / WRAD ; if( xw > WCUT ) wt *= ww(xw) ;
+       xw  = fabsf(fx - qq) ; wt = sinc(xw) ;
+       xw /= WRAD ; if( xw > WCUT ) wt *= ww(xw) ;
        wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
        iq = ix+qq ; CLIP(iq,nx1) ; iqq[qq+(IRAD-1)] = iq ;
      }
-     wsum = 1.0f / wsum ;
-     for( qq=-IRAD+1 ; qq <= IRAD ; qq++ ) wtt[qq+(IRAD-1)] *= wsum ;
+     wfac = wsum ;
 
      for( jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
        jq = jy+jj ; CLIP(jq,ny1) ;
        for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
          kq = kz+kk ; CLIP(kq,nz1) ;
+#ifndef UNROLL
          for( sum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
            iq = iqq[qq+(IRAD-1)] ; sum += FAR(iq,jq,kq) * wtt[qq+(IRAD-1)] ;
          }
+#else
+         farjk = FARJK(jq,kq) ;
+         for( sum=0.0f,qq=-IRAD+1 ; qq <  IRAD ; qq+=2 ){  /* unrolled by 2 */
+           iq = iqq[qq+(IRAD-1)] ; iqp = iqq[qq+IRAD] ;
+           sum += farjk[iq]  * wtt[qq+(IRAD-1)]
+                 +farjk[iqp] * wtt[qq+ IRAD   ] ;
+         }
+#endif
          fjk[jj+(IRAD-1)][kk+(IRAD-1)] = sum ;
        }
      }
@@ -527,37 +539,47 @@ ENTRY("GA_interp_wsinc5p") ;
      /*- y interpolations -*/
 
      for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-       yw = fy - qq ;
-       wt = sinc(yw) ;
-       yw = fabsf(yw) / WRAD ; if( yw > WCUT ) wt *= ww(yw) ;
+       yw  = fabsf(fy - qq) ; wt = sinc(yw) ;
+       yw /= WRAD ; if( yw > WCUT ) wt *= ww(yw) ;
        wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
      }
-     wsum = 1.0f / wsum ;
-     for( qq=-IRAD+1 ; qq <= IRAD ; qq++ ) wtt[qq+(IRAD-1)] *= wsum ;
+     wfac *= wsum ;
 
      for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
+#ifndef UNROLL
        for( sum=0.0f,jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
          sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)] ;
        }
+#else
+       for( sum=0.0f,jj=-IRAD+1 ; jj <  IRAD ; jj+=2 ){  /* unrolled by 2 */
+         sum += wtt[jj+(IRAD-1)]*fjk[jj+(IRAD-1)][kk+(IRAD-1)]
+               +wtt[jj+ IRAD   ]*fjk[jj+ IRAD   ][kk+(IRAD-1)] ;
+       }
+#endif
        fk[kk+(IRAD-1)] = sum ;
      }
 
      /*- z interpolation -*/
 
      for( wsum=0.0f,qq=-IRAD+1 ; qq <= IRAD ; qq++ ){
-       zw = fz - qq ;
-       wt = sinc(zw) ;
-       zw = fabsf(zw) / WRAD ; if( zw > WCUT ) wt *= ww(zw) ;
+       zw  = fabsf(fz - qq) ; wt = sinc(zw) ;
+       zw /= WRAD ; if( zw > WCUT ) wt *= ww(zw) ;
        wtt[qq+(IRAD-1)] = wt ; wsum += wt ;
      }
-     wsum = 1.0f / wsum ;
-     for( qq=-IRAD+1 ; qq <= IRAD ; qq++ ) wtt[qq+(IRAD-1)] *= wsum ;
+     wfac *= wsum ;
 
+#ifndef UNROLL
      for( sum=0.0f,kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
        sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)] ;
      }
+#else
+     for( sum=0.0f,kk=-IRAD+1 ; kk <  IRAD ; kk+=2 ){  /* unrolled by 2 */
+       sum += wtt[kk+(IRAD-1)] * fk[kk+(IRAD-1)]
+             +wtt[kk+ IRAD   ] * fk[kk+ IRAD   ] ;
+     }
+#endif
 
-     vv[pp] = sum ;
+     vv[pp] = sum / wfac ;
    }
 
    EXRETURN ;
