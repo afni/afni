@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7, JAN, 2009, RCR, "plug_crender", MICRO, TYPE_MODIFY,
+   "if lesstif, set threshold slider bar width",
+   NULL
+ } ,
+
  { 2, JAN, 2009, RCR, "Makefile", MICRO, TYPE_MODIFY,
    "do not build balloon in Makefile.macosx_10.5_Intel_64 - libgsl is 32-bit",
    NULL
