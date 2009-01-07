@@ -516,6 +516,7 @@ ENTRY("GA_interp_wsinc5p") ;
      }
      wfac = wsum ;
 
+#pragma omp parallel for shared(fjk,iqq,wt,far) private(jj,kk,qq,sum,farjk,jq,kq,iq,iqp)
      for( jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
        jq = jy+jj ; CLIP(jq,ny1) ;
        for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
