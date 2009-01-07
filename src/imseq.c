@@ -10086,6 +10086,9 @@ ENTRY("ISQ_record_button") ;
 
    /*-- top of menu = a label to click on that does nothing at all --*/
 
+   /* This --- Cancel --- label does not cause the hangup, so it is
+   left alone. See related comments in afni_graph.c            
+                           LessTif patrol, Jan 07 09 */
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
    (void) XtVaCreateManagedWidget(
             "menu" , xmLabelWidgetClass , menu ,

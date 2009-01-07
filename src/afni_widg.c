@@ -2565,6 +2565,9 @@ STATUS("making func->rowcol") ;
                             XtListTail           /* last in queue */
                           ) ;
 
+   /* This --- Cancel --- label does not cause the hangup, so it is
+   left alone. See related comments in afni_graph.c            
+                           LessTif patrol, Jan 07 09 */
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , func->thr_menu ,
                LABEL_ARG("--- Cancel ---") ,
@@ -2579,7 +2582,8 @@ STATUS("making func->rowcol") ;
    func->thr_onoff_bbox = new_MCW_bbox( func->thr_menu ,
                                         1 , onofflabel ,
                                         MCW_BB_check , MCW_BB_noframe ,
-                                        AFNI_thronoff_change_CB , (XtPointer)im3d ) ;
+                                        AFNI_thronoff_change_CB , 
+                                        (XtPointer)im3d ) ;
    im3d->vinfo->thr_onoff = 1 ;
    MCW_set_bbox( func->thr_onoff_bbox , 1 ) ;
    MCW_reghint_children( func->thr_onoff_bbox->wrowcol ,
@@ -2841,6 +2845,9 @@ STATUS("making func->rowcol") ;
    allow_MCW_optmenu_popup(0) ;  /* 12 Dec 2001 */
 #endif
 
+   /* This --- Cancel --- label does not cause the hangup, so it is
+   left alone. See related comments in afni_graph.c            
+                           LessTif patrol, Jan 07 09 */
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , func->pbar_menu ,
                LABEL_ARG("--- Cancel ---") ,
@@ -5486,6 +5493,9 @@ ENTRY("AFNI_lock_button") ;
 
    /*** top of menu = a label to click on that does nothing at all ***/
 
+   /* This --- Cancel --- label does not cause the hangup, so it is
+   left alone. See related comments in afni_graph.c            
+                           LessTif patrol, Jan 07 09 */
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , menu ,
@@ -5691,6 +5701,9 @@ ENTRY("AFNI_misc_button") ;
 
    /*** top of menu = a label to click on that does nothing at all ***/
 
+   /* This --- Cancel --- label does not cause the hangup, so it is
+   left alone. See related comments in afni_graph.c            
+                           LessTif patrol, Jan 07 09 */
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , menu ,
