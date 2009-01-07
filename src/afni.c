@@ -449,7 +449,6 @@ void AFNI_syntax(void)
     "  * http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
     "  * http://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
     "\n"
-    "-------\n"
     "POSTERS on varied subject from the AFNI development group can be found at\n"
     "  * http://afni.nimh.nih.gov/sscc/posters\n"
    ) ;
