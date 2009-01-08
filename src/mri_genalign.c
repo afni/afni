@@ -54,7 +54,7 @@ static void myunif_reset(unsigned long long x){ MYx = x; return; }
 /* Max number of points to warp at a time */
 
 #undef  NPER
-#define NPER 4096
+#define NPER 131072
 
 /*--------------------------------------------------------------------*/
 /*! Interpolate target image to control points in base image space.
@@ -1559,15 +1559,16 @@ ENTRY("mri_genalign_scalar_ransetup") ;
            }
            memcpy( kpar[kk] , spar , sizeof(double)*nfr ) ;  /* save what */
            kval[kk] = val ;                              /* we just found */
-           if( verb && kk < 3 ) fprintf(stderr,(kk==0)?"*":".") ;
+           if( verb && kk < 4 ) fprintf(stderr,(kk==0)?"*":".") ;
            break ;
          }
        }
      }
    } /* end of initial scan; should have NKEEP best results in kpar & kval */
 
-   for( kk=0 ; kk < NKEEP ; kk++ )  /* make sure are in 0..1 range */
+   for( kk=0 ; kk < NKEEP ; kk++ ){  /* make sure are in 0..1 range */
      for( ii=0 ; ii < nfr ; ii++ ) kpar[kk][ii] = PRED01(kpar[kk][ii]) ;
+   }
 
    if( verb ){                    /* print table of results? */
      fprintf(stderr,"\n") ;
