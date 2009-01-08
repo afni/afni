@@ -14,6 +14,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #define MAXPAR   199
 #define PARC_FIX 1
 #define PARC_INI 2
@@ -1001,8 +1005,9 @@ int main( int argc , char *argv[] )
               "     ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai, RW Cox.\n"
               "       A new method for improving functional-to-structural\n"
               "       MRI alignment using local Pearson correlation.\n"
-              "       NeuroImage (in press).\n"
+              "       NeuroImage 44: 839-848, 2009.\n"
               "     http://dx.doi.org/10.1016/j.neuroimage.2008.09.037\n"
+              "     http://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
               "   The '-blok' option can be used to control the regions\n"
               "   (size and shape) used to compute the local correlations.\n");
        printf("\n") ;
@@ -1118,6 +1123,16 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dAllineate",argc,argv);
    PRINT_VERSION("3dAllineate"); AUTHOR("Emperor Zhark");
    THD_check_AFNI_version("3dAllineate");
+   (void)COX_clock_time() ;
+
+#ifdef USE_OMP
+#pragma omp parallel
+ {
+  if( omp_get_thread_num() == 0 )
+    INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
+ }
+#endif
+ 
 
    /**--- process command line options ---**/
 
@@ -4148,7 +4163,9 @@ DUMP_MAT44("aff12_ijk",qmat) ;
    }
    if( matsave != NULL ) free((void *)matsave) ;
 
-   if( verb ) INFO_message("total CPU time = %.1f sec\n",COX_cpu_time()) ;
+   if( verb )
+     INFO_message("total CPU time = %.1f sec  Elapsed = %.1f\n",
+                  COX_cpu_time() , COX_clock_time() ) ;
    MEMORY_CHECK("end of program (after final cleanup)") ;
    if( verb )
     INFO_message("###########################################################");

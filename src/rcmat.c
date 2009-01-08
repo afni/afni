@@ -128,8 +128,8 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
        vv[ii] = vv[ii] / rc[ii][0] ; continue ;
      }
      jbot = ii - len[ii] + 1 ; rii = rc[ii] - jbot ;
-#undef UNROLL  /* unrolling doesn't seem to help */
-#ifdef UNROLL
+#undef  UNROLL  /* unrolling this inner loop doesn't seem to help */
+#ifdef  UNROLL
      switch( len[ii] ){
        default:
 #endif

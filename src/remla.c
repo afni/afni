@@ -2,6 +2,10 @@
 
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #undef  MTYPE
 #undef  MPAIR
 #ifndef FLOATIZE
@@ -13,6 +17,9 @@
 # define MTYPE float
 # define MPAIR float_pair
 #endif
+
+#undef  BIGVAL
+#define BIGVAL 1.e+38
 
 /*****
  Struct to hold a random sparse rectangular matrix.
@@ -531,6 +538,8 @@ reml_setup * REML_setup_one( matrix *X , int *tau , MTYPE rho , MTYPE bb )
 static vector *bb1=NULL,*bb2,*bb3,*bb4,*bb5,*bb6,*bb7 ;
 static MTYPE rsumq=0.0 ;  /* sum of squares of residual */
 
+#pragma omp threadprivate(bb1,bb2,bb3,bb4,bb5,bb6,bb7,rsumq)
+
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
     given the case's setup and the data and the regression matrix X. */
@@ -906,25 +915,7 @@ static int    REML_status   = -1 ;
 static MTYPE  REML_best_rho = 0.0 ;
 static MTYPE  REML_best_lam = 0.0 ;
 static MTYPE  REML_best_bb  = 0.0 ;
-static MTYPE  REML_best_ssq = 0.0 ;
 static int    REML_best_ind = 0   ;
-
-static vector REML_best_prewhitened_data_vector ;     /* in bb1 */
-static vector REML_best_beta_vector ;                 /* in bb5 */
-static vector REML_best_fitts_vector ;                /* in bb6 */
-static vector REML_best_prewhitened_fitts_vector ;    /* in bb7 */
-static vector REML_best_prewhitened_errts_vector ;    /* in bb2 */
-
-static MTYPE  REML_olsq_rho = 0.0 ;
-static MTYPE  REML_olsq_lam = 0.0 ;
-static MTYPE  REML_olsq_bb  = 0.0 ;
-static MTYPE  REML_olsq_ssq = 0.0 ;
-
-static vector REML_olsq_prewhitened_data_vector ;
-static vector REML_olsq_beta_vector ;
-static vector REML_olsq_fitts_vector ;
-static vector REML_olsq_prewhitened_fitts_vector ;
-static vector REML_olsq_prewhitened_errts_vector ;
 
 /*--------------------------------------------------------------------------*/
 /* Inputs: y=data vector, rrcol=collection of REML setup stuff.
@@ -936,28 +927,15 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
    MTYPE rbest , rval ;
    int   na,nb , pna,pnb , ltop ;
    int   nab, lev, dab,dab2, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
+   MTYPE *rvab ;
 
 ENTRY("REML_find_best_case") ;
 
    if( y == NULL ){  /* memory cleanup */
-     vector_destroy( &REML_best_prewhitened_data_vector ) ;
-     vector_destroy( &REML_best_beta_vector ) ;
-     vector_destroy( &REML_best_fitts_vector ) ;
-     vector_destroy( &REML_best_prewhitened_fitts_vector ) ;
-     vector_destroy( &REML_best_prewhitened_errts_vector ) ;
      REML_func( NULL,NULL,NULL,NULL ) ;
      REML_status = -1 ; RETURN(-666.0) ;
    }
 
-#if 0
-   if( REML_status == -1 ){ /* memory setup */
-     vector_initialize( &REML_best_prewhitened_data_vector ) ;
-     vector_initialize( &REML_best_beta_vector ) ;
-     vector_initialize( &REML_best_fitts_vector ) ;
-     vector_initialize( &REML_best_prewhitened_fitts_vector ) ;
-     vector_initialize( &REML_best_prewhitened_errts_vector ) ;
-   }
-#endif
    REML_status = 0 ;
 
    /* copy (a,b) grid parameters to local variables */
@@ -971,65 +949,53 @@ ENTRY("REML_find_best_case") ;
    jbest = kbest / (1+na) ;
    ibest = kbest % (1+na) ;
    rbest = REML_func( y , rrcol->rs[kbest] , rrcol->X,rrcol->Xs ) ;
-#if 0
-   vector_equate( *bb1 , &REML_olsq_prewhitened_data_vector ) ;
-   vector_equate( *bb2 , &REML_olsq_prewhitened_errts_vector ) ;
-   vector_equate( *bb5 , &REML_olsq_beta_vector ) ;
-   vector_equate( *bb6 , &REML_olsq_fitts_vector ) ;
-   vector_equate( *bb7 , &REML_olsq_prewhitened_fitts_vector ) ;
-#endif
-   REML_olsq_ssq = rsumq ;
 
    /** do power-of-2 descent through the (a,b) grid to find the best pair **/
+
+   rvab = (MTYPE *)malloc(sizeof(MTYPE)*(na+1)*(nb+1)) ;
+   for( kk=0 ; kk < (na+1)*(nb+1) ; kk++ ) rvab[kk] = BIGVAL ;
+   rvab[kbest] = rbest ;
 
    nab  = MIN(pna,pnb)  ; ltop = nab-2 ;
    ibot = 0 ; itop = na ;                 /* scan from ibot..itop, jbot..jtop */
    jbot = 0 ; jtop = nb ;
    for( lev=ltop ; lev >= 0 ; lev-- ){     /* lev = power-of-2 grid scan size */
      dab = 1 << lev ; dab2 = 2*dab ;       /* dab = 2^lev = step size in scan */
+
+#pragma omp parallel copyin(bb1,rsumq)
+   { int jb,ia,kk ; MTYPE rval ;
+#pragma omp for
      for( jb=jbot ; jb <= jtop ; jb+=dab ){
        for( ia=ibot ; ia <= itop ; ia+=dab ){
          if( lev < ltop && jb%dab2 == 0 && ia%dab2 == 0 ) continue; /* did it */
-         kk = ia + jb*(na+1) ;
+         kk = ia + jb*(na+1) ; if( rvab[kk] < BIGVAL )    continue; /* did it */
          if( kk == rrcol->izero ) continue ;      /* OLSQ => did this already */
          if( rrcol->rs[kk] == NULL ) continue ;         /* invalid grid point */
          rval = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
+         rvab[kk] = rval ;
+     }}
+   } /* end OpenMP */
+
+     for( jb=jbot ; jb <= jtop ; jb+=dab ){
+       for( ia=ibot ; ia <= itop ; ia+=dab ){
+         kk = ia + jb*(na+1) ; rval = rvab[kk] ;
          if( rval < rbest ){                          /* the best so far seen */
            rbest = rval ; kbest = kk ; ibest = ia ; jbest = jb ;
-#if 0
-           vector_equate( *bb1 , &REML_best_prewhitened_data_vector ) ;
-           vector_equate( *bb2 , &REML_best_prewhitened_errts_vector ) ;
-           vector_equate( *bb5 , &REML_best_beta_vector ) ;
-           vector_equate( *bb6 , &REML_best_fitts_vector ) ;
-           vector_equate( *bb7 , &REML_best_prewhitened_fitts_vector ) ;
-#endif
-           REML_best_ssq = rsumq ;
          }
-       }
-     } /* end of scan with step size dab */
+     }}
+
      if( lev > 0 ){                    /* set up to scan near the best so far */
        ibot = ibest-dab ; if( ibot < 0  ) ibot = 0  ;
        itop = ibest+dab ; if( itop > na ) itop = na ;
        jbot = jbest-dab ; if( jbot < 0  ) jbot = 0  ;
        jtop = jbest+dab ; if( jtop > nb ) jtop = nb ;
      }
+
    } /* end of scan descent through different levels */
 
-   /*** deal with the winner ***/
+   free(rvab) ;
 
-   if( kbest == rrcol->izero ){                 /** OLSQ won! **/
-     REML_best_ssq = REML_olsq_ssq ;
-#if 0
-     vector_equate( REML_olsq_prewhitened_data_vector,
-                   &REML_best_prewhitened_data_vector ) ;
-     vector_equate( REML_olsq_prewhitened_errts_vector,
-                   &REML_best_prewhitened_errts_vector ) ;
-     vector_equate( REML_olsq_beta_vector , &REML_best_beta_vector ) ;
-     vector_equate( REML_olsq_fitts_vector, &REML_best_fitts_vector ) ;
-     vector_equate( REML_olsq_prewhitened_fitts_vector,
-                   &REML_best_prewhitened_fitts_vector ) ;
-#endif
-   }
+   /*** deal with the winner ***/
 
    REML_best_rho = rrcol->rs[kbest]->rho ;
    REML_best_lam = rrcol->rs[kbest]->lam ;
