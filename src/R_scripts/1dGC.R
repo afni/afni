@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.1.0,  Nov. 17, 2008")
+print("Version 1.0.0,  Jan. 8, 2008")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -541,6 +541,10 @@ print("It's suggested to run a separate group analysis for each lag.")
 doneGrp <- 1
 while (doneGrp) {
 
+nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
+if (nGrp==1) {   #one-sample t
+
+
 nSubjs <- as.integer(readline("Number of subjects (e.g., 12)? "))     # number of subjects
 #gfn <- vector('list', nSubjs)
 pathList <- vector('list', nSubjs)
@@ -570,12 +574,14 @@ pthType <- as.integer(readline("Input type (0: path coefficients; 1: path t valu
 #grpP <- matrix(grpMat[,,2], nrow=nROIsG, ncol=nROIsG, dimnames = list(roiNames, roiNames))
 
 # Instead of looping, we can also use the following aggregation approach
-zList <- lapply(pathList, fisherz)  # sapply(pathList, fisherz, simplify = FALSE)
+# zList <- lapply(pathList, fisherz)  # sapply(pathList, fisherz, simplify = FALSE)
 
 if (pthType==0) 
    zList <- lapply(pathList, fisherz)  # sapply(pathList, fisherz, simplify = FALSE)
 if (pthType==1)
 	zList <- lapply(pathList, function(x) log(x^2))
+if (pthType==2)
+	zList <- lapply(pathList, log)   
 
 resList <- apply(do.call(rbind, lapply(lapply(zList, as.matrix), c)), 2, t.test)
 tList <- lapply(resList, function(x) as.numeric(x$statistic))
@@ -631,7 +637,88 @@ selfLoop <- as.integer(readline("Show self-loops in the network (0: no; 1: yes)?
 } # if (plotNetG)
 
 anotherPthG <- as.integer(readline("Want to try another p-threshold/plotting set-up for group network (0: no; 1: yes)? "))
+}
+} else {  # more than one group
+
+nSubjs <- vector('integer', nGrp)
+pathList <- vector('list', nGrp)
+nROIsG <- vector('integer', nGrp)
+roiNames <- vector('list', nGrp)
+zList <- vector('list', nGrp)
+
+pthType <- as.integer(readline("Input type (0: path coefficients; 1: path t values; 2: path F values)? "))
+
+for (ii in 1:nGrp) {
+	nSubjs[ii] <- as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", ii)))
+	pathList[[ii]] <- vector('list', nSubjs[ii])
+	pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList)[[2]]
+	nROIsG[ii] <- dim(pathList[[ii]])[1]
+	if (ii>1) for (jj in 1:ii) if (nROIsG[jj]!=nROIsG[1]) {sprintf("Group %i has %i ROIs while group 1 has %i", jj, nROIsG[jj], nROIsG[1]); break}
+	roiNames[[ii]] <- names(pathList[[ii]])
+	if (ii>1) for (jj in 1:ii) if (!identical(roiNames[[ii]], roiNames[[1]])) {sprintf("Group %i has different ROI namess with group 1", jj, roiNames[[ii]]); break}
+	if (pthType==0) zList[[ii]] <- lapply(pathList[[ii]], fisherz) # sapply(pathList[[ii]], fisherz, simplify = FALSE)
+   if (pthType==1) zList[[ii]] <- lapply(pathList[[ii]], function(x) log(x^2))
+   if (pthType==2) zList[[ii]] <- lapply(pathList[[ii]], log)
+}   
+
+# Instead of looping, we can also use the following aggregation approach
+resList <- apply(do.call(rbind, lapply(lapply(zList[[1]], as.matrix), c)), 2, t.test, do.call(rbind, lapply(lapply(zList[[2]], as.matrix), c)))
+tList <- lapply(resList, function(x) as.numeric(x$statistic))
+pList <- lapply(resList, function(x) as.numeric(x$p.value))
+grpT <- matrix(unlist(tList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+grpP <- matrix(unlist(pList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+
+   print("t matrix for path differences (direction goes from row to column):")
+   print(grpT)
+	print(sprintf("DFs = %i", round(as.numeric(resList[[1]]$parameter))))  # DF might be a non-integer!
+	print("-----------------")	
+   saveTMat <- as.integer(readline("Save the above t matrix (0: no; 1: yes)? "))
+      if (saveTMat) {
+         matTName <- as.character(readline("File name prefix for t matrix? "))
+         write.table(grpT, file=sprintf("%sLag.1D", matTName), append=FALSE, row.names=TRUE, col.names=TRUE)
+      }
+	print("-----------------")
+	print("p matrix for path differences (direction goes from row to column):")
+   print(grpP)
+	print("-----------------")
+   savePMat <- as.integer(readline("Save the above p matrix (0: no; 1: yes)? "))
+      if (savePMat) {
+         matPName <- as.character(readline("File name prefix for p matrix? "))
+         write.table(grpP, file=sprintf("%sLag.1D", matTName), append=FALSE, row.names=TRUE, col.names=TRUE)
+      }	
+   print("-----------------")
+anotherPthG <- TRUE
+while (anotherPthG) {
+						
+pThreshG <- as.numeric(readline("p-threshold for group analysis (e.g., 0.05)? "))
+surviveT <- as.numeric(grpP<=pThreshG)*grpT
+surviveP <- as.numeric(grpP<=pThreshG)*grpP
+print("t matrix with insignificant path differences masked with 0s:")
+print(surviveT)
+print(sprintf("DFs = %i", round(as.numeric(resList[[1]]$parameter))))
+print("-----------------")
+print("p matrix with insignificant path differences masked with 0s:")
+print(surviveP)
+print("-----------------")				
+					
+plotNetG <- as.integer(readline("Plot out the identified network (0: no; 1: yes)? "))
+if (plotNetG) {
+print("The thickness of a path indicates the difference magnitude.")
+print("A path in red means positive difference while blue is the opposite.")
+set.seed(1702)
+net <- network.initialize(nROIsG[1])
+attr(net, "vertex.names") <- names(pathList[[1]][[1]])
+edgeScaleG <- as.numeric(readline("Scale factor for path thickness (e.g., 1)? "))
+arrowScaleG <- as.numeric(readline("Scale factor for arrows (e.g., 2)? "))
+selfLoop <- as.integer(readline("Show self-loops in the network (0: no; 1: yes)? "))
+	# if path +, col<-2 (red); if path -, col<-4 (blue)
+	plotNet(surviveT, selfLoop, surviveT*edgeScaleG, arrowScaleG, 3-sign(surviveT), "Network of differences between 2 groups")
+} # if (plotNetG)
+  
+anotherPthG <- as.integer(readline("Want to try another p-threshold/plotting set-up for group network (0: no; 1: yes)? "))
 } # while (anotherPthG)
+
+} 
 
 doneGrp <- as.integer(readline("Next (0: done; 1: another group analysis)? "))
 } # while (doneGrp)
