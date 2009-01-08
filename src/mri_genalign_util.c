@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 /*---------------------------------------------------------------------------*/
 
 int GA_gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
@@ -88,12 +92,16 @@ float GA_get_outval(void){ return outval; }    /* 10 Dec 2008 */
 void GA_interp_NN( MRI_IMAGE *fim ,
                    int npp, float *ip, float *jp, float *kp, float *vv )
 {
-   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , ii,jj,kk , pp ;
-   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
-   float *far = MRI_FLOAT_PTR(fim) ;
+   int pp ;
 
 ENTRY("GA_interp_NN") ;
 
+#pragma omp parallel private(pp)
+ {
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , ii,jj,kk ;
+   float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
+   float *far = MRI_FLOAT_PTR(fim) ;
+#pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
      yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
@@ -102,6 +110,7 @@ ENTRY("GA_interp_NN") ;
      ii = (int)(xx+0.5f) ; jj = (int)(yy+0.5f) ; kk = (int)(zz+0.5f) ;
      vv[pp] = FAR(ii,jj,kk) ;
    }
+ } /* end OpenMP */
    EXRETURN ;
 }
 
@@ -111,7 +120,13 @@ ENTRY("GA_interp_NN") ;
 void GA_interp_linear( MRI_IMAGE *fim ,
                        int npp, float *ip, float *jp, float *kp, float *vv )
 {
-   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
+   int pp ;
+
+ENTRY("GA_interp_linear") ;
+
+#pragma omp parallel private(pp)
+ {
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float fx,fy,fz ;
    float *far = MRI_FLOAT_PTR(fim) ;
@@ -123,8 +138,7 @@ void GA_interp_linear( MRI_IMAGE *fim ,
    float wt_00,wt_p1 ;       /* interpolation weights */
    float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
 
-ENTRY("GA_interp_linear") ;
-
+#pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
      yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
@@ -158,6 +172,7 @@ ENTRY("GA_interp_linear") ;
 
      vv[pp] = (1.0f-fz) * f_k00 + fz * f_kp1 ;
    }
+ } /* end OpenMP */
    EXRETURN ;
 }
 
@@ -182,6 +197,12 @@ ENTRY("GA_interp_linear") ;
 void GA_interp_cubic( MRI_IMAGE *fim ,
                       int npp, float *ip, float *jp, float *kp, float *vv )
 {
+   int pp ;
+
+ENTRY("GA_interp_cubic") ;
+
+#pragma omp parallel private(pp)
+ {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float fx,fy,fz ;
@@ -198,8 +219,7 @@ void GA_interp_cubic( MRI_IMAGE *fim ,
          f_jm1_kp2, f_j00_kp2, f_jp1_kp2, f_jp2_kp2,
          f_km1    , f_k00    , f_kp1    , f_kp2     ;
 
-ENTRY("GA_interp_cubic") ;
-
+#pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
      yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
@@ -258,6 +278,8 @@ ENTRY("GA_interp_cubic") ;
      vv[pp] = P_FACTOR * (  wt_m1 * f_km1 + wt_00 * f_k00
                           + wt_p1 * f_kp1 + wt_p2 * f_kp2 ) ;
    }
+ } /* end OpenMP */
+
    EXRETURN ;
 }
 
@@ -481,6 +503,12 @@ ENTRY("GA_interp_wsinc5s") ;
 void GA_interp_wsinc5p( MRI_IMAGE *fim ,
                         int npp, float *ip, float *jp, float *kp, float *vv )
 {
+   int pp ;
+
+ENTRY("GA_interp_wsinc5p") ;
+
+#pragma omp parallel private(pp)
+ {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float fx,fy,fz ;
@@ -492,11 +520,9 @@ void GA_interp_wsinc5p( MRI_IMAGE *fim ,
    float xsin[2*IRAD] , ysin[2*IRAD]        , zsin[2*IRAD] ;
    float wtt[2*IRAD]  , fjk[2*IRAD][2*IRAD] , fk[2*IRAD]   ;
    int   iqq[2*IRAD]  ;
-
-ENTRY("GA_interp_wsinc5p") ;
-
    /*----- loop over points -----*/
 
+#pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
      yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
@@ -516,8 +542,6 @@ ENTRY("GA_interp_wsinc5p") ;
      }
      wfac = wsum ;
 
-  /* OMP doesn't work in my gcc-4.2 test for some reason! */
-#pragma omp parallel for shared(fjk,iqq,wt,far) private(jj,kk,qq,sum,farjk,jq,kq,iq,iqp)
      for( jj=-IRAD+1 ; jj <= IRAD ; jj++ ){
        jq = jy+jj ; CLIP(jq,ny1) ;
        for( kk=-IRAD+1 ; kk <= IRAD ; kk++ ){
@@ -589,6 +613,7 @@ ENTRY("GA_interp_wsinc5p") ;
 
      vv[pp] = sum / wfac ;
    }
+ } /* end OpenMP */
 
    EXRETURN ;
 }
@@ -633,6 +658,12 @@ void GA_interp_wsinc5( MRI_IMAGE *fim ,
 void GA_interp_quintic( MRI_IMAGE *fim ,
                         int npp, float *ip, float *jp, float *kp, float *vv )
 {
+   int pp ;
+
+ENTRY("GA_interp_quintic") ;
+
+#pragma omp parallel private(pp)
+ {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float fx,fy,fz ;
@@ -652,8 +683,7 @@ void GA_interp_quintic( MRI_IMAGE *fim ,
          f_jm2_kp3, f_jm1_kp3, f_j00_kp3, f_jp1_kp3, f_jp2_kp3, f_jp3_kp3,
          f_km2    , f_km1    , f_k00    , f_kp1    , f_kp2    , f_kp3     ;
 
-ENTRY("GA_interp_quintic") ;
-
+#pragma omp for
    for( pp=0 ; pp < npp ; pp++ ){
      xx = ip[pp] ; if( xx < -0.499f || xx > nxh ){ vv[pp]=outval; continue; }
      yy = jp[pp] ; if( yy < -0.499f || yy > nyh ){ vv[pp]=outval; continue; }
@@ -747,6 +777,8 @@ ENTRY("GA_interp_quintic") ;
      vv[pp] =  wt_m2 * f_km2 + wt_m1 * f_km1 + wt_00 * f_k00
              + wt_p1 * f_kp1 + wt_p2 * f_kp2 + wt_p3 * f_kp3 ;
    }
+ } /* end OpenMP */
+
    EXRETURN ;
 }
 

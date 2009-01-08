@@ -3,6 +3,13 @@
 ##   -- goes at end of each platform specific Makefile.
 ##
 
+# for systems without OpenMP
+
+ifndef CCOMP
+    CCOMP = $(CC)
+endif
+
+
 F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
@@ -805,8 +812,7 @@ qm:qm.o
 
 3dAllineate:3dAllineate.o mri_genalign.o mri_genalign_util.o thd_correlate.o
 	$(RM) $@
-	$(CCFAST) -o 3dAllineate 3dAllineate.o \
-			$(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dAcost:3dAcost.o
 	$(RM) $@
@@ -1492,11 +1498,15 @@ powell_newuoa.o:powell_newuoa.c
 
 mri_genalign.o:mri_genalign.c
 	$(RM) $@
-	$(CCFAST) -c mri_genalign.c $(INFLAGS)
+	$(CC) -c mri_genalign.c $(INFLAGS)
 
 mri_genalign_util.o:mri_genalign_util.c
 	$(RM) $@
-	$(CCFAST) -c mri_genalign_util.c $(INFLAGS)
+	$(CCOMP) -c mri_genalign_util.c $(INFLAGS)
+
+3dAllineate.o:3dAllineate.c
+	$(RM) $@
+	$(CCOMP) -c 3dAllineate.c $(INFLAGS)
 
 cl1.o:cl1.c
 	$(RM) $@

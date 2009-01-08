@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 /***** 3dREMLfit.c *****/
 
 static int verb=1 ;
@@ -1060,6 +1064,15 @@ int main( int argc , char *argv[] )
 #endif
    PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
+
+#ifdef USE_OMP
+   omp_set_dynamic(0);  /* can't use dynamic threads */
+#pragma omp parallel
+ {
+  if( omp_get_thread_num() == 0 )
+    INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
+ }
+#endif
 
    /**------- scan command line --------**/
 
