@@ -39,6 +39,7 @@ int check_matrix_condition( matrix xdata , char *xname )
     double *ev, ebot,emin,emax ;
     int i,nsmall=0, ssing=(verb>2), bad=0 ;
 
+#undef  PSINV_EPS
 #define PSINV_EPS      1.e-14  /* double precision */
 #define CN_VERYGOOD   20.0
 #define CN_GOOD      400.0
@@ -1064,9 +1065,9 @@ int main( int argc , char *argv[] )
 #endif
    PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
+   (void)COX_clock_time() ;
 
 #ifdef USE_OMP
-   omp_set_dynamic(0);  /* can't use dynamic threads */
 #pragma omp parallel
  {
   if( omp_get_thread_num() == 0 )
@@ -2070,6 +2071,8 @@ STATUS("make GLTs from matrix file") ;
 
    vstep = (verb && nvox > 999) ? nvox/50 : 0 ;
 
+   bbsave = 0 ;
+
    if( aim == NULL && !abfixed ){ /*--- if don't have (a,b) via -ABfile ---*/
 
      aim = mri_new_vol( nx,ny,nz , MRI_float ) ;
@@ -2129,6 +2132,8 @@ STATUS("make GLTs from matrix file") ;
    /*------- (either from -ABfile or from REML loop just done above) -------*/
 
    /*-- set up indexing and labels needed for bucket dataset creation --*/
+
+   bbsave = 1 ;
 
    if( (do_buckt || do_eglt) && glt_num > 0 ){
      int ibot ;
@@ -2354,7 +2359,7 @@ STATUS("setting up Rglt") ;
 
          if( Rvar_dset != NULL ){
            iv[0] = RCsli[ss]->rs[jj]->rho ; iv[1] = RCsli[ss]->rs[jj]->barm ;
-           iv[2] = RCsli[ss]->rs[jj]->lam ; iv[3] = sqrt( rsumq / ddof ) ;
+           iv[2] = RCsli[ss]->rs[jj]->lam ; iv[3] = sqrt( bbsumq / ddof ) ;
            save_series( vv , Rvar_dset , 4 , iv , Rvar_fp ) ;
          }
 
@@ -2364,7 +2369,7 @@ STATUS("setting up Rglt") ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , bb5 , rsumq ,
+             gv = REML_compute_gltstat( &y , bb5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2391,7 +2396,7 @@ STATUS("setting up Rglt") ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , bb5 , rsumq ,
+             gv = REML_compute_gltstat( &y , bb5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2615,7 +2620,7 @@ STATUS("setting up Rglt") ;
          }
 
          if( Ovar_dset != NULL ){
-           iv[0] = sqrt( rsumq / ddof ) ;
+           iv[0] = sqrt( bbsumq / ddof ) ;
            save_series( vv , Ovar_dset , 1 , iv , Ovar_fp ) ;
          }
 
@@ -2625,7 +2630,7 @@ STATUS("setting up Rglt") ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , bb5 , rsumq ,
+             gv = REML_compute_gltstat( &y , bb5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2652,7 +2657,7 @@ STATUS("setting up Rglt") ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , bb5 , rsumq ,
+             gv = REML_compute_gltstat( &y , bb5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2732,7 +2737,8 @@ STATUS("setting up Rglt") ;
 
    /*----------------------------- Free at last ----------------------------*/
 
-   INFO_message("3dREMLfit is all done! total CPU=%.2f s",COX_cpu_time()) ;
+   INFO_message("3dREMLfit is all done! total CPU=%.2f s  Elapsed=%.2f",
+                COX_cpu_time() , COX_clock_time() ) ;
    free(mask) ; MEMORY_CHECK ;
 #if 0
 #ifdef USING_MCW_MALLOC
