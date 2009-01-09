@@ -7,6 +7,7 @@ function [m1gs] = GS_orth_1D(fname, rescale, show, oname)
 %
 %  fname: Name of AFNI 1D file
 %         If nothing is specified, GUI file selector is used.
+%         Note that you can pass a matrix instead of fname
 %  rescale: If 0 then output matrix is an orthonormal version of 
 %           the matrix in fname 
 %           If 1, each column of the orthonormal matrix is scaled
@@ -29,7 +30,12 @@ if (nargin < 2), rescale = 1; end
 if (nargin < 1), 
    m1 = Read_1D();
 else   
-   m1 = Read_1D(fname);
+   if (~isnumeric(fname)),
+      m1 = Read_1D(fname);
+   else
+      m1 = fname;
+      fname = '___matrix';
+   end
 end
 
 
@@ -50,16 +56,21 @@ end
 
 %Do the orthonormalization
 m1gs = Gram_Schmidt_Process(m1);
+ncs = size(m1gs,2);
+msize = [ min(ncs,8) ,ceil(ncs./8)];
 %rescale back
 if (rescale),
-   for (k=1:1:nc),
-      m1gs(:,k) = m1gs(:,k).*norm(m1(:,k));
+   if (ncs == nc),
+      for (k=1:1:nc),
+         m1gs(:,k) = m1gs(:,k).*norm(m1(:,k));
+      end
+   else
+      fprintf(2,'Rescaling not done, matrix not of full rank\n');
    end
 end
-
 if (show),
    figure(2);  
-   for (k=1:1:nc),
+   for (k=1:1:ncs),
       subplot(msize(1), msize(2), k); plot (m1gs(:,k)); 
       if (k==1), 
          if (rescale) title ('Orthogonalized Regressors'); 
