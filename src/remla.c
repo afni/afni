@@ -21,6 +21,10 @@
 #undef  BIGVAL
 #define BIGVAL 1.e+38
 
+#ifdef USE_OMP
+#include "matrix.c"
+#endif
+
 /*****
  Struct to hold a random sparse rectangular matrix.
 *****/
@@ -536,9 +540,8 @@ reml_setup * REML_setup_one( matrix *X , int *tau , MTYPE rho , MTYPE bb )
 /** intermediate vectors to be saved in case of later need **/
 
 static vector *bb1=NULL,*bb2,*bb3,*bb4,*bb5,*bb6,*bb7 ;
-static MTYPE rsumq=0.0 ;  /* sum of squares of residual */
-
-#pragma omp threadprivate(bb1,bb2,bb3,bb4,bb5,bb6,bb7,rsumq)
+static MTYPE bbsumq=0.0 ;  /* sum of squares of residual */
+static int   bbsave=0 ;    /* save results in bb* ? */
 
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
@@ -547,71 +550,109 @@ static MTYPE rsumq=0.0 ;  /* sum of squares of residual */
 MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs )
 {
    int n , ii ;
-   MTYPE val ;
+   MTYPE val , qsumq ;
+#ifdef USE_OMP
+   vector *qq1=NULL,*qq2,*qq3,*qq4,*qq5,*qq6,*qq7 ;
+#else
+   static vector *qq1=NULL,*qq2,*qq3,*qq4,*qq5,*qq6,*qq7 ;
+#endif
 
 ENTRY("REML_func") ;
 
    if( y == NULL || rset == NULL || X == NULL ){
      if( bb1 != NULL ){
        vector_destroy(bb1) ; bb1 = NULL ;
-       vector_destroy(bb2) ; vector_destroy(bb3) ;
-       vector_destroy(bb4) ; vector_destroy(bb5) ;
-       vector_destroy(bb6) ; vector_destroy(bb7) ;
+       vector_destroy(bb2) ; vector_destroy(bb3) ; vector_destroy(bb4) ;
+       vector_destroy(bb5) ; vector_destroy(bb6) ; vector_destroy(bb7) ;
+#ifndef USE_OMP
+       qq1 = NULL ;
+#endif
      }
      RETURN(-666.0) ;
    }
 
-   if( bb1 == NULL ){
-     bb1 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb1) ;
-     bb2 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb2) ;
-     bb3 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb3) ;
-     bb4 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb4) ;
-     bb5 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb5) ;
-     bb6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb6) ;
-     bb7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb7) ;
+   if( qq1 == NULL ){
+     qq1 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq1) ;
+     qq2 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq2) ;
+     qq3 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq3) ;
+     qq4 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq4) ;
+     qq5 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq5) ;
+     qq6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq6) ;
+     qq7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq7) ;
+#ifndef USE_OMP
+     bb1 = qq1 ; bb2 = qq2 ; bb3 = qq3 ; bb4 = qq4 ;
+     bb5 = qq5 ; bb6 = qq6 ; bb7 = qq7 ;
+#endif
    }
 
    n = rset->neq ;
 
    /** Seven steps to compute the prewhitened residuals */
 
-   vector_equate( *y , bb1 ) ;
-   rcmat_lowert_solve( rset->cc , bb1->elts ) ;      /* bb1 = C^(-T) y */
+   vector_equate( *y , qq1 ) ;
+   rcmat_lowert_solve( rset->cc , qq1->elts ) ;      /* qq1 = C^(-T) y */
                                                      /* prewhitened data */
-   vector_equate( *bb1 , bb2 ) ;
-   rcmat_uppert_solve( rset->cc , bb2->elts ) ;      /* bb2 = C^(-1) bb1 */
+   vector_equate( *qq1 , qq2 ) ;
+   rcmat_uppert_solve( rset->cc , qq2->elts ) ;      /* qq2 = C^(-1) qq1 */
 
    if( Xs != NULL ){
-     vector_create_noinit( Xs->cols , bb3 ) ;
-     vector_spc_multiply_transpose( Xs , bb2->elts , bb3->elts ) ;
+     vector_create_noinit( Xs->cols , qq3 ) ;
+     vector_spc_multiply_transpose( Xs , qq2->elts , qq3->elts ) ;
    } else {
-     vector_multiply_transpose( *X , *bb2 , bb3 ) ;  /* bb3 = X^T bb2 */
+     vector_multiply_transpose( *X , *qq2 , qq3 ) ;  /* qq3 = X^T qq2 */
    }
 
-   vector_rrtran_solve( *(rset->dd) , *bb3 , bb4 ) ; /* bb4 = D^(-T) bb3 */
+   vector_rrtran_solve( *(rset->dd) , *qq3 , qq4 ) ; /* qq4 = D^(-T) qq3 */
 
-   vector_rr_solve( *(rset->dd) , *bb4 , bb5 ) ;     /* bb5 = D^(-1) bb4 */
-                                                     /*    = beta_hat */
+   vector_rr_solve( *(rset->dd) , *qq4 , qq5 ) ;     /* qq5 = D^(-1) qq4 */
+                                                     /*     = beta_hat  */
 
    if( Xs != NULL ){
-     vector_create_noinit( Xs->rows , bb6 ) ;
-     vector_spc_multiply( Xs , bb5->elts , bb6->elts ) ;
+     vector_create_noinit( Xs->rows , qq6 ) ;
+     vector_spc_multiply( Xs , qq5->elts , qq6->elts ) ;
    } else {
-     vector_multiply( *X , *bb5 , bb6 ) ;            /* bb6 = X bb5 */
+     vector_multiply( *X , *qq5 , qq6 ) ;            /* qq6 = X qq5 */
    }                                                 /* fitted model */
 
-   vector_equate( *bb6 , bb7 ) ;
-   rcmat_lowert_solve( rset->cc , bb7->elts ) ;      /* bb7 = C^(-T) bb6 */
+   vector_equate( *qq6 , qq7 ) ;
+   rcmat_lowert_solve( rset->cc , qq7->elts ) ;      /* qq7 = C^(-T) qq6 */
                                                      /* prewhitened fit */
-   vector_subtract( *bb1 , *bb7 , bb2 ) ;            /* result = bb1 - bb7 */
+   vector_subtract( *qq1 , *qq7 , qq2 ) ;            /* result = qq1 - qq7 */
                                                      /* prewhitened residual */
-   rsumq = vector_dotself(*bb2) ;                    /* sum of squares */
+   qsumq = vector_dotself(*qq2) ;                    /* sum of squares */
 
-   if( rsumq > 0.0 )
-     val = (n - rset->mreg) * log(rsumq)             /* the REML function! */
+   if( qsumq > 0.0 )
+     val = (n - rset->mreg) * log(qsumq)             /* the REML function! */
           + rset->dd_logdet + rset->cc_logdet ;      /* -log(likelihood) */
    else
      val = 0.0 ;
+
+   /* save internal values to static variables? */
+
+   if( bbsave ){
+     bbsumq = qsumq ;
+#ifdef USE_OMP
+     if( bb1 == NULL && !omp_in_parallel() ){
+       bb1 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb1) ;
+       bb2 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb2) ;
+       bb3 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb3) ;
+       bb4 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb4) ;
+       bb5 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb5) ;
+       bb6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb6) ;
+       bb7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb7) ;
+     }
+     vector_equate( *qq1 , bb1 ) ; vector_equate( *qq2 , bb2 ) ;
+     vector_equate( *qq3 , bb3 ) ; vector_equate( *qq4 , bb4 ) ;
+     vector_equate( *qq5 , bb5 ) ; vector_equate( *qq6 , bb6 ) ;
+     vector_equate( *qq7 , bb7 ) ;
+#endif
+   }
+
+#ifdef USE_OMP
+   vector_destroy(qq1) ; vector_destroy(qq2) ; vector_destroy(qq3) ;
+   vector_destroy(qq4) ; vector_destroy(qq5) ; vector_destroy(qq6) ;
+   vector_destroy(qq7) ;
+#endif
 
    RETURN(val) ;
 }
@@ -926,8 +967,9 @@ MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
 {
    MTYPE rbest , rval ;
    int   na,nb , pna,pnb , ltop ;
-   int   nab, lev, dab,dab2, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
+   int   nab, lev, dab, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
    MTYPE *rvab ;
+   int   klist[666] , nkl ;
 
 ENTRY("REML_find_best_case") ;
 
@@ -943,7 +985,7 @@ ENTRY("REML_find_best_case") ;
    na = rrcol->na ; pna = rrcol->pna ;
    nb = rrcol->nb ; pnb = rrcol->pnb ;
 
-   /** do the Ordinary Least Squares (olsq) case **/
+   /** do the Ordinary Least Squares (olsq) case, mark it as best so far **/
 
    kbest = rrcol->izero ;
    jbest = kbest / (1+na) ;
@@ -960,21 +1002,32 @@ ENTRY("REML_find_best_case") ;
    ibot = 0 ; itop = na ;                 /* scan from ibot..itop, jbot..jtop */
    jbot = 0 ; jtop = nb ;
    for( lev=ltop ; lev >= 0 ; lev-- ){     /* lev = power-of-2 grid scan size */
-     dab = 1 << lev ; dab2 = 2*dab ;       /* dab = 2^lev = step size in scan */
+     dab = 1 << lev ;                      /* dab = 2^lev = step size in scan */
 
-#pragma omp parallel copyin(bb1,rsumq)
-   { int jb,ia,kk ; MTYPE rval ;
-#pragma omp for
-     for( jb=jbot ; jb <= jtop ; jb+=dab ){
+     /* make list of grid points to visit in the REML_func loop below */
+
+     for( nkl=0,jb=jbot ; jb <= jtop ; jb+=dab ){
        for( ia=ibot ; ia <= itop ; ia+=dab ){
-         if( lev < ltop && jb%dab2 == 0 && ia%dab2 == 0 ) continue; /* did it */
-         kk = ia + jb*(na+1) ; if( rvab[kk] < BIGVAL )    continue; /* did it */
-         if( kk == rrcol->izero ) continue ;      /* OLSQ => did this already */
+         kk = ia + jb*(na+1) ; if( rvab[kk] < BIGVAL ) continue;    /* did it */
          if( rrcol->rs[kk] == NULL ) continue ;         /* invalid grid point */
-         rval = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
-         rvab[kk] = rval ;
+         klist[nkl++] = kk ;
      }}
+     if( nkl == 0 ) continue ; /* should never happen */
+
+     /* the reason the loop above is separate is to make the loop below
+        be 1D rather than 2D, hoping that OpenMP will parallelize it better. */
+
+     /** However, OpenMP makes things slower, but why? why? why? **/
+
+#pragma omp parallel shared(rvab,klist,y,rrcol,nkl)
+   { int mm ;
+#pragma omp for
+     for( mm=0 ; mm < nkl ; mm++ ){  /* this takes a lot of CPU time */
+       rvab[klist[mm]] = REML_func( y , rrcol->rs[klist[mm]] , rrcol->X,rrcol->Xs ) ;
+     }
    } /* end OpenMP */
+
+     /* find the best one so far seen */
 
      for( jb=jbot ; jb <= jtop ; jb+=dab ){
        for( ia=ibot ; ia <= itop ; ia+=dab ){
@@ -984,7 +1037,8 @@ ENTRY("REML_find_best_case") ;
          }
      }}
 
-     if( lev > 0 ){                    /* set up to scan near the best so far */
+     /* at the next level down, scan near the best so far seen */
+     if( lev > 0 ){
        ibot = ibest-dab ; if( ibot < 0  ) ibot = 0  ;
        itop = ibest+dab ; if( itop > na ) itop = na ;
        jbot = jbest-dab ; if( jbot < 0  ) jbot = 0  ;
