@@ -75,7 +75,7 @@ FuncName = 'Read_1D';
 %Debug Flag
 DBG = 1;
 Com = '';
-if (nargin == 0),
+if (nargin == 0 | isempty(fname)),
    [ff,pp] = uiget1Dfile();
    if (ff),
       fname = sprintf('%s%c%s', pp, filesep(), ff);
