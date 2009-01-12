@@ -21,6 +21,7 @@ CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CCFAST = cc -O3 -ftree-vectorize -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc -m64
 CCD    = $(CC) $(CCDEBS)
+CCOMP  = $(CCFAST) -fopenmp -DUSE_OMP
 
 IFLAGS = -I. -I/usr/local/include -I/sw/include -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/local/lib -L/sw/lib -L/usr/X11R6/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
