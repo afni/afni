@@ -92,13 +92,11 @@ float GA_get_outval(void){ return outval; }    /* 10 Dec 2008 */
 void GA_interp_NN( MRI_IMAGE *fim ,
                    int npp, float *ip, float *jp, float *kp, float *vv )
 {
-   int pp ;
-
 ENTRY("GA_interp_NN") ;
 
-#pragma omp parallel private(pp)
+#pragma omp parallel
  {
-   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , ii,jj,kk ;
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , ii,jj,kk , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float *far = MRI_FLOAT_PTR(fim) ;
 #pragma omp for
@@ -111,6 +109,7 @@ ENTRY("GA_interp_NN") ;
      vv[pp] = FAR(ii,jj,kk) ;
    }
  } /* end OpenMP */
+
    EXRETURN ;
 }
 
@@ -120,13 +119,11 @@ ENTRY("GA_interp_NN") ;
 void GA_interp_linear( MRI_IMAGE *fim ,
                        int npp, float *ip, float *jp, float *kp, float *vv )
 {
-   int pp ;
-
 ENTRY("GA_interp_linear") ;
 
-#pragma omp parallel private(pp)
+#pragma omp parallel
  {
-   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny ;
+   int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
    float fx,fy,fz ;
    float *far = MRI_FLOAT_PTR(fim) ;
@@ -173,6 +170,7 @@ ENTRY("GA_interp_linear") ;
      vv[pp] = (1.0f-fz) * f_k00 + fz * f_kp1 ;
    }
  } /* end OpenMP */
+
    EXRETURN ;
 }
 
@@ -197,11 +195,9 @@ ENTRY("GA_interp_linear") ;
 void GA_interp_cubic( MRI_IMAGE *fim ,
                       int npp, float *ip, float *jp, float *kp, float *vv )
 {
-   int pp ;
-
 ENTRY("GA_interp_cubic") ;
 
-#pragma omp parallel private(pp)
+#pragma omp parallel
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -503,11 +499,9 @@ ENTRY("GA_interp_wsinc5s") ;
 void GA_interp_wsinc5p( MRI_IMAGE *fim ,
                         int npp, float *ip, float *jp, float *kp, float *vv )
 {
-   int pp ;
-
 ENTRY("GA_interp_wsinc5p") ;
 
-#pragma omp parallel private(pp)
+#pragma omp parallel
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;
@@ -658,11 +652,9 @@ void GA_interp_wsinc5( MRI_IMAGE *fim ,
 void GA_interp_quintic( MRI_IMAGE *fim ,
                         int npp, float *ip, float *jp, float *kp, float *vv )
 {
-   int pp ;
-
 ENTRY("GA_interp_quintic") ;
 
-#pragma omp parallel private(pp)
+#pragma omp parallel
  {
    int nx=fim->nx , ny=fim->ny , nz=fim->nz , nxy=nx*ny , pp ;
    float nxh=nx-0.501f , nyh=ny-0.501f , nzh=nz-0.501f , xx,yy,zz ;

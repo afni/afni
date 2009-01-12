@@ -2,10 +2,6 @@
 
 #include "mrilib.h"
 
-#ifdef USE_OMP
-#include <omp.h>
-#endif
-
 #undef  MTYPE
 #undef  MPAIR
 #ifndef FLOATIZE
@@ -22,6 +18,12 @@
 #define BIGVAL 1.e+38
 
 #ifdef USE_OMP
+#undef  RETURN
+#undef  EXRETURN
+#undef  ENTRY
+#define ENTRY(x)  /*nada*/
+#define RETURN(x) return(x)
+#define EXRETURN  return
 #include "matrix.c"
 #endif
 
@@ -1019,9 +1021,9 @@ ENTRY("REML_find_best_case") ;
 
      /** However, OpenMP makes things slower, but why? why? why? **/
 
-#pragma omp parallel shared(rvab,klist,y,rrcol,nkl)
+/** #pragma omp parallel shared(rvab,klist,y,rrcol,nkl) **/
    { int mm ;
-#pragma omp for
+/** #pragma omp for **/
      for( mm=0 ; mm < nkl ; mm++ ){  /* this takes a lot of CPU time */
        rvab[klist[mm]] = REML_func( y , rrcol->rs[klist[mm]] , rrcol->X,rrcol->Xs ) ;
      }
