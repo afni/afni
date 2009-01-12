@@ -1110,6 +1110,28 @@ int main( int argc , char *argv[] )
 
      }
 
+#ifdef USE_OMP
+     printf(
+       "\n"
+       " *************************************************************************\n"
+       "* This version of 3dAllineate is compiled using OpenMP, an automatic\n"
+       "   parallelizer software toolkit.  The number of CPU threads used will\n"
+       "   default to the maximum number on your system.  You can control this\n"
+       "   value by setting environment variable OMP_NUM_THREADS to some smaller\n"
+       "   value (including 1).  Setting OMP_NUM_THREADS to 0 resets OpenMP back\n"
+       "   to its default state of using all CPUs available.\n"
+       "* OpenMP may or may not speed up the program significantly.  Limited\n"
+       "   tests show that it provides some benefit, particularly when using\n"
+       "   the more complicated interpolation methods (e.g., '-cubic' and/or\n"
+       "   '-final wsinc5'), for up to 3-4 CPU threads.\n"
+       "* But the speedup is definitely not linear in the number of threads, alas.\n"
+       "   Probably because my parallelization efforts were pretty limited.\n"
+       "* The number of CPUs on this particular computer system is %d.\n"
+       " *************************************************************************\n"
+       , omp_get_num_procs()
+     ) ;
+#endif
+
      PRINT_COMPILE_DATE ; exit(0);
    }
 
