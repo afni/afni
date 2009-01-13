@@ -6,6 +6,198 @@
 
 #include "bbox.h"
 
+/*------------------------------------------------------------------------*/
+/*
+   This function was meant to find the top parent of a widget and later 
+   test if that parent was one that allowed rowcolumns. This was function
+   was to be called from new_MCW_bbox. However, none of the tests shown
+   below identified such forbidding widgets. 
+   Code is left here for documentation purposes. 
+   
+   Lesstif patrol          Jan 09 
+*/
+Widget top_parent( Widget w)
+{
+   Widget pa = w;
+   int iw = 0;
+   char str[500]={""}, strb[500]={""};
+
+ENTRY("top_parent");   
+
+   while (pa) {
+      str[iw] = '-'; str[iw+1]='\0';
+      strb[iw] = ' '; strb[iw+1]='\0';
+      fprintf( stderr,
+               "%sWidget name %s      ancestor(%d)\n", 
+               str, XtName(pa), iw);
+      if (XtIsTransientShell(pa)) {
+         fprintf(stderr,"%sTransient (%d)!!!\n",strb, iw);
+      } else {
+         /*fprintf(stderr,"%sNOOOT Transient (%d)!!!\n",strb, iw);*/
+      }
+      if (XtIsTopLevelShell(pa)) {
+         fprintf(stderr,"%sTopLevel (%d)!!!\n", strb, iw);
+      } else {
+         /*fprintf(stderr,"%sNOOOT TopLevel (%d)!!!\n", strb, iw);*/
+      }
+      if (XtIsSubclass(pa, xmCascadeButtonWidgetClass)) {
+         fprintf(stderr,"%sCascadeButtonWidget (%d)!!!\n", strb, iw);
+      } else {
+         /*fprintf(stderr,"%sNOOOT CascadeButtonWidget (%d)!!!\n", strb, iw);*/
+
+      }
+      if (XtIsShell(pa)) {
+         fprintf(stderr,"%sShell (%d)!!!\n", strb, iw);
+      } else {
+         /*fprintf(stderr,"%sNOOOT Shell (%d)!!!\n", strb, iw);*/
+      }
+      w = pa;
+      pa = XtParent(w);
+      ++iw;
+   }
+   RETURN(w);
+}
+/*------------------------------------------------------------------------*/
+/* 
+   A simple way to determine if a widget has a popup_menu for a parent. 
+   
+   Lesstif Partol,         Jan 09
+*/
+int is_daddy_popup(Widget w)
+{
+   Widget pa = w;
+   int iw = 0;
+   char str[500]={""}, strb[500]={""};
+
+ENTRY("is_daddy_popup");
+   
+   while (pa) {
+      str[iw] = '-'; str[iw+1]='\0';
+      strb[iw] = ' '; strb[iw+1]='\0';
+      if (!strcmp(XtName(pa), "popup_menu")) RETURN(1);
+      w = pa;
+      pa = XtParent(w);
+      ++iw;
+   }
+   RETURN(0);
+}
+
+/*
+   A structure to hold widget and callback information
+   for the callback wrapper used by new_MCW_bbox
+   
+   Lesstif Patrol,      Jan 09 
+*/
+   
+typedef struct {
+   MCW_bbox *bb;
+   XtCallbackProc cb;
+   XtPointer cb_data;
+   XtPointer client_data;
+   Widget parent;
+   int is_popup;
+   int bb_type;
+} cb_wrap_struct;
+
+/*------------------------------------------------------------------------*/
+/* set all buttons in a button box, given that button ikeep 
+   has been pressed on */
+void MCW_enforce_radio_bbox( MCW_bbox *bb, int ikeep  )
+{
+   int ib;
+   Boolean oset ;
+
+ENTRY("MCW_enforce_radio_bbox") ;
+
+   if( bb == NULL ) EXRETURN ;  /* 01 Feb 2000 */
+   for( ib=0 ; ib < bb->nbut ; ib++ ){
+      if (ib != ikeep) {
+         oset = XmToggleButtonGetState( bb->wbut[ib] ) ;
+         if( XtIsSensitive(bb->wbut[ib]) && oset){
+            XmToggleButtonSetState( bb->wbut[ib] , !oset , False ) ;
+            XmUpdateDisplay( bb->wbut[ib] ) ;
+         }
+      }
+   }
+   bb->value = MCW_val_bbox(bb) ;
+   EXRETURN ;
+}
+
+
+/*------------------------------------------------------------------------*/
+/* 
+   Manually handle radio buttons where rowcolumn widgets are not allowed 
+   
+   See new_MCW_bbox for help
+   
+   Lesstif Patrol,   Jan 2009
+*/
+void new_MCW_bbox_cbwrap ( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   int ib=0, icaller = -1;
+   Boolean oset = False;
+   cb_wrap_struct *cbws = (cb_wrap_struct *)client_data;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data ;
+   int dbg = 0;
+   
+ENTRY("new_MCW_bbox_cbwrap") ;
+   
+   if (cbws->is_popup) {
+      if (dbg) {  /* some debugging */
+         fprintf(stderr,"Potential for work\n");
+         /* For some reason, when a button other than button
+         0 is pressed, there are two callback calls made.
+         The first comes from widget 0 with a NULL event,
+         and the second from the widget pressed. */
+         for (ib=0; ib<cbws->bb->nbut; ++ib) {
+            if (cbws->bb->wbut[ib] == w) {
+               fprintf(stderr,
+                        "A call from widget (%p) %s at ib = %d, reason: %d\n", 
+                        cbws->bb->wbut[ib], XtName(w), ib, cbs->reason);
+               if (cbs->event) {
+                  fprintf(stderr,
+                        "   event->type = %d\n", cbs->event->type);
+               } else {
+                  fprintf(stderr,
+                        "   event is NULL\n");
+               }
+            }
+         }
+      }
+         
+      if (cbs->event) {
+         for (ib=0; ib<cbws->bb->nbut && icaller < 0; ++ib) {
+            if (cbws->bb->wbut[ib] == w) icaller = ib;
+         }
+         
+         /* what --was-- the state the calling widget? */
+         oset = !XmToggleButtonGetState( cbws->bb->wbut[icaller] );
+         if (oset && cbws->bb_type == MCW_BB_radio_one) {
+            /* widget was already set, and we're in radio one mode 
+              turn it back on and vamoose */
+            XmToggleButtonSetState(cbws->bb->wbut[icaller], oset, False);
+            EXRETURN;
+         } 
+         
+         /* flip everything but the calling widget */
+         MCW_enforce_radio_bbox(cbws->bb, icaller);
+      } else {
+         /* ignore the initial call */
+         /* for some reason, if you press on widgets other than 0, you get
+         two calls, one from widget 0 with a NULL event and another from
+         the proper widget with a proper event */
+      }
+   } else {
+      /* This is not a popup menu case, rowcolumns are allowed.
+         No need to do anything */
+   }  
+   
+   /* Now call the intended callback */
+   (cbws->cb)(w, cbws->cb_data, call_data); 
+   
+   EXRETURN;
+}
+
 /*-------------------------------------------------------------------------
    create a new MCW_bbox:
        parent    = parent Widget
@@ -18,8 +210,22 @@
                  = MCW_BB_frame      -> put frame around box
        cb        = Callback procedure for Disarm (NULL for none)
        cb_data   = data to pass to Callback procedure (NULL for none)
----------------------------------------------------------------------------*/
 
+   Lesstif Patrol, Jan 13, 2009
+   ----------------------------
+   Rowcolumn widgets are not allowed in popup menus. Motif allowed them
+   to work, in most cases, but Lesstif does not. To fix this, new_MCW_bbox
+   was modified to check whether MCW_bbox has a popup parent. The check is 
+   done with function 'is_daddy_popup'. If the parent is a popup, then 
+   a rowcolumn widget is NOT created and the widget wtop is set to the 
+   parent Widget. For MCW_bbox with a popup parent, allowing 'frame' to 
+   be wtop if a frame is requested is bad news.
+   With this modification however, radio buttons must be managed manually.
+   To do so, new_MCW_bbox always calls a wrapper callback named
+   new_MCW_bbox_cbwrap. This callback will perform radio button management
+   if necessary and then call the button's intended callbacks.
+   
+---------------------------------------------------------------------------*/
 MCW_bbox * new_MCW_bbox( Widget parent ,
                          int num_but , char *label_but[] ,
                          int bb_type , int bb_frame ,
@@ -27,15 +233,33 @@ MCW_bbox * new_MCW_bbox( Widget parent ,
 {
    MCW_bbox *bb ;
    int ib , initial_value ;
-   Widget rc_parent ;
+   Widget rc_parent, gp;
    Arg wa[30] ;  int na ;
    Pixel  fg_pix ;
-
+   int is_popup=0;
+   cb_wrap_struct *cbws=NULL;
+   int dbg = 0;
+   
 ENTRY("new_MCW_bbox") ;
 
    if( num_but <= 0 || num_but >= 32 ){
      fprintf(stderr,"\n*** illegal new_MCW_bbox has %d buttons\n",num_but) ;
      EXIT(1) ;
+   }
+
+   /* study the parent     Lesstif Patrol*/
+
+   /* finding out if a parent was 'transient' failed.
+      the function that was to do that is called 
+      gp = top_parent(parent); and is left here for documentation
+      purposes. */
+      
+   /* this simpler approach worked fine */
+   is_popup = is_daddy_popup(parent);
+   if (is_popup && dbg) {
+      for( ib=0 ; ib < num_but ; ib++ ){
+         fprintf(stderr,"     Popping for button %s\n", label_but[ib]);
+      }
    }
 
    bb = (MCW_bbox *) XtMalloc( sizeof(MCW_bbox) ) ;
@@ -67,43 +291,54 @@ ENTRY("new_MCW_bbox") ;
 
    /***--- create RowColumn to hold the buttons ---***/
 
-#define MAX_PER_COL 8
+   if (!is_popup) {
+   #define MAX_PER_COL 8
 
-   na = 0 ;
+      na = 0 ;
 
-#ifdef BBOX_COL
-   XtSetArg( wa[na] , XmNpacking    , XmPACK_COLUMN )               ; na++ ;
-   XtSetArg( wa[na] , XmNnumColumns , 1 + (num_but-1)/MAX_PER_COL ) ; na++ ;
-#else
-   XtSetArg( wa[na] , XmNpacking    , XmPACK_TIGHT )                ; na++ ;
-#endif
+   #ifdef BBOX_COL
+      XtSetArg( wa[na] , XmNpacking    , XmPACK_COLUMN )               ; na++ ;
+      XtSetArg( wa[na] , XmNnumColumns , 1 + (num_but-1)/MAX_PER_COL ) ; na++ ;
+   #else
+      XtSetArg( wa[na] , XmNpacking    , XmPACK_TIGHT )                ; na++ ;
+   #endif
 
-   XtSetArg( wa[na] , XmNmarginHeight , 0 ) ; na++ ;  /* squash things in */
-   XtSetArg( wa[na] , XmNmarginWidth  , 0 ) ; na++ ;
-   XtSetArg( wa[na] , XmNspacing      , 1 ) ; na++ ;
+      XtSetArg( wa[na] , XmNmarginHeight , 0 ) ; na++ ;  /* squash things in */
+      XtSetArg( wa[na] , XmNmarginWidth  , 0 ) ; na++ ;
+      XtSetArg( wa[na] , XmNspacing      , 1 ) ; na++ ;
 
-   XtSetArg( wa[na] , XmNtraversalOn , True ) ; na++ ;
-   XtSetArg( wa[na] , XmNinitialResourcesPersistent , False ) ; na++ ;
+      XtSetArg( wa[na] , XmNtraversalOn , True ) ; na++ ;
+      XtSetArg( wa[na] , XmNinitialResourcesPersistent , False ) ; na++ ;
 
-   if( bb_type == MCW_BB_radio_zero || bb_type == MCW_BB_radio_one ){
+      if( bb_type == MCW_BB_radio_zero || bb_type == MCW_BB_radio_one ){
 
-     XtSetArg( wa[na] , XmNradioBehavior , True ) ; na++ ;
+        XtSetArg( wa[na] , XmNradioBehavior , True ) ; na++ ;
 
-     if( bb_type == MCW_BB_radio_one ){
-       initial_value = 1 ;
-       XtSetArg( wa[na] , XmNradioAlwaysOne , True ) ; na++ ;
-     } else {
-       XtSetArg( wa[na] , XmNradioAlwaysOne , False ) ; na++ ;
-     }
+        if( bb_type == MCW_BB_radio_one ){
+          XtSetArg( wa[na] , XmNradioAlwaysOne , True ) ; na++ ;
+        } else {
+          XtSetArg( wa[na] , XmNradioAlwaysOne , False ) ; na++ ;
+        }
+      }
+
+      STATUS("create rowcol") ;
+      bb->wrowcol = XtCreateWidget(
+                      "dialog" , xmRowColumnWidgetClass , rc_parent ,
+                      wa , na ) ;
+      if( bb->wframe == NULL ) bb->wtop = bb->wrowcol ;  /* topmost widget */
+   } else {
+      bb->wrowcol = NULL;
+      /* You cannot use:
+         if( bb->wframe == NULL ) bb->wtop = parent;
+         If you do so, the recorder window does not respond to mouse
+         input */
+      
+      bb->wtop = parent; 
    }
-
-   STATUS("create rowcol") ;
-   bb->wrowcol = XtCreateWidget(
-                   "dialog" , xmRowColumnWidgetClass , rc_parent ,
-                   wa , na ) ;
-
-   if( bb->wframe == NULL ) bb->wtop = bb->wrowcol ;  /* topmost widget */
-
+   if( bb_type == MCW_BB_radio_one ){
+      initial_value = 1 ;
+   }
+   
    XtVaGetValues( bb->wtop , XmNforeground , &fg_pix , NULL ) ;
 
    /***--- create the buttons ---***/
@@ -111,7 +346,8 @@ ENTRY("new_MCW_bbox") ;
    STATUS("create toggle buttons") ;
    for( ib=0 ; ib < num_but ; ib++ ){
       bb->wbut[ib] = XtVaCreateManagedWidget(
-                        "dialog" , xmToggleButtonWidgetClass , bb->wrowcol ,
+                        "dialog" , xmToggleButtonWidgetClass , 
+                           is_popup ?  parent : bb->wrowcol ,
                            LABEL_ARG(label_but[ib]) ,
                            XmNmarginHeight  , 0 ,
                            XmNmarginWidth   , 0 ,
@@ -121,15 +357,28 @@ ENTRY("new_MCW_bbox") ;
                            XmNinitialResourcesPersistent , False ,
                         NULL ) ;
 
-      if( cb != NULL )
-        XtAddCallback( bb->wbut[ib] , XmNdisarmCallback , cb , cb_data ) ;
-
+      if( cb != NULL ) {
+        cbws = (cb_wrap_struct *)calloc(1, sizeof(cb_wrap_struct));
+        cbws->bb = bb;
+        cbws->cb = cb;
+        cbws->cb_data = cb_data;
+        cbws->parent = parent;
+        cbws->is_popup = is_popup;
+        cbws->bb_type = bb_type;
+        if (dbg) fprintf(stderr,
+                        "Registering callback for\n"
+                        "   widget (%p) %s at ib = %d, labeled %s\n", 
+                        bb->wbut[ib], XtName(bb->wbut[ib]), ib, label_but[ib]);
+        XtAddCallback(  bb->wbut[ib] , 
+                        XmNdisarmCallback , 
+                        new_MCW_bbox_cbwrap, (XtPointer)cbws);
+      }
    }
    for( ib=num_but ; ib < MCW_MAX_BB ; ib++ ) bb->wbut[ib] = NULL ;
 
    MCW_set_bbox( bb , initial_value ) ;
    STATUS("manage button box") ;
-   XtManageChild( bb->wrowcol ) ;
+   if (bb->wrowcol) XtManageChild( bb->wrowcol ) ;
 
    bb->parent = bb->aux = NULL ;
    RETURN(bb) ;

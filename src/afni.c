@@ -2112,17 +2112,25 @@ ENTRY("AFNI_startup_timeout_CB") ;
    if( !AFNI_noenv("AFNI_STARTUP_WARNINGS") ){  /* 22 Jul 2003 */
 
 #ifdef LESSTIF_VERSION /* 13 Jan 2003: If LessTif was used for this AFNI */
-
+    #ifndef USING_LESSTIF   /* Lesstif is good for you!
+                               Keep the warning if the proper
+                               -DUSING_LESSTIF was not used
+                               when compiling  */
     (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
                                  " \n"
                                  "*** WARNING:                ***\n"
                                  "*** This  copy of AFNI  was ***\n"
                                  "*** built using the LessTif ***\n"
-                                 "*** library.  You will find ***\n"
-                                 "*** problems;  AFNI is best ***\n"
-                                 "*** when built using  Motif ***\n"
-                                 "*** or OpenMotif!           ***\n" ,
+                                 "*** library, but without the***\n"
+                                 "*** -DUSING_LESSTIF flag at ***\n"
+                                 "*** compile time.           ***\n"
+                                 "*** You will find problems; ***\n"
+                                 "*** AFNI works with either  ***\n"
+                                 "*** Motif or OpenMotif, or  ***\n"
+                                 "*** Lesstif with the proper ***\n"
+                                 "*** compiler flag.          ***\n" ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
+    #endif
 #endif
 
 #ifdef BAD_BUTTON3_POPUPS /* 21 Jul 2003: If this is a stupid system */

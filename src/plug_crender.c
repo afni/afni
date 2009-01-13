@@ -4432,7 +4432,7 @@ void RCREND_cutout_blobs( MRI_IMAGE * oppim )
    int ibot,itop , jbot,jtop , kbot,ktop ;
    float par ;
    float dx,dy,dz , xorg,yorg,zorg , xx,yy,zz ;
-   byte * oar , * gar ;
+   byte * oar , * gar = NULL;
    byte ncdone = 0 ;
 
 ENTRY( "RCREND_cutout_blobs" );
@@ -5312,8 +5312,16 @@ ENTRY( "RCREND_func_widgets" );
 
    /* top level managers */
 
-   wfunc_vsep = SEP_VER(top_rowcol) ;
-
+   #ifdef USING_LESSTIF
+      /* for some reason, the height of the vertical separator is
+         way too big. Putting an XtVaSetValues for XmNheight here
+         does not work. The resizing must be happening elsewhere.
+         Fuggehaboutit           Lesstif Patrol  Jan 09*/
+      wfunc_vsep = NULL;
+   #else
+      wfunc_vsep = SEP_VER(top_rowcol) ;
+   #endif
+   
    wfunc_frame = XtVaCreateWidget(
                    "AFNI" , xmFrameWidgetClass , top_rowcol ,
                       XmNshadowType , XmSHADOW_ETCHED_IN ,
@@ -5430,6 +5438,9 @@ ENTRY( "RCREND_func_widgets" );
 
 #ifdef FIX_SCALE_SIZE_PROBLEM
    XtVaSetValues( wfunc_thr_scale , XmNuserData , (XtPointer) sel_height , NULL ) ;
+#endif
+#ifdef USING_LESSTIF
+   XtVaSetValues( wfunc_thr_scale , XmNscaleWidth,24 , NULL ) ;
 #endif
 
 #ifdef USING_LESSTIF    /* 7 Jan 2009 [lesstif patrol] */
@@ -6075,11 +6086,11 @@ ENTRY( "RCREND_open_func_CB" );
    if( wfunc_frame == NULL ) RCREND_func_widgets() ;  /* need to make them */
 
    if( XtIsManaged(wfunc_frame) ){          /* if open, close */
-      XtUnmanageChild(wfunc_vsep ) ;
+      if (wfunc_vsep) XtUnmanageChild(wfunc_vsep ) ;
       XtUnmanageChild(wfunc_frame) ;
    } else {                                 /* if closed, open */
       HIDE_SCALE ;
-      XtManageChild(wfunc_vsep ) ;
+      if (wfunc_vsep) XtManageChild(wfunc_vsep ) ;
       XtManageChild(wfunc_frame) ;
       update_MCW_pbar( wfunc_color_pbar ) ; /* may need to be redrawn */
       FIX_SCALE_SIZE ;
@@ -6833,7 +6844,8 @@ void RCREND_reload_func_dset(void)
    int         ival_func, ival_thr;
    void      * car , * tar ;
    float       cfac ,  tfac ;
-   float       bbot,  btop, bdelta;
+   float       bbot,  btop=1.0, bdelta=1.0; /* ZSS: initialized bdelta, 
+                                              and btop 01/07/09*/
    int         ii , nvox , num_lp , lp , bindex ;
    byte     *  ovar ;
    MCW_pbar *  pbar = wfunc_color_pbar ;
@@ -7188,7 +7200,7 @@ void RCREND_overlay_ttatlas(void)
    THD_3dim_dataset *dseTT ;
    byte *b0 , *b1 , *ovar ;
    int nvox , ii,jj , xx ;
-   int fwin , gwin , nreg , hemi,hbot ;
+   int fwin , gwin , nreg , hemi, hbot=0; /* ZSS: initialized hbot 01/07/09*/
    byte *brik , *val , *ovc , g_ov , a_ov , final_ov ;
 
 ENTRY( "RCREND_overlay_ttatlas" );
@@ -7860,8 +7872,8 @@ void RCREND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    char * fname , buf[256] ;
    RENDER_state rs ;
    RENDER_state_array * rsa ;
-   float scl ;
-   Widget autometer ;
+   float scl = 1.0;
+   Widget autometer = NULL ;
 
 ENTRY( "RCREND_read_exec_CB" );
 
