@@ -551,20 +551,22 @@ void EDIT_misfit_report( char *name, int ib,
                          int nxyz, float fac, short *sar, float *far )
 {
    float mf ; int im ;
-   static char *msg[4] = { "* Caution"  , "** Take Care"     ,
-                           "*** Beware" , "**** Red Alert ****"  } ;
+   static char *msg[5] = { "* Caution"  , "** Take Care"     ,
+                           "*** Beware" , "**** Red Alert ****" ,
+                                          "***** Purple Alert! *****" } ;
    static int first=1 ;
 
    mf = 100.0f * EDIT_scale_misfit( nxyz , fac , sar , far ) ;
-        if( mf < 2.5f ) return ;
-        if( mf < 3.5f ) im = 0 ;
-   else if( mf < 5.0f ) im = 1 ;
-   else if( mf < 9.9f ) im = 2 ;
-   else                 im = 3 ;
+        if( mf <  2.5f ) return ;  /* OK */
+        if( mf <  3.5f ) im = 0 ;
+   else if( mf <  5.0f ) im = 1 ;
+   else if( mf <  9.9f ) im = 2 ;
+   else if( mf < 19.9f ) im = 3 ;
+   else                  im = 4 ;
    WARNING_message("%s[%d] scale to shorts misfit = %.2f%% -- %s",
                    name , ib , mf , msg[im] ) ;
    if( first ){
-     INFO_message("Consider writing datasets out in float format.") ;
+     ININFO_message("Consider writing datasets out in float format.") ;
      first = 0 ;
    }
    return ;
