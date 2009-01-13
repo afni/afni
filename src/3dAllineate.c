@@ -956,7 +956,7 @@ int main( int argc , char *argv[] )
         "                         to all equal-spaced bins.\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
-        " -nmsetup nn   = Use 'nn' points for the setup matching [default=23456]\n"
+        " -nmsetup nn   = Use 'nn' points for the setup matching [default=98756]\n"
         " -ignout       = Ignore voxels outside the warped source dataset.\n"
         "\n"
         " -blok bbb     = Blok definition for the 'lp?' (Local Pearson) cost\n"
@@ -1146,15 +1146,6 @@ int main( int argc , char *argv[] )
    PRINT_VERSION("3dAllineate"); AUTHOR("Emperor Zhark");
    THD_check_AFNI_version("3dAllineate");
    (void)COX_clock_time() ;
-
-#ifdef USE_OMP
-#pragma omp parallel
- {
-  if( omp_get_thread_num() == 0 )
-    INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
- }
-#endif
- 
 
    /**--- process command line options ---**/
 
@@ -3028,6 +3019,14 @@ int main( int argc , char *argv[] )
    }
 
    /***---------------------- start alignment process ----------------------***/
+
+#ifdef USE_OMP
+#pragma omp parallel
+ {
+  if( omp_get_thread_num() == 0 )
+    INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
+ }
+#endif
 
 /* macros for verbosity */
 
