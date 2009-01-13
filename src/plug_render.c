@@ -133,9 +133,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       val = strtod(env,NULL) ;
       if( val > 0.0 && val < 100.0 ) angle_fstep = val ;
    }
-   PLUTO_register_environment_numeric( "AFNI_RENDER_ANGLE_DELTA" ,
-                                       "Angle stepsize in deg (volume renderer)" ,
-                                       1,9,0,(int)angle_fstep, REND_environ_CB );
+   PLUTO_register_environment_numeric("AFNI_RENDER_ANGLE_DELTA" ,
+                                      "Angle stepsize in deg (volume renderer)" ,
+                                      1,9,0,(int)angle_fstep, REND_environ_CB );
 
    /*--*/
 
@@ -1873,7 +1873,8 @@ void REND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 void REND_reload_dataset(void)
 {
-   int ii , nvox , vmin,vmax , cbot,ctop , ival,val , cutdone ;
+   int ii , nvox , vmin = 0,vmax = 1, cbot,ctop , ival,val , cutdone ;
+            /* ZSS: initialized vmin, vmax, 01/07/09 */
    float fac ;
    void * var ;
    byte * gar ;
@@ -3996,7 +3997,7 @@ void REND_cutout_blobs( MRI_IMAGE * oppim )
    int ibot,itop , jbot,jtop , kbot,ktop ;
    float par ;
    float dx,dy,dz , xorg,yorg,zorg , xx,yy,zz ;
-   byte * oar , * gar ;
+   byte * oar , * gar = NULL ; /* ZSS: initialized gar, 01/07/09 */
    byte ncdone = 0 ;
 
    ncc   = current_cutout_state.num ;
@@ -4815,8 +4816,16 @@ void REND_func_widgets(void)
 
    /* top level managers */
 
-   wfunc_vsep = SEP_VER(top_rowcol) ;
-
+   #ifdef USING_LESSTIF
+      /* for some reason, the height of the vertical separator is
+         way too big. Putting an XtVaSetValues for XmNheight here
+         does not work. The resizing must be happening elsewhere.
+         Fuggehaboutit            Lesstif Patrol  Jan 09*/
+      wfunc_vsep = NULL;
+   #else
+      wfunc_vsep = SEP_VER(top_rowcol) ;
+   #endif
+   
    wfunc_frame = XtVaCreateWidget(
                    "AFNI" , xmFrameWidgetClass , top_rowcol ,
                       XmNshadowType , XmSHADOW_ETCHED_IN ,
@@ -4933,6 +4942,9 @@ void REND_func_widgets(void)
 
 #ifdef FIX_SCALE_SIZE_PROBLEM
    XtVaSetValues( wfunc_thr_scale , XmNuserData , (XtPointer) sel_height , NULL ) ;
+#endif
+#ifdef USING_LESSTIF
+   XtVaSetValues( wfunc_thr_scale , XmNscaleWidth,24 , NULL ) ;
 #endif
 
 #ifdef USING_LESSTIF
@@ -5533,11 +5545,11 @@ void REND_open_func_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( wfunc_frame == NULL ) REND_func_widgets() ;  /* need to make them */
 
    if( XtIsManaged(wfunc_frame) ){          /* if open, close */
-      XtUnmanageChild(wfunc_vsep ) ;
+      if (wfunc_vsep) XtUnmanageChild(wfunc_vsep ) ;
       XtUnmanageChild(wfunc_frame) ;
    } else {                                 /* if closed, open */
       HIDE_SCALE ;
-      XtManageChild(wfunc_vsep ) ;
+      if (wfunc_vsep) XtManageChild(wfunc_vsep ) ;
       XtManageChild(wfunc_frame) ;
       update_MCW_pbar( wfunc_color_pbar ) ; /* may need to be redrawn */
       FIX_SCALE_SIZE ;
@@ -6379,7 +6391,7 @@ void REND_overlay_ttatlas(void)
    THD_3dim_dataset *dseTT ;
    byte *b0 , *b1 , *ovar ;
    int nvox , ii,jj , xx ;
-   int fwin , gwin , nreg , hemi,hbot ;
+   int fwin , gwin , nreg , hemi, hbot = 0; /* ZSS: initialized hbot, 01/07/09 */
    byte *brik , *val , *ovc , g_ov , a_ov , final_ov ;
 
    /* sanity checks and setup */
@@ -7011,8 +7023,8 @@ void REND_read_exec_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    RENDER_state rs ;
    RENDER_state_array * rsa ;
    FILE * fp ;
-   float scl ;
-   Widget autometer ;
+   float scl = 1.0;  /* ZSS: initialized scl, 01/07/09 */
+   Widget autometer = NULL; /* ZSS: initialized autometer, 01/07/09 */
 
    if( !renderer_open ){ POPDOWN_string_chooser ; return ; }
 

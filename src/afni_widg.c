@@ -328,8 +328,14 @@ ENTRY("AFNI_make_widgets") ;
 
    vwid->butx = vwid->buty = 9 ; /* 17 May 2005 */
 
-#define AFNI_FORM_SPACING 9
-
+#ifdef USING_LESSTIF
+   /* In Lesstif, using form spacing, shifts the 
+   top left corner in unsightly ways. Little
+   spacing looks better    Lesstif Patrol Jan 09*/
+   #define AFNI_FORM_SPACING 1
+#else
+   #define AFNI_FORM_SPACING 9
+#endif
 STATUS("creating top_form") ;
 
    vwid->top_form =

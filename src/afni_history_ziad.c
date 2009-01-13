@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13, JAN , 2009 , ZSS , "afni-general" , MINOR ,  TYPE_BUG_FIX,
+   "AFNI should now be Lesstif compliant",
+   "Made numerous changes with Rick Reynolds. The biggest modification\n"
+   "regards buttons inside popup menus. Those buttons are no longer\n"
+   "inside rowcolumn widgets and had to be directly managed by afni."
+ },
+
  { 5, JAN , 2009 , ZSS , "MapIcosahedron" , MINOR ,  TYPE_NEW_OPT,
    "Program no longer confined to FreeSurfer surfaces",
    "The program now allows the user to specify any morph sphere,\n"

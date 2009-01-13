@@ -6041,32 +6041,35 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    radsph = Ch->sphrad*fac*sqrt(SUMA_sv_fov_original(sv)/FOV_INITIAL);
    gapch = Ch->g*fac;
    radch = Ch->r*fac;
-   if (gl_dt = glIsEnabled(GL_DEPTH_TEST)) 
-      glDisable(GL_DEPTH_TEST); /*cross hair always on top */
+   if (!(gl_dt = glIsEnabled(GL_DEPTH_TEST)))  
+      glEnable(GL_DEPTH_TEST);   /* To hide cross hair as it gets hidden
+                                    by surfaces */
    glGetFloatv(GL_LINE_WIDTH, &origwidth);
    glLineWidth(Ch->LineWidth);
    /*fprintf(SUMA_STDOUT, "Center: %f, %f, %f. Gap %f, Radius: %f\n",\
       Ch->c[0], Ch->c[2], Ch->c[2], gapch, radch);*/
-      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
+                        /* turn off ambient and diffuse components */
+      glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); 
       glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
       if (gapch) { /* gap */
-         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->XaxisColor); /*turn on emissivity for axis*/
+                           /*turn on emissivity for axis*/
+         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->XaxisColor); 
          glBegin(GL_LINES);
          glVertex3f(Ch->c[0] - radch, Ch->c[1], Ch->c[2]);
          glVertex3f(Ch->c[0] - gapch, Ch->c[1], Ch->c[2]);
          glVertex3f(Ch->c[0] + radch, Ch->c[1], Ch->c[2]);
          glVertex3f(Ch->c[0] + gapch, Ch->c[1], Ch->c[2]);
          glEnd();  
-
-         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->YaxisColor); /*turn on emissivity for axis*/
+                           /*turn on emissivity for axis*/
+         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->YaxisColor); 
          glBegin(GL_LINES);
          glVertex3f(Ch->c[0], Ch->c[1] - radch, Ch->c[2]);
          glVertex3f(Ch->c[0], Ch->c[1] - gapch, Ch->c[2]);
          glVertex3f(Ch->c[0], Ch->c[1] + radch, Ch->c[2]);
          glVertex3f(Ch->c[0], Ch->c[1] + gapch, Ch->c[2]);
          glEnd();  
-
-         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->ZaxisColor); /*turn on emissivity for axis*/
+                           /*turn on emissivity for axis*/
+         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->ZaxisColor); 
          glBegin(GL_LINES);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - radch);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - gapch);
@@ -6075,38 +6078,46 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
          glEnd();  
 
       }/*gap */ else {/*no gap */
-         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->XaxisColor); /*turn on emissivity for axis*/
+                           /*turn on emissivity for axis*/
+         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->XaxisColor); 
          glBegin(GL_LINES);
          glVertex3f(Ch->c[0] - radch, Ch->c[1], Ch->c[2]);
          glVertex3f(Ch->c[0] + radch, Ch->c[1], Ch->c[2]);
          glEnd();  
-         
-         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->YaxisColor); /*turn on emissivity for axis*/
+                           /*turn on emissivity for axis*/
+         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->YaxisColor); 
          glBegin(GL_LINES);
          glVertex3f(Ch->c[0], Ch->c[1] - radch, Ch->c[2]);
          glVertex3f(Ch->c[0], Ch->c[1] + radch, Ch->c[2]);
          glEnd();  
-
-         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->ZaxisColor); /*turn on emissivity for axis*/
+                           /*turn on emissivity for axis*/
+         glMaterialfv(GL_FRONT, GL_EMISSION, Ch->ZaxisColor); 
          glBegin(GL_LINES);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - radch);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + radch);
          glEnd();  
       }
-      glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
+                           /*turn off emissivity for axis*/
+      glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
 
    
    if (Ch->ShowSphere) {
       /*fprintf(SUMA_STDOUT, "SHOWING SPHERE\n");*/
-      glMaterialfv(GL_FRONT, GL_EMISSION, Ch->sphcol); /*turn on emissivity for sphere */
+                        /*turn on emissivity for sphere */
+      glMaterialfv(GL_FRONT, GL_EMISSION, Ch->sphcol); 
       glTranslatef (Ch->c[0], Ch->c[1],Ch->c[2]);
       gluSphere(Ch->sphobj, radsph, Ch->slices, Ch->stacks);
       glTranslatef (-Ch->c[0], -Ch->c[1],-Ch->c[2]);
-      glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
+                        /*turn off emissivity for axis*/
+      glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); 
    }
    
    glLineWidth(origwidth);
-   if (gl_dt) glEnable(GL_DEPTH_TEST);
+   
+   /* DEPTH_TEST is on for this function, turn it off
+      if that was the case entering the function */ 
+   if (!gl_dt) glDisable(GL_DEPTH_TEST);
+   
    SUMA_RETURN (YUP);
 }
 

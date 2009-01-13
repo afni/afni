@@ -4252,7 +4252,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    Widget tl, pb, form, DispFrame, SurfFrame, rc_left, rc_right, rc_mamma;
    Display *dpy;
    SUMA_SurfaceObject *SO;
-   char *slabel, *lbl30, *sss=NULL; 
+   char *slabel, *lbl30, *sss=NULL;
+   XmString xmstmp; 
    SUMA_Boolean LocalHead = NOPE;
    static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    
@@ -4400,21 +4401,27 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             XmNmarginWidth , 0 ,
             NULL);
 
-      /*put a label containing the surface name, number of nodes and number of facesets */
+      /*put a label containing the surface name, number of nodes 
+      and number of facesets */
       lbl30 = SUMA_set_string_length(SO->Label, ' ', 27);
       if (lbl30) {
-         sprintf(slabel,"%s\n%d nodes: %d tri.", lbl30, SO->N_Node, SO->N_FaceSet); 
+         sprintf( slabel,"%s\n%d nodes: %d tri.", 
+                  lbl30, SO->N_Node, SO->N_FaceSet); 
          SUMA_free(lbl30); lbl30 = NULL;
       } else {
          sprintf(slabel,"???\n%d nodes: %d tri.", SO->N_Node, SO->N_FaceSet); 
       }
-      SO->SurfCont->SurfInfo_label = XtVaCreateManagedWidget (slabel, 
+      xmstmp = XmStringCreateLtoR (slabel, XmSTRING_DEFAULT_CHARSET);
+         /* XmStringCreateLocalized(slabel) does not reliably 
+            handle newline characters q*/
+      SO->SurfCont->SurfInfo_label = XtVaCreateManagedWidget ("dingel", 
                xmLabelWidgetClass, rc,
+               XmNlabelString, xmstmp,
                NULL);
-
+      XmStringFree (xmstmp);
       XtVaCreateManagedWidget (  "sep", 
                                  xmSeparatorWidgetClass, rc, 
-                                 XmNorientation, XmVERTICAL,NULL);
+                                 XmNorientation, XmVERTICAL, NULL );
 
       SO->SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
          xmPushButtonWidgetClass, rc, 
@@ -4465,7 +4472,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       pb = XtVaCreateWidget ("Dsets", 
          xmPushButtonWidgetClass, rc, 
          NULL);   
-      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ToggleManagementColPlaneWidget, 
+      XtAddCallback (pb, XmNactivateCallback, 
+                     SUMA_cb_ToggleManagementColPlaneWidget, 
                      (XtPointer) SO->SurfCont->curSOp);
       MCW_register_hint( pb , 
                         "Show/Hide Dataset (previously Color Plane) "
@@ -4586,7 +4594,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             XmNmarginWidth , 0 ,
             NULL);
       
-      /*put a label containing the surface name, number of nodes and number of facesets */
+      /*put a label containing the surface name, 
+         number of nodes and number of facesets */
       {
          char *Dset_tit[]  =  {  "Lbl", "Par", NULL };
          char *Dset_hint[] =  {  "Label of Dset", 
@@ -4922,7 +4931,7 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
    } else {
       SameSurface = NOPE;
    }
-   
+    
    /* set the new current surface pointer */
    *(SO->SurfCont->curSOp) = (void *)SO;
    
@@ -4943,17 +4952,20 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO)
       XtVaSetValues(SO->SurfCont->TopLevelShell, XtNtitle, slabel, NULL);
 
       /* initialize the string before the more button */
-         /*put a label containing the surface name, number of nodes and number of facesets */
+         /*put a label containing the surface name, number of nodes 
+            and number of facesets */
          lbl30 = SUMA_set_string_length(SO->Label, ' ', 27);
          if (lbl30) {
-            sprintf(slabel,"%s\n%d nodes: %d tri.", lbl30, SO->N_Node, SO->N_FaceSet); 
+            sprintf( slabel,"%s\n%d nodes: %d tri.", 
+                     lbl30, SO->N_Node, SO->N_FaceSet); 
             SUMA_free(lbl30); lbl30 = NULL;
          } else {
             sprintf(slabel,"???\n%d nodes: %d tri.", SO->N_Node, SO->N_FaceSet); 
          }
-         SUMA_LH("Setting label");
-         string = XmStringCreateLocalized (slabel);
-         XtVaSetValues(SO->SurfCont->SurfInfo_label, XmNlabelString, string, NULL);
+         SUMA_LHv("Setting label to\n>>%s<<\n", slabel);
+         string = XmStringCreateLtoR (slabel, XmSTRING_DEFAULT_CHARSET);
+         XtVaSetValues( SO->SurfCont->SurfInfo_label, 
+                        XmNlabelString, string, NULL);
          XmStringFree (string);
 
       if (slabel) SUMA_free(slabel); slabel = NULL;
