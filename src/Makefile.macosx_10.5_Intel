@@ -22,9 +22,9 @@ endif
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
-CC     = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
-CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
-CCFAST = cc -O3 -ftree-vectorize -ffast-math -DDARWIN $(CEXTRA)
+CC     = cc -O2 -msse2 -ffast-math -DDARWIN $(CEXTRA)
+CCVOL  = cc -O2 -msse2 -ffast-math -DDARWIN $(CEXTRA)
+CCFAST = cc -O3 -msse2 -ftree-vectorize -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 CCOMP  = $(CCFAST) -fopenmp -DUSE_OMP
