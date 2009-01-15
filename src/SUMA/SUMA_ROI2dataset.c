@@ -75,7 +75,8 @@ int main (int argc,char *argv[])
    char  *prefix_name, **input_name_v=NULL, *out_name=NULL, 
          *Parent_idcode_str = NULL, *dummy_idcode_str = NULL, 
          *stmp=NULL, *sss=NULL;
-   int kar, brk, N_input_name, cnt = 0, N_ROIv, N_tROI, ii, i, nn, pad_to, pad_val;
+   int   kar, brk, N_input_name, cnt = 0, N_ROIv, 
+         N_tROI, ii, i, nn, pad_to, pad_val;
    SUMA_DSET *dset=NULL;
    NI_stream ns;
    SUMA_DSET_FORMAT Out_Format = SUMA_ASCII_NIML;
@@ -96,7 +97,7 @@ int main (int argc,char *argv[])
    prefix_name = NULL;
    input_name_v = NULL;
    N_input_name = 0;
-   Out_Format = SUMA_ASCII_NIML;
+   Out_Format = SUMA_NO_DSET_FORMAT; 
    Parent_idcode_str = NULL;
    pad_to = -1;
    pad_val = 0;
@@ -127,11 +128,14 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
 			Out_Format = SUMA_NO_DSET_FORMAT;
-         if (!SUMA_isOutputFormatFromArg(argv[kar], &Out_Format)) {
+                     /* Can't use isOutputFormatFromArg because -of is not part
+                     of the passed argument */
+         if (!SUMA_isFormatFromArg(argv[kar], &Out_Format)) {
             fprintf (SUMA_STDERR, 
                      "%s not a valid option with -of.\n", argv[kar]);
 				exit (1);
          }
+         
          brk = YUP;
 		}
       
@@ -185,7 +189,9 @@ int main (int argc,char *argv[])
       }
       
       if (!brk) {
-			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			fprintf (SUMA_STDERR,
+                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  FuncName, argv[kar]);
 			exit (1);
 		} else {	
 			brk = NOPE;
@@ -196,8 +202,12 @@ int main (int argc,char *argv[])
    if (MRILIB_DomainMaxNodeIndex >= 0) pad_to = MRILIB_DomainMaxNodeIndex;
 
    if (!prefix_name) {
-      fprintf (SUMA_STDERR,"Error %s: No output prefix was specified.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: No output prefix was specified.\n", FuncName);
       exit(1);
+   }
+   if (Out_Format == SUMA_NO_DSET_FORMAT) {
+      Out_Format = SUMA_GuessFormatFromExtension(prefix_name,"love.niml.dset");
    }
    
    /* form the output name and check for existence */
