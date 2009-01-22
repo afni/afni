@@ -238,7 +238,8 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
       extern void DBG_sigfunc(int) ;
 #  endif
 
-#  define mainENTRY(rout) /* nada */
+#  define mainENTRY(rout) \
+   do { (void)AFNI_prefilter_args(&argc,argv); } while(0)
 
 #endif /* USE_TRACING */
 /*********************************************************************/
