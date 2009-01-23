@@ -255,7 +255,7 @@ int main (int argc,char *argv[])
          add_node_index = 1;
          brk = YUP;
       }
-      if (!brk && (strcmp(argv[kar], "-prepend_node_index") == 0))
+      if (!brk && (strcmp(argv[kar], "-prepend_node_index_1d") == 0))
       {
          
          prepend_node_index = 1;

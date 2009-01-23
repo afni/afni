@@ -3590,11 +3590,11 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
    
    if (oformp && oform != SUMA_NO_DSET_FORMAT) {
       *oformp = oform;
-      SUMA_LHv("Returning %s with oform=%d\n", arg, oform);
+      SUMA_LHv("Returning %s with oform=%d, sgn %d\n", arg, oform, sgn);
       SUMA_free(arg); arg=NULL;
       SUMA_RETURN(YUP);
    } else {
-      SUMA_LHv("Returning %s without touching oform\n", arg);
+      SUMA_LHv("Returning %s without touching oform, sgn = %d\n", arg, sgn);
       SUMA_free(arg); arg=NULL;
       SUMA_RETURN(NOPE);
    }

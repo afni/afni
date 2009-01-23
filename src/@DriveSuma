@@ -15,10 +15,10 @@ cd tmp_suma
         echo '                  one more time.'
         set l = $<
         DriveSuma -com show_surf -label icoco \
-                       -i_fs CreateIco_surf.asc
+                       -i_fs CreateIco.asc
 
 #node_xyz action
-        ConvertSurface -i_fs CreateIco_surf.asc \
+        ConvertSurface -i_fs CreateIco.asc \
                        -o_1D radcoord radcoord \
                        -radial_to_sphere 100
         DriveSuma -com node_xyz -label icoco \
