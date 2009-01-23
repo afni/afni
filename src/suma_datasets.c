@@ -2088,11 +2088,13 @@ int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp,
    
    if (ctp == SUMA_NODE_INDEX) {
       SUMA_LH("Gotus a node index column");
-      SUMA_RETURN(SUMA_AddDsetNelIndexCol ( dset, col_label, ctp, col, col_attr, stride));
+      SUMA_RETURN(SUMA_AddDsetNelIndexCol (  dset, col_label, ctp, 
+                                             col, col_attr, stride));
    }
    if (icol != -1) {
       /*
-      SUMA_S_Err("Function not ready to deal with attribute insertion yet. See bottom of function");
+      SUMA_S_Err("Function not ready to deal with attribute insertion yet. 
+      See bottom of function");
       SUMA_RETURN(0); 
       */
       SUMA_LH("insertion mode");
@@ -3548,7 +3550,8 @@ int SUMA_ShowNel (void *nel)
       fprintf (stdout,  "\n    Element type.\n"
                         "      vec_len   = %d\n"
                         "      vec_num   = %d\n"
-                        "      vec_filled= %d\n", el->vec_len, el->vec_num, el->vec_filled);
+                        "      vec_filled= %d\n", 
+                        el->vec_len, el->vec_num, el->vec_filled);
    } else {
       fprintf (stdout,  "\n    Group type.\n");
    } 

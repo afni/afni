@@ -71,7 +71,11 @@ int main (int argc,char *argv[])
       bt = (byte *)SUMA_malloc(N_Alloc * sizeof(byte));
       s = (char **)SUMA_malloc(N_Alloc * sizeof(char *));
       maskrow = (byte *)SUMA_malloc(N_Alloc * sizeof(byte));
-      maskcol = (byte *)SUMA_malloc(10*sizeof(byte)); for (i=0; i<10; ++i) { if (i==1 || i == 3) maskcol[i]=0; else maskcol[i] = 1; }
+      maskcol = (byte *)SUMA_malloc(10*sizeof(byte)); 
+      for (i=0; i<10; ++i) { 
+         if (i==1 || i == 3) maskcol[i]=0; 
+         else maskcol[i] = 1; 
+      }
       N_NodeDef = N_Alloc;
       for (i=0; i<N_NodeDef; ++i) {
          NodeDef[i] = i;

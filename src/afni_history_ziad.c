@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 13 , JAN , 2009 , ZSS , "afni-matlab" , MINOR , TYPE_NEW_PROG ,
+   "Added GS_orth_1D.m to perform Gram-Schmidt orthogonalization",
+   NULL
+ } ,
+
  { 13, JAN , 2009 , ZSS , "afni-general" , MINOR ,  TYPE_BUG_FIX,
    "AFNI should now be Lesstif compliant",
    "Made numerous changes with Rick Reynolds. The biggest modification\n"
@@ -84,6 +89,14 @@ afni_history_struct ziad_history[] = {
    "Program uses new Spec writing function and writes different surface formats",
    NULL
  },
+
+ { 13 , DEC , 2009 , ZSS , "afni-matlab" , MAJOR , TYPE_NEW_PROG ,
+   "RetroTS creates regressors for cardiac, respiratory, and RVT filtering",
+   "RetroTS.m and accompanying functions create slice-based regressors\n"
+   "for regressing out the effects of cardiac, respiratory, and RVT effects\n"
+   "from FMRI time series. The regressors generated are meant to be used \n"
+   "with 3dREMLfit."
+ } ,
 
  { 9, DEC , 2008 , ZSS , "@Align_Centers" , MINOR ,  TYPE_NEW_OPT,
    "Added -cm option to allow centering based on the center of mass",
