@@ -988,7 +988,7 @@ else
 	fprintf('\n\tUse 0 if a factor is collapsed.\n');
 	fprintf('\n\tIf a factor level is smaller than 9, use its ordinal number;');
 	fprintf('\n\tIf a factor level is bigger  than 9, use a, b, c, ... (no capitals) for 10, 11, 12, ... \n');	
-	fprintf('\n\t3. All weights/coeficients in a contrast have to add up to zero.\n');
+	fprintf('\n\t3. All weights/coefficients in a contrast have to add up to zero.\n');
 
 if (NF == 1),
    % 1st order contrasts
@@ -1028,7 +1028,7 @@ if (NF == 1),
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 		if (sum(Contr.ord1.cnt(i).coef) ~= 0), 
-		   flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+		   flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 		else flg0 = 1; end
       end
 	end	
@@ -1075,7 +1075,7 @@ if (NF == 2),
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 		if (sum(Contr.ord1.cnt(i).coef) ~= 0), 
-		   flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+		   flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 		else flg0 = 1; end
       end
 	end	
@@ -1118,7 +1118,7 @@ if (NF == 2),
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 		if (sum(Contr.ord2.cnt(i).coef) ~= 0), 
-		   flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+		   flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 		else flg0 = 1; end
       end
 	end	
@@ -1171,7 +1171,7 @@ if (NF == 3 | NF == 4),
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 		if (sum(Contr.ord1.cnt(i).coef) ~= 0), 
-	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
    	else flg0 = 1; end
      end	
 	end
@@ -1215,7 +1215,7 @@ if (NF == 3 | NF == 4),
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 		if (sum(Contr.ord2.cnt(i).coef) ~= 0), 
-	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
    end  %flg0 = 0;
 	end
@@ -1261,7 +1261,7 @@ if (NF == 3 | NF == 4),
 			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 		if (sum(Contr.ord3.cnt(i).coef) ~= 0), 
-	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
 	end
@@ -1313,7 +1313,7 @@ if (NF == 5),
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end  % for (j = 1:1:Contr.ord1.cnt(i).NT)
 		if (sum(Contr.ord1.cnt(i).coef) ~= 0), 
-	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
 	end	
@@ -1357,7 +1357,7 @@ if (NF == 5),
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end  % for (j = 1:1:Contr.ord2.cnt(i).NT)
 		if (sum(Contr.ord2.cnt(i).coef) ~= 0), 
-	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
 	end	 % for (i = 1:1:Contr.ord2.tot)
@@ -1402,7 +1402,7 @@ if (NF == 5),
 			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 		if (sum(Contr.ord3.cnt(i).coef) ~= 0), 
-	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
 	end	
@@ -1446,7 +1446,7 @@ if (NF == 5),
 			Contr.ord4.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
 		if (sum(Contr.ord4.cnt(i).coef) ~= 0), 
-	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	      flg0 = 0; fprintf(2,'\nError: All the coefficients of a contrast have to sum up to 0! Try again...\n\n');
 	   else flg0 = 1; end
       end  %flg0 = 0;
 	end	
