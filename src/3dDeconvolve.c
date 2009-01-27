@@ -962,6 +962,13 @@ void display_help_menu()
     "**** General linear test (GLT) options:                                \n"
     "-num_glt num         num = number of general linear tests (GLTs)       \n"
     "                       (0 <= num)   (default: num = 0)                 \n"
+    "                  **N.B.: You only need this option if you have        \n"
+    "                          more than 10 GLTs specified; the program     \n"
+    "                          has built-in space for 10 GLTs, and          \n"
+    "                          this option is used to expand that space.    \n"
+    "                          If you use this option, you should place     \n"
+    "                          it on the command line BEFORE any of the     \n"
+    "                          other GLT options.                           \n"
     "[-glt s gltname]     Perform s simultaneous linear tests, as specified \n"
     "                       by the matrix contained in file gltname         \n"
     "[-glt_label k glabel]  glabel = label for kth general linear test      \n"
@@ -2233,7 +2240,7 @@ void get_options
           initialize_glt_options (option_data, 10);   /* default limit on GLTs */
 
         if (iglt+1 > option_data->num_glt)
-          DC_error ("Use -num_glt option to specify number of GLTs");
+          DC_error ("Use -num_glt option to specify number of GLTs when more than 10");
 
         option_data->glt_rows[iglt] = s;
         nopt++;
