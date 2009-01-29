@@ -3149,7 +3149,9 @@ ENTRY("mri_read_ascii_ragged_fvect") ;
 
    if( strncmp(fname,"1D:",3) == 0 ){  /* cheap hack for 3dDeconvolve -stim_times */
      outim = mri_read_ragged_fromstring( fname+3 , filler ) ;
-     if( outim != NULL ){ outim->kind = MRI_float; outim->vdim = 1; }
+     if( outim != NULL && outim->kind == MRI_float){
+       outim->kind = MRI_fvect ; outim->vdim = 1 ;
+     }
      RETURN(outim) ;
    }
 
