@@ -54,7 +54,7 @@ static void myunif_reset(unsigned long long x){ MYx = x; return; }
 /* Max number of points to warp at a time */
 
 #undef  NPER
-#define NPER 131072  /* 512 Kbytes per array */
+#define NPER 131072  /* 512 Kbytes per float array */
 
 /*--------------------------------------------------------------------*/
 /*! Interpolate target image to control points in base image space.

@@ -4,6 +4,9 @@
 #include <omp.h>
 #endif
 
+#undef  NPER
+#define NPER 131072  /* 512 Kbytes per float array */
+
 /*---------------------------------------------------------------------------*/
 
 int GA_gcd( int m , int n )    /* Euclid's Greatest Common Denominator */
@@ -775,7 +778,18 @@ ENTRY("GA_interp_quintic") ;
 }
 
 /*---------------------------------------------------------------------------*/
+
+MRI_IMAGE * GA_indexwarp( MRI_IMAGE *inim, int interp_code, MRI_IMAGE *wpim )
+{
+   float_triple delta = {0.0f,0.0f,0.0f} ;
+
+   return GA_indexwarp_plus( inim , interp_code , wpim , delta , NULL ) ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Output image will be on the same grid as the input, of course.
+   Points not in the mask will be set to zero.
+
    Input image format ==> output format:
    ------------------     -------------
               fvect   ==> fvect
@@ -784,14 +798,16 @@ ENTRY("GA_interp_quintic") ;
               other   ==> float
 *//*-------------------------------------------------------------------------*/
 
-MRI_IMAGE * GA_indexwarp( MRI_IMAGE *inim, int interp_code, MRI_IMAGE *wpim )
+MRI_IMAGE * GA_indexwarp_plus( MRI_IMAGE *inim, int interp_code,
+                               MRI_IMAGE *wpim, float_triple delta, byte *mask )
 {
    MRI_IMAGE *outim=NULL , *fim , *iim,*jjm,*kkm ;
    float     *outar      , *far , *iar,*jar,*kar ;
-   float ffmin=0.0f , ffmax=0.0f ;
-   int ii , nvox,nx,ny,nz,nxy , do_clip ;
+   float ffmin=0.0f , ffmax=0.0f , delx,dely,delz ;
+   int ii,jj , nvox,nx,ny,nz,nxy , do_clip ;
+   byte *mmm=NULL ; int nmask=0 ; float *miar,*mjar,*mkar,*moutar ;
 
-ENTRY("GA_indexwarp") ;
+ENTRY("GA_indexwarp_plus") ;
 
    if( inim == NULL || wpim == NULL || wpim->kind != MRI_fvect ) RETURN(NULL);
    if( mri_data_pointer(inim) == NULL ||
@@ -803,7 +819,9 @@ ENTRY("GA_indexwarp") ;
    /*- (for usage of VECTORME macro, via CALLME, see mrilib.h) -*/
 
 #undef  CALLME
-#define CALLME(inee,outee) outee = GA_indexwarp( (inee), interp_code, wpim )
+#define CALLME(inee,outee) \
+  outee = GA_indexwarp_plus( (inee),interp_code,wpim,delta,mask )
+
    if( ISVECTIM(inim) ){ VECTORME(inim,outim) ; RETURN(outim) ; }
 
    /*------------------ here, input image is scalar-valued ------------------*/
@@ -813,7 +831,7 @@ ENTRY("GA_indexwarp") ;
    far = MRI_FLOAT_PTR(fim) ;
 
    outim = mri_new_conforming( fim , MRI_float ) ;
-   outar = MRI_FLOAT_PTR(outim) ;
+   outar = MRI_FLOAT_PTR(outim) ;  /* is zero filled */
 
    nx = fim->nx; ny = fim->ny; nz = fim->nz; nxy = nx*ny; nvox = nx*ny*nz;
 
@@ -830,9 +848,45 @@ ENTRY("GA_indexwarp") ;
    }
 #endif
 
-   iar = MRI_FLOAT_PTR(iim) ;
-   jar = MRI_FLOAT_PTR(jjm) ;
-   kar = MRI_FLOAT_PTR(kkm) ;
+   /* check mask */
+
+   if( mask != NULL ){
+     mmm = mask ; nmask = THD_countmask( nvox , mmm ) ;
+     if( nmask < 1 ) nmask = nvox ;
+   } else {
+     nmask = nvox ;  /* no mask ==> do them all */
+   }
+
+   /* indexes at which to calculate output volume */
+
+   iar = MRI_FLOAT_PTR(iim); jar = MRI_FLOAT_PTR(jjm); kar = MRI_FLOAT_PTR(kkm);
+
+   /* make subset that fits the mask */
+
+   if( nmask == nvox ){
+     miar = iar ; mjar = jar ; mkar = kar ; moutar = outar ;
+   } else {
+     miar   = (float *)malloc(sizeof(float)*nmask) ;
+     mjar   = (float *)malloc(sizeof(float)*nmask) ;
+     mkar   = (float *)malloc(sizeof(float)*nmask) ;
+     moutar = (float *)malloc(sizeof(float)*nmask) ;
+     for( ii=jj=0 ; ii < nvox ; ii++ ){
+       if( mmm[ii] ){
+         miar[jj] = iar[ii] ; mjar[jj] = jar[ii] ; mkar[jj] = kar[ii] ; jj++ ;
+       }
+     }
+   }
+
+   /* shift by delta */
+
+   delx = delta.a ; dely = delta.b ; delz = delta.c ;
+   if( delx != 0.0f || dely != 0.0f || delz != 0.0f ){
+     for( jj=0 ; jj < nmask ; jj++ ){
+       miar[jj] += delx ; mjar[jj] += dely ; mkar[jj] += delz ;
+     }
+   }
+
+   /* compute bounds on input to apply to output */
 
    do_clip = ( interp_code != MRI_NN && interp_code != MRI_LINEAR ) ;
    if( do_clip ){
@@ -848,36 +902,47 @@ ENTRY("GA_indexwarp") ;
    switch( interp_code ){
 
      case MRI_NN:
-       GA_interp_NN     ( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_NN     ( fim , nmask,miar,mjar,mkar,moutar ) ;
      break ;
 
      case MRI_LINEAR:
-       GA_interp_linear ( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_linear ( fim , nmask,miar,mjar,mkar,moutar ) ;
      break ;
 
      case MRI_CUBIC:
-       GA_interp_cubic  ( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_cubic  ( fim , nmask,miar,mjar,mkar,moutar ) ;
      break ;
 
      case MRI_VARP1:
-       GA_interp_varp1  ( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_varp1  ( fim , nmask,miar,mjar,mkar,moutar ) ;
      break ;
 
      case MRI_WSINC5:
-       GA_interp_wsinc5 ( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_wsinc5 ( fim , nmask,miar,mjar,mkar,moutar ) ;
      break ;
 
      default:
      case MRI_QUINTIC:
-       GA_interp_quintic( fim , nvox , iar,jar,kar , outar ) ;
+       GA_interp_quintic( fim , nmask,miar,mjar,mkar,moutar ) ;
      break ;
    }
 
+   /* apply the bounds */
+
    if( do_clip ){
-     for( ii=0 ; ii < nvox ; ii++ ){
-            if( outar[ii] < ffmin ) outar[ii] = ffmin ;
-       else if( outar[ii] > ffmax ) outar[ii] = ffmax ;
+     for( jj=0 ; jj < nmask ; jj++ ){
+            if( moutar[jj] < ffmin ) moutar[jj] = ffmin ;
+       else if( moutar[jj] > ffmax ) moutar[jj] = ffmax ;
      }
+   }
+
+   /* copy subset values in moutar back to outar image */
+
+   if( nmask < nvox ){
+     for( ii=jj=0 ; ii < nvox ; ii++ ){
+       if( mmm[ii] ) outar[ii] = moutar[jj++] ;
+     }
+     free(moutar) ; free(mkar) ; free(mjar) ; free(miar) ;
    }
 
    /*--- done! ---*/
@@ -889,7 +954,7 @@ ENTRY("GA_indexwarp") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Apply a matrix to a set of warp vectors (in place). */
+/*! Apply a matrix to a set of warp vectors (in place). */
 
 void GA_affine_edit_warp( mat44 aff , MRI_IMAGE *wpim )
 {
