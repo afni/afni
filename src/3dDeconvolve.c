@@ -865,8 +865,14 @@ void display_help_menu()
     "   and also read the presentation below:                               \n"
     " http://afni.nimh.nih.gov/pub/dist/edu/latest/afni_handouts/afni05_regression.pdf\n"
     "   ** Note Well:                                                       \n"
-    "   ** The contents of the 'tname' file are NOT just 0s and 1s,         \n"
-    "   ** but are the actual times of the stimulus events.                 \n"
+    "    * The contents of the 'tname' file are NOT just 0s and 1s,         \n"
+    "      but are the actual times of the stimulus events.                 \n"
+    "    * You can give the times on the command line by using a string     \n"
+    "      of the form '1D: 3.2 7.9 | 8.2 16.2 23.7' in place of 'tname',   \n"
+    "      where the '|' character indicates the start of a new line        \n"
+    "      (so this example is for a case with 2 catenated runs).           \n"
+    "    * You cannot use the '1D:' form of input for any of the more       \n"
+    "      complicated '-stim_times_*' options below!                       \n"
     "                                                                       \n"
     "[-stim_times_AM1 k tname Rmodel]                                       \n"
     "   Similar, but generates an amplitude modulated response model.       \n"
@@ -1910,7 +1916,7 @@ void get_options
         } else if( strcmp(suf,"_IM") == 0 ){
 
           vdim = basis_times[k]->vdim ;  /* will be 0 if there is aux data */
- 
+
         /** cases: multiple numbers per time point: -stim_times_AM* **/
 
         } else if( strncmp(suf,"_AM",3) == 0 ){
@@ -6425,7 +6431,7 @@ void write_ts_array
           new_dset->dblk->diskptr->header_name ) ;
 #else
   if(!THD_ok_overwrite() &&          /* ZSS: Dec. 16 08 */
-      THD_deconflict_prefix(new_dset) > 0 ) {  
+      THD_deconflict_prefix(new_dset) > 0 ) {
     WARNING_message("Filename conflict: changing '%s' to '%s'",
                     output_filename,DSET_PREFIX(new_dset) ) ;
   }
@@ -6693,9 +6699,9 @@ void write_bucket_data
           "Bucket dataset file %s already exists--cannot continue!",
           DSET_HEADNAME(new_dset));
 #else
-  if( strcmp(output_prefix,"Decon") != 0 &&              
+  if( strcmp(output_prefix,"Decon") != 0 &&
       !THD_ok_overwrite() &&                   /* ZSS: Dec. 16 08 */
-      THD_deconflict_prefix(new_dset) > 0 ) { 
+      THD_deconflict_prefix(new_dset) > 0 ) {
     WARNING_message("Filename conflict: changing '%s' to '%s'",
                     output_prefix,DSET_PREFIX(new_dset) ) ;
    }
