@@ -2309,6 +2309,8 @@ STATUS(fname) ;  /* 16 Oct 2007 */
    FRB(buf) ; RETURN(outim) ;
 }
 
+/*---------------------------------------------------------------*/
+
 MRI_IMAGE * mri_read_double_ascii( char * fname )
 {
    MRI_IMAGE * outim ;
@@ -2412,6 +2414,8 @@ ENTRY("mri_read_double_ascii") ;
 
    FRB(buf) ; RETURN(outim) ;
 }
+
+/*---------------------------------------------------------------*/
 
 MRI_IMAGE * mri_read_complex_ascii( char * fname )
 {
@@ -3142,6 +3146,12 @@ MRI_IMAGE * mri_read_ascii_ragged_fvect( char *fname, float filler, int vdim )
 ENTRY("mri_read_ascii_ragged_fvect") ;
 
    if( fname == NULL || *fname == '\0' ) RETURN(NULL) ;
+
+   if( strncmp(fname,"1D:",3) == 0 ){  /* cheap hack for 3dDeconvolve -stim_times */
+     outim = mri_read_ragged_fromstring( fname+3 , filler ) ;
+     if( outim != NULL ){ outim->kind = MRI_float; outim->vdim = 1; }
+     RETURN(outim) ;
+   }
 
    fts = fopen(fname,"r"); if( fts == NULL ) RETURN(NULL) ;
 
