@@ -1628,6 +1628,8 @@ extern MRI_IMAGE * GA_smooth( MRI_IMAGE *im, int meth, float rad ) ;
 extern void GA_set_outval(float) ;
 
 extern MRI_IMAGE * GA_indexwarp( MRI_IMAGE *, int, MRI_IMAGE * ) ;
+extern MRI_IMAGE * GA_indexwarp_plus( MRI_IMAGE *, int, MRI_IMAGE *,
+                                      float_triple , byte * ) ;
 extern void GA_affine_edit_warp( mat44 aff , MRI_IMAGE *wpim ) ;
 /*----------------------------------------------------------------------------*/
 
