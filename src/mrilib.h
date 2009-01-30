@@ -1529,6 +1529,8 @@ extern GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
 
 /******* end of BLOK stuff here -- also see mri_genalign_util.c *******/
 
+extern floatvec * GA_pearson_vector( int npt, float *avm, float *bvm, float *wvm ) ;
+
  /* struct to control mri_genalign.c optimization */
 
 typedef struct {
