@@ -566,7 +566,12 @@ void EDIT_misfit_report( char *name, int ib,
    WARNING_message("%s[%d] scale to shorts misfit = %.2f%% -- %s",
                    name , ib , mf , msg[im] ) ;
    if( first ){
-     ININFO_message("Consider writing datasets out in float format.") ;
+     ININFO_message("a) Numerical precision has been lost when truncating results\n"
+                 "       from 32-bit floating point to 16-bit integers (shorts)." );
+     ININFO_message("b) Consider writing datasets out in float format.\n"
+                 "       In most programs, this is done with the '-float' option.");
+     ININFO_message("c) This warning is a new message, but is an old issue\n"
+                 "       that arises when storing results in an integer format."  );
      first = 0 ;
    }
    return ;
