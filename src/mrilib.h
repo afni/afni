@@ -1506,6 +1506,29 @@ typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 #define GA_HIST_EQHIGH 2
 #define GA_HIST_CLEQWD 3
 
+/***** struct and macro for local statistics in BLOKs (e.g., LPC) *****/
+
+typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
+
+#define GA_BLOK_KILL(gbs)                                     \
+ do{ int ee ;                                                 \
+     if( (gbs)->nelm != NULL ) free((gbs)->nelm) ;            \
+     if( (gbs)->elm != NULL ){                                \
+       for( ee=0 ; ee < (gbs)->num ; ee++ )                   \
+         if( (gbs)->elm[ee] != NULL ) free((gbs)->elm[ee]) ;  \
+       free((gbs)->elm) ;                                     \
+     }                                                        \
+     free((gbs)) ;                                            \
+ } while(0)
+
+extern GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
+                                         float dx , float dy , float dz ,
+                                         int npt, float *im, float *jm, float *km,
+                                         int bloktype, float blokrad, int minel,
+                                                                      int verb ) ;
+
+/******* end of BLOK stuff here -- also see mri_genalign_util.c *******/
+
  /* struct to control mri_genalign.c optimization */
 
 typedef struct {
@@ -1522,7 +1545,7 @@ typedef struct {
 
   int   bloktype, blokmin ;     /* set by user */
   float blokrad ;               /* set by user */
-  void *blokset ;
+  GA_BLOK_set *blokset ;
 
   int old_sc ; float old_sr_base , old_sr_targ ;
 
@@ -1724,7 +1747,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
  #undef  CALLME
  #define CALLME(inn,out) (out) = mri_medianfilter( (inn), irad,mask,verb )
  if( ISVECTIM(inim) ){ VECTORME(inim,outim) ; return outim ; }
- ... normal processing of a scalar image goes here 
+ ... normal processing of a scalar image goes here
  ... idea is that the CALLME macro is recursive to the local function
  ... this example would be inserted into source code mri_medianfilter.c **/
 
