@@ -684,7 +684,7 @@ grpP <- matrix(unlist(pList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(ro
    savePMat <- as.integer(readline("Save the above p matrix (0: no; 1: yes)? "))
       if (savePMat) {
          matPName <- as.character(readline("File name prefix for p matrix? "))
-         write.table(grpP, file=sprintf("%sLag.1D", matTName), append=FALSE, row.names=TRUE, col.names=TRUE)
+         write.table(grpP, file=sprintf("%sLag.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
    print("-----------------")
 anotherPthG <- TRUE
