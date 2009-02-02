@@ -180,7 +180,7 @@ if(PRINT_TRACING)
 { char str[256] ;
   sprintf(str,"found palette label=%s. [len=%d label[0]=%d]",
           label,(int)strlen(label),(int)label[0]); STATUS(str);
-  sprintf(str,"nbuf=%d fptr-fbuf=%d",nbuf,fptr-fbuf); STATUS(str);}
+  sprintf(str,"nbuf=%d fptr-fbuf=%d",nbuf,(int)(fptr-fbuf)); STATUS(str);}
 
                ii = label_in_PALTAB( GPT , label ) ; /* an old one? */
                if( ii < 0 ){
