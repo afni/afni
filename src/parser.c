@@ -9,29 +9,30 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b398 = 0.;
-static doublereal c_b412 = 1.;
-static doublereal c_b413 = 2.;
-static doublereal c_b414 = 3.;
-static doublereal c_b415 = 4.;
-static doublereal c_b416 = 5.;
-static doublereal c_b417 = 6.;
-static doublereal c_b418 = 7.;
-static doublereal c_b419 = 8.;
-static doublereal c_b420 = 9.;
-static doublereal c_b421 = 10.;
-static doublereal c_b422 = 11.;
-static doublereal c_b423 = 12.;
+static doublereal c_b402 = 0.;
+static doublereal c_b416 = 1.;
+static doublereal c_b417 = 2.;
+static doublereal c_b418 = 3.;
+static doublereal c_b419 = 4.;
+static doublereal c_b420 = 5.;
+static doublereal c_b421 = 6.;
+static doublereal c_b422 = 7.;
+static doublereal c_b423 = 8.;
+static doublereal c_b424 = 9.;
+static doublereal c_b425 = 10.;
+static doublereal c_b426 = 11.;
+static doublereal c_b427 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
 {
     /* Initialized data */
 
-    static integer n_funcargs__[106] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
+    static integer n_funcargs__[108] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
 	    1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,
 	    -1,4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1,
-	    2,1,1,1,1,-1,1,-1,-1,-1,1,1,2,1,1,-1,-1,-1,2,5,5,-1,-1,-1,1,3 };
+	    2,1,1,1,1,-1,1,-1,-1,-1,1,1,2,1,1,-1,-1,-1,2,5,5,-1,-1,-1,1,3,2,2 
+	    };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -606,7 +607,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*107] = "SIN                             " 
+    static char c_funcname__[32*109] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -664,7 +665,8 @@ L9000:
 	    "STAT2CDF                        " "PAIRMAX                     "
 	    "    " "PAIRMIN                         " "AMONGST               "
 	    "          " "CBRT                            " "RHDDC2          "
-	    "                " "DUMMY                           ";
+	    "                " "HRFBK4                          " "HRFBK5    "
+	    "                      " "DUMMY                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -749,7 +751,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*107] = "SIN                             " 
+    static char c_funcname__[32*109] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -807,7 +809,8 @@ L8000:
 	    "STAT2CDF                        " "PAIRMAX                     "
 	    "    " "PAIRMIN                         " "AMONGST               "
 	    "          " "CBRT                            " "RHDDC2          "
-	    "                " "DUMMY                           ";
+	    "                " "HRFBK4                          " "HRFBK5    "
+	    "                      " "DUMMY                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -952,7 +955,7 @@ L120:
 /*  The name is now in C_ID.  Check to see if it is a function name. */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 3392, c_id__, (ftnlen)32, (ftnlen)32);
+	s_copy(c_funcname__ + 3456, c_id__, (ftnlen)32, (ftnlen)32);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), (ftnlen)32, (
 		ftnlen)32) != 0)) {
@@ -961,7 +964,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 106) {
+	if (ifunc <= 108) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1237,10 +1240,11 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	    dbesk1_(doublereal *);
 #define c8_val__ ((char *)equiv_0)
     extern doublereal rhddc2_(doublereal *, doublereal *, doublereal *), 
-	    cdf2st_(doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *), dbesy0_(doublereal *), dbesy1_(doublereal *), 
-	    st2cdf_(doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *);
+	    hrfbk4_(doublereal *, doublereal *), hrfbk5_(doublereal *, 
+	    doublereal *), cdf2st_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *), dbesy0_(doublereal *), dbesy1_(
+	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *);
 #define r8_val__ (equiv_0)
     extern doublereal dgamma_(doublereal *);
     static char cncode[8];
@@ -1447,6 +1451,16 @@ L1000:
     } else if (s_cmp(cncode, "PLEG", (ftnlen)8, (ftnlen)4) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = legendre_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+/* ....................................................................... */
+    } else if (s_cmp(cncode, "HRFBK4", (ftnlen)8, (ftnlen)6) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = hrfbk4_(&r8_eval__[neval - 1], &r8_eval__[
+		neval]);
+/* ....................................................................... */
+    } else if (s_cmp(cncode, "HRFBK5", (ftnlen)8, (ftnlen)6) == 0) {
+	--neval;
+	r8_eval__[neval - 1] = hrfbk5_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
 /* ....................................................................... */
     } else if (s_cmp(cncode, "RHDDC2", (ftnlen)8, (ftnlen)6) == 0) {
@@ -1848,10 +1862,11 @@ L8000:
 	    dbesk1_(doublereal *);
 #define c8_val__ ((char *)equiv_0)
     extern doublereal rhddc2_(doublereal *, doublereal *, doublereal *), 
-	    cdf2st_(doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *), dbesy0_(doublereal *), dbesy1_(doublereal *), 
-	    st2cdf_(doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *);
+	    hrfbk4_(doublereal *, doublereal *), hrfbk5_(doublereal *, 
+	    doublereal *), cdf2st_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *), dbesy0_(doublereal *), dbesy1_(
+	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *, doublereal *);
 #define r8_val__ (equiv_0)
     extern doublereal dgamma_(doublereal *);
     static char cncode[8];
@@ -2454,6 +2469,24 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = legendre_(&
 			r8_eval__[iv - ibv + (neval << 6) - 65], &r8_eval__[
 			iv - ibv + (neval + 1 << 6) - 65]);
+	    }
+/* ....................................................................... */
+	} else if (s_cmp(cncode, "HRFBK4", (ftnlen)8, (ftnlen)6) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = hrfbk4_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
+	    }
+/* ....................................................................... */
+	} else if (s_cmp(cncode, "HRFBK5", (ftnlen)8, (ftnlen)6) == 0) {
+	    --neval;
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = hrfbk5_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
+			neval + 1 << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "RHDDC2", (ftnlen)8, (ftnlen)6) == 0) {
@@ -3315,7 +3348,7 @@ doublereal iran_(doublereal *top)
 
 /*  Return an integer uniformly distributed among 0..TOP */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-    d__1 = (*top + 1.) * unif_(&c_b398);
+    d__1 = (*top + 1.) * unif_(&c_b402);
     ret_val = d_int(&d__1);
     return ret_val;
 } /* iran_ */
@@ -3339,7 +3372,7 @@ doublereal eran_(doublereal *top)
 /*  Return an exponentially distributed deviate: F(x) = 1-exp(-x/top) */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 L100:
-    u1 = unif_(&c_b398);
+    u1 = unif_(&c_b402);
     if (u1 <= 0.) {
 	goto L100;
     }
@@ -3366,7 +3399,7 @@ doublereal lran_(doublereal *top)
 /*  Return a logistically distributed deviate: F(x) = 1/[1+exp(-x/top)] */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 L100:
-    u1 = unif_(&c_b398);
+    u1 = unif_(&c_b402);
     if (u1 <= 0. || u1 >= 1.) {
 	goto L100;
     }
@@ -3389,7 +3422,7 @@ doublereal uran_(doublereal *x)
 /*  Return a U(0,X) random variable. */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-    ret_val = *x * unif_(&c_b398);
+    ret_val = *x * unif_(&c_b402);
     return ret_val;
 } /* uran_ */
 
@@ -3420,11 +3453,11 @@ doublereal gran2_(doublereal *b, doublereal *s)
 
     if (ip == 0) {
 L100:
-	u1 = unif_(&c_b398);
+	u1 = unif_(&c_b402);
 	if (u1 <= 0.) {
 	    goto L100;
 	}
-	u2 = unif_(&c_b398);
+	u2 = unif_(&c_b402);
 	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
 	ip = 1;
     } else {
@@ -3448,10 +3481,10 @@ doublereal gran1_(doublereal *b, doublereal *s)
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-    g = unif_(&c_b412) - 6. + unif_(&c_b413) + unif_(&c_b414) + unif_(&c_b415)
-	     + unif_(&c_b416) + unif_(&c_b417) + unif_(&c_b418) + unif_(&
-	    c_b419) + unif_(&c_b420) + unif_(&c_b421) + unif_(&c_b422) + 
-	    unif_(&c_b423);
+    g = unif_(&c_b416) - 6. + unif_(&c_b417) + unif_(&c_b418) + unif_(&c_b419)
+	     + unif_(&c_b420) + unif_(&c_b421) + unif_(&c_b422) + unif_(&
+	    c_b423) + unif_(&c_b424) + unif_(&c_b425) + unif_(&c_b426) + 
+	    unif_(&c_b427);
     ret_val = *b + *s * g;
     return ret_val;
 } /* gran1_ */
@@ -3471,7 +3504,7 @@ doublereal gran_(doublereal *b, doublereal *s)
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-    uu = unif_(&c_b398);
+    uu = unif_(&c_b402);
     if (uu <= .5) {
 	ret_val = gran1_(b, s);
     } else {
