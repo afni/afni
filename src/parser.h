@@ -103,7 +103,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    rect , step , astep, bool  , and   , or    , mofn ,       \n"           \
   "    sind , cosd , tand , median, lmode , hmode , mad  ,       \n"           \
   "    gran , uran , iran , eran  , lran  , orstat,              \n"           \
-  "    mean , stdev, sem  , Pleg  , cbrt  , rhddc2,\n"                         \
+  "    mean , stdev, sem  , Pleg  , cbrt  , rhddc2, hrfbk4,hrfbk5\n"           \
   "\n"                                                                         \
   " where:\n"                                                                  \
   " * qg(x)    = reversed cdf of a standard normal distribution\n"             \
@@ -132,6 +132,11 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " * iran(t)   returns a random integer in the range [0..t]\n"                \
   " * eran(s)   returns an exponentially distributed deviate\n"                \
   " * lran(t)   returns a logistically distributed deviate\n"                  \
+  " * hrfbk4(t,L) and hrfbk5(t,L) are the BLOCK4 and BLOCK5 hemodynamic\n"     \
+  "    response functions from 3dDeconvolve (L=stimulus duration in sec,\n"    \
+  "    and t is the time in sec since start of stimulus); for example:\n"      \
+  "  1deval -del 0.1 -num 400 -expr 'hrfbk5(t,20)' | 1dplot -stdin -del 0.1\n" \
+  "    These HRF functions are scaled to return values in the range [0..1]\n"  \
   "\n"                                                                         \
   " You may use the symbol 'PI' to refer to the constant of that name.\n"      \
   " This is the only 2 letter symbol defined; all variables are\n"             \
