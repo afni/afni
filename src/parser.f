@@ -837,7 +837,7 @@ C
      X          FIZTTP , FIZTPT , FIZTTZ ,
      X          FICTTP , FICTPT , FICTTZ ,
      X          FIBTTP , FIBTPT , FIBTTZ ,
-     X          FIBNTP , FIBNPT , FIBNTZ ,
+     X          FIBNTP , FIBNPT , FIBNTZ , HRFBK4   , HRFBK5 ,
      X          FIGTTP , FIGTPT , FIGTTZ , RHDDC2   ,
      X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE , CBRTFF
 C
@@ -985,6 +985,14 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'PLEG')THEN
             NEVAL = NEVAL - 1
             R8_EVAL(NEVAL) = LEGENDRE( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'HRFBK4')THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = HRFBK4( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'HRFBK5')THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = HRFBK5( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'RHDDC2')THEN
             NEVAL = NEVAL - 2
@@ -1357,7 +1365,7 @@ C
      X          FIZTTP , FIZTPT , FIZTTZ ,
      X          FICTTP , FICTPT , FICTTZ ,
      X          FIBTTP , FIBTPT , FIBTTZ ,
-     X          FIBNTP , FIBNPT , FIBNTZ ,
+     X          FIBNTP , FIBNPT , FIBNTZ , HRFBK4   , HRFBK5 ,
      X          FIGTTP , FIGTPT , FIGTTZ , RHDDC2   ,
      X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE , CBRTFF
 C
@@ -1745,6 +1753,20 @@ C.......................................................................
             NEVAL = NEVAL - 1
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = LEGENDRE( R8_EVAL(IV-IBV,NEVAL) ,
+     X                                         R8_EVAL(IV-IBV,NEVAL+1) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'HRFBK4')THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = HRFBK4( R8_EVAL(IV-IBV,NEVAL) ,
+     X                                         R8_EVAL(IV-IBV,NEVAL+1) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'HRFBK5')THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = HRFBK5( R8_EVAL(IV-IBV,NEVAL) ,
      X                                         R8_EVAL(IV-IBV,NEVAL+1) )
             ENDDO
 C.......................................................................
