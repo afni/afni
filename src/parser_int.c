@@ -597,3 +597,123 @@ doublereal rhddc2_( doublereal *x, doublereal *y, doublereal *z )
 
    return ( PA ) ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+static double block4( double tt , double TT )
+{
+  register double t26, t2, t4, t1, t42, t12, t34, t35, t16, t46, t,L ;
+  double w ;
+
+  if( tt <= 0.0f || tt >= (TT+15.0f) ) return 0.0f ;
+
+  t = tt ; L = TT ; t4 = exp(0.4e1 - t);
+  if( t < L ){ L = t ; t16 = 54.5982 ; }
+  else       { t16 = exp(4.0-t+L) ;    }
+
+  t1 = t * t;
+  t2 = t1 * t1;
+  t4 = exp(4.0 - t);
+  t12 = t1 * t;
+  t26 = t16 * L;
+  t34 = L * L;
+  t35 = t16 * t34;
+  t42 = t16 * t34 * L;
+  t46 = t34 * t34;
+
+  w = -t2 * t4 / 0.256e3 - 0.3e1 / 0.32e2 * t4 - 0.3e1 / 0.32e2 * t4 * t
+      - 0.3e1 / 0.64e2 * t4 * t1 - t4 * t12 / 0.64e2 + t16 * t2 / 0.256e3
+      + 0.3e1 / 0.32e2 * t16 + 0.3e1 / 0.32e2 * t16 * t
+      + 0.3e1 / 0.64e2 * t1 * t16 + t16 * t12 / 0.64e2 - 0.3e1 / 0.32e2 * t26
+      - 0.3e1 / 0.32e2 * t26 * t - 0.3e1 / 0.64e2 * t1 * t26
+      - t26 * t12 / 0.64e2 + 0.3e1 / 0.64e2 * t35 + 0.3e1 / 0.64e2 * t35 * t
+      + 0.3e1 / 0.128e3 * t1 * t35 - t42 / 0.64e2 - t42 * t / 0.64e2
+      + t16 * t46 / 0.256e3 ;
+
+  return w ;
+}
+
+/*.................................*/
+
+#undef  TPEAK4
+#define TPEAK4(TT) ((TT)/(1.0-exp(-0.25*(TT))))
+
+doublereal hrfbk4_( doublereal *ttp , doublereal *TTp )
+{
+   double tt=(double)*ttp , TT=(double)*TTp , w,tp ;
+   static double TTold=-1.0 , PPold=1.0 ;
+
+   w = block4(tt,TT) ;
+   if( w > 0.0 ){
+     if( TT != TTold ){
+       TTold = TT ; tp = TPEAK4(TT) ; PPold = block4(tp,TT) ;
+     }
+     w /= PPold ;
+   }
+   return (doublereal)w ;
+}
+
+/*.................................*/
+
+static double block5( double tt , double TT )
+{
+   register double t , T ;
+   register double t2,t3,t4,t5,t6,t7,t9,t10,t11,t14,t20,t25,t28,t37,t57 ;
+   double w ;
+
+   if( tt <= 0.0f || tt >= (TT+15.0f) ) return 0.0f ;
+
+   t = tt ; T = TT ;
+
+#if 1
+   t2 = exp(-t) ;
+   if( t <= T ){ t3 = t ; t4 = 1.0/t2 ; }
+   else        { t3 = T ; t4 = exp(T)  ; }
+   t2 *= 148.413 ;    /* 148.413 = exp(5) */
+#else
+   t2 = exp(0.5e1 - t);
+   t3 = (t <= T ? t : T);
+   t4 = exp(t3);
+#endif
+   t5 = t * t;
+   t6 = t5 * t5;
+   t7 = t6 * t;
+   t9 = t3 * t3;
+   t10 = t9 * t9;
+   t11 = t4 * t10;
+   t14 = t4 * t9 * t3;
+   t20 = t4 * t3;
+   t25 = t4 * t9;
+   t28 = t5 * t;
+   t37 = -0.120e3 + t4 * t7 + 0.5e1 * t11 - 0.20e2 * t14 - t4 * t10 * t3
+         - 0.10e2 * t14 * t5 - 0.120e3 * t20 * t - 0.20e2 * t14 * t
+         + 0.30e2 * t25 * t5 + 0.10e2 * t25 * t28 + 0.5e1 * t11 * t
+         + 0.20e2 * t4 * t28 + 0.60e2 * t25 * t;
+   t57 = -0.5e1 * t20 * t6 - 0.20e2 * t20 * t28 - 0.60e2 * t20 * t5
+         - 0.5e1 * t6 - 0.20e2 * t28 + 0.120e3 * t4 - 0.120e3 * t
+         - 0.120e3 * t20 + 0.60e2 * t25 - t7 - 0.60e2 * t5 + 0.120e3 * t4 * t
+         + 0.60e2 * t4 * t5 + 0.5e1 * t4 * t6;
+   w = t2 * (t37 + t57) / 0.3125e4;
+
+   return w ;
+}
+
+/*.................................*/
+
+#undef  TPEAK5
+#define TPEAK5(TT) ((TT)/(1.0-exp(-0.2*(TT))))
+
+doublereal hrfbk5_( doublereal *ttp , doublereal *TTp )
+{
+   double tt=(double)*ttp , TT=(double)*TTp , w,tp ;
+   static double TTold=-1.0 , PPold=1.0 ;
+
+   w = block5(tt,TT) ;
+   if( w > 0.0 ){
+     if( TT != TTold ){
+       TTold = TT ; tp = TPEAK5(TT) ; PPold = block5(tp,TT) ;
+     }
+     w /= PPold ;
+   }
+   return (doublereal)w ;
+}

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , FEB , 2009 , RWC , "parser (calc programs)" , MINOR , TYPE_MODIFY ,
+   "Add hrfbk4 and hrfbk5(t,T) functions to parser" ,
+   "To imitate the BLOCK4 and BLOCK5 response functions in 3dDeconvolve." } ,
+
  { 8 , JAN , 2009 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Added OpenMP directives as a test of multi-threading speedup." ,
    NULL } ,
