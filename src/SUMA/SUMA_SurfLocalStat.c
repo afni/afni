@@ -1,6 +1,3 @@
-/*USE This sample to start writing standalone programs.
-Change SurfLocalStat to the program name of your choosing.
-*/
 #include "SUMA_suma.h"
 
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/

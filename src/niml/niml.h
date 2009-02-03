@@ -596,6 +596,7 @@ extern void NI_add_column( NI_element *, int, void * ) ;
 extern void NI_move_column(NI_element *nel, int ibefore, int iafter);
 extern void NI_insert_column( NI_element *nel , int typ , void *arr, int icol );
 extern void NI_remove_column(NI_element *nel, int irm);
+extern void   NI_kill_attribute( void *, char * ) ;
 extern void   NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
 extern void NI_insert_value( NI_element *, int,int, void * );       /* 03 Apr 2003 */

@@ -246,7 +246,7 @@ typedef enum { SE_Empty,
                SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, 
                SE_SaveViewFileSelection, SE_LoadSegDO,
                SE_OpenDsetFileSelection, SE_OpenCmapFileSelection, SE_SetClip, 
-               SE_OpenDsetFile, SE_OneOnly, SE_OpenSurfCont,
+               SE_OpenDsetFile, SE_OpenColFile, SE_OneOnly, SE_OpenSurfCont,
                SE_SetSurfCont, SE_SetViewerCont, SE_SetRecorderCont,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
 typedef enum { SE_niEmpty,

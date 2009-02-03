@@ -221,17 +221,23 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetLight0Pos")) SUMA_RETURN(SE_SetLight0Pos);
    if (!strcmp(Scom,"OpenColFileSelection")) SUMA_RETURN(SE_OpenColFileSelection);
    if (!strcmp(Scom,"OpenDsetFileSelection")) SUMA_RETURN(SE_OpenDsetFileSelection);
-   if (!strcmp(Scom,"OpenCmapFileSelection")) SUMA_RETURN(SE_OpenCmapFileSelection);
-   if (!strcmp(Scom,"SaveDrawnROIFileSelection")) SUMA_RETURN(SE_SaveDrawnROIFileSelection);
-   if (!strcmp(Scom,"OpenDrawnROIFileSelection")) SUMA_RETURN(SE_OpenDrawnROIFileSelection);
+   if (!strcmp(Scom,"OpenCmapFileSelection")) 
+      SUMA_RETURN(SE_OpenCmapFileSelection);
+   if (!strcmp(Scom,"SaveDrawnROIFileSelection"))
+      SUMA_RETURN(SE_SaveDrawnROIFileSelection);
+   if (!strcmp(Scom,"OpenDrawnROIFileSelection")) 
+      SUMA_RETURN(SE_OpenDrawnROIFileSelection);
    if (!strcmp(Scom,"SendColorMapToAfni")) SUMA_RETURN(SE_SendColorMapToAfni);
    if (!strcmp(Scom,"SaveSOFileSelection")) SUMA_RETURN(SE_SaveSOFileSelection);
    if (!strcmp(Scom,"SetSOinFocus")) SUMA_RETURN(SE_SetSOinFocus);
-   if (!strcmp(Scom,"LoadViewFileSelection")) SUMA_RETURN(SE_LoadViewFileSelection);
-   if (!strcmp(Scom,"SaveViewFileSelection")) SUMA_RETURN(SE_SaveViewFileSelection);
+   if (!strcmp(Scom,"LoadViewFileSelection")) 
+      SUMA_RETURN(SE_LoadViewFileSelection);
+   if (!strcmp(Scom,"SaveViewFileSelection"))   
+      SUMA_RETURN(SE_SaveViewFileSelection);
    if (!strcmp(Scom,"LoadSegDO")) SUMA_RETURN(SE_LoadSegDO);
    if (!strcmp(Scom,"SetClip")) SUMA_RETURN(SE_SetClip); 
    if (!strcmp(Scom,"load_dset")) SUMA_RETURN(SE_OpenDsetFile);  
+   if (!strcmp(Scom,"load_col")) SUMA_RETURN(SE_OpenColFile);  
    if (!strcmp(Scom,"surf_cont")) SUMA_RETURN(SE_SetSurfCont);
    if (!strcmp(Scom,"viewer_cont")) SUMA_RETURN(SE_SetViewerCont);
    if (!strcmp(Scom,"recorder_cont")) SUMA_RETURN(SE_SetRecorderCont);
@@ -448,6 +454,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("LoadSegDO");    
       case SE_SetClip:
          SUMA_RETURN("SetClip");     
+      case SE_OpenColFile:
+         SUMA_RETURN("load_col"); 
       case SE_OpenDsetFile:
          SUMA_RETURN("load_dset"); 
       case SE_SetSurfCont:

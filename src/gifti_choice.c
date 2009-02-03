@@ -11,7 +11,9 @@
 #ifdef HAVE_GIFTI
 
     /* pretend the gifti source is here, along with thd_gifti functions */
-
+    
+    #include "mcw_malloc.h"     /* Need this to use same allocation functions */
+    
     #include "gifti_io.c"       /* library */
     #include "gifti_xml.c"
 

@@ -31,7 +31,8 @@ int * get_count_intlist ( char *str , int *nret)
    
    *nret = -1;
    if (!str || !strstr(str,"count ") || strlen (str) < 8) {
-      fprintf(stderr, "NULL input or string does not have 'count ' or at least 2 values are not present after 'count '\n");
+      fprintf(stderr, "NULL input or string does not have 'count '"
+                      " or at least 2 values are not present after 'count '\n");
       return (NULL);
    }
    
@@ -52,12 +53,12 @@ int * get_count_intlist ( char *str , int *nret)
    if( ISEND(str[ipos]) ) return NULL ;         /* bad */
    ibot = strtol( str+ipos , &cpt , 10 ) ;
    if( ibot < 0 && !allow_negative ){
-     fprintf(stderr,"** ERROR: sub-brick index %d cannot be < 0\n",
+     fprintf(stderr,"** ERROR: selector index %d cannot be < 0\n",
              ibot) ;
    }
    nused = (cpt-(str+ipos)) ;
    if( ibot == 0 && nused == 0 ){
-     fprintf(stderr,"** ERROR: sub-brick syntax error '%s'\n",str+ipos) ;
+     fprintf(stderr,"** ERROR: selector syntax error '%s'\n",str+ipos) ;
      return NULL ;
    }
    ipos += nused ;
@@ -66,12 +67,12 @@ int * get_count_intlist ( char *str , int *nret)
    if( ISEND(str[ipos]) ) return NULL  ;         /* Bad */
    itop = strtol( str+ipos , &cpt , 10 ) ;
    if( itop < 0 && !allow_negative ){
-     fprintf(stderr,"** ERROR: sub-brick index %d cannot be < 0\n",
+     fprintf(stderr,"** ERROR: selector index %d cannot be < 0\n",
              itop) ;
      return NULL ;
    }
    if( itop == 0 && nused == 0 ){
-     fprintf(stderr,"** ERROR: sub-brick syntax error '%s'\n",str+ipos) ;
+     fprintf(stderr,"** ERROR: selector syntax error '%s'\n",str+ipos) ;
      return NULL ;
    }
    nused = (cpt-(str+ipos)) ;
@@ -88,7 +89,9 @@ int * get_count_intlist ( char *str , int *nret)
             shuffle = 1;
             ++ipos;
          }else {
-            fprintf(stderr,"** No qualifiers allowed for step, other than 'S'. Have %c.\n", str[ipos]);
+            fprintf(stderr,
+                     "** No qualifiers allowed for step, other than 'S'. "
+                     "Have %c.\n", str[ipos]);
             return NULL ;
          }       
       }
@@ -104,7 +107,10 @@ int * get_count_intlist ( char *str , int *nret)
       return NULL ;
    }
    
-   /* fprintf(stderr,"Have count parameters: %d to %d with step %d and shuffle = %d; seed = %ld\n", ibot, itop, step, shuffle, seed); */
+   /* 
+      fprintf(stderr,"Have count parameters: %d to %d with 
+      step %d and shuffle = %d; seed = %ld\n", ibot, itop, step, shuffle, seed);
+   */
       
    if (itop < ibot) {nuni = ibot - itop + 1;}
    else { nuni = itop - ibot + 1; } 
@@ -127,12 +133,14 @@ int * get_count_intlist ( char *str , int *nret)
          else step *= 1;
       }
       itmp = 0;
-      if (itop < ibot) for (ii=ibot; ii>=itop;ii=ii+step) { subv[itmp] = ii; ++itmp; }
+      if (itop < ibot) 
+         for (ii=ibot; ii>=itop;ii=ii+step) { subv[itmp] = ii; ++itmp; }
       else for (ii=ibot; ii<=itop;ii=ii+step) { subv[itmp] = ii; ++itmp; }
       *nret = itmp;
    }
    
-   /* fprintf(stderr,"Have %d ints: %d to %d with step %d and shuffle = %d\n", *nret, ibot, itop, step, shuffle); */
+   /* fprintf(stderr,"Have %d ints: %d to %d with step %d 
+      and shuffle = %d\n", *nret, ibot, itop, step, shuffle); */
    ret = (int *)malloc(sizeof(int)*(*nret+1));
    ret[0] = *nret;
    for (ii=1; ii<=ret[0]; ++ii) ret[ii] = subv[(ii-1)%(nuni)];
@@ -208,18 +216,21 @@ int * MCW_get_intlist( int nvals , char *str )
       } else {                 /* decode an integer */
          ibot = strtol( str+ipos , &cpt , 10 ) ;
          if( ibot < 0 && !allow_negative ){
-           fprintf(stderr,"** ERROR: sub-brick index %d is out of range 0..%d\n",
+           fprintf(stderr,
+                   "** ERROR: selector index %d is out of range 0..%d\n",
                    ibot,nvals-1) ;
            free(subv) ; return NULL ;
          }
          if( ibot >= nvals ){
-           fprintf(stderr,"** ERROR: sub-brick index %d is out of range 0..%d\n",
+           fprintf(stderr,
+                   "** ERROR: selector index %d is out of range 0..%d\n",
                    ibot,nvals-1) ;
            free(subv) ; return NULL ;
          }
          nused = (cpt-(str+ipos)) ;
          if( ibot == 0 && nused == 0 ){
-           fprintf(stderr,"** ERROR: sub-brick syntax error '%s'\n",str+ipos) ;
+           fprintf(stderr,
+                   "** ERROR: selector syntax error '%s'\n",str+ipos) ;
            free(subv) ; return NULL ;
          }
          ipos += nused ;
@@ -245,7 +256,7 @@ int * MCW_get_intlist( int nvals , char *str )
       } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
          ipos++ ; ipos++ ;
       } else {
-         fprintf(stderr,"** ERROR: sub-brick selector syntax is bad: '%s'\n",
+         fprintf(stderr,"** ERROR: selector selector syntax is bad: '%s'\n",
                  str+ipos) ;
          free(subv) ; return NULL ;
       }
@@ -257,18 +268,18 @@ int * MCW_get_intlist( int nvals , char *str )
       } else {                 /* decode an integer */
          itop = strtol( str+ipos , &cpt , 10 ) ;
          if( itop < 0 && !allow_negative ){
-           fprintf(stderr,"** ERROR: sub-brick index %d is out of range 0..%d\n",
+           fprintf(stderr,"** ERROR: selector index %d is out of range 0..%d\n",
                    itop,nvals-1) ;
            free(subv) ; return NULL ;
          }
          if( itop >= nvals ){
-           fprintf(stderr,"** ERROR: sub-brick index %d is out of range 0..%d\n",
+           fprintf(stderr,"** ERROR: selector index %d is out of range 0..%d\n",
                    itop,nvals-1) ;
            free(subv) ; return NULL ;
          }
          nused = (cpt-(str+ipos)) ;
          if( itop == 0 && nused == 0 ){
-           fprintf(stderr,"** ERROR: sub-brick syntax error '%s'\n",str+ipos) ;
+           fprintf(stderr,"** ERROR: selector syntax error '%s'\n",str+ipos) ;
            free(subv) ; return NULL ;
          }
          ipos += nused ;
@@ -286,15 +297,16 @@ int * MCW_get_intlist( int nvals , char *str )
          ipos++ ;
          istep = strtol( str+ipos , &cpt , 10 ) ;
          if( istep == 0 ){
-           fprintf(stderr,"** ERROR: sub-brick loop step is 0!\n") ;
+           fprintf(stderr,"** ERROR: selector loop step is 0!\n") ;
            free(subv) ; return NULL ;
          }
          nused = (cpt-(str+ipos)) ;
          ipos += nused ;
          if( str[ipos] == ')' ) ipos++ ;
          if( (ibot-itop)*istep > 0 ){
-           fprintf(stderr,"** WARNING: sub-brick count '%d..%d(%d)' means nothing!\n",
-                   ibot,itop,istep ) ;
+           fprintf(  stderr,
+                     "** WARNING: selector count '%d..%d(%d)' means nothing!\n",
+                     ibot,itop,istep ) ;
          }
       }
 
