@@ -389,6 +389,7 @@ extern float EDIT_coerce_autoscale_new( int nxyz , int itype ,
 extern float EDIT_scale_misfit( int nxyz, float fac, short *sar, float *far ) ;
 extern void EDIT_misfit_report( char *name, int ib,
                                 int nxyz, float fac, short *sar, float *far ) ;
+extern void EDIT_set_misfit_mask( byte * ) ;
 
 extern void EDIT_floatize_dataset( THD_3dim_dataset *dset ) ;
 extern int DSET_pure_type( THD_3dim_dataset *dset ) ;

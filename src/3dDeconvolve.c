@@ -422,6 +422,8 @@ static int_triple *abc_CENSOR = NULL ;
 
 static int do_FDR = 1 ;                 /* 23 Jan 2008 */
 
+static byte *gmask = NULL ;             /* 03 Feb 2009 -- global mask array */
+
 /*---------- Typedefs for basis function expansions of the IRF ----------*/
 
 #include "parser.h"   /* for EXPR, et cetera */
@@ -1084,7 +1086,7 @@ void display_help_menu()
             "             The maximum allowed value of J is %d.\n"
             "         * For more information on parallelizing, see\n"
             "           http://afni.nimh.nih.gov/afni/doc/misc/afni_parallelize\n"
-            "         * Use -mask to get more speed; cf. 3dAutomask.\n"
+            "         * Use -mask or -automask to get more speed; cf. 3dAutomask.\n"
           , PROC_MAX ) ;
 #endif
 
@@ -1468,7 +1470,7 @@ void get_options
       {
         nopt++;
         if (nopt >= argc)  DC_error ("need argument after -mask ");
-     if( option_data->automask ) DC_error("can't use -mask AND -automask!") ;
+        if( option_data->automask ) DC_error("can't use -mask AND -automask!") ;
         option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->mask_filename);
         strcpy (option_data->mask_filename, argv[nopt]);
@@ -3063,6 +3065,7 @@ ENTRY("read_input_data") ;
                          mc,DSET_NVOX(*dset_time)) ;
           }
         }
+        gmask = *mask_vol ;  /* save global mask -- 03 Feb 2009 */
       }
 
       if (option_data->mask_filename != NULL)   /* read mask from file */
@@ -3090,7 +3093,23 @@ ENTRY("read_input_data") ;
            if (*mask_vol == NULL)  DC_error ("Unable to read mask dataset");
 
            DSET_delete(mask_dset) ;
+           gmask = *mask_vol ;         /* global mask save -- 03 Feb 2009 */
          }
+
+         /* 03 Feb 2009 -- make a global mask if not provided thus far */
+
+         if( gmask == NULL ){
+           MRI_IMAGE *qim ; int mc ;
+           qim   = THD_rms_brick( *dset_time ) ;
+           gmask = mri_automask_image( qim ) ;
+           mri_free( qim ) ;
+           mc = THD_countmask( DSET_NVOX(*dset_time) , gmask ) ;
+           if( mc <= 1 ){ free(gmask) ; gmask = NULL ; }
+           else if( verb && !floatout )
+             INFO_message("misfit automask has %d voxels (out of %d = %.1f%%)",
+                          mc, DSET_NVOX(*dset_time), (100.0f*mc)/DSET_NVOX(*dset_time) ) ;
+         }
+         EDIT_set_misfit_mask(gmask) ;
 
     } else {                                   /* no input data? */
       DC_error ("Must specify some sort of input data, or '-nodata'");

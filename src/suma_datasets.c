@@ -9959,7 +9959,7 @@ char *SUMA_help_dset()
       "           Append [i] to get the node index column from\n"
       "                      a niml formatted dataset.\n"
       "           *  SUMA does not preserve the selection order \n"
-      "              for any of the selectors.
+      "              for any of the selectors.\n"
       "              For example:\n"
       "              dset[44,10..20] is the same as dset[10..20,44]\n" 
       "\n");

@@ -515,6 +515,14 @@ ENTRY("EDIT_coerce_autoscale_new") ;
 }
 
 /*---------------------------------------------------------------------------*/
+static byte *mfmask = NULL ;
+
+void EDIT_set_misfit_mask( byte *mmm ){ mfmask = mmm ; return ; }
+
+#undef  BAD
+#define BAD(i) (mfmask != NULL && mfmask[i] == 0)
+
+/*---------------------------------------------------------------------------*/
 /*! Compute a measure of how good a scaled short array fits a float array.
     Smaller is better (0 is perfection, 1 is catastrophe).
 *//*-------------------------------------------------------------------------*/
@@ -531,6 +539,7 @@ ENTRY("EDIT_scale_misfit") ;
    if( fac == 0.0f ) fac = 1.0f ;
 
    for( ii=0 ; ii < nxyz ; ii++ ){
+     if( BAD(ii) ) continue ;
      ff = far[ii] ; if( ff == 0.0f ) continue ;
      sf = fac*sar[ii] ;
      if( sf == 0.0f ){
@@ -557,21 +566,27 @@ void EDIT_misfit_report( char *name, int ib,
    static int first=1 ;
 
    mf = 100.0f * EDIT_scale_misfit( nxyz , fac , sar , far ) ;
-        if( mf <  2.5f ) return ;  /* OK */
-        if( mf <  3.5f ) im = 0 ;
-   else if( mf <  5.0f ) im = 1 ;
-   else if( mf <  9.9f ) im = 2 ;
-   else if( mf < 19.9f ) im = 3 ;
+        if( mf <  5.0f ) return ;  /* OK */
+        if( mf <  9.0f ) im = 0 ;
+   else if( mf < 13.0f ) im = 1 ;
+   else if( mf < 17.0f ) im = 2 ;
+   else if( mf < 21.0f ) im = 3 ;
    else                  im = 4 ;
-   WARNING_message("%s[%d] scale to shorts misfit = %.2f%% -- %s",
+   if( first )
+     WARNING_message("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+
+   WARNING_message("%s[%d] scale to shorts mean misfit error = %.1f%% -- %s",
                    name , ib , mf , msg[im] ) ;
    if( first ){
      ININFO_message("a) Numerical precision has been lost when truncating results\n"
                  "       from 32-bit floating point to 16-bit integers (shorts)." );
      ININFO_message("b) Consider writing datasets out in float format.\n"
-                 "       In most programs, this is done with the '-float' option.");
+                 "       In most AFNI programs, use the '-float' option.");
      ININFO_message("c) This warning is a new message, but is an old issue\n"
                  "       that arises when storing results in an integer format."  );
+     ININFO_message("d) Don't panic!  These messages likely originate in peripheral or\n"
+                 "       unimportant voxels.  They mean that you examine your results.");
+     INFO_message("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
      first = 0 ;
    }
    return ;

@@ -329,6 +329,9 @@ ENTRY("GA_setup_2Dhistogram") ;
 #undef  CMAX
 #define CMAX 0.9999f
 
+/*----------------------------------------*/
+/*! LPC as described in the famous paper. */
+
 float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
 {
    GA_BLOK_set *gbs ;
@@ -347,14 +350,14 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
                             gstup->base_di , gstup->base_dj , gstup->base_dk ,
                             gstup->npt_match ,
                             gstup->im->ar , gstup->jm->ar , gstup->km->ar ,
-                            gstup->bloktype , rad , gstup->blokmin , verb ) ;
+                            gstup->bloktype , rad , gstup->blokmin , 1.0f,verb ) ;
      if( gstup->blokset == NULL )
        ERROR_exit("Can't create GA_BLOK_set?!?") ;
    }
 
-   gbs = gstup->blokset ;
-   nblok = gbs->num ; nm = gstup->npt_match ;
-   if( nblok < 1 ) ERROR_exit("Bad GA_BLOK_set?!") ;
+   gbs   = gstup->blokset ;
+   nblok = gbs->num ;
+   if( nblok < 1 ) ERROR_exit("LPC: Bad GA_BLOK_set?!") ;
 
    if( uwb < 0 ) uwb = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;  /* first time in */
 
@@ -392,6 +395,8 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
      }
      wss += ws ;
 
+     /*** massage results to get final stretched correlation ***/
+
      if( xv <= 0.0f || yv <= 0.0f ) continue ;      /* skip this blok */
      pcor = xy/sqrtf(xv*yv) ;                       /* correlation */
      if( pcor > CMAX ) pcor = CMAX; else if( pcor < -CMAX ) pcor = -CMAX;
@@ -400,83 +405,7 @@ float GA_pearson_local( int npt , float *avm, float *bvm, float *wvm )
    }
 
    return (0.25f*psum/wss);      /* averaged stretched emphasized correlation */
-}
-
-/*---------------------------------------------------------------------------*/
-/* Return the vector of individual BLOK correlations, for further analysis. */
-
-floatvec * GA_pearson_vector( int npt , float *avm, float *bvm, float *wvm )
-{
-   GA_BLOK_set *gbs ;
-   int nblok , nelm , *elm , dd , ii,jj , nm ;
-   float xv,yv,xy,xm,ym,vv,ww,ws , wt ;
-   floatvec *pv=NULL ; float *pvar ;
-   static int uwb=-1 ;
-
-   if( gstup->blokset == NULL ){
-     float rad=gstup->blokrad , mrad ;
-     if( gstup->smooth_code > 0 && gstup->smooth_radius_base > 0.0f )
-       rad = sqrt( rad*rad +SQR(gstup->smooth_radius_base) ) ;
-     mrad = 1.2345f*(gstup->base_di + gstup->base_dj + gstup->base_dk) ;
-     rad  = MAX(rad,mrad) ;
-     gstup->blokset = create_GA_BLOK_set(
-                                gstup->bsim->nx, gstup->bsim->ny, gstup->bsim->nz,
-                                gstup->base_di , gstup->base_dj , gstup->base_dk ,
-                                gstup->npt_match ,
-                                 gstup->im->ar , gstup->jm->ar , gstup->km->ar ,
-                                gstup->bloktype , rad , gstup->blokmin , verb ) ;
-     if( gstup->blokset == NULL )
-       ERROR_exit("Can't create GA_BLOK_set?!?") ;
-   }
-
-   gbs = gstup->blokset ;
-   nblok = gbs->num ; nm = gstup->npt_match ;
-   if( nblok < 1 ) ERROR_exit("Bad GA_BLOK_set?!") ;
-
-   if( uwb < 0 ) uwb = AFNI_yesenv("AFNI_LPC_UNWTBLOK") ;  /* first time in */
-
-   MAKE_floatvec( pv , nblok ) ; pvar = pv->ar ;
-
-   for( dd=0 ; dd < nblok ; dd++ ){
-     pvar[dd] = 0.0f ;
-     nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ; /* skip */
-     elm  = gbs->elm[dd] ;
-
-     if( wvm == NULL ){   /*** unweighted correlation ***/
-       xv=yv=xy=xm=ym=0.0f ; ws = 1.0f ;
-       for( ii=0 ; ii < nelm ; ii++ ){
-         jj = elm[ii] ;
-         xm += avm[jj] ; ym += bvm[jj] ;
-       }
-       xm /= nelm ; ym /= nelm ;
-       for( ii=0 ; ii < nelm ; ii++ ){
-         jj = elm[ii] ;
-         vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
-         xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
-       }
-
-     } else {             /*** weighted correlation ***/
-       xv=yv=xy=xm=ym=ws=0.0f ;
-       for( ii=0 ; ii < nelm ; ii++ ){
-         jj = elm[ii] ;
-         wt = wvm[jj] ; ws += wt ;
-         xm += avm[jj]*wt ; ym += bvm[jj]*wt ;
-       }
-       xm /= ws ; ym /= ws ;
-       for( ii=0 ; ii < nelm ; ii++ ){
-         jj = elm[ii] ;
-         wt = wvm[jj] ; vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
-         xv += wt*vv*vv ; yv += wt*ww*ww ; xy += wt*vv*ww ;
-       }
-       if( uwb ) ws = 1.0f ;
-     }
-
-     if( xv <= 0.0f || yv <= 0.0f ) continue ;      /* skip this blok */
-     pvar[dd] = xy/sqrtf(xv*yv) ;                       /* correlation */
-   }
-
-   return pv ;
-}
+}                                /* [0.25 to compensate for the 2*arctanh()] */
 
 /*---------------------------------------------------------------------------*/
 /*! Compute a particular fit cost function
@@ -504,11 +433,11 @@ ENTRY("GA_scalar_costfun") ;
       val = (double)THD_pearson_corr_wt( gstup->npt_match, avm, bvm,wvm ) ;
     break ;
 
-    case GA_MATCH_PEARSON_LOCALS:
+    case GA_MATCH_PEARSON_LOCALS:  /* LPC */
       val = (double)GA_pearson_local( gstup->npt_match, avm, bvm,wvm ) ;
     break ;
 
-    case GA_MATCH_PEARSON_LOCALA:
+    case GA_MATCH_PEARSON_LOCALA:  /* LPA */
       val = (double)GA_pearson_local( gstup->npt_match, avm, bvm,wvm ) ;
       val = 1.0 - fabs(val) ;
     break ;
