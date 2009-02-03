@@ -1,6 +1,8 @@
 #include "coxplot.h"
 #include <Xm/XmAll.h>
 #include <ctype.h>
+#include "mcw_malloc.h"    /* ZSS: Needed because SUMA_plot.c does 
+                              allocate some pointers freed here Jan 09 */
 #include "Amalloc.h"
 
 /*****************************************************************************
@@ -268,7 +270,6 @@ void pm_psprint_CB( Widget w , XtPointer cd , XtPointer cb )
 void pm_donebut_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
-
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
 
    mpcb->valid = 0 ;

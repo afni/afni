@@ -1920,7 +1920,9 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
       nimlROI->ROI_datum = NULL;
       SUMA_RETURN(nimlROI);
    }
-   nimlROI->ROI_datum = (SUMA_NIML_ROI_DATUM *)SUMA_malloc(nimlROI->N_ROI_datum*sizeof(SUMA_NIML_ROI_DATUM));
+   nimlROI->ROI_datum = 
+      (SUMA_NIML_ROI_DATUM *)SUMA_malloc( nimlROI->N_ROI_datum * 
+                                          sizeof(SUMA_NIML_ROI_DATUM));
 
    /* now fill the ROI_datum structures */
    Elm = NULL;
@@ -1934,9 +1936,10 @@ SUMA_NIML_DRAWN_ROI * SUMA_DrawnROI_to_NIMLDrawnROI (SUMA_DRAWN_ROI *ROI)
       nimlROI->ROI_datum[i].N_n = ROI_Datum->N_n;
       nimlROI->ROI_datum[i].nPath = ROI_Datum->nPath;
       
-/*    
+      /*    
       nimlROI->ROI_datum[i].N_t = ROI_Datum->N_t;
-      nimlROI->ROI_datum[i].tPath = ROI_Datum->tPath; */
+      nimlROI->ROI_datum[i].tPath = ROI_Datum->tPath; 
+      */
       ++i;
    } while (Elm != dlist_tail(ROI->ROIstrokelist));
    
@@ -1977,9 +1980,11 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SU
    ROI = (SUMA_DRAWN_ROI *) SUMA_malloc(sizeof(SUMA_DRAWN_ROI));
    if (  nimlROI->Type == SUMA_ROI_OpenPath || 
          nimlROI->Type == SUMA_ROI_ClosedPath ||
-         nimlROI->Type == SUMA_ROI_FilledArea ) { /* this ROI will gradually be reconstructed,
-                                                       start with the basics */
-         ROI->Type = SUMA_ROI_OpenPath; /* at the end of the construction you should reach nimlROI->Type */
+         nimlROI->Type == SUMA_ROI_FilledArea ) { 
+            /* this ROI will gradually be reconstructed,
+               start with the basics */
+         ROI->Type = SUMA_ROI_OpenPath; 
+            /* at the end of the construction you should reach nimlROI->Type */
    }else {
       /* nothing to reconstruct */
       ROI->Type = nimlROI->Type;
@@ -1989,7 +1994,10 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI, SU
    ROI->Parent_idcode_str = SUMA_copy_string(nimlROI->Parent_idcode_str);
    ROI->Label = SUMA_copy_string(nimlROI->Label);
    ROI->iLabel = nimlROI->iLabel;
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROI->Parent_idcode_str);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: ROI->Parent_idcode_str %s\n", 
+               FuncName, ROI->Parent_idcode_str);
    
    ROI->ROIstrokelist = (DList *)SUMA_malloc (sizeof(DList));
    dlist_init(ROI->ROIstrokelist, SUMA_FreeROIDatum);
@@ -2194,7 +2202,8 @@ void SUMA_FakeIt (int Solo)
       nPath1[0] = 9; nPath1[1] = 7; nPath1[2] = 23; nPath1[3] = -3;
        
       fprintf(stderr,"*********** Defining row type\n");
-      niml_ROI_Datum_type = NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
+      niml_ROI_Datum_type = 
+         NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
       
       niml_ROI = (SUMA_NIML_DRAWN_ROI *)malloc(sizeof(SUMA_NIML_DRAWN_ROI));
       niml_ROI->Type = 4;
@@ -2203,7 +2212,9 @@ void SUMA_FakeIt (int Solo)
       niml_ROI->Label = Label;
       niml_ROI->iLabel = 20;
       niml_ROI->N_ROI_datum = 2;
-      niml_ROI->ROI_datum = (SUMA_NIML_ROI_DATUM *)malloc(niml_ROI->N_ROI_datum*sizeof(SUMA_NIML_ROI_DATUM));
+      niml_ROI->ROI_datum = 
+         (SUMA_NIML_ROI_DATUM *)
+            malloc(niml_ROI->N_ROI_datum*sizeof(SUMA_NIML_ROI_DATUM));
 
       /* now fill the ROI_datum structures */
       
@@ -2217,7 +2228,9 @@ void SUMA_FakeIt (int Solo)
          fprintf(stderr,"*********** Skipping ROI_datum structure fill.\n");
       }
 
-      fprintf(stderr,"*********** Creating new data element, a column of %d elements \n", niml_ROI->N_ROI_datum);
+      fprintf( stderr,
+               "*********** Creating new data element, "
+               "a column of %d elements \n", niml_ROI->N_ROI_datum);
       nel = NI_new_data_element("A_drawn_ROI",  niml_ROI->N_ROI_datum);
       
       fprintf(stderr,"*********** Adding column\n");
@@ -2225,7 +2238,8 @@ void SUMA_FakeIt (int Solo)
       
       fprintf(stderr,"*********** Setting attributes element\n");
       NI_set_attribute (nel, "self_idcode", niml_ROI->idcode_str);
-      NI_set_attribute (nel, "domain_parent_idcode", niml_ROI->Parent_idcode_str);
+      NI_set_attribute (nel, "domain_parent_idcode", 
+                             niml_ROI->Parent_idcode_str);
       NI_set_attribute (nel, "Label", niml_ROI->Label);
       sprintf(stmp,"%d", niml_ROI->iLabel);
       NI_set_attribute (nel, "iLabel", stmp);

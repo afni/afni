@@ -5556,7 +5556,8 @@ void SUMA_CreateDrawROIWindow(void)
    SUMAg_CF->X->DrawROI->Load_pb = XtVaCreateWidget ("Load", 
       xmPushButtonWidgetClass, rc_switch, 
       NULL);
-   XtAddCallback (SUMAg_CF->X->DrawROI->Load_pb, XmNactivateCallback, SUMA_cb_DrawROI_Load, NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Load_pb, 
+                  XmNactivateCallback, SUMA_cb_DrawROI_Load, NULL);
    MCW_register_help(SUMAg_CF->X->DrawROI->Load_pb , SUMA_DrawROI_Load_help ) ;
    MCW_register_hint(SUMAg_CF->X->DrawROI->Load_pb , "Load a Drawn ROI" ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Load_pb);
@@ -9381,13 +9382,15 @@ void SUMA_cb_DrawROI_Load (Widget w, XtPointer data, XtPointer client_data)
                                           SEF_vp, NULL,
                                           SES_Suma, NULL, NOPE,
                                           SEI_Head, NULL))) {
-      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed to register command.\n", FuncName);
    }
    if (!SUMA_RegisterEngineListCommand (  list, ED,
                                           SEF_ip, (int *)w,
                                           SES_Suma, NULL, NOPE,
                                           SEI_In, NextElm)) {
-      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed to register command.\n", FuncName);
    }
    
    if (!SUMA_Engine (&list)) {

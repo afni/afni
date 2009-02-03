@@ -1661,7 +1661,9 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    if col_index is -1, then it is assumed that the attributes are for the latest column added (vec_num -1)
    \sa SUMA_AddGenDsetNodeIndexColAttr for the special case of the node index column
 */
-int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int stride, int col_index, int insert_mode) 
+int SUMA_AddGenDsetColAttr (  SUMA_DSET *dset, SUMA_COL_TYPE ctp, 
+                              void *col, int stride, int col_index, 
+                              int insert_mode) 
 {
    static char FuncName[]={"SUMA_AddGenDsetColAttr"};
    char Name[500], **junk, *stmp, *curstring = NULL;
@@ -1679,8 +1681,10 @@ int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int s
    
    if (!dset || !dset->dnel) { SUMA_SL_Err("Null input"); SUMA_RETURN(0); } 
    if (col_index < 0) col_index = SDSET_VECNUM(dset)-1;
-   if (col_index < 0 || !SDSET_VECNUM(dset) ) { SUMA_SL_Err("No columns in data set!"); SUMA_RETURN(0); }
-   if (SDSET_VECNUM(dset) <= col_index) { SUMA_SL_Err("col_index >= nel->vec_num!"); SUMA_RETURN(0); }
+   if (col_index < 0 || !SDSET_VECNUM(dset) ) { 
+      SUMA_SL_Err("No columns in data set!"); SUMA_RETURN(0); }
+   if (SDSET_VECNUM(dset) <= col_index) { 
+      SUMA_SL_Err("col_index >= nel->vec_num!"); SUMA_RETURN(0); }
    
    /* does the range attribute element exist ? */
    nelb = SUMA_FindDsetAttributeElement(dset, "COLMS_RANGE");
@@ -1715,18 +1719,25 @@ int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int s
       switch (SUMA_ColType2TypeCast(ctp)) {
          case SUMA_int:
             iv = (int *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(iv ,SDSET_VECFILLED(dset), amin, amax, aminloc, amaxloc, stride);
-            snprintf(Name, 500*sizeof(char),"%d %d %d %d", (int)amin, (int)amax, aminloc, amaxloc);
+            SUMA_MIN_MAX_VEC_STRIDE(iv ,SDSET_VECFILLED(dset), amin, amax, 
+                                    aminloc, amaxloc, stride);
+            snprintf(Name, 500*sizeof(char),
+                     "%d %d %d %d", (int)amin, (int)amax, aminloc, amaxloc);
             break;
          case SUMA_float:
             fv = (float *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(fv ,SDSET_VECFILLED(dset), amin, amax, aminloc, amaxloc, stride);
-            snprintf(Name, 500*sizeof(char),"%f %f %d %d", amin, amax, aminloc, amaxloc);
+            SUMA_MIN_MAX_VEC_STRIDE(fv ,SDSET_VECFILLED(dset), amin, amax, 
+                                    aminloc, amaxloc, stride);
+            snprintf(Name, 500*sizeof(char),
+                           "%f %f %d %d", amin, amax, aminloc, amaxloc);
             break;
          case SUMA_byte:
             bv = (byte *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(bv ,SDSET_VECFILLED(dset), amin, amax, aminloc, amaxloc, stride);
-            snprintf(Name, 500*sizeof(char),"%d %d %d %d", (int)amin, (int)amax, aminloc, amaxloc);
+            SUMA_MIN_MAX_VEC_STRIDE(bv ,SDSET_VECFILLED(dset), amin, amax, 
+                                    aminloc, amaxloc, stride);
+            snprintf(Name, 500*sizeof(char),
+                           "%d %d %d %d", 
+                           (int)amin, (int)amax, aminloc, amaxloc);
             break;
          case SUMA_string:
             Name[0] = '\0';
@@ -1748,7 +1759,8 @@ int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int s
 /*!
    \brief A special case of  SUMA_AddGenDsetColAttr for node indices
 */
-int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int stride) 
+int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, 
+                                     void *col, int stride) 
 {
    static char FuncName[]={"SUMA_AddGenDsetNodeIndexColAttr"};
    char Name[500], **junk, *stmp=NULL;
@@ -1773,22 +1785,28 @@ int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *c
       without filling it up */
       stmp = SUMA_copy_string("0 0 -1 -1");
    } else { 
-      SUMA_LH("Calculating range");
+      SUMA_LH("Calculating indrange");
       switch (SUMA_ColType2TypeCast(ctp)) {
-         case SUMA_int:
+         case SUMA_int:           
             iv = (int *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(iv ,SDSET_VECFILLED(dset), amin, amax, aminloc, amaxloc, stride);
-            snprintf(Name, 500*sizeof(char),"%d %d %d %d", (int)amin, (int)amax, aminloc, amaxloc);
+            SUMA_MIN_MAX_VEC_STRIDE(iv ,SDSET_VECFILLED(dset), amin, amax, 
+                                    aminloc, amaxloc, stride);
+            snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
+                     (int)amin, (int)amax, aminloc, amaxloc);
             break;
          case SUMA_float:
             fv = (float *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(fv ,SDSET_VECFILLED(dset), amin, amax, aminloc, amaxloc, stride);
-            snprintf(Name, 500*sizeof(char),"%f %f %d %d", amin, amax, aminloc, amaxloc);
+            SUMA_MIN_MAX_VEC_STRIDE(fv ,SDSET_VECFILLED(dset), amin, amax, 
+                                    aminloc, amaxloc, stride);
+            snprintf(Name, 500*sizeof(char),"%f %f %d %d", 
+                           amin, amax, aminloc, amaxloc);
             break;
          case SUMA_byte:
             bv = (byte *)col;
-            SUMA_MIN_MAX_VEC_STRIDE(bv ,SDSET_VECFILLED(dset), amin, amax, aminloc, amaxloc, stride);
-            snprintf(Name, 500*sizeof(char),"%d %d %d %d", (int)amin, (int)amax, aminloc, amaxloc);
+            SUMA_MIN_MAX_VEC_STRIDE(bv ,SDSET_VECFILLED(dset), amin, amax, 
+                                    aminloc, amaxloc, stride);
+            snprintf(Name, 500*sizeof(char),"%d %d %d %d", 
+                           (int)amin, (int)amax, aminloc, amaxloc);
             break;
          case SUMA_string:
             Name[0] = '\0';
@@ -2093,8 +2111,8 @@ int SUMA_InsertDsetNelCol ( SUMA_DSET *dset, char *col_label, SUMA_COL_TYPE ctp,
    }
    if (icol != -1) {
       /*
-      SUMA_S_Err("Function not ready to deal with attribute insertion yet. 
-      See bottom of function");
+      SUMA_S_Err("Function not ready to deal with attribute insertion yet."
+                 " See bottom of function");
       SUMA_RETURN(0); 
       */
       SUMA_LH("insertion mode");
@@ -4046,6 +4064,7 @@ void SUMA_FreeDset(void *vp)
    dset = (SUMA_DSET *)vp;
    
    if (!dset) SUMA_RETURNe;
+   SUMA_LH("Check Link");
    if (dset->N_links) {
       SUMA_SL_Err("dset structure has links to it.\n"
                   "structure not freed.\n"
@@ -4055,15 +4074,22 @@ void SUMA_FreeDset(void *vp)
    }
    
    #ifdef OLD_DSET /* before ngr was used */
-   if (dset->nel) NI_free_element(dset->nel); dset->nel = NULL; /* you can keep ni_free from freeing a nel->vec[i] 
-                                                          vector by copying nel->vec[i] to a pointer then
-                                                          setting nel->vec[i] = NULL */ 
+   SUMA_LH("Old dset");
+   if (dset->nel) 
+      NI_free_element(dset->nel); dset->nel = NULL; 
+         /* you can keep ni_free from freeing a nel->vec[i] 
+         vector by copying nel->vec[i] to a pointer then
+         setting nel->vec[i] = NULL */ 
    #else
+   SUMA_LH("New Treatment");
    dset->dnel = NULL; /* this one was a pointer copy to an element inside ngr */
    dset->inel = NULL;
-   if (dset->ngr) NI_free_element(dset->ngr); dset->ngr = NULL; /* you can keep ni_free from freeing a nel->vec[i] 
-                                                          vector by copying nel->vec[i] to a pointer then
-                                                          setting nel->vec[i] = NULL */ 
+   if (dset->ngr)
+      SUMA_LH("Freeing NGR"); 
+      NI_free_element(dset->ngr); dset->ngr = NULL; 
+         /* you can keep ni_free from freeing a nel->vec[i] 
+         vector by copying nel->vec[i] to a pointer then
+         setting nel->vec[i] = NULL */ 
    #endif
    #if 0
    if (dset->filename) SUMA_free(dset->filename);
@@ -4080,6 +4106,7 @@ void SUMA_FreeDset(void *vp)
    if (dset->tp) SUMA_free(dset->tp);
    #endif
    
+   SUMA_LH("The last straw");
    SUMA_free(dset); dset = NULL;
    
    SUMA_RETURNe;
@@ -4680,20 +4707,26 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
          SS = SUMA_StringAppend_va(SS, "Dset Name: %s (%d)\n", 
             dset->dnel->name, SUMA_Dset_Type(dset->dnel->name));
          if (SDSET_FILENAME(dset)) 
-            SS = SUMA_StringAppend_va(SS, "filename: %s\n", SDSET_FILENAME(dset));
+            SS = SUMA_StringAppend_va( SS, "filename: %s\n", 
+                                       SDSET_FILENAME(dset));
          else SS = SUMA_StringAppend_va(SS, "filename: NULL\n");
          if (SDSET_LABEL(dset)) 
             SS = SUMA_StringAppend_va(SS, "label: %s\n", SDSET_LABEL(dset));
          else SS = SUMA_StringAppend_va(SS, "label: NULL\n");
          if (SDSET_ID(dset)) 
-            SS = SUMA_StringAppend_va(SS, "self_idcode (idcode): %s\n", SDSET_ID(dset));
+            SS = SUMA_StringAppend_va( SS, "self_idcode (idcode): %s\n", 
+                                       SDSET_ID(dset));
          else SS = SUMA_StringAppend_va(SS, "self_idcode (idcode): NULL\n");
          if (SDSET_IDGDOM(dset)) 
-            SS = SUMA_StringAppend_va(SS, "geometry_parent_idcode: %s\n", SDSET_IDGDOM(dset));
+            SS = SUMA_StringAppend_va( SS, "geometry_parent_idcode: %s\n", 
+                                       SDSET_IDGDOM(dset));
          else SS = SUMA_StringAppend_va(SS, "geometry_parent_idcode: NULL\n");
          if (SDSET_IDMDOM(dset)) 
-            SS = SUMA_StringAppend_va(SS, "domain_parent_idcode (MeshParent_idcode): %s\n", SDSET_IDMDOM(dset));
-         else SS = SUMA_StringAppend_va(SS, "domain_parent_idcode ( MeshParent_idcode): NULL\n");
+            SS = SUMA_StringAppend_va(SS, 
+                        "domain_parent_idcode (MeshParent_idcode): %s\n", 
+                        SDSET_IDMDOM(dset));
+         else SS = SUMA_StringAppend_va(SS, 
+                        "domain_parent_idcode ( MeshParent_idcode): NULL\n");
          
 
          /* where is the node index (NodeDef) column ? */
@@ -4704,27 +4737,35 @@ char *SUMA_DsetInfo (SUMA_DSET *dset, int detail)
             SS = SUMA_StringAppend_va(SS, "\tinel->vec_len = %d\n"
                                           "\tinel->vec_num = %d\n"
                                           "\tinel->vec_filled = %d\n", 
-                                          dset->inel->vec_len, dset->inel->vec_num, dset->inel->vec_filled);
+                                          dset->inel->vec_len, 
+                                          dset->inel->vec_num, 
+                                          dset->inel->vec_filled);
          }   
          {  int *ind;
             ind = SUMA_GetNodeDef (dset);
             if (!ind) {
-               SS = SUMA_StringAppend_va(SS, "\tNode Index Column pointer is NULL.\n");
+               SS = SUMA_StringAppend_va(SS, 
+                           "\tNode Index Column pointer is NULL.\n");
             } else {
                SS = SUMA_StringAppend_va(SS, "\tNode Index Column found.\n");
                if (SDSET_SORTED(dset)) 
-                  SS = SUMA_StringAppend_va(SS, "\tsorted_node_def: %s\n", SDSET_SORTED(dset));
+                  SS = SUMA_StringAppend_va(SS, 
+                     "\tsorted_node_def: %s\n", SDSET_SORTED(dset));
                else SS = SUMA_StringAppend_va(SS, "\tsorted_node_def: NULL\n");
                s = SUMA_ShowMeSome((void*)(  ind), 
-                                             SUMA_ColType2TypeCast (SUMA_NODE_INDEX) 
-                                             , SDSET_VECLEN(dset), 5, NULL);
-               SS = SUMA_StringAppend_va(SS, "         %s\n", s); SUMA_free(s); s = NULL;
+                                   SUMA_ColType2TypeCast (SUMA_NODE_INDEX) 
+                                  , SDSET_VECLEN(dset), 5, NULL);
+               SS = SUMA_StringAppend_va(SS, "         %s\n", s); 
+                                    SUMA_free(s); s = NULL;
             }
          }
          SS = SUMA_StringAppend_va(SS, "Data Element:\n");
-         SS = SUMA_StringAppend_va(SS, "dnel->vec_num (N_subsets): %d\n", SDSET_VECNUM(dset));
-         SS = SUMA_StringAppend_va(SS, "dnel->vec_filled (N_NodeDef): %d\n", SDSET_VECFILLED(dset));
-         SS = SUMA_StringAppend_va(SS, "dnel->vec_len (N_Alloc): %d\n", SDSET_VECLEN(dset));
+         SS = SUMA_StringAppend_va(SS, 
+                  "dnel->vec_num (N_subsets): %d\n", SDSET_VECNUM(dset));
+         SS = SUMA_StringAppend_va(SS, 
+                  "dnel->vec_filled (N_NodeDef): %d\n", SDSET_VECFILLED(dset));
+         SS = SUMA_StringAppend_va(SS, 
+                  "dnel->vec_len (N_Alloc): %d\n", SDSET_VECLEN(dset));
          for (i=0; i < SDSET_VECNUM(dset); ++i) {
             SS = SUMA_StringAppend_va(SS, "vec[%d]:\n", i);
             sprintf (stmp,"TypeCol_%d", i);
@@ -7140,6 +7181,8 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    SUMA_DSET *dset = NULL, *dset_c = NULL;
    int *RowSel=NULL, *ColSel=NULL, *NodeSel=NULL, i;
    char *Name=NULL;
+   float range[2];
+   int loc[2];
    byte *b_ColSel = NULL, *b_RowSel = NULL;
    SUMA_PARSED_NAME *pn=NULL;
    
@@ -7248,7 +7291,11 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    /* do we have column, row, or node selectors? */
    if (pn->NodeSelect[0]!= '\0') {
       /* go get the selector lists */
-      NodeSel = MCW_get_intlist( SDSET_VECFILLED(dset) , pn->NodeSelect ) ;
+      if (!SUMA_GetDsetNodeIndexColRange(dset, range, loc, 1)) {
+         SUMA_SL_Err("Can't get node index column range!");
+         goto GOODBYE;   
+      } 
+      NodeSel = MCW_get_intlist( (int)range[1] , pn->NodeSelect ) ;
       if (!NodeSel || !NodeSel[0]) {
          SUMA_SL_Err("Failed to get node selection");
          SUMA_FreeDset(dset); dset = NULL;
@@ -7267,9 +7314,9 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
          goto GOODBYE; 
       }
       /* go get the selector lists */
-      ColSel = MCW_get_intlist( SDSET_VECFILLED(dset) , pn->ColSelect ) ;
+      ColSel = MCW_get_intlist( SDSET_VECNUM(dset) , pn->ColSelect ) ;
       if (!ColSel || !ColSel[0]) {
-         SUMA_SL_Err("Failed to get node selection");
+         SUMA_SL_Err("Failed to get column selection");
          SUMA_FreeDset(dset); dset = NULL;
          goto GOODBYE;     
       }
@@ -7284,7 +7331,7 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
       /* go get the selector lists */
       RowSel = MCW_get_intlist( SDSET_VECFILLED(dset) , pn->RowSelect ) ;
       if (!RowSel || !RowSel[0]) {
-         SUMA_SL_Err("Failed to get node selection");
+         SUMA_SL_Err("Failed to get row selection");
          SUMA_FreeDset(dset); dset = NULL;
          goto GOODBYE;            
       }
@@ -7305,7 +7352,7 @@ SUMA_DSET *SUMA_LoadDset_eng (char *iName, SUMA_DSET_FORMAT *form, int verb)
    if (ColSel) {
       if (!(b_ColSel =  
          SUMA_indexlist_2_bytemask((ColSel+1), ColSel[0], 
-                                    SDSET_VECFILLED(dset), NULL))) {
+                                    SDSET_VECNUM(dset), NULL))) {
          SUMA_SL_Err("Failed in creating byte mask");
          SUMA_FreeDset(dset); dset = NULL;
          goto GOODBYE;
@@ -7925,9 +7972,11 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
    NI_group *ngr = NULL;
    NI_element *nelb = NULL;
    char *idcode=NULL, *dname=NULL, *col_label = NULL, *stmp=NULL;
-   int ctp, i;
+   int ctp, i, iiidata=0, iiinel = 0;
    NI_element *dnel = NULL, *inel = NULL;
    SUMA_DSET dset; /* dummy */
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
 
    ngr = NI_new_group_element();
@@ -7940,7 +7989,8 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
       NI_set_attribute(ngr, "self_idcode", idcode);
    } else {
       SUMA_NEW_ID(idcode, NULL);
-      NI_set_attribute(ngr, "self_idcode", idcode); SUMA_free(idcode); idcode = NULL;
+      NI_set_attribute(ngr, "self_idcode", idcode);
+      SUMA_free(idcode); idcode = NULL;
    }
    /* the domain parent */
    idcode = NI_get_attribute(nel,"DomParent_idcode");
@@ -7959,6 +8009,7 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
    }
    
    /* form the data nel */
+   SUMA_LH("Doing dnel");
    dname = SUMA_append_string(NEL_DSET_TYPE(ngr), "_data");
    dnel = NI_new_data_element("SPARSE_DATA", nel->vec_len); 
    NI_set_attribute (dnel, "data_type", dname); 
@@ -7966,6 +8017,7 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
    NI_add_to_group(ngr, dnel);
 
    /* Now add the node index element */
+   SUMA_LH("Doing inel");
    dname = SUMA_append_string(NEL_DSET_TYPE(ngr), "_node_indices");
    inel = NI_new_data_element("INDEX_LIST", nel->vec_len); 
    NI_set_attribute (inel, "data_type", dname); 
@@ -7974,22 +8026,29 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
 
    /* now, manually add the columns' spots */
    for (i=0; i<nel->vec_num; ++ i) {
+      SUMA_LH("Adding cols"); 
       ctp = SUMA_TypeOfColNumb(nel, i);
       if (ctp != SUMA_NODE_INDEX) {
-         switch (SUMA_ColType2TypeCast(ctp)) {  /* MUST use the old function SUMA_TypeOfColNumb here ! */
+         switch (SUMA_ColType2TypeCast(ctp)) {  
+            /* MUST use the old function SUMA_TypeOfColNumb here ! */
             case SUMA_int:
+               SUMA_LH("int");
                NI_add_column_stride ( dnel, NI_INT, NULL, 1);
                break;
             case SUMA_float:
+               SUMA_LH("float");
                NI_add_column_stride ( dnel, NI_FLOAT, NULL, 1 );      
                break;
             case SUMA_byte:
+               SUMA_LH("byte");
                NI_add_column_stride ( dnel, NI_BYTE, NULL, 1 );      
                break;
             case SUMA_double:
+               SUMA_LH("double");
                NI_add_column_stride ( dnel, NI_DOUBLE, NULL, 1 );      
                break;
             case SUMA_string:
+               SUMA_LH("String");
                NI_add_column_stride ( dnel, NI_STRING, NULL, 1 );
                break;
             default:
@@ -7999,26 +8058,38 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
                break;
          } 
          /* copy the vector's pointer */
-         dnel->vec[i] = nel->vec[i]; nel->vec[i] = NULL;
+         dnel->vec[iiidata] = nel->vec[i]; nel->vec[i] = NULL;
          /* set some generic attributes */
-         dset.dnel = dnel; dset.ngr = ngr;
-         SUMA_AddGenDsetColAttr (&dset, ctp, dnel->vec[i], 1, -1, 0);
+         dset.dnel = dnel; dset.ngr = ngr; dset.inel = inel;
+         SUMA_AddGenDsetColAttr (&dset, ctp, dnel->vec[iiidata], 1, -1, 0);
          /* add the attributes of that column */
          col_label = SUMA_ColLabelCopy(nel, i, 0);
          SUMA_AddDsetColAttr (&dset, col_label, ctp, NULL, -1, 0);
          if (col_label) SUMA_free(col_label); col_label = NULL;
+         ++iiidata;
       } else {
-         switch (SUMA_ColType2TypeCast(ctp)) {  /* MUST use the old function SUMA_TypeOfColNumb here ! */
+         if (iiinel > 0) {
+            SUMA_S_Err("Have inel column already...");
+            NI_free_element(ngr); ngr = NULL;
+            SUMA_RETURN(NULL);
+         }
+         SUMA_LH("In the else");
+         switch (SUMA_ColType2TypeCast(ctp)) {  
+            /* MUST use the old function SUMA_TypeOfColNumb here ! */
             case SUMA_int:
+               SUMA_LH("int");
                NI_add_column_stride ( inel, NI_INT, NULL, 1);
                break;
             case SUMA_float:
+               SUMA_LH("float");
                NI_add_column_stride ( inel, NI_FLOAT, NULL, 1 );      
                break;
             case SUMA_byte:
+               SUMA_LH("byte");
                NI_add_column_stride ( inel, NI_BYTE, NULL, 1 );      
                break;
             case SUMA_double:
+               SUMA_LH("doouble");
                NI_add_column_stride ( inel, NI_DOUBLE, NULL, 1 );      
                break;
             case SUMA_string:
@@ -8030,14 +8101,17 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
                SUMA_RETURN(NULL);
                break;
          }
-         inel->vec[i] = nel->vec[i]; nel->vec[i] = NULL;
+         inel->vec[0] = nel->vec[i]; nel->vec[i] = NULL;
          /* set some generic attributes */
-         dset.inel = inel; dset.ngr = ngr; 
+         dset.inel = inel; dset.ngr = ngr; dset.dnel = dnel; 
          SUMA_AddGenDsetColAttr (&dset, ctp, inel->vec[0], 1, -1, 0);
+         ++iiinel;
       }      
    }   
    
+   
    /* add the history note */
+   SUMA_LH("History Note");
    stmp = NI_get_attribute(nel, "HISTORY_NOTE");
    if (stmp) {
       nelb = NI_new_data_element("AFNI_atr", 1);
@@ -8047,7 +8121,6 @@ NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel)
       /* now add the new string */
       SUMA_NEL_REPLACE_STRING(nelb, 0, 0, (void*)stmp);
    }
-   
    
    SUMA_RETURN(ngr);
 }
@@ -8123,6 +8196,7 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
 
    SUMA_ENTRY;
    
+   
    if (!Name) { SUMA_SL_Err("Null Name"); SUMA_RETURN(dset); }
    
    /* work the name */
@@ -8162,7 +8236,8 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
       SUMA_LH("Dealing with element");
    } else {
       fprintf(SUMA_STDERR, "Note %s: %s has no element and no group. \n"
-                           "Perhaps it is a .1D read in as a niml dset.\n", FuncName, Name);
+                           "Perhaps it is a .1D read in as a niml dset.\n",
+                            FuncName, Name);
       SUMA_RETURN(NULL);
    }
    
@@ -9883,7 +9958,8 @@ char *SUMA_help_dset()
       "           'INPUT DATASET NAMES' in 3dcalc -help for details.\n"
       "           Append [i] to get the node index column from\n"
       "                      a niml formatted dataset.\n"
-      "           *  SUMA does not preserve the selection order.\n"
+      "           *  SUMA does not preserve the selection order \n"
+      "              for any of the selectors.
       "              For example:\n"
       "              dset[44,10..20] is the same as dset[10..20,44]\n" 
       "\n");

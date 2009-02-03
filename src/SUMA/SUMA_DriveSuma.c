@@ -207,6 +207,8 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                        upon. Default is viewer 'A'. Viewers\n"
 "                        must be created first (ctrl+n) before\n"
 "                        they can be acted upon.\n"
+"                        You can also refer to viewers with integers\n"
+"                        0 for A, 1 for B, etc.\n"
 "        -viewer_width or (-width) WIDTH: Set the width in pixels of\n"
 "                                     the current viewer.\n"
 "        -viewer_height or (-height) HEIGHT: Set the height in pixels of\n"
@@ -252,6 +254,15 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                   with -surf_label in order to attach\n"
 "                   the dataset to a particular target surface.\n"
 /*"       -view_surf y/n: Show or hide surface LABEL\n" */
+"       -load_col COL: Load a colorfile named COL.\n"
+"                      Similar to what one loads under\n"
+"                      SUMA-->ctrl+s-->Load Col\n"
+"                      COL contains 4 columns, of\n"
+"                      the following format:\n"
+"                      n r g b\n"
+"                      where n is the node index and \n"
+"                      r g b are thre flooat values between 0 and 1\n"
+"                      specifying the color of each node.\n"
 "       -view_surf_cont y/n: View surface controller\n"
 "       -switch_surf LABEL: switch state to that of surface \n"
 "                           labeled LABEL and make that surface \n"
@@ -520,6 +531,23 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          brk = YUP;
       }
       
+      if (!brk && ( (strcmp(argt[kar], "-load_col") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a color file after -load_col \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         fn = SUMA_ParseFname(argt[++kar], SUMAg_CF->cwd);
+         /* SUMA_ShowParsedFname(fn, NULL); */
+         NI_set_attribute(ngr, "Col_FileName", fn->FullName);
+         fn = SUMA_Free_Parsed_Name(fn);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
       if (!brk && ( (strcmp(argt[kar], "-I_sb") == 0) ) )
       {
          if (kar+1 >= argtc)
@@ -621,7 +649,8 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
       {
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, "need a viewer (A-F) after -viewer \n");
+            fprintf (SUMA_STDERR, 
+                     "need a viewer (A-F) or (0-5) after -viewer \n");
             SUMA_RETURN(0);
          }
          
@@ -1521,7 +1550,16 @@ int SUMA_ProcessCommand(char *com, SUMA_GENERIC_ARGV_PARSE *ps)
          SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
       NI_free_element(ngr); ngr = NULL;
-   } else if (strcmp((act), "surf_cont") == 0) {
+   } else if (strcmp((act), "load_col") == 0) {
+      if (!(ngr = SUMA_ComToNgr(com, act))) {
+         SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
+      }
+      SUMA_LH("Sending LoadCol to suma");
+      if (!SUMA_SendToSuma (SO, ps->cs, (void *)ngr, SUMA_ENGINE_INSTRUCTION, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+      }
+      NI_free_element(ngr); ngr = NULL;
+   }else if (strcmp((act), "surf_cont") == 0) {
       if (!(ngr = SUMA_ComToNgr(com, act))) {
          SUMA_S_Err("Failed to process command."); SUMA_RETURN(NOPE); 
       }

@@ -216,8 +216,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             break;
          case SE_OpenDrawnROIFileSelection:
             /* opens the open ROI file selection window. 
-            Expects NULL in vp (to be used later and a position reference widget 
-            typecast to ip, the latter can be null.*/
+            Expects NULL in vp (to be used later and a position 
+            reference widget typecast to ip, the latter can be null.*/
             if (  EngineData->vp_Dest != NextComCode || 
                   EngineData->ip_Dest != NextComCode ) {
                fprintf (SUMA_STDERR,
@@ -229,22 +229,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
                SUMAg_CF->X->FileSelectDlg = 
-                  SUMA_CreateFileSelectionDialogStruct ( sv->X->TOPLEVEL, 
-                                                   SUMA_FILE_OPEN, YUP,
-                                                   SUMA_OpenDrawnROI, 
-                                                   (void *)EngineData->vp,
-                                                   NULL, NULL,
-                                                   "*.roi", 
-                                                   SUMAg_CF->X->FileSelectDlg);
+                  SUMA_CreateFileSelectionDialogStruct (
+                     sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                     SUMA_OpenDrawnROI, (void *)EngineData->vp,
+                     NULL, NULL,
+                     "*.roi",
+                     SUMAg_CF->X->FileSelectDlg);
             } else {
                SUMAg_CF->X->FileSelectDlg = 
-                  SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, 
-                                                   SUMA_FILE_OPEN, YUP,
-                                                   SUMA_OpenDrawnROI, 
-                                                   (void *)EngineData->vp,
-                                                   NULL, NULL,
-                                                   "*.roi",      
-                                                   SUMAg_CF->X->FileSelectDlg);
+                  SUMA_CreateFileSelectionDialogStruct (
+                     (Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                     SUMA_OpenDrawnROI, (void *)EngineData->vp,
+                     NULL, NULL,
+                     "*.roi",
+                     SUMAg_CF->X->FileSelectDlg);
             }
             SUMAg_CF->X->FileSelectDlg = 
                SUMA_CreateFileSelectionDialog ( "Select ROI File to Open", 
@@ -483,40 +481,59 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_OpenDsetFile:
             /* opens the dataset file, Expects SO in vp and a name in cp*/
-            if (EngineData->vp_Dest != NextComCode || 
+            if (  EngineData->vp_Dest != NextComCode || 
                   EngineData->cp_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
                break;
             }
             SUMA_LoadDsetFile(EngineData->cp, EngineData->vp);
             break;
+
+         case SE_OpenColFile:
+            /* opens the color file, Expects SO in vp and a name in cp*/
+            if (  EngineData->vp_Dest != NextComCode || 
+                  EngineData->cp_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
+               break;
+            }
+            SUMA_LoadColorPlaneFile(EngineData->cp, EngineData->vp);
+            break;
             
          case SE_OpenCmapFileSelection:
             /* opens the Cmap file selection window. 
-            Expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
+            Expects SO in vp and a position reference widget 
+            typecast to ip, the latter can be null.*/
             
-            if (EngineData->vp_Dest != NextComCode || 
+            if (  EngineData->vp_Dest != NextComCode || 
                   EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
             
             /*Load colors from file */
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadCmapFile, (void *)EngineData->vp,
-                                                        NULL, NULL,
-                                                        "*.cmap",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                     sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                     SUMA_LoadCmapFile, (void *)EngineData->vp,
+                     NULL, NULL,
+                     "*.cmap",
+                     SUMAg_CF->X->FileSelectDlg);
             } else {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadCmapFile, (void *)EngineData->vp,
-                                                        NULL, NULL,
-                                                        "*.cmap",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                     (Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                     SUMA_LoadCmapFile, (void *)EngineData->vp,
+                     NULL, NULL,
+                     "*.cmap",
+                     SUMAg_CF->X->FileSelectDlg);
             }
             
             SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Cmap File", &SUMAg_CF->X->FileSelectDlg);
@@ -536,26 +553,33 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /*Load colors from file */
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
-                                                        NULL, NULL,
-                                                        "*.col",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                     sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                     SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
+                     NULL, NULL,
+                     "*.col",
+                     SUMAg_CF->X->FileSelectDlg);
             } else {
-               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
-                                                        SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
-                                                        NULL, NULL,
-                                                        "*.col",
-                                                        SUMAg_CF->X->FileSelectDlg);
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct (
+                     (Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                     SUMA_LoadColorPlaneFile, (void *)EngineData->vp,
+                     NULL, NULL,
+                     "*.col",
+                     SUMAg_CF->X->FileSelectDlg);
             }
             
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Node Color File", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = 
+               SUMA_CreateFileSelectionDialog (
+                  "Select Node Color File", &SUMAg_CF->X->FileSelectDlg);
             
             break;
          
             
          case SE_OpenDrawROI:
-            /* opens the DrawROI window, expects a surface viewer pointer in EngineData->Srcp*/
+            /* opens the DrawROI window, expects a surface viewer 
+               pointer in EngineData->Srcp*/
             {
                SUMA_DRAWN_ROI *DrawnROI=NULL;
                
@@ -2112,7 +2136,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                } else { /* no node is close enough */
                   /* Do nothing yet */
-                  fprintf (SUMA_STDOUT,"\nNo nodes found inside the specified box.\n");
+                  fprintf (SUMA_STDOUT,
+                           "\nNo nodes found inside the specified box.\n");
                }
             }
             break;
@@ -2122,7 +2147,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects Node XYZ in EngineData->fv15[0..2]
             Box dimensions in EngineData->fv15[3..5] */
             if (EngineData->fv15_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
             {
@@ -2131,10 +2158,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
                ND = SO->NodeDim;
                SUMA_etime (&tt, 0);
-               IB = SUMA_isinbox (SO->NodeList, SO->N_Node, &(EngineData->fv15[0]), &(EngineData->fv15[3]),  YUP);
+               IB = SUMA_isinbox (SO->NodeList, SO->N_Node, 
+                                 &(EngineData->fv15[0]), &(EngineData->fv15[3]),
+                                 YUP);
                delta_t = SUMA_etime (&tt, 1);
-               fprintf (SUMA_STDOUT,"Elapsed time for isinbox operation: %f\n", delta_t);
-               fprintf (SUMA_STDOUT,"\t%d nodes (out of %d) found in box\n",IB.nIsIn, SO->N_Node);
+               fprintf (SUMA_STDOUT,
+                        "Elapsed time for isinbox operation: %f\n", delta_t);
+               fprintf (SUMA_STDOUT,
+                        "\t%d nodes (out of %d) found in box\n",
+                        IB.nIsIn, SO->N_Node);
                
                if (IB.nIsIn) { /* found some, find the closest node */
                   /* locate the closest node and store it's id in EngineData*/
@@ -2151,16 +2183,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   
                   ED = SUMA_InitializeEngineListData (SE_SetLookAtNode);
                   if (!SUMA_RegisterEngineListCommand (  list, ED,
-                                                         SEF_fv15, (void *)fv15, 
-                                                         SES_Suma, (void *)sv, NOPE, 
+                                                         SEF_fv15, (void *)fv15,
+                                                         SES_Suma, (void *)sv, 
+                                                         NOPE, 
                                                          SEI_Head, NULL)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Failed to register element\n", 
+                              FuncName);
                      break;
                   }
                   
                   /* get ridd of IB's vectors */
                   if (!SUMA_Free_IsInBox (&IB)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to free IB\n", FuncName);
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Failed to free IB\n", FuncName);
                   }
                } else { /* no node is close enough */
                   /* Do nothing yet */
@@ -2170,19 +2206,29 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_SetRotMatrix:
             /* expects a rotation matrix in fm, 4x4 */
-            /* takes the rotation matrix 3x3 with 0 in 4th row and column and 1.0 at 4,4 
-            makes a quaternion from it and sets csv->currentQuat and posts redisplay */
+            /* takes the rotation matrix 3x3 with 0 in 4th row and column 
+            and 1.0 at 4,4 
+            makes a quaternion from it and sets csv->currentQuat 
+            and posts redisplay */
             if (EngineData->fm_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: "
+                        "Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
             if (EngineData->N_rows != 4 || EngineData->N_cols != 4) {
-               fprintf(SUMA_STDERR,"Error %s: fm must have 4 cols and 4 rows in SetRotMatrix\n", FuncName);
+               fprintf( SUMA_STDERR,
+                        "Error %s: "
+                        "fm must have 4 cols and 4 rows in SetRotMatrix\n", 
+                        FuncName);
                break;
             }
-            if (!SUMA_mattoquat (EngineData->fm, sv->GVS[sv->StdView].currentQuat))
+            if (!SUMA_mattoquat (EngineData->fm, 
+                                 sv->GVS[sv->StdView].currentQuat))
                {
-                  fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_mattoquat\n", FuncName);
+                  fprintf( SUMA_STDERR,
+                           "Error %s: Failed in SUMA_mattoquat\n", FuncName);
                   break;
                }
             break;
@@ -2226,7 +2272,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                        SO->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
                   sv->NewGeom = YUP;   /* sv->ResetGLStateVariables 
                                           was not enough */
-                  /* remove this attribute and call engine again for redisplay */
+                  /* remove this attribute and call engine again 
+                     for redisplay */
                   NI_set_attribute(EngineData->ngr, "switch_surf", NULL);
                   {
                      DList *llist = SUMA_CreateList();
@@ -2740,16 +2787,19 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    SUMA_ENTRY;
    
    if (!ngr) { SUMA_S_Err("NULL input"); SUMA_RETURN(Ret); }
-   
+   if (LocalHead) SUMA_ShowNel(ngr);
    if (strcmp(ngr->name, "EngineCommand")) {
-      fprintf (SUMA_STDERR,"Error %s: group name (%s) is not (EngineCommand)\n", FuncName, ngr->name);
+      fprintf (SUMA_STDERR,
+               "Error %s: group name (%s) is not (EngineCommand)\n", 
+               FuncName, ngr->name);
       SUMA_RETURN(Ret); 
    }
    
    /* Is this a valid command? */
    cc = SUMA_niCommandCode(NI_get_attribute(ngr,"Command"));
    if (cc == SE_Empty || cc == SE_BadCode) {
-      SUMA_S_Errv("Bad command code %s", SUMA_CHECK_NULL_STR(NI_get_attribute(ngr,"Command")));
+      SUMA_S_Errv("Bad command code %s", 
+                  SUMA_CHECK_NULL_STR(NI_get_attribute(ngr,"Command")));
       SUMA_RETURN(Ret); 
    }
    
@@ -2760,12 +2810,17 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    if (svid) {
       isv = SUMA_TO_LOWER_C(svid[0])-'a';
       if (isv < 0 || isv > SUMAg_N_SVv) {
+         /* try in case it was an int */
+         isv = atoi(svid);
+      }
+      if (isv < 0 || isv > SUMAg_N_SVv) {
          SUMA_S_Errv("Bad SV_id of %s\n", svid);
          SUMA_RETURN(Ret);  
       }
       sv = &(SUMAg_SVv[isv]);
       if (!sv->X->TOPLEVEL) {
-         SUMA_S_Errv("Viewer %s must first be created with a separate -com command.\n", svid);
+         SUMA_S_Errv("Viewer %s must first be created "
+                     "with a separate -com command.\n", svid);
          SUMA_RETURN(Ret);  
       }
    } 
@@ -2785,11 +2840,13 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
    SOlabel = NI_get_attribute(ngr,"SO_label");
    if (SOlabel) {
       if (SO && strcmp(SOlabel, SO->Label)) {
-         SUMA_S_Errv("Conflict between id %s (%s) and label (%s)", SO->idcode_str, SO->Label, SOlabel);
+         SUMA_S_Errv("Conflict between id %s (%s) and label (%s)", 
+                     SO->idcode_str, SO->Label, SOlabel);
          SUMA_RETURN(Ret); 
       }
       if (!SO) { /* find SO based on label! */
-         if ((SOid = SUMA_find_SOidcode_from_label(SOlabel, SUMAg_DOv, SUMAg_N_DOv))) {
+         if ((SOid = SUMA_find_SOidcode_from_label(SOlabel, 
+                                          SUMAg_DOv, SUMAg_N_DOv))) {
             SO = SUMA_findSOp_inDOv (SOid, SUMAg_DOv, SUMAg_N_DOv);
             if (!SO) {
                SUMA_S_Errv("SO with id %s not found.\n", SOid);
@@ -2835,10 +2892,12 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                                                    SES_SumaFromAny, (void *)sv, 
                                                    NOPE,
                                                    SEI_Head, NULL)) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed to register command.\n", FuncName);
             }
             /* make sure that business is closed if user does not control it */
-            if (!NI_get_attribute(ngr, "View_Surf_Cont"))  NI_set_attribute(ngr, "View_Surf_Cont", "n");      
+            if (!NI_get_attribute(ngr, "View_Surf_Cont"))  
+               NI_set_attribute(ngr, "View_Surf_Cont", "n");      
          }
          if ((name = NI_get_attribute(ngr,"Dset_FileName"))) {
             /* Have a dset to load */
@@ -2848,14 +2907,36 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                                                       SES_SumaFromAny, 
                                                       (void *)sv, NOPE,
                                                       SEI_Tail, NULL))) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
             }
             if (!SUMA_RegisterEngineListCommand (  list, ED,
                                                       SEF_cp, (void *)name,
                                                       SES_SumaFromAny, 
                                                       (void *)sv, NOPE,
                                                       SEI_In, el)) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
+            }
+         }
+         if ((name = NI_get_attribute(ngr,"Col_FileName"))) {
+            /* Have a color file to load */
+            ED = SUMA_InitializeEngineListData (SE_OpenColFile);
+            if (!(el = SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_vp, (void *)SO,
+                                                      SES_SumaFromAny, 
+                                                      (void *)sv, NOPE,
+                                                      SEI_Tail, NULL))) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
+            }
+            if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_cp, (void *)name,
+                                                      SES_SumaFromAny, 
+                                                      (void *)sv, NOPE,
+                                                      SEI_In, el)) {
+                  fprintf (SUMA_STDERR, 
+                           "Error %s: Failed to register command.\n", FuncName);
             }
          }
          /* all the rest can be handled in one engine call */
@@ -2865,14 +2946,16 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                                                    SES_SumaFromAny, (void *)sv, 
                                                    NOPE,
                                                    SEI_Tail, NULL))) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed to register command.\n", FuncName);
          }
          if (!SUMA_RegisterEngineListCommand (  list, ED,
                                                    SEF_vp, (void *)SO,
                                                    SES_SumaFromAny, (void *)sv, 
                                                    NOPE,
                                                    SEI_In, el)) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed to register command.\n", FuncName);
          }
          break; 
       case SE_niSetViewerCont:
@@ -2928,7 +3011,8 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
                                                    SES_SumaFromAny, (void *)sv, 
                                                    NOPE,
                                                    SEI_Tail, NULL))) {
-               fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+               fprintf (SUMA_STDERR, 
+                        "Error %s: Failed to register command.\n", FuncName);
          }
          
          break;
@@ -2937,7 +3021,8 @@ void *SUMA_nimlEngine2Engine(NI_group *ngr)
          exit(0);
          break;
       default:
-         SUMA_S_Errv("Cannot deal with command %s yet.\n", NI_get_attribute(ngr,"command"));
+         SUMA_S_Errv("Cannot deal with command %s yet.\n", 
+                     NI_get_attribute(ngr,"command"));
          SUMA_RETURN(Ret); 
          break;
             
