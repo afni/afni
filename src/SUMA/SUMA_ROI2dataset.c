@@ -260,7 +260,8 @@ int main (int argc,char *argv[])
          }
       }else if (SUMA_isExtension(input_name_v[i], ".1D.roi")) {
          /* load 1D ROI */
-         if (!( tROIv = SUMA_OpenDrawnROI_1D (input_name_v[i], dummy_idcode_str, &N_tROI, NOPE))) {
+         if (!( tROIv = SUMA_OpenDrawnROI_1D (input_name_v[i], 
+                                          dummy_idcode_str, &N_tROI, NOPE))) {
             SUMA_S_Err("Failed to read NIML ROI.");
             exit(1);
          }
@@ -272,7 +273,8 @@ int main (int argc,char *argv[])
       
       SUMA_LH("Copying temporary ROIv into the main ROIv ");
       /* copy temporary ROIv into the main ROIv */
-      ROIv = (SUMA_DRAWN_ROI **)SUMA_realloc(ROIv, (N_ROIv + N_tROI) * sizeof(SUMA_DRAWN_ROI*));
+      ROIv = (SUMA_DRAWN_ROI **)
+               SUMA_realloc(ROIv, (N_ROIv + N_tROI) * sizeof(SUMA_DRAWN_ROI*));
       if (!ROIv) {
          SUMA_S_Err("Failed to allocate.");
          exit(1);
@@ -285,10 +287,13 @@ int main (int argc,char *argv[])
             /* try to find out what the Parent_idcode_str is */
             if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&  
                strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
-               fprintf (SUMA_STDERR,"%s: Adopting Parent_idcode_str (%s) in ROI %s\n",
-                                  FuncName, tROIv[ii]->Parent_idcode_str, tROIv[ii]->Label);
+               fprintf (SUMA_STDERR,
+                        "%s: Adopting Parent_idcode_str (%s) in ROI %s\n",
+                        FuncName, tROIv[ii]->Parent_idcode_str, 
+                        tROIv[ii]->Label);
                /* good, use it as the Parent_idcode_str for all upcoming ROIs */
-               Parent_idcode_str = SUMA_copy_string(tROIv[ii]->Parent_idcode_str);
+               Parent_idcode_str = 
+                  SUMA_copy_string(tROIv[ii]->Parent_idcode_str);
             }
          } 
          

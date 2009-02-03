@@ -5943,11 +5943,16 @@ float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
    }
    if (!SO->FN || !SO->EL) {
       /* do it here */
-      if (!SO->EL && !(SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, 0, SO->idcode_str))) {
+      if (  !SO->EL && 
+            !(SO->EL = SUMA_Make_Edge_List_eng (
+                           SO->FaceSetList, SO->N_FaceSet, SO->N_Node, 
+                           SO->NodeList, 0, SO->idcode_str))) {
          SUMA_S_Err("Failed to create Edge_List");
          SUMA_RETURN(NULL);
       }
-      if (!SO->FN && !(SO->FN = SUMA_Build_FirstNeighb( SO->EL, SO->N_Node, SO->idcode_str)) ) {
+      if (  !SO->FN && 
+            !(SO->FN = SUMA_Build_FirstNeighb( 
+                        SO->EL, SO->N_Node, SO->idcode_str)) ) {
          SUMA_S_Err("Failed to create FirstNeighb");
          SUMA_RETURN(NULL);
       }
@@ -5975,19 +5980,23 @@ float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
       }
       /* make sure column is not sparse, one value per node */
       if (k==0) {
-         SUMA_LH( "Special case k = 0, going to SUMA_MakeSparseColumnFullSorted");
+         SUMA_LH( "Special case k = 0, going to"
+                  " SUMA_MakeSparseColumnFullSorted");
          bfull = NULL;
-         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, &bfull, dset, SO->N_Node)) {
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 
+                                              0.0, &bfull, dset, SO->N_Node)) {
             SUMA_S_Err("Failed to get full column vector");
             SUMA_free(fwhmv); fwhmv = NULL;
             goto CLEANUP;
          }
          if (bfull) {
-            SUMA_LH( "Something was filled in SUMA_MakeSparseColumnFullSorted\n" );
-            /* something was filled in good old SUMA_MakeSparseColumnFullSorted */
+            SUMA_LH( "Something was filled in "
+                     "SUMA_MakeSparseColumnFullSorted\n" );
+            /* something was filled in SUMA_MakeSparseColumnFullSorted */
             if (nmask) {   /* combine bfull with nmask */
                SUMA_LH( "Merging masks\n" );
-               for (jj=0; jj < SO->N_Node; ++jj) { if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
+               for (jj=0; jj < SO->N_Node; ++jj) { 
+                  if (nmask[jj] && !bfull[jj]) nmask[jj] = 0; }   
             } else { nmask = bfull; }
          } 
          if (nmask) {
@@ -6001,7 +6010,8 @@ float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
          }
       } else {
          SUMA_LH( "going to SUMA_MakeSparseColumnFullSorted");
-         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 0.0, NULL, dset, SO->N_Node)) {
+         if (!SUMA_MakeSparseColumnFullSorted(&fin_orig, SDSET_VECFILLED(dset), 
+                                              0.0, NULL, dset, SO->N_Node)) {
             SUMA_S_Err("Failed to get full column vector");
             SUMA_free(fwhmv); fwhmv = NULL;
             goto CLEANUP;
@@ -6011,19 +6021,23 @@ float *SUMA_estimate_dset_FWHM_1dif(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
       }
       
       if (SUMA_Get_UseSliceFWHM()) {
-         fwhmv[k] = SUMA_estimate_slice_FWHM_1dif( SO, fin_orig, nmask, nodup, NULL, NULL);
+         fwhmv[k] = SUMA_estimate_slice_FWHM_1dif( SO, fin_orig, nmask, 
+                                                   nodup, NULL, NULL);
       } else {
          fwhmv[k] = SUMA_estimate_FWHM_1dif( SO, fin_orig, nmask, nodup);
       }
-      if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
+      if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; 
+                  /* just in case, this one's still alive from a GOTO */
    } /* for k */
 
    CLEANUP:
    
-   if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; /* just in case, this one's still alive from a GOTO */
+   if (fin_orig) SUMA_free(fin_orig); fin_orig = NULL; 
+                     /* just in case, this one's still alive from a GOTO */
    if (bfull) SUMA_free(bfull); bfull=NULL; 
    SUMA_RETURN(fwhmv);
 }
+
 #define OK_FWHM_DBG
 static int DbgFWHM_1_dif=0;
 void SUMA_SetDbgFWHM(int i) { DbgFWHM_1_dif=i; return; }
@@ -6034,10 +6048,13 @@ int SUMA_GetDbgFWHM(void) { return(DbgFWHM_1_dif); }
    SO (SUMA_SurfaceObject *) La surface
    fim (float *) SO->N_Node x 1 vector of data values
    mask (byte *) SO->N_Node x 1 mask vector (NULL for no masking)
-   nodup (int ) 0- allow a segment to be counted twice (uncool, but slightly faster)
-               1- Do not allow a segment to be counted twice (respectful approach)
+   nodup (int ) 0- allow a segment to be counted twice 
+               (uncool, but slightly faster)
+               1- Do not allow a segment to be counted twice 
+               (respectful approach)
 */
-float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask, int nodup )
+float SUMA_estimate_FWHM_1dif(   SUMA_SurfaceObject *SO, float *fim , 
+                                 byte *nmask, int nodup )
 {
    static char FuncName[]={"SUMA_estimate_FWHM_1dif"};
    
@@ -6064,28 +6081,34 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
    }
    
    if (!SO->FN || !SO->EL) {
-      if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList", NULL, 0, SUMAg_CF->DsetList)){
+      if (!SUMA_SurfaceMetrics_eng( SO, "EdgeList", NULL, 
+                                    0, SUMAg_CF->DsetList)){
          SUMA_SL_Err("Failed to create needed accessories");
          SUMA_RETURN(ss);
       }
    } 
    if (!SO->MF || !SO->PolyArea) {
-      if (!SUMA_SurfaceMetrics_eng(SO, "MemberFace|PolyArea", NULL, 0, SUMAg_CF->DsetList)){
+      if (!SUMA_SurfaceMetrics_eng( SO, "MemberFace|PolyArea", 
+                                    NULL, 0, SUMAg_CF->DsetList)){
          SUMA_SL_Err("Failed to create needed accessories");
          SUMA_RETURN(ss);
       }
    }
 
    if (!SO->FN || !SO->EL || !SO->MF || !SO->PolyArea) {
-      SUMA_S_Errv("J'ai besoin des voisins(%p) et des cotes (%p), cherie\nEt en plus, MF(%p) and PolyArea(%p)", 
-            SO->FN, SO->EL, SO->MF, SO->PolyArea);
+      SUMA_S_Errv("J'ai besoin des voisins(%p) et des cotes (%p), cherie\n"
+                  "Et en plus, MF(%p) and PolyArea(%p)", 
+                  SO->FN, SO->EL, SO->MF, SO->PolyArea);
       SUMA_RETURN(ss);
    }
    /*----- estimate the variance of the data -----*/
 
    fsum = 0.0; fsq = 0.0; count = 0;
    for (in = 0;  in < SO->N_Node;  in++){
-      if( !nmask || nmask[in] ) { count++; arg = fim[in]; fsum += arg; fsq  += arg*arg; }
+      if( !nmask || nmask[in] ) { 
+         count++; arg = fim[in]; 
+         fsum += arg; fsq  += arg*arg; 
+      }
    }
    if( count < 9 || fsq <= 0.0 ){     /* no data? */
       SUMA_RETURN(ss) ;
@@ -6120,7 +6143,9 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
                if (in < ink) { SUMA_FIND_EDGE(SO->EL, in, ink, iseg); }
                else { SUMA_FIND_EDGE(SO->EL, ink, in, iseg); }
                if (iseg < 0) {
-                  SUMA_S_Errv("Could not find segment between nodes %d and %d\nThis should not happen.\n", in, ink);
+                  SUMA_S_Errv("Could not find segment between "
+                              "nodes %d and %d\n"
+                              "This should not happen.\n", in, ink);
                   SUMA_RETURN(ss);
                }  
                if (nodup) { /* make sure edge is fresh */
@@ -6133,7 +6158,8 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
                   dfdssum += dfds; dfdssq += dfds*dfds; 
                   #ifdef OK_FWHM_DBG
                      if (SUMA_GetDbgFWHM()) {
-                        fprintf(fdbg,"%5d %5d   %.3f  %.3f\n", in, ink, SO->EL->Le[iseg], dfds);      
+                        fprintf( fdbg,"%5d %5d   %.3f  %.3f\n", 
+                                 in, ink, SO->EL->Le[iseg], dfds);      
                      }
                   #endif
                   counts++;
@@ -6149,7 +6175,7 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
    /*----- estimate the variance of the partial derivatives -----*/
 
    varss = (counts < 36) ? 0.0
-                       : (dfdssq - (dfdssum * dfdssum)/counts) / (counts-1.0);
+                    : (dfdssq - (dfdssum * dfdssum)/counts) / (counts-1.0);
    ds /= (double)counts;  /* the average segment length */
 
    /*----- now estimate the FWHMs -----*/
@@ -6173,7 +6199,7 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
                      "   Expect fwhm to be no different from 0 \n"
                      "   FWHM values up to %.2f(segments) or %.2f(mm)\n"
                      "   are likely meaningless (at p=0.01) on this mesh.\n\n",
-                      prob, ss, ss*ds);
+                     prob, ss, ss*ds);
    }
    arg = 1.0 - 0.5*(varss/var);
    if (arg <= 0.0 || arg >= 1.0) {
@@ -6184,7 +6210,10 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
    
    #ifdef OK_FWHM_DBG
       if (SUMA_GetDbgFWHM()) {
-         fprintf(fdbg,"#counts=%d\n#var=%f\n#varss=%f\n#ds=%.3f\n#arg=%.3f\n#ss=%f\n", counts, var, varss, ds, arg, ss);
+         fprintf(fdbg,  "#counts=%d\n#var=%f\n"
+                        "#varss=%f\n#ds=%.3f\n"
+                        "#arg=%.3f\n#ss=%f\n", 
+                  counts, var, varss, ds, arg, ss);
          fclose(fdbg);
       }
    #endif                  
@@ -6196,10 +6225,14 @@ float SUMA_estimate_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask,
    SO (SUMA_SurfaceObject *) La surface
    fim (float *) SO->N_Node x 1 vector of data values
    mask (byte *) SO->N_Node x 1 mask vector (NULL for no masking)
-   nodup (int ) 0- allow a segment to be counted twice (uncool, but slightly faster)
-               1- Do not allow a segment to be counted twice (respectful approach)
+   nodup (int ) 0- allow a segment to be counted twice 
+                  (uncool, but slightly faster)
+               1- Do not allow a segment to be counted twice 
+                  (respectful approach)
 */
-float SUMA_estimate_slice_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *nmask, int nodup, float *ssvr, DList **striplist_vec)
+float SUMA_estimate_slice_FWHM_1dif( 
+         SUMA_SurfaceObject *SO, float *fim , byte *nmask, 
+         int nodup, float *ssvr, DList **striplist_vec)
 {
    static char FuncName[]={"SUMA_estimate_slice_FWHM_1dif"};
    
@@ -6232,20 +6265,23 @@ float SUMA_estimate_slice_FWHM_1dif( SUMA_SurfaceObject *SO, float *fim , byte *
    }
    
    if (!SO->FN || !SO->EL) {
-      if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList", NULL, 0, SUMAg_CF->DsetList)){
+      if (!SUMA_SurfaceMetrics_eng( SO, "EdgeList", NULL, 
+                                    0, SUMAg_CF->DsetList)){
          SUMA_SL_Err("Failed to create needed accessories");
          SUMA_RETURN(ssc);
       }
    } 
    if (!SO->MF || !SO->PolyArea) {
-      if (!SUMA_SurfaceMetrics_eng(SO, "MemberFace|PolyArea", NULL, 0, SUMAg_CF->DsetList)){
+      if (!SUMA_SurfaceMetrics_eng( SO, "MemberFace|PolyArea", 
+                                    NULL, 0, SUMAg_CF->DsetList)){
          SUMA_SL_Err("Failed to create needed accessories");
          SUMA_RETURN(ssc);
       }
    }
 
    if (!SO->FN || !SO->EL || !SO->MF || !SO->PolyArea) {
-      SUMA_S_Errv("J'ai besoin des voisins(%p) et des cotes (%p), cherie\nEt en plus, MF(%p) and PolyArea(%p)", 
+      SUMA_S_Errv("J'ai besoin des voisins(%p) et des cotes (%p), cherie\n"
+                  "Et en plus, MF(%p) and PolyArea(%p)", 
             SO->FN, SO->EL, SO->MF, SO->PolyArea);
       SUMA_RETURN(ssc);
    }

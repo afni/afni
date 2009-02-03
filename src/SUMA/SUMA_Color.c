@@ -6039,7 +6039,9 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    if (np && lnp) { 
       SUMA_LH("Has IDMDOM");
       /* has parent, verify against SO*/
-      if (SUMA_isDsetRelated(dset, SO)) { SUMA_LH("Is Related"); SUMA_RETURN(YUP); }
+      if (SUMA_isDsetRelated(dset, SO)) { 
+         SUMA_LH("Is Related"); SUMA_RETURN(YUP); 
+         }
       else { SUMA_LH("Is NOT Related"); SUMA_RETURN(NOPE); }
    }
    
@@ -6152,8 +6154,10 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    /* first, set the parent ID of the dset to be loaded,
    This parent ID is only used when generating an ID for those dsets
    that have no ID attached, like the 1D ones */
-   if (SO->LocalDomainParentID) SUMA_SetParent_DsetToLoad(SO->LocalDomainParentID);
-   else if (SO->idcode_str) SUMA_SetParent_DsetToLoad(SO->idcode_str); 
+   if (SO->LocalDomainParentID) 
+      SUMA_SetParent_DsetToLoad(SO->LocalDomainParentID);
+   else if (SO->idcode_str) 
+      SUMA_SetParent_DsetToLoad(SO->idcode_str); 
    else SUMA_SetParent_DsetToLoad(NULL);  
 
    dset = SUMA_LoadDset_s (filename, &form, 0); 
@@ -6170,21 +6174,34 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    if (LocalHead) {
       char *si = NULL;
       si = SUMA_DsetInfo(dset, 0);
-      fprintf(SUMA_STDERR,"%s:\n----------------dset loaded ----------\n%s\n",FuncName, si);
+      fprintf( SUMA_STDERR,
+               "%s:\n----------------dset loaded ----------\n%s\n",
+               FuncName, si);
       SUMA_free(si); si = NULL;
    }
    
    /* Check if the domain order is SO or not .
    If not specified, assign it */
    np = SDSET_IDMDOM(dset); if (np) lnp = strlen(np) ; else lnp = 0;
+   #if 0    /* turn this on if you want to ignore checks 
+               based on parent_idcode */
+   if (np && lnp) {
+      SUMA_S_Note("Setting domain_parent_idcode to NULL!");
+      NI_set_attribute(dset->ngr, "domain_parent_idcode", NULL);
+      np = NULL; lnp = 0; 
+   }
+   #endif
    if (!np || lnp == 0) { 
       SUMA_SL_Note("dset has no mesh parent, assigning SO");
       if (!SUMA_OKassign(dset, SO)) {
-         SUMA_SurfaceObject *SOldp = SUMA_findSOp_inDOv(SO->LocalDomainParentID,SUMAg_DOv, SUMAg_N_DOv);
+         SUMA_SurfaceObject *SOldp = SUMA_findSOp_inDOv(
+                           SO->LocalDomainParentID,SUMAg_DOv, SUMAg_N_DOv);
          if (SOldp) {
-            SUMA_SLP_Note("Could not assign dset to SO.\nTrying to assign to domain parent.");
+            SUMA_SLP_Note( "Could not assign dset to SO.\n"
+                           "Trying to assign to domain parent.");
             if (!SUMA_OKassign(dset, SOldp)) {
-               SUMA_SLP_Err("Cannot assign dset to SO \nor its local domain parent");
+               SUMA_SLP_Err(  "Cannot assign dset to SO \n"
+                              "or its local domain parent");
                SUMA_FreeDset(dset); dset=NULL;
                SUMA_RETURNe;
             }
@@ -6210,16 +6227,21 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    /* add the dset to the list SUMAg_CF->DsetList*/
    dsetpre = dset;
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: New dset (%s) has pointer %p\n", FuncName, SDSET_LABEL(dset), dset); 
+      fprintf( SUMA_STDERR,
+               "%s: New dset (%s) has pointer %p\n", 
+               FuncName, SDSET_LABEL(dset), dset); 
    }
-   if (!SUMA_InsertDsetPointer(&dset, SUMAg_CF->DsetList, SUMAg_CF->Allow_Dset_Replace)) {
+   if (!SUMA_InsertDsetPointer(  &dset, SUMAg_CF->DsetList, 
+                                 SUMAg_CF->Allow_Dset_Replace)) {
       SUMA_SLP_Err("Failed to add new dset to list");
       /* is there not a function to replace a dset yet? */
       SUMA_FreeDset(dset); dset = NULL;
       SUMA_RETURNe;
    }
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: Now dset (%s) is  pointer %p\n", FuncName, SDSET_LABEL(dset), dset); 
+      fprintf( SUMA_STDERR,
+               "%s: Now dset (%s) is  pointer %p\n", 
+               FuncName, SDSET_LABEL(dset), dset); 
    }
    
    OverInd = -1;
@@ -6227,9 +6249,13 @@ void SUMA_LoadDsetFile (char *filename, void *data)
       SUMA_LH("Forget not the cleanup ");
       if (dset != dsetpre) { /* dset was pre-existing in the list */
          if (LocalHead) {
-            fprintf(SUMA_STDERR,"%s: Dset %s (%p) pre-existing, finding its pre-existing overlays.\n", FuncName, SDSET_LABEL(dset), dset); 
+            fprintf( SUMA_STDERR,
+                     "%s: Dset %s (%p) pre-existing, "
+                     "finding its pre-existing overlays.\n", 
+                     FuncName, SDSET_LABEL(dset), dset); 
          }
-         if (!(colplanepre = SUMA_Fetch_OverlayPointerByDset (SO->Overlays, SO->N_Overlays, dset, &OverInd))) {
+         if (!(colplanepre = SUMA_Fetch_OverlayPointerByDset (
+                        SO->Overlays, SO->N_Overlays, dset, &OverInd))) {
             SUMA_SLP_Err("Failed to fetch existing dset's overlay pointer");
             /* is there not a function to replace a dset yet? */
             /* SUMA_FreeDset(dset); dset = NULL; do not free existing dset */
@@ -6248,9 +6274,12 @@ void SUMA_LoadDsetFile (char *filename, void *data)
          OKdup = 0;
       }
       /* set up the colormap for this dset */
-      NewColPlane = SUMA_CreateOverlayPointer (SDSET_VECLEN(dset), filename, dset, SO->idcode_str, colplanepre);
+      NewColPlane = SUMA_CreateOverlayPointer ( SDSET_VECLEN(dset), filename, 
+                                                dset, SO->idcode_str, 
+                                                colplanepre);
       if (!NewColPlane) {
-         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
          SUMA_RETURNe;
       }
 
@@ -6307,8 +6336,10 @@ void SUMA_LoadDsetFile (char *filename, void *data)
       if (!LW->isShaded) SUMA_RefreshDsetList (SO);  
    }  
    
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: Updating Dset frame, OverInd=%d\n", 
-      FuncName, OverInd);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,
+               "%s: Updating Dset frame, OverInd=%d\n", 
+               FuncName, OverInd);
    /* update the Dset frame */
    if (OverInd >= 0)        
       SUMA_InitializeColPlaneShell(SO, SO->Overlays[OverInd]);

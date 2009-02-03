@@ -4447,6 +4447,7 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    SUMA_DRAWN_ROI **ROIv=NULL;
    int i, N_ROI;
    SUMA_SurfaceObject *SO=NULL;
+   SUMA_OVERLAYS *over=NULL;
    
    SUMA_Boolean LocalHead = NOPE;
    
@@ -4467,7 +4468,8 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
       /* You need to select a parent surface */
       SUMA_SLP_Warn("Assuming parent surface.");
       SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_SVv[0].Focus_SO_ID].OP);
-      if (!( ROIv = SUMA_OpenDrawnROI_1D (filename, SO->idcode_str, &N_ROI, YUP))) {
+      if (!( ROIv = SUMA_OpenDrawnROI_1D (filename, SO->idcode_str, 
+                                          &N_ROI, YUP))) {
          SUMA_SLP_Err("Failed to read NIML ROI.");
          SUMA_RETURNe;
       }
@@ -4480,7 +4482,8 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    /* put those ROIs in SUMAg_DOv */
    for (i=0; i < N_ROI; ++i) {
       /* add ROI to DO list */
-      if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIv[i], ROIdO_type, SUMA_WORLD)) {
+      if (!SUMA_AddDO ( SUMAg_DOv, &SUMAg_N_DOv, 
+                        (void *)ROIv[i], ROIdO_type, SUMA_WORLD)) {
          fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
       }
    }
@@ -4492,7 +4495,8 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    if (!SUMAg_CF->X->DrawROI->curDrawnROI) {
       i = 0;
       do {
-         if (SUMAg_DOv[i].ObjectType == ROIdO_type) SUMAg_CF->X->DrawROI->curDrawnROI =
+         if (SUMAg_DOv[i].ObjectType == ROIdO_type) 
+            SUMAg_CF->X->DrawROI->curDrawnROI =
                                              (SUMA_DRAWN_ROI *)SUMAg_DOv[i].OP;
          ++i;
       } while (i < SUMAg_N_DOv && !SUMAg_CF->X->DrawROI->curDrawnROI);
@@ -4503,20 +4507,30 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    }
    
    /* Now update the Paint job on the ROI plane */
-   if (!SUMA_Paint_SO_ROIplanes_w (
-            SUMA_findSOp_inDOv(SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, 
-            SUMAg_DOv, SUMAg_N_DOv), SUMAg_DOv, SUMAg_N_DOv)) {
+   SO = SUMA_findSOp_inDOv(
+               SUMAg_CF->X->DrawROI->curDrawnROI->Parent_idcode_str, 
+               SUMAg_DOv, SUMAg_N_DOv);
+   if (!SUMA_Paint_SO_ROIplanes_w (SO, SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SLP_Err("Failed in SUMA_Paint_SO_ROIplanes_w.");
       SUMA_RETURNe;
    }
    
+   /* find the overlay plane */
+   over = SUMA_Fetch_OverlayPointer(
+            SO->Overlays, SO->N_Overlays, 
+            SUMAg_CF->X->DrawROI->curDrawnROI->ColPlaneName,
+            &i);       
+   if (over) SUMA_InitializeColPlaneShell(SO, over);
+
    /* put a nice redisplay here */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL); 
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_Redisplay_AllVisible, 
+                                       SES_Suma, NULL); 
    if (!SUMA_Engine(&list)) {
       SUMA_SLP_Err("Failed to redisplay.");
       SUMA_RETURNe;
    }
+   
    
    SUMA_RETURNe; 
 }
@@ -4765,11 +4779,14 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
       SUMA_PARSED_NAME *NewName=NULL; 
       
       edgethickness = 3;
-      fillcolor[0] = RGB[3*i]; fillcolor[1] = RGB[3*i+1]; fillcolor[2] = RGB[3*i+2]; 
+      fillcolor[0] = RGB[3*i]; 
+      fillcolor[1] = RGB[3*i+1]; 
+      fillcolor[2] = RGB[3*i+2]; 
       edgecolor[0] = 0; edgecolor[1] = 0; edgecolor[2] = 1; 
       Value = iLabel[iStart[i]]; /* the index label of this ROI */
       N_Node = iStop[i] - iStart[i] + 1; /* Number of Nodes in this ROI */
-      Node = &(iNode[iStart[i]]); /* pointer to location of first index in this ROI */
+      Node = &(iNode[iStart[i]]); 
+                     /* pointer to location of first index in this ROI */
       /* prepare a label for these ROIs */
       NewName = SUMA_ParseFname (filename, NULL);
       if (!NewName) {
@@ -4791,7 +4808,9 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
       }
       if (Label) SUMA_free(Label); Label = NULL;
       if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROIv[i]->Parent_idcode_str);
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,   "%s: ROI->Parent_idcode_str %s\n", 
+                                 FuncName, ROIv[i]->Parent_idcode_str);
 
    }
  
@@ -4815,20 +4834,21 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
 /*!
    \brief Loads a niml ROI 
    
-   \param ForDisplay (SUMA_Boolean) YUP: Performs checks to see if ROI with similar idcode already
-                                          exists and if parent surface is loaded.
-                                    NOPE: Does not check for above conditions.
+   \param ForDisplay (SUMA_Boolean) 
+      YUP: Performs checks to see if ROI with similar idcode already
+      exists and if parent surface is loaded.
+      NOPE: Does not check for above conditions.
 */
 SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, 
                                           int *N_ROI, 
                                           SUMA_Boolean ForDisplay)
 { /* begin embedded function */
    static char FuncName[]={"SUMA_OpenDrawnROI_NIML"};
-   char stmp[SUMA_MAX_NAME_LENGTH+100], *nel_idcode;
+   char stmp[SUMA_MAX_NAME_LENGTH+100], *nel_idcode, *att=NULL;
    NI_element *nel = NULL;
    NI_element **nelv=NULL;
    NI_stream ns ;
-   int n_read=0, idat, answer, inel, iDO, N_nel;
+   int n_read=0, idat, answer, inel, iDO, N_nel, iwarn=0;
    SUMA_NIML_ROI_DATUM *niml_ROI_datum_buff=NULL;
    SUMA_NIML_DRAWN_ROI * nimlROI=NULL;
    SUMA_DRAWN_ROI **ROIv=NULL;
@@ -4888,12 +4908,38 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
             SUMA_RETURN(NULL);
          }
 
+         /* make sure id is set properly (the curse of old versions) */
+         att = NI_get_attribute( nel , "self_idcode");
+         if (!att) { /* try old way */
+            if ((att = NI_get_attribute( nel , "idcode_str"))) {
+               NI_set_attribute(nel, "self_idcode", att);
+               NI_kill_attribute (nel,"idcode_str"); 
+               att = NI_get_attribute( nel , "self_idcode");
+            } else if ((att = NI_get_attribute( nel , "Object_ID"))) {
+               NI_set_attribute(nel, "self_idcode", att);
+               NI_kill_attribute (nel,"Object_ID"); 
+               att = NI_get_attribute( nel , "self_idcode");
+            }
+         }
+         if (att) {
+            nel_idcode = att; 
+         } else { /* put one in, anything is fine */
+            att = (char*)SUMA_calloc(SUMA_IDCODE_LENGTH, 
+                                     sizeof(char)); 
+            UNIQ_idcode_fill(att);
+            NI_set_attribute(nel,"self_idcode",att);
+            SUMA_free(att); att = NULL;
+            nel_idcode = NI_get_attribute(nel,"self_idcode"); 
+         }
+         
          if (ForDisplay) {
             /* find out if a displayable object exists 
                with the same idcode_str */
-            nel_idcode = NI_get_attribute( nel , "idcode_str"); /* obsolete*/
-            if (!nel_idcode) 
-               nel_idcode = NI_get_attribute( nel , "self_idcode"); 
+            SUMA_LH("Checking for self id...");
+            if (!nel_idcode) { 
+               SUMA_S_Err("Must have id by now!");
+               SUMA_RETURN(NULL);
+            } 
             if (SUMA_existDO(nel_idcode, SUMAg_DOv, SUMAg_N_DOv)) {
                if (AlwaysReplace) {
                   AddNel = YUP; 
@@ -4902,9 +4948,9 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                   AddNel = NOPE;
                }
                if (!AlwaysReplace && !NeverReplace) {   /* ASk */
-                  sprintf(stmp, "Found duplicate ROIs.\n"\
-                                             "Replace ROI %s (%s) by\n" \
-                                             "version in file ?", 
+                  sprintf(stmp, "Found duplicate ROIs.\n"
+                                "Replace ROI %s (%s) by\n" 
+                                "version in file ?", 
                   NI_get_attribute( nel , "Label"), nel_idcode); 
 
                   answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
@@ -4934,7 +4980,8 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
 
                      case SUMA_NO_ALL:
                         SUMA_LH("NO ALL");
-                        /* don't add this one and set flag to ignore the doubles */
+                        /* don't add this one and set flag to 
+                           ignore the doubles */
                         AddNel = NOPE;
                         NeverReplace = YUP;
                         break;
@@ -4953,28 +5000,41 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
             /* make sure element's parent exists */
             if (AddNel) {
                SUMA_LH("Checking for Parent surface...");
-               iDO = SUMA_whichDO(  NI_get_attribute( nel ,
-                                                      "Parent_idcode_str"), 
-                                    SUMAg_DOv, SUMAg_N_DOv); /* obsolete */
-               if (iDO < 0) 
-                  iDO = SUMA_whichDO(
-                              NI_get_attribute( nel , "domain_parent_idcode"), 
-                              SUMAg_DOv, SUMAg_N_DOv);
+               att = NI_get_attribute( nel , "domain_parent_idcode");
+               if (!att) { /* try old way */
+                  if ((att = NI_get_attribute( nel , "Parent_idcode_str"))) {
+                     NI_set_attribute(nel, "domain_parent_idcode", att);
+                     NI_kill_attribute (nel,"Parent_idcode_str");
+                     att = NI_get_attribute(nel,"domain_parent_idcode"); 
+                  } else if ((att = NI_get_attribute( nel , "Parent_ID"))) {
+                     NI_set_attribute(nel, "domain_parent_idcode", att);
+                     NI_kill_attribute (nel,"Parent_ID"); 
+                     att = NI_get_attribute(nel,"domain_parent_idcode"); 
+                  }
+               }
+               iDO = -1;
+               if (att) {
+                  iDO = SUMA_whichDO(  att, 
+                                       SUMAg_DOv, SUMAg_N_DOv);
+               }
               
                if (iDO < 0) {
-                  SUMA_SL_Warn(  "ROI's parent surface\n"
-                                 "is not loaded. \n"
-                                 "Trying adoptive parents\n"
-                                  );
+                  if (!iwarn) {
+                     SUMA_S_Warnv(
+                        "ROI's parent surface not loaded, or ROI is\n"
+                        "unparented. Looking for adoptive parents...\n"
+                        "(Message muted for remainder of ROIs in:\n"
+                        " %s )\n"
+                        , filename );
+                     ++iwarn;
+                  }
                   iDO = SUMA_BiggestLocalDomainParent(SUMAg_DOv, SUMAg_N_DOv); 
                   if (iDO < 0) {
                      SUMA_S_Err("Can't find adoptive surface");
                      AddNel = NOPE;
                   } else {
                      SO = (SUMA_SurfaceObject *)SUMAg_DOv[iDO].OP;
-                     NI_set_attribute(nel,
-                                       "Parent_idcode_str", 
-                                       SO->idcode_str);
+                     SUMA_LHv("Found LDP in %s\n", SO->Label);
                      NI_set_attribute(nel,
                                        "domain_parent_idcode", 
                                        SO->idcode_str);
@@ -4987,11 +5047,11 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
          }         
          
          if (AddNel) {
-            SUMA_LH("Adding Nel");
+            SUMA_LHv("Adding Nel %d\n", inel);
             nelv[inel] = nel;
             ++inel; 
          }else {
-            SUMA_LH("Skipping Nel");
+            SUMA_LHv("Skipping Nel %d\n", inel);
          }
          
          ++n_read;
@@ -5020,9 +5080,11 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
          fprintf (SUMA_STDERR,
                   "%s: Processing nel %d/%d...\n", FuncName, inel, N_nel);
       nel = nelv[inel];
-      nel_idcode = NI_get_attribute( nel , "idcode_str"); /* obsolete */
-      if (!nel_idcode) nel_idcode = NI_get_attribute( nel , "self_idcode"); 
-
+      nel_idcode = NI_get_attribute( nel , "self_idcode"); 
+      if (!nel_idcode) {
+         SUMA_S_Err("An id must be present by now!\n");
+         SUMA_RETURN(NULL);
+      }
       /* store nel in nimlROI struct */
 
       /* allocate for nimlROI */
@@ -5030,16 +5092,9 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
                      SUMA_calloc(1,sizeof(SUMA_NIML_DRAWN_ROI));
       nimlROI->Type = (int)strtod(NI_get_attribute( nel , "Type"), NULL);
       nimlROI->idcode_str = 
-         SUMA_copy_string(NI_get_attribute( nel , "idcode_str")); /* obsolete */
-      if (SUMA_IS_EMPTY_STR_ATTR(nimlROI->idcode_str)) 
-         nimlROI->idcode_str = 
-            SUMA_copy_string(NI_get_attribute( nel , "self_idcode"));
+         SUMA_copy_string(NI_get_attribute( nel , "self_idcode"));
       nimlROI->Parent_idcode_str = 
-         SUMA_copy_string(NI_get_attribute( nel , "Parent_idcode_str")); 
-            /* obsolete */
-      if (SUMA_IS_EMPTY_STR_ATTR(nimlROI->Parent_idcode_str)) 
-         nimlROI->Parent_idcode_str = 
-            SUMA_copy_string(NI_get_attribute( nel , "domain_parent_idcode"));
+         SUMA_copy_string(NI_get_attribute( nel , "domain_parent_idcode"));
       nimlROI->Label = SUMA_copy_string(NI_get_attribute( nel , "Label"));
       nimlROI->iLabel = (int)strtod(NI_get_attribute( nel , "iLabel"), NULL);
       nimlROI->N_ROI_datum = nel->vec_len;
@@ -5891,15 +5946,20 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
       }
  
       /* Now create a ni element */
-      if (LocalHead) fprintf(SUMA_STDERR,"%s: Creating new element of %d segments\n", FuncName, niml_ROI->N_ROI_datum);
-      nel = NI_new_data_element(SUMA_Dset_Type_Name(SUMA_NODE_ROI),  niml_ROI->N_ROI_datum);
+      if (LocalHead) 
+         fprintf( SUMA_STDERR,
+                  "%s: Creating new element of %d segments\n", 
+                  FuncName, niml_ROI->N_ROI_datum);
+      nel = NI_new_data_element( SUMA_Dset_Type_Name(SUMA_NODE_ROI),  
+                                 niml_ROI->N_ROI_datum);
 
       SUMA_LH("Adding column...");
       NI_add_column( nel , SUMAg_CF->nimlROI_Datum_type, niml_ROI->ROI_datum );
 
       SUMA_LH("Setting attributes...");
       NI_set_attribute (nel, "self_idcode", niml_ROI->idcode_str);
-      NI_set_attribute (nel, "domain_parent_idcode", niml_ROI->Parent_idcode_str);
+      NI_set_attribute (nel, "domain_parent_idcode", 
+                              niml_ROI->Parent_idcode_str);
       NI_set_attribute (nel, "Label", niml_ROI->Label);
       sprintf(stmp,"%d", niml_ROI->iLabel);
       NI_set_attribute (nel, "iLabel", stmp);
@@ -5919,7 +5979,8 @@ SUMA_Boolean SUMA_Write_DrawnROI_NIML (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *f
 
       if (!WriteBin) {
          SUMA_LH ("Writing element, Text mode.");
-         if (NI_write_element( ns , nel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG ) < 0) {
+         if (NI_write_element(   ns , nel , 
+                                 NI_TEXT_MODE | NI_HEADERSHARP_FLAG ) < 0) {
            SUMA_SL_Err("Badness, failed to write nel");
            NI_stream_close( ns ) ; 
            SUMA_RETURN(NOPE);

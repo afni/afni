@@ -877,6 +877,106 @@ void NI_insert_string( NI_element *nel, int row, int col, char *str )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Remove an attribute, if it exists from a data or group element.
+                                    ZSS Feb 09 
+--------------------------------------------------------------------------*/
+void NI_kill_attribute( void *nini , char *attname  )
+{
+   int nn , tt=NI_element_type(nini) ;
+
+   if( tt < 0 || attname == NULL || attname[0] == '\0' ) return ;
+
+   /* input is a data element */
+
+   if( tt == NI_ELEMENT_TYPE ){
+      NI_element *nel = (NI_element *) nini ;
+
+      /* see if name is already in element header */
+
+      for( nn=0 ; nn < nel->attr_num ; nn++ )
+         if( strcmp(nel->attr_lhs[nn],attname) == 0 ) break ;
+
+      
+
+      if( nn == nel->attr_num ){ /* not found, return */
+        return;
+      } else {
+        NI_free(nel->attr_lhs[nn]) ;  /* free old attribute */
+        NI_free(nel->attr_rhs[nn]) ;
+        if ( nn < nel->attr_num-1 ) { /* move last attr to nn */
+         nel->attr_lhs[nn] = nel->attr_lhs[nel->attr_num-1];
+         nel->attr_lhs[nel->attr_num-1] = NULL; 
+         nel->attr_rhs[nn] = nel->attr_rhs[nel->attr_num-1];
+         nel->attr_rhs[nel->attr_num-1] = NULL;      
+        }
+        --nel->attr_num;
+        /* reallocate */
+        nel->attr_lhs = NI_realloc( nel->attr_lhs, 
+                                    char*, sizeof(char *)*(nel->attr_num) );
+        nel->attr_rhs = NI_realloc( nel->attr_rhs, 
+                                    char*, sizeof(char *)*(nel->attr_num) ); 
+      }
+
+   /* input is a group element */
+
+   } else if( tt == NI_GROUP_TYPE ){
+      NI_group *ngr = (NI_group *) nini ;
+
+      for( nn=0 ; nn < ngr->attr_num ; nn++ )
+         if( strcmp(ngr->attr_lhs[nn],attname) == 0 ) break ;
+
+      if( nn == ngr->attr_num ){
+        return;
+      } else {
+        NI_free(ngr->attr_lhs[nn]) ;
+        NI_free(ngr->attr_rhs[nn]) ;
+        if ( nn < ngr->attr_num-1 ) { /* move last attr to nn */
+         ngr->attr_lhs[nn] = ngr->attr_lhs[ngr->attr_num-1];
+         ngr->attr_lhs[ngr->attr_num-1] = NULL; 
+         ngr->attr_rhs[nn] = ngr->attr_rhs[ngr->attr_num-1];
+         ngr->attr_rhs[ngr->attr_num-1] = NULL;      
+        }
+        --ngr->attr_num;
+        /* reallocate */
+        ngr->attr_lhs = NI_realloc( ngr->attr_lhs, 
+                                    char*, sizeof(char *)*(ngr->attr_num) );
+        ngr->attr_rhs = NI_realloc( ngr->attr_rhs, 
+                                    char*, sizeof(char *)*(ngr->attr_num) ); 
+      }
+
+   /* input is a processing instruction */
+
+   } else if( tt == NI_PROCINS_TYPE ){
+      NI_procins *npi = (NI_procins *) nini ;
+
+      for( nn=0 ; nn < npi->attr_num ; nn++ )
+        if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
+
+      if( nn == npi->attr_num ){
+        return;
+      } else {
+        NI_free(npi->attr_lhs[nn]) ;
+        NI_free(npi->attr_rhs[nn]) ;
+        if ( nn < npi->attr_num-1 ) { /* move last attr to nn */
+         npi->attr_lhs[nn] = npi->attr_lhs[npi->attr_num-1];
+         npi->attr_lhs[npi->attr_num-1] = NULL; 
+         npi->attr_rhs[nn] = npi->attr_rhs[npi->attr_num-1];
+         npi->attr_rhs[npi->attr_num-1] = NULL;      
+        }
+        --npi->attr_num;
+        /* reallocate */
+        npi->attr_lhs = NI_realloc( npi->attr_lhs, 
+                                    char*, sizeof(char *)*(npi->attr_num) );
+        npi->attr_rhs = NI_realloc( npi->attr_rhs, 
+                                    char*, sizeof(char *)*(npi->attr_num) ); 
+      }
+
+   }
+
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
 /*! Add an attribute to a data or group element.
     If an attribute with the same attname already exists, then
     it will be replaced with this one.

@@ -16,17 +16,32 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: SurfDist <SURFACE> <NODEPAIRS>\n"
+               "Usage: SurfDist  [OPTIONS] <SURFACE> <NODEPAIRS>\n"
                "       Output shortest distance between NODEPAIRS along\n"
                "       the nesh of SURFACE.\n"
+               "\n"
+               "Mandatory options:\n"
                "  <SURFACE> : Surface on which distances are computed.\n"
                "              (For option's syntax, see \n"
                "              'Specifying input surfaces' section below).\n"
-               "  <NODEPAIRS>: A dataset of two columns where each row\n"
+               "  <NODEPAIRS> : Specifying node pairs can be done in two ways\n"
+               "\n"
+               "     <FROM_TO_NODES>: A dataset of two columns where each row\n"
                "               specifies a node pair.\n"
                "               (For option's syntax, see \n"
-               "              'SUMA dataset input options' section below).\n"
-               "  example:\n"
+               "              'SUMA dataset input options' section below).\n"                   "   or\n"
+               "     <-from_node START>: Specify one starting node.\n"
+               "     <TO_NODES>: Specify one column of 'To' node indices.\n"
+               "                 Node pairs are between START and each node\n"
+               "                 in TO_NODES.\n"
+               "               (For option's syntax, see \n"
+               "              'SUMA dataset input options' section below).\n"                   "\n"
+               "Optional stuff:\n"
+               "  -node_path_do PATH_DO: Output the shortest path between\n"
+               "                         each node pair as a SUMA Displayable\n"
+               "                         object.\n" 
+               "\n"
+               "  example 1:\n"
                "     echo make a toy surface\n"
                "     CreateIcosahedron\n"
                "     echo Create some nodepairs\n"
@@ -45,6 +60,34 @@ void usage_SurfDist (SUMA_GENERIC_ARGV_PARSE *ps)
                "                       -i_fs CreateIco_surf.asc \\\n"
                "               -com viewer_cont -load_do node_path.1D.do\n"
                "\n"
+               "  example 2: (for tcsh)\n"
+               "     echo Say one has a filled ROI called: Area.niml.roi on \n"
+               "     echo a surface called lh.smoothwm.asc.\n"
+               "     set apref = Area\n"
+               "     set surf = lh.smoothwm.asc\n"
+               "     echo Create a dataset from this ROI with:\n"
+               "     ROI2dataset -prefix ${apref} -input ${apref}.niml.roi\n"
+               "     echo Get the nodes column forming the area\n"
+               "     ConvertDset -i ${apref}.niml.dset'[i]' -o_1D_stdout \\\n" 
+               "                              > ${apref}Nodes.1D \n"
+               "     echo Calculate distance from node 85329 to each of " 
+               "${apref}Nodes.1D\n" 
+               "     SurfDist  -from_node 85329 -input ${apref}Nodes.1D \\\n" 
+               "               -i ${surf}   > ${apref}Dists.1D\n"
+               "     echo Combine node indices and distances from node  85329\n"
+               "     1dcat ${apref}Nodes.1D ${apref}Dists.1D'[2]' \\\n"
+               "                                  > welt.1D.dset \n"
+               "     echo Now load welt.1D.dset and overlay on surface\n"
+               "     echo Distances are in the second column\n"
+               "     echo 'And you can visualize the distances this way:'\n"
+               "     suma -niml &\n"
+               "     sleep 4\n"
+               "     DriveSuma -com show_surf -label oke \\\n"
+               "                       -i_fs ${surf} \\\n"
+               "               -com  pause hit enter when surface is ready \\\n"
+               "               -com surf_cont -load_dset welt.1D.dset \\\n"
+               "                              -I_sb 1 -T_sb 1 -T_val 0.0 \n"
+               "\n"  
                "%s"
                "%s"
                "\n", 
@@ -70,8 +113,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
    
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct(); 
    Opt->ps = ps;  /* just hold it there for convenience */
-   Opt->ps = ps; /* for convenience */
    Opt->bases_prefix =NULL;
+   Opt->iopt = -1;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -93,6 +136,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
          }
          
          Opt->debug = atoi(argv[++kar]);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-from_node") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need an integer after -from_node \n");
+            exit (1);
+         }
+         
+         Opt->iopt = atoi(argv[++kar]);
          brk = YUP;
       }
       
@@ -209,10 +264,24 @@ int main (int argc,char *argv[])
          exit(1);
    }
    
+   Nfrom = -1;
+   if (SDSET_VECNUM(din) == 1) {
+      if (Opt->iopt == -1 ) {
+         SUMA_S_Err( "Must use -from_node START \n"
+                     "if input dataset has one column\n");
+         exit(1);
+      } else if (Opt->iopt < 0 || Opt->iopt >= SO->N_Node) {
+         SUMA_S_Errv("Bad node index. Must have 0<= START < %d\n"
+                     "Have START = %d \n", Opt->iopt, SO->N_Node);
+         exit(1);
+      }
+      Nfrom = Opt->iopt;
+   }
    /* dset has to have two columns */
-   if (SDSET_VECNUM(din)!= 2) {
-      SUMA_S_Errv("Expected two columns in input data from %s, have %d!\n",
-                  Opt->ps->dsetname[0], SDSET_VECNUM(din)); 
+   if (SDSET_VECNUM(din)!= 2 && SDSET_VECNUM(din) != 1) {
+      SUMA_S_Errv(
+         "Expected one or two columns in input data from %s, have %d!\n",
+         Opt->ps->dsetname[0], SDSET_VECNUM(din)); 
       exit(1);
    }
    /* work  the node pairs */
@@ -222,7 +291,8 @@ int main (int argc,char *argv[])
    fprintf(fout, "#%-6s %-6s %-6s\n",
                         "From" , "to", "Dist." );
    if (Opt->nmask) {
-      if (!(dm = (SUMA_Boolean *)SUMA_malloc(sizeof(SUMA_Boolean)*SO->N_Node))) {
+      if (!(dm = (SUMA_Boolean *)SUMA_malloc(sizeof(SUMA_Boolean) * 
+                                             SO->N_Node))) {
          SUMA_S_Err("Failed to allocate");
          exit(1);
       }
@@ -233,8 +303,16 @@ int main (int argc,char *argv[])
          exit(1);
       }
 
-      Nfrom = (int)SUMA_GetDsetValInCol2(din, 0, ii);
-      Nto = (int)SUMA_GetDsetValInCol2(din, 1, ii);
+      if (SDSET_VECNUM(din) == 2) {
+         Nfrom = (int)SUMA_GetDsetValInCol2(din, 0, ii);
+         Nto = (int)SUMA_GetDsetValInCol2(din, 1, ii);
+      } else if (SDSET_VECNUM(din) == 1) {
+         /* Nfrom setup above */
+         Nto = (int)SUMA_GetDsetValInCol2(din, 0, ii);
+      } else {
+         SUMA_S_Err("What gives? Should not be here!\n");
+         exit(1);
+      }
       if (Opt->nmask) for(jj=0; jj<SO->N_Node; ++jj) dm[jj] = Opt->nmask[jj];
       if (!(nPath = SUMA_Dijkstra ( SO, Nfrom, Nto, 
                               dm, NULL, 1, 
