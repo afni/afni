@@ -1510,6 +1510,8 @@ typedef MRI_warp3D_param_def GA_param ;  /* cf. 3ddata.h */
 
 typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
 
+/** delete a GA_BLOK_set struct and its contents **/
+
 #define GA_BLOK_KILL(gbs)                                     \
  do{ int ee ;                                                 \
      if( (gbs)->nelm != NULL ) free((gbs)->nelm) ;            \
@@ -1521,15 +1523,19 @@ typedef struct { int num , *nelm , **elm ; } GA_BLOK_set ;
      free((gbs)) ;                                            \
  } while(0)
 
+/** create a GA_BLOK_set; cf. mri_genalign_util.c **/
+
 extern GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
                                          float dx , float dy , float dz ,
                                          int npt, float *im, float *jm, float *km,
                                          int bloktype, float blokrad, int minel,
-                                                                      int verb ) ;
+                                                       float shfac  , int verb ) ;
 
-/******* end of BLOK stuff here -- also see mri_genalign_util.c *******/
+/** compute correlations in each blok **/
 
-extern floatvec * GA_pearson_vector( int npt, float *avm, float *bvm, float *wvm ) ;
+extern floatvec * GA_pearson_vector( GA_BLOK_set *, float *, float *, float * );
+
+/******* end of BLOK-ization stuff here -- also see mri_genalign_util.c *******/
 
  /* struct to control mri_genalign.c optimization */
 

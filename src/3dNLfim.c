@@ -11,9 +11,9 @@
 /*
    This program calculates a nonlinear regression for each voxel of the input
    AFNI 3d+time data set.  The nonlinear regression is calculated by means of
-   a least squares fit to the signal plus noise models which are specified 
+   a least squares fit to the signal plus noise models which are specified
    by the user.
- 
+
    File:     3dNLfim.c
    Author:   B. Douglas Ward
    Date:     19 June 1997
@@ -28,7 +28,7 @@
              calculation of area under the signal above baseline.
    Date:     26 November 1997
 
-   Mod:      Print error message if user fails to specify the signal model or 
+   Mod:      Print error message if user fails to specify the signal model or
              the noise model.
    Date:     26 December 1997
 
@@ -42,7 +42,7 @@
    Date:     19 April 1999
 
    Mod:      Added -sfit and -snfit options to write out the signal and
-             the signal+noise model time series fit for each voxel 
+             the signal+noise model time series fit for each voxel
              to a 3d+time dataset.
    Date:     08 July 1999
 
@@ -163,7 +163,7 @@ static int do_FDR = 1 ;  /* 07 Oct 2008 */
 #include "NLfit.c"
 
 typedef struct NL_options
-{ 
+{
   char * bucket_filename;      /* file name for bucket dataset */
   int numbricks;               /* number of sub-bricks in bucket dataset */
   int * brick_type;            /* indicates type of sub-brick */
@@ -175,7 +175,7 @@ typedef struct NL_options
 
 /*---------------------------------------------------------------------------*/
 /*
-  Global data 
+  Global data
 */
 
 /***** 22 July 1998 -- RWCox:
@@ -188,11 +188,12 @@ static float uuTR = 0.0 ;
 static int   g_voxel_count = 0; /* display current voxel counter */
                                          /* 25 Jan 2006 [rickr]  */
 
-static char * commandline = NULL ;       /* command line for history notes */
+static char *commandline = NULL ;       /* command line for history notes */
 
-static byte * mask_vol  = NULL;          /* mask volume */
-static int    mask_nvox = 0;             /* number of voxels in mask volume */
-static int    output_datum = ILLEGAL_TYPE ;
+static byte *mask_vol  = NULL;          /* mask volume */
+static int   mask_nvox = 0;             /* number of voxels in mask volume */
+static int   output_datum = ILLEGAL_TYPE ;
+static byte *gmask     = NULL ;
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -201,7 +202,7 @@ static int    output_datum = ILLEGAL_TYPE ;
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
      "This program calculates a nonlinear regression for each voxel of the  \n"
      "input AFNI 3d+time data set.  The nonlinear regression is calculated  \n"
@@ -345,7 +346,7 @@ void display_help_menu()
             "         * Use -mask to get more speed; cf. 3dAutomask.\n"
           , PROC_MAX ) ;
 #endif
-  
+
     printf(
     "\n"
     "----------------------------------------------------------------------\n"
@@ -449,24 +450,24 @@ void display_help_menu()
 
 
 /*---------------------------------------------------------------------------*/
-     
+
 /** macro to test a malloc-ed pointer for validity **/
 
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( NLfit_error ("Cannot allocate memory") )
-    
+
 
 /*---------------------------------------------------------------------------*/
 /*
   Routine to initialize the input options.
 */
- 
-void initialize_options 
+
+void initialize_options
 (
   int * ignore,            /* delete this number of points from time series */
   vfp * nmodel,            /* pointer to noise model */
-  vfp * smodel,            /* pointer to signal model */  
+  vfp * smodel,            /* pointer to signal model */
   int * r,                 /* number of parameters in the noise model */
   int * p,                 /* number of parameters in the signal model */
   char *** npname,         /* noise parameter names */
@@ -479,10 +480,10 @@ void initialize_options
   int * nrand,             /* number of random vectors to generate */
   int * nbest,             /* number of random vectors to keep */
   float * rms_min,         /* minimum rms error to reject reduced model */
-  float * fdisp,           /* minimum f-statistic for display */ 
+  float * fdisp,           /* minimum f-statistic for display */
   int *progress,           /* nth voxel to show report */
   char ** input_filename,     /* file name of input 3d+time dataset */
-  char ** tfilename,          /* file name for time point series */  
+  char ** tfilename,          /* file name for time point series */
   char ** freg_filename,      /* file name for regression f-statistics */
   char ** frsqr_filename,     /* file name for R^2 statistics */
   char *** fncoef_filename,   /* file name for noise model parameters */
@@ -493,7 +494,7 @@ void initialize_options
   char ** snfit_filename,     /* file name for 3d+time fitted signal+noise */
   NL_options * option_data    /* bucket dataset options */
 )
- 
+
 {
   int ip;                     /* parameter index */
 
@@ -502,7 +503,7 @@ void initialize_options
   *ignore = 0;
   *nabs = 0;
   *nrand = DEFAULT_NRAND;
-  *nbest = DEFAULT_NBEST; 
+  *nbest = DEFAULT_NBEST;
   *rms_min = 0.0;
   *fdisp = DEFAULT_FDISP;
   *progress = DEFAULT_PROGRESS;
@@ -513,32 +514,32 @@ void initialize_options
 
 
   /*----- allocate memory for noise parameter names -----*/
-  *npname = (char **) malloc (sizeof(char *) * MAX_PARAMETERS); 
-  MTEST (*npname);  
+  *npname = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
+  MTEST (*npname);
   for (ip = 0;  ip < MAX_PARAMETERS;  ip++)
     {
       (*npname)[ip] = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-      MTEST ((*npname)[ip]);  
+      MTEST ((*npname)[ip]);
     }
 
 
   /*----- allocate memory for signal parameter names -----*/
   *spname = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
-  MTEST (*spname);  
+  MTEST (*spname);
   for (ip = 0;  ip < MAX_PARAMETERS;  ip++)
     {
       (*spname)[ip] = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-      MTEST ((*spname)[ip]);  
+      MTEST ((*spname)[ip]);
     }
-  
+
 
   /*----- allocate memory for parameter constraints -----*/
   *min_nconstr = (float *) malloc (sizeof(float) * MAX_PARAMETERS);
-  MTEST (*min_nconstr);  
+  MTEST (*min_nconstr);
   *max_nconstr = (float *) malloc (sizeof(float) * MAX_PARAMETERS);
   MTEST (*max_nconstr);
   *min_sconstr = (float *) malloc (sizeof(float) * MAX_PARAMETERS);
-  MTEST (*min_sconstr);  
+  MTEST (*min_sconstr);
   *max_sconstr = (float *) malloc (sizeof(float) * MAX_PARAMETERS);
   MTEST (*max_sconstr);
 
@@ -546,7 +547,7 @@ void initialize_options
   /*----- allocate memory space and initialize pointers for filenames -----*/
   *input_filename = NULL;
   *tfilename = NULL;
-  *freg_filename = NULL;  
+  *freg_filename = NULL;
   *frsqr_filename = NULL;
   *fncoef_filename = (char **) malloc (sizeof(char *) * MAX_PARAMETERS);
   MTEST (*fncoef_filename);
@@ -585,12 +586,12 @@ void initialize_options
 void get_options
 (
   int argc,                /* number of input arguments */
-  char ** argv,            /* array of input arguments */ 
+  char ** argv,            /* array of input arguments */
   int * ignore,            /* delete this number of points from time series */
   char ** nname,           /* name of noise model */
   char ** sname,           /* name of signal model */
   vfp * nmodel,            /* pointer to noise model */
-  vfp * smodel,            /* pointer to signal model */  
+  vfp * smodel,            /* pointer to signal model */
   int * r,                 /* number of parameters in the noise model */
   int * p,                 /* number of parameters in the signal model */
   char *** npname,         /* noise parameter names */
@@ -603,10 +604,10 @@ void get_options
   int * nrand,             /* number of random vectors to generate */
   int * nbest,             /* number of random vectors to keep */
   float * rms_min,         /* minimum rms error to reject reduced model */
-  float * fdisp,           /* minimum f-statistic for display */ 
+  float * fdisp,           /* minimum f-statistic for display */
   int * progress,          /* progress report every nth voxel */
   char ** input_filename,     /* file name of input 3d+time dataset */
-  char ** tfilename,          /* file name for time point series */  
+  char ** tfilename,          /* file name for time point series */
   char ** freg_filename,      /* file name for regression f-statistics */
   char ** frsqr_filename,     /* file name for R^2 statistics */
   char ** fsmax_filename,     /* file name for signal signed maximum */
@@ -623,7 +624,7 @@ void get_options
 
   THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
   int * nxyz,                       /* number of voxels in image */
-  int * ts_length,                  /* length of time series data */  
+  int * ts_length,                  /* length of time series data */
   NL_options * option_data          /* bucket dataset options */
 )
 
@@ -640,33 +641,33 @@ void get_options
   int ibrick;                       /* sub-brick index */
   int nbricks;                      /* number of bricks in the bucket */
 
-  
-  /*----- does user request help menu? -----*/
-  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
-  
-  
-  /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
 
-  
+  /*----- does user request help menu? -----*/
+  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();
+
+
+  /*----- add to program log -----*/
+  AFNI_logger (PROGRAM_NAME,argc,argv);
+
+
   /*----- initialize the model array -----*/
   model_array = NLFIT_get_many_MODELs ();
   if ((model_array == NULL) || (model_array->num == 0))
     NLfit_error ("Unable to locate any models");
 
   /*----- initialize the input options -----*/
-  initialize_options (ignore, nmodel, smodel, r, p, npname, spname, 
+  initialize_options (ignore, nmodel, smodel, r, p, npname, spname,
                 min_nconstr, max_nconstr, min_sconstr, max_sconstr, nabs,
-                nrand, nbest, rms_min, fdisp, progress, 
-                input_filename, tfilename, freg_filename, 
+                nrand, nbest, rms_min, fdisp, progress,
+                input_filename, tfilename, freg_filename,
                 frsqr_filename, fncoef_filename, fscoef_filename,
                 tncoef_filename, tscoef_filename,
-                sfit_filename, snfit_filename, option_data); 
+                sfit_filename, snfit_filename, option_data);
 
   if( *ignore == 0 )
     INFO_message("NOTICE: Default value of -ignore is now 0;\n"
                  "           Before 04 Nov 2008, default value was 3" ) ;
-  
+
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
@@ -685,10 +686,10 @@ void get_options
        MTEST (*input_filename);
        strcpy (*input_filename, argv[nopt]);
        /* open input dataset - was THD_open_one_dataset, allow sub-bricks */
-       *dset_time = THD_open_dataset (*input_filename);  
-       if ((*dset_time) == NULL)  
-         { 
-           sprintf (message, 
+       *dset_time = THD_open_dataset (*input_filename);
+       if ((*dset_time) == NULL)
+         {
+           sprintf (message,
                  "Unable to open data file: %s", *input_filename);
            NLfit_error (message);
          }
@@ -719,7 +720,7 @@ void get_options
 
      if(output_datum==ILLEGAL_TYPE) {   /* if output_datum type is not specified by user*/
         output_datum = DSET_BRICK_TYPE(*dset_time,0);  /* get datum type from dataset */
-     }	
+     }
        nopt++;
        continue;
      }
@@ -790,7 +791,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
       /*-----   -time filename   -----*/
       if (strcmp(argv[nopt], "-time") == 0)
      {
@@ -802,7 +803,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
       /*-----   -nabs  -----*/
       if (strcmp(argv[nopt], "-nabs") == 0)
      {
@@ -822,8 +823,8 @@ void get_options
       if( strcmp(argv[nopt],"-BOTH") == 0 ){
         N_newuoa = 2 ; nopt++ ; continue ;
       }
-      
-      
+
+
       /*-----   -signal slabel  -----*/
       if (strcmp(argv[nopt], "-signal") == 0)
      {
@@ -832,14 +833,14 @@ void get_options
        *sname = malloc (sizeof(char) * MAX_NAME_LENGTH);
        MTEST (*sname);
        strcpy (*sname, argv[nopt]);
-       initialize_signal_model (model_array, *sname, 
+       initialize_signal_model (model_array, *sname,
                        smodel, p, *spname,
                        *min_sconstr, *max_sconstr);
        nopt++;
        continue;
      }
-      
-      
+
+
       /*-----   -noise nlabel  -----*/
       if (strcmp(argv[nopt], "-noise") == 0)
      {
@@ -848,14 +849,14 @@ void get_options
        *nname = malloc (sizeof(char) * MAX_NAME_LENGTH);
        MTEST (*nname);
        strcpy (*nname, argv[nopt]);
-       initialize_noise_model (model_array, *nname, 
+       initialize_noise_model (model_array, *nname,
                       nmodel, r, *npname,
                       *min_nconstr, *max_nconstr);
        nopt++;
        continue;
      }
-      
-      
+
+
       /*-----   -nrand n  -----*/
       if (strcmp(argv[nopt], "-nrand") == 0)
      {
@@ -868,8 +869,8 @@ void get_options
        nopt++;
        continue;
      }
-      
-      
+
+
       /*-----   -nbest n  -----*/
       if (strcmp(argv[nopt], "-nbest") == 0)
      {
@@ -882,39 +883,39 @@ void get_options
        nopt++;
        continue;
      }
-      
-      
+
+
       /*-----   -rmsmin r  -----*/
       if (strcmp(argv[nopt], "-rmsmin") == 0)
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -rmsmin ");
-       sscanf (argv[nopt], "%f", &fval); 
+       sscanf (argv[nopt], "%f", &fval);
        if (fval < 0.0)
          NLfit_error ("illegal argument after -rmsmin ");
        *rms_min = fval;
        nopt++;
        continue;
      }
-      
+
 
        /*-----   -fdisp fval   -----*/
       if (strcmp(argv[nopt], "-fdisp") == 0)
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -fdisp ");
-       sscanf (argv[nopt], "%f", &fval); 
+       sscanf (argv[nopt], "%f", &fval);
        *fdisp = fval;
        nopt++;
        continue;
      }
-      
+
        /*-----   -progress ival   -----*/
       if (strcmp(argv[nopt], "-progress") == 0)
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -progress ");
-       sscanf (argv[nopt], "%d", &ival); 
+       sscanf (argv[nopt], "%d", &ival);
        if (ival < 1)
           NLfit_error("illegal argument after -progress ");
        *progress = ival;
@@ -953,7 +954,7 @@ void get_options
       /*----- check that user has specified the signal and noise models -----*/
       if ((*smodel) == NULL)  ERROR_exit("Must specify signal model before '%s'",argv[nopt]);
       if ((*nmodel) == NULL)  ERROR_exit("Must specify noise model before '%s'" ,argv[nopt]);
-      
+
       /*-----   -sconstr k min max  -----*/
       if (strcmp(argv[nopt], "-sconstr") == 0)
      {
@@ -968,17 +969,17 @@ void get_options
        index = ival;
        nopt++;
 
-       sscanf (argv[nopt], "%f", &fval); 
+       sscanf (argv[nopt], "%f", &fval);
        (*min_sconstr)[index] = fval;
        nopt++;
 
-       sscanf (argv[nopt], "%f", &fval); 
+       sscanf (argv[nopt], "%f", &fval);
        (*max_sconstr)[index] = fval;
        nopt++;
        continue;
      }
-      
-      
+
+
       /*-----   -nconstr k min max  -----*/
       if (strcmp(argv[nopt], "-nconstr") == 0)
      {
@@ -991,16 +992,16 @@ void get_options
        index = ival;
        nopt++;
 
-       sscanf (argv[nopt], "%f", &fval); 
+       sscanf (argv[nopt], "%f", &fval);
        (*min_nconstr)[index] = fval;
        nopt++;
 
-       sscanf (argv[nopt], "%f", &fval); 
+       sscanf (argv[nopt], "%f", &fval);
        (*max_nconstr)[index] = fval;
        nopt++;
        continue;
      }
-      
+
 
        /*-----   -freg filename   -----*/
       if (strcmp(argv[nopt], "-freg") == 0)
@@ -1013,7 +1014,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
        /*-----   -frsqr filename   -----*/
       if (strcmp(argv[nopt], "-frsqr") == 0)
@@ -1026,7 +1027,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
        /*-----   -fsmax filename   -----*/
       if (strcmp(argv[nopt], "-fsmax") == 0)
@@ -1039,7 +1040,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
        /*-----   -ftmax filename   -----*/
       if (strcmp(argv[nopt], "-ftmax") == 0)
@@ -1052,7 +1053,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
       /*-----   -fpmax filename   -----*/
       if (strcmp(argv[nopt], "-fpmax") == 0)
@@ -1065,7 +1066,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
       /*-----   -farea filename   -----*/
       if (strcmp(argv[nopt], "-farea") == 0)
@@ -1078,7 +1079,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
       /*-----   -fparea filename   -----*/
       if (strcmp(argv[nopt], "-fparea") == 0)
@@ -1091,7 +1092,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
       /*-----   -fscoef k filename   -----*/
       if (strcmp(argv[nopt], "-fscoef") == 0)
@@ -1111,7 +1112,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
       /*-----   -fncoef k filename   -----*/
       if (strcmp(argv[nopt], "-fncoef") == 0)
@@ -1131,7 +1132,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
       /*-----   -tscoef k filename   -----*/
       if (strcmp(argv[nopt], "-tscoef") == 0)
@@ -1153,7 +1154,7 @@ void get_options
        nopt++;
        continue;
      }
-      
+
 
       /*-----   -tncoef k filename   -----*/
       if (strcmp(argv[nopt], "-tncoef") == 0)
@@ -1175,8 +1176,8 @@ void get_options
        nopt++;
        continue;
      }
-      
-      
+
+
       /*----- -bucket n prefixname -----*/
       if (strcmp(argv[nopt], "-bucket") == 0)
      {
@@ -1187,18 +1188,18 @@ void get_options
          NLfit_error ("illegal argument after -bucket ");
        nopt++;
 
-       option_data->bucket_filename = 
+       option_data->bucket_filename =
          malloc (sizeof(char) * MAX_NAME_LENGTH);
        MTEST (option_data->bucket_filename);
        strcpy (option_data->bucket_filename, argv[nopt]);
-       
+
        /*----- set number of sub-bricks in the bucket -----*/
        if (ival == 0)
          nbricks = (*p) + (*r) + 8;
        else
          nbricks = ival;
        option_data->numbricks = nbricks;
-       
+
        /*----- allocate memory and initialize bucket dataset options -----*/
        option_data->brick_type = malloc (sizeof(int) * nbricks);
        MTEST (option_data->brick_type);
@@ -1210,13 +1211,13 @@ void get_options
          {
            option_data->brick_type[ibrick] = -1;
            option_data->brick_coef[ibrick] = -1;
-           option_data->brick_label[ibrick] = 
+           option_data->brick_label[ibrick] =
           malloc (sizeof(char) * MAX_NAME_LENGTH);
            MTEST (option_data->brick_label[ibrick]);
          }
-       
 
-       if (ival == 0)   
+
+       if (ival == 0)
          /*----- throw (almost) everything into the bucket -----*/
          {
            for (ibrick = 0;  ibrick < (*r);  ibrick++)
@@ -1225,7 +1226,7 @@ void get_options
             option_data->brick_coef[ibrick] = ibrick;
             strcpy (option_data->brick_label[ibrick], (*npname)[ibrick]);
           }
-           
+
            for (ibrick = (*r);  ibrick < (*p) + (*r);  ibrick++)
           {
             option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
@@ -1233,47 +1234,47 @@ void get_options
             strcpy (option_data->brick_label[ibrick],
                  (*spname)[ibrick-(*r)]);
           }
-           
+
            ibrick = (*p) + (*r);
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = ibrick;
            strcpy (option_data->brick_label[ibrick], "Signal TMax");
-           
+
            ibrick++;
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = ibrick;
            strcpy (option_data->brick_label[ibrick], "Signal SMax");
-           
+
            ibrick++;
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = ibrick;
            strcpy (option_data->brick_label[ibrick], "Signal % SMax");
-           
+
            ibrick++;
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = ibrick;
            strcpy (option_data->brick_label[ibrick], "Signal Area");
-           
+
            ibrick++;
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = ibrick;
-           strcpy (option_data->brick_label[ibrick], "Signal % Area"); 
-           
+           strcpy (option_data->brick_label[ibrick], "Signal % Area");
+
            ibrick++;
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = ibrick;
-           strcpy (option_data->brick_label[ibrick], "Sigma Resid"); 
-           
+           strcpy (option_data->brick_label[ibrick], "Sigma Resid");
+
            ibrick++;
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = ibrick;
-           strcpy (option_data->brick_label[ibrick], "R^2"); 
-           
+           strcpy (option_data->brick_label[ibrick], "R^2");
+
            ibrick++;
            option_data->brick_type[ibrick] = FUNC_FT_TYPE;
            option_data->brick_coef[ibrick] = ibrick;
            strcpy (option_data->brick_label[ibrick], "F-stat Regression");
-           
+
          }
 
        nopt++;
@@ -1285,7 +1286,7 @@ void get_options
       if (strcmp(argv[nopt], "-brick") == 0)
      {
        nopt++;
-       if (nopt+2 >= argc)  
+       if (nopt+2 >= argc)
          NLfit_error ("need more arguments after -brick ");
        sscanf (argv[nopt], "%d", &ibrick);
        if ((ibrick < 0) || (ibrick >= option_data->numbricks))
@@ -1301,11 +1302,11 @@ void get_options
            if ((ival < 0) || (ival > (*p)))
           NLfit_error ("illegal argument after scoef ");
            option_data->brick_coef[ibrick] = ival + (*r);
-           
+
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
-           strcpy (option_data->brick_label[ibrick], argv[nopt]); 
+           strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
 
        else if (strcmp(argv[nopt], "ncoef") == 0)
@@ -1317,11 +1318,11 @@ void get_options
            if ((ival < 0) || (ival > (*r)))
           NLfit_error ("illegal argument after ncoef ");
            option_data->brick_coef[ibrick] = ival;
-           
+
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
-           strcpy (option_data->brick_label[ibrick], argv[nopt]); 
+           strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
 
        else if (strcmp(argv[nopt], "tmax") == 0)
@@ -1329,7 +1330,7 @@ void get_options
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = (*r) + (*p);
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
@@ -1339,7 +1340,7 @@ void get_options
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = (*r) + (*p) + 1;
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
@@ -1349,7 +1350,7 @@ void get_options
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = (*r) + (*p) + 2;
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
@@ -1359,7 +1360,7 @@ void get_options
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = (*r) + (*p) + 3;
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
@@ -1369,7 +1370,7 @@ void get_options
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = (*r) + (*p) + 4;
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
@@ -1379,7 +1380,7 @@ void get_options
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = (*r) + (*p) + 5;
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
@@ -1389,7 +1390,7 @@ void get_options
            option_data->brick_type[ibrick] = FUNC_FIM_TYPE;
            option_data->brick_coef[ibrick] = (*r) + (*p) + 6;
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
@@ -1399,7 +1400,7 @@ void get_options
            option_data->brick_type[ibrick] = FUNC_FT_TYPE;
            option_data->brick_coef[ibrick] = (*r) + (*p) + 7;
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
          }
@@ -1413,12 +1414,12 @@ void get_options
            if ((ival < 0) || (ival > (*p)))
           NLfit_error ("illegal argument after tscoef ");
            option_data->brick_coef[ibrick] = ival + (*r);
-           
+
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
            strcpy (option_data->brick_label[ibrick], argv[nopt]);
- 
+
            calc_tstats = 1;
          }
 
@@ -1431,21 +1432,21 @@ void get_options
            if ((ival < 0) || (ival > (*r)))
           NLfit_error ("illegal argument after tncoef ");
            option_data->brick_coef[ibrick] = ival;
-           
+
            nopt++;
-           if (nopt >= argc)  
+           if (nopt >= argc)
           NLfit_error ("need more arguments after -brick ");
-           strcpy (option_data->brick_label[ibrick], argv[nopt]); 
- 
+           strcpy (option_data->brick_label[ibrick], argv[nopt]);
+
            calc_tstats = 1;
          }
 
        else  NLfit_error ("unable to interpret options after -brick ");
-       
+
        nopt++;
        continue;
      }
-     
+
 
        /*-----   -sfit filename   -----*/
       if (strcmp(argv[nopt], "-sfit") == 0)
@@ -1457,9 +1458,9 @@ void get_options
        strcpy (*sfit_filename, argv[nopt]);
        nopt++;
        continue;
-     }      
+     }
 
-      
+
        /*-----   -snfit filename   -----*/
       if (strcmp(argv[nopt], "-snfit") == 0)
      {
@@ -1470,26 +1471,26 @@ void get_options
        strcpy (*snfit_filename, argv[nopt]);
        nopt++;
        continue;
-     }      
+     }
 
 
-      
+
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       NLfit_error (message);
-      
+
     }
    if (*ignore < 0) {
       fprintf(stderr,"\n** NOTICE: "
                      "ignore option now defaults to 0 instead of 3.\n\n");
       *ignore = 0;
-   } 
+   }
 
   if( uuTR > 0.0f ) dsTR = uuTR ;
-  
+
   /*----- discard the model array -----*/
   DESTROY_MODEL_ARRAY (model_array) ;
-  
+
 }
 
 
@@ -1498,7 +1499,7 @@ void get_options
   Routine to check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   THD_3dim_dataset * dset_time,     /* input 3d+time data set */
   char * filename                   /* name of output file */
@@ -1508,38 +1509,38 @@ void check_one_output_file
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
   char message[MAX_NAME_LENGTH];      /* error message */
-  
-  
+
+
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy( dset_time ) ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
                    ADN_prefix , filename ,
                    ADN_label1 , filename ,
                    ADN_self_name , filename ,
-                   ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE : 
+                   ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
                                                          GEN_FUNC_TYPE ,
                    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
       fprintf(stderr,
-           "*** %d errors in attempting to create output dataset!\n", 
+           "*** %d errors in attempting to create output dataset!\n",
            ierror ) ;
       exit(1) ;
     }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message, "Output dataset file %s already exists",
            new_dset->dblk->diskptr->header_name ) ;
       NLfit_error (message);
     }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -1548,7 +1549,7 @@ void check_one_output_file
   Routine to check whether output files already exist.
 */
 
-void check_output_files 
+void check_output_files
 (
   char * freg_filename,         /* file name for regression f-statistics */
   char * frsqr_filename,        /* file name for R^2 statistics */
@@ -1569,28 +1570,28 @@ void check_output_files
 
 {
   int ip;       /* parameter index */
-  
-  if (freg_filename != NULL)   
+
+  if (freg_filename != NULL)
     check_one_output_file (dset_time, freg_filename);
-  
-  if (frsqr_filename != NULL)   
+
+  if (frsqr_filename != NULL)
     check_one_output_file (dset_time, frsqr_filename);
-  
-  if (fsmax_filename != NULL)   
+
+  if (fsmax_filename != NULL)
     check_one_output_file (dset_time, fsmax_filename);
-  
-  if (ftmax_filename != NULL)   
+
+  if (ftmax_filename != NULL)
     check_one_output_file (dset_time, ftmax_filename);
-  
-  if (fpmax_filename != NULL)   
+
+  if (fpmax_filename != NULL)
     check_one_output_file (dset_time, fpmax_filename);
-  
-  if (farea_filename != NULL)   
+
+  if (farea_filename != NULL)
     check_one_output_file (dset_time, farea_filename);
-  
-  if (fparea_filename != NULL)   
+
+  if (fparea_filename != NULL)
     check_one_output_file (dset_time, fparea_filename);
-  
+
   for (ip = 0;  ip < MAX_PARAMETERS;  ip++)
     {
       if (fncoef_filename[ip] != NULL)
@@ -1600,10 +1601,10 @@ void check_output_files
       if (tncoef_filename[ip] != NULL)
      check_one_output_file (dset_time, tncoef_filename[ip]);
       if (tscoef_filename[ip] != NULL)
-     check_one_output_file (dset_time, tscoef_filename[ip]);      
+     check_one_output_file (dset_time, tscoef_filename[ip]);
     }
 
-  if (bucket_filename != NULL)   
+  if (bucket_filename != NULL)
     check_one_output_file (dset_time, bucket_filename);
 
 
@@ -1620,8 +1621,8 @@ void check_output_files
 /*
   Routine to check for valid inputs.
 */
-  
-void check_for_valid_inputs 
+
+void check_for_valid_inputs
 (
   int nxyz,               /* number of voxels in image */
   int r,                  /* number of parameters in the noise model */
@@ -1655,11 +1656,23 @@ void check_for_valid_inputs
 
 
   /*----- check if mask is right size -----*/
-  if (mask_vol != NULL) 
-    if (mask_nvox != nxyz)  
+  if (mask_vol != NULL)
+    if (mask_nvox != nxyz)
       NLfit_error ("mask and input dataset bricks don't match in size");
 
-    
+  /*----- 03 Feb 2009 - global mask for misfit reporting -----*/
+  gmask = mask_vol ;
+  if( gmask == NULL && nxyz > 666 ){
+    MRI_IMAGE *qim ; int mc ;
+    qim   = THD_rms_brick( dset_time ) ;
+    gmask = mri_automask_image( qim ) ;
+    mri_free( qim ) ;
+    mc = THD_countmask( DSET_NVOX(dset_time) , gmask ) ;
+    if( mc <= 1 ){ free(gmask) ; gmask = NULL ; }
+  }
+  EDIT_set_misfit_mask(gmask) ;
+
+
   /*----- check for valid constraints -----*/
   for (ip = 0;  ip < r;  ip++)
     if (min_nconstr[ip] > max_nconstr[ip])
@@ -1676,11 +1689,11 @@ void check_for_valid_inputs
 
   /*----- check whether any of the output files already exist -----*/
   if( THD_deathcon() )
-   check_output_files (freg_filename, frsqr_filename, 
+   check_output_files (freg_filename, frsqr_filename,
                 fsmax_filename, ftmax_filename,
                 fpmax_filename, farea_filename, fparea_filename,
                 fncoef_filename, fscoef_filename,
-                tncoef_filename, tscoef_filename, bucket_filename, 
+                tncoef_filename, tscoef_filename, bucket_filename,
                 sfit_filename, snfit_filename, dset_time);
 
 }
@@ -1903,7 +1916,7 @@ void proc_finalize_shm_volumes(void)
        exit(1) ;
      }
    }
-#endif   
+#endif
 
    /* clear all shared memory to zero*/
 
@@ -1914,7 +1927,7 @@ void proc_finalize_shm_volumes(void)
    *proc_shm_ar[0] = (float *) proc_shmptr ;
    for( ii=1 ; ii < proc_shm_arnum ; ii++ )
      *proc_shm_ar[ii] = *proc_shm_ar[ii-1] + proc_shm_arsiz[ii] ;
-     
+
    return;
 }
 
@@ -1944,15 +1957,15 @@ void proc_free( void *ptr )
   Perform all program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                /* number of input arguments */
-  char ** argv,            /* array of input arguments */ 
+  char ** argv,            /* array of input arguments */
   int * ignore,            /* delete this number of points from time series */
   char ** nname,           /* name of noise model */
   char ** sname,           /* name of signal model */
   vfp * nmodel,            /* pointer to noise model */
-  vfp * smodel,            /* pointer to signal model */  
+  vfp * smodel,            /* pointer to signal model */
   int *r,                  /* number of parameters in the noise model */
   int *p,                  /* number of parameters in the signal model */
   char *** npname,         /* noise parameter names */
@@ -1965,10 +1978,10 @@ void initialize_program
   int * nrand,             /* number of random vectors to generate */
   int * nbest,             /* number of random vectors to keep */
   float * rms_min,         /* minimum rms error to reject reduced model */
-  float * fdisp,           /* minimum f-statistic for display */ 
+  float * fdisp,           /* minimum f-statistic for display */
   int *progress,           /* progress report every nth voxel */
   char ** input_filename,     /* file name of input 3d+time dataset */
-  char ** tfilename,          /* file name for time point series */  
+  char ** tfilename,          /* file name for time point series */
   char ** freg_filename,      /* file name for regression f-statistics */
   char ** frsqr_filename,     /* file name for R^2 statistics */
   char ** fsmax_filename,     /* file name for signal signed maximum */
@@ -1985,7 +1998,7 @@ void initialize_program
 
   THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
   int * nxyz,                       /* number of voxels in image */
-  int * ts_length,                  /* length of time series data */  
+  int * ts_length,                  /* length of time series data */
 
   float *** x_array,       /* independent variable matrix */
   float ** ts_array,       /* input time series array */
@@ -2006,49 +2019,49 @@ void initialize_program
   float *** scoef_vol,     /* volume of signal model parameters */
   float *** tncoef_vol,    /* volume of noise model t-statistics */
   float *** tscoef_vol,    /* volume of signal model t-statistics */
-  float *** sfit_vol,      /* voxelwise 3d+time fitted signal model */ 
-  float *** snfit_vol,     /* voxelwise 3d+time fitted signal+noise model */ 
+  float *** sfit_vol,      /* voxelwise 3d+time fitted signal model */
+  float *** snfit_vol,     /* voxelwise 3d+time fitted signal+noise model */
 
   NL_options * option_data          /* bucket dataset options */
 
 )
-     
+
 {
   int dimension;           /* dimension of full model */
   int ip;                  /* parameter index */
   int it;                  /* time index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures
                               -- used to read 1D ASCII */
   int nt;                  /* number of points in 1D x data file */
   float * tar;
   int ixyz;                /* voxel index */
-  
+
 
   /*----- save command line for history notes -----*/
   commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
 
 
   /*----- get command line inputs -----*/
-  get_options(argc, argv, ignore, nname, sname, nmodel, smodel, 
-           r, p, npname, spname, 
-           min_nconstr, max_nconstr, min_sconstr, max_sconstr, nabs, 
-           nrand, nbest, rms_min, fdisp, progress, input_filename, tfilename, 
-           freg_filename, frsqr_filename, fsmax_filename, 
-           ftmax_filename, fpmax_filename, farea_filename, fparea_filename, 
+  get_options(argc, argv, ignore, nname, sname, nmodel, smodel,
+           r, p, npname, spname,
+           min_nconstr, max_nconstr, min_sconstr, max_sconstr, nabs,
+           nrand, nbest, rms_min, fdisp, progress, input_filename, tfilename,
+           freg_filename, frsqr_filename, fsmax_filename,
+           ftmax_filename, fpmax_filename, farea_filename, fparea_filename,
            fncoef_filename, fscoef_filename,
            tncoef_filename, tscoef_filename, sfit_filename, snfit_filename,
            dset_time, nxyz, ts_length, option_data);
 
- 
+
   /*----- check for valid inputs -----*/
-  check_for_valid_inputs (*nxyz, *r, *p, *min_nconstr, *max_nconstr, 
-                 *min_sconstr, *max_sconstr, *nrand, *nbest, 
-                 *freg_filename, *frsqr_filename, 
+  check_for_valid_inputs (*nxyz, *r, *p, *min_nconstr, *max_nconstr,
+                 *min_sconstr, *max_sconstr, *nrand, *nbest,
+                 *freg_filename, *frsqr_filename,
                  *fsmax_filename, *ftmax_filename,
                  *fpmax_filename, *farea_filename, *fparea_filename,
-                 *fncoef_filename, *fscoef_filename, 
-                 *tncoef_filename, *tscoef_filename, 
-                 *sfit_filename, *snfit_filename, 
+                 *fncoef_filename, *fscoef_filename,
+                 *tncoef_filename, *tscoef_filename,
+                 *sfit_filename, *snfit_filename,
                  option_data->bucket_filename, *dset_time);
 
 
@@ -2057,7 +2070,7 @@ void initialize_program
   *ts_array = (float *) malloc (sizeof(float) * (*ts_length));
   MTEST (*ts_array);
 
-  
+
   /*----- allocate space for independent variable matrix -----*/
   *x_array = (float **) malloc (sizeof(float *) * (*ts_length));
   MTEST (*x_array);
@@ -2067,7 +2080,7 @@ void initialize_program
       MTEST ((*x_array)[it]);
     }
 
-    
+
   /*----- initialize independent variable matrix -----*/
   if (*tfilename == NULL)
     {
@@ -2075,23 +2088,23 @@ void initialize_program
         DELT = dsTR ;
         fprintf(stderr,"--- computing with TR = %g\n",DELT) ;
      }
-     for (it = 0;  it < (*ts_length);  it++)  
+     for (it = 0;  it < (*ts_length);  it++)
       {
         (*x_array)[it][0] = 1.0;
         (*x_array)[it][1] = it * DELT;
         (*x_array)[it][2] = (it * DELT) * (it * DELT);
       }
     }
-  else 
+  else
     {
         flim = mri_read_1D(*tfilename) ;
      if (flim == NULL)
        NLfit_error ("Unable to read time reference file \n");
         nt = flim -> nx;
      if (nt < (*ts_length))
-       NLfit_error ("Time reference array is too short");  
+       NLfit_error ("Time reference array is too short");
         tar = MRI_FLOAT_PTR(flim) ;
-        for (it = 0;  it < (*ts_length);  it++)  
+        for (it = 0;  it < (*ts_length);  it++)
          {
         (*x_array)[it][0] = 1.0;
            (*x_array)[it][1] = tar[it] ;
@@ -2129,11 +2142,11 @@ void initialize_program
 
   /*----- allocate memory space for parameters -----*/
   dimension = (*r) + (*p);
-  *par_rdcd = (float *) malloc (sizeof(float) * dimension);  
+  *par_rdcd = (float *) malloc (sizeof(float) * dimension);
   MTEST (*par_rdcd);
-  *par_full = (float *) malloc (sizeof(float) * dimension);  
+  *par_full = (float *) malloc (sizeof(float) * dimension);
   MTEST (*par_full);
-  *tpar_full = (float *) malloc (sizeof(float) * dimension); 
+  *tpar_full = (float *) malloc (sizeof(float) * dimension);
   MTEST (*tpar_full);
 
 
@@ -2152,7 +2165,7 @@ void initialize_program
   if ((*ftmax_filename != NULL) || (option_data->bucket_filename != NULL))
       zero_fill_volume( tmax_vol , *nxyz ) ;
 
-  
+
   if ((*fpmax_filename != NULL) || (option_data->bucket_filename != NULL))
       zero_fill_volume( pmax_vol , *nxyz ) ;
 
@@ -2162,7 +2175,7 @@ void initialize_program
   if ((*fparea_filename != NULL) || (option_data->bucket_filename != NULL))
       zero_fill_volume( parea_vol , *nxyz ) ;
 
-  
+
   *ncoef_vol = (float **) malloc (sizeof(float *) * (*r));
   MTEST (*ncoef_vol);
   *tncoef_vol = (float **) malloc (sizeof(float *) * (*r));
@@ -2176,13 +2189,13 @@ void initialize_program
       else
      (*ncoef_vol)[ip] = NULL;
 
-      if (((*tncoef_filename)[ip] != NULL) 
+      if (((*tncoef_filename)[ip] != NULL)
        || (option_data->bucket_filename != NULL))
           zero_fill_volume( &((*tncoef_vol)[ip]) , *nxyz ) ;
       else
      (*tncoef_vol)[ip] = NULL;
     }
-  
+
 
   *scoef_vol = (float **) malloc (sizeof(float *) * (*p));
   MTEST (*scoef_vol);
@@ -2210,7 +2223,7 @@ void initialize_program
     {
       *sfit_vol = (float **) malloc (sizeof(float *) * (*ts_length));
       MTEST(*sfit_vol);
- 
+
       for (it = 0;  it < *ts_length;  it++)
           zero_fill_volume( &((*sfit_vol)[it]) , *nxyz ) ;
     }
@@ -2220,7 +2233,7 @@ void initialize_program
     {
       *snfit_vol = (float **) malloc (sizeof(float *) * (*ts_length));
       MTEST(*snfit_vol);
- 
+
       for (it = 0;  it < *ts_length;  it++)
           zero_fill_volume( &((*snfit_vol)[it]) , *nxyz ) ;
     }
@@ -2237,7 +2250,7 @@ void initialize_program
   Get the time series for one voxel from the AFNI 3d+time data set.
 */
 
-void read_ts_array 
+void read_ts_array
 (
   THD_3dim_dataset * dset_time,      /* input 3d+time data set */
   int iv,                            /* get time series for this voxel */
@@ -2283,7 +2296,7 @@ STATUS("loading into ts_array") ;
   Print out the given time series.
 */
 
-void write_ts_array 
+void write_ts_array
 (
   int ts_length,               /* length of time series array */
   float * ts_array             /* time series data to be printed */
@@ -2302,11 +2315,11 @@ void write_ts_array
   Save results for output later.
 */
 
-void save_results 
+void save_results
 (
   int iv,                  /* current voxel number */
   vfp nmodel,              /* pointer to noise model */
-  vfp smodel,              /* pointer to signal model */  
+  vfp smodel,              /* pointer to signal model */
   int r,                   /* number of parameters in the noise model */
   int p,                   /* number of parameters in the signal model */
   int novar,               /* flag for insufficient variation in the data */
@@ -2322,7 +2335,7 @@ void save_results
   float pmax,              /* percentage change due to signal */
   float area,              /* area between signal and baseline */
   float parea,             /* percentage area between signal and baseline */
-  
+
   float * rmsreg_vol,      /* root-mean-square for the full regression model */
   float * freg_vol,        /* f-statistic for the full regression model */
   float * rsqr_vol,        /* R^2 volume data */
@@ -2335,8 +2348,8 @@ void save_results
   float ** scoef_vol,      /* volume of signal model parameters */
   float ** tncoef_vol,     /* volume of noise model t-statistics */
   float ** tscoef_vol,     /* volume of signal model t-statistics */
-  float ** sfit_vol,       /* voxelwise 3d+time fitted signal model */ 
-  float ** snfit_vol       /* voxelwise 3d+time fitted signal+noise model */ 
+  float ** sfit_vol,       /* voxelwise 3d+time fitted signal model */
+  float ** snfit_vol       /* voxelwise 3d+time fitted signal+noise model */
 )
 
 {
@@ -2346,7 +2359,7 @@ void save_results
   float * n_array;         /* fitted noise model time series */
 
 
-  /*----- save regression results into volume data -----*/ 
+  /*----- save regression results into volume data -----*/
   if (freg_vol != NULL)    freg_vol[iv] = freg;
   if (rmsreg_vol != NULL)  rmsreg_vol[iv] = rmsreg;
   if (rsqr_vol != NULL)    rsqr_vol[iv] = rsqr;
@@ -2366,7 +2379,7 @@ void save_results
       if (ncoef_vol[ip] != NULL)  ncoef_vol[ip][iv] = par_full[ip];
       if (tncoef_vol[ip] != NULL)  tncoef_vol[ip][iv] = tpar_full[ip];
     }
-  
+
   /*----- save signal parameter estimates -----*/
   for (ip = 0;  ip < p;  ip++)
     {
@@ -2374,7 +2387,7 @@ void save_results
       if (tscoef_vol[ip] != NULL)  tscoef_vol[ip][iv] = tpar_full[ip+r];
     }
 
-  
+
   /*----- save fitted signal model time series -----*/
   if (sfit_vol != NULL)
     {
@@ -2389,7 +2402,7 @@ void save_results
        MTEST (s_array);
 
        smodel (par_full + r, ts_length, x_array, s_array);
-       
+
        for (it = 0;  it < ts_length;  it++)
          sfit_vol[it][iv] = s_array[it];
 
@@ -2402,7 +2415,7 @@ void save_results
   if (snfit_vol != NULL)
     {
       n_array = (float *) malloc (sizeof(float) * (ts_length));
-      MTEST (n_array);  
+      MTEST (n_array);
       nmodel (par_full, ts_length, x_array, n_array);
 
       for (it = 0;  it < ts_length;  it++)
@@ -2411,7 +2424,7 @@ void save_results
      }
 
       free (n_array);   n_array = NULL;
-      
+
 
       if (! novar)
      {
@@ -2423,36 +2436,36 @@ void save_results
          {
            snfit_vol[it][iv] += s_array[it];
          }
-       
+
        free (s_array);   s_array = NULL;
      }
     }
-  
+
 }
 
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI data set.
-  
+
   This data set may be either 'fitt' type (intensity + t-statistic)
                            or 'fift' type (intensity + F-statistic).
-  
+
   The intensity data is in ffim, and the corresponding statistic is in ftr.
-  
+
   numdof = numerator degrees of freedom
   dendof = denominator degrees of freedom
-  
+
   Note:  if dendof = 0, then write 'fitt' type data set;
          if dendof > 0, then write 'fift' type data set.
 */
 
-void write_afni_data (char * input_filename, int nxyz, char * filename,  
+void write_afni_data (char * input_filename, int nxyz, char * filename,
                       float * ffim,  float * ftr,  int numdof,  int dendof)
 {
   int ii;                             /* voxel index */
   THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
-  int iv;                             /* sub-brick index */ 
+  int iv;                             /* sub-brick index */
   int ierror;                         /* number of errors in editing data */
   int ibuf[32];                       /* integer buffer */
   float fbuf[MAX_STAT_AUX];           /* float buffer */
@@ -2462,9 +2475,9 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
   float top, func_scale_short;        /* parameters for scaling data */
-  char label[80];                     /* label for output file history */ 
+  char label[80];                     /* label for output file history */
   int nbad;                           /* number of bad voxels in volume */
-    
+
   /*----- read input dataset -----*/
   dset = THD_open_dataset (input_filename) ; /* was THD_open_one...*/
   if( ! ISVALID_3DIM_DATASET(dset) ){
@@ -2472,10 +2485,10 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
          input_filename);
     exit(1) ;
   }
-  
+
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
-  
+
 
   /*----- Record history of dataset -----*/
   tross_Copy_History( dset , new_dset ) ;
@@ -2485,73 +2498,73 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   else
      tross_Append_History ( new_dset, label);
 
-  
+
   iv = DSET_PRINCIPAL_VALUE(dset) ;
-  
+
   fprintf(stderr,"--output datum is %d\n", output_datum);
 /*  output_datum = DSET_BRICK_TYPE(dset,iv) ;
   if( output_datum == MRI_byte ) output_datum = MRI_short ;
-*/  
-  
+*/
+
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
-  
+
   if (dendof == 0) func_type = FUNC_TT_TYPE;
   else func_type = FUNC_FT_TYPE;
-  
+
   ierror = EDIT_dset_items( new_dset ,
                    ADN_prefix , filename ,
                    ADN_label1 , filename ,
                    ADN_self_name , filename ,
-                   ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : 
+                   ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE :
                                              GEN_FUNC_TYPE ,
                    ADN_func_type , func_type ,
                    ADN_nvals , FUNC_nvals[func_type] ,
                    ADN_datum_array , ibuf ,
                    ADN_ntt , 0 ,
-                   ADN_malloc_type, DATABLOCK_MEM_MALLOC ,  
+                   ADN_malloc_type, DATABLOCK_MEM_MALLOC ,
                    ADN_none ) ;
-  
+
   if( ierror > 0 ){
     fprintf(stderr,
           "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
          "*** Output dataset file %s already exists--cannot continue!\a\n",
          new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-  
-  /*----- deleting exemplar dataset -----*/ 
+
+  /*----- deleting exemplar dataset -----*/
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-  
+
   nbad = thd_floatscan( nxyz , ffim ) ;
   if(nbad)
     fprintf(stderr,"++ %d bad floating point values in combined dataset\n",nbad);
-  
+
   /*----- allocate memory for output data -----*/
   vdif = (void *)  malloc( mri_datum_size(output_datum) * nxyz );
   if (vdif == NULL)   NLfit_error ("Unable to allocate memory for vdif");
   tsp  = (short *) malloc( sizeof(short) * nxyz );
   if (tsp == NULL)   NLfit_error ("Unable to allocate memory for tsp");
-  
+
   /*----- attach bricks to new data set -----*/
-  mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0)); 
-  mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));  
-  
-  
+  mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0));
+  mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));
+
+
   /*----- convert data type to output specification -----*/
-  fimfac = EDIT_coerce_autoscale_new (nxyz, 
-                          MRI_float, ffim, 
+  fimfac = EDIT_coerce_autoscale_new (nxyz,
+                          MRI_float, ffim,
                           output_datum, vdif);
   if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
-  
+
 #define TOP_SS  32700
-  
+
   if (dendof == 0)   /* t-statistic */
-    { 
+    {
       top = TOP_SS/FUNC_TT_SCALE_SHORT;
       func_scale_short = FUNC_TT_SCALE_SHORT;
     }
@@ -2560,7 +2573,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
       top = TOP_SS/FUNC_FT_SCALE_SHORT;
       func_scale_short = FUNC_FT_SCALE_SHORT;
     }
-  
+
   for (ii = 0;  ii < nxyz;  ii++)
     {
       if (ftr[ii] > top)
@@ -2573,16 +2586,16 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
      tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
 
     }
-  
+
 
   /*----- write afni data set -----*/
   INFO_message("Writing combined dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
-  
-  fbuf[0] = numdof;   
+
+  fbuf[0] = numdof;
   fbuf[1] = dendof;
   for( ii=2 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
-  
+
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
   fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
@@ -2594,8 +2607,8 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
 
   THD_load_statistics( new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
 
 }
@@ -2606,14 +2619,14 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   Routine to write one bucket data set.
 */
 
-void write_bucket_data 
+void write_bucket_data
 (
   int q,                  /* number of parameters in the noise model */
   int p,                  /* number of parameters in the signal model */
   int numdof,             /* numerator dof for F-statistic */
   int dendof,             /* denominator dof for F-statistic */
   int  nxyz,              /* number of voxels in image */
-  int  n,                 /* length of time series data */  
+  int  n,                 /* length of time series data */
 
   float * rmsreg_vol,     /* root-mean-square error for the full model */
   float * freg_vol,       /* f-statistic for the full regression model */
@@ -2650,9 +2663,9 @@ void write_bucket_data
   int ierror;               /* number of errors in editing data */
   float *volume=NULL;       /* volume of floating point data */
   int dimension;            /* dimension of full model = p + q */
-  char label[80];           /* label for output file history */ 
+  char label[80];           /* label for output file history */
   void * imptr;             /* pointer to volume in correct datum type to actually write out*/
-  int nbad;                 /* number of bad floating point values in volume */    
+  int nbad;                 /* number of bad floating point values in volume */
 
   /*----- initialize local variables -----*/
   nbricks = option_data->numbricks;
@@ -2660,7 +2673,7 @@ void write_bucket_data
   output_session = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
   strcpy (output_session, "./");
   dimension = p + q;
-  
+
 
   /*----- allocate memory -----*/
   if(output_datum==MRI_short) {
@@ -2671,14 +2684,14 @@ void write_bucket_data
      far  = (float **) malloc (sizeof(float *) * nbricks);
      MTEST (far);
   }
-  
+
   /*----- read first dataset -----*/
   old_dset = THD_open_dataset (input_filename); /* was THD_open_one...*/
-  
+
 
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (old_dset);
-  
+
 
   /*----- Record history of dataset -----*/
   tross_Copy_History( old_dset , new_dset ) ;
@@ -2697,33 +2710,33 @@ void write_bucket_data
                    ADN_func_type,       FUNC_BUCK_TYPE,
                             ADN_ntt,             0,               /* no time */
                    ADN_nvals,           nbricks,
-                   ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+                   ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
                    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
-      fprintf(stderr, 
-           "*** %d errors in attempting to create output dataset!\n", 
+      fprintf(stderr,
+           "*** %d errors in attempting to create output dataset!\n",
            ierror);
       exit(1);
     }
-  
-  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+
+  if (THD_is_file(DSET_HEADNAME(new_dset)))
     {
       fprintf(stderr,
            "*** Output dataset file %s already exists--cannot continue!\n",
            DSET_HEADNAME(new_dset));
       exit(1);
     }
-  
 
-  /*----- deleting exemplar dataset -----*/ 
+
+  /*----- deleting exemplar dataset -----*/
   THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
-  
+
   nbad = 0;
-  
-  /*----- loop over new sub-brick index, attach data array with 
-          EDIT_substitute_brick then put some strings into the labels and 
+
+  /*----- loop over new sub-brick index, attach data array with
+          EDIT_substitute_brick then put some strings into the labels and
           keywords, and modify the sub-brick scaling factor -----*/
   for (ib = 0;  ib < nbricks;  ib++)
     {
@@ -2733,7 +2746,7 @@ void write_bucket_data
       brick_label = option_data->brick_label[ib];
 
       if (brick_type == FUNC_FIM_TYPE)
-     {     
+     {
        if (brick_coef < q)
          volume = ncoef_vol[brick_coef];
        else if (brick_coef < p+q)
@@ -2754,7 +2767,7 @@ void write_bucket_data
          volume = rsqr_vol;
      }
       else  if (brick_type == FUNC_TT_TYPE)
-     {     
+     {
        if (brick_coef < q)
          volume = tncoef_vol[brick_coef];
        else if (brick_coef < p+q)
@@ -2791,11 +2804,11 @@ void write_bucket_data
        EDIT_misfit_report( DSET_FILECODE(new_dset) , ib ,
                            nxyz , factor , imptr , volume ) ;
 
-      
+
       /*----- edit the sub-brick -----*/
       EDIT_BRICK_LABEL (new_dset, ib, brick_label);
       EDIT_BRICK_FACTOR (new_dset, ib, factor);
-      
+
       /*----- attach image pointer to be sub-brick #ib -----*/
       EDIT_substitute_brick (new_dset, ib, output_datum, imptr);
 
@@ -2815,8 +2828,8 @@ void write_bucket_data
 
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
  /* if(output_datum==MRI_short) {*/
     THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
   /*}  */
@@ -2826,14 +2839,14 @@ void write_bucket_data
 
 /*---------------------------------------------------------------------------*/
 /*
-  Routine to write one AFNI 3d+time data set. 
+  Routine to write one AFNI 3d+time data set.
 */
 
 
-void write_3dtime 
+void write_3dtime
 (
   char * input_filename,           /* file name of input 3d+time dataset */
-  int ts_length,                   /* length of time series data */  
+  int ts_length,                   /* length of time series data */
   float ** vol_array,              /* output time series volume data */
   char * output_filename           /* output afni data set file name */
 )
@@ -2843,22 +2856,22 @@ void write_3dtime
 
   THD_3dim_dataset * dset = NULL;        /* input afni data set pointer */
   THD_3dim_dataset * new_dset = NULL;    /* output afni data set pointer */
-  int ib;                                /* sub-brick index */ 
+  int ib;                                /* sub-brick index */
   int ierror;                            /* number of errors in editing data */
-  int nxyz;                              /* total number of voxels */ 
+  int nxyz;                              /* total number of voxels */
   float factor;             /* factor is new scale factor for sub-brick #ib */
   short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
   float ** far = NULL;      /* far[ib] points to data for sub-brick #ib */
   float * fbuf;             /* float buffer */
   float * volume;           /* pointer to volume of data */
-  char label[80];           /* label for output file history */ 
-  int nbad;                 /* number of voxels in volume with bad floating point values */  
+  char label[80];           /* label for output file history */
+  int nbad;                 /* number of voxels in volume with bad floating point values */
 
   /*----- Initialize local variables -----*/
   dset = THD_open_dataset (input_filename); /* was THD_open_one...*/
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
 
- 
+
   /*----- allocate memory -----*/
   if(output_datum==MRI_short) {
      bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
@@ -2866,11 +2879,11 @@ void write_3dtime
   else {
      far  = (float **) malloc (sizeof(float *) * ts_length);   MTEST (far);
      }
-  
+
   fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
   for (ib = 0;  ib < ts_length;  ib++)    fbuf[ib] = 0.0;
 
-  
+
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (dset);
 
@@ -2885,33 +2898,33 @@ void write_3dtime
 
   /*----- delete prototype dataset -----*/
   THD_delete_3dim_dataset (dset, False);  dset = NULL ;
-  
+
 
   ierror = EDIT_dset_items (new_dset,
                    ADN_prefix,      output_filename,
                    ADN_label1,      output_filename,
                    ADN_self_name,   output_filename,
-                   ADN_malloc_type, DATABLOCK_MEM_MALLOC,  
-                   ADN_datum_all,   output_datum,   
+                   ADN_malloc_type, DATABLOCK_MEM_MALLOC,
+                   ADN_datum_all,   output_datum,
                    ADN_nvals,       ts_length,
                    ADN_ntt,         ts_length,
                    ADN_none);
- 
+
   if( ierror > 0 ){
     fprintf(stderr,
           "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
          "*** Output dataset file %s already exists--cannot continue!\a\n",
          new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-  
+
   nbad = 0;
-  
+
   /*----- attach bricks to new data set -----*/
   for (ib = 0;  ib < ts_length;  ib++)
     {
@@ -2931,7 +2944,7 @@ void write_3dtime
 	 else factor = 1.0 / factor;
 	 fbuf[ib] = factor;
          /*----- attach bar[ib] to be sub-brick #ib -----*/
-         mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+         mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib));
 
        EDIT_misfit_report( DSET_FILECODE(new_dset) , ib ,
                            nxyz , factor , bar[ib] , volume ) ;
@@ -2948,7 +2961,7 @@ void write_3dtime
 	 else factor = 1.0 / factor;
 	 fbuf[ib] = factor;
          /*----- attach far[ib] to be sub-brick #ib -----*/
-         mri_fix_data_pointer (far[ib], DSET_BRICK(new_dset,ib)); 
+         mri_fix_data_pointer (far[ib], DSET_BRICK(new_dset,ib));
       }
     }
   if(nbad)
@@ -2964,7 +2977,7 @@ void write_3dtime
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
 
 
-  /*----- deallocate memory -----*/   
+  /*----- deallocate memory -----*/
 /*  if(output_datum==MRI_short) {*/
      THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
      free (fbuf);   fbuf = NULL;
@@ -2977,7 +2990,7 @@ void write_3dtime
   Write out the user requested output files.
 */
 
-void output_results 
+void output_results
 (
   int r,                  /* number of parameters in the noise model */
   int p,                  /* number of parameters in the signal model */
@@ -2986,7 +2999,7 @@ void output_results
   float * min_sconstr,    /* minimum parameter constraints for signal model */
   float * max_sconstr,    /* maximum parameter constraints for signal model */
   int  nxyz,              /* number of voxels in image */
-  int  ts_length,         /* length of time series data */  
+  int  ts_length,         /* length of time series data */
   float * rmsreg_vol,     /* root-mean-square error for the full model */
   float * freg_vol,       /* f-statistic for the full regression model */
   float * rsqr_vol,       /* R^2 volume data */
@@ -2999,8 +3012,8 @@ void output_results
   float ** scoef_vol,     /* volume of signal model parameters */
   float ** tncoef_vol,    /* volume of noise model t-statistics */
   float ** tscoef_vol,    /* volume of signal model t-statistics */
-  float ** sfit_vol,      /* voxelwise 3d+time fitted signal model */ 
-  float ** snfit_vol,     /* voxelwise 3d+time fitted signal+noise model */ 
+  float ** sfit_vol,      /* voxelwise 3d+time fitted signal model */
+  float ** snfit_vol,     /* voxelwise 3d+time fitted signal+noise model */
 
   char * input_filename,     /* file name of input 3d+time dataset */
   char * freg_filename,      /* file name for f-statistics */
@@ -3048,64 +3061,64 @@ void output_results
 
   /*----- write the bucket dataset -----*/
   if (option_data->numbricks > 0)
-    write_bucket_data (r, p, numdof, dendof, nxyz, ts_length, rmsreg_vol, 
-                 freg_vol, rsqr_vol, smax_vol, tmax_vol, pmax_vol, 
-                 area_vol, parea_vol, ncoef_vol, scoef_vol, 
+    write_bucket_data (r, p, numdof, dendof, nxyz, ts_length, rmsreg_vol,
+                 freg_vol, rsqr_vol, smax_vol, tmax_vol, pmax_vol,
+                 area_vol, parea_vol, ncoef_vol, scoef_vol,
                  tncoef_vol, tscoef_vol, input_filename, option_data);
 
 
   /*----- write out the f-statistics for the regression -----*/
   if (freg_filename != NULL)
-    write_afni_data (input_filename, nxyz, freg_filename, 
-               rmsreg_vol, freg_vol, numdof, dendof); 
+    write_afni_data (input_filename, nxyz, freg_filename,
+               rmsreg_vol, freg_vol, numdof, dendof);
 
 
   /*----- write out the R^2 (coefficient of multiple determination) -----*/
   if (frsqr_filename != NULL)
-    write_afni_data (input_filename, nxyz, frsqr_filename, 
-               rsqr_vol, freg_vol, numdof, dendof); 
+    write_afni_data (input_filename, nxyz, frsqr_filename,
+               rsqr_vol, freg_vol, numdof, dendof);
 
 
   /*----- write out the signed maximum of signal estimates -----*/
   if (fsmax_filename != NULL)
-    write_afni_data (input_filename, nxyz, fsmax_filename, 
-               smax_vol, freg_vol, numdof, dendof); 
-  
+    write_afni_data (input_filename, nxyz, fsmax_filename,
+               smax_vol, freg_vol, numdof, dendof);
+
 
   /*----- write out the epoch of signed maximum of signal estimates -----*/
   if (ftmax_filename != NULL)
-    write_afni_data (input_filename, nxyz, ftmax_filename, 
-               tmax_vol, freg_vol, numdof, dendof); 
+    write_afni_data (input_filename, nxyz, ftmax_filename,
+               tmax_vol, freg_vol, numdof, dendof);
 
 
   /*----- write out the max. percentage change due to signal -----*/
   if (fpmax_filename != NULL)
-    write_afni_data (input_filename, nxyz, fpmax_filename, 
-               pmax_vol, freg_vol, numdof, dendof); 
+    write_afni_data (input_filename, nxyz, fpmax_filename,
+               pmax_vol, freg_vol, numdof, dendof);
 
 
   /*----- write out the area between the signal and baseline -----*/
   if (farea_filename != NULL)
-    write_afni_data (input_filename, nxyz, farea_filename, 
-               area_vol, freg_vol, numdof, dendof); 
+    write_afni_data (input_filename, nxyz, farea_filename,
+               area_vol, freg_vol, numdof, dendof);
 
 
   /*----- write out the percentage area between the signal and baseline -----*/
   if (fparea_filename != NULL)
-    write_afni_data (input_filename, nxyz, fparea_filename, 
-               parea_vol, freg_vol, numdof, dendof); 
+    write_afni_data (input_filename, nxyz, fparea_filename,
+               parea_vol, freg_vol, numdof, dendof);
 
 
   /*----- write noise model parameters -----*/
   for (ip = 0;  ip < r;  ip++)
     {
       if (tncoef_filename[ip] != NULL)
-     write_afni_data (input_filename, nxyz, tncoef_filename[ip], 
-                ncoef_vol[ip], tncoef_vol[ip], dendof, 0); 
+     write_afni_data (input_filename, nxyz, tncoef_filename[ip],
+                ncoef_vol[ip], tncoef_vol[ip], dendof, 0);
 
       if (fncoef_filename[ip] != NULL)
-     write_afni_data (input_filename, nxyz, fncoef_filename[ip], 
-                ncoef_vol[ip], freg_vol, numdof, dendof); 
+     write_afni_data (input_filename, nxyz, fncoef_filename[ip],
+                ncoef_vol[ip], freg_vol, numdof, dendof);
     }
 
 
@@ -3113,12 +3126,12 @@ void output_results
   for (ip = 0;  ip < p;  ip++)
     {
       if (tscoef_filename[ip] != NULL)
-     write_afni_data (input_filename, nxyz, tscoef_filename[ip], 
-                scoef_vol[ip], tscoef_vol[ip], dendof, 0); 
+     write_afni_data (input_filename, nxyz, tscoef_filename[ip],
+                scoef_vol[ip], tscoef_vol[ip], dendof, 0);
 
       if (fscoef_filename[ip] != NULL)
-     write_afni_data (input_filename, nxyz, fscoef_filename[ip], 
-                scoef_vol[ip], freg_vol, numdof, dendof); 
+     write_afni_data (input_filename, nxyz, fscoef_filename[ip],
+                scoef_vol[ip], freg_vol, numdof, dendof);
     }
 
 
@@ -3143,7 +3156,7 @@ void output_results
   Release all allocated memory space.
 */
 
-void terminate_program 
+void terminate_program
 (
   int r,                       /* number of parameters in the noise model */
   int p,                       /* number of parameters in the signal model */
@@ -3174,8 +3187,8 @@ void terminate_program
   float *** scoef_vol,        /* signal model parameters volume data */
   float *** tncoef_vol,       /* noise model t-statistics volume data */
   float *** tscoef_vol,       /* signal model t-statistics volume data */
-  float *** sfit_vol,         /* voxelwise 3d+time fitted signal model */ 
-  float *** snfit_vol,        /* voxelwise 3d+time fitted signal+noise */ 
+  float *** sfit_vol,         /* voxelwise 3d+time fitted signal model */
+  float *** snfit_vol,        /* voxelwise 3d+time fitted signal+noise */
 
   char ** input_filename,     /* file name of input 3d+time dataset */
   char ** freg_filename,      /* file name for regression f-statistics */
@@ -3192,7 +3205,7 @@ void terminate_program
   char ** sfit_filename,      /* file name for 3d+time fitted signal model */
   char ** snfit_filename      /* file name for 3d+time fitted signal+noise */
 )
- 
+
 {
   int ip;                        /* parameter index */
   int it;                        /* time index */
@@ -3225,7 +3238,7 @@ void terminate_program
 
 
   /*----- deallocate memory space for filenames -----*/
-  if (*input_filename != NULL)  
+  if (*input_filename != NULL)
     { free (*input_filename);   *input_filename = NULL; }
   if (*freg_filename != NULL)
     { free (*freg_filename);    *freg_filename = NULL; }
@@ -3245,28 +3258,28 @@ void terminate_program
   for (ip = 0;  ip < MAX_PARAMETERS;  ip++)
     {
       if ((*fncoef_filename)[ip] != NULL)
-     { free ((*fncoef_filename)[ip]);  (*fncoef_filename)[ip] = NULL; } 
+     { free ((*fncoef_filename)[ip]);  (*fncoef_filename)[ip] = NULL; }
       if ((*fscoef_filename)[ip] != NULL)
-     { free ((*fscoef_filename)[ip]);  (*fscoef_filename)[ip] = NULL; } 
+     { free ((*fscoef_filename)[ip]);  (*fscoef_filename)[ip] = NULL; }
       if ((*tncoef_filename)[ip] != NULL)
-     { free ((*tncoef_filename)[ip]);  (*tncoef_filename)[ip] = NULL; } 
+     { free ((*tncoef_filename)[ip]);  (*tncoef_filename)[ip] = NULL; }
       if ((*tscoef_filename)[ip] != NULL)
-     { free ((*tscoef_filename)[ip]);  (*tscoef_filename)[ip] = NULL; } 
+     { free ((*tscoef_filename)[ip]);  (*tscoef_filename)[ip] = NULL; }
     }
 
   if (*fncoef_filename != NULL)
-    { free (*fncoef_filename);  *fncoef_filename = NULL; } 
+    { free (*fncoef_filename);  *fncoef_filename = NULL; }
   if (*fscoef_filename != NULL)
-    { free (*fscoef_filename);  *fscoef_filename = NULL; } 
+    { free (*fscoef_filename);  *fscoef_filename = NULL; }
   if (*tncoef_filename != NULL)
-    { free (*tncoef_filename);  *tncoef_filename = NULL; } 
+    { free (*tncoef_filename);  *tncoef_filename = NULL; }
   if (*tscoef_filename != NULL)
-    { free (*tscoef_filename);  *tscoef_filename = NULL; } 
+    { free (*tscoef_filename);  *tscoef_filename = NULL; }
 
   if (*sfit_filename != NULL)
-    { free (*sfit_filename);    *sfit_filename = NULL; } 
+    { free (*sfit_filename);    *sfit_filename = NULL; }
   if (*snfit_filename != NULL)
-    { free (*snfit_filename);   *snfit_filename = NULL; } 
+    { free (*snfit_filename);   *snfit_filename = NULL; }
 
 
   /*----- deallocate space for input time series -----*/
@@ -3288,13 +3301,13 @@ void terminate_program
 
   /*----- deallocate space for volume data -----*/
   if (*rmsreg_vol != NULL)   { free (*rmsreg_vol);  *rmsreg_vol = NULL; }
-  if (*freg_vol   != NULL)   { free (*freg_vol);    *freg_vol = NULL; } 
-  if (*rsqr_vol   != NULL)   { free (*rsqr_vol);    *rsqr_vol = NULL; } 
-  if (*smax_vol   != NULL)   { free (*smax_vol);    *smax_vol = NULL; } 
-  if (*tmax_vol   != NULL)   { free (*tmax_vol);    *tmax_vol = NULL; } 
-  if (*pmax_vol   != NULL)   { free (*pmax_vol);    *pmax_vol = NULL; } 
-  if (*area_vol   != NULL)   { free (*area_vol);    *area_vol = NULL; } 
-  if (*parea_vol  != NULL)   { free (*parea_vol);   *parea_vol = NULL; } 
+  if (*freg_vol   != NULL)   { free (*freg_vol);    *freg_vol = NULL; }
+  if (*rsqr_vol   != NULL)   { free (*rsqr_vol);    *rsqr_vol = NULL; }
+  if (*smax_vol   != NULL)   { free (*smax_vol);    *smax_vol = NULL; }
+  if (*tmax_vol   != NULL)   { free (*tmax_vol);    *tmax_vol = NULL; }
+  if (*pmax_vol   != NULL)   { free (*pmax_vol);    *pmax_vol = NULL; }
+  if (*area_vol   != NULL)   { free (*area_vol);    *area_vol = NULL; }
+  if (*parea_vol  != NULL)   { free (*parea_vol);   *parea_vol = NULL; }
 
   if (*ncoef_vol != NULL)
     {
@@ -3304,36 +3317,36 @@ void terminate_program
       free (*ncoef_vol);  *ncoef_vol = NULL;
     }
 
-  if (*tncoef_vol != NULL)  
-    {    
+  if (*tncoef_vol != NULL)
+    {
       for (ip = 0;  ip < r;  ip++)
-     if ((*tncoef_vol)[ip] != NULL)      
+     if ((*tncoef_vol)[ip] != NULL)
        { free ((*tncoef_vol)[ip]);  (*tncoef_vol)[ip] = NULL; }
       free (*tncoef_vol);  *tncoef_vol = NULL;
     }
-  
+
   if (*scoef_vol != NULL)
     {
       for (ip = 0;  ip < p;  ip++)
      if ((*scoef_vol)[ip] != NULL)
        { free ((*scoef_vol)[ip]);  (*scoef_vol)[ip] = NULL; }
-      free (*scoef_vol);  *scoef_vol = NULL; 
+      free (*scoef_vol);  *scoef_vol = NULL;
     }
 
-  if (*tscoef_vol != NULL)      
+  if (*tscoef_vol != NULL)
     {
       for (ip = 0;  ip < p;  ip++)
-     if ((*tscoef_vol)[ip] != NULL)      
+     if ((*tscoef_vol)[ip] != NULL)
        { free ((*tscoef_vol)[ip]);  (*tscoef_vol)[ip] = NULL; }
-      free (*tscoef_vol);  *tscoef_vol = NULL; 
+      free (*tscoef_vol);  *tscoef_vol = NULL;
     }
-  
+
   if (*sfit_vol != NULL)
     {
       for (it = 0;  it < ts_length;  it++)
      if ((*sfit_vol)[it] != NULL)
        { free ((*sfit_vol)[it]);  (*sfit_vol)[it] = NULL; }
-      free (*sfit_vol);  *sfit_vol = NULL; 
+      free (*sfit_vol);  *sfit_vol = NULL;
     }
 
   if (*snfit_vol != NULL)
@@ -3341,7 +3354,7 @@ void terminate_program
       for (it = 0;  it < ts_length;  it++)
      if ((*snfit_vol)[it] != NULL)
        { free ((*snfit_vol)[it]);  (*snfit_vol)[it] = NULL; }
-      free (*snfit_vol);  *snfit_vol = NULL; 
+      free (*snfit_vol);  *snfit_vol = NULL;
     }
 
 }
@@ -3349,10 +3362,10 @@ void terminate_program
 
 /*---------------------------------------------------------------------------*/
 
-int main 
+int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
@@ -3362,7 +3375,7 @@ int main
   int nrand;               /* number of random vectors to generate */
   int nbest;               /* number of random vectors to keep */
   float rms_min;           /* minimum rms error to reject reduced model */
-  float fdisp;             /* minimum f-statistic for display */ 
+  float fdisp;             /* minimum f-statistic for display */
   int progress;            /* show progress report every n voxels */
 
   /*----- declare time series variables -----*/
@@ -3416,8 +3429,8 @@ int main
   float ** scoef_vol = NULL;    /* signal model parameters volume data */
   float ** tncoef_vol = NULL;   /* noise model t-statistics volume data */
   float ** tscoef_vol = NULL;   /* signal model t-statistics volume data */
-  float ** sfit_vol = NULL;     /* voxelwise 3d+time fitted signal model */ 
-  float ** snfit_vol = NULL;    /* voxelwise 3d+time fitted signal+noise */ 
+  float ** sfit_vol = NULL;     /* voxelwise 3d+time fitted signal model */
+  float ** snfit_vol = NULL;    /* voxelwise 3d+time fitted signal+noise */
 
   /*----- declare file name variables -----*/
   char * input_filename = NULL;   /* file name of input 3d+time dataset */
@@ -3435,7 +3448,7 @@ int main
   char ** tscoef_filename = NULL; /* file name for signal model t-statistics */
   char * sfit_filename = NULL;    /* file name for fitted signal model */
   char * snfit_filename = NULL;   /* file name for fitted signal+noise model */
-  
+
   char * label;            /* report results for one voxel */
   int novar;               /* flag for insufficient variation in the data */
 
@@ -3444,12 +3457,12 @@ int main
 
   /*----- start the elapsed time counter -----*/
   (void) COX_clock_time() ;
-  
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -3459,29 +3472,29 @@ int main
    PRINT_VERSION("3dNLfim") ; AUTHOR(PROGRAM_AUTHOR);
    mainENTRY("3dNLfim main") ; machdep() ;
 
-  { 
+  {
     int new_argc ; char ** new_argv ;
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
 
-   
+
   /*----- program initialization -----*/
-  initialize_program (argc, argv, &ignore, 
-                &nname, &sname, &nmodel, &smodel, 
+  initialize_program (argc, argv, &ignore,
+                &nname, &sname, &nmodel, &smodel,
                 &r, &p, &npname, &spname,
                 &min_nconstr, &max_nconstr, &min_sconstr, &max_sconstr,
-                &nabs, &nrand, &nbest, &rms_min, &fdisp,&progress, 
-                &input_filename, &tfilename, 
+                &nabs, &nrand, &nbest, &rms_min, &fdisp,&progress,
+                &input_filename, &tfilename,
                 &freg_filename, &frsqr_filename,
                 &fsmax_filename, &ftmax_filename, &fpmax_filename,
                 &farea_filename, &fparea_filename, &fncoef_filename,
                 &fscoef_filename, &tncoef_filename, &tscoef_filename,
-                &sfit_filename, &snfit_filename, 
-                &dset_time, &nxyz, &ts_length, &x_array, &ts_array, 
-                &par_rdcd, &par_full, &tpar_full, 
+                &sfit_filename, &snfit_filename,
+                &dset_time, &nxyz, &ts_length, &x_array, &ts_array,
+                &par_rdcd, &par_full, &tpar_full,
                 &rmsreg_vol, &freg_vol, &rsqr_vol,
-                &smax_vol, &tmax_vol, &pmax_vol, &area_vol, &parea_vol, 
+                &smax_vol, &tmax_vol, &pmax_vol, &area_vol, &parea_vol,
                 &ncoef_vol, &scoef_vol, &tncoef_vol, &tscoef_vol,
                 &sfit_vol, &snfit_vol, &option_data);
 
@@ -3603,21 +3616,21 @@ int main
           fprintf(stderr,"\r++ voxel count: %8d (of %d)", iv+1, ixyz_top);
         voxel_count_index++ ;
       }
- 
+
       AFNI_store_dset_index( iv, -1); /* set voxel index 03 Nov 2006 */
       /*----- read the time series for voxel iv -----*/
       read_ts_array (dset_time, iv, ts_length, ignore, ts_array);
- 
+
 
       /*----- calculate the reduced (noise) model -----*/
 STATUS("call calc_reduced_model") ;
-      calc_reduced_model (ts_length, r, x_array, ts_array, 
+      calc_reduced_model (ts_length, r, x_array, ts_array,
                  par_rdcd, &sse_rdcd);
 
 
       /*----- calculate the full (signal+noise) model -----*/
 STATUS("call calc_full_model") ;
-      calc_full_model (nmodel, smodel, r, p,  
+      calc_full_model (nmodel, smodel, r, p,
                  min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                  ts_length, x_array, ts_array, par_rdcd, sse_rdcd, nabs,
                  nrand, nbest, rms_min, par_full, &sse_full, &novar);
@@ -3626,10 +3639,10 @@ STATUS("call calc_full_model") ;
       /*----- calculate statistics for the full model -----*/
 STATUS("call analyze_results") ;
       analyze_results (nmodel, smodel, r, p, novar,
-                 min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
+                 min_nconstr, max_nconstr, min_sconstr, max_sconstr,
                  ts_length, x_array,
                  par_rdcd, sse_rdcd, par_full, sse_full,
-                 &rmsreg, &freg, &rsqr, &smax, &tmax, &pmax, 
+                 &rmsreg, &freg, &rsqr, &smax, &tmax, &pmax,
                  &area, &parea, tpar_full);
 
 
@@ -3639,18 +3652,18 @@ STATUS("call analyze_results") ;
        {
 	 report_results (nname, sname, r, p, npname, spname, ts_length,
                    par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
-                   rmsreg, freg, rsqr, smax, tmax, pmax, 
+                   rmsreg, freg, rsqr, smax, tmax, pmax,
                    area, parea, &label);
 	 printf ("\n\nVoxel #%d\n", iv);
 	 printf ("%s \n", label);
        }
 
       /*----- save results for this voxel into volume data -----*/
-      save_results (iv, nmodel, smodel, r, p, novar, ts_length, x_array, 
-              par_full, tpar_full, rmsreg, freg, rsqr, smax, 
-              tmax, pmax, area, parea, rmsreg_vol, 
-              freg_vol, rsqr_vol, smax_vol, 
-              tmax_vol, pmax_vol, area_vol, parea_vol,ncoef_vol, 
+      save_results (iv, nmodel, smodel, r, p, novar, ts_length, x_array,
+              par_full, tpar_full, rmsreg, freg, rsqr, smax,
+              tmax, pmax, area, parea, rmsreg_vol,
+              freg_vol, rsqr_vol, smax_vol,
+              tmax_vol, pmax_vol, area_vol, parea_vol,ncoef_vol,
               scoef_vol, tncoef_vol, tscoef_vol, sfit_vol, snfit_vol);
     }
     if(g_voxel_count) fputc('\n',stderr);
@@ -3684,38 +3697,38 @@ STATUS("call analyze_results") ;
              COX_clock_time()) ;
 
 
-  /*----- delete input dataset -----*/ 
+  /*----- delete input dataset -----*/
   THD_delete_3dim_dataset( dset_time , False ) ;  dset_time = NULL ;
 
 
   /*----- write requested output files -----*/
   output_results (r, p, min_nconstr, max_nconstr, min_sconstr, max_sconstr,
-            nxyz, ts_length, rmsreg_vol, freg_vol, rsqr_vol, 
-            smax_vol, tmax_vol, pmax_vol, area_vol, parea_vol, 
-            ncoef_vol, scoef_vol, tncoef_vol, tscoef_vol, 
+            nxyz, ts_length, rmsreg_vol, freg_vol, rsqr_vol,
+            smax_vol, tmax_vol, pmax_vol, area_vol, parea_vol,
+            ncoef_vol, scoef_vol, tncoef_vol, tscoef_vol,
             sfit_vol, snfit_vol,
             input_filename, freg_filename, frsqr_filename,
-             fsmax_filename, ftmax_filename, 
-            fpmax_filename, farea_filename, fparea_filename, 
-            fncoef_filename, fscoef_filename, 
-            tncoef_filename, tscoef_filename, 
+             fsmax_filename, ftmax_filename,
+            fpmax_filename, farea_filename, fparea_filename,
+            fncoef_filename, fscoef_filename,
+            tncoef_filename, tscoef_filename,
             sfit_filename, snfit_filename, &option_data);
-           
+
 
   /*----- end of program -----*/
-  terminate_program (r, p, ts_length, &x_array, &ts_array, 
-               &nname, &npname, &par_rdcd, &min_nconstr, &max_nconstr, 
-               &sname, &spname, &par_full, &tpar_full, 
-               &min_sconstr, &max_sconstr, 
-               &rmsreg_vol, &freg_vol, &rsqr_vol, 
+  terminate_program (r, p, ts_length, &x_array, &ts_array,
+               &nname, &npname, &par_rdcd, &min_nconstr, &max_nconstr,
+               &sname, &spname, &par_full, &tpar_full,
+               &min_sconstr, &max_sconstr,
+               &rmsreg_vol, &freg_vol, &rsqr_vol,
                &smax_vol, &tmax_vol, &pmax_vol, &area_vol, &parea_vol,
                &ncoef_vol, &scoef_vol, &tncoef_vol, &tscoef_vol,
-               &sfit_vol, &snfit_vol, &input_filename, 
-               &freg_filename, &frsqr_filename, 
-               &fsmax_filename, &ftmax_filename, 
+               &sfit_vol, &snfit_vol, &input_filename,
+               &freg_filename, &frsqr_filename,
+               &fsmax_filename, &ftmax_filename,
                &fpmax_filename, &farea_filename, &fparea_filename,
-               &fncoef_filename, &fscoef_filename, 
-               &tncoef_filename, &tscoef_filename, 
+               &fncoef_filename, &fscoef_filename,
+               &tncoef_filename, &tscoef_filename,
                &sfit_filename, &snfit_filename);
 
   if( nwin_pow > 0 && (nwin_sim > 0 || nwin_stp > 0) )

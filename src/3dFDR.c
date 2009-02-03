@@ -254,7 +254,7 @@ printf(
 "\n"
 "* However, the combination of '-new', '-nopmask' and '-mask_file' does not\n"
 "   work -- if you try it, '-pmask' will be turned back on and a warning\n"
-"   message printed to aid your path elucidation and enlightenment.\n"
+"   message printed to aid your path towards elucidation and enlightenment.\n"
 "\n"
 "Other Notes:\n"
 "------------\n"
