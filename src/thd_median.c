@@ -260,7 +260,7 @@ ENTRY("THD_rms_brick") ;
    for( ii=0 ; ii < nvox ; ii++ ){
      THD_extract_array( ii , dset , 0 , tsar ) ;
      for( sum=0.0,jj=0 ; jj < nvals ; jj++ ) sum += tsar[jj]*tsar[jj] ;
-     medar[ii] = sqrt(fac * sum) ;
+     medar[ii] = sqrtf(fac * sum) ;
    }
 
    free(tsar) ; RETURN(medim) ;

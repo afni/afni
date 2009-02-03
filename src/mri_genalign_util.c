@@ -780,20 +780,25 @@ ENTRY("GA_interp_quintic") ;
 /*===========================================================================*/
 /*--- Stuff for storing sub-BLOKs of data points for localized cost funcs ---*/
 
+/* is abs(a) <= s ?? */
+
 #undef  FAS
 #define FAS(a,s) ( (a) <= (s) && (a) >= -(s) )
 
+/** define inside of a ball; is point (a,b,c) inside?  **/
 /** volume of ball = 4*PI/3 * siz**3 = 4.1888 * siz**3 **/
 
 #define GA_BLOK_inside_ball(a,b,c,siz) \
   ( ((a)*(a)+(b)*(b)+(c)*(c)) <= (siz) )
 
+/** define inside of a cube **/
 /** volume of cube = 8 * siz**3 **/
 /** lattice vectors = [2*siz,0,0]  [0,2*siz,0]  [0,0,2*siz] **/
 
 #define GA_BLOK_inside_cube(a,b,c,siz) \
   ( FAS((a),(siz)) && FAS((b),(siz)) && FAS((c),(siz)) )
 
+/** define inside of a rhombic dodecahedron (RHDD) **/
 /** volume of RHDD = 2 * siz**3 **/
 /** lattice vectors = [siz,siz,0]  [0,siz,siz]  [siz,0,siz] **/
 
@@ -802,6 +807,7 @@ ENTRY("GA_interp_quintic") ;
     FAS((a)+(c),(siz)) && FAS((a)-(c),(siz)) &&     \
     FAS((b)+(c),(siz)) && FAS((b)-(c),(siz))   )
 
+/** define inside of a truncated octahedron (TOHD) **/
 /** volume of TOHD = 4 * siz**3 **/
 /** lattice vectors = [-siz,siz,siz]  [siz,-siz,siz]  [siz,siz,-siz] **/
 
@@ -810,12 +816,16 @@ ENTRY("GA_interp_quintic") ;
     FAS((a)+(b)+(c),1.5f*(siz)) && FAS((a)-(b)+(c),1.5f*(siz)) &&   \
     FAS((a)+(b)-(c),1.5f*(siz)) && FAS((a)-(b)-(c),1.5f*(siz))   )
 
+/** define inside of an arbitrary blok type **/
+
 #define GA_BLOK_inside(bt,a,b,c,s)                              \
  (  ((bt)==GA_BLOK_BALL) ? GA_BLOK_inside_ball((a),(b),(c),(s)) \
   : ((bt)==GA_BLOK_CUBE) ? GA_BLOK_inside_cube((a),(b),(c),(s)) \
   : ((bt)==GA_BLOK_RHDD) ? GA_BLOK_inside_rhdd((a),(b),(c),(s)) \
   : ((bt)==GA_BLOK_TOHD) ? GA_BLOK_inside_tohd((a),(b),(c),(s)) \
   : 0 )
+
+/** add 1 value to a dynamically allocated  integer array **/
 
 #define GA_BLOK_ADDTO_intar(nar,nal,ar,val)                                 \
  do{ if( (nar) == (nal) ){                                                  \
@@ -824,18 +834,36 @@ ENTRY("GA_interp_quintic") ;
      (ar)[(nar)++] = (val);                                                 \
  } while(0)
 
+/** truncate dynamically allocated integer array down to size **/
+
 #define GA_BLOK_CLIP_intar(nar,nal,ar)                               \
  do{ if( (nar) < (nal) && (nar) > 0 ){                               \
        (nal) = (nar); (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
  }} while(0)
 
 /*----------------------------------------------------------------------------*/
-/*! Fill a struct with list of points contained in sub-bloks of the base. */
+/*! Fill a struct with list of points contained in sub-bloks of the base.
+
+    - nx,ny,nz = 3D grid dimensions
+    - dx,dy,dz = 3D grid spacings
+    - npt      = number of points stored in im,jm,km
+    - im,jm,km = 3D indexes of points to blok-ize
+                 (can be NULL, in which case all nx*ny*nz points are used)
+    - bloktype = one of GA_BLOK_BALL, GA_BLOK_CUBE, GA_BLOK_RHDD, GA_BLOK_TOHD
+    - blokrad  = radius parameter for the bloks to be built
+    - minel    = minimum number of points to put in a blok
+                 (if 0, function will pick a value)
+    - shfac    = shrinkage factor -- normally, bloks don't overlap much, but
+                 you can specify shfac to change the lattice size:
+                 < 1 makes them overlap more, and > 1 makes them spaced apart
+    - verb     = whether to print out some verbosity stuff FYI
+*//*--------------------------------------------------------------------------*/
 
 GA_BLOK_set * create_GA_BLOK_set( int   nx , int   ny , int   nz ,
                                   float dx , float dy , float dz ,
-                                  int npt , float *im, float *jm, float *km ,
-                                  int bloktype , float blokrad , int minel , int verb )
+                                  int npt , float *im, float *jm, float *km,
+                                  int bloktype , float blokrad , int minel ,
+                                                 float shfac   , int verb   )
 {
    GA_BLOK_set *gbs ;
    float dxp,dyp,dzp , dxq,dyq,dzq , dxr,dyr,dzr , xt,yt,zt ;
@@ -850,6 +878,8 @@ ENTRY("create_GA_BLOK_set") ;
    if( dx <= 0.0f ) dx = 1.0f ;
    if( dy <= 0.0f ) dy = 1.0f ;
    if( dz <= 0.0f ) dz = 1.0f ;
+
+   if( shfac < 0.2f || shfac > 5.0f ) shfac = 1.0f ;
 
    if( npt <= 0 || im == NULL || jm == NULL || km == NULL ){
      im = jm = km = NULL ; npt = 0 ;
@@ -874,6 +904,7 @@ ENTRY("create_GA_BLOK_set") ;
              a =blokrad*0.866025f ;  /* shrink spacing to avoid gaps */
        siz = blokrad*blokrad ;
        /* hexagonal close packing basis vectors for sphere of radius a */
+       a *= shfac ;
        dxp = 2.0f * a ; dyp = 0.0f  ; dzp = 0.0f             ;
        dxq = a        ; dyq = a * s3; dzq = 0.0f             ;
        dxr = a        ; dyr = a / s3; dzr = a * 0.666667f*s6 ;
@@ -884,7 +915,7 @@ ENTRY("create_GA_BLOK_set") ;
 
      case GA_BLOK_CUBE:{
        float a =  blokrad ;
-       siz = a ;
+       siz = a ; a *= shfac ;
        dxp = 2*a ; dyp = 0.0f; dzp = 0.0f ;
        dxq = 0.0f; dyq = 2*a ; dzq = 0.0f ;
        dxr = 0.0f; dyr = 0.0f; dzr = 2*a  ;
@@ -896,7 +927,7 @@ ENTRY("create_GA_BLOK_set") ;
 
      case GA_BLOK_RHDD:{
        float a = blokrad ;
-       siz = a ;
+       siz = a ; a *= shfac ;
        dxp = a   ; dyp = a   ; dzp = 0.0f ;
        dxq = 0.0f; dyq = a   ; dzq = a    ;
        dxr = a   ; dyr = 0.0f; dzr = a    ;
@@ -908,7 +939,7 @@ ENTRY("create_GA_BLOK_set") ;
 
      case GA_BLOK_TOHD:{
        float a = blokrad ;
-       siz = a ;
+       siz = a ; a *= shfac ;
        dxp = -a ; dyp =  a ; dzp =  a ;
        dxq =  a ; dyq = -a ; dzq =  a ;
        dxr =  a ; dyr =  a ; dzr = -a ;
@@ -1056,6 +1087,68 @@ ENTRY("create_GA_BLOK_set") ;
 
    RETURN(gbs) ;
 }
+
+/*---------------------------------------------------------------------------*/
+/*! Return the vector of individual blok correlations, for further analysis.
+    Each value in the returned vector corresponds to one blok in gbs.  Note
+    that the number of points in the 'vm' arrays isn't needed as an input,
+    since that is implicitly encoded in gbs.
+*//*-------------------------------------------------------------------------*/
+
+floatvec * GA_pearson_vector( GA_BLOK_set *gbs ,
+                              float *avm, float *bvm, float *wvm )
+{
+   int nblok , nelm , *elm , dd , ii,jj , nm ;
+   float xv,yv,xy,xm,ym,vv,ww,ws , wt ;
+   floatvec *pv=NULL ; float *pvar ;
+
+   if( gbs == NULL || avm == NULL || bvm == NULL ) return NULL ;
+
+   nblok = gbs->num ; if( nblok < 1 ) return NULL ;
+
+   MAKE_floatvec( pv , nblok ) ; pvar = pv->ar ;
+
+   /* loop over bloks */
+
+   for( dd=0 ; dd < nblok ; dd++ ){
+     pvar[dd] = 0.0f ;                                /* default */
+     nelm = gbs->nelm[dd] ; if( nelm < 9 ) continue ; /* skip it */
+     elm  = gbs->elm[dd] ;  /* array of indexes in avm (etc.) to use */
+
+     if( wvm == NULL ){   /*** unweighted correlation ***/
+       xv=yv=xy=xm=ym=0.0f ;
+       for( ii=0 ; ii < nelm ; ii++ ){  /* compute means */
+         jj = elm[ii] ;
+         xm += avm[jj] ; ym += bvm[jj] ;
+       }
+       xm /= nelm ; ym /= nelm ;
+       for( ii=0 ; ii < nelm ; ii++ ){  /* compute (co)variances */
+         jj = elm[ii] ;
+         vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
+         xv += vv*vv ; yv += ww*ww ; xy += vv*ww ;
+       }
+
+     } else {             /*** weighted correlation ***/
+       xv=yv=xy=xm=ym=ws=0.0f ;
+       for( ii=0 ; ii < nelm ; ii++ ){  /* compute weighted means */
+         jj = elm[ii] ;
+         wt = wvm[jj] ; ws += wt ;
+         xm += avm[jj]*wt ; ym += bvm[jj]*wt ;
+       }
+       xm /= ws ; ym /= ws ;
+       for( ii=0 ; ii < nelm ; ii++ ){  /* compute weighted (co)variances */
+         jj = elm[ii] ;
+         wt = wvm[jj] ; vv = avm[jj]-xm ; ww = bvm[jj]-ym ;
+         xv += wt*vv*vv ; yv += wt*ww*ww ; xy += wt*vv*ww ;
+       }
+     }
+
+     if( xv > 0.0f && yv > 0.0f ) pvar[dd] = xy/sqrtf(xv*yv) ; /* correlation */
+   }
+
+   return pv ;
+}
+
 /*======================== End of BLOK-iness functionality ==================*/
 
 /*---------------------------------------------------------------------------*/
