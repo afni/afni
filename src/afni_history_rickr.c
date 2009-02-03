@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, FEB, 2009, RCR, "Makefile", MICRO, TYPE_MODIFY,
+   "fix machdep.h Makefile.solaris28_gcc for v1280 builds",
+   NULL
+ } ,
+
  { 7, JAN, 2009, RCR, "plug_crender", MICRO, TYPE_MODIFY,
    "if lesstif, set threshold slider bar width",
    NULL

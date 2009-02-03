@@ -264,7 +264,7 @@ extern long   strtol() ;
 # define USE_LOCKF
 # define DONT_USE_MATRIX_MAT  /* 04 Mar 2005 */
 
-#if 0
+#ifdef SOLARIS_OLD            /* 03 Feb 2009 [rickr] */
 # define fabsf  fabs          /* 09 Jul 2007 */
 # define sqrtf  sqrt          /* to deal with lameness of Solaris */
 # define cbrtf  cbrt
