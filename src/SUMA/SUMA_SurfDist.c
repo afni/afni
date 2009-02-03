@@ -314,9 +314,11 @@ int main (int argc,char *argv[])
          exit(1);
       }
       if (Opt->nmask) for(jj=0; jj<SO->N_Node; ++jj) dm[jj] = Opt->nmask[jj];
-      if (!(nPath = SUMA_Dijkstra ( SO, Nfrom, Nto, 
+      if (  Nfrom < 0 || Nfrom >= SO->N_Node ||
+            Nto   < 0 || Nto   >= SO->N_Node ||
+            !(nPath = SUMA_Dijkstra ( SO, Nfrom, Nto, 
                               dm, NULL, 1, 
-                              &nDistance, &N_n))) {
+                              &nDistance, &N_n)) ) {
          nDistance = -1.0;
       } else {
          if (fpout) {
