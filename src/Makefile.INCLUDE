@@ -3,12 +3,7 @@
 ##   -- goes at end of each platform specific Makefile.
 ##
 
-# for systems without OpenMP
-
-ifndef CCOMP
-    CCOMP = $(CC)
-endif
-
+CCOMP = $(CCFAST) $(OMPFLAG)
 
 F2C = f2c -A
 
