@@ -8759,7 +8759,6 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
       iLmins, ReplacingNode, ReplacedNodeLocation;
    float *Lmins=NULL; 
    
-   
    SUMA_ENTRY;
    
    *Lfinal = -1.0;
@@ -8780,17 +8779,27 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
    }
    
    /* make sure Both Nx and Ny exist in isNodeInMesh */
+   if (  Nx < 0 || Nx >= SO->N_Node ||
+         Ny < 0 || Ny >= SO->N_Node ) {
+      fprintf (SUMA_STDERR,
+               "\aError %s: Node %d (Nx) or %d (Ny) is outside range [0..%d[ \n"
+               , FuncName, Nx, Ny, SO->N_Node);
+      goto CLEANUP;     
+   }
    if (!isNodeInMesh[Nx]) {
-      fprintf (SUMA_STDERR,"\aError %s: Node %d (Nx) is not in mesh.\n", FuncName, Nx);
+      fprintf (SUMA_STDERR,
+               "\aError %s: Node %d (Nx) is not in mesh.\n", FuncName, Nx);
       goto CLEANUP;
    }  
    if (!isNodeInMesh[Ny]) {
-      fprintf (SUMA_STDERR,"\aError %s: Node %d (Ny) is not in mesh.\n", FuncName, Ny);
+      fprintf (SUMA_STDERR,
+               "\aError %s: Node %d (Ny) is not in mesh.\n", FuncName, Ny);
       goto CLEANUP;
    }
 
    if (!SO->FN) {
-      fprintf (SUMA_STDERR, "Error %s: SO does not have FN structure.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: SO does not have FN structure.\n", FuncName);
       goto CLEANUP;
    }
 
@@ -8800,7 +8809,8 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
    }
    
    /* allocate for chain */
-   DC = (SUMA_DIJKSTRA_PATH_CHAIN *) SUMA_malloc (sizeof(SUMA_DIJKSTRA_PATH_CHAIN) * SO->N_Node);
+   DC = (SUMA_DIJKSTRA_PATH_CHAIN *)SUMA_malloc(
+                     sizeof(SUMA_DIJKSTRA_PATH_CHAIN) * SO->N_Node);
    if (!DC) {
       fprintf (SUMA_STDERR, "Error %s: Could not allocate. \n", FuncName);
       goto CLEANUP;
@@ -8816,7 +8826,8 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
             goto CLEANUP;
          }
 
-         /* label all vertices with very large numbers, initialize path previous pointers to null */
+         /* label all vertices with very large numbers, 
+         initialize path previous pointers to null */
          for (i=0; i < SO->N_Node; ++i) {
             L[i] = LARGE_NUM;   
             DC[i].Previous = NULL;
@@ -8835,11 +8846,17 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
          /* Brute force method */
          do {
             /* find v in Mesh / L(v) is minimal */
-            /* this sucks up a lot of time because it is searching the entire set of SO->N_Node instead of the one that was intersected only.
+            /* this sucks up a lot of time because it is searching 
+            the entire set of SO->N_Node instead of the one that was 
+            intersected only.
             This can be sped up, considerably */
-            SUMA_MIN_LOC_VEC(L, SO->N_Node, Lmin, v);   /* locates and finds the minimum of L, nodes not in mesh will keep their large values and will not be picked*/
+            SUMA_MIN_LOC_VEC(L, SO->N_Node, Lmin, v);   
+                  /* locates and finds the minimum of L, nodes not in mesh will 
+                  keep their large values and will not be picked*/
             if (!isNodeInMesh[v]) {
-               fprintf (SUMA_STDERR, "\aERROR %s: Dijkstra derailed. v = %d, Lmin = %f\n. Try another point.", FuncName, v, Lmin);
+               fprintf (SUMA_STDERR, 
+                        "\aERROR %s: Dijkstra derailed. v = %d, Lmin = %f.\n"
+                        " Try another point.", FuncName, v, Lmin);
                goto CLEANUP; 
             }
             if (v == Ny) {
@@ -8853,9 +8870,12 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
                   if (isNodeInMesh[w]) {
                      iw = 3*w;
                      iv = 3*v;
-                     le = sqrt ( (SO->NodeList[iw] - SO->NodeList[iv]) * (SO->NodeList[iw] - SO->NodeList[iv]) +
-                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) * (SO->NodeList[iw+1] - SO->NodeList[iv+1]) +
-                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) * (SO->NodeList[iw+2] - SO->NodeList[iv+2]) );
+                     le = sqrt ( (SO->NodeList[iw] - SO->NodeList[iv]) * 
+                                 (SO->NodeList[iw] - SO->NodeList[iv]) +
+                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) * 
+                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) +
+                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) * 
+                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) );
                      if (L[w] > L[v] + le ) {
                         L[w] = L[v] + le;  
                         /* update the path */
@@ -8868,7 +8888,8 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
                   }
                }
 
-               /* remove node v from isNodeInMesh and reset their distance value to a very large one, 
+               /* remove node v from isNodeInMesh and reset their distance 
+                  value to a very large one, 
                   this way you do not have to reinitialize this variable. */
                isNodeInMesh[v] = NOPE;
                *N_isNodeInMesh -= 1;
@@ -8878,17 +8899,24 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
          } while (*N_isNodeInMesh > 0 && !Found);
 
          if (!Found) {
-            fprintf (SUMA_STDERR, "Error %s: No more nodes in mesh, failed to reach target.\n", FuncName);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: No more nodes in mesh, "
+                     "failed to reach target.\n", FuncName);
             goto CLEANUP;
          }else {
-            if (LocalHead) fprintf (SUMA_STDERR, "%s: Path between Nodes %d and %d is %f.\n", FuncName, Nx, Ny, *Lfinal);
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: Path between Nodes %d and %d is %f.\n", 
+                        FuncName, Nx, Ny, *Lfinal);
          }
 
 
          if (LocalHead) {
             /* stop timer */
             DT_DIJKSTRA = SUMA_etime(&start_time,1);
-            fprintf (SUMA_STDERR, "%s: Method 1- Elapsed time in function %f seconds.\n", FuncName, DT_DIJKSTRA);
+            fprintf (SUMA_STDERR, 
+                     "%s: Method 1- Elapsed time in function %f seconds.\n", 
+                     FuncName, DT_DIJKSTRA);
          }
 
          if (L) SUMA_free(L); L = NULL;
@@ -8901,17 +8929,24 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
          }
 
          /* allocate for vertices labels and minimums vectors*/
-         L = (float *) SUMA_calloc (SO->N_Node, sizeof (float));        /* L[i] = distance to a node i*/
-         Lmins = (float *) SUMA_calloc (SO->N_Node, sizeof (float));    /* Lmins = vector containing minimum calculated distances to node */
-         vLmins = (int *) SUMA_calloc (SO->N_Node, sizeof (int));       /* vLmins[i] = index (into L) of the node having a distance Lmins[i] */
-         vLocInLmins = (int *) SUMA_calloc (SO->N_Node, sizeof (int));  /* vLocInLmin[j] = index (into Lmins) of a node having index j (into L) */
+         L = (float *) SUMA_calloc (SO->N_Node, sizeof (float));        
+               /* L[i] = distance to a node i*/
+         Lmins = (float *) SUMA_calloc (SO->N_Node, sizeof (float));    
+               /* Lmins = vector of minimum calculated distances to node */
+         vLmins = (int *) SUMA_calloc (SO->N_Node, sizeof (int));       
+               /* vLmins[i] = index (into L) of the node having a 
+                  distance Lmins[i] */
+         vLocInLmins = (int *) SUMA_calloc (SO->N_Node, sizeof (int));  
+               /* vLocInLmin[j] = index (into Lmins) of a node having 
+                  index j (into L) */
 
          if (!L || !Lmins || !vLmins || !vLocInLmins) {
             fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
             goto CLEANUP;
          }
 
-         /* label all vertices with very large numbers and initialize vLocInLmins to -1*/
+         /* label all vertices with very large numbers and initialize 
+            vLocInLmins to -1*/
          for (i=0; i < SO->N_Node; ++i) {
             L[i] = LARGE_NUM;
             Lmins[i] = LARGE_NUM;   
@@ -8923,7 +8958,8 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
          L[Nx] = 0.0;
          *Lfinal = -1.0;
 
-         /* initialize values of vectors used to keep track of minimum values of L and their corresponding nodes */
+         /* initialize values of vectors used to keep track of minimum 
+            values of L and their corresponding nodes */
          Lmins[0] = 0.0;
          vLmins[0] = Nx;
          vLocInLmins[Nx] = 0;
@@ -8937,10 +8973,14 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
          *N_Path = 0;
          
          /* method with efficient tracking of minimum */
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: about to MIN_LOC ....N_isNodeInMesh = %d\n", FuncName, *N_isNodeInMesh);
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+                     "%s: about to MIN_LOC ....N_isNodeInMesh = %d\n", 
+                     FuncName, *N_isNodeInMesh);
          do {
             /* find v in Mesh / L(v) is minimal */
-            SUMA_MIN_LOC_VEC(Lmins, N_Lmins, Lmin, iLmins);   /* locates the minimum value in Lmins vector */
+            SUMA_MIN_LOC_VEC(Lmins, N_Lmins, Lmin, iLmins);   
+               /* locates the minimum value in Lmins vector */
             v = vLmins[iLmins];   /* get the node for this Lmin value */
             if (!isNodeInMesh[v]) {
                fprintf (SUMA_STDERR,"\aERROR %s: \n"
@@ -8962,12 +9002,17 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
                   if (isNodeInMesh[w]) {
                      iw = 3*w;
                      iv = 3*v;
-                     le = sqrt ( (SO->NodeList[iw] - SO->NodeList[iv]) * (SO->NodeList[iw] - SO->NodeList[iv]) +
-                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) * (SO->NodeList[iw+1] - SO->NodeList[iv+1]) +
-                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) * (SO->NodeList[iw+2] - SO->NodeList[iv+2]) );
+                     le = sqrt ( (SO->NodeList[iw] - SO->NodeList[iv]) * 
+                                 (SO->NodeList[iw] - SO->NodeList[iv]) +
+                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) * 
+                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) +
+                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) * 
+                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) );
                      if (L[w] > L[v] + le ) {
                         #ifdef LOCALDEBUG
-                           fprintf (SUMA_STDERR, "%s: L[%d]=%f > L[%d] = %f + le = %f.\n", FuncName, w, L[w], v, L[v], le);
+                           fprintf (SUMA_STDERR, 
+                                    "%s: L[%d]=%f > L[%d] = %f + le = %f.\n", 
+                                    FuncName, w, L[w], v, L[v], le);
                         #endif
                         L[w] = L[v] + le; 
                         /* update the path */
@@ -8979,46 +9024,63 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
                         
                         if (vLocInLmins[w] < 0) { 
                            #ifdef LOCALDEBUG
-                              fprintf (SUMA_STDERR, "%s: adding entry for w = %d - First Hit. \n", FuncName, w);
+                              fprintf (SUMA_STDERR, 
+                                 "%s: adding entry for w = %d - First Hit. \n", 
+                                 FuncName, w);
                            #endif
-                           Lmins[N_Lmins] = L[w]; /* add this value to Lmins vector */
-                           vLmins[N_Lmins] = w; /* store the node for this Lmins value */
-                           vLocInLmins[w] = N_Lmins; /* store where that node is represented in Lmins */
+                           Lmins[N_Lmins] = L[w]; 
+                                 /* add this value to Lmins vector */
+                           vLmins[N_Lmins] = w; 
+                                 /* store the node for this Lmins value */
+                           vLocInLmins[w] = N_Lmins; 
+                                 /* store where that node is represented 
+                                    in Lmins */
                            ++N_Lmins;  /* increment N_Lmins */  
                         } else {
                            #ifdef LOCALDEBUG
-                              fprintf (SUMA_STDERR, "%s: modifying entry for w = %d  Second Hit.\n", FuncName, w); */
+                              fprintf (SUMA_STDERR, 
+                                 "%s: modifying entry for w = %d  Second Hit.\n",                                  FuncName, w); 
                            #endif
-                           Lmins[vLocInLmins[w]] = L[w]; /* update value for Lmins */
+                           Lmins[vLocInLmins[w]] = L[w]; 
+                                 /* update value for Lmins */
                         }                        
                      }else {
                         #ifdef LOCALDEBUG
-                           fprintf (SUMA_STDERR, "%s: L[%d]=%f < L[%d] = %f + le = %f.\n", FuncName, w, L[w], v, L[v], le); */
+                           fprintf (SUMA_STDERR, 
+                                    "%s: L[%d]=%f < L[%d] = %f + le = %f.\n", 
+                                    FuncName, w, L[w], v, L[v], le); 
                         #endif
                      } 
                   }
                }
 
-               /* remove node v from isNodeInMesh and reset their distance value to a very large one, 
+               /* remove node v from isNodeInMesh and reset their distance 
+                  value to a very large one, 
                   this way you do not have to reinitialize this variable. */
                isNodeInMesh[v] = NOPE;
                *N_isNodeInMesh -= 1;
                L[v] = LARGE_NUM; 
                Found = NOPE;
 
-               /* also remove the values (by swapping it with last element) for this node from Lmins */
+               /* also remove the values (by swapping it with last element) 
+                  for this node from Lmins */
                #ifdef LOCALDEBUG
                   {
                      int kkk;
                      fprintf (SUMA_STDERR,"Lmins\tvLmins\tvLocInLmins\n");
-                     for (kkk=0; kkk < N_Lmins; ++kkk) fprintf (SUMA_STDERR,"%f\t%d\t%d\n", Lmins[kkk], vLmins[kkk], vLocInLmins[vLmins[kkk]] );
+                     for (kkk=0; kkk < N_Lmins; ++kkk) 
+                        fprintf (SUMA_STDERR,"%f\t%d\t%d\n", 
+                                             Lmins[kkk], vLmins[kkk], 
+                                             vLocInLmins[vLmins[kkk]] );
                
                   }
                #endif
                
                if (vLocInLmins[v] >= 0) { /* remove its entry if there is one */
                   #ifdef LOCALDEBUG
-                     fprintf (SUMA_STDERR, "%s: removing node v = %d. N_Lmins = %d\n", FuncName,  v, N_Lmins);
+                     fprintf (SUMA_STDERR, 
+                              "%s: removing node v = %d. N_Lmins = %d\n", 
+                              FuncName,  v, N_Lmins);
                   #endif
                   --N_Lmins;
                   ReplacingNode = vLmins[N_Lmins];
@@ -9033,10 +9095,16 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
          } while (*N_isNodeInMesh > 0 && !Found);
 
          if (!Found) {
-            fprintf (SUMA_STDERR, "Error %s: No more nodes in mesh, failed to reach target %d. NLmins = %d\n", FuncName, Ny, N_Lmins);
+            fprintf (SUMA_STDERR, 
+                     "Error %s: No more nodes in mesh, "
+                     "failed to reach target %d. NLmins = %d\n", 
+                     FuncName, Ny, N_Lmins);
             goto CLEANUP;
          }else {
-            if (LocalHead) fprintf (SUMA_STDERR, "%s: Path between Nodes %d and %d is %f.\n", FuncName, Nx, Ny, *Lfinal);
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: Path between Nodes %d and %d is %f.\n", 
+                        FuncName, Nx, Ny, *Lfinal);
          }
 
 
