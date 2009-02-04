@@ -1,4 +1,5 @@
 # This works on a Sun Solaris 2.8 with gcc and gnu ld.
+# kept current for v1280   4 Feb 2009 [rickr]
 
 # USE_ZLIB = -DHAVE_ZLIB
 # LZLIB    = -lz
@@ -48,7 +49,7 @@ INSTALLDIR = ./solaris28_gcc
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=solaris28_gcc
 
-INSTALL_PREREQ = 
+INSTALL_PREREQ = suma
 
 LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) $(LGIFTI) -lm $(EXTRA_LIBS)
 # LLIBS  = -lmri -lXm $(EXTRA_LIBS) $(LZLIB) $(LGIFTI) -lm -lc
@@ -57,7 +58,7 @@ LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) $(LGIFTI) -lm $(EXTRA_LIBS)
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
 SUMA_INCLUDE_PATH = -I/usr/openwin/share/include/X11 -I../ -I../niml/ -I./ -Igts/src
-SUMA_LINK_PATH = -L/usr/openwin/lib -R/usr/openwin/lib -L../
+SUMA_LINK_PATH = -L/usr/dt/lib -L/usr/openwin/lib -L../
 SUMA_LINK_LIB = $(LZLIB) $(LGIFTI) -lm -lGL -lGLU -lGLw -lXmu -lXm -lXp -lXt -lXext -lX11 -lsocket -lnsl
 SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
 SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
@@ -65,5 +66,5 @@ SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
 
 ######################################################################
 
-MAKE = make
+MAKE = gmake
 include Makefile.INCLUDE
