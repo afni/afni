@@ -584,8 +584,10 @@ void EDIT_misfit_report( char *name, int ib,
                  "       In most AFNI programs, use the '-float' option.");
      ININFO_message("c) This warning is a new message, but is an old issue\n"
                  "       that arises when storing results in an integer format."  );
-     ININFO_message("d) Don't panic!  These messages likely originate in peripheral or\n"
-                 "       unimportant voxels.  They mean that you examine your results.");
+     ININFO_message("d) Don't panic! These messages likely originate in peripheral or\n"
+                 "       unimportant voxels. They mean that you examine your results.\n"
+                 "       \"Assess the situation and keep a calm head about you,\n"
+                 "        because it doesn't do anybody any good to panic.\"\n" ) ;
      INFO_message("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
      first = 0 ;
    }
