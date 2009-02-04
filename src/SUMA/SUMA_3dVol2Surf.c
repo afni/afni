@@ -379,13 +379,10 @@ ENTRY("get_surf_data");
 
         if ((sopt->norm_dir == V2S_NORM_DEFAULT) && check_norm_dirs(sopt, p, 0))
             RETURN(-1);
-        else if ( sopt->norm_dir == V2S_NORM_REVERSE)
-        {
-            /* okay, reverse the direction */
-            sopt->norm_len *= -1;
-            if ( sopt->debug > 0 )
-                fprintf(stderr,"++ reversing normal direction\n");
-        }
+
+        /* norm direction applied in vol2surf function, just set norm_dir */
+        /*                                            4 Feb, 2009 [rickr] */
+        /* else if ( sopt->norm_dir == V2S_NORM_REVERSE) */
         /* else V2S_NORM_KEEP, i.e. do nothing */
     }
 
@@ -529,8 +526,8 @@ ENTRY("check_norm_dirs");
     /* do we need to reverse the direction? */
     if ( ncount < 2 )
     {
-        fprintf(stderr,"-- reversing direction of normals\n");
-        sopt->norm_len *= -1.0;
+        fprintf(stderr,"-- reversing direction of normals (via norm_dir)\n");
+        sopt->norm_dir = V2S_NORM_REVERSE;
     }
 
     RETURN(0);
@@ -539,8 +536,6 @@ ENTRY("check_norm_dirs");
 
 /*----------------------------------------------------------------------
  * copy_surfaces - fill SUMA_surface structures
- *
- *
  *
  * return -1 : on error
  *         0 : on success
