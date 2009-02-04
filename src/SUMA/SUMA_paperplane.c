@@ -38,7 +38,13 @@
 #include <Xm/DrawingA.h>  /* Motif drawing area widget */
 #else
 #ifdef noMotifGLwidget
+
+#ifdef SOLARIS            /* 3 Feb 2009 [rickr] */
+#include <GLw/GLwDrawA.h> /* Pure Xt OpenGL drawing area widget. */
+#else
 #include <GL/GLwDrawA.h>  /* Pure Xt OpenGL drawing area widget. */
+#endif
+
 #else
 #include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area widget. */
 #endif

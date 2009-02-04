@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 4, FEB, 2009, RCR, "suma-general", MICRO, TYPE_MODIFY,
+   "update SUMA_paperplane.c and Makefile.solaris28_gcc for v1280 builds",
+   "Makefile now uses PREREQ=suma, gmake, -L/usr/dt/lib."
+ } ,
+
  { 3, FEB, 2009, RCR, "Makefile", MICRO, TYPE_MODIFY,
    "fix machdep.h Makefile.solaris28_gcc for v1280 builds",
    NULL
