@@ -947,7 +947,9 @@ typedef struct {
    
    SUMA_ASSEMBLE_LIST_STRUCT *ALS; /*!< structure containing the list of strings shown in the widget and the pointers 
                                        of the objects the list refers to*/ 
-   int lastitempos; 
+   int lastitempos;
+   
+   int width; /* initial width in pixels of list area (excluding margins) */ 
 } SUMA_LIST_WIDGET;
 
 /*! structure containing widgets for surface viewer controllers ViewCont */
