@@ -65,6 +65,29 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 3 , FEB , 2009 , ZSS , "suma" , MICRO , TYPE_BUG_FIX ,
+   "No longer crashes with old format ROIs",
+   NULL
+ } ,
+
+ { 3 , FEB , 2009 , ZSS , "suma" , MICRO , TYPE_BUG_FIX ,
+   "Fixed free-related error messages on OS X",
+   "These errors were generated because some pointers\n"
+   "were allocated with MCW_MALLOC and freed without it.\n"
+   "solution was to include mcw_malloc.h in coxplot and\n"
+   "gifti_choice.c"
+ } ,
+
+ { 2 , FEB , 2009 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT ,
+   "Added load_col option to DriveSuma",
+   NULL
+ } ,
+
+ { 2 , FEB , 2009 , ZSS , "SurfDist" , MINOR , TYPE_NEW_OPT ,
+   "SurfDist now outputs distances from one node to a set of other nodes",
+   NULL
+ } ,
+
  { 13 , JAN , 2009 , ZSS , "afni-matlab" , MINOR , TYPE_NEW_PROG ,
    "Added GS_orth_1D.m to perform Gram-Schmidt orthogonalization",
    NULL
