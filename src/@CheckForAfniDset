@@ -29,9 +29,10 @@ endif
 
    
 if ("$view" == "" && "$ext" != "nii") then
-   echo "Error: No view specified in dset name $1"
-   echo "Make sure you are not passing a prefix instead"
-   echo "of a dataset name"
+   echo 0
+   #echo "Error: No view specified in dset name $1"
+   #echo "Make sure you are not passing a prefix instead"
+   #echo "of a dataset name"
    set stat = 1
    goto ENDALL
 endif
@@ -59,8 +60,10 @@ goto ENDALL
 USAGE:
 	echo "Usage: `basename $0` <Name> ....."
 	echo "example: `basename $0` /Data/stuff/Hello+orig.HEAD"
-	echo "returns 0 if neither .HEAD nor .BRIK(.gz)(.bz2)(.Z) exist" 
-	echo "        1 if only .HEAD exists"
+	echo "returns 0 if neither .HEAD nor .BRIK(.gz)(.bz2)(.Z) exist"
+   echo "          OR in the case of an error"
+   echo "             An error also sets the status flag"
+   echo "        1 if only .HEAD exists"
    echo "        2 if both .HEAD and .BRIK(.gz)(.bz2)(.Z) exist"
 	echo "        3 if .nii dataset "
    echo "Ziad Saad (saadz@mail.nih.gov)"
