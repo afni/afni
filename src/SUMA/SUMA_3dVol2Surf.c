@@ -430,7 +430,8 @@ ENTRY("check_norm_dirs");
     fmin[2] = fmax[2] = coords->z;
 
     /* now check the rest of them */
-    for ( node = 1; node < p->surf[surf].num_ixyz; node++, coords++ )
+    /* fixed coord++ bug, noted by Xiaopeng Zong   4 Feb 2009 [rickr] */
+    for ( node = 1; node < p->surf[surf].num_ixyz; node++ )
     {
         if ( fmin[0] > coords[node].x )         /* x min */
         {

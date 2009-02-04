@@ -1322,6 +1322,8 @@ static int init_seg_endpoints ( v2s_opts_t * sopt, v2s_param_t * p,
                                 range_3dmm * R, int node )
 {
     SUMA_surface * sp;
+    float        * norm;
+
 ENTRY("init_seg_endpoints");
 
     /* get node from first surface */
@@ -1331,8 +1333,17 @@ ENTRY("init_seg_endpoints");
     R->p1.xyz[2] = sp->ixyz[node].z;
 
     /* set pn based on other parameters */
-    if ( sopt->use_norms )
-        directed_dist(R->pn.xyz, R->p1.xyz, sp->norm[node].xyz, sopt->norm_len);
+    if ( sopt->use_norms ) {
+        /* actually reverse norm direction     4 Feb 2009 [rickr] */
+        norm = sp->norm[node].xyz;
+        if ( sopt->norm_dir == V2S_NORM_REVERSE )
+        {
+            if( node == sopt->dnode )
+                fprintf(stderr,"-d reversing norm dir at dnode %d\n", node);
+            directed_dist(R->pn.xyz, R->p1.xyz, norm, -sopt->norm_len);
+        } else
+            directed_dist(R->pn.xyz, R->p1.xyz, norm, sopt->norm_len);
+    }
     else if ( p->nsurf > 1 )
     {
         /* get node from second surface */
