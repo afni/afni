@@ -1106,7 +1106,8 @@ void SUMA_LoadVisualState(char *fname, void *csvp)
    char *fnamestmp=NULL, *fnamestmp2=NULL;
    float quat[4], Aspect[1], FOV[1], tran[2],
          WindWidth[1], WindHeight[1], clear_color[4], 
-         BF_Cull[1], Back_Modfact[1], PolyMode[1], ShowEyeAxis[1], ShowWorldAxis[1],
+         BF_Cull[1], Back_Modfact[1], PolyMode[1], 
+         ShowEyeAxis[1], ShowWorldAxis[1],
          ShowMeshAxis[1], ShowCrossHair[1], ShowForeground[1], 
          ShowBackground[1];   char *atmp;
    NI_stream nstdin;
@@ -4095,6 +4096,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
             SUMA_AllocateScrolledList (slabel, SUMA_LSP_SINGLE, 
                               NOPE, YUP,
                               sv->X->ViewCont->TopLevelShell, SWP_TOP_LEFT,
+                              125,
                               SUMA_cb_SelectSwitchGroup, (void *)sv,
                               SUMA_cb_SelectSwitchGroup, (void *)sv,
                               SUMA_cb_CloseSwitchGroup, (void *)sv);
@@ -4706,6 +4708,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                      SUMA_LSP_SINGLE, 
                      NOPE, NOPE, /* duplicate deletion, no sorting */ 
                      SO->SurfCont->TopLevelShell, SWP_POINTER,
+                     125,
                      SUMA_cb_SelectSwitchColPlane, (void *)SO,
                      SUMA_cb_SelectSwitchColPlane, (void *)SO,
                      SUMA_cb_CloseSwitchColPlane, NULL);
@@ -5540,15 +5543,19 @@ void SUMA_CreateDrawROIWindow(void)
    
    
    /* put a push button to switch between ROIs */
-   SUMAg_CF->X->DrawROI->SwitchROIlst = SUMA_AllocateScrolledList ("Switch ROI", SUMA_LSP_SINGLE, 
-                              NOPE, YUP,
-                              SUMAg_CF->X->DrawROI->AppShell, SWP_TOP_LEFT,
-                              SUMA_cb_SelectSwitchROI, NULL,
-                              SUMA_cb_SelectSwitchROI, NULL,
-                              SUMA_cb_CloseSwitchROI, NULL);
+   SUMAg_CF->X->DrawROI->SwitchROIlst = 
+      SUMA_AllocateScrolledList ("Switch ROI", SUMA_LSP_SINGLE, 
+                                 NOPE, YUP,
+                                 SUMAg_CF->X->DrawROI->AppShell, SWP_TOP_LEFT,
+                                 125,
+                                 SUMA_cb_SelectSwitchROI, NULL,
+                                 SUMA_cb_SelectSwitchROI, NULL,
+                                 SUMA_cb_CloseSwitchROI, NULL);
     
-   pb = XtVaCreateWidget ("Switch ROI", xmPushButtonWidgetClass, rc_switch, NULL);
-   XtAddCallback (pb, XmNactivateCallback, SUMA_cb_DrawROI_SwitchROI, SUMAg_CF->X->DrawROI->SwitchROIlst);
+   pb = XtVaCreateWidget ( "Switch ROI", xmPushButtonWidgetClass, 
+                           rc_switch, NULL);
+   XtAddCallback (pb, XmNactivateCallback, SUMA_cb_DrawROI_SwitchROI, 
+                  SUMAg_CF->X->DrawROI->SwitchROIlst);
    MCW_register_help(pb , SUMA_DrawROI_SwitchROI_help ) ;
    MCW_register_hint(pb , "Switch between ROIs." ) ;
    XtManageChild (pb);
@@ -5696,6 +5703,7 @@ SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (
       char *Label, int SelectPolicy, 
       SUMA_Boolean RemoveDups, SUMA_Boolean ShowSorted,
       Widget PosRef, SUMA_WINDOW_POSITION Pos,
+      int width,
       void (*Default_cb)
             (Widget w, XtPointer data, XtPointer calldata), 
       void *Default_Data,
@@ -5738,6 +5746,9 @@ SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (
    LW->ALS = NULL;
    LW->isShaded = YUP;
    LW->lastitempos = -1;
+   if (width > 0) LW->width = width;
+   else LW->width = 125;
+   
    SUMA_RETURN(LW);
    
 }
@@ -5976,6 +5987,7 @@ void SUMA_CreateScrolledList (
       n = 0;
       XtSetArg (args[n], XmNitemCount,      0); n++;
       XtSetArg (args[n], XmNlistSizePolicy,   XmCONSTANT   ); n++;
+      XtSetArg (args[n], XmNwidth, LW->width); n++;
       LW->list = XmCreateScrolledList (LW->rc, "Tonka", args, n);
       
       
