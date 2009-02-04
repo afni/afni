@@ -113,7 +113,7 @@ afni_history_struct ziad_history[] = {
    NULL
  },
 
- { 13 , DEC , 2009 , ZSS , "afni-matlab" , MAJOR , TYPE_NEW_PROG ,
+ { 13 , DEC , 2008 , ZSS , "afni-matlab" , MAJOR , TYPE_NEW_PROG ,
    "RetroTS creates regressors for cardiac, respiratory, and RVT filtering",
    "RetroTS.m and accompanying functions create slice-based regressors\n"
    "for regressing out the effects of cardiac, respiratory, and RVT effects\n"
