@@ -23,7 +23,7 @@ EXTRA_LIBS_2 = -lsocket -lnsl -lc
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -G
-PLUGIN_CC     = $(CC) -D"fabsf=fabs"
+PLUGIN_CC     = $(CC)
 PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib
 
 AR     = /usr/ccs/bin/ar
