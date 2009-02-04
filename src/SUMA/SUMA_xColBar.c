@@ -3841,6 +3841,7 @@ SUMA_Boolean SUMA_DsetColSelectList(
                   "Switch Intensity", SUMA_LSP_BROWSE,
                   NOPE,          NOPE,
                   SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  150,
                   SUMA_cb_SelectSwitchInt, (void *)SO,
                   SUMA_cb_SelectSwitchInt, (void *)SO,
                   SUMA_cb_CloseSwitchLst, NULL);
@@ -3865,6 +3866,7 @@ SUMA_Boolean SUMA_DsetColSelectList(
                   "Switch Intensity", SUMA_LSP_BROWSE,
                   NOPE,          NOPE,
                   SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  150,
                   SUMA_cb_SelectSwitchThr, (void *)SO,
                   SUMA_cb_SelectSwitchThr, (void *)SO,
                   SUMA_cb_CloseSwitchLst, NULL);
@@ -3889,6 +3891,7 @@ SUMA_Boolean SUMA_DsetColSelectList(
                   "Switch Intensity", SUMA_LSP_BROWSE,
                   NOPE,          NOPE,
                   SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                  150, 
                   SUMA_cb_SelectSwitchBrt, (void *)SO,
                   SUMA_cb_SelectSwitchBrt, (void *)SO,
                   SUMA_cb_CloseSwitchLst, NULL);
@@ -4262,6 +4265,7 @@ SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, int bringu
             "Switch Cmap", SUMA_LSP_BROWSE,
             NOPE,          NOPE,
             SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+            125,
             SUMA_cb_SelectSwitchCmap, (void *)SO,
             SUMA_cb_SelectSwitchCmap, (void *)SO,
             SUMA_cb_CloseSwitchCmap, NULL);
