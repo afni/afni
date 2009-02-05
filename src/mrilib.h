@@ -1740,6 +1740,60 @@ void *Percentate (void *vec, byte *mm, int nxyz,
                   int zero_flag, int positive_flag, int negative_flag);
 
 /*----------------------------------------------------------------------------*/
+/* RBF stuff -- cf. mri_rbfinterp.c -- 05 Feb 2009 */
+
+typedef struct {
+  int nknot ;
+  float rad  , rqq ;
+  float xmid , ymid , zmid ;     /* middle of the knots */
+  float xscl , yscl , zscl ;     /* scale reciprocal of the knots */
+  float *xknot, *yknot, *zknot ; /* each is an nknot-long vector */
+  float *psmat ;                 /* (nknot+4) X (nknot+4) matrix */
+} RBF_knots ;
+
+#undef  DESTROY_RBF_knots
+#define DESTROY_RBF_knots(rk)                 \
+ do{ free((rk)->xknot) ; free((rk)->yknot) ;  \
+     free((rk)->zknot) ; free((rk)->psmat) ; free(rk) ; } while(0)
+
+typedef struct {
+  int npt ;
+  float *xpt , *ypt , *zpt ;
+} RBF_evalgrid ;
+
+#undef  MAKE_RBF_evalgrid
+#define MAKE_RBF_evalgrid(rg,nn)                             \
+ do{ (rg) = (RBF_evalgrid *)malloc(sizeof(RBF_evalgrid)) ;   \
+     (rg)->npt = (nn) ;                                      \
+     (rg)->xpt = (float *)malloc(sizeof(float)*(nn)) ;       \
+     (rg)->ypt = (float *)malloc(sizeof(float)*(nn)) ;       \
+     (rg)->zpt = (float *)malloc(sizeof(float)*(nn)) ; } while(0)
+
+#undef  DESTROY_RBF_evalgrid
+#define DESTROY_RBF_evalgrid(rg)            \
+ do{ free((rg)->xpt); free((rg)->ypt);      \
+     free((rg)->zpt); free(rg);       } while(0)
+
+typedef struct {
+  int code ;
+  float b0 , bx , by , bz ;
+  float *val ;
+} RBF_evalues ;
+
+#undef  MAKE_RBF_evalues
+#define MAKE_RBF_evalues(rv,nn)                               \
+ do{ (rv) = (RBF_evalues *)malloc(sizeof(RBF_evalues)) ;      \
+     (rv)->code = 0 ;                                         \
+     (rv)->val  = (float *)malloc(sizeof(float)*(nn)) ; } while(0)
+
+#undef  DESTROY_RBF_evalues
+#define DESTROY_RBF_evalues(rv) do{ free((rv)->val); free(rv); } while(0)
+
+extern RBF_knots * RBF_setup_knots( int nk, float *xx, float *yy, float *zz ) ;
+extern int RBF_setup_evalues( RBF_knots *rbk, RBF_evalues *rbe ) ;
+extern int RBF_evaluate( RBF_knots *, RBF_evalues *, RBF_evalgrid *, float * ) ;
+
+/*----------------------------------------------------------------------------*/
 /** Test if a image is vector-valued (fvect, rgb, or complex) **/
 
 #undef  ISVECTIM
