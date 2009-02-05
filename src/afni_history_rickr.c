@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, FEB, 2009, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
+   "added timing_tool.py use to sort times in example #7",
+   NULL
+ } ,
+
  { 4, FEB, 2009, RCR, "vol2surf", MINOR, TYPE_BUG_FIX,
    "fixed norm reversal application and norm dir check computation",
    "Thanks to Xiaopeng Zong for finding these problems."

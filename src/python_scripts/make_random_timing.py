@@ -219,7 +219,7 @@ examples:
        followed by a 'main' event after another 8 seconds.  Set the minumum
        time between any 2 events to be 1.5 seconds.
 
-       Do this in 3 steps:
+       Do this in 4 steps:
 
           a. Generate stimulus timing for 6 classes: A, B, A1, A2, B1, B2.
              Stim lengths will be 8, 8, and 16, 16, 16, 16 seconds, at first.
@@ -237,6 +237,15 @@ examples:
 
                 1dcat stimesG_??_A.1D stimesG_??_A?.1D > stimesG_A_all.1D
                 1dcat stimesG_??_B.1D stimesG_??_B?.1D > stimesG_B_all.1D
+
+             Perhaps consider sorting the stimulus times per run, since the
+             1dcat command does not do that.  Use timing_tool.py.  The new
+             'sorted' timing files would replace the 'all' timing files.
+
+                timing_tool.py -timing stimesG_A_all.1D -sort  \\
+                               -write_timing stimesG_A_sorted.1D
+                timing_tool.py -timing stimesG_B_all.1D -sort  \\
+                               -write_timing stimesG_B_sorted.1D
 
           c. To get stim times for the 'main' regressors we need to add 8
              seconds to every time.  Otherwise, the times will be identical to
@@ -256,8 +265,8 @@ examples:
 
           d. Finally, fix the 3dDeconvolve command in @cmd.3dd.G.
 
-             1. Use the timing files stimesG_A_all.1D and stimesG_B_all.1D from
-                step b, replacing files stimesG_01_A.1D and stimesG_01_B.1D.
+             1. Use timing files stimesG_A_sorted.1D and stimesG_B_sorted.1D
+                from step b, replacing stimesG_01_A.1D and stimesG_01_B.1D.
 
              2. Update the stimulus durations of A1, A2, B1 and B2 from 16
                 seconds to the correct 8 seconds (the second half of the 16
@@ -271,8 +280,8 @@ examples:
         
        The resulting files are kept (and applied in and 3dDeconvolve commands):
 
-            stimesG_[AB]_all.1D    : the 'catch' regressors, 14 stimuli per run
-                                     (from step b)
+            stimesG_[AB]_sorted.1D : the (sorted) 'catch' regressors,
+                                     14 stimuli per run (from step b)
             stimesG_*_[AB][12].1D  : the 4 main regressors (at 8 sec offsets)
                                      (from step c)
 
@@ -553,6 +562,7 @@ g_history = """
          - moved min_mean_max_stdev to afni_util.py
          - modified examples to correspond with those in timing_tool.py
     0.7  Dec 24, 2008: redefine 'sum' for old python versions
+    0.8  Feb 05, 2009: added timing_tool.py use to catch trial example
 """
 
 g_version = "version 0.7, December 24, 2008"
