@@ -2174,7 +2174,7 @@ void VL_command_line(void)
      int mm ;
      mm = MIN( DSET_NX(VL_dset) , DSET_NY(VL_dset) ) ;
      mm = MIN( DSET_NZ(VL_dset) , mm ) ;
-     mm = (int)(0.1*mm + 0.499) ;
+     mm = (int)(0.1*mm + 0.499) ; if( mm < 1 ) mm = 1 ; /* suggested by DRG */
      if( VL_coarse_del > mm ){
        fprintf(stderr,"++ Coarse del was %d, replaced with %d\n",VL_coarse_del,mm) ;
        VL_coarse_del = mm ;
