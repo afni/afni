@@ -751,6 +751,11 @@ fprintf(stderr,"EDIT_dset_items: about to make datum_array\n") ;
 
       iv = brick_stataux_one_iv ;
 
+#if 0
+fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
+        iv, brick_stataux_one[0],  brick_stataux_one[1], brick_stataux_one[2] ) ;
+#endif
+
       if( iv < 0 || iv >= dset->dblk->nvals ){
          EDERR("illegal index for ADN_brick_stataux_one") ;
          RETURN(errnum) ;

@@ -2214,10 +2214,11 @@ STATUS("setting up Rbuckt") ;
        if( glt_ind[ii] == NULL ) continue ;
        nr = glt_ind[ii]->nrow ;
        if( glt_ind[ii]->beta_ind != NULL ){
-         for( jj=0 ; jj < nr ; jj++ )
+         for( jj=0 ; jj < nr ; jj++ ){
            EDIT_BRICK_LABEL( Rbuckt_dset , glt_ind[ii]->beta_ind[jj] ,
                                            glt_ind[ii]->beta_lab[jj]  ) ;
            EDIT_BRICK_TO_NOSTAT( Rbuckt_dset , glt_ind[ii]->beta_ind[jj] ) ;
+         }
        }
        if( glt_ind[ii]->ttst_ind != NULL ){
          for( jj=0 ; jj < nr ; jj++ ){
@@ -2247,10 +2248,11 @@ STATUS("setting up Rglt") ;
        if( glt_ind[ii] == NULL ) continue ;  /* should not happen! */
        nr = glt_ind[ii]->nrow ;
        if( glt_ind[ii]->beta_ind != NULL ){
-         for( jj=0 ; jj < nr ; jj++ )
+         for( jj=0 ; jj < nr ; jj++ ){
            EDIT_BRICK_LABEL( Rglt_dset , glt_ind[ii]->beta_ind[jj]-isub ,
                                            glt_ind[ii]->beta_lab[jj]  ) ;
            EDIT_BRICK_TO_NOSTAT( Rglt_dset , glt_ind[ii]->beta_ind[jj]-isub ) ;
+         }
        }
        if( glt_ind[ii]->ttst_ind != NULL ){
          for( jj=0 ; jj < nr ; jj++ ){
@@ -2521,10 +2523,11 @@ STATUS("setting up Rglt") ;
        if( glt_ind[ii] == NULL ) continue ;
        nr = glt_ind[ii]->nrow ;
        if( glt_ind[ii]->beta_ind != NULL ){
-         for( jj=0 ; jj < nr ; jj++ )
+         for( jj=0 ; jj < nr ; jj++ ){
            EDIT_BRICK_LABEL( Obuckt_dset , glt_ind[ii]->beta_ind[jj] ,
                                            glt_ind[ii]->beta_lab[jj]  ) ;
            EDIT_BRICK_TO_NOSTAT( Obuckt_dset , glt_ind[ii]->beta_ind[jj] ) ;
+         }
        }
        if( glt_ind[ii]->ttst_ind != NULL ){
          for( jj=0 ; jj < nr ; jj++ ){
@@ -2553,10 +2556,11 @@ STATUS("setting up Rglt") ;
        if( glt_ind[ii] == NULL ) continue ;  /* should not happen! */
        nr = glt_ind[ii]->nrow ;
        if( glt_ind[ii]->beta_ind != NULL ){
-         for( jj=0 ; jj < nr ; jj++ )
+         for( jj=0 ; jj < nr ; jj++ ){
            EDIT_BRICK_LABEL( Oglt_dset , glt_ind[ii]->beta_ind[jj]-isub ,
                                            glt_ind[ii]->beta_lab[jj]  ) ;
            EDIT_BRICK_TO_NOSTAT( Oglt_dset , glt_ind[ii]->beta_ind[jj]-isub ) ;
+         }
        }
        if( glt_ind[ii]->ttst_ind != NULL ){
          for( jj=0 ; jj < nr ; jj++ ){

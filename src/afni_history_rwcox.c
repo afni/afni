@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 5 , FEB , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "typo ==> DOF params for Full_Fstat weren't in output dataset" ,
+   NULL } ,
+
  { 2 , FEB , 2009 , RWC , "parser (calc programs)" , MINOR , TYPE_MODIFY ,
    "Add hrfbk4 and hrfbk5(t,T) functions to parser" ,
    "To imitate the BLOCK4 and BLOCK5 response functions in 3dDeconvolve." } ,
