@@ -1743,18 +1743,24 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 /* RBF stuff -- cf. mri_rbfinterp.c -- 05 Feb 2009 */
 
 typedef struct {
-  int nknot ;
+  int nknot , nfit ;             /* nfit = nknot by default */
   float rad  , rqq ;
   float xmid , ymid , zmid ;     /* middle of the knots */
   float xscl , yscl , zscl ;     /* scale reciprocal of the knots */
   float *xknot, *yknot, *zknot ; /* each is an nknot-long vector */
-  float *psmat ;                 /* (nknot+4) X (nknot+4) matrix */
+  float *xfit , *yfit , *zfit  ; /* each is an nfit-long vector */
+  float *psmat ;                 /* (nknot+4) X (nfit+4) matrix */
 } RBF_knots ;
 
 #undef  DESTROY_RBF_knots
-#define DESTROY_RBF_knots(rk)                 \
- do{ free((rk)->xknot) ; free((rk)->yknot) ;  \
-     free((rk)->zknot) ; free((rk)->psmat) ; free(rk) ; } while(0)
+#define DESTROY_RBF_knots(rk)                    \
+ do{ free((rk)->xknot) ; free((rk)->yknot) ;     \
+     free((rk)->zknot) ; free((rk)->psmat) ;     \
+     if( (rk)->xfit != NULL ) free((rk)->xfit) ; \
+     if( (rk)->yfit != NULL ) free((rk)->yfit) ; \
+     if( (rk)->zfit != NULL ) free((rk)->zfit) ; \
+     free(rk) ;                                  \
+ } while(0)
 
 typedef struct {
   int npt ;
@@ -1777,7 +1783,7 @@ typedef struct {
 typedef struct {
   int code ;
   float b0 , bx , by , bz ;
-  float *val ;
+  float *val ;              /* nfit of these */
 } RBF_evalues ;
 
 #undef  MAKE_RBF_evalues
@@ -1789,7 +1795,8 @@ typedef struct {
 #undef  DESTROY_RBF_evalues
 #define DESTROY_RBF_evalues(rv) do{ free((rv)->val); free(rv); } while(0)
 
-extern RBF_knots * RBF_setup_knots( int nk, float *xx, float *yy, float *zz ) ;
+extern RBF_knots * RBF_setup_knots( int nk, float *xx, float *yy, float *zz ,
+                                    int nf, float *xf, float *yf, float *zf  ) ;
 extern int RBF_setup_evalues( RBF_knots *rbk, RBF_evalues *rbe ) ;
 extern int RBF_evaluate( RBF_knots *, RBF_evalues *, RBF_evalgrid *, float * ) ;
 
