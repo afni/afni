@@ -1599,39 +1599,53 @@ SUMA_SegmentDO *SUMA_CreateSegmentDO(
    if (oriented) type = LS_type;
    else type = OLS_type;
    
-   SDO = SUMA_Alloc_SegmentDO(N_n, Label, oriented, Parent_idcode_str, NodeBased, type);
+   SDO = SUMA_Alloc_SegmentDO(N_n, Label, oriented, Parent_idcode_str, 
+                              NodeBased, type);
    if (idcode_str) SUMA_STRING_REPLACE(SDO->idcode_str, idcode_str);   
    SDO->NodeBased = NodeBased;
    SDO->Stipple = Stipple;
    SDO->LineWidth =LineWidth;
    if (LineCol) { for (i=0; i<4; ++i) SDO->LineCol[i] = LineCol[i]; }
-   else { SDO->LineCol[0] = 0.4; SDO->LineCol[1] = 0.8; SDO->LineCol[2] = 0.1; SDO->LineCol[3] = 1.0; }
+   else {   SDO->LineCol[0] = 0.4; SDO->LineCol[1] = 0.8; 
+            SDO->LineCol[2] = 0.1; SDO->LineCol[3] = 1.0; }
 
    if (NodeID) {
-      SDO->NodeID = (int *)SUMA_Copy_Part_Column((void*)NodeID, NI_rowtype_find_code(NI_INT), N_n, NULL, 0, &ncp);
+      SDO->NodeID = (int *)SUMA_Copy_Part_Column(
+                              (void*)NodeID, NI_rowtype_find_code(NI_INT), 
+                              N_n, NULL, 0, &ncp);
    } else SDO->NodeID = NULL;   
    if (NodeID1) {
-      SDO->NodeID1 = (int *)SUMA_Copy_Part_Column((void*)NodeID1, NI_rowtype_find_code(NI_INT), N_n, NULL, 0, &ncp);
+      SDO->NodeID1 = (int *)SUMA_Copy_Part_Column(
+                              (void*)NodeID1, NI_rowtype_find_code(NI_INT), 
+                              N_n, NULL, 0, &ncp);
    } else SDO->NodeID1 = NULL; 
    if (!n0) {
       SDO->n0 = NULL;
    } else {
-      SDO->n0 = (float *)SUMA_Copy_Part_Column((void *)n0,  NI_rowtype_find_code(NI_FLOAT), 3*N_n, NULL, 0, &ncp);
+      SDO->n0 = (float *)SUMA_Copy_Part_Column(
+                           (void *)n0,  NI_rowtype_find_code(NI_FLOAT), 
+                           3*N_n, NULL, 0, &ncp);
    }
    if (!n1) {
       SDO->n1 = NULL;
    } else {
-      SDO->n1 = (float *)SUMA_Copy_Part_Column((void *)n1,  NI_rowtype_find_code(NI_FLOAT), 3*N_n, NULL, 0, &ncp);
+      SDO->n1 = (float *)SUMA_Copy_Part_Column(
+                           (void *)n1,  NI_rowtype_find_code(NI_FLOAT), 
+                           3*N_n, NULL, 0, &ncp);
    }
    if (!colv) {
       SDO->colv = NULL;
    } else {
-      SDO->colv = (float *)SUMA_Copy_Part_Column((void *)colv,  NI_rowtype_find_code(NI_FLOAT), 4*N_n, NULL, 0, &ncp);
+      SDO->colv = (float *)SUMA_Copy_Part_Column(
+                           (void *)colv,  NI_rowtype_find_code(NI_FLOAT), 
+                           4*N_n, NULL, 0, &ncp);
    }
    if (!thickv) {
       SDO->thickv = NULL;
    } else {
-      SDO->thickv = (float *)SUMA_Copy_Part_Column((void *)thickv,  NI_rowtype_find_code(NI_FLOAT), N_n, NULL, 0, &ncp);
+      SDO->thickv = (float *)SUMA_Copy_Part_Column(
+                              (void *)thickv,  NI_rowtype_find_code(NI_FLOAT), 
+                              N_n, NULL, 0, &ncp);
    }
    
    SUMA_RETURN(SDO);
