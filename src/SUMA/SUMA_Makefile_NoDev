@@ -692,6 +692,6 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
    SpharmDeco SpharmReco SurfDist SumaProgramTemplate 
    
  
-anew: clean libSUMA.a mainobj suma standalones packbins install 
+anew: clean libSUMA.a mainobj suma standalones  install 
 
 testGL: SUMA_glxdino SUMA_paperplane SUMA_pixmap2eps

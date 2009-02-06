@@ -155,7 +155,8 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @SurfSmooth.HEAT_07.examples @SUMA_FSvolToBRIK @isOblique afni_run_R    \
           @GetAfniDims @GetAfniRes @NoisySkullStrip @statauxcode @ScaleVolume    \
           @ShowDynamicRange AFNI_Batch_R @DO.examples demo.fixed.niml.do       \
-          demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi
+          demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi \
+          @make_plug_diff
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py
@@ -2477,7 +2478,7 @@ suma_exec:libGLws.a libSUMA.a libmri.a xutil.o LiteClue.o parser.o parser_int.o 
    3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
    DriveSuma SurfDist SpharmReco SpharmDeco \
-   packbins 'INSTALLDIR=$(INSTALLDIR)' \
+   'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
