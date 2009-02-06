@@ -62,7 +62,11 @@
  " **** If you DO find AFNI useful, please cite this paper:\n"                 \
  "    RW Cox. AFNI: Software for analysis and visualization of\n"              \
  "    functional magnetic resonance neuroimages.\n"                            \
- "    Computers and Biomedical Research, 29:162-173, 1996.\n\n"
+ "    Computers and Biomedical Research, 29:162-173, 1996.\n\n"                \
+ " **** If you find SUMA useful, citing this paper also would be nice:\n"      \
+ "    ZS Saad, RC Reynolds, B Argall, S Japee, RW Cox.\n"                      \
+ "    2004 2nd IEEE International Symposium on Biomedical Imaging:\n"          \
+ "    Macro to Nano 2, 1510-1513, 2004.\n\n"
 #else
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
@@ -76,7 +80,11 @@
  " **** If you DO find AFNI useful, please cite this paper:\n"                 \
  "    RW Cox. AFNI: Software for analysis and visualization of\n"              \
  "    functional magnetic resonance neuroimages.\n"                            \
- "    Computers and Biomedical Research, 29:162-173, 1996.\n\n"
+ "    Computers and Biomedical Research, 29:162-173, 1996.\n\n"                \
+ " **** If you find SUMA useful, citing this paper also would be nice:\n"      \
+ "    ZS Saad, RC Reynolds, B Argall, S Japee, RW Cox.\n"                      \
+ "    2004 2nd IEEE International Symposium on Biomedical Imaging:\n"          \
+ "    Macro to Nano 2, 1510-1513, 2004.\n\n"
 #endif
 
 #ifdef AFNI_DEBUG
