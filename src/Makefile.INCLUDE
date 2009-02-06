@@ -1500,6 +1500,10 @@ mri_genalign_util.o:mri_genalign_util.c
 	$(RM) $@
 	$(CCOMP) -c mri_genalign_util.c $(INFLAGS)
 
+mri_rbfinterp.o:mri_rbfinterp.c
+	$(RM) $@
+	$(CCOMP) -c mri_rbfinterp.c $(INFLAGS)
+
 thd_correlate.o:thd_correlate.c
 	$(RM) $@
 	$(CCFAST) -c thd_correlate.c $(INFLAGS)
