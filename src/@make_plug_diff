@@ -1,0 +1,284 @@
+#!/bin/tcsh -f
+
+set sdir = $PWD
+
+if ("$1" =~ -h* || $# < 5) then
+	if ("$1" =~ "-comments") then
+      goto COMMENTS
+   endif
+   goto USAGE
+endif
+
+
+goto PARSE_COMMAND
+Ret_PARSE_COMMAND:
+
+
+
+CHECKS:
+if ( ! -d $pdd ) then
+   if ( -f $pdd.tar.gz ) then
+      set arch = $pdd.tar.gz
+   else if ( -f $pdd.tgz ) then
+      set arch = $pdd.tgz
+   else
+      set arch = $pdd.tar.gz
+      echo "Getting archive $arch"
+      wget http://afni.nimh.nih.gov/pub/dist/tgz/$arch
+      if ($status) then
+         set arch = $pdd.tgz
+         echo "Trying archive $arch"
+         wget http://afni.nimh.nih.gov/pub/dist/tgz/$arch
+         if ($status) then
+            echo "Failed to get archive"
+            goto END
+         endif
+      endif
+   endif
+   echo untarring archive $arch
+   tar xvzf $arch
+else
+   echo "Reusing existing $pdd"
+endif
+
+if ( ! -d $pdd ) then
+   echo "Could not find directory $pdd"
+   goto END
+endif
+
+if ( ! -d $asrc/$abin) then
+   echo "ABIN directory $asrc/$abin not found"
+   goto END
+endif
+
+#check for some content
+if ( ! -f $asrc/$abin/libmri.a) then
+   echo "ABIN directory $asrc/$abin does not have libmri.a"
+   goto END
+endif
+
+DEED:
+cd $sdir/$pdd
+
+if ($islinux) then
+   #remove no constant option, compiler does not get it
+   foreach fff (Makefile.in Makefiles/Makefile.common.in)
+   if ( ! -f $fff.orig) cp $fff $fff.orig
+      sed 's|-fno-const-strings||'  \
+                        $fff.orig 	> $fff
+   end
+   
+endif
+
+#Add #include <string.h>
+      ###@ is used a substitue for new line because \n does not work on 
+      ### all systems for substitution
+if ( ! -f vector/vrnd.c.orig ) cp  vector/vrnd.c vector/vrnd.c.orig
+   sed 's|#include .math.h.|#include <math.h>@#include <string.h>|' \
+      vector/vrnd.c.orig | tr "@" "\n" >  vector/vrnd.c
+
+#fix install dir
+if ( -f configure.orig.afni ) then
+   echo "Replacing configure with configure.orig.afni"
+   cp configure.orig.afni configure
+else
+   if ($islinux) then
+      echo "Warning: No configure.orig.afni found"
+      echo "vtk libs may not be located on linux"
+   endif
+endif
+if ( ! -f configure.orig ) cp configure configure.orig
+sed "s|INSTALL_DIR=|INSTALL_DIR=$abin #|" configure.orig > configure
+#run configure
+./configure --with-afni=$asrc $dvtkopt $dxmopt --with-libXm-include=$dxm/include
+
+#Add to compile lines
+if ( ! -f Makefiles/Makefile.common.orig)    \
+   cp Makefiles/Makefile.common Makefiles/Makefile.common.orig
+sed "s|CEXTRA =|CEXTRA = -DUSING_LESSTIF|" Makefiles/Makefile.common.orig | \
+	sed 's|IFLAGS = |IFLAGS = -I$(AFNI_PATH)/rickr |'	|	\
+	sed 's|LLIBS = |LLIBS = -lexpat |'  > Makefiles/Makefile.common
+	
+#Modify Makefile to remove X libs and add rickr to include path
+if ( ! -f Makefile.orig) cp Makefile Makefile.orig
+sed 's|{$LIBXM} -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lXft||'  \
+                  Makefile.orig 	|	\
+ 	sed 's|$(CXX) -c plug_diff.c|$(CXX) -c plug_diff.c -I$(AFNI_PATH)/rickr|' \
+                  > Makefile
+
+if (1) then
+      ###Note that \n does not work for sed on 
+      ### all systems. But there is no need for new line here 
+      ### although it looks ugly
+   if ( ! -f Makefile.orig.linux ) cp Makefile Makefile.orig.linux
+   sed 's|$(PLUGIN_LFLAGS) -o plug_diff.so|$(PLUGIN_LFLAGS) -o plug_diff.so d2a/PrintPfileHeaderSummary.o d2a/swap_header.o|' \
+         Makefile.orig.linux  | \
+      sed 's|$(CXX) -c plug_diff.c|cd d2a; make PrintPfileHeaderSummary.o swap_header.o; cd ../; $(CXX) -c plug_diff.c|'  \
+         > Makefile
+endif
+
+
+COMPILE:
+make
+if ($islinux) then
+   echo ""
+   echo "DO not forget to run:"
+   echo "chcon -t texrel_shlib_t $asrc/$abin/*.so"
+   echo ""
+   #Just do it....
+   chcon -t texrel_shlib_t $asrc/$abin/*.so
+endif
+
+goto END
+
+PARSE_COMMAND:
+	
+   #continue parsing for new options
+   set Narg = $#
+   set cnt = 1
+   set dvtk = ''
+   set xm = ''
+   set islinux = 0
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-vtk") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need vtk lib directory after -vtk"
+            goto END
+			else
+            @ cnt ++
+            set dvtk = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-xm") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need xm lib director after -xm"
+            goto END
+			else
+            @ cnt ++
+            set dxm = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-diff") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need the name of the diffusion plugin directory after -diff"
+            goto END
+			else
+            @ cnt ++
+            set pdd = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-asrc") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need the full path to afni src directory after -asrc"
+            goto END
+			else
+            @ cnt ++
+            set asrc = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-abin") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need the relative path to afni's bin directory after -abin"
+            goto END
+			else
+            @ cnt ++
+            set abin = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-linux") then
+         set islinux = 1
+         set donext = 0	
+      endif	
+      if ($donext && "$argv[$cnt]" == "-comments") then
+         goto COMMENTS
+         set donext = 0	
+      endif	
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+		@ cnt ++
+	end
+   if ("$dvtk" == "") then
+      set dvtkopt = ""
+   else
+      set dvtkopt = "--with-vtk=$dvtk"
+   endif
+   if ("$dxm" == "") then
+      set dxmopt = ""
+   else
+      set dxmopt = "--with-libXm-path=$dxm"
+   endif
+	goto Ret_PARSE_COMMAND
+
+USAGE:
+   echo ""
+   echo "Usage: `basename $0` -vtk VTKDIR -xm XMDIR -asrc ASRCDIR -abin ABINDIR "
+   echo "Compiles AFNI's diffusion plugin.  "
+   echo "I used it as a way to log what is needed to compile the plugin."
+   echo "We should work closely with Greg Balls and Larry Frank to make the"
+   echo "need for this script obsolete"
+   echo " Options:"
+   echo "   -comments: output comments only"
+   echo "   -linux: flag for doing linuxy things "
+   echo "   -vtk VTKDIR: Directory where vtk is installed"
+   echo "   -xm XMDIR: Directory where motif is installed"
+   echo "   -asrc ASRCDIR: Full path to AFNI's src/ directory "
+   echo "   -abin ABINDIR: Path, relative to ASRCDIR, to abin"
+   echo "   -diff DIFFDIR: name of directory containing diffusion code"
+   echo ""
+   echo "Sample compilation on GIMLI (OSX 10.5)"
+   echo "   @make_plug_diff         -vtk /sw    -xm /sw  \"
+   echo "                           -asrc /Users/ziad/b.AFNI.now/src \"
+   echo "                           -abin ../abin  -diff afni-diff-plugin-0.86"
+   echo ""
+   echo "Sample compilation on linux (FC 10)"
+   echo "   @make_plug_diff         -xm /usr -asrc /home/ziad/b.AFNI.now/src \"
+   echo "                           -abin ../abin -diff afni-diff-plugin-0.86 \"
+   echo "                           -linux"
+   echo ""
+
+   goto END
+
+COMMENTS:
+   echo ""
+   echo "Comments to Greg and Larry"
+   echo "1- Adding the following block to configure, allows us to specify abin"
+   echo "at configure time:"
+   echo '   # Check whether --with-afni-install-dir was given.'
+   echo '   if test "${with_afni_install_dir+set}" = set; then'
+   echo '     withval=$with_afni_install_dir; INSTALL_DIR=${withval}'
+   echo '   fi'
+   echo "2- We need to add to Makefiles/Makefile.common"
+   echo "   -DUSING_LESSTIF to CEXTRA variable"
+   echo '   -I$(AFNI_PATH)/rickr to IFLAGS variable'
+   echo "   -lexpat to LLIBS variable"
+   echo '3- In the top level Makefile, add -I$(AFNI_PATH)/rickr'
+   echo 'to the line beginning with:'
+   echo '   $(CXX) -c plug_diff.c ...'
+   echo "4- There is no need for  "
+   echo '   {$LIBXM} -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lXft'
+   echo "for LLIBS in the top-level Makefile"
+   echo "5- File vrnd.c needs #include <string.h>"
+   echo "Code related issues:"
+   echo "0- Best to use afni's allocation functions"
+   echo "1- Should use ENTRY(), RETURN(), and EXRETURN() macros"
+   echo "2- Configure needs an extra entry to check for vtk on some linux"
+   echo "   machines (We should have sent you a sample by now"
+   echo "3- What does #include "vector" do?"
+   echo ''
+   goto END
+END:
+cd $sdir
