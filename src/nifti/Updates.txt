@@ -89,4 +89,6 @@ Updated in version 1.1.0 August 28, 2008
 Recent Updates
 
     - RR added nifti_NBL_matches_nim() check for write_bricks()
+    - HJ added casts to suppress compiler warnings
+    - RR added NIFTI_ECODE_PYPICKLE
 
