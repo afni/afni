@@ -42,6 +42,13 @@ N.B.: At the end of this file is a list of several environment variables
       that affect the program 3dDeconvolve, rather than the interactive
       AFNI program itself.
 
+N.B.: If you set an AFNI environment variable on the command line, or
+      in a shell startup file (e.g., ~/.cshrc), and also have that
+      variable in your ~/.afnirc file, you will get a warning telling
+      you that the value in the ~/.afnirc file is being ignored.
+      To turn off these warnings, set environment variable
+      AFNI_ENVIRON_WARNINGS to NO.
+
 ********************************************************
 June 1999: Setting environment variables in file .afnirc
 ********************************************************
