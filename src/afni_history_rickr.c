@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, FEB, 2009, RCR, "NIFTI", MICRO, TYPE_MODIFY,
+   "added NIFTI_ECODE_PYPICKLE for MH; imported HJ's cast changes",
+   NULL
+ } ,
+
  { 5, FEB, 2009, RCR, "make_random_timing.py", MICRO, TYPE_MODIFY,
    "added timing_tool.py use to sort times in example #7",
    NULL
