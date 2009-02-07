@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.0,  Jan. 8, 2008")
+print("Version 1.0.1,  Feb. 6, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -645,24 +645,34 @@ pathList <- vector('list', nGrp)
 nROIsG <- vector('integer', nGrp)
 roiNames <- vector('list', nGrp)
 zList <- vector('list', nGrp)
+zMat <- vector('list', nGrp)
 
 pthType <- as.integer(readline("Input type (0: path coefficients; 1: path t values; 2: path F values)? "))
 
 for (ii in 1:nGrp) {
 	nSubjs[ii] <- as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", ii)))
 	pathList[[ii]] <- vector('list', nSubjs[ii])
-	pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList)[[2]]
-	nROIsG[ii] <- dim(pathList[[ii]])[1]
+	#pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList)[[2]]
+	pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList)
+	#nROIsG[ii] <- dim(pathList[[ii]])[1]
+	nROIsG[ii] <- dim(pathList[[ii]][[1]])[1]
 	if (ii>1) for (jj in 1:ii) if (nROIsG[jj]!=nROIsG[1]) {sprintf("Group %i has %i ROIs while group 1 has %i", jj, nROIsG[jj], nROIsG[1]); break}
-	roiNames[[ii]] <- names(pathList[[ii]])
+	roiNames[[ii]] <- names(pathList[[ii]][[1]])
 	if (ii>1) for (jj in 1:ii) if (!identical(roiNames[[ii]], roiNames[[1]])) {sprintf("Group %i has different ROI namess with group 1", jj, roiNames[[ii]]); break}
 	if (pthType==0) zList[[ii]] <- lapply(pathList[[ii]], fisherz) # sapply(pathList[[ii]], fisherz, simplify = FALSE)
-   if (pthType==1) zList[[ii]] <- lapply(pathList[[ii]], function(x) log(x^2))
-   if (pthType==2) zList[[ii]] <- lapply(pathList[[ii]], log)
+    if (pthType==1) zList[[ii]] <- lapply(pathList[[ii]], function(x) log(x^2))
+    if (pthType==2) zList[[ii]] <- lapply(pathList[[ii]], log)
+    zMat[[ii]] <- do.call(rbind, lapply(lapply(zList[[ii]], as.matrix), c))  # convert from list to matrix for easier handling when running 2-sample t-test
 }   
 
-# Instead of looping, we can also use the following aggregation approach
-resList <- apply(do.call(rbind, lapply(lapply(zList[[1]], as.matrix), c)), 2, t.test, do.call(rbind, lapply(lapply(zList[[2]], as.matrix), c)))
+# Instead of looping, we can also use the following aggregation approach: No, it doesn't work!!!
+# resList <- apply(do.call(rbind, lapply(lapply(zList[[1]], as.matrix), c)), 2, t.test, do.call(rbind, lapply(lapply(zList[[2]], as.matrix), c)))
+
+# two-sample t-test
+resList <- vector('list', nROIsG[1]^2)
+# want equal variance assumption, otherwise DF would be different from one test to another!
+for (ii in 1:nROIsG[1]^2) resList[[ii]] <- t.test(zMat[[1]][,ii], zMat[[2]][,ii], paired=FALSE, var.equal=TRUE)
+
 tList <- lapply(resList, function(x) as.numeric(x$statistic))
 pList <- lapply(resList, function(x) as.numeric(x$p.value))
 grpT <- matrix(unlist(tList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
