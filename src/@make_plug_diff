@@ -60,8 +60,9 @@ endif
 DEED:
 cd $sdir/$pdd
 
-if ($islinux) then
-   #remove no constant option, compiler does not get it
+if (1) then
+   #remove no constant option, gcc4.2 compiler does not get it
+   #gcc 4.0 is OK with it but it is not worth checking versions ...
    foreach fff (Makefile.in Makefiles/Makefile.common.in)
    if ( ! -f $fff.orig) cp $fff $fff.orig
       sed 's|-fno-const-strings||'  \
