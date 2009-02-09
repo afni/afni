@@ -324,6 +324,7 @@ typedef struct {
 
 extern void ISQ_montage_CB( Widget , XtPointer , XtPointer ) ;
 extern void ISQ_montage_action_CB( Widget , XtPointer , XtPointer ) ;
+extern void ISQ_set_anim_dup( int ) ;  /* 09 Feb 2009 */
 
 /*------------- the central data type -------------*/
 
