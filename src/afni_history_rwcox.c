@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , FEB , 2009 , RWC , "imseq.c" , MINOR , TYPE_NEW_ENV ,
+   "Add AFNI_ANIM_DUP environment variable." ,
+   "Allows user to duplicate images when writting an animation (AGIF or\n"
+   "MPEG) file.  A simple and stoopid way to slow down an MPEG." } ,
+
  { 5 , FEB , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
    "typo ==> DOF params for Full_Fstat weren't in output dataset" ,
    NULL } ,

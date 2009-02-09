@@ -480,6 +480,11 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_IMAGE_TICK_DIV_IN_MM" ,
                   "Image tick divisions count is in mm?" ) ;
 
+   /* 09 Feb 2009 [RWCox] */
+   ENV_add_numeric( "AFNI_ANIM_DUP" ,
+                    "Duplication factor for MPEG save" ,
+                    1,99,0,1 , NULL ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
