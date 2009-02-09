@@ -1645,15 +1645,29 @@ family the overlay is to be mapped onto.
 Variable: AFNI_AGIF_DELAY
 -------------------------
 This is the time delay between frames when writing an animated GIF file from
-an image viewer window.  The units are 100ths of seconds; the default value
-is 20 (= 5 frames per second).
+an image viewer window.  The units are 100ths of seconds (centi-seconds!);
+the default value is 20 (= 5 frames per second).
 
 -----------------------------
 Variable: AFNI_MPEG_FRAMERATE
 -----------------------------
 This value sets the frame rate (per second) of the MPEG-1 output animation
 from the image viewer window.  The legal values allowed by MPEG-1 are
-24, 25, 30, 50, and 60; 24 is the default.
+24, 25, 30, 50, and 60; 24 (the slowest) is the default.  Note that the
+MPEG-1 standard does NOT allow arbitrary framerates, only these listed.
+To further slow down an MPEG-1 animation in AFNI, use the AFNI_ANIM_DUP
+variable, described below.
+
+-----------------------
+Variable: AFNI_ANIM_DUP (editable)
+-----------------------
+This value sets the frame duplication factor for AGIF or MPEG animation
+output.  If this value 'd' is between 1 and 99, then each frame (image)
+will be written out 'd' times before being incorporated into the
+movie file.  Note that AFNI_AGIF_DELAY can be used to slow down an
+AGIF file more efficiently, but that there is no other way (within AFNI)
+to slow down an MPEG file.  (Some MPEG movie players will let you slow
+down the animation, but that's outside of AFNI's control.)
 
 -----------------------------
 Variable: AFNI_STARTUP_SCRIPT
