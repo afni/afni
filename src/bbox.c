@@ -513,23 +513,26 @@ ENTRY("new_MCW_arrowval") ;
 
    if( label != NULL && strlen(label) > 0 ){
       XmString   xstr = XmStringCreateLtoR( label , XmFONTLIST_DEFAULT_TAG );
-      XmFontList xflist ;
+      XmFontList xflist = (XmFontList)NULL ;
 
       STATUS("creating wlabel") ;
       av->wlabel = XtVaCreateManagedWidget(
                     "dialog" , xmLabelWidgetClass , av->wrowcol ,
-
                        XmNlabelString   , xstr  ,
                        XmNrecomputeSize , False ,
                        XmNmarginWidth   , 0     ,
-
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
       XtVaGetValues( av->wlabel , XmNfontList , &xflist , NULL ) ;
 
       STATUS("getting label height") ;
-      asizy = XmStringHeight( xflist , xstr ) ;
+      if( xflist != (XmFontList)NULL ){
+        asizy = XmStringHeight( xflist , xstr ) ;
+      } else {
+        static first = 1 ;
+        if( first ){ ERROR_message("Can't get font list?"); first=0; }
+      }
       STATUS("freeing xstr") ;
       XmStringFree( xstr ) ;
 
@@ -965,6 +968,7 @@ ENTRY("refit_MCW_optmenu") ;
 
    /** create buttons anew **/
 
+   STATUS("create buttons anew") ;
    for( ival=minval ; ival <= maxval ; ival++ ){
 
       ic = ival - minval ;           /* index into widget list */
@@ -993,14 +997,20 @@ ENTRY("refit_MCW_optmenu") ;
          ival_old = (int) user_old ;
 
          if( ival_old != ival || XmStringCompare(xstr_old,xstr) != True ){
+            STATUS("setting label in recycled button") ;
             XtVaSetValues( wbut ,
                               XmNlabelString , xstr ,             /* change label */
                               XmNuserData    , (XtPointer) ival , /* Who am I? */
                            NULL ) ;
          }
+#if 1
+         STATUS("freeing xstr_old") ;
          XmStringFree( xstr_old ) ;
+#endif
+         STATUS("managing child") ;
          XtManageChild( wbut ) ;    /* if not now managed */
       } else {
+         STATUS("setting up new button") ;
          wbut = XtVaCreateManagedWidget(
                    "dialog" , xmPushButtonWidgetClass , wmenu ,
                      XmNlabelString  , xstr ,
@@ -1017,21 +1027,27 @@ ENTRY("refit_MCW_optmenu") ;
          XtAddCallback( wbut , XmNactivateCallback , AVOPT_press_CB , av ) ;
       }
 
+      STATUS("freeing xstr") ;
       XmStringFree(xstr) ; myXtFree(butlabel) ;
 
-      if( ival == inival )
-         XtVaSetValues( av->wrowcol ,  XmNmenuHistory , wbut , NULL ) ;
+      if( ival == inival ){
+        STATUS("setting menu history") ;
+        XtVaSetValues( av->wrowcol ,  XmNmenuHistory , wbut , NULL ) ;
+      }
    }
 
    /** Unmanage extra children from an old incarnation **/
 
    ic = maxval-minval+1 ;  /* first child after those used above */
 
-   if( ic < num_children )
-      XtUnmanageChildren( children + ic , num_children - ic ) ;
+   if( ic < num_children ){
+     STATUS("unmanaging unused children") ;
+     XtUnmanageChildren( children + ic , num_children - ic ) ;
+   }
 
    /** set number of columns to see **/
 
+   STATUS("set number of columns") ;
    AVOPT_columnize( av , 1+(maxval-minval)/COLSIZE ) ;
 
 #if 0

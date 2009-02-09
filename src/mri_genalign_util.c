@@ -36,7 +36,7 @@ MRI_IMAGE * GA_smooth( MRI_IMAGE *im , int meth , float rad )
 {
    MRI_IMAGE *om=NULL ;
 
-   ENTRY("GA_smooth") ;
+ENTRY("GA_smooth") ;
 
    if( im == NULL || rad <= 0.0f ) RETURN(NULL) ;
 

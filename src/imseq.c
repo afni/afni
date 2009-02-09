@@ -3257,6 +3257,9 @@ ENTRY("ISQ_but_cswap_CB") ;
    image saving options
 ---------------------------------------------------------------------*/
 
+static int ISQ_anim_dup = 0 ;
+void ISQ_set_anim_dup( int ii ){ ISQ_anim_dup = ii ; }
+
 void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    MCW_imseq *seq = (MCW_imseq *) cd ;
@@ -3267,6 +3270,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
    char tsuf[8] ;                     /* 09 Dec 2002 */
    float dx,dy ;                      /* 08 Jun 2004 */
    int dbg ;                          /* 03 Sep 2004 */
+   int adup=1 , akk,aa ;              /* 09 Feb 2009 */
 
 #ifndef DONT_USE_METER
 #  define METER_MINCOUNT 20
@@ -3558,14 +3562,17 @@ ENTRY("ISQ_saver_CB") ;
      tsuf[1] = (lrand48()>>5)%26 + 'A' ;   /* for animation */
      tsuf[2] = (lrand48()>>5)%26 + 'A' ;   /* temp files    */
      tsuf[3] = '\0' ;
-     if( dbg ) fprintf(stderr,"IMSAVE: animation suffix='%s'\n",tsuf) ;
+     adup = (ISQ_anim_dup > 0) ? ISQ_anim_dup : AFNI_numenv("AFNI_ANIM_DUP") ;
+     if( adup <= 0 ) adup = 1 ; else if( adup > 99 ) adup = 99 ;
+     if( dbg ) fprintf(stderr,"IMSAVE: animation suffix='%s' adup=%d\n",tsuf,adup) ;
    } else {
      tsuf[0] = '\0' ;                      /* not used */
+     adup    = 1 ;
    }
 
 #ifdef USE_GIFF          /* create the fixed GIF colormap for animations */
    if( DO_AGIF(seq) ){
-     MRI_IMAGE *im = mri_colorsetup( 76 , 6,6,5 ); /* 76 grays + */
+     MRI_IMAGE *im = mri_colorsetup( 76 , 6,6,5 ); /* 76 gray levels + */
      remove( GIFF_MAPFILE ) ;                     /* 6*red X 6*green X 5*blue */
      mri_write_pnm( GIFF_MAPFILE , im ) ;
      mri_free( im ) ;
@@ -3574,7 +3581,7 @@ ENTRY("ISQ_saver_CB") ;
 
    /*---- loop thru, get images, save them ----*/
 
-   for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
+   for( akk=0,kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
 
       /* get the underlay image */
 
@@ -3650,6 +3657,7 @@ ENTRY("ISQ_saver_CB") ;
          }
 
 /* INFO_message("AFNI_IMAGE_SAVESQUARE = %s",getenv("AFNI_IMAGE_SAVESQUARE")); */
+
          if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){   /* 08 Jun 2004 */
            flim->dx = seq->last_dx ; flim->dy = seq->last_dy ;
            if( dbg ) fprintf(stderr,"  square-ize aspect ratio\n") ;
@@ -3729,55 +3737,57 @@ ENTRY("ISQ_saver_CB") ;
 
          /* create the filter command into string 'filt' */
 
-         if( !DO_ANIM(seq) ){                          /* arbitrary filtering */
-           sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
-           sprintf( filt , ppmto_filter[ff] , fname ) ;
-         } else if( DO_AGIF(seq) ){                    /* use the gif filter */
-           sprintf( fname, "%s%s.%05d.gif" , seq->saver_prefix,tsuf, kf) ;
+         for( aa=0 ; aa < adup ; aa++,akk++ ){ /* adup==1 if no animation */
+           if( !DO_ANIM(seq) ){                          /* arbitrary filtering */
+             sprintf( fname, "%s%04d.%s", seq->saver_prefix, kf, ppmto_suffix[ff] ) ;
+             sprintf( filt , ppmto_filter[ff] , fname ) ;
+           } else if( DO_AGIF(seq) ){                    /* use the gif filter */
+             sprintf( fname, "%s%s.%05d.gif" , seq->saver_prefix,tsuf, akk) ;
 #ifndef USE_GIFF
-           sprintf( filt , ppmto_gif_filter  , fname ) ;  /* free colormap */
+             sprintf( filt , ppmto_gif_filter  , fname ) ;  /* free colormap */
 #else
-           sprintf( filt , ppmto_giff_filter , fname ) ;  /* fixed colormap */
+             sprintf( filt , ppmto_giff_filter , fname ) ;  /* fixed colormap */
 #endif
-           if( agif_list == NULL ) INIT_SARR(agif_list) ;
-           ADDTO_SARR(agif_list,fname) ;
-         } else if( DO_MPEG(seq) ){                    /* use the ppm filter */
-           sprintf( fname, "%s%s.%05d.ppm" , seq->saver_prefix,tsuf, kf) ;
-           sprintf( filt , ppmto_ppm_filter , fname ) ;
-           if( agif_list == NULL ) INIT_SARR(agif_list) ;
-           ADDTO_SARR(agif_list,fname) ;
-         }
+             if( agif_list == NULL ) INIT_SARR(agif_list) ;
+             ADDTO_SARR(agif_list,fname) ;
+           } else if( DO_MPEG(seq) ){                    /* use the ppm filter */
+             sprintf( fname, "%s%s.%06d.ppm" , seq->saver_prefix,tsuf, akk) ;
+             sprintf( filt , ppmto_ppm_filter , fname ) ;
+             if( agif_list == NULL ) INIT_SARR(agif_list) ;
+             ADDTO_SARR(agif_list,fname) ;
+           }
 #ifndef CYGWIN
-         signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
+           signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
 #endif
-         if( dbg ) fprintf(stderr,"  piping image to '%s'\n",filt) ;
-         fp = popen( filt , "w" ) ;                    /* open pipe to filter */
-         if( fp == NULL ){
-           fprintf(stderr,"** Can't open output filter %s\n",filt) ;
-           continue ;  /* loop over files */
-         }
+           if( dbg ) fprintf(stderr,"  piping image to '%s'\n",filt) ;
+           fp = popen( filt , "w" ) ;                    /* open pipe to filter */
+           if( fp == NULL ){                             /* should not happen */
+             ERROR_message("Can't open output filter %s",filt) ;
+             break ;  /* out of loop over aa */
+           }
 
-         /* write RGB image to pipe as a PPM file */
+           /* write RGB image to pipe as a PPM file */
 
-         fprintf(fp,"P6\n%d %d\n255\n" , nx,ny ) ;
-         fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
-         pc = pclose(fp) ;
-         if( pc == -1 ) perror("Error in image output pipe") ;
-         if( dbg ) fprintf(stderr,"  pipe done\n") ;
+           fprintf(fp,"P6\n%d %d\n255\n" , nx,ny ) ;
+           fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
+           pc = pclose(fp) ;
+           if( pc == -1 ) perror("Error in image output pipe") ;
+           if( dbg ) fprintf(stderr,"  pipe done\n") ;
+         } /* loop over aa = image duplicates for animations */
 
          /* done with this image */
 
          mri_free(flim) ; flim = NULL ;
 
          /* 27 Jul 2001: if doing animation,
-                         and if at last image, then create result */
+                         and if at final image, then create result */
 
          if( kf == seq->saver_to && agif_list != NULL ){
 
             int af ;
 
             if( agif_list->num == 0 ){
-               fprintf(stderr,"** Can't save animation: no images in list!\n");
+               ERROR_message("Can't save animation: no images in list!");
                goto AnimationCleanup ;
             }
 
@@ -3785,16 +3795,15 @@ ENTRY("ISQ_saver_CB") ;
 
             if( DO_AGIF(seq) ){
                int alen ; char *alc , *alf , *oof ;
-
 #ifdef USE_GIFF
                remove( GIFF_MAPFILE ) ;   /* don't need this any longer */
 #endif
 
                for( alen=af=0 ; af < agif_list->num ; af++ ) /* size of all */
-                  alen += strlen( agif_list->ar[af] ) ;      /* filenames  */
+                  alen += strlen( agif_list->ar[af] ) ;      /* filename strings */
 
                alen += 3*agif_list->num + 32 ;               /* all filenames */
-               alc = AFMALL ( char, alen) ; alc[0] = '\0' ;          /* in one string */
+               alc = AFMALL ( char, alen) ; alc[0] = '\0' ;  /* in one string */
                for( alen=af=0 ; af < agif_list->num ; af++ ){
                  strcat(alc," ") ; strcat(alc,agif_list->ar[af]) ;
                }
@@ -3848,10 +3857,10 @@ ENTRY("ISQ_saver_CB") ;
                           "BSEARCH_ALG       SIMPLE\n"
                           "REFERENCE_FRAME   ORIGINAL\n"
                           "INPUT\n"
-                          "%s%s.*.ppm [%05d-%05d]\n"  /* prefix, tsuf, from, to */
+                          "%s%s.*.ppm [%06d-%06d]\n"  /* prefix, tsuf, from, to */
                           "END_INPUT\n"
                        , oof , frate , pattrn , qscale ,
-                         seq->saver_prefix,tsuf,seq->saver_from,seq->saver_to ) ;
+                         seq->saver_prefix,tsuf,0,akk-1 ) ;
                fclose(fpar) ;
 
                /* make command to run */
@@ -3867,7 +3876,7 @@ ENTRY("ISQ_saver_CB") ;
             /* animation is done, for good or for ill */
 
             for( af=0 ; af < agif_list->num ; af++ )  /* erase temp files */
-               unlink( agif_list->ar[af] ) ;
+              remove( agif_list->ar[af] ) ;
 
           AnimationCleanup:
             DESTROY_SARR(agif_list) ;                 /* free more trash */
@@ -10087,8 +10096,8 @@ ENTRY("ISQ_record_button") ;
    /*-- top of menu = a label to click on that does nothing at all --*/
 
    /* This --- Cancel --- label does not cause the hangup, so it is
-   left alone. See related comments in afni_graph.c            
-                           LessTif patrol, Jan 07 09 */
+   left alone. See related comments in afni_graph.c LessTif patrol, Jan 07 09 */
+
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
    (void) XtVaCreateManagedWidget(
             "menu" , xmLabelWidgetClass , menu ,
