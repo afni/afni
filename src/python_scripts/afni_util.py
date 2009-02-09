@@ -623,6 +623,19 @@ def lists_are_same(list1, list2):
 
    return 1
 
+def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
+   """return a string to display the floats:
+        vals    : the list of float values
+        nchar   : [7] number of characters to display per float
+        ndec    : [3] number of decimal places to print to
+        nspaces : [2] number of spaces between each float
+   """
+
+   str = ''
+   for val in vals: str += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
+
+   return str
+
 # ----------------------------------------------------------------------
 # matematical functions
 

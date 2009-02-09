@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 9, FEB, 2009, RCR, "xmat_tool.py", MINOR, TYPE_MODIFY,
+   "random updates, plus those for Fedora 10",
+   NULL
+ } ,
+
+ { 9, FEB, 2009, RCR, "python-general", MICRO, TYPE_GENERAL,
+   "added new beginning-stage libraries lib_matplot.py and lib_wx.py",
+   NULL
+ } ,
+
  { 6, FEB, 2009, RCR, "NIFTI", MICRO, TYPE_MODIFY,
    "added NIFTI_ECODE_PYPICKLE for MH; imported HJ's cast changes",
    NULL

@@ -19,7 +19,7 @@ class AfniXmat:
 
             init from filename or matrix,
                 filename    : 1D file to read in as matrix
-                from_mat    : use matrix for initialization
+                from_mat    : use matrix for initialization (numpy or [])
                 matrix      : Numpy matrix to use if from_mat is set
                 verb        : verbose level of operations
 
@@ -618,19 +618,21 @@ class AfniXmat:
         return [val for val in range(self.ncols) if val in cols]
 
     def init_from_matrix(self, matrix):
-        """initialize AfniXmat from a Numpy matrix"""
-        try: shape = list(matrix.shape)
-        except:
-            print '** matrix for init must be Numpy of format'
+        """initialize AfniXmat from a Numpy matrix or 2D array"""
+        if type(matrix) == type([]):        mat = N.array(matrix)
+        elif isinstance(matrix, N.ndarray): mat = matrix
+        else:
+            print '** matrix for init must be Numpy or [[float]] format'
             return 1
+        shape = list(mat.shape)
         if len(shape) < 1 or len(shape) > 2:
             print '** cannot init AfniXmat from %d-D matrix' % len(shape)
             return 1
 
-        if len(shape) == 1: matrix.shape = (shape[0], 1)
+        if len(shape) == 1: mat.shape = (shape[0], 1)
 
-        self.mat = matrix
-        self.nrows, self.ncols = matrix.shape
+        self.mat = mat
+        self.nrows, self.ncols = mat.shape
         self.ready = 1
 
     def init_from_1D(self, fname):
