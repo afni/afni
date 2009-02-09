@@ -4,7 +4,7 @@ import sys
 
 # verify system libraries
 import module_test_lib
-g_testlibs = ['os', 'gc', 'numpy', 'wx', 'matplotlib']
+g_testlibs = ['os', 'time', 'gc', 'numpy', 'wx', 'matplotlib']
 if module_test_lib.num_import_failures(g_testlibs,details=0):
    print """
      -- for details, consider xmat_tool -test_libs
@@ -13,7 +13,7 @@ if module_test_lib.num_import_failures(g_testlibs,details=0):
    """
    sys.exit(1)
 
-import os, gc
+import os, gc, time
 
 import numpy as N
 
@@ -573,7 +573,8 @@ class MainFrame(wx.Frame):
          self.popup_warning("no columns chosen for X matrix")
          return
 
-      self.plotx_frame = CanvasFrame(title='X-matrix', as_one=self.plot_as_one)
+      self.plotx_frame = CanvasFrame(title='X-matrix', as_one=self.plot_as_one,
+                                     verb=self.XM.verb)
       self.plotx_cols  = cols           # keep track of what was used
 
       self.plotx_frame.Show(True)
@@ -614,7 +615,8 @@ class MainFrame(wx.Frame):
 
       if self.XM.verb > 1: print '++ showing fit plot'
 
-      self.plotfit_frame = CanvasFrame(title='fit time series')
+      self.plotfit_frame = CanvasFrame(title='fit time series',
+                                       verb=self.XM.verb)
       self.plotfit_redo = 0
 
       self.plotfit_frame.Show(True)
@@ -645,7 +647,7 @@ class MainFrame(wx.Frame):
 
       if self.XM.verb > 1: print '++ showing 1D plot'
 
-      self.plot1D_frame = CanvasFrame(title='1D time series')
+      self.plot1D_frame = CanvasFrame(title='1D time series',verb=self.XM.verb)
       self.plot1D_redo = 0
 
       self.plot1D_frame.Show(True)
@@ -1183,13 +1185,15 @@ class MatGrid(wx.grid.Grid):
 # This canvas is only used for plotting graphs of matrices.
 
 class CanvasFrame(wx.Frame):
-   def __init__(self, title='', as_one=0):
+   def __init__(self, title='', as_one=0, verb=1):
       wx.Frame.__init__(self, None, -1, title, size=(400,300))
+      self.verb   = verb
       self.figure = Figure()
       self.canvas = FigureCanvas(self, -1, self.figure)
       self.sizer = wx.BoxSizer(wx.VERTICAL)
       self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
       self.SetSizer(self.sizer)
+      self.Fit()
 
       self.canvas.mpl_connect('key_press_event', self.cb_keypress)
       self.as_one  = as_one
@@ -1269,17 +1273,57 @@ class CanvasFrame(wx.Frame):
          else:               ax.set_xlabel('TRs')
 
          if labels:
-            if nmats > 3:
+            if nmats > 1:
                ax.set_ylabel('%-*s ' % (maxlen,labels[ind]),
                              rotation='horizontal')
-               pl, pb, pw, ph = ax.get_position()
-               ax.set_position((0.2, pb, pw, ph))
-            else: ax.set_ylabel('%s' % labels[ind])
+               rv, plist = self.axis_posn(ax)
+               if rv == 0: ax.set_position((0.15, plist[1], 0.7, 0.7/nmats))
+            else:
+               ax.set_ylabel('%s' % labels[ind])
+               ax.set_position((0.15, 0.2, 0.7, 0.7))
 
-      self.Fit()
       self.canvas.draw()
 
       matplotlib.rcParams['lines.linewidth'] = 1   # reset
+
+   def axis_posn(self, ax):
+      """return error code, posn array"""
+
+      # first attempt is to look for simple array return
+      try: posn = ax.get_position()
+      except:
+         if self.verb > 1: print '** failed ax.get_position()'
+         return 1, None
+
+      # have list, ready for some return
+      if type(posn) == type([]):
+         if len(posn) < 4:
+            if self.verb > 1:
+               print '** get_position returns len %d list' % len(posn)
+            return 1, None
+         if self.verb > 2: print '-- get_position returns list %s' % \
+                         UTIL.float_list_string(posn)
+         return 0, posn
+
+      # no list, assume Bbox and expect get_points() to return 2x2 numpy array
+      try: plist = posn.get_points()
+      except:
+         if self.verb > 1: print '** failed posn.get_points()'
+         return 1, None
+
+      if type(plist) != type(N.array([])):
+         if self.verb > 1: print '** posn.get_points() does not return N.array?'
+         return 1, None
+
+      try: pnlist = [plist[0][0], plist[0][1], plist[1][0], plist[1][1]]
+      except:
+         if self.verb > 1: print '** bad plist shape %s' % plist.shape
+         return 1, None
+
+      if self.verb > 2: print '-- get_position returns Bbox list: %s' % \
+                        UTIL.float_list_string(pnlist)
+
+      return 0, pnlist
 
    def plot_mat_by_cols(self, amat, cols):
 
@@ -1359,8 +1403,10 @@ class CanvasFrame(wx.Frame):
          if self.as_one: ax.set_ylabel('')
          elif amat.labels:
             ax.set_ylabel('%-*s ' % (maxlen,labels[i]), rotation='horizontal')
-            pl, pb, pw, ph = ax.get_position()
-            ax.set_position((0.2, pb, pw, ph))
+            rv, plist = self.axis_posn(ax)
+            # rcr - fix
+            #if rv == 0: ax.set_position((0.2, plist[1], plist[2], plist[3]))
+            if rv == 0: ax.set_position((0.15, plist[1], 0.7, 0.7/ncols))
 
       self.Fit()
       self.canvas.draw()
