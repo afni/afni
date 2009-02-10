@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , FEB , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
+   "fixed premature mask free-ing bug" ,
+   NULL } ,
+
  { 9 , FEB , 2009 , RWC , "imseq.c" , MINOR , TYPE_NEW_ENV ,
    "Add AFNI_ANIM_DUP environment variable." ,
    "Allows user to duplicate images when writting an animation (AGIF or\n"

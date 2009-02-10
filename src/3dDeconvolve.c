@@ -7618,8 +7618,9 @@ int main
   /*----- Deallocate memory for input datasets -----*/
   if (dset_time != NULL)
     { THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL; }
-  if (mask_vol != NULL)
-    { free (mask_vol);  mask_vol = NULL; }
+#if 0
+  if (mask_vol != NULL){ free (mask_vol); mask_vol = NULL; }
+#endif
 
 
   /*----- Write requested output files -----*/
