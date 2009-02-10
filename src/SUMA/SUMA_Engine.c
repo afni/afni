@@ -2635,13 +2635,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetRecorderCont:
             /* expects a ngr */
             if (EngineData->ngr_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n"
-                                    "Have %d \n",FuncName, NextCom, NextComCode, EngineData->ngr_Dest);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n"
+                        "Have %d \n",
+                        FuncName, NextCom, NextComCode, EngineData->ngr_Dest);
                break;
             }
             {
                char *stmp=NULL, *sname=NULL;
                int ifrom = -1, ito = -1, NoTsEt = -999999;
+               if (NI_get_attribute(EngineData->ngr, "Anim_Dup")) {
+                  NI_GET_INT(EngineData->ngr,"Anim_Dup", itmp);
+                  if (!NI_GOT || itmp < 0) {
+                     itmp = 0;
+                  }
+                  SUMA_LHv("Going for %d\n", itmp);
+                  ISQ_set_anim_dup(itmp);
+               }
                if (NI_get_attribute(EngineData->ngr, "Save_As")) {
 
                   #if 1
@@ -2675,14 +2685,16 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      if (SUMA_IMG_EXT(fn->Ext)) {
                         ifrom = -1; ito = 0;/* nothing set, save last one */
                      } else if (SUMA_ANIM_EXT(fn->Ext)) {
-                        ifrom = 0; ito = 0;/* nothing set, save all in animation */
+                        ifrom = 0; ito = 0;
+                           /* nothing set, save all in animation */
                      } else {
                         SUMA_S_Errv("No support for extension %s\n", fn->Ext);
                         goto CLEAN_RECORDER_CONT;
                      }
                   }
                   if (ito == NoTsEt || ifrom == NoTsEt) {
-                     SUMA_S_Errv("Erreur! Horreur! ito=%d, ifrom=%d (NotSet=%d)\n", ito, ifrom , NoTsEt);
+                     SUMA_S_Errv("Erreur! Horreur! ito=%d, ifrom=%d"
+                                 " (NotSet=%d)\n", ito, ifrom , NoTsEt);
                      goto CLEAN_RECORDER_CONT;
                   }
                   #else
@@ -2721,15 +2733,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      }
                   }
                   #endif
-                  if (ifrom > ito && ito > 0) { /* note that negative indices are OK, see ISQ_save_anim */
+                  if (ifrom > ito && ito > 0) { 
+                     /* note that negative indices are OK, see ISQ_save_anim */
                      SUMA_S_Errv("Error: ifrom=%d > ito=%d\n", ifrom, ito);
                      goto CLEAN_RECORDER_CONT;
                   }
-                  if (SUMA_iswordsame_ci(fn->Ext,".agif") || SUMA_iswordsame_ci(fn->Ext,".gif")) {
+                  if (  SUMA_iswordsame_ci(fn->Ext,".agif") || 
+                        SUMA_iswordsame_ci(fn->Ext,".gif")) {
                      ISQ_snap_agif_rng(sname, ifrom, ito);
-                  } else if (SUMA_iswordsame_ci(fn->Ext,".mpeg") || SUMA_iswordsame_ci(fn->Ext,".mpg")) {
+                  } else if ( SUMA_iswordsame_ci(fn->Ext,".mpeg") || 
+                              SUMA_iswordsame_ci(fn->Ext,".mpg")) {
                      ISQ_snap_mpeg_rng(sname, ifrom, ito);
-                  } else if (SUMA_iswordsame_ci(fn->Ext,".jpeg") || SUMA_iswordsame_ci(fn->Ext,".jpg")) {
+                  } else if ( SUMA_iswordsame_ci(fn->Ext,".jpeg") || 
+                              SUMA_iswordsame_ci(fn->Ext,".jpg")) {
                      ISQ_snap_jpeg_rng(sname, ifrom, ito);
                   } else if (SUMA_iswordsame_ci(fn->Ext,".png") ) {
                      ISQ_snap_png_rng(sname, ifrom, ito);
