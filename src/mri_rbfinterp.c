@@ -107,8 +107,8 @@ ENTRY("RBF_evaluate") ;
 
 /*----------------------------------------------------------------------------*/
 /*! Setup the particular values from which to interpolate RBF-wise;
-    that is, convert them from values at each knot to the weights used
-    for the RBF centered at each knot (plus the linear polynomial).
+    that is, convert them from values at each fit point to the weights 
+    used for the RBF centered at each knot (plus the linear polynomial).
     Return value is 0 if bad things happened, 1 if good things happened.
 *//*--------------------------------------------------------------------------*/
 
