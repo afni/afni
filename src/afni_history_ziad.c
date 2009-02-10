@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 10 , FEB , 2009 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT ,
+   "Added -anim_dup to slow down movies",
+   NULL
+ } ,
+
  { 3 , FEB , 2009 , ZSS , "suma" , MICRO , TYPE_BUG_FIX ,
    "No longer crashes with old format ROIs",
    NULL
