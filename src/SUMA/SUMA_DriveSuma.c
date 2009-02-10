@@ -29,61 +29,61 @@ static char uDS_show_surf[]={
                "                       -i_fs CreateIco_surf.asc\n"
 };
 static char uDS_node_xyz[]={
-               "        ConvertSurface -i_fs CreateIco_surf.asc \\\n"
-               "                       -o_1D radcoord radcoord \\\n"
-               "                       -radial_to_sphere 100\n"
-               "        DriveSuma -com node_xyz -label icoco \\\n"
-               "                       -xyz_1D radcoord.1D.coord'[0,1,2]'\n"
-               "        1deval -a radcoord.1D.coord'[0]' -expr 'sin(a)*100' \\\n"
-               "            > xmess.1D ;1dcat xmess.1D radcoord.1D.coord'[1,2]' \\\n"
-               "            > somecoord.1D.coord ; rm xmess.1D\n"
-               "        DriveSuma -com node_xyz -label icoco \\\n"
-               "                       -xyz_1D somecoord.1D.coord\n"
+"        ConvertSurface -i_fs CreateIco_surf.asc \\\n"
+"                       -o_1D radcoord radcoord \\\n"
+"                       -radial_to_sphere 100\n"
+"        DriveSuma -com node_xyz -label icoco \\\n"
+"                       -xyz_1D radcoord.1D.coord'[0,1,2]'\n"
+"        1deval -a radcoord.1D.coord'[0]' -expr 'sin(a)*100' \\\n"
+"            > xmess.1D ;1dcat xmess.1D radcoord.1D.coord'[1,2]' \\\n"
+"            > somecoord.1D.coord ; rm xmess.1D\n"
+"        DriveSuma -com node_xyz -label icoco \\\n"
+"                       -xyz_1D somecoord.1D.coord\n"
 };
 static char uDS_viewer_cont[]={
-               "       DriveSuma -com  viewer_cont -key R -key ctrl+right\n"
-               "       DriveSuma -com  viewer_cont -key:r3:s0.3 up  \\\n"
-               "                       -key:r2:p left -key:r5:d right \\\n"
-               "                       -key:r3 z   -key:r5 left -key F6\n"
-               "       DriveSuma -com  viewer_cont -key m -key down \\\n"
-               "                 -com  sleep 2s -com viewer_cont -key m \\\n"
-               "                       -key:r4 Z   -key ctrl+right\n"
-               "       DriveSuma -com  viewer_cont -key m -key right \\\n"
-               "                 -com  pause press enter to stop this misery \\\n"
-               "                 -com  viewer_cont -key m \n"
+"       DriveSuma -com  viewer_cont -key R -key ctrl+right\n"
+"       DriveSuma -com  viewer_cont -key:r3:s0.3 up  \\\n"
+"                       -key:r2:p left -key:r5:d right \\\n"
+"                       -key:r3 z   -key:r5 left -key F6\n"
+"       DriveSuma -com  viewer_cont -key m -key down \\\n"
+"                 -com  sleep 2s -com viewer_cont -key m \\\n"
+"                       -key:r4 Z   -key ctrl+right\n"
+"       DriveSuma -com  viewer_cont -key m -key right \\\n"
+"                 -com  pause press enter to stop this misery \\\n"
+"                 -com  viewer_cont -key m \n"
 };
 static char uDS_recorder_cont[]={
-               "       DriveSuma -com  recorder_cont -save_as allanimgif.agif \\\n"
-               "                 -com  recorder_cont -save_as lastone.jpg \\\n"
-               "                 -com  recorder_cont -save_as three.jpg -save_index 3\\\n"
-               "                 -com  recorder_cont -save_as some.png -save_range 3 6\n"
+"       DriveSuma -com  recorder_cont -save_as allanimgif.agif \\\n"
+"                 -com  recorder_cont -save_as lastone.jpg \\\n"
+"                 -com  recorder_cont -save_as three.jpg -save_index 3\\\n"
+"                 -com  recorder_cont -save_as some.png -save_range 3 6\n"
 };
 static char uDS_surf_cont[]={
                /*"       quickspec -spec radcoord.spec \\\n"
                "                 -tn 1d radcoord.1D.coord radcoord.1D.topo \\\n"
                "       SurfaceMetrics -curv -spec radcoord.spec \\\n"
                "                      -surf_A radcoord -prefix radcoord      \n"*/
-               "       echo 1 0 0 > bbr.1D.cmap; echo 1 1 1 >> bbr.1D.cmap; \\\n"
-               "       echo 0 0  1 >> bbr.1D.cmap\n"
-               "       IsoSurface -shape 4 128 -o_ply blooby.ply\n"
-               "       quickspec -spec blooby.spec -tn ply blooby.ply\n"
-               "       SurfaceMetrics -curv -spec blooby.spec \\\n"
-               "                      -surf_A blooby -prefix blooby      \n"
-               "       DriveSuma -com show_surf -surf_label blooby \\\n"
-               "                      -i_ply blooby.ply -surf_winding cw \\\n"
-               "                      -surf_state la_blooby\n"
-               "       DriveSuma -com surf_cont -load_dset blooby.curv.1D.dset \\\n"
-               "                      -surf_label blooby -view_surf_cont y\n"
-               "       DriveSuma -com surf_cont -I_sb 7 -T_sb 8 -T_val 0.0\n"
-               "       DriveSuma -com surf_cont -I_range 0.05 -T_sb -1\n"
-               "       DriveSuma -com surf_cont -I_sb 8 -I_range -0.1 0.1 \\\n"
-               "                      -T_val 0.02 -Dim 0.4\n"
-               "       DriveSuma -com surf_cont -switch_dset Convexity -1_only y\n"
-               "       DriveSuma -com surf_cont -switch_cmap roi64 -1_only n\n"
-               "       DriveSuma -com surf_cont -view_dset n\n"
-               "       DriveSuma -com surf_cont -switch_dset blooby.curv.1D.dset \\\n"
-               "                      -view_surf_cont n -I_range -0.05 0.14\n"
-               "       DriveSuma -com surf_cont -load_cmap bbr.1D.cmap\n"
+"       echo 1 0 0 > bbr.1D.cmap; echo 1 1 1 >> bbr.1D.cmap; \\\n"
+"       echo 0 0  1 >> bbr.1D.cmap\n"
+"       IsoSurface -shape 4 128 -o_ply blooby.ply\n"
+"       quickspec -spec blooby.spec -tn ply blooby.ply\n"
+"       SurfaceMetrics -curv -spec blooby.spec \\\n"
+"                      -surf_A blooby -prefix blooby      \n"
+"       DriveSuma -com show_surf -surf_label blooby \\\n"
+"                      -i_ply blooby.ply -surf_winding cw \\\n"
+"                      -surf_state la_blooby\n"
+"       DriveSuma -com surf_cont -load_dset blooby.curv.1D.dset \\\n"
+"                      -surf_label blooby -view_surf_cont y\n"
+"       DriveSuma -com surf_cont -I_sb 7 -T_sb 8 -T_val 0.0\n"
+"       DriveSuma -com surf_cont -I_range 0.05 -T_sb -1\n"
+"       DriveSuma -com surf_cont -I_sb 8 -I_range -0.1 0.1 \\\n"
+"                      -T_val 0.02 -Dim 0.4\n"
+"       DriveSuma -com surf_cont -switch_dset Convexity -1_only y\n"
+"       DriveSuma -com surf_cont -switch_cmap roi64 -1_only n\n"
+"       DriveSuma -com surf_cont -view_dset n\n"
+"       DriveSuma -com surf_cont -switch_dset blooby.curv.1D.dset \\\n"
+"                      -view_surf_cont n -I_range -0.05 0.14\n"
+"       DriveSuma -com surf_cont -load_cmap bbr.1D.cmap\n"
 };
 static char uDS_kill_suma[]={
                "       DriveSuma -com kill_suma\n"
@@ -224,6 +224,12 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "\n"
 " o recorder_cont: Apply commands to recorder window\n"
 "     + Optional parameters for action recorder_cont:\n"
+"       -anim_dup DUP: Save DUP copies of each frame into movie\n"
+"                      This has the effect of slowing movies down\n"
+"                      at the expense of file size, of course.\n"
+"                      DUP's default is set by the value of AFNI_ANIM_DUP\n"
+"                      environment variable. \n"
+"                      To set DUP back to its default value, use -anum_dup 0.\n" 
 "       -save_as PREFIX.EXT: Save image(s) in recorder\n"
 "                             in the format determined by\n"
 "                             extension EXT.\n"
@@ -574,7 +580,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          ++kar; N = 1; stmp = NULL; nums = 0;
          while (  kar < argtc && 
                   argt[kar] && 
-                  SUMA_isNumString(argt[kar],(void *)N)) {
+                  SUMA_isNumString(argt[kar],(void *)((long int)N))) {
             stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
             argt[kar][0] = '\0'; ++kar;
          } --kar;
@@ -809,6 +815,25 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          
          argt[kar][0] = '\0';
          NI_set_attribute(ngr, "DO_FileName", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argt[kar], "-anim_dup") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a positive integer after -anim_dup \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';++kar;
+         
+         if (atoi(argt[kar]) < 0) {
+            fprintf (SUMA_STDERR, "need a positive integer after -anim_dup \n");
+            SUMA_RETURN(0);
+         }
+         NI_set_attribute(ngr, "Anim_Dup", argt[kar]);
+         
          argt[kar][0] = '\0';
          brk = YUP;
       }
