@@ -354,7 +354,7 @@ extern long   strtol() ;
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define SCANDIR_WANTS_CONST
 # define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
-# define MMAP_THRESHOLD -1        /* no mmap-ing */
+/* # define MMAP_THRESHOLD -1 */       /* no mmap-ing */
 #if 0
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
 #endif
