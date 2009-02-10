@@ -670,6 +670,9 @@ static char * ISQ_arrow_hint[NARROW] = {
 
 /*........................................................................*/
 
+static int ISQ_anim_dup = 0 ;
+void ISQ_set_anim_dup( int ii ){ ISQ_anim_dup = ii ; }
+
 #define DEFAULT_MINFRAC 0.02
 #define DEFAULT_MAXFRAC 0.90
 
@@ -1830,6 +1833,26 @@ STATUS("creation: widgets created") ;
    AVOPT_columnize(newseq->wbar_checkbrd_av,4) ;
    MCW_reghint_children( newseq->wbar_checkbrd_av->wrowcol ,
                          "Size of checks in the checkerboard display [# key]" );
+
+   /** 10 Feb 2009: menu item to control animation duplicates **/
+
+   newseq->wbar_animdup_av =
+      new_MCW_arrowval( newseq->wbar_menu ,
+                        "Anim_Dup " ,
+                        MCW_AV_optmenu ,      /* option menu style */
+                        0 ,                   /* first option */
+                        19 ,                  /* last option */
+                        ISQ_anim_dup ,        /* initial selection */
+                        MCW_AV_readtext ,     /* ignored but needed */
+                        0 ,                   /* ditto */
+                        ISQ_wbar_label_CB ,   /* callback when changed */
+                        (XtPointer)newseq ,   /* data for above */
+                        NULL                , /* text creation routine */
+                        NULL                  /* data for above */
+                      ) ;
+   AVOPT_columnize(newseq->wbar_animdup_av,2) ;
+   MCW_reghint_children( newseq->wbar_animdup_av->wrowcol ,
+                         "Duplicate images for Save:aGif and Save:mpeg" ) ;
 
    newseq->top_clip = 0.0f ; /* 17 Sep 2007 */
    newseq->redo_clip = 0 ;
@@ -3256,9 +3279,6 @@ ENTRY("ISQ_but_cswap_CB") ;
 /*-------------------------------------------------------------------
    image saving options
 ---------------------------------------------------------------------*/
-
-static int ISQ_anim_dup = 0 ;
-void ISQ_set_anim_dup( int ii ){ ISQ_anim_dup = ii ; }
 
 void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
@@ -8123,7 +8143,12 @@ void ISQ_wbar_label_CB( MCW_arrowval *av , XtPointer cd )
 ENTRY("ISQ_wbar_label_CB") ;
 
    if( !ISQ_REALZ(seq) ) EXRETURN ;
-   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+
+   if( av == seq->wbar_animdup_av )
+     ISQ_anim_dup = av->ival;  /* 10 Feb 2009 */
+   else
+     ISQ_redisplay( seq , -1 , isqDR_display ) ;
+
    EXRETURN ;
 }
 
