@@ -534,6 +534,8 @@ typedef struct MCW_imseq {
 
      int render_mode ;                                /* 25 Oct 2008 */
      MCW_arrowval *wbar_checkbrd_av ;
+
+     MCW_arrowval *wbar_animdup_av ;                  /* 10 Feb 2009 */
 } MCW_imseq ;
 
 #define RENDER_DEFAULT    0

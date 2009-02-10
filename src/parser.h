@@ -135,7 +135,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " * hrfbk4(t,L) and hrfbk5(t,L) are the BLOCK4 and BLOCK5 hemodynamic\n"     \
   "    response functions from 3dDeconvolve (L=stimulus duration in sec,\n"    \
   "    and t is the time in sec since start of stimulus); for example:\n"      \
-  "  1deval -del 0.1 -num 400 -expr 'hrfbk5(t,20)' | 1dplot -stdin -del 0.1\n" \
+  " 1deval -del 0.1 -num 400 -expr 'hrfbk5(t-2,20)' | 1dplot -stdin -del 0.1\n"\
   "    These HRF functions are scaled to return values in the range [0..1]\n"  \
   "\n"                                                                         \
   " You may use the symbol 'PI' to refer to the constant of that name.\n"      \
