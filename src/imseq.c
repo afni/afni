@@ -673,6 +673,8 @@ static char * ISQ_arrow_hint[NARROW] = {
 static int ISQ_anim_dup = 0 ;
 void ISQ_set_anim_dup( int ii ){ ISQ_anim_dup = ii ; }
 
+/*........................................................................*/
+
 #define DEFAULT_MINFRAC 0.02
 #define DEFAULT_MAXFRAC 0.90
 
@@ -3834,7 +3836,7 @@ ENTRY("ISQ_saver_CB") ;
                alen =  strlen(alc)+strlen(ppmto_agif_filter)+strlen(oof)+32 ;
                alf  = AFMALL( char, alen) ;
                sprintf(alf , ppmto_agif_filter, alc, oof ) ; /* command to run */
-               fprintf(stderr,"Running '%s'\n",alf) ;
+               INFO_message("Running '%s'\n",alf) ;
                system(alf) ;                                 /* so run it!    */
                free(alf) ; free(oof) ; free(alc) ;           /* free trash   */
             }
@@ -3888,9 +3890,9 @@ ENTRY("ISQ_saver_CB") ;
                alen = strlen(par)+strlen(ppmto_mpeg_filter)+32 ;
                alf  = AFMALL( char, alen) ;
                sprintf(alf , ppmto_mpeg_filter, par ) ; /* command to run */
-               fprintf(stderr,"Running '%s' to produce %s\n",alf,oof) ;
+               INFO_message("Running '%s' to produce %s\n",alf,oof) ;
                system(alf) ;                            /* so run it!    */
-               unlink(par); free(alf); free(oof); free(par); /* free trash   */
+               remove(par); free(alf); free(oof); free(par); /* free trash   */
             }
 
             /* animation is done, for good or for ill */
@@ -12201,6 +12203,7 @@ void ISQ_save_anim( MCW_imseq *seq, char *prefin, int bot, int top, int mode )
    int doanim=0 ;
    char filt[512], *ppo = NULL; FILE *fp ; MRI_IMAGE *ovim ;
    int nx , ny , npix , pc ;
+   int adup=1 , akk,aa ;        /* 10 Feb 2009 */
 
 ENTRY("ISQ_save_anim") ;
 
@@ -12291,6 +12294,12 @@ ENTRY("ISQ_save_anim") ;
    }
 #endif
 
+   if( mode == AGIF_MODE || mode == MPEG_MODE ){
+     adup = (ISQ_anim_dup > 0) ? ISQ_anim_dup : AFNI_numenv("AFNI_ANIM_DUP") ;
+     if( adup <= 0 ) adup = 1 ; else if( adup > 99 ) adup = 99 ;
+   }
+
+
    /*---- loop thru, get images, save them ----*/
 
    if( doanim )
@@ -12298,7 +12307,7 @@ ENTRY("ISQ_save_anim") ;
    else
      INFO_message("Starting to save images") ;
 
-   for( kf=bot ; kf <= top ; kf++ ){
+   for( akk=0,kf=bot ; kf <= top ; kf++ ){
 
       /* get the underlay image */
 
@@ -12406,55 +12415,60 @@ ENTRY("ISQ_save_anim") ;
 
       /* create the filter command into string 'filt' */
 
-      switch( mode ){
-        case AGIF_MODE:
-          sprintf( fname, "%s%s.%05d.gif" , prefix,tsuf, kf) ;
-          sprintf( filt , togif  , fname ) ;  /* free colormap */
-          if( agif_list == NULL ) INIT_SARR(agif_list) ;
-          ADDTO_SARR(agif_list,fname) ;
-        break ;
+      for( aa=0 ; aa < adup ; aa++,akk++ ){ /* adup==1 if no animation */
 
-        case MPEG_MODE:
-          sprintf( fname, "%s%s.%05d.ppm" , ppo,tsuf, kf) ;
-          sprintf( filt , ppmto_ppm_filter , fname ) ;
-          if( agif_list == NULL ) INIT_SARR(agif_list) ;
-          ADDTO_SARR(agif_list,fname) ;
-        break ;
+        switch( mode ){
+          case AGIF_MODE:
+            sprintf( fname, "%s%s.%05d.gif" , prefix,tsuf, akk) ;
+            sprintf( filt , togif  , fname ) ;  /* free colormap */
+            if( agif_list == NULL ) INIT_SARR(agif_list) ;
+            ADDTO_SARR(agif_list,fname) ;
+          break ;
 
-        case JPEG_MODE:
-          sprintf( fname, "%s%05d.jpg" , prefix, kf) ;
-          sprintf( filt , ppmto_jpg95_filter , fname ) ;
-          if( agif_list == NULL ) INIT_SARR(agif_list) ;
-          ADDTO_SARR(agif_list,fname) ;
-        break ;
+          case MPEG_MODE:
+            sprintf( fname, "%s%s.%06d.ppm" , ppo,tsuf, akk) ;
+            sprintf( filt , ppmto_ppm_filter , fname ) ;
+            if( agif_list == NULL ) INIT_SARR(agif_list) ;
+            ADDTO_SARR(agif_list,fname) ;
+          break ;
 
-        case PNG_MODE:
-          sprintf( fname, "%s%05d.png" , prefix, kf) ;
-          sprintf( filt , ppmto_png_filter , fname ) ;
-          if( agif_list == NULL ) INIT_SARR(agif_list) ;
-          ADDTO_SARR(agif_list,fname) ;
-        break ;
-      }
+          case JPEG_MODE:
+            sprintf( fname, "%s%05d.jpg" , prefix, kf) ;
+            sprintf( filt , ppmto_jpg95_filter , fname ) ;
+            if( agif_list == NULL ) INIT_SARR(agif_list) ;
+            ADDTO_SARR(agif_list,fname) ;
+          break ;
+
+          case PNG_MODE:
+            sprintf( fname, "%s%05d.png" , prefix, kf) ;
+            sprintf( filt , ppmto_png_filter , fname ) ;
+            if( agif_list == NULL ) INIT_SARR(agif_list) ;
+            ADDTO_SARR(agif_list,fname) ;
+          break ;
+        }
 #ifndef CYGWIN
-      signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
+        signal( SIGPIPE , SIG_IGN ) ;                 /* ignore broken pipe */
 #endif
-      fp = popen( filt , "w" ) ;                    /* open pipe to filter */
-      if( fp == NULL ){
-        ERROR_message("Can't open output filter %s\a",filt) ;
-        continue ;  /* loop over files */
-      }
+        fp = popen( filt , "w" ) ;                    /* open pipe to filter */
+        if( fp == NULL ){
+          ERROR_message("Can't open output filter %s\a",filt) ;
+          break ;  /* out of loop over aa */
+        }
 
-      /* write RGB image to pipe as a PPM file */
+        /* write RGB image to pipe as a PPM file */
 
-      fprintf(fp,"P6\n%d %d\n255\n" , nx,ny ) ;
-      fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
-      pc = pclose(fp) ;
-      if( pc == -1 ) perror("Error in image output pipe") ;
+        fprintf(fp,"P6\n%d %d\n255\n" , nx,ny ) ;
+        fwrite( MRI_RGB_PTR(flim), sizeof(byte), 3*npix, fp ) ;
+        pc = pclose(fp) ;
+        if( pc == -1 ) perror("Error in image output pipe") ;
+
+      } /* end of loop over aa = image duplicates for animation */
 
       /* done with this image */
 
       mri_free(flim) ; flim = NULL ;
-   }
+
+   } /* end of loop over image sequence to save */
 
    /** post-process saved images into animation? **/
 
@@ -12529,10 +12543,10 @@ ENTRY("ISQ_save_anim") ;
                   "BSEARCH_ALG       SIMPLE\n"
                   "REFERENCE_FRAME   ORIGINAL\n"
                   "INPUT\n"
-                  "%s%s.*.ppm [%05d-%05d]\n"  /* prefix, tsuf, from, to */
+                  "%s%s.*.ppm [%06d-%06d]\n"  /* prefix, tsuf, from, to */
                   "END_INPUT\n"
                , oof , frate , pattrn , qscale ,
-                 ppo,tsuf,bot,top ) ;
+                 ppo,tsuf,0,akk) ;
         fclose(fpar) ;
 
         /* make command to run */
@@ -12543,7 +12557,7 @@ ENTRY("ISQ_save_anim") ;
         INFO_message("Running '%s' to produce %s",alf,oof) ;
         if( THD_is_ondisk(oof) ) WARNING_message("Over-writing '%s'",oof);
         system(alf) ;                            /* so run it!    */
-        unlink(par); free(alf); free(oof); free(par); /* free trash   */
+        remove(par); free(alf); free(oof); free(par); /* free trash   */
       }
       break ;
      }
@@ -12551,7 +12565,7 @@ ENTRY("ISQ_save_anim") ;
      /* animation is done, for good or for ill */
 
      for( af=0 ; af < agif_list->num ; af++ )  /* erase temp files */
-       unlink( agif_list->ar[af] ) ;
+       remove( agif_list->ar[af] ) ;
      INFO_message("Done saving images") ;
 
    } else if( agif_list != NULL && agif_list->num > 0 ){
