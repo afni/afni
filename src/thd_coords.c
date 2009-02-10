@@ -32,11 +32,10 @@ static int first_oblique = 1;
      THD_?vec3 (i=int,f=float) structs.
 ======================================================================*/
 
-THD_fvec3 THD_3dfind_to_3dmm( THD_3dim_dataset * dset ,
-                              THD_fvec3 iv )
+THD_fvec3 THD_3dfind_to_3dmm( THD_3dim_dataset *dset , THD_fvec3 iv )
 {
-   THD_dataxes * daxes ;
-   THD_fvec3     fv ;
+   THD_dataxes *daxes ;
+   THD_fvec3    fv ;
 
    daxes = CURRENT_DAXES(dset) ;
 
@@ -48,11 +47,10 @@ THD_fvec3 THD_3dfind_to_3dmm( THD_3dim_dataset * dset ,
 
 /*------------------------------------------------------------------*/
 
-THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * dset ,
-                             THD_ivec3 iv )
+THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset *dset , THD_ivec3 iv )
 {
-   THD_dataxes * daxes ;
-   THD_fvec3     fv ;
+   THD_dataxes *daxes ;
+   THD_fvec3    fv ;
 
    daxes = CURRENT_DAXES(dset) ;
 
@@ -64,11 +62,11 @@ THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * dset ,
 
 /*--------------------------------------------------------------------*/
 /* this version is without using wod dataxes       7 Mar 2005 [rickr] */
-THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * dset ,
-                             THD_ivec3 iv )
+
+THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset *dset , THD_ivec3 iv )
 {
-   THD_dataxes * daxes ;
-   THD_fvec3     fv ;
+   THD_dataxes *daxes ;
+   THD_fvec3    fv ;
 
    daxes = dset->daxes ;
 
@@ -80,11 +78,10 @@ THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * dset ,
 
 /*--------------------------------------------------------------------*/
 
-THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset * dset ,
-                              THD_fvec3 fv )
+THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset *dset , THD_fvec3 fv )
 {
-   THD_dataxes * daxes ;
-   THD_fvec3     iv ;
+   THD_dataxes *daxes ;
+   THD_fvec3    iv ;
 
    daxes = CURRENT_DAXES(dset) ;
 
@@ -106,11 +103,11 @@ THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset * dset ,
 
 /*--------------------------------------------------------------------*/
 
-THD_ivec3 THD_3dmm_to_3dind_warn( THD_3dim_dataset * dset ,
-                             THD_fvec3 fv, int *out )
+THD_ivec3 THD_3dmm_to_3dind_warn( THD_3dim_dataset* dset ,
+                                  THD_fvec3 fv, int *out )
 {
-   THD_dataxes * daxes ;
-   THD_ivec3     iv ;
+   THD_dataxes *daxes ;
+   THD_ivec3    iv ;
 
    *out = 0;
    daxes = CURRENT_DAXES(dset) ;
@@ -131,11 +128,10 @@ THD_ivec3 THD_3dmm_to_3dind_warn( THD_3dim_dataset * dset ,
    return iv ;
 }
 
-THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset * dset ,
-                             THD_fvec3 fv )
+THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset *dset , THD_fvec3 fv )
 {
-   THD_dataxes * daxes ;
-   THD_ivec3     iv ;
+   THD_dataxes *daxes ;
+   THD_ivec3    iv ;
 
    daxes = CURRENT_DAXES(dset) ;
 
@@ -158,11 +154,11 @@ THD_ivec3 THD_3dmm_to_3dind( THD_3dim_dataset * dset ,
 /*--------------------------------------------------------------------*/
 
 /* this version is without using wod dataxes     28 Sep 2004 [rickr] */
-THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset * dset ,
-                                    THD_fvec3 fv )
+
+THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset *dset , THD_fvec3 fv )
 {
-   THD_dataxes * daxes ;
-   THD_ivec3     iv ;
+   THD_dataxes *daxes ;
+   THD_ivec3    iv ;
 
    daxes = dset->daxes ;
 
@@ -190,8 +186,7 @@ THD_ivec3 THD_3dmm_to_3dind_no_wod( THD_3dim_dataset * dset ,
          just in a permuted order.
 -----------------------------------------------------------------------*/
 
-THD_fvec3 THD_3dmm_to_dicomm( THD_3dim_dataset * dset ,
-                              THD_fvec3 imv )
+THD_fvec3 THD_3dmm_to_dicomm( THD_3dim_dataset *dset , THD_fvec3 imv )
 {
    THD_fvec3 dicv ;
    float xim,yim,zim , xdic=0,ydic=0,zdic=0 ;
@@ -239,8 +234,7 @@ THD_fvec3 THD_3dmm_to_dicomm( THD_3dim_dataset * dset ,
    convert to input image oriented x,y,z from Dicom x,y,z
 -----------------------------------------------------------------------*/
 
-THD_fvec3 THD_dicomm_to_3dmm( THD_3dim_dataset * dset ,
-                              THD_fvec3 dicv )
+THD_fvec3 THD_dicomm_to_3dmm( THD_3dim_dataset *dset , THD_fvec3 dicv )
 {
    THD_fvec3 imv ;
    float xim,yim,zim , xdic,ydic,zdic ;
@@ -286,7 +280,7 @@ THD_fvec3 THD_dicomm_to_3dmm( THD_3dim_dataset * dset ,
 
 /*---------------------------------------------------------------------*/
 
-THD_ivec3 THD_fdind_to_3dind( FD_brick * br , THD_ivec3 ib )
+THD_ivec3 THD_fdind_to_3dind( FD_brick *br , THD_ivec3 ib )
 {
    THD_ivec3 id ;
    int qq , ax ;
@@ -301,7 +295,7 @@ THD_ivec3 THD_fdind_to_3dind( FD_brick * br , THD_ivec3 ib )
    return id ;
 }
 
-THD_ivec3 THD_3dind_to_fdind( FD_brick * br , THD_ivec3 id )
+THD_ivec3 THD_3dind_to_fdind( FD_brick *br , THD_ivec3 id )
 {
    THD_ivec3 ib ;
    int qq , ax ;
@@ -318,7 +312,7 @@ THD_ivec3 THD_3dind_to_fdind( FD_brick * br , THD_ivec3 id )
 
 /*---------------------------------------------------------------------*/
 
-THD_fvec3 THD_fdfind_to_3dfind( FD_brick * br , THD_fvec3 ib ) /* 30 Aug 2001 */
+THD_fvec3 THD_fdfind_to_3dfind( FD_brick *br , THD_fvec3 ib ) /* 30 Aug 2001 */
 {
    THD_fvec3 id ;
    int qq , ax ;
@@ -333,7 +327,7 @@ THD_fvec3 THD_fdfind_to_3dfind( FD_brick * br , THD_fvec3 ib ) /* 30 Aug 2001 */
    return id ;
 }
 
-THD_fvec3 THD_3dfind_to_fdfind( FD_brick * br , THD_fvec3 id ) /* 30 Aug 2001 */
+THD_fvec3 THD_3dfind_to_fdfind( FD_brick *br , THD_fvec3 id ) /* 30 Aug 2001 */
 {
    THD_fvec3 ib ;
    int qq , ax ;
@@ -481,8 +475,8 @@ void THD_coorder_to_dicom( THD_coorder *cord ,
    Return rotation and shift param. to go from i, j, k to Cardinal
    Dicom x,y,z (non-oblique)
 -----------------------------------------------------------------------*/
-void THD_dicom_card_xform (THD_3dim_dataset * dset ,
-                      THD_dmat33 *tmat, THD_dfvec3 *dics )
+void THD_dicom_card_xform (THD_3dim_dataset *dset ,
+                           THD_dmat33 *tmat, THD_dfvec3 *dics )
 {
 
    THD_dfvec3 dicr;
@@ -553,8 +547,8 @@ void THD_dicom_card_xform (THD_3dim_dataset * dset ,
    Return rotation and shift param. to go from i, j, k to Real
    Dicom x,y,z 
 -----------------------------------------------------------------------*/
-void THD_dicom_real_xform(THD_3dim_dataset * dset ,
-                      THD_dmat33 *tmat, THD_dfvec3 *dics )
+void THD_dicom_real_xform(THD_3dim_dataset *dset ,
+                          THD_dmat33 *tmat, THD_dfvec3 *dics )
 {
    if (  !dset || !dset->daxes || 
          !ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
