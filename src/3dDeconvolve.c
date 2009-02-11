@@ -5583,13 +5583,6 @@ ENTRY("calculate_results") ;
                               " -Rerrts %s_REML", option_data->errts_filename );
         iadd += strlen(cname)-ilen ;
       }
-      if( option_data->errts_filename != NULL ){
-        if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
-        ilen  = strlen(cname) ;
-        cname = THD_zzprintf( cname ,
-                              " -Rerrts %s_REML", option_data->errts_filename );
-        iadd += strlen(cname)-ilen ;
-      }
 #if 0
       if( iadd > 70 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
 #endif
