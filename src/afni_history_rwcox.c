@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , FEB , 2009 , RWC , "3dvolreg" , MINOR , TYPE_BUG_FIX ,
+   "replace DMAT_svdrot_old with DMAT_svdrot_newer" ,
+   "Old function fails sometimes, making the output rotation be garbage and\n"
+   "producing junk image results; the newer one seems more robust." } ,
+
  { 10 , FEB , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_BUG_FIX ,
    "fixed premature mask free-ing bug" ,
    NULL } ,
