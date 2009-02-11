@@ -648,8 +648,12 @@ MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec ,
    /* 13 Feb 2001: make sure it is orthogonal;
                    even slightly off produces bad shears */
 
-   p = DMAT_svdrot_old( rmat ) ;
+   p = DMAT_svdrot_newer( rmat ) ;
    q = TRANSPOSE_DMAT( p ) ;
+#if 0
+   DUMP_MAT33("rmat",rmat) ;
+   DUMP_MAT33("q   ",q   ) ;
+#endif
 #endif
 
    /* if trace too small, maybe we should flip a couple axes */
@@ -785,18 +789,18 @@ THD_udv33 DMAT_svd( THD_dmat33 inmat )
    /* load matrix from inmat into simple array */
 
    for( jj=0 ; jj < 3 ; jj++ )
-      for( ii=0 ; ii < 3 ; ii++ ) a[ii+3*jj] = inmat.mat[ii][jj] ;
+     for( ii=0 ; ii < 3 ; ii++ ) a[ii+3*jj] = inmat.mat[ii][jj] ;
 
    svd_double( 3,3 , a , e,u,v ) ;
 
    /* load eigenvectors and eigenvalues into output */
 
    for( jj=0 ; jj < 3 ; jj++ ){
-      out.d.xyz[jj] = e[jj] ;                 /* eigenvalues */
-      for( ii=0 ; ii < 3 ; ii++ ){
-         out.u.mat[ii][jj] = u[ii+3*jj] ;     /* eigenvectors */
-         out.v.mat[ii][jj] = v[ii+3*jj] ;     /* eigenvectors */
-      }
+     out.d.xyz[jj] = e[jj] ;                /* eigenvalues */
+     for( ii=0 ; ii < 3 ; ii++ ){
+       out.u.mat[ii][jj] = u[ii+3*jj] ;     /* eigenvectors */
+       out.v.mat[ii][jj] = v[ii+3*jj] ;     /* eigenvectors */
+     }
    }
 
    return out ;
@@ -863,7 +867,8 @@ THD_dmat33 DMAT_svdrot_old( THD_dmat33 inmat )
 }
 
 /*---------------------------------------------------------------------*/
-/*  Alternative calculation to above, computing U and V directly.
+/*  Alternative calculation to above, computing U and V directly,
+    as eigenmatrices from symmetric eigenvalue problems.
     This avoids a problem that arises when inmat is singular.
 -----------------------------------------------------------------------*/
 
@@ -885,7 +890,7 @@ THD_dmat33 DMAT_svdrot_new( THD_dmat33 inmat )
 
 /*---------------------------------------------------------------------*/
 /*  Yet another alternative calculation to above, computing U and V
-    even more directly.  [22 Oct 2004]
+    even more directly, from the SVD itself.  [22 Oct 2004]
 -----------------------------------------------------------------------*/
 
 THD_dmat33 DMAT_svdrot_newer( THD_dmat33 inmat )

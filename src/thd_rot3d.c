@@ -528,8 +528,11 @@ void THD_rota_vol_matvec( int   nx   , int   ny   , int   nz   ,
    }
 
 #if 0
-   if( MRILIB_verbose )
-     DUMP_3SHEAR("Computed shear",shr) ;
+   DUMP_3SHEAR("Computed shear",shr) ;
+   DUMP_MAT33("rmat",rmat) ;
+   DUMP_FVEC3("tvec",tvec) ;
+   fprintf(stderr,"---- xdel = %f, ydel = %f, zdel = %f\n",
+           xdel, ydel, zdel);
 #endif
 
 #ifdef CLIPIT

@@ -293,7 +293,7 @@ int main( int argc , char * argv[] )
      }
    }
 
-   free(vv) ;
+   free(vv) ; free(mmask) ;
    DESTROY_RBF_evalgrid(rbg); DESTROY_RBF_evalues(rbe); DESTROY_RBF_knots(rbk);
    mri_free(vfim) ; mri_free(kfim) ; mri_free(ffim) ;
 
