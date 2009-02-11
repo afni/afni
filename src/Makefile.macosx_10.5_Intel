@@ -12,7 +12,7 @@ USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat
 
 # uncomment USE_LESSTIF to use lesstif instead of openmotif
-# USE_LESSTIF = 1
+USE_LESSTIF = 1
 ifdef USE_LESSTIF
     LESSTIF_DEFS = -DUSING_LESSTIF
     MOTIF_LIB = -lXm
