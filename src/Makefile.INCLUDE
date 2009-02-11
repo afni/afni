@@ -1109,7 +1109,7 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CCFAST) -o 3dREMLfit 3dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
 
-3dRBFdset:3dRBFdset.o
+3dRBFdset:3dRBFdset.o mri_rbfinterp.o
 	$(RM) $@
 	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS) -lf2c
 

@@ -74,6 +74,8 @@ ENTRY("RBF_evaluate") ;
    npt = rbg->npt ;
    nk  = rbk->nknot ;
 
+INFO_message("RBF: evaluate at %d points",npt) ;
+
 #pragma omp parallel if(npt*nk > 9999)
  {
    int ii , jj ;
@@ -137,12 +139,16 @@ ENTRY("RBF_setup_evalues") ;
       by multiplying inverse matrix into value vector
       (done in this order for column-major indexing efficiency) */
 
+INFO_message("RBF: evaluate inverse matrix times value vector") ;
+
    for( jj=0 ; jj < nf ; jj++ ){
      for( ii=0 ; ii < nk ; ii++ ) aa[ii] += MM(ii,jj) * vv[jj] ;
    }
 
    /* evaluate linear polynomial coefficients,
       by multiplying last 4 rows of inverse matrix into value vector */
+
+INFO_message("RBF: evaluate linear coefficients") ;
 
    b0 = bx = by = bz = 0.0f ;
    for( jj=0 ; jj < nf ; jj++ ){
@@ -202,8 +208,12 @@ ENTRY("RBF_setup_knots") ;
    qmedmad_float( nk , xx , &xm , &xd ) ;
    qmedmad_float( nk , yy , &ym , &yd ) ;
    qmedmad_float( nk , zz , &zm , &zd ) ;
-   rad = 4.99f*(xd+yd+zd) / nk ;          /* RBF support radius */
+   rad = 4.99f*(xd+yd+zd) / cbrtf((float)nk) ;  /* RBF support radius */
    rqq = rad*rad ;
+
+INFO_message("RBF: rad=%g  xd=%g  yd=%g  zd=%g",rad,xd,yd,zd ) ;
+INFO_message("     xm=%g  ym=%g  zm=%g",xm,ym,zm) ;
+
    xd  = 1.0f / xd ;          /* scale factors : (x-xm)*xd is   */
    yd  = 1.0f / yd ;          /* dimensionless x-value relative */
    zd  = 1.0f / zd ;          /* to middle at xm                */
@@ -214,6 +224,8 @@ ENTRY("RBF_setup_knots") ;
    mm = nf+4 ;                                /* mm=#rows nn=#cols */
    im_mat = mri_new( mm , nn , MRI_float ) ;
    mat    = MRI_FLOAT_PTR(im_mat) ;           /* zero filled */
+
+INFO_message("RBF: setup %d X %d matrix",mm,nn) ;
 
    for( ii=0 ; ii < nf ; ii++ ){
      jtop = (coincide) ? ii+1 : nk ;
@@ -237,9 +249,19 @@ ENTRY("RBF_setup_knots") ;
      MM(nk+3,jj) = (zz[ii]-zm)*zd ;
    }
 
+#if 0
+INFO_message("first row of matrix:") ;
+for( jj=0 ; jj < nn ; jj++ ){
+  fprintf(stderr," %.4f",MM(0,jj)) ;
+  if( jj%10 == 0 && jj > 0 ) fprintf(stderr,"\n") ;
+}
+#endif
+
    /* compute pseudo-inverse:
           mat is (nf+4) X (nk+4)
         psmat is (nk+4) X (nf+4) */
+
+INFO_message("RBF: compute pseudo-inverse") ;
 
    im_psmat = mri_matrix_psinv( im_mat , NULL , 0.00001f ) ;
    mri_free(im_mat) ;
