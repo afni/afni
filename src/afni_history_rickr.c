@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, FEB, 2009, RCR, "3dDeconvolve", MICRO, TYPE_MODIFY,
+   "removed duplicate -Rerrts option in output 3dREMLfit command",
+   NULL
+ } ,
+
  { 9, FEB, 2009, RCR, "xmat_tool.py", MINOR, TYPE_MODIFY,
    "random updates, plus those for Fedora 10",
    NULL
