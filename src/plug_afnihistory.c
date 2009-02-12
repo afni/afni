@@ -61,14 +61,14 @@ DEFINE_PLUGIN_PROTOTYPE
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
-   if( ncall > 0 ) return NULL ;  /* at most one interface */
+   if( ncall > 0 ) return( NULL );  /* at most one interface */
 
    /*-- check if we can access the defined history file --*/
 
    histusername = getenv("AFNI_HISTORY_USERNAME") ;
    if( !THD_filename_pure(histusername) ){
      /* INFO_message("Invalid AFNI_HISTORY_USERNAME") ; */
-     return NULL ;
+     return( NULL );
    }
 
    if( !AFNI_yesenv("AFNI_HISTORY_DONTSAVE") ){
@@ -83,7 +83,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    }
 
    /*-- at this point, histusername and histfilename are setup, so proceed --*/
-
    plint = PLUTO_new_interface( "++AFNI_History++" , NULL , NULL ,
                                 PLUGIN_CALL_IMMEDIATELY , AHIST_main ) ;
 
@@ -91,7 +90,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_set_butcolor( plint , "lightblue" ) ;
 
-   return plint ;
+   return( plint );
 }
 
 /***************************************************************************
