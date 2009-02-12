@@ -506,6 +506,7 @@ typedef struct AFNI_plugin_array {
 #define INIT_PLUGIN_ARRAY(name)                                                     \
    do{ int iq ;                                                                     \
        (name)       = (AFNI_plugin_array *) malloc(sizeof(AFNI_plugin_array)) ;     \
+       memset((name), 0, sizeof(AFNI_plugin_array)) ;                               \
        (name)->num  = 0 ;                                                           \
        (name)->nall = INC_PLUGIN_ARRAY ;                                            \
        (name)->plar = (AFNI_plugin **)malloc(sizeof(AFNI_plugin*)*(name)->nall) ;   \

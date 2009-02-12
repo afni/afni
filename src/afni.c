@@ -1479,6 +1479,7 @@ int main( int argc , char *argv[] )
 
    REPORT_PROGRESS("Initializing: X11");
 
+   memset(&MAIN_app, 0, sizeof(MAIN_app)) ;  /* 11 Feb 2009 [lesstif patrol] */
    MAIN_shell = XtVaAppInitialize( &MAIN_app , "AFNI" , NULL , 0 ,
                                    &argc , argv , FALLback , NULL ) ;
 
