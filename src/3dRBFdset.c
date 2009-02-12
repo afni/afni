@@ -140,7 +140,7 @@ int main( int argc , char * argv[] )
         vfim = mri_read_1D( argv[++iarg] ) ;
         if( vfim == NULL )
           ERROR_exit("%s %s: can't read file!?",argv[iarg-1],argv[iarg]) ;
-        vfnx = vfim->nx ; vfny = vfim->ny ; vfar = MRI_FLOAT_PTR(kfim) ;
+        vfnx = vfim->nx ; vfny = vfim->ny ; vfar = MRI_FLOAT_PTR(vfim) ;
         iarg++ ; continue ;
       }
 
