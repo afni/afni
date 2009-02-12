@@ -600,7 +600,11 @@ STATUS("creating control panels") ;
             XmNleftAttachment , XmATTACH_WIDGET ,
             XmNleftWidget     , imag->frame ,
             XmNtopAttachment  , XmATTACH_FORM ,
+#ifdef USING_LESSTIF
+            XmNleftOffset     , 9 ,
+#else
             XmNleftOffset     , AFNI_FORM_SPACING ,
+#endif
             XmNtopOffset      , AFNI_FORM_SPACING ,
             XmNshadowType , XmSHADOW_ETCHED_IN ,
             XmNshadowThickness , 5 ,

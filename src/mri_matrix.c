@@ -215,7 +215,7 @@ void mri_matrix_psinv_svd( int i ){ force_svd = i; }
     of positive weights, m of them.  The result can be used to solve
     the weighted least squares problem
       [imc] [b] = [v]
-    where [b] is an n-vector and [v] is an m-vector, where m > n.
+    where [b] is an n-vector and [v] is an m-vector, where m >= n.
     If alpha > 0, then the actual matrix calculated is
                           -1
       [imc' imc + alpha I]   imc'    (where ' = transpose)
@@ -230,7 +230,10 @@ void mri_matrix_psinv_svd( int i ){ force_svd = i; }
     The 'penalty' consists of trying to keep the elements of [b] small.
 
     Note that matrices are stored in column-major order in the 2D image arrays!
-------------------------------------------------------------------------------*/
+    If m < n, then the SVD solution is tried immediately, since the Choleski
+    method makes no sense in this case.  You can force the SVD method to
+    be used by calling mri_matrix_psinv_svd().
+*//*--------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
 {
@@ -240,12 +243,13 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
    MRI_IMAGE *imp=NULL ; float *pmat ;
    register double sum ;
    int do_svd= (force_svd || AFNI_yesenv("AFNI_PSINV_SVD")) ;
+   int *kbot=NULL,*ktop=NULL , ibot,itop,jbot,jtop , mn ;  /* 12 Feb 2009 */
 
 ENTRY("mri_matrix_psinv") ;
 
    if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
-   m    = imc->nx ;
-   n    = imc->ny ;
+   m    = imc->nx ;  /* number of rows  in input */
+   n    = imc->ny ;  /* number of columns */
    if( PRINT_TRACING ){ char str[222]; sprintf(str,"m=%d n=%d",m,n); STATUS(str); }
    rmat = MRI_FLOAT_PTR(imc) ;
    amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
@@ -310,20 +314,35 @@ STATUS("scale matrix") ;
      free(amat) ; free(xfac) ; RETURN(NULL) ;
    }
 
-   if( do_svd ) goto SVD_PLACE ;
+   if( do_svd || m < n ) goto SVD_PLACE ;
 
    /*** Try the Choleski method first ***/
+
+   mn   = MAX(m,n) ;
+   kbot = (int *)malloc(sizeof(int)*mn) ;  /* start index of each column */
+   ktop = (int *)malloc(sizeof(int)*mn) ;  /* end index */
+   for( ii=0 ; ii < n ; ii++ ){
+     for( kk=0   ; kk <  m && A(kk,ii) == 0.0 ; kk++ ) ; /*nada*/
+     kbot[ii] = kk ;
+     for( kk=m-1 ; kk >= 0 && A(kk,ii) == 0.0 ; kk-- ) ; /*nada*/
+     ktop[ii] = kk ;
+   }
 
 STATUS("form normal eqns") ;
    for( ii=0 ; ii < n ; ii++ ){       /* form normal equations */
      if( ii%1000==999 ) STATUS("999") ;
+     ibot = kbot[ii] ; itop = ktop[ii] ;
      for( jj=0 ; jj <= ii ; jj++ ){
+       jbot = kbot[jj] ; if( ibot > jbot ) jbot = ibot ;
+       jtop = ktop[jj] ; if( itop < jtop ) jtop = itop ;
        sum = 0.0 ;
-       for( kk=0 ; kk < m ; kk++ ) sum += A(kk,ii) * A(kk,jj) ;
+       for( kk=jbot ; kk <= jtop ; kk++ ) sum += A(kk,ii) * A(kk,jj) ;
        V(ii,jj) = sum ;
      }
      V(ii,ii) += alp ;   /* note V(ii,ii)==1 before this */
    }
+
+   free(ktop) ;
 
 #if 0
 fprintf(stderr,"mri_psinv: V matrix (%dx%d)\n",n,n) ;
@@ -336,24 +355,32 @@ for( ii=0 ; ii < n ; ii++ ){
 
    /* Choleski factor V in place */
 
+   for( ii=0 ; ii < n ; ii++ ){
+     for( kk=0 ; kk < ii && V(ii,kk) == 0.0 ; kk++ ) ; /*nada*/
+     kbot[ii] = kk ;
+   }
+
 STATUS("Choleski") ;
    for( ii=0 ; ii < n ; ii++ ){
      if( ii%1000==999 ) STATUS("999") ;
+     ibot = kbot[ii] ;
      for( jj=0 ; jj < ii ; jj++ ){
+       jbot = kbot[jj] ; if( ibot > jbot ) jbot = ibot ;
        sum = V(ii,jj) ;
-       for( kk=0 ; kk < jj ; kk++ ) sum -= V(ii,kk) * V(jj,kk) ;
+       for( kk=jbot ; kk < jj ; kk++ ) sum -= V(ii,kk) * V(jj,kk) ;
        V(ii,jj) = sum / V(jj,jj) ;
      }
      sum = V(ii,ii) ;
-     for( kk=0 ; kk < ii ; kk++ ) sum -= V(ii,kk) * V(ii,kk) ;
+     for( kk=ibot ; kk < ii ; kk++ ) sum -= V(ii,kk) * V(ii,kk) ;
      if( sum < PSINV_EPS ){
        static int first=1 ;
-       if( first )
-         WARNING_message("Choleski fails in mri_matrix_psinv()!\n");
+       if( first ) WARNING_message("Choleski fails in mri_matrix_psinv()!\n");
        first = 0 ; do_svd = 1 ; goto SVD_PLACE ;
      }
      V(ii,ii) = sqrt(sum) ;
    }
+
+   free(kbot) ;
 
    /* create pseudo-inverse from what's now in V */
 
