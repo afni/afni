@@ -9,7 +9,7 @@ LGIFTI    = /usr/local64/lib/libexpat64.a
 USE_LESSTIF = 1
 ifdef USE_LESSTIF
     LESSTIF_DEFS = -DUSING_LESSTIF
-    MOTIF_LIB = -lXm
+    MOTIF_LIB = /usr/local64/lib/libXm.a
 else
     MOTIF_LIB = /usr/local/lib/libXm64.a
 endif
@@ -86,7 +86,7 @@ GLw_LIB = libGLws.a
 SUMA_INCLUDE_PATH = $(GLw_IPATH) -I/usr/local64/include -I/usr/local/include -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/local64/include/glib-2.0 -I/usr/local64/lib/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/local64/lib -L/usr/local/lib -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L./
 
-SUMA_LINK_LIB = $(MOTIF_LIB) $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(MOTIF_LIB) $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx /usr/local64/lib/libglib-2.0.a -bind_at_load $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 
