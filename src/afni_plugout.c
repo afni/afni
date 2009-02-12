@@ -706,7 +706,8 @@ ENTRY("new_PLUGOUT_spec") ;
 
    /** initialize a new plugout specification **/
 
-   pp = (PLUGOUT_spec *) malloc( sizeof(PLUGOUT_spec) ) ;
+   /* from malloc    12 Feb 2009 [lesstif patrol] */
+   pp = (PLUGOUT_spec *) calloc( 1, sizeof(PLUGOUT_spec) ) ;
 
    pp->npomode     = 0 ;
    pp->ioc_name[0] = '\0' ;

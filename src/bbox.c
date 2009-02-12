@@ -263,6 +263,7 @@ ENTRY("new_MCW_bbox") ;
    }
 
    bb = (MCW_bbox *) XtMalloc( sizeof(MCW_bbox) ) ;
+   memset(bb, 0, sizeof(MCW_bbox)) ;  /* 12 Feb 2009 [lesstif patrol] */
 
    bb->nbut      = num_but ;
    initial_value = 0 ;

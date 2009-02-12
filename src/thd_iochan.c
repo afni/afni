@@ -625,7 +625,8 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
 
       /** initialize IOCHAN **/
 
-      ioc = (IOCHAN *) malloc( sizeof(IOCHAN) ) ;
+      /* from malloc    12 Feb 2009 [lesstif patrol] */
+      ioc = (IOCHAN *) calloc( 1, sizeof(IOCHAN) ) ;
 
       ioc->type     = TCP_IOCHAN ;   /* what kind is this? */
       ioc->port     = port ;         /* save the port #    */
@@ -719,7 +720,8 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
 
       /** initialize IOCHAN **/
 
-      ioc = (IOCHAN *) malloc( sizeof(IOCHAN) ) ;
+      /* from malloc    12 Feb 2009 [lesstif patrol] */
+      ioc = (IOCHAN *) calloc( 1, sizeof(IOCHAN) ) ;
 
       ioc->type = SHM_IOCHAN ;     /* what type is this? */
       strcpy( ioc->name , key ) ;  /* save the key name  */

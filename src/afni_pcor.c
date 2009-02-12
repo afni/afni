@@ -29,7 +29,8 @@ PCOR_references * new_PCOR_references(int numref)
 
    /*** allocate storage for top level data ***/
 
-   ref = (PCOR_references *) malloc( sizeof(PCOR_references) ) ;
+   /* from malloc    12 Feb 2009 [lesstif patrol] */
+   ref = (PCOR_references *) calloc( 1, sizeof(PCOR_references) ) ;
    if( ref == NULL ){
       fprintf( stderr , "new_PCOR_references:  malloc error for base\n" ) ;
       return NULL ;
@@ -189,7 +190,8 @@ PCOR_voxel_corr * new_PCOR_voxel_corr(int numvox, int numref)
 
    /*** get the base storage ***/
 
-   vc = (PCOR_voxel_corr *) malloc( sizeof(PCOR_voxel_corr) ) ;
+   /* from malloc    12 Feb 2009 [lesstif patrol] */
+   vc = (PCOR_voxel_corr *) calloc( 1, sizeof(PCOR_voxel_corr) ) ;
    if( vc == NULL ){
       fprintf( stderr , "new_PCOR_voxel_corr:  can't malloc base\n" ) ;
       return NULL ;

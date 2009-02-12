@@ -621,6 +621,7 @@ void ENV_add_numeric( char *vname , char *vhint ,
 
    ii = NUM_env_var ; NUM_env_var++ ;
 
+   memset(env_var + ii, 0, sizeof(ENV_var)) ; /* 12 Feb 2009 [L patrol] */
    MCW_strncpy( env_var[ii].vname , vname , NAME_NMAX ) ;
    MCW_strncpy( env_var[ii].vhint , vhint , HINT_NMAX ) ;
 
@@ -662,6 +663,7 @@ void ENV_add_string( char *vname , char *vhint ,
 
    ii = NUM_env_var ; NUM_env_var++ ;
 
+   memset(env_var + ii, 0, sizeof(ENV_var)) ; /* 12 Feb 2009 [L patrol] */
    MCW_strncpy( env_var[ii].vname , vname , NAME_NMAX ) ;
    MCW_strncpy( env_var[ii].vhint , vhint , HINT_NMAX ) ;
 
