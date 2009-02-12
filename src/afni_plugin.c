@@ -135,6 +135,7 @@ ENTRY("PLUG_read_plugin") ;
    /*----- make space for new plugin -----*/
 
    plin = (AFNI_plugin *) XtMalloc( sizeof(AFNI_plugin) ) ;
+   memset(plin, 0, sizeof(AFNI_plugin)) ; /* 11 Feb 2009 [lesstif patrol] */
    plin->type = AFNI_PLUGIN_TYPE ;
 
    /*----- copy name into plin structure -----*/
@@ -397,6 +398,7 @@ ENTRY("PLUG_load_plugin") ;
    /*----- make space for new plugin -----*/
 
    plin = (AFNI_plugin *) XtMalloc( sizeof(AFNI_plugin) ) ;
+   memset(plin, 0, sizeof(AFNI_plugin)) ; /* 11 Feb 2009 [lesstif patrol] */
    plin->type = AFNI_PLUGIN_TYPE ;
 
    /*----- copy name into plin structure -----*/
@@ -549,6 +551,7 @@ ENTRY("new_PLUGIN_interface_1999") ;
 
    plint = (PLUGIN_interface *) XtMalloc(sizeof(PLUGIN_interface)) ;
    if( plint == NULL ) RETURN(NULL) ;
+   memset(plint, 0, sizeof(PLUGIN_interface)) ; /* 11 Feb 2009 [LPatrol] */
 
    plint->flags = 0 ;  /* 29 Mar 2002 */
 
@@ -693,7 +696,8 @@ ENTRY("add_option_to_PLUGIN_interface") ;
                      XtRealloc( (char *) plint->option ,
                                 sizeof(PLUGIN_option *) * (nopt+1) ) ;
 
-   plint->option[nopt] = opt = (PLUGIN_option *) XtMalloc( sizeof(PLUGIN_option) ) ;
+   plint->option[nopt] = opt = (PLUGIN_option *)XtMalloc(sizeof(PLUGIN_option));
+   memset(opt, 0, sizeof(PLUGIN_option)) ; /* 11 Feb 2009 [lesstif patrol] */
 
    /*-- put values in new option --*/
 

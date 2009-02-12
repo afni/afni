@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, FEB, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "added memsets following some malloc calls",
+   NULL
+ } ,
+
  { 11, FEB, 2009, RCR, "3dDeconvolve", MICRO, TYPE_MODIFY,
    "removed duplicate -Rerrts option in output 3dREMLfit command",
    NULL
