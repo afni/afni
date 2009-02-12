@@ -201,7 +201,8 @@ ENTRY("mri_3dalign_setup") ;
 
    /*--- create output struct ---*/
 
-   basis = (MRI_3dalign_basis *) malloc( sizeof(MRI_3dalign_basis) ) ;
+   /* from malloc    12 Feb 2009 [lesstif patrol] */
+   basis = (MRI_3dalign_basis *) calloc( 1, sizeof(MRI_3dalign_basis) ) ;
 
    /*-- local copy of input image --*/
 

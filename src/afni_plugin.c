@@ -3400,10 +3400,11 @@ ENTRY("AFNI_plugin_button") ;
    /*-- make arrays to hold the plugin buttons (etc.),
         so that plugins can be started from layouts (in afni_splash.c) --*/
 
+   /* from malloc    12 Feb 2009 [lesstif patrol] */
    im3d->vwid->nplugbut = npbut ;
-   im3d->vwid->plugbut  = (Widget *)            malloc(sizeof(Widget)            *npbut) ;
-   im3d->vwid->pluglab  = (char **)             malloc(sizeof(char *)            *npbut) ;
-   im3d->vwid->plugint  = (PLUGIN_interface **) malloc(sizeof(PLUGIN_interface *)*npbut) ;
+   im3d->vwid->plugbut  = (Widget *)            calloc(1, sizeof(Widget)            *npbut) ;
+   im3d->vwid->pluglab  = (char **)             calloc(1, sizeof(char *)            *npbut) ;
+   im3d->vwid->plugint  = (PLUGIN_interface **) calloc(1, sizeof(PLUGIN_interface *)*npbut) ;
 
    /*-- create menu bar --*/
 

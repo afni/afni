@@ -119,7 +119,8 @@ void * new_MREN_renderer( void )
 {
    MREN_stuff * ar ;
 
-   ar = (MREN_stuff *) malloc( sizeof(MREN_stuff) ) ;
+   /* from malloc    12 Feb 2009 [lesstif patrol] */
+   ar = (MREN_stuff *) calloc( 1, sizeof(MREN_stuff) ) ;
    ar->type = MREN_TYPE ;
 
    init_MREN_colortable() ;  /* in case it's not already setup */
