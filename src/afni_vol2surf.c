@@ -260,7 +260,8 @@ static int map_v2s_results(v2s_results *res, Three_D_View *im3d,
 ENTRY("map_v2s_results");
 
     /*-------------------- create output node list --------------------*/
-    mptr = (SUMA_irgba *) malloc(sizeof(SUMA_irgba) * res->nused);
+    /* from malloc    12 Feb 2009 [lesstif patrol] */
+    mptr = (SUMA_irgba *) calloc(res->nused, sizeof(SUMA_irgba));
     if ( ! mptr )
     {
 	fprintf(stderr,"** malloc failure: %d irgba's\n", res->nused);

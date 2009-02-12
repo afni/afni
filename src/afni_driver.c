@@ -1571,6 +1571,7 @@ ENTRY("AFNI_drive_open_graph_1D") ;
    ig = find_empty_graph_xy() ;
 
    Graph_xy_list[ig] = gxy = (Graph_xy *) malloc(sizeof(Graph_xy)) ;
+   memset(gxy, 0 , sizeof(Graph_xy)) ;  /* 12 Feb 2009 [lesstif patrol] */
 
    MCW_strncpy( gxy->gname , gname , THD_MAX_NAME ) ;
 

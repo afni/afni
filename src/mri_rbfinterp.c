@@ -269,7 +269,8 @@ INFO_message("RBF: compute pseudo-inverse") ;
      ERROR_message("RBF_setup_knots: pseudo-inversion fails?!"); RETURN(NULL);
    }
 
-   rbk = (RBF_knots *)malloc(sizeof(RBF_knots)) ;
+   /* from malloc    12 Feb 2009 [lesstif patrol] */
+   rbk = (RBF_knots *)calloc(1, sizeof(RBF_knots)) ;
    rbk->nknot = nk  ;
    rbk->nfit  = nf ;
    rbk->xmid  = xm  ; rbk->xscl = xd  ;

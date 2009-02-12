@@ -437,7 +437,8 @@ ENTRY("SUMA_make_vnlist") ;
 
    /* now create the output vnlist */
 
-   vnlist         = (SUMA_vnlist *) malloc( sizeof(SUMA_vnlist) ) ;
+   /* from malloc (no effect now)   12 Feb 2009 [lesstif patrol] */
+   vnlist         = (SUMA_vnlist *) calloc( 1, sizeof(SUMA_vnlist) ) ;
    vnlist->nvox   = nvox ;
    vnlist->voxijk = (int *) malloc(sizeof(int) *nvox) ;
    vnlist->numnod = (int *) calloc(sizeof(int) ,nvox) ;
