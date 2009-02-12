@@ -738,7 +738,8 @@ ENTRY("open_MCW_imseq") ;
    }
 
    newseq = (MCW_imseq *) XtMalloc( sizeof(MCW_imseq) ) ;  /* new structure */
-
+   memset(newseq, 0, sizeof(MCW_imseq));
+   
    newseq->dc     = dc ;               /* copy input pointers */
    newseq->getim  = get_image ;
    newseq->getaux = aux ;

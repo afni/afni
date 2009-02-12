@@ -1254,9 +1254,19 @@ ENTRY("PLUG_setup_widgets") ;
    /**** create widgets structure ****/
 
    plint->wid = wid = myXtNew(PLUGIN_widgets) ;
-
+   
    /**** create Shell that can be opened up later ****/
-
+   /* 'LessTif Widormous' 
+      With 64bit LessTif, some widgets get created with 
+      enormous sizes. To complicate matters, the problem
+      occurred randomly so tracking it is a frustrating
+      exercise. It looks like adding a few, harmless,
+      XmNheight and XmNwidth parameters at widget creation
+      fixed the problem. Those parameters have no effect
+      on the final plugin's look so we won't bother to find
+      out which of them was necessary for fixing the problem.
+                  12 Feb 2009 9Lesstif patrol] 
+   */
    wid->shell =
       XtVaAppCreateShell(
            "AFNI" , "AFNI" , topLevelShellWidgetClass , dc->display ,
@@ -1267,7 +1277,9 @@ ENTRY("PLUG_setup_widgets") ;
            XmNdeleteResponse    , XmDO_NOTHING , /* deletion handled below */
            XmNallowShellResize  , False ,        /* let code resize shell? */
            XmNinitialResourcesPersistent , False ,
-              XmNkeyboardFocusPolicy , XmEXPLICIT ,
+               XmNheight, 207, /* See 'LessTif Widormous' comment above */
+               XmNwidth, 206,  /*         12 Feb 2009 9Lesstif patrol] */
+           XmNkeyboardFocusPolicy , XmEXPLICIT ,
       NULL ) ;
 
    DC_yokify( wid->shell , dc ) ; /* 14 Sep 1998 */
@@ -1293,6 +1305,8 @@ ENTRY("PLUG_setup_widgets") ;
                  "AFNI" , xmFormWidgetClass , wid->shell ,
                      XmNborderWidth , 0 ,
                      XmNborderColor , 0 ,
+                        XmNwidth, 70,/* See 'LessTif Widormous' comment above */
+                        XmNheight, 100,/*         12 Feb 2009 9Lesstif patrol] */
                      XmNtraversalOn , True  ,
                      XmNinitialResourcesPersistent , False ,
                  NULL ) ;
@@ -1311,6 +1325,8 @@ ENTRY("PLUG_setup_widgets") ;
            XmNrightAttachment, XmATTACH_FORM ,
            XmNtopAttachment  , XmATTACH_FORM ,
            XmNtopOffset      , 5 ,
+               XmNheight, 20, /* See 'LessTif Widormous' comment above */
+               XmNwidth, 20, /*         12 Feb 2009 9Lesstif patrol] */
            XmNinitialResourcesPersistent , False ,
         NULL ) ;
     XmStringFree( xstr ) ;
@@ -1472,7 +1488,8 @@ ENTRY("PLUG_setup_widgets") ;
               XmNmarginHeight     , 0  ,
               XmNmarginWidth      , 0  ,
               XmNselectColor      , fg_pix ,  /* fill with foreground when set */
-
+               XmNheight, 20,
+               XmNwidth, 20,
               XmNtraversalOn , True  ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
@@ -1836,6 +1853,8 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                        XmNmarginWidth , 0 ,
                        XmNspacing     , 0 ,
                        XmNtraversalOn , True  ,
+                              XmNheight, 20,
+                              XmNwidth, 30,
                        XmNinitialResourcesPersistent , False ,
                     NULL ) ;
 
