@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , FEB , 2009 , RWC , "3dRBFdset" , MICRO , TYPE_GENERAL ,
+   "Test program to make a dataset defined by RBF." ,
+   "Mostly built to test the Radial Basis Function expansion functions in\n"
+   "mri_rbfinterp.c." } ,
+
  { 11 , FEB , 2009 , RWC , "3dvolreg" , MINOR , TYPE_BUG_FIX ,
    "replace DMAT_svdrot_old with DMAT_svdrot_newer" ,
    "Old function fails sometimes, making the output rotation be garbage and\n"

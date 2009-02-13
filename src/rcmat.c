@@ -27,10 +27,13 @@ ENTRY("rcmat_init") ;
 
 void rcmat_destroy( rcmat *rcm )
 {
-   int      nn = rcm->nrc , ii ;
-   double **rc = rcm->rc ;
-   LENTYP *len = rcm->len ;
+   int nn , ii ;
+   double **rc ;
+   LENTYP *len ;
 
+   if( rcm == NULL ) return ;
+
+   nn = rcm->nrc ; rc = rcm->rc ; len = rcm->len ;
    if( rc != NULL ){
      for( ii=0 ; ii < nn ; ii++ ) if( rc[ii] != NULL ) free((void *)rc[ii]) ;
      free((void *)rc) ;
@@ -208,9 +211,11 @@ void rcmat_uppert_solve( rcmat *rcm , double *vec )
 #undef  DM
 #define DM(a,b) ((double)(a))*((double)(b))  /* double multiply */
 
-static int   *rbot = NULL ;
-static int   *rtop = NULL ;
-static float *rfac = NULL ;
+static int    *rbot = NULL ;  /* first nonzero entry in each column */
+static int    *rtop = NULL ;  /* last one */
+static double *rfac = NULL ;  /* scale factor for each column */
+
+/*---------------------- Destroy the above arrays. ----------------------*/
 
 static void free_rbotop(void)
 {
@@ -218,6 +223,8 @@ static void free_rbotop(void)
   if( rtop != NULL ){ free(rtop) ; rtop = NULL ; }
   if( rfac != NULL ){ free(rfac) ; rfac = NULL ; }
 }
+
+/*------------ Set the first/last elements and scale factors ------------*/
 
 static void set_rbotop( int npt , int nref , float *ref[] )
 {
@@ -227,7 +234,8 @@ static void set_rbotop( int npt , int nref , float *ref[] )
    if( npt < 1 || nref < 1 || ref == NULL ) return ;
 
    /* find first and last nonzero entries in each column;
-      N.B.: if column #j is all zero, then rbot[j] > rtop[j] */
+      N.B.: If column #j is all zero, then rbot[j] > rtop[j].
+            However, this means that we can't do Choleski least squares. */
 
    rbot = (int *)malloc(sizeof(int)*nref) ;
    for( jj=0 ; jj < nref ; jj++ ){
@@ -246,7 +254,7 @@ static void set_rbotop( int npt , int nref , float *ref[] )
    /* compute reciprocal of L2 norm of each column;
       any zero value will abort the calculations and kill everything */
 
-   rfac = (float *)malloc(sizeof(float)*nref) ;
+   rfac = (double *)malloc(sizeof(double)*nref) ;
    for( jj=0 ; jj < nref ; jj++ ){
      rj = ref[jj] ;
      for( sum=0.0,ii=rbot[jj] ; ii <= rtop[jj] ; ii++ ) sum += DM(rj[ii],rj[ii]) ;
@@ -374,4 +382,48 @@ STATUS("copy") ;
    for( ii=0 ; ii < nref ; ii++ ) wt[ii] = dt[ii] * rfac[ii] ;
 
    free_rbotop() ; free(dt) ; RETURN(wt) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Create an rcmat struct from a set of float rows.  For each rr[ii],
+    only rr[ii][jj] for jj=0..ii (inclusive) will be accessed
+    (since an rcmat is for symmetric matrices).
+*//*------------------------------------------------------------------------*/
+
+rcmat * rcmat_from_rows( int nn , float *rr[] )
+{
+   rcmat *rcm ;
+   LENTYP *len ;
+   double **rc , *rcii ;
+   int ii , jj,jbot ;
+
+ENTRY("rcmat_from_columns") ;
+
+   if( nn < 1 || rr == NULL ) RETURN(NULL) ;
+
+   /* create sparse matrix struct */
+
+   rcm = rcmat_init( nn ) ;
+   len = rcm->len ;
+   rc  = rcm->rc ;
+
+   /* create first row */
+
+   ii = 0 ;
+   len[ii] = 1 ; rc[ii] = malloc(sizeof(double)) ;
+   rc[ii][0] = (double)rr[ii][0] ;
+
+   /* create subsequent rows */
+
+   for( ii=1 ; ii < nn ; ii++ ){
+     for( jj=0 ; jj < ii && rr[ii][jj] == 0.0f ; jj++ ) ; /*nada*/
+     jbot    = jj ;                      /* first nonzero entry */
+     len[ii] = ii+1-jbot ;         /* number of nonzero entries */
+     rc[ii]  = (double *)calloc(sizeof(double),len[ii]) ;
+     rcii    = rc[ii] - jbot ;  /* shifted ptr to the ii-th row */
+     for( jj=jbot ; jj <= ii ; jj++ )     /* copy data into row */
+       rcii[jj] = (double)rr[ii][jj] ;
+   }
+
+   RETURN(rcm) ;
 }
