@@ -30,4 +30,6 @@ extern void    rcmat_uppert_solve( rcmat *rcm , double *vec ) ;
 extern float * rcmat_lsqfit ( int npt, float *far, int nref, float *ref[] ) ;
 extern rcmat * rcmat_normeqn( int npt,             int nref, float *ref[] ) ;
 
+extern rcmat * rcmat_from_rows( int nn , float *rr[] ) ;
+
 #endif /* _AFNI_RCMAT_HEADER_ */
