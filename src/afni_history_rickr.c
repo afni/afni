@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, FEB, 2009, RCR, "dmat44.c", MICRO, TYPE_BUG_FIX,
+   "cut-and-paste error ...",
+   NULL
+ } ,
+
  { 13, FEB, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "malloc changes: 5 more files",
    "Friday the 13th, oooooooo...  @ 18:31:30 EST: time will be 1234567890."
