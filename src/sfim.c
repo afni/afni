@@ -366,7 +366,8 @@ SF_interval * SFIM_load_intervals( char * fname )
       exit(-1) ;
    }
 
-   sfint = (SF_interval *) malloc( sizeof(SF_interval) * INC_SFINT ) ;
+   /* malloc -> calloc   13 Feb 2009 [lesstif patrol] */
+   sfint = (SF_interval *) calloc( INC_SFINT, sizeof(SF_interval) ) ;
    if( sfint == NULL ){
      fprintf(stderr,"SFIM_load_intervals fails to malloc!\n") ;
      exit(-1) ;

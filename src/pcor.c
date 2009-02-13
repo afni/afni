@@ -41,7 +41,8 @@ references * new_references(numref)
 
    /*** allocate storage for top level data ***/
 
-   ref = (references *) malloc( sizeof(references) ) ;
+   /* malloc->calloc   13 Feb 2009 [lesstif patrol] */
+   ref = (references *) calloc( 1, sizeof(references) ) ;
    if( ref == NULL ){
       fprintf( stderr , "new_references:  malloc error for base\n" ) ;
       exit(-1) ;

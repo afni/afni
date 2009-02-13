@@ -829,7 +829,7 @@ static int reset_bigcolors( rgbyte * bcs );     /* v1.8 [rickr] */
 #  define INIT_RSA(name)                                                               \
      do{ int iq ; (name) = (RENDER_state_array *) malloc(sizeof(RENDER_state_array)) ; \
          (name)->num = 0 ; (name)->nall = INC_RSA ;                                   \
-         (name)->rsarr = (RENDER_state **)malloc(sizeof(RENDER_state *)*INC_RSA) ;   \
+         (name)->rsarr = (RENDER_state **)calloc(INC_RSA,sizeof(RENDER_state *)) ;   \
          for( iq=0 ; iq < INC_RSA ; iq++ ) (name)->rsarr[iq] = NULL ;               \
          break ; } while(0)
 
@@ -2684,7 +2684,7 @@ ENTRY( "RCREND_draw_CB" );
 
 #ifdef USE_SCRIPTING
    if( last_rendered_state == NULL )
-      last_rendered_state = (RENDER_state *) malloc(sizeof(RENDER_state)) ;
+      last_rendered_state = (RENDER_state *) calloc(1,sizeof(RENDER_state)) ;
 
    RCREND_widgets_to_state( last_rendered_state ) ;
 #endif
@@ -2701,7 +2701,7 @@ ENTRY( "RCREND_draw_CB" );
       }
       ADDTO_IMARR( renderings , rim ) ;
 #ifdef USE_SCRIPTING
-      { RENDER_state * rs = (RENDER_state *) malloc(sizeof(RENDER_state)) ;
+      { RENDER_state * rs = (RENDER_state *) calloc(1,sizeof(RENDER_state)) ;
 
         *rs = *last_rendered_state ;
         ADDTO_RSA( renderings_state , rs ) ;
@@ -2713,7 +2713,7 @@ ENTRY( "RCREND_draw_CB" );
       INIT_IMARR( renderings ) ;
       ADDTO_IMARR( renderings , rim ) ;
 #ifdef USE_SCRIPTING
-      { RENDER_state * rs = (RENDER_state *) malloc(sizeof(RENDER_state)) ;
+      { RENDER_state * rs = (RENDER_state *) calloc(1,sizeof(RENDER_state)) ;
         DESTROY_RSA( renderings_state ) ;
         INIT_RSA( renderings_state ) ; script_load_last = -1 ;
         *rs = *last_rendered_state ;
