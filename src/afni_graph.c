@@ -822,7 +822,8 @@ ENTRY("new_MCW_grapher") ;
                           "Tran 1D" ,
                           0 , grapher->status->transforms1D->num , 0 , 0 ,
                           GRA_transform_CB , (XtPointer) grapher ,
-                          GRA_transform_label , (XtPointer) grapher->status->transforms1D ) ;
+                          GRA_transform_label , 
+                          (XtPointer) grapher->status->transforms1D ) ;
 
       /* force the optmenu to call us even if the same button is chosen twice */
       grapher->transform1D_av->optmenu_call_if_unchanged = 1 ;  /* 10 Oct 2007 */

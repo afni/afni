@@ -1878,4 +1878,6 @@ extern int RBF_evaluate( RBF_knots *, RBF_evalues *, RBF_evalgrid *, float * ) ;
    } while(0)
 /*----------------------------------------------------------------------------*/
 
+#define CPU_IS_64_BIT() ((sizeof(void *) == 8) ? 1 : 0 )
+
 #endif /* _MCW_MRILIB_HEADER_ */
