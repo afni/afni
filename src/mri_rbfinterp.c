@@ -8,28 +8,25 @@
 
 /******************************************************************************
   Radial Basis Function (RBF) interpolation in 3D.
-  + These functions are not designed for high efficiency.
+  + These functions are not designed for high efficiency!
   + They are designed for repeated interpolations from the
     same set of knots, using different sets of values each time.
-  + The C2 polynomial with compact support (0 < x < 1)
-    f(x) = (1-x)^2*(4x+1) is the RBF used here, with a global linear
+  + The C2 polynomial with compact support (0 < r < 1)
+    f(r) = (1-r)^4*(4r+1) is the RBF used here, with a global linear
     polynomial.
   + Setup for a given collection of knots:        RBF_setup_knots()
   + Setup for a given set of values at the knots: RBF_setup_evalues()
   + Evaluation at an arbitrary set of points:     RBF_evaluate()
 *******************************************************************************/
 
+#if 0         /* would be needed for thin-plate spline RBF */
 #undef  Rlog
 #define Rlog(x)       (((x)<=0.0f) ? 0.0f : logf(x))
+#endif
 
-/*! C2 polynomial; argument is 1-r, which should be between 0 and 1 */
+/*! C2 polynomial: argument is 1-r, which should be between 0 and 1 */
 
 #define RBF_func(x)    ((x)*(x)*(x)*(x)*(5.0f-4.0f*x))
-
-#undef  MM
-#define MM(i,j) mat[(i)+mm*(j)]  /* access to matrix elements (column-major) */
-
-#define USE_LINPOL
 
 /*----------------------------------------------------------------------------*/
 /*! Evaluate RBF expansion on a set of points in rbg,
@@ -62,17 +59,15 @@ ENTRY("RBF_evaluate") ;
    nk  = rbk->nknot ;
 
 #ifdef DEBUG
-INFO_message("RBF: evaluate at %d points",npt) ;
+  INFO_message("RBF_evaluate: %d points X %d knots",npt,nk) ;
 #endif
 
 #pragma omp parallel if(npt*nk > 9999)
  {
-   int ii , jj ;
+   int ii , jj , uselin=rbk->uselin ;
    float  rr , xm,ym,zm , xd,yd,zd , rad,rqq , xt,yt,zt , *xx,*yy,*zz ;
    float  xk , yk , zk , sum , *ev ;
-#ifdef USE_LINPOL
    float b0,bx,by,bz ;
-#endif
 
    /* load some local variables */
 
@@ -81,9 +76,9 @@ INFO_message("RBF: evaluate at %d points",npt) ;
    xd  = rbk->xscl ; yd  = rbk->yscl ; zd = rbk->zscl ;
    xx  = rbk->xknot; yy  = rbk->yknot; zz = rbk->zknot;
    ev  = rbe->val  ;
-#ifdef USE_LINPOL
-   b0  = rbe->b0   ; bx  = rbe->bx   ; by = rbe->by   ; bz = rbe->bz ;
-#endif
+   if( uselin ){
+     b0 = rbe->b0 ; bx = rbe->bx ; by = rbe->by ; bz = rbe->bz ;
+   }
 
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
@@ -94,11 +89,9 @@ INFO_message("RBF: evaluate at %d points",npt) ;
        if( rr >= rqq ) continue ;
        rr = 1.0f - sqrtf(rr) / rad ; sum += ev[jj] * RBF_func(rr) ;
      }
-#ifdef USE_LINPOL
-     val[ii] = sum + b0 + bx*(xt-xm)*xd + by*(yt-ym)*yd + bz*(zt-zm)*zd ;
-#else
      val[ii] = sum ;
-#endif
+     if( uselin )
+       val[ii] += b0 + bx*(xt-xm)*xd + by*(yt-ym)*yd + bz*(zt-zm)*zd ;
    }
  } /* end OpenMP */
 
@@ -114,11 +107,8 @@ INFO_message("RBF: evaluate at %d points",npt) ;
 
 int RBF_setup_evalues( RBF_knots *rbk , RBF_evalues *rbe )
 {
-   int nk,nf , nn,mm , ii , jj ;
-   float *mat , *aa , *vv ;
-#ifdef USE_LINPOL
-   float b0,bx,by,bz ;
-#endif
+   int nn , ii , jj ;
+   float *mat , *vv ; double *aa ;
 
 ENTRY("RBF_setup_evalues") ;
 
@@ -128,109 +118,69 @@ ENTRY("RBF_setup_evalues") ;
 
    if( rbe->code > 0 ) RETURN(1) ;  /* already contains RBF weights */
 
-   nk  = rbk->nknot ;                             /* number of knots  */
-   nf  = rbk->nfit ;                             /* number of fit points */
-#ifdef USE_LINPOL
-   mm  = nk+4 ;                                 /* matrix dimensions */
-   nn  = nf+4 ;                                /* mm=#rows nn=#cols */
-#else
-   mm  = nk ;
-   nn  = nf ;
+#ifdef DEBUG
+  INFO_message("RBF_setup_evalues: Lmat solve") ;
 #endif
-   mat = rbk->psmat ;                         /* inverse matrix   */
-   aa  = (float *)calloc(sizeof(float),nk) ; /* output array = RBF weights */
-   vv  = rbe->val ;                         /* input array = values at fit */
 
-   /* evaluate weights for each RBF into aa,
-      by multiplying inverse matrix into value vector
-      (done in this order for column-major indexing efficiency) */
+   nn = rbk->nknot ;
+   vv = rbe->val ;
+   aa = (double *)calloc(sizeof(double),nn) ;
+   for( ii=0 ; ii < nn ; ii++ ) aa[ii] = (double)vv[ii] ;
+
+   rcmat_lowert_solve( rbk->Lmat , aa ) ;
+   rcmat_uppert_solve( rbk->Lmat , aa ) ;
+
+   if( rbk->uselin ){
+     double q0,qx,qy,qz , b0,bx,by,bz ; dmat44 Q=rbk->Qmat ;
+     float *P0=rbk->P0 , *Px=rbk->Px , *Py=rbk->Py , *Pz=rbk->Pz ;
 
 #ifdef DEBUG
-INFO_message("RBF: evaluate inverse matrix times value vector") ;
+  INFO_message("RBF_setup_evalues: uselin setup and solve") ;
 #endif
 
+     for( q0=qx=qy=qz=0.0,ii=0 ; ii < nn ; ii++ ){
+       q0 += P0[ii]*aa[ii] ; qx += Px[ii]*aa[ii] ;
+       qy += Py[ii]*aa[ii] ; qz += Pz[ii]*aa[ii] ;
+     }
+     DMAT44_VEC( Q , q0,qx,qy,qz , b0,bx,by,bz ) ;
+     rbe->b0 = b0 ; rbe->bx = bx ; rbe->by = by ; rbe->bz = bz ;
+     for( ii=0 ; ii < nn ; ii++ )
+       aa[ii] = (double)vv[ii] - b0*P0[ii] - bx*Px[ii] - by*Py[ii] - bz*Pz[ii] ;
+
+     rcmat_lowert_solve( rbk->Lmat , aa ) ;
+     rcmat_uppert_solve( rbk->Lmat , aa ) ;
 #ifdef DEBUG
-   if( nk <= 20 && nf <= 20 ){
-     INFO_message("value vector") ;
-     for( jj=0 ; jj < nf ; jj++ ) fprintf(stderr," %+4f",vv[jj]) ;
-     fprintf(stderr,"\n") ;
-   }
+  INFO_message("RBF_setup_evalues: b0=%g bx=%g by=%g bz=%g",b0,bx,by,bz) ;
 #endif
-
-STATUS("multiply matrix") ;
-   for( jj=0 ; jj < nf ; jj++ ){
-     for( ii=0 ; ii < nk ; ii++ ) aa[ii] += MM(ii,jj) * vv[jj] ;
    }
 
-#ifdef DEBUG
-   if( nf <= 20 && nk <= 20 ){
-     INFO_message("coefficent vector") ;
-     for( ii=0 ; ii < nk ; ii++ ) fprintf(stderr," %+4f",aa[ii]) ;
-     fprintf(stderr,"\n") ;
-   }
-#endif
+   /* put results back into rbe */
 
-#ifdef USE_LINPOL
-   /* evaluate linear polynomial coefficients,
-      by multiplying last 4 rows of inverse matrix into value vector */
-
-#ifdef DEBUG
-INFO_message("RBF: evaluate linear coefficients") ;
-#endif
-
-   b0 = bx = by = bz = 0.0f ;
-   for( jj=0 ; jj < nf ; jj++ ){
-     b0 += MM(nk  ,jj) * vv[jj] ;
-     bx += MM(nk+1,jj) * vv[jj] ;
-     by += MM(nk+2,jj) * vv[jj] ;
-     bz += MM(nk+3,jj) * vv[jj] ;
-   }
-
-#ifdef DEBUG
-   if( nf <= 20 && nk <= 20 ){
-     INFO_message(" linear coeff: b0=%g bx=%g by=%g bz=%g",b0,bx,by,bz) ;
-   }
-#endif
-#endif /* USE_LINPOL */
-
-   /* put results back into rbe:
-       N.B.: on input, vv has nf points and gets nk on output,
-             but this is copasetic, since we must have nk <= nf */
-
-   memcpy(vv,aa,sizeof(float)*nk) ; free(aa) ;
-#ifdef USE_LINPOL
-   rbe->b0 = b0 ; rbe->bx = bx ; rbe->by = by ; rbe->bz = bz ;
-#endif
+   for( ii=0 ; ii < nn ; ii++ ) vv[ii] = (float)aa[ii] ;
    rbe->code = 1 ; /* code that rbe is converted to RBF weights from values */
+   free(aa) ;
 
    RETURN(2) ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Setup the knots for radial basis function; mostly,
-    making the inverse matrix for converting knot values to RBF weights.
+/*! Setup the knots struct for radial basis function evaluation.
 *//*--------------------------------------------------------------------------*/
 
-RBF_knots * RBF_setup_knots( int nk , float *xx , float *yy , float *zz ,
-                             int nf , float *xf , float *yf , float *zf  )
+RBF_knots * RBF_setup_knots( int nk, float radius, int uselin,
+                             float *xx , float *yy , float *zz )
 {
    RBF_knots *rbk ;
-   int ii , jj , nn , mm , coincide=0,jtop ;
-   MRI_IMAGE *im_mat , *im_psmat ;
-   float     *mat , rr , xm,ym,zm , xd,yd,zd , rad,rqq , xt,yt,zt ;
+   int ii , jj , nn , jtop ;
+   float **mat ;
+   rcmat *rcm ;
+   float *P0=NULL,*Px=NULL,*Py=NULL,*Pz=NULL ;
+   float rr , xm,ym,zm , xd,yd,zd , rad,rqq , xt,yt,zt ;
 
 ENTRY("RBF_setup_knots") ;
 
    if( nk < 5 || xx == NULL || yy == NULL || zz == NULL ){
-     ERROR_message("Illegal call to RBF_setup_knots") ; RETURN(NULL) ;
-   }
-
-   /* if no fit points are given, then use the knots */
-
-   if( nf == 0 || xf == NULL || yf == NULL || zf == NULL ){
-     nf = nk ; xf = xx ; yf = yy ; zf = zz ; coincide = 1 ;
-   } else if( nf < nk ){
-     ERROR_message("RBF_setup_knots: nf=%d < nk=%d",nf,nk) ; RETURN(NULL) ;
+     ERROR_message("Illegal inputs to RBF_setup_knots") ; RETURN(NULL) ;
    }
 
    /* set up middle of knot field and scale radius */
@@ -245,135 +195,129 @@ ENTRY("RBF_setup_knots") ;
    qmedmad_float( nk , xx , &xm , &xd ) ;
    qmedmad_float( nk , yy , &ym , &yd ) ;
    qmedmad_float( nk , zz , &zm , &zd ) ;
-   rad = 4.99f*(xd+yd+zd) / cbrtf((float)nk) ;  /* RBF support radius */
-   rqq = rad*rad ;
+
+   if( radius <= 0.0f )
+     rad = 4.99f*(xd+yd+zd) / cbrtf((float)nk) ;  /* RBF support radius */
+   else
+     rad = radius ;
+
+   rqq = rad*rad ;  /* for testing */
 
 #ifdef DEBUG
-INFO_message("RBF: rad=%g  xd=%g  yd=%g  zd=%g",rad,xd,yd,zd ) ;
-INFO_message("     xm=%g  ym=%g  zm=%g",xm,ym,zm) ;
+INFO_message("RBF: rad=%g xd=%g yd=%g zd=%g xm=%g ym=%g zm=%g",rad,xd,yd,zd,xm,ym,zm);
 #endif
 
-   xd  = 1.0f / xd ;          /* scale factors : (x-xm)*xd is   */
-   yd  = 1.0f / yd ;          /* dimensionless x-value relative */
-   zd  = 1.0f / zd ;          /* to middle at xm                */
+   xd = 1.0f / xd ;          /* scale factors : (x-xm)*xd is   */
+   yd = 1.0f / yd ;          /* dimensionless x-value relative */
+   zd = 1.0f / zd ;          /* to middle at xm                */
 
    /* set up matrix for interpolation */
 
-#ifdef USE_LINPOL
-   nn = nk+4 ;                                /* matrix dimensions */
-   mm = nf+4 ;                                /* mm=#rows nn=#cols */
-#else
    nn = nk ;
-   mm = nf ;
-#endif
-   im_mat = mri_new( mm , nn , MRI_float ) ;
-   mat    = MRI_FLOAT_PTR(im_mat) ;           /* zero filled */
+   mat = (float **)malloc(sizeof(float *)*nn) ;
+   for( ii=0 ; ii < nn ; ii++ )
+     mat[ii] = (float *)calloc((ii+1),sizeof(float)) ;
 
-#ifdef DEBUG
-INFO_message("RBF: setup %d X %d matrix",mm,nn) ;
-#endif
-
-   for( ii=0 ; ii < nf ; ii++ ){
-     jtop = (coincide) ? ii+1 : nk ;
-     for( jj=0 ; jj < jtop ; jj++ ){            /* RBF part of matrix */
-       xt = xf[ii]-xx[jj] ;
-       yt = yf[ii]-yy[jj] ;
-       zt = zf[ii]-zz[jj] ; rr = xt*xt + yt*yt + zt*zt ;
-            if( rr == 0.0f ){                          MM(ii,jj) = 1.0f ;        }
-       else if( rr <  rqq  ){ rr = 1.0f-sqrtf(rr)/rad; MM(ii,jj) = RBF_func(rr); }
-       if( coincide && jj < ii ) MM(jj,ii) = MM(ii,jj) ;
-     }
-#ifdef USE_LINPOL
-     MM(ii,nk)   = 1.0f ;
-     MM(ii,nk+1) = (xf[ii]-xm)*xd ;
-     MM(ii,nk+2) = (yf[ii]-ym)*yd ;
-     MM(ii,nk+3) = (zf[ii]-zm)*zd ;
-#endif
-   }
-#ifdef USE_LINPOL
-   for( jj=0 ; jj < nk ; jj++ ){
-     MM(nk  ,jj) = 1.0f ;
-     MM(nk+1,jj) = (xx[jj]-xm)*xd ;
-     MM(nk+2,jj) = (yy[jj]-ym)*yd ;
-     MM(nk+3,jj) = (zz[jj]-zm)*zd ;
-   }
-#endif
-
-#ifdef DEBUG
-   if( nn <= 20 && mm <= 20 ){
-     for( ii=0 ; ii < mm ; ii++ ){
-       INFO_message("Matrix row %2d",ii) ;
-       for( jj=0 ; jj < nn ; jj++ ) fprintf(stderr," %+.4f",MM(ii,jj)) ;
-       fprintf(stderr,"\n") ;
-     }
-   } else {
-     INFO_message("Matrix row 0") ;
-     for( jj=0 ; jj < nn ; jj++ ){
-       fprintf(stderr," %+.4f",MM(0,jj)) ;
-       if( jj%20 == 19 ) fprintf(stderr,"\n") ;
-     }
-     fprintf(stderr,"\n") ;
-   }
-#endif
-
-   /* compute pseudo-inverse:
-          mat is (nf+4) X (nk+4)
-        psmat is (nk+4) X (nf+4) */
-
-#ifdef DEBUG
-INFO_message("RBF: compute pseudo-inverse") ;
-#endif
-
-   im_psmat = mri_matrix_psinv( im_mat , NULL , 0.00001f ) ;
-   mri_free(im_mat) ;
-   if( im_psmat == NULL ){
-     ERROR_message("RBF_setup_knots: pseudo-inversion fails?!"); RETURN(NULL);
+   if( uselin ){
+     P0 = (float *)calloc(nn,sizeof(float)) ;
+     Px = (float *)calloc(nn,sizeof(float)) ;
+     Py = (float *)calloc(nn,sizeof(float)) ;
+     Pz = (float *)calloc(nn,sizeof(float)) ;
    }
 
 #ifdef DEBUG
-   mat = MRI_FLOAT_PTR(im_psmat) ; ii = nn ; nn = mm ; mm = ii ;
-   if( nn <= 20 && mm <= 20 ){
-     for( ii=0 ; ii < mm ; ii++ ){
-       INFO_message("pseudo-inverse Matrix row %2d",ii) ;
-       for( jj=0 ; jj < nn ; jj++ ) fprintf(stderr," %+.4f",MM(ii,jj)) ;
-       fprintf(stderr,"\n") ;
-     }
-   } else {
-     INFO_message("pseudo-inverse Matrix row 0") ;
-     for( jj=0 ; jj < nn ; jj++ ){
-       fprintf(stderr," %+.4f",MM(0,jj)) ;
-       if( jj%20 == 19 ) fprintf(stderr,"\n") ;
-     }
-     fprintf(stderr,"\n") ;
-   }
+  INFO_message("     setup matrix") ;
 #endif
+
+   for( ii=0 ; ii < nn ; ii++ ){
+     for( jj=0 ; jj < ii ; jj++ ){    /* RBF between knots */
+       xt = xx[ii]-xx[jj] ;
+       yt = yy[ii]-yy[jj] ;
+       zt = zz[ii]-zz[jj] ; rr = xt*xt + yt*yt + zt*zt ;
+       if( rr >= rqq ) continue ;
+       rr = 1.0f - sqrtf(rr)/rad ; mat[ii][jj] = RBF_func(rr) ;
+     }
+     mat[ii][ii] = 1.0000005f ;  /* RBF(0) = 1 by definition */
+     if( uselin ){
+       P0[ii] = 1.0f ;
+       Px[ii] = (xx[ii]-xm)*xd ;
+       Py[ii] = (yy[ii]-ym)*yd ;
+       Pz[ii] = (zz[ii]-zm)*zd ;
+     }
+   }
+
+#ifdef DEBUG
+INFO_message("     compute Choleski factor") ;
+#endif
+
+   rcm = rcmat_from_rows( nn , mat ) ;
+
+   if( rcm == NULL ){
+     ERROR_message("RBF_setup_knots: setup of rcmat fails!?") ;
+     for( ii=0 ; ii < nn ; ii++ ) free(mat[ii]) ;
+     free(mat) ;
+     if( uselin ){ free(P0); free(Px); free(Py); free(Pz); }
+     RETURN(NULL) ;
+   }
+
+   ii = rcmat_choleski( rcm ) ;
+   if( ii > 0 ){
+     ERROR_message("RBF_setup_knots: Choleski of rcmat fails at row %d!",ii) ;
+     for( ii=0 ; ii < nn ; ii++ ) free(mat[ii]) ;
+     free(mat) ;
+     if( uselin ){ free(P0); free(Px); free(Py); free(Pz); }
+     RETURN(NULL) ;
+   }
+
+   for( ii=0 ; ii < nn ; ii++ ) free(mat[ii]) ;
+   free(mat) ;
 
    rbk = (RBF_knots *)calloc(1,sizeof(RBF_knots)) ;
    rbk->nknot = nk  ;
-   rbk->nfit  = nf ;
+   rbk->rad   = rad ; rbk->rqq  = rqq ;
    rbk->xmid  = xm  ; rbk->xscl = xd  ;
    rbk->ymid  = ym  ; rbk->yscl = yd  ;
    rbk->zmid  = zm  ; rbk->zscl = zd  ;
-   rbk->rad   = rad ; rbk->rqq  = rqq ;
    rbk->xknot = (float *)calloc(sizeof(float),nk) ;
    rbk->yknot = (float *)calloc(sizeof(float),nk) ;
    rbk->zknot = (float *)calloc(sizeof(float),nk) ;
-   rbk->psmat = MRI_FLOAT_PTR(im_psmat) ;
    memcpy(rbk->xknot,xx,sizeof(float)*nk) ;
    memcpy(rbk->yknot,yy,sizeof(float)*nk) ;
    memcpy(rbk->zknot,zz,sizeof(float)*nk) ;
 
-   mri_fix_data_pointer(NULL,im_psmat) ; mri_free(im_psmat) ;
+   rbk->Lmat = rcm ;
+   rbk->uselin = uselin ;
+   rbk->P0 = P0 ; rbk->Px = Px ; rbk->Py = Py ; rbk->Pz = Pz ;
 
-   if( coincide ){
-     rbk->xfit = rbk->yfit = rbk->zfit = NULL ;
-   } else {
-     rbk->xfit = (float *)calloc(sizeof(float),nf) ;
-     rbk->yfit = (float *)calloc(sizeof(float),nf) ;
-     rbk->zfit = (float *)calloc(sizeof(float),nf) ;
-     memcpy(rbk->xfit,xf,sizeof(float)*nf) ;
-     memcpy(rbk->yfit,yf,sizeof(float)*nf) ;
-     memcpy(rbk->zfit,zf,sizeof(float)*nf) ;
+   if( uselin ){
+     double *vv[4],*vi,*vj ; dmat44 Q ; double sum ; register int kk ;
+#ifdef DEBUG
+  INFO_message("     compute Q matrix") ;
+#endif
+     vv[0] = (double *)malloc(sizeof(double)*nn) ;
+     vv[1] = (double *)malloc(sizeof(double)*nn) ;
+     vv[2] = (double *)malloc(sizeof(double)*nn) ;
+     vv[3] = (double *)malloc(sizeof(double)*nn) ;
+     for( ii=0 ; ii < nn ; ii++ ){
+       vv[0][ii] = P0[ii] ; vv[1][ii] = Px[ii] ;
+       vv[2][ii] = Py[ii] ; vv[3][ii] = Pz[ii] ;
+     }
+     rcmat_lowert_solve(rcm,vv[0]) ; rcmat_lowert_solve(rcm,vv[1]) ;
+     rcmat_lowert_solve(rcm,vv[2]) ; rcmat_lowert_solve(rcm,vv[3]) ;
+     for( ii=0 ; ii < 4 ; ii++ ){
+       vi = vv[ii] ;
+       for( jj=0 ; jj < 4 ; jj++ ){
+         vj = vv[jj] ;
+         for( sum=0.0,kk=0 ; kk < nn ; kk++ ) sum += vi[kk]*vj[kk] ;
+         Q.m[ii][jj] = sum ;
+       }
+     }
+     free(vv[0]) ; free(vv[1]) ; free(vv[2]) ; free(vv[3]) ;
+     rbk->Qmat = generic_dmat44_inverse(Q) ;
+#ifdef DEBUG
+  DUMP_DMAT44("Q",Q) ;
+  DUMP_DMAT44("Qinv",rbk->Qmat) ;
+#endif
    }
 
    RETURN(rbk) ;

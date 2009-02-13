@@ -16,9 +16,9 @@ dmat44 generic_dmat44_inverse( dmat44 P )
    /* unload input matrix into scalar variables */
 
    p11=P.m[0][0] ; p12=P.m[0][1] ; p13=P.m[0][2] ; p14=P.m[0][3] ;
-   p21=P.m[1][0] ; p22=P.m[1][1] ; p23=P.m[1][2] ; p14=P.m[1][3] ;
-   p31=P.m[2][0] ; p32=P.m[2][1] ; p33=P.m[2][2] ; p14=P.m[2][3] ;
-   p41=P.m[0][3] ; p42=P.m[1][3] ; p43=P.m[2][3] ; p14=P.m[3][3] ;
+   p21=P.m[1][0] ; p22=P.m[1][1] ; p23=P.m[1][2] ; p24=P.m[1][3] ;
+   p31=P.m[2][0] ; p32=P.m[2][1] ; p33=P.m[2][2] ; p34=P.m[2][3] ;
+   p41=P.m[0][3] ; p42=P.m[1][3] ; p43=P.m[2][3] ; p44=P.m[3][3] ;
 
    /* Code below here is from Maple's codegen[C] function */
 

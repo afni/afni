@@ -30,20 +30,16 @@ void Syntax(void)
     "                   (center of each radial basis function).\n"
     "                ** This is a MANDATORY option.\n"
     "                ** There must be at least 5 knot locations.\n"
-    "  -fitx ffile  = 3 column .1D file that lists the locations of the\n"
-    "                   values to be fitted by the RBF expansion.\n"
-    "                ** If '-fitx' is not given, then the coordinates\n"
-    "                   are assumed to be the same as the knots.\n"
-    "                ** If '-fitx' is given, there must be at least\n"
-    "                   as many fit locations as there are knots.\n"
     "  -vals vfile  = .1D file that lists the values to be fitted at\n"
     "                   each fit location.\n"
     "                ** This is a MANDATORY option.\n"
     "                ** One sub-brick will be created for each column\n"
     "                   in 'vfile'.\n"
     "                ** 'vfile' must have the same number of values per\n"
-    "                   column that the '-fitx' file does (or as the\n"
-    "                   '-knotx' file, if '-fitx' isn't being used).\n"
+    "                   column that the '-knotx' file does.\n"
+    "  -radius rr   = Set the RBF radius to 'rr' mm.\n"
+    "                ** Default = compute from knot distribution.\n"
+    "  -nolinear    = Don't use a global linear polynomial.\n"
     "\n"
     "-- RWCox -- February 2009\n"
    ) ;
@@ -73,9 +69,10 @@ static void ijk_to_xyz( THD_3dim_dataset *dset , int ijk ,
 int main( int argc , char * argv[] )
 {
    char *prefix="rbf" ;
-   MRI_IMAGE *kfim=NULL , *ffim=NULL , *vfim=NULL ;
-   float     *kfar=NULL , *ffar=NULL , *vfar=NULL ;
-   int        kfnx      ,  ffnx      ,  vfnx,vfny , coincide=0 ;
+   MRI_IMAGE *kfim=NULL , *vfim=NULL ;
+   float     *kfar=NULL , *vfar=NULL ;
+   int        kfnx      ,  vfnx,vfny , uselin=1 ;
+   float      rad=0.0f ;
    byte *mmask=NULL ;
    THD_3dim_dataset *dset , *maskset=NULL , *mset=NULL ;
    int iarg , ii,ijk , nx,ny,nz , nxyz,ival,nmask ;
@@ -98,6 +95,21 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
+      if( strncmp(argv[iarg],"-rad",4) == 0 ){
+        if( iarg+1 >= argc )
+          ERROR_exit("%s: no argument follows!?",argv[iarg]) ;
+        rad = (float)strtod(argv[++iarg],NULL) ;
+        iarg++ ; continue ;
+      }
+
+      /*-----*/
+
+      if( strncmp(argv[iarg],"-nolinear",5) == 0 ){
+        uselin = 0 ; iarg++ ; continue ;
+      }
+
+      /*-----*/
+
       if( strncmp(argv[iarg],"-knotx",5) == 0 ){
         if( kfim != NULL )
           ERROR_exit("Can't have 2 %s options!",argv[iarg]) ;
@@ -111,22 +123,6 @@ int main( int argc , char * argv[] )
         if( kfim->nx < 5 )
           ERROR_exit("%s %s: file must have 5 or more rows!",argv[iarg-1],argv[iarg]) ;
         kfnx = kfim->nx ; kfar = MRI_FLOAT_PTR(kfim) ;
-        iarg++ ; continue ;
-      }
-
-      /*-----*/
-
-      if( strncmp(argv[iarg],"-fitx",4) == 0 ){
-        if( ffim != NULL )
-          ERROR_exit("Can't have 2 %s options!",argv[iarg]) ;
-        if( iarg+1 >= argc )
-          ERROR_exit("%s: no argument follows!?",argv[iarg]) ;
-        ffim = mri_read_1D( argv[++iarg] ) ;
-        if( ffim == NULL )
-          ERROR_exit("%s %s: can't read file!?",argv[iarg-1],argv[iarg]) ;
-        if( ffim->ny != 3 )
-          ERROR_exit("%s %s: file must have exactly 3 columns!",argv[iarg-1],argv[iarg]) ;
-        ffnx = ffim->nx ; ffar = MRI_FLOAT_PTR(kfim) ;
         iarg++ ; continue ;
       }
 
@@ -196,15 +192,8 @@ int main( int argc , char * argv[] )
    if( vfar == NULL )
      ERROR_exit("3dRBFdset: -vals is a mandatory option!") ;
 
-   if( ffar == NULL ){             /* no -fitx ==> use -knotx */
-     ffar = kfar ; ffnx = kfnx ; coincide = 1 ;
-   } else if( ffnx < kfnx ){
-     ERROR_exit("-fitx file must have at least as many rows as -knotx file!") ;
-   }
-
-   if( ffnx != vfnx )
-     ERROR_exit("-vals file must have same number lines as %s file!",
-                (coincide) ? "-knotx" : "-fitx" ) ;
+   if( kfnx != vfnx )
+     ERROR_exit("-vals file must have same number lines as -knotx file!") ;
 
    /*------- make empty dataset -------*/
 
@@ -221,7 +210,6 @@ int main( int argc , char * argv[] )
 
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(dset)) )
       ERROR_exit("Output dataset already exists -- can't overwrite") ;
-
 
    nx = DSET_NX(dset); ny = DSET_NY(dset); nz = DSET_NZ(dset); nxyz = nx*ny*nz;
 
@@ -252,12 +240,8 @@ int main( int argc , char * argv[] )
 
    /*----- setup for RBF interpolation at the given set of points -----*/
 
-   if( coincide )
-     rbk = RBF_setup_knots( kfnx , kfar+0*kfnx , kfar+1*kfnx , kfar+2*kfnx ,
-                            0    , NULL        , NULL        , NULL         ) ;
-   else
-     rbk = RBF_setup_knots( kfnx , kfar+0*kfnx , kfar+1*kfnx , kfar+2*kfnx ,
-                            ffnx , ffar+0*ffnx , ffar+1*ffnx , ffar+2*ffnx  ) ;
+   rbk = RBF_setup_knots( kfnx , rad,uselin ,
+                          kfar+0*kfnx , kfar+1*kfnx , kfar+2*kfnx ) ;
    if( rbk == NULL )
      ERROR_exit("Can't setup RBF interpolation for some reason!") ;
 
@@ -275,14 +259,14 @@ int main( int argc , char * argv[] )
 
    /*-- setup space for evaluation --*/
 
-   MAKE_RBF_evalues(rbe,ffnx) ;
+   MAKE_RBF_evalues(rbe,kfnx) ;
    vv = (float *)malloc(sizeof(float)*nmask) ;
 
    /*-- loop over columns in vfar and compute results --*/
 
    for( ival=0 ; ival < vfny ; ival++ ){
-     memcpy( rbe->val , vfar+ival*ffnx , sizeof(float)*ffnx ) ;
-     ii = RBF_setup_evalues( rbk , rbe ) ;
+     memcpy( rbe->val , vfar+ival*kfnx , sizeof(float)*kfnx ) ;
+     rbe->code = 0 ; ii = RBF_setup_evalues( rbk , rbe ) ;
      if( ii == 0 ) ERROR_exit("Can't compute knot coefficients!?") ;
      ii = RBF_evaluate( rbk , rbe , rbg , vv ) ;
      if( ii == 0 ) ERROR_exit("Can't compute RBF expansion!?") ;
@@ -295,7 +279,7 @@ int main( int argc , char * argv[] )
 
    free(vv) ; free(mmask) ;
    DESTROY_RBF_evalgrid(rbg); DESTROY_RBF_evalues(rbe); DESTROY_RBF_knots(rbk);
-   mri_free(vfim) ; mri_free(kfim) ; mri_free(ffim) ;
+   mri_free(vfim) ; mri_free(kfim) ;
 
    dset_floatscan(dset) ;
    tross_Make_History( "3dRBFdset" , argc,argv , dset ) ;
