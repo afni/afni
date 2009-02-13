@@ -2206,6 +2206,7 @@ void SUMA_FakeIt (int Solo)
          NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
       
       niml_ROI = (SUMA_NIML_DRAWN_ROI *)malloc(sizeof(SUMA_NIML_DRAWN_ROI));
+      memset(niml_ROI, 0, sizeof(SUMA_NIML_DRAWN_ROI)); /* LPatrol */
       niml_ROI->Type = 4;
       niml_ROI->idcode_str = idcode_str;
       niml_ROI->Parent_idcode_str = Parent_idcode_str;
@@ -2213,8 +2214,8 @@ void SUMA_FakeIt (int Solo)
       niml_ROI->iLabel = 20;
       niml_ROI->N_ROI_datum = 2;
       niml_ROI->ROI_datum = 
-         (SUMA_NIML_ROI_DATUM *)
-            malloc(niml_ROI->N_ROI_datum*sizeof(SUMA_NIML_ROI_DATUM));
+         (SUMA_NIML_ROI_DATUM *) /* 13 Feb 2009 [lesstif patrol] */
+            calloc(niml_ROI->N_ROI_datum, sizeof(SUMA_NIML_ROI_DATUM));
 
       /* now fill the ROI_datum structures */
       
