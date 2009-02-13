@@ -190,6 +190,28 @@ ENTRY("new_MCW_bbox_cbwrap") ;
    } else {
       /* This is not a popup menu case, rowcolumns are allowed.
          No need to do anything */
+      if (dbg) {  /* some debugging */
+         fprintf(stderr,"I thought this caused no trouble, but check anyway\n");
+         /* For some reason, when a button other than button
+         0 is pressed, there are two callback calls made.
+         The first comes from widget 0 with a NULL event,
+         and the second from the widget pressed. */
+         for (ib=0; ib<cbws->bb->nbut; ++ib) {
+            if (cbws->bb->wbut[ib] == w) {
+               fprintf(stderr,
+                        "A call from widget (%p) %s at ib = %d, reason: %d\n", 
+                        cbws->bb->wbut[ib], XtName(w), ib, cbs->reason);
+               if (cbs->event) {
+                  fprintf(stderr,
+                        "   event->type = %d\n", cbs->event->type);
+               } else {
+                  fprintf(stderr,
+                        "   event is NULL\n");
+               }
+            }
+         }
+      }
+      
    }  
    
    /* Now call the intended callback */
@@ -256,12 +278,18 @@ ENTRY("new_MCW_bbox") ;
       
    /* this simpler approach worked fine */
    is_popup = is_daddy_popup(parent);
-   if (is_popup && dbg) {
-      for( ib=0 ; ib < num_but ; ib++ ){
-         fprintf(stderr,"     Popping for button %s\n", label_but[ib]);
+   if (dbg) {
+      if (is_popup) {
+         for( ib=0 ; ib < num_but ; ib++ ){
+            fprintf(stderr,"     Popping for button %s\n", label_but[ib]);
+         }
+      } else {
+         for( ib=0 ; ib < num_but ; ib++ ){
+            fprintf(stderr,"     Not popping for button %s\n", label_but[ib]);
+         }
       }
    }
-
+   
    bb = (MCW_bbox *) XtMalloc( sizeof(MCW_bbox) ) ;
    memset(bb, 0, sizeof(MCW_bbox)) ;  /* 12 Feb 2009 [lesstif patrol] */
 
@@ -757,9 +785,63 @@ void allow_MCW_optmenu_popup( int ii ){ allow_optmenu_EV = ii ; }
 static void optmenu_EV_fixup( Widget ww ) ;
 #endif
 
+
+/*
+This is the only fix we could come up with to keep
+AFNI from crashing when users open a pulldown menu
+and select from a menu within:
+
+graph-->click Opt AND drag to Tran 0D  = BOOM
+
+Doing:
+graph-->click Opt, RELEASE -->click Tran 0D = Hazah!
+
+The problem is either in Lesstif or Xt.
+
+What we do is capture the button release over such
+menus and dispatch a button press immediately. So 
+every time there is a button release atop such menus,
+there is an additional button press call done.
+
+That seems to do the trick, we hope.
+
+            Feb 13 2009, [LPatrol]
+*/
+void enter_EV( Widget w , XtPointer client_data ,
+                  XEvent * ev , Boolean * continue_to_dispatch )
+{
+   XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
+   XmAnyCallbackStruct cbs ;
+   MCW_arrowval *av = (MCW_arrowval *)client_data;
+   
+   int dbg = 0;
+      
+
+   if (dbg) {
+      fprintf(stderr,"ev->type %d icbs %d (realized: %d) \n"
+                     "  Queued %d, QAF %d, QAR %d\n", 
+                  lev->type, (int) client_data, 
+                  XtIsRealized(w), 
+                  XEventsQueued(XtDisplay(w), QueuedAlready ),
+                  XEventsQueued(XtDisplay(w), QueuedAfterFlush ),
+                  XEventsQueued(XtDisplay(w), QueuedAfterReading )); 
+   }
+   
+   #ifdef USING_LESSTIF
+   if (CPU_IS_64_BIT() ){
+      if (ev->type == ButtonRelease) { 
+                     /* Button release over menu button: DUCK! */
+         if (dbg) fprintf(stderr,"Holy Toledo!\n");
+         ev->type = ButtonPress;  /* Make that be a button press first */
+         XtDispatchEvent(ev); /* pray real hard now */
+      } 
+   }
+   #endif  
+}
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 char *label ,
-                                int   minval , int maxval , int inival , int decim ,
+                                int   minval , int maxval , int inival , 
+                                int decim ,
                                 gen_func *delta_value, XtPointer delta_data,
                                 str_func *text_proc  , XtPointer text_data
                               )
@@ -770,13 +852,13 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
    int nargs , ival ;
    XmString xstr ;
    char *butlabel , *blab ;
-
+   int dbg = 0;
+   
 ENTRY("new_MCW_optmenu") ;
 
    /** create the menu window **/
-
+   
    av->wmenu = wmenu = XmCreatePulldownMenu( parent , "menu" , NULL , 0 ) ;
-
    av->optmenu_call_if_unchanged = 0 ;  /* 10 Oct 2007 */
 
    VISIBILIZE_WHEN_MAPPED(wmenu) ;
@@ -787,13 +869,13 @@ ENTRY("new_MCW_optmenu") ;
    /** create the button that pops down the menu **/
 
    nargs = 0 ;
-   XtSetArg( args[0] , XmNsubMenuId , wmenu ) ; nargs++ ;
-   XtSetArg( args[1] , XmNtraversalOn, True ) ; nargs++ ;
+   XtSetArg( args[nargs] , XmNsubMenuId , wmenu ) ; nargs++ ;
+   XtSetArg( args[nargs] , XmNtraversalOn, True ) ; nargs++ ;
 
    if( label == NULL ) label = " " ;  /* 24 Sep 2001 */
 
    xstr = XmStringCreateLtoR( label , XmFONTLIST_DEFAULT_TAG ) ;
-   XtSetArg( args[2] , XmNlabelString , xstr ) ; nargs++ ;
+   XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
 
    av->wrowcol = XmCreateOptionMenu( parent , "dialog" , args , nargs ) ;
    XmStringFree(xstr) ;
@@ -804,6 +886,28 @@ ENTRY("new_MCW_optmenu") ;
                      XmNtraversalOn  , True ,
                   NULL ) ;
 
+   #ifdef USING_LESSTIF
+   if (CPU_IS_64_BIT() ){
+      XtInsertEventHandler( av->wrowcol ,       
+                               ButtonPressMask ,  
+                               FALSE ,           
+                               enter_EV,
+                               (XtPointer) av ,
+                               XtListHead) ; 
+      XtInsertEventHandler( av->wrowcol ,        
+                               ButtonReleaseMask ,  
+                               FALSE ,            
+                               enter_EV,
+                               (XtPointer) av,
+                               XtListHead) ; 
+      /*XtInsertEventHandler( av->wrowcol ,        
+                               EnterWindowMask ,  
+                               FALSE ,            
+                               enter_EV,
+                               (XtPointer) 1,
+                               XtListHead) ; */
+   }
+   #endif
    av->wlabel = XmOptionLabelGadget (av->wrowcol) ;
    av->wdown  = XmOptionButtonGadget(av->wrowcol) ;
    av->wup    = NULL ;
@@ -866,7 +970,7 @@ ENTRY("new_MCW_optmenu") ;
                   XmNmarginTop    , 0 ,
                   XmNmarginRight  , 0 ,
                   XmNmarginLeft   , 0 ,
-                  XmNuserData     , (XtPointer) ival ,    /* Who am I? */
+                  XmNuserData     , (XtPointer)ival ,    /* Who am I? */
                   XmNtraversalOn  , True  ,
                   XmNinitialResourcesPersistent , False ,
                 NULL ) ;
@@ -1308,6 +1412,8 @@ void AVOPT_press_CB( Widget wbut, XtPointer client_data, XtPointer call_data )
    int newval ;
    XtPointer xval ;
 
+ENTRY("AVOPT_press_CB");
+
    XtVaGetValues( wbut , XmNuserData , &xval , NULL ) ;
    newval = (int) xval ;
 
@@ -1325,7 +1431,7 @@ void AVOPT_press_CB( Widget wbut, XtPointer client_data, XtPointer call_data )
                            XtPointer      , av->dval_data ) ;
 #endif
 
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------*/
