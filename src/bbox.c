@@ -811,15 +811,22 @@ void enter_EV( Widget w , XtPointer client_data ,
                   XEvent * ev , Boolean * continue_to_dispatch )
 {
    XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
-   XmAnyCallbackStruct cbs ;
+   XButtonEvent *bev = (XButtonEvent *)ev;
    MCW_arrowval *av = (MCW_arrowval *)client_data;
    
    int dbg = 0;
       
 
    if (dbg) {
-      fprintf(stderr,"ev->type %d icbs %d (realized: %d) \n"
-                     "  Queued %d, QAF %d, QAR %d\n", 
+      fprintf(stderr,
+                  "bev->button = %d\n"
+                  "av->wdown=%p, av->wlabel=%p\n"
+                  "w        =%p, w         =%p\n"
+                  "av->wrowcol=%p\n"
+                  "ev->type %d icbs %d (realized: %d) \n"
+                  "  Queued %d, QAF %d, QAR %d\n", 
+                  bev->button,
+                  av->wdown, av->wlabel, w, w, av->wrowcol,
                   lev->type, (int) client_data, 
                   XtIsRealized(w), 
                   XEventsQueued(XtDisplay(w), QueuedAlready ),
@@ -829,7 +836,7 @@ void enter_EV( Widget w , XtPointer client_data ,
    
    #ifdef USING_LESSTIF
    if (CPU_IS_64_BIT() ){
-      if (ev->type == ButtonRelease) { 
+      if (bev->button == 1 && ev->type == ButtonRelease) { 
                      /* Button release over menu button: DUCK! */
          if (dbg) fprintf(stderr,"Holy Toledo!\n");
          ev->type = ButtonPress;  /* Make that be a button press first */
