@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, FEB, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "malloc changes: 5 more files",
+   "Friday the 13th, oooooooo...  @ 18:31:30 EST: time will be 1234567890."
+ } ,
+
  { 12, FEB, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "added memsets following some malloc calls, or used calloc (14 files)",
    NULL

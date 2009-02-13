@@ -36,8 +36,8 @@ typedef struct {
 #define MEMPLOT3D_INIT(name,id)                                                  \
   do{ (name) = (MEM_3dplotdata *) malloc(sizeof(MEM_3dplotdata)) ;               \
       (name)->nobj = 0 ;                                                         \
-      (name)->nobj_all = INC_MEMPLOT3D ;                                         \
-      (name)->obj = (MEM_3dobject *) malloc(sizeof(MEM_3dobject)*INC_MEMPLOT3D); \
+      (name)->nobj_all = INC_MEMPLOT3D ;     /* mal->cal 13 Feb 2009 [LPatrol]   \
+      (name)->obj = (MEM_3dobject *) calloc(INC_MEMPLOT3D,sizeof(MEM_3dobject)); \
       strncpy( (name)->ident, (id), 255 ) ; (name)->ident[255] = '\0' ;          \
   } while(0)
 
