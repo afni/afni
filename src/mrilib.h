@@ -1802,12 +1802,14 @@ typedef struct {
      (rg)->npt = (nn) ;                                      \
      (rg)->xpt = (float *)calloc(sizeof(float),(nn)) ;       \
      (rg)->ypt = (float *)calloc(sizeof(float),(nn)) ;       \
-     (rg)->zpt = (float *)calloc(sizeof(float),(nn)) ; } while(0)
+     (rg)->zpt = (float *)calloc(sizeof(float),(nn)) ;       \
+ } while(0)
 
 #undef  DESTROY_RBF_evalgrid
-#define DESTROY_RBF_evalgrid(rg)            \
- do{ free((rg)->xpt); free((rg)->ypt);      \
-     free((rg)->zpt); free(rg);       } while(0)
+#define DESTROY_RBF_evalgrid(rg)                             \
+ do{ free((rg)->xpt); free((rg)->ypt); free((rg)->zpt);      \
+     free(rg) ;                                              \
+ } while(0)
 
 typedef struct {
   int code ;
@@ -1827,6 +1829,7 @@ typedef struct {
 extern RBF_knots * RBF_setup_knots( int, float, int, float *, float *, float * ) ;
 extern int RBF_setup_evalues( RBF_knots *rbk, RBF_evalues *rbe ) ;
 extern int RBF_evaluate( RBF_knots *, RBF_evalues *, RBF_evalgrid *, float * ) ;
+extern void RBF_set_verbosity( int ) ;
 
 /*----------------------------------------------------------------------------*/
 /** Test if a image is vector-valued (fvect, rgb, or complex) **/
