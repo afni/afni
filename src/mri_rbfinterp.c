@@ -67,11 +67,11 @@ ENTRY("RBF_evaluate") ;
    int ii , jj , uselin=rbk->uselin ;
    float  rr , xm,ym,zm , xd,yd,zd , rad,rqq , xt,yt,zt , *xx,*yy,*zz ;
    float  xk , yk , zk , sum , *ev ;
-   float b0,bx,by,bz ;
+   float b0,bx,by,bz , rai ;
 
    /* load some local variables */
 
-   rad = rbk->rad  ; rqq = rbk->rqq ;
+   rad = rbk->rad  ; rqq = rbk->rqq ; rai = 1.0f / rad ;
    xm  = rbk->xmid ; ym  = rbk->ymid ; zm = rbk->zmid ;
    xd  = rbk->xscl ; yd  = rbk->yscl ; zd = rbk->zscl ;
    xx  = rbk->xknot; yy  = rbk->yknot; zz = rbk->zknot;
@@ -84,10 +84,10 @@ ENTRY("RBF_evaluate") ;
    for( ii=0 ; ii < npt ; ii++ ){
      xt = rbg->xpt[ii]; yt = rbg->ypt[ii]; zt = rbg->zpt[ii]; /* output xyz */
      for( sum=0.0f,jj=0 ; jj < nk ; jj++ ){
-       xk = xt-xx[jj]; yk = yt-yy[jj]; zk = zt-zz[jj];    /* dist from knot */
-       rr = xk*xk + yk*yk + zk*zk ;
-       if( rr >= rqq ) continue ;
-       rr = 1.0f - sqrtf(rr) / rad ; sum += ev[jj] * RBF_func(rr) ;
+       xk = xt-xx[jj]; rr =xk*xk ; if( rr >= rqq ) continue ;
+       yk = yt-yy[jj]; rr+=yk*yk ; if( rr >= rqq ) continue ;
+       zk = zt-zz[jj]; rr+=zk*zk ; if( rr >= rqq ) continue ;
+       rr = 1.0f - sqrtf(rr) * rai ; sum += ev[jj] * RBF_func(rr) ;
      }
      val[ii] = sum ;
      if( uselin )
