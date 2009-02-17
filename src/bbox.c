@@ -807,40 +807,75 @@ That seems to do the trick, we hope.
 
             Feb 13 2009, [LPatrol]
 */
+const char *text_EV(int v)
+{
+   switch (v) {
+      case EnterNotify:
+         return("enter");
+      case LeaveNotify:
+         return("leave");
+      case ButtonPress:
+         return("press");
+      case ButtonRelease:
+         return("release");
+      default:
+         return("dunno"); 
+   }
+   return("weird");
+}
 void enter_EV( Widget w , XtPointer client_data ,
                   XEvent * ev , Boolean * continue_to_dispatch )
 {
    XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
    XButtonEvent *bev = (XButtonEvent *)ev;
    MCW_arrowval *av = (MCW_arrowval *)client_data;
+   int is_popup = 0;
+   int dbg =0;
    
-   int dbg = 0;
-      
-
+   is_popup = is_daddy_popup(w); 
    if (dbg) {
       fprintf(stderr,
-                  "bev->button = %d\n"
+                  "\n"
+                  "ispopup=%d\n"
+                  "%s bev->button = %d\n"
                   "av->wdown=%p, av->wlabel=%p\n"
                   "w        =%p, w         =%p\n"
                   "av->wrowcol=%p\n"
-                  "ev->type %d icbs %d (realized: %d) \n"
-                  "  Queued %d, QAF %d, QAR %d\n", 
-                  bev->button,
+                  "ev->type %d (realized: %d) \n"
+                  "  Queued %d, QAF %d, QAR %d\n"
+                  "E%d,L%d,P%d,R%d\n"
+                  "\n",
+                  is_popup, text_EV(lev->type), bev->button,
                   av->wdown, av->wlabel, w, w, av->wrowcol,
-                  lev->type, (int) client_data, 
+                  lev->type,  
                   XtIsRealized(w), 
                   XEventsQueued(XtDisplay(w), QueuedAlready ),
                   XEventsQueued(XtDisplay(w), QueuedAfterFlush ),
-                  XEventsQueued(XtDisplay(w), QueuedAfterReading )); 
+                  XEventsQueued(XtDisplay(w), QueuedAfterReading ),
+                  EnterNotify, LeaveNotify, ButtonPress, ButtonRelease); 
+   } else {
+      fprintf(stderr,
+                  "\n"
+                  "%s widget %p, button = %d\n""\n",
+                  text_EV(lev->type), w, bev->button);
+                  
    }
    
    #ifdef USING_LESSTIF
    if (CPU_IS_64_BIT() ){
+      /* NOTICE: The fix is not only for an option menu inside a popup
+         window. You can crash AFNI with by Left clicking on 'Color' 
+         string to the left on the Xhair's color selector menu, 
+         then release the button on the color selection menu */ 
       if (bev->button == 1 && ev->type == ButtonRelease) { 
                      /* Button release over menu button: DUCK! */
-         if (dbg) fprintf(stderr,"Holy Toledo!\n");
+         fprintf(stderr,"Holy Toledo!\n");
          ev->type = ButtonPress;  /* Make that be a button press first */
          XtDispatchEvent(ev); /* pray real hard now */
+         ev->type = ButtonRelease; /* put type back ? - don't know what 
+                                      happens to ev structure in 
+                                      XtDispatchEvent ... */
+         //XtAddGrab(w, False, False);
       } 
    }
    #endif  
@@ -907,12 +942,19 @@ ENTRY("new_MCW_optmenu") ;
                                enter_EV,
                                (XtPointer) av,
                                XtListHead) ; 
-      /*XtInsertEventHandler( av->wrowcol ,        
+      XtInsertEventHandler( av->wrowcol ,        
                                EnterWindowMask ,  
                                FALSE ,            
                                enter_EV,
-                               (XtPointer) 1,
-                               XtListHead) ; */
+                               (XtPointer) av,
+                               XtListHead) ; 
+                               
+      XtInsertEventHandler( av->wrowcol ,        
+                               LeaveWindowMask ,  
+                               FALSE ,            
+                               enter_EV,
+                               (XtPointer) av,
+                               XtListHead) ; 
    }
    #endif
    av->wlabel = XmOptionLabelGadget (av->wrowcol) ;
