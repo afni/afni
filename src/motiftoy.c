@@ -1,5 +1,9 @@
 #include "afni.h" 
 
+/* Code to reproduce lesstif problem on 64 bit machines
+Vanilla flavor chunk is based on textbook example: http://www.ist.co.uk/motif/books/vol6A/ch-19.fm.html
+Example 19-4, program simple_option.c
+*/
 /* Prototype Callback function */
 #define NUM_LIST_MODES 2
 static char *list_modes[NUM_LIST_MODES] = { "Multiple" , "Extended" } ;
