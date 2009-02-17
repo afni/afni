@@ -29,6 +29,10 @@
 #define RBF_func(x)    ((x)*(x)*(x)*(x)*(5.0f-4.0f*x))
 
 /*----------------------------------------------------------------------------*/
+static int verb = 0 ;
+void RBF_set_verbosity( int ii ){ verb = ii ; }
+
+/*----------------------------------------------------------------------------*/
 /*! Evaluate RBF expansion on a set of points in rbg,
     given the set of knots in rbk, and given the coefficients of the RBF
     (or the values at the fit points) in rbe, and store results in array val
@@ -42,8 +46,9 @@ int RBF_evaluate( RBF_knots *rbk, RBF_evalues *rbe,
 
 ENTRY("RBF_evaluate") ;
 
-   if( rbg == NULL || val == NULL ){
-     ERROR_message("Bad call to RBF_evaluate") ; RETURN(0) ;
+   if( rbk == NULL || rbe == NULL || rbg == NULL || val == NULL ){
+     ERROR_message("Illegal call to RBF_evaluate?!") ;
+     RETURN(0) ;
    }
 
    /* if needed, convert rbe to RBF weights, from function values */
@@ -58,9 +63,8 @@ ENTRY("RBF_evaluate") ;
    npt = rbg->npt ;
    nk  = rbk->nknot ;
 
-#ifdef DEBUG
-  INFO_message("RBF_evaluate: %d points X %d knots",npt,nk) ;
-#endif
+   if( verb )
+     INFO_message("RBF_evaluate: %d points X %d knots",npt,nk) ;
 
 #pragma omp parallel if(npt*nk > 9999)
  {
@@ -71,10 +75,10 @@ ENTRY("RBF_evaluate") ;
 
    /* load some local variables */
 
-   rad = rbk->rad  ; rqq = rbk->rqq ; rai = 1.0f / rad ;
-   xm  = rbk->xmid ; ym  = rbk->ymid ; zm = rbk->zmid ;
-   xd  = rbk->xscl ; yd  = rbk->yscl ; zd = rbk->zscl ;
-   xx  = rbk->xknot; yy  = rbk->yknot; zz = rbk->zknot;
+   rad = rbk->rad  ; rqq = rbk->rqq  ; rai = 1.0f / rad ;
+   xm  = rbk->xmid ; ym  = rbk->ymid ; zm  = rbk->zmid  ;
+   xd  = rbk->xscl ; yd  = rbk->yscl ; zd  = rbk->zscl  ;
+   xx  = rbk->xknot; yy  = rbk->yknot; zz  = rbk->zknot ;
    ev  = rbe->val  ;
    if( uselin ){
      b0 = rbe->b0 ; bx = rbe->bx ; by = rbe->by ; bz = rbe->bz ;
@@ -118,9 +122,8 @@ ENTRY("RBF_setup_evalues") ;
 
    if( rbe->code > 0 ) RETURN(1) ;  /* already contains RBF weights */
 
-#ifdef DEBUG
-  INFO_message("RBF_setup_evalues: Lmat solve") ;
-#endif
+   if( verb )
+     INFO_message("RBF_setup_evalues: Lmat solve") ;
 
    nn = rbk->nknot ;
    vv = rbe->val ;
@@ -134,9 +137,8 @@ ENTRY("RBF_setup_evalues") ;
      double q0,qx,qy,qz , b0,bx,by,bz ; dmat44 Q=rbk->Qmat ;
      float *P0=rbk->P0 , *Px=rbk->Px , *Py=rbk->Py , *Pz=rbk->Pz ;
 
-#ifdef DEBUG
-  INFO_message("RBF_setup_evalues: uselin setup and solve") ;
-#endif
+   if( verb )
+     ININFO_message("                   linear trend solve") ;
 
      for( q0=qx=qy=qz=0.0,ii=0 ; ii < nn ; ii++ ){
        q0 += P0[ii]*aa[ii] ; qx += Px[ii]*aa[ii] ;
@@ -203,9 +205,8 @@ ENTRY("RBF_setup_knots") ;
 
    rqq = rad*rad ;  /* for testing */
 
-#ifdef DEBUG
-INFO_message("RBF: rad=%g xd=%g yd=%g zd=%g xm=%g ym=%g zm=%g",rad,xd,yd,zd,xm,ym,zm);
-#endif
+   if( verb )
+     INFO_message("RBF_setup_knots: knots=%d radius=%.1f",nk,rad) ;
 
    xd = 1.0f / xd ;          /* scale factors : (x-xm)*xd is   */
    yd = 1.0f / yd ;          /* dimensionless x-value relative */
@@ -225,9 +226,7 @@ INFO_message("RBF: rad=%g xd=%g yd=%g zd=%g xm=%g ym=%g zm=%g",rad,xd,yd,zd,xm,y
      Pz = (float *)calloc(nn,sizeof(float)) ;
    }
 
-#ifdef DEBUG
-  INFO_message("     setup matrix") ;
-#endif
+   if( verb ) ININFO_message("                 matrix computation") ;
 
    for( ii=0 ; ii < nn ; ii++ ){
      for( jj=0 ; jj < ii ; jj++ ){    /* RBF between knots */
@@ -246,9 +245,7 @@ INFO_message("RBF: rad=%g xd=%g yd=%g zd=%g xm=%g ym=%g zm=%g",rad,xd,yd,zd,xm,y
      }
    }
 
-#ifdef DEBUG
-INFO_message("     compute Choleski factor") ;
-#endif
+   if( verb ) ININFO_message("                 matrix factorization") ;
 
    rcm = rcmat_from_rows( nn , mat ) ;
 
@@ -322,3 +319,19 @@ INFO_message("     compute Choleski factor") ;
 
    RETURN(rbk) ;
 }
+
+/*------------------------------------------------------------------*/
+
+#undef  ADDTO_intar
+#define ADDTO_intar(nar,nal,ar,val)                                         \
+ do{ if( (nar) == (nal) ){                                                  \
+       (nal) = 1.2*(nal)+16; (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+     }                                                                      \
+     (ar)[(nar)++] = (val);                                                 \
+ } while(0)
+
+#undef  CLIP_intar
+#define CLIP_intar(nar,nal,ar)                                       \
+ do{ if( (nar) < (nal) && (nar) > 0 ){                               \
+       (nal) = (nar); (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
+ }} while(0)
