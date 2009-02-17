@@ -1053,6 +1053,10 @@ afni+:$(AFOBJS) libcoxplot.a libmri.a libmrix.a coxplot.h niml.h
 	$(RM) $@
 	$(CC) -o afni+ $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lf2c $(LLIBS) -lm -lc
 
+motiftoy: afni motiftoy.c 
+	$(RM) $@
+	$(CC) -o motiftoy motiftoy.c $(INFLAGS) $(SHOWOFF) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack -lf2c $(LLIBS) -lm -lc
+
 # CYGWIN: must compile afni.exe with fixed plugins (see PLUGIN_FIXED, far below)
 
 afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a libmri.a libmrix.a volpack.h coxplot.h niml.h
