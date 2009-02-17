@@ -240,6 +240,8 @@ int main( int argc , char * argv[] )
 
    /*----- setup for RBF interpolation at the given set of points -----*/
 
+   RBF_set_verbosity( 1 ) ;
+
    rbk = RBF_setup_knots( kfnx , rad,uselin ,
                           kfar+0*kfnx , kfar+1*kfnx , kfar+2*kfnx ) ;
    if( rbk == NULL )
