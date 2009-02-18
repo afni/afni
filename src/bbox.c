@@ -830,8 +830,11 @@ void enter_EV( Widget w , XtPointer client_data ,
    XButtonEvent *bev = (XButtonEvent *)ev;
    MCW_arrowval *av = (MCW_arrowval *)client_data;
    int is_popup = 0;
+   static int first_call = 1;
+   static Widget widlist[10000];
+   int N_widlist=0;
    int dbg =0;
-   
+   return;
    is_popup = is_daddy_popup(w); 
    if (dbg) {
       fprintf(stderr,
@@ -867,20 +870,51 @@ void enter_EV( Widget w , XtPointer client_data ,
          window. You can crash AFNI with by Left clicking on 'Color' 
          string to the left on the Xhair's color selector menu, 
          then release the button on the color selection menu */ 
-      if (bev->button == 1 && ev->type == ButtonRelease) { 
+      if (first_call && bev->button == 1 && ev->type == ButtonRelease) { 
                      /* Button release over menu button: DUCK! */
          fprintf(stderr,"Holy Toledo!\n");
          ev->type = ButtonPress;  /* Make that be a button press first */
          XtDispatchEvent(ev); /* pray real hard now */
+         first_call = 0;
          ev->type = ButtonRelease; /* put type back ? - don't know what 
                                       happens to ev structure in 
                                       XtDispatchEvent ... */
          //XtAddGrab(w, False, False);
-      } 
+      } else {
+         first_call = 1;
+      }
    }
    #endif  
 }
+
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
+                                char *label ,
+                                int   minval , int maxval , int inival , 
+                                int decim ,
+                                gen_func *delta_value, XtPointer delta_data,
+                                str_func *text_proc  , XtPointer text_data
+                              )
+{
+   #ifdef USING_LESSTIF
+      if (CPU_IS_64_BIT() ){
+         RETURN(newz_MCW_optmenu( 
+                  parent , label ,
+                  minval , maxval , inival , 
+                  decim ,
+                  delta_value, delta_data,
+                  text_proc  , text_data));
+      }  
+   #endif
+   
+   RETURN(new_MCW_optmenu_orig( 
+                  parent , label ,
+                  minval , maxval , inival , 
+                  decim ,
+                  delta_value, delta_data,
+                  text_proc  , text_data));
+}
+
+MCW_arrowval * new_MCW_optmenu_orig( Widget parent ,
                                 char *label ,
                                 int   minval , int maxval , int inival , 
                                 int decim ,
@@ -896,7 +930,7 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
    char *butlabel , *blab ;
    int dbg = 0;
    
-ENTRY("new_MCW_optmenu") ;
+ENTRY("new_MCW_optmenu_orig") ;
 
    /** create the menu window **/
    
@@ -1063,6 +1097,224 @@ ENTRY("new_MCW_optmenu") ;
 #endif
    }
 
+   RETURN(av) ;
+}
+
+
+MCW_arrowval * newz_MCW_optmenu( Widget parent ,
+                                char *label ,
+                                int   minval , int maxval , int inival , 
+                                int decim ,
+                                gen_func *delta_value, XtPointer delta_data,
+                                str_func *text_proc  , XtPointer text_data
+                              )
+{
+   MCW_arrowval *av = myXtNew( MCW_arrowval ) ;
+   Widget wmenu , wbut, rcholder , lb, rcparent;
+   Arg args[5] ;
+   int nargs , ival ;
+   XmString xstr ;
+   char *butlabel , *blab ;
+   int dbg = 0;
+   
+ENTRY("newz_MCW_optmenu") ;
+
+rcparent = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, parent,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);   /** create the menu window **/
+   
+   av->wmenu = wmenu = XmCreatePulldownMenu( rcparent , "menu" , NULL , 0 ) ;
+   av->optmenu_call_if_unchanged = 0 ;  /* 10 Oct 2007 */
+
+   VISIBILIZE_WHEN_MAPPED(wmenu) ;
+#if 0   /* doesn't work well if optmenu is inside a popup! */
+   if( !AFNI_yesenv("AFNI_DISABLE_TEAROFF") ) TEAROFFIZE(wmenu) ;
+#endif
+
+   /** create the button that pops down the menu **/
+
+   nargs = 0 ;
+   XtSetArg( args[nargs] , XmNsubMenuId , wmenu ) ; nargs++ ;
+   XtSetArg( args[nargs] , XmNtraversalOn, True ) ; nargs++ ;
+
+   if( label == NULL ) label = " " ;  /* 24 Sep 2001 */
+
+   rcholder = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcparent,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+                  XmNmarginWidth  , 0 ,
+                  XmNmarginHeight , 0 ,
+                  XmNmarginBottom , 0 ,
+                  XmNmarginTop    , 0 ,
+                  XmNmarginRight  , 0 ,
+                  XmNmarginLeft   , 0 ,
+                     XmNspacing      , 0 ,
+         NULL);
+   lb = XtVaCreateManagedWidget (label, 
+                               xmLabelWidgetClass, rcholder,
+                               XmNmarginHeight, 0 ,
+                               XmNmarginWidth , 0 ,
+                  XmNmarginWidth  , 0 ,
+                  XmNmarginHeight , 0 ,
+                  XmNmarginBottom , 0 ,
+                  XmNmarginTop    , 0 ,
+                  XmNmarginRight  , 0 ,
+                  XmNmarginLeft   , 0 ,
+                              NULL);
+                                     
+   xstr = XmStringCreateLtoR( "" , XmFONTLIST_DEFAULT_TAG ) ;
+   XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
+
+   av->wrowcol = XmCreateOptionMenu( rcholder , "dialog" , args , nargs ) ;
+   XmStringFree(xstr) ;
+   XtVaSetValues( av->wrowcol ,
+                     XmNmarginWidth  , 0 ,
+                     XmNmarginHeight , 0 ,
+                     XmNspacing      , 2 ,
+                     XmNtraversalOn  , True ,
+                  NULL ) ;
+
+   #ifdef USING_LESSTIF
+   if (CPU_IS_64_BIT() ){
+      XtInsertEventHandler( av->wrowcol ,       
+                               ButtonPressMask ,  
+                               FALSE ,           
+                               enter_EV,
+                               (XtPointer) av ,
+                               XtListHead) ; 
+      XtInsertEventHandler( av->wrowcol ,        
+                               ButtonReleaseMask ,  
+                               FALSE ,            
+                               enter_EV,
+                               (XtPointer) av,
+                               XtListHead) ; 
+      XtInsertEventHandler( av->wrowcol ,        
+                               EnterWindowMask ,  
+                               FALSE ,            
+                               enter_EV,
+                               (XtPointer) av,
+                               XtListHead) ; 
+                               
+      XtInsertEventHandler( av->wrowcol ,        
+                               LeaveWindowMask ,  
+                               FALSE ,            
+                               enter_EV,
+                               (XtPointer) av,
+                               XtListHead) ; 
+   }
+   #endif
+   av->wlabel = lb ;
+   av->wdown  = XmOptionButtonGadget(av->wrowcol) ;
+   av->wup    = NULL ;
+   av->wtext  = NULL ;  /* signal that this is NOT really an arrowval */
+
+   XtVaSetValues( av->wlabel ,              /* label next to menu button */
+                     XmNmarginWidth  , 0 ,
+                     XmNmarginHeight , 0 ,
+                     XmNmarginBottom , 0 ,
+                     XmNmarginTop    , 0 ,
+                     XmNmarginRight  , 0 ,
+                     XmNmarginLeft   , 0 ,
+                  NULL ) ;
+
+   if( label == NULL || strlen(label) == 0 ){
+      XtVaSetValues( av->wlabel  , XmNwidth   , 0 , NULL ) ;
+      XtVaSetValues( av->wrowcol , XmNspacing , 2 , NULL ) ;
+   }
+
+   XtVaSetValues( av->wdown ,               /* menu button */
+                     XmNmarginWidth  , 0 ,
+                     XmNmarginHeight , 0 ,
+                     XmNmarginBottom , 0 ,
+                     XmNmarginTop    , 0 ,
+                     XmNmarginRight  , 0 ,
+                     XmNmarginLeft   , 0 ,
+                     XmNtraversalOn  , True ,
+                     XmNhighlightThickness , 0 ,
+                  NULL ) ;
+
+   av->text_CB   = (text_proc != NULL ) ? (text_proc)
+                                        : (AV_default_text_CB) ;
+   av->text_data = text_data ;
+   av->decimals  = decim ;
+   av->fmin      = av->imin = minval ; AV_SHIFT_VAL(decim,av->fmin) ;
+   av->fmax      = av->imax = maxval ; AV_SHIFT_VAL(decim,av->fmax) ;
+   av->sval      = av->old_sval = NULL ;
+
+   av->block_assign_actions = 1 ;    /* temporarily block these actions */
+
+   /** create the buttons on the menu window **/
+
+   for( ival=minval ; ival <= maxval ; ival++ ){
+
+      AV_assign_ival( av , ival ) ;  /* just to create label */
+
+      blab = butlabel = XtNewString( av->sval ) ;
+      if( av->text_CB==AV_default_text_CB && butlabel[0]==' ' && minval >= 0 ){
+        blab += 1 ;  /* deal with leading blanks in default routine */
+      }
+
+      xstr = XmStringCreateLtoR( blab , XmFONTLIST_DEFAULT_TAG ) ;
+
+      wbut = XtVaCreateManagedWidget(
+                "dialog" , xmPushButtonWidgetClass , wmenu ,
+                  XmNlabelString  , xstr ,
+                  XmNmarginWidth  , 0 ,
+                  XmNmarginHeight , 0 ,
+                  XmNmarginBottom , 0 ,
+                  XmNmarginTop    , 0 ,
+                  XmNmarginRight  , 0 ,
+                  XmNmarginLeft   , 0 ,
+                  XmNuserData     , (XtPointer)ival ,    /* Who am I? */
+                  XmNtraversalOn  , True  ,
+                  XmNinitialResourcesPersistent , False ,
+                NULL ) ;
+
+      XmStringFree(xstr) ; myXtFree(butlabel) ;
+
+      XtAddCallback( wbut , XmNactivateCallback , AVOPT_press_CB , av ) ;
+
+      if( ival == inival )
+        XtVaSetValues( av->wrowcol ,  XmNmenuHistory , wbut , NULL ) ;
+   }
+
+   XtManageChild( av->wrowcol ) ;
+
+   av->timer_id  = 0 ;  /* won't be used for this type of arrowval! */
+   av->fastdelay = 0 ;
+
+   av->block_assign_actions = 0 ;   /* unblock these actions */
+
+   AV_assign_ival( av , inival ) ;  /* actual initial assignment */
+
+   av->dval_CB   = delta_value ;
+   av->dval_data = delta_data ;
+
+   av->allow_wrap = 0 ;
+
+   av->parent = av->aux = NULL ;
+   av->fstep = 0.0 ;  /* 16 Feb 1999 */
+
+   /* 11 Dec 2001: allow user to choose via Button-3 popup */
+
+   if( allow_optmenu_EV ){
+     XtInsertEventHandler( av->wlabel ,      /* handle events in optmenu */
+                           ButtonPressMask ,  /* button presses */
+                           FALSE ,            /* nonmaskable events? */
+                           optmenu_EV ,       /* handler */
+                           (XtPointer) av ,   /* client data */
+                           XtListTail ) ;     /* last in queue */
+#ifdef USE_FIXUP
+     optmenu_EV_fixup( av->wlabel ) ;
+#endif
+   }
+   XtManageChild( rcholder);
+   XtManageChild( rcparent);
    RETURN(av) ;
 }
 
