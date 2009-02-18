@@ -152,6 +152,15 @@ extern MCW_arrowval * new_MCW_optmenu( Widget , char * ,
                                        gen_func * , XtPointer ,
                                        str_func * , XtPointer ) ;
 
+extern MCW_arrowval * newz_MCW_optmenu( Widget , char * ,
+                                       int,int,int,int,
+                                       gen_func * , XtPointer ,
+                                       str_func * , XtPointer ) ;
+extern MCW_arrowval * new_MCW_optmenu_orig( Widget , char * ,
+                                       int,int,int,int,
+                                       gen_func * , XtPointer ,
+                                       str_func * , XtPointer ) ;
+
 extern void refit_MCW_optmenu( MCW_arrowval * ,
                                int,int,int,int,
                                str_func * , XtPointer ) ;

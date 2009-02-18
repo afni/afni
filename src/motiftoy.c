@@ -26,19 +26,20 @@ void option_cb (Widget menu_item, XtPointer client_data,
 main(int argc, char **argv) 
 
 {   
-   Widget top_wid, button, option_menu, rc;
+   Widget app_wid, top_wid, button, option_menu, rc;
    XtAppContext  app;
    XmString       draw_shape, line, square, circle;
 
-   top_wid = XtVaAppInitialize(&app, "Push", NULL, 0,
+   app_wid = XtVaAppInitialize(&app, "Push", NULL, 0,
      &argc, argv, NULL, NULL);
 
-
+   top_wid = XmCreateRowColumn (app_wid, "rowcol", NULL, 0);
      
-   if (0) { /* Add the dreaded function */      
-      new_MCW_optmenu(  top_wid, "Hell", 0, NUM_LIST_MODES-1, 0, 0, 
+   { /* Add the dreaded function */      
+      new_MCW_optmenu_orig(  top_wid, "Hell", 0, NUM_LIST_MODES-1, 0, 0, 
                         pushed_fn, NULL, MCW_av_substring_CB2, list_modes); 
-   } else { /* try a vanilla flavor */
+   } 
+   { /* try a vanilla flavor */
       rc = XmCreateRowColumn (top_wid, "rowcol", NULL, 0);
       draw_shape = XmStringCreateLocalized ("Draw Mode:");
       line = XmStringCreateLocalized ("Line");
@@ -58,9 +59,34 @@ main(int argc, char **argv)
       XtManageChild (option_menu);
       XtManageChild (rc);
    }
+   {  /* fudge  it? */      
+      rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, top_wid,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);
+
+      XtVaCreateManagedWidget ("Hell", 
+                               xmLabelWidgetClass, rc,
+                               XmNmarginHeight, 0 ,
+                               XmNmarginWidth , 0 ,
+                               NULL);
+
+      new_MCW_optmenu_orig(  rc, "", 0, NUM_LIST_MODES-1, 0, 0, 
+                        pushed_fn, NULL, MCW_av_substring_CB2, list_modes); 
+      XtManageChild (rc);
+   }
+   {  /* fix ? */
+      
+      newz_MCW_optmenu(  top_wid, "Hell", 0, NUM_LIST_MODES-1, 0, 0, 
+                        pushed_fn, NULL, MCW_av_substring_CB2, list_modes); 
+      
+   }
    
-   
-   XtRealizeWidget(top_wid); /* display widget hierarchy */
+   XtManageChild (top_wid);
+   XtRealizeWidget(app_wid); /* display widget hierarchy */
    XtAppMainLoop(app); /* enter processing loop */ 
 
 }
