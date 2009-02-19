@@ -1774,6 +1774,22 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 /* RBF stuff -- cf. mri_rbfinterp.c -- 05 Feb 2009 */
 
 typedef struct {
+  int nx,ny,nz , nxy,nxyz ;
+  float xbot,ybot,zbot,dxyz ;
+  int  *knum ;
+  int **klist ;
+} RBF_kbucket ;
+
+#undef  DESTROY_RBF_kbucket
+#define DESTROY_RBF_kbucket(kb)                                \
+ do{ if( (kb) != NULL ){                                       \
+       int ii ;                                                \
+       for( ii=0 ; ii < (kb)->nxyz ; ii++ )                    \
+         if( (kb)->klist[ii] != NULL ) free((kb)->klist[ii]) ; \
+       free((kb)->klist); free((kb)->knum); free((kb)) ;       \
+     } } while(0)
+
+typedef struct {
   int nknot ;
   float rad  , rqq ;
   float xmid , ymid , zmid ;     /* middle of the knots */
@@ -1782,13 +1798,14 @@ typedef struct {
   dmat44 Qmat ;
   rcmat *Lmat ;
   int uselin ; float *P0, *Px , *Py , *Pz ;
+  RBF_kbucket *kbuc ;
 } RBF_knots ;
 
 #undef  DESTROY_RBF_knots
-#define DESTROY_RBF_knots(rk)                                            \
- do{ IFREE((rk)->xknot); IFREE((rk)->yknot); IFREE((rk)->zknot);         \
-     IFREE((rk)->P0); IFREE((rk)->Px); IFREE((rk)->Py); IFREE((rk)->Pz); \
-     rcmat_destroy((rk)->Lmat) ; free(rk) ;                              \
+#define DESTROY_RBF_knots(rk)                                              \
+ do{ IFREE((rk)->xknot); IFREE((rk)->yknot); IFREE((rk)->zknot);           \
+     IFREE((rk)->P0); IFREE((rk)->Px); IFREE((rk)->Py); IFREE((rk)->Pz);   \
+     rcmat_destroy((rk)->Lmat); DESTROY_RBF_kbucket((rk)->kbuc); free(rk); \
  } while(0)
 
 typedef struct {
