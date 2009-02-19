@@ -26,7 +26,10 @@
 
 /*! C2 polynomial: argument is 1-r, which should be between 0 and 1 */
 
+#undef  RBF_func
 #define RBF_func(x)    ((x)*(x)*(x)*(x)*(5.0f-4.0f*x))
+
+static void RBF_setup_kbucket( RBF_knots *rbk ) ; /* prototype */
 
 /*----------------------------------------------------------------------------*/
 static int verb = 0 ;
@@ -199,7 +202,7 @@ ENTRY("RBF_setup_knots") ;
    qmedmad_float( nk , zz , &zm , &zd ) ;
 
    if( radius <= 0.0f )
-     rad = 4.99f*(xd+yd+zd) / cbrtf((float)nk) ;  /* RBF support radius */
+     rad = 4.321f*(xd+yd+zd) / cbrtf((float)nk) ;  /* RBF support radius */
    else
      rad = radius ;
 
@@ -317,6 +320,11 @@ ENTRY("RBF_setup_knots") ;
 #endif
    }
 
+#if 0
+   RBF_setup_kbucket( rbk ) ;
+#else
+   rbk->kbuc = NULL ;
+#endif
    RETURN(rbk) ;
 }
 
@@ -335,3 +343,65 @@ ENTRY("RBF_setup_knots") ;
  do{ if( (nar) < (nal) && (nar) > 0 ){                               \
        (nal) = (nar); (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
  }} while(0)
+
+/*------------------------------------------------------------------*/
+
+static void RBF_setup_kbucket( RBF_knots *rbk )
+{
+   int ii,nk , kx,ky,kz,kxyz , nx,ny,nz,nxy,nxyz ;
+   float rad , xmid,ymid,zmid , *xk,*yk,*zk ;
+   float xbot,xtop , ybot,ytop , zbot,ztop ;
+   RBF_kbucket *kbuc ;
+   int **klist , *nal ;
+
+ENTRY("RBF_setup_kbucket") ;
+
+   if( rbk == NULL ) EXRETURN ;
+
+   rbk->kbuc = NULL ;  /* default setup */
+
+   rad  = rbk->rad   ; nk   = rbk->nknot ; if( nk < 99 ) EXRETURN ;
+   xmid = rbk->xmid  ; ymid = rbk->ymid  ; zmid = rbk->zmid  ;
+   xk   = rbk->xknot ; yk   = rbk->yknot ; zk   = rbk->zknot ;
+
+   xbot = xtop = xk[0] ; ybot = ytop = yk[0] ; zbot = ztop = zk[0] ;
+   for( ii=1 ; ii < nk ; ii++ ){
+     if( xk[ii] < xbot ) xbot = xk[0]; else if( xk[ii] > xtop ) xtop = xk[ii];
+     if( yk[ii] < ybot ) ybot = yk[0]; else if( yk[ii] > ytop ) ytop = yk[ii];
+     if( zk[ii] < zbot ) zbot = zk[0]; else if( zk[ii] > ztop ) ztop = zk[ii];
+   }
+
+   nx = ceilf( (xtop-xbot)/rad ) ; xbot = 0.5f*(xtop+xbot) - 0.5f*rad*nx ;
+   ny = ceilf( (ytop-ybot)/rad ) ; ybot = 0.5f*(ytop+ybot) - 0.5f*rad*ny ;
+   nz = ceilf( (ztop-zbot)/rad ) ; zbot = 0.5f*(ztop+zbot) - 0.5f*rad*nz ;
+   nxy = nx*ny ; nxyz = nxy*nz ;
+
+   kbuc = (RBF_kbucket *)calloc(1,sizeof(RBF_kbucket)) ;
+   kbuc->nx = nx ; kbuc->ny = ny ; kbuc->nz = nz ;
+   kbuc->nxy = nxy ; kbuc->nxyz = nxyz ;
+
+   kbuc->klist = (int **)calloc(sizeof(int *),nxyz) ;
+   nal         = (int * )calloc(sizeof(int)  ,nxyz) ;
+   kbuc->knum  = (int * )calloc(sizeof(int)  ,nxyz) ;
+
+   /* assign knot indexes to bucket entries */
+
+   for( ii=0 ; ii < nk ; ii++ ){
+     kx = (int)((xk[ii]-xbot)/rad) ;
+     ky = (int)((yk[ii]-ybot)/rad) ;
+     kz = (int)((zk[ii]-zbot)/rad) ;
+     kxyz = kx + ky*nx + kz*nxy ;
+     ADDTO_intar( kbuc->knum[kxyz] , nal[kxyz] , kbuc->klist[kxyz] , ii ) ;
+   }
+
+   for( ii=0 ; ii < nxyz ; ii++ )
+     CLIP_intar(  kbuc->knum[kxyz] , nal[kxyz] , kbuc->klist[kxyz] ) ;
+
+   free(nal) ;
+
+#ifdef DEBUG
+INFO_message("RBF: %d X %d X %d = %d kbuckets",nx,ny,nz,nxyz) ;
+#endif
+
+   rbk->kbuc = kbuc ; EXRETURN ;
+}
