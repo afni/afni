@@ -830,59 +830,50 @@ void enter_EV( Widget w , XtPointer client_data ,
    XButtonEvent *bev = (XButtonEvent *)ev;
    MCW_arrowval *av = (MCW_arrowval *)client_data;
    int is_popup = 0;
-   static int first_call = 1;
    static Widget widlist[10000];
    int N_widlist=0;
    int dbg =0;
-   return;
-   is_popup = is_daddy_popup(w); 
-   if (dbg) {
-      fprintf(stderr,
-                  "\n"
-                  "ispopup=%d\n"
-                  "%s bev->button = %d\n"
-                  "av->wdown=%p, av->wlabel=%p\n"
-                  "w        =%p, w         =%p\n"
-                  "av->wrowcol=%p\n"
-                  "ev->type %d (realized: %d) \n"
-                  "  Queued %d, QAF %d, QAR %d\n"
-                  "E%d,L%d,P%d,R%d\n"
-                  "\n",
-                  is_popup, text_EV(lev->type), bev->button,
-                  av->wdown, av->wlabel, w, w, av->wrowcol,
-                  lev->type,  
-                  XtIsRealized(w), 
-                  XEventsQueued(XtDisplay(w), QueuedAlready ),
-                  XEventsQueued(XtDisplay(w), QueuedAfterFlush ),
-                  XEventsQueued(XtDisplay(w), QueuedAfterReading ),
-                  EnterNotify, LeaveNotify, ButtonPress, ButtonRelease); 
-   } else {
-      fprintf(stderr,
-                  "\n"
-                  "%s widget %p, button = %d\n""\n",
-                  text_EV(lev->type), w, bev->button);
-                  
-   }
    
    #ifdef USING_LESSTIF
    if (CPU_IS_64_BIT() ){
-      /* NOTICE: The fix is not only for an option menu inside a popup
-         window. You can crash AFNI with by Left clicking on 'Color' 
-         string to the left on the Xhair's color selector menu, 
-         then release the button on the color selection menu */ 
-      if (first_call && bev->button == 1 && ev->type == ButtonRelease) { 
+      is_popup = is_daddy_popup(w); 
+      if (dbg > 1) {
+         fprintf(stderr,
+                     "\n"
+                     "ispopup=%d\n"
+                     "%s bev->button = %d\n"
+                     "av->wdown=%p, av->wlabel=%p\n"
+                     "w        =%p, w         =%p\n"
+                     "av->wrowcol=%p\n"
+                     "ev->type %d (realized: %d) \n"
+                     "  Queued %d, QAF %d, QAR %d\n"
+                     "E%d,L%d,P%d,R%d\n"
+                     "\n",
+                     is_popup, text_EV(lev->type), bev->button,
+                     av->wdown, av->wlabel, w, w, av->wrowcol,
+                     lev->type,  
+                     XtIsRealized(w), 
+                     XEventsQueued(XtDisplay(w), QueuedAlready ),
+                     XEventsQueued(XtDisplay(w), QueuedAfterFlush ),
+                     XEventsQueued(XtDisplay(w), QueuedAfterReading ),
+                     EnterNotify, LeaveNotify, ButtonPress, ButtonRelease); 
+      } else if (dbg) {
+         fprintf(stderr,
+                     "\n"
+                     "%s widget %p, button = %d\n""\n",
+                     text_EV(lev->type), w, bev->button);
+
+      }
+   
+      /* NOTICE: This last ditch fix only for an option menu inside a pulldown
+         window.  */ 
+      if (is_popup && bev->button == 1 && ev->type == ButtonRelease) { 
                      /* Button release over menu button: DUCK! */
-         fprintf(stderr,"Holy Toledo!\n");
+         if (dbg) fprintf(stderr,"Holy Toledo!\n");
          ev->type = ButtonPress;  /* Make that be a button press first */
          XtDispatchEvent(ev); /* pray real hard now */
-         first_call = 0;
-         ev->type = ButtonRelease; /* put type back ? - don't know what 
-                                      happens to ev structure in 
-                                      XtDispatchEvent ... */
-         //XtAddGrab(w, False, False);
-      } else {
-         first_call = 1;
-      }
+         /* DO NOT reset ev->type to ButtonRelease; don't ask. */
+      } 
    }
    #endif  
 }
@@ -897,7 +888,7 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
 {
    #ifdef USING_LESSTIF
       if (CPU_IS_64_BIT() ){
-         RETURN(newz_MCW_optmenu( 
+         RETURN(new_MCW_optmenu_64fix( 
                   parent , label ,
                   minval , maxval , inival , 
                   decim ,
@@ -962,35 +953,6 @@ ENTRY("new_MCW_optmenu_orig") ;
                      XmNtraversalOn  , True ,
                   NULL ) ;
 
-   #ifdef USING_LESSTIF
-   if (CPU_IS_64_BIT() ){
-      XtInsertEventHandler( av->wrowcol ,       
-                               ButtonPressMask ,  
-                               FALSE ,           
-                               enter_EV,
-                               (XtPointer) av ,
-                               XtListHead) ; 
-      XtInsertEventHandler( av->wrowcol ,        
-                               ButtonReleaseMask ,  
-                               FALSE ,            
-                               enter_EV,
-                               (XtPointer) av,
-                               XtListHead) ; 
-      XtInsertEventHandler( av->wrowcol ,        
-                               EnterWindowMask ,  
-                               FALSE ,            
-                               enter_EV,
-                               (XtPointer) av,
-                               XtListHead) ; 
-                               
-      XtInsertEventHandler( av->wrowcol ,        
-                               LeaveWindowMask ,  
-                               FALSE ,            
-                               enter_EV,
-                               (XtPointer) av,
-                               XtListHead) ; 
-   }
-   #endif
    av->wlabel = XmOptionLabelGadget (av->wrowcol) ;
    av->wdown  = XmOptionButtonGadget(av->wrowcol) ;
    av->wup    = NULL ;
@@ -1101,7 +1063,7 @@ ENTRY("new_MCW_optmenu_orig") ;
 }
 
 
-MCW_arrowval * newz_MCW_optmenu( Widget parent ,
+MCW_arrowval * new_MCW_optmenu_64fix( Widget parent ,
                                 char *label ,
                                 int   minval , int maxval , int inival , 
                                 int decim ,
@@ -1117,7 +1079,7 @@ MCW_arrowval * newz_MCW_optmenu( Widget parent ,
    char *butlabel , *blab ;
    int dbg = 0;
    
-ENTRY("newz_MCW_optmenu") ;
+ENTRY("new_MCW_optmenu_64fix") ;
 
 rcparent = XtVaCreateWidget ("rowcolumn",
          xmRowColumnWidgetClass, parent,
@@ -1169,7 +1131,6 @@ rcparent = XtVaCreateWidget ("rowcolumn",
                                      
    xstr = XmStringCreateLtoR( "" , XmFONTLIST_DEFAULT_TAG ) ;
    XtSetArg( args[nargs] , XmNlabelString , xstr ) ; nargs++ ;
-
    av->wrowcol = XmCreateOptionMenu( rcholder , "dialog" , args , nargs ) ;
    XmStringFree(xstr) ;
    XtVaSetValues( av->wrowcol ,
@@ -1181,17 +1142,18 @@ rcparent = XtVaCreateWidget ("rowcolumn",
 
    #ifdef USING_LESSTIF
    if (CPU_IS_64_BIT() ){
-      XtInsertEventHandler( av->wrowcol ,       
-                               ButtonPressMask ,  
-                               FALSE ,           
-                               enter_EV,
-                               (XtPointer) av ,
-                               XtListHead) ; 
       XtInsertEventHandler( av->wrowcol ,        
                                ButtonReleaseMask ,  
                                FALSE ,            
                                enter_EV,
                                (XtPointer) av,
+                               XtListHead) ; 
+      /*
+      XtInsertEventHandler( av->wrowcol ,       
+                               ButtonPressMask ,  
+                               FALSE ,           
+                               enter_EV,
+                               (XtPointer) av ,
                                XtListHead) ; 
       XtInsertEventHandler( av->wrowcol ,        
                                EnterWindowMask ,  
@@ -1206,6 +1168,7 @@ rcparent = XtVaCreateWidget ("rowcolumn",
                                enter_EV,
                                (XtPointer) av,
                                XtListHead) ; 
+      */
    }
    #endif
    av->wlabel = lb ;
