@@ -1566,7 +1566,7 @@ fprintf(stderr,"Option setup %s\n",opt->label) ;
          switch( sv->data_type ){
 
             /** type I can't handle yet, so just put some label there **/
-
+            fprintf(stderr,"Doing type %d\n", sv->data_type);
             default:
                xstr = XmStringCreateLtoR( "** N/A **" , XmFONTLIST_DEFAULT_TAG ) ;
                ow->chtop[ib] =
@@ -1601,6 +1601,14 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
                ow->chooser[ib] = (void *) av ;
                ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
+               #ifdef USING_LESSTIF
+                  if (CPU_IS_64_BIT() ){
+                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
+                              /* get the very top rowcol holding the 
+                                 optmenu rowcol, see function
+                                 new_MCW_optmenu_64fix   [LPatrol Feb 19 2009] */
+                  }
+               #endif
 
                ow->chooser_type[ib] = OP_CHOOSER_COLORMENU ;
             }
@@ -1634,7 +1642,14 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
                ow->chooser[ib] = (void *) av ;
                ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
-
+               #ifdef USING_LESSTIF
+                  if (CPU_IS_64_BIT() && use_optmenu){
+                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
+                              /* get the very top rowcol holding the 
+                                 optmenu rowcol, see function
+                                 new_MCW_optmenu_64fix [LPatrol Feb 19 2009]*/
+                  }
+               #endif
                ow->chooser_type[ib] = (use_optmenu) ? OP_CHOOSER_OPTMENU
                                                     : OP_CHOOSER_NUMBER ;
 
@@ -1692,7 +1707,14 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
                   ow->chooser[ib] = (void *) av ;
                   ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
-
+                  #ifdef USING_LESSTIF
+                  if (CPU_IS_64_BIT() && use_optmenu ){
+                     ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
+                              /* get the very top rowcol holding the 
+                                 optmenu rowcol, see function
+                                 new_MCW_optmenu_64fix [LPatrol Feb 19 2009]*/
+                  }
+                  #endif
                   ow->chooser_type[ib] = (use_optmenu) ? OP_CHOOSER_OPTMENU
                                                        : OP_CHOOSER_STRING ;
 

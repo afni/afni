@@ -1650,7 +1650,6 @@ ENTRY("new_MCW_colormenu") ;
 
    XtVaGetValues( av->wmenu , XmNchildren    , &children ,
                               XmNnumChildren , &num_children , NULL ) ;
-
    for( ic=0 ; ic < num_children ; ic++ ){
       icol = min_col + ic ;
       if( icol > 0 ) MCW_set_widget_bg( children[ic] , 0 , dc->ovc->pix_ov[icol] ) ;
