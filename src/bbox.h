@@ -152,7 +152,7 @@ extern MCW_arrowval * new_MCW_optmenu( Widget , char * ,
                                        gen_func * , XtPointer ,
                                        str_func * , XtPointer ) ;
 
-extern MCW_arrowval * newz_MCW_optmenu( Widget , char * ,
+extern MCW_arrowval * new_MCW_optmenu_64fix( Widget , char * ,
                                        int,int,int,int,
                                        gen_func * , XtPointer ,
                                        str_func * , XtPointer ) ;
