@@ -1773,21 +1773,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 /*----------------------------------------------------------------------------*/
 /* RBF stuff -- cf. mri_rbfinterp.c -- 05 Feb 2009 */
 
-typedef struct {
-  int nx,ny,nz , nxy,nxyz ;
-  float xbot,ybot,zbot,dxyz ;
-  int  *knum ;
-  int **klist ;
-} RBF_kbucket ;
-
-#undef  DESTROY_RBF_kbucket
-#define DESTROY_RBF_kbucket(kb)                                \
- do{ if( (kb) != NULL ){                                       \
-       int ii ;                                                \
-       for( ii=0 ; ii < (kb)->nxyz ; ii++ )                    \
-         if( (kb)->klist[ii] != NULL ) free((kb)->klist[ii]) ; \
-       free((kb)->klist); free((kb)->knum); free((kb)) ;       \
-     } } while(0)
+typedef unsigned short RBFKINT ;
 
 typedef struct {
   int nknot ;
@@ -1798,19 +1784,19 @@ typedef struct {
   dmat44 Qmat ;
   rcmat *Lmat ;
   int uselin ; float *P0, *Px , *Py , *Pz ;
-  RBF_kbucket *kbuc ;
 } RBF_knots ;
 
 #undef  DESTROY_RBF_knots
-#define DESTROY_RBF_knots(rk)                                              \
- do{ IFREE((rk)->xknot); IFREE((rk)->yknot); IFREE((rk)->zknot);           \
-     IFREE((rk)->P0); IFREE((rk)->Px); IFREE((rk)->Py); IFREE((rk)->Pz);   \
-     rcmat_destroy((rk)->Lmat); DESTROY_RBF_kbucket((rk)->kbuc); free(rk); \
+#define DESTROY_RBF_knots(rk)                                            \
+ do{ IFREE((rk)->xknot); IFREE((rk)->yknot); IFREE((rk)->zknot);         \
+     IFREE((rk)->P0); IFREE((rk)->Px); IFREE((rk)->Py); IFREE((rk)->Pz); \
+     rcmat_destroy((rk)->Lmat); free(rk);                                \
  } while(0)
 
 typedef struct {
   int npt ;
   float *xpt , *ypt , *zpt ;
+  RBFKINT *kfirst , *klast ;
 } RBF_evalgrid ;
 
 #undef  MAKE_RBF_evalgrid
@@ -1820,11 +1806,14 @@ typedef struct {
      (rg)->xpt = (float *)calloc(sizeof(float),(nn)) ;       \
      (rg)->ypt = (float *)calloc(sizeof(float),(nn)) ;       \
      (rg)->zpt = (float *)calloc(sizeof(float),(nn)) ;       \
+     (rg)->kfirst = (rg)->klast = NULL ;                     \
  } while(0)
 
 #undef  DESTROY_RBF_evalgrid
 #define DESTROY_RBF_evalgrid(rg)                             \
  do{ free((rg)->xpt); free((rg)->ypt); free((rg)->zpt);      \
+     if( (rg)->klast != NULL ) free((rg)->klast ) ;          \
+     if( (rg)->kfirst!= NULL ) free((rg)->kfirst) ;          \
      free(rg) ;                                              \
  } while(0)
 
@@ -1847,6 +1836,7 @@ extern RBF_knots * RBF_setup_knots( int, float, int, float *, float *, float * )
 extern int RBF_setup_evalues( RBF_knots *rbk, RBF_evalues *rbe ) ;
 extern int RBF_evaluate( RBF_knots *, RBF_evalues *, RBF_evalgrid *, float * ) ;
 extern void RBF_set_verbosity( int ) ;
+extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ; 
 
 /*----------------------------------------------------------------------------*/
 /** Test if a image is vector-valued (fvect, rgb, or complex) **/

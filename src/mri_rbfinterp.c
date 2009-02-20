@@ -29,8 +29,6 @@
 #undef  RBF_func
 #define RBF_func(x)    ((x)*(x)*(x)*(x)*(5.0f-4.0f*x))
 
-static void RBF_setup_kbucket( RBF_knots *rbk ) ; /* prototype */
-
 /*----------------------------------------------------------------------------*/
 static int verb = 0 ;
 void RBF_set_verbosity( int ii ){ verb = ii ; }
@@ -46,6 +44,7 @@ int RBF_evaluate( RBF_knots *rbk, RBF_evalues *rbe,
                   RBF_evalgrid *rbg, float *val    )
 {
    int npt , nk ;
+   double ct ;
 
 ENTRY("RBF_evaluate") ;
 
@@ -69,12 +68,15 @@ ENTRY("RBF_evaluate") ;
    if( verb )
      INFO_message("RBF_evaluate: %d points X %d knots",npt,nk) ;
 
+   ct = COX_clock_time() ;
+
 #pragma omp parallel if(npt*nk > 9999)
  {
    int ii , jj , uselin=rbk->uselin ;
    float  rr , xm,ym,zm , xd,yd,zd , rad,rqq , xt,yt,zt , *xx,*yy,*zz ;
    float  xk , yk , zk , sum , *ev ;
    float b0,bx,by,bz , rai ;
+   RBFKINT *kfirst , *klast ; int kbot,ktop ;
 
    /* load some local variables */
 
@@ -87,13 +89,16 @@ ENTRY("RBF_evaluate") ;
      b0 = rbe->b0 ; bx = rbe->bx ; by = rbe->by ; bz = rbe->bz ;
    }
 
+   kfirst = rbg->kfirst ; klast = rbg->klast ; kbot = 0 ; ktop = nk-1 ;
+
 #pragma omp for
    for( ii=0 ; ii < npt ; ii++ ){
      xt = rbg->xpt[ii]; yt = rbg->ypt[ii]; zt = rbg->zpt[ii]; /* output xyz */
-     for( sum=0.0f,jj=0 ; jj < nk ; jj++ ){
-       xk = xt-xx[jj]; rr =xk*xk ; if( rr >= rqq ) continue ;
-       yk = yt-yy[jj]; rr+=yk*yk ; if( rr >= rqq ) continue ;
-       zk = zt-zz[jj]; rr+=zk*zk ; if( rr >= rqq ) continue ;
+     if( kfirst != NULL ){ kbot = kfirst[ii] ; ktop = klast[ii] ; }
+     for( sum=0.0f,jj=kbot ; jj <= ktop ; jj++ ){
+       xk = xt-xx[jj]; rr =xk*xk; if( rr >= rqq ) continue;
+       yk = yt-yy[jj]; rr+=yk*yk; if( rr >= rqq ) continue;
+       zk = zt-zz[jj]; rr+=zk*zk; if( rr >= rqq ) continue;
        rr = 1.0f - sqrtf(rr) * rai ; sum += ev[jj] * RBF_func(rr) ;
      }
      val[ii] = sum ;
@@ -102,6 +107,7 @@ ENTRY("RBF_evaluate") ;
    }
  } /* end OpenMP */
 
+   if( verb ) ININFO_message("              Elapsed = %.1f",COX_clock_time()-ct) ;
    RETURN(1) ;
 }
 
@@ -181,12 +187,15 @@ RBF_knots * RBF_setup_knots( int nk, float radius, int uselin,
    rcmat *rcm ;
    float *P0=NULL,*Px=NULL,*Py=NULL,*Pz=NULL ;
    float rr , xm,ym,zm , xd,yd,zd , rad,rqq , xt,yt,zt ;
+   double ct ;
 
 ENTRY("RBF_setup_knots") ;
 
    if( nk < 5 || xx == NULL || yy == NULL || zz == NULL ){
      ERROR_message("Illegal inputs to RBF_setup_knots") ; RETURN(NULL) ;
    }
+
+   ct = COX_clock_time() ;
 
    /* set up middle of knot field and scale radius */
    /* xm = middle (median) of the x knot coordinates
@@ -320,16 +329,14 @@ ENTRY("RBF_setup_knots") ;
 #endif
    }
 
-#if 0
-   RBF_setup_kbucket( rbk ) ;
-#else
-   rbk->kbuc = NULL ;
-#endif
+   if( verb ) ININFO_message("                 Elapsed = %.1f",COX_clock_time()-ct) ;
+
    RETURN(rbk) ;
 }
 
 /*------------------------------------------------------------------*/
 
+#if 0
 #undef  ADDTO_intar
 #define ADDTO_intar(nar,nal,ar,val)                                         \
  do{ if( (nar) == (nal) ){                                                  \
@@ -343,65 +350,68 @@ ENTRY("RBF_setup_knots") ;
  do{ if( (nar) < (nal) && (nar) > 0 ){                               \
        (nal) = (nar); (ar) = (int *)realloc((ar),sizeof(int)*(nal)); \
  }} while(0)
+#endif
 
 /*------------------------------------------------------------------*/
 
-static void RBF_setup_kbucket( RBF_knots *rbk )
+void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg )
 {
-   int ii,nk , kx,ky,kz,kxyz , nx,ny,nz,nxy,nxyz ;
-   float rad , xmid,ymid,zmid , *xk,*yk,*zk ;
-   float xbot,xtop , ybot,ytop , zbot,ztop ;
-   RBF_kbucket *kbuc ;
-   int **klist , *nal ;
+   int npt , nk ;
+   double ct ;
 
-ENTRY("RBF_setup_kbucket") ;
+ENTRY("RBF_setup_kranges") ;
 
-   if( rbk == NULL ) EXRETURN ;
+   if( rbk == NULL || rbg == NULL || rbk->nknot > 65535 ) EXRETURN ;
 
-   rbk->kbuc = NULL ;  /* default setup */
+   if( rbg->klast != NULL ) free(rbg->klast)  ;
+   if( rbg->kfirst!= NULL ) free(rbg->kfirst) ;
 
-   rad  = rbk->rad   ; nk   = rbk->nknot ; if( nk < 99 ) EXRETURN ;
-   xmid = rbk->xmid  ; ymid = rbk->ymid  ; zmid = rbk->zmid  ;
-   xk   = rbk->xknot ; yk   = rbk->yknot ; zk   = rbk->zknot ;
+   /* load some local variables */
 
-   xbot = xtop = xk[0] ; ybot = ytop = yk[0] ; zbot = ztop = zk[0] ;
-   for( ii=1 ; ii < nk ; ii++ ){
-     if( xk[ii] < xbot ) xbot = xk[0]; else if( xk[ii] > xtop ) xtop = xk[ii];
-     if( yk[ii] < ybot ) ybot = yk[0]; else if( yk[ii] > ytop ) ytop = yk[ii];
-     if( zk[ii] < zbot ) zbot = zk[0]; else if( zk[ii] > ztop ) ztop = zk[ii];
+   npt = rbg->npt ;
+   nk  = rbk->nknot ;
+
+   rbg->kfirst = (RBFKINT *)calloc(sizeof(RBFKINT),npt) ;
+   rbg->klast  = (RBFKINT *)calloc(sizeof(RBFKINT),npt) ;
+
+   if( verb ){
+     INFO_message("RBF_setup_kranges: %d grid points",npt) ;
    }
 
-   nx = ceilf( (xtop-xbot)/rad ) ; xbot = 0.5f*(xtop+xbot) - 0.5f*rad*nx ;
-   ny = ceilf( (ytop-ybot)/rad ) ; ybot = 0.5f*(ytop+ybot) - 0.5f*rad*ny ;
-   nz = ceilf( (ztop-zbot)/rad ) ; zbot = 0.5f*(ztop+zbot) - 0.5f*rad*nz ;
-   nxy = nx*ny ; nxyz = nxy*nz ;
+   ct = COX_clock_time() ;
 
-   kbuc = (RBF_kbucket *)calloc(1,sizeof(RBF_kbucket)) ;
-   kbuc->nx = nx ; kbuc->ny = ny ; kbuc->nz = nz ;
-   kbuc->nxy = nxy ; kbuc->nxyz = nxyz ;
+#pragma omp parallel if(npt*nk > 9999)
+ {
+   int ii,jj , kbot,ktop ;
+   float xt,yt,zt, rqq, xk,yk,zk, rr, *xx,*yy,*zz ;
+   RBFKINT *klast , *kfirst ;
 
-   kbuc->klist = (int **)calloc(sizeof(int *),nxyz) ;
-   nal         = (int * )calloc(sizeof(int)  ,nxyz) ;
-   kbuc->knum  = (int * )calloc(sizeof(int)  ,nxyz) ;
+   rqq = rbk->rqq ; xx = rbk->xknot; yy = rbk->yknot; zz = rbk->zknot;
+   kfirst = rbg->kfirst ; klast  = rbg->klast  ;
+#pragma omp for
+   for( ii=0 ; ii < npt ; ii++ ){
+     xt = rbg->xpt[ii]; yt = rbg->ypt[ii]; zt = rbg->zpt[ii];
+     kbot = ktop = -1 ;
+     for( jj=0 ; jj < nk ; jj++ ){
+       xk = xt-xx[jj]; rr =xk*xk; if( rr >= rqq ) continue;
+       yk = yt-yy[jj]; rr+=yk*yk; if( rr >= rqq ) continue;
+       zk = zt-zz[jj]; rr+=zk*zk; if( rr >= rqq ) continue;
+       ktop = jj ;
+       if( kbot < 0 ) kbot = jj ;
+     }
+     if( kbot >= 0 ){
+       kfirst[ii] = (RBFKINT)kbot ;
+       klast [ii] = (RBFKINT)ktop ;
+     }
+   }
+ } /* end OpenMP */
 
-   /* assign knot indexes to bucket entries */
-
-   for( ii=0 ; ii < nk ; ii++ ){
-     kx = (int)((xk[ii]-xbot)/rad) ;
-     ky = (int)((yk[ii]-ybot)/rad) ;
-     kz = (int)((zk[ii]-zbot)/rad) ;
-     kxyz = kx + ky*nx + kz*nxy ;
-     ADDTO_intar( kbuc->knum[kxyz] , nal[kxyz] , kbuc->klist[kxyz] , ii ) ;
+   if( verb ){
+     float ntot=0.0f ; int ii ;
+     for( ii=0 ; ii < npt ; ii++ ) ntot += (1.0f+rbg->klast[ii]-rbg->kfirst[ii]) ;
+     ININFO_message("                   average krange = %.1f  Elapsed = %.1f",
+                    ntot/npt , COX_clock_time()-ct ) ;
    }
 
-   for( ii=0 ; ii < nxyz ; ii++ )
-     CLIP_intar(  kbuc->knum[kxyz] , nal[kxyz] , kbuc->klist[kxyz] ) ;
-
-   free(nal) ;
-
-#ifdef DEBUG
-INFO_message("RBF: %d X %d X %d = %d kbuckets",nx,ny,nz,nxyz) ;
-#endif
-
-   rbk->kbuc = kbuc ; EXRETURN ;
+   EXRETURN ;
 }
