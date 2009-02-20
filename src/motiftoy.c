@@ -234,6 +234,8 @@ MenuItem drawing_menus[] = {
    { "Shapes", &xmCascadeButtonGadgetClass, 'V', NULL, NULL, 0, 0, drawing_shapes},
 	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL }
 };
+#define MGR_NumChildren(m) \
+	(((XmManagerWidget)(m))->composite.num_children)
 
 /* ************* End Menu bar additions  ******************* */
 main(int argc, char **argv) 
@@ -253,6 +255,8 @@ main(int argc, char **argv)
                         pushed_fn, NULL, MCW_av_substring_CB2, list_modes); 
    } 
    { /* try a vanilla flavor */
+      int nkids = 0, ic;
+      Widget wlabel, wdown, *children=NULL;
       rc = XmCreateRowColumn (top_wid, "rowcol", NULL, 0);
       draw_shape = XmStringCreateLocalized ("Draw Mode:");
       line = XmStringCreateLocalized ("Line");
@@ -265,6 +269,45 @@ main(int argc, char **argv)
                                 XmVaPUSHBUTTON, square, 'S', NULL, NULL,
                                 XmVaPUSHBUTTON, circle, 'C', NULL, NULL,
                                 NULL);
+      wlabel = XmOptionLabelGadget (option_menu) ;
+      MGR_NumChildren(wlabel) = 0;  /* Force initialization */
+      wdown  = XmOptionButtonGadget(option_menu) ;
+      MGR_NumChildren(wdown) = 0; /* Force initialization */
+      nkids = -1; children = NULL;
+      XtVaGetValues( option_menu, 
+                     XmNchildren    , &children ,
+                     XmNnumChildren, &nkids, NULL);
+      fprintf(stderr,"wrowcol %p (%s) has %d (%d) kids \n", 
+                     option_menu, XtName(option_menu), 
+                     nkids, MGR_NumChildren(option_menu));
+      for (ic=0; ic < nkids; ++ic) 
+         fprintf(stderr, "     %d: %p\n", ic, children[ic]);
+      
+      nkids = -1; children = NULL;
+      /** NOTICE: XtVaGetValues, does not update nkids 
+            where no children are there! 
+          NOTICE2: Lesstif's MGR_NumChildren is failing because
+            composite.num_children and likely composite.children 
+            are not set either! **/
+      XtVaGetValues( wlabel, 
+                     XmNchildren    , &children ,
+                     XmNnumChildren,  &nkids, NULL);
+      fprintf(stderr,"wlabel %p (%s) has %d (%d) kids\n", 
+                     wlabel, XtName(wlabel),
+                     nkids, MGR_NumChildren(wlabel));
+      for (ic=0; ic < nkids; ++ic) 
+         fprintf(stderr, "     %d: %p\n", ic, children[ic]);
+      
+      nkids = -1; children = NULL;
+      XtVaGetValues( wdown, 
+                     XmNchildren    , &children ,
+                     XmNnumChildren, &nkids, NULL);
+      fprintf(stderr,"wdown %p (%s) has %d (%d) kids\n", 
+                     wdown, XtName(wdown), 
+                     nkids, MGR_NumChildren(wdown));
+      for (ic=0; ic < nkids; ++ic) 
+         fprintf(stderr, "     %d: %p\n", ic, children[ic]);
+      
       XmStringFree (line);
       XmStringFree (square);
       XmStringFree (circle);
