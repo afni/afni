@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.2,  Feb. 20, 2009")
+print("Version 1.0.1,  Feb. 6, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -374,7 +374,7 @@ for (ii in 1:nLags) {
 	print(sprintf("Matrix of t values with a lag of %i (direction goes from row to column):", ii))
    print(matrix(netMatT[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
 	print(sprintf("DFs = %i for Ho: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
-	saveMatT <- as.integer(readline("Save matrix of t valusubject es (0: no; 1: yes)? "))
+	saveMatT <- as.integer(readline("Save matrix of t values (0: no; 1: yes)? "))
    if (saveMatT) {
       matName <- as.character(readline("File name prefix (e.g., TLag1Subj1)? "))
       write.table(netMatT[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
@@ -521,7 +521,7 @@ anotherPth <- as.integer(readline("Want to try another p-threshold/plotting set-
 }
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 anotherLag <- as.integer(readline("Want to try another number of lags for VAR (0: no; 1: yes)? "))
-}subject 
+}
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
 #causality(fm, cause=names(myData)[1])
