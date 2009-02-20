@@ -28,7 +28,9 @@ extern char * THD_find_executable( char * ) ;
 void MCW_expose_widget( Widget w )
 {
    XExposeEvent xev;
-   Dimension ww , hh ;
+   Dimension ww=0 , hh=0 ;
+
+   memset(&xev, 0, sizeof(xev));
 
                                if(   w == NULL                 ) return ;
                                if( ! XtIsRealized(w)           ) return ;
@@ -109,8 +111,10 @@ void MCW_set_colormap( Widget w , Colormap cmap )
 
 void MCW_invert_widget( Widget w )
 {
-   Pixel bg_pix , topsh_pix , botsh_pix , fg_pix , sel_pix ;
+   Pixel bg_pix=0 , topsh_pix=0 , botsh_pix=0 , fg_pix=0 , sel_pix=0 ;
    Colormap cmap ;
+
+   memset(&cmap, 0, sizeof(cmap));
 
    if( ! XtIsWidget(w) ) return ;
    SYNC(w) ;
@@ -147,8 +151,10 @@ void MCW_invert_widget( Widget w )
 
 void MCW_set_widget_bg( Widget w , char *cname , Pixel pix )
 {
-   Pixel bg_pix , topsh_pix , botsh_pix , fg_pix , sel_pix ;
+   Pixel bg_pix=0 , topsh_pix=0 , botsh_pix=0 , fg_pix=0 , sel_pix=0 ;
    Colormap cmap ;
+
+   memset(&cmap, 0, sizeof(cmap));
 
 #if 1
    if( ! XtIsWidget(w) ) return ;
@@ -235,8 +241,8 @@ void MCW_set_widget_label_tagged( Widget w , char *str , char *tag )
 
 void MCW_widget_geom( Widget w, int *wout, int *hout, int *xout, int *yout )
 {
-   Dimension nx , ny ;  /* don't try to make these ints! */
-   Position  xx , yy ;
+   Dimension nx=0 , ny=0 ;  /* don't try to make these ints! */
+   Position  xx=0 , yy=0 ;
 
    if( w == NULL ) return ;
    SYNC(w) ; RWC_sleep(1) ;
@@ -558,7 +564,7 @@ ENTRY("MCW_message_alter") ;
 void MCW_message_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
 #ifdef ALLOW_TIMER_KILL
-   XtIntervalId tid ;
+   XtIntervalId tid=0 ;
 
    XtVaGetValues( w , XmNuserData , &tid , NULL ) ;  /* get timer id */
    XtDestroyWidget( XtParent(w) ) ;
@@ -697,8 +703,8 @@ static int clueless    = -1 ;
 void MCW_hint_toggle(void)
 {
 #define PBIG 999999
-   int period ;
-   char *pdef ;
+   int period=0 ;
+   char *pdef=NULL ;
 
    if( liteClue == NULL ) return ;
 
@@ -830,8 +836,8 @@ void MCW_register_help( Widget w , char *msg )
 
 void MCW_reghelp_children( Widget w , char *msg )
 {
-   Widget *children ;
-   int  num_children , ic ;
+   Widget *children=NULL ;
+   int  num_children=0 , ic ;
 
    if( disable_helps ) return ;
    if( w == NULL || msg == NULL ) return ;
@@ -1303,8 +1309,8 @@ ENTRY("new_MCW_textwin_2001") ;
    if( msg != NULL ){
       int cmax = 20 , ll , nlin ;
       char *cpt , *cold , cbuf[128] ;
-      XmString xstr ;
-      XmFontList xflist ;
+      XmString xstr=NULL ;
+      XmFontList xflist=NULL ;
 
       /* In lesstif, the text length is limited by the XmTextGetMaxLength
        * resource, however setting it via XmTextSetMaxLength does not work.
