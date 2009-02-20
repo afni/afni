@@ -1601,7 +1601,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
                ow->chooser[ib] = (void *) av ;
                ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
-               #ifdef USING_LESSTIF
+               #ifdef USING_LESSTIF_NOT_DOING_THIS
                   if (CPU_IS_64_BIT() ){
                      ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
                               /* get the very top rowcol holding the 
@@ -1642,7 +1642,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
                ow->chooser[ib] = (void *) av ;
                ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
-               #ifdef USING_LESSTIF
+               #ifdef USING_LESSTIF_NOT_DOING_THIS
                   if (CPU_IS_64_BIT() && use_optmenu){
                      ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
                               /* get the very top rowcol holding the 
@@ -1707,7 +1707,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
                   ow->chooser[ib] = (void *) av ;
                   ow->chtop[ib]   = av->wrowcol ;  /* get the top widget */
-                  #ifdef USING_LESSTIF
+                  #ifdef USING_LESSTIF_NOT_DOING_THIS
                   if (CPU_IS_64_BIT() && use_optmenu ){
                      ow->chtop[ib]   = XtParent(XtParent(av->wrowcol)); 
                               /* get the very top rowcol holding the 
@@ -4373,8 +4373,8 @@ void * PLUTO_imseq_popim( MRI_IMAGE * im, generic_func * kfunc, void * kdata )
 void * PLUTO_imseq_popup( MRI_IMARR * imar, generic_func * kfunc, void * kdata )
 {
    int ntot , ii ;
-   MRI_IMAGE * im , * cim ;
-   PLUGIN_imseq * psq ;
+   MRI_IMAGE * im=NULL , * cim=NULL ;
+   PLUGIN_imseq * psq=NULL ;
 
    if( imar == NULL || IMARR_COUNT(imar) == 0 ) return NULL ;
 
@@ -4407,6 +4407,7 @@ void * PLUTO_imseq_popup( MRI_IMARR * imar, generic_func * kfunc, void * kdata )
 
    { ISQ_options opt ;       /* change some options from the defaults */
 
+     memset(&opt, 0, sizeof(opt));
      ISQ_DEFAULT_OPT(opt) ;
      opt.save_one = False ;  /* change to Save:bkg */
      opt.save_pnm = False ;

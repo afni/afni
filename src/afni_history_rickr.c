@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, FEB, 2009, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "many inits to appease lesstif and Xt (w/Ziad)",
+   NULL
+ } ,
+
  { 13, FEB, 2009, RCR, "dmat44.c", MICRO, TYPE_BUG_FIX,
    "cut-and-paste error ...",
    NULL

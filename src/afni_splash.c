@@ -201,14 +201,14 @@ static void AFNI_splash_timer_CB( XtPointer cd, XtIntervalId *id )
 
 void AFNI_splashup(void)
 {
-   PLUGIN_impopper *ppp ;
-   MRI_IMAGE *imov ;
-   int    dd,ee ;
-   char   bb ;
-   byte *bspl ;
-   int   sxx,syy ;
-   char *sen ;
-   static int ncall=0 , nov , dnov , nm=-1 ;
+   PLUGIN_impopper *ppp=NULL ;
+   MRI_IMAGE *imov=NULL ;
+   int    dd=0,ee=0 ;
+   char   bb=0 ;
+   byte *bspl=NULL ;
+   int   sxx=0,syy=0 ;
+   char *sen=NULL ;
+   static int ncall=0 , nov=0 , dnov=0 , nm=-1 ;
 
 ENTRY("AFNI_splashup") ;
 
@@ -216,7 +216,7 @@ ENTRY("AFNI_splashup") ;
 
    if( ! PLUTO_popup_open(handle) ){  /* not open at this time? */
 
-      int nxov,nyov,ff ;
+      int nxov=0,nyov=0,ff=0 ;
 
       num_splashup++ ;  /* 14 Nov 2005 */
 

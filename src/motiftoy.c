@@ -166,6 +166,26 @@ Widget BuildMenu (Widget parent, int menu_type, char *menu_title, char menu_mnem
       XmStringFree (draw_shape);
       XtManageChild (option_menu);
       XtManageChild (rc);
+
+      /* Simulating AFNI crash situation*/
+      rc = XmCreateRowColumn (menu, "rowcol", NULL, 0);
+      draw_shape = XmStringCreateLocalized ("Draw Dup:");
+      line = XmStringCreateLocalized ("Line");
+      square = XmStringCreateLocalized ("Square");
+      circle = XmStringCreateLocalized ("Circle");
+      option_menu = XmVaCreateSimpleOptionMenu (rc,
+                                "option_menu", draw_shape, 'D', 
+                                0 /*initial menu selection*/, option_cb,
+                                XmVaPUSHBUTTON, line, 'L', NULL, NULL,
+                                XmVaPUSHBUTTON, square, 'S', NULL, NULL,
+                                XmVaPUSHBUTTON, circle, 'C', NULL, NULL,
+                                NULL);
+      XmStringFree (line);
+      XmStringFree (square);
+      XmStringFree (circle);
+      XmStringFree (draw_shape);
+      XtManageChild (option_menu);
+      XtManageChild (rc);
    	
 	/* for popup menus, just return the menu; pulldown menus, return
 	** the cascade button; option menus, return the thing returned
