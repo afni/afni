@@ -258,6 +258,7 @@ int main( int argc , char * argv[] )
        rbg->zpt[ii] = zz ; ii++ ;
      }
    }
+   RBF_setup_kranges( rbk , rbg ) ;  /* 20 Feb 2009 */
 
    /*-- setup space for evaluation --*/
 
