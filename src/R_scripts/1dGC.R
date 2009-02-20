@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.1,  Feb. 6, 2009")
+print("Version 1.0.2,  Feb. 20, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -735,7 +735,7 @@ doneGrp <- as.integer(readline("Next (0: done; 1: another group analysis)? "))
 
 } # if (anaType==2 || anotherAna==2)
 
-if (anaType==0 || anotherAna==0 || doneGrp==0) {
+if (anaType==0 || doneGrp==0 || anotherAna==0) {
    print("Make sure to save all desirable figures before leaving!")
    quitMe <- as.integer(readline("Quit R (0: no; 1: yes)? "))
 	print("***********Thanks for using the program!***********")
