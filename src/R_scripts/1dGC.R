@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.1,  Feb. 6, 2009")
+print("Version 1.0.2,  Feb. 20, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -35,11 +35,11 @@ libLoad <- function(myLib) {
 # 	return(inData)
 # }
 
-readMultiFiles <- function(nFiles, dim, inData) {
+readMultiFiles <- function(nFiles, dim, inData, type) {
    inFile <- vector('list', nFiles) # list of file names with path attached
-	fn <- vector('list', nFiles)      # ist of file names
+	fn <- vector('list', nFiles)      # list of file names
 	for (ii in 1:nFiles) {
-	   inFile[[ii]] <- readline(sprintf("No. %i ROI time series file name: ", ii))
+	   inFile[[ii]] <- readline(sprintf("No. %i %s file name: ", ii, type))  
 		fn[[ii]] <- strsplit(inFile[[ii]], "/")[[1]][length(strsplit(inFile[[ii]], "/")[[1]])]
 		print(sprintf("No. %i file just read in: %s", ii, fn[[ii]]))
 		if (dim==1) inData[,ii] <- read.table(inFile[[ii]], header=FALSE)
@@ -182,7 +182,7 @@ if (as.logical(COV)) {
    } else {
 #      covn <- vector('list', nCOVs)
       exData <- data.frame(matrix(data=NA, nrow=nTotal, ncol=nCOVs, dimnames = NULL))
-      exData <- readMultiFiles(nCOVs, 1, exData)
+      exData <- readMultiFiles(nCOVs, 1, exData, "covariate")  # 1: assuming no header
 #		covFN <- exTmp[[1]]; exData <- exTmp[[2]]
 			
 #		for (ii in 1:nCOVs) {
@@ -374,7 +374,7 @@ for (ii in 1:nLags) {
 	print(sprintf("Matrix of t values with a lag of %i (direction goes from row to column):", ii))
    print(matrix(netMatT[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
 	print(sprintf("DFs = %i for Ho: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
-	saveMatT <- as.integer(readline("Save matrix of t values (0: no; 1: yes)? "))
+	saveMatT <- as.integer(readline("Save matrix of t valusubject es (0: no; 1: yes)? "))
    if (saveMatT) {
       matName <- as.character(readline("File name prefix (e.g., TLag1Subj1)? "))
       write.table(netMatT[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
@@ -521,7 +521,7 @@ anotherPth <- as.integer(readline("Want to try another p-threshold/plotting set-
 }
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 anotherLag <- as.integer(readline("Want to try another number of lags for VAR (0: no; 1: yes)? "))
-}
+}subject 
 print("#++++++++++++++++++++++++++++++++++++++++++++")
 
 #causality(fm, cause=names(myData)[1])
@@ -548,12 +548,12 @@ if (nGrp==1) {   #one-sample t
 nSubjs <- as.integer(readline("Number of subjects (e.g., 12)? "))     # number of subjects
 #gfn <- vector('list', nSubjs)
 pathList <- vector('list', nSubjs)
-pathList <- readMultiFiles(nSubjs, 2, pathList)
+pathList <- readMultiFiles(nSubjs, 2, pathList, "subject path matrix")  #2: with header
 
 #for (ii in 1:nSubjs) { # read in path matrices
 #   fn[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
 #      "{{Path coef matrix file} {.1D}} {{All files} *}",
-#      title = paste('Choose subject No.', ii, 'path coef matrix file')))
+#      title = paste('Choose subject No.', ii, 'subject path coef matrix file')))
 #   print(sprintf("No. %i file just read in: %s", ii, strsplit(fn[[ii]], "/")[[1]][length(strsplit(fn[[ii]], "/")[[1]])]))
 #	 pathList[[ii]] <- read.table(fn[[ii]], header=TRUE)
 #}
@@ -653,7 +653,7 @@ for (ii in 1:nGrp) {
 	nSubjs[ii] <- as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", ii)))
 	pathList[[ii]] <- vector('list', nSubjs[ii])
 	#pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList)[[2]]
-	pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList)
+	pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList, "subject path matrix")
 	#nROIsG[ii] <- dim(pathList[[ii]])[1]
 	nROIsG[ii] <- dim(pathList[[ii]][[1]])[1]
 	if (ii>1) for (jj in 1:ii) if (nROIsG[jj]!=nROIsG[1]) {sprintf("Group %i has %i ROIs while group 1 has %i", jj, nROIsG[jj], nROIsG[1]); break}
