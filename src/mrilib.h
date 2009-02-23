@@ -1776,14 +1776,15 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 typedef unsigned short RBFKINT ;
 
 typedef struct {
-  int nknot ;
-  float rad  , rqq ;
+  int nknot ;                    /* number of knots */
+  float rad  , rqq ;             /* RBF radius and radius squared */
   float xmid , ymid , zmid ;     /* middle of the knots */
   float xscl , yscl , zscl ;     /* scale reciprocal of the knots */
   float *xknot, *yknot, *zknot ; /* each is an nknot-long vector */
-  dmat44 Qmat ;
-  rcmat *Lmat ;
-  int uselin ; float *P0, *Px , *Py , *Pz ;
+  dmat44 Qmat ;                  /* 4x4 Q matrix for linear coefficents */
+  rcmat *Lmat ;                  /* Choleski factor of M matrix */
+  int uselin ;                   /* using linear coefficients? */
+  float *P0, *Px , *Py , *Pz ;   /* each is an nknot-long vector */
 } RBF_knots ;
 
 #undef  DESTROY_RBF_knots
@@ -1794,9 +1795,9 @@ typedef struct {
  } while(0)
 
 typedef struct {
-  int npt ;
-  float *xpt , *ypt , *zpt ;
-  RBFKINT *kfirst , *klast ;
+  int npt ;                   /* number of grid points */
+  float *xpt , *ypt , *zpt ;  /* grid points on which to evaluate RBF */
+  RBFKINT *kfirst , *klast ;  /* first & last knot indexes for each grid pt */
 } RBF_evalgrid ;
 
 #undef  MAKE_RBF_evalgrid
@@ -1818,9 +1819,9 @@ typedef struct {
  } while(0)
 
 typedef struct {
-  int code ;
-  float b0 , bx , by , bz ;
-  float *val ;              /* nfit of these */
+  int code ;                /* 0 ==> val has func values; >0 ==> knot wts */
+  float b0 , bx , by , bz ; /* linear polynomial coefficients */
+  float *val ;              /* nknot of these */
 } RBF_evalues ;
 
 #undef  MAKE_RBF_evalues
