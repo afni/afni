@@ -4,7 +4,7 @@
 #include <omp.h>
 #endif
 
-#undef DEBUG
+#undef DEBUG  /* for some extra printouts */
 
 /******************************************************************************
   Radial Basis Function (RBF) interpolation in 3D.
@@ -17,19 +17,34 @@
   + Setup for a given collection of knots:        RBF_setup_knots()
   + Setup for a given set of values at the knots: RBF_setup_evalues()
   + Evaluation at an arbitrary set of points:     RBF_evaluate()
+    + optional: speedup evaluation a little via:  RBF_setup_kranges()
 *******************************************************************************/
+
+/*............................................................................*/
+/* RBF expansion
+              i=nk-1
+     f(x) = sum      { alpha_i * RBF(x-q_i) } + b_0 + x*b_x +y*b_y + z*b_z
+              i=0
+
+   where the weights alpha_i for knot location q_i are chosen so that
+   the expansion f(q_i) matches the function f() at that location, for
+   each knot q_i.  The (optional) global linear polynomial is available
+   to provide nonzero values of f(x) for x far away from any knots.
+*//*..........................................................................*/
 
 #if 0         /* would be needed for thin-plate spline RBF */
 #undef  Rlog
 #define Rlog(x)       (((x)<=0.0f) ? 0.0f : logf(x))
 #endif
 
-/*! C2 polynomial: argument is 1-r, which should be between 0 and 1 */
+/*! C2 polynomial: argument is 1-r, which should be between 0 and 1;
+    note that this function is "positive definite": [M] matrix will be p.d. */
 
 #undef  RBF_func
 #define RBF_func(x)    ((x)*(x)*(x)*(x)*(5.0f-4.0f*x))
 
 /*----------------------------------------------------------------------------*/
+
 static int verb = 0 ;
 void RBF_set_verbosity( int ii ){ verb = ii ; }
 
@@ -132,40 +147,40 @@ ENTRY("RBF_setup_evalues") ;
    if( rbe->code > 0 ) RETURN(1) ;  /* already contains RBF weights */
 
    if( verb )
-     INFO_message("RBF_setup_evalues: Lmat solve") ;
+     INFO_message("RBF_setup_evalues: solve for knot weights") ;
 
    nn = rbk->nknot ;
    vv = rbe->val ;
    aa = (double *)calloc(sizeof(double),nn) ;
    for( ii=0 ; ii < nn ; ii++ ) aa[ii] = (double)vv[ii] ;
 
-   rcmat_lowert_solve( rbk->Lmat , aa ) ;
-   rcmat_uppert_solve( rbk->Lmat , aa ) ;
+   /* compute [aa] = [Minv][vv] using Choleski factors */
+
+   rcmat_lowert_solve( rbk->Lmat , aa ) ;  /* [Linv] [vv] */
+   rcmat_uppert_solve( rbk->Lmat , aa ) ;  /* [Ltinv] [Linv] [vv] */
+
+   /* adjust [aa] via [Q] matrix, for linear polynomial part of fit */
 
    if( rbk->uselin ){
      double q0,qx,qy,qz , b0,bx,by,bz ; dmat44 Q=rbk->Qmat ;
      float *P0=rbk->P0 , *Px=rbk->Px , *Py=rbk->Py , *Pz=rbk->Pz ;
-
-   if( verb )
-     ININFO_message("                   linear trend solve") ;
-
-     for( q0=qx=qy=qz=0.0,ii=0 ; ii < nn ; ii++ ){
+     for( q0=qx=qy=qz=0.0,ii=0 ; ii < nn ; ii++ ){ /* compute [Pt][aa] */
        q0 += P0[ii]*aa[ii] ; qx += Px[ii]*aa[ii] ;
        qy += Py[ii]*aa[ii] ; qz += Pz[ii]*aa[ii] ;
      }
-     DMAT44_VEC( Q , q0,qx,qy,qz , b0,bx,by,bz ) ;
+     DMAT44_VEC( Q , q0,qx,qy,qz , b0,bx,by,bz ) ; /* compute [beta] */
      rbe->b0 = b0 ; rbe->bx = bx ; rbe->by = by ; rbe->bz = bz ;
-     for( ii=0 ; ii < nn ; ii++ )
+     for( ii=0 ; ii < nn ; ii++ )                  /* [aa] = [vv] - [P][beta] */
        aa[ii] = (double)vv[ii] - b0*P0[ii] - bx*Px[ii] - by*Py[ii] - bz*Pz[ii] ;
 
-     rcmat_lowert_solve( rbk->Lmat , aa ) ;
-     rcmat_uppert_solve( rbk->Lmat , aa ) ;
+     rcmat_lowert_solve( rbk->Lmat , aa ) ; /* compute [Minv][aa] */
+     rcmat_uppert_solve( rbk->Lmat , aa ) ; /* as final RBF weights */
 #ifdef DEBUG
   INFO_message("RBF_setup_evalues: b0=%g bx=%g by=%g bz=%g",b0,bx,by,bz) ;
 #endif
    }
 
-   /* put results back into rbe */
+   /* put results back into rbe struct */
 
    for( ii=0 ; ii < nn ; ii++ ) vv[ii] = (float)aa[ii] ;
    rbe->code = 1 ; /* code that rbe is converted to RBF weights from values */
@@ -197,14 +212,14 @@ ENTRY("RBF_setup_knots") ;
 
    ct = COX_clock_time() ;
 
-   /* set up middle of knot field and scale radius */
-   /* xm = middle (median) of the x knot coordinates
-      xd = scale (MAD) of the x knot distances from xm;
-           would be about L/4 if knots are uniformly spaced
-           over a distance of L
-      4*xd/nk is about inter-knot x distance in uniform case
-      4*(xd+yd+zd)/(3*nk) is about average inter-knot distance in 3D
-      the RBF support radius is chosen to be a small multiple of this distance */
+   /* Setup middle of knot field and scale radius:
+       xm = middle (median) of the x knot coordinates
+       xd = scale (MAD) of the x knot distances from xm;
+             would be about L/4 if knots are uniformly spaced
+             in 1D over a distance of L
+       ==> 4*xd/nk is about inter-knot x distance in 1D uniform case
+       ==> 4*(xd+yd+zd)/(3*cbrt(nk)) is about mean inter-knot distance in 3D
+       RBF support radius is chosen to be a small multiple of this distance */
 
    qmedmad_float( nk , xx , &xm , &xd ) ;
    qmedmad_float( nk , yy , &ym , &yd ) ;
@@ -213,9 +228,9 @@ ENTRY("RBF_setup_knots") ;
    if( radius <= 0.0f )
      rad = 4.321f*(xd+yd+zd) / cbrtf((float)nk) ;  /* RBF support radius */
    else
-     rad = radius ;
+     rad = radius ;                          /* user-selected RBF radius */
 
-   rqq = rad*rad ;  /* for testing */
+   rqq = rad*rad ;           /* for testing radius-squared */
 
    if( verb )
      INFO_message("RBF_setup_knots: knots=%d radius=%.1f",nk,rad) ;
@@ -224,12 +239,68 @@ ENTRY("RBF_setup_knots") ;
    yd = 1.0f / yd ;          /* dimensionless x-value relative */
    zd = 1.0f / zd ;          /* to middle at xm                */
 
-   /* set up matrix for interpolation */
+   /*...................................................................*//*
+      Set up symmetric nk X nk matrix for interpolation:
+        mat[ii][jj] = RBF( knot[ii] - knot[jj] )  for jj=0..ii.
+      Call this matrix M.  It is positive definite by the choice
+      of the particular radial basis function being used.
+
+      If we are NOT using linear polynomials, then the system of
+      equations to solve for RBF knot weights [alpha] given knot
+      function values [v] is
+        [M] [alpha] = [v]
+      We Choleski decompose [M] = [L] [Lt] so that we solve via
+        [alpha] = [Ltinv][Linv] [v]
+      This will be done in function RBF_setup_evalues(), which
+      converts values of the function to be interpolated at the
+      knots [v] into weights [alpha].
+
+      If we ARE using a global linear polynomial, then the system
+      of equations to solve is
+        [ M  P ] [alpha] = [v]
+        [ Pt 0 ] [beta ] = [0]
+      where [P] is an nk X 4 matrix, with entries
+        P_{i0}=1  P_{i1}=x_i  P_{i2}=y_i  P_{i3}=z_i (knot coordinates)
+        Pt = P-transpose
+        [beta] = 4-vector of weights for linear polynomial
+      The purpose of this is to make the RBF part of the expansion
+      not contain any linear component -- that will be carried by the
+      global linear polynomial.  Without this constraint, the system
+      would be over-determined: nk equations with nk+4 unknowns.
+
+      The first nk equations express the interpolation property:
+      the evaluated RBF sum plus the linear polynomial equals [v]
+      at the knots.  The last 4 equations express the property that
+      the [alpha] weights by themselves do NOT have any component of
+      a global linear polynomial.
+
+      The symmetric compound (nk+4)X(nk+4) matrix is obviously not
+      positive definite (since it has 0 values on the diagonal), so
+      cannot be solved directly by Choleski factorization.  Instead,
+      we solve it via a bordering technique:
+         [M][alpha] + [P][beta] = [v]
+           ==> [alpha] = [Minv][v] - [Minv][P][beta]          (*)
+         [Pt][alpha] = [0]
+           ==> [Pt][Minv][v] = [Pt][Minv][P][beta]
+           ==> [beta] = inv{ [Pt][Minv][P] }[Pt][Minv][v]     (**)
+      Once [beta] is known from Eqn(**), [alpha] is found by using Eqn(*).
+      In details, given the Choleski factors of [M]:
+        Compute 4x4 matrix [Q] = inv{ [Pt][Ltinv][Linv][P] }  (done below)
+        Given [v], [ahat] = [Ltinv][Linv][v]  (==[alpha] if not using [P])
+                   [beta] = [Q][Pt][ahat]
+                  [alpha] = [Ltinv][Linv]{ [v] - [P][beta] }
+      We then use [alpha] to evaluate the RBF at each output grid point,
+      and use [beta] to evaluate the global linear polynomial.
+   *//*.....................................................................*/
+
+   /* create the [M] matrix rows */
 
    nn = nk ;
    mat = (float **)malloc(sizeof(float *)*nn) ;
    for( ii=0 ; ii < nn ; ii++ )
      mat[ii] = (float *)calloc((ii+1),sizeof(float)) ;
+
+   /* create the [P] matrix columns as needed for the linear polynomial */
 
    if( uselin ){
      P0 = (float *)calloc(nn,sizeof(float)) ;
@@ -238,7 +309,9 @@ ENTRY("RBF_setup_knots") ;
      Pz = (float *)calloc(nn,sizeof(float)) ;
    }
 
-   if( verb ) ININFO_message("                 matrix computation") ;
+   if( verb > 1 ) ININFO_message("                 matrix computation") ;
+
+   /* load the [M] matrix and the [P] matrix */
 
    for( ii=0 ; ii < nn ; ii++ ){
      for( jj=0 ; jj < ii ; jj++ ){    /* RBF between knots */
@@ -249,7 +322,8 @@ ENTRY("RBF_setup_knots") ;
        rr = 1.0f - sqrtf(rr)/rad ; mat[ii][jj] = RBF_func(rr) ;
      }
      mat[ii][ii] = 1.0000005f ;  /* RBF(0) = 1 by definition */
-     if( uselin ){
+
+     if( uselin ){               /* [P] matrix for linear polynomial */
        P0[ii] = 1.0f ;
        Px[ii] = (xx[ii]-xm)*xd ;
        Py[ii] = (yy[ii]-ym)*yd ;
@@ -257,29 +331,31 @@ ENTRY("RBF_setup_knots") ;
      }
    }
 
-   if( verb ) ININFO_message("                 matrix factorization") ;
+   if( verb > 1 ) ININFO_message("                 matrix factorization") ;
+
+   /* convert mat[][] into an rcmat sparse symmetric matrix struct */
 
    rcm = rcmat_from_rows( nn , mat ) ;
 
+   for( ii=0 ; ii < nn ; ii++ ) free(mat[ii]) ;  /* don't need mat */
+   free(mat) ;                                   /* no more */
+
    if( rcm == NULL ){
      ERROR_message("RBF_setup_knots: setup of rcmat fails!?") ;
-     for( ii=0 ; ii < nn ; ii++ ) free(mat[ii]) ;
-     free(mat) ;
      if( uselin ){ free(P0); free(Px); free(Py); free(Pz); }
      RETURN(NULL) ;
    }
+
+   /* Choleski decompose M matrix */
 
    ii = rcmat_choleski( rcm ) ;
    if( ii > 0 ){
      ERROR_message("RBF_setup_knots: Choleski of rcmat fails at row %d!",ii) ;
-     for( ii=0 ; ii < nn ; ii++ ) free(mat[ii]) ;
-     free(mat) ;
      if( uselin ){ free(P0); free(Px); free(Py); free(Pz); }
      RETURN(NULL) ;
    }
 
-   for( ii=0 ; ii < nn ; ii++ ) free(mat[ii]) ;
-   free(mat) ;
+   /* create output struct, save stuff into it */
 
    rbk = (RBF_knots *)calloc(1,sizeof(RBF_knots)) ;
    rbk->nknot = nk  ;
@@ -287,16 +363,19 @@ ENTRY("RBF_setup_knots") ;
    rbk->xmid  = xm  ; rbk->xscl = xd  ;
    rbk->ymid  = ym  ; rbk->yscl = yd  ;
    rbk->zmid  = zm  ; rbk->zscl = zd  ;
-   rbk->xknot = (float *)calloc(sizeof(float),nk) ;
+   rbk->xknot = (float *)calloc(sizeof(float),nk) ; /* saved knots */
    rbk->yknot = (float *)calloc(sizeof(float),nk) ;
    rbk->zknot = (float *)calloc(sizeof(float),nk) ;
    memcpy(rbk->xknot,xx,sizeof(float)*nk) ;
    memcpy(rbk->yknot,yy,sizeof(float)*nk) ;
    memcpy(rbk->zknot,zz,sizeof(float)*nk) ;
 
-   rbk->Lmat = rcm ;
+   rbk->Lmat = rcm ;  /* saved [L] matrix */
+
    rbk->uselin = uselin ;
    rbk->P0 = P0 ; rbk->Px = Px ; rbk->Py = Py ; rbk->Pz = Pz ;
+
+   /* compute the Q matrix for the linear polynomial coefficients */
 
    if( uselin ){
      double *vv[4],*vi,*vj ; dmat44 Q ; double sum ; register int kk ;
@@ -311,8 +390,10 @@ ENTRY("RBF_setup_knots") ;
        vv[0][ii] = P0[ii] ; vv[1][ii] = Px[ii] ;
        vv[2][ii] = Py[ii] ; vv[3][ii] = Pz[ii] ;
      }
+     /* compute [Linv][P] into the 4 columns [vv] */
      rcmat_lowert_solve(rcm,vv[0]) ; rcmat_lowert_solve(rcm,vv[1]) ;
      rcmat_lowert_solve(rcm,vv[2]) ; rcmat_lowert_solve(rcm,vv[3]) ;
+     /* compute 4x4 matrix [vv]^T [vv], then invert it to get output [Q] */
      for( ii=0 ; ii < 4 ; ii++ ){
        vi = vv[ii] ;
        for( jj=0 ; jj < 4 ; jj++ ){
@@ -322,14 +403,14 @@ ENTRY("RBF_setup_knots") ;
        }
      }
      free(vv[0]) ; free(vv[1]) ; free(vv[2]) ; free(vv[3]) ;
-     rbk->Qmat = generic_dmat44_inverse(Q) ;
+     rbk->Qmat = generic_dmat44_inverse(Q) ;  /* [Q] matrix to be saved */
 #ifdef DEBUG
   DUMP_DMAT44("Q",Q) ;
   DUMP_DMAT44("Qinv",rbk->Qmat) ;
 #endif
    }
 
-   if( verb ) ININFO_message("                 Elapsed = %.1f",COX_clock_time()-ct) ;
+   if( verb > 1 ) ININFO_message("                 Elapsed = %.1f",COX_clock_time()-ct) ;
 
    RETURN(rbk) ;
 }
@@ -353,6 +434,10 @@ ENTRY("RBF_setup_knots") ;
 #endif
 
 /*------------------------------------------------------------------*/
+/*! For speedup, for each grid point compute the first and last
+    knots that can affect its output value.  This will save time
+    when looping over knots to evaluate the RBF expansion.
+*//*----------------------------------------------------------------*/
 
 void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg )
 {
@@ -361,10 +446,12 @@ void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg )
 
 ENTRY("RBF_setup_kranges") ;
 
-   if( rbk == NULL || rbg == NULL || rbk->nknot > 65535 ) EXRETURN ;
+   if( rbk == NULL || rbg == NULL ) EXRETURN ;
 
-   if( rbg->klast != NULL ) free(rbg->klast)  ;
-   if( rbg->kfirst!= NULL ) free(rbg->kfirst) ;
+   if( rbg->klast != NULL ){ free(rbg->klast) ; rbg->klast = NULL; }
+   if( rbg->kfirst!= NULL ){ free(rbg->kfirst); rbg->kfirst= NULL; }
+
+   if( rbk->nknot > 65535 ) EXRETURN ; /* can't store as unsigned short */
 
    /* load some local variables */
 
@@ -406,7 +493,7 @@ ENTRY("RBF_setup_kranges") ;
    }
  } /* end OpenMP */
 
-   if( verb ){
+   if( verb > 1 ){
      float ntot=0.0f ; int ii ;
      for( ii=0 ; ii < npt ; ii++ ) ntot += (1.0f+rbg->klast[ii]-rbg->kfirst[ii]) ;
      ININFO_message("                   average krange = %.1f  Elapsed = %.1f",
