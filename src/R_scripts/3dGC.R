@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dGC.R ==================          ")
 print("AFNI Bivariate Auto-Regressive Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.4,  Dec. 16, 2008")
+print("Version 0.0.5,  Feb. 26, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/3dGC.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -194,7 +194,6 @@ print("~~~~~~~~~~~~~~~~~")
 anaType <- as.integer(readline("Analysis type (0: quit; 1: individual)? "))
 
 if (anaType==1) {
-libLoad("gsl")      # Legendre polynomials
 libLoad("vars")     # VAR modeling 
 
 plotTS <- function(dataFrame, nCurves, msg) {
@@ -315,6 +314,7 @@ print("-----------------")
 
 # create exogenous variables with Legendre polynomials from gsl
 if (nPoly > -1) {
+   libLoad("gsl")      # Legendre polynomials
    trendMat <- as.data.frame(array(0, dim = c(nT, (nPoly+1)*nChunks)))
    jumpPts <- 0
    for (ii in 1:nChunks) {
