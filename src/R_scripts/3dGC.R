@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dGC.R ==================          ")
 print("AFNI Bivariate Auto-Regressive Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.5,  Feb. 26, 2009")
+print("Version 0.0.6,  Feb. 26, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/3dGC.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -375,7 +375,9 @@ ii<-dimx%/%3; jj<-dimy%/%3; kk<-dimz%/%3
 
 tag <- 1
 while (tag == 1) {
-	if ((maskData[ii, jj, kk,1] != 0) & !all(inDataTS[ii, jj, kk,] == 0)) {
+#	if ((maskData[ii, jj, kk,1] != 0) & !all(inDataTS[ii, jj, kk,] == 0)) {
+   if (ifelse(as.logical(masked), (maskData[ii, jj, kk,1] != 0) & !all(inDataTS[ii, jj, kk,] == 0),
+      !all(inDataTS[ii, jj, kk,] == 0))) {
 		tag<-0
 		tmpData <- cbind(inDataTS[ii, jj, kk,], sdTS)
 		try(fm <- VAR(tmpData, p=nLags, type="none", exogen=exMatMod), tag<-1)
@@ -390,8 +392,14 @@ if (tag == 0)  {
       break; next # won't run the whole brain analysis if the test fails
 }
 
-inDataTS <- array(apply(inDataTS, 4, function(x) x*maskData[,,,1]), dim=c(dimx,dimy,dimz,nT))
+#if (as.logical(masked)) inDataTS <- array(apply(inDataTS, 4, function(x) x*maskData[,,,1]), dim=c(dimx,dimy,dimz,nT))
 
+# do it one slice at a time due to memory issue: 2/26/2009
+if (as.logical(masked)) for (kk in 1:dimz) 
+   inDataTS[,,kk,] <- array(apply(inDataTS[,,kk,], 3, function(x) x*maskData[,,kk,1]), dim=c(dimx,dimy,nT))
+
+
+# define the core function
 runVAR<-function(inDataTS, sdTS, exMatMod, nLags) {
    outData<-vector(mode="numeric", length=6*nLags) 
    if (!all(inDataTS == 0)) {
