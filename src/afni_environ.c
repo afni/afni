@@ -12,11 +12,15 @@
    is returned as NULL, something bad happened, and you are doomed.
 --------------------------------------------------------------------------*/
 
+static int nsuck = 0 ;
+int AFNI_suck_file_len(void){ return nsuck; }  /* 27 Feb 2009 */
+
 char * AFNI_suck_file( char *fname )
 {
    int len , fd , ii ;
    char *buf ;
 
+   nsuck = 0 ;
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
 
    len = THD_filesize( fname ) ;
@@ -31,7 +35,7 @@ char * AFNI_suck_file( char *fname )
    if( ii <= 0 ){ free(buf) ; return NULL; }
 
    buf[len] = '\0' ;  /* 27 July 1998: 'len' used to be 'ii+1', which is bad */
-   return buf ;
+   nsuck = len ; return buf ;
 }
 
 /*-----------------------------------------------------------------------
