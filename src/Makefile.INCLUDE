@@ -304,6 +304,9 @@ imaver:imaver.o
 impsd:impsd.o
 	$(CC) -o impsd impsd.o $(LFLAGS) $(LLIBS)
 
+zfun:zfun.o
+	$(CC) -o zfun zfun.o $(LFLAGS) $(LLIBS)
+
 imdump:imdump.o
 	$(CC) -o imdump imdump.o $(LFLAGS) $(LLIBS)
 

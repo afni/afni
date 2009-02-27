@@ -103,6 +103,7 @@ void ERROR_exit( char *fmt , ... )
    va_start( vararg_ptr , fmt ) ;
    output_message( 1 , "** FATAL ERROR: " , fmt , vararg_ptr ) ;
    va_end( vararg_ptr ) ;
+   fprintf(stderr,"** Program compile date = %s\n",__DATE__) ;
    exit(1) ;
 }
 
