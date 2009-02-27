@@ -14,7 +14,7 @@ set auto_record = 0
 set rm_ae_temp = 1
 # do not remove SPM files from selected lists for review
 set remove_SPM = 0
-
+set rs = "_rs"
 set do_score = 0
 set do_rand = 0
 set listlog = "${prs}ExamineList.log"
@@ -189,7 +189,9 @@ foreach ana ($analist)
       set anaview = "+orig"
    endif   
    if ("$ana" != "$anabox") then
-      3dresample -master $anabox -inset $ana -prefix $anapref -rmode Li
+      set anapref = ${anapref}${rs}
+      3dresample -master $anabox -inset $ana -prefix $anapref \
+      -rmode Li -overwrite
    else
       # want data in AFNI format here
       set afni_type = `@CheckForAfniDset $ana`
@@ -274,7 +276,7 @@ foreach anain ($analist)
    
    set amaxval = `3dBrickStat -max $anat`
    3dcalc   -a $anat -b ${anatpref}_e3+orig -overwrite -prefix ${anatpref}_e \
-            -expr "(1-step(b-$ath))*a+step(b-$ath)*$amaxval"
+            -expr "(1-step(b-$ath))*a+step(b-$ath)*$amaxval[1]"
    3dresample  -master tmp_box+orig -rmode NN \
                -overwrite -prefix ${anatpref}_ec+orig \
                -inset ${anatpref}_e+orig
