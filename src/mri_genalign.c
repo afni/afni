@@ -442,6 +442,12 @@ ENTRY("GA_scalar_costfun") ;
       val = 1.0 - fabs(val) ;
     break ;
 
+    case GA_MATCH_NCDZLIB:         /* NCD -- 02 Mar 2009 */
+      val = (double)THD_ncdfloat_scl( gstup->npt_match ,
+                                      gstup->ajbot , gstup->ajclip , avm ,
+                                      gstup->bsbot , gstup->bsclip , bvm  ) ;
+    break ;
+
     case GA_MATCH_SPEARMAN_SCALAR:  /* rank-order (Spearman) correlation */
       val = (double)THD_spearman_corr_nd( gstup->npt_match , avm,bvm ) ;
       val = 1.0 - fabs(val) ;

@@ -1302,6 +1302,10 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 
 #include "rcmat.h"            /* 30 Dec 2008 */
 
+#ifdef HAVE_ZLIB
+#include "zlib.h"             /* 02 Mar 2009 */
+#endif
+
 /*------------------------------------------------------------------------*/
 /* 13 Feb 2009: generic 4x4 matrix struct stuff */
 
@@ -1512,7 +1516,9 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_PEARSON_LOCALS    11  /* experimental */
 #define GA_MATCH_PEARSON_LOCALA    12  /* experimental */
 
-#define GA_MATCH_METHNUM_SCALAR    12  /* Largest value in sequence above */
+#define GA_MATCH_NCDZLIB           13  /* very experimental */
+
+#define GA_MATCH_METHNUM_SCALAR    13  /* Largest value in sequence above */
 
  /* methods for smoothing images */
 
