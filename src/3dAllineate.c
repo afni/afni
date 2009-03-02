@@ -70,17 +70,18 @@ void AL_setup_warp_coords( int,int,int,int ,
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0  } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa */
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa ncd */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0  } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa */
+  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0 , 1 } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa ncd */
 
 static int visible_noweights ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
-  { "ls", "sp", "mi", "crM", "nmi", "je", "hel", "crA", "crU", "lss", "lpc", "lpa" } ;
+  { "ls" , "sp" , "mi" , "crM", "nmi", "je", "hel",
+    "crA", "crU", "lss", "lpc", "lpa", "ncd"       } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
@@ -88,7 +89,7 @@ static char *meth_longname[NMETH] =    /* long names for prolix users */
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
     "corratio_add"    , "corratio_uns" , "signedPcor" ,
-    "localPcorSigned" , "localPcorAbs" } ;
+    "localPcorSigned" , "localPcorAbs" , "NormCompDist" } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
@@ -102,7 +103,8 @@ static char *meth_username[NMETH] =    /* descriptive names */
     "Correlation Ratio (Unsym)"             ,
     "Signed Pearson Correlation"            ,  /* hidden */
     "Local Pearson Correlation Signed"      ,  /* hidden */
-    "Local Pearson Correlation Abs"       } ;  /* hidden */
+    "Local Pearson Correlation Abs"         ,  /* hidden */
+    "Normalized Compression Distance"     } ;  /* hidden */
 
 static char *meth_costfunctional[NMETH] =  /* describe cost functional */
   { "1 - abs(Pearson correlation coefficient)"                 ,
@@ -116,7 +118,8 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "CR(source,base) = Var(source|base) / Var(source)"         ,
     "Pearson correlation coefficient between image pair"       ,
     "nonlinear average of Pearson cc over local neighborhoods" ,
-    "1 - abs(lpc)"
+    "1 - abs(lpc)"                                             ,
+    "mutual compressibility (via zlib) -- doesn't work yet"
   } ;
 /*---------------------------------------------------------------------------*/
 

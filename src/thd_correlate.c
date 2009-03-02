@@ -829,6 +829,196 @@ if(PRINT_TRACING){
 
    free(good); EXRETURN;
 }
+
+/*--------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
+
+MRI_IMAGE *build_byteized_vectors( int n ,
+                                   float xbot,float xtop,float *x ,
+                                   float ybot,float ytop,float *y  )
+{
+   register int ii,jj,kk , gg ;
+   float xb,xi , yb,yi , xx,yy , x1,y1 ;
+   byte *good ; int ngood , xyclip , nbm ;
+   MRI_IMAGE *bim ; byte *xbar,*ybar ;
+
+ENTRY("build_byteized_vectors") ;
+
+   /* bad inputs? */
+
+   if( n <= 1 || x == NULL || y == NULL ) RETURN(NULL) ;
+
+   /* get the min..max range for x data? */
+
+   STATUS("compute good[]") ;
+   good = (byte *)malloc(sizeof(byte)*n) ;
+   for( ii=0 ; ii < n ; ii++ )
+     good[ii] = GOODVAL(x[ii]) && GOODVAL(y[ii]) ;
+
+   if( nxybin > 2 ){                       /* unequal bins */
+     xbot = xbin[0] ; xtop = xbin[nxybin] ;
+   } else if( xbot >= xtop ){              /* equal bins, and must find range */
+     xbot = WAY_BIG ; xtop = -WAY_BIG ;
+     for( ii=0 ; ii < n ; ii++ )
+       if( good[ii] ){
+              if( x[ii] > xtop ) xtop = x[ii] ;
+         else if( x[ii] < xbot ) xbot = x[ii] ;
+       }
+   }
+   if( xbot >= xtop ){ free(good); RETURN(NULL); }
+
+   /* get the min..max range for y data? */
+
+   if( nxybin > 0 ){
+     ybot = ybin[0] ; ytop = ybin[nxybin] ;
+   } else if( ybot >= ytop ){
+     ybot = WAY_BIG ; ytop = -WAY_BIG ;
+     for( ii=0 ; ii < n ; ii++ )
+       if( good[ii] ){
+              if( y[ii] > ytop ) ytop = y[ii] ;
+         else if( y[ii] < ybot ) ybot = y[ii] ;
+       }
+   }
+   if( ybot >= ytop ){ free(good); RETURN(NULL); }
+
+   /*--- figure out quantization levels ---*/
+
+   if( nxybin > 2 ){                        /* array size is fixed by bins */
+     nbin = nxybin ;
+   } else {                                 /* compute new histo array size */
+     nbin = (nhbin > 2) ? nhbin : (int)pow((double)n,hpow) ;
+   }
+   if( nbin > 255 ) nbin = 255; else if( nbin < 16 ) nbin = 16 ;
+   nbm = nbin-1 ;
+
+   /*-- count number of good values left in range (in both x and y) --*/
+
+   memset(good,0,n) ;
+   for( ngood=ii=0 ; ii < n ; ii++ ){
+     if( RANGVAL(x[ii],xbot,xtop) && RANGVAL(y[ii],ybot,ytop) ){
+       good[ii] = 1 ; ngood++ ;
+     }
+   }
+   if( ngood < 3*nbin ){ free(good); RETURN(NULL); }
+
+   /*--------------- make the output data -----------------*/
+
+   bim  = mri_new( ngood , 2 , MRI_byte ) ;  /* zero filled */
+   xbar = MRI_BYTE_PTR(bim) ;
+   ybar = xbar + ngood ;
+
+   xyclip = (nxybin <= 0) && use_xyclip &&
+            (xbot < xclip_bot) && (xclip_bot < xclip_top) && (xclip_top < xtop) &&
+            (ybot < yclip_bot) && (yclip_bot < yclip_top) && (yclip_top < ytop) ;
+
+   if( nxybin <= 0 && !xyclip ){  /*------------ equal size bins ------------*/
+
+     xb = xbot ; xi = (nbin-0.01f)/(xtop-xbot) ;
+     yb = ybot ; yi = (nbin-0.01f)/(ytop-ybot) ;
+     for( gg=ii=0 ; ii < n ; ii++ ){
+       if( !good[ii] ) continue ;
+       xbar[gg] = (byte)((x[ii]-xb)*xi) ;
+       ybar[gg] = (byte)((y[ii]-yb)*yi) ; gg++ ;
+     }
+
+   } else if( xyclip ){  /*------------ mostly equal bins ----------------*/
+
+     float xbc=xclip_bot , xtc=xclip_top , ybc=yclip_bot , ytc=yclip_top ;
+
+     xi = (nbin-2.01f)/(xtc-xbc) ;
+     yi = (nbin-2.01f)/(ytc-ybc) ;
+     for( gg=ii=0 ; ii < n ; ii++ ){
+       if( !good[ii] ) continue ;
+       xx = x[ii] ;
+            if( xx < xbc ){ xbar[gg] = 0   ; }
+       else if( xx > xtc ){ xbar[gg] = nbm ; }
+       else               { xbar[gg] = (byte)(1.0f+(xx-xbc)*xi) ; }
+       yy = y[ii] ;
+            if( yy < ybc ){ ybar[gg] = 0   ; }
+       else if( yy > ytc ){ ybar[gg] = nbm ; }
+       else               { ybar[gg] = (byte)(1.0f+(yy-ybc)*yi) ; }
+       gg++ ;
+     }
+
+   } else {  /*-------------------- unequal size bins --------------------*/
+
+     float *xdup, *ydup, val,xt,yt ;
+     int   *xn, *yn, *xin, *yin , ib,nb , maxsort ;
+
+     maxsort = 16*nxybin ; if( maxsort > 512 ) maxsort = 512 ;
+     xdup = (float *)malloc(sizeof(float)*maxsort) ;
+     ydup = (float *)malloc(sizeof(float)*maxsort) ;
+     xn   = (int *)  malloc(sizeof(float)*maxsort) ;
+     yn   = (int *)  malloc(sizeof(float)*maxsort) ;
+     xin  = (int *)  malloc(sizeof(float)*maxsort) ;
+     yin  = (int *)  malloc(sizeof(float)*maxsort) ; /* not yang */
+
+     /* outer loop: process points starting at index = ib */
+
+     for( gg=ib=0 ; ib < n ; ){
+
+       /* extract up to maxsort good points from the data arrays */
+
+       for( nb=0,ii=ib ; ii < n && nb < maxsort ; ii++ ){
+         if( good[ii] ){
+           xdup[nb]=x[ii]; ydup[nb]=y[ii]; xn[nb]=yn[nb]=nb++;
+         }
+       }
+       ib = ii ;             /* where to start extracting next outer loop */
+       if( nb == 0 ) break ; /* didn't find any good data ==> done done! */
+
+       /* sort the extracted x data values in xdup[],
+          and keep track of where they came from in xn[] */
+
+       qsort_floatint(nb,xdup,xn) ;
+
+       /* scan through sorted xdup[] values,
+           which will go into bin #kk which is xb..xt;
+          store the bin index;
+          the reason for doing the sorting is that finding the bin index
+           kk will be efficient
+           (don't have to search from start as we would for unordered values) */
+
+       xb = xbin[0] ; xt = xbin[1] ; kk=0 ;
+       for( ii=0 ; ii < nb ; ii++ ){
+         val = xdup[ii] ;
+         if( val > xt ){  /* not in the xb..xt bin, so scan up until it is */
+           for( kk++ ; kk+1 < nxybin && val > xbin[kk+1] ; kk++ ) ; /*nada*/
+           xb = xbin[kk] ; xt = xbin[kk+1] ;
+         }
+         jj = xn[ii] ;              /* index in unsorted array */
+         xin[jj] = kk ;             /* bin index */
+       }
+
+       /* repeat the above for the y arrays */
+
+       qsort_floatint(nb,ydup,yn) ;
+       yb = ybin[0] ; yt = ybin[1] ; kk=0 ;
+       for( ii=0 ; ii < nb ; ii++ ){
+         val = ydup[ii] ;
+         if( val > yt ){  /* not in the yb..yt bin, so scan up until it is */
+           for( kk++ ; kk+1 < nxybin && val > ybin[kk+1] ; kk++ ) ; /*nada*/
+           yb = ybin[kk] ; yt = ybin[kk+1] ;
+         }
+         jj = yn[ii] ;              /* index in unsorted array */
+         yin[jj] = kk ;             /* bin index */
+       }
+
+       /* now distribute the values into the 1D and 2D histograms */
+
+       for( ii=0 ; ii < nb ; ii++ ){
+         xbar[gg] = (byte)xin[ii] ; ybar[gg] = (byte)yin[ii] ; gg++ ;
+       }
+
+     } /* end of outer loop (ib) over blocks */
+
+     free(yin); free(xin); free(yn); free(xn); free(ydup); free(xdup);
+
+   } /*----- end of test on equal or unequal size bins -----*/
+
+   free(good); RETURN(bim);
+}
+
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
 

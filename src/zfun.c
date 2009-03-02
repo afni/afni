@@ -1,7 +1,26 @@
 #include "mrilib.h"
+
+/*===========================================================================*/
+#ifndef HAVE_ZLIB
+
+void zz_compress_dosave( int ii ){return;}
+void zz_compress_dlev( int ii ){return;}
+int zz_compress_some( int nsrc, void *ptr ){return -1;}
+int zz_compress_all( int nsrc , char *src , char **dest ){return -1;}
+int zz_uncompress_some( int nsrc, char *src, int ndest, char *dest ){return -1;}
+int zz_uncompress_all( int nsrc , byte *src , char **dest ){return -1;}
+MRI_IMAGE * zz_ncd_many( int nar , int *nsrc , char **src ){return NULL;}
+float zz_ncd_pair( int n1 , char *s1 , int n2 , char *s2 ){return -1.0f;}
+float THD_ncdfloat( int n , float *x , float *y ){return -1.0f;}
+float THD_ncdfloat_scl( int n , float xbot,float xtop,float *x ,
+                                float ybot,float ytop,float *y  ){return -1.0f;}
+
+/*===========================================================================*/
+#else  /* HAVE_ZLIB */
+
 #include "zlib.h"
 
-#define CHUNK 262144
+#define CHUNK 262144  /* 256 K */
 
 /*------------------------------------------------------------------------*/
 
@@ -287,8 +306,12 @@ MRI_IMAGE * zz_ncd_many( int nar , int *nsrc , char **src )
    for( ii=0 ; ii < nar ; ii++ )
      if( nsrc[ii] <= 0 || src[ii] == NULL ) return NULL ;
 
-   zz_compress_dosave(0) ;
-   zz_compress_dlev  (9) ;
+   qbuf = getenv("ZLIB_NCD_FACTOR") ; ii = 6 ;
+   if( qbuf != NULL ){
+     ii = (int)strtol(qbuf,NULL,10) ;
+     if( ii < 1 || ii > 9 ) ii = 6 ;
+   }
+   zz_compress_dlev(ii) ;
 
    ncom = (float *)malloc(sizeof(float)*nar) ;
    for( nstop=ii=0 ; ii < nar ; ii++ ){
@@ -336,33 +359,67 @@ float zz_ncd_pair( int n1 , char *s1 , int n2 , char *s2 )
    mri_free(fim) ; return ncd ;
 }
 
-/*===========================================================================*/
+/*------------------------------------------------------------------------*/
+/*! Compute NCD between two float vectors,
+    which will be scaled to bytes in build_byteized_vectors().
+*//*----------------------------------------------------------------------*/
 
-#define NMAX 666
-
-int main( int argc , char *argv[] )
+float THD_ncdfloat_scl( int n , float xbot,float xtop,float *x ,
+                                float ybot,float ytop,float *y  )
 {
-   int nfile , ii , jj ;
-   char   *buf[NMAX] ;
-   int    nbuf[NMAX] ;
-   MRI_IMAGE *fim ; float *far ;
+   MRI_IMAGE *bim ; byte *xbar,*ybar,*qbuf ; int nbar,ii ;
+   float ncd , nx,ny,nxy,nxy2 ;
 
-   nfile = argc-1 ; if( nfile > NMAX ) nfile = NMAX ;
+ENTRY("THD_ncdfloat_scl") ;
 
-   for( ii=0 ; ii < nfile ; ii++ ){
-     buf[ii] = AFNI_suck_file(argv[ii+1]) ;
-     if( buf[ii] == NULL ) ERROR_exit("Can't read file %s",argv[ii+1]) ;
-     nbuf[ii] = AFNI_suck_file_len() ;
+   /* scale data vectors to bytes (cf. thd_correlate.c) */
+
+   bim = build_byteized_vectors( n , xbot,xtop,x , ybot,ytop,y ) ;
+   if( bim == NULL ) RETURN(1.0f) ;
+
+   nbar = bim->nx ;
+   xbar = MRI_BYTE_PTR(bim) ;
+   ybar = xbar + nbar ;
+
+   qbuf = (byte *)getenv("ZLIB_NCD_FACTOR") ; ii = 6 ;
+   if( qbuf != NULL ){
+     ii = (int)strtol((char *)qbuf,NULL,10) ;
+     if( ii < 1 || ii > 9 ) ii = 6 ;
    }
+   zz_compress_dlev(ii) ;
 
-   fim = zz_ncd_many( nfile , nbuf , buf ) ;
-   if( fim == NULL ) ERROR_exit("Can't compute NCD") ;
-   far = MRI_FLOAT_PTR(fim) ;
+   nx = (float)zz_compress_all( nbar , xbar , NULL ) ;
+   ny = (float)zz_compress_all( nbar , ybar , NULL ) ;
 
-   for( ii=0 ; ii < nfile ; ii++ ){
-     for( jj=ii+1 ; jj < nfile ; jj++ ){
-       printf("%.5f %s %s\n",far[ii+jj*nfile],argv[ii+1],argv[jj+1]) ;
-     }
+   qbuf = (byte *)malloc(2*nbar) ;
+   for( ii=0 ; ii < nbar ; ii++ ){  /* interleave */
+     qbuf[2*ii] = xbar[ii] ; qbuf[2*ii+1] = ybar[ii] ;
    }
-   exit(0) ;
+   nxy  = (float)zz_compress_all( 2*nbar , qbuf , NULL ) ;
+
+   memcpy(qbuf     ,xbar,nbar) ;    /* x then y */
+   memcpy(qbuf+nbar,ybar,nbar) ;
+   nxy2 = (float)zz_compress_all( 2*nbar , qbuf , NULL ) ;
+   nxy  = MIN(nxy,nxy2) ;
+
+   memcpy(qbuf     ,ybar,nbar) ;    /* y then x */
+   memcpy(qbuf+nbar,xbar,nbar) ;
+   nxy2 = (float)zz_compress_all( 2*nbar , qbuf , NULL ) ;
+   nxy  = MIN(nxy,nxy2) ;
+
+   ncd = (nxy-MIN(nx,ny)) / MAX(nx,ny) ;
+   if( ncd < 0.0f || ncd > 1.0f ) ncd = 1.0f ;
+
+   free(qbuf) ; mri_free(bim) ; RETURN(ncd) ;
 }
+
+/*------------------------------------------------------------------------*/
+/*! Compute NCD between two float vectors, autoscaled to bytes. */
+
+float THD_ncdfloat( int n , float *x , float *y )
+{
+   return THD_ncdfloat_scl( n, 1.0f,-1.0f, x, 1.0f,-1.0f, y ) ;
+}
+
+#endif /* HAVE_ZLIB */
+/*===========================================================================*/

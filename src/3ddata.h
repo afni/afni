@@ -4729,13 +4729,31 @@ extern void clear_2Dhist     ( void ) ;
 extern void build_2Dhist( int n , float xbot,float xtop,float *x ,
                           float ybot,float ytop,float *y , float *w ) ;
 
-extern void set_2Dhist_xybin( int nb , float *xb , float *yb ) ;  /* 07 May 2007 */
+extern void set_2Dhist_xybin( int nb, float *xb, float *yb ) ; /* 07 May 2007 */
 extern int get_2Dhist_xybin( float **xb , float **yb ) ;
 extern void set_2Dhist_xybin_eqwide( int,float,float,float,float ) ;
 extern void set_2Dhist_xybin_eqhigh( int,int,float *,float * ) ;
 extern void set_2Dhist_xyclip      ( int, float *, float * ) ;
 extern int  get_2Dhist_xyclip      ( float *, float *, float *, float * ) ;
 
+extern MRI_IMAGE *build_byteized_vectors( int n ,              /* 02 Mar 2009 */
+                                          float xbot,float xtop,float *x ,
+                                          float ybot,float ytop,float *y  ) ;
+
+/*------------------------------------------------------------------------*/
+/* Stuff for compression via zlib - see zfun.c - 02 Mar 2009 == snow day! */
+
+extern void zz_compress_dosave( int ii );
+extern void zz_compress_dlev( int ii );
+extern int zz_compress_some( int nsrc, void *ptr );
+extern int zz_compress_all( int nsrc , char *src , char **dest );
+extern int zz_uncompress_some( int nsrc, char *src, int ndest, char *dest );
+extern int zz_uncompress_all( int nsrc , byte *src , char **dest );
+extern MRI_IMAGE * zz_ncd_many( int nar , int *nsrc , char **src );
+extern float zz_ncd_pair( int n1 , char *s1 , int n2 , char *s2 );
+extern float THD_ncdfloat( int n , float *x , float *y );
+extern float THD_ncdfloat_scl( int n , float xbot,float xtop,float *x ,
+                                       float ybot,float ytop,float *y  );
 
 /*------------------------------------------------------------------------*/
 
