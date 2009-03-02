@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , MAR , 2009 , RWC , "zfun" , MINOR , TYPE_GENERAL ,
+   "add compression functions (using zlib) to libmri in zfun.c" ,
+   NULL } ,
+
  { 13 , FEB , 2009 , RWC , "3dRBFdset" , MICRO , TYPE_GENERAL ,
    "Test program to make a dataset defined by RBF." ,
    "Mostly built to test the Radial Basis Function expansion functions in\n"
