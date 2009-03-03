@@ -252,6 +252,7 @@ void MCW_widget_geom( Widget w, int *wout, int *hout, int *xout, int *yout )
                          XmNx      , &xx , XmNy      , &yy , NULL ) ;
    } else {
       XtWidgetGeometry wg ;
+      memset(&wg, 0, sizeof(wg)); /* probably doesn't matter, but be safe */
       (void) XtQueryGeometry( w , NULL , &wg ) ;   /* works! */
       nx = wg.width ; ny = wg.height ;
       xx = wg.x     ; yy = wg.y      ;

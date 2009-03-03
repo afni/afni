@@ -48,13 +48,18 @@
 
 afni_history_struct rickr_history[] = {
 
- { 3, MAR, 2009, RCR, "afni-general", MINOR, TYPE_MODIFY,
+ { 3, MAR, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "modifed Makefile.linux_xorg7 and _64 for local X builds",
    NULL
  } ,
 
  { 3, MAR, 2009, RCR, "xutil.c", MICRO, TYPE_MODIFY,
    "another probably useless init (being cautious)",
+   NULL
+ } ,
+
+ { 3, MAR, 2009, RCR, "@build.Xlib", MINOR, TYPE_NEW_PROG,
+   "this is a build script for the local X packages",
    NULL
  } ,
 
