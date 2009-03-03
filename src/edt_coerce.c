@@ -579,15 +579,15 @@ void EDIT_misfit_report( char *name, int ib,
                    name , ib , mf , msg[im] ) ;
    if( first ){
      ININFO_message("a) Numerical precision has been lost when truncating results\n"
-                 "       from 32-bit floating point to 16-bit integers (shorts)." );
+       "       from 32-bit floating point to 16-bit integers (shorts)." );
      ININFO_message("b) Consider writing datasets out in float format.\n"
-                 "       In most AFNI programs, use the '-float' option.");
+       "       In most AFNI programs, use the '-float' option.");
      ININFO_message("c) This warning is a new message, but is an old issue\n"
-                 "       that arises when storing results in an integer format."  );
-     ININFO_message("d) Don't panic! These messages likely originate in peripheral or\n"
-                 "       unimportant voxels. They mean that you examine your results.\n"
-                 "       \"Assess the situation and keep a calm head about you,\n"
-                 "        because it doesn't do anybody any good to panic.\"\n" ) ;
+       "       that arises when storing results in an integer format."  );
+     ININFO_message("d) Don't panic! These messages likely originate in peripheral\n"
+       "       or unimportant voxels. They mean that you must examine your output.\n"
+       "       \"Assess the situation and keep a calm head about you,\n"
+       "        because it doesn't do anybody any good to panic.\"\n" ) ;
      INFO_message("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
      first = 0 ;
    }
