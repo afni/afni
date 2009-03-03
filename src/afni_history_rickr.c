@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, MAR, 2009, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "modifed Makefile.linux_xorg7 and _64 for local X builds",
+   NULL
+ } ,
+
+ { 3, MAR, 2009, RCR, "xutil.c", MICRO, TYPE_MODIFY,
+   "another probably useless init (being cautious)",
+   NULL
+ } ,
+
+ { 27, FEB, 2009, RCR, "X-general", MINOR, TYPE_MODIFY,
+   "added lesstif and libXt trees to cvs",
+   NULL
+ } ,
+
  { 20, FEB, 2009, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "many inits to appease lesstif and Xt (w/Ziad)",
    NULL
@@ -103,7 +118,7 @@ afni_history_struct rickr_history[] = {
    "Makefile now uses PREREQ=suma, gmake, -L/usr/dt/lib."
  } ,
 
- { 3, FEB, 2009, RCR, "Makefile", MICRO, TYPE_MODIFY,
+ { 3, FEB, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "fix machdep.h Makefile.solaris28_gcc for v1280 builds",
    NULL
  } ,

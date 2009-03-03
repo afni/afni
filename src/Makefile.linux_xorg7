@@ -8,14 +8,33 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/lib/libexpat.a
 
+
+# ----------------------------------------------------------------------
+# X configuration
+#
+# uncomment to build using local /usr/local/afniX 'X' tree
+# USE_LOCAL_X_TREE = 1
+ifdef USE_LOCAL_X_TREE
+    XROOT = /usr/local/afniX
+    XROOT_I = -I$(XROOT)/include
+else
+    XROOT = /usr
+endif
+
 # uncomment USE_LESSTIF to use lesstif instead of openmotif
 # USE_LESSTIF = 1
 ifdef USE_LESSTIF
     LESSTIF_DEFS = -DUSING_LESSTIF
-    MOTIF_LIB = -lXm
+
+    XLIBS = $(XROOT)/lib/libXm.a $(XROOT)/lib/libXt.a
 else
-    MOTIF_LIB = /usr/lib/libXm.a
+    # default is static motif
+    XLIBS = $(XROOT)/lib/libXm.a -lXt
 endif
+
+# in case user wants to override with system dynamic libs
+# XLIBS = -lXm -lXt
+# ----------------------------------------------------------------------
 
 # for LFS (large file support): -D_FILE_OFFSET_BITS=64
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
@@ -33,7 +52,7 @@ CCFAST = /usr/bin/gcc -O2 -march=i686 -mmmx -DLINUX2 $(CEXTRA)
 
 CCMIN  = /usr/bin/gcc $(CPROF)
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/include
+IFLAGS = -I. $(XROOT_I) -I/usr/include
 LFLAGS = -L. -L/usr/lib
 
 CCSVD = /usr/bin/gcc -O0
@@ -73,7 +92,7 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri $(MOTIF_LIB) -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS  = -lmri $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -ljpeg -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
@@ -88,8 +107,8 @@ GLw_IPATH  = -IGLw_local
 GLw_LIB = libGLws.a
 
 SUMA_GLIB_VER = -2.0
-SUMA_INCLUDE_PATH = $(GLw_IPATH) -I/usr/include -I./ -I../ -I../niml/ -Igts/src -I/usr/include/glib-1.2/ -I/usr/lib/glib/include -I/usr/include/glib-2.0/ -I/usr/lib/glib-2.0/include
-SUMA_LINK_PATH = -L/usr/lib -L/usr/lib -L../ -L./
+SUMA_INCLUDE_PATH = $(GLw_IPATH) $(IFLAGS) -I.. -I../niml -Igts/src -I/usr/include/glib-1.2/ -I/usr/lib/glib/include -I/usr/include/glib-2.0/ -I/usr/lib/glib-2.0/include
+SUMA_LINK_PATH = $(LFLAGS) -L..
 SUMA_LINK_LIB =  $(GLw_LIB) -lGLU -lGL $(LLIBS)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_Linux.tar
