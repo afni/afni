@@ -7,14 +7,32 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = /usr/lib64/libexpat.a
 
+# ----------------------------------------------------------------------
+# X configuration
+#
+# uncomment to build using local /usr/local/afniX 'X' tree
+# USE_LOCAL_X_TREE = 1
+ifdef USE_LOCAL_X_TREE
+    XROOT = /usr/local/afniX
+    XROOT_I = -I$(XROOT)/include
+else
+    XROOT = /usr
+endif
+
 # uncomment USE_LESSTIF to use lesstif instead of openmotif
 # USE_LESSTIF = 1
 ifdef USE_LESSTIF
     LESSTIF_DEFS = -DUSING_LESSTIF
-    MOTIF_LIB = -lXm
+
+    XLIBS = $(XROOT)/lib64/libXm.a $(XROOT)/lib64/libXt.a
 else
-    MOTIF_LIB = /usr/lib64/libXm.a
+    # default is static motif
+    XLIBS = $(XROOT)/lib64/libXm.a -lXt
 endif
+
+# in case user wants to override with system dynamic libs
+# XLIBS = -lXm -lXt
+# ----------------------------------------------------------------------
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY $(LESSTIF_DEFS)
@@ -31,7 +49,7 @@ CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
 
 CCMIN  = /usr/bin/gcc -m64 $(CPROF)
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/include
+IFLAGS = -I. $(XROOT_I) -I/usr/include
 LFLAGS = -L. -L/usr/lib64
 
 CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
@@ -39,7 +57,6 @@ CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared -fPIC
 PLUGIN_CC     = $(CC)
-# PLFLAGS       = -rdynamic -L. -L/usr/lib
 PLFLAGS       = -rdynamic -L. -L/usr/lib64
 
 SHOWOFF = -DSHOWOFF=linux_xorg7_64
@@ -66,13 +83,13 @@ INSTALL_PREREQ = suma_gts
 GSLPROGS = balloon
 EXPROGS = gifti_tool $(GSLPROGS)
 
-# for dynamic linking
+# for pure dynamic linking
 
-# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm  -ldl -lc
+# LLIBS  = -lmri -lXm -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
-# for static linking to Motif, dynamic to all else
+# link choices are made above
 
-LLIBS  = -lmri $(MOTIF_LIB) -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+LLIBS  = -lmri $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
@@ -91,8 +108,8 @@ LLIBS  = -lmri $(MOTIF_LIB) -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma (NO STATIC LINKING OF GL libs)
 SUMA_GLIB_VER = -2.0
-SUMA_INCLUDE_PATH = -I/usr/include -I. -I.. -I../niml -Igts/src -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include
-SUMA_LINK_PATH = -L/usr/lib64 -L..
+SUMA_INCLUDE_PATH = $(IFLAGS) -I.. -I../niml -Igts/src -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include
+SUMA_LINK_PATH = -L.. $(LFLAGS)
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
 SUMA_LINK_LIB = -lGLw -lGLU -lGL $(LLIBS)
