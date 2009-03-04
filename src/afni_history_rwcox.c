@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , MAR , 2009 , RWC , "3ddata.h" , MICRO , TYPE_BUG_FIX ,
+   "Fix usage of realpath() array dimension with RPMAX macro" ,
+   NULL } ,
+
  { 2 , MAR , 2009 , RWC , "zfun" , MINOR , TYPE_GENERAL ,
    "add compression functions (using zlib) to libmri in zfun.c" ,
    NULL } ,

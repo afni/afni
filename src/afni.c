@@ -10614,7 +10614,7 @@ ENTRY("AFNI_load_defaults") ;
 
 void AFNI_popup_sonnet( Widget w , int ii )  /* 12 Dec 2001 */
 {
-   char buf[2048] ; int jj=MCW_USER_KILL ;
+   char buf[3192] ; int jj=MCW_USER_KILL ;
 
    if( w == NULL ) return ;
 
