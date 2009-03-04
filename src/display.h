@@ -294,6 +294,10 @@ extern int DC_parse_color( MCW_DC *, char *, float *,float *,float *) ; /* 21 Se
 extern rgbyte DC_spectrum_AJJ( double, double ) ;
 extern rgbyte DC_spectrum_ZSS( double, double ) ;
 
+extern void show_motif_version_string(void) ;   /* 4 Mar 2009 [rickr] */
+extern int  source_is_lesstif        (void) ;
+extern int  using_lesstif_is_defined (void) ;
+
 #ifdef  __cplusplus
 }
 #endif
