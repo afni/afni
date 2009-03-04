@@ -135,6 +135,19 @@ extern "C" {
 
 #define ILLEGAL_TYPE -666
 
+/* define the max length of a string input to realpath() */
+
+#undef  RPMAX
+#define RPMAX 4096
+#if defined(PATH_MAX) && PATH_MAX > RPMAX
+# undef  RPMAX
+# define RPMAX PATH_MAX
+#endif
+#if defined(MAXPATHLEN) && MAXPATHLEN > RPMAX
+# undef  RPMAX
+# define RPMAX MAXPATHLEN
+#endif
+
 /***************  generic function with no return value  **********************/
 
 /*! Generic function type returning void. */

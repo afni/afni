@@ -362,7 +362,9 @@ extern long   strtol() ;
 # define DYNAMIC_LOADING_VIA_DL
 # undef  DONT_UNROLL_FFTS
 # define USE_FLOCK
+#if 0
 # define USE_RANDOM
+#endif
 # define DONT_USE_STRPTIME
 /** # define NEED_XSETLOCALE **/  /* removed on 16 May 2005, for Tiger */
 # define NEED_NL_LANGINFO

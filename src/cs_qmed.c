@@ -124,8 +124,8 @@ void meansigma_float( int n, float *ar, float *mnn, float *sig )
      sq = 0.0 ;
    }
 
-   if( mnn != NULL ) *mnn = ss ;
-   if( sig != NULL ) *sig = sq ;
+   if( mnn != NULL ) *mnn = (float)ss ;
+   if( sig != NULL ) *sig = (float)sq ;
    return ;
 }
 

@@ -257,11 +257,11 @@ THD_string_array * THD_extract_directories( THD_string_array * star_in )
    cast out duplicates.  09 Sep 1998 -- RWCox.
 ---------------------------------------------------------------------*/
 
-THD_string_array * THD_normalize_flist( THD_string_array * star_in )
+THD_string_array * THD_normalize_flist( THD_string_array *star_in )
 {
-   THD_string_array * star_out , * star_qqq ;
-   static char rpath[2048] ;
-   char * rp ;
+   THD_string_array *star_out , *star_qqq ;
+   static char rpath[RPMAX] ;  /* 04 Mar 2009 [RWC]: 2048 ==> RPMAX */
+   char *rp ;
    int ii , jj , nleft , skip_realpath=0 ;
 
    if( star_in == NULL || star_in->num <= 0 ) return NULL ;

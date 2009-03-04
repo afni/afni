@@ -2355,7 +2355,7 @@ C
 C
 C
 CCC The UNIF() function is now in parser_int.c,
-CCC where it calls CCC upon the C library to do the dirty work.
+CCC where it calls upon the C library to do the dirty work.
 C
 CCC      FUNCTION UNIF( XJUNK )
 CCC      IMPLICIT REAL*8 (A-H,O-Z)

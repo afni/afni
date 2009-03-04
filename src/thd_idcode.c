@@ -35,7 +35,7 @@ MCW_idcode MCW_new_idcode(void)
 
 void MCW_hash_idcode( char *hstring , THD_3dim_dataset *dset ) /* 06 May 2005 */
 {
-   char *hhh , *rp , rpath[2048] ;
+   char *hhh , *rp , rpath[RPMAX] ;
    if( hstring == NULL || *hstring == '\0' && !ISVALID_DSET(dset) ) return ;
    rp = realpath( hstring , rpath ) ; if( rp == NULL ) rp = hstring ;
    hhh = UNIQ_hashcode(rp) ;
