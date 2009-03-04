@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 4, MAR, 2009, RCR, "X-general", MINOR, TYPE_MODIFY,
+   "added openmotif build tree, updated @build.Xlib and README under X",
+   NULL
+ } ,
+
  { 3, MAR, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "modifed Makefile.linux_xorg7 and _64 for local X builds",
    NULL
