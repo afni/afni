@@ -13,7 +13,7 @@ int main( int argc , char *argv[] )
    int do_sing=0 ;
    int do_1Dll=0 ;  /* 05 Jan 2005 */
    int do_vmean=0 , do_vnorm=0 ; /* 25 Feb 2008 */
-   int pall=1 ;
+   int pall=1 , nev=0 ;
 
    /*---------- help? ----------*/
 
@@ -38,6 +38,8 @@ int main( int argc , char *argv[] )
        "           columns in a design matrix.  The singular values\n"
        "           are printed at the top of each vector column,\n"
        "           as a '#...' comment line.\n"
+       " -nev n  = If -1Dleft is used, '-nev' specifies only to output\n"
+       "           the first 'n' eigenvectors, rather than all of them.\n"
        "EXAMPLE:\n"
        " 1dsvd -vmean -vnorm -1Dleft fred.1D'[1..6]' | 1dplot -stdin\n"
        "NOTES:\n"
@@ -70,6 +72,10 @@ int main( int argc , char *argv[] )
 
    iarg = 1 ; nvec = 0 ; set_svd_sort(-1) ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcasecmp(argv[iarg],"-nev") == 0 ){   /* 04 Mar 2009 */
+       nev = (int)strtod(argv[++iarg],NULL) ; iarg++ ; continue ;
+     }
 
      if( strcasecmp(argv[iarg],"-sort") == 0 ){
 #if 0
@@ -133,6 +139,8 @@ int main( int argc , char *argv[] )
      nvec += tim->ny ;
      ADDTO_IMARR(tar,tim) ;
    }
+
+   if( !do_1Dll || nev <= 0 || nev > nvec ) nev = nvec ;
 
    if( pall ){
      printf("\n") ;
@@ -235,14 +243,14 @@ int main( int argc , char *argv[] )
 
    if( !do_1Dll ) printf("\n++ Left Vectors [U]:\n   " ) ;
    else           printf("# Left Vectors\n#") ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.6g",sval[jj]) ;
+   for( jj=0 ; jj < nev ; jj++ ) printf(" %12.6g",sval[jj]) ;
    printf("\n") ;
    if( do_1Dll ) printf("#") ; else printf("   ") ;
-   for( jj=0 ; jj < nvec ; jj++ ) printf(" ------------") ;
+   for( jj=0 ; jj < nev ; jj++ ) printf(" ------------") ;
    printf("\n") ;
    for( kk=0 ; kk < nx ; kk++ ){
      if( !do_1Dll) printf("%02d:",kk) ;
-     for( jj=0 ; jj < nvec ; jj++ ) printf(" %12.6g",U(kk,jj)) ;
+     for( jj=0 ; jj < nev ; jj++ ) printf(" %12.6g",U(kk,jj)) ;
      printf("\n") ;
    }
 
