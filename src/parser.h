@@ -131,7 +131,9 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " * uran(r)   returns a uniform deviate in the range [0,r]\n"                \
   " * iran(t)   returns a random integer in the range [0..t]\n"                \
   " * eran(s)   returns an exponentially distributed deviate\n"                \
+  "               with parameter s; mean=s\n"                                  \
   " * lran(t)   returns a logistically distributed deviate\n"                  \
+  "               with parameter t; mean=0, stdev=t*1.814\n"                   \
   " * hrfbk4(t,L) and hrfbk5(t,L) are the BLOCK4 and BLOCK5 hemodynamic\n"     \
   "    response functions from 3dDeconvolve (L=stimulus duration in sec,\n"    \
   "    and t is the time in sec since start of stimulus); for example:\n"      \
