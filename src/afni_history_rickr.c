@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 4, MAR, 2009, RCR, "@build.Xlib", MICRO, TYPE_NEW_OPT,
+   "added -noinstall option",
+   NULL
+ } ,
+
+ { 4, MAR, 2009, RCR, "afni", MICRO, TYPE_NEW_OPT,
+   "added -motif_ver option",
+   NULL
+ } ,
+
  { 4, MAR, 2009, RCR, "X-general", MINOR, TYPE_MODIFY,
    "added openmotif build tree, updated @build.Xlib and README under X",
    NULL
