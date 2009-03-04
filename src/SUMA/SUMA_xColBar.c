@@ -5001,7 +5001,7 @@ void SUMA_ManageTheChildren(Widget w) {
 void SUMA_DoForTheChildren(Widget w, int i, int lvl, int rec)
 {
    static char FuncName[]={"SUMA_DoForTheChildren"};
-   Widget * children ;
+   Widget * children = NULL;
    int  num_children, num_children2, ic , Nbutt=0, kk=0;
    SUMA_Boolean LocalHead = YUP;
    
