@@ -1670,4 +1670,34 @@ int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
    return 0;
 }
 
+/* want to check this from the command line     4 Mar 2009 [rickr] */
+void show_motif_version_string(void)
+{
+   char * verstr = "** VERSION STRING NOT DEFINED**";
+
+#ifdef XmVERSION_STRING
+   verstr = XmVERSION_STRING;
+#endif
+
+   fprintf(stderr, "-- Motif source = %s, USING_LESSTIF = %d\n",
+           source_is_lesstif() ? "LessTif" : "Motif",
+           using_lesstif_is_defined());
+   fprintf(stderr, "   %s\n", verstr);
+}
+
+int source_is_lesstif(void)
+{
+#ifdef LESSTIF_VERSION
+   return 1;
+#endif
+   return 0;
+}
+
+int using_lesstif_is_defined(void)
+{
+#ifdef USING_LESSTIF
+   return 1;
+#endif
+   return 0;
+}
 

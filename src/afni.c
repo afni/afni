@@ -365,6 +365,7 @@ void AFNI_syntax(void)
 #ifdef USING_MCW_MALLOC
      "   -nomall      Disables use of the mcw_malloc() library routines.\n"
 #endif
+     "   -motif_ver   Show the applied motif version string.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -1097,6 +1098,12 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -motif_ver option -----*/
+
+      if( strncmp(argv[narg],"-motif_ver",10) == 0 ){/* was handled in main() */
+         narg++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -q option -----*/
 
       if( strcmp(argv[narg],"-q") == 0 ){            /* was handled in main() */
@@ -1386,6 +1393,11 @@ int main( int argc , char *argv[] )
    if( check_string("-trace",argc,argv) ) DBG_trace = 1 ;
    if( check_string("-TRACE",argc,argv) ) DBG_trace = 2 ;
 #endif
+
+   if( check_string("-motif_ver",argc,argv) ) {
+     show_motif_version_string() ;
+     exit(0) ;
+   }
 
 #if 0
 #ifdef USE_TRACING
