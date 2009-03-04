@@ -11,14 +11,35 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat
 
+# ----------------------------------------------------------------------
+# X configuration
+#
+# uncomment to build using local /usr/local/afniX 'X' tree
+USE_LOCAL_X_TREE = 1
+ifdef USE_LOCAL_X_TREE
+    XROOT = /usr/local/afniX
+    XROOT_I = -I$(XROOT)/include
+    XROOT_L = -L$(XROOT)/lib
+else
+    XROOT = /sw
+    XROOT_L = -L$(XROOT)/lib
+endif
+
 # uncomment USE_LESSTIF to use lesstif instead of openmotif
-USE_LESSTIF = 1
+# USE_LESSTIF = 1
 ifdef USE_LESSTIF
     LESSTIF_DEFS = -DUSING_LESSTIF
-    MOTIF_LIB = -lXm
+
+    XLIBS = $(XROOT)/lib/libXm.a $(XROOT)/lib/libXt.a
 else
-    MOTIF_LIB = /sw/lib/libXm.a
+    # default is static motif
+    XLIBS = $(XROOT)/lib/libXm.a -lXt
 endif
+
+# in case user wants to override with system dynamic libs
+# XLIBS = -lXm -lXt
+# ----------------------------------------------------------------------
+
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC $(LESSTIF_DEFS)
@@ -27,17 +48,18 @@ CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CCFAST = cc -O3 -ftree-vectorize -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
+
 OMPFLAG = -fopenmp -DUSE_OMP
 
-IFLAGS = -I. -I/sw/include -I/usr/X11R6/include -I/usr/local/include
-LFLAGS = -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
+LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/X11R6/lib -L/usr/local/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
 CCSVD  = cc -O0 -no-cpp-precomp
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -bundle -flat_namespace -undefined suppress -Wl,-x
 PLUGIN_CC     = $(CC) -dynamic -fno-common
-PLFLAGS       = -dynamic -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
+PLFLAGS       = -dynamic $(LFLAGS)
 
 # include the line below if you want to include vector arith in 3dDeconvolve_f
 # SPECIAL = -framework Accelerate -DUSE_ACCELERATE
@@ -67,7 +89,7 @@ EXPROGS = gifti_tool $(GSLPROGS)
 
 # for dynamic linking
 
-LLIBS  = -lmri $(MOTIF_LIB) -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) $(LGIFTI) -lm -lmri -lc
+LLIBS  = -lmri $(XLIBS) -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 $(LZLIB) $(LGIFTI) -lm -lmri -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
@@ -88,10 +110,10 @@ GLw_IPATH  = -IGLw_local
 GLw_LIB = libGLws.a
 
 
-SUMA_INCLUDE_PATH = $(GLw_IPATH) -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
-SUMA_LINK_PATH = -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L./ -L/usr/local/lib
+SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
+SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 
-SUMA_LINK_LIB = $(MOTIF_LIB) $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) ($LLIBS) -lGLU -lGL -lmri -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 
