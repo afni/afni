@@ -39,7 +39,7 @@ void elvis_CB( Widget w , XtPointer cd , XtPointer cb )
    static  GC myGC ;
    XmDrawingAreaCallbackStruct * cbs = (XmDrawingAreaCallbackStruct *) cb ;
    XExposeEvent * ev = (XExposeEvent *) cbs->event ;
-   Dimension nx , ny ;
+   Dimension nx=0 , ny=0 ;
    int ii , jj ;
 
    if( cbs->reason != XmCR_EXPOSE || ev->count > 0 ) return ;
@@ -165,7 +165,7 @@ int main( int argc , char * argv[] )
                        NULL ) ;
 
 #ifdef USE_PIXMAP
-   {  Pixel bg_pix  , fg_pix  ;
+   {  Pixel bg_pix=0  , fg_pix=0  ;
 # define ICON_bg bg_pix
 # define ICON_fg fg_pix
 

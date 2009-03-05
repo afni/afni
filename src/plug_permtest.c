@@ -1906,7 +1906,7 @@ static Pixmap sipb_pixmap;		/*pixmap of SIPB logo*/
 
 static void PERMTEST_set_logo(PLUGIN_interface *plint)
   {
-  Pixel bg_pix, fg_pix;			/*colours from control window*/
+  Pixel bg_pix=0, fg_pix=0;			/*colours from control window*/
 #define sipb_width 90
 #define sipb_height 90
   static char sipb_bits[] = {		/*bitmap of SIPB logo*/

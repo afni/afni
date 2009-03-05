@@ -251,7 +251,7 @@ static void TAG_make_widgets(void)
    XmString xstr ;
    char tlab[MAX_TAG_LABEL] ;
    int ii , ww , hh ;
-   Pixel  fg_pix ;
+   Pixel  fg_pix=0 ;
    Widget wjunk ;
 
    /*** top level shell for window manager ***/
@@ -589,7 +589,7 @@ static void TAG_make_widgets(void)
 
    /** set up widths and heights **/
 
-   { XmFontList xflist ;
+   { XmFontList xflist=(XmFontList)NULL ;
 
      for( ii=0 ; ii < MAX_TAG_LABEL-1 ; ii++ ) tlab[ii] = 'X' ;
      tlab[MAX_TAG_LABEL-1] = '\0' ;

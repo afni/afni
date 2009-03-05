@@ -228,7 +228,7 @@ resize(Widget w, XtPointer data, XtPointer callData)
 {
   if (made_current) {
 #ifdef noGLwidget
-    Dimension width, height;
+    Dimension width=0, height=0;
 
     /* Unfortunately, drawing area resize callback does not give
        height and width via its parameters. */

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, MAR, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "init for every assignable argument to XtVaGetValues",
+   NULL
+ } ,
+
  { 5, MAR, 2009, RCR, "@build.Xlib", MICRO, TYPE_NEW_OPT,
    "change -noinstall option to -localinstall",
    NULL

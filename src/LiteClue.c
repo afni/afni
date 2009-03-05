@@ -30,6 +30,9 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
+Revision 1.18  2009/03/05 21:55:24  rickr
+Cput
+
 Revision 1.17  2005/10/18 22:00:53  rwcox
 Cput
 
@@ -470,7 +473,7 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 
 	XRectangle ink;
 	XRectangle logical;
-	Position   w_height;	
+	Position   w_height=0;
 	Widget w;
 
         int RWC_width , RWC_height ;

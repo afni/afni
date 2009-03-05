@@ -321,7 +321,7 @@ static void AHIST_make_widgets(void)
       in case it ever becomes useful again to know the pixel dimens */
 #if 0
    { char cbuf[TWIDTH+8] ; int ii ;
-     XmFontList xflist ;
+     XmFontList xflist=(XmFontLlist)NULL ;
 
      for( ii=0; ii < TWIDTH+3; ii++ ) cbuf[ii] = 'x' ; cbuf[ii] = '\0' ;
      xstr = XmStringCreateLtoR( cbuf , XmFONTLIST_DEFAULT_TAG ) ;

@@ -90,7 +90,7 @@ unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb)
 void SUMA_cmap_wid_graphicsInit (Widget w, XtPointer clientData, XtPointer call)
 {
    static char FuncName[]={"SUMA_cmap_wid_graphicsInit"};
-   XVisualInfo *SUMAg_cVISINFO;
+   XVisualInfo *SUMAg_cVISINFO=NULL;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -770,7 +770,7 @@ void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call)
    SUMA_SurfaceObject *SO=NULL;
    XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call ;
    float fff ;
-   int dec;
+   int dec=0;
    char slabel[100];
    SUMA_Boolean LocalHead = NOPE;
 
@@ -2422,7 +2422,7 @@ void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer cal
    SUMA_TABLE_FIELD *TF=NULL;
    float val;
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
-   void *n;
+   void *n=NULL;
    SUMA_Boolean DoCallBacks;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -2530,7 +2530,7 @@ void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer cal
 int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val)
 {
    static char FuncName[]={"SUMA_ThreshVal2ScalePos"};
-   int min_v, max_v, cv, scl, dec;
+   int min_v=0, max_v=0, cv=0, scl=0, dec=0;
    float ftmp;
    Widget w = NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -3000,7 +3000,7 @@ void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer cal
 {
    static char FuncName[]={"SUMA_TableF_cb_label_Modify"};
    SUMA_TABLE_FIELD *TF=NULL;
-   int ud;
+   int ud=0;
    static int CurrentCell = -1; 
    SUMA_Boolean LocalHead = NOPE;
    
@@ -4314,7 +4314,7 @@ SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_SurfaceObject *SO, char *str)
 {
    static char FuncName[]={"SUMA_SetCmapMenuChoice"};
    int i, Nbutt = 0, nstr=0, nf=0;
-   Widget whist, *w = NULL;
+   Widget whist = NULL, *w = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -4507,7 +4507,7 @@ void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch )
 {
    static char FuncName[]={"SUMA_optmenu_EV"};
-   Dimension lw ;
+   Dimension lw=0 ;
    Widget * children , wl = NULL;
    XButtonEvent * bev = (XButtonEvent *) ev ;
    int  num_children , ic ;
@@ -5002,7 +5002,7 @@ void SUMA_DoForTheChildren(Widget w, int i, int lvl, int rec)
 {
    static char FuncName[]={"SUMA_DoForTheChildren"};
    Widget * children = NULL;
-   int  num_children, num_children2, ic , Nbutt=0, kk=0;
+   int  num_children=0, num_children2=0, ic , Nbutt=0, kk=0;
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -5201,7 +5201,7 @@ void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh)
 void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])   
 {
    static char FuncName[]={"SUMA_SetScaleRange"};
-   int min_v, max_v, scl, dec, cv;
+   int min_v, max_v, scl, dec, cv=0;
    Widget w ;
    float ftmp;
    char slabel[100];
@@ -5899,7 +5899,7 @@ void elvis_CB( Widget w , XtPointer cd , XtPointer cb )
    static  GC myGC ;
    XmDrawingAreaCallbackStruct * cbs = (XmDrawingAreaCallbackStruct *) cb ;
    XExposeEvent * ev = (XExposeEvent *) cbs->event ;
-   Dimension nx , ny ;
+   Dimension nx=0 , ny=0 ;
    int ii , jj ;
 
    if( cbs->reason != XmCR_EXPOSE || ev->count > 0 ) return ;
