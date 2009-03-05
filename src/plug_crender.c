@@ -694,7 +694,7 @@ static int reset_bigcolors( rgbyte * bcs );     /* v1.8 [rickr] */
 #undef HIDE_SCALE
 #ifdef FIX_SCALE_SIZE_PROBLEM
 #  define FIX_SCALE_SIZE                                        \
-     do{ int sel_height ;  XtPointer sel_ptr ;                  \
+     do{ int sel_height ;  XtPointer sel_ptr=NULL ;             \
          if( wfunc_thr_scale != NULL ){                         \
            XtVaGetValues( wfunc_thr_scale ,                     \
                              XmNuserData , &sel_ptr , NULL ) ;  \
@@ -4914,7 +4914,7 @@ ENTRY( "RCREND_open_imseq" );
 
 #ifndef DONT_INSTALL_ICONS
    if( afni48_good && afni48ren_pixmap == XmUNSPECIFIED_PIXMAP ){
-      Pixel bg_pix , fg_pix  ;
+      Pixel bg_pix=0 , fg_pix=0  ;
 
       XtVaGetValues( info_lab ,
                        XmNforeground , &fg_pix ,

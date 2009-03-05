@@ -1242,7 +1242,7 @@ void PLUG_setup_widgets( PLUGIN_interface * plint , MCW_DC * dc )
    int opt_lwid , sv_lwid[PLUGIN_MAX_SUBVALUES] ;
    Widget widest_chooser[PLUGIN_MAX_SUBVALUES] ;
    int    widest_width[PLUGIN_MAX_SUBVALUES] ;
-   Pixel  fg_pix ;
+   Pixel  fg_pix=0 ;
 
 ENTRY("PLUG_setup_widgets") ;
 
@@ -2040,7 +2040,7 @@ fprintf(stderr,"Widget realization\n") ;
 #define LUCK        5
 
    if( wframe != NULL ){
-      Widget bar ;
+      Widget bar=NULL ;
       int fww , fhh , fyy , bww ;
 
 #if 0
@@ -2196,7 +2196,7 @@ void PLUG_optional_toggle_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
    PLUGIN_option_widgets * ow = (PLUGIN_option_widgets *) cd ;
    int ib , zlen ;
-   XtPointer xptr ;
+   XtPointer xptr=NULL ;
 
 ENTRY("PLUG_optional_toggle_CB") ;
 

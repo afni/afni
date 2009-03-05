@@ -583,7 +583,7 @@ extern void AFNI_func_fdr_CB    (Widget,XtPointer,XtPointer) ;    /* 29 Jan 2008
 
 #ifdef FIX_SCALE_SIZE_PROBLEM
 #  define FIX_SCALE_SIZE(iqqq)                                           \
-     do{ int sel_height ;  XtPointer sel_ptr ;                           \
+     do{ int sel_height ;  XtPointer sel_ptr=NULL ;                      \
          XtVaGetValues( (iqqq)->vwid->func->thr_scale ,                  \
                            XmNuserData , &sel_ptr , NULL ) ;             \
          sel_height = (int) sel_ptr ;                                    \

@@ -154,7 +154,7 @@ static void TTRR_setup_widgets( MCW_DC * dc )
 {
    XmString xstr ;
    char lbuf[256] , *ept ;
-   Widget toprc , bar , actar , frame , separator , label ;
+   Widget toprc , bar=NULL , actar , frame , separator , label ;
    int ww,hh,bww , ii ;
 
 ENTRY("TTRR_setup_widgets") ;

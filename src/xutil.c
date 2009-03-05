@@ -1403,7 +1403,7 @@ void MCW_textwin_alter( MCW_textwin *tw , char *mmm ) /* 10 Jul 2001 */
    int cmax = 20 , ll , nlin ;
    char *cpt , *cold , cbuf[128] ;
    XmString xstr ;
-   XmFontList xflist ;
+   XmFontList xflist=(XmFontList)NULL ;
 
 ENTRY("MCW_textwin_alter") ;
 

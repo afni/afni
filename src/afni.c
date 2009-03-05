@@ -8450,7 +8450,7 @@ void AFNI_imag_pop_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
    Three_D_View *im3d = (Three_D_View *) client_data ;
-   MCW_imseq *seq ;
+   MCW_imseq *seq=NULL ;
 
 ENTRY("AFNI_imag_pop_CB") ;
 

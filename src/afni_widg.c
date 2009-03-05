@@ -298,7 +298,7 @@ static   AFNI_program_widgets  *prog  ;
 static   AFNI_datamode_widgets *dmode ;
 
 static   XmString   xstr ;
-static   XmFontList xflist ;
+static   XmFontList xflist=(XmFontList)NULL ;
 static   char       str[256] ;
 static   int        id , npane , last_color ,
                     view_count , view_height , sel_height ;
@@ -355,8 +355,8 @@ STATUS("creating top_form") ;
    /* create pixmaps, if desired */
 
 #if defined(WANT_LOGO_BITMAP) || defined(WANT_AFNI_BITMAP)
-   {  Pixel bg_pix  , fg_pix  ;  /* colors: from control window */
-      Pixel bot_pix , top_pix ;  /* colors: from image windows  */
+   {  Pixel bg_pix=0  , fg_pix  ;  /* colors: from control window */
+      Pixel bot_pix=0 , top_pix ;  /* colors: from image windows  */
 
 #ifdef USE_IMPIX              /** which colors to use for program icons **/
 #  define ICON_bg bot_pix     /* use image display pixels */
@@ -2077,8 +2077,8 @@ STATUS("making marks->rowcol") ;
          NULL ) ;
 
    { int ib ;
-     Dimension isiz ;
-     Pixel  fg_pix ;
+     Dimension isiz=0 ;
+     Pixel  fg_pix=0 ;
 
      XtVaGetValues( marks->tog_rowcol , XmNforeground , &fg_pix , NULL ) ;
 
