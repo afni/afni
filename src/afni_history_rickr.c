@@ -48,8 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, MAR, 2009, RCR, "lesstif-general", MICRO, TYPE_MODIFY,
+   "init for every assignable argument to XtVaGetValues (12 files)",
+   NULL
+ } ,
+
  { 5, MAR, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
-   "init for every assignable argument to XtVaGetValues",
+   "init for every assignable argument to XtVaGetValues (19 files)",
    NULL
  } ,
 
