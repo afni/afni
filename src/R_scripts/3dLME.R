@@ -72,7 +72,7 @@ for (n in 1:nCov) {
 ranEff <- vector("list", 2)
 ranEff[[1]] <- unlist(strsplit(unlist(strsplit(unlist(scan(file="model.txt", what= list(""), 
    skip=5, strip.white=TRUE, nline=1)), "\\:"))[2], "\\,"))
-if (ranEff[[1]][1]) ranEff[[1]][1] <- 1  # simple for backward compatibility
+#if (ranEff[[1]][1]) ranEff[[1]][1] <- 1  # simple for backward compatibility
 
 
 nRand <- length(ranEff[[1]])
@@ -276,7 +276,8 @@ myRand <- vector("list", 6)
 myRand[[1]]<-ranEff[[1]]; myRand[[2]]<-ranEff[[2]]; myRand[[3]]<-CorStr; myRand[[4]]<-CorForm; myRand[[5]]<-VarStr; myRand[[6]]<-VarForm
 myStuff <- vector("list", 10)
 myStuff[[1]]<-NoBrick; myStuff[[2]]<-BrickCnt; myStuff[[3]]<-NoCoef; myStuff[[4]]<-ncontr
-myStuff[[5]]<-clist; myStuff[[6]]<-nCov; myStuff[[7]]<-Ftype; myStuff[[8]]<-FArr; myStuff[[9]]<-NoF; myStuff[[10]]<-NoConst
+myStuff[[5]]<-clist; myStuff[[6]]<-nCov; myStuff[[7]]<-Ftype; myStuff[[8]]<-FArr; myStuff[[9]]<-NoF
+myStuff[[10]]<-NoConst; myStuff[[11]]<-Cov
 
 runAna <- function(inData, dataframe, ModelForm, myRand, myStuff, tag) {
 	Stat <- vector(mode="numeric", length=myStuff[[1]])
@@ -326,7 +327,7 @@ runAna <- function(inData, dataframe, ModelForm, myRand, myStuff, tag) {
 		if (myStuff[[6]] > 0) {
 		   for (n in 1:myStuff[[6]]) {
 			   Stat[(myStuff[[2]]+2*myStuff[[4]]+2*n-1):(myStuff[[2]]+2*myStuff[[4]]+2*n)] <- 
-				c(summary(fm)$tTable[Cov[n], "Value"], summary(fm)$tTable[Cov[n], "t-value"])
+				c(summary(fm)$tTable[myStuff[[11]][n], "Value"], summary(fm)$tTable[myStuff[[11]][n], "t-value"])
 			}
 		}
 	}

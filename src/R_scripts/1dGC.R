@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.2,  Feb. 20, 2009")
+print("Version 1.0.0,  Jan. 8, 2008")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -35,11 +35,11 @@ libLoad <- function(myLib) {
 # 	return(inData)
 # }
 
-readMultiFiles <- function(nFiles, dim, inData, type) {
+readMultiFiles <- function(nFiles, dim, inData) {
    inFile <- vector('list', nFiles) # list of file names with path attached
-	fn <- vector('list', nFiles)      # list of file names
+	fn <- vector('list', nFiles)      # ist of file names
 	for (ii in 1:nFiles) {
-	   inFile[[ii]] <- readline(sprintf("No. %i %s file name: ", ii, type))  
+	   inFile[[ii]] <- readline(sprintf("No. %i ROI time series file name: ", ii))
 		fn[[ii]] <- strsplit(inFile[[ii]], "/")[[1]][length(strsplit(inFile[[ii]], "/")[[1]])]
 		print(sprintf("No. %i file just read in: %s", ii, fn[[ii]]))
 		if (dim==1) inData[,ii] <- read.table(inFile[[ii]], header=FALSE)
@@ -182,7 +182,7 @@ if (as.logical(COV)) {
    } else {
 #      covn <- vector('list', nCOVs)
       exData <- data.frame(matrix(data=NA, nrow=nTotal, ncol=nCOVs, dimnames = NULL))
-      exData <- readMultiFiles(nCOVs, 1, exData, "covariate")  # 1: assuming no header
+      exData <- readMultiFiles(nCOVs, 1, exData)
 #		covFN <- exTmp[[1]]; exData <- exTmp[[2]]
 			
 #		for (ii in 1:nCOVs) {
@@ -548,12 +548,12 @@ if (nGrp==1) {   #one-sample t
 nSubjs <- as.integer(readline("Number of subjects (e.g., 12)? "))     # number of subjects
 #gfn <- vector('list', nSubjs)
 pathList <- vector('list', nSubjs)
-pathList <- readMultiFiles(nSubjs, 2, pathList, "subject path matrix")  #2: with header
+pathList <- readMultiFiles(nSubjs, 2, pathList)
 
 #for (ii in 1:nSubjs) { # read in path matrices
 #   fn[[ii]] <- tclvalue( tkgetOpenFile( filetypes = 
 #      "{{Path coef matrix file} {.1D}} {{All files} *}",
-#      title = paste('Choose subject No.', ii, 'subject path coef matrix file')))
+#      title = paste('Choose subject No.', ii, 'path coef matrix file')))
 #   print(sprintf("No. %i file just read in: %s", ii, strsplit(fn[[ii]], "/")[[1]][length(strsplit(fn[[ii]], "/")[[1]])]))
 #	 pathList[[ii]] <- read.table(fn[[ii]], header=TRUE)
 #}
@@ -645,34 +645,24 @@ pathList <- vector('list', nGrp)
 nROIsG <- vector('integer', nGrp)
 roiNames <- vector('list', nGrp)
 zList <- vector('list', nGrp)
-zMat <- vector('list', nGrp)
 
 pthType <- as.integer(readline("Input type (0: path coefficients; 1: path t values; 2: path F values)? "))
 
 for (ii in 1:nGrp) {
 	nSubjs[ii] <- as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", ii)))
 	pathList[[ii]] <- vector('list', nSubjs[ii])
-	#pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList)[[2]]
-	pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList, "subject path matrix")
-	#nROIsG[ii] <- dim(pathList[[ii]])[1]
-	nROIsG[ii] <- dim(pathList[[ii]][[1]])[1]
+	pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, pathList)[[2]]
+	nROIsG[ii] <- dim(pathList[[ii]])[1]
 	if (ii>1) for (jj in 1:ii) if (nROIsG[jj]!=nROIsG[1]) {sprintf("Group %i has %i ROIs while group 1 has %i", jj, nROIsG[jj], nROIsG[1]); break}
-	roiNames[[ii]] <- names(pathList[[ii]][[1]])
+	roiNames[[ii]] <- names(pathList[[ii]])
 	if (ii>1) for (jj in 1:ii) if (!identical(roiNames[[ii]], roiNames[[1]])) {sprintf("Group %i has different ROI namess with group 1", jj, roiNames[[ii]]); break}
 	if (pthType==0) zList[[ii]] <- lapply(pathList[[ii]], fisherz) # sapply(pathList[[ii]], fisherz, simplify = FALSE)
-    if (pthType==1) zList[[ii]] <- lapply(pathList[[ii]], function(x) log(x^2))
-    if (pthType==2) zList[[ii]] <- lapply(pathList[[ii]], log)
-    zMat[[ii]] <- do.call(rbind, lapply(lapply(zList[[ii]], as.matrix), c))  # convert from list to matrix for easier handling when running 2-sample t-test
+   if (pthType==1) zList[[ii]] <- lapply(pathList[[ii]], function(x) log(x^2))
+   if (pthType==2) zList[[ii]] <- lapply(pathList[[ii]], log)
 }   
 
-# Instead of looping, we can also use the following aggregation approach: No, it doesn't work!!!
-# resList <- apply(do.call(rbind, lapply(lapply(zList[[1]], as.matrix), c)), 2, t.test, do.call(rbind, lapply(lapply(zList[[2]], as.matrix), c)))
-
-# two-sample t-test
-resList <- vector('list', nROIsG[1]^2)
-# want equal variance assumption, otherwise DF would be different from one test to another!
-for (ii in 1:nROIsG[1]^2) resList[[ii]] <- t.test(zMat[[1]][,ii], zMat[[2]][,ii], paired=FALSE, var.equal=TRUE)
-
+# Instead of looping, we can also use the following aggregation approach
+resList <- apply(do.call(rbind, lapply(lapply(zList[[1]], as.matrix), c)), 2, t.test, do.call(rbind, lapply(lapply(zList[[2]], as.matrix), c)))
 tList <- lapply(resList, function(x) as.numeric(x$statistic))
 pList <- lapply(resList, function(x) as.numeric(x$p.value))
 grpT <- matrix(unlist(tList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
@@ -694,7 +684,7 @@ grpP <- matrix(unlist(pList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(ro
    savePMat <- as.integer(readline("Save the above p matrix (0: no; 1: yes)? "))
       if (savePMat) {
          matPName <- as.character(readline("File name prefix for p matrix? "))
-         write.table(grpP, file=sprintf("%sLag.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
+         write.table(grpP, file=sprintf("%sLag.1D", matTName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
    print("-----------------")
 anotherPthG <- TRUE
@@ -735,7 +725,7 @@ doneGrp <- as.integer(readline("Next (0: done; 1: another group analysis)? "))
 
 } # if (anaType==2 || anotherAna==2)
 
-if (anaType==0 || doneGrp==0 || anotherAna==0) {
+if (anaType==0 || anotherAna==0 || doneGrp==0) {
    print("Make sure to save all desirable figures before leaving!")
    quitMe <- as.integer(readline("Quit R (0: no; 1: yes)? "))
 	print("***********Thanks for using the program!***********")
