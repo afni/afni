@@ -48,6 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, MAR, 2009, RCR, "afni", MINOR, TYPE_BUG_FIX,
+   "free vox_warp via KILL_list rather than directly when deleting dataset",
+   "Fixes afni crash: set acpc markers -> acpc view -> orig view \n"
+   "               -> new markers -> acpc view -> death ..."
+ } ,
+
  { 4, MAR, 2009, RCR, "@build.Xlib", MICRO, TYPE_NEW_OPT,
    "added -noinstall option",
    NULL

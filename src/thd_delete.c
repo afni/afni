@@ -161,7 +161,9 @@ STATUS("destroy taxis") ;
 
    THD_delete_datablock( dset->dblk ) ;
 
-   myXtFree( dset->vox_warp ) ;  /* 23 Sep 2008 */
+   /* EDIT_empty_copy() is only vox_warp not in KILL_list, add it there */
+   /*                                                5 Mar 2008 [rickr] */
+   /* myXtFree( dset->vox_warp ) ;  * 23 Sep 2008                       */
 
 STATUS("KILL_KILL") ;
    KILL_KILL( dset->kl ) ;
