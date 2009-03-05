@@ -870,7 +870,7 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    char *fnamestmp=NULL, *fnamestmp2=NULL;
    int feyl;
    SUMA_SurfaceViewer *csv;
-   Position X, Y;
+   Position X=0, Y=0;
    Dimension ScrW, ScrH;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1974,7 +1974,7 @@ int SUMA_BuildMenu(  Widget parent, int menu_type, char *menu_title,
 
       if (items[i].class == &xmToggleButtonWidgetClass ||
               items[i].class == &xmToggleButtonWidgetClass) {
-         Pixel fg_pix;
+         Pixel fg_pix=0;
          XtVaGetValues (MenuWidgets[i_wid], XmNforeground, &fg_pix, NULL);
          XtVaSetValues (MenuWidgets[i_wid], XmNselectColor, fg_pix, NULL); 
           
@@ -5932,9 +5932,9 @@ void SUMA_CreateScrolledList (
       SUMA_Boolean Partial, SUMA_LIST_WIDGET *LW)
 {
    static char FuncName[]={"SUMA_CreateScrolledList"};
-   XmString  str, *strlist;
+   XmString  str, *strlist = NULL;
    char *text;
-   int i = -1, iclist, u_bound, l_bound = 0, n;
+   int i = -1, iclist, u_bound = 0, l_bound = 0, n;
    Arg args[20];
    SUMA_Boolean New = NOPE;
    SUMA_Boolean LocalHead = NOPE;
@@ -6442,7 +6442,7 @@ void SUMA_ATF_start_stop (Widget w, XtPointer client_data, XtPointer call_data)
    static char FuncName[]={"SUMA_ATF_start_stop"};
    int incr = (int) client_data;
    SUMA_ARROW_TEXT_FIELD *AF = NULL;
-   void *n;
+   void *n = NULL;
    XmArrowButtonCallbackStruct *cbs = 
         (XmArrowButtonCallbackStruct *) call_data;
    
@@ -6894,7 +6894,7 @@ void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
 {
    static char FuncName[]={"SUMA_ATF_SetValue"};
    float val;
-   void *n;
+   void *n = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -8483,7 +8483,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (
    Widget rowcol_v, rowcol_h, close_w, form, frame, toggle_case_w;
    int n;
    SUMA_Boolean LocalHead = NOPE;
-   Pixel fg_pix;
+   Pixel fg_pix = 0;
    Arg args[30];
    static XmTextScanType sarray[] = {  XmSELECT_POSITION, 
                                        XmSELECT_WORD, 
@@ -9495,8 +9495,8 @@ void SUMA_PositionWindowRelative (  Widget New, Widget Ref,
                                     SUMA_WINDOW_POSITION Loc)
 {
    static char FuncName[]={"SUMA_PositionWindowRelative"};
-   Position RefX, RefY, NewX, NewY, Dx=5, RootX, RootY;
-   Dimension RefW, RefH, ScrW, ScrH, NewW, NewH;
+   Position RefX=0, RefY=0, NewX=0, NewY=0, Dx=5, RootX=0, RootY=0;
+   Dimension RefW=0, RefH=0, ScrW=0, ScrH=0, NewW=0, NewH=0;
    
    SUMA_Boolean LocalHead=NOPE;
    
@@ -9964,7 +9964,7 @@ SUMA_Boolean SUMA_CreatePromptActionArea (SUMA_PROMPT_DIALOG_STRUCT *prmpt)
           * pane window constraint for max and min heights so this
           * particular pane in the PanedWindow is not resizable.
           */
-         Dimension height, h;
+         Dimension height=0, h=0;
          XtVaGetValues (prmpt->actionarea, XmNmarginHeight, &h, NULL);
          XtVaGetValues (widget, XmNheight, &height, NULL);
          height += 2 * h;
@@ -10049,7 +10049,7 @@ void SUMA_PromptActivate_cb (Widget w, XtPointer data, XtPointer calldata)
 {
    static char FuncName[]={"SUMA_PromptActivate_cb"};
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) calldata;
-   Widget dflt;
+   Widget dflt = NULL;
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
@@ -10351,7 +10351,7 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (
    static char *last_title_extension=NULL;
    SUMA_Boolean LocalHead = NOPE, same;
    SUMA_SELECTION_DIALOG_STRUCT *dlg = NULL;
-   XmString button, title, pattern;
+   XmString button, title, pattern=NULL;
 
    SUMA_ENTRY;
    
@@ -11133,7 +11133,7 @@ void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data)
 {
    static char FuncName[]={"SUMA_response"};
    int *answer = (int *) client_data;
-   int ud;
+   int ud=0;
    Widget YesWid, NoWid, HelpWid;
    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
    SUMA_Boolean LocalHead = NOPE;

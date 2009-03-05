@@ -257,7 +257,7 @@ MCW_bbox * new_MCW_bbox( Widget parent ,
    int ib , initial_value ;
    Widget rc_parent, gp;
    Arg wa[30] ;  int na ;
-   Pixel  fg_pix ;
+   Pixel  fg_pix=0 ;
    int is_popup=0;
    cb_wrap_struct *cbws=NULL;
    int dbg = 0;
@@ -1290,8 +1290,8 @@ void refit_MCW_optmenu( MCW_arrowval *av ,
                         int  minval , int maxval , int inival , int decim ,
                         str_func *text_proc  , XtPointer text_data )
 {
-   Widget *children , wbut , wmenu ;
-   int  num_children , ic , ival ;
+   Widget *children=NULL , wbut , wmenu ;
+   int  num_children=0 , ic , ival ;
    char *butlabel , *blab ;
    XmString xstr ;
    int maxbut ;   /* 23 Aug 2003 */
@@ -1354,9 +1354,9 @@ ENTRY("refit_MCW_optmenu") ;
       /** re-use old button if possible, otherwise add a new one **/
 
       if( ic < num_children ){
-         XtPointer user_old ;
+         XtPointer user_old=NULL ;
          int       ival_old ;
-         XmString  xstr_old ;
+         XmString  xstr_old=NULL ;
 
          wbut = children[ic] ;
          XtVaGetValues( wbut ,
@@ -1553,11 +1553,11 @@ static void optmenu_EV( Widget w , XtPointer cd ,
    MCW_arrowval *av = (MCW_arrowval *) cd ;
    int  ic , ival , sval , nstr ;
    XButtonEvent *bev = (XButtonEvent *) ev ;
-   Dimension lw ;
+   Dimension lw=0 ;
    static char **strlist=NULL ;
    static  int  nstrlist=0 ;    /* 06 Aug 2002 */
    char *slab=NULL ;
-   XmString xstr ;
+   XmString xstr=NULL ;
 
    /*-- Attempt to fix a Motif problem with Button 2
         when the optmenu is itself in a popup menu.
@@ -1638,8 +1638,8 @@ MCW_arrowval * new_MCW_colormenu( Widget parent , char *label , MCW_DC *dc ,
                                 )
 {
    MCW_arrowval *av ;
-   Widget *children ;
-   int  num_children , ic , icol ;
+   Widget *children=NULL ;
+   int  num_children=0 , ic , icol ;
 
 ENTRY("new_MCW_colormenu") ;
 
@@ -1673,7 +1673,7 @@ void AVOPT_press_CB( Widget wbut, XtPointer client_data, XtPointer call_data )
 {
    MCW_arrowval *av = (MCW_arrowval *) client_data ;
    int newval ;
-   XtPointer xval ;
+   XtPointer xval=NULL ;
 
 ENTRY("AVOPT_press_CB");
 
@@ -1849,8 +1849,8 @@ ENTRY("AV_assign_ival") ;
 
    if( av->wmenu != NULL && ! av->block_assign_actions ){
 
-      Widget *children , wbut ;
-      int  num_children , ic ;
+      Widget *children=NULL , wbut=NULL ;
+      int  num_children=0 , ic ;
 
       XtVaGetValues( av->wmenu ,
                         XmNchildren    , &children ,
@@ -2127,7 +2127,7 @@ char * MCW_DC_ovcolor_text( MCW_arrowval *av , MCW_DC *dc )
    /** make the option menu cascade button gadget be outlined in color **/
 
    else if( av->wmenu != NULL && XtIsRealized(av->wrowcol) ){
-      Pixel ptop , pbot ;
+      Pixel ptop=0 , pbot=0 ;
       wfix = av->wrowcol ;
       if( ii > 0 ) pbot = ptop = dc->ovc->pix_ov[ii] ;
       else         XtVaGetValues( XtParent(wfix) ,
@@ -2979,7 +2979,7 @@ static MCW_arrowval *str_wlist_av = NULL ;
 
 static void MCW_strlist_av_CB( MCW_arrowval *av , XtPointer cd )
 {
-   int init=1+av->ival , itop,nvis ;
+   int init=1+av->ival , itop=0,nvis=0 ;
 
    if( str_wlist == NULL || !XtIsRealized(str_wlist) ||
        init <= 0         || init > str_wlist_num       ) return ;

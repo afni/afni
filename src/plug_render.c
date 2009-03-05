@@ -532,7 +532,7 @@ void REND_set_thr_pval(void) ;
 #undef HIDE_SCALE
 #ifdef FIX_SCALE_SIZE_PROBLEM
 #  define FIX_SCALE_SIZE                                        \
-     do{ int sel_height ;  XtPointer sel_ptr ;                  \
+     do{ int sel_height ;  XtPointer sel_ptr=NULL ;             \
          if( wfunc_thr_scale != NULL ){                         \
            XtVaGetValues( wfunc_thr_scale ,                     \
                              XmNuserData , &sel_ptr , NULL ) ;  \
@@ -4453,7 +4453,7 @@ void REND_open_imseq( void )
 
 #ifndef DONT_INSTALL_ICONS
    if( afni48_good && afni48ren_pixmap == XmUNSPECIFIED_PIXMAP ){
-      Pixel bg_pix , fg_pix  ;
+      Pixel bg_pix=0 , fg_pix=0  ;
 
       XtVaGetValues( info_lab ,
                        XmNforeground , &fg_pix ,

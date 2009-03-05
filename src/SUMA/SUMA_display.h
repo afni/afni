@@ -55,7 +55,7 @@ activated.
 /*!
 sets the select color of the widget to its foreground color */         
 #define SUMA_SET_SELECT_COLOR(m_w) {\
-      Pixel m_fg_pix;  \
+      Pixel m_fg_pix=0;  \
       XtVaGetValues (m_w, XmNforeground, &m_fg_pix, NULL);  \
       XtVaSetValues (m_w, XmNselectColor, m_fg_pix, NULL);  \
 }
@@ -85,7 +85,7 @@ sets the select color of the widget to its foreground color */
 /*! m_s is a char *. Do not allocate space for it, do not free it afterwards 
 */
 #define SUMA_GET_TEXT_FIELD(m_w, m_s) {\
-   void *n; \
+   void *n=NULL; \
    XtVaGetValues (m_w, XmNvalue, &n, NULL); \
    m_s = (char *)n;  \
 }

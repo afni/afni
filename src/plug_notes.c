@@ -428,7 +428,7 @@ static void NOTES_make_widgets(void)
    /*** compute width of popup window ***/
 
    { char cbuf[TWIDTH+8] ; int ii ;
-     XmFontList xflist ;
+     XmFontList xflist=(XmFontList)NULL ;
 
      for( ii=0; ii < TWIDTH+3; ii++ ) cbuf[ii] = 'x' ; cbuf[ii] = '\0' ;
      xstr = XmStringCreateLtoR( cbuf , XmFONTLIST_DEFAULT_TAG ) ;
@@ -1113,7 +1113,7 @@ static void NOTES_restore_CB( Widget w, XtPointer client_data, XtPointer call_da
 static void scroll_topbot( Widget sw , int where )
 {
    Widget sb=NULL ;
-   int val,siz,inc,pag , smin,smax ;
+   int val,siz,inc,pag , smin=0,smax=0 ;
 
    if( sw == NULL ) return ;
 
