@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAR , 2009 , RWC , "3dDeconvolve" , MINOR , TYPE_NEW_OPT ,
+   "Add 'WAV' function (from waver) to -stim_times repertoire." ,
+   NULL } ,
+
  { 4 , MAR , 2009 , RWC , "3ddata.h" , MICRO , TYPE_BUG_FIX ,
    "Fix usage of realpath() array dimension with RPMAX macro" ,
    NULL } ,
