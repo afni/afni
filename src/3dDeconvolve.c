@@ -857,6 +857,23 @@ void display_help_menu()
     "                       where g(t) = t^q * exp(-t) /(q^q*exp(-q))       \n"
     "                       and q = 4 or 5.  The case q=5 is delayed by     \n"
     "                       about 1 second from the case q=4.               \n"
+    "     'WAV(d)'      = 1 parameter (amplitude) block stimulus of         \n"
+    "                       duration 'd'.                                   \n"
+    "                      * This is the '-WAV' function from program waver.\n"
+    "                      * If you wish to set the shape parameters of the \n"
+    "                        WAV function, you can do that by adding        \n"
+    "                        arguments, in the order                        \n"
+    "                         delay time , rise time , fall time ,          \n"
+    "                         undershoot fraction, undershoot restore time  \n"
+    "                      * The default values are 'WAV(d,2,4,6,0.2,2)'    \n"
+    "                      * Omitted parameters get the default values.     \n"
+    "                      * 'WAV(d,,,,0)' (setting undershoot=0) is        \n"
+    "                        very similar to 'BLOCK5(d)'.                   \n"
+    "                      * Setting duration d to 0 gives the pure         \n"
+    "                        '-WAV' impulse response function from waver.   \n"
+    "                      * If d > 0, then the function is convolved with  \n"
+    "                        a square wave of duration d to make the HRF,   \n"
+    "                        and the amplitude is scaled back down to 1.    \n"
     "     'EXPR(b,c) exp1 ... expn' = n parameter; arbitrary expressions    \n"
     "                       from times b..c after stimulus time             \n"
     "                                                                       \n"
@@ -9433,6 +9450,211 @@ static float basis_expr( float x, float bot, float top, float dtinv, void *q )
    return (float)val ;
 }
 
+#if 1
+/*==========================================================================*/
+/**---------- Implementation of the Cox WAV function from waver.c ---------**/
+/*==========================================================================*/
+
+/*----------------------------------------------------------------*/
+
+static float WAV_rise_start, WAV_fall_start ,
+             WAV_fall_end  , WAV_restore_end ;
+
+static float WAV_delay_time   =  2.0f ,
+             WAV_rise_time    =  4.0f ,
+             WAV_fall_time    =  6.0f ,
+             WAV_undershoot   =  0.2f ,
+             WAV_restore_time =  2.0f  ;
+
+/*----------------------------------------------------------------*/
+
+static void setup_WAV_constants(void)
+{
+   WAV_rise_start  = WAV_delay_time ;
+   WAV_fall_start  = WAV_rise_start + WAV_rise_time ;
+   WAV_fall_end    = WAV_fall_start + WAV_fall_time ;
+   WAV_restore_end = WAV_fall_end   + WAV_restore_time ;
+   return ;
+}
+
+/*----------------------------------------------------------------
+  Function that transitions from 0 to 1 over input x in [0,1].
+------------------------------------------------------------------*/
+
+#define ZT_FAC 0.50212657f
+#define ZT_ADD 0.99576486f
+
+static INLINE float ztone( float x )
+{
+   register double y ;
+
+   if( x <= 0.0f ) return 0.0f ; else if( x >= 1.0f ) return 1.0f ;
+
+   y = (0.5*PI) * ( 1.6 * x - 0.8 ) ;
+   return (float)(ZT_FAC * ( tanh(tan(y)) + ZT_ADD )) ;
+}
+
+/*----------------------------------------------------------------*/
+
+static float waveform_WAV( float t )
+{
+   if( t < WAV_rise_start )
+      return 0.0f ;
+
+   if( t < WAV_fall_start )
+      return ztone( (t-WAV_rise_start)/WAV_rise_time ) ;
+
+   if( t < WAV_fall_end )
+      return (1.0f+WAV_undershoot) * ztone( (WAV_fall_end-t)/WAV_fall_time )
+             - WAV_undershoot ;
+
+   if( t < WAV_restore_end )
+      return -WAV_undershoot * ztone( (WAV_restore_end-t)/WAV_restore_time ) ;
+
+   return 0.0f ;
+}
+
+/*----------------------------------------------------------------*/
+
+typedef struct {
+  float WAV_rise_start, WAV_fall_start  ,
+        WAV_fall_end  , WAV_restore_end , dur ;
+  int   nfun ;
+  float *fun ;
+} WAV_storage ;
+
+#undef  WAV_equals
+#define WAV_equals(wa,wb) ( (wa).WAV_rise_start  == (wb).WAV_rise_start  && \
+                            (wa).WAV_fall_start  == (wb).WAV_fall_start  && \
+                            (wa).WAV_fall_end    == (wb).WAV_fall_end    && \
+                            (wa).WAV_restore_end == (wb).WAV_restore_end && \
+                            (wa).dur             == (wb).dur               )
+
+static int         nWAVS = 0    ;
+static WAV_storage *WAVS = NULL ;
+
+#undef  WAVDT
+#define WAVDT 0.01f
+
+/*----------------------------------------------------------------*/
+/* Return value is index in WAVS of the function value struct. */
+
+static int setup_WAV_function( float dur , float *parm )
+{
+   float val,tt,vmax,vthr ;
+   int nlag , ii,jj,have_nz ;
+   WAV_storage ws ;
+   float *hhrf ; int nhrf, ahrf;
+
+   if( parm != NULL ){
+     WAV_delay_time   = MAX(0.0f,parm[0]) ;
+     WAV_rise_time    = MAX(0.1f,parm[1]) ;
+     WAV_fall_time    = MAX(0.1f,parm[2]) ;
+     WAV_undershoot   = MAX(0.0f,parm[3]) ;
+     WAV_restore_time = MAX(0.1f,parm[4]) ;
+   } else {
+     WAV_delay_time   =  2.0f ;
+     WAV_rise_time    =  4.0f ;
+     WAV_fall_time    =  6.0f ;
+     WAV_undershoot   =  0.2f ;
+     WAV_restore_time =  2.0f ;
+   }
+   if( dur < 0.0f ) dur = 0.0f ;
+
+   setup_WAV_constants() ;
+
+   ws.WAV_rise_start  = WAV_rise_start  ;
+   ws.WAV_fall_start  = WAV_fall_start  ;
+   ws.WAV_fall_end    = WAV_fall_end    ;
+   ws.WAV_restore_end = WAV_restore_end ;
+   ws.dur             = dur ;
+
+#if 1
+   INFO_message(
+     "WAV(dur=%g,delay=%g,rise=%g,fall=%g,undershoot=%g,restore=%g)" ,
+     dur,WAV_delay_time,WAV_rise_time,
+     WAV_fall_time,WAV_undershoot,WAV_restore_time) ;
+#endif
+
+   /* check if we have a duplicate of an existing WAV function */
+
+   for( ii=0 ; ii < nWAVS ; ii++ )
+     if( WAV_equals(ws,WAVS[ii]) ) return ii ;  /* found a match */
+
+   /* create array of basic waveformm, convolved with a square wave */
+
+   nlag = 1 + (int)rint(dur/WAVDT) ;  /* number of convolution lags */
+
+   ahrf = 1024 ; nhrf = 0 ;
+   hhrf = (float *)malloc(sizeof(float)*ahrf) ;
+
+   /* loop until we get nonzero values, then decline back to zero */
+
+   vmax = vthr = 0.001f ;
+   for( have_nz=ii=0 ; ; ii++ ){
+     tt = ii*WAVDT ;  /* ii-th output time */
+
+     for( val=0.0f,jj=0 ; jj < nlag && tt >= 0.0f ; jj++,tt-=WAVDT )
+       val += waveform_WAV(tt) ; /* convolution */
+
+     if( val != 0.0f ){
+       have_nz++ ;
+       if( val > vmax ){ vmax = val ; vthr = 0.0001f*vmax ; }
+     } else if( ii > 5 && have_nz > 1 &&
+              fabsf(hhrf[ii-1]) <= vthr && fabsf(hhrf[ii-2]) <= vthr &&
+              fabsf(hhrf[ii-3]) <= vthr && fabsf(hhrf[ii-4]) <= vthr   ){
+       break ;
+     }
+
+     if( ii >= ahrf ){
+       ahrf += 1024 ; hhrf = (float *)realloc(hhrf,sizeof(float)*ahrf) ;
+     }
+     hhrf[ii] = val ;
+   }
+   nhrf = ii-3 ;
+   hhrf = (float *)realloc(hhrf,sizeof(float)*nhrf) ;
+
+   ws.nfun = nhrf ;  /* store array in struct */
+   ws.fun  = hhrf ;
+
+   /* scale array to have max value 1 */
+
+   vmax = 1.0f / vmax ;
+   for( ii=0 ; ii < nhrf ; ii++ ) hhrf[ii] *= vmax ;
+
+   /* add struct to permanent storage */
+
+   WAVS = (WAV_storage *)realloc(WAVS,sizeof(WAV_storage)*(nWAVS+1)) ;
+   memcpy( WAVS+nWAVS , &ws , sizeof(WAV_storage) ) ;
+   nWAVS++ ;
+
+   return (nWAVS-1) ;  /* index of new struct */
+}
+
+/*----------------------------------------------------------------*/
+
+static float basis_WAV( float t, float fwav, float junk1, float junk2, void *q )
+{
+   int iwav = (int)fwav , ii ;
+   int    nhrf ;
+   float *hhrf , xx ;
+
+   if( t < 0.0f || iwav < 0 || iwav >= nWAVS ) return 0.0f ;
+
+   nhrf = WAVS[iwav].nfun ;
+   hhrf = WAVS[iwav].fun  ;
+
+   xx = t/WAVDT ; ii = (int)xx ; xx = xx - ii ;
+   if( ii >= nhrf   ) return 0.0f ;
+   if( ii == nhrf-1 ) return (1.0f-xx)*hhrf[ii] ;
+   return ( xx*hhrf[ii+1] + (1.0f-xx)*hhrf[ii] ) ;
+}
+
+/*==========================================================================*/
+/*------------------------ End of WAV function stuff -----------------------*/
+/*==========================================================================*/
+#endif
+
 /*--------------------------------------------------------------------------*/
 /* Take a string and generate a basis expansion structure from it.
 ----------------------------------------------------------------------------*/
@@ -9764,13 +9986,57 @@ basis_expansion * basis_parser( char *sym )
          } else if( FLDIF(top,first_len_pkzero) ){
            WARNING_message(
             "%s has different duration than first %s\n"
-            "            ==> Amplitudes will differ.  We hope you know what you are doing!" ,
+            "       ==> Amplitudes will differ.  We hope you know what you are doing!" ,
             sym , first_sym_pkzero ) ;
          }
        }
 
        num_block++ ;
      }
+
+  /*--- macro to scan for a float number and assign to a value ---*/
+
+#undef  WSCAN
+#define WSCAN(vv)                                                 \
+ do{ if( dpt != NULL && *dpt != '\0' ){                           \
+       if( isdigit(*dpt) ){                                       \
+         (vv) = (float)strtod(dpt,&ept) ;                         \
+         dpt = ept ; if( *dpt != '\0' ) dpt++ ;                   \
+       } else if( *dpt == '-' ){                                  \
+         ERROR_message("Can't give negative arguments to 'WAV'"); \
+         free((void *)be); free(scp); return NULL;                \
+       } else {                                                   \
+         dpt++ ;                                                  \
+       }                                                          \
+     }                                                            \
+   } while(0)
+
+   /*--- WAV(dur,delaytime,risetime,falltime.undershoot,restoretime) ---*/
+
+   } else if( strcmp(scp,"WAV") == 0 ){    /* 06 Mar 2009 */
+     float parm[5] = { 2.0f , 4.0f , 6.0f , 0.2f , 2.0f } ;
+     float dur = 0.0f ; char *dpt=cpt , *ept ; int iwav ;
+
+     /* scan for up to 6 parameters */
+
+     WSCAN(dur    ) ; WSCAN(parm[0]) ; WSCAN(parm[1]) ;
+     WSCAN(parm[2]) ; WSCAN(parm[3]) ; WSCAN(parm[4]) ;
+
+     /* setup the function in WAVS[iwav] */
+
+     iwav = setup_WAV_function( dur , parm ) ;
+     if( iwav < 0 ){
+       ERROR_message("Can't setup WAV for some reason?!") ;
+       free((void *)be); free(scp); return NULL;
+     }
+
+     be->nfunc = 1 ;
+     be->tbot  = 0.0f ; be->ttop = WAVDT * WAVS[iwav].nfun ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     be->bfunc[0].f = basis_WAV ;
+     be->bfunc[0].a = (float)iwav ;
+     be->bfunc[0].b = 0.0f ;
+     be->bfunc[0].c = 0.0f ;
 
    /*--- EXPR(bot,top) exp1 exp2 ... ---*/
 
