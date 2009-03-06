@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 6, MAR, 2009, RCR, "3dDeconvolve", MINOR, TYPE_BUG_FIX,
+   "if mri_automask_image() input is not really 3D, only apply clip",
+   "3dD uses automask for misfit warning, let this apply to niml.dset"
+ } ,
+
  { 5, MAR, 2009, RCR, "lesstif-general", MICRO, TYPE_MODIFY,
    "init for every assignable argument to XtVaGetValues (12 files)",
    NULL

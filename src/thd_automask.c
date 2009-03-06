@@ -156,6 +156,9 @@ ENTRY("mri_automask_image") ;
    if( im != medim && (!exterior_clip || nmm==0) ){ mri_free(medim); medim=NULL; }
    if( nmm == 0 ){ cheapo=0; RETURN(mmm); }  /* should not happen */
 
+   /*-- 6 Mar 2009: if we don't have volume data, stop here [rickr] --*/
+   if( im->nx < 2 || im->ny < 2 || im->nz < 2 ) RETURN(mmm);
+
    /*-- 10 Apr 2002: only keep the largest connected component --*/
 
    nx = im->nx ; ny = im->ny ; nz = im->nz ;
