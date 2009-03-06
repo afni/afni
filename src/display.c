@@ -1674,14 +1674,18 @@ int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp)
 void show_motif_version_string(void)
 {
    char * verstr = "** VERSION STRING NOT DEFINED**";
+   char * typestr = source_is_lesstif() ? "LessTif" : "Motif";
 
 #ifdef XmVERSION_STRING
    verstr = XmVERSION_STRING;
 #endif
 
+#ifdef AFNI_MOTIF_TYPE
+   typestr = AFNI_MOTIF_TYPE;
+#endif
+
    fprintf(stderr, "-- Motif source = %s, USING_LESSTIF = %d\n",
-           source_is_lesstif() ? "LessTif" : "Motif",
-           using_lesstif_is_defined());
+           typestr, using_lesstif_is_defined());
    fprintf(stderr, "   %s\n", verstr);
 }
 
