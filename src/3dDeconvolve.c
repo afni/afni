@@ -889,8 +889,7 @@ void display_help_menu()
     "                       1.  If 'p' is omitted, the amplitude will depend\n"
     "                       on the duration 'd', which is useful only in    \n"
     "                       special circumstances.                          \n"
-    "     'WAV(d)'      = 1 parameter (amplitude) block stimulus of         \n"
-    "                       duration 'd'.                                   \n"
+    "     'WAV(d)'      = 1 parameter block stimulus of duration 'd'.       \n"
     "                      * This is the '-WAV' function from program waver!\n"
     "                      * If you wish to set the shape parameters of the \n"
     "                        WAV function, you can do that by adding extra  \n"
@@ -901,9 +900,10 @@ void display_help_menu()
     "                      * Omitted parameters get the default values.     \n"
     "                      * 'WAV(d,,,,0)' (setting undershoot=0) is        \n"
     "                        very similar to 'BLOCK5(d)', for d > 0.        \n"
-    "                      * Setting duration d to 0 gives the pure         \n"
-    "                        '-WAV' impulse response function from waver.   \n"
-    "                      * If d > 0, then the function is convolved with  \n"
+    "                      * Setting duration d to 0 (or just using 'WAV')  \n"
+    "                        gives the pure '-WAV' impulse response function\n"
+    "                        from waver.                                    \n"
+    "                      * If d > 0, the WAV(0) function is convolved with\n"
     "                        a square wave of duration d to make the HRF,   \n"
     "                        and the amplitude is scaled back down to 1.    \n"
     "     'EXPR(b,c) exp1 ... expn' = n parameter; arbitrary expressions    \n"
@@ -5788,7 +5788,9 @@ ENTRY("calculate_results") ;
                       &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
   if( option_data->xout )
     matrix_sprint ("(X'X) inverse matrix:", xtxinv_full);
-  if( nodata && option_data->x1D_filename != NULL ){
+
+  if( nodata && option_data->x1D_filename != NULL &&
+      strncmp(option_data->x1D_filename,"stdout:",7) != 0 ){
     char fn[THD_MAX_NAME] , *jpt ;
     strcpy(fn,option_data->x1D_filename) ;
                        jpt = strstr(fn,".xmat") ;
@@ -9274,6 +9276,8 @@ static float basis_block_hrf4( float tt , float TT )
   return (float)w ;
 }
 
+/*--------------------------------------------------------------------------*/
+
 static float basis_block4( float t, float T, float peak, float junk, void *q )
 {
    float w , tp , pp ;
@@ -9337,6 +9341,8 @@ static float basis_block_hrf5( float tt, float TT )
 
    return (float)w ;
 }
+
+/*--------------------------------------------------------------------------*/
 
 static float basis_block5( float t, float T, float peak, float junk, void *q )
 {
