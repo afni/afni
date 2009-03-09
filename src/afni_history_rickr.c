@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 9, MAR, 2009, RCR, "suma", MICRO, TYPE_NEW_OPT,
+   "added -motif_ver option",
+   NULL
+ } ,
+
  { 6, MAR, 2009, RCR, "lesstif-general", MICRO, TYPE_MODIFY,
    "motif/lesstif : put AFNI_MOTIF_TYPE in Xm.h.in : see 'afni -motif_ver'",
    NULL
