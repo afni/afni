@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 9, MAR, 2009, RCR, "suma-general", MICRO, TYPE_MODIFY,
+   "removed r_sprintf_long_to_hex from SUMA_Color.[ch]",
+   NULL
+ } ,
+
  { 9, MAR, 2009, RCR, "suma", MICRO, TYPE_NEW_OPT,
    "added -motif_ver option",
    NULL

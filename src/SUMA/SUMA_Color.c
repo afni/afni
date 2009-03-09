@@ -1540,68 +1540,6 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
    SUMA_RETURN(LSM);
 }
 
-/*!----------------------------------------------------------------------
- * sprintf_long_to_hex    - write hex chars to a string
- *
- * return number of hex pairs written (should equal bytes)
- *----------------------------------------------------------------------
-*/
-int r_sprintf_long_to_hex
-    (
-   char          * dest,           /* location of output string     */
-   unsigned long   lsrc,      /* number to translate           */
-   int             bytes,       /* total bytes (hex pairs)       */
-   int      pad      /* pad the result?               */
-    )
-{
-    static char hexstring[] = "0123456789ABCDEF";
-
-    unsigned char   ub;
-    char          * cp = dest;
-    int             posn, size, ret;
-
-    if ( (bytes <= 0) || (bytes > 4) )
-    {
-   *cp = '\0';
-   return 0;
-    }
-
-    size = r_ulong_size( lsrc );
-
-    if ( (size < bytes) && !pad )
-   ret = size;
-    else
-   ret = bytes;
-
-    for ( posn = ret-1; posn >= 0; posn-- )
-    {
-   /* write one hex pair for this byte */
-   ub = ( lsrc >> (posn << 3) ) & 0xff;      /* current ubyte */
-   *cp++ = hexstring[(ub>>4) & 0xf];      /* upper nibble  */
-   *cp++ = hexstring[ ub     & 0xf];      /* lower nibble  */
-    }
-
-    *cp = '\0';
-
-    return ret;
-}
-
-/* return number of bytes needed to represent a long - return at least 1 */
-int r_ulong_size ( unsigned long l )
-{
-    if ( l & 0xff000000 )
-   return 4;
-
-    if ( l & 0xff0000 )
-   return 3;
-
-    if ( l & 0xff00 )
-   return 2;
-
-    return 1;
-} 
-
-
 /*!
    \brief Find the colormap associated with a colorplane
    \return SUMA_COLOR_MAP * NULL if error or if cmap is explicit 
