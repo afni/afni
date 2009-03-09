@@ -149,6 +149,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
 "                  version of the entire SUMA package.\n"
 "   [-all_latest_news] Shows the history of latest news.\n"
 "   [-progs] Lists all the programs in the SUMA package.\n"
+"   [-motif_ver] Displays the linked version of Motif.\n"
 "   [-sources] Lists code sources used in parts of SUMA.\n"
 "   [-help_nido] Help message for displayable objects of type NIDO\n"
 "\n"
@@ -464,6 +465,11 @@ int main (int argc,char *argv[])
           SUMA_free(s); s = NULL;
           exit (0);
 		}
+      
+      if (strcmp(argv[kar], "-motif_ver") == 0) {  /* 9 Mar 2009 [rickr] */
+         show_motif_version_string();
+         exit (0);
+      }
       
 		if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
 			fprintf(SUMA_STDERR,"Error %s: Obsolete, use -trace\n", FuncName);
