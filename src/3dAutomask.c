@@ -17,13 +17,14 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAutomask [options] dataset\n"
-             "Input dataset is EPI 3D+time.\n"
+             "Input dataset is EPI 3D+time, or a skull-stripped anatomical.\n"
              "Output dataset is a brain-only mask dataset.\n"
              "Method:\n"
              " + Uses 3dClipLevel algorithm to find clipping level.\n"
              " + Keeps only the largest connected component of the\n"
              "   supra-threshold voxels, after an erosion/dilation step.\n"
-             " + Writes result as a 'fim' type of functional dataset.\n"
+             " + Writes result as a 'fim' type of functional dataset,\n"
+             "   which will be 1 inside the mask and 0 outside the mask.\n"
              "Options:\n"
              "  -prefix ppp = Write mask into dataset with prefix 'ppp'.\n"
              "                 [Default == 'automask']\n"
@@ -56,6 +57,33 @@ int main( int argc , char * argv[] )
              "                 millimeters inferior to that.  hh=130 seems to\n"
              "                 be decent (i.e., for Homo Sapiens brains).\n"
             ) ;
+
+      printf(
+       "--------------------------------------------------------------------\n"
+       "How to make an edge-of-brain mask:\n"
+       "* 3dSkullStrip to create a brain-only dataset; say, Astrip+orig\n"
+       "* 3dAutomask -prefix Amask Astrip+orig\n"
+       "* Create a mask of edge-only voxels via\n"
+       "   3dcalc -a Amask+orig -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k \\\n"
+       "          -expr 'ispositive(a)*amongst(0,b,c,d,e,f,g)' -prefix Aedge\n"
+       "  which will be 1 at all voxels in the brain mask that have a\n"
+       "  nearest neighbor that is NOT in the brain mask.\n"
+       "* cf. '3dcalc -help' DIFFERENTIAL SUBSCRIPTS for information\n"
+       "  on the 'a+i' et cetera inputs used above.\n"
+       "* In regions where the brain mask is 'stair-stepping', then the\n"
+       "  voxels buried inside the corner of the steps probably won't\n"
+       "  show up in this edge mask:\n"
+       "     ...00000000...\n"
+       "     ...aaa00000...\n"
+       "     ...bbbaa000...\n"
+       "     ...bbbbbaa0...\n"
+       "  Only the 'a' voxels are in this edge mask, and the 'b' voxels\n"
+       "  down in the corners won't show up, because they only touch a\n"
+       "  0 voxel on a corner, not face-on.  Depending on your use for\n"
+       "  the edge mask, this effect may or may not be a problem.\n"
+       "--------------------------------------------------------------------\n"
+      ) ;
+
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
