@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , MAR , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
+   "Add SPMG1 to -stim_times repertoire, and update help." ,
+   NULL } ,
+
  { 6 , MAR , 2009 , RWC , "3dDeconvolve" , MINOR , TYPE_NEW_OPT ,
    "Add 'WAV' function (from waver) to -stim_times repertoire." ,
    NULL } ,
