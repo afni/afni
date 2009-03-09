@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.4,  March 4, 2009")
+print("Version 1.0.5,  March 9, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -1067,30 +1067,37 @@ if (runMeta) {
    resList <- vector('list', nROIsG[1]^2)  # memory allocation
 #   for (ii in 1:nROIsG[1]^2) resList[[ii]] <- metacont(rep.int(DF[[1]]+1, 19), zMat[[1]][,ii], zSEMat[[1]][,ii], rep.int(DF[[2]]+1, 18), zMat[[2]][,ii], zSEMat[[2]][,ii]) # meta analysis
    for (ii in 1:nROIsG[1]^2) resList[[ii]] <- rma(c(zMat[[1]][,ii], zMat[[2]][,ii]), c(zSEMat[[1]][,ii]^2, zSEMat[[2]][,ii]^2), 
-       mods=c(rep(0, nSubjs[1]), rep(1, nSubjs[2])), method="REML") # meta analysis: REML is selected here!
+       mods=c(rep(0, nSubjs[1]), rep(1, nSubjs[2])), method="REML") # meta analysis: REML is selected here! Group2-Group1
 
-#   zOutList <- lapply(lapply(resList, summary), function(x) x$random$TE) # extract group z-score
-   zOutList <- lapply(resList, function(x) as.numeric(x$b[2]))
-#   pList <- lapply(lapply(resList, summary), function(x) x$random$p) # extract p
-   pList <- lapply(resList, function(x) as.numeric(x$zp[2])) # extract p
-#   qList <- lapply(resList, function(x) x$QE)  # Q for homogeneity test
+   zOutList <- lapply(resList, function(x) as.numeric(x$b[2])) # extract effect of group2-group1
+   z1OutList <- lapply(resList, function(x) as.numeric(x$b[1])) # extract effect of group1, intercept
+   z2OutList <- mapply("+", zOutList, z1OutList, SIMPLIFY = FALSE)  # effect of group2 = sum of two above
+   pList <- lapply(resList, function(x) as.numeric(x$zp[2])) # extract p for effect of group2-group1
+   p1List <- lapply(resList, function(x) as.numeric(x$zp[1])) # extract p for group1 effect
+      
+   varList <- mapply("^", lapply(resList, function(x) as.numeric(x$se[2])), 2, SIMPLIFY = FALSE) # variance of group2-group1
+   var1List <- mapply("^", lapply(resList, function(x) as.numeric(x$se[1])), 2, SIMPLIFY = FALSE) # variance of group1   
+   # se(grp2)=sqrt(se(grp2-grp1)^2-se(grp1)^2)
+   zval2List <- mapply("/", z2OutList, lapply(mapply("-", varList, var1List, SIMPLIFY = FALSE), sqrt), SIMPLIFY = FALSE) # z-value of group2
+   p2List <- lapply(zval2List, function(x) 2*(1-pnorm(abs(x))))   # p-value of group2
    qList <- lapply(resList, function(x) x$QEp)  # p-value of Q for homogeneity test
    grpR <- matrix(unlist(zOutList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
-#   if(fishConv) grpR <- fisherz2r(grpZ)   # convert z to r
+   grp1R <- matrix(unlist(z1OutList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+   grp2R <- matrix(unlist(z2OutList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
    grpP <- matrix(unlist(pList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+   grp1P <- matrix(unlist(p1List), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+   grp2P <- matrix(unlist(p2List), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
    grpQ <- matrix(unlist(qList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
    
 } else {  # no meta analysis   
    # two-sample t-test: group2 - group1
-#   if(fishConv) zMat <- lapply(zMat, fisherz)
    resList <- vector('list', nROIsG[1]^2)
 # want equal variance assumption, otherwise DF would be different from one test to another!
    for (ii in 1:nROIsG[1]^2) resList[[ii]] <- t.test(zMat[[2]][,ii], zMat[[1]][,ii], paired=FALSE, var.equal=TRUE)  # 2nd-1st
-
+   
    zOutList <- lapply(resList, function(x) as.numeric(x$estimate))
 	pList <- lapply(resList, function(x) as.numeric(x$p.value))
    grpR <- matrix(unlist(zOutList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
-#   grpR <- fisherz2r(grpZ)   # convert z to r
    grpP <- matrix(unlist(pList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))     
 } # if (runMeta)
 
@@ -1099,19 +1106,59 @@ if (runMeta) {
    print("They make sense only when comparing to the two individual networks from the two groups.")
 
    print("-----------------")
-	print("Group path matrix (direction goes from row to column):")
+   if (runMeta) {
+      print("Group1 path matrix (direction goes from row to column):")
+      print(grp1R)
+      print("-----------------")
+      saveRMat <- as.integer(readline("Save Group1 path matrix (0: no; 1: yes)? "))
+         if (saveRMat) {
+            matTName <- as.character(readline("File name prefix for path matrix? "))
+            write.table(grp1R, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
+         }
+      print("-----------------")   
+      print("Group2 path matrix (direction goes from row to column):")
+      print(grp2R)
+      print("-----------------")
+      saveRMat <- as.integer(readline("Save Group2 path matrix (0: no; 1: yes)? "))
+      if (saveRMat) {
+         matTName <- as.character(readline("File name prefix for path matrix? "))
+         write.table(grp2R, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
+      }
+      print("-----------------")
+   }
+	print("Group2-Group1 path matrix (direction goes from row to column):")
    print(grpR)
 	print("-----------------")	
-	saveRMat <- as.integer(readline("Save the above path matrix (0: no; 1: yes)? "))
+	saveRMat <- as.integer(readline("Save Group2-Group1 path matrix (0: no; 1: yes)? "))
       if (saveRMat) {
          matTName <- as.character(readline("File name prefix for path matrix? "))
          write.table(grpR, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
 	print("-----------------")
-	print("Group p matrix (direction goes from row to column):")
+   if (runMeta) {
+      print("Group1 p matrix (direction goes from row to column):")
+      print(grp1P)
+      print("-----------------")
+      savePMat <- as.integer(readline("Save Group1 p matrix (0: no; 1: yes)? "))
+         if (savePMat) {
+            matPName <- as.character(readline("File name prefix for p matrix? "))
+            write.table(grp1P, file=sprintf("%s.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
+         }	
+      print("-----------------")
+      print("Group2 p matrix (direction goes from row to column):")
+      print(grp2P)
+      print("-----------------")
+      savePMat <- as.integer(readline("Save Group2 p matrix (0: no; 1: yes)? "))
+         if (savePMat) {
+            matPName <- as.character(readline("File name prefix for p matrix? "))
+            write.table(grp2P, file=sprintf("%s.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
+         }	
+      print("-----------------")
+   }
+   print("Group2-Group1 p matrix (direction goes from row to column):")
    print(grpP)
 	print("-----------------")
-   savePMat <- as.integer(readline("Save the above p matrix (0: no; 1: yes)? "))
+   savePMat <- as.integer(readline("Save Group2-Group1 p matrix (0: no; 1: yes)? "))
       if (savePMat) {
          matPName <- as.character(readline("File name prefix for p matrix? "))
          write.table(grpP, file=sprintf("%s.1D", matPName), append=FALSE, row.names=TRUE, col.names=TRUE)
@@ -1126,20 +1173,45 @@ if (runMeta) {
    anotherPthG <- TRUE
    while (anotherPthG) {
 						
-   pThreshG <- as.numeric(readline("p-threshold for group analysis (e.g., 0.05)? "))
+   pThreshG <- as.numeric(readline("Two-tailed p-threshold for group analysis (e.g., 0.05)? "))
    surviveR <- as.numeric(grpP<=pThreshG)*grpR   # for plotting
    showSigR <- matrix(mapply(function(x,y) ifelse(x, y, NA), grpP<=pThreshG, grpR), nrow=nROIsG[1], 
       ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
-# surviveP <- as.numeric(grpP<=pThreshG)*grpP
    showSigP <- matrix(mapply(function(x,y) ifelse(x, y, NA), grpP<=pThreshG, grpP), nrow=nROIsG[1], 
       ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
-   if (runMeta) showSigQ <- matrix(mapply(function(x,y) ifelse(x, y, NA), grpQ<=pThreshG, grpQ), nrow=nROIsG[1],
-      ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))   
-   print("Path matrix with insignificant path differences masked with NAs:")
+   if (runMeta) {
+      survive1R <- as.numeric(grp1P<=pThreshG)*grp1R
+      survive2R <- as.numeric(grp2P<=pThreshG)*grp2R
+      showSig1R <- matrix(mapply(function(x,y) ifelse(x, y, NA), grp1P<=pThreshG, grp1R), nrow=nROIsG[1], 
+         ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+      showSig2R <- matrix(mapply(function(x,y) ifelse(x, y, NA), grp2P<=pThreshG, grp2R), nrow=nROIsG[1], 
+         ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+      showSig1P <- matrix(mapply(function(x,y) ifelse(x, y, NA), grp1P<=pThreshG, grp1P), nrow=nROIsG[1], 
+         ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+      showSig2P <- matrix(mapply(function(x,y) ifelse(x, y, NA), grp2P<=pThreshG, grp2P), nrow=nROIsG[1], 
+         ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
+      showSigQ <- matrix(mapply(function(x,y) ifelse(x, y, NA), grpQ<=pThreshG, grpQ), nrow=nROIsG[1],
+         ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))   
+      print("Group1 path matrix with insignificant path masked with NAs:")
+      print(showSig1R)
+      print("-----------------")
+      print("Group2 path matrix with insignificant path masked with NAs:")
+      print(showSig2R)
+      print("-----------------")
+   }
+   print("Group2-Group1 path matrix with insignificant path differences masked with NAs:")
    print(showSigR)
    if (!runMeta) print(sprintf("DFs = %i", round(as.numeric(resList[[1]]$parameter))))
    print("-----------------")
-   print("p matrix with insignificant path differences masked with NAs:")
+   if (runMeta) {
+      print("Group1 p matrix with insignificant path masked with NAs:")
+      print(showSig1P)
+      print("-----------------")
+      print("Group2 p matrix with insignificant path masked with NAs:")
+      print(showSig2P)
+      print("-----------------")
+   }
+   print("Group2-Group1 p matrix with insignificant path differences masked with NAs:")
    print(showSigP)
    print("-----------------")
    if (runMeta) {
@@ -1159,7 +1231,11 @@ if (runMeta) {
       arrowScaleG <- as.numeric(readline("Scale factor for arrows (e.g., 2)? "))
       selfLoop <- as.integer(readline("Show self-loops in the network (0: no; 1: yes)? "))
 	 # if path +, col<-2 (red); if path -, col<-4 (blue)
-   	plotNet(surviveR, selfLoop, surviveR*edgeScaleG, arrowScaleG, 3-sign(surviveR), "Network of differences between 2 groups")
+   	if (runMeta) {
+         plotNet(survive1R, selfLoop, survive1R*edgeScaleG, arrowScaleG, 3-sign(survive1R), "Network of Group1")
+         plotNet(survive2R, selfLoop, survive2R*edgeScaleG, arrowScaleG, 3-sign(survive2R), "Network of Group2")
+      }
+      plotNet(surviveR, selfLoop, surviveR*edgeScaleG, arrowScaleG, 3-sign(surviveR), "Network of Group2-Group1")
    } # if (plotNetG)
   
 anotherPthG <- as.integer(readline("Want to try another p-threshold/plotting set-up for group network (0: no; 1: yes)? "))
