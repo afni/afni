@@ -1016,7 +1016,7 @@ for (ii in 1:nGrp) {  # Fisher tranformation not done since it doesn't seem to m
       print("-----------------")
       pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, "subject path coef matrix")
       print("-----------------")
-      print("Now provide t-statistic files:")
+      print("Now provide t-statistic files in the SAME subject order as path coef's:")
       print("-----------------")   
       pathTList[[ii]] <- readMultiFiles(nSubjs[ii], 2, "subject t-statistic matrix")
       pathSEList[[ii]] <- mapply("/", pathList[[ii]], pathTList[[ii]], SIMPLIFY = FALSE)  # calculate stand. error
