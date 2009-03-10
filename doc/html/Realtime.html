@@ -1,0 +1,745 @@
+<html>
+<body>
+<h2><b>How to Program Realtime AFNI</b></h2>
+
+The <i>AFNI</i> realtime plugin will assemble reconstructed slices
+or volumes into a 3D or 3D+time dataset. It does <i>not</i> do
+image reconstruction itself, but requires an <i>image source</i>.
+This is the documentation on how to write such an image source
+program.
+<hr noshade="noshade" />
+<h2>Sample Program</h2>
+The program <b><tt>rtfeedme.c</tt></b> (part of the <i>AFNI</i>
+source code distribution) will take a pre-existing <i>AFNI</i>
+dataset, take it apart, and transmit it to the realtime plugin for
+reassembly and other processing. This software can be used as a
+starting point for development of a new program.
+<p><b><u>Using rtfeedme with <i>AFNI</i></u></b><br />
+This simulation of realtime acquisition was written largely for
+testing purposes. The steps to use it are:</p>
+<ol>
+<li>Start <i>AFNI</i> with the command<br />
+&nbsp; &nbsp; <tt><b>afni -rt</b></tt><br />
+(the <b><tt>-rt</tt></b> switch enables the realtime plugin).</li>
+<li>Use the <b><tt>Datamode-&gt;Plugins</tt></b> menu to start the
+<b><tt>RT&nbsp;Options</tt></b> plugin, which lets you control how
+various things happen during realtime acquisition.</li>
+<li>Choose an existing dataset (say <tt><b>fred+orig</b></tt>), and
+send it to <i>AFNI</i> with the command<br />
+&nbsp; &nbsp; <tt><b>rfteedme -dt 30 fred+orig</b></tt></li>
+</ol>
+<i>rtfeedme</i> is not compiled by default with the rest of the
+<i>AFNI</i> package; if you have acquired the source code package, then
+you can compile this program with the command &nbsp;
+<b><tt>make&nbsp;rtfeedme</tt></b>&nbsp;.
+<hr noshade="noshade" />
+<h2>Hosts that <i>AFNI</i> Trusts</h2>
+If you want to try using <i>rtfeedme</i> from a different system,
+and send data across the network, the command to do this would
+be<br />
+&nbsp; &nbsp; <b><tt>rfteedme -dt 30 -hostname afnicomputername
+fred+orig</tt></b><br />
+However, <i>AFNI</i> won't accept a TCP/IP connection from just
+anyone.
+<p><i>AFNI</i> checks the incoming IP address of socket connections
+to see if the host is on the "trust list". The default trust list
+is</p>
+<pre>
+   <b>127.0.0.1</b> = localhost
+<b>192.168</b>   = private class B networks (this is a reserved set of
+               addresses that should not be visible to the Internet)
+</pre>
+You can add to this list by defining the environment variable as in
+the example below (before starting <i>AFNI</i>):
+<pre>
+<b>  setenv AFNI_TRUSTHOST 123.45.67
+</b>
+</pre>
+This means that any IP address starting with the above string will
+be acceptable. If you want to add more than one possibility, then
+you can also use environment variables
+<b><tt>AFNI_TRUSTHOST_1</tt></b>, <b><tt>AFNI_TRUSTHOST_2</tt></b>,
+up to <b><tt>AFNI_TRUSTHOST_99</tt></b>. (That should be enough -
+how trusting do you really want to be?) You can also use hostnames
+(but not network names) in a <b><tt>AFNI_TRUSTHOST</tt></b>
+environment variable, but the IP address method is surer to work.
+<p>A number of other environment variables can control how the
+realtime plugin operates. See the text file <a href=
+"http://afni.nimh.nih.gov/pub/dist/src/README.environment">README.environment</a> for the
+details.</p>
+<hr noshade="noshade" />
+<h2>Structure of a Realtime Image Source</h2>
+There are several steps that an image source must take to get the
+communications with <i>AFNI</i> established:
+<ol>
+<li><font color="#BB0000"><b>Open the Control
+Channel</b></font><br />
+The only information that is sent down the control channel is the
+description of how the actual data will be transmitted (i.e.,
+describe the data channel). After this is done, the control channel
+should be closed by the image source.</li>
+<li><font color="#BB0000"><b>Open the Data Channel</b></font><br />
+This is the communication pathway that will be used to send image
+data and metadata from the image source program to <i>AFNI</i>.
+<ul>
+<li>N.B.: The control and data channels are one-way. They only send
+bytes to <i>AFNI</i>; no data is transmitted backwards to the image
+source. (However, the image source should detect if the control
+channel or data channel is closed abnormally, to be able to recover
+from the unlikely event of an <i>AFNI</i> crash.)</li>
+</ul>
+</li>
+<li><font color="#BB0000"><b>Send Image Metadata</b></font><br />
+This information describes the format of the images that are about
+to be sent.</li>
+<li><font color="#BB0000"><b>Send Image Data</b></font><br />
+This is done as much as desired. When the data channel is broken,
+<i>AFNI</i> will write the new dataset to disk.
+<ul>
+<li>After the image metadata is sent, <i>AFNI</i> reads data in
+chunks of a whole image (2D or 3D, depending on
+<tt>ACQUISITION_TYPE</tt>). If the image source program sends only
+part of an image, then <i>AFNI</i> will freeze, waiting for the
+rest of that image's data bytes. The only exception this rule is if
+the image source does something to close the data channel (e.g.,
+crashes). Note that if the image source computer itself crashes,
+<i>AFNI</i> may not be notified that the socket has gone bad (this
+is a flaw in TCP/IP); in this case <i>AFNI</i> may hang forever.
+(I've never seen this happen, so don't obsess about it.)</li>
+<li><b>[11 Dec 2002]</b> It used to be true that the only way for
+the image source to finalize the dataset(s) under construction
+inside <i>AFNI</i> was to close the data channel. To send another
+dataset would then require reopening the control channel, etc.
+However, it is now possible to send a message down the data channel
+that will close the current dataset(s) and leave the data channel
+open. After that message is sent, the next data sent should be a
+new set of image metadata, followed by the images for the new
+datasets.
+<p>The "terminate dataset" message must be sent as a full-size
+image of the size that <i>AFNI</i> is expecting. For example, if
+you are sending 64x64 2D slices of shorts, <i>AFNI</i> reads image
+data in chunks of 8192 (64x64x2) bytes. The first 30 bytes of this
+data are used as the termination message; the rest of this data
+will be ignored. The message string is (without the quotes):</p>
+<blockquote>"<b>Et Earello Endorenna utulien!!</b>"</blockquote>
+This string is defined by the macro <tt>COMMAND_MARKER</tt> in
+plug_realtime.c and rtfeedme.c.
+<ul>
+<li>It is my opinion that this sequence of bytes is unlikely to
+occur in actual image data. If this supposition proves incorrect,
+please let me know by writing out the details in the margin of a
+US$100 bill (or several, if you need the space) and mailing it (or
+them) to me.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<hr noshade="noshade" />
+<h2>Communicating with <i>AFNI</i></h2>
+<font color="#BB0000"><u><b>IOCHANs</b></u></font><br />
+An external program talks to the realtime plugin using an abstract
+communication device called an "IOCHAN". An IOCHAN can either be a
+TCP/IP socket or a shared memory segment; the former would be used
+for communicating between computers and the latter for
+communicating within a single system. These routines are
+implemented in the files <tt>thd_iochan.[ch]</tt>, which are
+compiled into <tt>libmri.a</tt>.
+<p>An IOCHAN is opened with the function <tt>iochan_init</tt>,
+which takes two arguments. The first argument is a string that
+specifies what kind of channel is desired (TCP/IP or shared
+memory), and also specifies other information about the channel.
+The second argument is the string <tt>"w"</tt> for an IOCHAN that
+is intended to be mostly written by the caller, or is the string
+<tt>"r"</tt> for one that is intended to be mostly read by the
+caller. An image source program should always use <tt>"w"</tt>,
+since it is sending data to <i>AFNI</i>.</p>
+<p>The format of an IOCHAN specification for a TCP/IP socket is:
+<tt>"tcp:hostname:portnumber"</tt>, where <tt>hostname</tt> is the
+computer name (or IP address in dot format) with which you wish to
+communicate, and <tt>portnumber</tt> is the TCP/IP "port number"
+that should be opened. For example, the realtime plugin control
+port number is 7954, so that to open a socket IOCHAN to the
+realtime plugin running on the current host, the call might be</p>
+<pre>
+  IOCHAN * ioc ;
+  ioc = iochan_init( "tcp:localhost:7954" , "w" ) ;
+  if( ioc == NULL ) fprintf(stderr,"** Failure to open control channel\n");
+</pre>
+In this example, the IOCHAN struct pointed to by <tt>ioc</tt> will
+have a socket that is created using the Unix system call
+<tt>connect</tt>, which will reach out to the specified host to
+make the connection. If <tt>"r"</tt> were used for the second
+argument, the program would use the Unix system call
+<tt>accept</tt> to wait for another program to try to connect.
+<p>The format of an IOCHAN specification for a shared memory
+segment is: <tt>"shm:name:size"</tt>, where <tt>name</tt> is a
+symbolic name to be attached to the memory segment (used to
+distinguish it from other shared memory segments) and <tt>size</tt>
+is the size of the memory segment in bytes. This size determines
+the amount of data that can be transferred without blocking, and
+should be at least twice the size of a single image that will be
+transferred at one time. For example:</p>
+<pre>
+  IOCHAN * ioc ;
+  ioc = iochan_init( "shm:Elvis:2M" , "w" ) ;
+  if( ioc == NULL ) fprintf(stderr,"** Failure to open control channel\n");
+</pre>
+In this example, <tt>size = 2M</tt> means a 2 megabyte buffer is
+used. If the "<tt>M</tt>" were left off, it would mean a 2 byte
+buffer, which would be rather useless. (You can also use the suffix
+"<tt>K</tt>" to indicate the buffer size in Kilobytes.)
+<blockquote><b><tt>shm</tt> Note #1</b>: All operating systems that
+I know of put a limit on the size of a shared memory segment. On
+some systems, this limit is fairly small. You may have to increase
+this limit in order to use <tt>shm:</tt> IOCHANs as large as the
+one in the example above. In all cases, changing this limit can
+only be done by the superuser, and depends on the Unix platform you
+are using.
+<ul>
+<li>On Linux, the "shmmax" kernel parameter sets the size of the
+largest shared memory segment. You can examine this value by the
+command
+<pre>
+  cat /proc/sys/kernel/shmmax
+</pre></li>
+<li>On Solaris, the command
+<pre>
+  /usr/bin/sysdef | grep -i SHM
+</pre>
+will show the shared memory parameters. They can be altered by
+editing the file <tt>/etc/system</tt> and rebooting, but I don't
+know the details.</li>
+</ul>
+<p><b><tt>shm</tt> Note #2</b>: Another operating system dependent
+issue is whether the function call that deletes a shared memory
+segment destroys it immediately, or only marks it for destruction,
+with the actual destruction only occurring when all other processes
+detach from the segment. This makes a difference in <i>AFNI</i>,
+since the normal way for a program to close a <tt>shm:</tt> IOCHAN
+is to delete the shared memory segment. However, if this causes the
+immediate destruction of the segment, then the other process
+attached to the IOCHAN will print out some error messages,
+complaining that the shared memory buffer has gone bad.</p>
+<p>To avoid such messages, set the environment variable
+<tt>IOCHAN_DELAY_RMID</tt> to the string <tt>YES</tt>. Then the
+<tt>shm:</tt> IOCHAN memory buffer will only be deleted when the
+last process detaches from it.</p>
+<ul>
+<li>You are probably wondering why the default action is to delete
+the shared memory segment immediately. The reason is that shared
+memory segments are perfectly capable of living on with no
+processes attached to them. Thus, if the image source <b>and</b>
+<i>AFNI</i> both crash, you'd be left with a chunk of your memory
+being locked up. Therefore, my original policy was to delete the
+shared memory segment as soon as it wasn't needed. However, this
+can lead to annoying error messages. Thus, the introduction of
+<tt>IOCHAN_DELAY_RMID</tt>. (BTW, <tt>RMID</tt> is the
+<tt>shmctl()</tt> function code for removing a shared memory
+segment.)</li>
+</ul>
+<p>For <i>AFNI</i>, you can set <tt>IOCHAN_DELAY_RMID</tt> in your
+<tt>.afnirc</tt> file (cf. <a href=
+"http://afni.nimh.nih.gov/pub/dist/src/README.environment">README.environment</a>).
+However, this won't affect the image source program, so you should
+probably set it explicitly in your <tt>.cshrc</tt> file (or
+equivalent), if needed.</p>
+<p>On most Unix systems, the <tt>ipcs -m</tt> command will show you
+the shared memory segments that currently exist. If something is
+left dangling (with 0 processes attached) from an <i>AFNI</i> run,
+you might be able to delete it with the <tt>ipcrm</tt> command. But
+be careful - you don't want to delete a shared memory segment from
+some other program! (For example, KDE uses shared memory to
+communicate.)</p>
+<p>If you are writing your own image source program, you can look
+at <tt>rtfeedme.c</tt> to see how to ensure that IOCHANs are closed
+when the program exits, even if it exits because of a crash
+condition (e.g., segfault). This goal is accomplished by creating a
+signal handler to catch fatal errors; the signal handler function
+then closes down any open IOCHANs before it actually exits. This
+technique is a way to prevent dangling shared memory segments.
+(Chicken soup might help, too.)</p>
+</blockquote>
+<p>A TCP/IP IOCHAN can be used bi-directionally, once both
+processes have attached to it. This is not true of the shared
+memory IOCHAN shown above: only the writing process can write to
+it, and only the reading process can read from it. To avoid this
+difficulty, a second form of shared memory IOCHAN can be created
+with a specification of the form <tt>"shm:name:size1+size2"</tt>.
+Here, <tt>size1</tt> is the size of the buffer that will be used by
+the <tt>"w"</tt> process to write into and by the <tt>"r"</tt>
+process to read from; <tt>size2</tt> is the size of the buffer that
+will be used by the <tt>"r"</tt> process to write into and by the
+<tt>"w"</tt> process to read from. These sizes can be different,
+which might be useful if more data is expected to flow one way than
+another.</p>
+<ul>
+<li>The IOCHANs used in the realtime plugin need only be
+uni-directional. The image source program sends data to
+<i>AFNI</i>, but <i>AFNI</i> never sends data back.</li>
+</ul>
+After an IOCHAN is created, it is not necessarily ready to be used.
+Until the other process (<i>AFNI</i> in this case) attaches to the
+IOCHAN, no data can be sent. A number of functions are available to
+check if an IOCHAN is in a usable state. They are documented in the
+comments at the head of <a href=
+"http://afni.nimh.nih.gov/pub/dist/src/thd_iochan.c"><tt>thd_iochan.c</tt></a>, and examples of their
+use can be found in <a href=
+"http://afni.nimh.nih.gov/pub/dist/src/rtfeedme.c"><tt>rtfeedme.c</tt></a>.
+<p><font color="#BB0000"><u><b>The Structure of
+<tt>rtfeedme.c</tt></b></u></font><br />
+This program initiates the conversation with <i>AFNI</i> with the
+function <tt>AFNI_start_io</tt>, which will establish the control
+IOCHAN, send the control information down it, close the control
+IOCHAN, and then open the data IOCHAN. After that is accomplished,
+the main program actually sends the image metadata and then finally
+the images themselves.</p>
+<p><tt>AFNI_start_io</tt> is designed to allow its caller to
+perform other functions while it is establishing the communications
+with <i>AFNI</i>. In <tt>rtfeedme.c</tt>, the caller
+(<tt>main</tt>) doesn't do anything, but just calls
+<tt>AFNI_start_io</tt> repeatedly until it signals that it is
+ready. In the MCW actual realtime image source program,
+<tt>AFNI_start_io</tt> is called once every time an echo-planar
+image is acquired. When the data IOCHAN is finally opened, then the
+stored images are sent, and after that every time a new image is
+acquired, it is sent immediately. <tt>AFNI_start_io</tt> moves
+through 5 modes, labeled by symbolic constants:</p>
+<pre>
+  #define AFNI_OPEN_CONTROL_MODE   1  /* 1st time thru: open control channel */
+  #define AFNI_WAIT_CONTROL_MODE   2  /* waiting for AFNI to open control    */
+  #define AFNI_OPEN_DATA_MODE      3  /* now can open data channel to AFNI   */
+  #define AFNI_CATCHUP_MODE        4  /* waiting for AFNI to open data       */
+  #define AFNI_CONTINUE_MODE       5  /* at last! data channel is ready!     */
+</pre>
+The mode that the routine is in at any moment is stored in the
+global variable <tt>AFNI_mode</tt>, which should be set to
+<tt>AFNI_OPEN_CONTROL_MODE</tt> before the first call to
+<tt>AFNI_start_io</tt>. The sequence of events is outlined below
+(you should also read <tt>rtfeedme.c</tt> to see how this works):
+<ul>
+<li>When the control IOCHAN is successfully opened, the mode
+switches to <tt>AFNI_WAIT_CONTROL_MODE</tt>.</li>
+<li>In this situation, <tt>AFNI_start_io</tt> simply checks if the
+realtime plugin has connected to the control socket. If not,
+<tt>AFNI_start_io</tt> returns without changing its mode. The
+caller program can then do whatever it wants (in
+<tt>rtfeedme.c</tt>, that is exactly nothing), repeatedly calling
+<tt>AFNI_start_io</tt> to have it check up on the communication
+status.</li>
+<li>When the plugin connects, <tt>AFNI_start_io</tt> then sends the
+necessary control information (more on this later), waits for it to
+be received, then closes the control IOCHAN, opens the data IOCHAN,
+and enters <tt>AFNI_OPEN_DATA_MODE</tt>.</li>
+<li>It now waits for the the realtime plugin to open the data
+IOCHAN itself. When this is done, the mode switches to
+<tt>AFNI_CATCHUP_MODE</tt>.</li>
+<li>In <tt>rtfeedme.c</tt>, nothing happens in this mode; in a real
+image source program, this is where previously acquired images
+could now be sent to <i>AFNI</i> (thus the name "catchup"). The
+mode now switches to <tt>AFNI_CONTINUE_MODE</tt>, indicating that
+the data IOCHAN is ready.</li>
+</ul>
+At this point, <tt>AFNI_start_io</tt> is finished, and the actual
+transmission of image information is the responsibility of the
+caller.
+<p><font color="#BB0000"><u><b>Realtime Control
+IOCHAN</b></u></font><br />
+When not acquiring data, the realtime plugin is listening on socket
+7954, so the image source program starts talking to <i>AFNI</i>
+with the code (taken from <tt>rtfeedme.c</tt>):</p>
+<pre>
+ #define AFNI_CONTROL_PORT 7954
+    char AFNI_iochan[128] , AFNI_host[128] ;
+    IOCHAN * AFNI_ioc ;
+
+    sprintf( AFNI_iochan , "tcp:%s:%d" , AFNI_host , AFNI_CONTROL_PORT ) ;
+    AFNI_ioc = iochan_init( AFNI_iochan , "w" ) ;
+</pre>
+At this point, the image source must wait until the realtime plugin
+connects to the newly opened socket, as described above.
+<p>When the control IOCHAN is ready, the control information should
+be sent. The control information is a single C NUL-terminated
+string, which will contain 1 or 2 lines of data. The first line of
+data is just the string that specifies the data IOCHAN (which can
+be of <tt>shm:</tt> or <tt>tcp:</tt> type).</p>
+<p>The second line of control data, if present, specifies a command
+that realtime plugin should execute to obtain the image metadata.
+If there is no second line of data (that is, there is no
+<tt>'\n'</tt> character in the control string), then all the image
+metadata must come from the image source program itself. Otherwise,
+the realtime plugin will execute the metadata command in a child
+process; it will capture the standard output of this command and
+use that as (most of) the image metadata.</p>
+<p>The reason for this provision is that some aspects of the images
+may not be known when the image source program starts. For example,
+at the <b>old MCW 3 Tesla Bruker system</b>, the image acquisition program does not
+know the orientation or dimensions of the data. This information
+must be obtained by querying the MRI console software after the
+acquisition actually starts. The program <a href=
+"http://afni.nimh.nih.gov/pub/dist/src/3T_toafni.c"><tt>3T_toafni.c</tt></a> is the medium by which
+this query is made. The response from the MRI console is parsed and
+converted to <i>AFNI</i> image metadata, and written to
+<tt>stdout</tt>. Thus, in the MCW realtime acquisition system, the
+control information looks something like this:</p>
+<pre>
+  "shm:Elvis:1M\n3T_toafni"
+</pre>
+Since <tt>rtfeedme.c</tt> will supply all the image metadata itself
+through the data IOCHAN, no metadata command is used in this sample
+program.
+<p><font color="#BB0000"><u><b>Data IOCHAN</b></u></font><br />
+When the data IOCHAN is ready, then the image source program must
+send <i>some</i> image metadata as the first transmission. (The
+details of the image metadata are discussed in the next section.)
+If an external metadata command is used to supply this information,
+then only one metadata command need be supplied. In the MCW 3 Tesla
+realtime system, this command is generated by</p>
+<pre>
+  char mdata[128] ;
+  sprintf( mdata , "DATUM short\nXYMATRIX %d %d\n" , nx,ny ) ;
+</pre>
+where <tt>nx</tt> and <tt>ny</tt> define the array dimensions of
+the reconstructed slices. (This information is not available from
+the MRI console, since the reconstruction matrix need not be the
+same as the <i>k</i>-space acquisition matrix.) After the
+NUL-terminated metadata command string, all further data that comes
+down the data IOCHAN is taken to be raw image slice (or volume)
+data.
+<hr noshade="noshade" />
+<h2>Image Metadata Commands</h2>
+<i>AFNI</i> needs some information about the acquisition in order
+to properly construct a dataset from the images. This information
+is sent to <i>AFNI</i> as a series of command strings. A sample set
+of command strings is given below:
+[Also see the file
+<a href="http://afni.nimh.nih.gov/pub/dist/src/README.realtime">README.realtime</a>
+for full details on the Realtime plugin's metadata (AKA prolog or header).]
+<pre>
+<b> ACQUISITION_TYPE 2D+zt
+   TR 5.0
+   XYFOV 240.0 240.0 112.0
+   ZNUM 16
+   XYZAXES S-I A-P L-R
+   DATUM short
+   XYMATRIX 64 64
+</b>
+</pre>
+
+The commands can be given in any order. Each command takes up a
+single line of input (i.e., commands are separated by the '\n'
+character in the input buffer, and the whole set of commands is
+terminated by the usual '\0'). The entire set of commands must be
+less than 32 Kbytes long (the usual length is about 200
+characters). Each command line has one or more arguments. The full
+list of possible command strings and their arguments is given
+below.
+<ul>
+<li><b><tt>ACQUISITION_TYPE arg</tt></b><br />
+This command tells <i>AFNI</i> how the image data will be
+formatted:
+<pre>
+    arg = 2D+z   -&gt; a single 3D volume, one slice at a time
+          2D+zt  -&gt; multiple 3D volumes, one slice at a time [the default]
+          3D     -&gt; a single 3D volume, all at once
+          3D+t   -&gt; multiple 3D volumes, one full volume at a time
+</pre>
+<b>--</b> This command is not required, since there is a
+default.</li>
+<li><b><tt>NAME arg</tt></b><br />
+This command tells <i>AFNI</i> what name to use for the new
+dataset.<br />
+<b>--</b> It is not required, since <i>AFNI</i> will generate a
+name if none is given (but you may not like that name).</li>
+<li><b><tt>TR arg</tt></b><br />
+This command tells <i>AFNI</i> what the imaging TR is, in seconds.
+The default value, if this command is not given, is 1.0.<br />
+<b>--</b> It is recommended that this command be used for
+multi-brick datasets, so that the header information is correct.
+But this command is not required.</li>
+<li><b><tt>ZDELTA dz</tt></b><br />
+This command tells <i>AFNI</i> the slice thickness, in mm.<br />
+<b>--</b> This command, or <b><tt>XYFOV</tt></b> with 'zz'&gt;0,
+MUST be used, so that the correct size of the dataset along the
+z-axis size known.</li>
+<li><b><tt>XYFOV xx yy [zz]</tt></b><br />
+This command tells <i>AFNI</i> the size of the images, in mm. The
+first value ('xx') is the x-axis dimension, and the second value
+('yy') is the y-axis dimension. If the third value ('zz') is
+present, then it is the z-axis dimension (slab thickness of all
+slices).<br />
+<b>--</b> This command MUST be used to at least to give the sizes
+of the dataset along the x- and y-axes. If 'zz' is not given, then
+the <b><tt>ZDELTA</tt></b> command is also required.<br />
+<b>--</b> If 'yy'==0, then it is taken to be the same as 'xx'
+(square images).</li>
+<li><b><tt>ZGAP gg</tt></b><br />
+This command tells <i>AFNI</i> to add 'gg' mm to the slice
+thickness computed from the 'zz' parameter of
+<b><tt>XYFOV</tt></b>. If 'zz' was given in <b><tt>XYFOV</tt></b>,
+then the slice thickness is computed 'zz/znum+gg', where 'znum' is
+from <b><tt>XYMATRIX</tt></b> or <b><tt>ZNUM</tt></b>.
+<ul>
+<li>If the slice thickness is given explicitly via
+<b><tt>ZDELTA</tt></b>, then the value of 'gg' has no effect.</li>
+<li>This option added 18 Dec 2002, per the request of Larry Frank
+of UCSD.</li>
+</ul>
+<b>--</b> This command is optional; the default 'gg' is zero.</li>
+<li><b><tt>ZFIRST zz[d]</tt></b><br />
+Specifies the location of the first slice, along the z-axis, in mm.
+The value 'zz' gives the offset. The optional code 'd' gives the
+direction that distance 'zz' applies; if present, the 'd' character
+must immediately follow the 'zz' value, as in '50I'. The values
+allowed for the single character 'd' are
+<pre>
+    I = inferior
+    S = superior
+    A = anterior
+    P = posterior
+    R = right
+    L = left
+</pre>
+<b>--</b> This command is optional - if not given, then the volume
+will be centered about z=0 (which is also the default for the x-
+and y-axes). If the direction code 'd' is given, then it must agree
+with the sense of the z-axis given in the <b><tt>XYZAXES</tt></b>
+command (e.g., if z-axis is I-S, the 'd' must be 'I' or 'S'). When
+more than one dataset is being acquired in a scanning session, then
+getting <b><tt>ZFIRST</tt></b> correct is important so that the
+<i>AFNI</i> datasets will be properly positioned relative to each
+other (e.g., so you can overlay SPGR and EPI data correctly).</li>
+<li><b><tt>XYZFIRST xx[d] yy[d] zz[d]</tt></b><br />
+This new option [11 Dec 2002] lets you set the offsets of the
+dataset volume on all 3 axes. It is very similar to
+<b><tt>ZFIRST</tt></b> above, but you give values for all axes. For
+example:
+<pre>
+<b> XYZAXES  S-I A-P L-R
+   XYZFIRST 30 20A 50R
+</b>
+</pre>
+sets
+<ul>
+<li>the x-origin to 30S (since no direction code was given for
+x),</li>
+<li>the y-origin to 20A, and</li>
+<li>the z-origin to 50R.</li>
+<li>Since the z-axis is L-R and starts in the R hemisphere, these
+sagittal slices are all in the R hemisphere.</li>
+<li>If the 'R' code had been left off the '50R', then the z-origin
+would have been set to 50L. Note that the origin is the CENTER of
+the first voxel.</li>
+</ul>
+<b>--</b> This command is optional. If it is given along with
+<b><tt>ZFIRST</tt></b> (why?), then whichever one comes last wins
+(for the z-axis).</li>
+<li><b><tt>XYZOFF xoff yoff zoff</tt></b><br />
+This option is a different way of specifying the offsets of the
+dataset volume on all 3 axes. The default (if neither
+<b><tt>XYZFIRST</tt></b> nor <b><tt>XYZOFF</tt></b> is given) is to
+center the volume about the (x,y,z)=(0,0,0) point.
+<ul>
+<li><u>Centering example</u>: If the x-axis is 240 mm and 64 pixels
+across, the default value of the center of the first voxel is
+x=0.5*(64-1)*(240/64)=118.125. The direction of this offset is the
+same as the first initial of 'xcode' from <b><tt>XYZAXES</tt></b>
+(e.g., if 'xcode' is 'I-S', this offset is in the 'I'
+direction).</li>
+<li>In the case of <b><tt>XYZFIRST</tt></b>, the effect is to
+specify the center (x,y,z) of the first voxel explicitly.</li>
+<li>In the case of <b><tt>XYZOFF</tt></b>, the effect is to
+<i>shift</i> the center of the first voxel from the default
+location by the amounts (xoff,yoff,zoff); in the example above,
+'xoff' would be added to 118.125 to determine the x-center of the
+first voxel.</li>
+<li>This option added 18 Dec 2002, per the request of Larry Frank
+of UCSD.</li>
+</ul>
+<b>--</b> This command is optional.</li>
+<li><b><tt>XYMATRIX nx ny [nz]</tt></b><br />
+Specifies the size of the images to come, in pixels:
+<pre>
+    nx = number of pixels along x-axis
+    ny = number of pixels along y-axis
+    nz = number of pixels along z-axis (optional here)
+</pre>
+<b>--</b> This command is required. If 'nz' is not given here, then
+it must be given using the <b><tt>ZNUM</tt></b> command.</li>
+<li><b><tt>ZNUM nz</tt></b><br />
+Specifies the number of pixels along the z-axis (slice
+direction).<br />
+<b>--</b> This value must be given, either with
+<b><tt>XYMATRIX</tt></b> or <b><tt>ZNUM</tt></b>.<br /></li>
+<li><b><tt>DATUM typ</tt></b><br />
+Specifies the type of data in the images:
+<pre>
+    typ = short   -&gt; 16 bit signed integers [the default]
+          float   -&gt; 32 bit IEEE floats
+          byte    -&gt; 8 bit unsigned integers
+          complex -&gt; 64 bit IEEE complex values (real/imag pairs)
+</pre>
+<b>--</b> This command is not required, as long as the data are
+really shorts. The amount of data read for each image will be
+determined by this command, the <b><tt>XYMATRIX</tt></b>
+dimensions, and the <b><tt>ACQUISITION_TYPE</tt></b> (whether 2D or
+3D data is being sent).</li>
+<li><b><tt>ZORDER arg</tt></b><br />
+Specifies the order in which the slices will be read.
+<pre>
+    arg = alt -&gt; alternating order (e.g., slices are presented
+                   to AFNI in order 1 3 5 7 9 2 4 6 8, when nz=9).
+        = seq -&gt; sequential order (e.g., slices are presented
+                   to AFNI in order 1 2 3 4 5 6 7 8 9, when nz=9).
+</pre>
+<b>--</b> This command is not required, since 'alt' is the default.
+It will be ignored if a 3D <b><tt>ACQUISITION_TYPE</tt></b> is
+used.</li>
+<li><b><tt>XYZAXES xcode ycode zcode</tt></b><br />
+Specifies the orientation of the 3D volume data being sent to
+<i>AFNI</i>. Each of the 3 codes specifies one axis orientation,
+along which the corresponding pixel coordinate increases. The
+possible codes are:
+<pre>
+    I-S (or IS) -&gt; inferior-to-superior
+    S-I (or SI) -&gt; superior-to-inferior
+    A-P (or AP) -&gt; anterior-to-posterior
+    P-A (or PA) -&gt; posterior-to-anterior
+    R-L (or RL) -&gt; right-to-left
+    L-R (or LR) -&gt; left-to-right
+</pre>
+For example, "<b><tt>XYZAXES S-I A-P L-R</tt></b>" specifies a
+sagittal set of slices, with the slice acquisition order being
+left-to-right. (In this example, if <b><tt>ZFIRST</tt></b> is used,
+the 'd' code in that command must be either 'L' or 'R'.) The 3
+different axes codes must point in different spatial directions
+(e.g., you can't say "<b><tt>XYZAXES S-I A-P I-S</tt></b>").<br />
+<b>--</b> This command is required, so that <i>AFNI</i> knows the
+orientation of the slices in space.</li>
+<li><b><tt>NUM_CHAN nc</tt></b><br />
+Specifies the number of independent image "channels" that will be
+sent to <i>AFNI</i>. Each channel goes into a separate dataset.
+Channel images are interleaved; for example, if nc=3, then
+<pre>
+    image #1 -&gt; datataset #1
+    image #2 -&gt; datataset #2
+    image #3 -&gt; datataset #3
+    image #4 -&gt; datataset #1
+    image #5 -&gt; datataset #2
+<i>et cetera</i>
+</pre>
+<ul>
+<li>For 2D acquisitions, each slice is one "image" in the list
+above.</li>
+<li>For 3D acquisitions, each volume is one "image".</li>
+</ul>
+All channels must have the same datum type, the same xyz
+dimensions, and so on.<br />
+<b>--</b> This command is optional, since the default value of nc
+is 1.</li>
+<li><b><tt>DRIVE_AFNI command</tt></b><br />
+You can also pass commands to control <i>AFNI</i> (e.g., open
+windows) in the image prolog. See <a href=
+"http://afni.nimh.nih.gov/pub/dist/src/README.driver">README.driver</a> for the list of
+command strings. More than one <b><tt>DRIVE_AFNI</tt></b> command
+can be used in the realtime prolog. Each command is executed in
+sequence. For example, if you wish to put new datasets into a new
+directory called "aaa", you could pass the commands
+<pre>
+<b> DRIVE_AFNI SYSTEM mkdir aaa
+   DRIVE_AFNI CHDIR aaa
+</b>
+</pre>
+<b>--</b> This command is optional.</li>
+<li><b><tt>NOTE text to attach to dataset</tt></b><br />
+This command lets you attach text notes to the dataset(s) being
+created by the realtime plugin. All the text after
+"<b><tt>NOTE</tt></b> ", up to (not including) the next '\n', will
+be attached as a text note. More than one <b><tt>NOTE</tt></b> can
+be given. If you want to send a multiline note, then you have to
+convert the '\n' characters in the note text to '\a' or '\f'
+characters (ASCII 7 and 12 (decimal), respectively). Any '\a' or
+'\f' characters in the text will be converted to '\n' characters
+before the note is processed.<br />
+<b>--</b> This command is optional.</li>
+</ul>
+<!--=========================================================================-->
+<hr noshade="noshade" />
+<h2>Recording Results of <i>rtfeedme</i>+<i>AFNI</i> - April
+2002</h2>
+<i>AFNI</i> now has the ability to record the sequence of images as
+they are computed and displayed by the realtime plugin.  (This option is
+distinct from saving the acquired images themselves; I'm referring to
+saving the images displayed in an AFNI viewer window.)
+The following sequence of operations would be needed:
+<ol>
+<li>You need a 3D+time <i>AFNI</i> dataset to simulate sending
+realtime data to the program.</li>
+<li>Open 2 terminal windows, and cd to that directory in both of
+them.</li>
+<li>Start <i>AFNI</i> with realtime I/O enabled in one of the
+terminals with the command "<tt>afni -rt</tt>".</li>
+<li>Now you have to set for realtime analysis and display. To start
+with, open the Axial Image and Graph windows. In the Graph window,
+use the FIM menu (lower right corner) to "Pick Ideal", and select
+some 1D file as the ideal. This should then graph on top of the
+central sub-graph.
+<ul>
+<li>Next, in the main <i>AFNI</i> control window, click on "Define
+Datamode", then on the "Plugins" menu (lower right corner), and
+then on "RT Options". This opens the window that controls the
+realtime acquisition options. You want to set "Function" to "FIM",
+then press "Run+Close" to have that information saved in
+<i>AFNI</i>.</li>
+<li>The function type must be set to "FIM" and the 1D ideal chosen
+before the images start to arrive from <i>rtfeedme</i>. Otherwise
+the correlational function analysis will not be performed.</li>
+<li>Next, you want to turn on image recording in the Image window.
+To do this, expand the size of the Image window until you can
+clearly see all the buttons at the bottom. To the right of the
+"Done" button is "Rec". From that menu, choose "Stay On". This
+means that each new image that is displayed will be recorded into a
+special image viewer. These can then be saved later.</li>
+</ul>
+</li>
+<li>You are now ready to send the data into <i>AFNI</i> for
+realtime analysis. The command to send the dataset to <i>AFNI</i>
+via the realtime socket is
+<pre>
+<b>rtfeedme -dt 300 dataset+orig</b>
+</pre>
+This will feed the dataset, 300 ms per slice, to <i>AFNI</i>. Since
+you selected FIM on the RT Options plugin, you will get a sequence
+of colored overlays displayed in the Image window. Since Record is
+turned on, you will also get a new image window popping up that
+will contain the recorded images. Wait until the data is all sent
+to <i>AFNI</i>.</li>
+<li>You can now save the recorded images to disk. To choose the
+format, right click on the "Save:bkg" button in the Record window
+(not the original Image window). You should see at least
+"Save.ppm". Choose that and press "Set" - then the button should
+now say "Save.ppm". Press this button with the left mouse click
+now. You get 3 dialog boxes in order, that ask for "Filename
+prefix", "Slice from", and "Slice to". This will let you save the
+images to external files named fred.0000.ppm, et cetera.
+<ul>
+<li>If program <i>mpeg_encode</i> is in your path, then you can
+also write a sequence of images to an MPEG-1 movie file. You can
+compile <i>mpeg_encode</i> from the <i>AFNI</i> source distribution
+with the command "<tt>make mpeg_encode</tt>".</li>
+<li>Similarly, if the program <i>gifsicle</i> is in your path, then
+you can also write a sequence of images to an animated GIF file.
+You can compile <i>gifsicle</i> from the <i>AFNI</i> source
+distribution with the command "<tt>make gifsicle</tt>".</li>
+<li>If the <i>netpbm</i> package of programs is compiled on your
+system and in your path, then <i>AFNI</i> can also use these to
+convert individual images in the viewer to TIFF, GIF, etc., files.
+However, <i>netpbm</i> is not included with <i>AFNI</i>.</li>
+</ul>
+</li>
+</ol>
+A much simpler way would be to use a video camera or some software tool
+to record the screen as you run the acquisition.
+
+</body>
+</html>
