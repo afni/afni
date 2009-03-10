@@ -3,11 +3,6 @@
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
-#define NTYPE_SPHERE 1
-#define NTYPE_RECT   2
-#define NTYPE_RHDD   3
-#define NTYPE_TOHD   4
-
 /*-------------------------------------------------------------------*/
 
 #undef  FREEIF
