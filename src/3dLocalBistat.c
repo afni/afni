@@ -49,6 +49,7 @@ int main( int argc , char *argv[] )
       "                    x-direction, rather than plus-and-minus a mm.\n"
       "                    Mutatis mutandum for negative 'b' and/or 'c'.\n"
       "               * 'RHDD(r)' is a rhombic dodecahedron of 'radius' r.\n"
+      "               * 'TOHD(r)' is a truncated octahedron of 'radius' r.\n"
       "\n"
       " -stat sss   = Compute the statistic named 'sss' on the values\n"
       "               extracted from the region around each voxel:\n"
@@ -59,14 +60,15 @@ int main( int argc , char *argv[] )
       "               * normuti  = Normalized Mutual Information\n"
       "               * jointent = Joint entropy\n"
       "               * hellinger= Hellinger metric\n"
-      "               * crU      = Correlation ratio (unsymmetric)\n"
-      "               * crM      = Correlation ratio (symmetrized by multiplication)\n"
-      "               * crA      = Correlation ratio (symmetrized by addition)\n"
+      "               * crU      = Correlation ratio (Unsymmetric)\n"
+      "               * crM      = Correlation ratio (symmetrized by Multiplication)\n"
+      "               * crA      = Correlation ratio (symmetrized by Addition)\n"
       "               * num    = number of the values in the region:\n"
       "                          with the use of -mask or -automask,\n"
       "                          the size of the region around any given\n"
       "                          voxel will vary; this option lets you\n"
       "                          map that size.\n"
+      "               * ncd    = Normalized Compression Distance (zlib)\n"
       "               * ALL    = all of the above, in that order\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
@@ -86,10 +88,10 @@ int main( int argc , char *argv[] )
       "ADVANCED OPTIONS\n"
       "----------------\n"
       " -histpow pp   = By default, the number of bins in the histogram used\n"
-      "                 for calculating the Hellinger, Mutual Information, and\n"
-      "                 Correlation Ratio statistics is n^(1/3), where n is\n"
-      "                 the number of data points in the -nbhd mask.  You can\n"
-      "                 change that exponent to 'pp' with this option.\n"
+      "                 for calculating the Hellinger, Mutual Information, NCD,\n"
+      "                 and Correlation Ratio statistics is n^(1/3), where n\n"
+      "                 is the number of data points in the -nbhd mask.  You\n"
+      "                 can change that exponent to 'pp' with this option.\n"
       " -histbin nn   = Or you can just set the number of bins directly to 'nn'.\n"
       " -hclip1 a b   = Clip dataset1 to lie between values 'a' and 'b'.  If 'a'\n"
       "                 and 'b' end in '%%', then these values are percentage\n"
@@ -213,13 +215,14 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"crM")      == 0 ) code[ncode++] = NBISTAT_CORR_RATIO_M ;
        else if( strcasecmp(cpt,"crA")      == 0 ) code[ncode++] = NBISTAT_CORR_RATIO_A ;
        else if( strcasecmp(cpt,"num")      == 0 ) code[ncode++] = NBISTAT_NUM          ;
+       else if( strcasecmp(cpt,"ncd")      == 0 ) code[ncode++] = NBISTAT_NCD          ;
        else if( strcasecmp(cpt,"ALL")      == 0 ){
           code[ncode++] = NBISTAT_PEARSON_CORR ; code[ncode++] = NBISTAT_SPEARMAN_CORR;
           code[ncode++] = NBISTAT_QUADRANT_CORR; code[ncode++] = NBISTAT_MUTUAL_INFO  ;
           code[ncode++] = NBISTAT_NORMUT_INFO  ; code[ncode++] = NBISTAT_JOINT_ENTROPY;
           code[ncode++] = NBISTAT_HELLINGER    ; code[ncode++] = NBISTAT_CORR_RATIO_U ;
           code[ncode++] = NBISTAT_CORR_RATIO_M ; code[ncode++] = NBISTAT_CORR_RATIO_A ;
-          code[ncode++] = NBISTAT_NUM          ;
+          code[ncode++] = NBISTAT_NUM          ; code[ncode++] = NBISTAT_NCD          ;
        }
        else
          ERROR_exit("-stat '%s' is an unknown statistic type",argv[iarg]) ;
@@ -241,6 +244,10 @@ int main( int argc , char *argv[] )
          sscanf( cpt+5 , "%f" , &na ) ;
          if( na == 0.0f ) ERROR_exit("Can't have a RHDD of radius 0") ;
          ntype = NTYPE_RHDD ;
+       } else if( strncasecmp(cpt,"TOHD",4) == 0 ){
+         sscanf( cpt+5 , "%f" , &na ) ;
+         if( na == 0.0f ) ERROR_exit("Can't have a TOHD of radius 0") ;
+         ntype = NTYPE_TOHD ;
        } else if( strncasecmp(cpt,"RECT",4) == 0 ){
          sscanf( cpt+5 , "%f,%f,%f" , &na,&nb,&nc ) ;
          if( na == 0.0f && nb == 0.0f && nc == 0.0f )
@@ -339,6 +346,16 @@ int main( int argc , char *argv[] )
      }
      break ;
 
+     case NTYPE_TOHD:{
+       float dx , dy , dz ;
+       if( na < 0.0f ){ dx = dy = dz = 1.0f ; na = -na ; }
+       else           { dx = fabsf(DSET_DX(inset)) ;
+                        dy = fabsf(DSET_DY(inset)) ;
+                        dz = fabsf(DSET_DZ(inset)) ; }
+       nbhd = MCW_tohdmask( dx,dy,dz , na ) ;
+     }
+     break ;
+
      case NTYPE_RECT:{
        float dx , dy , dz ;
        if( na < 0.0f ){ dx = 1.0f; na = -na; } else dx = fabsf(DSET_DX(inset));
@@ -403,6 +420,7 @@ int main( int argc , char *argv[] )
      lcode[8] = "CorRat Sym+" ;
      lcode[9] = "CorRatUnsym" ;
      lcode[10]= "Number" ;
+     lcode[11]= "NCD" ;
      if( DSET_NVALS(inset) == 1 ){
        for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ )
          EDIT_dset_items( outset ,
