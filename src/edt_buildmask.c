@@ -138,7 +138,9 @@ MCW_cluster * MCW_rectmask( float dx, float dy, float dz,
 }
 
 /*----------------------------------------------------------------------*/
-/*! Like MCW_rectmask(), but builds a rhombic dodecahedron. */
+/*! Like MCW_spheremask(), but builds a rhombic dodecahedron.
+    Volume = 2 * radius**3.
+*//*--------------------------------------------------------------------*/
 
 MCW_cluster * MCW_rhddmask( float dx, float dy, float dz, float radius )
 {
@@ -172,6 +174,51 @@ MCW_cluster * MCW_rhddmask( float dx, float dy, float dz, float radius )
            fabsf(a-c) <= radius &&
            fabsf(b+c) <= radius &&
            fabsf(b-c) <= radius   ) ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
+   }}}
+
+   return mask ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Like MCW_spheremask(), but builds a truncated octahedron.
+    Volume = 4 * radius**3.
+*//*--------------------------------------------------------------------*/
+
+#undef  FAS
+#undef  TOHD_inside
+#define FAS(a,b) (fabsf(a) <= (b))
+#define TOHD_inside(a,b,c,siz)                                      \
+  ( FAS((a),(siz)) && FAS((b),(siz)) && FAS((c),(siz))         &&   \
+    FAS((a)+(b)+(c),1.5f*(siz)) && FAS((a)-(b)+(c),1.5f*(siz)) &&   \
+    FAS((a)+(b)-(c),1.5f*(siz)) && FAS((a)-(b)-(c),1.5f*(siz))   )
+
+MCW_cluster * MCW_tohdmask( float dx, float dy, float dz, float radius )
+{
+   int ii, jj, kk, idx, jdy, kdz ;
+   float a,b,c ;
+   MCW_cluster *mask;
+
+   if( radius <= 0.0 ){                   /* 30 Apr 2002 */
+     dx = dy = dz = 1.0f ; radius = 1.01f ;
+   } else {
+     if( dx <= 0.0f ) dx = 1.0f ;
+     if( dy <= 0.0f ) dy = 1.0f ;
+     if( dz <= 0.0f ) dz = 1.0f ;
+   }
+
+   idx = (int)(radius/dx) ;
+   jdy = (int)(radius/dy) ;
+   kdz = (int)(radius/dz) ;
+
+   INIT_CLUSTER(mask) ;
+
+   for( kk=-kdz ; kk <= kdz ; kk++ ){
+    c = kk*dz ;
+    for( jj=-jdy ; jj <= jdy ; jj++ ){
+     b = jj*dy ;
+     for( ii=-idx ; ii <= idx ; ii++ ){
+       a = ii*dx ;
+       if( TOHD_inside(a,b,c,radius) ) ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
    }}}
 
    return mask ;

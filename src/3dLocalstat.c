@@ -94,8 +94,20 @@ int main( int argc , char *argv[] )
       "                    extends plus-and-minus abs(a) voxels in the\n"
       "                    x-direction, rather than plus-and-minus a mm.\n"
       "                    Mutatis mutandum for negative 'b' and/or 'c'.\n"
+      "               * 'RHDD(a)' where 'a' is the size parameter in mm;\n"
+      "                 this is Kepler's rhombic dodecahedron [volume=2*a^3].\n"
+      "               * 'TOHD(a)' where 'a' is the size parameter in mm;\n"
+      "                 this is a truncated octahedron. [volume=4*a^3]\n"
+      "                 ** This is the polyhedral shape that tiles space\n"
+      "                    and is the most 'sphere-like'.\n"
       "               * If no '-nbhd' option is given, the region extracted\n"
       "                 will just be the voxel and its 6 nearest neighbors.\n"
+      "               * Voxels not in the mask (if any) or outside the\n"
+      "                 dataset volume will not be used.  This means that\n"
+      "                 different output voxels will have different numbers\n"
+      "                 of input voxels that went into calculating their\n"
+      "                 statistics.  The 'num' statistic can be used to\n"
+      "                 get this count on a per-voxel basis, if you need it.\n"
       "\n"
       " -stat sss   = Compute the statistic named 'sss' on the values\n"
       "               extracted from the region around each voxel:\n"
@@ -141,12 +153,13 @@ int main( int argc , char *argv[] )
       "               you can only specify one mask.\n"
       "\n"
       " -prefix ppp = Use string 'ppp' as the prefix for the output dataset.\n"
-      "               The output dataset is always stored as floats.\n"
+      "               The output dataset is normally stored as floats.\n"
       "\n"
       " -datum type = Coerce the output data to be stored as the given type, \n"
       "               which may be byte, short, or float.\n"
       "               Default is float\n"
-      " -quiet      = Stop the annoying progress reports.\n"
+      "\n"
+      " -quiet      = Stop the highly informative progress reports.\n"
       "\n"
       "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
      ) ;
@@ -305,8 +318,16 @@ int main( int argc , char *argv[] )
          if( na == 0.0f && nb == 0.0f && nc == 0.0f )
            ERROR_exit("'RECT(0,0,0)' is not a legal neighborhood") ;
          ntype = NTYPE_RECT ;
+       } else if( strncasecmp(cpt,"RHDD",4) == 0 ){
+         sscanf( cpt+5 , "%f" , &na ) ;
+         if( na == 0.0f ) ERROR_exit("Can't have a RHDD of radius 0") ;
+         ntype = NTYPE_RHDD ;
+       } else if( strncasecmp(cpt,"TOHD",4) == 0 ){
+         sscanf( cpt+5 , "%f" , &na ) ;
+         if( na == 0.0f ) ERROR_exit("Can't have a TOHD of radius 0") ;
+         ntype = NTYPE_TOHD ;
        } else {
-           ERROR_exit("Unknown -nbhd shape: '%s'",cpt) ;
+         ERROR_exit("Unknown -nbhd shape: '%s'",cpt) ;
        }
        iarg++ ; continue ;
      }
@@ -354,7 +375,7 @@ int main( int argc , char *argv[] )
 
    switch( ntype ){
      default:
-       ERROR_exit("WTF?  ntype=%d",ntype) ;
+       ERROR_exit("WTF?  ntype=%d",ntype) ;  /* should not happen */
 
      case NTYPE_SPHERE:{
        float dx , dy , dz ;
@@ -372,6 +393,26 @@ int main( int argc , char *argv[] )
        if( nb < 0.0f ){ dy = 1.0f; nb = -nb; } else dy = fabsf(DSET_DY(inset));
        if( nc < 0.0f ){ dz = 1.0f; nc = -nc; } else dz = fabsf(DSET_DZ(inset));
        nbhd = MCW_rectmask( dx,dy,dz , na,nb,nc ) ;
+     }
+     break ;
+
+     case NTYPE_RHDD:{
+       float dx , dy , dz ;
+       if( na < 0.0f ){ dx = dy = dz = 1.0f ; na = -na ; }
+       else           { dx = fabsf(DSET_DX(inset)) ;
+                        dy = fabsf(DSET_DY(inset)) ;
+                        dz = fabsf(DSET_DZ(inset)) ; }
+       nbhd = MCW_rhddmask( dx,dy,dz , na ) ;
+     }
+     break ;
+
+     case NTYPE_TOHD:{
+       float dx , dy , dz ;
+       if( na < 0.0f ){ dx = dy = dz = 1.0f ; na = -na ; }
+       else           { dx = fabsf(DSET_DX(inset)) ;
+                        dy = fabsf(DSET_DY(inset)) ;
+                        dz = fabsf(DSET_DZ(inset)) ; }
+       nbhd = MCW_tohdmask( dx,dy,dz , na ) ;
      }
      break ;
    }

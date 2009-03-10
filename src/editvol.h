@@ -213,6 +213,7 @@ extern MCW_cluster * MCW_build_mask(float, float, float, float);
 extern MCW_cluster * MCW_spheremask( float,float,float,float ) ;
 extern MCW_cluster * MCW_rectmask  ( float,float,float,float,float,float ) ;
 extern MCW_cluster * MCW_rhddmask  ( float,float,float,float ) ;
+extern MCW_cluster * MCW_tohdmask  ( float,float,float,float ) ;
 
 /* 16 June 1998 */
 extern void MCW_erode_clusters (int, int, int, float, float, float, int,
@@ -648,8 +649,11 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
 
 #define MAX_NCODE 666
 #define MAX_CODE_PARAMS 16
-#define NTYPE_SPHERE 1
-#define NTYPE_RECT   2
+
+#define NTYPE_SPHERE 1  /* mask types: sphere */
+#define NTYPE_RECT   2              /* rectangular block */
+#define NTYPE_RHDD   3              /* rhombic dodecahedron */
+#define NTYPE_TOHD   4              /* truncated octahedron */
 
 extern void SetSearchAboutMaskedVoxel(int v);  /* ZSS */
 extern MRI_IMAGE * THD_get_dset_nbhd( THD_3dim_dataset *, int, byte *,
