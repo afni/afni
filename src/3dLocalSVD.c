@@ -3,11 +3,6 @@
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
-#define NTYPE_SPHERE 1
-#define NTYPE_RECT   2
-#define NTYPE_RHDD   3
-#define NTYPE_TOHD   4
-
 void mri_principal_vector_params( int a , int b ) ;
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,

@@ -2,11 +2,6 @@
 
 #define MAX_NCODE 666
 
-#define NTYPE_SPHERE 1
-#define NTYPE_RECT   2
-#define NTYPE_RHDD   3
-#define NTYPE_TOHD   4
-
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *inset=NULL , *jnset=NULL , *outset , *wset=NULL;
