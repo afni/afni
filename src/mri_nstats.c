@@ -24,11 +24,13 @@ float mri_nstat( int code , MRI_IMAGE *im )
 
      case NSTAT_NUM: outval = (float)npt ; break ;  /* quite easy */
 
+
      default:
+     case NSTAT_SUM:
      case NSTAT_MEAN:{
        register int ii ;
        for( ii=0 ; ii < npt ; ii++ ) outval += far[ii] ;
-       outval /= npt ;
+       if( code != NSTAT_SUM ) outval /= npt ;
      }
      break ;
 
@@ -101,7 +103,6 @@ void mri_nstat_fwhmxyz_usevar( int i ){ fwhm_use_variance = i; }
 THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
                              MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd )
 {
-   MRI_IMAGE *fim ;
    float     *far ;
    int npt , nx,ny,nz,nxy , aa,bb,cc, kk,ii,pp ;
    THD_fvec3 fw_xyz ;
