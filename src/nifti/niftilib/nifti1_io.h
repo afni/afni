@@ -452,9 +452,16 @@ int    valid_nifti_extensions(const nifti_image *nim);
 
 #define NIFTI_ECODE_PYPICKLE        16  /* embedded Python objects
                                            http://niftilib.sourceforge.net
-                                           /pynifti                           */
+                                                 /pynifti                     */
 
-#define NIFTI_MAX_ECODE             16  /******* maximum extension code *******/
+        /* LONI MiND codes: http://www.loni.ucla.edu/twiki/bin/view/Main/MiND */
+#define NIFTI_ECODE_MIND_IDENT      18  /* Vishal Patel: vishal.patel@ucla.edu*/
+#define NIFTI_ECODE_B_VALUE         20
+#define NIFTI_ECODE_SPHERICAL_DIRECTION 22
+#define NIFTI_ECODE_DT_COMPONENT    24
+#define NIFTI_ECODE_SHC_DEGREEORDER 26  /* end LONI MiND codes                */
+
+#define NIFTI_MAX_ECODE             26  /******* maximum extension code *******/
 
 /* nifti_type file codes */
 #define NIFTI_FTYPE_ANALYZE   0

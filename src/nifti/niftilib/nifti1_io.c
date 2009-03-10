@@ -321,9 +321,13 @@ static char * gni_history[] =
   "   - also swap UNUSED fields in nifti_1_header struct\n",
   "1.36 07 Oct 2008 [rickr]\n",
   "   - added nifti_NBL_matches_nim() check for write_bricks()\n"
+  "1.37 10 Mar 2009 [rickr]\n",
+  "   - H Johnson cast updates (06 Feb)\n"
+  "   - added NIFTI_ECODE_PYPICKLE for PyNIfTI (06 Feb)\n"
+  "   - added NIFTI_ECODEs 18-28 for the LONI MiND group\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.36 (7 Oct, 2008)";
+static char gni_version[] = "nifti library version 1.37 (10 Mar, 2009)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1, 0 };
