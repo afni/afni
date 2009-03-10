@@ -127,6 +127,7 @@ int main( int argc , char *argv[] )
       "                          map that size.  It may be useful if you\n"
       "                          plan to compute a t-statistic (say) from\n"
       "                          the mean and stdev outputs.\n"
+      "               * sum    = sum of the values in the region:\n"
       "               * FWHM   = compute (like 3dFWHM) image smoothness\n"
       "                          inside each voxel's neighborhood.  Results\n"
       "                          are in 3 sub-bricks: FWHMx, FHWMy, and FWHMz.\n"
@@ -253,6 +254,7 @@ int main( int argc , char *argv[] )
        else if( strcasecmp(cpt,"max")   == 0 ) code[ncode++] = NSTAT_MAX   ;
        else if( strcasecmp(cpt,"absmax")== 0 ) code[ncode++] = NSTAT_ABSMAX;
        else if( strcasecmp(cpt,"num")   == 0 ) code[ncode++] = NSTAT_NUM   ;
+       else if( strcasecmp(cpt,"sum")   == 0 ) code[ncode++] = NSTAT_SUM   ;
        else if( strcasecmp(cpt,"fwhm")  == 0 ){code[ncode++] = NSTAT_FWHMx ;
                                                code[ncode++] = NSTAT_FWHMy ;
                                                code[ncode++] = NSTAT_FWHMz ;
@@ -294,6 +296,7 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
          code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
          code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
+         code[ncode++] = NSTAT_SUM   ;
          code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
        }
@@ -445,7 +448,7 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_MIN]    = "MIN"  ; lcode[NSTAT_ABSMAX] = "ABSMAX" ;
      lcode[NSTAT_VAR]    = "VAR"  ; lcode[NSTAT_NUM]    = "NUM"    ;
      lcode[NSTAT_FWHMx]  = "FWHMx"; lcode[NSTAT_PERCENTILE] = "PERC";
-     lcode[NSTAT_FWHMy]  = "FWHMy";
+     lcode[NSTAT_FWHMy]  = "FWHMy"; lcode[NSTAT_SUM]    = "SUM"    ;
      lcode[NSTAT_FWHMz]  = "FWHMz";
      if( DSET_NVALS(inset) == 1 ){
        ii=0;
