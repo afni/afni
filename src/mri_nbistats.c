@@ -96,6 +96,9 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
      case NBISTAT_CORR_RATIO_U:
        THD_corr_ratio_mode(0) ;
        outval = THD_corr_ratio( npt , far , gar ) ; break ;
+
+     case NBISTAT_NCD:
+       outval = THD_ncdfloat( npt , far , gar ) ; break ;
    }
 
    /* cleanup and exit */
