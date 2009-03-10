@@ -91,4 +91,5 @@ Recent Updates
     - RR added nifti_NBL_matches_nim() check for write_bricks()
     - HJ added casts to suppress compiler warnings
     - RR added NIFTI_ECODE_PYPICKLE
+    - RR added NIFTI_ECODEs 18-28 for the LONI MiND group
 

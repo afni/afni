@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, MAR, 2009, RCR, "NIfTI", MICRO, TYPE_MODIFY,
+   "added NIFTI_ECODEs 18-28 for the LONI MiND group",
+   NULL
+ } ,
+
  { 9, MAR, 2009, RCR, "3dcalc", MICRO, TYPE_MODIFY,
    "added edge/erode/dilate example to 3dcalc -help",
    NULL
