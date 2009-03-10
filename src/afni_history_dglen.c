@@ -49,6 +49,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 10 , MAR , 2009 , DRG , "3dLocalstat" , 
+    MINOR , TYPE_NEW_OPT, "Sum option",
+    "Sum option (for functional weighting of interiorosity measure)"
+} ,
+
 
 { 19 , DEC , 2008 , DRG , "align_epi_anat.py" , 
     MICRO , TYPE_BUG_FIX, "Slice timing for children can be ignored",

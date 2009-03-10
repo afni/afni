@@ -631,6 +631,7 @@ extern void mri_add_name( char * , MRI_IMAGE * ) ;
 extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 
 #define NSTAT_MEAN     0
+#define NSTAT_SUM      1
 #define NSTAT_SIGMA    2
 #define NSTAT_CVAR     3
 #define NSTAT_MEDIAN   4
@@ -1307,37 +1308,6 @@ extern int SYM_expand_errcount(void) ; /* 03 May 2007 */
 #endif
 
 /*------------------------------------------------------------------------*/
-/* 13 Feb 2009: generic 4x4 matrix struct stuff */
-
-typedef struct { double m[4][4] ; } dmat44 ;
-extern dmat44 generic_dmat44_inverse    ( dmat44 P ) ;
-extern double generic_dmat44_determinant( dmat44 P ) ;
-
-/* apply a dmat44 matrix to a 4 vector (x,y,z,w) to produce (a,b,c,d) */
-
-#undef  DMAT44_VEC
-#define DMAT44_VEC(A,x,y,z,w,a,b,c,d)                                    \
- ( (a) = A.m[0][0]*(x) + A.m[0][1]*(y) + A.m[0][2]*(z) + A.m[0][3]*(w) , \
-   (b) = A.m[1][0]*(x) + A.m[1][1]*(y) + A.m[1][2]*(z) + A.m[1][3]*(w) , \
-   (c) = A.m[2][0]*(x) + A.m[2][1]*(y) + A.m[2][2]*(z) + A.m[2][3]*(w) , \
-   (d) = A.m[3][0]*(x) + A.m[3][1]*(y) + A.m[3][2]*(z) + A.m[3][3]*(w)  )
-
-/* print a dmat44 struct to stdout (with a string) */
-
-#undef  DUMP_DMAT44
-#define DUMP_DMAT44(SS,AA)                             \
-     printf("# dmat44 %s:\n"                           \
-            " %13.6g %13.6g %13.6g %13.6g\n"           \
-            " %13.6g %13.6g %13.6g %13.6g\n"           \
-            " %13.6g %13.6g %13.6g %13.6g\n"           \
-            " %13.6g %13.6g %13.6g %13.6g\n" ,         \
-  SS, AA.m[0][0], AA.m[0][1], AA.m[0][2], AA.m[0][3],  \
-      AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3],  \
-      AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3],  \
-      AA.m[3][0], AA.m[3][1], AA.m[3][2], AA.m[3][3] )
-
-
-/*------------------------------------------------------------------------*/
 /* some of these clusterize prototypes require editvol.h */
 
 typedef struct {
@@ -1779,71 +1749,63 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 /*----------------------------------------------------------------------------*/
 /* RBF stuff -- cf. mri_rbfinterp.c -- 05 Feb 2009 */
 
-typedef unsigned short RBFKINT ;
-
 typedef struct {
-  int nknot ;                    /* number of knots */
-  float rad  , rqq ;             /* RBF radius and radius squared */
+  int nknot , nfit ;             /* nfit = nknot by default */
+  float rad  , rqq ;
   float xmid , ymid , zmid ;     /* middle of the knots */
   float xscl , yscl , zscl ;     /* scale reciprocal of the knots */
   float *xknot, *yknot, *zknot ; /* each is an nknot-long vector */
-  dmat44 Qmat ;                  /* 4x4 Q matrix for linear coefficents */
-  rcmat *Lmat ;                  /* Choleski factor of M matrix */
-  int uselin ;                   /* using linear coefficients? */
-  float *P0, *Px , *Py , *Pz ;   /* each is an nknot-long vector */
+  float *xfit , *yfit , *zfit  ; /* each is an nfit-long vector */
+  float *psmat ;                 /* (nknot+4) X (nfit+4) matrix */
 } RBF_knots ;
 
 #undef  DESTROY_RBF_knots
-#define DESTROY_RBF_knots(rk)                                            \
- do{ IFREE((rk)->xknot); IFREE((rk)->yknot); IFREE((rk)->zknot);         \
-     IFREE((rk)->P0); IFREE((rk)->Px); IFREE((rk)->Py); IFREE((rk)->Pz); \
-     rcmat_destroy((rk)->Lmat); free(rk);                                \
+#define DESTROY_RBF_knots(rk)                    \
+ do{ free((rk)->xknot) ; free((rk)->yknot) ;     \
+     free((rk)->zknot) ; free((rk)->psmat) ;     \
+     if( (rk)->xfit != NULL ) free((rk)->xfit) ; \
+     if( (rk)->yfit != NULL ) free((rk)->yfit) ; \
+     if( (rk)->zfit != NULL ) free((rk)->zfit) ; \
+     free(rk) ;                                  \
  } while(0)
 
 typedef struct {
-  int npt ;                   /* number of grid points */
-  float *xpt , *ypt , *zpt ;  /* grid points on which to evaluate RBF */
-  RBFKINT *kfirst , *klast ;  /* first & last knot indexes for each grid pt */
+  int npt ;
+  float *xpt , *ypt , *zpt ;
 } RBF_evalgrid ;
 
 #undef  MAKE_RBF_evalgrid
 #define MAKE_RBF_evalgrid(rg,nn)                             \
  do{ (rg) = (RBF_evalgrid *)malloc(sizeof(RBF_evalgrid)) ;   \
      (rg)->npt = (nn) ;                                      \
-     (rg)->xpt = (float *)calloc(sizeof(float),(nn)) ;       \
-     (rg)->ypt = (float *)calloc(sizeof(float),(nn)) ;       \
-     (rg)->zpt = (float *)calloc(sizeof(float),(nn)) ;       \
-     (rg)->kfirst = (rg)->klast = NULL ;                     \
- } while(0)
+     (rg)->xpt = (float *)malloc(sizeof(float)*(nn)) ;       \
+     (rg)->ypt = (float *)malloc(sizeof(float)*(nn)) ;       \
+     (rg)->zpt = (float *)malloc(sizeof(float)*(nn)) ; } while(0)
 
 #undef  DESTROY_RBF_evalgrid
-#define DESTROY_RBF_evalgrid(rg)                             \
- do{ free((rg)->xpt); free((rg)->ypt); free((rg)->zpt);      \
-     if( (rg)->klast != NULL ) free((rg)->klast ) ;          \
-     if( (rg)->kfirst!= NULL ) free((rg)->kfirst) ;          \
-     free(rg) ;                                              \
- } while(0)
+#define DESTROY_RBF_evalgrid(rg)            \
+ do{ free((rg)->xpt); free((rg)->ypt);      \
+     free((rg)->zpt); free(rg);       } while(0)
 
 typedef struct {
-  int code ;                /* 0 ==> val has func values; >0 ==> knot wts */
-  float b0 , bx , by , bz ; /* linear polynomial coefficients */
-  float *val ;              /* nknot of these */
+  int code ;
+  float b0 , bx , by , bz ;
+  float *val ;              /* nfit of these */
 } RBF_evalues ;
 
 #undef  MAKE_RBF_evalues
 #define MAKE_RBF_evalues(rv,nn)                               \
- do{ (rv) = (RBF_evalues *)calloc(1,sizeof(RBF_evalues)) ;    \
+ do{ (rv) = (RBF_evalues *)malloc(sizeof(RBF_evalues)) ;      \
      (rv)->code = 0 ;                                         \
      (rv)->val  = (float *)malloc(sizeof(float)*(nn)) ; } while(0)
 
 #undef  DESTROY_RBF_evalues
 #define DESTROY_RBF_evalues(rv) do{ free((rv)->val); free(rv); } while(0)
 
-extern RBF_knots * RBF_setup_knots( int, float, int, float *, float *, float * ) ;
+extern RBF_knots * RBF_setup_knots( int nk, float *xx, float *yy, float *zz ,
+                                    int nf, float *xf, float *yf, float *zf  ) ;
 extern int RBF_setup_evalues( RBF_knots *rbk, RBF_evalues *rbe ) ;
 extern int RBF_evaluate( RBF_knots *, RBF_evalues *, RBF_evalgrid *, float * ) ;
-extern void RBF_set_verbosity( int ) ;
-extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ; 
 
 /*----------------------------------------------------------------------------*/
 /** Test if a image is vector-valued (fvect, rgb, or complex) **/
@@ -1894,7 +1856,5 @@ extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
      DESTROY_IMARR(qimar) ;                                                   \
    } while(0)
 /*----------------------------------------------------------------------------*/
-
-#define CPU_IS_64_BIT() ((sizeof(void *) == 8) ? 1 : 0 )
 
 #endif /* _MCW_MRILIB_HEADER_ */
