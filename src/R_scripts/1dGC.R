@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.5,  March 9, 2009")
+print("Version 1.0.6,  March 10, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -668,7 +668,7 @@ for (ii in 1:nLags) {
 	print(sprintf("Matrix of t values with a lag of %i (direction goes from row to column):", ii))
    print(matrix(netMatT[ii,,], nrow = nROIs, ncol = nROIs, dimnames = list(names(myData), names(myData))))
 	print(sprintf("DFs = %i for Ho: a path coefficient = 0.", summary(fm)$varresult[[1]]$df[2]))
-	saveMatT <- as.integer(readline("Save matrix of t values (0: no; 1: yes)? "))
+	saveMatT <- as.integer(readline("Save matrix of t values for group analysis (0: no; 1: yes)? "))
    if (saveMatT) {
       matName <- as.character(readline("File name prefix (e.g., TLag1Subj1)? "))
       write.table(netMatT[ii,,], file=sprintf("%s.1D", matName), append=FALSE, row.names=names(myData), col.names=names(myData))
@@ -925,7 +925,8 @@ if (runMeta) {
 } else {  # no meta analysis: one-sample t-test
 #   resList <- apply(do.call(rbind, lapply(lapply(zList, as.matrix), c)), 2, t.test)
 #   if(fishConv) zMat <- fisherz(zMat)
-   for (ii in 1:nROIsG^2) resList[[ii]] <- t.test(zMat[,ii])
+#   for (ii in 1:nROIsG^2) resList[[ii]] <- t.test(zMat[,ii])
+   resList <- apply(zMat, 2, t.test)
    zOutList <- lapply(resList, function(x) as.numeric(x$estimate))
 	pList <- lapply(resList, function(x) as.numeric(x$p.value))
    grpR <- matrix(unlist(zOutList), nrow=nROIsG, ncol=nROIsG, dimnames = list(roiNames, roiNames))
@@ -1093,8 +1094,7 @@ if (runMeta) {
    # two-sample t-test: group2 - group1
    resList <- vector('list', nROIsG[1]^2)
 # want equal variance assumption, otherwise DF would be different from one test to another!
-   for (ii in 1:nROIsG[1]^2) resList[[ii]] <- t.test(zMat[[2]][,ii], zMat[[1]][,ii], paired=FALSE, var.equal=TRUE)  # 2nd-1st
-   
+   for (ii in 1:nROIsG[1]^2) resList[[ii]] <- t.test(zMat[[2]][,ii], zMat[[1]][,ii], paired=FALSE, var.equal=TRUE)  # 2nd-1st   
    zOutList <- lapply(resList, function(x) as.numeric(x$estimate))
 	pList <- lapply(resList, function(x) as.numeric(x$p.value))
    grpR <- matrix(unlist(zOutList), nrow=nROIsG[1], ncol=nROIsG[1], dimnames = list(roiNames[[1]], roiNames[[1]]))
