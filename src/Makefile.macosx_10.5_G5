@@ -85,7 +85,7 @@ SUMA_GLIB_VER = -2.0
 SUMA_INCLUDE_PATH = $(GLw_IPATH) -I/usr/X11R6/include -I./ -I../ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include -I/sw/include
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L./ -L/usr/local/lib -L/sw/lib
 
-SUMA_LINK_LIB = -lXm $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib -bind_at_load $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = -lXm $(GLw_LIB) -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) $(LGIFTI) -lm -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
 
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
