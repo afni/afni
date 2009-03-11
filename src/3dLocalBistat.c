@@ -68,7 +68,7 @@ int main( int argc , char *argv[] )
       "                          the size of the region around any given\n"
       "                          voxel will vary; this option lets you\n"
       "                          map that size.\n"
-      "               * ncd    = Normalized Compression Distance (zlib)\n"
+      "               * ncd    = Normalized Compression Distance (zlib; very slow)\n"
       "               * ALL    = all of the above, in that order\n"
       "               More than one '-stat' option can be used.\n"
       "\n"

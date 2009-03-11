@@ -1,6 +1,8 @@
 #include "mrilib.h"
 
-/* defines moved to editvol.h */
+/* #defines moved to editvol.h */
+
+/*-----------------------------------------------------------------------*/
 
 int LS_decode_parameters(char *str, float *params)
 {
@@ -8,13 +10,13 @@ int LS_decode_parameters(char *str, float *params)
    int nc=0, k, icol[10], stp=0, ncol = 0, ii;
    char strbuf[256];
    char *ce=NULL;
-   
+
    ENTRY("LS_decode_parameters");
-   
+
    if (!str || !params) RETURN(iparams);
-   
+
    iparams = 0;
-   
+
    #if 1 /* clumsy but more flexible. */
    /* find my ':' */
    nc = strlen(str);
@@ -25,7 +27,7 @@ int LS_decode_parameters(char *str, float *params)
       ++k;
    }
    if (!ncol) RETURN(iparams);
-   
+
    for (k=0; k<ncol; ++k) {
       if (k<ncol-1) { stp = icol[k+1]-1; }
       else { stp = nc; }
@@ -36,15 +38,17 @@ int LS_decode_parameters(char *str, float *params)
    }
    #else /* would skip cases like :: which is kinda like :0.0: */
    ce = strtok(str,":");
-   while (ce = strtok(NULL,":")) { 
+   while (ce = strtok(NULL,":")) {
       ++iparams; params[iparams] = strtod(ce, NULL);
       /* fprintf(stderr, ">>>%s<<<\n", ce); */
    }
    #endif
    params[0] = iparams;
-   
+
    RETURN(iparams);
 }
+
+/*-----------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
@@ -56,10 +60,10 @@ int main( int argc , char *argv[] )
    char *prefix="./localstat" ;
    int ntype=0 ; float na=0.0f,nb=0.0f,nc=0.0f ;
    int do_fwhm=0 , verb=1 ;
-   int npv = -1; 
+   int npv = -1;
    int ipv;
    int datum = MRI_float;
-   
+
    /*---- for the clueless who wish to become clued-in ----*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -139,7 +143,7 @@ int main( int argc , char *argv[] )
       "               * perc:P0:P1:Pstep = \n"
       "                          Compute percentiles between P0 and P1 with a \n"
       "                          step of Pstep.\n"
-      "                          Default P1 is equal to P0 and default P2 = 1\n" 
+      "                          Default P1 is equal to P0 and default P2 = 1\n"
       "               * ALL    = all of the above, in that order \n"
       "                         (except FWHMbar and perc).\n"
       "               More than one '-stat' option can be used.\n"
@@ -174,7 +178,7 @@ int main( int argc , char *argv[] )
 
    /* initialize codeparams */
    for (ii=0; ii<MAX_NCODE; ++ii) codeparams[ii][0] = -1.0;
-   
+
    /*---- loop over options ----*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
@@ -182,7 +186,7 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-q",2) == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
-     
+
      /**** -datum type ****/
 
      if( strncasecmp(argv[iarg],"-datum",6) == 0 ){
@@ -198,9 +202,9 @@ int main( int argc , char *argv[] )
             ERROR_exit("-datum of type '%s' not supported in 3dLocalstat!\n",
                         argv[iarg]) ;
         }
-        iarg++ ; continue ;  
+        iarg++ ; continue ;
      }
-     
+
      if( strcmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL  ) ERROR_exit("Can't have two -input options") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-input'") ;
@@ -224,7 +228,7 @@ int main( int argc , char *argv[] )
        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
-       if( mask == NULL ) 
+       if( mask == NULL )
          ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
        mmm = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        if( verb ) INFO_message("Number of voxels in mask = %d",mmm) ;
@@ -242,7 +246,7 @@ int main( int argc , char *argv[] )
        float strt, stp, jmp;
        int iizz;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-stat'") ;
- 
+
        cpt = argv[iarg] ; if( *cpt == '-' ) cpt++ ;
             if( strcasecmp(cpt,"mean")  == 0 ) code[ncode++] = NSTAT_MEAN  ;
        else if( strcasecmp(cpt,"stdev") == 0 ) code[ncode++] = NSTAT_SIGMA ;
@@ -259,21 +263,21 @@ int main( int argc , char *argv[] )
                                                code[ncode++] = NSTAT_FWHMy ;
                                                code[ncode++] = NSTAT_FWHMz ;
                                                do_fwhm++                   ;}
-       else if( strncasecmp(cpt,"perc",4) == 0) { 
+       else if( strncasecmp(cpt,"perc",4) == 0) {
          /* How many you say? */
          if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
             ERROR_exit("Need params with perc stat");
          }
          strt = codeparams[ncode][1]; stp = strt; jmp = 1.0;
-         if ((int)codeparams[ncode][0] == 2) { 
+         if ((int)codeparams[ncode][0] == 2) {
             stp = codeparams[ncode][2]; if (stp == 0) stp = strt;
-         }else if ((int)codeparams[ncode][0] == 3) { 
+         }else if ((int)codeparams[ncode][0] == 3) {
             stp = codeparams[ncode][2]; jmp = codeparams[ncode][3];
          }
          if (jmp == 0.0) jmp = 1.0;
          npv = ceil((stp - strt)/jmp);
          if (npv > MAX_CODE_PARAMS) {
-            ERROR_exit( "A max of %d percentiles allowed. You have %d\n", 
+            ERROR_exit( "A max of %d percentiles allowed. You have %d\n",
                         MAX_CODE_PARAMS, npv);
          }
          ipv = 1;
@@ -283,12 +287,12 @@ int main( int argc , char *argv[] )
          }
          codeparams[ncode][0] = ipv;
          iizz = (int)(codeparams[ncode][0]);
-         /* fprintf( stderr, 
+         /* fprintf( stderr,
                      "Have %d percentiles (coded with %d) "
                      "starting at code index %d\n",
                       iizz, NSTAT_PERCENTILE, ncode); */
          for (ipv=0; ipv<iizz; ++ipv)  code[ncode++] = NSTAT_PERCENTILE;
-       }                                                                           
+       }
        else if( strcasecmp(cpt,"fwhmbar")==0 ) code[ncode++] = NSTAT_FWHMbar;
        else if( strcasecmp(cpt,"ALL")   == 0 ){
          code[ncode++] = NSTAT_MEAN  ; code[ncode++] = NSTAT_SIGMA ;
@@ -435,8 +439,10 @@ int main( int argc , char *argv[] )
 
    if( outset == NULL ) ERROR_exit("Function THD_localstat() fails?!") ;
 
+   /*---- save resulting dataset ----*/
+
    EDIT_dset_items( outset , ADN_prefix,prefix , ADN_none ) ;
- 
+
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dLocalstat" , argc,argv , outset ) ;
 
@@ -455,7 +461,7 @@ int main( int argc , char *argv[] )
        while(ii < DSET_NVALS(outset)) {
          if (code[ii%ncode] == NSTAT_PERCENTILE) {
             if (ipv < 0) ipv = ii%ncode;
-            sprintf(pcode,"perc:%.2f", codeparams[ipv][1+ii%ncode-ipv]);  
+            sprintf(pcode,"perc:%.2f", codeparams[ipv][1+ii%ncode-ipv]);
             slcode = pcode;
          } else {
             ipv = -1;
@@ -467,12 +473,12 @@ int main( int argc , char *argv[] )
                           ADN_none ) ;
          ++ii;
       }
-         
+
      } else {
        for( ii=0 ; ii < DSET_NVALS(outset) ; ii++ ){
          if (code[ii%ncode] == NSTAT_PERCENTILE) {
             if (ipv < 0) ipv = ii%ncode;
-            sprintf(pcode,"perc:%.2f", codeparams[ipv][1+ii%ncode-ipv]);  
+            sprintf(pcode,"perc:%.2f", codeparams[ipv][1+ii%ncode-ipv]);
             slcode = pcode;
          } else {
             ipv = -1;

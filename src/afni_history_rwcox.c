@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , MAR , 2009 , RWC , "3dANOVA" , MINOR , TYPE_NEW_OPT ,
+   "Add -mask option to 3dANOVA, 3dANOVA2, 3dANOVA3" ,
+   NULL } ,
+
  { 9 , MAR , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_NEW_OPT ,
    "Add SPMG1 to -stim_times repertoire, and update help." ,
    NULL } ,
