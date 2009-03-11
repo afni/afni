@@ -24,7 +24,7 @@ void mri_bistat_setweight( MRI_IMAGE *wm )  /* 14 Aug 2007 */
 /*--------------------------------------------------------------------------*/
 /*! Input = 2 1D images, and an NBISTAT_ code to compute some statistic.
    Output = statistic's value.
-----------------------------------------------------------------------------*/
+*//*------------------------------------------------------------------------*/
 
 float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
 {
@@ -112,7 +112,7 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
 /*! Compute a local statistic at each voxel of an image pair, possibly with
     a mask; 'local' is defined with a neighborhood; 'statistic' is defined
     by an NBISTAT_ code.
-----------------------------------------------------------------------------*/
+*//*------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_localbistat( MRI_IMAGE *im, MRI_IMAGE *jm ,
                              byte *mask, MCW_cluster *nbhd, int code )

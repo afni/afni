@@ -59,6 +59,9 @@
    Mod:     Added aBdiff, Abdiff and abmean fields to anova_options struct.
             Added ANOVA_BOUND() macro.
    Date:    16 December 2005 [rickr]
+
+   Mod:     Added mask and nmask fields to anova_options struct.
+   Date:    11 Mar 2009 [RWCox]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -250,6 +253,9 @@ typedef struct anova_options
   char * bucket_filename;       /* file name for bucket dataset */
 
   int    debug;                 /* for more verbose output */
+
+  int    nmask ;
+  byte   *mask ;
 } anova_options;
 
 

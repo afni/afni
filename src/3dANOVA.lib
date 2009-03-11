@@ -205,6 +205,9 @@ void initialize_options (anova_options * option_data)
   option_data->bucket_filename = NULL;
 
   option_data->debug = 0; /* 8 Dec 2005 [rickr] */
+
+  option_data->nmask = 0; /* 11 Mar 2009 [RWCox] */
+  option_data->mask  = NULL;
 }
 
 
@@ -215,8 +218,7 @@ void initialize_options (anova_options * option_data)
 
 void ANOVA_error (char * message)
 {
-   fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
-   exit(1);
+   ERROR_exit("Program %s: %s" , PROGRAM_NAME, message ) ;
 }
 
 
@@ -360,9 +362,8 @@ void get_dimensions (anova_options * option_data)
 
    dset = THD_open_dataset( option_data->first_dataset ) ;
    if( ! ISVALID_3DIM_DATASET(dset) ){
-      fprintf(stderr,"*** Unable to open dataset file %s\n",
-              option_data->first_dataset);
-      exit(1) ;
+      ERROR_exit("Unable to open dataset file %s\n",
+                  option_data->first_dataset);
    }
 
    /*----- data set dimensions in voxels -----*/
@@ -372,6 +373,11 @@ void get_dimensions (anova_options * option_data)
    option_data->nxyz = option_data->nx * option_data->ny * option_data->nz ;
 
    THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
+
+   if( option_data->mask != NULL && option_data->nmask != option_data->nxyz ){
+     WARNING_message("ANOVA datasets and mask don't have same number of voxels!") ;
+     option_data->mask = NULL ; option_data->nmask = 0 ;
+   }
 
 }
 
@@ -416,9 +422,8 @@ void check_one_output_file (anova_options * option_data, char * filename)
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset ) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
-    fprintf(stderr,"*** Unable to open dataset file %s\n",
-	    option_data->first_dataset);
-    exit(1) ;
+    ERROR_exit("Unable to open dataset file %s\n",
+	            option_data->first_dataset);
   }
 
   /*-- make an empty copy of this dataset --*/
@@ -436,16 +441,14 @@ void check_one_output_file (anova_options * option_data, char * filename)
 			    ADN_none ) ;
 
   if( ierror > 0 ){
-    fprintf(stderr,
-	    "*** %d errors in attempting to create output dataset!\n", ierror ) ;
-    exit(1) ;
+    ERROR_exit(
+	    "%d errors in attempting to create output dataset!\n", ierror ) ;
   }
 
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
-    fprintf(stderr,
-	    "*** Output dataset file %s already exists--cannot continue!\a\n",
+    ERROR_exit(
+	    "Output dataset file %s already exists--cannot continue!\a\n",
 	    new_dset->dblk->diskptr->header_name ) ;
-    exit(1) ;
   }
 
   /*----- deallocate memory -----*/
@@ -502,6 +505,8 @@ void check_disk_space (anova_options * option_data)
 
 
 /*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
 /*
   Routine to read one AFNI data set from file 'filename'.
   The data is converted to floating point (in ffim).
@@ -514,6 +519,7 @@ void read_afni_data (anova_options * option_data,
   THD_3dim_dataset * dset=NULL;    /* data set pointer */
   void * vfim = NULL;              /* image data pointer */
   int nx, ny, nz, nxyz;            /* data set dimensions in voxels */
+  byte *amask = option_data->mask ;
 
   nx = option_data->nx;
   ny = option_data->ny;
@@ -532,6 +538,10 @@ void read_afni_data (anova_options * option_data,
 			  MRI_float               ,ffim  ) ;   /* output */
 
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
+
+  if( amask != NULL ){  /* 11 Mar 2009 */
+    for( iv=0 ; iv < nxyz ; iv++ ) if( amask[iv] == 0 ) ffim[iv] = 0.0f ;
+  }
 }
 
 
@@ -576,9 +586,8 @@ void write_afni_data (anova_options * option_data,  char * filename,
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset) ;
   if( ! ISVALID_3DIM_DATASET(dset) ){
-    fprintf(stderr,"*** Unable to open dataset file %s\n",
-	    option_data->first_dataset);
-    exit(1) ;
+    ERROR_exit("Unable to open dataset file %s\n",
+	            option_data->first_dataset);
   }
 
   /*-- make an empty copy of this dataset, for eventual output --*/
@@ -618,26 +627,21 @@ void write_afni_data (anova_options * option_data,  char * filename,
 			    ADN_malloc_type, DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
 
-  if( ierror > 0 ){
-    fprintf(stderr,
-          "*** %d errors in attempting to create output dataset!\n", ierror ) ;
-    exit(1) ;
-  }
+  if( ierror > 0 )
+    ERROR_exit(
+          "%d errors in attempting to create output dataset!\a", ierror ) ;
 
-  if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
-    fprintf(stderr,
-	    "*** Output dataset file %s already exists--cannot continue!\a\n",
+  if( THD_is_file(new_dset->dblk->diskptr->header_name) )
+    ERROR_exit(
+	    "Output dataset file %s already exists--cannot continue!\a",
 	    new_dset->dblk->diskptr->header_name ) ;
-    exit(1) ;
-  }
 
   /*----- deleting exemplar dataset -----*/
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 
-
   /*----- allocate memory for output data -----*/
-  vdif = (void *) malloc( mri_datum_size(ibuf[0]) * nxyz ) ;
-  tsp  = (void *) malloc( mri_datum_size(ibuf[1]) * nxyz ) ;
+  vdif = (void *) calloc( mri_datum_size(ibuf[0]) , nxyz ) ;
+  tsp  = (void *) calloc( mri_datum_size(ibuf[1]) , nxyz ) ;
 
   /*----- attach bricks to new data set -----*/
   mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0));
@@ -645,9 +649,11 @@ void write_afni_data (anova_options * option_data,  char * filename,
 
   /*----- convert data type to output specification -----*/
 
+   /* conversion of sub-brick #0 (effect measurement) */
+
   if( ibuf[0] == MRI_short ){
     fimfac = EDIT_coerce_autoscale_new( nxyz,
-                                      MRI_float, ffim, ibuf[0], vdif ) ;
+                                        MRI_float, ffim, ibuf[0], vdif ) ;
     if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
     EDIT_misfit_report( DSET_PREFIX(new_dset) , 0 ,
                         nxyz , fimfac , vdif , ffim ) ;
@@ -656,6 +662,8 @@ void write_afni_data (anova_options * option_data,  char * filename,
   }
 
 #define TOP_SS  32700
+
+   /* conversion of sub-brick #1 (t or F statistic) */
 
   if( ibuf[1] == MRI_short ){
     short *qsp = (short *)tsp ;
@@ -736,9 +744,8 @@ void add_file_name (THD_3dim_dataset * new_dset, char * filename,
 
       if (! ISVALID_3DIM_DATASET(new_dset))
 	{
-	  fprintf (stderr,"*** Unable to open dataset file %s\n",
-		   DSET_BRIKNAME(new_dset));
-	  exit(1);
+	  ERROR_exit("Unable to open dataset file %s\n",
+		          DSET_BRIKNAME(new_dset));
 	}
 
       strcat (command_str, " ");
@@ -1032,14 +1039,14 @@ int contrasts_are_valid (anova_options * option_data, int show_errs, int level)
   int valid = 1, c;    /* valid, return value, level counter */
 
   if ( !option_data || level < 0 ){
-    fprintf(stderr,"** cav: bad params (%p,%d)\n", option_data, level);
+    ERROR_message("cav: bad params (%p,%d)\n", option_data, level);
     return 0;
   }
 
   /* verify that we should be testing this, at all */
   if ( ! old_method_applies(level, option_data->model) ){
-    fprintf(stderr,"** cav ERROR: -old_method does not apply to model %d\n",
-            option_data->model);
+    ERROR_message("cav ERROR: -old_method does not apply to model %d\n",
+                  option_data->model);
     return 0;
   }
 
@@ -1054,13 +1061,13 @@ int contrasts_are_valid (anova_options * option_data, int show_errs, int level)
   /* if only OK, whine and return */
   if ( (option_data->old_method & 3) == 2 ){
     if (show_errs)
-       fprintf(stderr,"** -OK option is not sufficient\n");
+       ERROR_message("-OK option is not sufficient\n");
     return 0;
   }
 
   if ( !(option_data->old_method & 4) ){  /* no -assume_sph, fail */
     if (show_errs)
-       fprintf(stderr,"** -old_method option is not sufficient\n");
+       ERROR_message("-old_method option is not sufficient\n");
     return 0;
   }
 

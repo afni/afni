@@ -134,6 +134,9 @@ void display_help_menu()
  "     [-diskspace]          : print out disk space required for\n"
  "                             program execution\n"
  "\n"
+ "     [-mask mset]          : use sub-brick #0 of dataset 'mset'\n"
+ "                             to define which voxels to process\n"
+ "\n"
  "\n"
  "   The following commands generate individual AFNI 2-sub-brick datasets:\n"
  "  (In each case, output is written to the file with the specified\n"
@@ -825,6 +828,32 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  continue;
 	}
 
+      /*----- -mask filename [11 Mar 2009: RWCox] -----*/
+      if( strncmp(argv[nopt],"-mask",5) == 0 )
+   {
+     THD_3dim_dataset *mset ; byte *amask ;
+     nopt++ ;
+     if( option_data->mask != NULL ) ANOVA_error("Can't have 2 -mask options");
+     if( nopt >= argc )              ANOVA_error("need argument after -mask" );
+     mset = THD_open_dataset( argv[nopt] ) ;
+     CHECK_OPEN_ERROR(mset,argv[nopt]) ;
+     DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
+     amask = THD_makemask( mset , 0 , 1.0f , -1.0f ) ;
+     if( amask == NULL ){
+       WARNING_message("Can't create mask from dataset '%s'",argv[nopt]) ;
+     } else {
+       int nmvox = THD_countmask(DSET_NVOX(mset),amask) ;
+       if( nmvox < 1 ){
+         WARNING_message("Mask from dataset '%s' is empty",argv[nopt]) ;
+         free(amask) ;
+       } else {
+         INFO_message("Mask from dataset '%s' has %d voxels",argv[nopt],nmvox);
+         option_data->mask  = amask ;
+         option_data->nmask = DSET_NVOX(mset) ;
+       }
+     }
+     DSET_delete(mset) ; nopt++ ; continue ;
+   }
 
       /*----- unknown command -----*/
       sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
