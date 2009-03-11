@@ -578,6 +578,7 @@ void write_afni_data (anova_options * option_data,  char * filename,
   int func_type;                      /* afni data set type */
   float top, func_scale_short=0.0f;   /* parameters for scaling data */
   char label[80];                     /* label for output file history */
+  byte *amask = option_data->mask ;
 
 
   /*----- initialize local variables -----*/
@@ -648,6 +649,11 @@ void write_afni_data (anova_options * option_data,  char * filename,
   mri_fix_data_pointer (tsp , DSET_BRICK(new_dset,1));
 
   /*----- convert data type to output specification -----*/
+
+  if( amask != NULL ){    /* 11 Mar 2009 [RWcox] */
+    for( ii=0 ; ii < nxyz ; ii++ )
+      if( amask[ii] == 0 ){ ffim[ii] = 0.0f ; ftr[ii] = 0.0f ; }
+  }
 
    /* conversion of sub-brick #0 (effect measurement) */
 
