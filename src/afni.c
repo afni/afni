@@ -1959,7 +1959,8 @@ STATUS("call 14") ;
         { long long lfs = AFNI_logfilesize(); /* 17 Oct 2007 */
           if( lfs > 10000000 ){
             char msg[256] ;
-            sprintf(msg,"\n++ WARNING: ~/.afni.log is now %lld (%s) bytes long!\n",
+            sprintf(msg,"\n++ WARNING: ~/.afni.log is now %lld (%s) bytes long!"
+                        "\n +          (Is that you, Kevin?)\n" ,
                     lfs , approximate_number_string((double)lfs) ) ;
             REPORT_PROGRESS(msg) ;
           }
