@@ -81,13 +81,17 @@ def db_cmd_despike(proc, block):
     prefix = proc.prefix_form_run(block)
     prev   = proc.prev_prefix_form_run()
 
+    # if we have a mask and are applying it, allow it here, else do not
+    if proc.mask != None and proc.regmask: mstr = ''
+    else:                                  mstr = ' -nomask'
+
     # write commands
     cmd = cmd + '# -------------------------------------------------------\n' \
               + '# apply 3dDespike to each run\n'
     cmd = cmd + 'foreach run ( $runs )\n'                                     \
-                '    3dDespike%s -prefix %s %s+orig\n'                        \
+                '    3dDespike%s%s -prefix %s %s+orig\n'                      \
                 'end\n\n' %                                                   \
-                (other_opts, prefix, prev)
+                (other_opts, mstr, prefix, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -380,6 +384,8 @@ def db_mod_mask(block, proc, user_opts):
             block.valid = 0
             return 1
 
+    proc.mask = 'full_mask.$subj'  # note that we have a mask to apply
+
     block.valid = 1
 
 def db_cmd_mask(proc, block):
@@ -407,8 +413,6 @@ def db_cmd_mask(proc, block):
     else:  # just copy the one
         cmd = cmd + "# only 1 run, so copy this to full_mask\n"              \
                     "3dcopy rm.mask_r01+orig full_mask.$subj\n\n" 
-
-    proc.mask = 'full_mask.$subj'  # note that we have a mask to apply
 
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
@@ -1227,6 +1231,51 @@ g_help_string = """
     user specifies (defaulting to 0).  The stimulus files, provided by the
     user, must match datasets that have had such TRs removed (i.e. the stim
     files should start _after_ steady state has been reached).
+
+    --------------------------------------------------
+    MASKING NOTE:
+
+    The 'default' operation of afni_proc.py is to apply a union of 3dAutomask
+    datasets to the EPI data.
+
+                ** This is no longer recommended. **
+
+    --> Recommended: keep the 'mask' block, but apply '-regress_no_mask'.
+
+    It seems much better not to mask the regression data in the single-subject
+    analysis at all, send _all_ of the results to group space, and apply an
+    anatomically-based mask there.  That could be computed from the @auto_tlrc
+    reference dataset or from the average of skull-stripped subject anatomies.
+
+    Since subjects have varying degrees of signal dropout in valid brain areas
+    of the EPI data, the resulting intersection mask that would be requied in
+    group space may exclude edge regions that people may be interested in.
+
+    Also, it is helpful to see if much 'activation' appears outside the brain.
+    This could be due to scanner or interpolation artifacts, and is useful to
+    note, rather than to simply mask out and never see.
+
+    Rather than letting 3dAutomask decide which brain areas should not be 
+    considered valid, create a mask based on the anatomy _after_ the results
+    have been warped to a standard group space.  Then perhaps dilate the mask
+    by one voxel.  Example #11 from '3dcalc -help' shows how one might dilate.
+
+    ---
+
+    However since a mask dataset is necessary when computing blur estimates
+    from the epi and errts datasets, the 'mask' block should be left in the
+    analysis stream.  To refrain from applying it in the 'scale' and 'regress'
+    blocks, add the '-regress_no_mask' option.
+
+    ---
+
+    Note that if no mask were applied in the 'scaling' step, large percent
+    changes could result.  Because large values would be a detriment to the
+    numerical resolution of the scaled short data, the default is to truncate
+    scaled values at 200 (percent), which should not occur in the brain.
+
+    See also -blocks, -regress_no_mask, -regress_est_blur_epits and
+    -regress_est_blur_errts.
 
     --------------------------------------------------
     NOTE on having runs of different lengths:
