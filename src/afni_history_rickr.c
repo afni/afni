@@ -48,6 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "warn user about masking in orig space",
+   "- if despiking and no regression mask, apply -nomask\n"
+   "- added 'MASKING NOTE', to suggest no regresion mask until group space"
+ } ,
+
  { 12, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_reml_exec and -regress_3dD_stop",
    "One can execute 3dREMLfit and/or 3dDeconvolve.  Error blur is from each."

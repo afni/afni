@@ -83,9 +83,12 @@ g_history = """
         - added -regress_RONI and -volreg_base_dset (for Jill Weisberg)
         - moved unloved g_help_string to db_mod_py
     1.34 Feb 17 2009 : added -regress_reml_exec and -regress_3dD_stop
+    1.35 Mar 12 2009 :
+        - if despiking and no regression mask, apply -nomask
+        - added 'MASKING NOTE', to suggest no regresion mask until group space
 """
 
-g_version = "version 1.34, Feb 17, 2009"
+g_version = "version 1.35, Mar 12, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -446,6 +449,14 @@ class SubjProcSream:
         if errs > 0: return 1    # so we print all errors before leaving
 
         if self.verb > 0:
+            # last warning, if user is masking EPI data...
+            if self.mask != None and self.regmask:
+                print "\n--------------------------------------\n" \
+                        "** masking EPI data is not recommended\n" \
+                        "   o  consider -regress_no_mask       \n" \
+                        "   o  see 'MASKING NOTE' from the help\n" \
+                        "--------------------------------------"
+
             if self.runs == 1:
                 print "\n-------------------------------------\n" \
                         "** warning have only 1 run to analyze\n" \
@@ -457,6 +468,7 @@ class SubjProcSream:
             else:                                # give tcsh form
               print '    (consider the command "tcsh -x %s |& tee output.%s")' \
                                 % (self.script, self.script)
+            print
 
         return
 
