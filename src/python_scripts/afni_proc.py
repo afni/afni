@@ -82,10 +82,10 @@ g_history = """
         - added -regress_extra_stim_files and -regress_extra_stim_labels
         - added -regress_RONI and -volreg_base_dset (for Jill Weisberg)
         - moved unloved g_help_string to db_mod_py
-
+    1.34 Feb 17 2009 : added -regress_reml_exec and -regress_3dD_stop
 """
 
-g_version = "version 1.33, Dec 10, 2008"
+g_version = "version 1.34, Feb 17, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -255,7 +255,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_mask', 0, [])
         self.valid_opts.add_opt('-regress_no_motion', 0, [])
         self.valid_opts.add_opt('-regress_opts_3dD', -1, [])
-
+        self.valid_opts.add_opt('-regress_3dD_stop', 0, [])
+        self.valid_opts.add_opt('-regress_reml_exec', 0, [])
 
         # other options
         self.valid_opts.add_opt('-help', 0, [])
@@ -424,7 +425,7 @@ class SubjProcSream:
             else:
                 self.fp.write(add_line_wrappers(cmd_str))
                 if self.verb>2: block.show('+d post command creation: ')
-                if self.verb>1: print '+d %s command: %s'%(block.label, cmd_str)
+                if self.verb>1: print '+d %s cmd: \n%s'%(block.label, cmd_str)
 
         if self.gen_review:
             cmd_str = db_cmd_gen_review(self)
