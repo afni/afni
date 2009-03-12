@@ -64,7 +64,6 @@ def db_mod_despike(block, proc, user_opts):
 
     uopt = user_opts.find_opt('-despike_opts_3dDes')
     bopt = block.opts.find_opt('-despike_opts_3dDes')
-    bopt = block.opts.find_opt('-despike_opts_3dDes')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
     block.valid = 1
@@ -702,6 +701,16 @@ def db_mod_regress(block, proc, user_opts):
         if proc.verb > 0: print '-d will use -stim_files in 3dDeconvolve'
         block.opts.add_opt('-regress_no_stim_times',0,[],setpar=1)
 
+    # just pass along regress_3dD_stop
+    uopt = user_opts.find_opt('-regress_3dD_stop')
+    bopt = block.opts.find_opt('-regress_3dD_stop')
+    if uopt and not bopt: block.opts.add_opt('-regress_3dD_stop',0,[])
+
+    # just pass along regress_reml_exec
+    uopt = user_opts.find_opt('-regress_reml_exec')
+    bopt = block.opts.find_opt('-regress_reml_exec')
+    if uopt and not bopt: block.opts.add_opt('-regress_reml_exec',0,[])
+
     # prepare to return
     if errs > 0:
         block.valid = 0
@@ -864,11 +873,16 @@ def db_cmd_regress(proc, block):
     else: other_opts = '    %s  \\\n' %         \
                ' '.join(UTIL.quotize_list(opt.parlist, '\\\n    ', 1))
 
+    # are we going to stop with the 1D matrix?
+    opt = block.opts.find_opt('-regress_3dD_stop')
+    if opt: stop_opt = '    -x1D_stop  \\\n'
+    else  : stop_opt = ''
+
     # add misc options
     cmd = cmd + iresp
     cmd = cmd + other_opts
     cmd = cmd + "    -fout -tout -x1D X.xmat.1D -xjpeg X.jpg \\\n"
-    cmd = cmd + fitts + errts
+    cmd = cmd + fitts + errts + stop_opt
     cmd = cmd + "    -bucket stats.$subj\n\n\n"
 
     # if 3dDeconvolve fails, terminate the script
@@ -879,6 +893,12 @@ def db_cmd_regress(proc, block):
                 "    echo '   (consider the file 3dDeconvolve.err)'\n"  \
                 "    exit\n"                                            \
                 "endif\n\n\n"
+
+    # possibly run the REML script
+    if block.opts.find_opt('-regress_reml_exec'):
+        rcmd = db_cmd_reml_exec(proc, block)
+        if not rcmd: return
+        cmd = cmd + rcmd
 
     # create all_runs, and store name for blur_est
     all_runs = 'all_runs.$subj'
@@ -913,7 +933,28 @@ def db_cmd_regress(proc, block):
 
     return cmd
 
-# might estimate blur from either all_runs or errts
+# create a short command to run the REML script
+# The script name is currently stats.REML_cmd, based on the 'stats.' -bucket
+# prefix in 3dD.
+#
+# return None on failure
+def db_cmd_reml_exec(proc, block):
+    if proc.verb > 1: print '+d creating reml_exec command string'
+
+    cmd = '# -- execute the REML command script and check the status --\n'
+    cmd = cmd + 'tcsh -x stats.REML_cmd\n\n'
+
+    # if 3dDeconvolve fails, terminate the script
+    cmd = cmd + "# if 3dREMLfit fails, terminate the script\n"          \
+                "if ( $status != 0 ) then\n"                            \
+                "    echo '---------------------------------------'\n"  \
+                "    echo '** 3dREMLfit error, failing...'\n"           \
+                "    exit\n"                                            \
+                "endif\n\n\n"
+
+    return cmd
+
+# might estimate blur from either all_runs or errts (3dD or REML)
 # need mask (from mask, or automask from all_runs)
 # requires 'all_runs' dataset, in case a mask is needed
 #
@@ -922,65 +963,89 @@ def db_cmd_blur_est(proc, block):
     cmd = ''
     aopt = block.opts.find_opt('-regress_est_blur_epits')
     eopt = block.opts.find_opt('-regress_est_blur_errts')
+    ropt = block.opts.find_opt('-regress_reml_exec')
+    sopt = block.opts.find_opt('-regress_3dD_stop')
     if not aopt and not eopt:
         if proc.verb > 2: print '-d no blur estimation'
         return cmd
 
     # set the mask (if we don't have one, bail)
-    if proc.mask: mask = '-mask %s+orig' % proc.mask
-    else:
+    if not proc.mask:
         print '** refusing to estimate blur without a mask dataset'
         print '   (perhaps keep the mask block and apply -regress_no_mask)'
         return
 
-    if proc.verb > 1: print 'computing blur_estimates'
+    if proc.verb > 1: print '+d computing blur estimates'
     blur_file = 'blur_est.$subj.1D'
 
-
     # call this a new sub-block
-    cmd = cmd + '# -------------------------\n'                 \
-                '# compute blur estimates\n'                    \
+    cmd = cmd + '# -------------------------------------------------------\n'\
+                '# compute blur estimates\n'                                 \
                 'touch %s   # start with empty file\n\n' % blur_file
 
+    if aopt:
+        bstr = blur_est_loop_str('all_runs.$subj%s' % proc.view, 
+                    '%s%s' % (proc.mask, proc.view),
+                    'epits', proc.reps, blur_file)
+        if not bstr: return
+        cmd = cmd + bstr
+    if eopt and not sopt: # want errts, but 3dD was not executed
+        bstr = blur_est_loop_str('errts.$subj%s' % proc.view, 
+                    '%s%s' % (proc.mask, proc.view),
+                    'errts', proc.reps, blur_file)
+        if not bstr: return
+        cmd = cmd + bstr
+    if eopt and ropt: # want errts and reml was executed
+        # cannot use ${}, so escape the '_'
+        bstr = blur_est_loop_str( 'errts.$subj\_REML%s' % proc.view, 
+                    '%s%s' % (proc.mask, proc.view),
+                    'err_reml', proc.reps, blur_file)
+        if not bstr: return
+        cmd = cmd + bstr
+    cmd = cmd + '\n'
 
-    if aopt:    # get average across all runs
-        prev = proc.prev_prefix_form_run()
-        cmd = cmd + '# estimate blur for each run\n'                         \
-                    'touch blur.EPI.1D \n'                                   \
-                    'foreach run ( $runs )\n'                                \
-                    '    3dFWHMx -detrend %s %s+orig >> blur.EPI.1D\n'       \
-                    'end\n\n' % (mask, prev)
-        cmd = cmd +                                                          \
-                '# compute average blur, and append\n'                       \
-                'set blurs = ( `3dTstat -mean -prefix - blur.EPI.1D\\\'` )\n'\
-                'echo average EPI blurs: $blurs\n'                           \
-                'echo "$blurs   # EPI blur estimates" >> %s\n\n'         %   \
-                blur_file
+    return cmd
 
-    if eopt:    # get errts blur estimate
-        etsopt = block.opts.find_opt('-regress_errts_prefix')
-        errts = etsopt.parlist[0] + '+orig'
-        if not etsopt or not etsopt.parlist:
-            print '** want est_blur_errts, but have no errts_prefix'
-            return
+def blur_est_loop_str(dname, mname, label, nreps, outfile):
+    """return tcsh command string to compute blur from this dset
+        dname    : dataset name to estimate blur on
+        mname    : mask dataset name
+        label    : text label for comments
+        nreps    : number of repetitions per run
+        outfile  : final output filename
+    """
+    
+    dset  = BASE.afni_name(dname)
+    input = dset.shortinput()
+    mset  = BASE.afni_name(mname)
+    mask  = mset.shortinput()
+    tmpfile = 'blur.%s.1D' % label
 
-        cmd = cmd + '# estimate blur for each run in errts\n'           \
-                    'touch blur.errts.1D\n\n'
-        cmd = cmd + 'set b0 = 0\n'                                      \
-                    'set b1 = %d    # nreps-1\n' % (proc.reps-1)
-        cmd = cmd + 'foreach run ( $runs )\n'                           \
-                    '    3dFWHMx -detrend %s %s"[$b0..$b1]" \\\n'       \
-                    '        >> blur.errts.1D\n'                        \
-                    '    @ b0 += %d   # add nreps\n'                    \
-                    '    @ b1 += %d\n'                                  \
-                    'end\n\n' % (mask, errts, proc.reps, proc.reps)
+    if not input:
+        print "** failed to get blur_est input name from '%s'" % dname
+        return ''
+    if not mask:
+        print "** failed to get mask input name from '%s'" % mname
+        return ''
 
-        cmd = cmd +                                                          \
-                '\n# compute average blur, and append\n'                     \
-                'set blurs = ( `3dTstat -mean -prefix - blur.errts.1D\\\'` )\n'\
-                'echo average errts blurs: $blurs\n'                         \
-                'echo "$blurs   # errts blur estimates" >> %s\n\n'       %   \
-                blur_file
+    cmd = '# -- estimate blur for each run in %s --\n'               \
+          'touch %s\n\n' % (label, tmpfile)
+
+    cmd = cmd + 'set b0 = 0\n'                                       \
+                'set b1 = %d    # nreps-1\n' % (nreps-1)
+    cmd = cmd + 'foreach run ( $runs )\n'                            \
+                '    3dFWHMx -detrend -mask %s %s"[$b0..$b1]"  \\\n' \
+                '        >> %s\n'                                    \
+                '    @ b0 += %d   # add nreps\n'                     \
+                '    @ b1 += %d\n'                                   \
+                'end\n\n' % (mask, input, tmpfile, nreps, nreps)
+
+    cmd = cmd + '# compute average blur and append\n'                   \
+                'set blurs = ( `3dTstat -mean -prefix - %s\\\'` )\n'    \
+                'echo average %s blurs: $blurs\n'                       \
+                'echo "$blurs   # %s blur estimates" >> %s\n'       %   \
+                (tmpfile, label, label, outfile)
+    cmd = cmd + '\n'
 
     return cmd
 
