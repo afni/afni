@@ -173,14 +173,17 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
         pobuf  = (char *) malloc( sizeof(char) * CONTROL_BUFSIZE ) ;
 
         while(1){
-           jj = iochan_recv( ioc_control[cc] , pobuf+npobuf , CONTROL_BUFSIZE-npobuf ) ;
+           jj = iochan_recv(  ioc_control[cc] , pobuf+npobuf , 
+                              CONTROL_BUFSIZE-npobuf ) ;
            if( jj < 1 ) break ;  /* stop if nothing more comes in */
            npobuf += jj ;
            if( npobuf >= CONTROL_BUFSIZE ){  /* stop if overflow */
               fprintf(stderr,"PO: control channel buffer overflow!\n") ;
               break ;
            }
-           for( ii=0 ; ii < npobuf ; ii++ ) if( pobuf[ii] == '\0' ) break ;
+           for( ii=0 ; ii < npobuf ; ii++ )  /* ZSS:added ';' Feb 26 09 */
+            if( pobuf[ii] == '\0' || pobuf[ii] == ';') break ;
+           pobuf[ii] = '\0';  /* make sure we now end with nul */
            if( ii < npobuf ) break ;      /* stop if found a NUL character */
 
            AFNI_sleep( SHORT_DELAY ) ;  /* wait for some more? */

@@ -45,7 +45,7 @@ CCD    = $(CC) $(CCDEBS)
 
 OMPFLAG = -fopenmp -DUSE_OMP
 
-IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/sw/include -I/usr/X11R6/include
+IFLAGS = -I. $(XROOT_I) -I/usr/local/include -I/usr/X11R6/include -I/sw/include 
 LFLAGS = -L. $(XROOT_L) -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib  -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
 CCSVD  = cc -m64 -O0 -no-cpp-precomp

@@ -12,6 +12,9 @@ static void SORTS_tsfunc( double tzero , double tdelta ,
 static void SORTS_itsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void *ud , int nbriks, float *val ) ;
+static void SORTS_rtsfunc( double tzero , double tdelta ,
+                         int npts , float ts[] , double ts_mean ,
+                         double ts_slope , void *ud , int nbriks, float *val ) ;
 extern int *z_iqsort (float *x , int nx );
 
 int main( int argc , char *argv[] )
@@ -32,6 +35,8 @@ int main( int argc , char *argv[] )
              " -dec      = sort into decreasing order\n"
              " -rank     = output rank instead of sorted values\n"
              "             ranks range from 1 to Nvals\n"
+             " -ind      = output sorting index. (0 to Nvals -1)\n"
+             "             See example below.\n"
              " -val      = output sorted values (default)\n"
              " -datum D  = Coerce the output data to be stored as \n"
              "             the given type D, which may be  \n"
@@ -52,6 +57,10 @@ int main( int argc , char *argv[] )
              "    1dcat tsort.1D\n"
              "\n"
              "    3dTsort -overwrite -rank test.1D \n"
+             "    1dcat tsort.1D\n"
+             "\n"
+             "\n"
+             "    3dTsort -overwrite -ind test.1D \n"
              "    1dcat tsort.1D\n"
              "\n"
              "    3dTsort -overwrite -dec test.1D \n"
@@ -95,6 +104,9 @@ int main( int argc , char *argv[] )
       }
       if( strncmp(argv[nopt],"-val",4) == 0){
          rank = 0; nopt++; continue;
+      }
+      if( strncmp(argv[nopt],"-ind",5) == 0){
+         rank = -1; nopt++; continue;
       }
       if( strncasecmp(argv[nopt],"-datum",6) == 0 ){
          if( ++nopt >= argc )
@@ -154,7 +166,7 @@ int main( int argc , char *argv[] )
                     SORTS_tsfunc ,         /* timeseries processor */
                     NULL                   /* data for tsfunc */
                  ) ;
-   } else {
+   } else if (rank == 1) {
       new_dset = MAKER_4D_to_typed_fbuc(
                     old_dset ,             /* input dataset */
                     prefix ,               /* output prefix */
@@ -165,7 +177,18 @@ int main( int argc , char *argv[] )
                     SORTS_itsfunc ,        /* timeseries processor */
                     NULL                   /* data for tsfunc */
                  ) ;
-   }
+   } else {
+      new_dset = MAKER_4D_to_typed_fbuc(
+                    old_dset ,             /* input dataset */
+                    prefix ,               /* output prefix */
+                    datum ,                /* output datum  */
+                    0 ,                    /* ignore count  */
+                    0 ,                    /* don't detrend */
+                    nvals ,                /* number of briks */
+                    SORTS_rtsfunc ,        /* timeseries processor */
+                    NULL                   /* data for tsfunc */
+                 ) ;
+   } 
    if( new_dset != NULL ){
      tross_Copy_History( old_dset , new_dset ) ;
      tross_Make_History( "3dTsort" , argc,argv , new_dset ) ;
@@ -259,6 +282,34 @@ static void SORTS_itsfunc( double tzero, double tdelta ,
       for( ii=0 ; ii < nval ; ii++ ) val[rnk[ii]] = ii+1 ;
    }
 #endif
+   free(rnk); rnk=NULL;
+   return ;
+}
+static void SORTS_rtsfunc( double tzero, double tdelta ,
+                          int npts, float ts[],
+                          double ts_mean, double ts_slope,
+                          void *ud, int nbriks, float *val )
+{
+   int ii , nval ;
+   int *rnk;
+   /** is this a "notification"? **/
+
+   if( val == NULL ){
+      return ;
+   }
+
+   /** do the work **/
+
+   nval = MIN(nbriks,npts) ;
+   memcpy( val , ts , sizeof(float)*nval ) ;
+   
+   /* Using an inverse sorting function, for excitement */
+   rnk = z_iqsort( val, nval ) ;
+   if( inc == 1 ){
+     for( ii=0 ; ii < nval ; ii++ )  val[nval - ii-1] =  rnk[ii];
+   }else {
+      for( ii=0 ; ii < nval ; ii++ ) val[ii] = rnk[ii] ;
+   }
    free(rnk); rnk=NULL;
    return ;
 }

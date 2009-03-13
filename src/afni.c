@@ -8509,7 +8509,8 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW        ){
 
       if( ISQ_REALZ(seq) && CAN_TALTO(im3d) ){
-         MCW_choose_string( seq->wbar , "Enter MNI x,y,z:" , last_mnito_string ,
+         MCW_choose_string( seq->wbar , "Enter MNI x,y,z (LPI mm):" , 
+                            last_mnito_string ,
                             AFNI_mnito_CB , (XtPointer) im3d ) ;
       } else {
          XBell(XtDisplay(w),100) ; /* should never happen */

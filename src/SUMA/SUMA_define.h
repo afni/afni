@@ -2200,29 +2200,31 @@ typedef struct {
 /* *** Niml defines */
 
 #define SUMA_TCP_PORT 53211      /*!< AFNI listens to SUMA on this port */
+#define SUMA_MATLAB_LISTEN_PORT 53230  /* MATLAB listens to SUMA on this port */
 #define SUMA_TCP_LISTEN_PORT0 53220 /*!< SUMA's 1st listening port */
 #define SUMA_FLAG_WAITING    1   /*!< Waiting for connection flag */
 #define SUMA_FLAG_CONNECTED  2   /*!< Connected flag */
 #define SUMA_FLAG_SKIP       4   /*!< Skip flag */
 
-typedef enum { SUMA_AFNI_STREAM_INDEX = 0, /*!< Index of SUMA<-->AFNI stream , afni listen line 1*/ 
-               SUMA_AFNI_STREAM_INDEX2 ,  /*!< Index of SUMA<-->AFNI 2nd stream, afni listen line 2 */  
-               SUMA_GENERIC_LISTEN_LINE, /*!< Using socket  SUMA_TCP_LISTEN_PORT0, generic suma listen line*/
-               SUMA_GEOMCOMP_LINE, /*!<  Using socket  SUMA_TCP_LISTEN_PORT0 + 1*/
-               SUMA_BRAINWRAP_LINE, /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 2*/
-               SUMA_DRIVESUMA_LINE, /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 3*/
-               SUMA_MAX_STREAMS /*!< Maximum number of streams, KEEP AT END */
+typedef enum { SUMA_AFNI_STREAM_INDEX = 0, 
+                     /*!< Index of SUMA<-->AFNI stream , afni listen line 1*/ 
+               SUMA_AFNI_STREAM_INDEX2 ,  
+                     /*!< Index of SUMA<-->AFNI 2nd stream, afni listen line 2 */
+               SUMA_TO_MATLAB_STREAM_INDEX, 
+                     /*!< Index of SUMA<-->MATLAB 2nd stream, matlab listen */
+               SUMA_GENERIC_LISTEN_LINE, 
+                     /*!< Using socket  SUMA_TCP_LISTEN_PORT0, 
+                           generic suma listen line*/
+               SUMA_GEOMCOMP_LINE, 
+                     /*!<  Using socket  SUMA_TCP_LISTEN_PORT0 + 1*/
+               SUMA_BRAINWRAP_LINE, 
+                     /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 2*/
+               SUMA_DRIVESUMA_LINE, 
+                     /*!<  Using socket SUMA_TCP_LISTEN_PORT0 + 3*/
+               SUMA_MAX_STREAMS 
+                     /*!< Maximum number of streams, KEEP AT END */
             } SUMA_STREAM_INDICES;
             
-#if 0
-   #define SUMA_AFNI_STREAM_INDEX 0  /*!< Index of SUMA<-->AFNI stream */ 
-   #define SUMA_AFNI_STREAM_INDEX2 1  /*!< Index of SUMA<-->AFNI stream */       
-   #define SUMA_GEOMCOMP_LINE 2 /*!<  Using socket SUMA_TCP_PORT + SUMA_GEOMCOMP_LINE 
-                                 Make sure SUMA_GEOMCOMP_LINE < SUMA_MAX_STREAMS*/
-   #define SUMA_BRAINWRAP_LINE 3 /*!<  Using socket SUMA_TCP_PORT + SUMA_BRAINWRAP_LINE 
-                                 Make sure SUMA_BRAINWRAP_LINE < SUMA_MAX_STREAMS*/
-   #define SUMA_MAX_STREAMS       5  /*!< Maximum number of streams, >= SUMA_INITIATED_STREAMS */
-#endif
 /* *** Niml defines end */
 
               
@@ -2484,7 +2486,7 @@ typedef struct {
                      ns = ns_v[SUMA_AFNI_STREAM_INDEX]*/
    int ns_flags_v[SUMA_MAX_STREAMS];
    int TCP_port[SUMA_MAX_STREAMS];
-   
+   int TalkMode[SUMA_MAX_STREAMS];  /* Talk text or talk binary? */
    SUMA_Boolean Connected_v[SUMA_MAX_STREAMS]; 
      /*!< YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI 
          *** Dec. 19 03
@@ -2492,6 +2494,7 @@ typedef struct {
    int TrackingId_v[SUMA_MAX_STREAMS]; 
       /*!<  for keeping track of serial number of incoming nels 
             0 if not keeping track. So start numbering at 1*/
+
 
    SUMA_Boolean Listening; /*!< SUMA is listening for connections */
    SUMA_Boolean niml_work_on; /*!< Flag indicating that niml workprocess is ON */
