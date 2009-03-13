@@ -4,8 +4,27 @@ function [nel, comm] = ToyTalk()
 % A sample function to illustrate how matlab can listen to communication from
 % SUMA. 
 %
+%Dependency:
+%-----------
+%The TCP communication is based on pnet.m by:  
+%       Peter Rydesäter, 
+%       Mitthögskolan(Mid Sweden University) campus Östersund, SWEDEN
+%pnet is not in AFNI's matlab library yet. You should have a copy of it by now
+%since you pointed me to it. If the mex file is not available for your machine,
+%you will need to compile a mex file for pnet. On the mac (or linux), just do:
+%   mex -O pnet.c
+%
+%Of course you will need the AFNI_matlab library that is included in 
+%afni's source archive. 
+%
+%
 %Usage:
 %------
+%  Prepare some data, by creating a coarse (just for simplicity) version
+%  of the surfaces used in the AFNI workshop. 
+%
+%  MapIcosahedron -spec DemoSubj_lh.spec -ld 12 -morph sphere.reg -prefix std12.
+%
 %  Launch SUMA from the command line using something like:
 %
 %     setenv SUMA_NI_TEXT_TALK_MODE YES
@@ -37,19 +56,6 @@ function [nel, comm] = ToyTalk()
 %  but oh well. If you new of new matlab developments on that front, 
 %  please let me know.
 % 
-%Dependency:
-%-----------
-%The TCP communication is based on pnet.m by:  
-%       Peter Rydesäter, 
-%       Mitthögskolan(Mid Sweden University) campus Östersund, SWEDEN
-%pnet is not in AFNI's matlab library yet. You should have a copy of it by now
-%since you pointed me to it. If the mex file is not available for your machine,
-%you will need to compile a mex file for pnet. On the mac (or linux), just do:
-%   mex -O pnet.c
-%
-%Of course you will need the AFNI_matlab library that is included in 
-%afni's source archive. 
-%
 %Limitations:
 %-------------
 %1- Matlab uses the same port as AFNI for listening to SUMA. So you should not be
@@ -59,6 +65,7 @@ function [nel, comm] = ToyTalk()
 %possiblity, I need concrete examples of where that is useful. I would be more
 %inclined to create a 'TellSuma.m' which parallels 'TellAfni.m' to communicate
 %with SUMA from matlab. Let me know what you think
+%
   
    global comm ;
   
@@ -105,7 +112,7 @@ function [nel, comm] = ToyTalk()
          clear ud
          
          %do the callback
-         BryanzCall(data);
+         ProcessSUMAdata(data);
          
          %cleanup
          clear data      
@@ -165,7 +172,7 @@ function [err,data] = checkformeat()
    err = 0;
    return
 
-function BryanzCall(ds)
+function ProcessSUMAdata(ds)
    global SO;  %surface object
    
    dopt.verbose = 0;
