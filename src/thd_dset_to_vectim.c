@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 /*-----------------------------------------------------------------*/
 /*! Convert a dataset to the MRI_vectim format, where each time
     series is a contiguous set of values in an array, and the
@@ -61,6 +65,39 @@ ENTRY("THD_dset_to_vectim") ;
 
    if( mmm != mask ) free(mmm) ;
    RETURN(mrv) ;
+}
+
+/*-----------------------------------------------------------*/
+
+void THD_vectim_normalize( MRI_vectim *mrv )
+{
+   int iv , ii ;
+
+   if( mrv == NULL ) return ;
+
+   for( iv=0 ; iv < mrv->nvec ; iv++ )
+     THD_normalize( mrv->nvals , VECTIM_PTR(mrv,iv) ) ;
+}
+
+/*-----------------------------------------------------------*/
+
+void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp )
+{
+   if( mrv == NULL || vec == NULL || dp == NULL ) return ;
+
+#pragma omp parallel if( mrv->nvec * mrv->nvals > 999999 )
+ { int nvec=mrv->nvec, nvals=mrv->nvals, nv1=nvals-1, iv, ii ; float sum, *fv ;
+#pragma omp for
+   for( iv=0 ; iv < nvec ; iv++ ){
+     fv = VECTIM_PTR(mrv,iv) ;
+     for( sum=0.0f,ii=0 ; ii < nv1 ; ii+=2 )
+       sum += fv[ii]*vec[ii] + fv[ii+1]*vec[ii+1] ;
+     if( ii == nvals-1 ) sum += fv[ii]*vec[ii] ;
+     dp[iv] = sum ;
+   }
+ } /* end OpenMP */
+
+  return ;
 }
 
 /*-----------------------------------------------------------*/
