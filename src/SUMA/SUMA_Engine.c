@@ -77,7 +77,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                              is now always in NI_TEXT_MODE,
                                              verify that AFNI handles either well
                                              THIS handling here is TEMPORARY */
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = NOPE; 
       
    
    SUMA_ENTRY;

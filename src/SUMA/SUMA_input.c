@@ -3397,17 +3397,25 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       }
       
       /* check to see if AFNI needs to be notified */
-      if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && sv->LinkAfniCrossHair) {
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+      /* Need to deal with SUMA_TO_MATLAB_STREAM_INDEX too 
+         Same for remaining occurrence of SUMA_AFNI_STREAM_INDEX*/
+      if (  SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && 
+            sv->LinkAfniCrossHair) {
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,
+                     "%s: Notifying Afni of CrossHair XYZ\n", FuncName);
          /* register a call to SetAfniCrossHair */
          if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
+         SUMA_REGISTER_TAIL_COMMAND_NO_DATA( list, SE_SetAfniCrossHair, 
+                                             SES_Suma, sv);
          if (!SUMA_Engine (&list)) {
-            fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            fprintf( SUMA_STDERR, 
+                     "Error %s: SUMA_Engine call failed.\n", FuncName);
             SUMA_RETURN (-1);
          }
       }else {
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
+         if (LocalHead) 
+            fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
       }
 
       /* now put in a request for locking cross hair but you must do this after the node selection has been executed 

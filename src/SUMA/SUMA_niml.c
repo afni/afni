@@ -44,39 +44,43 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
    SUMA_LH("In");
    
    for (cc=0; cc<SUMA_MAX_STREAMS; ++cc) {
-     if (cc == SUMA_AFNI_STREAM_INDEX2) continue; /*     this stream is listened to by AFNI and is used by non-suma 
-                                                         SUMA programs to communicate with AFNI directly. SUMA programs are not 
-                                                         to receive elements back on this stream (unlike suma with SUMA_AFNI_STREAM_INDEX)
-                                                         because communications for now are one way only. */
-     #if 0 
-     /* *** Pre Dec. 18 03, only SUMA talked to AFNI */ 
-        /* check if stream is open */
-
-        if( SUMAg_CF->ns == NULL ){
-          fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream is not open. \n");
-          if (SUMA_NIML_WORKPROC_IO_NOTIFY) {
-            SUMA_RETURN(True); /* Don't call me with that lousy stream again */
-          }
-            else return (True); /* to reduce the massive amounts of tracing messages */
-        }
-      #else
+     if (cc == SUMA_AFNI_STREAM_INDEX2) continue; 
+         /*      this stream is listened to by AFNI and is used by non-suma 
+                 SUMA programs to communicate with AFNI directly. 
+                 SUMA programs are not to receive elements back on this stream 
+                 (unlike suma with SUMA_AFNI_STREAM_INDEX)
+                  because communications for now are one way only. */
+      
       /* *** post Dec. 18 03, making SUMA listen to people's needs */
       /* open streams that aren't open */
-
       
-      if (cc != SUMA_AFNI_STREAM_INDEX && cc != SUMA_AFNI_STREAM_INDEX2) { /* Leave AFNI's stream alone, SUMA initiates the connection here, 
-                                                                              SUMA_AFNI_STREAM_INDEX2 is not needed here because of earlier
-                                                                              condition, but it is left here as a reminder.*/
-         
-         if (LocalHead) fprintf (SUMA_STDERR, "%s: Checking on stream %d, %s\n", FuncName, cc,  SUMAg_CF->NimlStream_v[cc]);
-         if( SUMAg_CF->ns_v[cc] == NULL && (SUMAg_CF->ns_flags_v[cc] & SUMA_FLAG_SKIP)==0 ){
-            if (LocalHead) fprintf (SUMA_STDERR, "%s: \tNot Skipped.\n", FuncName);
-            SUMAg_CF->ns_v[cc] = NI_stream_open( SUMAg_CF->NimlStream_v[cc] , "r" ) ;
+      if (  cc != SUMA_AFNI_STREAM_INDEX  && 
+            cc != SUMA_AFNI_STREAM_INDEX2 &&
+            cc != SUMA_TO_MATLAB_STREAM_INDEX ) { 
+         /* Leave AFNI's and MATLAB streams alone, 
+            SUMA initiates the connection on those.
+            This block is for streams on which SUMA gets contacted 
+            first. */                
+         if (LocalHead) 
+            fprintf (SUMA_STDERR, 
+                     "%s: Checking on stream %d, %s\n", 
+                     FuncName, cc,  SUMAg_CF->NimlStream_v[cc]);
+         if( SUMAg_CF->ns_v[cc] == NULL && 
+            (SUMAg_CF->ns_flags_v[cc] & SUMA_FLAG_SKIP)==0 ){
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, "%s: \tNot Skipped.\n", FuncName);
+            SUMAg_CF->ns_v[cc] = 
+               NI_stream_open( SUMAg_CF->NimlStream_v[cc] , "r" ) ;
             if( SUMAg_CF->ns_v[cc] == NULL ){
-               fprintf (SUMA_STDERR, "%s: Stream %d, %s open returned NULL\n", FuncName, cc,  SUMAg_CF->NimlStream_v[cc]); 
+               fprintf (SUMA_STDERR, 
+                        "%s: Stream %d, %s open returned NULL\n", 
+                        FuncName, cc,  SUMAg_CF->NimlStream_v[cc]); 
                SUMAg_CF->ns_flags_v[cc] = SUMA_FLAG_SKIP ; continue;
             }
-            if (LocalHead) fprintf (SUMA_STDERR, "%s: Stream %d, %s open returned NOT null\n", FuncName, cc,  SUMAg_CF->NimlStream_v[cc]);
+            if (LocalHead) 
+               fprintf (SUMA_STDERR, 
+                        "%s: Stream %d, %s open returned NOT null\n", 
+                        FuncName, cc,  SUMAg_CF->NimlStream_v[cc]);
             SUMAg_CF->ns_flags_v[cc]  = SUMA_FLAG_WAITING ;
          }else {
             if (SUMAg_CF->ns_v[cc] == NULL) { 
@@ -87,13 +91,19 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 
          ngood ++;
       } else {
-         if( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] ) {
+         if(   cc == SUMA_AFNI_STREAM_INDEX &&
+               SUMAg_CF->ns_v[cc]) {
             ngood ++;
-         } else { /* do nothing for that stream */
+         } else if (  cc == SUMA_TO_MATLAB_STREAM_INDEX &&
+               SUMAg_CF->ns_v[cc]) {
+            ngood ++;
+         } else {
+            /* do nothing otherwise */
             continue;
          }
+         
       }
-      #endif
+      
      
      /* check if stream has gone bad */
      nn = NI_stream_goodcheck( SUMAg_CF->ns_v[cc] , 1 ) ;
@@ -101,7 +111,9 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
      if( nn < 0 ){                          /* is bad */
        NI_stream_close( SUMAg_CF->ns_v[cc] ) ;
        SUMAg_CF->ns_v[cc] = NULL ; /* this will get checked next time */
-       fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream %d gone bad. Stream closed. \n", cc);
+       fprintf(SUMA_STDERR,
+               "Error SUMA_niml_workproc: Stream %d gone bad. Stream closed. \n",
+               cc);
        
        /* close everything */
        if (!list) list = SUMA_CreateList();
@@ -110,7 +122,8 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
                                           SEF_i, (void*)&cc,  
                                           SES_Suma, (void *)sv, NOPE,   
                                           SEI_Head, NULL)) {  
-         fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);   
+         fprintf (SUMA_STDERR, 
+                  "Error %s: Failed to register command.\n", FuncName);   
        }
 
        if (!SUMA_Engine (&list)) {
@@ -141,31 +154,46 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
    
      if( nn > 0 ){                                   /* has data */
        int ct = NI_clock_time() ;
-       if (LocalHead)   fprintf(SUMA_STDERR,"%s: reading data stream", FuncName) ;
+       if (LocalHead)   
+         fprintf(SUMA_STDERR,"%s: reading data stream", FuncName) ;
 
        nini = NI_read_element( SUMAg_CF->ns_v[cc] , 1 ) ;  /* read it */
          #if SUMA_SUMA_NIML_DEBUG /* debugging corruption of niml ...*/
             nel = (NI_element *)nini ;
-            if( strcmp(nel->name,"SUMA_irgba") == 0 || strcmp(nel->name,"Node_RGBAb") == 0) 
+            if(   strcmp(nel->name,"SUMA_irgba") == 0 || 
+                  strcmp(nel->name,"Node_RGBAb") == 0) 
             {
                int *ibad=NULL;
                
                ibad = (int *)nel->vec[0]; 
                if (ibad[0] > 1000) {
-                  fprintf (SUMA_STDERR,"**********\n\tibad[0] = %d\n****************\n", ibad[0]);
-                  fprintf (SUMA_STDOUT,"********** ibad[0] = %d ****************", ibad[0]);
+                  fprintf (SUMA_STDERR,
+                           "**********\n\tibad[0] = %d\n****************\n", 
+                           ibad[0]);
+                  fprintf (SUMA_STDOUT,
+                           "********** ibad[0] = %d ****************", 
+                           ibad[0]);
                }
-               if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
-                  fprintf(SUMA_STDERR,"--------\n\tEmpty SUMA_irgba (len = %d, len = %d)\n--------\n", 
+               if( nel->vec_len  < 1 || nel->vec_filled <  1) {  
+                        /* empty element?             */
+                  fprintf(SUMA_STDERR,
+                           "--------\n"
+                           "\tEmpty SUMA_irgba (len = %d, len = %d)\n"
+                           "--------\n", 
                      nel->vec_len, nel->vec_filled);
-                  fprintf(SUMA_STDOUT,"-------- Empty SUMA_irgba (len = %d, filled = %d) --------", 
+                  fprintf(SUMA_STDOUT,
+                           "-------- Empty SUMA_irgba "
+                           "(len = %d, filled = %d) --------", 
                      nel->vec_len, nel->vec_filled);
                }
                fprintf (SUMA_STDOUT,"\n");
             }
          #endif
          
-       if (LocalHead)   fprintf(SUMA_STDERR," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
+       if (LocalHead)   
+         fprintf( SUMA_STDERR,
+                  " time=%d ms\n",
+                  NI_clock_time()-ct) ; ct = NI_clock_time() ;
 
        if( nini != NULL ) {
          nel = (NI_element *)nini ;
@@ -174,8 +202,11 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
             if (nel_track) {
                id = atoi(nel_track);
                if (id != SUMAg_CF->TrackingId_v[cc] + 1) {
-                  /* remember, "StartTracking" nel is the #1 element, first data element starts at 2 */
-                  fprintf (SUMA_STDERR,"Warning %s:\n Expected element %d, received element %d.\n",
+                  /* remember, "StartTracking" nel is the #1 element, 
+                     first data element starts at 2 */
+                  fprintf (SUMA_STDERR,
+                           "Warning %s:\n"
+                           " Expected element %d, received element %d.\n",
                            FuncName,  SUMAg_CF->TrackingId_v[cc] + 1 , id );
                   SUMA_BEEP;
                }
@@ -183,17 +214,21 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
             }
          }
          if (LocalHead)   {
-            fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
-                  nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
+            fprintf( SUMA_STDERR,
+                     "%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", 
+                     FuncName, nel->name, nel->vec_len, 
+                     nel->vec_filled, nel->vec_num );
          }      
           if (!SUMA_process_NIML_data( nini , sv)) {
-             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
+             fprintf(SUMA_STDERR,
+                     "Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
           }
       }
 
       NI_free_element( nini ) ;
 
-      if (LocalHead)   fprintf(SUMA_STDERR,"processing time=%d ms\n",NI_clock_time()-ct) ;
+      if (LocalHead)   
+         fprintf(SUMA_STDERR,"processing time=%d ms\n",NI_clock_time()-ct) ;
 
      } 
    
@@ -929,35 +964,56 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_SL_Err("Failed to find state!");
             SUMA_RETURN(NOPE);
          } else {
-            if (!SUMA_SwitchState(SUMAg_DOv, SUMAg_N_DOv, sv, i, sv->CurGroupName)) {
+            if (!SUMA_SwitchState(  SUMAg_DOv, SUMAg_N_DOv, 
+                                    sv, i, sv->CurGroupName)) {
                SUMA_SL_Err("Failed to switch states!");
                SUMA_RETURN(NOPE);
             }
          }
 
-         /* file a redisplay request (in the past, when surface was sent in chunks, redisplay was
-         held until geometry was received, now that a whole surface can be sent at once, redisplay
-         is appropriate here ZSS Sept. 06*/
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
+         /* file a redisplay request 
+         In the past, when surface was sent in chunks, redisplay was
+         held until geometry was received, now that a whole surface can be sent 
+         at once, redisplay is appropriate here ZSS Sept. 06*/
+         if (LocalHead) 
+            fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
          if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAny, sv);
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, 
+                                             SES_SumaFromAny, sv);
          if (!SUMA_Engine (&list)) {
-            fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            fprintf(SUMA_STDERR, 
+               "Error %s: SUMA_Engine call failed.\n", FuncName);
             SUMA_RETURN(NOPE);
          }
 
          /* do we need to notify AFNI ? */
+         /* YOU'll need to do the same using Send2Matlab
+            The only difference is the changing stream index
+            So you should set this at the top and use the
+            same instructions.
+            Also, you'll need to pass the stream along with the
+            SE_ToggleConnected and SE_SetAfniThisSurf and others
+            Or perhaps consider checking all applicable Connected_v
+            at the targets in SUMA_Engine.c */ 
          if (NI_get_attribute(nel, "Send2Afni")) {
             SUMA_LH("Attempting to talk to AFNI");
             if (!SO->VolPar) {
-               SUMA_SL_Err("Have no VolPar, cannot send to AFNI!\nCommand ignored.");
+               SUMA_SL_Err("Have no VolPar, cannot send to AFNI!\n"
+                           "Command ignored.");
             } else {
-               if (!SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) { /* need to send a toggle request */
-                  if (LocalHead) fprintf(SUMA_STDERR, "%s: Sending talk request...\n", FuncName);
+               if (!SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) { 
+                  /* need to send a toggle request */
+                  if (LocalHead) 
+                     fprintf(SUMA_STDERR, 
+                        "%s: Sending talk request...\n", FuncName);
                   if (!list) list = SUMA_CreateList();
-                  SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleConnected, SES_SumaFromAny, sv);
+                  SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_ToggleConnected, 
+                                                      SES_SumaFromAny, sv);
                   if (!SUMA_Engine (&list)) {
-                     fprintf(SUMA_STDERR, "Warning %s: SUMA_Engine call failed.\nContinuing...", FuncName);
+                     fprintf( SUMA_STDERR, 
+                              "Warning %s: "
+                              "SUMA_Engine call failed.\nContinuing...", 
+                              FuncName);
                   } 
                } else {
                   SUMA_LH("Looks like they're talking already");
@@ -965,28 +1021,38 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                /* now send the surface */
                SUMA_LH("Now trying to send surface");
                if (!SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) { 
-                  fprintf(SUMA_STDERR, "Warning %s: Failed to open connection.\nContinuing...", FuncName);
+                  fprintf( SUMA_STDERR, 
+                           "Warning %s: "
+                           "Failed to open connection.\nContinuing...", 
+                           FuncName);
                } else {
                   SUMA_LH("Making Call");
                   if (!list) list = SUMA_CreateList();
                   ED = SUMA_InitializeEngineListData (SE_SetAfniThisSurf);
-                  if (!( Elm = SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_cp, (void *)SO->idcode_str, 
-                                                         SES_Suma, NULL, NOPE, 
-                                                         SEI_Tail, NULL ))) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register command\nIgnoring ...", FuncName);
+                  if (!( Elm = SUMA_RegisterEngineListCommand (  
+                                 list, ED, 
+                                 SEF_cp, (void *)SO->idcode_str, 
+                                 SES_Suma, NULL, NOPE, 
+                                 SEI_Tail, NULL ))) {
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Failed to register command\n"
+                              "Ignoring ...", FuncName);
                   }else {
                      int ti= 0;
-                     SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_s, (void *)("NodeList, FaceSetList, NodeNormList"), 
-                                                         SES_Suma, NULL, NOPE, 
-                                                         SEI_In, Elm );
-                     SUMA_RegisterEngineListCommand (  list, ED, 
-                                                         SEF_i, (void *)&ti, /* 0, be quiet about it */
-                                                         SES_Suma, NULL, NOPE, 
-                                                         SEI_In, Elm );
+                     SUMA_RegisterEngineListCommand (  
+                        list, ED, 
+                        SEF_s, (void *)("NodeList, FaceSetList, NodeNormList"), 
+                        SES_Suma, NULL, NOPE, 
+                        SEI_In, Elm );
+                     SUMA_RegisterEngineListCommand (  
+                        list, ED, 
+                        SEF_i, (void *)&ti, /* 0, be quiet about it */
+                        SES_Suma, NULL, NOPE, 
+                        SEI_In, Elm );
                      if (!SUMA_Engine (&list)) {
-                        fprintf(SUMA_STDERR, "Warning %s: SUMA_Engine call failed.\nContinuing...", FuncName);
+                        fprintf(SUMA_STDERR, 
+                           "Warning %s: SUMA_Engine call failed.\nContinuing...",
+                           FuncName);
                      }
                   }
                }   
@@ -1087,6 +1153,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
          if (!list) list = SUMA_CreateList();
          SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAny, sv);
+         
+         /* Need to deal with "Send2Matlab" as per comment above */
          if (NI_get_attribute(nel, "Send2Afni")) {
             if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
                SUMA_LH("Putting request for sending to afni ...");
@@ -1639,7 +1707,8 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
    XYZmap = SUMA_XYZ_XYZmap (sv->Ch->c, SO, SUMAg_DOv, SUMAg_N_DOv, &I_C);
    
    if (XYZmap == NULL){
-      fprintf(SUMA_STDERR,"%s: Linkage is not posible, using current XYZ\n", FuncName);
+      fprintf( SUMA_STDERR,
+               "%s: Linkage is not posible, using current XYZ\n", FuncName);
       XYZmap = (float *)SUMA_calloc (3, sizeof(float));
       if (XYZmap == NULL) {
          fprintf (SUMA_STDERR, "Error %s: Give me a break !\n", FuncName);
@@ -1657,6 +1726,11 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
       fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel\n", FuncName);
       SUMA_RETURN (NULL);
    }
+   
+   /* add some info about surface in question */
+   NI_SETA_INT(nel, "surface_nodeid", SO->SelectedNode);
+   NI_set_attribute( nel, "surface_idcode", SO->idcode_str);
+   NI_set_attribute( nel, "surface_label", SO->Label);
    
    NI_add_column( nel , NI_FLOAT , XYZmap );
    

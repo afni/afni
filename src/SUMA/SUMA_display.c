@@ -7126,6 +7126,7 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
    SUMAg_CF->ROI2afni = !SUMAg_CF->ROI2afni;
    
    /* make sure that is OK */
+   /* Same here, need to handle SUMA_TO_MATLAB_STREAM_INDEX */
    if (SUMAg_CF->ROI2afni && !SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
       SUMAg_CF->ROI2afni = NOPE;
       
