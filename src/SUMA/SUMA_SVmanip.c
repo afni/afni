@@ -1757,7 +1757,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 {
    static char FuncName[]={"SUMA_Create_CommonFields"};
    SUMA_CommonFields *cf;
-   int i, portn = -1, n, portn2;
+   int i, portn = -1, n, portn2, portn3, kkk;
    char *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
       
@@ -1811,8 +1811,26 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       } 
    } else {
       portn2 = portn+1;
+   }
+   
+   eee = getenv("SUMA_MATLAB_LISTEN_PORT");
+   if (eee) {
+      portn3 = atoi(eee);
+      if (portn3 < 1024 ||  portn3 > 65535) {
+         fprintf (SUMA_STDERR, 
+                "Warning %s:\n"
+                "Environment variable SUMA_MATLAB_LISTEN_PORT %d is invalid.\n"
+                "port must be between 1025 and 65534.\n"
+                "Using default of %d\n", 
+                FuncName, portn, SUMA_MATLAB_LISTEN_PORT);
+         portn3 = SUMA_MATLAB_LISTEN_PORT;
+      } 
+   } else {
+      portn3 = SUMA_MATLAB_LISTEN_PORT;
    }   
+      
     
+   kkk=0;
    for (i=0; i<SUMA_MAX_STREAMS; ++i) {
       cf->ns_v[i] = NULL;
       cf->ns_flags_v[i] = 0;
@@ -1820,9 +1838,18 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       cf->TrackingId_v[i] = 0;
       cf->NimlStream_v[i][0] = '\0';
       cf->HostName_v[i][0] = '\0';
-      if (i==0) cf->TCP_port[i] = portn;           /* AFNI listening */
-      else if (i==1) cf->TCP_port[i] = portn2;     /* AFNI listening */
-      else cf->TCP_port[i] = SUMA_TCP_LISTEN_PORT0 + i - 2;   /* SUMA listening */
+      cf->TalkMode[i] = NI_BINARY_MODE;   
+      if (i==SUMA_AFNI_STREAM_INDEX) 
+         cf->TCP_port[SUMA_AFNI_STREAM_INDEX] = portn;           
+            /* AFNI listening */
+      else if (i==SUMA_AFNI_STREAM_INDEX2) 
+         cf->TCP_port[SUMA_AFNI_STREAM_INDEX2] = portn2;     /* AFNI listening */
+      else if (i==SUMA_TO_MATLAB_STREAM_INDEX) 
+         cf->TCP_port[SUMA_TO_MATLAB_STREAM_INDEX] = portn3; /* Matlab listeng */
+      else {
+         cf->TCP_port[i] = SUMA_TCP_LISTEN_PORT0 + kkk;   /* SUMA listening */
+         ++kkk;
+      }
    }
    cf->Listening = NOPE;
    cf->niml_work_on = NOPE;

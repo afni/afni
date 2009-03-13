@@ -4,6 +4,21 @@
    #define DEBUG_3
 #endif
    
+   
+                                          
+/* Need to figure out what to do with talking to multiple sockets (MATLAB and AFNI, for example). 
+   So far, it looks like: 
+   *- toggling should be separate. Maybe use Y key for matlab
+      Not sure if SUMA_Engine talk toggling targets need to be separate 
+      for the various stream. Me thinks that should not be the case.
+   *- Talk_mode should be a part of the SUMAg_CF structure and should be set 
+      for each stream. You'll also need to make sure relevant NI_write calls
+      abide by the settings. You should remove reliance on NI_TALK_MODE
+      and the current env used to control it.
+   *- Everytime one deals with SUMA_AFNI_STREAM_INDEX, one should have
+      a case for    SUMA_TO_MATLAB_STREAM_INDEX . However, one does not
+      want to call SE_SendColorMapToAfni twice, once for AFNI and another
+      time for matlab. You want to send, not generate, the nel in question twice. */
 /* Header FILES */
    
 #include "SUMA_suma.h"
@@ -56,10 +71,23 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    DList *list= NULL;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL, *LogShell=NULL;
    SUMA_PARSED_NAME *fn = NULL;
+   static int NI_TALK_MODE = -1;      /* Choose from:
+                                             NI_TEXT_MODE or NI_BINARY_MODE
+                                             Note cross-hair communication
+                                             is now always in NI_TEXT_MODE,
+                                             verify that AFNI handles either well
+                                             THIS handling here is TEMPORARY */
    SUMA_Boolean LocalHead = NOPE;
       
    
    SUMA_ENTRY;
+   
+   if (NI_TALK_MODE < 0) {
+      if (AFNI_yesenv("SUMA_NI_TEXT_TALK_MODE")) {
+         SUMA_S_Note("Talking in text mode");
+         NI_TALK_MODE = NI_TEXT_MODE;
+      } else NI_TALK_MODE = NI_BINARY_MODE;
+   }
    
    list = *listp;    /* listp is now passed instead of list so that I can 
                         set list to NULL from within this function */
@@ -147,7 +175,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                /* SUMA_ShowNel((void*)nel); */
                
                if (NI_write_element(   SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
-                                       nel, NI_BINARY_MODE ) < 0) {
+                                       nel, NI_TALK_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
@@ -169,7 +197,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                /* SUMA_ShowNel((void*)nel); */
                
                if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
-                                     nel, NI_BINARY_MODE ) < 0) {
+                                     nel, NI_TALK_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
@@ -185,7 +213,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
                NI_set_attribute ( nel, "ni_object", "SET_FUNC_AUTORANGE A.-");
                if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
-                                     nel, NI_BINARY_MODE ) < 0) {
+                                     nel, NI_TALK_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   cmap = NULL;
@@ -201,7 +229,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                stmp = SUMA_append_string("SET_FUNC_RANGE A.", sbuf);
                NI_set_attribute ( nel, "ni_object", stmp);
                if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
-                                     nel, NI_BINARY_MODE ) < 0) {
+                                     nel, NI_TALK_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
                   if (stmp) SUMA_free(stmp); stmp = NULL;
@@ -1092,11 +1120,17 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_ToggleConnected:
             /* expects nothing in EngineData */
             if (!SUMA_CanTalkToAfni (SUMAg_DOv, SUMAg_N_DOv)) {
-               fprintf(SUMA_STDOUT,"%s: Cannot connect to AFNI.\n\tNot one of the surfaces is mappable and has a Surface Volume.\n\tDid you use the -sv option when launching SUMA ?\n", FuncName);
+               fprintf(SUMA_STDOUT,
+                        "%s: Cannot connect to AFNI.\n"
+                        "\tNot one of the surfaces is mappable "
+                        "and has a Surface Volume.\n"
+                        "\tDid you use the -sv option when launching SUMA ?\n", 
+                        FuncName);
                break;
             }
                
-            SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] = !SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX];
+            SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] = 
+                              !SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX];
             if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
                if (!SUMA_niml_call (SUMAg_CF, SUMA_AFNI_STREAM_INDEX, YUP)) {
                   /* conection flag is reset in SUMA_niml_call */
@@ -1112,7 +1146,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
 
                /* register a call for sending the surface to afni (SetAfniSurf)*/
-               if (LocalHead) fprintf(SUMA_STDERR,"Notifying Afni of New surface...\n");
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR,"Notifying Afni of New surface...\n");
                ED = SUMA_InitializeEngineListData (SE_SetAfniSurf);
                SUMA_RegisterEngineListCommand (list, ED, 
                                                 SEF_Empty, NULL,
@@ -1124,7 +1159,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
                if (!SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX]) {
                   /* It looks like the stream was closed, do the clean up */
-                  fprintf(SUMA_STDERR,"Warning %s: sv->ns is null, stream must have gotten closed. Cleaning up ...\n", FuncName);
+                  SUMA_S_Warn("sv->ns is null, stream must have gotten closed.\n"
+                              "Cleaning up ...\n");
                   ED = SUMA_InitializeEngineListData (SE_CloseStream4All);
                   ii = SUMA_AFNI_STREAM_INDEX;
                   SUMA_RegisterEngineListCommand (list, ED, 
@@ -1137,11 +1173,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 
 
                /* Close the stream if nobody else wants it. 
-               This is not a great condition, one should be able to leave the stream open 
+               This is not a great condition, one should be able to leave the 
+               stream open 
                even if no viewer, for the moment, does not want to talk to AFNI.
                Perhaps in the future. */
                if (SUMAg_N_SVv == 1) {
-                  fprintf(SUMA_STDERR,"%s: Nobody wants to talk to AFNI anymore, closing stream ...\n", FuncName);
+                  SUMA_S_Note("Nobody wants to talk to AFNI anymore\n"
+                              "closing stream ...\n");
                   NI_stream_close(SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX]);
                   SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] = NULL;
                   SUMAg_CF->ns_flags_v[SUMA_AFNI_STREAM_INDEX] = 0;
@@ -1269,7 +1307,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         }
                         /* send surface nel */
                         if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ", FuncName) ;
-                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
+                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_TALK_MODE ) ;
 
                         if( nn < 0 ){
                              fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
@@ -1298,7 +1336,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         }
                         /* send surface nel */
                         if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_NORM nel ...\n", FuncName) ;
-                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
+                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_TALK_MODE ) ;
 
                         if( nn < 0 ){
                              fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
@@ -1317,7 +1355,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         }
                         /* send surface nel */
                         if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_IJK nel ...\n", FuncName) ;
-                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
+                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_TALK_MODE ) ;
 
                         if( nn < 0 ){
                              fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
@@ -1350,7 +1388,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                         stmp = SUMA_append_string("SWITCH_UNDERLAY A.", SO->VolPar->prefix);
                         NI_set_attribute ( nel, "ni_object", stmp);
                         fprintf(SUMA_STDERR,"%s: Sending switch underlay command to (%s)...\n", FuncName, stmp);
-                        if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
+                        if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_TALK_MODE ) < 0) {
                            SUMA_SLP_Err("Failed to send SWITCH_ANATOMY to afni");
                         }
                         NI_free_element(nel) ; nel = NULL;
@@ -1770,16 +1808,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* form nel */
             nel = SUMA_makeNI_CrossHair (sv);
             if (!nel) {
-               fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_CrossHair failed\n", FuncName);
+               fprintf(SUMA_STDERR,
+                        "Error %s: SUMA_makeNI_CrossHair failed\n", FuncName);
                break;
                }
             /*send it to afni */
-            /*fprintf(SUMA_STDERR,"Sending cross hair nel ") ;*/
-            nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_TEXT_MODE ) ;
-            /*SUMA_nel_stdout (nel);*/
+            SUMA_LH("Sending cross hair nel: SUMA_crosshair_xyz") ;
+            nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , 
+                                    nel , NI_TEXT_MODE ) ;
+            /* SUMA_nel_stdout (nel);*/
       
             if( nn < 0 ){
-                   fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
+                   fprintf(SUMA_STDERR,
+                           "Error %s: NI_write_element failed\n", FuncName);
             }
             
             NI_free_element(nel);

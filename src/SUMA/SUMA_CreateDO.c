@@ -5330,6 +5330,9 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO,
          for (ii=0; ii < N_nelv; ++ii) {
             SUMA_LH("Send this nel to AFNI.");
             /* SUMA_ShowNel((void*)nelv[ii]);*/
+            /* Here you should write elements to SUMA_TO_MATLAB_STREAM
+            Also, you should have a variable saying how encoding should
+            be done for each of the streams */
             if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nelv[ii] , NI_BINARY_MODE ) < 0) {
                SUMA_SLP_Err("NI_write_element failed.");
             }
@@ -5465,6 +5468,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                    "Turning ROIlink Off.");
       *CreateNel = NOPE;
    }
+   /* Deal with SUMA_TO_MATLAB_STREAM_INDEX here too */
    if (*CreateNel && !SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
       SUMA_SLP_Err(  "You are not connected\n"
                      "to AFNI. Turning \n"
@@ -5538,7 +5542,9 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                            FuncName, SUMA_StandardMapCode(mapname),
                            SUMAg_CF->ROI_CM->N_Col);
                }
+               
                /* if connected to AFNI, send color map */
+               /* Need to add handling for SUMA_TO_MATLAB_STREAM_INDEX */
                if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] &&
                    SUMAg_CF->ROI2afni) {
                   int mapcode = -1;

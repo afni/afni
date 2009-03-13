@@ -159,10 +159,11 @@ ENTRY("AFNI_process_environ") ;
             strcpy(enveqn,left) ; strcat(enveqn,"=") ; strcat(enveqn,right) ;
             if (!(eee = getenv(left))) {          /* ZSS Nov. 25 08 */
                putenv(enveqn) ;
-            } else if( !AFNI_noenv("AFNI_ENVIRON_WARNINGS") ){
+            } else if( !AFNI_noenv("AFNI_ENVIRON_WARNINGS") &&
+                        strcmp(right, eee)){
                INFO_message(  "Environment variable %s already set to '%s'. "
-                                 "Value of '%s' from %s is ignored.",
-                                 left, eee, right, fname_str);
+                              "Value of '%s' from %s is ignored.",
+                              left, eee, right, fname_str);
             }
             nenv++ ;
          }
