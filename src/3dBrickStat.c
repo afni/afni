@@ -369,7 +369,9 @@ int main( int argc , char * argv[] )
       if (mp0 > mp1) {
          N_mp = 1; 
       } else {
-         N_mp = (int)((double)(mp1-mp0)/(double)mps) + 1;
+         /* allocate one above ceiling to prevent truncation error (and crash),
+            N_mp is recomputed anyway      16 Mar 2009 [rickr]               */
+         N_mp = (int)((double)(mp1-mp0)/(double)mps) + 2;
       } 
       mpv = (double *)malloc(sizeof(double)*N_mp);
       perc = (double *)malloc(sizeof(double)*N_mp);
