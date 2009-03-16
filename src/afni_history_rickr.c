@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, MAR, 2009, RCR, "3dBrickStat", MINOR, TYPE_BUG_FIX,
+   "malloc extra val in case of percentile truncation",
+   NULL
+ } ,
+
  { 12, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "warn user about masking in orig space",
    "- if despiking and no regression mask, apply -nomask\n"
