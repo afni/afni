@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, MAR, 2009, RCR, "eg_main_chrono.py", MINOR, TYPE_NEW_PROG,
+   "sample main python program using a library and chronological options",
+   NULL
+ } ,
+
  { 16, MAR, 2009, RCR, "3dBrickStat", MINOR, TYPE_BUG_FIX,
    "malloc extra val in case of percentile truncation",
    NULL
