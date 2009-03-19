@@ -48,6 +48,19 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, MAR, 2009, RCR, "1d_tool.py", MAJOR, TYPE_NEW_PROG,
+   "added lib_afni1D.py and 1d_tool.py",
+   "This is a library and tool for manipulating 1D files.\n"
+   "Many functions will still be added."
+ } ,
+
+ { 19, MAR, 2009, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "a few additions and changes",
+   "- allow container chars (e.g. []) in decode_1D_ints()\n"
+   "- added is_valid_int_list()\n"
+   "- changed str vars to istr (as str is a keyword)"
+ } ,
+
  { 19, MAR, 2009, RCR, "eg_main_chrono.py", MINOR, TYPE_NEW_OPT,
    "added -verbose_opts option, for being verbose during option processing",
    NULL

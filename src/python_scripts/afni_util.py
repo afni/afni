@@ -200,7 +200,7 @@ def get_dset_reps_tr(dset, verb=1):
     if verb > 1:
         if units == 77001: unit_str = 'ms'
         else             : unit_str = 's'
-        print '-- dset %s : reps = %d, tr = %s%s' % (dset,reps,str(tr),unit_str)
+        print '-- dset %s : reps = %d, tr = %s%s' %(dset,reps,istr(tr),unit_str)
 
     # and adjust TR
     if units == 77001: tr /= 1000.0
@@ -320,14 +320,17 @@ def consec_len(cols, start):
 
    return length
 
-def decode_1D_ints(str, verb=1, max=-1):
+def decode_1D_ints(istr, verb=1, max=-1):
     """Decode a comma-delimited string of ints, ranges and A@B syntax,
        and AFNI-style sub-brick selectors (including A..B(C)).
        If the A..B format is used, and B=='$', then B gets 'max'.
+       If the list is enclosed in [], <> or ##, strip those characters.
        - return a list of ints"""
-    slist = str.split(',')
+
+    newstr = strip_list_brackets(istr, verb)
+    slist = newstr.split(',')
     if len(slist) == 0:
-        if verb > 1: print "-- empty 1D_ints from string '%s'" % str
+        if verb > 1: print "-- empty 1D_ints from string '%s'" % istr
         return None
     ilist = []                  # init return list
     for s in slist:
@@ -356,9 +359,31 @@ def decode_1D_ints(str, verb=1, max=-1):
             else:
                 ilist.extend([int(s)])
         except:
-            print "** cannot decode_1D '%s' in '%s'" % (s, str)
+            print "** cannot decode_1D '%s' in '%s'" % (s, istr)
             return None
+    del(newstr)
     return ilist
+
+def strip_list_brackets(istr, verb=1):
+   """strip of any [], {}, <> or ## surrounding this string
+        - assume only one pair
+        - allow the trailing character to be missing
+      return the remaining string"""
+
+   # strip any of these pairs
+   for pairs in [ ['[',']'],  ['{','}'],  ['<','>'],  ['#','#'] ]:
+
+      ind0 = istr.find(pairs[0])
+      if ind0 >= 0:
+         ind1 = istr.find(pairs[1], ind0+1)
+         if verb > 1: print '-- stripping %s%s at %d,%d in %s' % \
+                            (pairs[0],pairs[1],ind0,ind1,istr)
+         if ind1 > ind0: return istr[ind0+1:ind1]
+         else:           return istr[ind0+1:]
+
+   if verb > 2: print "-- nothing to strip from '%s'" % istr
+
+   return istr
 
 # ----------------------------------------------------------------------
 # line wrapper functions
@@ -527,14 +552,14 @@ def find_command_end(command, start=0):
 # count the number of leading non-whitespace chars
 # (newline chars are not be counted, as they end a line)
 # if pound, skip any leading '#'
-def num_leading_line_spaces(str,start,pound=0):
-    length = len(str)
+def num_leading_line_spaces(istr,start,pound=0):
+    length = len(istr)
     if start < 0: start = 0
     if length < 1 or length <= start: return 0
     posn = start
-    if pound and str[posn] == '#': posn += 1
+    if pound and istr[posn] == '#': posn += 1
 
-    while posn < length and str[posn].isspace() and str[posn] != '\n':
+    while posn < length and istr[posn].isspace() and istr[posn] != '\n':
         posn += 1
 
     if posn == length: return 0   # none found
@@ -543,14 +568,14 @@ def num_leading_line_spaces(str,start,pound=0):
 # find (index of) first space after start that isn't a newline
 # (skip any leading indendation if skip_prefix is set)
 # return -1 if none are found
-def find_next_space(str,start,skip_prefix=0):
-    length = len(str)
+def find_next_space(istr,start,skip_prefix=0):
+    length = len(istr)
     index  = start
-    if skip_prefix: index += num_leading_line_spaces(str,start,1)
+    if skip_prefix: index += num_leading_line_spaces(istr,start,1)
     
     while 1:
         if index >= length: break
-        if str[index] != '\n' and str[index].isspace(): break
+        if istr[index] != '\n' and istr[index].isspace(): break
         index += 1
 
     if index >= length : return -1
@@ -559,19 +584,19 @@ def find_next_space(str,start,skip_prefix=0):
 # find (index of) last space in current line range that isn't a newline
 # if stretch and not found, search towards end
 # return start-1 if none are found
-def find_last_space(str,start,end,max_len=-1,stretch=1):
-    if end < 0: end = len(str) - 1
+def find_last_space(istr,start,end,max_len=-1,stretch=1):
+    if end < 0: end = len(istr) - 1
     if max_len >= 0 and end-start >= max_len: index = start+max_len-1
     else:                                     index = end
 
     posn = index        # store current position in case of stretch
     
-    while posn >= start and (str[posn] == '\n' or not str[posn].isspace()):
+    while posn >= start and (istr[posn] == '\n' or not istr[posn].isspace()):
         posn -= 1
 
     if posn < start and stretch:       # then search towards end
         posn = index
-        while posn < end and (str[posn] == '\n' or not str[posn].isspace()):
+        while posn < end and (istr[posn] == '\n' or not istr[posn].isspace()):
             posn += 1
         if posn > end: posn = start-1 # still failed
 
@@ -631,10 +656,35 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
         nspaces : [2] number of spaces between each float
    """
 
-   str = ''
-   for val in vals: str += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
+   istr = ''
+   for val in vals: istr += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
 
-   return str
+   return istr
+
+def is_valid_int_list(ldata, min=0, max=-1, whine=0):
+   """check whether:
+        o  ldata is a of type []
+        o  values are of type int
+        o  values are in within min..max (only if min <= max)
+        o  if whine: complain on error
+      return 1 on true, 0 on false"""
+
+   if not ldata or type(ldata) != type([]):
+      if whine: print "** not valid as a list: '%s'" % ldata
+
+   for ind in range(len(ldata)):
+      val = ldata[ind]
+      if type(val) != type(0):
+         if whine: print "** non-int value %d in int list (@ %d)" % (val,ind)
+         return 0
+      if min <= max: # then also test bounds
+         if val < min:
+            if whine: print "** list value %d not in [%d,%d]" %(val,min,max)
+            return 0
+         elif val > max:
+            if whine: print "** list value %d not in [%d,%d]" %(val,min,max)
+            return 0
+   return 1
 
 # ----------------------------------------------------------------------
 # matematical functions
