@@ -50,7 +50,7 @@ void ZCAT_read_opts( int argc , char * argv[] )
 
       /**** -frugal [05 Apr 2006] ****/
 
-      if( strncmp(argv[nopt],"-frugal",6) == 0 ){
+      if( strncmp(argv[nopt],"-frugal",4) == 0 ){
         ZCAT_frugal = 1 ; nopt++ ; continue ;
       }
 
@@ -79,7 +79,7 @@ void ZCAT_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-prefix",6) == 0 ){
         nopt++ ;
         if( nopt >= argc ){
-          fprintf(stderr,"** need argument after -prefix!\n") ; exit(1) ;
+          ERROR_exit("need argument after -prefix!\n") ;
         }
         MCW_strncpy( ZCAT_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
 	
@@ -105,7 +105,7 @@ void ZCAT_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-datum",6) == 0 ){
          if( ++nopt >= argc ){
-           fprintf(stderr,"** need an argument after -datum!\n"); exit(1);
+           ERROR_exit("need an argument after -datum!\n");
          }
               if( strcmp(argv[nopt],"short") == 0 ) ZCAT_datum = MRI_short ;
          else if( strcmp(argv[nopt],"float") == 0 ) ZCAT_datum = MRI_float ;
@@ -114,9 +114,8 @@ void ZCAT_read_opts( int argc , char * argv[] )
          else if( strcmp(argv[nopt],"complex")== 0) ZCAT_datum = MRI_complex ;
 #endif
          else {
-           fprintf(stderr,"** -datum %s not supported in 3dZcat!\n",
+           ERROR_exit("-datum %s not supported in 3dZcat!\n",
                    argv[nopt] ) ;
-           exit(1) ;
          }
          nopt++ ; continue ;  /* go to next arg */
       }
@@ -126,7 +125,7 @@ void ZCAT_read_opts( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-input") == 0 ){
         nopt++ ;
       } else if( argv[nopt][0] == '-' ){
-        fprintf(stderr,"** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+        ERROR_exit("Unknown option: %s\n",argv[nopt]) ;
       }
 
       /**** read dataset ****/
@@ -136,7 +135,7 @@ void ZCAT_read_opts( int argc , char * argv[] )
 
       dset = THD_open_dataset( argv[nopt++] ) ;
       if( dset == NULL ){
-         fprintf(stderr,"** Can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
+         ERROR_exit("Can't open dataset %s\n",argv[nopt-1]) ;
       }
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
 
@@ -149,20 +148,21 @@ void ZCAT_read_opts( int argc , char * argv[] )
          ZCAT_nxy   = ii ;
          ZCAT_nbrik = DSET_NVALS(dset) ;
       } else if( ii != ZCAT_nxy ){
-         fprintf(stderr,"** Dataset %s differs in slice size from others\n",argv[nopt-1]);
-         exit(1) ;
+         ERROR_exit("** Dataset %s differs in slice size from others\n",argv[nopt-1]);
       } else if ( DSET_NVALS(dset) != ZCAT_nbrik ){
-         fprintf(stderr,"** Dataset %s has different number of sub-bricks\n",argv[nopt-1]) ;
-         exit(1) ;
+         ERROR_exit("** Dataset %s has different number of sub-bricks\n",argv[nopt-1]) ;
       } else if ( DSET_BRICK_TYPE(dset,0) == MRI_complex ){
-         fprintf(stderr,"** Dataset %s is complex-valued -- ILLEGAL\n",argv[nopt-1]) ;
-         exit(1) ;
+         ERROR_exit("** Dataset %s is complex-valued -- ILLEGAL\n",argv[nopt-1]) ;
       }
 
       ADDTO_3DARR(ZCAT_dsar,dset) ;  /* list of datasets */
 
    }  /* end of loop over command line arguments */
 
+   if(NIFTI_mode && ZCAT_frugal){
+      ERROR_message("Frugality and NIFTI output do not mix.\n");
+      ERROR_exit("Try without -frugal or with different output type.\n");
+   }
    return ;
 }
 
@@ -192,6 +192,7 @@ void ZCAT_Syntax(void)
     "  -verb         = Print out some verbositiness as the program proceeds.\n"
     "  -frugal       = Be 'frugal' in the use of memory, at the cost of I/O time.\n"
     "                    Only needed if the program runs out of memory.\n"
+    "                    Note frugality cannot be combined with NIFTI output\n"
     "\n"
     "Command line arguments after the above are taken as input datasets.\n"
     "\n"
@@ -216,12 +217,14 @@ void ZCAT_Syntax(void)
 
 int main( int argc , char * argv[] )
 {
-   int ninp , ids , iv , iz,kz,new_nz, nx,ny,nz,nxy,nxyz ;
+   int ninp , ids , iv ,kz,new_nz, nx,ny,nz,nxy,nxyz ;
    THD_3dim_dataset * new_dset=NULL , * dset ;
    THD_ivec3 iv_nxyz ;
    float * fvol , *ffac ;
    void  * svol ;
-   int fscale ; FILE * far ;
+   int fscale ; FILE * data_file = NULL ;
+   MRI_IMAGE *svol_im;
+   MRI_IMARR *im_array;
 
    /*** read input options ***/
 
@@ -243,9 +246,10 @@ int main( int argc , char * argv[] )
 
    ninp = ZCAT_dsar->num ;
    if( ninp < 2 ){
-      fprintf(stderr,"** Must have at least 2 input datasets!\n") ; exit(1) ;
+      ERROR_exit("Must have at least 2 input datasets!\n");
    }
 
+   /* compute total number of z-slices in output */
    new_nz = 0 ;
    for( ids=0 ; ids < ninp ; ids++ ) new_nz += DSET_NZ(DSUB(ids)) ;
 
@@ -274,9 +278,11 @@ int main( int argc , char * argv[] )
 
    LOAD_IVEC3( iv_nxyz , nx , ny , new_nz ) ;
 
+   /* if data type has not been selected by user, get the data type from master */
    if( ZCAT_datum < 0 ) ZCAT_datum = DSET_BRICK_TYPE(dset,0) ;
 
    /*-- open output BRIK file --*/
+   /* default cmode is COMPRESS_NOFILE  unless nifti.gzip output (.nii.gz) */
    if ((cmode == COMPRESS_NOFILE)) { /* ignore compression for NIFTI - do in write
    automatically later */
       cmode = THD_get_write_compression() ; /* check env. variable for compression*/
@@ -297,9 +303,8 @@ int main( int argc , char * argv[] )
 
    /* can't re-write existing dataset */
    if( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)) ){
-     fprintf(stderr,"** Fatal error: dataset %s already exists!\n",
+     ERROR_exit("Fatal error: dataset %s already exists!\n",
              DSET_HEADNAME(new_dset) ) ;
-     exit(1) ;
    }
 
    THD_force_malloc_type( new_dset->dblk , DATABLOCK_MEM_MALLOC ) ;
@@ -309,18 +314,21 @@ int main( int argc , char * argv[] )
        dset = DSUB(ids) ; DSET_load(dset) ; CHECK_LOAD_ERROR(dset) ;
      }
    }
-
-   
-   far = COMPRESS_fopen_write( DSET_BRIKNAME(new_dset) , cmode ) ;
-   if( far == NULL ){
-      fprintf(stderr,
-        "\a\n*** cannot open output file %s\n",DSET_BRIKNAME(new_dset)) ;
-      exit(1) ;
+   else {
+      data_file = COMPRESS_fopen_write( DSET_BRIKNAME(new_dset) , cmode ) ;
+      if( data_file == NULL ){
+         ERROR_exit(
+           "\a\n*** cannot open output file %s\n",DSET_BRIKNAME(new_dset)) ;
+      }
    }
 
    /* make space for sub-brick scaling factors */
 
    ffac = (float *) malloc(sizeof(float)*DSET_NVALS(new_dset)) ;
+
+   if (!ZCAT_frugal)
+       INIT_IMARR(im_array);  
+
 
    /*** Loop over output sub-bricks ***/
 
@@ -344,10 +352,9 @@ int main( int argc , char * argv[] )
          if( ZCAT_frugal ){
            DSET_load(dset) ;
            if( ! DSET_LOADED(dset) ){
-             fprintf(stderr,"** Fatal error: can't load data from %s\n",
+             ERROR_message("Fatal error: can't load data from %s\n",
                      DSET_BRIKNAME(dset)) ;
-             fprintf(stderr,"** If out of memory, retry with '-frugal' option\n") ;
-             COMPRESS_fclose(far) ; remove(DSET_BRIKNAME(new_dset)) ;
+             COMPRESS_fclose(data_file) ; remove(DSET_BRIKNAME(new_dset)) ;
              exit(1) ;
           }
          }
@@ -359,11 +366,10 @@ int main( int argc , char * argv[] )
          switch( DSET_BRICK_TYPE(dset,iv) ){
 
             default:
-               fprintf(stderr,
+               ERROR_exit(
                        "** Illegal input brick type=%s in dataset %s\n",
                        MRI_TYPE_name[DSET_BRICK_TYPE(dset,iv)] ,
                        DSET_HEADNAME(dset) ) ;
-            exit(1) ;
 
             case MRI_short:{
                register int ii , itop = DSET_NVOX(dset) ;
@@ -413,10 +419,9 @@ int main( int argc , char * argv[] )
       switch( ZCAT_datum ){
 
          default:                   /* should never transpire */
-            fprintf(stderr,
+            ERROR_exit(
                     "** Fatal Error **\n"
                     "** Somehow ended up with -datum = %d\n",ZCAT_datum) ;
-         exit(1) ;
 
          case MRI_float:            /* the trivial case */
             svol = (void *) fvol ;
@@ -464,14 +469,26 @@ int main( int argc , char * argv[] )
          break ;
       } /* end of switch on output datum type */
 
-      /*-- now save svol to disk --*/
-
-      fwrite( svol , mri_datum_size(ZCAT_datum) , nxyz , far ) ;
-      free(svol) ;
+     /* if being frugal with memory (why?),
+         save the data to disk for each output sub-brick */
+     if(ZCAT_frugal) {
+          /*-- now save svol to disk --*/
+          fwrite( svol , mri_datum_size(ZCAT_datum) , nxyz , data_file ) ;
+          free(svol) ;
+     }
+     /* otherwise, save them up and write all sub-bricks all at once */
+     else {
+          /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and 
+              then append that to the image array */
+          svol_im = mri_new_vol_empty( nx, ny, kz, ZCAT_datum) ;
+          mri_fix_data_pointer( svol , svol_im ) ;
+          ADDTO_IMARR(im_array, svol_im);
+     }
 
    } /* end of loop over output sub-bricks */
 
-   /*-- cleanup, and write dataset header --*/
+
+   /*-- cleanup, and write dataset header (and brick if not being frugal) --*/
 
    if( ZCAT_verb )
       fprintf(stderr,"++ Computing output sub-brick statistics\n") ;
@@ -479,14 +496,26 @@ int main( int argc , char * argv[] )
    for( ids=0 ; ids < ninp ; ids++ )       /* remove inputs from memory */
       DSET_delete( DSUB(ids) ) ;
 
-   COMPRESS_fclose(far) ;                  /* close output BRIK file */
+   /* update output dataset image array with pointer to all of the data */
+   if(!ZCAT_frugal)
+      new_dset->dblk->brick = im_array;   /* update pointer to data */
+   else
+      COMPRESS_fclose(data_file) ;        /* close output BRIK file */
+
+
    EDIT_dset_items( new_dset ,             /* set sub-brick factors */
                       ADN_brick_fac,ffac ,
                     ADN_none ) ;
    free(ffac) ;                            /* don't need ffac no more */
 
-   DSET_load(new_dset) ;                   /* read new dataset from disk */
+   /* read all the data back in if being frugal with memory */
+   if(ZCAT_frugal)
+      DSET_load(new_dset) ;                   /* read new dataset from disk */
+   else
+      write_output = 1 ;                   /* have to write everything out */
+
    THD_load_statistics(new_dset) ;         /* compute sub-brick statistics */
+
    THD_write_3dim_dataset(NULL,NULL,new_dset,write_output); /* (re)write output file */
    INFO_message("output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
 
