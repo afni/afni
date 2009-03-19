@@ -49,6 +49,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 18 , MAR , 2009 , DRG , "3dZcat, 3daxialize" , 
+    MINOR , TYPE_NEW_OPT, "NIFTI support",
+    "Fixed support for NIFTI output in 3dZcat and 3daxialize\n"
+    "Added -frugal option to 3daxialize to keep old behavior\n"
+    "for AFNI format datasets. Existing -frugal option in\n"
+    "3dZcat imposes 'oldish' behavior too."
+} ,
+
 { 10 , MAR , 2009 , DRG , "3dLocalstat" , 
     MINOR , TYPE_NEW_OPT, "Sum option",
     "Sum option (for functional weighting of interiorosity measure)"

@@ -15,6 +15,7 @@
 static Boolean write_output = False;  /* 08 Aug 2006 [dg] -force rewrite as in 3drefit by rickr */
 static Boolean NIFTI_mode = False;    /* saving NIFTI output */
 static int cmode = COMPRESS_NOFILE;   /* check compression mode for NIFTI separately */
+static int AXIAL_frugal = 0 ;         /* Saving sub-bricks one at a time is optional 18 Mar 2009 [dg] */
 
 
 int main( int argc , char * argv[] )
@@ -27,7 +28,7 @@ int main( int argc , char * argv[] )
    float xyz_org[4] , xyz_del[4] , brfac_save ;
    MRI_IMAGE * im ;
    void * imar ;
-   FILE * far ;
+   FILE * data_file ;
    THD_datablock * old_dblk , * new_dblk ;
    char new_prefix[THD_MAX_PREFIX] = "axialize" ;
    int verbose = 0 , nim , pim=2 ;
@@ -35,6 +36,10 @@ int main( int argc , char * argv[] )
 
    int axord=0 ;          /* 06 Mar 2000 */
    char orients[4]="\0" ; /* 07 Dec 2001 */
+
+   MRI_IMARR *im_array;             /* 12 Mar 2009 */
+   MRI_IMAGE *svol_im;
+   void  * svol ;
 
    /*- sanity check -*/
 
@@ -73,6 +78,11 @@ int main( int argc , char * argv[] )
              "                If you give an illegal code (e.g., 'LPR'), then\n"
              "                the program will print a message and stop.\n"
              "          N.B.: 'Neurological order' is -orient LPI\n"
+             " -frugal      = Write out data as it is rotated, a sub-brick at\n"
+             "                a time. This saves a little memory and was the\n"
+             "                previous behavior.\n"
+             "                Note the frugal option is not available with NIFTI\n"
+             "                datasets\n"
             ) ;
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -140,9 +150,18 @@ int main( int argc , char * argv[] )
          verbose++ ; iarg++ ; continue ;
       }
 
+      if( strncmp(argv[iarg],"-frugal",4) == 0 ){
+         AXIAL_frugal = 1; iarg++ ; continue ;
+      }
+
       ERROR_exit("Unknown option: %s",argv[iarg]);
    }
 
+   if(NIFTI_mode && AXIAL_frugal){
+      ERROR_message("Frugality and NIFTI output do not mix.\n");
+      ERROR_exit("Try without -frugal or with different output type.\n");
+   }
+   
    /*- get input dataset -*/
 
    old_dset = THD_open_dataset( argv[iarg] ) ;
@@ -240,7 +259,11 @@ int main( int argc , char * argv[] )
    new_dblk = new_dset->dblk ;
    old_dblk = old_dset->dblk ;
 
-   far   = COMPRESS_fopen_write( new_dblk->diskptr->brick_name, cmode ) ;
+   if (AXIAL_frugal)
+      data_file   = COMPRESS_fopen_write( new_dblk->diskptr->brick_name, cmode ) ;
+   else
+      INIT_IMARR(im_array);  
+
    npix  = brax->n1 * brax->n2 ;
 
    /*- get slices from input, write to disk -*/
@@ -259,6 +282,15 @@ int main( int argc , char * argv[] )
       DBLK_BRICK_FACTOR(new_dblk,ival) = 0.0 ;
       DBLK_BRICK_FACTOR(old_dblk,ival) = 0.0 ;
       dsiz = mri_datum_size( DSET_BRICK_TYPE(new_dset,ival) ) ;
+
+      if(!AXIAL_frugal) {
+           /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and 
+               then append that to the image array */
+           svol_im = mri_new_vol( brax->n1 , brax->n2 , brax->n3, DSET_BRICK_TYPE(new_dset,ival)) ;
+           svol = mri_data_pointer(svol_im);
+      }
+
+
       for( kk=0 ; kk < brax->n3 ; kk++ ){
          im   = FD_warp_to_mri( kk , ival , brax ) ;
          imar = mri_data_pointer(im) ;
@@ -268,28 +300,61 @@ int main( int argc , char * argv[] )
                case MRI_float:
                case MRI_int:     mri_swap4(  npix,imar) ; break ;
                case MRI_complex: mri_swap4(2*npix,imar) ; break ;
+
+               default:
+                  ERROR_exit(
+                    "** Illegal input brick type=%s\n",MRI_TYPE_name[im->kind]) ;
             }
          }
-         code = fwrite( imar , dsiz , npix , far ) ;
-         mri_free(im) ;
+
+         if(AXIAL_frugal) {
+            code = fwrite( imar , dsiz , npix , data_file ) ;
+            mri_free(im) ;
+         }
+         else {
+            memcpy((char*)svol+(kk*npix*dsiz), imar, npix*dsiz );
+         }
 
          if( verbose && (++nim)%pim == 1 ){ printf("."); fflush(stdout); }
       }
+
+
       DBLK_BRICK_FACTOR(new_dblk,ival) = brfac_save ;
       DSET_unload_one(old_dset,ival) ;
 
+      if(!AXIAL_frugal) {
+           /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and 
+               then append that to the image array */
+           ADDTO_IMARR(im_array, svol_im);
+      }
+
       if( verbose ){ printf("!"); fflush(stdout); }
    }
-   COMPRESS_fclose(far) ;
-   if( verbose ){ printf("\n") ; fflush(stdout); }
+   if(AXIAL_frugal)
+      COMPRESS_fclose(data_file) ;
+   else
+      new_dset->dblk->brick = im_array;   /* update pointer to data */
+
+   if( verbose ){ printf("\nUnloading old dataset\n") ; fflush(stdout); }
 
    DSET_unload( old_dset ) ;
 
    /*- do the output header -*/
+   if(AXIAL_frugal) {
+      DSET_load( new_dset ) ;
+   }
+      else write_output = 1;      /* have to write everything out now*/
+   THD_load_statistics( new_dset ) ;
 
-   DSET_load( new_dset ) ; THD_load_statistics( new_dset ) ;
-   THD_write_3dim_dataset(NULL,NULL,new_dset,write_output); /* (re)write output file */
+   if( verbose ){ printf("\nWriting new dataset\n") ; fflush(stdout); }
+
+   code = THD_write_3dim_dataset(NULL,NULL,new_dset,write_output); /* (re)write output file */
+   if( !code )
+       ERROR_exit("Could not write dataset");
+
    if( verbose )
       INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(new_dset)) ;
-   exit(0) ;
+   DSET_unload( new_dset ) ;
+
+    exit(0) ;
 }
