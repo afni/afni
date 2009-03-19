@@ -43,9 +43,10 @@ g_history = """
    eg_main_chrono.py history:
 
    0.0  Mar 18, 2009    - initial version
+   0.1  Mar 19, 2009    - added -verbose_opts
 """
 
-g_version = "eg_main_chrono.py version 0.0, Mar 18, 2009"
+g_version = "eg_main_chrono.py version 0.1, Mar 19, 2009"
 
 
 class MyInterface:
@@ -88,6 +89,9 @@ class MyInterface:
       self.valid_opts.add_opt('-verb', 1, [], 
                       helpstr='set the verbose level (default is 1)')
 
+      self.valid_opts.add_opt('-verbose_opts', 0, [], 
+                      helpstr='make option processing verbose')
+
       return 0
 
    def process_options(self):
@@ -112,16 +116,20 @@ class MyInterface:
          print g_version
          return 0
 
+      # allow for verbose argument processing
+      if '-verbose_opts' in sys.argv: opt_verb = 4
+      else:                           opt_verb = 1
+
       # ============================================================
       # read options specified by the user
-      self.user_opts = OL.read_options(sys.argv, self.valid_opts)
+      self.user_opts = OL.read_options(sys.argv, self.valid_opts, opt_verb)
       uopts = self.user_opts            # convenience variable
       if not uopts: return 1            # error condition
 
       # ------------------------------------------------------------
       # process non-chronological options, verb comes first
 
-      val, err = self.user_opts.get_type_opt(int, '-verb')
+      val, err = uopts.get_type_opt(int, '-verb')
       if val != None and not err: self.verb = val
 
       # ------------------------------------------------------------
@@ -141,7 +149,7 @@ class MyInterface:
          # general options
 
          elif opt.name == '-verb':
-            val, err = self.user_opts.get_type_opt(int, '', opt=opt)
+            val, err = uopts.get_type_opt(int, '', opt=opt)
             if val != None and err: return 1
             else: self.verb = val
             continue

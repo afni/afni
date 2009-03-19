@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, MAR, 2009, RCR, "eg_main_chrono.py", MINOR, TYPE_NEW_OPT,
+   "added -verbose_opts option, for being verbose during option processing",
+   NULL
+ } ,
+
  { 18, MAR, 2009, RCR, "eg_main_chrono.py", MINOR, TYPE_NEW_PROG,
    "sample main python program using a library and chronological options",
    NULL
