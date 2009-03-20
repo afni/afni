@@ -1,0 +1,297 @@
+#!/bin/tcsh
+
+# ----------------------------------------------------------------------
+# This script is for compiling openmotif, lesstif or libXt from a clean
+# source tree (the script will not re-compile a tree, because it performs
+# the configuration step).
+# ----------------------------------------------------------------------
+
+
+# ======================================================================
+#
+# getting the source code for OpenMotif, LessTif or libXt:
+#
+# ----------------------------------------------------------------------
+# o OpenMotif
+#
+#   http://sourceforge.net/cvs/?group_id=220144
+#
+#   set sfsource = -d:pserver:anonymous@openmotif.cvs.sourceforge.net:
+#   cvs $sfsource/cvsroot/openmotif login
+#   cvs -z3 $sfsource/cvsroot/openmotif co -P openmotif
+# ----------------------------------------------------------------------
+# o libXt source comes from current xorg repository, source release 1.0.5
+# 
+#   http://www.x.org download mirror:
+#   http://xorg.freedesktop.org/releases/X11R7.4/src/lib/libXt-1.0.5.tar.gz
+# ----------------------------------------------------------------------
+# o LessTif source comes from current sourceforge tree
+# 
+#   set sfsource = -d:pserver:anonymous@lesstif.cvs.sourceforge.net:
+#   cvs $sfsource/cvsroot/lesstif login
+#   cvs -z3 $sfsource/cvsroot/lesstif co -P lesstif
+# 
+#   pre-compile changes:
+#     - FAQ was removed from X/lesstif/.cvsignore
+#     - default.apspec.in was removed from X/lesstif/autopackage/.cvsignore
+# ======================================================================
+
+
+# ---------------------------------------------------------------------------
+# We must be sitting in the 'X' directory, above the 3(?) package directories.
+
+set topdir = $cwd
+
+# default install directory is under X/install
+set installdir   = $topdir/install
+set afniXdir     = /usr/local/afniX       # just to store as a var
+set ldir         = lib                    # default to 32-bit (maybe lib64)
+set packages     = ()                     # init to empty package list
+
+set localinstall = 0                      # local install under package dir
+
+
+# show help on no arguments, as well as via -help
+set show_help = 0
+if ( $#argv == 0 ) set show_help = 1
+
+set ac = 1
+while ( $ac <= $#argv )
+    set arg = $argv[$ac]
+    if ( "$arg" == "-afniX" ) then      # -afniX --> /usr/local/afniX
+        set installdir = $afniXdir
+        echo "++ setting installdir = $installdir"
+    else if ( "$arg" == "-lib" ) then   # 64-bit
+        set ldir = lib
+        echo "++ setting ldir = $ldir"
+    else if ( "$arg" == "-lib64" ) then # 64-bit
+        set ldir = lib64
+        echo "++ setting ldir = $ldir"
+    else if ( "$arg" == "-localinstall" ) then
+        set localinstall = 1
+        echo "++ setting localinstall = $localinstall"
+    else if ( "$arg" == "-help" ) then  # help
+        set show_help = 1
+    else
+        # assume the rest of the arguments are packages
+        set packages = ( $argv[$ac-] )
+        break
+    endif
+
+    @ ac ++
+end
+
+if ( $show_help ) then
+    set prog = `basename $0`
+    echo ""
+    echo "$prog     - compile and install new lesstif or libXt tree"
+    echo ""
+    echo "This will compile lesstif, openmotif and/or libXt, were each"
+    echo "of those directories should be under this 'X' directory."
+    echo ""
+    echo "    usage: $prog [options] dir1 dir2 ..."
+    echo ""
+    echo "There are 3 options for where the install will be:"
+    echo ""
+    echo "    1. X/install          - this is the default"
+    echo "    2. /usr/local/afniX   - via the -afniX option"
+    echo "    3. X/PACKAGE/install  - via the -localinstall option"
+    echo ""
+    echo "This allows for complete building of any package without"
+    echo "overwriting an existing one (e.g. since libXm.a is not unique)."
+    echo ""
+    echo "options:"
+    echo ""
+    echo "    -afniX        : install under /usr/local/afniX"
+    echo "                    (default is ../install)"
+    echo "    -lib64        : install libs under lib64"
+    echo "                    (default is lib)"
+    echo "    -localinstall : install under each package directory"
+    echo ""
+    echo ""
+    echo "examples:"
+    echo ""
+    echo "    $prog -help"
+    echo ""
+    echo "    $prog lesstif"
+    echo "    $prog -afniX -lib64 openmotif libXt"
+    echo "    $prog -lib64 -localinstall lesstif"
+    echo ""
+    echo "note: do not install both lesstif and openmotif (of course :)"
+    echo ""
+    echo "note: for compiling AFNI, set XROOT to the install dir in Makefile"
+    echo ""
+
+    exit
+endif
+
+# check that we are sitting in the X directory
+if ( $topdir:t != X ) then
+    echo "** error, this must be run from the X directory"
+    exit
+endif
+
+if ( $#packages < 1 ) then
+    echo "** missing packages to build..."
+    exit
+endif
+
+# strip any trailing '/'
+set newpacks = ()
+foreach package ( $packages )
+    set newp = `echo $package | tr -d '\/'`
+    set newpacks = ( $newpacks $newp )
+end
+set packages = ( $newpacks )
+
+# check for both lesstif and openmotif
+set Xtif = 0
+foreach package ( $packages )
+    if ( $package == lesstif ) @ Xtif ++
+    if ( $package == openmotif ) @ Xtif ++
+end
+if ( $Xtif > 1 ) then
+    echo "** do not build both lesstif and openmotif"
+    echo "   (the includes and libraries overwrite each other)"
+    exit
+endif
+
+foreach package ( $packages )
+
+    # ----------------------------------------
+    # check on the package
+
+    if ( $package == lesstif ) then
+        set debugflag = "--datadir=$installdir/data"
+    else if ( $package == libXt ) then
+        set debugflag = ""
+    else if ( $package == openmotif ) then
+        set debugflag = ""
+    else
+        echo "** '$package' is not a valid build package"
+        exit
+    endif
+
+    if ( ! -d $package ) then
+        echo "** missing package directory '$package'"
+        exit
+    endif
+
+    # ----------------------------------------------------------------------
+    # do the work
+
+    echo "++ building package: $package"
+    echo ""
+
+    cd $package
+
+    # if there is already a Makefile here, do not reconfigure
+    if ( -f Makefile ) then
+        echo "** this has already been configured, doing it again is not safe"
+        echo "   (which would imply making changes)"
+        echo "either nuke and recopy tree, or just use 'make ; make install'"
+        echo ""
+        exit
+    endif
+
+    # ----------------------------------------
+    # prep work for lesstif: CVSMake and aclocal problem
+    if ( $package == lesstif ) then
+        echo "-- running CVSMake script"
+        ./CVSMake
+
+        # since install is local, require ACLOCADIR to be set from configure
+        # command, not via aclocal command
+        if ( ! -f configure.orig ) cp -p configure configure.orig
+        grep -v '^ACLOCALDIR=' configure.orig > configure
+    endif
+
+    # ----------------------------------------
+    # configure the package
+
+    # choose install dir
+    if ( $localinstall ) then
+        set instdir = `pwd`/install
+    else
+        set instdir = $installdir
+    endif
+
+    # set additional configure flags
+    set ACLOCALDIR = $instdir/share/aclocal
+    set CFLAGS = -g
+
+    # just set the configure command, apply it separately
+    if ( $package == openmotif ) then
+        set command = (                                         \
+            ./autogen.sh --enable-static --prefix=$instdir      \
+                --exec-prefix=$instdir                          \
+                --libdir=$instdir/$ldir                         \
+                --includedir=$instdir/include                   \
+                --datadir=$instdir/data                         \
+                ACLOCALDIR=$ACLOCALDIR CFLAGS="$CFLAGS" )
+    else  # LessTif or Xt
+        set command = (                                         \
+            ./configure --enable-static                         \
+                    --prefix=$instdir                           \
+                    --exec-prefix=$instdir                      \
+                    --libdir=$instdir/$ldir                     \
+                    --includedir=$instdir/include               \
+                    --datadir=$instdir/data                     \
+                    $debugflag                                  \
+                    ACLOCALDIR=$ACLOCALDIR                      \
+                    CFLAGS=$CFLAGS )
+    endif
+
+    set outfile = out.config
+    echo ""
+    echo "-- running configure (output in '$outfile')..."
+    echo $command | tee $outfile
+    $command >>& $outfile
+
+    if ( $status ) then
+        echo "** configure failure, see '$outfile'"
+        exit
+    endif
+
+    # ----------------------------------------
+    # make the package
+
+    set os = `uname -s`
+    if ( "$os" == Linux ) then
+        set make = make
+    else
+        set make = "make -i"
+    endif
+
+    set outfile = out.make
+    echo ""
+    echo "-- running '$make' (output in '$outfile')..."
+    $make >& $outfile
+    if ( $status ) then
+        echo ""
+        echo "** make failure, see '$outfile'"
+        echo ""
+        exit
+    endif
+
+    set outfile = out.make.install
+    echo ""
+    echo "-- running '$make install' (output in '$outfile')..."
+    $make install >& $outfile
+    if ( $status ) then
+        echo ""
+        echo "** 'make install' failure, see '$outfile'"
+        echo ""
+        exit
+    endif
+    endif
+
+    echo ""
+    echo "++ $package compile was SUCCESSFUL, installed under:"
+    echo "       $instdir"
+    echo ""
+    echo "   (consider: 'setenv MANPATH $instdir/share/man')"
+    echo ""
+
+    cd ..
+end
