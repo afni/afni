@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, MAR, 2009, RCR, "@build_afni_Xlib", MINOR, TYPE_NEW_PROG,
+   "moved from X/@build.Xlib, for distribution",
+   "and added to SCRIPTS for building afni_src.tgz in Makefile.INCLUDE"
+ } ,
+
  { 19, MAR, 2009, RCR, "1d_tool.py", MAJOR, TYPE_NEW_PROG,
    "added lib_afni1D.py and 1d_tool.py",
    "This is a library and tool for manipulating 1D files.\n"
