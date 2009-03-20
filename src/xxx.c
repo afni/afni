@@ -1,4 +1,3 @@
-
 /*-------------------------------------------------------------------------
    Return an array of XColor that define the colormap for the given
    window.  This only works for PseudoColor visuals..
