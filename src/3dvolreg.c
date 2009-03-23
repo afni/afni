@@ -67,6 +67,7 @@ static float VL_dmax = 0.0f ;
 static int   VL_dmaxi= 0 ;
 static char  VL_dmaxfile[256] = "\0" ;
 static float *VL_dmaxar  = NULL ;
+static char *VL_commandline = NULL ;
 
 static THD_3dim_dataset *VL_rotpar_dset =NULL ,  /* 14 Feb 2001 */
                         *VL_gridpar_dset=NULL ;
@@ -270,6 +271,7 @@ int main( int argc , char *argv[] )
 
    tross_Copy_History( VL_dset , new_dset ) ;
    tross_Make_History( "3dvolreg" , argc,argv , new_dset ) ;
+   VL_commandline = tross_commandline( "3dvolreg" , argc,argv ) ;
 
    /*-- 14 Feb 2001: compute -rotparent/-gridparent transformation --*/
 
@@ -463,14 +465,14 @@ int main( int argc , char *argv[] )
        if( VL_verbose )
          ININFO_message("Automask has %d voxels",THD_countmask(nxyz,dsk)) ;
        for( mm=0 ; mm < nxyz ; mm++ ){
-         if( dsk[mm] == 0 ) continue ;
-         ii = mm % nx ; kk = mm / nxy ; jj = (mm%nxy) / nx ;
+         if( dsk[mm] == 0 ) continue ;                      /* not in the mask */
+         ii = mm % nx ; kk = mm / nxy ; jj = (mm%nxy) / nx ;  /* voxel indexes */
          ip=ii+1; im=ii-1; if(ip>=nx || im<0){ msk[mm]=1; nmsk++; continue; }
          jp=jj+1; jm=jj-1; if(jp>=ny || jm<0){ msk[mm]=1; nmsk++; continue; }
          kp=kk+1; km=kk-1; if(kp>=nz || km<0){ msk[mm]=1; nmsk++; continue; }
-         if( DSK(ip,jj,kk) && DSK(im,jj,kk) &&
-             DSK(ii,jp,kk) && DSK(ii,jm,kk) &&
-             DSK(ii,jj,kp) && DSK(ii,jj,km)   ) continue ;  /* skip */
+         if( DSK(ip,jj,kk) && DSK(im,jj,kk) &&              /* if all 6 nbhrs  */
+             DSK(ii,jp,kk) && DSK(ii,jm,kk) &&              /* are in automask */
+             DSK(ii,jj,kp) && DSK(ii,jj,km)   ) continue ;  /* skip this voxel */
          msk[mm] = 1 ; nmsk++ ;
        }
        if( VL_verbose )
@@ -1157,11 +1159,16 @@ int main( int argc , char *argv[] )
        free((void *)VL_dispvec) ;
        if( *VL_dmaxfile != '\0' && VL_dmaxar != NULL ){
          FILE *fp ;
-         if( THD_is_file(VL_dmaxfile) ) WARNING_message("Overwriting file %s",VL_dmaxfile);
-         fp = fopen( VL_dmaxfile , "w" ) ;
-         fprintf(fp,"# maxdisp\n") ;
-         for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp,"%.4f\n",VL_dmaxar[kim]) ;
-         fclose(fp) ;
+         if( strcmp(VL_dmaxfile,"-") != 0 ){
+           if( THD_is_file(VL_dmaxfile) ) WARNING_message("Overwriting file %s",VL_dmaxfile);
+           fp = fopen( VL_dmaxfile , "w" ) ;
+         } else {
+           fp = stdout ;
+         }
+         fprintf(fp,"# %s\n",VL_commandline) ;
+         fprintf(fp,"# max displacement (mm) for each volume\n") ;
+         for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp," %.3f\n",VL_dmaxar[kim]) ;
+         if( fp != stdout ) fclose(fp) ;
        }
      }
    }
@@ -1354,6 +1361,7 @@ void VL_syntax(void)
     "                    sub-brick into file 'mm' in 1D (columnar) format.\n"
     "                    You may find that graphing this file (cf. 1dplot)\n"
     "                    is a useful diagnostic tool for your FMRI datasets.\n"
+    "                    [the 'mm' filename can be '-', which means stdout]\n"
     "\n"
     "  -tshift ii      If the input dataset is 3D+time and has slice-dependent\n"
     "                  time-offsets (cf. the output of 3dinfo -v), then this\n"
