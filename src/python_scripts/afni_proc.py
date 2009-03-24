@@ -86,9 +86,12 @@ g_history = """
     1.35 Mar 12 2009 :
         - if despiking and no regression mask, apply -nomask
         - added 'MASKING NOTE', to suggest no regresion mask until group space
+    1.36 Mar 24 2009 :
+        * -regress_no_mask is now the default *
+        - added -regress_apply_mask
 """
 
-g_version = "version 1.35, Mar 12, 2009"
+g_version = "version 1.36, Mar 12, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -150,7 +153,7 @@ class SubjProcSream:
         self.reps       = 0             # TRs per run
         self.runs       = 0             # number of runs
         self.mask       = None          # mask dataset
-        self.regmask    = 1             # apply any full_mask in regression
+        self.regmask    = 0             # apply any full_mask in regression
         self.view       = '+orig'       # view could also be '+tlrc'
 
         self.bindex     = 0             # current block index
@@ -451,11 +454,7 @@ class SubjProcSream:
         if self.verb > 0:
             # last warning, if user is masking EPI data...
             if self.mask != None and self.regmask:
-                print "\n--------------------------------------\n" \
-                        "** masking EPI data is not recommended\n" \
-                        "   o  consider -regress_no_mask       \n" \
-                        "   o  see 'MASKING NOTE' from the help\n" \
-                        "--------------------------------------"
+                print "** masking EPI data is not recommended"
 
             if self.runs == 1:
                 print "\n-------------------------------------\n" \
