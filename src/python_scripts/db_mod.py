@@ -52,7 +52,7 @@ def db_cmd_tcat(proc, block):
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
 
-    if proc.verb > 0: print "-d %s: reps is now %d" % (block.label, proc.reps)
+    if proc.verb > 0: print "-- %s: reps is now %d" % (block.label, proc.reps)
 
     return cmd
 
@@ -256,9 +256,9 @@ def db_cmd_volreg(proc, block):
 
     if proc.verb > 0:
         if basevol:
-            print "-d %s: using base dset %s" % (block.label,basevol)
+            print "-- %s: using base dset %s" % (block.label,basevol)
         else:
-            print "-d %s: base/sub indices are %d, %d" % \
+            print "-- %s: base/sub indices are %d, %d" % \
                   (block.label,dset_ind,sub)
 
     # get base prefix (run is index+1)
@@ -682,7 +682,14 @@ def db_mod_regress(block, proc, user_opts):
     # maybe the user does not want to apply the mask to regression
     # (applies to other blocks, so note at the 'proc' level)
     uopt = user_opts.find_opt('-regress_no_mask')
-    if uopt: proc.regmask = 0
+    if uopt:
+        print '** -regress_no_mask is now the default'
+        proc.regmask = 0
+
+    # maybe the user really does want to apply the mask to regression
+    # note: no_mask is now the default    24 Mar 2009
+    uopt = user_opts.find_opt('-regress_apply_mask')
+    if uopt: proc.regmask = 1
 
     # maybe the user does not want to regress the motion parameters
     # apply uopt to bopt
@@ -702,7 +709,7 @@ def db_mod_regress(block, proc, user_opts):
     if not uopt: uopt = user_opts.find_opt('-regress_no_stim_times')
     bopt = block.opts.find_opt('-regress_no_stim_times')
     if uopt and not bopt:
-        if proc.verb > 0: print '-d will use -stim_files in 3dDeconvolve'
+        if proc.verb > 0: print '-- will use -stim_files in 3dDeconvolve'
         block.opts.add_opt('-regress_no_stim_times',0,[],setpar=1)
 
     # just pass along regress_3dD_stop
@@ -743,7 +750,7 @@ def db_cmd_regress(proc, block):
     if ( polort < 0 ) :
         polort = UTIL.get_default_polort(proc.tr, proc.reps)
         if proc.verb > 0:
-            print "+d updating polort to %d, from run len %.1f s" %  \
+            print "++ updating polort to %d, from run len %.1f s" %  \
                   (polort, proc.tr*proc.reps)
 
     if len(proc.stims) <= 0:   # be sure we have some stim files
@@ -779,7 +786,7 @@ def db_cmd_regress(proc, block):
         labels = []
         for ind in range(len(proc.stims)):
             labels.append('stim%02d' % (ind+1))
-        if proc.verb > 0: print ('+d adding labels: %s' % labels)
+        if proc.verb > 0: print ('++ adding labels: %s' % labels)
     elif len(proc.stims) != len(opt.parlist):
         print "** cmd_regress: have %d stims but %d labels" % \
               (len(proc.stims), len(opt.parlist))
@@ -797,7 +804,7 @@ def db_cmd_regress(proc, block):
             nex   = len(proc.extra_stims)
             for ind in range(norig, norig+nex):
                 exlabs.append('stim%02d' % (ind+1))
-            if proc.verb > 0: print ('+d adding extra labels: %s' % exlabs)
+            if proc.verb > 0: print ('++ adding extra labels: %s' % exlabs)
 
     # note the total number of regressors
     nregs = len(proc.stims) + len(proc.extra_stims)
@@ -943,7 +950,7 @@ def db_cmd_regress(proc, block):
 #
 # return None on failure
 def db_cmd_reml_exec(proc, block):
-    if proc.verb > 1: print '+d creating reml_exec command string'
+    if proc.verb > 1: print '++ creating reml_exec command string'
 
     cmd = '# -- execute the REML command script and check the status --\n'
     cmd = cmd + 'tcsh -x stats.REML_cmd\n\n'
@@ -970,16 +977,16 @@ def db_cmd_blur_est(proc, block):
     ropt = block.opts.find_opt('-regress_reml_exec')
     sopt = block.opts.find_opt('-regress_3dD_stop')
     if not aopt and not eopt:
-        if proc.verb > 2: print '-d no blur estimation'
+        if proc.verb > 2: print '-- no blur estimation'
         return cmd
 
     # set the mask (if we don't have one, bail)
     if not proc.mask:
         print '** refusing to estimate blur without a mask dataset'
-        print '   (perhaps keep the mask block and apply -regress_no_mask)'
+        print '   (masks are not applied without -regress_apply_mask)'
         return
 
-    if proc.verb > 1: print '+d computing blur estimates'
+    if proc.verb > 1: print '++ computing blur estimates'
     blur_file = 'blur_est.$subj.1D'
 
     # call this a new sub-block
@@ -1063,7 +1070,7 @@ def db_cmd_regress_sfiles2times(proc, block):
     else: off_cmd = ''
 
     cmd = ''
-    if proc.verb > 0: print '-d old stim list: %s' % proc.stims
+    if proc.verb > 0: print '-- old stim list: %s' % proc.stims
 
     cmd = cmd + '\n# create -stim_times files\n'
     cmd = cmd + 'make_stim_times.py -prefix stim_times -tr %s -nruns %d'       \
@@ -1082,7 +1089,7 @@ def db_cmd_regress_sfiles2times(proc, block):
     for ind in range(1,cols+1):
         proc.stims.append('stimuli/stim_times.%02d.1D' % ind)
 
-    if proc.verb > 0: print '+d new stim list: %s' % proc.stims
+    if proc.verb > 0: print '++ new stim list: %s' % proc.stims
 
     return cmd
 
@@ -1235,20 +1242,22 @@ g_help_string = """
     --------------------------------------------------
     MASKING NOTE:
 
-    The 'default' operation of afni_proc.py is to apply a union of 3dAutomask
-    datasets to the EPI data.
+    The default operation of afni_proc.py has changed (as of 24 Mar, 2009).
 
-                ** This is no longer recommended. **
+    Now a mask dataset will be created but not actually applied at the
+    scaling step or in the regression.
 
-    --> Recommended: keep the 'mask' block, but apply '-regress_no_mask'.
+    --> To apply the mask during regression, use -regress_apply_mask.
+
+    **  Why is the default being changed?  **
 
     It seems much better not to mask the regression data in the single-subject
     analysis at all, send _all_ of the results to group space, and apply an
     anatomically-based mask there.  That could be computed from the @auto_tlrc
-    reference dataset or from the average of skull-stripped subject anatomies.
+    reference dataset or from the union of skull-stripped subject anatomies.
 
     Since subjects have varying degrees of signal dropout in valid brain areas
-    of the EPI data, the resulting intersection mask that would be requied in
+    of the EPI data, the resulting intersection mask that would be required in
     group space may exclude edge regions that people may be interested in.
 
     Also, it is helpful to see if much 'activation' appears outside the brain.
@@ -1262,10 +1271,25 @@ g_help_string = """
 
     ---
 
-    However since a mask dataset is necessary when computing blur estimates
-    from the epi and errts datasets, the 'mask' block should be left in the
-    analysis stream.  To refrain from applying it in the 'scale' and 'regress'
-    blocks, add the '-regress_no_mask' option.
+ ** For those who have processed some of their data with the older versions:
+
+    Note that this change should not be harmful to those who have processed
+    data with older versions of afni_proc.py, as it only adds non-zero voxel
+    values to the output datasets.  If some subjects were analyzed with the
+    older version, the processing steps should not need to change.  It is still
+    necessary to apply an intersection mask across subjects in group space.
+
+    It might be okay to create the intersection mask from only those subjects
+    which were masked in the regression, however one might say that biases the
+    voxel choices toward those subjects.  Maybe that does not matter.
+
+    ---
+
+    A mask dataset is necessary when computing blur estimates from the epi and
+    errts datasets.  Also, since it is nice to simply see what the mask looks
+    like, its creation has been left in by default.
+
+    The '-regress_no_mask' option is now unnecessary.
 
     ---
 
@@ -1273,9 +1297,6 @@ g_help_string = """
     changes could result.  Because large values would be a detriment to the
     numerical resolution of the scaled short data, the default is to truncate
     scaled values at 200 (percent), which should not occur in the brain.
-
-    See also -blocks, -regress_no_mask, -regress_est_blur_epits and
-    -regress_est_blur_errts.
 
     --------------------------------------------------
     NOTE on having runs of different lengths:
@@ -1514,7 +1535,7 @@ g_help_string = """
         empty:    - do nothing (just copy the data using 3dTcat)
 
         despike:  - NOTE: by default, this block is _not_ used
-                  - use no extra options (so automask is default)
+                  - masking corresponds to regression
 
         tshift:   - align slices to the beginning of the TR
                   - use quintic interpolation for time series resampling
@@ -1530,7 +1551,8 @@ g_help_string = """
                         (option: -blur_filter -1blur_fwhm)
                         (option: -blur_size 4)
 
-        mask:     - apply union of masks from 3dAutomask on each run
+        mask:     - create a union of masks from 3dAutomask on each run
+                  - not applied in regression without -regress_apply_mask
 
         scale:    - scale each voxel to mean of 100, clip values at 200
 
@@ -1677,7 +1699,7 @@ g_help_string = """
 
         -remove_preproc_files   : delete pre-processed data
 
-            At the end of the output script, delete the intermetiate data (to
+            At the end of the output script, delete the intermediate data (to
             save disk space).  Delete dfile*, outcount*, pb* and rm*.
 
             See also -move_preproc_files.
@@ -1790,8 +1812,9 @@ g_help_string = """
 
                 e.g. -despike_opts_3dDes -nomask -ignore 2
 
-            By default, 3dDespike is used with only -prefix.  Any other options
-            must be applied via -despike_opts_3dDes.
+            By default, 3dDespike is used with only -prefix and -nomask (if
+            masking is not being applied in the regression).  Any other
+            options must be applied via -despike_opts_3dDes.
 
             Note that the despike block is not applied by default.  To apply
             despike in the processing script, use either '-do_block despike'
@@ -1963,13 +1986,13 @@ g_help_string = """
             analysis is the union of masks from each run, or the intersection.
             The only valid values for TYPE are 'union' and 'intersection'.
 
-            This is not how to specify that no mask is applied at all, that is
-            done by excluding the mask block with the '-blocks' option.
+            This is not how to specify whether a mask is created, that is
+            done via the 'mask' block with the '-blocks' option.
 
             Please see '3dAutomask -help', '3dMean -help' or '3dcalc -help'.
             See also -mask_dilate, -blocks.
 
-        -mask_dilate NUM_VOXELS : specify the number of time to dilate the mask
+        -mask_dilate NUM_VOXELS : specify the automask dilation
 
                 e.g. -mask_dilate 3
                 default: 1
@@ -1978,6 +2001,9 @@ g_help_string = """
             1 step (voxel), via the -dilate option in 3dAutomask.  With this
             option, the user may specify the dilation.  Valid integers must
             be at least zero.
+
+            Note that 3dAutomask dilation is a little different from the
+            natural voxel-neighbor dilation.
 
             Please see '3dAutomask -help' for more information.
             See also -mask_type.
@@ -2008,7 +2034,18 @@ g_help_string = """
             The default limit for scaled data is 200.  Use of this option will
             remove any limit from being applied.
 
+            A limit on the scaled data is highly encouraged when working with
+            'short' integer data, especially when not applying a mask.
+
             See also -scale_max_val.
+
+        -regress_apply_mask     : apply the mask during scaling and regression
+
+            By default, any created union mask is not applied to the analysis.
+            Use this option to apply it.
+
+            See "MASKING NOTE" and "DEFAULTS" for details.
+            See also -blocks.
 
         -regress_basis BASIS    : specify the regression basis function
 
@@ -2052,11 +2089,10 @@ g_help_string = """
             protocol and at the same scanner).
 
             The mask block is required for this operation (without which the
-            estimates are not reliable).  If masking is not desired for the
-            regression, use the option '-regress_no_mask'.
+            estimates are not reliable).
 
             Please see '3dFWHMx -help' for more information.
-            See also -regress_est_blur_errts, -regress_no_mask.
+            See also -regress_est_blur_errts.
 
         -regress_est_blur_errts      : estimate the smoothness of the errts
 
@@ -2074,11 +2110,10 @@ g_help_string = """
             slightly smaller, too (which is beneficial).
 
             The mask block is required for this operation (without which the
-            estimates are not reliable).  If masking is not desired for the
-            regression, use the option '-regress_no_mask'.
+            estimates are not reliable).
 
             Please see '3dFWHMx -help' for more information.
-            See also -regress_est_blur_epits, -regress_no_mask.
+            See also -regress_est_blur_epits.
 
         -regress_errts_prefix PREFIX : specify a prefix for the -errts option
 
@@ -2197,13 +2232,14 @@ g_help_string = """
 
         -regress_no_mask        : do not apply the mask in regression
 
+            ** This is now the default, making the option unnecessary.
+
             This option prevents the program from applying the mask dataset
-            in the regression step.  It also prevents the program from applying
-            the mask in the scaling step.
+            in the scaling or regression steps.
 
             If the user does not want to apply a mask in the regression
             analysis, but wants the full_mask dataset for other reasons
-            (such as computing blur estimates), this option is needed.
+            (such as computing blur estimates), this option can be used.
 
             See also -regress_est_blur_epits, -regress_est_blur_errts.
 
@@ -2371,7 +2407,7 @@ g_help_string = """
             mechanism.  If this option is not given, default labels will be
             assigned (like stim17, for example).
 
-            Note that the number of entires in this list should match the
+            Note that the number of entries in this list should match the
             number of extra stim files.
 
             See also -regress_extra_stim_files.
