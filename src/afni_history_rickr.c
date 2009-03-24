@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "by default now, no mask is applied in the scale and regression steps",
+   "Also added -regress_apply_mask option."
+ } ,
+
  { 20, MAR, 2009, RCR, "@build_afni_Xlib", MINOR, TYPE_NEW_PROG,
    "moved from X/@build.Xlib, for distribution",
    "and added to SCRIPTS for building afni_src.tgz in Makefile.INCLUDE"
