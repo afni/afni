@@ -46,24 +46,30 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %        So voxel (i,j,k) in AFNI corresponds to voxel (i+1,j+1,k+1) 
 %        in matlab. (see example below).
 %
-%   .MachineFormat is a string such as 'native' or 'ieee-le' (LSB_FIRST) or 'ieee-be' (MSB_FIRST)
-%       default is whatever is specified in the .HEAD file.
-%       If nothing is specified in the .HEAD file, MSB_FIRST or 'ieee-be' is assumed
-%       since most files created with the old versions of AFNI were on the SGIs .
-%        You must specify the parameter Opt.Format, to specify Opt.MachineFormat and override the defaults
-%       see help fopen for more info 
-%   .OutPrecision: If specified, return V with a certain precision. The default is to return
-%                  V in double precision. Here are the available options:
+%   .MachineFormat is a string such as 'native' or 'ieee-le' (LSB_FIRST) 
+%       or 'ieee-be' (MSB_FIRST).
+%       Default is whatever is specified in the .HEAD file.
+%       If nothing is specified in the .HEAD file, MSB_FIRST or 'ieee-be' 
+%       is assumed since most files created with the old versions of AFNI were on %       SGIs. You must specify the parameter Opt.Format, to specify 
+%       Opt.MachineFormat and override the defaults.
+%       See help fopen for more info 
+%   .OutPrecision: If specified, return V with a certain precision. 
+%                  The default is to return V in double precision. 
+%                  Here are the available options:
 %                  '': Default, returns V as double
 %                  '*': Returns V in the precision of the Brik itself. 
 %          NOTE:        Scaling factors are not applied with this option
 %          -----        because of the risk of overflow. You will have to scale
-%                       each sub-brick of V by its scaling factor (if any) outside
-%                       of this BrikLoad function. For instructions on how to scale
-%                       a sub-brick, see the section in BrikLoad.m under the 'if (Opt.Scale)' 
-%                       statement.
-%   .Scale 0/1 if 1, then the scaling factor is applied to the values read from the brik
-%        default is 1. Note that Scale cannot be used with OutPrecision.
+%                       each sub-brick of V by its scaling factor (if any) 
+%                       outside of this BrikLoad function. For instructions on 
+%                       how to scale a sub-brick, see the section in BrikLoad.m 
+%                       under the 'if (Opt.Scale)' statement.
+%   .Scale 0/1 if 1, then the scaling factor is applied to the values read 
+%        from the brik. Default is 1.
+%        Note that Scale cannot be used with OutPrecision.
+%     WARNING: If you use .Scale = 0 , you may get bad time series if you have 
+%              multiple subbriks ! Each subbrik can have a different scaling 
+%              factor
 %
 %   .Slices: vector of slices, 1 based. Default is all slices. 
 %            Read the set of slices specified in .Slices (added for FMRISTAT)
@@ -79,8 +85,21 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %            Read the sub-bricks specified in .Frames (added for FMRISTAT)
 %   .method: method option for Read_1D if you are using 1D files.
 %           see Read_1D -help for more info
-% WARNING: If you use .Scale = 0 , you may get bad time series if you have multiple subbriks ! 
-%     Each subbrik can have a different scaling factor
+%   -------------------------------------------------------------------------
+%   (Non-standard options, implemented by Nick Oosterhof (NNO),
+%    noosterh@princeton.edu, n.oosterhof@bangor.ac.uk 
+%    ** If these options fail, you know who to blame ** )
+%
+%   .PixX   vector of pixels to read in x direction
+%   .PixY   "                         " y "       "
+%   Note for .PixX and .PixY: This is intended to reduce the amount of RAM
+%   needed when you are only interested in a certain region of the brain.
+%   Thus, compared to reading entire volumes, this method may reduce 
+%   swapping but will cause more hard drive seeking when reading the data. 
+%   In the current implementation, either both fields must be present or 
+%   both must be absent. 
+%   -------------------------------------------------------------------------
+%   
 %   
 %Output Parameters:
 %   err : 0 No Problem
@@ -94,9 +113,9 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %More Info :
 %   How to read a brick and display a time series:
 %   %read the 3D+time brick
-%   [err, V, Info, ErrMessage] = BrikLoad ('ARzs_CW_r5+orig'); 
+%   [err, V, Info, ErrMessage] = BrikLoad ('ARzs_CW_avvr+orig'); 
 %   %plot the time course of voxel (29, 33, 3)
-%   plot (squeeze(V(30 , 34, 4, :))); %squeeze is used to turn the 1x1x1x160 matrix into a 160x1 vector for the plot function
+%   plot (squeeze(V(30 , 34, 4, :))); 
 %   
 %   
 %
@@ -110,6 +129,9 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %     http://www.math.mcgill.ca/keith
 %     http://www.math.mcgill.ca/keith/fmristat/
 %
+%     .PixX and .PixY options were added by Nick Oosterhof
+%     noosterh@princeton.edu, n.oosterhof@bangor.ac.uk
+% 
 %     Author : Ziad Saad  Mon Oct 18 14:47:32 CDT 1999 
 %     Biomedical Engineering, Marquette University
 %     Biophysics Research institute, Medical College of Wisconsin
@@ -380,28 +402,80 @@ end
       return;
    end
    
-   numpix=Info.DATASET_DIMENSIONS(1)*Info.DATASET_DIMENSIONS(2);
+   %NNO added
+   haspixX=isfield(Opt, 'PixX') && ~isempty(Opt.PixX);
+   haspixY=isfield(Opt, 'PixY') && ~isempty(Opt.PixY);
+   
+   if xor(haspixX, haspixY) %either both or neither
+       err =  1; ErrMessage = sprintf('Error %s: options PixX and PixY must be either both present or both absent ', FuncName); errordlg(ErrMessage);
+      return;
+   end
+   
+   allpixels=~haspixX && ~haspixY; %(the && is not necessary)
+   if allpixels
+       numpixX=Info.DATASET_DIMENSIONS(1);
+       numpixY=Info.DATASET_DIMENSIONS(2);
+   else
+       numpixX=length(Opt.PixX);
+       numpixY=length(Opt.PixY);
+   end
+   numpix=numpixX*numpixY;
+   
    numslices=length(Opt.Slices);
    numframes=length(Opt.Frames);
 
-   if isallslices & isallframes
+   if isallslices && isallframes && allpixels
       V = fread(fidBRIK, (Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* Info.DATASET_DIMENSIONS(3) .* Info.DATASET_RANK(2)) , [Opt.OutPrecision,typestr]);
    else
       V=zeros(1,numpix*numslices*numframes);
       for k=1:numframes
          frame=Opt.Frames(k);
-         if isallslices
+         if isallslices && allpixels
             fseek(fidBRIK, numpix*Info.DATASET_DIMENSIONS(3)*(frame-1)*Info.TypeBytes, 'bof');
             istrt=1+numpix*numslices*(k-1);
             istp=istrt-1+numpix*numslices;
             V(istrt:istp)=fread(fidBRIK,numpix*numslices,[Opt.OutPrecision,typestr]);
          else
+            consecutivex=isequal(min(Opt.PixX):max(Opt.PixX), Opt.PixX); %true iff Opt.PixX = [n, n+1, ..., n+k] 
+            
             for j=1:numslices
-               slice=Opt.Slices(j);
-               fseek(fidBRIK, numpix*(slice-1+Info.DATASET_DIMENSIONS(3)*(frame-1))*Info.TypeBytes, 'bof');
-               istrt=1+numpix*(j-1+numslices*(k-1));
-               istp=istrt-1+numpix;
-               V(istrt:istp)=fread(fidBRIK,numpix,[Opt.OutPrecision,typestr]);
+                slice=Opt.Slices(j);
+                if allpixels %NNO added
+                    seekidx=numpix*(slice-1+Info.DATASET_DIMENSIONS(3)*(frame-1));
+                    fseek(fidBRIK, seekidx*Info.TypeBytes, 'bof');
+                    istrt=1+numpix*(j-1+numslices*(k-1));
+                    istp=istrt-1+numpix;
+                    V(istrt:istp)=fread(fidBRIK,numpix,[Opt.OutPrecision,typestr]);
+                else %NNO - read pixels within the slice
+                    dims=Info.DATASET_DIMENSIONS;
+
+                    for q=1:numpixY
+                        y=Opt.PixY(q);
+                        
+                        if consecutivex %read all voxels in this row in one go
+                            x=Opt.PixX(1);
+                            
+                            seekidx=(y-1)*dims(1)+(x-1)+dims(1)*dims(2)*(slice-1+dims(3)*(frame-1));
+                            fseek(fidBRIK, seekidx*Info.TypeBytes, 'bof');
+                            
+                            data=fread(fidBRIK,numpixX,[Opt.OutPrecision,typestr]);
+                            istrt=numpix*(j-1+numslices*(k-1))+(q-1)*numpixX+1;
+                            istp=istrt+numpixX-1;
+                            V(istrt:istp)=data;
+                        else %the very slowest method possible - read byte by byte
+                            for p=1:numpixX
+                                x=Opt.PixX(p);
+
+                                seekidx=(y-1)*dims(1)+(x-1)+dims(1)*dims(2)*(slice-1+dims(3)*(frame-1));
+                                fseek(fidBRIK, seekidx*Info.TypeBytes, 'bof');
+
+                                data=fread(fidBRIK,1,[Opt.OutPrecision,typestr]);
+                                istrt=numpix*(j-1+numslices*(k-1))+(q-1)*numpixX+p;
+                                V(istrt)=data;
+                            end
+                        end
+                    end
+                end
             end
          end
       end
@@ -412,7 +486,7 @@ end
    if (Opt.Scale),
       facs=Info.BRICK_FLOAT_FACS(Opt.Frames);
       iscl = find (facs); %find non zero scales
-      NperBrik = Info.DATASET_DIMENSIONS(1) .* Info.DATASET_DIMENSIONS(2) .* numslices;
+      NperBrik = numpix * numslices; %NNO Used DATASET_DIMENSIONS(1 and 2)
       if (~isempty(iscl)),
          for j=1:1:length(iscl),
             istrt = 1+ (iscl(j)-1).*NperBrik;
@@ -431,14 +505,14 @@ end
       end
    end
 
-%if required, reshape V
-	if(~DoVect),
-		V = reshape(V, Info.DATASET_DIMENSIONS(1), Info.DATASET_DIMENSIONS(2),...
-							numslices, numframes);
-	else
-		V = reshape(V, Info.DATASET_DIMENSIONS(1).* Info.DATASET_DIMENSIONS(2).* numslices, numframes);
-	end
-
+%NNO
+if DoVect,
+    V = reshape(V, numpixX * numpPixY * numslices, numframes);
+else
+    V = reshape(V, numpixX, numpixY, numslices, numframes);
+end
+    
+    
 if (isNIFTI),
    delete(obrik(1).name);
    delete(obrik(2).name);
