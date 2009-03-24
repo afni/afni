@@ -44,6 +44,17 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAR , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "Added -stim_times_subtract option" ,
+   "To allow adjustment of stimulus times due to removal of some images at\n"
+   "the start of each run.\n"
+   "ALSO: added -stim_time_millisec option, to allow -stim_times inputs to\n"
+   "be in milliseconds rather than seconds." } ,
+
+ { 24 , MAR , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
+   "Expand the -help output somewhat." ,
+   "Based on feedback and confusion from the Dartmouth bootcamp." } ,
+
  { 11 , MAR , 2009 , RWC , "3dANOVA" , MINOR , TYPE_NEW_OPT ,
    "Add -mask option to 3dANOVA, 3dANOVA2, 3dANOVA3" ,
    NULL } ,
