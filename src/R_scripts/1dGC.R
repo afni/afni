@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.6,  March 10, 2009")
+print("Version 1.0.7,  March 24, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -471,7 +471,7 @@ if (as.logical(COV)) {
 		covHeader <- as.integer(readline("Does this multi-column file have a header (0: no; 1: yes)? "))
 		if (covHeader == 1) exData <- read.table(fncov, header=TRUE) else {
          exData <- read.table(fncov, header=FALSE)
-         for (ii in 1:nROIs) names(exData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
+         for (ii in 1:nCOVs) names(exData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
       }
    } else {
 #      covn <- vector('list', nCOVs)
