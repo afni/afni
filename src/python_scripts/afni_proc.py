@@ -89,9 +89,10 @@ g_history = """
     1.36 Mar 24 2009 :
         * -regress_no_mask is now the default *
         - added -regress_apply_mask
+    1.37 Mar 25 2009 : +view comes from data
 """
 
-g_version = "version 1.36, Mar 12, 2009"
+g_version = "version 1.37, Mar 25, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -235,6 +236,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-scale_max_val', 1, [])
         self.valid_opts.add_opt('-scale_no_max', 0, [])
 
+        self.valid_opts.add_opt('-regress_apply_mask', 0, [])
         self.valid_opts.add_opt('-regress_basis', 1, [])
         self.valid_opts.add_opt('-regress_basis_normall', 1, [])
         self.valid_opts.add_opt('-regress_polort', 1, [])
@@ -351,6 +353,9 @@ class SubjProcSream:
         if opt != None:
             for dset in opt.parlist:
                 self.dsets.append(afni_name(dset))
+            if self.dsets[0].view != self.view:
+                self.view = self.dsets[0].view
+                if self.verb > 0: print '-- applying view as %s' % self.view
 
         blocklist = DefLabels  # init to defaults
 
@@ -634,29 +639,40 @@ class SubjProcSream:
 
     # given a block, run, return a prefix of the form: pNN.SUBJ.rMM.BLABEL
     #    NN = block index, SUBJ = subj label, MM = run, BLABEL = block label
-    def prefix_form(self, block, run):
-        return 'pb%02d.%s.r%02d.%s' %    \
-                (self.bindex, self.subj_label, run, block.label)
+    def prefix_form(self, block, run, view=0):
+        if view: vstr = self.view
+        else:    vstr = ''
+        return 'pb%02d.%s.r%02d.%s%s' %    \
+                (self.bindex, self.subj_label, run, block.label, vstr)
 
     # same, but leave run as a variable
-    def prefix_form_run(self, block):
-        return 'pb%02d.%s.r$run.%s' % (self.bindex, self.subj_label,block.label)
+    def prefix_form_run(self, block, view=0):
+        if view: vstr = self.view
+        else:    vstr = ''
+        return 'pb%02d.%s.r$run.%s%s' %    \
+               (self.bindex, self.subj_label, block.label, vstr)
 
     # same as prefix_form, but use previous block values (index and label)
     # (so we don't need the block)
-    def prev_prefix_form(self, run):
-        return 'pb%02d.%s.r%02d.%s' %    \
-                (self.bindex-1, self.subj_label, run, self.pblabel)
+    def prev_prefix_form(self, run, view=0):
+        if view: vstr = self.view
+        else:    vstr = ''
+        return 'pb%02d.%s.r%02d.%s%s' %    \
+                (self.bindex-1, self.subj_label, run, self.pblabel, vstr)
 
     # same, but leave run as a variable
-    def prev_prefix_form_run(self):
-        return 'pb%02d.%s.r$run.%s' %    \
-                (self.bindex-1, self.subj_label, self.pblabel)
+    def prev_prefix_form_run(self, view=0):
+        if view: vstr = self.view
+        else:    vstr = ''
+        return 'pb%02d.%s.r$run.%s%s' %    \
+                (self.bindex-1, self.subj_label, self.pblabel, vstr)
 
     # same, but leave run wild
-    def prev_prefix_form_rwild(self):
-        return 'pb%02d.%s.r??.%s' %    \
-                (self.bindex-1, self.subj_label, self.pblabel)
+    def prev_dset_form_wild(self, view=0):
+        if view: vstr = self.view
+        else:    vstr = ''
+        return 'pb%02d.%s.r??.%s%s.HEAD' %    \
+                (self.bindex-1, self.subj_label, self.pblabel, self.view)
 
     # like prefix, but list the whole dset form, in wildcard format
     def dset_form_wild(self, blabel):
