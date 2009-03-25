@@ -499,6 +499,7 @@ int main( int argc , char *argv[] )
    char *Rbuckt_prefix=NULL; THD_3dim_dataset *Rbuckt_dset=NULL; FILE *Rbuckt_fp=NULL; char *Rbuckt_fn=NULL;
    char *Obuckt_prefix=NULL; THD_3dim_dataset *Obuckt_dset=NULL; FILE *Obuckt_fp=NULL; char *Obuckt_fn=NULL;
    int nbuckt=0 , do_buckt=0 ;
+   int *betaset , nbetaset , nobout=0 ;
 
    char *Rerrts_prefix=NULL; THD_3dim_dataset *Rerrts_dset=NULL; FILE *Rerrts_fp=NULL; char *Rerrts_fn=NULL;
    char *Oerrts_prefix=NULL; THD_3dim_dataset *Oerrts_dset=NULL; FILE *Oerrts_fp=NULL; char *Oerrts_fn=NULL;
@@ -710,6 +711,8 @@ int main( int argc , char *argv[] )
       "                 (or -rout, then the program assumes -fout is activated.)\n"
       " -noFDR      = do NOT add FDR curve data to bucket datasets\n"
       "                 (FDR curves can take a long time if -tout is used)\n"
+      " -nobout     = do NOT add baseline (null hypothesis) regressor betas\n"
+      "                 to the -Rbeta and/or -Obeta output datasets.\n"
       "\n"
       " -Rfitts ppp = dataset for REML fitted model\n"
       "                 (like 3dDeconvolve, a censored time point gets)\n"
@@ -1285,6 +1288,9 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-rout") == 0 ){  /* 23 Oct 2008 */
        do_rstat = 1 ; iarg++ ; continue ;
      }
+     if( strcasecmp(argv[iarg],"-nobout") == 0 ){ /* 25 Mar 2009 */
+       nobout = 1 ; iarg++ ; continue ;
+     }
 
      /**==========   prefix options  ==========**/
 
@@ -1852,7 +1858,9 @@ STATUS("process -slibase images") ;
      ININFO_message ("can only use symbolic name 'Col' in GLTs (cf. '-help')" ) ;
      if( do_buckt )
        WARNING_message(" ==> bucket dataset output is disabled") ;
-     do_buckt = do_glt = 0 ; Rbuckt_prefix = Obuckt_prefix = NULL ;
+     if( nobout )
+       WARNING_message(" ==> -nobout is disabled") ;
+     nobout = do_buckt = do_glt = 0 ; Rbuckt_prefix = Obuckt_prefix = NULL ;
 
      /* a fake name */
 
@@ -1863,6 +1871,20 @@ STATUS("process -slibase images") ;
      SymStim[0].ntop = nrega-1 ;
      SymStim[0].gbot = 0 ;
 
+   }
+
+   /***--- set the betas to keep in the Rbeta/Obeta outputs ---***/
+
+   betaset = (int *)  malloc(sizeof(int)*nrega) ;  /* beta indexes to keep */
+
+   if( !nobout ){
+     for( ii=0 ; ii < nrega ; ii++ ) betaset[ii] = ii ;
+     nbetaset = nrega ;
+   } else {
+     for( kk=jj=0 ; jj < stim_num ; jj++ ){
+       for( ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) betaset[kk++] = ii ;
+     }
+     nbetaset = kk ;
    }
 
    /***--- setup to do statistics on the stimuli betas, if desired ---***/
@@ -2183,11 +2205,11 @@ STATUS(" creating glt_ind") ;
    /*----- now, use these values to compute the Generalized Least  -----*/
    /*----- Squares (GLSQ) solution at each voxel, and save results -----*/
 
-   Rbeta_dset = create_float_dataset( inset , nrega , Rbeta_prefix,1 , &Rbeta_fn,&Rbeta_fp ) ;
+   Rbeta_dset = create_float_dataset( inset , nbetaset , Rbeta_prefix,1 , &Rbeta_fn,&Rbeta_fp ) ;
    if( Rbeta_dset != NULL && beta_lab != NULL ){
 STATUS("labelizing Rbeta") ;
-     for( ii=0 ; ii < nrega ; ii++ )
-       EDIT_BRICK_LABEL( Rbeta_dset , ii , beta_lab[ii] ) ;
+     for( ii=0 ; ii < nbetaset ; ii++ )
+       EDIT_BRICK_LABEL( Rbeta_dset , ii , beta_lab[betaset[ii]] ) ;
    }
 
    Rvar_dset  = create_float_dataset( inset , 4    , Rvar_prefix,1 , NULL,NULL ) ;
@@ -2371,8 +2393,8 @@ STATUS("setting up Rglt") ;
          }
 
          if( Rbeta_dset != NULL ){
-           for( ii=0 ; ii < nrega ; ii++ ) iv[ii] = bb5->elts[ii] ;
-           save_series( vv , Rbeta_dset , nrega , iv , Rbeta_fp ) ;
+           for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5->elts[betaset[ii]] ;
+           save_series( vv , Rbeta_dset , nbetaset , iv , Rbeta_fp ) ;
          }
 
          if( Rvar_dset != NULL ){
@@ -2502,10 +2524,10 @@ STATUS("setting up Rglt") ;
 
    /*---------------------- create OLSQ outputs, if any ----------------------*/
 
-   Obeta_dset = create_float_dataset( inset , nrega , Obeta_prefix,1 , &Obeta_fn,&Obeta_fp ) ;
+   Obeta_dset = create_float_dataset( inset , nbetaset , Obeta_prefix,1 , &Obeta_fn,&Obeta_fp ) ;
    if( Obeta_dset != NULL && beta_lab != NULL ){
-     for( ii=0 ; ii < nrega ; ii++ )
-       EDIT_BRICK_LABEL( Obeta_dset , ii , beta_lab[ii] ) ;
+     for( ii=0 ; ii < nbetaset ; ii++ )
+       EDIT_BRICK_LABEL( Obeta_dset , ii , beta_lab[betaset[ii]] ) ;
    }
 
    Ovar_dset  = create_float_dataset( inset , 1 , Ovar_prefix,1  , NULL,NULL ) ;
@@ -2635,8 +2657,8 @@ STATUS("setting up Rglt") ;
          }
 
          if( Obeta_dset != NULL ){
-           for( ii=0 ; ii < nrega ; ii++ ) iv[ii] = bb5->elts[ii] ;
-           save_series( vv , Obeta_dset , nrega , iv , Obeta_fp ) ;
+           for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5->elts[betaset[ii]] ;
+           save_series( vv , Obeta_dset , nbetaset , iv , Obeta_fp ) ;
          }
 
          if( Ovar_dset != NULL ){
