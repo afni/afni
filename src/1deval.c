@@ -43,8 +43,10 @@ int main( int argc , char * argv[] )
              "--------\n"
              "  -del d   = Use 'd' as the step for a single undetermined variable\n"
              "               in the expression [default = 1.0]\n"
+             "               SYNONYMS: '-dx' and '-dt'\n"
              "  -start z = Start at value 'z' for a single undetermined variable\n"
              "               in the expression [default = 0.0]\n"
+             "               SYNONYMS: '-xzero' and '-tzero'\n"
              "  -num n   = Evaluate the expression 'n' times.\n"
              "               If -num is not used, then the length of an\n"
              "               input time series is used.  If there are no\n"
@@ -163,29 +165,25 @@ int main( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-del") == 0 ){
+      if( strcmp(argv[nopt],"-del") == 0 ||
+          strcmp(argv[nopt],"-dx")  == 0 || strcmp(argv[nopt],"-dt") == 0 ){
          nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"** -del needs an argument!\n") ;
-            exit(1) ;
-         }
+         if( nopt >= argc )
+           ERROR_exit("%s needs an argument!",argv[nopt-1]) ;
          del = strtod( argv[nopt] , NULL ) ;
-         if( del == 0 ){
-            fprintf(stderr,"** -del value must not be zero!\n") ;
-            exit(1) ;
-         }
-         if( verbose ) fprintf(stderr,"del set to %g\n",del) ;
+         if( del == 0 )
+            ERROR_exit("%s value must not be zero!",argv[nopt-1]) ;
+         if( verbose ) INFO_message("variable delta set to %g",del) ;
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-start") == 0 ){  /* 29 Nov 2007 */
+      if( strcmp(argv[nopt],"-start") == 0 ||  /* 29 Nov 2007 */
+          strcmp(argv[nopt],"-xzero") == 0 || strcmp(argv[nopt],"-tzero") == 0 ){
          nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"** -start needs an argument!\n") ;
-            exit(1) ;
-         }
+         if( nopt >= argc )
+           ERROR_exit("%s needs an argument!",argv[nopt-1]) ;
          dzero = strtod( argv[nopt] , NULL ) ;
-         if( verbose ) fprintf(stderr,"start set to %g\n",dzero) ;
+         if( verbose ) INFO_message("starting value of variable set to %g",dzero) ;
          nopt++ ; continue ;
       }
 
