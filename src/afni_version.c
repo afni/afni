@@ -9,9 +9,9 @@
 
 static int disabled = 0 ;
 
-#define VERSION_URL "http://afni.nimh.nih.gov/afni/AFNI.version"
+#define VERSION_URL "http://afni.nimh.nih.gov/pub/dist/AFNI.version"
 #define STR_CHILD   "tcp:localhost:20279"
-#define AFNI_HOST   "http://afni.nimh.nih.gov/afni/"
+#define AFNI_HOST   "http://afni.nimh.nih.gov/pub/dist/"
 #define VSIZE       1024
 
 static pid_t vc_child_pid = (pid_t)(-1) ;
