@@ -6,7 +6,7 @@
 
 #include "afni.h"
 
-#define VERSION_URL "http://afni.nimh.nih.gov/afni/AFNI.version"
+#define VERSION_URL "http://afni.nimh.nih.gov/pub/dist/AFNI.version"
 
 #define VERSION_FILE "/Volumes/afni/var/www/html/pub/dist/AFNI.version"
 
