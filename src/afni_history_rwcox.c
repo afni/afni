@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , MAR , 2009 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
+   "Add -nobout option, to suppress baseline betas from -Rbeta/-Obeta." ,
+   "Per the request of Michael S Beauchamp, University of Texas." } ,
+
  { 24 , MAR , 2009 , RWC , "3dDeconvolve" , MICRO , TYPE_GENERAL ,
    "Added -stim_times_subtract option" ,
    "To allow adjustment of stimulus times due to removal of some images at\n"

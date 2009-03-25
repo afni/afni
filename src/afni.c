@@ -1337,7 +1337,7 @@ static int check_string( char *targ , int ns , char *ss[] )
 
 int main( int argc , char *argv[] )
 {
-   int ii ;
+   int ii ; int dienow=0 ;
 
    /*--- help the pitiful user? ---*/
 
@@ -1364,11 +1364,13 @@ int main( int argc , char *argv[] )
 #else
      printf( "Compile date = " __DATE__ " " __TIME__ "\n") ;
 #endif
-     exit(0) ;
+     dienow++ ;
    }
 
-   if( check_string("--motd",argc,argv) ){   /* 29 Nov 2005 */
-     AFNI_display_motd(NULL) ; exit(0) ;
+   /** MOTD output **/
+
+   if( check_string("--motd",argc,argv) || check_string("-motd",argc,argv) ){   /* 29 Nov 2005 */
+     AFNI_display_motd(NULL) ; dienow++ ;
    }
 
    /** just print the SHOWOFF string [26 Oct 2004] **/
@@ -1379,7 +1381,7 @@ int main( int argc , char *argv[] )
 #else
       printf("Unknown\n") ;
 #endif
-      exit(0) ;
+      dienow++ ;
    }
 
    /** debug stuff **/
@@ -1396,8 +1398,12 @@ int main( int argc , char *argv[] )
 
    if( check_string("-motif_ver",argc,argv) ) {
      show_motif_version_string() ;
-     exit(0) ;
+     dienow++ ;
    }
+
+   /*** if ordered, die right now ***/
+
+   if( dienow) exit(0) ;
 
 #if 0
 #ifdef USE_TRACING
