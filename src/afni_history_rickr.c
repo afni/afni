@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "+view now comes from data: so it works with +tlrc",
+   NULL
+ } ,
+
  { 24, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "by default now, no mask is applied in the scale and regression steps",
    "Also added -regress_apply_mask option."
