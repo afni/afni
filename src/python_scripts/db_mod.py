@@ -21,11 +21,11 @@ def db_mod_tcat(block, proc, user_opts):
             errs += 1
         if errs == 0 and bopt.parlist[0] > 0:
           print                                                              \
-            '-----------------------------------------------------------\n'  \
-            'warning: removing first %d TRs from beginning of each run\n'    \
+            '------------------------------------------------------------\n' \
+            '** warning: removing first %d TRs from beginning of each run\n' \
             '   --> it is essential that stimulus timing files match the\n'  \
             '       removal of these TRs\n'                                  \
-            '-----------------------------------------------------------'    \
+            '------------------------------------------------------------'   \
             % bopt.parlist[0]
 
     if errs == 0: block.valid = 1
@@ -79,7 +79,7 @@ def db_cmd_despike(proc, block):
                ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
 
     prefix = proc.prefix_form_run(block)
-    prev   = proc.prev_prefix_form_run()
+    prev   = proc.prev_prefix_form_run(view=1)
 
     # if we have a mask and are applying it, allow it here, else do not
     if proc.mask != None and proc.regmask: mstr = ''
@@ -89,7 +89,7 @@ def db_cmd_despike(proc, block):
     cmd = cmd + '# -------------------------------------------------------\n' \
               + '# apply 3dDespike to each run\n'
     cmd = cmd + 'foreach run ( $runs )\n'                                     \
-                '    3dDespike%s%s -prefix %s %s+orig\n'                      \
+                '    3dDespike%s%s -prefix %s %s\n'                           \
                 'end\n\n' %                                                   \
                 (other_opts, mstr, prefix, prev)
 
@@ -143,7 +143,7 @@ def db_cmd_tshift(proc, block):
 
     # note cur and prev prefix forms (with $run)
     cur_prefix = proc.prefix_form_run(block)
-    prev_prefix = proc.prev_prefix_form_run()
+    prev_prefix = proc.prev_prefix_form_run(view=1)
 
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-tshift_opts_ts')
@@ -154,11 +154,11 @@ def db_cmd_tshift(proc, block):
     cmd = cmd + '# -------------------------------------------------------\n' \
               + '# run 3dToutcount and 3dTshift for each run\n'
     cmd = cmd + 'foreach run ( $runs )\n'                                     \
-                '    3dToutcount -automask %s+orig > outcount_r$run.1D\n'     \
+                '    3dToutcount -automask %s > outcount_r$run.1D\n'          \
                 '\n'                                                          \
                 '    3dTshift %s %s -prefix %s      \\\n'                     \
                 '%s'                                                          \
-                '             %s+orig\n'                                      \
+                '             %s\n'                                           \
                 'end\n\n' %                                                   \
                 (prev_prefix, align_to, resam,cur_prefix,other_opts,prev_prefix)
     
@@ -251,7 +251,7 @@ def db_cmd_volreg(proc, block):
     if sub      == -1: sub      = proc.reps - 1
 
     # get any base_vol option
-    if proc.vr_ext_base != None: basevol = proc.vr_ext_pre
+    if proc.vr_ext_base != None: basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
     else: basevol = None
 
     if proc.verb > 0:
@@ -262,7 +262,7 @@ def db_cmd_volreg(proc, block):
                   (block.label,dset_ind,sub)
 
     # get base prefix (run is index+1)
-    base = proc.prev_prefix_form(dset_ind+1)
+    base = proc.prev_prefix_form(dset_ind+1, view=1)
 
     # get the interpolation value
     opt = block.opts.find_opt('-volreg_interp')
@@ -278,8 +278,8 @@ def db_cmd_volreg(proc, block):
     if not opt or not opt.parlist: other_opts = ''
     else: other_opts = '             %s  \\\n' % ' '.join(opt.parlist)
 
-    if basevol: bstr = "%s+orig" % basevol
-    else:       bstr = "%s+orig'[%d]'" % (base,sub)
+    if basevol: bstr = basevol
+    else:       bstr = "%s'[%d]'" % (base,sub)
 
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# align each dset to the base volume\n"                      \
@@ -288,9 +288,9 @@ def db_cmd_volreg(proc, block):
                 "             -1Dfile dfile.r$run.1D -prefix %s  \\\n"        \
                 "             %s \\\n"                                        \
                 "%s"                                                          \
-                "             %s+orig\n" %                                    \
+                "             %s\n" %                                         \
                     (zpad, bstr, proc.prefix_form_run(block), resam,
-                     other_opts, proc.prev_prefix_form_run())
+                     other_opts, proc.prev_prefix_form_run(view=1))
 
     # if there is a base_dset option, check for failure in 3dvolreg
     if basevol:
@@ -343,7 +343,7 @@ def db_cmd_blur(proc, block):
     opt    = block.opts.find_opt('-blur_size')
     size   = opt.parlist[0]
     prefix = proc.prefix_form_run(block)
-    prev   = proc.prev_prefix_form_run()
+    prev   = proc.prev_prefix_form_run(view=1)
 
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-blur_opts_merge')
@@ -355,7 +355,7 @@ def db_cmd_blur(proc, block):
                 "foreach run ( $runs )\n"                                     \
                 "    3dmerge %s %s -doall -prefix %s   \\\n"                  \
                 "%s"                                                          \
-                "            %s+orig\n"                                       \
+                "            %s\n"                                            \
                 "end\n\n" % (filter, str(size), prefix, other_opts, prev)
 
     proc.bindex += 1            # increment block index
@@ -398,21 +398,22 @@ def db_cmd_mask(proc, block):
     opt = block.opts.find_opt('-mask_dilate')
     nsteps = opt.parlist[0]
 
-    prev = proc.prev_prefix_form_run()
+    prev = proc.prev_prefix_form_run(view=1)
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# create 'full_mask' dataset (%s mask)\n"                    \
                 "foreach run ( $runs )\n"                                     \
-                "    3dAutomask -dilate %d -prefix rm.mask_r$run %s+orig\n"   \
+                "    3dAutomask -dilate %d -prefix rm.mask_r$run %s\n"        \
                 "end\n\n" % (type, nsteps, prev)
 
     if proc.runs > 1:  # if more than 1 run, create union mask
         cmd = cmd + "# get mean and compare it to %s for taking '%s'\n"      \
                     "3dMean -datum short -prefix rm.mean rm.mask*.HEAD\n"    \
-                    "3dcalc -a rm.mean+orig -expr 'ispositive(a-%s)' "       \
-                    "-prefix full_mask.$subj\n\n" % (str(min), type, str(min))
+                    "3dcalc -a rm.mean%s -expr 'ispositive(a-%s)' "          \
+                    "-prefix full_mask.$subj\n\n" %                          \
+                    (str(min), type, proc.view, str(min))
     else:  # just copy the one
         cmd = cmd + "# only 1 run, so copy this to full_mask\n"              \
-                    "3dcopy rm.mask_r01+orig full_mask.$subj\n\n" 
+                    "3dcopy rm.mask_r01%s full_mask.$subj\n\n"  % proc.view
 
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
@@ -449,7 +450,7 @@ def db_cmd_scale(proc, block):
     else:         valstr = 'a/b*100'
 
     if proc.mask and proc.regmask:
-        mask_dset = '           -c %s+orig \\\n' % proc.mask
+        mask_dset = '           -c %s%s \\\n' % (proc.mask, proc.view)
         expr      = 'c * %s' % valstr
     else:
         mask_dset = ''
@@ -458,18 +459,19 @@ def db_cmd_scale(proc, block):
     if max > 100: maxstr = '# (subject to maximum value of %d)\n' % max
     else        : maxstr = ''
 
-    prev = proc.prev_prefix_form_run()
+    prev = proc.prev_prefix_form_run(view=1)
     prefix = proc.prefix_form_run(block)
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# scale each voxel time series to have a mean of 100\n"      \
                 "%s"                                                          \
                 "foreach run ( $runs )\n"                                     \
-                "    3dTstat -prefix rm.mean_r$run %s+orig\n"                 \
-                "    3dcalc -a %s+orig -b rm.mean_r$run+orig  \\\n"           \
+                "    3dTstat -prefix rm.mean_r$run %s\n"                      \
+                "    3dcalc -a %s -b rm.mean_r$run%s  \\\n"                   \
                 "%s"                                                          \
                 "           -expr '%s'  \\\n"                                 \
                 "           -prefix %s\n"                                     \
-                "end\n\n" % (maxstr, prev, prev, mask_dset, expr, prefix)
+                "end\n\n" %     \
+                (maxstr, prev, prev, proc.view, mask_dset, expr, prefix)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -769,14 +771,16 @@ def db_cmd_regress(proc, block):
         if not newcmd: return
         cmd = cmd + newcmd
 
-    if proc.mask and proc.regmask: mask = '    -mask %s+orig  \\\n' % proc.mask
-    else                         : mask = ''
+    if proc.mask and proc.regmask:
+        mask = '    -mask %s%s  \\\n' % (proc.mask, proc.view)
+    else:
+        mask = ''
 
-    cmd = cmd + '3dDeconvolve -input %s+orig.HEAD    \\\n'      \
+    cmd = cmd + '3dDeconvolve -input %s    \\\n'                \
                 '    -polort %d  \\\n'                          \
                 '%s%s'                                          \
                 '    -num_stimts %d  \\\n'                      \
-                % ( proc.prev_prefix_form_rwild(), polort,
+                % ( proc.prev_dset_form_wild(), polort,
                     mask, normall,
                     len(proc.stims)+len(proc.extra_stims)+len(proc.mot_labs) )
 
@@ -914,8 +918,8 @@ def db_cmd_regress(proc, block):
     # create all_runs, and store name for blur_est
     all_runs = 'all_runs.$subj'
     cmd = cmd + "# create an all_runs dataset to match the fitts, errts, etc.\n"
-    cmd = cmd + "3dTcat -prefix %s %s+orig.HEAD\n\n" % \
-                (all_runs, proc.prev_prefix_form_rwild())
+    cmd = cmd + "3dTcat -prefix %s %s\n\n" % \
+                (all_runs, proc.prev_dset_form_wild())
 
     opt = block.opts.find_opt('-regress_no_ideals')
     if not opt and UTIL.basis_has_known_response(basis):
@@ -1173,12 +1177,12 @@ def db_mod_empty(block, proc, user_opts):
 # create a placeholder command using 3dTcat to copy the EPI data
 def db_cmd_empty(proc, block):
     prefix = proc.prefix_form_run(block)
-    prev   = proc.prev_prefix_form_run()
+    prev   = proc.prev_prefix_form_run(view=1)
 
     cmd = "# -------------------------------------------------------\n" \
           "# empty block: use '3dTcat' as a placeholder command\n"      \
           "foreach run ( $runs )\n"                                     \
-          "    3dTcat -prefix %s %s+orig\n"                             \
+          "    3dTcat -prefix %s %s\n"                                  \
           "end\n\n" % (prefix, prev)
 
     proc.bindex += 1            # increment block index
