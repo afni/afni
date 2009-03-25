@@ -18,17 +18,19 @@ int main( int argc , char *argv[] )
             "NOTES:\n"
             "------\n"
             "* Interpolation is done with 7th order polynomials.\n"
+            "   (Why 7? It's a nice number, and the code already existed.)\n"
             "* The only option is '-1' or '-one', to use 1st order\n"
             "   polynomials instead (i.e., linear interpolation).\n"
             "* Output is written to stdout.\n"
             "* If you want to interpolate along the row direction,\n"
             "   transpose before input, then transpose the output.\n"
             "* Example:\n"
-            "   1dUpsample -1 3 '1D: 4 5 6' | 1dplot -stdin\n"
+            "   1dUpsample 5 '1D: 4 5 4 3 4' | 1dplot -stdin -dx 0.2 \n"
             "* If the input has M time points, the output will\n"
             "   have n*M time points.  The last n-1 of them\n"
             "   will be past the end of the original time series.\n"
             "* This program is a quick hack for Gang Chen.\n"
+            "   Where are my Twizzlers?\n"
      "\n") ;
      exit(0) ;
    }
