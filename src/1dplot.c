@@ -98,8 +98,9 @@ int main( int argc , char *argv[] )
             " -xl10 X.1D = Use log10(X.1D) as the X axis.\n"
             "\n"
             " -dx xx     = Spacing between points on the x-axis is 'xx'\n"
-            "                [default = 1]\n"
+            "                [default = 1] SYNONYMS: '-dt' and '-del'\n"
             " -xzero zz  = Initial x coordinate is 'zz' [default = 0]\n"
+            "                SYNONYMS: '-tzero' and '-start'\n"
             " -nopush    = Don't 'push' axes ranges outwards.\n"
             " -ignore nn = Skip first 'nn' rows in the input file\n"
             "                [default = 0]\n"
@@ -395,7 +396,8 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-xzero") == 0 || strcmp(argv[iarg],"-start") == 0 ){
+     if( strcmp(argv[iarg],"-xzero") == 0 || strcmp(argv[iarg],"-start") == 0 ||
+         strcmp(argv[iarg],"-tzero") == 0   ){
         xzero = strtod( argv[++iarg] , NULL ) ;
         iarg++ ; continue ;
      }

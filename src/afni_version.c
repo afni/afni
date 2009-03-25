@@ -468,6 +468,7 @@ ENTRY("AFNI_display_motd") ;
    }
 
    sprintf(url,"%s%.988s",AFNI_HOST,GLOBAL_motd) ;
+/** INFO_message("MOTD URL = '%s'",url) ; **/
    nbuf = read_URL( url , &buf ) ;
    if( nbuf > 0 && buf != NULL ){
      char *msg = malloc(sizeof(char)*(nbuf+2048)) ;
