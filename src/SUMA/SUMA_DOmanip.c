@@ -1169,6 +1169,7 @@ SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv( char *coordnamei,
             case SUMA_BRAIN_VOYAGER:
             case SUMA_BYU:
             case SUMA_GIFTI:
+            case SUMA_MNI_OBJ:
             case SUMA_PLY: 
                if (strstr(SO->Name.FileName, coordname)) {
                   if (SOf) {

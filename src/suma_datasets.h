@@ -663,7 +663,7 @@ static byte NI_GOT;
    for (m_i=0; m_i<n; ++m_i) valv[m_i] = 0.0;   \
    if (m_s) {  \
       NI_GOT = 1; \
-      m_iv = (int *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_int); \
+      m_iv = (int *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_int, NULL); \
       if (m_iv) {\
          if (!verb) { \
             if (m_nr < n) { \
@@ -705,7 +705,7 @@ static byte NI_GOT;
    for (m_i=0; m_i<n; ++m_i) valv[m_i] = 0.0;   \
    if (m_s) {  \
       NI_GOT = 1; \
-      m_fv = (float *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_float); \
+      m_fv = (float *)SUMA_strtol_vec(m_s, n, &m_nr, SUMA_float, NULL); \
       if (m_fv) {\
          if (verb) {\
             if (m_nr < n) { \
@@ -1427,7 +1427,8 @@ void SUMA_swap_8(void *ppp);
 int SUMA_suck_file( char *fname , char **fbuf );
 char * SUMA_file_suck( char *fname , int *nread );
 void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
-void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp);
+void *SUMA_strtol_vec(char *op, int nvals, int *nread, 
+                      SUMA_VARTYPE vtp, char **opend);
 SUMA_Boolean SUMA_ShowParsedFname(SUMA_PARSED_NAME *pn, FILE *out);
 char *SUMA_EscapeChars(char *s1, char *ca, char *es);
 char *SUMA_ReplaceChars(char *s1, char *ca, char *es);

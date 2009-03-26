@@ -4207,7 +4207,7 @@ void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call)
    SUMA_ENTRY;
    
    SUMA_LH("Called");
-   SUMA_S_Note("Make Switch Cmap (SUMA_cb_CloseSwitchCmap) use me !");
+
    LW = (SUMA_LIST_WIDGET *)client_data;
    
    #if defined SUMA_USE_WITHDRAW 
@@ -4478,6 +4478,11 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call)
    
    SUMA_LH("Called");
    
+   SUMA_cb_CloseSwitchLst(w, client_data, call);   
+      /* Now calling standard lst closing function       May 2009*/
+   SUMA_RETURNe;  /* get out */
+   
+   /* Pre May 2009 */
    LW = (SUMA_LIST_WIDGET *)client_data;
    
    #if defined SUMA_USE_WITHDRAW 
