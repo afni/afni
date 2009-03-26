@@ -529,8 +529,9 @@ class SubjProcSream:
 
         if self.verb > 0:
             # last warning, if user is masking EPI data...
-            if self.mask != None and self.regmask:
-                print "** masking EPI data is not recommended"
+            if self.mask != None:
+                if self.regmask: print "** masking EPI data is not recommended"
+                else:            print "** masking EPI is no longer the default"
 
             if self.runs == 1:
                 print "\n-------------------------------------\n" \
