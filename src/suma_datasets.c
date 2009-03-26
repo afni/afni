@@ -8333,7 +8333,7 @@ SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *d
             j=0; while (op[j] && j<500) { fprintf(SUMA_STDERR,"%c", op[j]); ++j; }
             fprintf(SUMA_STDERR,"\n");
          }  
-         dx->datap = SUMA_strtol_vec(op, dx->items*SUMA_NCOL_OPENDX(dx), &nread, SUMA_CTypeName2VarType (dx->type));
+         dx->datap = SUMA_strtol_vec(op, dx->items*SUMA_NCOL_OPENDX(dx), &nread, SUMA_CTypeName2VarType (dx->type), NULL);
          if (LocalHead) {
             fprintf(SUMA_STDERR,"%s: Read %d/%d values\n", FuncName, nread, dx->items*SUMA_NCOL_OPENDX(dx));
          }
@@ -12513,7 +12513,8 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp)
    \sa SUMA_AdvancePastNumbers
    \sa SUMA_StringToNum
 */
-void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
+void *SUMA_strtol_vec(char *op, int nvals, int *nread, 
+                      SUMA_VARTYPE vtp, char **opend)
 {
    static char FuncName[]={"SUMA_strtol_vec"};
    void *ans = NULL;
@@ -12524,6 +12525,8 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
    
    SUMA_ENTRY;
    *nread = 0;
+   if (opend) *opend = op;
+
    if (!SUMA_OK_OPENDX_DATA_TYPE(vtp)) {
       SUMA_SL_Err("Bad type");
       SUMA_RETURN(ans);
@@ -12538,7 +12541,8 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
             lv = strtol(op, &endptr, 10);
             while (endptr && endptr != op && *nread < nvals) {
                bvec[*nread] = (byte)lv;
-               /* if (LocalHead) fprintf(SUMA_STDERR,">>>%d<<<\t", bvec[*nread]);  */
+               /* if (LocalHead) 
+                  fprintf(SUMA_STDERR,">>>%d<<<\t", bvec[*nread]);  */
                ++(*nread);
                op = endptr;
                lv = strtol(op, &endptr, 10);
@@ -12553,7 +12557,8 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
             lv = strtol(op, &endptr, 10);
             while (endptr && endptr != op && *nread < nvals) {
                ivec[*nread] = (int)lv;
-               /* if (LocalHead) fprintf(SUMA_STDERR,">>>%d<<<\t", ivec[*nread]);  */
+               /* if (LocalHead && *nread < 10) 
+                  fprintf(SUMA_STDERR,">>>%d<<<\t", ivec[*nread]); */  
                ++(*nread);
                op = endptr;
                lv = strtol(op, &endptr, 10);
@@ -12568,7 +12573,8 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
             dv = strtod(op, &endptr);
             while (endptr && endptr != op && *nread < nvals) {
                fvec[*nread] = (float)dv;
-               /* if (LocalHead) fprintf(SUMA_STDERR,">>>%f<<<\t", fvec[*nread]); */
+               /* if (LocalHead) 
+                  fprintf(SUMA_STDERR,">>>%f<<<\t", fvec[*nread]); */
                ++(*nread);
                op = endptr;
                dv = strtod(op, &endptr);
@@ -12583,7 +12589,8 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
             dv = strtod(op, &endptr);
             while (endptr && endptr != op && *nread < nvals) {
                dvec[*nread] = (double)dv;
-               /* if (LocalHead) fprintf(SUMA_STDERR,">>>%f<<<\t", dvec[*nread]); */
+               /* if (LocalHead) 
+                  fprintf(SUMA_STDERR,">>>%f<<<\t", dvec[*nread]); */
                ++(*nread);
                op = endptr;
                dv = strtod(op, &endptr);
@@ -12601,7 +12608,8 @@ void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
          break;   
          
    }
-   
+
+   if (opend) *opend = op;
    SUMA_RETURN(ans);
 }
 

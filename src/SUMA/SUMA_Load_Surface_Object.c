@@ -365,6 +365,14 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO,
             SUMA_RETURN (NOPE);
          }
          break;
+      case SUMA_MNI_OBJ:
+         if (!SUMA_MNI_OBJ_Write ((char *)F_name, SO)) {
+            fprintf (SUMA_STDERR, 
+                     "Error %s: Failed to write MNI_OBJ surface.\n"
+                     , FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
       case SUMA_FREE_SURFER:
          if (SO_FF == SUMA_FF_NOT_SPECIFIED) SO_FF = SUMA_ASCII;
          if (SO_FF != SUMA_ASCII) {
@@ -806,6 +814,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          break;
       case SUMA_PLY:
          break;
+      case SUMA_MNI_OBJ:
+         break;
       case SUMA_OPENDX_MESH:
          break;
       case SUMA_VEC:
@@ -869,30 +879,56 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          }
          SO->normdir = 0;  /* not set */
          break;
-      case SUMA_OPENDX_MESH:
-         if (!SUMA_OpenDX_Read_SO ((char *)SO_FileName_vp, SO)) {
+      case SUMA_MNI_OBJ:
+         if (!SUMA_MNI_OBJ_Read ((char *)SO_FileName_vp, SO)) {
             fprintf (SUMA_STDERR,
-                     "Error %s: Failed in SUMA_OpenDX_Read_SO.\n", FuncName);
+                     "Error %s: Failed in SUMA_MNI_OBJ_Read.\n", FuncName);
             SUMA_RETURN(NULL);
          }
          SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
          
-         /* change coordinates to align them with volparent data set, 
-            if possible */
+         /* change coordinates to align them with 
+            volparent data set, if possible */
          if (VolParName != NULL) {
             SO->VolPar = SUMA_VolPar_Attr (VolParName);
             if (SO->VolPar == NULL) {
                fprintf( SUMA_STDERR,
-                        "Error %s: Failed to load parent volume attributes.\n", 
+                        "Error %s: Failed to load parent volume attributes.\n",
                         FuncName);
             } else {
-               if (!SUMA_Align_to_VolPar (SO, NULL)) 
-                  SO->SUMA_VolPar_Aligned = NOPE;
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) 
+               SO->SUMA_VolPar_Aligned = NOPE;
                else {
                   SO->SUMA_VolPar_Aligned = YUP;
                   /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
                }
             }
+         } else { 
+            SO->SUMA_VolPar_Aligned = NOPE;
+         }
+         SO->normdir = 0;  /* not set */
+         break;
+      case SUMA_OPENDX_MESH:
+         if (!SUMA_OpenDX_Read_SO ((char *)SO_FileName_vp, SO)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_OpenDX_Read_SO.\n", FuncName);
+            SUMA_RETURN(NULL);
+         }
+         SUMA_NEW_ID(SO->idcode_str,(char *)SO_FileName_vp); 
+         
+         /* change coordinates to align them with volparent data set, if possible */
+         if (VolParName != NULL) {
+            SO->VolPar = SUMA_VolPar_Attr (VolParName);
+            if (SO->VolPar == NULL) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to load parent volume attributes.\n", FuncName);
+            } else {
+
+            if (!SUMA_Align_to_VolPar (SO, NULL)) SO->SUMA_VolPar_Aligned = NOPE;
+               else {
+                  SO->SUMA_VolPar_Aligned = YUP;
+                  /*SUMA_Show_VolPar(SO->VolPar, NULL);*/
+               }
+         }
          } else { 
             SO->SUMA_VolPar_Aligned = NOPE;
          }
@@ -2793,11 +2829,24 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(
       brk = YUP;
    } /* load Ply format surface */
 
-   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "OpenDX") == 1) {
-      /* load SUMA_OPENDX_MESH format surface */
-      SO = SUMA_Load_Surface_Object_eng ( (void *)Spec->SurfaceFile[i], 
-                                          SUMA_OPENDX_MESH, SUMA_ASCII, 
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "MNI") == 1) {
+      /* load MNI_OBJ format surface */
+
+      SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], 
+                                          SUMA_MNI_OBJ, SUMA_ASCII, 
                                           tmpVolParName, debug);
+
+      if (SO == NULL)   {
+         fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
+         SUMA_RETURN(NULL);
+      }
+      SurfIn = YUP;
+      brk = YUP;
+   } /* load MNI_OBJ format surface */
+
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "OpenDX") == 1) {/* load SUMA_OPENDX_MESH format surface */
+
+      SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], SUMA_OPENDX_MESH, SUMA_ASCII, tmpVolParName, debug);
 
       if (SO == NULL)   {
          fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
@@ -3962,6 +4011,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_OPENDX_MESH:
       case SUMA_BYU:
       case SUMA_GIFTI:
+      case SUMA_MNI_OBJ:
       case SUMA_PLY:
          if (MitPath) 
             nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
@@ -3987,6 +4037,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
       case SUMA_OPENDX_MESH:
       case SUMA_BYU:
       case SUMA_GIFTI:
+      case SUMA_MNI_OBJ:
       case SUMA_BRAIN_VOYAGER:
          if (MitPath) sprintf(Name,"%s%s", SO->Name.Path, SO->Name.FileName);
          else sprintf(Name,"%s", SO->Name.FileName);
@@ -4027,6 +4078,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
       case SUMA_OPENDX_MESH:
       case SUMA_PLY:
       case SUMA_BYU:
+      case SUMA_MNI_OBJ:
       case SUMA_BRAIN_VOYAGER:
          if (  SUMA_iswordin (SO->Name.FileName, ".white") == 1 || 
                SUMA_iswordin (SO->Name.FileName, ".smoothwm") == 1 ||
@@ -4140,6 +4192,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
          break;
       case SUMA_OPENDX_MESH:
       case SUMA_BYU:
+      case SUMA_MNI_OBJ:
       case SUMA_PLY:
          if (SUMA_iswordin (SO->Name.FileName, "lh") == 1 ||
              SUMA_iswordin (SO->Name.FileName, "left") == 1) {
@@ -4227,6 +4280,7 @@ int SUMA_SetSphereParams(SUMA_SurfaceObject *SO, float tol)
          case SUMA_FT_ERROR:
             break;
          case SUMA_OPENDX_MESH:
+         case SUMA_MNI_OBJ:
          case SUMA_PLY:
             break;
          case SUMA_GIFTI:
