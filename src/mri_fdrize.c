@@ -193,7 +193,6 @@ STATUS("convert to z") ;
     /* compute missed detection fraction (MDF) vs. log10(p) */
 
     if( mone > 8.0f ){
-STATUS("computing mdf") ;
       float ms , dpl ; int jtop,jbot , npp , kk ;
       float *mdf=(float *)malloc(sizeof(float)*nq) ;
       floatvec *fv ; float p1,p2,m1,m2,pf,mf , pl,pv ;
@@ -201,6 +200,7 @@ STATUS("computing mdf") ;
         ERROR_message("mri_fdrize: out of memory!") ; goto finished ;
       }
 
+STATUS("computing mdf") ;
       qmin = 1.0 ;
       for( jj=nq-1 ; jj >=0 ; jj-- ){      /* scan down again to get q */
         qval = (nthr * qq[jj]) / (jj+1.0) ;
