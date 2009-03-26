@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, MAR, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "added helpstr to options",
+   NULL
+ } ,
+
+ { 26, MAR, 2009, RCR, "1d_tool.py", MICRO, TYPE_BUG_FIX,
+   "small array fix for older python in write()",
+   NULL
+ } ,
+
+ { 26, MAR, 2009, RCR, "option_list.py", MICRO, TYPE_MODIFY,
+   "base 'name' size on max len in show()",
+   NULL
+ } ,
+
  { 25, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "+view now comes from data: so it works with +tlrc",
    NULL
