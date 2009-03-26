@@ -2848,3 +2848,14 @@ curves into headers output by 3dDeconvolve, 3dANOVA, 3dttest, and
 these datasets will performed when the datasets are written to disk.
 (You can always use '3drefit -addFDR' to add FDR curves to a dataset
 header, for those sub-bricks marked as statistical parameters.)
+
+------------------------------
+Variable: AFNI_DONT_ADJUST_FDR
+------------------------------
+If this variable is set to YES, then the adjustment of FDR q-values
+downwards by allowing for the estimate of the number of true
+negatives (e.g., as discussed by Storey, Benjamini, and others)
+will NOT be carried out.  As of 26 Mar 2009, this adjustment of
+q-values is the default in AFNI programs.  If you want the old
+behavior, set this variable to NO.
+
