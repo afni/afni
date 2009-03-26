@@ -26,7 +26,7 @@ floatvec *mri_fdr_getmdf(void){ return FDR_mdfv; }  /* 22 Oct 2008 */
 /* Estimate m1 = number of true positives.
    Actually, estimates m0 = number of true negatives, then m1 = nq-m0.
    Build a histogram of large-ish p-values [0.15..0.95], which should be
-   approximately uniformly distribued, then find m0 by estimating the
+   approximately uniformly distributed, then find m0 by estimating the
    average-ish level of this histogram, and then multiplying by the number
    of bins that would cover the entire p-range of 0..1.
    If something bad happens, return value is -1.
@@ -34,7 +34,7 @@ floatvec *mri_fdr_getmdf(void){ return FDR_mdfv; }  /* 22 Oct 2008 */
 
 static int estimate_m1( int nq , float *qq )
 {
-   int jj , kk , nh=0 , hist[16] , mone ;
+   int jj , kk , nh=0 , hist[16] , ma,mb, mone ;
 
    if( nq < 299 || qq == NULL ) return -1 ;  /* not enuf data */
 
@@ -45,13 +45,15 @@ static int estimate_m1( int nq , float *qq )
    }
    if( nh < 160 ) return -1 ; /* too few p-values in [0.15..0.95] range */
    qsort_int( 16 , hist ) ;   /* sort; use central values to get 'average' */
-#if 0
-   mone = nq - 20.0f * ( hist[6] + 2*hist[7] + 2*hist[8] + hist[9] ) / 6.0f ;
-#else
-   mone = nq - 20.0f * (    hist[5] + 2*hist[6] + 2*hist[7]
+
+   /* estimate m1 two different ways, take the smaller value */
+
+   ma = nq - 20.0f * ( hist[6] + 2*hist[7] + 2*hist[8] + hist[9] ) / 6.0f ;
+
+   mb = nq - 20.0f * (    hist[5] + 2*hist[6] + 2*hist[7]
                         + 2*hist[8] + 2*hist[9] +   hist[10] ) / 10.0f ;
-#endif
-   return mone ;
+
+   mone = MIN(ma,mb) ; return mone ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -83,7 +85,7 @@ int mri_fdrize( MRI_IMAGE *im, int statcode, float *stataux, int flags )
 {
   float *far ;
   int ii,jj , nvox , doz , qsmal=0 ;
-  float *qq , nthr , fbad ; int *iq , nq ; double qval , qmin ;
+  float *qq , nthr , fbad , mone=0.0f,qfac=1.0f ; int *iq , nq ; double qval , qmin ;
 
 ENTRY("mri_fdrize") ;
 
@@ -151,128 +153,142 @@ STATUS("sorting p-values") ;
     qmin = 1.0 ;
     nthr = (flags&1) ? nvox : nq ;
     if( (flags&2) && nthr > 1 ) nthr *= (logf(nthr)+0.5772157f) ;
-STATUS("convert to q/z") ;
+STATUS("convert to q") ;
     for( jj=nq-1 ; jj >= 0 ; jj-- ){           /* convert to q, then z */
       qval = (nthr * qq[jj]) / (jj+1.0) ;
       if( qval > qmin ) qval = qmin; else qmin = qval;
       if( qsmal == 0 && qval <= QSTHRESH ) qsmal = jj ;
-      if( doz ){                               /**** convert q to z ****/
+      far[iq[jj]] = (float)qval ;   /* store q into result array */
+    }
+
+    /** estimate number of true positives **/
+
+    if( qsmal && nq > 199 && qq[0] > 0.0f ) mone = (float)estimate_m1(nq,qq) ;
+
+    /* 26 Mar 2009: scale q down by estimate above */
+
+    if( mone > 0.0f && !AFNI_yesenv("AFNI_DONT_ADJUST_FDR") ){
+      qfac = (nq-mone)/(float)nq; if( qfac < 0.5f ) qfac = 0.25f+0.5f*qfac ;
+      if( PRINT_TRACING ){
+        char str[256] ; sprintf(str,"Adjust q by %.3f",qfac) ; STATUS(str) ;
+      }
+      for( jj=0 ; jj < nq ; jj++ ) far[iq[jj]] *= qfac ;
+    }
+
+    /* convert to z-score, if ordered to do so */
+
+    if( doz ){
+STATUS("convert to z") ;
+      for( jj=0 ; jj < nq ; jj++ ){
+        qval = (double)far[iq[jj]] ;
              if( qval <  QBOT ) qval = ZTOP ;  /* honking big z-score  */
         else if( qval >= 1.0  ) qval =  0.0 ;  /* very non-significant */
         else                    qval = QTOZ(qval) ; /* meaningful z(q) */
+        far[iq[jj]] = (float)qval ;
       }
-      far[iq[jj]] = (float)qval ;   /* store q or z into result array */
     }
+
     free(iq) ; iq = NULL ;
 
-    /* compute missed detection fraction vs. log10(p) */
+    /* compute missed detection fraction (MDF) vs. log10(p) */
 
-    if( qsmal && nq > 199 && qq[0] > 0.0f ){
-      int mm1 ;
+    if( mone > 8.0f ){
 STATUS("computing mdf") ;
-      mm1 = estimate_m1( nq , qq ) ;  /* number of true positives */
+      float ms , dpl ; int jtop,jbot , npp , kk ;
+      float *mdf=(float *)malloc(sizeof(float)*nq) ;
+      floatvec *fv ; float p1,p2,m1,m2,pf,mf , pl,pv ;
+      if( mdf == NULL ){
+        ERROR_message("mri_fdrize: out of memory!") ; goto finished ;
+      }
 
-                          /* could at this point reduce all q's estimated
-                             above by factor of (nq-mm1)/nq, but won't bother */
+      qmin = 1.0 ;
+      for( jj=nq-1 ; jj >=0 ; jj-- ){      /* scan down again to get q */
+        qval = (nthr * qq[jj]) / (jj+1.0) ;
+        if( qval > qmin ) qval = qmin; else qmin = qval;
+        if( qval < QBOT ) qval = QBOT;
 
-      if( mm1 > 9 ){
-        float mone=(float)mm1 , ms , dpl ; int jtop,jbot , npp , kk ;
-        float *mdf=(float *)malloc(sizeof(float)*nq) ;
-        floatvec *fv ; float p1,p2,m1,m2,pf,mf , pl,pv ;
-        if( mdf == NULL ){
-          ERROR_message("mri_fdr_curve: out of memory!") ; goto finished ;
-        }
+        /* The reasoning involved to get MDF as a function of threshold:
+          * Number of values more signifcant than this threshold is jj+1;
+          * Approximately qval*(jj+1) of these are false positive detections
+             (that's what FDR means, dude or dudette);
+          * So about (1-qval)*(jj+1) are true positive detections;
+          * So about (1-qval)*(jj+1)/mone is the ratio
+             of true detections to the number of true positives;
+          * So about 1-(1-qval)*(jj+1)/mone is about the
+             fraction of missed true detections (MDF);
+          * The whole thing depends on the accuracy of the mone estimate
+             of the number of true positives in the whole shebang;
+          * If you believe this, I've got a bridge to Brooklyn for sale! */
 
-        qmin = 1.0 ;
-        for( jj=nq-1 ; jj >=0 ; jj-- ){      /* scan down again to get q */
-          qval = (nthr * qq[jj]) / (jj+1.0) ;
-          if( qval > qmin ) qval = qmin; else qmin = qval;
-          if( qval < QBOT ) qval = QBOT;
+        mdf[jj] = 1.0 - (1.0-qval)*(jj+1) / mone ;
+             if( mdf[jj] < 0.0f ) mdf[jj] = 0.0f ;  /* make sure mdf */
+        else if( mdf[jj] > 1.0f ) mdf[jj] = 1.0f ;  /* is reasonable */
+      }
 
-          /* The reasoning involved to get MDF as a function of threshold:
-            * Number of values above this threshold is jj+1;
-            * Approximately qval*(jj+1) of these are false positive detections
-               (that's what FDR means, dude);
-            * So about (1-qval)*(jj+1) are true positive detections;
-            * So about (1-qval)*(jj+1)/mone is the ratio
-               of true detections to the number of true positives;
-            * So about 1-(1-qval)*(jj+1)/mone is about the
-               fraction of missed true detections (MDF);
-            * If you believe this, I've got a bridge in Brooklyn for sale. */
+      /* However, MDF should only decrease as p-value increases */
 
-          mdf[jj] = 1.0 - (1.0-qval)*(jj+1) / mone ;
-               if( mdf[jj] < 0.0f ) mdf[jj] = 0.0f ;  /* make sure mdf */
-          else if( mdf[jj] > 1.0f ) mdf[jj] = 1.0f ;  /* is reasonable */
-        }
+      for( jj=1 ; jj < nq ; jj++ ){
+        if( mdf[jj] > mdf[jj-1] ) mdf[jj] = mdf[jj-1] ;
+      }
 
-        /* However, MDF should only decrease as p-value increases */
+      /* cheapo trick: adjust MDF to make sure it -> 0 as p -> 1 */
 
-        for( jj=1 ; jj < nq ; jj++ ){
-          if( mdf[jj] > mdf[jj-1] ) mdf[jj] = mdf[jj-1] ;
-        }
+      ms = mdf[nq-1] ;  /* last MDF, nearest to p=1 */
+      if( ms > 0.0f ){
+        float alp=1.0f/(1.0f-ms) , bet=alp*ms ;
+        for( jj=0 ; jj < nq ; jj++ ) mdf[jj] = alp*mdf[jj]-bet ;
+        mdf[nq-1] = 0.0f ;
+      }
 
-        /* cheapo trick: adjust MDF to make sure it -> 0 as p -> 1 */
+      /* now find last nonzero mdf */
 
-        ms = mdf[nq-1] ;  /* last MDF, nearest to p=1 */
-        if( ms > 0.0f ){
-          float alp=1.0f/(1.0f-ms) , bet=alp*ms ;
-          for( jj=0 ; jj < nq ; jj++ ) mdf[jj] = alp*mdf[jj]-bet ;
-          mdf[nq-1] = 0.0f ;
-        }
+      for( jj=nq-2 ; jj > 0 && mdf[jj] == 0.0f ; jj-- ) ; /*nada*/
+      if( jj <= 1 || qq[jj+1] <= qq[0] ){
+        if( jj       <= 1     ) STATUS("all mdf zero? ==> no mdf") ;
+        if( qq[jj+1] <= qq[0] ) STATUS("qq=const? ==> no mdf") ;
+        free(mdf) ; goto finished ;
+      }
+      jtop = jj+1 ;  /* mdf[jtop] = 0 */
 
-        /* now find last nonzero mdf */
+      /* now find first mdf below 99.9% */
 
-        for( jj=nq-2 ; jj > 0 && mdf[jj] == 0.0f ; jj-- ) ; /*nada*/
-        if( jj <= 1 || qq[jj+1] <= qq[0] ){
-          if( jj       <= 1     ) STATUS("all mdf zero? ==> no mdf") ;
-          if( qq[jj+1] <= qq[0] ) STATUS("qq=const? ==> no mdf") ;
-          free(mdf) ; goto finished ;
-        }
-        jtop = jj+1 ;  /* mdf[jtop] = 0 */
+      for( jj=1 ; jj < jtop && mdf[jj] >= 0.999f ; jj++ ) ; /*nada*/
+      jbot = (jj < jtop-9) ? jj-1 : 0 ;
 
-        /* now find first mdf below 99.9% */
+      /* build a table of mdf vs log10(p) */
 
-        for( jj=1 ; jj < jtop && mdf[jj] >= 0.999f ; jj++ ) ; /*nada*/
-        jbot = (jj < jtop-9) ? jj-1 : 0 ;
+      ms  = log10( qq[jtop] / qq[jbot] ) ; /* will be positive */
+      npp = (int)( 0.99f + 5.0f * ms ) ;   /* number of grid points */
 
-        /* build a table of mdf vs log10(p) */
-
-        ms  = log10( qq[jtop] / qq[jbot] ) ; /* will be positive */
-        npp = (int)( 0.99f + 5.0f * ms ) ;   /* number of grid points */
-
-        if( npp < 3 ){
-          if( PRINT_TRACING ){
-            char str[256] ;
-            sprintf(str,"nq=%d npp=%d jbot=%d jtop=%d qq[jtop]=%g qq[jbot]=%g ==> no mdf",
-                    nq , npp , jbot,jtop , qq[jtop] , qq[jbot] ) ;
-            STATUS(str) ;
-          }
-          free(mdf); goto finished;
-        }
-
-        dpl = ms / (npp-1) ;                 /* grid spacing in log10(p) */
-        MAKE_floatvec(fv,npp) ; fv->x0 = log10(qq[jbot]) ; fv->dx = dpl ;
-        fv->ar[0] = mdf[jbot] ;
-        for( jj=jbot,kk=1 ; kk < npp-1 ; kk++ ){
-          pl = fv->x0 + kk*dpl ;   /* kk-th grid point in log10(p) */
-          pv = powf(10.0f,pl) ;    /* kk-th grid point in p */
-          for( ; jj < jtop && qq[jj] < pv ; jj++ ) ; /*nada*/
-          /* linearly interpolate mdf in log10(p) */
-          p1 = log10(qq[jj-1]) ; p2 = log10(qq[jj]) ; pf = (pl-p1)/(p2-p1) ;
-          m1 = mdf[jj-1]       ; m2 = mdf[jj]       ; mf = pf*m2 + (1.0f-pf)*m1;
-          fv->ar[kk] = mf ;
-        }
-        fv->ar[npp-1] = 0.0f ;
-        FDR_mdfv = fv ;        /* record the results for posterity */
+      if( npp < 3 ){
         if( PRINT_TRACING ){
-          char str[256]; sprintf(str,"MDF: npp=%d x0=%g dx=%g",npp,fv->x0,fv->dx);
+          char str[256] ;
+          sprintf(str,"nq=%d npp=%d jbot=%d jtop=%d qq[jtop]=%g qq[jbot]=%g ==> no mdf",
+                  nq , npp , jbot,jtop , qq[jtop] , qq[jbot] ) ;
           STATUS(str) ;
         }
-        free(mdf) ;
+        free(mdf); goto finished;
+      }
 
-      } /* end of producing mdf values */
-
-      else {              STATUS("smal m1   ==> no mdf") ; }
+      dpl = ms / (npp-1) ;                 /* grid spacing in log10(p) */
+      MAKE_floatvec(fv,npp) ; fv->x0 = log10(qq[jbot]) ; fv->dx = dpl ;
+      fv->ar[0] = mdf[jbot] ;
+      for( jj=jbot,kk=1 ; kk < npp-1 ; kk++ ){
+        pl = fv->x0 + kk*dpl ;   /* kk-th grid point in log10(p) */
+        pv = powf(10.0f,pl) ;    /* kk-th grid point in p */
+        for( ; jj < jtop && qq[jj] < pv ; jj++ ) ; /*nada*/
+        /* linearly interpolate mdf in log10(p) */
+        p1 = log10(qq[jj-1]) ; p2 = log10(qq[jj]) ; pf = (pl-p1)/(p2-p1) ;
+        m1 = mdf[jj-1]       ; m2 = mdf[jj]       ; mf = pf*m2 + (1.0f-pf)*m1;
+        fv->ar[kk] = mf ;
+      }
+      fv->ar[npp-1] = 0.0f ;
+      FDR_mdfv = fv ;        /* record the results for posterity */
+      if( PRINT_TRACING ){
+        char str[256]; sprintf(str,"MDF: npp=%d x0=%g dx=%g",npp,fv->x0,fv->dx);
+        STATUS(str) ;
+      }
+      free(mdf) ; /* end of producing mdf values */
 
     } else {
       if( !qsmal        ) STATUS("no qsmal  ==> no mdf") ;

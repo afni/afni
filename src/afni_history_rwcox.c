@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , MAR , 2009 , RWC , "FDR" , MICRO , TYPE_MODIFY ,
+   "Change the way m1 is estimated for MDF 'hint'." ,
+   NULL } ,
+
  { 25 , MAR , 2009 , RWC , "3dREMLfit" , MINOR , TYPE_NEW_OPT ,
    "Add -nobout option, to suppress baseline betas from -Rbeta/-Obeta." ,
    "Per the request of Michael S Beauchamp, University of Texas." } ,

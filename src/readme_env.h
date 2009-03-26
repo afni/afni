@@ -2849,5 +2849,16 @@ static char * readme_env[] = {
    "these datasets will performed when the datasets are written to disk.\n" ,
    "(You can always use '3drefit -addFDR' to add FDR curves to a dataset\n" ,
    "header, for those sub-bricks marked as statistical parameters.)\n" ,
+   "\n" ,
+   "------------------------------\n" ,
+   "Variable: AFNI_DONT_ADJUST_FDR\n" ,
+   "------------------------------\n" ,
+   "If this variable is set to YES, then the adjustment of FDR q-values\n" ,
+   "downwards by allowing for the estimate of the number of true\n" ,
+   "negatives (e.g., as discussed by Storey, Benjamini, and others)\n" ,
+   "will NOT be carried out.  As of 26 Mar 2009, this adjustment of\n" ,
+   "q-values is the default in AFNI programs.  If you want the old\n" ,
+   "behavior, set this variable to YES.\n" ,
+   "\n" ,
    NULL } ;
-#define NUM_readme_env 2850
+#define NUM_readme_env 2861
