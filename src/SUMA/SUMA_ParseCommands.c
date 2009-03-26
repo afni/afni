@@ -605,6 +605,9 @@ const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp)
       case SUMA_PLY:
          SUMA_RETURN("Ply");
          break;
+      case SUMA_MNI_OBJ:
+         SUMA_RETURN("MNI");
+         break;
       case SUMA_BRAIN_VOYAGER:
          SUMA_RETURN("BrainVoyager");
          break;
@@ -656,6 +659,10 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    if (  !strcmp(cd, "Ply") || !strcmp(cd, "PLY") || 
          !strcmp(cd, "ply")) { 
       SUMA_RETURN( SUMA_PLY); 
+   }
+   if (  !strcmp(cd, "Mni") || !strcmp(cd, "MNI") || 
+         !strcmp(cd, "mni")) { 
+      SUMA_RETURN( SUMA_MNI_OBJ); 
    }
    if (  !strcmp(cd, "DX") || !strcmp(cd, "dx") || 
          !strcmp(cd, "OpenDX") || !strcmp(cd, "opendx")) { 
@@ -2747,6 +2754,8 @@ SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
       SUMA_RETURN( SUMA_OPENDX_MESH );
    if (SUMA_iswordin_ci(str, "ply")  == 1 ) 
       SUMA_RETURN( SUMA_PLY );
+   if (SUMA_iswordin_ci(str, "mni")  == 1 ) 
+      SUMA_RETURN( SUMA_MNI_OBJ );
    if (  SUMA_iswordin_ci(str, "vec")  == 1 || 
          SUMA_iswordin_ci(str, "1d") == 1   ) 
       SUMA_RETURN( SUMA_VEC );
@@ -2786,6 +2795,7 @@ SUMA_SO_File_Type SUMA_GuessSurfFormatFromExtension_core(char *Name)
    if (  SUMA_isExtension(Name, ".iv") ) SUMA_RETURN(SUMA_INVENTOR_GENERIC);
    if (  SUMA_isExtension(Name, ".dx")) SUMA_RETURN(SUMA_OPENDX_MESH); 
    if (  SUMA_isExtension(Name, ".ply")) SUMA_RETURN(SUMA_PLY); 
+   if (  SUMA_isExtension(Name, ".obj")) SUMA_RETURN(SUMA_MNI_OBJ); 
    if (  SUMA_isExtension(Name, ".srf")) SUMA_RETURN(SUMA_BRAIN_VOYAGER);
    if (  SUMA_isExtension(Name, ".gii")) SUMA_RETURN(SUMA_GIFTI);
    if (  SUMA_isExtension(Name, ".byu") ||
@@ -3189,6 +3199,8 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 "            v1 v2 v3 triangle vertices.\n"
 "       ply: PLY format, ascii or binary.\n"
 "            Only vertex and triangulation info is preserved.\n"
+"       mni: MNI .obj format, ascii only.\n"
+"            Only vertex, triangulation, and node normals info is preserved.\n"
 "       byu: BYU format, ascii.\n"
 "            Polygons with more than 3 edges are turned into\n"
 "            triangles.\n"
@@ -3223,6 +3235,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 "           1D: 1D format\n"
 "           FS: FreeSurfer ascii format\n"
 "           PLY: ply format\n"
+"           MNI: MNI obj ascii format\n"
 "           BYU: byu format\n"
 "           SF: Caret/SureFit format\n"
 "           BV: BrainVoyager format\n"
@@ -3300,6 +3313,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
 "            v1 v2 v3 triangle vertices.\n"
 "       ply: PLY format, ascii or binary.\n"
 "       byu: BYU format, ascii or binary.\n"
+"       mni: MNI obj format, ascii only.\n"
 "       gii: GIFTI format, ascii.\n"
 "            You can also enforce the encoding of data arrays\n"
 "            by using gii_asc, gii_b64, or gii_b64gz for \n"
@@ -4031,6 +4045,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                case SUMA_PLY:
                   tmp_i = SUMA_copy_string("-i_ply");
                   break;
+               case SUMA_MNI_OBJ:
+                  tmp_i = SUMA_copy_string("-i_mni");
+                  break;
                case SUMA_VEC:
                   tmp_i = SUMA_copy_string("-i_1d");
                   break;
@@ -4210,6 +4227,25 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
             ps->i_FT[ps->i_N_surfnames] = SUMA_PLY;
             ps->i_FF[ps->i_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
+            ++ps->i_N_surfnames;
+            brk = YUP;
+         }
+         if (!brk && (  (strcmp(tmp_i, "-i_mni") == 0) || 
+                        (strcmp(tmp_i, "-i_Mni") == 0) 
+                        || (strcmp(tmp_i, "-i_MNI") == 0))) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -i_mni ");
+	            exit (1);
+            }
+            if (ps->i_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->i_surfnames[ps->i_N_surfnames] = SUMA_copy_string(argv[kar]);
+            ps->i_FT[ps->i_N_surfnames] = SUMA_MNI_OBJ;
+            ps->i_FF[ps->i_N_surfnames] = SUMA_ASCII;
             ++ps->i_N_surfnames;
             brk = YUP;
          }
@@ -4422,6 +4458,26 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ++ps->ipar_N_surfnames;
             brk = YUP;
          }
+         if (!brk && (  (strcmp(argv[kar], "-ipar_mni") == 0) || 
+                        (strcmp(argv[kar], "-ipar_Mni") == 0) || 
+                        (strcmp(argv[kar], "-ipar_MNI") == 0))) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+	            SUMA_S_Err( "need argument after -ipar_mni ");
+	            exit (1);
+            }
+            if (ps->ipar_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->ipar_surfnames[ps->ipar_N_surfnames] = 
+                                       SUMA_copy_string(argv[kar]);
+            ps->ipar_FT[ps->ipar_N_surfnames] = SUMA_MNI_OBJ;
+            ps->ipar_FF[ps->ipar_N_surfnames] = SUMA_ASCII;
+            ++ps->ipar_N_surfnames;
+            brk = YUP;
+         }
          if (!brk && (  (strcmp(argv[kar], "-ipar_DX") == 0) || 
                         (strcmp(argv[kar], "-ipar_dx") == 0) || 
                         (strcmp(argv[kar], "-ipar_Dx") == 0))) {
@@ -4583,6 +4639,8 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                   ps->t_FF[ps->t_N_surfnames] = SUMA_XML_SURF;
             else if (ps->t_FT[ps->t_N_surfnames] == SUMA_PLY)
                   ps->t_FF[ps->t_N_surfnames] = SUMA_FF_NOT_SPECIFIED;
+            else if (ps->t_FT[ps->t_N_surfnames] == SUMA_MNI_OBJ)
+                  ps->t_FF[ps->t_N_surfnames] = SUMA_ASCII;
             else if (ps->t_FT[ps->t_N_surfnames] == SUMA_BRAIN_VOYAGER) 
                   ps->t_FF[ps->t_N_surfnames] = SUMA_BINARY;
             else if (ps->t_FT[ps->t_N_surfnames] == SUMA_FREE_SURFER) {
@@ -4617,6 +4675,9 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
                   break;
                case SUMA_PLY:
                   tmp_o = SUMA_copy_string("-o_ply");
+                  break;
+               case SUMA_MNI_OBJ:
+                  tmp_o = SUMA_copy_string("-o_mni");
                   break;
                case SUMA_VEC:
                   tmp_o = SUMA_copy_string("-o_1d");
@@ -4786,6 +4847,26 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
 			   ps->o_surfnames[ps->o_N_surfnames] = 
                   SUMA_RemoveSurfNameExtension(argv[kar], SUMA_PLY); 
             ps->o_FT[ps->o_N_surfnames] = SUMA_PLY;
+            ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
+			   ++ps->o_N_surfnames;  
+			   brk = YUP;
+		   }
+         if (!brk && ( (strcmp(tmp_o, "-o_mni") == 0) || 
+                        (strcmp(tmp_o, "-o_MNI") == 0) 
+                     || (strcmp(tmp_o, "-o_Mni") == 0)) ) {
+            ps->arg_checked[kar]=1;
+            kar ++; ps->arg_checked[kar]=1;
+            if (kar >= argc)  {
+		  		   SUMA_S_Err( "need argument after -o_mni \n");
+				   exit (1);
+			   }
+			   if (ps->o_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_S_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+			   ps->o_surfnames[ps->o_N_surfnames] = 
+                  SUMA_RemoveSurfNameExtension(argv[kar], SUMA_MNI_OBJ); 
+            ps->o_FT[ps->o_N_surfnames] = SUMA_MNI_OBJ;
             ps->o_FF[ps->o_N_surfnames] = SUMA_ASCII;
 			   ++ps->o_N_surfnames;  
 			   brk = YUP;

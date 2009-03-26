@@ -113,7 +113,7 @@ GLw_LIB = libGLws.a
 SUMA_INCLUDE_PATH = $(GLw_IPATH) -I.. -I../niml $(IFLAGS) -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
 SUMA_LINK_PATH = $(XROOT_L) $(LFLAGS) -L..
 
-SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lmx -lglib-2.0 -bind_at_load $(SUMA_GL_DYLIB_CMD)
+SUMA_LINK_LIB = $(XLIBS) $(GLw_LIB) $(LLIBS) -lGLU -lGL -lmri -lmx /sw/lib/libglib-2.0.a -bind_at_load $(SUMA_GL_DYLIB_CMD)
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 

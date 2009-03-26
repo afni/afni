@@ -6908,6 +6908,7 @@ SUMA_Boolean *SUMA_MaskOfNodesInPatch(
       SUMA_SL_Err("NULL SO");
       SUMA_RETURN(NULL);
    }
+   
    if (!SO->FaceSetList || !SO->N_FaceSet) {
       SUMA_SL_Err("NULL or empty SO->FaceSetList");
       SUMA_RETURN(NULL);

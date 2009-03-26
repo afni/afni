@@ -65,6 +65,17 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 26 , MAR , 2009 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT ,
+   "Support for reading/writing MNI .obj surfaces",
+   NULL
+ } ,
+ 
+ { 12 , MAR , 2009 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT ,
+   "SUMA talks to matlab.",
+   NULL
+ } ,
+ 
+
  { 10 , FEB , 2009 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT ,
    "Added -anim_dup to slow down movies",
    NULL

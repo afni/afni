@@ -106,6 +106,13 @@ SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name, char *if_n
          SO = SUMA_Load_Surface_Object (  SO_name, SUMA_PLY, 
                                           SUMA_FF_NOT_SPECIFIED, sv_name);
          break;  
+      case SUMA_MNI_OBJ:
+         SO_name = (void *)if_name; 
+         if (debug > 0) 
+            fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (  SO_name, SUMA_MNI_OBJ, 
+                                          SUMA_ASCII, sv_name);
+         break;  
       case SUMA_BRAIN_VOYAGER:
          SO_name = (void *)if_name; 
          if (debug > 0) 
@@ -168,6 +175,9 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
          break;  
       case SUMA_PLY:
          noex  =  SUMA_Extension(Name,".ply" , YUP); 
+         break;  
+      case SUMA_MNI_OBJ:
+         noex  =  SUMA_Extension(Name,".obj" , YUP); 
          break;  
       case SUMA_OPENDX_MESH:
          noex  =  SUMA_Extension(Name,".dx" , YUP); 
@@ -342,6 +352,11 @@ void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name,
          if (SUMA_filexists((char*)SO_name)) *exists = YUP;
          else *exists = NOPE;
          break;  
+      case SUMA_MNI_OBJ:
+         SO_name = (void *)SUMA_append_string(ppref,".obj"); 
+         if (SUMA_filexists((char*)SO_name)) *exists = YUP;
+         else *exists = NOPE;
+         break;  
       case SUMA_BRAIN_VOYAGER:
          SO_name = (void *)SUMA_append_string(ppref,".srf"); 
          if (SUMA_filexists((char*)SO_name)) *exists = YUP;
@@ -375,7 +390,208 @@ void * SUMA_Prefix2SurfaceName ( char *prefix_in, char *path, char *vp_name,
    
    SUMA_RETURN(SO_name);
 }
+
+/*! Read MNI_OBJ surface */
+SUMA_Boolean SUMA_MNI_OBJ_Read(char * f_name, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_MNI_OBJ_Read"};
+   char *fl=NULL, *flp = NULL;
+   int ii=0, Found = 0, nread=0;
+   double num = 0;
+	int LocalHead = NOPE;
+
+   SUMA_ENTRY;
    
+   SUMA_LH("Sucking file");
+
+   nread = SUMA_suck_file( f_name , &fl ) ;
+   if (!fl) {
+      SUMA_SL_Err("Failed to read file.");
+      SUMA_RETURN(NOPE);
+   }
+	
+   /* find 'P' */
+   ii = 0; flp = fl;
+   while (ii<nread && *flp != 'P') ++flp;
+	if (ii == nread) {
+      SUMA_S_Err("Failed to find 'P'");
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_SKIP_TO_NEXT_BLANK(flp, NULL);
+   
+   /* P is followed by 6 values, the last one being the number of points */
+   ii=0;
+   Found = 1;
+   while (ii < 5) {
+      if (Found) {
+         SUMA_ADVANCE_PAST_NUM(flp, num, Found);
+      } else {
+         SUMA_S_Err("Don't understand format");
+         SUMA_RETURN(NOPE);
+      }
+      ++ii;
+   }
+	/* get the sixth number */
+   SUMA_ADVANCE_PAST_INT(flp, SO->N_Node, Found);
+   if (!Found || SO->N_Node < 0 || SO->N_Node > 999999999) {
+      SUMA_S_Errv("Bad N_Node of %d\n", SO->N_Node);
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_LHv("Expecting %d nodes\n", SO->N_Node);
+   SO->NodeDim = 3;
+   if (!(SO->NodeList = (float *)
+            SUMA_strtol_vec(flp, SO->NodeDim*SO->N_Node, &Found, 
+                            SUMA_float, &flp))) {
+      SUMA_S_Err("Failed to read node XYZ");
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_LHv("Reading %d node normals\n", SO->N_Node);
+   if (!(SO->NodeNormList = (float *)
+            SUMA_strtol_vec(flp, SO->NodeDim*SO->N_Node, &Found, 
+                            SUMA_float, &flp))) {
+      SUMA_S_Err("Failed to read node XYZ");
+      SUMA_RETURN(NOPE);
+   }
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s: >>", FuncName);
+      for (ii=0; ii<200; ++ii) {
+         fprintf(SUMA_STDERR,"%c", flp[ii]);
+      }
+      fprintf(SUMA_STDERR,"\n");
+   }
+   
+   SO->FaceSetDim = 3;
+   SUMA_ADVANCE_PAST_INT(flp, SO->N_FaceSet, Found);
+   if (!Found || SO->N_FaceSet < 0 || SO->N_FaceSet > 999999999) {
+      SUMA_S_Errv("Bad N_FaceSet of %d\n", SO->N_FaceSet);
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_LHv("Expecting to reading %d triangles\n", SO->N_FaceSet);
+   
+   /* skip past 5+SO->N_FaceSet integers for some reason */
+   ii=0;
+   Found = 1;
+   while (ii < 5+SO->N_FaceSet) {
+      if (Found) {
+         SUMA_ADVANCE_PAST_NUM(flp, num, Found);
+      } else {
+         SUMA_S_Err("Don't understand format");
+         SUMA_RETURN(NOPE);
+      }
+      ++ii;
+   }
+   SUMA_SKIP_BLANK(flp, NULL);
+   
+   if (LocalHead) {
+      fprintf(SUMA_STDERR,"%s: >>", FuncName);
+      if (LocalHead) for (ii=0; ii<500 && flp[ii]; ++ii) {
+         fprintf(SUMA_STDERR,"%c", flp[ii]);
+      }
+      fprintf(SUMA_STDERR,"\n");
+   }
+   if (!(SO->FaceSetList = (int *)
+            SUMA_strtol_vec(flp, SO->FaceSetDim*SO->N_FaceSet, &Found, 
+                            SUMA_int, &flp))) {
+      SUMA_S_Err("Failed to read node XYZ");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (LocalHead) { 
+      for (ii=0; ii<10; ++ii) {fprintf(SUMA_STDERR,"%d ", SO->FaceSetList[ii]);}
+   }
+   /* fill up a few more fields */
+   SO->FileType = SUMA_MNI_OBJ;
+   SO->FileFormat = SUMA_ASCII;
+            
+   SO->Name = SUMA_StripPath(f_name);
+   
+   SUMA_RETURN(YUP);
+}
+SUMA_Boolean SUMA_MNI_OBJ_Write(char * f_name_in, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_MNI_OBJ_Write"};
+   int ii=0;
+   char *f_name=NULL, *f_name2=NULL;
+   FILE *fid = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->NodeList || !SO->FaceSetList) {
+      SUMA_S_Err("Null or incomplete surface");
+      SUMA_RETURN(NOPE);
+   }
+   if (SO->NodeDim != 3 || SO->FaceSetDim != 3) {
+      SUMA_S_Err("NodeDim and FaceSetDim must be 3\n");
+      SUMA_RETURN(NOPE);
+   }
+   if (!SO->NodeNormList) {
+      SUMA_RECOMPUTE_NORMALS(SO)
+   }
+   if (!f_name_in) {
+      fprintf (SUMA_STDERR, "Error %s: NULL filename\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   f_name = SUMA_Extension(f_name_in,".obj" , YUP); 
+   f_name2  = SUMA_append_string(f_name,".obj");
+   if (!THD_ok_overwrite() && SUMA_filexists (f_name2)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: file %s exists, will not overwrite.\n", 
+               FuncName, f_name2);
+      SUMA_free(f_name2);f_name2 = NULL;
+      SUMA_free(f_name);f_name = NULL;
+      SUMA_RETURN (NOPE);
+   }
+   SUMA_free(f_name); f_name = NULL;
+   f_name = f_name2; f_name2 = NULL;
+   
+   if (!(fid = fopen(f_name,"w"))) {
+      SUMA_S_Err("Could not open file for writing");
+      SUMA_free(f_name); f_name = NULL; 
+      SUMA_RETURN(NOPE);
+   }
+   
+    
+   fprintf(fid,"P 0.3 0.3 0.4 10 1 %d\n", SO->N_Node);
+      /* don't know what numbers between O and SO->N_Node mean ...*/
+   for (ii=0; ii < SO->N_Node; ++ii) {
+      fprintf(fid," %f", SO->NodeList[3*ii]);
+      fprintf(fid," %f", SO->NodeList[3*ii+1]);
+      fprintf(fid," %f\n", SO->NodeList[3*ii+2]);
+   }   
+   for (ii=0; ii < SO->N_Node; ++ii) {
+      fprintf(fid," %f", SO->NodeNormList[3*ii]);
+      fprintf(fid," %f", SO->NodeNormList[3*ii+1]);
+      fprintf(fid," %f\n", SO->NodeNormList[3*ii+2]);
+   }
+   
+   /* number of triangles */
+   fprintf(fid,"\n %d\n", SO->N_FaceSet);
+   
+   /* stuff I don't understand */
+   fprintf(fid," 0 1 1 1 1\n"); /* dunno what that is */
+   for (ii=0; ii<SO->N_FaceSet; ++ii) {
+      if (!(ii%8)) fprintf(fid,"\n");
+      fprintf(fid," %d", ii);  /* that is just a space filler. Don't quite
+                                 know what these indices refer to in MNI_OBJ */
+   }
+      
+   /* the triangle list */
+   for (ii=0; ii<SO->FaceSetDim*SO->N_FaceSet; ++ii) {
+      if (!(ii%8)) fprintf(fid,"\n");
+      fprintf(fid," %d", SO->FaceSetList[ii]);  
+   }
+   
+   fprintf(fid,"\n"); 
+   
+   SUMA_free(f_name); f_name = NULL; 
+   
+   fclose (fid);
+   
+   SUMA_RETURN(YUP);
+}   
+
 /*!**  
 Function: SUMA_SureFit_Read_Coord 
 Usage : 
@@ -734,9 +950,12 @@ SUMA_Boolean SUMA_SureFit_Read_Topo (char * f_name, SUMA_SureFit_struct *SF)
    }
 	
 	NP = 3;	
-   SF->FaceSetList = (int *)SUMA_strtol_vec(fl, SF->N_FaceSet * NP, &ex, SUMA_int);
+   SF->FaceSetList = (int *)SUMA_strtol_vec(fl, SF->N_FaceSet * NP, 
+                                            &ex, SUMA_int, NULL);
    if (!SF->FaceSetList || ex != SF->N_FaceSet * NP) {
-      fprintf(SUMA_STDERR, "Error %s: Failed to read all FaceSets. Expected %d vals, read %d.\nOr NULL output.\n", FuncName, SF->N_FaceSet*NP, ex);
+      fprintf(SUMA_STDERR, "Error %s: Failed to read all FaceSets. "
+                           "Expected %d vals, read %d.\nOr NULL output.\n", 
+                           FuncName, SF->N_FaceSet*NP, ex);
       SUMA_RETURN (NOPE);
    }
 	
