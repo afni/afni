@@ -2857,5 +2857,5 @@ downwards by allowing for the estimate of the number of true
 negatives (e.g., as discussed by Storey, Benjamini, and others)
 will NOT be carried out.  As of 26 Mar 2009, this adjustment of
 q-values is the default in AFNI programs.  If you want the old
-behavior, set this variable to NO.
+behavior, set this variable to YES.
 
