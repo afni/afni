@@ -664,7 +664,7 @@ class RandTiming:
         self.valid_opts.add_opt('-seed', 1, [],
                         helpstr='seed for random number generation (integer)')
         self.valid_opts.add_opt('-show_timing_stats', 0, [],
-                        helpstr='show statistics for inter-stimulus intervals)')
+                        helpstr='show statistics for inter-stimulus intervals')
         self.valid_opts.add_opt('-stim_labels', -1, [],
                         helpstr='specify stimulus labels for filenames')
         self.valid_opts.add_opt('-t_digits', 1, [],
