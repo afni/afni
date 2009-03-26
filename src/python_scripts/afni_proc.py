@@ -89,10 +89,11 @@ g_history = """
     1.36 Mar 24 2009 :
         * -regress_no_mask is now the default *
         - added -regress_apply_mask
-    1.37 Mar 25 2009 : +view comes from data
+    1.37 Mar 25 2009 : allow +tlrc processing (+view comes from data)
+    1.38 Mar 26 2009 : added helpstr to options
 """
 
-g_version = "version 1.37, Mar 25, 2009"
+g_version = "version 1.38, Mar 26, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -177,101 +178,171 @@ class SubjProcSream:
         if self.verb > 1: self.user_opts.show('user_opts: ')
 
     def init_opts(self):
-        self.valid_opts = OptionList('init_opts')
+        self.valid_opts = OptionList('afni_proc.py options')
 
         # input style options  rcr - update
         # self.valid_opts.add_opt('-opt_source', 1, [], AllOptionStyles)
 
         # general execution options
-        self.valid_opts.add_opt('-blocks', -1, [])
-        self.valid_opts.add_opt('-do_block', -1, [])
-        self.valid_opts.add_opt('-dsets', -1, [])
+        self.valid_opts.add_opt('-blocks', -1, [],
+                        helpstr='specify ordered list of blocks to apply')
+        self.valid_opts.add_opt('-do_block', -1, [],
+                        helpstr='add extra blocks to the default list')
+        self.valid_opts.add_opt('-dsets', -1, [],
+                        helpstr='EPI datasets to process, ordered by run')
 
-        self.valid_opts.add_opt('-out_dir', 1, [])
-        self.valid_opts.add_opt('-scr_overwrite', 0, [])
-        self.valid_opts.add_opt('-script', 1, [])
-        self.valid_opts.add_opt('-subj_id', -1, [])
+        self.valid_opts.add_opt('-out_dir', 1, [],
+                        helpstr='result directory, where script is run')
+        self.valid_opts.add_opt('-scr_overwrite', 0, [],
+                        helpstr='overwrite existing processing script')
+        self.valid_opts.add_opt('-script', 1, [],
+                        helpstr='specify processing script to generate')
+        self.valid_opts.add_opt('-subj_id', -1, [],
+                        helpstr='subject ID, used in most filenames')
 
-        self.valid_opts.add_opt('-ask_me', 0, [])       # QnA session
-        self.valid_opts.add_opt('-bash', 0, [])
-        self.valid_opts.add_opt('-copy_anat', 1, [])
-        self.valid_opts.add_opt('-copy_files', -1, [])
-        self.valid_opts.add_opt('-gen_epi_review', 1, [])
-        self.valid_opts.add_opt('-no_epi_review', 0, [])
-        self.valid_opts.add_opt('-keep_rm_files', 0, [])
-        self.valid_opts.add_opt('-move_preproc_files', 0, [])
-        self.valid_opts.add_opt('-remove_preproc_files', 0, [])
-        self.valid_opts.add_opt('-tlrc_anat', 0, [])
-        self.valid_opts.add_opt('-tlrc_base', 1, [])
-        self.valid_opts.add_opt('-tlrc_no_ss', 0, [])
-        self.valid_opts.add_opt('-tlrc_rmode', 1, [])
-        self.valid_opts.add_opt('-tlrc_suffix', 1, [])
-
-        # self.valid_opts.add_opt('-remove_pXX_files', 0, [])
+        self.valid_opts.add_opt('-ask_me', 0, [],       # QnA session
+                        helpstr='have afni_proc.py as the user for options')
+        self.valid_opts.add_opt('-bash', 0, [],
+                        helpstr='show execution help in bash syntax')
+        self.valid_opts.add_opt('-copy_anat', 1, [],
+                        helpstr='anatomy to copy to results directory')
+        self.valid_opts.add_opt('-copy_files', -1, [],
+                        helpstr='list of files to copy to results directory')
+        self.valid_opts.add_opt('-gen_epi_review', 1, [],
+                        helpstr='generate a script to review orig EPI data')
+        self.valid_opts.add_opt('-no_epi_review', 0, [],
+                        helpstr='do not generate an EPI review script')
+        self.valid_opts.add_opt('-keep_rm_files', 0, [],
+                        helpstr='do not delete temporary rm.* files')
+        self.valid_opts.add_opt('-move_preproc_files', 0, [],
+                        helpstr='move preprocessing files to preproc.data dir')
+        self.valid_opts.add_opt('-remove_preproc_files', 0, [],
+                        helpstr='remove pb0* preprocessing files')
+        self.valid_opts.add_opt('-tlrc_anat', 0, [],
+                        helpstr='run @auto_tlrc on anat from -copy_anat')
+        self.valid_opts.add_opt('-tlrc_base', 1, [],
+                        helpstr='alternate @auto_tlrc base (not TT_N27, say)')
+        self.valid_opts.add_opt('-tlrc_no_ss', 0, [],
+                        helpstr='do not skull-strip during @auto_tlrc')
+        self.valid_opts.add_opt('-tlrc_rmode', 1, [],
+                        helpstr='resample mode applied in @auto_tlrc')
+        self.valid_opts.add_opt('-tlrc_suffix', 1, [],
+                        helpstr='suffix applied in @auto_tlrc (default: NONE)')
 
         # block options
-        self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [])
+        self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [],
+                        helpstr='num TRs to remove from start of each run')
 
-        self.valid_opts.add_opt('-despike_opts_3dDes', -1, [])
+        self.valid_opts.add_opt('-despike_opts_3dDes', -1, [],
+                        helpstr='additional options directly for 3dDespike')
 
-        self.valid_opts.add_opt('-tshift_align_to', -1, [])
-        self.valid_opts.add_opt('-tshift_interp', 1, [])
-        self.valid_opts.add_opt('-tshift_opts_ts', -1, [])
+        self.valid_opts.add_opt('-tshift_align_to', -1, [],
+                        helpstr='time alignment option given to 3dTshift')
+        self.valid_opts.add_opt('-tshift_interp', 1, [],
+                        helpstr='interpolation method used in 3dTshift')
+        self.valid_opts.add_opt('-tshift_opts_ts', -1, [],
+                        helpstr='additional options directly for 3dTshift')
 
         self.valid_opts.add_opt('-volreg_align_to', 1, [],
-                                ['first','third', 'last'])
-        self.valid_opts.add_opt('-volreg_base_dset', 1, [])
-        self.valid_opts.add_opt('-volreg_base_ind', 2, [])
-        self.valid_opts.add_opt('-volreg_interp', 1, [])
-        self.valid_opts.add_opt('-volreg_opts_vr', -1, [])
-        self.valid_opts.add_opt('-volreg_zpad', 1, [])
+                                ['first','third', 'last'],
+                        helpstr="align to 'first', 'third' or 'last' TR")
+        self.valid_opts.add_opt('-volreg_base_dset', 1, [],
+                        helpstr='external dataset to use as volreg base')
+        self.valid_opts.add_opt('-volreg_base_ind', 2, [],
+                        helpstr='run/sub-brick indices for volreg')
+        self.valid_opts.add_opt('-volreg_interp', 1, [],
+                        helpstr='interpolation method used in volreg')
+        self.valid_opts.add_opt('-volreg_opts_vr', -1, [],
+                        helpstr='additional options directly for 3dvolreg')
+        self.valid_opts.add_opt('-volreg_zpad', 1, [],
+                        helpstr='number of slices to pad by in volreg')
 
-        self.valid_opts.add_opt('-blur_filter', 1, [])
-        self.valid_opts.add_opt('-blur_size', 1, [])
-        self.valid_opts.add_opt('-blur_opts_merge', -1, [])
+        self.valid_opts.add_opt('-blur_filter', 1, [],
+                        helpstr='blurring filter option (def: -1blur_fwhm)')
+        self.valid_opts.add_opt('-blur_size', 1, [],
+                        helpstr='size of blur kernel (def: 4)')
+        self.valid_opts.add_opt('-blur_opts_merge', -1, [],
+                        helpstr='additional options directly for 3dmerge')
 
-        self.valid_opts.add_opt('-mask_type', 1, [], ['union','intersection'])
-        self.valid_opts.add_opt('-mask_dilate', 1, [])
+        self.valid_opts.add_opt('-mask_type', 1, [], ['union','intersection'],
+                        helpstr="specify a 'union' or 'intersection' mask type")
+        self.valid_opts.add_opt('-mask_dilate', 1, [],
+                        helpstr="dilation to be applied in automask")
 
-        self.valid_opts.add_opt('-scale_max_val', 1, [])
-        self.valid_opts.add_opt('-scale_no_max', 0, [])
+        self.valid_opts.add_opt('-scale_max_val', 1, [],
+                        helpstr="maximum value for scaled data (def: 200)")
+        self.valid_opts.add_opt('-scale_no_max', 0, [],
+                        helpstr="do not limit scaled data")
 
-        self.valid_opts.add_opt('-regress_apply_mask', 0, [])
-        self.valid_opts.add_opt('-regress_basis', 1, [])
-        self.valid_opts.add_opt('-regress_basis_normall', 1, [])
-        self.valid_opts.add_opt('-regress_polort', 1, [])
-        self.valid_opts.add_opt('-regress_stim_files', -1, [])
-        self.valid_opts.add_opt('-regress_stim_labels', -1, [])
-        self.valid_opts.add_opt('-regress_stim_times', -1, [])
-        self.valid_opts.add_opt('-regress_no_stim_times', 0, [])
-        self.valid_opts.add_opt('-regress_stim_times_offset', 1, [])
-        self.valid_opts.add_opt('-regress_use_stim_files', 0, [])
-        self.valid_opts.add_opt('-regress_motion_file', 1, [])
-        self.valid_opts.add_opt('-regress_extra_stim_files', -1, [])
-        self.valid_opts.add_opt('-regress_extra_stim_labels', -1, [])
-        self.valid_opts.add_opt('-regress_RONI', -1, [])
+        self.valid_opts.add_opt('-regress_3dD_stop', 0, [],
+                        helpstr="stop 3dDeconvolve after matrix generation")
+        self.valid_opts.add_opt('-regress_apply_mask', 0, [],
+                        helpstr="apply the mask in regression")
+        self.valid_opts.add_opt('-regress_basis', 1, [],
+                        helpstr="basis function to use in regression")
+        self.valid_opts.add_opt('-regress_basis_normall', 1, [],
+                        helpstr="specify magnitude of basis functions")
+        self.valid_opts.add_opt('-regress_polort', 1, [],
+                        helpstr="baseline polynomial degree per run")
+        self.valid_opts.add_opt('-regress_stim_files', -1, [],
+                        helpstr="0/1 or pre-convolved stimulus files")
+        self.valid_opts.add_opt('-regress_stim_labels', -1, [],
+                        helpstr="labels for specified regressors")
+        self.valid_opts.add_opt('-regress_stim_times', -1, [],
+                        helpstr="stimulus timing files")
+        self.valid_opts.add_opt('-regress_no_stim_times', 0, [],
+                        helpstr="do not convert stim_files to timing")
+        self.valid_opts.add_opt('-regress_stim_times_offset', 1, [],
+                        helpstr="add offset when converting to timing")
+        self.valid_opts.add_opt('-regress_use_stim_files', 0, [],
+                        helpstr="do not convert stim_files to timing")
+        self.valid_opts.add_opt('-regress_motion_file', 1, [],
+                        helpstr="external motion regressors to apply")
+        self.valid_opts.add_opt('-regress_extra_stim_files', -1, [],
+                        helpstr="extra -stim_files to apply")
+        self.valid_opts.add_opt('-regress_extra_stim_labels', -1, [],
+                        helpstr="labels for extra -stim_files")
 
-        self.valid_opts.add_opt('-regress_est_blur_epits', 0, [])
-        self.valid_opts.add_opt('-regress_est_blur_errts', 0, [])
-        self.valid_opts.add_opt('-regress_errts_prefix', 1, [])
-        self.valid_opts.add_opt('-regress_fitts_prefix', 1, [])
-        self.valid_opts.add_opt('-regress_iresp_prefix', 1, [])
-        self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [])
-        self.valid_opts.add_opt('-regress_no_fitts', 0, [])
-        self.valid_opts.add_opt('-regress_no_ideals', 0, [])
-        self.valid_opts.add_opt('-regress_no_iresp', 0, [])
-        self.valid_opts.add_opt('-regress_no_mask', 0, [])
-        self.valid_opts.add_opt('-regress_no_motion', 0, [])
-        self.valid_opts.add_opt('-regress_opts_3dD', -1, [])
-        self.valid_opts.add_opt('-regress_3dD_stop', 0, [])
-        self.valid_opts.add_opt('-regress_reml_exec', 0, [])
+        self.valid_opts.add_opt('-regress_est_blur_epits', 0, [],
+                        helpstr="estimate blur from scaled EPI time series")
+        self.valid_opts.add_opt('-regress_est_blur_errts', 0, [],
+                        helpstr="estimate blur from scaled error time series")
+        self.valid_opts.add_opt('-regress_errts_prefix', 1, [],
+                        helpstr="prefix to use for errts dataset")
+        self.valid_opts.add_opt('-regress_fitts_prefix', 1, [],
+                        helpstr="prefix to use for fitts dataset")
+        self.valid_opts.add_opt('-regress_iresp_prefix', 1, [],
+                        helpstr="prefix to use for iresp datasets")
+        self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [],
+                        helpstr="filename for sum of ideal regressors")
+        self.valid_opts.add_opt('-regress_no_fitts', 0, [],
+                        helpstr="do not output a fit timeseries dataset")
+        self.valid_opts.add_opt('-regress_no_ideals', 0, [],
+                        helpstr="do not generate ideal regressors")
+        self.valid_opts.add_opt('-regress_no_iresp', 0, [],
+                        helpstr="do not output impulse reponse datasets")
+        self.valid_opts.add_opt('-regress_no_mask', 0, [],
+                        helpstr="do not apply any mask during regression")
+        self.valid_opts.add_opt('-regress_no_motion', 0, [],
+                        helpstr="do not apply motion parameters in regression")
+        self.valid_opts.add_opt('-regress_opts_3dD', -1, [],
+                        helpstr='additional options directly for 3dDeconvolve')
+        self.valid_opts.add_opt('-regress_reml_exec', 0, [],
+                        helpstr="execute 3dREMLfit command script")
+        self.valid_opts.add_opt('-regress_RONI', -1, [],
+                        helpstr="1-based list of regressors of no interest")
 
         # other options
-        self.valid_opts.add_opt('-help', 0, [])
-        self.valid_opts.add_opt('-hist', 0, [])
-        self.valid_opts.add_opt('-show_valid_opts', 0, [])
-        self.valid_opts.add_opt('-ver', 0, [])
-        self.valid_opts.add_opt('-verb', 1, [])
+        self.valid_opts.add_opt('-help', 0, [],
+                        helpstr="show this help")
+        self.valid_opts.add_opt('-hist', 0, [],
+                        helpstr="show revision history")
+        self.valid_opts.add_opt('-show_valid_opts', 0, [],
+                        helpstr="show all valid options")
+        self.valid_opts.add_opt('-ver', 0, [],
+                        helpstr="show module version")
+        self.valid_opts.add_opt('-verb', 1, [],
+                        helpstr="set the verbose level")
 
         self.valid_opts.trailers = 0   # do not allow unknown options
         
@@ -289,7 +360,7 @@ class SubjProcSream:
 
         # maybe the users justs wants a complete option list
         if self.user_opts.find_opt('-show_valid_opts'):
-            self.valid_opts.show('afni_proc.py:', 1)
+            self.valid_opts.show('', 1)
             return 0  # gentle termination
         
         # apply the user options

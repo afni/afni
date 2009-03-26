@@ -136,7 +136,7 @@ class Afni1D:
          return 1
 
       for row in range(self.nt):
-         fp.write(sep.join('%f' % self.mat[i][row] for i in range(self.nvec)))
+         fp.write(sep.join(['%f' % self.mat[i][row] for i in range(self.nvec)]))
          fp.write('\n')
 
       fp.close()

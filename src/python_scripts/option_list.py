@@ -57,14 +57,17 @@ class OptionList:
     def show(self, mesg = '', verb = 0):
         if verb: print "%sOptionList: %s (len %d)" % \
                        (mesg, self.label, len(self.olist))
+        # compute min 'name' width as max 'name' len + 2, not to exceed 24
+        maxl = max([len(opt.name) for opt in self.olist]) + 1
+        if maxl > 24: maxl = 24
         for index in range(len(self.olist)):
             # possibly add short help string
             if verb and self.olist[index].helpstr :
                 hs = ": %s" % self.olist[index].helpstr
             else :
                 hs = ''
-            print "%sopt %02d: %-20s%s" % \
-                (mesg, index, self.olist[index].name, hs)
+            print "%sopt %02d: %-*s%s" % \
+                (mesg, index, maxl, self.olist[index].name, hs)
 
     def find_opt(self, name, nth=1):    # find nth occurance of option label
         """return nth comopt where name=name, else None"""
