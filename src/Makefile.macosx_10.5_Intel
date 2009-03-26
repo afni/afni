@@ -81,8 +81,8 @@ INSTALLDIR = macosx_10.5_Intel
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=macosx_10.5_Intel
 
-INSTALL_PREREQ = suma_gts
-#INSTALL_PREREQ = suma
+#INSTALL_PREREQ = suma_gts #won't work with static libglib-2.0.a
+INSTALL_PREREQ = suma
 # uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
 GSLPROGS = balloon
 EXPROGS = gifti_tool $(GSLPROGS)
