@@ -32,8 +32,8 @@ examples (very basic for now):
 
    1. 1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
 
-   2. 1d_tool.py -infile data/X.xmat.1D                  \
-                 -select_cols '0..3' -select_rows '0..5' \
+   2. 1d_tool.py -infile data/X.xmat.1D                  \\
+                 -select_cols '0..3' -select_rows '0..5' \\
                  -write t2.1D
       diff t1.1D t2.1D
 
@@ -79,11 +79,12 @@ R Reynolds    March 2009
 g_history = """
    1d_tool.py history:    (also refers to lib_afni1D.py)
 
-   0.0  Mar 18, 2009    - initial library (lib_1D.py) version
-   0.1  Mar 19, 2009    - added some options and basic help
+   0.0  Mar 18, 2009 - initial library (lib_1D.py) version
+   0.1  Mar 19, 2009 - added some options and basic help
+   0.2  Mar 26, 2009 - small array fix for older python in write()
 """
 
-g_version = "1d_tool.py version 0.1, Mar 19, 2009"
+g_version = "1d_tool.py version 0.2, Mar 26, 2009"
 
 
 class A1DInterface:
