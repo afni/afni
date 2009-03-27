@@ -478,7 +478,8 @@ int main( int argc , char *argv[] )
    MRI_vectim   *inset_mrv=NULL ; /* 05 Nov 2008 */
    THD_3dim_dataset *abset=NULL ; int abfixed=0 ; float afix,bfix ;
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar=NULL, *bar=NULL ;
-   byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0, automask=0, nmask=0;
+   byte *mask=NULL,*gmask=NULL ;
+   int mask_nx=0,mask_ny=0,mask_nz=0, automask=0, nmask=0;
    float *iv , *jv ; int niv ;
    int iarg, ii,jj,kk, ntime,ddof, *tau=NULL, rnum, nfull, nvals,nvox,vv,rv ;
    NI_element *nelmat=NULL ; char *matname=NULL ;
@@ -583,10 +584,20 @@ int main( int argc , char *argv[] )
       " -matrix mmm = Read the matrix 'mmm', which should have been\n"
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
       "            *** N.B.: 3dREMLfit will NOT work with all zero columns,\n"
-      "                      unlike 3dDeconvolve!\n"
+      "                      unlike 3dDeconvolve!!!\n"
       "\n"
       " -mask kkk   = Read dataset 'kkk' as a mask for the input.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
+      "            *** If you don't specify ANY mask, the program will\n"
+      "                 build one automatically (from each voxel's RMS)\n"
+      "                 and use this mask solely for the purpose of\n"
+      "                 computing the FDR curves in the bucket dataset's header.\n"
+      "              * If you DON'T want this to happen, then use '-noFDR'\n"
+      "                 and later run '3drefit -addFDR' on the bucket dataset.\n"
+      "              * To be precise, the FDR automask is only built if\n"
+      "                 the input dataset has at least 5 voxels along each of\n"
+      "                 the x and y axes, to avoid applying it when you run\n"
+      "                 3dREMLfit on 1D timeseries inputs.\n"
       "\n"
       "--------------------------------------------------------------------------\n"
       "Options to Add Baseline (Null Hypothesis) Columns to the Regression Matrix\n"
@@ -1463,25 +1474,41 @@ STATUS("options done") ;
 
    /*-------------- process the mask somehow --------------*/
 
-   if( mask != NULL ){
+   if( mask != NULL ){     /* check -mask option for compatibility */
+     gmask = mask ;
      if( mask_nx != nx || mask_ny != ny || mask_nz != nz )
        ERROR_exit("-mask dataset grid doesn't match input dataset") ;
 
-   } else if( automask ){
+   } else if( automask ){  /* create a mask from input dataset */
      mask = THD_automask( inset ) ;
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
      nmask = THD_countmask( nvox , mask ) ;
      if( verb || nmask < 1 )
-       INFO_message("Number of voxels in automask = %d",nmask) ;
+       INFO_message("Number of voxels in automask = %d (out of %d = %.1f%%)",
+                    nmask, nvox, (100.0f*nmask)/nvox ) ;
      if( nmask < 1 ) ERROR_exit("Automask is too small to process") ;
+     gmask = mask ;
 
-   } else {
+   } else {                /* create a 'mask' for all voxels */
      if( verb )
        INFO_message("No mask ==> computing for all %d voxels",nvox) ;
      mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
      memset( mask , 1 , sizeof(byte)*nvox ) ;
+
+     if( do_FDR && DSET_NX(inset) > 4 && DSET_NY(inset) > 4 ){  /* 27 Mar 2009 */
+       MRI_IMAGE *qim ; int mc ;
+       qim   = THD_rms_brick(inset) ;
+       gmask = mri_automask_image( qim ) ;
+       mri_free( qim ) ;
+       mc = THD_countmask( nvox , gmask ) ;
+       if( mc <= 99 && gmask != NULL ){ free(gmask) ; gmask = NULL ; }
+       else if( verb )
+         INFO_message("FDR automask has %d voxels (out of %d = %.1f%%)",
+                      mc, nvox, (100.0f*mc)/nvox ) ;
+     }
    }
+   mri_fdr_setmask(gmask) ;  /* 27 Mar 2009 */
 
    /**-------------------- process the matrix --------------------**/
 
@@ -2014,9 +2041,11 @@ STATUS("make GLTs from matrix file") ;
 
    /**------ load time series dataset, check for all zero voxels ------**/
 
-   if( verb ) INFO_message("Loading input dataset into memory") ;
-   DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
-   MEMORY_CHECK ;
+   if( !DSET_LOADED(inset) ){
+     if( verb ) INFO_message("Loading input dataset into memory") ;
+     DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
+     MEMORY_CHECK ;
+   }
 
    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
    niv = (nvals+nrega+glt_num+9)*2 ;
@@ -2027,7 +2056,10 @@ STATUS("make GLTs from matrix file") ;
      if( !INMASK(vv) ) continue ;
      (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
      for( ii=0 ; ii < ntime && iv[goodlist[ii]]==0.0f ; ii++ ) ; /*nada*/
-     if( ii == ntime ){ mask[vv] = 0 ; nbad++ ; }
+     if( ii == ntime ){
+       mask[vv] = 0 ; nbad++ ;
+       if( gmask != NULL && gmask != mask ) gmask[vv] = 0 ;
+     }
    }
    if( nbad > 0 ){
      nmask = THD_countmask( nvox , mask ) ;
@@ -2793,6 +2825,7 @@ STATUS("setting up Rglt") ;
 
    INFO_message("3dREMLfit is all done! total CPU=%.2f s  Elapsed=%.2f",
                 COX_cpu_time() , COX_clock_time() ) ;
+   if( gmask != NULL && gmask != mask ) free(gmask) ;  /* 27 Mar 2009 */
    free(mask) ; MEMORY_CHECK ;
 #if 0
 #ifdef USING_MCW_MALLOC

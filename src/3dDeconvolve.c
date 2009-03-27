@@ -798,6 +798,20 @@ void display_help_menu()
     "[-mask mname]        mname = filename of 3d mask dataset               \n"
     "[-automask]          build a mask automatically from input data        \n"
     "                      (will be slow for long time series datasets)     \n"
+    "                  ** If you don't specify ANY mask, the program will   \n"
+    "                      build one automatically (from each voxel's RMS)  \n"
+    "                      and use this mask solely for the purpose of      \n"
+    "                      reporting truncation-to-short errors (unless     \n"
+    "                      '-float' is used) AND for computing the FDR curves\n"
+    "                      in the bucket dataset's header (unless '-noFDR'  \n"
+    "                      is used, of course).                             \n"
+    "                   * If you don't want the FDR curves to be computed   \n"
+    "                      inside this automatically generated mask, then   \n"
+    "                      use '-noFDR' and later run '3drefit -addFDR' on  \n"
+    "                      the bucket dataset.                              \n"
+    "                   * To be precise, the above default masking only     \n"
+    "                      happens when you use '-input' to run the program \n"
+    "                      with a 3D+time dataset; not with '-input1D'.     \n"
     "[-censor cname]      cname = filename of censor .1D time series        \n"
     "[-CENSORTR clist]    clist = list of strings that specify time indexes \n"
     "                       to be removed from the analysis.  Each string is\n"
@@ -1945,8 +1959,7 @@ void get_options
       if (strcmp(argv[nopt], "-quiet") == 0)
       {
         option_data->quiet = 1;  verb = 0 ;
-        nopt++;
-        continue;
+        nopt++; continue;
       }
 
       if (strncmp(argv[nopt],"-verb",5) == 0){  /* 01 Mar 2007 */
@@ -3340,23 +3353,24 @@ ENTRY("read_input_data") ;
            gmask = *mask_vol ;         /* global mask save -- 03 Feb 2009 */
          }
 
-         /* 03 Feb 2009 -- make a global mask if not provided thus far */
+      /* 03 Feb 2009 -- make a global mask if not provided thus far */
 
-         if( gmask == NULL ){
-           MRI_IMAGE *qim ; int mc ;
-           qim   = THD_rms_brick( *dset_time ) ;
-           gmask = mri_automask_image( qim ) ;
-           mri_free( qim ) ;
-           mc = THD_countmask( DSET_NVOX(*dset_time) , gmask ) ;
-           if( mc <= 1 ){ free(gmask) ; gmask = NULL ; }
-           else if( verb && !floatout )
-             INFO_message("misfit automask has %d voxels (out of %d = %.1f%%)",
-                          mc, DSET_NVOX(*dset_time), (100.0f*mc)/DSET_NVOX(*dset_time) ) ;
-         }
-         EDIT_set_misfit_mask(gmask) ;
+      if( gmask == NULL ){
+        MRI_IMAGE *qim ; int mc ;
+        qim   = THD_rms_brick( *dset_time ) ;
+        gmask = mri_automask_image( qim ) ;
+        mri_free( qim ) ;
+        mc = THD_countmask( DSET_NVOX(*dset_time) , gmask ) ;
+        if( mc <= 1 ){ free(gmask) ; gmask = NULL ; }
+        else if( verb && (!floatout || do_FDR) )
+          INFO_message("misfit/FDR automask has %d voxels (out of %d = %.1f%%)",
+                       mc, DSET_NVOX(*dset_time), (100.0f*mc)/DSET_NVOX(*dset_time) ) ;
+      }
+
+      EDIT_set_misfit_mask(gmask) ; mri_fdr_setmask(gmask) ;
 
     } else {                                   /* no input data? */
-      DC_error ("Must specify some sort of input data, or '-nodata'");
+      DC_error ("Must specify some sort of input data, or use '-nodata'");
     }
 
 

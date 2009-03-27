@@ -1354,6 +1354,7 @@ extern char * mri_clusterize_report(void) ;
 extern MCW_cluster_array * mri_clusterize_array(int clear) ;
 extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl ) ;
 
+extern void mri_fdr_setmask( byte *mmm ) ;                /* 27 Mar 2009 */
 extern int mri_fdrize( MRI_IMAGE *, int, float *, int ) ; /* 17 Jan 2008 */
 extern floatvec * mri_fdr_curve( MRI_IMAGE *, int , float * ) ;
 extern floatvec * mri_fdr_getmdf(void) ;                  /* 22 Oct 2008 */
