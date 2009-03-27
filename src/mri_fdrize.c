@@ -32,33 +32,40 @@ floatvec *mri_fdr_getmdf(void){ return FDR_mdfv; }  /* 22 Oct 2008 */
 /*--------------------------------------------------------------------------*/
 /* Estimate m1 = number of true positives.
    Actually, estimates m0 = number of true negatives, then m1 = nq-m0.
-   Build a histogram of large-ish p-values [0.15..0.95], which should be
-   approximately uniformly distributed, then find m0 by estimating the
-   average-ish level of this histogram, and then multiplying by the number
-   of bins that would cover the entire p-range of 0..1.
-   If something bad happens, return value is -1.
+   Method:
+   * Build a histogram of large-ish p-values [0.15..0.95], which should be
+     approximately uniformly distributed.
+   * Then find m0 by estimating the average-ish level of this histogram.
+   * Then multiply by the number of such bins (20) that would cover the
+     entire p-range of 0..1 to get the m0 estimate.
+   * If something bad happens, return value is -1.
 ----------------------------------------------------------------------------*/
 
 static int estimate_m1( int nq , float *qq )
 {
    int jj , kk , nh=0 , hist[16] , ma,mb, mone ;
 
-   if( nq < 299 || qq == NULL ) return -1 ;  /* not enuf data */
+   if( nq < 299 || qq == NULL ) return -1 ;  /* not enuf data to bother with */
+
+   /* build histogram with 16 bins of length 0.05 */
 
    for( kk=0 ; kk < 16 ; kk++ ) hist[kk] = 0.0f ;
-   for( jj=0 ; jj < nq ; jj++ ){  /* histogram bin width is 0.05 = 1/20 */
+   for( jj=0 ; jj < nq ; jj++ ){ /* jj-th point is in the kk-th bin */
      kk = (int)( (qq[jj]-0.15f)*20.0f ) ; if( kk < 0 || kk > 15 ) continue ;
      hist[kk]++ ; nh++ ;
    }
-   if( nh < 160 ) return -1 ; /* too few p-values in [0.15..0.95] range */
+   if( nh < 160 ) return -1 ; /* too few p-values in [0.15..0.95] range!! */
    qsort_int( 16 , hist ) ;   /* sort; use central values to get 'average' */
+                              /* level of the uniform part of the histogram */
 
    /* estimate m1 two different ways, take the smaller value */
 
+             /* m0 from median 4 bins averaged */
    ma = nq - 20.0f * ( hist[6] + 2*hist[7] + 2*hist[8] + hist[9] ) / 6.0f ;
 
+             /* m0 from median 6 bins averaged */
    mb = nq - 20.0f * (    hist[5] + 2*hist[6] + 2*hist[7]
-                        + 2*hist[8] + 2*hist[9] +   hist[10] ) / 10.0f ;
+                      + 2*hist[8] + 2*hist[9] +   hist[10] ) / 10.0f ;
 
    mone = MIN(ma,mb) ; return mone ;
 }
@@ -168,14 +175,14 @@ STATUS("convert to q") ;
       far[iq[jj]] = (float)qval ;   /* store q into result array */
     }
 
-    /** estimate number of true positives **/
+    /** estimate number of true positives into mone (m1) **/
 
     if( qsmal && nq > 199 && qq[0] > 0.0f ) mone = (float)estimate_m1(nq,qq) ;
 
-    /* 26 Mar 2009: scale q down by estimate above */
+    /* 26 Mar 2009: scale q down using m1 estimate above */
 
     if( mone > 0.0f && !AFNI_yesenv("AFNI_DONT_ADJUST_FDR") ){
-      qfac = (nq-mone)/(float)nq; if( qfac < 0.5f ) qfac = 0.25f+0.5f*qfac ;
+      qfac = (nq-mone)/(float)nq; if( qfac < 0.5f ) qfac = 0.25f+qfac*qfac ;
       if( PRINT_TRACING ){
         char str[256] ; sprintf(str,"Adjust q by %.3f",qfac) ; STATUS(str) ;
       }
@@ -195,7 +202,7 @@ STATUS("convert to z") ;
       }
     }
 
-    free(iq) ; iq = NULL ;
+    free(iq) ; iq = NULL ;  /* done with the original indexes */
 
     /* compute missed detection fraction (MDF) vs. log10(p) */
 
@@ -209,8 +216,8 @@ STATUS("convert to z") ;
 
 STATUS("computing mdf") ;
       qmin = 1.0 ;
-      for( jj=nq-1 ; jj >=0 ; jj-- ){      /* scan down again to get q */
-        qval = (nthr * qq[jj]) / (jj+1.0) ;
+      for( jj=nq-1 ; jj >=0 ; jj-- ){       /* scan down again to get q */
+        qval = (nthr * qq[jj]) / (jj+1.0) ; /* NOT adjusted by qfac!   */
         if( qval > qmin ) qval = qmin; else qmin = qval;
         if( qval < QBOT ) qval = QBOT;
 
@@ -224,7 +231,7 @@ STATUS("computing mdf") ;
           * So about 1-(1-qval)*(jj+1)/mone is about the
              fraction of missed true detections (MDF);
           * The whole thing depends on the accuracy of the mone estimate
-             of the number of true positives in the whole shebang;
+             of the number of true positives (m1=mone) in the data.
           * If you believe this, I've got a bridge to Brooklyn for sale! */
 
         mdf[jj] = 1.0 - (1.0-qval)*(jj+1) / mone ;
@@ -238,7 +245,7 @@ STATUS("computing mdf") ;
         if( mdf[jj] > mdf[jj-1] ) mdf[jj] = mdf[jj-1] ;
       }
 
-      /* cheapo trick: adjust MDF to make sure it -> 0 as p -> 1 */
+      /* cheapo trick: adjust MDF downwards to make sure it -> 0 as p -> 1 */
 
       ms = mdf[nq-1] ;  /* last MDF, nearest to p=1 */
       if( ms > 0.0f ){
