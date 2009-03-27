@@ -15,6 +15,13 @@
 #define PBOT 1.e-15        /* smallest value of p to use */
 
 /*--------------------------------------------------------------------------*/
+#undef  INMASK
+#define INMASK(vv) ( FDRmask == NULL || FDRmask[vv] != 0 )
+static byte *FDRmask = NULL ;
+
+void mri_fdr_setmask( byte *mmm ){ FDRmask = mmm ; }  /* 27 Mar 2009 */
+
+/*--------------------------------------------------------------------------*/
 #undef  QSTHRESH
 #define QSTHRESH 0.15      /* q threshold for computing FDR_mdfv */
 
@@ -101,7 +108,7 @@ ENTRY("mri_fdrize") ;
   if( FUNC_IS_STAT(statcode) ){     /* conversion to p-value */
 STATUS("convert to p-value") ;
     for( ii=0 ; ii < nvox ; ii++ ){
-      if( far[ii] != 0.0f )
+      if( far[ii] != 0.0f && INMASK(ii) )
         far[ii] = THD_stat_to_pval( fabsf(far[ii]), statcode,stataux ) ;
       else
         far[ii] = 1.0f ;            /* will be ignored */
@@ -109,7 +116,7 @@ STATUS("convert to p-value") ;
   } else {                          /* already supposed to be p-value */
 STATUS("input is p-value") ;
     for( ii=0 ; ii < nvox ; ii++ )  /* scan for bad values */
-      if( far[ii] < 0.0f || far[ii] > 1.0f ) far[ii] = 1.0f ;
+      if( far[ii] < 0.0f || far[ii] > 1.0f || !INMASK(ii) ) far[ii] = 1.0f ;
   }
 
   qq = (float *)malloc(sizeof(float)*nvox) ;  /* array of p-values */

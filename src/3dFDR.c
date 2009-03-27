@@ -182,10 +182,15 @@ printf(
 "    -input1D dname     dname = .1D file containing column of p-values      \n"
 "                                                                           \n"
 "    -mask_file mname   Use mask values from file mname.                    \n"
-"                       Note: If file mname contains more than 1 sub-brick, \n"
-"                       the mask sub-brick must be specified!               \n"
+"     *OR*              Note: If file mname contains more than 1 sub-brick, \n"
+"    -mask mname        the mask sub-brick must be specified!               \n"
 "                       Default: No mask                                    \n"
-"                       N.B.: may also be abbreviated to '-mask'            \n"
+"                     ** Generally speaking, you really should use a mask   \n"
+"                        to avoid counting non-brain voxels.  However, with \n"
+"                        the changes described below, the program will      \n"
+"                        automatically ignore voxels where the statistics   \n"
+"                        are set to 0, so if the program that created the   \n"
+"                        dataset used a mask, then you don't need one here. \n"
 "                                                                           \n"
 "    -mask_thr m        Only voxels whose corresponding mask value is       \n"
 "                       greater than or equal to m in absolute value will   \n"
@@ -301,7 +306,8 @@ printf(
 "* cf. http://en.wikipedia.org/wiki/False_discovery_rate\n"
 "* cf. http://afni.nimh.nih.gov/pub/dist/doc/misc/FDR/FDR_Jan2008.pdf\n"
 "* cf. http://dx.doi.org/10.1093/bioinformatics/bti448\n"
-"* cf. C source code in mri_fdrize.c [trust in the source]\n"
+"* cf. http://dx.doi.org/10.1093/biomet/93.3.491\n"
+"* cf. C implementation in mri_fdrize.c [trust in the source]\n"
 ) ;
 
    PRINT_COMPILE_DATE ;
