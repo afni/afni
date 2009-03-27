@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , MAR , 2009 , RWC , "FDR calculations" , MINOR , TYPE_MODIFY ,
+   "Changes/additions to mask operations for FDR curves." ,
+   "3dREMLfit and 3dDeconvolve now generate an automask for the FDR curving\n"
+   "purposes, if no other mask is used.  3drefit has a new -FDRmask option\n"
+   "for computing the FDR curves correctly if no mask was used before." } ,
+
  { 26 , MAR , 2009 , RWC , "FDR" , MICRO , TYPE_MODIFY ,
    "Change the way m1 is estimated for MDF 'hint'." ,
    NULL } ,

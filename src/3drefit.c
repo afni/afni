@@ -221,7 +221,7 @@ void Syntax(char *str)
     "                  The input values may be specified as a single string\n"
     "                  in quotes or as a 1D filename or string. For example,\n"
     "     3drefit -atrfloat IJK_TO_DICOM_REAL '1 0 0 0 0 1 0 0 0 0 0 1'"
-          " dset+orig\n"  
+          " dset+orig\n"
     "     3drefit -atrfloat IJK_TO_DICOM_REAL flipZ.1D dset+orig\n"
     "     3drefit -atrfloat IJK_TO_DICOM_REAL '1D:1,3@0,0,1,2@0,2@0,1,0'"
           " dset+orig\n"
@@ -314,13 +314,22 @@ void Syntax(char *str)
    printf(
     "\n"
     "The following options let you modify the FDR curves stored in the header:\n"
+    "\n"
     " -addFDR = For each sub-brick marked with a statistical code, (re)compute\n"
     "           the FDR curve of z(q) vs. statistic, and store in the dataset header\n"
-    "           * Since 3drefit doesn't have a '-mask' option, you will have to mask\n"
-    "             statistical sub-bricks yourself via 3dcalc (if desired):\n"
-    "              3dcalc -a stat+orig -b mask+orig -expr 'a*step(b)' -prefix statmm\n"
     "           * '-addFDR' runs as if '-new -pmask' were given to 3dFDR, so that\n"
     "              stat values == 0 will be ignored in the FDR algorithm.\n"
+    "\n"
+    " -FDRmask mset = load dataset 'mset' and use it as a mask\n"
+    "                 for the '-addFDR' calculations.\n"
+    "                 * This can be useful if you ran 3dDeconvolve/3dREMLFIT\n"
+    "                    without a mask, and want to apply a mask to improve\n"
+    "                    the FDR estimation procedure.\n"
+    "                 * If '-addFDR' is NOT given, then '-FDRmask' does nothing.\n"
+    "                 * 3drefit does not generate an automask for FDR purposes\n"
+    "                    (unlike 3dREMLfit and 3dDeconvolve), since the input\n"
+    "                    dataset may contain only statistics and no structural\n"
+    "                    information about the brain.\n"
     "\n"
     " -unFDR  = Remove all FDR curves from the header\n"
     "           [you will want to do this if you have done something to ]\n"
@@ -328,7 +337,7 @@ void Syntax(char *str)
     "\n"
    ) ;
 
-   printf("++ Last program update: 23 Jan 2008\n");
+   printf("++ Last program update: 27 Mar 2009\n");
 
    PRINT_COMPILE_DATE ; exit(0) ;
 }
@@ -377,6 +386,8 @@ int main( int argc , char * argv[] )
    int use_oblique_origin = 0;       /* 01 Dec 2008 */
    int do_FDR = 0 ;                  /* 23 Jan 2008 [RWCox] */
    int do_killSTAT = 0 ;             /* 24 Jan 2008 [RWCox] */
+   byte *FDRmask = NULL ;            /* 27 Mar 2009 [RWcox] */
+   int  nFDRmask = 0 ;
    int   ndone=0 ;                   /* 18 Jul 2006 */
    int   verb =0 ;
 #define VINFO(x) if(verb)ININFO_message(x)
@@ -443,6 +454,25 @@ int main( int argc , char * argv[] )
         do_killSTAT = 1 ; do_FDR = -1 ; new_stuff++ ; iarg++ ; continue ;
       }
 
+      if( strcasecmp(argv[iarg],"-FDRmask") == 0 ){   /*-- 27 Mar 2009 --*/
+        THD_3dim_dataset *fset ;
+        if( iarg+1 >= argc ) Syntax("need 1 argument after -FDRmask!") ;
+        if( nFDRmask > 0 )   Syntax("can't have two -FDRmask options!") ;
+        fset = THD_open_dataset( argv[++iarg] ) ; CHECK_OPEN_ERROR(fset,argv[iarg]) ;
+        DSET_load(fset)                         ; CHECK_LOAD_ERROR(fset) ;
+        FDRmask = THD_makemask( fset , 0 , 1.0f,-1.0f ) ;
+        if( FDRmask == NULL ) Syntax("Can't use -FDRmask dataset!") ;
+        nFDRmask = DSET_NVOX(fset) ; DSET_delete(fset) ;
+        ii = THD_countmask(nFDRmask,FDRmask) ;
+        if( ii < 100 ){
+          WARNING_message("-FDRmask has only %d nonzero voxels: ignoring",ii) ;
+          free(FDRmask) ; FDRmask = NULL ; nFDRmask = 0 ;
+        } else {
+          INFO_message("-FDRmask has %d nonzero voxels (out of %d total)",ii,nFDRmask) ;
+        }
+        iarg++ ; continue ;
+      }
+
       /*----- -atrcopy dd nn [03 Aug 2005] -----*/
 
       if( strcmp(argv[iarg],"-atrcopy") == 0 ){
@@ -466,7 +496,7 @@ int main( int argc , char * argv[] )
                                        sizeof(ATR_any *)*(num_atrcopy+1) ) ;
         atrcopy[num_atrcopy++] = THD_copy_atr( atr ) ;
         /* atr_print( atr, NULL , NULL, '\0', 1) ;  */
-        DSET_delete(qset) ; 
+        DSET_delete(qset) ;
         atrmod = 1;  /* replaced new_stuff   28 Jul 2006 rcr */
 
       atrcopy_done:
@@ -1433,8 +1463,8 @@ int main( int argc , char * argv[] )
       /* this should be after any other axis, orientation, origin, voxel size changes */
       if(deoblique) {
          /* replace transformation matrix with cardinal form */
-	 THD_dicom_card_xform(dset, &tmat, &tvec); 
-	 LOAD_MAT44(dset->daxes->ijk_to_dicom_real, 
+	 THD_dicom_card_xform(dset, &tmat, &tvec);
+	 LOAD_MAT44(dset->daxes->ijk_to_dicom_real,
              tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
              tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
              tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);
@@ -1696,7 +1726,9 @@ int main( int argc , char * argv[] )
         DSET_BRICK_FDRCURVE_ALLKILL(dset) ;
         DSET_BRICK_MDFCURVE_ALLKILL(dset) ;  /* 22 Oct 2008 */
         if( do_FDR > 0 ){
-          int nf = THD_create_all_fdrcurves(dset) ;
+          int nf ;
+          mri_fdr_setmask( (nFDRmask == DSET_NVOX(dset)) ? FDRmask : NULL ) ;
+          nf = THD_create_all_fdrcurves(dset) ;
           ININFO_message("created %d FDR curves in dataset header",nf) ;
         }
       }
@@ -1708,7 +1740,7 @@ int main( int argc , char * argv[] )
 INFO_message("applying attributes");
          THD_datablock_from_atr(dset->dblk , DSET_DIRNAME(dset) ,
                                   dset->dblk->diskptr->header_name);
-         THD_datablock_apply_atr(dset ); 
+         THD_datablock_apply_atr(dset );
       }
 
       if( denote ) THD_anonymize_write(1) ;   /* 08 Jul 2005 */
