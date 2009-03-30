@@ -163,16 +163,6 @@ float THD_BN_zheight()
 }
 
 
-/*---------------------------------------------------------------------*/
-/*! Count number of nonzeros in mask array */
-
-static int mask_count( int nvox , byte *mmm )
-{
-   int ii , nn ;
-   for( nn=ii=0 ; ii < nvox ; ii++ ) nn += (mmm[ii] != 0) ;
-   return nn ;
-}
-
 /*------------------------------------------------------------------*/
 
 #undef  DALL
