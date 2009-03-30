@@ -80,7 +80,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
            3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dUndump 3dREMLfit            \
-           3dUpsample 3dTcorrMap 3dmatmult $(EXTRAS)
+           3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -108,7 +108,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
                   3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dREMLfit 3dTcorrMap       \
-                  afni_history 3dUpsample 1dUpsample 3dmatmult                                \
+                  afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
                   $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -141,7 +141,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
-               3dTcorrMap
+               3dTcorrMap 3dABoverlap
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -768,6 +768,10 @@ strblast:strblast.o
 3dOverlap:3dOverlap.o
 	$(RM) $@
 	$(CC) -o 3dOverlap 3dOverlap.o $(LFLAGS) $(LLIBS)
+
+3dABoverlap:3dABoverlap.o
+	$(RM) $@
+	$(CC) -o 3dABoverlap 3dABoverlap.o $(LFLAGS) $(LLIBS)
 
 3dClipLevel:3dClipLevel.o
 	$(RM) $@

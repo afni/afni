@@ -5,19 +5,29 @@
 #undef  ASSIF
 #define ASSIF(p,v) if( p!= NULL ) *p = v
 
+static int dall = 1024 ;
+
+# define DALL 1024  /* Allocation size for cluster arrays */
+
+/*---------------------------------------------------------------------*/
+
 static int verb = 0 ;                            /* 28 Oct 2003 */
 void THD_automask_verbose( int v ){ verb = v ; }
+
+/*---------------------------------------------------------------------*/
 
 static int exterior_clip = 0 ;
 void THD_automask_extclip( int e ){ exterior_clip = e ; }
 
-static int dall = 1024 ;
+/*---------------------------------------------------------------------*/
 
 static float clfrac = 0.5f ;                     /* 20 Mar 2006 */
 void THD_automask_set_clipfrac( float f )
 {
   clfrac = (f >= 0.1f && f <= 0.9f) ? f : 0.5f ;
 }
+
+/*---------------------------------------------------------------------*/
 
 /* parameters for erode/restore peeling */
 
@@ -29,19 +39,46 @@ void THD_automask_set_peelcounts( int p , int t )
   peelthr   = (t >= 9 && t <= 18) ? t : 17 ;
 }
 
+/*---------------------------------------------------------------------*/
+
 static int gradualize = 1 ;
 void THD_automask_set_gradualize( int n ){ gradualize = n; }
+
+/*---------------------------------------------------------------------*/
 
 static int cheapo = 0 ;
 void THD_automask_set_cheapo( int n ){ cheapo = n; } /* 13 Aug 2007 */
 
 /*---------------------------------------------------------------------*/
 
-static int mask_count( int nvox , byte *mmm )
+INLINE int mask_count( int nvox , byte *mmm )
 {
-   int ii , nn ;
+   register int ii , nn ;
+   if( nvox <= 0 || mmm == NULL ) return 0 ;
    for( nn=ii=0 ; ii < nvox ; ii++ ) nn += (mmm[ii] != 0) ;
    return nn ;
+}
+
+/*---------------------------------------------------------------------*/
+
+int mask_intersect_count( int nvox , byte *mmm , byte *nnn )
+{
+   register int nint , ii ;
+   if( nvox <= 0 || mmm == NULL || nnn == NULL ) return 0 ;
+   for( nint=ii=0 ; ii < nvox ; ii++ ) nint += (mmm[ii] && nnn[ii]) ;
+   return nint ;
+}
+
+/*---------------------------------------------------------------------*/
+
+int mask_union_count( int nvox , byte *mmm , byte *nnn )
+{
+   register int nint , ii ;
+   if( nvox <= 0 ) return 0 ;
+   if( mmm == NULL && nnn != NULL ) return mask_count( nvox , nnn ) ;
+   if( mmm != NULL && nnn == NULL ) return mask_count( nvox , mmm ) ;
+   for( nint=ii=0 ; ii < nvox ; ii++ ) nint += (mmm[ii] || nnn[ii]) ;
+   return nint ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -474,8 +511,6 @@ ENTRY("THD_mask_fillin_completely") ;
 }
 
 /*------------------------------------------------------------------*/
-
-# define DALL 1024  /* Allocation size for cluster arrays */
 
 /*! Put (i,j,k) into the current cluster, if it is nonzero. */
 

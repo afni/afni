@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , MAR , 2009 , RWC , "3dABoverlap" , MINOR , TYPE_NEW_PROG ,
+   "Computes various overlap and non-overlap statistics for 2 datasets." ,
+   "Will resample dataset #B to match dataset #A, if needed.  This program\n"
+   "is intended to check if two datasets are grossly not aligned, and has\n"
+   "little other purpose." } ,
+
  { 27 , MAR , 2009 , RWC , "FDR calculations" , MINOR , TYPE_MODIFY ,
    "Changes/additions to mask operations for FDR curves." ,
    "3dREMLfit and 3dDeconvolve now generate an automask for the FDR curving\n"
