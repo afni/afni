@@ -160,6 +160,29 @@ def get_default_polort(tr, reps):
     run_time = tr * reps
     return 1+math.floor(run_time/150.0)
 
+def get_typed_dset_attr_list(dset, attr, atype, verb=1):
+    """given an AFNI dataset, return err (0=success), [typed attr list]
+
+       dset  : (string) name of afni dataset
+       attr  : (string) attribute name
+       atype : (string) return type of attribute list
+       verb  : verbose level"""
+
+    alist = BASE.read_attribute(dset, attr)
+    if alist == None:
+        print "** GTDAL: failed to read dset attr %s, dset = %s" % (attr,dset)
+        return 1, []
+
+    err = 0
+    try: result = [atype(val) for val in alist]
+    except:
+        print "** GTDAL: failed to convert attr %s to type %s for dset %s" % \
+              (attr, atype, dset)
+        err = 1
+        result = []
+
+    return err, result
+
 def get_dset_reps_tr(dset, verb=1):
     """given an AFNI dataset, return err, reps, tr
 
@@ -332,37 +355,55 @@ def decode_1D_ints(istr, verb=1, max=-1):
     if len(slist) == 0:
         if verb > 1: print "-- empty 1D_ints from string '%s'" % istr
         return None
+    elif verb > 3: print "-- decoding stripped list '%s'" % newstr
     ilist = []                  # init return list
     for s in slist:
         try:
             if s.find('@') >= 0:        # then expect "A@B"
-                [N, val] = [int(n) for n in s.split('@')]
+                [N, val] = [n for n in s.split('@')]
+                N = int(N)
+                val = to_int_special(val, '$', max)
                 ilist.extend([val for i in range(N)])
             elif s.find('..') >= 0:     # then expect "A..B"
                 pos = s.find('..')
                 if s.find('(', pos) > 0:    # look for "A..B(C)"
                    [v1, v2] = [n for n in s.split('..')]
-                   v1 = int(v1)
+                   v1 = to_int_special(v1, '$', max)
                    [v2, step] = v2.split('(')
-                   if v2 == '$': v2 = max
-                   else:         v2 = int(v2)
+                   v2 = to_int_special(v2, '$', max)
                    # have start and end values, get step
                    step, junk = step.split(')')
                    step = int(step)
-                   ilist.extend([i for i in range(v1, v2+1, step)])
+                   if   step > 0: inc = 1
+                   elif step < 0: inc = -1
+                   else:
+                        print "** decode: illegal step of 0 in '%s'" % istr
+                        return None
+                   ilist.extend([i for i in range(v1, v2+inc, step)])
                 else:
                    [v1, v2] = [n for n in s.split('..')]
-                   v1 = int(v1)
-                   if v2 == '$': v2 = max
-                   else:         v2 = int(v2)
-                   ilist.extend([i for i in range(v1, v2+1)])
+                   v1 = to_int_special(v1, '$', max)
+                   v2 = to_int_special(v2, '$', max)
+                   if v1 < v2 : step = 1
+                   else:        step = -1
+                   ilist.extend([i for i in range(v1, v2+step, step)])
             else:
                 ilist.extend([int(s)])
         except:
             print "** cannot decode_1D '%s' in '%s'" % (s, istr)
             return None
+    if verb > 3: print '++ ilist: %s' % ilist
     del(newstr)
     return ilist
+
+def to_int_special(cval, spec, sint):
+   """basicall return int(cval), but if cval==spec, return sint
+
+        cval: int as character string
+        spec: special value as string
+        sint: special value as int"""
+   if cval == spec: return sint
+   else:            return int(cval)
 
 def strip_list_brackets(istr, verb=1):
    """strip of any [], {}, <> or ## surrounding this string

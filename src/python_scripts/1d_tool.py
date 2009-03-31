@@ -25,19 +25,29 @@ g_help_string = """
    This program is meant to read/manipulate/write/diagnose 1D datasets.
    Input can be specified using AFNI sub-brick[]/time{} selectors.
 
-   Options are processed in the order they are read.
-
 ---------------------------------------------------------------------------
 examples (very basic for now):
 
-   1. 1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
+   1. Select by rows and columns, akin to 1dcat.
 
-   2. 1d_tool.py -infile data/X.xmat.1D                  \\
+      1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
+
+   2. Compare with selection by separate options.
+
+      1d_tool.py -infile data/X.xmat.1D                  \\
                  -select_cols '0..3' -select_rows '0..5' \\
                  -write t2.1D
       diff t1.1D t2.1D
 
-   3. 1d_tool.py -infile t3.1D -transpose -write ttr.1D
+   3. Transpose a dataset, akin to 1dtranspose.
+
+      1d_tool.py -infile t3.1D -transpose -write ttr.1D
+
+   4. Pad a file of regressors for a single run (#2) with zeros, so
+      that it becomes run 2 of 7 (runs are 1-based).
+
+      1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
+                 -write ricor_r02_all.1D
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -48,12 +58,6 @@ basic informational options:
    -ver                         : show the version number
 
 ----------------------------------------
-verbose options:
-
-   -verb LEVEL                  : set the verbosity level
-   -verbose_opts                : process options in verbose mode
-
-----------------------------------------
 required input:
 
    -infile DATASET.1D           : specify input 1D file
@@ -61,15 +65,19 @@ required input:
 ----------------------------------------
 general options:
 
-   -add_cos NEW_DSET.1D         : extend dset to include these columns
+   -add_cols NEW_DSET.1D        : extend dset to include these columns
    -overwrite                   : allow overwriting of any output dataset
+   -reverse                     : reverse data over time
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
                                   e.g. '[5,0,7..21(2)]'
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
                                   e.g. '{5,0,7..21(2)}'
-   -sort                        : sort data over time
+   -sort                        : sort data over time (smallest to largest)
+                                  - sorts EVERY vector
+                                  - consider the -reverse option
    -transpose                   : transpose the matrix (rows for columns)
    -write FILE                  : write the current 1D data to FILE
+   -verb LEVEL                  : set the verbosity level
 
 -----------------------------------------------------------------------------
 R Reynolds    March 2009
@@ -82,6 +90,7 @@ g_history = """
    0.0  Mar 18, 2009 - initial library (lib_1D.py) version
    0.1  Mar 19, 2009 - added some options and basic help
    0.2  Mar 26, 2009 - small array fix for older python in write()
+   0.3  Mar 31, 2009 - added -pad_to_many_runs, -reverse
 """
 
 g_version = "1d_tool.py version 0.2, Mar 26, 2009"
@@ -98,8 +107,17 @@ class A1DInterface:
       self.adata           = None       # main Afni1D class instance
 
       # general variables
+      self.infile          = None       # main input file
+      self.add_cols_file   = None       # filename to add cols from
       self.overwrite       = 0          # whether to allow overwriting
-      self.verb            = verb
+      self.pad_to_runs     = []         # whether to allow overwriting
+      self.reverse         = 0          # reverse data over time
+      self.select_cols     = ''         # column selection string
+      self.select_rows     = ''         # row selection string
+      self.sort            = 0          # sort data over time
+      self.transpose       = 0          # transpose the matrix
+      self.write_file      = None       # output filename
+      self.verb            = verb       # verbose level
 
       # initialize valid_opts
       self.init_options()
@@ -152,6 +170,12 @@ class A1DInterface:
       self.valid_opts.add_opt('-overwrite', 0, [], 
                       helpstr='allow overwriting any output files')
 
+      self.valid_opts.add_opt('-pad_into_many_runs', 2, [], 
+                      helpstr='make data run #k of N runs (pad with 0)')
+
+      self.valid_opts.add_opt('-reverse', 0, [], 
+                      helpstr='reverse the data per column (over time)')
+
       self.valid_opts.add_opt('-select_cols', 1, [], 
                       helpstr='select the list of columns from the dataset')
 
@@ -170,12 +194,10 @@ class A1DInterface:
       self.valid_opts.add_opt('-verb', 1, [], 
                       helpstr='set the verbose level (default is 1)')
 
-      self.valid_opts.add_opt('-verbose_opts', 0, [], 
-                      helpstr='make option processing verbose')
-
       return 0
 
    def process_options(self):
+      """return None on completion, else error code (0 being okay)"""
 
       # process terminal options without the option_list interface
 
@@ -195,102 +217,121 @@ class A1DInterface:
          print g_version
          return 0
 
-      # ------------------------------------------------------------
-      # simple access to verbose processing of arguments
-      if '-verbose_opts' in sys.argv: opt_verb = 4
-      else:                           opt_verb = 1
-
       # ============================================================
       # read options specified by the user
       # ============================================================
-      self.user_opts = OL.read_options(sys.argv, self.valid_opts, opt_verb)
+      self.user_opts = OL.read_options(sys.argv, self.valid_opts)
       uopts = self.user_opts            # convenience variable
       if not uopts: return 1            # error condition
 
       # ------------------------------------------------------------
-      # process non-chronological options, verb comes first
+      # process verb first
 
       val, err = uopts.get_type_opt(int, '-verb')
       if val != None and not err: self.verb = val
 
       # ------------------------------------------------------------
-      # selection and process options:
-      #    process sequentially, to make them like a script
+      # process all other options:
 
       for opt in uopts.olist:
 
          # ---- main options -----
          if opt.name == '-infile':
-            if self.adata != None:
-               print '** only 1 -infile option allowed'
-               return 1
             val, err = uopts.get_string_opt('', opt=opt)
-            if val != None and err: return 1
-            if self.init_from_file(val): return 1
+            if err: return 1
+            self.infile = val
 
          # ----- general options -----
 
-         # checking again allows it to change (because that's sooooo likely)
-         elif opt.name == '-verb':
-            val, err = uopts.get_type_opt(int, '', opt=opt)
-            if val != None and err: return 1
-            else: self.verb = val
-            continue
-
          elif opt.name == '-add_cols':
-            if not self.adata:
-               print "** '%s' requires -infile" % opt.name
-               return 1
             val, err = uopts.get_string_opt('', opt=opt)
-            if val != None and err: return 1
-
-            newrd = LAD.Afni1D(val,verb=self.verb)
-            if not newrd.ready: return 1
-
-            self.adata.append_vecs(newrd)
+            if err: return 1
+            self.add_cols_file = val
 
          elif opt.name == '-overwrite':
             self.overwrite = 1
 
+         elif opt.name == '-pad_into_many_runs':
+            vals, err = uopts.get_type_list(int, '', 
+                              len_name='-pad_into_many_runs', opt=opt)
+            if err: return 1
+            self.pad_to_runs = vals
+
+         elif opt.name == '-reverse':
+            self.reverse = 1
+
          elif opt.name == '-select_cols':
-            if not self.adata:
-               print "** '%s' requires -infile" % opt.name
-               return 1
             val, err = uopts.get_string_opt('', opt=opt)
-            if val != None and err: return 1
-            self.adata.reduce_by_vec_list(UTIL.decode_1D_ints(val))
+            if err: return 1
+            self.select_cols = val
 
          elif opt.name == '-select_rows':
-            if not self.adata:
-               print "** '%s' requires -infile" % opt.name
-               return 1
             val, err = uopts.get_string_opt('', opt=opt)
-            if val != None and err: return 1
-            self.adata.reduce_by_tlist(UTIL.decode_1D_ints(val))
+            if err: return 1
+            self.select_rows = val
 
          elif opt.name == '-sort':
-            if not self.adata:
-               print "** '%s' requires -infile" % opt.name
-               return 1
-            self.adata.sort()
+            self.sort = 1
 
          elif opt.name == '-transpose':
-            if not self.adata:
-               print "** '%s' requires -infile" % opt.name
-               return 1
-            self.adata.transpose()
+            self.transpose = 1
 
          elif opt.name == '-write':
-            if not self.adata:
-               print "** '%s' requires -infile" % opt.name
-               return 1
             val, err = uopts.get_string_opt('', opt=opt)
-            if val != None and err: return 1
-            self.write_1D(val)
+            if err: return 1
+            self.write_file = val
 
-      return 0
+      return
 
-   def test(self, verb=3):
+   def process_data(self):
+      """return None on completion, else error code (0 being okay)"""
+
+      # ---- main options -----
+      if not self.infile:
+         print '** missing -infile option'
+         return 1
+      elif self.init_from_file(self.infile): return 1
+
+      if self.add_cols_file:
+         newrd = LAD.Afni1D(self.add_cols_file,verb=self.verb)
+         if not newrd.ready: return 1
+         if self.adata.append_vecs(newrd): return 1
+
+      if self.select_cols:
+         ilist=UTIL.decode_1D_ints(self.select_cols, verb=self.verb,
+                                                     max=self.adata.nvec-1)
+         if ilist == None: return 1
+         if self.adata.reduce_by_vec_list(ilist): return 1
+
+      if self.select_rows:
+         ilist = UTIL.decode_1D_ints(self.select_rows, verb=self.verb,
+                                                       max=self.adata.nt-1)
+         if ilist == None: return 1
+         if self.adata.reduce_by_tlist(ilist): return 1
+
+      if self.sort:
+         self.adata.sort(reverse=self.reverse)  # steal any reverse option
+         self.reverse = 0
+
+      if self.reverse:
+         if self.adata.reverse(): return 1
+
+      if len(self.pad_to_runs) > 0:
+         if self.transpose:
+            print '** -transpose is illegal with -pad_into_many_runs'
+            return 1
+         val = self.pad_to_runs
+         if self.adata.pad_into_many_runs(val[0], val[1]): return 1
+
+      if self.transpose:
+         if self.adata.transpose(): return 1
+
+      if self.write_file:
+         if self.write_1D(self.write_file): return 1
+
+      return
+
+def test(self, verb=3):
       # init
       print '------------------------ initial reads -----------------------'
       self.verb = verb
@@ -311,7 +352,10 @@ def main():
    if not aint: return 1
 
    rv = aint.process_options()
-   if rv > 0: return 1
+   if rv != None: return rv
+
+   rv = aint.process_data()
+   if rv != None: return rv
 
    return aint.status
 
