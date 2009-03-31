@@ -536,68 +536,68 @@ class XmatInterface:
 
       # short, terminal arguments
       self.valid_opts.add_opt('-help', 0, [],           \
-                      helpstr='display program help')
+                         helpstr='display program help')
       self.valid_opts.add_opt('-help_gui', 0, [],       \
-                      helpstr='display program help')
+                         helpstr='display program help')
       self.valid_opts.add_opt('-hist', 0, [],           \
-                      helpstr='display the modification history')
+                         helpstr='display the modification history')
       self.valid_opts.add_opt('-show_valid_opts', 0, [],\
-                      helpstr='display all valid options')
+                         helpstr='display all valid options')
       self.valid_opts.add_opt('-test', 0, [],           \
-                      helpstr='run a basic test with known files')
+                         helpstr='run a basic test with known files')
       self.valid_opts.add_opt('-test_libs', 0, [],           \
-                      helpstr='test for existence of neede python libraries')
+                         helpstr='test for existence of neede python libraries')
       self.valid_opts.add_opt('-ver', 0, [],            \
-                      helpstr='display the current version number')
+                         helpstr='display the current version number')
 
       # computational options
       self.valid_opts.add_opt('-load_xmat', 1, [], 
-                      helpstr='load the given X-matrix')
+                         helpstr='load the given X-matrix')
       self.valid_opts.add_opt('-load_1D', 1, [], 
-                      helpstr='load the given 1D time series')
+                         helpstr='load the given 1D time series')
 
       self.valid_opts.add_opt('-choose_cols', 1, [], 
-                      helpstr='choose X-matrix columns')
+                         helpstr='choose X-matrix columns')
 
       self.valid_opts.add_opt('-show_col_types', 0, [], 
-                      helpstr='show the types of columns in the X-matrix')
+                         helpstr='show the types of columns in the X-matrix')
       self.valid_opts.add_opt('-show_conds', 0, [], 
-                      helpstr='show some condition numbers from the X-matrix')
+                         helpstr='show condition numbers from the X-matrix')
       self.valid_opts.add_opt('-show_cormat', 0, [], 
-                      helpstr='show the XtX correlation matrix')
+                         helpstr='show the XtX correlation matrix')
       self.valid_opts.add_opt('-show_cosmat', 0, [], 
-                      helpstr='show the XtX cosine matrix')
+                         helpstr='show the XtX cosine matrix')
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
-                      helpstr='show warnings for the XtX correlation matrix')
+                         helpstr='show warnings for the XtX correlation matrix')
       self.valid_opts.add_opt('-show_cosmat_warnings', 0, [], 
-                      helpstr='show warnings for the XtX cosine matrix')
+                         helpstr='show warnings for the XtX cosine matrix')
       self.valid_opts.add_opt('-show_fit_betas', 0, [], 
-                      helpstr='show fit betas of X-matrix to time series')
+                         helpstr='show fit betas of X-matrix to time series')
       self.valid_opts.add_opt('-show_fit_ts', 0, [], 
-                      helpstr='show fit time series of X-matrix to time series')
+                         helpstr='show fit time series of X-mat to time series')
       self.valid_opts.add_opt('-show_xmat', 0, [], 
-                      helpstr='display info about the given X-matrix')
+                         helpstr='display info about the given X-matrix')
       self.valid_opts.add_opt('-show_1D', 0, [], 
-                      helpstr='display info about the given 1D time series')
+                         helpstr='display info about the given 1D time series')
 
       # general options
       self.valid_opts.add_opt('-chrono', 0, [], 
-                      helpstr='process options chronologically')
+                         helpstr='process options chronologically')
       self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
-                      helpstr='set the correlation matrix warning cutoff')
+                         helpstr='set the correlation matrix warning cutoff')
       self.valid_opts.add_opt('-cosmat_cutoff', 1, [], 
-                      helpstr='set the cosine matrix warning cutoff')
+                         helpstr='set the cosine matrix warning cutoff')
       self.valid_opts.add_opt('-cosmat_motion', 0, [], 
-                      helpstr='include motion vs base/mot in cosmat warnings')
+                         helpstr='include mot vs base/mot in cosmat warnings')
       self.valid_opts.add_opt('-verb', 1, [], 
-                      helpstr='set the verbose level (default is 1)')
+                         helpstr='set the verbose level (default is 1)')
 
       # GUI options
       self.valid_opts.add_opt('-no_gui', 0, [], 
-                      helpstr='do not start the graphical user interface')
+                         helpstr='do not start the graphical user interface')
 
       self.valid_opts.add_opt('-gui_plot_xmat_as_one', 0, [], 
-                      helpstr='plot Xmat columns on single axis')
+                         helpstr='plot Xmat columns on single axis')
 
 
       return 0

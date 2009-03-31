@@ -476,65 +476,65 @@ class ATInterface:
 
       # short, terminal arguments
       self.valid_opts.add_opt('-help', 0, [],           \
-                      helpstr='display program help')
+                         helpstr='display program help')
       self.valid_opts.add_opt('-hist', 0, [],           \
-                      helpstr='display the modification history')
+                         helpstr='display the modification history')
       self.valid_opts.add_opt('-show_valid_opts', 0, [],\
-                      helpstr='display all valid options')
+                         helpstr='display all valid options')
       self.valid_opts.add_opt('-ver', 0, [],            \
-                      helpstr='display the current version number')
+                         helpstr='display the current version number')
 
       # action options - single data
       self.valid_opts.add_opt('-add_offset', 1, [], 
-                      helpstr='offset all data by the given value')
+                         helpstr='offset all data by the given value')
 
       self.valid_opts.add_opt('-add_rows', 1, [], 
-                      helpstr='append the rows (runs) from the given file')
+                         helpstr='append the rows (runs) from the given file')
 
       self.valid_opts.add_opt('-extend', 1, [], 
-                      helpstr='extend the rows by the data from the given file')
+                         helpstr='extend the rows lengths from the given file')
 
       self.valid_opts.add_opt('-show_timing', 0, [], 
-                      helpstr='display timing contents')
+                         helpstr='display timing contents')
 
       self.valid_opts.add_opt('-sort', 0, [], 
-                      helpstr='sort the data, per row')
+                         helpstr='sort the data, per row')
 
       self.valid_opts.add_opt('-transpose', 0, [], 
-                      helpstr='transpose timing data (must be rectangular)')
+                         helpstr='transpose timing data (must be rectangular)')
 
       self.valid_opts.add_opt('-write_timing', 1, [], 
-                      helpstr='write timing contents to the given file')
+                         helpstr='write timing contents to the given file')
 
       # (ending with matches for multi)
       self.valid_opts.add_opt('-timing', 1, [], 
-                      helpstr='load the given timing file')
+                         helpstr='load the given timing file')
       self.valid_opts.add_opt('-show_isi_stats', 0, [], 
-                      helpstr='show ISI stats for the main timing object')
+                         helpstr='show ISI stats for the main timing object')
       self.valid_opts.add_opt('-show_timing_ele', 0, [], 
-                      helpstr='display info about the main timing element')
+                         helpstr='display info about the main timing element')
       self.valid_opts.add_opt('-stim_dur', 1, [], 
-                      helpstr='provide a stimulus duration for main timing')
+                         helpstr='provide a stimulus duration for main timing')
 
       # action options - multi
       self.valid_opts.add_opt('-multi_timing', -1, [], 
-                      helpstr='load the given list of timing files')
+                         helpstr='load the given list of timing files')
       self.valid_opts.add_opt('-multi_show_isi_stats', 0, [], 
-                      helpstr='show ISI stats for the load_multi_timing objs')
+                         helpstr='show ISI stats for load_multi_timing objs')
       self.valid_opts.add_opt('-multi_show_timing_ele', 0, [], 
-                      helpstr='display info about the multi timing elements')
+                         helpstr='display info about the multi timing elements')
       self.valid_opts.add_opt('-multi_stim_dur', -1, [], 
-                      helpstr='provide stimulus durations for timing list')
+                         helpstr='provide stimulus durations for timing list')
 
       # general options (including multi)
       self.valid_opts.add_opt('-chrono', 0, [], 
-                      helpstr='process options chronologically')
+                         helpstr='process options chronologically')
       self.valid_opts.add_opt('-nplaces', 1, [], 
-                      helpstr='set the number of decimal places for printing')
+                         helpstr='set number of decimal places for printing')
       self.valid_opts.add_opt('-run_len', -1, [], 
-                      helpstr='specify the lengths of each run (in seconds)')
+                         helpstr='specify the lengths of each run (in seconds)')
       self.valid_opts.add_opt('-verb', 1, [], 
-                      helpstr='set the verbose level (default is 1)')
+                         helpstr='set the verbose level (default is 1)')
 
       return 0
 
