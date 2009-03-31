@@ -82,6 +82,37 @@ int mask_union_count( int nvox , byte *mmm , byte *nnn )
 }
 
 /*---------------------------------------------------------------------*/
+
+float_triple mask_rgyrate( int nx, int ny, int nz , byte *mmm )
+{
+   float_triple xyz={0.0f,0.0f,0.0f} ;
+   float xx,yy,zz , kq,jq , xc,yc,zc ; int ii,jj,kk , vv , nmmm ;
+
+   if( nx < 1 || ny < 1 || nz < 1 || mmm == NULL ) return xyz ;
+
+   xc = yc = zc = 0.0f ; nmmm = 0 ;
+   for( vv=kk=0 ; kk < nz ; kk++ ){
+    for( jj=0 ; jj < ny ; jj++ ){
+     for( ii=0 ; ii < nx ; ii++,vv++ ){
+       if( mmm[vv] ){ xc += ii ; yc += jj ; zc += kk ; nmmm++ ; }
+   }}}
+   if( nmmm <= 1 ) return xyz ;
+   xc /= nmmm ; yc /= nmmm ; zc /= nmmm ;
+
+   xx = yy = zz = 0.0f ;
+   for( vv=kk=0 ; kk < nz ; kk++ ){
+    kq = (kk-zc)*(kk-zc) ;
+    for( jj=0 ; jj < ny ; jj++ ){
+     jq = (jj-yc)*(jj-yc) ;
+     for( ii=0 ; ii < nx ; ii++,vv++ ){
+       if( mmm[vv] ){ xx += (ii-xc)*(ii-xc) ; yy += jq ; zz += kq ; }
+   }}}
+
+   xyz.a = xx/nmmm ; xyz.b = yy/nmmm ; xyz.c = zz/nmmm ;
+   return xyz ;
+}
+
+/*---------------------------------------------------------------------*/
 /*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
      - compare to thd_makemask.c
      - 05 Mar 2003: modified to put most code into mri_automask_image().
