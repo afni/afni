@@ -4243,6 +4243,8 @@ extern byte * mri_automask_imarr( MRI_IMARR * ) ;          /* 18 Nov 2004 */
 extern int    mask_intersect_count( int, byte *, byte * ); /* 30 Mar 2009 */
 extern int    mask_union_count    ( int, byte *, byte * ); /* 30 Mar 2009 */
 extern int    mask_count          ( int, byte * ) ;
+extern float_triple mask_rgyrate( int nx, int ny, int nz , byte *mmm ) ;
+
 
                                                    /* 13 Nov 2006 [rickr] */
 extern int    thd_mask_from_brick(THD_3dim_dataset *, int, float, byte **, int);
