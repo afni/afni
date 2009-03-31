@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, MAR, 2009, RCR, "option_list.py", MICRO, TYPE_NEW_OPT,
+   "added global -verbose_opts option",
+   NULL
+ } ,
+
  { 26, MAR, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "added helpstr to options",
    NULL

@@ -7,7 +7,8 @@
 import sys
 import afni_base
 
-# hisory:
+# ---------------------------------------------------------------------------
+# history:              see: afni_history -program option_list.py
 #   
 #   07 May 2008 [rickr]:
 #     - added doc string and reformatted add_opt()
@@ -25,6 +26,7 @@ import afni_base
 #   01 Dec 2008 [rickr]:
 #     - added 'opt' param to get_string_opt and get_string_list
 #     - initialized more parameters (to get_*) to make them optional
+# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # This class provides functionality for processing lists of comopt elements.
@@ -55,16 +57,18 @@ class OptionList:
         self.olist.append(com)
 
     def show(self, mesg = '', verb = 0):
-        if verb: print "%sOptionList: %s (len %d)" % \
-                       (mesg, self.label, len(self.olist))
+        if verb or mesg != '': print "%sOptionList: %s (len %d)" % \
+                                      (mesg, self.label, len(self.olist))
         for index in range(len(self.olist)):
             # possibly add short help string
             if verb and self.olist[index].helpstr :
                 hs = ": %s" % self.olist[index].helpstr
+            elif self.olist[index].n_found > 0 :
+                hs = '  args found = %2d' % self.olist[index].n_found
             else :
                 hs = ''
-            print "%sopt %02d: %-24s%s" % \
-                (mesg, index, self.olist[index].name, hs)
+            print "opt %02d: %-24s%s" % \
+                (index, self.olist[index].name, hs)
 
     def find_opt(self, name, nth=1):    # find nth occurance of option label
         """return nth comopt where name=name, else None"""
@@ -203,6 +207,11 @@ def read_options(argv, oplist, verb = 1):
     #   so ac increments by 1+num_params each time
     ac = 1
     while ac < alen:
+        # -verbose_opts is a global option to be extracted and applied here
+        if argv[ac] == '-verbose_opts':
+            verb = 4
+            ac += 1
+            continue
         com = oplist.find_opt(argv[ac])
         if com:
             namelist[argv[ac]] += 1     # increment dictionary count
@@ -279,6 +288,7 @@ def read_options(argv, oplist, verb = 1):
             newopt = afni_base.comopt('trailers', -1, [])
             newopt.n_found = alen - ac
             newopt.parlist = argv[ac:]
+            if verb > 2: print "-- found trailing args: %s" % newopt.parlist
 
         OL.olist.append(newopt) # insert newopt into our return list
         ac += newopt.n_found    # and increment the argument counter
@@ -296,10 +306,11 @@ def read_options(argv, oplist, verb = 1):
                 newopt.parlist = newopt.deflist
                 # leave n_found at -1, so calling function knows
                 OL.olist.append(newopt) # insert newopt into our return list
+                if verb > 2: print "++ applying default opt '%s', args: %s" % \
+                                   (co.name, newopt.deflist)
 
-    if verb > 1 :
-        print "-d namelist: ", namelist
-        print "-d clist: "
+    if verb > 1 : OL.show("-d all found options: ")
+    if verb > 3 : print "-d final optlist with counts: ", namelist
 
     return OL
 
