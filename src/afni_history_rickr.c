@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, MAR, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -pad_to_many_runs, -reverse",
+   NULL
+ } ,
+
+ { 31, MAR, 2009, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "added get_typed_dset_attr_list, enhanced decode_1D_ints",
+   NULL
+ } ,
+
  { 31, MAR, 2009, RCR, "option_list.py", MICRO, TYPE_NEW_OPT,
    "added global -verbose_opts option",
    NULL

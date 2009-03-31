@@ -64,20 +64,24 @@ class Afni1D:
       self.cormat_ready = 0     # correlation mat is set
 
       # initialize...
-      if self.fname: self.init_from_general_name(self.fname)
-      elif from_mat: self.init_from_matrix(matrix)
+      if self.fname:
+         if self.init_from_general_name(self.fname): return None
+      elif from_mat:
+         if self.init_from_matrix(matrix): return None
 
       self.update_group_info()
 
    def reduce_by_tlist(self, tlist):
       """reduce by time list, similiar to afni's {} selector
-         this affects run_len and runs, so try to fix those"""
+         this affects run_len and runs, so try to fix those
+
+         return 0 on success"""
 
       if not self.ready:
          print '** append: Afni1D is not ready'
-         return
-      if not UTIL.is_valid_int_list(tlist, 0, self.nt-1, whine=1): return
-      if len(tlist) < 1: return
+         return 1
+      if not UTIL.is_valid_int_list(tlist, 0, self.nt-1, whine=1): return 1
+      if len(tlist) < 1: return 1
 
       self.mat = [[row[t] for t in tlist] for row in self.mat]
 
@@ -89,14 +93,17 @@ class Afni1D:
 
       self.update_group_info()  # since nruns or run_len may have changed
 
+      return 0
+
    def reduce_by_vec_list(self, vlist):
-      """reduce the dataset according to the vector list"""
+      """reduce the dataset according to the vector list
+         return 0 on success"""
 
       if not self.ready:
          print '** copy vec: Afni1D is not ready'
-         return 
-      if not UTIL.is_valid_int_list(vlist, 0, self.nvec-1, whine=1): return
-      if len(vlist) < 1: return
+         return 1
+      if not UTIL.is_valid_int_list(vlist, 0, self.nvec-1, whine=1): return 1
+      if len(vlist) < 1: return 1
 
       self.mat = [self.mat[i] for i in vlist]
 
@@ -107,10 +114,58 @@ class Afni1D:
       if self.labels: self.labels = [self.labels[i] for i in vlist]
       if self.groups: self.groups = [self.groups[i] for i in vlist]
 
+      return 0
+
+   def pad_into_many_runs(self, rindex, nruns):
+      """pad over time so that this is run #rindex out of nruns runs
+         (rindex should be 1-based)
+     
+         return 0 on success"""
+
+      if not self.ready:
+         print '** pad into runs: Afni1D is not ready'
+         return 1
+
+      if nruns < 1:
+         print '** pad into runs: bad nruns (%d)' % nruns
+         return 1
+      if rindex < 1 or rindex > nruns:
+         print '** pad into runs: run index (%d) out of range [1,%d]' \
+               % (rindex, nruns)
+         return 1
+
+      # first just stick in a 0 at time t=0
+      for row in range(self.nvec):
+         self.mat[row] = [0] + self.mat[row]
+      self.nt += 1
+
+      # now create a time list that sticks t0 in as padding
+      rlen = self.nt - 1
+      r0 = rindex-1   # 0-based
+      tlist = [0 for i in range(r0*rlen)]         # pad first rindex runs
+      tlist.extend([i+1 for i in range(rlen)])    # insert original run
+      tlist.extend([0 for i in range((nruns-rindex)*rlen)]) # finish
+
+      if self.reduce_by_tlist(tlist): return 1
+      
+      # update run info
+      self.nruns   = nruns
+      self.run_len = rlen
+      self.nt      = rlen * nruns
+
+      return 0
+
    def sort(self, reverse=0):
       """sort data over time axis (possibly reverse order)"""
       for ind in range(self.nvec):
          self.mat[ind].sort(reverse=reverse)
+
+   def reverse(self):
+      """reverse data over time axis"""
+      ilist = UTIL.decode_1D_ints('$..0(-1)',verb=self.verb,max=self.nt-1)
+      if self.reduce_by_tlist(ilist): return 1
+
+      return 0
 
    def write(self, fname, sep=" ", overwrite=0):
       """write the data to a new .1D file
@@ -136,18 +191,30 @@ class Afni1D:
          return 1
 
       for row in range(self.nt):
-         fp.write(sep.join(['%f' % self.mat[i][row] for i in range(self.nvec)]))
+         fp.write(sep.join(['%g' % self.mat[i][row] for i in range(self.nvec)]))
          fp.write('\n')
 
       fp.close()
 
       return 0
 
-   def append_vecs(self, newmats, newname=''):
+   def append_vecs(self, matlist, newname=''):
       """append each Afni1D to the current one"""
       # test before trashing current matrix
       if not self.ready:
          print '** append: Afni1D is not ready'
+         return 1
+
+      # allow matlist to be a simple mat
+      if type(matlist) == type(self):
+         newmats = [matlist]
+      elif type(matlist) == type([]):
+         if type(matlist[0]) == type(self): newmats = matlist
+         else:
+            print '** append_vecs: matlist elements not Afni1D'
+            return 1
+      else:
+         print '** append_vecs: matlist must be list of Afni1D'
          return 1
 
       for mat in newmats:
@@ -161,7 +228,7 @@ class Afni1D:
       # update labels
       empty = 1
       if not self.labels: self.labels = ['' for ind in range(self.nvec)]
-      else:            empty = 0
+      else:               empty = 0
       for mat in newmats:
          if not mat.labels:
             self.labels.extend(['' for ind in range(mat.nvec)])
@@ -433,6 +500,8 @@ class Afni1D:
       self.nt    = len(matrix[0])
       self.ready = 1
 
+      return 0
+
    def init_from_general_name(self, name):
       """might contain [] or {} selection"""
       aname = BASE.afni_name(self.fname)
@@ -442,11 +511,20 @@ class Afni1D:
       self.fname = aname.rpve()
       self.name  = aname.pve()
 
-      if self.init_from_1D(self.fname): return
+      if self.init_from_1D(self.fname): return 1
 
       # apply column and/or row selectors
-      if aname.colsel:self.reduce_by_vec_list(UTIL.decode_1D_ints(aname.colsel))
-      if aname.rowsel:self.reduce_by_tlist(UTIL.decode_1D_ints(aname.rowsel))
+      if aname.colsel:
+         ilist = UTIL.decode_1D_ints(aname.colsel, verb=self.verb,
+                                     max=self.nvec-1)
+         if ilist == None: return 1
+         if self.reduce_by_vec_list(ilist): return 1
+      if aname.rowsel:
+         ilist = UTIL.decode_1D_ints(aname.rowsel,verb=self.verb,max=self.nt-1)
+         if ilist == None: return 1
+         if self.reduce_by_tlist(ilist): return 1
+
+      return 0
 
    def init_from_1D(self, fname):
       """initialize Afni1D from a 1D file (return err code)"""
@@ -490,7 +568,7 @@ class Afni1D:
                   self.labels = None
             elif label == 'ColumnGroups':
                self.groups = UTIL.decode_1D_ints(data)
-               if self.groups:
+               if self.groups != None:
                   if len(self.groups) != self.nvec:
                      print "** ColumnGroups len %d != nvec %d" % \
                           (len(self.groups), self.nvec)
@@ -502,7 +580,7 @@ class Afni1D:
                   print "-- label %s: TR %s" % (label,self.tr)
             elif label == 'GoodList':
                self.goodlist = UTIL.decode_1D_ints(data)
-               if self.goodlist:
+               if self.goodlist != None:
                   if len(self.goodlist) != self.nt:
                      print "** GoodList missing %d rows" % \
                           self.nt-len(self.goodlist)
