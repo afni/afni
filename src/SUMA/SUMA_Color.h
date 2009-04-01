@@ -56,9 +56,23 @@ SUMA_COLOR_MAP *SUMA_FindCodedColMap(int imap);
 float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float *PercRangeVal, int *iPercRange);
 double * SUMA_dPercRange (double *V, double *Vsort, int N_V, double *PercRange, double *PercRangeVal, int *iPercRangeVal);
 SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SUMA_Boolean SkipLast, char *Name);
-SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_DSET *dset, char *owner_id, SUMA_OVERLAYS *Recycle);
+SUMA_OVERLAYS * SUMA_CreateOverlayPointer (const char *Name, SUMA_DSET *dset, char *owner_id, SUMA_OVERLAYS *Recycle);
 SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover);
 SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover);
+NI_element *SUMA_OverlayAddXform(SUMA_OVERLAYS *Sover, char *name);
+NI_element *SUMA_OverlayHasXform(SUMA_OVERLAYS *Sover, char *name);
+SUMA_OVERLAYS *SUMA_OverlayXformChild( SUMA_SurfaceObject *SO, 
+                                       SUMA_OVERLAYS *overlay, 
+                                       NI_element *xnel);
+char *SUMA_OverlayXforms_Info(DList *dl, int detail); 
+char *SUMA_OverlayCallbacks_Info(DList *dl, int detail);
+int SUMA_GetOverlayXformActiveState (SUMA_SurfaceObject *SO,
+               SUMA_OVERLAYS *Sover, NI_element *Xform_nel);
+NI_element *SUMA_GetNamedOverlayCallback( SUMA_OVERLAYS *child, 
+                                          char *cbname);
+SUMA_Boolean SUMA_SetOverlayXformActiveState(SUMA_SurfaceObject *SO,
+            SUMA_OVERLAYS *Sover, NI_element *Xform_nel,
+            int active_flag);
 SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv, GLfloat *glcolar);
 SUMA_OVERLAYS * SUMA_Fetch_OverlayPointerByDset (SUMA_OVERLAYS **Overlays, int N_Overlays, SUMA_DSET *dset, int * OverInd);
 SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overlays, const char * Name, int * OverInd);

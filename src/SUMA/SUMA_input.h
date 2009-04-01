@@ -10,6 +10,8 @@
 #define SUMA_SHIFT_KEY(s) ( (SUMA_iswordin_ci(s,"shift")==1) ? 1:0 )
 
 int SUMA_KeyPress(char *key, char *keyname); 
+int SUMA_bracketleft_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
+int SUMA_bracketright_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F1_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F2_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F3_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);

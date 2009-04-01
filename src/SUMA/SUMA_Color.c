@@ -5,22 +5,11 @@
 #undef MAIN
   
 
-#ifdef STAND_ALONE
-/* these global variables must be declared even if they will not be used by this main */
-SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
-SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures 
-                                    SUMAg_SVv contains SUMA_MAX_SURF_VIEWERS structures */
-int SUMAg_N_SVv = 0; /*!< Number of SVs realized by X */
-SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
-int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
-SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
-#else
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv; 
 extern int SUMAg_N_DOv;  
-#endif
 
 /*! The set of functions deals with node colors
 */
@@ -1981,7 +1970,8 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    static char FuncName[]={"SUMA_ScaleToMap_Interactive"};
    float *V=NULL, *T=NULL, *B=NULL;
    int i, icmap, i3, cnt, cnt3, loc[2], *nd=NULL;
-   float Range[2], minV, maxV, minB, maxB, fact=0.0, floc = 0.0;
+   double Range[2];
+   double minB, maxB, fact=0.0, floc = 0.0;
    SUMA_COLOR_MAP *ColMap = NULL;
    SUMA_SCALE_TO_MAP_OPT *Opt = NULL;
    SUMA_COLOR_SCALED_VECT * SV = NULL;
@@ -3751,12 +3741,19 @@ double * SUMA_dPercRange (double *V, double *Vsort, int N_V, double *PercRange, 
    SUMA_RETURN (Vsort);
 }
 
+void SUMA_freeXformDatum (void *dd) {
+   if (dd) NI_free_element(dd); return;
+}
+
+void SUMA_freeCallbackDatum(void *dd) {
+   if (dd) NI_free_element(dd); return;
+}
+
 /*!
    Function to allocate and initialize an Overlays pointer
    
-   ans = SUMA_CreateOverlayPointer (N_Nodes, Name, SUMA_DSET *dset, char *ownerid, SUMA_OVERLAYS *recycle);
+   ans = SUMA_CreateOverlayPointer (Name, SUMA_DSET *dset, char *ownerid, SUMA_OVERLAYS *recycle);
    
-   \param N_Nodes (int): The number of nodes for which color is assigned
    \param Name (char *): A character string containing the name of the color overlay
    \param dset (SUMA_DSET *): Pointer to data set structure that this plane gets its 
                               data from. 
@@ -3777,7 +3774,9 @@ double * SUMA_dPercRange (double *V, double *Vsort, int N_V, double *PercRange, 
    \sa SUMA_FreeOverlayPointer 
     
 */
-SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(int N_Nodes, const char *Name, SUMA_DSET *dset, char *ownerid)
+SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(
+                        int N_Nodes, const char *Name, 
+                        SUMA_DSET *dset, char *ownerid)
 {
    static char FuncName[]={"SUMA_CreateOverlayPointerIdentifiers"};
    SUMA_OVERLAYS *Sover=NULL;
@@ -3805,7 +3804,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(int N_Nodes, const char *Na
    /* N_Nodes is no longer used, use it for sanity check only */
    if (Sover->dset_link->dnel) {
       if (N_Nodes != SDSET_VECLEN(Sover->dset_link)) {
-         SUMA_SL_Err("N_Nodes not equal to vec_len.");
+         SUMA_S_Errv("N_Nodes (%d) not equal to vec_len (%d)",
+                     N_Nodes , SDSET_VECLEN(Sover->dset_link));
          SUMA_RETURN(NULL);
       }
   } else { SUMA_SL_Err ("No nel yet !"); SUMA_RETURN(NULL);}
@@ -3821,11 +3821,18 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointerIdentifiers(int N_Nodes, const char *Na
    
    Sover->rowgraph_mtd=NULL;
    Sover->rowgraph_num=0;
+   
+   /* Initialize the list of Xforms and ClickCallbacks */
+   Sover->Xforms = (DList *)SUMA_malloc(sizeof(DList));
+   Sover->Callbacks = (DList *)SUMA_malloc(sizeof(DList));
+   dlist_init(Sover->Xforms, SUMA_freeXformDatum);
+   dlist_init(Sover->Callbacks, SUMA_freeCallbackDatum);
+   
    SUMA_RETURN(Sover);   
 }
 
 SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
-                     int N_Nodes, const char *Name, 
+                     const char *Name, 
                      SUMA_DSET *dset, char *ownerid, 
                      SUMA_OVERLAYS *Recycle)
 {
@@ -3833,6 +3840,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
    SUMA_OVERLAYS *Sover=NULL;
    SUMA_FileName sfn;
    int N_Alloc = -1, i=0;
+   int N_Nodes = 0;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3841,6 +3849,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
       SUMA_SL_Err("Need dset");
       SUMA_RETURN(NULL);
    }
+   
+   N_Nodes = SDSET_VECLEN(dset);    /* Mar. 2009 */ 
    
    if (!Recycle) { /* a new puppy */
       if (!(Sover = SUMA_CreateOverlayPointerIdentifiers(N_Nodes, Name, 
@@ -3858,7 +3868,6 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (
       }
    }
    
-   /* not here anymore */
    SUMA_LH("Allocating for vectors");
    N_Alloc = COLP_N_ALLOC(Sover);
    
@@ -3968,7 +3977,9 @@ SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover)
    SUMA_ENTRY;
 
    if (Sover == NULL) {
-      fprintf (SUMA_STDERR,"Error %s: Sover is NULL, nothing to do. Returning OK flag.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Sover is NULL, nothing to do. Returning OK flag.\n", 
+               FuncName);
       SUMA_RETURN (YUP);
    }
    
@@ -3978,6 +3989,18 @@ SUMA_Boolean SUMA_FreeOverlayPointerRecyclables (SUMA_OVERLAYS * Sover)
    /* if (Sover->ColMat) SUMA_free2D ((char **)Sover->ColMat, Sover->N_Alloc); Sover->ColMat = NULL*/
    if (Sover->ColVec)  SUMA_free(Sover->ColVec); Sover->ColVec = NULL;
    if (Sover->LocalOpacity) SUMA_free(Sover->LocalOpacity); Sover->LocalOpacity = NULL;
+   
+   if (Sover->Xforms) {
+      dlist_destroy(Sover->Xforms); 
+      SUMA_free(Sover->Xforms); 
+      Sover->Xforms = NULL;
+   }
+   
+   if (Sover->Callbacks) {
+      dlist_destroy(Sover->Callbacks);
+      SUMA_free(Sover->Callbacks);
+      Sover->Callbacks = NULL;
+   }
    
    SUMA_RETURN (YUP);
 }
@@ -4308,7 +4331,9 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer
 
       /* Now mix the foreground colors */
       if (NshowOverlays) {
-            if (LocalHead)   fprintf (SUMA_STDERR,"%s: Mixing Foreground colors ....\n", FuncName);
+            if (LocalHead)   
+               fprintf (SUMA_STDERR,
+                        "%s: Mixing Foreground colors ....\n", FuncName);
             if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_sort, NshowOverlays, glcolar_Fore, N_Node, isColored_Fore, NOPE)) {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
                SUMA_RETURN (NOPE);
@@ -4659,6 +4684,104 @@ SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overl
    SUMA_RETURN (YUP);
 }
 
+char *SUMA_OverlayXforms_Info(DList *dl, int detail) 
+{
+   static char FuncName[]={"SUMA_OverlayXforms_Info"};
+   DListElmt *el=NULL;
+   NI_element *nel = NULL;
+   char *s = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   SS = SUMA_StringAppend(NULL, NULL);
+  
+   if (!dl) {
+      SS = SUMA_StringAppend(SS,"NULL Overlay Xforms List\n");
+      SUMA_SS2S(SS, s);
+      SUMA_RETURN(s);
+   } else {
+      SS = SUMA_StringAppend_va(SS,"%d Overlay Xforms in list.\n", 
+                                 dlist_size(dl));
+   }
+   if (!detail) {
+      SUMA_SS2S(SS, s);
+      SUMA_RETURN(s);
+   }
+   
+   el = dlist_head(dl);
+   while(el) {
+      nel = (NI_element *)el->data;
+      SS = SUMA_StringAppend_va( SS,"Xform name: %s\n",
+                                 nel->name);
+      SS = SUMA_StringAppend_va( SS,"      callback nel name: %s\n",
+                                 NI_get_attribute(nel, "CB_nelname"));
+      SS = SUMA_StringAppend(SS, "\n");
+
+      if (detail > 1) {
+         SUMA_S_Note("Detailed nel view\n");
+         SUMA_ShowNel(nel);
+      }
+      
+      el = dlist_next(el);
+   }
+   
+   SUMA_SS2S(SS, s);
+
+   SUMA_RETURN(s);
+}
+  
+char *SUMA_OverlayCallbacks_Info(DList *dl, int detail)
+{
+   static char FuncName[]={"SUMA_OverlayCallbacks_Info"};
+   char *s = NULL;
+   DListElmt *el=NULL;
+   NI_element *nel = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   SS = SUMA_StringAppend(NULL, NULL);
+  
+   if (!dl) {
+      SS = SUMA_StringAppend(SS,"NULL Callbacks List\n");
+      SUMA_SS2S(SS, s);
+      SUMA_RETURN(s);
+   } else {
+      SS = SUMA_StringAppend_va(SS,"%d Callbacks in list.\n", 
+                                 dlist_size(dl));
+   }
+   
+   if (!detail) {
+      SUMA_SS2S(SS, s);
+      SUMA_RETURN(s);
+   }
+   el = dlist_head(dl);
+   while(el) {
+      nel = (NI_element *)el->data;
+      SS = SUMA_StringAppend_va( SS,"CB Element name: %s\n"
+                                    "           flavour: %s\n"
+                                    "           Function name: %s\n"
+                                    "           function ptr: %s\n"
+                                    "           active (1=Y, -1=N): %d\n"
+                                    , nel->name
+                                    , NI_get_attribute(nel,"Callback_flava")
+                                    , NI_get_attribute(nel,"CallbackName")
+                                    , NI_get_attribute(nel,"CallbackPointer")
+                                    , NI_get_attribute(nel,"active") );
+                                      
+                                    
+      SS = SUMA_StringAppend(SS, "\n");
+      if (detail > 1) {
+         SUMA_S_Note("Detailed nel view\n");
+         SUMA_ShowNel(nel);
+      }
+      el = dlist_next(el);
+   }
+
+   
+   SUMA_SS2S(SS, s);
+
+   SUMA_RETURN(s);
+}
 /*!
    \brief Shows the contents of the color overlay planes
    \sa SUMA_Show_ColorOverlayPlanes (for backward compat.)
@@ -4670,28 +4793,45 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int
    int i, j, ShowN, icmap;
    SUMA_COLOR_MAP *ColMap=NULL;
    int N_Alloc = -1, *NodeDef=NULL, N_NodeDef = -1;
-
+   DListElmt *el=NULL;
+   NI_element *nel = NULL;
+   
    SUMA_STRING *SS = NULL;
    
    SUMA_ENTRY; 
    
    SS = SUMA_StringAppend (NULL, NULL);
    
-   sprintf (stmp,"Info on %d color overlay planes:\n---------------------------------\n", N_Overlays);
+   sprintf (stmp, "Info on %d color overlay planes:\n"
+                  "---------------------------------\n", N_Overlays);
    SS = SUMA_StringAppend (SS,stmp);
    for (i=0; i < N_Overlays; ++i) {
       if (Overlays[i]) {
-         sprintf (stmp,"\n---> Overlay plane %s:\npointer %p, dset_link %p\norder %d, indexed %d\nDimFact %f, global opacity %f, isBackGrnd (isBackground) %d.\n ForceIntRange %f, %f.\nSymIrange = %d\n", 
-            Overlays[i]->Name, Overlays[i], Overlays[i]->dset_link, Overlays[i]->PlaneOrder, i, Overlays[i]->DimFact, Overlays[i]->GlobalOpacity, Overlays[i]->isBackGrnd, 
-            Overlays[i]->ForceIntRange[0], Overlays[i]->ForceIntRange[1], Overlays[i]->SymIrange);
+         sprintf (stmp, 
+            "\n---> Overlay plane %s:\n"
+            "pointer %p, dset_link %p\n"
+            "order %d, indexed %d\n"
+            "DimFact %f, global opacity %f, isBackGrnd (isBackground) %d.\n"
+            "ForceIntRange %f, %f.\n"
+            "SymIrange = %d\n", 
+            Overlays[i]->Name, 
+            Overlays[i], Overlays[i]->dset_link, 
+            Overlays[i]->PlaneOrder, i, 
+            Overlays[i]->DimFact, Overlays[i]->GlobalOpacity, 
+                  Overlays[i]->isBackGrnd, 
+            Overlays[i]->ForceIntRange[0], Overlays[i]->ForceIntRange[1], 
+            Overlays[i]->SymIrange);
          SS = SUMA_StringAppend (SS,stmp);
          SS = SUMA_StringAppend_va (SS, "N_links = %d\n", Overlays[i]->N_links);
-         SS = SUMA_StringAppend_va (SS, "LinkedPtrType = %d\n", Overlays[i]->LinkedPtrType);
-         SS = SUMA_StringAppend_va (SS, "owner_id = %s\n",  Overlays[i]->owner_id);
+         SS = SUMA_StringAppend_va (SS, "LinkedPtrType = %d\n", 
+                                    Overlays[i]->LinkedPtrType);
+         SS = SUMA_StringAppend_va (SS, "owner_id = %s\n",  
+                                    Overlays[i]->owner_id);
          NodeDef = COLP_NODEDEF(Overlays[i]);
          N_NodeDef = COLP_N_NODEDEF(Overlays[i]);
          N_Alloc = COLP_N_ALLOC(Overlays[i]);
-         sprintf (stmp,"Show=%d, N_Alloc=%d, N_NodeDef=%d\n", (int)Overlays[i]->Show, N_Alloc, N_NodeDef);
+         sprintf (stmp,"Show=%d, N_Alloc=%d, N_NodeDef=%d\n", 
+                        (int)Overlays[i]->Show, N_Alloc, N_NodeDef);
          SS = SUMA_StringAppend (SS,stmp);
          if (detail > 1) {
             ShowN = N_NodeDef;
@@ -4709,15 +4849,30 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int
                      Overlays[i]->LocalOpacity[j]);
          }
          SS = SUMA_StringAppend (SS,"\n");
-         if (!Overlays[i]->cmapname) SS = SUMA_StringAppend (SS,"cmapname = NULL\n");
-         else SS = SUMA_StringAppend_va (SS,"cmapname = %s\n", Overlays[i]->cmapname);
+         
+         s2 = SUMA_OverlayXforms_Info(Overlays[i]->Xforms, detail);
+         SS = SUMA_StringAppend (SS,s2); SUMA_free(s2); s2 = NULL;
+         s2 = SUMA_OverlayCallbacks_Info(
+                        Overlays[i]->Callbacks, detail);
+         SS = SUMA_StringAppend (SS,s2); SUMA_free(s2); s2 = NULL;
+         
+         SS = SUMA_StringAppend (SS,"\n");
+         if (!Overlays[i]->cmapname) 
+            SS = SUMA_StringAppend (SS,"cmapname = NULL\n");
+         else SS = SUMA_StringAppend_va (SS,"cmapname = %s\n", 
+                                             Overlays[i]->cmapname);
          /* get the color map */
-         if (!SUMAg_CF->scm) { /* try creating since it is no longer created at initialization */
+         if (!SUMAg_CF->scm) { /* try creating since it is no longer 
+                                    created at initialization */
             static int try_once=0;
-            if (!try_once) { SUMAg_CF->scm = SUMA_Build_Color_maps(); ++ try_once; }
+            if (!try_once) { 
+               SUMAg_CF->scm = SUMA_Build_Color_maps(); ++ try_once; 
+            }
          }
          if (SUMAg_CF->scm) {
-            icmap = SUMA_Find_ColorMap ( Overlays[i]->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
+            icmap = SUMA_Find_ColorMap (  Overlays[i]->cmapname, 
+                                          SUMAg_CF->scm->CMv, 
+                                          SUMAg_CF->scm->N_maps, -2 );
             if (icmap < 0) { SS = SUMA_StringAppend (SS,"cmap not found.\n"); }
             else {
                ColMap = SUMAg_CF->scm->CMv[icmap];
@@ -4729,6 +4884,8 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int
          } else {
             SS = SUMA_StringAppend (SS,"\tNULL SUMA color maps.\n");
          }
+         
+         
       } else {
          SS = SUMA_StringAppend (SS,"\tNULL overlay plane.\n");
       }
@@ -5263,6 +5420,174 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
    SUMA_RETURN(YUP);   
 }
 
+int SUMA_GetOverlayXformActiveState (SUMA_SurfaceObject *SO,
+               SUMA_OVERLAYS *Sover, NI_element *Xform_nel)  
+{
+   static char FuncName[]={"SUMA_GetOverlayXformActiveState"};
+   SUMA_OVERLAYS *child=NULL;
+   NI_element *nel=NULL;
+   int aa=0;
+   
+   SUMA_ENTRY;
+   
+   /* get the child overlay */
+   if (!(child = SUMA_OverlayXformChild(SO, Sover, Xform_nel))) {
+      SUMA_S_Err("No existing child!");
+      SUMA_RETURN(aa);
+   }
+   /* get the callback element */
+   if (!(nel = SUMA_GetNamedOverlayCallback(child, 
+                                 NI_get_attribute(Xform_nel, "CB_nelname")))) {
+      SUMA_S_Err("No existing callback in child!");
+      SUMA_RETURN(aa);
+   }
+   
+   NI_GET_INT(nel, "active", aa);
+   
+   SUMA_RETURN(aa);
+}
+
+NI_element *SUMA_GetNamedOverlayCallback( SUMA_OVERLAYS *child, 
+                                          char *cbname)
+{
+   static char FuncName[]={"SUMA_GetNamedOverlayCallback"};
+   DListElmt *el=NULL;
+   NI_element *nel=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (child->Callbacks) {
+      el = dlist_head(child->Callbacks);
+      while (el) {
+         nel = (NI_element *)el->data;
+         if (!strcmp(nel->name,cbname)) {
+            SUMA_RETURN(nel);
+         } else nel = NULL;
+         el = dlist_next(el);
+      }
+   }
+   
+   SUMA_RETURN(nel);
+}
+
+SUMA_Boolean SUMA_SetOverlayXformActiveState(SUMA_SurfaceObject *SO,
+            SUMA_OVERLAYS *Sover, NI_element *Xform_nel,
+            int active_flag) 
+{
+   static char FuncName[]={"SUMA_SetOverlayXformActiveState"};
+   SUMA_OVERLAYS *child=NULL;
+   NI_element *nel=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (active_flag != -1 && active_flag != 1) {
+      SUMA_S_Err("active_flag must be +1 or -1");
+      SUMA_RETURN(NOPE);
+   }
+   /* get the child overlay */
+   if (!(child = SUMA_OverlayXformChild(SO, Sover,Xform_nel))) {
+      SUMA_S_Err("No existing child!");
+      SUMA_RETURN(NOPE);
+   }
+   /* get the callback element */
+   if (!(nel = SUMA_GetNamedOverlayCallback(child,  
+                                 NI_get_attribute(Xform_nel, "CB_nelname")))) {
+      SUMA_S_Err("No existing callback in child!");
+      SUMA_RETURN(NOPE);
+   }
+   
+   NI_SET_INT(nel, "active", active_flag);
+   
+   SUMA_RETURN(YUP);           
+}          
+
+NI_element *SUMA_OverlayAddXform(SUMA_OVERLAYS *Sover, char *name) 
+{
+   static char FuncName[]={"SUMA_OverlayAddXform"};
+   DListElmt *el=NULL;
+   NI_element *nel=NULL;
+   char stmp[1000]={""};
+   
+   SUMA_ENTRY;
+   
+   if (!Sover || !name || !Sover->Xforms) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(nel);
+   }
+   
+   if ((nel = SUMA_OverlayHasXform(Sover, name))) {
+      SUMA_RETURN(nel);
+   }
+   
+   /* add it */
+   if (!strcmp(name,"Dot")) {    
+      nel = NI_new_data_element(name, 0);
+      sprintf(stmp,"%s.CB", name);
+      NI_set_attribute(nel,"CB_nelname", stmp); /* name of nel element 
+                                                   to contain callcback stuff*/
+   } else {
+      SUMA_S_Errv("Do not know how to add Xform %s\n", name);
+      SUMA_RETURN(NULL);
+   }
+   
+   dlist_ins_next(Sover->Xforms, dlist_tail(Sover->Xforms), nel);
+   
+   SUMA_RETURN(nel);
+}
+
+NI_element *SUMA_OverlayHasXform(SUMA_OVERLAYS *Sover, char *name) 
+{
+   static char FuncName[]={"SUMA_OverlayHasXform"};
+   DListElmt *el=NULL;
+   NI_element *nel=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Sover || !name || !Sover->Xforms) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(nel);
+   }
+   
+   /* look for it */
+   el = dlist_head(Sover->Xforms);
+   while (el) {
+      nel = (NI_element *)el->data;
+      if (!strcmp(nel->name,name)) SUMA_RETURN(nel);
+      el = dlist_next(el);
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+SUMA_Boolean SUMA_OverlayRemoveXform(SUMA_OVERLAYS *Sover, char *name) {
+   static char FuncName[]={"SUMA_OverlayRemoveXform"};
+   DListElmt *el=NULL;
+   NI_element *nel=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!Sover || !name || !Sover->Xforms) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* look for it */
+   el = dlist_head(Sover->Xforms);
+   while (el) {
+      nel = (NI_element *)el->data;
+      if (!strcmp(nel->name,name)) {
+         dlist_remove(Sover->Xforms, el, (void *)&nel);
+         NI_free_element(nel);
+         SUMA_RETURN(YUP);
+      }
+      el = dlist_next(el);
+   }
+   
+   SUMA_RETURN(NOPE);
+}
+
+
+
 SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay)
 {
    static char FuncName[]={"SUMA_NewPlaneSearch"};
@@ -5280,8 +5605,69 @@ SUMA_OVERLAYS * SUMA_NewPlaneSearch(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overl
    }
    
    /* also try looking for plane by name */
-   SUMA_RETURN(SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, Overlay->Name, &junk));
+   SUMA_RETURN(SUMA_Fetch_OverlayPointer( SO->Overlays, SO->N_Overlays, 
+                                          Overlay->Name, &junk));
 }
+
+SUMA_Boolean SUMA_FillOverlayXformChildName(
+                               SUMA_OVERLAYS *overlay, NI_element *xnel, 
+                               char *name)
+{
+   static char FuncName[]={"SUMA_FillOverlayXformChildName"};
+   
+   SUMA_ENTRY;
+   if (!xnel || !overlay) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
+   snprintf(name,sizeof(char)*(SUMA_MAX_NAME_LENGTH-1), 
+            "%s.%s", xnel->name, overlay->Label);
+   
+   SUMA_RETURN(YUP);
+}
+
+SUMA_OVERLAYS *SUMA_OverlayXformChild( SUMA_SurfaceObject *SO, 
+                                       SUMA_OVERLAYS *overlay, NI_element *xnel)
+{
+   static char FuncName[]={"SUMA_OverlayXformChild"};
+   int junk = 0;
+   char stmp[SUMA_MAX_NAME_LENGTH]={""};
+   
+   SUMA_ENTRY;
+   
+   if (!overlay || !SO) {
+      SUMA_S_Err("You sent me NULLS!");
+      SUMA_RETURN (NULL);
+   }
+   
+   /* form would be name of child */
+   SUMA_FillOverlayXformChildName( overlay, xnel, stmp);
+   
+   SUMA_RETURN(SUMA_Fetch_OverlayPointer( SO->Overlays, SO->N_Overlays, 
+                                          stmp, &junk));
+}
+
+SUMA_OVERLAYS *SUMA_OverlayXformParent( SUMA_SurfaceObject *SO, 
+                                        SUMA_OVERLAYS *overlay, NI_element *xnel)
+{
+   static char FuncName[]={"SUMA_OverlayXformChild"};
+   int junk = 0;
+   char stmp[SUMA_MAX_NAME_LENGTH]={""};
+   
+   SUMA_ENTRY;
+   
+   if (!overlay || !SO) {
+      SUMA_S_Err("You sent me NULLS!");
+      SUMA_RETURN (NULL);
+   }
+   
+   /* form would be name of child */
+   SUMA_FillOverlayXformChildName( overlay, xnel, stmp);
+   
+   SUMA_RETURN(SUMA_Fetch_OverlayPointer( SO->Overlays, SO->N_Overlays, 
+                                          stmp, &junk));
+}
+
 
 /*!
    \brief Adds a new plane to SO->Overlays. 
@@ -5429,22 +5815,29 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_MixColors"};
    int i, dov_id;
-   SUMA_Boolean LocalHead = NOPE;
    SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
    for (i=0; i<sv->N_ColList; ++i) {
       if (sv->ColList[i].Remix) {
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Mixing colors (%s)...\n", FuncName, sv->ColList[i].idcode_str);
-         dov_id = SUMA_findSO_inDOv (sv->ColList[i].idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+         if (LocalHead) 
+            fprintf( SUMA_STDERR, 
+                     "%s: Mixing colors (%s)...\n", 
+                     FuncName, sv->ColList[i].idcode_str);
+         dov_id = SUMA_findSO_inDOv (  sv->ColList[i].idcode_str, 
+                                       SUMAg_DOv, SUMAg_N_DOv);
          if (dov_id < 0) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_findSO_inDOv.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_findSO_inDOv.\n", FuncName);
             SUMA_RETURN(NOPE);
          }
          SO = (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP;
          if (!SUMA_Overlays_2_GLCOLAR4(SO, sv, sv->ColList[i].glar_ColorList)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", 
+                     FuncName);
             SUMA_RETURN(NOPE);
          }
          sv->ColList[i].Remix = NOPE;
@@ -5519,7 +5912,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          SUMA_AddDsetNelCol (dset, "green", SUMA_NODE_G, NULL, NULL, 1);
          SUMA_AddDsetNelCol (dset, "blue", SUMA_NODE_B, NULL, NULL, 1);
 
-         Overlay = SUMA_CreateOverlayPointer (SO->N_Node, Name, dset, SO->idcode_str, NULL);
+         Overlay = SUMA_CreateOverlayPointer (Name, dset, SO->idcode_str, NULL);
          if (!Overlay) {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
             SUMA_RETURN(NOPE);
@@ -5962,7 +6355,7 @@ SUMA_Boolean SUMA_isDsetColumn_inferred(SUMA_DSET *dset, int icol)
 SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO) 
 {
    static char FuncName[]={"SUMA_OKassign"};
-   float range[2];
+   double range[2];
    int loc[2], *ind = NULL, lnp = 0;
    char *np = NULL, stmp[201];
    SUMA_Boolean LocalHead = NOPE;
@@ -6021,7 +6414,8 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
          snprintf(stmp, 200*sizeof(char), 
                         "Number of values per column (%d)\n"
                         "is larger than the number \n"
-                        "of nodes (%d) in the surface.", SDSET_VECLEN(dset), SO->N_Node);
+                        "of nodes (%d) in the surface.", 
+                        SDSET_VECLEN(dset), SO->N_Node);
          SUMA_SLP_Warn(stmp);
          SUMA_RETURN(NOPE);
       }
@@ -6212,7 +6606,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
          OKdup = 0;
       }
       /* set up the colormap for this dset */
-      NewColPlane = SUMA_CreateOverlayPointer ( SDSET_VECLEN(dset), filename, 
+      NewColPlane = SUMA_CreateOverlayPointer ( filename, 
                                                 dset, SO->idcode_str, 
                                                 colplanepre);
       if (!NewColPlane) {
@@ -6237,6 +6631,9 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    /* set the opacity, index column and the range */
    NewColPlane->GlobalOpacity = YUP;
    NewColPlane->Show = YUP;
+   if (!colplanepre) {  /* only set this default if first time creating plane*/
+      NewColPlane->OptScl->BrightFact = 0.8;
+   }
    NewColPlane->OptScl->find = 0;
    NewColPlane->OptScl->tind = 0;
    NewColPlane->OptScl->bind = 0;
@@ -6804,7 +7201,6 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
          SUMA_S_Note(s);
          SUMA_free(s);
       }
-      
       if (cp->DimFact == 1.0) {
          for (i=0; i < SDSET_VECFILLED(cp->dset_link); ++i) {
             i3 = 3 * i;

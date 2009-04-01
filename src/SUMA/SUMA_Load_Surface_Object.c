@@ -3063,7 +3063,7 @@ SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov,
             SUMA_SL_Err("Failed to find dset!");
             SUMA_RETURN (NOPE);
          }
-         NewColPlane = SUMA_CreateOverlayPointer (SO->N_Node, "Convexity", dset, 
+         NewColPlane = SUMA_CreateOverlayPointer ("Convexity", dset, 
                                                   SO->idcode_str, NULL);
          if (!NewColPlane) {
             fprintf (SUMA_STDERR, 

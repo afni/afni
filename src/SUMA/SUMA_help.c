@@ -1270,6 +1270,23 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+d: draw ROI controller.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+      "     D: Attch to the current dataset 'parent' a dot product\n"
+      "        transform. The 'child' (transformed) dataset\n"
+      "        is created by calculating the dot product between\n"
+      "        each node time series and the time series of the current\n"
+      "        node. Each time you click on the surface, with the \n"
+      "        child dataset in view, the dot product is recalculated.\n"
+      "        To stop the interactive dot product computations,\n"
+      "        switch back to the parent dset and press 'D' again.\n"
+      "        If the parent dataset is properly detrended and each \n"
+      "        time series is normalized so that its stdev is 1.0\n"
+      "        then the dot product is the cross correlation coefficient.\n"
+      "        Detrending and normalization can be carried out with:\n"
+      "           3dDetrend -polort 4 -normalize \\\n"
+      "                     -prefix dt.TS.niml.dset \\\n"
+      "                     v2s.TS.niml.dset\n"
+      "\n\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     d: Show all DO objects in DOv.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     Ctrl+e: Look for OpenGL errors.\n\n"); 
