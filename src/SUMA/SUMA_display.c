@@ -3152,6 +3152,102 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 }
 
 /* ------------------------------------------------------------------------------------------------------------*/
+/*! Returns the index of the node that neighbors inode in a direction
+that most closely follows the direction in dd expressed in screen coordinate 
+space 
+   \param sv
+   \param SO
+   \param inode (int) node in question for which we seek a neighbor along dd
+   \param dd (2x1 double) direction in screen units along which we wish to find 
+                          a neighbor of inode. Make sure dd's norm is 1
+   \return inodenext (int) -2 in case of error
+                           -1 in case of no plausible move along dd.
+                              the function allows moves as long as the 
+                              dot product is > 0
+                           the node neighboring inode such that the screen 
+                           projection of vector inode-->inodenext is the closest
+                           in direction to dd
+*/
+int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
+                                          SUMA_SurfaceObject *SO,
+                                          int inode, double *dd)
+{
+   static char FuncName[]={"SUMA_NodeNeighborAlongScreenDirection"};
+   int ii, jj, ineighb=0, inodenext = -2, idd=-1;
+   double *p=NULL;
+   double *s=NULL, dot=0.0, dotmax=0.0;
+   int *q=NULL;
+   double dir[3]={0.0,0.0,0.0}, norm=0.0;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!SO || !sv || !dd) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURN(-2);
+   }
+   /* get all neighbors */
+   p = (double *)SUMA_calloc( SO->NodeDim*SO->FN->N_Neighb_max+1, 
+                              sizeof(double));
+   s = (double *)SUMA_calloc( SO->NodeDim*SO->FN->N_Neighb_max+1, 
+                              sizeof(double));
+   q = (int *)SUMA_calloc( SO->FN->N_Neighb_max+1, sizeof(int));
+   for (jj=0; jj<SO->NodeDim; ++jj) {
+      p[jj] = SO->NodeList[SO->NodeDim*inode+jj];
+   }
+   for (ii=0; ii<SO->FN->N_Neighb[inode]; ++ii) {
+      for (jj=0; jj<SO->NodeDim; ++jj) {
+         ineighb = SO->FN->FirstNeighb[inode][ii];
+         p[SO->NodeDim*(ii+1)+jj] =
+               SO->NodeList[SO->NodeDim*ineighb+jj];
+      }
+   }
+   /* find screen projection of neighbors */
+   if (!SUMA_World2ScreenCoords( sv, SO->FN->N_Neighb[inode]+1,
+                                 p , s, q, 0)) {
+      SUMA_S_Err("The world has failed me");                                            SUMA_RETURN(-2);
+   }
+
+   if (LocalHead) {
+      fprintf(SUMA_STDERR," S = [\n");
+      for (ii=0; ii<SO->FN->N_Neighb[inode]+1; ++ii) {
+         fprintf(SUMA_STDERR, "%.3f  %.3f  %.3f\n", 
+                              s[3*ii], s[3*ii+1], s[3*ii+2]);
+      }
+      fprintf(SUMA_STDERR,"];\n");
+   }
+
+   /* find closest to desired direction */
+   for (ii=0; ii<SO->FN->N_Neighb[inode]; ++ii) { 
+         /* for each neighbor*/        
+      /* direction on screen (only x y needed)*/
+      for (jj=0; jj<2; ++jj) {
+         dir[jj] = s[(ii+1)*SO->NodeDim+jj] - s[jj]; 
+      }
+      SUMA_NORM_VEC(dir,2,norm);
+      /* calculate dot product*/
+      dot = dir[0]*dd[0]/norm + dir[1]*dd[1]/norm;
+      if (ii==0) { dotmax = dot; idd=ii; }
+      else {
+         if (dot > dotmax) {
+            dotmax = dot; idd=ii;
+         }
+      }
+   }
+   if (dotmax > 0) {
+      inodenext = SO->FN->FirstNeighb[inode][idd];
+      SUMA_LHv("Next node should be %d\n", inodenext);
+   } else {
+      SUMA_LH("No good direction");
+      inodenext = -1; 
+   }
+
+   if (p) SUMA_free(p); p = NULL;
+   if (q) SUMA_free(q); q = NULL;
+   if (s) SUMA_free(s); s = NULL;
+   
+   SUMA_RETURN(inodenext);
+}   
 
 /*!
    Purpose: Takes a the world x,y,z coordinates and turns them into screen coordinates
