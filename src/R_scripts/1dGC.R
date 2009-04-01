@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.7,  March 24, 2009")
+print("Version 1.0.8,  April 1, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -376,13 +376,19 @@ rma <- function(yi, vi, mods=NULL, method="REML", addint=TRUE, ci=95, digits=4, 
 libLoad("network")  # network drawing
 #libLoad('tcltk')    # for graphics
 
-print("################################################################")
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 print("Visit http://afni.nimh.nih.gov/sscc/gangc/VAR.html and makse sure")
 print("you've acquired the data for the analysis in desirable data format.")
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
 print("################################################################")
-print("~~~~~~~~~~~~~~~~~")
+print("Please consider citing the following if this program is useful for you:")
+cat("\n\tGang Chen, J. Paul Hamilton, Moriah E. Thomason, Ian H. Gotlib, Ziad S. Saad\n")
+cat("\tRobert W. Cox, Granger causality via vector auto-regression (VAR) attuned for\n")
+cat("\tFMRI data analysis. ISMRM 17th Scientific Meeting, Hawaii, 2009.\n\n")
+print("################################################################")
+
 print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
-print("~~~~~~~~~~~~~~~~~")
 
 anaType <- as.integer(readline("Analysis type (0: quit; 1: individual; 2: group)? "))
 
