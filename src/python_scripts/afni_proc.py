@@ -95,9 +95,15 @@ g_history = """
         - by default, the script will now terminate on any error
         - added -exit_on_error, -check_setup_errors
         - whine about block order problems
+    1.40 Apr 01 2009 :
+        - added 'ricor' processing block, for RETROICOR regressor removal
+          (per-run method only, still needs '-help')
+          options: -ricor_regs, -ricor_regs_nfirst, -ricor_polort,
+                   -ricor_regress_solver, -ricor_regress_method
+        - small format changes
 """
 
-g_version = "version 1.39, Apr 1, 2009"
+g_version = "version 1.40, Apr 1, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -153,6 +159,8 @@ class SubjProcSream:
         self.rm_rm      = 1             # remove rm.* files
         self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
 
+        self.ricor_reg    = None        # ricor reg to apply in regress block
+        self.ricor_nreg   = 0           # number of regs in ricor_reg
         self.ricor_regs   = []          # RETROICOR regressor files
         self.ricor_nfirst = 0           # number of TRs to remove
 
@@ -254,13 +262,14 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-ricor_regs', -1, [],
                         helpstr='slice-based regressors for RETROICOR')
-        self.valid_opts.add_opt('-ricor_regs_nfirst', 0, [],
+        self.valid_opts.add_opt('-ricor_regs_nfirst', 1, [],
                         helpstr='num first TRs to remove from ricor_regs')
         self.valid_opts.add_opt('-ricor_polort', 1, [],
                         helpstr='polort to apply for RETROICOR regression')
         self.valid_opts.add_opt('-ricor_regress_solver', 1, [],
                         helpstr="regression via 'OLSQ' or 'REML'")
         self.valid_opts.add_opt('-ricor_regress_method', 1, [],
+                        acplist=['per-run', 'across-runs'],
                         helpstr="use stimuli 'per-run' or 'across-runs'")
 
         self.valid_opts.add_opt('-tshift_align_to', -1, [],
@@ -477,7 +486,12 @@ class SubjProcSream:
             errs = 0
             for bname in opt.parlist:
                 if bname in OtherDefLabels:
-                    preindex = blocklist.index(OtherDefLabels[bname])
+                    try: preindex = blocklist.index(OtherDefLabels[bname])
+                    except:
+                        print "** cannot -do_block '%s' without block '%s'" \
+                              % (bname, OtherDefLabels[bname])
+                        errs += 1
+                        preindex = 0    # some temporary value
                     if preindex < 0:
                         print "** error: -do_block failure for '%s'" % bname
                         errs += 1
@@ -714,15 +728,15 @@ class SubjProcSream:
         self.fp.write('# set list of runs\n')
         self.fp.write('set runs = (`count -digits 2 1 %d`)\n\n' % self.runs)
 
-        self.fp.write('# create results directory\n')
-        self.fp.write('mkdir %s\n%s\n' % (self.od_var,stat_inc))
+        self.fp.write('# create results and stimuli directories\n')
+        self.fp.write('mkdir %s\nmkdir %s/stimuli\n%s\n' \
+                      % (self.od_var, self.od_var, stat_inc))
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
-            str = '# create stimuli directory, and copy stim files\n' \
-                  'mkdir %s/stimuli\ncp ' % self.od_var
+            str = '# copy stim files into stimulus directory\ncp'
             for ind in range(len(self.stims)):
-                str += '%s ' % self.stims_orig[ind]
-            str += '%s/stimuli\n' % self.od_var
+                str += ' %s' % self.stims_orig[ind]
+            str += ' %s/stimuli\n' % self.od_var
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
 
@@ -734,7 +748,7 @@ class SubjProcSream:
             self.fp.write("%s\n" % stat_inc)
 
         if len(self.ricor_regs) > 0: # copy extra stim files into stim dir
-            str = copy_ricor_regs_str(proc)
+            str = copy_ricor_regs_str(self)
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
 
