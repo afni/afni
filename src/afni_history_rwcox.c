@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , APR , 2009 , RWC , "realtime plugin" , MICRO , TYPE_GENERAL ,
+   "Enhanced a few error messages." ,
+   "I wish people would READ the damn things, instead of calling me to\n"
+   "complain." } ,
+
  { 30 , MAR , 2009 , RWC , "3dABoverlap" , MINOR , TYPE_NEW_PROG ,
    "Computes various overlap and non-overlap statistics for 2 datasets." ,
    "Will resample dataset #B to match dataset #A, if needed.  This program\n"

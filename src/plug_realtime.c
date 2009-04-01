@@ -908,6 +908,7 @@ int RT_check_listen(void)
 
       if( ! TRUST_host(ioc_control->name) ){
          fprintf(stderr,"RT: untrusted host connection - closing!\a\n") ;
+         fprintf(stderr,"==> set environment variable AFNI_TRUSTHOST to IP address\n") ;
          IOCHAN_CLOSENOW(ioc_control) ;
          return 0 ;
       }
@@ -1304,6 +1305,7 @@ Boolean RT_worker( XtPointer elvis )
 
       if( rtinp->child_info == 0 && ! rtinp->info_ok ){
          fprintf(stderr,"RT: image header info was incomplete!\a\n") ;
+         fprintf(stderr,"==> check image source program and README.realtime\n");
          RT_check_info( rtinp , 1 ) ;
          PLUTO_beep() ;
          PLUTO_popup_transient( plint , " \n"
@@ -1335,7 +1337,7 @@ Boolean RT_worker( XtPointer elvis )
       RT_input *new_rtinp ;
       fprintf(stderr,"RT: data stream says to close dataset.\n") ;
       if( rtinp->sbr[0] != NULL ) RT_finish_dataset( rtinp ) ;
-      fprintf(stderr,"RT: starting to read from existing data stream.\n") ;
+      fprintf(stderr,"RT: starting to read new data from existing data stream.\n");
       new_rtinp = new_RT_input( rtinp->ioc_data ) ; /* new RT_input context */
       CLEANUP(1) ;                                 /* will delete old rtinp */
       rtinp = new_rtinp ; return False ;
@@ -1745,7 +1747,7 @@ void RT_start_child( RT_input * rtin )
    child_pid = fork() ;             /* AKA bifurcation */
 
    if( child_pid == (pid_t)(-1) ){  /* real bad news */
-     fprintf(stderr,"RT: can't fork child process!\a\n") ; EXIT(1) ;
+     fprintf(stderr,"RT: can't fork child process! Quitting NOW!\a\n"); EXIT(1);
    }
 
    if( child_pid > 0 ){              /** I'm the parent **/
@@ -1760,7 +1762,7 @@ void RT_start_child( RT_input * rtin )
       rtin->ioc_info   = iochan_init( SHM_CHILD , "accept" ) ;
       if( rtinp->ioc_info == NULL ){
         kill( child_pid , SIGTERM ) ;
-        fprintf(stderr,"RT: can't create read stream from child!\a\n") ;
+        fprintf(stderr,"RT: can't create read stream from child! Quitting NOW!\a\n");
         EXIT(1) ;
       }
 
@@ -1796,7 +1798,7 @@ int RT_acquire_info( char * command )
 
    ioc = iochan_init( SHM_CHILD , "create" ) ;
    if( ioc == NULL ){
-      fprintf(stderr,"RT: child fails to open stream back to parent!\a\n") ;
+      fprintf(stderr,"RT: child fails to open stream back to parent! Child dies!\a\n");
       _exit(1) ;
    }
 
@@ -1804,7 +1806,8 @@ int RT_acquire_info( char * command )
 
    fp = popen( command , "r" ) ;
    if( fp == NULL ){
-      fprintf(stderr,"RT: child fails to open pipe to command=%s\a\n",command) ;
+      fprintf(stderr,"RT: child fails to open pipe to command='%s' ; Child dies!\a\n",
+              command) ;
       IOCHAN_CLOSENOW(ioc) ; _exit(1) ;
    }
 
@@ -1819,7 +1822,7 @@ int RT_acquire_info( char * command )
 
    jj = iochan_writecheck(ioc,-1) ;  /* wait until ready */
    if( jj < 0 ){
-      fprintf(stderr,"RT: child can't write IOCHAN to parent!\a\n") ;
+      fprintf(stderr,"RT: child can't write IOCHAN to parent! Child dies!\a\n") ;
       IOCHAN_CLOSENOW(ioc) ; _exit(1) ;
    }
 
