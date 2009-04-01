@@ -91,9 +91,13 @@ g_history = """
         - added -regress_apply_mask
     1.37 Mar 25 2009 : allow +tlrc processing (+view comes from data)
     1.38 Mar 26 2009 : added helpstr to options
+    1.39 Apr 01 2009 :
+        - by default, the script will now terminate on any error
+        - added -exit_on_error, -check_setup_errors
+        - whine about block order problems
 """
 
-g_version = "version 1.38, Mar 26, 2009"
+g_version = "version 1.39, Apr 1, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -101,12 +105,12 @@ g_version = "version 1.38, Mar 26, 2009"
 BlockLabels  = ['tcat', 'despike', 'tshift', 'volreg',
                 'blur', 'mask', 'scale', 'regress', 'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'despike': db_mod_despike,
-                 'tshift' : db_mod_tshift,
+                 'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
                  'volreg' : db_mod_volreg,   'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
                  'regress': db_mod_regress,  'empty'  : db_mod_empty}
 BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'despike': db_cmd_despike,
-                 'tshift' : db_cmd_tshift,
+                 'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
                  'volreg' : db_cmd_volreg,   'blur'   : db_cmd_blur,
                  'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
                  'regress': db_cmd_regress,  'empty'  : db_cmd_empty}
@@ -114,10 +118,10 @@ AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
 # default block labels, and other labels (along with the label they follow)
 DefLabels   = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
-OtherDefLabels = {'despike':'tcat'}
+OtherDefLabels = {'despike':'tcat', 'ricor':'despike'}
 OtherLabels    = ['empty']
 
-# ----------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # data processing stream class
 class SubjProcSream:
     def __init__(self, label):
@@ -149,12 +153,18 @@ class SubjProcSream:
         self.rm_rm      = 1             # remove rm.* files
         self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
 
-        self.verb       = 1             # verbosity level
+        self.ricor_regs   = []          # RETROICOR regressor files
+        self.ricor_nfirst = 0           # number of TRs to remove
+
+        self.check_setup_errors = 0     # count init setup errors
+        self.exit_on_error      = 1     # exit on any encountered error
+        self.verb               = 1     # verbosity level
 
         self.tr         = 0.0           # TR, in seconds
         self.reps       = 0             # TRs per run
         self.runs       = 0             # number of runs
         self.mask       = None          # mask dataset
+        self.exec_cmd   = ''            # script execution command string
         self.regmask    = 0             # apply any full_mask in regression
         self.view       = '+orig'       # view could also be '+tlrc'
 
@@ -204,10 +214,16 @@ class SubjProcSream:
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],
                         helpstr='show execution help in bash syntax')
+        self.valid_opts.add_opt('-check_setup_errors', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='terminate on setup errors')
         self.valid_opts.add_opt('-copy_anat', 1, [],
                         helpstr='anatomy to copy to results directory')
         self.valid_opts.add_opt('-copy_files', -1, [],
                         helpstr='list of files to copy to results directory')
+        self.valid_opts.add_opt('-exit_on_error', 1, ['yes'],
+                        acplist=['yes','no'],
+                        helpstr='exit script on any command error')
         self.valid_opts.add_opt('-gen_epi_review', 1, [],
                         helpstr='generate a script to review orig EPI data')
         self.valid_opts.add_opt('-no_epi_review', 0, [],
@@ -236,6 +252,17 @@ class SubjProcSream:
         self.valid_opts.add_opt('-despike_opts_3dDes', -1, [],
                         helpstr='additional options directly for 3dDespike')
 
+        self.valid_opts.add_opt('-ricor_regs', -1, [],
+                        helpstr='slice-based regressors for RETROICOR')
+        self.valid_opts.add_opt('-ricor_regs_nfirst', 0, [],
+                        helpstr='num first TRs to remove from ricor_regs')
+        self.valid_opts.add_opt('-ricor_polort', 1, [],
+                        helpstr='polort to apply for RETROICOR regression')
+        self.valid_opts.add_opt('-ricor_regress_solver', 1, [],
+                        helpstr="regression via 'OLSQ' or 'REML'")
+        self.valid_opts.add_opt('-ricor_regress_method', 1, [],
+                        helpstr="use stimuli 'per-run' or 'across-runs'")
+
         self.valid_opts.add_opt('-tshift_align_to', -1, [],
                         helpstr='time alignment option given to 3dTshift')
         self.valid_opts.add_opt('-tshift_interp', 1, [],
@@ -244,7 +271,7 @@ class SubjProcSream:
                         helpstr='additional options directly for 3dTshift')
 
         self.valid_opts.add_opt('-volreg_align_to', 1, [],
-                                ['first','third', 'last'],
+                        acplist=['first','third', 'last'],
                         helpstr="align to 'first', 'third' or 'last' TR")
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
@@ -264,7 +291,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-blur_opts_merge', -1, [],
                         helpstr='additional options directly for 3dmerge')
 
-        self.valid_opts.add_opt('-mask_type', 1, [], ['union','intersection'],
+        self.valid_opts.add_opt('-mask_type', 1, [],
+                        acplist=['union','intersection'],
                         helpstr="specify a 'union' or 'intersection' mask type")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
@@ -391,6 +419,14 @@ class SubjProcSream:
             print g_version
             return 0  # gentle termination
         
+        opt = opt_list.find_opt('-check_setup_errors')
+        if opt and opt.parlist[0] == 'yes': self.check_setup_errors = 1
+        else:                               self.check_setup_errors = 0
+
+        opt = opt_list.find_opt('-exit_on_error')
+        if opt and opt.parlist[0] == 'yes': self.exit_on_error = 1
+        else:                               self.exit_on_error = 0
+
         opt = opt_list.find_opt('-copy_anat')
         if opt != None: self.anat = afni_name(opt.parlist[0])
 
@@ -459,6 +495,7 @@ class SubjProcSream:
                 blocklist = ['tcat'] + opt.parlist
             else: blocklist = opt.parlist
 
+        # call db_mod_functions
         for label in blocklist:
             rv = self.add_block(label)
             if rv != None: return rv
@@ -488,6 +525,7 @@ class SubjProcSream:
 
         if not uniq_list_as_dsets(self.dsets, 1): return 1
         if not db_tlrc_opts_okay(self.user_opts): return 1
+        self.check_block_order()
 
     # create script from blocks and options
     def create_script(self):
@@ -538,13 +576,7 @@ class SubjProcSream:
                         "** warning have only 1 run to analyze\n" \
                         "-------------------------------------"
             print "\n--> script is file: %s" % self.script
-            if self.user_opts.find_opt('-bash'): # give bash form
-                print '    (consider: "tcsh -x %s 2>&1 | tee output.%s") ' \
-                                % (self.script, self.script)
-            else:                                # give tcsh form
-              print '    (consider the command "tcsh -x %s |& tee output.%s")' \
-                                % (self.script, self.script)
-            print
+            print '    (consider the command: "%s")\n' % self.exec_cmd
 
         return
 
@@ -580,6 +612,52 @@ class SubjProcSream:
         if block: return self.blocks.index(block)
         return None
 
+    def check_block_order(self):
+        """make various order checks
+                - despike < ricor < tshift/volreg
+                - blur < scale
+                - tshift/volreg/blur/scale < regress
+        """
+        if self.find_block('ricor'):
+            if not self.blocks_ordered('despike', 'ricor', must_exist=1):
+                print "** warning: 'despike' should preceed 'ricor'"
+            if not self.blocks_ordered('ricor', 'tshift'):
+                print "** warning: 'tshift' should preceed 'ricor'"
+            if not self.blocks_ordered('ricor', 'volreg'):
+                print "** warning: 'volreg' should preceed 'ricor'"
+        if self.find_block('blur'):
+            if not self.blocks_ordered('blur', 'scale'):
+                print "** warning: 'blur' should preceed 'scale'"
+        if self.find_block('regress'):
+            if not self.blocks_ordered('tshift', 'regress'):
+                print "** warning: 'tshift' should preceed 'regress'"
+            if not self.blocks_ordered('volreg', 'regress'):
+                print "** warning: 'volreg' should preceed 'regress'"
+            if not self.blocks_ordered('blur', 'regress'):
+                print "** warning: 'blur' should preceed 'regress'"
+            if not self.blocks_ordered('scale', 'regress'):
+                print "** warning: 'scale' should preceed 'regress'"
+
+    def blocks_ordered(self, name0, name1, must_exist=0):
+        """check that the name0 block comes before the name1 block
+
+              - something missing means order is okay
+              - must_exist implies both must exist, else print message
+                (often one has been check already)
+
+           return 0 only if both exist and are out of order"""
+
+        bind0 = self.find_block_index(name0)
+        bind1 = self.find_block_index(name1)
+        if bind0 < 0 or bind1 < 0: # something is missing
+            if must_exist:
+                wstr = '** warning: missing block'
+                if bind0 < 0: print "%s '%s' (to preceed '%s')" % (name0,name1)
+                if bind1 < 0: print "%s '%s' (to follow '%s')" % (name1,name0)
+            return 1
+        elif bind0 < bind1: return 1
+        else:               return 0
+
     # set subj shell variable, check output dir, create and cd
     def init_script(self):
         if not self.overwrite and os.path.isfile(self.script):
@@ -591,22 +669,37 @@ class SubjProcSream:
             print "cannot open script file '%s' for writing" % self.script
             return 1
 
-        self.fp.write('#!/usr/bin/env tcsh\n\n')
+        if self.exit_on_error: topt = ' -e'
+        else:                  topt = ''
+        self.fp.write('#!/usr/bin/env tcsh%s\n\n' % topt)
         self.fp.write('echo "auto-generated by afni_proc.py, %s"\n' % asctime())
         self.fp.write('echo "(%s)"\n\n'% g_version)
 
         # include execution method in script
+        if self.exit_on_error: opts = '-xe'
+        else:                  opts = '-x'
         if self.user_opts.find_opt('-bash'): # give bash form
-            self.fp.write('# execute via : tcsh -x %s 2>&1 | tee output.%s\n\n'\
-                            % (self.script, self.script))
+            self.exec_cmd = 'tcsh %s %s 2>&1 | tee output.%s' % \
+                            (opts, self.script, self.script)
         else:                                # give tcsh form
-            self.fp.write('# execute via : tcsh -x %s |& tee output.%s\n\n' \
-                            % (self.script, self.script))
+            self.exec_cmd = 'tcsh %s %s |& tee output.%s'     % \
+                            (opts, self.script, self.script)
+
+        self.fp.write('# execute via : %s\n\n' % self.exec_cmd)
+
+        # maybe the user want to check the status of the init operations
+        if not self.check_setup_errors: stat_inc = ''
+        else: stat_inc = '@ nerrors += $status      # accumulate error count\n'
 
         self.fp.write('# --------------------------------------------------\n'
-                      '# script setup\n\n'
-                      '# the user may specify a single subject to run with\n')
-        self.fp.write('if ( $#argv > 0 ) then  \n'
+                      '# script setup\n\n')
+
+        if len(stat_inc) > 0:
+            self.fp.write("# prepare to count setup errors\n"
+                          "set nerrors = 0\n\n")
+
+        self.fp.write('# the user may specify a single subject to run with\n'
+                      'if ( $#argv > 0 ) then  \n'
                       '    set subj = $argv[1] \n'
                       'else                    \n'
                       '    set subj = %s       \n'
@@ -622,41 +715,58 @@ class SubjProcSream:
         self.fp.write('set runs = (`count -digits 2 1 %d`)\n\n' % self.runs)
 
         self.fp.write('# create results directory\n')
-        self.fp.write('mkdir %s\n\n' % self.od_var)
+        self.fp.write('mkdir %s\n%s\n' % (self.od_var,stat_inc))
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
             str = '# create stimuli directory, and copy stim files\n' \
                   'mkdir %s/stimuli\ncp ' % self.od_var
             for ind in range(len(self.stims)):
                 str += '%s ' % self.stims_orig[ind]
-            str += '%s/stimuli\n\n' % self.od_var
+            str += '%s/stimuli\n' % self.od_var
             self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
 
         if len(self.extra_stims) > 0: # copy extra stim files into stim dir
             str = '# copy extra stim files\n'   \
-                  'cp %s %s/stimuli\n\n' %      \
+                  'cp %s %s/stimuli\n' %        \
                   (' '.join(self.extra_stims_orig), self.od_var)
             self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
+
+        if len(self.ricor_regs) > 0: # copy extra stim files into stim dir
+            str = copy_ricor_regs_str(proc)
+            self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
 
         if self.anat:
             str = '# copy anatomy to results dir\n'     \
-                  '3dcopy %s %s/%s\n\n' %               \
+                  '3dcopy %s %s/%s\n' %                 \
                       (self.anat.rpv(), self.od_var, self.anat.prefix)
             self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
 
         # possibly copy over any volreg base
         if self.vr_ext_base != None:
             str = "# copy over the external volreg base\n"  \
-                  "3dbucket -prefix %s/%s '%s'\n\n" %       \
+                  "3dbucket -prefix %s/%s '%s'\n" %         \
                   (self.od_var, self.vr_ext_pre, self.vr_ext_base)
             self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
 
         opt = self.user_opts.find_opt('-copy_files')
         if opt and len(opt.parlist) > 0:
             str = '# copy extra files into results dir\n' \
-                  'cp -rv %s %s\n\n' %                    \
+                  'cp -rv %s %s\n' %                      \
                       (' '.join(quotize_list(opt.parlist,'')),self.od_var)
             self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
+
+        if len(stat_inc) > 0:
+            self.fp.write("# check for any setup failures\n"
+                          "if ( $nerrors > 0 ) then\n"
+                          "    echo '** setup failure ($nerrors errors)'\n"
+                          "    exit\n"
+                          "endif\n\n")
 
         self.fp.flush()
 
@@ -692,13 +802,14 @@ class SubjProcSream:
                       'cd ..\n\n')
 
         opt = self.user_opts.find_opt('-no_proc_command')
-        str = '\n\n\n'                                                       \
+        if not opt:
+            str = '\n\n\n'                                                   \
               '# -------------------------------------------------------\n'  \
               '# script generated by the command:\n'                         \
               '#\n'                                                          \
               '# %s %s\n' % (os.path.basename(sys.argv[0]),
                                  ' '.join(quotize_list(sys.argv[1:],'')))
-        self.fp.write(add_line_wrappers(str))
+            self.fp.write(add_line_wrappers(str))
 
         if self.user_opts.find_opt('-ask_me'):
             str = '#\n# all applied options: '
@@ -785,10 +896,12 @@ def run_proc():
             show_args_as_command(sys.argv, "** failed command (get_user_opts):")
         return rv
 
+    # run db_mod functions, and possibly allow other mods
     if ps.create_blocks():
         show_args_as_command(sys.argv, "** failed command (create_blocks):")
         return rv
 
+    # run db_cm functions, to create the script
     rv = ps.create_script()
     if rv != None:  # terminal, but do not display command on 0
         if rv != 0:
