@@ -2858,6 +2858,7 @@ SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel)
    static char FuncName[]={"SUMA_VolPar_nel2SOVolPar"};
    char *tmp;
    float fv15[15];
+   double dv15[15];
    SUMA_DSET_TYPE dtype;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -2904,36 +2905,36 @@ SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel)
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) SO->VolPar->vol_idcode_date = SUMA_copy_string(tmp);
    
    tmp = NI_get_attribute(nel, "nxyz"); 
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, fv15, 3); SO->VolPar->nx = (int)fv15[0]; SO->VolPar->ny = (int)fv15[1];   SO->VolPar->nz = (int)fv15[2]; }
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, (void *)fv15, 3,1); SO->VolPar->nx = (int)fv15[0]; SO->VolPar->ny = (int)fv15[1];   SO->VolPar->nz = (int)fv15[2]; }
    
    tmp = NI_get_attribute(nel, "xyzorient"); 
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, fv15, 3); SO->VolPar->xxorient = (int)fv15[0]; SO->VolPar->yyorient = (int)fv15[1];   SO->VolPar->zzorient = (int)fv15[2]; }
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, (void *)fv15, 3,1); SO->VolPar->xxorient = (int)fv15[0]; SO->VolPar->yyorient = (int)fv15[1];   SO->VolPar->zzorient = (int)fv15[2]; }
 
    tmp = NI_get_attribute(nel, "dxyz"); 
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, fv15, 3); SO->VolPar->dx = fv15[0]; SO->VolPar->dy = fv15[1];   SO->VolPar->dz = fv15[2]; }
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, (void *)fv15, 3,1); SO->VolPar->dx = fv15[0]; SO->VolPar->dy = fv15[1];   SO->VolPar->dz = fv15[2]; }
    
    tmp = NI_get_attribute(nel, "xyzorg"); 
-   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, fv15, 3); SO->VolPar->xorg = fv15[0]; SO->VolPar->yorg = fv15[1];   SO->VolPar->zorg = fv15[2]; }
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { SUMA_StringToNum(tmp, (void *)fv15, 3,1); SO->VolPar->xorg = fv15[0]; SO->VolPar->yorg = fv15[1];   SO->VolPar->zorg = fv15[2]; }
       
    tmp = NI_get_attribute(nel, "CENTER_OLD"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_StringToNum(tmp, fv15, 3); 
+      SUMA_StringToNum(tmp, (void*)dv15, 3,2); 
       SO->VolPar->CENTER_OLD = (double*)SUMA_malloc(sizeof(double)*3);
-      SUMA_COPY_VEC(fv15, SO->VolPar->CENTER_OLD, 2, float, double);
+      SUMA_COPY_VEC(fv15, SO->VolPar->CENTER_OLD, 2, double, double);
    }
    
    tmp = NI_get_attribute(nel, "CENTER_BASE"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_StringToNum(tmp, fv15, 3); 
+      SUMA_StringToNum(tmp, (void*)dv15, 3,2); 
       SO->VolPar->CENTER_BASE = (double*)SUMA_malloc(sizeof(double)*3);
-      SUMA_COPY_VEC(fv15, SO->VolPar->CENTER_BASE, 2, float, double);
+      SUMA_COPY_VEC(fv15, SO->VolPar->CENTER_BASE, 2, double, double);
    }
    
    tmp = NI_get_attribute(nel, "MATVEC"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
-      SUMA_StringToNum(tmp, fv15, 12); 
+      SUMA_StringToNum(tmp, dv15, 12,2); 
       SO->VolPar->MATVEC = (double*)SUMA_malloc(sizeof(double)*12);
-      SUMA_COPY_VEC(fv15, SO->VolPar->MATVEC, 2, float, double);
+      SUMA_COPY_VEC(fv15, SO->VolPar->MATVEC, 2, double, double);
    }
    
    tmp = NI_get_attribute(nel, "MATVEC_source"); 

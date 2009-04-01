@@ -5320,13 +5320,13 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
       nimlROI->ColPlaneName = 
          SUMA_copy_string(NI_get_attribute( nel , "ColPlaneName"));
       if (SUMA_StringToNum (NI_get_attribute( nel , "FillColor"), 
-                           nimlROI->FillColor, 3) < 0) {
+                           (void*)nimlROI->FillColor, 3,1) < 0) {
          SUMA_SLP_Err("Failed in reading FillColor.");
          SUMA_free(nelv);
          SUMA_RETURN(NULL);
       }
       if (SUMA_StringToNum (NI_get_attribute( nel , "EdgeColor"), 
-                           nimlROI->EdgeColor, 3) < 0) {
+                           (void*)nimlROI->EdgeColor, 3,1) < 0) {
          SUMA_SLP_Err("Failed in reading EdgeColor.");
          SUMA_free(nelv);
          SUMA_RETURN(NULL);

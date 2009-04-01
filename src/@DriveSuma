@@ -73,7 +73,9 @@ cd tmp_suma
        DriveSuma -com surf_cont -I_sb 7 -T_sb 8 -T_val 0.0
        DriveSuma -com surf_cont -I_range 0.05 -T_sb -1
        DriveSuma -com surf_cont -I_sb 8 -I_range -0.1 0.1 \
-                      -T_val 0.02 
+                      -T_val 0.02
+       DriveSuma -com surf_cont -B_sb 7 -B_range 0.1 \
+                      -B_scale 0.1 0.9 
        DriveSuma -com surf_cont -switch_dset Convexity -1_only y
        DriveSuma -com surf_cont -switch_cmap roi64 -1_only n
        DriveSuma -com surf_cont -view_dset n

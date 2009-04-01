@@ -113,6 +113,14 @@ FIX_SCALE_SIZE*/
   XtVaSetValues(  SO->SurfCont->thr_sc, XmNheight,  SUMA_CMAP_HEIGHT-40, NULL ) ; \
 }
 
+#define SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO) {\
+      SUMA_UpdateNodeNodeField(SO); \
+      /* Now get the data values at that node */   \
+      SUMA_UpdateNodeValField(SO);  \
+      /* now find that node in the colored list */ \
+      SUMA_UpdateNodeLblField(SO);  \
+}    
+
 void SUMA_ShowMeTheChildren(Widget w);
 void SUMA_UnmanageTheChildren(Widget w);
 void SUMA_ManageTheChildren(Widget w);
@@ -166,7 +174,7 @@ int SUMA_SelectSwitchDsetCol(
          int block,
          int ichoice);
 void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call);
-void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2]);  
+void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2]);  
 void SUMA_cb_set_threshold_label(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );

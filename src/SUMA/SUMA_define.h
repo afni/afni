@@ -505,15 +505,15 @@ typedef struct {
                            This overrides DimFact in SUMA_OVERLAYS*/
    SUMA_Boolean MaskZero; /*!<   values equal to zero will be masked 
                                  no matter what */
-   float ThreshRange[2]; /*!< Thresholding range.  */
+   double ThreshRange[2]; /*!< Thresholding range.  */
    float ThreshStats[2]; /*!<  Thresholding statistics, 
                               ThreshStats[0] = p(ThreshRange[0])
                               ThreshStats[1] = q(ThreshRange[0]) */
-   float IntRange[2]; /*!< nodes with values <= Range[0] are 
+   double IntRange[2]; /*!< nodes with values <= Range[0] are 
                            given the first color in the color map, 
                            values >= Range[1] get the last color in the map
                             (USED to be called ClipRange*/
-   float BrightRange[2]; /*!< Same as IntRange but for brightness 
+   double BrightRange[2]; /*!< Same as IntRange but for brightness 
                               modulating column */
    float BrightMap[2]; /*!<   BrightRange[0] is mapped to BrightMap[0],
                               BrightRange[1] is mapped to BrightMap[1] */
@@ -527,7 +527,7 @@ typedef struct {
    SUMA_THRESH_MODE ThrMode;  /*!< how to apply the thresholding */
    SUMA_Boolean UseBrt; /*!< use or ignore bind */
    SUMA_WIDGET_INDEX_COORDBIAS DoBias;  /*!< use coordinate bias */
-   float CoordBiasRange[2]; /*!< Same as IntRange but for brightness 
+   double CoordBiasRange[2]; /*!< Same as IntRange but for brightness 
                                  modulating column */
    float *BiasVect; /*!< A vector of values to add to the coordinates 
                          of the mesh */
@@ -544,6 +544,7 @@ typedef struct {
    SUMA_Boolean Show; /*!< if YUP then this overlay enters the composite color map */
    char *Name; /*!< name of ovelay, CONVEXITY or Functional or areal boundaries perhaps. The Name can be a filename with path*/
    char *Label; /*!< Usually the same as Name without any existing path */
+      
       /* These can't just come from dset_link because as you change the threshold, and other parameters 
       some nodes may not get colored so the NodeDef list will differ from that in dset.
       The macros COLP_NODEDEF, COLP_N_NODEDEF and COLP_N_ALLOC will be redefined
@@ -572,7 +573,7 @@ typedef struct {
    float DimFact;    /*!< a scaling factor applied to the colors in ColVec 
                            This is overriden by BrightFact in OptScl which is
                            defined for non-explicitly colored planes*/
-   float ForceIntRange[2]; /*!< Use values here to set OptScl->IntRange instead of the true
+   double ForceIntRange[2]; /*!< Use values here to set OptScl->IntRange instead of the true
                                  range of values in the dataset.
                                  The idea is to allow particular settings for the autoranging 
                                  options that are not from the dset's min to max.
@@ -589,6 +590,10 @@ typedef struct {
    
    MEM_topshell_data *rowgraph_mtd;
    int rowgraph_num;
+   
+   DList  *Xforms;   /* A linked list of various transformations to apply
+                        to a dset */
+   DList  *Callbacks; /* A linked list of various callbacks on this overlay */
 } SUMA_OVERLAYS;
 
 

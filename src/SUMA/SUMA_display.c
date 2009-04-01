@@ -375,10 +375,21 @@ SUMA_postRedisplay(Widget w,
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV(w, sv, isv);
    if (isv < 0) {
-      fprintf (SUMA_STDERR, "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURNe;
    } else {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Redisplay Pending registered for viewer %d.\n", FuncName, isv);
+      if (LocalHead) 
+         if (sv->X->REDISPLAYPENDING) {
+            fprintf (SUMA_STDERR, 
+                     "%s: Redisplay Pending. "
+                     "No new request registered for viewer %d.\n",
+                     FuncName, isv);
+         } else {
+            fprintf (SUMA_STDERR, 
+                     "%s: Redisplay Pending registered for viewer %d.\n",
+                     FuncName, isv);
+         }
    }
 
    if(!sv->X->REDISPLAYPENDING) {
@@ -799,8 +810,8 @@ void SUMA_LoadSegDO (char *s, void *csvp )
 
 /*!
    \brief, retrieves an vector attribute
-   and decodes it into m_fv. It is your 
-   job to make sure m_fv is big enough 
+   and decodes it into m_fv (or m_dv for double). It is your 
+   job to make sure m_fv (or m_dv) is big enough 
    for the endeavour 
    m_fail is 1 if no such attribute is found
             2 if the number of values read is not = m_n
@@ -818,7 +829,29 @@ static int shutup;
                   "Error %s:\nNo such attribute (%s).", FuncName, m_attr);  \
       m_fail = 1; \
    }  \
-   m_nr = SUMA_StringToNum(m_atmp, m_fv, m_n);  \
+   m_nr = SUMA_StringToNum(m_atmp, (void*)m_fv, m_n,1);  \
+   if (m_nr != m_n) {  \
+      if (LocalHead) \
+         fprintf( SUMA_STDERR,\
+                  "Error %s:\nBad attribute (%s) length.\n"\
+                  "Expected %d, found %d\n",   \
+                           FuncName, m_attr, m_n, m_nr);  \
+      m_fail = 2; \
+   }  \
+}
+
+#define SUMA_S2DV_ATTR(m_nel, m_attr, m_dv, m_n, m_fail) {\
+   char *m_atmp = NULL; \
+   int m_nr = 0; \
+   m_fail = 0; \
+   m_atmp = NI_get_attribute(m_nel, m_attr); \
+   if (!m_atmp) {   \
+      if (LocalHead) \
+         fprintf( SUMA_STDERR,\
+                  "Error %s:\nNo such attribute (%s).", FuncName, m_attr);  \
+      m_fail = 1; \
+   }  \
+   m_nr = SUMA_StringToNum(m_atmp, (void*)m_dv, m_n,2);  \
    if (m_nr != m_n) {  \
       if (LocalHead) \
          fprintf( SUMA_STDERR,\
@@ -856,6 +889,24 @@ static int shutup;
    NI_set_attribute (m_nel, m_attr, m_stmp);      \
 }
       
+#define SUMA_DV2S_ATTR(m_nel, m_attr, m_dv, m_n, m_fail) {\
+   int m_i; \
+   char m_stmp[SUMA_FV2S_ATTR_TMP_STR], m_val[50];   \
+   m_fail = 0; \
+   m_i = 0; \
+   m_stmp[0] = '\0'; \
+   while (m_i < m_n && !(m_fail)) { \
+      sprintf(m_val,"%f ", m_dv[m_i]); \
+      if (strlen(m_stmp) + strlen(m_val) >= SUMA_FV2S_ATTR_TMP_STR -1) {   \
+         fprintf(SUMA_STDERR,"Error %s\nVector exceeded buffer length.\n", FuncName);  \
+         m_fail = 1; \
+      } else { \
+         strcat (m_stmp, m_val); \
+         ++ m_i;  \
+      }\
+   }  \
+   NI_set_attribute (m_nel, m_attr, m_stmp);      \
+}
 
 /*!
    \brief   A function to save the settings of a surface viewer
@@ -5111,7 +5162,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell (
 {
    static char FuncName[] = {"SUMA_InitializeColPlaneShell"};
    char sbuf[SUMA_MAX_LABEL_LENGTH];
-   float range[2];
+   double range[2];
    int loc[2], i;
    SUMA_SurfaceObject *SOpar=NULL;
    

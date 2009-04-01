@@ -722,6 +722,17 @@ static byte NI_GOT;
       }  \
    } else { NI_GOT = 0; }  \
 }
+
+#define NI_SET_PTR(ngr, name, val) {   \
+   char m_stmp[100]; sprintf(m_stmp,"%p",val);  \
+   NI_set_attribute(ngr, name, m_stmp);  \
+}
+
+#define NI_GET_PTR(ngr, name, val) {   \
+   char *m_s = NI_get_attribute(ngr, name);    \
+   if (m_s) { NI_GOT = 1; sscanf(m_s,"%p", &val);  }\
+}
+
 #define NI_IS_STR_ATTR_EQUAL(ngr, name, stmp) ( (!name || !NI_get_attribute(ngr,name) || !stmp || strcmp(NI_get_attribute(ngr,name), stmp) ) ? 0:1 )
 #define NI_IS_STR_ATTR_EMPTY(ngr, name) ( (!name || !NI_get_attribute(ngr,name) || !strlen(NI_get_attribute(ngr,name))  ) ? 0:1 )
 
@@ -1180,6 +1191,8 @@ SUMA_Boolean SUMA_isMultiColumnAttr(NI_element *nel);
 SUMA_Boolean SUMA_isSingleColumnAttr(NI_element *nel, int *icolb, char *rtname);
 SUMA_Boolean SUMA_isDsetwideColumnAttr(NI_element *nel);
 SUMA_Boolean SUMA_isDsetNelAttr(NI_element *nel);
+char * SUMA_CreateDsetColRangeCompString( SUMA_DSET *dset, int col_index, 
+                                          SUMA_COL_TYPE ctp);
 char * SUMA_GetDsetColStringAttr( SUMA_DSET *dset, int col_index, 
                                     char *attrname);
 SUMA_Boolean SUMA_ParseAttrName(NI_element *nel, int *tp, 
@@ -1246,9 +1259,12 @@ int * SUMA_DsetCol2Int (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly);
 double * SUMA_DsetCol2Double (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
-int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, float range[2], int loc[2]);
-int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, float range[2], int loc[2], int addifmissing);
-int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2]);
+int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, 
+                         double range[2], int loc[2]);
+int SUMA_GetDsetNodeIndexColRange(SUMA_DSET *dset, 
+                                  double range[2], int loc[2], int addifmissing);
+int SUMA_GetColRange(NI_element *nel, int col_index, 
+                     double range[2], int loc[2]);
 int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int stride, int col_index, int insert_mode);
 int SUMA_AddGenDsetNodeIndexColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int stride) ;
 int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col, int stride, int col_index); 
@@ -1272,7 +1288,8 @@ SUMA_DSET * SUMA_far2dset_eng( char *FullName, char *dset_id, char *dom_id,
 SUMA_DSET * SUMA_far2dset_ns( char *FullName, char *dset_id, char *dom_id, 
                                  float **farp, int vec_len, int vec_num, 
                                  int ptr_cpy);
-int SUMA_is_AllNumeric_dset(SUMA_DSET *dset); 
+int SUMA_is_AllNumeric_dset(SUMA_DSET *dset);
+int SUMA_is_AllConsistentNumeric_dset(SUMA_DSET *dset, SUMA_VARTYPE *vtpp);
 int SUMA_is_AllNumeric_ngr(NI_group *ngr) ;
 int SUMA_is_AllNumeric_nel(NI_element *nel);
 int SUMA_is_TimeSeries_dset(SUMA_DSET *dset, double *TRp);
@@ -1376,9 +1393,10 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove);
 SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension(char *Name, char *fallbackname);
 const char *SUMA_ExtensionOfDsetFormat (SUMA_DSET_FORMAT form);
 SUMA_Boolean SUMA_isExtension(char *filename, char *ext);
+char * SUMA_CropExtension(char *filename, char *ext);
 void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test);
 char *SUMA_FnameGet(char *Fname, char *sel, char *cwd);
-int SUMA_StringToNum (char *s, float *fv, int N);
+int SUMA_StringToNum (char *s, void *vv, int N, int p);
 int SUMA_isNumString (char *s, void *p);
 int SUMA_CleanNumString (char *s, void *p);
 char *SUMA_copy_string(char *buf);
