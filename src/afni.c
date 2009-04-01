@@ -91,7 +91,7 @@
 #  define REPORT_PROGRESS(str)  /* nada */
 #else
 #  define REPORT_PROGRESS(str)  \
-    do{ if(AFNI_VERBOSE){printf(str);fflush(stdout);} } while(0)
+    do{ if(AFNI_VERBOSE){fprintf(stderr,str);fflush(stderr);} } while(0)
 #endif
 
 #define EMPTY_STRING(str) ((str)[0] = '\0')
@@ -1900,7 +1900,7 @@ STATUS("call 14") ;
         }
 
         if( ALLOW_real_time > 0 )
-          REPORT_PROGRESS("\nRT: realtime plugin is active") ;
+          REPORT_PROGRESS("\nRT: AFNI realtime plugin is active; cf. README.realtime document") ;
 
         /* 23 Sep 2000: this function will be called 0.123 seconds
                         from now to initialize the window layouts  */
