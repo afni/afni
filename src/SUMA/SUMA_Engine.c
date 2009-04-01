@@ -1777,11 +1777,18 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                     }
                                     
                                     /* set the XYZ */
-                                    svi->Ch->c[0] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID];
-                                    svi->Ch->c[1] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID+1];
-                                    svi->Ch->c[2] = SO2->NodeList[SO2->NodeDim*svi->Ch->NodeID+2];
-                                    fprintf (SUMA_STDERR,"%s: new XYZ %f %f %f\n", FuncName, 
-                                       svi->Ch->c[0], svi->Ch->c[1], svi->Ch->c[2]); 
+                                    svi->Ch->c[0] = SO2->NodeList[SO2->NodeDim*
+                                                               svi->Ch->NodeID];
+                                    svi->Ch->c[1] = SO2->NodeList[SO2->NodeDim*
+                                                             svi->Ch->NodeID+1];
+                                    svi->Ch->c[2] = SO2->NodeList[SO2->NodeDim*
+                                                             svi->Ch->NodeID+2];
+                                    if (LocalHead)
+                                       fprintf (SUMA_STDERR,
+                                                "%s: new XYZ %f %f %f\n", 
+                                                FuncName, 
+                                                svi->Ch->c[0], svi->Ch->c[1], 
+                                                svi->Ch->c[2]); 
                                     Found = YUP;
                                  }
                                  ++it;
