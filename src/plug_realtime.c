@@ -237,7 +237,7 @@ typedef struct {
    int           mask_nvals ;     /* number of non-zero mask values to use   */
    int           mask_nset ;      /* number of set voxels in mask            */
    double *      mask_aves ;      /* averages over each mask value           */
-   
+
 #endif
 
    /*-- Jul 2008 [rickr]: for oblique data                                 --*/
@@ -2136,7 +2136,7 @@ int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
 
     ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
     if( ffac == 0.0 ) ffac = 1.0;
-    
+
     dind = 0;   /* index into output data array */
     vind = 0;   /* mask counter */
     dptr = (void *) DSET_ARRAY(rtin->reg_dset, sub);
@@ -2222,7 +2222,7 @@ int RT_get_mask_aves( RT_input * rtin, int sub )
 
     ffac = DSET_BRICK_FACTOR(rtin->reg_dset, sub);
     if( ffac == 1.0 ) ffac = 0.0;
-    
+
     /* try to be efficient... */
     switch( rtin->datum ){
         int iv, m;
@@ -2382,7 +2382,7 @@ int RT_mp_comm_init( RT_input * rtin )
     int                  sd, send_nvals = 0, rv;
 
      /* if error or not in use, return */
-    if( RT_mp_getenv() || ! g_mask_val_type) { 
+    if( RT_mp_getenv() || ! g_mask_val_type) {
         rtin->mp_tcp_use = -1;
         return -1;
     }
@@ -2560,7 +2560,7 @@ int RT_mp_comm_init_vars( RT_input * rtin )
             g_mask_dset = NULL;
             return 0;
         }
-        
+
         /* and allocate, include unused index 0 */
         rtin->mask_aves = (double *)realloc(rtin->mask_aves,
                                             (max+1)*sizeof(double));
@@ -3818,7 +3818,7 @@ void RT_process_image( RT_input * rtin )
       /* Seems like a good place to write individual volumes to disk in *
        * near real time - vinai.                                        */
 
-      if ( RTdatamode )	/* if not zero, and writing data in real time   */
+      if ( RTdatamode ) /* if not zero, and writing data in real time   */
       {
          THD_3dim_dataset * tmp_dset = NULL ;
          char               RT_prefix[THD_MAX_PREFIX] ;
@@ -3872,7 +3872,7 @@ void RT_process_image( RT_input * rtin )
                   /* again - modify name for RT sets as needed */
                   sprintf ( RT_prefix, "%s_nr_%06d",
                             rtin->reg_dset->dblk->diskptr->prefix,
-                            RT_written[0] ) ; 
+                            RT_written[0] ) ;
                   EDIT_dset_items(tmp_dset, ADN_prefix, RT_prefix, ADN_none);
 
                   if( verbose > 0 )
