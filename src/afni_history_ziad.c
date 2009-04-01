@@ -65,6 +65,24 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 31 , MAR , 2009 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
+   "Added 'on the fly' dot product computation",
+   "This feature is only available with SUMA's -dev\n"
+   "option. It is still in testing mode and its \n"
+   "interface may change. If intrigued, see 'D' key's\n"
+   "help in SUMA's interactive usage help.\n" 
+ } ,
+ 
+ { 31 , MAR , 2009 , ZSS , "suma-general" , MINOR , TYPE_MODIFY ,
+   "Handling of double precision datatypes.",
+   NULL
+ } ,
+ 
+ { 31 , MAR , 2009 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT ,
+   "Added support for '[' and ']' keys and -view_surf",
+   NULL
+ } ,
+ 
  { 26 , MAR , 2009 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT ,
    "Support for reading/writing MNI .obj surfaces",
    NULL

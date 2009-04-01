@@ -121,8 +121,8 @@ void SUMA_MapIcosahedron_usage ()
 "   -write_nodemap: (default) Write a file showing the mapping of each \n"
 "                   node in the icosahedron to the closest\n"
 "                   three nodes in the original mesh.\n"
-"                   The file is named by the prefix FOUT\n"
-"                   suffixed by MI.1D\n"
+"                   The file is named by the prefix of the output\n"
+"                   spec file and suffixed by MI.1D\n"
 "  NOTE: This option is useful for understanding what contributed\n"
 "        to a node's position in the standard meshes (STD_M).\n"
 "        Say a triangle on the  STD_M version of the white matter\n"
@@ -432,6 +432,28 @@ int main (int argc, char *argv[])
       
    }/* loop accross command line options */
 
+   /* check on output file name */
+   if (!THD_ok_overwrite()) {
+      sprintf (outSpecFileNm, "%s%s", 
+               fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
+      if (SUMA_filexists(outSpecFileNm)) {
+         SUMA_S_Errv("File %s exists, change prefix or use -overwrite.\n",
+                     outSpecFileNm);
+         exit(1);
+      } else {
+         sprintf (outSpecFileNm, "%s%s.spec", 
+                  fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
+         if (SUMA_filexists(outSpecFileNm)) {
+            SUMA_S_Errv("File %s exists, change prefix or use -overwrite.\n",
+                        outSpecFileNm);
+            exit(1);
+         }
+      }
+   }
+   /* reset spec prefix */
+   sprintf (outSpecFileNm, "%s%s", 
+            fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
+   
    if (!UseCOM && UserCenter == -1) {
       SUMA_S_Note("\n"
                   "---------------------------------------------------\n"
@@ -1004,8 +1026,13 @@ int main (int argc, char *argv[])
    
    if (WriteMI) {
       FILE *fp=NULL;
-      char *fname = SUMA_append_string(fout,"MI.1D");
-      if (SUMA_filexists(fname) && !THD_ok_overwrite()) {
+      char *fname =  SUMA_copy_string(outSpecFileNm);
+      
+      fname = SUMA_append_replace_string( SUMA_CropExtension(fname,".spec"),
+                        ".MI.1D","",1);
+      /* always overwrite, unless you allow a prefix not based on
+         outSpecFileNm */
+      if (0 && SUMA_filexists(fname) && !THD_ok_overwrite()) {
          SUMA_S_Errv("File %s exists, will not overwrite.", fname);
          exit(1);
       }
@@ -1158,8 +1185,7 @@ int main (int argc, char *argv[])
    
    
    /*write spec file*/
-   sprintf (outSpecFileNm, "%s%s", 
-            fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
+   
    if (!SUMA_Write_SpecFile(stdSpec, outSpecFileNm, FuncName, histnote)) {
       SUMA_S_Err("Failed to write spec file!");
       exit(1);

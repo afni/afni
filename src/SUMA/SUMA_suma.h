@@ -132,6 +132,7 @@
    #include "SUMA_BrainWrap.h"
    #include "SUMA_SurfaceToSurface.h"
    #include "SUMA_LocalStat.h"
+   #include "SUMA_dot.h"
 #else
    /* define the necessary macros */   
    #define SUMA_STDERR stderr

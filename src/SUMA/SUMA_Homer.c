@@ -564,7 +564,7 @@ int main (int argc,char *argv[])
                   SUMA_SL_Err("Failed to find dset!");
                   SUMA_RETURN (NOPE);
                }
-               NewColPlane = SUMA_CreateOverlayPointer (SOv[ipart]->N_Node, "Convexity", dset, SOv[ipart]->idcode_str, NULL);
+               NewColPlane = SUMA_CreateOverlayPointer ("Convexity", dset, SOv[ipart]->idcode_str, NULL);
                if (!NewColPlane) {
                   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
                   SUMA_RETURN (NOPE);

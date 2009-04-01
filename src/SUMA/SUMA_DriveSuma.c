@@ -78,6 +78,7 @@ static char uDS_surf_cont[]={
 "       DriveSuma -com surf_cont -I_range 0.05 -T_sb -1\n"
 "       DriveSuma -com surf_cont -I_sb 8 -I_range -0.1 0.1 \\\n"
 "                      -T_val 0.02 -Dim 0.4\n"
+"       DriveSuma -com surf_cont -B_sb 7 -B_range 0.5 -B_scale 0.1 0.9\n"
 "       DriveSuma -com surf_cont -switch_dset Convexity -1_only y\n"
 "       DriveSuma -com surf_cont -switch_cmap roi64 -1_only n\n"
 "       DriveSuma -com surf_cont -view_dset n\n"
@@ -176,7 +177,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                         ~ Not all key presses from interactive\n"
 "                         more are allowed here.\n"
 "                         ~ Available keys and their variants are:\n"
-"                         b, m, n, p, r, t, z, up, down, left, right,\n"
+"                         [, ], b, m, n, p, r, t, z, up, down, left, right,\n"
 "                         and F1 to F8.\n"
 "                         ~ Key variants are specified this way:\n"
 "                         ctrl+Up or ctrl+alt+Down etc.\n"
@@ -259,7 +260,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "           ! NOTE: When using -load_dset you can follow it\n"
 "                   with -surf_label in order to attach\n"
 "                   the dataset to a particular target surface.\n"
-/*"       -view_surf y/n: Show or hide surface LABEL\n" */
+"       -view_surf y/n: Show or hide surface LABEL\n"
 "       -load_col COL: Load a colorfile named COL.\n"
 "                      Similar to what one loads under\n"
 "                      SUMA-->ctrl+s-->Load Col\n"
@@ -286,6 +287,13 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "       -T_sb TSB: Switch threshold to TSBth column (sub-brick)\n"
 "                  Set TSB to -1 to turn off thresholding.\n"
 "       -T_val THR: Set threshold to THR\n"
+"       -B_sb BSB: Switch brightness modulation to BSBth column (sub-brick)\n"
+"       -B_range BR0 BR1: set brightness clamping range from BR0 to BR1.\n"
+"                         If only one number is given, the range\n"
+"                         is symmetric from -|BR0| to |BR0|.\n"
+"       -B_scale BS0 BS1: Modulate brightness by BS0 factor for BR0 or lower\n"
+"                         by BS1 factor for BR1 or higher, and linearly \n"
+"                         interpolate scaling for BR0 < values < BR1\n" 
 "       -Dim DIM: Set the dimming factor.\n"
 "     + Example surf_cont (assumes all previous examples have\n"
 "       been executed and suma is still running).\n"
@@ -403,7 +411,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
 {
    static char FuncName[]={"SUMA_DriveSuma_ParseCommon"};
    int kar, N, nv, nums;
-   float fv3[3], tmpf;
+   double dv3[3], tmpd;
    char *stmp=NULL;
    SUMA_PARSED_NAME *fn;
    SUMA_Boolean brk = NOPE;
@@ -589,21 +597,114 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
                         " 1 or 2 values allowed.");
             SUMA_RETURN(0);
          }
-         nv = SUMA_StringToNum(stmp, fv3, 3);
+         nv = SUMA_StringToNum(stmp, (void *)dv3, 3,2);
          if (nv < 1 || nv > 2) {
             SUMA_S_Err("Bad range string.");
             SUMA_RETURN(0);
          }else {
-            if (nv == 1) { fv3[0] = -SUMA_ABS(fv3[0]); fv3[1] = -fv3[0]; }
-            else if (fv3[0] > fv3[1]) { 
-               tmpf = fv3[0]; fv3[0] = fv3[1]; fv3[1] = tmpf; 
+            if (nv == 1) { dv3[0] = -SUMA_ABS(dv3[0]); dv3[1] = -dv3[0]; }
+            else if (dv3[0] > dv3[1]) { 
+               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd; 
             }
             /* have range, set it please */
             SUMA_free(stmp); stmp = NULL; 
             stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
-            sprintf(stmp,"%f , %f", fv3[0], fv3[1]);
+            sprintf(stmp,"%f , %f", dv3[0], dv3[1]);
             NI_set_attribute(ngr, "I_range", stmp);
             SUMA_LHv("Range of %s\n", stmp);
+            SUMA_free(stmp); stmp = NULL;
+         }
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argt[kar], "-B_sb") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need an index after -B_sb \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         NI_set_attribute(ngr, "B_sb", argt[++kar]);
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
+      if (!brk && ( (strcmp(argt[kar], "-B_range") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need at least one value after -B_range \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         ++kar; N = 1; stmp = NULL; nums = 0;
+         while (  kar < argtc && 
+                  argt[kar] && 
+                  SUMA_isNumString(argt[kar],(void *)((long int)N))) {
+            stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
+            argt[kar][0] = '\0'; ++kar;
+         } --kar;
+         if (!stmp || nums < 1 || nums > 2) {
+            SUMA_S_Err( "Bad format for -B_range option values;\n"
+                        " 1 or 2 values allowed.");
+            SUMA_RETURN(0);
+         }
+         nv = SUMA_StringToNum(stmp, (void *)dv3, 3,2);
+         if (nv < 1 || nv > 2) {
+            SUMA_S_Err("Bad range string.");
+            SUMA_RETURN(0);
+         }else {
+            if (nv == 1) { dv3[0] = -SUMA_ABS(dv3[0]); dv3[1] = -dv3[0]; }
+            else if (dv3[0] > dv3[1]) { 
+               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd; 
+            }
+            /* have range, set it please */
+            SUMA_free(stmp); stmp = NULL; 
+            stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
+            sprintf(stmp,"%f , %f", dv3[0], dv3[1]);
+            NI_set_attribute(ngr, "B_range", stmp);
+            SUMA_LHv("Range of %s\n", stmp);
+            SUMA_free(stmp); stmp = NULL;
+         }
+         brk = YUP;
+      }
+      if (!brk && ( (strcmp(argt[kar], "-B_scale") == 0) ) )
+      {
+         if (kar+2 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need two values after -B_scale \n");
+            SUMA_RETURN(0);
+         }
+         
+         argt[kar][0] = '\0';
+         ++kar; N = 1; stmp = NULL; nums = 0;
+         while (  kar < argtc && 
+                  argt[kar] && 
+                  SUMA_isNumString(argt[kar],(void *)((long int)N))) {
+            stmp = SUMA_append_replace_string(stmp, argt[kar], " ", 1); ++nums;
+            argt[kar][0] = '\0'; ++kar;
+         } --kar;
+         if (!stmp || nums != 2) {
+            SUMA_S_Err( "Bad format for -B_scale option values;\n"
+                        " 2 values needed.");
+            SUMA_RETURN(0);
+         }
+         nv = SUMA_StringToNum(stmp, (void *)dv3, 3,2);
+         if ( nv != 2) {
+            SUMA_S_Err("Bad scale string.");
+            SUMA_RETURN(0);
+         }else {
+            if (dv3[0] > dv3[1]) { 
+               tmpd = dv3[0]; dv3[0] = dv3[1]; dv3[1] = tmpd; 
+            }
+            /* have scale, set it please */
+            SUMA_free(stmp); stmp = NULL; 
+            stmp = (char *)SUMA_malloc(sizeof(char)*nv*50);
+            sprintf(stmp,"%f , %f", dv3[0], dv3[1]);
+            NI_set_attribute(ngr, "B_scale", stmp);
+            SUMA_LHv("Scale of %s\n", stmp);
             SUMA_free(stmp); stmp = NULL;
          }
          brk = YUP;

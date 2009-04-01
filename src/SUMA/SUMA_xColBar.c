@@ -937,7 +937,7 @@ int SUMA_SwitchColPlaneThreshold(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *colp, in
 {
    static char FuncName[]={"SUMA_SwitchColPlaneThreshold"};
    char srange[500];
-   float range[2]; int loc[2];  
+   double range[2]; int loc[2];  
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1025,7 +1025,7 @@ int SUMA_SwitchColPlaneBrightness(
 {
    static char FuncName[]={"SUMA_SwitchColPlaneBrightness"};
    char srange[500];
-   float range[2]; int loc[2];  
+   double range[2]; int loc[2];  
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -1263,7 +1263,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_da
    static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
    SUMA_SurfaceObject *SO = NULL;
    char slabel[100];
-   float range[2]; int loc[2];  
+   double range[2]; int loc[2];  
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2473,7 +2473,7 @@ void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, XtPointer cal
             SUMA_TableF_SetString (TF);
          }
          #else
-         if (SUMA_StringToNum((char *)n, &val, 1) != 1) {
+         if (SUMA_StringToNum((char *)n, (void *)&val, 1, 1) != 1) {
             SUMA_BEEP;
             /* bad syntax, reset value*/
             if (LocalHead) fprintf (SUMA_STDERR, "%s: Bad syntax.\n", FuncName);
@@ -2780,7 +2780,7 @@ void SUMA_XhairInput (void* data)
       fprintf(SUMA_STDERR,"%s:\nTable cell[%d, %d]=%s\n", FuncName, i, j, (char *)cv);
    }
    /* Now parse that string into 3 numbers */
-   if (SUMA_StringToNum ((char *)cv, fv3, 3) != 3) {
+   if (SUMA_StringToNum ((char *)cv, (void *)fv3, 3,1) != 3) {
       SUMA_BEEP;
       str[0]='\0';
    } else {
@@ -3623,7 +3623,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what)
    char srange_min[50], srange_max[50], srange_minloc[50], srange_maxloc[50];
    SUMA_TABLE_FIELD *TF, *TFs;
    int i, j, i1D, fi, bi, ti;
-   float range[2];
+   double range[2];
    NI_element *nel;
    SUMA_SCALE_TO_MAP_OPT *OptScl;
    SUMA_Boolean DoIs = NOPE, DoBs = NOPE, ColorizeBaby;
@@ -5203,12 +5203,12 @@ void SUMA_UpdatePvalueField (SUMA_SurfaceObject *SO, float thresh)
 }
          
 
-void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])   
+void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, double range[2])   
 {
    static char FuncName[]={"SUMA_SetScaleRange"};
    int min_v, max_v, scl, dec, cv=0;
    Widget w ;
-   float ftmp;
+   double dtmp;
    char slabel[100];
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5266,9 +5266,9 @@ void SUMA_SetScaleRange(SUMA_SurfaceObject *SO, float range[2])
    XtVaGetValues(w, XmNvalue, &cv, NULL);
    #else
    /* what was the slider's previous value in this dset ?*/
-   ftmp = SO->SurfCont->curColPlane->OptScl->ThreshRange[0] * pow(10.0, dec);
-   if (ftmp > 0) cv = (int) (ftmp+0.5);
-   else cv = (int) (ftmp-0.5);
+   dtmp = SO->SurfCont->curColPlane->OptScl->ThreshRange[0] * pow(10.0, dec);
+   if (dtmp > 0) cv = (int) (dtmp+0.5);
+   else cv = (int) (dtmp-0.5);
    #endif
 
    if (LocalHead) fprintf (SUMA_STDERR, "%s:\n min %d max %d scalemult %d decimals %d\nCurrent scale value %d\n", 
@@ -5359,54 +5359,94 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
    SUMA_RETURN(YUP);
    
 }
- 
+
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_UpdateNodeField"};
-   int i=0;
+   int i=0, aa=0, ncall=0;
    SUMA_OVERLAYS *Sover=NULL;
+   NI_element *nel=NULL;
+   DListElmt *el=NULL;
    SUMA_SurfaceObject *curSO=NULL;
+   void  (*fptr)();
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY; 
    
-   if (!SO) SUMA_RETURN(NOPE);
+   if (!SO || !SO->SurfCont) SUMA_RETURN(NOPE);
    
-   if (SO->SurfCont) {
-      curSO = *(SO->SurfCont->curSOp);
-      if (curSO == SO) {
-         SUMA_UpdateNodeNodeField(SO);
-         /* Now get the data values at that node */
-         SUMA_UpdateNodeValField(SO);
-         /* now find that node in the colored list */
-         SUMA_UpdateNodeLblField(SO);
-                  
-      }
-      
-      if (  !SO->SurfCont->ShowCurOnly || 
-            SO->SurfCont->GraphHidden) {   /* graph updating can be done 
-                                             for all planes */
-         for (i=0; i<SO->N_Overlays; ++i) {
-            Sover = SO->Overlays[i];
-            if (     Sover 
-                  && Sover->dset_link 
-                  && Sover->rowgraph_mtd ) {
-               SUMA_OverlayGraphAtNode(Sover, 
-                                       SO, 
-                                       SO->SelectedNode);
+   curSO = *(SO->SurfCont->curSOp);
+
+   /* Do we have click callbacks on the current plane ? */
+   Sover = SO->SurfCont->curColPlane; 
+   if (Sover && Sover->Callbacks) {
+      ncall = 0;
+      el = dlist_head(Sover->Callbacks);
+      while (el) {
+         nel = (NI_element *)el->data;
+         NI_GET_INT(nel,"active",aa);
+         if (aa == 1 && NI_IS_STR_ATTR_EQUAL(nel, "Callback_flava","click")) {
+            SUMA_LHv("Have active click callback %s\n", nel->name);
+            if (!strcmp(nel->name, "Dot.CB")) {
+               NI_GET_PTR(nel, "CallbackPointer", fptr);
+               /* update node index */
+               NI_SET_INT(nel, "ts_node", SO->SelectedNode);
+               fptr((void *)nel);
+               ++ncall;
+            } else {
+               SUMA_S_Errv("Dunno what to make of callback %s\n", nel->name);
+               SUMA_RETURN(NOPE);
             }
+         } else {
+            if (aa == -1) {
+               SUMA_LH("Callback inactive");
+            }
+            SUMA_LHv("Callback flavour %s\n",
+                     NI_get_attribute(nel,"Callback_flava"));
          }
-      } else {
-         Sover = SO->SurfCont->curColPlane;
-         if (     Sover 
-                  && Sover->dset_link 
-                  && Sover->rowgraph_mtd ) {
-               SUMA_OverlayGraphAtNode(Sover, 
-                                       SO, 
-                                       SO->SelectedNode);
-            }
+         el = dlist_next(el);
+      }
+      if (ncall) {
+         SUMA_ColorizePlane(Sover);
+         SUMA_LH("Setting remix flag");
+         if (!SUMA_SetRemixFlag(SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
+            SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
+            SUMA_RETURN(NOPE);
+         }
       }
    }
-   
+
+   if (curSO == SO) {
+      SUMA_LH("Updating GUI Node Fields");
+      SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO);
+   } else {
+      SUMA_LH("No GUI Node Field Updates");
+   }
+
+   if (  !SO->SurfCont->ShowCurOnly || 
+         SO->SurfCont->GraphHidden) {   /* graph updating can be done 
+                                          for all planes */
+      for (i=0; i<SO->N_Overlays; ++i) {
+         Sover = SO->Overlays[i];
+         if (     Sover 
+               && Sover->dset_link 
+               && Sover->rowgraph_mtd ) {
+            SUMA_OverlayGraphAtNode(Sover, 
+                                    SO, 
+                                    SO->SelectedNode);
+         }
+      }
+   } else {
+      Sover = SO->SurfCont->curColPlane;
+      if (     Sover 
+               && Sover->dset_link 
+               && Sover->rowgraph_mtd ) {
+            SUMA_OverlayGraphAtNode(Sover, 
+                                    SO, 
+                                    SO->SelectedNode);
+         }
+   }
+
          
    SUMA_RETURN(YUP);
    
@@ -5456,28 +5496,38 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
    }
    
    /* 1- Where is this node in the data set ? */
-   Found = SUMA_GetNodeRow_FromNodeIndex_s(Sover->dset_link, SO->SelectedNode, SO->N_Node);
+   Found = SUMA_GetNodeRow_FromNodeIndex_s(  Sover->dset_link, 
+                                             SO->SelectedNode, SO->N_Node);
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: Node index %d is at row %d in dset.", FuncName, SO->SelectedNode, Found);
+      fprintf( SUMA_STDERR,
+               "%s: Node index %d is at row %d in dset %p "
+               "(label %s, filename %s).\n", 
+               FuncName, SO->SelectedNode, Found, 
+               Sover->dset_link, 
+               SDSET_LABEL(Sover->dset_link),
+               SDSET_FILENAME(Sover->dset_link));
    }
 
    if (Found >= 0) {
       /* 2- What is the value of the intensity */
-      str_int = SUMA_GetDsetValInCol(Sover->dset_link, Sover->OptScl->find, Found, &dval);
+      str_int = SUMA_GetDsetValInCol(Sover->dset_link, 
+                                     Sover->OptScl->find, Found, &dval);
       if (str_int) {
-         SUMA_LH(str_int);
+         SUMA_LHv("str_int=%s, dval = %f\n",str_int, dval);
          SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, str_int);
       } else {
          SUMA_SL_Err("Failed to get str_int");
       }
-      str_thr = SUMA_GetDsetValInCol(Sover->dset_link, Sover->OptScl->tind, Found, &dval);
+      str_thr = SUMA_GetDsetValInCol(Sover->dset_link, 
+                                     Sover->OptScl->tind, Found, &dval);
       if (str_thr) {
          SUMA_LH(str_thr);
          SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, str_thr);
       } else {
          SUMA_SL_Err("Failed to get str_thr");
       }
-      str_brt = SUMA_GetDsetValInCol(Sover->dset_link, Sover->OptScl->bind, Found, &dval);
+      str_brt = SUMA_GetDsetValInCol(Sover->dset_link, 
+                                     Sover->OptScl->bind, Found, &dval);
       if (str_brt) {
          SUMA_LH(str_brt);
          SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, str_brt);
@@ -5611,9 +5661,11 @@ SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_SurfaceObject *SO)
    /* set the cross hair and related fields */
    SUMA_UpdateTriField(SO);
    SUMA_UpdateNodeField(SO);
-   /* look for a viewer that is showing this surface and has this surface in focus*/
+   /* look for a viewer that is showing this surface and has 
+      this surface in focus*/
    for (i=0; i<SUMAg_N_SVv; ++i) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Checking viewer %d.\n", FuncName, i);
+      if (LocalHead) fprintf (SUMA_STDERR,
+                              "%s: Checking viewer %d.\n", FuncName, i);
       if (!SUMAg_SVv[i].isShaded && SUMAg_SVv[i].X->TOPLEVEL) {
          /* is this viewer showing SO ? */
          if (SUMA_isVisibleSO(&(SUMAg_SVv[i]), SUMAg_DOv, SO)) {

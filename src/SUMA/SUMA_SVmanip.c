@@ -291,7 +291,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          float fv3[3];
          char *eee = getenv("SUMA_Light0Color");
          if (eee && !err) {
-            if (SUMA_StringToNum (eee, fv3, 3) != 3) { 
+            if (SUMA_StringToNum (eee, (void *)fv3, 3, 1) != 3) { 
                err = YUP;
                SUMA_SL_Err("Syntax error in environment\n"
                            "variable SUMA_Light0Color");
@@ -318,7 +318,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          float fv3[3];
          char *eee = getenv("SUMA_AmbientLight");
          if (eee && !err) {
-            if (SUMA_StringToNum (eee, fv3, 3) != 3) { 
+            if (SUMA_StringToNum (eee, (void *)fv3, 3, 1) != 3) { 
                err = YUP;
                SUMA_SL_Err("Syntax error in environment\n"
                            "variable SUMA_AmbientLight");
@@ -344,7 +344,7 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          float fv3[3];
          char *eee = getenv("SUMA_BackgroundColor");
          if (eee && !err) {
-            if (SUMA_StringToNum (eee, fv3, 3) != 3) { 
+            if (SUMA_StringToNum (eee, (void *)fv3, 3,1) != 3) { 
                err = YUP;
                SUMA_SL_Err("Syntax error in environment\n"
                            "variable SUMA_BackgroundColor");

@@ -21,7 +21,7 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c \
 		 SUMA_Color.c SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_DataSets.c	\
 		 SUMA_Homer.c SUMA_xColBar.c SUMA_SurfClust.c SUMA_IsoSurface.c \
 		 SUMA_ConvexHull.c SUMA_BrainWrap.c \
-		 SUMA_SurfaceToSurface.c SUMA_LocalStat.c SUMA_spharm.c \
+		 SUMA_SurfaceToSurface.c SUMA_LocalStat.c SUMA_spharm.c SUMA_dot.c\
 		 SUMA_plot.c SUMA_volume_render.c
 
 GLW_SRCS = GLwMDrawA.c GLwDrawA.c 
