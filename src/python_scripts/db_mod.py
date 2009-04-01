@@ -46,7 +46,8 @@ def db_cmd_tcat(proc, block):
                     (proc.od_var, proc.prefix_form(block,run+1),
                      proc.dsets[run].rpv(), first)
 
-    cmd = cmd + '\n# and enter the results directory\ncd %s\n\n' % proc.od_var
+    cmd = cmd + '\n# and enter the results directory\n' \
+                  'cd %s\n\n' % proc.od_var
 
     proc.reps   -= first        # update reps to account for removed TRs
     proc.bindex += 1            # increment block index
@@ -92,6 +93,158 @@ def db_cmd_despike(proc, block):
                 '    3dDespike%s%s -prefix %s %s\n'                           \
                 'end\n\n' %                                                   \
                 (other_opts, mstr, prefix, prev)
+
+    proc.bindex += 1            # increment block index
+    proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
+
+# --------------- ricor: retroicor ---------------
+
+# copy regs is call from init_script, after all db_mod functions
+def copy_ricor_regs_str(proc):
+    """make a string to copy the retroicor regressors to the results dir"""
+    if len(proc.ricor_regs) < 1: return ''
+    str = '# copy slice-based regressors for RETROICOR\n'
+    if proc.ricor_nfirst > 0: offstr = '\{%d..\$'
+    else:                     offstr = ''
+    
+    for ind in range(len(proc.ricor_regs)):
+        str += '1dcat %s%s > stimuli/ricor_orig_r%02d.1D\n' % \
+               (proc.ricor_regs[ind], offstr, ind)
+
+    return str
+
+# options:
+#
+# -ricor_regress_polort 0
+# -ricor_regress_solver OLSQ/REML
+# -ricor_opts_reml *
+def db_mod_ricor(block, proc, user_opts):
+    # note: regs and nfirst are passed to proc instance, not to block
+    # set the regressor list
+    uopt = user_opts.find_opt('-ricor_regs')
+    if not uopt:
+        print "** missing ricor option: '-ricor_regs'"
+        return
+    if len(uopt.parlist) < 1:
+        print "** missing '-ricor_regs' regressor list"
+        return
+    proc.ricor_regs = uopt.parlist
+
+    # delete nfirst trs from start of each run
+    val, err = user_opts.get_type_opt(int, '-ricor_regs_nfirst')
+    if err: return
+    elif val != None and val >= 0: proc.ricor_nfirst = val
+
+    # --------- setup options to pass to block ------------
+    if len(block.opts.olist) == 0:
+        block.opts.add_opt('-ricor_regress_solver', 1, ['OLSQ'], setpar=1)
+        block.opts.add_opt('-ricor_polort', 1, [-1], setpar=1)
+
+    # --------- process user options ------------
+
+    uopt = user_opts.find_opt('-ricor_polort')
+    bopt = block.opts.find_opt('-ricor_polort')
+    if uopt and bopt: bopt.parlist[0] = uopt.parlist[0]
+
+    uopt = user_opts.find_opt('-ricor_regress_solver')
+    bopt = block.opts.find_opt('-ricor_regress_solver')
+    if uopt and bopt: bopt.parlist[0] = uopt.parlist[0]
+
+    uopt = user_opts.find_opt('-ricor_regress_method')
+    bopt = block.opts.find_opt('-ricor_regress_method')
+    if uopt and bopt: bopt.parlist[0] = uopt.parlist[0]
+
+    block.valid = 1
+
+def db_cmd_ricor(block, proc, user_opts):
+    #----- check for problems -----
+    if len(proc.ricor_regs) < 1:
+        if proc.verb > 1: print '** empty ricor command block: no regs'
+        return ''
+
+    # will only currently work as 'per-run'
+    val, err = user_opts.get_string_opt(int, '-ricor_regress_method')
+    if err or val != 'per-run':
+        print "** currently, -ricor_regress_method must be given with 'per-run'"
+        return
+
+    # check regressors against num runs
+    if len(proc.ricor_regs) != proc.runs:
+        print '** have %d runs but %d slice-base ricor regressors' % \
+              (proc.runs, len(reglist))
+        return
+
+    # get nslices
+    err, dims = get_typed_dset_attr_list(proc.dsets[0].rpv(),
+                                         "DATASET_DIMENSIONS", int)
+    if err or len(dims) < 4:
+        print '** failed to get DIMENSIONS from %s' % proc.dsets[0].rpv()
+        return
+    nslices = dims[2]
+    if proc.verb > 2: print '-- found nslices = %d' % nslices
+
+    # check regressors against nslices and nTR (also check reg[0] existence)
+    adata = None
+    try:
+        import lib_afni1D as LAD
+        adata = LAD.Afni1D(proc.ricor_regs[0], verb=proc.verb)
+    except: pass
+    if not adata or not adata.ready:
+        print "** failed to read '%s' as Afni1D" % proc.ricor_regs[0]
+        return
+    nsliregs = adata.nvec // nslices
+    if nsliregs * nslices != adata.nvec:
+        print "** ricor nsliregs x nslices != nvec (%d,%d,%d)" % \
+              (nsliregs, nslices, adata.nvec)
+        return
+    if proc.reps != adata.nt:
+        print "** ricor NT != dset len (%d, %d)" (adata.nt, proc.reps)
+        return
+
+    # get user polort, else default based on twice the time length
+    val, err = block.opts.get_type_opt(int, '-ricor_polort')
+    if err: return
+    elif val != None and val >= 0: polort = val
+    else: polort = UTIL.get_default_polort(2*proc.tr, proc.reps)
+
+    #----- everything seems okay, write command string -----
+
+    # - process:
+    #       - 3dDetrend polort from regressors
+    #       - 3dD -input -polort -x1D -x1D_stop
+    #       - 3dREMLfit -input -matrix -Rerrts -Rbeta? -slibase -verb?
+    #       - 3dSynthesize -matrix -cbucket -select baseline -prefix
+    #       - 3dcalc -a errts -b baseline -expr a+b -prefix pbXX.ricor
+    cmd = '# -------------------------------------------------------\n' \
+          '# RETROICOR - remove cardiac and respiratory regressors\n'   \
+          'touch %s\n'                                                  \
+          'foreach run ( $runs )\n' % slice0_rall
+
+    cmd = cmd +                                                            \
+        "    # detrend regressors, append slice0 for all_runs regressor\n" \
+        "    3dDetrend -polort %d -prefix rm.ricor.$run.1D\\' \\\n"        \
+        "              stimuli/ricor_orig_r$run.1D\n"                      \
+        "    1dtranspose rm.ricor.$run.1D stimuli/ricor_det_r$run.1D\n"    \
+        "    1d_tool.py -infile stimuli/ricor_det_r$run.1D'[0..%d]'  \\\n" \
+        "               -pad_into_many_runs $run $#runs              \\\n" \
+        "               -write stimuli/ricor_s0_r$run.1D\n\n"            % \
+        (polort, nsliregs-1)
+
+    prev_prefix = proc.prev_prefix_form_run(view=1)
+    val, err = user_opts.get_string_opt(int, '-ricor_regress_solver')
+    if not err and val == 'REML': method = 'R'
+    else:                         method = 'O'
+    cmd = cmd + "\n\n" +                                \
+        "    3dDeconvolve -polort %d -input %s \\\n"    \
+        "        -x1D_stop -x1D ricor.r$run.xmat.1D\n\n" % prev_prefix
+    cmd = cmd +                                         \
+        "    3dREMLfit -verb -input %s \\\n"            \
+        "        -matrix ricor.r$run.xmat.1D \\\n"      \
+        "        -%serrts rm.ricor.errts.r$run \\\n"    \
+        "        -slibase stimuli/ricor_s0_r$run.1D\n\n"
+
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
