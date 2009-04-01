@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "small changes, and prep for retroicor",
+   "- by default, the script will now terminate on any error\n"
+   "- added -exit_on_error, -check_setup_errors\n"
+   "- whine about block order problems"
+ } ,
+
  { 31, MAR, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -pad_to_many_runs, -reverse",
    NULL
