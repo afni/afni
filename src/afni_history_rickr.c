@@ -48,7 +48,17 @@
 
 afni_history_struct rickr_history[] = {
 
- { 1, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+ { 2, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "added 'ricor' processing block, for RETROICOR regressor removal",
+   NULL
+ } ,
+
+ { 1, APR, 2009, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "slight change in add_line_wrapper()",
+   NULL
+ } ,
+
+ { 31, MAR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "small changes, and prep for retroicor",
    "- by default, the script will now terminate on any error\n"
    "- added -exit_on_error, -check_setup_errors\n"

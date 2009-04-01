@@ -317,7 +317,7 @@ scr_show_file( char * filename, param_t * p )
             {
                 bin = 1;
                 if( !p->quiet )
-                    fprintf(stderr,"file '%s' has non-printable chars",
+                    fprintf(stderr,"file '%s' has non-printable chars\n",
                             filename);
             }
             if( p->debug ) fprintf(stderr,": %d (0x%0x)",cp[count],cp[count]);

@@ -106,12 +106,12 @@ def copy_ricor_regs_str(proc):
     """make a string to copy the retroicor regressors to the results dir"""
     if len(proc.ricor_regs) < 1: return ''
     str = '# copy slice-based regressors for RETROICOR\n'
-    if proc.ricor_nfirst > 0: offstr = '\{%d..\$'
+    if proc.ricor_nfirst > 0: offstr = '\{%d..\$}' % proc.ricor_nfirst
     else:                     offstr = ''
     
     for ind in range(len(proc.ricor_regs)):
-        str += '1dcat %s%s > stimuli/ricor_orig_r%02d.1D\n' % \
-               (proc.ricor_regs[ind], offstr, ind)
+        str += '1dcat %s%s > %s/stimuli/ricor_orig_r%02d.1D\n' % \
+               (proc.ricor_regs[ind], offstr, proc.od_var, ind+1)
 
     return str
 
@@ -139,8 +139,9 @@ def db_mod_ricor(block, proc, user_opts):
 
     # --------- setup options to pass to block ------------
     if len(block.opts.olist) == 0:
-        block.opts.add_opt('-ricor_regress_solver', 1, ['OLSQ'], setpar=1)
         block.opts.add_opt('-ricor_polort', 1, [-1], setpar=1)
+        block.opts.add_opt('-ricor_regress_solver', 1, ['OLSQ'], setpar=1)
+        block.opts.add_opt('-ricor_regress_method', 1, ['across_runs'],setpar=1)
 
     # --------- process user options ------------
 
@@ -154,31 +155,29 @@ def db_mod_ricor(block, proc, user_opts):
 
     uopt = user_opts.find_opt('-ricor_regress_method')
     bopt = block.opts.find_opt('-ricor_regress_method')
-    if uopt and bopt: bopt.parlist[0] = uopt.parlist[0]
+    if uopt:
+        if bopt: bopt.parlist[0] = uopt.parlist[0]
+        else: bopt.parlist[0] = uopt.parlist[0]
 
     block.valid = 1
 
-def db_cmd_ricor(block, proc, user_opts):
+def db_cmd_ricor(proc, block):
     #----- check for problems -----
-    if len(proc.ricor_regs) < 1:
-        if proc.verb > 1: print '** empty ricor command block: no regs'
-        return ''
-
-    # will only currently work as 'per-run'
-    val, err = user_opts.get_string_opt(int, '-ricor_regress_method')
-    if err or val != 'per-run':
-        print "** currently, -ricor_regress_method must be given with 'per-run'"
-        return
-
     # check regressors against num runs
     if len(proc.ricor_regs) != proc.runs:
         print '** have %d runs but %d slice-base ricor regressors' % \
               (proc.runs, len(reglist))
         return
 
+    # get regress method (will only currently work as 'per-run')
+    rmethod, err = block.opts.get_string_opt('-ricor_regress_method')
+    if err or rmethod != 'per-run':
+        print "** currently, -ricor_regress_method must be given with 'per-run'"
+        return
+
     # get nslices
-    err, dims = get_typed_dset_attr_list(proc.dsets[0].rpv(),
-                                         "DATASET_DIMENSIONS", int)
+    err, dims = UTIL.get_typed_dset_attr_list(proc.dsets[0].rpv(),
+                                              "DATASET_DIMENSIONS", int)
     if err or len(dims) < 4:
         print '** failed to get DIMENSIONS from %s' % proc.dsets[0].rpv()
         return
@@ -199,8 +198,10 @@ def db_cmd_ricor(block, proc, user_opts):
         print "** ricor nsliregs x nslices != nvec (%d,%d,%d)" % \
               (nsliregs, nslices, adata.nvec)
         return
-    if proc.reps != adata.nt:
-        print "** ricor NT != dset len (%d, %d)" (adata.nt, proc.reps)
+    # check reps against adjusted NT
+    nt = adata.nt-proc.ricor_nfirst
+    if proc.reps != nt:
+        print "** ricor NT != dset len (%d, %d)" % (nt, proc.reps)
         return
 
     # get user polort, else default based on twice the time length
@@ -209,7 +210,22 @@ def db_cmd_ricor(block, proc, user_opts):
     elif val != None and val >= 0: polort = val
     else: polort = UTIL.get_default_polort(2*proc.tr, proc.reps)
 
+    val, err = block.opts.get_string_opt('-ricor_regress_solver')
+    if not err and val == 'REML': solver = 'R'
+    else:                         solver = 'O'
+
+    if proc.verb > 0:
+        sstr = 'OLSQ'
+        if solver == 'R': sstr = 'REML'
+        print "-- ricor: block processed '%s' using '%s' on %d sliregs" \
+              % (rmethod, sstr, nsliregs)
+
     #----- everything seems okay, write command string -----
+
+    prev_prefix = proc.prev_prefix_form_run(view=1)
+    cur_prefix  = proc.prefix_form_run(block)
+    prefix      = 'pb%02d.ricor' % proc.bindex
+    matrix      = '%s.r$run.xmat.1D' % prefix
 
     # - process:
     #       - 3dDetrend polort from regressors
@@ -219,32 +235,52 @@ def db_cmd_ricor(block, proc, user_opts):
     #       - 3dcalc -a errts -b baseline -expr a+b -prefix pbXX.ricor
     cmd = '# -------------------------------------------------------\n' \
           '# RETROICOR - remove cardiac and respiratory regressors\n'   \
-          'touch %s\n'                                                  \
-          'foreach run ( $runs )\n' % slice0_rall
+          'foreach run ( $runs )\n'
 
     cmd = cmd +                                                            \
-        "    # detrend regressors, append slice0 for all_runs regressor\n" \
-        "    3dDetrend -polort %d -prefix rm.ricor.$run.1D\\' \\\n"        \
-        "              stimuli/ricor_orig_r$run.1D\n"                      \
-        "    1dtranspose rm.ricor.$run.1D stimuli/ricor_det_r$run.1D\n"    \
-        "    1d_tool.py -infile stimuli/ricor_det_r$run.1D'[0..%d]'  \\\n" \
-        "               -pad_into_many_runs $run $#runs              \\\n" \
+        "    # detrend regressors, expand slice0 regressors per run\n"     \
+        "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"           \
+        "              stimuli/ricor_orig_r$run.1D\\'\n"                   \
+        "    1dtranspose rm.ricor.$run.1D stimuli/ricor_det_r$run.1D\n\n"  \
+        "    1d_tool.py -infile stimuli/ricor_det_r$run.1D'[0..%d]' \\\n"  \
+        "               -pad_into_many_runs $run $#runs \\\n"              \
         "               -write stimuli/ricor_s0_r$run.1D\n\n"            % \
         (polort, nsliregs-1)
 
-    prev_prefix = proc.prev_prefix_form_run(view=1)
-    val, err = user_opts.get_string_opt(int, '-ricor_regress_solver')
-    if not err and val == 'REML': method = 'R'
-    else:                         method = 'O'
-    cmd = cmd + "\n\n" +                                \
-        "    3dDeconvolve -polort %d -input %s \\\n"    \
-        "        -x1D_stop -x1D ricor.r$run.xmat.1D\n\n" % prev_prefix
     cmd = cmd +                                         \
-        "    3dREMLfit -verb -input %s \\\n"            \
-        "        -matrix ricor.r$run.xmat.1D \\\n"      \
-        "        -%serrts rm.ricor.errts.r$run \\\n"    \
-        "        -slibase stimuli/ricor_s0_r$run.1D\n\n"
+        "    # create X-matrix to apply in 3dREMLfit\n" \
+        "    3dDeconvolve -polort %d -input %s \\\n"    \
+        "        -x1D_stop -x1D %s\n\n" %               \
+        (polort, prev_prefix, matrix)
+    cmd = cmd +                                         \
+        "    # regress out the detrended RETROICOR regressors\n" \
+        "    3dREMLfit -input %s \\\n"                  \
+        "        -matrix %s \\\n"                       \
+        "        -%sbeta %s.betas.r$run \\\n"           \
+        "        -%serrts %s.errts.r$run \\\n"          \
+        "        -slibase stimuli/ricor_det_r$run.1D\n\n"  \
+        % (prev_prefix, matrix, solver, prefix, solver, prefix)
+    cmd = cmd +                                         \
+        "    # re-create polynomial baseline\n"                 \
+        "    3dSynthesize -matrix %s \\\n"                      \
+        "        -cbucket %s.betas.r$run%s'[0..%d]' \\\n"       \
+        "        -select polort -prefix %s.polort.r$run\n\n"    \
+        % (matrix, prefix, proc.view, polort, prefix)
+    cmd = cmd +                                         \
+        "    # final result: add REML errts to polynomial baseline\n"   \
+        "    3dcalc -a %s.errts.r$run%s \\\n"           \
+        "           -b %s.polort.r$run%s \\\n"          \
+        "           -expr a+b -prefix %s\n"             \
+        % (prefix, proc.view, prefix, proc.view, cur_prefix)
+    cmd = cmd + "end\n\n"
 
+    # we have a regressor file to pass to the regress processing block
+    proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
+    proc.ricor_nreg = proc.runs * nsliregs
+
+    cmd = cmd +                                                            \
+        "# put ricor regressors into a single file for 'regress' block\n"  \
+        "1dcat stimuli/ricor_s0_r[0-9]*.1D > %s\n\n" % proc.ricor_reg
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -301,7 +337,7 @@ def db_cmd_tshift(proc, block):
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-tshift_opts_ts')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '             %s  \\\n' % ' '.join(opt.parlist)
+    else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
     # write commands
     cmd = cmd + '# -------------------------------------------------------\n' \
@@ -309,7 +345,7 @@ def db_cmd_tshift(proc, block):
     cmd = cmd + 'foreach run ( $runs )\n'                                     \
                 '    3dToutcount -automask %s > outcount_r$run.1D\n'          \
                 '\n'                                                          \
-                '    3dTshift %s %s -prefix %s      \\\n'                     \
+                '    3dTshift %s %s -prefix %s \\\n'                          \
                 '%s'                                                          \
                 '             %s\n'                                           \
                 'end\n\n' %                                                   \
@@ -429,7 +465,7 @@ def db_cmd_volreg(proc, block):
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-volreg_opts_vr')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '             %s  \\\n' % ' '.join(opt.parlist)
+    else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
     if basevol: bstr = basevol
     else:       bstr = "%s'[%d]'" % (base,sub)
@@ -437,8 +473,8 @@ def db_cmd_volreg(proc, block):
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# align each dset to the base volume\n"                      \
                 "foreach run ( $runs )\n"                                     \
-                "    3dvolreg -verbose -zpad %d -base %s  \\\n"               \
-                "             -1Dfile dfile.r$run.1D -prefix %s  \\\n"        \
+                "    3dvolreg -verbose -zpad %d -base %s \\\n"                \
+                "             -1Dfile dfile.r$run.1D -prefix %s \\\n"         \
                 "             %s \\\n"                                        \
                 "%s"                                                          \
                 "             %s\n" %                                         \
@@ -501,12 +537,12 @@ def db_cmd_blur(proc, block):
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-blur_opts_merge')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '             %s  \\\n' % ' '.join(opt.parlist)
+    else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# blur each volume\n"                                        \
                 "foreach run ( $runs )\n"                                     \
-                "    3dmerge %s %s -doall -prefix %s   \\\n"                  \
+                "    3dmerge %s %s -doall -prefix %s \\\n"                    \
                 "%s"                                                          \
                 "            %s\n"                                            \
                 "end\n\n" % (filter, str(size), prefix, other_opts, prev)
@@ -619,9 +655,9 @@ def db_cmd_scale(proc, block):
                 "%s"                                                          \
                 "foreach run ( $runs )\n"                                     \
                 "    3dTstat -prefix rm.mean_r$run %s\n"                      \
-                "    3dcalc -a %s -b rm.mean_r$run%s  \\\n"                   \
+                "    3dcalc -a %s -b rm.mean_r$run%s \\\n"                    \
                 "%s"                                                          \
-                "           -expr '%s'  \\\n"                                 \
+                "           -expr '%s' \\\n"                                  \
                 "           -prefix %s\n"                                     \
                 "end\n\n" %     \
                 (maxstr, prev, prev, proc.view, mask_dset, expr, prefix)
@@ -894,7 +930,7 @@ def db_cmd_regress(proc, block):
     basis = opt.parlist[0]
 
     opt = block.opts.find_opt('-regress_basis_normall')
-    if opt: normall = '    -basis_normall %s  \\\n' % opt.parlist[0]
+    if opt: normall = '    -basis_normall %s \\\n' % opt.parlist[0]
     else:   normall = ''
 
     opt = block.opts.find_opt('-regress_no_motion')
@@ -908,34 +944,35 @@ def db_cmd_regress(proc, block):
             print "++ updating polort to %d, from run len %.1f s" %  \
                   (polort, proc.tr*proc.reps)
 
-    if len(proc.stims) <= 0:   # be sure we have some stim files
-        print "** missing stim files (-regress_stim_times/-regress_stim_files)"
-        block.valid = 0
-        return
+    # ---- allow no stims
+    # if len(proc.stims) <= 0:   # be sure we have some stim files
+    #    print "** missing stim files (-regress_stim_times/-regress_stim_files)"
+    #     block.valid = 0
+    #    return
 
     cmd = cmd + "# -------------------------------------------------------\n" \
                 "# run the regression analysis\n"
 
     # possibly add a make_stim_times.py command
     opt = block.opts.find_opt('-regress_stim_times')
-    use_times = (block.opts.find_opt('-regress_no_stim_times') == None)
-    if use_times and (not opt.parlist or len(opt.parlist) == 0):
+    convert = (block.opts.find_opt('-regress_no_stim_times') == None) and \
+                len(proc.stims) > 0
+    if convert and (not opt.parlist or len(opt.parlist) == 0):
         newcmd = db_cmd_regress_sfiles2times(proc, block)
         if not newcmd: return
         cmd = cmd + newcmd
 
     if proc.mask and proc.regmask:
-        mask = '    -mask %s%s  \\\n' % (proc.mask, proc.view)
+        mask = '    -mask %s%s \\\n' % (proc.mask, proc.view)
     else:
         mask = ''
 
-    cmd = cmd + '3dDeconvolve -input %s    \\\n'                \
-                '    -polort %d  \\\n'                          \
-                '%s%s'                                          \
-                '    -num_stimts %d  \\\n'                      \
-                % ( proc.prev_dset_form_wild(), polort,
-                    mask, normall,
-                    len(proc.stims)+len(proc.extra_stims)+len(proc.mot_labs) )
+    cmd = cmd + '3dDeconvolve -input %s \\\n'           \
+                '    -polort %d \\\n'                   \
+                '%s%s'                                  \
+                '    -num_stimts %d \\\n'               \
+                % ( proc.prev_dset_form_wild(), polort, mask, normall,
+     len(proc.stims)+len(proc.extra_stims)+len(proc.mot_labs)+proc.ricor_nreg )
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -983,46 +1020,62 @@ def db_cmd_regress(proc, block):
     else:
         iresp = ''
         for index in range(len(labels)):
-            iresp = iresp + "    -iresp %d %s_%s.$subj  \\\n" % \
+            iresp = iresp + "    -iresp %d %s_%s.$subj \\\n" % \
                             (index+1, opt.parlist[0], labels[index])
 
     # write out stim lines (add -stim_base to any RONI)
+
     sfiles = block.opts.find_opt('-regress_no_stim_times')
     for ind in range(len(proc.stims)):
         if sfiles:  # then -stim_file and no basis function
-            cmd = cmd + "    -stim_file %d %s  \\\n" % (ind+1,proc.stims[ind])
+            cmd = cmd + "    -stim_file %d %s \\\n" % (ind+1,proc.stims[ind])
         else:
-            cmd = cmd + "    -stim_times %d %s '%s'  \\\n"  % \
+            cmd = cmd + "    -stim_times %d %s '%s' \\\n"  % \
                         (ind+1, proc.stims[ind], basis)
         # and add the label
         if ind+1 in roni_list: rstr = '-stim_base %d ' % (ind+1)
         else:                  rstr = ''
         cmd = cmd + "    -stim_label %d %s %s\\\n" % (ind+1, labels[ind], rstr)
 
+    # accumulate offset for current regressor list
+    regindex = len(proc.stims) + 1
+
     # maybe add extra_stims (add -stim_base to any RONI)
     if len(proc.extra_stims) > 0:
-        first = len(proc.stims)
         for ind in range(len(proc.extra_stims)):
-            sind = ind+first+1
+            sind = ind+regindex
             if sind in roni_list: rstr = '-stim_base %d ' % sind
             else:                 rstr = ''
-            cmd = cmd + "    -stim_file %d %s  \\\n"    \
+            cmd = cmd + "    -stim_file %d %s \\\n"    \
                         "    -stim_label %d %s %s\\\n" %  \
                         (sind,proc.extra_stims[ind],sind,exlabs[ind],rstr)
+        regindex += len(proc.extra_stims)
 
     # write out registration param lines
     if len(proc.mot_labs) > 0:
-        first = len(proc.stims) + len(proc.extra_stims) + 1 # first stim index
         for ind in range(len(proc.mot_labs)):
+            sind = ind+regindex
             cmd = cmd + "    -stim_file %d %s'[%d]' "           \
-                        "-stim_base %d -stim_label %d %s  \\\n" \
-                % (ind+first, proc.mot_file, ind, ind+first, ind+first,
-                   proc.mot_labs[ind])
+                        "-stim_base %d -stim_label %d %s \\\n"  \
+                % (sind, proc.mot_file, ind, sind, sind, proc.mot_labs[ind])
+        regindex += len(proc.mot_labs)
+
+    # write out ricor param lines (put labels afterwards)
+    if proc.ricor_reg and proc.ricor_nreg > 0:
+        for ind in range(proc.ricor_nreg):
+            cmd = cmd + "    -stim_file %02d %s'[%02d]' "       \
+                        "-stim_base %02d \\\n"                  \
+                        % (ind+regindex, proc.ricor_reg, ind, ind+regindex)
+        cmd = cmd + '    '
+        for ind in range(proc.ricor_nreg):
+            cmd = cmd + "-stim_label %02d ricor%02d " % (ind+regindex, ind)
+        cmd = cmd + '\\\n'
+        regindex += proc.ricor_nreg
 
     # see if the user wants the fit time series
     opt = block.opts.find_opt('-regress_fitts_prefix')
     if not opt or not opt.parlist: fitts = ''
-    else: fitts = '    -fitts %s  \\\n' % opt.parlist[0]
+    else: fitts = '    -fitts %s \\\n' % opt.parlist[0]
 
     # -- see if the user wants the error time series --
     opt = block.opts.find_opt('-regress_errts_prefix')
@@ -1032,18 +1085,18 @@ def db_cmd_regress(proc, block):
         opt.parlist = ['errts.$subj']
 
     if not opt or not opt.parlist: errts = ''
-    else: errts = '    -errts %s  \\\n' % opt.parlist[0]
+    else: errts = '    -errts %s \\\n' % opt.parlist[0]
     # -- end errts --
 
     # see if the user has provided other options (like GLTs)
     opt = block.opts.find_opt('-regress_opts_3dD')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '    %s  \\\n' %         \
+    else: other_opts = '    %s \\\n' %         \
                ' '.join(UTIL.quotize_list(opt.parlist, '\\\n    ', 1))
 
     # are we going to stop with the 1D matrix?
     opt = block.opts.find_opt('-regress_3dD_stop')
-    if opt: stop_opt = '    -x1D_stop  \\\n'
+    if opt: stop_opt = '    -x1D_stop \\\n'
     else  : stop_opt = ''
 
     # add misc options
@@ -1206,8 +1259,8 @@ def blur_est_loop_str(dname, mname, label, nreps, outfile):
     cmd = cmd + 'set b0 = 0\n'                                       \
                 'set b1 = %d    # nreps-1\n' % (nreps-1)
     cmd = cmd + 'foreach run ( $runs )\n'                            \
-                '    3dFWHMx -detrend -mask %s %s"[$b0..$b1]"  \\\n' \
-                '        >> %s\n'                                    \
+                '    3dFWHMx -detrend -mask %s \\\n'                 \
+                '        %s"[$b0..$b1]" >> %s\n'                     \
                 '    @ b0 += %d   # add nreps\n'                     \
                 '    @ b1 += %d\n'                                   \
                 'end\n\n' % (mask, input, tmpfile, nreps, nreps)
@@ -1227,7 +1280,7 @@ def db_cmd_regress_sfiles2times(proc, block):
     # check for a stimulus timing offset
     opt = block.opts.find_opt('-regress_stim_times_offset')
     if opt and opt.parlist and opt.parlist[0] != 0:
-        off_cmd = '                   -offset %s  \\\n' % str(opt.parlist[0])
+        off_cmd = '                   -offset %s \\\n' % str(opt.parlist[0])
     else: off_cmd = ''
 
     cmd = ''
@@ -1235,7 +1288,7 @@ def db_cmd_regress_sfiles2times(proc, block):
 
     cmd = cmd + '\n# create -stim_times files\n'
     cmd = cmd + 'make_stim_times.py -prefix stim_times -tr %s -nruns %d'       \
-                ' -nt %d  \\\n'                                                \
+                ' -nt %d \\\n'                                                 \
                 '%s'                                                           \
                 '                   -files '    \
                 % (str(proc.tr), proc.runs, proc.reps,off_cmd)
