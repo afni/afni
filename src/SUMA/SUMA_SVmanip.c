@@ -384,7 +384,16 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
             else SV->KeyZoomGain = 0.05;
          } else SV->KeyZoomGain = 0.05;
       }
-      
+      {
+         char *eee = getenv("SUMA_KeyNodeJump");
+         if (eee) {
+            int KeyNodeJump = (int)strtod(eee, NULL);
+            if (KeyNodeJump > 0 && KeyNodeJump <= 10) 
+               SV->KeyNodeJump = KeyNodeJump;
+            else SV->KeyNodeJump = 1;
+         } else SV->KeyNodeJump = 1;
+      }
+
       {
          char *eee = getenv("SUMA_FOV_Original");
          if (eee) {

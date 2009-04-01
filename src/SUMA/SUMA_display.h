@@ -363,6 +363,9 @@ void SUMA_LoadSegDO (char *s, void *csvp);
 void SUMA_SiSi_I_Insist(void);
 void SUMA_BuildMenuReset(int nchar);
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
+int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
+                                          SUMA_SurfaceObject *SO,
+                                          int inode, double *dd);
 SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double *WorldList, 
                                        double *ScreenList, int *Quad, SUMA_Boolean ApplyXform);
 SUMA_Boolean SUMA_DrawWindowLine(SUMA_SurfaceViewer *sv, int x0, int y0, int x1, int y1, int meth);
