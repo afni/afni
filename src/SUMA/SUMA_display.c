@@ -3187,9 +3187,9 @@ int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
       SUMA_RETURN(-2);
    }
    /* get all neighbors */
-   p = (double *)SUMA_calloc( SO->NodeDim*SO->FN->N_Neighb_max+1, 
+   p = (double *)SUMA_calloc( SO->NodeDim*(SO->FN->N_Neighb_max+1), 
                               sizeof(double));
-   s = (double *)SUMA_calloc( SO->NodeDim*SO->FN->N_Neighb_max+1, 
+   s = (double *)SUMA_calloc( SO->NodeDim*(SO->FN->N_Neighb_max+1), 
                               sizeof(double));
    q = (int *)SUMA_calloc( SO->FN->N_Neighb_max+1, sizeof(int));
    for (jj=0; jj<SO->NodeDim; ++jj) {

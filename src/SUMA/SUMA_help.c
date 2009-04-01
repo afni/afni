@@ -153,6 +153,10 @@ static ENV_SPEC envlist[] = {
       "            DEFAULT (let the window manager decide)\n",
       "SUMA_StartUpLocation",
       "DEFAULT"},
+   {  "Numer of nodes to jump with the 'alt+arrow' keys. \n"
+      " Valid range from 1 to 10",
+      "SUMA_KeyNodeJump",
+      "1" },
    {  NULL, NULL, NULL  }
 };
       
@@ -1565,18 +1569,25 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     U-D arrows: rotate about screen's X axis\n");
    SS = SUMA_StringAppend (SS, 
-      "     Shift+L-R arrows: translate about screen's \n"
-      "                       Y axis\n");
-   SS = SUMA_StringAppend (SS, 
-      "     Shift+U-D arrows: translate about screen's \n"
+      "     Shift+L-R arrows: translate along screen's \n"
       "                       X axis\n");
+   SS = SUMA_StringAppend (SS, 
+      "     Shift+U-D arrows: translate along screen's \n"
+      "                       Y axis\n");
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+L-R arrows: LR cardinal views\n");
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+U-D arrows: IS cardinal views\n");
    SS = SUMA_StringAppend (SS, 
       "     Ctrl+Shift+U-D arrows: AP cardinal views\n\n");
-
+   SS = SUMA_StringAppend (SS, 
+      "     Alt+L-R arrows: Move selected node to neighboring nodes\n"
+      "                     in the direction of the screen's \n"
+      "                     X axis. The default is to move one\n"
+      "                     node at a time.");
+   SS = SUMA_StringAppend (SS, 
+      "     Alt+U-D arrows: Same as Alt+L-R but in the direction \n"
+      "                     of the screen's Y axis\n");
    SS = SUMA_StringAppend (SS, 
       "     F1: screen axis (X-Red, Y-Green), toggle. \n");
    SS = SUMA_StringAppend (SS, 
