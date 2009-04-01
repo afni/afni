@@ -4366,12 +4366,14 @@ SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl)
    
    ok = YUP; 
    if (lbl) {
-      Label = SUMA_truncate_string(lbl, 20); 
+      Label = SUMA_truncate_string(lbl, 20);
+      NI_set_attribute(dset->ngr, "label", lbl);  
    } else if ( (tmp = NI_get_attribute(dset->ngr,"filename")) ) {
       pn = SUMA_ParseFname(tmp, NULL);
       if (pn) {
          Label = SUMA_truncate_string(pn->FileName_NoExt, 20);
          SUMA_Free_Parsed_Name(pn); pn = NULL;
+         NI_set_attribute(dset->ngr, "label", lbl);  
       } else {
          NI_set_attribute(dset->ngr, "label", "Bad No label"); 
          ok = NOPE;

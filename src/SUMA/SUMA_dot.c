@@ -78,6 +78,13 @@ void SUMA_dot_product_CB( void *params)
       SUMA_S_Err("Failed to extract time series.");
       SUMA_RETURNe;
    }
+   
+   if (LocalHead) {
+      char stmp[1000];
+      SUMA_LabelDset(in_dset, SDSET_FILENAME(in_dset));
+      sprintf(stmp,"%s.ts.%d.1D", SDSET_LABEL(in_dset), ts_node);
+      SUMA_WRITE_ARRAY_1D(ts, N_ts, 1, stmp);
+   }
    /* call dot product computer */
    if (!SUMA_dot_product(in_dset,ts,&out_dset,dotopt)) {
       SUMA_S_Err("Failed to compute dot product");
