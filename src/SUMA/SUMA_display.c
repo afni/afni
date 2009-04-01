@@ -3204,7 +3204,7 @@ int SUMA_NodeNeighborAlongScreenDirection(SUMA_SurfaceViewer *sv,
    }
    /* find screen projection of neighbors */
    if (!SUMA_World2ScreenCoords( sv, SO->FN->N_Neighb[inode]+1,
-                                 p , s, q, 0)) {
+                                 p , s, q, 1)) {
       SUMA_S_Err("The world has failed me");                                            SUMA_RETURN(-2);
    }
 
