@@ -223,7 +223,7 @@ def get_dset_reps_tr(dset, verb=1):
     if verb > 1:
         if units == 77001: unit_str = 'ms'
         else             : unit_str = 's'
-        print '-- dset %s : reps = %d, tr = %s%s' %(dset,reps,istr(tr),unit_str)
+        print '-- dset %s : reps = %d, tr = %s%s' %(dset,reps,str(tr),unit_str)
 
     # and adjust TR
     if units == 77001: tr /= 1000.0
@@ -435,11 +435,11 @@ def add_line_wrappers(commands, wrapstr='\\\n'):
        if '\\\n', align all wrapstr strings"""
     new_cmd = ''
     posn = 0
-    while needs_wrapper(commands, 79, posn):
+    while needs_wrapper(commands, 78, posn):
             
         end = find_command_end(commands, posn)
 
-        if not needs_wrapper(commands, 79, posn, end): # command is okay
+        if not needs_wrapper(commands, 78, posn, end): # command is okay
             if end < 0: new_cmd = new_cmd + commands[posn:]
             else      : new_cmd = new_cmd + commands[posn:end+1]
             posn = end+1
@@ -545,26 +545,26 @@ def get_next_indentation(command,start=0,end=-1):
 
 # does the current string need line wrappers
 # 
-# a string needs wrapping if there are more than 79 characters between
+# a string needs wrapping if there are more than 78 characters between
 # any previous newline, and the next newline, wrap, or end
-def needs_wrapper(command, max=79, start=0, end=-1):
+def needs_wrapper(command, maxlen=78, start=0, end=-1):
     if end < 0: end_posn = len(command) - 1
     else:       end_posn = end
 
     cur_posn = start
     remain = end_posn - cur_posn
-    while remain > max:
+    while remain > maxlen:
         
         # find next '\\\n'
         posn = command.find('\\\n', cur_posn)
-        if 0 <= posn-cur_posn < max: # adjust and continue
+        if 0 <= posn-cur_posn < maxlen: # adjust and continue
             cur_posn = posn + 2
             remain = end_posn - cur_posn
             continue
 
         # find next '\n'
         posn = command.find('\n', cur_posn)
-        if 0 <= posn-cur_posn < max: # adjust and continue
+        if 0 <= posn-cur_posn < maxlen: # adjust and continue
             cur_posn = posn + 1
             remain = end_posn - cur_posn
             continue
@@ -637,7 +637,7 @@ def find_last_space(istr,start,end,max_len=-1,stretch=1):
 
     if posn < start and stretch:       # then search towards end
         posn = index
-        while posn < end and (istr[posn] == '\n' or not istr[posn].isspace()):
+        while posn <= end and (istr[posn] == '\n' or not istr[posn].isspace()):
             posn += 1
         if posn > end: posn = start-1 # still failed
 
@@ -702,11 +702,11 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
 
    return istr
 
-def is_valid_int_list(ldata, min=0, max=-1, whine=0):
+def is_valid_int_list(ldata, imin=0, imax=-1, whine=0):
    """check whether:
         o  ldata is a of type []
         o  values are of type int
-        o  values are in within min..max (only if min <= max)
+        o  values are in within imin..imax (only if imin <= imax)
         o  if whine: complain on error
       return 1 on true, 0 on false"""
 
@@ -718,12 +718,12 @@ def is_valid_int_list(ldata, min=0, max=-1, whine=0):
       if type(val) != type(0):
          if whine: print "** non-int value %d in int list (@ %d)" % (val,ind)
          return 0
-      if min <= max: # then also test bounds
-         if val < min:
-            if whine: print "** list value %d not in [%d,%d]" %(val,min,max)
+      if imin <= imax: # then also test bounds
+         if val < imin:
+            if whine: print "** list value %d not in [%d,%d]" %(val,imin,imax)
             return 0
-         elif val > max:
-            if whine: print "** list value %d not in [%d,%d]" %(val,min,max)
+         elif val > imax:
+            if whine: print "** list value %d not in [%d,%d]" %(val,imin,imax)
             return 0
    return 1
 
