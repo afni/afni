@@ -394,8 +394,11 @@ static int goforit = 0 ;  /* 07 Mar 2007 */
 static int badlev  = 0 ;
 static int floatout= 0 ;  /* 13 Mar 2007 */
 
-#define CHECK_NIFTI(fn)                                                \
- do{ if( !floatout && strstr((fn),".nii") != NULL ){                   \
+/* include other dset types for float output   2 Apr 2009 [rickr] */
+#define CHECK_NEEDS_FLOATS(fn)                                         \
+ do{ if( !floatout &&                                                  \
+         ( strstr((fn),".nii") || strstr((fn),".niml.dset") ||         \
+           strstr((fn),".gii") ) ){                                    \
        WARNING_message(                                                \
         "output prefix '%s' is NIfTI-1 ==> forcing '-float'" , (fn)) ; \
        floatout = 1 ;                                                  \
@@ -2583,7 +2586,7 @@ void get_options
           = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->iresp_filename[k]);
         strcpy (option_data->iresp_filename[k], argv[nopt]);
-        CHECK_NIFTI(argv[nopt]) ;
+        CHECK_NEEDS_FLOATS(argv[nopt]) ;
         nopt++;
         continue;
       }
@@ -2614,7 +2617,7 @@ void get_options
           = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->sresp_filename[k]);
         strcpy (option_data->sresp_filename[k], argv[nopt]);
-        CHECK_NIFTI(argv[nopt]) ;
+        CHECK_NEEDS_FLOATS(argv[nopt]) ;
         nopt++;
         continue;
       }
@@ -2703,7 +2706,7 @@ void get_options
         option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->bucket_filename);
         strcpy (option_data->bucket_filename, argv[nopt]);
-        CHECK_NIFTI(argv[nopt]) ;
+        CHECK_NEEDS_FLOATS(argv[nopt]) ;
         nopt++;
         continue;
       }
@@ -2719,7 +2722,7 @@ void get_options
         nopt++;
         if (nopt >= argc)  DC_error ("need file prefixname after -cbucket ");
         CoefFilename = strdup( argv[nopt] ) ;
-        CHECK_NIFTI(argv[nopt]) ;
+        CHECK_NEEDS_FLOATS(argv[nopt]) ;
         nopt++; continue;
       }
 
@@ -2732,7 +2735,7 @@ void get_options
         option_data->fitts_filename = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->fitts_filename);
         strcpy (option_data->fitts_filename, argv[nopt]);
-        CHECK_NIFTI(argv[nopt]) ;
+        CHECK_NEEDS_FLOATS(argv[nopt]) ;
         nopt++;
         continue;
       }
@@ -2746,7 +2749,7 @@ void get_options
         option_data->errts_filename = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->errts_filename);
         strcpy (option_data->errts_filename, argv[nopt]);
-        CHECK_NIFTI(argv[nopt]) ;
+        CHECK_NEEDS_FLOATS(argv[nopt]) ;
         nopt++;
         continue;
       }
