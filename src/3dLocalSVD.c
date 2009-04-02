@@ -3,7 +3,7 @@
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
-void mri_principal_vector_params( int a , int b ) ;
+void mri_principal_vector_params( int a , int b , int c ) ;
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
                                      int xx, int yy, int zz, MCW_cluster *nbhd ) ;
@@ -21,12 +21,15 @@ int main( int argc , char *argv[] )
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , xx,yy,zz, vstep ;
    float na,nb,nc , dx,dy,dz ;
    MRI_IMARR *imar=NULL ; MRI_IMAGE *pim=NULL ;
-   int do_vmean=0 , do_vnorm=0 ;
+   int do_vmean=0 , do_vnorm=0 , do_vproj ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
        "Usage: 3dLocalSVD [options] inputdataset\n"
-       "You probably want to use 3dDetrend before running this program!\n"
+       "* You may want to use 3dDetrend before running this program.\n"
+       "* This program is highly experimental.  And slowish.\n"
+       "* Computes the SVD of time series from a neighborhood of each\n"
+       "   voxel.  An inricate way of 'smoothing' 3D+time datasets.\n"
        "\n"
        "Options:\n"
        " -mask mset\n"
@@ -36,6 +39,7 @@ int main( int argc , char *argv[] )
        " -nbhd nnn\n"
        " -vmean\n"
        " -vnorm\n"
+       " -vproj\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -54,6 +58,9 @@ int main( int argc , char *argv[] )
      }
      if( strcmp(argv[iarg],"-vnorm") == 0 ){
        do_vnorm = 1 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-vproj") == 0 ){
+       do_vproj = 1 ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-input") == 0 ){
@@ -111,6 +118,10 @@ int main( int argc , char *argv[] )
          sscanf( cpt+5 , "%f" , &na ) ;
          if( na == 0.0f ) ERROR_exit("Can't have a RHDD of radius 0") ;
          ntype = NTYPE_RHDD ;
+       } else if( strncasecmp(cpt,"TOHD",4) == 0 ){
+         sscanf( cpt+5 , "%f" , &na ) ;
+         if( na == 0.0f ) ERROR_exit("Can't have a TOHD of radius 0") ;
+         ntype = NTYPE_TOHD ;
        } else {
           ERROR_exit("Unknown -nbhd shape: '%s'",cpt) ;
        }
@@ -121,7 +132,7 @@ int main( int argc , char *argv[] )
 
    } /*--- end of loop over options ---*/
 
-   mri_principal_vector_params( do_vmean , do_vnorm ) ;
+   mri_principal_vector_params( do_vmean , do_vnorm , do_vproj ) ;
 
    /*---- deal with input dataset ----*/
 
@@ -188,10 +199,24 @@ int main( int argc , char *argv[] )
        nbhd = MCW_rhddmask( dx,dy,dz , na ) ;
      }
      break ;
+
+     case NTYPE_TOHD:{
+       if( na < 0.0f ){ dx = dy = dz = 1.0f ; na = -na ; }
+       else           { dx = fabsf(DSET_DX(inset)) ;
+                        dy = fabsf(DSET_DY(inset)) ;
+                        dz = fabsf(DSET_DZ(inset)) ; }
+       nbhd = MCW_tohdmask( dx,dy,dz , na ) ;
+     }
+     break ;
    }
    MCW_radsort_cluster( nbhd , dx,dy,dz ) ;  /* 26 Feb 2008 */
 
    INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
+#if 0
+   printf("Neighborhood offsets:\n") ;
+   for( kk=0 ; kk < nbhd->num_pt ; kk++ )
+     printf(" [%2d] = %2d %2d %2d\n",kk,nbhd->i[kk],nbhd->j[kk],nbhd->k[kk]) ;
+#endif
 
    set_svd_sort(-1) ;  /* largest singular values first */
 
@@ -215,9 +240,9 @@ int main( int argc , char *argv[] )
      if( !INMASK(kk) ) continue ;
      IJK_TO_THREE( kk , xx,yy,zz , nx,nxy ) ;
      imar = THD_get_dset_nbhd_array( inset , mask , xx,yy,zz , nbhd ) ;
-     if( imar == NULL ) continue ;
+     if( imar == NULL ){ ERROR_message("get failure #%d",kk); continue; }
      pim  = mri_principal_vector( imar ) ; DESTROY_IMARR(imar) ;
-     if( pim == NULL ) continue ;
+     if( pim == NULL ){ ERROR_message("mpv failure #%d",kk); continue; }
      THD_insert_series( kk, outset, nt, MRI_float, MRI_FLOAT_PTR(pim), 0 ) ;
      mri_free(pim) ;
    }
@@ -253,6 +278,7 @@ MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
      kk = aa + bb*nx + cc*nxy ;
      if( INMASK(kk) ) ivox[nvox++] = kk ;
    }
+   if( nvox == 0 ){ free(ivox) ; return NULL ; }
 
    imar = THD_extract_many_series( nvox, ivox, dset ) ;
    free(ivox) ; return imar ;
@@ -262,10 +288,11 @@ MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
 
 static int mpv_vmean = 0 ;
 static int mpv_vnorm = 0 ;
+static int mpv_vproj = 0 ;
 
-void mri_principal_vector_params( int a , int b )
+void mri_principal_vector_params( int a , int b , int c )
 {
-   mpv_vmean = a ; mpv_vnorm = b ;
+   mpv_vmean = a ; mpv_vnorm = b ; mpv_vproj = c ;
 }
 
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
@@ -323,8 +350,12 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 
    sum = 0.0 ;
    for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,0)*far[ii] ;
-   if( sum < 0.0 )
+   if( mpv_vproj && sum != 0.0 ){
+     float fac = (float)sum ;
+     for( ii=0 ; ii < nx ; ii++ ) far[ii] *= fac ;
+   } else if( sum < 0.0 ){
      for( ii=0 ; ii < nx ; ii++ ) far[ii] = -far[ii] ;
+   }
 
    if( vnorm != 0.0f )
      for( ii=0 ; ii < nx ; ii++ ) far[ii] *= vnorm ;
