@@ -48,7 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 2, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+ { 2, APR, 2009, RCR, "3dDeconvolve", MINOR, TYPE_MODIFY,
+   "changed CHECK_NIFTI to CHECK_NEEDS_FLOATS, including other dset types",
+   NULL
+ } ,
+
+ { 1, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "added 'ricor' processing block, for RETROICOR regressor removal",
    NULL
  } ,
