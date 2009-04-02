@@ -1458,7 +1458,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                if (SO->SelectedNode < 0 ||
                    !SO->FN) SUMA_RETURN(1); /* nothing to do */
                inode = SO->SelectedNode;
-               for (k=0; k<sv->KeyNodeJump; ++k) {
+               {
                   inode = 
                      SUMA_NodeNeighborAlongScreenDirection( sv, SO, inode, dd);
                   if (inode == -2) {
@@ -1472,7 +1472,7 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                   } else {
                      SUMA_LHv("Next node should be %d\n", inode);
                   }                           
-               }  /* repeat procedure */
+               }  
                /* Now set the new selected node */
                if (inode >= 0 && inode != SO->SelectedNode) {
                   char stmp[64]; /* use Jump callback, 
@@ -1481,7 +1481,8 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                   SUMA_JumpIndex (stmp, (void *)sv);
                }
             }else {
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);
                trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
                   0.0, -ArrowDeltaRot, /* first point */
                   0.0, ArrowDeltaRot, /* ending x,y */
@@ -1489,7 +1490,8 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                if (LocalHead) {
                   fprintf(stdout,"\ncurrentQuat\n");
                   for (ii=0; ii<4; ++ii) { 
-                     fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[ii]);
+                     fprintf( stdout,"%f\t", 
+                              sv->GVS[sv->StdView].currentQuat[ii]);
                   } 
                   fprintf(stdout,"\n");
                   fprintf(stdout,"\ndeltaQuat\n");
@@ -1498,11 +1500,14 @@ int SUMA_Up_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                   } 
                   fprintf(stdout,"\n");
                }
-               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
+               add_quats ( sv->GVS[sv->StdView].deltaQuat, 
+                           sv->GVS[sv->StdView].currentQuat, 
+                           sv->GVS[sv->StdView].currentQuat);
                if (LocalHead) {
                   fprintf(stdout,"\nnewQuat\n");
                   for (ii=0; ii<4; ++ii) { 
-                     fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[ii]);
+                     fprintf( stdout,"%f\t", 
+                              sv->GVS[sv->StdView].currentQuat[ii]);
                   } 
                   fprintf(stdout,"\n");
                }
@@ -1528,7 +1533,8 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
    static char FuncName[]={"SUMA_Down_Key"};
    char tk[]={"Down"}, keyname[100];
    int k, nc, ii, inode=-1;
-   float ArrowDeltaRot = 0.05; /* The larger the value, the bigger the rotation increment */
+   float ArrowDeltaRot = 0.05; 
+         /* The larger the value, the bigger the rotation increment */
    Widget w;
    double dd[3] = {0.0, 1.0, 0.0}; /* down */
    SUMA_SurfaceObject *SO=NULL;
@@ -1557,7 +1563,9 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
             }else if (SUMA_SHIFT_KEY(key)) {
                /*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
                /*sv->GVS[sv->StdView].translateVec[0] += 0;*/
-               sv->GVS[sv->StdView].translateVec[1] -=  (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+               sv->GVS[sv->StdView].translateVec[1] -=  
+                  (GLfloat)sv->GVS[sv->StdView].ArrowtranslateDeltaY /           
+                  (float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
                SUMA_postRedisplay(w, NULL, NULL);
             }else if (SUMA_CTRL_KEY(key)){
                /*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
@@ -1573,7 +1581,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                if (SO->SelectedNode < 0 ||
                    !SO->FN) SUMA_RETURN(1); /* nothing to do */
                inode = SO->SelectedNode;
-               for (k=0; k<sv->KeyNodeJump; ++k) {
+               {
                   inode = 
                      SUMA_NodeNeighborAlongScreenDirection( sv, SO, inode, dd);
                   if (inode == -2) {
@@ -1587,7 +1595,7 @@ int SUMA_Down_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                   } else {
                      SUMA_LHv("Next node should be %d\n", inode);
                   }                           
-               }  /* repeat procedure */
+               }  
                /* Now set the new selected node */
                if (inode >= 0 && inode != SO->SelectedNode) {
                   char stmp[64]; /* use Jump callback, 
@@ -1668,7 +1676,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                if (SO->SelectedNode < 0 ||
                    !SO->FN) SUMA_RETURN(1); /* nothing to do */
                inode = SO->SelectedNode;
-               for (k=0; k<sv->KeyNodeJump; ++k) {
+               {
                   inode = 
                      SUMA_NodeNeighborAlongScreenDirection( sv, SO, inode, dd);
                   if (inode == -2) {
@@ -1682,7 +1690,7 @@ int SUMA_Left_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                   } else {
                      SUMA_LHv("Next node should be %d\n", inode);
                   }                           
-               }  /* repeat procedure */
+               }  
                /* Now set the new selected node */
                if (inode >= 0 && inode != SO->SelectedNode) {
                   char stmp[64]; /* use Jump callback, 
@@ -1761,7 +1769,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                if (SO->SelectedNode < 0 ||
                    !SO->FN) SUMA_RETURN(1); /* nothing to do */
                inode = SO->SelectedNode;
-               for (k=0; k<sv->KeyNodeJump; ++k) {
+               {
                   inode = 
                      SUMA_NodeNeighborAlongScreenDirection( sv, SO, inode, dd);
                   if (inode == -2) {
@@ -1775,7 +1783,7 @@ int SUMA_Right_Key(SUMA_SurfaceViewer *sv, char *key, char *caller)
                   } else {
                      SUMA_LHv("Next node should be %d\n", inode);
                   }                           
-               }  /* repeat procedure */
+               }  
                /* Now set the new selected node */
                if (inode >= 0 && inode != SO->SelectedNode) {
                   char stmp[64]; /* use Jump callback, 
@@ -3097,7 +3105,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   SUMA_S_Err("Error in key func.");
                   break;
                }   
-            }else if (Kev.state & Mod1Mask  || Kev.state & Mod2Mask) {
+            }else if (Kev.state & Mod1Mask  || 
+                      Kev.state & Mod2Mask) {
                if (!SUMA_Left_Key(sv, "alt+left", "interactive")) {
                   SUMA_S_Err("Error in key func.");
                   break;

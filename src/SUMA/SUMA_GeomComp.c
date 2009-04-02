@@ -1162,6 +1162,10 @@ float ** SUMA_CalcNeighbDist (SUMA_SurfaceObject *SO)
    \param SO (SUMA_SurfaceObject *) structure containing surface object
    \param lim (float) maximum geodesic distance to travel 
                      (ignored when CoverThisNode is used)
+                     if lim is < 0 then the seach stops when 
+                     layer (int)-lim is reached. The geodesic
+                     distances are still computed in that case
+                     but no distance limit applies here.
    \param OffS (SUMA_GET_OFFSET_STRUCT *) initialized structure to contain
           the nodes that neighbor n within lim mm 
           or until all the nodes in CoverThisNode are used up
@@ -1224,11 +1228,14 @@ switch (SEG_METHOD) {
       break;
 }                    
 */
-SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GET_OFFSET_STRUCT *OffS, int *CoverThisNode, int N_CoverThisNode) 
+SUMA_Boolean SUMA_getoffsets2 (  int n, SUMA_SurfaceObject *SO, 
+                                 float lim, SUMA_GET_OFFSET_STRUCT *OffS, 
+                                 int *CoverThisNode, int N_CoverThisNode) 
 {
    static char FuncName[]={"SUMA_getoffsets2"};
-   int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0;
-   float Off_tmp, Seg, *a, *b, minSeg, SegPres; /*! *** SegPres added Jul 08 04, ZSS bug before ... */
+   int LayInd, il, n_il, n_jne, k, n_prec = -1, n_k, jne, iseg=0, MaxLay;
+   float Off_tmp, Seg, *a, *b, minSeg, SegPres; 
+      /*! *** SegPres added Jul 08 04, ZSS bug before ... */
    SUMA_Boolean Visit = NOPE;
    SUMA_Boolean AllDone = NOPE;
    static SUMA_Boolean LocalHead = NOPE;
@@ -1239,6 +1246,11 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
       SUMA_SL_Err("NULL OffS");
       SUMA_RETURN(NOPE);
    }
+   
+   if (lim < 0) { /* Secret code for stopping based on layer number */
+      MaxLay = (int) -lim; /* Maximum layer */
+      lim = 100000.0;   /* Hayuge */
+   } else MaxLay = SO->N_Node; /* a very large number */
    
    /* setup 0th layer */
    OffS->OffVect[n] = 0.0;   /* n is at a distance 0.0 from itself */
@@ -1252,30 +1264,44 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
    }
    LayInd = 1;  /* index of next layer to build */
    AllDone = NOPE;
-   while (!AllDone) {
+   while (!AllDone && LayInd <= MaxLay) {
       
       AllDone = YUP; /* assume that this would be the last layer */
-      for (il=0; il < OffS->layers[LayInd - 1].N_NodesInLayer; ++il) { /* go over all nodes in previous layer */
-         n_il =  OffS->layers[LayInd - 1].NodesInLayer[il]; /* node from previous layer */
-         for (jne=0; jne < SO->FN->N_Neighb[n_il]; ++jne) { /* go over all the neighbours of node n_il */
-            n_jne = SO->FN->FirstNeighb[n_il][jne];        /* node that is an immediate neighbor to n_il */
-            if (OffS->LayerVect[n_jne] < 0) { /* node is not assigned to a layer yet */
-               OffS->LayerVect[n_jne] =  LayInd;    /* assign new layer index to node */
-               OffS->OffVect[n_jne] = 0.0;          /* reset its distance from node n */
-               SUMA_AddNodeToLayer (n_jne, LayInd, OffS);   /* add the node to the nodes in the layer */
+      for (il=0; il < OffS->layers[LayInd - 1].N_NodesInLayer; ++il) { 
+                                 /* go over all nodes in previous layer */
+         n_il =  OffS->layers[LayInd - 1].NodesInLayer[il]; 
+                              /* node from previous layer */
+         for (jne=0; jne < SO->FN->N_Neighb[n_il]; ++jne) { 
+                           /* go over all the neighbours of node n_il */
+            n_jne = SO->FN->FirstNeighb[n_il][jne];        
+                           /* node that is an immediate neighbor to n_il */
+            if (OffS->LayerVect[n_jne] < 0) { 
+                           /* node is not assigned to a layer yet */
+               OffS->LayerVect[n_jne] =  LayInd;    
+                           /* assign new layer index to node */
+               OffS->OffVect[n_jne] = 0.0;          
+                           /* reset its distance from node n */
+               SUMA_AddNodeToLayer (n_jne, LayInd, OffS);   
+                           /* add the node to the nodes in the layer */
                minSeg = 100000.0;
                n_prec = -1; 
                Seg = 0.0;
                SegPres = 0.0;
-               for (k=0; k < SO->FN->N_Neighb[n_jne]; ++k) { /* calculate shortest distance of node to any precursor */  
+               for (k=0; k < SO->FN->N_Neighb[n_jne]; ++k) { 
+                           /* calculate shortest distance of node to 
+                              any precursor */  
                   n_k = SO->FN->FirstNeighb[n_jne][k];
-                  if (OffS->LayerVect[n_k] == LayInd - 1) { /* this neighbor is a part of the previous layer, good */
+                  if (OffS->LayerVect[n_k] == LayInd - 1) { 
+                           /* this neighbor is a part of the previous layer, 
+                              good */
                      if (n_prec < 0) n_prec = SO->FN->FirstNeighb[n_jne][0];
                      a = &(SO->NodeList[3*n_k]); b = &(SO->NodeList[3*n_jne]);
                      /* this is the slow part, too many redundant computations. 
-                        Computation time is cut by a factor > 2 if Seg was set to a constant
-                        However, attempts at accessing pre-calculated segment lengths
-                        proved to be slower. See Comments in function help*/
+                        Computation time is cut by a factor > 2 if Seg was set 
+                        to a constant
+                        However, attempts at accessing pre-calculated segment 
+                        lengths proved to be slower. See Comments in function 
+                        help*/
                      SUMA_SEG_LENGTH_SQ (a, b, Seg);                    
                      if (OffS->OffVect[n_prec] + Seg < minSeg) {
                         minSeg = Seg + OffS->OffVect[n_prec];
@@ -1290,14 +1316,18 @@ SUMA_Boolean SUMA_getoffsets2 (int n, SUMA_SurfaceObject *SO, float lim, SUMA_GE
                   OffS = SUMA_Free_getoffsets (OffS);
                   SUMA_RETURN(NOPE);
                } else {
-                  OffS->OffVect[n_jne] = OffS->OffVect[n_prec] + sqrt(SegPres); SegPres = 0.0;
+                  OffS->OffVect[n_jne] = OffS->OffVect[n_prec] + 
+                                             sqrt(SegPres); 
+                  SegPres = 0.0;
                   if (!CoverThisNode) {
-                     if (OffS->OffVect[n_jne] < lim) { /* must go at least one more layer */
+                     if (OffS->OffVect[n_jne] < lim) { 
+                        /* must go at least one more layer */
                         AllDone = NOPE;
                      }
                   } else {
                      if (CoverThisNode[n_jne]) {
-                        CoverThisNode[n_jne] = 0; --N_CoverThisNode;
+                        CoverThisNode[n_jne] = 0; 
+                        --N_CoverThisNode;
                      }
                      if (N_CoverThisNode > 0) {
                         AllDone = NOPE;
