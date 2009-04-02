@@ -21,7 +21,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *xset=NULL ;
    int nopt=1 , do_automask=0 ;
    int nvox , nvals , ii,jj,kk , polort=1 , ntime ;
-   float *xsar , *ysar ; float cc,csum,Mcsum,Zcsum,Qcsum ;
+   float *xsar , *ysar ; float cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
    byte *mask=NULL ; int nxmask,nymask,nzmask , nmask , vstep=0 ;
    int nref=0 ; float **ref=NULL ;
    MRI_IMAGE *ortim=NULL ; float *ortar=NULL ;
@@ -29,12 +29,13 @@ int main( int argc , char *argv[] )
    char *Mprefix=NULL ; THD_3dim_dataset *Mset=NULL ; float *Mar=NULL ;
    char *Zprefix=NULL ; THD_3dim_dataset *Zset=NULL ; float *Zar=NULL ;
    char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
+   char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ; float Thresh=0.0f ;
    int nout=0 ;
 
    /*----*/
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dTcorrSum [options]\n"
+      printf("Usage: 3dTcorrMap [options]\n"
              "For each voxel, computes the correlation between it and all\n"
              "other voxels, and averages these into the output.  Supposed\n"
              "to give a measure of how 'connected' each voxel is to the\n"
@@ -46,7 +47,10 @@ int main( int argc , char *argv[] )
              "  -Mean pp  = Save average correlations into dataset prefix 'pp'\n"
              "  -Zmean pp = Save tanh of mean arctanh(correlation) into 'pp'\n"
              "  -Qmean pp = Save RMS(correlation) into 'pp'\n"
-             "              (at least one of these output options must be given)\n"
+             "  -Thresh tt pp\n"
+             "            = Save the COUNT of how many voxels survived thresholding\n"
+             "              at level abs(rho) >= tt.\n"
+             "  [At least one of these output options must be given]\n"
              "\n"
              "  -polort m = Remove polynomical trend of order 'm', for m=-1..19.\n"
              "               [default is m=1; removal is by least squares].\n"
@@ -68,8 +72,8 @@ int main( int argc , char *argv[] )
 #ifdef USING_MCW_MALLOC
    enable_mcw_malloc() ;
 #endif
-   mainENTRY("3dTcorrSum main"); machdep(); PRINT_VERSION("3dTcorrSum");
-   AFNI_logger("3dTcorrSum",argc,argv);
+   mainENTRY("3dTcorrMap main"); machdep(); PRINT_VERSION("3dTcorrMap");
+   AFNI_logger("3dTcorrMap",argc,argv);
 
    /*-- option processing --*/
 
@@ -89,22 +93,29 @@ int main( int argc , char *argv[] )
       if( strcasecmp(argv[nopt],"-prefix") == 0 ){
          WARNING_message("-prefix option is converted to -Mean in 3dTcorrMap") ;
          Mprefix = argv[++nopt] ; nout++ ;
-         if( !THD_filename_ok(Mprefix) ) ERROR_exit("Illegal value after -Mean!\n") ;
+         if( !THD_filename_ok(Mprefix) ) ERROR_exit("Illegal string after -prefix!\n") ;
          nopt++ ; continue ;
       }
       if( strcasecmp(argv[nopt],"-Mean") == 0 ){
          Mprefix = argv[++nopt] ; nout++ ;
-         if( !THD_filename_ok(Mprefix) ) ERROR_exit("Illegal value after -Mean!\n") ;
+         if( !THD_filename_ok(Mprefix) ) ERROR_exit("Illegal prefix after -Mean!\n") ;
          nopt++ ; continue ;
       }
       if( strcasecmp(argv[nopt],"-Zmean") == 0 ){
          Zprefix = argv[++nopt] ; nout++ ;
-         if( !THD_filename_ok(Zprefix) ) ERROR_exit("Illegal value after -Zmean!\n") ;
+         if( !THD_filename_ok(Zprefix) ) ERROR_exit("Illegal prefix after -Zmean!\n") ;
          nopt++ ; continue ;
       }
       if( strcasecmp(argv[nopt],"-Qmean") == 0 ){
          Qprefix = argv[++nopt] ; nout++ ;
-         if( !THD_filename_ok(Qprefix) ) ERROR_exit("Illegal value after -Qmean!\n") ;
+         if( !THD_filename_ok(Qprefix) ) ERROR_exit("Illegal prefix after -Qmean!\n") ;
+         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-Thresh") == 0 ){
+         Thresh = (float)strtod(argv[++nopt],NULL) ;
+         if( Thresh <= 0.0f || Thresh >= 0.99f ) ERROR_exit("Illegal -Thresh value %g",Thresh) ;
+         Tprefix = argv[++nopt] ; nout++ ;
+         if( !THD_filename_ok(Tprefix) ) ERROR_exit("Illegal prefix after -Thresh!\n") ;
          nopt++ ; continue ;
       }
 
@@ -209,7 +220,7 @@ int main( int argc , char *argv[] )
      if( THD_deathcon() && THD_is_file(DSET_HEADNAME(Mset)) )
        ERROR_exit("Output dataset %s already exists!",
                   DSET_HEADNAME(Mset)) ;
-     tross_Make_History( "3dTcorrSum" , argc,argv , Mset ) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , Mset ) ;
    }
 
    if( Zprefix != NULL ){
@@ -228,7 +239,7 @@ int main( int argc , char *argv[] )
      if( THD_deathcon() && THD_is_file(DSET_HEADNAME(Zset)) )
        ERROR_exit("Output dataset %s already exists!",
                   DSET_HEADNAME(Zset)) ;
-     tross_Make_History( "3dTcorrSum" , argc,argv , Zset ) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , Zset ) ;
    }
 
    if( Qprefix != NULL ){
@@ -247,7 +258,26 @@ int main( int argc , char *argv[] )
      if( THD_deathcon() && THD_is_file(DSET_HEADNAME(Qset)) )
        ERROR_exit("Output dataset %s already exists!",
                   DSET_HEADNAME(Qset)) ;
-     tross_Make_History( "3dTcorrSum" , argc,argv , Qset ) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , Qset ) ;
+   }
+
+   if( Tprefix != NULL ){
+     Tset = EDIT_empty_copy( xset ) ;
+     EDIT_dset_items( Tset ,
+                        ADN_prefix    , Tprefix        ,
+                        ADN_nvals     , 1              ,
+                        ADN_ntt       , 0              ,
+                        ADN_brick_fac , NULL           ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( Tset , 0 , MRI_float , NULL ) ;
+     Tar = DSET_ARRAY(Tset,0) ;  /* get array  */
+     EDIT_BRICK_TO_NOSTAT(Tset,0) ;
+     if( THD_deathcon() && THD_is_file(DSET_HEADNAME(Tset)) )
+       ERROR_exit("Output dataset %s already exists!",
+                  DSET_HEADNAME(Tset)) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , Tset ) ;
    }
 
    /*--- load input data and pre-process it ---*/
@@ -315,7 +345,7 @@ int main( int argc , char *argv[] )
      if( vstep && ii%vstep==vstep-1 ) vstep_print() ;
      xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,ii) ) ;
 
-     Mcsum = Zcsum = Qcsum = 0.0f ;
+     Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
      for( jj=0 ; jj < nmask ; jj++ ){  /* loop over other voxels, correlate w/ii */
 
        if( jj==ii ) continue ;
@@ -326,10 +356,12 @@ int main( int argc , char *argv[] )
        Mcsum += cc ;
        Zcsum += 0.5f * logf((1.0001f+cc)/(1.0001f-cc));
        Qcsum += cc*cc ;
+       if( fabsf(cc) >= Thresh ) Tcount++ ;
      }
      if( Mar != NULL ) Mar[indx[ii]] = Mcsum / (nmask-1.0f) ;
      if( Zar != NULL ) Zar[indx[ii]] = tanh( Zcsum / (nmask-1.0f) ) ;
      if( Qar != NULL ) Qar[indx[ii]] = sqrt( Qcsum / (nmask-1.0f) ) ;
+     if( Tar != NULL ) Tar[indx[ii]] = Tcount ;
 
    }
    if( vstep ) fprintf(stderr,"!\n") ;
@@ -346,6 +378,9 @@ int main( int argc , char *argv[] )
    }
    if( Qset != NULL ){
      DSET_write(Qset) ; WROTE_DSET(Qset) ; DSET_delete(Qset) ;
+   }
+   if( Tset != NULL ){
+     DSET_write(Tset) ; WROTE_DSET(Tset) ; DSET_delete(Tset) ;
    }
 
    INFO_message("total CPU time = %.2f s",COX_cpu_time()) ; exit(0) ;

@@ -473,7 +473,7 @@ dsetdup:dsetdup.o
 
 3dTcorrMap:3dTcorrMap.o
 	$(RM) $@
-	$(CC) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+	$(CCFAST) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dTagalign:3dTagalign.o
 	$(RM) $@
