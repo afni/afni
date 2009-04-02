@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , APR , 2009 , RWC , "3dLocalSVD" , MICRO , TYPE_BUG_FIX ,
+   "Fixed a little bug in 3dLocalSVD." ,
+   NULL } ,
+
+ { 2 , APR , 2009 , RWC , "3dTcorrMap" , MINOR , TYPE_NEW_OPT ,
+   "Add -Thresh option" ,
+   "To save a count of how many other voxels are above threshold correlated\n"
+   "with each seed voxel." } ,
+
  { 1 , APR , 2009 , RWC , "realtime plugin" , MICRO , TYPE_GENERAL ,
    "Enhanced a few error messages." ,
    "I wish people would READ the damn things, instead of calling me to\n"
