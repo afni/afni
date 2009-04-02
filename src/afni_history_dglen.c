@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 2 , APR , 2009 , DRG , "align_epi_anat.py" , 
+    MICRO , TYPE_MODIFY, "",
+    "Incorporated Bob's recommendations into help to make\n"
+    "various options clearer"
+} ,
+
 { 18 , MAR , 2009 , DRG , "3dZcat, 3daxialize" , 
     MINOR , TYPE_NEW_OPT, "NIFTI support",
     "Fixed support for NIFTI output in 3dZcat and 3daxialize\n"
