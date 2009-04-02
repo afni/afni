@@ -25,13 +25,13 @@ g_help_string = """
     ===========================================================================
     align_epi_anat.py     - align EPI to anatomical datasets or vice versa
     
-    This python script computes the alignment between an EPI and anatomical
+    This Python script computes the alignment between an EPI and anatomical
     structural dataset and applies the resulting transformation to one or the
     other to bring them into alignment.
-    This python script computes the transforms needed to align EPI and  
-    anatomical datasets using a cost function tailored for this purpose. The  
+    This script computes the transforms needed to align EPI and  
+    anatomical datasets using a cost function designed for this purpose. The  
     script combines multiple transformations, thereby minimizing the amount of 
-    interpolation to the data.
+    interpolation applied to the data.
     
     Basic Usage:
       align_epi_anat.py -anat anat+orig -epi epi+orig -epi_base 5
@@ -41,13 +41,22 @@ g_help_string = """
 
     Internally, the script always aligns the anatomical to the EPI dataset,
     and the resulting transformation is saved to a 1D file. 
-    As a user option, The inverse of this transformation may be applied to the 
+    As a user option, the inverse of this transformation may be applied to the 
     EPI dataset in order to align it to the anatomical data instead.
 
     This program generates several kinds of output in the form of datasets
     and transformation matrices which can be applied to other datasets if
     needed. Time-series volume registration, oblique data transformations and
-    talairach transformations will be combined as needed.
+    Talairach (standard template) transformations will be combined as needed
+    and requested (with options to turn on and off each of the steps) in
+    order to create the aligned datasets.
+    
+    **Note the intermediate datasets used to compute the alignment are **not**
+    saved unless one of the -save_xxx options is given. This includes
+    skull-stripped, slice timing corrected and volume registered datasets
+    without alignment. These intermediated datasets are normally deleted.
+    See the -save_xxx section below for more information on saving these 
+    datasets for future use.
     
     Depending upon selected options, the script's output contains the following:
         Datasets:
@@ -56,7 +65,7 @@ g_help_string = """
           EPI_al+tlrc: A version of the EPI dataset aligned to a standard
                        template
         These transformations include slice timing correction and
-          time-series registation by default.
+          time-series registration by default.
 
         Transformation matrices:
           ANAT_al_mat.aff12.1D: matrix to align anatomy to the EPI
@@ -71,46 +80,48 @@ g_help_string = """
           EPI_reg_al_motion.1D: motion parameters from EPI time-series 
                                 registration
           
-    where the uppercase "ANAT" and "EPI" are replaced by the names of the
-    input datasets, and the suffix can be changed from "_al" as a user
+    where the uppercase "ANAT" and "EPI" are replaced by the prefix names
+    of the input datasets, and the suffix can be changed from "_al" as a user
     option.
           
-        You can use these transformation matrices to align other datasets:
+    You can use these transformation matrices later to align other datasets:
          3dAllineate -cubic -1Dmatrix_apply epi_r1_al_mat.aff12.1D  \\
                      -prefix epi_alman epi_r2+orig
 
              
-    The goodness of the alignment should always be assessed. At the face of it,
-    most of 3dAllineate's cost functions, and those of registration programs
-    from other packages, will produce a plausible alignment but it may not be
-    the best. You need to examine the results carefully if alignment quality is
-    crucial for your analysis.
+    The goodness of the alignment should always be assessed visually.
+    Superficially, most of 3dAllineate's cost functions, and those
+    of registration programs from other packages, will produce a plausible
+    alignment based upon a cursory examination but it may not be the best.
+    You need to examine the results carefully if alignment quality is crucial
+    for your analysis.
 
     In the absence of a gold standard, and given the low contrast of EPI data,
     it is difficult to judge alignment quality by just looking at the two
     volumes. This is the case, even when you toggle quickly between one volume
-    and the next; turning overlay off and using 'u' key in the slice window.
-    To aid with the assessment of alignment, you can use the -AddEdge option or
-    call the @AddEdge script directly. See the help for @AddEdge for more
-    information on that script.
+    and the next, by turning the color overlay off and using the 'u' key in the
+    slice viewer window. To aid with the assessment of alignment, you can use
+    the -AddEdge option or call the @AddEdge script directly. See the help for
+    @AddEdge for more information on that script.
 
     The default options assume the epi and anat datasets start off fairly close,
-    as is normally the case when the epi dataset precedes or follows an 
+    as is normally the case when the epi dataset closely precedes or follows an 
     anatomical dataset acquisition. If the two data are acquired over separate
     sessions, or accurate coordinate data is not available in the dataset header
     (as sometimes occurs for oblique data), various options allow for larger
     movement including "-cmass cmass", "-big_move" and "-giant_move". Each of
-    these options is described below. If datasets do not share the same space
-    at all, it may be necessary to use the @Align_Centers script first.
+    these options is described below. If the datasets do not share the same
+    coordinate space at all, it may be necessary to use the @Align_Centers
+    script first.
     
     Although this script has been developed primarily for aligning anatomical T1
     data with EPI BOLD data, it has also been successfully applied for aligning
-    similar modality data together also including T1-SPGR to T1-SPGR, T1-FLAIR
+    similar modality data together, including T1-SPGR to T1-SPGR, T1-FLAIR
     to T1-SPGR, EPI to EPI, T1-SPGR at 7T to T1-SPGR at 3T, EPI-rat1 to
     EPI-rat2, .... If this kind of alignment is required, the default cost
-    function, the localized Pearson Correlation (lpc), is not appropriate.
-    Other cost functions like lpa or nmi have been seen to work well using 
-    "-cost lpa".
+    function, the Local Pearson Correlation (lpc), is not appropriate.
+    Other cost functions like lpa or nmi have been seen to work well for
+    intra-modality alignment, using the option "-cost lpa".
         
     ---------------------------------------------
     REQUIRED OPTIONS:
@@ -127,12 +138,15 @@ g_help_string = """
     -epi2anat   : align EPI to anatomical dataset
                   
 
-    -suffix ssss: append the suffix to the original anat/epi dataset to use
+    -suffix ssss: append suffix 'sss' to the original anat/epi dataset to use
                      in the resulting dataset names (default is "_al")
      
     -child_epi dset1 dset2 ... : specify other EPI datasets to align.
         Time series volume registration will be done to the same
         base as the main parent EPI dataset. 
+        Note if aligning anat to epi, you can still use the -save_vr option
+        to save the volume registered (motion corrected) datasets. See the 
+        -save_xxx option section of this help for more information.
 
     -child_anat dset1 dset2 ... : specify other anatomical datasets to align.
         The same transformation that is computed for the parent anatomical
@@ -170,11 +184,18 @@ g_help_string = """
     -prep_only  : do preprocessing steps only
     -verb nn    : provide verbose messages during processing (default is 0)
     -anat_has_skull yes/no: Anat is assumed to have skull ([yes]/no)
-    -epi_strip  :  method to mask brain in EPI data 
+    -epi_strip methodname :  method to mask brain in EPI data 
                    ([3dSkullStrip]/3dAutomask/None)
-    -volreg_method : method to do time series volume registration of EPI data 
-                   ([3dvolreg],3dWarpDrive). 3dvolreg is for 6 parameter 
-                   (rigid-body) and 3dWarpDrive is for 12 parameter.
+    -volreg_method methodname: method to do time series volume registration
+                   of EPI data ([3dvolreg],3dWarpDrive). 
+                   3dvolreg is for 6 parameter (rigid-body), and
+                   3dWarpDrive is for 12 parameter.
+
+                   Note if aligning anat to epi, the volume registered EPI
+                   dataset is **not** saved unless you use the -save_vr
+                   option. See the -save_xxx option section of this help for
+                   more information.
+
 
     A template registered anatomical dataset such as a talairach-transformed
        dataset may be additionally specified so that output data are
@@ -184,13 +205,16 @@ g_help_string = """
        
     -tlrc_apar ANAT+tlrc : structural dataset that has been aligned to
                   a master template such as a tlrc dataset. If this option
-                  is supplied, then an epi+tlrc dataset will be created.
+                  is supplied, then an epi+tlrc dataset will be created. 
+                  The @auto_tlrc script may be used to create this 
+                  "talairach anatomical parent". This option is only valid
+                  if aligning epi to anat.
 
 
     Other options:
-    -ex_mode       : execute mode (echo/dry_run/quiet/[script]). "dry_run" can
-                     be used to show the commands that would be executed 
-                     without actually running them. 
+    -ex_mode modename : execute mode (echo/dry_run/quiet/[script]).
+                     "dry_run" can be used to show the commands that
+                     would be executed without actually running them. 
                      "echo" shows the commands as they are executed.
                      "quiet" doesn't display commands at all.
                      "script" is like echo but doesn't show stdout, stderr 
@@ -201,31 +225,36 @@ g_help_string = """
     -Allineate_opts '-ssss  -sss' : options to use with 3dAllineate. Default
                      options are 
                      "-weight_frac 1.0 -maxrot 6 -maxshf 10 -VERB -warp aff "
-    -volreg        : do volume registration on EPI dataset before alignment
-                     ([on]/off)
-    -volreg_opts   : options to use with 3dvolreg
-    -volreg_base   : the epi base used in time series volume registration.
+    -volreg [on]/off : do volume registration on EPI dataset before alignment
+    -volreg_opts  '-ssss -sss' : options to use with 3dvolreg
+    -volreg_base basenum/type : the epi base used in time series volume
+                     registration.
                      The default is to use the same base as the epi_base.
                      If another subbrick or base type is used, an additional
                      transformation will be computed between the volume
                      registration and the epi_base
                      (0/mean/median/max/subbrick#)
+                     
+                     Note if aligning anat to epi, the volume registered EPI
+                     dataset is **not** saved unless you use the -save_vr
+                     option. See the -save_xxx option section of this help for
+                     more information.
 
-    -tshift        : do time shifting of EPI dataset before alignment ([on]/off)
+    -tshift [on]/off : do time shifting of EPI dataset before alignment
     -tshift_opts   : options to use with 3dTshift
                      The script will determine if slice timing correction is
                      necessary unless tshift is set to off.
 
-    -deoblique     : deoblique datasets before alignment ([on]/off)
-    -deoblique_opts: options to use with 3dWarp deobliquing
+    -deoblique [on]/off : deoblique datasets before alignment
+    -deoblique_opts '-ssss -sss': options to use with 3dWarp deobliquing
                      The script will try to determine if either EPI or anat data
                      is oblique and do the initial transformation to align anat
                      to epi data using the oblique transformation matrices
                      in the dataset headers.
     
-    -master_epi    : master grid resolution for aligned epi output
-    -master_tlrc   : master grid resolution for epi+tlrc output
-    -master_anat   : master grid resolution for aligned anatomical data output
+    -master_epi  nnn : master grid resolution for aligned epi output
+    -master_tlrc nnn : master grid resolution for epi+tlrc output
+    -master_anat nnn : master grid resolution for aligned anatomical data output
                      (SOURCE/BASE/MIN_DXYZ/dsetname/n.nn)
                      Each of the 'master' options can be set to SOURCE,BASE,
                      a specific master dataset, MIN_DXYZ or a specified cubic 
@@ -247,6 +276,22 @@ g_help_string = """
                      
                      The default value for master_tlrc is MIN_DXYZ.
 
+   -save_xxx options
+      Normally all intermediate datasets are deleted at the end of the script.
+      If aligning anat to epi, the volume registered EPI dataset, although
+      computed, is **not** saved unless you use the -save_vr option.
+      Similarly other intermediate datasets are not saved unless explicitly
+      requested with one of these options:
+      -save_Al_in on/[off] : save 3dAllineate input files
+      -save_tsh on/[off]   : save tshifted epi
+      -save_vr on/[off]    : save volume registered epi
+      -save_skullstrip on/[off] : save skull-stripped (not aligned)
+      -save_rep on/[off]   : save representative tstat epi
+      -save_resample on/[off] : save resampled epi
+      -save_epi_ns on/[off]: save skull-stripped epi
+      -save_all on/[off]   : save all the above datasets
+
+
     Other obscure and experimental options that should only be handled with 
        care, lest they get out, are visible with -full_help or -option_help.
 
@@ -254,6 +299,9 @@ g_help_string = """
       # align anat to sub-brick 5 of epi+orig. In addition, do slice timing
       # correction on epi+orig and register all sub-bricks to sub-brick 5
       # (Sample data files are in AFNI_data4/sb23 in sample class data)
+      # Note the intermediate file, the volume registered EPI dataset,
+      # is **not** saved unless the -save_vr option is also used.
+      # See the -save_xxx option section of this help for more information.
 
       align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig     \\
                         -epi_base 5
@@ -262,7 +310,7 @@ g_help_string = """
       # to match the anatomy. Transform other epi run datasets to be
       # in alignment with the first epi datasets and with the anatomical
       # reference dataset. Note that all epi sub-bricks from all runs
-      # are transformed only once in the process combining volume
+      # are transformed only once in the process, combining volume
       # registration and alignment to the anatomical dataset in a single
       # transformation matrix
 
@@ -271,12 +319,11 @@ g_help_string = """
                         -epi2anat -suffix al2anat
       
       # Bells and whistles:
-      # - create talairach transformed epi datasets (still one transform)
+      # - create Talairach transformed epi datasets (still one transform)
       # - do not execute, just show the commands that would be executed.
       #   These commands can be saved in a script or modified.
-      # + a bunch of other options to tickle your mind
-      # The talairach transformation requires auto-talairaching 
-      # the anatomical dataset first
+      # The Talairach transformation requires auto-Talairaching 
+      # the anatomical dataset first (cf. @auto_tlrc script)
 
       @auto_tlrc -base ~/abin/TT_N27+tlrc -input sb23_mpra+orig
       align_epi_anat.py -anat sb23_mpra+orig -epi epi_r03+orig      \\
@@ -287,6 +334,15 @@ g_help_string = """
 
     Our HBM 2008 abstract describing the alignment tools is available here:
       http://afni.nimh.nih.gov/sscc/rwcox/abstracts
+    
+    Reference:
+       If you find the EPI to Anat alignment capability useful, the paper to
+       cite is:
+       
+       ZS Saad, DR Glen, G Chen, MS Beauchamp, R Desai and RW Cox.
+       A new method for improving functional-to-structural alignment using
+       local Pearson correlation. NeuroImage, 44:839-848, 2009.
+       http://dx.doi.org/10.1016/j.neuroimage.2008.09.037
 
 """   
 
@@ -324,7 +380,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.17" # software version (update for changes)
+      self.align_version = "1.18" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
