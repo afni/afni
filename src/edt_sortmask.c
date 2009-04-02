@@ -66,7 +66,6 @@ ENTRY("MCW_radsort_cluster") ;
    for( ii=0 ; ii < nn ; ii++ ){
       x = cl->i[ii]*dx; y = cl->j[ii]*dy; z = cl->k[ii]*dz;
       aa[ii]    = sqrt( x*x + y*y + z*z ) ;
-      aa[ii]    = cl->mag[ii] ;
       ss[ii]    = (fl_sh3 *) malloc(sizeof(fl_sh3)) ;
       ss[ii]->i = cl->i[ii] ;
       ss[ii]->j = cl->j[ii] ;
