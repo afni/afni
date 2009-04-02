@@ -723,6 +723,15 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                      SUMA_RETURN(0);              
                   }
                   SUMA_free(ts); ts = NULL;
+                  
+                  /* Assign domain parent fields  */
+                  NI_set_attribute(dot->ngr,"domain_parent_idcode",
+                                   NI_get_attribute(in_dset->ngr,
+                                                    "domain_parent_idcode"));
+                  NI_set_attribute(dot->ngr,"geometry_parent_idcode", 
+                                   NI_get_attribute(in_dset->ngr,
+                                                    "geometry_parent_idcode"));
+
                   SUMA_LH( "Insert in DsetList, no replacement allowed\n"
                            "just because I don't think it is necessary" );
                   if (!SUMA_InsertDsetPointer (&dot, SUMAg_CF->DsetList, 0)) {
@@ -741,7 +750,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   }
                   SUMA_LH("Add overlay to SO");
                   /* Add this plane to SO->Overlays */
-                  if (!SUMA_AddNewPlane (SO, child, NULL, -1, 0)) {
+                  if (!SUMA_AddNewPlane (SO, child, SUMAg_DOv, SUMAg_N_DOv, 0)) {
                      SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
                      SUMA_FreeOverlayPointer(child);
                      SUMA_RETURN (0);
