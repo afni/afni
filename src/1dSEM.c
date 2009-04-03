@@ -178,6 +178,13 @@ main (int argc, char *argv[])
               "    1dSEM -theta testthetas_ms.1D -C testcorr.1D -psi testpsi.1D \\ \n"
               "    -nrand 10 -DF 30 -stop_cost 0.1 -grow_all -max_paths 8 | & tee testgrow.txt\n\n"
               "   For more information, see http://afni.nimh.nih.gov/sscc/gangc/PathAna.html\n"
+              "    and our HBM 2007 poster at\n"
+              "   http://afni.nimh.nih.gov/sscc/posters/file.2007-06-07.0771819246\n"
+              " If you find this program useful, please cite:\n"
+              "   G Chen, DR Glen, JL Stein, AS Meyer-Lindenberg, ZS Saad, RW Cox,\n"
+              "   Model Validation and Automated Search in FMRI Path Analysis:\n"
+              "   A Fast Open-Source Tool for Structural Equation Modeling,\n"
+              "   Human Brain Mapping Conference, 2007\n"
               "\n");
 
       exit (0);
