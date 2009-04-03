@@ -7,6 +7,9 @@ void mri_principal_vector_params( int a , int b , int c ) ;
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
                                      int xx, int yy, int zz, MCW_cluster *nbhd ) ;
+float * mri_principal_getev(void) ;
+void    mri_principal_setev(int n) ;
+
 static void vstep_print(void) ;
 
 /*------------------------------------------------------------------------*/
@@ -14,10 +17,11 @@ static void vstep_print(void) ;
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *inset=NULL , *outset=NULL ;
+   THD_3dim_dataset *inset=NULL , *outset=NULL , *evset=NULL ;
    MCW_cluster *nbhd=NULL ;
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    char *prefix="./LocalSVD" ;
+   char *evprefix=NULL ; int nev ;
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , xx,yy,zz, vstep ;
    float na,nb,nc , dx,dy,dz ;
    MRI_IMARR *imar=NULL ; MRI_IMAGE *pim=NULL ;
@@ -35,6 +39,7 @@ int main( int argc , char *argv[] )
        " -mask mset\n"
        " -automask\n"
        " -prefix ppp\n"
+       " -evprefix ppp\n"
        " -input inputdataset\n"
        " -nbhd nnn\n"
        " -vmean\n"
@@ -76,6 +81,13 @@ int main( int argc , char *argv[] )
        prefix = strdup(argv[iarg]) ;
        iarg++ ; continue ;
      }
+
+     if( strcmp(argv[iarg],"-evprefix") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-evprefix'") ;
+       evprefix = strdup(argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
 
      if( strcmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ; int mmm ;
@@ -229,6 +241,15 @@ int main( int argc , char *argv[] )
    for( kk=0 ; kk < nt ; kk++ )
      EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
 
+   nev = nbhd->num_pt ; mri_principal_setev(nev) ;
+   if( evprefix != NULL ){
+     evset = EDIT_empty_copy(outset) ;
+     EDIT_dset_items( evset, ADN_prefix,evprefix, ADN_brick_fac,NULL, ADN_none );
+     EDIT_dset_items( evset, ADN_nvals,nev , ADN_ntt,nbhd->num_pt , ADN_none ) ;
+     for( kk=0 ; kk < nev ; kk++ )
+       EDIT_substitute_brick( evset , kk , MRI_float , NULL ) ;
+   }
+
    nx = DSET_NX(outset) ;
    ny = DSET_NY(outset) ; nxy  = nx*ny  ;
    nz = DSET_NZ(outset) ; nxyz = nxy*nz ;
@@ -245,12 +266,17 @@ int main( int argc , char *argv[] )
      if( pim == NULL ){ ERROR_message("mpv failure #%d",kk); continue; }
      THD_insert_series( kk, outset, nt, MRI_float, MRI_FLOAT_PTR(pim), 0 ) ;
      mri_free(pim) ;
+     if( evset != NULL )
+       THD_insert_series( kk, evset, nev, MRI_float, mri_principal_getev(), 0 );
    }
    if( vstep ) fprintf(stderr,"\n") ;
 
    DSET_delete(inset) ;
-   DSET_write(outset) ;
-   WROTE_DSET(outset) ;
+   DSET_write(outset) ; WROTE_DSET(outset) ; DSET_delete(outset) ;
+
+   if( evset != NULL ){
+     DSET_write(evset) ; WROTE_DSET(evset) ; DSET_delete(evset) ;
+   }
 
    exit(0) ;
 }
@@ -294,6 +320,20 @@ void mri_principal_vector_params( int a , int b , int c )
 {
    mpv_vmean = a ; mpv_vnorm = b ; mpv_vproj = c ;
 }
+
+/*------------------------------------------------------------------------*/
+
+static int    mpv_evnum = 0 ;
+static float *mpv_ev    = NULL ;
+
+float * mri_principal_getev(void){ return mpv_ev ; }
+
+void mri_principal_setev(int n){
+   mpv_evnum = n ;
+   mpv_ev    = (float *)malloc(sizeof(float)*n) ;
+}
+
+/*------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 {
@@ -343,6 +383,9 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    }
 
    svd_double( nx , nvec , amat , sval , umat , vmat ) ;
+
+   for( ii=0 ; ii < nvec      ; ii++ ) mpv_ev[ii] = (float)sval[ii] ;
+   for(      ; ii < mpv_evnum ; ii++ ) mpv_ev[ii] = 0.0f ;
 
    tim = mri_new( nx , 1 , MRI_float ) ;
    far = MRI_FLOAT_PTR(tim) ;
