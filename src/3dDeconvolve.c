@@ -400,7 +400,7 @@ static int floatout= 0 ;  /* 13 Mar 2007 */
          ( strstr((fn),".nii") || strstr((fn),".niml.dset") ||         \
            strstr((fn),".gii") ) ){                                    \
        WARNING_message(                                                \
-        "output prefix '%s' is NIfTI-1 ==> forcing '-float'" , (fn)) ; \
+        "output prefix is '%s' ==> forcing '-float'" , (fn)) ;         \
        floatout = 1 ;                                                  \
    }} while(0)
 
