@@ -19,7 +19,7 @@ int main( int argc , char *argv[] )
    float na,nb,nc , dx,dy,dz ;
    MRI_IMARR *imar=NULL ; int *ivox ; MRI_IMAGE *pim ;
    int do_vmean=0 , do_vnorm=0 , do_vproj=0 , sval_index=0 ;
-   int polort=-1 ;
+   int polort=-1 ; float *ev ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -27,6 +27,11 @@ int main( int argc , char *argv[] )
        "\n"
        "* Computes the principal singular vector of the time series\n"
        "    vectors extracted from the input dataset over the input mask.\n"
+       "* The sign of the output vector is chosen so that the average\n"
+       "    of arctanh(correlation coefficient) over all input data\n"
+       "    vectors is positive.\n"
+       "* The output vector is normalized: the sum of its components\n"
+       "    squared is 1.\n"
        "* You probably want to use 3dDetrend (or something similar) first,\n"
        "    to get rid of annoying artifacts, such as motion, breathing,\n"
        "    dark matter interactions with the brain, etc.\n"
@@ -45,6 +50,24 @@ int main( int argc , char *argv[] )
        " -automask  = guess\n"
        " -polort p  = if you are lazy and didn't want to run 3dDetrend\n"
        " -input ddd = alternative way to give the input dataset name\n"
+       "\n"
+       "Example:\n"
+       " You have a mask dataset with discrete values 1, 2, ... 77 indicating\n"
+       " some ROIs, and want to get the SVD from each ROI's time series separately,\n"
+       " then put these into 1 big 77 column .1D file.  You can do this using a\n"
+       " csh shell script like the one below:\n"
+       "\n"
+       " foreach mm ( `count 1 77` )\n"
+       "   3dmaskSVD -vnorm -mask mymask+orig\"<${mm}..${mm}>\" epi+orig > qvec${mm}.1D\n"
+       " end\n"
+       " 1dcat qvec*.1D > allvec.1D\n"
+       " /bin/rm -f qvec*.1D\n"
+       " 1dplot allvec.1D\n"
+       "\n"
+       " [If you use the bash shell, you'll have to figure out the syntax ]\n"
+       " [yourself. Zhark has no sympathy for you bash shell infidels, and]\n"
+       " [considers you only slightly better than those lowly Emacs users.]\n"
+       " [And do NOT ever even mention 'nedit' in Zhark's august presence!]\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -177,7 +200,16 @@ int main( int argc , char *argv[] )
    INFO_message("Computing SVD") ;
    pim  = mri_principal_vector( imar ) ; DESTROY_IMARR(imar) ;
    if( pim == NULL ) ERROR_exit("SVD failure!") ;
-   INFO_message("First singular value: %g",mri_principal_getev()[0]) ;
+   ev = mri_principal_getev() ;
+   switch(nev){
+     case 1:
+       INFO_message("First singular value: %g",ev[0]) ; break ;
+     case 2:
+       INFO_message("First 2 singular values: %g %g",ev[0],ev[1]) ; break ;
+     case 3:
+     default:
+       INFO_message("First 3 singular values: %g %g %g",ev[0],ev[1],ev[2]) ; break ;
+   }
    mri_write_1D(NULL,pim) ;
 
    exit(0) ;
@@ -215,7 +247,7 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    double *amat , *umat , *vmat , *sval ;
    float *far ; MRI_IMAGE *tim ;
    float vmean=0.0f , vnorm=0.0f ;
-   register double sum ;
+   register double sum , zum ; double qum ;
 
    if( imar == NULL ) return NULL ;
    nvec = IMARR_COUNT(imar) ;       if( nvec < 1 ) return NULL ;
@@ -268,12 +300,24 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    far = MRI_FLOAT_PTR(tim) ;
    for( ii=0 ; ii < nx ; ii++ ) far[ii] = (float)U(ii,mpv_sindx) ;
 
-   sum = 0.0 ;
+   /* select sign of result vector */
+
+   qum = 0.0 ;
    for( jj=0 ; jj < nvec ; jj++ ){
-     for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,0)*far[ii] ;
+     zum = sum = 0.0 ;
+     for( ii=0 ; ii < nx ; ii++ ){ sum += A(ii,jj)*far[ii] ; zum += A(ii,jj)*A(ii,jj) ; }
+     if( zum > 0.0 ){
+       sum = sum / zum ; sum = MIN(sum,0.999) ; sum = MAX(sum,-0.999) ;
+       qum += atanh(sum) ;
+     }
    }
-   if( sum < 0.0 ){
+   if( qum < 0.0 ){
      for( ii=0 ; ii < nx ; ii++ ) far[ii] = -far[ii] ;
+   }
+   sum = 0.0 ;
+   for( ii=0 ; ii < nx ; ii++ ) sum += far[ii]*far[ii] ;
+   if( sum > 0.0 && sum != 1.0 ){
+     sum = 1.0 / sum ; for( ii=0 ; ii < nx ; ii++ ) far[ii] *= sum ;
    }
 
    free(sval); free(vmat); free(umat); free(amat); return tim;
