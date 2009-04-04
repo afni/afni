@@ -17,10 +17,11 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 
    if( fname == NULL || *fname == '\0' ) return NULL ;  /* bad input */
 
-   /* special case -- be sure not to fclose() stdout */
+   /* special case -- be sure not to fclose() stdout! */
 
-   if( strcmp(fname,"-") == 0 || strcmp(fname,"-.1D")   == 0
-                              || strcmp(fname,"stdout") == 0 ) return stdout ;
+   if( strcmp(fname,"-") == 0 || strcmp(fname,"-.1D")    == 0
+                              || strcmp(fname,"stdout")  == 0 
+                              || strcmp(fname,"stdout:") == 0 ) return stdout ;
 
    if( THD_is_ondisk(fname) ){   /* check for existing file */
      if( !THD_ok_overwrite() ){  /* if not allowed to overwrite */
@@ -241,8 +242,7 @@ int mri_write_1D( char *fname , MRI_IMAGE *im )  /* 16 Nov 1999 */
 
 ENTRY("mri_write_1D") ;
 
-   if( fname == NULL || strlen(fname) == 0 ||
-       im == NULL    || im->nz > 1           ) RETURN( 0 );
+   if( im == NULL || im->nz > 1 ) RETURN( 0 ) ; /* stoopid user */
 
    fim = mri_transpose( im ) ;
    jj  = mri_write_ascii( fname , fim ) ;
@@ -259,22 +259,20 @@ int mri_write_ascii( char *fname, MRI_IMAGE *im )
 
 ENTRY("mri_write_ascii") ;
 
-   if( fname == NULL || *fname == '\0' ||
-       im    == NULL || im->nz >  1      ) RETURN( 0 );
+   if( im == NULL || im->nz > 1 ) RETURN( 0 ) ; /* stoopid user */
 
+   if( fname == NULL || *fname == '\0' ) fname = "-" ; /* to stdout */
    imfile = fopen_maybe(fname) ;
    if( imfile == NULL ) RETURN(0) ;
 
    nx = im->nx ; ny = im->ny ;
 
-STATUS("looping") ;
    for( jj=0 ; jj < ny ; jj++ ){
 
       switch( im->kind ){
 
          case MRI_float:{
            float *iar = MRI_FLOAT_PTR(im) + (jj*nx) ;
-STATUS(" flooping") ;
            for( ii=0 ; ii < nx ; ii++ )
              fprintf(imfile," %14g",iar[ii]) ;
          }
@@ -326,7 +324,6 @@ STATUS(" flooping") ;
       fprintf(imfile,"\n") ;
    }
 
-STATUS("done") ;
    fclose_maybe(imfile) ;
    RETURN( 1 );
 }
