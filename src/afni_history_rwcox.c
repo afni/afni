@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , APR , 2009 , RWC , "3dmaskSVD" , MINOR , TYPE_NEW_PROG ,
+   "Like 3dmaskave, but does SVD principal vector instead of average" ,
+   NULL } ,
+
  { 2 , APR , 2009 , RWC , "3dLocalSVD" , MICRO , TYPE_BUG_FIX ,
    "Fixed a little bug in 3dLocalSVD." ,
    NULL } ,

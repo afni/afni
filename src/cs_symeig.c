@@ -397,10 +397,10 @@ void symeigval_double( int n , double *a , double *e )
 # define CHK 0
 #endif
 
-/** sorting SVD values:
-      0 = no sort
-     +1 = sort increasing order
-     -1 = sort descending order **/
+/** setup for sorting SVD values:
+      0 = no sort (whatever the function returns)
+     +1 = sort in increasing order of singular values
+     -1 = sort in descending order of singular values **/
 
 static int svd_sort = 0 ;
 void set_svd_sort( int ss ){ svd_sort = ss; }
@@ -408,14 +408,15 @@ void set_svd_sort( int ss ){ svd_sort = ss; }
 /*----------------------------------------------------------------------------*/
 /*! Compute SVD of double precision matrix:                      T
                                             [a] = [u] diag[s] [v]
-    - m = # of rows in a
-    - n = # of columns in a
-    - a = pointer to input matrix; a[i+j*m] has the (i,j) element (mXn matrix)
-    - s = pointer to output singular values; length = n
-    - u = pointer to output matrix, if desired; length = m*n (mXn matrix)
-    - v = pointer to output matrix, if desired; length = n*n (nxn matrix)
+    - m = # of rows in a = length of each column
+    - n = # of columns in a = length of each row
+    - a = pointer to input matrix; a[i+j*m] has the (i,j) element
+          (m X n matrix, stored in column-first order)
+    - s = pointer to output singular values; length = n (cannot be NULL)
+    - u = pointer to output matrix, if desired; length = m*n (m X n matrix)
+    - v = pointer to output matrix, if desired; length = n*n (n x n matrix)
 
-  Modified 10 Jan 2007 to add sorting of s and columns of u & v.
+  Modified 10 Jan 2007 to add sorting of s and corresponding columns of u & v.
 ------------------------------------------------------------------------------*/
 
 void svd_double( int m, int n, double *a, double *s, double *u, double *v )
@@ -432,6 +433,8 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
    lda = m ;
    ww  = s ;
 
+   /* make space for u matrix, if not supplied */
+
    if( u == NULL ){
      matu = (logical) CHK ;
      uu   = (doublereal *)malloc(sizeof(double)*m*n) ;
@@ -440,6 +443,8 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
      uu = u ;
    }
    ldu = m ;
+
+   /* make space for v matrix if not supplied */
 
    if( v == NULL ){
      matv = (logical) CHK ;
@@ -452,10 +457,17 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
 
    rv1 = (double *) malloc(sizeof(double)*n) ;  /* workspace */
 
+   /** the actual SVD **/
+
    (void) svd_( &mm , &nn , &lda , aa , ww ,
                 &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
 
 #ifdef CHECK_SVD
+   /** back-compute [A] from [U] diag[ww] [V]'
+       and see if it is close to the input matrix;
+       if not, compute the results in another function;
+       this is needed because the svd() function compiles with
+       rare computational errors on some compilers' optimizers **/
    { register int i,j,k ; register doublereal aij ; double err ;
      err = 0.0 ;
      for( j=0 ; j < n ; j++ ){
@@ -464,9 +476,9 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
         for( k=0 ; k < n ; k++ ) aij -= U(i,k)*V(j,k)*ww[k] ;
         err += fabs(aij) ;
      }}
-     err /= (m*n) ;
+     err /= (m*n) ;  /* average absolute error per matrix element */
      if( err >= 1.e-5 ){
-       WARNING_message("SVD err=%g; recomputing ...\n",err) ;
+       WARNING_message("SVD avg err=%g; recomputing ...\n",err) ;
        (void) svd_slow_( &mm , &nn , &lda , aa , ww ,
                          &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
        err = 0.0 ;
@@ -477,13 +489,15 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
           err += fabs(aij) ;
        }}
        err /= (m*n) ;
-       WARNING_message("Recomputed SVD err=%g %s\n",
+       WARNING_message("Recomputed SVD avg err=%g %s\n",
                err , (err >= 1.e-5) ? "**BAD**" : "**OK**"      ) ;
      }
    }
 #endif
 
    free((void *)rv1) ;
+
+   /* discard [u] and [v] spaces if not needed for output */
 
    if( u == NULL && uu != NULL ) free((void *)uu) ;
    if( v == NULL && vv != NULL ) free((void *)vv) ;
