@@ -3,7 +3,7 @@
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
-void mri_principal_vector_params( int a , int b , int c ) ;
+void mri_principal_vector_params( int a , int b ) ;
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
                                      int xx, int yy, int zz, MCW_cluster *nbhd ) ;
@@ -25,7 +25,8 @@ int main( int argc , char *argv[] )
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , xx,yy,zz, vstep ;
    float na,nb,nc , dx,dy,dz ;
    MRI_IMARR *imar=NULL ; MRI_IMAGE *pim=NULL ;
-   int do_vmean=0 , do_vnorm=0 , do_vproj ;
+   int do_vnorm=0 , do_vproj=0 , polort=-1 ;
+   float **polyref , *tsar , *coef=NULL ; int vv,ii , rebase=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -33,7 +34,8 @@ int main( int argc , char *argv[] )
        "* You may want to use 3dDetrend before running this program.\n"
        "* This program is highly experimental.  And slowish.\n"
        "* Computes the SVD of time series from a neighborhood of each\n"
-       "   voxel.  An inricate way of 'smoothing' 3D+time datasets.\n"
+       "   voxel.  An inricate way of 'smoothing' 3D+time datasets,\n"
+       "   in some sense.\n"
        "\n"
        "Options:\n"
        " -mask mset\n"
@@ -42,9 +44,9 @@ int main( int argc , char *argv[] )
        " -evprefix ppp\n"
        " -input inputdataset\n"
        " -nbhd nnn\n"
-       " -vmean\n"
+       " -polort p [+]\n"
        " -vnorm\n"
-       " -vproj\n"
+       " -vproj [ndim]\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -58,15 +60,31 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-     if( strcmp(argv[iarg],"-vmean") == 0 ){
-       do_vmean = 1 ; iarg++ ; continue ;
-     }
      if( strcmp(argv[iarg],"-vnorm") == 0 ){
        do_vnorm = 1 ; iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-vproj") == 0 ){
-       do_vproj = 1 ; iarg++ ; continue ;
+       if( iarg+1 < argc && isdigit(argv[iarg+1][0]) ){
+         do_vproj = (int)strtod(argv[++iarg],NULL) ;
+         if( do_vproj < 1 ) do_vproj = 1 ;
+       } else {
+         do_vproj = 1 ;
+       }
+       iarg++ ; continue ;
      }
+
+     if( strcmp(argv[iarg],"-polort") == 0 ){
+       char *cpt ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '-polort'") ;
+       polort = (int)strtod(argv[iarg],&cpt) ;
+       if( *cpt == '+' ){
+         rebase = 1 ;
+       } else if( iarg+1 < argc && strcmp(argv[iarg+1],"+") == 0 ){
+         rebase = 1; iarg++;
+       }
+       iarg++ ; continue ;
+     }
+
 
      if( strcmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL  ) ERROR_exit("Can't have two -input options") ;
@@ -144,7 +162,7 @@ int main( int argc , char *argv[] )
 
    } /*--- end of loop over options ---*/
 
-   mri_principal_vector_params( do_vmean , do_vnorm , do_vproj ) ;
+   mri_principal_vector_params( do_vnorm , do_vproj ) ;
 
    /*---- deal with input dataset ----*/
 
@@ -154,8 +172,15 @@ int main( int argc , char *argv[] )
      CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    }
    nt = DSET_NVALS(inset) ;
-   if( nt < 2 )
-     ERROR_exit("Must have at least 2 values per voxel") ;
+   if( nt < 9 )
+     ERROR_exit("Must have at least 9 values per voxel") ;
+   if( polort+1 >= nt )
+     ERROR_exit("'-polort %d' too big for time series length = %d",polort,nt) ;
+
+   if( polort >= 0 ){
+     polyref = THD_build_polyref( polort+1 , nt ) ;
+     if( rebase ) coef = (float *)malloc(sizeof(float)*(polort+1)) ;
+   }
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
@@ -262,8 +287,22 @@ int main( int argc , char *argv[] )
      IJK_TO_THREE( kk , xx,yy,zz , nx,nxy ) ;
      imar = THD_get_dset_nbhd_array( inset , mask , xx,yy,zz , nbhd ) ;
      if( imar == NULL ){ ERROR_message("get failure #%d",kk); continue; }
+     if( polort >= 0 ){
+       tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,0)) ;
+       THD_generic_detrend_LSQ( nt , tsar , -1 , polort+1 , polyref , coef ) ;
+       for( vv=1 ; vv < IMARR_COUNT(imar) ; vv++ ){
+         tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,vv)) ;
+         THD_generic_detrend_LSQ( nt , tsar , -1 , polort+1 , polyref , NULL ) ;
+       }
+     }
      pim  = mri_principal_vector( imar ) ; DESTROY_IMARR(imar) ;
      if( pim == NULL ){ ERROR_message("mpv failure #%d",kk); continue; }
+     if( polort >= 0 && rebase && coef != NULL ){
+       tsar = MRI_FLOAT_PTR(pim) ;
+       for( vv=0 ; vv <= polort ; vv++ ){
+         for( ii=0 ; ii < nt ; ii++ ) tsar[ii] += coef[vv]*polyref[vv][ii] ;
+       }
+     }
      THD_insert_series( kk, outset, nt, MRI_float, MRI_FLOAT_PTR(pim), 0 ) ;
      mri_free(pim) ;
      if( evset != NULL )
@@ -312,13 +351,12 @@ MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
 
 /*------------------------------------------------------------------------*/
 
-static int mpv_vmean = 0 ;
 static int mpv_vnorm = 0 ;
 static int mpv_vproj = 0 ;
 
-void mri_principal_vector_params( int a , int b , int c )
+void mri_principal_vector_params( int a , int b )
 {
-   mpv_vmean = a ; mpv_vnorm = b ; mpv_vproj = c ;
+   mpv_vnorm = a ; mpv_vproj = b ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -337,10 +375,10 @@ void mri_principal_setev(int n){
 
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 {
-   int nx , nvec , ii,jj ;
+   int nx , nvec , ii,jj , itop ;
    double *amat , *umat , *vmat , *sval ;
    float *far ; MRI_IMAGE *tim ;
-   float vmean=0.0f , vnorm=0.0f ;
+   float *vnorm=NULL ;
    register double sum ;
 
    if( imar == NULL ) return NULL ;
@@ -363,20 +401,14 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
      for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = (double)far[ii] ;
    }
 
-   if( mpv_vmean ){
-     for( jj=0 ; jj < nvec ; jj++ ){
-       sum = 0.0 ;
-       for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj) ;
-       sum /= nx ; if( jj == 0 ) vmean = sum ;
-       for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) -= sum ;
-     }
-   }
    if( mpv_vnorm ){
+     vnorm = (float *)calloc(sizeof(float),nvec) ;
      for( jj=0 ; jj < nvec ; jj++ ){
        sum = 0.0 ;
        for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
-       if( sum > 0.0 ){
-         sum = 1.0 / sqrt(sum) ; if( jj == 0 ) vnorm = 1.0/sum ;
+       vnorm[jj] = sqrt(sum) ;
+       if( vnorm[jj] > 0.0 ){
+         sum = 1.0 / vnorm[jj] ;
          for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) *= sum ;
        }
      }
@@ -384,27 +416,31 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 
    svd_double( nx , nvec , amat , sval , umat , vmat ) ;
 
-   for( ii=0 ; ii < nvec      ; ii++ ) mpv_ev[ii] = (float)sval[ii] ;
+   itop = MIN(nvec,mpv_evnum) ;
+   for( ii=0 ; ii < itop      ; ii++ ) mpv_ev[ii] = (float)sval[ii] ;
    for(      ; ii < mpv_evnum ; ii++ ) mpv_ev[ii] = 0.0f ;
 
    tim = mri_new( nx , 1 , MRI_float ) ;
-   far = MRI_FLOAT_PTR(tim) ;
-   for( ii=0 ; ii < nx ; ii++ ) far[ii] = (float)U(ii,0) ;
+   far = MRI_FLOAT_PTR(tim) ;            /* zero filled */
 
-   sum = 0.0 ;
-   for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,0)*far[ii] ;
-   if( mpv_vproj && sum != 0.0 ){
-     float fac = (float)sum ;
-     for( ii=0 ; ii < nx ; ii++ ) far[ii] *= fac ;
-   } else if( sum < 0.0 ){
-     for( ii=0 ; ii < nx ; ii++ ) far[ii] = -far[ii] ;
+   if( mpv_vproj <= 0 ){
+     for( ii=0 ; ii < nx ; ii++ ) far[ii] = (float)U(ii,0) ;
+     sum = 0.0 ;
+     for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,0)*far[ii] ;
+     if( sum < 0.0 ) for( ii=0 ; ii < nx ; ii++ ) far[ii] = -far[ii] ;
+   } else {
+     int nproj = mpv_vproj ;
+     if( nproj > nvec ) nproj = nvec ;
+     if( nproj > nx   ) nproj = nx ;
+     for( jj=0 ; jj < nproj ; jj++ ){
+       sum = 0.0 ;
+       for( ii=0 ; ii < nx ; ii++ ) sum += U(ii,jj) * A(ii,0) ;
+       if( mpv_vnorm ) sum *= vnorm[0] ;
+       for( ii=0 ; ii < nx ; ii++ ) far[ii] += sum * U(ii,jj) ;
+     }
    }
 
-   if( vnorm != 0.0f )
-     for( ii=0 ; ii < nx ; ii++ ) far[ii] *= vnorm ;
-   if( vmean != 0.0f )
-     for( ii=0 ; ii < nx ; ii++ ) far[ii] += vmean ;
-
+   if( vnorm != NULL ) free(vnorm) ;
    free(sval); free(vmat); free(umat); free(amat); return tim;
 }
 
