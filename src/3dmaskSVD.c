@@ -106,6 +106,8 @@ int main( int argc , char *argv[] )
        if( iarg+1 < argc && isdigit(argv[iarg+1][0]) ){
          sval_itop = (int)strtod(argv[++iarg],NULL) ;
          if( sval_itop < sval_ibot ) sval_itop = sval_ibot ;
+       } else {
+         sval_itop = sval_ibot ;
        }
        iarg++ ; continue ;
      }
