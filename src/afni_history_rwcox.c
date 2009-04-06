@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , APR , 2009 , RWC , "3dLocalSVD" , MICRO , TYPE_NEW_OPT ,
+   "Add -vproj option" ,
+   "To project central voxel onto low-dimensional local SVD space." } ,
+
+ { 6 , APR , 2009 , RWC , "3dmaskSVD" , MICRO , TYPE_NEW_OPT ,
+   "Modify to allow output of more than 1 singular vector." ,
+   "Also, make the help more helpful." } ,
+
  { 4 , APR , 2009 , RWC , "3dmaskSVD" , MINOR , TYPE_NEW_PROG ,
    "Like 3dmaskave, but does SVD principal vector instead of average" ,
    NULL } ,
