@@ -3846,7 +3846,7 @@ ENTRY("ISQ_saver_CB") ;
 
             else if( DO_MPEG(seq) ){ /* 02 Aug 2001 */
                int alen ; char *alf , *oof , *par , *frate ;
-               char *qscale , *pattrn ;
+               char *qscale , *pattrn ; int mpar=0 ;
                FILE *fpar ;
 
                /* write mpeg_encode parameter file */
@@ -3859,9 +3859,16 @@ ENTRY("ISQ_saver_CB") ;
                if( fpar == NULL ){ free(par) ; goto AnimationCleanup ; }
                oof = AFMALL( char, strlen(seq->saver_prefix)+32 ) ; /* output fname */
                sprintf(oof,"%smpg",seq->saver_prefix) ;
-               qscale=getenv("AFNI_MPEG_QSCALE") ;if(qscale==NULL) qscale="11"   ;
-               pattrn=getenv("AFNI_MPEG_PATTERN");if(pattrn==NULL) pattrn="IIIII";
-               frate =getenv("AFNI_MPEG_FRAMERATE");if(frate==NULL)frate ="24"   ;
+               qscale=getenv("AFNI_MPEG_QSCALE")   ; if(qscale==NULL) qscale="11" ;
+               frate =getenv("AFNI_MPEG_FRAMERATE"); if(frate ==NULL) frate ="24" ;
+               pattrn=getenv("AFNI_MPEG_PATTERN")  ;
+               if( pattrn == NULL ){                  /* 07 Apr 2009 */
+                 if( adup <= 1 ) pattrn="IIIII";
+                 else {
+                   pattrn = calloc(sizeof(char),(adup+1)) ; mpar = 1 ;
+                   pattrn[0] = 'I' ; memset( pattrn+1 , 'P' , adup-1 ) ;
+                 }
+               }
                fprintf(fpar,
                           "OUTPUT %s\n"             /* oof */
                           "GOP_SIZE          5\n"
@@ -3885,6 +3892,7 @@ ENTRY("ISQ_saver_CB") ;
                        , oof , frate , pattrn , qscale ,
                          seq->saver_prefix,tsuf,0,akk-1 ) ;
                fclose(fpar) ;
+               if( mpar ) free(pattrn) ;
 
                /* make command to run */
 
@@ -12511,7 +12519,7 @@ ENTRY("ISQ_save_anim") ;
 
       case MPEG_MODE:{
         int alen ; char *alf , *oof , *par , *frate ;
-        char *qscale , *pattrn ;
+        char *qscale , *pattrn ; int mpar=0 ;
         FILE *fpar ;
 
         /* write mpeg_encode parameter file */
@@ -12523,9 +12531,16 @@ ENTRY("ISQ_save_anim") ;
         if( fpar == NULL ){ free(par) ; break ; }
         oof = AFMALL( char, strlen(prefix)+32 ) ; /* output fname */
         sprintf(oof,"%smpg",prefix) ;
-        qscale=getenv("AFNI_MPEG_QSCALE") ;if(qscale==NULL) qscale="11"   ;
-        pattrn=getenv("AFNI_MPEG_PATTERN");if(pattrn==NULL) pattrn="IIIII";
-        frate =getenv("AFNI_MPEG_FRAMERATE");if(frate==NULL)frate ="24"   ;
+        qscale=getenv("AFNI_MPEG_QSCALE")   ; if(qscale==NULL) qscale="11";
+        frate =getenv("AFNI_MPEG_FRAMERATE"); if(frate ==NULL) frate ="24";
+        pattrn=getenv("AFNI_MPEG_PATTERN")  ;
+        if( pattrn == NULL ){
+          if( adup <= 1 ) pattrn="IIIII";
+          else {
+            pattrn = calloc(sizeof(char),(adup+1)) ; mpar = 1 ;
+            pattrn[0] = 'I' ; memset( pattrn+1 , 'P' , adup-1 ) ;
+          }
+        }
         fprintf(fpar,
                   "OUTPUT %s\n"             /* oof */
                   "GOP_SIZE          5\n"
@@ -12549,6 +12564,7 @@ ENTRY("ISQ_save_anim") ;
                , oof , frate , pattrn , qscale ,
                  ppo,tsuf,0,akk) ;
         fclose(fpar) ;
+        if( mpar ) free(pattrn) ;
 
         /* make command to run */
 
