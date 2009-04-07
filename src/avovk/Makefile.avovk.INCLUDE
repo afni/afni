@@ -83,12 +83,12 @@ Aclustering:Aclustering_floatNOMASK.c cluster_floatNOMASK.o
          ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
 
-#3dAclustering:3dAclustering.c ${AVOVKLIB}
-#	$(RM) $@
-#	${CC} -o $@ 3dAclustering.c \
-#         ${CCOPT} ${WARNOPT} \
-#         ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
-#         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
+3dAclustering:3dAclustering.c ${AVOVKLIB}
+	$(RM) $@
+	${CC} -o $@ 3dAclustering.c \
+         ${CCOPT} ${WARNOPT} \
+         ${AVOVK_INCLUDE_PATH} ${AVOVK_LINK_PATH} \
+         ${AVOVKLIB} ${AVOVK_LINK_LIB} -lgsl -lgslcblas 
          
 3dAclustering_fNM:3dAclustering_floatNM.c ${AVOVKLIB}
 	$(RM) $@
