@@ -1646,7 +1646,10 @@ Variable: AFNI_AGIF_DELAY
 -------------------------
 This is the time delay between frames when writing an animated GIF file from
 an image viewer window.  The units are 100ths of seconds (centi-seconds!);
-the default value is 20 (= 5 frames per second).
+the default value is 20 (= 5 frames per second).  Note that this value
+is NOT editable in the Edit Environment control panel, so you have to
+set it up prior to starting AFNI (e.g., by using an option like
+'-DAFNI_AGIF_DELAY=10' on the command line when starting AFNI).
 
 -----------------------------
 Variable: AFNI_MPEG_FRAMERATE
@@ -1668,6 +1671,21 @@ movie file.  Note that AFNI_AGIF_DELAY can be used to slow down an
 AGIF file more efficiently, but that there is no other way (within AFNI)
 to slow down an MPEG file.  (Some MPEG movie players will let you slow
 down the animation, but that's outside of AFNI's control.)
+
+You can control this variable directly from the Edit Environment control
+panel, or set its internal value in AFNI (or other image viewers) from
+the right-click popup menu attached to the intensity grayscale bar just
+to the right of the image sub-window in the viewer.  Note that the
+duplication factor must be greater than 1 for any slowdown to occur.
+For example, if you want 6 frames per second in an MPEG file, then a
+duplication factor of 4 would work (24 fps / 4 = 6 fps).
+
+For MPEG-1 files, AFNI will set up the frame temporal encoding pattern so
+that there is very little .mpg file size overhead for this frame
+duplication.  The same is NOT true for animated GIF files, since these
+files do not have any compression along the time axis.  Therefore, you
+should use AFNI_AGIF_DELAY to control the frame rate of animated GIF
+files, and not this frame duplication factor.
 
 -----------------------------
 Variable: AFNI_STARTUP_SCRIPT
@@ -2137,6 +2155,9 @@ If this variable is NOT set to anything, then it is the same as SPACE.
 MPEG filenames input to AFNI programs (as sources of images or as datasets)
 must end in ".mpg", ".MPG", ".mpeg", or ".MPEG".  MPEG datasets will be read
 so that the individal images are displayed in an Axial image window.
+
+Note that decoding a long .mpg file that happens to be in your directory
+can slow down the AFNI startup considerably!
 
 ---------------------------
 Variable: AFNI_MPEG_GRAYIZE
