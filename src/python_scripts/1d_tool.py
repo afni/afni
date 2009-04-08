@@ -49,6 +49,10 @@ examples (very basic for now):
       1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
                  -write ricor_r02_all.1D
 
+   5. Display rows and columns for a 1D dataset.
+
+      1d_tool.py -infile ricor_r02.1D -show_rows_cols
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -72,6 +76,7 @@ general options:
                                   e.g. '[5,0,7..21(2)]'
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
                                   e.g. '{5,0,7..21(2)}'
+   -show_rows_cols              : display the number of rows and columns
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
                                   - consider the -reverse option
@@ -91,6 +96,7 @@ g_history = """
    0.1  Mar 19, 2009 - added some options and basic help
    0.2  Mar 26, 2009 - small array fix for older python in write()
    0.3  Mar 31, 2009 - added -pad_to_many_runs, -reverse
+   0.4  Apr  8, 2009 - added -show_rows_cols
 """
 
 g_version = "1d_tool.py version 0.2, Mar 26, 2009"
@@ -114,6 +120,7 @@ class A1DInterface:
       self.reverse         = 0          # reverse data over time
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
+      self.show_rows_cols  = 0          # show the number of rows and columns
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the matrix
       self.write_file      = None       # output filename
@@ -181,6 +188,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-select_rows', 1, [], 
                       helpstr='select the list of rows from the dataset')
+
+      self.valid_opts.add_opt('-show_rows_cols', 0, [], 
+                      helpstr='display the number of rows and columns')
 
       self.valid_opts.add_opt('-sort', 0, [], 
                       helpstr='sort the data per column (over time)')
@@ -270,6 +280,9 @@ class A1DInterface:
             if err: return 1
             self.select_rows = val
 
+         elif opt.name == '-show_rows_cols':
+            self.show_rows_cols = 1
+
          elif opt.name == '-sort':
             self.sort = 1
 
@@ -325,6 +338,10 @@ class A1DInterface:
 
       if self.transpose:
          if self.adata.transpose(): return 1
+
+      # any 'show' options come after all other processing
+      if self.show_rows_cols:
+         self.adata.show_rows_cols(verb=self.verb)
 
       if self.write_file:
          if self.write_1D(self.write_file): return 1
