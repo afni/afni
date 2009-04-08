@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.8,  April 1, 2009")
+print("Version 1.0.8,  April 8, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -959,7 +959,7 @@ if (runMeta) {
       }	
    print("-----------------")
    if (runMeta) {
-      print("p-value matrix for cross-subject hetetrogeneity/variability (direction goes from row to column):")
+      print("p-value matrix for cross-subject heterogeneity/variability (direction goes from row to column):")
       print(grpQ)
    }
    print("-----------------")
