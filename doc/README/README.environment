@@ -2645,6 +2645,15 @@ factors.  Set this variable to YES to do so.  WARNING: this is dangerous, so
 be sure to unset this variable when you are done.  Sample usage:
   3dBrickStat -DAFNI_IGNORE_BRICK_FLTFAC=YES -max fred+orig
 
+----------------------------------------
+Variable: AFNI_ALLOW_ARBITRARY_FILENAMES
+----------------------------------------
+Normally, AFNI checks output filenames for 'bad' characters, which are
+defined as control characters and ASCII characters that will cause
+trouble on the Unix command line ('*', '$', etc.).  'Bad' filenames
+will not be allowed by most AFNI programs.  If, for some reason, you
+want to use such filenames, set this variable to YES.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
