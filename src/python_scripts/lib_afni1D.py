@@ -431,6 +431,16 @@ class Afni1D:
    def show(self):
       print self.make_show_str()
 
+   def show_rows_cols(self, mesg='', verb=1):
+      """display the number of rows (nt) and columns (nvec)
+
+         mesg: if set print before output
+         verb: if 0, no text"""
+
+      if mesg:     print '%s' % mesg,
+      if verb > 0: print 'rows = %d, cols = %d' % (self.nt, self.nvec)
+      else:        print '%d %d' % (self.nt, self.nvec)
+
    def make_show_str(self):
       if self.ready: rstr = 'ready'
       else:          rstr = 'not ready'

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, APR, 2009, RCR, "1d_tool", MICRO, TYPE_NEW_OPT,
+   "added -show_rows_cols option",
+   NULL
+ } ,
+
  { 2, APR, 2009, RCR, "3dDeconvolve", MINOR, TYPE_MODIFY,
    "changed CHECK_NIFTI to CHECK_NEEDS_FLOATS, including other dset types",
    NULL
