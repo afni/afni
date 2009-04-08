@@ -640,10 +640,10 @@ if (checkCov) {
 		covSigList <- apply(do.call(cbind, covPList), 1, sum)
 		# detailed info: apply(do.call(cbind, covPList), c(1,2), sum)
 		if (length(covSigList[covSigList==0])) {
-			print(sprintf("With a threshold of %f the following covarates don't show significance in the model:", pCovThresh))
+			print(sprintf("With a threshold of %f the following covariates don't show significance in the model:", pCovThresh))
 			print(names(covSigList[covSigList==0]))
-			print("You may consider removing them from the model. However, when ploynomial terms")
-			print("show up in the above list, only if the highest order of the polynominals")
+			print("You may consider removing them from the model. However, when polynomial terms")
+			print("show up in the above list, only if the highest order of the polynomials")
 			print("indicates insignificant would you try decreasing the order.")
 	   } else print(sprintf("All covarates show significance in the model with a threshold of %f.", pCovThresh))
 		anotherCovPth <- as.integer(readline("Want to try another p-threshold for covariates (0: no; 1: yes)? "))
