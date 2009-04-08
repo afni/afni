@@ -2646,6 +2646,15 @@ static char * readme_env[] = {
    "be sure to unset this variable when you are done.  Sample usage:\n" ,
    "  3dBrickStat -DAFNI_IGNORE_BRICK_FLTFAC=YES -max fred+orig\n" ,
    "\n" ,
+   "----------------------------------------\n" ,
+   "Variable: AFNI_ALLOW_ARBITRARY_FILENAMES\n" ,
+   "----------------------------------------\n" ,
+   "Normally, AFNI checks output filenames for 'bad' characters, which are\n" ,
+   "defined as control characters and ASCII characters that will cause\n" ,
+   "trouble on the Unix command line ('*', '$', etc.).  'Bad' filenames\n" ,
+   "will not be allowed by most AFNI programs.  If, for some reason, you\n" ,
+   "want to use such filenames, set this variable to YES.\n" ,
+   "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
    "----------------------------------------------------------------------\n" ,
@@ -2861,4 +2870,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 2861
+#define NUM_readme_env 2870
