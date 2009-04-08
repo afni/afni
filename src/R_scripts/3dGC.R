@@ -183,14 +183,18 @@ write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4
 
 #libLoad('tcltk')    # for graphics
 
-print("################################################################")
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 print("Visit http://afni.nimh.nih.gov/sscc/gangc/3dGC.html and makse sure")
 print("you've acquired the data for the analysis in desirable data format.")
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 print("################################################################")
-print("~~~~~~~~~~~~~~~~~")
-print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
-print("~~~~~~~~~~~~~~~~~")
+print("Please consider citing the following if this program is useful for you:")
+cat("\n\tGang Chen, J. Paul Hamilton, Moriah E. Thomason, Ian H. Gotlib, Ziad S. Saad\n")
+cat("\tRobert W. Cox, Granger causality via vector auto-regression (VAR) attuned for\n")
+cat("\tFMRI data analysis. ISMRM 17th Scientific Meeting, Hawaii, 2009.\n\n")
+print("################################################################")
 
+print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
 anaType <- as.integer(readline("Analysis type (0: quit; 1: individual)? "))
 
 if (anaType==1) {
