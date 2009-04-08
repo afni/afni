@@ -224,9 +224,9 @@ int THD_filename_ok( char *name )  /* 24 Apr 1997 */
    if( name == NULL ) return 0 ;
    ll = strlen( name ) ; if( ll == 0 ) return 0 ;
    if (ll > 6 && strstr(name, "3dcalc") == name) {
-      /* have a 3dcalc command, let it be*/
-      return 1;
+      return 1; /* have a 3dcalc command, let it be*/
    }
+   if( AFNI_yesenv("AFNI_ALLOW_ARBITRARY_FILENAMES") ) return 1 ; /* 08 Apr 2009 */
    for( ii=0 ; ii < ll ; ii++ )
       if( iscntrl(name[ii]) || isspace(name[ii]) ||
                                name[ii] == ';'   ||
