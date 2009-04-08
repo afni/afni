@@ -44,6 +44,19 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , APR , 2009 , RWC , "AFNI image viewer" , MINOR , TYPE_MODIFY ,
+   "Set MPEG 'pattern' for frames to reflect the Anim_dup setting." ,
+   "This small change will make MPEG-1 (.mpg) files that are slowed down by\n"
+   "setting Anim_dup > 1 not significantly larger than full speed files, by\n"
+   "setting the frame pattern to 'IPPPP' where the number of Ps is the\n"
+   "number of duplicate frames (Anim_dup-1)." } ,
+
+ { 8 , APR , 2009 , RWC , "thd_filestuff.c" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_ALLOW_ARBITRARY_FILENAMES" ,
+   "Set this environment variable to YES to allow 'strange' characters into\n"
+   "AFNI created filenames.  You should know what you are doing if you use\n"
+   "this variable!" } ,
+
  { 6 , APR , 2009 , RWC , "3dLocalSVD" , MICRO , TYPE_NEW_OPT ,
    "Add -vproj option" ,
    "To project central voxel onto low-dimensional local SVD space." } ,
