@@ -101,9 +101,14 @@ g_history = """
           options: -ricor_regs, -ricor_regs_nfirst, -ricor_polort,
                    -ricor_regress_solver, -ricor_regress_method
         - small format changes
+    1.41 Apr 09 2009 : ricor changes
+        - added 'across-runs' ricor_regress_method
+        - added ricor information and usage to help (see "RETROICOR NOTE")
+        - maintain unscaled shorts if they are input
+        - added -ricor_datum
 """
 
-g_version = "version 1.40, Apr 1, 2009"
+g_version = "version 1.41, Apr 9, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -171,6 +176,8 @@ class SubjProcSream:
         self.tr         = 0.0           # TR, in seconds
         self.reps       = 0             # TRs per run
         self.runs       = 0             # number of runs
+        self.datatype   = -1            # 1=short, 3=float, ..., -1=uninit
+        self.scaled     = -1            # if shorts, are they scaled?
         self.mask       = None          # mask dataset
         self.exec_cmd   = ''            # script execution command string
         self.regmask    = 0             # apply any full_mask in regression
@@ -183,16 +190,19 @@ class SubjProcSream:
         
     def show(self, mesg):
         print '%sSubjProcSream: %s' % (mesg, self.label)
-        for block in self.blocks:
-            block.show('    Block %d: ' % self.blocks.index(block))
-        print '    Dsets : ',
         if self.verb > 2:
-            print
-            for dset in self.dsets: dset.show()
+            for block in self.blocks:
+                block.show('    Block %d: ' % self.blocks.index(block))
+        print '    Dsets : ',
+        if len(self.dsets) < 1: print 'not yet set'
         else:
-            for dset in self.dsets: print dset.pv(),
-            print
-        if self.verb > 2: self.valid_opts.show('valid_opts: ')
+            if self.verb > 2:
+                print
+                for dset in self.dsets: dset.show()
+            else:
+                for dset in self.dsets: print dset.pv(),
+                print
+        if self.verb > 3: self.valid_opts.show('valid_opts: ')
         if self.verb > 1: self.user_opts.show('user_opts: ')
 
     def init_opts(self):
@@ -229,7 +239,7 @@ class SubjProcSream:
                         helpstr='anatomy to copy to results directory')
         self.valid_opts.add_opt('-copy_files', -1, [],
                         helpstr='list of files to copy to results directory')
-        self.valid_opts.add_opt('-exit_on_error', 1, ['yes'],
+        self.valid_opts.add_opt('-exit_on_error', 1, [],
                         acplist=['yes','no'],
                         helpstr='exit script on any command error')
         self.valid_opts.add_opt('-gen_epi_review', 1, [],
@@ -260,17 +270,20 @@ class SubjProcSream:
         self.valid_opts.add_opt('-despike_opts_3dDes', -1, [],
                         helpstr='additional options directly for 3dDespike')
 
+        self.valid_opts.add_opt('-ricor_datum', 1, [],
+                        acplist=['short', 'float'],
+                        helpstr='output datatype from ricor processing block')
+        self.valid_opts.add_opt('-ricor_polort', 1, [],
+                        helpstr='polort to apply for RETROICOR regression')
+        self.valid_opts.add_opt('-ricor_regress_method', 1, [],
+                        acplist=['per-run', 'across-runs'],
+                        helpstr="use stimuli 'per-run' or 'across-runs'")
+        self.valid_opts.add_opt('-ricor_regress_solver', 1, [],
+                        helpstr="regression via 'OLSQ' or 'REML'")
         self.valid_opts.add_opt('-ricor_regs', -1, [],
                         helpstr='slice-based regressors for RETROICOR')
         self.valid_opts.add_opt('-ricor_regs_nfirst', 1, [],
                         helpstr='num first TRs to remove from ricor_regs')
-        self.valid_opts.add_opt('-ricor_polort', 1, [],
-                        helpstr='polort to apply for RETROICOR regression')
-        self.valid_opts.add_opt('-ricor_regress_solver', 1, [],
-                        helpstr="regression via 'OLSQ' or 'REML'")
-        self.valid_opts.add_opt('-ricor_regress_method', 1, [],
-                        acplist=['per-run', 'across-runs'],
-                        helpstr="use stimuli 'per-run' or 'across-runs'")
 
         self.valid_opts.add_opt('-tshift_align_to', -1, [],
                         helpstr='time alignment option given to 3dTshift')
@@ -409,7 +422,7 @@ class SubjProcSream:
         self.od_var = '$output_dir'
 
         if self.verb > 1: show_args_as_command(sys.argv, "executing command:")
-        if self.verb > 3: self.show('end get_user_opts ')
+        if self.verb > 1: self.show('end get_user_opts ')
 
     # apply the general options - many terminate program
     def apply_initial_opts(self, opt_list):
@@ -433,8 +446,8 @@ class SubjProcSream:
         else:                               self.check_setup_errors = 0
 
         opt = opt_list.find_opt('-exit_on_error')
-        if opt and opt.parlist[0] == 'yes': self.exit_on_error = 1
-        else:                               self.exit_on_error = 0
+        if opt and opt.parlist[0] == 'no': self.exit_on_error = 0
+        else:                              self.exit_on_error = 1
 
         opt = opt_list.find_opt('-copy_anat')
         if opt != None: self.anat = afni_name(opt.parlist[0])
@@ -558,8 +571,8 @@ class SubjProcSream:
                 errs += 1
             else:
                 self.fp.write(add_line_wrappers(cmd_str))
-                if self.verb>2: block.show('+d post command creation: ')
-                if self.verb>1: print '+d %s cmd: \n%s'%(block.label, cmd_str)
+                if self.verb>3: block.show('+d post command creation: ')
+                if self.verb>2: print '+d %s cmd: \n%s'%(block.label, cmd_str)
 
         if self.gen_review:
             cmd_str = db_cmd_gen_review(self)
@@ -606,6 +619,22 @@ class SubjProcSream:
 
         err, self.reps, self.tr = get_dset_reps_tr(dset, self.verb)
         if err: return 1   # check for failure
+
+        # note data type and whether data is scaled
+        err, vlist = get_typed_dset_attr_list(dset, "BRICK_TYPES", int)
+        if not err and len(vlist) >= 1:
+            self.datatype = vlist[0]
+
+        err, vlist = get_typed_dset_attr_list(dset, "BRICK_FLOAT_FACS", int)
+        if not err and len(vlist) >= 1:
+            if vals_are_constant(vlist, 0) or vals_are_constant(vlist, 1):
+                self.scaled = 0
+            else:
+                self.scaled = 1
+
+        if self.verb > 1:
+            print '-- reps = %g, tr = %g, datatype = %g, scaled = %d' \
+                  % (self.reps, self.tr, self.datatype, self.scaled)
 
     # create a new block for the given label, and append it to 'blocks'
     def add_block(self, label):
@@ -747,11 +776,6 @@ class SubjProcSream:
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
 
-        if len(self.ricor_regs) > 0: # copy extra stim files into stim dir
-            str = copy_ricor_regs_str(self)
-            self.fp.write(add_line_wrappers(str))
-            self.fp.write("%s\n" % stat_inc)
-
         if self.anat:
             str = '# copy anatomy to results dir\n'     \
                   '3dcopy %s %s/%s\n' %                 \
@@ -772,6 +796,12 @@ class SubjProcSream:
             str = '# copy extra files into results dir\n' \
                   'cp -rv %s %s\n' %                      \
                       (' '.join(quotize_list(opt.parlist,'')),self.od_var)
+            self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
+
+        # copy ricor_regs last to possibly match 3dTcat TR removal
+        if len(self.ricor_regs) > 0:
+            str = copy_ricor_regs_str(self)
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
 

@@ -46,8 +46,9 @@ def db_cmd_tcat(proc, block):
                     (proc.od_var, proc.prefix_form(block,run+1),
                      proc.dsets[run].rpv(), first)
 
-    cmd = cmd + '\n# and enter the results directory\n' \
-                  'cd %s\n\n' % proc.od_var
+    cmd = cmd + '\n'                            + \
+                '# and enter the results directory\n' \
+                'cd %s\n\n' % proc.od_var
 
     proc.reps   -= first        # update reps to account for removed TRs
     proc.bindex += 1            # increment block index
@@ -105,8 +106,11 @@ def db_cmd_despike(proc, block):
 def copy_ricor_regs_str(proc):
     """make a string to copy the retroicor regressors to the results dir"""
     if len(proc.ricor_regs) < 1: return ''
-    str = '# copy slice-based regressors for RETROICOR\n'
-    if proc.ricor_nfirst > 0: offstr = '\{%d..\$}' % proc.ricor_nfirst
+
+    str = '# copy slice-based regressors for RETROICOR (rm first %d TRs)\n' \
+          % proc.ricor_nfirst
+
+    if proc.ricor_nfirst > 0: offstr = "'{%d..$}'" % proc.ricor_nfirst
     else:                     offstr = ''
     
     for ind in range(len(proc.ricor_regs)):
@@ -145,6 +149,12 @@ def db_mod_ricor(block, proc, user_opts):
 
     # --------- process user options ------------
 
+    uopt = user_opts.find_opt('-ricor_datum')
+    bopt = block.opts.find_opt('-ricor_datum')
+    if uopt: # either replace block's opt or create it
+        if bopt: bopt.parlist[0] = uopt.parlist[0]
+        else: block.opts.add_opt('-ricor_datum', 1, uopt.parlist, setpar=1)
+
     uopt = user_opts.find_opt('-ricor_polort')
     bopt = block.opts.find_opt('-ricor_polort')
     if uopt and bopt: bopt.parlist[0] = uopt.parlist[0]
@@ -169,10 +179,23 @@ def db_cmd_ricor(proc, block):
               (proc.runs, len(reglist))
         return
 
+    # get datum, if set
+    rdatum, err = block.opts.get_string_opt('-ricor_datum')
+    if err: return
+    # if no option and input was unscaled shorts, convert output back to it
+    if rdatum == None:
+        if proc.datatype == 1 and proc.scaled == 0:
+          if proc.verb > 0:
+            print '-- ricor: have unscaled short input, will revert back to it'
+          rdatum = 'short' # treat as unscaled short
+        else: rdatum = 'float'
+    # we might want to force the -float option in 3dDeconvolve
+    if rdatum == 'float': proc.datatype = 3
+
     # get regress method (will only currently work as 'per-run')
     rmethod, err = block.opts.get_string_opt('-ricor_regress_method')
-    if err or rmethod != 'per-run':
-        print "** currently, -ricor_regress_method must be given with 'per-run'"
+    if err or rmethod == None:
+        print "** option -ricor_regress_method is required for ricor block"
         return
 
     # get nslices
@@ -217,22 +240,137 @@ def db_cmd_ricor(proc, block):
     if proc.verb > 0:
         sstr = 'OLSQ'
         if solver == 'R': sstr = 'REML'
-        print "-- ricor: block processed '%s' using '%s' on %d sliregs" \
+        print "-- ricor: processed '%s' using '%s' on %d sliregs" \
               % (rmethod, sstr, nsliregs)
 
     #----- everything seems okay, write command string -----
+
+    if rmethod == 'per-run':
+        cmd = ricor_process_per_run(proc, block, polort,solver,nsliregs,rdatum)
+    else:
+        cmd = ricor_process_across_runs(proc, block, polort, solver,
+                                        nsliregs, rdatum)
+
+    proc.bindex += 1            # increment block index
+    proc.pblabel = block.label  # set 'previous' block label
+
+    return cmd
+
+def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
+    """- for each run: 3dDetrend polort from regressors
+       - 1dcat all s0 regressors together for "dummy" in regress process block
+       - 3dD -input ALL -polort -x1D -x1D_stop
+       - 3dREMLfit -input -matrix -Rerrts -Rbeta? -slibase -verb?
+       - 3dSynthesize -matrix -cbucket -select baseline -prefix
+       - for each run: 3dcalc -a errts -b baseline -expr a+b -prefix pbXX.ricor
+    """
+
+    prev_dsets = proc.prev_dset_form_wild(view=1)
+    cur_prefix = proc.prefix_form_run(block)
+    prefix     = 'pb%02d.ricor' % proc.bindex
+    matrix     = '%s.xmat.1D' % prefix
+
+    # we have a regressor file to pass to the regress processing block
+    proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
+    proc.ricor_nreg = nsliregs
+
+    cmd = '# -------------------------------------------------------\n' \
+          '# RETROICOR - remove cardiac and respiratory regressors\n'   \
+          '#           - use regressors that span all runs\n'           \
+          'foreach run ( $runs )\n'
+
+    cmd = cmd +                                                         \
+        "    # detrend regressors, expand slice0 regressors per run\n"  \
+        "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"        \
+        "              stimuli/ricor_orig_r$run.1D\\'\n\n"              \
+        "    1dtranspose rm.ricor.$run.1D rm.ricor_det_r$run.1D\n\n"    \
+        "    1d_tool.py -infile rm.ricor_det_r$run.1D \\\n"             \
+        "               -pad_into_many_runs $run $#runs \\\n"           \
+        "               -write rm.ricor_pad_r$run.1D\n" % polort
+    cmd = cmd + "end\n\n"
+
+    cmd = cmd +                                                 \
+        "# put ricor regressors into single files for actual regression\n\n"
+
+    cmd = cmd +                                                 \
+        "# ... all slices\n"                                    \
+        "1dcat rm.ricor_pad_r[0-9]*.1D > stimuli/ricor_det_rall.1D\n\n"
+
+    cmd = cmd +                                                 \
+        "# ... extract slice 0, for 'regress' block\n"          \
+        "1dcat stimuli/ricor_det_rall.1D'[0..%d]' > %s\n\n"     \
+        % (nsliregs-1, proc.ricor_reg)
+
+    cmd = cmd +                                                 \
+        "# create (polort) X-matrix to apply in 3dREMLfit\n"    \
+        "3dDeconvolve -polort %d -input %s \\\n"                \
+        "    -x1D_stop -x1D %s\n\n"                             \
+        % (polort, prev_dsets, matrix)
+
+    cmd = cmd +                                                         \
+        "# 3dREMLfit does not currently catenate a dataset list\n"      \
+        "set dsets = ( %s )\n\n" % prev_dsets
+
+    cmd = cmd +                                                 \
+        "# regress out the detrended RETROICOR regressors\n"    \
+        '3dREMLfit -input "$dsets" \\\n'                        \
+        "    -matrix %s \\\n"                                   \
+        "    -%sbeta %s.betas \\\n"                             \
+        "    -%serrts %s.errts \\\n"                            \
+        "    -slibase stimuli/ricor_det_rall.1D\n\n"            \
+        % (matrix, solver, prefix, solver, prefix)
+
+    cmd = cmd +                                                 \
+        "# re-create polynomial baseline\n"                     \
+        "# (matrix from 3dD does not have slibase regressors)\n" \
+        "3dSynthesize -matrix %s \\\n"                          \
+        "    -cbucket %s.betas%s'[0..%d]' \\\n"                 \
+        "    -select polort -prefix %s.polort\n\n"              \
+        % (matrix, prefix, proc.view, (polort+1)*proc.runs-1, prefix)
+
+    # short data is unscaled, float is the default, else convert to short
+    if   rdatum == 'short':  dstr = '           -datum short -nscale \\\n'
+    elif rdatum == 'float':  dstr = ''
+    else:                    dstr = '           -datum %s \\\n' % rdatum
+
+    cmd = cmd +                                                 \
+        "# final result: add REML errts to polynomial baseline\n" \
+        "# (and separate back into individual runs)\n"          \
+        "set volsperrun = %d\n"                                 \
+        "set startind = 0\n"                                    \
+        "@   endind = $volsperrun - 1\n"                        \
+        "foreach run ( $runs )\n"                               \
+        '    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'   \
+        '           -b %s.polort%s"[$startind..$endind]" \\\n'  \
+        '%s'                                                    \
+        '           -expr a+b -prefix %s\n'                     \
+        '    @ startind += $volsperrun    # add nreps\n'        \
+        '    @ endind += $volsperrun\n'                         \
+        'end\n\n'                                               \
+        % (proc.reps, prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
+
+    return cmd
+
+def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
+    """for each run:
+         - 3dDetrend polort from regressors
+         - 3dD -input -polort -x1D -x1D_stop
+         - 3dREMLfit -input -matrix -Rerrts -Rbeta? -slibase -verb?
+         - 3dSynthesize -matrix -cbucket -select baseline -prefix
+         - 3dcalc -a errts -b baseline -expr a+b -prefix pbXX.ricor
+       - 1dcat all s0 regressors together for "dummy" in regress process block
+    """
+    
 
     prev_prefix = proc.prev_prefix_form_run(view=1)
     cur_prefix  = proc.prefix_form_run(block)
     prefix      = 'pb%02d.ricor' % proc.bindex
     matrix      = '%s.r$run.xmat.1D' % prefix
 
-    # - process:
-    #       - 3dDetrend polort from regressors
-    #       - 3dD -input -polort -x1D -x1D_stop
-    #       - 3dREMLfit -input -matrix -Rerrts -Rbeta? -slibase -verb?
-    #       - 3dSynthesize -matrix -cbucket -select baseline -prefix
-    #       - 3dcalc -a errts -b baseline -expr a+b -prefix pbXX.ricor
+    # we have a regressor file to pass to the regress processing block
+    proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
+    proc.ricor_nreg = proc.runs * nsliregs
+
     cmd = '# -------------------------------------------------------\n' \
           '# RETROICOR - remove cardiac and respiratory regressors\n'   \
           'foreach run ( $runs )\n'
@@ -240,50 +378,52 @@ def db_cmd_ricor(proc, block):
     cmd = cmd +                                                            \
         "    # detrend regressors, expand slice0 regressors per run\n"     \
         "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"           \
-        "              stimuli/ricor_orig_r$run.1D\\'\n"                   \
+        "              stimuli/ricor_orig_r$run.1D\\'\n\n"                 \
         "    1dtranspose rm.ricor.$run.1D stimuli/ricor_det_r$run.1D\n\n"  \
         "    1d_tool.py -infile stimuli/ricor_det_r$run.1D'[0..%d]' \\\n"  \
         "               -pad_into_many_runs $run $#runs \\\n"              \
-        "               -write stimuli/ricor_s0_r$run.1D\n\n"            % \
+        "               -write rm.ricor_s0_r$run.1D\n\n"                 % \
         (polort, nsliregs-1)
 
-    cmd = cmd +                                         \
-        "    # create X-matrix to apply in 3dREMLfit\n" \
-        "    3dDeconvolve -polort %d -input %s \\\n"    \
-        "        -x1D_stop -x1D %s\n\n" %               \
+    cmd = cmd +                                                 \
+        "    # create (polort) X-matrix to apply in 3dREMLfit\n"\
+        "    3dDeconvolve -polort %d -input %s \\\n"            \
+        "        -x1D_stop -x1D %s\n\n" %                       \
         (polort, prev_prefix, matrix)
-    cmd = cmd +                                         \
-        "    # regress out the detrended RETROICOR regressors\n" \
-        "    3dREMLfit -input %s \\\n"                  \
-        "        -matrix %s \\\n"                       \
-        "        -%sbeta %s.betas.r$run \\\n"           \
-        "        -%serrts %s.errts.r$run \\\n"          \
-        "        -slibase stimuli/ricor_det_r$run.1D\n\n"  \
+    cmd = cmd +                                                 \
+        "    # regress out the detrended RETROICOR regressors\n"\
+        "    3dREMLfit -input %s \\\n"                          \
+        "        -matrix %s \\\n"                               \
+        "        -%sbeta %s.betas.r$run \\\n"                   \
+        "        -%serrts %s.errts.r$run \\\n"                  \
+        "        -slibase stimuli/ricor_det_r$run.1D\n\n"       \
         % (prev_prefix, matrix, solver, prefix, solver, prefix)
-    cmd = cmd +                                         \
+    cmd = cmd +                                                 \
         "    # re-create polynomial baseline\n"                 \
         "    3dSynthesize -matrix %s \\\n"                      \
         "        -cbucket %s.betas.r$run%s'[0..%d]' \\\n"       \
         "        -select polort -prefix %s.polort.r$run\n\n"    \
         % (matrix, prefix, proc.view, polort, prefix)
-    cmd = cmd +                                         \
-        "    # final result: add REML errts to polynomial baseline\n"   \
-        "    3dcalc -a %s.errts.r$run%s \\\n"           \
-        "           -b %s.polort.r$run%s \\\n"          \
-        "           -expr a+b -prefix %s\n"             \
-        % (prefix, proc.view, prefix, proc.view, cur_prefix)
-    cmd = cmd + "end\n\n"
 
-    # we have a regressor file to pass to the regress processing block
-    proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
-    proc.ricor_nreg = proc.runs * nsliregs
+    # short data is unscaled, float is the default, else convert to rdatum
+    if   rdatum == 'short':  dstr = '           -datum short -nscale \\\n'
+    elif rdatum == 'float':  dstr = ''
+    else:                    dstr = '           -datum %s \\\n' % rdatum
+
+    cmd = cmd +                                                 \
+        "    # final result: add REML errts to polynomial baseline\n"   \
+        "    3dcalc -a %s.errts.r$run%s \\\n"                   \
+        "           -b %s.polort.r$run%s \\\n"                  \
+        '%s'                                                    \
+        "           -expr a+b -prefix %s\n"                     \
+        % (prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
+
+    # end of foreach loop encompassing ricor block
+    cmd = cmd + "end\n\n"
 
     cmd = cmd +                                                            \
         "# put ricor regressors into a single file for 'regress' block\n"  \
-        "1dcat stimuli/ricor_s0_r[0-9]*.1D > %s\n\n" % proc.ricor_reg
-
-    proc.bindex += 1            # increment block index
-    proc.pblabel = block.label  # set 'previous' block label
+        "1dcat rm.ricor_s0_r[0-9]*.1D > %s\n\n" % proc.ricor_reg
 
     return cmd
 
@@ -967,12 +1107,18 @@ def db_cmd_regress(proc, block):
     else:
         mask = ''
 
+    # if the input datatype is float, force such output from 3dDeconvolve
+    if proc.datatype == 3: datum = '-float '
+    else:                  datum = ''
+
+    total_nstim =  len(proc.stims) + len(proc.extra_stims) + \
+                   len(proc.mot_labs) + proc.ricor_nreg
     cmd = cmd + '3dDeconvolve -input %s \\\n'           \
-                '    -polort %d \\\n'                   \
+                '    -polort %d %s\\\n'                 \
                 '%s%s'                                  \
                 '    -num_stimts %d \\\n'               \
-                % ( proc.prev_dset_form_wild(), polort, mask, normall,
-     len(proc.stims)+len(proc.extra_stims)+len(proc.mot_labs)+proc.ricor_nreg )
+                % ( proc.prev_dset_form_wild(), polort, datum, mask, normall,
+                    total_nstim )
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -1000,7 +1146,7 @@ def db_cmd_regress(proc, block):
                 exlabs.append('stim%02d' % (ind+1))
             if proc.verb > 0: print ('++ adding extra labels: %s' % exlabs)
 
-    # note the total number of regressors
+    # note the total number of regressors (of interest)
     nregs = len(proc.stims) + len(proc.extra_stims)
 
     # note any RONI (regs of no interest)
@@ -1037,7 +1183,7 @@ def db_cmd_regress(proc, block):
         else:                  rstr = ''
         cmd = cmd + "    -stim_label %d %s %s\\\n" % (ind+1, labels[ind], rstr)
 
-    # accumulate offset for current regressor list
+    # accumulate offset for current regressor list (3dD input is 1-based)
     regindex = len(proc.stims) + 1
 
     # maybe add extra_stims (add -stim_base to any RONI)
@@ -1081,7 +1227,8 @@ def db_cmd_regress(proc, block):
     opt = block.opts.find_opt('-regress_errts_prefix')
     bluropt = block.opts.find_opt('-regress_est_blur_errts')
     # if there is no errts prefix, but the user wants to measure blur, add one
-    if not opt.parlist and bluropt:
+    # (or if there are no normal regressors)
+    if nregs == 0 or (not opt.parlist and bluropt):
         opt.parlist = ['errts.$subj']
 
     if not opt or not opt.parlist: errts = ''
@@ -1513,7 +1660,64 @@ g_help_string = """
     scaled values at 200 (percent), which should not occur in the brain.
 
     --------------------------------------------------
-    NOTE on having runs of different lengths:
+    RETROICOR NOTE:
+
+    ** Cariac and respiratory regressors must be created from an external
+       source, such as the RetroTS.m matlab program written by Z Saad.  The
+       input to that would be the 2+ signals.  The output would be a single
+       file per run, containing 13 or more regressors for each slice.  That
+       set of output files would be applied here in afni_proc.py.
+
+    Removal of cardiac and respiratory regressors can be done using the 'ricor'
+    processing block.  By default, this would be done after 'despike', but
+    before any other processing block.
+
+    These card/resp signals would be regressed out of the MRI data in the
+    'ricor' block, after which processing would continue normally. In the final
+    'regress' block, regressors for slice 0 would be applied (to correctly
+    account for the degrees of freedom and also to remove residual effects).
+
+    Users have the option of removing the signal "per-run" or "across-runs".
+
+    Example R1: 7 runs of data, 13 card/resp regressors, process "per-run"
+
+        Since the 13 regressors are processed per run, the regressors can have
+        different magnitudes each run.  So the 'regress' block will actually 
+        get 91 extra regressors (13 regressors times 7 runs each).
+
+    Example R2: process "across-run"
+
+        In this case the regressors are catenated across runs when they are
+        removed from the data.  The major difference between this and "per-run"
+        is that now only 1 best fit magnitude is applied per regressor (not the
+        best for each run).  So there would be only the 13 catenated regressors
+        for slice 0 added to the 'regress' block.
+
+    Those analyzing resting-state data might prefer the per-run method, as it
+    would remove more variance and degrees of freedom might not be as valuable.
+
+    Those analyzing a normal signal model might prefer doing it across-runs,
+    giving up only 13 degrees of freedom, and helping not to over-model the
+    data.
+
+    ** The minimum options would be specifying the 'ricor' block (perferably
+       after despike), along with -ricor_regs and -ricor_regress_method.
+
+    Example R3: afni_proc.py option usage:
+
+        Provide additional options to afni_proc.py to apply the despike and
+        ricor blocks (which will be the first 2 blocks by default), with each
+        regressor named 'slibase*.1D' going across all runs, and where the
+        first 3 TRs are removed from each run (matching -tcat_remove_first_trs,
+        most likely).
+
+            -do_block despike ricor
+            -ricor_regs slibase*.1D
+            -ricor_regress_method across-runs
+            -ricor_regs_nfirst 3
+
+    --------------------------------------------------
+    RUNS OF DIFFERENT LENGTHS NOTE:
 
     In the case that the EPI datasets are not all of the same length, here
     are some issues that may come up, listed by relevant option:
@@ -1532,19 +1736,19 @@ g_help_string = """
         -regress_use_stim_files This may fail, as make_stim_times.py is not
                                 currently prepared to handle runs of different
                                 lengths.
-    --------------------------------------------------
-    PROCESSING STEPS (of the output script):
+    ==================================================
+    PROCESSING BLOCKS (of the output script):
 
     The output script will go through the following steps, unless the user
     specifies otherwise.
 
-    automatic steps (the tcsh script will always perform these):
+    automatic blocks (the tcsh script will always perform these):
 
         setup       : check subject arg, set run list, create output dir, and
                       copy stim files
         tcat        : copy input datasets and remove unwanted initial TRs
 
-    default steps (the user may skip these, or alter their order):
+    default blocks (the user may skip these, or alter their order):
 
         tshift      : slice timing alignment on volumes (default is -time 0)
         volreg      : volume registration (default to third volume)
@@ -1554,12 +1758,13 @@ g_help_string = """
         regress     : regression analysis (default is GAM, peak 1, with motion
                       params)
 
-    optional steps (the default is _not_ to apply these blocks)
+    optional blocks (the default is to _not_ apply these blocks)
 
         despike     : truncate spikes in each voxel's time series
         empty       : placehold for some user command (using 3dTcat as sample)
+        ricor       : RETROICOR - removal of cardiac/respiratory regressors
 
-    --------------------------------------------------
+    ==================================================
     EXAMPLES (options can be provided in any order):
 
         1. Minimum use, provide datasets and stim files (or stim_times files).
@@ -1734,7 +1939,7 @@ g_help_string = """
                         -regress_stim_labels ToolMovie HumanMovie       \\
                                              ToolPoint HumanPoint
 
-    --------------------------------------------------
+    ==================================================
     DEFAULTS: basic defaults for each block (not all defaults)
 
         setup:    - use 'SUBJ' for the subject id
@@ -1750,6 +1955,11 @@ g_help_string = """
 
         despike:  - NOTE: by default, this block is _not_ used
                   - masking corresponds to regression
+
+        ricor:    - NOTE: by default, this block is _not_ used
+                  - polort based on twice the actual run length
+                  - solver is OLSQ, not REML
+                  - do not remove any first TRs from the regressors
 
         tshift:   - align slices to the beginning of the TR
                   - use quintic interpolation for time series resampling
@@ -1778,7 +1988,7 @@ g_help_string = """
                   - output ideal curves for GAM/BLOCK regressors
                   - output iresp curves for non-GAM/non-BLOCK regressors
 
-    --------------------------------------------------
+    ==================================================
     OPTIONS: (information options, general options, block options)
              (block options are ordered by block)
 
@@ -2036,6 +2246,98 @@ g_help_string = """
 
             Please see '3dDespike -help' for more information.
             See also '-do_blocks', '-blocks'.
+
+        -ricor_datum DATUM      : specify output data type from ricor block
+
+                e.g. -ricor_datum float
+
+            By default, if the input is unscaled shorts, the output will be
+            unscaled shorts.  Otherwise the output will be floats.
+
+            The user may override this default with the -ricor_datum option.
+            Currently only 'short' and 'float' are valid parameters.
+
+            Note that 3dREMLfit only outputs floats at the moment.  Recall 
+            that the down-side of float data is that it takes twice the disk
+            space, compared with shorts (scaled or unscaled).
+
+            Please see '3dREMLfit -help' for more information.
+
+        -ricor_polort POLORT    : set the polynomial degree for 3dREMLfit
+
+                e.g. -ricor_polort 4
+                default: 1 + floor(run_length / 75.0)
+
+            The default polynomial degree to apply during the 'ricor' block is
+            similar to that of the 'regress' block, but is based on twice the
+            run length (and so should be almost twice as large).  This is to
+            account for motion, since volreg has typically not happened yet.
+
+            Use -ricor_polort to override the default.
+
+        -ricor_regress_method METHOD    : process per-run or across-runs
+
+                e.g. -ricor_regress_method across-runs
+                default: NONE: this option is required for a 'ricor' block
+
+            * valid METHOD parameters: per-run, across-runs
+
+            The cardiac and respiratory signals can be regressed out of each
+            run separately, or out of all runs at once.  The user must choose
+            the method, there is no default.
+            
+            See "RETROICOR NOTE" for more details about the methods.
+
+        -ricor_regress_solver METHOD    : regress using OLSQ or REML
+
+                e.g. -ricor_regress_solver REML
+                default: OLSQ
+
+            * valid METHOD parameters: OLSQ, REML
+
+            Use this option to specify the regression method for removing the
+            cardiac and respiratory signals.  The default method is ordinary
+            least squares, removing the "best fit" of the card/resp signals
+            from the data (also subject to the polort baseline).
+
+            To apply the REML (REstricted Maximum Likelihood) method, use this
+            option.
+
+            Note that 3dREMLfit is used for the regression in either case,
+            particularly since the regressors are slice-based (they are 
+            different for each slice).
+
+            Please see '3dREMLfit -help' for more information.
+
+        -ricor_regs REG1 REG2 ...       : specify ricor regressors (1 per run)
+
+                e.g. -ricor_regs slibase*.1D
+
+            This option is required with a 'ricor' processing block.
+
+            The expected format of the regressor files for RETROICOR processing
+            is one file per run, where each file contains a set of regressors
+            per slice.  If there are 5 runs and 27 slices, and if there are 13
+            regressors per slice, then there should be 5 files input, each with
+            351 (=27*13) columns.
+
+            This format is based on the output of RetroTS.m, included in the
+            AFNI distribution (as part of the matlab package), by Z Saad.
+
+        -ricor_regs_nfirst NFIRST       : ignore the first regressor timepoints
+
+                e.g. -ricor_regs_nfirst 2
+                default: 0
+
+            This option is similar to -tcat_remove_first_trs.  It is used to
+            remove the first few TRs from the -ricor_regs regressor files.
+
+            Since it is likely that the number of TRs in the ricor regressor
+            files matches the number of TRs in the original input dataset (via
+            -dsets), it is likely that -ricor_regs_nfirst should match
+            -tcat_remove_first_trs.
+
+            See also '-tcat_remove_first_trs', '-ricor_regs', '-dsets'.
 
         -tshift_align_to TSHIFT OP : specify 3dTshift alignment option
 

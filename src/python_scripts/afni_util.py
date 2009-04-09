@@ -677,6 +677,12 @@ def vals_are_multiples(num, vals, digits=4):
 
     return 1
 
+def vals_are_constant(vlist, cval=0):
+   """determine whether every value in vlist is equal to cval"""
+   for val in vlist:
+      if val != cval: return 0
+   return 1
+
 def lists_are_same(list1, list2):
    """return 1 if the lists have identical values, else 0"""
    if not list1 and not list2: return 1
