@@ -48,7 +48,15 @@
 
 afni_history_struct rickr_history[] = {
 
- { 8, APR, 2009, RCR, "1d_tool", MICRO, TYPE_NEW_OPT,
+ { 9, APR, 2009, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "'official' release with RETROICOR processing block: ricor",
+   "o  added 'across-runs' ricor_regress_method\n"
+   "o  added ricor information and usage to help (see 'RETROICOR NOTE')\n"
+   "o  maintain unscaled shorts if they are input\n"
+   "o  added -ricor_datum"
+ } ,
+
+ { 8, APR, 2009, RCR, "1d_tool", MINOR, TYPE_NEW_OPT,
    "added -show_rows_cols option",
    NULL
  } ,
