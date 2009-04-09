@@ -205,7 +205,7 @@ def db_cmd_ricor(proc, block):
         print '** failed to get DIMENSIONS from %s' % proc.dsets[0].rpv()
         return
     nslices = dims[2]
-    if proc.verb > 2: print '-- found nslices = %d' % nslices
+    if proc.verb > 2: print '-- ricor: found nslices = %d' % nslices
 
     # check regressors against nslices and nTR (also check reg[0] existence)
     adata = None
@@ -216,11 +216,17 @@ def db_cmd_ricor(proc, block):
     if not adata or not adata.ready:
         print "** failed to read '%s' as Afni1D" % proc.ricor_regs[0]
         return
+    nsr_labs = adata.labs_matching_str('s0.')
     nsliregs = adata.nvec // nslices
     if nsliregs * nslices != adata.nvec:
-        print "** ricor nsliregs x nslices != nvec (%d,%d,%d)" % \
-              (nsliregs, nslices, adata.nvec)
+        print "** ricor nsliregs x nslices != nvec (%d,%d,%d)\n" \
+              "   (# slice 0 labels found = %d)"                 \
+              (nsliregs, nslices, adata.nvec, len(nsr_labs))
         return
+    if proc.verb > 1: print '-- ricor: nsliregs = %d, # slice 0 labels = %d' \
+                            % (nsliregs, len(nsr_labs))
+    if proc.verb > 2: print '-- ricor: slice 0 labels: %s' % ' '.join(nsr_labs)
+
     # check reps against adjusted NT
     nt = adata.nt-proc.ricor_nfirst
     if proc.reps != nt:
