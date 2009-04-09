@@ -314,17 +314,66 @@ class Afni1D:
       del(means)
       del(norms)
 
+   def make_cormat_warnings_string(self, cutoff=0.4, name=''):
+      """make a string for any entires at or above cutoffs:
+            cut0=1.0, cut1=(1.0+cutoff)/2.0, cut2=cutoff
+
+            cut0, cut1, cut2 are cutoff levels (cut0=highest)
+            that determine the severity of the correlation
+            (anything below cut2 is ignored)
+
+         return error code (0=success) and 'warnings' string"""
+
+      # assign base cutoff
+      if cutoff < 0.0 or cutoff >= 1.0 : cutoff = 0.4
+
+      cut0 = 1.0
+      cut1 = (1.0 + cutoff)/2.0
+      cut2 = cutoff
+
+      err, errstr, badlist = self.list_cormat_warnings(cutoff=cut2)
+      if err: return err, errstr
+
+      blen = len(badlist)
+
+      if blen == 0:
+         return 0, '-- no warnings for correlation matrix (cut = %.3f) --'%cut2
+
+      mstr = '\nWarnings regarding Correlation Matrix: %s\n\n'          \
+        '  severity   correlation   regressor pair\n'          \
+        '  --------   -----------   ' % name + 40*'-' + '\n'
+      cutstrs = [ '  IDENTICAL: ', '  high:      ', '  medium:    ' ]
+
+      # note the maximum label length
+      if self.labels:
+         mlab = max([len(self.labels[col]) for val, row, col in badlist])
+
+      for val, row, col in badlist:
+         if   abs(val) >= cut0: cs = cutstrs[0]
+         elif abs(val) >= cut1: cs = cutstrs[1]
+         else:                  cs = cutstrs[2]
+
+         # we have an appropriately evil entry...
+         if self.labels:
+            mstr += '%s  %6.3f       (%2d vs. %2d)  %*s  vs.  %s\n' % \
+                    (cs, val, col, row,
+                     mlab, self.labels[col], self.labels[row])
+         else:
+            mstr += '%s  %6.3f       #%2d  vs.  #%2d\n' %        \
+                    (cs, val, col, row)
+
+      return 0, mstr
+
    def list_cormat_warnings(self, cutoff=0.4):
-      """return a list of corval, vec, index
+      """return an error code, error string and a list of corval, vec, index
          for each cormat value with abs() > cutoff"""
 
       if not self.ready:
-         return '** no X-matrix to compute correlation matrix from'
+         return 1, '** no X-matrix to compute correlation matrix from', None
 
       if not self.cormat_ready: self.set_cormat() # create cormat
       if not self.cormat_ready: # then failure
-         print '** cormat_warnings: failed to create cormat'
-         return 1
+         return 1, '** cormat_warnings: failed to create cormat', None
 
       cmat = self.cormat
 
@@ -369,7 +418,7 @@ class Afni1D:
 
       del(clist)
 
-      return badlist
+      return 0, '', badlist
 
    def labs_matching_str(self, mstr):
       if type(self.labels) != type([]): return []
@@ -482,13 +531,13 @@ class Afni1D:
          groups.extend([g for g in self.groups if g > 0])
       if len(groups) < 1 or len(self.groups) < 1: return []
       # if not list2_is_in_list1(self.groups, groups, "groups"): return []
-      return [val for val in range(self.ncols) if self.groups[val] in groups]
+      return [val for val in range(self.nvec) if self.groups[val] in groups]
       
    def cols_by_label_list(self, labels):
       """return a list of columns, given a list of labels"""
       if not self.labels or not labels: return []
       if not list2_is_in_list1(self.labels, labels, "labels"): return []
-      return [val for val in range(self.ncols) if val in cols]
+      return [val for val in range(self.nvec) if val in cols]
 
    def init_from_matrix(self, matrix):
       """initialize Afni1D from a 2D (or 1D) array"""

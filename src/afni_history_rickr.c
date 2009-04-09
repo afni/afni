@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 9, APR, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_cormat_warnings and -cormat_cutoff",
+   NULL
+ } ,
+
  { 9, APR, 2009, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "'official' release with RETROICOR processing block: ricor",
    "o  added 'across-runs' ricor_regress_method\n"
@@ -56,7 +61,7 @@ afni_history_struct rickr_history[] = {
    "o  added -ricor_datum"
  } ,
 
- { 8, APR, 2009, RCR, "1d_tool", MINOR, TYPE_NEW_OPT,
+ { 8, APR, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -show_rows_cols option",
    NULL
  } ,
