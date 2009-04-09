@@ -53,6 +53,10 @@ examples (very basic for now):
 
       1d_tool.py -infile ricor_r02.1D -show_rows_cols
 
+   6. Show correlation matrix warnings for this matrix.
+
+      1d_tool.py -infile X.xmat.1D -show_cormat_warnings
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -70,12 +74,14 @@ required input:
 general options:
 
    -add_cols NEW_DSET.1D        : extend dset to include these columns
+   -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
    -overwrite                   : allow overwriting of any output dataset
    -reverse                     : reverse data over time
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
                                   e.g. '[5,0,7..21(2)]'
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
                                   e.g. '{5,0,7..21(2)}'
+   -show_cormat_warnings        : display correlation matrix warnings
    -show_rows_cols              : display the number of rows and columns
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
@@ -97,9 +103,10 @@ g_history = """
    0.2  Mar 26, 2009 - small array fix for older python in write()
    0.3  Mar 31, 2009 - added -pad_to_many_runs, -reverse
    0.4  Apr  8, 2009 - added -show_rows_cols
+   0.5  Apr  9, 2009 - added -show_cormat_warnings and -cormat_cutoff
 """
 
-g_version = "1d_tool.py version 0.2, Mar 26, 2009"
+g_version = "1d_tool.py version 0.5, Apr 9, 2009"
 
 
 class A1DInterface:
@@ -120,7 +127,11 @@ class A1DInterface:
       self.reverse         = 0          # reverse data over time
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
+
+      self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
+      self.show_cormat_warn= 0          # show cormat warnings
       self.show_rows_cols  = 0          # show the number of rows and columns
+
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the matrix
       self.write_file      = None       # output filename
@@ -174,6 +185,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-add_cols', 1, [],
                       helpstr='extend dataset with columns from new file')
 
+      self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
+                      helpstr='set the cutoff for cormat warnings')
+
       self.valid_opts.add_opt('-overwrite', 0, [], 
                       helpstr='allow overwriting any output files')
 
@@ -188,6 +202,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-select_rows', 1, [], 
                       helpstr='select the list of rows from the dataset')
+
+      self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
+                      helpstr='display warnings for the correlation matrix')
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
@@ -258,6 +275,12 @@ class A1DInterface:
             if err: return 1
             self.add_cols_file = val
 
+         elif opt.name == '-cormat_cutoff':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if err: return 1
+            if val >= 0 and val < 1.0: self.cormat_cutoff = val
+            else: print '** -cormat_cutoff must be in [0,1)'
+
          elif opt.name == '-overwrite':
             self.overwrite = 1
 
@@ -279,6 +302,9 @@ class A1DInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
             self.select_rows = val
+
+         elif opt.name == '-show_cormat_warnings':
+            self.show_cormat_warnings = 1
 
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
@@ -340,8 +366,12 @@ class A1DInterface:
          if self.adata.transpose(): return 1
 
       # any 'show' options come after all other processing
-      if self.show_rows_cols:
-         self.adata.show_rows_cols(verb=self.verb)
+      if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
+
+      if self.show_cormat_warnings:
+         err, str = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
+                                                           name=self.infile)
+         print str
 
       if self.write_file:
          if self.write_1D(self.write_file): return 1
