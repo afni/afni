@@ -190,7 +190,7 @@ class SubjProcSream:
         
     def show(self, mesg):
         print '%sSubjProcSream: %s' % (mesg, self.label)
-        if self.verb > 2:
+        if self.verb > 3:
             for block in self.blocks:
                 block.show('    Block %d: ' % self.blocks.index(block))
         print '    Dsets : ',
@@ -572,7 +572,7 @@ class SubjProcSream:
             else:
                 self.fp.write(add_line_wrappers(cmd_str))
                 if self.verb>3: block.show('+d post command creation: ')
-                if self.verb>2: print '+d %s cmd: \n%s'%(block.label, cmd_str)
+                if self.verb>4: print '+d %s cmd: \n%s'%(block.label, cmd_str)
 
         if self.gen_review:
             cmd_str = db_cmd_gen_review(self)
@@ -642,7 +642,7 @@ class SubjProcSream:
         if not block.valid:
             print '** invalid block : %s' % block.label
             return 1
-        if self.verb > 2: block.show('+d post init block: ')
+        if self.verb > 3: block.show('+d post init block: ')
         self.blocks.append(block)
 
     def find_block(self, label):

@@ -371,6 +371,10 @@ class Afni1D:
 
       return badlist
 
+   def labs_matching_str(self, mstr):
+      if type(self.labels) != type([]): return []
+      return [lab for lab in self.labels if lab.find(mstr) >= 0]
+
    def update_group_info(self):
       """if self.groups, try to set nruns and nroi"""
 
