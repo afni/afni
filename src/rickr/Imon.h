@@ -112,6 +112,7 @@ typedef struct  /* user options */
     int              debug;         /* debug level                      */
     int              quit;          /* quit when no new images found    */
     int              use_dicom;     /* flag for dicom (not GE) images   */
+    int              use_last_elem; /* use last element in DICOM images */
     int              show_sorted_list; /* display sorted list and quit  */
 
     /* GERT_Reco options */

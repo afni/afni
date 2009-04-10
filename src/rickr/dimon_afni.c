@@ -68,6 +68,8 @@ static int   use_DI_MRL_xoff   = 0;
 static int   use_DI_MRL_yoff   = 0;
 static int   use_DI_MRL_zoff   = 0;
 
+int g_use_last_elem = 0;  /* maybe the user wants to go to last element */
+
 extern float gD_epsilon;
 
 /* exported MRI-style globals */
@@ -129,7 +131,9 @@ static float *ComputeObliquity(oblique_info *obl_info);
 static int    CheckObliquity(float, float, float, float, float, float);
 static void   Clear_obl_info(oblique_info *obl_info);
 static void   Fill_obl_info(oblique_info *, char **);
-static float  get_dz(  char **epos);
+static float  get_dz(char **epos);
+static int    get_posns_from_elist(char *plist[], char *elist[], char *text,
+                                   int nume);
 
 void   mri_read_dicom_reset_obliquity();
 int    mri_read_dicom_get_obliquity(float *, int);
@@ -374,8 +378,8 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
 
    /* find positions in header of elements we care about */
 
-   for( ee=0 ; ee < NUM_ELIST ; ee++ )
-     epos[ee] = strstr(ppp,elist[ee]) ;
+   /* allow some choices when filling the list    10 Apr 2009 [rickr] */
+   get_posns_from_elist(epos, elist, ppp, NUM_ELIST);
 
    /* see if the header has the elements we absolutely need */
 
@@ -528,6 +532,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    if( nz != 1 ){
       fprintf(stderr,"** MRD: nz = %d, plen,bpp,nx,ny = %d,%d,%d,%d\n",
          nz, plen, bpp, nx, ny);
+      fprintf(stderr,"   (consider -use_last_elem)\n");
       free(ppp);
       RETURN(NULL);
    }
@@ -1398,4 +1403,38 @@ static float get_dz(char **epos)
 
   return(dz);
 } /*-- end of dz code, with all its stupidities --*/
+
+/*---------------------------------------------------------------------------*/
+/*! Normally we will find the first occurance of each element in the text.
+ *  Maybe the user wants to use the last, instead.     10 Apr 2009 [rickr]
+ *---------------------------------------------------------------------------*/
+
+static int get_posns_from_elist(char *plist[], char *elist[], char *text,
+                                int nume)
+{
+   static int check_env = 1;
+   int        ee;
+   char     * cp;
+
+   ENTRY("flip_slices_mosaic");
+
+   if( check_env && !g_use_last_elem) {
+        check_env = 0;
+        cp = getenv("AFNI_DICOM_USE_LAST_ELEMENT") ;
+        if( cp && (*cp == 'Y' || *cp == 'y') ) {
+           g_use_last_elem = 1 ;
+           fprintf(stderr,"-- will search for last Dicom elements...\n");
+        }
+   }
+
+   for( ee=0 ; ee < nume ; ee++ ) {
+      plist[ee] = strstr(text,elist[ee]) ;
+      if( g_use_last_elem && plist[ee] ) {
+         while( (cp = strstr(plist[ee]+1, elist[ee])) != NULL )
+            plist[ee] = cp ;
+      }
+   }
+
+   RETURN(0);
+}
 
