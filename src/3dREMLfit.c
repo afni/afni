@@ -1728,7 +1728,7 @@ STATUS("process -slibase images") ;
        if( im->nx == ntime ) continue ; /* OK */
        if( im->nx == nfull ){
          MRI_IMAGE *imb = mri_subset_x2D( ntime , goodlist , im ) ;
-         mri_free(im) ; IMARR_SUBIM(imar_addbase,ii) = imb ;
+         mri_free(im) ; IMARR_SUBIM(imar_slibase,ii) = imb ;
          if( verb )
            INFO_message("Censored -slibase file '%s' from %d down to %d rows" ,
                         im->name , nfull , ntime ) ;
