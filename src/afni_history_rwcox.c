@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , APR , 2009 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
+   "Error in processing -slibase file with censoring" ,
+   "Typo in replacing input image with censored image caused the end of the\n"
+   "world (SEGV crash)." } ,
+
  { 8 , APR , 2009 , RWC , "AFNI image viewer" , MINOR , TYPE_MODIFY ,
    "Set MPEG 'pattern' for frames to reflect the Anim_dup setting." ,
    "This small change will make MPEG-1 (.mpg) files that are slowed down by\n"
