@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, APR, 2009, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
+   "fix for old versions of python, like on solaris",
+   "Each of copy.deepcopy(), sum(), and sort(reverse=True) failed."
+ } ,
+
  { 9, APR, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -show_cormat_warnings and -cormat_cutoff",
    NULL
