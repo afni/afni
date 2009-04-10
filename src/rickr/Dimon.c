@@ -104,6 +104,7 @@ static char * g_history[] =
 
 extern char  DI_MRL_orients[8];
 extern float DI_MRL_tr;
+extern int   g_use_last_elem;
 
 extern struct dimon_stuff_t { int study, series, image; } gr_dimon_stuff;
 
@@ -2149,6 +2150,11 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             /* still run as Imon */
             p->opts.use_dicom = 0;
         }
+        else if ( ! strncmp( argv[ac], "-use_last_elem", 11 ) )
+        {
+            p->opts.use_last_elem = 1;
+            g_use_last_elem = 1;        /* for external function */
+        }
         else if ( ! strncmp( argv[ac], "-zorder", 6 ) )
         {
             if ( ++ac >= argc )
@@ -2813,6 +2819,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sleep_vol          = %d\n"
             "   debug              = %d\n"
             "   quit, use_dicom    = %d, %d\n"
+            "   use_last_elem      = %d\n"
             "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
@@ -2838,7 +2845,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->argv, opt->argc,
             opt->tr, opt->ep, opt->nt, opt->num_slices, opt->nice, opt->pause,
             opt->sleep_frac, opt->sleep_init, opt->sleep_vol,
-            opt->debug, opt->quit, opt->use_dicom,
+            opt->debug, opt->quit, opt->use_dicom, opt->use_last_elem,
             opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix), opt->gert_nz,
@@ -4013,6 +4020,9 @@ static int create_gert_dicom( stats_t * s, param_t * p )
                         opts->gert_nz ? opts->gert_nz : s->slices,
                         s->runs[c].volumes, TR, spat);
             }
+
+            if( opts->use_last_elem )
+                fprintf(fp, "     -use_last_elem                \\\n");
 
             fprintf(fp, "     -@ < %s\n\n", outfile);
 
