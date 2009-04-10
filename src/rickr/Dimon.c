@@ -3664,6 +3664,14 @@ static int usage ( char * prog, int level )
           "\n"
           "    -use_imon          : revert to Imon functionality\n"
           "\n"
+          "    -use_last_elem     : use the last elements when reading DICOM\n"
+          "\n"
+          "        In some poorly created DICOM image files, some elements\n"
+          "        are listed incorrectly, before being listed correctly.\n"
+          "\n"
+          "        Use the option to search for the last occurrence of each\n"
+          "        element, not necessarily the first.\n"
+          "\n"
           "    -version           : show the version information\n"
           "\n",
           prog, prog, prog, prog, prog, prog, prog
