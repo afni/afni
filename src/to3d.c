@@ -2962,6 +2962,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;
       }
 
+      /*----- -use_last_element -----*/  /* 10 Apr 2009 [rickr] */
+
+      if( strncmp(Argv[nopt],"-use_last_elem",14) == 0 ){
+         use_last_elem = 1 ;  /* global in mri_read_dicom.c */
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*--- illegal option ---*/
 
       printf("** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
@@ -3490,6 +3497,9 @@ void Syntax()
     "  -reverse_list\n"
     "    reverse the input file list.\n"
     "    Convenience for Siemens non-mosaic flipped datasets\n\n"
+    "  -use_last_elem\n"
+    "    If present, search DICOM images for the last occurance of each\n"
+    "    element, not the first.\n"
    ) ;
 
    printf(

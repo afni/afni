@@ -57,6 +57,8 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi ) ;
 static float get_dz(  char **epos);
 
 static int CheckObliquity(float xc1, float xc2, float xc3, float yc1, float yc2, float yc3);
+static int get_posns_from_elist(char *plist[], char *elist[], char *text,
+                                int nume);
 
 static int obl_info_set = 0;
 
@@ -92,6 +94,7 @@ static void RWC_set_endianosity(void)
 /*---------------------------------------------------------------------------*/
 /* global set via 'to3d -assume_dicom_mosaic'            13 Mar 2006 [rickr] */
 int assume_dicom_mosaic = 0;   /* (case of 1 is equivalent to Rich's change) */
+int use_last_elem = 0;         /* when filling epos list 10 Apr 2009 [rickr] */
 
 #undef  SINT
 #undef  SFLT
@@ -168,8 +171,8 @@ ENTRY("mri_read_dicom") ;
 
    /* find positions in header of elements we care about */
 
-   for( ee=0 ; ee < NUM_ELIST ; ee++ )
-     epos[ee] = strstr(ppp,elist[ee]) ;
+   /* allow some choices when filling the list    10 Apr 2009 [rickr] */
+   get_posns_from_elist(epos, elist, ppp, NUM_ELIST);
 
    /* Determine if we need to swap bytes after reading image data */
    /* DICOM files are stored in LSB first (little endian) mode    */
@@ -494,10 +497,12 @@ ENTRY("mri_read_dicom") ;
 
          else {                        /* warn about bad mosaic sizes */
            static int nwarn=0 ;
-           if( nwarn < NWMAX )
+           if( nwarn < NWMAX ) {
              fprintf(stderr,
-                   "++ DICOM WARNING: bad Siemens Mosaic params: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
+                   "\n** DICOM WARNING: bad Siemens Mosaic params: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
                    mos_nx,mos_ny , mos_ix,mos_iy , nx,ny ) ;
+             fprintf(stderr,"   (consider the option -use_last_elem)\n");
+           }
            if( nwarn == NWMAX )
              fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic param messages will be printed\n");
            nwarn++ ;
@@ -1257,8 +1262,8 @@ ENTRY("mri_imcount_dicom") ;
 
    /* find positions in header of elements we care about */
 
-   for( ee=0 ; ee < NUM_ELIST ; ee++ )
-     epos[ee] = strstr(ppp,elist[ee]) ;
+   /* allow some choices when filling the list    10 Apr 2009 [rickr] */
+   get_posns_from_elist(epos, elist, ppp, NUM_ELIST) ;
 
    /* see if the header has the elements we absolutely need */
 
@@ -1415,6 +1420,40 @@ ENTRY("mri_imcount_dicom") ;
    } /* end of if str_sexinfo != NULL */
 
    free(ppp); RETURN(nz);
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Normally we will find the first occurance of each element in the text.
+ *  Maybe the user wants to use the last, instead.     10 Apr 2009 [rickr]
+-----------------------------------------------------------------------------*/
+
+static int get_posns_from_elist(char *plist[], char *elist[], char *text,
+                                int nume)
+{
+   static int check_env = 1;
+   int    ee;
+   char * cp;
+
+   ENTRY("flip_slices_mosaic");
+
+   if( check_env && !use_last_elem ) {
+        check_env = 0;
+        cp = getenv("AFNI_DICOM_USE_LAST_ELEMENT") ;
+        if( cp && (*cp == 'Y' || *cp == 'y') ) {
+           use_last_elem = 1 ;
+           fprintf(stderr,"-- will search for last Dicom elements...\n");
+        }
+   }
+
+   for( ee=0 ; ee < nume ; ee++ ) {
+      plist[ee] = strstr(text,elist[ee]) ;
+      if( use_last_elem && plist[ee] ) {
+         while( (cp = strstr(plist[ee]+1, elist[ee])) != NULL )
+            plist[ee] = cp ;
+      }
+   }
+
+   RETURN(0);
 }
 
 /*--------------------------------------------------------------------------------*/

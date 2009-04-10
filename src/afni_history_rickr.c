@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, APR, 2009, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
+   "added -use_last_elem option for setting DICOM elements",
+   NULL
+ } ,
+
+ { 10, APR, 2009, RCR, "to3d", MINOR, TYPE_NEW_OPT,
+   "added -use_last_elem option for setting DICOM elements",
+   "Can also use AFNI_DICOM_USE_LAST_ELEMENT environment variable."
+ } ,
+
  { 10, APR, 2009, RCR, "1d_tool.py", MINOR, TYPE_MODIFY,
    "fix for old versions of python, like on solaris",
    "Each of copy.deepcopy(), sum(), and sort(reverse=True) failed."
