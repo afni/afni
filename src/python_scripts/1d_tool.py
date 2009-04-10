@@ -104,9 +104,11 @@ g_history = """
    0.3  Mar 31, 2009 - added -pad_to_many_runs, -reverse
    0.4  Apr  8, 2009 - added -show_rows_cols
    0.5  Apr  9, 2009 - added -show_cormat_warnings and -cormat_cutoff
+   0.6  Apr 10, 2009 - update for old python versions (e.g. on solaris)
+        - each of copy.deepcopy, sum, and sort(reverse=True) failed
 """
 
-g_version = "1d_tool.py version 0.5, Apr 9, 2009"
+g_version = "1d_tool.py version 0.6, Apr 10, 2009"
 
 
 class A1DInterface:
