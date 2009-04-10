@@ -269,6 +269,9 @@ class Afni1D:
       self.nvec = self.nt
       self.nt   = newnt
 
+   def simplecopy(self):
+      return Afni1D(from_mat=1, matrix=self.mat, verb=self.verb)
+
    def set_cormat(self, update=0):
       """set cormat (the correlation matrix) and cormat.ready
 
@@ -288,10 +291,13 @@ class Afni1D:
       if self.nvec < 2 or self.nt < 2: return
 
       # make copy to abuse
-      cmat = copy.deepcopy(self)
+      try: cmat = copy.deepcopy(self)
+      except:
+         print '... deepcopy failure, using simplecopy()...'
+         cmat = self.simplecopy()
 
       # demean each vector (for cormat), unless it is all 1's
-      means = [sum(vec)/cmat.nt for vec in cmat.mat]
+      means = [UTIL.loc_sum(vec)/cmat.nt for vec in cmat.mat]
       for v in range(cmat.nvec):
          lmin = min(cmat.mat[v])
          lmax = max(cmat.mat[v])
@@ -391,11 +397,17 @@ class Afni1D:
          for col in range(row):
             clist.append((abs(cmat[row][col]), cmat[row][col], row, col))
 
-      clist.sort(reverse=True)  # largest to smallest
+      # clist.sort(reverse=True) # fails on old versions
+      clist.sort() # smallest to largest, so process from end
 
       # now make a list of evil-doers
       badlist = []
-      for aval, val, r, c in clist:
+
+      # process list as smallest to largest, since old sort had no reverse
+      clen = len(clist)
+      for ind in range(clen):
+         aval, val, r, c = clist[clen-1-ind]
+
          if aval == 1.0:
             badlist.append((val, r, c)) # flag duplication
             continue
@@ -668,7 +680,7 @@ def norm(vec):
 
 def dotprod(v1,v2):
    """compute the dot product of 2 vectors"""
-   try: nsum = sum([v1[i]*v2[i] for i in range(len(v1))])
+   try: nsum = UTIL.loc_sum([v1[i]*v2[i] for i in range(len(v1))])
    except:
       print '** cannot take dotprod() of these elements'
       nsum = 0
