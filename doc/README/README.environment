@@ -1623,6 +1623,18 @@ decide whether to use these options -- manufacturers seem to differ.
 Plus, I don't have that much experience with DICOM data from many different
 sources.
 
+---------------------------------------------------
+Variable: AFNI_DICOM_VERBOSE
+---------------------------------------------------
+Set this YES/NO variable to YES to output extra details when reading
+DICOM images.
+
+---------------------------------------------------
+Variable: AFNI_DICOM_USE_LAST_ELEMENT
+---------------------------------------------------
+Set this YES/NO variable to YES to force the DICOM reading routines to set
+each DICOM element based on the last occurrence, not necessarily the first.
+
 -----------------------
 Variable: IDCODE_PREFIX
 -----------------------
