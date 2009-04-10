@@ -309,7 +309,8 @@ class Afni1D:
       norms = [norm(row) for row in cmat.mat]
       for v in range(cmat.nvec):
          for ind in range(cmat.nt):
-            cmat.mat[v][ind] /= norms[v]
+            if norms[v] == 0: cmat.mat[v][ind] = 0
+            else:             cmat.mat[v][ind] /= norms[v]
 
       # finally, assign cormat
       self.cormat = [[dotprod(r1,r2) for r2 in cmat.mat] for r1 in cmat.mat]
@@ -345,9 +346,20 @@ class Afni1D:
       if blen == 0:
          return 0, '-- no warnings for correlation matrix (cut = %.3f) --'%cut2
 
-      mstr = '\nWarnings regarding Correlation Matrix: %s\n\n'          \
-        '  severity   correlation   regressor pair\n'          \
-        '  --------   -----------   ' % name + 40*'-' + '\n'
+      mstr = '\nWarnings regarding Correlation Matrix: %s\n\n' % name
+
+      # check for any constant 0 vectors here, too
+      nfound = 0
+      for ind in range(self.nvec):
+         if UTIL.vals_are_constant(self.mat[ind], 0):
+            mstr += '  ** vector #%02d is all ZEROs\n' % ind
+            nfound += 1
+      if nfound > 0: mstr += '\n'
+
+      mstr = mstr +                                             \
+        '  severity   correlation   regressor pair\n'           \
+        '  --------   -----------   ' + 40*'-' + '\n'
+
       cutstrs = [ '  IDENTICAL: ', '  high:      ', '  medium:    ' ]
 
       # note the maximum label length

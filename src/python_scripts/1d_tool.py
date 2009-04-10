@@ -106,6 +106,7 @@ g_history = """
    0.5  Apr  9, 2009 - added -show_cormat_warnings and -cormat_cutoff
    0.6  Apr 10, 2009 - update for old python versions (e.g. on solaris)
         - each of copy.deepcopy, sum, and sort(reverse=True) failed
+        - note all-zero vectors in -show_cormat_warnings
 """
 
 g_version = "1d_tool.py version 0.6, Apr 10, 2009"
