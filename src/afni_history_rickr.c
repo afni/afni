@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fixed use of -regress_errts_prefix with blur est",
+   NULL
+ } ,
+
  { 10, APR, 2009, RCR, "Dimon", MINOR, TYPE_NEW_OPT,
    "added -use_last_elem option for setting DICOM elements",
    NULL
