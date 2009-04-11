@@ -557,14 +557,14 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
         
         # find next '\\\n'
         posn = command.find('\\\n', cur_posn)
-        if 0 <= posn-cur_posn < maxlen: # adjust and continue
+        if 0 <= posn-cur_posn <= maxlen: # adjust and continue
             cur_posn = posn + 2
             remain = end_posn - cur_posn
             continue
 
         # find next '\n'
         posn = command.find('\n', cur_posn)
-        if 0 <= posn-cur_posn < maxlen: # adjust and continue
+        if 0 <= posn-cur_posn <= maxlen: # adjust and continue
             cur_posn = posn + 1
             remain = end_posn - cur_posn
             continue

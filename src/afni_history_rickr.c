@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, APR, 2009, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
+   "fixed typo in use of -show_cormat_warnings",
+   NULL
+ } ,
+
  { 11, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fixed use of -regress_errts_prefix with blur est",
    NULL
