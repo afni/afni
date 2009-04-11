@@ -107,9 +107,10 @@ g_history = """
    0.6  Apr 10, 2009 - update for old python versions (e.g. on solaris)
         - each of copy.deepcopy, sum, and sort(reverse=True) failed
         - note all-zero vectors in -show_cormat_warnings
+   0.7  Apr 11, 2009 - fixed typo in use of -show_cormat_warnings
 """
 
-g_version = "1d_tool.py version 0.6, Apr 10, 2009"
+g_version = "1d_tool.py version 0.7, Apr 11, 2009"
 
 
 class A1DInterface:
@@ -307,7 +308,7 @@ class A1DInterface:
             self.select_rows = val
 
          elif opt.name == '-show_cormat_warnings':
-            self.show_cormat_warnings = 1
+            self.show_cormat_warn = 1
 
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
@@ -371,7 +372,7 @@ class A1DInterface:
       # any 'show' options come after all other processing
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
-      if self.show_cormat_warnings:
+      if self.show_cormat_warn:
          err, str = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                                            name=self.infile)
          print str
