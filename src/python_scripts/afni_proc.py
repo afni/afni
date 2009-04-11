@@ -106,9 +106,10 @@ g_history = """
         - added ricor information and usage to help (see "RETROICOR NOTE")
         - maintain unscaled shorts if they are input
         - added -ricor_datum
+    1.42 Apr 11 2009 : fixed use of -regress_errts_prefix with blur est
 """
 
-g_version = "version 1.41, Apr 9, 2009"
+g_version = "version 1.42, Apr 11, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

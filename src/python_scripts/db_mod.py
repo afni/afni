@@ -1367,15 +1367,20 @@ def db_cmd_blur_est(proc, block):
                     'epits', proc.reps, blur_file)
         if not bstr: return
         cmd = cmd + bstr
+
+    opt = block.opts.find_opt('-regress_errts_prefix')
+    if opt and opt.parlist: errts_pre = opt.parlist[0]
+    else:   errts_pre = 'errts.$subj'
+
     if eopt and not sopt: # want errts, but 3dD was not executed
-        bstr = blur_est_loop_str('errts.$subj%s' % proc.view, 
+        bstr = blur_est_loop_str('%s%s' % (errts_pre, proc.view), 
                     '%s%s' % (proc.mask, proc.view),
                     'errts', proc.reps, blur_file)
         if not bstr: return
         cmd = cmd + bstr
     if eopt and ropt: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
-        bstr = blur_est_loop_str( 'errts.$subj\_REML%s' % proc.view, 
+        bstr = blur_est_loop_str( '%s\_REML%s' % (errts_pre, proc.view), 
                     '%s%s' % (proc.mask, proc.view),
                     'err_reml', proc.reps, blur_file)
         if not bstr: return
