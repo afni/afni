@@ -540,6 +540,9 @@ class ATInterface:
 
    def process_options(self):
 
+      # process any optlist_ options
+      self.valid_opts.check_special_opts(sys.argv)
+
       # process terminal options without the option_list interface
 
       if len(sys.argv) <= 1 or '-help' in sys.argv:

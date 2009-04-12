@@ -167,6 +167,9 @@ def get_opts():
                    helpstr='set the verbosity level')
     okopts.trailers = 1
 
+    # process any optlist_ options
+    okopts.check_special_opts(sys.argv)
+
     # if argv has only the program name, or user requests help, show it
     if len(sys.argv) <= 1 or '-help' in sys.argv:
         print g_help_string

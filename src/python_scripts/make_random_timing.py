@@ -683,8 +683,11 @@ class RandTiming:
     def read_opts(self):
         """check for terminal arguments, then read the user options"""
 
+        # process any optlist_ options
+        self.valid_opts.check_special_opts(sys.argv)
+
         # ------------------------------------------------------------
-        # first check for terminal arguments
+        # check for terminal arguments
 
         # if argv has only the program name, or user requests help, show it
         if len(sys.argv) <= 1 or '-help' in sys.argv:
