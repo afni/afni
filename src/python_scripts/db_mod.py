@@ -573,6 +573,11 @@ def db_mod_volreg(block, proc, user_opts):
         bopt = block.opts.find_opt('-volreg_opts_vr')
         bopt.parlist = uopt.parlist
 
+    uopt = user_opts.find_opt('-volreg_regress_per_run')
+    bopt = block.opts.find_opt('-volreg_regress_per_run')
+    if uopt and not bopt:
+        block.opts.add_opt('-volreg_regress_per_run', 0, [])
+
     block.valid = 1
 
 def db_cmd_volreg(proc, block):
@@ -626,6 +631,14 @@ def db_cmd_volreg(proc, block):
                 "             %s\n" %                                         \
                     (zpad, bstr, proc.prefix_form_run(block), resam,
                      other_opts, proc.prev_prefix_form_run(view=1))
+
+    # if we want to regress motion files per run, create them and add to list
+    if block.opts.find_opt('-volreg_regress_per_run'):
+        cmd = cmd + '\n' +                              \
+            "    1d_tool.py -infile dfile.r$run.1D "    \
+            "-pad_into_many_runs $run %d \\\n"          \
+            "               -write dfile.r$run.pad.1D\n" % proc.runs
+        proc.mot_files = ['dfile.r%02d.pad.1D'%(r+1) for r in range(proc.runs)]
 
     # if there is a base_dset option, check for failure in 3dvolreg
     if basevol:
@@ -1037,9 +1050,18 @@ def db_mod_regress(block, proc, user_opts):
 
     # maybe the user wants to specify a motion file
     uopt = user_opts.find_opt('-regress_motion_file')
-    if uopt:  # and make sure we have labels
-        proc.mot_file = uopt.parlist[0]
+    if uopt:
+        # make sure we have labels
+        proc.mot_files = uopt.parlist
         proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
+        # do not allow -volreg_regress_per_run with this
+        blk = proc.find_block('volreg')
+        if blk:
+           vopt = blk.opts.find_opt('-volreg_regress_per_run')
+           if vopt:
+              print '** -volreg_regress_per_run is illegal with' \
+                    ' -regress_motion_file'
+              errs += 1
 
     # maybe the user does not want to convert stim_files to stim_times
     uopt = user_opts.find_opt('-regress_use_stim_files')
@@ -1117,8 +1139,9 @@ def db_cmd_regress(proc, block):
     if proc.datatype == 3: datum = '-float '
     else:                  datum = ''
 
+    nmotion = len(proc.mot_labs) * len(proc.mot_files)
     total_nstim =  len(proc.stims) + len(proc.extra_stims) + \
-                   len(proc.mot_labs) + proc.ricor_nreg
+                   nmotion + proc.ricor_nreg
     cmd = cmd + '3dDeconvolve -input %s \\\n'           \
                 '    -polort %d %s\\\n'                 \
                 '%s%s'                                  \
@@ -1204,13 +1227,19 @@ def db_cmd_regress(proc, block):
         regindex += len(proc.extra_stims)
 
     # write out registration param lines
-    if len(proc.mot_labs) > 0:
-        for ind in range(len(proc.mot_labs)):
-            sind = ind+regindex
-            cmd = cmd + "    -stim_file %d %s'[%d]' "           \
+    if nmotion > 0:
+        nlabs = len(proc.mot_labs)
+        nmf = len(proc.mot_files)
+        for findex in range(nmf):
+            mfile = proc.mot_files[findex]
+            for ind in range(nlabs):
+                if nmf > 1: mlab = '%s_%02d' % (proc.mot_labs[ind], findex)
+                else:       mlab = '%s'      % (proc.mot_labs[ind])
+                sind = regindex + nlabs*findex + ind
+                cmd = cmd + "    -stim_file %d %s'[%d]' "       \
                         "-stim_base %d -stim_label %d %s \\\n"  \
-                % (sind, proc.mot_file, ind, sind, sind, proc.mot_labs[ind])
-        regindex += len(proc.mot_labs)
+                        % (sind, proc.mot_files[findex], ind, sind, sind, mlab)
+        regindex += nmotion
 
     # write out ricor param lines (put labels afterwards)
     if proc.ricor_reg and proc.ricor_nreg > 0:
@@ -1340,8 +1369,6 @@ def db_cmd_blur_est(proc, block):
     eopt = block.opts.find_opt('-regress_est_blur_errts')
     ropt = block.opts.find_opt('-regress_reml_exec')
     sopt = block.opts.find_opt('-regress_3dD_stop')
-
-    # b = proc.find_block('regress')
 
     if not aopt and not eopt:
         if proc.verb > 2: print '-- no blur estimation'
@@ -1981,6 +2008,7 @@ g_help_string = """
                         (option: -volreg_zpad 1)
                   - use cubic interpolation for volume resampling
                         (option: -volreg_interp -cubic)
+                  - apply motion params as regressors across all runs at once
 
         blur:     - blur data using a 4 mm FWHM filter
                         (option: -blur_filter -1blur_fwhm)
@@ -2460,6 +2488,23 @@ g_help_string = """
             which may be used for multiple 3dvolreg options.
 
             Please see '3dvolreg -help' for more information.
+
+        -volreg_regress_per_run : regress motion parameters from each run
+
+                default: regress motion parameters catenated across runs
+
+            By default, motion parameters from the volreg block are catenated
+            across all runs, providing 6 (assuming 3dvolreg) regressors of no
+            interest in the regression block.
+
+            With -volreg_regress_per_run, the motion parameters from each run
+            are used as separate regressors, providing a total of (6 * nruns)
+            regressors.
+
+            This allows for the magnitudes of the regressors to vary over each
+            run, rather than using a single (best) magnitude over all runs.
+            So more motion-correlated variance can be accounted for, at the
+            cost of the extra degrees of freedom (6*(nruns-1)).
 
         -volreg_zpad N_SLICES   : specify number of slices for -zpad
 

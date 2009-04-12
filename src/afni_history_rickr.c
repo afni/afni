@@ -48,12 +48,29 @@
 
 afni_history_struct rickr_history[] = {
 
- { 11, APR, 2009, RCR, "1d_tool.py", MINOR, TYPE_BUG_FIX,
-   "fixed typo in use of -show_cormat_warnings",
+ { 11, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -volreg_regress_per_run",
+   "This is to apply the motion parameters of each run as separate regressors."
+ } ,
+
+ { 11, APR, 2009, RCR, "option_list.py", MICRO, TYPE_NEW_OPT,
+   "enhanced special option processing",
+   "- added check_special_opts(), to be called before any processing\n"
+   "- renamed -verbose_opts to -optlist_verbose\n"
+   "- added -optlist_no_show_count"
+ } ,
+
+ { 11, APR, 2009, RCR, "eg_main_chrono.py", MICRO, TYPE_MODIFY,
+   "removed -verbose opts (see -optlist_ options)",
    NULL
  } ,
 
- { 11, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+ { 11, APR, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -derivative and -set_nruns, fixed -show_cormat_warnings typo",
+   NULL
+ } ,
+
+ { 11, APR, 2009, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed use of -regress_errts_prefix with blur est",
    NULL
  } ,
