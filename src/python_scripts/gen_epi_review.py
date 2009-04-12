@@ -253,6 +253,10 @@ class GenEPIReview:
         """check for terminal arguments, then read the user options"""
 
         # ------------------------------------------------------------
+        # process any optlist_ options
+        self.valid_opts.check_special_opts(sys.argv)
+
+        # ------------------------------------------------------------
         # check for terminal args in argv (to ignore required args)
 
         # if argv has only the program name, or user requests help, show it
