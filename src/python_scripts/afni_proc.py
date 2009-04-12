@@ -106,7 +106,9 @@ g_history = """
         - added ricor information and usage to help (see "RETROICOR NOTE")
         - maintain unscaled shorts if they are input
         - added -ricor_datum
-    1.42 Apr 11 2009 : fixed use of -regress_errts_prefix with blur est
+    1.42 Apr 11 2009 :
+        - added -volreg_regress_per_run
+        - fixed use of -regress_errts_prefix with blur est
 """
 
 g_version = "version 1.42, Apr 11, 2009"
@@ -152,7 +154,7 @@ class SubjProcSream:
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
         self.mot_labs   = []            # labels for motion params
-        self.mot_file   = 'dfile.rall.1D' # motion parameter file
+        self.mot_files  = ['dfile.rall.1D'] # motion parameter file list
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
@@ -304,6 +306,8 @@ class SubjProcSream:
                         helpstr='interpolation method used in volreg')
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [],
                         helpstr='additional options directly for 3dvolreg')
+        self.valid_opts.add_opt('-volreg_regress_per_run', 0, [],
+                        helpstr='apply separate motion regressors per run')
         self.valid_opts.add_opt('-volreg_zpad', 1, [],
                         helpstr='number of slices to pad by in volreg')
 
@@ -347,8 +351,8 @@ class SubjProcSream:
                         helpstr="add offset when converting to timing")
         self.valid_opts.add_opt('-regress_use_stim_files', 0, [],
                         helpstr="do not convert stim_files to timing")
-        self.valid_opts.add_opt('-regress_motion_file', 1, [],
-                        helpstr="external motion regressors to apply")
+        self.valid_opts.add_opt('-regress_motion_file', -1, [],
+                        helpstr="files to apply as motion regressors")
         self.valid_opts.add_opt('-regress_extra_stim_files', -1, [],
                         helpstr="extra -stim_files to apply")
         self.valid_opts.add_opt('-regress_extra_stim_labels', -1, [],
@@ -398,6 +402,7 @@ class SubjProcSream:
         self.valid_opts.trailers = 0   # do not allow unknown options
         
     def get_user_opts(self):
+        self.valid_opts.check_special_opts(sys.argv)
         self.user_opts = read_options(sys.argv, self.valid_opts)
         if self.user_opts == None: return 1     # error condition
         if len(self.user_opts.olist) == 0:      # no options: apply -help

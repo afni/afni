@@ -48,7 +48,7 @@ class Afni1D:
       self.tr       = 1.0
       self.nrowfull = 0
       self.nruns    = 1
-      self.run_len  = 1
+      self.run_len  = 0
       self.nroi     = 1
 
       # list variables
@@ -113,6 +113,42 @@ class Afni1D:
       # update lists
       if self.labels: self.labels = [self.labels[i] for i in vlist]
       if self.groups: self.groups = [self.groups[i] for i in vlist]
+
+      return 0
+
+   def derivative(self):
+      """change each value to its derivative (cur val - previous)
+         new time[0] will always be 0
+
+         process the data per run, so derivatives do not cross boundaries
+
+         return 0 on success"""
+
+      if not self.ready:
+         print '** append: Afni1D is not ready'
+         return 1
+
+      # verify nruns and run_len
+      if self.nruns > 0 and self.run_len > 0:
+         nruns = self.nruns
+         rlen = self.run_len
+         if nruns * rlen != self.nt:
+            print '** derivative over runs, nruns*rlen != nt (%d, %d, %d)' \
+                  % (nruns, rlen, self.nt)
+            return 1
+         if self.verb > 1:
+            print '-- derivative: over %d runs of len %d' % (nruns, rlen)
+      else:
+         nruns = 1
+         rlen = self.nt
+
+      for ind in range(self.nvec):
+         newvec = []
+         for rind in range(nruns):
+            vec = self.mat[ind][rind*rlen:(rind+1)*rlen]
+            newvec += [0] + [vec[t+1]-vec[t] for t in range(rlen-1)]
+         print '++ newvec r[0]s = %s' % [newvec[rlen*t] for t in range(nruns)]
+         self.mat[ind] = newvec
 
       return 0
 
@@ -457,20 +493,36 @@ class Afni1D:
             self.nroi = max(self.groups)
             if self.nroi < 0: self.nroi = 0
 
-   def set_nruns(self):
-      """find the first column in group 0, verify that it looks like
-         one run of 1s (with remaining 0s), and use it to set the length"""
+   def set_nruns(self, nruns=0):
+      """if nruns is positive, try to apply it, else:
+            find the first column in group 0, verify that it looks like
+            one run of 1s (with remaining 0s), and use it to set the length
+         return 0 on success
+      """
+
+      # try to apply any passed nruns, first
+      if nruns > 0:
+         rlen = self.nt // nruns
+         if rlen * nruns == self.nt:
+             self.nruns = nruns
+             self.run_len = rlen
+             if self.verb > 1: print '++ successful update: nruns = %d' % nruns
+         else:
+             print '** nvalid nruns = %d (does not divide nt = %d)'  \
+                   % (nruns, self.nt)
+             return 1
+         return 0
 
       # rcr - also, test against new RunStart comment line
 
       self.nruns = 1
-      if not self.groups or not self.nvec: return
+      if not self.groups or not self.nvec: return 0
 
       try:
          base_ind = self.groups.index(-1)
          if base_ind < 0:
             if self.verb > 1: print '-- no baseline group to set runs with'
-            return
+            return 1
 
          b0 = self.mat[base_ind]
 
@@ -479,7 +531,7 @@ class Afni1D:
             if val != 0 or val != 1:
                if self.verb > 1:
                   print '-- baseline vals not just 0,1: %s' % val
-            return
+            return 1
 
          # looks good, find run length and the number of runs
          first = b0.index(1)              # find first 1
@@ -487,7 +539,7 @@ class Afni1D:
          except: next = self.nt
          if next <= first:
             if self.verb > 1: print '-- odd run_len check...'
-            return
+            return 1
 
          # we have a run length
          rlen = next - first
@@ -495,7 +547,7 @@ class Afni1D:
          if rlen*nruns != self.nt:
             print '** nruns failure: rlen = %d, nruns = %d, len = %d' % \
                  (rlen, nruns, len(base0))
-            return
+            return 1
 
          # success!
 
@@ -503,7 +555,9 @@ class Afni1D:
          self.nruns   = nruns
          
       except:
-         return
+         return 1
+
+      return 0
 
    def show(self):
       print self.make_show_str()
