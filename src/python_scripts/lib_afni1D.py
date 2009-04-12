@@ -147,7 +147,6 @@ class Afni1D:
          for rind in range(nruns):
             vec = self.mat[ind][rind*rlen:(rind+1)*rlen]
             newvec += [0] + [vec[t+1]-vec[t] for t in range(rlen-1)]
-         print '++ newvec r[0]s = %s' % [newvec[rlen*t] for t in range(nruns)]
          self.mat[ind] = newvec
 
       return 0
