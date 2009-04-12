@@ -44,9 +44,10 @@ g_history = """
 
    0.0  Mar 18, 2009    - initial version
    0.1  Mar 19, 2009    - added -verbose_opts
+   0.2  Apr 11, 2009    - removed -verbose_opts (see -optlist_ options)
 """
 
-g_version = "eg_main_chrono.py version 0.1, Mar 19, 2009"
+g_version = "eg_main_chrono.py version 0.2, Apr 11, 2009"
 
 
 class MyInterface:
@@ -89,12 +90,12 @@ class MyInterface:
       self.valid_opts.add_opt('-verb', 1, [], 
                       helpstr='set the verbose level (default is 1)')
 
-      self.valid_opts.add_opt('-verbose_opts', 0, [], 
-                      helpstr='make option processing verbose')
-
       return 0
 
    def process_options(self):
+
+      # process any optlist_ options
+      self.valid_opts.check_special_opts(sys.argv)
 
       # process terminal options without the option_list interface
       # (so that errors are not reported)
@@ -116,13 +117,9 @@ class MyInterface:
          print g_version
          return 0
 
-      # allow for verbose argument processing
-      if '-verbose_opts' in sys.argv: opt_verb = 4
-      else:                           opt_verb = 1
-
       # ============================================================
       # read options specified by the user
-      self.user_opts = OL.read_options(sys.argv, self.valid_opts, opt_verb)
+      self.user_opts = OL.read_options(sys.argv, self.valid_opts)
       uopts = self.user_opts            # convenience variable
       if not uopts: return 1            # error condition
 

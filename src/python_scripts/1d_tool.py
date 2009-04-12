@@ -57,6 +57,12 @@ examples (very basic for now):
 
       1d_tool.py -infile X.xmat.1D -show_cormat_warnings
 
+   7. Output temporal derivative of motion regressors.  There are 9 runs in
+      dfile.rall.1D, and derivatives are applied per run.
+
+      1d_tool.py -infile dfile.rall.1D -set_nruns 9 \\
+                 -derivative -write motion.deriv.1D
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -75,12 +81,15 @@ general options:
 
    -add_cols NEW_DSET.1D        : extend dset to include these columns
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
+   -derivative                  : take the temporal derivative of each vector
    -overwrite                   : allow overwriting of any output dataset
    -reverse                     : reverse data over time
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
                                   e.g. '[5,0,7..21(2)]'
    -select_rows SELECTOR        : apply AFNI row selectors, {} is optional
                                   e.g. '{5,0,7..21(2)}'
+   -set_nruns NRUNS             : treat the input data as if it has nruns
+                                  (applies to -derivative, for example)
    -show_cormat_warnings        : display correlation matrix warnings
    -show_rows_cols              : display the number of rows and columns
    -sort                        : sort data over time (smallest to largest)
@@ -107,7 +116,9 @@ g_history = """
    0.6  Apr 10, 2009 - update for old python versions (e.g. on solaris)
         - each of copy.deepcopy, sum, and sort(reverse=True) failed
         - note all-zero vectors in -show_cormat_warnings
-   0.7  Apr 11, 2009 - fixed typo in use of -show_cormat_warnings
+   0.7  Apr 11, 2009
+        - added -derivative and -set_nruns
+        - fixed typo in use of -show_cormat_warnings
 """
 
 g_version = "1d_tool.py version 0.7, Apr 11, 2009"
@@ -126,8 +137,10 @@ class A1DInterface:
       # general variables
       self.infile          = None       # main input file
       self.add_cols_file   = None       # filename to add cols from
+      self.set_nruns       = 0          # pretend the input is over N runs
+      self.derivative      = 0          # take temporal derivative
       self.overwrite       = 0          # whether to allow overwriting
-      self.pad_to_runs     = []         # whether to allow overwriting
+      self.pad_to_runs     = []         # pad as run #A out of #B runs
       self.reverse         = 0          # reverse data over time
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
@@ -192,6 +205,9 @@ class A1DInterface:
       self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
                       helpstr='set the cutoff for cormat warnings')
 
+      self.valid_opts.add_opt('-derivative', 0, [], 
+                      helpstr='take temporal derivative of each column')
+
       self.valid_opts.add_opt('-overwrite', 0, [], 
                       helpstr='allow overwriting any output files')
 
@@ -206,6 +222,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-select_rows', 1, [], 
                       helpstr='select the list of rows from the dataset')
+
+      self.valid_opts.add_opt('-set_nruns', 1, [], 
+                      helpstr='set the number of runs in the input')
 
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
@@ -231,6 +250,8 @@ class A1DInterface:
       """return None on completion, else error code (0 being okay)"""
 
       # process terminal options without the option_list interface
+
+      self.valid_opts.check_special_opts(sys.argv)
 
       if len(sys.argv) <= 1 or '-help' in sys.argv:
          print g_help_string
@@ -279,11 +300,20 @@ class A1DInterface:
             if err: return 1
             self.add_cols_file = val
 
+         elif opt.name == '-set_nruns':
+            val, err = uopts.get_type_opt(int, '', opt=opt)
+            if err: return 1
+            if val > 0: self.set_nruns = val
+            else: print '** -set_nruns must be positive'
+
          elif opt.name == '-cormat_cutoff':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if err: return 1
             if val >= 0 and val < 1.0: self.cormat_cutoff = val
             else: print '** -cormat_cutoff must be in [0,1)'
+
+         elif opt.name == '-derivative':
+            self.derivative = 1
 
          elif opt.name == '-overwrite':
             self.overwrite = 1
@@ -329,7 +359,8 @@ class A1DInterface:
    def process_data(self):
       """return None on completion, else error code (0 being okay)"""
 
-      # ---- main options -----
+      # ---- data input options -----
+
       if not self.infile:
          print '** missing -infile option'
          return 1
@@ -352,6 +383,14 @@ class A1DInterface:
          if ilist == None: return 1
          if self.adata.reduce_by_tlist(ilist): return 1
 
+      # ---- processing options -----
+
+      if self.set_nruns > 0:
+         if self.adata.set_nruns(self.set_nruns): return 1
+
+      if self.derivative:
+         if self.adata.derivative(): return 1
+
       if self.sort:
          self.adata.sort(reverse=self.reverse)  # steal any reverse option
          self.reverse = 0
@@ -369,13 +408,16 @@ class A1DInterface:
       if self.transpose:
          if self.adata.transpose(): return 1
 
-      # any 'show' options come after all other processing
+      # ---- 'show' options come after all other processing ----
+
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 
       if self.show_cormat_warn:
          err, str = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
                                                            name=self.infile)
          print str
+
+      # ---- possibly write: last option -----
 
       if self.write_file:
          if self.write_1D(self.write_file): return 1

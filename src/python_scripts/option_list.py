@@ -36,6 +36,8 @@ class OptionList:
         self.olist    = []      # list of comopt elements
         self.trailers = 0       # for  read_options: no trailing args allowed
                                 # from read_options: say there were such args
+        self.show_count = 1     # display option count in show()
+        self.verb     = 1       # display option count in show()
 
     def add_opt(self, name, npar, deflist, acplist=[], req=0, setpar=0,  \
                 helpstr = ""):
@@ -67,8 +69,10 @@ class OptionList:
                 hs = '  args found = %2d' % self.olist[index].n_found
             else :
                 hs = ''
-            print "opt %02d: %-24s%s" % \
-                (index, self.olist[index].name, hs)
+            if self.show_count:
+               print "opt %02d: %-24s%s" % (index, self.olist[index].name, hs)
+            else: 
+               print "    %-24s%s" % (self.olist[index].name, hs)
 
     def find_opt(self, name, nth=1):    # find nth occurance of option label
         """return nth comopt where name=name, else None"""
@@ -176,20 +180,44 @@ class OptionList:
 
         return tlist, 0        # return the list
 
+    # rcr - improve this garbage
+    def check_special_opts(self, argv):
+        """process known '-optlist_* options', nuking them from list"""
+
+        alen = len(argv)
+
+        if '-optlist_verbose' in argv:
+            ind = argv.index('-optlist_verbose')
+            self.verb = 4
+            argv[ind:ind+1] = []
+            print '++ optlist: setting verb to %d' % self.verb
+        if '-optlist_no_show_count' in argv:
+            ind = argv.index('-optlist_no_show_count')
+            self.show_count = 0
+            argv[ind:ind+1] = []
+            if self.verb>1: print '++ optlist: clearing show_count'
+
+        if self.verb > 1:
+            print '-- argv: orig len %d, new len %d' % (alen,len(argv))
+
 
 # ---------------------------------------------------------------------------
 # read_options:
 #   given an argument list, and OptionList of acceptable options,
 #   return an OptionList of found options, or None on failure
-def read_options(argv, oplist, verb = 1):
+def read_options(argv, oplist, verb = -1):
     """Input an OptionList element, containing a list of options, required
        or not, and return an OptionList of options as they are found.
+
+       If verb is not passed, apply that of oplist.
 
        return: an OptionList element, or None on a terminal error
        note: options may occur more than once
     """
 
     OL = OptionList("read_options")
+
+    if verb < 0: verb = oplist.verb
 
     alen = len(argv)
     if alen == 0: return OL
@@ -207,11 +235,12 @@ def read_options(argv, oplist, verb = 1):
     #   so ac increments by 1+num_params each time
     ac = 1
     while ac < alen:
-        # -verbose_opts is a global option to be extracted and applied here
-        if argv[ac] == '-verbose_opts':
-            verb = 4
+        # -optlist_* : global options to be ignored
+        if argv[ac] in [ '-optlist_verbose', '-optlist_no_show_count' ]:
+            if oplist.verb > 1: print "-- found optlist opt '%s'" % argv[ac]
             ac += 1
             continue
+
         com = oplist.find_opt(argv[ac])
         if com:
             namelist[argv[ac]] += 1     # increment dictionary count
