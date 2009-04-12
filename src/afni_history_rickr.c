@@ -48,6 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, APR, 2009, RCR, "afni-general", MICRO, TYPE_NEW_OPT,
+   "added calls to opts.check_special_opts() in 7 more python programs:",
+   "gen_epi_review.py, make_random_timing.py, make_stim_times.py\n"
+   "neuro_deconvolve.py, python_module_test.py, timing_tool.py, ui_xmat.py"
+ } ,
+
  { 11, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -volreg_regress_per_run",
    "This is to apply the motion parameters of each run as separate regressors."

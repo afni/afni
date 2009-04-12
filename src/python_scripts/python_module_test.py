@@ -143,6 +143,9 @@ class ModuleTest:
    def read_opts(self):
       """check for terminal arguments, then read user options"""
 
+      # process any optlist_ options
+      self.valid_opts.check_special_opts(sys.argv)
+
       # ------------------------------------------------------------
       # terminal arguments, first
 

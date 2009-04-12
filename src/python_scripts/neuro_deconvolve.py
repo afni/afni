@@ -162,6 +162,9 @@ class Decon:
     def read_opts(self):
         """check for terminal arguments, then read the user options"""
 
+        # process any optlist_ options
+        self.valid_opts.check_special_opts(sys.argv)
+
         # ------------------------------------------------------------
         # check for terminal args in argv (to ignore required args)
 

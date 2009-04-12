@@ -604,6 +604,9 @@ class XmatInterface:
 
    def check_terminal_options(self):
 
+      # process any optlist_ options
+      self.valid_opts.check_special_opts(sys.argv)
+
       # process terminal options without the option_list interface
 
       if '-help' in sys.argv:
