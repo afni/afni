@@ -44,6 +44,21 @@ void rcmat_destroy( rcmat *rcm )
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Average row length in an rcmat. */
+
+float rcmat_avglen( rcmat *rcm )
+{
+   int nn , ii ;
+   float sum=0.0f ;
+   LENTYP *len ;
+
+   if( rcm == NULL ) return sum ;
+   nn = rcm->nrc ; len = rcm->len ; if( nn == 0 || len == NULL ) return sum ;
+   for( ii=0 ; ii < nn ; ii++ ) sum += (float)len[ii] ;
+   sum /= nn ; return sum ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Duplicate a rcmat struct. */
 
 rcmat * rcmat_copy( rcmat *rcm )
@@ -108,6 +123,9 @@ int rcmat_choleski( rcmat *rcm )
 }
 
 /*--------------------------------------------------------------------------*/
+#undef  RV
+#define RV(k) rii[k]*vv[k]
+
 /*! Consider a rcmat struct as a lower triangular matrix,
     and solve the matrix-vector equation [rcm][x] = [vec], in place. */
 
@@ -119,26 +137,53 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
 
    nn  = rcm->nrc ;
+#if 0
+   if( nn > 999 ){ rcmat_lowert_solve_unrolled(rcm,vec) ; return ; }
+#endif
    rc  = rcm->rc ;
    len = rcm->len ;
    vv  = vec ;
-
-#undef  RV
-#define RV(k) rii[k]*vv[k]
 
    for( ii=0 ; ii < nn ; ii++ ){
      if( len[ii] == 1 ){
        vv[ii] = vv[ii] / rc[ii][0] ; continue ;
      }
      jbot = ii - len[ii] + 1 ; rii = rc[ii] - jbot ;
-#undef  UNROLL  /* unrolling this inner loop doesn't seem to help */
-#ifdef  UNROLL
-     switch( len[ii] ){
+     sum = vv[ii] ;
+     for( jj=jbot ; jj < ii ; jj++ ) sum -= RV(jj) ;
+     vv[ii] = sum / rii[ii] ;
+   }
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Consider a rcmat struct as a lower triangular matrix,
+    and solve the matrix-vector equation [rcm][x] = [vec], in place.
+    Innermost vector loop unrolled.  (Doesn't seem to speed things up?!) */
+
+void rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec )
+{
+   int nn , jbot ; LENTYP *len ; register int ii,jj,ll ;
+   double **rc ; register double *rii , sum , *vv ;
+
+   if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
+
+   nn  = rcm->nrc ;
+   rc  = rcm->rc ;
+   len = rcm->len ;
+   vv  = vec ;
+
+   for( ii=0 ; ii < nn ; ii++ ){
+     ll = len[ii] ;
+     if( ll == 1 ){
+       vv[ii] = vv[ii] / rc[ii][0] ; continue ;
+     }
+     jbot = ii - ll + 1 ; rii = rc[ii] - jbot ;
+     switch( ll ){
        default:
-#endif
          sum = vv[ii] ;
-         for( jj=jbot ; jj < ii ; jj++ ) sum -= RV(jj) ;
-#ifdef UNROLL
+         for( jj=jbot ; jj+1 < ii ; jj+=2 ) sum -= RV(jj)+RV(jj+1) ;
+         if( jj < ii ) sum -= RV(jj) ;
        break ;
        case 2:
          sum = vv[ii]-RV(ii-1) ; break ;
@@ -173,7 +218,6 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
                      -RV(ii-4)-RV(ii-3)-RV(ii-2)-RV(ii-1) ;
        break ;
      }
-#endif
      vv[ii] = sum / rii[ii] ;
    }
    return ;

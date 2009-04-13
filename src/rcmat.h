@@ -27,6 +27,9 @@ extern int     rcmat_choleski    ( rcmat *rcm ) ;
 extern void    rcmat_lowert_solve( rcmat *rcm , double *vec ) ;
 extern void    rcmat_uppert_solve( rcmat *rcm , double *vec ) ;
 
+extern void    rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec ) ;
+extern float   rcmat_avglen( rcmat *rcm ) ;
+
 extern float * rcmat_lsqfit ( int npt, float *far, int nref, float *ref[] ) ;
 extern rcmat * rcmat_normeqn( int npt,             int nref, float *ref[] ) ;
 
