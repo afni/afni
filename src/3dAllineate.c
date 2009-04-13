@@ -1792,7 +1792,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-VARP1") == 0 ){
        interp_code = MRI_VARP1 ; iarg++ ; continue ;
      }
-     if( strcasecmp(argv[iarg],"-WSINC5") == 0 ){
+     if( strncasecmp(argv[iarg],"-WSINC") == 0 ){
        interp_code = MRI_WSINC5 ; iarg++ ; continue ;
      }
 #endif
@@ -1814,7 +1814,7 @@ int main( int argc , char *argv[] )
        if( strcasecmp(argv[iarg],"VARP1")==0 )
          interp_code = MRI_VARP1 ;
        else
-       if( strcasecmp(argv[iarg],"WSINC5")==0 )
+       if( strncasecmp(argv[iarg],"WSINC",5)==0 )
          interp_code = MRI_WSINC5 ;
 #endif
        else
@@ -1840,7 +1840,7 @@ int main( int argc , char *argv[] )
          final_interp = MRI_VARP1 ;
 #endif
        else
-       if( strcasecmp(argv[iarg],"WSINC5")==0 )
+       if( strncasecmp(argv[iarg],"WSINC",5)==0 )
          final_interp = MRI_WSINC5 ;
        else
          ERROR_exit("Unknown code '%s' after '%s'!",argv[iarg],argv[iarg-1]) ;

@@ -79,6 +79,7 @@ typedef struct {
   matrix *X ; sparmat *Xs ;
   reml_setup **rs ;
   char *savfil ;
+  float avglen ;
 } reml_collection ;
 
 #undef  RC_SAVED
@@ -856,6 +857,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    int ii,jj,kk , nt , nset , pna,pnb , na,nb ;
    MTYPE da,db, bb,aa, lam , bbot,abot ;
    reml_collection *rrcol=NULL ;
+   float avglen=0.0f ;
 
    if( X == NULL ) return rrcol ;              /* bad */
 
@@ -893,10 +895,10 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    if( verb > 1 ){
      static int first=1 ;
      if( first )
-       INFO_message("X matrix fullness = %.1f%% ==> sparsity %s",
-                    100.0*lam ,
-                    (rrcol->Xs==NULL) ? "NOT USED for speedup"
-                                      : "USED for speedup"    ) ;
+       ININFO_message("X matrix fullness = %.1f%% ==> sparsity %s",
+                      100.0*lam ,
+                      (rrcol->Xs==NULL) ? "NOT USED for speedup"
+                                        : "USED for speedup"    ) ;
      first = 0 ;
    }
 #endif
@@ -922,12 +924,16 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    }
    rrcol->rs[kk] = setup_arma11_reml( nt , tau , 0.0 , 0.0 , X ) ;
    rrcol->rs[kk]->barm = 0.0 ; nset = 1 ;
+   avglen = rcmat_avglen( rrcol->rs[kk]->cc ) ;
 
    if( nlev == 0 ){  /* special setup with just 2 (a,b) cases */
 
      bb = bbot ; aa = abot ; lam = LAMBDA(aa,bb) ; kk = 1 ;
      rrcol->rs[kk] = setup_arma11_reml( nt,tau , aa,lam , X ) ;
-     if( rrcol->rs[kk] != NULL ){ rrcol->rs[kk]->barm = bb ; nset++ ; }
+     if( rrcol->rs[kk] != NULL ){
+       rrcol->rs[kk]->barm = bb ; nset++ ;
+       avglen += rcmat_avglen( rrcol->rs[kk]->cc ) ;
+     }
 
    } else {          /* general setup case with an (a,b) grid of cases */
 
@@ -940,14 +946,17 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
          if( kk != rrcol->izero &&
              ( lam >= corcut || (lam <= -corcut && allow_negative_cor) ) ){
            rrcol->rs[kk] = setup_arma11_reml( nt,tau, aa,lam , X ) ;
-           if( rrcol->rs[kk] != NULL ){ rrcol->rs[kk]->barm = bb ; nset++ ; }
+           if( rrcol->rs[kk] != NULL ){
+             rrcol->rs[kk]->barm = bb ; nset++ ;
+             avglen += rcmat_avglen( rrcol->rs[kk]->cc ) ;
+           }
          }
        }
      }
 
    }
 
-   rrcol->nset = nset ; rrcol->savfil = NULL ;
+   rrcol->nset = nset ; rrcol->savfil = NULL ; rrcol->avglen = avglen/nset ;
    return rrcol ;
 }
 

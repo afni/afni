@@ -426,7 +426,7 @@ STATUS(buf) ;
 
      char buf[8192] , *cpt ;
      FILE *fp = fopen( sym , "r" ) ;
-     if( fp == NULL ) ERROR_exit("Can't open GLT matrix file '%s'",sym) ;
+     if( fp == NULL ) ERROR_exit("Can't open GLT matrix file '%.33s'",sym) ;
      while(1){
        cpt = fgets( buf , 8192 , fp ) ;   /* read next line */
        if( cpt == NULL ) break ;          /* end of input? */
@@ -441,7 +441,7 @@ STATUS(buf) ;
 
    }
 
-   if( nr == 0 ) ERROR_exit("Can't read GLT matrix from '%s'",sym) ;
+   if( nr == 0 ) ERROR_exit("Can't read GLT matrix from '%.33s'",sym) ;
    cmat = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(cmat) ;
    array_to_matrix( nr , ncol , far , cmat ) ;
 
@@ -450,7 +450,7 @@ STATUS(buf) ;
 
    if( !AFNI_noenv("AFNI_GLTSYM_PRINT") ){
      printf("------------------------------------------------------------\n");
-     printf("GLT matrix from '%s':\n",sym) ;
+     printf("GLT matrix from '%.33s':\n",sym) ;
      if( str_echo != NULL ){ printf("%s",str_echo); free(str_echo); }
      matrix_print( *cmat ) ;
    }
@@ -460,7 +460,7 @@ STATUS(buf) ;
    for( ii=0 ; ii < nr ; ii++ ){
      for( jj=0 ; jj < ncol && cmat->elts[ii][jj] == 0.0 ; jj++ ) ; /*nada*/
      if( jj == ncol )
-       ERROR_message("Row #%d of GLT matrix '%s' is all zero!", ii+1 , sym ) ;
+       ERROR_message("Row #%d of GLT matrix '%.33s' is all zero!", ii+1 , sym ) ;
    }
 
    RETURN(cmat) ;
@@ -1152,7 +1152,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        do{
          im = mri_read_1D( argv[iarg] ) ;
-         if( im == NULL ) ERROR_exit("Can't read -addbase file '%s'",argv[iarg]) ;
+         if( im == NULL ) ERROR_exit("Can't read -addbase file '%.33s'",argv[iarg]) ;
          if( imar_addbase == NULL ) INIT_IMARR(imar_addbase) ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
          ADDTO_IMARR( imar_addbase , im ) ;
@@ -1169,7 +1169,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        do{
          im = mri_read_1D( argv[iarg] ) ;
-         if( im == NULL ) ERROR_exit("Can't read -slibase file '%s'",argv[iarg]) ;
+         if( im == NULL ) ERROR_exit("Can't read -slibase file '%.33s'",argv[iarg]) ;
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
          ADDTO_IMARR( imar_slibase , im ) ;
@@ -1288,7 +1288,7 @@ int main( int argc , char *argv[] )
        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
-       if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
+       if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%.33s'",argv[iarg]) ;
        nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        if( verb || nmask < 1 ) INFO_message("Number of voxels in mask = %d",nmask) ;
        if( nmask < 1 ) ERROR_exit("Mask is too small to process") ;
@@ -1348,7 +1348,7 @@ int main( int argc , char *argv[] )
 
      /**==========   bad users must be punished  ==========**/
 
-     ERROR_exit("Unknown option '%s'",argv[iarg]) ;
+     ERROR_exit("Unknown option '%.33s'",argv[iarg]) ;
    }
 
 STATUS("options done") ;
@@ -1624,11 +1624,11 @@ STATUS("process -addbase images") ;
          MRI_IMAGE *imb = mri_subset_x2D( ntime , goodlist , im ) ;
          mri_free(im) ; IMARR_SUBIM(imar_addbase,ii) = imb ;
          if( verb )
-           INFO_message("Censored -addbase file '%s' from %d down to %d rows" ,
-                        im->name , nfull , ntime ) ;
+           INFO_message("Censored -addbase file '%.33s' from %d down to %d rows" ,
+                        imb->name , nfull , ntime ) ;
          continue ;
        }
-       ERROR_message("-addbase file '%s' has %d rows, but matrix has %d !?" ,
+       ERROR_message("-addbase file '%.33s' has %d rows, but matrix has %d !?" ,
                      im->name , im->nx , ntime ) ;
        nbad++ ;
      }
@@ -1720,7 +1720,7 @@ STATUS("process -slibase images") ;
        kk = im->ny % nsli ;  /* how many left over (should be zero) */
        if( kk != 0 ){
          ERROR_message(
-           "-slibase file '%s' has %d columns but dataset has %d slices",
+           "-slibase file '%.33s' has %d columns but dataset has %d slices",
            im->name , im->ny , nsli ) ;
          nbad++ ; continue ;
        }
@@ -1730,11 +1730,11 @@ STATUS("process -slibase images") ;
          MRI_IMAGE *imb = mri_subset_x2D( ntime , goodlist , im ) ;
          mri_free(im) ; IMARR_SUBIM(imar_slibase,ii) = imb ;
          if( verb )
-           INFO_message("Censored -slibase file '%s' from %d down to %d rows" ,
-                        im->name , nfull , ntime ) ;
+           INFO_message("Censored -slibase file '%.33s' from %d down to %d rows" ,
+                        imb->name , nfull , ntime ) ;
          continue ;
        }
-       ERROR_message("-slibase file '%s' has %d rows, but matrix has %d" ,
+       ERROR_message("-slibase file '%.33s' has %d rows, but matrix has %d" ,
                      im->name , im->nx , ntime ) ;
        nbad++ ;
      }
@@ -1807,7 +1807,7 @@ STATUS("process -slibase images") ;
 
            for( pp=0 ; pp < ntime && iar[pp]==0.0f ; pp++ ) ; /*nada*/
            if( pp == ntime ){
-             ERROR_message("-slibase file %s col #%d is all zero",im->name,ss) ;
+             ERROR_message("-slibase file %.33s col #%d is all zero",im->name,ss) ;
              nbad++ ;
            }
          } /* end of loop over cc = slice set */
@@ -1972,7 +1972,7 @@ STATUS("make stim GLTs") ;
      for( jj=0 ; jj < stim_num ; jj++ ){
        for( kk=0,ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
        gm = create_subset_matrix( nrega , kk , set ) ;
-       if( gm == NULL ) ERROR_exit("Can't create G matrix for %s?!",stim_lab[jj]);
+       if( gm == NULL ) ERROR_exit("Can't create G matrix for %.33s?!",stim_lab[jj]);
        ADD_GLT( stim_lab[jj] , gm ) ;
      }
 
@@ -2006,9 +2006,9 @@ STATUS("make GLTs from matrix file") ;
          if( gfar == NULL || gfar->num < 3 )
            ERROR_exit("Matrix attribute '%s' is badly formatted?!",lnam) ;
          far = gfar->ar ; nn = (int)far[0] ; mm = (int)far[1] ;
-         if( nn <= 0 ) ERROR_exit("GLT '%s' has %d rows?",lnam,nn) ;
+         if( nn <= 0 ) ERROR_exit("GLT '%.33s' has %d rows?",lnam,nn) ;
          if( mm != nrego )
-           ERROR_exit("GLT '%s' has %d columns (should be %d)?",lnam,mm,nrego) ;
+           ERROR_exit("GLT '%.33s' has %d columns (should be %d)?",lnam,mm,nrego) ;
          gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
          matrix_create( nn, nrega, gm ) ;
          for( ii=0 ; ii < nn ; ii++ ){
@@ -2074,7 +2074,11 @@ STATUS("make GLTs from matrix file") ;
    { float vsiz = (float)THD_vectim_size( inset , mask ) ;
      float dsiz = (float)DSET_TOTALBYTES(inset) ;
      if( vsiz < 0.9f*dsiz && vsiz > 10.0e+6 ){
-       if( verb ) INFO_message("Converting dataset to vector image to save memory") ;
+       if( verb ){
+         INFO_message("Converting dataset to vector image to save memory") ;
+         ININFO_message(" dataset = %s bytes",approximate_number_string(dsiz)) ;
+         ININFO_message(" vectim  = %s bytes",approximate_number_string(vsiz)) ;
+       }
        inset_mrv = THD_dset_to_vectim( inset , mask ) ;
        if( inset_mrv != NULL ) DSET_unload(inset) ;
        else                    ERROR_message("Can't create vector image!?") ;
@@ -2097,16 +2101,22 @@ STATUS("make GLTs from matrix file") ;
      for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
        if( abfixed )
          rrcol = REML_setup_all( Xsli[ss] , tau , 0     , afix  ,bfix ) ;
-       else
+       else {
+         if( verb && nsli > 1 ) ININFO_message(" start setup for slice #%d",ss) ;
          rrcol = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
-       if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
+       }
+       if( rrcol == NULL ) ERROR_exit("REML setup fails at ss=%d?!",ss ) ;
        RCsli[ss] = rrcol ;
      }
 
-     if( verb > 1 )
+     if( verb > 1 ){
+       float avg=0.0f ;
        ININFO_message(
         "REML setup finished: matrix rows=%d cols=%d; %d*%d cases; total CPU=%.2f s",
         ntime,nrega,RCsli[0]->nset,nsli,COX_cpu_time()) ;
+       for( ss=0 ; ss < nsli ; ss++ ) avg += RCsli[ss]->avglen ;
+       avg /= nsli ; ININFO_message(" average case bandwidth = %.2f",avg) ;
+     }
      MEMORY_CHECK ;
 
    } else {  /* just set up the first one (slice #0) */
