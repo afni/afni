@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , APR , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "fixed bug in printing censor message for -addbase and -slibase" ,
+   NULL } ,
+
  { 10 , APR , 2009 , RWC , "3dREMLfit" , MINOR , TYPE_BUG_FIX ,
    "Error in processing -slibase file with censoring" ,
    "Typo in replacing input image with censored image caused the end of the\n"
