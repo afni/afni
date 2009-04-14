@@ -5106,11 +5106,17 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
    AlwaysReplace = NOPE;
    inel = 0;
    do {
+      SUMA_LH("Calling NI_read_element");
       nel = NI_read_element(ns,1) ;
       
-      if (nel) {
+      if (nel && nel->vec_num) { /* Must check for ROIs that are empty.
+                                    They cause a crash that was meticulously
+                                    reported by Mike Arcaro.  
+                                    Empty ROIs can be created if one
+                                    starts a new ROI then undo drawing operations
+                                    and save all ROIs to niml format. */ 
          found = YUP;
-         
+         SUMA_LH("Have nel, will travel");
          if (LocalHead && 0) SUMA_nel_stdout (nel);
          
          if (strcmp(nel->name,SUMA_Dset_Type_Name(SUMA_NODE_ROI))) {
@@ -5120,6 +5126,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
             NI_free_element(nel) ; nel = NULL;
             SUMA_RETURN(NULL);
          }
+         SUMA_LH("Type check redux");
          /* somewhat redundant test */
          if (nel->vec_typ[0] != SUMAg_CF->nimlROI_Datum_type) {
             SUMA_SLP_Err ("Datum type mismatch.");
@@ -5127,6 +5134,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
             SUMA_RETURN(NULL);
          }
 
+         SUMA_LH("IDs please");
          /* make sure id is set properly (the curse of old versions) */
          att = NI_get_attribute( nel , "self_idcode");
          if (!att) { /* try old way */
@@ -5275,6 +5283,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
          
          ++n_read;
       }else {
+         SUMA_LH("NULL nel, to the spruce goose");
          found = NOPE;
       } 
       

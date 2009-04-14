@@ -2082,6 +2082,12 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
          cf->CmapRotaFrac = 0.05;
       }
    }
+   
+   cf->xforms = (DList *)SUMA_calloc(1,sizeof(DList));
+   dlist_init (cf->xforms, SUMA_FreeXform);
+   cf->callbacks = (DList *)SUMA_calloc(1,sizeof(DList));
+   dlist_init (cf->callbacks, SUMA_FreeCallback);
+   
    return (cf);
 
 }
@@ -2451,6 +2457,12 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
       dlist_destroy(cf->DsetList);  SUMA_free(cf->DsetList); 
       cf->DsetList = NULL;
    }
+   if (cf->xforms) {
+      dlist_destroy(cf->xforms); SUMA_free(cf->xforms);
+   }
+   if (cf->callbacks) {
+      dlist_destroy(cf->callbacks); SUMA_free(cf->callbacks);
+   }
    #ifdef USE_SUMA_MALLOC
    SUMA_SL_Err("NO LONGER SUPPORTED");
    return(NOPE);
@@ -2591,14 +2603,16 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    SS = SUMA_StringAppend_va(SS, "%s\n", s); SUMA_free(s); s = NULL;
    
    if (cf->DsetList) {
-      SS = SUMA_StringAppend_va(SS, "DsetList (Allow Replacement = %d):\n", cf->Allow_Dset_Replace);
+      SS = SUMA_StringAppend_va( SS, "DsetList (Allow Replacement = %d):\n", 
+                                 cf->Allow_Dset_Replace);
       el = NULL;
       do { 
          if (!el) el = dlist_head(cf->DsetList);
          else el = dlist_next(el);
          dset = (SUMA_DSET *)el->data;
          if (!dset) {
-            SUMA_SLP_Err("Unexpected NULL dset element in list!\nPlease report this occurrence to saadz@mail.nih.gov."); 
+            SUMA_SLP_Err("Unexpected NULL dset element in list!\n"
+                         "Please report this occurrence to saadz@mail.nih.gov.");
          } else {   
            s = SUMA_DsetInfo (dset,0);
            SS = SUMA_StringAppend_va(SS, "\n%s\n", s); SUMA_free(s); s = NULL;    
@@ -2611,10 +2625,19 @@ char * SUMA_CommonFieldsInfo (SUMA_CommonFields *cf, int detail)
    /* add the colormap info */
    if (cf->scm) {
       SS = SUMA_StringAppend(SS, "   Colormaps:\n");
-      SS = SUMA_StringAppend(SS, SUMA_ColorMapVec_Info (cf->scm->CMv, cf->scm->N_maps, detail));
+      s = SUMA_ColorMapVec_Info (cf->scm->CMv, 
+                              cf->scm->N_maps, detail);
+      SS = SUMA_StringAppend_va( SS, "%s\n",s); SUMA_free(s); s = NULL;
    } else {
       SS = SUMA_StringAppend_va(SS, "   No Colormaps.\n");
    }  
+   
+   /* add xforms and callbacks */
+   s = SUMA_Xforms_Info(cf->xforms, detail);
+   SS = SUMA_StringAppend_va( SS, "%s\n",s); SUMA_free(s); s = NULL;
+   s = SUMA_Callbacks_Info(cf->callbacks, detail);
+   SS = SUMA_StringAppend_va( SS, "%s\n",s); SUMA_free(s); s = NULL;
+   
    
    /* clean up */
    SS = SUMA_StringAppend_va(SS, NULL);

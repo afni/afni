@@ -591,9 +591,6 @@ typedef struct {
    MEM_topshell_data *rowgraph_mtd;
    int rowgraph_num;
    
-   DList  *Xforms;   /* A linked list of various transformations to apply
-                        to a dset */
-   DList  *Callbacks; /* A linked list of various callbacks on this overlay */
 } SUMA_OVERLAYS;
 
 
@@ -2568,7 +2565,13 @@ typedef struct {
    char *cwd;
    
    float CmapRotaFrac; /*!< fraction by which to rotate colormap */
+   
+   DList *xforms;    /*!<  List of transforms that apply to certain dsets 
+                           or surfaces */
+   DList *callbacks; /*!< List of callbacks that apply to certain dsets or
+                          surfaces */
 } SUMA_CommonFields;
+
 
 typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, SUMA_SORT_BY_LLC_DISTANCE, SUMA_SORT_BY_LL_QUAD } SUMA_SORT_BOX_AXIS_OPTION;
 typedef enum { SUMA_LOWER_LEFT_SCREEN, SUMA_UPPER_LEFT_SCREEN, SUMA_UPPER_RIGHT_SCREEN, SUMA_LOWER_RIGHT_SCREEN } SUMA_SCREEN_CORNERS;
