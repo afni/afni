@@ -805,7 +805,7 @@ NI_element *SUMA_FindDsetNodeIndexElement(SUMA_DSET *dset)
 
 
 NI_element *SUMA_FindNgrDataElement(
-   NI_group *ngr, char *nelname, char *typename)
+         NI_group *ngr, char *nelname, char *typename)
 {
    static char FuncName[]={"SUMA_FindNgrDataElement"};
    NI_element *nel = NULL;
@@ -862,13 +862,13 @@ NI_element *SUMA_FindNgrDataElement(
             nel = NULL;
             break;
          default:
-            SUMA_SL_Err("Don't know what to make of this group element, ignoring.");
+            SUMA_SL_Err("Don't know what to make of this "
+                        "group element, ignoring.");
             break;
       }
    }
 
    SUMA_RETURN(nel);
-
 }
 
 /*!
@@ -1286,7 +1286,8 @@ SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
                         "  Killing pre-existing %s attribute\n"
                         , FuncName, nmbuf2);
             }   
-            NI_remove_from_group(dest->ngr, (void *)nelt); nelt = NULL;
+            NI_remove_from_group(dest->ngr, (void *)nelt); 
+            NI_free(nelt); nelt = NULL;
          } else {
             if (LocalHead) {
                fprintf(SUMA_STDERR,
@@ -1375,8 +1376,14 @@ NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname)
    SUMA_ENTRY;
    
    if (!ngr || !attname) { SUMA_SL_Err("NUll input "); SUMA_RETURN(nel); }
+
   /* now read the elements in this group */
    for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
+      if (LocalHead)  {
+         fprintf( SUMA_STDERR,
+                  "%s: %d/%d = %d\n", 
+                  FuncName, ip, ngr->part_num, ngr->part_typ[ip]);
+      }
       switch( ngr->part_typ[ip] ){
          /*-- a sub-group ==> recursion! --*/
          case NI_GROUP_TYPE:
@@ -1405,6 +1412,11 @@ NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname)
          default:
             SUMA_SL_Err(
                "Don't know what to make of this group element, ignoring.");
+            if (LocalHead) {
+               fprintf(SUMA_STDERR,"%s: type = %d (know of %d and %d only)!\n",
+                                    FuncName, ngr->part_typ[ip], 
+                                    NI_GROUP_TYPE, NI_ELEMENT_TYPE);
+            }
             break;
       }
    }
@@ -2049,7 +2061,33 @@ char * SUMA_GetDsetColStringAttr( SUMA_DSET *dset, int col_index,
       SUMA_SL_Err("Failed to find  attribute"); 
       SUMA_RETURN(NULL); 
    }
-      SUMA_NEL_GET_STRING(nelb, 0, 0, rs); /* rs is a pointer copy here */
+   SUMA_NEL_GET_STRING(nelb, 0, 0, rs); /* rs is a pointer copy here */
+   
+   rs = SUMA_Get_Sub_String(rs, SUMA_NI_CSS, col_index);
+   
+   SUMA_RETURN(rs);
+}
+
+char * SUMA_GetNgrColStringAttr( NI_group *ngr, int col_index, 
+                                 char *attrname)
+{
+   static char FuncName[]={"SUMA_GetDsetColStringAttr"};
+   char *rs = NULL;
+   NI_element *nelb = NULL;
+   SUMA_ENTRY;
+   
+   if (!ngr) { SUMA_SL_Err("Null input"); SUMA_RETURN(NULL); }
+   if (col_index < 0 ) { 
+      SUMA_SL_Err("Bad Col Index"); 
+      SUMA_RETURN(NULL); 
+   }
+   
+   nelb = SUMA_FindNgrAttributeElement(ngr, attrname);
+   if (!nelb) { 
+      SUMA_SL_Err("Failed to find  attribute"); 
+      SUMA_RETURN(NULL); 
+   }
+   SUMA_NEL_GET_STRING(nelb, 0, 0, rs); /* rs is a pointer copy here */
    
    rs = SUMA_Get_Sub_String(rs, SUMA_NI_CSS, col_index);
    
@@ -3654,6 +3692,27 @@ int SUMA_ShowNel (void *nel)
    SUMA_RETURN(1);
 }
 
+/* A generic function to write a nel to a string */
+char *SUMA_NI_nel_Info (NI_element *nel, int detail)
+{
+   static char FuncName[]={"SUMA_NI_nel_Info"};
+   NI_stream ns=NULL;
+   char *s=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!nel) s = SUMA_copy_string("NULL nel");
+   else {
+      ns = NI_stream_open( "str:" , "w" ) ;
+      (void) NI_write_element( ns , nel , NI_TEXT_MODE&NI_HEADERONLY_FLAG) ;
+      s = SUMA_copy_string( NI_stream_getbuf(ns) ) ;
+      NI_stream_close( ns ) ;
+   }
+   
+   SUMA_RETURN(s);
+}
+
+
 
 int *SUMA_GetDsetColIndex (SUMA_DSET *dset, SUMA_COL_TYPE tp, int *N_i)
 {
@@ -4367,13 +4426,13 @@ SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl)
    ok = YUP; 
    if (lbl) {
       Label = SUMA_truncate_string(lbl, 20);
-      NI_set_attribute(dset->ngr, "label", lbl);  
+      NI_set_attribute(dset->ngr, "label", Label);  
    } else if ( (tmp = NI_get_attribute(dset->ngr,"filename")) ) {
       pn = SUMA_ParseFname(tmp, NULL);
       if (pn) {
          Label = SUMA_truncate_string(pn->FileName_NoExt, 20);
          SUMA_Free_Parsed_Name(pn); pn = NULL;
-         NI_set_attribute(dset->ngr, "label", lbl);  
+         NI_set_attribute(dset->ngr, "label", Label);  
       } else {
          NI_set_attribute(dset->ngr, "label", "Bad No label"); 
          ok = NOPE;
@@ -4382,8 +4441,8 @@ SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl)
       NI_set_attribute(dset->ngr, "label", "No label"); 
       ok = NOPE;
    }
-   SUMA_free(Label); Label = NULL;
-   
+   if (Label) SUMA_free(Label); Label = NULL;
+    
    SUMA_RETURN(ok);
 }   
 
@@ -7076,6 +7135,70 @@ SUMA_COL_TYPE SUMA_TypeOfDsetColNumb(SUMA_DSET *dset, int ind)
    
    SUMA_SL_Err("Failed to determine type");
    SUMA_RETURN(ctp);
+}
+
+SUMA_Boolean SUMA_isSameDsetColTypes(SUMA_DSET *dset1, SUMA_DSET *dset2) 
+{
+   static char FuncName[]={"SUMA_isSameDsetColTypes"};
+   int *ctpv = NULL, ind = 0;
+   char *cnm1 = NULL, *cnm2=NULL, **sc = NULL;
+   int_array *iar1 = NULL, *iar2 = NULL;
+   char stmp[100];
+   NI_element *nelb1=NULL;
+   NI_element *nelb2=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset1 || !dset2) {  
+      SUMA_SL_Err("NULL Dsets");
+      SUMA_RETURN(NOPE);
+   }
+   
+   if (SDSET_VECNUM(dset1) != SDSET_VECNUM(dset2)) {
+      SUMA_RETURN(NOPE);
+   }
+      
+   /* try SUMA's */
+   nelb1 = SUMA_FindDsetAttributeElement(dset1, "COLMS_TYPE");
+   nelb2 = SUMA_FindDsetAttributeElement(dset2, "COLMS_TYPE");
+   if (nelb1 && nelb2) {
+      SUMA_NEL_GET_STRING(nelb1, 0, 0, cnm1);
+      SUMA_NEL_GET_STRING(nelb2, 0, 0, cnm2); 
+         /* cnm is a pointer copy here, do not free */
+   }
+   
+   if (cnm1 && cnm2) {
+      if (strcmp(cnm1,cnm2)) {/* wholesale comparison */
+         SUMA_RETURN(NOPE);
+      } else {
+         SUMA_RETURN(YUP); 
+      }
+   }
+   
+   /* try AFNI's */
+   SUMA_LH("Fetching Type a la afni");
+   cnm1 = NI_get_attribute(dset1->dnel, "ni_type");
+   cnm2 = NI_get_attribute(dset2->dnel, "ni_type");
+   if (cnm1 && cnm2) {
+      SUMA_LH(cnm1);
+      SUMA_LH(cnm2);
+      iar1 = decode_type_string( cnm1 ); 
+      iar2 = decode_type_string( cnm1 ); 
+      if (iar1 && iar2) {
+         for (ind=0; ind<SDSET_VECNUM(dset1); ++ind) {
+            if (iar1->ar[ind] != iar2->ar[ind])  SUMA_RETURN(NOPE);
+            NI_free(iar1->ar); NI_free(iar1); iar1 = NULL;
+            NI_free(iar2->ar); NI_free(iar2); iar2 = NULL;
+         }
+         SUMA_RETURN(YUP); /* all columns matched */
+      } else {
+         SUMA_RETURN(NOPE);
+      }
+   }
+   
+   SUMA_SL_Err("Failed to determine types");
+   SUMA_RETURN(NOPE);
 }
 
 SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node) 

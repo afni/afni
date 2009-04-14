@@ -109,6 +109,27 @@ DListElmt * SUMA_FindDsetEl_s (char *idcode, DList *DsetList)
    return(el);
 }
 
+SUMA_Boolean  SUMA_is_ID_4_DSET(char *idcode, SUMA_DSET **dsetp)
+{
+   static char FuncName[]={"SUMA_is_ID_4_DSET"};
+   SUMA_DSET *dset=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (dsetp) *dsetp = NULL;
+   if (!idcode) SUMA_RETURN(NOPE);
+   
+   dset = SUMA_FindDset_s(idcode, SUMAg_CF->DsetList);
+   
+   if (dset) {
+      if (dsetp) *dsetp = dset;
+      SUMA_RETURN(YUP);
+   }
+   
+   SUMA_RETURN(NOPE);   
+}
+
+
 /*!
    \brief Returns the index of the node for which 
    data exists in row row of  Dset.

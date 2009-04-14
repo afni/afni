@@ -175,9 +175,10 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "        -key KEY_STRING: Act as if the key press KEY_STRING\n"
 "                         was applied in the viewer.\n"
 "                         ~ Not all key presses from interactive\n"
-"                         more are allowed here.\n"
+"                         mode are allowed here.\n"
 "                         ~ Available keys and their variants are:\n"
-"                         [, ], b, m, n, p, r, t, z, up, down, left, right,\n"
+"                         [, ], comma (or ','), period (or '.'), space,\n"
+"                         b, m, n, p, r, t, z, up, down, left, right,\n"
 "                         and F1 to F8.\n"
 "                         ~ Key variants are specified this way:\n"
 "                         ctrl+Up or ctrl+alt+Down etc.\n"
@@ -230,7 +231,7 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "                      at the expense of file size, of course.\n"
 "                      DUP's default is set by the value of AFNI_ANIM_DUP\n"
 "                      environment variable. \n"
-"                      To set DUP back to its default value, use -anum_dup 0.\n" 
+"                      To set DUP back to its default value, use -anim_dup 0.\n" 
 "       -save_as PREFIX.EXT: Save image(s) in recorder\n"
 "                             in the format determined by\n"
 "                             extension EXT.\n"
@@ -284,6 +285,8 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 "       -I_range IR0 IR1: set intensity range from IR0 to IR1.\n"
 "                         If only one number is given, the range\n"
 "                         is symmetric from -|IR0| to |IR0|.\n"
+"       -shw_0 y/n      or \n" 
+"       -show_0 y/n: Set shw 0 toggle button of DSET.\n"
 "       -T_sb TSB: Switch threshold to TSBth column (sub-brick)\n"
 "                  Set TSB to -1 to turn off thresholding.\n"
 "       -T_val THR: Set threshold to THR\n"
@@ -778,7 +781,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          ++kar;
          if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
             NI_set_attribute(ngr, "1_only", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
             NI_set_attribute(ngr, "1_only", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -1_only \n");
@@ -787,6 +790,29 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          argt[kar][0] = '\0';
          brk = YUP;
       }
+
+      if (!brk && (  (strcmp(argt[kar], "-shw_0") == 0) ||
+                     (strcmp(argt[kar], "-show_0") == 0) ) )
+      {
+         if (kar+1 >= argtc)
+         {
+            fprintf (SUMA_STDERR, "need a 'y/n' after -show_0 \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         ++kar;
+         if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
+            NI_set_attribute(ngr, "shw_0", "y");
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
+            NI_set_attribute(ngr, "shw_0", "n");
+         else {
+            fprintf (SUMA_STDERR, "need a 'y/n' after -show_0 \n");
+            SUMA_RETURN(0);
+         }
+         argt[kar][0] = '\0';
+         brk = YUP;
+      }
+      
       
       if (!brk && (strcmp(argt[kar], "-view_dset") == 0))
       {
@@ -799,7 +825,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          ++kar;
          if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
             NI_set_attribute(ngr, "view_dset", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
             NI_set_attribute(ngr, "view_dset", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_dset \n");
@@ -820,7 +846,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          ++kar;
          if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
             NI_set_attribute(ngr, "view_surf", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
             NI_set_attribute(ngr, "view_surf", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf \n");
@@ -841,7 +867,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          ++kar;
          if (argt[kar][0] == 'y' || argt[kar][0] == 'Y')  
             NI_set_attribute(ngr, "View_Surf_Cont", "y");
-         else if (argt[kar][0] == 'n' || argt[kar][0] == 'n')  
+         else if (argt[kar][0] == 'n' || argt[kar][0] == 'N')  
             NI_set_attribute(ngr, "View_Surf_Cont", "n");
          else {
             fprintf (SUMA_STDERR, "need a 'y/n' after -view_surf_cont \n");
@@ -1380,7 +1406,9 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
          brk = YUP;
       }
       
-      if (!brk && ( (strcmp(argt[kar], "-group") == 0) || (strcmp(argt[kar], "-surf_group") == 0) || (strcmp(argt[kar], "-so_group") == 0)))
+      if (!brk && (  (strcmp(argt[kar], "-group") == 0) || 
+                     (strcmp(argt[kar], "-surf_group") == 0) || 
+                     (strcmp(argt[kar], "-so_group") == 0)))
       {
          if (kar+1 >= argtc)
          {
@@ -1393,7 +1421,9 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
          brk = YUP;
       }
       
-      if (!brk && ( (strcmp(argt[kar], "-state") == 0) || (strcmp(argt[kar], "-surf_state") == 0) || (strcmp(argt[kar], "-so_state") == 0)))
+      if (!brk && (  (strcmp(argt[kar], "-state") == 0) || 
+                     (strcmp(argt[kar], "-surf_state") == 0) || 
+                     (strcmp(argt[kar], "-so_state") == 0)))
       {
          if (kar+1 >= argtc)
          {
@@ -1406,22 +1436,29 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
          brk = YUP;
       }
       
-      if (!brk && ( (strcmp(argt[kar], "-norm_dir") == 0) || (strcmp(argt[kar], "-surf_winding") == 0) )) 
+      if (!brk && (  (strcmp(argt[kar], "-norm_dir") == 0) || 
+                     (strcmp(argt[kar], "-surf_winding") == 0) )) 
       {
          if (kar+1 >= argtc)
          {
-            fprintf (SUMA_STDERR, "need a direction (cw or ccw) after -surf_winding \n");
+            fprintf (SUMA_STDERR, 
+                     "need a direction (cw or ccw) after -surf_winding \n");
             exit (1);
          }
          ++kar;
          if (  SUMA_iswordsame_ci("cw", argt[kar]) == 1 ||
-               SUMA_iswordsame_ci("in", argt[kar]) == 1 || SUMA_iswordsame_ci("-1", argt[kar]) == 1 ) {
+               SUMA_iswordsame_ci("in", argt[kar]) == 1 || 
+               SUMA_iswordsame_ci("-1", argt[kar]) == 1 ) {
             SO->normdir = -1;
          } else if ( SUMA_iswordsame_ci("ccw", argt[kar]) == 1 || 
-                     SUMA_iswordsame_ci("out", argt[kar]) == 1 || SUMA_iswordsame_ci("1", argt[kar]) == 1) {
+                     SUMA_iswordsame_ci("out", argt[kar]) == 1 || 
+                     SUMA_iswordsame_ci("1", argt[kar]) == 1) {
             SO->normdir = 1;
          } else {
-            fprintf (SUMA_STDERR,"Error %s:\nvalue %s not valid with -surf_winding (cw or ccw only acceptable)\n", 
+            fprintf (SUMA_STDERR,
+                     "Error %s:\n"
+                     "value %s not valid with -surf_winding "
+                     "(cw or ccw only acceptable)\n", 
                                     FuncName, argt[kar]);
             exit(1);
          }
@@ -1429,7 +1466,9 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com)
       }
       
       if (!brk && !pst->arg_checked[kar]) {
-			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n",
+			fprintf (SUMA_STDERR,
+                  "Error %s:\n"
+                  "Option %s not understood. Try -help for usage\n",
                FuncName, argt[kar]);
 			exit (1);
 		} else {	

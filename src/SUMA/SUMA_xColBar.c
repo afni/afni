@@ -1167,7 +1167,8 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    /* Now you'll need to close the list widget if a choice has been made */
    if (SUMAg_CF->X->SwitchCmapLst) {
       if (!SUMAg_CF->X->SwitchCmapLst->isShaded) 
-         SUMA_cb_CloseSwitchCmap( w,  (XtPointer)SUMAg_CF->X->SwitchCmapLst,  call);
+         SUMA_cb_CloseSwitchCmap( w,  (XtPointer)SUMAg_CF->X->SwitchCmapLst,  
+                                  call);
    }
    
    #if SUMA_SEPARATE_SURF_CONTROLLERS
@@ -1180,7 +1181,8 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    SUMA_RETURNe;
 }
 
-void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_data)
+void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, 
+                                  XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_ShowZero_tb_toggled"};
    SUMA_SurfaceObject *SO = NULL;
@@ -1194,11 +1196,18 @@ void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, XtPointer client_dat
    SO = (SUMA_SurfaceObject *)data;
    
    if (!SO || !SO->SurfCont) { SUMA_S_Warn("NULL input"); SUMA_RETURNe; }
-   if (!SO->SurfCont->curColPlane || !SO->SurfCont->curColPlane->OptScl )  { SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; }
+   if (  !SO->SurfCont->curColPlane || 
+         !SO->SurfCont->curColPlane->OptScl )  { 
+      SUMA_S_Warn("NULL input 2"); SUMA_RETURNe; 
+   }
    
-   SO->SurfCont->curColPlane->OptScl->MaskZero = !SO->SurfCont->curColPlane->OptScl->MaskZero;
+   SO->SurfCont->curColPlane->OptScl->MaskZero = 
+      !SO->SurfCont->curColPlane->OptScl->MaskZero;
    
-   if (!SO->SurfCont->curColPlane->Show) { SUMA_RETURNe; } /* nothing else to do */
+   if (!SO->SurfCont->curColPlane->Show) { 
+      /* nothing else to do */ 
+      SUMA_RETURNe;
+   } 
    
    if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -3422,8 +3431,10 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                NULL);
          XtAddCallback (SO->SurfCont->AbsThresh_tb, 
                XmNvalueChangedCallback, SUMA_cb_AbsThresh_tb_toggled, SO);
-         MCW_register_hint(SO->SurfCont->AbsThresh_tb , "Absolute threshold ON/OFF");
-         MCW_register_help(SO->SurfCont->AbsThresh_tb ,  SUMA_SurfContHelp_AbsThr );
+         MCW_register_hint(SO->SurfCont->AbsThresh_tb , 
+                           "Absolute threshold ON/OFF");
+         MCW_register_help(SO->SurfCont->AbsThresh_tb ,  
+                           SUMA_SurfContHelp_AbsThr );
          
          SUMA_SET_SELECT_COLOR(SO->SurfCont->AbsThresh_tb);
          
@@ -3432,7 +3443,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                xmToggleButtonWidgetClass, rc, NULL);
          XtAddCallback (SO->SurfCont->SymIrange_tb, 
                XmNvalueChangedCallback, SUMA_cb_SymIrange_tb_toggled, SO);
-         MCW_register_hint(SO->SurfCont->SymIrange_tb, "Intensity range symmetry about 0 ");
+         MCW_register_hint(SO->SurfCont->SymIrange_tb, 
+                           "Intensity range symmetry about 0 ");
          MCW_register_help(SO->SurfCont->SymIrange_tb,   SUMA_SurfContHelp_Isym);
          SUMA_SET_SELECT_COLOR(SO->SurfCont->SymIrange_tb);
          
@@ -3441,7 +3453,8 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                xmToggleButtonWidgetClass, rc, NULL);
          XtAddCallback (SO->SurfCont->ShowZero_tb, 
                XmNvalueChangedCallback, SUMA_cb_ShowZero_tb_toggled, SO);
-         MCW_register_hint(SO->SurfCont->ShowZero_tb,   "Color masking of nodes with intensity = 0 ");
+         MCW_register_hint(SO->SurfCont->ShowZero_tb,   
+               "Color masking of nodes with intensity = 0 ");
          MCW_register_help(SO->SurfCont->ShowZero_tb,    SUMA_SurfContHelp_Shw0);
          SUMA_SET_SELECT_COLOR(SO->SurfCont->ShowZero_tb);
          XtManageChild (rc);
@@ -5085,7 +5098,8 @@ SUMA_MenuItem *SUMA_FormSwitchCmapMenuVector(SUMA_COLOR_MAP **CMv, int N_maps)
       menu[i].accelerator = NULL;
       menu[i].accel_text = NULL;
       menu[i].callback = callback;
-      menu[i].callback_data = (XtPointer)CMv[i]; /* (used to be i+1)DO NOT USE THE 0 for the first button. 0th index is reserved for the rc widget */
+      menu[i].callback_data = (XtPointer)CMv[i]; 
+                        /* (used to be i+1)DO NOT USE THE 0 for the first button.                            0th index is reserved for the rc widget */
       menu[i].subitems = NULL;
    }
    
@@ -5363,12 +5377,15 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_UpdateNodeField"};
-   int i=0, aa=0, ncall=0;
-   SUMA_OVERLAYS *Sover=NULL;
-   NI_element *nel=NULL;
+   int i=0, jj=0;
+   SUMA_OVERLAYS *Sover=NULL, *targetSover=NULL;
+   NI_group *ngr=NULL;
    DListElmt *el=NULL;
-   SUMA_SurfaceObject *curSO=NULL;
+   SUMA_SurfaceObject *curSO=NULL, *targetSO=NULL;
+   SUMA_DSET *targetDset=NULL;
    void  (*fptr)();
+   SUMA_CALLBACK *cb=NULL;
+   char *targetSO_idcode=NULL, *targetSover_name=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY; 
@@ -5377,44 +5394,67 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
    
    curSO = *(SO->SurfCont->curSOp);
 
-   /* Do we have click callbacks on the current plane ? */
    Sover = SO->SurfCont->curColPlane; 
-   if (Sover && Sover->Callbacks) {
-      ncall = 0;
-      el = dlist_head(Sover->Callbacks);
+   
+   /* Do we have click callbacks pending? */
+   if (SUMAg_CF->callbacks) {
+      el = dlist_head(SUMAg_CF->callbacks);
       while (el) {
-         nel = (NI_element *)el->data;
-         NI_GET_INT(nel,"active",aa);
-         if (aa == 1 && NI_IS_STR_ATTR_EQUAL(nel, "Callback_flava","click")) {
-            SUMA_LHv("Have active click callback %s\n", nel->name);
-            if (!strcmp(nel->name, "Dot.CB")) {
-               NI_GET_PTR(nel, "CallbackPointer", fptr);
-               /* update node index */
-               NI_SET_INT(nel, "ts_node", SO->SelectedNode);
-               fptr((void *)nel);
-               ++ncall;
-            } else {
-               SUMA_S_Errv("Dunno what to make of callback %s\n", nel->name);
-               SUMA_RETURN(NOPE);
+         cb = (SUMA_CALLBACK *)el->data;
+         if (  cb->event == SUMA_NEW_NODE_ACTIVATE_EVENT && 
+               cb->active > 0 && 
+               cb->pending) {
+            SUMA_LHv("Calling active pending click callback %s\n", 
+                     cb->FunctionName);
+            if (!SUMA_ExecuteCallback(cb)) {
+               SUMA_S_Err("Failed to execute callback");
+               break;
+            }
+               
+            /* Now decide on what needs refreshing */
+            for (i=0; i<cb->N_parents; ++i) {
+               if (SUMA_is_ID_4_DSET(cb->parents[i], &targetDset)) {
+                  targetSO = SUMA_findSOp_inDOv(cb->parents_domain[i],
+                                                SUMAg_DOv, SUMAg_N_DOv);
+                  if (!targetSO) {
+                     SUMA_S_Warn("Could not find targetSO, using SO instead");
+                     targetSO = SO;
+                  }
+                  /* refresh overlay and SO for this callback */
+                  targetSover = SUMA_Fetch_OverlayPointerByDset(
+                                       targetSO->Overlays, 
+                                       targetSO->N_Overlays,
+                                       targetDset,
+                                       &jj);
+                  SUMA_LHv("Colorizing %s\n", targetSover->Name);
+                  SUMA_ColorizePlane(targetSover);
+                  SUMA_LHv("Setting remix flag for %s\n",targetSO->Label);
+                  if (!SUMA_SetRemixFlag( targetSO->idcode_str, 
+                                          SUMAg_SVv, SUMAg_N_SVv)) {
+                     SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
+                     SUMA_RETURN(NOPE);
+                  }
+                  if (curSO != targetSO) {
+                     SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO);
+                     SUMA_RemixRedisplay(targetSO);
+                  } else {
+                     /* this will be done below in the function */
+                  }
+               } else if (SUMA_is_ID_4_SO(cb->parents[i], &targetSO)) {
+                  SUMA_S_Note("Got surface, don't know \n"
+                              "what to do in case like this yet\n");
+               } else {
+                  SUMA_S_Err("Dunno what to do with such an object...");
+               }   
             }
          } else {
-            if (aa == -1) {
+            if (cb->active == -1) {
                SUMA_LH("Callback inactive");
             }
-            SUMA_LHv("Callback flavour %s\n",
-                     NI_get_attribute(nel,"Callback_flava"));
          }
          el = dlist_next(el);
       }
-      if (ncall) {
-         SUMA_ColorizePlane(Sover);
-         SUMA_LH("Setting remix flag");
-         if (!SUMA_SetRemixFlag(SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
-            SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
-            SUMA_RETURN(NOPE);
-         }
-      }
-   }
+   } 
 
    if (curSO == SO) {
       SUMA_LH("Updating GUI Node Fields");
