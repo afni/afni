@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, APR, 2009, RCR, "NIfTI", MINOR, TYPE_NEW_OPT,
+   "added sample nifticlib program: clib_01_read_write.c",
+   NULL
+ } ,
+
  { 11, APR, 2009, RCR, "afni-general", MICRO, TYPE_NEW_OPT,
    "added calls to opts.check_special_opts() in 7 more python programs:",
    "gen_epi_review.py, make_random_timing.py, make_stim_times.py\n"
