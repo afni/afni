@@ -1484,7 +1484,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                          SEF_i, (void *)&(EngineData->i), 
                                                          SES_Suma, (void *)sv, NOPE, 
                                                          SEI_In, LocElm))) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                  fprintf(SUMA_STDERR,
+                          "Error %s: Failed to register element\n", FuncName);
                   break;
                }
                SUMA_free(ivec.v);
@@ -1499,10 +1500,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                for (ii=0; ii<sv->N_DO; ++ii) {
                   if (SUMA_isSO(SUMAg_DOv[sv->RegisteredDO[ii]])) {
                      if (CommonState < 0) {
-                        SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->RegisteredDO[ii]].OP);
+                        SO = (SUMA_SurfaceObject *)
+                                    (SUMAg_DOv[sv->RegisteredDO[ii]].OP);
                         SO->ShowSelectedNode = !SO->ShowSelectedNode;
                         CommonState = SO->ShowSelectedNode;
-                        fprintf(SUMA_STDOUT,"SO->ShowSelectedNode = %d\n", SO->ShowSelectedNode);
+                        fprintf( SUMA_STDOUT,
+                                 "SO->ShowSelectedNode = %d\n", 
+                                 SO->ShowSelectedNode);
                      } else {
                         SO->ShowSelectedNode = CommonState;
                      }
@@ -1533,6 +1537,63 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_SLP_Err("Node index < 0 || > Number of nodes in surface");                }
                break;
             }
+            if (EngineData->Src == SES_Afni) {
+               SUMA_S_Warn("No attempt is made yet to deal with setting"
+                           "up NewNode callback when AFNI sends a time series");
+               /* perhaps you should arm the callback where you process 
+               an afni coordinate */
+            } else {
+               SUMA_OVERLAYS *Sover=NULL;
+               DListElmt *el=NULL;
+               SUMA_CALLBACK *cb=NULL;
+               NI_element *nelpars=NULL;
+               
+               if (!SO->SurfCont) {
+                  SUMA_S_Warn("No Surface Controller!");
+                  break;
+               } 
+               Sover = SO->SurfCont->curColPlane;
+               /* setup callback, if needed */
+               if (SUMAg_CF->callbacks) {
+                  el = dlist_head(SUMAg_CF->callbacks);
+                  while (el) {
+                     cb = (SUMA_CALLBACK *)el->data;
+                     if (  cb->event == SUMA_NEW_NODE_ACTIVATE_EVENT && 
+                           cb->active > 0 && 
+                           (Sover && Sover->dset_link ) ) {
+                        SUMA_LHv("Looking for callback parents involved \n"
+                                 "with dset %s\n",
+                                 SDSET_ID(Sover->dset_link ));
+                        /* Is any of the parents involved here? */
+                        if (SUMA_is_CallbackParent(cb, 
+                                                   SDSET_ID(Sover->dset_link ),
+                                                   NULL)){
+                           SUMA_SetCallbackPending(cb, 1, EngineData->Src);
+                           /* setup event parameters
+                              YOU SHOULD NOT SET ANYTHING that THIS event
+                              call does not normally receive */
+                           if (!(nelpars = SUMA_FindNgrNamedElement(
+                                             cb->FunctionInput, "parameters"))) {
+                              SUMA_S_Err("Failed to find parameters element!");                                 break;
+                           }  
+                           NI_SET_INT(nelpars,     
+                                      "event.new_node", SO->SelectedNode);
+                           NI_set_attribute( nelpars, 
+                                             "event.SO_idcode", SO->idcode_str);
+                           NI_set_attribute(nelpars, 
+                                            "event.overlay_name", 
+                                            Sover->Name);
+                        } else {
+                           SUMA_LH("No involved parents found");
+                        }
+                     } else {
+                        SUMA_LHv("Skipping callback for %s...\n", 
+                                 cb->FunctionName);
+                     }
+                     el = dlist_next(el);
+                  }
+               }
+            }  
             SUMA_UpdateNodeField(SO);
             break;
             
@@ -1562,13 +1623,16 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetSelectedFaceSet:
             /* expects the index for the selected FaceSet */
             if (EngineData->i_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             } 
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
             if (EngineData->i < 0 || EngineData->i >= SO->N_FaceSet) {
                if (EngineData->i != -1) { /* ignore -1, used in initialization */
-                  SUMA_SLP_Err("Node index < 0 || > Number of FaceSets in surface");
+                  SUMA_SLP_Err("Node index < 0 || "
+                               "> Number of FaceSets in surface");
                } 
                break;
             }
@@ -1605,19 +1669,30 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetCrossHair:
             /* Expects Cross Hair coordinates in fv3 */
             if (EngineData->fv3_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
-            if (LocalHead) fprintf(SUMA_STDERR,"%s: Setting cross hair at %f %f %f\n", FuncName, EngineData->fv3[0], EngineData->fv3[1],EngineData-> fv3[2]);
-            sv->Ch->c[0] = EngineData->fv3[0]; sv->Ch->c[1]= EngineData->fv3[1]; sv->Ch->c[2]= EngineData->fv3[2];
-            /* Attempt to update crosshair corrdinates in open surface controllers */
+            if (LocalHead) 
+               fprintf(SUMA_STDERR,"%s: Setting cross hair at %f %f %f\n", 
+                                    FuncName, EngineData->fv3[0], 
+                                    EngineData->fv3[1],
+                                    EngineData-> fv3[2]);
+            sv->Ch->c[0]= EngineData->fv3[0]; 
+            sv->Ch->c[1]= EngineData->fv3[1]; 
+            sv->Ch->c[2]= EngineData->fv3[2];
+            /* Attempt to update crosshair corrdinates 
+               in open surface controllers */
             SUMA_UpdateXhairField(sv); 
             break;
          
          case SE_BindCrossHair:
             /* expects SurfaceID to bind cross hair to*/
             if (EngineData->iv3_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
             sv->Ch->SurfaceID = EngineData->iv3[0];
@@ -1628,7 +1703,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_SetSOinFocus:
             /* expects surface ID in i */
             if (EngineData->i_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
             if (sv->Focus_SO_ID != EngineData->i) {
@@ -2062,14 +2139,26 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          
          case SE_FOVreset:
             /* expects nothing in EngineData */
-            sv->FOV[sv->iState] = SUMA_sv_fov_original(sv);   /* reset the zooming */
+            sv->FOV[sv->iState] = SUMA_sv_fov_original(sv);   
+                        /* reset the zooming */
+            /* Now update the zoom compensation variable */
+            if (sv->ZoomCompensate) {
+               sv->ZoomCompensate = sv->FOV[sv->iState] / 
+                                    SUMA_sv_fov_original(sv);
+               if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; 
+                  /* weird stuff at zc_fac higher that 1.5 */
+               else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
+            }
+
             break;
             
          case SE_SetNodeColor:
             /* expects a four-columned fm in EngineData->fm[0 .. N][0..3] 
             [Node Index] [R] [G] [B] RGB between 0 and 1*/
             if (EngineData->fm_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n",
+                        FuncName, NextCom, NextComCode);
                break;
             }
             SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
@@ -2136,27 +2225,18 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_MIN_LOC_VEC (IB.d, IB.nIsIn, ft, it);
                   
                   /* XYZ and normal of the closest to the center */
-                  #ifdef STUFF
-                     /* This is not being used and if it is to be used, EngineData should 
-                     not be set manually */
-                     id = ND * IB.IsIn[it];
-                     EngineData->fv15[0] = SO->NodeList[id];
-                     EngineData->fv15[1] = SO->NodeList[id+1];
-                     EngineData->fv15[2] = SO->NodeList[id+2];
-                     EngineData->fv15[3] = SO->NodeNormList[id];
-                     EngineData->fv15[4] = SO->NodeNormList[id+1];
-                     EngineData->fv15[5] = SO->NodeNormList[id+2];
-                  #endif
                   /* Color the nodes*/
                   fm = (float **)SUMA_allocate2D(IB.nIsIn, 4, sizeof(float));
                   if (fm == NULL) {
-                     fprintf(SUMA_STDERR,"Error %s: Could not allocate for fm.\n", FuncName);
+                     fprintf(SUMA_STDERR,
+                             "Error %s: Could not allocate for fm.\n", FuncName);
                      break;
                   }
                   for (i=0; i < IB.nIsIn; ++i) {
                       /* id = ND * IB.IsIn[i]; */
                       /*fprintf (SUMA_STDOUT,"\t[%d] %f %f %f\n", IB.IsIn[i] ,\
-                                   SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);*/
+                                   SO->NodeList[id], SO->NodeList[id+1], 
+                                   SO->NodeList[id+2]);*/
                      /* color those nodes in yellow, just for kicks */
                      fm[i][0] = (float)IB.IsIn[i];
                      fm[i][1] = 0; 
@@ -2170,9 +2250,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   ED->N_rows = IB.nIsIn;
                   if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                                          SEF_fm, (void*)fm,
-                                                         SES_Suma, (void *)sv, NOPE,
+                                                         SES_Suma, (void *)sv, 
+                                                         NOPE,
                                                          SEI_Head, NULL)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                     fprintf(SUMA_STDERR,
+                             "Error %s: Failed to register element\n", FuncName);
                      break;                                      
                   } 
                   ED = SUMA_InitializeEngineListData (SE_Redisplay);
@@ -2186,7 +2268,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   
                   /* get ridd of IB's vectors */
                   if (!SUMA_Free_IsInBox (&IB)) {
-                     fprintf(SUMA_STDERR,"Error %s: Failed to free IB\n", FuncName);
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Failed to free IB\n", FuncName);
                   }
                } else { /* no node is close enough */
                   /* Do nothing yet */
@@ -2439,6 +2522,19 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                   SUMA_free(stmp); stmp = NULL;
                }
+            }
+            
+            if (NI_get_attribute(EngineData->ngr, "shw_0")) {
+               if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "shw_0", "y"))
+                  SO->SurfCont->curColPlane->OptScl->MaskZero = NOPE; 
+               else if (NI_IS_STR_ATTR_EQUAL(EngineData->ngr, "shw_0", "n"))
+                  SO->SurfCont->curColPlane->OptScl->MaskZero = YUP;
+               else { 
+                  SUMA_S_Errv("Bad value of %s for shw_0, setting to 'y'\n", 
+                              NI_get_attribute(EngineData->ngr, "shw_0"));
+                  SO->SurfCont->curColPlane->OptScl->MaskZero = NOPE;
+               } 
+               XmToggleButtonSetState ( SO->SurfCont->ShowZero_tb,                                             SO->SurfCont->curColPlane->OptScl->MaskZero, YUP);
             }
             
             if (NI_get_attribute(EngineData->ngr, "B_sb")) {
@@ -2725,6 +2821,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break;
+                           case XK_space:
+                              if (!SUMA_space_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_period:
+                              if (!SUMA_period_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
+                           case XK_comma:
+                              if (!SUMA_comma_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break;
                            case XK_F1:
                               if (!SUMA_F1_Key(sv, stmp, "drivesuma")) {
                                  SUMA_S_Err("Failed in Key function.");
@@ -2769,15 +2880,20 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                               SUMA_S_Errv("No good key for %s\n", stmp);
                               break;   
                            default:
-                              SUMA_S_Errv("Don't know how to deal with %s in drive mode\n", stmp);
+                              SUMA_S_Errv("Don't know how to deal with %s "
+                                          "in drive mode\n", stmp);
                               break;   
                         } /* end switch k */
                         /* do we need a call for redisplay now? */
                         if ((redisp || pauz != 0.0f )) {
-                           /* a redisplay is already pending (from the key functions), kill it or it will get executed later*/
-                           SUMA_remove_workproc2( SUMA_handleRedisplay, sv->X->GLXAREA );
+                           /* a redisplay is already pending 
+                           (from the key functions), kill it or it will get 
+                           executed later*/
+                           SUMA_remove_workproc2(  SUMA_handleRedisplay, 
+                                                   sv->X->GLXAREA );
                            llist = SUMA_CreateList ();
-                           SUMA_REGISTER_TAIL_COMMAND_NO_DATA(llist, SE_RedisplayNow, SES_SumaFromAny, sv);
+                           SUMA_REGISTER_TAIL_COMMAND_NO_DATA(llist, 
+                                       SE_RedisplayNow, SES_SumaFromAny, sv);
                            SUMA_LH("Forcing redisplay");
                            SUMA_Engine (&llist);
                         }
@@ -3291,7 +3407,9 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
       if (SUMA_isSO_G(dov[sv->RegisteredDO[i]], sv->CurGroupName)) {
          SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
          if (SO->Show) {
-            if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR  || SO->Side == SUMA_LR) {
+            if (  SO->Side == SUMA_NO_SIDE || 
+                  SO->Side == SUMA_SIDE_ERROR  || 
+                  SO->Side == SUMA_LR) {
                if (SO_IDs) {
                   SO_IDs[k] = sv->RegisteredDO[i];
                }

@@ -39,5 +39,6 @@ SUMA_DSET *SUMA_far2dset_s( char *FullName, char *dset_id, char *dom_id,
 SUMA_DSET *SUMA_LoadDXDset_s (char *Name, int verb);
 SUMA_DSET *SUMA_Load1DDset_s (char *oName, int verb);
 float *SUMA_Load1D_s (char *oName, int *ncol, int *nrow, int RowMajor, int verb);
+SUMA_Boolean  SUMA_is_ID_4_DSET(char *idcode, SUMA_DSET **dsetp);
 
 #endif

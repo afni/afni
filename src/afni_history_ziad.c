@@ -65,6 +65,27 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 14 , APR , 2009 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX ,
+   "niml ROI files with empty ROI no longer crash suma/ROI2dataset",
+   NULL
+ } ,
+ 
+ { 6 , APR , 2009 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT ,
+   "Added support for '.', ',', and space keys, and 'shw_0'",
+   NULL
+ } ,
+ 
+ { 1 , APR , 2009 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
+   "Arrow keys based navigation along surface.",
+   "See 'Alt+U-D' section in SUMA's interactive usage help.\n" 
+ } ,
+ 
+ { 1 , APR , 2009 , ZSS , "suma" , MICRO , TYPE_NEW_ENV ,
+   "Added SUMA_KeyNodeJump variable \n",
+   "This variable controls number of nodes to jump with arrow keys navigation."
+   "See suma -environment for complete list and defaults.\n"
+ } ,
+ 
  { 31 , MAR , 2009 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
    "Added 'on the fly' dot product computation",
    "This feature is only available with SUMA's -dev\n"

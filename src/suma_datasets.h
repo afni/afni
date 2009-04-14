@@ -409,6 +409,7 @@ typedef struct {
             SUMA_FreeDset
          Functions for debugging:   
             SUMA_ShowNel
+            SUMA_NI_nel_Info
             SUMA_DsetInfo
             SUMA_ShowMeSome
          Miscellaneous functions/tools:
@@ -1171,7 +1172,10 @@ char * SUMA_AttrOfDsetColNumb(SUMA_DSET *dset, int ind);
 SUMA_COL_TYPE SUMA_TypeOfDsetColNumb(SUMA_DSET *dset, int ind);
 SUMA_COL_TYPE SUMA_TypeOfColNumb(NI_element *nel, int ind) ;
 SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp); 
+SUMA_Boolean SUMA_isSameDsetColTypes(SUMA_DSET *dset1, SUMA_DSET *dset2); 
 int SUMA_ShowNel (void *nel);
+char *SUMA_NI_nel_Info (NI_element *nel, int detail);
+
 void SUMA_allow_nel_use(int al);
 int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, 
                      SUMA_COL_TYPE ctp, void *col, 
@@ -1195,6 +1199,8 @@ char * SUMA_CreateDsetColRangeCompString( SUMA_DSET *dset, int col_index,
                                           SUMA_COL_TYPE ctp);
 char * SUMA_GetDsetColStringAttr( SUMA_DSET *dset, int col_index, 
                                     char *attrname);
+char * SUMA_GetNgrColStringAttr( NI_group *ngr, int col_index, 
+                                 char *attrname);
 SUMA_Boolean SUMA_ParseAttrName(NI_element *nel, int *tp, 
                                  int *icol, char *rtname);
 SUMA_Boolean SUMA_CopyDsetAttributes ( SUMA_DSET *src, SUMA_DSET *dest,
