@@ -584,7 +584,11 @@ int main( int argc , char *argv[] )
       " -matrix mmm = Read the matrix 'mmm', which should have been\n"
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
       "            *** N.B.: 3dREMLfit will NOT work with all zero columns,\n"
-      "                      unlike 3dDeconvolve!!!\n"
+      "                       unlike 3dDeconvolve!!!\n"
+      "              * N.B.: Actually, you can omit the '-matrix' option, but\n"
+      "                       then the program will fabricate a matrix consisting\n"
+      "                       of a single column with all 1s.  This option is\n"
+      "                       mostly for the convenience of the author.\n"
       "\n"
       " -mask kkk   = Read dataset 'kkk' as a mask for the input.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
@@ -1356,7 +1360,6 @@ STATUS("options done") ;
    /**--------------- sanity checks, dataset input, maskifying --------------**/
 
    if( inset             == NULL ) ERROR_exit("No -input dataset?!") ;
-   if( nelmat            == NULL ) ERROR_exit("No -matrix file?!") ;
    if( nprefixR+nprefixO == 0    ) ERROR_exit("No output datasets at all?!") ;
    if( nprefixR          == 0    ){
      WARNING_message("No -R* output datasets? Skipping REML(a,b) estimation!") ;
@@ -1368,6 +1371,27 @@ STATUS("options done") ;
    dx = fabsf(DSET_DX(inset)) ; nx = DSET_NX(inset) ;
    dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ; nxy = nx*ny ;
    dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
+
+#if 0
+   if( nelmat == NULL ) ERROR_exit("No -matrix file?!") ;
+#else
+   if( nelmat == NULL ){  /* make up a matrix [14 Apr 2009] */
+     char *str = NULL ; NI_stream ns ;
+     WARNING_message(
+       "No -matrix file! Making up a matrix with one column of %d 1s",nvals) ;
+     str = THD_zzprintf(str,
+                        "str:<matrix ni_type='double' ni_dimen='%d'\n"
+                        "            NRowFull='%d' GoodList='0..%d' >\n",
+                        nvals , nvals , nvals-1 ) ;
+     for( ii=0 ; ii < nvals ; ii++ ) str = THD_zzprintf(str," 1\n") ;
+     str = THD_zzprintf(str,"</matrix>\n") ;
+     ns  = NI_stream_open( str , "r" ) ;
+     if( ns == (NI_stream)NULL ) ERROR_exit("Can't fabricate matrix!?") ;
+     nelmat = NI_read_element( ns , 9 ) ;
+     NI_stream_close(ns) ; free(str) ;
+     if( nelmat == NULL ) ERROR_exit("Can't fabricate matrix?!") ;
+   }
+#endif
 
    usetemp_rcol = usetemp ;
    if( usetemp ){
