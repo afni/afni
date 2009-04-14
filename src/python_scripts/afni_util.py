@@ -766,7 +766,11 @@ def stdev_ub(data):
     # compute standard deviation
     ssq = 0.0
     for val in data: ssq += val*val
-    return math.sqrt((ssq - length*meanval*meanval)/(length-1.0))
+    val = (ssq - length*meanval*meanval)/(length-1.0)
+
+    # watch for truncation artifact
+    if val < 0.0 : return 0.0
+    return math.sqrt(val)
 
 def stdev(data):
     """(biased) standard deviation"""
@@ -777,6 +781,10 @@ def stdev(data):
     # compute standard deviation
     ssq = 0.0
     for val in data: ssq += val*val
-    return math.sqrt((ssq - length*meanval*meanval)/length)
+    val = (ssq - length*meanval*meanval)/length
+
+    # watch for truncation artifact
+    if val < 0.0 : return 0.0
+    return math.sqrt(val)
 
 

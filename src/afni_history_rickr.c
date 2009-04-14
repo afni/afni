@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, APR, 2009, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
+   "possible to have truncation cause a negative variance in stdev_ub",
+   NULL
+ } ,
+
  { 14, APR, 2009, RCR, "NIfTI", MINOR, TYPE_NEW_OPT,
    "added sample nifticlib program: clib_01_read_write.c",
    NULL
