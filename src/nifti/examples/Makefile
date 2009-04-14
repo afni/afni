@@ -32,13 +32,16 @@ endif
 
 
 
-all:	fsl_api_driver
+all:	fsl_api_driver clib_01_read_write
 
 clean:
-	rm -f fsl_api_driver
+	rm -f fsl_api_driver clib_01_read_write
 
 fsl_api_driver:	fsl_api_driver.c ../lib/libfslio.a
 	$(CC) $(CFLAGS) -o fsl_api_driver fsl_api_driver.c $(FSLIO_INCS) $(NIFTI_INCS) $(ZNZ_INCS) $(FSLIO_LIBS) $(NIFTI_LIBS) $(ZNZ_LIBS)
+
+clib_01_read_write: clib_01_read_write.c
+	$(CC) $(CFLAGS) -o clib_01_read_write clib_01_read_write.c $(NIFTI_INCS) $(ZNZ_INCS) $(NIFTI_LIBS) $(ZNZ_LIBS)
 
 help:
 	@echo "all:      make the fsl_api_driver program"
