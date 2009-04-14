@@ -1584,10 +1584,12 @@ char * SUMA_help_message_Info(void)
       "     Alt+L-R arrows: Move selected node to neighboring nodes\n"
       "                     in the direction of the screen's \n"
       "                     X axis. The default is to move one\n"
-      "                     node at a time.");
+      "                     node at a time. You can alter this\n"
+      "                     setting with the environment variable:\n"
+      "                     SUMA_KeyNodeJump in your ~/.sumarc file.\n");
    SS = SUMA_StringAppend (SS, 
       "     Alt+U-D arrows: Same as Alt+L-R but in the direction \n"
-      "                     of the screen's Y axis\n");
+      "                     of the screen's Y axis\n\n");
    SS = SUMA_StringAppend (SS, 
       "     F1: screen axis (X-Red, Y-Green), toggle. \n");
    SS = SUMA_StringAppend (SS, 
