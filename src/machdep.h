@@ -404,5 +404,6 @@ extern double lgamma(double) ;
 #endif
 
 extern char * Random_Insult(void) ;
+extern void init_rand_seed( long int seed ) ; /* 15 Apr 2009 (cf machdep.c) */
 
 #endif /* _MCW_MACHDEP_ */
