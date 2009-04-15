@@ -62,7 +62,7 @@ int main( int argc , char *argv[] )
    int out_ps   =0 ; /* 29 Nov 2002 */
    int nopush   =0 ;
    int nnax=0,mmax=0 , nnay=0,mmay=0 ;
-   float xbot,xtop   , ybot,ytop ;
+   float xbot,xtop   , ybot,ytop ; float thik=0.0f ;
    int skip_x11=0 , imsave=0 ; char *imfile=NULL ;
    int do_norm=0 ; /* 26 Mar 2008 */
 
@@ -184,6 +184,10 @@ int main( int argc , char *argv[] )
             "                     Roll, Pitch, Yaw, I-S, R-L, and A-P\n"
             "                     movements, in that order.\n"
             "\n"
+            " -thick            = Each time you give this, it makes the line\n"
+            "                     thickness used for plotting a little larger.\n"
+            "                     [An alternative to using '-DAFNI_1DPLOT_THIK=...']\n"
+            "\n"
             " -Dname=val        = Set environment variable 'name' to 'val'\n"
             "                     for this run of the program only:\n"
             " 1dplot -DAFNI_1DPLOT_THIK=0.01 -DAFNI_1DPLOT_COLOR_01=blue '1D:3 4 5 3 1 0'\n"
@@ -253,6 +257,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-") == 0 ){  /* 23 Aug 2006: null option */
        iarg++ ; continue ;
+     }
+
+     if( strncasecmp(argv[iarg],"-thi",4) == 0 ){  /* 15 Apr 2009: thickness */
+       thik += 0.005f ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-norm2") == 0 ){  /* 26 Mar 2008 */
@@ -413,7 +421,7 @@ int main( int argc , char *argv[] )
         sep = 0 ; iarg++ ; continue ;
      }
 
-#if 0 
+#if 0
      if( strncmp(argv[iarg],"-D",2) == 0 && strchr(argv[iarg],'=') != NULL ){
        (void) AFNI_setenv( argv[iarg]+2 ) ;
        iarg++ ; continue ;
@@ -421,6 +429,10 @@ int main( int argc , char *argv[] )
 #endif
 
      ERROR_exit("Unknown option: %s\n",argv[iarg]) ;
+   }
+
+   if( thik > 0.0f ){
+     char cmd[128]; sprintf(cmd,"AFNI_1DPLOT_THIK=%.3f",thik); AFNI_setenv(cmd);
    }
 
    if(sepscl && sep == 0) {
