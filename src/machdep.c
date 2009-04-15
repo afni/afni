@@ -5,6 +5,9 @@
 # include <malloc.h>
 #endif
 
+#include <unistd.h>
+#include <time.h>
+
 /*--------------------------------------------------------------------
    Code to provide runtime fixups for various machines
    (things that can't be fixed by declarations in machdep.h).
@@ -29,6 +32,14 @@ void machdep()
    seed = AFNI_numenv("AFNI_RANDOM_SEEDVAL") ;
    if( seed != 0) srand48(seed) ;
 
+}
+
+/*-------------------------------------------------------------------*/
+
+void init_rand_seed( long int seed )
+{
+   if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
+   srand48(seed) ;
 }
 
 /*-------------------------------------------------------------------
