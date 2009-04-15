@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , APR , 2009 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "Add -thick option" ,
+   "Plus: modify plot_ts.c to thicken the lines used for plotting the labels\n"
+   "(so the fancy characters are filled in a little)." } ,
+
  { 13 , APR , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
    "fixed bug in printing censor message for -addbase and -slibase" ,
    NULL } ,
