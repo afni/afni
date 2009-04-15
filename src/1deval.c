@@ -302,6 +302,7 @@ int main( int argc , char * argv[] )
 
    /*-- evaluate --*/
 
+   init_rand_seed(0) ;
    if( dindex && do_1Dc ){
      do_1Dc = 0; WARNING_message("-1D: is incompatible with -index");
    }
