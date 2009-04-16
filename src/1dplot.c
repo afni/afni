@@ -211,7 +211,17 @@ int main( int argc , char *argv[] )
             "You can alter the thickness of the lines by setting the variable\n"
             "AFNI_1DPLOT_THIK to a value between 0.00 and 0.05 -- the units are\n"
             "fractions of the page size.\n"
-
+            "\n"
+            "LABELS\n"
+            "------\n"
+            "Besides normal alphabetic text, the various labels can include some\n"
+            "special characters, using TeX-like escapes starting with '\\'.\n"
+            "Also, the '^' and '_' characters denote super- and sub-scripts,\n"
+            "respectively.  The following command shows many of the escapes:\n"
+            " 1deval -num 100 -expr 'J0(t/4)' | 1dplot -stdin -thick \\\n"
+            " -xlabel '\\alpha\\beta\\gamma\\delta\\epsilon\\zeta\\eta^{\\oplus\\dagger}\\times c' \\\n"
+            " -ylabel 'Bessel Function \\green J_0(t/4)'     \\\n"
+            " -plabel '\\Upsilon\\Phi\\Chi\\Psi\\Omega\\red\\leftrightarrow\\blue\\partial^{2}f/\\partial x^2'\n"
             "\n"
             TS_HELP_STRING
            ) ;
