@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , APR , 2009 , RWC , "All" , MINOR , TYPE_BUG_FIX ,
+   "Inadvertent recursion in afni_environ.c now blocked." ,
+   NULL } ,
+
  { 15 , APR , 2009 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "Add -thick option" ,
    "Plus: modify plot_ts.c to thicken the lines used for plotting the labels\n"

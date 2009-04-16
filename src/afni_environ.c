@@ -20,22 +20,23 @@ char * AFNI_suck_file( char *fname )
    int len , fd , ii ;
    char *buf ;
 
+ENTRY("AFNI_suck_file") ;
    nsuck = 0 ;
-   if( fname == NULL || fname[0] == '\0' ) return NULL ;
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL );
 
    len = THD_filesize( fname ) ;
-   if( len <= 0 ) return NULL ;
+   if( len <= 0 ) RETURN(NULL ) ;
 
    fd = open( fname , O_RDONLY ) ;
-   if( fd < 0 ) return NULL ;
+   if( fd < 0 ) RETURN(NULL) ;
 
    buf = (char *) malloc( sizeof(char) * (len+4) ) ;
    ii  = read( fd , buf , len ) ;
    close( fd ) ;
-   if( ii <= 0 ){ free(buf) ; return NULL; }
+   if( ii <= 0 ){ free(buf); RETURN(NULL); }
 
    buf[len] = '\0' ;  /* 27 July 1998: 'len' used to be 'ii+1', which is bad */
-   nsuck = len ; return buf ;
+   nsuck = len ; RETURN(buf) ;
 }
 
 /*-----------------------------------------------------------------------
@@ -83,9 +84,11 @@ void AFNI_mark_environ_undone(void) { afni_env_done = 0 ; return ; }
 
 /*---------------------------------------------------------------------------*/
 
+static int blocked=0 ;
+
 char * my_getenv( char *ename )
 {
-   if( !afni_env_done ){
+   if( !blocked && !afni_env_done ){
      char *sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 16 Apr 2000 */
      if( sysenv != NULL ) AFNI_process_environ(sysenv) ; /* 16 Apr 2000 */
      AFNI_process_environ(NULL) ;
@@ -104,6 +107,8 @@ int AFNI_process_environ( char *fname )
    int nenv=0 , senv=0 ; static int first=1 ;  /* 13 Mar 2008 */
 
 ENTRY("AFNI_process_environ") ;
+   blocked = 1 ;
+
    if( fname != NULL ){
      strcpy(str,fname) ;
    } else {
@@ -120,8 +125,8 @@ ENTRY("AFNI_process_environ") ;
    }
    strcpy(fname_str,str) ; /* ZSS: Nov. 25 08 */
 
-   fbuf = AFNI_suck_file( str ) ; if( fbuf == NULL ) RETURN(nenv) ;
-   nbuf = strlen(fbuf) ;          if( nbuf == 0    ) RETURN(nenv) ;
+   fbuf = AFNI_suck_file( str ) ; if( fbuf == NULL ){ blocked=0; RETURN(nenv); }
+   nbuf = strlen(fbuf) ;          if( nbuf == 0    ){ blocked=0; RETURN(nenv); }
 
    fptr = fbuf ; nused = 0 ;
 
@@ -181,7 +186,7 @@ ENTRY("AFNI_process_environ") ;
        WARNING_message("didn't find any environment equations in ~/.afnirc") ;
    }
 
-   first = 0 ; free(fbuf) ; RETURN(nenv) ;
+   first = 0 ; free(fbuf) ; blocked = 0 ; RETURN(nenv) ;
 }
 
 /*-----------------------------------------------------------------*/
