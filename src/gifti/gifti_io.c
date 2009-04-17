@@ -111,9 +111,10 @@ static char * gifti_history[] =
   "     - separate diffs in DAs from those in gifti_image\n"
   "     - decode additional data types: INT8, UINT16, INT64\n"
   "     - add link flags to libgiftiio_la target\n"
+  "1.03 17 April, 2009 : allow DA size to vary over each external file\n"
 };
 
-static char gifti_version[] = "gifti library version 1.02, 2 October, 2008";
+static char gifti_version[] = "gifti library version 1.03, 17 April, 2009";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -1390,8 +1391,8 @@ int gifti_disp_gifti_image(const char * mesg, const gifti_image * p, int subs)
                    "    swapped    = %d\n"
                    "    compressed = %d\n", p->swapped, p->compressed);
 
+    fprintf(stderr," -- darray totals: %lld MB\n",gifti_gim_DA_size(p,1));
     if( subs ) gifti_disp_nvpairs("gim->ex_atrs" , &p->ex_atrs);
-    else fprintf(stderr," -- darray totals: %lld MB\n",gifti_gim_DA_size(p,1));
 
     fprintf(stderr,"==================================================\n");
 
@@ -1956,19 +1957,14 @@ int gifti_set_extern_filelist(gifti_image * gim, int nfiles, char ** files)
         return 1;
     }
 
-    if(G.verb > 4) fprintf(stderr,"-- set_extern_flist for %d files\n", nfiles);
-
     nper = gim->numDA / nfiles;
+
+    if(G.verb>4) fprintf(stderr,"-- set_extern_flist for %d files (nper=%d)\n",
+                         nfiles, nper);
+
     if( nfiles * nper != gim->numDA ) { /* be sure division is integral */
         fprintf(stderr,"** Cannot evenly divide %d DataArrays by %d"
                        " external files\n", gim->numDA, nfiles);
-        return 1;
-    }
-
-    /* note and check nbytes */
-    nbytes = gim->darray[0]->nvals * gim->darray[0]->nbyper;
-    if( nbytes <= 0 ) {
-        fprintf(stderr,"** gifti_set_extern_filelist: bad nbytes\n");
         return 1;
     }
 
@@ -1979,13 +1975,21 @@ int gifti_set_extern_filelist(gifti_image * gim, int nfiles, char ** files)
             return 1;
         }
 
+        /* note and check nbytes */
+        nbytes = gim->darray[daindex]->nvals * gim->darray[daindex]->nbyper;
+        if( nbytes <= 0 ) {
+            fprintf(stderr,"** gifti_set_extern_filelist: bad nbytes\n");
+            return 1;
+        }
+
         /* within this file, offset will be multiples of nbytes */
         for( oindex=0, offset=0; oindex < nper; oindex++, offset += nbytes ) {
             da = gim->darray[daindex];
 
             if( nbytes != da->nvals * da->nbyper ) {
-              fprintf(stderr,"** set_extern_flist: nbytes mismatch at DA[%d]\n",
-                      daindex);
+              fprintf(stderr,"** set_extern_flist: nbytes mismatch at DA[%d]\n"
+                             "   (expected %lld, found %lld)\n",
+                             daindex, nbytes, da->nvals * da->nbyper);
               return 1;
             }
 
