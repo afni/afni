@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, APR, 2009, RCR, "GIFTI", MICRO, TYPE_MODIFY,
+   "more -set_extern_filelist help, allow DA size to vary over external files",
+   NULL
+ } ,
+
  { 14, APR, 2009, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
    "possible to have truncation cause a negative variance in stdev_ub",
    NULL
