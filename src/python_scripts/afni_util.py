@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os, string, glob, math
+import sys, os, math
 import afni_base as BASE
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
@@ -120,6 +120,7 @@ def uniq_list_as_dsets(dsets, showerr=0):
 # - they must be valid names of existing datasets
 # - return None on error
 def list_to_datasets(words):
+    import glob # local, unless used elsewhere
     if not words or len(words) < 1: return []
     dsets = []
     wlist = []
@@ -678,7 +679,11 @@ def vals_are_multiples(num, vals, digits=4):
     return 1
 
 def vals_are_constant(vlist, cval=0):
-   """determine whether every value in vlist is equal to cval"""
+   """determine whether every value in vlist is equal to cval
+      (if cval == None, use vlist[0])"""
+
+   if cval == None: cval = vlist[0]
+
    for val in vlist:
       if val != cval: return 0
    return 1
@@ -695,7 +700,7 @@ def lists_are_same(list1, list2):
 
    return 1
 
-def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
+def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg=''):
    """return a string to display the floats:
         vals    : the list of float values
         nchar   : [7] number of characters to display per float
@@ -703,8 +708,35 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
         nspaces : [2] number of spaces between each float
    """
 
-   istr = ''
+   istr = mesg
    for val in vals: istr += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
+
+   return istr
+
+def gen_float_list_string(vals, mesg='', nchar=0):
+   """mesg is printed first, if nchar>0, it is min char width"""
+
+   istr = mesg
+
+   if nchar > 0:
+      for val in vals: istr += '%*g ' % (nchar, val)
+   else:
+      for val in vals:
+         istr += '%g ' % val
+
+   return istr
+
+def int_list_string(ilist, mesg='', nchar=0):
+   """like float list string, but use general printing
+      (mesg is printed first, if nchar>0, it is min char width)"""
+
+   istr = mesg
+
+   if nchar > 0:
+      for val in ilist: istr += '%*d ' % (nchar, val)
+   else:
+      for val in ilist:
+         istr += '%d ' % val
 
    return istr
 
@@ -786,5 +818,30 @@ def stdev(data):
     # watch for truncation artifact
     if val < 0.0 : return 0.0
     return math.sqrt(val)
+
+def shuffle(vlist):
+    """randomize the order of list elements, where each perumuation is
+       equally likely
+
+       - akin to RSFgen, but do it with equal probabilities
+         (search for swap in [index,N-1], not in [0,N-1])
+       - random.shuffle() cannot produce all possibilities, don't use it"""
+
+    # if we need random elsewhere, maybe do it globally
+    import random
+
+    size = len(vlist)
+
+    for index in range(size):
+        # find random index in [index,n] = index+rand[0,n-index]
+        # note: random() is in [0,1)
+        i2 = index + int((size-index)*random.random())
+
+        if i2 != index:         # if we want a new location, swap
+            val = vlist[i2]
+            vlist[i2] = vlist[index]
+            vlist[index] = val
+
+    return
 
 

@@ -74,7 +74,7 @@ class OptionList:
             else: 
                print "    %-24s%s" % (self.olist[index].name, hs)
 
-    def find_opt(self, name, nth=1):    # find nth occurance of option label
+    def find_opt(self, name, nth=1):    # find nth occurance of option name
         """return nth comopt where name=name, else None"""
         index = 0
         for com in self.olist:
@@ -82,6 +82,14 @@ class OptionList:
                 index += 1
                 if index == nth: return com
         return None
+
+    def find_all_opts(self, name):
+        """return all comopts where name=name"""
+        olist = []
+        for com in self.olist:
+            if com.name == name:
+                olist.append(com)
+        return olist
 
     def count_opt(self, name):
         """return number of comopts where name=name"""
