@@ -35,9 +35,10 @@ static char * g_history[] =
   "1.0  13 May, 2008: based on release library version 1.0\n",
   "     - added -set_extern_filelist\n"
   "1.1  02 Oct, 2008: mention NITRC web site in help\n"
+  "1.2  17 Apr, 2009: added -set_extern_filelist help and more examples\n"
 };
 
-static char g_version[] = "gifti_tool version 1.1, 2 October 2008";
+static char g_version[] = "gifti_tool version 1.2, 17 April 2009";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -1027,7 +1028,8 @@ static int show_help()
     "                    -new_ndim 1 -new_dims 40 0 0 0 0 0        \\\n"
     "                    -set_extern_filelist ext1.bin ext2.bin    \\\n"
     "                    -write_gifti points_to_extern.gii\n"
-    "\n"
+    "\n");
+    printf(
     "    5. modify a gifti dataset\n"
     "\n"
     "      a. apply various modifications at the GIFTI level and to all DAs\n"
@@ -1063,6 +1065,37 @@ static int show_help()
     "\n"
     );
     printf (
+    "      d. convert a POINTSET/TRIANGLE Base64 format dataset to one where\n"
+    "         to one where the data is external (raw binary):\n"
+    "\n"
+    "           gifti_tool -infiles inflated.gii                     \\\n"
+    "                      -set_extern_filelist points.data tri.data \\\n"
+    "                      -write_gifti inflated.external.gii\n"
+    "\n"
+    "      e. convert a 5 run time series dataset from internal Base64 format\n"
+    "         to one where the data is external (raw binary):\n"
+    "\n"
+    "         as one external file:\n"
+    "\n"
+    "           gifti_tool -infiles epi.5runs.gii               \\\n"
+    "                      -set_extern_filelist data.5runs.bin  \\\n"
+    "                      -write_gifti epi.ext.5runs.gii\n"
+    "\n"
+    "         as 5 external files (1 per run):\n"
+    "\n"
+    "           gifti_tool -infiles epi.5runs.gii                      \\\n"
+    "                 -set_extern_filelist data.5runs.r{1,2,3,4,5}.bin \\\n"
+    "                 -write_gifti epi.ext.5runs.gii\n"
+    "\n"
+    "      f. convert the previous external dataset back to internal form\n"
+    "         (i.e. it should be the same as epi.5runs.gii)\n"
+    "\n"
+    "           gifti_tool -infiles epi.ext.5runs.gii      \\\n"
+    "                      -encoding BASE64                \\\n"
+    "                      -write_gifti epi.int.5runs.gii\n"
+    "\n"
+    );
+    printf (
     "    6. compare 2 gifti datasets\n"
     "       (compare GIFTI structures, compare data, and report all diffs)\n"
     "\n"
@@ -1088,7 +1121,7 @@ static int show_help()
     );
     printf (
     "\n"
-    "  (all warranties are void in Montana, and after 4 pm)\n"
+    "  (all warranties are void in Montana, and after 4 pm on Tuesdays)\n"
     "\n"
     "----------------------------------------------------------------------\n"
     "  informational options:\n"
@@ -1241,6 +1274,46 @@ static int show_help()
     "           This operation can also be performed via -mod_DA_atr:\n"
     "           e.g. -mod_DA_atr Encoding BASE64GZIP\n"
     "\n"
+    "     -set_extern_filelist F1 F2 ... : store data in external files\n"
+    "\n"
+    "           e.g. -set_extern_filelist run.1.data run.2.data run.3.data\n"
+    "           e.g. -set_extern_filelist runs.all.data\n"
+    "           e.g. -set_extern_filelist points.data triangles.data\n"
+    "\n"
+    "           Data is normally stored within the XML file as numerical\n"
+    "           text or Base64 encoded raw or compressed data.\n"
+    "\n"
+    "           With use of this option, users can set to have data stored in\n"
+    "           external binary files (neither encoded nor compressed) upon a\n"
+    "           write operation.\n"
+    "\n"
+    "           External file storage is subject to a couple of restrictions:\n"
+    "\n"
+    "             - GIFTI requires that they are in the same directory\n"
+    "\n"
+    "             - the library allows multiple DataArrays per file, but each\n"
+    "               DataArray within the same file must have the same size\n"
+    "               (this is a gifticlib limit, not a GIFTI limit)\n"
+    "\n"
+    "                 OK : equal data in 1 file\n"
+    "                 OK : equal data in k files, numDA is multiple of k\n"
+    "                 BAD: equal data in k files, numDA is NOT multiple of k\n"
+    "                 OK : points/triangles in 2 files\n"
+    "                 BAD: points/triangles in 1 file (sizes differ)\n"
+    "\n"
+    "           The most basic use of this option is to convert data from\n"
+    "           internal to external.  See examples 5d and 5e.\n"
+    "\n"
+    "           Note that one can also create a GIFTI dataset out of nothing\n"
+    "           and use this option to point to existing external data files.\n"
+    "           This would help conversion from other dataset formats.  See\n"
+    "           example 5c.\n"
+    "\n"
+    "           Note that one can convert from an external data format to\n"
+    "           internal just by modifying the -encoding.  See example 5f.\n"
+    "\n"
+    );
+    printf (
     "     -write_1D    DSET : write out data to AFNI style 1D file\n"
     "\n"
     "           e.g. -write_1D stats.1D\n"
