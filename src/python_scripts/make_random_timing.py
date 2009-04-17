@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys, random, os, math
-import option_list, afni_util as UTIL
+import option_list as OL, afni_util as UTIL
 
 g_help_string = """
 ===========================================================================
@@ -211,12 +211,12 @@ examples:
 
        Main stimuli are presented 5 times per run, and catch trials are given
        separately an additional 4 times per run.  That means, for example, that
-       stimulus A will occur 14 times per run (4 as 'catch', 5 preceeding A1,
-       5 preceeding A2).  Each of 3 runs will last 9 minutes.
+       stimulus A will occur 14 times per run (4 as 'catch', 5 preceding A1,
+       5 preceding A2).  Each of 3 runs will last 9 minutes.
 
        Initially we will claim that A1..B2 each lasts 16 seconds.  Then each of
        those events will be broken into a 'catch' event at the beginning, 
-       followed by a 'main' event after another 8 seconds.  Set the minumum
+       followed by a 'main' event after another 8 seconds.  Set the minimum
        time between any 2 events to be 1.5 seconds.
 
        Do this in 4 steps:
@@ -287,6 +287,33 @@ examples:
 
        --- end of (long) example #7 ---
 
+    8. Example requiring partially fixed stimulus ordering.
+
+       Suppose we have 2 sets of stimuli, question/answer/score along with
+       face/doughnut.  Anytime a question is given it is followed by an answer
+       (after random rest) and then a score (after random rest).  The face and
+       doughnut stimuli are random, but cannot interrupt the q/a/s triples.
+
+       Effectively, this means question, face and doughnut are random, but
+       answer and score must always follow question.  Rest should be randomly
+       distributed anywhere.
+
+       The q/a/s stimuli are each 1.5 seconds, but since we require a minimum
+       of 1 second after 'q' and 'a', and 1.5 seconds after 's', those stimulus
+       durations are given as 2.5, 2.5 and 3.0 seconds, respectively.  The
+       'f' and 'd' stimuli are each 1 second.
+
+       Each stimulus has 8 repetitions per run, over 4 240 second runs.  The
+       first and last 20 seconds of each run will be left to rest.
+
+         make_random_timing.py -num_runs 4 -run_time 240                \\
+                 -num_stim 5 -num_reps 8                                \\
+                 -stim_labels question answer score face doughnut       \\
+                 -stim_dur 2.5 2.5 3 1 1                                \\
+                 -ordered_stimuli 1 2 3                                 \\
+                 -pre_stim_rest 20 -post_stim_rest 20                   \\
+                 -show_timing_stats -seed 31415 -prefix stimesH
+
 ----------------------------------------------------------------------
 informational arguments:
 
@@ -333,7 +360,7 @@ required arguments:
         a total of that number of repetitions, across all runs).
 
         The user can also specify the number of repetitions for each of the
-        stimulus classes separatly, as a list.
+        stimulus classes separately, as a list.
 
             see also: -across_runs
 
@@ -421,6 +448,32 @@ optional arguments:
         e.g. -offset 4.5
 
         Use this option to offset every stimulus time by OFFSET seconds.
+
+    -ordered_stimuli STIM1 STIM2 ... : specify a partial ordering of stimuli
+
+        e.g. -ordered_stimuli 4 2 5
+        e.g. -ordered_stimuli 1 2 -ordered_stimuli 3 4 -ordered_stimuli 5 6
+
+        This option is used to require that some regressors are ordered.
+        For example, every time a question stimulus occurs it is followed by a
+        response stimulus, with only random rest in between.  There might be
+        other stimuli, but they cannot break the question/response pair.
+
+        So all the stimuli and rest periods are still random, except that given
+        regressors must maintain the specified order.
+
+        Given the first example, whenever stim 4 occurs it is followed first
+        by 2 and then by 5.  Other stimuli might come before 4 or after 5, but
+        not in between.
+
+        In the second example the 1/2 pairs are never broken, as well as 3/4
+        and 5/6 pairs.  Those could be 3 types of question/answer regressors.
+
+        Note: - Multiple -ordered_stimuli options may be used.
+              - A single stimulus may not appear in more than one such option.
+              - Stimulus indices are 1-based, running from 1..N.
+
+        See example 8 above for a detailed example.
 
     -pre_stim_rest REST_TIME    : specify minimum rest period to start each run
 
@@ -563,6 +616,7 @@ g_history = """
          - modified examples to correspond with those in timing_tool.py
     0.7  Dec 24, 2008: redefine 'sum' for old python versions
     0.8  Feb 05, 2009: added timing_tool.py use to catch trial example
+    0.9  Apr 17, 2009: added -ordered_stimuli
 """
 
 g_version = "version 0.7, December 24, 2008"
@@ -602,6 +656,7 @@ class RandTiming:
         self.min_rest = 0.0             # minimum rest after each stimulus
         self.offset   = 0.0             # offset for all stimulus times
         self.seed     = None            # random number seed
+        self.orderstim= []              # list of ordered stimulus lists
         self.t_gran   = gDEF_T_GRAN     # time granularity for rest
         self.t_digits = gDEF_DEC_PLACES # digits after decimal when showing time
         self.labels   = None            # labels to be applied to filenames
@@ -620,7 +675,7 @@ class RandTiming:
 
     def init_opts(self):
         global g_help_string
-        self.valid_opts = option_list.OptionList('for input')
+        self.valid_opts = OL.OptionList('for input')
 
         # short, terminal arguments
         self.valid_opts.add_opt('-help', 0, [],      \
@@ -655,6 +710,8 @@ class RandTiming:
                         helpstr='minimum rest time after each stimulus')
         self.valid_opts.add_opt('-offset', 1, [],
                         helpstr='offset to add to every stimulus time')
+        self.valid_opts.add_opt('-ordered_stimuli', -1, [],
+                        helpstr='require these stimuli to be so ordered')
         self.valid_opts.add_opt('-pre_stim_rest', 1, [],
                         helpstr='time before first stimulus, in seconds')
         self.valid_opts.add_opt('-post_stim_rest', 1, [],
@@ -711,7 +768,7 @@ class RandTiming:
         # ------------------------------------------------------------
         # read all user options
 
-        self.user_opts = option_list.read_options(sys.argv, self.valid_opts)
+        self.user_opts = OL.read_options(sys.argv, self.valid_opts)
         if not self.user_opts: return 1         # error condition
 
         return None     # normal completion
@@ -746,18 +803,24 @@ class RandTiming:
 
         # set num_reps list of length num_runs
         self.run_time, err = self.user_opts.get_type_list(float, '-run_time',
-                                    self.num_runs, 'num_runs', verb=self.verb)
+                                    self.num_runs, 'num_runs')
         if self.run_time == None or err: return 1
+        if self.verb > 1:
+            print UTIL.gen_float_list_string(self.run_time, '-- run_time : ')
 
         # set num_reps list of length num_runs
         self.num_reps, err = self.user_opts.get_type_list(int, '-num_reps',
-                                   self.num_stim, 'num_stim', verb=self.verb)
+                                            self.num_stim, 'num_stim')
         if self.num_reps == None or err: return 1
+        if self.verb > 1:
+            print UTIL.int_list_string(self.num_reps, '-- num_reps : ')
 
         # set stim_dur list of length num_stim
         self.stim_dur, err = self.user_opts.get_type_list(float, '-stim_dur',
-                                    self.num_stim, 'num_stim', verb=self.verb)
+                                            self.num_stim, 'stim_dur')
         if self.stim_dur == None or err: return 1
+        if self.verb > 1:
+            print UTIL.gen_float_list_string(self.stim_dur, '-- stim_dur : ')
 
         # ----------------------------------------
         # optional arguments (if failure, use default)
@@ -787,6 +850,14 @@ class RandTiming:
         self.seed, err = self.user_opts.get_type_opt(float,'-seed')
         if self.seed == None: self.seed = None
         elif err: return 1
+
+        # gather a list of lists specified by -ordered_stimuli options
+        olist = self.user_opts.find_all_opts('-ordered_stimuli')
+        for opt in olist:
+            slist, err = self.user_opts.get_type_list(int, opt=opt)
+            if err: return 1
+            self.orderstim.append(slist)
+            if self.verb>1: print UTIL.int_list_string(slist, '-- orderstim : ')
 
         if self.verb > 1 or self.user_opts.find_opt('-show_timing_stats'):
             self.show_timing_stats = 1
@@ -832,7 +903,8 @@ class RandTiming:
         self.labels, err = self.user_opts.get_string_list('-stim_labels')
         if self.labels and len(self.labels) != self.num_stim:
             print '** error: %d stim classes but %d labels: %s' \
-                  % (self.num_stim, len(self.lables), self.labels)
+                  % (self.num_stim, len(self.labels), self.labels)
+            return 1
 
         self.file_3dd_cmd, err = self.user_opts.get_string_opt('-save_3dd_cmd')
         if err: return 1
@@ -903,7 +975,11 @@ class RandTiming:
 
         if self.verb > 2:
             print '--------- final list ---------'
-            print self.stimes
+            for s in range(len(self.stimes)):
+                for r in range(len(self.stimes[0])):
+                    print UTIL.gen_float_list_string(self.stimes[s][r],
+                               '++ stim list[%d][%d] = '%((s+1),r))
+            # print self.stimes
 
         return None
 
@@ -1063,12 +1139,14 @@ class RandTiming:
 
         if self.verb > 3:
             for ind in range(len(self.isi)):
-                print '\nISI #%d  :  %s' % (ind, self.isi[ind])
+                print UTIL.gen_float_list_string(self.isi[ind],'ISI #%d : '%ind)
+            print
                 
         if self.verb > 3:
             for ind in range(len(self.isi)):
                 self.isi[ind].sort()
-                print '\nsorted ISI #%d  :  %s' % (ind, self.isi[ind])
+                print UTIL.gen_float_list_string(self.isi[ind],
+                           'sorted ISI #%d : '%ind)
                 
 
     def make_rand_timing(self, nruns, run_time):
@@ -1109,7 +1187,8 @@ class RandTiming:
             print '   rtime, offset, tinit, tfinal = %.1f, %.1f, %.1f, %.1f' \
                       % (run_time, offset, tinitial, tfinal)
             print '   reps_list  = %s' % reps_list
-            print '   sdur_list = %s' % sdur_list
+            print UTIL.gen_float_list_string(sdur_list,'   sdur_list = ')
+            # print '   sdur_list = %s' % sdur_list
             print '   tgran = %.3f, verb = %d' % (tgran, verb)
 
         # verify inputs
@@ -1160,35 +1239,21 @@ class RandTiming:
 
         if verb > 1 or self.show_timing_stats:
             print '\n++ total time = %.1f, (stim = %.1f, rest = %.1f)\n'     \
-                  '   init rest = %.1f, end rest = %.1f\n'                   \
-                  '   min_rest following stimuli = %.1f (= %.1f * %d)\n'     \
+                  '   init rest = %.1f, end rest = %.1f, min rest = %.1f\n'  \
                   '   total ISI = %.1f, rand ISI = %.1f\n'                   \
                   '   rand ISI rest time = %d intervals of %.3f seconds\n' % \
-                  (nruns*run_time, stime, tot_rest, tinitial, tfinal,
-                  min_rest * UTIL.loc_sum(reps_list), min_rest,
-                  UTIL.loc_sum(reps_list), isi_rtime, rtime, nrest, tgran)
+                  (nruns*run_time, stime, tot_rest, tinitial, tfinal, min_rest,
+                  isi_rtime, rtime, nrest, tgran)
 
         if rtime == 0: print '** warning, exactly no time remaining for rest...'
         elif rtime < 0:
             print '** required stim and rest time exceed run length, failing...'
             return
+
+        # make a random events list, based on reps_list[] and nrest
+        err, elist = self.randomize_events(nrest)
+        if err: return
             
-        # create a list of all events, repeated stimuli and rest
-        elist = []
-        for stim in range(nstim):
-            elist += [(stim+1) for i in range(reps_list[stim])]
-        elist.extend([0 for i in range(nrest)])
-
-        if verb > 2: print '++ elist (len %d, sorted): %s' % (len(elist), elist)
-
-        # random.shuffle(elist)
-        shuffle(elist)  # local version
-
-        if verb > 2:
-            print '++ elist (len %d, random): %s' % (len(elist), elist)
-            for stim in range(nstim):
-                print '   number of type %d = %d' % (stim+1,elist.count(stim+1))
-
         # convert the event list into a list of stimulus lists
         slist = [[[] for i in range(nruns)] for j in range(nstim)]
 
@@ -1237,10 +1302,178 @@ class RandTiming:
         self.isi.append(s_isi)
 
         if verb > 3:
-            for stim in range(nstim):
-                print '++ stim list[%d] = %s' % (stim+1,slist[stim])
+            print '-- end make_random_timing() --'
+            for s in range(nstim):
+                for r in range(nruns):
+                    print UTIL.gen_float_list_string(slist[s][r],
+                               '++ stim list[%d][%d] = '%((s+1),r))
 
         return slist
+
+    def valid_orderstim(self):
+        """- every index in {1..num_stim} can occur only once over all
+             orderstim lists
+           - only values {1..num_stim} can occur in orderstim lists
+           - for each olist, make sure num_reps is constant
+       
+           return 1 if valid, 0 if not"""
+
+        if len(self.orderstim) < 1: return 1
+
+        used  = []
+
+        errs = 0
+        for olist in self.orderstim:
+            if self.verb > 4: print "-- testing olist: %s" % olist
+            if len(olist) < 2:
+                print "** orderstim too short: %s" % olist
+                errs += 1
+            for val in olist:
+                if val < 1 or val > self.num_stim:
+                    print "** orderstim list has values outside {1..%d}: %s" \
+                          % (self.num_stim, olist)
+                    errs += 1
+                elif val in used:
+                    print "** orderstim '%d' is not unique in lists" % val
+                    errs += 1
+                else: used.append(val)
+
+            if errs: continue
+
+            # and check that all reps are the same 
+            vlist = [self.num_reps[v-1] for v in olist]
+            if not UTIL.vals_are_constant(vlist, cval=None):
+                print "** stimuli in order list need constant nreps\n"  \
+                      "   orderstim: %s\n"                          \
+                      "   nreps: %s\n" % (olist, vlist)
+                errs += 1
+
+        if errs:
+            if self.verb > 1: print '** valid_orderstim: %d errors' % errs
+            return 0
+        else:
+            if self.verb > 1:
+                print '-- %d orderstim lists are valid' % len(self.orderstim)
+            return 1
+
+    def randomize_ordered_events(self, nrest):
+        """create a list of randomized events, subject to orderstim
+
+           - return error code (0=success) and event list
+        """
+
+        if len(self.orderstim) < 1:
+            print '** no orderstim to apply'
+            return 1, None
+        if not self.valid_orderstim(): return 1, None
+
+        # add anything that is not used
+        used = []
+        for olist in self.orderstim:
+            used.extend(olist)
+
+        elist = []
+        nstim = self.num_stim
+
+        # ------------------------- step 1 ---------------------------
+        # catenate lists of event types that are either not in orderstim
+        # or are the first element in one
+
+        # fill in unused stimuli
+        for stim in range(nstim):
+            sval = stim+1 # stim val, for ease of typing
+            if sval not in used:
+                if self.verb > 1: print '++ filling unordered stim %d' % sval
+                elist += [sval for i in range(self.num_reps[stim])]
+
+        if self.verb > 3:
+            print '++ elist (len %d, unordered): %s' % (len(elist), elist)
+
+        # now fill any that are first, and create 'firstdict' lookup table 
+        firstdict = {}
+        for ind in range(len(self.orderstim)):
+            olist = self.orderstim[ind]
+            sval = olist[0]
+            stim = olist[0] - 1
+            firstdict[sval] = ind # which list contains sval
+            if self.verb > 1: print '++ filling order[0] stim %d' % sval
+            elist += [sval for i in range(self.num_reps[stim])]
+
+        if self.verb > 3:
+            print '++ elist (len %d, order base): %s' % (len(elist), elist)
+            print '++ firstdict lookup table: %s' % firstdict
+
+        # ------------------------- step 2 ---------------------------
+        # randomize this list (other orderlist stimuli are not random)
+
+        UTIL.shuffle(elist)
+        if self.verb > 3:
+            print '++ elist (len %d, base, rand): %s' % (len(elist), elist)
+
+        # ------------------------- step 3 ---------------------------
+        # fill in orderstim events:
+        # insert orderstim list at each orderstim initial element
+
+        enew = []
+        for val in elist:
+            if firstdict.has_key(val):          # then append orderlist
+                enew.extend(self.orderstim[firstdict[val]])
+            else: enew.append(val)
+        elist = enew    # replace
+        if self.verb > 3:
+            print '++ elist (len %d, all stim): %s' % (len(elist), elist)
+
+        # ------------------------- step 4 ---------------------------
+        # randomly merge with rest:
+        # - shuffle binary list of rest/stim
+        # - for each stim val, replace with respective stim index
+
+        mergelist = [0 for i in range(nrest)] + [1 for i in range(len(elist))]
+        UTIL.shuffle(mergelist)
+
+        eind = 0  # counter for filling from elist
+        for mind in range(len(mergelist)):
+            if mergelist[mind]:
+                mergelist[mind] = elist[eind]
+                eind += 1
+        if eind != len(elist):
+            print '** randomize panic: mergelist/elist mismatch'
+            return 1, None
+
+        return 0, mergelist
+
+    def randomize_events(self, nrest):
+        """make a list of all event types and then rest, randomize the list
+           - this may be subject to lists of ordered stimuli (orderstim)
+             (stimuli must be unique across all such lists)
+           - return error code (0=success) and event list"""
+
+        if nrest < 0:
+            print "** randomize_events: nrest < 0"
+            return 1, []
+
+        if len(self.orderstim) > 0:
+            return self.randomize_ordered_events(nrest)
+
+        nstim = self.num_stim
+        reps_list = self.num_reps
+
+        elist = []
+        for stim in range(nstim):
+            elist += [(stim+1) for i in range(reps_list[stim])]
+        elist.extend([0 for i in range(nrest)])
+
+        if self.verb > 2:
+            print '++ elist (len %d, sorted): %s' % (len(elist), elist)
+
+        UTIL.shuffle(elist)
+
+        if self.verb > 2:
+            print '++ elist (len %d, random): %s' % (len(elist), elist)
+            for stim in range(nstim):
+                print '   number of type %d = %d' % (stim+1,elist.count(stim+1))
+
+        return 0, elist
 
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%.1f,1)'" % stim_len
@@ -1254,30 +1487,6 @@ def make_concat_from_times(run_times, tr):
         cind += round(run_times[ind]/tr)
         str += ' %d' % cind
     return str + "' \\\n"
-
-def shuffle(vlist):
-    """mostly like RSFgen, but for each index, search for swap in [index,n]
-
-       this makes each permutation equally likely
-
-       -- random.shuffle() cannot produce all possibilities
-       -- RSFgen style permute_array() does not produce results with equal
-          likelihood"""
-
-    # don't rely on randint, as that comes from 2.4
-
-    size = len(vlist)
-    newlist = [-1 for i in range(size)]
-    remain = size       # remaining space (of -1's) in newlist
-
-    for index in range(size):
-        # find random index in [index,n] = index+rand[0,n-index]
-        i2 = index + int((size-index)*random.random())
-
-        if i2 != index:         # if we want a new location, swap
-            val = vlist[i2]
-            vlist[i2] = vlist[index]
-            vlist[index] = val
 
 def process():
     timing = RandTiming('make random timing')
