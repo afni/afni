@@ -619,7 +619,7 @@ g_history = """
     0.9  Apr 17, 2009: added -ordered_stimuli
 """
 
-g_version = "version 0.7, December 24, 2008"
+g_version = "version 0.7, April 17, 2009"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
