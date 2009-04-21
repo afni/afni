@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, APR, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "updates to help and tcsh options",
+   "- added -f as a recommended tcsh option\n"
+   "- added help section 'SCRIPT EXECUTION NOTE'\n"
+   "- reordered help: intro, BLOCKS, DEFAULTS, EXAMPLES, NOTEs, OPTIONS"
+ } ,
+
  { 17, APR, 2009, RCR, "GIFTI", MICRO, TYPE_MODIFY,
    "more -set_extern_filelist help, allow DA size to vary over external files",
    NULL
