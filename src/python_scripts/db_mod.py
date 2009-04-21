@@ -1627,153 +1627,6 @@ g_help_string = """
     the fly.  The user may elect to enter some of the options on the command
     line, even if using -ask_me.  See "-ask_me EXAMPLES", below.
 
-    --------------------------------------------------
-    TIMING FILE NOTE:
-
-    One issue that the user must be sure of is the timing of the stimulus
-    files (whether -regress_stim_files or -regress_stim_times is used).
-
-    The 'tcat' step will remove the number of pre-steady-state TRs that the
-    user specifies (defaulting to 0).  The stimulus files, provided by the
-    user, must match datasets that have had such TRs removed (i.e. the stim
-    files should start _after_ steady state has been reached).
-
-    --------------------------------------------------
-    MASKING NOTE:
-
-    The default operation of afni_proc.py has changed (as of 24 Mar, 2009).
-
-    Now a mask dataset will be created but not actually applied at the
-    scaling step or in the regression.
-
-    --> To apply the mask during regression, use -regress_apply_mask.
-
-    **  Why is the default being changed?  **
-
-    It seems much better not to mask the regression data in the single-subject
-    analysis at all, send _all_ of the results to group space, and apply an
-    anatomically-based mask there.  That could be computed from the @auto_tlrc
-    reference dataset or from the union of skull-stripped subject anatomies.
-
-    Since subjects have varying degrees of signal dropout in valid brain areas
-    of the EPI data, the resulting intersection mask that would be required in
-    group space may exclude edge regions that people may be interested in.
-
-    Also, it is helpful to see if much 'activation' appears outside the brain.
-    This could be due to scanner or interpolation artifacts, and is useful to
-    note, rather than to simply mask out and never see.
-
-    Rather than letting 3dAutomask decide which brain areas should not be 
-    considered valid, create a mask based on the anatomy _after_ the results
-    have been warped to a standard group space.  Then perhaps dilate the mask
-    by one voxel.  Example #11 from '3dcalc -help' shows how one might dilate.
-
-    ---
-
- ** For those who have processed some of their data with the older versions:
-
-    Note that this change should not be harmful to those who have processed
-    data with older versions of afni_proc.py, as it only adds non-zero voxel
-    values to the output datasets.  If some subjects were analyzed with the
-    older version, the processing steps should not need to change.  It is still
-    necessary to apply an intersection mask across subjects in group space.
-
-    It might be okay to create the intersection mask from only those subjects
-    which were masked in the regression, however one might say that biases the
-    voxel choices toward those subjects.  Maybe that does not matter.
-
-    ---
-
-    A mask dataset is necessary when computing blur estimates from the epi and
-    errts datasets.  Also, since it is nice to simply see what the mask looks
-    like, its creation has been left in by default.
-
-    The '-regress_no_mask' option is now unnecessary.
-
-    ---
-
-    Note that if no mask were applied in the 'scaling' step, large percent
-    changes could result.  Because large values would be a detriment to the
-    numerical resolution of the scaled short data, the default is to truncate
-    scaled values at 200 (percent), which should not occur in the brain.
-
-    --------------------------------------------------
-    RETROICOR NOTE:
-
-    ** Cariac and respiratory regressors must be created from an external
-       source, such as the RetroTS.m matlab program written by Z Saad.  The
-       input to that would be the 2+ signals.  The output would be a single
-       file per run, containing 13 or more regressors for each slice.  That
-       set of output files would be applied here in afni_proc.py.
-
-    Removal of cardiac and respiratory regressors can be done using the 'ricor'
-    processing block.  By default, this would be done after 'despike', but
-    before any other processing block.
-
-    These card/resp signals would be regressed out of the MRI data in the
-    'ricor' block, after which processing would continue normally. In the final
-    'regress' block, regressors for slice 0 would be applied (to correctly
-    account for the degrees of freedom and also to remove residual effects).
-
-    Users have the option of removing the signal "per-run" or "across-runs".
-
-    Example R1: 7 runs of data, 13 card/resp regressors, process "per-run"
-
-        Since the 13 regressors are processed per run, the regressors can have
-        different magnitudes each run.  So the 'regress' block will actually 
-        get 91 extra regressors (13 regressors times 7 runs each).
-
-    Example R2: process "across-run"
-
-        In this case the regressors are catenated across runs when they are
-        removed from the data.  The major difference between this and "per-run"
-        is that now only 1 best fit magnitude is applied per regressor (not the
-        best for each run).  So there would be only the 13 catenated regressors
-        for slice 0 added to the 'regress' block.
-
-    Those analyzing resting-state data might prefer the per-run method, as it
-    would remove more variance and degrees of freedom might not be as valuable.
-
-    Those analyzing a normal signal model might prefer doing it across-runs,
-    giving up only 13 degrees of freedom, and helping not to over-model the
-    data.
-
-    ** The minimum options would be specifying the 'ricor' block (perferably
-       after despike), along with -ricor_regs and -ricor_regress_method.
-
-    Example R3: afni_proc.py option usage:
-
-        Provide additional options to afni_proc.py to apply the despike and
-        ricor blocks (which will be the first 2 blocks by default), with each
-        regressor named 'slibase*.1D' going across all runs, and where the
-        first 3 TRs are removed from each run (matching -tcat_remove_first_trs,
-        most likely).
-
-            -do_block despike ricor
-            -ricor_regs slibase*.1D
-            -ricor_regress_method across-runs
-            -ricor_regs_nfirst 3
-
-    --------------------------------------------------
-    RUNS OF DIFFERENT LENGTHS NOTE:
-
-    In the case that the EPI datasets are not all of the same length, here
-    are some issues that may come up, listed by relevant option:
-
-        -volreg_align_to        If aligning to "last" afni_proc.py might get
-                                an inaccurate index for the volreg -base.
-
-        -regress_polort         If this option is not used, then the degree of
-                                polynomial used for the baseline will come from
-                                the first run.
-
-        -regress_est_blur_epits This may fail, as afni_proc.py may have trouble
-                                teasing the different runs apart from the errts
-                                dataset.
-
-        -regress_use_stim_files This may fail, as make_stim_times.py is not
-                                currently prepared to handle runs of different
-                                lengths.
     ==================================================
     PROCESSING BLOCKS (of the output script):
 
@@ -1801,6 +1654,56 @@ g_help_string = """
         despike     : truncate spikes in each voxel's time series
         empty       : placehold for some user command (using 3dTcat as sample)
         ricor       : RETROICOR - removal of cardiac/respiratory regressors
+
+    ==================================================
+    DEFAULTS: basic defaults for each block (not all defaults)
+
+        setup:    - use 'SUBJ' for the subject id
+                        (option: -subj_id SUBJ)
+                  - create a t-shell script called 'proc_subj'
+                        (option: -script proc_subj)
+                  - use results directory 'SUBJ.results'
+                        (option: -out_dir SUBJ.results)
+
+        tcat:     - do not remove any of the first TRs
+
+        empty:    - do nothing (just copy the data using 3dTcat)
+
+        despike:  - NOTE: by default, this block is _not_ used
+                  - masking corresponds to regression
+
+        ricor:    - NOTE: by default, this block is _not_ used
+                  - polort based on twice the actual run length
+                  - solver is OLSQ, not REML
+                  - do not remove any first TRs from the regressors
+
+        tshift:   - align slices to the beginning of the TR
+                  - use quintic interpolation for time series resampling
+                        (option: -tshift_interp -quintic)
+
+        volreg:   - align to third volume of first run, -zpad 1
+                        (option: -volreg_align_to third)
+                        (option: -volreg_zpad 1)
+                  - use cubic interpolation for volume resampling
+                        (option: -volreg_interp -cubic)
+                  - apply motion params as regressors across all runs at once
+
+        blur:     - blur data using a 4 mm FWHM filter
+                        (option: -blur_filter -1blur_fwhm)
+                        (option: -blur_size 4)
+
+        mask:     - create a union of masks from 3dAutomask on each run
+                  - not applied in regression without -regress_apply_mask
+
+        scale:    - scale each voxel to mean of 100, clip values at 200
+
+        regress:  - use GAM regressor for each stim
+                        (option: -regress_basis)
+                  - compute the baseline polynomial degree, based on run length
+                        (e.g. option: -regress_polort 2)
+                  - output fit time series
+                  - output ideal curves for GAM/BLOCK regressors
+                  - output iresp curves for non-GAM/non-BLOCK regressors
 
     ==================================================
     EXAMPLES (options can be provided in any order):
@@ -1978,54 +1881,242 @@ g_help_string = """
                                              ToolPoint HumanPoint
 
     ==================================================
-    DEFAULTS: basic defaults for each block (not all defaults)
+    Many NOTE sections:
+    ==================================================
 
-        setup:    - use 'SUBJ' for the subject id
-                        (option: -subj_id SUBJ)
-                  - create a t-shell script called 'proc_subj'
-                        (option: -script proc_subj)
-                  - use results directory 'SUBJ.results'
-                        (option: -out_dir SUBJ.results)
+    TIMING FILE NOTE:
 
-        tcat:     - do not remove any of the first TRs
+    One issue that the user must be sure of is the timing of the stimulus
+    files (whether -regress_stim_files or -regress_stim_times is used).
 
-        empty:    - do nothing (just copy the data using 3dTcat)
+    The 'tcat' step will remove the number of pre-steady-state TRs that the
+    user specifies (defaulting to 0).  The stimulus files, provided by the
+    user, must match datasets that have had such TRs removed (i.e. the stim
+    files should start _after_ steady state has been reached).
 
-        despike:  - NOTE: by default, this block is _not_ used
-                  - masking corresponds to regression
+    --------------------------------------------------
+    MASKING NOTE:
 
-        ricor:    - NOTE: by default, this block is _not_ used
-                  - polort based on twice the actual run length
-                  - solver is OLSQ, not REML
-                  - do not remove any first TRs from the regressors
+    The default operation of afni_proc.py has changed (as of 24 Mar, 2009).
 
-        tshift:   - align slices to the beginning of the TR
-                  - use quintic interpolation for time series resampling
-                        (option: -tshift_interp -quintic)
+    Now a mask dataset will be created but not actually applied at the
+    scaling step or in the regression.
 
-        volreg:   - align to third volume of first run, -zpad 1
-                        (option: -volreg_align_to third)
-                        (option: -volreg_zpad 1)
-                  - use cubic interpolation for volume resampling
-                        (option: -volreg_interp -cubic)
-                  - apply motion params as regressors across all runs at once
+    --> To apply the mask during regression, use -regress_apply_mask.
 
-        blur:     - blur data using a 4 mm FWHM filter
-                        (option: -blur_filter -1blur_fwhm)
-                        (option: -blur_size 4)
+    **  Why has the default been changed?  **
 
-        mask:     - create a union of masks from 3dAutomask on each run
-                  - not applied in regression without -regress_apply_mask
+    It seems much better not to mask the regression data in the single-subject
+    analysis at all, send _all_ of the results to group space, and apply an
+    anatomically-based mask there.  That could be computed from the @auto_tlrc
+    reference dataset or from the union of skull-stripped subject anatomies.
 
-        scale:    - scale each voxel to mean of 100, clip values at 200
+    Since subjects have varying degrees of signal dropout in valid brain areas
+    of the EPI data, the resulting intersection mask that would be required in
+    group space may exclude edge regions that people may be interested in.
 
-        regress:  - use GAM regressor for each stim
-                        (option: -regress_basis)
-                  - compute the baseline polynomial degree, based on run length
-                        (e.g. option: -regress_polort 2)
-                  - output fit time series
-                  - output ideal curves for GAM/BLOCK regressors
-                  - output iresp curves for non-GAM/non-BLOCK regressors
+    Also, it is helpful to see if much 'activation' appears outside the brain.
+    This could be due to scanner or interpolation artifacts, and is useful to
+    note, rather than to simply mask out and never see.
+
+    Rather than letting 3dAutomask decide which brain areas should not be 
+    considered valid, create a mask based on the anatomy _after_ the results
+    have been warped to a standard group space.  Then perhaps dilate the mask
+    by one voxel.  Example #11 from '3dcalc -help' shows how one might dilate.
+
+    ---
+
+ ** For those who have processed some of their data with the older versions:
+
+    Note that this change should not be harmful to those who have processed
+    data with older versions of afni_proc.py, as it only adds non-zero voxel
+    values to the output datasets.  If some subjects were analyzed with the
+    older version, the processing steps should not need to change.  It is still
+    necessary to apply an intersection mask across subjects in group space.
+
+    It might be okay to create the intersection mask from only those subjects
+    which were masked in the regression, however one might say that biases the
+    voxel choices toward those subjects.  Maybe that does not matter.
+
+    ---
+
+    A mask dataset is necessary when computing blur estimates from the epi and
+    errts datasets.  Also, since it is nice to simply see what the mask looks
+    like, its creation has been left in by default.
+
+    The '-regress_no_mask' option is now unnecessary.
+
+    ---
+
+    Note that if no mask were applied in the 'scaling' step, large percent
+    changes could result.  Because large values would be a detriment to the
+    numerical resolution of the scaled short data, the default is to truncate
+    scaled values at 200 (percent), which should not occur in the brain.
+
+    --------------------------------------------------
+    RETROICOR NOTE:
+
+    ** Cardiac and respiratory regressors must be created from an external
+       source, such as the RetroTS.m matlab program written by Z Saad.  The
+       input to that would be the 2+ signals.  The output would be a single
+       file per run, containing 13 or more regressors for each slice.  That
+       set of output files would be applied here in afni_proc.py.
+
+    Removal of cardiac and respiratory regressors can be done using the 'ricor'
+    processing block.  By default, this would be done after 'despike', but
+    before any other processing block.
+
+    These card/resp signals would be regressed out of the MRI data in the
+    'ricor' block, after which processing would continue normally. In the final
+    'regress' block, regressors for slice 0 would be applied (to correctly
+    account for the degrees of freedom and also to remove residual effects).
+
+    Users have the option of removing the signal "per-run" or "across-runs".
+
+    Example R1: 7 runs of data, 13 card/resp regressors, process "per-run"
+
+        Since the 13 regressors are processed per run, the regressors can have
+        different magnitudes each run.  So the 'regress' block will actually 
+        get 91 extra regressors (13 regressors times 7 runs each).
+
+    Example R2: process "across-run"
+
+        In this case the regressors are catenated across runs when they are
+        removed from the data.  The major difference between this and "per-run"
+        is that now only 1 best fit magnitude is applied per regressor (not the
+        best for each run).  So there would be only the 13 catenated regressors
+        for slice 0 added to the 'regress' block.
+
+    Those analyzing resting-state data might prefer the per-run method, as it
+    would remove more variance and degrees of freedom might not be as valuable.
+
+    Those analyzing a normal signal model might prefer doing it across-runs,
+    giving up only 13 degrees of freedom, and helping not to over-model the
+    data.
+
+    ** The minimum options would be specifying the 'ricor' block (preferably
+       after despike), along with -ricor_regs and -ricor_regress_method.
+
+    Example R3: afni_proc.py option usage:
+
+        Provide additional options to afni_proc.py to apply the despike and
+        ricor blocks (which will be the first 2 blocks by default), with each
+        regressor named 'slibase*.1D' going across all runs, and where the
+        first 3 TRs are removed from each run (matching -tcat_remove_first_trs,
+        most likely).
+
+            -do_block despike ricor
+            -ricor_regs slibase*.1D
+            -ricor_regress_method across-runs
+            -ricor_regs_nfirst 3
+
+    --------------------------------------------------
+    RUNS OF DIFFERENT LENGTHS NOTE:
+
+    In the case that the EPI datasets are not all of the same length, here
+    are some issues that may come up, listed by relevant option:
+
+        -volreg_align_to        If aligning to "last" afni_proc.py might get
+                                an inaccurate index for the volreg -base.
+
+        -regress_polort         If this option is not used, then the degree of
+                                polynomial used for the baseline will come from
+                                the first run.
+
+        -regress_est_blur_epits This may fail, as afni_proc.py may have trouble
+                                teasing the different runs apart from the errts
+                                dataset.
+
+        -regress_use_stim_files This may fail, as make_stim_times.py is not
+                                currently prepared to handle runs of different
+                                lengths.
+
+    --------------------------------------------------
+    SCRIPT EXECUTION NOTE:
+
+    The suggested way to run the output processing SCRIPT is via...
+
+        a) if you use tcsh:    tcsh -xef SCRIPT |& tee output.SCRIPT
+
+        b) if you use bash:    tcsh -xef SCRIPT 2>&1 | tee output.SCRIPT
+
+        c) if you use tcsh and the script is executable, maybe use one of:
+
+                            ./SCRIPT |& tee output.SCRIPT
+                            ./SCRIPT 2>&1 | tee output.SCRIPT
+
+    Consider usage 'a' for example:  tcsh -xef SCRIPT |& tee output.SCRIPT
+
+    That command means to invoke a new tcsh with the -xef options (so that
+    commands echo to the screen before they are executed, exit the script
+    upon any error, do not process the ~/.cshrc file) and have it process the
+    SCRIPT file, piping all output to the 'tee' program, which will duplicate
+    output back to the screen, as well as to the given output file.
+
+    parsing the command: tcsh -xef SCRIPT |& tee output.SCRIPT
+
+        a. tcsh
+
+           The script itself is written in tcsh syntax and must be run that way.
+           It does not mean the user must use tcsh.  Note uses 'a' and 'b'.
+           There tcsh is specified by the user.  The usage in 'c' applies tcsh
+           implicitly, because the SCRIPT itself specifies tcsh at the top.
+
+        b. tcsh -xef
+
+           The -xef options are applied to tcsh and have the following effects:
+
+                -x : echo commands to screen before executing them
+                -e : exit (terminate) the processing on any errors
+                -f : do not process user's ~/.cshrc file
+
+           The -x option is very useful so one see not just output from the
+           programs, but the actual commands that produce the output.  It
+           makes following the output much easier.
+
+           The -e option tells the shell to terminate on any error.  This is
+           useful for multiple reasons.  First, it allows the user to easily
+           see the failing command and error message.  Second, it would be
+           confusing and useless to have the script try to continue, without
+           all of the needed data.
+
+           The -f option tells the shell not to process the user's ~/.cshrc
+           (or ~/.tcshrc) file.  The main reason for including this is because
+           of the -x option.  If there were any errors in the user's ~/.cshrc
+           file and -x option were used, they would terminate the shell before
+           the script even started, probably leaving the user confused.
+        
+        c. tcsh -xef SCRIPT
+
+           The T-shell is invoked as described above, executing the contents
+           of the specified text file (called 'SCRIPT', for example) as if the
+           user had typed the included commands in their terminal window.
+
+        d. |&
+
+           These symbols are for piping the output of one program to the input
+           of another.  Many people know how to do 'afni_proc.py -help | less'
+           (or maybe '| more').  This script will output a lot of text, and we
+           want to get a copy of that into a text file (see below).
+
+           Piping with '|' captures only stdout (standard output), and would
+           not capture errors and warnings that appear.  Piping with '|&'
+           captures both stdout and stderr (standard error).  The user may not
+           be able to tell any difference between those file streams on the
+           screen, but since programs write to both, we want to capture both.
+
+        e. tee output.SCRTPT
+
+           Where do we want to send this captured stdout and stderr text?  Send
+           it to the 'tee' program.  Like a plumber's tee, the 'tee' program
+           splits the data (not water) stream off into 2 directions.
+
+           Here, one direction that tee sends the output is back to the screen,
+           so the user can still see what is happening.
+
+           The other direction is to the user-specified text file.  In this
+           example it would be 'output.SCRIPT'.  With this use of 'tee', all
+           screen output will be duplicated in that text file.
 
     ==================================================
     OPTIONS: (information options, general options, block options)
