@@ -23,6 +23,7 @@ set sag_geom = '540x360+4+436'
 set lay = ()
 set hostopt = '-host 127.0.0.1'
 set unlayed = 1
+set do_deoblique = 1
 
 PARSE:
    set Narg = $#
@@ -67,6 +68,10 @@ PARSE:
          set donext = 0   
       endif
 
+      if ($donext && "$argv[$cnt]" == "-no_deoblique") then
+         set do_deoblique = 0
+         set donext = 0   
+      endif
       
       if ($donext && "$argv[$cnt]" == "-edge_percentile") then
          set pLoc = $cnt      
@@ -153,7 +158,7 @@ PARSE:
    end
 
 if ($epionly && $do_rand) then
-   echo "Error: Cannot use -single_edge with ranomization"
+   echo "Error: Cannot use -single_edge with randomization"
    goto END     
 endif    
 if ($#argrem == 0) goto DANCE
@@ -202,9 +207,9 @@ foreach ana ($analist)
    endif
    
    #deoblique if necessary
-   if (`@isOblique $ana`) then
+   if ( ($do_deoblique == 1) && (`@isOblique $ana`) ) then
       3dWarp -deoblique -overwrite -prefix $anapref \
-             -input $anapref$anaview
+             $anapref$anaview
    endif
    
    set analistn = ($analistn $anapref$anaview)
@@ -259,8 +264,8 @@ foreach anain ($analist)
    set anatpref = `@NoExt $anatpref nii nii.gz`
 
    #deoblique if necessary
-   if (`@isOblique $anat`) then
-      3dWarp -deoblique -overwrite -prefix $anat -input $anat
+   if ( ($do_deoblique == 1) && (`@isOblique $anat`) ) then
+      3dWarp -deoblique -overwrite -prefix $anat $anat
    endif
    #Get anat edges
    3dedge3 -input $anat -overwrite -prefix ${anatpref}_e3
@@ -793,6 +798,7 @@ HELP:
    echo " -single_edge  : show only a single edge in composite image"
    echo " -opa          : set opacity of overlay (default=9 opaque)"
    echo " -keep_temp    : do not remove temporary files"
+   echo " -no_deoblique : do not deoblique any data to show overlap"
    echo ""
 
    goto END

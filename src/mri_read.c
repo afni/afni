@@ -2621,6 +2621,12 @@ ENTRY("mri_read_1D") ;
    ivlist = MCW_get_intlist( ny , cpt ) ;   /* subvector list */
    sslist = MCW_get_intlist( nx , dpt ) ;   /* subsampling list */
 
+   /* if either columns(vectors) or rows (subsamples) are specified */
+   /* make sure the lists are valid. Return null if not  */
+   if( ((cpt!= NULL) && (ivlist==NULL)) ||
+       ((dpt!= NULL) && (sslist==NULL)) ) 
+      RETURN(NULL);
+
    /* if have subvector list, extract those rows into a new image */
 
    if( ivlist != NULL && ivlist[0] > 0 ){
