@@ -49,8 +49,20 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 22 , APR , 2009 , DRG , "@AddEdge, align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, "Oblique edge display",
+    "Fixed bug with oblique data in edge display"
+} ,
+
+{ 20 , APR , 2009 , DRG , "3dAllineate, misc" , 
+    MICRO , TYPE_MODIFY, "1D file handling",
+    "Handle row and column selectors for 1D files better for most\n"
+    "AFNI programs. Returns error if improper row or column selection"
+} ,
+
 { 2 , APR , 2009 , DRG , "align_epi_anat.py" , 
-    MICRO , TYPE_MODIFY, "",
+    MICRO , TYPE_MODIFY, "help update",
     "Incorporated Bob's recommendations into help to make\n"
     "various options clearer"
 } ,

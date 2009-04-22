@@ -2106,7 +2106,7 @@ class RegWrap:
       com.run()
 
       com = shell_com( 
-            "cd AddEdge; @AddEdge %s %s %s %s; cd .. " \
+            "cd AddEdge; @AddEdge -no_deoblique %s %s %s %s; cd .. " \
             % (aelistlog, d1AE.input(), d2AE.input(), d3AE.input()), ps.oexec)
       com.run()
 
@@ -2515,21 +2515,24 @@ if __name__ == '__main__':
          # anatomical and the specific epi sub-brick we used as the epi_base
          # Use 3dAllineate to create the resampled, skullstripped EPI
          # from the same representative sub-brick used to align anat to epi
-         ps.epi_alnd_rs = e.new("__tt_%s_alnd_rs" % ps.epi.out_prefix())
+         ps.epi_addedge = e.new("__tt_%s_addedge" % ps.epi.out_prefix())
          epi_mat = "%s%s_mat.aff12.1D" % (ps.epi.out_prefix(), ps.suffix)
          if((ps.volreg_flag) and (ps.epi_base.isdigit())):
-            epi_mat  = "%s{%s}" % (epi_mat, ps.epi_base) 
+            epi_mat = "%s%s_reg_mat.aff12.1D{%s}" % \
+             (ps.epi.out_prefix(), ps.suffix, ps.epi_base)
+
+           # epi_mat  = "%s{%s}" % (epi_mat, ps.epi_base) 
 
          ps.info_msg( "Applying transformation for epi to anat for @AddEdge")
          com = shell_com(  \
             "3dAllineate -base %s -1Dmatrix_apply '%s' " \
             "-prefix %s -input %s  -master BASE"   %  \
-            ( ps.anat0.input(), epi_mat, ps.epi_alnd_rs.out_prefix(), \
+            ( ps.anat0.input(), epi_mat, ps.epi_addedge.out_prefix(), \
               ein_rs.input()), ps.oexec)
          com.run()
     
            
-         ps.add_edges(ps.anat_ns, ein_rs, ps.epi_alnd_rs,"%s_ns"  \
+         ps.add_edges(ps.anat_ns, ein_rs, ps.epi_addedge,"%s_ns"  \
                       % ps.anat0.out_prefix(),\
                       "%s_ns" % ps.epi.out_prefix(), "%s%s" % \
                        (ps.epi.out_prefix(), ps.suffix ),

@@ -1740,8 +1740,9 @@ int main( int argc , char *argv[] )
        if( apply_1D != NULL || apply_mode != 0 )
          ERROR_exit("Can't have multiple 'apply' options!") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
-       if( strncmp(argv[iarg],"1D:",3) != 0 && !THD_filename_ok(argv[iarg]) )
+ /*      if( strncmp(argv[iarg],"1D:",3) != 0 && !THD_filename_ok(argv[iarg]) )
          ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
+*/
        apply_1D = argv[iarg] ; qim = mri_read_1D(apply_1D) ;
        if( qim == NULL ) ERROR_exit("Can't read %s '%s'",argv[iarg-1],apply_1D) ;
        apply_im  = mri_transpose(qim); mri_free(qim);
@@ -1758,8 +1759,8 @@ int main( int argc , char *argv[] )
        if( apply_1D != NULL || apply_mode != 0 )
          ERROR_exit("Can't have multiple 'apply' options!") ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
-       if( !THD_filename_ok(argv[iarg]) )
-         ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;
+       /*if( !THD_filename_ok(argv[iarg]) )
+         ERROR_exit("badly formed filename: %s '%s'",argv[iarg-1],argv[iarg]) ;*/
        apply_1D = argv[iarg] ; qim = mri_read_1D(apply_1D) ;
        if( qim == NULL ) ERROR_exit("Can't read -1Dmatrix_apply '%s'",apply_1D) ;
        apply_im  = mri_transpose(qim); mri_free(qim);
