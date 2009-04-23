@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, APR, 2009, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "small changes to help",
+   NULL
+ } ,
+
  { 23, APR, 2009, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
    "moved function comments into the functions as docstrings",
    NULL
