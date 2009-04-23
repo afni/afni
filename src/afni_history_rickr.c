@@ -53,11 +53,12 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 21, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+ { 23, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "updates to help and tcsh options",
    "- added -f as a recommended tcsh option\n"
    "- added help section 'SCRIPT EXECUTION NOTE'\n"
-   "- reordered help: intro, BLOCKS, DEFAULTS, EXAMPLES, NOTEs, OPTIONS"
+   "- reordered help: intro, BLOCKS, DEFAULTS, EXAMPLES, NOTEs, OPTIONS\n"
+   "- shifted execution command to separate line"
  } ,
 
  { 17, APR, 2009, RCR, "GIFTI", MICRO, TYPE_MODIFY,
