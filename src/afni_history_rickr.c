@@ -48,7 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 21, APR, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+ { 23, APR, 2009, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "moved function comments into the functions as docstrings",
+   NULL
+ } ,
+
+ { 21, APR, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "updates to help and tcsh options",
    "- added -f as a recommended tcsh option\n"
    "- added help section 'SCRIPT EXECUTION NOTE'\n"
