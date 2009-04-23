@@ -5,9 +5,12 @@ import afni_base as BASE
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
-# given a path (leading directory or not) swap the trailing
-# filename with the passed prefix and suffix
 def change_path_basename(orig, prefix, suffix):
+    """given a path (leading directory or not) swap the trailing
+       filename with the passed prefix and suffix
+
+          e.g. C_P_B('my/dir/pickles.yummy','toast','.1D') --> 'my/dir/toast.1D' 
+    """
     if not orig or not prefix: return
     (head, tail) = os.path.split(orig)
     if head == '': return "%s%s" % (prefix, suffix)
@@ -38,14 +41,15 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
     fp.write(text)
     fp.close()
 
-# given a list of text elements, return a new list where any
-# existing quotes are escaped, and then if there are special
-# characters, put the whole string in single quotes
-#
-# if the first character is '-', opt_prefix will be applied
-#
-# if skip_first, do not add initial prefix
 def quotize_list(list, opt_prefix, skip_first=0):
+    """given a list of text elements, return a new list where any existing
+       quotes are escaped, and then if there are special characters, put the
+       whole string in single quotes
+
+       if the first character is '-', opt_prefix will be applied
+
+       if skip_first, do not add initial prefix
+    """
     if not list or len(list) < 1: return list
 
     # okay, we haven't yet escaped any existing quotes...
@@ -66,9 +70,10 @@ def quotize_list(list, opt_prefix, skip_first=0):
 
     return newlist
 
-# given an argument list (such as argv), create a command string,
-# including any prefix and/or suffix
 def args_as_command(args, prefix='', suffix=''):
+    """given an argument list (such as argv), create a command string,
+       including any prefix and/or suffix strings"""
+
     if len(args) < 1: return
 
     cstr = "%s %s" % (os.path.basename(args[0]),
@@ -77,18 +82,20 @@ def args_as_command(args, prefix='', suffix=''):
 
     return fstr
 
-# print the given argument list as a command
-# (this allows users to see wildcard expansions, for example)
 def show_args_as_command(args, note='command:'):
   print args_as_command(args,
+     """print the given argument list as a command
+        (this allows users to see wildcard expansions, for example)"""
+
      "----------------------------------------------------------------------\n"
      "%s\n\n    " % note,
      "\n----------------------------------------------------------------------"
   )
 
-# given a list of text elements, create a list of afni_name elements,
-# and check for unique prefixes
 def uniq_list_as_dsets(dsets, showerr=0):
+    """given a list of text elements, create a list of afni_name elements,
+       and check for unique prefixes"""
+
     if not dsets or len(dsets) < 2: return 1
 
     # iterate over dsets, searching for matches
@@ -115,11 +122,12 @@ def uniq_list_as_dsets(dsets, showerr=0):
     return uniq
 
 
-# given a list, return the list of afni_name elements
-# - the list can include wildcarding
-# - they must be valid names of existing datasets
-# - return None on error
 def list_to_datasets(words):
+    """given a list, return the list of afni_name elements
+         - the list can include wildcarding
+         - they must be valid names of existing datasets
+         - return None on error"""
+
     import glob # local, unless used elsewhere
     if not words or len(words) < 1: return []
     dsets = []
@@ -146,15 +154,17 @@ def list_to_datasets(words):
     return dsets
 
 
-# given a string, if the prefix is either GAM or BLOCK, then the basis
-# function has a known response curve
 def basis_has_known_response(basis):
+    """given a string, if the prefix is either GAM or BLOCK, then the basis
+       function has a known response curve"""
     if not basis: return 0
     if basis[0:3] == 'GAM' or basis[0:5] == 'BLOCK': return 1
     else:                                            return 0
 
-# compute a default polort, as done in 3dDeconvolve
 def get_default_polort(tr, reps):
+    """compute a default polort, as done in 3dDeconvolve
+       1+floor(time/150), time in seconds"""
+
     if tr <= 0 or reps <= 0:
         print "** cannot guess polort from tr = %f, reps = %d" % (tr,reps)
         return 2        # return some default
@@ -234,9 +244,9 @@ def get_dset_reps_tr(dset, verb=1):
 # ----------------------------------------------------------------------
 # begin matrix functions
 
-# read a simple 1D file into a float matrix, and return the matrix
 def read_1D_file(filename, nlines = -1, verb = 1):
-    """skip leading '#', return a 2D array of floats"""
+    """read a simple 1D file into a float matrix, and return the matrix
+       - skip leading '#', return a 2D array of floats"""
     try:
         fp = open(filename, 'r')
     except:
@@ -273,20 +283,20 @@ def read_1D_file(filename, nlines = -1, verb = 1):
 
     return retmat
 
-# return the number of columns in a 1D file
 def num_cols_1D(filename):
+    """return the number of columns in a 1D file"""
     mat = read_1D_file(filename)
     if not mat or len(mat) == 0: return 0
     return len(mat[0])
 
-# return the number of columns in a 1D file
 def num_rows_1D(filename):
+    """return the number of columns in a 1D file"""
     mat = read_1D_file(filename)
     if not mat: return 0
     return len(mat)
 
-# return the larger of the number of rows or columns
 def max_dim_1D(filename):
+    """return the larger of the number of rows or columns"""
     mat = read_1D_file(filename)
     if not mat: return 0
     rows = len(mat)
@@ -294,8 +304,8 @@ def max_dim_1D(filename):
     if rows >= cols: return rows
     else:            return cols
 
-# transpose a 2D matrix, returning the new one
 def transpose(matrix):
+    """transpose a 2D matrix, returning the new one"""
     rows = len(matrix)
     cols = len(matrix[0])
     newmat = []
@@ -457,8 +467,9 @@ def add_line_wrappers(commands, wrapstr='\\\n'):
     if wrapstr == '\\\n': return align_wrappers(result)
     else:                 return result
 
-# align all '\\\n' string to be the largest offset from the previous '\n'
 def align_wrappers(command):
+    """align all '\\\n' strings to be the largest offset
+       from the previous '\n'"""
 
     # first, find the maximum offset
     posn = 0
@@ -494,10 +505,12 @@ def align_wrappers(command):
 
     return new_cmd
 
-# insert any '\\' chars for the given command
-#
-# return a new string, in any case
 def insert_wrappers(command, start=0, end=-1, wstring='\\\n'):
+    """insert any '\\' chars for the given command
+         - insert between start and end positions
+         - apply specified wrap string wstring
+       return a new string, in any case"""
+
     if end < 0: end = len(command) - start - 1
 
     nfirst = num_leading_line_spaces(command,start,1) # note initial indent
@@ -529,8 +542,8 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n'):
 
     return newcmd
 
-# get any '#', plus leading spaces, from beginning or after first '\\\n'
 def get_next_indentation(command,start=0,end=-1):
+    """get any '#' plus leading spaces, from beginning or after first '\\\n'"""
     if end < 0: end = len(command) - start - 1
 
     spaces = num_leading_line_spaces(command,start,1)
@@ -544,11 +557,12 @@ def get_next_indentation(command,start=0,end=-1):
 
     return prefix
 
-# does the current string need line wrappers
-# 
-# a string needs wrapping if there are more than 78 characters between
-# any previous newline, and the next newline, wrap, or end
 def needs_wrapper(command, maxlen=78, start=0, end=-1):
+    """does the current string need line wrappers
+
+       a string needs wrapping if there are more than 78 characters between
+       any previous newline, and the next newline, wrap, or end"""
+
     if end < 0: end_posn = len(command) - 1
     else:       end_posn = end
 
@@ -574,9 +588,10 @@ def needs_wrapper(command, maxlen=78, start=0, end=-1):
 
     return 0        # if we get here, line wrapping is not needed
 
-# find the next '\n' that is not preceeded by '\\', or return the
-# last valid position (length-1)
 def find_command_end(command, start=0):
+    """find the next '\n' that is not preceeded by '\\', or return the
+       last valid position (length-1)"""
+
     length = len(command)
     end = start-1
     while 1:
@@ -591,10 +606,11 @@ def find_command_end(command, start=0):
             else: continue 
         return end              # found
 
-# count the number of leading non-whitespace chars
-# (newline chars are not be counted, as they end a line)
-# if pound, skip any leading '#'
 def num_leading_line_spaces(istr,start,pound=0):
+    """count the number of leading non-whitespace chars
+       (newline chars are not be counted, as they end a line)
+       if pound, skip any leading '#'"""
+
     length = len(istr)
     if start < 0: start = 0
     if length < 1 or length <= start: return 0
@@ -607,10 +623,11 @@ def num_leading_line_spaces(istr,start,pound=0):
     if posn == length: return 0   # none found
     return posn-start             # index equals num spaces from start
 
-# find (index of) first space after start that isn't a newline
-# (skip any leading indendation if skip_prefix is set)
-# return -1 if none are found
 def find_next_space(istr,start,skip_prefix=0):
+    """find (index of) first space after start that isn't a newline
+       (skip any leading indendation if skip_prefix is set)
+       return -1 if none are found"""
+
     length = len(istr)
     index  = start
     if skip_prefix: index += num_leading_line_spaces(istr,start,1)
@@ -623,10 +640,11 @@ def find_next_space(istr,start,skip_prefix=0):
     if index >= length : return -1
     return index
 
-# find (index of) last space in current line range that isn't a newline
-# if stretch and not found, search towards end
-# return start-1 if none are found
 def find_last_space(istr,start,end,max_len=-1,stretch=1):
+    """find (index of) last space in current line range that isn't a newline
+       if stretch and not found, search towards end
+       return start-1 if none are found"""
+
     if end < 0: end = len(istr) - 1
     if max_len >= 0 and end-start >= max_len: index = start+max_len-1
     else:                                     index = end
@@ -768,8 +786,9 @@ def is_valid_int_list(ldata, imin=0, imax=-1, whine=0):
 # ----------------------------------------------------------------------
 # matematical functions
 
-# in case 'sum' does not exist, such as on old machines
 def loc_sum(vals):
+   """in case 'sum' does not exist, such as on old machines"""
+
    try: tot = sum(vals)
    except:
       tot = 0
@@ -778,6 +797,7 @@ def loc_sum(vals):
 
 def min_mean_max_stdev(data):
     """return 4 values for data: min, max, mean, stdev (unbiased)"""
+
     if not data: return 0,0,0,0
     length = len(data)
     if length <  1: return 0,0,0,0
@@ -790,7 +810,8 @@ def min_mean_max_stdev(data):
     return minval, meanval, maxval, stdev_ub(data)
 
 def stdev_ub(data):
-    """unbiased standard deviation"""
+    """unbiased standard deviation (divide by len-1, not just len)"""
+
     length = len(data)
     if length <  2: return 0.0
 
@@ -805,7 +826,8 @@ def stdev_ub(data):
     return math.sqrt(val)
 
 def stdev(data):
-    """(biased) standard deviation"""
+    """(biased) standard deviation (divide by len, not len-1)"""
+
     length = len(data)
     if length <  2: return 0.0
 
@@ -843,5 +865,4 @@ def shuffle(vlist):
             vlist[index] = val
 
     return
-
 
