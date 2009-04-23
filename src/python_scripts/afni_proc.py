@@ -109,13 +109,14 @@ g_history = """
     1.42 Apr 11 2009 :
         - added -volreg_regress_per_run
         - fixed use of -regress_errts_prefix with blur est
-    1.43 Apr 21 2009 : updates to help and tcsh options
+    1.43 Apr 23 2009 : updates to help and tcsh options
         - added -f as a recommended tcsh option
         - added help section 'SCRIPT EXECUTION NOTE'
         - reordered help: intro, BLOCKS, DEFAULTS, EXAMPLES, NOTEs, OPTIONS
+        - shifted execution command to separate line
 """
 
-g_version = "version 1.43, Apr 21, 2009"
+g_version = "version 1.43, Apr 23, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -614,7 +615,8 @@ class SubjProcSream:
                         "** warning have only 1 run to analyze\n" \
                         "-------------------------------------"
             print "\n--> script is file: %s" % self.script
-            print '    (consider the command: "%s")\n' % self.exec_cmd
+            print   '    consider the script execution command: \n\n' \
+                    '      %s\n' % self.exec_cmd
 
         return
 
@@ -739,7 +741,8 @@ class SubjProcSream:
             self.exec_cmd = 'tcsh %s %s |& tee output.%s'     % \
                             (opts, self.script, self.script)
 
-        self.fp.write('# execute via : %s\n\n' % self.exec_cmd)
+        self.fp.write('# execute via : \n'      \
+                      '#   %s\n\n' % self.exec_cmd)
 
         # maybe the user want to check the status of the init operations
         if not self.check_setup_errors: stat_inc = ''
