@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 1dGC.R ==================          ")
 print("AFNI Vector (or Multivariate) Auto-Regressive (VAR or MAR) Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.8,  April 8, 2009")
+print("Version 1.0.9,  April 14, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/VAR.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -53,13 +53,17 @@ libLoad <- function(myLib) {
 readMultiFiles <- function(nFiles, dim, type) {
    inFile <- vector('list', nFiles) # list of file names with path attached
 	fn <- vector('list', nFiles)     # list of file names
-	if (dim==1) inData <-  matrix(data = NA, nrow = dim(read.table(inFile[[ii]], header=FALSE))[1], ncol = nFiles)
+	if (dim==1) {
+      inFile[[1]] <- readline(sprintf("No. 1 %s file name: ", type))
+      inData <-  matrix(data = NA, nrow = dim(read.table(inFile[[1]], header=FALSE))[1], ncol = nFiles)
+   }
    if (dim==2) inData <- vector('list', nFiles)
-   for (ii in 1:nFiles) {
-	   inFile[[ii]] <- readline(sprintf("No. %i %s file name: ", ii, type))  
+   for(ii in 1:nFiles) {
+	   if(((dim==1)&(ii>1))|(dim==2)) inFile[[ii]] <- readline(sprintf("No. %i %s file name: ", ii, type))  
 		fn[[ii]] <- strsplit(inFile[[ii]], "/")[[1]][length(strsplit(inFile[[ii]], "/")[[1]])]
 		print(sprintf("No. %i file just read in: %s", ii, fn[[ii]]))
-		if (dim==1) inData[,ii] <- read.table(inFile[[ii]], header=FALSE)
+		#browser()
+      if (dim==1) inData[,ii] <- read.table(inFile[[ii]], header=FALSE)[,1]
 		if (dim==2) inData[[ii]] <- read.table(inFile[[ii]], header=TRUE)
 	}
 	return(inData)
@@ -384,7 +388,7 @@ print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 print("################################################################")
 print("Please consider citing the following if this program is useful for you:")
 cat("\n\tGang Chen, J. Paul Hamilton, Moriah E. Thomason, Ian H. Gotlib, Ziad S. Saad\n")
-cat("\tRobert W. Cox, Granger causality via vector auto-regression (VAR) attuned for\n")
+cat("\tRobert W. Cox, Granger causality via vector auto-regression tuned for\n")
 cat("\tFMRI data analysis. ISMRM 17th Scientific Meeting, Hawaii, 2009.\n\n")
 print("################################################################")
 
