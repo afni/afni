@@ -3,8 +3,6 @@
 
 #define MAIN
 
-#define VERSION "Version 1.8 <August 3, 2005>"
-
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
  *              an existing one 
@@ -58,7 +56,10 @@ static char g_history[] =
  " 1.7  Jul 26, 2004 - passed NULL sublist to r_new_resam_dset()\n"
  " 1.7a Mar 22, 2005 - removed tabs\n"
  " 1.8  Aug 02, 2005 - allow dxyz to override those from master\n"
+ " 1.9  Apr 27, 2009 - small help update (also, show help if no args)\n"
  "----------------------------------------------------------------------\n";
+
+#define VERSION "Version 1.9 <April 27, 2009>"
 
 
 /*--- local stuff ------------------------------------------------------*/
@@ -133,6 +134,9 @@ int init_options ( options_t * opts, int argc, char * argv [] )
     memset( opts, 0, sizeof(options_t) );
     opts->orient = opts->prefix = NULL; /* laziness with proper conversions */
     opts->dset   = opts->mset   = NULL;  
+
+    /* show help if there are no arguments */
+    if ( argc < 2 ) { usage( argv[0], USE_LONG ); return FAIL; }
 
     for ( ac = 1; ac < argc; ac++ )
     {

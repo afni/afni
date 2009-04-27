@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, APR, 2009, RCR, "3dresample", MICRO, TYPE_MODIFY,
+   "show help if no arguments",
+   NULL
+ } ,
+
  { 23, APR, 2009, RCR, "3dresample", MICRO, TYPE_MODIFY,
    "small changes to help",
    NULL
