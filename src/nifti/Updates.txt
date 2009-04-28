@@ -93,4 +93,5 @@ Recent Updates
     - RR added NIFTI_ECODE_PYPICKLE
     - RR added NIFTI_ECODEs 18-28 for the LONI MiND group
     - RR added examples/clib_01_read_write.c as a simple library example
+    - RR allow uppercase extension
 
