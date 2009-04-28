@@ -134,6 +134,9 @@ static char SUMA_COLOR_MAP_NAMES[][32]={
          "bw20"      , "byr64"   , "bgyr64"  , 
          "ygbrp256"  , "ygbrp128", "ygbrp64",
          "\0" };
+SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
+      SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Sover,
+      SUMA_ENGINE_SOURCE Src, NI_group *ngr);
 
 
 

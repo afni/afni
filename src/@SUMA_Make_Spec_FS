@@ -61,8 +61,10 @@ L_INIT_VARS:
 			inflated		\
 			occip.patch.3d		\
 			occip.patch.flat	\
+         occip.flat.patch.3d \
 			full.patch.3d		\
 			full.patch.flat	\
+         full.flat.patch.3d \
 			sphere			\
          white          \
          sphere.reg     \

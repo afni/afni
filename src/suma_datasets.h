@@ -588,6 +588,7 @@ typedef struct {
    #define SDSET_VECLEN(dset) ( (!dset || !dset->dnel) ? -1:dset->dnel->vec_len)
    #define SDSET_NODEINDLEN(dset) dset->inel->vec_len
    #define SDSET_VECNUM(dset) dset->dnel->vec_num
+   #define SDSET_VEC(dset,iii) dset->dnel->vec[iii]
    #define SDSET_NODEINDNUM(dset) dset->inel->vec_num
    #define SDSET_VECFILLED(dset) dset->dnel->vec_filled
    #define SDSET_NODEINDFILLED(dset) dset->inel->vec_filled

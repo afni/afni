@@ -423,13 +423,14 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    int tt = NI_element_type(nini) ;
    int OverInd, loc_ID, iview, *IJK=NULL, N_Node, *FaceSetList=NULL, N_FaceSet;
    int i, I_C = -1, nodeid = -1, iv3[3], dest_SO_ID = -1, 
-         N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+         N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], ip = 0;
    NI_element *nel = NULL ;
    NI_group *ngr = NULL;
    SUMA_EngineData *ED = NULL; 
    DList *list = NULL;
-   DListElmt *Elm = NULL;
-   char CommString[SUMA_MAX_COMMAND_LENGTH], *nel_surfidcode = NULL, *nel_nodeid = NULL;
+   DListElmt *Elm = NULL, *el=NULL;
+   char CommString[SUMA_MAX_COMMAND_LENGTH], *nel_surfidcode = NULL, 
+         *nel_nodeid = NULL;
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100], ssource[100];
    float **fm, dimfact,  *XYZ=NULL, *NodeList=NULL;
    byte *r, *g, *b;
@@ -445,11 +446,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    SUMA_Boolean iselement = YUP;
    SUMA_Boolean LocalHead = NOPE;
 
-   /*int it;
-   float fv3[3], fv15[15];*/
-   /*float ft;
-   int **im,  iv15[15];*/ /* keep unused variables undeclared to quite compiler */
-
    SUMA_ENTRY;
 
    if( tt < 0 ) {/* should never happen */
@@ -457,7 +453,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       SUMA_RETURN(NOPE);
    } 
 
-  
    SUMA_LH("Checking on nini type");
    /* check if group or element */
    if(tt == NI_GROUP_TYPE) {
@@ -467,7 +462,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       iselement = YUP; 
       SUMA_LH("Dealing with element");
    } else {
-      fprintf(SUMA_STDERR,"Error %s: Not an element, nor a group. What the hell are you doing?\n", FuncName);
+      fprintf(SUMA_STDERR,"Error %s: Not an element, nor a group. \n"
+                          "What the hell are you doing?\n", FuncName);
       SUMA_RETURN(NOPE);
    }
    
@@ -479,15 +475,20 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       nel = (NI_element *) nini ;
 
       if (LocalHead)  {
-         fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
-                  nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
+         fprintf(SUMA_STDERR,
+                 "%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", 
+                 FuncName,
+                 nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
       }
 
       /*--- stream closer ---*/
       if( strcmp(nel->name,"CloseKillStream") == 0) { /* CloseKillStream */
-         if (LocalHead) fprintf (SUMA_STDERR,"%s:\nClosing then killing stream %s ...\n", 
-                                       FuncName, NI_get_attribute(nel, "ni_stream_name"));
-         if (!SUMA_niml_hangup (SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"), NOPE, YUP)) {
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s:\nClosing then killing stream %s ...\n",  
+                     FuncName, NI_get_attribute(nel, "ni_stream_name"));
+         if (!SUMA_niml_hangup (SUMAg_CF, 
+                                NI_get_attribute(nel, "ni_stream_name"), 
+                                NOPE, YUP)) {
             SUMA_SL_Err("Failed in SUMA_niml_hangup.\n");
             SUMA_RETURN(NOPE);
          }
@@ -496,16 +497,21 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
       /*--- stream tracking ON ---*/
       if( strcmp(nel->name,"StartTracking") == 0) { /* Start tracking */
-         if (LocalHead) fprintf (SUMA_STDERR,"%s:\n Starting NI element tracking for %s ...\n", 
-                                             FuncName, NI_get_attribute(nel, "ni_stream_name"));
-         i = SUMA_which_stream_index(SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"));
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,"%s:\n"
+                                 " Starting NI element tracking for %s ...\n", 
+                                 FuncName, 
+                                 NI_get_attribute(nel, "ni_stream_name"));
+         i = SUMA_which_stream_index(SUMAg_CF, 
+                                     NI_get_attribute(nel, "ni_stream_name"));
          if ( i < 0) {
             SUMA_SL_Err("Failed to find stream!\n");
             SUMA_RETURN(NOPE);
          }
          if (NI_get_attribute(nel, "Tracking_ID")) {
             if (atoi(NI_get_attribute(nel, "Tracking_ID")) != 1) {
-               SUMA_SL_Err("First tracking element is not 1.\nTracking ignored.\n");
+               SUMA_SL_Err("First tracking element is not 1.\n\n"
+                           "Tracking ignored.\n");
                SUMA_RETURN(YUP);
             }
          }
@@ -516,9 +522,12 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
       /*--- stream tracking OFF ---*/
       if( strcmp(nel->name,"StopTracking") == 0) { /* Stop tracking */
-         if (LocalHead) fprintf (SUMA_STDERR,"%s:\n Stopping NI element tracking for %s ...\n", 
-                                             FuncName, NI_get_attribute(nel, "ni_stream_name"));
-         i = SUMA_which_stream_index(SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"));
+         if (LocalHead) 
+            fprintf (SUMA_STDERR,
+                     "%s:\n Stopping NI element tracking for %s ...\n", 
+                     FuncName, NI_get_attribute(nel, "ni_stream_name"));
+         i = SUMA_which_stream_index(SUMAg_CF, 
+                                     NI_get_attribute(nel, "ni_stream_name"));
          if ( i < 0) {
             SUMA_SL_Err("Failed to find stream!\n");
             SUMA_RETURN(NOPE);
@@ -528,287 +537,20 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          SUMA_RETURN(YUP);
       } /* Stop tracking */  
 
-      /*--- CrossHair XYZ --- */
       
-      if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0) {/* SUMA_crosshair_xyz */
-         int found_type = 0;
-         SUMA_SurfaceObject *SOaf=NULL;
-         /* Do it for all viewers */
-         for (iview = 0; iview < SUMAg_N_SVv; ++iview) {
-            found_type = 0;
-            svi = &(SUMAg_SVv[iview]);
-            SUMA_LHv("Processing viewer %c\n", 65+iview); 
-            if (svi->LinkAfniCrossHair) {/* link cross hair */
-               /* look for the surface idcode */
-               nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-               if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) 
-                  nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
-               if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
-                  if (LocalHead) 
-                     fprintf(SUMA_STDERR,
-                            "%s: surface_idcode missing in nel (%s), "
-                            "using svi->Focus_SO_ID.\n", FuncName, nel->name);
-                  dest_SO_ID = svi->Focus_SO_ID; /* default */
-                  SOaf = (SUMA_SurfaceObject *)(SUMAg_DOv[svi->Focus_SO_ID].OP);
-               } else {
-                  SOaf = SUMA_findSOp_inDOv (nel_surfidcode, 
-                                             SUMAg_DOv, SUMAg_N_DOv);
-                  if (!SOaf) {
-                     SUMA_S_Warn("AFNI sending unkown id, "
-                                 "taking default for viewer");
-                     SOaf = (SUMA_SurfaceObject *)
-                                    (SUMAg_DOv[svi->Focus_SO_ID].OP);
-                  }
-                  /* first try to find out if one of the displayed surfaces 
-                     is or has a parent equal to nel_surfidcode */
-                  if (LocalHead) 
-                     fprintf (SUMA_STDERR,
-                              "%s: Searching displayed surfaces.\n", FuncName);
-                  N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, SOlist);
-                  Found = NOPE;
-                  i = 0;
-                  while (i < N_SOlist && !Found) { 
-                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);
-                     SUMA_LHv("Checking %s\n   %s versus\n   %s\n", 
-                              SO->Label, nel_surfidcode, SO->idcode_str);
-                     if (strcmp(nel_surfidcode, SO->idcode_str) == 0) {
-                        Found = YUP;
-                        dest_SO_ID = SOlist[i];
-                        found_type = 1;   /* found surface currently in viewer */
-                     }
-                     ++i;
-                  }
-                  if (!Found) { /* try for the parent */
-                     i = 0;
-                     while (i < N_SOlist && !Found) { 
-                        SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);
-                        SUMA_LHv("Checking %s\n   %s versus\n   %s\n", 
-                                 SO->Label, nel_surfidcode, 
-                                 SO->LocalDomainParentID);
-                        if (SUMA_isRelated(SOaf, SO, 1)) { 
-                           /* ZSS Aug. 06 (used to be: 
-                              (strcmp( nel_surfidcode, 
-                                       SO->LocalDomainParentID) == 0) */
-                           Found = YUP;
-                           dest_SO_ID = SOlist[i];
-                           found_type = 2;   /* found related surface 
-                                                currently in viewer */
-                       }
-                        ++i;
-                     }   
-                  }
-                  /* if not found, look for any DO */
-                  if (!Found) {
-                     if (LocalHead) 
-                        fprintf (SUMA_STDERR,
-                                 "%s: None of the displayed surfaces "
-                                 "(or their parents) match nel_surfidcode. "
-                                 "Trying all of DOv...\n", FuncName);
-                     dest_SO_ID = SUMA_findSO_inDOv ( nel_surfidcode, 
-                                                      SUMAg_DOv, SUMAg_N_DOv);
-                     if (dest_SO_ID < 0) {
-                        if (LocalHead) 
-                           fprintf( SUMA_STDERR,
-                                    "%s:%s: nel idcode is not found in DOv.\n", 
-                                    FuncName, nel->name);            
-                        dest_SO_ID = svi->Focus_SO_ID; 
-                     } else { /* good, set SO accordingly */
-                        SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
-                        if (LocalHead) 
-                           fprintf( SUMA_STDOUT,
-                                    "%s: DOv[%d] Matched idcode for "
-                                    "surface (%s)\n", 
-                                    FuncName, dest_SO_ID, SO->Label);
-                     }
-                     found_type = 3;   /* found surface NOT in viewer */
-                  }
-               }
-
-               SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
-
-               if (LocalHead) SUMA_nel_stdout (nel);
-               
-               /* check for node id */
-               nel_nodeid = NI_get_attribute (nel, "surface_nodeid");
-               if (!nel_nodeid) nodeid = -1;
-               else {
-                  if (strlen(nel_nodeid)) nodeid = (int)strtod(nel_nodeid, NULL);
-                  else nodeid = -1;
-               }
-
-               /*-- check element for suitability --*/
-               if( nel->vec_len    < 1 || nel->vec_filled <  1) {  
-                                 /* empty element?             */
-                  SUMA_SLP_Warn ("Empty crosshair xyz.\n");
-                  SUMA_RETURN(YUP);
-               }
-
-               if(   nel->vec_len != 3 || nel->vec_num != 1 || 
-                     nel->vec_typ[0] != NI_FLOAT) {
-                  SUMA_SLP_Err(  "SUMA_crosshair_xyz requires\n"
-                                 "3 floats in one vector.\n");
-                  SUMA_RETURN(NOPE);
-               }
-
-
-               /* nodeid is supplied, even if the distance from the cross hair 
-                  to the node is large,  set a limit */
-               if (nodeid >= 0) {
-                  SUMA_LH("Node index courtesy of AFNI");
-                  if (SO->AnatCorrect == YUP) {
-                     I_C = nodeid; /* node index and XYZ are set by AFNI */
-                     XYZ = (float *)SUMA_malloc(3*sizeof(float));
-                     {  float *tf = nel->vec[0];
-                        XYZ[0] = tf[0]; XYZ[1] = tf[1]; XYZ[2] = tf[2]; }
-                  } else { 
-                     I_C = nodeid; /* node index is set by AFNI */
-                     XYZ = SUMA_XYZmap_XYZ ( nel->vec[0], SO, 
-                                             SUMAg_DOv, SUMAg_N_DOv, &I_C);
-                     if (!XYZ) {
-                        XBell (svi->X->DPY, 50);             
-                        SUMA_SL_Warn("XYZ could not be determined\n"
-                                     "No action taken.");
-                        break;
-                     }
-                     I_C = nodeid; /* node index is set by AFNI */
-                  }
-               } else {
-                  SUMA_LH("Searching for node index.");
-                  /* set the cross hair XYZ for now and let 
-                     SUMA_XYZmap_XYZ set the node index*/
-                  I_C = -1;
-                  XYZ = SUMA_XYZmap_XYZ ( nel->vec[0], SO, 
-                                          SUMAg_DOv, SUMAg_N_DOv, &I_C);
-
-                  if (XYZ == NULL || I_C < 0) {
-                     SUMA_SL_Warn("AFNI cross hair too\n"
-                                 "far from surface.\n"
-                                 "No node id from AFNI.\n"
-                                 "No action taken.");
-                     XBell (svi->X->DPY, 50);             
-                     if (XYZ) SUMA_free(XYZ); XYZ = NULL;
-                     break;
-                  }
-               }
-               
-               /* SUMA_nel_stdout (nel); */
-               if (iview == 0) {
-                  fprintf(SUMA_STDOUT, "***********************\n"
-                                       "AFNI cross hair notice:\n"
-                                       "From Afni: \n"
-                                       "  Surface: %s\n"
-                                       "  Node: %s, XYZ: %3.2f %3.2f %3.2f\n",
-                      SUMA_find_SOLabel_from_idcode(nel_surfidcode, 
-                                                    SUMAg_DOv, SUMAg_N_DOv), 
-                      SUMA_CHECK_NULL_STR(nel_nodeid), 
-                      *((float *)nel->vec[0]), 
-                      *((float *)nel->vec[0]+1), 
-                      *((float *)nel->vec[0]+2) );
-               }
-               fprintf(SUMA_STDOUT, "In Controller [%c]:\n"
-                                    "  Surface: %s, adopted: %s\n"
-                                    "  Node: %d, XYZ: %3.2f %3.2f %3.2f\n"
-                                    ,
-                                    65+iview, 
-                                    (found_type == 1 || found_type == 2) ? 
-                                          SO->Label:"NULL", 
-                                    SO->Label, I_C,
-                                    XYZ[0], XYZ[1], XYZ[2]);
-               if (iview == SUMAg_N_SVv-1) {
-                  fprintf(SUMA_STDOUT, "\n");
-               }  
-                                  
-               /* attach the cross hair to the selected surface */
-                  iv3[0] = dest_SO_ID; /* nel_surfidcode == NULL is 
-                                          handled above, May 15 03*/
-
-               iv3[1] = I_C; /* use the closest node for a link 
-                                otherwise when you switch states, 
-                                you'll get a wandering cross hair */
-               if (!list) list = SUMA_CreateList();
-
-               
-               /* set the SO in Focus, if surface was visible */                                                                       /*ZSS Added this Aug. 06 */
-               if (found_type == 1 || found_type == 2) { 
-                  /* To set a surface in focus, it must be in the viewer.
-                     If not, then SO in focus would be set to a surface that 
-                     is not in view, and that can lead to severe crashes. 
-                     One way to deal with that situation would be to make SUMA 
-                     switch state to that visible surface
-                     but that's too visually complicated and jerky looking, 
-                     I would imagine. */
-                  ED = SUMA_InitializeEngineListData (SE_SetSOinFocus);
-                  if (!SUMA_RegisterEngineListCommand (  
-                                       list, ED, 
-                                       SEF_i, (void*)&dest_SO_ID,
-                                       SES_SumaFromAfni, (void *)svi, NOPE,
-                                       SEI_Head, NULL)) {
-                     fprintf( SUMA_STDERR,
-                              "Error %s: Failed to register element\n", 
-                              FuncName);
-                     SUMA_RETURN (NOPE);
-                  }
-               }
-               /* set selected node */          /*ZSS Added this Aug. 06 */
-               ED = SUMA_InitializeEngineListData (SE_SetSelectedNode); 
-               if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                             SEF_i, (void*)&I_C,
-                                             SES_Suma, (void *)svi, NOPE,
-                                             SEI_Tail, NULL)) {
-                  fprintf( SUMA_STDERR,
-                           "Error %s: Failed to register element\n", FuncName);
-                  SUMA_RETURN (NOPE);
-               }
-
-               ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
-               if (!SUMA_RegisterEngineListCommand (  
-                                    list, ED, 
-                                    SEF_iv3, (void*)iv3,
-                                    SES_SumaFromAfni, (void *)svi, NOPE,
-                                    SEI_Tail, NULL)) {
-                  fprintf( SUMA_STDERR,
-                           "Error %s: Failed to register element\n", FuncName);
-                  SUMA_RETURN (NOPE);
-               }
-
-               /* send cross hair coordinates */
-               ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
-               if (!SUMA_RegisterEngineListCommand (  
-                                    list, ED, 
-                                    SEF_fv3, (void*)XYZ,
-                                    SES_SumaFromAfni, svi, NOPE,
-                                    SEI_Tail, NULL)) {
-                  fprintf(SUMA_STDERR,
-                          "Error %s: Failed to register element\n", FuncName);
-                  SUMA_RETURN (NOPE);
-               }
-
-               svi->ResetGLStateVariables = YUP; 
-
-
-               SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, 
-                                                  SES_SumaFromAfni, svi);
-               if (!SUMA_Engine (&list)) {
-                  fprintf( SUMA_STDERR, 
-                           "Error %s: SUMA_Engine call failed.\n", FuncName);
-               }
-               
-               
-               if (XYZ) SUMA_free(XYZ); XYZ = NULL;
-            } /* link cross hair */    
-         } /* iview ... for all viewers */
-         /* don't free nel, it's freed later on
-            dont't free attributes obtained in NI_get_attribute, 
-            they are copies of pointers in nel  */
+      if (strcmp(nel->name,"underlay_array") == 0) { /* underlay array */
+         SUMA_S_Note("Have underlay array!");
          SUMA_RETURN(YUP) ;
-      }/* SUMA_crosshair_xyz */
-
-      /* New surface mesh_IJK, This one is now obsolete, along with NewNode_XYZ, they were used to send a surface in chunks, now 
-      I can send an entire surface. Look at commented out section in SUMA_Mesh_IJK2Mesh_IJK_nel if you want to reuse this chunk*/
+      }
+      
+      /* New surface mesh_IJK, This one is now obsolete, 
+         along with NewNode_XYZ, they were used to send a surface in chunks, now 
+         I can send an entire surface. Look at commented out section in    
+         SUMA_Mesh_IJK2Mesh_IJK_nel if you want to reuse this chunk*/
       if (strcmp(nel->name,"NewMesh_IJK") == 0) { /* NewMesh_IJK */
          SUMA_SL_Err("Element obsolete. Please use SUMA_SurfaceObject");
          SUMA_RETURN(NOPE) ;
-         if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
+         if( nel->vec_len  < 1 || nel->vec_filled <  1) {/* empty element? */
             fprintf(SUMA_STDERR,"%s: Empty NewMesh_IJK\n", FuncName);
             SUMA_RETURN(NOPE);
          }else {
@@ -821,41 +563,55 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          /* if (LocalHead) SUMA_nel_stdout (nel); */
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) 
+            nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
-            fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
+            fprintf( SUMA_STDERR,
+                     "Error %s: surface_idcode missing in nel (%s).\n", 
+                     FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
 
          SUMA_LH("Checking for new surface...");
          SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
          if (SO) {
-            fprintf(SUMA_STDERR,"Warning %s: nel idcode was found in DOv.\nChecking for mesh compatibility\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Warning %s: nel idcode was found in DOv.\n"
+                     "Checking for mesh compatibility\n", FuncName);
             if (SO->N_FaceSet * SO->FaceSetDim == nel->vec_len) {
-               fprintf(SUMA_STDERR,"Note %s: Mesh dimensions match. New mesh will be adopted.\n", FuncName);
+               fprintf(SUMA_STDERR,
+                       "Note %s: Mesh dimensions match. \n"
+                       "New mesh will be adopted.\n", FuncName);
             } else {
-               fprintf(SUMA_STDERR,"Error %s: Mesh dimensions mismatch.\n", FuncName);
+               fprintf(SUMA_STDERR,
+                       "Error %s: Mesh dimensions mismatch.\n", FuncName);
                SUMA_RETURN(NOPE);
             }
          }
 
          /* get the number of nodes */
          if (!NI_get_attribute(nel, "N_Node")) {
-            fprintf(SUMA_STDERR,"Error %s: NULL or non existent N_Node field.\n", FuncName);
+            fprintf( SUMA_STDERR, 
+                     "Error %s: NULL or non existent N_Node field.\n", FuncName);
             SUMA_RETURN(NOPE);   
          }
 
-         if (LocalHead) fprintf(SUMA_STDERR,"Number of nodes:%s...\n", NI_get_attribute(nel, "N_Node"));
+         if (LocalHead) 
+            fprintf( SUMA_STDERR,"Number of nodes:%s...\n", 
+                     NI_get_attribute(nel, "N_Node"));
          N_Node = atoi(NI_get_attribute(nel, "N_Node"));
          if (N_Node <= 0 || N_Node > 1000000) {
-            fprintf(SUMA_STDERR,"Error %s: Bad number of nodes %d (limit of 1000000 nodes.)\n", FuncName, N_Node);
+            fprintf(SUMA_STDERR,
+                    "Error %s: Bad number of nodes %d \n"
+                    "(limit of 1000000 nodes.)\n", FuncName, N_Node);
             SUMA_RETURN(NOPE);
          }
 
          if (!SO) { 
             SUMA_LH("A brand new surface.");
             BrandNew = YUP;
-            NodeList = (float *)SUMA_malloc(3 * N_Node * sizeof(float)); /* do not use calloc so that you can see something ... */
+            NodeList = (float *)SUMA_malloc(3 * N_Node * sizeof(float)); 
+                     /* do not use calloc so that you can see something ... */
             FaceSetList = (int *)SUMA_malloc(nel->vec_len * sizeof(int)); 
             if (!NodeList || !FaceSetList) {
                SUMA_SL_Crit("Failed to allocate for NodeList || FaceSetList");
@@ -864,7 +620,9 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             IJK = (int *)nel->vec[0];
             N_FaceSet = nel->vec_len / 3; 
             if (nel->vec_len % 3) {
-               fprintf(SUMA_STDERR,"Error %s: Bad number of elements in IJK vector not divisible by 3! %d\n", FuncName, nel->vec_len);
+               fprintf(SUMA_STDERR,
+                       "Error %s: Bad number of elements in IJK vector\n"
+                       " not divisible by 3! %d\n", FuncName, nel->vec_len);
                SUMA_RETURN(NOPE);
             }
             SUMA_LH("Copying new mesh");
@@ -872,7 +630,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             /* Now form the new surface */
             SUMA_LH("Now forming new surface");
             nsoopt = SUMA_NewNewSOOpt();
-            nsoopt->DoNormals = NOPE; nsoopt->DoMetrics = NOPE; nsoopt->DoCenter = NOPE; 
+            nsoopt->DoNormals = NOPE; nsoopt->DoMetrics = NOPE; 
+            nsoopt->DoCenter = NOPE; 
             nsoopt->idcode_str = SUMA_copy_string(nel_surfidcode);      
             SO = SUMA_NewSO(&NodeList, N_Node, &FaceSetList, N_FaceSet, nsoopt);
             nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
@@ -880,7 +639,10 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_LH("A refit of an existing surface.");
             BrandNew = NOPE;
             if (N_Node != SO->N_Node) {
-               fprintf(SUMA_STDERR,"Error %s: Mismatch in number of nodes between new mesh and pre-existing one (%d vs %d)\n", FuncName, N_Node, SO->N_Node);
+               fprintf( SUMA_STDERR,
+                        "Error %s: Mismatch in number of nodes between new \n"
+                        "mesh and pre-existing one (%d vs %d)\n", 
+                        FuncName, N_Node, SO->N_Node);
                SUMA_RETURN(NOPE);
             }
             IJK = (int *)nel->vec[0];
@@ -889,13 +651,17 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* work the mesh a little and add it to DOv NO LONGER DONE HERE...*/
          SO->Group = SUMA_copy_string(NI_get_attribute(nel, "Group"));
-         if (!SO->Group) SO->Group = SUMA_copy_string(NI_get_attribute(nel, "Subject_Label"));
+         if (!SO->Group) 
+            SO->Group = SUMA_copy_string(NI_get_attribute(nel, "Subject_Label"));
          SO->State = SUMA_copy_string(NI_get_attribute(nel, "State"));
-         if (!SO->State) SO->State = SUMA_copy_string(NI_get_attribute(nel, "Layer_Name"));
+         if (!SO->State) 
+            SO->State = SUMA_copy_string(NI_get_attribute(nel, "Layer_Name"));
          SO->Label = SUMA_copy_string(NI_get_attribute(nel, "Label"));
-         if (!SO->Label) SO->Label = SUMA_copy_string(NI_get_attribute(nel, "Object_Label"));
+         if (!SO->Label) 
+            SO->Label = SUMA_copy_string(NI_get_attribute(nel, "Object_Label"));
          SO->EmbedDim = atoi(NI_get_attribute(nel, "EmbedDim"));
-         if (!SO->EmbedDim) SO->EmbedDim = atoi(NI_get_attribute(nel, "Embedding_Dimension"));
+         if (!SO->EmbedDim) 
+            SO->EmbedDim = atoi(NI_get_attribute(nel, "Embedding_Dimension"));
          SO->AnatCorrect = atoi(NI_get_attribute(nel, "AnatCorrect"));
          if (!SO->AnatCorrect) {
             char *tmp = NI_get_attribute(nel, "Anatomically_Correct");
@@ -906,7 +672,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          }
          /* add this surface to DOv */
          if (BrandNew) {
-            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)SO,  SO_type, SUMA_WORLD)) {
+            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)SO,  
+                            SO_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
                SUMA_RETURN(NOPE);
             }
@@ -922,33 +689,46 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          /* if (LocalHead) SUMA_nel_stdout (nel); */
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) 
+            nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
-            fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
+            fprintf(SUMA_STDERR,
+                    "Error %s: surface_idcode missing in nel (%s).\n", 
+                    FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
          SUMA_LH("Looking for  surface...");
          SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
          if (!SO) {
-            fprintf(SUMA_STDERR,"Error %s: nel idcode was not found in DOv.\n", FuncName);
+            fprintf(SUMA_STDERR,
+                    "Error %s: nel idcode was not found in DOv.\n", FuncName);
             SUMA_RETURN(NOPE);
          }
 
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Surface SO about to be prepped: Label %s, State %s, Group %s\n", FuncName, SO->Label, SO->State, SO->Group);
+         if (LocalHead) 
+            fprintf(SUMA_STDERR, "%s: Surface SO about to be prepped: "
+                                 "Label %s, State %s, Group %s\n", 
+                                 FuncName, SO->Label, SO->State, SO->Group);
          
          #if 0
          if (NI_get_attribute(nel, "VolParFilecode")) {
-            SO->VolPar = SUMA_VolPar_Attr (NI_get_attribute(nel, "VolParFilecode"));
+            SO->VolPar = SUMA_VolPar_Attr (NI_get_attribute(nel, 
+                                                            "VolParFilecode"));
             if (!SO->VolPar) {
                SUMA_S_Err("Failed in SUMA_VolPar_Attr");
                SUMA_RETURN(NOPE);
             }
-            SO->SUMA_VolPar_Aligned = YUP; /* Surface should already be in alignment with volume, should not call SUMA_Align_to_VolPar ... */
+            SO->SUMA_VolPar_Aligned = YUP; /* Surface should already be in 
+                                              alignment with volume, should not 
+                                              call SUMA_Align_to_VolPar ... */
          }
          #else
             /* VolPar should have been dealt with by now */
             if (!SO->VolPar) SO->SUMA_VolPar_Aligned = NOPE;
-            else SO->SUMA_VolPar_Aligned = YUP; /* Surface should already be in alignment with volume, should not call SUMA_Align_to_VolPar ... */
+            else SO->SUMA_VolPar_Aligned = YUP; /* Surface should already be in 
+                                                   alignment with volume, should 
+                                                   not call SUMA_Align_to_VolPar 
+                                                   ... */
          #endif
 
          /* make this surface friendly for suma */
@@ -957,7 +737,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
          }
          /* Add this surface to SUMA's displayable objects */
-         if (!SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+         if (!SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 
+                                     0, SUMAg_CF->DsetList)) {
             SUMA_S_Err("Failed to add mappable SOs ");
             SUMA_RETURN(NOPE);
          }
@@ -970,14 +751,19 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
          }
  
-	      /* Register the surfaces in Spec file with the surface viewer and perform setups */
+	      /* Register the surfaces in Spec file with the surface 
+            viewer and perform setups */
          viewopt = 0;
-	      fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewers, viewopt = %d...\n", FuncName, viewopt);
+	      fprintf (SUMA_STDERR, 
+                  "%s: Registering surfaces with surface viewers, "
+                  "viewopt = %d...\n", FuncName, viewopt);
 
          for (i = 0; i< SUMA_MAX_SURF_VIEWERS; ++i) {
             if (!SUMA_SetupSVforDOs (*Spec, SUMAg_DOv, SUMAg_N_DOv, 
                      &(SUMAg_SVv[i]), viewopt)) {
-			      fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
+			      fprintf (SUMA_STDERR, 
+                        "Error %s: Failed in SUMA_SetupSVforDOs function.\n", 
+                        FuncName);
 			      SUMA_RETURN(NOPE);
 		      }
 	      }
@@ -1099,9 +885,10 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
       /* NewNode_XYZ NOW OBSOLETE, see comment for NewMesh_IJK*/
       if( strcmp(nel->name,"NewNode_XYZ") == 0) {/* NewNode_XYZ */
-         SUMA_SL_Err("Obsolete element, please use SUMA_SurfaceObject element instead");
+         SUMA_SL_Err("Obsolete element, please use SUMA_SurfaceObject "
+                     "element instead");
          SUMA_RETURN(NOPE);
-         if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
+         if( nel->vec_len  < 1 || nel->vec_filled <  1) {/* empty element? */
             fprintf(SUMA_STDERR,"%s: Empty NewNode_XYZ\n", FuncName);
             SUMA_RETURN(NOPE);
          }else {
@@ -1115,22 +902,28 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) 
+               nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
-            fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
+            fprintf(SUMA_STDERR,
+                    "Error %s: surface_idcode missing in nel (%s).\n", 
+                    FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
 
          SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
          if (!SO) {
-            fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n", FuncName, nel->name);
+            fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n",
+                                FuncName, nel->name);
             SUMA_RETURN(NOPE);
          }
 
          /* now copy the new node coordinates over the old ones */
          if (nel->vec_len != SO->N_Node * 3) {
-            fprintf(SUMA_STDERR,"Error %s:\nExpected %d * 3 = %d values, found %d\n", 
-               FuncName, SO->N_Node, SO->N_Node * 3, nel->vec_len);
+            fprintf(SUMA_STDERR,"Error %s:\n"
+                                "Expected %d * 3 = %d values, found %d\n", 
+                                FuncName, SO->N_Node, 
+                                SO->N_Node * 3, nel->vec_len);
             SUMA_RETURN(NOPE);
          }
 
@@ -1143,7 +936,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
       /* Node_XYZ */
       if( strcmp(nel->name,"Node_XYZ") == 0) {/* Node_XYZ */
-         if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
+         if( nel->vec_len  < 1 || nel->vec_filled <  1) {/* empty element?*/
             fprintf(SUMA_STDERR,"%s: Empty Node_XYZ\n", FuncName);
             SUMA_RETURN(NOPE);
          }else {
@@ -1157,22 +950,28 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) 
+               nel_surfidcode = NI_get_attribute(nel, "domain_parent_idcode");
          if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
-            fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
+            fprintf( SUMA_STDERR,
+                     "Error %s: surface_idcode missing in nel (%s).\n", 
+                     FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
 
          SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
          if (!SO) {
-            fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n", FuncName, nel->name);
+            fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n",
+                                FuncName, nel->name);
             SUMA_RETURN(NOPE);
          }
 
          /* now copy the new node coordinates over the old ones */
          if (nel->vec_len != SO->N_Node * 3) {
-            fprintf(SUMA_STDERR,"Error %s:\nExpected %d * 3 = %d values, found %d\n", 
-               FuncName, SO->N_Node, SO->N_Node * 3, nel->vec_len);
+            fprintf(SUMA_STDERR,"Error %s:\n"
+                                "Expected %d * 3 = %d values, found %d\n", 
+                                FuncName, SO->N_Node, 
+                                SO->N_Node * 3, nel->vec_len);
             SUMA_RETURN(NOPE);
          }
 
@@ -1183,30 +982,35 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          SUMA_RECOMPUTE_NORMALS(SO);
 
          /* file a redisplay request */
-         if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n",                                 FuncName);
          if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAny, sv);
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, SE_Redisplay_AllVisible, 
+                                             SES_SumaFromAny, sv);
          
          /* Need to deal with "Send2Matlab" as per comment above */
          if (NI_get_attribute(nel, "Send2Afni")) {
             if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
                SUMA_LH("Putting request for sending to afni ...");
                ED = SUMA_InitializeEngineListData (SE_SetAfniThisSurf);
-               if (!( Elm = SUMA_RegisterEngineListCommand (  list, ED, 
-                                                      SEF_cp, (void *)SO->idcode_str, 
-                                                      SES_Suma, NULL, NOPE, 
-                                                      SEI_Tail, NULL ))) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+               if (!( Elm = SUMA_RegisterEngineListCommand (  
+                                 list, ED, 
+                                 SEF_cp, (void *)SO->idcode_str, 
+                                 SES_Suma, NULL, NOPE, 
+                                 SEI_Tail, NULL ))) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", 
+                          FuncName);
                   SUMA_RETURN(NOPE);
                }
 
-               /* You could save time and not send the NodeNormList but that means AFNI 
-               will end up with a bad set of normals for the final version of the surface
-               not a good idea... */
-                  SUMA_RegisterEngineListCommand ( list, ED, 
-                                                   SEF_s, (void *)("NodeList, NodeNormList"), 
-                                                   SES_Suma, NULL, NOPE, 
-                                                   SEI_In, Elm );
+               /* You could save time and not send the NodeNormList 
+                  but that means AFNI will end up with a bad set of 
+                  normals for the final version of the surface
+                  not a good idea... */
+                  SUMA_RegisterEngineListCommand ( 
+                        list, ED, 
+                        SEF_s, (void *)("NodeList, NodeNormList"), 
+                        SES_Suma, NULL, NOPE, 
+                        SEI_In, Elm );
                   { int ti = 0; /* keep it quiet */
                      SUMA_RegisterEngineListCommand ( list, ED, 
                                                    SEF_i, (void *)&ti, 
@@ -1215,13 +1019,15 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   }
             } else {
                if (LocalHead) {
-                  SUMA_SL_Note("Cannot send surface to afni, no connection established");
+                  SUMA_SL_Note("Cannot send surface to afni, "
+                               "no connection established");
                }
             }
          } 
 
          if (!SUMA_Engine (&list)) {
-            fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            fprintf( SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", 
+                     FuncName);
             SUMA_RETURN(NOPE);
          }
 
@@ -1387,10 +1193,307 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
       /*** If here, then name of element didn't match anything ***/
 
-      fprintf(SUMA_STDERR,"Error %s: Unknown NIML input: %s\n", FuncName ,nel->name) ;
+      fprintf( SUMA_STDERR,"Error %s: Unknown NIML input: %s\n",
+               FuncName ,nel->name) ;
       SUMA_RETURN(NOPE) ;
    } /* end parse nels */ else { /* is group */
       ngr = (NI_group *) nini ;
+      if( strcmp(ngr->name,"SUMA_crosshair") == 0) {/* SUMA_crosshair */
+         nel = SUMA_FindNgrNamedElement(ngr, "SUMA_crosshair_xyz"); /* XYZ */
+         if (!nel) {
+            SUMA_S_Err("Missing bare minimum of crosshair group");
+            SUMA_RETURN(NOPE);
+         }
+         {/* SUMA_crosshair_xyz */
+            int found_type = 0;
+            SUMA_SurfaceObject *SOaf=NULL;
+            /* Do it for all viewers */
+            for (iview = 0; iview < SUMAg_N_SVv; ++iview) {
+               found_type = 0;
+               svi = &(SUMAg_SVv[iview]);
+               SUMA_LHv("Processing viewer %c\n", 65+iview); 
+               if (svi->LinkAfniCrossHair) {/* link cross hair */
+                  /* look for the surface idcode */
+                  nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
+                  if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) 
+                     nel_surfidcode = 
+                        NI_get_attribute(nel, "domain_parent_idcode");
+                  if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
+                     if (LocalHead) 
+                        fprintf(SUMA_STDERR,
+                               "%s: surface_idcode missing in nel (%s), "
+                               "using svi->Focus_SO_ID.\n", FuncName, nel->name);
+                     dest_SO_ID = svi->Focus_SO_ID; /* default */
+                     SOaf = (SUMA_SurfaceObject *)
+                                 (SUMAg_DOv[svi->Focus_SO_ID].OP);
+                  } else {
+                     SOaf = SUMA_findSOp_inDOv (nel_surfidcode, 
+                                                SUMAg_DOv, SUMAg_N_DOv);
+                     if (!SOaf) {
+                        SUMA_S_Warn("AFNI sending unkown id, "
+                                    "taking default for viewer");
+                        SOaf = (SUMA_SurfaceObject *)
+                                       (SUMAg_DOv[svi->Focus_SO_ID].OP);
+                     }
+                     /* first try to find out if one of the displayed surfaces 
+                        is or has a parent equal to nel_surfidcode */
+                     if (LocalHead) 
+                        fprintf (SUMA_STDERR,
+                                 "%s: Searching displayed surfaces.\n", 
+                                 FuncName);
+                     N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, SOlist);
+                     Found = NOPE;
+                     i = 0;
+                     while (i < N_SOlist && !Found) { 
+                        SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);
+                        SUMA_LHv("Checking %s\n   %s versus\n   %s\n", 
+                                 SO->Label, nel_surfidcode, SO->idcode_str);
+                        if (strcmp(nel_surfidcode, SO->idcode_str) == 0) {
+                           Found = YUP;
+                           dest_SO_ID = SOlist[i];
+                           found_type = 1; /* found surface currently 
+                                              in viewer */
+                        }
+                        ++i;
+                     }
+                     if (!Found) { /* try for the parent */
+                        i = 0;
+                        while (i < N_SOlist && !Found) { 
+                           SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);
+                           SUMA_LHv("Checking %s\n   %s versus\n   %s\n", 
+                                    SO->Label, nel_surfidcode, 
+                                    SO->LocalDomainParentID);
+                           if (SUMA_isRelated(SOaf, SO, 1)) { 
+                              /* ZSS Aug. 06 (used to be: 
+                                 (strcmp( nel_surfidcode, 
+                                          SO->LocalDomainParentID) == 0) */
+                              Found = YUP;
+                              dest_SO_ID = SOlist[i];
+                              found_type = 2;   /* found related surface 
+                                                   currently in viewer */
+                          }
+                           ++i;
+                        }   
+                     }
+                     /* if not found, look for any DO */
+                     if (!Found) {
+                        if (LocalHead) 
+                           fprintf (SUMA_STDERR,
+                                    "%s: None of the displayed surfaces "
+                                    "(or their parents) match nel_surfidcode. "
+                                    "Trying all of DOv...\n", FuncName);
+                        dest_SO_ID = SUMA_findSO_inDOv ( nel_surfidcode, 
+                                                         SUMAg_DOv, SUMAg_N_DOv);
+                        if (dest_SO_ID < 0) {
+                           if (LocalHead) 
+                              fprintf( SUMA_STDERR,
+                                       "%s:%s: nel idcode is not "
+                                       "found in DOv.\n", 
+                                       FuncName, nel->name);            
+                           dest_SO_ID = svi->Focus_SO_ID; 
+                        } else { /* good, set SO accordingly */
+                           SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
+                           if (LocalHead) 
+                              fprintf( SUMA_STDOUT,
+                                       "%s: DOv[%d] Matched idcode for "
+                                       "surface (%s)\n", 
+                                       FuncName, dest_SO_ID, SO->Label);
+                        }
+                        found_type = 3;   /* found surface NOT in viewer */
+                     }
+                  }
+
+                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[dest_SO_ID].OP);
+
+                  if (LocalHead) SUMA_nel_stdout (nel);
+
+                  /* check for node id */
+                  nel_nodeid = NI_get_attribute (nel, "surface_nodeid");
+                  if (!nel_nodeid) nodeid = -1;
+                  else {
+                     if (strlen(nel_nodeid)) 
+                           nodeid = (int)strtod(nel_nodeid, NULL);
+                     else nodeid = -1;
+                  }
+
+                  /*-- check element for suitability --*/
+                  if( nel->vec_len    < 1 || nel->vec_filled <  1) {  
+                                    /* empty element?             */
+                     SUMA_SLP_Warn ("Empty crosshair xyz.\n");
+                     SUMA_RETURN(YUP);
+                  }
+
+                  if(   nel->vec_len != 3 || nel->vec_num != 1 || 
+                        nel->vec_typ[0] != NI_FLOAT) {
+                     SUMA_SLP_Err(  "SUMA_crosshair_xyz requires\n"
+                                    "3 floats in one vector.\n");
+                     SUMA_RETURN(NOPE);
+                  }
+
+
+                  /* nodeid is supplied, even if the distance from the cross hair 
+                     to the node is large,  set a limit */
+                  if (nodeid >= 0) {
+                     SUMA_LH("Node index courtesy of AFNI");
+                     if (SO->AnatCorrect == YUP) {
+                        I_C = nodeid; /* node index and XYZ are set by AFNI */
+                        XYZ = (float *)SUMA_malloc(3*sizeof(float));
+                        {  float *tf = nel->vec[0];
+                           XYZ[0] = tf[0]; XYZ[1] = tf[1]; XYZ[2] = tf[2]; }
+                     } else { 
+                        I_C = nodeid; /* node index is set by AFNI */
+                        XYZ = SUMA_XYZmap_XYZ ( nel->vec[0], SO, 
+                                                SUMAg_DOv, SUMAg_N_DOv, &I_C);
+                        if (!XYZ) {
+                           XBell (svi->X->DPY, 50);             
+                           SUMA_SL_Warn("XYZ could not be determined\n"
+                                        "No action taken.");
+                           break;
+                        }
+                        I_C = nodeid; /* node index is set by AFNI */
+                     }
+                  } else {
+                     SUMA_LH("Searching for node index.");
+                     /* set the cross hair XYZ for now and let 
+                        SUMA_XYZmap_XYZ set the node index*/
+                     I_C = -1;
+                     XYZ = SUMA_XYZmap_XYZ ( nel->vec[0], SO, 
+                                             SUMAg_DOv, SUMAg_N_DOv, &I_C);
+
+                     if (XYZ == NULL || I_C < 0) {
+                        SUMA_SL_Warn("AFNI cross hair too\n"
+                                    "far from surface.\n"
+                                    "No node id from AFNI.\n"
+                                    "No action taken.");
+                        XBell (svi->X->DPY, 50);             
+                        if (XYZ) SUMA_free(XYZ); XYZ = NULL;
+                        break;
+                     }
+                  }
+
+                  /* SUMA_nel_stdout (nel); */
+                  if (iview == 0) {
+                     fprintf(SUMA_STDOUT, "***********************\n"
+                                          "AFNI cross hair notice:\n"
+                                          "From Afni: \n"
+                                          "  Surface: %s\n"
+                                          "  Node: %s, XYZ: %3.2f %3.2f %3.2f\n",
+                         SUMA_find_SOLabel_from_idcode(nel_surfidcode, 
+                                                       SUMAg_DOv, SUMAg_N_DOv), 
+                         SUMA_CHECK_NULL_STR(nel_nodeid), 
+                         *((float *)nel->vec[0]), 
+                         *((float *)nel->vec[0]+1), 
+                         *((float *)nel->vec[0]+2) );
+                  }
+                  fprintf(SUMA_STDOUT, "In Controller [%c]:\n"
+                                       "  Surface: %s, adopted: %s\n"
+                                       "  Node: %d, XYZ: %3.2f %3.2f %3.2f\n"
+                                       ,
+                                       65+iview, 
+                                       (found_type == 1 || found_type == 2) ? 
+                                             SO->Label:"NULL", 
+                                       SO->Label, I_C,
+                                       XYZ[0], XYZ[1], XYZ[2]);
+                  if (iview == SUMAg_N_SVv-1) {
+                     fprintf(SUMA_STDOUT, "\n");
+                  }  
+
+                  /* attach the cross hair to the selected surface */
+                     iv3[0] = dest_SO_ID; /* nel_surfidcode == NULL is 
+                                             handled above, May 15 03*/
+
+                  iv3[1] = I_C; /* use the closest node for a link 
+                                   otherwise when you switch states, 
+                                   you'll get a wandering cross hair */
+                  if (!list) list = SUMA_CreateList();
+
+
+                  /* set the SO in Focus, if surface was visible */                                                                    /*ZSS Added this Aug. 06 */
+                  if (found_type == 1 || found_type == 2) { 
+                     /* To set a surface in focus, it must be in the viewer.
+                        If not, then SO in focus would be set to a surface that 
+                        is not in view, and that can lead to severe crashes. 
+                        One way to deal with that situation would be to make SUMA 
+                        switch state to that visible surface
+                        but that's too visually complicated and jerky looking, 
+                        I would imagine. */
+                     ED = SUMA_InitializeEngineListData (SE_SetSOinFocus);
+                     if (!SUMA_RegisterEngineListCommand (  
+                                          list, ED, 
+                                          SEF_i, (void*)&dest_SO_ID,
+                                          SES_SumaFromAfni, (void *)svi, NOPE,
+                                          SEI_Head, NULL)) {
+                        fprintf( SUMA_STDERR,
+                                 "Error %s: Failed to register element\n", 
+                                 FuncName);
+                        SUMA_RETURN (NOPE);
+                     }
+                  }
+                  /* set selected node */          /*ZSS Added this Aug. 06 */
+                  ED = SUMA_InitializeEngineListData (SE_SetSelectedNode); 
+                  if (!(el=SUMA_RegisterEngineListCommand (  
+                                       list, ED, 
+                                       SEF_i, (void*)&I_C, 
+                                       SES_SumaFromAfni, (void *)svi, NOPE,
+                                       SEI_Tail, NULL))) {
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Failed to register element\n", 
+                              FuncName);
+                     SUMA_RETURN (NOPE);
+                  } else {
+                     /* add the whole damned group, EngineData would want 
+                        to work with it various components */
+                     SUMA_RegisterEngineListCommand (  
+                                       list, ED, 
+                                       SEF_ngr, (void*)ngr, 
+                                       SES_SumaFromAfni, (void *)svi, NOPE,
+                                       SEI_In, el);
+                  }
+
+                  ED = SUMA_InitializeEngineListData (SE_BindCrossHair);
+                  if (!SUMA_RegisterEngineListCommand (  
+                                       list, ED, 
+                                       SEF_iv3, (void*)iv3,
+                                       SES_SumaFromAfni, (void *)svi, NOPE,
+                                       SEI_Tail, NULL)) {
+                     fprintf( SUMA_STDERR,
+                              "Error %s: Failed to register element\n",
+                              FuncName);
+                     SUMA_RETURN (NOPE);
+                  }
+
+                  /* send cross hair coordinates */
+                  ED = SUMA_InitializeEngineListData (SE_SetCrossHair);
+                  if (!SUMA_RegisterEngineListCommand (  
+                                       list, ED, 
+                                       SEF_fv3, (void*)XYZ,
+                                       SES_SumaFromAfni, svi, NOPE,
+                                       SEI_Tail, NULL)) {
+                     fprintf(SUMA_STDERR,
+                             "Error %s: Failed to register element\n", FuncName);
+                     SUMA_RETURN (NOPE);
+                  }
+
+                  svi->ResetGLStateVariables = YUP; 
+
+
+                  SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, 
+                                                     SES_SumaFromAfni, svi);
+                  if (!SUMA_Engine (&list)) {
+                     fprintf( SUMA_STDERR, 
+                              "Error %s: SUMA_Engine call failed.\n", FuncName);
+                  }
+
+
+                  if (XYZ) SUMA_free(XYZ); XYZ = NULL;
+               } /* link cross hair */    
+            } /* iview ... for all viewers */
+            /* don't free nel, it's freed later on
+               dont't free attributes obtained in NI_get_attribute, 
+               they are copies of pointers in nel  */
+         }/* SUMA_crosshair_xyz */
+         SUMA_RETURN(YUP) ;
+      }/* SUMA_crosshair */
 
       if (strcmp(ngr->name,"SurfaceObject") == 0) { /* New Surface Object */
          SUMA_SurfaceObject *SOn=NULL;   
@@ -1404,11 +1507,15 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          SUMA_LH("Checking for new surface...");
          SO = SUMA_findSOp_inDOv (SOn->idcode_str, SUMAg_DOv, SUMAg_N_DOv);
          if (SO) {
-            fprintf(SUMA_STDERR,"Warning %s: nel idcode was found in DOv.\nChecking for mesh compatibility\n", FuncName);
-            if (SO->N_FaceSet * SO->FaceSetDim == SOn->N_FaceSet * SOn->FaceSetDim) {
-               fprintf(SUMA_STDERR,"Note %s: Mesh dimensions match. New mesh will be adopted.\n", FuncName);
+            fprintf(SUMA_STDERR,"Warning %s: nel idcode was found in DOv.\n"
+                                "Checking for mesh compatibility\n", FuncName);
+            if (  SO->N_FaceSet * SO->FaceSetDim == 
+                  SOn->N_FaceSet * SOn->FaceSetDim) {
+               fprintf(SUMA_STDERR,"Note %s: Mesh dimensions match. \n"
+                                   "New mesh will be adopted.\n", FuncName);
             } else {
-               fprintf(SUMA_STDERR,"Error %s: Mesh dimensions mismatch.\n", FuncName);
+               fprintf( SUMA_STDERR,"Error %s: Mesh dimensions mismatch.\n", 
+                        FuncName);
                SUMA_RETURN(NOPE);
             }
          }
@@ -1416,29 +1523,39 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          if (!SO) { 
             BrandNew = YUP;
          } else {
-            SUMA_LHv("A refit of an existing surface. SO->SurfCont = %p\n", SO->SurfCont);
+            SUMA_LHv("A refit of an existing surface. SO->SurfCont = %p\n", 
+                     SO->SurfCont);
             BrandNew = NOPE;
             if (SOn->N_Node != SO->N_Node) {
-               fprintf(SUMA_STDERR,"Error %s: Mismatch in number of nodes between new mesh and pre-existing one (%d vs %d)\n", FuncName, SO->N_Node, SO->N_Node);
+               fprintf(SUMA_STDERR,"Error %s: Mismatch in number of nodes\n"
+                                   "between new mesh and pre-existing one\n"
+                                   "(%d vs %d)\n", 
+                                   FuncName, SO->N_Node, SO->N_Node);
                SUMA_RETURN(NOPE);
             }
-            memcpy((void*)SO->FaceSetList, (void *)SOn->FaceSetList, SOn->N_FaceSet * SOn->FaceSetDim * sizeof(int));  /* this one's likely to be completely useless! */       
-            memcpy((void*)SO->NodeList, (void *)SOn->NodeList, SOn->N_Node * SOn->NodeDim * sizeof(float));
+            memcpy((void*)SO->FaceSetList, (void *)SOn->FaceSetList, 
+                   SOn->N_FaceSet * SOn->FaceSetDim * sizeof(int));  
+                           /* this one's likely to be completely useless! */  
+            memcpy((void*)SO->NodeList, (void *)SOn->NodeList, 
+                   SOn->N_Node * SOn->NodeDim * sizeof(float));
             /* swap VolPar */
             if (SOn->VolPar) {
                if (SO->VolPar) SUMA_Free_VolPar(SO->VolPar); 
                SO->VolPar = SOn->VolPar;
                SOn->VolPar = NULL;
             }
-            SUMA_Free_Surface_Object(SOn); SOn = NULL; /* alas, not needed no more. 
-                                                   Perhaps you should consider eliminating SO's EdgeLists, area vectors and the like,
-                                                   You should also perhaps update VolPar with SOn's... */
+            SUMA_Free_Surface_Object(SOn); SOn = NULL; 
+                  /* alas, not needed no more. 
+                     Perhaps you should consider eliminating SO's EdgeLists, 
+                     area vectors and the like,
+                     You should also perhaps update VolPar with SOn's... */
             SUMA_LHv("Refit done, SO->SurfCont = %p\n", SO->SurfCont);
          }
 
          /* add this surface to DOv */
          if (BrandNew) {
-            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)SOn,  SO_type, SUMA_WORLD)) {
+            if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), 
+                            (void *)SOn,  SO_type, SUMA_WORLD)) {
                fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
                SUMA_RETURN(NOPE);
             }
@@ -1454,7 +1571,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       } else if (strcmp(ngr->name,"Segment_DO") == 0) {
          SUMA_SegmentDO *SDO = SUMA_niSDO2SDO(ngr);
          /* addDO (mixing is taken care of internally)*/
-         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, SDO->do_type, SUMA_WORLD)) {
+         if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, 
+                         SDO->do_type, SUMA_WORLD)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
             SUMA_RETURN(NOPE);
          }
@@ -1463,7 +1581,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* register DO with viewer */
          if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
-            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+            fprintf( SUMA_STDERR,
+                     "Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
             SUMA_RETURN(NOPE);
          }
 
@@ -1475,10 +1594,40 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          SUMA_RETURN(YUP);
       }
    
-      /*** If here, then name of group didn't match anything ***/
+      /*** If here, then name of group didn't match anything 
+           Try processing its parts ***/
+      if (LocalHead)  {
+               fprintf( SUMA_STDERR,
+                        "%s:  Working group %s \n",
+                        FuncName, ngr->name);
+      }
+      for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
+         switch( ngr->part_typ[ip] ){
+            /*-- a sub-group ==> recursion! --*/
+            case NI_GROUP_TYPE:
+               if (!SUMA_process_NIML_data( (void *)ngr->part_typ[ip] , sv)) { 
+                  NI_group *ngr2=(NI_group *)ngr->part_typ[ip];
+                  SUMA_S_Errv("Failed in SUMA_process_NIML_data for\n"
+                              " group %s's subgroup %s\n", 
+                              ngr->name, ngr2->name);
+               }
+               break ;
+            case NI_ELEMENT_TYPE:
+               nel = (NI_element *)ngr->part[ip] ;
+               if (!SUMA_process_NIML_data( (void *)nel , sv)) { 
+                     SUMA_S_Errv("Failed in SUMA_process_NIML_data for \n"
+                                 " group %s's element %s\n", 
+                                 ngr->name, nel->name);
+               }   
+               break;
+            default:
+               SUMA_SL_Err("Don't know what to make of this group element\n"
+                           "ignoring.");
+               break;
+         }
+      }
       
-      fprintf(SUMA_STDERR,"Error %s: Unknown NIML input: %s\n", FuncName ,ngr->name) ;
-      SUMA_RETURN(NOPE) ;
+      SUMA_RETURN(YUP) ;
    }
 }
 
@@ -3570,43 +3719,57 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
       }
       #endif
 
-      if (cs->nelps > 0) { /* make sure that you are not sending elements too fast */
+      if (cs->nelps > 0) { /* make sure that you are not sending 
+                              elements too fast */
          if (!etm) {
             etm = 100000.0; /* first pass, an eternity */
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Initializing timer\n", FuncName);
+            if (LocalHead) 
+               fprintf (SUMA_STDOUT,"%s: Initializing timer\n", FuncName);
             SUMA_etime(&tt, 0);
          }
          else {
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calculating etm\n", FuncName);
+            if (LocalHead) 
+               fprintf (SUMA_STDOUT,"%s: Calculating etm\n", FuncName);
             etm = SUMA_etime(&tt, 1);
          }
          wtm = 1./cs->nelps - etm;
          if (wtm > 0) { /* wait */
-            if (LocalHead) fprintf (SUMA_STDOUT, "%s: Sleeping by %f to meet refresh rate...", FuncName, wtm);
+            if (LocalHead) 
+               fprintf (SUMA_STDOUT, 
+                        "%s: Sleeping by %f to meet refresh rate...", 
+                        FuncName, wtm);
             NI_sleep((int)(wtm*1000));
          }
       }
 
       /* send it to SUMA */
-      if (LocalHead) fprintf (SUMA_STDOUT,"Sending element %d comm_NI_mode = %d...\n", cs->TrackID, cs->comm_NI_mode);
+      if (LocalHead) 
+         fprintf (SUMA_STDOUT,"Sending element %d comm_NI_mode = %d...\n", 
+                              cs->TrackID, cs->comm_NI_mode);
       if (nel) {
-         if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, cs->comm_NI_mode ) < 0) {
+         if (NI_write_element(   SUMAg_CF->ns_v[cs->istream] , nel, 
+                                 cs->comm_NI_mode ) < 0) {
             SUMA_LH("Failed updating SUMA...");
          }
       } else if (ngr) {
-         if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , ngr, cs->comm_NI_mode ) < 0) {
+         if (NI_write_element(   SUMAg_CF->ns_v[cs->istream] , ngr, 
+                                 cs->comm_NI_mode ) < 0) {
             SUMA_LH("Failed updating SUMA...");
          }
       }
       if (LocalHead) {
-         if (cs->nelps > 0) fprintf (SUMA_STDOUT,"        element %d sent (%f sec)\n", cs->TrackID, SUMA_etime(&tt, 1));
+         if (cs->nelps > 0) 
+            fprintf (SUMA_STDOUT,
+                     "        element %d sent (%f sec)\n", 
+                     cs->TrackID, SUMA_etime(&tt, 1));
          else fprintf (SUMA_STDOUT,"        element %d sent \n", cs->TrackID);
       }
       if (nel && nel != data) NI_free_element(nel) ; nel = NULL;
       if (ngr && ngr != data) NI_free_element(ngr) ; ngr = NULL;
       
       if (cs->nelps > 0) {
-         if (LocalHead) fprintf (SUMA_STDOUT,"%s: Resetting time...\n", FuncName);
+         if (LocalHead) 
+            fprintf (SUMA_STDOUT,"%s: Resetting time...\n", FuncName);
          SUMA_etime(&tt, 0); /* start the timer */
       }
       ++i_in;

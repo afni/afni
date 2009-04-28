@@ -7065,4 +7065,131 @@ int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
 }
 
 /*-----------------------------------------------------------------*/
+/* 
+   Activate callbacks pertinent to SO->SelectedNode and Sover 
+   \param SO
+   \param Sover
+   \param src
+   \param ngr: a NI_group* containing crosshair data from AFNI
+*/
+SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
+      SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Sover,
+      SUMA_ENGINE_SOURCE Src, NI_group *ngr)
+{
+   static char FuncName[]={"SUMA_Selected_Node_Activate_Callbacks"};
+   NI_element*nelts = NULL;
+   char *ts_dset_id = NULL, *cbuf=NULL;
+   SUMA_DSET *in_dset=NULL;
+   float *fv3=NULL;
+   DListElmt *el=NULL;
+   NI_element *nel=NULL;
+   SUMA_CALLBACK *cb=NULL;
+   NI_element *nelpars=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!SO || !SO->SurfCont || !Sover) {
+      SUMA_S_Warn("No Surface or Surface Controller, or other important stuff!");
+      SUMA_RETURN(NOPE);
+   } 
+   /* setup callback, if needed */
+   if (SUMAg_CF->callbacks) {
+      el = dlist_head(SUMAg_CF->callbacks);
+      while (el) {
+         cb = (SUMA_CALLBACK *)el->data;
+         if (  cb->event == SUMA_NEW_NODE_ACTIVATE_EVENT && 
+               cb->active > 0 && 
+               (Sover && Sover->dset_link ) ) {
+            SUMA_LHv("Looking for callback parents involved \n"
+                     "with dset %s\n",
+                     SDSET_ID(Sover->dset_link ));
+            /* Is any of the parents involved here? */
+            if (SUMA_is_CallbackParent(cb, 
+                                       SDSET_ID(Sover->dset_link ),
+                                       NULL)){
+               SUMA_SetCallbackPending(cb, 1, Src);
+               /* setup event parameters
+                  YOU SHOULD NOT SET ANYTHING that THIS event
+                  call does not normally receive */
+               if (!(nelpars = SUMA_FindNgrNamedElement(
+                                 cb->FunctionInput, "parameters"))) {
+                  SUMA_S_Err("Failed to find parameters element!");                                 SUMA_RETURN(NOPE);
+               }  
+               NI_SET_INT(nelpars,     
+                          "event.new_node", SO->SelectedNode);
+               NI_set_attribute( nelpars, 
+                                 "event.SO_idcode", SO->idcode_str);
+               NI_set_attribute(nelpars, 
+                                "event.overlay_name", 
+                                Sover->Name);
+               if ((Src == SES_Afni || 
+                    Src == SES_SumaFromAfni) && 
+                   ngr) { 
+                     /* See if there is a time series */
+                  if ( (nelts = 
+                        SUMA_FindNgrNamedElement(ngr,
+                                                 "underlay_array"))){
+                     SUMA_LH("Have underlay time "
+                                 "series from AFNI");
+                     /* check if length of time series matches dsets
+                     in question */
+                     ts_dset_id = 
+                        SUMA_GetNgrColStringAttr( cb->FunctionInput, 
+                                             0, "ts_dsets_idcode");
+                     if (!(SUMA_is_ID_4_DSET(ts_dset_id, 
+                                             &in_dset))) {
+                        SUMA_S_Err("Could not find ts dset");
+                        SUMA_RETURN(NOPE);
+                     }
+
+                     if (nelts->vec_len && 
+                         nelts->vec_len == SDSET_VECNUM(in_dset) &&
+                         NI_YES_ATTR(nelts,"has_taxis")) {
+                        nel = NI_new_data_element(
+                                 "callback.data", nelts->vec_len);
+                        NI_set_attribute(nel, 
+                                         "atr_name", "ts_vec");
+                        NI_add_column(nel, NI_FLOAT, nelts->vec[0]);
+                        NI_add_to_group(cb->FunctionInput, nel);
+                        if (LocalHead) {
+                           char stmp[1000], *cbuf=NULL;
+                           float fv3[3], *fv=NULL;
+                           cbuf = NI_get_attribute(nelts, "vox_ijk");
+                           SUMA_StringToNum(cbuf, (void *)fv3,3,1);
+                           sprintf(stmp,"underlay_array.%d.%d.%d.1D",
+                                        (int)fv3[0], (int)fv3[1],(int)fv3[2]);
+                           fv = (float *)nelts->vec[0];
+                           SUMA_LHv("Writing %s\n", stmp);
+                           SUMA_WRITE_ARRAY_1D( fv, 
+                                                nelts->vec_len, 
+                                                1, stmp); 
+                        }
+                     } else {
+                        SUMA_S_Notev(
+                           "vec_len = %d\n"
+                           "SDSET_VECNUM = %d\n"
+                           "has_taxis = %s\n",
+                           nelts->vec_len,
+                           SDSET_VECNUM(in_dset),
+                           NI_get_attribute(nelts,"has_taxis") );
+                     }
+                  } else {
+                     SUMA_LH("No underlay time "
+                                 "series from AFNI");
+                     if (LocalHead) SUMA_ShowNel(ngr);
+                  }
+               }
+            } else {
+               SUMA_LH("No involved parents found");
+            }
+         } else {
+            SUMA_LHv("Skipping callback for %s...\n", 
+                     cb->FunctionName);
+         }
+         el = dlist_next(el);
+      }
+   }
+   SUMA_RETURN(YUP);
+}  
 
