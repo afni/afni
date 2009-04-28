@@ -1113,9 +1113,11 @@ static void AFNI_niml_viewpoint_CB( int why, int q, void *qq, void *qqq )
 {
    Three_D_View *im3d = (Three_D_View *) qqq ;
    NI_element *nel ;
-   float xyz[3] ;
+   NI_group *ngr = NULL;
+   float xyz[3], *vv=NULL ;
    static float xold=-666,yold=-777,zold=-888 ;
-   int kbest=-1,ibest=-1 ;
+   int kbest=-1,ibest=-1, i1d=-1;
+   char stmp[128]={""};
 
 ENTRY("AFNI_niml_viewpoint_CB") ;
 
@@ -1143,15 +1145,25 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    if( kbest < 0 ) kbest = 0 ;  /* default surface */
 
    /* now send info to SUMA */
+   ngr = NI_new_group_element();
+   NI_rename_group(ngr, "SUMA_crosshair");
 
    nel = NI_new_data_element( "SUMA_crosshair_xyz" , 3 ) ;
+   NI_add_to_group( ngr, nel); 
    NI_add_column( nel , NI_FLOAT , xyz ) ;
 
    /* 13 Mar 2002: add idcodes of what we are looking at right now */
 
-   NI_set_attribute( nel, "surface_idcode", im3d->ss_now->su_surf[kbest]->idcode ) ;
-   NI_set_attribute( nel, "volume_idcode" , im3d->anat_now->idcode.str ) ;
+   NI_set_attribute( nel,  "surface_idcode", 
+                           im3d->ss_now->su_surf[kbest]->idcode ) ;
+   /*
+      SUMA does not expect to receive volume_idcode attribute
+      If it needs it, it will use underlay_idcode instead      Apr. 09 
+      
+      NI_set_attribute( nel,  "volume_idcode" , im3d->anat_now->idcode.str ) ;
 
+   */
+   
    /* 20 Feb 2003: set attribute showing closest node ID */
 
    if( ibest >= 0 ){
@@ -1162,12 +1174,41 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
 
    xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;  /* save old point */
 
-   if( sendit )
-     NI_write_element( ns_listen[NS_SUMA] , nel , NI_TEXT_MODE ) ;
-   if( serrit )
-     NIML_to_stderr(nel,1) ;
+   /* April 2009: Get the values at that voxel from the underlay and overlay */
+   nel = NI_new_data_element( "underlay_array", DSET_NVALS(im3d->anat_now));
+   NI_set_attribute( nel,  "underlay_idcode" , im3d->anat_now->idcode.str ) ;
+   vv = (float*)calloc(DSET_NVALS(im3d->anat_now),sizeof(float));
 
-   NI_free_element(nel) ;
+   i1d = im3d->vinfo->i1 + 
+         im3d->vinfo->j2*DSET_NX(im3d->anat_now) +   
+         im3d->vinfo->k3*DSET_NX(im3d->anat_now)*DSET_NY(im3d->anat_now);
+   if (THD_extract_array( i1d, im3d->anat_now, 0, vv ) < 0) {
+      fprintf(stderr,"Failed to get underlay array\n");
+   } else {
+      NI_add_column(nel, NI_FLOAT, vv); free(vv); vv=NULL;
+      sprintf(stmp,"%d %d %d", 
+                   im3d->vinfo->i1, im3d->vinfo->j2, im3d->vinfo->k3);
+      NI_set_attribute(nel, "vox_ijk", stmp);
+      if (HAS_TIMEAXIS(im3d->anat_now)) {
+         NI_set_attribute(nel, "has_taxis", "y");
+      } else {
+         NI_set_attribute(nel, "has_taxis", "n");
+      }
+   }
+   NI_add_to_group( ngr, nel); 
+   
+   /* 
+   For RickR 
+   nel = NI_new_data_element( "vol2surf_array", DSET_NVALS(im3d->anat_now));
+   
+   NI_add_to_group( ngr, nel); 
+   */
+   if( sendit )
+     NI_write_element( ns_listen[NS_SUMA] , ngr , NI_TEXT_MODE ) ;
+   if( serrit )
+     NIML_to_stderr(ngr,1) ;
+
+   NI_free_element(ngr) ;
    EXRETURN ;
 }
 

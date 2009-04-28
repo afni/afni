@@ -24,7 +24,7 @@ void SUMA_dot_product_CB( void *params)
    SUMA_SurfaceObject *SO=NULL;
    SUMA_OVERLAYS *Sover=NULL;
    NI_element *dotopt=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -205,6 +205,7 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
 {
    static char FuncName[]={"SUMA_dot_product"};
    SUMA_DSET *dot = NULL;
+   static SUMA_DSET *in_dset_last=NULL;
    double *dcol=NULL;
    float *fcol = NULL;
    int ic=0, ir=0;
@@ -212,9 +213,10 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
    int *iiv=NULL;
    float *ffv=NULL;
    double  *ddv=NULL;
-   int prec=1;
+   int prec=1; /* NEVER CHANGE THIS DEFAULT */
    char *s=NULL, *sname=NULL;
    SUMA_VARTYPE vtp = SUMA_notypeset;
+   static SUMA_VARTYPE vtp_last = SUMA_notypeset;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -226,11 +228,17 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
       SUMA_RETURN(NOPE);
    }
    
-   SUMA_LH("Checking consistency");
-   if (!SUMA_is_AllConsistentNumeric_dset(in_dset, &vtp)) {
-      SUMA_S_Err( "Input dataset is either not all numeric \n"
-                  "or has inconsistent types");
-      SUMA_RETURN(NOPE);
+   if (in_dset != in_dset_last) {
+      SUMA_LH("Checking consistency");
+      if (!SUMA_is_AllConsistentNumeric_dset(in_dset, &vtp)) {
+         SUMA_S_Err( "Input dataset is either not all numeric \n"
+                     "or has inconsistent types");
+         SUMA_RETURN(NOPE);
+      }
+      in_dset_last = in_dset;
+      vtp_last = vtp;
+   } else {
+      vtp = vtp_last;
    }
    
    /* decide if we need new_dset or not */
@@ -250,6 +258,8 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
       if (dotopt) {
          NI_GET_INT(dotopt,"numeric_precision", prec);
          if (!NI_GOT) prec = 1;
+      } else {
+         /* NEVER CHANGE THIS , prec is set at initialization */
       }
       if (!SDSET_LABEL(in_dset)) SUMA_LabelDset(in_dset, NULL);
       
