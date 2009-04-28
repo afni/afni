@@ -493,7 +493,8 @@ STATUS("rescale") ;
 /*! The output matrix is the orthogonal projection onto the linear space
     spanned by the columns of the input imc.  If pout != 0, then instead
     it is the orthogonal projection onto the complement of this space.
-    If the input is NxM, the output is NxN.   [10 Apr 2006]
+    If the input is NxM, the output is NxN.  Note that the matrix output
+    by this function will be symmetric.                          [10 Apr 2006]
 ------------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_matrix_ortproj( MRI_IMAGE *imc , int pout )
@@ -504,11 +505,12 @@ ENTRY("mri_matrix_ortproj") ;
 
    if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
 
-   imp = mri_matrix_psinv( imc , NULL , 0.0 ) ;
+   imp = mri_matrix_psinv( imc , NULL , 0.0 ) ;  /* inv[C'C] C' */
    if( imp == NULL ) RETURN(NULL) ;
-   imt = mri_matrix_mult( imc , imp ) ; mri_free(imp) ;
+   imt = mri_matrix_mult( imc , imp ) ;          /* C inv[C'C] C' */
+   mri_free(imp) ;
 
-   if( pout ){
+   if( pout ){                                   /* I - C inv[C'C] C' */
      int nn , nq , ii ; float *tar ;
      nn = imt->nx ; nq = nn*nn ; tar = MRI_FLOAT_PTR(imt) ;
      for( ii=0 ; ii < nq ; ii+=(nn+1) ) tar[ii] -= 1.0f ;
