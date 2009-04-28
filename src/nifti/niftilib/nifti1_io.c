@@ -325,12 +325,19 @@ static char * gni_history[] =
   "   - H Johnson cast updates (06 Feb)\n"
   "   - added NIFTI_ECODE_PYPICKLE for PyNIfTI (06 Feb)\n"
   "   - added NIFTI_ECODEs 18-28 for the LONI MiND group\n"
+  "1.38 28 Apr 2009 [rickr]\n",
+  "   - uppercase extensions are now valid (requested by M. Coursolle)\n"
+  "   - nifti_set_allow_upper_fext controls this option (req by C. Ooi)\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.37 (10 Mar, 2009)";
+static char gni_version[] = "nifti library version 1.38 (28 April, 2009)";
 
-/*! global nifti options structure */
-static nifti_global_options g_opts = { 1, 0 };
+/*! global nifti options structure - init with defaults */
+static nifti_global_options g_opts = { 
+        1, /* debug level                                         */
+        0, /* skip_blank_ext    - skip extender if no extensions  */
+        1  /* allow_upper_fext  - allow uppercase file extensions */
+};
 
 /*! global nifti types structure list (per type, ordered oldest to newest) */
 static nifti_type_ele nifti_type_list[] = {
@@ -410,6 +417,14 @@ static int  make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
                             int prods[], int * nprods );
 
 /* misc */
+static int   compare_strlist   (const char * str, char ** strlist, int len);
+static int   fileext_compare   (const char * test_ext, const char * known_ext);
+static int   fileext_n_compare (const char * test_ext,
+                                const char * known_ext, int maxlen);
+static int   is_mixedcase      (const char * str);
+static int   is_uppercase      (const char * str);
+static int   make_lowercase    (char * str);
+static int   make_uppercase    (char * str);
 static int   need_nhdr_swap    (short dim0, int hdrsize);
 static int   print_hex_vals    (const char * data, int nbytes, FILE * fp);
 static int   unescape_string   (char *str);  /* string utility functions */
@@ -838,6 +853,9 @@ static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
           if( rv != NBL->bsize ){
              fprintf(stderr,"** failed to read brick %d from file '%s'\n",
                      isrc, nim->iname ? nim->iname : nim->fname);
+             if( g_opts.debug > 1 )
+                fprintf(stderr,"   read %u of %u bytes)\n",
+                        (unsigned int)rv, (unsigned int)NBL->bsize);
              return -1;
           }
           fposn += NBL->bsize;
@@ -2426,6 +2444,8 @@ int nifti_fileexists(const char* fname)
 
 /*----------------------------------------------------------------------*/
 /*! return whether the filename is valid
+ 
+    Note: uppercase extensions are now valid.    27 Apr 2009 [rickr]
 
     The name is considered valid if the file basename has length greater than
     zero, AND one of the valid nifti extensions is provided.
@@ -2467,6 +2487,9 @@ int nifti_is_complete_filename(const char* fname)
 
 /*----------------------------------------------------------------------*/
 /*! return whether the filename is valid
+ 
+    Allow uppercase extensions as valid.        27 Apr 2009 [rickr]
+    Any .gz extension case must match the base extension case.
 
     The name is considered valid if its length is positive, excluding
     any nifti filename extension.
@@ -2509,12 +2532,23 @@ int nifti_validfilename(const char* fname)
     or any of them followed by .gz.  Note that '.' is part of
     the extension.
 
+    Uppercase extensions are also valid, but not mixed case.
+
     \return a pointer to the extension (within the filename), or NULL
 *//*--------------------------------------------------------------------*/
 char * nifti_find_file_extension( const char * name )
 {
-   char * ext;
+   char * ext, extcopy[8];
    int    len;
+   char   extnii[8] = ".nii";   /* modifiable, for possible uppercase */
+   char   exthdr[8] = ".hdr";   /* (leave space for .gz) */
+   char   extimg[8] = ".img";
+   char   extnia[8] = ".nia";
+   char   extgz[4]  = ".gz";
+   char * elist[4]  = { NULL, NULL, NULL, NULL};
+
+   /* stupid compiler... */
+   elist[0] = extnii; elist[1] = exthdr; elist[2] = extimg; elist[3] = extnia;
 
    if ( ! name ) return NULL;
 
@@ -2523,18 +2557,39 @@ char * nifti_find_file_extension( const char * name )
 
    ext = (char *)name + len - 4;
 
-   if ( (strcmp(ext, ".hdr") == 0) || (strcmp(ext, ".img") == 0) ||
-        (strcmp(ext, ".nia") == 0) || (strcmp(ext, ".nii") == 0) )
-      return ext;
+   /* make manipulation copy, and possibly convert to lowercase */
+   strcpy(extcopy, ext);
+   if( g_opts.allow_upper_fext ) make_lowercase(extcopy);
+
+   /* if it look like a basic extension, fail or return it */
+   if( compare_strlist(extcopy, elist, 4) >= 0 ) {
+      if( is_mixedcase(ext) ) {
+         fprintf(stderr,"** mixed case extension '%s' is not valid\n", ext);
+         return NULL;
+      }
+      else return ext;
+   }
 
 #ifdef HAVE_ZLIB
    if ( len < 7 ) return NULL;
 
    ext = (char *)name + len - 7;
 
-   if ( (strcmp(ext, ".hdr.gz") == 0) || (strcmp(ext, ".img.gz") == 0) ||
-        (strcmp(ext, ".nii.gz") == 0) )
-      return ext;
+   /* make manipulation copy, and possibly convert to lowercase */
+   strcpy(extcopy, ext);
+   if( g_opts.allow_upper_fext ) make_lowercase(extcopy);
+
+   /* go after .gz extensions using the modifiable strings */
+   strcat(elist[0], extgz); strcat(elist[1], extgz); strcat(elist[2], extgz);
+
+   if( compare_strlist(extcopy, elist, 3) >= 0 ) {
+      if( is_mixedcase(ext) ) {
+         fprintf(stderr,"** mixed case extension '%s' is not valid\n", ext);
+         return NULL;
+      }
+      else return ext;
+   }
+
 #endif
 
    if( g_opts.debug > 1 )
@@ -2555,7 +2610,7 @@ int nifti_is_gzfile(const char* fname)
      int len;
      len = (int)strlen(fname);
      if (len < 3) return 0;  /* so we don't search before the name */
-     if (strcmp(fname + strlen(fname) - 3,".gz")==0) { return 1; }
+     if (fileext_compare(fname + strlen(fname) - 3,".gz")==0) { return 1; }
   }
 #endif
   return 0;
@@ -2613,10 +2668,22 @@ void nifti_set_skip_blank_ext( int skip )
 }
 
 /*----------------------------------------------------------------------*/
+/*! set nifti's global allow_upper_fext flag         28 Apr 2009 [rickr]
+
+    explicitly set to 0 or 1
+*//*--------------------------------------------------------------------*/
+void nifti_set_allow_upper_fext( int allow )
+{
+    g_opts.allow_upper_fext = allow ? 1 : 0;
+}
+
+/*----------------------------------------------------------------------*/
 /*! check current directory for existing header file
 
     \return filename of header on success and NULL if no appropriate file
             could be found 
+
+    If fname has an uppercase extension, check for uppercase files.
 
     NB: it allocates memory for hdrname which should be freed
         when no longer required
@@ -2625,7 +2692,9 @@ char * nifti_findhdrname(const char* fname)
 {
    char *basename, *hdrname, *ext;
    char  elist[2][5] = { ".hdr", ".nii" };
-   int   efirst;
+   char  extzip[4]   = ".gz";
+   int   efirst = 1;    /* init to .nii extension */
+   int   eisupper = 0;  /* init to lowercase extensions */
 
    /**- check input file(s) for sanity */
    if( !nifti_validfilename(fname) ) return NULL;
@@ -2636,12 +2705,18 @@ char * nifti_findhdrname(const char* fname)
    /**- return filename if it has a valid extension and exists
          (except if it is an .img file (and maybe .gz)) */
    ext = nifti_find_file_extension(fname);
+
+   if( ext ) eisupper = is_uppercase(ext);  /* do we look for uppercase? */
+   
+   /* if the file exists and is a valid header name (not .img), return it */
    if ( ext && nifti_fileexists(fname) ) { 
-     if ( strncmp(ext,".img",4) != 0 ){
+     /* allow for uppercase extension */
+     if ( fileext_n_compare(ext,".img",4) != 0 ){
         hdrname = nifti_strdup(fname); 
         free(basename);
         return hdrname; 
-     }
+     } else
+        efirst = 0;     /* note for below */
    }
 
    /* So the requested name is a basename, contains .img, or does not exist. */
@@ -2652,8 +2727,14 @@ char * nifti_findhdrname(const char* fname)
 
    /* if we get more extension choices, this could be a loop */
 
-   if ( ext && strncmp(ext,".img",4) == 0 ) efirst = 0;
-   else                                     efirst = 1;
+   /* note: efirst is 0 in the case of ".img" */
+
+   /* if the user passed an uppercase entension (.IMG), search for uppercase */
+   if( eisupper ) {
+      make_uppercase(elist[0]);
+      make_uppercase(elist[1]);
+      make_uppercase(extzip);
+   }
 
    hdrname = (char *)calloc(sizeof(char),strlen(basename)+8);
    if( !hdrname ){
@@ -2666,7 +2747,7 @@ char * nifti_findhdrname(const char* fname)
    strcat(hdrname,elist[efirst]);
    if (nifti_fileexists(hdrname)) { free(basename); return hdrname; }
 #ifdef HAVE_ZLIB
-   strcat(hdrname,".gz"); 
+   strcat(hdrname,extzip); 
    if (nifti_fileexists(hdrname)) { free(basename); return hdrname; }
 #endif
 
@@ -2678,7 +2759,7 @@ char * nifti_findhdrname(const char* fname)
    strcat(hdrname,elist[efirst]);
    if (nifti_fileexists(hdrname)) { free(basename); return hdrname; }
 #ifdef HAVE_ZLIB
-   strcat(hdrname,".gz"); 
+   strcat(hdrname,extzip); 
    if (nifti_fileexists(hdrname)) { free(basename); return hdrname; }
 #endif
 
@@ -2699,12 +2780,19 @@ char * nifti_findhdrname(const char* fname)
     \return filename of data/img file on success and NULL if no appropriate
             file could be found
 
+    If fname has a valid, uppercase extension, apply all extensions as
+    uppercase.
+
     NB: it allocates memory for the image filename, which should be freed
         when no longer required
 *//*---------------------------------------------------------------------*/
 char * nifti_findimgname(const char* fname , int nifti_type)
 {
-   char *basename, *imgname, ext[2][5] = { ".nii", ".img" };
+   /* store all extensions as strings, in case we need to go uppercase */
+   char *basename, *imgname, elist[2][5] = { ".nii", ".img" };
+   char  extzip[4] = ".gz";
+   char  extnia[5] = ".nia";
+   char *ext;
    int   first;  /* first extension to use */
 
    /* check input file(s) for sanity */
@@ -2718,10 +2806,19 @@ char * nifti_findimgname(const char* fname , int nifti_type)
       return NULL;
    }
 
+   /* if we are looking for uppercase, apply the fact now */
+   ext = nifti_find_file_extension(fname);
+   if( ext && is_uppercase(ext) ) {
+      make_uppercase(elist[0]);
+      make_uppercase(elist[1]);
+      make_uppercase(extzip);
+      make_uppercase(extnia);
+   }
+
    /* only valid extension for ASCII type is .nia, handle first */
    if( nifti_type == NIFTI_FTYPE_ASCII ){
       strcpy(imgname,basename);
-      strcat(imgname,".nia");
+      strcat(imgname,extnia);
       if (nifti_fileexists(imgname)) { free(basename); return imgname; }
 
    } else {
@@ -2735,20 +2832,20 @@ char * nifti_findimgname(const char* fname , int nifti_type)
       else                                    first = 1; /* should match .img */
 
       strcpy(imgname,basename);
-      strcat(imgname,ext[first]);
+      strcat(imgname,elist[first]);
       if (nifti_fileexists(imgname)) { free(basename); return imgname; }
 #ifdef HAVE_ZLIB  /* then also check for .gz */
-      strcat(imgname,".gz");
+      strcat(imgname,extzip);
       if (nifti_fileexists(imgname)) { free(basename); return imgname; }
 #endif
 
       /* failed to find image file with expected extension, try the other */
 
       strcpy(imgname,basename);
-      strcat(imgname,ext[1-first]);  /* can do this with only 2 choices */
+      strcat(imgname,elist[1-first]);  /* can do this with only 2 choices */
       if (nifti_fileexists(imgname)) { free(basename); return imgname; }
 #ifdef HAVE_ZLIB  /* then also check for .gz */
-      strcat(imgname,".gz");
+      strcat(imgname,extzip);
       if (nifti_fileexists(imgname)) { free(basename); return imgname; }
 #endif
    }
@@ -2778,6 +2875,11 @@ char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
                          int comp)
 {
    char * iname, * ext;
+   char   extnii[5] = ".nii";   /* modifiable, for possible uppercase */
+   char   exthdr[5] = ".hdr";
+   char   extimg[5] = ".img";
+   char   extnia[5] = ".nia";
+   char   extgz[5]  = ".gz";
 
    if( !nifti_validfilename(prefix) ) return NULL;
 
@@ -2788,16 +2890,25 @@ char * nifti_makehdrname(const char * prefix, int nifti_type, int check,
 
    /* use any valid extension */
    if( (ext = nifti_find_file_extension(iname)) != NULL ){
-      if( strncmp(ext,".img",4) == 0 )
-         memcpy(ext,".hdr",4);   /* then convert img name to hdr */
-   }
-   /* otherwise, make one up an */
-   else if( nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcat(iname, ".nii");
-   else if( nifti_type == NIFTI_FTYPE_ASCII )    strcat(iname, ".nia");
-   else                                          strcat(iname, ".hdr");
+      /* if uppercase, convert all extensions */
+      if( is_uppercase(ext) ) {
+         make_uppercase(extnii);
+         make_uppercase(exthdr);
+         make_uppercase(extimg);
+         make_uppercase(extnia);
+         make_uppercase(extgz);
+      }
 
-#ifdef HAVE_ZLIB  /* then also check for .gz */
-   if( comp && (!ext || !strstr(iname,".gz")) ) strcat(iname,".gz");
+      if( strncmp(ext,extimg,4) == 0 )
+         memcpy(ext,exthdr,4);   /* then convert img name to hdr */
+   }
+   /* otherwise, make one up */
+   else if( nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcat(iname, extnii);
+   else if( nifti_type == NIFTI_FTYPE_ASCII )    strcat(iname, extnia);
+   else                                          strcat(iname, exthdr);
+
+#ifdef HAVE_ZLIB  /* if compression is requested, make sure of suffix */
+   if( comp && (!ext || !strstr(iname,extgz)) ) strcat(iname,extgz);
 #endif
 
    /* check for existence failure */
@@ -2831,6 +2942,11 @@ char * nifti_makeimgname(const char * prefix, int nifti_type, int check,
                          int comp)
 {
    char * iname, * ext;
+   char   extnii[5] = ".nii";   /* modifiable, for possible uppercase */
+   char   exthdr[5] = ".hdr";
+   char   extimg[5] = ".img";
+   char   extnia[5] = ".nia";
+   char   extgz[5]  = ".gz";
 
    if( !nifti_validfilename(prefix) ) return NULL;
 
@@ -2841,16 +2957,25 @@ char * nifti_makeimgname(const char * prefix, int nifti_type, int check,
 
    /* use any valid extension */
    if( (ext = nifti_find_file_extension(iname)) != NULL ){
-      if( strncmp(ext,".hdr",4) == 0 )
-         memcpy(ext,".img",4);   /* then convert hdr name to img */
+      /* if uppercase, convert all extensions */
+      if( is_uppercase(ext) ) {
+         make_uppercase(extnii);
+         make_uppercase(exthdr);
+         make_uppercase(extimg);
+         make_uppercase(extnia);
+         make_uppercase(extgz);
+      }
+
+      if( strncmp(ext,exthdr,4) == 0 )
+         memcpy(ext,extimg,4);   /* then convert hdr name to img */
    }
    /* otherwise, make one up */
-   else if( nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcat(iname, ".nii");
-   else if( nifti_type == NIFTI_FTYPE_ASCII )    strcat(iname, ".nia");
-   else                                          strcat(iname, ".img");
+   else if( nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcat(iname, extnii);
+   else if( nifti_type == NIFTI_FTYPE_ASCII )    strcat(iname, extnia);
+   else                                          strcat(iname, extimg);
 
-#ifdef HAVE_ZLIB  /* then also check for .gz */
-   if( comp && (!ext || !strstr(iname,".gz")) ) strcat(iname,".gz");
+#ifdef HAVE_ZLIB  /* if compression is requested, make sure of suffix */
+   if( comp && (!ext || !strstr(iname,extgz)) ) strcat(iname,extgz);
 #endif
 
    /* check for existence failure */
@@ -2983,14 +3108,14 @@ int nifti_type_and_names_match( nifti_image * nim, int show_warn )
 
    /* general tests */
    if( nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ){  /* .nii */
-      if( strncmp(ext_h,".nii",4) ) {
+      if( fileext_n_compare(ext_h,".nii",4) ) {
          if( show_warn )
             fprintf(stderr,
             "-d NIFTI_FTYPE 1, but no .nii extension in header filename, %s\n",
             nim->fname);
          errs++;
       }
-      if( strncmp(ext_i,".nii",4) ) {
+      if( fileext_n_compare(ext_i,".nii",4) ) {
          if( show_warn )
             fprintf(stderr,
             "-d NIFTI_FTYPE 1, but no .nii extension in image filename, %s\n",
@@ -3008,13 +3133,13 @@ int nifti_type_and_names_match( nifti_image * nim, int show_warn )
    else if( (nim->nifti_type == NIFTI_FTYPE_NIFTI1_2) || /* .hdr/.img */
             (nim->nifti_type == NIFTI_FTYPE_ANALYZE) )
    {
-      if( strncmp(ext_h,".hdr",4) != 0 ){
+      if( fileext_n_compare(ext_h,".hdr",4) != 0 ){
          if( show_warn )
             fprintf(stderr,"-d no '.hdr' extension, but NIFTI type is %d, %s\n",
                     nim->nifti_type, nim->fname);
          errs++;
       }
-      if( strncmp(ext_i,".img",4) != 0 ){
+      if( fileext_n_compare(ext_i,".img",4) != 0 ){
          if( show_warn )
             fprintf(stderr,"-d no '.img' extension, but NIFTI type is %d, %s\n",
                     nim->nifti_type, nim->iname);
@@ -3026,6 +3151,127 @@ int nifti_type_and_names_match( nifti_image * nim, int show_warn )
    return 1;
 }
 
+/* like strcmp, but also check against capitalization of known_ext
+ * (test as local string, with max length 7) */
+static int fileext_compare(const char * test_ext, const char * known_ext)
+{
+   char caps[8] = "";
+   int  c, cmp, len;
+
+   /* if equal, don't need to check case (store to avoid multiple calls) */
+   cmp = strcmp(test_ext, known_ext);
+   if( cmp == 0 ) return cmp;
+
+   /* if anything odd, use default */
+   if( !test_ext || !known_ext ) return cmp;
+
+   len = strlen(known_ext);
+   if( len > 7 ) return cmp;
+
+   /* if here, strings are different but need to check upper-case */
+
+   for(c = 0; c < len; c++ ) caps[c] = toupper(known_ext[c]);
+   caps[c] = '\0';
+
+   return strcmp(test_ext, caps);
+}
+
+/* like strncmp, but also check against capitalization of known_ext
+ * (test as local string, with max length 7) */
+static int fileext_n_compare(const char * test_ext,
+                             const char * known_ext, int maxlen)
+{
+   char caps[8] = "";
+   int  c, cmp, len;
+
+   /* if equal, don't need to check case (store to avoid multiple calls) */
+   cmp = strncmp(test_ext, known_ext, maxlen);
+   if( cmp == 0 ) return cmp;
+
+   /* if anything odd, use default */
+   if( !test_ext || !known_ext ) return cmp;
+
+   len = strlen(known_ext);
+   if( len > maxlen ) len = maxlen;     /* ignore anything past maxlen */
+   if( len > 7 ) return cmp;
+
+   /* if here, strings are different but need to check upper-case */
+
+   for(c = 0; c < len; c++ ) caps[c] = toupper(known_ext[c]);
+   caps[c] = '\0';
+
+   return strncmp(test_ext, caps, maxlen);
+}
+
+/* return 1 if there are uppercase but no lowercase */
+static int is_uppercase(const char * str)
+{
+   int c, hasupper = 0;
+
+   if( !str || !*str ) return 0;
+
+   for(c = 0; c < strlen(str); c++ ) {
+      if( islower(str[c]) ) return 0;
+      if( !hasupper && isupper(str[c]) ) hasupper = 1;
+   }
+
+   return hasupper;
+}
+
+/* return 1 if there are both uppercase and lowercase characters */
+static int is_mixedcase(const char * str)
+{
+   int c, hasupper = 0, haslower = 0;
+
+   if( !str || !*str ) return 0;
+
+   for(c = 0; c < strlen(str); c++ ) {
+      if( !haslower && islower(str[c]) ) haslower = 1;
+      if( !hasupper && isupper(str[c]) ) hasupper = 1;
+
+      if( haslower && hasupper ) return 1;
+   }
+
+   return 0;
+}
+
+/* convert any lowercase chars to uppercase */
+static int make_uppercase(char * str)
+{
+   int c;
+
+   if( !str || !*str ) return 0;
+
+   for(c = 0; c < strlen(str); c++ )
+      if( islower(str[c]) ) str[c] = toupper(str[c]);
+
+   return 0;
+}
+
+/* convert any uppercase chars to lowercase */
+static int make_lowercase(char * str)
+{
+   int c;
+
+   if( !str || !*str ) return 0;
+
+   for(c = 0; c < strlen(str); c++ )
+      if( isupper(str[c]) ) str[c] = tolower(str[c]);
+
+   return 0;
+}
+
+/* run strcmp against of list of strings
+ * return index of equality, if found
+ * else return -1 */
+static int compare_strlist(const char * str, char ** strlist, int len)
+{
+   int c;
+   if( len <= 0 || !str || !strlist ) return -1;
+   for( c = 0; c < len; c++ )
+      if( strlist[c] && !strcmp(str, strlist[c]) ) return c;
+   return -1;
+}
 
 /*--------------------------------------------------------------------------*/
 /*! check whether the given type is on the "approved" list
@@ -3111,7 +3357,7 @@ int nifti_set_type_from_names( nifti_image * nim )
       fprintf(stderr,"-d verify nifti_type from filenames: %d",nim->nifti_type);
 
    /* type should be NIFTI_FTYPE_ASCII if extension is .nia */
-   if( (strcmp(nifti_find_file_extension( nim->fname ),".nia")==0) ) {
+   if( (fileext_compare(nifti_find_file_extension(nim->fname),".nia")==0)){
       nim->nifti_type = NIFTI_FTYPE_ASCII;
    } else {
       /* not too picky here, do what must be done, and then verify */

@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, APR, 2009, RCR, "NIFTI", MINOR, TYPE_MODIFY,
+   "uppercase file extensions are now valid",
+   NULL
+ } ,
+
  { 27, APR, 2009, RCR, "3dresample", MICRO, TYPE_MODIFY,
    "show help if no arguments",
    NULL
