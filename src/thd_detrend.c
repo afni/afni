@@ -303,6 +303,10 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
    xmid = 0.5*(npt-1) ; xfac = 1.0 / xmid ;
    for( jj=0 ; jj <= polort ; jj++ ){
      ref[jj] = (float *) malloc( sizeof(float) * npt ) ;
+#if 1  /* the new way */
+     for( ii=0 ; ii < npt ; ii++ )
+       ref[jj][ii] = (float)Plegendre(xfac*(ii-xmid),jj) ;
+#else  /* the olden way */
      switch( jj ){
        case 0:
          for( ii=0 ; ii < npt ; ii++ ) ref[jj][ii] = 1.0 ;
@@ -326,10 +330,12 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
 
        default:
          for( ii=0 ; ii < npt ; ii++ ){
-           val = xfac*(ii-xmid) ; ref[jj][ii] = pow(val,(double)(jj)) ;
+           val = xfac*(ii-xmid) ;
+           ref[jj][ii] = pow(val,(double)(jj)) ;
          }
        break ;
      }
+#endif
    }
    for( jj=0 ; jj < nort ; jj++ )   /* user supplied refs */
      ref[polort+1+jj] = ort[jj] ;
@@ -533,7 +539,7 @@ ENTRY("THD_build_polyref") ;
    for( jj=0 ; jj < nref ; jj++ ){
      ref[jj] = (float *) malloc( sizeof(float) * nvals ) ;
      for( kk=0 ; kk < nvals ; kk++ ){
-       x = fac * kk - 1.0 ; ref[jj][kk] = Plegendre( x , jj ) ;
+       x = fac * kk - 1.0 ; ref[jj][kk] = (float)Plegendre( x , jj ) ;
      }
    }
 
