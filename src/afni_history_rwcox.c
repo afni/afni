@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 28 , APR , 2009 , RWC , "3dDeconvolve" , MINOR , TYPE_NEW_OPT ,
+   "Add duration argument to SPMGx basis functions for deconvolution." ,
+   "For Tracy Doty, apparently." } ,
+
  { 16 , APR , 2009 , RWC , "All" , MINOR , TYPE_BUG_FIX ,
    "Inadvertent recursion in afni_environ.c now blocked." ,
    NULL } ,
