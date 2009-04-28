@@ -329,6 +329,7 @@ int    nifti_validfilename(const char* fname);
 int    disp_nifti_1_header(const char * info, const nifti_1_header * hp ) ;
 void   nifti_set_debug_level( int level ) ;
 void   nifti_set_skip_blank_ext( int skip ) ;
+void   nifti_set_allow_upper_fext( int allow ) ;
 
 int    valid_nifti_brick_list(nifti_image * nim , int nbricks,
                               const int * blist, int disp_error);
@@ -476,8 +477,9 @@ int    valid_nifti_extensions(const nifti_image *nim);
 #ifdef _NIFTI1_IO_C_
 
 typedef struct {
-    int debug;               /*!< debug level for status reports */
-    int skip_blank_ext;      /*!< skip extender if no extensions */
+    int debug;               /*!< debug level for status reports  */
+    int skip_blank_ext;      /*!< skip extender if no extensions  */
+    int allow_upper_fext;    /*!< allow uppercase file extensions */
 } nifti_global_options;
 
 typedef struct {
