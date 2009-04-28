@@ -1519,10 +1519,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                 
             }
             break;
-         
+
          case SE_SetSelectedNode:
-            /* expects a node index in i */
-            if (EngineData->i_Dest != NextComCode) {
+            /* expects a node index in i and maybe a ngr in ngr
+            ngr is only being used when AFNI is the src of the call*/
+            if (EngineData->i_Dest != NextComCode ||
+                EngineData->ngr_Dest != NextComCode) {
                fprintf (SUMA_STDERR,
                         "Error %s: Data not destined correctly for %s (%d).\n",
                         FuncName, NextCom, NextComCode);
@@ -1537,63 +1539,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMA_SLP_Err("Node index < 0 || > Number of nodes in surface");                }
                break;
             }
-            if (EngineData->Src == SES_Afni) {
-               SUMA_S_Warn("No attempt is made yet to deal with setting"
-                           "up NewNode callback when AFNI sends a time series");
-               /* perhaps you should arm the callback where you process 
-               an afni coordinate */
-            } else {
-               SUMA_OVERLAYS *Sover=NULL;
-               DListElmt *el=NULL;
-               SUMA_CALLBACK *cb=NULL;
-               NI_element *nelpars=NULL;
-               
-               if (!SO->SurfCont) {
-                  SUMA_S_Warn("No Surface Controller!");
-                  break;
-               } 
-               Sover = SO->SurfCont->curColPlane;
-               /* setup callback, if needed */
-               if (SUMAg_CF->callbacks) {
-                  el = dlist_head(SUMAg_CF->callbacks);
-                  while (el) {
-                     cb = (SUMA_CALLBACK *)el->data;
-                     if (  cb->event == SUMA_NEW_NODE_ACTIVATE_EVENT && 
-                           cb->active > 0 && 
-                           (Sover && Sover->dset_link ) ) {
-                        SUMA_LHv("Looking for callback parents involved \n"
-                                 "with dset %s\n",
-                                 SDSET_ID(Sover->dset_link ));
-                        /* Is any of the parents involved here? */
-                        if (SUMA_is_CallbackParent(cb, 
-                                                   SDSET_ID(Sover->dset_link ),
-                                                   NULL)){
-                           SUMA_SetCallbackPending(cb, 1, EngineData->Src);
-                           /* setup event parameters
-                              YOU SHOULD NOT SET ANYTHING that THIS event
-                              call does not normally receive */
-                           if (!(nelpars = SUMA_FindNgrNamedElement(
-                                             cb->FunctionInput, "parameters"))) {
-                              SUMA_S_Err("Failed to find parameters element!");                                 break;
-                           }  
-                           NI_SET_INT(nelpars,     
-                                      "event.new_node", SO->SelectedNode);
-                           NI_set_attribute( nelpars, 
-                                             "event.SO_idcode", SO->idcode_str);
-                           NI_set_attribute(nelpars, 
-                                            "event.overlay_name", 
-                                            Sover->Name);
-                        } else {
-                           SUMA_LH("No involved parents found");
-                        }
-                     } else {
-                        SUMA_LHv("Skipping callback for %s...\n", 
-                                 cb->FunctionName);
-                     }
-                     el = dlist_next(el);
-                  }
+            
+            if (SUMAg_CF->callbacks) {
+               if (!SUMA_Selected_Node_Activate_Callbacks (
+                        SO, SO->SurfCont->curColPlane,
+                        EngineData->Src, EngineData->ngr)) {
+                  SUMA_S_Err("Failed to activate callbacks");
                }
-            }  
+            }
+
             SUMA_UpdateNodeField(SO);
             break;
             
@@ -1825,29 +1779,45 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            {
                               SUMA_SurfaceObject *SO1 = NULL, *SO2 = NULL;
                               
-                              if (LocalHead) fprintf (SUMA_STDERR, "%s: Try to I lock viewer %d to node %d.\n", FuncName, i, sv->Ch->NodeID);
+                              if (LocalHead) 
+                                 fprintf (SUMA_STDERR, 
+                                          "%s: Try to I lock viewer %d to node"
+                                          " %d.\n", FuncName, i, sv->Ch->NodeID);
                               
                               /* determine the list of shown surfaces */
-                              N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, SOlist);
+                              N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, 
+                                                            SOlist);
 
-                              /* first find the surface that the cross hair is bound to */
+                              /* first find the surface that the cross hair 
+                                 is bound to */
                               if (sv->Ch->SurfaceID < 0) {
-                                 fprintf (SUMA_STDERR, "%s: Cannot link from this viewer's cross hair. No bound surface.\n", FuncName);
+                                 fprintf (SUMA_STDERR, 
+                                          "%s: Cannot link from this viewer's "
+                                          "cross hair. No bound surface.\n", 
+                                          FuncName);
                                  break;
                               }
                               if (sv->Ch->NodeID < 0) {
-                                 fprintf (SUMA_STDERR, "%s: Cannot link from this viewer's cross hair. No NodeID.\n", FuncName);
+                                 fprintf (SUMA_STDERR, 
+                                          "%s: Cannot link from this viewer's" 
+                                          " cross hair. No NodeID.\n", FuncName);
                                  break;
                               }
-                              SO1 = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Ch->SurfaceID].OP;
+                              SO1 = (SUMA_SurfaceObject *)
+                                             SUMAg_DOv[sv->Ch->SurfaceID].OP;
                               Found = NOPE;
                               it = 0;
                               while (it < N_SOlist && !Found) {
-                                 SO2 = (SUMA_SurfaceObject *)SUMAg_DOv[SOlist[it]].OP;
-                                 if (SUMA_isRelated (SO1, SO2, 2)) { /* high level relationship is allowed */
+                                 SO2 = (SUMA_SurfaceObject *)
+                                             SUMAg_DOv[SOlist[it]].OP;
+                                 if (SUMA_isRelated (SO1, SO2, 2)) { 
+                                       /* high level relationship is allowed */
                                     svi->Ch->SurfaceID = SOlist[it];
                                     if (sv->Ch->NodeID > SO2->N_Node) {
-                                       fprintf (SUMA_STDERR,"Error %s: NodeID is larger than N_Node. Setting NodeID to 0.\n", FuncName);
+                                       fprintf (SUMA_STDERR,
+                                                "Error %s: NodeID is larger than"
+                                                " N_Node. Setting NodeID to 0.\n"
+                                                , FuncName);
                                        svi->Ch->NodeID = 0;
                                     }else{
                                        svi->Ch->NodeID = sv->Ch->NodeID;
@@ -1871,18 +1841,25 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  ++it;
                               }
                               if (!Found) {
-                                 if (LocalHead) fprintf (SUMA_STDERR,"%s: No related surfaces found in viewer, cross hair will not be touched .\n", FuncName);
+                                 if (LocalHead) 
+                                    fprintf (SUMA_STDERR,
+                                             "%s: No related surfaces found in"
+                                             " viewer, cross hair will not be"
+                                             "touched .\n", FuncName);
                                  break;
                               } else {
                                  /* FORCE a redisplay */
                                  svi->ResetGLStateVariables = YUP;
-                                 SUMA_handleRedisplay((XtPointer)svi->X->GLXAREA);
+                                 SUMA_handleRedisplay(
+                                          (XtPointer)svi->X->GLXAREA);
                               }
                               
                            }
                            break;
                         default:
-                           fprintf(SUMA_STDERR,"Error %s: Lock type (%d) undefined.\n", FuncName, SUMAg_CF->Locked[ii]);
+                           fprintf(SUMA_STDERR,
+                                   "Error %s: Lock type (%d) undefined.\n", 
+                                   FuncName, SUMAg_CF->Locked[ii]);
                            break;
                      }
                   }

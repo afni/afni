@@ -941,7 +941,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_XFORM *xf=NULL;
    SUMA_CALLBACK *cb=NULL;
    char stmp[SUMA_MAX_NAME_LENGTH]={""};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -3344,7 +3344,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->light0_position[2] = buf;
                glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
                SUMA_postRedisplay(w, clientData, callData);
-               sprintf (stmp,"Elapsed time: %f seconds.\n%.2f displays/second.\n", delta_t, nd/delta_t);
+               sprintf (stmp,
+                        "Elapsed time: %f seconds.\n%.2f displays/second.\n", 
+                        delta_t, nd/delta_t);
                SS = SUMA_StringAppend (SS, stmp);
                
                /* Estimate how many nodes and triangles were rendered */
@@ -3358,7 +3360,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   NodeTot += SO->N_Node;   
                }
                if (N_vis) {
-                  sprintf (stmp,"In Polymode %d, rendered \n%.2f Ktri/sec %.2f Kpnt/sec.\n",
+                  sprintf (stmp, "In Polymode %d, rendered \n"
+                                 "%.2f Ktri/sec %.2f Kpnt/sec.\n",
                      sv->PolyMode,
                      (float)FaceTot / 1000.0 / delta_t  , 
                      (float)NodeTot / 1000.0 / delta_t );
@@ -4086,7 +4089,9 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       }
     } 
 
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Closest surface is indexed %d in DOv.\n", FuncName, imin);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR, 
+               "%s: Closest surface is indexed %d in DOv.\n", FuncName, imin);
       
    /* Mark intersection Facsets */
    if (imin >= 0) {
@@ -4130,8 +4135,14 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
          fprintf( SUMA_STDERR,
                   "Error %s: Failed to register SetNodeElem\n", FuncName);
          SUMA_RETURN (-1);
+      } else {
+         SUMA_RegisterEngineListCommand (  list, ED, 
+                                           SEF_ngr, NULL,
+                                           SES_Suma, (void *)sv, NOPE,
+                                           SEI_In, SetNodeElem);  
       }
-
+      
+      
       /* Set the FaceSetselection */
       it = MTI->ifacemin;
       ED = SUMA_InitializeEngineListData (SE_SetSelectedFaceSet);
@@ -6104,13 +6115,15 @@ void SUMA_LookAtCoordinates (char *s, void *data)
 /*!
    \brief sends the cross hair to a certain node index
    \param s (char *) a string containing node index
-   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+   \param data (void *) a typecast of the pointer to the surface 
+                        viewer to be affected
 
 */
 void SUMA_JumpIndex (char *s, void *data)
 {
    static char FuncName[]={"SUMA_JumpIndex"};
    DList *list=NULL;
+   DListElmt *el=NULL;
    SUMA_EngineData *ED = NULL;
    SUMA_SurfaceViewer *sv = NULL;
    SUMA_SurfaceObject *SO= NULL;
@@ -6134,13 +6147,18 @@ void SUMA_JumpIndex (char *s, void *data)
    it = (int) fv3[0];
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
-   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+   if (!(el = SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_i, (void*)(&it),
                                           SES_Suma, (void *)sv, NOPE,
-                                          SEI_Head, NULL)) {
+                                          SEI_Head, NULL))) {
       fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
       SUMA_RETURNe;                                      
-   } 
+   } else {
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_ngr, NULL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+   }
 
 
    /* Now set the cross hair position at the selected node*/
@@ -6300,6 +6318,7 @@ void SUMA_JumpFocusNode (char *s, void *data)
 {
    static char FuncName[]={"SUMA_JumpFocusNode"};
    DList *list=NULL;
+   DListElmt *el=NULL;
    SUMA_EngineData *ED = NULL;
    SUMA_SurfaceViewer *sv = NULL;
    float fv3[3];
@@ -6323,13 +6342,18 @@ void SUMA_JumpFocusNode (char *s, void *data)
    it = (int) fv3[0];
    if (!list) list = SUMA_CreateList ();
    ED = SUMA_InitializeEngineListData (SE_SetSelectedNode);
-   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+   if (!(el=SUMA_RegisterEngineListCommand (  list, ED, 
                                           SEF_i, (void*)(&it),
                                           SES_Suma, (void *)sv, NOPE,
-                                          SEI_Head, NULL)) {
+                                          SEI_Head, NULL))) {
       SUMA_SLP_Err("Failed to register element");
       SUMA_RETURNe;                                      
-   } 
+   } else {
+      SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_ngr, NULL,
+                                          SES_Suma, (void *)sv, NOPE,
+                                          SEI_In, el);
+   }
    
    /* call with the list */
    if (!SUMA_Engine (&list)) {

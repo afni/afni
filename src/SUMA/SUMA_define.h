@@ -1705,13 +1705,16 @@ typedef struct {
 
 /*! structure defining an EngineData structure */
 typedef struct {
-   SUMA_ENGINE_CODE CommandCode; /*!< Code of command to be executed by SUMA_Engine function, 
-                                    this is the same as the _Dest fields for each variable type.
-                                    However, the _Dest fields are left as a way to make sure that
-                                    the user has correctly initialized EngineData for a certain command.*/
+   SUMA_ENGINE_CODE CommandCode; /*!< Code of command to be executed by 
+         SUMA_Engine function, 
+         this is the same as the _Dest fields for each variable type.
+         However, the _Dest fields are left as a way to make sure that
+         the user has correctly initialized EngineData for a certain command.*/
    
-   void *Srcp; /*!< Pointer to data structure of the calling source, typically, a typecast version of SUMA_SurfaceViewer * */
-   SUMA_ENGINE_SOURCE Src; /*!< Source of command. This replaces the _Source fields in the older version of the structure */
+   void *Srcp; /*!<  Pointer to data structure of the calling source, 
+                     typically, a typecast version of SUMA_SurfaceViewer * */
+   SUMA_ENGINE_SOURCE Src; /*!<  Source of command. This replaces the _Source 
+                                 fields in the older version of the structure */
    
    float fv3[3]; /*!< Float vector, 3 values */
    SUMA_ENGINE_CODE fv3_Dest; /*!<  float3 vector destination */
@@ -1759,7 +1762,8 @@ typedef struct {
    SUMA_ENGINE_CODE cp_Dest; /*!< character pointer destination */
    
    float **fm; /*!< float matrix pointer */
-   SUMA_Boolean fm_LocalAlloc; /*!< Locally allocated matrix pointer ? (if it is then it is freed in SUMA_ReleaseEngineData ) */
+   SUMA_Boolean fm_LocalAlloc; /*!< Locally allocated matrix pointer ? 
+                  (if it is then it is freed in SUMA_ReleaseEngineData ) */
    SUMA_ENGINE_CODE fm_Dest; /*!<  destination of fm */
    SUMA_ENGINE_SOURCE fm_Source; /*!< OBSOLETE source of fm*/
    

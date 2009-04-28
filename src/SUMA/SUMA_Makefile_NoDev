@@ -220,6 +220,12 @@ SurfDist: SUMA_SurfDist.c
          SUMA_SurfDist.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
          ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+SurfCorrMap: SUMA_SurfCorrMap.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfCorrMap.c ${SUMA_INPATH} ${SUMA_LINK_PATH} \
+         ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
 plottoy: plottoy.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \

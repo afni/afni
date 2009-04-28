@@ -6957,7 +6957,8 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    
    /* set the grand parent ID */
    if (SO->DomainGrandParentID) {
-      NI_set_attribute(ngr, "Grand_domain_parent_idcode", SO->DomainGrandParentID);
+      NI_set_attribute(ngr, "Grand_domain_parent_idcode", 
+                            SO->DomainGrandParentID);
    } else {
       NI_set_attribute(ngr, "Grand_domain_parent_idcode", SUMA_EMPTY_ATTR);
    }
@@ -7058,7 +7059,8 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
          if (SO->idcode_str) {
             sprintf(stmp, "nodelist_idcode_str_%s", SO->idcode_str);
             SUMA_NEW_ID(SO->nodelist_idcode_str, stmp);
-            NI_set_attribute(ngr, "NodeList_Element_ID", SO->nodelist_idcode_str);
+            NI_set_attribute(ngr, "NodeList_Element_ID", 
+                                  SO->nodelist_idcode_str);
          } else  {
             NI_set_attribute(ngr, "NodeList_Element_ID", SUMA_EMPTY_ATTR);
          }
@@ -7066,12 +7068,14 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    }
    if (!nlee || SUMA_iswordin(optlist,"facenormals")) {
       if (SO->facenormals_idcode_str) {
-         NI_set_attribute(ngr, "Polygon_Normals_Element_ID", SO->facenormals_idcode_str);
+         NI_set_attribute(ngr, "Polygon_Normals_Element_ID", 
+                               SO->facenormals_idcode_str);
       } else {
          if (SO->idcode_str) {
             sprintf(stmp, "facenormals_idcode_str_%s", SO->idcode_str);
             SUMA_NEW_ID(SO->facenormals_idcode_str, stmp);
-            NI_set_attribute(ngr, "Polygon_Normals_Element_ID", SO->facenormals_idcode_str);
+            NI_set_attribute(ngr, "Polygon_Normals_Element_ID", 
+                                  SO->facenormals_idcode_str);
          } else  {
             NI_set_attribute(ngr, "Polygon_Normals_Element_ID", SUMA_EMPTY_ATTR);
          }
@@ -7080,12 +7084,14 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    
    if (!nlee || SUMA_iswordin(optlist,"NodeNormals")) {
       if (SO->nodenormals_idcode_str) {
-         NI_set_attribute(ngr, "Node_Normals_Element_ID", SO->nodenormals_idcode_str);
+         NI_set_attribute(ngr, "Node_Normals_Element_ID", 
+                               SO->nodenormals_idcode_str);
       } else {
          if (SO->idcode_str) {
             sprintf(stmp, "nodenormals_idcode_str_%s", SO->idcode_str);
             SUMA_NEW_ID(SO->nodenormals_idcode_str, stmp);
-            NI_set_attribute(ngr, "Node_Normals_Element_ID", SO->nodenormals_idcode_str);
+            NI_set_attribute(ngr, "Node_Normals_Element_ID", 
+                                  SO->nodenormals_idcode_str);
          } else  {
             NI_set_attribute(ngr, "Node_Normals_Element_ID", SUMA_EMPTY_ATTR);
          }
@@ -7094,12 +7100,14 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    
    if (!nlee || SUMA_iswordin(optlist,"PolyArea")) {
       if (SO->polyarea_idcode_str) {
-         NI_set_attribute(ngr, "Polygon_Area_Element_ID", SO->polyarea_idcode_str);
+         NI_set_attribute(ngr, "Polygon_Area_Element_ID", 
+                               SO->polyarea_idcode_str);
       } else {
          if (SO->idcode_str) {
             sprintf(stmp, "polyarea_idcode_str_%s", SO->idcode_str);
             SUMA_NEW_ID(SO->polyarea_idcode_str, stmp);
-            NI_set_attribute(ngr, "Polygon_Area_Element_ID", SO->polyarea_idcode_str);
+            NI_set_attribute(ngr, "Polygon_Area_Element_ID", 
+                                  SO->polyarea_idcode_str);
          } else  {
             NI_set_attribute(ngr, "Polygon_Area_Element_ID", SUMA_EMPTY_ATTR);
          }
@@ -7107,7 +7115,8 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    }
 
    if (!nlee || SUMA_iswordin(optlist,"EdgeList")) {
-      /* add here the edge list, the node neighbor list and the face neighbor list IDs*/
+      /* add here the edge list, the node neighbor list 
+         and the face neighbor list IDs*/
       if (SO->EL && SO->EL->idcode_str) {
          NI_set_attribute(ngr, "SUMA_Edge_List_Element_ID", SO->EL->idcode_str);
       } else {
@@ -7117,27 +7126,34 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    
    if (!nlee || SUMA_iswordin(optlist,"MemberFace")) {
       if (SO->MF && SO->MF->idcode_str) {
-         NI_set_attribute(ngr, "SUMA_Node_Face_Member_Element_ID", SO->MF->idcode_str);
+         NI_set_attribute(ngr, "SUMA_Node_Face_Member_Element_ID", 
+                               SO->MF->idcode_str);
       } else {
-         NI_set_attribute(ngr, "SUMA_Node_Face_Member_Element_ID", SUMA_EMPTY_ATTR);
+         NI_set_attribute(ngr, "SUMA_Node_Face_Member_Element_ID", 
+                               SUMA_EMPTY_ATTR);
       }
    }
    
    if (!nlee || SUMA_iswordin(optlist,"NodeNeighb")) {
       if (SO->FN && SO->FN->idcode_str) {
-         NI_set_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID", SO->FN->idcode_str);
+         NI_set_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID", 
+                               SO->FN->idcode_str);
       } else {
-         NI_set_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID", SUMA_EMPTY_ATTR);
+         NI_set_attribute(ngr, "SUMA_Node_First_Neighb_Element_ID", 
+                               SUMA_EMPTY_ATTR);
       }
    }
 
    if (!nlee) {
       /* add the parent volume (SurfVol, NOT SurfVol_AlndExp) IDcode if present. 
-        That ID does not usually refer to the volume from which VolPar is created. Except in the case 
-        where you are viewing the surfaces on the orignal volume (SurfVol) then this field and
-        SurfVol (afni dset *) ->idcode.str and VolPar->vol_idcode_str should be identical */
+        That ID does not usually refer to the volume from which VolPar 
+        is created. Except in the case 
+        where you are viewing the surfaces on the orignal volume (SurfVol) then 
+        this field and SurfVol (afni dset *) ->idcode.str and 
+        VolPar->vol_idcode_str should be identical */
       if (SO->parent_vol_idcode_str) {
-         NI_set_attribute(ngr, "SUMA_Afni_Parent_Vol_ID", SO->parent_vol_idcode_str);
+         NI_set_attribute(ngr, "SUMA_Afni_Parent_Vol_ID", 
+                               SO->parent_vol_idcode_str);
       } else {
          NI_set_attribute(ngr, "SUMA_Afni_Parent_Vol_ID", SUMA_EMPTY_ATTR);
       }
@@ -7369,14 +7385,18 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
                   SUMA_SL_Err("Failed in SUMA_NodeXYZ_nel2NodeXYZ");
                   SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);
                }
-            } else if ( strcmp(nel->name,"Mesh_IJK") == 0 || strcmp(nel->name,"NewMesh_IJK") == 0) { /* Get Da FaceSetList */ 
-               if (LocalHead) fprintf (SUMA_STDERR,"%s:\nGetting FaceSetList...\n", 
+            } else if ( strcmp(nel->name,"Mesh_IJK") == 0 || 
+                        strcmp(nel->name,"NewMesh_IJK") == 0) { 
+                                             /* Get Da FaceSetList */ 
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR,"%s:\nGetting FaceSetList...\n", 
                                              FuncName);
                if (!SUMA_Mesh_IJK_nel2Mesh_IJK(SO, nel)) {
                   SUMA_SL_Err("Failed in SUMA_Mesh_IJK_nel2Mesh_IJK");
                   SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);
                }
-            } else if ( strcmp(nel->name,"SurfaceVolumeParent") == 0) { /* Get Da FaceSetList */ 
+            } else if ( strcmp(nel->name,"SurfaceVolumeParent") == 0) { 
+                                                   /* Get Da FaceSetList */ 
                if (LocalHead) fprintf (SUMA_STDERR,"%s:\nGetting VolPar...\n", 
                                              FuncName);
                if (!SUMA_VolPar_nel2SOVolPar(SO, nel)) {
@@ -7384,17 +7404,22 @@ SUMA_SurfaceObject *SUMA_nimlSO2SO(NI_group *ngr)
                   SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);
                }
             } else {
-               fprintf (SUMA_STDERR,"Warning %s:\n nel (%s) unknown, ignoring it.\n", FuncName, nel->name);
+               fprintf (SUMA_STDERR,
+                        "Warning %s:\n nel (%s) unknown, ignoring it.\n", 
+                        FuncName, nel->name);
             }
             break;
          default:
-            SUMA_SL_Err("Don't know what to make of this group element, ignoring.");
+            SUMA_SL_Err("Don't know what to make of this "
+                        "group element, ignoring.");
             break;
       }
    }
    
-   if (!SO->NodeList || !SO->FaceSetList) { /* perhaps you'll remove this condition in the future ...*/
-      SUMA_SL_Err("Looks like NodeList and/or FaceSetList not in group. Balking.\n");
+   if (!SO->NodeList || !SO->FaceSetList) { 
+               /* perhaps you'll remove this condition in the future ...*/
+      SUMA_SL_Err("Looks like NodeList and/or FaceSetList "
+                  "not in group. Balking.\n");
       SUMA_Free_Surface_Object(SO); SO = NULL; SUMA_RETURN(SO);
    }
    

@@ -4423,6 +4423,10 @@ SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl)
    
    SUMA_ENTRY;
    
+   if (!dset) {
+      SUMA_S_Err("NULL Input");
+      SUMA_RETURN(NOPE);
+   }
    ok = YUP; 
    if (lbl) {
       Label = SUMA_truncate_string(lbl, 20);
@@ -5231,7 +5235,8 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    
    if (NodeDef) {
       SUMA_LH("Col. Index found");
-      if (nel->vec_filled > node) { /* bug here (used to be < !) discovered thanks to Rosanna and Shane */
+      if (nel->vec_filled > node) { 
+         /* bug here (used to be < !) discovered thanks to Rosanna and Shane */
          if (node == NodeDef[node]) {
             SUMA_LH("Got lucky");
             SUMA_RETURN(node);
@@ -5240,7 +5245,9 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
       /* explicit search */
       SUMA_LH("Explicit");
       if (nel->vec_filled > N_Node) {
-         SUMA_PushErrLog("SL_Err","Unexpected error nel->vec_filled > N_Node", FuncName);
+         SUMA_PushErrLog("SL_Err",
+                         "Unexpected error nel->vec_filled > N_Node", 
+                         FuncName);
          SUMA_RETURN(-1);
       }
       for (i=0; i<nel->vec_filled; ++i) {
@@ -5250,7 +5257,8 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
       SUMA_LH("No Col. Index found");
    }
    
-   /* last resort, assume that data are ordered properly (see commented out section above)*/
+   /* last resort, assume that data are ordered properly 
+      (see commented out section above)*/
    if (nel->vec_len == nel->vec_filled && nel->vec_len == N_Node) {
       if (0 && !(WarnCount % 25 - 1)) {
          SUMA_PushErrLog("SLP_Err", "Assuming ith row of data\n"
