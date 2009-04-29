@@ -7090,9 +7090,11 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
    SUMA_ENTRY;
    
    if (!SO || !SO->SurfCont || !Sover) {
-      SUMA_S_Warn("No Surface or Surface Controller, or other important stuff!");
-      SUMA_RETURN(NOPE);
+      /* this can happen in normal cases where nothing is loaded or selected. */
+      SUMA_LH("No Surface or Surface Controller, or other important stuff!");
+      SUMA_RETURN(YUP);
    } 
+   
    /* setup callback, if needed */
    if (SUMAg_CF->callbacks) {
       el = dlist_head(SUMAg_CF->callbacks);
