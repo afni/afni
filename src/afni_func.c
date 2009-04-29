@@ -5644,6 +5644,57 @@ STATUS("got func info") ;
 
    /*.........................................................*/
 
+   else if( w == im3d->vwid->dmode->misc_instacorr_pb ){ /* 29 Apr 2009 */
+      static PLUGIN_interface *plint=NULL ;
+      Widget wpop ;
+
+      /* first time in: create interface like a plugin */
+
+      if( plint == NULL ){
+         plint = ICOR_init() ;
+         if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
+         PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
+      }
+
+      if( cbs == NULL ) EXRETURN ;  /* only for a setup call */
+
+      /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
+
+      plint->im3d = im3d ;
+      XtVaSetValues( plint->wid->shell ,
+                      XmNtitle     , "AFNI InstaCorr Operation", /* top of window */
+                      XmNiconName  , "InstaCorr"               , /* label on icon */
+                     NULL ) ;
+      PLUTO_cursorize( plint->wid->shell ) ;
+
+      /*-- if possible, find where this popup should go --*/
+
+      wpop = plint->wid->shell ;
+
+      if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
+
+         XButtonEvent *xev = (XButtonEvent *) cbs->event ;
+         int xx = (int)xev->x_root , yy = (int)xev->y_root ;
+         int ww,hh , sw,sh ;
+
+         MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
+         sw = WidthOfScreen (XtScreen(wpop)) ;
+         sh = HeightOfScreen(XtScreen(wpop)) ;
+
+         if( xx+ww+3 >= sw && ww <= sw ) xx = sw-ww ;
+         if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
+
+         XtVaSetValues( wpop , XmNx , xx , XmNy , yy , NULL ) ;
+      }
+
+      /*-- popup widgets --*/
+
+      XtMapWidget( wpop ) ;  /* after this, is up to user */
+      RWC_visibilize_widget( wpop ) ;
+   }
+
+   /*.........................................................*/
+
    else if( w == im3d->vwid->dmode->misc_plugout_pb ){ /* 07 Nov 2001 */
       AFNI_init_plugouts() ;
       XtSetSensitive(w,False) ;

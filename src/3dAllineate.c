@@ -1117,7 +1117,7 @@ int main( int argc , char *argv[] )
      printf(
        "\n"
        " *************************************************************************\n"
-       "* This version of 3dAllineate is compiled using OpenMP, an automatic\n"
+       "* This version of 3dAllineate is compiled using OpenMP, a semi-automatic\n"
        "   parallelizer software toolkit.  The number of CPU threads used will\n"
        "   default to the maximum number on your system.  You can control this\n"
        "   value by setting environment variable OMP_NUM_THREADS to some smaller\n"

@@ -5860,6 +5860,24 @@ ENTRY("AFNI_misc_button") ;
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_2dchain_pb , "Control 2DChain function" ) ;
    AFNI_misc_CB( dmode->misc_2dchain_pb , im3d , NULL ) ;
+
+#if 0
+   dmode->misc_instacorr_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("InstaCorr") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_instacorr_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_instacorr_pb , "Control InstaCorr" ) ;
+   AFNI_misc_CB( dmode->misc_instacorr_pb , im3d , NULL ) ;
+#else
+   dmode->misc_instacorr_pb = NULL ;
+#endif
+
 #endif
 
    /*--- 23 Sep 2000: Save Layout [see afni_splash.c] ---*/
