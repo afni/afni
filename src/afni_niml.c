@@ -176,6 +176,7 @@ static int     process_NIML_Node_ROI( NI_element * nel, int ct_start ) ;
 static int     disp_ldp_surf_list(LDP_list * ldp_list, THD_session * sess);
 static int     fill_ldp_surf_list(LDP_list * ldp_list, THD_session * sess,
                                   v2s_plugin_opts * po);
+static int     get_ldp_surfs(THD_session *, int, int *, int *, int *);
 static int     int_list_posn(int * vals, int nvals, int test_val);
 static int     slist_choose_surfs(LDP_list * ldp_list, THD_session * sess,
                                   v2s_plugin_opts * po);
@@ -183,6 +184,8 @@ static int     slist_check_user_surfs(ldp_surf_list * lsurf, int * surfs,
                                       v2s_plugin_opts * po);
 static int     slist_surfs_for_ldp(ldp_surf_list * lsurf, int * surfs, int max,
                                    THD_session * sess, int debug);
+
+static ldp_surf_list *find_lpd_list(LDP_list *LDP, THD_session *sess, int surf);
 
 /*----------------------------------------------------------------------*/
 /* Functions for receiving an AFNI dataset from NIML elements.
@@ -802,6 +805,52 @@ ENTRY("disp_ldp_surf_list");
 }
 
 /*--------------------------------------------------------------------*/
+/*! For this session, return applical v2s LDP surfaces for the given surf.
+ *  return 0 on success
+----------------------------------------------------------------------*/
+static int get_ldp_surfs(THD_session * sess, int surf, int * sA, int * sB,
+                                                       int * use_v2s)
+{
+   /* don't keep allocating and freeing this list */
+   static LDP_list   ldp_list = { NULL, 0, 0 };
+   ldp_surf_list   * slist = NULL;
+   int               verb = gv2s_plug_opts.sopt.debug;
+
+   ENTRY("get_ldp_surfs");
+
+   if( !sess || surf < 0 || !sA ) {
+      fprintf(stderr,"** get_LDPS - bad inputs\n");
+      RETURN(1);
+   }
+
+   /* construct current surface LDP list */
+   if( fill_ldp_surf_list(&ldp_list, sess, &gv2s_plug_opts) ) {
+      if(verb > 0) fprintf(stderr,"** get_LDPS: failed to fill ldp list\n");
+      RETURN(1);
+   }
+
+    /* find the ldp struct for surf, and note surface A and maybe B */
+   slist = find_lpd_list(&ldp_list, sess, surf);
+
+   if( !slist ) {
+      if(verb > 0) fprintf(stderr,"** get_LDPS: no LDP for surf %d\n", surf);
+      RETURN(1);
+   }
+
+   if(verb > 1) fprintf(stderr,"-- LDP details for surface %d, ldp label %s\n"
+                        "   nsurf=%d, sA=%d, sB=%d, use_v2s=%d\n",
+                        surf, slist->label_ldp ? slist->label_ldp : "NONE",
+                        slist->nsurf, slist->sA, slist->sB, slist->use_v2s);
+
+   /* pass back anything requested */
+   if( sA ) *sA = slist->sA;
+   if( sB ) *sB = slist->sB;
+   if( use_v2s ) *use_v2s = slist->use_v2s;
+
+   RETURN(0);
+}
+
+/*--------------------------------------------------------------------*/
 /*! For this session, make a list of surfaces per local domain parent.
 ----------------------------------------------------------------------*/
 static int fill_ldp_surf_list(LDP_list * ldp_list, THD_session * sess,
@@ -1104,6 +1153,22 @@ ENTRY("slist_surfs_for_ldp");
    RETURN(0);
 }
 
+/*------------------------------------------------------------------------*/
+/*! return the ldp_surf_list pointer corresponding to the given surface
+ *------------------------------------------------------------------------*/
+static ldp_surf_list *find_lpd_list(LDP_list *LDP, THD_session *sess, int surf)
+{
+   int lind;
+
+   if( !LDP || !sess || surf < 0 ) return NULL;
+
+   for( lind = 0; lind < LDP->nused; lind++ )
+      if( !strncmp(LDP->list[lind].idcode_ldp,
+                   sess->su_surf[surf]->idcode_ldp,32) )
+         return &LDP->list[lind];       /* found it! */
+
+   return NULL;
+}
 
 /*--------------------------------------------------------------------*/
 /*! Receives notice when user changes viewpoint position.
@@ -1197,12 +1262,32 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    }
    NI_add_to_group( ngr, nel); 
    
-   /* 
-   For RickR 
-   nel = NI_new_data_element( "vol2surf_array", DSET_NVALS(im3d->anat_now));
-   
-   NI_add_to_group( ngr, nel); 
-   */
+#if 0   /* rcr: test this out tomorrow, tomorrow ...  */
+   /* get vol2surf underlay time series at this node     29 Apr 2009 [rickr] */
+   do { /* cheat: break on error (until data has been allocated) */
+      int sA, sB, usev2s;
+
+      if( ibest < 0 || kbest < 0 ) break;       /* nothing to do */
+
+      /* note surfaces to get time series from */
+      if( get_ldp_surfs(im3d->ss_now, kbest, &sA, &sB, &usev2s) ) break;
+
+      /* get time series */
+      vv = AFNI_v2s_node_timeseries(im3d->ss_now, im3d->anat_now, sA,sB,
+                                    ibest, usev2s);
+      if( ! vv ) break;
+
+      /* put the time series data into a new element */
+      nel = NI_new_data_element("v2s_node_array",DSET_NVALS(im3d->anat_now));
+      sprintf(stmp,"%d",ibest);
+      NI_set_attribute(nel, "surface_nodeid", stmp);
+      NI_add_column(nel, NI_FLOAT, vv); free(vv); vv=NULL;
+
+      /* and add it to the group */
+      NI_add_to_group(ngr, nel); 
+   } while (0);
+#endif
+
    if( sendit )
      NI_write_element( ns_listen[NS_SUMA] , ngr , NI_TEXT_MODE ) ;
    if( serrit )

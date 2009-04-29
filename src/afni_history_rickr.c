@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, APR, 2009, RCR, "to3d", MINOR, TYPE_BUG_FIX,
+   "when opening -geomparent, allow for known non-afni extensions",
+   NULL
+ } ,
+
+ { 29, APR, 2009, RCR, "vol2surf", MICRO, TYPE_MODIFY,
+   "prep to return node v2s time series to suma, just check-in for now",
+   "modified: afni.h, afni_niml.c, afni_vol2surf.c, vol2surf.c, vol2surf.h"
+ } ,
+
  { 28, APR, 2009, RCR, "NIFTI", MINOR, TYPE_MODIFY,
    "uppercase file extensions are now valid",
    NULL

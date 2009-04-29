@@ -133,6 +133,8 @@ typedef struct
 v2s_results * afni_vol2surf     ( THD_3dim_dataset * gpar, int gp_index,
                                   SUMA_surface * sA, SUMA_surface * sB,
                                   byte * mask, int use_defaults );
+v2s_results * opt_vol2surf     ( THD_3dim_dataset * gpar, v2s_opts_t * sopt,
+                               SUMA_surface *sA, SUMA_surface *sB, byte *mask);
 v2s_results * vol2surf          ( v2s_opts_t * sopt, v2s_param_t * p );
 
 int disp_mri_imarr      ( char * info, MRI_IMARR * dp );
@@ -142,6 +144,7 @@ int disp_v2s_param_t    ( char * info, v2s_param_t * p );
 int disp_v2s_plugin_opts( char * mesg, v2s_plugin_opts * d );
 int disp_v2s_results    ( char * mesg, v2s_results * d );
 int free_v2s_results    ( v2s_results * sd );
+int v2s_fill_sopt_default(v2s_opts_t * sopt, int nsurf );
 int v2s_is_good_map     ( int map, int from_afni );
 int v2s_make_command    ( v2s_opts_t * opt, v2s_param_t * p );
 int v2s_map_type        ( char * map_str );

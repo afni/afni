@@ -66,7 +66,7 @@ char gv2s_history[] =
     "October 08, 2004 [rickr]\n"
     "  - added disp_v2s_plugin_opts()\n"
     "  - dealt with default v2s mapping of surface pairs\n"
-    "  - added fill_sopt_afni_default()\n"
+    "  - added v2s_fill_sopt_default()\n"
     "  - moved v2s_write_outfile_*() here, with print_header()\n"
     "  - in afni_vol2surf(), actually write output files\n"
     "\n"
@@ -145,7 +145,6 @@ static int    disp_range_3dmm_res( char * info, range_3dmm_res * dp );
 static int    disp_surf_vals( char * mesg, v2s_results * sd, int node );
 static int    dump_surf_3dt(v2s_opts_t *sopt, v2s_param_t *p, v2s_results *sd);
 static int    f3mm_out_of_bounds(THD_fvec3 *cp, THD_fvec3 *min, THD_fvec3 *max);
-static int    fill_sopt_afni_default(v2s_opts_t * sopt, int nsurf );
 static int    float_list_alloc(float_list_t *f,int **ilist,int size,int trunc);
 static int    float_list_comp_mode(float_list_t *f, float *mode, int *nvals,
                                    int *index);
@@ -204,27 +203,22 @@ char gv2s_no_label[] = "undefined";
  *
  * This function is used to map data from an AFNI volume to a surface.
  * These structures are expected to be complete.
+ *
+ * The function now relies on opt_vol2surf.          29 Apr 2009 [rickr]
  *----------------------------------------------------------------------
 */
 v2s_results * afni_vol2surf ( THD_3dim_dataset * gpar, int gp_index,
                               SUMA_surface * sA, SUMA_surface * sB,
                               byte * mask, int use_defaults )
 {
-    static v2s_param_t   P;
-    v2s_opts_t         * sopt, sopt_def;
-    v2s_results        * res;
+    v2s_opts_t * sopt, sopt_def;
 
-ENTRY("afni_vol2surf");
-
-    if ( !gpar )                 RETURN(NULL);
-
-    if (       check_SUMA_surface(sA) ) RETURN(NULL);
-    if ( sB && check_SUMA_surface(sB) ) RETURN(NULL);
+    ENTRY("afni_vol2surf");
 
     if ( use_defaults )
     {
         sopt = &sopt_def;
-        fill_sopt_afni_default(sopt, sB ? 2 : 1);  /* 1 or 2 surfaces */
+        v2s_fill_sopt_default(sopt, sB ? 2 : 1);  /* 1 or 2 surfaces */
 
         /* but apply any debug options */
         sopt->debug = gv2s_plug_opts.sopt.debug;
@@ -235,6 +229,39 @@ ENTRY("afni_vol2surf");
 
     sopt->gp_index = gp_index;
 
+    RETURN(opt_vol2surf(gpar, sopt, sA, sB, mask));
+}
+
+
+/*----------------------------------------------------------------------
+ * opt_vol2surf - create v2s_results from v2s_plugin_opts struct
+ *
+ * Fill in v2s_param_t struct, call vol2surf, write any output files.
+ *
+ *    input:   gpar         : AFNI dataset to be used as the grid parent
+ *             sopt         : vol2surf options struct
+ *             sA           : surface A structure
+ *             sB           : surface B structure
+ *             mask         : volume mask
+ * 
+ *    output:  sd    : allocated v2s_results struct, with requested data
+ *
+ * This function is used to map data from an AFNI volume to a surface.
+ * These structures are expected to be complete.
+ *----------------------------------------------------------------------
+*/
+v2s_results * opt_vol2surf (THD_3dim_dataset * gpar, v2s_opts_t * sopt,
+                            SUMA_surface * sA, SUMA_surface * sB, byte * mask)
+{
+    v2s_param_t   P;
+    v2s_results * res;
+
+ENTRY("opt_vol2surf");
+
+    if ( !gpar ) RETURN(NULL);
+    if (       check_SUMA_surface(sA) ) RETURN(NULL);
+    if ( sB && check_SUMA_surface(sB) ) RETURN(NULL);
+
     /* now fill the param struct based on the inputs */
     memset(&P, 0, sizeof(P));
     P.gpar         = gpar;
@@ -243,34 +270,30 @@ ENTRY("afni_vol2surf");
     P.over_steps   = v2s_vals_over_steps(sopt->map);
     P.nsurf        = sB ? 2 : 1;
     P.surf[0]      = *sA;
+    if ( sB ) P.surf[1] = *sB;
 
     /* verify steps, in case the user has not selected 2 surfaces */
     if ( P.nsurf == 1 && ! sopt->use_norms )
         sopt->f_steps = 1;
 
-    if ( sB ) P.surf[1] = *sB;
-
-    if ( gv2s_plug_opts.sopt.debug > 1 )
-        disp_v2s_opts_t("   surf options: ", sopt);
+    if ( sopt->debug > 2 ) disp_v2s_opts_t("-- v2s options: ", sopt);
 
     /* fire it up */
 
     res = vol2surf(sopt, &P);
 
     v2s_make_command(sopt, &P);
-    if ( gv2s_plug_opts.sopt.debug > 1 )
-        disp_v2s_command(sopt);
+    if( gv2s_plug_opts.sopt.debug > 2 ) disp_v2s_command(sopt);
 
     /* if the user wants output files, here they are (don't error check) */
-    if (res && sopt->outfile_1D )
-    {
-        if ( THD_is_file(sopt->outfile_1D) )
-            fprintf(stderr,"** over-writing 1D output file '%s'\n",
-                    sopt->outfile_1D);
-        v2s_write_outfile_1D(sopt, res, P.surf[0].label);
+    if( res && sopt->outfile_1D ) {
+       if( THD_is_file(sopt->outfile_1D) )
+          fprintf(stderr,"** over-writing 1D output file '%s'\n",
+                  sopt->outfile_1D);
+       v2s_write_outfile_1D(sopt, res, P.surf[0].label);
     }
 
-    if (res && sopt->outfile_niml )
+    if( res && sopt->outfile_niml )
     {
         if ( THD_is_file(sopt->outfile_niml) )
             fprintf(stderr,"** over-writing niml output file '%s'\n",
@@ -671,7 +694,7 @@ ENTRY("set_surf_results");
         for ( c = max_index; c < sd->max_vals; c++ )
             sd->vals[c][sd->nused] = 0.0;
 
-    /* rcr : should I nuke the MRI images, and just copy what is needed? */
+    /* maybe the user wants us to be verbose about this node */
     if ( node == sopt->dnode )
     {
         fprintf(stderr,
@@ -1457,7 +1480,7 @@ ENTRY("allocate_output_mem");
     sd->vals   = NULL;
     sd->labels = NULL;
  
-    /* rcr - eventually, this may not apply */
+    /* verify first and last node indices */
     if ( sopt->first_node <  0      ) sopt->first_node = 0;
     if ( sopt->first_node >= nnodes ) sopt->first_node = nnodes-1;
     if ( sopt->last_node  <= 0      ) sopt->last_node  = nnodes-1;
@@ -2228,10 +2251,10 @@ ENTRY("v2s_good_map_index");
  * from afni, E_SMAP_SEG_VALS is not acceptable (only allow 1 output)
  *----------------------------------------------------------------------
 */
-static int fill_sopt_afni_default(v2s_opts_t * sopt, int nsurf )
+int v2s_fill_sopt_default(v2s_opts_t * sopt, int nsurf )
 {
 
-ENTRY("fill_sopt_afni_default");
+ENTRY("v2s_fill_sopt_default");
 
     if ( !sopt || nsurf < 1 || nsurf > 2 )
     {
@@ -2399,7 +2422,7 @@ ENTRY("v2s_write_outfile_NSD");
         if( free_vals ){ free(sd->vals[c]); sd->vals[c] = NULL; }
     }
 
-    /* add history (rcr - may need to fake it) */
+    /* add history (may need to fake it) */
     SUMA_AddNgrHist(sdset->ngr,
                     sopt->cmd.fake ? "Vol2Surf_plugin" : "3dVol2Surf",
                     sopt->cmd.argc, sopt->cmd.argv);
