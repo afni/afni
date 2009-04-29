@@ -45,6 +45,10 @@ afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
  { 29 , APR , 2009 , RWC , "3dTcorrMap" , MICRO , TYPE_GENERAL ,
+   "Add OpenMP support" ,
+   NULL } ,
+
+ { 29 , APR , 2009 , RWC , "3dTcorrMap" , MICRO , TYPE_GENERAL ,
    "unroll innermost loop -- makes little difference :-(" ,
    NULL } ,
 

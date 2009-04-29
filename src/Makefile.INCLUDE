@@ -29,11 +29,12 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o    \
             afni_ttren.o afni_pplug_1dfunc.o afni_driver.o         \
             afni_niml.o afni_sumafunc.o afni_slice_rgbyte.o        \
-            afni_version.o afni_lock.o afni_vol2surf.o
+            afni_version.o afni_lock.o afni_vol2surf.o             \
+            afni_pplug_instacorr.o
 
 SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
-	      afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o  \
-	      parser.o
+             afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o   \
+             parser.o
 
 T3OBJS  = to3d.o
 
@@ -473,7 +474,7 @@ dsetdup:dsetdup.o
 
 3dTcorrMap:3dTcorrMap.o
 	$(RM) $@
-	$(CCFAST) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+	$(CCOMP) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dTagalign:3dTagalign.o
 	$(RM) $@
@@ -1530,6 +1531,10 @@ thd_correlate.o:thd_correlate.c
 3dAllineate.o:3dAllineate.c
 	$(RM) $@
 	$(CCOMP) -c 3dAllineate.c $(INFLAGS)
+
+3dTcorrMap.o:3dTcorrMap.c
+	$(RM) $@
+	$(CCOMP) -c 3dTcorrMap.c $(INFLAGS)
 
 cl1.o:cl1.c
 	$(RM) $@

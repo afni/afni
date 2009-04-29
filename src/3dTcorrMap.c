@@ -4,6 +4,10 @@
 #define ZMEAN    2
 #define QMEAN    3
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 /*----------------------------------------------------------------------------*/
 static float etime (struct  timeval  *t, int Report  )
 {/*etime*/
@@ -13,10 +17,10 @@ static float etime (struct  timeval  *t, int Report  )
 
    /* get time */
    gettimeofday(&tn, NULL);
-   
+
    if (Report)
       {
-         delta_t = ( ( (float)(tn.tv_sec - t->tv_sec)*Time_Fact) + 
+         delta_t = ( ( (float)(tn.tv_sec - t->tv_sec)*Time_Fact) +
                        (float)(tn.tv_usec - t->tv_usec) ) /Time_Fact;
       }
    else
@@ -25,9 +29,11 @@ static float etime (struct  timeval  *t, int Report  )
          t->tv_usec = tn.tv_usec;
          delta_t = 0.0;
       }
-      
-   return (delta_t);  
+
+   return (delta_t);
 }
+
+/*----------------------------------------------------------------------------*/
 
 static void vstep_print(void)
 {
@@ -44,25 +50,26 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *xset=NULL ;
    int nopt=1 , do_automask=0 ;
    int nvox , nvals , ii,jj,kk , polort=1 , ntime ;
-   float *xsar , *ysar ; float acc,cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
+   float *xsar ; float acc,cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
    byte *mask=NULL ; int nxmask=0,nymask=0,nzmask=0 , nmask=0 , vstep=0 ;
-   int nref=0 , iv=0, N_iv=0, Tbone=0; 
+   int nref=0 , iv=0, N_iv=0, Tbone=0;
    float **ref=NULL, t0=0.0, t1=0.0, ti=0.0;
    MRI_IMAGE *ortim=NULL ; float *ortar=NULL ;
    int *indx=NULL ; MRI_IMARR *timar=NULL ;
    char *Mprefix=NULL ; THD_3dim_dataset *Mset=NULL ; float *Mar=NULL ;
    char *Zprefix=NULL ; THD_3dim_dataset *Zset=NULL ; float *Zar=NULL ;
    char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
-   char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ; 
+   char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ;
       float Thresh=0.0f ;
-   char *Tvprefix=NULL ; THD_3dim_dataset *Tvset=NULL ; 
+   char *Tvprefix=NULL ; THD_3dim_dataset *Tvset=NULL ;
       float **Tvar=NULL ; float  *Threshv=NULL, *Tvcount=NULL ;
    char stmp[256];
    int nout=0 ;
    int isodd ;  /* 29 Apr 2009: for unrolling innermost dot product */
    struct  timeval  tt;
    float dtt=0.0;
-   
+   float *ccar=NULL ; /* 29 Apr 2009: for OpenMP usage */
+
    /*----*/
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
@@ -98,6 +105,23 @@ int main( int argc , char *argv[] )
        "-- For Kyle, AKA the new Pat.\n"
        "-- RWCox - August 2008.\n"
             ) ;
+#ifdef USE_OMP
+     printf(
+       "\n"
+       " *************************************************************************\n"
+       "* This version of 3dTcorrMap is compiled using OpenMP, a semi-automatic\n"
+       "   parallelizer software toolkit.  The number of CPU threads used will\n"
+       "   default to the maximum number on your system.  You can control this\n"
+       "   value by setting environment variable OMP_NUM_THREADS to some smaller\n"
+       "   value (including 1).  Setting OMP_NUM_THREADS to 0 resets OpenMP back\n"
+       "   to its default state of using all CPUs available.\n"
+       "* OpenMP may or may not speed up the program significantly.\n"
+       "* The number of CPUs on this particular computer system is %d.\n"
+       " *************************************************************************\n"
+       , omp_get_num_procs()
+     ) ;
+#endif
+
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -152,39 +176,39 @@ int main( int argc , char *argv[] )
       }
       if( strcasecmp(argv[nopt],"-VarThresh") == 0 ||
           strcasecmp(argv[nopt],"-VarThreshN") == 0 ){
-         
+
          if (nopt+4 >= argc) {
             ERROR_exit("Need three values and a prefix after -VarThresh*");
          }
-         
+
          Tbone = !strcasecmp(argv[nopt],"-VarThreshN");
-         
+
          t0 = (float)strtod(argv[++nopt],NULL) ;
          t1 = (float)strtod(argv[++nopt],NULL) ;
          ti = (float)strtod(argv[++nopt],NULL) ;
          N_iv = (int)((t1-t0)/ti)+1;
-         if( t0 <= 0.0f || t0 >= 0.99f ) 
+         if( t0 <= 0.0f || t0 >= 0.99f )
             ERROR_exit("Illegal 1st value of %g after -VarThresh* ",t0) ;
-         if( t1 <= 0.0f || t1 >= 0.99f ) 
+         if( t1 <= 0.0f || t1 >= 0.99f )
             ERROR_exit("Illegal 2nd value of %g after -VarThresh* ",t1) ;
-         if( ti <= 0.0f || ti >= 0.99f ) 
+         if( ti <= 0.0f || ti >= 0.99f )
             ERROR_exit("Illegal 3rd value of %g after -VarThresh* ",ti) ;
-         if (N_iv <= 0) 
+         if (N_iv <= 0)
             ERROR_exit("Bad combination of values after -VarThresh* ") ;
-         Threshv = (float *)calloc(N_iv+1, sizeof(float)); 
+         Threshv = (float *)calloc(N_iv+1, sizeof(float));
          for (iv=0; iv<N_iv; ++iv) {
             Threshv[iv] = t0 + (float)iv*ti;
          }
-         
+
          Tvprefix = argv[++nopt] ; nout++ ;
-         if( !THD_filename_ok(Tvprefix) ) 
+         if( !THD_filename_ok(Tvprefix) )
             ERROR_exit("Illegal prefix after -VarThresh*!\n") ;
-         
+
          INFO_message("VarThresh mode with %d levels\n", N_iv);
-         
+
          nopt++ ; continue ;
       }
-      
+
       if( strcasecmp(argv[nopt],"-polort") == 0 ){
          char *cpt ;
          int val = (int)strtod(argv[++nopt],&cpt) ;
@@ -356,9 +380,9 @@ int main( int argc , char *argv[] )
                         ADN_type      , HEAD_FUNC_TYPE ,
                         ADN_func_type , FUNC_BUCK_TYPE ,
                       ADN_none ) ;
-     Tvar = (float **)calloc(N_iv,sizeof(float*));
-     Tvcount = (float *)calloc(N_iv,sizeof(float));
-     for (iv=0; iv<N_iv; ++iv) {
+     Tvar    = (float **)calloc(N_iv,sizeof(float*));
+     Tvcount = (float * )calloc(N_iv,sizeof(float ));
+     for( iv=0 ; iv < N_iv ; ++iv ){
       EDIT_substitute_brick( Tvset , iv , MRI_float , NULL ) ;
       Tvar[iv] = DSET_ARRAY(Tvset,iv) ;  /* get array  */
       EDIT_BRICK_TO_NOSTAT(Tvset,iv) ;
@@ -371,7 +395,7 @@ int main( int argc , char *argv[] )
                   DSET_HEADNAME(Tvset)) ;
      tross_Make_History( "3dTcorrMap" , argc,argv , Tvset ) ;
    }
-   
+
    /*--- load input data and pre-process it ---*/
 
    INFO_message("Loading input dataset") ;
@@ -432,97 +456,123 @@ int main( int argc , char *argv[] )
    vstep = (nmask > 999) ? nmask/50 : 0 ;
 
    isodd = (ntime%2 == 1) ;
-   
+   ccar = (float *)malloc(sizeof(float)*nmask) ;  /* 29 Apr 2009 */
+
    /* initialize timer */
    etime(&tt,0);
-   
-   for( ii=0 ; ii < nmask ; ii++ ){  /* time series to correlate with */
 
-     if( vstep && ii%vstep==vstep-1 ) {
-      if (ii < vstep) {
-         dtt = etime(&tt,1);
+   /* 29 Apr 2009: print # of threads message to amuse the user */
+
+#ifdef USE_OMP
+#pragma omp parallel
+ {
+  if( omp_get_thread_num() == 0 )
+    INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
+ }
+#else
+ INFO_message("Start the long long loop through all voxels") ;
+#endif
+
+   for( ii=0 ; ii < nmask ; ii++ ){  /* outer loop over voxels: */
+                                     /* time series to correlate with */
+
+     if( vstep && ii%vstep == vstep-1 ){
+       if( ii < vstep ){
+         dtt = etime(&tt,1) ;
          ININFO_message("Single loop duration: %.3f mins\n"
-                        "   Remaining    time: %.3f hrs\n",
-                        dtt/60.0, dtt/3600.0*49.0);
+                     "   Remaining time estim: %.3f mins = %.3f hrs\n",
+                        dtt/60.0, dtt/60.0*49.0 , dtt/3600.0*49.0 ) ;
          fprintf(stderr,"++ Voxel loop: ") ;
-      }
-      vstep_print() ;
+       }
+       vstep_print() ;
      }
-     xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,ii) ) ;
 
-     Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
-     for(iv=0; iv<N_iv; ++iv) Tvcount[iv] = 0.0f ;
-     for( jj=0 ; jj < nmask ; jj++ ){  
-                  /* loop over other voxels, correlate w/ii */
+     xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,ii) ) ;  /* ii-th time series */
 
-       if( jj==ii ) continue ;
-       ysar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,jj) ) ;
+#pragma omp parallel
+ { int vv,uu ; float *ysar ; float qcc ;
+#pragma omp for
+     for( vv=0 ; vv < nmask ; vv++ ){ /* inner loop over voxels */
+
+       if( vv==ii ){ ccar[vv] = 0.0f ; continue ; }
+       ysar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,vv) ) ;
 
        /** dot products (unrolled by 2 on 29 Apr 2009) **/
 
        if( isodd ){
-         for( cc=xsar[0]*ysar[0],kk=1 ; kk < ntime ; kk+=2 )
-           cc += xsar[kk]*ysar[kk] + xsar[kk+1]*ysar[kk+1] ;
+         for( qcc=xsar[0]*ysar[0],uu=1 ; uu < ntime ; uu+=2 )
+           qcc += xsar[uu]*ysar[uu] + xsar[uu+1]*ysar[uu+1] ;
        } else {
-         for( cc=0.0f,kk=0 ; kk < ntime ; kk+=2 )
-           cc += xsar[kk]*ysar[kk] + xsar[kk+1]*ysar[kk+1] ;
+         for( qcc=0.0f,uu=0 ; uu < ntime ; uu+=2 )
+           qcc += xsar[uu]*ysar[uu] + xsar[uu+1]*ysar[uu+1] ;
        }
+       ccar[vv] = qcc ; /* save correlation in ccar for later (OpenMP mod) */
+     } /* end of inner loop over voxels (vv) */
+ } /* end OpenMP */
 
+     /** combine results in ccar to give output values **/
+
+     Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
+     for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
+
+     for( jj=0 ; jj < nmask ; jj++ ){
+       if( jj == ii ) continue ;
+       cc = ccar[jj] ;
        Mcsum += cc ;
        Zcsum += 0.5f * logf((1.0001f+cc)/(1.0001f-cc));
        Qcsum += cc*cc ;
-       if (cc<0) acc = -cc;
-       else acc = cc;
-       
+       acc = (cc < 0) ? -cc : cc ;
        if( acc >= Thresh ) Tcount++ ;
-       if (Threshv) {
-          iv=N_iv - 1;
-          while (iv > -1) {
-            if( acc >= Threshv[iv]) {
-                do { Tvcount[iv--]++; } while (iv > -1);
+       if( Threshv ){
+          iv = N_iv - 1 ;
+          while( iv > -1 ){
+            if( acc >= Threshv[iv] ){
+              do { Tvcount[iv--]++; } while (iv > -1);
             }
             --iv;
           }
         }
-     }
+     } /* end of combining */
+
      if( Mar != NULL ) Mar[indx[ii]] = Mcsum / (nmask-1.0f) ;
      if( Zar != NULL ) Zar[indx[ii]] = tanh( Zcsum / (nmask-1.0f) ) ;
      if( Qar != NULL ) Qar[indx[ii]] = sqrt( Qcsum / (nmask-1.0f) ) ;
      if( Tar != NULL ) Tar[indx[ii]] = Tcount ;
-     if( Tvar != NULL ) for (iv=0; iv<N_iv; ++iv) {
-                           Tvar[iv][indx[ii]] = Tvcount[iv] ;
-                        }
+     if( Tvar != NULL ){
+       for(iv=0 ; iv < N_iv ; ++iv ) Tvar[iv][indx[ii]] = Tvcount[iv] ;
+     }
 
-   }
+   } /* end of outer loop over voxels (ii) */
+
    if (Tbone) { /* scale by expected number of voxels by chance */
       float p[3], sc, pval;
       p[0] = (float)ntime;
       p[1] = 1.0;
       p[2] = (float)nref;
       for (iv=0; iv<N_iv; ++iv)  {
-         pval = THD_stat_to_pval (Threshv[iv], NI_STAT_CORREL, p); 
+         pval = THD_stat_to_pval (Threshv[iv], NI_STAT_CORREL, p);
          sc =  (float) DSET_NVOX(Tvset) * pval;
          if (sc < 0.05) sc = 0.05;
-         /* 
+         /*
          fprintf(stderr,"Scaling sb %d with threshold %.2f\n"
                         "and p %.5f by %f\n",
                         iv, Threshv[iv],
-                        pval, sc); 
+                        pval, sc);
          */
          for( ii=0 ; ii < nmask ; ii++ ) Tvar[iv][indx[ii]] /= sc;
       }
    }
-   
+
    if( vstep ) fprintf(stderr,"!\n") ;
 
    /*--- finito ---*/
 
-   free(indx) ; DESTROY_IMARR(timar) ;
-   
+   free(indx) ; DESTROY_IMARR(timar) ; free(ccar) ;
+
    if (Tvar) free(Tvar); Tvar = NULL;
    if (Threshv) free(Threshv); Threshv=NULL;
    if (Tvcount) free(Tvcount); Tvcount=NULL;
-   
+
    if( Mset != NULL ){
      DSET_write(Mset) ; WROTE_DSET(Mset) ; DSET_delete(Mset) ;
    }
