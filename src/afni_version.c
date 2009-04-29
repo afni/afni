@@ -481,10 +481,12 @@ ENTRY("AFNI_display_motd") ;
      "%s\n"
      , url , buf );
 
-     if( w != NULL )
+     if( w != NULL ){
+       MCW_textwin_setbig(1) ;  /* 29 Apr 2009 */
        (void) new_MCW_textwin( w , msg , TEXT_READONLY );
-     else
+     } else {
        fputs(msg,stderr) ;
+     }
 
      free(msg) ; free(buf) ;
    } else {
