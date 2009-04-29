@@ -199,6 +199,7 @@ typedef struct {
 extern MCW_textwin * new_MCW_textwin( Widget, char *, int ) ;
 extern void MCW_textwin_CB( Widget , XtPointer , XtPointer ) ;
 extern void MCW_textwinkill_CB( Widget , XtPointer , XtPointer ) ;
+extern void MCW_textwin_setbig( int b ) ; /* 29 Apr 2009 */
 
 extern void MCW_textwin_alter( MCW_textwin * , char * ) ; /* 10 Jul 2001 */
 extern MCW_textwin * new_MCW_textwin_2001(Widget,char *,int,void_func *,XtPointer);

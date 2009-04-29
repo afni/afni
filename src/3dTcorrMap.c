@@ -31,6 +31,7 @@ int main( int argc , char *argv[] )
    char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
    char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ; float Thresh=0.0f ;
    int nout=0 ;
+   int isodd ;  /* 29 Apr 2009: for unrolling innermost dot product */
 
    /*----*/
 
@@ -340,6 +341,8 @@ int main( int argc , char *argv[] )
    vstep = (nmask > 999) ? nmask/50 : 0 ;
    if( vstep ) fprintf(stderr,"++ Voxel loop: ") ;
 
+   isodd = (ntime%2 == 1) ;
+
    for( ii=0 ; ii < nmask ; ii++ ){  /* time series to correlate with */
 
      if( vstep && ii%vstep==vstep-1 ) vstep_print() ;
@@ -351,7 +354,15 @@ int main( int argc , char *argv[] )
        if( jj==ii ) continue ;
        ysar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,jj) ) ;
 
-       for( cc=0.0f,kk=0 ; kk < ntime ; kk++ ) cc += xsar[kk]*ysar[kk] ;
+       /** dot products (unrolled by 2 on 29 Apr 2009) **/
+
+       if( isodd ){
+         for( cc=xsar[0]*ysar[0],kk=1 ; kk < ntime ; kk+=2 )
+           cc += xsar[kk]*ysar[kk] + xsar[kk+1]*ysar[kk+1] ;
+       } else {
+         for( cc=0.0f,kk=0 ; kk < ntime ; kk+=2 )
+           cc += xsar[kk]*ysar[kk] + xsar[kk+1]*ysar[kk+1] ;
+       }
 
        Mcsum += cc ;
        Zcsum += 0.5f * logf((1.0001f+cc)/(1.0001f-cc));
