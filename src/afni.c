@@ -4216,6 +4216,7 @@ ENTRY("AFNI_inconstancy_check") ;
      sprintf(msg+strlen(msg),
             "\n===== This is known as the Mike Beauchamp SINdrome =====\n"
               "===== Funky things may happen with these datasets! =====\n" ) ;
+     MCW_textwin_setbig(1) ;
      (void)new_MCW_textwin( wp , msg , TEXT_READONLY ) ;
      free((void *)msg) ;
      for(ii=0;ii<nbad;ii++)free((void *)sbad[ii]);
@@ -8516,7 +8517,7 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW        ){
 
       if( ISQ_REALZ(seq) && CAN_TALTO(im3d) ){
-         MCW_choose_string( seq->wbar , "Enter MNI x,y,z (LPI mm):" , 
+         MCW_choose_string( seq->wbar , "Enter MNI x,y,z (LPI mm):" ,
                             last_mnito_string ,
                             AFNI_mnito_CB , (XtPointer) im3d ) ;
       } else {
@@ -8584,10 +8585,16 @@ ENTRY("AFNI_imag_pop_CB") ;
       /*- open a window to show it -*/
 
       if( tlab != NULL ){
+         char *eee = getenv("AFNI_TTATLAS_FONTSIZE") ;
+
+         if( eee != NULL ){
+                if( *eee == 'B' || *eee == 'b' || isdigit(*eee) ) MCW_textwin_setbig( 1);
+           else if( *eee == 'S' || *eee == 's' || *eee == '-'   ) MCW_textwin_setbig(-1);
+         }
 
          im3d->vwid->imag->pop_whereami_twin =
-           new_MCW_textwin_2001( seq->wbar , tlab , TEXT_READONLY ,
-                                 AFNI_pop_whereami_kill , im3d     ) ;
+           new_MCW_textwin_2001( im3d->vwid->imag->crosshair_label , tlab ,
+                                 TEXT_READONLY , AFNI_pop_whereami_kill , im3d ) ;
 
 #if 0
          /* 31 Jul 2001: NULL out the pointer when the window is destroyed */
