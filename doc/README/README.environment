@@ -2455,6 +2455,16 @@ If this YES/NO variable is set to NO, then the warning about the potential
 errors in the "Where am I?" popup will not appear.  This is purely for
 cosmetic purposes, Ziad.
 
+-------------------------------
+Variable: AFNI_TTATLAS_FONTSIZE
+-------------------------------
+If this variable is not set, the default font size is used in the 'Where am I?'
+popup window.
+If this variable is set to 'BIG' or a positive number, then a larger font
+size is used.
+If this variable is set to 'SMALL' or a negative number, then a smaller font
+size is used.
+
 --------------------------
 Variable: AFNI_AUTO_RESCAN
 --------------------------
