@@ -646,6 +646,7 @@ typedef struct {
       Widget         misc_environ_pb ;  /* 20 Jun 2000 */
       Widget         misc_2dchain_pb ;  /* 03 Jul 2000 */
       Widget         misc_1dchain_pb ;  /* 07 Aug 2001 */
+      Widget         misc_instacorr_pb; /* 29 Apr 2009 */
 #endif
 
       MCW_bbox     * ijk_lock_bbox ;    /* 11 Sep 2000 */
