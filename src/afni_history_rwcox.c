@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , APR , 2009 , RWC , "3dTcorrMap" , MICRO , TYPE_GENERAL ,
+   "unroll innermost loop -- makes little difference :-(" ,
+   NULL } ,
+
+ { 29 , APR , 2009 , RWC , "afni" , MINOR , TYPE_NEW_ENV ,
+   "Make 'Where am I?' font size user controllable." ,
+   "via AFNI_TTATLAS_FONTSIZE environment variable (editable)." } ,
+
  { 28 , APR , 2009 , RWC , "3dDeconvolve" , MINOR , TYPE_NEW_OPT ,
    "Add duration argument to SPMGx basis functions for deconvolution." ,
    "For Tracy Doty, apparently." } ,

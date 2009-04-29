@@ -653,6 +653,7 @@ ENTRY("AFNI_pbar_CB") ;
 
    else if( w == im3d->vwid->func->pbar_showtable_pb ){
       char *dum = dump_PBAR_palette_table(1) ;
+      MCW_textwin_setbig(1) ;
       new_MCW_textwin( im3d->vwid->func->options_label, dum, TEXT_READONLY ) ;
       free(dum) ;
    }

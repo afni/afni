@@ -485,6 +485,13 @@ PLUGIN_interface * ENV_init(void)
                     "Duplication factor for MPEG save" ,
                     1,99,0,1 , NULL ) ;
 
+   /* 29 Apr 2009 [RWCox] */
+   { static char *fsize[3] = { "Normal" , "Big" , "Small" } ;
+     ENV_add_string( "AFNI_TTATLAS_FONTSIZE" ,
+                     "Size of 'Where am I?' window font" ,
+                     3 , fsize , NULL  ) ;
+   }
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
