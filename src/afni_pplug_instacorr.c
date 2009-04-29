@@ -26,10 +26,8 @@ static char * ICOR_main( PLUGIN_interface * ) ;
 
 PLUGIN_interface * ICOR_init(void)
 {
-   PLUGIN_interface * plint ;     /* will be the output of this routine */
-   int ii , num , ll ;
-   char str[16] ;
-   MCW_function_list * rlist ;
+   PLUGIN_interface *plint ;     /* will be the output of this routine */
+   static char *yn[2] = { "No" , "Yes" } ;
 
    /*---------------- set titles and call point ----------------*/
 
@@ -55,8 +53,9 @@ PLUGIN_interface * ICOR_init(void)
    PLUTO_add_dataset( plint , "Dataset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_number ( plint , "Index" , 0,99999,0,0,TRUE ) ;
+   PLUTO_add_string ( plint , "Auto"  , 2 , yn , 1 ) ;
 
-   PLUTO_add_option    ( plint , "Global Ort" , "GlobalOrts" , FALSE ) ;
+   PLUTO_add_option    ( plint , "Global Orts" , "GlobalOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
 
    PLUTO_add_option    ( plint , "Slice Orts" , "SliceOrts" , FALSE ) ;
