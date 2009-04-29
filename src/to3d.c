@@ -5568,7 +5568,10 @@ ENTRY("T3D_geometry_parent_CB") ;
    }
 
    FILENAME_TO_PREFIX(new_path,new_pref) ;
-   if( strlen(new_pref) == 0 ) strcat(new_path,"+orig") ;
+
+   /* no +orig if file has known extension       29 Apr 2009 [rickr] */
+   if( strlen(new_pref) == 0 && !has_known_non_afni_extension(new_path) )
+      strcat(new_path,"+orig") ;
 
    /* read dataset from this path */
 

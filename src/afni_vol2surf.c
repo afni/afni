@@ -408,3 +408,95 @@ ENTRY("map_v2s_results");
    RETURN(map_index) ;  /* number of entries in map */
 }
 
+
+/*-----------------------------------------------------------------------*/
+/*! Return the vol2surf time series data at a single node.
+ *
+ *      sess    : session to get surfaces from (e.g. im3d->ss_now)
+ *      dset    : dataset to get values from (e.g. im3d->anat_now)
+ *      surf    : surface index (will use LDP of this surface)
+ *                              (e.g. in {0..from im3d->ss_now->su_num-1})
+ *      node    : node index in surface
+ *
+ *  Note: surf/node might come from AFNI_get_xhair_node(), say.
+ *
+ *  returns: a pointer to the float data or NULL on failure.
+ *
+ *  Array will be of length DSET_NVALS(dset), and should be free'd by
+ *  the calling function.
+ * ----------------------------------------------------------------------*/
+float * AFNI_v2s_node_timeseries(THD_session * sess, THD_3dim_dataset * dset,
+                                 int surfA, int surfB, int node, int use_v2s)
+{
+   v2s_results     * results = NULL;
+   v2s_opts_t        sopt;
+   SUMA_surface    * sA, * sB;
+   float           * ts = NULL;  /* time series to return */
+   int               ind, len, verb = gv2s_plug_opts.sopt.debug;
+
+   ENTRY("AFNI_v2s_node_timeseries");
+
+   if( !sess || !dset || surfA < 0 ){
+      fprintf(stderr,"** v2s_node_ts - bad inputs: %p,%p,%d\n",sess,dset,surfA);
+      RETURN(NULL);
+   }
+
+   sA = (surfA >= 0) ? sess->su_surf[surfA] : NULL;
+   sB = (surfB >= 0) ? sess->su_surf[surfB] : NULL;
+
+   /* check and apply the node index */
+   if( node < 0 || node >= sA->num_ixyz ) {
+      fprintf(stderr,"** v2s_NTS: node %d outside [0,%d)\n",node,sA->num_ixyz);
+      RETURN(NULL);
+   } else if( verb > 1 )
+      fprintf(stderr,"-- v2s_NTS: getting time series at node %d\n", node);
+
+   /* fill options struct (from defaults or plugin opts) */
+   if( use_v2s ) {
+      /* is using plugin, nuke any gp_index, filenames or structs */
+      sopt = gv2s_plug_opts.sopt;
+
+      sopt.gp_index = -1;  /* get all sub-bricks */
+      sopt.outfile_1D = sopt.outfile_niml = sopt.segc_file = NULL;
+      memset(&sopt.cmd, 0, sizeof(v2s_cmd_t));
+      memset(&sopt.oob, 0, sizeof(v2s_oob_t));
+      memset(&sopt.oom, 0, sizeof(v2s_oob_t));
+   } else
+      v2s_fill_sopt_default(&sopt, sB ? 2 : 1);
+
+   sopt.skip_cols = V2S_SKIP_ALL;               /* get data only */
+   sopt.first_node = sopt.last_node = node;     /* get only 1 node */
+   if( verb > 2 ) sopt.dnode = node;            /* maybe make verbose */
+
+   /* get the results */
+   results = opt_vol2surf(dset, &sopt, sA, sB, NULL);
+   if( !results ) RETURN(NULL);
+
+   /* extract single time series */
+   len = DSET_NVALS(dset);
+   if( len != results->nlab ){
+      fprintf(stderr,"** v2s_NTS: nvals != nlab (%d, %d)\n",len,results->nlab);
+      free_v2s_results(results); RETURN(NULL);
+   }
+
+   ts = (float *)malloc(len*sizeof(float));
+   if( !ts ) {
+      fprintf(stderr,"** v2s_NTS: failed to alloc %d floats\n", len);
+      free_v2s_results(results); RETURN(NULL);
+   }
+
+   /* actually fill the array, woohoo! */
+   for( ind = 0; ind < len; ind++ ) {
+      if( results->nvals[ind] != 1 ) {
+         fprintf(stderr,"** v2s_NTS: nvals[%d] = %d (should be 1)\n",
+                 ind, results->nvals[ind]);
+         free(ts);  ts = NULL;  break;
+      }
+      ts[ind] = results->vals[ind][0];
+   }
+
+   free_v2s_results(results);
+
+   RETURN(ts);
+}
+

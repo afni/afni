@@ -646,7 +646,6 @@ typedef struct {
       Widget         misc_environ_pb ;  /* 20 Jun 2000 */
       Widget         misc_2dchain_pb ;  /* 03 Jul 2000 */
       Widget         misc_1dchain_pb ;  /* 07 Aug 2001 */
-      Widget         misc_instacorr_pb; /* 29 Apr 2009 */
 #endif
 
       MCW_bbox     * ijk_lock_bbox ;    /* 11 Sep 2000 */
@@ -1164,6 +1163,8 @@ extern void AFNI_display_hist( Widget w ) ;       /* 05 Mar 2008 */
 extern int AFNI_vnlist_func_overlay( Three_D_View *,int, SUMA_irgba **,int * ) ;
 extern int AFNI_vol2surf_func_overlay( Three_D_View *, SUMA_irgba **,
                                        int, int, int, float **, float * );
+extern float * AFNI_v2s_node_timeseries(THD_session *, THD_3dim_dataset *,
+                                int, int, int, int);  /* 29 Apr 2009 [rickr] */
 
 extern void AFNI_parse_args( int argc , char * argv[] );
 
