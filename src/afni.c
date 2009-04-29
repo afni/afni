@@ -1212,6 +1212,7 @@ static char *FALLback[] =
       "AFNI*help*waitPeriod:       1066"                 ,
       "AFNI*help*fontList:         9x15bold=charset1"    ,
       "AFNI*cluefont:              9x15bold"             ,
+      "AFNI*bigtext*fontList:      10x20=charset1"       ,
       "AFNI*help*cancelWaitPeriod: 333"                  ,
       "AFNI*XmList.translations: #augment"                /* 24 Feb 2007 */
            "<Btn4Down>: ListPrevItem()\\n"

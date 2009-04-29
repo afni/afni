@@ -1188,6 +1188,9 @@ MCW_textwin * new_MCW_textwin( Widget wpar, char *msg, int type )
    return new_MCW_textwin_2001( wpar,msg,type , NULL,NULL ) ;
 }
 
+static int bigtext = 0 ;
+void MCW_textwin_setbig( int b ){ bigtext = b ; }  /* 29 Apr 2009 */
+
 /*-----------------------------------------------------------------------
    Modified 10 Jul 2001 to include killing callback
 -------------------------------------------------------------------------*/
@@ -1202,12 +1205,15 @@ MCW_textwin * new_MCW_textwin_2001( Widget wpar, char *msg, int type,
    Screen *scr ;
    Boolean editable , cursorable ;
    Arg wa[64] ; int na ; Widget ws ;
+   char *wtype = "menu" ;
 
 ENTRY("new_MCW_textwin_2001") ;
 
    /*-- sanity check --*/
 
    if( wpar == NULL || !XtIsRealized(wpar) ) RETURN(NULL) ;
+
+   if( bigtext ){ wtype = "bigtext" ; bigtext = 0 ; }
 
    /* set position based on parent and screen geometry */
 
@@ -1298,7 +1304,7 @@ ENTRY("new_MCW_textwin_2001") ;
                   NULL ) ;
 
    tw->wtext = XtVaCreateManagedWidget(
-                    "menu" , xmTextWidgetClass , tw->wscroll ,
+                    wtype , xmTextWidgetClass , tw->wscroll ,
                        XmNeditMode               , XmMULTI_LINE_EDIT ,
                        XmNautoShowCursorPosition , cursorable ,
                        XmNeditable               , editable ,
