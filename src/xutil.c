@@ -1213,7 +1213,9 @@ ENTRY("new_MCW_textwin_2001") ;
 
    if( wpar == NULL || !XtIsRealized(wpar) ) RETURN(NULL) ;
 
-   if( bigtext ){ wtype = "bigtext" ; bigtext = 0 ; }
+        if( bigtext > 0 ) wtype = "bigtext" ;  /* 29 Apr 2009 */
+   else if( bigtext < 0 ) wtype = "font8"   ;
+   bigtext = 0 ;
 
    /* set position based on parent and screen geometry */
 
@@ -1241,7 +1243,7 @@ ENTRY("new_MCW_textwin_2001") ;
    tw->kill_data = kill_data ;
 
    tw->wshell = XtVaCreatePopupShell(
-                 "menu" , xmDialogShellWidgetClass , wpar ,
+                 wtype , xmDialogShellWidgetClass , wpar ,
                     XmNx , xpr ,
                     XmNy , ypr ,
                     XmNborderWidth , 0 ,
@@ -1257,7 +1259,7 @@ ENTRY("new_MCW_textwin_2001") ;
    /* create a form to hold everything else */
 
    tw->wtop = XtVaCreateWidget(
-                "menu" , xmFormWidgetClass , tw->wshell ,
+                wtype , xmFormWidgetClass , tw->wshell ,
                   XmNborderWidth , 0 ,
                   XmNborderColor , 0 ,
                   XmNtraversalOn , True  ,
@@ -1281,7 +1283,7 @@ ENTRY("new_MCW_textwin_2001") ;
    /* create text area */
 
    tw->wscroll = XtVaCreateManagedWidget(
-                    "menu" , xmScrolledWindowWidgetClass , tw->wtop ,
+                    wtype , xmScrolledWindowWidgetClass , tw->wtop ,
                        XmNscrollingPolicy        , XmAUTOMATIC ,
                        XmNvisualPolicy           , XmVARIABLE ,
                        XmNscrollBarDisplayPolicy , XmAS_NEEDED ,
