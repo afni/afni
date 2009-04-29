@@ -5,6 +5,29 @@
 #define QMEAN    3
 
 /*----------------------------------------------------------------------------*/
+static float etime (struct  timeval  *t, int Report  )
+{/*etime*/
+   struct  timeval  tn;
+   float Time_Fact = 1000000.0;
+   float delta_t;
+
+   /* get time */
+   gettimeofday(&tn, NULL);
+   
+   if (Report)
+      {
+         delta_t = ( ( (float)(tn.tv_sec - t->tv_sec)*Time_Fact) + 
+                       (float)(tn.tv_usec - t->tv_usec) ) /Time_Fact;
+      }
+   else
+      {
+         t->tv_sec = tn.tv_sec;
+         t->tv_usec = tn.tv_usec;
+         delta_t = 0.0;
+      }
+      
+   return (delta_t);  
+}
 
 static void vstep_print(void)
 {
@@ -21,51 +44,59 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *xset=NULL ;
    int nopt=1 , do_automask=0 ;
    int nvox , nvals , ii,jj,kk , polort=1 , ntime ;
-   float *xsar , *ysar ; float cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
-   byte *mask=NULL ; int nxmask,nymask,nzmask , nmask , vstep=0 ;
-   int nref=0 ; float **ref=NULL ;
+   float *xsar , *ysar ; float acc,cc,csum,Mcsum,Zcsum,Qcsum , Tcount ;
+   byte *mask=NULL ; int nxmask=0,nymask=0,nzmask=0 , nmask=0 , vstep=0 ;
+   int nref=0 , iv=0, N_iv=0, Tbone=0; 
+   float **ref=NULL, t0=0.0, t1=0.0, ti=0.0;
    MRI_IMAGE *ortim=NULL ; float *ortar=NULL ;
    int *indx=NULL ; MRI_IMARR *timar=NULL ;
    char *Mprefix=NULL ; THD_3dim_dataset *Mset=NULL ; float *Mar=NULL ;
    char *Zprefix=NULL ; THD_3dim_dataset *Zset=NULL ; float *Zar=NULL ;
    char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
-   char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ; float Thresh=0.0f ;
+   char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ; 
+      float Thresh=0.0f ;
+   char *Tvprefix=NULL ; THD_3dim_dataset *Tvset=NULL ; 
+      float **Tvar=NULL ; float  *Threshv=NULL, *Tvcount=NULL ;
+   char stmp[256];
    int nout=0 ;
    int isodd ;  /* 29 Apr 2009: for unrolling innermost dot product */
-
+   struct  timeval  tt;
+   float dtt=0.0;
+   
    /*----*/
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dTcorrMap [options]\n"
-             "For each voxel, computes the correlation between it and all\n"
-             "other voxels, and averages these into the output.  Supposed\n"
-             "to give a measure of how 'connected' each voxel is to the\n"
-             "rest of the brain.  (As if life were that simple.)\n"
-             "\n"
-             "Options:\n"
-             "  -input dd = Read 3D+time dataset 'dd' (a mandatory option).\n"
-             "\n"
-             "  -Mean pp  = Save average correlations into dataset prefix 'pp'\n"
-             "  -Zmean pp = Save tanh of mean arctanh(correlation) into 'pp'\n"
-             "  -Qmean pp = Save RMS(correlation) into 'pp'\n"
-             "  -Thresh tt pp\n"
-             "            = Save the COUNT of how many voxels survived thresholding\n"
-             "              at level abs(rho) >= tt.\n"
-             "  [At least one of these output options must be given]\n"
-             "\n"
-             "  -polort m = Remove polynomical trend of order 'm', for m=-1..19.\n"
-             "               [default is m=1; removal is by least squares].\n"
-             "               Using m=-1 means no detrending; this is only useful\n"
-             "               for data/information that has been pre-processed.\n"
-             "  -ort rr   = 1D file with other time series to be removed\n"
-             "               (via least squares regression) before correlation.\n"
-             "\n"
-             "  -mask mm  = Read dataset 'mm' as a voxel mask.\n"
-             "  -automask = Create a mask from the input dataset.\n"
-             "\n"
-             "-- This purely experimental program is somewhat slow.\n"
-             "-- For Kyle, AKA the new Pat.\n"
-             "-- RWCox - August 2008.\n"
+      printf(
+       "Usage: 3dTcorrMap [options]\n"
+       "For each voxel, computes the correlation between it and all\n"
+       "other voxels, and averages these into the output.  Supposed\n"
+       "to give a measure of how 'connected' each voxel is to the\n"
+       "rest of the brain.  (As if life were that simple.)\n"
+       "\n"
+       "Options:\n"
+       "  -input dd = Read 3D+time dataset 'dd' (a mandatory option).\n"
+       "\n"
+       "  -Mean pp  = Save average correlations into dataset prefix 'pp'\n"
+       "  -Zmean pp = Save tanh of mean arctanh(correlation) into 'pp'\n"
+       "  -Qmean pp = Save RMS(correlation) into 'pp'\n"
+       "  -Thresh tt pp\n"
+       "            = Save the COUNT of how many voxels survived thresholding\n"
+       "              at level abs(rho) >= tt.\n"
+       "  [At least one of these output options must be given]\n"
+       "\n"
+       "  -polort m = Remove polynomical trend of order 'm', for m=-1..19.\n"
+       "               [default is m=1; removal is by least squares].\n"
+       "               Using m=-1 means no detrending; this is only useful\n"
+       "               for data/information that has been pre-processed.\n"
+       "  -ort rr   = 1D file with other time series to be removed\n"
+       "               (via least squares regression) before correlation.\n"
+       "\n"
+       "  -mask mm  = Read dataset 'mm' as a voxel mask.\n"
+       "  -automask = Create a mask from the input dataset.\n"
+       "\n"
+       "-- This purely experimental program is somewhat slow.\n"
+       "-- For Kyle, AKA the new Pat.\n"
+       "-- RWCox - August 2008.\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -119,7 +150,41 @@ int main( int argc , char *argv[] )
          if( !THD_filename_ok(Tprefix) ) ERROR_exit("Illegal prefix after -Thresh!\n") ;
          nopt++ ; continue ;
       }
-
+      if( strcasecmp(argv[nopt],"-VarThresh") == 0 ||
+          strcasecmp(argv[nopt],"-VarThreshN") == 0 ){
+         
+         if (nopt+4 >= argc) {
+            ERROR_exit("Need three values and a prefix after -VarThresh*");
+         }
+         
+         Tbone = !strcasecmp(argv[nopt],"-VarThreshN");
+         
+         t0 = (float)strtod(argv[++nopt],NULL) ;
+         t1 = (float)strtod(argv[++nopt],NULL) ;
+         ti = (float)strtod(argv[++nopt],NULL) ;
+         N_iv = (int)((t1-t0)/ti)+1;
+         if( t0 <= 0.0f || t0 >= 0.99f ) 
+            ERROR_exit("Illegal 1st value of %g after -VarThresh* ",t0) ;
+         if( t1 <= 0.0f || t1 >= 0.99f ) 
+            ERROR_exit("Illegal 2nd value of %g after -VarThresh* ",t1) ;
+         if( ti <= 0.0f || ti >= 0.99f ) 
+            ERROR_exit("Illegal 3rd value of %g after -VarThresh* ",ti) ;
+         if (N_iv <= 0) 
+            ERROR_exit("Bad combination of values after -VarThresh* ") ;
+         Threshv = (float *)calloc(N_iv+1, sizeof(float)); 
+         for (iv=0; iv<N_iv; ++iv) {
+            Threshv[iv] = t0 + (float)iv*ti;
+         }
+         
+         Tvprefix = argv[++nopt] ; nout++ ;
+         if( !THD_filename_ok(Tvprefix) ) 
+            ERROR_exit("Illegal prefix after -VarThresh*!\n") ;
+         
+         INFO_message("VarThresh mode with %d levels\n", N_iv);
+         
+         nopt++ ; continue ;
+      }
+      
       if( strcasecmp(argv[nopt],"-polort") == 0 ){
          char *cpt ;
          int val = (int)strtod(argv[++nopt],&cpt) ;
@@ -281,6 +346,32 @@ int main( int argc , char *argv[] )
      tross_Make_History( "3dTcorrMap" , argc,argv , Tset ) ;
    }
 
+   if( Tvprefix != NULL ){
+     Tvset = EDIT_empty_copy( xset ) ;
+     EDIT_dset_items( Tvset ,
+                        ADN_prefix    , Tvprefix        ,
+                        ADN_nvals     , N_iv              ,
+                        ADN_ntt       , 0              ,
+                        ADN_brick_fac , NULL           ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+     Tvar = (float **)calloc(N_iv,sizeof(float*));
+     Tvcount = (float *)calloc(N_iv,sizeof(float));
+     for (iv=0; iv<N_iv; ++iv) {
+      EDIT_substitute_brick( Tvset , iv , MRI_float , NULL ) ;
+      Tvar[iv] = DSET_ARRAY(Tvset,iv) ;  /* get array  */
+      EDIT_BRICK_TO_NOSTAT(Tvset,iv) ;
+      if (Tbone) sprintf(stmp,"nTc%.3f", Threshv[iv]);
+      else sprintf(stmp,"Tc%.3f", Threshv[iv]);
+      EDIT_BRICK_LABEL(Tvset, iv, stmp);
+     }
+     if( THD_deathcon() && THD_is_file(DSET_HEADNAME(Tvset)) )
+       ERROR_exit("Output dataset %s already exists!",
+                  DSET_HEADNAME(Tvset)) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , Tvset ) ;
+   }
+   
    /*--- load input data and pre-process it ---*/
 
    INFO_message("Loading input dataset") ;
@@ -339,17 +430,30 @@ int main( int argc , char *argv[] )
    /*--- loop over voxels, correlate (lots of CPU time now) ---*/
 
    vstep = (nmask > 999) ? nmask/50 : 0 ;
-   if( vstep ) fprintf(stderr,"++ Voxel loop: ") ;
 
    isodd = (ntime%2 == 1) ;
-
+   
+   /* initialize timer */
+   etime(&tt,0);
+   
    for( ii=0 ; ii < nmask ; ii++ ){  /* time series to correlate with */
 
-     if( vstep && ii%vstep==vstep-1 ) vstep_print() ;
+     if( vstep && ii%vstep==vstep-1 ) {
+      if (ii < vstep) {
+         dtt = etime(&tt,1);
+         ININFO_message("Single loop duration: %.3f mins\n"
+                        "   Remaining    time: %.3f hrs\n",
+                        dtt/60.0, dtt/3600.0*49.0);
+         fprintf(stderr,"++ Voxel loop: ") ;
+      }
+      vstep_print() ;
+     }
      xsar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,ii) ) ;
 
      Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
-     for( jj=0 ; jj < nmask ; jj++ ){  /* loop over other voxels, correlate w/ii */
+     for(iv=0; iv<N_iv; ++iv) Tvcount[iv] = 0.0f ;
+     for( jj=0 ; jj < nmask ; jj++ ){  
+                  /* loop over other voxels, correlate w/ii */
 
        if( jj==ii ) continue ;
        ysar = MRI_FLOAT_PTR( IMARR_SUBIM(timar,jj) ) ;
@@ -367,20 +471,58 @@ int main( int argc , char *argv[] )
        Mcsum += cc ;
        Zcsum += 0.5f * logf((1.0001f+cc)/(1.0001f-cc));
        Qcsum += cc*cc ;
-       if( fabsf(cc) >= Thresh ) Tcount++ ;
+       if (cc<0) acc = -cc;
+       else acc = cc;
+       
+       if( acc >= Thresh ) Tcount++ ;
+       if (Threshv) {
+          iv=N_iv - 1;
+          while (iv > -1) {
+            if( acc >= Threshv[iv]) {
+                do { Tvcount[iv--]++; } while (iv > -1);
+            }
+            --iv;
+          }
+        }
      }
      if( Mar != NULL ) Mar[indx[ii]] = Mcsum / (nmask-1.0f) ;
      if( Zar != NULL ) Zar[indx[ii]] = tanh( Zcsum / (nmask-1.0f) ) ;
      if( Qar != NULL ) Qar[indx[ii]] = sqrt( Qcsum / (nmask-1.0f) ) ;
      if( Tar != NULL ) Tar[indx[ii]] = Tcount ;
+     if( Tvar != NULL ) for (iv=0; iv<N_iv; ++iv) {
+                           Tvar[iv][indx[ii]] = Tvcount[iv] ;
+                        }
 
    }
+   if (Tbone) { /* scale by expected number of voxels by chance */
+      float p[3], sc, pval;
+      p[0] = (float)ntime;
+      p[1] = 1.0;
+      p[2] = (float)nref;
+      for (iv=0; iv<N_iv; ++iv)  {
+         pval = THD_stat_to_pval (Threshv[iv], NI_STAT_CORREL, p); 
+         sc =  (float) DSET_NVOX(Tvset) * pval;
+         if (sc < 0.05) sc = 0.05;
+         /* 
+         fprintf(stderr,"Scaling sb %d with threshold %.2f\n"
+                        "and p %.5f by %f\n",
+                        iv, Threshv[iv],
+                        pval, sc); 
+         */
+         for( ii=0 ; ii < nmask ; ii++ ) Tvar[iv][indx[ii]] /= sc;
+      }
+   }
+   
    if( vstep ) fprintf(stderr,"!\n") ;
 
    /*--- finito ---*/
 
    free(indx) ; DESTROY_IMARR(timar) ;
-
+   
+   if (Tvar) free(Tvar); Tvar = NULL;
+   if (Threshv) free(Threshv); Threshv=NULL;
+   if (Tvcount) free(Tvcount); Tvcount=NULL;
+   
    if( Mset != NULL ){
      DSET_write(Mset) ; WROTE_DSET(Mset) ; DSET_delete(Mset) ;
    }
@@ -392,6 +534,9 @@ int main( int argc , char *argv[] )
    }
    if( Tset != NULL ){
      DSET_write(Tset) ; WROTE_DSET(Tset) ; DSET_delete(Tset) ;
+   }
+   if( Tvset != NULL ){
+     DSET_write(Tvset) ; WROTE_DSET(Tvset) ; DSET_delete(Tvset) ;
    }
 
    INFO_message("total CPU time = %.2f s",COX_cpu_time()) ; exit(0) ;
