@@ -248,10 +248,26 @@ MRI_IMAGE * mri_matrix_psinv( MRI_IMAGE *imc , float *wt , float alpha )
 ENTRY("mri_matrix_psinv") ;
 
    if( imc == NULL || imc->kind != MRI_float ) RETURN( NULL );
-   m    = imc->nx ;  /* number of rows  in input */
-   n    = imc->ny ;  /* number of columns */
+   m = imc->nx ;  /* number of rows in input */
+   n = imc->ny ;  /* number of columns */
    if( PRINT_TRACING ){ char str[222]; sprintf(str,"m=%d n=%d",m,n); STATUS(str); }
+
+   /* deal with a single vector (of length m) [30 Apr 2009] */
+
    rmat = MRI_FLOAT_PTR(imc) ;
+
+   if( n == 1 ){
+     for( sum=0.0,ii=0 ; ii < m ; ii++ ) sum += rmat[ii]*rmat[ii] ;
+     imp = mri_new( 1 , m , MRI_float ) ;
+     if( sum > 0.0 ){
+       sum = 1.0 / sum ; pmat = MRI_FLOAT_PTR(imp) ;
+       for( ii=0 ; ii < m ; ii++ ) pmat[ii] = sum * rmat[ii] ;
+     }
+     return imp ;
+   }
+
+   /* OK, have a real matrix to handle here */
+
    amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
    xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
 

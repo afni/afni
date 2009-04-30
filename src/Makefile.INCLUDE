@@ -81,7 +81,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
            3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dUndump 3dREMLfit            \
-           3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD $(EXTRAS)
+           3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
+           $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -1157,6 +1158,10 @@ afni_vcheck:afni_vcheck.o
 	$(RM) $@
 	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
+1dBandpass:1dBandpass.o
+	$(RM) $@
+	$(CC) -o 1dBandpass 1dBandpass.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
 1dcat:1dcat.o
 	$(RM) $@
 	$(CC) -o 1dcat 1dcat.o $(LFLAGS) $(LLIBS)
@@ -1649,7 +1654,8 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o       \
            thd_brainormalize.o thd_opentcat.o thd_nimlatr.o thd_dsetatr.o \
            thd_logafni.o thd_dset_nbhd.o thd_vcheck.o thd_matdaxes.o      \
-           thd_niml.o afni_vedit.o thd_fdrcurve.o thd_dset_to_vectim.o
+           thd_niml.o afni_vedit.o thd_fdrcurve.o thd_dset_to_vectim.o    \
+           thd_bandpass.o
 
 # these are now included in NIML
 
@@ -2278,6 +2284,9 @@ whirlgif:whirlgif.h whirlgif.c
 
 extor.o:extor.c
 	$(CCFAST) -c extor.c $(INFLAGS)
+
+thd_detrend.o:thd_detrend.c
+	$(CCFAST) -c thd_detrend.c $(INFLAGS)
 
 extor:extor.o
 	$(CC) -o extor extor.o $(INFLAGS) $(LFLAGS) $(LLIBS)
