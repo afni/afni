@@ -464,9 +464,9 @@ float * AFNI_v2s_node_timeseries(THD_session * sess, THD_3dim_dataset * dset,
    } else
       v2s_fill_sopt_default(&sopt, sB ? 2 : 1);
 
-   sopt.skip_cols = V2S_SKIP_ALL;               /* get data only */
-   sopt.first_node = sopt.last_node = node;     /* get only 1 node */
-   if( verb > 2 ) sopt.dnode = node;            /* maybe make verbose */
+   sopt.skip_cols = V2S_SKIP_ALL ^ V2S_SKIP_VALS;  /* get all data */
+   sopt.first_node = sopt.last_node = node;        /* get only 1 node */
+   if( verb > 2 ) sopt.dnode = node;               /* maybe make verbose */
 
    /* get the results */
    results = opt_vol2surf(dset, &sopt, sA, sB, NULL);
@@ -486,17 +486,14 @@ float * AFNI_v2s_node_timeseries(THD_session * sess, THD_3dim_dataset * dset,
    }
 
    /* actually fill the array, woohoo! */
-   for( ind = 0; ind < len; ind++ ) {
-      if( results->nvals[ind] != 1 ) {
-         fprintf(stderr,"** v2s_NTS: nvals[%d] = %d (should be 1)\n",
-                 ind, results->nvals[ind]);
-         free(ts);  ts = NULL;  break;
-      }
+   if(verb > 3) fprintf(stderr,"-- v2s_NTS: copying %d vals for return\n",len);
+   for( ind = 0; ind < len; ind++ )
       ts[ind] = results->vals[ind][0];
-   }
 
+   if(verb > 3) fprintf(stderr,"-- v2s_NTS: freeing results... ");
    free_v2s_results(results);
 
+   if(verb > 3) fprintf(stderr,"done\n");
    RETURN(ts);
 }
 

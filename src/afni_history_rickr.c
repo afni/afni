@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, APR, 2009, RCR, "vol2surf", MINOR, TYPE_NEW_OPT,
+   "return a node v2s time series when afni changes xhair position",
+   NULL
+ } ,
+
  { 29, APR, 2009, RCR, "to3d", MINOR, TYPE_BUG_FIX,
    "when opening -geomparent, allow for known non-afni extensions",
    NULL
