@@ -805,8 +805,18 @@ If you want to have some index before the entries, use SUMA_WRITE_IND_ARRAY_1D*/
    FILE * m_fp=NULL;\
    m_fp = (name) ? fopen((name),"w"): fopen("yougavemenoname","w");  \
    if (m_fp) { \
-      fprintf(m_fp,"# Output from %s, %d values (%d per line).\n", FuncName, Nel, m);  \
+      fprintf(m_fp,"# Output from %s, %d values (%d per line).", FuncName, Nel, m);  \
       for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n"); fprintf(m_fp,"%f   ", (double)v[m_kkk]); }\
+      fclose(m_fp); \
+   }  \
+}
+#define SUMA_WRITE_INT_ARRAY_1D(v,Nel,m,name){  \
+   int m_kkk; \
+   FILE * m_fp=NULL;\
+   m_fp = (name) ? fopen((name),"w"): fopen("yougavemenoname","w");  \
+   if (m_fp) { \
+      fprintf(m_fp,"# Output from %s, %d values (%d per line).", FuncName, Nel, m);  \
+      for (m_kkk=0; m_kkk<Nel; ++m_kkk) { if (!(m_kkk % m)) fprintf(m_fp,"\n"); fprintf(m_fp,"%d   ", (int)v[m_kkk]); }\
       fclose(m_fp); \
    }  \
 }
@@ -1309,6 +1319,10 @@ char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum);
 char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
 SUMA_DSET * SUMA_PaddedCopyofDset ( SUMA_DSET *odset, int MaxNodeIndex );
 SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);
+SUMA_DSET * SUMA_MaskedByOrderedNodeIndexCopyofDset(
+      SUMA_DSET *odset, int *indexlist, 
+      int N_indexlist, byte *colmask, 
+      int masked_only, int keep_node_index);
 SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(SUMA_DSET *odset, int *indexlist, int N_indexlist, byte *colmask, 
                                              int masked_only, int keep_node_index);
 void *SUMA_Copy_Part_Column(void *col,  NI_rowtype *rt, int N_col, byte *rowmask, int masked_only, int *n_incopy);
@@ -1347,7 +1361,8 @@ SUMA_Boolean SUMA_MakeSparseDoubleColumnFullSorted (
       double mask_val, byte **bmp, 
       SUMA_DSET *dset, int N_Node);
 SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, int N_Node); 
-int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind);
+int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind, 
+                                       double *range);
 SUMA_DSET * SUMA_ngr_2_dset(NI_group *nini, int warn);
 SUMA_Boolean SUMA_LabelDset(SUMA_DSET *dset, char *lbl);
 SUMA_Boolean SUMA_RenameDset(SUMA_DSET *dset, char *filename);

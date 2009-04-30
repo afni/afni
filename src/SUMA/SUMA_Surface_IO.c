@@ -5451,7 +5451,9 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename,
    \return nel (NI_element *) structure to data set
                               NULL if failed
 */
-SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str, int Pad_to, int Pad_val) 
+SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, 
+                                 char *Parent_idcode_str, 
+                                 int Pad_to, int Pad_val) 
 {
    static char FuncName[]={"SUMA_ROIv2Grpdataset"};
    int ii, i, nn, cnt, N_NodesTotal = 0, MaxIndex = 0,
@@ -5472,7 +5474,8 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
       }
       N_NodesTotal += cnt;
    }
-   if (LocalHead) fprintf (SUMA_STDERR,"%s: %d nodes total.\n", FuncName, N_NodesTotal);
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,"%s: %d nodes total.\n", FuncName, N_NodesTotal);
 
    NodesTotal = (int *)SUMA_calloc(N_NodesTotal, sizeof(int));
    LabelsTotal = (int *)SUMA_calloc(N_NodesTotal, sizeof(int));
@@ -5526,8 +5529,10 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
       SUMA_free(isort); isort = NULL;
 
       /* now get the unique set of nodes */
-      NodesTotal_u = SUMA_UniqueInt_ind (NodesTotal, N_NodesTotal, &N_NodesTotal_u, &iu);
-      /* reorder LabelsTotal to contain data from the nodes left in NodesTotal_u */
+      NodesTotal_u = SUMA_UniqueInt_ind (NodesTotal, N_NodesTotal, 
+                                        &N_NodesTotal_u, &iu);
+      /* reorder LabelsTotal to contain data from the nodes 
+         left in NodesTotal_u */
       LabelsTotal_r = SUMA_reorder (LabelsTotal, iu, N_NodesTotal_u);
       SUMA_free(NodesTotal); NodesTotal = NULL;
       SUMA_free(LabelsTotal); LabelsTotal = NULL;
@@ -5550,7 +5555,8 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
    if (Pad_to > 0) {
       SUMA_LH("Padding to desired length");
       if (Pad_to < MaxIndex) {
-         SUMA_SL_Err("ROI contains node index > padding limit\nNo padding done.");
+         SUMA_SL_Err("ROI contains node index > padding limit\n"
+                     "No padding done.");
          if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
          if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
          SUMA_RETURN(NULL);
@@ -5558,7 +5564,8 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
          NodesTotal_p =  (int *)SUMA_calloc(Pad_to+1, sizeof(int));
          LabelsTotal_p = (int *)SUMA_calloc(Pad_to+1, sizeof(int));
          if (!NodesTotal_p || !LabelsTotal_p) {
-            SUMA_SL_Crit("Failed to allocate for NodesTotal_p || LabelsTotal_p");
+            SUMA_SL_Crit("Failed to allocate for NodesTotal_p || "
+                         "LabelsTotal_p");
             if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
             if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
             SUMA_RETURN(NULL);
@@ -5568,24 +5575,28 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
          for(i=0; i<N_NodesTotal; ++i) {
             LabelsTotal_p[NodesTotal[i]] = LabelsTotal[i];
          }
-         SUMA_free(NodesTotal); NodesTotal = NodesTotal_p; NodesTotal_p = NULL;
-         SUMA_free(LabelsTotal);  LabelsTotal = LabelsTotal_p; LabelsTotal_p = NULL;
+         SUMA_free(NodesTotal); 
+            NodesTotal = NodesTotal_p; NodesTotal_p = NULL;
+         SUMA_free(LabelsTotal);  
+            LabelsTotal = LabelsTotal_p; LabelsTotal_p = NULL;
          N_NodesTotal = Pad_to + 1;
       }
    }
    if (LocalHead) {
-      fprintf(SUMA_STDERR,"%s: N_NodesTotal = %d\nCreating dset\n", FuncName, N_NodesTotal);
+      fprintf( SUMA_STDERR,
+               "%s: N_NodesTotal = %d\nCreating dset\n", 
+               FuncName, N_NodesTotal);
    }
    /* construct a NIML data set for the output */
    dset = SUMA_CreateDsetPointer(
-                                 NULL,         /* usually the filename */
-                                 SUMA_NODE_ROI,                /* mix and match */
-                                 NULL,    /* no idcode, let the function create one from the filename*/
-                                 Parent_idcode_str,       /* no domain str specified */
-                                 N_NodesTotal    /* Number of nodes allocated for */
-                                 ); /* DO NOT free dset, it is store in DsetList */
+         NULL,         /* usually the filename */
+         SUMA_NODE_ROI,                /* mix and match */
+         NULL,    /* no idcode, let the function create one from the filename*/
+         Parent_idcode_str,       /* no domain str specified */
+         N_NodesTotal    /* Number of nodes allocated for */
+         ); /* DO NOT free dset, it is store in DsetList */
 
-   
+
    
    if (!dset) {
       SUMA_SL_Err("Failed in SUMA_CreateDsetPointer");
@@ -5594,14 +5605,16 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
 
    /* Add the index column */
    SUMA_LH("Adding index column...");
-   if (!SUMA_AddDsetNelCol (dset, "node index", SUMA_NODE_INDEX, (void *)NodesTotal, NULL, 1)) {
+   if (!SUMA_AddDsetNelCol (  dset, "node index", 
+                              SUMA_NODE_INDEX, (void *)NodesTotal, NULL, 1)) {
       SUMA_SL_Err("Failed in SUMA_AddNelCol");
       SUMA_RETURN(dset);
    }
 
    /* Add the label column */
    SUMA_LH("Adding label column...");
-   if (!SUMA_AddDsetNelCol (dset, "integer label", SUMA_NODE_ILABEL, (void *)LabelsTotal, NULL, 1)) {
+   if (!SUMA_AddDsetNelCol (dset, "integer label", 
+                            SUMA_NODE_ILABEL, (void *)LabelsTotal, NULL, 1)) {
       SUMA_SL_Err("Failed in SUMA_AddNelCol");
       SUMA_RETURN(dset);
    }
@@ -5615,6 +5628,157 @@ SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent
    if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
    
    SUMA_RETURN(dset);
+}
+/*!
+   \brief turns a bunch of ROIs into a list of node vectors
+            Each list is for a particular ROI. 
+            The ordering of the node indices is preserved as
+            it appears in the ROI
+   \param ROIv (SUMA_DRAWN_ROI**) vector of ROI structures
+   \param N_ROIv (int) number of ROI structures
+   \return nl (DList *) linked list of node indices for each ROI
+                              NULL if failed
+*/
+
+void SUMA_free_ROI_Extract(void *dd)
+{
+   SUMA_ROI_EXTRACT *ddd=(SUMA_ROI_EXTRACT *)dd;
+   if (ddd) {
+      if (ddd->vals) SUMA_free(ddd->vals); 
+      SUMA_free(ddd);
+   }
+   return;
+}
+
+SUMA_ROI_EXTRACT *SUMA_GetROIExtractLabeled(DList *ddl, int i)
+{
+   static char FuncName[]={"SUMA_GetROIExtractLabeled"};
+   DListElmt *el=NULL;
+   SUMA_ROI_EXTRACT *dd=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!ddl) SUMA_RETURN(NULL);
+   
+   el=dlist_head(ddl);
+   while (el) {
+      dd = (SUMA_ROI_EXTRACT *)el->data;
+      if (dd->label == i) SUMA_RETURN(dd);
+      el = dlist_next(el);
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+DList *SUMA_ROIv2NodeLists (SUMA_DRAWN_ROI** ROIv, int N_ROIv, int purgedups) 
+{
+   static char FuncName[]={"SUMA_ROIv2NodeLists"};
+   int ii, i, nn, cnt, nodemin=9999999, nodemax=-1, MaxNodeIndex=-1,
+      N_NodesMax=0;
+   byte *visited=NULL;
+   SUMA_DSET *dset =NULL;
+   DList *ddl=NULL;
+   DListElmt *Elm=NULL, *eldd=NULL;
+   SUMA_ROI_EXTRACT *dd=NULL;
+   SUMA_ROI_DATUM *ROI_Datum=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   /* Now you have the ROIs, concatenate all NodesInROI vectors into 1*/
+   /* count the total number of nodes */
+   ddl = (DList *)SUMA_calloc(1, sizeof(DList));
+   dlist_init(ddl, SUMA_free_ROI_Extract);
+   N_NodesMax = 0; nodemin=100000; nodemax=0, MaxNodeIndex=0;
+   for (ii=0; ii < N_ROIv; ++ii) {
+      if ((cnt=SUMA_NodeRange_DrawnROI (ROIv[ii], &nodemin, &nodemax)) >= 0) {
+         if (LocalHead) {
+            fprintf (SUMA_STDERR,"%s: ROI #%d: %d nodes,%d/%d min/max nodes\n", 
+                     FuncName, ii, cnt, nodemin, nodemax);
+         }
+         /* is this a new label ? */
+         dd = SUMA_GetROIExtractLabeled(ddl, ROIv[ii]->iLabel);
+         if (!dd) {
+            dd = (SUMA_ROI_EXTRACT*)SUMA_calloc(1,sizeof(SUMA_ROI_EXTRACT));
+            dd->label = ROIv[ii]->iLabel;
+            dd->N_alloc = cnt;
+            dd->vals = (int *)SUMA_calloc(dd->N_alloc, sizeof(int));
+            dd->N_vals = 0;
+            dlist_ins_next(ddl,dlist_tail(ddl),dd);
+         } else { /* This allows for multiple ROI of the same label 
+                     to be combined */
+            dd->N_alloc += cnt;
+            dd->vals = (int *)SUMA_realloc(dd->vals, dd->N_alloc*sizeof(int));
+         }
+         if (MaxNodeIndex < nodemax) MaxNodeIndex = nodemax;
+      } else {
+         SUMA_S_Err( "Cannont handle failure in NodeRange function\n"
+                     "Must have as manu elements in ddl as in ROIv");
+         SUMA_RETURN(NULL);
+      }
+   }
+   
+
+   /* allocate a vector to keep track of visited nodes */
+   SUMA_LHv("Ready to fill up, MaxNodeIndex %d\n", MaxNodeIndex);
+   {
+      if (purgedups) 
+         visited = (byte *)SUMA_malloc(sizeof(byte)*(MaxNodeIndex+1));
+      else visited = NULL;
+      #if 0
+      eldd = dlist_head(ddl);
+      for (ii=0; ii < N_ROIv; ++ii) {
+         SUMA_LHv("Working %d/%d\n", ii, N_ROIv);
+         dd = (SUMA_ROI_EXTRACT *)eldd->data;
+         if (visited) memset((void*)visited, 0, sizeof(byte)*(MaxNodeIndex+1));
+         Elm = dlist_head(ROIv[ii]->ROIstrokelist);
+         while (Elm && Elm->data) {
+            ROI_Datum = (SUMA_ROI_DATUM *)Elm->data;
+            SUMA_LHv("Will check on %d nodes\n", ROI_Datum->N_n);
+            for (i=0; i < ROI_Datum->N_n; ++i) {
+               if (!visited || !visited[ROI_Datum->nPath[i]]) {
+                  dd->vals[dd->N_vals] = ROI_Datum->nPath[i];
+                  if (visited) visited[ROI_Datum->nPath[i]]=1;
+                  ++dd->N_vals;
+               }
+            }
+            Elm = dlist_next(Elm);
+         }
+         eldd = dlist_next(eldd);   
+      }
+      #else
+      eldd = dlist_head(ddl);
+      while(eldd) {
+         dd = (SUMA_ROI_EXTRACT *)eldd->data;
+         if (visited) memset((void*)visited, 0, sizeof(byte)*(MaxNodeIndex+1));
+         for (ii=0; ii < N_ROIv; ++ii) {
+            if (ROIv[ii]->iLabel == dd->label) {
+               Elm = dlist_head(ROIv[ii]->ROIstrokelist);
+               while (Elm && Elm->data) {
+                  ROI_Datum = (SUMA_ROI_DATUM *)Elm->data;
+                  SUMA_LHv("Will check on %d nodes, label %d, (%d)\n", 
+                           ROI_Datum->N_n, dd->label, ROIv[ii]->iLabel);
+                  for (i=0; i < ROI_Datum->N_n; ++i) {
+                     if (!visited || !visited[ROI_Datum->nPath[i]]) {
+                        dd->vals[dd->N_vals] = ROI_Datum->nPath[i];
+                        if (visited) visited[ROI_Datum->nPath[i]]=1;
+                        ++dd->N_vals;
+                     }
+                  }
+                  Elm = dlist_next(Elm);
+               }
+            } /* add ROI's of this label */
+         } /* ii */
+         eldd = dlist_next(eldd);
+      } 
+      #endif   
+      
+   } 
+   
+   if (visited) SUMA_free(visited); visited = NULL;
+   
+   
+   SUMA_RETURN(ddl);
 }
    
 /*!
@@ -6348,6 +6512,51 @@ SUMA_1D_DRAWN_ROI * SUMA_DrawnROI_to_1DDrawROI (SUMA_DRAWN_ROI *ROI)
    
    SUMA_RETURN(ROI_1D);
 }
+/*!
+   \brief A function to find the range of node values in an ROI
+   \returns the maximum number of nodes in this ROI.  
+   
+*/
+int SUMA_NodeRange_DrawnROI (SUMA_DRAWN_ROI *ROI, int *min, int *max)
+{
+   static char FuncName[]={"SUMA_NodeRange_DrawnROI"};
+   
+   SUMA_ROI_DATUM *ROI_Datum=NULL;
+   DListElmt *Elm = NULL;
+   int i = -1, cnt = 0;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!ROI || !min || !max) {
+      SUMA_SL_Err("Null ROI");
+      SUMA_RETURN(-1);
+   }
+   
+   /* count the total number of nodes in ROI */
+   
+   
+   /* now fill the node indices and the node values */
+   Elm = NULL;
+   *min = -1;
+   *max = -1;
+   cnt = 0;
+   do {
+      if (!Elm) Elm = dlist_head(ROI->ROIstrokelist);
+      else Elm = Elm->next;
+      ROI_Datum = (SUMA_ROI_DATUM *)Elm->data;
+      for (i=0; i < ROI_Datum->N_n; ++i) {
+         if (*min < 0) *min = ROI_Datum->nPath[i];
+         else if (*min > ROI_Datum->nPath[i]) *min = ROI_Datum->nPath[i];
+         
+         if (*max < ROI_Datum->nPath[i]) *max = ROI_Datum->nPath[i];
+         ++cnt;
+      }
+   } while (Elm != dlist_tail(ROI->ROIstrokelist));
+   
+   SUMA_RETURN(cnt);
+}
+
 
 /*!
    \brief frees a ROI_1D structure. These structures are created by
