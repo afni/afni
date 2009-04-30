@@ -15,42 +15,45 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( "\n"
-               "Usage: 3dSurfMask <-i_TYPE SURFACE> <-prefix PREFIX>\n"
-               "                <-grid_parent GRID_VOL> [-sv SURF_VOL] [-mask_only]\n"
-               " \n"
-               "  Creates a volumetric dataset that marks the inside\n"
-               "    of the surface."
-               "  Voxels in the output dataset are set to the following\n"
-               "  values:\n"
-               "     0: Voxel outside surface\n"
-               "     1: Voxel just outside the surface. This means the voxel\n"
-               "        center is outside the surface but inside the \n"
-               "        bounding box of a triangle in the mesh. \n"
-               "     2: Voxel intersects the surface (a triangle), but center lies outside.\n"
-               "     3: Voxel contains a surface node.\n"
-               "     4: Voxel intersects the surface (a triangle), center lies inside surface. \n"
-               "     5: Voxel just inside the surface. This means the voxel\n"
-               "        center is inside the surface and inside the \n"
-               "        bounding box of a triangle in the mesh. \n"
-               "     6: Voxel inside the surface. \n"
-               "\n"
-               "  Mandatory Parameters:\n"
-               "     -i_TYPE SURFACE: Specify input surface.\n"
-               "             You can also use -t* and -spec and -surf\n"
-               "             methods to input surfaces. See below\n"
-               "             for more details.\n"
-               "     -prefix PREFIX: Prefix of output dataset.\n"
-               "     -grid_parent GRID_VOL: Specifies the grid for the\n"
-               "                  output volume."
-               "\n"
-               "  Other parameters:\n"
-               "     -mask_only: Produce an output dataset where voxels\n"
-               "                 are 1 inside the surface and 0 outside,\n"
-               "                 instead of the more nuanced output above.\n"                 
-               "\n"                    
-               "%s"
-               "%s"
+      printf ( 
+   "\n"
+         "Usage: 3dSurfMask <-i_TYPE SURFACE> <-prefix PREFIX>\n"
+         "                <-grid_parent GRID_VOL> [-sv SURF_VOL] [-mask_only]\n"
+         " \n"
+         "  Creates a volumetric dataset that marks the inside\n"
+         "    of the surface."
+         "  Voxels in the output dataset are set to the following\n"
+         "  values:\n"
+         "     0: Voxel outside surface\n"
+         "     1: Voxel just outside the surface. This means the voxel\n"
+         "        center is outside the surface but inside the \n"
+         "        bounding box of a triangle in the mesh. \n"
+         "     2: Voxel intersects the surface (a triangle), \n"
+         "        but center lies outside.\n"
+         "     3: Voxel contains a surface node.\n"
+         "     4: Voxel intersects the surface (a triangle), \n"
+         "        center lies inside surface. \n"
+         "     5: Voxel just inside the surface. This means the voxel\n"
+         "        center is inside the surface and inside the \n"
+         "        bounding box of a triangle in the mesh. \n"
+         "     6: Voxel inside the surface. \n"
+         "\n"
+         "  Mandatory Parameters:\n"
+         "     -i_TYPE SURFACE: Specify input surface.\n"
+         "             You can also use -t* and -spec and -surf\n"
+         "             methods to input surfaces. See below\n"
+         "             for more details.\n"
+         "     -prefix PREFIX: Prefix of output dataset.\n"
+         "     -grid_parent GRID_VOL: Specifies the grid for the\n"
+         "                  output volume."
+         "\n"
+         "  Other parameters:\n"
+         "     -mask_only: Produce an output dataset where voxels\n"
+         "                 are 1 inside the surface and 0 outside,\n"
+         "                 instead of the more nuanced output above.\n"                 
+         "\n"                    
+         "%s"
+         "%s"
                "\n", sio,  s);
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
@@ -60,7 +63,7 @@ void usage_3dSurfMask (SUMA_GENERIC_ARGV_PARSE *ps)
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dSurfMask_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
+   static char FuncName[]={"SUMA_3dSurfMask_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
@@ -158,7 +161,7 @@ int main (int argc,char *argv[])
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-sv;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
    
    if (argc < 2) {
       usage_3dSurfMask(ps);
