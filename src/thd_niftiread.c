@@ -17,6 +17,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    int use_qform = 0 , use_sform = 0 ;
    int statcode = 0 , datum , iview , ibr ;
    int scale_data = 0 ;  /* flag based on scl_slope and inter  20 Jun 2008 */
+   int xform_data = 0;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz ;
    THD_mat33 R ;
@@ -85,8 +86,12 @@ ENTRY("THD_open_nifti") ;
        RETURN(NULL) ;
      break ;
 
-     case DT_UINT8:     datum = scale_data ? MRI_float : MRI_byte  ; break ;
-     case DT_INT16:     datum = scale_data ? MRI_float : MRI_short ; break ;
+     case DT_UINT8:     datum = scale_data ? MRI_float : MRI_byte  ;
+                        xform_data = scale_data;
+                        break ;
+     case DT_INT16:     datum = scale_data ? MRI_float : MRI_short ;
+                        xform_data = scale_data;
+                        break ;
      case DT_FLOAT32:   datum = MRI_float   ; break ;
      case DT_COMPLEX64: datum = MRI_complex ; break ;
      case DT_RGB24:     datum = MRI_rgb     ; break ;
@@ -95,12 +100,7 @@ ENTRY("THD_open_nifti") ;
      case DT_UINT16:
      case DT_INT32:
      case DT_UINT32:
-     case DT_FLOAT64:
-       fprintf(stderr,
-              "** AFNI converts NIFTI_datatype=%d (%s) in file %s to FLOAT32\n",
-              nim->datatype, nifti_datatype_string(nim->datatype), pathname );
-       datum = MRI_float ;
-     break ;
+     case DT_FLOAT64:   datum = MRI_float ; xform_data = 1 ; break ;
 
 #if 0
      case DT_COMPLEX128:  /* this case would be too much like real work */
@@ -111,6 +111,11 @@ ENTRY("THD_open_nifti") ;
      break ;
 #endif
    }
+
+   if( xform_data )
+     fprintf(stderr,
+             "** AFNI converts NIFTI_datatype=%d (%s) in file %s to FLOAT32\n",
+             nim->datatype, nifti_datatype_string(nim->datatype), pathname );
 
    /* check for statistics code */
 
