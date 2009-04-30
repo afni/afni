@@ -1,6 +1,13 @@
-/* parser.f -- translated by f2c (version 20030320).
-   You must link the resulting object file with the libraries:
-	-lf2c -lm   (in that order)
+/* parser.f -- translated by f2c (version 20031025).
+   You must link the resulting object file with libf2c:
+	on Microsoft Windows system, link with libf2c.lib;
+	on Linux or Unix systems, link with .../path/to/libf2c.a -lm
+	or, if you install libf2c.a in a standard place, with -lf2c -lm
+	-- in that order, at the end of the command line, as in
+		cc *.o -lf2c -lm
+	Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,
+
+		http://www.netlib.org/f2c/libf2c.zip
 */
 
 #include "f2c.h"
@@ -1426,7 +1433,7 @@ L1000:
 /* ....................................................................... */
     } else if (s_cmp(cncode, "ATAN2", (ftnlen)8, (ftnlen)5) == 0) {
 	--neval;
-	if (r8_eval__[neval - 1] != 0. && r8_eval__[neval] != 0.) {
+	if (r8_eval__[neval - 1] != 0. || r8_eval__[neval] != 0.) {
 	    r8_eval__[neval - 1] = atan2(r8_eval__[neval - 1], r8_eval__[
 		    neval]);
 	}
@@ -2417,7 +2424,7 @@ L1000:
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0. && 
+		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0. || 
 			r8_eval__[iv - ibv + (neval + 1 << 6) - 65] != 0.) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = atan2(r8_eval__[
 			    iv - ibv + (neval << 6) - 65], r8_eval__[iv - ibv 
@@ -3290,7 +3297,7 @@ doublereal qg_(doublereal *x)
 
 
 /* CC The UNIF() function is now in parser_int.c, */
-/* CC where it calls CCC upon the C library to do the dirty work. */
+/* CC where it calls upon the C library to do the dirty work. */
 
 /* CC      FUNCTION UNIF( XJUNK ) */
 /* CC      IMPLICIT REAL*8 (A-H,O-Z) */

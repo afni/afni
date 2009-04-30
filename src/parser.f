@@ -963,7 +963,7 @@ C.......................................................................
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'ATAN2')THEN
             NEVAL          = NEVAL - 1
-            IF( R8_EVAL(NEVAL).NE.0.D+0.AND.R8_EVAL(NEVAL+1).NE.0.D+0)
+            IF( R8_EVAL(NEVAL).NE.0.D+0.OR.R8_EVAL(NEVAL+1).NE.0.D+0)
      X        R8_EVAL(NEVAL) = ATAN2( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'GRAN')THEN
@@ -1716,7 +1716,7 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'ATAN2')THEN
             NEVAL = NEVAL - 1
             DO IV=IVBOT,IVTOP
-               IF( R8_EVAL(IV-IBV,NEVAL)  .NE.0.D+0 .AND.
+               IF( R8_EVAL(IV-IBV,NEVAL)  .NE.0.D+0 .OR.
      X             R8_EVAL(IV-IBV,NEVAL+1).NE.0.D+0      )
      X         R8_EVAL(IV-IBV,NEVAL) = ATAN2( R8_EVAL(IV-IBV,NEVAL) ,
      X                                        R8_EVAL(IV-IBV,NEVAL+1) )
