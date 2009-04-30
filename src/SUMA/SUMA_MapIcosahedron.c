@@ -10,7 +10,6 @@ SUMA_CommonFields *SUMAg_CF;
 
 
 void SUMA_MapIcosahedron_usage ()
-   
 {/*Usage*/
    static char FuncName[]={"SUMA_MapIcosahedron_usage"};
    char * s = NULL;
@@ -1111,6 +1110,10 @@ int main (int argc, char *argv[])
       /*smooth surface, if indicated*/
       /*(only for smwm, pial or white surfaces)*/
       if ( smooth && SO->AnatCorrect ) { 
+         if (verb) {
+            SUMA_S_Notev("Smoothing standard mesh version of %s\n",
+                          SO->Label);
+         }
          /* ZSS replaced ( id==0 || id==1 || id==5 ) with AnatCorrect  */
          bpf = 0.1;
          if ( !SUMA_Taubin_Smooth_Coef (bpf, &lambda, &mu) )
@@ -1128,6 +1131,7 @@ int main (int argc, char *argv[])
                                              SOw->NodeList, 
                                              2*numIt, 3, d_order, NULL, cs, 
                                              NULL, 1);
+            SOw->FN = NULL;  /* or else it gets freed below! */
             if ( !smNodeList ) 
                fprintf( SUMA_STDERR, 
                         "Error %s: Failed in Taubin Smoothing.  \n"

@@ -2469,16 +2469,18 @@ SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(
    
    SUMA_ENTRY;
    
-   if (!(indexmap = SUMA_CreateNodeIndexToRowIndexMap(odset, -1))) {
+   if (!(indexmap = SUMA_CreateNodeIndexToRowIndexMap(odset, -1, range))) {
       SUMA_S_Err("Failed to get indexmap");
       SUMA_RETURN(NULL);
    }
     
-   /* get the range of valid nodes */
-   if (!SUMA_GetDsetNodeIndexColRange(odset, range, loc, 1)) {
-      SUMA_S_Err("Failed to get node range!");
-      SUMA_RETURN(NULL);  
-   }
+   #if 0 /* get range from SUMA_CreateNodeIndexToRowIndexMap Apr 2009 */
+      /* get the range of valid nodes */
+      if (!SUMA_GetDsetNodeIndexColRange(odset, range, loc, 1)) {
+         SUMA_S_Err("Failed to get node range!");
+         SUMA_RETURN(NULL);  
+      }
+   #endif
    
    Tb = (byte *) SUMA_calloc(SDSET_VECLEN(odset), sizeof(byte));
    for (j=0; j<N_indexlist; ++j) {
@@ -2489,7 +2491,7 @@ SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(
       } else {
          SUMA_S_Warn("Nodes in indexlist exceed odset->dnel->vec_filled\n"
                      "Such nodes will be ignored but may indicate \n"
-                     "more serious trouble\n"
+                     "more serious trouble.\n"
                      "Warning will not be repeated in this call.");
       }
    }
@@ -2512,6 +2514,126 @@ SUMA_DSET * SUMA_MaskedByNodeIndexCopyofDset(
    }
    
    SUMA_RETURN(dset_m);
+}
+
+SUMA_DSET * SUMA_MaskedByOrderedNodeIndexCopyofDset(
+      SUMA_DSET *odset, int *indexlist_orig, 
+      int N_indexlist_orig, byte *colmask, 
+      int masked_only, int keep_node_index)
+{
+   static char FuncName[]={"SUMA_MaskedByOrderedNodeIndexCopyofDset"};
+   SUMA_DSET *dset_uo = NULL;
+   int *rowofnode = NULL, i=0, c=0, nn=0,rownodebuf=0, *nl=NULL, nlbuf=0;
+   NI_rowtype *rt = NULL;
+   SUMA_COL_TYPE ctp = SUMA_ERROR_COL_TYPE;
+   void *vcol=NULL;
+   byte bbuf=0, *bcol=NULL;
+   short sbuf=0, *scol=NULL; 
+   int ibuf=0, *icol=NULL; 
+   float fbuf=0, *fcol=NULL; 
+   double dbuf=0, *dcol=NULL, range[2];
+   int *indexlist=NULL, N_indexlist=-1; 
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   dset_uo = SUMA_MaskedByNodeIndexCopyofDset(
+               odset, indexlist_orig, N_indexlist_orig, 
+               colmask, masked_only,keep_node_index);
+   
+   /* now we have the dset we want, but the oder is shuffled. */
+   if (!(rowofnode = SUMA_CreateNodeIndexToRowIndexMap(dset_uo, -1, range))) {
+      SUMA_S_Err("Failed to create map");
+      SUMA_RETURN(NULL);
+   }
+   if (!(nl = SDSET_NODE_INDEX_COL(dset_uo))) {
+      SUMA_S_Err("Need a node index to do this");
+      SUMA_RETURN(NULL);
+   }
+   /* trim index list of bad indices */
+   if (SDSET_VECLEN(dset_uo) < N_indexlist_orig) {
+      indexlist = (int *)SUMA_calloc(SDSET_VECLEN(dset_uo), sizeof(int));
+      N_indexlist = 0;
+      while (i < N_indexlist_orig) {
+         if (  indexlist_orig[i] >= (int)range[0] && 
+               indexlist_orig[i] <= (int)range[1]) {
+            if (N_indexlist < SDSET_VECLEN(dset_uo)) {
+               indexlist[N_indexlist] = indexlist_orig[i]; ++N_indexlist;
+            } else {
+               SUMA_S_Err("Unexpected N_indexlist > SDSET_VECLEN");
+               SUMA_RETURN(NULL);
+            }
+         } 
+         ++i;
+      }
+   } else {
+      indexlist = indexlist_orig;
+      N_indexlist = N_indexlist_orig;
+   }
+   
+   /* get a buffer dset that has one row only. */
+   for (i=0; i<N_indexlist; ++i) {
+      nn = indexlist[i];
+      if (rowofnode[nn] == i) { /* all is good */
+      } else {
+         for (c=0; c<SDSET_VECNUM(dset_uo); ++c) {
+            bcol=NULL; bbuf=0; 
+            scol=NULL; sbuf=0;
+            icol=NULL; ibuf=0;
+            fcol=NULL; fbuf=0.0;
+            dcol=NULL; dbuf=0.0;
+            vcol = SDSET_VEC(dset_uo, c);
+            ctp = SUMA_TypeOfDsetColNumb(dset_uo, c); 
+            rt = NI_rowtype_find_code(SUMA_ColType2TypeCast(ctp)) ; 
+            /* need to put data from node nn in row i */
+            switch(rt->code) {
+               case NI_BYTE:
+                  bcol = (byte*)vcol;
+                  bbuf = bcol[i];
+                  bcol[i] = bcol[rowofnode[nn]]; 
+                  bcol[rowofnode[nn]] = bbuf;
+                  break;
+               case NI_SHORT:
+                  scol = (short*)vcol;
+                  sbuf = scol[i];
+                  scol[i] = scol[rowofnode[nn]]; 
+                  scol[rowofnode[nn]] = sbuf;
+                  break;
+               case NI_INT:
+                  icol = (int*)vcol;
+                  ibuf = icol[i];
+                  icol[i] = icol[rowofnode[nn]]; 
+                  icol[rowofnode[nn]] = ibuf;
+                  break;
+               case NI_FLOAT:
+                  fcol = (float*)vcol;
+                  fbuf = fcol[i];
+                  fcol[i] = fcol[rowofnode[nn]]; 
+                  fcol[rowofnode[nn]] = fbuf;
+                  break;
+               case NI_DOUBLE:
+                  dcol = (double*)vcol;
+                  dbuf = dcol[i];
+                  dcol[i] = dcol[rowofnode[nn]]; 
+                  dcol[rowofnode[nn]] = dbuf;
+                  break;
+               default:
+               SUMA_SL_Warn(
+                  "Type not allowed for padding operation, skipping");
+               break;
+            }
+         }/* for each column c */
+         rownodebuf = rowofnode[nn];
+         rowofnode[nn] = i;
+         rowofnode[nl[i]] = rownodebuf;
+         nlbuf = nl[i];
+         nl[i] = nn;
+         nl[rownodebuf] = nlbuf;
+      }
+   } 
+   if (indexlist_orig !=  indexlist) SUMA_free(indexlist); indexlist = NULL;
+   if (rowofnode) SUMA_free(rowofnode); rowofnode=NULL;
+   SUMA_RETURN(dset_uo);
 }
  
 /*! 
@@ -5280,15 +5402,18 @@ int SUMA_GetNodeRow_FromNodeIndex_eng(SUMA_DSET *dset, int node, int N_Node)
    indexmap is as large as the MAX(largest index in the node list in dset , maxind, SDSET_VECLEN(dset))
    free indexmap with SUMA_free
 */
-int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind)
+int *SUMA_CreateNodeIndexToRowIndexMap(SUMA_DSET *dset, int maxind, 
+                                       double *range)
 {
    static char FuncName[]={"SUMA_CreateNodeIndexToRowIndexMap"};
    int *indexmap=NULL, j=0, *nip=NULL;
    int maxn = -1, loc[2];
-   double range[2];
+   double rangel[2];
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (!range) range = rangel;
    
    if (!(nip = SUMA_GetNodeDef(dset))) {
       SUMA_S_Err("Failed to find node index column in dset");
@@ -10229,7 +10354,11 @@ char *SUMA_help_dset()
       "           *  SUMA does not preserve the selection order \n"
       "              for any of the selectors.\n"
       "              For example:\n"
-      "              dset[44,10..20] is the same as dset[10..20,44]\n" 
+      "              dset[44,10..20] is the same as dset[10..20,44]\n"
+      "              Also, duplicate values are not supported.\n"
+      "              so dset[13, 13] is the same as dset[13].\n"
+      "              I am not proud of these limitations, someday I'll get\n"
+      "              around to fixing them.\n" 
       "\n");
    SUMA_SS2S(SS,s);               
    SUMA_RETURN(s);
