@@ -94,8 +94,8 @@ void THD_linear_detrend_complex( int npt , complex *cx )  /* 05 Mar 2007 */
 
 void get_quadratic_trend( int npt, float *xx, float *f0, float *f1, float *f2 )
 {
-   double  x0,x1,x2 , N=npt ;
-   int ii ;
+   register double x0,x1,x2 ; double N=npt ;
+   register int ii ;
 
    if( npt < 3 || xx == NULL || f0 == NULL || f1 == NULL || f2 == NULL ) return;
 

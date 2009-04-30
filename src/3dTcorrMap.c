@@ -467,10 +467,10 @@ int main( int argc , char *argv[] )
 #pragma omp parallel
  {
   if( omp_get_thread_num() == 0 )
-    INFO_message("OpenMP thread count = %d",omp_get_num_threads()) ;
+    INFO_message("Starting long loop: OpenMP thread count = %d",omp_get_num_threads()) ;
  }
 #else
- INFO_message("Start the long long loop through all voxels") ;
+ INFO_message("Starting the long long loop through all voxels") ;
 #endif
 
    for( ii=0 ; ii < nmask ; ii++ ){  /* outer loop over voxels: */

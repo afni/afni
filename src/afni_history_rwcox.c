@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , APR , 2009 , RWC , "1dBandpass" , MICRO , TYPE_NEW_PROG ,
+   "for .. Bandpassing!" ,
+   "Really just to test the new bandpassing functions for inclusion into\n"
+   "AFNI's InstaCorr feature." } ,
+
  { 29 , APR , 2009 , RWC , "3dTcorrMap" , MICRO , TYPE_GENERAL ,
    "Add OpenMP support" ,
    NULL } ,
