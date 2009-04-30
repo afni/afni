@@ -7066,7 +7066,8 @@ int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
 
 /*-----------------------------------------------------------------*/
 /* 
-   Activate callbacks pertinent to SO->SelectedNode and Sover 
+   Activate callbacks pertinent to SO->SelectedNode and Sover
+   This function should be called after SO->SelectedNode has been set 
    \param SO
    \param Sover
    \param src
@@ -7077,7 +7078,7 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
       SUMA_ENGINE_SOURCE Src, NI_group *ngr)
 {
    static char FuncName[]={"SUMA_Selected_Node_Activate_Callbacks"};
-   NI_element*nelts = NULL;
+   NI_element*nelts = NULL, *nelts_s2v=NULL;
    char *ts_dset_id = NULL, *cbuf=NULL;
    SUMA_DSET *in_dset=NULL;
    float *fv3=NULL;
@@ -7129,9 +7130,21 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                     Src == SES_SumaFromAfni) && 
                    ngr) { 
                      /* See if there is a time series */
-                  if ( (nelts = 
+                  nelts = 
                         SUMA_FindNgrNamedElement(ngr,
-                                                 "underlay_array"))){
+                                                 "underlay_array");
+                  if ((nelts_s2v = SUMA_FindNgrNamedElement(ngr,
+                                                 "v2s_node_array"))) {
+                     if (AFNI_yesenv("SUMA_USE_V2S_TS")) {
+                        SUMA_S_Note("Will use ts from v2s!");
+                        nelts = nelts_s2v;
+                     }else {
+                        SUMA_S_Note("Ignoring ts from v2s!");
+                        nelts_s2v = NULL;
+                     }
+                  }
+                     
+                  if ( (nelts)){
                      SUMA_LH("Have underlay time "
                                  "series from AFNI");
                      /* check if length of time series matches dsets
@@ -7159,8 +7172,13 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                            float fv3[3], *fv=NULL;
                            cbuf = NI_get_attribute(nelts, "vox_ijk");
                            SUMA_StringToNum(cbuf, (void *)fv3,3,1);
-                           sprintf(stmp,"underlay_array.%d.%d.%d.1D",
-                                        (int)fv3[0], (int)fv3[1],(int)fv3[2]);
+                           if (!nelts_s2v) {
+                              sprintf(stmp,"underlay_array.%d.%d.%d.1D",
+                                           (int)fv3[0], (int)fv3[1],(int)fv3[2]);
+                           } else {
+                              sprintf(stmp,"v2s_array.%d.1D",
+                                           SO->SelectedNode);
+                           }
                            fv = (float *)nelts->vec[0];
                            SUMA_LHv("Writing %s\n", stmp);
                            SUMA_WRITE_ARRAY_1D( fv, 

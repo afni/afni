@@ -1816,6 +1816,18 @@ int main (int argc,char *argv[])
                /* Now back to SUMA_DSET */
                dset = SUMA_afnidset2sumadset(&inset, 1, 1); /* don't need afni
                                                                volume anymore */
+               /* write out detrended input? */
+               if (Opt->detprefix_in) {
+                  /* Add the history line */
+                  if (!SUMA_AddNgrHist (dset->ngr, FuncName, argc, argv)) {
+                     SUMA_SL_Err("Failed in SUMA_AddNgrHist");
+                  }
+                  SUMA_LHv("About to write detrended input dset %s, oform %d\n", 
+                           Opt->out_name, Opt->oform);
+                  ooo = SUMA_WriteDset_s( Opt->detprefix_in, dset, Opt->oform, 
+                                          Opt->overwrite, 0);
+                  SUMA_free(ooo); ooo=NULL;
+               }
             }
             
             if (Opt->master_name) {
@@ -1925,7 +1937,22 @@ int main (int argc,char *argv[])
 
                   /* Now back to SUMA_DSET, and kill afni volume*/
                   master_dset = SUMA_afnidset2sumadset(&inset, 1, 1); 
-               
+                  /* write out detrended master? */
+                  if (Opt->detprefix_master) {
+                     /* Add the history line */
+                     if (!SUMA_AddNgrHist (master_dset->ngr, FuncName, 
+                                           argc, argv)) {
+                        SUMA_SL_Err("Failed in SUMA_AddNgrHist");
+                     }
+                     SUMA_LHv("About to write detrended master dset %s, "
+                              "oform %d\n", 
+                              Opt->out_name, Opt->oform);
+                     ooo = SUMA_WriteDset_s( Opt->detprefix_master, master_dset, 
+                                             Opt->oform, 
+                                             Opt->overwrite, 0);
+                     SUMA_free(ooo); ooo=NULL;
+                  }
+                  
                   if (!Opt->bmall) { /* a la 3dBlurToFWHM */
                      int ntouse, idel, ibot, cnt, ibm;
                      SUMA_DSET *ndset=NULL;
@@ -2586,15 +2613,19 @@ int main (int argc,char *argv[])
             Opt->Method != SUMA_HEAT_05_Pre_07 && Opt->Method != SUMA_HEAT_07 && 
             Opt->Method != SUMA_BRUTE_FORCE) {
          if (!dsmooth) {
-            SUMA_SL_Err("NULL dsmooth for data smoothing. Either failed to smooth or logical error.");
+            SUMA_SL_Err("NULL dsmooth for data smoothing. "
+                        "Either failed to smooth or logical error.");
             exit(1);
          }      
          fileout = fopen(Opt->out_name, "w");
-         if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, YUP);
-         else SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, d_order, fileout, NOPE);
+         if (Opt->AddIndex) SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, 
+                                              d_order, fileout, YUP);
+         else SUMA_disp_vecmat (dsmooth, SO->N_Node, ncol, 1, 
+                                d_order, fileout, NOPE);
          fclose(fileout); fileout = NULL;
       } else if ( Opt->Method == SUMA_LB_FEM || 
-                  Opt->Method == SUMA_HEAT_05_Pre_07 || Opt->Method == SUMA_HEAT_07 || 
+                  Opt->Method == SUMA_HEAT_05_Pre_07 || 
+                  Opt->Method == SUMA_HEAT_07 || 
                   Opt->Method == SUMA_BRUTE_FORCE) {
          SUMA_NEWDSET_ID_LABEL_HIST(dset, Opt->out_name) ;
          if (Opt->AddIndex) SUMA_SetAddIndex_1D(1);
@@ -2602,8 +2633,10 @@ int main (int argc,char *argv[])
          if (!SUMA_AddNgrHist (dset->ngr, FuncName, argc, argv)) {
             SUMA_SL_Err("Failed in SUMA_AddNgrHist");
          }
-         SUMA_LHv("About to write output dset %s, oform %d\n", Opt->out_name, Opt->oform);
-         ooo = SUMA_WriteDset_s(Opt->out_name, dset, Opt->oform, Opt->overwrite, 0);
+         SUMA_LHv("About to write output dset %s, oform %d\n", 
+                  Opt->out_name, Opt->oform);
+         ooo = SUMA_WriteDset_s( Opt->out_name, dset, Opt->oform, 
+                                 Opt->overwrite, 0);
          SUMA_FreeDset(dset); dset = NULL; SUMA_free(ooo); ooo=NULL;
       } else {
          SUMA_S_Err("Fix me");
