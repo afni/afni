@@ -1262,7 +1262,6 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    }
    NI_add_to_group( ngr, nel); 
    
-#if 0   /* rcr: test this out tomorrow, tomorrow ...  */
    /* get vol2surf underlay time series at this node     29 Apr 2009 [rickr] */
    do { /* cheat: break on error (until data has been allocated) */
       int sA, sB, usev2s;
@@ -1286,7 +1285,6 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
       /* and add it to the group */
       NI_add_to_group(ngr, nel); 
    } while (0);
-#endif
 
    if( sendit )
      NI_write_element( ns_listen[NS_SUMA] , ngr , NI_TEXT_MODE ) ;
