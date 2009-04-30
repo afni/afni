@@ -160,6 +160,7 @@ void * SUMA_glutBitmapFont(char *fontname);
 char * SUMA_glutBitmapFontName(void * font);
 char *SUMA_CoordTypeName (SUMA_DO_CoordType tp);
 SUMA_DO_CoordType SUMA_CoordType (char *atr);
+int SUMA_NodeRange_DrawnROI (SUMA_DRAWN_ROI *ROI, int *min, int *max);
 
 /*!
    NO Guarantee that certain nodes might 

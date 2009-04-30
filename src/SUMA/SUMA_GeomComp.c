@@ -3227,7 +3227,8 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                             byte *nmask, byte strict_mask)
 {
    static char FuncName[]={"SUMA_Taubin_Smooth"};
-   float *fout_final=NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next=NULL, *ftmp=NULL;
+   float *fout_final=NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, 
+         *fin_next=NULL, *ftmp=NULL;
    float fp, dfp, fpj;
    int i, n , k, j, niter, vnk, n_offset, DoThis, nj=-1, nnei=-1; 
    SUMA_Boolean LocalHead = NOPE;
@@ -3274,7 +3275,8 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    
    if (cs->Send) {
       if(vpn != 3) {
-         SUMA_SL_Warn("It does not look like you are smoothing coordinates!\nCommunication halted.");
+         SUMA_SL_Warn(  "It does not look like you are smoothing coordinates!\n"
+                        "Communication halted.");
          cs->Send = NOPE;
       }
       if (d_order == SUMA_COLUMN_MAJOR) {
@@ -3290,7 +3292,9 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    }
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR,"%s: Mu = %f, Lambda = %f\nShould have M(%f)< -L(%f) < 0\nN_iter=%d\n", 
+      fprintf (SUMA_STDERR,
+               "%s: Mu = %f, Lambda = %f\n"
+               "Should have M(%f)< -L(%f) < 0\nN_iter=%d\n", 
          FuncName, mu, lambda, mu, -lambda, N_iter);
    }
    
@@ -3307,12 +3311,14 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
             if ( niter % 2 ) { /* odd */
                fin = fin_next; /* input from previous output buffer */
                fout = fout_final; /* results go into final vector */
-               fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+               fin_next = fout_final; /*  in the next iteration, 
+                                          the input is from fout_final */
             } else { /* even */
                /* input data is in fin_new */
                fin = fin_next;
                fout = fbuf; /* results go into buffer */
-               fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+               fin_next = fbuf; /*  in the next iteration, 
+                                    the input is from the buffer */
                if (wgt && niter) {
                   /* recalculate the weights */
                   if (SUMA_Taubin_Weights == SUMA_FUJIWARA) {
@@ -3335,28 +3341,36 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                      dfp = 0.0;
                      if (nmask) {
                         nnei = 0;
-                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
+                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { 
+                                                /* calculating the laplacian */
                               nj = SO->FN->FirstNeighb[n][j];
-                              if (nmask[nj] || !strict_mask){ /* consider only neighbors that are in mask if strict_mask is 1*/
-                                 fpj = fin[nj+n_offset]; /* value at jth neighbor of n */
+                              if (nmask[nj] || !strict_mask){ /* consider only 
+                                    neighbors that are in mask if strict_mask 
+                                    is 1*/
+                                 fpj = fin[nj+n_offset]; /* value at jth neighbor                                                             of n */
                                  if (wgt) dfp += wgt[n][j] * (fpj - fp); 
-                                 else { dfp += (fpj - fp); ++nnei; }/* will apply equal weight later */
+                                 else { dfp += (fpj - fp); ++nnei; }/* will apply                                                            equal weight later */
                               }
                         }/* for j*/
                      } else {
                         nnei = SO->FN->N_Neighb[n];
-                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
-                              fpj = fin[SO->FN->FirstNeighb[n][j]+n_offset]; /* value at jth neighbor of n */
+                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating 
+                                                                 the laplacian */
+                              fpj = fin[SO->FN->FirstNeighb[n][j]+n_offset]; 
+                                                 /* value at jth neighbor of n */
                               if (wgt) dfp += wgt[n][j] * (fpj - fp); 
-                              else dfp += (fpj - fp); /* will apply equal weight later */
+                              else dfp += (fpj - fp); /* will apply equal 
+                                                         weight later      */
                         }/* for j*/
                      }
                      if (niter%2) { /* odd */
                         if (wgt) fout[vnk] = fin[vnk] + mu * dfp;
-                        else fout[vnk] = fin[vnk] + mu * dfp / (float)nnei;   /* apply equal weight factor here */
+                        else fout[vnk] = fin[vnk] + mu * dfp / (float)nnei; 
+                                          /* apply equal weight factor here */
                      }else{ /* even */
                        if (wgt) fout[vnk] = fin[vnk] + lambda * dfp;
-                       else fout[vnk] = fin[vnk] + lambda * dfp / (float)nnei;  /* apply equal weight factor here */
+                       else fout[vnk] = fin[vnk] + lambda * dfp / (float)nnei;  
+                                          /* apply equal weight factor here */
                      }
                   } else {
                      fout[vnk] = fin[vnk];
@@ -3365,15 +3379,23 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
             }/* for k */
             if (cs->Send) {
                /* SUMA_SendToSuma does not deal with such COLUMN_MAJOR order.
-               Must flip things here, boooooring */
+                  Must flip things here, boooooring */
                if (!niter) { /* allocate for buffer */
                   ftmp = (float *) SUMA_malloc(3*SO->N_Node*sizeof(float));
-                  if (!ftmp) { SUMA_SL_Err("Failed to allocate. Communication Off.\n"); cs->Send = NOPE; }
+                  if (!ftmp) { 
+                     SUMA_SL_Err("Failed to allocate. Communication Off.\n"); 
+                     cs->Send = NOPE; 
+                  }
                }
                if (ftmp) {
-                  for (i=0; i<SO->N_Node; ++i) { ftmp[3*i] = fout[i]; ftmp[3*i+1] = fout[i+SO->N_Node];  ftmp[3*i+2] = fout[i+2*SO->N_Node];}
-                  if (!SUMA_SendToSuma (SO, cs, (void *)ftmp, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+                  for (i=0; i<SO->N_Node; ++i) { 
+                     ftmp[3*i] = fout[i]; ftmp[3*i+1] = fout[i+SO->N_Node];  
+                     ftmp[3*i+2] = fout[i+2*SO->N_Node];
+                  }
+                  if (!SUMA_SendToSuma (  SO, cs, (void *)ftmp, 
+                                          SUMA_NODE_XYZ, 1) ) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                                  "Communication halted.");
                   }
                }
                if (niter == N_iter -1) { /* free the buffer */
@@ -3387,12 +3409,14 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
             if ( niter % 2 ) { /* odd */
                fin = fin_next; /* input from previous output buffer */
                fout = fout_final; /* results go into final vector */
-               fin_next = fout_final; /* in the next iteration, the input is from fout_final */
+               fin_next = fout_final; /*  in the next iteration, 
+                                          the input is from fout_final */
             } else { /* even */
                /* input data is in fin_new */
                fin = fin_next;
                fout = fbuf; /* results go into buffer */
-               fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+               fin_next = fbuf; /* in the next iteration, 
+                                   the input is from the buffer */
                if (wgt && niter ) {
                   /* recalculate the weights */
                   if (SUMA_Taubin_Weights == SUMA_FUJIWARA) {
@@ -3414,29 +3438,38 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                      dfp = 0.0;
                      if (nmask) {
                         nnei = 0;
-                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
+                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating 
+                                                               the laplacian */
                            nj = SO->FN->FirstNeighb[n][j];
-                           if (nmask[nj] || !strict_mask) { /* consider only neighbors that are in mask if strict_mask is 1*/
+                           if (nmask[nj] || !strict_mask) { /* consider only 
+                                 neighbors that are in mask if strict_mask is 1*/
                             
-                              fpj = fin[nj*vpn+k]; /* value at jth neighbor of n */
+                              fpj = fin[nj*vpn+k]; /* value at jth neighbor 
+                                                      of n */
                               if (wgt) dfp += wgt[n][j] * (fpj - fp); 
-                              else { dfp += (fpj - fp); ++nnei;} /* will apply equal weight later */
+                              else { dfp += (fpj - fp); ++nnei;} /* will apply 
+                                                           equal weight later */
                            }
                         }/* for j*/
                      } else {
                         nnei = SO->FN->N_Neighb[n];
-                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating the laplacian */
-                           fpj = fin[SO->FN->FirstNeighb[n][j]*vpn+k]; /* value at jth neighbor of n */
+                        for (j=0; j < SO->FN->N_Neighb[n]; ++j) { /* calculating 
+                                                               the laplacian */
+                           fpj = fin[SO->FN->FirstNeighb[n][j]*vpn+k]; /* value 
+                                                         at jth neighbor of n */
                            if (wgt) dfp += wgt[n][j] * (fpj - fp); 
-                           else dfp += (fpj - fp); /* will apply equal weight later */
+                           else dfp += (fpj - fp); /* will apply equal weight 
+                                                      later */
                         }/* for j*/
                      }
                      if (niter%2) { /* odd */
                         if (wgt) fout[vnk] = fin[vnk] + mu * dfp;
-                        else fout[vnk] = fin[vnk] + mu * dfp / (float)nnei;   /* apply equal weight factor here */
+                        else fout[vnk] = fin[vnk] + mu * dfp / (float)nnei;   
+                                             /* apply equal weight factor here */
                      }else{ /* even */
                        if (wgt) fout[vnk] = fin[vnk] + lambda * dfp;
-                       else fout[vnk] = fin[vnk] + lambda * dfp / (float)nnei;  /* apply equal weight factor here */
+                       else fout[vnk] = fin[vnk] + lambda * dfp / (float)nnei;  
+                                             /* apply equal weight factor here */
                      }
                   } else {
                      fout[vnk] = fin[vnk];
@@ -3446,7 +3479,8 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
             }/* for n */
             if (cs->Send) {
                if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
-                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\n"
+                               "Communication halted.");
                }
             }
          }/* for niter */

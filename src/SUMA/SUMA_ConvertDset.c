@@ -79,7 +79,13 @@ void usage_ConverDset()
 "                              a .1D dset. In many cases for .1D data\n"
 "                              this option is DSET.1D'[0]'\n"
 "     -node_select_1D MASK.1D: Specify the nodes you want to keep in the\n"
-"                              output.\n" 
+"                              output. \n"
+"                              The order of the rows in the output dataset \n"
+"                              reflect the order of the nodes in MASK.1D.\n"
+"                              Note that the presence of duplicate nodes in\n"
+"                              MASK.1D is not allowed. Also, node indices \n"
+"                              that do not have data in the input dataset will\n"
+"                              be ignored.\n" 
 "     -prepend_node_index_1D: Add a node index column to the data, rather\n"
 "                             than keep it as part of the metadata.\n"
 "     -pad_to_node max_index: Output a full dset from node 0 \n"
@@ -138,6 +144,7 @@ int main (int argc,char *argv[])
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
    int overwrite = 0, exists = 0, N_inmask=-1, pad_to_node = -1;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
+   int orderednodelist = 1;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -418,13 +425,36 @@ int main (int argc,char *argv[])
          Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
          for (j=0; j<SDSET_VECFILLED(dseti); ++j) Ti[j] = (int)fv[j];
-         if (!(dset_m = SUMA_MaskedByNodeIndexCopyofDset(
-                  dset, Ti, SDSET_VECFILLED(dseti),  NULL, 1, 0))) {
-            SUMA_S_Err("Failed to mask dset by node indices\n");
-            SUMA_S_Note(   "If your input dataset did not have a node index \n"
+         if (orderednodelist) {
+            int *inlu=NULL, N_inlu=0;
+            /* make sure indexlist is unique */
+            inlu = SUMA_UniqueInt(Ti, SDSET_VECFILLED(dseti), 
+                                  &N_inlu, 0);
+            SUMA_free(inlu); inlu = NULL;
+            if (N_inlu != SDSET_VECFILLED(dseti)) {
+               SUMA_S_Err( "Indexlist contains duplicate entries.\n"
+                           "This is not supported.");
+               exit(1);
+            }
+   
+
+            if (!(dset_m = SUMA_MaskedByOrderedNodeIndexCopyofDset(
+                     dset, Ti, SDSET_VECFILLED(dseti),  NULL, 1, 0))) {
+               SUMA_S_Err("Failed to mask dset by node indices\n");
+               SUMA_S_Note("If your input dataset did not have a node index \n"
                            "explicitly defined, use -add_node_index or\n"
                            "-node_index_1D options to specify node indices.\n" )
-            exit(1);
+               exit(1);
+            }
+         } else {
+            if (!(dset_m = SUMA_MaskedByNodeIndexCopyofDset(
+                     dset, Ti, SDSET_VECFILLED(dseti),  NULL, 1, 0))) {
+               SUMA_S_Err("Failed to mask dset by node indices\n");
+               SUMA_S_Note("If your input dataset did not have a node index \n"
+                           "explicitly defined, use -add_node_index or\n"
+                           "-node_index_1D options to specify node indices.\n" )
+               exit(1);
+            }
          }
          
          SUMA_free(Ti); Ti = NULL; 

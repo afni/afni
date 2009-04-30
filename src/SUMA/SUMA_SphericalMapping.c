@@ -1777,17 +1777,21 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
       while ( !found && seg[1]-seg[0]<numNodes_2 && curr_restr<3*r2 ) { 
          /*3 min distances have not yet been found*/
 
-         SUMA_Search_Min_Dist( ptHit, srtdX_ctrNodeList_2, seg, curr_restr, min_dist, i_node );
+         SUMA_Search_Min_Dist( ptHit, srtdX_ctrNodeList_2, seg, 
+                               curr_restr, min_dist, i_node );
          
          if ( i_node[0]==-1 || i_node[1]==-1 || i_node[2]==-1 ) {
-            /*sufficient (3) min_dist were not found -> repeat and expand search of segment with more relaxed measures*/
+            /*sufficient (3) min_dist were not found -> 
+               repeat and expand search of segment with more relaxed measures*/
             curr_restr = (float) 1.5*curr_restr;
             found = NOPE;
-            while ( ptHit[0] - srtdX_ctrNodeList_2[3*seg[0]] < curr_restr && seg[0]>0) { 
+            while ( ptHit[0] - srtdX_ctrNodeList_2[3*seg[0]] < curr_restr 
+                    && seg[0]>0) { 
                if (seg[0]>10) seg[0] = seg[0]-10; 
                else --seg[0];
             }
-            while ( srtdX_ctrNodeList_2[3*seg[1]] - ptHit[0] < curr_restr && seg[1]<numNodes_2-1) { 
+            while (  srtdX_ctrNodeList_2[3*seg[1]] - ptHit[0] < curr_restr && 
+                     seg[1]<numNodes_2-1) { 
                if (k<numNodes_2-11) seg[1] = seg[1]+10;
                else ++seg[1]; 
             }
@@ -1798,7 +1802,9 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, SUMA_SurfaceObject 
 
       if ( i_node[0]==-1 || i_node[1]==-1 || i_node[2]==-1 ) {
          /*unable to acquire 3 closest nodes (???) -> exit*/
-         fprintf(SUMA_STDERR, "Error %s: Unable to acquire 3 closest nodes ?!?\n\n", FuncName);
+         fprintf( SUMA_STDERR, 
+                  "Error %s: Unable to acquire 3 closest nodes ?!?\n\n", 
+                  FuncName);
          if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
          if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
          if (clsNodes) SUMA_free(clsNodes);

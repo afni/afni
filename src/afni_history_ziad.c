@@ -65,6 +65,26 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 29 , APR , 2009 , ZSS , "3dTcorrMap" , MINOR , TYPE_NEW_OPT ,
+   "-VarThresh* options for obtaining counts at different thresholds",
+   NULL
+ } ,
+ 
+ { 29 , APR , 2009 , ZSS , "ConvertDset" , MINOR , TYPE_NEW_OPT ,
+   "-node_select_1D now respects node ordering",
+   NULL
+ } ,
+ 
+ { 29 , APR , 2009 , ZSS , "ROI2dataset" , MINOR , TYPE_NEW_OPT ,
+   "-nodelist* options to output node sequence forming ROI",
+   NULL
+ } ,
+ 
+ { 29 , APR , 2009 , ZSS , "MapIcosahedron" , MINOR , TYPE_BUG_FIX ,
+   "Fixed crash when using -it option for geometry smoothing",
+   NULL
+ } ,
+ 
  { 14 , APR , 2009 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX ,
    "niml ROI files with empty ROI no longer crash suma/ROI2dataset",
    NULL
