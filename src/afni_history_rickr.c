@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, APR, 2009, RCR, "3dcalc", MINOR, TYPE_MODIFY,
+   "changed atan2(y,x) to proceed if y OR x is non-zero",
+   NULL
+ } ,
+
  { 30, APR, 2009, RCR, "thd_niftiread", MINOR, TYPE_MODIFY,
    "be sure to warn users when nifti is converted to float (w/dglen)",
    NULL
