@@ -65,6 +65,11 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 29 , APR , 2009 , ZSS , "SurfSmooth" , MINOR , TYPE_BUG_FIX ,
+   "-detprefix_* options now do something!",
+   NULL
+ } ,
+ 
  { 29 , APR , 2009 , ZSS , "3dTcorrMap" , MINOR , TYPE_NEW_OPT ,
    "-VarThresh* options for obtaining counts at different thresholds",
    NULL
