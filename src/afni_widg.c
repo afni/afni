@@ -2705,7 +2705,7 @@ STATUS("making func->rowcol") ;
 
 #ifdef FIX_SCALE_SIZE_PROBLEM
    XtVaSetValues( func->thr_scale ,
-                    XmNuserData , (XtPointer) sel_height ,
+                    XmNuserData , (XtPointer)sel_height ,
                   NULL ) ;
 #endif
 
@@ -2780,7 +2780,7 @@ STATUS("making func->rowcol") ;
                             ,
                             FALSE ,              /* nonmaskable events? */
                             AFNI_thr_EV ,        /* handler */
-                            (XtPointer) im3d ,   /* client data */
+                            (XtPointer)im3d ,    /* client data */
                             XtListTail           /* last in queue */
                           ) ;
 #endif
@@ -2792,7 +2792,7 @@ STATUS("making func->rowcol") ;
                                         AVOPT_STYLE ,
                                         0,THR_TOP_EXPON,0 ,
                                         MCW_AV_notext , 0 ,
-                                        AFNI_thresh_top_CB , (XtPointer) im3d ,
+                                        AFNI_thresh_top_CB , (XtPointer)im3d ,
                                         AFNI_thresh_tlabel_CB , NULL ) ;
 
    im3d->vinfo->func_thresh_top = 1.0 ;
@@ -2847,7 +2847,7 @@ STATUS("making func->rowcol") ;
                             ,
                             FALSE ,              /* nonmaskable events? */
                             AFNI_pbar_EV ,       /* handler */
-                            (XtPointer) im3d ,   /* client data */
+                            (XtPointer)im3d ,    /* client data */
                             XtListTail           /* last in queue */
                           ) ;
 
@@ -2992,7 +2992,7 @@ STATUS("making func->rowcol") ;
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
                              AFNI_palette_av_CB ,  /* callback when changed */
-                             (XtPointer) im3d ,    /* data for above */
+                             (XtPointer)im3d ,     /* data for above */
                              MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
@@ -3028,7 +3028,7 @@ STATUS("making func->rowcol") ;
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
                              AFNI_palette_tran_CB, /* callback when changed */
-                             (XtPointer) im3d ,    /* data for above */
+                             (XtPointer)im3d ,     /* data for above */
                              MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
@@ -3055,7 +3055,7 @@ STATUS("making func->rowcol") ;
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
                              AFNI_palette_tran_CB, /* callback when changed */
-                             (XtPointer) im3d ,    /* data for above */
+                             (XtPointer)im3d ,     /* data for above */
                              MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
@@ -3092,7 +3092,7 @@ STATUS("making func->rowcol") ;
                           sel_height / npane ,        /* init pane height */
                           pmin , pmax ,               /* value range */
                           AFNI_inten_pbar_CB ,        /* callback */
-                          (XtPointer) im3d    );      /* callback data */
+                          (XtPointer)im3d     ) ;     /* callback data */
 
      /* 04 Feb 2002: colorscale-ize? */
 
@@ -3106,7 +3106,7 @@ STATUS("making func->rowcol") ;
      }
    }
 
-   func->inten_pbar->parent       = (XtPointer) im3d ;
+   func->inten_pbar->parent       = (XtPointer)im3d ;
    func->inten_pbar->mode         = (im3d->vinfo->use_posfunc) ? (1) : (0) ;
    func->inten_pbar->npan_save[0] = INIT_panes_sgn ;
    func->inten_pbar->npan_save[1] = INIT_panes_pos ;
@@ -3185,9 +3185,9 @@ STATUS("making func->rowcol") ;
                     1 , AFNI_inten_bbox_label ,
                     MCW_BB_check ,
                     MCW_BB_noframe ,
-                    AFNI_inten_bbox_CB , (XtPointer) im3d ) ;
+                    AFNI_inten_bbox_CB , (XtPointer)im3d ) ;
 
-   func->inten_bbox->parent = (XtPointer) im3d ;
+   func->inten_bbox->parent = (XtPointer)im3d ;
 
    MCW_set_bbox( func->inten_bbox ,
                  (im3d->vinfo->use_posfunc) ? (1) : (0) ) ;
@@ -3249,8 +3249,8 @@ STATUS("making func->rowcol") ;
                     LAST_UNDERLAY_TYPE+1 , UNDERLAY_typestr ,
                     MCW_BB_radio_one ,
                     MCW_BB_frame ,
-                    AFNI_underlay_CB , (XtPointer) im3d ) ;
-   func->underlay_bbox->parent = (XtPointer) im3d ;
+                    AFNI_underlay_CB , (XtPointer)im3d ) ;
+   func->underlay_bbox->parent = (XtPointer)im3d ;
    MCW_set_bbox( func->underlay_bbox , 1 << im3d->vinfo->underlay_type ) ;
    MCW_reghelp_children( func->underlay_bbox->wrowcol ,
       "Use these buttons to choose\n"
@@ -3381,12 +3381,12 @@ STATUS("making func->rowcol") ;
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
                           AFNI_bucket_CB ,        /* callback when changed */
-                          (XtPointer) im3d ,      /* data for above */
+                          (XtPointer)im3d ,       /* data for above */
                           MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
-   func->anat_buck_av->parent     = (XtPointer) im3d ;
+   func->anat_buck_av->parent     = (XtPointer)im3d ;
    func->anat_buck_av->allow_wrap = True ;
 
    MCW_reghelp_children( func->anat_buck_av->wrowcol ,
@@ -3418,12 +3418,12 @@ STATUS("making func->rowcol") ;
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
                           AFNI_bucket_CB ,        /* callback when changed */
-                          (XtPointer) im3d ,      /* data for above */
+                          (XtPointer)im3d ,       /* data for above */
                           MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
-   func->fim_buck_av->parent     = (XtPointer) im3d ;
+   func->fim_buck_av->parent     = (XtPointer)im3d ;
    func->fim_buck_av->allow_wrap = True ;
 
    MCW_reghelp_children( func->fim_buck_av->wrowcol ,
@@ -3455,12 +3455,12 @@ STATUS("making func->rowcol") ;
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
                           AFNI_bucket_CB ,        /* callback when changed */
-                          (XtPointer) im3d ,      /* data for above */
+                          (XtPointer)im3d ,       /* data for above */
                           MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
-   func->thr_buck_av->parent     = (XtPointer) im3d ;
+   func->thr_buck_av->parent     = (XtPointer)im3d ;
    func->thr_buck_av->allow_wrap = True ;
 
    MCW_reghelp_children( func->thr_buck_av->wrowcol ,
@@ -3535,7 +3535,7 @@ STATUS("making func->rowcol") ;
                     1 , AFNI_range_bbox_label ,
                     MCW_BB_check ,
                     MCW_BB_noframe ,
-                    AFNI_range_bbox_CB , (XtPointer) im3d ) ;
+                    AFNI_range_bbox_CB , (XtPointer)im3d ) ;
 
    func->range_bbox->parent = (XtPointer) im3d ;
 
@@ -5861,11 +5861,11 @@ ENTRY("AFNI_misc_button") ;
    MCW_register_hint( dmode->misc_2dchain_pb , "Control 2DChain function" ) ;
    AFNI_misc_CB( dmode->misc_2dchain_pb , im3d , NULL ) ;
 
-#if 0
+#if 1
    dmode->misc_instacorr_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("InstaCorr") ,
+               LABEL_ARG("Setup InstaCorr") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,

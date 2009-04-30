@@ -39,7 +39,7 @@ PLUGIN_interface * ICOR_init(void)
 
    PLUTO_add_hint( plint , "Control InstaCorr" ) ;
 
-   PLUTO_set_runlabels( plint , "Set+Keep" , "Set+Close" ) ;
+   PLUTO_set_runlabels( plint , "Setup+Keep" , "Setup+Close" ) ;
 
    /*--------- make interface lines -----------*/
 

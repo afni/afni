@@ -4427,6 +4427,11 @@ extern void quint_shift( int , float , float *) ;
 
 extern void THD_fftshift( THD_3dim_dataset *, float,float,float, int ) ;
 
+extern void THD_bandpass_vectors( int nlen, int nvec, float **vec, /* 30 Apr 2009 */
+                                  float dt, float fbot, float ftop,
+                                  int qdet, int nort, float **ort ) ;
+extern int THD_bandpass_OK( int nx, float dt, float fbot, float ftop ) ;
+
   /*-- see mri_3dalign.c for these routines --*/
 
 /*! Struct that holds information used during 3D registration. */
