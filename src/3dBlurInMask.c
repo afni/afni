@@ -11,7 +11,7 @@ int main( int argc , char *argv[] )
    char *prefix="./blurinmask" ;
    float fwhm_goal=0.0f ; int fwhm_2D=0 ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 , nmask ;
-   MRI_IMARR *dsar ; MRI_IMAGE *dsim ; int ids ;
+   MRI_IMAGE *dsim ; int ids ;
    float dx,dy,dz=0.0f , *bar , val ;
 
    /*------- help the pitifully ignorant luser? -------*/
@@ -23,16 +23,16 @@ int main( int argc , char *argv[] )
       "\n"
       "OPTIONS\n"
       "-------\n"
-      " -input    ddd = This required 'option' specifies the dataset\n"
-      "                 that will be smoothed and output.\n"
-      " -FWHM     f   = Add this amount of smoothness to the dataset.\n"
-      "                **N.B.: This is also a required 'option'.\n"
-      " -prefix   ppp = Prefix for output dataset will be 'ppp'.\n"
-      "                **N.B.: Output dataset is always in float format.\n"
-      " -mask     mmm = Mask dataset, if desired.  Blurring will\n"
-      "                 occur only within the mask.  Voxels NOT in\n"
-      "                 the mask will be set to zero in the output.\n"
-      " -automask     = Create an automask from the input dataset.\n"
+      " -input  ddd = This required 'option' specifies the dataset\n"
+      "               that will be smoothed and output.\n"
+      " -FWHM   f   = Add this amount of smoothness to the dataset.\n"
+      "              **N.B.: This is also a required 'option'.\n"
+      " -prefix ppp = Prefix for output dataset will be 'ppp'.\n"
+      "              **N.B.: Output dataset is always in float format.\n"
+      " -mask   mmm = Mask dataset, if desired.  Blurring will\n"
+      "               occur only within the mask.  Voxels NOT in\n"
+      "               the mask will be set to zero in the output.\n"
+      " -automask   = Create an automask from the input dataset.\n"
       "\n"
       "NOTES\n"
       "-----\n"
@@ -43,7 +43,11 @@ int main( int argc , char *argv[] )
       "   will be slower, and smoothing without a mask will be slower.\n"
       " * If the original FWHM of the dataset was 'S' and you input a value\n"
       "   'F' with the '-FWHM' option, then the output dataset's smoothness\n"
-      "   will be about sqrt(S*S+F*F).\n"
+      "   will be about sqrt(S*S+F*F).  The number of iterations will be\n"
+      "   about (F*F/d*d) where d=grid spacing.\n"
+      " * Since the blurring is done iteratively, rather than all-at-once as\n"
+      "   in 3dmerge, the results will be slightly different than 3dmerge's,\n"
+      "   even if no mask is used here (3dmerge, of course, doesn't take a mask).\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -180,21 +184,15 @@ int main( int argc , char *argv[] )
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dBlurInMask" , argc,argv , outset ) ;
 
-   INIT_IMARR(dsar) ;
    for( ids=0 ; ids < DSET_NVALS(inset) ; ids++ ){
      dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids));
+     DSET_unload_one(inset,ids) ;
      dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
-     ADDTO_IMARR(dsar,dsim) ; DSET_unload_one(inset,ids) ;
-     mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;
+     mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;  /** all the work **/
+     EDIT_substitute_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ) ;
+     MRILIB_verb = 0 ;
    }
    DSET_unload(inset) ;
-
-   /*--- put blurred data into the output dataset ---*/
-
-   for( ids=0 ; ids < DSET_NVALS(outset) ; ids++ ){
-     bar = MRI_FLOAT_PTR( IMARR_SUBIM(dsar,ids) ) ;
-     EDIT_substitute_brick( outset , ids , MRI_float , bar ) ;
-   }
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
    exit(0) ;
