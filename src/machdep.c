@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <time.h>
 
+int MRILIB_verb = 0 ;
+
 /*--------------------------------------------------------------------
    Code to provide runtime fixups for various machines
    (things that can't be fixed by declarations in machdep.h).

@@ -25,14 +25,25 @@ int main( int argc , char *argv[] )
       "-------\n"
       " -input    ddd = This required 'option' specifies the dataset\n"
       "                 that will be smoothed and output.\n"
+      " -FWHM     f   = Add this amount of smoothness to the dataset.\n"
+      "                **N.B.: This is also a required 'option'.\n"
       " -prefix   ppp = Prefix for output dataset will be 'ppp'.\n"
       "                **N.B.: Output dataset is always in float format.\n"
       " -mask     mmm = Mask dataset, if desired.  Blurring will\n"
       "                 occur only within the mask.  Voxels NOT in\n"
       "                 the mask will be set to zero in the output.\n"
       " -automask     = Create an automask from the input dataset.\n"
-      " -FWHM     f   = Add this amount of smoothness to the dataset.\n"
-      "                **N.B.: This is also a required 'option'.\n"
+      "\n"
+      "NOTES\n"
+      "-----\n"
+      " * If you don't provide a mask, then all voxels will be included\n"
+      "   in the blurring.  But then why are you using this program?\n"
+      " * Works iteratively, sort of like 3dBlurToFWHM, but without\n"
+      "   the extensive monitoring overhead.  As a result, more smoothing\n"
+      "   will be slower, and smoothing without a mask will be slower.\n"
+      " * If the original FWHM of the dataset was 'S' and you input a value\n"
+      "   'F' with the '-FWHM' option, then the output dataset's smoothness\n"
+      "   will be about sqrt(S*S+F*F).\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -111,6 +122,8 @@ int main( int argc , char *argv[] )
      ERROR_exit("Uknown option '%s'",argv[iarg]) ;
 
    } /*--- end of loop over options ---*/
+
+   MRILIB_verb = verb ;
 
    /*----- check for stupid inputs, load datasets, et cetera -----*/
 

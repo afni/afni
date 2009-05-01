@@ -15,6 +15,8 @@
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
+extern int MRILIB_verb ;                /* 01 May 2009 */
+
 extern char MRILIB_orients[] ;          /* 12 Mar 2001 */
 extern float MRILIB_zoff ;              /* global variables from mri_read.c */
 extern float MRILIB_tr ;                /* 03 Dec 2001 */
@@ -1769,6 +1771,10 @@ extern THD_fvec3 mri_nstat_fwhmxyz( int,int,int ,
 
 extern void mri_blur3D_variable( MRI_IMAGE * , byte * ,
                                  MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
+extern void mri_blur3D_inmask( MRI_IMAGE *, byte *, float,float,float,int );
+extern void mri_blur3D_addfwhm( MRI_IMAGE *, byte *, float ) ;
+extern void mri_blur3D_getfac ( float, float, float, float,
+                                int *, float *, float *, float * ) ;
 
 extern MRI_IMAGE * mri_rgb_blur2D  ( float sig , MRI_IMAGE *im ) ;
 extern MRI_IMAGE * mri_byte_blur2D( float sig , MRI_IMAGE *im );
