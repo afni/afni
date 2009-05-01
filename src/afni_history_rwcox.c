@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , MAY , 2009 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_PROG ,
+   "Like 3dBlurToFWHM, but simpler." ,
+   NULL } ,
+
  { 1 , MAY , 2009 , RWC , "thd_bandpass.c" , MICRO , TYPE_BUG_FIX ,
    "modified to make it actually work, including lowpass and highpass" ,
    NULL } ,

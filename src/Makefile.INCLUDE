@@ -82,7 +82,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
            3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dUndump 3dREMLfit            \
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
-           $(EXTRAS)
+           3dBlurInMask $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -516,6 +516,10 @@ dsetdup:dsetdup.o
 3dBlurToFWHM:3dBlurToFWHM.o
 	$(RM) $@
 	$(CC) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
+3dBlurInMask:3dBlurInMask.o
+	$(RM) $@
+	$(CC) -o 3dBlurInMask 3dBlurInMask.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dDFT:3dDFT.o
 	$(RM) $@
