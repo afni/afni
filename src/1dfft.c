@@ -189,7 +189,7 @@ int main( int argc , char * argv[] )
    if( cxop != FROMCX ){                     /* real input */
       if( nfft < nxi ) nfft = nxi ;
       nfft = csfft_nextup_one35(nfft) ;
-      fprintf(stderr,"++ FFT length = %d\n",nfft) ;
+      fprintf(stderr,"++ 1dfft length = %d\n",nfft) ;
       nby2 = nfft/2 ;
 
       cxar = (complex *) malloc( sizeof(complex) * nfft ) ;
@@ -206,10 +206,12 @@ int main( int argc , char * argv[] )
          if( !nodetrend ){
             float f0,f1,f2 ;
             THD_quadratic_detrend( nxi , far+ignore , &f0,&f1,&f2 ) ;
+#if 0
             fprintf(stderr,"++ quadratic trend: %g + %g * i + %g * i*i\n"
                            "                    mid = %g  end = %g\n" ,
                     f0,f1,f2 , f0+0.5*nxi*f1+0.25*nxi*nxi*f2 ,
                                f0+(nxi-1)*f1+(nxi-1)*(nxi-1)*f2 ) ;
+#endif
          }
          for( ii=0 ; ii < nxi ; ii++ ){
             cxar[ii].r = far[ii+ignore]; cxar[ii].i = 0.0;
