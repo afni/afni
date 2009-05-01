@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 1, MAY, 2009, RCR, "Makefile.linux_xorg7_64", MICRO, TYPE_MODIFY,
+   "link to local libGLws.a, as with 32-bit xorg7 package",
+   NULL
+ } ,
+
  { 30, APR, 2009, RCR, "3dcalc", MINOR, TYPE_MODIFY,
    "changed atan2(y,x) to proceed if y OR x is non-zero",
    NULL
