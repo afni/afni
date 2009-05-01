@@ -67,7 +67,6 @@ static char * my_fgets( char *buf , int size , FILE *fts );
 
 static void printarray(int *iar, int n);
 
-
 int
 main (int argc, char *argv[])
 {
@@ -351,12 +350,14 @@ main (int argc, char *argv[])
       nlabels = Py-Px;
       roilabels = read_labels(theta_file_str, Px);
    }
-   if(verbose){
+
+/*   if(verbose){*/
       if(roilabels)
          DUMP_SQRMAT_LABELED("Initial Theta Setup Matrix", theta_init_mat,roilabels);
       else
          DUMP_SQRMAT("Initial Theta Setup Matrix", theta_init_mat);
-   }
+      INFO_message("\n");
+/*   }*/
          
    ntheta = count_nonzero_sm(theta_init_mat);
    if((ntheta<2)&&(!model_search))
@@ -482,22 +483,19 @@ static void ModelSearch(int p, char **roilabels)
    nelements = p*(p-1);
 /*   nmodels = (long long)pow(2.0,nelements); */  /* maximum number of models to try */
    nmodels = count_value_sm(theta_init_mat, 2.0);
-   INFO_message("nmodels to try is %d\n", nmodels);
+   INFO_message("Number of non-required coefficients %d\n", nmodels);
    n = kmat->n;
    mat = kmat->mat;
    nat = theta_init_mat->mat;
-   if(roilabels)
-      DUMP_SQRMAT_LABELED("theta_init_mat", theta_init_mat,roilabels);
-   else
-      DUMP_SQRMAT("theta init", theta_init_mat);
-   
    eta = 0.0001;   /* perturbation amount */
    
    if(nmodels>maxmodel)      /* limit number of models to some maximum */
       nmodels = maxmodel;
       
    kk = n*(n+1)/2;
-   nreq = ntheta = count_nonzero_sm(theta_init_mat);
+   ntheta = count_nonzero_sm(theta_init_mat);
+
+   nreq = count_value_sm(theta_init_mat, 1.0);
    INFO_message("Number of required coefficients is %d\n", nreq);
 
    if(nreq!=0) {
@@ -515,7 +513,7 @@ static void ModelSearch(int p, char **roilabels)
    }
    INFO_message("Chi Square 0 = %f  for minimum fit\n", chisq0);
    INFO_message("-------------------------------------------------------------------------------\n\n");
-   for(i=0;(i<nmodels-nreq)&&(cost>stop_cost);i++) {     /* for all possible combinations or maximum */
+   for(i=0;(i<nmodels)&&(cost>stop_cost);i++) {     /* for all possible combinations or maximum */
       invsigma = ComputeInvSigma();  /* more efficient and safer to calculate inverse first */
       /* use inverse of the inverse sigma matrix for nice symmetric matrix */  
       sigma = sm_inverse(invsigma);  
@@ -576,7 +574,12 @@ static void ModelSearch(int p, char **roilabels)
       cost = ComputeThetawithPowell();  /* recompute the optimization */
       
       chisq = cost * (DF-1.0);
-      INFO_message("\nmax i,j = %d, %d with cost = %g, chisq = %g, ntheta = %d\n", max_i, max_j, cost, chisq, ntheta);
+      INFO_message("\n");
+      INFO_message("Growing model at row,col = %d, %d\n", max_i, max_j); 
+      if(roilabels)
+         INFO_message(" %s -> %s\n", roilabels[max_j], roilabels[max_i]);
+      INFO_message("   with new cost = %g, chisq = %g, ntheta = %d\n",
+                       cost, chisq, ntheta);
       
       pfi = 1.0 - (chisq/(kk-ntheta))*kk/chisq0;    /* parsimonious fit index */
       aic = chisq + (ntheta+ntheta);                /* Akaike's information criterion */
@@ -644,7 +647,8 @@ GrowAllModels(char **roilabels)
       cost = mincost;
       chisq = cost * (DF-1.0);
       depth = stopdepth + 1;
-      INFO_message("\n\ncost = %g chisq = %g, #coeffs = %d\n", cost, chisq, depth);
+      INFO_message("New model computed with %d coefficients\n", depth);
+      INFO_message(" cost = %g chisq = %g\n",cost, chisq);
       pfi = 1.0 - (chisq/(depth-ntheta0))*depth/chisq0;    /* parsimonious fit index */
       aic = chisq + (depth+depth);                /* Akaike's information criterion */
       INFO_message("parsimonious fit index = %g   Akaike's Information Criterion = %g\n", pfi, aic);
@@ -674,6 +678,7 @@ GrowModel(int lastindex, int depth, int stopdepth, int *thetavec, int *minvec, i
    start = lastindex + 1;  /* start at node right after previous index */
    if(start>=npts)
       EXRETURN;
+
    for(ii=start; ii<npts;ii++){
       temp = thetavec[ii];
       thetavec[ii] = 1;

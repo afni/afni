@@ -50,6 +50,11 @@
 
 afni_history_struct dglen_history[] = {
 
+{ 1 , MAY , 2009 , DRG , "1dSEM" , 
+    MINOR , TYPE_BUG_FIX, "Tree growth fix",
+    "Fixed bug in tree growth and improved output text"
+} ,
+
 { 22 , APR , 2009 , DRG , "@AddEdge, align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, "Oblique edge display",
     "Fixed bug with oblique data in edge display"
