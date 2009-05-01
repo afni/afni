@@ -168,7 +168,7 @@ void mri_blur3D_getfac( float fwhm , float dx, float dy, float dz ,
    if( dz > 0.0f ) dm = MIN(dm,dz) ;
    if( dm == DMAX ) return ;
 
-   *nrep = 1 + (int)(fwhm*fwhm/(dm*dm)) ;
+   *nrep = 2 + (int)(fwhm*fwhm/(dm*dm)) ;
    if( dx > 0.0f ) *fx = 0.045084f*(fwhm*fwhm)/(*nrep*dx*dx) ;
    else            *fx = 0.0f ;
    if( dy > 0.0f ) *fy = 0.045084f*(fwhm*fwhm)/(*nrep*dy*dy) ;
