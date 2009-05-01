@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , MAY , 2009 , RWC , "thd_bandpass.c" , MICRO , TYPE_BUG_FIX ,
+   "modified to make it actually work, including lowpass and highpass" ,
+   NULL } ,
+
  { 30 , APR , 2009 , RWC , "1dBandpass" , MICRO , TYPE_NEW_PROG ,
    "for .. Bandpassing!" ,
    "Really just to test the new bandpassing functions for inclusion into\n"
