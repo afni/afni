@@ -17,6 +17,7 @@ int main( int argc , char * argv[] )
             "           but the mean and Nyquist freq are always removed ]\n"
             " * ftop = highest frequency in the passband (must be > fbot)\n"
             "          [if ftop > Nyquist freq, then we have a highpass filter only]\n"
+            " * You cannot construct a 'notch' filter with this program!\n"
             " * Output vectors appear on stdout; redirect as desired\n"
             " * Program will fail if fbot and ftop are too close for comfort\n"
             " * The actual FFT length used will be printed, and may be larger\n"
