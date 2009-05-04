@@ -41,7 +41,7 @@ ENTRY("THD_dset_to_vectim") ;
 
    mrv->nvec  = nmask ;
    mrv->nvals = nvals ;
-   mrv->ivec  = (int *)  malloc(sizeof(int)  *nmask) ;
+   mrv->ivec  = (int *)malloc(sizeof(int)*nmask) ;
    if( mrv->ivec == NULL ){
      ERROR_message("THD_dset_to_vectim: out of memory") ;
      free(mrv) ; if( mmm != mask ) free(mmm) ;
@@ -63,6 +63,13 @@ ENTRY("THD_dset_to_vectim") ;
      kk++ ;
    }
 
+   mrv->nx = DSET_NX(dset) ; mrv->dx = fabs(DSET_DX(dset)) ;
+   mrv->ny = DSET_NY(dset) ; mrv->dy = fabs(DSET_DY(dset)) ;
+   mrv->nz = DSET_NZ(dset) ; mrv->dz = fabs(DSET_DZ(dset)) ;
+
+   DSET_UNMSEC(dset) ; mrv->dt = DSET_TR(dset) ;
+   if( mrv->dt <= 0.0f ) mrv->dt = 1.0f ;
+
    if( mmm != mask ) free(mmm) ;
    RETURN(mrv) ;
 }
@@ -81,7 +88,7 @@ void THD_vectim_normalize( MRI_vectim *mrv )
 
 /*-----------------------------------------------------------*/
 
-void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp )
+void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
 {
    if( mrv == NULL || vec == NULL || dp == NULL ) return ;
 
@@ -93,7 +100,7 @@ void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp )
      for( sum=0.0f,ii=0 ; ii < nv1 ; ii+=2 )
        sum += fv[ii]*vec[ii] + fv[ii+1]*vec[ii+1] ;
      if( ii == nvals-1 ) sum += fv[ii]*vec[ii] ;
-     dp[iv] = sum ;
+     dp[iv] = (ata) ? logf((1.0001f+sum)/(1.0001f-sum)) : sum ;
    }
  } /* end OpenMP */
 
