@@ -1,7 +1,7 @@
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
-void ICOR_init(void){}
+void ICOR_init(void){return;}
 #else
 
 /***********************************************************************
@@ -15,6 +15,10 @@ static char helpstring[] =
   "\n"
   "Author -- RW Cox -- Apr 2009"
 ;
+
+/*----------------- global data for doing the work -------------------*/
+
+static ICOR_setup *iset = NULL ;
 
 /*----------------- prototypes for internal routines -----------------*/
 
@@ -58,8 +62,10 @@ PLUGIN_interface * ICOR_init(void)
    PLUTO_add_option    ( plint , "Global Orts" , "GlobalOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
 
+#if 0
    PLUTO_add_option    ( plint , "Slice Orts" , "SliceOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
+#endif
 
    PLUTO_add_option( plint , "Bandpass(Hz)" , "Bandpass" , FALSE ) ;
    PLUTO_add_number( plint , "Lower" , 0,1000,3, 10 , TRUE ) ;
@@ -76,8 +82,60 @@ PLUGIN_interface * ICOR_init(void)
 
 static char * ICOR_main( PLUGIN_interface *plint )
 {
+   char *tag ;
+   float fbot=-1.0f , ftop=999999.9f ;
+   MRI_IMAGE *gortim=NULL ;
+   THD_3dim_dataset *dset=NULL , *mset=NULL ;
+   int ignore=0 , mindex=0 , automask=0 ; float blur=0.0f ;
 
-   INFO_message("ICOR_main!") ;
+   /*--- loop over input lines ---*/
+
+   while(1){
+     tag = PLUTO_get_optiontag(plint) ;
+     if( tag == NULL ) break ;
+
+     /** TimeSeries **/
+
+     if( strcmp(tag,"TimeSeries") == 0 ){
+       MCW_idcode *idc ;
+       idc  = PLUTO_get_idcode(plint) ;
+       dset = PLUTO_find_dset(idc) ;
+       if( dset == NULL ) ERROR_message("Can't find Time Series dataset") ;
+       ignore = PLUTO_get_number(plint) ;
+       blur   = PLUTO_get_number(plint) ;
+       break ;
+     }
+
+     if( strcmp(tag,"Mask") == 0 ){
+       MCW_idcode *idc ; char *am ;
+       idc      = PLUTO_get_idcode(plint) ;
+       mset     = PLUTO_find_dset(idc) ;
+       mindex   = PLUTO_get_number(plint) ;
+       am       = PLUTO_get_string(plint) ;
+       automask = (am[0] == 'Y') ;
+       if( !automask && mset == NULL )
+         WARNING_message("No Masking selected?!") ;
+       else if( mset != NULL && automask )
+         WARNING_message("Automask disabled when Mask dataset is chosen") ;
+       break ;
+     }
+
+     if( strcmp(tag,"GlobalOrts") == 0 ){
+       gortim = PLUTO_get_timeseries(plint) ;
+       if( gortim == NULL ) ERROR_message("Ignoring NULL 'Global Orts' time series") ;
+       break ;
+     }
+
+     if( strcmp(tag,"Bandpass") == 0 ){
+       fbot = PLUTO_get_number(plint) ;
+       ftop = PLUTO_get_number(plint) ;
+       if( fbot >= ftop ) ERROR_message("Ignoring disordered Bandpass frequencies") ;
+       break ;
+     }
+
+     return "** ICOR_main: table corruption! **" ; /* should never happen! */
+   }
+
    return NULL ;
 }
-#endif
+#endif  /* ALLOW_PLUGINS */

@@ -8,7 +8,16 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: 1dmatcalc [-verb] expression\n\n") ;
      printf("%s\n",mri_matrix_evalrpn_help()) ;
-     exit(1) ;
+     printf("SIMPLE EXAMPLES\n"
+            "---------------\n"
+            "* Multiply each element of an input 1D file\n"
+            "  by a constant factor and write to disk.\n"
+            "    1dmatcalc \"read(in.1D) 3.1416 * write(out.1D)\"\n"
+            "\n"
+            "* Subtract two 1D files\n"
+            "    1dmatcalc \"read(a.1D) read(b.1D) - write(c.1D)\"\n"
+           ) ;
+     exit(0) ;
    }
 
    if( strcmp(argv[1],"-verb") == 0 ){

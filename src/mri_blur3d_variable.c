@@ -195,7 +195,6 @@ ENTRY("mri_blur3D_addfwhm") ;
    dz = im->dz; if( dz == 0.0f ) dz = 1.0f; else if( dz < 0.0f ) dz = -dz;
 
    mri_blur3D_getfac( fwhm , dx,dy,dz , &nrep,&fx,&fy,&fz ) ;
-
    if( nrep < 0 || fx < 0.0f || fy < 0.0f || fz < 0.0f ) EXRETURN ;
 
    if( MRILIB_verb )
@@ -204,4 +203,53 @@ ENTRY("mri_blur3D_addfwhm") ;
    mri_blur3D_inmask( im , mask , fx,fy,fz , nrep ) ;
 
    EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Blur a vectim, by converting each time point to a 3D image,
+    blurring that image, and then putting it back into the vectim.
+*//*--------------------------------------------------------------------------*/
+
+void mri_blur3D_vectim( MRI_vectim *vim , float fwhm )
+{
+   int nrep=-1 , nx,ny,nz , nvox , iv,kk ;
+   float fx=-1.0f,fy=-1.0f,fz=-1.0f , dx,dy,dz ;
+   MRI_IMAGE *qim ; float *qar , *var ; int *ivar ; byte *mmm ;
+
+ENTRY("mri_blur3d_vectim") ;
+
+   if( vim == NULL || fwhm <= 0.0f ) EXRETURN ;
+
+   dx = vim->dx ; if( dx == 0.0f ) dx = 1.0f; else if( dx < 0.0f ) dx = -dx;
+   dy = vim->dy ; if( dy == 0.0f ) dy = 1.0f; else if( dy < 0.0f ) dy = -dy;
+   dz = vim->dz ; if( dz == 0.0f ) dz = 1.0f; else if( dz < 0.0f ) dz = -dz;
+
+   nx = vim->nx ; ny = vim->ny ; nz = vim->nz ; nvox = nx*ny*nz ;
+   if( nx < 1 || ny < 1 || nz < 1 ) EXRETURN ;
+
+   mri_blur3D_getfac( fwhm , dx,dy,dz , &nrep,&fx,&fy,&fz ) ;
+   if( nrep < 0 || fx < 0.0f || fy < 0.0f || fz < 0.0f ) EXRETURN ;
+
+   if( MRILIB_verb )
+     INFO_message("mri_blur3D: #iter=%d fx=%.5f fy=%.5f fz=%.5f",nrep,fx,fy,fz) ;
+
+   ivar = vim->ivec ;
+   mmm  = (byte *)calloc(sizeof(byte),nvox) ;
+   for( kk=0 ; kk < vim->nvec ; kk++ ) mmm[ivar[kk]] = 1 ;
+
+   qim = mri_new_vol( nx,ny,nz , MRI_float ) ;
+   qar = MRI_FLOAT_PTR(qim) ;
+
+   for( iv=0 ; iv < vim->nvals ; iv++ ){
+     memset( qar , 0 , sizeof(float)*nvox ) ;
+     for( kk=0 ; kk < vim->nvec ; kk++ ){
+       var = VECTIM_PTR(vim,kk) ; qar[ivar[kk]] = var[iv] ;
+     }
+     mri_blur3D_inmask( qim , mmm , fx,fy,fz , nrep ) ;
+     for( kk=0 ; kk < vim->nvec ; kk++ ){
+       var = VECTIM_PTR(vim,kk) ; var[iv] = qar[ivar[kk]] ;
+     }
+   }
+
+   free(mmm) ; mri_free(qim) ; EXRETURN ;
 }
