@@ -36,7 +36,7 @@ NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
    int nort=0, nts = 0 ;
    int suc=0, i=0, nref=0;
    char stmp[256];
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -147,9 +147,9 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset, NI_element *dotopt)
    static char FuncName[]={"SUMA_GetDotPreprocessedDset"};
    SUMA_DSET *pdset=NULL;
    float **refvec=NULL, ftop=9999999.9, fbot = 0.0;
-   int i;
+   int i, N_ort_param=0;
    char stmp[256], *ppid=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -188,7 +188,8 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset, NI_element *dotopt)
       }
       /* now detrend the whole thing */
       pdset = SUMA_DotDetrendDset(in_dset, refvec, dotopt->vec_num, 
-                                  fbot, ftop, 0);
+                                  fbot, ftop, 0, &N_ort_param);
+      NI_SET_INT(dotopt,"num_ort_parameters", N_ort_param);
       NI_set_attribute(pdset->ngr, "self_idcode", ppid);
       SUMA_free(ppid); ppid = NULL;
       
@@ -273,7 +274,7 @@ void SUMA_dot_product_CB( void *params)
    NI_group *ngr = NULL;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_OVERLAYS *Sover=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -479,13 +480,14 @@ void SUMA_dot_product_CB( void *params)
 SUMA_DSET *SUMA_DotDetrendDset(  SUMA_DSET *in_dset, 
                                  float **refvec, int nref,
                                  float fbot, float ftop,
-                                 int qdet) 
+                                 int qdet, int *num_ort) 
 {
    static char FuncName[]={"SUMA_DotDetrendDset"};
    float **fvec=NULL;
    double TR=0;
-   int i, N_ret=0;
+   int i, N_ret=0, nnort = 0;
    SUMA_DSET *o_dset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -508,8 +510,10 @@ SUMA_DSET *SUMA_DotDetrendDset(  SUMA_DSET *in_dset,
      
   
    /* detrend */
-   THD_bandpass_vectors (SDSET_VECNUM(in_dset), SDSET_VECLEN(in_dset), fvec,
-                         (float)TR, fbot, ftop, qdet, nref, refvec);
+   nnort = THD_bandpass_vectors (SDSET_VECNUM(in_dset), SDSET_VECLEN(in_dset), 
+                                 fvec, (float)TR, fbot, ftop, qdet, nref, 
+                                 refvec);
+   if (num_ort) *num_ort = nnort;
    
    /* normalize */
    for (i=0; i<SDSET_VECLEN(in_dset); ++i) {
@@ -537,7 +541,10 @@ SUMA_DSET *SUMA_DotDetrendDset(  SUMA_DSET *in_dset,
    SUMA_free(fvec); fvec = NULL;
    
    /* write out dset for good measure? */
-   SUMA_WriteDset_s(FuncName, o_dset, SUMA_ASCII_NIML, 1, 1);
+   if (LocalHead) {
+      SUMA_LH("Writing detrended dset to disk\n");
+      SUMA_WriteDset_s(FuncName, o_dset, SUMA_ASCII_NIML, 1, 1);
+   }
    
    /* that is it, return */
    SUMA_RETURN(o_dset);
@@ -562,8 +569,10 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
    int prec=1; /* NEVER CHANGE THIS DEFAULT */
    char *s=NULL, *sname=NULL;
    SUMA_VARTYPE vtp = SUMA_notypeset;
+   float par[3];
    static SUMA_VARTYPE vtp_last = SUMA_notypeset;
-   SUMA_Boolean LocalHead = YUP;
+   NI_element *nelb=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
       
@@ -637,10 +646,20 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
          SUMA_free(dcol); dcol = (double*)dot->dnel->vec[0];
       } else {
          fcol = (float *) SUMA_calloc(SDSET_VECLEN(in_dset), sizeof(float));
-         if (!SUMA_AddDsetNelCol(dot, "dotproduct", SUMA_NODE_FLOAT, 
-                                 (void *)fcol, NULL , 1)) {
-            SUMA_S_Err("Failed to add col");
-            SUMA_RETURN(NOPE);
+         if (dotopt && NI_YES_ATTR(dotopt,"normalize_dset")) {
+            /* par[2] is not available yet. The 2 is just a place holder */
+            par[0] = SDSET_VECNUM(in_dset); par[1] = 1; par[2]=2;
+            if (!SUMA_AddDsetNelCol(dot, "XcorrCoef", SUMA_NODE_XCORR, 
+                                    (void *)fcol, (void *)par , 1)) {
+               SUMA_S_Err("Failed to add col");
+               SUMA_RETURN(NOPE);
+            }
+         } else {
+            if (!SUMA_AddDsetNelCol(dot, "dotproduct", SUMA_NODE_FLOAT, 
+                                    (void *)fcol, NULL , 1)) {
+               SUMA_S_Err("Failed to add col");
+               SUMA_RETURN(NOPE);
+            }
          }
          SUMA_free(fcol); fcol = (float*)dot->dnel->vec[0];
       } 
@@ -734,7 +753,21 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
       SUMA_free(s); s=NULL;
    }
    
-   
+   /* reset the stat params, just in case */
+   if (dotopt && NI_YES_ATTR(dotopt,"normalize_dset") &&
+       (nelb = SUMA_FindDsetAttributeElement(dot, "COLMS_STATSYM"))) {
+      par[0] = SDSET_VECNUM(in_dset); par[1] = 1;
+      NI_GET_INT(dotopt,"num_ort_parameters", par[2]);
+      if (!NI_GOT) {
+         SUMA_S_Err("Failed to get ort parameters, \n"
+                    "you can't trust the p values\n ");
+         par[2] = 2; /* something ... */
+      }
+      SUMA_AddColAtt_CompString( nelb, 0, 
+                                 NI_stat_encode(NI_STAT_CORREL, 
+                                                par[0], par[1], par[2]),
+                                 SUMA_NI_CSS, 0);
+   }
    
    if (0 && LocalHead) {
       ic = 0;
