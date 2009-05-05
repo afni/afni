@@ -1147,10 +1147,18 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   child->OptScl->find = 0;
                   child->OptScl->tind = 0;
                   child->OptScl->bind = 0;
+                  child->OptScl->UseThr = 1; /* turn on threshold use */
+                  child->OptScl->IntRange[0] = -0.5;  /* set the range */
+                  child->OptScl->IntRange[1] = 0.5;
+                  SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 1, 
+                                          child->OptScl->IntRange[0]);
+                  SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 2, 
+                                          child->OptScl->IntRange[1]);
+                  
                   SUMA_GetDsetColRange(dot, 0, child->OptScl->IntRange, loc);
 
                   SO->SurfCont->curColPlane = child;
-
+                  
                   SUMA_LH("Colorize plane");
                   SUMA_ColorizePlane(child);
 

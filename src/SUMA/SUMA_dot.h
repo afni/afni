@@ -18,6 +18,6 @@ NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
 SUMA_DSET *SUMA_DotDetrendDset(  SUMA_DSET *in_dset, 
                                  float **refvec, int nref,
                                  float fbot, float ftop,
-                                 int qdet); 
+                                 int qdet, int *num_ort); 
 
 #endif

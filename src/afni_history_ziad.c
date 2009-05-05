@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 5 , MAY , 2009 , ZSS , "DriveSuma" , MINOR , TYPE_BUG_FIX ,
+   "Added 'd' and 'j' keys",
+   NULL
+ } ,
+
+ { 5 , MAY , 2009 , ZSS , "3dRank" , MINOR , TYPE_NEW_PROG ,
+   "A program that substitutes a voxel's value by that value's rank",
+   NULL
+ } ,
+ 
  { 29 , APR , 2009 , ZSS , "SurfSmooth" , MINOR , TYPE_BUG_FIX ,
    "-detprefix_* options now do something!",
    NULL

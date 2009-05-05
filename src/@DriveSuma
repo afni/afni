@@ -4,6 +4,8 @@
 #You're better off cutting and pasting individual commands.
 #Otherwise script will run too fast.
 
+if ("$1" == "-h" || "$1" == -help) goto HELP
+
 mkdir tmp_suma
 cd tmp_suma
 
@@ -23,7 +25,7 @@ cd tmp_suma
                        -radial_to_sphere 100
         DriveSuma -com node_xyz -label icoco \
                        -xyz_1D radcoord.1D.coord'[0,1,2]'
-        1deval -a radcoord.1D.coord'[0]' -expr 'sin(a)*100' \
+        1deval -a radcoord.1D.coord'[0]' -expr 'sin(a)*50' \
             > xmess.1D ;1dcat xmess.1D radcoord.1D.coord'[1,2]' \
             > somecoord.1D.coord ; rm xmess.1D
         DriveSuma -com node_xyz -label icoco \
@@ -34,6 +36,7 @@ cd tmp_suma
 
 #viewer_cont action
        DriveSuma -com  viewer_cont -key R -key ctrl+right
+       DriveSuma -com  viewer_cont '-key:v"100.0 0.0 0.0"' ctrl+j  
        DriveSuma -com  viewer_cont -key:r3:s0.3 up  \
                        -key:r2:p left -key:r5:d right \
                        -key:r5 left
@@ -43,7 +46,7 @@ cd tmp_suma
        DriveSuma -com  viewer_cont -key m -key right \
                  -com  pause press enter to stop this misery \
                  -com  viewer_cont -key m 
-
+       
         echo 'Hit Enter to proceed to recorder control actions.'
         echo 'If you have recorded too many images, saving'
         echo 'a movie of all of them will take a while.'
@@ -89,8 +92,17 @@ cd tmp_suma
       
 #Adieu
       DriveSuma -com kill_suma
+
+goto END   
        
-       
+HELP:
+   echo "Usage: @DriveSuma "
+   echo "A script to demonstrate how to drive suma from command line."
+   echo "You should read the script while running it in order to understand"
+   echo "what is going on."
+   echo "See also DriveSuma -help and @DO.examples"
+   echo ""
+   goto END       
 
 END:
 
