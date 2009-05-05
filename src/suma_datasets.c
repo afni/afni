@@ -1437,6 +1437,7 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
    static char FuncName[]={"SUMA_AddDsetColAttr"};
    NI_element *nelb = NULL;
    char Name[500], Attr[500], *attrstr=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -1494,7 +1495,7 @@ int SUMA_AddDsetColAttr (  SUMA_DSET *dset, char *col_label,
       case SUMA_NODE_XCORR:
          if (col_attr){  
             float *pars = (float *)col_attr;
-            SUMA_S_Note(
+            SUMA_LH(
                NI_stat_encode(NI_STAT_CORREL, pars[0], pars[1], pars[2]));
             attrstr = SUMA_copy_string( 
                         NI_stat_encode(NI_STAT_CORREL, 

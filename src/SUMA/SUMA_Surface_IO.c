@@ -5681,7 +5681,7 @@ DList *SUMA_ROIv2NodeLists (SUMA_DRAWN_ROI** ROIv, int N_ROIv, int purgedups)
    DListElmt *Elm=NULL, *eldd=NULL;
    SUMA_ROI_EXTRACT *dd=NULL;
    SUMA_ROI_DATUM *ROI_Datum=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
