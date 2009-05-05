@@ -18,6 +18,12 @@
 set abin = ""
 set package = ""
 
+if ( $#argv == 0 ) then
+    set help = 1
+else
+    set help = 0
+endif
+
 set ac = 1
 while ( $ac <= $#argv )
     if ( "$argv[$ac]" == "-bindir" ) then
@@ -34,25 +40,47 @@ while ( $ac <= $#argv )
             exit
         endif
         set package = $argv[$ac]
-    else if ( "$argv[$ac]" == "-package" ) then
-        echo "------------------------------------------------------------"
-        echo "$0   - upgrade AFNI binaries"
-        echo ""
-        echo "Update the package specified by 'afni -ver' in the directory"
-        echo "specified by 'which afni'.  These defaults may be overridden"
-        echo "via the options:"
-        echo ""
-        echo "    -bindir ABIN          : set AFNI binary directory to ABIN"
-        echo "    -package PACKAGE      : set distribution package to apply"
-        echo "    -help                 : show this help"
-        echo ""
-        echo "Note that the user must have write permissions in the ABIN"
-        echo "directory."
-        echo ""
-        exit
+    else if ( "$argv[$ac]" == "-help" ) then
+        set help = 1
     endif
     @ ac ++
 end
+
+# if requested, show help and exit
+if ( $help ) then
+    set prog = `basename $0`
+    echo "------------------------------------------------------------"
+    echo "$prog   - upgrade AFNI binaries"
+    echo ""
+    echo "Update the AFNI binaries, either via '-defaults' or by the"
+    echo "'-bindir' and/or '-package' options."
+    echo ""
+    echo "examples:"
+    echo ""
+    echo "    $prog -defaults"
+    echo "    $prog -bindir ~/abin -package linux_xorg7"
+    echo ""
+    echo "options:"
+    echo ""
+    echo "    -defaults             : install current package into abin"
+    echo ""
+    echo "        This would be the method to 'update the package that I"
+    echo "        am currently using'."
+    echo ""
+    echo "        The package would be decided by 'afni -ver' and the"
+    echo "        directory would come from 'which afni'.  If either of"
+    echo "        these is not appropriate, please specify them as below."
+    echo ""
+    echo "    -bindir ABIN          : set AFNI binary directory to ABIN"
+    echo "    -package PACKAGE      : install distribution package PACKAGE"
+    echo ""
+    echo "    -help                 : show this help"
+    echo ""
+    echo "Note that the user must have write permissions in the ABIN"
+    echo "directory."
+    echo ""
+    exit
+endif
 
 # possibly apply default binary directory
 if ( $abin == "" ) then
