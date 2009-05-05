@@ -1,0 +1,130 @@
+#!/bin/tcsh
+
+# ----------------------------------------------------------------------
+# upgrade the AFNI binaries
+#
+# Update the package specified by "afni -ver" in the directory
+# specified by "which afni".  Allow for overriding options of:
+#
+#       -package PACKAGE            
+#       -bindir  DIRECTORY
+#
+# terminate on any error, and be clear about which command failed
+
+# ----------------------------------------------------------------------
+# apply any options
+
+# initialize options to 'unset'
+set abin = ""
+set package = ""
+
+set ac = 1
+while ( $ac <= $#argv )
+    if ( "$argv[$ac]" == "-bindir" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-bindir'"
+            exit
+        endif
+        set abin = $argv[$ac]
+    else if ( "$argv[$ac]" == "-package" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-package'"
+            exit
+        endif
+        set package = $argv[$ac]
+    else if ( "$argv[$ac]" == "-package" ) then
+        echo "------------------------------------------------------------"
+        echo "$0   - upgrade AFNI binaries"
+        echo ""
+        echo "Update the package specified by 'afni -ver' in the directory"
+        echo "specified by 'which afni'.  These defaults may be overridden"
+        echo "via the options:"
+        echo ""
+        echo "    -bindir ABIN          : set AFNI binary directory to ABIN"
+        echo "    -package PACKAGE      : set distribution package to apply"
+        echo "    -help                 : show this help"
+        echo ""
+        echo "Note that the user must have write permissions in the ABIN"
+        echo "directory."
+        echo ""
+        exit
+    endif
+    @ ac ++
+end
+
+# possibly apply default binary directory
+if ( $abin == "" ) then
+    set abin = `which afni`
+    if ( $status ) then
+        echo "** failed 'which afni'"
+        exit
+    endif
+
+    # and nuke the trailing 'afni'
+    set abin = $abin:h
+endif
+
+# possibly apply default package
+if ( $package == "" ) then
+   set package = `afni -ver | grep binary | awk '{print $3}' | sed 's/://g'`
+   if ( $status ) then
+       echo "** failed setting package from 'afni -ver'"
+       exit
+   endif
+endif
+
+echo "-- attempting to install package $package under $abin..."
+
+# ----------------------------------------------------------------------
+# go to the binary directory and try to download the current package
+cd $abin
+
+# remove any old package
+if ( -f $package.tgz || -d $package ) then
+    echo nuking old package...
+    \rm -fr $package $package.tgz
+    if ( $status ) then
+        echo "** failed to remove old package $package"
+        exit
+    endif
+endif
+
+echo "++ downloading package $package..."
+wget http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
+if ( $status ) then
+    echo "** failed to download package $package.tgz"
+    exit
+endif
+
+echo "++ extracting package $package..."
+tar xfz $package.tgz
+if ( $status ) then
+    echo "** failed to download package $package.tgz"
+    exit
+endif
+
+# ----------------------------------------------------------------------
+# if this package is actually new, install it
+
+cmp -s afni $package/afni
+if ( ! $status ) then
+    echo "++ no update needed"
+    \rm -fr $package $package.tgz
+    exit
+endif
+
+echo "++ update needed, installing..."
+
+\mv $package/* .
+if ( $status ) then
+    echo "** failed to overwrite existing package, exiting..."
+    exit
+endif
+
+rmdir $package
+\rm -f $package.tgz
+
+echo "done, yay"
+
