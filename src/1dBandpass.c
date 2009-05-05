@@ -109,7 +109,7 @@ int main( int argc , char * argv[] )
 
    /* all the real work now */
 
-   THD_bandpass_vectors( nx , ny , vec , dt , fbot,ftop , qdet , nort , ort ) ;
+   (void)THD_bandpass_vectors( nx, ny, vec, dt, fbot,ftop, qdet, nort, ort ) ;
 
    if( do_norm ){
      for( iv=0 ; iv < ny ; iv++ ) THD_normalize( nx , vec[iv] ) ;

@@ -2188,6 +2188,10 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               "++ for dataset files.                   ++\n" ,
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
+   /* 05 May 2009: make sure the Cluster widgets show up properly */
+
+   AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;
+
    /* 21 Nov 2002: check the AFNI version */
 
    vv = AFNI_version_check() ; /* nada if AFNI_start_version_check() inactive */
@@ -5982,6 +5986,11 @@ DUMP_IVEC3("  new_id",new_id) ;
                                   *im3d->vinfo->func_thresh_top ;
            im3d->vedset.param[4] = im3d->vinfo->thr_sign ;
            im3d->vedset.param[5] = im3d->vinfo->use_posfunc ;
+           im3d->vedset.exinfo   = NULL ;
+         break ;
+
+         case VEDIT_ICORR:
+           im3d->vedset.exinfo = im3d->iset ;
          break ;
        }
        if( !im3d->vedskip )

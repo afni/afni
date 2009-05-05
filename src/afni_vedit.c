@@ -29,7 +29,7 @@ ENTRY("AFNI_vedit") ;
 
    if( vednew.code <= 0 || vednew.code > VEDIT_LASTCODE ){
      if( dblk->vedim != NULL ){ mri_free(dblk->vedim); dblk->vedim=NULL; }
-     dblk->vedset.code = 0 ; dblk->vedset.ival = -1 ;
+     dblk->vedset.code = 0 ; dblk->vedset.ival = -1 ; dblk->vedset.exinfo = NULL ;
      RETURN(0) ;
    }
 
@@ -38,13 +38,10 @@ ENTRY("AFNI_vedit") ;
       otherwise, we clear out the existing results so they can be replaced. */
 
    if( dblk->vedim != NULL && (vednew.flags&1) == 0 ){
+     if( memcmp(&(dblk->vedset),&vednew,sizeof(VEDIT_settings)) == 0 )
+       RETURN(0) ;                            /* exactly the same as before */
 
-     if( dblk->vedset.code == vednew.code &&  /* check if have same params */
-         dblk->vedset.ival == vednew.ival &&
-         memcmp(dblk->vedset.param,vednew.param,sizeof(float)*VEDIT_NPARAM) == 0 ){
-       RETURN(0) ;                            /* if so, do nothing */
-     }
-     mri_free(dblk->vedim); dblk->vedim=NULL; /* if not, clear old results */
+     mri_free(dblk->vedim); dblk->vedim=NULL; /* clear old results */
    }
 
    /*--- at this point, must edit dataset brick ---*/
@@ -52,42 +49,42 @@ ENTRY("AFNI_vedit") ;
    dblk->vedset = vednew ;  /* save settings for next time in */
    dblk->vedset.flags = 0 ;
 
-   /*--- get volume to edit ---*/
+   /*--- create edited volume ---*/
 
-   ival = vednew.ival ;
-   if( ival < 0 || ival > DSET_NVALS(dset) ) RETURN(0) ;
-   dim = DBLK_BRICK(dblk,ival) ;
-   if( dim == NULL || mri_data_pointer(dim) == NULL ){
-     DSET_load(dset) ;
+   if( vednew.code == VEDIT_CLUST ){  /*----- Clusterize -----*/
+
+     MRI_IMAGE *tim=NULL ;
+     float thr,rmm,vmul,thb,tht ;
+     int thrsign,posfunc,ithr ;
+
+     ival = vednew.ival ;
+     if( ival < 0 || ival > DSET_NVALS(dset) ) RETURN(0) ;
      dim = DBLK_BRICK(dblk,ival) ;
-     if( dim == NULL || mri_data_pointer(dim) == NULL ) RETURN(0) ;
-   }
-   dim->dx = fabs(DSET_DX(dset));
-   dim->dy = fabs(DSET_DY(dset));
-   dim->dz = fabs(DSET_DZ(dset));
-
-   /*--- edit volume into the temporary result instead ---*/
-
-   switch( vednew.code ){
-
-     case VEDIT_CLUST:{
-       MRI_IMAGE *tim=NULL ;
-       float thr,rmm,vmul,thb,tht ;
-       int thrsign,posfunc,ithr ;
-
-       ithr    = (int)vednew.param[0] ;
-       thrsign = (int)vednew.param[4] ;
-       posfunc = (int)vednew.param[5] ;
-       if( ithr >= 0 && ithr < DSET_NVALS(dset) )
-         tim = DBLK_BRICK(dblk,ithr) ;
-       thr = vednew.param[1] ;
-       if( DSET_BRICK_FACTOR(dset,ithr) > 0.0f )
-         thr /= DSET_BRICK_FACTOR(dset,ithr) ;
-       thb = THBOT(thr) ; tht = THTOP(thr) ;
-       rmm  = vednew.param[2] ; vmul = vednew.param[3] ;
-       dblk->vedim = mri_clusterize( rmm,vmul,dim,thb,tht,tim,posfunc );
+     if( dim == NULL || mri_data_pointer(dim) == NULL ){
+       DSET_load(dset) ;
+       dim = DBLK_BRICK(dblk,ival) ;
+       if( dim == NULL || mri_data_pointer(dim) == NULL ) RETURN(0) ;
      }
-     break ;
+     dim->dx = fabs(DSET_DX(dset));
+     dim->dy = fabs(DSET_DY(dset));
+     dim->dz = fabs(DSET_DZ(dset));
+
+     ithr    = (int)vednew.param[0] ;
+     thrsign = (int)vednew.param[4] ;
+     posfunc = (int)vednew.param[5] ;
+     if( ithr >= 0 && ithr < DSET_NVALS(dset) )
+       tim = DBLK_BRICK(dblk,ithr) ;
+     thr = vednew.param[1] ;
+     if( DSET_BRICK_FACTOR(dset,ithr) > 0.0f )
+       thr /= DSET_BRICK_FACTOR(dset,ithr) ;
+     thb = THBOT(thr) ; tht = THTOP(thr) ;
+     rmm  = vednew.param[2] ; vmul = vednew.param[3] ;
+     dblk->vedim = mri_clusterize( rmm,vmul,dim,thb,tht,tim,posfunc );
+
+   } else if( vednew.code == VEDIT_ICORR ){  /*----- InstaCorr -----*/
+
+      ICOR_setup *iset = (ICOR_setup *)vednew.exinfo ;
+      if( iset == NULL ) RETURN(0) ;
 
    }
 

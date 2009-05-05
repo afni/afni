@@ -1076,9 +1076,11 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
 typedef struct {
   int code , ival , flags ;
   float param[VEDIT_NPARAM] ;
+  void *exinfo ;
 } VEDIT_settings ;
 
-#define VEDIT_CLUST  1   /* param= ithr,thr,rmm,vmul */
+#define VEDIT_CLUST    1   /* param= ithr,thr,rmm,vmul  exinfo=NULL        */
+#define VEDIT_ICORR    2   /* param= ignored            exinfo=ICOR_setup* */
 #define VEDIT_LASTCODE 1
 
 #define VEDIT_IVAL(vv)      ((vv).ival)
