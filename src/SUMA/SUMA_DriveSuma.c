@@ -340,7 +340,8 @@ void usage_DriveSuma (SUMA_GENERIC_ARGV_PARSE *ps)
 }
 
 SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, 
-                                    float *Key_pause, int *Key_redis)
+                                    float *Key_pause, int *Key_redis, 
+                                    char **strgvalp)
 {
    static char FuncName[]={"SUMA_ParseKeyModifiers"};
    char *cccp=NULL, *op=NULL;
@@ -352,6 +353,9 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
    *Key_mult = 1;
    *Key_pause = 0.0;
    *Key_redis = 0;
+   if (!strgvalp || *strgvalp) {
+      SUMA_S_Err("strgvalp is NULL or point to not NULL");
+   }  
    if (!keyopt || strncmp(keyopt,"-key", 4)) {
       SUMA_S_Errv("NULL or bad keyopt %s", SUMA_CHECK_NULL_STR(keyopt));
       SUMA_RETURN(NOPE);
@@ -395,7 +399,11 @@ SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
                *Key_redis = 1;
                SUMA_LH("Will redisplay for each rep\n");
                break;
-            
+            case 'v':
+               op = cccp;
+               SUMA_SKIP_TO_NEXT_CHAR(cccp, NULL, ':');
+               SUMA_COPY_TO_STRING(op, cccp, (*strgvalp));
+               break;
             default:
                SUMA_S_Errv("Failed to parse content of %s\n", keyopt);
                Found = 0;
@@ -880,6 +888,7 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
       if (!brk && (strncmp(argt[kar], "-key", 4) == 0))
       {
          int N_Key = 0, Key_mult = 1, Key_redis= 0;
+         char *Key_strval=NULL;
          char stmp[100];
          float Key_pause = 0;
          
@@ -892,8 +901,8 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          if (!SUMA_ParseKeyModifiers(argt[kar], 
                                     &Key_mult, 
                                     &Key_pause, 
-                                    &Key_redis 
-                                    )) {
+                                    &Key_redis, 
+                                    &Key_strval)) {
             SUMA_S_Errv("Failed in parsing %s\n", argt[kar]);
             SUMA_RETURN(0);
          } 
@@ -911,7 +920,11 @@ int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt)
          NI_SET_FLOAT(ngr, stmp, Key_pause);
          sprintf(stmp, "Key_redis_%d", N_Key);
          NI_SET_INT(ngr, stmp, Key_redis);
-         
+         sprintf(stmp, "Key_strval_%d", N_Key);
+         if (Key_strval) {
+            NI_set_attribute(ngr, stmp, Key_strval);
+            SUMA_free(Key_strval);
+         }
          argt[kar][0] = '\0';
          ++N_Key;
          NI_SET_INT(ngr,"N_Key", N_Key);

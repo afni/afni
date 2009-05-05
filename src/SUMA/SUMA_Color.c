@@ -7116,7 +7116,7 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                   YOU SHOULD NOT SET ANYTHING that THIS event
                   call does not normally receive */
                if (!(nelpars = SUMA_FindNgrNamedElement(
-                                 cb->FunctionInput, "parameters"))) {
+                                 cb->FunctionInput, "event_parameters"))) {
                   SUMA_S_Err("Failed to find parameters element!");                                 SUMA_RETURN(NOPE);
                }  
                NI_SET_INT(nelpars,     

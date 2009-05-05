@@ -48,7 +48,6 @@ ENTRY("THD_write_3dim_dataset") ;
    blk->parent = (XtPointer)dset ;  /* 05 Jul 2005 */
 
    /* Can only write AFNI formatted datasets */
-
    if( DSET_IS_MINC(dset)     ) RETURN(False) ;  /* 29 Oct 2001 */
    if( DSET_IS_MASTERED(dset) ) RETURN(False) ;  /* 11 Jan 1999 */
    if( DSET_IS_ANALYZE(dset)  ) RETURN(False) ;  /* 27 Aug 2002 */

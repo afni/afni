@@ -1434,6 +1434,18 @@ void SUMA_sigfunc(int sig);
 char * SUMA_pad_string(char *buf, char cp, int n, int add2end);
 char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval) ;
 char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval); 
+void **SUMA_Dset2VecArray(SUMA_DSET *dset, 
+                        int *ind, int nind, 
+                        int *node, int N_Node,
+                        int iNodeMax,
+                        int *N_ret,
+                        SUMA_VARTYPE tp);
+SUMA_DSET *SUMA_VecArray2Dset(void **resv,
+                        SUMA_DSET *usethisdset, 
+                        int *ind, int nind, 
+                        int *node, int N_Node,
+                        int iNodeMax,
+                        SUMA_VARTYPE tp);
 void * SUMA_GetDsetAllNodeValsInCols2(SUMA_DSET *dset, 
                                        int *ind, int nind, 
                                        int node, int N_Node,

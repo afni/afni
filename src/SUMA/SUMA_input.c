@@ -59,12 +59,18 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
             SUMA_RETURN(XK_b);
          case 'B':
             SUMA_RETURN(XK_B);
+         case 'd':
+            SUMA_RETURN(XK_d);
          case 'D':
             SUMA_RETURN(XK_D);
          case 'g':
             SUMA_RETURN(XK_g);
          case 'G':
             SUMA_RETURN(XK_G);
+         case 'j':
+            SUMA_RETURN(XK_j);
+         case 'J':
+            SUMA_RETURN(XK_J);
          case 'm':
             SUMA_RETURN(XK_m);
          case 'M':
@@ -920,12 +926,16 @@ int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_RETURN(1);
 }
 
+               
+
 int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
    static char FuncName[]={"SUMA_D_Key"};
    SUMA_LIST_WIDGET *LW=NULL;
    char tk[]={"D"}, keyname[100];
    int k, nc, inode = 0, N_ts = 0, ChildOverInd=-1,loc[2], ii = 0;
+   float ftop = 0.1, fbot = 0.0, *fv=NULL;
+   int normalize = 1, polort = 4;
    SUMA_EngineData *ED = NULL; 
    SUMA_DSET *dot=NULL;
    SUMA_DSET *in_dset = NULL;
@@ -935,9 +945,9 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_SurfaceObject *SOC=NULL;
    DList *list = NULL;
    DListElmt *el= NULL;
-   double *ts = NULL;
+   double *ts = NULL, TR=0.0;
    NI_group *ngr = NULL;
-   NI_element *nel=NULL;
+   NI_element *nel=NULL, *dotopts=NULL;
    SUMA_XFORM *xf=NULL;
    SUMA_CALLBACK *cb=NULL;
    char stmp[SUMA_MAX_NAME_LENGTH]={""};
@@ -1033,16 +1043,34 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                }  else {
                   SUMA_S_Note("No contralateral dset ");
                }
-
+               
+               /* Initialize dot product options. You'll have to redo this
+                  unfortunately below... */
+               dotopts = SUMA_set_dotopts(NULL, SDSET_VECNUM(in_dset),
+                                           ftop, fbot, 
+                                           normalize, 1, 
+                                           polort, NULL);
+                    
+                     
                SUMA_LH("Get dot product time series");   
-               if (!(ts = (double*)SUMA_GetDsetAllNodeValsInCols2(in_dset, 
+               
+               if (!(fv = (float*)SUMA_GetDsetAllNodeValsInCols2(in_dset, 
                                        NULL, 0, 
                                        inode, SO->N_Node, 
                                        &N_ts,
-                                       SUMA_double))) { 
+                                       SUMA_float))) { 
                   SUMA_S_Err("Failed to extract time series.");
                   SUMA_RETURN(0);
                }
+               if (!(SUMA_is_TimeSeries_dset(in_dset, &TR))) {
+                  TR = 0.0;
+               }
+               if (!(ts = SUMA_DotPreProcessTimeSeries(fv,  N_ts, 
+                                             (float)TR, dotopts))) {
+                  SUMA_S_Err("Failed to preprocess time series.");
+                  SUMA_RETURN(0);                     
+               }
+               SUMA_free(fv); fv=NULL;
                
                for (ii=0; ii<xf->N_parents; ++ii) {
                   dot = NULL; /* You'll need a new dset with each pass */
@@ -1063,7 +1091,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                            ii, xf->N_parents, SDSET_FILENAME(in_dset));
                   if (!(SUMA_dot_product(in_dset, ts,
                                  &dot,
-                                 NULL))) {
+                                 dotopts))) {
                      SUMA_S_Err("Failed to create dot product");
                      SUMA_RETURN(0);              
                   }
@@ -1165,6 +1193,10 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                        xf->children[0], 
                                        xf->parents_domain[0],
                                        xf->idcode_str);
+               
+               /* add the dotoptions to the group */
+               NI_add_to_group(cb->FunctionInput, dotopts);
+
                /* add extra children */
                for (ii=1; ii<xf->N_children; ++ii) {
                   if (!SUMA_AddCallbackParent(cb, xf->children[ii],
@@ -1200,15 +1232,6 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   }
                }
                NI_add_to_group(cb->FunctionInput, nel);
-
-               /* setup default parameters */
-               nel = SUMA_FindNgrAttributeElement(cb->FunctionInput, 
-                                                  "parameters");
-               NI_SET_INT(nel,"numeric_precision", 1); /* THIS MUST REFLECT THE 
-                                                          default setting of 
-                                                          SUMA_dot_product that 
-                                                          was called above with 
-                                                          NULL for options*/
                
                /* Node is from surface SO, but there is no point
                in setting this now because the computations 
@@ -1323,6 +1346,133 @@ int SUMA_G_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          }
          break;
       case XK_G:
+         break;
+      default:
+         SUMA_S_Err("Il ne faut pas etre ici");
+         SUMA_RETURN(0);
+         break;
+   }
+   SUMA_RETURN(1);
+}
+
+int SUMA_J_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode, char *strgval)
+{
+   static char FuncName[]={"SUMA_J_Key"};
+   char tk[]={"J"}, keyname[100];
+   int k=0, nc=-1;
+   int inode = -1;
+   SUMA_DSET *Dset = NULL;
+   SUMA_SurfaceObject *SO=NULL;
+   SUMA_OVERLAYS *Sover=NULL;
+   char stmp[100]={"\0"};
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_KEY_COMMON;
+   
+
+   if (sv->Focus_SO_ID < 0) {
+      if (callmode && strcmp(callmode, "interactive") == 0) {
+         SUMA_SLP_Err("No surface in focus.\nCannot Jump.");
+      } else {
+         SUMA_S_Err("No surface in focus.\nCannot Jump.");
+      }
+      SUMA_RETURN(0);
+   }
+   /* do the work */
+   switch (k) {
+      case XK_j:
+        if ( (callmode && strcmp(callmode, "interactive") == 0) ||
+             !strgval /* why not? this way the 
+                        Driver can pop the interactive window */) {     
+            if (SUMA_CTRL_KEY(key)){
+                 sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialogStruct( 
+                                 SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                 "Enter XYZ to send the cross hair to:", 
+                                 "",
+                                 sv->X->TOPLEVEL, YUP,
+                                 SUMA_APPLY_BUTTON,
+                                 SUMA_JumpXYZ, (void *)sv,
+                                 NULL, NULL,
+                                 NULL, NULL,
+                                 SUMA_CleanNumString, (void*)3,  
+                                 sv->X->JumpXYZ_prmpt);
+                  sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialog(
+                                    sv->X->Title, sv->X->JumpXYZ_prmpt);  
+
+             } else if (SUMA_AALT_KEY(key)){     
+                  sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialogStruct( 
+                                 SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                 "Enter index of focus node\n"
+                                 "Cross hair's XYZ will not be affected:", 
+                                 "",
+                                 sv->X->TOPLEVEL, YUP,
+                                 SUMA_APPLY_BUTTON,
+                                 SUMA_JumpFocusNode, (void *)sv,
+                                 NULL, NULL,
+                                 NULL, NULL,
+                                 SUMA_CleanNumString, (void*)1,                                                    sv->X->JumpFocusNode_prmpt);
+
+                  sv->X->JumpFocusNode_prmpt = SUMA_CreatePromptDialog(
+                                    sv->X->Title, sv->X->JumpFocusNode_prmpt);
+
+             } else {
+                  sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialogStruct(
+                                 SUMA_OK_APPLY_CLEAR_CANCEL, 
+                                 "Enter index of node \n"
+                                 "to send the cross hair to:", 
+                                 "",
+                                 sv->X->TOPLEVEL, YUP,
+                                 SUMA_APPLY_BUTTON,
+                                 SUMA_JumpIndex, (void *)sv,
+                                 NULL, NULL,
+                                 NULL, NULL,
+                                 SUMA_CleanNumString, (void*)1,  
+                                 sv->X->JumpIndex_prmpt);
+
+                  sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialog(
+                                    sv->X->Title, sv->X->JumpIndex_prmpt);
+             }
+         } else {
+            if (!strgval) {
+               SUMA_S_Err("Have NULL string");
+               SUMA_RETURN(0);
+            }
+            if (SUMA_CTRL_KEY(key)){
+               SUMA_JumpXYZ(strgval, (void *)sv);
+            } else if (SUMA_AALT_KEY(key)){    
+               SUMA_JumpFocusNode(strgval, (void *)sv);
+            } else {
+               SUMA_JumpIndex(strgval, (void *)sv);
+            }
+         }
+         
+         break;
+      case XK_J:
+         if ( (callmode && strcmp(callmode, "interactive") == 0) ||
+               !strgval) {
+            sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialogStruct (
+                     SUMA_OK_APPLY_CLEAR_CANCEL, 
+                     "Enter index of FaceSet\nto highlight (this viewer only):", 
+                     "",
+                     sv->X->TOPLEVEL, YUP,
+                     SUMA_APPLY_BUTTON,
+                     SUMA_JumpFocusFace, (void *)sv,
+                     NULL, NULL,
+                     NULL, NULL,
+                     SUMA_CleanNumString, (void*)1,  
+                     sv->X->JumpFocusFace_prmpt);
+
+            sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialog(
+                     sv->X->Title, sv->X->JumpFocusFace_prmpt);
+         } else {
+            if (!strgval) {
+               SUMA_S_Err("Have NULL string");
+               SUMA_RETURN(0);
+            }
+            SUMA_JumpFocusFace( strgval, (void *)sv);
+         }
          break;
       default:
          SUMA_S_Err("Il ne faut pas etre ici");
@@ -2703,6 +2853,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_j:
+               #if 0
                if (Kev.state & ControlMask){     
                  sv->X->JumpXYZ_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
                                                       "Enter XYZ to send the cross hair to:", 
@@ -2745,10 +2896,25 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                
                   sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpIndex_prmpt);
                }
-
+               #else
+               if (Kev.state & ControlMask){
+                  if (!SUMA_J_Key(sv, "ctrl+j", "interactive", NULL)) {
+                     SUMA_S_Err("Failed in key func.");
+                  }
+               } else if (Kev.state & Mod1Mask || Kev.state & Mod2Mask){
+                  if (!SUMA_J_Key(sv, "alt+j", "interactive", NULL)) {
+                     SUMA_S_Err("Failed in key func.");
+                  }
+               } else {
+                  if (!SUMA_J_Key(sv, "j", "interactive", NULL)) {
+                     SUMA_S_Err("Failed in key func.");
+                  }
+               }   
+               #endif
             break;
          
          case XK_J:
+               #if 0
                sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
                                                    "Enter index of FaceSet\nto highlight (this viewer only):", 
                                                    "",
@@ -2761,7 +2927,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                                                    sv->X->JumpFocusFace_prmpt);
 
                sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->JumpFocusFace_prmpt);
-               
+               #else 
+               if (!SUMA_J_Key(sv, "J", "interactive", NULL)) {
+                     SUMA_S_Err("Failed in key func.");
+               }
+               #endif
             break; 
               
          case XK_l:
