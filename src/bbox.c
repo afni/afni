@@ -1661,6 +1661,33 @@ ENTRY("new_MCW_colormenu") ;
    RETURN(av) ;
 }
 
+/*-----------------------------------------------------------------------*/
+
+void colorize_MCW_optmenu( MCW_arrowval *av , char *cname , int ibut )
+{
+   Widget *children=NULL ;
+   int num_children=0 , ic,ibot,itop ;
+
+ENTRY("colorize_MCW_optmenu") ;
+
+   if( av == NULL || av->wmenu == NULL ) EXRETURN ;
+   if( cname == NULL || *cname == '\0' ) cname = "gray40" ;
+
+   XtVaGetValues( av->wmenu , XmNchildren    , &children ,
+                              XmNnumChildren , &num_children , NULL ) ;
+   if( children == NULL || num_children <= 0 || ibut >= num_children ) EXRETURN ;
+
+   if( ibut < 0 ){ ibot = 0 ; itop = num_children-1 ; }
+   else          { ibot = itop = ibut ; }
+
+   for( ic=ibot ; ic <= itop ; ic++ )
+     MCW_set_widget_bg( children[ic] , cname , 0 ) ;
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
 char * MCW_av_substring_CB( MCW_arrowval *av , XtPointer cd )
 {
    char **str = (char **) cd ;

@@ -3251,7 +3251,8 @@ STATUS("making func->rowcol") ;
                                MCW_av_substring_CB ,      /* text creation routine */
                                options_vedit_label        /* data for above */
                              ) ;
-     colorize_MCW_optmenu( func->options_vedit_av , "navyblue" , -1 ) ;
+     colorize_MCW_optmenu( func->options_vedit_av , "darkred"  , 0 ) ;
+     colorize_MCW_optmenu( func->options_vedit_av , "navyblue" , 1 ) ;
    }
    func->options_vedit_av->parent = (XtPointer)im3d ;
    MCW_reghelp_children( func->options_vedit_av->wrowcol ,
@@ -3337,7 +3338,7 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-   MCW_set_widget_bg( func->clu_cluster_pb , "navyblue" , 0 ) ;
+   MCW_set_widget_bg( func->clu_cluster_pb , "darkred" , 0 ) ;
    XtAddCallback( func->clu_cluster_pb , XmNactivateCallback ,
                   AFNI_clu_CB , im3d ) ;
    MCW_register_hint( func->clu_cluster_pb , "Set clustering parameters" ) ;
