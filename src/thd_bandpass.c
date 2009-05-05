@@ -37,22 +37,24 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
    - To do a highpass only, set ftop to something larger than the Nyquist
      frequency (e.g., 999999.9).  To do a lowpass only, set fbot to 0.0.
    - However, the 0 and Nyquist frequencies are always removed.
+   - Return value is the number of linear dimensions projected out.
+     If 0 is returned, something bad happened.
 *//*------------------------------------------------------------------------*/
 
-void THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
-                           float dt , float fbot , float ftop  ,
-                           int qdet , int nort   , float **ort  )
+int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
+                          float dt , float fbot , float ftop  ,
+                          int qdet , int nort   , float **ort  )
 {
-   int nfft,nby2 , iv, jbot,jtop ; register int jj ;
+   int nfft,nby2 , iv, jbot,jtop , ndof=0 ; register int jj ;
    float df ;
    register float *xar, *yar=NULL ;
    register complex *zar ; complex Zero={0.0f,0.0f} ;
 
-   if( nlen < 9 || nvec < 1 || vec == NULL ){ ERROR_message("bad bandpass data?"); return; }
+   if( nlen < 9 || nvec < 1 || vec == NULL ){ ERROR_message("bad bandpass data?"); return ndof; }
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
-   if( ftop <= fbot ){ ERROR_message("bad bandpass frequencies?"); return; }
-   if( nort >= nlen ){ ERROR_message("too many bandpass orts?")  ; return; }
+   if( ftop <= fbot ){ ERROR_message("bad bandpass frequencies?"); return ndof; }
+   if( nort >= nlen ){ ERROR_message("too many bandpass orts?")  ; return ndof; }
 
    /** setup for FFT **/
 
@@ -65,12 +67,13 @@ void THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
    if( jtop >= nby2   ) jtop = nby2-1 ;
    if( jbot >= jtop+1 ){
      ERROR_message("bandpass: fbot and ftop too close ==> jbot=%d jtop=%d",jbot,jtop) ;
-     return ;
+     return ndof ;
    }
 
    /** quadratic detrending first? **/
 
    if( qdet ){
+     ndof += 2 ;
      for( iv=0 ; iv < nvec ; iv++ )
        THD_quadratic_detrend( nlen, vec[iv], NULL,NULL,NULL ) ;
    }
@@ -79,6 +82,11 @@ void THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
    csfft_scale_inverse(1) ;                         /* scale inverse FFT by 1/nfft */
 
    /** loop over vectors in pairs, FFT-ing and bandpassing **/
+
+   ndof += 2 ;  /* for 0 and Nyquist freqs */
+
+   if( jbot >= 1 ) ndof += 2*jbot - 1 ;
+   ndof += 2*(nby2-jtop) - 1 ;
 
    for( iv=0 ; iv < nvec ; iv+=2 ){
 
@@ -130,6 +138,8 @@ void THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
      MRI_IMAGE *qim , *pim ; float *par, *qar , *rar , *pt,*qt ;
      register float sum , xt ; register int kk ;
 
+     ndof += nort ;
+
      /* must bandpass copy of orts first
         (so we don't re-introduce any of the removed frequencies) */
 
@@ -139,13 +149,13 @@ void THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
        qort[iv] = qar + iv*nlen ;
        memcpy( qort[iv] , ort[iv] , sizeof(float)*nlen ) ;
      }
-     THD_bandpass_vectors( nlen , nort , qort , dt , fbot , ftop , qdet , 0,NULL ) ;
+     (void)THD_bandpass_vectors( nlen, nort, qort, dt, fbot, ftop, qdet, 0,NULL ) ;
      free(qort) ;
 
      /* compute pseudo-inverse ([P] = inv{[Q]'[Q]}[Q]') of bandpassed orts */
 
      pim = mri_matrix_psinv( qim , NULL , 1.e-8 ) ;  /** call this [P] = nort X nlen **/
-     if( pim == NULL ){ mri_free(qim) ; ERROR_message("can't remove bandpass orts?"); return; }
+     if( pim == NULL ){ mri_free(qim) ; ERROR_message("can't remove bandpass orts?"); return ndof; }
      par = MRI_FLOAT_PTR(pim) ;  /* nort X nlen matrix */
 
      /* Project the bandpassed orts out of data vectors:
@@ -182,5 +192,5 @@ void THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
 
    /** done **/
 
-   return ;
+   return ndof ;
 }

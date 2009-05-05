@@ -4088,7 +4088,7 @@ extern MRI_IMAGE * THD_dset_to_1Dmri( THD_3dim_dataset *dset ) ;
 /*---------------------------------------------------------------------------*/
 
 typedef struct {
-  int    nvec , nvals ;
+  int    nvec , nvals , ignore ;
   int   *ivec ;
   float *fvec ;
   int    nx,ny,nz ;
@@ -4126,7 +4126,7 @@ typedef struct {
      free((mv)); (mv) = NULL;                    \
  } while(0)
 
-extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset , byte *mask ) ;
+extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset , byte *mask , int ignore ) ;
 extern int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask ) ;
 extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
 extern int bsearch_int( int tt , int nar , int *ar ) ;
@@ -4457,9 +4457,9 @@ extern void quint_shift( int , float , float *) ;
 
 extern void THD_fftshift( THD_3dim_dataset *, float,float,float, int ) ;
 
-extern void THD_bandpass_vectors( int nlen, int nvec, float **vec, /* 30 Apr 2009 */
-                                  float dt, float fbot, float ftop,
-                                  int qdet, int nort, float **ort ) ;
+extern int THD_bandpass_vectors( int nlen, int nvec, float **vec, /* 30 Apr 2009 */
+                                 float dt, float fbot, float ftop,
+                                 int qdet, int nort, float **ort ) ;
 extern int THD_bandpass_OK( int nx, float dt, float fbot, float ftop, int verb ) ;
 
   /*-- see mri_3dalign.c for these routines --*/
