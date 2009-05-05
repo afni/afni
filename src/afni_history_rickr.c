@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, MAY, 2009, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_PROG,
+   "another script to update the AFNI package",
+   NULL
+ } ,
+
  { 5, MAY, 2009, RCR, "plug_render", MINOR, TYPE_MODIFY,
    "now built from plug_null.c, so it will no longer be available",
    NULL
