@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 5, MAY, 2009, RCR, "plug_render", MINOR, TYPE_MODIFY,
+   "now built from plug_null.c, so it will no longer be available",
+   NULL
+ } ,
+
  { 1, MAY, 2009, RCR, "Makefile.linux_xorg7_64", MICRO, TYPE_MODIFY,
    "link to local libGLws.a, as with 32-bit xorg7 package",
    NULL
