@@ -537,10 +537,13 @@ typedef struct {
       generic_func *pbar_transform2D_func ;
       int           pbar_transform2D_index ;
 
-      Widget options_rowcol , options_label ;
-      Widget ulaclu_rowcol ;
+      Widget options_rowcol , options_top_rowcol , options_label ;
+      MCW_arrowval *options_vedit_av ;
+      Widget ulaclu_rowcol , vedit_frame ;
       MCW_bbox     *underlay_bbox ;
       Widget clu_rowcol, clu_clear_pb, clu_cluster_pb, clu_report_pb ;  /* 05 Sep 2006 */
+
+      Widget icor_rowcol, icor_pb ; MCW_bbox *icor_bbox ;               /* 05 May 2009 */
 
       Widget         buck_frame , buck_rowcol ;
       MCW_arrowval * anat_buck_av , *fim_buck_av , *thr_buck_av ;  /* 30 Nov 1997 */
@@ -646,7 +649,6 @@ typedef struct {
       Widget         misc_environ_pb ;  /* 20 Jun 2000 */
       Widget         misc_2dchain_pb ;  /* 03 Jul 2000 */
       Widget         misc_1dchain_pb ;  /* 07 Aug 2001 */
-      Widget         misc_instacorr_pb; /* 29 Apr 2009 */
 #endif
 
       MCW_bbox     * ijk_lock_bbox ;    /* 11 Sep 2000 */
@@ -912,9 +914,11 @@ typedef struct {
       VEDIT_settings vedset ;                   /* 05 Sep 2006 */
       char *vedlabel ;                          /* 27 Mar 2007 */
       int   vedskip ;
+
+      ICOR_setup *iset ;                        /* 05 May 2009 */
 } Three_D_View ;
 
-/*! Force re-clusterizing when this viewer is redisplayed */
+/*! Force re-volume-editing when this viewer is redisplayed */
 
 #define IM3D_VEDIT_FORCE(iq) (iq)->vedset.flags=1
 
@@ -1053,7 +1057,7 @@ extern "C" {
 
    extern PLUGIN_interface * F2D_init(void) ;            /* 03 Jul 2000 */
    extern PLUGIN_interface * F1D_init(void) ;            /* 08 Aug 2001 */
-   extern PLUGIN_interface * ICOR_init(void);            /* 29 Apr 2009 */
+   extern PLUGIN_interface * ICOR_init(char *);          /* 29 Apr 2009 */
 #endif
 
 typedef struct {                 /* windows and widgets */
@@ -1382,6 +1386,9 @@ extern void   AFNI_resam_av_CB     ( MCW_arrowval * , XtPointer ) ;
 
 extern void   AFNI_bucket_CB      ( MCW_arrowval * , XtPointer ) ; /* 30 Nov 1997 */
 extern char * AFNI_bucket_label_CB( MCW_arrowval * , XtPointer ) ;
+
+extern void   AFNI_vedit_CB       ( MCW_arrowval * , XtPointer ) ; /* 05 May 2009 */
+extern void   AFNI_icor_bbox_CB   ( Widget , XtPointer , XtPointer ) ;
 
 extern Boolean AFNI_refashion_dataset( Three_D_View * ,
                                        THD_3dim_dataset *, THD_dataxes * , int ) ;

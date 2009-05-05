@@ -3217,12 +3217,53 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   func->options_label =
-      XtVaCreateManagedWidget(
-         "dialog" , xmLabelWidgetClass , func->options_rowcol ,
-            LABEL_ARG("Background   Cluster Edit") ,
+   func->options_top_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->options_rowcol ,
+            XmNorientation , XmHORIZONTAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNspacing     , 5 ,
+            XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+
+   func->options_label =
+      XtVaCreateManagedWidget(
+         "dialog" , xmLabelWidgetClass , func->options_top_rowcol ,
+            LABEL_ARG("Background ") ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   { static char *options_vedit_label[2] = { "Clusters" , "InstaCorr" } ;
+     func->options_vedit_av = new_MCW_arrowval(
+                               func->options_top_rowcol , /* parent Widget */
+                               NULL ,                     /* label */
+                               MCW_AV_optmenu ,           /* option menu style */
+                               0 ,                        /* first option */
+                               1 ,                        /* last option */
+                               0 ,                        /* initial selection */
+                               MCW_AV_readtext ,          /* ignored but needed */
+                               0 ,                        /* ditto */
+                               AFNI_vedit_CB  ,           /* callback when changed */
+                               (XtPointer)im3d ,          /* data for above */
+                               MCW_av_substring_CB ,      /* text creation routine */
+                               options_vedit_label        /* data for above */
+                             ) ;
+     colorize_MCW_optmenu( func->options_vedit_av , "navyblue" , -1 ) ;
+   }
+   func->options_vedit_av->parent = (XtPointer)im3d ;
+   MCW_reghelp_children( func->options_vedit_av->wrowcol ,
+                         "Choose which set of controls\n"
+                         "for on-the-fly functional\n"
+                         "overlay editing are visible\n"
+                         "directly below this menu."     ) ;
+   MCW_reghint_children( func->options_vedit_av->wrowcol ,
+                         "On-the-fly overlay editing control choice") ;
+   ADDTO_KILL(im3d->kl,func->options_vedit_av) ;
+
+   XtManageChild( func->options_top_rowcol ) ;
 
    func->cwid = NULL;
    func->clu_rep = NULL; func->clu_list = NULL; func->clu_index = -1;
@@ -3259,24 +3300,24 @@ STATUS("making func->rowcol") ;
       "as the background display" ) ;
    ADDTO_KILL(im3d->kl,func->underlay_bbox) ;
 
-   { char *hh[] = { "Use underlay dataset for background" ,
-                     "Use overlay dataset for background" ,
-
-                     "Use thresholded overlay dataset for background" } ;
+   { static char *hh[] = { "Use underlay dataset for background" ,
+                           "Use overlay dataset for background" ,
+                           "Use thresholded overlay dataset for background" } ;
      MCW_bbox_hints( func->underlay_bbox , 3 , hh ) ;
    }
 
    /*--- 26 Mar 2007: clustering stuff moved here ---*/
 
-   www = XtVaCreateManagedWidget(
+   func->vedit_frame = XtVaCreateWidget(
            "dialog" , xmFrameWidgetClass , func->ulaclu_rowcol ,
               XmNshadowType , XmSHADOW_ETCHED_IN ,
               XmNshadowThickness , 2 ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
+
    func->clu_rowcol =
       XtVaCreateWidget(
-         "dialog" , xmRowColumnWidgetClass , www ,
+         "dialog" , xmRowColumnWidgetClass , func->vedit_frame ,
             XmNorientation , XmVERTICAL ,
             XmNpacking , XmPACK_TIGHT ,
             XmNmarginHeight, 0 ,
@@ -3296,6 +3337,7 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+   MCW_set_widget_bg( func->clu_cluster_pb , "navyblue" , 0 ) ;
    XtAddCallback( func->clu_cluster_pb , XmNactivateCallback ,
                   AFNI_clu_CB , im3d ) ;
    MCW_register_hint( func->clu_cluster_pb , "Set clustering parameters" ) ;
@@ -3316,6 +3358,9 @@ STATUS("making func->rowcol") ;
          "dialog" , xmRowColumnWidgetClass , func->clu_rowcol ,
             XmNorientation , XmHORIZONTAL ,
             XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNspacing     , 0 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -3347,6 +3392,43 @@ STATUS("making func->rowcol") ;
                   AFNI_clu_CB , im3d ) ;
    MCW_register_hint( func->clu_report_pb , "Open cluster report window" ) ;
    XtManageChild( hrc ) ;
+
+   /*--- 05 May 2009: InstaCorr stuff ---*/
+
+   func->icor_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->vedit_frame ,
+            XmNorientation , XmVERTICAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNspacing     , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   func->icor_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , func->icor_rowcol ,
+               LABEL_ARG("Setup ICorr") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   MCW_set_widget_bg( func->icor_pb , "navyblue" , 0 ) ;
+   XtAddCallback( func->icor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( func->icor_pb , "Control InstaCorr calculations" ) ;
+
+   { static char *label[1] = { "On or Off?" } ;
+     func->icor_bbox =
+     new_MCW_bbox( func->icor_rowcol , 1 , label ,
+                   MCW_BB_check , MCW_BB_noframe ,
+                   AFNI_icor_bbox_CB , (XtPointer)im3d ) ;
+   }
+   MCW_reghint_children( func->icor_bbox->wrowcol ,
+                         "Show InstaCorr as the overlay?" ) ;
+
+   im3d->iset = NULL ;
 
    /*--- 30 Nov 1997: bucket managers ---*/
 
@@ -3733,8 +3815,9 @@ STATUS("making func->rowcol") ;
    XtManageChild( func->thr_rowcol ) ;
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
-   XtManageChild( func->ulaclu_rowcol ) ;
    XtManageChild( func->clu_rowcol ) ;
+   XtManageChild( func->vedit_frame ) ;
+   XtManageChild( func->ulaclu_rowcol ) ;
    XtManageChild( func->options_rowcol ) ;
 #ifdef USE_FUNC_FIM
    XtManageChild( func->fim_rowcol ) ;
@@ -5393,6 +5476,8 @@ ENTRY("AFNI_clone_controller_CB") ;
 
    AFNI_controller_clonify() ;
 
+   AFNI_vedit_CB( im3d->vwid->func->options_vedit_av , im3d ) ;  /* 05 May 2009 */
+
    PICTURE_OFF(im3d) ; SHOW_AFNI_READY ; EXRETURN ;
 }
 
@@ -5860,24 +5945,6 @@ ENTRY("AFNI_misc_button") ;
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_2dchain_pb , "Control 2DChain function" ) ;
    AFNI_misc_CB( dmode->misc_2dchain_pb , im3d , NULL ) ;
-
-#if 1
-   dmode->misc_instacorr_pb =
-         XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , menu ,
-               LABEL_ARG("Setup InstaCorr") ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , True  ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-   XtAddCallback( dmode->misc_instacorr_pb , XmNactivateCallback ,
-                  AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_instacorr_pb , "Control InstaCorr" ) ;
-   AFNI_misc_CB( dmode->misc_instacorr_pb , im3d , NULL ) ;
-#else
-   dmode->misc_instacorr_pb = NULL ;
-#endif
-
 #endif
 
    /*--- 23 Sep 2000: Save Layout [see afni_splash.c] ---*/
@@ -6138,4 +6205,38 @@ void AFNI_nimlpo_CB( Widget wcall , XtPointer cd , XtPointer cbs )
    }
 
    return ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Callback for on-the-fly editing controls arrowval. */
+
+void AFNI_vedit_CB( MCW_arrowval *av , XtPointer cd )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+ENTRY("AFNI_vedit_CB") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   XtUnmanageChild( im3d->vwid->func->vedit_frame ) ;
+   switch( av->ival ){
+     /* Clusters */
+     case 0:
+       MCW_set_bbox( im3d->vwid->func->icor_bbox, 0 ) ;   /* InstaCorr off */
+       XtManageChild  ( im3d->vwid->func->clu_rowcol  ) ;
+       XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+     break ;
+
+     /* InstaCorr */
+     case 1:
+       UNCLUSTERIZE(im3d) ;                               /* Clusters off */
+       XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
+       XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
+     break ;
+   }
+   XtManageChild( im3d->vwid->func->vedit_frame ) ;
+
+   FIX_SCALE_SIZE(im3d) ;
+   FIX_SCALE_VALUE(im3d) ;
+   EXRETURN ;
 }
