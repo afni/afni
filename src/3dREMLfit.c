@@ -2106,7 +2106,7 @@ STATUS("make GLTs from matrix file") ;
          ININFO_message(" dataset = %s bytes",approximate_number_string(dsiz)) ;
          ININFO_message(" vectim  = %s bytes",approximate_number_string(vsiz)) ;
        }
-       inset_mrv = THD_dset_to_vectim( inset , mask ) ;
+       inset_mrv = THD_dset_to_vectim( inset , mask , 0 ) ;
        if( inset_mrv != NULL ) DSET_unload(inset) ;
        else                    ERROR_message("Can't create vector image!?") ;
        MEMORY_CHECK ;

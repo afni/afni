@@ -5285,8 +5285,8 @@ ENTRY("AFNI_bucket_label_CB") ;
 
 void AFNI_misc_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
-   Three_D_View *im3d = (Three_D_View *) cd ;
-   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) cbd ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *)cbd ;
 
 ENTRY("AFNI_misc_CB") ;
 
@@ -5644,36 +5644,45 @@ STATUS("got func info") ;
 
    /*.........................................................*/
 
-   else if( w == im3d->vwid->dmode->misc_instacorr_pb ){ /* 29 Apr 2009 */
-      static PLUGIN_interface *plint=NULL ;
+   else if( w == im3d->vwid->func->icor_pb ){ /* 29 Apr 2009 */
+      static PLUGIN_interface *plint[MAX_CONTROLLERS] ; static int first=1 ;
       Widget wpop ;
+      char title[64] , *lc=AFNI_controller_label(im3d) ;
+      int ic=AFNI_controller_index(im3d) ;
 
-      /* first time in: create interface like a plugin */
-
-      if( plint == NULL ){
-         plint = ICOR_init() ;
-         if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
-         PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
+      if( first ){  /* initialize */
+        int ii ;
+        for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ) plint[ii] = NULL ;
+        first = 0 ;
       }
 
-      if( cbs == NULL ) EXRETURN ;  /* only for a setup call */
+      /* first time in for this controller: create interface like a plugin */
+
+      if( plint[ic] == NULL ){
+         plint[ic] = ICOR_init(lc) ;
+         if( plint[ic] == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
+         PLUG_setup_widgets( plint[ic] , GLOBAL_library.dc ) ;
+      }
+
+      if( cbs == NULL ) EXRETURN ;  /* for a setup-widgets-only call */
 
       /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
 
-      plint->im3d = im3d ;
-      XtVaSetValues( plint->wid->shell ,
-                      XmNtitle     , "AFNI InstaCorr Operation", /* top of window */
-                      XmNiconName  , "InstaCorr"               , /* label on icon */
+      plint[ic]->im3d = im3d ;
+      sprintf(title,"%sAFNI InstaCorr Operation",lc) ;
+      XtVaSetValues( plint[ic]->wid->shell ,
+                      XmNtitle     , title       , /* top of window */
+                      XmNiconName  , "InstaCorr" , /* label on icon */
                      NULL ) ;
-      PLUTO_cursorize( plint->wid->shell ) ;
+      PLUTO_cursorize( plint[ic]->wid->shell ) ;
 
       /*-- if possible, find where this popup should go --*/
 
-      wpop = plint->wid->shell ;
+      wpop = plint[ic]->wid->shell ;
 
       if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
 
-         XButtonEvent *xev = (XButtonEvent *) cbs->event ;
+         XButtonEvent *xev = (XButtonEvent *)cbs->event ;
          int xx = (int)xev->x_root , yy = (int)xev->y_root ;
          int ww,hh , sw,sh ;
 

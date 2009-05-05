@@ -1,7 +1,16 @@
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
-void ICOR_init(void){return;}
+IPLUGIN_interface *  ICOR_init(char *lab)
+{
+  MCW_popup_message( THE_TOPSHELL ,
+                     " \n"
+                     " InstaCorr not available\n"
+                     " since this copy of AFNI\n"
+                     "  was compiled without\n"
+                     "  support for plugins!\n " , MCW_USER_KILL ) ;
+  return NULL ;
+}
 #else
 
 /***********************************************************************
@@ -28,22 +37,25 @@ static char * ICOR_main( PLUGIN_interface * ) ;
    Set up the interface to the user
 ************************************************************************/
 
-PLUGIN_interface * ICOR_init(void)
+PLUGIN_interface * ICOR_init(char *lab)
 {
    PLUGIN_interface *plint ;     /* will be the output of this routine */
    static char *yn[2] = { "No" , "Yes" } ;
+   char sk[32] , sc[32] ;
+
+   if( lab == NULL ) lab = "\0" ;
 
    /*---------------- set titles and call point ----------------*/
 
+   sprintf(sk,"%sControl InstaCorr",lab) ;
    plint = PLUTO_new_interface( "InstaCorr" ,
-                                "Control InstaCorr" ,
+                                sk ,
                                 helpstring ,
                                 PLUGIN_CALL_VIA_MENU ,
                                 (char *(*)())ICOR_main  ) ;
 
-   PLUTO_add_hint( plint , "Control InstaCorr" ) ;
-
-   PLUTO_set_runlabels( plint , "Setup+Keep" , "Setup+Close" ) ;
+   sprintf(sk,"%sSetup+Keep",lab) ; sprintf(sc,"%sSetup+Close",lab) ;
+   PLUTO_set_runlabels( plint , sk , sc ) ;
 
    /*--------- make interface lines -----------*/
 
@@ -139,3 +151,18 @@ static char * ICOR_main( PLUGIN_interface *plint )
    return NULL ;
 }
 #endif  /* ALLOW_PLUGINS */
+
+/*------------------------------------------------------------------*/
+
+void AFNI_icor_bbox_CB( Widget w, XtPointer cd, XtPointer cb)
+{
+   Three_D_View *im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_icor_bbox_CB") ;
+
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+INFO_message("AFNI_icor_bbox_CB %d",MCW_val_bbox(im3d->vwid->func->icor_bbox)) ;
+
+   EXRETURN ;
+}
