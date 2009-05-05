@@ -10,18 +10,20 @@
     voxel indexes whence came the values are also stored.
 *//*---------------------------------------------------------------*/
 
-MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask )
+MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask , int ignore )
 {
    byte *mmm=mask ;
    MRI_vectim *mrv=NULL ;
    int kk,iv , nvals , nvox , nmask ;
+   float *var=NULL ;
 
 ENTRY("THD_dset_to_vectim") ;
 
                      if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
    DSET_load(dset) ; if( !DSET_LOADED(dset)  ) RETURN(NULL) ;
 
-   nvals = DSET_NVALS(dset) ;
+   if( ignore < 0 ) ignore = 0 ;
+   nvals = DSET_NVALS(dset) - ignore ; if( nvals <= 0 ) RETURN(NULL) ;
    nvox  = DSET_NVOX(dset) ;
 
    if( mmm != NULL ){
@@ -39,9 +41,10 @@ ENTRY("THD_dset_to_vectim") ;
 
    mrv = (MRI_vectim *)malloc(sizeof(MRI_vectim)) ;
 
-   mrv->nvec  = nmask ;
-   mrv->nvals = nvals ;
-   mrv->ivec  = (int *)malloc(sizeof(int)*nmask) ;
+   mrv->nvec   = nmask ;
+   mrv->nvals  = nvals ;
+   mrv->ignore = ignore ;
+   mrv->ivec   = (int *)malloc(sizeof(int)*nmask) ;
    if( mrv->ivec == NULL ){
      ERROR_message("THD_dset_to_vectim: out of memory") ;
      free(mrv) ; if( mmm != mask ) free(mmm) ;
@@ -56,12 +59,22 @@ ENTRY("THD_dset_to_vectim") ;
 
    /* store desired voxel time series */
 
+   if( ignore > 0 )
+     var = (float *)malloc(sizeof(float)*(nvals+ignore)) ;
+
    for( kk=iv=0 ; iv < nvox ; iv++ ){
      if( mmm[iv] == 0 ) continue ;
      mrv->ivec[kk] = iv ;
-     (void)THD_extract_array( iv , dset , 0 , VECTIM_PTR(mrv,kk) ) ;
+     if( ignore > 0 ){
+       (void)THD_extract_array( iv , dset , 0 , var ) ;
+       memcpy( VECTIM_PTR(mrv,kk) , var+ignore , sizeof(float)*nvals ) ;
+     } else {
+       (void)THD_extract_array( iv , dset , 0 , VECTIM_PTR(mrv,kk) ) ;
+     }
      kk++ ;
    }
+
+   if( ignore > 0 ) free(var) ;
 
    mrv->nx = DSET_NX(dset) ; mrv->dx = fabs(DSET_DX(dset)) ;
    mrv->ny = DSET_NY(dset) ; mrv->dy = fabs(DSET_DY(dset)) ;
@@ -176,19 +189,30 @@ int THD_vectim_ifind( int iv , MRI_vectim *mrv )
 
 void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset )
 {
-   int nvals , nvec ,  kk ;
+   int nvals , nvec ,  kk , ign ;
 
 ENTRY("THD_vectim_to_dset") ;
 
-   if( mrv == NULL || !ISVALID_DSET(dset) ) EXRETURN ;
-   if( mrv->nvals != DSET_NVALS(dset)     ) EXRETURN ;
+   if( mrv == NULL || !ISVALID_DSET(dset)           ) EXRETURN ;
+   if( mrv->nvals + mrv->ignore != DSET_NVALS(dset) ) EXRETURN ;
 
    nvec  = mrv->nvec ;
    nvals = mrv->nvals ;
+   ign   = mrv->ignore ;
 
-   for( kk=0 ; kk < nvec ; kk++ )
-     THD_insert_series( mrv->ivec[kk] , dset ,
-                        nvals , MRI_float , VECTIM_PTR(mrv,kk) , 0 ) ;
+   if( ign == 0 ){
+     for( kk=0 ; kk < nvec ; kk++ )
+       THD_insert_series( mrv->ivec[kk] , dset ,
+                          nvals , MRI_float , VECTIM_PTR(mrv,kk) , 0 ) ;
+   } else {
+     float *var = (float *)malloc(sizeof(float)*(nvals+ign)) ;
+     for( kk=0 ; kk < nvec ; kk++ ){
+       (void)THD_extract_array( mrv->ivec[kk] , dset , 0 , var ) ;
+       memcpy( var+ign , VECTIM_PTR(mrv,kk) , sizeof(float)*nvals ) ;
+       THD_insert_series( mrv->ivec[kk] , dset ,
+                          nvals , MRI_float , var , 0 ) ;
+     }
+   }
 
    EXRETURN ;
 }

@@ -165,6 +165,8 @@ extern void refit_MCW_optmenu( MCW_arrowval * ,
                                int,int,int,int,
                                str_func * , XtPointer ) ;
 
+extern void colorize_MCW_optmenu( MCW_arrowval *av, char *cname, int ibut ) ;
+
 extern void allow_MCW_optmenu_popup(int) ;  /* 12 Dec 2001 */
 
 extern MCW_arrowval * new_MCW_colormenu( Widget , char * label , MCW_DC * ,
