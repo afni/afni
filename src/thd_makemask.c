@@ -331,7 +331,7 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
                         byte *cmask,
                         char *mapname)
 {
-   int nvox , ii, *unq = NULL, *vals=NULL;
+   int nvox , ii, *unq = NULL, *vals=NULL, *rmap=NULL, imax=0;
    int n_unique, r;
    FILE *fout=NULL;
    
@@ -358,8 +358,11 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
 
    switch( DSET_BRICK_TYPE(mask_dset,miv) ){
       default:
-         fprintf(stderr,"** Bad dset type for unique operation.\nOnly Byte, Short and float dsets are allowed.\n");
-         DSET_unload(mask_dset) ; if (vals) free(vals); vals = NULL; return (vals) ;
+         fprintf( stderr,
+                  "** Bad dset type for unique operation.\n"
+                  "Only Byte, Short and float dsets are allowed.\n");
+         DSET_unload(mask_dset) ; 
+         if (vals) free(vals); vals = NULL; return (vals) ;
 
       case MRI_short:{
          short *mar = (short *) DSET_ARRAY(mask_dset,miv) ;
@@ -393,8 +396,8 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
       }
       break ;
 
-      #if 1 /* bad idea, but necessary in certain cases. We store ints (from NIFTI) as floats.*/
-      case MRI_float:{
+      case MRI_float:{ /* not an integral type but we store ints (from NIFTI) 
+                          as floats */
          float *mar = (float *) DSET_ARRAY(mask_dset,miv) ;
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
@@ -409,7 +412,6 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
 
       }
       break ;
-      #endif
    }
 
    /* unique */
@@ -429,9 +431,9 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
       }
    }
    /* now replace by rank */
+   #if 0
    for (r=0; r<n_unique; ++r) {
       /* fprintf(stderr,"-- Doing %d ...\n", unq[r]); */
-      if (fout) fprintf(fout, "%d   %d\n", r, unq[r]);
       if (cmask) {
          for (ii=0; ii<nvox; ii++) {
             if (cmask[ii]) {
@@ -442,7 +444,22 @@ int *THD_unique_rank( THD_3dim_dataset *mask_dset ,
          for( ii=0 ; ii < nvox ; ii++ ) if (vals[ii] == unq[r]) vals[ii] = r; 
       }
    }
-
+   #else /* faster approach */
+   imax=0;
+   for (r=0; r<n_unique; ++r) if (imax < unq[r]) imax = unq[r];
+   if (!(rmap=(int*)calloc(imax+1, sizeof(int)))) {
+      fprintf(stderr,"** Failed to allocate\n");
+      free(vals); free(unq); return (NULL);
+   }
+   for (r=0; r<n_unique; ++r) {
+      rmap[unq[r]] = r;
+      if (fout) fprintf(fout, "%d   %d\n", r, unq[r]);
+   }
+   for (ii=0; ii<nvox; ii++) 
+      if (!cmask || cmask[ii]) vals[ii] = rmap[vals[ii]];
+   free(rmap); rmap=NULL;
+   #endif
+   
    free(unq); unq = NULL;
    if (fout) fclose(fout); fout = NULL;
 
@@ -469,14 +486,17 @@ int THD_unique_rank_edit( THD_3dim_dataset *mask_dset ,
    
    switch( DSET_BRICK_TYPE(mask_dset,miv) ){
       default:
-         fprintf(stderr,"** Bad dset type for unique operation.\nShould have been stopped a while ago.\n");
+         fprintf(stderr,"** Bad dset type for unique operation.\n"
+                        "Should have been stopped a while ago.\n");
          if (vals) free(vals); vals = NULL; return (0) ;
 
       case MRI_short:{
          short *mar = (short *) DSET_ARRAY(mask_dset,miv) ;
          if (mxval > MRI_TYPE_maxval[MRI_short]) {
-            fprintf(stderr,"** Have too many unique values (%d) for datatype short (limit %f)!\n",
-                            mxval, MRI_TYPE_maxval[MRI_short]);
+            fprintf(stderr,
+                    "** Have too many unique values (%d) for "
+                    "datatype short (limit %f)!\n",
+                    mxval, MRI_TYPE_maxval[MRI_short]);
             if (vals) free(vals); vals = NULL; return (0) ; 
          }
          EDIT_BRICK_FACTOR(mask_dset,miv,0.0);
@@ -488,8 +508,10 @@ int THD_unique_rank_edit( THD_3dim_dataset *mask_dset ,
       case MRI_byte:{
          byte *mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
          if (mxval > MRI_TYPE_maxval[MRI_byte]) {
-            fprintf(stderr,"** Have too many unique values (%d) for datatype byte (limit %f)!\n", 
-                              mxval, MRI_TYPE_maxval[MRI_byte]);
+            fprintf(stderr,
+                    "** Have too many unique values (%d) for "
+                    "datatype byte (limit %f)!\n", 
+                    mxval, MRI_TYPE_maxval[MRI_byte]);
             if (vals) free(vals); vals = NULL; return (0) ; 
          }
          EDIT_BRICK_FACTOR(mask_dset,miv,0.0);

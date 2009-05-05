@@ -2696,7 +2696,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SO = (SUMA_SurfaceObject *)EngineData->vp; 
             /* search for the keys */
             if (NI_get_attribute(EngineData->ngr,"N_Key")) {
-               char *stmp=NULL, nc, *vbuf=NULL;
+               char *stmp=NULL, nc, *vbuf=NULL, *strgval=NULL;
                int k, rep,  N_rep = 1, redisp=0;
                float pauz=0.0, delta_t=0.0;
                struct timeval tt;
@@ -2712,8 +2712,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   NI_GET_FLOAT(EngineData->ngr,tmpstr, pauz);
                   sprintf(tmpstr, "Key_redis_%d", ii);
                   NI_GET_INT(EngineData->ngr,tmpstr, redisp);
-                  SUMA_LHv("Rep=%d, Pause=%f, Redis=%d\n", 
-                           N_rep, pauz, redisp);
+                  sprintf(tmpstr, "Key_strval_%d", ii);
+                  strgval = NI_get_attribute(EngineData->ngr, tmpstr);
+                  SUMA_LHv("Rep=%d, Pause=%f, Redis=%d\n, Strgval=%s", 
+                           N_rep, pauz, redisp, CHECK_NULL_STR(strgval));
                   if (stmp && (nc = strlen(stmp))) {
                      k = SUMA_KeyPress(stmp, NULL);
                      for (rep=0; rep<N_rep; ++rep) {
@@ -2736,9 +2738,21 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break; 
+                           case XK_d:
+                           case XK_D:
+                              if (!SUMA_D_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break; 
                            case XK_g:
                            case XK_G:
                               if (!SUMA_G_Key(sv, stmp, "drivesuma")) {
+                                 SUMA_S_Err("Failed in Key function.");
+                              }
+                              break; 
+                           case XK_j:
+                           case XK_J:
+                              if (!SUMA_J_Key(sv, stmp, "drivesuma", strgval)) {
                                  SUMA_S_Err("Failed in Key function.");
                               }
                               break; 

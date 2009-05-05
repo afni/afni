@@ -2884,6 +2884,7 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
    SUMA_XFORM *xf = NULL;
    NI_element *nel=NULL;
    SUMA_CALLBACK *cb = NULL;
+   char stmp[256];
    
    if (!parent_idcode || !FunctionName ||
        strlen(FunctionName) > 125  ) SUMA_RETURN(cb);
@@ -2909,12 +2910,12 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
    cb->FunctionPtr = FunctionPtr;
    
    cb->FunctionInput = NI_new_group_element();
-   NI_rename_group(cb->FunctionInput, "SUMA_dot_product_CB");
+   snprintf(stmp,sizeof(char*)*64,"input.%s",FunctionName);
+   NI_rename_group(cb->FunctionInput, stmp);
    
    /* Set defaults for generic parameters */
-   nel = NI_new_data_element("parameters", 0); 
+   nel = NI_new_data_element("event_parameters", 0); 
    NI_add_to_group(cb->FunctionInput, nel);
-   NI_SET_INT(nel,"numeric_precision", 1);
    NI_SET_INT(nel,"event.new_node", -1);
    NI_set_attribute(nel, "event.SO_idcode", "");
    NI_set_attribute(nel,"event.overlay_name", "");
@@ -2965,7 +2966,8 @@ SUMA_Boolean SUMA_FlushCallbackEventParameters (SUMA_CALLBACK *cb)
    SUMA_ENTRY;
    
    if (!cb ||
-       !(nelpars = SUMA_FindNgrNamedElement(cb->FunctionInput, "parameters"))) {
+       !(nelpars = SUMA_FindNgrNamedElement(
+                     cb->FunctionInput, "event_parameters"))) {
       SUMA_S_Err("NULL cb or Bad callback content");
       SUMA_RETURN(NOPE);
    }
