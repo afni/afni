@@ -1859,7 +1859,9 @@ plug_retroicor.$(SO):plug_retroicor.c retroicor.o
 	$(LD) $(PLUGIN_LFLAGS) -o plug_retroicor.$(SO) plug_retroicor.o \
       retroicor.o
 
-plug_render.$(SO):mri_render.h
+# nuke any existing renderer plugin
+plug_render.$(SO):plug_null.o
+	$(LD) $(PLUGIN_LFLAGS) -o plug_render.$(SO) plug_null.o
 
 ### From Stephen Laconte
 plug_3dsvm.$(SO):svm/plug_3dsvm.c svm/svm_common.c svm/svm_learn.c svm/3dsvm_common.c svm/svm_hideo.c
