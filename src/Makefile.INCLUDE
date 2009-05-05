@@ -82,7 +82,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
            3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dUndump 3dREMLfit            \
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
-           3dBlurInMask $(EXTRAS)
+           3dBlurInMask 3dRank                                                  \
+           $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise count \
@@ -111,7 +112,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
                   3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dREMLfit 3dTcorrMap       \
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
-                  3dmaskSVD $(EXTRAS)
+                  3dmaskSVD 3dRank $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -143,7 +144,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
-               3dTcorrMap 3dABoverlap
+               3dTcorrMap 3dABoverlap 3dRank
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -621,6 +622,10 @@ from3d:from3d.o
 3T_toafni:3T_toafni.o
 	$(RM) $@
 	$(CC) -o 3T_toafni 3T_toafni.o $(LFLAGS) $(LLIBS)
+
+3dRank:3dRank.o
+	$(RM) $@
+	$(CC) -o 3dRank 3dRank.o $(LFLAGS) $(LLIBS)
 
 p2t:p2t.o
 	$(RM) $@

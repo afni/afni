@@ -77,6 +77,18 @@
    }  \
 }
 
+#define SUMA_SKIP_TO_NEXT_CHAR(op, eop, ch){  \
+   char m_quote_open = '\0';   \
+   while (*op != '\0' && op !=eop && !( !m_quote_open && (*op == ch)) ) { \
+      if (*op == '"' || *op == '\'') {  \
+         if (!m_quote_open) m_quote_open = *op; \
+         else if (m_quote_open == *op) m_quote_open = '\0'; \
+      }  \
+      ++op; \
+   }  \
+}
+
+
 /*!
    \brief Find the addresses limiting a section between two blanks, 
    Hello   'djjdk sskjd'    Jon

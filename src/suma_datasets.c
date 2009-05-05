@@ -5596,19 +5596,20 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
    nind (int): Number of values in ind.
                Not useful when ind = NULL
    node (int): Index of node in question
-   N_Node (int): If you know the maximum number of nodes forming the domain
-                  of the dset, typically SO->N_Node then pass it for speed.
+   iNodeMax (int): If you know the maximum number of nodes forming the domain
+                  of the dset, typically SO->iNodeMax then pass it for speed.
                   Otherwise, pass -1
    N_ret (int *): Pointer to int to contain the number of values in result
                   vector
    Returns:
       result (double*) a vector of N_ret values at node node
    
-   \sa SUMA_GetDsetAllNodeValsInCols2
+   \sa SUMA_GetDsetAllNodeValsInCols
+   \sa SUMA_Dset2VecArray
 */
 void *SUMA_GetDsetAllNodeValsInCols2(SUMA_DSET *dset, 
                                        int *ind, int nind, 
-                                       int node, int N_Node,
+                                       int node, int iNodeMax,
                                        int *N_ret,
                                        SUMA_VARTYPE tp)
 {
@@ -5623,7 +5624,7 @@ void *SUMA_GetDsetAllNodeValsInCols2(SUMA_DSET *dset,
    SUMA_ENTRY;
    
    if (!dset || !dset->dnel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(resv); }
-   noderow = SUMA_GetNodeRow_FromNodeIndex_eng (dset, node, N_Node);
+   noderow = SUMA_GetNodeRow_FromNodeIndex_eng (dset, node, iNodeMax);
    if (noderow < 0) { /* SUMA_SL_Err("Bad node index"); 
                         keep quiet, can happen*/ 
                         SUMA_RETURN(resv); }
@@ -5723,7 +5724,650 @@ void *SUMA_GetDsetAllNodeValsInCols2(SUMA_DSET *dset,
    
    SUMA_RETURN(resv);
 }
-                              
+
+/* 
+This function is very similar to SUMA_GetDsetAllNodeValsInCols2
+Except it operates on multiple nodes.
+What you get back is is a double pointer of VARTYPE with N_ret values
+in each row and N_Node rows
+
+\sa SUMA_VecArray2Dset
+*/
+
+void **SUMA_Dset2VecArray(SUMA_DSET *dset, 
+                        int *ind, int nind, 
+                        int *node, int N_Node,
+                        int iNodeMax,
+                        int *N_ret,
+                        SUMA_VARTYPE tp)
+{
+   static char FuncName[]={"SUMA_Dset2VecArray"};
+   double **resd = NULL, *dc=NULL;
+   float **resf = NULL, *fc=NULL;
+   int **resi=NULL, icol=0, i, c, *ic=NULL;
+   short **ress=NULL, *sc=NULL;
+   byte **resb=NULL, *bc=NULL;
+   void **resv=NULL;
+   int *rowofnode=NULL;
+   double range[2];
+   
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!dset || !dset->dnel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(resv); }
+   rowofnode = SUMA_CreateNodeIndexToRowIndexMap(dset, iNodeMax, range);
+
+   if (!node) {
+      node = SDSET_NODE_INDEX_COL(dset);
+      N_Node = SDSET_VECLEN(dset);
+   } else {
+      /* make sure node indices do not exceed dset range */
+      for (i=0; i<N_Node; ++i) {
+         if (ind[i] > (int)range[1] || ind[i] < (int)range[0]) {
+            SUMA_S_Err("Node indices out or range");
+            SUMA_RETURN(resv);
+         }
+      }
+   }
+   if (!node) {
+      SUMA_S_Err("Nothing to work with");
+      SUMA_RETURN(resv);
+   }
+   if (!ind) {
+      nind = SDSET_VECNUM(dset);
+   }
+   if ( tp != SUMA_float &&
+        tp != SUMA_double &&
+        tp != SUMA_int&&
+        tp != SUMA_short &&
+        tp != SUMA_byte ) { SUMA_SL_Err("Bad otype"); SUMA_RETURN(resv); } 
+      
+   if (nind <= 0) {
+      SUMA_SL_Err("no columns selected"); SUMA_RETURN(resv); 
+   }
+   if (nind > SDSET_VECNUM(dset)) {
+      SUMA_SL_Err("More columns than in dset"); SUMA_RETURN(resv); 
+   }
+   switch (tp) {
+      case SUMA_double:
+         resd=NULL; resf=NULL; resi=NULL; ress=NULL; resb=NULL;
+         resd = (double**)SUMA_calloc(N_Node, sizeof(double*));
+         for (i=0; i<N_Node; ++i) {
+            if (!(resd[i] = (double*)SUMA_calloc(nind, sizeof(double)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+         }
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resd[i][c] = (double)dc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resd[i][c] = (double)fc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resd[i][c] = (double)ic[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resd[i][c] = (double)sc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resd[i][c] = (double)bc[rowofnode[node[i]]];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         resv = (void **)resd;
+         break;   
+
+      case SUMA_float:
+         resd=NULL; resf=NULL; resi=NULL; ress=NULL; resb=NULL;
+         resf = (float**)SUMA_calloc(N_Node, sizeof(float*));
+         for (i=0; i<N_Node; ++i) {
+            if (!(resf[i] = (float*)SUMA_calloc(nind, sizeof(float)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+         }
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resf[i][c] = (float)dc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resf[i][c] = (float)fc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resf[i][c] = (float)ic[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resf[i][c] = (float)sc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resf[i][c] = (float)bc[rowofnode[node[i]]];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         resv = (void **)resf;
+         break;   
+      case SUMA_int:
+         resd=NULL; resi=NULL; resi=NULL; ress=NULL; resb=NULL;
+         resi = (int**)SUMA_calloc(N_Node, sizeof(int*));
+         for (i=0; i<N_Node; ++i) {
+            if (!(resi[i] = (int*)SUMA_calloc(nind, sizeof(int)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+         }
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resi[i][c] = (int)dc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resi[i][c] = (int)fc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resi[i][c] = (int)ic[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resi[i][c] = (int)sc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resi[i][c] = (int)bc[rowofnode[node[i]]];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         resv = (void **)resi;
+         break;   
+      case SUMA_short:
+         resd=NULL; ress=NULL; ress=NULL; ress=NULL; resb=NULL;
+         ress = (short**)SUMA_calloc(N_Node, sizeof(short*));
+         for (i=0; i<N_Node; ++i) {
+            if (!(ress[i] = (short*)SUMA_calloc(nind, sizeof(short)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+         }
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ress[i][c] = (short)dc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ress[i][c] = (short)fc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ress[i][c] = (short)ic[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ress[i][c] = (short)sc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ress[i][c] = (short)bc[rowofnode[node[i]]];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         resv = (void **)ress;
+         break;      
+      case SUMA_byte:
+         resd=NULL; resb=NULL; resb=NULL; resb=NULL; resb=NULL;
+         resb = (byte**)SUMA_calloc(N_Node, sizeof(byte*));
+         for (i=0; i<N_Node; ++i) {
+            if (!(resb[i] = (byte*)SUMA_calloc(nind, sizeof(byte)))) {
+               SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(resv); 
+            }
+         }
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resb[i][c] = (byte)dc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resb[i][c] = (byte)fc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resb[i][c] = (byte)ic[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resb[i][c] = (byte)sc[rowofnode[node[i]]];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     resb[i][c] = (byte)bc[rowofnode[node[i]]];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         resv = (void **)resb;
+         break;
+      default:
+         SUMA_SL_Err("Bad otype, why here?"); SUMA_RETURN(resv);
+         break;
+   } /* switch on type of output */
+
+   *N_ret =  nind;  
+   if (rowofnode) SUMA_free(rowofnode); rowofnode = NULL;
+   
+   SUMA_RETURN(resv);
+} 
+
+/*!
+   Reverse of   SUMA_Dset2VecArray
+*/ 
+SUMA_DSET *SUMA_VecArray2Dset(void **resv,
+                        SUMA_DSET *usethisdset, 
+                        int *ind, int nind, 
+                        int *node, int N_Node,
+                        int iNodeMax,
+                        SUMA_VARTYPE tp)
+{
+   static char FuncName[]={"SUMA_VecArray2Dset"};
+   double **resd = NULL, *dc=NULL;
+   float **resf = NULL, *fc=NULL;
+   int **resi=NULL, icol=0, i, c, *ic=NULL;
+   short **ress=NULL, *sc=NULL;
+   byte **resb=NULL, *bc=NULL;
+   int *rowofnode=NULL;
+   double range[2];
+   SUMA_DSET *dset=NULL;
+   
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+   
+   if (!usethisdset) {
+      SUMA_S_Err("Not ready to create a new dset from scratch");
+   } else {
+      dset = usethisdset;  /* put the stuff in here */
+   }
+
+   if (!dset || !dset->dnel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(dset); }
+   rowofnode = SUMA_CreateNodeIndexToRowIndexMap(dset, iNodeMax, range);
+   
+   if (!node) {
+      node = SDSET_NODE_INDEX_COL(dset);
+      N_Node = SDSET_VECLEN(dset);
+   } else {
+      /* make sure node indices do not exceed dset range */
+      for (i=0; i<N_Node; ++i) {
+         if (ind[i] > (int)range[1] || ind[i] < (int)range[0]) {
+            SUMA_S_Err("Node indices out or range");
+            SUMA_RETURN(dset);
+         }
+      }
+   }
+   if (!node) {
+      SUMA_S_Err("Nothing to work with");
+      SUMA_RETURN(dset);
+   }
+   if (!ind) {
+      nind = SDSET_VECNUM(dset);
+   }
+   if ( tp != SUMA_float &&
+        tp != SUMA_double &&
+        tp != SUMA_int &&
+        tp != SUMA_short &&
+        tp != SUMA_byte ) { SUMA_SL_Err("Bad otype"); SUMA_RETURN(dset); } 
+      
+   if (nind <= 0) {
+      SUMA_SL_Err("no columns selected"); SUMA_RETURN(dset); 
+   }
+   if (nind > SDSET_VECNUM(dset)) {
+      SUMA_SL_Err("More columns than in dset"); SUMA_RETURN(dset); 
+   }
+   switch (tp) {
+      case SUMA_double:
+         resd=NULL; resf=NULL; resi=NULL; ress=NULL; resb=NULL;
+         resd = (double**)resv;
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     dc[rowofnode[node[i]]] = (double)resd[i][c];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     fc[rowofnode[node[i]]] = (float)resd[i][c];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ic[rowofnode[node[i]]] = (int)resd[i][c];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     sc[rowofnode[node[i]]] = (short)resd[i][c];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     bc[rowofnode[node[i]]] = (byte)resd[i][c];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         break;   
+
+      case SUMA_float:
+         resd=NULL; resf=NULL; resi=NULL; ress=NULL; resb=NULL;
+         resf = (float**)resv;
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     dc[rowofnode[node[i]]] = (double)resf[i][c];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     fc[rowofnode[node[i]]] = (float)resf[i][c];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ic[rowofnode[node[i]]] = (int)resf[i][c];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     sc[rowofnode[node[i]]] = (short)resf[i][c];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     bc[rowofnode[node[i]]] = (byte)resf[i][c];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         break;   
+      case SUMA_int:
+         resd=NULL; resi=NULL; resi=NULL; ress=NULL; resb=NULL;
+         resi = (int **)resv;
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     dc[rowofnode[node[i]]] = (double)resi[i][c];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     fc[rowofnode[node[i]]] = (float)resi[i][c];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ic[rowofnode[node[i]]] = (int)resi[i][c];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     sc[rowofnode[node[i]]] = (short)resi[i][c];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     bc[rowofnode[node[i]]] = (byte)resi[i][c];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         break;   
+      case SUMA_short:
+         resd=NULL; ress=NULL; ress=NULL; ress=NULL; resb=NULL;
+         ress = (short **)resv;
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     dc[rowofnode[node[i]]] = (double)ress[i][c];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     fc[rowofnode[node[i]]] = (float)ress[i][c];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ic[rowofnode[node[i]]] = (int)ress[i][c];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     sc[rowofnode[node[i]]] = (short)ress[i][c];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     bc[rowofnode[node[i]]] = (byte)ress[i][c];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         break;      
+      case SUMA_byte:
+         resd=NULL; resb=NULL; resb=NULL; resb=NULL; resb=NULL;
+         resb = (byte**)resv;
+         for (c=0; c<nind; ++c) { /* for each column */
+            if (ind) icol = ind[c];
+            else icol = c;
+            dc=NULL; fc=NULL; ic=NULL; sc=NULL; bc=NULL;
+            switch (SUMA_ColType2TypeCast(
+                           SUMA_TypeOfDsetColNumb(dset, icol))) {
+               case SUMA_double:
+                  dc = (double *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     dc[rowofnode[node[i]]] = (double)resb[i][c];
+                  }
+                  break;
+               case SUMA_float:
+                  fc = (float *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     fc[rowofnode[node[i]]] = (float)resb[i][c];
+                  }
+                  break;
+               case SUMA_int:
+                  ic = (int *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     ic[rowofnode[node[i]]] = (int)resb[i][c];
+                  }
+                  break;
+               case SUMA_short:
+                  sc = (short *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     sc[rowofnode[node[i]]] = (short)resb[i][c];
+                  }
+                  break;
+               case SUMA_byte:
+                  bc = (byte *)SDSET_VEC(dset,icol);
+                  for (i=0; i<N_Node; ++i) {
+                     bc[rowofnode[node[i]]] = (byte)resb[i][c];
+                  }
+                  break;
+               default:
+                  SUMA_S_Err("Type not supported."
+                             "Memory leak now present");
+                  SUMA_RETURN(NULL); 
+            }
+         } /* for each column */
+         break;
+      default:
+         SUMA_SL_Err("Bad otype, why here?"); SUMA_RETURN(dset);
+         break;
+   } /* switch on type of output */
+
+   if (rowofnode) SUMA_free(rowofnode); rowofnode = NULL;
+   
+   SUMA_RETURN(dset);
+} 
+                                
 /* returns the value at a paricular column and particular
    node in double format.
    If you know the maximum number of nodes forming the domain
@@ -7495,8 +8139,10 @@ SUMA_COL_TYPE SUMA_TypeOfColNumb(NI_element *nel, int ind)
    
    /* try AFNI's */
    cnm = NI_get_attribute(nel, "ni_type");
+   if (!cnm) NI_set_ni_type_atr(nel);
+   cnm = NI_get_attribute(nel, "ni_type");
+   
    if (cnm) {
-      SUMA_LH(cnm);
       iar = decode_type_string( cnm ); 
       if (iar) {
          ctp = iar->ar[ind];   /* this is not the same as SUMA's column type, it is just data type */
@@ -9335,8 +9981,12 @@ int SUMA_is_AllNumeric_nel(NI_element *nel)
    
    SUMA_ENTRY;
    
-   SUMA_SL_Warn("Obsolete, perhaps. Check on caller.");
-
+   /* 
+      Macro NEL_WRITE_1D still needs this ...
+      
+      SUMA_SL_Warn("Obsolete, perhaps. Check on caller.");
+   */
+   
    if (!nel) SUMA_RETURN(0);
    
    for (i=0; i<nel->vec_num; ++i) {
@@ -9983,8 +10633,10 @@ SUMA_Boolean SUMA_NewDsetID2 (SUMA_DSET *dset, char *str)
       NI_set_attribute (dset->ngr, "self_idcode", namecode); 
       SUMA_free(namecode); namecode = NULL;
    } else if (NI_get_attribute(dset->ngr, "filename")) {
-      namecode = UNIQ_hashcode(NI_get_attribute(dset->ngr, "filename")); /* from filename */
+      namecode = UNIQ_hashcode(NI_get_attribute(dset->ngr, "filename")); 
+               /* from filename */
       NI_set_attribute (dset->ngr, "self_idcode", namecode); 
+      SUMA_free(namecode); namecode = NULL;
    } else {
       SUMA_NewDsetID (dset);
    }

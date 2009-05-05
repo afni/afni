@@ -815,7 +815,9 @@ void MRG_Syntax(void)
     "     To view aparc+aseg_rank+orig, use the ROI_128 colormap\n"
     "     and set the colorbar range to 128.\n"
     "     The -1rank option also outputs a 1D file that contains \n"
-    "     the mapping from the input dataset to the ranked output.\n" 
+    "     the mapping from the input dataset to the ranked output.\n"
+    "\n"
+    "     See also program 3dRank\n" 
     "\n"
     "MERGING OPTIONS APPLIED TO FORM THE OUTPUT DATASET:\n"
     " [That is, different ways to combine results. The]\n"
@@ -954,7 +956,7 @@ int main( int argc , char * argv[] )
    int   input_datum  , input_thdatum , first_datum ;
 
    float thr_stataux[MAX_STAT_AUX] ;
-   int   num_fico ;
+   int   num_fico=0;
    int   is_int=1 ;   /* 08 Jan 1998 */
 
    int iv, iv_bot, iv_top;      /* dataset sub-brick indices    02 Feb 1998 */
