@@ -61,12 +61,12 @@ ENTRY("THD_instacorr_prepare") ;
 
    INFO_message("Extracting dataset time series") ;
 
-   iset->mv = THD_dset_to_vectim( iset->dset , iset->mmm ) ;
+   iset->mv = THD_dset_to_vectim( iset->dset , iset->mmm , iset->ignore ) ;
    if( iset->mv == NULL ){
      ERROR_message("Can't extract dataset time series!") ; RETURN(0) ;
    }
    nmmm  = iset->mv->nvec ;
-   ntime = iset->mv->nvals ;
+   ntime = iset->mv->nvals ;  /* #dataset time points - ignore */
 
    /*--- Filter time series ---*/
 
@@ -90,8 +90,8 @@ ENTRY("THD_instacorr_prepare") ;
      }
    }
 
-   THD_bandpass_vectors( ntime, nmmm, dvec, iset->mv->dt,
-                         iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
+   (void)THD_bandpass_vectors( ntime, nmmm, dvec, iset->mv->dt,
+                               iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
 
    free(dvec) ; if( gvec != NULL ) free(gvec) ;
 
@@ -111,13 +111,13 @@ ENTRY("THD_instacorr_prepare") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Compute the instant correlation from voxel index ijk.
+/*! Compute the instant correlation from spatial voxel index ijk --
     mri_free() this image when you are done with it!
 *//*-------------------------------------------------------------------------*/
 
 MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk , int ata )
 {
-   int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar ; int *ivar ;
+   int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar,*tsari=NULL ; int *ivar ;
 
 ENTRY("THD_instacorr") ;
 
@@ -125,12 +125,13 @@ ENTRY("THD_instacorr") ;
 
    /** extract reference time series **/
 
-   tsar = (float *)malloc(sizeof(float)*iset->mv->nvals) ;
+   tsar = (float *)malloc(sizeof(float)*(iset->mv->nvals+iset->ignore)) ;
    kk   = THD_vectim_ifind( ijk , iset->mv ) ;
 
    if( kk >= 0 ){ /* direct from vectim, if available */
 
      memcpy( tsar , VECTIM_PTR(iset->mv,kk) , sizeof(float)*iset->mv->nvals ) ;
+     tsari = tsar ;
 
    } else {       /* non-vectim voxel in dataset ==> must be processed */
 #if 1
@@ -147,17 +148,18 @@ ENTRY("THD_instacorr") ;
        for( iv=0 ; iv < ngvec ; iv++ )
          gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx ;
      }
-     THD_bandpass_vectors( iset->mv->nvals , 1, &tsar, iset->mv->dt,
-                           iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
+     tsari = tsar + iset->ignore ;
+     (void)THD_bandpass_vectors( iset->mv->nvals , 1, &tsari, iset->mv->dt,
+                                 iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
      if( gvec != NULL ) free(gvec) ;
-     THD_normalize( iset->mv->nvals , tsar ) ;
+     THD_normalize( iset->mv->nvals , tsari ) ;
 #endif
    }
 
    /** do the dot products **/
 
    dar = (float *)malloc(sizeof(float)*iset->mv->nvec) ;
-   THD_vectim_dotprod( iset->mv , VECTIM_PTR(iset->mv,kk) , dar , ata ) ;
+   THD_vectim_dotprod( iset->mv , tsari , dar , ata ) ;
 
    /** put them into the output image **/
 
