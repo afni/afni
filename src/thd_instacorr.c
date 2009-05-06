@@ -6,7 +6,7 @@
 int THD_instacorr_prepare( ICOR_setup *iset )
 {
    int iv , nmmm=0 , ntime ; byte *mmm=NULL ;
-   float **dvec , **gvec=NULL ; int ngvec=0 ;
+   float **dvec , **gvec=NULL ; int ngvec=0 ; float dt ;
 
 ENTRY("THD_instacorr_prepare") ;
 
@@ -14,9 +14,33 @@ ENTRY("THD_instacorr_prepare") ;
 
    if( iset == NULL || !ISVALID_DSET(iset->dset) ) RETURN(0) ;
 
-   /*-- (re)create mask, if needed --*/
+   /*-- create mask --*/
 
-   if( iset->mset != NULL && iset->mmm == NULL ){
+   if( iset->mmm != NULL ){ free(iset->mmm) ; iset->mmm = NULL ; }
+
+   /*-- automask? --*/
+
+   if( iset->automask ){
+INFO_message("doing automask") ;
+     mmm = THD_automask(iset->dset) ;
+     if( mmm == NULL ){
+       ERROR_message("Can't create automask from '%s'?!",DSET_BRIKNAME(iset->dset)) ;
+       RETURN(0) ;
+     }
+     nmmm = THD_countmask( DSET_NVOX(iset->dset) , mmm ) ;
+     if( nmmm < 9 ){
+       ERROR_message("Automask from '%s' has %d voxels!" ,
+                     DSET_BRIKNAME(iset->dset) , nmmm ) ;
+       free(mmm) ; RETURN(0) ;
+     }
+     INFO_message("Automask from '%s' has %d voxels",DSET_BRIKNAME(iset->dset),nmmm) ;
+     iset->mmm = mmm ;
+   }
+
+   /*-- mask dataset? ---*/
+
+   if( iset->mmm == NULL && iset->mset != NULL ){
+INFO_message("doing mask from dataset") ;
      if( DSET_NVOX(iset->mset) != DSET_NVOX(iset->dset) ){
        ERROR_exit("Mask dataset '%s' doesn't match input dataset '%s'",
                   DSET_BRIKNAME(iset->mset) , DSET_BRIKNAME(iset->dset) ) ;
@@ -39,23 +63,7 @@ ENTRY("THD_instacorr_prepare") ;
      iset->mmm = mmm ;
    }
 
-   /*-- automask? --*/
-
-   if( iset->automask && iset->mmm == NULL ){
-     mmm = THD_automask(iset->dset) ;
-     if( mmm == NULL ){
-       ERROR_message("Can't create automask from '%s'?!",DSET_BRIKNAME(iset->dset)) ;
-       RETURN(0) ;
-     }
-     nmmm = THD_countmask( DSET_NVOX(iset->mset) , mmm ) ;
-     if( nmmm < 9 ){
-       ERROR_message("Automask from '%s' has %d voxels!" ,
-                     DSET_BRIKNAME(iset->dset) , nmmm ) ;
-       free(mmm) ; RETURN(0) ;
-     }
-     INFO_message("Automask from '%s' has %d voxels",DSET_BRIKNAME(iset->dset),nmmm) ;
-     iset->mmm = mmm ;
-   }
+   if( iset->mmm == NULL ) INFO_message("No mask for InstaCorr") ;
 
    /*--- Extract time series for analysis ---*/
 
@@ -90,15 +98,19 @@ ENTRY("THD_instacorr_prepare") ;
      }
    }
 
-   (void)THD_bandpass_vectors( ntime, nmmm, dvec, iset->mv->dt,
-                               iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
+   (void)THD_bandpass_OK( ntime , iset->mv->dt , iset->fbot,iset->ftop , 1 ) ;
+
+   iset->ndet = THD_bandpass_vectors( ntime, nmmm, dvec, iset->mv->dt,
+                                      iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
+
+INFO_message("Filtering removed %d DOF",iset->ndet) ;
 
    free(dvec) ; if( gvec != NULL ) free(gvec) ;
 
    /*--- Blur time series ---*/
 
    if( iset->blur > 0.0f ){
-     INFO_message("Spatially blurring dataset volumes") ;
+     INFO_message("Spatially blurring %d dataset volumes",iset->mv->nvals) ;
      mri_blur3D_vectim( iset->mv , iset->blur ) ;
    }
 

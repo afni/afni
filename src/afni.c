@@ -5988,10 +5988,6 @@ DUMP_IVEC3("  new_id",new_id) ;
            im3d->vedset.param[5] = im3d->vinfo->use_posfunc ;
            im3d->vedset.exinfo   = NULL ;
          break ;
-
-         case VEDIT_ICORR:
-           im3d->vedset.exinfo = im3d->iset ;
-         break ;
        }
        if( !im3d->vedskip )
          changed = AFNI_vedit( im3d->fim_now , im3d->vedset ) ;
@@ -5999,7 +5995,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          UNCLUSTERIZE(im3d) ;
        } else if( changed ){
          mri_cluster_detail *cld ; int nc ; char *rrr ;
-         VEDIT_helpize(im3d);
+         VEDIT_cluster_helpize(im3d);
          if( im3d->vwid->func->clu_rep != NULL ){
            free(im3d->vwid->func->clu_rep); im3d->vwid->func->clu_rep = NULL;
          }
@@ -7842,7 +7838,7 @@ STATUS(" -- processing points in this dataset") ;
    /*-------------------------------------------------------------------*/
    /*--- Sep 1995: turn Talairach to button on image popup on or off ---*/
 
-STATUS(" -- managing talairach_to button") ;
+STATUS(" -- managing tal_to button, etc") ;
 
    if( im3d->vwid->imag->pop_talto_pb != NULL ){
      if( CAN_TALTO(im3d) ){
@@ -7859,6 +7855,11 @@ STATUS(" -- managing talairach_to button") ;
        if( im3d->vwid->imag->pop_ttren_pb != NULL )
          XtSetSensitive( im3d->vwid->imag->pop_ttren_pb , False ); /* 12 Jul 2001 */
      }
+   }
+
+   if( im3d->vwid->imag->pop_instacorr_pb != NULL ){
+     if( ISVALID_ICOR_setup(im3d->iset) ) ENABLE_INSTACORR(im3d) ;
+     else                                 DISABLE_INSTACORR(im3d) ;
    }
 
    /*--- 25 Jul 2001: sensitize 'See TT Atlas Regions' button ---*/
@@ -8698,6 +8699,15 @@ ENTRY("AFNI_imag_pop_CB") ;
 #endif
      sprintf(cmd,"OPEN_WINDOW %c.plugin.Draw_Dataset geom=+%d+%d",cc,xx,yy) ;
      (void) AFNI_driver(cmd) ;
+   }
+
+   /*---- 06 May 2009: set InstaCorr point ----*/
+
+   else if( w == im3d->vwid->imag->pop_instacorr_pb &&
+            w != NULL                                 ){
+
+     int qq = AFNI_icor_setref(im3d) ;
+     if( qq == 0 ) XBell( XtDisplay(w) , 100 ) ;
    }
 
    /*--- unmap of the popup itself [elided] ---*/

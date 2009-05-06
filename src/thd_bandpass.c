@@ -192,5 +192,9 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
 
    /** done **/
 
+   if( nfft > nlen ){
+     double fac = ((double)nlen)/(double)nfft ;
+     ndof = (int)rint(fac*ndof) ;
+   }
    return ndof ;
 }

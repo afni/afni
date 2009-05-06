@@ -1079,8 +1079,7 @@ typedef struct {
   void *exinfo ;
 } VEDIT_settings ;
 
-#define VEDIT_CLUST    1   /* param= ithr,thr,rmm,vmul  exinfo=NULL        */
-#define VEDIT_ICORR    2   /* param= ignored            exinfo=ICOR_setup* */
+#define VEDIT_CLUST    1   /* param= ithr,thr,rmm,vmul  exinfo=NULL */
 #define VEDIT_LASTCODE 1
 
 #define VEDIT_IVAL(vv)      ((vv).ival)
@@ -4145,17 +4144,22 @@ typedef struct {
   int ignore , automask , mindex ;
   float fbot , ftop , blur ;
   MRI_vectim *mv ;
+  char *prefix ; int ndet ;
 } ICOR_setup ;
 
 #undef  INIT_ICOR_setup
 #define INIT_ICOR_setup(is) (is) = (ICOR_setup *)calloc(1,sizeof(ICOR_setup))
 
+#undef  ISVALID_ICOR_setup
+#define ISVALID_ICOR_setup(is) ( (is) != NULL && (is)->mv != NULL )
+
 #undef  DESTROY_ICOR_setup
 #define DESTROY_ICOR_setup(is)                               \
  do{ if( (is) != NULL ){                                     \
        if( (is)->mmm    != NULL ) free((is)->mmm) ;          \
-       if( (is)->gortim != NULL ) mri_free((is)->mmm) ;      \
+       if( (is)->gortim != NULL ) mri_free((is)->gortim) ;   \
        if( (is)->mv     != NULL ) VECTIM_destroy((is)->mv) ; \
+       if( (is)->prefix != NULL ) free((is)->prefix) ;       \
        free((is)) ; (is) = NULL ;                            \
  }} while(0)
 

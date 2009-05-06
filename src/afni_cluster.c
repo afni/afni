@@ -28,7 +28,7 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d ) ;
 static char *clubutlab[] = { " Clear" ,          /* first blank saves */
                              " Clusterize"  } ;  /* space for a '*'  */
 
-void set_vedit_label( Three_D_View *im3d , int ll )
+void set_vedit_cluster_label( Three_D_View *im3d , int ll )
 {
    char lab[64] ;
    if( !IM3D_OPEN(im3d) ) return ;
@@ -85,7 +85,7 @@ ENTRY("AFNI_cluster_choose_CB") ;
    im3d->vedset.code     = VEDIT_CLUST ;
    im3d->vedset.param[2] = rmm ;
    im3d->vedset.param[3] = vmul ;  /* other params set in afni.c */
-   set_vedit_label(im3d,1) ;
+   set_vedit_cluster_label(im3d,1) ;
    if( ISVALID_3DIM_DATASET(im3d->fim_now) && !im3d->vinfo->func_visible ){
      MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
      im3d->vinfo->func_visible = True ;
@@ -148,7 +148,7 @@ ENTRY("AFNI_clu_CB") ;
    if( w == im3d->vwid->func->clu_clear_pb ){
      im3d->vedset.code = 0 ;
      AFNI_vedit_clear( im3d->fim_now ) ;
-     set_vedit_label(im3d,0) ; VEDIT_unhelpize(im3d) ;
+     set_vedit_cluster_label(im3d,0) ; VEDIT_unhelpize(im3d) ;
      AFNI_cluster_dispkill(im3d) ;
      if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
      EXRETURN ;
