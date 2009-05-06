@@ -1006,7 +1006,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             if ((xf = SUMA_Find_XformByParent("Dot", SDSET_ID(in_dset), NULL))) {
                /* xform exists already, just flip toggle of all callbacks 
                   that claim it as a creator*/
-               SUMA_SetXformActive(xf, -1*xf->active);
+               SUMA_SetXformActive(xf, -1*xf->active, 0);
                
                if (callmode && strcmp(callmode, "interactive") == 0) {
                   if (xf->active > 0) {
@@ -1138,6 +1138,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                      SUMA_FreeOverlayPointer(child);
                      SUMA_RETURN (0);
                   }
+                  
                   ChildOverInd = SO->N_Overlays-1;
                   /* set the opacity, index column and the range */
                   child->GlobalOpacity = YUP;
@@ -1148,6 +1149,20 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   child->OptScl->tind = 0;
                   child->OptScl->bind = 0;
                   child->OptScl->UseThr = 1; /* turn on threshold use */
+                  child->SymIrange = 1;   /* Use symmetric range */
+                  child->OptScl->AutoIntRange = 0; /* Do not update range */
+                  
+                  /* Leave it to the -0.5, 0.5 range below, it works better 
+                     SUMA_GetDsetColRange(dot, 0, child->OptScl->IntRange, loc); 
+                      */
+
+                  SO->SurfCont->curColPlane = child;
+                  
+                  /* update the Dset frame */
+                  if (ChildOverInd >= 0)        
+                     SUMA_InitializeColPlaneShell(SO,
+                                       SO->Overlays[ChildOverInd]);
+                  SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO);
                   child->OptScl->IntRange[0] = -0.5;  /* set the range */
                   child->OptScl->IntRange[1] = 0.5;
                   SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 1, 
@@ -1155,18 +1170,8 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   SUMA_INSERT_CELL_VALUE(SO->SurfCont->SetRangeTable, 1, 2, 
                                           child->OptScl->IntRange[1]);
                   
-                  SUMA_GetDsetColRange(dot, 0, child->OptScl->IntRange, loc);
-
-                  SO->SurfCont->curColPlane = child;
-                  
                   SUMA_LH("Colorize plane");
                   SUMA_ColorizePlane(child);
-
-                  /* update the Dset frame */
-                  if (ChildOverInd >= 0)        
-                     SUMA_InitializeColPlaneShell(SO,
-                                       SO->Overlays[ChildOverInd]);
-                  SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO);
 
                   /* remix-redisplay  for surface */
                   if (!SUMA_RemixRedisplay (SO)) {
@@ -1191,7 +1196,10 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                SUMA_free(ts); ts = NULL;
                
                /* activate xform */
-               SUMA_SetXformActive(xf, 1);
+               SUMA_SetXformActive(xf, 1, 0);
+               
+               /* add the dotoptions to the transform options group */
+               NI_add_to_group(xf->XformOpts, dotopts);
                
                SUMA_LH("Add Callback ");
                /* generic parts */
@@ -1202,8 +1210,6 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                        xf->parents_domain[0],
                                        xf->idcode_str);
                
-               /* add the dotoptions to the group */
-               NI_add_to_group(cb->FunctionInput, dotopts);
 
                /* add extra children */
                for (ii=1; ii<xf->N_children; ++ii) {

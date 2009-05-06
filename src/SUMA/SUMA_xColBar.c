@@ -1241,7 +1241,9 @@ void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_da
    SO->SurfCont->curColPlane->SymIrange = !SO->SurfCont->curColPlane->SymIrange;
    
    if (SO->SurfCont->curColPlane->SymIrange) {
-      /* manual setting of range. DO NOT Call SUMA_InitRangeTable because it will automatically update the I range under certain conditions*/
+      /* manual setting of range. 
+         DO NOT Call SUMA_InitRangeTable because it will 
+         automatically update the I range under certain conditions*/
       TF = SO->SurfCont->SetRangeTable;
       SO->SurfCont->curColPlane->OptScl->IntRange[1] = 
          SUMA_LARG_ABS(SO->SurfCont->curColPlane->OptScl->IntRange[0], SO->SurfCont->curColPlane->OptScl->IntRange[1]);
