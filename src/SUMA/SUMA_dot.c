@@ -311,20 +311,29 @@ void SUMA_dot_product_CB( void *params)
       SUMA_S_Err("parameters element not found!");
       SUMA_RETURNe;
    }
-   if (!(dotopts = SUMA_FindNgrNamedElement(ngr, "dotopts"))) {
+   
+   /* Go find out, which xform produced this cb */
+   if (!(xf=SUMA_Find_XformByID(cb->creator_xform))) {
+      SUMA_S_Err("Have no way to reliably select time series dset"
+                 "that produced cb");
+      SUMA_RETURNe;
+   }
+
+   if (!(dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
       SUMA_S_Err("dotopts element not found!");
       SUMA_RETURNe;
    }
-      if (LocalHead) {
-         int suc=0;
-         sprintf(stmp,"file:%s.nelpars.1D", FuncName);
-         NEL_WRITE_1D(nelpars, stmp, suc);
-      }
-      if (LocalHead) {
-         int suc=0;
-         sprintf(stmp,"file:%s.dotopts.1D", FuncName);
-         NEL_WRITE_1D(dotopts, stmp, suc);
-      }
+
+   if (LocalHead) {
+      int suc=0;
+      sprintf(stmp,"file:%s.nelpars.1D", FuncName);
+      NEL_WRITE_1D(nelpars, stmp, suc);
+   }
+   if (LocalHead) {
+      int suc=0;
+      sprintf(stmp,"file:%s.dotopts.1D", FuncName);
+      NEL_WRITE_1D(dotopts, stmp, suc);
+   }
       
    /* get one of the ts_dsets */
    ts_dset_id = SUMA_GetNgrColStringAttr(ngr, 0, "ts_dsets_idcode");
@@ -380,13 +389,6 @@ void SUMA_dot_product_CB( void *params)
       
       /* Get the dset that corresponds to this overlay */ 
       child = Sover->dset_link; 
-      
-      /* Go find out, which xform produced this child */
-      if (!(xf=SUMA_Find_XformByID(cb->creator_xform))) {
-         SUMA_S_Err("Have no way to reliably select time series dset"
-                    "that produced child");
-         SUMA_RETURNe;
-      }
       
       /* find child dset */
       if (!SUMA_is_XformChild(xf, SDSET_ID(child), &jj)) {

@@ -62,7 +62,9 @@ sets the select color of the widget to its foreground color */
 
 /*! set the string of a label , sa: SUMA_SET_LABEL_MAX*/
 #define SUMA_SET_LABEL(m_w, m_s) {\
-   XmString m_str = XmStringCreateLocalized(m_s); \
+   /* XmStringCreateLocalized does not work well with \n chars */ \
+   /*XmString m_str = XmStringCreateLocalized(m_s); */\
+   XmString m_str = XmStringCreateLtoR (m_s, XmSTRING_DEFAULT_CHARSET); \
    XtVaSetValues (m_w, XmNlabelString, m_str, NULL); \
    XmStringFree (m_str);   \
 }
@@ -72,7 +74,9 @@ sets the select color of the widget to its foreground color */
    char m_tmp = '\0'; \
    XmString m_str ;   \
    if (strlen(m_s) >= m_max) { m_tmp = m_s[m_max-1]; m_s[m_max-1] = '\0'; } \
-   m_str = XmStringCreateLocalized(m_s); \
+   /* XmStringCreateLocalized does not work well with \n chars */ \
+   /* m_str = XmStringCreateLocalized(m_s); */ \
+   m_str = XmStringCreateLtoR (m_s, XmSTRING_DEFAULT_CHARSET); \
    XtVaSetValues (m_w, XmNlabelString, m_str, NULL); \
    XmStringFree (m_str);   \
    if (m_tmp != '\0') m_s[m_max-1] = m_tmp;  \
@@ -373,10 +377,55 @@ void SUMA_cb_SetDrawROI_WhatDist(Widget widget, XtPointer client_data, XtPointer
 SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO);
 void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO, char *DispOptions);
+Widget SUMA_CloseBhelp_Frame( Widget parent,
+                              XtCallbackProc close_callback, 
+                              XtPointer close_data,
+                              char *close_hint,
+                              char *close_help);
+
+#define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
+                                         that may act on dsets or SOs */
+
+typedef struct {
+   
+   Widget AppShell;
+   Widget ParentLabel_lb;
+   Widget Active_tb;
+} SUMA_GENERIC_XFORM_INTERFACE;
+
+typedef struct {
+   char name[128];
+   char idcode_str[SUMA_IDCODE_LENGTH]; /*!< A unique identifier for xform */
+   char parents[SUMA_MAX_XFCB_OBJS][SUMA_IDCODE_LENGTH]; /*!< IDs of parents
+                     upon which the xform is applied. 
+                     These could be SOs or DSETS*/ 
+   char parents_domain[SUMA_MAX_XFCB_OBJS][SUMA_IDCODE_LENGTH]; /*!< IDs of SO
+                   defining the domain of the parent. This is meaningful when
+                   the parent is a dset */
+   int  N_parents;
+   char children[SUMA_MAX_XFCB_OBJS][SUMA_IDCODE_LENGTH]; /*!< IDs of children
+                  created by application of xform.
+                  These could be SOs or DSETS*/  
+   int N_children;
+   int active;
+   
+   NI_group *XformOpts;
+   
+   SUMA_GENERIC_XFORM_INTERFACE *gui;
+} SUMA_XFORM;  /*!< See Comments in ZSS labbook NIH-5, pp30-... */ 
+
+void SUMA_cb_CloseXformInterface(Widget w, XtPointer data, XtPointer call_data);
+SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf);
+void SUMA_CreateXformInterface(SUMA_XFORM *xf);
+
+#define SUMA_ActivateXform_help  \
+   "Activate/Suspend xform" 
 
 #define SUMA_DrawROI_ParentLabel_help  \
    "Label of the ROI's parent surface." 
 
+#define SUMA_DotXform_ParentLabel_help  \
+   "Label of time series dsets transformed." 
 #define SUMA_DrawROI_DrawROIMode_help\
    "Toggles ROI drawing mode.\n" \
    "If turned on, then drawing is enabled \n"   \
@@ -571,6 +620,11 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
    "Current settings are preserved\n"\
    "when controller is reopened.\n"
 
+#define SUMA_closeXformCont_help   \
+   "Close Xform controller window.\n"   \
+   "Current settings are preserved\n"\
+   "when controller is reopened.\n"
+
 #define SUMA_closeViewerCont_help   \
    "Close Viewer controller window.\n"   \
    "Current settings are preserved\n"\
@@ -590,5 +644,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist, SUMA_SurfaceViewer *s
 
 #define SUMA_SurfCont_ColPlaneOpacity_hint \
    "Opacity of Dset's colorplane." \
+
+
    
 #endif

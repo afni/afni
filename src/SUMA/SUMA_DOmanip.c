@@ -2435,7 +2435,27 @@ char *SUMA_Xforms_Info(DList *dl, int detail)
                                     xf->children[i]);
          }
       }
+      
+      if (xf->XformOpts) {
+         s = SUMA_NI_nel_Info((NI_element *)xf->XformOpts, detail);
+         SS = SUMA_StringAppend_va( SS,
+                                    "  XformOpts is:\n"
+                                    "%s\n",
+                                    s);
+         SUMA_free(s);
+      } else {
+         SS = SUMA_StringAppend_va( SS,
+                                    "  XformOpts is NULL"); 
+      }
         
+      if (xf->gui) {
+         SS = SUMA_StringAppend_va( SS,
+                                    "     GUI is not null");
+      } else {
+         SS = SUMA_StringAppend_va( SS,
+                                    "     GUI is null");
+      }
+      
       SS = SUMA_StringAppend(SS, "\n");
       
       el = dlist_next(el);
@@ -2563,12 +2583,15 @@ char *SUMA_Callbacks_Info(DList *dl, int detail)
    SUMA_RETURN(s);
 }
 
-SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active)
+
+
+SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active, int fromgui)
 {
    static char FuncName[]={"SUMA_SetXformActive"};
    SUMA_CALLBACK *cb;
    DListElmt *el=NULL;
    DList *dl=SUMAg_CF->callbacks;
+   SUMA_Boolean LocalHead = YUP;
       
    SUMA_ENTRY;
    
@@ -2576,10 +2599,25 @@ SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active)
    
    xf->active = active;
    
+   if (!xf->gui) {
+      /* create GUI */
+      SUMA_CreateXformInterface(xf);
+   } else if (!fromgui){
+      /* Raise GUI */
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: raising Xform GUI window \n", FuncName);
+      XMapRaised(SUMAg_CF->X->DPY_controller1, 
+                  XtWindow(xf->gui->AppShell));
+   }
+   
+   if (!fromgui) {
+      /* initialize the gui */
+      SUMA_InitializeXformInterface(xf);
+   }
+   
    if (!dl) SUMA_RETURN(YUP);
    
    /* Now reflect that in all callbacks that were created by xform */
-   
    el = dlist_head(dl);
    while (el) {
       cb = (SUMA_CALLBACK *)el->data;
@@ -2729,11 +2767,13 @@ SUMA_XFORM *SUMA_NewXform(char *name, char *parent_idcode, char *parent_domain)
    
    xf->active = 0;
    
+   xf->XformOpts = NI_new_group_element();
+   NI_rename_group(xf->XformOpts, "XformOpts");
+   
    dlist_ins_next(SUMAg_CF->xforms, dlist_tail(SUMAg_CF->xforms), xf);
    
    SUMA_RETURN(xf);  
-}  
-
+} 
 
 void SUMA_FreeXform(void *data)
 {
@@ -2743,9 +2783,38 @@ void SUMA_FreeXform(void *data)
    SUMA_ENTRY;
    
    if (xf) {
+      if (xf->XformOpts) NI_free(xf->XformOpts); 
+      if (xf->gui) SUMA_FreeXformInterface(xf->gui);
       SUMA_free(xf);
    }
    
+   SUMA_RETURNe;
+}
+
+SUMA_GENERIC_XFORM_INTERFACE * SUMA_NewXformInterface(
+                                 SUMA_XFORM *xf)
+{
+   static char FuncName[]={"SUMA_NewXformInterface"};
+   SUMA_GENERIC_XFORM_INTERFACE *gui=NULL;
+   
+   SUMA_ENTRY;
+   
+   
+   gui = (SUMA_GENERIC_XFORM_INTERFACE *)
+            SUMA_calloc(1,sizeof(SUMA_GENERIC_XFORM_INTERFACE));
+   
+  
+   SUMA_RETURN(gui);
+}
+
+void SUMA_FreeXformInterface(SUMA_GENERIC_XFORM_INTERFACE *gui)
+{
+   static char FuncName[]={"SUMA_FreeXformInterface"};
+   
+   SUMA_ENTRY;
+   if (gui) {
+      SUMA_free(gui);
+   }
    SUMA_RETURNe;
 }
 
