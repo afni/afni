@@ -5662,9 +5662,12 @@ STATUS("got func info") ;
          plint[ic] = ICOR_init(lc) ;
          if( plint[ic] == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
          PLUG_setup_widgets( plint[ic] , GLOBAL_library.dc ) ;
+         plint[ic]->im3d = im3d ;
       }
 
-      if( cbs == NULL ) EXRETURN ;  /* for a setup-widgets-only call */
+      if( cbs == NULL ){  /* synthetic call */
+         XtUnmapWidget(plint[ic]->wid->shell) ; EXRETURN ;
+      }
 
       /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
 

@@ -763,6 +763,24 @@ STATUS("making imag->rowcol") ;
                      XmNmarginWidth  , 0 ,
                   NULL ) ;
 
+   /*--- instacorr set button in menu [06 May 2009] ---*/
+
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+      imag->pop_instacorr_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("InstaCorr Set") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( imag->pop_instacorr_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
+      XtSetSensitive( imag->pop_instacorr_pb , False ) ;
+   } else {
+      imag->pop_instacorr_pb = NULL ;
+   }
+
    /*--- jumpback button in menu ---*/
 
    imag->pop_jumpback_pb =
@@ -773,7 +791,6 @@ STATUS("making imag->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( imag->pop_jumpback_pb , XmNactivateCallback ,
                   AFNI_imag_pop_CB , im3d ) ;
 
@@ -3251,7 +3268,7 @@ STATUS("making func->rowcol") ;
                                MCW_av_substring_CB ,      /* text creation routine */
                                options_vedit_label        /* data for above */
                              ) ;
-     colorize_MCW_optmenu( func->options_vedit_av , "darkred"  , 0 ) ;
+     colorize_MCW_optmenu( func->options_vedit_av , "#662200"  , 0 ) ;
      colorize_MCW_optmenu( func->options_vedit_av , "navyblue" , 1 ) ;
    }
    func->options_vedit_av->parent = (XtPointer)im3d ;
@@ -3338,7 +3355,7 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-   MCW_set_widget_bg( func->clu_cluster_pb , "darkred" , 0 ) ;
+   MCW_set_widget_bg( func->clu_cluster_pb , "#662200" , 0 ) ;
    XtAddCallback( func->clu_cluster_pb , XmNactivateCallback ,
                   AFNI_clu_CB , im3d ) ;
    MCW_register_hint( func->clu_cluster_pb , "Set clustering parameters" ) ;
@@ -3420,14 +3437,18 @@ STATUS("making func->rowcol") ;
    XtAddCallback( func->icor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
    MCW_register_hint( func->icor_pb , "Control InstaCorr calculations" ) ;
 
-   { static char *label[1] = { "On or Off?" } ;
-     func->icor_bbox =
-     new_MCW_bbox( func->icor_rowcol , 1 , label ,
-                   MCW_BB_check , MCW_BB_noframe ,
-                   AFNI_icor_bbox_CB , (XtPointer)im3d ) ;
-   }
-   MCW_reghint_children( func->icor_bbox->wrowcol ,
-                         "Show InstaCorr as the overlay?" ) ;
+   xstr = XmStringCreateLtoR( "*NOT Ready*" , XmFONTLIST_DEFAULT_TAG ) ;
+   func->icor_label =
+      XtVaCreateManagedWidget(
+         "dialog" , xmLabelWidgetClass , func->icor_rowcol ,
+            XmNrecomputeSize , False ,
+            XmNlabelString , xstr ,
+            XmNalignment , XmALIGNMENT_CENTER ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   MCW_set_widget_bg(func->icor_label,STOP_COLOR,0) ;
 
    im3d->iset = NULL ;
 
@@ -3596,7 +3617,6 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    MCW_register_help( func->range_label ,
                         "These are the range of values in the\n"
                         "UnderLay and OverLay 3D datasets.\n"
@@ -6221,14 +6241,15 @@ ENTRY("AFNI_vedit_CB") ;
 
    XtUnmanageChild( im3d->vwid->func->vedit_frame ) ;
    switch( av->ival ){
-     /* Clusters */
+     /* switch to Clusters */
      case 0:
-       MCW_set_bbox( im3d->vwid->func->icor_bbox, 0 ) ;   /* InstaCorr off */
+       DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
+       DESTROY_ICOR_setup(im3d->iset) ;
        XtManageChild  ( im3d->vwid->func->clu_rowcol  ) ;
        XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
      break ;
 
-     /* InstaCorr */
+     /* switch to InstaCorr */
      case 1:
        UNCLUSTERIZE(im3d) ;                               /* Clusters off */
        XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
@@ -6237,7 +6258,5 @@ ENTRY("AFNI_vedit_CB") ;
    }
    XtManageChild( im3d->vwid->func->vedit_frame ) ;
 
-   FIX_SCALE_SIZE(im3d) ;
-   FIX_SCALE_VALUE(im3d) ;
-   EXRETURN ;
+   FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ; EXRETURN ;
 }

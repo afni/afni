@@ -29,7 +29,7 @@ ENTRY("AFNI_vedit") ;
 
    if( vednew.code <= 0 || vednew.code > VEDIT_LASTCODE ){
      if( dblk->vedim != NULL ){ mri_free(dblk->vedim); dblk->vedim=NULL; }
-     dblk->vedset.code = 0 ; dblk->vedset.ival = -1 ; dblk->vedset.exinfo = NULL ;
+     dblk->vedset.code = 0; dblk->vedset.ival = -1; dblk->vedset.exinfo = NULL;
      RETURN(0) ;
    }
 
@@ -80,11 +80,6 @@ ENTRY("AFNI_vedit") ;
      thb = THBOT(thr) ; tht = THTOP(thr) ;
      rmm  = vednew.param[2] ; vmul = vednew.param[3] ;
      dblk->vedim = mri_clusterize( rmm,vmul,dim,thb,tht,tim,posfunc );
-
-   } else if( vednew.code == VEDIT_ICORR ){  /*----- InstaCorr -----*/
-
-      ICOR_setup *iset = (ICOR_setup *)vednew.exinfo ;
-      if( iset == NULL ) RETURN(0) ;
 
    }
 
