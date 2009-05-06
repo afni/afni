@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAY , 2009 , RWC , "afni" , MAJOR , TYPE_NEW_OPT ,
+   "First edition of InstaCorr!" ,
+   "Rough around the edges, but gnarly-ific to the level of the first\n"
+   "inaccessible cardinal!" } ,
+
  { 1 , MAY , 2009 , RWC , "3dBlurInMask" , MINOR , TYPE_NEW_PROG ,
    "Like 3dBlurToFWHM, but simpler." ,
    NULL } ,

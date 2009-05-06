@@ -367,6 +367,8 @@ typedef struct {
 
       Widget pop_environment_pb ; /* 05 Nov 2003 */
       Widget pop_drawdataset_pb ; /* 17 May 2005 */
+
+      Widget pop_instacorr_pb ;   /* 06 May 2009 */
 } AFNI_imaging_widgets ;
 
 /*--- 19 Aug 2002: Switch Surface control box ---*/
@@ -543,7 +545,7 @@ typedef struct {
       MCW_bbox     *underlay_bbox ;
       Widget clu_rowcol, clu_clear_pb, clu_cluster_pb, clu_report_pb ;  /* 05 Sep 2006 */
 
-      Widget icor_rowcol, icor_pb ; MCW_bbox *icor_bbox ;               /* 05 May 2009 */
+      Widget icor_rowcol, icor_pb , icor_label ; /* 05 May 2009 */
 
       Widget         buck_frame , buck_rowcol ;
       MCW_arrowval * anat_buck_av , *fim_buck_av , *thr_buck_av ;  /* 30 Nov 1997 */
@@ -922,7 +924,7 @@ typedef struct {
 
 #define IM3D_VEDIT_FORCE(iq) (iq)->vedset.flags=1
 
-/*! Turn cluster display off in this viewer */
+/*! Turn clusterized display off in this viewer */
 
 #define UNCLUSTERIZE(iq)                                                   \
  do{ AFNI_vedit_clear((iq)->fim_now); VEDIT_clear_label((iq));             \
@@ -934,6 +936,33 @@ typedef struct {
      AFNI_set_thr_pval((iq)); (iq)->vedset.flags = 0;                      \
  } while(0) ;
 
+#define STOP_COLOR "#770000"
+#define GO_COLOR   "#005500"
+
+#define INSTACORR_LABEL_ON(iq)                                          \
+ do{ MCW_set_widget_label((iq)->vwid->func->icor_label,"** Ready **") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->icor_label,GO_COLOR,0   ) ; \
+ } while(0)
+
+#define INSTACORR_LABEL_OFF(iq)                                         \
+ do{ MCW_set_widget_label((iq)->vwid->func->icor_label,"*NOT Ready*") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->icor_label,STOP_COLOR,0 ) ; \
+ } while(0)
+
+/*! Allow InstaCorr in this viewer */
+
+#define ENABLE_INSTACORR(iq)                                   \
+ do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,True) ; \
+     INSTACORR_LABEL_ON((iq)) ;                                \
+ } while(0)
+
+/*! Turn InstaCorr off in this viewer */
+
+#define DISABLE_INSTACORR(iq)                                       \
+ do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,False) ;     \
+     INSTACORR_LABEL_OFF((iq)) ;                                    \
+     AFNI_misc_CB((iq)->vwid->func->icor_pb,(XtPointer)(iq),NULL) ; \
+ } while(0)
 
 /*! Is any image viewer window open? */
 
@@ -1388,7 +1417,7 @@ extern void   AFNI_bucket_CB      ( MCW_arrowval * , XtPointer ) ; /* 30 Nov 199
 extern char * AFNI_bucket_label_CB( MCW_arrowval * , XtPointer ) ;
 
 extern void   AFNI_vedit_CB       ( MCW_arrowval * , XtPointer ) ; /* 05 May 2009 */
-extern void   AFNI_icor_bbox_CB   ( Widget , XtPointer , XtPointer ) ;
+extern int    AFNI_icor_setref    ( Three_D_View *im3d ) ;
 
 extern Boolean AFNI_refashion_dataset( Three_D_View * ,
                                        THD_3dim_dataset *, THD_dataxes * , int ) ;
