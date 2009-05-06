@@ -4427,6 +4427,75 @@ void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData)
 
 }
 
+/* 
+   creates a managed widget with the common close, bhelp buttons 
+*/
+Widget SUMA_CloseBhelp_Frame( Widget parent,
+                              XtCallbackProc close_callback, 
+                              XtPointer close_data,
+                              char *close_hint,
+                              char *close_help)
+{
+   static char FuncName[]={"SUMA_CloseBhelp_Frame"};
+   Widget rc, pb_close, pb_bhelp, DispFrame;
+      
+   /* put up a frame to group the display controls */
+   DispFrame = XtVaCreateWidget ("dialog",
+      xmFrameWidgetClass, parent,
+      XmNleftAttachment , XmATTACH_FORM ,
+      XmNbottomAttachment  , XmATTACH_WIDGET ,
+      XmNbottomWidget, parent,
+      XmNshadowType , XmSHADOW_ETCHED_IN ,
+      XmNshadowThickness , 5 ,
+      XmNtraversalOn , False ,
+      NULL); 
+
+         
+   /* this one requires Motif 1.2 or newer */
+      XtVaCreateManagedWidget ("Disp. Cont.",
+         xmLabelWidgetClass, DispFrame, 
+         XmNchildType, XmFRAME_TITLE_CHILD,
+         XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+         NULL);
+
+   /* row column Lock rowcolumns */
+   rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, DispFrame,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         XmNmarginHeight, SUMA_MARGIN ,
+         XmNmarginWidth , SUMA_MARGIN ,
+         NULL);
+
+   pb_close = XtVaCreateWidget ("Close", 
+      xmPushButtonWidgetClass, rc, 
+      NULL);   
+   XtAddCallback (pb_close, XmNactivateCallback, 
+                  close_callback, close_data);
+      MCW_register_hint( pb_close , close_hint ) ;
+      MCW_register_help( pb_close , close_help ) ;
+      XtManageChild (pb_close); 
+
+   pb_bhelp = XtVaCreateWidget ("BHelp", 
+      xmPushButtonWidgetClass, rc, 
+      NULL);
+   XtAddCallback (pb_bhelp, XmNactivateCallback, MCW_click_help_CB, NULL);
+   MCW_register_help(pb_bhelp , SUMA_help_help ) ;
+   MCW_register_hint(pb_bhelp  , 
+                     "Press this button then click on a "
+                     "button/label/menu for more help." ) ;
+
+   XtManageChild (pb_bhelp); 
+
+
+
+   /* now start managing the row column widget */
+   XtManageChild (rc);
+
+   /* manage the frame and the fslabelorm */
+   XtManageChild (DispFrame);
+}
+
 /*!
    \brief SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData);
    \param data (XtPointer) to SO (NOT sv)
@@ -4942,7 +5011,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    }
    
    
-   if (1){ /*s close and help buttons */
+   if (0){ /*s close and help buttons */
       Widget rc, pb_close, pb_bhelp;
       
       /* put up a frame to group the display controls */
@@ -5000,6 +5069,10 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
       /* manage the frame and the fslabelorm */
       XtManageChild (DispFrame);
+   } else {
+      DispFrame = SUMA_CloseBhelp_Frame(rc_left,
+                        SUMA_cb_closeSurfaceCont, (XtPointer) SO,
+                        "Close Surface controller", SUMA_closeSurfaceCont_help);
    }
    
    XtManageChild (rc_right);
@@ -11552,6 +11625,330 @@ char * SUMA_Format(int n, int w)
 
    SUMA_RETURN(buf);
 }
+
+
+void SUMA_cb_CloseXformInterface(Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_CloseXformInterface"};
+   SUMA_XFORM *xf=(SUMA_XFORM *)data;
+   SUMA_Boolean Shaded = NOPE;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!xf->gui->AppShell) SUMA_RETURNe;
+   
+   
+   if (LocalHead) 
+      fprintf (SUMA_STDERR,"%s: Withdrawing xf window...\n", FuncName);
+
+   XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+      XtWindow(xf->gui->AppShell),
+      XScreenNumberOfScreen(XtScreen(xf->gui->AppShell)));
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Sets the widgets in the DrawROI window based on the DrawnROI structure
+*/
+SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
+{
+   static char FuncName[] = {"SUMA_InitializeXformInterface"};
+   char sbuf[3*SUMA_MAX_LABEL_LENGTH];
+   int ii=0;
+   SUMA_DSET *in_dset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!xf) {
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, "%s: Initializing with NULL.\n", FuncName);
+      
+   }else {
+      SUMA_S_Note("Need to set the title bar");
+      if (LocalHead) 
+         fprintf (SUMA_STDERR, 
+                  "%s: Initializing with %p.\n", FuncName, xf);
+      
+      /* generic stuff */
+      XmToggleButtonSetState( xf->gui->Active_tb, xf->active, NOPE);
+      
+      /* particulars */
+      if (!strcmp(xf->name, "Dot")) { 
+         for (ii=0; ii<xf->N_parents; ++ii) {
+            if (!SUMA_is_ID_4_DSET(xf->parents[ii], &in_dset)) {
+                     /* This is a convoluted way to get in_dset, 
+                        since in_dset is known from a few lines above.
+                        But it is meant to demo how to work with
+                        multiple parents in xf in general */
+               SUMA_S_Err("You've really done it this time!");
+               SUMA_RETURN(NOPE);
+            }         
+            if (ii==0) snprintf (sbuf, sizeof(char)*3*SUMA_MAX_LABEL_LENGTH,
+                                 "TS Parents:\n"
+                                 "%s", SDSET_LABEL(in_dset));
+            else       snprintf (sbuf, sizeof(char)*3*SUMA_MAX_LABEL_LENGTH,
+                                 "%s\n"
+                                 "%s", sbuf, SDSET_LABEL(in_dset));
+         }
+         SUMA_SET_LABEL(xf->gui->ParentLabel_lb, sbuf);
+         
+      } else {
+         SUMA_S_Errv("Don't know how to initialize %s\n", xf->name);   
+      }
+   }
+   SUMA_RETURN (YUP);
+}
+
+void SUMA_cb_XformActive_toggled(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_XformActive_toggled"};
+   SUMA_XFORM *xf=(SUMA_XFORM*)data;
+   
+   SUMA_ENTRY;
+   
+   SUMA_SetXformActive(xf, !xf->active, 1);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_CreateXformParentsInterface(SUMA_XFORM *xf, Widget parent_frame)
+{
+   static char FuncName[]={"SUMA_CreateXformParentsInterface"};
+   Widget rc, rcv;
+   SUMA_Boolean LocalHead=YUP;
+   
+   SUMA_ENTRY;
+   
+   /* the vertical rcv */
+   rcv = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, parent_frame,
+         XmNorientation , XmVERTICAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);
+   /* row column to hold active button and maybe more */
+   rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcv,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);
+   xf->gui->Active_tb = XtVaCreateManagedWidget("Active", 
+      xmToggleButtonWidgetClass, rc, NULL);
+   XmToggleButtonSetState (xf->gui->Active_tb, xf->active, NOPE);
+   XtAddCallback (xf->gui->Active_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_XformActive_toggled, 
+                  (XtPointer)xf);
+   MCW_register_help(xf->gui->Active_tb , SUMA_ActivateXform_help ) ;
+   MCW_register_hint(xf->gui->Active_tb , "Activate/Suspend xform" ) ;
+
+   /* set the toggle button's select color */
+   SUMA_SET_SELECT_COLOR(xf->gui->Active_tb);
+   
+   XtManageChild(rc);
+   
+   /* row column to hold parent name and maybe more*/
+   rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcv,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);
+   if ( !strcmp(xf->name,"Dot") ) { /* Dot xform */
+      xf->gui->ParentLabel_lb = 
+         XtVaCreateManagedWidget ("TS Parents:      N/A \n"
+                                  "                 N/A \n", 
+            xmLabelWidgetClass, rc,
+            NULL);
+      MCW_register_help(xf->gui->ParentLabel_lb , 
+                        SUMA_DotXform_ParentLabel_help ) ;
+      MCW_register_hint(xf->gui->ParentLabel_lb , 
+                        "Label of time series dsets transformed" ) ;
+   } else {
+      SUMA_S_Errv("Don't know how to build xform parent interface for %s\n",
+                  xf->name);
+      SUMA_RETURNe;
+   }
+   XtManageChild(rc);
+   
+   
+   
+   XtManageChild(rcv);
+   SUMA_RETURNe;
+}
+void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
+{
+   static char FuncName[]={"SUMA_CreateXformOptionsInterface"};
+   Widget rc, rcv;
+   SUMA_Boolean LocalHead=YUP;
+   
+   SUMA_ENTRY;
+   
+   /* the vertical rcv */
+   rcv = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, parent_frame,
+         XmNorientation , XmVERTICAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);
+         
+   if ( !strcmp(xf->name,"Dot") ) { /* Dot xform */
+      /* row column to hold bandpass options  and maybe more */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rcv,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+
+      XtManageChild(rc);
+
+      /* row column to hold polort options and maybe more*/
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rcv,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+      
+      XtManageChild(rc);
+      
+   } else {
+      SUMA_S_Errv("Don't know how to build xform parent interface for %s\n",
+                  xf->name);
+      SUMA_RETURNe;
+   }
+   
+   XtManageChild(rcv);
+   SUMA_RETURNe;
+}
+
+void SUMA_CreateXformInterface(SUMA_XFORM *xf)
+{
+   static char FuncName[]={"SUMA_CreateXformInterface"};
+   Widget cb_frame, opts_frame, frame_rcv, form, parent_frame;
+   int i;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (xf->gui) SUMA_RETURNe;
+   
+   xf->gui = SUMA_NewXformInterface(NULL);
+   
+   /* generic parts */
+   xf->gui->AppShell = XtVaAppCreateShell(xf->name , "Suma" ,
+                                          topLevelShellWidgetClass , 
+                                          SUMAg_CF->X->DPY_controller1 , 
+                                          NULL ) ;
+   
+   /* turn off default delete response. If you do not do that, you will suffer.*/
+   XtVaSetValues( xf->gui->AppShell,
+           XmNdeleteResponse, XmDO_NOTHING,
+           NULL);  
+             
+   /* handle the close button from window manager */
+   XmAddWMProtocolCallback(/* make "Close" window menu work */
+      xf->gui->AppShell,
+      XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
+      SUMA_cb_CloseXformInterface, (XtPointer)xf) ;
+   
+   /* create a form widget, manage it at the end ...*/
+   form = XtVaCreateWidget ("dialog", 
+      xmFormWidgetClass, xf->gui->AppShell,
+      XmNborderWidth , 0 ,
+      XmNmarginHeight , SUMA_MARGIN ,
+      XmNmarginWidth  , SUMA_MARGIN ,
+      XmNshadowThickness, 2,
+      XmNshadowType, XmSHADOW_ETCHED_IN,
+      NULL); 
+   
+   /* a vertical rc to put multiple frames in */
+   frame_rcv = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, form,
+         XmNorientation , XmVERTICAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);
+         
+   /* a frame to put parent stuff in */
+   parent_frame = XtVaCreateWidget ("dialog",
+      xmFrameWidgetClass, frame_rcv,
+      XmNleftAttachment , XmATTACH_FORM ,
+      XmNtopAttachment  , XmATTACH_FORM ,
+      XmNshadowType , XmSHADOW_ETCHED_IN ,
+      XmNshadowThickness , 5 ,
+      XmNtraversalOn , False ,
+      NULL);
+   XtVaCreateManagedWidget ("parents",
+      xmLabelWidgetClass, parent_frame, 
+      XmNchildType, XmFRAME_TITLE_CHILD,
+      XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+      NULL);
+   
+   /* populate the parents frame based on the type of xform */
+   SUMA_CreateXformParentsInterface(xf,parent_frame);
+   
+   XtManageChild (parent_frame);
+   
+   
+   /* a frame to put options in */
+   opts_frame = XtVaCreateWidget ("dialog",
+      xmFrameWidgetClass, frame_rcv,
+      XmNleftAttachment , XmATTACH_FORM ,
+      XmNtopAttachment  , XmATTACH_FORM ,
+      XmNshadowType , XmSHADOW_ETCHED_IN ,
+      XmNshadowThickness , 5 ,
+      XmNtraversalOn , False ,
+      NULL);
+   XtVaCreateManagedWidget ("options",
+      xmLabelWidgetClass, opts_frame, 
+      XmNchildType, XmFRAME_TITLE_CHILD,
+      XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+      NULL);
+   
+   /* populate the opts frame based on the type of xform */
+   
+   
+   XtManageChild (opts_frame);
+   
+   /* the close, bhelp deal */
+   cb_frame = SUMA_CloseBhelp_Frame( frame_rcv,
+                              SUMA_cb_CloseXformInterface, 
+                              (XtPointer) xf,
+                              "Close Xform controller",
+                              SUMA_closeXformCont_help);
+   
+   /* manage the frame rcv */
+   XtManageChild (frame_rcv);
+   
+   /* manage the form */
+   XtManageChild (form);
+   
+   /* position the widget relative to the first open viewer */
+   i=0;
+   while (  i < SUMAg_N_SVv && 
+            !SUMAg_SVv[i].X->ViewCont->TopLevelShell && 
+            SUMAg_SVv[i].isShaded) ++i; 
+
+   if (i < SUMAg_N_SVv) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: i = %d\n", FuncName, i);
+      SUMA_PositionWindowRelative ( xf->gui->AppShell, 
+                                    SUMAg_SVv[i].X->TOPLEVEL, SWP_TOP_RIGHT);
+   }
+
+   /* realize the widget */
+   XtRealizeWidget (xf->gui->AppShell);
+   
+   
+   SUMA_RETURNe;
+
+}      
 
 
 /*

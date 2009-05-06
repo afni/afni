@@ -126,27 +126,8 @@ int SUMA_BiggestLocalDomainParent(SUMA_DO *dov, int N_dov);
 
 
 
-/* Xform and Callback stuff */
-#define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
-                                         that may act on dsets or SOs */
-
-typedef struct {
-   char name[128];
-   char idcode_str[SUMA_IDCODE_LENGTH]; /*!< A unique identifier for xform */
-   char parents[SUMA_MAX_XFCB_OBJS][SUMA_IDCODE_LENGTH]; /*!< IDs of parents
-                     upon which the xform is applied. 
-                     These could be SOs or DSETS*/ 
-   char parents_domain[SUMA_MAX_XFCB_OBJS][SUMA_IDCODE_LENGTH]; /*!< IDs of SO
-                   defining the domain of the parent. This is meaningful when
-                   the parent is a dset */
-   int  N_parents;
-   char children[SUMA_MAX_XFCB_OBJS][SUMA_IDCODE_LENGTH]; /*!< IDs of children
-                  created by application of xform.
-                  These could be SOs or DSETS*/  
-   int N_children;
-   int active;
-} SUMA_XFORM;  /*!< See Comments in ZSS labbook NIH-5, pp30-... */ 
-
+/* Xform stuff is in SUMA_display.h 
+   Callback stuff is here */
 typedef enum {
    SUMA_ERROR_ACTIVATE_EVENT = -1, 
    SUMA_NO_ACTIVATE_EVENT = 0, 
@@ -183,7 +164,7 @@ char *SUMA_Xforms_Info(DList *dl, int detail) ;
 char *SUMA_Callbacks_Info(DList *dl, int detail);
 void SUMA_Show_Xforms (DList *dl, FILE *Out, int detail);
 void SUMA_Show_Callbacks (DList *dl, FILE *Out, int detail);
-SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active);
+SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active, int fromgui);
 SUMA_Boolean SUMA_AddXformParent (SUMA_XFORM *xf, 
                                   char *parent_idcode, char *parent_domain);
 SUMA_Boolean SUMA_AddXformChild (SUMA_XFORM *xf, 
@@ -210,6 +191,9 @@ SUMA_Boolean SUMA_SetCallbackPending (SUMA_CALLBACK *cb, SUMA_Boolean pen,
                                       SUMA_ENGINE_SOURCE src);
 SUMA_Boolean SUMA_FlushCallbackEventParameters (SUMA_CALLBACK *cb);
 SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb) ;
+void SUMA_FreeXformInterface(SUMA_GENERIC_XFORM_INTERFACE *gui);
+SUMA_GENERIC_XFORM_INTERFACE * SUMA_NewXformInterface(
+   SUMA_XFORM *xf);
 
 
 
