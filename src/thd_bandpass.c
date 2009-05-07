@@ -50,11 +50,13 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
    register float *xar, *yar=NULL ;
    register complex *zar ; complex Zero={0.0f,0.0f} ;
 
-   if( nlen < 9 || nvec < 1 || vec == NULL ){ ERROR_message("bad bandpass data?"); return ndof; }
+ENTRY("THD_bandpass_vectors") ;
+
+   if( nlen < 9 || nvec < 1 || vec == NULL ){ ERROR_message("bad bandpass data?"); RETURN(ndof); }
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
-   if( ftop <= fbot ){ ERROR_message("bad bandpass frequencies?"); return ndof; }
-   if( nort >= nlen ){ ERROR_message("too many bandpass orts?")  ; return ndof; }
+   if( ftop <= fbot ){ ERROR_message("bad bandpass frequencies?"); RETURN(ndof); }
+   if( nort >= nlen ){ ERROR_message("too many bandpass orts?")  ; RETURN(ndof); }
 
    /** setup for FFT **/
 
@@ -67,7 +69,7 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
    if( jtop >= nby2   ) jtop = nby2-1 ;
    if( jbot >= jtop+1 ){
      ERROR_message("bandpass: fbot and ftop too close ==> jbot=%d jtop=%d",jbot,jtop) ;
-     return ndof ;
+     RETURN(ndof) ;
    }
 
    /** quadratic detrending first? **/
@@ -138,6 +140,7 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
      MRI_IMAGE *qim , *pim ; float *par, *qar , *rar , *pt,*qt ;
      register float sum , xt ; register int kk ;
 
+/** INFO_message("removing %d orts",nort) ; MCHECK ; **/
      ndof += nort ;
 
      /* must bandpass copy of orts first
@@ -149,13 +152,15 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
        qort[iv] = qar + iv*nlen ;
        memcpy( qort[iv] , ort[iv] , sizeof(float)*nlen ) ;
      }
+/** INFO_message("bandpassing orts") ; MCHECK ; **/
      (void)THD_bandpass_vectors( nlen, nort, qort, dt, fbot, ftop, qdet, 0,NULL ) ;
      free(qort) ;
 
      /* compute pseudo-inverse ([P] = inv{[Q]'[Q]}[Q]') of bandpassed orts */
 
+/** INFO_message("psinv") ; MCHECK ; **/
      pim = mri_matrix_psinv( qim , NULL , 1.e-8 ) ;  /** call this [P] = nort X nlen **/
-     if( pim == NULL ){ mri_free(qim) ; ERROR_message("can't remove bandpass orts?"); return ndof; }
+     if( pim == NULL ){ mri_free(qim) ; ERROR_message("can't remove bandpass orts?"); RETURN(ndof); }
      par = MRI_FLOAT_PTR(pim) ;  /* nort X nlen matrix */
 
      /* Project the bandpassed orts out of data vectors:
@@ -167,13 +172,14 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
         about 2*nlen*nort flops per vector, a clear win if nort < nlen/2. */
         
 
+/** INFO_message("project") ; MCHECK ; **/
      rar = (float *)malloc(sizeof(float)*nort) ;  /* will hold [P][y] */
      for( iv=0 ; iv < nvec ; iv++ ){
-       xar = vec[iv] ;
+       xar = vec[iv] ;  /* [y] vector */
 
        /* compute nort-vector [r] = [P][y] */
 
-       for( jj=0 ; jj < nort ; jj++ ) rar[jj] = 0.0f ;
+       for( jj=0 ; jj < nort ; jj++ ) rar[jj] = 0.0f ;  /* initialize to 0 */
        for( kk=0 ; kk < nlen ; kk++ ){
          pt = par + kk*nort ; xt = xar[kk] ;
          for( jj=0 ; jj < nort ; jj++ ) rar[jj] += pt[jj]*xt ;
@@ -187,7 +193,9 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
        }
      }
 
+/** INFO_message("free-ing") ; MCHECK ; **/
      free(rar) ; mri_free(pim) ; mri_free(qim) ;
+/** INFO_message("de-orting done") ; MCHECK ; **/
    }
 
    /** done **/
@@ -196,5 +204,5 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
      double fac = ((double)nlen)/(double)nfft ;
      ndof = (int)rint(fac*ndof) ;
    }
-   return ndof ;
+   RETURN(ndof) ;
 }

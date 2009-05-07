@@ -3253,6 +3253,7 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+#define VEDIT_COLOR "#000088"
    { static char *options_vedit_label[2] = { "Clusters" , "InstaCorr" } ;
      func->options_vedit_av = new_MCW_arrowval(
                                func->options_top_rowcol , /* parent Widget */
@@ -3268,8 +3269,7 @@ STATUS("making func->rowcol") ;
                                MCW_av_substring_CB ,      /* text creation routine */
                                options_vedit_label        /* data for above */
                              ) ;
-     colorize_MCW_optmenu( func->options_vedit_av , "#662200"  , 0 ) ;
-     colorize_MCW_optmenu( func->options_vedit_av , "navyblue" , 1 ) ;
+     colorize_MCW_optmenu( func->options_vedit_av , VEDIT_COLOR  , -1 ) ;
    }
    func->options_vedit_av->parent = (XtPointer)im3d ;
    MCW_reghelp_children( func->options_vedit_av->wrowcol ,
@@ -3355,7 +3355,7 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-   MCW_set_widget_bg( func->clu_cluster_pb , "#662200" , 0 ) ;
+   MCW_set_widget_bg( func->clu_cluster_pb , VEDIT_COLOR , 0 ) ;
    XtAddCallback( func->clu_cluster_pb , XmNactivateCallback ,
                   AFNI_clu_CB , im3d ) ;
    MCW_register_hint( func->clu_cluster_pb , "Set clustering parameters" ) ;
@@ -3433,7 +3433,7 @@ STATUS("making func->rowcol") ;
                XmNtraversalOn , True  ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
-   MCW_set_widget_bg( func->icor_pb , "navyblue" , 0 ) ;
+   MCW_set_widget_bg( func->icor_pb , VEDIT_COLOR , 0 ) ;
    XtAddCallback( func->icor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
    MCW_register_hint( func->icor_pb , "Control InstaCorr calculations" ) ;
 

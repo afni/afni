@@ -22,7 +22,57 @@ IPLUGIN_interface *  ICOR_init(char *lab)
 static char helpstring[] =
   "Purpose: control AFNI InstaCorr operations\n"
   "\n"
-  "Author -- RW Cox -- Apr 2009"
+  "===================  The Two Steps to Using InstaCorr  ===================\n"
+  "\n"
+  "(1) Use the Setup controller to prepare for the correlation computations.\n"
+  "   * A detailed description of the controls is given farther below.\n"
+  "\n"
+  "(2) In an image viewer window:\n"
+  "   * Right-click (or Ctrl-Left-click) to get a popup menu.\n"
+  "   * The top item is 'InstaCorr Set'.\n"
+  "   * Choosing this button will cause the current crosshair voxel\n"
+  "     to be correlated with all the others.\n"
+  "   * A new functional overlay dataset will be created to show\n"
+  "     the results.\n"
+  "   * Each time you do 'InstaCorr Set', the functional overlay\n"
+  "     will be updated to reflect the new correlation map.\n"
+  "\n"
+  "CONTROLS\n"
+  "========\n"
+  "* Time Series:\n"
+  "    Dataset  = time series dataset to auto-correlate\n"
+  "    Ignore   = number of initial time points to ignore\n"
+  "    Blur     = FWHM in mm of blurring to perform\n"
+  "                [if a Mask is used, blurring is only inside the mask]\n"
+  "\n"
+  "* Mask:\n"
+  "    Automask = Yes to compute an automask from the time series dataset\n"
+  "               No to skip this automask step\n"
+  "    Dataset  = Dataset from which to draw a mask\n"
+  "                [this dataset will be ignored if Automask is Yes]\n"
+  "    Index    = Sub-brick index to use for dataset-derived mask\n"
+  "\n"
+  "* Bandpass:\n"
+  "    Lower    = Smallest frequency to allow (in Hz)  [can be 0]\n"
+  "    Upper    = Largest frequency to allow (in Hz)   [must be > Lower]\n"
+  "                [Even if Bandpass is turned off, each voxel time series]\n"
+  "                [is detrended against a quadratic polynomial and then  ]\n"
+  "                [has the 0 and Nyquist frequencies removed.            ]\n"
+  "\n"
+  "* Global Orts:\n"
+  "    1D file  = Extra time series to remove from each voxel before\n"
+  "               computing the correlations\n"
+  "                [These are also bandpassed to avoid re-introducing any]\n"
+  "                [of the frequency components rejected by Bandpass.    ]\n"
+  "OPERATION\n"
+  "=========\n"
+  "* Once you have set the controls the way you want, press 'Setup+Keep' and\n"
+  "  the program will pre-filter the data time series.\n"
+  "\n"
+  "* When this is finished, you will be ready to use 'InstaCorr Set' and\n"
+  "  have some InstaCorr fun!\n"
+  "\n"
+  "Author -- RW Cox -- May 2009\n"
 ;
 
 /*----------------- prototypes for internal routines -----------------*/
@@ -62,10 +112,14 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_number ( plint , "Blur"   , 0,99,1,0,TRUE  ) ;
 
    PLUTO_add_option ( plint , "Mask" , "Mask" , FALSE ) ;
+   PLUTO_add_string ( plint , "Automask"  , 2 , yn , 1 ) ;
    PLUTO_add_dataset( plint , "Dataset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_number ( plint , "Index" , 0,99999,0,0,TRUE ) ;
-   PLUTO_add_string ( plint , "Auto"  , 2 , yn , 1 ) ;
+
+   PLUTO_add_option( plint , "Bandpass(Hz)" , "Bandpass" , FALSE ) ;
+   PLUTO_add_number( plint , "Lower" , 0,1000,3, 10 , TRUE ) ;
+   PLUTO_add_number( plint , "Upper" , 0,1000,3,100 , TRUE ) ;
 
    PLUTO_add_option    ( plint , "Global Orts" , "GlobalOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
@@ -74,10 +128,6 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_option    ( plint , "Slice Orts" , "SliceOrts" , FALSE ) ;
    PLUTO_add_timeseries( plint , "1D file" ) ;
 #endif
-
-   PLUTO_add_option( plint , "Bandpass(Hz)" , "Bandpass" , FALSE ) ;
-   PLUTO_add_number( plint , "Lower" , 0,1000,3, 10 , TRUE ) ;
-   PLUTO_add_number( plint , "Upper" , 0,1000,3,100 , TRUE ) ;
 
    return plint ;
 }
@@ -124,12 +174,9 @@ static char * ICOR_main( PLUGIN_interface *plint )
 
      if( strcmp(tag,"Mask") == 0 ){
        MCW_idcode *idc ; char *am ;
-       idc      = PLUTO_get_idcode(plint) ;
-       mset     = PLUTO_find_dset(idc) ;
+       am       = PLUTO_get_string(plint) ; automask = (am[0] == 'Y') ;
+       idc      = PLUTO_get_idcode(plint) ; mset     = PLUTO_find_dset(idc) ;
        mindex   = PLUTO_get_number(plint) ;
-       am       = PLUTO_get_string(plint) ;
-INFO_message("Automask string = '%s'",am) ;
-       automask = (am[0] == 'Y') ;
        if( !automask && mset == NULL )
          WARNING_message("No Masking selected?!") ;
        else if( mset != NULL && automask )
@@ -140,8 +187,9 @@ INFO_message("Automask string = '%s'",am) ;
      /** GlobalOrts **/
 
      if( strcmp(tag,"GlobalOrts") == 0 ){
-       gortim = PLUTO_get_timeseries(plint) ;
-       if( gortim == NULL ) ERROR_message("Ignoring NULL 'Global Orts' time series") ;
+       MRI_IMAGE *qim = PLUTO_get_timeseries(plint) ;
+       if( qim == NULL ) ERROR_message("Ignoring NULL 'Global Orts' time series") ;
+       else              gortim = mri_copy(qim) ;
        continue ;
      }
 
@@ -151,7 +199,6 @@ INFO_message("Automask string = '%s'",am) ;
        fbot = PLUTO_get_number(plint) ;
        ftop = PLUTO_get_number(plint) ;
        if( fbot >= ftop ) ERROR_message("Ignoring disordered Bandpass frequencies") ;
-INFO_message("fbot=%.3f ftop=%.3f",fbot,ftop) ;
        continue ;
      }
 
@@ -260,7 +307,7 @@ ENTRY("AFNI_icor_setref") ;
                         ADN_prefix    , im3d->iset->prefix ,
                         ADN_nvals     , 1 ,
                         ADN_ntt       , 0 ,
-                        ADN_func_type , FUNC_FIM_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
      DSET_superlock(icoset) ;
@@ -297,6 +344,13 @@ INFO_message("created new dataset %s",im3d->iset->prefix) ;
    mri_clear_data_pointer(iim) ; mri_free(iim) ;
    DSET_KILL_STATS(icoset) ; THD_load_statistics(icoset) ;
 
+   EDIT_BRICK_LABEL  (icoset,0,"Correlation") ;
+   EDIT_BRICK_TO_FICO(icoset,0,im3d->iset->mv->nvals,1,im3d->iset->ndet) ;
+
+   DSET_BRICK_FDRCURVE_ALLKILL(icoset) ;
+   DSET_BRICK_MDFCURVE_ALLKILL(icoset) ;
+   THD_create_all_fdrcurves   (icoset) ;
+
    /* redisplay overlay */
 
    if( im3d->fim_now != icoset ){  /* switch to this dataset */
@@ -316,6 +370,7 @@ INFO_message("created new dataset %s",im3d->iset->prefix) ;
    } else {                                                  /* overlay is on */
      AFNI_redisplay_func(im3d) ;
    }
+   AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
 
    RETURN(1) ;
 }
