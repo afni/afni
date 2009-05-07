@@ -5908,6 +5908,11 @@ void AFNI_set_viewpoint( Three_D_View *im3d ,
    THD_fvec3 fv ;
    THD_ivec3 old_ib , new_ib , old_id , new_id ;
 
+   static int recurse=0 ;
+
+   if( recurse ) return ;
+   recurse = 1 ;
+
 ENTRY("AFNI_set_viewpoint") ;
 
 if(PRINT_TRACING)
@@ -5915,7 +5920,7 @@ if(PRINT_TRACING)
   sprintf(str,"input xx=%d yy=%d zz=%d",xx,yy,zz) ;
   STATUS(str) ; }
 
-   if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ){ recurse=0; EXRETURN; }
 
    /** 02 Nov 1996:
          Attach view-specific dataxes and warps to the datasets **/
@@ -5940,7 +5945,7 @@ if(PRINT_TRACING)
    new_xyz =
     do_lock = !( i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) ;  /* 11 Nov 1996 */
 
-   if( !redisplay_option && !new_xyz ) EXRETURN;
+   if( !redisplay_option && !new_xyz ){ recurse=0; EXRETURN; }
 
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
@@ -6133,7 +6138,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       }
    }
 
-   EXRETURN ;
+   recurse=0 ; EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------

@@ -933,7 +933,8 @@ typedef struct {
        free((iq)->vwid->func->clu_rep); (iq)->vwid->func->clu_rep = NULL;  \
      }                                                                     \
      DESTROY_CLARR((iq)->vwid->func->clu_list);                            \
-     AFNI_set_thr_pval((iq)); (iq)->vedset.flags = 0;                      \
+     (iq)->vedset.flags = (iq)->vedset.code = 0; AFNI_set_thr_pval((iq));  \
+     if( (iq)->vinfo->func_visible ) AFNI_redisplay_func((iq)) ;           \
  } while(0) ;
 
 #define STOP_COLOR "#770000"
