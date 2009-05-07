@@ -453,7 +453,8 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
 }
 
 /*-------------------------------------------------------------------
-   Send drawing notices to interested receivers
+   Send drawing notices to interested receivers.
+   Really used to indicate that the values in a dataset have changed.
 ---------------------------------------------------------------------*/
 
 void AFNI_process_drawnotice( Three_D_View * im3d )

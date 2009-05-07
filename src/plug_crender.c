@@ -3950,7 +3950,7 @@ ENTRY( "RCREND_xhair_recv" );
             func_dset = PLUTO_find_dset( &func_dset_idc ) ;
 
          FREE_VOLUMES ; INVALIDATE_OVERLAY ;
-
+#if 0
          (void) MCW_popup_message( reload_pb ,
                                      "********** NOTICE ***********\n"
                                      "* Session rescan has forced *\n"
@@ -3958,6 +3958,7 @@ ENTRY( "RCREND_xhair_recv" );
                                      "* from memory.              *\n"
                                      "*****************************" ,
                                    MCW_USER_KILL | MCW_TIMER_KILL     ) ;
+#endif
       }
       EXRETURN ;
 

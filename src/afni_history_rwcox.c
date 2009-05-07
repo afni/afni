@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , MAY , 2009 , RWC , "afni" , MINOR , TYPE_GENERAL ,
+   "FIxes/upgrades for InstaCorr" ,
+   "* memory problem fixed by malloc-ing sizeof(float *)\n"
+   "  -- not sizeof(float) -- for a float ** variable!\n"
+   "* add dataset labels\n"
+   "* add statistical parameters (including FDR)\n"
+   "* add help" } ,
+
  { 6 , MAY , 2009 , RWC , "afni" , MAJOR , TYPE_NEW_OPT ,
    "First edition of InstaCorr!" ,
    "Rough around the edges, but gnarly-ific to the level of the first\n"
