@@ -334,6 +334,7 @@ INFO_message("created new dataset %s",im3d->iset->prefix) ;
    } else {
 
      icoset = slf.dset ; nds = slf.dset_index ;
+INFO_message("reloading correlations into existing dataset") ;
 
    }
 
