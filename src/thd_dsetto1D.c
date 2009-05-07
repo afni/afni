@@ -76,16 +76,16 @@ int THD_extract_array( int ind, THD_3dim_dataset *dset, int raw, void *uar )
    float *far=NULL ; /* non-raw output */
    static void *tar=NULL ; static int ntar=0 ;
 
-ENTRY("THD_extract_array") ;
+/** ENTRY("THD_extract_array") ; **/
 
    if( ind < 0             || uar == NULL           ||
-       !ISVALID_DSET(dset) || ind >= DSET_NVOX(dset)  ) RETURN(-1) ;
+       !ISVALID_DSET(dset) || ind >= DSET_NVOX(dset)  ) return(-1) ;
 
    nv  = dset->dblk->nvals ;
    iar = DSET_ARRAY(dset,0) ;
    if( iar == NULL ){         /* load data from disk? */
      DSET_load(dset) ;
-     iar = DSET_ARRAY(dset,0); if( iar == NULL ) RETURN(-1) ;
+     iar = DSET_ARRAY(dset,0); if( iar == NULL ) return(-1) ;
    }
    typ = DSET_BRICK_TYPE(dset,0) ;  /* raw data type */
 
@@ -100,7 +100,7 @@ ENTRY("THD_extract_array") ;
    switch( typ ){
 
       default:           /* don't know what to do --> return nada */
-         RETURN(-1);
+         return(-1);
       break ;
 
       case MRI_byte:{
@@ -177,7 +177,7 @@ ENTRY("THD_extract_array") ;
 
    }
 
-   if( raw ){ memcpy(uar,tar,nb1); RETURN(0); }
+   if( raw ){ memcpy(uar,tar,nb1); return(0); }
 
    if( THD_need_brick_factor(dset) ){
      for( ival=0 ; ival < nv ; ival++ )
@@ -185,7 +185,7 @@ ENTRY("THD_extract_array") ;
          far[ival] *= DSET_BRICK_FACTOR(dset,ival) ;
    }
 
-   RETURN(0);
+   return(0);
 }
 
 /*----------------------------------------------------------------------------*/

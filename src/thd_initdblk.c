@@ -1256,16 +1256,16 @@ int THD_need_brick_factor( THD_3dim_dataset * dset )
 {
    int ii , nval ;
 
-ENTRY("THD_need_brick_factor") ;
+/** ENTRY("THD_need_brick_factor") ; **/
 
-   if( ! ISVALID_DSET(dset)            ) RETURN( 0 ) ;
-   if( ! ISVALID_DATABLOCK(dset->dblk) ) RETURN( 0 ) ;
-   if( dset->dblk->brick_fac == NULL   ) RETURN( 0 ) ;
+   if( ! ISVALID_DSET(dset)            ) return( 0 ) ;
+   if( ! ISVALID_DATABLOCK(dset->dblk) ) return( 0 ) ;
+   if( dset->dblk->brick_fac == NULL   ) return( 0 ) ;
 
    nval = DSET_NVALS(dset) ;
    for( ii=0 ; ii < nval ; ii++ )
       if( DSET_BRICK_FACTOR(dset,ii) != 0.0 &&
-          DSET_BRICK_FACTOR(dset,ii) != 1.0   ) RETURN( 1 ) ;
+          DSET_BRICK_FACTOR(dset,ii) != 1.0   ) return( 1 ) ;
 
-   RETURN( 0 ) ;
+   return( 0 ) ;
 }

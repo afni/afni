@@ -21,7 +21,6 @@ ENTRY("THD_instacorr_prepare") ;
    /*-- automask? --*/
 
    if( iset->automask ){
-INFO_message("doing automask") ;
      mmm = THD_automask(iset->dset) ;
      if( mmm == NULL ){
        ERROR_message("Can't create automask from '%s'?!",DSET_BRIKNAME(iset->dset)) ;
@@ -40,7 +39,6 @@ INFO_message("doing automask") ;
    /*-- mask dataset? ---*/
 
    if( iset->mmm == NULL && iset->mset != NULL ){
-INFO_message("doing mask from dataset") ;
      if( DSET_NVOX(iset->mset) != DSET_NVOX(iset->dset) ){
        ERROR_exit("Mask dataset '%s' doesn't match input dataset '%s'",
                   DSET_BRIKNAME(iset->mset) , DSET_BRIKNAME(iset->dset) ) ;
@@ -87,14 +85,14 @@ INFO_message("doing mask from dataset") ;
    for( iv=0 ; iv < nmmm ; iv++ ) dvec[iv] = VECTIM_PTR(iset->mv,iv) ;
 
    if( iset->gortim != NULL ){
-     if( iset->gortim->nx < ntime ){
+     if( iset->gortim->nx < ntime+iset->ignore ){
        ERROR_message("Global ort time series length=%d is shorter than dataset=%d",
-                     iset->gortim->nx , ntime ) ;
+                     iset->gortim->nx , ntime+iset->ignore ) ;
      } else {
        ngvec = iset->gortim->ny ;
-       gvec  = (float **)malloc(sizeof(float)*ngvec) ;
+       gvec  = (float **)malloc(sizeof(float *)*ngvec) ;
        for( iv=0 ; iv < ngvec ; iv++ )
-         gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx ;
+         gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx + iset->ignore ;
      }
    }
 
@@ -103,7 +101,7 @@ INFO_message("doing mask from dataset") ;
    iset->ndet = THD_bandpass_vectors( ntime, nmmm, dvec, iset->mv->dt,
                                       iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
 
-INFO_message("Filtering removed %d DOF",iset->ndet) ;
+/** INFO_message("Filtering removed %d DOF",iset->ndet) ; **/
 
    free(dvec) ; if( gvec != NULL ) free(gvec) ;
 
