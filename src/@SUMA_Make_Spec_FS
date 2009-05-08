@@ -242,10 +242,13 @@ L_SET_SURF_DIRS:
 
     if ( -d surf ) then
 	set surf_dir = ./surf
+   set label_dir = ./label
     else if ( $cwd:t == surf ) then
 	set surf_dir = .
+   set label_dir = ../label
     else if ( -d ../surf ) then
 	set surf_dir = ../surf
+   set label_dir = ../label
     else
 	# this is a general failure case, even if we find one
 	set surf_dirs = ( `find . -maxdepth 4 -type d -name surf -print` )
@@ -470,6 +473,19 @@ L_CONVERT_SURFACES:
 
     cd $start_dir
 
+   #and do the labels
+   if ( -d $label_dir) then
+      cd $label_dir
+      foreach hand ( lh rh )
+     if ( -f ${hand}.aparc.a2005s.annot ) then
+         FSread_annot   -input ${hand}.aparc.a2005s.annot \
+               -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.roi \
+               -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.cmap 
+     endif
+      end
+      cd $start_dir
+   endif
+   
 goto L_CONVERT_SURFACES_DONE
 
 
@@ -752,6 +768,9 @@ L_CREATE_BRICK:
          #Now shift the damned volumes to match the surface volumes
          cd $start_dir/$suma_dir/
          @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
+         if ( "${other:t:r}" == "aparc.a2005s+aseg") then
+            3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
+         endif
          cd - 
        end
     endif

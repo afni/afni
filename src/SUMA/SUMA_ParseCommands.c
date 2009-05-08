@@ -229,6 +229,8 @@ int SUMA_CommandCode(char *Scom)
       SUMA_RETURN(SE_SaveXformOptsFileSelection);
    if (!strcmp(Scom,"OpenDrawnROIFileSelection")) 
       SUMA_RETURN(SE_OpenDrawnROIFileSelection);
+   if (!strcmp(Scom,"OpenXformOrtFileFileSelection")) 
+      SUMA_RETURN(SE_OpenXformOrtFileFileSelection);
    if (!strcmp(Scom,"SendColorMapToAfni")) SUMA_RETURN(SE_SendColorMapToAfni);
    if (!strcmp(Scom,"SaveSOFileSelection")) SUMA_RETURN(SE_SaveSOFileSelection);
    if (!strcmp(Scom,"SetSOinFocus")) SUMA_RETURN(SE_SetSOinFocus);
@@ -442,6 +444,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SaveXformOptsFileSelection");      
       case SE_SaveDrawnROIFileSelection:
          SUMA_RETURN("SaveDrawnROIFileSelection");      
+      case SE_OpenXformOrtFileFileSelection:
+         SUMA_RETURN("OpenXformOrtFileFileSelection");      
       case SE_OpenDrawnROIFileSelection:
          SUMA_RETURN("OpenDrawnROIFileSelection");      
       case SE_SendColorMapToAfni:

@@ -1174,20 +1174,25 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
       fprintf (Out, "NULL SF->FaceSetList:\n");
    }
    if (SF->N_FaceSet > 2 && SF->FaceSetList) {
-	   fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
+	   fprintf (Out, "First 2 polygons:\n\t%d %d %d\n\t%d %d %d\n",
 		   SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2],
 		   SF->FaceSetList[3], SF->FaceSetList[4], SF->FaceSetList[5]);
-      fprintf (Out, "Last 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", \
-		   SF->FaceSetList[NP*(SF->N_FaceSet-2)], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-2) + 2],
-		   SF->FaceSetList[NP*(SF->N_FaceSet-1)], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 1], SF->FaceSetList[NP*(SF->N_FaceSet-1) + 2]);
+      fprintf (Out, "Last 2 polygons:\n\t%d %d %d\n\t%d %d %d\n", 
+		         SF->FaceSetList[NP*(SF->N_FaceSet-2)],    
+               SF->FaceSetList[NP*(SF->N_FaceSet-2) + 1], 
+               SF->FaceSetList[NP*(SF->N_FaceSet-2) + 2],
+		         SF->FaceSetList[NP*(SF->N_FaceSet-1)], 
+               SF->FaceSetList[NP*(SF->N_FaceSet-1) + 1], 
+               SF->FaceSetList[NP*(SF->N_FaceSet-1) + 2]);
 	} else if (SF->FaceSetList){
-      fprintf (Out, "First polygon:\n\t%d %d %d\n", \
+      fprintf (Out, "First polygon:\n\t%d %d %d\n", 
 		   SF->FaceSetList[0], SF->FaceSetList[1], SF->FaceSetList[2] );
    }
    fprintf (Out, "\nNode Specs (%d):\n", SF->N_Node_Specs);
 	if (SF->Specs_mat) {
-      fprintf (Out, "First Entry: \t%d %d %d %d %d %d\n", \
-	   SF->Specs_mat[0][0], SF->Specs_mat[0][1],SF->Specs_mat[0][2], SF->Specs_mat[0][3],SF->Specs_mat[0][4], SF->Specs_mat[0][5]);
+      fprintf (Out, "First Entry: \t%d %d %d %d %d %d\n", 
+	            SF->Specs_mat[0][0], SF->Specs_mat[0][1],SF->Specs_mat[0][2], 
+               SF->Specs_mat[0][3],SF->Specs_mat[0][4], SF->Specs_mat[0][5]);
 	} else {
       fprintf (Out, "NULL SF->Specs_mat\n");
    }
@@ -1201,14 +1206,19 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
       fprintf (Out, "NULL SF->FN.FirstNeighb\n");
    }
 	if (SF->Specs_mat) {
-      fprintf (Out, "Last Entry: \t%d %d %d %d %d %d\n", \
-		   SF->Specs_mat[SF->N_Node_Specs-1][0], SF->Specs_mat[SF->N_Node_Specs-1][1],SF->Specs_mat[SF->N_Node_Specs-1][2],\
-		   SF->Specs_mat[SF->N_Node_Specs-1][3],SF->Specs_mat[SF->N_Node_Specs-1][4], SF->Specs_mat[SF->N_Node_Specs-1][5]);
+      fprintf (Out, "Last Entry: \t%d %d %d %d %d %d\n", 
+		   SF->Specs_mat[SF->N_Node_Specs-1][0], 
+         SF->Specs_mat[SF->N_Node_Specs-1][1],
+         SF->Specs_mat[SF->N_Node_Specs-1][2],
+		   SF->Specs_mat[SF->N_Node_Specs-1][3],
+         SF->Specs_mat[SF->N_Node_Specs-1][4], 
+         SF->Specs_mat[SF->N_Node_Specs-1][5]);
 	} 
    if (SF->FN.N_Neighb) {
       cnt = 0;
 	   while (cnt < SF->FN.N_Neighb[SF->N_Node_Specs-1]) {
-		   fprintf (Out, "\t%d %d\n", cnt, SF->FN.FirstNeighb[SF->N_Node_Specs-1][cnt]); 
+		   fprintf (Out, "\t%d %d\n", 
+                  cnt, SF->FN.FirstNeighb[SF->N_Node_Specs-1][cnt]); 
 		   ++cnt;
 	   }
    }
@@ -2708,7 +2718,7 @@ SUMA_Boolean SUMA_FreeSurfer_WritePatch (char *fileNm, SUMA_SurfaceObject *SO, c
    static char FuncName[]={"SUMA_FreeSurfer_WritePatch"};
    int cnt, i, iface;
    int *FaceSetIndexInParent=NULL;
-   SUMA_Boolean *isInPatch=NULL;
+   byte *isInPatch=NULL;
    FILE *fout=NULL;
    
    SUMA_ENTRY;
@@ -4649,7 +4659,6 @@ int main (int argc,char *argv[])
    return (0);
  } /* Main */  
 #endif
-
 
 /*!
    \brief Handles opening an ROI file
