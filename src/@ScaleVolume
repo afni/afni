@@ -105,7 +105,7 @@ endif
 
 
 DOIT:
-set perc = `3dBrickstat -non-zero -percentile $p0 $ps $p1 $invol`
+set perc = `3dBrickStat -non-zero -percentile $p0 $ps $p1 $invol`
 echo $perc
 set v0 = $perc[2]
 set v1 = $perc[4]
