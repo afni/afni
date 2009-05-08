@@ -1492,31 +1492,18 @@ def db_cmd_regress_sfiles2times(proc, block):
 
     return cmd
 
-# verify consistency of -tlrc_* options
-# return 1 or 0
-def db_tlrc_opts_okay(opts):
-    opta = opts.find_opt('-tlrc_anat')
+# --------------- tlrc (anat) ---------------
 
-    if not opta:
-        if opts.find_opt('-tlrc_base'):
-            print '** -tlrc_base requires dataset via -tlrc_anat'
-            return 0
-        if opts.find_opt('-tlrc_no_ss'):
-            print '** -tlrc_no_ss requires dataset via -tlrc_anat'
-            return 0
-        if opts.find_opt('-tlrc_rmode'):
-            print '** -tlrc_rmode requires dataset via -tlrc_anat'
-            return 0
-        if opts.find_opt('-tlrc_suffix'):
-            print '** -tlrc_rmode requires dataset via -tlrc_anat'
-            return 0
+def db_mod_tlrc(block, proc, user_opts):
+    if len(block.opts.olist) == 0:      # then init to defaults
+        block.opts.add_opt('-tlrc_base', 1, ['TT_N27+tlrc'], setpar=1)
+        block.opts.add_opt('-tlrc_suffix', 1, ['NONE'], setpar=1)
 
-        return 1  # okay, no options
-
-    opt_anat = opts.find_opt('-copy_anat')
+    # verify that anatomical dataset exists
+    opt_anat = user_opts.find_opt('-copy_anat')
     if not opt_anat:
-        print '** -tlrc_anat option requires anatomy via -copy_anat'
-        return 0
+        print '** tlrc (anat) block requires anatomy via -copy_anat'
+        return
 
     dset = BASE.afni_name(opt_anat.parlist[0])
     if not dset.exist():  # allow for no +view
@@ -1524,42 +1511,66 @@ def db_tlrc_opts_okay(opts):
         if not dset.exist():
             print "** -tlrc_anat dataset '%s' does not exist" % \
                   opt_anat.parlist[0]
-            return 0
+            return
 
-    # base image does not need to exist (might be in abin)
+    # add other options
 
-    return 1
+    uopt = user_opts.find_opt('-tlrc_base')
+    if uopt:
+        bopt = block.opts.find_opt('-tlrc_base')
+        bopt.parlist = uopt.parlist
+
+    uopt = user_opts.find_opt('-tlrc_no_ss')
+    bopt = block.opts.find_opt('-tlrc_no_ss')
+    if uopt and not bopt:
+        bopt.opts.add_opt('-tlrc_no_ss', 0, [])
+
+    uopt = user_opts.find_opt('-tlrc_rmode')
+    if uopt:
+        bopt = block.opts.find_opt('-tlrc_rmode')
+        if bopt: bopt.parlist = uopt.parlist
+        else: bopt.opts.add_opt('-tlrc_rmode', 1, uopt.parlist, setpar=1)
+
+    uopt = user_opts.find_opt('-tlrc_suffix')
+    if uopt:
+        bopt = block.opts.find_opt('-tlrc_suffix')
+        bopt.parlist = uopt.parlist
+
+    block.valid = 1
 
 # create a command to run @auto_tlrc
-def db_cmd_tlrc(dname, options):
-    if not dname : # should include +orig
+def db_cmd_tlrc(proc, block):
+    """warp self.anat to standard space"""
+
+    dname = proc.anat.pv()
+    if not dname :
         print "** missing dataset name for tlrc operation"
         return None
 
-    dset = BASE.afni_name(dname)   # allow for no +view
-    if not dset.exist():
-        dname = dname + '+orig'
+    # no longer look to add +orig
 
-    opt = options.find_opt('-tlrc_base')
+    opt = block.opts.find_opt('-tlrc_base')
     if opt: base = opt.parlist[0]
     else:   base = 'TT_N27+tlrc'
 
-    opt = options.find_opt('-tlrc_no_ss')
+    opt = block.opts.find_opt('-tlrc_no_ss')
     if opt: ss = ' -no_ss'
     else:   ss = ''
 
-    opt = options.find_opt('-tlrc_rmode')
+    opt = block.opts.find_opt('-tlrc_rmode')
     if opt: rmode = ' -rmode %s' % opt.parlist[0]
     else:   rmode = ''
 
-    opt = options.find_opt('-tlrc_suffix')
+    opt = block.opts.find_opt('-tlrc_suffix')
     if opt: suffix = ' -suffix %s' % opt.parlist[0]
     else:   suffix = ' -suffix NONE'     # make NONE the default
 
-    cmd = "# -------------------------------------------------------\n" \
-          "# run @auto_tlrc to warp '%s' to match template '%s'\n"      \
-          "@auto_tlrc -base %s -input %s%s%s%s\n\n"                     \
-          % (dname, base,base, dname, ss, rmode, suffix)
+    # start with block separator
+    cmd = "# %s\n" % (55*'-')
+
+    cmd += "# warp anatomy to standard space\n"                          \
+           "@auto_tlrc -base %s -input %s%s%s%s\n\n"                     \
+           % (base, dname, ss, rmode, suffix)
 
     return cmd
 
@@ -1654,6 +1665,7 @@ g_help_string = """
         despike     : truncate spikes in each voxel's time series
         empty       : placehold for some user command (using 3dTcat as sample)
         ricor       : RETROICOR - removal of cardiac/respiratory regressors
+        tlrc        : warp anat to standard space
 
     ==================================================
     DEFAULTS: basic defaults for each block (not all defaults)
@@ -1704,6 +1716,9 @@ g_help_string = """
                   - output fit time series
                   - output ideal curves for GAM/BLOCK regressors
                   - output iresp curves for non-GAM/non-BLOCK regressors
+
+        tlrc:     - use TT_N27+tlrc as the base (-tlrc_base TT_N27+tlrc)
+                  - no additional suffix (-tlrc_suffix NONE)
 
     ==================================================
     EXAMPLES (options can be provided in any order):
