@@ -18,6 +18,8 @@ ENTRY("THD_instacorr_prepare") ;
 
    if( iset->mmm != NULL ){ free(iset->mmm) ; iset->mmm = NULL ; }
 
+   INFO_message("InstaCorr preparations:") ;
+
    /*-- automask? --*/
 
    if( iset->automask ){
@@ -32,7 +34,7 @@ ENTRY("THD_instacorr_prepare") ;
                      DSET_BRIKNAME(iset->dset) , nmmm ) ;
        free(mmm) ; RETURN(0) ;
      }
-     INFO_message("Automask from '%s' has %d voxels",DSET_BRIKNAME(iset->dset),nmmm) ;
+     ININFO_message("Automask from '%s' has %d voxels",DSET_BRIKNAME(iset->dset),nmmm) ;
      iset->mmm = mmm ;
    }
 
@@ -56,16 +58,16 @@ ENTRY("THD_instacorr_prepare") ;
                      DSET_BRIKNAME(iset->mset) , iset->mindex , nmmm ) ;
        free(mmm) ; RETURN(0) ;
      }
-     INFO_message("Mask from '%s[%d]' has %d voxels!" ,
+     ININFO_message("Mask from '%s[%d]' has %d voxels!" ,
                    DSET_BRIKNAME(iset->mset) , iset->mindex , nmmm ) ;
      iset->mmm = mmm ;
    }
 
-   if( iset->mmm == NULL ) INFO_message("No mask for InstaCorr") ;
+   if( iset->mmm == NULL ) ININFO_message("No mask for InstaCorr") ;
 
    /*--- Extract time series for analysis ---*/
 
-   INFO_message("Extracting dataset time series") ;
+   ININFO_message("Extracting dataset time series") ;
 
    iset->mv = THD_dset_to_vectim( iset->dset , iset->mmm , iset->ignore ) ;
    if( iset->mv == NULL ){
@@ -76,7 +78,7 @@ ENTRY("THD_instacorr_prepare") ;
 
    /*--- Filter time series ---*/
 
-   INFO_message("Filtering %d dataset time series",nmmm) ;
+   ININFO_message("Filtering %d dataset time series",nmmm) ;
 
    if( iset->fbot <  0.0f       ) iset->fbot = 0.0f ;
    if( iset->ftop <= iset->fbot ) iset->ftop = 999999.9f ;  /* infinity */
@@ -101,20 +103,20 @@ ENTRY("THD_instacorr_prepare") ;
    iset->ndet = THD_bandpass_vectors( ntime, nmmm, dvec, iset->mv->dt,
                                       iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
 
-/** INFO_message("Filtering removed %d DOF",iset->ndet) ; **/
+/** ININFO_message("Filtering removed %d DOF",iset->ndet) ; **/
 
    free(dvec) ; if( gvec != NULL ) free(gvec) ;
 
    /*--- Blur time series ---*/
 
    if( iset->blur > 0.0f ){
-     INFO_message("Spatially blurring %d dataset volumes",iset->mv->nvals) ;
+     ININFO_message("Spatially blurring %d dataset volumes",iset->mv->nvals) ;
      mri_blur3D_vectim( iset->mv , iset->blur ) ;
    }
 
    /*-- normalize --*/
 
-   INFO_message("Normalizing dataset time series") ;
+   ININFO_message("Normalizing dataset time series") ;
    THD_vectim_normalize( iset->mv ) ;
 
    RETURN(nmmm) ;

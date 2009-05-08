@@ -4999,6 +4999,8 @@ ENTRY("ISQ_drawing_EV") ;
      STATUS(str) ;
    }
 
+   /** memset(&cbs,0,sizeof(ISQ_cbs)) ; **/
+
    switch( ev->type ){
 
       /*----- button release event -----*/
@@ -5386,11 +5388,12 @@ STATUS(" .. ButtonPress") ;
                 cbs.nim    = nim ;
 
                 if( but == Button1 &&
-                    (event->state & ControlMask) ){ /* 18 Oct 2001 */
+                    (event->state & ControlMask) && !(event->state & ShiftMask) ){ /* 18 Oct 2001 */
                    event->button = Button3 ;        /* fake Button3 press */
                 }
 
-                if( event->button == Button3 )      /* 04 Nov 2003: only for Button3 */
+                if( event->button == Button3 ||     /* 04 Nov 2003: only for Button3 */
+                    (event->button == Button1 && event->state&ShiftMask && event->state&ControlMask) )
 #if 0
                   seq->status->send_CB( seq , seq->getaux , &cbs ) ;
 #else

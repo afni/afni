@@ -16,7 +16,7 @@ void THD_allow_empty_dataset( int n ){ allow_nodata = n ; }
 /*! With this macro defined, many of the attributes will actually
     be set in function THD_datablock_apply_atr() instead of herein.
     This change is to allow attributes read after the dataset struct
-    is alread created to be useful, for the NIfTI-ization project. */
+    is already created to be useful, for the NIfTI-ization project. */
 
 #define USE_APPLICATOR  /* 10 May 2005 */
 

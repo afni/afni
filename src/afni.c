@@ -3532,7 +3532,7 @@ if(PRINT_TRACING)
       break ;  /* end of destroy */
 
       case isqCR_buttonpress:{
-         XButtonEvent *xev = (XButtonEvent *) cbs->event ;
+         XButtonEvent *xev = (XButtonEvent *)cbs->event ;
 
 if(PRINT_TRACING){
  char str[256] ;
@@ -3588,6 +3588,18 @@ if(PRINT_TRACING)
                        im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
                        (im3d->vinfo->crosshair_visible==True) ?
                        REDISPLAY_OVERLAY : REDISPLAY_OPTIONAL ) ;
+                  }
+
+                  /* 08 May 2009: if Shift+Control both pressed, do InstaCorr */
+
+                  if( xev->state&ShiftMask && xev->state&ControlMask ){
+                    int qq = AFNI_icor_setref(im3d) ;
+                    if( qq == 0 ) BEEPIT ;
+                    else {
+                      im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
+                      im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
+                      im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
+                    }
                   }
                }
             } /* end of button 1 */
@@ -5909,7 +5921,6 @@ void AFNI_set_viewpoint( Three_D_View *im3d ,
    THD_ivec3 old_ib , new_ib , old_id , new_id ;
 
    static int recurse=0 ;
-
    if( recurse ) return ;
    recurse = 1 ;
 
@@ -7094,6 +7105,8 @@ ENTRY("AFNI_switchview_CB") ;
    if( im3d->anat_dset[bval] == NULL ) EXRETURN ;
 
    SHOW_AFNI_PAUSE ;
+
+   DISABLE_INSTACORR(im3d) ; DESTROY_ICOR_setup(im3d->iset) ; /* 08 May 2009 */
 
    POPDOWN_strlist_chooser ;                        /* might be choosing datasets */
    UNCLUSTERIZE(im3d) ;                             /* 13 Feb 2008 */
@@ -8486,14 +8499,14 @@ ENTRY("AFNI_imag_pop_CB") ;
    /*-- jump back to old location --*/
 
    if( w == im3d->vwid->imag->pop_jumpback_pb ){
-     int ij,jj,kk ;
+     int ii,jj,kk ;
 
-     ij = im3d->vinfo->i1_old ;  /* extract old place */
+     ii = im3d->vinfo->i1_old ;  /* extract old place */
      jj = im3d->vinfo->j2_old ;
      kk = im3d->vinfo->k3_old ;
 
      SAVE_VPT(im3d) ;  /* save current place as old one */
-     AFNI_set_viewpoint( im3d , ij,jj,kk , REDISPLAY_OVERLAY ) ; /* jump */
+     AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_OVERLAY ) ; /* jump */
    }
 
    /*-- switch window display mode --*/
@@ -8708,11 +8721,30 @@ ENTRY("AFNI_imag_pop_CB") ;
 
    /*---- 06 May 2009: set InstaCorr point ----*/
 
-   else if( w == im3d->vwid->imag->pop_instacorr_pb &&
-            w != NULL                                 ){
+   else if( w == im3d->vwid->imag->pop_instacorr_pb && w != NULL ){
 
      int qq = AFNI_icor_setref(im3d) ;
-     if( qq == 0 ) XBell( XtDisplay(w) , 100 ) ;
+     if( qq == 0 ){ XBell( XtDisplay(w) , 100 ) ; }
+     else {
+       im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
+       im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
+       im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
+     }
+   }
+
+   /*---- 08 May 2009: jump to InstaCorr point ----*/
+
+   else if( w == im3d->vwid->imag->pop_icorrjump_pb &&
+            w != NULL && ISVALID_ICOR_setup(im3d->iset) ){
+     int ii,jj,kk ;
+
+     ii = im3d->vinfo->i1_icor ;  /* extract icor place */
+     jj = im3d->vinfo->j2_icor ;
+     kk = im3d->vinfo->k3_icor ;
+     if( ii >= 0 && jj >= 0 && kk >=0 ){
+       SAVE_VPT(im3d) ;
+       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_OVERLAY ) ;
+     }
    }
 
    /*--- unmap of the popup itself [elided] ---*/

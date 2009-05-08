@@ -998,6 +998,8 @@ typedef struct {
       char directory_name[THD_MAX_NAME] ;  /*!< contain all files for this dataset */
       char header_name[THD_MAX_NAME] ;     /*!< contains attributes */
       char brick_name[THD_MAX_NAME] ;      /*!< THIS contains actual data volumes */
+
+      int  allow_directwrite ;             /* 08 May 2009 -- Star Trek Day! */
 } THD_diskptr ;
 
 #define ATRNAME_BYTEORDER "BYTEORDER_STRING"
@@ -2663,9 +2665,9 @@ typedef struct THD_3dim_dataset {
 #define DSET_WRITEABLE(ds)       \
  ( ISVALID_DSET(ds)          &&  \
    ISVALID_DBLK((ds)->dblk)  &&  \
-   (ds)->warp_parent != NULL &&  \
    !DSET_IS_MINC(ds)         &&  \
-   !DSET_IS_ANALYZE(ds)        )
+   !DSET_IS_ANALYZE(ds)      &&  \
+   ( (ds)->warp_parent != NULL || (ds)->dblk->diskptr->allow_directwrite==1 ) )
 
 /*! Determine if dataset ds is stored in a compressed format */
 
