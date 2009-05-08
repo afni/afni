@@ -382,15 +382,35 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
                               XtPointer close_data,
                               char *close_hint,
                               char *close_help);
+void SUMA_cb_XformPreProc_Save (Widget w, XtPointer data, 
+                             XtPointer client_data);
+void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data, 
+                             XtPointer client_data);
+
 
 #define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
                                          that may act on dsets or SOs */
 
+#define SUMA_SPECT_AXIS(TR,NSAMP,fs, fmax,fstep) {\
+   fs=1.0/(TR); fmax = fs/2.0; fstep=fs/(float)(NSAMP);   \
+}
+
 typedef struct {
    
    Widget AppShell;
-   Widget ParentLabel_lb;
    Widget Active_tb;
+   
+   Widget ParentLabel_lb;
+
+   SUMA_ARROW_TEXT_FIELD *AF0;
+   SUMA_ARROW_TEXT_FIELD *AF1;
+   SUMA_ARROW_TEXT_FIELD *AF2;
+   
+   Widget SaveOpts_pb;
+   Widget SavePreProc_pb;
+   Widget ShowPreProc_tb;
+   Widget ApplyOpts_pb;
+   
 } SUMA_GENERIC_XFORM_INTERFACE;
 
 typedef struct {
@@ -408,9 +428,9 @@ typedef struct {
                   These could be SOs or DSETS*/  
    int N_children;
    int active;
-   
+   int ShowPreProc;
    NI_group *XformOpts;
-   
+      
    SUMA_GENERIC_XFORM_INTERFACE *gui;
 } SUMA_XFORM;  /*!< See Comments in ZSS labbook NIH-5, pp30-... */ 
 
@@ -418,14 +438,46 @@ void SUMA_cb_CloseXformInterface(Widget w, XtPointer data, XtPointer call_data);
 SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf);
 void SUMA_CreateXformInterface(SUMA_XFORM *xf);
 
+#define SUMA_XformPreProc_Save_help \
+   "Save preprocessed dsets to disk"
+   
+#define SUMA_XformOpts_Apply_help   \
+   "Apply changes to transform options now"
+   
+#define SUMA_XformOpts_Save_help \
+   "Save options structure to disk"
+   
+#define SUMA_ShowPreProcXform_help  \
+   "Show in SUMA pre-processed time series" 
+
 #define SUMA_ActivateXform_help  \
    "Activate/Suspend xform" 
+
+#define SUMA_DotXform_AF0_hint \
+   "Bottom pass frequency in Hz." 
+
+#define SUMA_DotXform_AF0_help   \
+   "Bottom pass frequency in Hz."
+   
+#define SUMA_DotXform_AF1_hint \
+   "Top pass frequency in Hz." 
+
+#define SUMA_DotXform_AF1_help   \
+   "Top pass frequency in Hz."
+
+#define SUMA_DotXform_AF2_hint \
+   "Baseline model polynomial degree." 
+
+#define SUMA_DotXform_AF2_help   \
+   "Baseline model polynomial degree\n"   \
+   "-1 for no baseline model.\n"
+
+#define SUMA_DotXform_ParentLabel_help  \
+   "Label of time series dsets transformed." 
 
 #define SUMA_DrawROI_ParentLabel_help  \
    "Label of the ROI's parent surface." 
 
-#define SUMA_DotXform_ParentLabel_help  \
-   "Label of time series dsets transformed." 
 #define SUMA_DrawROI_DrawROIMode_help\
    "Toggles ROI drawing mode.\n" \
    "If turned on, then drawing is enabled \n"   \

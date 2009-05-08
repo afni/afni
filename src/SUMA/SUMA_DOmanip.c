@@ -2591,7 +2591,7 @@ SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active, int fromgui)
    SUMA_CALLBACK *cb;
    DListElmt *el=NULL;
    DList *dl=SUMAg_CF->callbacks;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
    
@@ -2629,6 +2629,72 @@ SUMA_Boolean SUMA_SetXformActive(SUMA_XFORM *xf, int active, int fromgui)
       }
       el = dlist_next(el);
    }
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_SetXformShowPreProc(SUMA_XFORM *xf, int ShowPreProc, 
+                                      int fromgui)
+{
+   static char FuncName[]={"SUMA_SetXformShowPreProc"};
+   SUMA_CALLBACK *cb;
+   DListElmt *el=NULL;
+   DList *dl=SUMAg_CF->callbacks;
+   NI_element *dotopt=NULL;
+   int ii=0;
+   SUMA_DSET *in_dset=NULL, *pp_dset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+      
+   SUMA_ENTRY;
+   
+   if (!xf) SUMA_RETURN(NOPE);
+   
+   xf->ShowPreProc = ShowPreProc;
+   
+   if (!xf->gui) {
+      /* create GUI */
+      SUMA_CreateXformInterface(xf);
+   } else if (!fromgui){
+      /* Raise GUI */
+      if (LocalHead) 
+         fprintf (SUMA_STDERR,"%s: raising Xform GUI window \n", FuncName);
+      XMapRaised(SUMAg_CF->X->DPY_controller1, 
+                  XtWindow(xf->gui->AppShell));
+   }
+   
+   if (!fromgui) {
+      /* initialize the gui */
+      SUMA_InitializeXformInterface(xf);
+   }
+   
+   if (!dl) SUMA_RETURN(YUP);
+   
+   /* Now do something about showing */
+   if (!strcmp(xf->name,"Dot")) {
+      if (!(dotopt = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
+         SUMA_S_Err("dotopt not found");
+         SUMA_RETURN(NOPE);
+      }
+      for (ii=0; ii<xf->N_parents; ++ii) {
+         if (!SUMA_is_ID_4_DSET(xf->parents[ii], &in_dset)) {
+            SUMA_S_Err("Parent not found");
+            SUMA_RETURN(NOPE);
+         }
+         if (!(pp_dset = SUMA_GetDotPreprocessedDset(in_dset, dotopt))){
+            SUMA_S_Err("PreProcParent not found");
+            SUMA_RETURN(NOPE);
+         }
+         /* now make it visible */
+         /* For this to work, you'll need to have a version of the
+         block under LoadDsetFile beginning from OverInd = -1;
+         To make matters more exciting, you'll need to update this sucker,
+         any time that the preprocessing is redone because of changes in 
+         orts or bandpass, etc. So leave this feature out for now */  
+      }
+   } else {
+      SUMA_S_Errv("Don't know how to do this for %s\n", xf->name);
+      SUMA_RETURN(NOPE);
+   }
+   
    SUMA_RETURN(YUP);
 }
 
@@ -2766,6 +2832,7 @@ SUMA_XFORM *SUMA_NewXform(char *name, char *parent_idcode, char *parent_domain)
    xf->N_children = 0;
    
    xf->active = 0;
+   xf->ShowPreProc = 0;
    
    xf->XformOpts = NI_new_group_element();
    NI_rename_group(xf->XformOpts, "XformOpts");
@@ -2803,6 +2870,12 @@ SUMA_GENERIC_XFORM_INTERFACE * SUMA_NewXformInterface(
    gui = (SUMA_GENERIC_XFORM_INTERFACE *)
             SUMA_calloc(1,sizeof(SUMA_GENERIC_XFORM_INTERFACE));
    
+   gui->AF0 = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
+   gui->AF1 = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
+   gui->AF2 = 
+      (SUMA_ARROW_TEXT_FIELD *)calloc(1, sizeof(SUMA_ARROW_TEXT_FIELD));
   
    SUMA_RETURN(gui);
 }
@@ -2813,6 +2886,10 @@ void SUMA_FreeXformInterface(SUMA_GENERIC_XFORM_INTERFACE *gui)
    
    SUMA_ENTRY;
    if (gui) {
+      if (gui->AF0) SUMA_free(gui->AF0);
+      if (gui->AF1) SUMA_free(gui->AF1);
+      if (gui->AF2) SUMA_free(gui->AF2);
+      
       SUMA_free(gui);
    }
    SUMA_RETURNe;
@@ -2873,6 +2950,34 @@ SUMA_CALLBACK *SUMA_Find_CallbackByParent(char *FunctionName,
    SUMA_RETURN(cb);
 }
 
+SUMA_CALLBACK *SUMA_Find_CallbackByCreatorXformID(char *creator_xform_idcode)
+{
+   static char FuncName[]={"SUMA_Find_CallbackByCreatorXformID"};
+   SUMA_CALLBACK *cb = NULL, *cbf=NULL;
+   DListElmt *el=NULL;
+   DList *lst = SUMAg_CF->callbacks;
+   int i, found=0;
+    
+   SUMA_ENTRY;
+   
+   if (!lst || !creator_xform_idcode) SUMA_RETURN(cbf);
+   
+   el = dlist_head(lst);
+   cbf=NULL;
+   while (el && !cbf) {
+      cb = (SUMA_CALLBACK *)el->data;
+      if (!strcmp(cb->creator_xform, creator_xform_idcode)) {
+         ++found; cbf = cb;   
+      }   
+      el = dlist_next(el);
+   }  
+   if (found > 1) {
+      SUMA_S_Errv("%d callbacks found\n" 
+                  "write a new function to return them all\n",
+                  found); 
+   }
+   SUMA_RETURN(cbf);
+}
 
 SUMA_Boolean SUMA_AddCallbackParent (SUMA_CALLBACK *cb, 
                                      char *parent_idcode,
@@ -2916,6 +3021,8 @@ SUMA_Boolean SUMA_SetCallbackPending (SUMA_CALLBACK *cb,
 {
    static char FuncName[]={"SUMA_SetCallbackPending"};
    
+   SUMA_ENTRY;
+   
    if (!cb) SUMA_RETURN(NOPE);
    
    if (cb->active < 1 && pen) {
@@ -2954,6 +3061,8 @@ SUMA_CALLBACK *SUMA_NewCallback  (char *FunctionName,
    NI_element *nel=NULL;
    SUMA_CALLBACK *cb = NULL;
    char stmp[256];
+   
+   SUMA_ENTRY;
    
    if (!parent_idcode || !FunctionName ||
        strlen(FunctionName) > 125  ) SUMA_RETURN(cb);
@@ -3043,9 +3152,7 @@ SUMA_Boolean SUMA_FlushCallbackEventParameters (SUMA_CALLBACK *cb)
    
    switch (cb->event) {
       case SUMA_NEW_NODE_ACTIVATE_EVENT:
-         NI_SET_INT(nelpars, "event.new_node", -1);
-         NI_set_attribute(nelpars, "event.SO_idcode", "");
-         NI_set_attribute(nelpars,"event.overlay_name", "");
+         SUMA_XFORM_SAVE_FLUSH_EVENT(nelpars);
          break;
       case SUMA_ERROR_ACTIVATE_EVENT: 
       case SUMA_NO_ACTIVATE_EVENT:
@@ -3061,10 +3168,17 @@ SUMA_Boolean SUMA_FlushCallbackEventParameters (SUMA_CALLBACK *cb)
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb) 
+SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb, 
+                                  int refresh, SUMA_SurfaceObject *SO,
+                                  int doall) 
 {
    static char FuncName[]={"SUMA_ExecuteCallback"};
-   
+   SUMA_SurfaceObject *curSO=NULL, *targetSO=NULL;
+   SUMA_OVERLAYS *targetSover=NULL;
+   int i, jj=0;
+   SUMA_DSET *targetDset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+  
    SUMA_ENTRY;
    
    cb->FunctionPtr((void *)cb);  
@@ -3074,6 +3188,64 @@ SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb)
    /* flush event specific parameters */
    SUMA_FlushCallbackEventParameters(cb);
    
+   if (refresh) {/* Now decide on what needs refreshing */
+      if (!SO) {
+         curSO = NULL;
+      } else {
+         curSO = *(SO->SurfCont->curSOp);
+      }           
+      for (i=0; i<cb->N_parents; ++i) {
+         if (SUMA_is_ID_4_DSET(cb->parents[i], &targetDset)) {
+            targetSO = SUMA_findSOp_inDOv(cb->parents_domain[i],
+                                          SUMAg_DOv, SUMAg_N_DOv);
+            if (!targetSO) {
+               if (SO) {
+                  SUMA_S_Warn("Could not find targetSO, using SO instead");
+                  targetSO = SO;
+               } else {
+                  SUMA_S_Err("Don't know what do do here");
+                  SUMA_RETURNe;
+               }
+            }
+            /* refresh overlay and SO for this callback */
+            targetSover = SUMA_Fetch_OverlayPointerByDset(
+                                 targetSO->Overlays, 
+                                 targetSO->N_Overlays,
+                                 targetDset,
+                                 &jj);
+            SUMA_LHv("Colorizing %s\n", targetSover->Name);
+            SUMA_ColorizePlane(targetSover);
+            SUMA_LHv("Setting remix flag for %s\n",targetSO->Label);
+            if (!SUMA_SetRemixFlag( targetSO->idcode_str, 
+                                    SUMAg_SVv, SUMAg_N_SVv)) {
+               SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
+               SUMA_RETURN(NOPE);
+            }
+            if (doall || curSO != targetSO) {
+               SUMA_UPDATE_ALL_NODE_GUI_FIELDS(targetSO);
+               SUMA_RemixRedisplay(targetSO);
+            } else {
+               /* Update and Remix will be done for curSO 
+                  by the function who called this one */
+            }
+            /* it is possible that the callback caused a change 
+               in the p value so update it to be sure, 
+               but I am not fond of doing this all the time,
+               every time there is a button click triggering the
+               event .... */
+            SUMA_LHv("Updating threshold at %f\n", 
+                     targetSO->SurfCont->curColPlane->OptScl->ThreshRange[0]);
+            SUMA_UpdatePvalueField( targetSO,
+                     targetSO->SurfCont->curColPlane->OptScl->ThreshRange[0]);
+         } else if (SUMA_is_ID_4_SO(cb->parents[i], &targetSO)) {
+            SUMA_S_Note("Got surface, don't know \n"
+                        "what to do in case like this yet\n");
+         } else {
+            SUMA_S_Err("Dunno what to do with such an object...");
+         }   
+      }
+
+   }
    SUMA_RETURN(YUP);
 }
 

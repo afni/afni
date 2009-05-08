@@ -2102,7 +2102,8 @@ int main (int argc,char *argv[])
                      exit(1);                                     
                   }
                   /* done with master */
-                  if (master_dset)  SUMA_FreeDset((void*)master_dset); master_dset=NULL;       
+                  if (master_dset)  
+                     SUMA_FreeDset((void*)master_dset); master_dset=NULL;       
  
                   /* OK, now blur the input data by the previous specs */
                   if (0) {

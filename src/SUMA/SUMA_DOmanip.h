@@ -187,14 +187,45 @@ SUMA_XFORM *SUMA_Find_XformByID(char *idcode_str);
 SUMA_XFORM *SUMA_Find_XformByParent(char *name, char *parent_idcode, int *iloc);
 SUMA_CALLBACK *SUMA_Find_CallbackByParent(char *FunctionName, 
                                        char *parent_idcode, int *iloc);
+SUMA_CALLBACK *SUMA_Find_CallbackByCreatorXformID(char *creator_xform_idcode);
 SUMA_Boolean SUMA_SetCallbackPending (SUMA_CALLBACK *cb, SUMA_Boolean pen,
                                       SUMA_ENGINE_SOURCE src);
 SUMA_Boolean SUMA_FlushCallbackEventParameters (SUMA_CALLBACK *cb);
-SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb) ;
+SUMA_Boolean SUMA_ExecuteCallback(SUMA_CALLBACK *cb, 
+                                  int refresh, SUMA_SurfaceObject *SO,
+                                  int doall) ;
 void SUMA_FreeXformInterface(SUMA_GENERIC_XFORM_INTERFACE *gui);
 SUMA_GENERIC_XFORM_INTERFACE * SUMA_NewXformInterface(
    SUMA_XFORM *xf);
 
+#define SUMA_XFORM_STORE_AS_LAST_EVENT(nelpars) {\
+         NI_set_attribute(nelpars, "last_event.new_node",   \
+                          NI_get_attribute(nelpars,"event.new_node"));  \
+         NI_set_attribute(nelpars, "last_event.SO_idcode",  \
+                          NI_get_attribute(nelpars,"event.SO_idcode")); \
+         NI_set_attribute(nelpars, "last_event.overlay_name",  \
+                          NI_get_attribute(nelpars,"event.overlay_name")); \
+}  
+
+#define SUMA_XFORM_RETRIEVE_LAST_EVENT(nelpars) {\
+         NI_set_attribute(nelpars, "event.new_node",   \
+                          NI_get_attribute(nelpars,"last_event.new_node"));  \
+         NI_set_attribute(nelpars, "event.SO_idcode",  \
+                          NI_get_attribute(nelpars,"last_event.SO_idcode")); \
+         NI_set_attribute(nelpars, "event.overlay_name",  \
+                          NI_get_attribute(nelpars,"last_event.overlay_name")); \
+}  
+
+#define SUMA_XFORM_FLUSH_EVENT(nelpars) {\
+         NI_SET_INT(nelpars, "event.new_node", -1);   \
+         NI_set_attribute(nelpars, "event.SO_idcode", "");  \
+         NI_set_attribute(nelpars,"event.overlay_name", "");   \
+}  
+
+#define SUMA_XFORM_SAVE_FLUSH_EVENT(nelpars) {  \
+   SUMA_XFORM_STORE_AS_LAST_EVENT(nelpars);  \
+   SUMA_XFORM_FLUSH_EVENT(nelpars); \
+}
 
 
 #endif

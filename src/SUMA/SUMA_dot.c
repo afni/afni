@@ -6,6 +6,96 @@ extern SUMA_SurfaceViewer *SUMAg_SVv;
 extern int SUMAg_N_SVv; 
 extern int SUMAg_N_DOv;  
 
+SUMA_Boolean SUMA_DotXform_MakeOrts( NI_element *dotopt, int ts_len,
+                                     int polort, char *ortname)
+{
+   static char FuncName[]={"SUMA_DotXform_MakeOrts"};
+   char stmp[256];
+   float *fort=NULL, **refvec=NULL;
+   int nort=0, nts = 0 ;
+   int suc=0, i=0, nref=0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   
+   if (ortname) {
+      fort = SUMA_Load1D_s(ortname, &nort, &nts, 0, 0);
+      if (!fort) {
+         SUMA_S_Err("Could not load orts");
+         SUMA_RETURN(NOPE);
+      }
+      if (nts!= ts_len) {
+         SUMA_S_Err("mismatch between polort length and time series length");
+         SUMA_RETURN(NOPE);
+      }
+   } else {
+      fort = NULL;
+      nort = 0;
+   }
+
+   /* form the baseline regressors */
+   nref = polort+1;
+
+   if (nref) {
+      SUMA_LHv("Building %d polyrefs\n", nref);
+      refvec = THD_build_polyref( nref ,
+                                  ts_len ) ;
+   } else {
+      SUMA_LH("No polyrefs");
+      refvec = NULL;
+      nref = 0;
+   }
+
+   /* now add the orts */
+   if (fort) {
+      SUMA_LHv("Adding %d from fort\n", nort);
+      refvec = (float **)SUMA_realloc(refvec, nref+nort*sizeof(float*));
+      for (i=0; i<nort; ++i) {
+         refvec[i+nref] = SUMA_calloc(nts, sizeof(float));
+         memcpy(refvec[i+nref], &(fort[i*nts]), sizeof(float)*nts);
+      }
+      free(fort); fort = NULL;
+      nref += nort;
+   } else {
+      SUMA_LH("No fort\n");
+   }
+
+
+   /* put a copy of the regressors in dotopt */
+   if (dotopt->vec_num) {
+      SUMA_S_Warn("Cleaning up dotopt");
+      while (dotopt->vec_num) {
+         NI_remove_column(dotopt,-1);
+      }
+   }
+   
+   SUMA_LHv("Adding %d columns of length %d\n", nref, ts_len);
+   /* add the columns here */
+   NI_alter_veclen(dotopt, ts_len);
+   for (i=0; i<nref; ++i) {
+      NI_add_column(dotopt, NI_FLOAT, refvec[i]);
+   }
+
+   if (LocalHead) {
+      sprintf(stmp,"file:%s.dotopt.1D", FuncName);
+      NEL_WRITE_1D(dotopt, stmp, suc);
+   }
+
+   /* clean regressors  */
+   if (refvec) {
+      for (i=0; i<nref; ++i) {
+         if (refvec[i]) free(refvec[i]); refvec[i] = NULL;
+      }
+      free(refvec); refvec=NULL;
+   }
+   
+   /* flag num_ort_parameters as not set */
+   NI_SET_INT(dotopt, "num_ort_parameters", -1);
+   
+   SUMA_RETURN(YUP);
+}                        
+
 /* 
    Function to create dotopt NI_element, set some of its
    parameters, AND recreate the vector of regressors.
@@ -25,6 +115,8 @@ extern int SUMAg_N_DOv;
            else whatever is in doptopt is used. 
    ortname: if not NULL, load orts from file ortname and add
            the other regressors
+   WARNING!: If polort, or ortname need changing, then both
+            parameters must be set.
 */
 NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
                              float ftop, float fbot,
@@ -32,10 +124,6 @@ NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
                              int polort, char *ortname)
 {
    static char FuncName[]={"SUMA_set_dotopts"};
-   float *fort=NULL, **refvec=NULL;
-   int nort=0, nts = 0 ;
-   int suc=0, i=0, nref=0;
-   char stmp[256];
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -55,7 +143,7 @@ NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
    
    /* initialize by input */
    if (ftop > 0) NI_SET_FLOAT(dotopt, "filter_above", ftop); 
-   if (fbot > 0) NI_SET_FLOAT(dotopt, "filter_below", fbot); 
+   if (fbot >= 0) NI_SET_FLOAT(dotopt, "filter_below", fbot); 
    if (norm == 1) {  
      NI_set_attribute(dotopt, "normalize_dset", "y");   
    } else if (norm == 0) { 
@@ -65,89 +153,103 @@ NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
    if (polort > -2) NI_SET_INT(dotopt,"polort", polort);
    if (ortname) NI_set_attribute(dotopt,"ortname",ortname);
    
-   /* now do some work */
+   /* now enforce settings */
+
    /* get the file-based ort functions */
    ortname = NI_get_attribute(dotopt,"ortname");
-   if (ortname) {
-      fort = SUMA_Load1D_s(ortname, &nort, &nts, 0, 0);
-      if (!fort) {
-         SUMA_S_Err("Could not load orts");
-         SUMA_RETURN(dotopt);
-      }
-      if (nts!= ts_len) {
-         SUMA_S_Err("mismatch between polort length and time series length");
-         SUMA_RETURN(dotopt);
-      }
-   } else {
-      fort = NULL;
-      nort = 0;
+   NI_GET_INT(dotopt,"polort", polort);
+   if (!NI_GOT) polort = -1;
+
+   if (!SUMA_DotXform_MakeOrts( dotopt, ts_len, polort, ortname)){
+      SUMA_S_Err("Failed to make orts");
+      SUMA_RETURN(dotopt);
    }
+                           
    /* get the filtering option */
    NI_GET_FLOAT(dotopt, "fliter_above", ftop);
    if (!NI_GOT) ftop = 99999999.9; /* Hz, what elese did you expect? */
    NI_GET_FLOAT(dotopt, "filter_below", fbot);
    if (!NI_GOT) fbot = 0;
-   NI_GET_INT(dotopt,"polort", polort);
-   if (!NI_GOT) polort = -1;
-   
-   /* form the baseline regressors */
-   nref = polort+1;
-   if (nref) {
-      refvec = THD_build_polyref( nref ,
-                                  ts_len ) ;
-   } else {
-      refvec = NULL;
-      nref = 0;
-   }
       
-   /* now add the orts */
-   if (fort) {
-      refvec = (float **)SUMA_realloc(refvec, nref+nort*sizeof(float*));
-      for (i=0; i<nort; ++i) {
-         refvec[i+nref] = SUMA_calloc(nts, sizeof(float));
-         memcpy(refvec[i+nref], &(fort[i*nts]), sizeof(float)*nts);
-      }
-      free(fort); fort = NULL;
-      nref += nort;
-   }
-
-            
-   /* put a copy of the regressors in dotopt */
-   if (dotopt->vec_num) {
-      SUMA_S_Warn("Cleaning up dotopt");
-      /* add the columns here */
-      for (i=0; i<nref; ++i) {
-         NI_remove_column(dotopt,i);
-      }
-   } 
-   /* add the columns here */
-   NI_alter_veclen(dotopt, ts_len);
-   for (i=0; i<nref; ++i) {
-      NI_add_column(dotopt, NI_FLOAT, refvec[i]);
-   }
-      
-   if (LocalHead) {
-      sprintf(stmp,"file:%s.dotopt.1D", FuncName);
-      NEL_WRITE_1D(dotopt, stmp, suc);
-   }
-
-   /* clean regressors  */
-   if (refvec) {
-      for (i=0; i<nref; ++i) {
-         if (refvec[i]) free(refvec[i]); refvec[i] = NULL;
-      }
-      free(refvec); refvec=NULL;
-   }
+   /* initialize pending to nothing */
+   NI_set_attribute(dotopt, "pending", "");
 
    SUMA_RETURN(dotopt);
      
 }
-SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset, NI_element *dotopt)
+int SUMA_DotXform_GetRecomputeForDset (NI_element *dotopts, char *id)
+{
+   static char FuncName[]={"SUMA_DotXform_GetRecomputeForDset"};
+   int recompute = 0;
+   char *cs;
+   
+   SUMA_ENTRY;
+   
+   cs = NI_get_attribute(dotopts, "pending");
+   if (strstr(cs, id)) SUMA_RETURN(1);
+   else SUMA_RETURN(0);
+   
+}
+
+void SUMA_DotXform_SetPending (NI_element *dotopts, int pending, char *id)
+{
+   static char FuncName[]={"SUMA_DotXform_SetPending"};
+   int ii;
+   char stmp[10*SUMA_IDCODE_LENGTH+11]={""};
+   char *cs=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+        
+   if (!dotopts) {
+      SUMA_S_Err("No dotopts");
+      SUMA_RETURNe;
+   }
+   if (!id && pending) {
+      SUMA_S_Err("Cannot set pending to 1 with no id");
+      SUMA_RETURNe;
+   }
+   if (!pending) {
+      if (!id) {
+         /* kill all */
+         NI_set_attribute(dotopts, "pending", "");
+      } else {
+         cs = NI_get_attribute(dotopts, "pending");
+         SUMA_LHv("Have pending of \n"
+                  ">>>%s<<<\n", cs);
+         if (SUMA_Remove_Sub_String(cs, ";", id) == 1) {
+            NI_set_attribute(dotopts, "pending", cs);
+         }
+      }
+   } else {
+      {
+         cs = NI_get_attribute(dotopts,"pending");
+         if (cs) {
+            if (!strstr(cs, id)) {
+               /* add it */
+               strcat(stmp, cs);
+               strcat(stmp, id);
+               NI_set_attribute(dotopts, "pending", stmp);
+            } else {/* alread pending */
+            }
+         } else { /* nothing pending, add it */
+            sprintf(stmp, "%s;", id);
+            NI_set_attribute(dotopts, "pending", stmp);
+         }
+      }
+   }   
+   
+   SUMA_RETURNe;
+}
+
+SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset, 
+                                       NI_element *dotopt)
 {
    static char FuncName[]={"SUMA_GetDotPreprocessedDset"};
    SUMA_DSET *pdset=NULL;
    float **refvec=NULL, ftop=9999999.9, fbot = 0.0;
-   int i, N_ort_param=0;
+   int recompute=0, i, N_ort_param=0;
    char stmp[256], *ppid=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -160,14 +262,17 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset, NI_element *dotopt)
    sprintf(stmp,"dot.preprocess.%s", SDSET_ID(in_dset));
    ppid = UNIQ_hashcode(stmp);
    
+   recompute = SUMA_DotXform_GetRecomputeForDset(dotopt, SDSET_ID(in_dset));
+
    /* search if that dset exists already */
-   if ((pdset = SUMA_FindDset_s(ppid, SUMAg_CF->DsetList))) {
+   if (!recompute &&
+       (pdset = SUMA_FindDset_s(ppid, SUMAg_CF->DsetList))) {
       SUMA_LH("got it!");
       /* got it, get out */
       SUMA_free(ppid); ppid = NULL;
       SUMA_RETURN(pdset);
-   } else {/* create the bastard */
-      SUMA_LH("Don't got it!");
+   } else {/* (re) create the bastard */
+      SUMA_LH("Don't got it!, or recompute");
       /* make sure dotopt is ready (detrending vectors are loaded)*/
       if (!dotopt->vec_num) {
          dotopt = SUMA_set_dotopts(dotopt, SDSET_VECNUM(in_dset),
@@ -187,18 +292,29 @@ SUMA_DSET *SUMA_GetDotPreprocessedDset(SUMA_DSET *in_dset, NI_element *dotopt)
             refvec[i] = (float *)dotopt->vec[i];
       }
       /* now detrend the whole thing */
+      NI_GET_FLOAT(dotopt,"filter_below",fbot);
+      NI_GET_FLOAT(dotopt,"filter_above",ftop);
+
+      SUMA_LHv("Detrending with %d orts and BP %f %f\n",
+               dotopt->vec_num,  fbot, ftop);
       pdset = SUMA_DotDetrendDset(in_dset, refvec, dotopt->vec_num, 
                                   fbot, ftop, 0, &N_ort_param);
       NI_SET_INT(dotopt,"num_ort_parameters", N_ort_param);
       NI_set_attribute(pdset->ngr, "self_idcode", ppid);
+      NI_set_attribute(pdset->ngr,"domain_parent_idcode",
+                       NI_get_attribute(in_dset,"domain_parent_idcode"));
+      NI_set_attribute(pdset->ngr,"geometry_parent_idcode", 
+                       NI_get_attribute(in_dset,"geometry_parent_idcode"));
       SUMA_free(ppid); ppid = NULL;
       
-      /* put the dset in the global list */
-      if (!SUMA_InsertDsetPointer(&pdset, SUMAg_CF->DsetList,0)){
+      /* put the dset in the global list (allow for replace)*/
+      if (!SUMA_InsertDsetPointer(&pdset, SUMAg_CF->DsetList,1)){
          SUMA_S_Err("Failed to insert pointer");
          goto BAIL;
       }
-            
+      
+      SUMA_DotXform_SetPending (dotopt, 0, SDSET_ID(in_dset));
+      
       SUMA_RETURN(pdset);
    }
    
@@ -411,7 +527,7 @@ void SUMA_dot_product_CB( void *params)
          SUMA_LHv("Getting time series from node %d on detrended version"
                   "of dset %s\n",
                   ts_node, SDSET_FILENAME(ts_src_dset));
-         dt_dset = SUMA_GetDotPreprocessedDset(ts_src_dset, nelpars);
+         dt_dset = SUMA_GetDotPreprocessedDset(ts_src_dset, dotopts);
       } else {
          SUMA_LHv("Getting time series from node %d of dset %s\n"
                   "  (normalize_dset=%s)\n",
@@ -760,9 +876,10 @@ SUMA_Boolean SUMA_dot_product(SUMA_DSET *in_dset,
        (nelb = SUMA_FindDsetAttributeElement(dot, "COLMS_STATSYM"))) {
       par[0] = SDSET_VECNUM(in_dset); par[1] = 1;
       NI_GET_INT(dotopt,"num_ort_parameters", par[2]);
-      if (!NI_GOT) {
-         SUMA_S_Err("Failed to get ort parameters, \n"
-                    "you can't trust the p values\n ");
+      if (!NI_GOT || par[2] == -1.0) {
+         SUMA_S_Errv("Failed to get ort parameters (%f), \n"
+                     "you can't trust the p values\n ",
+                     par[2] );
          par[2] = 2; /* something ... */
       }
       SUMA_AddColAtt_CompString( nelb, 0, 

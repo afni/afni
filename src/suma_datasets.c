@@ -4758,9 +4758,10 @@ int SUMA_InsertDsetPointer (SUMA_DSET **dsetp, DList *DsetList, int replace)
                         "in your ~/.sumarc or ~/.afnirc files.\n");
              SUMA_RETURN(0);
          } else {
-            sprintf(stmp,  "Dset match based on filename, although IDs did not match.\n"
-                           "Allowing replacement per SUMA_AllowFilenameDsetMatch\n"
-                           "environment variable setting.\n");
+            sprintf(stmp,  
+                  "Dset match based on filename, although IDs did not match.\n"
+                  "Allowing replacement per SUMA_AllowFilenameDsetMatch\n"
+                  "environment variable setting.\n");
          } 
       } 
    } 
@@ -13061,7 +13062,7 @@ void SUMA_Show_NI_str_ar(NI_str_array *nisa, FILE *out)
 */
 char *SUMA_NI_str_ar_2_comp_str (NI_str_array *nisa, char *sep)
 {
-   static char FuncName[]={"SUMA_NI_str_array_2_string"};
+   static char FuncName[]={"SUMA_NI_str_ar_2_comp_str"};
    char *ar = NULL, *s=NULL;
    int i, nsep, k, ns, cnt, Nchars = 0;
    SUMA_Boolean LocalHead = NOPE;
@@ -13167,6 +13168,55 @@ char *SUMA_Get_Sub_String(char *cs, char *sep, int ii)
    #endif
    SUMA_RETURN(s);
 }
+
+/*!
+   \brief removes a string in a sep separated 
+   composite string cs
+   The function does not reallocate for cs 
+   returns 0 fail
+           1 strn found and removed
+           -1 strn not found
+*/
+int SUMA_Remove_Sub_String(char *cs, char *sep, char *strn)
+{
+   static char FuncName[]={"SUMA_Remove_Sub_String"};
+   NI_str_array *nisa=NULL;
+   char *s = NULL, *s0=NULL, *s1=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!cs || !strn || !sep) SUMA_RETURN(0);
+   
+   if (LocalHead) fprintf(SUMA_STDERR, "Strng was:\n"
+                                       ">>>%s<<<\n"
+                                       "id>%s<<<\n", 
+                                       cs, strn);
+
+   if (!(s0 = strstr(cs, strn))) {
+      SUMA_LH("id not in strn");
+      SUMA_RETURN(-1); /* nothing to do */
+   }
+   /* advance past strn */
+   s = s0+strlen(strn);
+   /* advance past sep */
+   s1 = strstr(s, sep);
+   if (s1) s1 = s1+strlen(sep);
+   else s1 = s;
+
+   /* now copy all that is left into s */
+   while (*s1 != '\0') {
+      *s0 = *s1; ++s0; ++s1;
+   }
+   *s0 = '\0';
+   
+   /* Do not bother reallocating */  
+   
+   if (LocalHead) fprintf(SUMA_STDERR, "Strng now:\n"
+                                       ">>>%s<<<\n", cs);
+   SUMA_RETURN(1);
+}
+
 
 /*!
    \brief replace the col th string attribute in a one-string nel
