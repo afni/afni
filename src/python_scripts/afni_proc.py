@@ -114,30 +114,33 @@ g_history = """
         - added help section 'SCRIPT EXECUTION NOTE'
         - reordered help: intro, BLOCKS, DEFAULTS, EXAMPLES, NOTEs, OPTIONS
         - shifted execution command to separate line
+    1.44 May 08 2009 : added tlrc (anat) as a processing block
 """
 
-g_version = "version 1.43, Apr 23, 2009"
+g_version = "version 1.44, May 8, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
 
 BlockLabels  = ['tcat', 'despike', 'tshift', 'volreg',
-                'blur', 'mask', 'scale', 'regress', 'empty']
+                'blur', 'mask', 'scale', 'regress', 'tlrc', 'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
                  'volreg' : db_mod_volreg,   'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
-                 'regress': db_mod_regress,  'empty'  : db_mod_empty}
+                 'regress': db_mod_regress,  'tlrc'   : db_mod_tlrc,
+                 'empty'  : db_mod_empty}
 BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'despike': db_cmd_despike,
                  'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
                  'volreg' : db_cmd_volreg,   'blur'   : db_cmd_blur,
                  'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
-                 'regress': db_cmd_regress,  'empty'  : db_cmd_empty}
+                 'regress': db_cmd_regress,  'tlrc'   : db_cmd_tlrc,
+                 'empty'  : db_cmd_empty}
 AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
 # default block labels, and other labels (along with the label they follow)
 DefLabels   = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
-OtherDefLabels = {'despike':'tcat', 'ricor':'despike'}
+OtherDefLabels = {'despike':'tcat', 'ricor':'despike', 'tlrc':'regress'}
 OtherLabels    = ['empty']
 
 # --------------------------------------------------------------------------
@@ -509,22 +512,8 @@ class SubjProcSream:
             # check additional blocks one by one
             errs = 0
             for bname in opt.parlist:
-                if bname in OtherDefLabels:
-                    try: preindex = blocklist.index(OtherDefLabels[bname])
-                    except:
-                        print "** cannot -do_block '%s' without block '%s'" \
-                              % (bname, OtherDefLabels[bname])
-                        errs += 1
-                        preindex = 0    # some temporary value
-                    if preindex < 0:
-                        print "** error: -do_block failure for '%s'" % bname
-                        errs += 1
-                    # so add the block to blocklist
-                    preindex += 1
-                    blocklist[preindex:preindex] = [bname]
-                else:
-                    print "** error: '%s' is invalid in '-do_block'" % bname
-                    errs += 1
+                err, blocklist = self.add_block_to_list(blocklist, bname)
+                errs += err
             if errs > 0 : return 1
 
         opt = self.user_opts.find_opt('-blocks')
@@ -532,6 +521,14 @@ class SubjProcSream:
             if opt.parlist[0] != 'tcat':
                 blocklist = ['tcat'] + opt.parlist
             else: blocklist = opt.parlist
+
+        # allow for -tlrc_anat option
+        opt = self.user_opts.find_opt('-tlrc_anat')
+        if opt and not self.find_block('tlrc'):
+            # if warp to tlrc, add before volreg, else after regress
+            # add in default position for now
+            err, blocklist = self.add_block_to_list(blocklist, 'tlrc')
+            if err: return 1
 
         # call db_mod_functions
         for label in blocklist:
@@ -562,8 +559,36 @@ class SubjProcSream:
             return 1
 
         if not uniq_list_as_dsets(self.dsets, 1): return 1
-        if not db_tlrc_opts_okay(self.user_opts): return 1
         self.check_block_order()
+
+    def add_block_to_list(self, blocks, bname, prevlab=None):
+        """given current block list, add a block for bname after that
+           of prevlab or from OtherDefLabels if None
+           
+           return error code and new list"""
+        err = 0
+        if not bname in OtherDefLabels:
+            print "** error: '%s' is invalid in '-do_block'" % bname
+            return 1, blocks
+        if prevlab == None: prevlab = OtherDefLabels[bname]
+        try: preindex = blocks.index(prevlab)
+        except:     
+            print "** cannot -do_block '%s' without block '%s'" \
+                  % (bname, OtherDefLabels[bname])
+            print "   (consider use of -blocks)\n"
+            preindex = 0
+            err = 1
+        if preindex < 0:
+            print "** error: -do_block failure for '%s'" % bname
+            err = 1
+        
+        if err: return 1, blocks
+
+        # else add the block to blocklist
+        preindex += 1
+        blocks[preindex:preindex] = [bname]
+
+        return 0, blocks
 
     # create script from blocks and options
     def create_script(self):
@@ -847,13 +872,6 @@ class SubjProcSream:
             cmd_str = \
               "# remove preprocessing files to save disk space\n"   \
               "\\rm dfile.r??.1D pb??.$subj.r??.* rm.*\n\n"
-            self.fp.write(add_line_wrappers(cmd_str))
-
-        if self.user_opts.find_opt('-tlrc_anat'):
-            cmd_str = db_cmd_tlrc(self.anat.pv(), self.user_opts)
-            if cmd_str == None:
-                print "** script creation failure for block 'tlrc'"
-                return 1
             self.fp.write(add_line_wrappers(cmd_str))
 
         self.fp.write('# return to parent directory\n'

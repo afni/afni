@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, MAY, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "tlrc (for anat) is now a processing block, for easy manipulation",
+   NULL
+ } ,
+
  { 5, MAY, 2009, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_PROG,
    "another script to update the AFNI package",
    NULL
