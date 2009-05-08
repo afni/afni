@@ -2424,6 +2424,8 @@ ENTRY("AFNI_finalize_dataset_CB") ;
 
    if( wcall == im3d->vwid->view->choose_sess_pb ){
 
+      DISABLE_INSTACORR(im3d) ; DESTROY_ICOR_setup(im3d->iset) ; /* 08 May 2009 */
+
       new_sess = cbs->ival ;
       if( new_sess < 0 || new_sess >= GLOBAL_library.sslist->num_sess ){
          XBell( im3d->dc->display , 100 ) ; EXRETURN ;  /* bad! */
@@ -4249,6 +4251,12 @@ ENTRY("AFNI_write_dataset_CB") ;
    } else if( w == im3d->vwid->dmode->write_func_pb ){  /* write function */
       dset       = im3d->fim_now ;
       resam_mode = im3d->vinfo->func_resam_mode ;
+   }
+
+   if( ISVALID_DSET(dset) && dset->dblk->diskptr->allow_directwrite == 1 ){
+     INFO_message("Direct write of dataset '%s'",DSET_BRIKNAME(dset)) ;
+     DSET_overwrite(dset) ;
+     EXRETURN ;
    }
 
    good = ISVALID_3DIM_DATASET(dset)     &&     /* check for bad data */

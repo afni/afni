@@ -113,6 +113,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
       new_dkptr->dimsizes[1]  = 2 ;
       new_dkptr->dimsizes[2]  = 2 ;
    }
+   new_dkptr->allow_directwrite = 0 ;  /* 08 May 2009 */
 
    if( old_good )
       THD_init_diskptr_names( new_dkptr ,

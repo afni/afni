@@ -277,6 +277,8 @@ typedef struct {
           stats_func_ok,     /*   to indicate if the sub-brick range  */
           stats_thresh_ok ;  /*   statistics are loaded properly     */
 
+      int i1_icor, j2_icor, k3_icor;  /* for InstaCorr -- 08 May 2009 */
+
 } AFNI_view_info ;
 
 #define AXIAL    1       /* 20 Feb 2003: view_setter codes */
@@ -369,6 +371,7 @@ typedef struct {
       Widget pop_drawdataset_pb ; /* 17 May 2005 */
 
       Widget pop_instacorr_pb ;   /* 06 May 2009 */
+      Widget pop_icorrjump_pb ;
 } AFNI_imaging_widgets ;
 
 /*--- 19 Aug 2002: Switch Surface control box ---*/
@@ -954,15 +957,18 @@ typedef struct {
 
 #define ENABLE_INSTACORR(iq)                                   \
  do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,True) ; \
+     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,True) ; \
      INSTACORR_LABEL_ON((iq)) ;                                \
  } while(0)
 
 /*! Turn InstaCorr off in this viewer */
 
-#define DISABLE_INSTACORR(iq)                                       \
- do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,False) ;     \
-     INSTACORR_LABEL_OFF((iq)) ;                                    \
-     AFNI_misc_CB((iq)->vwid->func->icor_pb,(XtPointer)(iq),NULL) ; \
+#define DISABLE_INSTACORR(iq)                                                 \
+ do{ XtSetSensitive((iq)->vwid->imag->pop_instacorr_pb,False) ;               \
+     XtSetSensitive((iq)->vwid->imag->pop_icorrjump_pb,False) ;               \
+     INSTACORR_LABEL_OFF((iq)) ;                                              \
+     (iq)->vinfo->i1_icor = (iq)->vinfo->j2_icor = (iq)->vinfo->k3_icor = -1; \
+     AFNI_misc_CB((iq)->vwid->func->icor_pb,(XtPointer)(iq),NULL) ;           \
  } while(0)
 
 /*! Is any image viewer window open? */

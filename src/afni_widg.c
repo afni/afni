@@ -777,8 +777,21 @@ STATUS("making imag->rowcol") ;
       XtAddCallback( imag->pop_instacorr_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
       XtSetSensitive( imag->pop_instacorr_pb , False ) ;
+
+      imag->pop_icorrjump_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("InstaCorr SeedJump") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( imag->pop_icorrjump_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
+      XtSetSensitive( imag->pop_icorrjump_pb , False ) ;
    } else {
       imag->pop_instacorr_pb = NULL ;
+      imag->pop_icorrjump_pb = NULL ;
    }
 
    /*--- jumpback button in menu ---*/
@@ -5338,6 +5351,8 @@ ENTRY("AFNI_initialize_controller") ;
    im3d->vinfo->j2 = im3d->anat_now->daxes->nyy / 2 ;
    im3d->vinfo->k3 = im3d->anat_now->daxes->nzz / 2 ;
    SAVE_VPT(im3d) ;
+
+   im3d->vinfo->i1_icor = im3d->vinfo->j2_icor = im3d->vinfo->k3_icor = -1 ;
 
    if( im3d->type == AFNI_3DDATA_VIEW ){  /* compute float coordinates, too */
       THD_fvec3 fv ;
