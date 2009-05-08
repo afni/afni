@@ -176,7 +176,7 @@ def db_cmd_ricor(proc, block):
     # check regressors against num runs
     if len(proc.ricor_regs) != proc.runs:
         print '** have %d runs but %d slice-base ricor regressors' % \
-              (proc.runs, len(reglist))
+              (proc.runs, len(proc.ricor_regs))
         return
 
     # get datum, if set

@@ -53,6 +53,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ { 8, MAY, 2009, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "small cut-n-paste errors in db_mod.py and afni_util.py",
+   NULL
+ } ,
+
  { 5, MAY, 2009, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_PROG,
    "another script to update the AFNI package",
    NULL
