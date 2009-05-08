@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAY , 2009 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Instacorr updates" ,
+   "* Can Write A_ICOR datasets using new allow_directwrite variable\n"
+   "* Disable InstaCorr when switching sessions and views\n"
+   "* Notify renderer (DRAWNOTICE) when changes made\n"
+   "* Shift-Ctrl-Left-Click does crosshair shift + InstaCorr Set" } ,
+
  { 7 , MAY , 2009 , RWC , "afni" , MINOR , TYPE_GENERAL ,
    "FIxes/upgrades for InstaCorr" ,
    "* memory problem fixed by malloc-ing sizeof(float *)\n"

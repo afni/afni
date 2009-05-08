@@ -29,18 +29,38 @@ static char helpstring[] =
   "\n"
   "(2) In an image viewer window:\n"
   "   * Right-click (or Ctrl-Left-click) to get a popup menu.\n"
+  "\n"
   "   * The top item is 'InstaCorr Set'.\n"
-  "   * Choosing this button will cause the current crosshair voxel\n"
-  "     to be correlated with all the others.\n"
-  "   * A new functional overlay dataset will be created to show\n"
-  "     the results.\n"
+  "   ++ This item will only be enabled when Setup processing is complete.\n"
+  "\n"
+  "   * Choosing this item will cause the current crosshair voxel to\n"
+  "     be the seed time series that is correlated with all the others.\n"
+  "\n"
+  "   * A new functional overlay dataset will be created to show the result,\n"
+  "     which comprises the collection of correlation coefficients of each\n"
+  "     processed voxel time series with the (processed) seed voxel time series.\n"
+  "   ++ In AFNI controller 'A', this dataset will be named 'A_ICOR', etc.\n"
+  "   ++ This correlation dataset will NOT be saved to disk automatically.\n"
+  "   ++ You can save this dataset to disk with the 'Datamode -> Write OLay'\n"
+  "      button in the main AFNI controller window.\n"
+  "   ++ Pressing this button more than once will result in this dataset\n"
+  "      being over-written by the latest version!\n"
+  "\n"
   "   * Each time you do 'InstaCorr Set', the functional overlay\n"
   "     will be updated to reflect the new correlation map.\n"
+  "\n"
+  "  ** Alternative to using 'InstaCorr Set' on the popup menu:\n"
+  "   ++ Hold down BOTH the Shift and Control keys on the keyboard\n"
+  "      while clicking down the Left mouse button\n"
+  "      (i.e., Shift-Ctrl-Left-click).\n"
+  "   ++ This combination will jump the crosshairs to the selected point\n"
+  "      AND then run 'InstaCorr Set' using this new voxel as the seed.\n"
   "\n"
   "CONTROLS\n"
   "========\n"
   "* Time Series:\n"
   "    Dataset  = time series dataset to auto-correlate\n"
+  "                [this dataset does NOT have to be the Underlay]\n"
   "    Ignore   = number of initial time points to ignore\n"
   "    Blur     = FWHM in mm of blurring to perform\n"
   "                [if a Mask is used, blurring is only inside the mask]\n"
@@ -66,11 +86,18 @@ static char helpstring[] =
   "                [of the frequency components rejected by Bandpass.    ]\n"
   "OPERATION\n"
   "=========\n"
-  "* Once you have set the controls the way you want, press 'Setup+Keep' and\n"
-  "  the program will pre-filter the data time series.\n"
+  "* Once you have set the controls the way you want, press one of the ''Setup'n"
+  "  buttons, and the program will process (filter & blur) the data time series.\n"
   "\n"
-  "* When this is finished, you will be ready to use 'InstaCorr Set' and\n"
-  "  have some InstaCorr fun!\n"
+  "* When this processing is finished, you will be ready to use 'InstaCorr Set'\n"
+  "  (or Shift-Ctrl-Left-click) and have some InstaCorr fun!\n"
+  "\n"
+  "* The 'InstaCorr SeedJump' popup menu item will jump the crosshairs back\n"
+  "  to the voxel that is the currently used InstaCorr seed.\n"
+  "\n"
+  "* If you switch session directories, or switch views (e.g., +orig to +tlrc),\n"
+  "  InstaCorr will be disabled and you'll have to use the 'Setup ICorr'\n"
+  "  button again to re-initialize the computations.\n"
   "\n"
   "Author -- RW Cox -- May 2009\n"
 ;
@@ -93,7 +120,7 @@ PLUGIN_interface * ICOR_init( char *lab )
 
    /*---------------- set titles and call point ----------------*/
 
-   sprintf(sk,"%sControl InstaCorr",lab) ;
+   sprintf(sk,"%sSetup InstaCorr",lab) ;
    plint = PLUTO_new_interface( "InstaCorr" ,
                                 sk ,
                                 helpstring ,
@@ -308,6 +335,7 @@ ENTRY("AFNI_icor_setref") ;
                         ADN_nvals     , 1 ,
                         ADN_ntt       , 0 ,
                         ADN_func_type , FUNC_BUCK_TYPE ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
      DSET_superlock(icoset) ;
@@ -326,6 +354,8 @@ INFO_message("trashed and re-used old dataset %s",im3d->iset->prefix) ;
        nds = im3d->ss_now->num_dsset ;
        im3d->ss_now->dsset[nds][vv] = icoset ;
        im3d->ss_now->num_dsset++ ;
+       AFNI_force_adoption( im3d->ss_now , False ) ;
+       AFNI_make_descendants( GLOBAL_library.sslist ) ;
 INFO_message("created new dataset %s",im3d->iset->prefix) ;
      }
 
@@ -334,9 +364,9 @@ INFO_message("created new dataset %s",im3d->iset->prefix) ;
    } else {
 
      icoset = slf.dset ; nds = slf.dset_index ;
-INFO_message("reloading correlations into existing dataset") ;
 
    }
+   icoset->dblk->diskptr->allow_directwrite = 1 ;
 
    /* save the result into the output dataset */
 
@@ -355,12 +385,14 @@ INFO_message("reloading correlations into existing dataset") ;
    /* redisplay overlay */
 
    if( im3d->fim_now != icoset ){  /* switch to this dataset */
-     MCW_choose_cbs cbs ;
+     MCW_choose_cbs cbs ; char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
      cbs.ival = nds ;
      AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                                (XtPointer)im3d ,  &cbs           ) ;
      AFNI_set_fim_index(im3d,0) ;
      AFNI_set_thr_index(im3d,0) ;
+     sprintf(cmd,"SET_FUNC_RANGE %c.0.6",cpt[1]) ;
+     AFNI_driver(cmd) ;
    }
    AFNI_reset_func_range(im3d) ;
 
