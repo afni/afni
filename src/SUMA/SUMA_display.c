@@ -12344,6 +12344,7 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
    float fs, fmax, fstep;
    double TR;    
    int N_TS;
+   XmString xmstmp; 
    SUMA_DSET *in_dset=NULL;
      
    SUMA_ENTRY;
@@ -12452,10 +12453,14 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
       MCW_register_hint(xf->gui->LoadOrtFile_pb , "Load an ort file" ) ;
       XtManageChild (xf->gui->LoadOrtFile_pb);
 
+      xmstmp = XmStringCreateLtoR ("no ort file loaded", 
+                                    XmSTRING_DEFAULT_CHARSET);
       xf->gui->OrtFileLabel_lb = XtVaCreateManagedWidget (
-               "--", 
+               "orti", 
                xmLabelWidgetClass, rc,
+               XmNlabelString, xmstmp,
                NULL);
+      XmStringFree (xmstmp); xmstmp=NULL;
       
       XtManageChild(rc);
       
