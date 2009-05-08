@@ -7025,7 +7025,7 @@ void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data,
 {
    static char FuncName[]={"SUMA_cb_ColPlaneShow_toggled"};
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
