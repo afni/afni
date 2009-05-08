@@ -83,14 +83,14 @@ def args_as_command(args, prefix='', suffix=''):
     return fstr
 
 def show_args_as_command(args, note='command:'):
-  print args_as_command(args,
      """print the given argument list as a command
         (this allows users to see wildcard expansions, for example)"""
 
+     print args_as_command(args,
      "----------------------------------------------------------------------\n"
      "%s\n\n    " % note,
      "\n----------------------------------------------------------------------"
-  )
+     )
 
 def uniq_list_as_dsets(dsets, showerr=0):
     """given a list of text elements, create a list of afni_name elements,
