@@ -65,6 +65,18 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 8 , MAY , 2009 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT ,
+   "The script now automatically turns FS annot files to SUMA ROI files",
+   NULL
+ } ,
+ 
+ { 8 , MAY , 2009 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
+   "Better display of ROI contours on patches",
+   "Suma now correctly handles ROI display when the ROIs\n"
+   "contain nodes that are not in the patch. Also, on flat surfaces,\n"
+   "ROI contours are drawn raised so that they float over flat surfaces."
+ } ,
+
  { 5 , MAY , 2009 , ZSS , "DriveSuma" , MINOR , TYPE_BUG_FIX ,
    "Added 'd' and 'j' keys",
    NULL
