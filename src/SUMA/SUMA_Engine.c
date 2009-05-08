@@ -317,6 +317,45 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                                 &SUMAg_CF->X->FileSelectDlg);
             
             break;
+         case SE_SaveXformOptsFileSelection:
+            /* opens the save Xform Opts  file selection window. 
+            Expects SUMA_XFORM* in vp  and a position reference 
+            widget typecast to ip, the latter can be null.*/
+            if (  EngineData->vp_Dest != NextComCode || 
+                  EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
+               break;
+            }
+            
+            /* save Xform opts to file */
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            if (!EngineData->ip) {
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct ( sv->X->TOPLEVEL,      
+                                                   SUMA_FILE_SAVE, YUP,
+                                                   SUMA_SaveXformOpts, 
+                                                   (void *)EngineData->vp,
+                                                   NULL, NULL,
+                                                   "*.xfopts",
+                                                   SUMAg_CF->X->FileSelectDlg);
+            } else {
+               SUMAg_CF->X->FileSelectDlg = 
+                  SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, 
+                                                   SUMA_FILE_SAVE, YUP,
+                                                   SUMA_SaveXformOpts, 
+                                                   (void *)EngineData->vp,
+                                                   NULL, NULL,
+                                                   "*.xfopts",
+                                                   SUMAg_CF->X->FileSelectDlg);
+            }
+            
+            SUMAg_CF->X->FileSelectDlg = 
+               SUMA_CreateFileSelectionDialog ( "Select Opts Filename", 
+                                                &SUMAg_CF->X->FileSelectDlg);
+            
+            break;
 
          case SE_SaveSOFileSelection:
             /* saves a surface and its node colors to ascii files */
@@ -324,8 +363,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                to ip, the latter can be null.*/
             if (EngineData->vp_Dest != NextComCode || 
                   EngineData->ip_Dest != NextComCode ) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
-                  FuncName, NextCom, NextComCode);
+               fprintf (SUMA_STDERR,
+                        "Error %s: Data not destined correctly for %s (%d).\n", 
+                        FuncName, NextCom, NextComCode);
                break;
             }
             if (!sv) sv = &(SUMAg_SVv[0]);

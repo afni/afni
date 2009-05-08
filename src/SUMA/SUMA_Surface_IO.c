@@ -6140,6 +6140,48 @@ void SUMA_SaveSOascii (char *filename, void *data)
    if (newprefix) SUMA_free(newprefix); 
    SUMA_RETURNe;
 }
+/*!
+   \brief handles saving xform opts to filename.
+   
+   \param filename (char *)
+   \param data(void *) pointer to SUMA_XFORM stucture to be saved.
+*/
+void SUMA_SaveXformOpts (char *filename, void *data)
+{
+   static char FuncName[]={"SUMA_SaveXformOpts"};
+   SUMA_XFORM *xf=(SUMA_XFORM *)data;
+   char *fn=NULL;
+   int suc;
+   NI_element *dotopts=NULL; 
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   SUMA_LH("Called");   
+   if (!data) {
+      SUMA_S_Err("NULL input");
+      SUMA_RETURNe;
+   }
+   
+   SUMA_LHv("Xform %s, filename %s\n", xf->name, filename);
+    
+   if (!strcmp(xf->name,"Dot")) {
+      if (!(dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
+         SUMA_S_Err("No dotopts");
+         SUMA_RETURNe;
+      }  
+      fn = SUMA_Extension(filename, ".niml.xfopts", NOPE);
+      fn = SUMA_append_replace_string("file:",fn,"",2);
+      NEL_WRITE_1D(dotopts, fn, suc);
+      SUMA_free(fn);
+   } else {
+      fn = SUMA_Extension(filename, ".niml.xfopts", NOPE);
+      fn = SUMA_append_replace_string("file:",fn,"",2);
+      NEL_WRITE_TXH(xf->XformOpts, fn, suc);
+   }
+   
+   SUMA_RETURNe;
+} 
 
 /*!
    \brief handles saving ROI to filename.

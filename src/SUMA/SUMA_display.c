@@ -4099,7 +4099,7 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    Display *dpy;
    SUMA_SurfaceViewer *sv;
    int isv;    
-   char slabel[100]; 
+   char slabel[100], *sss; 
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -4118,14 +4118,20 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
    
    sprintf(slabel,"[%c] Viewer Controller", 65+isv);
    
-   
+   if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
+      sss = "font9";
+   } else {
+      sss = "font8";
+   }
+
    #if SUMA_CONTROLLER_AS_DIALOG 
       /*xmDialogShellWidgetClass, topLevelShellWidgetClass*/
    SUMA_LH("Create a popup");
-   sv->X->ViewCont->TopLevelShell = XtVaCreatePopupShell (slabel,
+   sv->X->ViewCont->TopLevelShell = XtVaCreatePopupShell (sss,
       xmDialogShellWidgetClass, tl,
       XmNallowShellResize, True, /* let code resize shell */
       XmNdeleteResponse, XmDO_NOTHING,
+      XmNtitle, slabel,
       NULL);    
    #else
    SUMA_LH("Create an App");
@@ -4133,9 +4139,10 @@ void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData)
       topLevelShellWidgetClass. 
       XtVaCreatePopupShell is used to create dialog shells not 
       toplevel or appshells */
-   sv->X->ViewCont->TopLevelShell = XtVaAppCreateShell (slabel, "Suma",
+   sv->X->ViewCont->TopLevelShell = XtVaAppCreateShell (sss, "Suma",
       topLevelShellWidgetClass, SUMAg_CF->X->DPY_controller1 ,
       XmNdeleteResponse, XmDO_NOTHING,
+      XmNtitle, slabel,
       NULL);   
    #endif
    
@@ -4438,6 +4445,8 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
 {
    static char FuncName[]={"SUMA_CloseBhelp_Frame"};
    Widget rc, pb_close, pb_bhelp, DispFrame;
+   
+   SUMA_ENTRY;
       
    /* put up a frame to group the display controls */
    DispFrame = XtVaCreateWidget ("dialog",
@@ -4494,6 +4503,8 @@ Widget SUMA_CloseBhelp_Frame( Widget parent,
 
    /* manage the frame and the fslabelorm */
    XtManageChild (DispFrame);
+   
+   SUMA_RETURNe;
 }
 
 /*!
@@ -5546,6 +5557,7 @@ void SUMA_CreateDrawROIWindow(void)
    static char FuncName[] = {"SUMA_CreateDrawROIWindow"};
    Widget form, frame, rc, pb, rc_ur, rcv, rc_switch, rc_save;
    int i;
+   char *sss, slabel[]={"Draw ROI"};
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -5554,11 +5566,18 @@ void SUMA_CreateDrawROIWindow(void)
       fprintf (SUMA_STDERR,"Error %s: SUMAg_CF->X->DrawROI->AppShell!=NULL. Should not be here.\n", FuncName);
       SUMA_RETURNe;
    }
-    
+   
+   if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
+      sss = "font9";
+   } else {
+      sss = "font8";
+   }
+ 
    /* create as a separate application shell, you do not want a parent to this controller that
    can be closed or withdrawn temporarily */
-   SUMAg_CF->X->DrawROI->AppShell = XtVaAppCreateShell("Draw ROI" , "Suma" ,
+   SUMAg_CF->X->DrawROI->AppShell = XtVaAppCreateShell(sss , "Suma" ,
       topLevelShellWidgetClass , SUMAg_CF->X->DPY_controller1 ,
+      XmNtitle, slabel,
       NULL ) ;
    
    /* turn off default delete response. If you do not do that, you will suffer.*/
@@ -5867,7 +5886,8 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                "", '\0', YUP, DrawROI_SaveMode_Menu, 
-                               "Frm.", "File format for saving ROI", SUMA_DrawROI_SaveFormat_help, 
+                               "Frm.", "File format for saving ROI", 
+                               SUMA_DrawROI_SaveFormat_help, 
                                SUMAg_CF->X->DrawROI->SaveModeMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu[SW_DrawROI_SaveMode]);
       
@@ -6438,11 +6458,13 @@ void SUMA_CreateScrolledList (
    \param AF (SUMA_ARROW_TEXT_FIELD *) structure defining the arrow field.                        
    - AF must be pre-allocated, of course. Its fields are initialized by the values passed to the function
 */
-void SUMA_CreateArrowField ( Widget pw, char *label,
-                              float value, float vmin, float vmax, float vstep,
+void SUMA_CreateArrowField (  Widget pw, char *label,
+                              float value, float vmin, 
+                              float vmax, float vstep,
                               int cwidth, SUMA_VARTYPE type,
                               SUMA_Boolean wrap,
-                              void (*NewValueCallback)(void *data), void *cb_data,
+                              void (*NewValueCallback)(void *data), 
+                              void *cb_data,
                               char *hint, char *help,
                               SUMA_ARROW_TEXT_FIELD *AF)
 {
@@ -6451,7 +6473,9 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
    SUMA_ENTRY;
    
    if (!AF) {
-      SUMA_RegisterMessage (SUMAg_CF->MessageList, "Bad value in text field", FuncName, SMT_Error, SMA_Log);
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                            "Bad value in text field", 
+                            FuncName, SMT_Error, SMA_Log);
       SUMA_RETURNe;  
    }
    
@@ -6511,7 +6535,8 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
    if (help) MCW_register_help( AF->down , help);
    XtVaSetValues (AF->down, XmNuserData, (XtPointer)AF, NULL);
    XtAddCallback (AF->down, XmNarmCallback, SUMA_ATF_start_stop, (XtPointer)-1);
-   XtAddCallback (AF->down, XmNdisarmCallback, SUMA_ATF_start_stop, (XtPointer)-1);
+   XtAddCallback (AF->down, XmNdisarmCallback, 
+                              SUMA_ATF_start_stop, (XtPointer)-1);
 
    AF->textfield = XtVaCreateManagedWidget ("label",
       xmTextFieldWidgetClass, AF->rc,
@@ -6525,8 +6550,10 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
    if (hint) MCW_register_hint( AF->textfield , hint);
    if (help) MCW_register_help( AF->textfield , help);
    
-   XtAddCallback (AF->textfield, XmNactivateCallback, SUMA_ATF_cb_label_change, (XtPointer)AF);
-   XtAddCallback (AF->textfield, XmNmodifyVerifyCallback, SUMA_ATF_cb_label_Modify, (XtPointer)AF);
+   XtAddCallback (AF->textfield, XmNactivateCallback, 
+                                    SUMA_ATF_cb_label_change, (XtPointer)AF);
+   XtAddCallback (AF->textfield, XmNmodifyVerifyCallback, 
+                                    SUMA_ATF_cb_label_Modify, (XtPointer)AF);
    
    /* add event handler to nitify when widget was left */
    XtInsertEventHandler( AF->textfield ,        /* notify when */
@@ -7808,6 +7835,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
    static char FuncName[] = {"SUMA_cb_createSumaCont"};
    Widget rc, pb_close, pb_new, pb_done, pb_bhelp, LockFrame, AppFrame, form, tb, rb, rc_m;
    int i;
+   char *sss;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -7817,10 +7845,17 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       SUMA_RETURNe;
    }
 
+   if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
+      sss = "font9";
+   } else {
+      sss = "font8";
+   }
+
    /* create as a separate application shell, you do not want a parent to this controller that
    can be closed or withdrawn temporarily */
-   SUMAg_CF->X->SumaCont->AppShell = XtVaAppCreateShell("Suma Controller" , "Suma" ,
+   SUMAg_CF->X->SumaCont->AppShell = XtVaAppCreateShell( sss, "Suma" ,
       topLevelShellWidgetClass , SUMAg_CF->X->DPY_controller1 ,
+      XmNtitle, "Suma Controller", 
       NULL ) ;
    
   
@@ -11632,7 +11667,7 @@ void SUMA_cb_CloseXformInterface(Widget w, XtPointer data, XtPointer call_data)
    static char FuncName[] = {"SUMA_cb_CloseXformInterface"};
    SUMA_XFORM *xf=(SUMA_XFORM *)data;
    SUMA_Boolean Shaded = NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -11655,9 +11690,10 @@ void SUMA_cb_CloseXformInterface(Widget w, XtPointer data, XtPointer call_data)
 SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
 {
    static char FuncName[] = {"SUMA_InitializeXformInterface"};
-   char sbuf[3*SUMA_MAX_LABEL_LENGTH];
+   char sbuf[12*SUMA_MAX_LABEL_LENGTH+12];
    int ii=0;
    SUMA_DSET *in_dset=NULL;
+   NI_element *dotopts=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -11672,6 +11708,7 @@ SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
          fprintf (SUMA_STDERR, 
                   "%s: Initializing with %p.\n", FuncName, xf);
       
+      
       /* generic stuff */
       XmToggleButtonSetState( xf->gui->Active_tb, xf->active, NOPE);
       
@@ -11679,22 +11716,39 @@ SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
       if (!strcmp(xf->name, "Dot")) { 
          for (ii=0; ii<xf->N_parents; ++ii) {
             if (!SUMA_is_ID_4_DSET(xf->parents[ii], &in_dset)) {
-                     /* This is a convoluted way to get in_dset, 
-                        since in_dset is known from a few lines above.
-                        But it is meant to demo how to work with
-                        multiple parents in xf in general */
                SUMA_S_Err("You've really done it this time!");
                SUMA_RETURN(NOPE);
             }         
             if (ii==0) snprintf (sbuf, sizeof(char)*3*SUMA_MAX_LABEL_LENGTH,
                                  "TS Parents:\n"
                                  "%s", SDSET_LABEL(in_dset));
-            else       snprintf (sbuf, sizeof(char)*3*SUMA_MAX_LABEL_LENGTH,
-                                 "%s\n"
-                                 "%s", sbuf, SDSET_LABEL(in_dset));
+            else if (ii<10)      {
+               strcat(sbuf,"\n");
+               strcat(sbuf,
+                      SDSET_LABEL(in_dset));
+            }  else {
+               SUMA_S_Err("Fatten sbuf");
+            }
          }
          SUMA_SET_LABEL(xf->gui->ParentLabel_lb, sbuf);
          
+         if ((dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
+            NI_GET_FLOAT(dotopts, "filter_below", (xf->gui->AF0->value));
+            sprintf(sbuf, "%.3f", (xf->gui->AF0->value));
+            SUMA_SET_TEXT_FIELD(xf->gui->AF0->textfield,sbuf); 
+            NI_GET_FLOAT(dotopts, "filter_above", (xf->gui->AF1->value));
+            sprintf(sbuf, "%.3f", xf->gui->AF1->value);
+            SUMA_SET_TEXT_FIELD(xf->gui->AF1->textfield,sbuf); 
+            NI_GET_INT(dotopts, "polort", (xf->gui->AF2->value));
+            sprintf(sbuf, "%d", (int)(xf->gui->AF2->value));
+            SUMA_SET_TEXT_FIELD(xf->gui->AF2->textfield,sbuf); 
+         }else {
+            SUMA_S_Err("No dotopts!");
+            SUMA_RETURNe;
+         }
+         if (xf->gui->ShowPreProc_tb) 
+            XmToggleButtonSetState( xf->gui->ShowPreProc_tb, 
+                                    xf->ShowPreProc, NOPE);
       } else {
          SUMA_S_Errv("Don't know how to initialize %s\n", xf->name);   
       }
@@ -11702,7 +11756,8 @@ SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf)
    SUMA_RETURN (YUP);
 }
 
-void SUMA_cb_XformActive_toggled(Widget w, XtPointer data, XtPointer client_data)
+void SUMA_cb_XformActive_toggled(Widget w, XtPointer data, 
+                                 XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_XformActive_toggled"};
    SUMA_XFORM *xf=(SUMA_XFORM*)data;
@@ -11714,11 +11769,24 @@ void SUMA_cb_XformActive_toggled(Widget w, XtPointer data, XtPointer client_data
    SUMA_RETURNe;
 }
 
-void SUMA_CreateXformParentsInterface(SUMA_XFORM *xf, Widget parent_frame)
+void SUMA_cb_XformShowPreProc_toggled( Widget w, XtPointer data, 
+                                       XtPointer client_data)
 {
-   static char FuncName[]={"SUMA_CreateXformParentsInterface"};
+   static char FuncName[]={"SUMA_cb_XformShowPreProc_toggled"};
+   SUMA_XFORM *xf=(SUMA_XFORM*)data;
+   
+   SUMA_ENTRY;
+   
+   SUMA_SetXformShowPreProc(xf, !xf->ShowPreProc, 1);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_CreateXformXformInterface(SUMA_XFORM *xf, Widget parent_frame)
+{
+   static char FuncName[]={"SUMA_CreateXformXformInterface"};
    Widget rc, rcv;
-   SUMA_Boolean LocalHead=YUP;
+   SUMA_Boolean LocalHead=NOPE;
    
    SUMA_ENTRY;
    
@@ -11750,6 +11818,26 @@ void SUMA_CreateXformParentsInterface(SUMA_XFORM *xf, Widget parent_frame)
    SUMA_SET_SELECT_COLOR(xf->gui->Active_tb);
    
    XtManageChild(rc);
+
+   XtManageChild(rcv);
+   SUMA_RETURNe;
+}
+
+void SUMA_CreateXformParentsInterface(SUMA_XFORM *xf, Widget parent_frame)
+{
+   static char FuncName[]={"SUMA_CreateXformParentsInterface"};
+   Widget rc, rcv;
+   SUMA_Boolean LocalHead=NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* the vertical rcv */
+   rcv = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, parent_frame,
+         XmNorientation , XmVERTICAL ,
+         XmNmarginHeight, 0 ,
+         XmNmarginWidth , 0 ,
+         NULL);
    
    /* row column to hold parent name and maybe more*/
    rc = XtVaCreateWidget ("rowcolumn",
@@ -11760,6 +11848,9 @@ void SUMA_CreateXformParentsInterface(SUMA_XFORM *xf, Widget parent_frame)
          XmNmarginWidth , 0 ,
          NULL);
    if ( !strcmp(xf->name,"Dot") ) { /* Dot xform */
+      XtVaCreateManagedWidget ("Preprocessed Dsets:", 
+               xmLabelWidgetClass, rc,
+               NULL);
       xf->gui->ParentLabel_lb = 
          XtVaCreateManagedWidget ("TS Parents:      N/A \n"
                                   "                 N/A \n", 
@@ -11776,17 +11867,368 @@ void SUMA_CreateXformParentsInterface(SUMA_XFORM *xf, Widget parent_frame)
    }
    XtManageChild(rc);
    
+   if (!strcmp(xf->name,"Dot")) {
+      /* Show intermediate dsets? */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rcv,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+      
+      /* a save button for preprocessed dsets */
+      xf->gui->SavePreProc_pb = XtVaCreateWidget ("Save", 
+                                           xmPushButtonWidgetClass, rc, 
+                                           NULL);
+      XtAddCallback (xf->gui->SavePreProc_pb, 
+                     XmNactivateCallback, 
+                     SUMA_cb_XformPreProc_Save, (XtPointer)xf);
+      MCW_register_help(xf->gui->SavePreProc_pb , SUMA_XformPreProc_Save_help ) ;
+      MCW_register_hint(xf->gui->SavePreProc_pb , 
+                        "Save the preprocessed dsets to disk." ) ;
+      XtManageChild (xf->gui->SavePreProc_pb);
+
+      #if 0 /* complicated, see comment in SUMA_SetXformShowPreProc*/
+      xf->gui->ShowPreProc_tb = XtVaCreateManagedWidget("Show Intermediate", 
+         xmToggleButtonWidgetClass, rc, NULL);
+      XmToggleButtonSetState (xf->gui->ShowPreProc_tb, xf->ShowPreProc, NOPE);
+      XtAddCallback (xf->gui->ShowPreProc_tb, 
+                     XmNvalueChangedCallback, SUMA_cb_XformShowPreProc_toggled, 
+                     (XtPointer)xf);
+      MCW_register_help(xf->gui->ShowPreProc_tb , 
+                        SUMA_ShowPreProcXform_help ) ;
+      MCW_register_hint(xf->gui->ShowPreProc_tb , 
+                        "Make visible preprocessed dsets" ) ;
+
+      /* set the toggle button's select color */
+      SUMA_SET_SELECT_COLOR(xf->gui->ShowPreProc_tb);
+      #endif
+      
+      XtManageChild(rc);
+
+   }else {
+      SUMA_S_Errv("Don't know how to build xform parent interface for %s\n",
+                  xf->name);
+      SUMA_RETURNe;
+   }
+   XtManageChild(rc);
+   
    
    
    XtManageChild(rcv);
    SUMA_RETURNe;
 }
+
+
+void SUMA_DotXform_NewBandPass(  SUMA_XFORM *xf,
+                                 float lf, float uf, 
+                                 int fromgui)
+{
+   static char FuncName[]={"SUMA_DotXform_NewBandPass"};
+   NI_element *dotopts=NULL;
+   char sbuf[256];
+   int ii;
+      
+   SUMA_ENTRY;
+   
+   if (lf > uf) {
+      SUMA_S_Err("Bad range");
+      SUMA_RETURNe;
+   }
+   
+   if (!(dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
+      SUMA_S_Err("Failed to find dotopts");
+      SUMA_RETURNe;
+   }
+   
+   NI_SET_FLOAT(dotopts,"filter_below", lf);
+   NI_SET_FLOAT(dotopts,"filter_above", uf);
+
+   if (!fromgui && xf->gui) {
+      xf->gui->AF0->value = lf;
+      sprintf(sbuf, "%.3f", lf);
+      SUMA_SET_TEXT_FIELD(xf->gui->AF0->textfield,sbuf); 
+      xf->gui->AF1->value = uf;
+      sprintf(sbuf, "%.3f", uf);
+      SUMA_SET_TEXT_FIELD(xf->gui->AF1->textfield,sbuf); 
+   } 
+   
+   for (ii=0; ii<xf->N_parents; ++ii)
+      SUMA_DotXform_SetPending (dotopts, 1, xf->parents[ii]);
+   
+     
+   SUMA_RETURNe;
+}
+
+
+void SUMA_DotXform_NewPolort(  SUMA_XFORM *xf,
+                               int polort, 
+                               int fromgui)
+{
+   static char FuncName[]={"SUMA_DotXform_NewPolort"};
+   NI_element *dotopts=NULL;
+   char sbuf[256];
+   int ii=0;
+   SUMA_DSET *in_dset=NULL;
+      
+   SUMA_ENTRY;
+   
+   if (polort < -1) {
+      SUMA_S_Err("Bad val");
+      SUMA_RETURNe;
+   }
+   
+   if (!(dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
+      SUMA_S_Err("Failed to find dotopts");
+      SUMA_RETURNe;
+   }
+   
+   NI_SET_INT(dotopts,"polort", polort);
+
+   if (!fromgui && xf->gui) {
+      xf->gui->AF2->value = polort;
+      sprintf(sbuf, "%d", polort);
+      SUMA_SET_TEXT_FIELD(xf->gui->AF2->textfield,sbuf); 
+   } 
+   
+   /* recalculate polorts */
+   if (!(SUMA_is_ID_4_DSET(xf->parents[0], &in_dset))) {
+      SUMA_S_Err("Could not find ts dset");
+      SUMA_RETURNe;
+   }
+   if (!SUMA_DotXform_MakeOrts( dotopts, SDSET_VECNUM(in_dset), 
+                                polort, NI_get_attribute(dotopts,"ortname"))){
+      SUMA_S_Err("Failed to make orts");
+      SUMA_RETURNe;
+   }
+
+   
+   for (ii=0; ii<xf->N_parents; ++ii)
+      SUMA_DotXform_SetPending (dotopts, 1, xf->parents[ii]);
+
+     
+   SUMA_RETURNe;
+}
+
+void SUMA_Xform_NewAF0 (void *data) 
+{
+   static char FuncName[]={"SUMA_Xform_NewAF0"};
+   SUMA_XFORM *xf=(SUMA_XFORM *)data;
+   char sbuf[128];
+   
+   SUMA_ENTRY;
+   
+   if (!strcmp(xf->name,"Dot")) { 
+      if (xf->gui->AF0->value > xf->gui->AF1->value) {/* bad range*/
+         xf->gui->AF0->value = xf->gui->AF1->value;
+         sprintf(sbuf, "%.3f", xf->gui->AF0->value);
+         SUMA_SET_TEXT_FIELD(xf->gui->AF0->textfield,sbuf); 
+         SUMA_RETURNe;
+      }
+
+      SUMA_DotXform_NewBandPass( xf, xf->gui->AF0->value, 
+                                 xf->gui->AF1->value , 1);      
+   } else {
+      SUMA_S_Errv("Don't know how to process xform %s\n", xf->name);
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_Xform_NewAF1 (void *data) 
+{
+   static char FuncName[]={"SUMA_Xform_NewAF1"};
+   SUMA_XFORM *xf=(SUMA_XFORM *)data;
+   char sbuf[128];
+   
+   SUMA_ENTRY;
+   
+   if (!strcmp(xf->name,"Dot")) { 
+      if (xf->gui->AF1->value < xf->gui->AF0->value) {/* bad range*/
+         xf->gui->AF1->value = xf->gui->AF0->value;
+         sprintf(sbuf, "%.3f", xf->gui->AF1->value);
+         SUMA_SET_TEXT_FIELD(xf->gui->AF1->textfield,sbuf); 
+         SUMA_RETURNe;
+      }
+      SUMA_DotXform_NewBandPass( xf, xf->gui->AF0->value, 
+                                 xf->gui->AF1->value , 1);      
+   } else {
+      SUMA_S_Errv("Don't know how to process xform %s\n", xf->name);
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_Xform_NewAF2 (void *data) 
+{
+   static char FuncName[]={"SUMA_Xform_NewAF2"};
+   SUMA_XFORM *xf=(SUMA_XFORM *)data;
+   char sbuf[128];
+   
+   SUMA_ENTRY;
+   
+   if (!strcmp(xf->name,"Dot")) { 
+      SUMA_DotXform_NewPolort( xf, xf->gui->AF2->value, 1);      
+   } else {
+      SUMA_S_Errv("Don't know how to process xform %s\n", xf->name);
+   }
+   
+   SUMA_RETURNe;
+}
+
+
+void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data, 
+                             XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_XformOpts_Save"};
+   SUMA_XFORM *xf=(SUMA_XFORM*)data;
+   NI_element *nelpars=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!strcmp(xf->name,"Dot")) {
+      SUMA_CALLBACK *cb=NULL;
+      DListElmt *el=NULL;
+      DList *lst = SUMAg_CF->callbacks;
+      if (!lst) SUMA_RETURNe;
+      el = dlist_head(lst);
+      while (el && !cb) {
+         cb = (SUMA_CALLBACK *)el->data;
+         if (!strcmp(cb->creator_xform, xf->idcode_str)) {
+            SUMA_SetCallbackPending(cb, 1, SES_Suma);
+            if (( nelpars=
+                   SUMA_FindNgrNamedElement(
+                     cb->FunctionInput, "event_parameters"))) {
+               /* put the last events back in */
+               SUMA_XFORM_RETRIEVE_LAST_EVENT(nelpars);
+               if (!SUMA_ExecuteCallback(cb, 1, NULL, 1)) {
+                  SUMA_S_Err("Failed executing callback");
+               }
+            }
+         }
+         el = dlist_next(el);
+      }  
+   } else {
+      SUMA_S_Errv("Don't know what to do for this %s xform", xf->name);
+      SUMA_RETURNe;
+   }
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_XformOpts_Save (Widget w, XtPointer data, 
+                             XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_XformOpts_Save"};
+   SUMA_XFORM *xf=(SUMA_XFORM*)data;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_SaveXformOptsFileSelection);
+   if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_vp, (void *)xf,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+   }
+   if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_ip, (int *)w,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_In, NextElm)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+   }
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+   
+   SUMA_RETURNe;
+}
+
+SUMA_Boolean SUMA_SaveXformPreProcDsets (SUMA_XFORM *xf, char *prefix)
+{
+   static char FuncName[]={"SUMA_SaveXformPreProcDsets"};
+   char *fn=NULL, *fno=NULL, *oid=NULL, *ofn=NULL;
+   int ii;
+   NI_element *dotopt=NULL;
+   SUMA_DSET *in_dset=NULL, *pp_dset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!strcmp(xf->name,"Dot")) {   
+      if (!(dotopt = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
+         SUMA_S_Err("dotopt not found");
+         SUMA_RETURN(NOPE);
+      }
+      for (ii=0; ii<xf->N_parents; ++ii) {
+         if (!SUMA_is_ID_4_DSET(xf->parents[ii], &in_dset)) {
+            SUMA_S_Err("No parent");
+            SUMA_RETURN(NOPE);
+         }
+         if (!(pp_dset = SUMA_GetDotPreprocessedDset(in_dset, dotopt))){
+            SUMA_S_Err("PreProcParent not found");
+            SUMA_RETURN(NOPE);
+         }
+         fn = SUMA_append_replace_string(prefix,SDSET_LABEL(in_dset),
+                                         "", 0);
+         /* save old id and filename*/
+         ofn = SUMA_copy_string(SDSET_FILENAME(pp_dset));
+         oid = SUMA_copy_string(SDSET_ID(pp_dset));
+         /* change its ID before writing */
+         SUMA_NewDsetID2(pp_dset,fn);
+         fno = SUMA_WriteDset_eng (fn, pp_dset, SUMA_BINARY_NIML, 1, 1);
+         /* put old ID back */
+         NI_set_attribute (pp_dset->ngr, "self_idcode", oid);
+         NI_set_attribute (pp_dset->ngr, "filename", ofn);
+         SUMA_free(oid); oid=NULL;
+         SUMA_free(ofn); ofn=NULL;
+         if (fno) fprintf(stderr,"Saved %s\n", fno);
+         else fprintf(stderr,"Failed to save\n");
+         
+         SUMA_free(fn); fn=NULL;
+         SUMA_free(fno); fno=NULL; 
+      }   
+   } else {
+      SUMA_S_Errv("Can't do %s\n", xf->name);
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_RETURN(YUP);
+}
+
+void SUMA_cb_XformPreProc_Save (Widget w, XtPointer data, 
+                             XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_XformPreProc_Save"};
+   SUMA_XFORM *xf=(SUMA_XFORM*)data;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_SaveXformPreProcDsets(xf, "pp");
+      
+   SUMA_RETURNe;
+}
+
 void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
 {
    static char FuncName[]={"SUMA_CreateXformOptionsInterface"};
    Widget rc, rcv;
-   SUMA_Boolean LocalHead=YUP;
-   
+   float fs, fmax, fstep;
+   double TR;    
+   int N_TS;
+   SUMA_DSET *in_dset=NULL;
+     
    SUMA_ENTRY;
    
    /* the vertical rcv */
@@ -11798,6 +12240,19 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
          NULL);
          
    if ( !strcmp(xf->name,"Dot") ) { /* Dot xform */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rcv,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+      /* put a label in this rc*/ 
+      XtVaCreateManagedWidget ("Band Pass Range (Hz.)", 
+               xmLabelWidgetClass, rc,
+               NULL);
+      XtManageChild(rc);
+      
       /* row column to hold bandpass options  and maybe more */
       rc = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, rcv,
@@ -11806,6 +12261,36 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
             NULL);
+      
+               
+      /* find some params from parent dsets */
+      if (!(SUMA_is_ID_4_DSET(xf->parents[0], 
+                              &in_dset))) {
+         SUMA_S_Err("Could not find parent dset");
+         SUMA_RETURNe;
+      }
+      if (!(SUMA_is_TimeSeries_dset(in_dset, &TR))) {
+         TR = 0.0;
+      } 
+
+      SUMA_SPECT_AXIS(TR,SDSET_VECNUM(in_dset),  fs, fmax,fstep);
+      
+      SUMA_CreateArrowField ( rc, "LF",
+                        0.0, 0.0, fmax, fstep, 
+                        6, SUMA_float,
+                        NOPE,
+                        SUMA_Xform_NewAF0, (void *)xf, 
+                        SUMA_DotXform_AF0_hint, 
+                        SUMA_DotXform_AF0_help,
+                        xf->gui->AF0);
+      SUMA_CreateArrowField ( rc, "HF",
+                        fmax, 0.0, fmax, fstep,  
+                        6, SUMA_float,
+                        NOPE,
+                        SUMA_Xform_NewAF1, (void *)xf, 
+                        SUMA_DotXform_AF1_hint, 
+                        SUMA_DotXform_AF1_help,
+                        xf->gui->AF1);
 
       XtManageChild(rc);
 
@@ -11817,8 +12302,56 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
             NULL);
-      
+
+      SUMA_CreateArrowField ( rc, "polort",
+                        /* 0, -1, SDSET_VECNUM(in_dset)/2,  */
+                        2,2,2, /* for now keep it frozen, till you figure out 
+                                  how to turn off bandpassing when polort is   
+                                  used.  */
+                        1, 
+                        3, SUMA_int,
+                        NOPE,
+                        SUMA_Xform_NewAF2, (void *)xf, 
+                        SUMA_DotXform_AF2_hint, 
+                        SUMA_DotXform_AF2_help,
+                        xf->gui->AF2);
       XtManageChild(rc);
+      
+      
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rcv,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
+      
+      XtVaCreateManagedWidget ("Options:", 
+               xmLabelWidgetClass, rc,
+               NULL);
+               
+      xf->gui->SaveOpts_pb = XtVaCreateWidget ("Save", 
+                                           xmPushButtonWidgetClass, rc, 
+                                           NULL);
+      XtAddCallback (xf->gui->SaveOpts_pb, 
+                     XmNactivateCallback, 
+                     SUMA_cb_XformOpts_Save, (XtPointer)xf);
+      MCW_register_help(xf->gui->SaveOpts_pb , SUMA_XformOpts_Save_help ) ;
+      MCW_register_hint(xf->gui->SaveOpts_pb , "Save the options to disk." ) ;
+      XtManageChild (xf->gui->SaveOpts_pb);
+      
+      xf->gui->ApplyOpts_pb = XtVaCreateWidget ("Apply", 
+                                       xmPushButtonWidgetClass, rc, 
+                                       NULL);
+      XtAddCallback (xf->gui->ApplyOpts_pb, 
+                     XmNactivateCallback, 
+                     SUMA_cb_XformOpts_Apply, (XtPointer)xf);
+      MCW_register_help(xf->gui->ApplyOpts_pb, SUMA_XformOpts_Apply_help ) ;
+      MCW_register_hint(xf->gui->ApplyOpts_pb, "Apply the options immediately") ;
+      XtManageChild (xf->gui->ApplyOpts_pb);
+
+      XtManageChild(rc);
+      
       
    } else {
       SUMA_S_Errv("Don't know how to build xform parent interface for %s\n",
@@ -11827,27 +12360,39 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
    }
    
    XtManageChild(rcv);
+   
    SUMA_RETURNe;
 }
 
 void SUMA_CreateXformInterface(SUMA_XFORM *xf)
 {
    static char FuncName[]={"SUMA_CreateXformInterface"};
-   Widget cb_frame, opts_frame, frame_rcv, form, parent_frame;
+   Widget cb_frame, opts_frame, frame_rcv, form, parent_frame, xform_frame;
    int i;
-   SUMA_Boolean LocalHead = YUP;
+   char *sss;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
    
    if (xf->gui) SUMA_RETURNe;
    
    xf->gui = SUMA_NewXformInterface(NULL);
-   
+
+   if (SUMA_isEnv("SUMA_SurfContFontSize", "BIG")) {
+      sss = "font9";
+   } else {
+      sss = "font8";
+   }
+
    /* generic parts */
-   xf->gui->AppShell = XtVaAppCreateShell(xf->name , "Suma" ,
+   xf->gui->AppShell = XtVaAppCreateShell(sss , "Suma" ,
                                           topLevelShellWidgetClass , 
                                           SUMAg_CF->X->DPY_controller1 , 
+                                          XmNtitle, xf->name,
                                           NULL ) ;
    
-   /* turn off default delete response. If you do not do that, you will suffer.*/
+   /* turn off default delete response. 
+      If you do not do that, you will suffer.*/
    XtVaSetValues( xf->gui->AppShell,
            XmNdeleteResponse, XmDO_NOTHING,
            NULL);  
@@ -11855,13 +12400,13 @@ void SUMA_CreateXformInterface(SUMA_XFORM *xf)
    /* handle the close button from window manager */
    XmAddWMProtocolCallback(/* make "Close" window menu work */
       xf->gui->AppShell,
-      XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
+      XmInternAtom( SUMAg_CF->X->DPY_controller1, "WM_DELETE_WINDOW" , False ) ,
       SUMA_cb_CloseXformInterface, (XtPointer)xf) ;
    
    /* create a form widget, manage it at the end ...*/
    form = XtVaCreateWidget ("dialog", 
       xmFormWidgetClass, xf->gui->AppShell,
-      XmNborderWidth , 0 ,
+      XmNborderWidth , 2 ,
       XmNmarginHeight , SUMA_MARGIN ,
       XmNmarginWidth  , SUMA_MARGIN ,
       XmNshadowThickness, 2,
@@ -11875,8 +12420,29 @@ void SUMA_CreateXformInterface(SUMA_XFORM *xf)
          XmNmarginHeight, 0 ,
          XmNmarginWidth , 0 ,
          NULL);
-         
-   /* a frame to put parent stuff in */
+   
+   
+   /* a frame for xform general buttons */
+   xform_frame = XtVaCreateWidget ("dialog",
+      xmFrameWidgetClass, frame_rcv,
+      XmNleftAttachment , XmATTACH_FORM ,
+      XmNtopAttachment  , XmATTACH_FORM ,
+      XmNshadowType , XmSHADOW_ETCHED_IN ,
+      XmNshadowThickness , 5 ,
+      XmNtraversalOn , False ,
+      NULL);      
+   XtVaCreateManagedWidget ("xform",
+      xmLabelWidgetClass, xform_frame, 
+      XmNchildType, XmFRAME_TITLE_CHILD,
+      XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+      NULL);
+    
+   /* populate the xform frame based on the type of xform */
+   SUMA_CreateXformXformInterface(xf,xform_frame);
+  
+   XtManageChild (xform_frame);
+   
+   /* a frame to put parent datasets stuff in */
    parent_frame = XtVaCreateWidget ("dialog",
       xmFrameWidgetClass, frame_rcv,
       XmNleftAttachment , XmATTACH_FORM ,
@@ -11885,18 +12451,18 @@ void SUMA_CreateXformInterface(SUMA_XFORM *xf)
       XmNshadowThickness , 5 ,
       XmNtraversalOn , False ,
       NULL);
-   XtVaCreateManagedWidget ("parents",
+   
+   XtVaCreateManagedWidget ("datasets",
       xmLabelWidgetClass, parent_frame, 
       XmNchildType, XmFRAME_TITLE_CHILD,
       XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
       NULL);
    
-   /* populate the parents frame based on the type of xform */
+   /* populate the datasets frame based on the type of xform */
    SUMA_CreateXformParentsInterface(xf,parent_frame);
    
    XtManageChild (parent_frame);
-   
-   
+      
    /* a frame to put options in */
    opts_frame = XtVaCreateWidget ("dialog",
       xmFrameWidgetClass, frame_rcv,
@@ -11914,7 +12480,8 @@ void SUMA_CreateXformInterface(SUMA_XFORM *xf)
    
    /* populate the opts frame based on the type of xform */
    
-   
+   SUMA_CreateXformOptionsInterface(xf,opts_frame);
+      
    XtManageChild (opts_frame);
    
    /* the close, bhelp deal */

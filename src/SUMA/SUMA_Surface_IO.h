@@ -30,6 +30,7 @@ SUMA_Boolean SUMA_GIFTI_Write (char *fileNm, SUMA_SurfaceObject *SO,
                                SUMA_SO_File_Format forceencode);
 SUMA_Boolean SUMA_BYU_Write (char *fileNm, SUMA_SurfaceObject *SO, int base1);
 void SUMA_SaveDrawnROI (char *filename, void *data);
+void SUMA_SaveXformOpts (char *filename, void *data);
 SUMA_Boolean SUMA_SaveDrawnROI_1D (char *filename, SUMA_SurfaceObject *SO, SUMA_DRAWN_ROI *DrawnROI, int SaveWhat); 
 SUMA_Boolean SUMA_SaveDrawnROINIML (char *filename, SUMA_SurfaceObject *SO, SUMA_DRAWN_ROI *DrawnROI, int SaveWhat, int Format); 
 SUMA_1D_DRAWN_ROI * SUMA_Free_1DDrawROI (SUMA_1D_DRAWN_ROI *ROI1D);

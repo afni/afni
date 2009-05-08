@@ -934,8 +934,8 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_LIST_WIDGET *LW=NULL;
    char tk[]={"D"}, keyname[100];
    int k, nc, inode = 0, N_ts = 0, ChildOverInd=-1,loc[2], ii = 0;
-   float ftop = 0.1, fbot = 0.0, *fv=NULL;
-   int normalize = 1, polort = 4;
+   float ftop = 0.1, fbot = 0.0, fs=0.0, fstep=0.0, *fv=NULL;
+   int normalize = 1, polort = 2;
    SUMA_EngineData *ED = NULL; 
    SUMA_DSET *dot=NULL;
    SUMA_DSET *in_dset = NULL;
@@ -1046,6 +1046,10 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                
                /* Initialize dot product options. You'll have to redo this
                   unfortunately below... */
+               if (!(SUMA_is_TimeSeries_dset(in_dset, &TR))) {
+                  TR = 0.0;
+               }
+               SUMA_SPECT_AXIS(TR, SDSET_VECNUM(in_dset), fs, ftop, fstep);
                dotopts = SUMA_set_dotopts(NULL, SDSET_VECNUM(in_dset),
                                            ftop, fbot, 
                                            normalize, 1, 
@@ -1061,9 +1065,6 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                        SUMA_float))) { 
                   SUMA_S_Err("Failed to extract time series.");
                   SUMA_RETURN(0);
-               }
-               if (!(SUMA_is_TimeSeries_dset(in_dset, &TR))) {
-                  TR = 0.0;
                }
                if (!(ts = SUMA_DotPreProcessTimeSeries(fv,  N_ts, 
                                              (float)TR, dotopts))) {
@@ -1274,6 +1275,10 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                   SUMA_Show_Xforms(SUMAg_CF->xforms, SUMA_STDERR, 1);
                   SUMA_Show_Callbacks(SUMAg_CF->callbacks, SUMA_STDERR, 1);
                }
+               
+               /* initialize interface (no callbacks willget triggered)*/
+               SUMA_InitializeXformInterface (xf);
+
             } /* New Xform */
             
          }

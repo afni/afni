@@ -5379,13 +5379,11 @@ SUMA_Boolean SUMA_UpdateXhairField(SUMA_SurfaceViewer *sv)
 SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_UpdateNodeField"};
-   int i=0, jj=0;
+   int i=0;
    SUMA_OVERLAYS *Sover=NULL, *targetSover=NULL;
    NI_group *ngr=NULL;
    DListElmt *el=NULL;
    SUMA_SurfaceObject *curSO=NULL, *targetSO=NULL;
-   SUMA_DSET *targetDset=NULL;
-   void  (*fptr)();
    SUMA_CALLBACK *cb=NULL;
    char *targetSO_idcode=NULL, *targetSover_name=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -5408,46 +5406,9 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
                cb->pending) {
             SUMA_LHv("Calling active pending click callback %s\n", 
                      cb->FunctionName);
-            if (!SUMA_ExecuteCallback(cb)) {
+            if (!SUMA_ExecuteCallback(cb, 1, SO, 0)) {
                SUMA_S_Err("Failed to execute callback");
                break;
-            }
-               
-            /* Now decide on what needs refreshing */
-            for (i=0; i<cb->N_parents; ++i) {
-               if (SUMA_is_ID_4_DSET(cb->parents[i], &targetDset)) {
-                  targetSO = SUMA_findSOp_inDOv(cb->parents_domain[i],
-                                                SUMAg_DOv, SUMAg_N_DOv);
-                  if (!targetSO) {
-                     SUMA_S_Warn("Could not find targetSO, using SO instead");
-                     targetSO = SO;
-                  }
-                  /* refresh overlay and SO for this callback */
-                  targetSover = SUMA_Fetch_OverlayPointerByDset(
-                                       targetSO->Overlays, 
-                                       targetSO->N_Overlays,
-                                       targetDset,
-                                       &jj);
-                  SUMA_LHv("Colorizing %s\n", targetSover->Name);
-                  SUMA_ColorizePlane(targetSover);
-                  SUMA_LHv("Setting remix flag for %s\n",targetSO->Label);
-                  if (!SUMA_SetRemixFlag( targetSO->idcode_str, 
-                                          SUMAg_SVv, SUMAg_N_SVv)) {
-                     SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
-                     SUMA_RETURN(NOPE);
-                  }
-                  if (curSO != targetSO) {
-                     SUMA_UPDATE_ALL_NODE_GUI_FIELDS(SO);
-                     SUMA_RemixRedisplay(targetSO);
-                  } else {
-                     /* this will be done below in the function */
-                  }
-               } else if (SUMA_is_ID_4_SO(cb->parents[i], &targetSO)) {
-                  SUMA_S_Note("Got surface, don't know \n"
-                              "what to do in case like this yet\n");
-               } else {
-                  SUMA_S_Err("Dunno what to do with such an object...");
-               }   
             }
          } else {
             if (cb->active == -1) {

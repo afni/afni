@@ -225,6 +225,8 @@ int SUMA_CommandCode(char *Scom)
       SUMA_RETURN(SE_OpenCmapFileSelection);
    if (!strcmp(Scom,"SaveDrawnROIFileSelection"))
       SUMA_RETURN(SE_SaveDrawnROIFileSelection);
+   if (!strcmp(Scom,"SaveXformOptsFileSelection"))
+      SUMA_RETURN(SE_SaveXformOptsFileSelection);
    if (!strcmp(Scom,"OpenDrawnROIFileSelection")) 
       SUMA_RETURN(SE_OpenDrawnROIFileSelection);
    if (!strcmp(Scom,"SendColorMapToAfni")) SUMA_RETURN(SE_SendColorMapToAfni);
@@ -436,6 +438,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("OpenDsetFileSelection");      
       case SE_OpenCmapFileSelection:
          SUMA_RETURN("OpenCmapFileSelection");      
+      case SE_SaveXformOptsFileSelection:
+         SUMA_RETURN("SaveXformOptsFileSelection");      
       case SE_SaveDrawnROIFileSelection:
          SUMA_RETURN("SaveDrawnROIFileSelection");      
       case SE_OpenDrawnROIFileSelection:
