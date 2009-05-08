@@ -20,6 +20,7 @@ SUMA_Boolean SUMA_DotXform_MakeOrts( NI_element *dotopt, int ts_len,
    
    
    if (ortname) {
+      SUMA_LHv("Loading %s\n", ortname);
       fort = SUMA_Load1D_s(ortname, &nort, &nts, 0, 0);
       if (!fort) {
          SUMA_S_Err("Could not load orts");
@@ -49,10 +50,11 @@ SUMA_Boolean SUMA_DotXform_MakeOrts( NI_element *dotopt, int ts_len,
 
    /* now add the orts */
    if (fort) {
-      SUMA_LHv("Adding %d from fort\n", nort);
-      refvec = (float **)SUMA_realloc(refvec, nref+nort*sizeof(float*));
+      SUMA_LHv("Adding %d from fort, length %d to previous %d orts\n", 
+               nort, nts, nref);
+      refvec = (float **)SUMA_realloc(refvec, (nref+nort)*sizeof(float*));
       for (i=0; i<nort; ++i) {
-         refvec[i+nref] = SUMA_calloc(nts, sizeof(float));
+         refvec[i+nref] = (float *)SUMA_calloc(nts, sizeof(float));
          memcpy(refvec[i+nref], &(fort[i*nts]), sizeof(float)*nts);
       }
       free(fort); fort = NULL;
@@ -79,6 +81,7 @@ SUMA_Boolean SUMA_DotXform_MakeOrts( NI_element *dotopt, int ts_len,
 
    if (LocalHead) {
       sprintf(stmp,"file:%s.dotopt.1D", FuncName);
+      SUMA_LHv("Writing %s\n", stmp);
       NEL_WRITE_1D(dotopt, stmp, suc);
    }
 
@@ -177,6 +180,7 @@ NI_element *SUMA_set_dotopts(NI_element *dotopt, int ts_len,
    SUMA_RETURN(dotopt);
      
 }
+
 int SUMA_DotXform_GetRecomputeForDset (NI_element *dotopts, char *id)
 {
    static char FuncName[]={"SUMA_DotXform_GetRecomputeForDset"};
