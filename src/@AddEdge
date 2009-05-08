@@ -148,6 +148,12 @@ PARSE:
          endif
       endif
 
+      if ($donext && "$argv[$cnt]" == "-auto_record") then
+         set auto_record = 1
+         set donext = 0
+      endif
+
+
       if ($donext) then
          #no more options, this is assumed to be the list of datasets 
          set argrem = ($argv[$cnt-])
@@ -542,10 +548,22 @@ while ($cnt < $#olist)
       echo "Press enter to go to next entry ($nextlbl)"
       echo "i: proceed to number i"
       echo "'r': record current"
-      echo "'s': save automatically recorded images and quit"
+#      echo "'s': save automatically recorded images and quit"
       echo "'q': quit"
-      set stay = 0
+
+      set stay = 1
       set nx = $<
+      # integer entry check
+      if ("$nx" != "" ) then
+        expr $nx + 2 >& /dev/null
+        if ("$status" == 0) then
+           set stay = 0
+        endif
+      else
+        # for just return, advance to next entry
+        set stay = 0
+      endif
+
       if ("$nx" == 'r') then
          set stay = 1
          if ($do_rand == 1) then
@@ -597,7 +615,6 @@ while ($cnt < $#olist)
          goto SCORE
       endif
    endif
-   
    if ($nx >= 1) then
       set cnt = `ccalc -form int $nx\*2`
    endif
@@ -799,6 +816,7 @@ HELP:
    echo " -opa          : set opacity of overlay (default=9 opaque)"
    echo " -keep_temp    : do not remove temporary files"
    echo " -no_deoblique : do not deoblique any data to show overlap"
+   echo " -auto_record  : save jpeg files of current slices  without prompting"
    echo ""
 
    goto END
