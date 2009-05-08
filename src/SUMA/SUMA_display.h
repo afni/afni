@@ -387,7 +387,6 @@ void SUMA_cb_XformPreProc_Save (Widget w, XtPointer data,
 void SUMA_cb_XformOpts_Apply (Widget w, XtPointer data, 
                              XtPointer client_data);
 
-
 #define SUMA_MAX_XFCB_OBJS 32       /*!< Max number of callbacks or xforms 
                                          that may act on dsets or SOs */
 
@@ -410,6 +409,8 @@ typedef struct {
    Widget SavePreProc_pb;
    Widget ShowPreProc_tb;
    Widget ApplyOpts_pb;
+   Widget LoadOrtFile_pb;
+   Widget OrtFileLabel_lb;
    
 } SUMA_GENERIC_XFORM_INTERFACE;
 
@@ -437,6 +438,14 @@ typedef struct {
 void SUMA_cb_CloseXformInterface(Widget w, XtPointer data, XtPointer call_data);
 SUMA_Boolean SUMA_InitializeXformInterface (SUMA_XFORM *xf);
 void SUMA_CreateXformInterface(SUMA_XFORM *xf);
+void SUMA_DotXform_NewOrtName(  SUMA_XFORM *xf,
+                               char * ortname, 
+                               int fromgui);
+void SUMA_OpenXformOrtFile (char *filename, void *data);
+
+
+#define SUMA_XformOrtFile_Load_help   \
+   "Load an ort file"
 
 #define SUMA_XformPreProc_Save_help \
    "Save preprocessed dsets to disk"

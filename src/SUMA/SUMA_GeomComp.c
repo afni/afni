@@ -6957,12 +6957,12 @@ SUMA_SurfaceObject *SUMA_Patch2Surf(float *NodeList, int N_NodeList, int *PatchF
    \return isNodeInPatch (SUMA_Boolean *) a vector SO->N_Node long such that if isNodeInPatch[n] = YUP then node n is used
                                     in the mesh 
 */
-SUMA_Boolean *SUMA_MaskOfNodesInPatch(
+byte *SUMA_MaskOfNodesInPatch(
                   SUMA_SurfaceObject *SO, int *N_NodesUsedInPatch)
 {
    static char FuncName[]={"SUMA_MaskOfNodesInPatch"};
    int k;
-   SUMA_Boolean *NodesInPatchMesh = NULL;
+   byte *NodesInPatchMesh = NULL;
 
    SUMA_ENTRY;
 
@@ -6978,8 +6978,8 @@ SUMA_Boolean *SUMA_MaskOfNodesInPatch(
       SUMA_RETURN(NULL);
    }
 
-   NodesInPatchMesh = (SUMA_Boolean *)
-                        SUMA_calloc(SO->N_Node, sizeof(SUMA_Boolean)); 
+   NodesInPatchMesh = (byte *)
+                        SUMA_calloc(SO->N_Node, sizeof(byte)); 
    if (!NodesInPatchMesh) {
       SUMA_SL_Crit("Failed to allocate for NodesInPatchMesh");
       SUMA_RETURN(NULL);

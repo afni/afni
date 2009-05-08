@@ -5044,7 +5044,9 @@ SUMA_Boolean SUMA_Draw_SO_NIDO (  SUMA_SurfaceObject *SO, SUMA_DO* dov,
 
 
 /*! Create the ROIs for a particular surface */
-SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, SUMA_SurfaceViewer *sv)
+SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, 
+                               SUMA_DO* dov, int N_do, 
+                               SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Draw_SO_ROI"};
    GLfloat ROI_SphCol[] = {1.0, 0.0, 0.0, 1.0};
@@ -5060,14 +5062,17 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
    GLfloat Yellow[4] = {1.0, 1.0, 0.0, 1.0};
    GLfloat Cyan[4] = {0.0, 1.0, 1.0, 1.0};
    GLfloat Pink[4] = {1.0, 0.0, 1.0, 1.0};
-   int i, id, ii, id1,id2, id3, EdgeIndex, FaceIndex, Node1, Node2, Node3, N_ROId=0, idFirst=0;
+   int  i, id, ii, id1,id2, id3, EdgeIndex, FaceIndex, 
+         Node1, Node2, Node3, N_ROId=0, idFirst=0,
+         *nodemask=NULL;
    float dx, dy, dz = 0.0;
    SUMA_DRAWN_ROI *D_ROI = NULL;
    SUMA_ROI_DATUM *ROId=NULL;
    SUMA_ROI *ROI = NULL;
    DListElmt *NextElm=NULL;
+   float off[3];
    SUMA_Boolean LocalHead = NOPE;
-   
+    
    SUMA_ENTRY;
    
    
@@ -5076,14 +5081,18 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
          case ROIdO_type:
             D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
             if (!D_ROI->ROIstrokelist) {
-               fprintf (SUMA_STDERR, "Error %s: NULL ROIstrokeList.\n", FuncName);
+               fprintf (SUMA_STDERR, 
+                        "Error %s: NULL ROIstrokeList.\n", FuncName);
                SUMA_RETURN (NOPE);
             }else if (!dlist_size(D_ROI->ROIstrokelist)) {
-               if (LocalHead) fprintf (SUMA_STDERR, "%s: Empty ROIstrokelist.\n", FuncName);
+               if (LocalHead) 
+                  fprintf (SUMA_STDERR, "%s: Empty ROIstrokelist.\n", FuncName);
                break;
             }
             if (SUMA_isdROIrelated (D_ROI, SO)) { /* draw it */
-               if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing Drawn ROI %s (Status %d)\n", FuncName, D_ROI->Label, D_ROI->DrawStatus);
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR, "%s: Drawing Drawn ROI %s (Status %d)\n", 
+                          FuncName, D_ROI->Label, D_ROI->DrawStatus);
                if (D_ROI->DrawStatus == SUMA_ROI_InCreation) {
                   switch (D_ROI->Type) {
                      case SUMA_ROI_OpenPath:
@@ -5093,18 +5102,26 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
                         break;   
                      case SUMA_ROI_ClosedPath:
                         SUMA_LH("Yellow first, Cyan next");
-                        SUMA_COPY_VEC(Yellow, ROI_SphCol_frst, 4, GLfloat, GLfloat);
+                        SUMA_COPY_VEC( Yellow, ROI_SphCol_frst, 4, 
+                                       GLfloat, GLfloat);
                         SUMA_COPY_VEC(Cyan, ROI_SphCol, 4, GLfloat, GLfloat);      
                         break;   
                      case SUMA_ROI_FilledArea:
                         SUMA_LH("Pink First, Yellow Next");
-                        SUMA_COPY_VEC(Pink, ROI_SphCol_frst, 4, GLfloat, GLfloat);
+                        SUMA_COPY_VEC(Pink, ROI_SphCol_frst, 4, 
+                                      GLfloat, GLfloat);
                         SUMA_COPY_VEC(Cyan, ROI_SphCol, 4, GLfloat, GLfloat);       
                         break;   
                      default:
                         SUMA_LH("Default");
-                        ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.3; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
-                        ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;     
+                        ROI_SphCol_frst[0] = 1.0; 
+                        ROI_SphCol_frst[1] = 0.3; 
+                        ROI_SphCol_frst[2] = 1.0; 
+                        ROI_SphCol_frst[3] = 1.0;     
+                        ROI_SphCol[0] = 1.0; 
+                        ROI_SphCol[1] = 1.0; 
+                        ROI_SphCol[2] = 0.0; 
+                        ROI_SphCol[3] = 1.0;     
                         break;
 
                   }
@@ -5123,31 +5140,49 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
                            if (!N_ROId) {
                               /* draw 1st sphere */
                               SUMA_LH("First sphere");
-                              glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol_frst);
+                              glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                           ROI_SphCol_frst);
                               idFirst = 3 * ROId->nPath[0];
-                              glTranslatef (SO->NodeList[idFirst], SO->NodeList[idFirst+1], SO->NodeList[idFirst+2]);
-                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06), 
-                                       SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                              glTranslatef (-SO->NodeList[idFirst], -SO->NodeList[idFirst+1], -SO->NodeList[idFirst+2]);
+                              glTranslatef ( SO->NodeList[idFirst], 
+                                             SO->NodeList[idFirst+1], 
+                                             SO->NodeList[idFirst+2]);
+                              gluSphere( 
+                                 SO->NodeMarker->sphobj, 
+                                 SO->NodeMarker->sphrad*
+                                    SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06), 
+                                 SO->NodeMarker->slices, 
+                                 SO->NodeMarker->stacks);
+                              glTranslatef (-SO->NodeList[idFirst], 
+                                            -SO->NodeList[idFirst+1], 
+                                            -SO->NodeList[idFirst+2]);
                            } 
 
                            glLineWidth(6);
-                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol);
-                           /* always start at 1 since the 0th node was draw at the end of the previous ROId */
+                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                        ROI_SphCol);
+                           /* always start at 1 since the 0th node was 
+                              drawn at the end of the previous ROId */
                            for (ii = 1; ii < ROId->N_n; ++ii) {
                               id = 3 * ROId->nPath[ii];
                               id2 = 3 * ROId->nPath[ii-1];
 
                               /* draw lines connecting spheres */
                               glBegin(GL_LINES);
-                              glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], SO->NodeList[id2+2]);
-                              glVertex3f(SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]); 
+                              glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], 
+                                         SO->NodeList[id2+2]);
+                              glVertex3f(SO->NodeList[id], SO->NodeList[id+1], 
+                                         SO->NodeList[id+2]); 
                               glEnd();
 
-                              glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                              gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad*SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
-                                        SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                              glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                              glTranslatef (SO->NodeList[id], SO->NodeList[id+1],                                             SO->NodeList[id+2]);
+                              gluSphere(
+                                 SO->NodeMarker->sphobj, 
+                                 SO->NodeMarker->sphrad*
+                                    SUMA_MAX_PAIR(sv->ZoomCompensate, 0.06),
+                                 SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                              glTranslatef (-SO->NodeList[id], 
+                                            -SO->NodeList[id+1], 
+                                            -SO->NodeList[id+2]);
                            }
 
 
@@ -5156,12 +5191,20 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
                      } else { /* non segment type Drawn ROI */
                            #if 0 
                               /* it is too much to fill with spheres... */
-                              glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_NodeGroup);
+                              glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                           ROI_NodeGroup);
                               for (ii=0; ii < ROId->N_n; ++ii) {
                                  id = 3 * ROId->nPath[ii];
-                                 glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                                 gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                                 glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                                 glTranslatef (SO->NodeList[id], 
+                                               SO->NodeList[id+1], 
+                                               SO->NodeList[id+2]);
+                                 gluSphere(SO->NodeMarker->sphobj, 
+                                           SO->NodeMarker->sphrad, 
+                                           SO->NodeMarker->slices, 
+                                           SO->NodeMarker->stacks);
+                                 glTranslatef (-SO->NodeList[id], 
+                                               -SO->NodeList[id+1], 
+                                               -SO->NodeList[id+2]);
                               }
                            #endif
                      }
@@ -5169,24 +5212,67 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
                } else {
                   /* finished, draw contour */
                   SUMA_LH("Finished DROI");
-                  ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.3; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
-                  ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;
+                  ROI_SphCol_frst[0] = 1.0; 
+                  ROI_SphCol_frst[1] = 0.3; 
+                  ROI_SphCol_frst[2] = 1.0; 
+                  ROI_SphCol_frst[3] = 1.0;     
+                  ROI_SphCol[0] = 1.0; 
+                  ROI_SphCol[1] = 1.0; 
+                  ROI_SphCol[2] = 0.0; 
+                  ROI_SphCol[3] = 1.0;
                   
                   
                   if (D_ROI->CE) {
                      int id1cont, id2cont, icont;
                      /* Draw the contour */
                      glLineWidth(6);
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, D_ROI->FillColor);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                  D_ROI->FillColor);
                      
-                     for (icont = 0; icont < D_ROI->N_CE; ++icont) {
+                     if (!SO->patchNodeMask) {
                         SUMA_LH("Drawing contour ...");
-                        id1cont = 3 * D_ROI->CE[icont].n1;
-                        id2cont = 3 * D_ROI->CE[icont].n2;
-                        glBegin(GL_LINES);
-                        glVertex3f(SO->NodeList[id2cont], SO->NodeList[id2cont+1], SO->NodeList[id2cont+2]);
-                        glVertex3f(SO->NodeList[id1cont], SO->NodeList[id1cont+1], SO->NodeList[id1cont+2]); 
-                        glEnd();
+                        for (icont = 0; icont < D_ROI->N_CE; ++icont) {
+                           id1cont = 3 * D_ROI->CE[icont].n1;
+                           id2cont = 3 * D_ROI->CE[icont].n2;
+                           glBegin(GL_LINES);
+                           glVertex3f(SO->NodeList[id2cont], 
+                                      SO->NodeList[id2cont+1],    
+                                      SO->NodeList[id2cont+2]);
+                           glVertex3f(SO->NodeList[id1cont], 
+                                      SO->NodeList[id1cont+1], 
+                                      SO->NodeList[id1cont+2]); 
+                           glEnd();
+                        }
+                     } else {
+                        SUMA_LHv("Drawing contour on patch (%p)...", 
+                                 SO->NodeNormList);
+                                 /* set default offset to nothing*/
+                        off[0]=0.0; off[1]=0.0; off[2]=0.0; 
+                        if (SO->EmbedDim == 2) {
+                           if (SO->NodeNormList && D_ROI->CE) {
+                              /* just take a node in the ROI */
+                              id2cont = 3 * D_ROI->CE[0].n2;
+                              off[0] = 3*SO->NodeNormList[id2cont];
+                              off[1] = 3*SO->NodeNormList[id2cont+1];
+                              off[2] = 3*SO->NodeNormList[id2cont+2];
+                           }
+                        }
+                        for (icont = 0; icont < D_ROI->N_CE; ++icont) {
+                           id1cont = 3 * D_ROI->CE[icont].n1;
+                           id2cont = 3 * D_ROI->CE[icont].n2;
+                           if (SO->patchNodeMask[D_ROI->CE[icont].n1] && 
+                               SO->patchNodeMask[D_ROI->CE[icont].n2]) {
+                              
+                              glBegin(GL_LINES);
+                              glVertex3f(SO->NodeList[id2cont]+off[0], 
+                                         SO->NodeList[id2cont+1]+off[1],    
+                                         SO->NodeList[id2cont+2]+off[2]);
+                              glVertex3f(SO->NodeList[id1cont]+off[0], 
+                                         SO->NodeList[id1cont+1]+off[1], 
+                                         SO->NodeList[id1cont+2]+off[2]); 
+                              glEnd();
+                           }
+                        }
                      }
                   }
                   
@@ -5198,10 +5284,13 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do, S
             break;
             
          case ROIO_type:
-            /* hopefully he distinction between drawn and not drawn will no longer be needed .... */
+            /* hopefully he distinction between drawn 
+               and not drawn will no longer be needed .... */
             ROI = (SUMA_ROI *)dov[i].OP;
             if (SUMA_isROIrelated (ROI, SO)) { /* draw it */
-               if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing ROI %s \n", FuncName, ROI->Label);
+               if (LocalHead) 
+                  fprintf(SUMA_STDERR, 
+                           "%s: Drawing ROI %s \n", FuncName, ROI->Label);
                switch (ROI->Type) { /* ROI types */
                   case SUMA_ROI_EdgeGroup:
                      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_EdgeGroup);
@@ -7685,6 +7774,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].aMaxDims = 0.0;                                                /* see SUMA_isSODimInitialized */
       SO[i].ViewCenterWeight = -1;
       SO[i].RotationWeight = -1;
+      SO[i].patchNodeMask = NULL;
       SO[i].patchaMaxDims = 0.0;
       SO[i].patchaMinDims = 0.0;
       SO[i].patchMinDims[0] = SO[i].patchMinDims[1] = SO[i].patchMinDims[2] = 0.0;

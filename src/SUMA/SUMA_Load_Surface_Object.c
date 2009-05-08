@@ -488,7 +488,7 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    static char FuncName[]={"SUMA_PrepSO_GeomProp_GL"};
    int k, ND, id;
    SUMA_SURF_NORM SN;
-   SUMA_Boolean *PatchNodeMask=NULL;
+   byte *PatchNodeMask=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -536,8 +536,18 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
       SUMA_MAX_VEC (SO->patchMaxDims, 3, SO->patchaMaxDims);
    }
    
-   if (PatchNodeMask) SUMA_free(PatchNodeMask) ; PatchNodeMask = NULL;
-   
+   if (SO->patchNodeMask) {
+      SUMA_S_Err("Hmm, unexpected");
+      SUMA_free(SO->patchNodeMask); 
+   }
+   SO->patchNodeMask = NULL;
+   if (PatchNodeMask) {
+      if (SO->N_patchNode != SO->N_Node) {
+         SO->patchNodeMask =   PatchNodeMask; PatchNodeMask = NULL;
+      } else {
+         SUMA_free(PatchNodeMask) ; PatchNodeMask = NULL;
+      }
+   }
    #ifdef DO_SCALE_RANGE
    { float tmpfact;
    /* Now do some scaling */
