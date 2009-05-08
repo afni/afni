@@ -19,5 +19,7 @@ SUMA_DSET *SUMA_DotDetrendDset(  SUMA_DSET *in_dset,
                                  float **refvec, int nref,
                                  float fbot, float ftop,
                                  int qdet, int *num_ort); 
+void SUMA_DotXform_SetPending (NI_element *dotopts, int pending, char *id);
+int SUMA_DotXform_GetRecomputeForDset (NI_element *dotopts, char *id);
 
 #endif
