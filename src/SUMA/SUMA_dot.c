@@ -66,7 +66,7 @@ SUMA_Boolean SUMA_DotXform_MakeOrts( NI_element *dotopt, int ts_len,
 
    /* put a copy of the regressors in dotopt */
    if (dotopt->vec_num) {
-      SUMA_S_Warn("Cleaning up dotopt");
+      SUMA_LH("Cleaning up dotopt");
       while (dotopt->vec_num) {
          NI_remove_column(dotopt,-1);
       }
