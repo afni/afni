@@ -242,7 +242,7 @@ typedef enum { SE_Empty,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  
                SE_SetLight0Pos, SE_OpenColFileSelection,
                SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, 
-               SE_SaveXformOptsFileSelection,
+               SE_SaveXformOptsFileSelection, SE_OpenXformOrtFileFileSelection,
                SE_SendColorMapToAfni, SE_SaveSOFileSelection,
                SE_SetSOinFocus, SE_StartListening, SE_LoadViewFileSelection, 
                SE_SaveViewFileSelection, SE_LoadSegDO,
@@ -2020,6 +2020,9 @@ typedef struct {
    
    int N_patchNode; /*!<   Number of nodes used in the mesh. 
                            For patches, this number is < SO->N_Node */
+   byte *patchNodeMask; /*!< if not NULL, then if patchNodeMask[i] then
+                              that node is part of the patch. Else it is not.
+                              i goes from 0 to SO->N_Node */
    float patchCenter[3];  /*!< The centroid of the surface 
                               (using all the nodes in FaceSetList)*/
    float patchMaxDims[3];      /*!< The maximum along each of the XYZ dimensions

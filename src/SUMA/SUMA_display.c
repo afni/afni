@@ -7020,11 +7020,12 @@ SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO)
    
    -expects SO in data
 */
-void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_data)
+void SUMA_cb_ColPlaneShow_toggled ( Widget w, XtPointer data, 
+                                    XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_ColPlaneShow_toggled"};
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -7033,13 +7034,18 @@ void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_da
    SO = (SUMA_SurfaceObject *)data;
    
    if (!SO || !SO->SurfCont) SUMA_RETURNe;
-   if (!SO->SurfCont->curColPlane || !SO->SurfCont->ColPlaneShow_tb) SUMA_RETURNe;
+   if (!SO->SurfCont->curColPlane || 
+       !SO->SurfCont->ColPlaneShow_tb) SUMA_RETURNe;
 
    SUMA_LH("Getting State");
-   SO->SurfCont->curColPlane->Show = XmToggleButtonGetState (SO->SurfCont->ColPlaneShow_tb);
-   /* set the duplicate button next to int */
-   SUMA_LH("Setting State of duplicate button");
-   XmToggleButtonSetState (SO->SurfCont->Int_tb, SO->SurfCont->curColPlane->Show, NOPE);
+   SO->SurfCont->curColPlane->Show = 
+      XmToggleButtonGetState (SO->SurfCont->ColPlaneShow_tb);
+   if (SO->SurfCont->Int_tb) {
+      /* set the duplicate button next to int */
+      SUMA_LH("Setting State of duplicate button");
+      XmToggleButtonSetState (SO->SurfCont->Int_tb, 
+                              SO->SurfCont->curColPlane->Show, NOPE);
+   }
    SUMA_LH("Updating color plane shells");
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
@@ -11848,9 +11854,6 @@ void SUMA_CreateXformParentsInterface(SUMA_XFORM *xf, Widget parent_frame)
          XmNmarginWidth , 0 ,
          NULL);
    if ( !strcmp(xf->name,"Dot") ) { /* Dot xform */
-      XtVaCreateManagedWidget ("Preprocessed Dsets:", 
-               xmLabelWidgetClass, rc,
-               NULL);
       xf->gui->ParentLabel_lb = 
          XtVaCreateManagedWidget ("TS Parents:      N/A \n"
                                   "                 N/A \n", 
@@ -11876,6 +11879,10 @@ void SUMA_CreateXformParentsInterface(SUMA_XFORM *xf, Widget parent_frame)
             XmNmarginHeight, 0 ,
             XmNmarginWidth , 0 ,
             NULL);
+
+      XtVaCreateManagedWidget ("Preprocessed Dsets:", 
+               xmLabelWidgetClass, rc,
+               NULL);
       
       /* a save button for preprocessed dsets */
       xf->gui->SavePreProc_pb = XtVaCreateWidget ("Save", 
@@ -11961,6 +11968,28 @@ void SUMA_DotXform_NewBandPass(  SUMA_XFORM *xf,
    SUMA_RETURNe;
 }
 
+void SUMA_OpenXformOrtFile (char *filename, void *data)
+{
+   static char FuncName[]={"SUMA_OpenXformOrtFile"};
+   SUMA_XFORM *xf=(SUMA_XFORM *)data;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!xf) {
+      SUMA_S_Err("NULL input");
+   }
+   if (!strcmp(xf->name,"Dot")) {
+      SUMA_DotXform_NewOrtName( xf,
+                               filename, 
+                               1 );
+   } else {
+      SUMA_S_Err("Dunno what to do");
+   }
+ 
+ 
+   SUMA_RETURNe;
+}
 
 void SUMA_DotXform_NewPolort(  SUMA_XFORM *xf,
                                int polort, 
@@ -11999,6 +12028,56 @@ void SUMA_DotXform_NewPolort(  SUMA_XFORM *xf,
    }
    if (!SUMA_DotXform_MakeOrts( dotopts, SDSET_VECNUM(in_dset), 
                                 polort, NI_get_attribute(dotopts,"ortname"))){
+      SUMA_S_Err("Failed to make orts");
+      SUMA_RETURNe;
+   }
+
+   
+   for (ii=0; ii<xf->N_parents; ++ii)
+      SUMA_DotXform_SetPending (dotopts, 1, xf->parents[ii]);
+
+     
+   SUMA_RETURNe;
+}
+void SUMA_DotXform_NewOrtName(  SUMA_XFORM *xf,
+                               char * ortname, 
+                               int fromgui)
+{
+   static char FuncName[]={"SUMA_DotXform_NewOrtName"};
+   NI_element *dotopts=NULL;
+   char sbuf[256];
+   int ii=0, polort=-3;
+   SUMA_DSET *in_dset=NULL;
+   SUMA_Boolean LocalHead=NOPE;
+      
+   SUMA_ENTRY;
+      
+   if (!(dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
+      SUMA_S_Err("Failed to find dotopts");
+      SUMA_RETURNe;
+   }
+   
+   SUMA_LHv("Setting ortname to %s\n", ortname);
+   NI_set_attribute(dotopts,"ortname", ortname);
+
+   if (xf->gui) {
+      if (ortname) {
+         SUMA_PARSED_NAME *pn = SUMA_ParseFname(ortname, SUMAg_CF->cwd);
+         SUMA_SET_LABEL(xf->gui->OrtFileLabel_lb, pn->FileName);
+         SUMA_Free_Parsed_Name(pn); pn = NULL;
+      } else {
+         SUMA_SET_LABEL(xf->gui->OrtFileLabel_lb, "--"); 
+      }
+   } 
+   
+   /* recalculate polorts */
+   if (!(SUMA_is_ID_4_DSET(xf->parents[0], &in_dset))) {
+      SUMA_S_Err("Could not find ts dset");
+      SUMA_RETURNe;
+   }
+   NI_GET_INT(dotopts,"polort", polort);
+   if (!SUMA_DotXform_MakeOrts( dotopts, SDSET_VECNUM(in_dset), 
+                                polort, ortname)){
       SUMA_S_Err("Failed to make orts");
       SUMA_RETURNe;
    }
@@ -12220,6 +12299,44 @@ void SUMA_cb_XformPreProc_Save (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
+void SUMA_cb_XformOrtFile_Load(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_XformOrtFile_Load"};
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   DListElmt *NextElm = NULL;
+   SUMA_XFORM *xf=(SUMA_XFORM*)data;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!xf) { SUMA_S_Err("what gives?"); SUMA_RETURNe;}
+   SUMA_LHv("Loading ort for %s\n", xf->name);
+   
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_OpenXformOrtFileFileSelection);
+   if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_vp, (XtPointer)xf,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_Head, NULL))) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed to register command.\n", FuncName);
+   }
+   if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                          SEF_ip, (int *)w,
+                                          SES_Suma, NULL, NOPE,
+                                          SEI_In, NextElm)) {
+      fprintf (SUMA_STDERR, 
+               "Error %s: Failed to register command.\n", FuncName);
+   }
+   
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+
+   SUMA_RETURNe;
+}
+
 void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
 {
    static char FuncName[]={"SUMA_CreateXformOptionsInterface"};
@@ -12316,7 +12433,31 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
                         SUMA_DotXform_AF2_help,
                         xf->gui->AF2);
       XtManageChild(rc);
+
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, rcv,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            NULL);
       
+      xf->gui->LoadOrtFile_pb = XtVaCreateWidget ("Load", 
+                                    xmPushButtonWidgetClass, rc, 
+                                    NULL);
+      XtAddCallback (xf->gui->LoadOrtFile_pb, 
+                     XmNactivateCallback, SUMA_cb_XformOrtFile_Load, 
+                     (XtPointer)xf);
+      MCW_register_help(xf->gui->LoadOrtFile_pb , SUMA_XformOrtFile_Load_help ) ;
+      MCW_register_hint(xf->gui->LoadOrtFile_pb , "Load an ort file" ) ;
+      XtManageChild (xf->gui->LoadOrtFile_pb);
+
+      xf->gui->OrtFileLabel_lb = XtVaCreateManagedWidget (
+               "--", 
+               xmLabelWidgetClass, rc,
+               NULL);
+      
+      XtManageChild(rc);
       
       rc = XtVaCreateWidget ("rowcolumn",
             xmRowColumnWidgetClass, rcv,
