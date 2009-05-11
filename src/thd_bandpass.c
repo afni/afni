@@ -26,8 +26,9 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
      return 0 ;
    }
    if( verb )
-     ININFO_message("bandpass: ntime=%d nfft=%d dfreq=%.6g passband indexes=%d..%d",
-                    nx,nfft,df,jbot,jtop) ;
+     ININFO_message(
+       "bandpass: ntime=%d nFFT=%d dt=%.6g dFreq=%.6g Nyquist=%.6g passband indexes=%d..%d",
+       nx, nfft, dt, df, (nfft/2)*df, jbot, jtop) ;
    return 1 ;
 }
 

@@ -1404,6 +1404,7 @@ extern void AFNI_process_interrupts( Widget ) ;
 extern void AFNI_add_interruptable( Widget ) ;
 
 extern int AFNI_ts_in_library( MRI_IMAGE * tsim ) ;
+extern int AFNI_tsname_in_library( char *nam ) ; /* 10 May 2009 */
 
 extern THD_3dim_dataset * AFNI_fimmer_compute( Three_D_View * ,
                                                THD_3dim_dataset * , MRI_IMAGE *,
@@ -1571,6 +1572,7 @@ extern void AFNI_misc_CB    ( Widget , XtPointer , XtPointer );
 extern void AFNI_editenv_CB ( Widget , XtPointer , XtPointer );
 
 extern void AFNI_add_timeseries( MRI_IMAGE * ) ;
+extern void AFNI_replace_timeseries( MRI_IMAGE * ) ; /* 10 May 2009 */
 
 /*----------------------------------------------------------------*/
 /*----- stuff for dataset drawing, etc. (see afni_receive.c) -----*/

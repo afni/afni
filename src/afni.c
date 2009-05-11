@@ -5920,9 +5920,11 @@ void AFNI_set_viewpoint( Three_D_View *im3d ,
    THD_fvec3 fv ;
    THD_ivec3 old_ib , new_ib , old_id , new_id ;
 
+#undef  EXRR
+#define EXRR do{ recurse-- ; EXRETURN ; } while(0)
    static int recurse=0 ;
-   if( recurse ) return ;
-   recurse = 1 ;
+   if( recurse > 3 ) return ;
+   recurse++ ;
 
 ENTRY("AFNI_set_viewpoint") ;
 
@@ -5931,7 +5933,7 @@ if(PRINT_TRACING)
   sprintf(str,"input xx=%d yy=%d zz=%d",xx,yy,zz) ;
   STATUS(str) ; }
 
-   if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ){ recurse=0; EXRETURN; }
+   if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRR ;
 
    /** 02 Nov 1996:
          Attach view-specific dataxes and warps to the datasets **/
@@ -5956,7 +5958,7 @@ if(PRINT_TRACING)
    new_xyz =
     do_lock = !( i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) ;  /* 11 Nov 1996 */
 
-   if( !redisplay_option && !new_xyz ){ recurse=0; EXRETURN; }
+   if( !redisplay_option && !new_xyz ) EXRR ;
 
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
@@ -6149,8 +6151,9 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       }
    }
 
-   recurse=0 ; EXRETURN ;
+   EXRR ;
 }
+#undef EXRR
 
 /*-------------------------------------------------------------------------
    get the n-th overlay as an MRI_IMAGE *
@@ -10842,9 +10845,9 @@ void AFNI_store_dset_index( int ijk , int tin )
 int AFNI_needs_dset_ijk(void){ return dset_ijk ; }
 int AFNI_needs_dset_tin(void){ return dset_tin ; }
 
-/*-----------------------------------------------------------------------
-   Add a timeseries to the global list
--------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------*/
+/*!  Add a timeseries to the global library.
+*//*---------------------------------------------------------------------*/
 
 void AFNI_add_timeseries( MRI_IMAGE *tsim )
 {
@@ -10854,5 +10857,30 @@ ENTRY("AFNI_add_timeseries") ;
       POPDOWN_timeseries_chooser ;
       ADDTO_IMARR(GLOBAL_library.timeseries,tsim) ;
    }
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+/* N.B.: The input time series structure is destroyed!
+         Never refer to it again, even to free() it!
+*//*---------------------------------------------------------------------*/
+
+void AFNI_replace_timeseries( MRI_IMAGE *tsim )
+{
+   int its ; MRI_IMAGE *qsim ;
+
+ENTRY("AFNI_replace_timeseries") ;
+
+   if( tsim == NULL ) EXRETURN ;
+
+   its = AFNI_tsname_in_library( tsim->name ) ;
+   if( its < 0 ){
+    AFNI_add_timeseries(tsim); EXRETURN;
+   }
+
+   POPDOWN_timeseries_chooser ;
+   qsim = IMARR_SUBIMAGE(GLOBAL_library.timeseries,its) ;
+   mri_move_guts( qsim , tsim ) ;
+   mri_free(tsim) ;
    EXRETURN ;
 }
