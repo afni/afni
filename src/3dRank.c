@@ -21,9 +21,13 @@ void Rank_help(void) {
          "                  the prefix is preceded by r00., r01., etc.\n"
          "                  If no prefix is given, the default is \n"
          "                  rank.DATASET1, rank.DATASET2, etc.\n"
+         "\n"
          "                  In addition to the ranked volume, a rank map\n"
          "                  1D file is created. It shows the mapping from \n"
          "                  the rank to the input dataset value \n"
+         "                  The second column of this file contains the unique\n"
+         "                  values found in the input datasets.\n"
+         "\n"
          "  -ver = print author and version info\n"
          "  -help = print this help screen\n"
          ) ;
