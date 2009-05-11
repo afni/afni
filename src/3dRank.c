@@ -115,7 +115,7 @@ int main( int argc , char * argv[] )
    total_unq = 0;
    iun = 0;
    for (ib = 0; ib<nbriks; ++ib) {
-      DSET_load(dsets_in[ib]);
+      DSET_mallocize(dsets_in[ib]); DSET_load(dsets_in[ib]);
       for (isb=0; isb<DSET_NVALS(dsets_in[ib]); ++isb) {
          uniques[iun] = THD_unique_vals(dsets_in[ib], isb,
                                         &(N_uniques[iun]), cmask);
@@ -263,7 +263,7 @@ int main( int argc , char * argv[] )
          DSET_deletepp(dsets_in[ib]);
       }
    }
-    
+
    free(rmap); rmap=NULL;
    free(final_unq);  final_unq=NULL;
    
