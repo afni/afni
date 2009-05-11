@@ -281,7 +281,7 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     proc.ricor_nreg = nsliregs
 
     cmd = '# -------------------------------------------------------\n' \
-          '# RETROICOR - remove cardiac and respiratory regressors\n'   \
+          '# RETROICOR - remove cardiac and respiratory signals\n'      \
           '#           - use regressors that span all runs\n'           \
           'foreach run ( $runs )\n'
 
