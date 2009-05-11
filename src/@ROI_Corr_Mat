@@ -2,16 +2,14 @@
 
 # HJ is welding 3 scripts. 
 
-if ($1 == "" || "$1" == '-h' || $2 == '-help') then
+if ("$1" == "" || "$1" == '-h' || "$2" == '-help') then
    goto HELP
 endif
 
-set fn_epi = $argv[1]
-set fn_msk = $argv[2]
+goto PARSE
+RETURN_PARSE:
 
-#rowfile must have a .1D extension
-set rowfile = 2droi.row.1D
-set master = master.$rowfile:r
+
 # path of ROI index & Zero+orig Files 
 set init_path = "$PWD"
 
@@ -27,7 +25,7 @@ if ($N < 4) then
 endif
 
 JUMP_POINT:
-goto WORK_1D
+#goto WORK_1D
 
 
 
@@ -41,15 +39,21 @@ if ($status) goto END
 set fn_msk = msk_resam+orig
 
 MAKE_ROW_FILE:
-3dRank -overwrite -prefix ___rnk -input $fn_msk 
-set fval = `1dcat ___rnk.rankmap.1D'[1]{0}'`
-if ( $fval == 0 ) then
-   1dcat ___rnk.rankmap.1D'[1]{1..$}'\' > $rowfile
-else
-   1dcat ___rnk.rankmap.1D'[1]{1..$}'\' > $rowfile
+if ("$rowfile" == "") then
+   #rowfile must have a .1D extension
+   set rowfile = 2droi.row.1D
+   set master = master.$rowfile:r
+   3dRank -overwrite -prefix ___rnk -input $fn_msk 
+   set fval = `1dcat ___rnk.rankmap.1D'[1]{0}'`
+   if ( $fval == 0 ) then
+      1dcat ___rnk.rankmap.1D'[1]{1..$}'\' > $rowfile
+   else
+      1dcat ___rnk.rankmap.1D'[1]{1..$}'\' > $rowfile
+   endif
+   rm -f ___rnk* >& /dev/null
+else 
+   set master = master.$rowfile:r
 endif
-rm -f ___rnk* >& /dev/null
-
 
 MAKE_MASTER_VOL:
 set nroi = `3dnvals $rowfile`
@@ -121,7 +125,7 @@ echo " done"
 goto END
 
 HELP:
-   echo "Usage `basename $0` <TimeSeriesVol> <ROIVol>"
+   echo "Usage `basename $0` <-ts TimeSeriesVol> <-roi ROIVol>"
    echo ""
    echo "Script to produce an ROI correlation matrix."
    echo ""
@@ -131,9 +135,69 @@ HELP:
    echo "rather interpolate the epi, then do so before you run this script"
    echo ""
    echo "Example:"
-   echo "`basename $0` s620_rest_r1+orig SUMA/aparc.a2005s+aseg.nii"
+   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii"
    echo ""
    goto END
    
+PARSE:
+	echo "Parsing ..."
+	set Narg = $#
+	
+	#find the locations of -ts and -roi, etc
+	set cnt = 1
+	set fn_msk = ''
+	set fn_epi = ''
+   set rowfile = ''
+   while ($cnt <= $Narg)
+		if ("$argv[$cnt]" == "-rowfile") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need option after -rowfile"
+            goto END
+			else
+				@ cnt ++
+				set rowfile = "$argv[$cnt]"
+            if ("${rowfile:r}.1D" != "$rowfile") then
+               echo "rowfile must have a .1D extension"
+            endif
+            set NxtInd = $cnt
+			endif
+      endif
+		if ("$argv[$cnt]" == "-ts") then
+         set SufLoc = $cnt		
+		   if ($SufLoc == $Narg) then
+				echo "Need option after -ts"
+            goto END
+			else
+				@ cnt ++
+            set fn_epi = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+      
+      if ("$argv[$cnt]" == "-roi") then
+         set SufLoc = $cnt		
+		   if ($SufLoc == $Narg) then
+				echo "Need option after -roi"
+            goto END
+			else
+				@ cnt ++
+            set fn_msk = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+      
+		
+		@ cnt ++
+	end
+
+@ NxtInd ++
+set others_list = ( $argv[$NxtInd-$#argv] )
+
+#echo "$ss"
+#echo "$sslab"
+#echo "$other_list"
+
+goto RETURN_PARSE
 
 END:
