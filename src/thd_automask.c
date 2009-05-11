@@ -127,7 +127,11 @@ ENTRY("THD_automask") ;
 
    /* median at each voxel */
 
+#if 0
    medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL);
+#else
+   medim = THD_aveabs_brick(dset) ; if( medim == NULL ) RETURN(NULL);
+#endif
 
    mmm = mri_automask_image( medim ) ;
 
