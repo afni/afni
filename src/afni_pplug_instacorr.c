@@ -1,5 +1,4 @@
 #include "afni.h"
-
 #ifndef ALLOW_PLUGINS
 IPLUGIN_interface *  ICOR_init(char *lab)
 {
@@ -16,6 +15,8 @@ IPLUGIN_interface *  ICOR_init(char *lab)
 /***********************************************************************
   Pseudo-plugin to setup InstaCorr operations
 ************************************************************************/
+
+static int ncall=0 ;
 
 /*--------------------- string to 'help' the user --------------------*/
 
@@ -176,6 +177,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
    Three_D_View *im3d = plint->im3d ;
    double etim ;
 
+   ncall = 0 ;
+
    if( !IM3D_OPEN(im3d) || im3d->vwid->func->options_vedit_av->ival != 1 ){
      XtUnmapWidget(plint->wid->shell); return NULL;
    }
@@ -295,7 +298,7 @@ int AFNI_icor_setref( Three_D_View *im3d )
 {
    MRI_IMAGE *iim; float *iar; THD_fvec3 iv,jv; THD_ivec3 kv; int ijk;
    THD_3dim_dataset *icoset ; THD_slist_find slf ; int nds=0 ;
-   double etim ; static int ncall=0 ;
+   double etim ;
 
 ENTRY("AFNI_icor_setref") ;
 
@@ -424,7 +427,7 @@ ENTRY("AFNI_icor_setref") ;
                                (XtPointer)im3d ,  &cbs           ) ;
      AFNI_set_fim_index(im3d,0) ;
      AFNI_set_thr_index(im3d,0) ;
-     sprintf(cmd,"SET_FUNC_RANGE %c.0.6",cpt[1]) ;
+     sprintf(cmd,"SET_FUNC_RANGE %c.0.7",cpt[1]) ;
      AFNI_driver(cmd) ;
    }
    AFNI_reset_func_range(im3d) ;
