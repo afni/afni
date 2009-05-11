@@ -2696,7 +2696,17 @@ static char * readme_env[] = {
    "defined as control characters and ASCII characters that will cause\n" ,
    "trouble on the Unix command line ('*', '$', etc.).  'Bad' filenames\n" ,
    "will not be allowed by most AFNI programs.  If, for some reason, you\n" ,
-   "want to use such filenames, set this variable to YES.\n" ,
+   "want to use such filenames, set this variable to YES.  Don't blame\n" ,
+   "me if you get into trouble with such filenames!\n" ,
+   "\n" ,
+   "----------------------------\n" ,
+   "Variable: AFNI_INSTACORR_FDR (editable)\n" ,
+   "----------------------------\n" ,
+   "If you want AFNI's InstaCorr feature to compute the FDR curve for the\n" ,
+   "on-the-fly correlation coefficient sub-brick created interactively, then set\n" ,
+   "this variable to YES.  Since the FDR computations are the slowest part of the\n" ,
+   "operation, the default (if this variable is not YES) is that FDR curves are\n" ,
+   "NOT computed.\n" ,
    "\n" ,
    "----------------------------------------------------------------------\n" ,
    "--- variables specific to NIML I/O\n" ,
@@ -2913,4 +2923,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 2913
+#define NUM_readme_env 2923

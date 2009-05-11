@@ -492,6 +492,10 @@ PLUGIN_interface * ENV_init(void)
                      3 , fsize , NULL  ) ;
    }
 
+   /* 11 May 2009 [RWCox] */
+   ENV_add_yesno( "AFNI_INSTACORR_FDR" ,
+                  "Compute FDR curve for InstaCorr correlations?" ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )

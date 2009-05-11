@@ -33,6 +33,28 @@ ENTRY("AFNI_ts_in_library") ;
 
 /*--------------------------------------------------------------------*/
 
+int AFNI_tsname_in_library( char *nam )
+{
+ENTRY("AFNI_tsname_in_library") ;
+
+   if( GLOBAL_library.timeseries != NULL         &&
+      IMARR_COUNT(GLOBAL_library.timeseries) > 0 &&
+      nam != NULL && *nam != '\0'                  ){
+
+     int its ; MRI_IMAGE *tsim ;
+
+     for( its=0 ; its < IMARR_COUNT(GLOBAL_library.timeseries) ; its++ ){
+       tsim = IMARR_SUBIMAGE(GLOBAL_library.timeseries,its) ;
+       if( tsim != NULL && tsim->name != NULL && strcmp(nam,tsim->name) == 0 )
+         RETURN(its) ;
+     }
+   }
+
+   RETURN(-1) ;
+}
+
+/*--------------------------------------------------------------------*/
+
 void AFNI_fimmer_pickref_CB( Widget wcall ,
                              XtPointer cd , MCW_choose_cbs *cbs )
 {

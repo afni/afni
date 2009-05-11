@@ -174,6 +174,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    int ignore=0 , mindex=0 , automask=0 , qq ; float blur=0.0f ;
    ICOR_setup *iset ; char *cpt ;
    Three_D_View *im3d = plint->im3d ;
+   double etim ;
 
    if( !IM3D_OPEN(im3d) || im3d->vwid->func->options_vedit_av->ival != 1 ){
      XtUnmapWidget(plint->wid->shell); return NULL;
@@ -267,6 +268,8 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->prefix   = (char *)malloc(sizeof(char)*16) ;
    cpt = AFNI_controller_label(im3d); sprintf(iset->prefix,"%c_ICOR",cpt[1]);
 
+   etim = PLUTO_elapsed_time() ;
+
    INSTACORR_LABEL_OFF(im3d) ;
    SHOW_AFNI_PAUSE ;
    /**************/   qq = THD_instacorr_prepare( iset ) ;  /**************/
@@ -275,7 +278,9 @@ static char * ICOR_main( PLUGIN_interface *plint )
      DESTROY_ICOR_setup(iset) ; return "** Error in InstaCorr setup!? **" ;
    }
    INSTACORR_LABEL_ON(im3d) ;
-   INFO_message("InstaCorr setup: %d voxels ready for work",qq) ;
+
+   etim = PLUTO_elapsed_time() - etim ;
+   INFO_message("InstaCorr setup: %d voxels ready for work: %.2f sec",qq,etim) ;
 
    im3d->iset = iset ;
 
@@ -290,6 +295,7 @@ int AFNI_icor_setref( Three_D_View *im3d )
 {
    MRI_IMAGE *iim; float *iar; THD_fvec3 iv,jv; THD_ivec3 kv; int ijk;
    THD_3dim_dataset *icoset ; THD_slist_find slf ; int nds=0 ;
+   double etim ; static int ncall=0 ;
 
 ENTRY("AFNI_icor_setref") ;
 
@@ -314,9 +320,14 @@ ENTRY("AFNI_icor_setref") ;
    kv  = THD_3dmm_to_3dind_no_wod( im3d->iset->dset, jv ) ;
    ijk = DSET_ixyz_to_index      ( im3d->iset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] );
 
-   /* do the real work */
+   /* do the real work: ijk = voxel index */
+
+   etim = PLUTO_elapsed_time() ;
 
    iim = THD_instacorr( im3d->iset , ijk , 0 ) ;
+
+   if( ncall <= 1 )
+     ININFO_message(" InstaCorr elapsed time = %.2f sec: correlations",PLUTO_elapsed_time()-etim) ;
 
    if( iim == NULL ) RETURN(0) ;  /* did it fail? */
 
@@ -347,7 +358,7 @@ ENTRY("AFNI_icor_setref") ;
        *slf.dset = *icoset ;      /* copy the guts, keep the pointer */
        slf.dset->idcode = old_idc ;           /* and keep the idcode */
        nds = slf.dset_index ;
-INFO_message("trashed and re-used old dataset %s",im3d->iset->prefix) ;
+       INFO_message("trashed and re-used old dataset %s",im3d->iset->prefix) ;
 
      } else {                                  /* add to the session */
        int vv = icoset->view_type ;
@@ -356,7 +367,7 @@ INFO_message("trashed and re-used old dataset %s",im3d->iset->prefix) ;
        im3d->ss_now->num_dsset++ ;
        AFNI_force_adoption( im3d->ss_now , False ) ;
        AFNI_make_descendants( GLOBAL_library.sslist ) ;
-INFO_message("created new dataset %s",im3d->iset->prefix) ;
+       INFO_message("created new dataset %s",im3d->iset->prefix) ;
      }
 
    /* just need to use existing dataset that matches */
@@ -375,12 +386,34 @@ INFO_message("created new dataset %s",im3d->iset->prefix) ;
    mri_clear_data_pointer(iim) ; mri_free(iim) ;
    DSET_KILL_STATS(icoset) ; THD_load_statistics(icoset) ;
 
+   if( ncall <= 1 )
+     ININFO_message(" InstaCorr elapsed time = %.2f sec: dataset ops",PLUTO_elapsed_time()-etim) ;
+
    EDIT_BRICK_LABEL  (icoset,0,"Correlation") ;
    EDIT_BRICK_TO_FICO(icoset,0,im3d->iset->mv->nvals,1,im3d->iset->ndet) ;
 
    DSET_BRICK_FDRCURVE_ALLKILL(icoset) ;
    DSET_BRICK_MDFCURVE_ALLKILL(icoset) ;
-   THD_create_all_fdrcurves   (icoset) ;
+
+   if( AFNI_yesenv("AFNI_INSTACORR_FDR") ){
+     THD_create_all_fdrcurves(icoset) ;
+     if( ncall <= 1 )
+       ININFO_message(" InstaCorr elapsed time = %.2f sec: FDR curve",PLUTO_elapsed_time()-etim) ;
+   }
+
+   /* 10 May 2009: save seed timeseries into timeseries library */
+
+   { MRI_IMAGE *tsim ; float *tsar ; int kk ;
+     tsim = mri_new( im3d->iset->mv->nvals + im3d->iset->ignore,1,MRI_float ) ;
+     tsar = MRI_FLOAT_PTR(tsim) ;
+     kk   = THD_vectim_ifind( ijk , im3d->iset->mv ) ;
+     memcpy( tsar + im3d->iset->ignore ,
+             VECTIM_PTR(im3d->iset->mv,kk) ,
+             sizeof(float)*im3d->iset->mv->nvals ) ;
+     tsim->name = (char *)malloc(sizeof(char)*16) ;
+     strcpy(tsim->name,im3d->iset->prefix) ; strcat(tsim->name,"_seed") ;
+     AFNI_replace_timeseries(tsim) ;
+   }
 
    /* redisplay overlay */
 
@@ -405,5 +438,8 @@ INFO_message("created new dataset %s",im3d->iset->prefix) ;
    }
    AFNI_set_thr_pval(im3d) ; AFNI_process_drawnotice(im3d) ;
 
-   RETURN(1) ;
+   if( ncall <= 1 )
+     ININFO_message(" InstaCorr elapsed time = %.2f sec: redisplay",PLUTO_elapsed_time()-etim) ;
+
+   ncall++ ; RETURN(1) ;
 }

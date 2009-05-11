@@ -129,12 +129,12 @@ ENTRY("mri_move_guts") ;
 
    *qim = *zim ;
 
-   /* NULL out the contents of zim, then free() it */
+   /* NULL out the contents of zim that are pointers */
 
    mri_fix_data_pointer( NULL , zim ) ;
    zim->name  = NULL ;
    zim->fname = NULL ;
-   free(zim) ; EXRETURN ;
+   EXRETURN ;
 }
 
 /*---------------- added fake rint() 12 Feb 2001 ---------------*/
