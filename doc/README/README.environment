@@ -2456,7 +2456,7 @@ errors in the "Where am I?" popup will not appear.  This is purely for
 cosmetic purposes, Ziad.
 
 -------------------------------
-Variable: AFNI_TTATLAS_FONTSIZE
+Variable: AFNI_TTATLAS_FONTSIZE (editable)
 -------------------------------
 If this variable is not set, the default font size is used in the 'Where am I?'
 popup window.
@@ -2695,7 +2695,16 @@ Normally, AFNI checks output filenames for 'bad' characters, which are
 defined as control characters and ASCII characters that will cause
 trouble on the Unix command line ('*', '$', etc.).  'Bad' filenames
 will not be allowed by most AFNI programs.  If, for some reason, you
-want to use such filenames, set this variable to YES.
+want to use such filenames, set this variable to YES.  Don't blame
+me if you get into trouble with such filenames!
+
+----------------------------
+Variable: AFNI_INSTACORR_FDR (editable)
+----------------------------
+By default, AFNI's InstaCorr feature computes the FDR curve for the
+on-the-fly correlation coefficient sub-brick created interactively.
+This operation is the slowest part of the whole InstaCorr process.
+Set this variable to NO if you don't want the FDR curve.
 
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
