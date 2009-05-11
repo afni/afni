@@ -29,7 +29,7 @@ ENTRY("THD_get_many_timeseries") ;
 
    ndir = (dlist != NULL) ? dlist->num : 0 ;
 
-   if( ndir == 0 && epath == NULL ) RETURN( NULL ) ;
+   if( ndir == 0 && epath == NULL ) RETURN( outar ) ;
 
    INIT_IMARR( outar ) ;
    INIT_SARR( qlist ) ;

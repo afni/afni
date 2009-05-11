@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , MAY , 2009 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "InstaCorr changes" ,
+   "* Save seed time series into the 1D timeseries library for graphicking\n"
+   "* Modify progress printouts slightly" } ,
+
  { 8 , MAY , 2009 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "Instacorr updates" ,
    "* Can Write A_ICOR datasets using new allow_directwrite variable\n"

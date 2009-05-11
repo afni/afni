@@ -4452,7 +4452,7 @@ ENTRY("drive_MCW_grapher") ;
 
          if( im == NULL ){                /* no input --> kill kill kill */
 STATUS("freeing reference timeseries") ;
-            FREE_IMARR(grapher->ref_ts) ;
+            FREE_IMARR(grapher->ref_ts) ;  /* doesn't delete images inside */
             grapher->ref_ts = NULL ;
          } else{
             if( grapher->ref_ts == NULL ) INIT_IMARR( grapher->ref_ts ) ;
