@@ -738,7 +738,7 @@ FOLLOWERS:
          3dAllineate -master $ExpAnatOrig \
                -1Dmatrix_apply ${VolRegPrefix}.A2E.1D \
                -input $fol \
-               -prefix ./${folPrefix}"_Alnd_Exp"$fview  \
+               -prefix ./${folPrefix:r}"_Alnd_Exp"$fview  \
                -overwrite  \
                -final $folinterp
       end
