@@ -2701,10 +2701,11 @@ me if you get into trouble with such filenames!
 ----------------------------
 Variable: AFNI_INSTACORR_FDR (editable)
 ----------------------------
-By default, AFNI's InstaCorr feature computes the FDR curve for the
-on-the-fly correlation coefficient sub-brick created interactively.
-This operation is the slowest part of the whole InstaCorr process.
-Set this variable to NO if you don't want the FDR curve.
+If you want AFNI's InstaCorr feature to compute the FDR curve for the
+on-the-fly correlation coefficient sub-brick created interactively, then set
+this variable to YES.  Since the FDR computations are the slowest part of the
+operation, the default (if this variable is not YES) is that FDR curves are
+NOT computed.
 
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
