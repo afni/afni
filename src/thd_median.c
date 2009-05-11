@@ -265,3 +265,44 @@ ENTRY("THD_rms_brick") ;
 
    free(tsar) ; RETURN(medim) ;
 }
+
+/*-----------------------------------------------------------------*/
+/*! Compute average abs brick of a dataset.  [11 May 2009 - RWCox]
+-------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_aveabs_brick( THD_3dim_dataset *dset )
+{
+   int nvox , nvals , ii , jj ;
+   MRI_IMAGE *tsim , *medim ;
+   float *medar , sum,fac ;
+   float *tsar ;
+
+ENTRY("THD_rms_brick") ;
+
+   if( !ISVALID_DSET(dset) ) RETURN(NULL) ;
+   DSET_load(dset) ;
+   if( !DSET_LOADED(dset) ) RETURN(NULL) ;
+
+   nvals = DSET_NVALS(dset)   ; fac = 1.0 / nvals ;
+   tsim  = DSET_BRICK(dset,0) ;
+   nvox  = DSET_NVOX(dset) ;
+
+   if( nvals == 1 ){
+     medim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,0), tsim ) ;
+     medar = MRI_FLOAT_PTR(medim) ;
+     for( ii=0 ; ii < nvox ; ii++ ) medar[ii] = fabsf(medar[ii]) ;
+     RETURN(medim) ;
+   }
+
+   medim = mri_new_conforming( tsim , MRI_float ) ;
+   medar = MRI_FLOAT_PTR(medim) ;
+   tsar  = (float *) calloc( sizeof(float),nvals+1 ) ;
+
+   for( ii=0 ; ii < nvox ; ii++ ){
+     THD_extract_array( ii , dset , 0 , tsar ) ;
+     for( sum=0.0,jj=0 ; jj < nvals ; jj++ ) sum += fabsf(tsar[jj]) ;
+     medar[ii] = fac * sum ;
+   }
+
+   free(tsar) ; RETURN(medim) ;
+}
