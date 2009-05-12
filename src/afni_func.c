@@ -5680,7 +5680,7 @@ STATUS("got func info") ;
       /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
 
       plint[ic]->im3d = im3d ;
-      sprintf(title,"%sAFNI InstaCorr Operation",lc) ;
+      sprintf(title,"%sAFNI InstaCorr Setup Operations",lc) ;
       XtVaSetValues( plint[ic]->wid->shell ,
                       XmNtitle     , title       , /* top of window */
                       XmNiconName  , "InstaCorr" , /* label on icon */
