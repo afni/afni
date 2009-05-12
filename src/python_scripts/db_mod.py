@@ -280,30 +280,27 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
     proc.ricor_nreg = nsliregs
 
-    cmd = '# -------------------------------------------------------\n' \
-          '# RETROICOR - remove cardiac and respiratory signals\n'      \
-          '#           - use regressors that span all runs\n'           \
+    cmd = '# -------------------------------------------------------\n'   \
+          '# RETROICOR - remove cardiac and respiratory signals\n'        \
+          '#             (across runs: catenate regressors across runs)\n'\
           'foreach run ( $runs )\n'
 
     cmd = cmd +                                                         \
         "    # detrend regressors, expand slice0 regressors per run\n"  \
         "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"        \
         "              stimuli/ricor_orig_r$run.1D\\'\n\n"              \
-        "    1dtranspose rm.ricor.$run.1D rm.ricor_det_r$run.1D\n\n"    \
-        "    1d_tool.py -infile rm.ricor_det_r$run.1D \\\n"             \
-        "               -pad_into_many_runs $run $#runs \\\n"           \
-        "               -write rm.ricor_pad_r$run.1D\n" % polort
+        "    1dtranspose rm.ricor.$run.1D rm.ricor_det_r$run.1D\n" % polort
     cmd = cmd + "end\n\n"
 
     cmd = cmd +                                                 \
-        "# put ricor regressors into single files for actual regression\n\n"
+        "# put ricor regressors into a single file for each regression\n\n"
 
     cmd = cmd +                                                 \
-        "# ... all slices\n"                                    \
-        "1dcat rm.ricor_pad_r[0-9]*.1D > stimuli/ricor_det_rall.1D\n\n"
+        "# ... catenate all runs for current 'ricor' block\n"   \
+        "cat rm.ricor_det_r[0-9]*.1D > stimuli/ricor_det_rall.1D\n\n"
 
     cmd = cmd +                                                 \
-        "# ... extract slice 0, for 'regress' block\n"          \
+        "# ... extract slice 0, for future 'regress' block\n"   \
         "1dcat stimuli/ricor_det_rall.1D'[0..%d]' > %s\n\n"     \
         % (nsliregs-1, proc.ricor_reg)
 
@@ -379,6 +376,7 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
 
     cmd = '# -------------------------------------------------------\n' \
           '# RETROICOR - remove cardiac and respiratory regressors\n'   \
+          '#             (per run: each run uses separate regressors)\n'\
           'foreach run ( $runs )\n'
 
     cmd = cmd +                                                            \
