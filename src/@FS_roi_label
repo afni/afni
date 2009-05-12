@@ -1,0 +1,243 @@
+#!/bin/tcsh -f
+
+set stat = 1
+if ("$1" == "" || "$1" == '-h' || "$2" == '-help') then
+   goto HELP
+endif
+
+goto PARSE
+RETURN_PARSE:
+
+
+if (! -f /tmp/___tmplabels.txt) then
+   set bin = `which mris_convert`
+   set fsp = $bin:h
+
+   #peel off a couple of layers
+   if ( ! -f $fsp/FreeSurferColorLUT.txt) set fsp = $fsp:h
+   if ( ! -f $fsp/FreeSurferColorLUT.txt) set fsp = $fsp:h
+   if ( ! -f $fsp/FreeSurferColorLUT.txt) set fsp = $fsp:h
+   if ( ! -f $fsp/FreeSurferColorLUT.txt) then
+      echo "Cannot find LUT"
+      goto END
+   endif
+
+
+   sed 's/^ *//;s/ *$//;s/ \{1,\}/ /g' $fsp/FreeSurferColorLUT.txt \
+      |   sed 's/^/#/g' | cut -d' ' -f1 -f2 > /tmp/___tmplabels.txt
+endif
+
+if ($name != "") then
+   \grep -i $name   /tmp/___tmplabels.txt > /tmp/___nm.txt
+   cut -d' ' -f1 /tmp/___nm.txt > /tmp/___nmi.txt
+   cut -d' ' -f2 /tmp/___nm.txt > /tmp/___nmn.txt
+   if ($rankmap != "") then
+      #purify 1D file
+      1dcat $rankmap'[1]' > /tmp/___rmi.1D
+      1dcat $rankmap > /tmp/___rmcl.1D
+      #for each entry found
+      set nl = `wc -l  /tmp/___nm.txt`
+      set n = 1
+      printf "%-6s   %-6s  %-8s \n" "Rank" "Label" "Name"
+      while ($n < $nl[1])
+         set lab = `sed -n "${n}p" /tmp/___nmi.txt | sed 's/#//'`
+         set nm = `sed -n "${n}p" /tmp/___nmn.txt`
+         #Now find lab in  rankmap's second column
+         set ilab = `\grep -n -w $lab /tmp/___rmi.1D | sed 's/:/ /g'`
+         if ("$ilab" != '') then
+            #Now get that line from the cleaned up rankmap
+            set li = `sed -n "${ilab[1]}p" /tmp/___rmcl.1D`
+            #and the rank is the first value
+            set rank = $li[1]
+            printf "%-6s   %-6s  %-8s \n" $rank $lab $nm
+         else  
+            printf "%-6s   %-6s  %-8s \n" '#' $lab $nm
+         endif
+         @ n ++
+      end
+   else
+      paste  /tmp/___nmi.txt /tmp/___nmn.txt
+   endif
+   set stat = 0
+   goto END 
+endif 
+
+if ($rank != "") then
+   set l = `1dcat $rankmap"{$rank}"`
+   if ("$l" == "" || $#l != 2) then
+      echo "Rank $rank not found in $rankmap or unexpected file format"
+      set stat = 1
+      goto END
+   endif
+   if ($l[1] != $rank) then
+      echo "Rankfile's first column is not continuous"
+      set stat = 1
+      goto END
+   endif 
+   set lab = $l[2]
+endif
+
+if ($lab != "") then
+   set l = `\grep -w "#$lab" /tmp/___tmplabels.txt`
+   if ("$l" != "") then
+      echo $l | sed 's/^#//'
+   endif
+else 
+   echo "Error, nothing to do here"
+   goto END
+endif
+
+set stat = 0
+goto END
+
+PARSE:
+	
+	#find the locations of -ts and -roi, etc
+   set name = ''
+   set rankmap = ''
+   set rank = ''
+   set lab = ''
+	set Narg = $#
+	set cnt = 1
+   while ($cnt <= $Narg)
+		if ("$argv[$cnt]" == "-rank") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need integer after -rank"
+            goto END
+			else
+				@ cnt ++
+				set rank = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+		if ("$argv[$cnt]" == "-rankmap") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need file after -rankmap"
+            goto END
+			else
+				@ cnt ++
+				set rankmap = "$argv[$cnt]"
+            if ("${rankmap:r}.1D" != "$rankmap") then
+               echo "rankmap must have a .1D extension"
+            endif
+            set NxtInd = $cnt
+			endif
+      endif
+		if ("$argv[$cnt]" == "-name") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need area name after -name"
+            goto END
+			else
+				@ cnt ++
+				set name = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+		if ("$argv[$cnt]" == "-lab" || "$argv[$cnt]" == "-label") then
+         set SufLoc = $cnt		
+		   if ($SufLoc == $Narg) then
+				echo "Need option after -label"
+            goto END
+			else
+				@ cnt ++
+            set lab = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+      		
+		@ cnt ++
+	end
+
+   @ NxtInd ++
+   set others_list = ( $argv[$NxtInd-$#argv] )
+
+   if ($lab == "" && $rank == "") then
+      if ($#others_list == 1) then
+         set lab = $others_list[1]
+         set others_list = ()
+      endif
+   endif
+   if ($#others_list > 0) then
+      echo "Options $others_list not understood"
+      goto END
+   endif
+   if ($lab == "" && $rank == "" && "$name" == "") then
+      echo "Nothing to do."
+      goto END
+   endif
+   if ($lab != "" && $rank != "") then
+      echo "-rank and -label are mutually exclusive"
+      goto END
+   endif
+   if ($rank != "" && $rankmap == "") then
+      echo "Need -rankmap with -rank"
+      goto END
+   endif
+   if ($rankmap != "" && $rank == "" &&  "$name" == "") then
+      echo "-rankmap is useless without -rank or -name"
+      goto END
+   endif
+   if ($name != "" && $rank != "") then
+      echo "-rank and -name are mutually exclusive"
+      goto END
+   endif
+   if ($name != "" && $lab != "") then
+      echo "-label and -name are mutually exclusive"
+      goto END
+   endif
+   
+   goto RETURN_PARSE
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <int>"
+   echo "   Return the name of an integer labeled area in FreeSurfer's"
+   echo "   parcellation. Lookup is based on your installed "
+   echo "   FreeSurferColorLUT.txt ""
+   echo "   Example: "
+   echo "      @FS_roi_label  2180 \"
+   echo ""
+   echo " or "
+   echo ""
+   echo "Usage: `basename $0` <-lab int>"
+   echo "   Return the name of an integer labeled area in FreeSurfer's"
+   echo "   parcellation"
+   echo ""
+   echo " or "
+   echo ""
+   echo "Usage: `basename $0` <-rank R> <-rankmap M.1D>"
+   echo "   Return the name of ranked integer labeled area from the output "
+   echo "   of 3dRank or 3dmerge -1rank on a FreeSurfer parcellation file."
+   echo "   Example: "
+   echo "      @FS_roi_label  -rank 198 \"
+   echo "                     -rankmap  SUMA/aparc.a2005s+aseg_rank.rankmap.1D"
+   echo ""
+   echo " or "
+   echo ""
+   echo "Usage: `basename $0` <-name NAME> "
+   echo "   Return the entries matching NAME (case insensitive, partial match)"
+   echo "   from FreeSurfer's FreeSurferColorLUT.txt "
+   echo "   Example: "
+   echo "      @FS_roi_label  -name cerebra"
+   echo ""
+   echo " or "
+   echo ""
+   echo "Usage: `basename $0` <-name NAME> <-rankmap M.1D>"
+   echo "   Return the entries matching NAME and their rank per M.1D"
+   echo "   Unavailable ranks are flagged with the # sign"
+   echo "   Example: "
+   echo "      @FS_roi_label  -name cerebra  \"
+   echo "                     -rankmap SUMA/aparc.a2005s+aseg_rank.rankmap.1D"
+   echo ""
+   echo ""
+   set stat = 0
+   goto END
+   
+END:
+exit $stat   
+
+   
+   
