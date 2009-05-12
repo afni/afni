@@ -11937,6 +11937,7 @@ void SUMA_DotXform_NewBandPass(  SUMA_XFORM *xf,
    char sbuf[256];
    int ii;
    float ouf=0.0, olf=0.0;
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
    
@@ -11954,10 +11955,10 @@ void SUMA_DotXform_NewBandPass(  SUMA_XFORM *xf,
    NI_GET_FLOAT(dotopts,"filter_above", ouf);
    
    if (olf == lf && ouf == uf) {
-      SUMA_S_Note("Nothing to do");
+      SUMA_LH("Nothing to do");
       SUMA_RETURNe;
    } else {
-      SUMA_S_Notev("%f %f\n%f %f\n",
+      SUMA_LHv("%f %f\n%f %f\n",
                      olf, lf, ouf, uf);
    }
    
@@ -12012,6 +12013,7 @@ void SUMA_DotXform_NewPolort(  SUMA_XFORM *xf,
    char sbuf[256];
    int ii=0, opolort=0;
    SUMA_DSET *in_dset=NULL;
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
    
@@ -12027,10 +12029,10 @@ void SUMA_DotXform_NewPolort(  SUMA_XFORM *xf,
    
    NI_GET_INT(dotopts,"polort", opolort);
    if (polort == opolort) { /* nothing to do */
-      SUMA_S_Note("Nothing to do");
+      SUMA_LH("Nothing to do");
       SUMA_RETURNe;
    } else {
-      SUMA_S_Notev("%d %d\n", opolort, polort);
+      SUMA_LHv("%d %d\n", opolort, polort);
    }
    
    NI_SET_INT(dotopts,"polort", polort);
