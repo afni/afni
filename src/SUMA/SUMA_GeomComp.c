@@ -7026,14 +7026,25 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
    
    SUMA_ENTRY;
    
+   if (!NodesSelected || !Full_FaceSetList || !Memb) {
+      SUMA_S_Errv("NULL input %p, %p, %p\n",
+                  NodesSelected,Full_FaceSetList, Memb);
+      SUMA_RETURN(NULL);
+   }
+   
+   SUMA_LH("Allocating");
    NP = 3;
    BeenSelected = (int *)SUMA_calloc (N_Full_FaceSetList, sizeof(int));
    Patch = (SUMA_PATCH *)SUMA_malloc(sizeof(SUMA_PATCH));
    
    if (!BeenSelected || !Patch) {
-      fprintf (SUMA_STDERR,"Error %s: Could not allocate for BeenSelected or patch.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Could not allocate for BeenSelected or patch.\n", 
+               FuncName);
       SUMA_RETURN(NULL);
    }
+   
+   SUMA_LH("BeenSelected");
    /* find out the total number of facesets these nodes are members of */
    Patch->N_FaceSet = 0; /* total number of facesets containing these nodes */
    for (i=0; i < N_Nodes; ++i) {
@@ -7047,14 +7058,17 @@ SUMA_PATCH * SUMA_getPatch (  int *NodesSelected, int N_Nodes,
       }   
    }
    
-   /* now load these facesets into a new matrix */
    
+   SUMA_LH("Loading");
+   /* now load these facesets into a new matrix */
    Patch->FaceSetList = (int *) SUMA_calloc (Patch->N_FaceSet * 3, sizeof(int));
    Patch->FaceSetIndex = (int *) SUMA_calloc (Patch->N_FaceSet, sizeof(int));
    Patch->nHits = (int *) SUMA_calloc (Patch->N_FaceSet, sizeof(int));
    
    if (!Patch->FaceSetList || !Patch->FaceSetIndex || !Patch->nHits) {
-      fprintf (SUMA_STDERR,"Error %s: Could not allocate for Patch->FaceSetList || Patch_FaceSetIndex.\n", FuncName);
+      fprintf (SUMA_STDERR,
+               "Error %s: Could not allocate for Patch->FaceSetList ||"
+               " Patch_FaceSetIndex.\n", FuncName);
       SUMA_RETURN(NULL);
    }
    j=0;

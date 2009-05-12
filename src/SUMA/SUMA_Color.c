@@ -7136,10 +7136,10 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                   if ((nelts_s2v = SUMA_FindNgrNamedElement(ngr,
                                                  "v2s_node_array"))) {
                      if (AFNI_yesenv("SUMA_USE_V2S_TS")) {
-                        SUMA_S_Note("Will use ts from v2s!");
+                        SUMA_LH("Using ts from v2s");
                         nelts = nelts_s2v;
                      }else {
-                        SUMA_S_Note("Ignoring ts from v2s!");
+                        SUMA_LH("Ignoring ts from v2s");
                         nelts_s2v = NULL;
                      }
                   }
@@ -7186,7 +7186,7 @@ SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
                                                 1, stmp); 
                         }
                      } else {
-                        SUMA_S_Notev(
+                        SUMA_LHv(
                            "vec_len = %d\n"
                            "SDSET_VECNUM = %d\n"
                            "has_taxis = %s\n",

@@ -23,7 +23,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
-       "Usage:  3maskSVD [options] inputdataset\n"
+       "Usage:  3dmaskSVD [options] inputdataset\n"
        "Author: Zhark the Gloriously Singular\n"
        "\n"
        "* Computes the principal singular vector of the time series\n"
