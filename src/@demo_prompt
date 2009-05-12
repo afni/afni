@@ -4,14 +4,15 @@ echo ""
 if ($#argv > 0) then
    echo "$*"
 endif
-printf "    Hit Enter twice when ready..."
+echo ""
+printf ">>>    Hit Enter twice when ready..."
 set jnk = ($<)
 if ($#jnk == 1) then
    if ("$jnk[1]" == 'q' || "$jnk[1]" == 'Q') then
       exit 1
    endif
 endif
-printf "       again ('q' to quit)"
+printf ">>>       again ('q' to quit)"
 set jnk = ($<)
 echo ""
 if ($#jnk == 1) then
