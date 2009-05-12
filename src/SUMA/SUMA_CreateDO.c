@@ -5209,7 +5209,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                            #endif
                      }
                   } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
-               } else {
+               } else if (SUMAg_CF->ROI_contmode) {
                   /* finished, draw contour */
                   SUMA_LH("Finished DROI");
                   ROI_SphCol_frst[0] = 1.0; 
@@ -5284,8 +5284,6 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                         }
                      }
                   }
-                  
-                  
                   
                }
 

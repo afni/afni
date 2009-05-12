@@ -1183,6 +1183,7 @@ typedef struct {
 typedef struct {
    Widget AppShell; /*!< AppShell widget for the DrawROI window*/ 
    Widget DrawROImode_tb; /*!< widget for toggling draw ROI mode */
+   Widget ContROImode_tb;
    Widget Penmode_tb;   /*!< widget for toggling draw with Pen mode */
    Widget AfniLink_tb; /*!< widget for toggling link to Afni */
    Widget ParentLabel_lb; /*!< widget for specifying a label for the parent surface */ 
@@ -2526,6 +2527,10 @@ typedef struct {
            containing notices, warnings and error messages*/
    SUMA_Boolean ROI_mode; 
       /*!< Flag specifying that SUMA is in ROI drawing mode */
+   SUMA_Boolean ROI_contmode;
+      /*!< Flag specifying that ROI contours should be drawn 
+            This field and Pen_mode and perhaps ROI_CM should
+            be inside SUMA_X_DrawROI, not here!*/
    SUMA_Boolean Pen_mode;  
       /*!< Flag specifying that a pen is being used for drawing */
    SUMA_COLOR_MAP *ROI_CM; 
@@ -2578,6 +2583,8 @@ typedef struct {
                            or surfaces */
    DList *callbacks; /*!< List of callbacks that apply to certain dsets or
                           surfaces */
+   
+   SUMA_Boolean HoldClickCallbacks;
 } SUMA_CommonFields;
 
 

@@ -3811,6 +3811,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                               FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv),
                               (float)Bev.x, (float)Bev.y);
                
+               if (Bev.state & ShiftMask) {
+                  SUMAg_CF->HoldClickCallbacks = 1;
+               }
+               
                #if 0
                /* are we in ROI drawing mode ? */
                if (  Bev.state & ShiftMask && 
@@ -3899,7 +3903,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                
                /* redisplay */
                sv->ResetGLStateVariables = YUP;
-               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA); 
+               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);            
+               
+               /* reset hold on xforms */
+               SUMAg_CF->HoldClickCallbacks = 0;
             break;
       } /* switch type of button Press */
       break;
