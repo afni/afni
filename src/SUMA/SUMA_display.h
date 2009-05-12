@@ -239,6 +239,7 @@ void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer client_data, XtPointer call_
 void SUMA_CreateDrawROIWindow(void);
 SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
 SUMA_Boolean SUMA_OpenDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
+SUMA_Boolean SUMA_OpenDrawROIController(SUMA_SurfaceViewer *sv);
 void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_ContROImode_toggled (Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_DrawROIPen_toggled (Widget w, XtPointer data, XtPointer call_data);

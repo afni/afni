@@ -5729,6 +5729,38 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
 
 }
 
+SUMA_DRAWN_ROI * SUMA_is_NamedColPlane_ForROI(char *PlaneName) 
+{
+   static char FuncName[]={"SUMA_is_NamedColPlane_ForROI"};
+   int i;
+   SUMA_DRAWN_ROI *D_ROI=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!PlaneName) SUMA_RETURN(NULL);
+   
+   /* search all dov for ROIs that use the same plane */
+   for (i=0; i < SUMAg_N_DOv && !D_ROI; ++i) {
+      switch (SUMAg_DOv[i].ObjectType) { /* case Object Type */
+         case ROIdO_type:
+            if ((D_ROI = (SUMA_DRAWN_ROI *)SUMAg_DOv[i].OP)) {
+               if (  D_ROI->ColPlaneName &&
+                     !strcmp(D_ROI->ColPlaneName, PlaneName) ) {
+                  SUMA_RETURN(D_ROI);
+               } else {
+                  D_ROI=NULL;
+               }
+            }
+            break;
+         default:
+            D_ROI = NULL;
+            break;
+      }
+   }
+   SUMA_RETURN(NULL);   
+}
+
 /*!
    \brief SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov)
    Searches all DrawnROIs in dov. 

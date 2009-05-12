@@ -5599,12 +5599,19 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO)
       }
       SUMA_INSERT_CELL_STRING(SO->SurfCont->LabelTable, 0, 1, str_col);
    } else {
-      /* Now we know what the index of this node is in the overlay plane (and the data) */
-      sprintf(str_col,"%s",              MV_format_fval2(Sover->ColVec[3*Found],5));
-      sprintf(str_col,"%s, %s", str_col, MV_format_fval2(Sover->ColVec[3*Found+1],5)); 
-      sprintf(str_col,"%s, %s", str_col, MV_format_fval2(Sover->ColVec[3*Found+2],5));
-      SUMA_LH(str_col);
-      SUMA_INSERT_CELL_STRING(SO->SurfCont->LabelTable, 0, 1, str_col);
+      {
+
+         /* Now we know what the index of this node 
+            is in the overlay plane (and the data) */
+         sprintf(str_col,"%s",              
+                         MV_format_fval2(Sover->ColVec[3*Found],5));
+         strcat( str_col,", ");
+         strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+1],5)); 
+         strcat( str_col,", ");
+         strcat( str_col, MV_format_fval2(Sover->ColVec[3*Found+2],5));
+         SUMA_LH(str_col);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->LabelTable, 0, 1, str_col);
+      }
    }
 
    SUMA_RETURN(YUP);
