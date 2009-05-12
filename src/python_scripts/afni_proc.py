@@ -115,9 +115,10 @@ g_history = """
         - reordered help: intro, BLOCKS, DEFAULTS, EXAMPLES, NOTEs, OPTIONS
         - shifted execution command to separate line
     1.44 May 08 2009 : added tlrc (anat) as a processing block
+    1.45 May 12 2009 : fixed 'cat' of 'across-runs' ricor regressors
 """
 
-g_version = "version 1.44, May 8, 2009"
+g_version = "version 1.45, May 12, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
