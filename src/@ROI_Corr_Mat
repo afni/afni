@@ -2,7 +2,7 @@
 
 # HJ is welding 3 scripts. 
 
-if ("$1" == "" || "$1" == '-h' || "$2" == '-help') then
+if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
 endif
 
@@ -27,20 +27,13 @@ endif
 
 
 RESAMPLE_msk2epi:
-set nn1 = `3dnvals -all $fn_epi`
-set nn2 = `3dnvals -all $fn_msk`
-if (  $nn1[1] != $nn2[1] ||  \
-      $nn1[2] != $nn2[2] ||  \
-      $nn1[3] != $nn2[3] ) then      
-   echo "Resampling mask to epi with NN ..."
-   3dresample  -input $fn_msk -master $fn_epi    \
-               -prefix msk_resam    -overwrite  \
-               -rmode NN   
-   if ($status) goto END
-   set fn_msk = msk_resam+orig
-else
-   echo "No mask resampling needed"
-endif
+echo "Resampling mask to epi with NN ..."
+3dresample  -input $fn_msk -master $fn_epi    \
+            -prefix msk_resam    -overwrite  \
+            -rmode NN   
+if ($status) goto END
+
+set fn_msk = msk_resam+orig
 
 MAKE_ROW_FILE:
 if ("$rowfile" == "") then
@@ -63,6 +56,7 @@ MAKE_MASTER_VOL:
 set nroi = `3dnvals $rowfile`
 3dUndump -overwrite -prefix $master -dimen $nroi $nroi 1
 
+#rm -r 1D
 
 EXTRACT:
 echo "[Extract ROI 1D Signals]"
@@ -72,8 +66,8 @@ foreach k (`1dcat ${rowfile}`)
     echo "ROI: "${k}
     3dmaskave -mask ${fn_msk} -mrange ${k} ${k} ${fn_epi} > 1D/ROI_${k}.1D
     if ($status) goto END
-    1dtranspose 1D/ROI_${k}.1D'[0]' > 1D/___temp.1D
-    cat 1D/___temp.1D >> 1D/TS_ALL.1D
+    1dtranspose 1D/ROI_${k}.1D'[0]' > 1D/temp.1D
+    cat 1D/temp.1D >> 1D/TS_ALL.1D
 end
 # TS_ALL.1D : Time series file is Row-by-Row form, it contains :
 # ROI_1's TS_1 TS_2 ... TS_N
@@ -91,26 +85,26 @@ echo "[Get r- and z-maps from 1D Time-Series]"
 
 echo "Get Corr. Coeff."
 1dtranspose TS_ALL.1D > TS_ALL.1D_T
-1ddot -terse TS_ALL.1D_T > TS_ALL.corr
+1ddot -terse -dem TS_ALL.1D_T > TS_ALL.corr.1D
 
 echo "Get Z-val."
 set cc=0
 foreach k (`1dcat ${init_path}/${rowfile}`)
-    eval `1dcat TS_ALL.corr'['${cc}']' > ___temp`
-    1deval -a ___temp -expr '0.5*log((1+a)/(1-a))*sqrt('${N}'-3)' > ___temp.zval
+    eval `1dcat TS_ALL.corr.1D'['${cc}']' > temp`
+    1deval -a temp -expr '0.5*log((1+a)/(1-a))*sqrt('${N}'-3)' > temp.zval
     if ($status) goto END
-    1dtranspose ___temp.zval >> TS_ALL.zval.1D
+    1dtranspose temp.zval >> TS_ALL.zval.1D
     if ($status) goto END
     set cc = `ccalc -i -expr "$cc +1 "`
 end
-rm ___temp*
+rm temp*
 
 ####
 
 set i = 0
 
 #### Preparing HJJ's 400W heat generator
-3dcopy ${init_path}/master.2droi.row+orig ./___temp1
+3dcopy ${init_path}/master.2droi.row+orig ./temp1
 ####
 
 foreach ii (`1dcat ${init_path}/${rowfile}`)
@@ -119,23 +113,32 @@ foreach ii (`1dcat ${init_path}/${rowfile}`)
 ###	-overwrite option of 3dcalc is not working well now. So, we have to make more HDD scratching [ HJJ ].
 ### It is possible for this script to make some very old HDDs die, or to make the lab warmer !!!
 
-3dcalc -a ___temp1+orig -b I:'TS_ALL.zval.1D['${i}']' -expr 'a+b*equals(j,'${i}')*step(i-j)' -prefix ___temp2
-rm ___temp1*
-3dcopy ___temp2+orig ___temp1
-rm ___temp2*
+3dcalc -a temp1+orig -b I:'TS_ALL.corr.1D['${i}']' -expr 'a+b*equals(j,'${i}')*step(i-j)' -prefix temp2
+rm temp1*
+3dcopy temp2+orig temp1
+rm temp2*
 
-	echo "writing Z_value to BRIK: Row ${i}"
+	echo "writing r_value to BRIK: Row ${i}"
     if ($status) goto END
     set i = `ccalc -i -expr "$i+1"`
 end
 
 # mv ${master}+orig.HEAD ${init_path}/TS_ALL.zval+orig.HEAD
 # mv ${master}+orig.BRIK ${init_path}/TS_ALL.zval+orig.BRIK
-3dcopy ___temp1+orig ${init_path}/${outfile}
-rm ___temp*
-
+3dcopy temp1+orig ${init_path}/${outfile}_corr
 # Don't forget we're under 1D folder.
 cd ..
+
+3dcalc -a ${init_path}/${outfile}_corr+orig -expr '0.5*log((1+a)/(1-a))*sqrt('${N}'-3)' -prefix ${init_path}/${outfile}
+
+
+### Script to remove temporary directory and _rval file
+###
+
+rm -r 1D
+#rm ${init_path}/${outfile}_corr+orig.*
+
+###
 
 echo " done"
 goto END
@@ -143,14 +146,14 @@ goto END
 HELP:
    echo "Script to produce an ROI correlation matrix."
    echo ""
-   echo "Usage 1. `basename $0` <-ts TimeSeriesVol> <-roi ROIVol> <-prefix Z_matrix>"
+   echo "Usage 1. `basename $0` <-ts TimeSeriesVol> <-roi ROIVol> <-prefix output>"
    echo ""
    echo "This is a method to produce NxN correlation matrix if user need to extract each time signal "
    echo "of every ROI in ROIVol." 
    echo "The file after -ts option would be a time-series file to be extracted, "
    echo "that after -roi option would be the ROI volume file such like "
    echo "aseg+aparc of freesurfer, and that after -prefix is an output filename of "
-   echo "ROI correlation matrix (Z-value converted from r-value)."
+   echo "ROI correlation matrix (Z-value)."
    echo ""
    echo "Note: This script will resample the ROI volume to match the resolution"
    echo "of the EPI if the number of voxels in each of the three directions"
@@ -161,9 +164,9 @@ HELP:
    echo "extracted sometimes."
    echo ""
    echo "Example:"
-   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii -prefix s620_matrix_Zval_all_ROIs"
+   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii -prefix s620_matrix_all_ROIs"
    echo ""
-   echo "Usage 2. `basename $0` <-ts TimeSeriesVol> <-roi ROIVol> <-rowfile ROI_indices> <-prefix Z-matrix>"
+   echo "Usage 2. `basename $0` <-ts TimeSeriesVol> <-roi ROIVol> <-rowfile ROI_indices> <-prefix output>"
    echo ""
    echo "This is an alternative method to produce an arbitrary NxN correlation "
    echo "matrix ROI correlation matrix."
@@ -172,15 +175,14 @@ HELP:
    echo "the list of ROI indices in the ROI_indices, such like: 2 3 4 1001 2003 ..."
    echo ""
    echo "Example:"
-   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii -rowfile 2droi.row.1D -prefix s620_matrix_Zval_my_ROIs"
+   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii -rowfile 2droi.row.1D -prefix s620_matrix_my_ROIs_Zval"
    echo ""
    echo "How to read correlation matrix:"
-   echo "You can immediately read the Z-matrix by just excuting afni."
-   echo "1. Choose undelay master.2droi.row+orig, and overlay Z-matrix+orig."
+   echo "You can immediately read the cross-correlation matrix by just excuting afni."
+   echo "1. Choose undelay master.2droi.row+orig, and overlay s620_matrix_my_ROIs_Zval+orig"
    echo "2. Push Define Datamode Button -> Misc Button -> Voxel Coords"
    echo "3. Click axial button, and turn + LR Mirror off."
-   echo "(i, j) on afni GUI means that the selected pixel is Z-value converted from "
-   echo "correlation coefficient between i-th ROI and j-th ROI in cross-correlation matrix."
+   echo "(i, j) on afni GUI means that the selected pixel is r- or Z-values presenting correlation between i-th ROI and j-th ROI."
    echo ""
    echo "References are coming soon."
    echo ""
