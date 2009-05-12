@@ -2,10 +2,14 @@
 
 echo ""
 echo "$*"
-echo "Hit Enter twice when ready."
-set jnk = <$
-echo "   again ('q' to quit)."
-set jnk = <$
+printf "    Hit Enter twice when ready..."
+set jnk = $<
+if ("$jnk" == 'q' || "$jnk" == 'Q') then
+   exit 1
+endif
+printf "       again ('q' to quit)"
+set jnk = $<
+echo ""
 if ("$jnk" == 'q' || "$jnk" == 'Q') then
    exit 1
 else
