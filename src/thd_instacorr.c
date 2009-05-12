@@ -110,7 +110,11 @@ ENTRY("THD_instacorr_prepare") ;
    /*--- Blur time series ---*/
 
    if( iset->blur > 0.0f ){
-     ININFO_message("Spatially blurring %d dataset volumes",iset->mv->nvals) ;
+     int nrep ; float fx,fy,fz ;
+     mri_blur3D_getfac( iset->blur ,
+                        iset->mv->dx , iset->mv->dy , iset->mv->dz ,
+                        &nrep , &fx , &fy , &fz ) ;
+     ININFO_message("Spatially blurring %d dataset volumes: %d iterations",iset->mv->nvals,nrep) ;
      mri_blur3D_vectim( iset->mv , iset->blur ) ;
    }
 

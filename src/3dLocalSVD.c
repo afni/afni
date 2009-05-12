@@ -31,22 +31,25 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
        "Usage: 3dLocalSVD [options] inputdataset\n"
-       "* You may want to use 3dDetrend before running this program.\n"
+       "* You may want to use 3dDetrend before running this program,\n"
+       "   or use the '-polort' option.\n"
        "* This program is highly experimental.  And slowish.\n"
        "* Computes the SVD of time series from a neighborhood of each\n"
        "   voxel.  An inricate way of 'smoothing' 3D+time datasets,\n"
        "   in some sense.\n"
        "\n"
        "Options:\n"
-       " -mask mset\n"
-       " -automask\n"
-       " -prefix ppp\n"
-       " -evprefix ppp\n"
-       " -input inputdataset\n"
-       " -nbhd nnn\n"
-       " -polort p [+]\n"
-       " -vnorm\n"
-       " -vproj [ndim]\n"
+       " -mask mset           = restrict operations to this mask\n"
+       " -automask            = create a mask from time series dataset\n"
+       " -prefix ppp          = save SVD vector result in this dataset\n"
+       " -evprefix ppp        = save eigenvalues in this dataset\n"
+       " -input inputdataset  = input time series dataset\n"
+       " -nbhd nnn            = e.g., 'SPHERE(5)'\n"
+       " -polort p [+]        = detrending ['+' means to add trend back]\n"
+       " -vnorm               = normalize vectors [strongly recommended]\n"
+       " -vproj [ndim]        = project data vectors onto subspace of dimension 'ndim'\n"
+       "                        [default: just output principal singular vector]\n"
+       "                        [for most purposes, '-vnorm -vproj 2' is a good idea]\n"
      ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -54,7 +57,7 @@ int main( int argc , char *argv[] )
    /*---- official startup ---*/
 
    PRINT_VERSION("3dLocalSVD"); mainENTRY("3dLocalSVD main"); machdep();
-   AFNI_logger("3dLocalSVD",argc,argv); AUTHOR("Emperor Zhark");
+   AFNI_logger("3dLocalSVD",argc,argv); AUTHOR("Emperor Zhark the Singular");
 
    /*---- loop over options ----*/
 
@@ -162,6 +165,8 @@ int main( int argc , char *argv[] )
 
    } /*--- end of loop over options ---*/
 
+   /* send options to SVD routine below */
+
    mri_principal_vector_params( do_vnorm , do_vproj ) ;
 
    /*---- deal with input dataset ----*/
@@ -173,7 +178,8 @@ int main( int argc , char *argv[] )
    }
    nt = DSET_NVALS(inset) ;
    if( nt < 9 )
-     ERROR_exit("Must have at least 9 values per voxel") ;
+     ERROR_exit("Must have at least 9 values per voxel in time series dataset '%s'",
+                DSET_BRIKNAME(inset) ) ;
    if( polort+1 >= nt )
      ERROR_exit("'-polort %d' too big for time series length = %d",polort,nt) ;
 
@@ -183,6 +189,8 @@ int main( int argc , char *argv[] )
    }
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
+
+   /*-- deal with mask --*/
 
    if( mask != NULL ){
      if( mask_nx != DSET_NX(inset) ||
@@ -281,6 +289,8 @@ int main( int argc , char *argv[] )
    vstep = (verb && nxyz > 999) ? nxyz/50 : 0 ;
    if( vstep ) fprintf(stderr,"++ voxel loop: ") ;
 
+   /*** the real work now begins ***/
+
    for( kk=0 ; kk < nxyz ; kk++ ){
      if( vstep && kk%vstep==vstep-1 ) vstep_print() ;
      if( !INMASK(kk) ) continue ;
@@ -309,6 +319,8 @@ int main( int argc , char *argv[] )
        THD_insert_series( kk, evset, nev, MRI_float, mri_principal_getev(), 0 );
    }
    if( vstep ) fprintf(stderr,"\n") ;
+
+   /*** cleanup and exit ***/
 
    DSET_delete(inset) ;
    DSET_write(outset) ; WROTE_DSET(outset) ; DSET_delete(outset) ;
@@ -395,11 +407,15 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    vmat = (double *)malloc( sizeof(double)*nvec*nvec ) ;
    sval = (double *)malloc( sizeof(double)*nvec ) ;
 
+   /** assemble matrix for SVD-ization **/
+
    for( jj=0 ; jj < nvec ; jj++ ){
      tim = IMARR_SUBIM(imar,jj) ;
      far = MRI_FLOAT_PTR(tim) ;
      for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = (double)far[ii] ;
    }
+
+   /** normalize columns? **/
 
    if( mpv_vnorm ){
      vnorm = (float *)calloc(sizeof(float),nvec) ;
@@ -414,21 +430,30 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
      }
    }
 
+   /** all the CPU time dwells within **/
+
    svd_double( nx , nvec , amat , sval , umat , vmat ) ;
+
+   /** save eigenvalues **/
 
    itop = MIN(nvec,mpv_evnum) ;
    for( ii=0 ; ii < itop      ; ii++ ) mpv_ev[ii] = (float)sval[ii] ;
    for(      ; ii < mpv_evnum ; ii++ ) mpv_ev[ii] = 0.0f ;
 
+   /** create output **/
+
    tim = mri_new( nx , 1 , MRI_float ) ;
    far = MRI_FLOAT_PTR(tim) ;            /* zero filled */
 
-   if( mpv_vproj <= 0 ){
+   if( mpv_vproj <= 0 ){  /* no projection: just save principal vector */
+
      for( ii=0 ; ii < nx ; ii++ ) far[ii] = (float)U(ii,0) ;
      sum = 0.0 ;
      for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,0)*far[ii] ;
      if( sum < 0.0 ) for( ii=0 ; ii < nx ; ii++ ) far[ii] = -far[ii] ;
-   } else {
+
+   } else {  /* project input time series (1st column of A) onto subspace */
+
      int nproj = mpv_vproj ;
      if( nproj > nvec ) nproj = nvec ;
      if( nproj > nx   ) nproj = nx ;
@@ -438,7 +463,10 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
        if( mpv_vnorm ) sum *= vnorm[0] ;
        for( ii=0 ; ii < nx ; ii++ ) far[ii] += sum * U(ii,jj) ;
      }
+
    }
+
+   /** finito **/
 
    if( vnorm != NULL ) free(vnorm) ;
    free(sval); free(vmat); free(umat); free(amat); return tim;
