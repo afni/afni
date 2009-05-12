@@ -196,7 +196,7 @@ HELP:
    echo "Usage: `basename $0` <int>"
    echo "   Return the name of an integer labeled area in FreeSurfer's"
    echo "   parcellation. Lookup is based on your installed "
-   echo "   FreeSurferColorLUT.txt ""
+   echo "   FreeSurferColorLUT.txt "
    echo "   Example: "
    echo "      @FS_roi_label  2180 \"
    echo ""
