@@ -55,6 +55,8 @@ void symeig_3( double *a , double *e , int dovec )
 
    if( a == NULL || e == NULL ) return ;
 
+   /*----- unload matrix into local variables -----*/
+
    aa = a[0] ; bb = a[1] ; cc = a[2] ;  /* matrix is [ aa bb cc ]  */
    dd = a[4] ; ee = a[5] ; ff = a[8] ;  /*           [ bb dd ee ]  */
                                         /*           [ cc ee ff ]  */
@@ -144,7 +146,7 @@ void symeig_3( double *a , double *e , int dovec )
 
    /*-- are doing eigenvectors; must do double root as a special case --*/
 
-#undef  CROSS
+#undef  CROSS  /* cross product (x1,x2,x3) X (y1,y2,y3) -> (z1,z2,z3) */
 #define CROSS(x1,x2,x3,y1,y2,y3,z1,z2,z3) \
  ( (z1)=(x2)*(y3)-(x3)*(y2), (z2)=(x3)*(y1)-(x1)*(y3), (z3)=(x1)*(y2)-(x2)*(y1) )
 
@@ -266,6 +268,8 @@ void symeig_2( double *a , double *e , int dovec )
 
    if( a == NULL || e == NULL ) return ;
 
+   /*----- unload matrix into local variables -----*/
+
    sxx = a[0] ; sxy = a[1] ; syy = a[3] ;
 
    ss = fabs(sxx) ; tt = fabs(syy) ; if( ss > tt ) ss = tt ;
@@ -327,7 +331,7 @@ void symeig_double( int n , double *a , double *e )
 
    if( a == NULL || e == NULL || n < 1 ) return ;
 
-   /* special cases of small n */
+   /* special cases of small n (much faster than EISPACK) */
 
    if( n == 1 ){
      e[0] = a[0] ; a[0] = 1.0 ; return ;  /* degenerate case */
@@ -358,7 +362,7 @@ void symeigval_double( int n , double *a , double *e )
 
    if( a == NULL || e == NULL || n < 1 ) return ;
 
-   /* special cases of small n */
+   /* special cases of small n (much faster than EISPACK) */
 
    if( n == 1 ){
      e[0] = a[0] ; return ;  /* degenerate case */
