@@ -1,4 +1,4 @@
-#! /bin/tcsh -fx
+#! /bin/tcsh -f
 
 # HJ is welding 3 scripts. 
 
@@ -24,19 +24,23 @@ if ($N < 4) then
    goto END
 endif
 
-JUMP_POINT:
-#goto WORK_1D
-
 
 
 RESAMPLE_msk2epi:
-echo "Resampling mask to epi with NN ..."
-3dresample  -input $fn_msk -master $fn_epi    \
-            -prefix msk_resam    -overwrite  \
-            -rmode NN   
-if ($status) goto END
-
-set fn_msk = msk_resam+orig
+set nn1 = `3dnvals -all $fn_epi`
+set nn2 = `3dnvals -all $fn_msk`
+if (  $nn1[1] != $nn2[1] ||  \
+      $nn1[2] != $nn2[2] ||  \
+      $nn1[3] != $nn2[3] ) then      
+   echo "Resampling mask to epi with NN ..."
+   3dresample  -input $fn_msk -master $fn_epi    \
+               -prefix msk_resam    -overwrite  \
+               -rmode NN   
+   if ($status) goto END
+   set fn_msk = msk_resam+orig
+else
+   echo "No mask resampling needed"
+endif
 
 MAKE_ROW_FILE:
 if ("$rowfile" == "") then
@@ -68,8 +72,8 @@ foreach k (`1dcat ${rowfile}`)
     echo "ROI: "${k}
     3dmaskave -mask ${fn_msk} -mrange ${k} ${k} ${fn_epi} > 1D/ROI_${k}.1D
     if ($status) goto END
-    1dtranspose 1D/ROI_${k}.1D'[0]' > 1D/temp.1D
-    cat 1D/temp.1D >> 1D/TS_ALL.1D
+    1dtranspose 1D/ROI_${k}.1D'[0]' > 1D/___temp.1D
+    cat 1D/___temp.1D >> 1D/TS_ALL.1D
 end
 # TS_ALL.1D : Time series file is Row-by-Row form, it contains :
 # ROI_1's TS_1 TS_2 ... TS_N
@@ -92,31 +96,43 @@ echo "Get Corr. Coeff."
 echo "Get Z-val."
 set cc=0
 foreach k (`1dcat ${init_path}/${rowfile}`)
-    eval `1dcat TS_ALL.corr'['${cc}']' > temp`
-    1deval -a temp -expr '0.5*log((1+a)/(1-a))*sqrt('${N}'-3)' > temp.zval
+    eval `1dcat TS_ALL.corr'['${cc}']' > ___temp`
+    1deval -a ___temp -expr '0.5*log((1+a)/(1-a))*sqrt('${N}'-3)' > ___temp.zval
     if ($status) goto END
-    1dtranspose temp.zval >> TS_ALL.zval.1D
+    1dtranspose ___temp.zval >> TS_ALL.zval.1D
     if ($status) goto END
     set cc = `ccalc -i -expr "$cc +1 "`
 end
-rm temp*
+rm ___temp*
 
 ####
 
 set i = 0
 
+#### Preparing HJJ's 400W heat generator
+3dcopy ${init_path}/master.2droi.row+orig ./___temp1
+####
+
 foreach ii (`1dcat ${init_path}/${rowfile}`)
-    3dcalc  -a ${init_path}/${master}+orig \
-            -b 'I:TS_ALL.zval.1D['${i}']' \
-            -expr 'a+b*equals(j,'${i}')*step(i-j)' \
-            -overwrite  \
-            -prefix ${master}
+
+#    3dcalc  -a ${init_path}/${master}+orig          -b 'I:TS_ALL.zval.1D['${i}']'             -expr 'a+b*equals(j,'${i}')*step(i-j)'             -overwrite              -prefix ${i}
+###	-overwrite option of 3dcalc is not working well now. So, we have to make more HDD scratching [ HJJ ].
+### It is possible for this script to make some very old HDDs die, or to make the lab warmer !!!
+
+3dcalc -a ___temp1+orig -b I:'TS_ALL.zval.1D['${i}']' -expr 'a+b*equals(j,'${i}')*step(i-j)' -prefix ___temp2
+rm ___temp1*
+3dcopy ___temp2+orig ___temp1
+rm ___temp2*
+
+	echo "writing Z_value to BRIK: Row ${i}"
     if ($status) goto END
     set i = `ccalc -i -expr "$i+1"`
 end
 
-mv ${master}+orig.HEAD ${init_path}/TS_ALL.zval+orig.HEAD
-mv ${master}+orig.BRIK ${init_path}/TS_ALL.zval+orig.BRIK
+# mv ${master}+orig.HEAD ${init_path}/TS_ALL.zval+orig.HEAD
+# mv ${master}+orig.BRIK ${init_path}/TS_ALL.zval+orig.BRIK
+3dcopy ___temp1+orig ${init_path}/${outfile}
+rm ___temp*
 
 # Don't forget we're under 1D folder.
 cd ..
@@ -125,17 +141,50 @@ echo " done"
 goto END
 
 HELP:
-   echo "Usage `basename $0` <-ts TimeSeriesVol> <-roi ROIVol>"
-   echo ""
    echo "Script to produce an ROI correlation matrix."
+   echo ""
+   echo "Usage 1. `basename $0` <-ts TimeSeriesVol> <-roi ROIVol> <-prefix Z_matrix>"
+   echo ""
+   echo "This is a method to produce NxN correlation matrix if user need to extract each time signal "
+   echo "of every ROI in ROIVol." 
+   echo "The file after -ts option would be a time-series file to be extracted, "
+   echo "that after -roi option would be the ROI volume file such like "
+   echo "aseg+aparc of freesurfer, and that after -prefix is an output filename of "
+   echo "ROI correlation matrix (Z-value converted from r-value)."
    echo ""
    echo "Note: This script will resample the ROI volume to match the resolution"
    echo "of the EPI if the number of voxels in each of the three directions"
    echo "is not the same. ROIs are resampled using NN interpolation. If you'd"
-   echo "rather interpolate the epi, then do so before you run this script"
+   echo "rather interpolate the epi, then do so before you run this script."
+   echo "Also, users should check whether the ROIVol includes whole ROIs if "
+   echo "ROIs were defined by automatical methods because some ROIs are not "
+   echo "extracted sometimes."
    echo ""
    echo "Example:"
-   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii"
+   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii -prefix s620_matrix_Zval_all_ROIs"
+   echo ""
+   echo "Usage 2. `basename $0` <-ts TimeSeriesVol> <-roi ROIVol> <-rowfile ROI_indices> <-prefix Z-matrix>"
+   echo ""
+   echo "This is an alternative method to produce an arbitrary NxN correlation "
+   echo "matrix ROI correlation matrix."
+   echo ""
+   echo "Users can select specific ROIs included in the ROIVol file by writing "
+   echo "the list of ROI indices in the ROI_indices, such like: 2 3 4 1001 2003 ..."
+   echo ""
+   echo "Example:"
+   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii -rowfile 2droi.row.1D -prefix s620_matrix_Zval_my_ROIs"
+   echo ""
+   echo "How to read correlation matrix:"
+   echo "You can immediately read the Z-matrix by just excuting afni."
+   echo "1. Choose undelay master.2droi.row+orig, and overlay Z-matrix+orig."
+   echo "2. Push Define Datamode Button -> Misc Button -> Voxel Coords"
+   echo "3. Click axial button, and turn + LR Mirror off."
+   echo "(i, j) on afni GUI means that the selected pixel is Z-value converted from "
+   echo "correlation coefficient between i-th ROI and j-th ROI in cross-correlation matrix."
+   echo ""
+   echo "References are coming soon."
+   echo ""
+   echo "Written by Hang Joon Jo, Modified by Ziad S. Saad.  (05/11/2009)"
    echo ""
    goto END
    
@@ -147,8 +196,20 @@ PARSE:
 	set cnt = 1
 	set fn_msk = ''
 	set fn_epi = ''
-   set rowfile = ''
+        set rowfile = ''
+        set outfile = ''
    while ($cnt <= $Narg)
+		if ("$argv[$cnt]" == "-prefix") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need option after -prefix"
+            goto END
+			else
+				@ cnt ++
+				set outfile = "$argv[$cnt]"
+             set NxtInd = $cnt
+			endif
+      endif
 		if ("$argv[$cnt]" == "-rowfile") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
