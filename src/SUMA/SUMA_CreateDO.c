@@ -6191,10 +6191,10 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
       gapch = Ch->g*fac*(SUMA_sv_fov_original(sv)/FOV_INITIAL);
       radch = Ch->r*fac*(SUMA_sv_fov_original(sv)/FOV_INITIAL);
    } else {
-      fac = 1.0;
-      radsph = Ch->sphrad;
-      gapch = Ch->g;
-      radch = Ch->r;
+      fac = (SUMA_sv_fov_original(sv)/FOV_INITIAL);
+      radsph = Ch->sphrad*fac;
+      gapch = Ch->g*fac;
+      radch = Ch->r*fac;
    }
    if (!(gl_dt = glIsEnabled(GL_DEPTH_TEST)))  
       glEnable(GL_DEPTH_TEST);   /* To hide cross hair as it gets hidden
