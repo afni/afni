@@ -9316,7 +9316,32 @@ char * SUMA_FormatMessage (SUMA_MessageData *MD)
    SUMA_RETURN (s);
 }
 
-
+SUMA_Boolean SUMA_OpenDrawROIController(SUMA_SurfaceViewer *sv)
+{
+   static char FuncName[]={"SUMA_OpenDrawROIController"};
+   DList *list = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!sv) {
+      sv = (void*)&SUMAg_SVv[0];
+   }
+   if (!sv) SUMA_RETURN(NOPE);
+   
+   /* register a call to open the ROI editor */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA( list, 
+                                       SE_OpenDrawROI, SES_SumaWidget, 
+                                       (void*)sv); 
+   if (!SUMA_Engine (&list)) {
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, 
+                            "Failed to open DrawROI", 
+                            FuncName, SMT_Error, SMA_LogAndPopup);
+      SUMA_RETURN(NOPE);
+   }  
+   
+   SUMA_RETURN(YUP);
+}
 /*!
    \brief opens the DRAW ROI window 
    
@@ -9327,7 +9352,6 @@ void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data)
 {
    static char FuncName[]={"SUMA_cb_ToolsDrawROI"};
    int isv;
-   DList *list = NULL;
    SUMA_MenuCallBackData * datap=NULL;
    
    SUMA_ENTRY;
@@ -9335,13 +9359,13 @@ void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data)
    /* get the surface viewer that the command was made in */
    datap = (SUMA_MenuCallBackData *)client_data;
    isv = (int)datap->ContID;
-
-   /* register a call to open the ROI editor */
-   if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_OpenDrawROI, SES_SumaWidget, (void*)&SUMAg_SVv[isv]); 
-   if (!SUMA_Engine (&list)) {
-      SUMA_RegisterMessage (SUMAg_CF->MessageList, "Failed to open DrawROI", FuncName, SMT_Error, SMA_LogAndPopup);
-   }  
+   if (isv < 0 || isv >= SUMAg_N_SVv) {
+      SUMA_S_Err("Bad baby");
+      SUMA_RETURNe;
+   }
+   
+   SUMA_OpenDrawROIController((&SUMAg_SVv[isv]));
+   
    SUMA_RETURNe;
 }
 

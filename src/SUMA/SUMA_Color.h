@@ -137,6 +137,8 @@ static char SUMA_COLOR_MAP_NAMES[][32]={
 SUMA_Boolean SUMA_Selected_Node_Activate_Callbacks (
       SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Sover,
       SUMA_ENGINE_SOURCE Src, NI_group *ngr);
+SUMA_DRAWN_ROI * SUMA_is_NamedColPlane_ForROI(char *PlaneName);
+ 
 
 
 

@@ -961,7 +961,6 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    switch (k) {
       case XK_D:
          if ((SUMA_CTRL_KEY(key))){ 
-            
          } else {
             SUMA_LH("The dotthing");
             /* DO the dot thing */
@@ -1285,10 +1284,12 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
          break;
       case XK_d:
          if ((SUMA_CTRL_KEY(key))){ 
+            /* Interactively it is handled by the mnemonic
+              But if it gets here, the Driver may be driving it */
             /* opens draw ROI controller */
-            /* it is handled by the mnemonic, no need to 
-            deal with it here since it is only an interactive
-            toy */
+            if (!SUMA_OpenDrawROIController(NULL)) {
+               SUMA_S_Err("Failed to open controller");
+            }  
          } else {
             if (SUMAg_CF->Dev ) {
                SUMA_Show_DOv(SUMAg_DOv, SUMAg_N_DOv, stdout);
