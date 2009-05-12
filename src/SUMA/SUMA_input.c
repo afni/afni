@@ -934,7 +934,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_LIST_WIDGET *LW=NULL;
    char tk[]={"D"}, keyname[100];
    int k, nc, inode = 0, N_ts = 0, ChildOverInd=-1,loc[2], ii = 0;
-   float ftop = 0.1, fbot = 0.0, fs=0.0, fstep=0.0, *fv=NULL;
+   float ftop = 0.1, fbot = 0.01, fs=0.0, fstep=0.0, *fv=NULL;
    int normalize = 1, polort = 2;
    SUMA_EngineData *ED = NULL; 
    SUMA_DSET *dot=NULL;
@@ -1051,7 +1051,7 @@ int SUMA_D_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                }
                SUMA_SPECT_AXIS(TR, SDSET_VECNUM(in_dset), fs, ftop, fstep);
                dotopts = SUMA_set_dotopts(NULL, SDSET_VECNUM(in_dset),
-                                           ftop, fbot, 
+                                           0.1, fbot, 
                                            normalize, 1, 
                                            polort, NULL);
                     

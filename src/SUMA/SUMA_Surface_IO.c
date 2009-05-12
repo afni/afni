@@ -4674,7 +4674,7 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
    DList *list=NULL;
    SUMA_DRAWN_ROI **ROIv=NULL;
    int i, N_ROI;
-   SUMA_SurfaceObject *SO=NULL;
+   SUMA_SurfaceObject *SO=NULL, *SOp=NULL;
    SUMA_OVERLAYS *over=NULL;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -4696,6 +4696,17 @@ void SUMA_OpenDrawnROI (char *filename, void *data)
       /* You need to select a parent surface */
       SUMA_SLP_Warn("Assuming parent surface.");
       SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_SVv[0].Focus_SO_ID].OP);
+      if (SO->N_patchNode < SO->N_Node ||
+          SO->patchNodeMask) {
+         SUMA_S_Note("Assigning ROI to domain parent");
+         if (!(SOp = SUMA_findSOp_inDOv(SO->LocalDomainParentID, 
+                                        SUMAg_DOv, SUMAg_N_DOv))) {
+            SUMA_S_Note("Failed to find LDP, sticking with initial surf"); 
+                  /* continue ...*/
+         }else {
+            SO = SOp;
+         }
+      }    
       if (!( ROIv = SUMA_OpenDrawnROI_1D (filename, SO->idcode_str, 
                                           &N_ROI, YUP))) {
          SUMA_SLP_Err("Failed to read NIML ROI.");

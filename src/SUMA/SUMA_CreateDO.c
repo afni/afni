@@ -5225,11 +5225,11 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                   if (D_ROI->CE) {
                      int id1cont, id2cont, icont;
                      /* Draw the contour */
-                     glLineWidth(6);
-                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
-                                  D_ROI->FillColor);
                      
                      if (!SO->patchNodeMask) {
+                        glLineWidth(6);
+                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                     D_ROI->FillColor);
                         SUMA_LH("Drawing contour ...");
                         for (icont = 0; icont < D_ROI->N_CE; ++icont) {
                            id1cont = 3 * D_ROI->CE[icont].n1;
@@ -5244,6 +5244,15 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO,
                            glEnd();
                         }
                      } else {
+                        if (SO->EmbedDim == 2) {
+                           glLineWidth(1);
+                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                        D_ROI->FillColor);
+                        } else {
+                           glLineWidth(3);
+                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, 
+                                        D_ROI->FillColor);   
+                        }
                         SUMA_LHv("Drawing contour on patch (%p)...", 
                                  SO->NodeNormList);
                                  /* set default offset to nothing*/
@@ -6141,15 +6150,52 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    static GLdouble radsph, fac;
    static GLfloat gapch, radch;
    GLboolean gl_dt;
-   float origwidth = 0.0;
+   float origwidth = 0.0, off[3]={0.0, 0.0, 0.0};
+   int scl = 0;
    SUMA_CrossHair* Ch = sv->Ch;
+   SUMA_SurfaceObject *SO=NULL;
    
    SUMA_ENTRY;
+   if (sv->Focus_SO_ID) {
+      SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
+   }else SO=NULL;
    
-   fac = SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03);
-   radsph = Ch->sphrad*fac*sqrt(SUMA_sv_fov_original(sv)/FOV_INITIAL);
-   gapch = Ch->g*fac;
-   radch = Ch->r*fac;
+   scl = 0;
+   if (SO) {
+      if (SO->PolyMode == SRM_ViewerDefault && sv->PolyMode != SRM_Fill) {
+         scl = 1;
+      } else if (SO->PolyMode != SRM_ViewerDefault && SO->PolyMode != SRM_Fill) {
+         scl = 1;
+      }
+      /* is this a flatty ? */
+      if (Ch->NodeID >= 0 && Ch->NodeID < SO->N_Node 
+          && SO->NodeNormList && SO->NodeDim == 3 &&
+          SO->EmbedDim == 2) {
+         off[0] = SO->NodeNormList[Ch->NodeID*3];
+         off[1] = SO->NodeNormList[Ch->NodeID*3+1];   
+         off[2] = SO->NodeNormList[Ch->NodeID*3+2];   
+      } 
+   } else {
+      if (sv->PolyMode != SRM_Fill) {
+         scl = 1;
+      }
+   }    
+   
+   Ch->c[0] = Ch->c[0]+off[0];
+   Ch->c[1] = Ch->c[1]+off[1];
+   Ch->c[2] = Ch->c[2]+off[2];
+   
+   if (scl) {
+      fac = SUMA_MAX_PAIR(sv->ZoomCompensate, 0.03);
+      radsph = Ch->sphrad*fac*(SUMA_sv_fov_original(sv)/FOV_INITIAL);
+      gapch = Ch->g*fac*(SUMA_sv_fov_original(sv)/FOV_INITIAL);
+      radch = Ch->r*fac*(SUMA_sv_fov_original(sv)/FOV_INITIAL);
+   } else {
+      fac = 1.0;
+      radsph = Ch->sphrad;
+      gapch = Ch->g;
+      radch = Ch->r;
+   }
    if (!(gl_dt = glIsEnabled(GL_DEPTH_TEST)))  
       glEnable(GL_DEPTH_TEST);   /* To hide cross hair as it gets hidden
                                     by surfaces */
@@ -6226,6 +6272,10 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_SurfaceViewer *sv)
    /* DEPTH_TEST is on for this function, turn it off
       if that was the case entering the function */ 
    if (!gl_dt) glDisable(GL_DEPTH_TEST);
+
+   Ch->c[0] = Ch->c[0]-off[0];
+   Ch->c[1] = Ch->c[1]-off[1];
+   Ch->c[2] = Ch->c[2]-off[2];
    
    SUMA_RETURN (YUP);
 }

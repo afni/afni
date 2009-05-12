@@ -12394,7 +12394,7 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
       SUMA_SPECT_AXIS(TR,SDSET_VECNUM(in_dset),  fs, fmax,fstep);
       
       SUMA_CreateArrowField ( rc, "LF",
-                        0.0, 0.0, fmax, fstep, 
+                        0.01, 0.0, fmax, fstep, 
                         6, SUMA_float,
                         NOPE,
                         SUMA_Xform_NewAF0, (void *)xf, 
@@ -12402,7 +12402,7 @@ void SUMA_CreateXformOptionsInterface(SUMA_XFORM *xf, Widget parent_frame)
                         SUMA_DotXform_AF0_help,
                         xf->gui->AF0);
       SUMA_CreateArrowField ( rc, "HF",
-                        fmax, 0.0, fmax, fstep,  
+                        fmax > 0.1 ? 0.1:fmax, 0.0, fmax, fstep,  
                         6, SUMA_float,
                         NOPE,
                         SUMA_Xform_NewAF1, (void *)xf, 
