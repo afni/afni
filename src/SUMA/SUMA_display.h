@@ -240,6 +240,7 @@ void SUMA_CreateDrawROIWindow(void);
 SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
 SUMA_Boolean SUMA_OpenDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
 void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_ContROImode_toggled (Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_DrawROIPen_toggled (Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data);
@@ -494,6 +495,10 @@ void SUMA_OpenXformOrtFile (char *filename, void *data);
    "To draw, use the right mouse button. \n" \
    "If you want to pick a node without causing \n" \
    "a drawing action, use shift+right button."
+   
+#define SUMA_DrawROI_ContROIMode_help\
+   "Toggles ROI contour drawing \n" \
+   "If turned on, then contours are drawn around filled ROIs\n" 
    
 #define SUMA_DrawROI_PenMode_help\
    "Toggles Pen drawing mode\n"\

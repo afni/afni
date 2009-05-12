@@ -1613,7 +1613,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             }
             
-            if (SUMAg_CF->callbacks) {
+            if (SUMAg_CF->callbacks && !SUMAg_CF->HoldClickCallbacks) {
                if (!SUMA_Selected_Node_Activate_Callbacks (
                         SO, SO->SurfCont->curColPlane,
                         EngineData->Src, EngineData->ngr)) {

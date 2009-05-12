@@ -5397,7 +5397,7 @@ SUMA_Boolean SUMA_UpdateNodeField(SUMA_SurfaceObject *SO)
    Sover = SO->SurfCont->curColPlane; 
    
    /* Do we have click callbacks pending? */
-   if (SUMAg_CF->callbacks) {
+   if (SUMAg_CF->callbacks && !SUMAg_CF->HoldClickCallbacks) {
       el = dlist_head(SUMAg_CF->callbacks);
       while (el) {
          cb = (SUMA_CALLBACK *)el->data;
