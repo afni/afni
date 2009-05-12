@@ -11936,6 +11936,7 @@ void SUMA_DotXform_NewBandPass(  SUMA_XFORM *xf,
    NI_element *dotopts=NULL;
    char sbuf[256];
    int ii;
+   float ouf=0.0, olf=0.0;
       
    SUMA_ENTRY;
    
@@ -11947,6 +11948,17 @@ void SUMA_DotXform_NewBandPass(  SUMA_XFORM *xf,
    if (!(dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
       SUMA_S_Err("Failed to find dotopts");
       SUMA_RETURNe;
+   }
+   
+   NI_GET_FLOAT(dotopts,"filter_below", olf);
+   NI_GET_FLOAT(dotopts,"filter_above", ouf);
+   
+   if (olf == lf && ouf == uf) {
+      SUMA_S_Note("Nothing to do");
+      SUMA_RETURNe;
+   } else {
+      SUMA_S_Notev("%f %f\n%f %f\n",
+                     olf, lf, ouf, uf);
    }
    
    NI_SET_FLOAT(dotopts,"filter_below", lf);
@@ -11998,7 +12010,7 @@ void SUMA_DotXform_NewPolort(  SUMA_XFORM *xf,
    static char FuncName[]={"SUMA_DotXform_NewPolort"};
    NI_element *dotopts=NULL;
    char sbuf[256];
-   int ii=0;
+   int ii=0, opolort=0;
    SUMA_DSET *in_dset=NULL;
       
    SUMA_ENTRY;
@@ -12011,6 +12023,14 @@ void SUMA_DotXform_NewPolort(  SUMA_XFORM *xf,
    if (!(dotopts = SUMA_FindNgrNamedElement(xf->XformOpts, "dotopts"))) {
       SUMA_S_Err("Failed to find dotopts");
       SUMA_RETURNe;
+   }
+   
+   NI_GET_INT(dotopts,"polort", opolort);
+   if (polort == opolort) { /* nothing to do */
+      SUMA_S_Note("Nothing to do");
+      SUMA_RETURNe;
+   } else {
+      SUMA_S_Notev("%d %d\n", opolort, polort);
    }
    
    NI_SET_INT(dotopts,"polort", polort);
