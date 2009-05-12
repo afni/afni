@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, MAY, 2009, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fixed 'cat' of 'across-runs' ricor regressors",
+   NULL
+ } ,
+
  { 8, MAY, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "tlrc (for anat) is now a processing block, for easy manipulation",
    NULL
