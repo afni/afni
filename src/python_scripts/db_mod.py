@@ -280,13 +280,13 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
     proc.ricor_nreg = nsliregs
 
-    cmd = '# -------------------------------------------------------\n'   \
-          '# RETROICOR - remove cardiac and respiratory signals\n'        \
-          '#             (across runs: catenate regressors across runs)\n'\
+    cmd = '# -------------------------------------------------------\n' \
+          '# RETROICOR - remove cardiac and respiratory signals\n'      \
+          '#           - across runs: catenate regressors across runs\n'\
           'foreach run ( $runs )\n'
 
     cmd = cmd +                                                         \
-        "    # detrend regressors, expand slice0 regressors per run\n"  \
+        "    # detrend regressors (make orthogonal to poly baseline)\n" \
         "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"        \
         "              stimuli/ricor_orig_r$run.1D\\'\n\n"              \
         "    1dtranspose rm.ricor.$run.1D rm.ricor_det_r$run.1D\n" % polort
@@ -375,15 +375,16 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     proc.ricor_nreg = proc.runs * nsliregs
 
     cmd = '# -------------------------------------------------------\n' \
-          '# RETROICOR - remove cardiac and respiratory regressors\n'   \
-          '#             (per run: each run uses separate regressors)\n'\
+          '# RETROICOR - remove cardiac and respiratory signals\n'      \
+          '#           - per run: each run uses separate regressors\n'  \
           'foreach run ( $runs )\n'
 
     cmd = cmd +                                                            \
-        "    # detrend regressors, expand slice0 regressors per run\n"     \
+        "    # detrend regressors (make orthogonal to poly baseline)\n"    \
         "    3dDetrend -polort %d -prefix rm.ricor.$run.1D \\\n"           \
         "              stimuli/ricor_orig_r$run.1D\\'\n\n"                 \
         "    1dtranspose rm.ricor.$run.1D stimuli/ricor_det_r$run.1D\n\n"  \
+        "    # pad slice0 regressors across all runs (for 'regress' block)\n" \
         "    1d_tool.py -infile stimuli/ricor_det_r$run.1D'[0..%d]' \\\n"  \
         "               -pad_into_many_runs $run $#runs \\\n"              \
         "               -write rm.ricor_s0_r$run.1D\n\n"                 % \
