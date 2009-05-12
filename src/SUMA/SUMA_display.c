@@ -5658,7 +5658,7 @@ void SUMA_CreateDrawROIWindow(void)
    SUMAg_CF->ROI_mode = YUP;
    /* make a call to change the cursor */
    SUMA_UpdateAllViewerCursor(); 
-   SUMAg_CF->X->DrawROI->DrawROImode_tb = XtVaCreateManagedWidget("Draw Mode", 
+   SUMAg_CF->X->DrawROI->DrawROImode_tb = XtVaCreateManagedWidget("Draw", 
       xmToggleButtonWidgetClass, rc, NULL);
    XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, SUMAg_CF->ROI_mode, NOPE);
    XtAddCallback (SUMAg_CF->X->DrawROI->DrawROImode_tb, 
@@ -5669,6 +5669,25 @@ void SUMA_CreateDrawROIWindow(void)
 
    /* set the toggle button's select color */
    SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->DrawROImode_tb);
+   
+   
+   /* put a toggle button for showing/hiding contours */
+   SUMAg_CF->X->DrawROI->ContROImode_tb = 
+               XtVaCreateManagedWidget("Cont.", 
+                                       xmToggleButtonWidgetClass, rc, NULL);
+   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->ContROImode_tb,  
+                           SUMAg_CF->ROI_contmode, NOPE);
+   XtAddCallback (SUMAg_CF->X->DrawROI->ContROImode_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_ContROImode_toggled, 
+                  NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->ContROImode_tb , 
+                     SUMA_DrawROI_DrawROIMode_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->ContROImode_tb , 
+                     "Toggles ROI drawing mode" ) ;
+
+   /* set the toggle button's select color */
+   SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->ContROImode_tb);
+
    
    /*put a toggle button for the Pen mode */
    SUMAg_CF->X->DrawROI->Penmode_tb = XtVaCreateManagedWidget("Pen", 
@@ -5799,6 +5818,7 @@ void SUMA_CreateDrawROIWindow(void)
    MCW_register_help(SUMAg_CF->X->DrawROI->Finish_pb , SUMA_DrawROI_Finish_help ) ;
    MCW_register_hint(SUMAg_CF->X->DrawROI->Finish_pb , "Label ROI as finished." ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Finish_pb);
+   
                                  
    /* a separator */
    XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rcv, NULL);
@@ -7379,7 +7399,31 @@ void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
    SUMA_RETURNe;
 
 }
+/*!
+   \brief Toggles the contour ROI mode
+*/
+void SUMA_cb_ContROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_ContROImode_toggled"};
+   DList *list=NULL;
+   SUMA_ENTRY;
+   
+   SUMAg_CF->ROI_contmode = !SUMAg_CF->ROI_contmode;
+   
 
+   /* redisplay */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, 
+                                      SE_RedisplayNow_AllVisible, 
+                                      SES_Suma, NULL); 
+   if (!SUMA_Engine(&list)) {
+      SUMA_SLP_Err("Failed to redisplay.");
+      SUMA_RETURNe;
+   }
+   
+   SUMA_RETURNe;
+
+}
 /*!
    \brief Toggles the pen mode
 */

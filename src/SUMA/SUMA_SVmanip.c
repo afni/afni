@@ -1984,6 +1984,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    #endif
    cf->ROI_mode = NOPE;
+   cf->ROI_contmode = YUP;
    cf->Pen_mode = NOPE;
    
    cf->nimlROI_Datum_type = NI_rowtype_define("SUMA_NIML_ROI_DATUM", "int,int,int,int[#3]");
@@ -2087,6 +2088,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    dlist_init (cf->xforms, SUMA_FreeXform);
    cf->callbacks = (DList *)SUMA_calloc(1,sizeof(DList));
    dlist_init (cf->callbacks, SUMA_FreeCallback);
+   cf->HoldClickCallbacks = 0;
    
    return (cf);
 
@@ -3010,7 +3012,8 @@ void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv)
    if (!sv->X) SUMA_RETURNe;
    if (!sv->X->GLXAREA) SUMA_RETURNe;
    if (SUMAg_CF->ROI_mode) {
-      if (SUMAg_CF->Pen_mode) MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_pencil ) ;
+      if (SUMAg_CF->Pen_mode) 
+         MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_pencil ) ;
       else  MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_target ) ;
    } else {
       MCW_set_widget_cursor( sv->X->GLXAREA  , -XC_top_left_arrow ) ;
