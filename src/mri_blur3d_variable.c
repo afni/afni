@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #undef  INMASK
 #define INMASK(i) (mask == NULL || mask[i] != 0)
 
@@ -212,9 +216,9 @@ ENTRY("mri_blur3D_addfwhm") ;
 
 void mri_blur3D_vectim( MRI_vectim *vim , float fwhm )
 {
-   int nrep=-1 , nx,ny,nz , nvox , iv,kk ;
+   int nrep=-1 , nx,ny,nz , nvox , kk ;
    float fx=-1.0f,fy=-1.0f,fz=-1.0f , dx,dy,dz ;
-   MRI_IMAGE *qim ; float *qar , *var ; int *ivar ; byte *mmm ;
+   int *ivar ; byte *mmm ;
 
 ENTRY("mri_blur3d_vectim") ;
 
@@ -237,19 +241,26 @@ ENTRY("mri_blur3d_vectim") ;
    mmm  = (byte *)calloc(sizeof(byte),nvox) ;
    for( kk=0 ; kk < vim->nvec ; kk++ ) mmm[ivar[kk]] = 1 ;
 
-   qim = mri_new_vol( nx,ny,nz , MRI_float ) ;
-   qar = MRI_FLOAT_PTR(qim) ;
+#pragma omp parallel if( vim->nvals > 1 &&  nrep * vim->nvec > 66666 )
+ {
+   MRI_IMAGE *qim = mri_new_vol( nx,ny,nz , MRI_float ) ;
+   float     *qar = MRI_FLOAT_PTR(qim) , *var ;
+   int iv , jj ;
 
+#pragma omp for
    for( iv=0 ; iv < vim->nvals ; iv++ ){
      memset( qar , 0 , sizeof(float)*nvox ) ;
-     for( kk=0 ; kk < vim->nvec ; kk++ ){
-       var = VECTIM_PTR(vim,kk) ; qar[ivar[kk]] = var[iv] ;
+     for( jj=0 ; jj < vim->nvec ; jj++ ){
+       var = VECTIM_PTR(vim,jj) ; qar[ivar[jj]] = var[iv] ;
      }
      mri_blur3D_inmask( qim , mmm , fx,fy,fz , nrep ) ;
-     for( kk=0 ; kk < vim->nvec ; kk++ ){
-       var = VECTIM_PTR(vim,kk) ; var[iv] = qar[ivar[kk]] ;
+     for( jj=0 ; jj < vim->nvec ; jj++ ){
+       var = VECTIM_PTR(vim,jj) ; var[iv] = qar[ivar[jj]] ;
      }
    }
 
-   free(mmm) ; mri_free(qim) ; EXRETURN ;
+   mri_free(qim) ;
+ } /* end OpenMP */
+
+   free(mmm) ; EXRETURN ;
 }

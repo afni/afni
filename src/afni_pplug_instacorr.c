@@ -285,12 +285,32 @@ static char * ICOR_main( PLUGIN_interface *plint )
    etim = PLUTO_elapsed_time() - etim ;
    INFO_message("InstaCorr setup: %d voxels ready for work: %.2f sec",qq,etim) ;
 
+#if 0
+#ifdef USE_OMP
+   { static int first=1 ;
+     if( first && iset->blur > 0.0f ){
+       int nproc=omp_get_num_procs() ;
+       first = 0 ;
+       if( nproc > 1 )
+         ININFO_message(
+          "Compiled with OpenMP: used %d processes for blurring speedup",nproc);
+     }
+   }
+#endif
+#endif
+
    im3d->iset = iset ;
 
    ENABLE_INSTACORR(im3d) ;  /* manage the widgets */
    return NULL ;
 }
 #endif  /* ALLOW_PLUGINS */
+
+/*------------------------------------------------------------------*/
+
+#ifdef USE_OMP
+#include <omp.h>
+#endif
 
 /*------------------------------------------------------------------*/
 
@@ -321,7 +341,7 @@ ENTRY("AFNI_icor_setref") ;
    }
 
    kv  = THD_3dmm_to_3dind_no_wod( im3d->iset->dset, jv ) ;
-   ijk = DSET_ixyz_to_index      ( im3d->iset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] );
+   ijk = DSET_ixyz_to_index( im3d->iset->dset, kv.ijk[0],kv.ijk[1],kv.ijk[2] ) ;
 
    /* do the real work: ijk = voxel index */
 
@@ -330,7 +350,8 @@ ENTRY("AFNI_icor_setref") ;
    iim = THD_instacorr( im3d->iset , ijk , 0 ) ;
 
    if( ncall <= 1 )
-     ININFO_message(" InstaCorr elapsed time = %.2f sec: correlations",PLUTO_elapsed_time()-etim) ;
+     ININFO_message(" InstaCorr elapsed time = %.2f sec: correlations",
+                    PLUTO_elapsed_time()-etim) ;
 
    if( iim == NULL ) RETURN(0) ;  /* did it fail? */
 

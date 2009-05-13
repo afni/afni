@@ -1,17 +1,20 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 static int verb = 1 ;
 
 /*----------------------------------------------------------------------------*/
 
 int main( int argc , char *argv[] )
 {
-   int iarg=1 , ii,nvox ;
+   int iarg=1 , ii,nvox , nvals ;
    THD_3dim_dataset *inset=NULL, *outset=NULL , *mset=NULL ;
    char *prefix="./blurinmask" ;
    float fwhm_goal=0.0f ; int fwhm_2D=0 ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 , nmask ;
-   MRI_IMAGE *dsim ; int ids ;
    float dx,dy,dz=0.0f , *bar , val ;
 
    /*------- help the pitifully ignorant luser? -------*/
@@ -133,8 +136,6 @@ int main( int argc , char *argv[] )
 
    } /*--- end of loop over options ---*/
 
-   MRILIB_verb = verb ;
-
    /*----- check for stupid inputs, load datasets, et cetera -----*/
 
    if( fwhm_goal == 0.0f )
@@ -190,14 +191,25 @@ int main( int argc , char *argv[] )
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dBlurInMask" , argc,argv , outset ) ;
 
-   for( ids=0 ; ids < DSET_NVALS(inset) ; ids++ ){
+   nvals = DSET_NVALS(inset) ;
+   verb  = verb && (nvals > 1) ;
+   if( verb ) fprintf(stderr,"sub_bricks: ") ;
+
+#pragma omp parallel if( nvals > 1 )
+ {
+   MRI_IMAGE *dsim ; int ids ;
+#pragma omp for
+   for( ids=0 ; ids < nvals ; ids++ ){
+     if( verb ) fprintf(stderr,"%d.",ids) ;
      dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids));
      DSET_unload_one(inset,ids) ;
      dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
      mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;  /** all the work **/
      EDIT_substitute_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ) ;
-     MRILIB_verb = 0 ;
    }
+ } /* end OpenMP */
+   if( verb ) fprintf(stderr,"\n") ;
+
    DSET_unload(inset) ;
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
