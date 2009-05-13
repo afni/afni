@@ -2,7 +2,7 @@
 
 set fsdb = FreeSurferColorLUT.txt
 set stat = 1
-if ("$1" == "" || "$1" == '-h' || "$2" == '-help') then
+if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
 endif
 
@@ -28,19 +28,18 @@ if (! -f /tmp/___tmplabels.txt) then
        
    else
       set fsp = $bin:h
+      #peel off a couple of layers
+      if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+      if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+      if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+      if ( ! -f $fsp/${fsdb}) then
+         echo "Cannot find LUT"
+         goto END
+      endif
    endif
-   #peel off a couple of layers
-   if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-   if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-   if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-   if ( ! -f $fsp/${fsdb}) then
-      echo "Cannot find LUT"
-      goto END
-   endif
-
 
    sed 's/^ *//;s/ *$//;s/ \{1,\}/ /g' $fsp/${fsdb} \
-      |   sed 's/^/#/g' | cut -d' ' -f1 -f2 > /tmp/___tmplabels.txt
+      |   sed 's/^/#/g' | cut -d' ' -f1,2 > /tmp/___tmplabels.txt
 endif
 
 if ($name != "") then
@@ -168,7 +167,11 @@ PARSE:
 	end
 
    @ NxtInd ++
-   set others_list = ( $argv[$NxtInd-$#argv] )
+   if ( $NxtInd > $#argv ) then
+      set others_list = ( )
+   else
+      set others_list = ( $argv[$NxtInd-$#argv] )
+   endif
 
    if ($lab == "" && $rank == "") then
       if ($#others_list == 1) then
