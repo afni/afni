@@ -1,5 +1,6 @@
 #!/bin/tcsh -f
 
+set fsdb = FreeSurferColorLUT.txt
 set stat = 1
 if ("$1" == "" || "$1" == '-h' || "$2" == '-help') then
    goto HELP
@@ -11,19 +12,34 @@ RETURN_PARSE:
 
 if (! -f /tmp/___tmplabels.txt) then
    set bin = `which mris_convert`
-   set fsp = $bin:h
-
+   if ($status) then
+      #Try locally, as a quick fix
+      echo "Warning: Searching for ${fsdb} locally..."
+      if ( -f ./${fsdb} ) then
+         set fsp = $PWD
+         echo "   Using $fsp/${fsdb}"
+      else if ( -f ./SUMA/${fsdb} ) then
+         set fsp = $PWD/SUMA
+         echo "   Using $fsp/${fsdb}"
+      else
+         echo "Could not find ${fsdb}"
+         goto END
+      endif
+       
+   else
+      set fsp = $bin:h
+   endif
    #peel off a couple of layers
-   if ( ! -f $fsp/FreeSurferColorLUT.txt) set fsp = $fsp:h
-   if ( ! -f $fsp/FreeSurferColorLUT.txt) set fsp = $fsp:h
-   if ( ! -f $fsp/FreeSurferColorLUT.txt) set fsp = $fsp:h
-   if ( ! -f $fsp/FreeSurferColorLUT.txt) then
+   if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+   if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+   if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+   if ( ! -f $fsp/${fsdb}) then
       echo "Cannot find LUT"
       goto END
    endif
 
 
-   sed 's/^ *//;s/ *$//;s/ \{1,\}/ /g' $fsp/FreeSurferColorLUT.txt \
+   sed 's/^ *//;s/ *$//;s/ \{1,\}/ /g' $fsp/${fsdb} \
       |   sed 's/^/#/g' | cut -d' ' -f1 -f2 > /tmp/___tmplabels.txt
 endif
 
@@ -196,7 +212,7 @@ HELP:
    echo "Usage: `basename $0` <int>"
    echo "   Return the name of an integer labeled area in FreeSurfer's"
    echo "   parcellation. Lookup is based on your installed "
-   echo "   FreeSurferColorLUT.txt "
+   echo "   ${fsdb} "
    echo "   Example: "
    echo "      @FS_roi_label  2180 \"
    echo ""
@@ -219,7 +235,7 @@ HELP:
    echo ""
    echo "Usage: `basename $0` <-name NAME> "
    echo "   Return the entries matching NAME (case insensitive, partial match)"
-   echo "   from FreeSurfer's FreeSurferColorLUT.txt "
+   echo "   from FreeSurfer's ${fsdb} "
    echo "   Example: "
    echo "      @FS_roi_label  -name cerebra"
    echo ""
