@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , MAY , 2009 , RWC , "InstaCorr+3dBlurInMask" , MINOR , TYPE_GENERAL ,
+   "Added OpenMP support for blurring to these programs" ,
+   "Parallelization occurs across sub-bricks -- speedup is significant." } ,
+
  { 11 , MAY , 2009 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "InstaCorr changes" ,
    "* Save seed time series into the 1D timeseries library for graphicking\n"
