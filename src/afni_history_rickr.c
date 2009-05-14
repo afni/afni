@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, MAY, 2009, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
+   "fixed -glt_label > -num_glt error message",
+   NULL
+ } ,
+
  { 12, MAY, 2009, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed 'cat' of 'across-runs' ricor regressors",
    NULL
