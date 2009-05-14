@@ -853,7 +853,7 @@ void display_help_menu()
     "[-nolegendre]        use power polynomials for null hypotheses         \n"
     "                       [default is -legendre]                          \n"
     "[-nodmbase]          don't de-mean baseline time series                \n"
-    "                       (i.e., polort>1 and -stim_base inputs)          \n"
+    "                       (i.e., polort>0 and -stim_base inputs)          \n"
     "[-dmbase]            de-mean baseline time series [default if polort>=0]\n"
     "[-svd]               Use SVD instead of Gaussian elimination [default] \n"
     "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
