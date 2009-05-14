@@ -854,7 +854,7 @@ void display_help_menu()
     "                       [default is -legendre]                          \n"
     "[-nodmbase]          don't de-mean baseline time series                \n"
     "                       (i.e., polort>1 and -stim_base inputs)          \n"
-    "[-dmbase]            de-mean baseline time series [default if polort>0]\n"
+    "[-dmbase]            de-mean baseline time series [default if polort>=0]\n"
     "[-svd]               Use SVD instead of Gaussian elimination [default] \n"
     "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
     "                       (only use for testing + backwards compatibility)\n"
