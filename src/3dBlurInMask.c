@@ -42,6 +42,8 @@ int main( int argc , char *argv[] )
       "-----\n"
       " * If you don't provide a mask, then all voxels will be included\n"
       "     in the blurring.  (But then why are you using this program?)\n"
+      " * Note that voxels inside the mask that are not contiguous with\n"
+      "     any other voxels inside the mask will not be modified at all!\n"
       " * Works iteratively, similarly to 3dBlurToFWHM, but without\n"
       "     the extensive overhead of monitoring the smoothness.\n"
       " * But this program will be faster than 3dBlurToFWHM, and probably\n"
@@ -58,6 +60,13 @@ int main( int argc , char *argv[] )
       "     command similar to the following:\n"
       "          3dFWHMx -detrend -mask mmm+orig -input ddd+orig\n"
      ) ;
+#ifdef USE_OMP
+     printf(
+      " * This version of the program is compiled with OpenMP support, which\n"
+      "     will multi-thread the blurring across sub-bricks, for speed.\n"
+      " * To disable multi-threading, 'setenv OMP_NUM_THREADS 1'\n"
+     ) ;
+#endif
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 

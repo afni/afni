@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 /*** NOT 7D SAFE ***/
 
 /****************************************************************************/
@@ -60,28 +64,14 @@ void mri_warp3D_zerout( int zzzz ){ zout  = zzzz ; }      /** outside = 0? **/
     See comments for mri_warp3D() for details about the parameters.
 -----------------------------------------------------------------------------*/
 
-INLINE MRI_IMAGE *mri_warp3D_cubic(
+MRI_IMAGE *mri_warp3D_cubic(
                     MRI_IMAGE *im, int nxnew, int nynew, int nznew,
                     void wf(float,float,float,float *,float *,float *) )
 {
    MRI_IMAGE *imfl , *newImg ;
-   float *far , *nar ;
-   float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
-   int ii,jj,kk, nx,ny,nz,nxy, nx1,ny1,nz1, ix,jy,kz, nxynew ;
-   float bot,top,val ;
-   float nxh,nyh,nzh ;
-
-   int ix_m1,ix_00,ix_p1,ix_p2 ;         /* interpolation indices */
-   int jy_m1,jy_00,jy_p1,jy_p2 ;         /* (input image) */
-   int kz_m1,kz_00,kz_p1,kz_p2 ;
-
-   float wt_m1,wt_00,wt_p1,wt_p2 ;   /* interpolation weights */
-
-   float f_jm1_km1, f_j00_km1, f_jp1_km1, f_jp2_km1, /* interpolants */
-         f_jm1_k00, f_j00_k00, f_jp1_k00, f_jp2_k00,
-         f_jm1_kp1, f_j00_kp1, f_jp1_kp1, f_jp2_kp1,
-         f_jm1_kp2, f_j00_kp2, f_jp1_kp2, f_jp2_kp2,
-         f_km1    , f_k00    , f_kp1    , f_kp2     ;
+   float *ffar ;
+   int nx,ny,nz,nxy, nxynew , nxyznew , pp ;
+   float bot,top ;
 
 ENTRY("mri_warp3D_cubic") ;
 
@@ -91,14 +81,14 @@ ENTRY("mri_warp3D_cubic") ;
 
    /*-- dimensional analysis --*/
 
-   nx = im->nx ; nx1 = nx-1 ;          /* input image dimensions */
-   ny = im->ny ; ny1 = ny-1 ;
-   nz = im->nz ; nz1 = nz-1 ; nxy = nx*ny ;
+   nx = im->nx ;          /* input image dimensions */
+   ny = im->ny ;
+   nz = im->nz ; nxy = nx*ny ;
 
    nxnew = (nxnew > 0) ? nxnew : nx ;  /* output image dimensions */
    nynew = (nynew > 0) ? nynew : ny ;
    nznew = (nznew > 0) ? nznew : nz ;
-   nxynew = nxnew*nynew ;
+   nxynew = nxnew*nynew ; nxyznew = nxynew * nznew ;
 
    /*----- Allow for different input image types, by breaking them into
            components, doing each one separately, and then reassembling.
@@ -148,99 +138,113 @@ ENTRY("mri_warp3D_cubic") ;
 
    /*----- at this point, imfl is in float format -----*/
 
-   far = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
+   ffar = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
 
    newImg = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
-   nar = MRI_FLOAT_PTR( newImg ) ;                         /* output image data */
 
-   bot = top = far[0] ;                             /* find input data range */
-   for( ii=1 ; ii < imfl->nvox ; ii++ ){
-          if( far[ii] > top ) top = far[ii] ;
-     else if( far[ii] < bot ) bot = far[ii] ;
+   bot = top = ffar[0] ;                             /* find input data range */
+   for( pp=1 ; pp < imfl->nvox ; pp++ ){
+          if( ffar[pp] > top ) top = ffar[pp] ;
+     else if( ffar[pp] < bot ) bot = ffar[pp] ;
    }
 
    /*** loop over output points and warp to them ***/
 
+#pragma omp parallel if( nxyznew > 99999 )
+ {
+   float *far , *nar ;
+   float nxh,nyh,nzh , val ;
+   int ix_m1,ix_00,ix_p1,ix_p2 ;         /* interpolation indices */
+   int jy_m1,jy_00,jy_p1,jy_p2 ;         /* (input image) */
+   int kz_m1,kz_00,kz_p1,kz_p2 ;
+   float wt_m1,wt_00,wt_p1,wt_p2 ;   /* interpolation weights */
+   float f_jm1_km1, f_j00_km1, f_jp1_km1, f_jp2_km1, /* interpolants */
+         f_jm1_k00, f_j00_k00, f_jp1_k00, f_jp2_k00,
+         f_jm1_kp1, f_j00_kp1, f_jp1_kp1, f_jp2_kp1,
+         f_jm1_kp2, f_j00_kp2, f_jp1_kp2, f_jp2_kp2,
+         f_km1    , f_k00    , f_kp1    , f_kp2     ;
+   int nx1,ny1,nz1 , ii,jj,kk , ix,jy,kz , qq , do_zout=zout ;
+   float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
+
+   far = ffar ;                                          /* input image data */
+   nar = MRI_FLOAT_PTR( newImg ) ;                       /* output image data */
+
    nxh = nx-0.5 ; nyh = ny-0.5 ; nzh = nz-0.5 ;
-   for( kk=0 ; kk < nznew ; kk++ ){
-    zpr = kk ;
-    for( jj=0 ; jj < nynew ; jj++ ){
-     ypr = jj ;
-     for( ii=0 ; ii < nxnew ; ii++ ){
-       xpr = ii ;
-       if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
-       wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
-       if( zout &&
-           (xx < -0.5 || xx > nxh ||
-            yy < -0.5 || yy > nyh || zz < -0.5 || zz > nzh ) ){
+#pragma omp for
+   for( qq=0 ; qq < nxyznew ; qq++ ){  /* voxel loop */
+     xpr = ii = qq % nxnew ;           /* break 1D index qq into 3D index (ii,jj,kk) */
+     zpr = kk = qq / nxynew ;
+     ypr = jj = (qq-kk*nxynew) / nx ;
+     if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
+     wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
-          NAR(ii,jj,kk) = 0.0 ; continue ;
-       }
+     if( do_zout &&
+         (xx < -0.5 || xx > nxh ||
+          yy < -0.5 || yy > nyh || zz < -0.5 || zz > nzh ) ){ nar[qq] = 0.0f; continue; }
 
-       ix = floor(xx) ;  fx = xx - ix ;   /* integer and       */
-       jy = floor(yy) ;  fy = yy - jy ;   /* fractional coords */
-       kz = floor(zz) ;  fz = zz - kz ;
+     ix = floor(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floor(yy) ;  fy = yy - jy ;   /* fractional coords */
+     kz = floor(zz) ;  fz = zz - kz ;
 
-       ix_m1 = ix-1    ; ix_00 = ix      ; ix_p1 = ix+1    ; ix_p2 = ix+2    ;
-       CLIP(ix_m1,nx1) ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ; CLIP(ix_p2,nx1) ;
+     ix_m1 = ix-1    ; ix_00 = ix      ; ix_p1 = ix+1    ; ix_p2 = ix+2    ;
+     CLIP(ix_m1,nx1) ; CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ; CLIP(ix_p2,nx1) ;
 
-       jy_m1 = jy-1    ; jy_00 = jy      ; jy_p1 = jy+1    ; jy_p2 = jy+2    ;
-       CLIP(jy_m1,ny1) ; CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ; CLIP(jy_p2,ny1) ;
+     jy_m1 = jy-1    ; jy_00 = jy      ; jy_p1 = jy+1    ; jy_p2 = jy+2    ;
+     CLIP(jy_m1,ny1) ; CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ; CLIP(jy_p2,ny1) ;
 
-       kz_m1 = kz-1    ; kz_00 = kz      ; kz_p1 = kz+1    ; kz_p2 = kz+2    ;
-       CLIP(kz_m1,nz1) ; CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ; CLIP(kz_p2,nz1) ;
+     kz_m1 = kz-1    ; kz_00 = kz      ; kz_p1 = kz+1    ; kz_p2 = kz+2    ;
+     CLIP(kz_m1,nz1) ; CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ; CLIP(kz_p2,nz1) ;
 
-       wt_m1 = P_M1(fx) ; wt_00 = P_00(fx) ;  /* interpolation weights */
-       wt_p1 = P_P1(fx) ; wt_p2 = P_P2(fx) ;
+     wt_m1 = P_M1(fx) ; wt_00 = P_00(fx) ;  /* interpolation weights */
+     wt_p1 = P_P1(fx) ; wt_p2 = P_P2(fx) ;
 
 #undef  XINT
 #define XINT(j,k) wt_m1*FAR(ix_m1,j,k)+wt_00*FAR(ix_00,j,k)  \
                  +wt_p1*FAR(ix_p1,j,k)+wt_p2*FAR(ix_p2,j,k)
 
-       /* interpolate to location ix+fx at each jy,kz level */
+     /* interpolate to location ix+fx at each jy,kz level */
 
-       f_jm1_km1 = XINT(jy_m1,kz_m1) ; f_j00_km1 = XINT(jy_00,kz_m1) ;
-       f_jp1_km1 = XINT(jy_p1,kz_m1) ; f_jp2_km1 = XINT(jy_p2,kz_m1) ;
-       f_jm1_k00 = XINT(jy_m1,kz_00) ; f_j00_k00 = XINT(jy_00,kz_00) ;
-       f_jp1_k00 = XINT(jy_p1,kz_00) ; f_jp2_k00 = XINT(jy_p2,kz_00) ;
-       f_jm1_kp1 = XINT(jy_m1,kz_p1) ; f_j00_kp1 = XINT(jy_00,kz_p1) ;
-       f_jp1_kp1 = XINT(jy_p1,kz_p1) ; f_jp2_kp1 = XINT(jy_p2,kz_p1) ;
-       f_jm1_kp2 = XINT(jy_m1,kz_p2) ; f_j00_kp2 = XINT(jy_00,kz_p2) ;
-       f_jp1_kp2 = XINT(jy_p1,kz_p2) ; f_jp2_kp2 = XINT(jy_p2,kz_p2) ;
+     f_jm1_km1 = XINT(jy_m1,kz_m1) ; f_j00_km1 = XINT(jy_00,kz_m1) ;
+     f_jp1_km1 = XINT(jy_p1,kz_m1) ; f_jp2_km1 = XINT(jy_p2,kz_m1) ;
+     f_jm1_k00 = XINT(jy_m1,kz_00) ; f_j00_k00 = XINT(jy_00,kz_00) ;
+     f_jp1_k00 = XINT(jy_p1,kz_00) ; f_jp2_k00 = XINT(jy_p2,kz_00) ;
+     f_jm1_kp1 = XINT(jy_m1,kz_p1) ; f_j00_kp1 = XINT(jy_00,kz_p1) ;
+     f_jp1_kp1 = XINT(jy_p1,kz_p1) ; f_jp2_kp1 = XINT(jy_p2,kz_p1) ;
+     f_jm1_kp2 = XINT(jy_m1,kz_p2) ; f_j00_kp2 = XINT(jy_00,kz_p2) ;
+     f_jp1_kp2 = XINT(jy_p1,kz_p2) ; f_jp2_kp2 = XINT(jy_p2,kz_p2) ;
 
-       /* interpolate to jy+fy at each kz level */
+     /* interpolate to jy+fy at each kz level */
 
-       wt_m1 = P_M1(fy) ; wt_00 = P_00(fy) ;
-       wt_p1 = P_P1(fy) ; wt_p2 = P_P2(fy) ;
+     wt_m1 = P_M1(fy) ; wt_00 = P_00(fy) ;
+     wt_p1 = P_P1(fy) ; wt_p2 = P_P2(fy) ;
 
-       f_km1 =  wt_m1 * f_jm1_km1 + wt_00 * f_j00_km1
-              + wt_p1 * f_jp1_km1 + wt_p2 * f_jp2_km1 ;
+     f_km1 =  wt_m1 * f_jm1_km1 + wt_00 * f_j00_km1
+            + wt_p1 * f_jp1_km1 + wt_p2 * f_jp2_km1 ;
 
-       f_k00 =  wt_m1 * f_jm1_k00 + wt_00 * f_j00_k00
-              + wt_p1 * f_jp1_k00 + wt_p2 * f_jp2_k00 ;
+     f_k00 =  wt_m1 * f_jm1_k00 + wt_00 * f_j00_k00
+            + wt_p1 * f_jp1_k00 + wt_p2 * f_jp2_k00 ;
 
-       f_kp1 =  wt_m1 * f_jm1_kp1 + wt_00 * f_j00_kp1
-              + wt_p1 * f_jp1_kp1 + wt_p2 * f_jp2_kp1 ;
+     f_kp1 =  wt_m1 * f_jm1_kp1 + wt_00 * f_j00_kp1
+            + wt_p1 * f_jp1_kp1 + wt_p2 * f_jp2_kp1 ;
 
-       f_kp2 =  wt_m1 * f_jm1_kp2 + wt_00 * f_j00_kp2
-              + wt_p1 * f_jp1_kp2 + wt_p2 * f_jp2_kp2 ;
+     f_kp2 =  wt_m1 * f_jm1_kp2 + wt_00 * f_j00_kp2
+            + wt_p1 * f_jp1_kp2 + wt_p2 * f_jp2_kp2 ;
 
-       /* interpolate to kz+fz to get output */
+     /* interpolate to kz+fz to get output */
 
-       wt_m1 = P_M1(fz) ; wt_00 = P_00(fz) ;
-       wt_p1 = P_P1(fz) ; wt_p2 = P_P2(fz) ;
+     wt_m1 = P_M1(fz) ; wt_00 = P_00(fz) ;
+     wt_p1 = P_P1(fz) ; wt_p2 = P_P2(fz) ;
 
-       val = P_FACTOR * (  wt_m1 * f_km1 + wt_00 * f_k00
-                         + wt_p1 * f_kp1 + wt_p2 * f_kp2 ) ;
+     val = P_FACTOR * (  wt_m1 * f_km1 + wt_00 * f_k00
+                       + wt_p1 * f_kp1 + wt_p2 * f_kp2 ) ;
 
-            if( val > top ) val = top ;   /* clip to input data range */
-       else if( val < bot ) val = bot ;
+          if( val > top ) val = top ;   /* clip to input data range */
+     else if( val < bot ) val = bot ;
 
-       NAR(ii,jj,kk) = val ;
-     }
-    }
+     nar[qq] = val ;
    }
+ } /* end OpenMP */
 
    /*** cleanup and return ***/
 
@@ -253,24 +257,12 @@ ENTRY("mri_warp3D_cubic") ;
     See comments for mri_warp3D() for details about the parameters.
 -----------------------------------------------------------------------------*/
 
-INLINE MRI_IMAGE *mri_warp3D_linear(
+MRI_IMAGE *mri_warp3D_linear(
                     MRI_IMAGE *im, int nxnew, int nynew, int nznew,
                     void wf(float,float,float,float *,float *,float *) )
 {
    MRI_IMAGE *imfl , *newImg ;
-   float *far , *nar ;
-   float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
-   int ii,jj,kk, nx,ny,nz,nxy, nx1,ny1,nz1, ix,jy,kz, nxynew ;
-   float val ;
-   float nxh,nyh,nzh ;
-
-   int ix_00,ix_p1 ;         /* interpolation indices */
-   int jy_00,jy_p1 ;         /* (input image) */
-   int kz_00,kz_p1 ;
-
-   float wt_00,wt_p1 ;   /* interpolation weights */
-
-   float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
+   int nx,ny,nz,nxy , nxynew,nxyznew ;
 
 #if 0
 int nzset ; float zzsum ;
@@ -284,9 +276,9 @@ ENTRY("mri_warp3D_linear") ;
 
    /*-- dimensional analysis --*/
 
-   nx = im->nx ; nx1 = nx-1 ;          /* input image dimensions */
-   ny = im->ny ; ny1 = ny-1 ;
-   nz = im->nz ; nz1 = nz-1 ; nxy = nx*ny ;
+   nx = im->nx ;          /* input image dimensions */
+   ny = im->ny ;
+   nz = im->nz ; nxy = nx*ny ;
 
 #if 0
 fprintf(stderr,"mri_warp3D_linear: nx=%d ny=%d nz=%d\n",nx,ny,nz) ;
@@ -296,7 +288,7 @@ nzset = 0 ; zzsum = 0.0 ;
    nxnew = (nxnew > 0) ? nxnew : nx ;  /* output image dimensions */
    nynew = (nynew > 0) ? nynew : ny ;
    nznew = (nznew > 0) ? nznew : nz ;
-   nxynew = nxnew*nynew ;
+   nxynew = nxnew*nynew ; nxyznew = nxynew*nznew ;
 
    /*----- allow for different input image types, by breaking them into
            components, doing each one separately, and then reassembling -----*/
@@ -345,83 +337,83 @@ nzset = 0 ; zzsum = 0.0 ;
 
    /*----- at this point, imfl is in float format -----*/
 
-   far = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
-
    newImg = mri_new_vol( nxnew,nynew,nznew, MRI_float ) ;  /* make output image */
-   nar = MRI_FLOAT_PTR( newImg ) ;                         /* output image data */
+
+#pragma omp parallel if( nxyznew > 99999 )
+ {
+   float *far , *nar ;
+   float nxh,nyh,nzh ;
+   float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
+   int ii,jj,kk , qq , ix,jy,kz , nx1,ny1,nz1 ;
+   int ix_00,ix_p1 ;         /* interpolation indices */
+   int jy_00,jy_p1 ;         /* (input image) */
+   int kz_00,kz_p1 ;
+   float wt_00,wt_p1 ;       /* interpolation weights */
+   float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
+   int do_zout = zout ;
+
+   far = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
+   nar = MRI_FLOAT_PTR( newImg ) ;                       /* output image data */
 
    /*** loop over output points and warp to them ***/
 
    nxh = nx-0.5 ; nyh = ny-0.5 ; nzh = nz-0.5 ;
-   for( kk=0 ; kk < nznew ; kk++ ){
-    zpr = kk ;
-    for( jj=0 ; jj < nynew ; jj++ ){
-     ypr = jj ;
-     for( ii=0 ; ii < nxnew ; ii++ ){
-       xpr = ii ;
-       if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
-       wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
+   nx1 = nx-1   ; ny1 = ny-1   ; nz1 = nz-1   ;
 
-       if( zout &&
-           (xx < -0.5 || xx > nxh ||
-            yy < -0.5 || yy > nyh || zz < -0.5 || zz > nzh ) ){
+#pragma omp for
+   for( qq=0 ; qq < nxyznew ; qq++ ){  /* voxel loop */
+     xpr = ii = qq % nxnew ;           /* break 1D index qq into 3D index (ii,jj,kk) */
+     zpr = kk = qq / nxynew ;
+     ypr = jj = (qq-kk*nxynew) / nx ;
+     if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
+     wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
-#if 0
-nzset++ ;
-#endif
-          NAR(ii,jj,kk) = 0.0 ; continue ;
-       }
+     if( do_zout &&
+         (xx < -0.5 || xx > nxh ||
+          yy < -0.5 || yy > nyh || zz < -0.5 || zz > nzh ) ){ nar[qq] = 0.0f ; continue ; }
 
-       ix = floor(xx) ;  fx = xx - ix ;   /* integer and       */
-       jy = floor(yy) ;  fy = yy - jy ;   /* fractional coords */
-       kz = floor(zz) ;  fz = zz - kz ;
+     ix = floor(xx) ;  fx = xx - ix ;   /* integer and       */
+     jy = floor(yy) ;  fy = yy - jy ;   /* fractional coords */
+     kz = floor(zz) ;  fz = zz - kz ;   /* of warped point   */
 
-       ix_00 = ix      ; ix_p1 = ix+1    ;
-       CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ;
+     ix_00 = ix      ; ix_p1 = ix+1    ;
+     CLIP(ix_00,nx1) ; CLIP(ix_p1,nx1) ;
 
-       jy_00 = jy      ; jy_p1 = jy+1    ;
-       CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ;
+     jy_00 = jy      ; jy_p1 = jy+1    ;
+     CLIP(jy_00,ny1) ; CLIP(jy_p1,ny1) ;
 
-       kz_00 = kz      ; kz_p1 = kz+1    ;
-       CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ;
+     kz_00 = kz      ; kz_p1 = kz+1    ;
+     CLIP(kz_00,nz1) ; CLIP(kz_p1,nz1) ;
 
-       wt_00 = 1.0-fx ; wt_p1 = fx ;
+     wt_00 = 1.0-fx ; wt_p1 = fx ;
 
 #undef  XINT
 #define XINT(j,k) wt_00*FAR(ix_00,j,k)+wt_p1*FAR(ix_p1,j,k)
 
-       /* interpolate to location ix+fx at each jy,kz level */
+     /* interpolate to location ix+fx at each jy,kz level */
 
-       f_j00_k00 = XINT(jy_00,kz_00) ; f_jp1_k00 = XINT(jy_p1,kz_00) ;
-       f_j00_kp1 = XINT(jy_00,kz_p1) ; f_jp1_kp1 = XINT(jy_p1,kz_p1) ;
+     f_j00_k00 = XINT(jy_00,kz_00) ; f_jp1_k00 = XINT(jy_p1,kz_00) ;
+     f_j00_kp1 = XINT(jy_00,kz_p1) ; f_jp1_kp1 = XINT(jy_p1,kz_p1) ;
 
-       /* interpolate to jy+fy at each kz level */
+     /* interpolate to jy+fy at each kz level */
 
-       wt_00 = 1.0-fy ; wt_p1 = fy ;
+     wt_00 = 1.0-fy ; wt_p1 = fy ;
 
-       f_k00 =  wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00 ;
+     f_k00 =  wt_00 * f_j00_k00 + wt_p1 * f_jp1_k00 ;
 
-       f_kp1 =  wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1 ;
+     f_kp1 =  wt_00 * f_j00_kp1 + wt_p1 * f_jp1_kp1 ;
 
-       /* interpolate to kz+fz to get output */
+     /* interpolate to kz+fz to get output */
 
-       val = (1.0-fz) * f_k00 + fz * f_kp1 ;
+     nar[qq] = (1.0-fz) * f_k00 + fz * f_kp1 ;
 
-       NAR(ii,jj,kk) = val ;
-#if 0
-zzsum += fabsf(val) ;
-#endif
-     }
-    }
-   }
+   } /* end of voxel loop */
+
+ } /* end OpenMP */
 
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
-#if 0
-zzsum /= (nxnew*nynew*nznew) ;
-fprintf(stderr,"  nzset=%d  zzsum=%g\n",nzset,zzsum) ;
-#endif
    RETURN(newImg);
 }
 
@@ -430,7 +422,7 @@ fprintf(stderr,"  nzset=%d  zzsum=%g\n",nzset,zzsum) ;
     See comments for mri_warp3D() for details about the parameters.
 -----------------------------------------------------------------------------*/
 
-INLINE MRI_IMAGE *mri_warp3D_NN(
+MRI_IMAGE *mri_warp3D_NN(
              MRI_IMAGE *im, int nxnew, int nynew, int nznew,
              void wf(float,float,float,float *,float *,float *) )
 {
@@ -563,7 +555,7 @@ ENTRY("mri_warp3D_NN") ;
      - RWCox - 06 Aug 2003
 -----------------------------------------------------------------------------*/
 
-INLINE MRI_IMAGE *mri_warp3D_quintic(
+MRI_IMAGE *mri_warp3D_quintic(
                     MRI_IMAGE *im, int nxnew, int nynew, int nznew,
                     void wf(float,float,float,float *,float *,float *) )
 {
@@ -798,7 +790,7 @@ ENTRY("mri_warp3D_quintic") ;
         as zero; this mode can be turned off using mri_warp3D_zerout().
 ----------------------------------------------------------------------------*/
 
-INLINE MRI_IMAGE *mri_warp3D(
+MRI_IMAGE *mri_warp3D(
                     MRI_IMAGE *im, int nxnew, int nynew, int nznew,
                     void wf(float,float,float,float *,float *,float *) )
 {
@@ -1033,7 +1025,7 @@ static void warp_corners( THD_3dim_dataset *inset,
        offsets, even if the input did.
 ----------------------------------------------------------------------------*/
 
-INLINE THD_3dim_dataset * THD_warp3D(
+THD_3dim_dataset * THD_warp3D(
                      THD_3dim_dataset *inset ,
                      void w_in2out(float,float,float,float *,float *,float *),
                      void w_out2in(float,float,float,float *,float *,float *),
