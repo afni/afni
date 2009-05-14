@@ -2570,7 +2570,7 @@ void get_options
 
         ival = -1 ; sscanf (argv[nopt], "%d", &ival);
         if ((ival < 1) || (ival > option_data->num_glt))
-          DC_error ("-stim_label k slabel   Require: 1 <= k <= num_glt");
+          DC_error ("-glt_label k slabel   Require: 1 <= k <= num_glt");
         k = ival-1;
         nopt++;
 
