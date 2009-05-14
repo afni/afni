@@ -105,14 +105,14 @@ void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
 {
    if( mrv == NULL || vec == NULL || dp == NULL ) return ;
 
-#pragma omp parallel if( mrv->nvec * mrv->nvals > 999999 )
+#pragma omp parallel if( mrv->nvec > 1 && mrv->nvec * mrv->nvals > 999999 )
  { int nvec=mrv->nvec, nvals=mrv->nvals, nv1=nvals-1, iv, ii ; float sum, *fv ;
 #pragma omp for
    for( iv=0 ; iv < nvec ; iv++ ){
      fv = VECTIM_PTR(mrv,iv) ;
      for( sum=0.0f,ii=0 ; ii < nv1 ; ii+=2 )
        sum += fv[ii]*vec[ii] + fv[ii+1]*vec[ii+1] ;
-     if( ii == nvals-1 ) sum += fv[ii]*vec[ii] ;
+     if( ii == nv1 ) sum += fv[ii]*vec[ii] ;
      dp[iv] = (ata) ? logf((1.0001f+sum)/(1.0001f-sum)) : sum ;
    }
  } /* end OpenMP */
