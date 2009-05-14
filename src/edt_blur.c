@@ -625,7 +625,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
    if( m < 1 || wt == NULL || nx < (m+1) || f == NULL ) EXRETURN ;
    if( ny <= 0 || nz <= 0 ) EXRETURN ;
-   switch(m){  /**assign weights to variables not arrays **/
+   switch(m){  /** assign weights to variables not arrays **/
       case 7:
            wt7 = wt[7];   /* let cases fall through to next case to assign weights */
       case 6:
