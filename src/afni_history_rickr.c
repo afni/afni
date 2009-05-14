@@ -49,7 +49,7 @@
 afni_history_struct rickr_history[] = {
 
  { 14, MAY, 2009, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
-   "fixed -glt_label > -num_glt error message",
+   "fixed -glt_label > -num_glt error message and -dmbase def for polort >= 0",
    NULL
  } ,
 
