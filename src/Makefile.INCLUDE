@@ -517,7 +517,7 @@ dsetdup:dsetdup.o
 
 3dBlurToFWHM:3dBlurToFWHM.o
 	$(RM) $@
-	$(CCOMP) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+	$(CCFAST) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dBlurInMask:3dBlurInMask.o
 	$(RM) $@
@@ -1070,7 +1070,7 @@ afni_version.o:afni_version.c
 
 afni:$(AFOBJS) libcoxplot.a libmri.a libmrix.a libvolpack.a volpack.h coxplot.h niml.h
 	$(RM) $@
-	$(CCOMP) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack -lf2c $(LLIBS) -lm -lc
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack -lf2c $(LLIBS) -lm -lc
 
 afni+:$(AFOBJS) libcoxplot.a libmri.a libmrix.a coxplot.h niml.h
 	$(RM) $@
@@ -1472,7 +1472,7 @@ mri_nstats.o:mri_nstats.c
 
 mri_blur3d_variable.o:mri_blur3d_variable.c
 	$(RM) $@
-	$(CCOMP) -c mri_blur3d_variable.c $(INFLAGS)
+	$(CCFAST) -c mri_blur3d_variable.c $(INFLAGS)
 
 3dBlurInMask.o:3dBlurInMask.c
 	$(RM) $@
@@ -1480,7 +1480,7 @@ mri_blur3d_variable.o:mri_blur3d_variable.c
 
 afni_pplug_instacorr.o:afni_pplug_instacorr.c
 	$(RM) $@
-	$(CCOMP) -c afni_pplug_instacorr.c $(INFLAGS)
+	$(CCFAST) -c afni_pplug_instacorr.c $(INFLAGS)
 
 mri_nbistats.o:mri_nbistats.c
 	$(RM) $@

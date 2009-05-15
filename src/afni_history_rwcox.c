@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , MAY , 2009 , RWC , "afni InstaCorr" , MICRO , TYPE_GENERAL ,
+   "SeedBlur + locked InstaCorr-ology" ,
+   NULL } ,
+
+ { 15 , MAY , 2009 , RWC , "afni InstaCorr" , MINOR , TYPE_GENERAL ,
+   "Remove OpenMP; carry out setref on all locked controllers" ,
+   NULL } ,
+
  { 13 , MAY , 2009 , RWC , "InstaCorr+3dBlurInMask" , MINOR , TYPE_GENERAL ,
    "Added OpenMP support for blurring to these programs" ,
    "Parallelization occurs across sub-bricks -- speedup is significant." } ,
