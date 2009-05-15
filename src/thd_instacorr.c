@@ -133,7 +133,8 @@ ENTRY("THD_instacorr_prepare") ;
 
 MRI_IMAGE * THD_instacorr( ICOR_setup *iset , int ijk , int ata )
 {
-   int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar,*tsari=NULL ; int *ivar ;
+   int kk ; MRI_IMAGE *qim ; float *qar , *dar , *tsar ; int *ivar ;
+   float sblur ;
 
 ENTRY("THD_instacorr") ;
 
@@ -147,35 +148,59 @@ ENTRY("THD_instacorr") ;
    if( kk >= 0 ){ /* direct from vectim, if available */
 
      memcpy( tsar , VECTIM_PTR(iset->mv,kk) , sizeof(float)*iset->mv->nvals ) ;
-     tsari = tsar ;
 
    } else {       /* non-vectim voxel in dataset ==> must be processed */
-#if 1
+
      free(tsar) ; RETURN(NULL) ;  /* don't allow this */
-#else
-     int iv , ngvec=0 ; float **gvec=NULL ;
 
-     kk = THD_extract_array( ijk , iset->dset , 0 , tsar ) ;
-     if( kk < 0 ){ free(tsar) ; RETURN(NULL) ; }
-
-     if( iset->gortim != NULL ){
-       ngvec = iset->gortim->ny ;
-       gvec  = (float **)malloc(sizeof(float)*ngvec) ;
-       for( iv=0 ; iv < ngvec ; iv++ )
-         gvec[iv] = MRI_FLOAT_PTR(iset->gortim) + iv*iset->gortim->nx ;
-     }
-     tsari = tsar + iset->ignore ;
-     (void)THD_bandpass_vectors( iset->mv->nvals , 1, &tsari, iset->mv->dt,
-                                 iset->fbot, iset->ftop, 1, ngvec, gvec ) ;
-     if( gvec != NULL ) free(gvec) ;
-     THD_normalize( iset->mv->nvals , tsari ) ;
-#endif
    }
+
+   /** blur the ref time series, if ordered [15 May 2009] **/
+
+   sblur = iset->sblur ;
+   if( sblur > 0.0f ){
+     MCW_cluster *smask=MCW_spheremask( iset->mv->dx , iset->mv->dy ,
+                                        iset->mv->dz , 1.2345f*sblur ) ;
+     float wtsum=1.0f , fac ;
+     float *sar=(float *)malloc(sizeof(float)*iset->mv->nvals)  ;
+     int qi,qj,qk , ii,ij,ik , qjk,qq , nx,ny,nz,nxy ; register int tt ;
+
+     nx = iset->mv->nx ; ny = iset->mv->ny ; nz = iset->mv->nz ; nxy = nx*ny ;
+     ii = ijk % nx ; ik = ijk / nxy ; ij = (ijk-ik*nxy) / nx ;
+
+     fac = FWHM_TO_SIGMA(sblur) ; fac = 1.0 / (2.0f * fac*fac) ;
+     memcpy(sar,tsar,sizeof(float)*iset->mv->nvals) ;
+
+     for( kk=1 ; kk < smask->num_pt ; kk++ ){
+       qi  = ii + smask->i[kk] ; if( qi < 0 || qi >= nx ) continue ;
+       qj  = ij + smask->j[kk] ; if( qj < 0 || qj >= ny ) continue ;
+       qk  = ik + smask->k[kk] ; if( qk < 0 || qk >= nz ) continue ;
+       qjk = qi + qj*nx + qk*nxy ;
+       qq  = THD_vectim_ifind( qjk , iset->mv ) ;
+       if( qq >= 0 ){
+         register float wt , *qar ; float rad ;
+         rad = smask->mag[kk] ; wt = exp( -fac*rad*rad ) ; wtsum += wt ;
+         qar = VECTIM_PTR(iset->mv,qq) ;
+         for( tt=0 ; tt < iset->mv->nvals  ; tt++ ) sar[tt] += wt * qar[tt] ;
+       }
+     }
+     if( wtsum > 1.0f ){
+       fac = 1.0f / wtsum ;
+       for( tt=0 ; tt < iset->mv->nvals ; tt++ ) tsar[tt] = fac * sar[tt] ;
+     }
+     free(sar) ; KILL_CLUSTER(smask) ;
+     THD_normalize( iset->mv->nvals , tsar ) ;
+   }
+
+   /** save seed in iset struct [15 May 2009] **/
+
+   iset->tseed = (float *)realloc( iset->tseed , sizeof(float)*iset->mv->nvals ) ;
+   memcpy( iset->tseed , tsar , sizeof(float)*iset->mv->nvals ) ;
 
    /** do the dot products **/
 
    dar = (float *)malloc(sizeof(float)*iset->mv->nvec) ;
-   THD_vectim_dotprod( iset->mv , tsari , dar , ata ) ;
+   THD_vectim_dotprod( iset->mv , tsar , dar , ata ) ;
 
    /** put them into the output image **/
 

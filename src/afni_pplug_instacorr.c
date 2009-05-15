@@ -85,6 +85,11 @@ static char helpstring[] =
   "               computing the correlations\n"
   "                [These are also bandpassed to avoid re-introducing any]\n"
   "                [of the frequency components rejected by Bandpass.    ]\n"
+  "\n"
+  "* Misc Opts:\n"
+  "    SeedBlur = FWHM of extra blurring to apply when extracting the seed\n"
+  "               voxel time series.  As in the Time Series case, blurring\n"
+  "               will only be done inside the mask (if any).\n"
   "OPERATION\n"
   "=========\n"
   "* Once you have set the controls the way you want, press one of the ''Setup'n"
@@ -137,9 +142,9 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_dataset( plint , "Dataset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_number ( plint , "Ignore" , 0,50,0,0,FALSE ) ;
-   PLUTO_add_number ( plint , "Blur"   , 0,99,1,0,TRUE  ) ;
+   PLUTO_add_number ( plint , "Blur"   , 0,10,0,0,TRUE  ) ;
 
-   PLUTO_add_option ( plint , "Mask" , "Mask" , FALSE ) ;
+   PLUTO_add_option ( plint , "Mask" , "Mask" , TRUE ) ;
    PLUTO_add_string ( plint , "Automask"  , 2 , yn , 1 ) ;
    PLUTO_add_dataset( plint , "Dataset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
@@ -157,6 +162,9 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_timeseries( plint , "1D file" ) ;
 #endif
 
+   PLUTO_add_option( plint , "Misc Opts" , "MiscOpts" , FALSE ) ;
+   PLUTO_add_number( plint , "SeedBlur" , 0,10,0,0,TRUE ) ;
+
    return plint ;
 }
 
@@ -172,7 +180,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    float fbot=-1.0f , ftop=999999.9f ;
    MRI_IMAGE *gortim=NULL ;
    THD_3dim_dataset *dset=NULL , *mset=NULL ;
-   int ignore=0 , mindex=0 , automask=0 , qq ; float blur=0.0f ;
+   int ignore=0 , mindex=0 , automask=0 , qq ; float blur=0.0f , sblur=0.0f ;
    ICOR_setup *iset ; char *cpt ;
    Three_D_View *im3d = plint->im3d ;
    double etim ;
@@ -233,6 +241,13 @@ static char * ICOR_main( PLUGIN_interface *plint )
        continue ;
      }
 
+     /** MiscOpts **/
+
+     if( strcmp(tag,"MiscOpts") == 0 ){
+       sblur = PLUTO_get_number(plint) ;
+       continue ;
+     }
+
      /** should never transpire **/
 
      return "** ICOR_main: table corruption! **" ;
@@ -254,6 +269,24 @@ static char * ICOR_main( PLUGIN_interface *plint )
    if( fbot >= ftop ){ fbot = 0.0f ; ftop = 999999.9f ; }
    if( fbot <  0.0f )  fbot = 0.0f ;
 
+   /** check if only thing changed is sblur -- don't need to re-prepare in that case **/
+
+   if( im3d->iset           != NULL     &&
+       im3d->iset->mv       != NULL     &&
+       im3d->iset->dset     == dset     &&
+       im3d->iset->mset     == mset     &&
+       im3d->iset->gortim   == gortim   &&
+       im3d->iset->ignore   == ignore   &&
+       im3d->iset->automask == automask &&
+       im3d->iset->mindex   == mindex   &&
+       im3d->iset->fbot     == fbot     &&
+       im3d->iset->ftop     == ftop     &&
+       im3d->iset->blur     == blur        ){
+
+     INFO_message("InstaCorr setup: minor changes accepted") ;
+     im3d->iset->sblur = sblur ; return NULL ;
+   }
+
    /** (re)create InstaCorr setup **/
 
    DESTROY_ICOR_setup(im3d->iset) ;
@@ -268,6 +301,7 @@ static char * ICOR_main( PLUGIN_interface *plint )
    iset->fbot     = fbot ;
    iset->ftop     = ftop ;
    iset->blur     = blur ;
+   iset->sblur    = sblur ;
    iset->prefix   = (char *)malloc(sizeof(char)*16) ;
    cpt = AFNI_controller_label(im3d); sprintf(iset->prefix,"%c_ICOR",cpt[1]);
 
@@ -285,32 +319,12 @@ static char * ICOR_main( PLUGIN_interface *plint )
    etim = PLUTO_elapsed_time() - etim ;
    INFO_message("InstaCorr setup: %d voxels ready for work: %.2f sec",qq,etim) ;
 
-#if 0
-#ifdef USE_OMP
-   { static int first=1 ;
-     if( first && iset->blur > 0.0f ){
-       int nproc=omp_get_num_procs() ;
-       first = 0 ;
-       if( nproc > 1 )
-         ININFO_message(
-          "Compiled with OpenMP: used %d processes for blurring speedup",nproc);
-     }
-   }
-#endif
-#endif
-
    im3d->iset = iset ;
 
    ENABLE_INSTACORR(im3d) ;  /* manage the widgets */
    return NULL ;
 }
 #endif  /* ALLOW_PLUGINS */
-
-/*------------------------------------------------------------------*/
-
-#ifdef USE_OMP
-#include <omp.h>
-#endif
 
 /*------------------------------------------------------------------*/
 
@@ -427,12 +441,11 @@ ENTRY("AFNI_icor_setref") ;
 
    /* 10 May 2009: save seed timeseries into timeseries library */
 
-   { MRI_IMAGE *tsim ; float *tsar ; int kk ;
+   if( im3d->iset->tseed != NULL ){
+     MRI_IMAGE *tsim ; float *tsar ;
      tsim = mri_new( im3d->iset->mv->nvals + im3d->iset->ignore,1,MRI_float ) ;
      tsar = MRI_FLOAT_PTR(tsim) ;
-     kk   = THD_vectim_ifind( ijk , im3d->iset->mv ) ;
-     memcpy( tsar + im3d->iset->ignore ,
-             VECTIM_PTR(im3d->iset->mv,kk) ,
+     memcpy( tsar + im3d->iset->ignore , im3d->iset->tseed ,
              sizeof(float)*im3d->iset->mv->nvals ) ;
      tsim->name = (char *)malloc(sizeof(char)*16) ;
      strcpy(tsim->name,im3d->iset->prefix) ; strcat(tsim->name,"_seed") ;
@@ -466,4 +479,40 @@ ENTRY("AFNI_icor_setref") ;
      ININFO_message(" InstaCorr elapsed time = %.2f sec: redisplay",PLUTO_elapsed_time()-etim) ;
 
    ncall++ ; RETURN(1) ;
+}
+
+/*------------------------------------------------------------------*/
+
+void AFNI_icor_setref_locked( Three_D_View *im3d )
+{
+   Three_D_View *qq3d ; int ii,cc,qq , glock ; static int busy=0 ;
+
+ENTRY("AFNI_icor_setref_locked") ;
+
+   glock = GLOBAL_library.controller_lock ;
+
+   if( busy )                       EXRETURN ;  /* routine already busy */
+   if( glock == 0 )                 EXRETURN ;  /* nothing to do */
+   if( !IM3D_OPEN(im3d) )           EXRETURN ;  /* bad input */
+   if( GLOBAL_library.ignore_lock ) EXRETURN ;  /* ordered not to do anything */
+
+   ii = AFNI_controller_index(im3d) ;           /* which one am I? */
+   if( ii < 0 )                     EXRETURN ;  /* bad input: shouldn't happen */
+   if( ((1<<ii) & glock) == 0 )     EXRETURN ;  /* input not locked */
+
+   busy = 1 ;
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+     qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+       qq = AFNI_icor_setref(qq3d) ;
+       if( qq ){
+         qq3d->vinfo->i1_icor = qq3d->vinfo->i1 ;
+         qq3d->vinfo->j2_icor = qq3d->vinfo->j2 ;
+         qq3d->vinfo->k3_icor = qq3d->vinfo->k3 ;
+       }
+     }
+   }
+
+   busy = 0 ; EXRETURN ;
 }

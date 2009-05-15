@@ -4144,9 +4144,10 @@ typedef struct {
   byte *mmm ;
   MRI_IMAGE *gortim ;
   int ignore , automask , mindex ;
-  float fbot , ftop , blur ;
+  float fbot , ftop , blur , sblur ;
   MRI_vectim *mv ;
   char *prefix ; int ndet ;
+  float *tseed ;
 } ICOR_setup ;
 
 #undef  INIT_ICOR_setup
@@ -4162,6 +4163,7 @@ typedef struct {
        if( (is)->gortim != NULL ) mri_free((is)->gortim) ;   \
        if( (is)->mv     != NULL ) VECTIM_destroy((is)->mv) ; \
        if( (is)->prefix != NULL ) free((is)->prefix) ;       \
+       if( (is)->tseed  != NULL ) free((is)->tseed) ;        \
        free((is)) ; (is) = NULL ;                            \
  }} while(0)
 

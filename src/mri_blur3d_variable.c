@@ -1,9 +1,5 @@
 #include "mrilib.h"
 
-#ifdef USE_OMP
-#include <omp.h>
-#endif
-
 #undef  INMASK
 #define INMASK(i) (mask == NULL || mask[i] != 0)
 
@@ -241,13 +237,11 @@ ENTRY("mri_blur3d_vectim") ;
    mmm  = (byte *)calloc(sizeof(byte),nvox) ;
    for( kk=0 ; kk < vim->nvec ; kk++ ) mmm[ivar[kk]] = 1 ;
 
-#pragma omp parallel if( vim->nvals > 1 &&  nrep * vim->nvec > 66666 )
  {
    MRI_IMAGE *qim = mri_new_vol( nx,ny,nz , MRI_float ) ;
    float     *qar = MRI_FLOAT_PTR(qim) , *var ;
    int iv , jj ;
 
-#pragma omp for
    for( iv=0 ; iv < vim->nvals ; iv++ ){
      memset( qar , 0 , sizeof(float)*nvox ) ;
      for( jj=0 ; jj < vim->nvec ; jj++ ){
@@ -260,7 +254,7 @@ ENTRY("mri_blur3d_vectim") ;
    }
 
    mri_free(qim) ;
- } /* end OpenMP */
+ }
 
    free(mmm) ; EXRETURN ;
 }
