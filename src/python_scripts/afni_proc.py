@@ -125,7 +125,7 @@ g_version = "version 1.47, May 15, 2009"
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
 
-BlockLabels  = ['tcat', 'despike', 'tshift', 'volreg',
+BlockLabels  = ['tcat', 'despike', 'ricor', 'tshift', 'volreg',
                 'blur', 'mask', 'scale', 'regress', 'tlrc', 'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
@@ -511,7 +511,13 @@ class SubjProcSream:
                 self.origview = self.view
                 if self.verb > 0: print '-- applying view as %s' % self.view
 
-        blocklist = DefLabels  # init to defaults
+        # init block either from DefLabels or -blocks
+        opt = self.user_opts.find_opt('-blocks')
+        if opt:  # then create blocklist from user opts (but prepend tcat)
+            if opt.parlist[0] != 'tcat':
+                blocks = ['tcat'] + opt.parlist
+            else: blocks = opt.parlist
+        else: blocks = DefLabels  # init to defaults
 
         # check for -do_block options
         opt = self.user_opts.find_opt('-do_block')
@@ -523,27 +529,21 @@ class SubjProcSream:
             # check additional blocks one by one
             errs = 0
             for bname in opt.parlist:
-                err, blocklist = self.add_block_to_list(blocklist, bname)
+                err, blocks = self.add_block_to_list(blocks, bname)
                 errs += err
             if errs > 0 : return 1
-
-        opt = self.user_opts.find_opt('-blocks')
-        if opt:  # then create blocklist from user opts (but prepend tcat)
-            if opt.parlist[0] != 'tcat':
-                blocklist = ['tcat'] + opt.parlist
-            else: blocklist = opt.parlist
 
         # allow for -tlrc_anat option
         opt = self.user_opts.find_opt('-tlrc_anat')
         if opt and not self.find_block('tlrc'):
             if self.user_opts.find_opt('-volreg_tlrc_warp'):
-                err, blocklist = self.add_block_before_label(blocklist,
+                err, blocks = self.add_block_before_label(blocks,
                                         'tlrc', 'volreg')
-            else: err, blocklist = self.add_block_to_list(blocklist, 'tlrc')
+            else: err, blocks = self.add_block_to_list(blocks, 'tlrc')
             if err: return 1
 
         # call db_mod_functions
-        for label in blocklist:
+        for label in blocks:
             rv = self.add_block(label)
             if rv != None: return rv
 
@@ -552,7 +552,7 @@ class SubjProcSream:
         if uopt != None:
             if ask_me.ask_me_subj_proc(self):
                 return 1
-            for label in blocklist:
+            for label in blocks:
                 block = self.find_block(label)
                 if not block:
                     print "** error: missing block '%s' in ask_me update"%label
@@ -573,25 +573,66 @@ class SubjProcSream:
         if not uniq_list_as_dsets(self.dsets, 1): return 1
         self.check_block_order()
 
-    def add_block_to_list(self, blocks, bname, prevlab=None):
+    def add_block_to_list(self, blocks, bname, adj=None, dir=0):
         """given current block list, add a block for bname after that
            of prevlab or from OtherDefLabels if None
+
+                blocks : current list of block labels
+                bname  : label of block to insert
+                adj    : name of adjacent block (if None, try to decide)
+                dir    : if adj, dir is direction of bname to adj
+                         (-1 : bname is before, 1: bname is after)
+           
+           return error code and new list"""
+
+        # if we are not given an adjacent block, try to find one
+        if not adj:
+            dir, adj = self.find_best_block_posn(blocks, bname)
+            if not dir: return 1, blocks
+
+        # good cases
+        if dir < 0: return self.add_block_before_label(blocks, bname, adj)
+        if dir > 0: return self.add_block_after_label(blocks, bname, adj)
+
+        # failure
+        print "** ABTL: have adj=%s but no dir" % adj
+        return 1, blocks
+
+
+    def find_best_block_posn(self, blocks, bname):
+        """decide where it is best to insert the block bname
+           return dir, nextto
+                dir    = -1,0,1 means before, error, after
+                nextto = name of relevant adjacent block"""
+
+        try: prevlab = OtherDefLabels[bname]
+        except:
+            print "** failed to find position for block '%s' in %s" \
+                  % (bname, blocks)
+            prevlab = ''
+        
+        if prevlab == '': return 0, prevlab     # failure
+        else:             return 1, prevlab     # success
+
+    def add_block_after_label(self, blocks, bname, prelab):
+        """add a block for bname after that of prelab
            
            return error code and new list"""
         err = 0
-        if not bname in OtherDefLabels:
-            print "** error: '%s' is invalid in '-do_block'" % bname
+        if not bname in BlockLabels:
+            print "** ABAL error: block '%s' is invalid" % bname
             return 1, blocks
-        if prevlab == None: prevlab = OtherDefLabels[bname]
-        try: preindex = blocks.index(prevlab)
+        if not prelab in BlockLabels:
+            print "** ABAL error: prelab '%s' is invalid" % prelab
+            return 1, blocks
+        try: preindex = blocks.index(prelab)
         except:     
-            print "** cannot -do_block '%s' without block '%s'" \
-                  % (bname, OtherDefLabels[bname])
-            print "   (consider use of -blocks)\n"
+            print "** cannot find block '%s' to insert block '%s' after" \
+                  % (prelab, bname)
             preindex = 0
             err = 1
         if preindex < 0:
-            print "** error: -do_block failure for '%s'" % bname
+            print "** error: blocks.index failure for '%s'" % prelab
             err = 1
         
         if err: return 1, blocks
@@ -607,20 +648,20 @@ class SubjProcSream:
            
            return error code and new list"""
         err = 0
-        if not bname in OtherDefLabels:
-            print "** error: '%s' is invalid in '-do_block'" % bname
+        if not bname in BlockLabels:
+            print "** ABBL error: block '%s' is invalid" % bname
             return 1, blocks
         if not postlab in BlockLabels:
-            print "** error: postlab '%s' is invalid" % postlab
+            print "** ABBL error: postlab '%s' is invalid" % postlab
             return 1, blocks
         try: postindex = blocks.index(postlab)
         except:     
-            print "** cannot -do_block '%s' without block '%s'" \
-                  % (bname, postlab)
+            print "** cannot find block '%s' to insert block '%s' before" \
+                  % (postlab, bname)
             postindex = 0
             err = 1
         if postindex < 0:
-            print "** error: -do_block failure for '%s'" % bname
+            print "** error: blocks.index failure for '%s'" % postlab
             err = 1
         
         if err: return 1, blocks
@@ -671,8 +712,10 @@ class SubjProcSream:
         if self.verb > 0:
             # last warning, if user is masking EPI data...
             if self.mask != None:
-                if self.regmask: print "** masking EPI data is not recommended"
-                else:            print "** masking EPI is no longer the default"
+                if self.regmask and self.view == '+orig':
+                    print "** masking EPI is not recommended in +orig space"
+                else:
+                    print "** masking EPI is no longer the default"
                 print "   (see 'MASKING NOTE' in the -help output for details)"
 
             if self.runs == 1:
