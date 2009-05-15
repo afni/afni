@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, MAY, 2009, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "added -volreg_tlrc_warp option: can warp to standard space at volreg step",
+   NULL
+ } ,
+
+ { 15, MAY, 2009, RCR, "afni_util", MICRO, TYPE_NEW_OPT,
+   "added get_truncated_grid_dim",
+   NULL
+ } ,
+
+ { 14, MAY, 2009, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "no 'rm rm.*' if such files were not created",
+   NULL
+ } ,
+
  { 14, MAY, 2009, RCR, "3dDeconvolve", MICRO, TYPE_BUG_FIX,
    "fixed -glt_label > -num_glt error message and -dmbase def for polort >= 0",
    NULL
