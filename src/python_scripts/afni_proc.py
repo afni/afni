@@ -116,9 +116,11 @@ g_history = """
         - shifted execution command to separate line
     1.44 May 08 2009 : added tlrc (anat) as a processing block
     1.45 May 12 2009 : fixed 'cat' of 'across-runs' ricor regressors
+    1.46 May 14 2009 : no 'rm rm.*' if such files were not created
+    1.47 May 15 2009 : added -volreg_tlrc_warp, to warp at volreg step
 """
 
-g_version = "version 1.45, May 12, 2009"
+g_version = "version 1.47, May 15, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -173,7 +175,9 @@ class SubjProcSream:
         self.overwrite  = 0             # overwrite script file?
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
-        self.rm_rm      = 1             # remove rm.* files
+        self.tlrcanat   = None          # expected name of tlrc dataset
+        self.rm_rm      = 1             # remove rm.* files (user option)
+        self.have_rm    = 0             # have rm.* files (such files exist)
         self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
 
         self.ricor_reg    = None        # ricor reg to apply in regress block
@@ -193,7 +197,8 @@ class SubjProcSream:
         self.mask       = None          # mask dataset
         self.exec_cmd   = ''            # script execution command string
         self.regmask    = 0             # apply any full_mask in regression
-        self.view       = '+orig'       # view could also be '+tlrc'
+        self.origview   = '+orig'       # view could also be '+tlrc'
+        self.view       = '+orig'       # (starting and 'current' views)
 
         self.bindex     = 0             # current block index
         self.pblabel    = ''            # previous block label
@@ -317,6 +322,8 @@ class SubjProcSream:
                         helpstr='additional options directly for 3dvolreg')
         self.valid_opts.add_opt('-volreg_regress_per_run', 0, [],
                         helpstr='apply separate motion regressors per run')
+        self.valid_opts.add_opt('-volreg_tlrc_warp', 0, [],
+                        helpstr='warp volreg data to standard space')
         self.valid_opts.add_opt('-volreg_zpad', 1, [],
                         helpstr='number of slices to pad by in volreg')
 
@@ -465,7 +472,9 @@ class SubjProcSream:
         else:                              self.exit_on_error = 1
 
         opt = opt_list.find_opt('-copy_anat')
-        if opt != None: self.anat = afni_name(opt.parlist[0])
+        if opt != None:
+            self.anat = afni_name(opt.parlist[0])
+            self.tlrcanat = self.anat.new(new_view='+tlrc')
 
         opt = opt_list.find_opt('-gen_epi_review')  # name epi review script
         if opt != None: self.gen_review = opt.parlist[0]
@@ -499,6 +508,7 @@ class SubjProcSream:
                 self.dsets.append(afni_name(dset))
             if self.dsets[0].view != self.view:
                 self.view = self.dsets[0].view
+                self.origview = self.view
                 if self.verb > 0: print '-- applying view as %s' % self.view
 
         blocklist = DefLabels  # init to defaults
@@ -526,9 +536,10 @@ class SubjProcSream:
         # allow for -tlrc_anat option
         opt = self.user_opts.find_opt('-tlrc_anat')
         if opt and not self.find_block('tlrc'):
-            # if warp to tlrc, add before volreg, else after regress
-            # add in default position for now
-            err, blocklist = self.add_block_to_list(blocklist, 'tlrc')
+            if self.user_opts.find_opt('-volreg_tlrc_warp'):
+                err, blocklist = self.add_block_before_label(blocklist,
+                                        'tlrc', 'volreg')
+            else: err, blocklist = self.add_block_to_list(blocklist, 'tlrc')
             if err: return 1
 
         # call db_mod_functions
@@ -588,6 +599,34 @@ class SubjProcSream:
         # else add the block to blocklist
         preindex += 1
         blocks[preindex:preindex] = [bname]
+
+        return 0, blocks
+
+    def add_block_before_label(self, blocks, bname, postlab):
+        """add a block for bname before that of postlab
+           
+           return error code and new list"""
+        err = 0
+        if not bname in OtherDefLabels:
+            print "** error: '%s' is invalid in '-do_block'" % bname
+            return 1, blocks
+        if not postlab in BlockLabels:
+            print "** error: postlab '%s' is invalid" % postlab
+            return 1, blocks
+        try: postindex = blocks.index(postlab)
+        except:     
+            print "** cannot -do_block '%s' without block '%s'" \
+                  % (bname, postlab)
+            postindex = 0
+            err = 1
+        if postindex < 0:
+            print "** error: -do_block failure for '%s'" % bname
+            err = 1
+        
+        if err: return 1, blocks
+
+        # else add the block to blocklist
+        blocks[postindex:postindex] = [bname]
 
         return 0, blocks
 
@@ -859,7 +898,7 @@ class SubjProcSream:
         str = '# -------------------------------------------------------\n\n'
         self.fp.write(str)
 
-        if self.rm_rm:
+        if self.rm_rm and self.have_rm:
             self.fp.write('# remove temporary rm.* files\n'
                           '\\rm -f rm.*\n\n')
 
@@ -935,13 +974,14 @@ class SubjProcSream:
                 (self.bindex-1, self.subj_label, self.pblabel, self.view)
 
     # like prefix, but list the whole dset form, in wildcard format
-    def dset_form_wild(self, blabel):
+    def dset_form_wild(self, blabel, view=None):
         bind = self.find_block_index(blabel)
         if bind == None:
             print "** DFW: failed to find block for label '%s'" % blabel
             return ''
+        if not view: view = self.view
         return 'pb%02d.%s.r??.%s%s.HEAD' %      \
-               (bind, self.subj_label, blabel, self.view)
+               (bind, self.subj_label, blabel, view)
 
 class ProcessBlock:
     def __init__(self, label, proc):
