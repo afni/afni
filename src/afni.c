@@ -3599,6 +3599,7 @@ if(PRINT_TRACING)
                       im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
                       im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
                       im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
+                      AFNI_icor_setref_locked(im3d) ;           /* 15 May 2009 */
                     }
                   }
                }
@@ -8732,6 +8733,7 @@ ENTRY("AFNI_imag_pop_CB") ;
        im3d->vinfo->i1_icor = im3d->vinfo->i1 ;
        im3d->vinfo->j2_icor = im3d->vinfo->j2 ;
        im3d->vinfo->k3_icor = im3d->vinfo->k3 ;
+       AFNI_icor_setref_locked(im3d) ;           /* 15 May 2009 */
      }
    }
 

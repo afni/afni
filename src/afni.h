@@ -1426,6 +1426,7 @@ extern char * AFNI_bucket_label_CB( MCW_arrowval * , XtPointer ) ;
 
 extern void   AFNI_vedit_CB       ( MCW_arrowval * , XtPointer ) ; /* 05 May 2009 */
 extern int    AFNI_icor_setref    ( Three_D_View *im3d ) ;
+extern void   AFNI_icor_setref_locked( Three_D_View *im3d ) ;      /* 15 May 2009 */
 
 extern Boolean AFNI_refashion_dataset( Three_D_View * ,
                                        THD_3dim_dataset *, THD_dataxes * , int ) ;
