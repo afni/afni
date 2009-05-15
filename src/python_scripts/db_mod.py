@@ -291,6 +291,7 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "              stimuli/ricor_orig_r$run.1D\\'\n\n"              \
         "    1dtranspose rm.ricor.$run.1D rm.ricor_det_r$run.1D\n" % polort
     cmd = cmd + "end\n\n"
+    proc.have_rm = 1            # rm.* files exist
 
     cmd = cmd +                                                 \
         "# put ricor regressors into a single file for each regression\n\n"
@@ -389,6 +390,7 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
         "               -pad_into_many_runs $run $#runs \\\n"              \
         "               -write rm.ricor_s0_r$run.1D\n\n"                 % \
         (polort, nsliregs-1)
+    proc.have_rm = 1            # rm.* files exist
 
     cmd = cmd +                                                 \
         "    # create (polort) X-matrix to apply in 3dREMLfit\n"\
@@ -577,6 +579,11 @@ def db_mod_volreg(block, proc, user_opts):
     if uopt and not bopt:
         block.opts.add_opt('-volreg_regress_per_run', 0, [])
 
+    uopt = user_opts.find_opt('-volreg_tlrc_warp')
+    bopt = block.opts.find_opt('-volreg_tlrc_warp')
+    if uopt and not bopt:
+        block.opts.add_opt('-volreg_tlrc_warp', 0, [])
+
     block.valid = 1
 
 def db_cmd_volreg(proc, block):
@@ -620,16 +627,73 @@ def db_cmd_volreg(proc, block):
     if basevol: bstr = basevol
     else:       bstr = "%s'[%d]'" % (base,sub)
 
+    # ---------------
+    # note whether we warp to tlrc, and set the prefix and flags accordingly
+    dowarp = block.opts.find_opt('-volreg_tlrc_warp') != None
+
+    cur_prefix = proc.prefix_form_run(block)
+    if dowarp:
+        # verify that we have someplace to warp to
+        if proc.tlrcanat == None:
+            print '** cannot warp, need -tlrc_anat or -copy_anat with tlrc'
+            return
+        prefix = 'rm.epi.volreg.r$run'
+        proc.have_rm = 1            # rm.* files exist
+        matstr = '%*s-1Dmatrix_save mat.r$run.vr.aff12.1D \\\n' % (13,' ')
+        cstr   = ', and warp to standard space'
+    else:
+        prefix = cur_prefix
+        matstr = ''
+        cstr   = ''
+    prev_prefix = proc.prev_prefix_form_run(view=1)
+
     cmd = cmd + "# -------------------------------------------------------\n" \
-                "# align each dset to the base volume\n"                      \
-                "foreach run ( $runs )\n"                                     \
+                "# align each dset to the base volume%s\n" % cstr
+
+    if dowarp:
+        cmd = cmd + '\n' + \
+                "# verify that we have a +tlrc warp dataset\n"          \
+                "if ( ! -f %s.HEAD ) then\n"                            \
+                '    echo "** missing +tlrc warp dataset: %s.HEAD" \n'  \
+                '    exit\n'                                            \
+                'endif\n\n'                                             \
+                '# register and warp\n'                                 \
+                % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
+
+    cmd = cmd + "foreach run ( $runs )\n"                                     \
                 "    3dvolreg -verbose -zpad %d -base %s \\\n"                \
                 "             -1Dfile dfile.r$run.1D -prefix %s \\\n"         \
                 "             %s \\\n"                                        \
                 "%s"                                                          \
+                "%s"                                                          \
                 "             %s\n" %                                         \
-                    (zpad, bstr, proc.prefix_form_run(block), resam,
-                     other_opts, proc.prev_prefix_form_run(view=1))
+                (zpad, bstr, prefix, resam, other_opts, matstr, prev_prefix)
+
+    # if warping, multiply matrices and apply
+    if dowarp:
+        dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rpv())
+        if dim <= 0:
+            print '** failed to get grid dim from %s' % proc.dsets[0].rpv()
+            return
+        print '++ warping to isotropic %g mm voxels in tlrc space' % dim
+        cmd = cmd + '\n'                                \
+            '    # catenate volreg and tlrc matrices\n' \
+            '    cat_matvec -ONELINE \\\n'              \
+            '               %s::WARP_DATA -I \\\n'      \
+            '               mat.r$run.vr.aff12.1D > mat.r$run.tlrc.aff12.1D\n'\
+            % proc.tlrcanat.pv()
+
+        cmd = cmd + '\n' +                                              \
+            '    # apply catenated xform : warp to tlrc space\n'        \
+            '    3dAllineate -base %s \\\n'                             \
+            '                -input %s \\\n'                            \
+            '                -1Dmatrix_apply mat.r$run.tlrc.aff12.1D \\\n' \
+            '                -mast_dxyz %g\\\n'                         \
+            '                -prefix %s \n'                             \
+            % (proc.tlrcanat.pv(), prev_prefix, dim, cur_prefix)
+
+        # and change the current view for further processing
+        proc.view = '+tlrc'
 
     # if we want to regress motion files per run, create them and add to list
     if block.opts.find_opt('-volreg_regress_per_run'):
@@ -751,6 +815,7 @@ def db_cmd_mask(proc, block):
                 "foreach run ( $runs )\n"                                     \
                 "    3dAutomask -dilate %d -prefix rm.mask_r$run %s\n"        \
                 "end\n\n" % (type, nsteps, prev)
+    proc.have_rm = 1            # rm.* files exist
 
     if proc.runs > 1:  # if more than 1 run, create union mask
         cmd = cmd + "# get mean and compare it to %s for taking '%s'\n"      \
@@ -819,6 +884,7 @@ def db_cmd_scale(proc, block):
                 "           -prefix %s\n"                                     \
                 "end\n\n" %     \
                 (maxstr, prev, prev, proc.view, mask_dset, expr, prefix)
+    proc.have_rm = 1            # rm.* files exist
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -1560,9 +1626,17 @@ def db_cmd_tlrc(proc, block):
     if opt: rmode = ' -rmode %s' % opt.parlist[0]
     else:   rmode = ''
 
+    # note any suffix for the tlrcanat dataset
+    suf = ''
     opt = block.opts.find_opt('-tlrc_suffix')
-    if opt: suffix = ' -suffix %s' % opt.parlist[0]
-    else:   suffix = ' -suffix NONE'     # make NONE the default
+    if opt:
+        suffix = ' -suffix %s' % opt.parlist[0]
+        suf = opt.parlist[0]
+    else: suffix = ' -suffix NONE'     # make NONE the default
+    if suf == 'NONE': suf = ''         # clear if we had the default option
+
+    # store what we expect for output
+    proc.tlrcanat = proc.anat.new(proc.anat.prefix+suf, '+tlrc')
 
     # start with block separator
     cmd = "# %s\n" % (55*'-')
@@ -1604,7 +1678,8 @@ def db_cmd_gen_review(proc):
     cmd = "# -------------------------------------------------------\n" \
           "# generate a review script for the unprocessed EPI data\n"   \
           "gen_epi_review.py -script %s \\\n"                           \
-          "    -dsets %s\n\n" % (proc.gen_review, proc.dset_form_wild('tcat'))
+          "    -dsets %s\n\n" % \
+          (proc.gen_review, proc.dset_form_wild('tcat',proc.origview))
 
     return cmd
 
@@ -1698,6 +1773,7 @@ g_help_string = """
                   - use cubic interpolation for volume resampling
                         (option: -volreg_interp -cubic)
                   - apply motion params as regressors across all runs at once
+                  - do not warp to standard space
 
         blur:     - blur data using a 4 mm FWHM filter
                         (option: -blur_filter -1blur_fwhm)
@@ -1966,6 +2042,60 @@ g_help_string = """
     changes could result.  Because large values would be a detriment to the
     numerical resolution of the scaled short data, the default is to truncate
     scaled values at 200 (percent), which should not occur in the brain.
+
+    --------------------------------------------------
+    WARP TO TLRC NOTE:
+
+    afni_proc.py can now apply a +tlrc transformation to the EPI data as part
+    of the volreg step via the option '-volreg_tlrc_warp'.
+
+    This is recommended for many reasons, though most are not yet implemented.
+    Advantages include:
+
+        - single interpolation of the EPI data
+
+            Done separately, volume registration and the +tlrc transformation
+            interpolate the EPI data (or betas, etc.) twice.  By combining the
+            volreg and tlrc transformations into a single one, there is no
+            additional resampling penalty for the warp to standard space.
+
+            Thanks to D Glen for the steps used in align_epi_anat.py.
+
+        - EPI time series become directly comparable across subjects
+
+            Since the volreg output is now in standard space, there is voxel
+            correspondence across subjects with the EPI data.
+
+        - group masks and/or atlases can be applied to the EPI data without
+          additional warping
+
+            It becomes trivial to extract average time series data over ROIs
+            from standard atlases, say.
+
+            This could even be done automatically with afni_proc.py, as part
+            of the single-subject processing stream (not yet implemented).
+            One would have afni_proc.py extract average time series (or maybe
+            principle components) from all the ROIs in a dataset and apply
+            them as regressors of interest or of no interest.
+
+        - with 3dBlurToFWHM, using an AlphaSim look-up table is possible
+
+            Since the blur and data grid could both be isotropic and integral,
+            and since the transformation could depend on a known anatomy (such
+            as the N27 Colin brain or icbm_452), it would be easy to create a
+            look-up table of AlphaSim results (so users would not actually need
+            to run it).
+
+            The known numbers would correspond to a cluster size (each for a
+            given, common voxel-wise threshold).  This correction could then
+            be applied automatically.  Again, not yet implemented...
+
+        - no interpolation of statistics
+
+            If the user wishes to include statistics as part of the group
+            analysis (e.g. using 3dMEMA.R), this warping becomes more needed.
+            Warping to standard space *after* statistics are generated is not
+            terribly valid.
 
     --------------------------------------------------
     RETROICOR NOTE:
@@ -2610,6 +2740,36 @@ g_help_string = """
             run, rather than using a single (best) magnitude over all runs.
             So more motion-correlated variance can be accounted for, at the
             cost of the extra degrees of freedom (6*(nruns-1)).
+
+        -volreg_tlrc_warp       : warp EPI to +tlrc space at volreg step
+
+                default: stay in +orig space
+
+            With this option, the EPI data will be warped to standard space
+            in the volreg processing block.  All further processing through
+            regression will be done in standard space.
+
+            Warping is done with volreg to apply both the volreg and tlrc
+            transformations in a single step (so a single interpolation of the
+            EPI data).  The volreg transformations (for each volume) are stored
+            and multiplied by the +tlrc transformation, while the volume
+            registered EPI data is promptly ignored.
+
+            The volreg/tlrc transformation is then applied as a single warp to
+            the unregistered data.
+
+            Note that this is only possible when using @auto_tlrc, not the 12
+            piece manual transformation.
+
+            The resulting voxel grid is the floor() of the minimum dimension,
+            if that minimum is greater than 1.0.  If less than 1.0, the minimum
+            is used unchanged.
+
+            Note: this step requires a transformed anatomy, which can come from
+            the -tlrc_anat option or from -copy_anat importing an existing one.
+
+            Please see 'WARP TO TLRC NOTE' above, for additional details.
+            See also -tlrc_anat, -copy_anat.
 
         -volreg_zpad N_SLICES   : specify number of slices for -zpad
 

@@ -194,6 +194,21 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
 
     return err, result
 
+def get_truncated_grid_dim(dset):
+    """return a new (isotropic) grid dimension based on the current grid
+       - return floor(min_int(DELTAS))
+       - if some DELTA < 1.0, return the min
+       - return <= 0 on failure
+    """
+    err, dims = get_typed_dset_attr_list(dset, 'DELTA', float)
+    if err: return -1
+    if len(dims) < 1: return -1
+    for ind in range(len(dims)):
+        dims[ind] = abs(dims[ind])
+    md = min(dims)
+    if md <= 1.0: return md
+    else:         return int(md)
+
 def get_dset_reps_tr(dset, verb=1):
     """given an AFNI dataset, return err, reps, tr
 
