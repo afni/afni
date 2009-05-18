@@ -2177,26 +2177,10 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-  /** 12 Jan 2009: try out OpenMP on the REML loop **/
-  /**              doesn't work well at all! why?? **/
-#pragma omp parallel if(!usetemp_rcol)
-  {
-    int ss,rv,vv,ssold,ii ;
-#ifdef USE_OMP
-    vector y ; float *iv ;
-    vector_initialize( &y ) ; vector_create_noinit( ntime , &y ) ;
-    iv = (float *)malloc(sizeof(float)*(niv+1)) ;
-    if( omp_get_thread_num() == 0 && !usetemp_rcol )
-      fprintf(stderr," [OpenMP thread count = %d]",omp_get_num_threads()) ;
-#endif
+  { int ss,rv,vv,ssold,ii ;
 
-#pragma parallel for
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
-#ifndef USE_OMP
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
-#else
-       if( usetemp_rcol && vstep && vv%vstep==vstep-1 ) vstep_print() ;
-#endif
        if( !INMASK(vv) ) continue ;
        if( inset_mrv != NULL ){ /* 05 Nov 2008 */
          VECTIM_extract( inset_mrv , rv , iv ) ; rv++ ;
@@ -2215,10 +2199,7 @@ STATUS("make GLTs from matrix file") ;
        aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
      } /* end of REML loop over voxels */
 
-#ifdef USE_OMP
-    free(iv) ; vector_destroy(&y) ;
-#endif
-  } /* end OpenMP parallel section */
+  }
 
      if( vstep ) fprintf(stderr,"\n") ;
      if( usetemp_rcol ) reml_collection_save( RCsli[nsli-1] ) ;  /* purge to disk */

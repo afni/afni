@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , MAY , 2009 , RWC , "3dDespike" , MICRO , TYPE_GENERAL ,
+   "Speedup by OpenMP" ,
+   "Also required changes to mcw_malloc.c to mark various sections as\n"
+   "'critical' and to cl1.c to remove 'static' from all variables generated\n"
+   "from Fortran." } ,
+
  { 15 , MAY , 2009 , RWC , "afni InstaCorr" , MICRO , TYPE_GENERAL ,
    "SeedBlur + locked InstaCorr-ology" ,
    NULL } ,

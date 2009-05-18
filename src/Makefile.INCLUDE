@@ -3,6 +3,8 @@
 ##   -- goes at end of each platform specific Makefile.
 ##
 
+# for compiling with OpenMP, if available
+
 CCOMP = $(CCFAST) $(OMPFLAG)
 
 F2C = f2c -A
@@ -475,10 +477,6 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dAutoTcorrelate 3dAutoTcorrelate.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
-3dTcorrMap:3dTcorrMap.o
-	$(RM) $@
-	$(CCOMP) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS) -lf2c -lmri
-
 3dTagalign:3dTagalign.o
 	$(RM) $@
 	$(CC) -o 3dTagalign 3dTagalign.o $(LFLAGS) -lmri -lf2c $(LLIBS)
@@ -518,10 +516,6 @@ dsetdup:dsetdup.o
 3dBlurToFWHM:3dBlurToFWHM.o
 	$(RM) $@
 	$(CCFAST) -o 3dBlurToFWHM 3dBlurToFWHM.o $(LFLAGS) $(LLIBS) -lf2c -lmri
-
-3dBlurInMask:3dBlurInMask.o
-	$(RM) $@
-	$(CCOMP) -o 3dBlurInMask 3dBlurInMask.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 3dDFT:3dDFT.o
 	$(RM) $@
@@ -693,10 +687,6 @@ nsize:nsize.o
 	$(CC) -o 3dDetrend 3dDetrend.o parser.o parser_int.o \
               $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-3dDespike:3dDespike.o
-	$(RM) $@
-	$(CC) -o 3dDespike 3dDespike.o $(LFLAGS) $(LLIBS)
-
 d3dmerge:3dmerge.c
 	$(RM) $@
 	$(CCD) -o d3dmerge 3dmerge.c $(LFLAGS) $(LLIBS)
@@ -828,10 +818,6 @@ strblast:strblast.o
 qm:qm.o
 	$(RM) $@
 	$(CC) -o qm qm.o $(LFLAGS) -lmri -lf2c $(LLIBS)
-
-3dAllineate:3dAllineate.o mri_genalign.o mri_genalign_util.o thd_correlate.o
-	$(RM) $@
-	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 3dAcost:3dAcost.o
 	$(RM) $@
@@ -993,12 +979,62 @@ DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 	$(RM) $@
 	$(CC) -o DTIStudioFibertoSegments DTIStudioFibertoSegments.o $(LFLAGS) $(LLIBS)
 
+## Things to be compiled or linked with OpenMP
 
-### how to compile a C file
+3dBlurInMask.o:3dBlurInMask.c
+	$(RM) $@
+	$(CCOMP) -c 3dBlurInMask.c $(INFLAGS)
+
+3dTcorrMap:3dTcorrMap.o
+	$(RM) $@
+	$(CCOMP) -o 3dTcorrMap 3dTcorrMap.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
+3dBlurInMask:3dBlurInMask.o
+	$(RM) $@
+	$(CCOMP) -o 3dBlurInMask 3dBlurInMask.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
+3dDespike.o:3dDespike.c
+	$(RM) $@
+	$(CCOMP) -c 3dDespike.c $(INFLAGS)
+
+3dDespike:3dDespike.o
+	$(RM) $@
+	$(CCOMP) -o 3dDespike 3dDespike.o $(LFLAGS) $(LLIBS)
+
+3dAllineate:3dAllineate.o mri_genalign.o mri_genalign_util.o thd_correlate.o
+	$(RM) $@
+	$(CCOMP) -o 3dAllineate 3dAllineate.o $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3dRBFdset:3dRBFdset.o mri_rbfinterp.o
+	$(RM) $@
+	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS) -lf2c
+
+mri_genalign_util.o:mri_genalign_util.c
+	$(RM) $@
+	$(CCOMP) -c mri_genalign_util.c $(INFLAGS)
+
+mri_rbfinterp.o:mri_rbfinterp.c
+	$(RM) $@
+	$(CCOMP) -c mri_rbfinterp.c $(INFLAGS)
+
+3dAllineate.o:3dAllineate.c
+	$(RM) $@
+	$(CCOMP) -c 3dAllineate.c $(INFLAGS)
+
+3dTcorrMap.o:3dTcorrMap.c
+	$(RM) $@
+	$(CCOMP) -c 3dTcorrMap.c $(INFLAGS)
+
+###  generic compile a C file
 
 .c.o:
 	$(RM) $@
 	$(CC) -c $*.c $(INFLAGS)
+
+# in case I want to CCOMP this
+mcw_malloc.o:mcw_malloc.c
+	$(RM) $@
+	$(CC) -c mcw_malloc.c $(INFLAGS)
 
 ### Special compilations for the reslicing routines, which
 ### are templates that require definition of the data type
@@ -1132,13 +1168,13 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CCFAST) -c 3dREMLfit.c $(INFLAGS)
 
+mri_blur3d_variable.o:mri_blur3d_variable.c
+	$(RM) $@
+	$(CCFAST) -c mri_blur3d_variable.c $(INFLAGS)
+
 3dREMLfit:3dREMLfit.o
 	$(RM) $@
 	$(CCFAST) -o 3dREMLfit 3dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
-
-3dRBFdset:3dRBFdset.o mri_rbfinterp.o
-	$(RM) $@
-	$(CCOMP) -o 3dRBFdset 3dRBFdset.o $(LFLAGS) $(LLIBS) -lf2c
 
 1dUpsample:1dUpsample.o
 	$(RM) $@
@@ -1470,14 +1506,6 @@ mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CCFAST) -c mri_nstats.c $(INFLAGS)
 
-mri_blur3d_variable.o:mri_blur3d_variable.c
-	$(RM) $@
-	$(CCFAST) -c mri_blur3d_variable.c $(INFLAGS)
-
-3dBlurInMask.o:3dBlurInMask.c
-	$(RM) $@
-	$(CCOMP) -c 3dBlurInMask.c $(INFLAGS)
-
 afni_pplug_instacorr.o:afni_pplug_instacorr.c
 	$(RM) $@
 	$(CCFAST) -c afni_pplug_instacorr.c $(INFLAGS)
@@ -1539,25 +1567,9 @@ mri_genalign.o:mri_genalign.c
 	$(RM) $@
 	$(CC) -c mri_genalign.c $(INFLAGS)
 
-mri_genalign_util.o:mri_genalign_util.c
-	$(RM) $@
-	$(CCOMP) -c mri_genalign_util.c $(INFLAGS)
-
-mri_rbfinterp.o:mri_rbfinterp.c
-	$(RM) $@
-	$(CCOMP) -c mri_rbfinterp.c $(INFLAGS)
-
 thd_correlate.o:thd_correlate.c
 	$(RM) $@
 	$(CCFAST) -c thd_correlate.c $(INFLAGS)
-
-3dAllineate.o:3dAllineate.c
-	$(RM) $@
-	$(CCOMP) -c 3dAllineate.c $(INFLAGS)
-
-3dTcorrMap.o:3dTcorrMap.c
-	$(RM) $@
-	$(CCOMP) -c 3dTcorrMap.c $(INFLAGS)
 
 cl1.o:cl1.c
 	$(RM) $@

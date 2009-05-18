@@ -16,6 +16,7 @@ int main( int argc , char *argv[] )
    float fwhm_goal=0.0f ; int fwhm_2D=0 ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 , nmask ;
    float dx,dy,dz=0.0f , *bar , val ;
+   int floatize=0 ;    /* 18 May 2009 */
 
    /*------- help the pitifully ignorant luser? -------*/
 
@@ -37,6 +38,15 @@ int main( int argc , char *argv[] )
       "               the mask will be set to zero in the output.\n"
       " -automask   = Create an automask from the input dataset.\n"
       "              **N.B.: -automask and -mask can't be combined.\n"
+      " -float      = Save dataset as floats, no matter what the\n"
+      "               input data type is.\n"
+      "              **N.B.: If the input dataset is all shorts, then\n"
+      "                      the default is to save the output in short\n"
+      "                      format as well.  In every other case, the\n"
+      "                      default is to save the output as floats.\n"
+      "                      Thus, the purpose of the '-float' option is\n"
+      "                      only to force an all-shorts input dataset\n"
+      "                      to be saved as all-floats after blurring.\n"
       "\n"
       "NOTES\n"
       "-----\n"
@@ -130,6 +140,10 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strncmp(argv[iarg],"-float",6) == 0 ){    /* 18 May 2009 */
+       floatize = 1 ; iarg++ ; continue ;
+     }
+
 #if 0
      if( strcmp(argv[iarg],"-FWHMxy") == 0 || strcmp(argv[iarg],"-FHWMxy") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
@@ -159,6 +173,11 @@ int main( int argc , char *argv[] )
    dx   = fabs(DSET_DX(inset)) ; if( dx == 0.0f ) dx = 1.0f ;
    dy   = fabs(DSET_DY(inset)) ; if( dy == 0.0f ) dy = 1.0f ;
    dz   = fabs(DSET_DZ(inset)) ; if( dz == 0.0f ) dz = 1.0f ;
+
+   if( !floatize ){    /* 18 May 2009 */
+     if( !THD_datum_constant(inset->dblk)     ||
+         DSET_BRICK_TYPE(inset,0) != MRI_short  ) floatize = 1 ;
+   }
 
 #if 0
    if( DSET_NZ(inset) == 1 && !fwhm_2D ){
@@ -210,11 +229,20 @@ int main( int argc , char *argv[] )
 #pragma omp for
    for( ids=0 ; ids < nvals ; ids++ ){
      if( verb ) fprintf(stderr,"%d.",ids) ;
-     dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids));
+#pragma omp critical (BlurInMask)
+     { dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids)); }
      DSET_unload_one(inset,ids) ;
      dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
      mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;  /** all the work **/
-     EDIT_substitute_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ) ;
+     if( floatize ){
+       EDIT_substitute_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ) ;
+     } else {
+#pragma omp critical (BlurInMask)
+       { EDIT_substscale_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ,
+                                               MRI_short , 0.0f ) ;
+         mri_free(dsim) ;
+       }
+     }
    }
  } /* end OpenMP */
    if( verb ) fprintf(stderr,"\n") ;

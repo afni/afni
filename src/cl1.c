@@ -395,23 +395,23 @@ static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
     integer q_dim1, q_offset, i__1, i__2;
     real r__1;
 
-    /* Local variables */
-    static integer iimn, nklm;
-    static real xmin, xmax;
-    static integer iout, i__, j;
-    static real z__;
-    static integer iineg, maxit, n1, n2;
-    static real pivot;
-    static integer ia, ii, kk, in, nk, js;
-    static real sn;
-    static integer iphase, kforce;
-    static real zu, zv;
-    static integer nk1;
-    static real tpivot;
-    static integer klm, jmn, nkl, jpn;
-    static real cuv;
-    static doublereal sum;
-    static integer klm1, klm2, nkl1;
+    /* Local variables ['static' removed by RWCox] */
+    integer iimn, nklm;
+    real xmin, xmax;
+    integer iout, i__, j;
+    real z__;
+    integer iineg, maxit, n1, n2;
+    real pivot;
+    integer ia, ii, kk, in, nk, js;
+    real sn;
+    integer iphase, kforce;
+    real zu, zv;
+    integer nk1;
+    real tpivot;
+    integer klm, jmn, nkl, jpn;
+    real cuv;
+    doublereal sum;
+    integer klm1, klm2, nkl1;
 
 
 /* THIS SUBROUTINE USES A MODIFICATION OF THE SIMPLEX */
