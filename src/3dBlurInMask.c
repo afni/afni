@@ -131,7 +131,7 @@ int main( int argc , char *argv[] )
        automask = 1 ; iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-FWHM") == 0 || strcmp(argv[iarg],"-FHWM") == 0 ){
+     if( strcasecmp(argv[iarg],"-FWHM") == 0 || strcasecmp(argv[iarg],"-FHWM") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        val = (float)strtod(argv[iarg],NULL) ;
        if( val <= 0.0f ) ERROR_exit("Illegal value after '%s': '%s'",
