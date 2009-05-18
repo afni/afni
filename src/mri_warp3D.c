@@ -170,6 +170,7 @@ ENTRY("mri_warp3D_cubic") ;
    nar = MRI_FLOAT_PTR( newImg ) ;                       /* output image data */
 
    nxh = nx-0.5 ; nyh = ny-0.5 ; nzh = nz-0.5 ;
+   nx1 = nx-1   ; ny1 = ny-1   ; nz1 = nz-1   ;
 
 #pragma omp for
    for( qq=0 ; qq < nxyznew ; qq++ ){  /* voxel loop */
