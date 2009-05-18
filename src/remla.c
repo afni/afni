@@ -635,7 +635,8 @@ ENTRY("REML_func") ;
    if( bbsave ){
      bbsumq = qsumq ;
 #ifdef USE_OMP
-     if( bb1 == NULL && !omp_in_parallel() ){
+#pragma omp critcal (REMLA_BB_ALLOC)
+   { if( bb1 == NULL ){
        bb1 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb1) ;
        bb2 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb2) ;
        bb3 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb3) ;
@@ -644,6 +645,7 @@ ENTRY("REML_func") ;
        bb6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb6) ;
        bb7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb7) ;
      }
+   }
      vector_equate( *qq1 , bb1 ) ; vector_equate( *qq2 , bb2 ) ;
      vector_equate( *qq3 , bb3 ) ; vector_equate( *qq4 , bb4 ) ;
      vector_equate( *qq5 , bb5 ) ; vector_equate( *qq6 , bb6 ) ;
@@ -655,6 +657,7 @@ ENTRY("REML_func") ;
    vector_destroy(qq1) ; vector_destroy(qq2) ; vector_destroy(qq3) ;
    vector_destroy(qq4) ; vector_destroy(qq5) ; vector_destroy(qq6) ;
    vector_destroy(qq7) ;
+   free(qq1); free(qq2); free(qq3); free(qq4); free(qq5); free(qq6); free(qq7);
 #endif
 
    RETURN(val) ;
@@ -1030,11 +1033,12 @@ ENTRY("REML_find_best_case") ;
 
      /** However, OpenMP makes things slower, but why? why? why? **/
 
-/** #pragma omp parallel shared(rvab,klist,y,rrcol,nkl) **/
-   { int mm ;
-/** #pragma omp for **/
+/*** #pragma omp parallel if( nkl > 1 && bbsave == 0 ) ***/
+   { int mm , kk ;
+/*** #pragma omp for ***/
      for( mm=0 ; mm < nkl ; mm++ ){  /* this takes a lot of CPU time */
-       rvab[klist[mm]] = REML_func( y , rrcol->rs[klist[mm]] , rrcol->X,rrcol->Xs ) ;
+       kk = klist[mm] ;
+       rvab[kk] = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
      }
    } /* end OpenMP */
 

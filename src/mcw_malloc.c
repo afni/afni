@@ -4,6 +4,10 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #include "mcw_malloc.h"
 #include "Amalloc.h"
 /*--------------------------------------------------------------------------
@@ -130,6 +134,8 @@ static mallitem * find_empty_slot( int jj )
 {
    int kk ;
 
+#pragma omp critical (MCW_MALLOC_fes)
+ {
    if( htab[jj] == NULL ){                               /* must make new list  */
       htab[jj] = (mallitem *) malloc(sizeof(mallitem)) ; /* of length 1 at [jj] */
      nhtab[jj] = 1 ;
@@ -145,6 +151,7 @@ static mallitem * find_empty_slot( int jj )
          htab[jj][kk].pmt = NULL ;  /* mark as empty */
       }
    }
+ } /* end OpenMP critical */
 
    return (htab[jj]+kk) ;
 }
@@ -157,10 +164,12 @@ static mallitem * find_empty_slot( int jj )
 static void add_tracker( void * fred , size_t n , char * fn , int ln )
 {
    int jj ;
-   mallitem * ip ;
+   mallitem *ip ;
 
    if( fred == NULL ) return ;   /* bad news */
 
+#pragma omp critical (MCW_MALLOC_at)
+{
    jj = mallkey((char *)fred) % SLOTS ;  /* which hash list to use */
    ip = find_empty_slot(jj) ;    /* get an empty slot in this list */
 
@@ -173,6 +182,7 @@ static void add_tracker( void * fred , size_t n , char * fn , int ln )
    ip->pss = ++serial ;
 
    ADD_TRACEBACK(ip) ;  /* 16 Feb 2001 */
+ } /* end OpenMP critical */
 
    return ;
 }
@@ -183,9 +193,10 @@ static void add_tracker( void * fred , size_t n , char * fn , int ln )
 
 static void * malloc_track( size_t n , char *fn , int ln )
 {
-   char *fred ;
-   size_t nn = n + 2*NEXTRA ;
-   int ii ;
+   char *fred=NULL ;
+
+#pragma omp critical (MCW_MALLOC_mt)
+ { size_t nn = n + 2*NEXTRA ; int ii ;
 
    fred = (char *) malloc(nn) ;
    if( fred == NULL ){                                     /* real bad news */
@@ -195,7 +206,7 @@ static void * malloc_track( size_t n , char *fn , int ln )
               (unsigned int)n , fn , ln ) ;
       val = MCW_MALLOC_total ;
       if( val > 0 ) fprintf(stderr,"*** current total usage=%lld bytes\n",val);
-      return NULL ;
+      goto IAMDONE ;
    }
 
    /* mark overrun buffers */
@@ -204,6 +215,9 @@ static void * malloc_track( size_t n , char *fn , int ln )
       fred[ii] = fred[n+NEXTRA+ii] = MAGIC ;
 
    add_tracker(fred,n,fn,ln) ;      /* put in hash table */
+   IAMDONE: ;
+ } /* end OpenMP critical */
+   if( fred == NULL ) return NULL ;
    return (void *)(fred+NEXTRA) ;
 }
 
@@ -270,11 +284,14 @@ static void probe_track( mallitem *ip )
 
 static void * realloc_track( mallitem *ip, size_t n, char *fn, int ln )
 {
-   char *nfred , *cfred ;
-   size_t nn = n + 2*NEXTRA ;
-   int ii , cjj,njj , kk ;
+   char *nfred=NULL ;
 
    if( ip == NULL ) return NULL ;  /* should not happen */
+
+#pragma omp critical (MCW_MALLOC_rt)
+ { char *cfred ;
+   size_t nn = n + 2*NEXTRA ;
+   int ii , cjj,njj , kk ;
 
    pr_nam = (const char *)fn ; pr_lin = ln ;
    probe_track(ip) ;  /* check for integrity before reallocation */
@@ -288,7 +305,7 @@ static void * realloc_track( mallitem *ip, size_t n, char *fn, int ln )
               (unsigned int)n , fn , ln ) ;
       val = MCW_MALLOC_total ;
       if( val > 0 ) fprintf(stderr,"*** current total usage=%lld bytes\n",val);
-      return NULL ;
+      goto IAMDONE ;
    }
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
@@ -313,7 +330,9 @@ static void * realloc_track( mallitem *ip, size_t n, char *fn, int ln )
 
       ip->pmt = NULL ; /* mark old entry as free */
    }
-
+   IAMDONE: ;
+ } /* end OpenMP critical */
+   if( nfred == NULL ) return NULL ;
    return (void *)(nfred+NEXTRA) ;
 }
 
@@ -343,10 +362,13 @@ static void free_track( mallitem *ip )
    cfred = (char *) ip->pmt ;
    if( cfred == NULL ) return ;
 
+#pragma omp critical (MCW_MALLOC_ft)
+ {
    pr_nam = NULL ;
    probe_track(ip) ;  /* check for integrity before freeing */
-
-   free(cfred) ; ip->pmt = NULL ; return ;
+   free(cfred) ; ip->pmt = NULL ;
+ } /* end OpenMP critical */
+   return ;
 }
 
 /*-----------------------------------------------------------------
@@ -358,9 +380,10 @@ static int use_tracking = 0 ;  /* is the tracking enabled? */
 char * mcw_malloc_status(const char *fn , int ln)
 {
    static char buf[128] = "\0" ;
-   int jj,kk , nptr=0 ; long long nbyt=0 ;
-
    if( ! use_tracking ) return NULL ;
+
+#pragma omp critical (MCW_MALLOC_statusfunc)
+ { int jj,kk , nptr=0 ; long long nbyt=0 ;
 
    for( jj=0 ; jj < SLOTS ; jj++ ){
       for( kk=0 ; kk < nhtab[jj] ; kk++ ){
@@ -373,14 +396,15 @@ char * mcw_malloc_status(const char *fn , int ln)
    }
 
    sprintf(buf,"chunks=%d bytes=%lld",nptr,nbyt) ;
-   return buf ;
+ } /* end OpenMP critical */
+  return buf ;
 }
 
 /*-----------------------------------------------------------------*/
 
 long long mcw_malloc_total(void)  /* 01 Feb 2007 */
 {
-   int jj,kk ; long long nbyt=0 ;
+   long long nbyt=0 ; int jj,kk ;
 
    if( ! use_tracking ) return 0 ;
 
@@ -400,13 +424,14 @@ extern void qsort_intint( int , int * , int * ) ;
 
 void mcw_malloc_dump(void)
 {
-   int ii,jj,kk ;
+   if( ! use_tracking ) return ;
+
+#pragma omp critical (MCW_MALLOC_dump)
+ { int ii,jj,kk ;
    char fname[32] , *str ;
    FILE *fp = NULL ;
    int nptr=0 ;
    int *ss , *jk ;
-
-   if( ! use_tracking ) return ;
 
    /* find and open an output file */
 
@@ -417,14 +442,14 @@ void mcw_malloc_dump(void)
       if( fp == NULL ){
          fprintf(stderr,"** Unable to open file %s for malloc table dump!\n",
                  fname ) ;
-         return ;
+         goto IAMDONE ;
       }
       break ;
    }
 
    if( fp == NULL ){
       fprintf(stderr,"** Attempt to exceed 999 malloc table dump files!\n") ;
-      return ;
+      goto IAMDONE ;
    }
 
    /* count number of entries in the hash table */
@@ -505,7 +530,10 @@ void mcw_malloc_dump(void)
    fprintf(stderr,"** Malloc table dumped to file %s\n",fname) ;
    fprintf(stderr,"** Summary: %s\n",str) ;
 
-   return ;
+   IAMDONE: ;
+ } /* end OpenMP critical */
+
+ return ;
 }
 
 /*----------------------------------------------------------------
@@ -516,8 +544,9 @@ void enable_mcw_malloc()       /* cannot be disabled */
 {
    char *str = getenv("AFNI_NO_MCW_MALLOC") ;  /* NOT my_getenv */
 
-   if( use_tracking ) return ;   /* 05 Nov 2001 */
-
+#pragma omp critical (MCW_MALLOC_enable)
+ {
+   if( use_tracking ) goto IAMDONE ;
    use_tracking = 1 ;
    if( str!=NULL && ( str[0]=='y' || str[0]=='Y') ) use_tracking = 0 ;
 
@@ -529,8 +558,9 @@ void enable_mcw_malloc()       /* cannot be disabled */
          htab[jj] = NULL ; nhtab[jj] = 0 ;
       }
    }
-
-   return ;
+   IAMDONE: ;
+ } /* end OpenMP critical */
+  return ;
 }
 
 /* ---------------------------------------
@@ -543,25 +573,29 @@ void enable_mcw_malloc()       /* cannot be disabled */
 static int pz = 0;   /* flag to indicate pause */
 void pause_mcw_malloc()
 {
-   if (pz) return;   /* nothing to do */
-   if (use_tracking) {
-      pz = 1;
-      use_tracking = 0;
+#pragma omp critical (MCW_MALLOC_pause)
+ {
+   if (!pz && use_tracking) {
+      pz = 1; use_tracking = 0;
    }
-   return;
-}    
+ } /* end OpenMP critical */
+ return;
+}
 void resume_mcw_malloc()
 {
-   if (!pz) return; 
-   pz = 0;
-   use_tracking = 1;
-   return;
+#pragma omp critical (MCW_MALLOC_pause)
+ {
+   if( pz ){
+     pz = 0; use_tracking = 1;
+   }
+ } /* end OpenMP critical */
+ return;
 }
 int mcw_malloc_paused()
 {
    return(pz);
 }
-   
+
 /*---------------------------------------------------------------*/
 /*--- lets the user check if the tracking routines are in use ---*/
 
@@ -613,7 +647,6 @@ void mcw_free( void *fred )
    mallitem *ip ;
 
    if( fred == NULL ) return ;
-
    if( use_tracking && (ip=shift_tracker(fred)) != NULL ) free_track( ip ) ;
    else                                                   free( fred ) ;
 }
@@ -624,7 +657,7 @@ void mcw_free( void *fred )
 
 char * mcw_XtMalloc( Cardinal n , char *fnam , int lnum )
 {
-   if( use_tracking ) return (char *) malloc_track(n,fnam,lnum) ;
+   if( use_tracking ) return (char *)malloc_track(n,fnam,lnum) ;
    else               return (char *)XtMalloc(n) ;
 }
 
@@ -654,7 +687,6 @@ void mcw_XtFree( char *p )
    mallitem *ip ;
 
    if( p == NULL ) return ;
-
    if( use_tracking && (ip=shift_tracker(p)) != NULL ) free_track(ip) ;
    else                                                XtFree(p) ;
 }

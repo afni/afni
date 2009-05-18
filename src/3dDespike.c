@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 /************************************************************************/
 /******* Hack to remove large spikes from time series data (oog). *******/
 /******* 30 Aug 2002 - RWCox                                      *******/
@@ -13,32 +17,31 @@
 static INLINE float mytanh( float x )
 {
   register float ex , exi ;
-       if( x >  7.0 ) return  1.0 ;  /* 03 Sep: check for stupid inputs */
-  else if( x < -7.0 ) return -1.0 ;
-  ex = exp(x) ; exi = 1.0/ex ;
+       if( x >  7.0f ) return  1.0f ;  /* 03 Sep: check for stupid inputs */
+  else if( x < -7.0f ) return -1.0f ;
+  ex = exp(x) ; exi = 1.0f/ex ;
   return (ex-exi)/(ex+exi) ;
 }
 
 /*----------------------------------------------------------------------*/
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset , *oset=NULL , *tset=NULL ;
    int nvals , iv , nxyz , ii,jj,kk , iarg , kz,kzold ;
-   float cut1=2.5,cut2=4.0 , sq2p , fq , val , fsig ;
+   float cut1=2.5,cut2=4.0 , sq2p , fq ;
    MRI_IMAGE *flim ;
-   float *far, *dar , *var , *fitar ;
    char *prefix="despike" , *tprefix=NULL ;
 
    int corder=-1 , nref , ignore=0 , polort=2 , nuse , nomask=0 ;
    int nspike, nbig, nproc ;
    float **ref ;
-   float  *fit , *ssp , snew , c21,ic21 , pspike,pbig , cls ;
+   float  c21,ic21 , pspike,pbig ;
    short  *sar , *qar ;
    byte   *tar , *mask=NULL ;
    float  *zar , *yar ;
    int     datum ;
-   int     localedit=0 , id,iu ;  /* 04 Apr 2007 */
+   int     localedit=0 ;  /* 04 Apr 2007 */
    int     verb=1 ;
 
    /*----- Read command line -----*/
@@ -301,11 +304,6 @@ int main( int argc , char * argv[] )
    /*-- setup to find spikes --*/
 
    sq2p  = sqrt(0.5*PI) ;
-   var   = (float *) malloc( sizeof(float) * nvals ) ;
-   far   = (float *) malloc( sizeof(float) * nvals ) ;
-   dar   = (float *) malloc( sizeof(float) * nvals ) ;
-   fitar = (float *) malloc( sizeof(float) * nvals ) ;
-   ssp   = (float *) malloc( sizeof(float) * nvals ) ;
 
    /* make ref functions */
 
@@ -314,7 +312,6 @@ int main( int argc , char * argv[] )
    for( jj=0 ; jj < nref ; jj++ )
      ref[jj] = (float *) malloc( sizeof(float) * nuse ) ;
 
-   fit = (float *) malloc( sizeof(float) * nref ) ;
 
    /* r(t) = 1 */
 
@@ -366,10 +363,31 @@ int main( int argc , char * argv[] )
    }
    kzold  = -1 ;
    nspike =  0 ; nbig = 0 ; nproc = 0 ;
+#pragma omp parallel if( nxyz > 11111 )
+ { int ii , iv , iu , id , jj ;
+   float *far , *dar , *var , *fitar , *ssp , *fit , *zar ;
+   short *sar , *qar ; byte *tar ;
+   float fsig , fq , cls , snew , val ;
+
+#pragma omp critical (DESPIKE_malloc)
+  { far   = (float *) malloc( sizeof(float) * nvals ) ;
+    dar   = (float *) malloc( sizeof(float) * nvals ) ;
+    var   = (float *) malloc( sizeof(float) * nvals ) ;
+    fitar = (float *) malloc( sizeof(float) * nvals ) ;
+    ssp   = (float *) malloc( sizeof(float) * nvals ) ;
+    fit   = (float *) malloc( sizeof(float) * nref  ) ;
+  }
+
+#ifdef USE_OMP
+   INFO_message("start OpenMP thread #%d",omp_get_thread_num()) ;
+#endif
+
+#pragma omp for
    for( ii=0 ; ii < nxyz ; ii++ ){   /* ii = voxel index */
 
       if( mask != NULL && mask[ii] == 0 ) continue ;   /* skip this voxel */
 
+#ifndef USE_OMP
       kz = DSET_index_to_kz(dset,ii) ;       /* starting a new slice */
       if( kz != kzold ){
         if( verb ){
@@ -385,6 +403,7 @@ int main( int argc , char * argv[] )
         }
         kzold = kz ;
       }
+#endif
 
       /*** extract ii-th time series into far[] ***/
 
@@ -392,7 +411,7 @@ int main( int argc , char * argv[] )
         case MRI_short:
           for( iv=0 ; iv < nuse ; iv++ ){
             qar = DSET_ARRAY(dset,iv+ignore) ;   /* skip ignored data */
-            far[iv] = (float) qar[ii] ;
+            far[iv] = (float)qar[ii] ;
           }
         break ;
         case MRI_float:
@@ -408,7 +427,7 @@ int main( int argc , char * argv[] )
 
       cls = cl1_solve( nuse , nref , far , ref , fit,0 ) ; /* the slow part */
 
-      if( cls < 0.0 ){                       /* fit failed! */
+      if( cls < 0.0f ){                      /* fit failed! */
 #if 0
         fprintf(stderr,"curve fit fails at voxel %d %d %d\n",
                 DSET_index_to_ix(dset,ii) ,
@@ -427,7 +446,7 @@ int main( int argc , char * argv[] )
 
         fitar[iv] = val ;                    /* save curve fit value */
         var[iv]   = dar[iv]-val ;            /* remove fitted value = resid */
-        far[iv]   = fabs(var[iv]) ;          /* abs value of resid */
+        far[iv]   = fabsf(var[iv]) ;         /* abs value of resid */
       }
 
       /*** compute estimate standard deviation of detrended data ***/
@@ -436,11 +455,11 @@ int main( int argc , char * argv[] )
 
       /*** process time series for spikes, editing data in dar[] ***/
 
-      if( fsig > 0.0 ){                      /* data wasn't fit perfectly */
+      if( fsig > 0.0f ){                     /* data wasn't fit perfectly */
 
         /* find spikiness for each point in time */
 
-        fq = 1.0 / fsig ;
+        fq = 1.0f / fsig ;
         for( iv=0 ; iv < nuse ; iv++ ){
           ssp[iv] = fq * var[iv] ;           /* spikiness s = how many sigma out */
         }
@@ -450,7 +469,7 @@ int main( int argc , char * argv[] )
         if( tset != NULL ){
           for( iv=0 ; iv < nuse ; iv++ ){
             tar     = DSET_ARRAY(tset,iv+ignore) ;
-            snew    = ITFAC*fabs(ssp[iv]) ;   /* scale for byte storage */
+            snew    = ITFAC*fabsf(ssp[iv]) ;  /* scale for byte storage */
             tar[ii] = BYTEIZE(snew) ;         /* cf. mrilib.h */
           }
         }
@@ -462,11 +481,13 @@ int main( int argc , char * argv[] )
             if( ssp[iv] > cut1 ){
               snew = cut1 + c21*mytanh((ssp[iv]-cut1)*ic21) ;   /* edit s down */
               dar[iv] = fitar[iv] + snew*fsig ;
-              nspike++ ; if( ssp[iv] > cut2 ) nbig++ ;          /* count edits */
+#pragma omp critical (DESPIKE_counter)
+              { nspike++ ; if( ssp[iv] > cut2 ) nbig++ ; }
             } else if( ssp[iv] < -cut1 ){
               snew = -cut1 + c21*mytanh((ssp[iv]+cut1)*ic21) ;  /* edit s up */
               dar[iv] = fitar[iv] + snew*fsig ;
-              nspike++ ; if( ssp[iv] < -cut2 ) nbig++ ;
+#pragma omp critical (DESPIKE_counter)
+              { nspike++ ; if( ssp[iv] < -cut2 ) nbig++ ; }
             }
           } else {                      /** local edit: 04 Apr 2007 **/
             if( ssp[iv] >= cut2 || ssp[iv] <= -cut2 ){
@@ -480,10 +501,13 @@ int main( int argc , char * argv[] )
                 case 1: val =              dar[id] ; break; /* only id OK   */
                default: val = fitar[iv]            ; break; /* shouldn't be */
               }
-              dar[iv] = val ; nspike++ ; nbig++ ;
+              dar[iv] = val ;
+#pragma omp critical (DESPIKE_counter)
+              { nspike++ ; nbig++ ; }
             }
           }
         } /* end of loop over time points */
+#pragma omp atomic
         nproc += nuse ;  /* number data points processed */
 
       } /* end of processing time series when fsig is positive */
@@ -494,7 +518,7 @@ int main( int argc , char * argv[] )
         case MRI_short:
           for( iv=0 ; iv < nuse ; iv++ ){
             sar = DSET_ARRAY(oset,iv+ignore) ; /* output brick */
-            sar[ii] = (short) dar[iv] ;        /* original or mutated data */
+            sar[ii] = (short)dar[iv] ;         /* original or mutated data */
           }
         break ;
         case MRI_float:
@@ -506,6 +530,11 @@ int main( int argc , char * argv[] )
       }
 
    } /* end of loop over voxels #ii */
+
+#pragma omp critical (DESPIKE_malloc)
+   { free(fit); free(ssp); free(fitar); free(var); free(dar); free(far); }
+
+ } /* end OpenMP */
 
    /*--- finish up ---*/
 
@@ -524,9 +553,9 @@ int main( int argc , char * argv[] )
 
    /* write results */
 
-     DSET_write(oset) ;
-     if( verb ) WROTE_DSET(oset) ;
-     DSET_delete(oset) ;
+   DSET_write(oset) ;
+   if( verb ) WROTE_DSET(oset) ;
+   DSET_delete(oset) ;
 
    if( tset != NULL ){
      DSET_write(tset) ;

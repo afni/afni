@@ -268,11 +268,15 @@ ENTRY("EDIT_empty_datablock") ;
                            "./" , NULL , DUMMY_NAME ,
                            VIEW_ORIGINAL_TYPE , True ) ;
 
+STATUS("addto_kill(new_dkptr)") ;
    INIT_KILL(new_dblk->kl) ;
    ADDTO_KILL(new_dblk->kl,new_dkptr) ;
 
+STATUS("unlocking") ;
    DBLK_unlock(new_dblk) ;
+STATUS("nulling auxdata") ;
    THD_null_datablock_auxdata( new_dblk ) ;
+STATUS("done") ;
 
    RETURN( new_dblk ) ;
 }
