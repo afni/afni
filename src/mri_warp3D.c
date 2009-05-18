@@ -176,7 +176,7 @@ ENTRY("mri_warp3D_cubic") ;
    for( qq=0 ; qq < nxyznew ; qq++ ){  /* voxel loop */
      xpr = ii = qq % nxnew ;           /* break 1D index qq into 3D index (ii,jj,kk) */
      zpr = kk = qq / nxynew ;
-     ypr = jj = (qq-kk*nxynew) / nx ;
+     ypr = jj = (qq-kk*nxynew) / nxnew ;
      if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
      wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
@@ -365,7 +365,7 @@ nzset = 0 ; zzsum = 0.0 ;
    for( qq=0 ; qq < nxyznew ; qq++ ){  /* voxel loop */
      xpr = ii = qq % nxnew ;           /* break 1D index qq into 3D index (ii,jj,kk) */
      zpr = kk = qq / nxynew ;
-     ypr = jj = (qq-kk*nxynew) / nx ;
+     ypr = jj = (qq-kk*nxynew) / nxnew ;
      if( SKIP(ii,jj,kk) ) continue ;    /* 19 Nov 2004 */
      wf( xpr,ypr,zpr , &xx,&yy,&zz ) ;  /* get xx,yy,zz in original image */
 
