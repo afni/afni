@@ -98,6 +98,12 @@ int main( int argc , char * argv[] )
       }
       
       ERROR_exit( " Error - unknown option %s", argv[nopt]);
+   } 
+   if (nopt < argc) {
+      ERROR_exit( " Error unexplained trailing option: %s\n", argv[nopt]);
+   }
+   if (!nbriks) {
+      ERROR_exit( " Error no volumes entered on command line?");
    }
    /* some checks and inits*/
    nsubbriks = 0;
@@ -143,9 +149,11 @@ int main( int argc , char * argv[] )
    free(uniques); uniques=NULL;
    free(N_uniques); N_uniques=NULL;
    
-   
    /* get unique of catenated array */
-   final_unq = UniqueInt (all_uniques, total_unq, &N_final_unq, 0 );
+   if (!(final_unq = UniqueInt (all_uniques, total_unq, &N_final_unq, 0 ))) {
+      ERROR_exit( " Failed to get unique list (%d, %d, %d) ", 
+                  total_unq, N_final_unq, nsubbriks);
+   }
    free(all_uniques); all_uniques=NULL;
   
    /* get the maximum integer in the unique array */
