@@ -157,6 +157,10 @@ static ENV_SPEC envlist[] = {
       " Valid range from 1 to 10",
       "SUMA_KeyNodeJump",
       "1" },
+   {  "Numer of seconds to wait for SUMA to respond to DriveSuma. \n"
+      " Valid range from 0 to 60000",
+      "SUMA_DriveSumaMaxWait",
+      "300.0" },
    {  NULL, NULL, NULL  }
 };
       

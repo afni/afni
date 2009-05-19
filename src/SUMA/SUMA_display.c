@@ -11262,7 +11262,7 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
 /*!
   Supposed to behave like ForceUser function below but only for pausing.
 */
-int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos)
+int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos, XtAppContext *app)
 {
    static char FuncName[]={"SUMA_PauseForUser"};
    static Widget dialog; /* static to avoid multiple creation */
@@ -11321,8 +11321,10 @@ int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos)
    
    if (pos != SWP_DONT_CARE) SUMA_PositionWindowRelative(dialog, parent, pos);
    
+
+   if (!app) app = &(SUMAg_CF->X->App);
    while (answer == SUMA_NO_ANSWER)
-     XtAppProcessEvent (SUMAg_CF->X->App, XtIMAll);
+     XtAppProcessEvent (*app, XtIMAll);
       
    #if 1
       XtDestroyWidget(dialog); 
