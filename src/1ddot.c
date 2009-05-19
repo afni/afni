@@ -26,7 +26,7 @@ int main( int argc , char *argv[] )
             " -inn  =  Computed with inner product matrix instead\n"
             " -terse=  Output only the correlation or covariance matrix\n"
             "          and without any of the garnish. \n"
-            " -okzero= Do not complain if a vector is all zeros.\n"
+            " -okzero= Do not quit if a vector is all zeros.\n"
             "          The correlation matrix will have 0 where NaNs ought to go.\n"
             "          Expect rubbish in the inverse matrices if all zero \n"
             "          vectors exist.\n"
