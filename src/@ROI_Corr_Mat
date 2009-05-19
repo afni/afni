@@ -1,6 +1,8 @@
 #! /bin/tcsh -f
 
-# HJ is welding 3 scripts. 
+# path of ROI index & Zero+orig Files 
+set init_path = "$PWD"
+
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -10,12 +12,9 @@ goto PARSE
 RETURN_PARSE:
 
 
-# path of ROI index & Zero+orig Files 
-set init_path = "$PWD"
 
-
-echo "Input File:"${fn_epi}
-echo "Mask File:"${fn_msk}
+if ($verb) echo "Input File:"${fn_epi}
+if ($verb) echo "Mask File:"${fn_msk}
 
 # Number of Time Points
 set N = `3dnvals $fn_epi`
@@ -27,10 +26,10 @@ endif
 
 
 RESAMPLE_msk2epi:
-echo "Resampling mask to epi with NN ..."
+if ($verb) echo "Resampling mask to epi with NN ..."
 3dresample  -input $fn_msk -master $fn_epi    \
             -prefix msk_resam    -overwrite  \
-            -rmode NN   
+            -rmode NN    >& /dev/null
 if ($status) goto END
 
 set fn_msk = msk_resam+orig
@@ -49,157 +48,275 @@ if ("$rowfile" == "") then
    endif
    rm -f ___rnk* >& /dev/null
 else 
+   if ( ! -f ./${rowfile} ) then
+      echo "Rowfile must be in the current directory for now."
+      echo " ./${rowfile} not found"
+      goto END
+   endif
    set master = master.$rowfile:r
 endif
 
 MAKE_MASTER_VOL:
 set nroi = `3dnvals $rowfile`
-3dUndump -overwrite -prefix $master -dimen $nroi $nroi 1
-
+3dUndump -overwrite -prefix $master -dimen $nroi $nroi 1 >& /dev/null
+                           
 #rm -r 1D
 
 EXTRACT:
-echo "[Extract ROI 1D Signals]"
+if ($verb) echo "Extract ROI 1D Signals"
 mkdir 1D
-
-foreach k (`1dcat ${rowfile}`)
-    echo "ROI: "${k}
-    3dmaskave -mask ${fn_msk} -mrange ${k} ${k} ${fn_epi} > 1D/ROI_${k}.1D
-    if ($status) goto END
-    1dtranspose 1D/ROI_${k}.1D'[0]' > 1D/temp.1D
-    cat 1D/temp.1D >> 1D/TS_ALL.1D
-end
-# TS_ALL.1D : Time series file is Row-by-Row form, it contains :
-# ROI_1's TS_1 TS_2 ... TS_N
-# ROI_1's TS_1 TS_2 ... TS_N
-# .
-# .
-# .
-# ROI_M's TS_1 TS_2 ... TS_N
-
+   set DoSlow = 0
+   if ($DoSlow) then
+      rm -f 1D/TS_ALL.slow.1D >& /dev/NULL 
+      #Just for comparison with fast approach
+      foreach k (`1dcat ${rowfile}`)
+          echo "ROI: "${k}
+          3dmaskave -mask ${fn_msk} -mrange ${k} ${k} ${fn_epi} > 1D/ROI_${k}.1D
+          if ($status) goto END
+          1dtranspose 1D/ROI_${k}.1D'[0]' > 1D/temp.1D
+          cat 1D/temp.1D >> 1D/TS_ALL.slow.1D
+      end
+      # TS_ALL.1D : Time series file is Row-by-Row form, it contains :
+      # ROI_1's TS_1 TS_2 ... TS_N
+      # ROI_1's TS_1 TS_2 ... TS_N
+      # .
+      # .
+      # .
+      # ROI_M's TS_1 TS_2 ... TS_N
+      1dtranspose 1D/TS_ALL.slow.1D > 1D/TS_ALL.1D
+   else
+      #The fast way, complicated way, via 3dROIstats      
+      set ROImax = `3dBrickStat -slow -max ${rowfile}`
+      3dROIstats  -quiet -1Dformat -zerofill 0 \
+                  -numROI $ROImax -mask ${fn_msk} -mask_f2s \
+                  -roisel ${rowfile} ${fn_epi} > 1D/TS_ALL.full.sorted.1D
+      #output is full sorted list, select relevant columns only
+      setenv AFNI_1D_TIME YES
+      3dTsort -prefix ___tmp_sort_rowfile.1D ${rowfile} >& /dev/null
+      1deval -a ___tmp_sort_rowfile.1D\' -expr 'a-1' > ___tmp_row_index.1D
+      1dcat   ___tmp_row_index.1D\' | sed 's/^ //g' \
+                                    | sed 's/ /,/g' > ___tmp_sel_cols_ind
+      1dcat 1D/TS_ALL.full.sorted.1D"[`cat ___tmp_sel_cols_ind`]" >  \
+                                             1D/TS_ALL.sorted.1D
+      
+      #Undo the sorting:
+      setenv AFNI_1D_TIME YES
+      3dTsort -prefix ___tmp_sort_rank.1D -rank ${rowfile}  >& /dev/null
+      1deval -a ___tmp_sort_rank.1D\' -expr 'a-1' > ___tmp_sort_ind.1D
+      1dcat    ___tmp_sort_ind.1D\'   | sed 's/^ //g' \
+                                    | sed 's/ /,/g' > ___tmp_sel_ind
+      1dcat 1D/TS_ALL.sorted.1D"[`cat ___tmp_sel_ind`]" > 1D/TS_ALL.1D
+      
+      #clean   
+      #rm -f  1D/TS_ALL.sorted.1D    
+   
+   endif
+   
 WORK_1D:
-cd 1D
+   cd 1D
 
-##
-echo "[Get r- and z-maps from 1D Time-Series]"
+   if ($verb) echo "Get r- and z-maps from 1D Time-Series"
+   1ddot -terse -okzero -dem TS_ALL.1D > TS_ALL.corr.1D
 
-echo "Get Corr. Coeff."
-1dtranspose TS_ALL.1D > TS_ALL.1D_T
-1ddot -terse -dem TS_ALL.1D_T > TS_ALL.corr.1D
-
-echo "Get Z-val."
-set cc=0
-foreach k (`1dcat ${init_path}/${rowfile}`)
-    eval `1dcat TS_ALL.corr.1D'['${cc}']' > temp`
-    1deval -a temp -expr '0.5*log((1+a)/(1-a))*sqrt('${N}'-3)' > temp.zval
-    if ($status) goto END
-    1dtranspose temp.zval >> TS_ALL.zval.1D
-    if ($status) goto END
-    set cc = `ccalc -i -expr "$cc +1 "`
-end
-rm temp*
-
-####
-
-set i = 0
-
-#### Preparing HJJ's 400W heat generator
-3dcopy ${init_path}/master.2droi.row+orig ./temp1
-####
-
-foreach ii (`1dcat ${init_path}/${rowfile}`)
-
-#    3dcalc  -a ${init_path}/${master}+orig          -b 'I:TS_ALL.zval.1D['${i}']'             -expr 'a+b*equals(j,'${i}')*step(i-j)'             -overwrite              -prefix ${i}
-###	-overwrite option of 3dcalc is not working well now. So, we have to make more HDD scratching [ HJJ ].
-### It is possible for this script to make some very old HDDs die, or to make the lab warmer !!!
-
-3dcalc -a temp1+orig -b I:'TS_ALL.corr.1D['${i}']' -expr 'a+b*equals(j,'${i}')*step(i-j)' -prefix temp2
-rm temp1*
-3dcopy temp2+orig temp1
-rm temp2*
-
-	echo "writing r_value to BRIK: Row ${i}"
-    if ($status) goto END
-    set i = `ccalc -i -expr "$i+1"`
-end
-
-# mv ${master}+orig.HEAD ${init_path}/TS_ALL.zval+orig.HEAD
-# mv ${master}+orig.BRIK ${init_path}/TS_ALL.zval+orig.BRIK
-3dcopy temp1+orig ${init_path}/${outfile}_corr
-# Don't forget we're under 1D folder.
-cd ..
-
-3dcalc -a ${init_path}/${outfile}_corr+orig -expr '0.5*log((1+a)/(1-a))*sqrt('${N}'-3)' -prefix ${init_path}/${outfile}
+   #transform to Z and clip at max of 15
+   set cc=0
+   foreach k (`1dcat ${init_path}/${rowfile}`)
+       1deval  -a TS_ALL.corr.1D'['${cc}']' \
+         -expr "min(0.5*log((1+a)/max(1-a,0.00001))*sqrt(${N}-3),15)" > temp.zval
+       if ($status) goto END
+       1dtranspose temp.zval >> TS_ALL.zval.1D
+       if ($status) goto END
+       @ cc ++
+   end
+   rm temp*
+   cd ..
+   
+MAKE_BRIK:
+   cd 1D
 
 
-### Script to remove temporary directory and _rval file
-###
+   #### Preparing HJJ's 400W heat generator
+   3dcopy ${init_path}/$master+orig ./temp1  >& /dev/null
 
-rm -r 1D
-#rm ${init_path}/${outfile}_corr+orig.*
+   set i = 0
+   foreach ii (`1dcat ${init_path}/${rowfile}`)
 
-###
+      if (0) then
+         #overwrite trick fails here !
+              3dcalc    -a ${init_path}/${master}+orig          \
+                        -b 'I:TS_ALL.corr.1D['${i}']'           \
+                        -expr 'a+b*equals(j,'${i}')*step(i-j)'  \
+                        -overwrite                              \
+                        -prefix ${i}
+      else
+         if ($DoTri == 1) then
+            #do it via temp files
+            3dcalc   -a temp1+orig  \
+                     -b I:'TS_ALL.corr.1D['${i}']' \
+                     -expr 'a+b*equals(j,'${i}')*step(i-j)' \
+                     -prefix temp2 >& /dev/null
+            if ($status) goto END
+            rm temp1*
+            3dcopy temp2+orig temp1 >& /dev/null
+            rm temp2*
+         else if ($DoTri == 2) then
+            #do it via temp files
+            3dcalc   -a temp1+orig  \
+                     -b I:'TS_ALL.corr.1D['${i}']' \
+                     -expr 'a+b*equals(j,'${i}')*step(i-j+1)' \
+                     -prefix temp2 >& /dev/null
+            if ($status) goto END
+            rm temp1*
+            3dcopy temp2+orig temp1 >& /dev/null
+            rm temp2*
+         else 
+            3dcalc   -a temp1+orig  \
+                     -b I:'TS_ALL.corr.1D['${i}']' \
+         -expr 'a+b*equals(j,'${i}')*step(i-j+1)+b*equals(j,'${i}')*step(j-i)' \
+                     -prefix temp2 >& /dev/null
+            if ($status) goto END
+            rm temp1*
+            3dcopy temp2+orig temp1 >& /dev/null
+            rm temp2*
+         endif
+      endif
+      
+	   if ($verb) echo "writing r_value to BRIK: Row ${i}"
+      @ i ++
+   end
+   
+   3drename temp1+orig TS_ALL.corr  >& /dev/null  
+   
+   # Don't forget we're under 1D folder.
+   cd ..
 
-echo " done"
+OUTPUT_TIME:
+   #hmmm, this 3drefit does not work if we just have one sub-brick
+   #you can use 3dbucket instead of 3dcopy but that is ugly ...
+   3dcopy 1D/TS_ALL.corr+orig ${init_path}/${outfile}.corr   >& /dev/null   
+   3drefit -fbuc -substatpar 0 fico $N 1 1 ${init_path}/${outfile}.corr+orig \
+                                                               >& /dev/null
+   #create fdrmask (only half the matrix is relevant
+   3dcalc -a ${init_path}/${outfile}.corr+orig  \
+          -datum short -expr 'step(i-j)' -overwrite \
+          -prefix ___tmp_fdrmsk.corr >& /dev/null
+   3drefit  -addFDR -FDRmask ___tmp_fdrmsk.corr+orig  \
+            ${init_path}/${outfile}.corr+orig  >& /dev/null
+   
+   #and the .1D file
+   printf "#" > ${init_path}/${outfile}.corr.1D
+   cat $rowfile >> ${init_path}/${outfile}.corr.1D
+   cat 1D/TS_ALL.corr.1D >> ${init_path}/${outfile}.corr.1D
+
+   printf "#" > ${init_path}/${outfile}.TS.1D
+   cat $rowfile >> ${init_path}/${outfile}.TS.1D
+   cat 1D/TS_ALL.1D >> ${init_path}/${outfile}.TS.1D
+   
+   if ($DoZval) then
+      printf "#" > ${init_path}/${outfile}.zval.1D
+      cat $rowfile >> ${init_path}/${outfile}.zval.1D
+      cat 1D/TS_ALL.zval.1D >> ${init_path}/${outfile}.zval.1D
+      #transform to Z and clip at max of 15
+      3dcalc   -a ${init_path}/${outfile}.corr+orig \
+               -expr "min(0.5*log((1+a)/max(1-a,0.00001))*sqrt(${N}-3),15)" \
+               -prefix ${init_path}/${outfile}.zval  >& /dev/null
+      3drefit  -fbuc -substatpar 0 fizt \
+               -addFDR -FDRmask ___tmp_fdrmsk.corr+orig  \
+               ${init_path}/${outfile}.zval+orig  >& /dev/null
+   endif
+
+CLEANUP:
+   if ($cleanup) then
+      rm -r 1D >& /dev/null
+      rm ${init_path}/${outfile}_corr+orig.* >& /dev/null
+      rm ${init_path}/___tmp_*ind* >& /dev/null
+      rm ${init_path}/___tmp_sort* >& /dev/null
+      rm master.*+orig.????* >& /dev/null
+      rm ___tmp_fdrmsk.corr+orig.????* >& /dev/null
+   endif
+
+DONE:
+if ($verb) echo " done"
 goto END
 
 HELP:
-   echo "Script to produce an ROI correlation matrix."
+   echo "Script to produce an NxN ROI correlation matrix of N ROIs."
    echo ""
-   echo "Usage 1. `basename $0` <-ts TimeSeriesVol> <-roi ROIVol> <-prefix output>"
+   echo "Usage: "
+   echo "`basename $0`    <-ts TimeSeriesVol>  "
+   echo "                 <-roi ROIVol>  "
+   echo "                 <-prefix output>"
+   echo "                 [<-roisel ROISEL>]" 
+   echo "                 [-zval]"
+   echo "                 [-mat FULL, TRI, TRI_ND]"
+   echo "                 [-verb] [-dirty]"
    echo ""
-   echo "This is a method to produce NxN correlation matrix if user need to extract each time signal "
-   echo "of every ROI in ROIVol." 
-   echo "The file after -ts option would be a time-series file to be extracted, "
-   echo "that after -roi option would be the ROI volume file such like "
-   echo "aseg+aparc of freesurfer, and that after -prefix is an output filename of "
-   echo "ROI correlation matrix (Z-value)."
+   echo "Parameters"
+   echo "   -ts TimeSeriesVol: Time series volume"
+   echo "   -roi ROIVol: ROI volume"
+   echo "             This script will resample the ROI volume to match the "
+   echo "             resolution of the EPI if the number of voxels in each of"
+   echo "             the three directions is not the same. "
+   echo "             ROIs are resampled using NN interpolation. If you'd"
+   echo "             rather interpolate the epi, then do so before you run "
+   echo "             this script."
+   echo "   -prefix output: Use output for a prefix"
+   echo "   -roisel ROISEL: Force processing of ROI label (integers) listed"
+   echo "                   in ROISEL 1D file. The default is to process all"
+   echo "                   ROIs in ROIvol."
+   echo "                   It is important to use this option when processing"
+   echo "                   data accross subjects with differing ROIVol for "
+   echo "                   input. If all ROIVol volumes do not have the same"
+   echo "                   set of ROI labels then the correlation matrices "
+   echo "                   would be of differing sizes."
+   echo "                   See 3dRank for obtaining a list of ROI labels in "
+   echo "                   a volume."
+   echo "          NOTE: ROI labels in ROISEL that do not exist in ROIvol will"
+   echo "                be replaced with empty vectors."
    echo ""
-   echo "Note: This script will resample the ROI volume to match the resolution"
-   echo "of the EPI if the number of voxels in each of the three directions"
-   echo "is not the same. ROIs are resampled using NN interpolation. If you'd"
-   echo "rather interpolate the epi, then do so before you run this script."
-   echo "Also, users should check whether the ROIVol includes whole ROIs if "
-   echo "ROIs were defined by automatical methods because some ROIs are not "
-   echo "extracted sometimes."
+   echo "   -zval: Output a zscore version of the correlation matrix."
+   echo "   -mat OPT: Output matrix in different manners depending on OPT:"
+   echo "              FULL  --> Full matrix "
+   echo "              TRI   --> Triangular"
+   echo "              TRI_ND--> Triangular, without diagonal (default)"
+   echo ""
+   echo "   -dirty: Keep temporary files"
+   echo "   -verb: Verbose flag"
    echo ""
    echo "Example:"
-   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii -prefix s620_matrix_all_ROIs"
+   echo "`basename $0`     -ts s620_rest_r1+orig \"
+   echo "                  -roi SUMA/aparc.a2005s+aseg.nii \"
+   echo "                  -prefix s620_matrix_all_ROIs"
    echo ""
-   echo "Usage 2. `basename $0` <-ts TimeSeriesVol> <-roi ROIVol> <-rowfile ROI_indices> <-prefix output>"
-   echo ""
-   echo "This is an alternative method to produce an arbitrary NxN correlation "
-   echo "matrix ROI correlation matrix."
-   echo ""
-   echo "Users can select specific ROIs included in the ROIVol file by writing "
-   echo "the list of ROI indices in the ROI_indices, such like: 2 3 4 1001 2003 ..."
-   echo ""
-   echo "Example:"
-   echo "`basename $0` -ts s620_rest_r1+orig -roi SUMA/aparc.a2005s+aseg.nii -rowfile 2droi.row.1D -prefix s620_matrix_my_ROIs_Zval"
    echo ""
    echo "How to read correlation matrix:"
-   echo "You can immediately read the cross-correlation matrix by just excuting afni."
-   echo "1. Choose undelay master.2droi.row+orig, and overlay s620_matrix_my_ROIs_Zval+orig"
+   echo "The correlation matrix is created in .1D and .BRIK formats"
+   echo ""
+   echo "1. Choose undelay master.2droi.row+orig"
+   echo "      and overlay s620_matrix_my_ROIs_Zval+orig"
    echo "2. Push Define Datamode Button -> Misc Button -> Voxel Coords"
    echo "3. Click axial button, and turn + LR Mirror off."
-   echo "(i, j) on afni GUI means that the selected pixel is r- or Z-values presenting correlation between i-th ROI and j-th ROI."
-   echo ""
-   echo "References are coming soon."
+   echo "(i, j) on afni GUI means that the selected pixel is "
+   echo "r- or Z-values presenting correlation between i-th ROI and j-th ROI."
    echo ""
    echo "Written by Hang Joon Jo, Modified by Ziad S. Saad.  (05/11/2009)"
    echo ""
    goto END
    
 PARSE:
-	echo "Parsing ..."
+	if ($verb) echo "Parsing ..."
 	set Narg = $#
 	
 	#find the locations of -ts and -roi, etc
-	set cnt = 1
+	set verb = 0
+   set cnt = 1
 	set fn_msk = ''
 	set fn_epi = ''
-        set rowfile = ''
-        set outfile = ''
+   set rowfile = ''
+   set outfile = ''
+   set DoZval = 0
+   set DoTri = 1
+   set cleanup = 1
    while ($cnt <= $Narg)
 		if ("$argv[$cnt]" == "-prefix") then
          set SubLoc = $cnt		
@@ -209,10 +326,23 @@ PARSE:
 			else
 				@ cnt ++
 				set outfile = "$argv[$cnt]"
-             set NxtInd = $cnt
+            set ee = `@CheckForAfniDset ${init_path}/${outfile}.corr+orig`
+            if ( $ee > 0 ) then
+               echo "Output dset ${init_path}/${outfile}.corr+orig exists"
+               echo "Change prefix $outfile or remove existing output"
+               goto END
+            endif
+            set ee = `@CheckForAfniDset ${init_path}/${outfile}.zval+orig`
+            if ( $ee > 0 ) then
+               echo "Output dset ${init_path}/${outfile}.zval+orig exists"
+               echo "Change prefix $outfile or remove existing output"
+               goto END
+            endif 
+            set NxtInd = $cnt
 			endif
       endif
-		if ("$argv[$cnt]" == "-rowfile") then
+		
+      if ("$argv[$cnt]" == "-rowfile") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
 				echo "Need option after -rowfile"
@@ -222,6 +352,11 @@ PARSE:
 				set rowfile = "$argv[$cnt]"
             if ("${rowfile:r}.1D" != "$rowfile") then
                echo "rowfile must have a .1D extension"
+            endif
+            set nnn = `3dnvals -all $rowfile`
+            if ( $nnn[1] != 1 ) then
+               echo "$rowfile must be a one row file"
+               goto END
             endif
             set NxtInd = $cnt
 			endif
@@ -234,6 +369,27 @@ PARSE:
 			else
 				@ cnt ++
             set fn_epi = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+
+		if ("$argv[$cnt]" == "-mat") then
+         set SufLoc = $cnt		
+		   if ($SufLoc == $Narg) then
+				echo "Need option after -mat"
+            goto END
+			else
+				@ cnt ++
+            if ("$argv[$cnt]" == "FULL") then
+               set DoTri = 0
+            else if ("$argv[$cnt]" == "TRI") then
+               set DoTri = 2
+            else if ("$argv[$cnt]" == "TRI_ND") then
+               set DoTri = 1
+            else
+               echo "Bad option ($argv[$cnt]) for -mat"
+               goto END
+            endif
             set NxtInd = $cnt
 			endif
       endif
@@ -250,6 +406,26 @@ PARSE:
 			endif
       endif
       
+      if ("$argv[$cnt]" == "-zval") then
+         set SufLoc = $cnt		
+         set NxtInd = $cnt
+		   
+         set DoZval = 1
+      endif
+      
+      if ("$argv[$cnt]" == "-dirty") then
+         set SufLoc = $cnt		
+         set NxtInd = $cnt
+		   
+         set cleanup = 0
+      endif
+      
+      if ("$argv[$cnt]" == "-verb") then
+         set SufLoc = $cnt		
+         set NxtInd = $cnt
+		   
+         set verb = 1
+      endif
 		
 		@ cnt ++
 	end

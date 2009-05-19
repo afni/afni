@@ -801,8 +801,8 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
          case 10: siz = DSET_NZ(CALC_dset[ids]) ; break ;
        }
        if( IJKAR_flim[ii]->nx != siz )
-         ERROR_message("dimension mismatch between '-%c' and '%-c'\n",
-                       'a'+ii , 'a'+ids ) ;
+         WARNING_message("dimension mismatch between '-%c' and '%-c'\n",
+                         'a'+ii , 'a'+ids ) ;
      }
    }
 
