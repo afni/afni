@@ -9,7 +9,8 @@ int main( int argc , char *argv[] )
    float *far ;
    int demean=0 , docov=0 ;
    char *matname ;
-
+   int okzero = 0;
+   
    /* help? */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -25,6 +26,10 @@ int main( int argc , char *argv[] )
             " -inn  =  Computed with inner product matrix instead\n"
             " -terse=  Output only the correlation or covariance matrix\n"
             "          and without any of the garnish. \n"
+            " -okzero= Do not complain if a vector is all zeros.\n"
+            "          The correlation matrix will have 0 where NaNs ought to go.\n"
+            "          Expect rubbish in the inverse matrices if all zero \n"
+            "          vectors exist.\n"
            ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -36,6 +41,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-one") == 0 ){
        demean = 0 ; do_one = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-okzero") == 0 ){
+       okzero = 1 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-dem",4) == 0 ){
@@ -122,8 +131,12 @@ int main( int argc , char *argv[] )
        }
        sum = 0.0 ;
        for( ii=0 ; ii < nx ; ii++ ) sum += tvec[kk][ii] * tvec[kk][ii] ;
-       if( sum == 0.0 ) ERROR_exit("Input column %02d is all zero!",kk) ;
-       svec[kk] = 1.0 / sqrt(sum) ;
+       if( sum == 0.0 ) {
+         if (okzero) svec[kk] = 0.0; 
+         else ERROR_exit("Input column %02d is all zero!",kk) ;
+       } else {
+         svec[kk] = 1.0 / sqrt(sum) ;
+       }
      }
    }
    DESTROY_IMARR(tar) ;

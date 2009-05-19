@@ -27,7 +27,8 @@
 #include <ctype.h>
 #include <math.h>
 
-short non_zero[65536];		/* Ugly; depends upon sizeof(short)=2 */
+#define IMAX 65536
+short non_zero[IMAX];		/* Ugly; depends upon sizeof(short)=2 */
 
 void Error_Exit(char *message)
 {
@@ -47,9 +48,10 @@ int main(int argc, char *argv[])
     int num_ROI, ROI, mask_f2s = 0;
     int force_num_ROI = 0;	/* Added 5/00 */
     int narg = 1;
-    double *sum, *sumsq, *nzsum, sig, *sumallbriks=NULL; 
-    double *min, *max, *nzmin, *nzmax;		/* 07 July, 2004 [rickr] */
-    long *voxels, *nzvoxels;
+    double *sum=NULL, *sumsq=NULL, *nzsum=NULL, sig, *sumallbriks=NULL; 
+    double  *min=NULL, *max=NULL, 
+            *nzmin=NULL, *nzmax=NULL;		/* 07 July, 2004 [rickr] */
+    long *voxels=NULL, *nzvoxels=NULL;
     float *input_data;
     byte *temp_datab;
     short *temp_datas;
@@ -58,7 +60,9 @@ int main(int argc, char *argv[])
     int nfv = 0, perc = 0, nzperc = 0;
     int nobriklab=0 ;  /* 14 Mar 2008 */
     int disp1d=1;   /* ZSS May 2008 */
-
+    byte *roisel=NULL; 
+    char zerofill[32]={" "};
+    
     if (argc < 3 || strcmp(argv[1], "-help") == 0) {
 	printf("Usage: 3dROIstats -mask[n] mset [options] datasets\n"
 	       "\n"
@@ -113,7 +117,14 @@ int main(int argc, char *argv[])
 	       "                 way so the output lines up with the output from other\n"
 	       "                 invocations of 3dROIstats.  Confused?  Then don't use\n"
 	       "                 this option!\n"
+          "  -zerofill ZF   For ROI labels not found, use 'ZF' instead of a blank\n"
+          "                 in the output file. This option is useless without -numROI\n"
 	       "\n"
+          "  -roisel SEL.1D Only considers ROIs denoted by values found in SEL.1D\n"
+          "                 Note that the order of the ROIs as specified in SEL.1D\n"
+          "                 is not preserved. So an SEL.1D of '2 8 20' produces the\n"
+          "                 same output as '8 20 2'\n" 
+          "\n"
 	       "  -debug        Print out debugging information\n"
 	       "  -quiet        Do not print out labels for columns or rows\n"
           "  -nobriklab    Do not print the sub-brick label next to its index\n"
@@ -165,7 +176,33 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
         }
-	if (strncmp(argv[narg], "-mask", 5) == 0) {
+	if (strncmp(argv[narg], "-roisel", 5) == 0) {
+	   MRI_IMAGE *im = NULL;
+      float *far=NULL;
+	    if (narg + 1 >= argc)
+		Error_Exit("-roisel option requires a following argument!");
+       
+       if (!(im = mri_read_1D (argv[++narg]))) {
+         Error_Exit("Could not load -roisel file");
+       }
+       
+       /* allocate for roisel */
+       roisel = (byte *)calloc(IMAX, sizeof(byte));
+       far = MRI_FLOAT_PTR(im);
+       for (i=0; i<im->nx*im->ny; ++i) {
+         if ((int) far[i]>=0 && (int)far[i] < IMAX) roisel[(int)far[i]] = 1;
+         else {
+            Error_Exit("ROISEL file has bad mask values");
+         }
+       }
+       mri_clear_data_pointer(im) ;
+       mri_free(im); im = NULL; 
+       free(far); far=NULL;
+      
+	    narg++;
+	    continue;
+	}
+   if (strncmp(argv[narg], "-mask", 5) == 0) {
 	    if (mask_dset != NULL)
 		Error_Exit("Cannot have two -mask options!");
 
@@ -270,6 +307,11 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
 	}
+	if (strncmp(argv[narg], "-zerofill", 5) == 0) {
+	    snprintf(zerofill, sizeof(char)*30, "%s", argv[++narg]);
+	    narg++;
+	    continue;
+	}
 	Error_Exit("Unknown option");
     }
 
@@ -292,8 +334,9 @@ int main(int argc, char *argv[])
 
 
     /* See how many ROIS there are to deal with in the mask */
-    for (i = 0; i < 65536; non_zero[i++] = 0);
+    for (i = 0; i < IMAX; non_zero[i++] = 0);
 
+    if (roisel) DSET_mallocize(mask_dset); 
     DSET_load(mask_dset);
     if (DSET_ARRAY(mask_dset, mask_subbrik) == NULL)
 	Error_Exit("Cannot read in mask dataset BRIK!");
@@ -310,9 +353,17 @@ int main(int argc, char *argv[])
 	    mask_data = (short *) DSET_ARRAY(mask_dset, mask_subbrik);
 	    for (i = 0; i < nvox; i++)
 		if (mask_data[i]) {
+		  if (!roisel || roisel[mask_data[i]]) {
 		    if (debug)
 			fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);
 		    non_zero[mask_data[i] + 32768] = 1;
+        } else {
+         if (debug)
+			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n", 
+                         i, mask_data[i]);
+         /* cancel that */
+         mask_data[i] = 0;
+        }
 		}
 	    break;
 	}
@@ -325,9 +376,17 @@ int main(int argc, char *argv[])
 	    for (i = 0; i < nvox; i++) {
 		mask_data[i] = (short) temp_byte[i];
 		if (mask_data[i]) {
-		    if (debug)
+		  if (!roisel || roisel[mask_data[i]]) {
+          if (debug)
 			fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);
 		    non_zero[mask_data[i] + 32768] = 1;
+        } else {
+         if (debug)
+			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n", 
+                         i, mask_data[i]);
+         /* cancel that */
+         mask_data[i] = 0;
+        }
 		}
 	    }
 	    break;
@@ -341,9 +400,17 @@ int main(int argc, char *argv[])
 	    for (i = 0; i < nvox; i++) {
 		mask_data[i] = (short) temp_float[i];
 		if (mask_data[i]) {
+		  if (!roisel || roisel[mask_data[i]]) {
 		    if (debug)
 			fprintf(stderr, "Nonzero mask voxel %d value is %d\n", i, mask_data[i]);
 		    non_zero[mask_data[i] + 32768] = 1;
+        } else {
+         if (debug)
+			fprintf(stderr, "Ignoring mask voxel %d with value %d not in ROISEL\n", 
+                         i, mask_data[i]);
+         /* cancel that */
+         mask_data[i] = 0;
+        }
 		}
 	    }
 	    break;
@@ -355,7 +422,7 @@ int main(int argc, char *argv[])
 	   if (disp1d) fprintf(stdout, "#File\tSub-brick\n\t\t#");
       else fprintf(stdout, "File\tSub-brick");
     }  
-    for (i = 0, num_ROI = 0; i < 65536; i++)
+    for (i = 0, num_ROI = 0; i < IMAX; i++)
 	if (non_zero[i]) {
 	    if (force_num_ROI && (((i - 32768) < 0) || ((i - 32768) > force_num_ROI)))
 		Error_Exit("You used the numROI option, yet in the mask there was a\n"
@@ -553,7 +620,7 @@ int main(int argc, char *argv[])
        for (i = 0; i < nvox; i++) {
 		if (mask_data[i]) {
 		    ROI = non_zero[mask_data[i] + 32768];
-		    if ((ROI < 0) || (ROI >= num_ROI))
+          if ((ROI < 0) || (ROI >= num_ROI))
 			Error_Exit("Somehow I boned computing how many ROIs existed");
 
 		    if ( minmax ) {
@@ -643,23 +710,23 @@ int main(int argc, char *argv[])
 			    fprintf(stdout, "\t%f", percentile[i] );
 			}
 		    } else {	/* no voxels, so just leave blanks */
-			fprintf(stdout, "\t ");
+			fprintf(stdout, "\t%s", zerofill);
 			if (nzmean)
-			    fprintf(stdout, "\t ");
+			    fprintf(stdout, "\t%s", zerofill);
 			if (nzcount)
-			    fprintf(stdout, "\t ");
+			    fprintf(stdout, "\t%s", zerofill);
 			if (sigma)
-			    fprintf(stdout, "\t ");
+			    fprintf(stdout, "\t%s", zerofill);
 			if (minmax) {
-			    fprintf(stdout, "\t ");
-			    fprintf(stdout, "\t ");
+			    fprintf(stdout, "\t%s", zerofill);
+			    fprintf(stdout, "\t%s", zerofill);
 			}
 			if (nzminmax) {
-			    fprintf(stdout, "\t ");
-			    fprintf(stdout, "\t ");
+			    fprintf(stdout, "\t%s", zerofill);
+			    fprintf(stdout, "\t%s", zerofill);
 			}
          if (perc || nzperc)
-			    fprintf(stdout, "\t ");
+			    fprintf(stdout, "\t%s", zerofill);
 		    }
 		}		/* loop over ROI for print */
 
@@ -712,5 +779,6 @@ int main(int argc, char *argv[])
     if (perc || nzperc) {
 	if (percentile) free(percentile); percentile = NULL;
 	 }
+    if (roisel) free(roisel); roisel=NULL;
     exit(0);
 }
