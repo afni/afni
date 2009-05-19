@@ -979,7 +979,7 @@ DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 	$(RM) $@
 	$(CC) -o DTIStudioFibertoSegments DTIStudioFibertoSegments.o $(LFLAGS) $(LLIBS)
 
-## Things to be compiled or linked with OpenMP
+## ------- Things to be compiled or linked with OpenMP -------
 
 3dBlurInMask.o:3dBlurInMask.c
 	$(RM) $@
@@ -1025,16 +1025,18 @@ mri_rbfinterp.o:mri_rbfinterp.c
 	$(RM) $@
 	$(CCOMP) -c 3dTcorrMap.c $(INFLAGS)
 
+## ------- end of OpenMP compilations -------
+
+# in case I want to CCOMP this someday
+mcw_malloc.o:mcw_malloc.c
+	$(RM) $@
+	$(CC) -c mcw_malloc.c $(INFLAGS)
+
 ###  generic compile a C file
 
 .c.o:
 	$(RM) $@
 	$(CC) -c $*.c $(INFLAGS)
-
-# in case I want to CCOMP this
-mcw_malloc.o:mcw_malloc.c
-	$(RM) $@
-	$(CC) -c mcw_malloc.c $(INFLAGS)
 
 ### Special compilations for the reslicing routines, which
 ### are templates that require definition of the data type
@@ -1164,17 +1166,17 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o 1dREMLfit 1dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
 
-3dREMLfit.o: 3dREMLfit.c remla.c
+3dREMLfit.o: 3dREMLfit.c remla.c matrix.c rcmat.c
 	$(RM) $@
 	$(CCFAST) -c 3dREMLfit.c $(INFLAGS)
-
-mri_blur3d_variable.o:mri_blur3d_variable.c
-	$(RM) $@
-	$(CCFAST) -c mri_blur3d_variable.c $(INFLAGS)
 
 3dREMLfit:3dREMLfit.o
 	$(RM) $@
 	$(CCFAST) -o 3dREMLfit 3dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
+
+mri_blur3d_variable.o:mri_blur3d_variable.c
+	$(RM) $@
+	$(CCFAST) -c mri_blur3d_variable.c $(INFLAGS)
 
 1dUpsample:1dUpsample.o
 	$(RM) $@
