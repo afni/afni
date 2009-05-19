@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, MAY, 2009, RCR, "3dbucket", MICRO, TYPE_MODIFY,
+   "suggest -overwrite if -glueto is not allowed (for Mike B)",
+   NULL
+ } ,
+
  { 15, MAY, 2009, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "added -volreg_tlrc_warp option: can warp to standard space at volreg step",
    NULL

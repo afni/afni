@@ -73,7 +73,7 @@ void BUCK_read_opts( int argc , char * argv[] )
    char dname[THD_MAX_NAME] ;
    char subv[THD_MAX_NAME] ;
    char *cpt ;
-   THD_3dim_dataset *dset , *fset ;
+   THD_3dim_dataset *dset , *fset=NULL ;
    int *svar ;
    char *str;
    int ok, ilen, nlen;
@@ -191,7 +191,8 @@ void BUCK_read_opts( int argc , char * argv[] )
 	 if (! ok)
 	   {
 	     fprintf(stderr,
-	       "File name must end in +orig, +acpc, or +tlrc after -glueto\n");
+	     "File name must end in +orig, +acpc, or +tlrc after -glueto\n"
+             "(consider: 3dbucket -prefix dsetA -overwrite dsetA dsetB ...)\n");
 	     exit(1);
 	   }
 
