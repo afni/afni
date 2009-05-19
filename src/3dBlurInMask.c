@@ -40,13 +40,13 @@ int main( int argc , char *argv[] )
       "              **N.B.: -automask and -mask can't be combined.\n"
       " -float      = Save dataset as floats, no matter what the\n"
       "               input data type is.\n"
-      "              **N.B.: If the input dataset is all shorts, then\n"
+      "              **N.B.: If the input dataset is unscaled shorts, then\n"
       "                      the default is to save the output in short\n"
       "                      format as well.  In every other case, the\n"
       "                      default is to save the output as floats.\n"
-      "                      Thus, the purpose of the '-float' option is\n"
-      "                      only to force an all-shorts input dataset\n"
-      "                      to be saved as all-floats after blurring.\n"
+      "                      Thus, the ONLY purpose of the '-float' option\n"
+      "                      is to force an all-shorts input dataset to be\n"
+      "                      saved as all-floats after blurring.\n"
       "\n"
       "NOTES\n"
       "-----\n"
@@ -176,7 +176,11 @@ int main( int argc , char *argv[] )
 
    if( !floatize ){    /* 18 May 2009 */
      if( !THD_datum_constant(inset->dblk)     ||
-         DSET_BRICK_TYPE(inset,0) != MRI_short  ) floatize = 1 ;
+         THD_need_brick_factor(inset)         ||
+         DSET_BRICK_TYPE(inset,0) != MRI_short  ){
+       INFO_message("forcing output to be stored in float format") ;
+       floatize = 1 ;
+     }
    }
 
 #if 0
@@ -229,7 +233,7 @@ int main( int argc , char *argv[] )
 #pragma omp for
    for( ids=0 ; ids < nvals ; ids++ ){
      if( verb ) fprintf(stderr,"%d.",ids) ;
-#pragma omp critical (BlurInMask)
+#pragma omp critical (MALLOC)
      { dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids)); }
      DSET_unload_one(inset,ids) ;
      dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
@@ -237,9 +241,9 @@ int main( int argc , char *argv[] )
      if( floatize ){
        EDIT_substitute_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ) ;
      } else {
-#pragma omp critical (BlurInMask)
+#pragma omp critical (MALLOC)
        { EDIT_substscale_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ,
-                                               MRI_short , 0.0f ) ;
+                                               MRI_short , 1.0f ) ;
          mri_free(dsim) ;
        }
      }

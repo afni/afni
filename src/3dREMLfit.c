@@ -1093,7 +1093,7 @@ int main( int argc , char *argv[] )
 
    /*------- official startup ------*/
 
-#ifdef USING_MCW_MALLOC
+#if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
 #endif
    PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();

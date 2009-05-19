@@ -126,6 +126,8 @@ int rcmat_choleski( rcmat *rcm )
 #undef  RV
 #define RV(k) rii[k]*vv[k]
 
+#define UNROLL
+
 /*! Consider a rcmat struct as a lower triangular matrix,
     and solve the matrix-vector equation [rcm][x] = [vec], in place. */
 
@@ -133,6 +135,9 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
 {
    int nn , jbot ; LENTYP *len ; register int ii,jj ;
    double **rc ; register double *rii , sum , *vv ;
+#ifdef UNROLL
+   register int im1 ;
+#endif
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
 
@@ -150,7 +155,13 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
      }
      jbot = ii - len[ii] + 1 ; rii = rc[ii] - jbot ;
      sum = vv[ii] ;
+#ifndef UNROLL
      for( jj=jbot ; jj < ii ; jj++ ) sum -= RV(jj) ;
+#else
+     im1 = ii-1 ;
+     for( jj=jbot ; jj < im1 ; jj+=2 ) sum -= RV(jj)+RV(jj+1) ;
+     if( jj == im1 ) sum -= RV(jj) ;
+#endif
      vv[ii] = sum / rii[ii] ;
    }
    return ;
@@ -231,6 +242,9 @@ void rcmat_uppert_solve( rcmat *rcm , double *vec )
 {
    int nn , ibot ; LENTYP *len ; register int ii,jj ;
    double **rc ; register double *rjj , *vv , xj ;
+#ifdef UNROLL
+   register int jm1 ;
+#endif
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
 
@@ -242,8 +256,17 @@ void rcmat_uppert_solve( rcmat *rcm , double *vec )
    for( jj=nn-1 ; jj >= 0 ; jj-- ){
      ibot = jj - len[jj] + 1 ;
      rjj  = rc[jj] - ibot ;
-     xj = vv[jj] = vv[jj] / rjj[jj] ;
+     xj   = vv[jj] = vv[jj] / rjj[jj] ;
+#ifndef UNROLL
      for( ii=ibot ; ii < jj ; ii++ ) vv[ii] -= rjj[ii] * xj ;
+#else
+     jm1 = jj-1 ;
+     for( ii=ibot ; ii < jm1 ; ii+=2 ){
+       vv[ii]   -= rjj[ii]   * xj ;
+       vv[ii+1] -= rjj[ii+1] * xj ;
+     }
+     if( ii == jm1 ) vv[ii] -= rjj[ii] * xj ;
+#endif
    }
    return ;
 }
