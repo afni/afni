@@ -575,13 +575,19 @@ ENTRY("REML_func") ;
    }
 
    if( qq1 == NULL ){
-     qq1 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq1) ;
-     qq2 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq2) ;
-     qq3 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq3) ;
-     qq4 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq4) ;
-     qq5 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq5) ;
-     qq6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq6) ;
-     qq7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(qq7) ;
+#pragma omp critical (MALLOC)
+     { qq1 = (vector *)malloc(sizeof(vector)) ;
+       qq2 = (vector *)malloc(sizeof(vector)) ;
+       qq3 = (vector *)malloc(sizeof(vector)) ;
+       qq4 = (vector *)malloc(sizeof(vector)) ;
+       qq5 = (vector *)malloc(sizeof(vector)) ;
+       qq6 = (vector *)malloc(sizeof(vector)) ;
+       qq7 = (vector *)malloc(sizeof(vector)) ;
+     }
+     vector_initialize(qq1) ; vector_initialize(qq2) ;
+     vector_initialize(qq3) ; vector_initialize(qq4) ;
+     vector_initialize(qq5) ; vector_initialize(qq6) ;
+     vector_initialize(qq7) ; 
 #ifndef USE_OMP
      bb1 = qq1 ; bb2 = qq2 ; bb3 = qq3 ; bb4 = qq4 ;
      bb5 = qq5 ; bb6 = qq6 ; bb7 = qq7 ;
@@ -635,21 +641,26 @@ ENTRY("REML_func") ;
    if( bbsave ){
      bbsumq = qsumq ;
 #ifdef USE_OMP
-#pragma omp critcal (REMLA_BB_ALLOC)
    { if( bb1 == NULL ){
-       bb1 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb1) ;
-       bb2 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb2) ;
-       bb3 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb3) ;
-       bb4 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb4) ;
-       bb5 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb5) ;
-       bb6 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb6) ;
-       bb7 = (vector *)malloc(sizeof(vector)) ; vector_initialize(bb7) ;
+#pragma omp critical (MALLOC)
+       { bb1 = (vector *)malloc(sizeof(vector)) ;
+         bb2 = (vector *)malloc(sizeof(vector)) ;
+         bb3 = (vector *)malloc(sizeof(vector)) ;
+         bb4 = (vector *)malloc(sizeof(vector)) ;
+         bb5 = (vector *)malloc(sizeof(vector)) ;
+         bb6 = (vector *)malloc(sizeof(vector)) ;
+         bb7 = (vector *)malloc(sizeof(vector)) ;
+       }
+       vector_initialize(bb1) ; vector_initialize(bb2) ;
+       vector_initialize(bb3) ; vector_initialize(bb4) ;
+       vector_initialize(bb5) ; vector_initialize(bb6) ;
+       vector_initialize(bb7) ;
      }
    }
-     vector_equate( *qq1 , bb1 ) ; vector_equate( *qq2 , bb2 ) ;
-     vector_equate( *qq3 , bb3 ) ; vector_equate( *qq4 , bb4 ) ;
-     vector_equate( *qq5 , bb5 ) ; vector_equate( *qq6 , bb6 ) ;
-     vector_equate( *qq7 , bb7 ) ;
+   vector_equate( *qq1 , bb1 ) ; vector_equate( *qq2 , bb2 ) ;
+   vector_equate( *qq3 , bb3 ) ; vector_equate( *qq4 , bb4 ) ;
+   vector_equate( *qq5 , bb5 ) ; vector_equate( *qq6 , bb6 ) ;
+   vector_equate( *qq7 , bb7 ) ;
 #endif
    }
 
@@ -657,7 +668,8 @@ ENTRY("REML_func") ;
    vector_destroy(qq1) ; vector_destroy(qq2) ; vector_destroy(qq3) ;
    vector_destroy(qq4) ; vector_destroy(qq5) ; vector_destroy(qq6) ;
    vector_destroy(qq7) ;
-   free(qq1); free(qq2); free(qq3); free(qq4); free(qq5); free(qq6); free(qq7);
+#pragma omp critical (MALLOC)
+   { free(qq1); free(qq2); free(qq3); free(qq4); free(qq5); free(qq6); free(qq7); }
 #endif
 
    RETURN(val) ;
@@ -1033,9 +1045,9 @@ ENTRY("REML_find_best_case") ;
 
      /** However, OpenMP makes things slower, but why? why? why? **/
 
-/*** #pragma omp parallel if( nkl > 1 && bbsave == 0 ) ***/
+#pragma omp parallel if( nkl > 3 && bbsave == 0 )
    { int mm , kk ;
-/*** #pragma omp for ***/
+#pragma omp for schedule(static)
      for( mm=0 ; mm < nkl ; mm++ ){  /* this takes a lot of CPU time */
        kk = klist[mm] ;
        rvab[kk] = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
