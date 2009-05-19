@@ -2971,7 +2971,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                            SUMA_LH("Calling user pause...");
                            #if 1
                               SUMA_PauseForUser(sv->X->TOPLEVEL, buf, 
-                                                SWP_POINTER_OFF, NULL); 
+                                                SWP_POINTER_OFF, NULL, 0); 
                            #else /* kept here to illustrate bug */
          /* very slow when called repeatedly except when you open the 
          'Close All Viewers' thing by hand with SHFTESC then press No.

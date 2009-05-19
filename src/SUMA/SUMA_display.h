@@ -353,7 +353,9 @@ SUMA_Boolean SUMA_RemixRedisplay (SUMA_SurfaceObject *SO);
 void SUMA_cb_SetDrawROI_SaveMode(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SetDrawROI_SaveWhat(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data);
-int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos, XtAppContext    *app);
+int SUMA_PauseForUser(Widget parent, char *question, 
+                      SUMA_WINDOW_POSITION pos, XtAppContext    *app,
+                      int withpause);
 int SUMA_ForceUser_YesNo(Widget parent, char *question, int default_ans, SUMA_WINDOW_POSITION pos);
 int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_ans);
 char * SUMA_ClassOf(int c);
