@@ -11262,7 +11262,8 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
 /*!
   Supposed to behave like ForceUser function below but only for pausing.
 */
-int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos, XtAppContext *app)
+int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos, 
+                        XtAppContext *app, int withpause)
 {
    static char FuncName[]={"SUMA_PauseForUser"};
    static Widget dialog; /* static to avoid multiple creation */
@@ -11291,9 +11292,13 @@ int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos, X
      XtVaSetValues (dialog,
          XmNdialogStyle,        XmDIALOG_FULL_APPLICATION_MODAL,
          NULL);
-     /* Don't need help and cancel buttons */
+     /* Don't need help and cancel buttons*/
      XtUnmanageChild (XmMessageBoxGetChild (dialog, XmDIALOG_HELP_BUTTON));
-     XtUnmanageChild (XmMessageBoxGetChild (dialog, XmDIALOG_CANCEL_BUTTON));
+     if (!withpause) {
+      XtUnmanageChild (XmMessageBoxGetChild (dialog, XmDIALOG_CANCEL_BUTTON)); 
+     }else {
+      XtAddCallback (dialog, XmNcancelCallback, SUMA_response, &answer); 
+     }
      
      XtAddCallback (dialog, XmNokCallback, SUMA_response, &answer); 
     } else {
@@ -11323,9 +11328,9 @@ int SUMA_PauseForUser(Widget parent, char *question, SUMA_WINDOW_POSITION pos, X
    
 
    if (!app) app = &(SUMAg_CF->X->App);
-   while (answer == SUMA_NO_ANSWER)
+   while (answer == SUMA_NO_ANSWER && XtIsManaged(dialog)) {
      XtAppProcessEvent (*app, XtIMAll);
-      
+   }   
    #if 1
       XtDestroyWidget(dialog); 
       dialog = NULL;
