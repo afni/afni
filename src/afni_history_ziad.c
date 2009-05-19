@@ -68,7 +68,7 @@ afni_history_struct ziad_history[] = {
  { 19 , MAY , 2009 , ZSS , "@ROI_Corr_Mat" , MAJOR , TYPE_NEW_PROG ,
    "A script to calculate correlation matrices between ROI time series",
    "Calculates the correlation matrices between average time series from ROIs\n"
-   "defined in a mask volume. Script was written with Hang Joon-Jo."
+   "defined in a mask volume. Script was written with Hang Joon Jo."
  } ,
 
  { 19 , MAY , 2009 , ZSS , "3dROIstats" , MINOR , TYPE_NEW_OPT ,
