@@ -65,6 +65,22 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 19 , MAY , 2009 , ZSS , "@ROI_Corr_Mat" , MAJOR , TYPE_NEW_PROG ,
+   "A script to calculate correlation matrices between ROI time series",
+   "Calculates the correlation matrices between average time series from ROIs\n"
+   "defined in a mask volume. Script was written with Hang Joon-Jo."
+ } ,
+
+ { 19 , MAY , 2009 , ZSS , "3dROIstats" , MINOR , TYPE_NEW_OPT ,
+   "Added -zerofill and -roisel options",
+   "Added options to force output for empty ROIs."
+ } ,
+
+ { 19 , MAY , 2009 , ZSS , "1ddot" , MINOR , TYPE_NEW_OPT ,
+   "Added -okzero to keep program from exiting with all zero input",
+   "Added options to force output for empty ROIs."
+ } ,
+ 
  { 8 , MAY , 2009 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT ,
    "The script now automatically turns FS annot files to SUMA ROI files",
    NULL
