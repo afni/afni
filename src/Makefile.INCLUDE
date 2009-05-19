@@ -2546,7 +2546,7 @@ suma_exec:libGLws.a libSUMA.a libmri.a xutil.o LiteClue.o parser.o parser_int.o 
    SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias \
    3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
    'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -2691,6 +2691,8 @@ suma_clean:
 	if [ -f SUMA/SpharmReco ]; then $(RM) SUMA/SpharmReco; fi;
 	if [ -f SpharmDeco ]; then $(RM) SpharmDeco; fi;
 	if [ -f SUMA/SpharmDeco ]; then $(RM) SUMA/SpharmDeco; fi;
+	if [ -f prompt_user ]; then $(RM) prompt_user; fi;
+	if [ -f SUMA/prompt_user ]; then $(RM) SUMA/prompt_user; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -2706,7 +2708,7 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask\
    SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco; \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user; \
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset \
    3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset \
@@ -2714,7 +2716,7 @@ suma_link:
    quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip \
    3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI 3dSurfMask \
 	SurfToSurf Surf2VolCoord ROIgrow SurfDsetInfo SurfInfo AnalyzeTrace \
-   DriveSuma SurfDist SpharmReco SpharmDeco \
+   DriveSuma SurfDist SpharmReco SpharmDeco prompt_user \
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -2743,7 +2745,7 @@ suma_install:
    SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask \
    SUMA/SurfToSurf  SUMA/Surf2VolCoord  SUMA/ROIgrow SUMA/SurfDsetInfo \
    SUMA/SurfInfo SUMA/AnalyzeTrace SUMA/DriveSuma SUMA/SurfDist \
-   SUMA/SpharmReco SUMA/SpharmDeco \
+   SUMA/SpharmReco SUMA/SpharmDeco SUMA/prompt_user \
    ${INSTALLDIR} ; \
 	if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)

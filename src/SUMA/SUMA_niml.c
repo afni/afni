@@ -305,6 +305,16 @@ SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUM
    SUMA_RETURN(YUP);
 }
 
+static int SUMA_WriteCheckWaitMax;
+
+int SUMA_GetWriteCheckWaitMax(void) {
+   return(SUMA_WriteCheckWaitMax);
+}
+void SUMA_SetWriteCheckWaitMax(int val) {
+   if (val == 0) val = SUMA_WRITECHECKWAITMAX;
+   SUMA_WriteCheckWaitMax = val;
+}
+
 /*!
    \brief Initiates a call on stream cf->ns_v[si]
    
@@ -321,8 +331,8 @@ SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUM
 SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUMA)
 {
    static char FuncName[]={"SUMA_niml_call"};
-   int nn, Wait_tot;
-   SUMA_Boolean LocalHead = NOPE;
+   int nn=-1, Wait_tot;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -339,7 +349,8 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
          fprintf(SUMA_STDOUT,"%s: Connected.\n", FuncName); fflush(SUMA_STDOUT);
       }else {   /* must open stream */              
          /* contact afni */
-            fprintf(SUMA_STDOUT,"%s: Contacting ...\n", FuncName);
+            SUMA_SetWriteCheckWaitMax(cf->ns_to[si]);
+            fprintf(SUMA_STDOUT,"%s: Contacting on %d, maximum wait %.3f sec: ", FuncName, si, (float)cf->ns_to[si]/1000.0);
             fflush(SUMA_STDOUT);
             cf->ns_v[si] =  NI_stream_open( cf->NimlStream_v[si] , "w" ) ;
             if (!cf->ns_v[si]) {

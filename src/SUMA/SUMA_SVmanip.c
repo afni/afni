@@ -1768,6 +1768,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    SUMA_CommonFields *cf;
    int i, portn = -1, n, portn2, portn3, kkk;
    char *eee=NULL;
+   float dsmw=5*60;
    SUMA_Boolean LocalHead = NOPE;
       
    /* This is the function that creates the debugging flags, do not use them here */
@@ -1838,10 +1839,33 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
       portn3 = SUMA_MATLAB_LISTEN_PORT;
    }   
       
+   eee = getenv("SUMA_DriveSumaMaxWait");
+   if (eee) {
+      dsmw = atof(eee);
+      if (dsmw < 0 || dsmw > 60000) {
+         fprintf (SUMA_STDERR, 
+                "Warning %s:\n"
+                "Environment variable SUMA_DriveSumaMaxWait %f is invalid.\n"
+                "value must be between 0 and 60000 seconds.\n"
+                "Using default of %d\n", 
+                FuncName, dsmw, 5*60);
+         dsmw = (float)5*60;/* wait for 5 minutes */
+      }
+   } else {
+      dsmw = (float)5*60;
+   } 
     
    kkk=0;
    for (i=0; i<SUMA_MAX_STREAMS; ++i) {
       cf->ns_v[i] = NULL;
+      switch(i) {
+         case SUMA_DRIVESUMA_LINE:
+            cf->ns_to[i] = (int)(dsmw*1000);  
+            break;
+         default:
+            cf->ns_to[i] = SUMA_WRITECHECKWAITMAX;
+            break;
+      }
       cf->ns_flags_v[i] = 0;
       cf->Connected_v[i] = NOPE;
       cf->TrackingId_v[i] = 0;

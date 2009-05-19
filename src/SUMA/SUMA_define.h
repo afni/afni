@@ -126,7 +126,7 @@
 #define SUMA_TESSCON_DIFF_FLAG    1000   /*!< If aMaxDim - aMinDim > SUMA_TESSCON_DIFF_FLAG in a .iv file, scaling by SUMA_TESSCON_TO_MM is applied */
 
 #define SUMA_WriteCheckWait 400 /*!< Milliseconds to wait for each stream_writecheck call */ 
-#define SUMA_WriteCheckWaitMax 2000 /*!< Milliseconds to try and establish a good WriteCheck */
+#define SUMA_WRITECHECKWAITMAX 2000 /*!< Milliseconds to try and establish a good WriteCheck */
 
 #define SUMA_MAX_N_SURFACE_SPEC 500/*!< Maximum number of surfaces allowed in a spec file */
 
@@ -2497,6 +2497,7 @@ typedef struct {
                      *** Dec. 19 03
                      Used to be called ns for connecting to AFNI.
                      ns = ns_v[SUMA_AFNI_STREAM_INDEX]*/
+   int ns_to[SUMA_MAX_STREAMS];
    int ns_flags_v[SUMA_MAX_STREAMS];
    int TCP_port[SUMA_MAX_STREAMS];
    int TalkMode[SUMA_MAX_STREAMS];  /* Talk text or talk binary? */

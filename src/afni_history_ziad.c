@@ -65,6 +65,16 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 19 , MAY , 2009 , ZSS , "prompt_user" , MINOR , TYPE_NEW_PROG ,
+   "Prompts user for input with an X window",
+   NULL
+ } ,
+
+ { 19 , MAY , 2009 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT ,
+   "Modified time out for DriveSuma to 5 minutes",
+   "Time out can be controlled by environment variable SUMA_DriveSumaMaxWait"
+ } ,
+
  { 19 , MAY , 2009 , ZSS , "@ROI_Corr_Mat" , MAJOR , TYPE_NEW_PROG ,
    "A script to calculate correlation matrices between ROI time series",
    "Calculates the correlation matrices between average time series from ROIs\n"
