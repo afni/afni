@@ -526,6 +526,11 @@ GLUT_volumedemo: SUMA_GLUT_volumedemo.c
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+prompt_user: SUMA_prompt_user.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_prompt_user.c ${SUMA_INPATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 libply.a: 
 	( cd PLY ;	\
@@ -620,6 +625,7 @@ install:
 	@if [ -f SpharmDeco ]; then mv SpharmDeco ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SpharmReco ]; then mv SpharmReco ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfDist ]; then mv SurfDist ${INSTALLDIR_SUMA}; fi;
+	@if [ -f prompt_user ]; then mv prompt_user ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -679,6 +685,7 @@ packbins:
 	@if [ -f SpharmDeco ]; then $(CP) -p SpharmDeco SUMA_bin/; fi;
 	@if [ -f SpharmReco ]; then $(CP) -p SpharmReco SUMA_bin/; fi;
 	@if [ -f SurfDist ]; then $(CP) -p SurfDist SUMA_bin/; fi;
+	@if [ -f prompt_user ]; then $(CP) -p prompt_user SUMA_bin/; fi;
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
