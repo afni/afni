@@ -118,6 +118,8 @@ static int        num_open_controllers ;                       /* 02 Aug 2002 */
 static int            open_controller_index[MAX_CONTROLLERS] ;
 static Three_D_View * open_controller      [MAX_CONTROLLERS] ;
 
+static int num_runs = 0 ;  /* 20 May 2009 = # times new acquisitions started */
+
 typedef struct {
 
    int info_ok , no_data ;        /* status flags */
@@ -3202,10 +3204,12 @@ void RT_start_dataset( RT_input * rtin )
      }
    }
 
-   /********************************/
-   /** make a good dataset prefix **/
+   /******************************************/
+   /** make a good dataset prefix (somehow) **/
 
-   for( ii=1 ; ; ii++ ){
+   num_runs++ ;  /* 20 May 2009 */
+   for( ii=num_runs ; ; ii++ ){  /* will loop until it succeeds! */
+
       sprintf( npr , "%.*s#%03d" , RT_MAX_PREFIX, rtin->root_prefix , ii ) ;
 
       if( rtin->num_chan == 1 ){                  /* the old way */
