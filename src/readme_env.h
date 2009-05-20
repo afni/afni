@@ -974,6 +974,13 @@ static char * readme_env[] = {
    "        are sent to the remote program, allowing evaluation of timing.  The\n" ,
    "        times are modulo one hour, and are at a millisecond resolution.\n" ,
    "\n" ,
+   "AFNI_REALTIME_MAX_CONTROLLERS = Number\n" ,
+   "\n" ,
+   "        If set, this is the maximum number of controllers that AFNI will\n" ,
+   "         open for multi-channel acquisition display.  If more channels\n" ,
+   "         than this are sent, only the first ones will be displayed.\n" ,
+   "     ** If this variable is not set, its value defaults to 2.\n" ,
+   "\n" ,
    "For more information about how the realtime plugin works, read the file\n" ,
    "README.realtime.\n" ,
    "\n" ,
@@ -2923,4 +2930,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 2923
+#define NUM_readme_env 2930

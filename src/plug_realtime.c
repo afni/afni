@@ -3125,6 +3125,7 @@ void RT_start_dataset( RT_input * rtin )
 
    if( rtin->num_chan > 1 ){
      int ic , tc , nc=AFNI_count_controllers() , sn ;
+     int maxnc ;  /* 20 May 2009 -- for MCW and Andre Jesmanowicz */
 
      Three_D_View *im3d = plint->im3d ;             /* default controller */
      if( !IM3D_OPEN(im3d) )                         /* may not be open */
@@ -3132,14 +3133,20 @@ void RT_start_dataset( RT_input * rtin )
 
      sn = im3d->vinfo->sess_num ;                   /* session for all channels */
 
+     /* 20 May 2009: limit the number of controllers to allow */
+
+     maxnc = (int)AFNI_numenv("AFNI_REALTIME_MAX_CONTROLLERS") ;
+          if( maxnc <= 0              ) maxnc = 2 ;
+     else if( maxnc > MAX_CONTROLLERS ) maxnc = MAX_CONTROLLERS ;
+
      /* open new controllers if needed */
 
-     if( nc < rtin->num_chan && nc < MAX_CONTROLLERS ){
-       nc = MIN( rtin->num_chan , MAX_CONTROLLERS ) - nc ;  /* number to add */
+     if( nc < rtin->num_chan && nc < maxnc ){
+       nc = MIN( rtin->num_chan , maxnc ) - nc ;  /* number to add */
 
        fprintf(stderr,
-               "RT: %d channel data requires opening %d more AFNI controllers",
-               rtin->num_chan , nc ) ;
+               "RT: %d channel data requires opening %d more AFNI controller%c",
+               rtin->num_chan , nc , (nc==1) ? ' ' : 's' ) ;
 
        for( ic=0 ; ic < nc ; ic++ )                         /* add them */
          AFNI_clone_controller_CB(NULL,NULL,NULL) ;
@@ -3159,7 +3166,7 @@ void RT_start_dataset( RT_input * rtin )
 
      /* now assign channels to controllers */
 
-     tc = MIN( nc , rtin->num_chan ) ;
+     tc = MIN( nc , rtin->num_chan ) ; tc = MIN( tc , maxnc ) ;
      for( cc=0 ; cc < rtin->num_chan ; cc++ ){
        if( cc < tc ) rtin->im3d[cc] = open_controller[cc] ; /* next available */
        else          rtin->im3d[cc] = NULL ;                /* none available */
@@ -4260,7 +4267,13 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 #endif
 
          if( review ){
-            AFNI_modify_viewing( qq3d , False ) ;  /* Crazy Horse! */
+#if 1                       /** new code to enforce time index update: 20 May 2009 */
+           DISABLE_LOCK ;
+           AFNI_time_index_CB( qq3d->vwid->imag->time_index_av , (XtPointer)qq3d ) ;
+           ENABLE_LOCK ;
+#else
+           AFNI_modify_viewing( qq3d , False ) ;  /* Crazy Horse! */
+#endif
          }
       }
    }
@@ -4505,9 +4518,9 @@ void RT_set_grapher_pinnums( int pinnum )
     if( pinnum < MIN_PIN || pinnum > MAX_PIN || !IM3D_OPEN(plint->im3d) )
         return;
 
-    drive_MCW_grapher( plint->im3d->g123, graDR_setpinnum, (XtPointer) pinnum );
-    drive_MCW_grapher( plint->im3d->g231, graDR_setpinnum, (XtPointer) pinnum );
-    drive_MCW_grapher( plint->im3d->g312, graDR_setpinnum, (XtPointer) pinnum );
+    drive_MCW_grapher( plint->im3d->g123, graDR_setpinnum, (XtPointer)pinnum );
+    drive_MCW_grapher( plint->im3d->g231, graDR_setpinnum, (XtPointer)pinnum );
+    drive_MCW_grapher( plint->im3d->g312, graDR_setpinnum, (XtPointer)pinnum );
 }
 
 /*---------------------------------------------------------------------------
@@ -4757,7 +4770,7 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
          break ;
 
          default:
-            fprintf(stderr,"RT: can't do registration on %s images!\a\n",
+            fprintf(stderr,"RT: can't do 2D registration on %s images!\a\n",
                     MRI_TYPE_name[kind] ) ;
             DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
             rtin->reg_mode = REGMODE_NONE ;
@@ -5207,10 +5220,14 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
             qar = (char *) MRI_BYTE_PTR(rim) ;
          break ;
 
+         case MRI_complex:   /* 20 May 2009: for MCW and Andre Jesmanowicz */
+            qar = (char *) MRI_COMPLEX_PTR(rim) ;
+         break ;
+
          /* this case should not occur: */
 
          default:
-            fprintf(stderr,"RT: can't do registration on %s images!\a\n",
+            fprintf(stderr,"RT: can't do 3D registration on %s images!\a\n",
                     MRI_TYPE_name[rtin->datum] ) ;
             DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
             rtin->reg_mode = REGMODE_NONE ;

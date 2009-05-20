@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , MAY , 2009 , RWC , "realtime plugin" , MICRO , TYPE_NEW_ENV ,
+   "Also modify it to limit the number of open controllers." ,
+   "cf. AFNI_REALTIME_MAX_CONTROLLERS" } ,
+
+ { 20 , MAY , 2009 , RWC , "realtime plugin" , MINOR , TYPE_MODIFY ,
+   "Modified to allow realtime 3D registration on complex inputs" ,
+   "Mostly a change in mri_3dalign.c, to take the movement estimation done\n"
+   "on the magnitude image and apply it to the 2 component images." } ,
+
  { 18 , MAY , 2009 , RWC , "3dDespike" , MICRO , TYPE_GENERAL ,
    "Speedup by OpenMP" ,
    "Also required changes to mcw_malloc.c to mark various sections as\n"
