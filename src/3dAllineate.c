@@ -1140,7 +1140,7 @@ int main( int argc , char *argv[] )
 
    /**--- bookkeeping and marketing ---**/
 
-#ifdef USING_MCW_MALLOC
+#if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
 #endif
 
