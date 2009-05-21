@@ -2206,8 +2206,6 @@ for (sn = 1:1:slices),
       Info = rmfield(Info, {'TAXIS_OFFSETS'});
    end
    
-   Info=rmfield(Info, {'TAXIS_NUMS', 'TAXIS_FLOATS', 'TAXIS_OFFSETS'});  % addeed May 8, 2008
-
    Opt.Frames = [];  %Because it might have been set as the frame list in the case of input files with multiple subbriks during loading
 
 % Write output: reshape because the 3rd dimension is supposed to be Z in the normal situation.
