@@ -82,7 +82,7 @@ R(nl) = struct( 'vname', '',...
 for (icol = 1:1:nl),
 
    if (~isempty(l) && ~l(icol).isdir),
-      R(icol).vname = l(icol).name;
+      R(icol).vname = sprintf('%s%s', l(icol).path, l(icol).name);
       v = Read_1D(R(icol).vname);
    else,
       R(icol).vname = sprintf('vector input col %d', icol);
