@@ -52,6 +52,15 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
   
+  { 20 , May , 2009 , GC , "3dMEMA.R" , SUPER , TYPE_NEW_PROG ,
+    "Mixed-Effects Meta Analysis (MEMA)",
+	 "This is an R program that runs group analysis in a truly random/\n"
+    "mixed-effects sense by taking both beta and t-statistic as input\n"
+	 "instead of beta value only in the conventional method. See more \n"
+    "details at http://afni.nimh.nih.gov/sscc/gangc/MEMA.html" 
+  } ,
+  
+  
   { 22 , DEC , 2008 , GC , "3dICC.R" , MAJOR , TYPE_NEW_PROG ,
     "IntraClass Correlation (ICC)",
 	 "This is an R program that calculates ICC on 3D volume data based on a\n" 
@@ -69,7 +78,7 @@ afni_history_struct gangc_history[] = {
   { 9 , OCT , 2008 , GC , "1dGC.R" , SUPER , TYPE_NEW_PROG ,
     "Multivariate Granger causality analysis",
 	 "This is an R program that runs Granger causality analysis among a few\n"
-	 "pre-select regions.See more details at\n"
+	 "pre-select regions. See more details at\n"
     "http://afni.nimh.nih.gov/sscc/gangc/1dGC" 
   } ,
   
