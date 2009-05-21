@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added 'align' processing block and -volreg_align_e2a option",
+   NULL
+ } ,
+
  { 19, MAY, 2009, RCR, "3dbucket", MICRO, TYPE_MODIFY,
    "suggest -overwrite if -glueto is not allowed (for Mike B)",
    NULL
