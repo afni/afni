@@ -591,10 +591,8 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
 
    #rm(bList, tList, varList)
    # mask out the junk: one slice at a time due to potential memory issue
-   if(as.logical(masked)) for (kk in 1:myDim[3]) 
-      comArr[,,kk,] <- array(apply(comArr[,,kk,], 3, function(x) x*maskData[,,kk,1]), dim=c(myDim[1:2],sum(nFiles)))
    
-   if(as.logical(masked)) for (kk in 1:myDim[3]) {
+   if(as.logical(masked)) { for (kk in 1:myDim[3]) 
       comArr[,,kk,] <- array(apply(comArr[,,kk,], 3, function(x) x*maskData[,,kk,1]), dim=c(myDim[1:2],sum(nFiles)))
       rm(maskData)
    }
