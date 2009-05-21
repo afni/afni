@@ -52,7 +52,7 @@ afni_history_struct gangc_history[] = {
 
   /* can copy to and change one of the examples here */
   
-  { 20 , May , 2009 , GC , "3dMEMA.R" , SUPER , TYPE_NEW_PROG ,
+  { 20 , MAY , 2009 , GC , "3dMEMA.R" , SUPER , TYPE_NEW_PROG ,
     "Mixed-Effects Meta Analysis (MEMA)",
 	 "This is an R program that runs group analysis in a truly random/\n"
     "mixed-effects sense by taking both beta and t-statistic as input\n"
