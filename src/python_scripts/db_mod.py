@@ -58,6 +58,62 @@ def db_cmd_tcat(proc, block):
 
     return cmd
 
+# --------------- align (anat2epi) ---------------
+
+def db_mod_align(block, proc, user_opts):
+    if len(block.opts.olist) == 0:    # then init to defaults
+        block.opts.add_opt('-align_opts_aea', -1, [])
+
+    # general options for align_epi_anat.py
+    uopt = user_opts.find_opt('-align_opts_aea')
+    bopt = block.opts.find_opt('-align_opts_aea')
+    if uopt and bopt: bopt.parlist = uopt.parlist
+
+    block.valid = 1
+
+# align anat to epi -> anat gets _al suffix to its prefix
+#                   -> matrix is ${anat_prefix}_al.mat.aff12.1D
+# (adjust prefix of self.anat and self.tlrcanat)
+# set a2e xform matrix
+def db_cmd_align(proc, block):
+
+    if not proc.anat:
+        print '** missing anat for align block (consider -copy_anat)\n'
+        return
+
+    # first note EPI alignment base and sub-brick, as done in volreg block
+    if proc.vr_ext_base != None:
+        basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
+        bind = 0
+    else:
+        rind, bind = proc.get_vr_base_indices()
+        if rind < 0:
+            print '** align base index failure: %d, %d' % (rind, bind)
+            return     # error message is printed
+        basevol = proc.prev_prefix_form(rind+1, view=1)
+
+    # write commands
+    cmd =       '# -------------------------------------------------------\n' \
+                '# align anatomy to EPI registration base\n'
+    cmd = cmd + 'align_epi_anat.py -anat2epi \\\n'                      \
+                '       -anat %s \\\n'                                  \
+                '       -epi %s \\\n'                                   \
+                '       -epi_base %d -volreg off -tshift off\n\n'       \
+                % (proc.anat.pv(), basevol, bind)
+
+    # store alignment matrix file for possible later use
+    proc.a2e_mat = "%s_al_mat.aff12.1D" % proc.anat.prefix
+
+    # update anat and tlrc to aligned one, unless going e2a at volreg
+    opt = None
+    vblock = proc.find_block('volreg')
+    if vblock: opt = vblock.opts.find_opt('-volreg_align_e2a')
+    if not opt:
+        proc.anat.prefix = "%s_al" % proc.anat.prefix
+        if proc.tlrcanat: proc.tlrcanat.prefix = "%s_al" % proc.tlrcanat.prefix
+
+    return cmd
+
 # --------------- despike ---------------
 
 def db_mod_despike(block, proc, user_opts):
@@ -584,6 +640,11 @@ def db_mod_volreg(block, proc, user_opts):
     if uopt and not bopt:
         block.opts.add_opt('-volreg_tlrc_warp', 0, [])
 
+    uopt = user_opts.find_opt('-volreg_align_e2a')
+    bopt = block.opts.find_opt('-volreg_align_e2a')
+    if uopt and not bopt:
+        block.opts.add_opt('-volreg_align_e2a', 0, [])
+
     block.valid = 1
 
 def db_cmd_volreg(proc, block):
@@ -630,25 +691,30 @@ def db_cmd_volreg(proc, block):
     # ---------------
     # note whether we warp to tlrc, and set the prefix and flags accordingly
     dowarp = block.opts.find_opt('-volreg_tlrc_warp') != None
+    doe2a = block.opts.find_opt('-volreg_align_e2a') != None
 
     cur_prefix = proc.prefix_form_run(block)
-    if dowarp:
+    cstr   = '' # appended to comment string
+    if dowarp or doe2a:
         # verify that we have someplace to warp to
-        if proc.tlrcanat == None:
+        if dowarp and not proc.tlrcanat:
             print '** cannot warp, need -tlrc_anat or -copy_anat with tlrc'
+            return
+        if doe2a and not proc.a2e_mat:
+            print "** cannot align e2a at volreg, need mat from 'align' block"
             return
         prefix = 'rm.epi.volreg.r$run'
         proc.have_rm = 1            # rm.* files exist
         matstr = '%*s-1Dmatrix_save mat.r$run.vr.aff12.1D \\\n' % (13,' ')
-        cstr   = ', and warp to standard space'
+        if doe2a:  cstr = cstr + ', align to anat'
+        if dowarp: cstr = cstr + ', warp to tlrc space'
     else:
         prefix = cur_prefix
         matstr = ''
-        cstr   = ''
     prev_prefix = proc.prev_prefix_form_run(view=1)
 
     cmd = cmd + "# -------------------------------------------------------\n" \
-                "# align each dset to the base volume%s\n" % cstr
+                "# align each dset to base volume%s\n" % cstr
 
     if dowarp:
         cmd = cmd + '\n' + \
@@ -670,30 +736,51 @@ def db_cmd_volreg(proc, block):
                 (zpad, bstr, prefix, resam, other_opts, matstr, prev_prefix)
 
     # if warping, multiply matrices and apply
-    if dowarp:
+    if dowarp or doe2a:
         dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rpv())
         if dim <= 0:
             print '** failed to get grid dim from %s' % proc.dsets[0].rpv()
             return
-        print '++ warping to isotropic %g mm voxels in tlrc space' % dim
+
+        # warn the user of output grid change
+        print '++ volreg:',
+        if doe2a and dowarp:
+            print 'warp and align to isotropic %g mm tlrc voxels'%dim
+            cstr = 'volreg, epi2anat and tlrc'
+        elif doe2a:
+            print 'aligning to isotropic %g mm voxels' % dim
+            cstr = 'volreg and epi2anat'
+        else:
+            cstr = 'volreg and tlrc'
+            print 'warping to isotropic %g mm tlrc voxels' % dim
+
         cmd = cmd + '\n'                                \
-            '    # catenate volreg and tlrc matrices\n' \
-            '    cat_matvec -ONELINE \\\n'              \
-            '               %s::WARP_DATA -I \\\n'      \
-            '               mat.r$run.vr.aff12.1D > mat.r$run.tlrc.aff12.1D\n'\
-            % proc.tlrcanat.pv()
+            '    # catenate %s transformations\n'       \
+            '    cat_matvec -ONELINE \\\n' % cstr
+
+        if dowarp: cmd = cmd +                                 \
+                   '               %s::WARP_DATA -I \\\n' % proc.tlrcanat.pv()
+
+        if doe2a:  cmd = cmd +                         \
+                   '               %s -I \\\n' % proc.a2e_mat
+
+        # if tlrc, use that for 3dAllineate base and change view
+        if dowarp:
+            allinbase = proc.tlrcanat.pv()
+            proc.view = '+tlrc'
+        else: allinbase = proc.anat.pv()
+
+        cmd = cmd +                                     \
+            '               mat.r$run.vr.aff12.1D > mat.r$run.warp.aff12.1D\n'
 
         cmd = cmd + '\n' +                                              \
-            '    # apply catenated xform : warp to tlrc space\n'        \
+            '    # apply catenated xform : %s\n'                        \
             '    3dAllineate -base %s \\\n'                             \
             '                -input %s \\\n'                            \
-            '                -1Dmatrix_apply mat.r$run.tlrc.aff12.1D \\\n' \
+            '                -1Dmatrix_apply mat.r$run.warp.aff12.1D \\\n' \
             '                -mast_dxyz %g\\\n'                         \
             '                -prefix %s \n'                             \
-            % (proc.tlrcanat.pv(), prev_prefix, dim, cur_prefix)
-
-        # and change the current view for further processing
-        proc.view = '+tlrc'
+            % (cstr, allinbase, prev_prefix, dim, cur_prefix)
 
     # if we want to regress motion files per run, create them and add to list
     if block.opts.find_opt('-volreg_regress_per_run'):
@@ -1588,13 +1675,13 @@ def db_mod_tlrc(block, proc, user_opts):
     uopt = user_opts.find_opt('-tlrc_no_ss')
     bopt = block.opts.find_opt('-tlrc_no_ss')
     if uopt and not bopt:
-        bopt.opts.add_opt('-tlrc_no_ss', 0, [])
+        block.opts.add_opt('-tlrc_no_ss', 0, [])
 
     uopt = user_opts.find_opt('-tlrc_rmode')
     if uopt:
         bopt = block.opts.find_opt('-tlrc_rmode')
         if bopt: bopt.parlist = uopt.parlist
-        else: bopt.opts.add_opt('-tlrc_rmode', 1, uopt.parlist, setpar=1)
+        else: block.opts.add_opt('-tlrc_rmode', 1, uopt.parlist, setpar=1)
 
     uopt = user_opts.find_opt('-tlrc_suffix')
     if uopt:

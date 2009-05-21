@@ -118,6 +118,9 @@ g_history = """
     1.45 May 12 2009 : fixed 'cat' of 'across-runs' ricor regressors
     1.46 May 14 2009 : no 'rm rm.*' if such files were not created
     1.47 May 15 2009 : added -volreg_tlrc_warp, to warp at volreg step
+    1.48 May 21 2009 :
+        - added 'align' processing block (anat to EPI)
+        - added -volreg_align_e2a (do EPI to anat alignment in volreg step)
 """
 
 g_version = "version 1.47, May 15, 2009"
@@ -125,16 +128,18 @@ g_version = "version 1.47, May 15, 2009"
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
 
-BlockLabels  = ['tcat', 'despike', 'ricor', 'tshift', 'volreg',
+BlockLabels  = ['tcat', 'despike', 'ricor', 'tshift', 'align', 'volreg',
                 'blur', 'mask', 'scale', 'regress', 'tlrc', 'empty']
 BlockModFunc  = {'tcat'   : db_mod_tcat,     'despike': db_mod_despike,
                  'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
+                 'align'  : db_mod_align,
                  'volreg' : db_mod_volreg,   'blur'   : db_mod_blur,
                  'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
                  'regress': db_mod_regress,  'tlrc'   : db_mod_tlrc,
                  'empty'  : db_mod_empty}
 BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'despike': db_cmd_despike,
                  'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
+                 'align'  : db_cmd_align,
                  'volreg' : db_cmd_volreg,   'blur'   : db_cmd_blur,
                  'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
                  'regress': db_cmd_regress,  'tlrc'   : db_cmd_tlrc,
@@ -143,7 +148,7 @@ AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
 # default block labels, and other labels (along with the label they follow)
 DefLabels   = ['tcat', 'tshift', 'volreg', 'blur', 'mask', 'scale', 'regress']
-OtherDefLabels = {'despike':'tcat', 'ricor':'despike', 'tlrc':'regress'}
+OtherDefLabels = {'despike':'tcat', 'align':'tcat', 'ricor':'despike'}
 OtherLabels    = ['empty']
 
 # --------------------------------------------------------------------------
@@ -176,6 +181,7 @@ class SubjProcSream:
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.tlrcanat   = None          # expected name of tlrc dataset
+        self.a2e_mat    = None          # anat2epi transform matrix file
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
         self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
@@ -309,6 +315,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-tshift_opts_ts', -1, [],
                         helpstr='additional options directly for 3dTshift')
 
+        self.valid_opts.add_opt('-volreg_align_e2a', 0, [],
+                        helpstr="align EPI to anatomy (via align block)")
         self.valid_opts.add_opt('-volreg_align_to', 1, [],
                         acplist=['first','third', 'last'],
                         helpstr="align to 'first', 'third' or 'last' TR")
@@ -522,9 +530,13 @@ class SubjProcSream:
         # check for -do_block options
         opt = self.user_opts.find_opt('-do_block')
         if opt and opt.parlist and len(opt.parlist) > 0:
-            if self.user_opts.find_opt('-blocks'):
-                print '** error: -do_block invalid when using -blocks'
-                return 1
+            #if self.user_opts.find_opt('-blocks'):
+            #    print '** error: -do_block invalid when using -blocks'
+            #    return 1
+
+            # ****
+            # if no -blocks option, but a long list of -do_block, maybe start
+            # from normal blocks subset of -do_block list
 
             # check additional blocks one by one
             errs = 0
@@ -604,6 +616,30 @@ class SubjProcSream:
            return dir, nextto
                 dir    = -1,0,1 means before, error, after
                 nextto = name of relevant adjacent block"""
+
+        if bname == 'align':
+            try: ind = blocks.index('tlrc')
+            except: ind = -1
+            if ind >= 0: return -1, 'tlrc'      # before tlrc
+            try: ind = blocks.index('volreg')
+            except: ind = -1
+            if ind >= 0: return -1, 'volreg'    # before volreg
+            try: ind = blocks.index('tshift')
+            except: ind = -1
+            if ind >= 0: return 1, 'tshift'     # after tshift
+
+            return  1, 'tcat'      # stick at beginning
+
+        if bname == 'tlrc':
+            try: ind = blocks.index('volreg')
+            except: ind = -1
+            if ind >= 0: return -1, 'volreg'    # before volreg
+            try: ind = blocks.index('align')
+            except: ind = -1
+            if ind >= 0: return 1, 'align'      # after align
+            return 1, blocks[-1]                # stick it at the end
+
+        # if those didn't apply, go with the OtherDefLabels array
 
         try: prevlab = OtherDefLabels[bname]
         except:
@@ -757,6 +793,25 @@ class SubjProcSream:
             print '-- reps = %g, tr = %g, datatype = %g, scaled = %d' \
                   % (self.reps, self.tr, self.datatype, self.scaled)
 
+    def get_vr_base_indices(self, verb=1):
+        """return 0-based run and TR indices for volreg base
+           (return runs==-1 if they cannot be set)
+           if verb > 0 and values cannot be set, print why not"""
+        
+        block = self.find_block('volreg')
+        if not block:
+            if verb > 0: print "** cannot get vr_base_indices: no volreg block"
+            return -1, -1
+        opt = block.opts.find_opt('-volreg_base_ind')
+
+        if not opt: return proc.runs-1, proc.reps-1  # defaults
+
+        # if parlist values are -1, set to last TR
+        if opt.parlist[0] < 0 or opt.parlist[1] < 1:
+            return self.runs-1, self.reps-1
+
+        return opt.parlist[0], opt.parlist[1]
+
     # create a new block for the given label, and append it to 'blocks'
     def add_block(self, label):
         block = ProcessBlock(label, self)
@@ -782,6 +837,11 @@ class SubjProcSream:
                 - blur < scale
                 - tshift/volreg/blur/scale < regress
         """
+        if self.find_block('align'):
+            if not self.blocks_ordered('align', 'volreg'):
+                print "** warning: 'align' should preceed 'volreg'"
+            if not self.blocks_ordered('align', 'tlrc'):
+                print "** warning: 'align' should preceed 'tlrc'"
         if self.find_block('ricor'):
             if not self.blocks_ordered('despike', 'ricor', must_exist=1):
                 print "** warning: 'despike' should preceed 'ricor'"
