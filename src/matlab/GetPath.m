@@ -20,7 +20,7 @@ function [err,p,f] = GetPath (s, allmc)
 %   err : 0 No Problem
 %       : 1 Mucho Problems
 %   
-%   PathString is a string like How/Didley
+%   PathString is a string like How/Didley/
 %   FileString is a string like Doo
 %      
 %More Info :
@@ -57,7 +57,7 @@ else
    [i] = union(findstr(s,'/'), findstr(s,'\'));
 end
 if (isempty(i)),
-	p = '.';
+	p = ['.' filesep];
 	f = s;
 elseif (max(i)==N);
 	p = s;
@@ -67,7 +67,8 @@ else
 	f = s(max(i)+1:N);
 end
 
+if (nargout < 2) err = p; else err = 0; end
 
-if (nargout == 1) err = p; else err = 0; end
+
 return;
 
