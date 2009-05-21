@@ -703,6 +703,13 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 				ex = fscanf (sf_file,"%f",&(SF->caret_version));
 				skp = 1;
 			}
+         
+         sprintf(stmp,"Caret-Version");
+			if (!skp && SUMA_iswordin (st, stmp) == 1) {
+				/*fprintf(stdout,"Found caret-version\n");*/
+				ex = fscanf (sf_file,"%f",&(SF->caret_version));
+				skp = 1;
+			}
 
 		}
 	}
