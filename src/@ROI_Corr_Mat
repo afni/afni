@@ -441,10 +441,12 @@ PARSE:
 @ NxtInd ++
 set others_list = ( $argv[$NxtInd-$#argv] )
 
-#echo "$ss"
-#echo "$sslab"
-#echo "$other_list"
+if ($verb) echo "$others_list"
 
+if ($#others_list != 0) then
+   echo "Parameter(s) $others_list not understood"
+   goto END
+endif
 goto RETURN_PARSE
 
 END:

@@ -657,7 +657,10 @@ SUMA_Boolean SUMA_SureFit_Read_Coord (char * f_name, SUMA_SureFit_struct *SF)
 	}
 	
 	if (!FoundHead) {
-		fprintf(SUMA_STDERR,"Error %s: BeginHeader not found in %s.\nPerhaps you are using old versions of Caret/SureFit files.\n", FuncName, f_name);
+		fprintf( SUMA_STDERR, 
+               "Error %s: BeginHeader not found in %s.\n"
+               "Perhaps you are using old versions of Caret/SureFit files.\n", 
+               FuncName, f_name);
 		SUMA_RETURN (NOPE);
 	}
 	EndHead = 0;

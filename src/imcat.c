@@ -66,6 +66,9 @@ int main( int argc , char * argv[] )
  "  -image_wrap: If number of images is not enough to fill matrix\n"
  "               images on command line are reused (default)\n"
  "  -prefix ppp = Prefix the output files with string 'ppp'\n"
+ "          Note: If the prefix ends with .1D, then a 1D file containing\n"
+ "                the average of RGB values. You can view the output with\n"
+ "                1dgrayplot.\n"
  "  -matrix NX NY: Specify number of images in each row and column \n"
  "                 of IM at the same time. \n"
  "  -nx NX: Number of images in each row (3 for example below)\n"
@@ -473,7 +476,7 @@ int main( int argc , char * argv[] )
                                     (float)scl3[3*(kkk%nscl)+2]); */
               tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)  ], rim ); mri_free(rim); rim = tim;
               tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+1], gim ); mri_free(gim); gim = tim;
-              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+1], bim ); mri_free(bim); bim = tim;
+              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+2], bim ); mri_free(bim); bim = tim;
            }
            newim = mri_3to_rgb( rim, gim, bim ) ;
            mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
@@ -503,15 +506,40 @@ int main( int argc , char * argv[] )
 
    }
 
-   if (!(STRING_HAS_SUFFIX_CASE(prefix,".jpg"))) {
-      sprintf(fnam,"%s.ppm",prefix);
-   } else {
-      sprintf(fnam,"%s",prefix);
+   if (!(STRING_HAS_SUFFIX_CASE(prefix,".1D"))) {
+      if (!(STRING_HAS_SUFFIX_CASE(prefix,".jpg"))) {
+         sprintf(fnam,"%s.ppm",prefix);
+      } else {
+         sprintf(fnam,"%s",prefix);
+      }
+      fprintf(stderr,"+++ Writing image to %s\n", fnam);
+      mri_write(fnam,im) ;
+      fprintf(stdout, "You can view image %s with:\n aiv %s \n", fnam, fnam);
+   } else { /* write a 1D out */
+      FILE *fout=fopen(prefix,"w");
+      float *fff=NULL;
+      MRI_IMAGE *tim;
+      if (!fout) {
+         fprintf(stderr,"*** ERROR: Failed to open %s for output!\n", prefix);
+         exit(1) ;
+      }
+      if (!(tim = mri_to_float(im))) {
+         fprintf(stderr,"*** ERROR: Failed to convert output image.\n");
+         exit(1) ;
+      }
+      fff= MRI_FLOAT_PTR(tim);  
+      for (jj=0; jj<tim->ny; ++jj)  {
+         for (ii=0; ii<tim->nx; ++ii) {
+            fprintf(fout,"%.4f ", fff[jj*tim->nx+ii]);
+         }
+         fprintf(fout,"\n");
+      }
+      fclose(fout);
+      mri_free(tim); tim = NULL;  
+      fprintf(stdout, "You can view image %s with:\n 1dgrayplot %s \n", 
+                        fnam, prefix);
    }
-   fprintf(stderr,"+++ Writing image to %s\n", fnam);
-   mri_write(fnam,im) ;
    
    mri_free(im); im = NULL;
-   fprintf(stdout, "You can view image %s with:\n aiv %s \n", fnam, fnam);
     exit(0) ;
 }
