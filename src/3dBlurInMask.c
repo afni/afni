@@ -4,6 +4,8 @@
 #include <omp.h>
 #endif
 
+#define MASK_MIN 19
+
 static int verb = 1 ;
 
 /*----------------------------------------------------------------------------*/
@@ -70,6 +72,10 @@ int main( int argc , char *argv[] )
       "     command similar to the following:\n"
       "          3dFWHMx -detrend -mask mmm+orig -input ddd+orig\n"
      ) ;
+     printf(
+      " * The minimum number of voxels in the mask is %d\n",MASK_MIN) ;
+     printf(
+      " * Isolated voxels will be removed from the mask!\n") ;
 #ifdef USE_OMP
      printf(
       " * This version of the program is compiled with OpenMP support, which\n"
@@ -120,9 +126,11 @@ int main( int argc , char *argv[] )
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_unload(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
+       ii = THD_make_remove_isolas( mask_nx,mask_ny,mask_nz , mask ) ;
+       if( ii > 0 ) INFO_message("Removed %d isola%s from mask dataset",ii,(ii==1)?"\0":"s") ;
        nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        if( verb ) INFO_message("Number of voxels in mask = %d",nmask) ;
-       if( nmask < 333 ) ERROR_exit("Mask is too small to process") ;
+       if( nmask < MASK_MIN ) ERROR_exit("Mask is too small to process") ;
        iarg++ ; continue ;
      }
 
@@ -205,7 +213,7 @@ int main( int argc , char *argv[] )
        ERROR_message("Can't create -automask from input dataset?") ;
      nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
      if( verb ) INFO_message("Number of voxels in automask = %d",nmask);
-     if( nmask < 333 ) ERROR_exit("Automask is too small to process") ;
+     if( nmask < MASK_MIN ) ERROR_exit("Automask is too small to process") ;
 
    } else {
      mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
@@ -237,7 +245,9 @@ int main( int argc , char *argv[] )
      { dsim = mri_scale_to_float(DSET_BRICK_FACTOR(inset,ids),DSET_BRICK(inset,ids)); }
      DSET_unload_one(inset,ids) ;
      dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
+
      mri_blur3D_addfwhm( dsim , mask , fwhm_goal ) ;  /** all the work **/
+
      if( floatize ){
        EDIT_substitute_brick( outset , ids , MRI_float , MRI_FLOAT_PTR(dsim) ) ;
      } else {

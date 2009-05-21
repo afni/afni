@@ -125,7 +125,7 @@ int main( int argc , char *argv[] )
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
-#ifdef USING_MCW_MALLOC
+#if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
 #endif
    mainENTRY("3dTcorrMap main"); machdep(); PRINT_VERSION("3dTcorrMap");
