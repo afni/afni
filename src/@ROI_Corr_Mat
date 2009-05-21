@@ -12,6 +12,15 @@ goto PARSE
 RETURN_PARSE:
 
 
+CHECK:
+if ("$fn_epi" == "") then
+   echo "No time series dset"
+   goto END
+endif
+if ("$fn_msk" == "") then
+   echo "No mask dset"
+   goto END
+endif
 
 if ($verb) echo "Input File:"${fn_epi}
 if ($verb) echo "Mask File:"${fn_msk}
