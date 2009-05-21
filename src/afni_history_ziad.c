@@ -65,6 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 21 , MAY , 2009 , ZSS , "SUMA" , MINOR , TYPE_BUG_FIX ,
+   "Additional check for caret-version string",
+   "It seems that the syntax for caret-version has changed\n"
+   "slightly and was being missed by SUMA. As a result, Caret\n"
+   "surfaces were not being properly aligned with the volumes."
+ } ,
+
  { 19 , MAY , 2009 , ZSS , "prompt_user" , MINOR , TYPE_NEW_PROG ,
    "Prompts user for input with an X window",
    NULL

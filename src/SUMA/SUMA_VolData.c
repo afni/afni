@@ -879,6 +879,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    int i, ND, id;
    SUMA_SureFit_struct *SF;
    SUMA_FreeSurfer_struct *FS;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
@@ -910,18 +911,32 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
          /*loop over XYZs and change them to dicom*/
          for (i=0; i < SO->N_Node; ++i) {
             id = i * ND;
-            THD_coorder_to_dicom (cord_surf, &(SO->NodeList[id]), &(SO->NodeList[id+1]), &(SO->NodeList[id+2])); 
+            THD_coorder_to_dicom (cord_surf, 
+                                  &(SO->NodeList[id]), 
+                                  &(SO->NodeList[id+1]), 
+                                  &(SO->NodeList[id+2])); 
          }
          break;
       case SUMA_SUREFIT:
-         /* For SureFit, coordinates are actually a float version of the indices */
+         /* For SureFit, coordinates are actually a 
+            float version of the indices */
          SF = (SUMA_SureFit_struct *)S_Struct;
          if (SF->caret_version < 5.2) {   
             THD_fvec3 fv, iv;
             float D[3];
             /* Calcluate Delta caused by cropping */
             for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
-            /* fprintf (SUMA_STDERR,"%s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]); */
+            SUMA_LHv("caret_version: %f\n"
+                     "AC_WholeVolume:  [%f %f %f]\n"
+                     "AC:              [%f %f %f]\n"
+                     "Shift Values:    [%f, %f, %f]\n"
+                     "Node 0 init:     [%f, %f, %f]\n", 
+                     SF->caret_version,
+                     SF->AC_WholeVolume[0],SF->AC_WholeVolume[1], 
+                                             SF->AC_WholeVolume[2],
+                     SF->AC[0], SF->AC[1], SF->AC[2],
+                     D[0], D[1], D[2],
+                     SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]); 
             for (i=0; i < SO->N_Node; ++i) {
                id = i * ND;
                /* change float indices to mm coords */
@@ -931,18 +946,37 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                fv = SUMA_THD_3dfind_to_3dmm( SO, iv );
                
                /* change mm to RAI coords */
-               iv = SUMA_THD_3dmm_to_dicomm( SO->VolPar->xxorient, SO->VolPar->yyorient, SO->VolPar->zzorient,  fv );
+               iv = SUMA_THD_3dmm_to_dicomm( SO->VolPar->xxorient, 
+                                             SO->VolPar->yyorient, 
+                                             SO->VolPar->zzorient,  fv );
                SO->NodeList[id] = iv.xyz[0];
                SO->NodeList[id+1] = iv.xyz[1];
                SO->NodeList[id+2] = iv.xyz[2];
             }
+               SUMA_LHv("Node 0 RAI:     [%f, %f, %f]\n",
+                        SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]);  
          } else {
             float D[3];
             /* Calcluate Delta caused by cropping */
             for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
+            SUMA_LHv("caret_version: %f\n"
+                     "AC_WholeVolume:  [%f %f %f]\n"
+                     "AC:              [%f %f %f]\n"
+                     "Shift Values:    [%f, %f, %f]\n"
+                     "Node 0 init:     [%f, %f, %f]\n", 
+                     SF->caret_version,
+                     SF->AC_WholeVolume[0],SF->AC_WholeVolume[1], 
+                                             SF->AC_WholeVolume[2],
+                     SF->AC[0], SF->AC[1], SF->AC[2],
+                     D[0], D[1], D[2],
+                     SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]); 
             if (D[0] != 0.0 || D[1] != 0.0 ||D[2] != 0.0) {
-               fprintf (SUMA_STDERR,"Error %s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]);
-               fprintf (SUMA_STDERR,"Never encountered this case. Please notify authors and send sample data.\n");
+               fprintf (SUMA_STDERR,
+                        "Error %s: Shift Values: [%f, %f, %f]\n", 
+                        FuncName, D[0], D[1], D[2]);
+               fprintf (SUMA_STDERR,
+                        "Never encountered this case. "
+                        "Please notify authors and send sample data.\n");
                SUMA_RETURN (NOPE); 
             }
             /* Caret, just LPI baby, take it to RAI*/
@@ -951,6 +985,8 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                SO->NodeList[id] = -SO->NodeList[id];
                SO->NodeList[id+1] = -SO->NodeList[id+1];
             }
+            SUMA_LHv("Node 0 RAI:     [%f, %f, %f]\n",
+                     SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]);  
          }
          break;
       case SUMA_BRAIN_VOYAGER:
@@ -959,22 +995,28 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
           which is inappropriate */
          /* For Brain Voyager, all you need to do is 
           go from ASR to RAI (DICOM)
-          Note: The center of the volume is at the 1st voxel's center and that huge
-          center shift, relative to standard AFNI dsets (centered about middle of volume)
+          Note: The center of the volume is at the 1st voxel's center and 
+          that huge
+          center shift, relative to standard AFNI dsets (centered about 
+          middle of volume)
           might throw off 3dVolreg. If you want to shift volume's center to be in
-          the middle voxel, you'll need to shift the surface coordinates before transforming
+          the middle voxel, you'll need to shift the surface coordinates
+           before transforming
           them to RAI*/
          sprintf(orcode,"ASR");
          THD_coorder_fill(orcode , cord_surf); 
          /*loop over XYZs and change them to dicom*/
          for (i=0; i < SO->N_Node; ++i) {
             id = i * ND;
-            THD_coorder_to_dicom (cord_surf, &(SO->NodeList[id]), &(SO->NodeList[id+1]), &(SO->NodeList[id+2])); 
+            THD_coorder_to_dicom (cord_surf, 
+                                  &(SO->NodeList[id]), 
+                                  &(SO->NodeList[id+1]), 
+                                  &(SO->NodeList[id+2])); 
          }
          #else /*ZSS: Nov. 1 07 */
          if (SO->VolPar) {
             /* looks like coordinates are in float index units, go to dicomm */
-            if (!SUMA_vec_3dfind_to_dicomm(SO->NodeList, SO->N_Node, SO->VolPar)) {
+            if (!SUMA_vec_3dfind_to_dicomm(SO->NodeList,SO->N_Node,SO->VolPar)) {
                SUMA_S_Err("Failed to xform coords.");
                SUMA_RETURN (NOPE);
             }
@@ -985,12 +1027,15 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
       
          break;
       default:
-         fprintf(SUMA_STDERR,"Warning %s: Unknown SO->FileType. Assuming coordinates are in DICOM already.\n", FuncName);
+         fprintf( SUMA_STDERR,
+                  "Warning %s: Unknown SO->FileType.\n"
+                  "Assuming coordinates are in DICOM already.\n", FuncName);
          break;
    }
    
    if (!SUMA_Apply_VolReg_Trans (SO)) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Apply_VolReg_Trans.\n", FuncName);
+      fprintf( SUMA_STDERR,
+               "Error %s: Failed in SUMA_Apply_VolReg_Trans.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
 
