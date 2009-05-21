@@ -1,0 +1,132 @@
+#!/bin/tcsh -f
+
+set statu = 0
+
+if ("$1" == "-h" || "$1" == "-help") then 
+   goto HELP
+endif
+
+goto PARSE
+RETURN_PARSE:
+
+DO_IT:
+foreach ff ($others_list)
+   if ( ! -f $ff ) then
+      echo "File $ff not found"
+      set statu = 1
+      goto END
+   endif
+   set good = 1
+   #Look for blank(s) following \ at end of line
+   set l = `\grep -nE '\\[ \t][ \t]*$' $ff`
+   if ("$l" != "") then
+      if (! $clean) then
+         echo "$ff   has improperly terminated lines"
+         echo "$l"
+         set good = 0
+      else 
+         sed 's/\(\\[ \t][ \t]*$\)/\\/g' $ff > ${ff}${suffix}
+         echo "$ff's clean version is ${ff}${suffix}"
+         set good = 0
+      endif
+   endif 
+   
+   if ($good) then
+       echo "$ff is good"
+   endif
+end
+
+goto END
+
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` [-clean] [-suffix SUFF] <Script1> [Script2 ...]"
+   echo ""
+   echo "Checks script(s) for improperly terminated lines"
+   echo "   -clean: Clean bad line breaks"
+   echo "   -suffix SUFF: Rename cleaned filed Script1.SUFF"
+   echo "                 The default for SUFF is .cln"
+   echo ""
+   echo "Example:"
+   echo '   echo "A good line" > ./___toy'
+   echo '   echo "A good break \" >> ./___toy'
+   echo '   echo "A harmless \ slash" >> ./___toy'
+   echo '   echo "A bad break \  " >> ./___toy'
+   echo '   echo "The end" >> ./___toy'
+   echo ""
+   echo "To find the bad line breaks"
+   echo "   `basename $0` ___toy"
+   echo ""
+   echo "To find and clean the bad line breaks"
+   echo "   `basename $0` -clean ___toy"
+   echo ""
+   echo "The cleaned file goes into ___toy.cln"
+   echo ""
+   
+goto END
+
+PARSE:
+	set Narg = $#
+	
+	#find the locations of -ts and -roi, etc
+	set verb = 0
+   set cnt = 1
+	set check = 1
+	set clean = 0
+   set suffix = '.cln'
+   set filelist = ()
+   while ($cnt <= $Narg)
+      set gotopt = 0
+      if ("$argv[$cnt]" == "-suffix") then
+         set gotopt = 1
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need option after -suffix"
+            goto END
+			else
+				@ cnt ++
+				set suffix = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+		
+      
+      if ("$argv[$cnt]" == "-clean") then
+         set gotopt = 1
+         set NxtInd = $cnt
+		   
+         set clean = 1
+      endif
+            
+      if ("$argv[$cnt]" == "-verb") then
+         set gotopt = 1
+         set NxtInd = $cnt
+		   
+         set verb = 1
+      endif
+		
+      if ($gotopt == 0) then
+         #if here then get out
+         set cnt = $Narg
+         @ cnt ++
+      endif
+       
+		@ cnt ++
+	end
+
+@ NxtInd ++
+set others_list = ( $argv[$NxtInd-$#argv] )
+
+if ($verb) echo "$others_list"
+if ($#others_list == 0) then
+   echo "No script names given"
+   set statu = 1
+   goto END
+endif
+
+goto RETURN_PARSE
+
+
+END:
+exit $statu
