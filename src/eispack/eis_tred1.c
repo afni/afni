@@ -16,10 +16,10 @@
     double d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal f, g, h__;
-    static integer i__, j, k, l;
-    static doublereal scale;
-    static integer ii, jp1;
+    doublereal f, g, h__;
+    integer i__, j, k, l;
+    doublereal scale;
+    integer ii, jp1;
 
 
 

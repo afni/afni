@@ -7250,7 +7250,7 @@ STATUS("purging old datasets from memory (maybe)") ;
    im3d->fim_now  = im3d->fim_dset[vvv] ;
    im3d->ss_now   = GLOBAL_library.sslist->ssar[sss] ;
 
-   if( im3d->fim_now == NULL ) AFNI_SEE_FUNC_OFF(im3d) ;  /* 22 May 2009 */
+   if( !ISVALID_DSET(im3d->fim_now) ) AFNI_SEE_FUNC_OFF(im3d) ;  /* 22 May 2009 */
 
    SENSITIZE( im3d->vwid->func->clu_rowcol , DSET_INMEMORY(im3d->fim_now) ) ;
 
@@ -7687,7 +7687,7 @@ STATUS(" -- function widgets ON") ;
 
       XtManageChild( im3d->vwid->func->thr_rowcol ) ;
       qq = AFNI_controller_index(im3d) ;
-      if( zfim[qq] && im3d->fim_now != NULL && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
+      if( zfim[qq] && ISVALID_DSET(im3d->fim_now) && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
 STATUS(" -- set threshold to zero for FIM (once only)") ;
         XmScaleSetValue( im3d->vwid->func->thr_scale , 0 ) ;
         im3d->vinfo->func_threshold = 0.0 ; zfim[qq] = 0 ;

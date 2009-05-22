@@ -26,13 +26,13 @@ static doublereal c_b47 = 1.;
     double sqrt(doublereal), d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal c__, f, g, h__;
-    static integer i__, j, k, l;
-    static doublereal s, x, y, z__, scale;
-    static integer i1, k1, l1, ii, kk, ll, mn;
+    doublereal c__, f, g, h__;
+    integer i__, j, k, l;
+    doublereal s, x, y, z__, scale;
+    integer i1, k1, l1, ii, kk, ll, mn;
     extern doublereal pythag_(doublereal *, doublereal *);
-    static integer its;
-    static doublereal tst1, tst2;
+    integer its;
+    doublereal tst1, tst2;
 
 
 

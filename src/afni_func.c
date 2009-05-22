@@ -53,7 +53,7 @@ float AFNI_get_autothresh( Three_D_View *im3d )
 
 ENTRY("AFNI_get_autothresh") ;
 
-   if( !IM3D_OPEN(im3d) || im3d->fim_now == NULL ) RETURN(-1.0f) ;
+   if( !IM3D_OPEN(im3d) || !ISVALID_DSET(im3d->fim_now) ) RETURN(-1.0f) ;
 
    ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
 
@@ -1145,7 +1145,7 @@ ENTRY("AFNI_func_overlay") ;
 
    /* 22 May 2009: check if functional dataset is ready */
 
-   if( im3d->fim_now == NULL || im3d->fim_now->dblk == NULL ){
+   if( !ISVALID_DSET(im3d->fim_now) ){
      AFNI_SEE_FUNC_OFF(im3d) ; RETURN(NULL) ;
    }
 

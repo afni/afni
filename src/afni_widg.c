@@ -5344,7 +5344,7 @@ ENTRY("AFNI_initialize_controller") ;
 
    im3d->anat_now = im3d->anat_dset[im3d->vinfo->view_type] ;  /* will not be NULL */
    im3d->fim_now  = im3d->fim_dset [im3d->vinfo->view_type] ;  /* this may be NULL */
-   if( im3d->fim_now == NULL ) AFNI_SEE_FUNC_OFF(im3d) ;       /* 22 May 2009 */
+   if( !ISVALID_DSET(im3d->fim_now) ) AFNI_SEE_FUNC_OFF(im3d) ;     /* 22 May 2009 */
 
    /* initial point of view = middle of dataset brick */
 
