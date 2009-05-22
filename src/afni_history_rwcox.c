@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , MAY , 2009 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
+   "Check if im3d->fim_now is NULL in AFNI_func_overlay()" ,
+   NULL } ,
+
  { 20 , MAY , 2009 , RWC , "realtime plugin" , MICRO , TYPE_NEW_ENV ,
    "Also modify it to limit the number of open controllers." ,
    "cf. AFNI_REALTIME_MAX_CONTROLLERS" } ,

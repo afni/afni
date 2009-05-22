@@ -1141,15 +1141,24 @@ ENTRY("AFNI_func_overlay") ;
    if( br_fim == NULL || n < 0 ) RETURN(NULL) ;  /* nothing to do */
 
    im3d = (Three_D_View *) br_fim->parent ;
+   if( !IM3D_OPEN(im3d) ) RETURN(NULL) ;         /* should not happen */
 
    ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
 
    /* get the component images */
 
+   ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
    LOAD_DSET_VIEWS(im3d) ; /* 02 Nov 1996 */
 
    need_thr = (im3d->vinfo->func_threshold > 0.0) && im3d->vinfo->thr_onoff ;
    thrsign  = im3d->vinfo->thr_sign ; /* 08 Aug 2007 */
+
+   /* 22 May 2009: check if functional dataset is ready */
+
+   if( im3d->fim_now == NULL || im3d->fim_now->dblk == NULL ){
+     char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
+     sprintf(cmd,"SEE_OVERLAY %c.-",cpt[1]) ; AFNI_driver(cmd) ; RETURN(NULL) ;
+   }
 
    /* 29 Mar 2005: make sure statistics of overlay dataset are ready */
 
@@ -1329,7 +1338,7 @@ if( PRINT_TRACING && im_thr != NULL )
       default:                             /* should not happen! */
          if( im_thr != im_fim ) mri_free(im_thr) ;
          mri_free(im_fim) ; mri_free(im_ov) ;
-STATUS("bad im_fim->kind!") ;
+         STATUS("bad im_fim->kind!") ;
       RETURN(NULL) ;
 
       case MRI_short:{
@@ -1654,7 +1663,7 @@ ENTRY("AFNI_ttatlas_overlay") ;
 
    /* setup and sanity checks */
 
-STATUS("checking if have Atlas dataset") ;
+   STATUS("checking if have Atlas dataset") ;
 
    /* 01 Aug 2001: retrieve atlas based on z-axis size of underlay dataset */
 #if 1
@@ -1666,13 +1675,13 @@ STATUS("checking if have Atlas dataset") ;
 
    /* make sure Atlas and current dataset match in size */
 
-STATUS("checking if Atlas and anat dataset match") ;
+   STATUS("checking if Atlas and anat dataset match") ;
 
    if( DSET_NVOX(dseTT) != DSET_NVOX(im3d->anat_now) )    RETURN(NULL) ;
 
    /* make sure we are actually drawing something */
 
-STATUS("checking if Atlas Colors is on") ;
+   STATUS("checking if Atlas Colors is on") ;
 
    ttp = TTRR_get_params() ; if( ttp == NULL )            RETURN(NULL) ;
 
@@ -1688,7 +1697,7 @@ STATUS("checking if Atlas Colors is on") ;
 
    /* get slices from TTatlas dataset */
 
-STATUS("loading Atlas bricks") ;
+   STATUS("loading Atlas bricks") ;
 
    DSET_load(dseTT) ;
    b0im = AFNI_slice_flip( n , 0 , RESAM_NN_TYPE , ax_1,ax_2,ax_3 , dseTT ) ;
@@ -1700,12 +1709,12 @@ STATUS("loading Atlas bricks") ;
    /* make a new overlay image, or just operate on the old one */
 
    if( fov == NULL ){
-STATUS("making new overlay for Atlas") ;
+      STATUS("making new overlay for Atlas") ;
       ovim = mri_new_conforming( b0im , MRI_short ) ;   /* new overlay */
       ovar = MRI_SHORT_PTR(ovim) ;
       memset( ovar , 0 , ovim->nvox * sizeof(short) ) ;
    } else{
-STATUS("re-using old overlay for Atlas") ;
+      STATUS("re-using old overlay for Atlas") ;
       ovim = fov ;                                      /* old overlay */
       ovar = MRI_SHORT_PTR(ovim) ;
       if( ovim->nvox != b0im->nvox ){                     /* shouldn't */
@@ -1728,7 +1737,7 @@ STATUS("re-using old overlay for Atlas") ;
 
    /* loop over image voxels, find overlays from Atlas */
 
-STATUS("doing Atlas overlay") ;
+   STATUS("doing Atlas overlay") ;
 
    for( nov=ii=0 ; ii < ovim->nvox ; ii++ ){
 
@@ -1784,7 +1793,7 @@ ENTRY("AFNI_resam_av_CB") ;
    /* assign resampling type based on which arrowval, and redraw */
 
    if( av == im3d->vwid->dmode->func_resam_av ){
-STATUS("set func_resam_mode") ;
+      STATUS("set func_resam_mode") ;
       im3d->vinfo->func_resam_mode = av->ival ;
       if( im3d->b123_fim != NULL ){
          im3d->b123_fim->resam_code =
@@ -1793,7 +1802,7 @@ STATUS("set func_resam_mode") ;
       }
 
    } else if( av == im3d->vwid->dmode->thr_resam_av ){  /* 09 Dec 1997 */
-STATUS("set thr_resam_mode") ;
+      STATUS("set thr_resam_mode") ;
       im3d->vinfo->thr_resam_mode = av->ival ;
       if( im3d->b123_fim != NULL ){
          im3d->b123_fim->thr_resam_code =
@@ -1802,7 +1811,7 @@ STATUS("set thr_resam_mode") ;
       }
 
    } else if( av == im3d->vwid->dmode->anat_resam_av ){
-STATUS("set anat_resam_mode") ;
+      STATUS("set anat_resam_mode") ;
       im3d->vinfo->anat_resam_mode = av->ival ;
       im3d->b123_anat->resam_code =
        im3d->b231_anat->resam_code =
