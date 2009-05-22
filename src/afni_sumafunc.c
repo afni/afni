@@ -71,7 +71,7 @@ ENTRY("AFNI_vnlist_func_overlay") ;
 
    surf = ss->su_surf[ks] ;    /* the surface in question */
 
-   fdset = im3d->fim_now ; if( fdset == NULL ) RETURN(-1) ;
+   fdset = im3d->fim_now ; if( !ISVALID_DSET(fdset) ) RETURN(-1) ;
 
    ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
 

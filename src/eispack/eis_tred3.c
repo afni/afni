@@ -16,10 +16,10 @@
     double sqrt(doublereal), d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal f, g, h__;
-    static integer i__, j, k, l;
-    static doublereal scale, hh;
-    static integer ii, jk, iz, jm1;
+    doublereal f, g, h__;
+    integer i__, j, k, l;
+    doublereal scale, hh;
+    integer ii, jk, iz, jm1;
 
 
 

@@ -11,7 +11,7 @@ doublereal pythag_(doublereal *a, doublereal *b)
     doublereal ret_val, d__1, d__2, d__3;
 
     /* Local variables */
-    static doublereal p, r__, s, t, u;
+    doublereal p, r__, s, t, u;
 
 
 /*     FINDS DSQRT(A**2+B**2) WITHOUT OVERFLOW OR DESTRUCTIVE UNDERFLOW */
