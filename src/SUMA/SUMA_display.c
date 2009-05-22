@@ -5906,7 +5906,9 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                "", '\0', YUP, DrawROI_SaveMode_Menu, 
-                               "Frm.", "File format for saving ROI", 
+                               "Frm.", "Format for saving ROI, "
+                                       "use NIML to preserve tracing order. "
+                                       "Use BHelp for more.", 
                                SUMA_DrawROI_SaveFormat_help, 
                                SUMAg_CF->X->DrawROI->SaveModeMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu[SW_DrawROI_SaveMode]);

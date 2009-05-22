@@ -9,41 +9,90 @@ endif
 goto PARSE
 RETURN_PARSE:
 
-
-if (! -f /tmp/___tmplabels.txt) then
-   set bin = `which mris_convert`
-   if ($status) then
-      #Try locally, as a quick fix
-      echo "Warning: Searching for ${fsdb} locally..."
-      if ( -f ./${fsdb} ) then
-         set fsp = $PWD
-         echo "   Using $fsp/${fsdb}"
-      else if ( -f ./SUMA/${fsdb} ) then
-         set fsp = $PWD/SUMA
-         echo "   Using $fsp/${fsdb}"
-      else
-         echo "Could not find ${fsdb}"
+set Do_Surf = 1
+if ( $Do_Surf ) then
+   #surface parcellation
+   set pplabels = /tmp/___tmpsurflabels.txt
+   if ("$SurfLabelFile" != "") then
+      if (! -f ${SurfLabelFile}) then
+         echo "Could not find ${SurfLabelFile}"
          goto END
       endif
-       
    else
-      set fsp = $bin:h
-      #peel off a couple of layers
-      if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-      if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-      if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
-      if ( ! -f $fsp/${fsdb}) then
-         echo "Cannot find LUT"
+      set lbls = `find ./ -name \*.annot.1D.cmap -maxdepth 4`
+      if ($status) then
+            echo "Could not find a .annot.1D.cmap file"
+            goto END
+      endif
+      if ($#lbls == 2) then
+         #maybe it is lr and rh and in that case they should be identical
+         diff $lbls[1] $lbls[2]
+         if ($status) then
+            echo "Found more than one cmap file and they appear different"
+            echo "choose one of $lbls""
+         endif
+      else if ($#lbls > 2) then
+         echo "Found more than two cmap files, choose one of"
+         echo "$lbls"
          goto END
       endif
+      set SurfLabelFile = $lbls[1]
    endif
+   
+   #Now proces lbl file
+   set nlbls = `3dnvals ${SurfLabelFile}\'`
+   1dcat ${SurfLabelFile}'[0]' | sed 's/^ */#/g' > /tmp/___indices   
+   cat ${SurfLabelFile} | \
+      \grep -E '#[:alpha:]*' | tail -n $nlbls | sed 's/#//g' \
+               > /tmp/___labels
+   set l1 = `wc -l /tmp/___indices`
+   set l2 = `wc -l /tmp/___labels`
+   if ( $l1[1] != $nlbls ) then
+      echo "mismatch in /tmp/___indices and /tmp/___labels"
+      goto END
+   endif
+   #Now put two together
+   paste -d ' '  /tmp/___indices /tmp/___labels > $pplabels
+   rm /tmp/___indices /tmp/___labels >& /dev/null
+else
+   #volume parcellation
+   set pplabels = /tmp/___tmpvollabels.txt
+   if (! -f ${pplabels}) then
+      set bin = `which mris_convert`
+      if ($status) then
+         #Try locally, as a quick fix
+         echo "Warning: Searching for ${fsdb} locally..."
+         if ( -f ./${fsdb} ) then
+            set fsp = $PWD
+            echo "   Using $fsp/${fsdb}"
+         else if ( -f ./SUMA/${fsdb} ) then
+            set fsp = $PWD/SUMA
+            echo "   Using $fsp/${fsdb}"
+         else
+            echo "Could not find ${fsdb}"
+            goto END
+         endif
 
-   sed 's/^ *//;s/ *$//;s/ \{1,\}/ /g' $fsp/${fsdb} \
-      |   sed 's/^/#/g' | cut -d' ' -f1,2 > /tmp/___tmplabels.txt
+      else
+         set fsp = $bin:h
+         #peel off a couple of layers
+         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+         if ( ! -f $fsp/${fsdb}) set fsp = $fsp:h
+         if ( ! -f $fsp/${fsdb}) then
+            echo "Cannot find LUT"
+            goto END
+         endif
+      endif
+
+      sed 's/^ *//;s/ *$//;s/ \{1,\}/ /g' $fsp/${fsdb} \
+         |   sed 's/^/#/g' | cut -d' ' -f1,2 > ${pplabels}
+   endif
 endif
 
+
 if ($name != "") then
-   \grep -i $name   /tmp/___tmplabels.txt > /tmp/___nm.txt
+   \grep -i $name   ${pplabels} > /tmp/___nm.txt
    cut -d' ' -f1 /tmp/___nm.txt > /tmp/___nmi.txt
    cut -d' ' -f2 /tmp/___nm.txt > /tmp/___nmn.txt
    if ($rankmap != "") then
@@ -93,7 +142,7 @@ if ($rank != "") then
 endif
 
 if ($lab != "") then
-   set l = `\grep -w "#$lab" /tmp/___tmplabels.txt`
+   set l = `\grep -w "#$lab" ${pplabels}`
    if ("$l" != "") then
       echo $l | sed 's/^#//'
    endif
@@ -114,8 +163,26 @@ PARSE:
    set lab = ''
 	set Narg = $#
 	set cnt = 1
+   set SurfLabelFile = ""
+   set Do_Surf = -1
    while ($cnt <= $Narg)
-		if ("$argv[$cnt]" == "-rank") then
+		if ("$argv[$cnt]" == "-surf_annot_cmap") then
+         set SubLoc = $cnt		
+		   if ($Do_Surf == 0) then
+            echo "-surf_annot_cmap is not good for volume annotations"
+            goto END
+         endif
+		   if ($SubLoc == $Narg) then
+				echo "Need file after -surf_annot_cmap"
+            goto END
+			else
+				@ cnt ++
+				set SurfLabelFile = "$argv[$cnt]"
+            set Do_Surf = 1
+            set NxtInd = $cnt
+			endif
+      endif
+      if ("$argv[$cnt]" == "-rank") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
 				echo "Need integer after -rank"
@@ -142,22 +209,64 @@ PARSE:
       endif
 		if ("$argv[$cnt]" == "-name") then
          set SubLoc = $cnt		
-		   if ($SubLoc == $Narg) then
+		   if ($Do_Surf == 1) then
+            echo "-name is not good for surface annotations"
+            goto END
+         endif
+         if ($SubLoc == $Narg) then
 				echo "Need area name after -name"
             goto END
 			else
 				@ cnt ++
+            set Do_Surf = 0
 				set name = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+		if ("$argv[$cnt]" == "-sname") then
+         set SubLoc = $cnt		
+		   if ($Do_Surf == 0) then
+            echo "-sname is not good for surface annotations"
+            goto END
+         endif
+		   if ($SubLoc == $Narg) then
+				echo "Need area name after -sname"
+            goto END
+			else
+				@ cnt ++
+				set Do_Surf = 1
+            set name = "$argv[$cnt]"
             set NxtInd = $cnt
 			endif
       endif
 		if ("$argv[$cnt]" == "-lab" || "$argv[$cnt]" == "-label") then
          set SufLoc = $cnt		
+		   if ($Do_Surf == 1) then
+            echo "-lab is not good for surface annotations"
+            goto END
+         endif
+         if ($SufLoc == $Narg) then
+				echo "Need option after -label"
+            goto END
+			else
+				@ cnt ++
+            set Do_Surf = 0
+            set lab = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+		if ("$argv[$cnt]" == "-slab" || "$argv[$cnt]" == "-surf_label") then
+         set SufLoc = $cnt		
+		   if ($Do_Surf == 0) then
+            echo "-slab is not good for volume annotations"
+            goto END
+         endif
 		   if ($SufLoc == $Narg) then
 				echo "Need option after -label"
             goto END
 			else
 				@ cnt ++
+            set Do_Surf = 1
             set lab = "$argv[$cnt]"
             set NxtInd = $cnt
 			endif
@@ -173,6 +282,11 @@ PARSE:
       set others_list = ( $argv[$NxtInd-$#argv] )
    endif
 
+   if ("$SurfLabelFile" != "" && $Do_Surf == 0) then
+      echo "Cannot use -surf_annot_cmap with -lab"
+      goto END
+   endif
+    
    if ($lab == "" && $rank == "") then
       if ($#others_list == 1) then
          set lab = $others_list[1]
@@ -212,6 +326,8 @@ PARSE:
 
 HELP:
    echo ""
+   echo "For volumetric FreeSurfer Parcellations:"
+   echo "----------------------------------------"
    echo "Usage: `basename $0` <int>"
    echo "   Return the name of an integer labeled area in FreeSurfer's"
    echo "   parcellation. Lookup is based on your installed "
@@ -253,7 +369,32 @@ HELP:
    echo "      @FS_roi_label  -name cerebra  \"
    echo "                     -rankmap SUMA/aparc.a2005s+aseg_rank.rankmap.1D"
    echo ""
+   echo "For Surface-Based FreeSurfer Annotations  :"
+   echo "------------------------------------------"
+   echo "Usage: `basename $0` <-surf_annot_cmap CMAP> <-slab int>"
+   echo "   Return the name of an integer labeled area in FreeSurfer's"
+   echo "   surface-based annotation. "
    echo ""
+   echo "   CMAP is the file output by FSread_annot's -roi_1D option."
+   echo "   It should sit by default in the SUMA/ directory. "
+   echo "   The script will search a little for a CMAP under the path from where"
+   echo "   it is launched. However, if the script cannot find a CMAP "
+   echo "   on its own, you'll need to specify it with -surf_annot_cmap on the "
+   echo "   command line."
+   echo "" 
+   echo "   Example:"
+   echo "      @FS_roi_label  -slab 42 \"
+   echo "                     -surf_annot_cmap lh.aparc.a2005s.annot.1D.cmap "
+   echo ""
+   echo "Usage: `basename $0` <-surf_annot_cmap CMAP> <-sname SNAME>"
+   echo "   Return the entries matching NAME (case insensitive, partial match)"
+   echo "   from the CMAP file"
+   echo "   Example:"
+   echo "      @FS_roi_label  -sname occi \"
+   echo "                     -surf_annot_cmap lh.aparc.a2005s.annot.1D.cmap "
+   echo ""
+   echo ""
+   
    set stat = 0
    goto END
    
