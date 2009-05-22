@@ -123,7 +123,7 @@ g_history = """
         - added -volreg_align_e2a (do EPI to anat alignment in volreg step)
 """
 
-g_version = "version 1.47, May 15, 2009"
+g_version = "version 1.48, May 21, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
