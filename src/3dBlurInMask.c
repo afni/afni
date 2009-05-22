@@ -126,7 +126,7 @@ int main( int argc , char *argv[] )
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_unload(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
-       ii = THD_make_remove_isolas( mask_nx,mask_ny,mask_nz , mask ) ;
+       ii = THD_mask_remove_isolas( mask_nx,mask_ny,mask_nz , mask ) ;
        if( ii > 0 ) INFO_message("Removed %d isola%s from mask dataset",ii,(ii==1)?"\0":"s") ;
        nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        if( verb ) INFO_message("Number of voxels in mask = %d",nmask) ;
