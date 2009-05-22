@@ -65,7 +65,13 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
- { 21 , MAY , 2009 , ZSS , "SUMA" , MINOR , TYPE_BUG_FIX ,
+ { 22 , MAY , 2009 , ZSS , "@FS_roi_label" , MINOR , TYPE_NEW_PROG ,
+   "A script to get FreeSurfer parcellation and annotation labels",
+   "The script is used to return a label associated with a FreeSurfer\n"
+   "annotation or parcellation integer label."
+ } ,
+
+ { 21 , MAY , 2009 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
    "Additional check for caret-version string",
    "It seems that the syntax for caret-version has changed\n"
    "slightly and was being missed by SUMA. As a result, Caret\n"
