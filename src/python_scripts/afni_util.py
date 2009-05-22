@@ -194,10 +194,16 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
 
     return err, result
 
-def get_truncated_grid_dim(dset):
+def get_truncated_grid_dim(dset, verb=1):
     """return a new (isotropic) grid dimension based on the current grid
-       - return floor(min_int(DELTAS))
-       - if some DELTA < 1.0, return the min
+       - given md = min(DELTAS)
+             if   md >= 2.0:  return floor(md)
+             elif md >= 1.5:  return 1.5
+             elif md >= 1.0:  return 1.0
+             elif md >= 0.75: return 0.75
+             elif md >= 0.5:  return 0.5
+             elif md >= 0.1:  return floor(10*md)/10.0
+             else:            return md
        - return <= 0 on failure
     """
     err, dims = get_typed_dset_attr_list(dset, 'DELTA', float)
@@ -206,9 +212,32 @@ def get_truncated_grid_dim(dset):
     for ind in range(len(dims)):
         dims[ind] = abs(dims[ind])
     md = min(dims)
-    if md <= 1.0: return md
-    else:         return int(md)
+    if md >= 2.0: return math.floor(md)
+    if md <= 0:
+        print '** failed to get truncated grid dim from %s' % dims
+        return 0
 
+    return truncate_to_2_bits(md, verb)
+
+def truncate_to_2_bits(val, verb):
+    """truncate the real value to most significant 2 bits
+
+       val is required to be positive but less than 2.0"""
+
+    if val <= 0 or val > 2.0:
+        print '** T22B: illegal val to truncate: %g' % val
+        return 0.0
+
+    # find mult s.t.  2 <= mult*val < 4
+    log2 = math.log(2.0)
+    l2 = math.ceil(1 - math.log(val)/log2)
+    mult = round(math.exp(l2 * log2))
+    val2 = val * mult
+    if verb > 2: print '-- GTGD: mult*val = %g*%g = %g' % (mult,val,val2)
+
+    # truncate and divide by mult
+    return math.floor(val2)/mult
+    
 def get_dset_reps_tr(dset, verb=1):
     """given an AFNI dataset, return err, reps, tr
 
