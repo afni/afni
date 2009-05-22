@@ -5068,7 +5068,7 @@ ENTRY("AFNI_closedown_3dview") ;
    im3d->b123_ulay = im3d->b231_ulay = im3d->b312_ulay = NULL ;
 
    if( XtIsManaged(im3d->vwid->view->frame) == True )
-      AFNI_controller_panel_CB( NULL , im3d , NULL ) ;
+     AFNI_controller_panel_CB( NULL , im3d , NULL ) ;
 
    /* null out montage info */
 
@@ -5083,6 +5083,7 @@ ENTRY("AFNI_closedown_3dview") ;
    RESET_AFNI_QUIT(im3d) ;
 
    im3d->anat_now = im3d->fim_now = NULL ;
+   AFNI_SEE_FUNC_OFF(im3d) ;   /* 22 May 2009 */
 
    AFNI_purge_unused_dsets() ;
 
@@ -7248,6 +7249,8 @@ STATUS("purging old datasets from memory (maybe)") ;
    im3d->anat_now = im3d->anat_dset[vvv] ;
    im3d->fim_now  = im3d->fim_dset[vvv] ;
    im3d->ss_now   = GLOBAL_library.sslist->ssar[sss] ;
+
+   if( im3d->fim_now == NULL ) AFNI_SEE_FUNC_OFF(im3d) ;  /* 22 May 2009 */
 
    SENSITIZE( im3d->vwid->func->clu_rowcol , DSET_INMEMORY(im3d->fim_now) ) ;
 

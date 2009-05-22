@@ -1143,6 +1143,12 @@ ENTRY("AFNI_func_overlay") ;
    im3d = (Three_D_View *) br_fim->parent ;
    if( !IM3D_OPEN(im3d) ) RETURN(NULL) ;         /* should not happen */
 
+   /* 22 May 2009: check if functional dataset is ready */
+
+   if( im3d->fim_now == NULL || im3d->fim_now->dblk == NULL ){
+     AFNI_SEE_FUNC_OFF(im3d) ; RETURN(NULL) ;
+   }
+
    ival = im3d->vinfo->thr_index ;  /* threshold sub-brick index */
 
    /* get the component images */
@@ -1152,13 +1158,6 @@ ENTRY("AFNI_func_overlay") ;
 
    need_thr = (im3d->vinfo->func_threshold > 0.0) && im3d->vinfo->thr_onoff ;
    thrsign  = im3d->vinfo->thr_sign ; /* 08 Aug 2007 */
-
-   /* 22 May 2009: check if functional dataset is ready */
-
-   if( im3d->fim_now == NULL || im3d->fim_now->dblk == NULL ){
-     char cmd[32] , *cpt=AFNI_controller_label(im3d) ;
-     sprintf(cmd,"SEE_OVERLAY %c.-",cpt[1]) ; AFNI_driver(cmd) ; RETURN(NULL) ;
-   }
 
    /* 29 Mar 2005: make sure statistics of overlay dataset are ready */
 
@@ -2597,8 +2596,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       /* 03 Aug 2007: turn 'See Overlay' on? */
 
       if( !im3d->vinfo->func_visible && im3d->vinfo->func_visible_count == 0 ){
-        MCW_set_bbox( im3d->vwid->view->see_func_bbox , 1 ) ;
-        AFNI_see_func_CB( NULL , im3d , NULL ) ;
+        AFNI_SEE_FUNC_ON(im3d) ;
       }
 
    /*--- switch to Hell? ---*/
