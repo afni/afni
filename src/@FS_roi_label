@@ -9,7 +9,6 @@ endif
 goto PARSE
 RETURN_PARSE:
 
-set Do_Surf = 1
 if ( $Do_Surf ) then
    #surface parcellation
    set pplabels = /tmp/___tmpsurflabels.txt
@@ -320,6 +319,10 @@ PARSE:
    if ($name != "" && $lab != "") then
       echo "-label and -name are mutually exclusive"
       goto END
+   endif
+   
+   if ($Do_Surf == -1) then
+      set Do_Surf = 0
    endif
    
    goto RETURN_PARSE

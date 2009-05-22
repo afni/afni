@@ -587,11 +587,18 @@ void SUMA_OpenXformOrtFile (char *filename, void *data);
    "value is a node index, the second is the node's value. \n" \
    "Needless, to say, this format does not support the storage \n"   \
    "of ROI auxiliary information such as Label and \n"   \
-   "Parent Surface, etc... For that you'll have to use NIML.\n" \
+   "Parent Surface, etc., nor does it preserve the order in which \n"   \
+   "nodes are traversed during a tracing. For that you'll have to use NIML.\n" \
    "   NIML is a whole different story which will be documented \n"  \
    "(if necessary) in the future. Suffice it to say that in NIML \n" \
    "format you can store all the auxiliary information about \n"  \
-   "each ROI, unlike with the .1D format. "
+   "each ROI, unlike with the .1D format. \n"   \
+   "But more importantly, the NIML format allows you to preserve\n"  \
+   "--------------------  the order in which you traced the ROI. \n" \
+   "This information can be later used for the purpose of sampling \n"  \
+   "cortical activity along a particular path. This would be accomplished \n" \
+   "with the aid of ROI2dataset's -nodelist* options, along with \n" \
+   "ConvertDset's -node_select_1D option."
    
 #define SUMA_DrawROI_SaveWhat_help  \
    "Which ROIs to save?\n" \
