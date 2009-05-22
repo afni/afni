@@ -78,6 +78,11 @@ afni_history_struct ziad_history[] = {
    "surfaces were not being properly aligned with the volumes."
  } ,
 
+ { 21 , MAY , 2009 , ZSS , "imcat" , MICRO , TYPE_NEW_OPT ,
+   "Now output a grayscale 1D version of an image",
+   "That is done by adding a .1D to the -prefix parameter."
+ } ,
+
  { 19 , MAY , 2009 , ZSS , "prompt_user" , MINOR , TYPE_NEW_PROG ,
    "Prompts user for input with an X window",
    NULL
