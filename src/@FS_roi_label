@@ -329,6 +329,9 @@ PARSE:
 
 HELP:
    echo ""
+   echo "This script is used to get labels associated with "
+   echo "FreeSurfer's parcellation and annotation files.\n"
+   echo ""
    echo "For volumetric FreeSurfer Parcellations:"
    echo "----------------------------------------"
    echo "Usage: `basename $0` <int>"
