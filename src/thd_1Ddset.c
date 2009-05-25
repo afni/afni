@@ -253,7 +253,7 @@ ENTRY("THD_write_1D") ;
                    if filename ends in '.1D' or specifies stdout */
 
    if( pname == NULL && AFNI_yesenv("AFNI_1D_TRANOUT") &&
-       (STRING_HAS_SUFFIX(cpt,".1D") || *cpt=='-' || strcmp(cpt,"stdout")==0) ){
+       (STRING_HAS_SUFFIX(cpt,".1D") || *cpt=='-' || strncmp(cpt,"stdout",6)==0) ){
 
      MRI_IMAGE *qim = THD_dset_to_1Dmri(dset) ;
      mri_write_1D(cpt,qim); mri_free(qim); EXRETURN ;
@@ -261,9 +261,11 @@ ENTRY("THD_write_1D") ;
 
    /* back to normal 3D mode of writing */
 
+   if( sname == NULL ) sname = DSET_DIRNAME(dset) ;
+
    if( fp == NULL ){
-     if( pname != NULL ){        /* have input prefix */
-       if( sname != NULL ){      /* and input session (directory) */
+     if( pname != NULL ){                       /* have input prefix */
+       if( sname != NULL && *sname != '\0' ){   /* and input session (directory) */
          strcpy(fname,sname) ;
          ii = strlen(fname) ; if( fname[ii-1] != '/' ) strcat(fname,"/") ;
        } else {
@@ -271,9 +273,15 @@ ENTRY("THD_write_1D") ;
        }
        strcat(fname,pname) ;
      } else {                    /* don't have input prefix */
+       if( sname != NULL && *sname != '\0' ){   /* use directory name -- 25 May 2009 */
+         strcpy(fname,sname) ;
+         ii = strlen(fname) ; if( fname[ii-1] != '/' ) strcat(fname,"/") ;
+       } else {
+         strcpy(fname,"./") ;    /* don't have input session */
+       }
        cpt = DSET_PREFIX(dset) ;
        if( STRING_HAS_SUFFIX(cpt,".3D") || STRING_HAS_SUFFIX(cpt,".1D") )
-         strcpy(fname,cpt) ;
+         strcat(fname,cpt) ;
        else
          strcpy(fname,DSET_BRIKNAME(dset)) ;
 
@@ -281,7 +289,7 @@ ENTRY("THD_write_1D") ;
        if( cpt != NULL ) *cpt = '\0' ;                  /* without subscripts! */
      }
      ii = strlen(fname) ;
-     if( ii > 10 && strstr(fname,".BRIK") != NULL ){    /* delete .BRIK! */
+     if( ii > 10 && strstr(fname,".BRIK") != NULL ){    /* delete +view.BRIK */
        fname[ii-10] = '\0' ;
        if( DSET_IS_1D(dset) || (ny==1 && nz==1) )
          strcat(fname,".1D");
