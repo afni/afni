@@ -24,7 +24,7 @@ int main( int argc , char * argv[] )
    double atoz[26] , value ;
    int ii , kvar, kar, brk, strt, oform , len;
    int DoOnce;
-   char *formatstr, *strptr;
+   char *formatstr=NULL, *strptr=NULL;
    char ch;
 
    DoOnce = 0;
@@ -248,78 +248,8 @@ int main( int argc , char * argv[] )
          }
          printf(" = %g\n",value) ; fflush(stdout) ;
       } else {
-         #if 0
-         switch (oform) {
-            case CCALC_DOUBLE: /* double */
-               printf("%f\n",value) ;
-               break;
-            case CCALC_NICE:
-               printf("%g\n",value) ;
-               break;
-            case CCALC_INT:
-               if ( (value - (int)value) < 0.5) value = (int)value;
-               else value = (int)value + 1;
-               printf("%d\n",(int)value) ;
-               break;
-            case CCALC_FINT:
-               printf("%d\n",(int)value) ;
-               break;
-            case CCALC_CINT:
-               printf("%d\n",(int)ceil(value)) ;
-               break;
-        case CCALC_CUSTOM:           /* use user customized format */
-         /* add check for integer output %d */
-         strptr = strchr(formatstr, '%');
-              if(strptr==NULL) {
-               printf("%f\n",value) ;
-              }
-              else {
-                len = strlen(strptr);
-                for(ii=1;ii<len;ii++) {
-                  ch = *(++strptr);
-               switch(ch) {
-        case 'd':  case 'i': case 'c': case 'o': case 'u': case 'x': case 'X':
-          value = (int)value;              /* integer (no decimal) type output */
-                       ii = len + 1;
-                       break;
-
-                  case 'e': case 'E':         /* floating point output types */
-        case 'f': case 'F':
-                  case 'g': case 'G':
-                  case 'a': case 'A':
-                    ii = len+1;
-          break;
-                  case '%':
-                    strptr = strchr(strptr, '%'); /* find next % symbol */
-                  default:
-          break;
-                  }
-                }
-      if(ii==len) {
-        ERROR_exit("unknown format specifier. Try %%d, %%c, %%f or %%g instead.\n");
-      }
-                strptr = (char *) 1;
-                while(strptr) {
-                  strptr = strstr(formatstr, "\\n");
-                  if(strptr) {
-                    *strptr = ' ';
-                    *(strptr+1) = AFNI_EOL;
-                  }
-                }
-
-               printf(formatstr,value) ;
-               printf("\n");
-              }
-               break;
-            default:
-               printf("%f\n",value) ;
-               break;
-         }
-         exit (0);
-         #else
          printf("%s\n", format_value_4print(value, oform, formatstr ));
          exit (0);
-         #endif
       }
    } while(1) ;
 }

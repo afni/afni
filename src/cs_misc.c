@@ -92,12 +92,15 @@ char *format_value_4print(double value, int oform, char *formatstr)
          sprintf(sans,"%g",value) ;
          break;
       case CCALC_INT:
-         if ( (value - (int)value) < 0.5) value = (int)value;
-         else value = (int)value + 1;
+         if (value < 0.0) {
+            value -= 0.5;
+         } else {
+            value += 0.5;
+         }
          sprintf(sans,"%d",(int)value) ;
          break;
       case CCALC_FINT:
-         sprintf(sans,"%d",(int)value) ;
+         sprintf(sans,"%d",(int)floor(value)) ;
          break;
       case CCALC_CINT:
          sprintf(sans,"%d",(int)ceil(value)) ;
