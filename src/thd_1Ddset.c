@@ -244,8 +244,8 @@ ENTRY("THD_write_1D") ;
    /* make up a filename for output (into fname) */
 
    cpt = DSET_PREFIX(dset) ;
-   if( (pname != NULL && *pname == '-') ||
-       (pname == NULL && *cpt   == '-')   ){  /* 12 Jul 2005: to stdout */
+   if( (pname != NULL && *pname == '-') ||          /* 12 Jul 2005: to stdout */
+       (pname == NULL && (*cpt   == '-' || strncmp(cpt,"stdout",6)==0)) ){
      fp = stdout ; strcpy(fname,"stdout") ; binflag = 0 ;
    }
 
