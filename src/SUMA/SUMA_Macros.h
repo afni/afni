@@ -180,9 +180,11 @@
 #define SUMA_POW3(a) ((a)*(a)*(a))
 
 #define SUMA_R2D(a) ( (a)*180.0/SUMA_PI )
-#define SUMA_ROUND(a) ( ( ((a) - (int)(a)) < 0.5 ) ? (int)(a) : ((int)(a)+1) )
 
-#define SUMA_CEIL(a) ( ( ((a) - (int)(a)) == 0.0 ) ? (int)(a) : ((int)(a)+1) )
+#define SUMA_ROUND(a) ( ((a) < 0 ) ? (int)((a)-0.5) : (int)((a)+0.5) )
+
+#define SUMA_CEIL_POS(a) ( ( ((a) - (int)(a)) == 0.0 ) ? (int)(a) : ((int)(a)+1) )
+#define SUMA_CEIL(a) ( ((a) < 0 ) ? (int)(a) : SUMA_CEIL_POS(a) )
 
 #define SUMA_3D_2_1D_index(i, j, k, ni, nij) ( (int)(i) + (int)(j) * (ni) + (int)(k) * (nij) )
 
