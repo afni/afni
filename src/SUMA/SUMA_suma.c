@@ -30,8 +30,16 @@ int * SUMA_disaster(void)
    int *iv1=NULL, *iv2 = NULL, *iv3 = NULL;
    int N_iv1, N_iv2;
    int i;
+   double v[7] = {-1.6, -1.5, -1.4, 0, 1.4, 1.5, 1.6};
    
    SUMA_ENTRY;
+   
+   
+   
+   for (i=0; i<7; ++i) {
+      fprintf (stderr,"%f  : r %d, c %d\n", 
+               v[i], SUMA_ROUND(v[i]), SUMA_CEIL(v[i]));
+   }
    
    SUMA_S_Notev("Domemtrace %d\n", get_Domemtrace());
    N_iv1 = 5;
