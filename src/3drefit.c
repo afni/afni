@@ -23,8 +23,8 @@ void Syntax(char *str)
            "'3dinfo dataset'.  Using 3dinfo both before and after 3drefit is\n"
            "a good idea to make sure the changes have been made correctly!\n"
            "\n"
-           "20 Jun 2006: 3drefit will now work on NIfTI datasets (but it will\n"
-           "             write out the entire dataset)\n\n"
+           "20 Jun 2006: 3drefit will now work on NIfTI datasets (but it will write\n"
+           "             out the entire dataset, into the current working directory)\n\n"
          ) ;
 
    printf(
