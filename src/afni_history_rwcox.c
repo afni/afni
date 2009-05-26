@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , MAY , 2009 , RWC , "thd_1Ddset.c" , MICRO , TYPE_MODIFY ,
+   "Change way names are used in output of .1D 'datasets'" ,
+   "(a) If prefix starts with '-' or 'stdout', write results to stdout as a\n"
+   "'pure' 1D formatted file (no NIML header),\n"
+   "(b) Otherwise, if -prefix option had a directory name attached, use that\n"
+   "instead of always using the current working directory." } ,
+
  { 22 , MAY , 2009 , RWC , "afni" , MICRO , TYPE_BUG_FIX ,
    "Check if im3d->fim_now is NULL in AFNI_func_overlay()" ,
    NULL } ,
