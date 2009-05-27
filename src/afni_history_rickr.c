@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "updates for alignment/warp/varying run lengths",
+   "- added -volreg_warp_dxyz option\n"
+   "- if align a2e, add -no_ss to @auto_tlrc\n"
+   "- for varying run lengths, fixed application of '-volreg_align_to last'\n"
+   "  and the -regress_est_blur_* options\n"
+   "  (blur estimation loops were modified for this)\n"
+   "- warping to new grid truncates to 2 significant bits (if < 2 mm)"
+ } ,
+
  { 21, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added 'align' processing block and -volreg_align_e2a option",
    NULL

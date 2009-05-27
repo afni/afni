@@ -88,7 +88,7 @@ def show_args_as_command(args, note='command:'):
 
      print args_as_command(args,
      "----------------------------------------------------------------------\n"
-     "%s\n\n    " % note,
+     "%s\n\n  " % note,
      "\n----------------------------------------------------------------------"
      )
 
@@ -197,13 +197,8 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
 def get_truncated_grid_dim(dset, verb=1):
     """return a new (isotropic) grid dimension based on the current grid
        - given md = min(DELTAS)
-             if   md >= 2.0:  return floor(md)
-             elif md >= 1.5:  return 1.5
-             elif md >= 1.0:  return 1.0
-             elif md >= 0.75: return 0.75
-             elif md >= 0.5:  return 0.5
-             elif md >= 0.1:  return floor(10*md)/10.0
-             else:            return md
+             if md >= 2.0: return md: truncated to int: floor(md)
+             else:         return md: truncated to 2 significant bits
        - return <= 0 on failure
     """
     err, dims = get_typed_dset_attr_list(dset, 'DELTA', float)

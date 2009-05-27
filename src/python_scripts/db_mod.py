@@ -51,6 +51,8 @@ def db_cmd_tcat(proc, block):
                 'cd %s\n\n' % proc.od_var
 
     proc.reps   -= first        # update reps to account for removed TRs
+    proc.reps_all = [reps-first for reps in proc.reps_all]
+
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
 
@@ -111,6 +113,7 @@ def db_cmd_align(proc, block):
     if not opt:
         proc.anat.prefix = "%s_al" % proc.anat.prefix
         if proc.tlrcanat: proc.tlrcanat.prefix = "%s_al" % proc.tlrcanat.prefix
+        proc.tlrc_ss = 0        # default to no skull-strip
 
     return cmd
 
@@ -604,9 +607,12 @@ def db_mod_volreg(block, proc, user_opts):
             bopt.parlist[0] = 0
             bopt.parlist[1] = 2
         elif aopt.parlist[0] == 'last':
-            # (if we don't know runs/reps yet, will have -1, which is okay)
+            # if we don't know runs/reps yet, will have -1, which is okay
+            # (if reps_vary is set, we should use reps_all)
+            if proc.reps_vary: reps = proc.reps_all[-1]
+            else:              reps = proc.reps
             bopt.parlist[0] = proc.runs - 1     # index of last dset
-            bopt.parlist[1] = proc.reps - 1     # index of last rep
+            bopt.parlist[1] = reps - 1          # index of last rep
         else:   
             print "** unknown '%s' param with -volreg_base_ind option" \
                   % aopt.parlist[0]
@@ -645,6 +651,16 @@ def db_mod_volreg(block, proc, user_opts):
     if uopt and not bopt:
         block.opts.add_opt('-volreg_align_e2a', 0, [])
 
+    uopt = user_opts.find_opt('-volreg_warp_dxyz')
+    bopt = block.opts.find_opt('-volreg_warp_dxyz')
+    if uopt:
+        try: dxyz = float(uopt.parlist[0])
+        except:
+            print "** -volreg_warp_dxyz requires float ('%s')"%uopt.parlist[0]
+            return 1
+        if bopt: bopt.parlist[0] = dxyz
+        else: block.opts.add_opt('-volreg_warp_dxyz', 1, [dxyz], setpar=1)
+
     block.valid = 1
 
 def db_cmd_volreg(proc, block):
@@ -655,7 +671,7 @@ def db_cmd_volreg(proc, block):
     sub      = opt.parlist[1]
 
     if dset_ind == -1: dset_ind = proc.runs - 1  # may need updates
-    if sub      == -1: sub      = proc.reps - 1
+    if sub      == -1: sub = proc.reps_all[-1] - 1
 
     # get any base_vol option
     if proc.vr_ext_base != None: basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
@@ -737,10 +753,13 @@ def db_cmd_volreg(proc, block):
 
     # if warping, multiply matrices and apply
     if dowarp or doe2a:
-        dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rpv())
-        if dim <= 0:
-            print '** failed to get grid dim from %s' % proc.dsets[0].rpv()
-            return
+        opt = block.opts.find_opt('-volreg_warp_dxyz')
+        if opt: dim = opt.parlist[0]
+        else:
+            dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rpv())
+            if dim <= 0:
+                print '** failed to get grid dim from %s' % proc.dsets[0].rpv()
+                return
 
         # warn the user of output grid change
         print '++ volreg:',
@@ -1541,9 +1560,8 @@ def db_cmd_blur_est(proc, block):
                 'touch %s   # start with empty file\n\n' % blur_file
 
     if aopt:
-        bstr = blur_est_loop_str('all_runs.$subj%s' % proc.view, 
-                    '%s%s' % (proc.mask, proc.view),
-                    'epits', proc.reps, blur_file)
+        bstr = blur_est_loop_str(proc, 'all_runs.$subj%s' % proc.view, 
+                    '%s%s' % (proc.mask, proc.view), 'epits', blur_file)
         if not bstr: return
         cmd = cmd + bstr
 
@@ -1552,31 +1570,28 @@ def db_cmd_blur_est(proc, block):
     else:   errts_pre = 'errts.$subj'
 
     if eopt and not sopt: # want errts, but 3dD was not executed
-        bstr = blur_est_loop_str('%s%s' % (errts_pre, proc.view), 
-                    '%s%s' % (proc.mask, proc.view),
-                    'errts', proc.reps, blur_file)
+        bstr = blur_est_loop_str(proc, '%s%s' % (errts_pre, proc.view), 
+                    '%s%s' % (proc.mask, proc.view), 'errts', blur_file)
         if not bstr: return
         cmd = cmd + bstr
     if eopt and ropt: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
-        bstr = blur_est_loop_str( '%s\_REML%s' % (errts_pre, proc.view), 
-                    '%s%s' % (proc.mask, proc.view),
-                    'err_reml', proc.reps, blur_file)
+        bstr = blur_est_loop_str(proc, '%s\_REML%s' % (errts_pre, proc.view), 
+                    '%s%s' % (proc.mask, proc.view), 'err_reml', blur_file)
         if not bstr: return
         cmd = cmd + bstr
     cmd = cmd + '\n'
 
     return cmd
 
-def blur_est_loop_str(dname, mname, label, nreps, outfile):
+def blur_est_loop_str(proc, dname, mname, label, outfile):
     """return tcsh command string to compute blur from this dset
+        proc     : afni_proc SubjProcStream (for reps or reps_all)
         dname    : dataset name to estimate blur on
         mname    : mask dataset name
         label    : text label for comments
-        nreps    : number of repetitions per run
         outfile  : final output filename
     """
-    
     dset  = BASE.afni_name(dname)
     input = dset.shortinput()
     mset  = BASE.afni_name(mname)
@@ -1590,24 +1605,28 @@ def blur_est_loop_str(dname, mname, label, nreps, outfile):
         print "** failed to get mask input name from '%s'" % mname
         return ''
 
-    cmd = '# -- estimate blur for each run in %s --\n'               \
+    cmd = '# -- estimate blur for each run in %s --\n'          \
           'touch %s\n\n' % (label, tmpfile)
 
-    cmd = cmd + 'set b0 = 0\n'                                       \
-                'set b1 = %d    # nreps-1\n' % (nreps-1)
-    cmd = cmd + 'foreach run ( $runs )\n'                            \
-                '    3dFWHMx -detrend -mask %s \\\n'                 \
-                '        %s"[$b0..$b1]" >> %s\n'                     \
-                '    @ b0 += %d   # add nreps\n'                     \
-                '    @ b1 += %d\n'                                   \
-                'end\n\n' % (mask, input, tmpfile, nreps, nreps)
+    cmd = cmd +                                                 \
+        'set b0 = 0     # first index for current run\n'        \
+        'set b1 = -1    # will be last index for current run\n' \
+        'foreach reps ( %s )\n'                                 \
+        '    @ b1 += $reps  # last index for current run\n'     \
+        '    3dFWHMx -detrend -mask %s \\\n'                    \
+        '        %s"[$b0..$b1]" >> %s\n'                        \
+        % (UTIL.int_list_string(proc.reps_all), mask, input, tmpfile)
 
-    cmd = cmd + '# compute average blur and append\n'                   \
-                'set blurs = ( `3dTstat -mean -prefix - %s\\\'` )\n'    \
-                'echo average %s blurs: $blurs\n'                       \
-                'echo "$blurs   # %s blur estimates" >> %s\n'       %   \
-                (tmpfile, label, label, outfile)
-    cmd = cmd + '\n'
+    cmd = cmd +                                                 \
+        '    @ b0 += $reps  # first index for next run\n'       \
+        'end\n\n'
+
+    cmd = cmd +                                                 \
+        '# compute average blur and append\n'                   \
+        'set blurs = ( `3dTstat -mean -prefix - %s\\\'` )\n'    \
+        'echo average %s blurs: $blurs\n'                       \
+        'echo "$blurs   # %s blur estimates" >> %s\n\n'     %   \
+        (tmpfile, label, label, outfile)
 
     return cmd
 
@@ -1706,8 +1725,8 @@ def db_cmd_tlrc(proc, block):
     else:   base = 'TT_N27+tlrc'
 
     opt = block.opts.find_opt('-tlrc_no_ss')
-    if opt: ss = ' -no_ss'
-    else:   ss = ''
+    if opt or not proc.tlrc_ss: ss = ' -no_ss'
+    else:                       ss = ''
 
     opt = block.opts.find_opt('-tlrc_rmode')
     if opt: rmode = ' -rmode %s' % opt.parlist[0]
@@ -2134,24 +2153,25 @@ g_help_string = """
     WARP TO TLRC NOTE:
 
     afni_proc.py can now apply a +tlrc transformation to the EPI data as part
-    of the volreg step via the option '-volreg_tlrc_warp'.
+    of the volreg step via the option '-volreg_tlrc_warp'.  Note that it can
+    also align the EPI and anatomy at the volreg step via '-volreg_align_e2a'.
 
-    This is recommended for many reasons, though most are not yet implemented.
-    Advantages include:
+    This tlrc transformation is recommended for many reasons, though most are
+    not yet implemented.  Advantages include:
 
         - single interpolation of the EPI data
 
-            Done separately, volume registration and the +tlrc transformation
-            interpolate the EPI data (or betas, etc.) twice.  By combining the
-            volreg and tlrc transformations into a single one, there is no
-            additional resampling penalty for the warp to standard space.
+            Done separately, volume registration, EPI to anat alignment and/or
+            the +tlrc transformation interpolate the EPI data 2 or 3 times.  By
+            combining these transformations into a single one, there is no
+            resampling penalty for the alignment or the warp to standard space.
 
             Thanks to D Glen for the steps used in align_epi_anat.py.
 
         - EPI time series become directly comparable across subjects
 
-            Since the volreg output is now in standard space, there is voxel
-            correspondence across subjects with the EPI data.
+            Since the volreg output is now in standard space, there is already
+            voxel correspondence across subjects with the EPI data.
 
         - group masks and/or atlases can be applied to the EPI data without
           additional warping
@@ -2247,20 +2267,22 @@ g_help_string = """
     In the case that the EPI datasets are not all of the same length, here
     are some issues that may come up, listed by relevant option:
 
-        -volreg_align_to        If aligning to "last" afni_proc.py might get
-                                an inaccurate index for the volreg -base.
+        -volreg_align_to        OK, as of version 1.49.
 
-        -regress_polort         If this option is not used, then the degree of
+     *  -ricor_regress_method   If across-runs, $volsperrun is not appropriate.
+
+        -regress_polort         Probably no big deal.
+                                If this option is not used, then the degree of
                                 polynomial used for the baseline will come from
-                                the first run.
+                                the first run.  Only 1 polort may be applied.
 
-        -regress_est_blur_epits This may fail, as afni_proc.py may have trouble
-                                teasing the different runs apart from the errts
-                                dataset.
+        -regress_est_blur_epits OK, as of version 1.49.
 
-        -regress_use_stim_files This may fail, as make_stim_times.py is not
+     *  -regress_use_stim_files This may fail, as make_stim_times.py is not
                                 currently prepared to handle runs of different
                                 lengths.
+
+     * probably will be fixed (please let me know of interest)
 
     --------------------------------------------------
     SCRIPT EXECUTION NOTE:
@@ -2857,6 +2879,32 @@ g_help_string = """
 
             Please see 'WARP TO TLRC NOTE' above, for additional details.
             See also -tlrc_anat, -copy_anat.
+
+        -volreg_warp_dxyz DXYZ  : grid dimensions for _align_e2a or _tlrc_warp
+
+                e.g. -volreg_warp_dxyz 3.5
+                default: min dim truncated to integer or 2 significant bits
+                         (see description, below)
+
+            This option allows the user to specify the grid size for output
+            datasets from the -volreg_tlrc_warp and -volreg_align_e2a options.
+            In either case, the output grid will be isotropic voxels (cubes).
+
+            By default, DXYZ is the minimum input dimension, truncated to:
+                a. if >= 2.0: an integer, i.e. floor(min(dims))
+                b. otherwise: 2 significant bits
+
+            Some examples:
+                ----------------------------  (integer truncation)
+                6.00   ...  6.99   --> 6.0
+                2.00   ...  2.99   --> 2.0
+                ----------------------------  (2 significant bits)
+                1.50   ...  1.99   --> 1.5
+                1.00   ...  1.49   --> 1.0
+                0.75   ...  0.99   --> 0.75
+                0.50   ...  0.74   --> 0.50
+                0.375  ...  0.49   --> 0.375
+                0.25   ...  0.374  --> 0.25
 
         -volreg_zpad N_SLICES   : specify number of slices for -zpad
 
