@@ -121,9 +121,16 @@ g_history = """
     1.48 May 21 2009 :
         - added 'align' processing block (anat to EPI)
         - added -volreg_align_e2a (do EPI to anat alignment in volreg step)
+    1.49 May 27 2009 :
+        - added -volreg_warp_dxyz
+        - if align a2e, add -no_ss to @auto_tlrc
+        - for varying run lengths, fixed application of '-volreg_align_to last'
+          and the -regress_est_blur_* options
+          (blur estimation loops were modified for this)
+        - warping to new grid truncates to 2 significant bits (if < 2 mm)
 """
 
-g_version = "version 1.48, May 21, 2009"
+g_version = "version 1.49, May 27, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -181,6 +188,7 @@ class SubjProcSream:
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.tlrcanat   = None          # expected name of tlrc dataset
+        self.tlrc_ss    = 1             # whether to assume skull strip in tlrc
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
@@ -198,6 +206,8 @@ class SubjProcSream:
         self.tr         = 0.0           # TR, in seconds
         self.reps       = 0             # TRs per run
         self.runs       = 0             # number of runs
+        self.reps_all   = []            # number of TRs in each run
+        self.reps_vary  = 0             # do the repetitions vary
         self.datatype   = -1            # 1=short, 3=float, ..., -1=uninit
         self.scaled     = -1            # if shorts, are they scaled?
         self.mask       = None          # mask dataset
@@ -332,6 +342,8 @@ class SubjProcSream:
                         helpstr='apply separate motion regressors per run')
         self.valid_opts.add_opt('-volreg_tlrc_warp', 0, [],
                         helpstr='warp volreg data to standard space')
+        self.valid_opts.add_opt('-volreg_warp_dxyz', 1, [],
+                        helpstr='output grid size for _tlrc_warp, _align_e2a')
         self.valid_opts.add_opt('-volreg_zpad', 1, [],
                         helpstr='number of slices to pad by in volreg')
 
@@ -715,6 +727,11 @@ class SubjProcSream:
         rv = self.init_script()         # create the script file and header
         if rv != None: return rv
 
+        # small cleanup: after this point, anat needs a view
+        if self.anat and self.anat.view == '':
+            if self.verb > 3: print '++ applying %s view to anat'%self.view
+            self.anat.view = self.view
+
         errs = 0
         for block in self.blocks:
             if not block.apply: continue        # skip such blocks
@@ -776,6 +793,15 @@ class SubjProcSream:
 
         err, self.reps, self.tr = get_dset_reps_tr(dset, self.verb)
         if err: return 1   # check for failure
+
+        # set reps in each run
+        self.reps_all = []
+        self.reps_vary = 0
+        for dr in self.dsets:
+            err, reps, tr = get_dset_reps_tr(dr.rpve(), self.verb)
+            if err: return 1
+            self.reps_all.append(reps)
+            if reps != self.reps: self.reps_vary = 1
 
         # note data type and whether data is scaled
         err, vlist = get_typed_dset_attr_list(dset, "BRICK_TYPES", int)
