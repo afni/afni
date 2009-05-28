@@ -95,3 +95,6 @@ float CALL median (int n, float x[]);
 
 float* calculate_weights(int nrows, int ncolumns, float** data, 
   float weights[], int transpose, char dist, float cutoff, float exponent);
+
+float(*setmetric(char dist)) 
+  (int, float**, float**, const float[], int, int, int);
