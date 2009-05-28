@@ -27,7 +27,12 @@ void example_hierarchical( int nrows, int ncols,
                            int *clusterid);
 void getvoxlclusterdist(int* count, float** cdata, 
 			int* clusterid, float** data, char* jobname, 
-			int nclusters, int nrows, int ncols, float **vcdata);
+			int nclusters, int nrows, int ncols, float **vcdata,
+         char dist);
+void getvoxlclustersdist(int* count, float** cdata, 
+			int* clusterid, float** data, char* jobname, 
+			int nclusters, int nrows, int ncols, float **vcdata,
+         char dist);
 void color_palette(int nclusters, char* jobname);
 
 /**********************************************************************
@@ -40,6 +45,7 @@ typedef struct {
    int r;
    char *jobname;
    char distmetric;
+   int voxdebug[4];
    int verb;
 } OPT_KMEANS;
 int thd_Acluster (  THD_3dim_dataset *in_set,

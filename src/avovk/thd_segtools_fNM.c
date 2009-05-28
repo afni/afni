@@ -410,21 +410,27 @@ void example_hierarchical( int nrows, int ncols,
 
 void getvoxlclusterdist(int* count, float** cdata, 
 			int* clusterid, float** data, char* jobname, 
-			int nclusters, int nrows, int ncols, float** vcdata)
+			int nclusters, int nrows, int ncols, float** vcdata,
+         char dist)
 {
-  int i, j, n;
-  char* filename4;
-  FILE *out4=NULL;
-  /*float* vcdata = malloc(nrows*sizeof(float*));*/
-  float difference, difference1;
-  float* max_vcdata = NULL;
-
-  char* filename5;
-  FILE *out5=NULL;
+   int i, j, n;
+   char* filename4;
+   FILE *out4=NULL;
+   float difference, difference1;
+   float* max_vcdata = NULL;
+   int dummy = 0;
+   char* filename5;
+   float distance = 0.0;
+   float (*metric)
+      (int, float**, float**, const float[], int, int, int) =
+         setmetric(dist);
+   float *weight=NULL;
+   
+   FILE *out5=NULL;
 
    ENTRY("getvoxlclusterdist");
-  /* allocate for answer arrays */
-  if (!(max_vcdata = (float *)calloc(sizeof(float), nclusters))) {
+   /* allocate for answer arrays */
+   if (!(max_vcdata = (float *)calloc(sizeof(float), nclusters))) {
       fprintf(stderr,"ERROR: Failed to allocate for max_vcdata\n");
       EXRETURN;
    }
@@ -432,7 +438,7 @@ void getvoxlclusterdist(int* count, float** cdata,
 
   n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
   
-  int dummy = nclusters;
+  dummy = nclusters;
   do n++; while (dummy/=10);
     
     
@@ -443,18 +449,25 @@ void getvoxlclusterdist(int* count, float** cdata,
   filename5 = malloc((n+2)*sizeof(char));
   sprintf (filename5, "%s_K_G%d.info2", jobname, nclusters);
   out5 = fopen( filename5, "a" );
-
+  weight = (float *)calloc(ncols, sizeof(float));
+  for (i = 0; i < ncols; ++i) weight[i] = 1.0;
+  
   for (i = 0; i < nrows; i++){
-    difference = 0;
-    difference1 = 0;
-    for (j = 0; j < ncols; j++) {
-      difference1 = cdata[clusterid[i]][j]-data[i][j];
-      difference = difference + difference1*difference1;
-    }
-    vcdata[i][0] = 100/(1+sqrt(difference)); /* if values are close to 0 ?! */
+    #if 0      /* ZSS, distances should be same for clustering */
+       difference = 0;
+       difference1 = 0;
+       for (j = 0; j < ncols; j++) {
+         difference1 = cdata[clusterid[i]][j]-data[i][j];
+         difference = difference + difference1*difference1;
+       }
+       vcdata[i][0] = 100/(1+sqrt(difference)); /* if values are close to 0 ?! */
+    #else   
+      distance = metric(ncols, cdata, data, weight, clusterid[i], i, 0);
+      vcdata[i][0] = distance;   /* ZSS: Don't know what you want to do here */
+    #endif
   }
 
- /* avovk JULY29_2008, sept 05 */ 
+  /* avovk JULY29_2008, sept 05 */ 
   for (i = 0; i < nclusters; i++){
     max_vcdata[i] = 0;
   }
@@ -484,54 +497,45 @@ void getvoxlclusterdist(int* count, float** cdata,
   fclose(out4); out4=NULL;
   fclose(out5); out5=NULL;
 
-  /*for (i = 0; i < nrows; i++){ 
-    free(vcdata[i]);
-    }
-    free(vcdata);*/
   EXRETURN;
 
-  }
+}
 /* ========================================================================= */
 
 
 void getvoxlclustersdist(int* count, float** cdata, 
 			int* clusterid, float** data, char* jobname, 
-			int nclusters, int nrows, int ncols, float **vcdata)
+			int nclusters, int nrows, int ncols, float **vcdata,
+         char dist)
 {
-  int i, j, n, k;
-  char* filename4;
-  FILE *out4=NULL;
-  float difference, difference1;
+   int i, j, k;
+   float distance = 0.0, *weight=NULL;
+   float (*metric)
+      (int, float**, float**, const float[], int, int, int) =
+         setmetric(dist);
 
-  /* n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
+
+   weight = (float *)calloc(ncols, sizeof(float));
+   for (i = 0; i < ncols; ++i) weight[i] = 1.0;
+   
+   for (k = 0; k < nclusters; k++){
+      for (i = 0; i < nrows; i++){
+      #if 0 /* ZSS: distances should be same for clustering */
+         difference = 0;
+         difference1 = 0;
+         for (j = 0; j < ncols; j++) {   
+            /*ZSS: Did you CHECK THIS LOOP ? ; j is going through fitcoef*/
+      difference1 = cdata[k][j]-data[i][j];
+      difference = difference + difference1*difference1;
+         }
+         vcdata[i][k+1] = 100/(1+sqrt(difference)); /* actually 1/distance */
+      #else
+         distance = metric(ncols, cdata, data, weight, k, i, 0);
+         vcdata[i][k+1] = distance; /* Don't know what you want to do here */
+      #endif
+      }   /* some kind of scaled probability */
+   }
   
-  int dummy = nclusters;
-  do n++; while (dummy/=10);
-    
-    
-  filename4 = malloc(n*sizeof(char));
-  sprintf (filename4, "%s_K_G%d.vcd", jobname, nclusters);
-  out4 = fopen( filename4, "w" );
-  */
-
-  for (k = 0; k < nclusters; k++){
-    for (i = 0; i < nrows; i++){
-      difference = 0;
-      difference1 = 0;
-      for (j = 0; j < ncols; j++) {   /*CHECK THIS LOOP ; j is going through fitcoef*/
-	difference1 = cdata[k][j]-data[i][j];
-	difference = difference + difference1*difference1;
-      }
-      vcdata[i][k+1] = 100/(1+sqrt(difference)); /* actually 1/distance */
-    }                                       /* some kind of scaled probability */
-  }
-  
-  printf ("------- writing voxels-centroids distances to ...:\t\t"
-          " %s_K_G%d.vcd\n",jobname, nclusters);
-  /*  for (i = 0; i < nrows; i++)
-    fprintf (out4, "%09d\t%7.3f\n", i, vcdata[i]);
-    fclose(out4); out4=NULL;*/
-
   return;
 
 }
@@ -743,7 +747,8 @@ void example_kmeans( int nrows, int ncols,
    printf ("\n");
    printf ("----- doing %d pass-es... go stretch your legs...\n",npass);
    //npass = 3;
-   /* ANDREJ: This function returns different answers each time it is 
+   /* ZSS: You never answered that one, any ideas? 
+      ANDREJ: This function returns different answers each time it is 
       executed. Does the library provide for ways to initialize the
       random number generators used for the searching and initializations? */
    kcluster(   nclusters,
@@ -785,7 +790,10 @@ void example_kmeans( int nrows, int ncols,
 	 {
 	   distance = clusterdistance(nrows, ncols, data, 
 				      weight, count[i], count[j], index[i], 
-				      index[j], 'e', 'a', 0); 
+				      index[j], dist , 'a', 0);  /*ZSS: You had 'e' where I put dist
+                                                    I don't know how much, if at
+                                                    all, you used this output. */
+                                                    
 	   fprintf(out2,"Distance between %d and %d: %7.3f\n", 
 		   i, j, distance);
 	   
@@ -818,10 +826,34 @@ void example_kmeans( int nrows, int ncols,
       clusterid
       data */
 
+      /* ZSS: I now kind of understand what you are doing
+               with these two calls. At first I suspected
+               a bug, but now I see that the first fills
+               the first column of vcdata and the second fills
+               the rest.
+               
+               I am still not sure why the distance  in the first
+               column is computed differently from that in the others.
+               
+               See the changes I made to the two functions to get them
+               to calculate the distances consistently. You will need
+               to decide what to put in vcdata inside these functions, 
+               right now I just put the distances directly 
+               
+               You can easily merge these two functions
+               I am not sure why they are separate. 
+               
+               Double check on your computations with vcdata
+               below the call to color_palette and let us discuss
+               what you are doing with them.
+               
+               */
+      
+             
       getvoxlclusterdist(count, cdata, clusterid, data, jobname, 
-		      nclusters, nrows, ncols, vcdata);
+		      nclusters, nrows, ncols, vcdata, dist);
       getvoxlclustersdist(count, cdata, clusterid, data, jobname, 
-		      nclusters, nrows, ncols, vcdata);
+		      nclusters, nrows, ncols, vcdata, dist);
 
       color_palette(nclusters, jobname);
       
@@ -869,6 +901,144 @@ void example_kmeans( int nrows, int ncols,
 /**********************************************************************
    END: functions based on command.c code from The C clustering library.
 **********************************************************************/
+# define EPSILON             1E-10
+int thd_Adist (  THD_3dim_dataset *in_set,
+                 byte *mask, 
+                 float *sigs, int nsigs,
+                 THD_3dim_dataset **dist_set,
+                 OPT_KMEANS oc)
+{ 
+   int ii, jj, kk;
+   int ncol = -1, nvox = -1;
+   float *distvec=NULL, **asigvec=NULL, **afsig=NULL;
+   char lll[25]={"buffer"};
+   float *weight = NULL, factor =0.0;
+   float (*metric)
+    (int, float**, float**, const float[], int, int, int) =
+       setmetric(oc.distmetric);
+
+
+   ENTRY("thd_Adist");
+   
+   nvox = DSET_NVOX(in_set);
+   ncol = DSET_NVALS(in_set); 
+   if (ncol < DSET_NUM_TIMES(in_set)) ncol = DSET_NUM_TIMES(in_set);
+   
+   /* make sure in_set is loaded */
+   DSET_load(in_set);
+   
+   
+   /* equal weights for all elements of signature */
+   weight = (float *)calloc(ncol, sizeof(float));
+   for (ii = 0; ii < ncol; ii++) weight[ii] = 1.0;
+   
+   /*array to hold one voxel's signature */
+   asigvec = (float ** )calloc(1, sizeof(float*));
+   asigvec[0] = (float *)calloc(ncol, sizeof(float)) ;
+   
+   /* array to hold signatures in a way pleasing to metric */
+   afsig = (float **)calloc(nsigs, sizeof(float*));
+   ii=0;
+   for (jj=0; jj<nsigs; ++jj) {
+      afsig[jj] =(float *)calloc(ncol, sizeof(float));
+      for (kk=0; kk<ncol; ++kk) {
+         afsig[jj][kk] = sigs[ii]; ++ii;
+      }
+   }   
+   /* Create temporary distance vector */
+   distvec = (float *)calloc(nvox, sizeof(float));
+   
+   /* prepare output */
+   *dist_set = EDIT_empty_copy(in_set) ;
+   EDIT_dset_items(  *dist_set ,
+                     ADN_nvals     , nsigs           ,
+                     ADN_ntt       , nsigs          ,
+                     ADN_datum_all , MRI_short      ,
+                     ADN_brick_fac , NULL           ,
+                     ADN_prefix    , "adist"   ,
+                     ADN_none ) ;
+   
+   for (jj=0; jj<nsigs; ++jj) {  /* for each signature type */
+      for (ii=0; ii< nvox; ++ii) {
+         distvec[ii]=0;
+         if (!mask || mask[ii]) {
+            THD_extract_array( ii , in_set , 0 , asigvec[0] ) ; 
+            /* check if it is all non zero */
+            for (kk=0; kk<ncol; ++kk) {
+               if (asigvec[0][kk]) { /* non zero, calculate the distance */
+                  distvec[ii] = metric(ncol, afsig, asigvec, weight,0, 0, 0);
+                  break; /* get out of the loop */
+               }
+            }
+            if (oc.voxdebug[3] == ii) {
+               char fname[128]={""};
+               FILE *fout=NULL;
+               sprintf(fname, "distdbg.vox%d-%d-%d.sig%d.1D", 
+                  oc.voxdebug[0], oc.voxdebug[1], oc.voxdebug[2], jj);
+               if ((fout = fopen(fname, "w"))) {
+                  fprintf(fout,"#Col. 0 signature for voxel %d %d %d\n"
+                               "#Col. 1 reference signature %d\n"
+                               "#Distance per metric %c = %f\n",
+                               oc.voxdebug[0], oc.voxdebug[1], oc.voxdebug[2], 
+                               jj, oc.distmetric, distvec[ii]);
+                  for (kk=0; kk<ncol; ++kk){
+                     fprintf(fout, "%f   %f\n", asigvec[0][kk], afsig[jj][kk]);
+                  }
+                  ININFO_message("Voxel %d %d %d is in mask \n"
+                           "See file %s for debug info with signature %d/%d\n",
+                                 oc.voxdebug[0], oc.voxdebug[1], oc.voxdebug[2],
+                                 fname, jj,nsigs);
+                  fclose(fout); fout = NULL;
+               } else {
+                  ERROR_message("No permission for writing? No debug output.");
+               }
+            }
+         } else if (oc.voxdebug[3] == ii) {
+            ININFO_message("Voxel %d %d %d is not in mask \n ",
+                           oc.voxdebug[0], oc.voxdebug[1], oc.voxdebug[2]);
+         }
+      }
+      /* put distvec back into output, and watch the scaling */
+      EDIT_substitute_brick( *dist_set , jj , MRI_short , NULL ) ;
+      factor = EDIT_coerce_autoscale_new(nvox,  
+                                MRI_float,distvec, 
+                                MRI_short,
+                                 (short*)DSET_BRICK_ARRAY(*dist_set,jj));
+      if (factor < EPSILON)  factor = 0.0;
+      else factor = 1.0 / factor;
+      if( DSET_BRICK_TYPE(*dist_set,jj) == MRI_short )
+      EDIT_misfit_report( DSET_FILECODE(*dist_set) , jj ,
+                          nvox , factor , 
+                          (short*)DSET_BRICK_ARRAY(*dist_set,jj) ,  distvec) ;
+      if (oc.verb) {
+         ININFO_message("Subbrick factor for %d is %f\n ",
+                        jj, factor);
+      }
+      sprintf(lll,"Dist.%c.Sig.%02d", oc.distmetric, jj);
+      EDIT_dset_items (*dist_set, ADN_brick_label_one + jj, lll, ADN_none);             EDIT_BRICK_FACTOR (*dist_set, jj, factor);
+    
+   }
+         
+   if (oc.verb) {
+      ININFO_message("Have %d/%d voxels to process "
+                     "with %d dimensions per voxel.\n",
+                     nvox, DSET_NVOX(in_set), ncol);
+   }
+   
+   
+   if (oc.verb) {
+      ININFO_message("Freedom");
+   }
+      
+   free(weight); weight = NULL;
+   free(distvec); distvec=NULL;
+   free(asigvec[0]); asigvec[0]=NULL;
+   free(asigvec); asigvec=NULL;
+   for (jj=0; jj<nsigs; ++jj) free(afsig[jj]); free(afsig);
+
+   RETURN(1);
+}
+
 /*!
    Andrej: Put some help like for function thd_polyfit
    You can form the data array Dp outside of this function,
@@ -892,8 +1062,9 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                                            memory, at least for D..*/
    int ncol = -1;
    float *dvec=NULL;
+   float factor = 0.0;
    int* clusterid = NULL;
-   short *sc = NULL;
+   short *sc = NULL; 
    float *fc = NULL;
    float** vcdata = NULL; 
    int nvc; /*this will be for number of columns in vcdata matrix*/
@@ -993,7 +1164,8 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                                  oc.jobname, oc.kh, 
                                  distmatrix, 
                                  clusterid);
-         /* YOU SHOULD FREE distmatrix here ...*/
+         /* ZSS: Andrej, this looks like a memory leak, 
+                  distmatrix should be freed here.*/
       } else {
          ERROR_message("Failed to create distmatrix");
          RETURN(0);
@@ -1012,7 +1184,6 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                      ADN_brick_fac , NULL           ,
                      ADN_prefix    , "OML!"   ,
                      ADN_none ) ;
-   /* MRI_float */
    if (oc.verb) {
       ININFO_message("loading results into %s\n",
                      DSET_PREFIX(*clust_set));
@@ -1042,25 +1213,67 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                      ADN_prefix    , "vcd"   ,
                      ADN_none ) ;
 
-     for( j=0 ; j < nvc ; j++ ) /* create empty bricks to be filled below */
+   for( j=0 ; j < nvc ; j++ ) /* create empty bricks to be filled below */
         EDIT_substitute_brick( *dist_set , j , MRI_short , NULL ) ;
 
-/* transfer data in vcdata to shorts array */
- ININFO_message("loading results into %s\n",
-   DSET_PREFIX(*dist_set));
-/* LOOP to pick vcdata[][fromclust] */
+
+   ININFO_message("loading results into %s\n",
+                  DSET_PREFIX(*dist_set));
+
    for (j = 0; j < nvc; j++) {
       ININFO_message("...%d,", j);
-      sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));
+   #if 0 /* ZSS: Andrej, this may have caused some trouble for certain metrics
+                 You don't want to just type cast a float value to short because
+                 you may loose a whole lot of precision. THis will be especially
+                 bad for the correlation metrics! 
+                 I left this code here for you to see what happened and how it
+                 may affect your impression of how well correlation might work 
+                 
+                 sc's declaration is commented out above to be sure it is no 
+                 longer used*/  
+      /* transfer data in vcdata to shorts array */
+      /* LOOP to pick vcdata[][fromclust] */
+         sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));
+         ii = 0;
+         for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
+	         if (!mask || mask[nl]) {
+	            sc[nl] = (short)vcdata[ii][j]+1;
+	            ++ii;
+	         }
+         }
+         EDIT_substitute_brick( *dist_set , j , MRI_short , sc ) ; 
+                                          /* stick result in output */
+	      sc = NULL;  /*array now in brick */
+
+   #else /* proper scaling */
+      
+      /* transfer data in vcdata to full float array */
+      fc = (float *)calloc(sizeof(float),DSET_NVOX(in_set));
       ii = 0;
       for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
 	      if (!mask || mask[nl]) {
-	         sc[nl] = (short)vcdata[ii][j]+1;
+	         fc[nl] = (float)vcdata[ii][j]; /* ZSS: I took the +1 out here, 
+                   I think you had it here because you cut and pasted the line
+                   from the clust_dset ?  */
 	         ++ii;
 	      }
       }
-      EDIT_substitute_brick( *dist_set , j , MRI_short , sc ) ; 
-                                       /* stick result in output */
+      factor = EDIT_coerce_autoscale_new(DSET_NVOX(in_set),  
+                             MRI_float, fc, 
+                             MRI_short,
+                              (short*)DSET_BRICK_ARRAY(*dist_set,j));
+      if (factor < EPSILON)  factor = 0.0;
+      else factor = 1.0 / factor;
+      if( DSET_BRICK_TYPE(*dist_set,j) == MRI_short )
+         EDIT_misfit_report( DSET_FILECODE(*dist_set) , j ,
+                             DSET_NVOX(in_set) , factor , 
+                             (short*)DSET_BRICK_ARRAY(*dist_set,j), fc) ;
+      free(fc); fc = NULL;
+      if (oc.verb) {
+         ININFO_message("Subbrick factor for %d is %f\n ",
+                        j, factor);
+      }
+   #endif
       /* label bricks */
       if (j==0) 
          EDIT_dset_items (*dist_set, ADN_brick_label_one + j, "Dc", ADN_none);
@@ -1071,9 +1284,9 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          EDIT_dset_items (*dist_set, ADN_brick_label_one + j, 
                            "Dc_norm", ADN_none);
       }
-	   sc = NULL;  /*array now in brick */
-
+      EDIT_BRICK_FACTOR (*dist_set, j, factor);
    }
+   
    for (ii=0;ii<(nmask);++ii) {
       free(vcdata[ii]);
    }
@@ -1097,3 +1310,4 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    
    RETURN(1);
 }
+
