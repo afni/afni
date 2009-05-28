@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, MAY, 2009, RCR, "strblast", MINOR, TYPE_BUG_FIX,
+   "partial words had resulted in skipping ahead",
+   "found by R Notestine of UCSD"
+ } ,
+
  { 28, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "example updates for AFNI_data4 and new options",
    NULL
