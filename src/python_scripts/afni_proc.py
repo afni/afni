@@ -128,9 +128,10 @@ g_history = """
           and the -regress_est_blur_* options
           (blur estimation loops were modified for this)
         - warping to new grid truncates to 2 significant bits (if < 2 mm)
+    1.50 May 28 2009 : example updates for AFNI_data4 and new options
 """
 
-g_version = "version 1.49, May 27, 2009"
+g_version = "version 1.50, May 28, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
