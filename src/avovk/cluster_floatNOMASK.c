@@ -1371,7 +1371,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
 
 /* *********************************************************************  */
 
-static float(*setmetric(char dist)) 
+float(*setmetric(char dist)) 
   (int, float**, float**, const float[], int, int, int)
 { switch(dist)
   { case 'e': return &euclid;
