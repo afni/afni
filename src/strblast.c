@@ -136,8 +136,9 @@ int main( int argc , char * argv[] )
                nfind++ ;
                for( jj=0 ; jj < njstr ; jj++ ) fbuf[ii+jj] = jstr[jj] ;
                for(      ; jj < ntarg ; jj++ ) fbuf[ii+jj] = newchar ;
+               /* only if found, noted by R Notestine  28 May 2009 [rickr] */
+               ii += ntarg-1 ; /* increment past found word, shy by 1 */
             }
-            ii += ntarg-1 ;
          }
       }
 
