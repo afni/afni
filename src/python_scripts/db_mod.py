@@ -1404,7 +1404,7 @@ def db_cmd_regress(proc, block):
         for findex in range(nmf):
             mfile = proc.mot_files[findex]
             for ind in range(nlabs):
-                if nmf > 1: mlab = '%s_%02d' % (proc.mot_labs[ind], findex)
+                if nmf > 1: mlab = '%s_%02d' % (proc.mot_labs[ind], findex+1)
                 else:       mlab = '%s'      % (proc.mot_labs[ind])
                 sind = regindex + nlabs*findex + ind
                 cmd = cmd + "    -stim_file %d %s'[%d]' "       \
@@ -1904,11 +1904,12 @@ g_help_string = """
     ==================================================
     EXAMPLES (options can be provided in any order):
 
-        1. Minimum use, provide datasets and stim files (or stim_times files).
-           Note that a dataset suffix (e.g. HEAD) must be used with wildcards,
-           so that datasets are not applied twice.  In this case, a stim_file
-           with many columns is given, allowing the script to change it to
-           stim_times files.
+        1. Minimum use.
+
+           Provide datasets and stim files (or stim_times files).  Note that a
+           dataset suffix (e.g. HEAD) must be used with wildcards, so that
+           datasets are not applied twice.  In this case, a stim_file with many
+           columns is given, where the script to changes it to stim_times files.
 
                 afni_proc.py -dsets epiRT*.HEAD              \\
                              -regress_stim_files stims.1D
@@ -1918,134 +1919,158 @@ g_help_string = """
                 afni_proc.py -dsets epiRT_r1+orig epiRT_r2+orig epiRT_r3+orig \\
                              -regress_stim_files stims.1D
 
-     ** The following examples can be run from the AFNI_data2 directory, and
-        are examples of how one might process the data for subject ED.
+     ***********************************************************
+     *  New and improved!  Examples that apply to AFNI_data4.  *
+     ***********************************************************
 
-        Because the stimuli are on a 1-second grid, while the EPI data is on a
-        2-second grid (TR = 2.0), we ran make_stim_times.py to generate the
-        stim_times files (which are now distributed in AFNI_data2) as follows:
+        The following examples can be run from the AFNI_data4 directory, and
+        are examples of how one might process the data for subject sb23.
 
-            make_stim_times.py -prefix stim_times -tr 1.0 -nruns 10 -nt 272 \\
-                   -files misc_files/all_stims.1D
+        2. Very simple.  Use all defaults, except remove 3 TRs and use basis
+           function BLOCK(30,1).  The default basis function is GAM.
 
-        If your AFNI_data2 directory does not have misc_files/stim_times.*,
-        then you can run the make_stim_times.py command from AFNI_data2.
+                afni_proc.py -subj_id sb23.e2.simple                       \\
+                        -dsets sb23/epi_r??+orig.HEAD                      \\
+                        -tcat_remove_first_trs 3                           \\
+                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                        -regress_basis 'BLOCK(30,1)'
 
+        3. The current class example.  This may change of course.
 
-        2. This example shows basic usage, with the default GAM regressor.
-           We specify the output script name, the subject ID, removal of the
-           first 2 TRs of each run (before steady state), and volume alignment
-           to the end of the runs (the anat was acquired after the EPI).
+           Copy the anatomy into the results directory, register EPI data to
+           the last TR, specify stimulus labels, compute blur estimates, and
+           provide GLT options directly to 3dDeconvolve.  The GLTs will be
+           ignored after this, as they take up too many lines.
 
-           The script name will default to proc.ED, based on -subj_id.
+                afni_proc.py -subj_id sb23.blk                             \\
+                        -dsets sb23/epi_r??+orig.HEAD                      \\
+                        -copy_anat sb23/sb23_mpra+orig                     \\
+                        -tcat_remove_first_trs 3                           \\
+                        -volreg_align_to last                              \\
+                        -regress_make_ideal_sum sum_ideal.1D               \\
+                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                        -regress_stim_labels tneg tpos tneu eneg epos      \\
+                                             eneu fneg fpos fneu           \\
+                        -regress_basis 'BLOCK(30,1)'                       \\
+                        -regress_est_blur_epits                            \\
+                        -regress_est_blur_errts                            \\
+                        -regress_opts_3dD                                  \\
+                            -gltsym 'SYM: +eneg -fneg'                     \\
+                            -glt_label 1 eneg_vs_fneg                      \\
+                            -gltsym 'SYM: 0.5*fneg 0.5*fpos -1.0*fneu'     \\
+                            -glt_label 2 face_contrast                     \\
+                            -gltsym 'SYM: tpos epos fpos -tneg -eneg -fneg'\\
+                            -glt_label 3 pos_vs_neg
 
-                afni_proc.py -dsets ED/ED_r??+orig.HEAD      \\
-                             -subj_id ED                     \\
-                             -tcat_remove_first_trs 2        \\
-                             -volreg_align_to first          \\
-                             -regress_stim_times misc_files/stim_times.*.1D
+        4. Similar to the class example, but specify the processing blocks,
+           adding despike and tlrc, and removing tshift.  Note that the tlrc
+           block is to run @auto_tlrc on the anat.  Ignore the GLTs.
 
-        3. Similar to #2, but add labels for the 4 stim types, and apply TENT
-           as the basis function to get 14 seconds of response, on a 2-second
-           TR grid.  Also, copy the anat dataset(s) to the results directory,
-           and align volumes to the third TR, instead of the first.
+                afni_proc.py -subj_id sb23.e4.blocks                       \\
+                        -dsets sb23/epi_r??+orig.HEAD                      \\
+                        -blocks despike volreg blur mask scale regress tlrc\\
+                        -copy_anat sb23/sb23_mpra+orig                     \\
+                        -tcat_remove_first_trs 3                           \\
+                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                        -regress_stim_labels tneg tpos tneu eneg epos      \\
+                                             eneu fneg fpos fneu           \\
+                        -regress_basis 'BLOCK(30,1)'                       \\
+                        -regress_est_blur_epits                            \\
+                        -regress_est_blur_errts
 
-                afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
-                             -subj_id ED.8                                   \\
-                             -copy_anat ED/EDspgr                            \\
-                             -tcat_remove_first_trs 2                        \\
-                             -volreg_align_to third                          \\
-                             -regress_stim_times misc_files/stim_times.*.1D  \\
-                             -regress_stim_labels ToolMovie HumanMovie       \\
-                                                  ToolPoint HumanPoint       \\
-                             -regress_basis 'TENT(0,14,8)'
+        5a. RETROICOR example a, resting state data.
 
-        4. This is the current AFNI_data2 class example.
+           Assuming the class data is for resting-state and that we have the
+           appropriate slice-based regressors from RetroTS.m, apply the despike
+           and ricor procesing blocks.  Note that '-do_block' is used to add
+           non-default blocks into their default positions.  Here the 'despike'
+           and 'ricor' processing blocks would come before 'tshift'.
 
-           Similar to #3, but append a single -regress_opts_3dD option to
-           include contrasts.  The intention is to create a script very much
-           like analyze_ht05.  Note that the contrast files have been renamed
-           from contrast*.1D to glt*.txt, though the contents have not changed.
+           Remove 3 TRs from the ricor regressors to match the EPI data.  Also,
+           since degrees of freedom are not such a worry, regress the motion
+           parameters per-run (each run gets a separate set of 6 regressors).
 
-           afni_proc.py -dsets ED/ED_r??+orig.HEAD                         \\
-                  -subj_id ED.8.glt                                        \\
-                  -copy_anat ED/EDspgr                                     \\
-                  -tcat_remove_first_trs 2                                 \\
-                  -volreg_align_to third                                   \\
-                  -regress_stim_times misc_files/stim_times.*.1D           \\
-                  -regress_stim_labels ToolMovie HumanMovie                \\
-                                       ToolPoint HumanPoint                \\
-                  -regress_basis 'TENT(0,14,8)'                            \\
-                  -regress_opts_3dD                                        \\
-                      -gltsym ../misc_files/glt1.txt -glt_label 1 FullF    \\
-                      -gltsym ../misc_files/glt2.txt -glt_label 2 HvsT     \\
-                      -gltsym ../misc_files/glt3.txt -glt_label 3 MvsP     \\
-                      -gltsym ../misc_files/glt4.txt -glt_label 4 HMvsHP   \\
-                      -gltsym ../misc_files/glt5.txt -glt_label 5 TMvsTP   \\
-                      -gltsym ../misc_files/glt6.txt -glt_label 6 HPvsTP   \\
-                      -gltsym ../misc_files/glt7.txt -glt_label 7 HMvsTM
+           The regression will use 198 regressors (all of "no interest"):
 
-        5. Similar to #4, but replace some glt files with SYM, and request
-           to run @auto_tlrc.
+                 27 baseline  regressors ( 3 per run * 9 runs)
+                 54 motion    regressors ( 6 per run * 9 runs)
+                117 RETROICOR regressors (13 per run * 9 runs)
 
-           Also, compute estimates of the smoothness in both the EPI (all_runs)
-           and errts (via -regress_est_blur_*).
+           To example #3, add -do_block, -ricor_* and -volreg_regress_per_run.
 
-           afni_proc.py -dsets ED/ED_r??+orig.HEAD                           \\
-              -subj_id ED.8.gltsym                                           \\
-              -copy_anat ED/EDspgr                                           \\
-              -tlrc_anat                                                     \\
-              -tcat_remove_first_trs 2                                       \\
-              -volreg_align_to third                                         \\
-              -regress_stim_times misc_files/stim_times.*.1D                 \\
-              -regress_stim_labels ToolMovie HumanMovie                      \\
-                                   ToolPoint HumanPoint                      \\
-              -regress_basis 'TENT(0,14,8)'                                  \\
-              -regress_opts_3dD                                              \\
-                -gltsym 'SYM: -ToolMovie +HumanMovie -ToolPoint +HumanPoint' \\
-                -glt_label 1 HvsT                                            \\
-                -gltsym 'SYM: +HumanMovie -HumanPoint'                       \\
-                -glt_label 2 HMvsHP                                          \\
-              -regress_est_blur_epits                                        \\
-              -regress_est_blur_errts
+                afni_proc.py -subj_id sb23.e5a.ricor            \\
+                        -dsets sb23/epi_r??+orig.HEAD           \\
+                        -do_block despike ricor                 \\
+                        -tcat_remove_first_trs 3                \\
+                        -ricor_regs_nfirst 3                    \\
+                        -ricor_regs sb23/RICOR/r*.slibase.1D    \\
+                        -ricor_regress_method 'per-run'         \\
+                        -volreg_regress_per_run
 
-        6. Similar to #3, but find the response for the TENT functions on a
-           1-second grid, such as how the data is processed in the class
-           script, s1.analyze_ht05.  This is similar to using '-stim_nptr 2',
-           and requires the addition of 3dDeconvolve option '-TR_times 1.0' to  
-           see the -iresp output on a 1.0 second grid.
+           If tshift, blurring and masking are not desired, consider replacing
+           the -do_block option with an explicit list of blocks:
 
-                afni_proc.py -dsets ED/ED_r??+orig.HEAD                      \\
-                             -subj_id ED.15                                  \\
-                             -copy_anat ED/EDspgr                            \\
-                             -tcat_remove_first_trs 2                        \\
-                             -volreg_align_to third                          \\
-                             -regress_stim_times misc_files/stim_times.*.1D  \\
-                             -regress_stim_labels ToolMovie HumanMovie       \\
-                                                  ToolPoint HumanPoint       \\
-                             -regress_basis 'TENT(0,14,15)'                  \\
-                             -regress_opts_3dD -TR_times 1.0
+                -blocks despike ricor volreg regress
 
-        7. Similar to #2, but add the despike block, and skip the tshift and
-           mask blocks (so the others must be specified).  The user wants to
-           apply a block that afni_proc.py does not deal with, putting it after
-           the 'despike' block.  So 'empty' is given after 'despike'.
+        5b. RETROICOR example b, while running a normal regression.
 
-           Also, apply a 4 second BLOCK response function, prevent the output
-           of a fit time series dataset, run @auto_tlrc at the end, and specify
-           an output script name.
+           Add the ricor regressors to a normal regression-based processing
+           stream.  Apply the RETROICOR regressors across runs (so using 13
+           concatenated regressors, not 13*9).  Note that concatenation is
+           normally done with the motion regressors too.
 
-                afni_proc.py -dsets ED/ED_r??+orig.HEAD                   \\
-                         -blocks despike empty volreg blur scale regress  \\
-                         -script process_ED.b4                            \\
-                         -subj_id ED.b4                                   \\
-                         -copy_anat ED/EDspgr                             \\
-                         -tlrc_anat                                       \\
-                         -tcat_remove_first_trs 2                         \\
-                         -volreg_align_to third                           \\
-                         -regress_stim_times misc_files/stim_times.*.1D   \\
-                         -regress_basis 'BLOCK(4,1)'                      \\
-                         -regress_no_fitts
+           To example #3, add -do_block and three -ricor options.
+
+                afni_proc.py -subj_id sb23.e5b.ricor                       \\
+                        -dsets sb23/epi_r??+orig.HEAD                      \\
+                        -do_block despike ricor                            \\
+                        -copy_anat sb23/sb23_mpra+orig                     \\
+                        -tcat_remove_first_trs 3                           \\
+                        -ricor_regs_nfirst 3                               \\
+                        -ricor_regs sb23/RICOR/r*.slibase.1D               \\
+                        -ricor_regress_method 'across-runs'                \\
+                        -volreg_align_to last                              \\
+                        -regress_make_ideal_sum sum_ideal.1D               \\
+                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                        -regress_stim_labels tneg tpos tneu eneg epos      \\
+                                             eneu fneg fpos fneu           \\
+                        -regress_basis 'BLOCK(30,1)'                       \\
+                        -regress_est_blur_epits                            \\
+                        -regress_est_blur_errts
+
+        6. Align the EPI to the anatomy.  Also, process in standard space.
+
+           For alignment in either direction, add the 'align' block, which
+           aligns the anatomy to the EPI.  To then align the EPI to the anat,
+           apply -volreg_align_e2a, where that transform (inverse) is applied
+           along with the motion alignment.
+
+           On top of that, complete the processing in standard space by running
+           @auto_tlrc on the anat (via the 'tlrc' block) and applying the same
+           transformation to the EPI via -volreg_tlrc_warp.  Again, the EPI
+           transformation is applied along with the motion alignment.
+
+           So add the 2 processing blocks and 2 extra volreg warps to #3 via
+           '-do_block align tlrc', '-volreg_align_e2a', '-volreg_tlrc_warp'.
+
+                afni_proc.py -subj_id sb23.e6.align                        \\
+                        -dsets sb23/epi_r??+orig.HEAD                      \\
+                        -do_block align tlrc                               \\
+                        -copy_anat sb23/sb23_mpra+orig                     \\
+                        -tcat_remove_first_trs 3                           \\
+                        -volreg_align_to last                              \\
+                        -volreg_align_e2a                                  \\
+                        -volreg_tlrc_warp                                  \\
+                        -regress_make_ideal_sum sum_ideal.1D               \\
+                        -regress_stim_times sb23/stim_files/blk_times.*.1D \\
+                        -regress_stim_labels tneg tpos tneu eneg epos      \\
+                                             eneu fneg fpos fneu           \\
+                        -regress_basis 'BLOCK(30,1)'                       \\
+                        -regress_est_blur_epits                            \\
+                        -regress_est_blur_errts
+
+           To process in orig space, remove -volreg_tlrc_warp.
+           To process as anat aligned to EPI, remove -volreg_align_e2a.
 
     --------------------------------------------------
     -ask_me EXAMPLES:

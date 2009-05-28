@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "example updates for AFNI_data4 and new options",
+   NULL
+ } ,
+
  { 27, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "updates for alignment/warp/varying run lengths",
    "- added -volreg_warp_dxyz option\n"
