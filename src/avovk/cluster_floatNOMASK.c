@@ -1389,6 +1389,31 @@ float(*setmetric(char dist))
 
 /* *********************************************************************  */
 
+/* if seed = 0, return preset CLUST_SEED
+           < 0, set CLUST_SEED to time (0) and return it
+           > 0, set CLUST_SEED to seed and return it*/
+unsigned int clust_seed(int seed)
+{  
+   static int isset = 0;
+   static unsigned int CLUST_SEED = 0;
+   
+   if (seed < 0) { /* User wants time seed */
+      CLUST_SEED = (unsigned int)time(0);
+      isset = 1;
+   } else if (seed > 0) {
+      /* user is  providing a seed, use it */
+      CLUST_SEED = (unsigned int)seed;
+      isset = 1;
+   } else { /* user wants preset seed  */
+      if (!isset) { /* not set already, do it (could recurse...) */
+         CLUST_SEED = (unsigned int)time(0);
+         isset = 1;
+      } else {
+         /* nothing to do, let it return */
+      }
+   }
+   return (CLUST_SEED); 
+}
 static float uniform(void)
 /*
 Purpose
@@ -1429,7 +1454,7 @@ A float-precison number between 0.0 and 1.0.
   static int s2 = 0;
 
   if (s1==0 || s2==0) /* initialize */
-  { unsigned int initseed = (unsigned int) time(0);
+  { unsigned int initseed = clust_seed(0);
     srand(initseed);
     s1 = rand();
     s2 = rand();
