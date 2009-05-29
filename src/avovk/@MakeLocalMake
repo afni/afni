@@ -37,7 +37,15 @@ endif
 set l = `echo $grepres | cut -d : -f 1`
 #echo "$l"
 
-sed "${l}d" $tmp > $mo
+set grepres = `\grep -n 'include Makefile.R.INCLUDE' $tmp`
+if ( "$grepres" != "") then
+   set l2 = ";`echo $grepres | cut -d : -f 1`d"
+else 
+   set l2 = ""
+endif
+
+
+sed "${l}d$l2" $tmp > $mo
 
 if ( ! -f $mo) then
    echo "They failed"
