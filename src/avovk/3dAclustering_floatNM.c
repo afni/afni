@@ -36,8 +36,7 @@ static void display_help(void)
   printf ("  -u jobname    Allows you to specify a different name for the \n"
           "                output files.\n"
           "                (default is derived from the input file name)\n");
-  printf ("  -g [0..8]     Specifies the distance measure for gene clustering \n"
-         );
+  printf ("  -g [0..8]     Specifies distance measure for gene clustering\n" );
   printf ("                Note: Weight is a vector as long as the signatures\n"
           "                and used when computing distances. However for the\n"
           "                moment, all weights are set to 1\n"
@@ -94,6 +93,8 @@ static void display_help(void)
           "                With this option, no clustering is done.\n");
   printf ("  -verb         verbose \n");
   printf ("  -voxdbg I J K Output debugging info for voxel I J K\n");    
+  printf ("  -seed SEED    Seed for the random number generator.\n"
+          "                Default is 1234567\n");    
   EXRETURN;
 }
 
@@ -142,6 +143,7 @@ int main(int argc, char **argv)
    oc.jobname = NULL;
    oc.distmetric = 'u';
    oc.verb = 0;
+   oc.rand_seed = 1234567;
    for (i=0; i<4; ++i) oc.voxdebug[i] = -1;
    N_iset = 0;
    filename[N_iset] = NULL;
@@ -157,11 +159,11 @@ int main(int argc, char **argv)
     i++;
     if (strlen(argument)<2)
     { printf("ERROR: missing argument\n");
-      RETURN(0);
+      RETURN(1);
     }
     if (argument[0]!='-')
     { printf("ERROR: unknown argument %s\n", argument);
-      RETURN(0);
+      RETURN(1);
     }
     if(!strcmp(argument,"--version") || !strcmp(argument,"-v"))
     { clusterlib_display_version();
@@ -181,7 +183,7 @@ int main(int argc, char **argv)
     if(!strcmp(argument,"-cg"))
     { if (i==argc || strlen(argv[i])>1 || !strchr("am",argv[i][0]))
       { printf ("Error reading command line argument cg\n");
-        RETURN(0);
+        RETURN(1);
       }
       cg = argv[i][0];
       i++;
@@ -190,7 +192,7 @@ int main(int argc, char **argv)
     if(!strcmp(argument,"-ca"))
     { if (i==argc || strlen(argv[i])>1 || !strchr("am",argv[i][0]))
       { printf ("Error reading command line argument ca\n");
-        RETURN(0);
+        RETURN(1);
       }
       ca = argv[i][0];
       i++;
@@ -198,8 +200,8 @@ int main(int argc, char **argv)
     }
     if(!strcmp(argument,"-prefix"))
     { if (i==argc)
-      { printf ("Need name after -prefix\n");
-        RETURN(0);
+      { printf ("Error: Need name after -prefix\n");
+        RETURN(1);
       }
       prefix = argv[i];
       i++;
@@ -207,8 +209,8 @@ int main(int argc, char **argv)
     }
     if(!strcmp(argument,"-voxdbg"))
     { if (i+2==argc)
-      { printf ("Need 3 integers after -voxedbg\n");
-        RETURN(0);
+      { printf ("Error: Need 3 integers after -voxedbg\n");
+        RETURN(1);
       }
       oc.voxdebug[0] = atoi(argv[i]);i++;
       oc.voxdebug[1] = atoi(argv[i]);i++;
@@ -218,18 +220,32 @@ int main(int argc, char **argv)
 
     if(!strcmp(argument,"-rsigs"))
     { if (i==argc)
-      { printf ("Need name after -rsigs\n");
-        RETURN(0);
+      { printf ("Error: Need name after -rsigs\n");
+        RETURN(1);
       }
       signame = argv[i];
       i++;
       continue;
     }
     
+    if(!strcmp(argument,"-seed"))
+    { if (i==argc)
+      { printf ("Error: Need a +ve integer after -seed\n");
+        RETURN(1);
+      }
+      oc.rand_seed = atoi(argv[i]);
+      if (oc.rand_seed <=0) {
+        printf ("Error: seed must be > 0\n");
+        RETURN(1);
+      }
+      i++;
+      continue;
+    }
+    
    if(!strcmp(argument,"-mask"))
     { if (i==argc)
-      { printf ("Need name after -mask\n");
-        RETURN(0);
+      { printf ("Error: Need name after -mask\n");
+        RETURN(1);
       }
       maskname = argv[i];
       i++;
@@ -249,7 +265,7 @@ int main(int argc, char **argv)
       { if (i==argc)
         { printf ("Error reading command line argument u: "
                   "no job name specified\n");
-          RETURN(0);
+          RETURN(1);
         }
         oc.jobname = clusterlib_setjobname(argv[i],0);
         i++;
@@ -259,13 +275,13 @@ int main(int argc, char **argv)
       { if (i==argc)
         { printf ("Error reading command line argument f: "
                   "no file name specified\n");
-          RETURN(0);
+          RETURN(1);
         }
         do {
          filename[N_iset] = argv[i];
          if (N_iset > 100) {
-            printf ("Too many input files!\n");
-            RETURN(0);
+            printf ("Error: Too many input files!\n");
+            RETURN(1);
          }
          ++N_iset; filename[N_iset] = NULL;
          i++;
@@ -276,13 +292,13 @@ int main(int argc, char **argv)
       { int g;
         if (i==argc)
         { printf ("Error reading command line argument g: parameter missing\n");
-          RETURN(0);
+          RETURN(1);
         }
         g = clusterlib_readnumber(argv[i]);
         if (g < 0 || g > 9)
         { printf ("Error reading command line argument g: "
                   "should be between 0 and 9 inclusive\n");
-          RETURN(0);
+          RETURN(1);
         }
         i++;
         oc.distmetric = clusterlib_getmetric(g);
@@ -293,17 +309,17 @@ int main(int argc, char **argv)
       { if (i==argc)
         { printf ("Error reading command line argument k: "
                   "parameter missing\n");
-          RETURN(0);
+          RETURN(1);
         }
         if (oc.kh > 0) {
             ERROR_message("-k and -c options are mutually exclusive\n");
-            RETURN(0);
+            RETURN(1);
         }
         oc.k = clusterlib_readnumber(argv[i]);
         if (oc.k < 1)
         { printf ("Error reading command line argument k: "
                   "a positive integer is required\n");
-          RETURN(0);
+          RETURN(1);
         }
         i++;
         break;
@@ -311,17 +327,17 @@ int main(int argc, char **argv)
     case 'c':
       { if (i==argc)
         { printf ("Error reading command line argument c: parameter missing\n");
-          RETURN(0);
+          RETURN(1);
         }
         if (oc.k > 0) {
             ERROR_message("-k and -c options are mutually exclusive\n");
-            RETURN(0);
+            RETURN(1);
         }
         oc.kh = clusterlib_readnumber(argv[i]);
         if (oc.kh < 1)
         { printf ("Error reading command line argument c: "
                   "a positive integer is required\n");
-          RETURN(0);
+          RETURN(1);
         }
         i++;
         break;
@@ -329,13 +345,13 @@ int main(int argc, char **argv)
    case 'r':
       { if (i==argc)
         { printf ("Error reading command line argument r: parameter missing\n");
-          RETURN(0);
+          RETURN(1);
         }
         oc.r = clusterlib_readnumber(argv[i]);
         if (oc.r < 1)
         { printf ("Error reading command line argument r: "
                   "a positive integer is required\n");
-          RETURN(0);
+          RETURN(1);
         }
         i++;
         break;
@@ -344,7 +360,7 @@ int main(int argc, char **argv)
       { if (i==argc || strlen(argv[i])>1 || !strchr("msca",argv[i][0]))
 	  { printf ("Error reading command line argument m: "
                "should be 'm', 's', 'c', or 'a'\n");
-	    RETURN(0);
+	    RETURN(1);
 	  }
         method = argv[i][0];
         i++;
@@ -352,7 +368,7 @@ int main(int argc, char **argv)
       }
       default: 
          printf ("Unknown option %s\n", argv[i-1]);
-         RETURN(0);
+         RETURN(1);
     }
     
    }
@@ -396,7 +412,9 @@ int main(int argc, char **argv)
          } else oc.voxdebug[3] = -1;
       } else {
          /* you'll need to read and catenate on the fly ... */
-         ERROR_exit("Not ready to deal with more than one input");
+         ERROR_exit( "Not ready to deal with more than one input.\n"
+                     "Consdier catenating the input externally.\n"
+                     "Let me know if it becomes annoying ...\n");
       }
       
       /* load the set of distance files */
@@ -468,7 +486,7 @@ int main(int argc, char **argv)
          if (!(D[ii] = (float *)calloc(sizeof(float), Ncoltot))) {
             fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n", 
                            nmask, Ncoltot);
-            RETURN(0);
+            RETURN(1);
          }
       }
 
@@ -477,7 +495,8 @@ int main(int argc, char **argv)
                                                          less hassle*/
       nc0 = 0;
       for (iset = 0; iset < N_iset; ++iset) {
-         if (oc.verb) fprintf(stderr,"Patience, rereading %s...\n", filename[iset]);
+         if (oc.verb) 
+            fprintf(stderr,"Patience, rereading %s...\n", filename[iset]);
          in_set = THD_open_dataset(filename[iset]);
          DSET_load(in_set) ; ncol = DSET_NVALS(in_set);
 
