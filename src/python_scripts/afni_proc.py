@@ -129,9 +129,12 @@ g_history = """
           (blur estimation loops were modified for this)
         - warping to new grid truncates to 2 significant bits (if < 2 mm)
     1.50 May 28 2009 : example updates for AFNI_data4 and new options
+    1.51 May 29 2009 :
+        - added -execute option (to execute processing script)
+        - fail on block options that have no such block applied
 """
 
-g_version = "version 1.50, May 28, 2009"
+g_version = "version 1.51, May 29, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -213,6 +216,8 @@ class SubjProcSream:
         self.scaled     = -1            # if shorts, are they scaled?
         self.mask       = None          # mask dataset
         self.exec_cmd   = ''            # script execution command string
+        self.bash_cmd   = ''            # bash formatted exec_cmd
+        self.tcsh_cmd   = ''            # tcsh formatted exec_cmd
         self.regmask    = 0             # apply any full_mask in regression
         self.origview   = '+orig'       # view could also be '+tlrc'
         self.view       = '+orig'       # (starting and 'current' views)
@@ -273,6 +278,8 @@ class SubjProcSream:
                         helpstr='anatomy to copy to results directory')
         self.valid_opts.add_opt('-copy_files', -1, [],
                         helpstr='list of files to copy to results directory')
+        self.valid_opts.add_opt('-execute', 0, [],
+                        helpstr='execute script as suggested to user')
         self.valid_opts.add_opt('-exit_on_error', 1, [],
                         acplist=['yes','no'],
                         helpstr='exit script on any command error')
@@ -567,6 +574,9 @@ class SubjProcSream:
             else: err, blocks = self.add_block_to_list(blocks, 'tlrc')
             if err: return 1
 
+        # if user has supplied options for blocks that are not used, fail
+        if self.opts_include_unused_blocks(blocks, 1): return 1
+
         # call db_mod_functions
         for label in blocks:
             rv = self.add_block(label)
@@ -858,8 +868,32 @@ class SubjProcSream:
         if block: return self.blocks.index(block)
         return None
 
+    def opts_include_unused_blocks(self, blocks, whine=1):
+        """return whether options refer to blocks that are not being used"""
+
+        # start with all BlockLabels and remove those in passed list
+        badlist = BlockLabels[:]
+        for label in blocks:
+            if label in badlist: badlist.remove(label)
+
+        if self.verb > 3: print '++ unused blocks: %s' % badlist
+
+        # for speed, make an explicit list of option prefixes to search for
+        badlist = ['-%s_' % label for label in badlist]
+
+        errs = 0
+        for opt in self.user_opts.olist:
+            ind = opt.name.find('_')
+            if ind < 0: continue
+            if opt.name[0:ind+1] in badlist:
+                if whine: print "** missing '%s' block for option '%s'" \
+                                % (opt.name[1:ind], opt.name)
+                errs += 1
+
+        return errs
+
     def check_block_order(self):
-        """make various order checks
+        """whine about any disliked block orderings
                 - despike < ricor < tshift/volreg
                 - blur < scale
                 - tshift/volreg/blur/scale < regress
@@ -929,12 +963,15 @@ class SubjProcSream:
         # include execution method in script
         if self.exit_on_error: opts = '-xef'
         else:                  opts = '-x'
-        if self.user_opts.find_opt('-bash'): # give bash form
-            self.exec_cmd = 'tcsh %s %s 2>&1 | tee output.%s' % \
-                            (opts, self.script, self.script)
-        else:                                # give tcsh form
-            self.exec_cmd = 'tcsh %s %s |& tee output.%s'     % \
-                            (opts, self.script, self.script)
+
+        # store both tcsh and bash versions
+        self.bash_cmd = 'tcsh %s %s 2>&1 | tee output.%s' % \
+                        (opts, self.script, self.script)
+        self.tcsh_cmd = 'tcsh %s %s |& tee output.%s'     % \
+                        (opts, self.script, self.script)
+
+        if self.user_opts.find_opt('-bash'): self.exec_cmd = self.bash_cmd
+        else:                                self.exec_cmd = self.tcsh_cmd
 
         self.fp.write('# execute via : \n'      \
                       '#   %s\n\n' % self.exec_cmd)
@@ -1154,6 +1191,9 @@ def run_proc():
         if rv != 0:
             show_args_as_command(sys.argv, "** failed command (create_script):")
         return rv
+
+    # finally, execute if requested
+    if ps.user_opts.find_opt('-execute'): rv = os.system(ps.bash_cmd)
 
 # main
 if __name__ == '__main__':

@@ -48,8 +48,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -execute and now fail if block options have no corresponding blocks",
+   NULL
+ } ,
+
+ { 29, MAY, 2009, RCR, "@build_afni_Xlib", MICRO, TYPE_MODIFY,
+   "added -m64 if building for lib64 on a mac, fixed CFLAGS to allow a list",
+   NULL
+ } ,
+
  { 29, MAY, 2009, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
-   "improve line wrapping",
+   "improved line wrapping",
    NULL
  } ,
 
