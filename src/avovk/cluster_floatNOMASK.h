@@ -42,6 +42,7 @@
 #  include <windows.h>
 #endif
 
+unsigned int clust_seed(int seed);
 
 /* Chapter 2 */
 float CALL clusterdistance (int nrows, int ncolumns, float** data, 
