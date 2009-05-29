@@ -455,7 +455,8 @@ void getvoxlclusterdist(int* count, float** cdata,
 
   filename5 = malloc((n+2)*sizeof(char));
   sprintf (filename5, "%s_K_G%d.info2.1D", jobname, nclusters);
-  out5 = fopen( filename5, "a" );
+  out5 = fopen( filename5, "w" );   /* ZSS: This also was "a" 
+                                    but I don't think it was necessary */
   weight = (float *)calloc(ncols, sizeof(float));
   for (i = 0; i < ncols; ++i) weight[i] = 1.0;
   
@@ -485,7 +486,7 @@ void getvoxlclusterdist(int* count, float** cdata,
     }
   }
 
-  printf ("------- APPENDING  max distances within clusters to file:\t\t"
+  printf ("------- writing  max distances within clusters to file:\t\t"
           " %s_K_G%d.info2.1D", jobname, nclusters);
   for (i = 0; i < nclusters; i++){
     printf("%7.3f\n",max_vcdata[i]);
@@ -499,7 +500,7 @@ void getvoxlclusterdist(int* count, float** cdata,
   }
   /* avovk JULY29_2008, sept 05 */
 
-  printf ("------- OVERwriting voxels-centroids distances to file:\t\t"
+  printf ("------- writing voxels-centroids distances to file:\t\t"
           " %s_K_G%d.vcd.1D\n",jobname, nclusters);
   for (i = 0; i < nrows; i++)
     fprintf (out4, "%09d\t%7.3f\n", i, vcdata[i][0]);
