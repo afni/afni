@@ -1743,7 +1743,9 @@ static char * UNITS_TYPE_labelstring[] = { "ms" , "s" , "Hz" } ;
 
 /*! Return a string for the units of the uu-th time unit type. */
 
-#define UNITS_TYPE_LABEL(uu) UNITS_TYPE_labelstring[(uu)-UNITS_MSEC_TYPE]
+#define UNITS_TYPE_LABEL(uu) ( ((uu)<UNITS_MSEC_TYPE || (uu)>UNITS_HZ_TYPE) ? \
+                                 "none" : \
+                                 UNITS_TYPE_labelstring[(uu)-UNITS_MSEC_TYPE] )
 
 /*! Struct to hold information about the time axis of a 3D+time datset.
 
