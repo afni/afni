@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, MAY, 2009, RCR, "afni_util.py", MICRO, TYPE_MODIFY,
+   "improve line wrapping",
+   NULL
+ } ,
+
  { 28, MAY, 2009, RCR, "strblast", MINOR, TYPE_BUG_FIX,
    "partial words had resulted in skipping ahead",
    "found by R Notestine of UCSD"
