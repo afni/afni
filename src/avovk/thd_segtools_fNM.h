@@ -47,7 +47,9 @@ typedef struct {
    char distmetric;
    int voxdebug[4];
    int verb;
+   unsigned int rand_seed;
 } OPT_KMEANS;
+
 int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,
