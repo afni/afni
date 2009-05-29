@@ -485,6 +485,7 @@ def add_line_wrappers(commands, wrapstr='\\\n'):
        if '\\\n', align all wrapstr strings"""
     new_cmd = ''
     posn = 0
+
     while needs_wrapper(commands, 78, posn):
             
         end = find_command_end(commands, posn)
@@ -558,16 +559,19 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n'):
     maxlen = 78
     newcmd = ''
     cur    = start
+    # rewrite: create new command strings after each wrap     29 May 2009
     while needs_wrapper(command,maxlen,cur,end):
         endposn = command.find('\n',cur)
         if needs_wrapper(command,maxlen,cur,endposn):  # no change on this line
 
             lposn = find_last_space(command, cur, endposn, maxlen)
-            maxlen = 78 - plen
 
             if nfirst+cur < lposn:   # woohoo, wrap away (at lposn)
-                newcmd = newcmd + command[cur:lposn+1] + wstring + prefix
-                cur = lposn+1
+                newcmd = newcmd + command[cur:lposn+1] + wstring
+                # modify command to add prefix, reset end and cur
+                command = prefix + command[lposn+1:]
+                end = end + plen - (lposn+1)
+                cur = 0
                 continue
 
         # no change:
@@ -575,7 +579,6 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n'):
         if endposn < 0: endposn = end     # there may not be a '\n'
         newcmd += command[cur:endposn+1]
         cur = endposn + 1
-        maxlen = 78 - plen
 
     if cur <= end: newcmd += command[cur:end+1]   # add remaining string
 
