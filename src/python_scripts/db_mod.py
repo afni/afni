@@ -21,12 +21,9 @@ def db_mod_tcat(block, proc, user_opts):
             errs += 1
         if errs == 0 and bopt.parlist[0] > 0:
           print                                                              \
-            '------------------------------------------------------------\n' \
             '** warning: removing first %d TRs from beginning of each run\n' \
-            '   --> it is essential that stimulus timing files match the\n'  \
-            '       removal of these TRs\n'                                  \
-            '------------------------------------------------------------'   \
-            % bopt.parlist[0]
+            '   --> the stimulus timing files must reflect the '             \
+                    'removal of these TRs' % bopt.parlist[0]
 
     if errs == 0: block.valid = 1
     else        : block.valid = 0
@@ -803,9 +800,10 @@ def db_cmd_volreg(proc, block):
 
     # if we want to regress motion files per run, create them and add to list
     if block.opts.find_opt('-volreg_regress_per_run'):
-        cmd = cmd + '\n' +                              \
-            "    1d_tool.py -infile dfile.r$run.1D "    \
-            "-pad_into_many_runs $run %d \\\n"          \
+        cmd = cmd + '\n' +                                                  \
+            "    # pad motion parameters from each run to span all runs \n" \
+            "    1d_tool.py -infile dfile.r$run.1D "                        \
+            "-pad_into_many_runs $run %d \\\n"                              \
             "               -write dfile.r$run.pad.1D\n" % proc.runs
         proc.mot_files = ['dfile.r%02d.pad.1D'%(r+1) for r in range(proc.runs)]
 
@@ -2497,6 +2495,19 @@ g_help_string = """
             the datasets suffix, so that the shell doesn't put both the .BRIK
             and .HEAD filenames on the command line (which would make it twice
             as many runs of data).
+
+        -execute                : execute the created processing script
+
+            If this option is applied, not only will the processing script be
+            created, but it will then be executed in the "suggested" manner,
+            such as via:
+
+                tcsh -xef proc.sb23 |& tee output.proc.sb23
+
+            Though it will actually use the bash format of that option, since
+            the system command (C and therefor python) uses /bin/sh.
+
+                tcsh -xef proc.sb23 2>&1 | tee output.proc.sb23
 
         -keep_rm_files          : do not have script delete rm.* files at end
 

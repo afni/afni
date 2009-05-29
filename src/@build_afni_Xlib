@@ -50,6 +50,8 @@ set packages     = ()                     # init to empty package list
 
 set localinstall = 0                      # local install under package dir
 
+set cflags = ( )
+
 
 # show help on no arguments, as well as via -help
 set show_help = 0
@@ -61,12 +63,19 @@ while ( $ac <= $#argv )
     if ( "$arg" == "-afniX" ) then      # -afniX --> /usr/local/afniX
         set installdir = $afniXdir
         echo "++ setting installdir = $installdir"
+    else if ( "$arg" == "-g" ) then   # add symbols
+        set cflags = ( $cflags '-g' )
+        echo "++ adding '-g' to CFLAGS"
     else if ( "$arg" == "-lib" ) then   # 64-bit
         set ldir = lib
         echo "++ setting ldir = $ldir"
     else if ( "$arg" == "-lib64" ) then # 64-bit
         set ldir = lib64
         echo "++ setting ldir = $ldir"
+        if ( "`uname -s`" == "Darwin" ) then
+            set cflags = ( $cflags '-m64' )
+            echo "++ adding to CFLAGS for Darwin: $cflags"
+        endif
     else if ( "$arg" == "-localinstall" ) then
         set localinstall = 1
         echo "++ setting localinstall = $localinstall"
@@ -104,6 +113,8 @@ if ( $show_help ) then
     echo ""
     echo "    -afniX        : install under /usr/local/afniX"
     echo "                    (default is ../install)"
+    echo "    -g            : compile with -g to add symbols"
+    echo "                    (no longer the default)"
     echo "    -lib64        : install libs under lib64"
     echo "                    (default is lib)"
     echo "    -localinstall : install under each package directory"
@@ -115,7 +126,7 @@ if ( $show_help ) then
     echo ""
     echo "    $prog lesstif"
     echo "    $prog -afniX -lib64 openmotif libXt"
-    echo "    $prog -lib64 -localinstall lesstif"
+    echo "    $prog -lib64 -localinstall -g lesstif"
     echo ""
     echo "note: do not install both lesstif and openmotif (of course :)"
     echo ""
@@ -218,7 +229,7 @@ foreach package ( $packages )
 
     # set additional configure flags
     set ACLOCALDIR = $instdir/share/aclocal
-    set CFLAGS = -g
+    set CFLAGS = ( $cflags )
 
     # just set the configure command, apply it separately
     if ( $package == openmotif ) then
@@ -228,7 +239,7 @@ foreach package ( $packages )
                 --libdir=$instdir/$ldir                         \
                 --includedir=$instdir/include                   \
                 --datadir=$instdir/data                         \
-                ACLOCALDIR=$ACLOCALDIR CFLAGS="$CFLAGS" )
+                ACLOCALDIR=$ACLOCALDIR )
     else  # LessTif or Xt
         set command = (                                         \
             ./configure --enable-static                         \
@@ -238,15 +249,16 @@ foreach package ( $packages )
                     --includedir=$instdir/include               \
                     --datadir=$instdir/data                     \
                     $debugflag                                  \
-                    ACLOCALDIR=$ACLOCALDIR                      \
-                    CFLAGS=$CFLAGS )
+                    ACLOCALDIR=$ACLOCALDIR )
     endif
 
     set outfile = out.config
     echo ""
     echo "-- running configure (output in '$outfile')..."
-    echo $command | tee $outfile
-    $command >>& $outfile
+
+    # EXECUTE: cflags is a list, so include separately
+    echo $command CFLAGS="$cflags" | tee $outfile
+    $command CFLAGS="$cflags" >>& $outfile
 
     if ( $status ) then
         echo "** configure failure, see '$outfile'"
