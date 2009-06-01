@@ -294,11 +294,15 @@ int main( int argc , char *argv[] )
 "NOTE: If you want to align EPI volumes to a T1-weighted structural\n"
 "====  volume, the script align_epi_anat.py is recommended.  It will\n"
 "      use 3dAllineate in the recommended way for this type of problem.\n"
+" -->> In particular, using 3dAllineate with the 'lpc' cost functional\n"
+"      requires using a '-weight' volume to get good results, and the\n"
+"      align_epi_anat.py script will automagically generate such a\n"
+"      weight dataset that works well for EPI-to-structural alignment.\n"
 " -->> This script can also be used for other alignment purposes, such\n"
 "      as T1-weighted alignment between field strengths using the\n"
-"      '-lpa' cost functional.  Investigate align_epi_anat.py\n"
-"      to see if it will do what you need -- you might make your life\n"
-"      a little easier and nicer.\n"
+"      '-lpa' cost functional.  Investigate align_epi_anat.py to\n"
+"      see if it will do what you need -- you might make your life\n"
+"      a little easier and nicer and happier.\n"
 "\n"
 "OPTIONS:\n"
 "=======\n"
@@ -1013,6 +1017,11 @@ int main( int argc , char *argv[] )
               "     http://afni.nimh.nih.gov/sscc/rwcox/papers/LocalPearson2009.pdf\n"
               "   The '-blok' option can be used to control the regions\n"
               "   (size and shape) used to compute the local correlations.\n");
+       printf(" *** Using the 'lpc' functional wisely requires the use of\n"
+              "     a proper weight volume.  We HIGHLY recommend you use\n"
+              "     the align_epi_anat.py script if you want to use this\n"
+              "     cost functional!  Otherwise, you are likely to get\n"
+              "     less than optimal results (and then swear at us unjustly).\n"
        printf("\n") ;
        printf(" * For more information about the 'cr' functionals, see\n"
               "     http://en.wikipedia.org/wiki/Correlation_ratio\n"
@@ -2279,6 +2288,15 @@ int main( int argc , char *argv[] )
    if( meth_code == GA_MATCH_PEARSON_SCALAR && !wtspecified ){ /* 10 Sep 2007 */
      auto_weight = 1 ;  /* for '-ls', use '-autoweight' */
      if( verb ) INFO_message("Cost 'ls' ==> using '-autoweight' default") ;
+   }
+
+   /* warn the stoopid lusers out there [01 Jun 2009] */
+
+   if( (meth_code == GA_MATCH_PEARSON_LOCALS || GA_MATCH_PEARSON_LOCALA)
+      && dset_weig == NULL ){
+     WARNING_message(
+      "A '-weight' volume is recommended when using the -lpc or -lpa cost functional;\n"
+      "            For example, see the align_epi_anat.py script." ) ;
    }
 
    if( !hist_setbyuser ){   /* 25 Jul 2007 */
