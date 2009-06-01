@@ -363,11 +363,13 @@ int main( int argc , char *argv[] )
    }
    kzold  = -1 ;
    nspike =  0 ; nbig = 0 ; nproc = 0 ;
-#pragma omp parallel if( nxyz > 11111 )
+#pragma omp parallel if( nxyz > 6666 )
  { int ii , iv , iu , id , jj ;
    float *far , *dar , *var , *fitar , *ssp , *fit , *zar ;
    short *sar , *qar ; byte *tar ;
    float fsig , fq , cls , snew , val ;
+
+ AFNI_OMP_START ;
 
 #pragma omp critical (DESPIKE_malloc)
   { far   = (float *) malloc( sizeof(float) * nvals ) ;
@@ -534,6 +536,7 @@ int main( int argc , char *argv[] )
 #pragma omp critical (DESPIKE_malloc)
    { free(fit); free(ssp); free(fitar); free(var); free(dar); free(far); }
 
+ AFNI_OMP_END ;
  } /* end OpenMP */
 
    /*--- finish up ---*/

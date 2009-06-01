@@ -8,8 +8,8 @@
 
 #include "afni.h"
 
-/*-------------------------------------------------------------------*/
-/*! Set up to have AFNI send data to a receiver:
+/*---------------------------------------------------------------------------*/
+/*! Set up to have AFNI send data to a receiver (callback function):
 
      rmask = bitwise OR (|) mask of RECEIVE_*_MASK (cf. afni.h)
 
@@ -18,7 +18,7 @@
              where why = a RECEIVE_* code (cf. below)
                    np  = count of data in vp (may be 0)
                    vp  = pointer to data being sent (may be NULL)
-               cb_data = pointer passed into this routine
+               cb_data = pointer passed into this routine (may be NULL)
 
      cbname = string to identify callback func (for debugging)
 
@@ -88,7 +88,7 @@
 
    Modified 29 Mar 1999 to allow for multiple receivers
    (but drawing can only be done in one mode).
----------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------------*/
 
 int AFNI_receive_init( Three_D_View *im3d , int rmask ,
                        gen_func *cb , void *cb_data  , char *cbname )
@@ -121,7 +121,7 @@ fprintf(stderr,"AFNI_receive_init AFREALL() with ir=%d num_receiver=%d\n",
    im3d->vinfo->receiver[ir]->receiver_data = cb_data ;
 
    im3d->vinfo->receiver[ir]->receiver_funcname =
-     strdup( (cbname != NULL) ? cbname : "[unknown func]" ) ;
+     strdup( (cbname != NULL && *cbname != '\0') ? cbname : "[unknown func]" ) ;
 
    AFNI_toggle_drawing( im3d ) ;
 
@@ -132,7 +132,7 @@ fprintf(stderr,"AFNI_receive_init AFREALL() with ir=%d num_receiver=%d\n",
 /*! Turn off all reception for this viewer.
 ---------------------------------------------------------------------------*/
 
-void AFNI_receive_destroy( Three_D_View * im3d )
+void AFNI_receive_destroy( Three_D_View *im3d )
 {
    int ir ;
 
@@ -355,7 +355,7 @@ ENTRY("AFNI_receive_control") ;
    Turn the drawing on or off for the given controller
 ---------------------------------------------------------------------*/
 
-void AFNI_toggle_drawing( Three_D_View * im3d )
+void AFNI_toggle_drawing( Three_D_View *im3d )
 {
    int turn_on = 0 ;
 
@@ -424,7 +424,7 @@ ENTRY("AFNI_toggle_drawing") ;
    (they don't have to register for this information)
 ---------------------------------------------------------------------*/
 
-void AFNI_process_alteration( Three_D_View * im3d )
+void AFNI_process_alteration( Three_D_View *im3d )
 {
    int ir ;
 
@@ -457,7 +457,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
    Really used to indicate that the values in a dataset have changed.
 ---------------------------------------------------------------------*/
 
-void AFNI_process_drawnotice( Three_D_View * im3d )
+void AFNI_process_drawnotice( Three_D_View *im3d )
 {
    int ir ;
 
@@ -492,7 +492,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
    Send dset change notices to interested receivers
 ---------------------------------------------------------------------*/
 
-void AFNI_process_dsetchange( Three_D_View * im3d )
+void AFNI_process_dsetchange( Three_D_View *im3d )
 {
    int ir ;
 
@@ -527,7 +527,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
    Send new (i,j,k) coordinates to all receivers that care
 ---------------------------------------------------------------------*/
 
-void AFNI_process_viewpoint( Three_D_View * im3d )
+void AFNI_process_viewpoint( Three_D_View *im3d )
 {
    int ir , ijk[3] ;
 
@@ -565,7 +565,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
 /*! Send time index change notice to receivers that care [29 Jan 2003]
 ---------------------------------------------------------------------*/
 
-void AFNI_process_timeindex( Three_D_View * im3d )
+void AFNI_process_timeindex( Three_D_View *im3d )
 {
    int ir ;
 
@@ -599,7 +599,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
 /*! Send redisplay notification to receivers that care [04 Mar 2002].
 ---------------------------------------------------------------------*/
 
-void AFNI_process_redisplay( Three_D_View * im3d )
+void AFNI_process_redisplay( Three_D_View *im3d )
 {
    int ir ;
 
@@ -633,7 +633,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
 /*! Send funcdisplay notification to receivers that care [05 Mar 2002].
 ---------------------------------------------------------------------*/
 
-void AFNI_process_funcdisplay( Three_D_View * im3d )
+void AFNI_process_funcdisplay( Three_D_View *im3d )
 {
    int ir ;
 

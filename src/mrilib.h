@@ -75,6 +75,14 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 #include "debugtrace.h"  /* 26 Jan 2001 addition */
 #include "Amalloc.h"     /* 09 Dec 2003 addition */
 
+#if defined(USE_OMP) && defined(USE_TRACING)
+# define AFNI_OMP_START DBG_stoff++
+# define AFNI_OMP_END   DBG_stoff--
+#else
+# define AFNI_OMP_START /*nada*/
+# define AFNI_OMP_END   /*nada*/
+#endif
+
 #ifndef PI
 #  define PI 3.14159265358979323846
 #endif

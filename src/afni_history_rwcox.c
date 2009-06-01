@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , JUN , 2009 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
+   "Add ability to suspend/restore function traceback stack" ,
+   "Disable stack when OpenMP parallel section is engaged." } ,
+
  { 26 , MAY , 2009 , RWC , "thd_1Ddset.c" , MICRO , TYPE_MODIFY ,
    "Change way names are used in output of .1D 'datasets'" ,
    "(a) If prefix starts with '-' or 'stdout', write results to stdout as a\n"
