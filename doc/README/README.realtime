@@ -328,6 +328,18 @@ Step 3: Once the data channel to AFNI is open, the image source program
         TCP/IP 7954 port for another control connection, so it can acquire
         another dataset.
 
+     ** If you want to start a new acquisition WITHOUT shutting down
+        the data channel connection, there is a hack-ish way to do so.
+        THe way the plugin is written, it reads an entire image's (2D or 3D)
+        worth of data whenever it can get it.  If the first 30 bytes of this
+        data is the ASCII string "Et Earello Endorenna utulien!!" (without
+        the quotes), then this is a marker that the acquisition is over, the
+        datasets are to be saved, and the data channel is to be made ready
+        for a new set of AFNI command strings that describe the next realtime
+        acquisition.  It is important to note that when you send this "end of
+        acquisition" marker string, that an entire image's worth of data must
+        be sent, even though only the first 30 bytes matter.
+
 ======================
 Hosts that AFNI trusts
 ======================
