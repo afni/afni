@@ -491,6 +491,7 @@ int main( int argc , char *argv[] )
 
 #pragma omp parallel
  { int vv,uu ; float *ysar ; float qcc ;
+ AFNI_OMP_START ;
 #pragma omp for
      for( vv=0 ; vv < nmask ; vv++ ){ /* inner loop over voxels */
 
@@ -508,6 +509,7 @@ int main( int argc , char *argv[] )
        }
        ccar[vv] = qcc ; /* save correlation in ccar for later (OpenMP mod) */
      } /* end of inner loop over voxels (vv) */
+ AFNI_OMP_END ;
  } /* end OpenMP */
 
      /** combine results in ccar to give output values **/

@@ -310,7 +310,7 @@ size_t NI_registry_ptr_to_len( void *vpt )
    char ipt[32] ;
    registry_entry *rent ;
 
-   if( vpt == NULL || registry_htable_ipt == NULL ) return ;
+   if( vpt == NULL || registry_htable_ipt == NULL ) return 0 ;
 
    vpt_to_char( vpt , ipt ) ;
    rent = (registry_entry *) findin_Htable( ipt , registry_htable_ipt ) ;
@@ -343,11 +343,11 @@ char * NI_registry_ptr_to_idcode( void *vpt )
    char ipt[32] ;
    registry_entry *rent ;
 
-   if( vpt == NULL || registry_htable_ipt == NULL ) return ;
+   if( vpt == NULL || registry_htable_ipt == NULL ) return NULL ;
 
    vpt_to_char( vpt , ipt ) ;
    rent = (registry_entry *) findin_Htable( ipt , registry_htable_ipt ) ;
-   if( rent == NULL ) return ;
+   if( rent == NULL ) return NULL ;
    return rent->idc ;
 }
 
@@ -359,11 +359,11 @@ char * NI_registry_ptr_to_name( void *vpt )
    char ipt[32] ;
    registry_entry *rent ;
 
-   if( vpt == NULL || registry_htable_ipt == NULL ) return ;
+   if( vpt == NULL || registry_htable_ipt == NULL ) return NULL ;
 
    vpt_to_char( vpt , ipt ) ;
    rent = (registry_entry *) findin_Htable( ipt , registry_htable_ipt ) ;
-   if( rent == NULL ) return ;
+   if( rent == NULL ) return NULL ;
    return rent->name ;
 }
 

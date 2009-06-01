@@ -238,6 +238,7 @@ int main( int argc , char *argv[] )
 #pragma omp parallel if( nvals > 1 )
  {
    MRI_IMAGE *dsim ; int ids ;
+ AFNI_OMP_START ;
 #pragma omp for
    for( ids=0 ; ids < nvals ; ids++ ){
      if( verb ) fprintf(stderr,"%d.",ids) ;
@@ -258,6 +259,7 @@ int main( int argc , char *argv[] )
        }
      }
    }
+ AFNI_OMP_END ;
  } /* end OpenMP */
    if( verb ) fprintf(stderr,"\n") ;
 

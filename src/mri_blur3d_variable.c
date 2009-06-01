@@ -247,6 +247,8 @@ ENTRY("mri_blur3d_vectim") ;
    float     *qar , *var ;
    int iv , jj ;
 
+ AFNI_OMP_START ;
+
 #pragma omp critical (BLUR3D_vectim)
    { qim = mri_new_vol( nx,ny,nz , MRI_float ) ; qar = MRI_FLOAT_PTR(qim) ; }
 
@@ -264,7 +266,9 @@ ENTRY("mri_blur3d_vectim") ;
 
 #pragma omp critical (BLUR3D_vectim)
    { mri_free(qim) ; }
- }
+
+ AFNI_OMP_END ;
+ } /* end OpenMP */
 
    free(mmm) ; EXRETURN ;
 }

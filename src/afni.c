@@ -1125,7 +1125,7 @@ ENTRY("AFNI_parse_args") ;
 
 #if 0
 #ifdef USE_TRACING
-   if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
+   if( ALLOW_realtime ) DBG_trace = 0 ; /* 26 Jan 2001 */
 #endif
 #endif
 
@@ -1408,7 +1408,7 @@ int main( int argc , char *argv[] )
 
 #if 0
 #ifdef USE_TRACING
-   if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
+   if( ALLOW_realtime ) DBG_trace = 0 ; /* 26 Jan 2001 */
 #endif
 #endif
 
@@ -1422,7 +1422,7 @@ int main( int argc , char *argv[] )
 
    GLOBAL_argopt.allow_rt = check_string("-rt",argc,argv) ;
 
-   if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
+   if( !GLOBAL_argopt.quiet && !ALLOW_realtime )
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
 
 #ifdef DARWIN
@@ -1492,6 +1492,9 @@ int main( int argc , char *argv[] )
 
    GLOBAL_library.session   = NULL ;                   /* 20 Dec 2001 */
    GLOBAL_library.warptable = NULL ;                   /* 28 Aug 2002 */
+
+   GLOBAL_library.realtime_status   = NULL ;           /* 01 Jun 2009 */
+   GLOBAL_library.realtime_callback = NULL ;
 
    /*--------------------------------------------------------------------*/
    /*--- initialize X, toplevel window, defaults, and display context ---*/
@@ -1900,7 +1903,7 @@ STATUS("call 14") ;
           REPORT_PROGRESS(str) ;
         }
 
-        if( ALLOW_real_time > 0 )
+        if( ALLOW_realtime > 0 )
           REPORT_PROGRESS("\nRT: AFNI realtime plugin is active; cf. README.realtime document") ;
 
         /* 23 Sep 2000: this function will be called 0.123 seconds
