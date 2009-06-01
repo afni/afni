@@ -2334,15 +2334,6 @@ typedef struct {
 
 
 
-/*! Structure to contain the path between one node and the next. The path is defined in terms of the previous one, plus an edge from
-the previous to the current */
-typedef struct {
-   int node; /*!< Index of current node*/ 
-   float le;   /*!< Length of edge between current node and previous one. 0 for starting node. */ 
-   int order; /*!< Path order to node. A path order of i means i segments are needed to reach node from the starting node. 0 for starting node*/
-   void *Previous; /*!< pointer to path leading up to the previous node. NULL for starting node. This pointer is to be typecast to SUMA_DIJKSTRA_PATH_CHAIN **/
-} SUMA_DIJKSTRA_PATH_CHAIN;
-
 /*!
    Structure for passing info to function SUMA_SaveSOascii
 */

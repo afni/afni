@@ -373,6 +373,14 @@ void whereami_usage(void)
 }
 
 /*----------------------------------------------------------------------------*/
+extern int * SUMA_Dijkstra_generic (int N_Node, 
+                     float *NodeList, int NodeDim, int dist_metric,
+                     int *N_Neighbv, int **FirstNeighb, float **FirstNeighbDist,
+                     int Nx, int Ny, 
+                     byte *isNodeInMeshp, 
+                     int *N_isNodeInMesh, int Method_Number, 
+                     float *Lfinal, int *N_Path,
+                     int verb);
 
 int main(int argc, char **argv)
 {
@@ -397,7 +405,9 @@ int main(int argc, char **argv)
    char *coord_file=NULL;
    float *coord_list = NULL, rad;
    THD_fvec3 tv, m;
+   byte b1;
    
+   b1 = 0;
    mni = -1;
    dobin = 0;
    ncmask=0 ;
@@ -442,8 +452,16 @@ int main(int argc, char **argv)
             fprintf(stdout,"Anatomy Toolbox Version in AFNI is:\n%s\n", CA_EZ_VERSION_STR);  
             return(0);
          }
-         if (strcmp(argv[iarg],"-rai") == 0 || strcmp(argv[iarg],"-dicom") == 0) { 
+         
+         if (  strcmp(argv[iarg],"-rai") == 0 || 
+               strcmp(argv[iarg],"-dicom") == 0) { 
             dicom = 1; 
+            ++iarg;
+            continue; 
+         }
+         
+         if (  strcmp(argv[iarg],"-for_daniel") == 0 ) { 
+            b1 = 1; 
             ++iarg;
             continue; 
          }
@@ -683,6 +701,117 @@ int main(int argc, char **argv)
       return 1;
    }
    
+   if (b1) { 
+      /* The secret option for Daniel,
+      See NIH-5 labbook pp 46 for graph */
+      int N_Neighb_Max = 5; /* max number of nieghbors a node can have*/
+      int N_Node = 7;
+      int N_Neighb[7];
+      int **FirstNeighb=NULL;
+      float **FirstNeighbDist=NULL; 
+      int N_np=4;
+      int np[4][2];
+      int ii, kk;
+      char prefix[] = {"puns.paths.1D"};
+      int *nPath=NULL, N_n=0;
+      float nDistance=0.0;
+      FILE *fout=stdout, *fpout=NULL;
+      
+      /* fill number of neighbors for nodes 0 to 6 */
+      ii=0;
+      N_Neighb[ii++] = 4;      
+      N_Neighb[ii++] = 2;
+      N_Neighb[ii++] = 3;
+      N_Neighb[ii++] = 2;
+      N_Neighb[ii++] = 2;
+      N_Neighb[ii++] = 0;
+      N_Neighb[ii++] = 1;
+      
+      /* fill neighborhood (edges) and distances */
+      FirstNeighb = (int **)calloc(N_Node, sizeof(int*));
+      FirstNeighbDist = (float **)calloc(N_Node, sizeof(float*));
+      for (ii=0; ii<7;++ii) {
+         FirstNeighb[ii] = (int *)calloc(N_Neighb_Max, sizeof(int)); 
+         FirstNeighbDist[ii] = (float *)calloc(N_Neighb_Max, sizeof(float)); 
+      }
+      FirstNeighb[0][0]=2;    FirstNeighbDist[0][0]=1.0; /*1st neighb of node 0*/
+      FirstNeighb[0][1]=1;    FirstNeighbDist[0][1]=1.0; /*2nd neighb of node 0*/
+      FirstNeighb[0][2]=4;    FirstNeighbDist[0][2]=5.0; /*3rd neighb of node 0*/
+      FirstNeighb[0][3]=6;    FirstNeighbDist[0][3]=2.0; /* ... */
+
+      FirstNeighb[1][0]=0;    FirstNeighbDist[1][0]=1.0; /*1st neighb of node 1*/
+      FirstNeighb[1][1]=2;    FirstNeighbDist[1][1]=2.0; /*2nd neighb of node 1*/
+      
+      FirstNeighb[2][0]=1;    FirstNeighbDist[2][0]=2.0; 
+      FirstNeighb[2][1]=3;    FirstNeighbDist[2][1]=1.0;
+      FirstNeighb[2][2]=0;    FirstNeighbDist[2][2]=1.0;
+   
+      FirstNeighb[3][0]=4;    FirstNeighbDist[3][0]=2.0;
+      FirstNeighb[3][1]=2;    FirstNeighbDist[3][1]=1.0;
+   
+      FirstNeighb[4][0]=3;    FirstNeighbDist[4][0]=2.0;
+      FirstNeighb[4][1]=0;    FirstNeighbDist[4][1]=5.0;
+      
+      FirstNeighb[5][0]=-1;   /* not necessary, but to emphasize */
+      
+      FirstNeighb[6][0]=0;    FirstNeighbDist[6][0]=2.0;
+      
+      if (!(fpout = fopen(prefix,"w"))) {
+         fprintf(stderr,"** Error: Failed to open %s for writing.\n", prefix);
+         exit(1);
+      }
+      fprintf(fpout, 
+               "#Paths between nodes\n"
+               "#Col. 0: Total number of nodes in path\n"
+               "#    0 for no path\n"
+               "#Col. 1: Distance\n"
+               "#    -1 for no path\n"
+               "#Col. 2: First node\n"
+               "#Col. last: Last node\n");
+      
+      /* Now get the shortest distance between some nodes pairs*/
+      ii=0;
+      np[ii][0] = 0; np[ii][1] = 4; ++ii;  /* from node 0 to node 4 */
+      np[ii][0] = 6; np[ii][1] = 5; ++ii;  /* from node 6 to node 5 */
+      np[ii][0] = 1; np[ii][1] = 2; ++ii;  /* from node 1 to node 2 */
+      np[ii][0] = 3; np[ii][1] = 3; ++ii;  /* from node 1 to node 2 */
+      /* work  the node pairs */
+      fprintf(fout, "#Internodal distance along graph \n");
+      fprintf(fout, "#%-6s %-6s %-6s\n",
+                    "From" , "to", "Dist." );
+      for (ii=0; ii < N_np; ++ii) {
+         if ( !(nPath = SUMA_Dijkstra_generic ( 
+                           7, 
+                           NULL, -1, 0,
+                           N_Neighb, FirstNeighb, FirstNeighbDist,
+                           np[ii][0], np[ii][1], 
+                           NULL, NULL, 
+                           1, 
+                           &nDistance, &N_n, 0)) ) {
+            nDistance = -1.0;
+            if (fpout) fprintf(fpout, "0 -1.0 %d %d\n", np[ii][0], np[ii][1]);
+         } else {
+            if (fpout) {
+               fprintf(fpout, "%d %.2f ", N_n, nDistance);
+               for(kk=0; kk<N_n; ++kk) 
+                  fprintf(fpout, 
+                           "%d ", 
+                           nPath[kk]); 
+               fprintf(fpout, "\n");
+            }
+            free(nPath); nPath = NULL;
+         }
+      
+         fprintf(fout, " %-6d %-6d %-4.2f\n", 
+                       np[ii][0], np[ii][1], nDistance);
+      }
+      
+      fprintf(stderr,"See file %s for full output\n", prefix);
+      
+      if (fpout) fclose(fpout); fpout=NULL;
+      exit(0);
+      
+   }
    if (nakedarg >= 3 && coord_file) {
       /* bad combo */
       fprintf(stderr,"** Error: Can't specify x, y, z coordinates on command line AND in coord_file.\n");

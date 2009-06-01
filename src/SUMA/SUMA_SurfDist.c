@@ -115,6 +115,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
    Opt->ps = ps;  /* just hold it there for convenience */
    Opt->bases_prefix =NULL;
    Opt->iopt = -1;
+   Opt->b1 = 0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -126,6 +127,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfDist_ParseInput(
 		}
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
+      
+      if (!brk && (strcmp(argv[kar], "-for_Daniel") == 0))
+      {
+         Opt->b1 = 1;
+         brk = YUP;
+      }
       
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
@@ -213,6 +220,109 @@ int main (int argc,char *argv[])
    Opt = SUMA_SurfDist_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
+   
+   if (Opt->b1) {
+      /* The secret option for Daniel,
+      See NIH-5 labbook pp 46 for graph */
+      int N_Neighb_Max = 5; /* max number of nieghbors a node can have*/
+      int N_Node = 7;
+      int N_Neighb[7];
+      int **FirstNeighb=NULL;
+      float **FirstNeighbDist=NULL; 
+      int N_np=3;
+      int np[3][2];
+      
+      /* fill number of neighbors for nodes 0 to 6 */
+      ii=0;
+      N_Neighb[ii++] = 4;      
+      N_Neighb[ii++] = 2;
+      N_Neighb[ii++] = 3;
+      N_Neighb[ii++] = 2;
+      N_Neighb[ii++] = 2;
+      N_Neighb[ii++] = 0;
+      N_Neighb[ii++] = 1;
+      
+      /* fill neighborhood (edges) and distances */
+      FirstNeighb = (int **)calloc(N_Node, sizeof(int*));
+      FirstNeighbDist = (float **)calloc(N_Node, sizeof(float*));
+      for (ii=0; ii<7;++ii) {
+         FirstNeighb[ii] = (int *)calloc(N_Neighb_Max, sizeof(int)); 
+         FirstNeighbDist[ii] = (float *)calloc(N_Neighb_Max, sizeof(float)); 
+      }
+      FirstNeighb[0][0]=2;    FirstNeighbDist[0][0]=1.0; /*1st neighb of node 0*/
+      FirstNeighb[0][1]=1;    FirstNeighbDist[0][1]=1.0; /*2nd neighb of node 0*/
+      FirstNeighb[0][2]=4;    FirstNeighbDist[0][2]=5.0; /*3rd neighb of node 0*/
+      FirstNeighb[0][3]=6;    FirstNeighbDist[0][3]=2.0; /* ... */
+
+      FirstNeighb[1][0]=0;    FirstNeighbDist[1][0]=1.0; /*1st neighb of node 1*/
+      FirstNeighb[1][1]=2;    FirstNeighbDist[1][1]=2.0; /*2nd neighb of node 1*/
+      
+      FirstNeighb[2][0]=1;    FirstNeighbDist[2][0]=2.0; 
+      FirstNeighb[2][1]=3;    FirstNeighbDist[2][1]=1.0;
+      FirstNeighb[2][2]=0;    FirstNeighbDist[2][2]=1.0;
+   
+      FirstNeighb[3][0]=4;    FirstNeighbDist[3][0]=2.0;
+      FirstNeighb[3][1]=2;    FirstNeighbDist[3][1]=1.0;
+   
+      FirstNeighb[4][0]=3;    FirstNeighbDist[4][0]=2.0;
+      FirstNeighb[4][1]=0;    FirstNeighbDist[4][1]=5.0;
+      
+      FirstNeighb[5][0]=-1;   /* not necessary, but to emphasize */
+      
+      FirstNeighb[6][0]=0;    FirstNeighbDist[6][0]=2.0;
+      
+      if (Opt->bases_prefix) { /* pprepare to write out path */
+         npout = SUMA_AfniPrefix(Opt->bases_prefix, NULL, NULL, NULL);
+         npout = SUMA_append_replace_string(npout, ".1D.do", "", 1);
+         if (!(fpout = fopen(npout,"w"))) {
+            SUMA_S_Errv("Failed to open %s for writing.\n", npout);
+            exit(1);
+         }
+         fprintf(fpout, "#node-based_segments\n");
+      }
+      
+      /* Now get the shortest distance between some nodes pairs*/
+      ii=0;
+      np[ii][0] = 0; np[ii][1] = 4; ++ii;  /* from node 0 to node 4 */
+      np[ii][0] = 6; np[ii][1] = 5; ++ii;  /* from node 6 to node 5 */
+      np[ii][0] = 1; np[ii][1] = 2; ++ii;  /* from node 1 to node 2 */
+      /* work  the node pairs */
+      fprintf(fout, "#Internodal distance along graph \n");
+      fprintf(fout, "#%-6s %-6s %-6s\n",
+                    "From" , "to", "Dist." );
+      for (ii=0; ii < N_np; ++ii) {
+         if (!SUMA_a_good_col(Opt->ps->cmap, ii, cout)) {/*just to get a color*/
+            SUMA_S_Errv("Failed to get color from map %s\n", Opt->ps->cmap);
+            exit(1);
+         }         
+         if ( !(nPath = SUMA_Dijkstra_generic ( 
+                           7, 
+                           NULL, -1, 0,
+                           N_Neighb, FirstNeighb, FirstNeighbDist,
+                           np[ii][0], np[ii][1], 
+                           NULL, NULL, 
+                           1, 
+                           &nDistance, &N_n, 0)) ) {
+            nDistance = -1.0;
+         } else {
+            if (fpout) {
+               for(kk=1; kk<N_n; ++kk) 
+                  fprintf(fpout, 
+                           "%d %d %.2f %.2f %.2f 1.0\n", 
+                           nPath[kk-1], nPath[kk],  
+                           cout[0], cout[1], cout[2]); 
+               fprintf(fpout, "\n");
+            }
+            SUMA_free(nPath); nPath = NULL;
+         }
+      
+         fprintf(fout, " %-6d %-6d %-4.2f\n", 
+                       np[ii][0], np[ii][1], nDistance);
+      }
+      
+      goto CLEANUP;
+   }
+   
    if (Opt->ps->N_dsetname != 1) {
       SUMA_S_Errv("Need one and only one dset please.\n"
                   "Have %d on command line.\n", 
@@ -230,8 +340,7 @@ int main (int argc,char *argv[])
          SUMA_S_Errv("Failed to open %s for writing.\n", npout);
          exit(1);
       }
-      fprintf(fpout, "#node-based_segments\n"
-                     "# Have %d paths in file\n", N_n);
+      fprintf(fpout, "#node-based_segments\n");
    }
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
@@ -314,6 +423,9 @@ int main (int argc,char *argv[])
          exit(1);
       }
       if (Opt->nmask) for(jj=0; jj<SO->N_Node; ++jj) dm[jj] = Opt->nmask[jj];
+      
+      /* You can replace SUMA_Dijkstra with SUMA_Dijkstra_usegen 
+      and compare the results. They should be identical, of course */
       if (  Nfrom < 0 || Nfrom >= SO->N_Node ||
             Nto   < 0 || Nto   >= SO->N_Node ||
             !(nPath = SUMA_Dijkstra ( SO, Nfrom, Nto, 
@@ -337,6 +449,8 @@ int main (int argc,char *argv[])
                            );
             
    }
+   
+   CLEANUP:
    if (npout) SUMA_free(npout); npout = NULL;
    if (nout) SUMA_free(nout); nout = NULL;
    if (dm) SUMA_free(dm); dm = NULL;
