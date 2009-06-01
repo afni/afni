@@ -71,7 +71,10 @@ typedef struct {
    if ((a)) { while ((a)[m_i]) { if ((a)[m_i] == AFNI_NI_cSS) (a)[m_i] = SUMA_NI_cSS; ++m_i; } }\
 }
 
-typedef enum { NOPE, YUP} SUMA_Boolean;
+#define SUMA_Boolean byte
+#define NOPE 0
+#define YUP 1
+/* typedef enum { NOPE, YUP} SUMA_Boolean;     make sure SUMA_Boolean is byte */ 
 
 typedef enum { SUMA_notypeset = -1, 
                SUMA_byte = NI_BYTE, 
