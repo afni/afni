@@ -73,6 +73,10 @@ float * SUMA_Plane_Equation (float * P1, float *P2, float *P3, float *thiseq);
 int SUMA_Find_Edge_Nhost (SUMA_EDGE_LIST *EL, int *IsInter, int N_IsInter, int *kedge, int Nhost);
 SUMA_Boolean SUMA_Mark_Tri (SUMA_EDGE_LIST *EL, int E1, int iBranch, int *TriBranch, int *IsInter, int *N_IsInter, int *VisitationOrder, int *ivisit);
 int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, int Ny, SUMA_Boolean *isNodeInMesh, int *N_isNodeInMesh, int Method_Number, float *Lfinal, int *N_Path);
+int * SUMA_Dijkstra_usegen (SUMA_SurfaceObject *SO, int Nx, 
+                     int Ny, SUMA_Boolean *isNodeInMeshp, 
+                     int *N_isNodeInMesh, int Method_Number, 
+                     float *Lfinal, int *N_Path);
 void SUMA_free_SPI (SUMA_SURF_PLANE_INTERSECT *SPI);
 SUMA_SURF_PLANE_INTERSECT * SUMA_Allocate_SPI (SUMA_SurfaceObject *SO);
 SUMA_TRI_BRANCH* SUMA_AssignTriBranch (SUMA_SurfaceObject *SO, SUMA_SURF_PLANE_INTERSECT *SPI, int Nx, int *BranchCount, SUMA_Boolean DoCopy);

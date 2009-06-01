@@ -8818,7 +8818,6 @@ int SUMA_Find_Edge_Nhost (SUMA_EDGE_LIST  *EL, int *IsInter, int N_IsInter, int 
 
 \sa Graph Theory by Ronald Gould and labbook NIH-2 page 154 for path construction
 */
-#define LARGE_NUM 9e300
 /* #define LOCALDEBUG */ /* lots of debugging info. */
 int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx, 
                      int Ny, SUMA_Boolean *isNodeInMeshp, 
@@ -8827,7 +8826,8 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
 {
    static char FuncName[] = {"SUMA_Dijkstra"};
    SUMA_Boolean LocalHead = NOPE;
-   float *L = NULL, Lmin = -1.0, le = 0.0, DT_DIJKSTRA;
+   float *L = NULL, Lmin = -1.0, DT_DIJKSTRA;
+   double le = 0.0, de=0.0;
    int i, iw, iv, v, w, N_Neighb, *Path = NULL, N_loc=-1;
    SUMA_Boolean *isNodeInMesh=NULL;
    struct  timeval  start_time;
@@ -8949,12 +8949,13 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
                   if (isNodeInMesh[w]) {
                      iw = 3*w;
                      iv = 3*v;
-                     le = sqrt ( (SO->NodeList[iw] - SO->NodeList[iv]) * 
-                                 (SO->NodeList[iw] - SO->NodeList[iv]) +
-                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) * 
-                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) +
-                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) * 
-                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) );
+                     de = (double)(SO->NodeList[iw] - SO->NodeList[iv]);
+                     le = de*de;
+                     de = (double)(SO->NodeList[iw+1] - SO->NodeList[iv+1]);
+                     le += de*de;
+                     de = (double)(SO->NodeList[iw+2] - SO->NodeList[iv+2]);
+                     le += de*de;
+                     le = sqrt ( le );
                      if (L[w] > L[v] + le ) {
                         L[w] = L[v] + le;  
                         /* update the path */
@@ -9081,12 +9082,13 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
                   if (isNodeInMesh[w]) {
                      iw = 3*w;
                      iv = 3*v;
-                     le = sqrt ( (SO->NodeList[iw] - SO->NodeList[iv]) * 
-                                 (SO->NodeList[iw] - SO->NodeList[iv]) +
-                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) * 
-                                 (SO->NodeList[iw+1] - SO->NodeList[iv+1]) +
-                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) * 
-                                 (SO->NodeList[iw+2] - SO->NodeList[iv+2]) );
+                     de = (double)(SO->NodeList[iw] - SO->NodeList[iv]);
+                     le = de*de;
+                     de = (double)(SO->NodeList[iw+1] - SO->NodeList[iv+1]);
+                     le += de*de;
+                     de = (double)(SO->NodeList[iw+2] - SO->NodeList[iv+2]);
+                     le += de*de;
+                     le = sqrt ( le );
                      if (L[w] > L[v] + le ) {
                         #ifdef LOCALDEBUG
                            fprintf (SUMA_STDERR, 
@@ -9244,6 +9246,27 @@ int * SUMA_Dijkstra (SUMA_SurfaceObject *SO, int Nx,
    
    SUMA_RETURN (Path);
 }
+
+/* A version with the same call format of SUMA_Dijkstra 
+but uses SUMA_Dijkstra_generic instead 
+You can easily compare SUMA_Dijkstra_usegen to 
+                       SUMA_Dijkstra by replacing
+      SUMA_Dijkstra in SurfDist and rerunning the examples.
+*/
+int * SUMA_Dijkstra_usegen (SUMA_SurfaceObject *SO, int Nx, 
+                     int Ny, SUMA_Boolean *isNodeInMeshp, 
+                     int *N_isNodeInMesh, int Method_Number, 
+                     float *Lfinal, int *N_Path)
+{
+   return(SUMA_Dijkstra_generic (SO->N_Node, 
+                     SO->NodeList, SO->NodeDim, 0, 
+                     SO->FN->N_Neighb, SO->FN->FirstNeighb, NULL,
+                     Nx, Ny, 
+                     isNodeInMeshp, 
+                     N_isNodeInMesh, Method_Number, 
+                     Lfinal, N_Path, 1));
+}
+
 
 /*!
 \brief Converts a path formed by a series of connected nodes to a series of edges
