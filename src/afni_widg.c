@@ -6085,7 +6085,7 @@ ENTRY("AFNI_misc_button") ;
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_license_pb,"Display GPL & Copyright Notice" );
 
-   if( !ALLOW_real_time ){    /* 01 May 2000: only if not doing realtime */
+   if( !ALLOW_realtime ){    /* 01 May 2000: only if not doing realtime */
       dmode->misc_vcheck_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , menu ,
@@ -6101,7 +6101,7 @@ ENTRY("AFNI_misc_button") ;
       dmode->misc_vcheck_pb = NULL ;
    }
 
-   if( !ALLOW_real_time ){    /* 29 Nov 2005: message of the day */
+   if( !ALLOW_realtime ){    /* 29 Nov 2005: message of the day */
       dmode->misc_motd_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , menu ,
@@ -6158,7 +6158,7 @@ ENTRY("AFNI_misc_button") ;
    /*--- pushbutton to toggle routine tracing ---*/
 
 #ifdef USE_TRACING
-   if( !ALLOW_real_time ){    /* 26 Jan 2001: don't do this if realtime is on */
+   if( !ALLOW_realtime ){    /* 26 Jan 2001: don't do this if realtime is on */
      dmode->misc_tracing_pb =
            XtVaCreateManagedWidget(
               "dialog" , xmPushButtonWidgetClass , menu ,

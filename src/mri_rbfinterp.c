@@ -93,6 +93,8 @@ ENTRY("RBF_evaluate") ;
    float b0,bx,by,bz , rai ;
    RBFKINT *kfirst , *klast ; int kbot,ktop ;
 
+ AFNI_OMP_START ;
+
    /* load some local variables */
 
    rad = rbk->rad  ; rqq = rbk->rqq  ; rai = 1.0f / rad ;
@@ -120,6 +122,8 @@ ENTRY("RBF_evaluate") ;
      if( uselin )
        val[ii] += b0 + bx*(xt-xm)*xd + by*(yt-ym)*yd + bz*(zt-zm)*zd ;
    }
+
+ AFNI_OMP_END ;
  } /* end OpenMP */
 
    if( verb ) ININFO_message("              Elapsed = %.1f",COX_clock_time()-ct) ;
@@ -473,6 +477,8 @@ ENTRY("RBF_setup_kranges") ;
    float xt,yt,zt, rqq, xk,yk,zk, rr, *xx,*yy,*zz ;
    RBFKINT *klast , *kfirst ;
 
+ AFNI_OMP_START ;
+
    rqq = rbk->rqq ; xx = rbk->xknot; yy = rbk->yknot; zz = rbk->zknot;
    kfirst = rbg->kfirst ; klast  = rbg->klast  ;
 #pragma omp for
@@ -491,6 +497,8 @@ ENTRY("RBF_setup_kranges") ;
        klast [ii] = (RBFKINT)ktop ;
      }
    }
+
+ AFNI_OMP_END ;
  } /* end OpenMP */
 
    if( verb > 1 ){

@@ -107,6 +107,7 @@ void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
 
 #pragma omp parallel if( mrv->nvec > 1 && mrv->nvec * mrv->nvals > 999999 )
  { int nvec=mrv->nvec, nvals=mrv->nvals, nv1=nvals-1, iv, ii ; float sum, *fv ;
+ AFNI_OMP_START ;
 #pragma omp for
    for( iv=0 ; iv < nvec ; iv++ ){
      fv = VECTIM_PTR(mrv,iv) ;
@@ -115,6 +116,7 @@ void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
      if( ii == nv1 ) sum += fv[ii]*vec[ii] ;
      dp[iv] = (ata) ? logf((1.0001f+sum)/(1.0001f-sum)) : sum ;
    }
+ AFNI_OMP_END ;
  } /* end OpenMP */
 
   return ;

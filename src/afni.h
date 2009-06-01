@@ -1096,9 +1096,9 @@ extern "C" {
    extern PLUGIN_interface * ICOR_init(char *);          /* 29 Apr 2009 */
 #endif
 
-typedef struct {                 /* windows and widgets */
-   XtPointer_array * windows ;   /* allowed to interrupt */
-   XtPointer_array * widgets ;   /* 'real-time' functions */
+typedef struct {                /* windows and widgets */
+   XtPointer_array *windows ;   /* allowed to interrupt */
+   XtPointer_array *widgets ;   /* 'real-time' functions */
 } MCW_interruptables ;
 
 #ifndef MAX_CONTROLLERS
@@ -1118,43 +1118,57 @@ extern "C" {
 #endif
 
 typedef struct {
-   MCW_DC * dc ;                                  /* display context for everyone */
-   THD_sessionlist * sslist ;                     /* all sessions viewable */
-   MRI_IMARR * timeseries ;                       /* all timeseries available */
-   Three_D_View * controllers[MAX_CONTROLLERS] ;  /* all controllers available */
-   MCW_interruptables interruptables ;            /* windows and widgets */
+   int numchan ;
+   int status ;
+   int numdset ;
+   THD_3dim_dataset **dset ;
+} RT_status ;
 
-   MCW_function_list registered_0D ;              /* registered functions */
+#define RT_STARTUP    1  /* status codes [01 Jun 2009] */
+#define RT_CONTINUE   2
+#define RT_FINISHED   3
+
+typedef struct {
+   MCW_DC *dc ;                                  /* display context for everyone */
+   THD_sessionlist *sslist ;                     /* all sessions viewable */
+   MRI_IMARR *timeseries ;                       /* all timeseries available */
+   Three_D_View *controllers[MAX_CONTROLLERS] ;  /* all controllers available */
+   MCW_interruptables interruptables ;           /* windows and widgets */
+
+   MCW_function_list registered_0D ;             /* registered functions */
    MCW_function_list registered_1D ;
    MCW_function_list registered_2D ;
 
    int controller_lock , ignore_lock ;
    int have_dummy_dataset ;
-   int sesstrail ;                                /* 23 Oct 1998 */
+   int sesstrail ;                               /* 23 Oct 1998 */
 
    THD_coorder cord ;
 
 #ifdef ALLOW_PLUGINS
-   struct AFNI_plugin_array * plugins ;           /* plugins */
+   struct AFNI_plugin_array *plugins ;           /* plugins */
 #endif
 
-   PBAR_palette_table * gpt ;
+   PBAR_palette_table *gpt ;
 
-   int time_lock ;                                /* 03 Nov 1998 */
+   int time_lock ;                               /* 03 Nov 1998 */
 
-   int hints_on ;                                 /* 01 Aug 1999 */
+   int hints_on ;                                /* 01 Aug 1999 */
 
-   float fim_bkthr_perc ;                         /* 02 Jun 1999 */
+   float fim_bkthr_perc ;                        /* 02 Jun 1999 */
 
-   MCW_function_list registered_fim ;             /* 30 Jan 2000 */
+   MCW_function_list registered_fim ;            /* 30 Jan 2000 */
 
-   int ijk_lock ;                                 /* 11 Sep 2000 */
+   int ijk_lock ;                                /* 11 Sep 2000 */
 
-   THD_session *session ;                         /* 20 Dec 2001 */
+   THD_session *session ;                        /* 20 Dec 2001 */
 
-   MCW_function_list registered_slice_proj ;      /* 31 Jan 2002 */
+   MCW_function_list registered_slice_proj ;     /* 31 Jan 2002 */
 
-   Htable *warptable ;                            /* 28 Aug 2002 */
+   Htable *warptable ;                           /* 28 Aug 2002 */
+
+   RT_status *realtime_status ;                  /* 01 Jun 2009 */
+   gen_func  *realtime_callback ;
 
 } AFNI_library_type ;
 
@@ -1179,7 +1193,7 @@ extern void AFNI_display_hist( Widget w ) ;       /* 05 Mar 2008 */
 #define DISABLE_LOCK    (GLOBAL_library.ignore_lock=1)
 #define ENABLE_LOCK     (GLOBAL_library.ignore_lock=0)
 #define BEEPIT          XBell(GLOBAL_library.dc->display,100)
-#define ALLOW_real_time GLOBAL_argopt.allow_rt
+#define ALLOW_realtime  GLOBAL_argopt.allow_rt
 #define ELIDE_quality   GLOBAL_argopt.elide_quality
 #define GPT             GLOBAL_library.gpt
 #define NO_frivolities  GLOBAL_argopt.no_frivolities

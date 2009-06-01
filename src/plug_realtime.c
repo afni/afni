@@ -31,9 +31,10 @@
 #endif
 
 /***********************************************************************
-  Plugin to accept data from an external process and assemble
-  it into a dataset.  Initial implementation for the Bruker 3T/60
-  system at the Medical College of Wisconsin.
+  Plugin to accept data from an external process and assemble it
+  into a dataset.  Initial implementation was for the Bruker 3T/60
+  system at the Medical College of Wisconsin.  Now works with generic
+  external "image source" software.  See README.realtime for info.
 ************************************************************************/
 
 /** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls                     **/
@@ -520,6 +521,8 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   static int rt_run_drive_wait_commands( rt_string_list * slist );
 #endif
 
+void RT_test_callback(void *junk) ;      /* 01 Jun 2009 */
+
 #define TELL_NORMAL  0
 #define TELL_WRITE   1
 #define TELL_FINAL   2
@@ -553,9 +556,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    char * ept ; /* 09 Oct 2000 */
 
-   if( ncall > 0 )         return NULL ;  /* only one interface */
-   if( ! ALLOW_real_time ) return NULL ;  /* do nothing if not allowed */
-   AFNI_block_rescan(1) ;                 /* 10 Nov 2005 */
+   if( ncall > 0 )        return NULL ;  /* only one interface */
+   if( ! ALLOW_realtime ) return NULL ;  /* do nothing if not allowed */
+   AFNI_block_rescan(1) ;                /* 10 Nov 2005 */
 
    /*-- set titles and call point --*/
 
@@ -722,7 +725,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /***** go home to mama (i.e., AFNI) *****/
 
-   ALLOW_real_time = 1 ;  /* flag to AFNI that realtime work is started */
+   ALLOW_realtime = 1 ;  /* flag to AFNI that realtime work is started */
    return plint ;
 }
 
@@ -3195,7 +3198,7 @@ void RT_start_dataset( RT_input * rtin )
    /** Let there be dataset! **/  /* 01 Aug 2002: or datasets */
 
    for( cc=0 ; cc < rtin->num_chan ; cc++ ){
-     rtin->dset[cc] = EDIT_empty_copy(NULL) ;
+     rtin->dset[cc] = EDIT_empty_copy(NULL) ;  /* a really empty dataset */
      tross_Append_History( rtin->dset[cc] , "plug_realtime: creation" ) ;
 
      if( rtin->num_note > 0 && rtin->note != NULL ){  /* 01 Oct 2002 */
@@ -3575,6 +3578,31 @@ void RT_start_dataset( RT_input * rtin )
           ) ;
 
      PLUTO_popup_transient(plint,str);
+   }
+
+   /*-- 01 Jun 2009: setup the global realtime status structure --*/
+
+   { RT_status *rts = GLOBAL_library.realtime_status ;
+     if( rts != NULL ){
+       if( rts->dset != NULL ){ free(rts->dset) ; rts->dset = NULL ; }
+     } else {
+       rts = (RT_status *)calloc(1,sizeof(RT_status)) ;
+       GLOBAL_library.realtime_status = rts ;
+     }
+     rts->numchan = rtin->num_chan ;
+     rts->status  = RT_STARTUP ;
+     rts->numdset = rtin->num_chan ;
+#ifdef ALLOW_REGISTRATION
+     if( rtin->reg_dset != NULL ) rts->numdset++ ;
+#endif
+     rts->dset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*rts->numdset) ;
+     for( cc=0 ; cc < rtin->num_chan ; cc++ ) rts->dset[cc] = rtin->dset[cc] ;
+#ifdef ALLOW_REGISTRATION
+     if( rtin->reg_dset != NULL ) rts->dset[cc] = rtin->reg_dset ;
+#endif
+#if 0
+     GLOBAL_library.realtime_callback = RT_test_callback ;  /* just for testing */
+#endif
    }
 
    return ;
@@ -4050,6 +4078,30 @@ void RT_tell_afni( RT_input *rtin , int mode )
    if( drive_wait_list.len > 0 )
       rt_run_drive_wait_commands( &drive_wait_list );
 
+   /* invoke the external callback function, if it exists [01 Jun 2009] */
+
+   if( GLOBAL_library.realtime_callback != NULL ){
+     RT_status *rts = GLOBAL_library.realtime_status ;
+     if( mode == TELL_FINAL ) rts->status = RT_FINISHED ;
+     AFNI_CALL_VOID_1ARG( GLOBAL_library.realtime_callback , void* , NULL ) ;
+     if( mode != TELL_FINAL ) rts->status = RT_CONTINUE ;
+   }
+
+   if( mode == TELL_FINAL ){   /* moved here 01 Jun 2009 */
+      if( rtin->func_dset != NULL )
+        THD_force_malloc_type( rtin->func_dset->dblk , DATABLOCK_MEM_ANY ) ;
+
+#ifdef ALLOW_REGISTRATION
+      if( rtin->reg_dset != NULL )
+        THD_force_malloc_type( rtin->reg_dset->dblk , DATABLOCK_MEM_ANY ) ;
+#endif
+
+      for( cc=0 ; cc < rtin->num_chan ; cc++ )
+        THD_force_malloc_type( rtin->dset[cc]->dblk , DATABLOCK_MEM_ANY ) ;
+
+      AFNI_purge_unused_dsets() ;
+   }
+
    return ;
 }
 
@@ -4327,14 +4379,12 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 #endif
          DSET_overwrite( rtin->func_dset ) ;
          DSET_unlock( rtin->func_dset ) ;  /* 20 Mar 1998 */
-         THD_force_malloc_type( rtin->func_dset->dblk , DATABLOCK_MEM_ANY ) ;
       }
 
 #ifdef ALLOW_REGISTRATION
       if( rtin->reg_dset != NULL && rtin->reg_nvol > 0 ){
          DSET_overwrite( rtin->reg_dset ) ;
          DSET_unlock( rtin->reg_dset ) ;
-         THD_force_malloc_type( rtin->reg_dset->dblk , DATABLOCK_MEM_ANY ) ;
       }
 #endif
 
@@ -4342,9 +4392,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
       AFNI_force_adoption( sess , GLOBAL_argopt.warp_4D ) ;
       AFNI_make_descendants( GLOBAL_library.sslist ) ;
-      THD_force_malloc_type( rtin->dset[cc]->dblk , DATABLOCK_MEM_ANY ) ;
 
-      AFNI_purge_unused_dsets() ;
       SHOW_AFNI_READY ;
    }
 
@@ -5843,4 +5891,31 @@ static int rt_run_drive_wait_commands( rt_string_list * slist )
    free_rt_string_list(&drive_wait_list);  /* clear old commands */
 
    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+/* Test realtime_callback function [01 Jun 2009] */
+
+void RT_test_callback(void *junk)
+{
+   RT_status *rts = GLOBAL_library.realtime_status ;
+   int cc , nval,nbr ;
+
+   if( rts == NULL ){ ERROR_message("bad call to RT_test_callback"); return; }
+
+   INFO_message("RT_test_callback: numchan=%d status=%d numdset=%d",
+                rts->numchan , rts->status , rts->numdset ) ;
+
+   for( cc=0 ; cc < rts->numdset ; cc++ ){
+     if( !ISVALID_DSET(rts->dset[cc]) ){
+       ININFO_message(" dset[%d] invalid!",cc) ;
+     } else {
+       nval = DSET_NVALS(rts->dset[cc]) ;
+       nbr  = THD_count_databricks(rts->dset[cc]->dblk) ;
+       ININFO_message(" dset[%d] '%s': nvals=%d  nbr=%d",
+                      cc , DSET_HEADNAME(rts->dset[cc]) , nval,nbr ) ;
+     }
+   }
+
+   return ;
 }

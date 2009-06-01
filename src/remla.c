@@ -1047,11 +1047,13 @@ ENTRY("REML_find_best_case") ;
 
 #pragma omp parallel if( nkl > 3 && bbsave == 0 )
    { int mm , kk ;
+   AFNI_OMP_START ;
 #pragma omp for schedule(static)
      for( mm=0 ; mm < nkl ; mm++ ){  /* this takes a lot of CPU time */
        kk = klist[mm] ;
        rvab[kk] = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
      }
+   AFNI_OMP_END ;
    } /* end OpenMP */
 
      /* find the best one so far seen */

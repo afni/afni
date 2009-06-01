@@ -166,6 +166,8 @@ ENTRY("mri_warp3D_cubic") ;
    int nx1,ny1,nz1 , ii,jj,kk , ix,jy,kz , qq , do_zout=zout ;
    float xpr,ypr,zpr, xx,yy,zz, fx,fy,fz ;
 
+ AFNI_OMP_START ;
+
    far = ffar ;                                          /* input image data */
    nar = MRI_FLOAT_PTR( newImg ) ;                       /* output image data */
 
@@ -245,6 +247,8 @@ ENTRY("mri_warp3D_cubic") ;
 
      nar[qq] = val ;
    }
+
+ AFNI_OMP_END ;
  } /* end OpenMP */
 
    /*** cleanup and return ***/
@@ -353,6 +357,8 @@ nzset = 0 ; zzsum = 0.0 ;
    float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
    int do_zout = zout ;
 
+ AFNI_OMP_START ;
+
    far = MRI_FLOAT_PTR( imfl ) ;                         /* input image data */
    nar = MRI_FLOAT_PTR( newImg ) ;                       /* output image data */
 
@@ -410,6 +416,7 @@ nzset = 0 ; zzsum = 0.0 ;
 
    } /* end of voxel loop */
 
+ AFNI_OMP_END ;
  } /* end OpenMP */
 
    /*** cleanup and return ***/
