@@ -1021,7 +1021,7 @@ int main( int argc , char *argv[] )
               "     a proper weight volume.  We HIGHLY recommend you use\n"
               "     the align_epi_anat.py script if you want to use this\n"
               "     cost functional!  Otherwise, you are likely to get\n"
-              "     less than optimal results (and then swear at us unjustly).\n"
+              "     less than optimal results (and then swear at us unjustly).\n") ;
        printf("\n") ;
        printf(" * For more information about the 'cr' functionals, see\n"
               "     http://en.wikipedia.org/wiki/Correlation_ratio\n"
