@@ -193,6 +193,8 @@ static float MRI_TYPE_maxval[9] =
 
 #define MRI_IS_INT_TYPE(typ) ((typ) < 3)
 
+#define MRI_IS_FLOAT_TYPE(typ) ((typ) >=3 && (typ) <= 5)
+
 /*! I suppose that the next C makes this pleonastic. */
 
 #if defined(_SUNPERF_COMPLEX) || defined(DONT_DECLARE_COMPLEX)
