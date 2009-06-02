@@ -980,11 +980,24 @@ AFNI_REALTIME_MAX_CONTROLLERS = Number
          than this are sent, only the first ones will be displayed.
      ** If this variable is not set, its value defaults to 2.
 
-For more information about how the realtime plugin works, read the file
-README.realtime.
+AFNI_REALTIME_DATAMODE = Number
+
+        If set, this variable controls the initial setting of the
+        "DataWriting" control, where 0=Off, 1=Acquired, etc.  If not
+        set, the default value is 0.
+
+AFNI_REALTIME_CHMERMODE = Number
+
+        If set, this variable controls the initial setting of the
+        "ChannelMerge" control, where 0=none, 1=sum, etc.  If not
+        set, the default value is 0.
+
+For detailed information about how the realtime plugin works, read the
+file README.realtime.
 
 Also see "Dimon -help" (example E "for testing complete real-time system").
 Also see "serial_helper -help".
+Also see program rtfeedme.c and "rtfeedme -help".
 
 ------------------------
 Variable: AFNI_FIM_IDEAL
