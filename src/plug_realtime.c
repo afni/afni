@@ -24,11 +24,7 @@
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
 
-#define ALLOW_REGISTRATION
-
-#ifdef ALLOW_REGISTRATION
-#  include "coxplot.h"
-#endif
+#include "coxplot.h"
 
 /***********************************************************************
   Plugin to accept data from an external process and assemble it
@@ -73,6 +69,10 @@
 /** 13 Sep 2005: add empty markers to appropriate datasets           [rickr] **/
 /** 11 Nov 2006: pass ROI means via RT_mp_*, one per ROI per TR      [rickr] **/
 /** 16 Oct 2008: added capability to write data to disk in real time [vinai] **/
+/** 01 Jun 2009: added ability to have a callback called at each
+                 time an update is sent to AFNI -- for further
+                 processing of some hideous sort, I suppose          [RWCox] **/
+/** 02 Jun 2009: added ability to merge multichannel data            [RWCox] **/
 
 
 /**************************************************************************/
@@ -194,7 +194,6 @@ typedef struct {
    int func_condit ;              /* condition that function computation is in now */
    int_func * func_func ;         /* function to compute the function */
 
-#ifdef ALLOW_REGISTRATION
    /*-- 07 Apr and 01 Aug 1998: real-time image registration stuff --*/
 
    THD_3dim_dataset * reg_dset ;      /* registered dataset, if any */
@@ -241,8 +240,6 @@ typedef struct {
    int           mask_nset ;      /* number of set voxels in mask            */
    double *      mask_aves ;      /* averages over each mask value           */
 
-#endif
-
    /*-- Jul 2008 [rickr]: for oblique data                                 --*/
    int           is_oblique ;     /* flag: is the dataset oblique            */
    float         oblique_mat[16]; /* oblique tranformation matrix            */
@@ -255,6 +252,12 @@ typedef struct {
    char **note ;
 
    int    marked_for_death ;      /* 10 Dec 2002 */
+
+   /*-- Jun 2009 [RWCox]: merged multi-channel dataset --*/
+
+   THD_3dim_dataset *mrg_dset ;
+   int mrg_status ;                   /* does AFNI know about this dataset yet? */
+   int mrg_nvol ;                     /* number of volumes merged so far */
 
 } RT_input ;
 
@@ -300,7 +303,6 @@ static char helpstring[] =
    " Verbose  = If set to 'Yes', the plugin will print out progress\n"
    "              reports as information flows into it.\n"
    "              If set to 'Very', prints out LOTS of information.\n"
-#ifdef ALLOW_REGISTRATION
    "\n"
    " Registration = If activated, image registration will take place\n"
    "                  either in realtime or at the end of image acquisition.\n"
@@ -345,7 +347,16 @@ static char helpstring[] =
    " RT Write     = Turns on real time writing of individual time point data\n"
    "                  sets (either the acquired or volume registered data) to\n"
    "                  disk.\n"
-#endif
+   "\n"
+   " ChannelMerge = Turn on method for merging multi-channel information.\n"
+   "                * Has no effect if only one channel of data is sent.\n"
+   "                * Only works if the data channels are float or complex\n"
+   "                  data (doesn't work with shorts or bytes).\n"
+   "                * Creates an extra '_mrg' dataset.\n"
+   "                * none    ==> don't combine channels at all\n"
+   "                  sum     ==> add channels          [output is float or complex]\n"
+   "                  L1 norm ==> add absolute values of channels  [output is float]\n"
+   "                  L2 norm ==> sqrt(sum of squares of channels) [output is float]\n"
    "\n"
    "MULTICHANNEL ACQUISITION [Aug 2002]:\n"
    " Multiple image channels can be acquired (e.g., from multi-coil and/or\n"
@@ -353,7 +364,7 @@ static char helpstring[] =
    "  * These datasets will have names like Root#007_03 (for the 3rd channel\n"
    "    in the 7th acquisition).\n"
    "  * Functional activation cannot be computed with multichannel acquisition.\n"
-   "  * Registration cannot be computed with multichannel acquisition.\n"
+   "  * Registration cannot be computed with multichannel acquisition (yet).\n"
    "\n"
    "HOW TO SEND DATA:\n"
    " See file README.realtime for details; see program rtfeedme.c for an example.\n"
@@ -387,7 +398,6 @@ int_func * FUNC_funcs[NFUNC] = { NULL , RT_fim_recurse } ;
 static char * VERB_strings[NVERB] = { "No" , "Yes" , "Very" } ;
 static int verbose = 1 ;
 
-#ifdef ALLOW_REGISTRATION
   static int regtime  = 3 ;  /* index of base time for registration */
   static int regmode  = 0 ;  /* index into REG_strings */
   static int reggraph = 0 ;  /* graphing mode */
@@ -431,6 +441,23 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   static int    RTdatamode = 0 ;      /* mode of writing to disk in real time */
   static int    RT_written[MAX_CHAN]; /* num time points already written out */
 
+/* Variables for multi-channel merger operation (if any) */
+
+#define RT_CHMER_NONE      0
+#define RT_CHMER_SUM       1
+#define RT_CHMER_L1NORM    2
+#define RT_CHMER_L2NORM    3
+#define N_RT_CHMER_MODES   4
+   static char *RT_chmer_strings[N_RT_CHMER_MODES] =
+                { "none" , "sum" , "L1 norm" , "L2 norm" } ;
+   static char *RT_chmer_labels[N_RT_CHMER_MODES] =
+                { "none" , "sum" , "L1" , "L2" } ;
+   static int RT_chmer_mode  = 0 ;
+   static int RT_chmer_datum = -1 ;
+
+   MRI_IMAGE * RT_mergerize( int , THD_3dim_dataset ** , int ) ;
+
+
 # define REGMODE_NONE      0
 # define REGMODE_2D_RTIME  1
 # define REGMODE_2D_ATEND  2
@@ -459,7 +486,6 @@ typedef struct {
   static int g_MP_send_ver = 0 ;                  /* send MP version         */
   static THD_3dim_dataset * g_mask_dset = NULL ;  /* mask aves w/ MP vals    */
   static rt_string_list drive_wait_list = {0,NULL} ;      /* DRIVE_WAIT list */
-#endif
 
 /************ global data for reading data *****************/
 
@@ -489,7 +515,6 @@ void RT_process_xevents( RT_input * ) ;  /* 13 Oct 2000 */
 
 void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
 
-#ifdef ALLOW_REGISTRATION
   void RT_registration_2D_atend( RT_input * rtin ) ;
   void RT_registration_2D_setup( RT_input * rtin ) ;
   void RT_registration_2D_close( RT_input * rtin ) ;
@@ -519,7 +544,6 @@ void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
   static int add_to_rt_slist    ( rt_string_list * slist, char * str );
   static int free_rt_string_list( rt_string_list * slist );
   static int rt_run_drive_wait_commands( rt_string_list * slist );
-#endif
 
 void RT_test_callback(void *junk) ;      /* 01 Jun 2009 */
 
@@ -625,7 +649,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option( plint , "" , "Verbose" , FALSE ) ;
    PLUTO_add_string( plint , "Verbose" , NVERB , VERB_strings , verbose ) ;
 
-#ifdef ALLOW_REGISTRATION
    /*-- next line of input: registration mode --*/
 
    ept = getenv("AFNI_REALTIME_Registration") ;  /* 09 Oct 2000 */
@@ -698,13 +721,21 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                              RT_mask_strings , g_mask_val_type ) ;
    PLUTO_add_hint( plint , "choose which mask data to send to serial_helper" ) ;
 
-#endif
-
    /* Adding options for writing individual time-point volumes to disk */
 
    PLUTO_add_option( plint , "" , "DataWriting" , FALSE ) ;
+
+   RTdatamode = (int)AFNI_numenv("AFNI_REALTIME_WRITEMODE") ;
+   if( RTdatamode < 0 || RTdatamode >= N_RT_WRITE_MODES ) RTdatamode = 0 ;
    PLUTO_add_string( plint , "RT Write" , N_RT_WRITE_MODES, RT_write_strings,
                      RTdatamode ) ;
+
+   /* channel merge modes: 02 Jun 2009 */
+
+   RT_chmer_mode = (int)AFNI_numenv("AFNI_REALTIME_CHMERMODE") ;
+   if( RT_chmer_mode < 0 || RT_chmer_mode >= N_RT_CHMER_MODES ) RT_chmer_mode = 0 ;
+   PLUTO_add_string( plint , "ChannelMerge" , N_RT_CHMER_MODES ,
+                              RT_chmer_strings , RT_chmer_mode ) ;
 
    /***** Register a work process *****/
 
@@ -746,9 +777,7 @@ char * RT_main( PLUGIN_interface * plint )
    /** loop over input from AFNI **/
 
 #if 0                         /* 09 Oct 2000: turn this "feature" off */
-#ifdef ALLOW_REGISTRATION
    regmode = REGMODE_NONE ;   /* no registration if not ordered explicitly */
-#endif
 #endif
 
    while( (tag=PLUTO_get_optiontag(plint)) != NULL ){
@@ -788,7 +817,6 @@ char * RT_main( PLUGIN_interface * plint )
          continue ;
       }
 
-#ifdef ALLOW_REGISTRATION
       if( strcmp(tag,"Registration") == 0 ){
          str       = PLUTO_get_string(plint) ;
          regmode   = PLUTO_string_index( str , NREG , REG_strings ) ;
@@ -839,12 +867,14 @@ char * RT_main( PLUGIN_interface * plint )
 
          continue ;
       }
-#endif
 
       if( strcmp(tag,"DataWriting") == 0 ){
          str        = PLUTO_get_string(plint) ;
          RTdatamode = PLUTO_string_index( str , N_RT_WRITE_MODES,
                                                 RT_write_strings ) ;
+         str           = PLUTO_get_string(plint) ;
+         RT_chmer_mode = PLUTO_string_index( str , N_RT_CHMER_MODES,
+                                                   RT_chmer_strings ) ;
          continue ;
       }
 
@@ -967,7 +997,6 @@ void cleanup_rtinp( int keep_ioc_data )
        free( rtinp->sbr[cc] ) ;            /* destroy buffered data */
    }
 
-#ifdef ALLOW_REGISTRATION
    if( rtinp->reg_2dbasis != NULL ){       /* destroy registration setup */
       int kk ;
       for( kk=0 ; kk < rtinp->nzz ; kk++ )
@@ -984,7 +1013,6 @@ void cleanup_rtinp( int keep_ioc_data )
    FREEUP( rtinp->reg_phi   ) ; FREEUP( rtinp->reg_psi   ) ;
    FREEUP( rtinp->reg_theta ) ; FREEUP( rtinp->reg_rep   ) ;
    FREEUP( rtinp->reg_eval  ) ;
-#endif
 
    if( rtinp->image_handle != NULL )
       PLUTO_imseq_rekill( rtinp->image_handle,NULL,NULL ) ;  /* 28 Apr 2000 */
@@ -1669,7 +1697,10 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
 
    rtin->func_func   = FUNC_funcs[rtin->func_code] ; /* where to evaluate */
 
-#ifdef ALLOW_REGISTRATION
+   rtin->mrg_dset    = NULL ;     /* 02 Jun 2009 */
+   rtin->mrg_status  = 0 ;
+   rtin->mrg_nvol    = 0 ;
+
    rtin->reg_base_index = regtime ;  /* save these now, in case the evil */
    rtin->reg_mode       = regmode ;  /* user changes them on the fly!    */
    rtin->reg_dset       = NULL ;
@@ -1723,7 +1754,6 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
 
    rtin->reg_graph = reggraph ;
    if( regmode==REGMODE_3D_ESTIM && reggraph==0 ) rtin->reg_graph = 1;
-#endif
 
    /** record the times for later reportage **/
 
@@ -1915,8 +1945,6 @@ void RT_check_info( RT_input * rtin , int prt )
 
    return ;
 }
-
-#ifdef ALLOW_REGISTRATION
 
 /* mostly allow for verbose output */
 int RT_mp_comm_alive(int sock, int verb, char * mesg)
@@ -2607,7 +2635,6 @@ int RT_parser_init( RT_input * rtin )
 
     return 0;
 }
-#endif
 
 /*---------------------------------------------------------------------------
    Process command strings in the buffer, up to the first '\0' character.
@@ -2677,8 +2704,6 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          else
               BADNEWS ;
 
-#ifdef ALLOW_REGISTRATION
-
       /* Some troublesome physicist, let's just call him "Tom" (possibly
        * named by his mother, Mrs. Ross), wants control over the ranges
        * in the motion correction graph window.
@@ -2722,7 +2747,6 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
          rtin->p_expr[RT_MAX_EXPR] = '\0';
          if ( RT_parser_init(rtin) != 0 )
             BADNEWS ;
-#endif
 
       } else if( STARTER("NAME") ){
          char npr[THD_MAX_PREFIX] = "\0" ;
@@ -3424,7 +3448,6 @@ void RT_start_dataset( RT_input * rtin )
       DSET_lock(rtin->dset[cc]) ;  /* 20 Mar 1998 */
    }
 
-#ifdef ALLOW_REGISTRATION
    /*---- Make a dataset for registration, if need be ----*/
 
    if( REG_MAKE_DSET(rtin->reg_mode) &&
@@ -3455,7 +3478,33 @@ void RT_start_dataset( RT_input * rtin )
     *  rtin->reg_graph_xr *= rtin->tr ;    *** scale to time units ***
     */
 
-#endif
+   /*---- 02 Jun 2009: similarly, make a dataset for merger, if need be ----*/
+
+   if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) )
+     RT_chmer_mode = 0 ;  /* disable merger */
+
+   if( RT_chmer_mode > 0 ){
+     char qbuf[128] ; int mdatum=MRI_float ;
+
+     rtin->mrg_dset = EDIT_empty_copy( rtin->dset[0] ) ;
+     sprintf(qbuf,"plug_realtime: merger %s",RT_chmer_strings[RT_chmer_mode]) ;
+     tross_Append_History( rtin->mrg_dset , qbuf ) ;
+
+     strcpy(ccpr,npr) ; strcat(ccpr,"%mrg_") ;
+     strcat(ccpr,RT_chmer_labels[RT_chmer_mode]) ;
+     EDIT_dset_items( rtin->mrg_dset , ADN_prefix , ccpr , ADN_none ) ;
+     DSET_lock(rtin->mrg_dset) ;
+
+     if( rtin->datum == MRI_complex && RT_chmer_mode == RT_CHMER_SUM )
+       mdatum = MRI_complex ;
+     EDIT_dset_items( rtin->mrg_dset , ADN_datum_all , mdatum , ADN_none ) ;
+     RT_chmer_datum = mdatum ;
+
+     if( rtin->num_note > 0 && rtin->note != NULL ){  /* 01 Oct 2002 */
+       for( ii=0 ; ii < rtin->num_note ; ii++ )
+         tross_Add_Note( rtin->mrg_dset , rtin->note[ii] ) ;
+     }
+   }
 
    /***********************************************/
    /** now prepare space for incoming image data **/
@@ -3592,14 +3641,12 @@ void RT_start_dataset( RT_input * rtin )
      rts->numchan = rtin->num_chan ;
      rts->status  = RT_STARTUP ;
      rts->numdset = rtin->num_chan ;
-#ifdef ALLOW_REGISTRATION
+     if( rtin->mrg_dset != NULL ) rts->numdset++ ;
      if( rtin->reg_dset != NULL ) rts->numdset++ ;
-#endif
      rts->dset = (THD_3dim_dataset **)malloc(sizeof(THD_3dim_dataset *)*rts->numdset) ;
      for( cc=0 ; cc < rtin->num_chan ; cc++ ) rts->dset[cc] = rtin->dset[cc] ;
-#ifdef ALLOW_REGISTRATION
-     if( rtin->reg_dset != NULL ) rts->dset[cc] = rtin->reg_dset ;
-#endif
+     if( rtin->mrg_dset != NULL ) rts->dset[cc++] = rtin->mrg_dset ;
+     if( rtin->reg_dset != NULL ) rts->dset[cc++] = rtin->reg_dset ;
 #if 0
      GLOBAL_library.realtime_callback = RT_test_callback ;  /* just for testing */
 #endif
@@ -3842,7 +3889,32 @@ void RT_process_image( RT_input * rtin )
          VMCHECK ;
       }
 
-#ifdef ALLOW_REGISTRATION
+      /** 02 Jun 2009: merger operations?
+                       if have completed a full set of channels, that is **/
+
+      if( cc+1 == rtin->num_chan && RT_chmer_mode > 0 ){
+        int iv = rtin->nvol[cc]-1 ;  /* sub-brick index */
+        MRI_IMAGE *mrgim ;
+
+        mrgim = RT_mergerize( rtin->num_chan , rtin->dset , iv ) ;
+        if( mrgim == NULL ){
+          ERROR_message("RT can't merge channels at time index #%d",iv) ;
+        } else {
+          if( iv == 0 )
+            EDIT_substitute_brick( rtin->mrg_dset , 0 , (int)mrgim->kind ,
+                                                   mri_data_pointer(mrgim) ) ;
+          else
+            EDIT_add_brick( rtin->mrg_dset , (int)mrgim->kind , 0.0 ,
+                                                   mri_data_pointer(mrgim) ) ;
+          mri_clear_data_pointer(mrgim); mri_free(mrgim);
+          if( verbose == 2 )
+            fprintf(stderr,"RT: added brick #%d to merged dataset\n",iv) ;
+          EDIT_dset_items( rtin->mrg_dset , ADN_ntt , iv+1 , ADN_none ) ;
+          rtin->mrg_nvol = iv+1 ;
+        }
+        VMCHECK ;
+      }
+
       /* do registration before function computation   - 30 Oct 2003 [rickr] */
       switch( rtin->reg_mode ){
            case REGMODE_2D_RTIME: RT_registration_2D_realtime( rtin ) ;
@@ -3852,7 +3924,6 @@ void RT_process_image( RT_input * rtin )
            case REGMODE_3D_ESTIM: RT_registration_3D_realtime( rtin ) ;
            break ;
       }
-#endif /* ALLOW_REGISTRATION */
 
       /* Seems like a good place to write individual volumes to disk in *
        * near real time - vinai.                                        */
@@ -3896,7 +3967,6 @@ void RT_process_image( RT_input * rtin )
             }
          }
 
-#ifdef ALLOW_REGISTRATION
          if ( RTdatamode == RT_WRITE_REGISTERED )   /* write registered data */
          {
             /* check to make sure we are past the base registration brik */
@@ -3926,7 +3996,6 @@ void RT_process_image( RT_input * rtin )
                }
             }
          }
-#endif /* ALLOW_REGISTRATION */
       }
 
       /** compute function, maybe? **/
@@ -4048,7 +4117,7 @@ void RT_tell_afni( RT_input *rtin , int mode )
    /*** at the end of acquisition, show messages ***/
 
    if( mode == TELL_FINAL && ISVALID_DSET(rtin->dset[0]) ){
-     char qbuf[256*(MAX_CHAN+1)] , zbuf[256] ;
+     char qbuf[256*(MAX_CHAN+1)] , zbuf[256] ; int qq=0 ;
      sprintf( qbuf ,
                 " \n"
                 " Acquisition Terminated\n\n"
@@ -4059,13 +4128,27 @@ void RT_tell_afni( RT_input *rtin , int mode )
        if( ISVALID_DSET(rtin->dset[cc]) )
          sprintf( zbuf ,
                   " Channel %02d: dataset %s has %d sub-bricks\n",
-                  cc+1 , DSET_FILECODE(rtin->dset[cc]) , rtin->nvol[cc] ) ;
+                  cc+1 , DSET_FILECODE(rtin->dset[cc]) , DSET_NVALS(rtin->dset[cc]) ) ;
        else
          sprintf( zbuf ,
                   " Channel %d: INVALID DATASET?!\n",cc) ;
        strcat( qbuf , zbuf ) ;
      }
      strcat(qbuf,"\n") ;
+     if( ISVALID_DSET(rtin->mrg_dset) ){
+       sprintf( zbuf ,
+                " Merger%4.4s: dataset %s has %d sub-bricks\n" ,
+                RT_chmer_labels[RT_chmer_mode] ,
+                DSET_FILECODE(rtin->mrg_dset) , DSET_NVALS(rtin->mrg_dset) ) ;
+       strcat( qbuf , zbuf ) ; qq++ ;
+     }
+     if( ISVALID_DSET(rtin->reg_dset) ){
+       sprintf( zbuf ,
+                " Registered : dataset %s has %d sub-bricks\n" ,
+                DSET_FILECODE(rtin->reg_dset) , DSET_NVALS(rtin->reg_dset) ) ;
+       strcat( qbuf , zbuf ) ; qq++ ;
+     }
+     if( qq ) strcat(qbuf,"\n") ;
 
      PLUTO_beep(); PLUTO_popup_transient(plint,qbuf);
 
@@ -4091,10 +4174,11 @@ void RT_tell_afni( RT_input *rtin , int mode )
       if( rtin->func_dset != NULL )
         THD_force_malloc_type( rtin->func_dset->dblk , DATABLOCK_MEM_ANY ) ;
 
-#ifdef ALLOW_REGISTRATION
       if( rtin->reg_dset != NULL )
         THD_force_malloc_type( rtin->reg_dset->dblk , DATABLOCK_MEM_ANY ) ;
-#endif
+
+      if( rtin->mrg_dset != NULL )
+        THD_force_malloc_type( rtin->mrg_dset->dblk , DATABLOCK_MEM_ANY ) ;
 
       for( cc=0 ; cc < rtin->num_chan ; cc++ )
         THD_force_malloc_type( rtin->dset[cc]->dblk , DATABLOCK_MEM_ANY ) ;
@@ -4111,12 +4195,12 @@ void RT_tell_afni( RT_input *rtin , int mode )
 
 void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 {
-   Three_D_View * im3d ;
-   THD_session * sess ;
-   THD_3dim_dataset * old_anat=NULL ;
+   Three_D_View *im3d ;
+   THD_session *sess ;
+   THD_3dim_dataset *old_anat=NULL ;
    int ii , id , afni_init=0 ;
    char clll=0 , *cstr ;
-   MCW_arrowval * tav=NULL ;
+   MCW_arrowval *tav=NULL ;
 
    /** sanity check **/
 
@@ -4251,7 +4335,36 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
       }  /* end of if functional dataset actually has data */
    }  /* end of if functional dataset exists */
 
-#ifdef ALLOW_REGISTRATION
+   /**--- Deal with the merged dataset, if any ---**/
+
+   if( rtin->mrg_dset != NULL && rtin->mrg_nvol > 0 && cc == 0 ){
+
+      if( rtin->mrg_status == 0 ){  /** first time for this dataset **/
+
+         THD_load_statistics( rtin->mrg_dset ) ;
+
+         if( verbose )
+           fprintf(stderr , "RT: sending dataset %s with %d bricks to AFNI\n" ,
+                   DSET_FILECODE(rtin->mrg_dset) , DSET_NVALS(rtin->mrg_dset)  ) ;
+
+         EDIT_dset_items( rtin->mrg_dset, ADN_directory_name,sess->sessname, ADN_none ) ;
+
+         id = sess->num_dsset ;
+         if( id >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,"RT: max number of datasets exceeded!\a\n") ;
+           EXIT(1) ;
+         }
+         sess->dsset[id][VIEW_ORIGINAL_TYPE] = rtin->mrg_dset ; sess->num_dsset = id+1 ;
+         POPDOWN_strlist_chooser ;
+
+         rtin->mrg_status = 1 ;   /* AFNI knows about this dataset now */
+
+      } else {  /** 2nd or later call for this dataset **/
+
+         THD_update_statistics( rtin->mrg_dset ) ;
+      }
+   }
+
    /**--- Deal with the registered dataset, if any ---**/
 
    if( rtin->reg_dset != NULL && rtin->reg_nvol > 0 ){
@@ -4285,7 +4398,6 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
          THD_update_statistics( rtin->reg_dset ) ;
       }
    }
-#endif
 
    /**--- actually talk to AFNI now ---**/
 
@@ -4301,7 +4413,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
 
    } else {          /* just tell AFNI to refresh the images/graphs */
 
-      Three_D_View * qq3d ;
+      Three_D_View *qq3d ;
       int review ;
 
       /* check all controllers to see if they are looking at the same datasets */
@@ -4316,11 +4428,13 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
                     qq3d->vinfo->func_visible &&
                     EQUIV_DSETS(rtin->func_dset,qq3d->fim_now) ) ;
 
-#ifdef ALLOW_REGISTRATION
          review = review || ( rtin->reg_dset != NULL &&       /* or same reg?  */
                               rtin->reg_nvol > 0     &&
                               EQUIV_DSETS(rtin->reg_dset,qq3d->anat_now) ) ;
-#endif
+
+         review = review || ( rtin->mrg_dset != NULL &&       /* or same mrg?  */
+                              rtin->mrg_nvol > 0     &&
+                              EQUIV_DSETS(rtin->mrg_dset,qq3d->anat_now) ) ;
 
          if( review ){
 #if 1                       /** new code to enforce time index update: 20 May 2009 */
@@ -4381,12 +4495,15 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
          DSET_unlock( rtin->func_dset ) ;  /* 20 Mar 1998 */
       }
 
-#ifdef ALLOW_REGISTRATION
       if( rtin->reg_dset != NULL && rtin->reg_nvol > 0 ){
          DSET_overwrite( rtin->reg_dset ) ;
          DSET_unlock( rtin->reg_dset ) ;
       }
-#endif
+
+      if( rtin->mrg_dset != NULL && rtin->mrg_nvol > 0 && cc == 0 ){
+         DSET_overwrite( rtin->mrg_dset ) ;
+         DSET_unlock( rtin->mrg_dset ) ;
+      }
 
       THD_set_write_compression(cmode) ;  /* restore compression mode */
 
@@ -4426,11 +4543,12 @@ void RT_finish_dataset( RT_input * rtin )
         if( rtin->func_dset != NULL ){
            DSET_delete( rtin->func_dset ) ; rtin->func_dset = NULL ;
         }
-#ifdef ALLOW_REGISTRATION
         if( rtin->reg_dset != NULL ){
            DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
         }
-#endif
+        if( rtin->mrg_dset != NULL ){
+           DSET_delete( rtin->mrg_dset ) ; rtin->mrg_dset = NULL ;
+        }
         nbad++ ;
       }
 
@@ -4445,7 +4563,6 @@ void RT_finish_dataset( RT_input * rtin )
    if( verbose ) SHOW_TIMES ;
    if( nbad    ) return ;
 
-#ifdef ALLOW_REGISTRATION
    /*--- Do the "at end" registration, if ordered and if possible ---*/
 
    switch( rtin->reg_mode ){
@@ -4543,7 +4660,6 @@ void RT_finish_dataset( RT_input * rtin )
       free( rtin->p_code ) ;
       rtin->p_code = NULL ;
    }
-#endif
 
    /** tell afni about it one last time **/
 
@@ -4552,7 +4668,6 @@ void RT_finish_dataset( RT_input * rtin )
    return ;
 }
 
-#ifdef ALLOW_REGISTRATION
 /*****************************************************************************
   The collection of functions for handling slice registration in this plugin.
 ******************************************************************************/
@@ -4855,10 +4970,8 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
    return ;
 }
 /*---------------------------------------------------------------------------*/
-#endif /* ALLOW_REGISTRATION */
 
 
-#ifdef ALLOW_REGISTRATION
 /*****************************************************************************
   The collection of functions for handling volume registration in this plugin.
 ******************************************************************************/
@@ -5302,7 +5415,6 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
    return ;
 }
 /*---------------------------------------------------------------------------*/
-#endif /* ALLOW_REGISTRATION */
 
 #ifndef FIM_THR
 #define FIM_THR  0.0999
@@ -5375,11 +5487,9 @@ int RT_fim_recurse( RT_input *rtin , int mode )
 
       dset_time = rtin->dset[0] ;       /* assign dset_time first   30 Oct 2003 [rickr] */
 
-#ifdef ALLOW_REGISTRATION
       /* now check for use of registered dataset                    30 Oct 2003 [rickr] */
       if( (rtin->reg_mode == REGMODE_2D_RTIME) || (rtin->reg_mode == REGMODE_3D_RTIME) )
          dset_time = rtin->reg_dset;
-#endif /* ALLOW_REGISTRATION */
 
       if( dset_time == NULL ) return -1 ;
 
@@ -5918,4 +6028,121 @@ void RT_test_callback(void *junk)
    }
 
    return ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* Function to merge a collection of datasets, at sub-brick #iv. */
+
+MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
+{
+   float *far[MAX_CHAN] ; complex *car[MAX_CHAN] ;
+   int cc , nvox , idatum , ii ;
+   MRI_IMAGE *mrgim ;
+   float *fmar=NULL , *ftar ; complex *cmar=NULL , *ctar ;
+
+   if( nds <= 1 || ds == NULL || !ISVALID_DSET(ds[0]) ) return NULL ;
+   if( iv < 0 || iv >= DSET_NVALS(ds[0]) )              return NULL ;
+
+   /* get pointers to input data arrays */
+
+   idatum = DSET_BRICK_TYPE(ds[0],iv) ;
+   switch( idatum ){
+     default: return NULL ; /* should never happen */
+
+     case MRI_float:
+       for( cc=0 ; cc < nds ; cc++ ) far[cc] = DSET_ARRAY(ds[cc],iv) ;
+     break ;
+
+     case MRI_complex:
+       for( cc=0 ; cc < nds ; cc++ ) car[cc] = DSET_ARRAY(ds[cc],iv) ;
+     break ;
+   }
+
+   /* make output image/array */
+
+   nvox  = DSET_NVOX(ds[0]) ;
+   mrgim = mri_new_conforming( DSET_BRICK(ds[0],iv) , RT_chmer_datum ) ;
+   if( mrgim == NULL ) return NULL ;  /* should never happen */
+
+   /* get pointer to output array */
+
+   switch( RT_chmer_datum ){
+     default: mri_free(mrgim) ; return NULL ; /* should never happen */
+     case MRI_float:   fmar = MRI_FLOAT_PTR  (mrgim) ; break ;
+     case MRI_complex: cmar = MRI_COMPLEX_PTR(mrgim) ; break ;
+   }
+
+   /*** do the mergerizing ***/
+
+   switch( RT_chmer_mode ){
+
+     default: mri_free(mrgim) ; return NULL ; /* should never happen */
+
+     /*** sum of absolute values ***/
+
+     case RT_CHMER_L1NORM:  /* output datum is always float */
+       switch( idatum ){
+         case MRI_float:
+           for( cc=0 ; cc < nds ; cc++ ){
+             ftar = far[cc] ;
+             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += fabsf(ftar[ii]) ;
+           }
+         break ;
+
+         case MRI_complex:
+           for( cc=0 ; cc < nds ; cc++ ){
+             ctar = car[cc] ;
+             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += sqrtf(CSQR(ctar[ii])) ;
+           }
+         break ;
+       }
+     break ; /* done with L1 */
+
+     /*** sqrt of sum of squares ***/
+
+     case RT_CHMER_L2NORM:  /* output datum is always float */
+       switch( idatum ){
+         case MRI_float:
+           for( cc=0 ; cc < nds ; cc++ ){
+             ftar = far[cc] ;
+             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += SQR(ftar[ii]) ;
+           }
+         break ;
+
+         case MRI_complex:
+           for( cc=0 ; cc < nds ; cc++ ){
+             ctar = car[cc] ;
+             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += CSQR(ctar[ii]) ;
+           }
+         break ;
+       }
+       for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] = sqrtf(fmar[ii]) ;
+     break ; /* done with L2 */
+
+     /*** sum of input values ***/
+
+     case RT_CHMER_SUM:  /* output datum is same as input datum */
+       switch( idatum ){
+         case MRI_float:
+           for( cc=0 ; cc < nds ; cc++ ){
+             ftar = far[cc] ;
+             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += ftar[ii] ;
+           }
+         break ;
+
+         case MRI_complex:
+           for( cc=0 ; cc < nds ; cc++ ){
+             ctar = car[cc] ;
+             for( ii=0 ; ii < nvox ; ii++ ){
+               cmar[ii].r += ctar[ii].r ; cmar[ii].i += ctar[ii].i ;
+             }
+           }
+         break ;
+       }
+     break ; /* done with SUM */
+   }
+
+   /*** done done done ***/
+
+   return mrgim ;
 }
