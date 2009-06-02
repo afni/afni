@@ -3054,8 +3054,17 @@ STATUS("get something else, but I don't care!") ;
 }
 
 /*-----------------------------------------------------------------------------*/
+
+#undef   PFVAL
+#if 1
+# define PFVAL(vv,bb) strcpy((bb),AV_uformat_fval(vv))
+#else
+# define PFVAL(vv,bb) AV_fval_to_char((vv),(bb))
+#endif
+
+/*-----------------------------------------------------------------------------*/
 /*! Set a value label when the nsl-th image is in "im".
--------------------------------------------------------------------------------*/
+*//*---------------------------------------------------------------------------*/
 
 void AFNI_set_valabel( FD_brick *br , int nsl , MRI_IMAGE *im , char *blab )
 {
@@ -3084,35 +3093,34 @@ ENTRY("AFNI_set_valabel") ;
 
       case MRI_byte:{
          int val = MRI_BYTE_2D(im , ib.ijk[0],ib.ijk[1]) ;
-         sprintf( blab , "%6d" , val ) ;
+         sprintf( blab , "%-6d" , val ) ;
       }
       break ;
 
       case MRI_short:{
          int val = MRI_SHORT_2D(im , ib.ijk[0],ib.ijk[1]) ;
-         sprintf( blab , "%6d" , val ) ;
+         sprintf( blab , "%-6d" , val ) ;
       }
       break ;
 
       case MRI_int:{
          int val = MRI_INT_2D(im , ib.ijk[0],ib.ijk[1]) ;
-         sprintf( blab , "%6d" , val ) ;
+         sprintf( blab , "%-7d" , val ) ;
       }
       break ;
 
       case MRI_float:{
          float val = MRI_FLOAT_2D(im , ib.ijk[0],ib.ijk[1]) ;
-         AV_fval_to_char(val,blab) ;
+         PFVAL(val,blab) ;
       }
       break ;
 
       case MRI_complex:{
-         int iblab ;
-         complex val ;
+         int iblab ; char qbuf[16] ; complex val ;
          val = MRI_COMPLEX_2D(im , ib.ijk[0],ib.ijk[1]) ;
-         AV_fval_to_char(val.r,blab) ; iblab = strlen(blab) ;
+         PFVAL(val.r,blab) ; iblab = strlen(blab) ;
          if( val.i >= 0.0 ) blab[iblab++] = '+' ;
-         AV_fval_to_char(val.i,blab+iblab) ; iblab = strlen(blab) ;
+         PFVAL(val.i,blab+iblab) ; iblab = strlen(blab) ;
          blab[iblab++] = 'I' ; blab[iblab++] = '\0' ;
       }
       break ;
