@@ -16,7 +16,7 @@ int main( int argc , char *argv[] )
    char old_brikname[THD_MAX_NAME] ;
    char new_brikname[THD_MAX_NAME] ;
    char *old_bname=NULL ;
-   int brick_ccode , verb=0 ;
+   int brick_ccode , verb=0, nfound=0 ;
    int denote=0 ;   /* 08 Jul 2005 */
 
    /*-- help? --*/
@@ -218,6 +218,7 @@ int main( int argc , char *argv[] )
 
    /*-- loop over views, open and rename datasets internally --*/
 
+   nfound = 0 ;
    for( ii=vbot ; ii <= vtop ; ii++ ){
 
       /*-- open the ii-th view dataset --*/
@@ -228,8 +229,11 @@ int main( int argc , char *argv[] )
 
       dset[ii] = THD_open_one_dataset( dname ) ;
       if( dset[ii] == NULL ){
-        ERROR_message("Can't open dataset %s - SKIPPING \n",dname) ; continue ;
+        /* changed from error to warning       3 Jun 2009 [rickr] */
+        WARNING_message("missing view dataset: %s - SKIPPING\n",dname) ;
+        continue ;
       }
+      nfound ++;                   /* found some dataset */
       idc[ii] = dset[ii]->idcode ; /* save old ID code */
 
       /*-- rename it (but don't save to disk yet) --*/
@@ -261,6 +265,8 @@ int main( int argc , char *argv[] )
         }
       }
    }
+
+   if( nfound == 0 ) ERROR_message("no datasets found!");
 
    /*-- get to here means all datasets are ready to be
         written back out to disk under their new names --*/
