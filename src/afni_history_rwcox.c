@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , JUN , 2009 , RWC , "bbox.c" , MICRO , TYPE_MODIFY ,
+   "Modify string list chooser to do Browse select callback via arrows" ,
+   "To make consistent the ways of browsing thru the dataset choosers in\n"
+   "AFNI." } ,
+
  { 1 , JUN , 2009 , RWC , "debugtrace.h" , MICRO , TYPE_MODIFY ,
    "Add ability to suspend/restore function traceback stack" ,
    "Disable stack when OpenMP parallel section is engaged." } ,
