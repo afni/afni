@@ -131,9 +131,9 @@ cc         <- array(data=NA, dim=c(ncontr, 2, nfixed))
 # CAREFUL: assume contrasts at the same covariate value for multiple groups, 
 # but is this desirable???
 for (n in 1:ncontr) {
-   contrLabel[n] <- paste(unlist(scan(file="model.txt", what= list(""), skip=8+2*n-1, 
+   contrLabel[n] <- paste(unlist(scan(file="model.txt", what= list(""), skip=9+2*n-1, 
 	   strip.white=TRUE, nline=1)), collapse="")
-   contr[n]      <- scan(file="model.txt", what= list(""), sep="-", skip=8+2*n, 
+   contr[n]      <- scan(file="model.txt", what= list(""), sep="-", skip=9+2*n, 
 	   strip.white=TRUE, nline=1)
 	clist[[n]] <- vector('list', 2)
 	for (ii in 1:2) cc[n, ii,] <- strsplit(contr[n][[1]][ii], "\\*")[[1]] # or unlist(strsplit(contr[n][[1]][ii], "\\*"))
