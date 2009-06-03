@@ -2941,7 +2941,7 @@ ENTRY("MCW_choose_string") ;
 
 /*-------------------------------------------------------------------------*/
 
-static int browse_select = 0 ;
+static int browse_select = 0 , bcs = 0 , blocked = 0 ;
 void MCW_set_browse_select(int i){ browse_select = i ; } /* 21 Feb 2007 */
 
 /*-------------------------------------------------------------------------*/
@@ -3018,7 +3018,15 @@ static void MCW_strlist_av_CB( MCW_arrowval *av , XtPointer cd )
                   NULL ) ;
         if( init <  itop      ) XmListSetPos      ( str_wlist , init ) ;
    else if( init >= itop+nvis ) XmListSetBottomPos( str_wlist , init ) ;
+
+   if( bcs && !blocked ){
+     blocked = 1 ;
+     XtCallCallbacks( str_wlist , XmNbrowseSelectionCallback , NULL ) ;
+     blocked = 0 ;
+   }
 }
+
+/*-------------------------------------------------------------------------*/
 
 static void MCW_strlist_select_CB( Widget w, XtPointer cd, XtPointer cb )
 {
@@ -3032,7 +3040,9 @@ static void MCW_strlist_select_CB( Widget w, XtPointer cd, XtPointer cb )
                   NULL ) ;
    if( ns <= 0 || sp == NULL ) return ;
    AV_assign_ival( str_wlist_av , (int)(sp[0])-1 ) ;
+   blocked = 1 ;
    MCW_strlist_av_CB( str_wlist_av , NULL ) ;
+   blocked = 0 ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3050,13 +3060,13 @@ void MCW_choose_multi_strlist( Widget wpar , char *label , int mode ,
    XmString xms ;
    char *lbuf ;
    int nvisible ;
-   int bc=browse_select ;  /* 21 Feb 2007 */
    MCW_arrowval *wav ;     /* 12 Oct 2007 */
 
 ENTRY("MCW_choose_multi_strlist") ;
 
    /** destructor callback **/
 
+   bcs = browse_select ; /* 21 Feb 2007 */
    browse_select = 0 ;  /* 21 Feb 2007 */
    str_wlist = NULL ;   /* 12 Oct 2007 */
 
@@ -3179,7 +3189,7 @@ ENTRY("MCW_choose_multi_strlist") ;
      MCW_register_help( wlist , OVC_list_help_1 ) ;
      MCW_register_help( wlab  , OVC_list_help_1 ) ;
      XtAddCallback( wlist , XmNdefaultActionCallback , MCW_choose_CB , &cd ) ;
-     if( bc )  /* 21 Feb 2007 */
+     if( bcs )  /* 21 Feb 2007 */
        XtAddCallback( wlist, XmNbrowseSelectionCallback,MCW_choose_CB, &cd ) ;
    }
 
@@ -3875,6 +3885,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
    static MCW_choose_cbs cbs ;  /* to be passed back to user */
    static int list_dbclick_use = LIST_DBCLICK_UNKNOWN ;
    Boolean clear ;
+   XEvent *cbev = (icbs != NULL) ? icbs->event : NULL ;  /* 03 Jun 2009 */
 
 ENTRY("MCW_choose_CB") ;
 
@@ -3924,7 +3935,7 @@ ENTRY("MCW_choose_CB") ;
 
          if( call ){
             cbs.reason = mcwCR_vector ;  /* set structure for call to user */
-            cbs.event  = icbs->event ;
+            cbs.event  = cbev ;
             cbs.ival   = cd->nvec ;
             vec        = (float *)malloc(sizeof(float)*cd->nvec) ;
             cbs.cval   = (char *)vec ;
@@ -3957,7 +3968,7 @@ ENTRY("MCW_choose_CB") ;
 
          if( call ){
             cbs.reason = mcwCR_ovcolor ;  /* set structure for call to user */
-            cbs.event  = icbs->event ;
+            cbs.event  = cbev ;
             cbs.ival   = cd->av->ival ;
 
             if( !done ) MCW_invert_widget(w) ;              /* flash */
@@ -3995,7 +4006,7 @@ ENTRY("MCW_choose_CB") ;
             Boolean any ;
 
             cbs.reason = mcwCR_integer ;    /* set structure for call to user */
-            cbs.event  = icbs->event ;
+            cbs.event  = cbev ;
 
             if( cd->av != NULL ){           /* chooser was an arrowval */
                cbs.ival   = cd->av->ival ;
@@ -4059,7 +4070,7 @@ ENTRY("MCW_choose_CB") ;
 
          if( call ){
             cbs.reason = mcwCR_string ;  /* set structure for call to user */
-            cbs.event  = icbs->event ;
+            cbs.event  = cbev ;
             cbs.cval   = TEXT_GET( cd->wchoice ) ;
 
             if( !done ) MCW_invert_widget(w) ;              /* flash */
@@ -4142,7 +4153,7 @@ printf("MCW_choose_CB: choice index = %d\n",first) ;
 
             if( call ){
                cbs.reason = mcwCR_timeseries ;  /* set structure for call to user */
-               cbs.event  = icbs->event ;
+               cbs.event  = cbev ;
                cbs.ival   = first ;
                cbs.imval  = fim ;
 
