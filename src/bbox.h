@@ -128,6 +128,7 @@ typedef struct {
 #define MCW_AV_downup    1
 #define MCW_AV_leftright 2
 #define MCW_AV_optmenu   3
+#define MCW_AV_updown    4      /* 03 Jun 2009 */
 #define MCW_AV_notext    11
 #define MCW_AV_editext   12
 #define MCW_AV_edittext  12
