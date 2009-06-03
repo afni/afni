@@ -1,7 +1,7 @@
 #!/usr/bin/env afni_run_R
 #Welcome to 3dLME.R, an AFNI Group Analysis Package!
 #-----------------------------------------------------------
-#Version 1.0.3,  Dec 11, 2008
+#Version 1.0.4,  June 3, 2008
 #Author: Gang Chen (gangchen@mail.nih.gov)
 #Website: http://afni.nimh.nih.gov/sscc/gangc/lme.html
 #SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
