@@ -471,6 +471,7 @@ int MCW_val_bbox( MCW_bbox *bb )
     label   = string to put to left of arrows (NULL means none)
     direc   = MCW_AV_downup    for down and up arrows
               MCW_AV_leftright for left and right arrows
+              MCW_AV_updown    for up and down arrows
               MCW_AV_optmenu   for option menu (completely different style!)
     minval  = smallest value allowed } value is like in Scales:
     maxval  = largest  value allowed }   an integer
@@ -511,6 +512,7 @@ MCW_arrowval * new_MCW_arrowval( Widget parent ,
 {
    MCW_arrowval *av = NULL ;
    int asizx = 20 , asizy = 15 ;  /* arrow sizes */
+   int aup , adown ;
 
 ENTRY("new_MCW_arrowval") ;
 
@@ -573,11 +575,17 @@ ENTRY("new_MCW_arrowval") ;
    else                asizy = asizx ;
 
    STATUS("creating item labels") ;
+
+   adown = (direc==MCW_AV_leftright) ? XmARROW_LEFT
+          :(direc==MCW_AV_downup   ) ? XmARROW_DOWN : XmARROW_UP   ;
+
+   aup   = (direc==MCW_AV_leftright) ? XmARROW_RIGHT
+          :(direc==MCW_AV_downup   ) ? XmARROW_UP   : XmARROW_DOWN ;
+
    av->wdown = XtVaCreateManagedWidget(
                   "arrow" , xmArrowButtonWidgetClass , av->wrowcol ,
 
-                     XmNarrowDirection , (direc==MCW_AV_leftright)
-                                         ? XmARROW_LEFT : XmARROW_DOWN ,
+                     XmNarrowDirection , adown ,
 
                      XmNheight , asizy , XmNwidth , asizx ,
                      XmNborderWidth , 0 ,
@@ -589,8 +597,7 @@ ENTRY("new_MCW_arrowval") ;
    av->wup    = XtVaCreateManagedWidget(
                   "arrow" , xmArrowButtonWidgetClass , av->wrowcol ,
 
-                     XmNarrowDirection , (direc==MCW_AV_leftright)
-                                         ? XmARROW_RIGHT : XmARROW_UP ,
+                     XmNarrowDirection , aup ,
 
                      XmNheight , asizy , XmNwidth , asizx ,
                      XmNborderWidth , 0 ,
@@ -3236,7 +3243,7 @@ ENTRY("MCW_choose_multi_strlist") ;
 
       if( init != NULL && init[0] > 0 && init[0] < num_str ) ival = init[0] ;
 
-      str_wlist_av = new_MCW_arrowval( wrc , "Index" , MCW_AV_downup ,
+      str_wlist_av = new_MCW_arrowval( wrc , "Index" , MCW_AV_updown ,
                                        0 , num_str-1 , ival , MCW_AV_editext , 0 ,
                                        MCW_strlist_av_CB , NULL , NULL , NULL ) ;
 
