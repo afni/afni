@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 3, JUN, 2009, RCR, "3dcopy", MICRO, TYPE_MODIFY,
+   "changed 'missing dataset' ERROR to 'missing view dataset' WARNING",
+   NULL
+ } ,
+
  { 29, MAY, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -execute and now fail if block options have no corresponding blocks",
    NULL
