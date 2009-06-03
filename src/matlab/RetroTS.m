@@ -25,9 +25,12 @@ function [Opt, R, E] = RetroTS(SN)
 %     ResamKernel: Resampling kernel. 
 %                 (default is 'linear', see help interp1 for more options)
 %     FIROrder: Order of FIR filter. (default is 40)
-%     Quiet: 1/0  flag. (defaut is 1)
-%     Demo: 1/0 flag. (default is 0)
-%     
+%     Quiet: [1]/0  flag. (defaut is 1)
+%     Demo: [1]/0 flag. (default is 0)
+%     RVT_out: [1]/0 flag for writing RVT regressors
+%     Card_out: [1]/0 flag for writing Card regressors
+%     Resp_out: [1]/0 flag for writing Resp regressors
+%
 %Example:
 %
 %  Opt.Respfile = 'Resp_epiRT_scan_14.dat'
@@ -155,6 +158,15 @@ else,
    if ( ~isfield(Opt,'Prefix') | isempty(Opt.Prefix)),
       Opt.Prefix = 'oba';
    end   
+   if ( ~isfield(Opt,'Resp_out') | isempty(Opt.Resp_out)),
+      Opt.Resp_out = 1;
+   end
+   if ( ~isfield(Opt,'Card_out') | isempty(Opt.Card_out)),
+      Opt.Card_out = 1;
+   end
+   if ( ~isfield(Opt,'RVT_out') | isempty(Opt.RVT_out)),
+      Opt.RVT_out = 1;
+   end
    if ( ~isfield(Opt,'SliceOffset') | isempty(Opt.SliceOffset)),
       Opt.SliceOffset=zeros(Opt.Nslices,1);
       dtt = Opt.VolTR/Opt.Nslices; tt = 0.0;
@@ -210,9 +222,9 @@ end
 %also generate files as 3dREMLfit likes them
 Opt.RemlOut = zeros(  length(R.tst),... 
                   Opt.Nslices .* ...
-                     (  size(R.RVTRS_slc,2) + ...
-                        size(R.phz_slc_reg,2) + ...
-                        size(E.phz_slc_reg,2) ) );
+                     (  (Opt.RVT_out~=0).*size(R.RVTRS_slc,2) + ...
+                        (Opt.Resp_out~=0).*size(R.phz_slc_reg,2) + ...
+                        (Opt.Card_out~=0).*size(E.phz_slc_reg,2) ) );
 cnt = 0;
 head = sprintf([ '# <RetoTSout\n',...
                   '# ni_type = "%d*double"\n'...
@@ -252,23 +264,29 @@ if (0), %old approach, not handy for 3dREMLfit
    fid = fopen(sprintf('%s.retrots.1D', Opt.Prefix),'w');
 else
    for (i=1:1:Opt.Nslices),
-      %RVT
-      for (j=1:1:size(R.RVTRS_slc,2)),
-         cnt = cnt + 1;
-         Opt.RemlOut(:,cnt) = R.RVTRS_slc(:,j); %same regressor for each slice 
-         label = sprintf('%s s%d.RVT%d ;', label, i-1, j-1);
+      if (Opt.RVT_out),
+         %RVT
+         for (j=1:1:size(R.RVTRS_slc,2)),
+            cnt = cnt + 1;
+            Opt.RemlOut(:,cnt) = R.RVTRS_slc(:,j); %same regressor for each slice 
+            label = sprintf('%s s%d.RVT%d ;', label, i-1, j-1);
+         end
       end
-      %Resp
-      for (j=1:1:size(R.phz_slc_reg,2)),
-         cnt = cnt + 1;
-         Opt.RemlOut(:,cnt) = R.phz_slc_reg(:,j,i);
-         label = sprintf('%s s%d.Resp%d ;', label, i-1, j-1);
+      if (Opt.Resp_out),
+         %Resp
+         for (j=1:1:size(R.phz_slc_reg,2)),
+            cnt = cnt + 1;
+            Opt.RemlOut(:,cnt) = R.phz_slc_reg(:,j,i);
+            label = sprintf('%s s%d.Resp%d ;', label, i-1, j-1);
+         end
       end
-      %Card
-      for (j=1:1:size(E.phz_slc_reg,2)),
-         cnt = cnt + 1;
-         Opt.RemlOut(:,cnt) = E.phz_slc_reg(:,j,i);
-         label = sprintf('%s s%d.Card%d ;', label, i-1, j-1);
+      if (Opt.Card_out),
+         %Card
+         for (j=1:1:size(E.phz_slc_reg,2)),
+            cnt = cnt + 1;
+            Opt.RemlOut(:,cnt) = E.phz_slc_reg(:,j,i);
+            label = sprintf('%s s%d.Card%d ;', label, i-1, j-1);
+         end
       end
    end
    fid = fopen(sprintf('%s.slibase.1D', Opt.Prefix),'w');
