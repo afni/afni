@@ -355,7 +355,7 @@ int * SUMA_Dijkstra_generic (int N_Node,
                      int verb)
 {
    static char FuncName[] = {"SUMA_Dijkstra_generic"};
-   float *L = NULL, Lmin = -1.0, DT_DIJKSTRA;
+   float *L = NULL, Lmin = -1.0;
    double de=0.0, le=0.0;
    int i, iw, iv, v, w, N_Neighb, *Path = NULL, N_loc=-1, kk=0;
    SUMA_Boolean *isNodeInMesh=NULL;
@@ -418,10 +418,6 @@ int * SUMA_Dijkstra_generic (int N_Node,
                FuncName);
       goto CLEANUP;
    }  
-   if (LocalHead) {
-      /* Start timer for next function */
-      SUMA_etime(&start_time,0);      
-   }
    
    /* allocate for chain */
    DC = (SUMA_DIJKSTRA_PATH_CHAIN *)SUMA_malloc(
@@ -539,22 +535,10 @@ int * SUMA_Dijkstra_generic (int N_Node,
          }
 
 
-         if (LocalHead) {
-            /* stop timer */
-            DT_DIJKSTRA = SUMA_etime(&start_time,1);
-            fprintf (SUMA_STDERR, 
-                     "%s: Method 1- Elapsed time in function %f seconds.\n", 
-                     FuncName, DT_DIJKSTRA);
-         }
-
          if (L) SUMA_free(L); L = NULL;
          break;
 
       case 1:  /********* Method 1- faster minimum searching *******************/
-         if (LocalHead) {
-            /* Start timer for next function */
-            SUMA_etime(&start_time,0);      
-         }
 
          /* allocate for vertices labels and minimums vectors*/
          L = (float *) SUMA_calloc (N_Node, sizeof (float));        
@@ -749,13 +733,6 @@ int * SUMA_Dijkstra_generic (int N_Node,
          }
 
 
-         if (LocalHead) {
-            /* stop timer */
-            DT_DIJKSTRA = SUMA_etime(&start_time,1);
-            fprintf (SUMA_STDERR, 
-                     "%s: Method 2- Elapsed time in function %f seconds.\n", 
-                     FuncName, DT_DIJKSTRA);
-         }
 
          if (L) SUMA_free(L); L = NULL;
          if (Lmins) SUMA_free(Lmins); Lmins = NULL;
