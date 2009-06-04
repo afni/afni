@@ -369,7 +369,8 @@ float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObj
                                  Means[1] mean value below node (only for vals > Opt->t),
                                  Means[2] mean value above node  (only for vals > Opt->t)
 */
-int SUMA_Find_IminImax (float *xyz, float *dir, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+int SUMA_Find_IminImax (float *xyz, float *dir, 
+                        SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
                         int ni, 
                         float *MinMax, float *MinMax_dist , 
                         float *MinMax_over, float *MinMax_over_dist,
@@ -388,6 +389,8 @@ int SUMA_Find_IminImax (float *xyz, float *dir, SUMA_GENERIC_PROG_OPTIONS_STRUCT
    
    d2 = d1/2.0;
    
+   if (undershish) undershish[0] = -1;
+   if (overshish) overshish[0] = -1;
    Means[0] = Means[1] = Means[2] = 0.0;
    nMeans[0] = nMeans[1] = nMeans[2] = 0;
    lmin = Opt->tm;
@@ -496,7 +499,7 @@ int SUMA_Find_IminImax (float *xyz, float *dir, SUMA_GENERIC_PROG_OPTIONS_STRUCT
             Means[0] = Opt->fvec[nind];
          }
          
-        /* store values under node */
+        /* store values over node */
          if (overshish && istep < ShishMax) overshish[istep] = Opt->fvec[nind]; 
          
          if (Opt->fvec[nind] > Opt->t && !stopint) { 
@@ -2363,6 +2366,9 @@ float *SUMA_Suggest_Touchup(
       touchup = (float *)SUMA_calloc(SO->N_Node, sizeof(float));   
       if (!touchup) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL); }  
       for (in=0; in<SO->N_Node; ++in) {   
+         memset(overshish, 0, sizeof(float)*ShishMax);   
+            /* a brute force way to quiet a valgrind warning
+            about unintialization */
          SUMA_Find_IminImax(  &(SO->NodeList[3*in]), 
                               &(SO->NodeNormList[3*in]), 
                               Opt, in,  MinMax, 
@@ -2465,16 +2471,20 @@ float *SUMA_Suggest_Touchup(
                a = &(SO->NodeList[3*in]);   
                if (cond4 ) {
                   /* reposition nodes */  
-                  if (Opt->NodeDbg == in) { fprintf(SUMA_STDERR, "%s: Suggest repair for node %d (better min above):\n"   
-                                       " MinMax     =[%.1f,%.1f] MinMax_dist     = [%.2f,%.2f] \n"   
-                                       " MinMax_over=[%.1f,%.1f] MinMax_over_dist= [%.2f,%.2f] \n"   
-                                       " Val at node %.1f, mean below %.1f, mean above %.1f\n"  
-                                       " zalt= %f, r/2 = %f, Opt->shrink_bias = %f\n",    
+                  if (Opt->NodeDbg == in) { 
+                     fprintf(SUMA_STDERR, 
+                  "%s: Suggest repair for node %d (better min above):\n"   
+                  " MinMax     =[%.1f,%.1f] MinMax_dist     = [%.2f,%.2f] \n"   
+                  " MinMax_over=[%.1f,%.1f] MinMax_over_dist= [%.2f,%.2f] \n"   
+                  " Val at node %.1f, mean below %.1f, mean above %.1f\n"  
+                  " zalt= %f, r/2 = %f, Opt->shrink_bias = %f\n",    
                           FuncName, in, 
                           MinMax[0], MinMax[1], MinMax_dist[0], MinMax_dist[1], 
-                          MinMax_over[0], MinMax_over[1], MinMax_over_dist[0], MinMax_over_dist[1], 
+                          MinMax_over[0], MinMax_over[1], 
+                          MinMax_over_dist[0], MinMax_over_dist[1], 
                           Means[0], Means[1], Means[2],   
-                          a[2] - SO->Center[2], Opt->r/2, Opt->shrink_bias[in]); } 
+                          a[2] - SO->Center[2], Opt->r/2, Opt->shrink_bias[in]); 
+                   } 
          /* what is happening with the gradients NOT USED YET*/ 
          Down = 0;
          Cross = 0;
@@ -2485,8 +2495,11 @@ float *SUMA_Suggest_Touchup(
             }else {
                gradovershish[nn-1] = 0;
             }
-            if ((gradovershish[nn-1] < - Opt->tm/3.0 || (overshish[nn] < Opt->tm/2.0 && gradovershish[nn-1] < 0)) && !Cross) {  
-               /* if you cross a large negative gradient, OR a smaller negative one from an already low intensity */
+            if (  (gradovershish[nn-1] < - Opt->tm/3.0 || 
+                  (overshish[nn] < Opt->tm/2.0 && gradovershish[nn-1] < 0)) && 
+                  !Cross) {  
+               /* if you cross a large negative gradient, OR a smaller negative 
+                  one from an already low intensity */
                Down = nn;
                if (Opt->NodeDbg == in) {
                   fprintf(SUMA_STDERR, "%s: Crossing down limit (%f) gradient at node %d (%f)\n", FuncName, Opt->tm/3.0, in, gradovershish[nn-1]);
