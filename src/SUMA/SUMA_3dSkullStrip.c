@@ -111,7 +111,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
 "            -blur_fwhm 2 -use_skull  \n"
 "        or for more stubborn cases increase csf avoidance with this cocktail\n"
 "            -blur_fwhm 2 -use_skull -avoid_vent -avoid_vent -init_radius 75 \n"
-"\n"
+"\n" 
 "  Make sure that brain orientation is correct. This means the image in \n"
 "  AFNI's axial slice viewer should be close to the brain's axial plane.\n"
 "  The same goes for the other planes. Otherwise, the program might do a lousy\n"
