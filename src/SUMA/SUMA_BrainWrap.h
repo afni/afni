@@ -28,6 +28,10 @@ float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO,
 float *SUMA_Suggest_Touchup_PushInnerSkull(SUMA_SurfaceObject *SO, 
                                     SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
                                     float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
+SUMA_Boolean SUMA_LimitCoordToVolume(float *NewCoord,          
+                                     THD_3dim_dataset *in_volp,
+                                     int units,
+                                     int *limited);
 int SUMA_DidUserQuit(void);
 EDIT_options *SUMA_BlankAfniEditOptions(void);
 void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs, int N_itermax);

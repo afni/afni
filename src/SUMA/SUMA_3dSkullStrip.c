@@ -57,7 +57,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
 "       in 3dedge3 -help.\n"
 "  3- The creation of various masks and surfaces modeling brain\n"
 "     and portions of the skull\n"
-"\n"
+"\n" 
 "  Common examples of usage:\n"
 "  -------------------------\n"
 "  o 3dSkullStrip -input VOL -prefix VOL_PREFIX\n"
@@ -111,6 +111,11 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
 "            -blur_fwhm 2 -use_skull  \n"
 "        or for more stubborn cases increase csf avoidance with this cocktail\n"
 "            -blur_fwhm 2 -use_skull -avoid_vent -avoid_vent -init_radius 75 \n"
+"\n"
+"  Make sure that brain orientation is correct. This means the image in \n"
+"  AFNI's axial slice viewer should be close to the brain's axial plane.\n"
+"  The same goes for the other planes. Otherwise, the program might do a lousy\n"
+"  job removing the skull.\n"
 "\n" 
 "  Eye Candy Mode: \n"
 "  ---------------\n"
@@ -2498,11 +2503,21 @@ int main (int argc,char *argv[])
    {
       THD_3dim_dataset *dout=NULL;
       
-      if (Opt->MaskMode == 0 || Opt->MaskMode == 1) { /* use spatnormed baby, OK for mask too*/
+      if (Opt->MaskMode == 0 || Opt->MaskMode == 1) { 
+         /* use spatnormed baby, OK for mask too*/
          dout = Opt->OrigSpatNormedSet;
       } else if (Opt->MaskMode == 2) { /* use original dset */
-         DSET_load(Opt->iset);
-         dout = Opt->iset;
+         if (Opt->debug) 
+            fprintf (SUMA_STDERR,
+               "%s: Setting output to orig_vol (iset = %p) (osnd = %p)...\n", 
+                  FuncName, Opt->iset, Opt->OrigSpatNormedSet);
+         if (Opt->iset) {
+            DSET_load(Opt->iset);
+            dout = Opt->iset;
+         } else { /* They may have used -no_spatnorm and -orig_vol options */
+            DSET_load(Opt->OrigSpatNormedSet);
+            dout = Opt->OrigSpatNormedSet;
+         }
       } else {
          SUMA_S_Errv("Bad MaskMode value of %d!\n", Opt->MaskMode);
          SUMA_RETURN(NOPE);
@@ -2516,9 +2531,13 @@ int main (int argc,char *argv[])
          SUMA_RETURN(NOPE);
       }
 
+      if (Opt->debug) 
+         fprintf (SUMA_STDERR,
+            "%s: Coercing...\n", FuncName);
       EDIT_coerce_scale_type( Opt->nvox , DSET_BRICK_FACTOR(dout,0) ,
-                              DSET_BRICK_TYPE(dout,0), DSET_ARRAY(dout, 0) ,      /* input  */
-                              MRI_float               , Opt->fvec  ) ;   /* output */
+                              DSET_BRICK_TYPE(dout,0), 
+                                 DSET_ARRAY(dout, 0) ,      /* input  */
+                              MRI_float, Opt->fvec  ) ;   /* output */
    }
    if (Opt->MaskMode == 0 || Opt->MaskMode == 2) {
       SUMA_LH("Creating skull-stripped volume");
