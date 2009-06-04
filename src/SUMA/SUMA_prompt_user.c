@@ -1,6 +1,3 @@
-/*USE This sample to start writing standalone programs.
-Change prompt_user to the program name of your choosing.
-*/
 #include "SUMA_suma.h"
 
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
@@ -99,6 +96,8 @@ int main (int argc,char *argv[])
    int ii;
    Widget w=NULL;
    XtAppContext    app;
+   XEvent ev;
+   XtInputMask pp;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_STANDALONE_INIT;
@@ -131,6 +130,18 @@ int main (int argc,char *argv[])
          
    }
    
+   /* because you have no XtAppMainLoop, you'll need to process the next 
+   event for the XtDestroy command on w's child takes effect. So you'll
+   just have this zombie widget that stares at you.
+   In this simple command line program, the widget dies anyway when you
+   exit the program, so the call below is a teaching moment for when
+   functions like SUMA_PauseForUser are called from programs without an
+   XtAppMainLoop. 
+   See also SUMA_PAUSE_PROMPT macro */
+   
+   while ((pp = XtAppPending(app))) {  \
+      XtAppProcessEvent(app, pp); \
+   } 
    
    if (Opt->debug > 2) LocalHead = YUP;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;

@@ -11265,7 +11265,7 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans)
   Supposed to behave like ForceUser function below but only for pausing.
 */
 int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos, 
-                        XtAppContext *app, int withpause)
+                        XtAppContext *app, int withcancel)
 {
    static char FuncName[]={"SUMA_PauseForUser"};
    static Widget dialog; /* static to avoid multiple creation */
@@ -11284,7 +11284,7 @@ int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos,
       }
    }
    if (!parent) { /* no widgets, go command line */
-      SUMA_PAUSE_PROMPT(question);
+      SUMA_PAUSE_PROMPT_STDIN(question);
       SUMA_RETURN(SUMA_YES);
    }
    
@@ -11296,7 +11296,7 @@ int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos,
          NULL);
      /* Don't need help and cancel buttons*/
      XtUnmanageChild (XmMessageBoxGetChild (dialog, XmDIALOG_HELP_BUTTON));
-     if (!withpause) {
+     if (!withcancel) {
       XtUnmanageChild (XmMessageBoxGetChild (dialog, XmDIALOG_CANCEL_BUTTON)); 
      }else {
       XtAddCallback (dialog, XmNcancelCallback, SUMA_response, &answer); 
@@ -11309,7 +11309,7 @@ int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos,
     
    answer = SUMA_NO_ANSWER;
    text = XmStringCreateLocalized (question);
-   yes = XmStringCreateLocalized ("Yes");
+   yes = XmStringCreateLocalized ("OK");
    XtVaSetValues (dialog,
      XmNmessageString,      text,
      XmNokLabelString,      yes,
@@ -11334,7 +11334,14 @@ int SUMA_PauseForUser(  Widget parent, char *question, SUMA_WINDOW_POSITION pos,
      XtAppProcessEvent (*app, XtIMAll);
    }   
    #if 1
-      XtDestroyWidget(dialog); 
+      SUMA_LH("destroying dialog");
+      
+      XtDestroyWidget(dialog);   /* This won't get the widget off of the screen
+                                    unless there is an XtAppMainLoop running.
+                                    When that is not the case, you need to 
+                                    trigger an event processing call, see 
+                                    SUMA_prompt_user.c for an example */
+                                    
       dialog = NULL;
    #else /* bad, takes for ever to come back up. 
                Same for repeated calls of ForceUser if created for the first time from DriveSuma and

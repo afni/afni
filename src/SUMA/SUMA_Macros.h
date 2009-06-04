@@ -483,7 +483,46 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 /*!
    Pause prompt, stdin
 */
-#define SUMA_PAUSE_PROMPT(s) { int m_jnk; fprintf(SUMA_STDOUT,"Pausing: %s  ...", s); fflush(SUMA_STDOUT); m_jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); fflush(SUMA_STDOUT);}
+#define SUMA_PAUSE_PROMPT_STDIN(s) { int m_jnk; fprintf(SUMA_STDOUT,"Pausing: %s  ...", s); fflush(SUMA_STDOUT); m_jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); fflush(SUMA_STDOUT);}
+
+#define SUMA_PAUSE_PROMPT(s) {    \
+   XtAppContext    m_app; \
+   Widget m_w;   \
+   XEvent m_ev;  \
+   XtInputMask m_pp; \
+   int m_ii=0, m_wkill=1;  \
+   if (SUMAg_SVv && SUMAg_SVv[0].X->TOPLEVEL){\
+      m_w = SUMAg_SVv[0].X->TOPLEVEL; \
+      m_wkill = 0;  \
+   }  else { \
+      m_w = XtOpenApplication(&m_app, FuncName, \
+                           NULL, 0, &m_ii, NULL,  \
+                           SUMA_get_fallbackResources(), \
+                           topLevelShellWidgetClass, NULL, 0); \
+   }  \
+   if (m_w)  { \
+      SUMA_PauseForUser(m_w, s, \
+                        SWP_POINTER_OFF, &m_app, 0);  \
+      if (m_wkill) {    \
+         /* This is set when the top level widget is created  */ \
+         /* and there is no XtAppMainLoop to process events and */\
+         /* ensure that the destroyed widget gets off of the screen */\
+         /* so you'll need to do the event processing yourself */\
+         /* or you'll end up with ghostly windows if events come in */\
+         /* too rapidly */    \
+         /* A simpler call to XtAppNextEvent(app, &ev); was enough */   \
+         /* to cause the widget to go away, but not when events are */  \
+         /* piling up. Not too surprising since events are not getting */  \
+         /* processed. The while statement seems to do the trick */  \
+         while ((m_pp = XtAppPending(m_app))) {  \
+            XtAppProcessEvent(m_app, m_pp); \
+         } \
+         XtDestroyWidget(m_w);  \
+      }; \
+   }  else {\
+      SUMA_PAUSE_PROMPT_STDIN(s);   \
+   }  \
+}
 
 /*!
    A macro to recalculate a surface's center and its bounding box 
