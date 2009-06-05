@@ -448,13 +448,16 @@ void getvoxlclusterdist(int* count, float** cdata,
   dummy = nclusters;
   do n++; while (dummy/=10);
     
-    
+  /*avovk, june 09, changed output names*/
+  
   filename4 = malloc(n*sizeof(char));
-  sprintf (filename4, "%s_K_G%d.vcd.1D", jobname, nclusters);
+  sprintf (filename4, "%s_K%d_Gx.vcd.1D", jobname, nclusters);
+
   out4 = fopen( filename4, "w" );
 
   filename5 = malloc((n+2)*sizeof(char));
-  sprintf (filename5, "%s_K_G%d.info2.1D", jobname, nclusters);
+
+  sprintf (filename5, "%s_K%d_Gx.info2.1D", jobname, nclusters);
   out5 = fopen( filename5, "w" );   /* ZSS: This also was "a" 
                                     but I don't think it was necessary */
   weight = (float *)calloc(ncols, sizeof(float));
@@ -743,15 +746,21 @@ void example_kmeans( int nrows, int ncols,
    filename2 = (char *)malloc(n*sizeof(char));
    filename3 = (char *)malloc(n*sizeof(char));
    filename4 = (char *)malloc((n+2)*sizeof(char));
+
    /* ZSS:  Put a .1D in the name wherever it is appropriate */
-   sprintf (filename, "%s_K_G%d.kgg.1D", jobname, nclusters);
+   sprintf (filename, "%s_K%d_G%c.kgg.1D", jobname, nclusters,dist);
+
    out1 = fopen( filename, "w" );
-   sprintf (filename2, "%s_K_G%d.dis.1D", jobname, nclusters);
+
+   sprintf (filename2, "%s_K%d_G%c.dis.1D", jobname, nclusters,dist);
+
    out2 = fopen( filename2, "w" );
-   sprintf (filename3, "%s_K_G%d.cen.1D", jobname, nclusters);
+
+   sprintf (filename3, "%s_K%d_G%c.cen.1D", jobname, nclusters,dist);
    out3 = fopen( filename3, "w" );
-   sprintf (filename4, "%s_K_G%d.info1.1D", jobname, nclusters);
+   sprintf (filename4, "%s_K%d_G%c.info1.1D", jobname, nclusters,dist);
    out4 = fopen( filename4, "w" );
+
    printf("======================== k-means clustering"
          " ========================\n");
 
