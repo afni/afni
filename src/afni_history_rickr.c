@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 8, JUN, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "added -despike_mask, fixed missing block warning, reordered terminal opts",
+   NULL
+ } ,
+
+ { 8, JUN, 2009, RCR, "afni_base.py", MICRO, TYPE_MODIFY,
+   "added many afni_name descripts to __doc__ lines, check error in dset_dims",
+   NULL
+ } ,
+
  { 3, JUN, 2009, RCR, "3dcopy", MICRO, TYPE_MODIFY,
    "changed 'missing dataset' ERROR to 'missing view dataset' WARNING",
    NULL

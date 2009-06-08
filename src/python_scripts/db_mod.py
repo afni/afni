@@ -17,7 +17,8 @@ def db_mod_tcat(block, proc, user_opts):
     if uopt and bopt:
         try: bopt.parlist[0] = int(uopt.parlist[0])
         except:
-            print "** %s: invalid integer: %s" % (uopt.label, uopt.parlist[0])
+            print "** ERROR: %s: invalid integer: %s"   \
+                  % (uopt.label, uopt.parlist[0])
             errs += 1
         if errs == 0 and bopt.parlist[0] > 0:
           print                                                              \
@@ -77,7 +78,7 @@ def db_mod_align(block, proc, user_opts):
 def db_cmd_align(proc, block):
 
     if not proc.anat:
-        print '** missing anat for align block (consider -copy_anat)\n'
+        print '** ERROR: missing anat for align block (consider -copy_anat)\n'
         return
 
     # first note EPI alignment base and sub-brick, as done in volreg block
@@ -124,6 +125,10 @@ def db_mod_despike(block, proc, user_opts):
     bopt = block.opts.find_opt('-despike_opts_3dDes')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
+    uopt = user_opts.find_opt('-despike_mask')
+    bopt = block.opts.find_opt('-despike_mask')
+    if uopt and not bopt: block.opts.add_opt('-despike_mask', 0, [])
+
     block.valid = 1
 
 # apply 3dDespike to each run
@@ -139,9 +144,9 @@ def db_cmd_despike(proc, block):
     prefix = proc.prefix_form_run(block)
     prev   = proc.prev_prefix_form_run(view=1)
 
-    # if we have a mask and are applying it, allow it here, else do not
-    if proc.mask != None and proc.regmask: mstr = ''
-    else:                                  mstr = ' -nomask'
+    # maybe the user wants to mask here (to speed this step up)
+    if block.opts.find_opt('-despike_opts_mask'): mstr = ''
+    else:                                         mstr = ' -nomask'
 
     # write commands
     cmd = cmd + '# -------------------------------------------------------\n' \
@@ -231,7 +236,7 @@ def db_cmd_ricor(proc, block):
     #----- check for problems -----
     # check regressors against num runs
     if len(proc.ricor_regs) != proc.runs:
-        print '** have %d runs but %d slice-base ricor regressors' % \
+        print '** ERROR: have %d runs but %d slice-base ricor regressors' % \
               (proc.runs, len(proc.ricor_regs))
         return
 
@@ -251,14 +256,14 @@ def db_cmd_ricor(proc, block):
     # get regress method (will only currently work as 'per-run')
     rmethod, err = block.opts.get_string_opt('-ricor_regress_method')
     if err or rmethod == None:
-        print "** option -ricor_regress_method is required for ricor block"
+        print "** ERROR: option -ricor_regress_method required for ricor block"
         return
 
     # get nslices
     err, dims = UTIL.get_typed_dset_attr_list(proc.dsets[0].rpv(),
                                               "DATASET_DIMENSIONS", int)
     if err or len(dims) < 4:
-        print '** failed to get DIMENSIONS from %s' % proc.dsets[0].rpv()
+        print '** ERROR: failed to get DIMENSIONS from %s' % proc.dsets[0].rpv()
         return
     nslices = dims[2]
     if proc.verb > 2: print '-- ricor: found nslices = %d' % nslices
@@ -270,13 +275,13 @@ def db_cmd_ricor(proc, block):
         adata = LAD.Afni1D(proc.ricor_regs[0], verb=proc.verb)
     except: pass
     if not adata or not adata.ready:
-        print "** failed to read '%s' as Afni1D" % proc.ricor_regs[0]
+        print "** ERROR: failed to read '%s' as Afni1D" % proc.ricor_regs[0]
         return
     nsr_labs = adata.labs_matching_str('s0.')
     nsliregs = adata.nvec // nslices
     if nsliregs * nslices != adata.nvec:
-        print "** ricor nsliregs x nslices != nvec (%d,%d,%d)\n" \
-              "   (# slice 0 labels found = %d)"                 \
+        print "** ERROR: ricor nsliregs x nslices != nvec (%d,%d,%d)\n" \
+              "   (# slice 0 labels found = %d)"                        \
               (nsliregs, nslices, adata.nvec, len(nsr_labs))
         return
     if proc.verb > 1: print '-- ricor: nsliregs = %d, # slice 0 labels = %d' \
@@ -286,7 +291,9 @@ def db_cmd_ricor(proc, block):
     # check reps against adjusted NT
     nt = adata.nt-proc.ricor_nfirst
     if proc.reps != nt:
-        print "** ricor NT != dset len (%d, %d)" % (nt, proc.reps)
+        print "** ERROR: ricor NT != dset len (%d, %d)"                 \
+              "   (check -ricor_regs_nfirst/-tcat_remove_first_trs)"    \
+              % (nt, proc.reps)
         return
 
     # get user polort, else default based on twice the time length
@@ -903,6 +910,16 @@ def db_mod_mask(block, proc, user_opts):
 
     block.valid = 1
 
+# in this block, automatically make an EPI mask via 3dAutomask
+# if possible: also make a subject anatomical mask (resampled to EPI)
+#    - if -volreg_tlrc_warp, apply from tlrc anat
+#    - if a2e, apply from anat_al
+#    - if e2a, apply from anat_al with inverted transform
+# if possible: also make a group anatomical mask
+#    - only if tlrc block and -volreg_tlrc_warp
+#    - apply from -tlrc_base
+# add -mask_apply TYPE, TYPE in {epi, anat, standard}
+#     (this would override -regress_apply_mask)
 def db_cmd_mask(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-mask_type')
@@ -1722,6 +1739,8 @@ def db_cmd_tlrc(proc, block):
     if opt: base = opt.parlist[0]
     else:   base = 'TT_N27+tlrc'
 
+    proc.tlrc_base = BASE.afni_name(base)       # store for later
+
     opt = block.opts.find_opt('-tlrc_no_ss')
     if opt or not proc.tlrc_ss: ss = ' -no_ss'
     else:                       ss = ''
@@ -1860,7 +1879,7 @@ g_help_string = """
         empty:    - do nothing (just copy the data using 3dTcat)
 
         despike:  - NOTE: by default, this block is _not_ used
-                  - masking corresponds to regression
+                  - automasking is not done (requires -despike_mask)
 
         ricor:    - NOTE: by default, this block is _not_ used
                   - polort based on twice the actual run length
@@ -2504,8 +2523,8 @@ g_help_string = """
 
                 tcsh -xef proc.sb23 |& tee output.proc.sb23
 
-            Though it will actually use the bash format of that option, since
-            the system command (C and therefor python) uses /bin/sh.
+            Note that it will actually use the bash format of the command,
+            since the system command (C and therefore python) uses /bin/sh.
 
                 tcsh -xef proc.sb23 2>&1 | tee output.proc.sb23
 
@@ -2651,20 +2670,33 @@ g_help_string = """
             later ones.  This option is used to specify how many TRs to
             remove from the beginning of every run.
 
+        -despike_mask           : allow Automasking in 3dDespike
+
+            By default, -nomask is applied to 3dDespike.  Since anatomical
+            masks will probably not be contained within the Automask operation
+            of 3dDespike (which uses methods akin to '3dAutomask -dilate 4'),
+            it is left up to the user to speed up this operation via masking.
+
+            Note that the only case in which this should be done is when
+            applying the EPI mask to the regression.
+
+            Please see '3dDespike -help' and '3dAutomask -help' for more
+            information.
+
         -despike_opts_3dDes OPTS... : specify additional options for 3dDespike
 
                 e.g. -despike_opts_3dDes -nomask -ignore 2
 
-            By default, 3dDespike is used with only -prefix and -nomask (if
-            masking is not being applied in the regression).  Any other
-            options must be applied via -despike_opts_3dDes.
+            By default, 3dDespike is used with only -prefix and -nomask
+            (unless -despike_mask is applied).  Any other options must be
+            applied via -despike_opts_3dDes.
 
             Note that the despike block is not applied by default.  To apply
             despike in the processing script, use either '-do_block despike'
             or '-blocks ... despike ...'.
 
             Please see '3dDespike -help' for more information.
-            See also '-do_blocks', '-blocks'.
+            See also '-do_blocks', '-blocks', '-despike_mask'.
 
         -ricor_datum DATUM      : specify output data type from ricor block
 
