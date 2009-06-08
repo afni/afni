@@ -16,6 +16,7 @@ class afni_name:
       self.rangesel = res['range']
       return
    def p(self):   #Full path 
+      """show path only, no dataset name"""
       pp = "%s/" % os.path.abspath('./')  #full path at this location
       fn = string.find(pp,self.path)      #is path at end of abspath?
       if (fn > 0 and fn+len(self.path) == len(pp)): #path is at end of abs path
@@ -23,10 +24,13 @@ class afni_name:
       else:
          return "%s/" % os.path.abspath(self.path)
    def ppve(self):
+      """show path, prefix, view and extension"""
       s = "%s%s%s%s" % (self.p(), self.prefix, \
                          self.view, self.extension)
       return s
    def ppves(self):
+      """show path, prefix, view, extension and all selectors
+         (colsel, rowsel, nodesel, rangesel)"""
       s = "%s%s%s%s'%s%s%s%s'" % (self.p(), self.prefix, \
                          self.view, self.extension,\
                          self.colsel, self.rowsel,\
@@ -34,42 +38,61 @@ class afni_name:
       return s
       
    def input(self):
+      """full path to dataset in 'input' format
+         e.g. +orig, but no .HEAD
+         e.g. would include .nii"""
       if self.type == 'BRIK':
          return self.ppv()
       else:
          return self.ppve() 
 
    def shortinput(self):
+      """dataset name in 'input' format
+         - no directory prefix
+         - include extension if non-BRIK format"""
       if self.type == 'BRIK':
          return self.pv()
       else:
          return self.pve() 
 
    def out_prefix(self):
+      """dataset name in 'output' format
+         - no directory
+         - include extension if non-BRIK format"""
       if self.type == 'BRIK':
          return self.prefix
       else:
          return self.pve() 
    def ppv(self):
+      """return path, prefix, view formatted name"""
       s = "%s%s%s" % (self.p(), self.prefix, self.view)
       return s
-   def rpv(self): # relative path, prefix, view (no leading './')
+   def rpv(self):
+      """return relative path, prefix, view formatted name
+         - do not include ./ as relative path"""
       rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
       s = "%s%s%s" % (rp, self.prefix, self.view)
       return s
-   def rpve(self): # relative path, prefix, view (no leading './'), extension
+   def rpve(self):
+      """return relative path, prefix, view, extension formatted name
+         - do not include ./ as relative path"""
       rp = string.replace(self.path, "%s/" % os.path.abspath(os.curdir), '')
       s = "%s%s%s%s" % (rp, self.prefix, self.view, self.extension)
       return s
    def pp(self):
+      """return path, prefix formatted name"""
       return "%s%s" % (self.p(), self.prefix)
    def pv(self):
+      """return prefix, view formatted name"""
       return "%s%s" % (self.prefix, self.view)
    def pve(self):
+      """return prefix, view, extension formatted name"""
       return "%s%s%s" % (self.prefix, self.view, self.extension)
    def dims(self):
+      """return xyzt dimensions, as a list of ints"""
       return dset_dims(self.ppves())
    def exist(self):
+      """return whether the dataset seems to exist on disk"""
       if (self.type == 'NIFTI'):
          if (     os.path.isfile("%s.nii" % self.ppv()) or \
                   os.path.isfile("%s.nii.gz" % self.ppv()) \
@@ -96,6 +119,7 @@ class afni_name:
             return 1
          else: return 0
    def delete(self, oexec=""): #delete files on disk!
+      """delete the files via a shell command"""
       if (self.type == 'BRIK'):
          if os.path.isfile("%s.HEAD" % self.ppv()):
             shell_com("rm %s.HEAD" % self.ppv(), oexec).run()
@@ -194,7 +218,7 @@ class afni_name:
       print "   RangeSel: %s" % self.rangesel
       
    def new(self,new_pref='', new_view=''):  
-      #return a copy of class member with new_prefix and new_view if needed
+      """return a copy with optional new_prefix and new_view"""
       an = afni_name()
       an.path = self.path
       if len(new_pref):
@@ -406,7 +430,9 @@ def dset_dims(dset):
       com = shell_com('3dnvals -all %s' % dset, capture=1);
       if (com.run()):
          print '** failed to get dimensions.'
-      dl = [int(com.val(0,0)), int(com.val(0,1)), int(com.val(0,2)), int(com.val(0,3))]   
+         return []
+      dl = [int(com.val(0,0)), int(com.val(0,1)),
+            int(com.val(0,2)), int(com.val(0,3))]   
    return dl
    
 

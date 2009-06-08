@@ -132,9 +132,13 @@ g_history = """
     1.51 May 29 2009 :
         - added -execute option (to execute processing script)
         - fail on block options that have no such block applied
+    1.52 Jun 8 2009 :
+        - added -despike_mask option
+        - fixed missing block warning
+        - reordered terminal options
 """
 
-g_version = "version 1.51, May 29, 2009"
+g_version = "version 1.52, June 8, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -192,6 +196,7 @@ class SubjProcSream:
         self.fp         = None          # file object
         self.anat       = None          # anatomoy to copy (afni_name class)
         self.tlrcanat   = None          # expected name of tlrc dataset
+        self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_ss    = 1             # whether to assume skull strip in tlrc
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.rm_rm      = 1             # remove rm.* files (user option)
@@ -250,6 +255,16 @@ class SubjProcSream:
         # input style options  rcr - update
         # self.valid_opts.add_opt('-opt_source', 1, [], AllOptionStyles)
 
+        # terminal options
+        self.valid_opts.add_opt('-help', 0, [],
+                        helpstr="show this help")
+        self.valid_opts.add_opt('-hist', 0, [],
+                        helpstr="show revision history")
+        self.valid_opts.add_opt('-show_valid_opts', 0, [],
+                        helpstr="show all valid options")
+        self.valid_opts.add_opt('-ver', 0, [],
+                        helpstr="show module version")
+
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [],
                         helpstr='specify ordered list of blocks to apply')
@@ -293,6 +308,18 @@ class SubjProcSream:
                         helpstr='move preprocessing files to preproc.data dir')
         self.valid_opts.add_opt('-remove_preproc_files', 0, [],
                         helpstr='remove pb0* preprocessing files')
+        self.valid_opts.add_opt('-verb', 1, [],
+                        helpstr="set the verbose level")
+
+        # block options
+        self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [],
+                        helpstr='num TRs to remove from start of each run')
+
+        self.valid_opts.add_opt('-despike_mask', 0, [],
+                        helpstr="allow 3dDespike to automask (-dilate 4)")
+        self.valid_opts.add_opt('-despike_opts_3dDes', -1, [],
+                        helpstr='additional options directly for 3dDespike')
+
         self.valid_opts.add_opt('-tlrc_anat', 0, [],
                         helpstr='run @auto_tlrc on anat from -copy_anat')
         self.valid_opts.add_opt('-tlrc_base', 1, [],
@@ -303,13 +330,6 @@ class SubjProcSream:
                         helpstr='resample mode applied in @auto_tlrc')
         self.valid_opts.add_opt('-tlrc_suffix', 1, [],
                         helpstr='suffix applied in @auto_tlrc (default: NONE)')
-
-        # block options
-        self.valid_opts.add_opt('-tcat_remove_first_trs', 1, [],
-                        helpstr='num TRs to remove from start of each run')
-
-        self.valid_opts.add_opt('-despike_opts_3dDes', -1, [],
-                        helpstr='additional options directly for 3dDespike')
 
         self.valid_opts.add_opt('-ricor_datum', 1, [],
                         acplist=['short', 'float'],
@@ -430,18 +450,6 @@ class SubjProcSream:
                         helpstr="execute 3dREMLfit command script")
         self.valid_opts.add_opt('-regress_RONI', -1, [],
                         helpstr="1-based list of regressors of no interest")
-
-        # other options
-        self.valid_opts.add_opt('-help', 0, [],
-                        helpstr="show this help")
-        self.valid_opts.add_opt('-hist', 0, [],
-                        helpstr="show revision history")
-        self.valid_opts.add_opt('-show_valid_opts', 0, [],
-                        helpstr="show all valid options")
-        self.valid_opts.add_opt('-ver', 0, [],
-                        helpstr="show module version")
-        self.valid_opts.add_opt('-verb', 1, [],
-                        helpstr="set the verbose level")
 
         self.valid_opts.trailers = 0   # do not allow unknown options
         
@@ -640,6 +648,13 @@ class SubjProcSream:
                 dir    = -1,0,1 means before, error, after
                 nextto = name of relevant adjacent block"""
 
+        if bname == 'ricor':
+            try: ind = blocks.index('despike')
+            except: ind = -1
+            if ind >= 0: return 1, 'despike'    # after despike
+
+            return 1, 'tcat'                    # else, just after tcat
+
         if bname == 'align':
             try: ind = blocks.index('tlrc')
             except: ind = -1
@@ -651,7 +666,7 @@ class SubjProcSream:
             except: ind = -1
             if ind >= 0: return 1, 'tshift'     # after tshift
 
-            return  1, 'tcat'      # stick at beginning
+            return  1, 'tcat'                   # else, stick at beginning
 
         if bname == 'tlrc':
             try: ind = blocks.index('volreg')
@@ -936,9 +951,9 @@ class SubjProcSream:
         bind1 = self.find_block_index(name1)
         if bind0 < 0 or bind1 < 0: # something is missing
             if must_exist:
-                wstr = '** warning: missing block'
-                if bind0 < 0: print "%s '%s' (to preceed '%s')" % (name0,name1)
-                if bind1 < 0: print "%s '%s' (to follow '%s')" % (name1,name0)
+                print '** warning: missing block',
+                if bind0 < 0: print "'%s' (to preceed '%s')" % (name0,name1)
+                if bind1 < 0: print "'%s' (to follow '%s')" % (name1,name0)
             return 1
         elif bind0 < bind1: return 1
         else:               return 0
