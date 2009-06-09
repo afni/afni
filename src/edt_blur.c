@@ -26,21 +26,6 @@ static int allow_fir = 1 ;
 
 void EDIT_blur_allow_fir( int i ){ allow_fir = i; }
 
-/**************************************************************************/
-
-#undef  GET_AS_BIG
-#define GET_AS_BIG(name,type,dim)                                       \
-   do{ if( (dim) > name ## _size ){                                     \
-          if( name != NULL ) free(name) ;                               \
-          name = (type *) malloc( sizeof(type) * (dim) ) ;              \
-          if( name == NULL ){                                           \
-             fprintf(stderr,"\n*** cannot malloc EDIT workspace!\n") ;  \
-             EXIT(1) ; }                                                \
-          name ## _size = (dim) ; }                                     \
-       break ; } while(1)
-
-/**************************************************************************/
-
 /*************************************************************************/
 /*!  Routine to blur a 3D volume with a Gaussian, using FFTs.
      If the blurring parameter (sigma) is small enough, will use
@@ -74,10 +59,8 @@ void EDIT_blur_volume_3d( int   nx, int   ny, int   nz,
    float  dk , aa , k , fac ;
    register int ii , nup ;
 
-   static int cx_size  = 0 ;     /* workspaces: cf. GET_AS_BIG macro */
-   static int gg_size  = 0 ;
-   static complex *cx = NULL ;
-   static float   *gg = NULL ;
+   complex *cx = NULL ;
+   float   *gg = NULL ; int ncg=0 ;
 
    byte     *bfim = NULL ;       /* pointers to data array vfim */
    short    *sfim = NULL ;
@@ -186,7 +169,10 @@ STATUS("start x FFTs") ;
    nup = nx + (int)(3.0 * sigmax / dx) ;      /* min FFT length */
    nup = csfft_nextup_one35(nup) ; nby2 = nup / 2 ;
 
-   GET_AS_BIG(cx,complex,nup) ; GET_AS_BIG(gg,float,nup) ;
+   if( nup > ncg ){
+     cx = (complex *)realloc(cx,sizeof(complex)*nup) ;
+     gg = (float   *)realloc(gg,sizeof(float  )*nup) ; ncg = nup ;
+   }
 
    dk    = (2.0*PI) / (nup * dx) ;
    fac   = 1.0 / nup ;
@@ -318,7 +304,10 @@ STATUS("start y FFTs") ;
    nup = ny + (int)(3.0 * sigmay / dy) ;      /* min FFT length */
    nup = csfft_nextup_one35(nup) ; nby2 = nup / 2 ;
 
-   GET_AS_BIG(cx,complex,nup) ; GET_AS_BIG(gg,float,nup) ;
+   if( nup > ncg ){
+     cx = (complex *)realloc(cx,sizeof(complex)*nup) ;
+     gg = (float   *)realloc(gg,sizeof(float  )*nup) ; ncg = nup ;
+   }
 
    dk    = (2.0*PI) / (nup * dy) ;
    fac   = 1.0 / nup ;
@@ -446,7 +435,10 @@ STATUS("start z FFTs") ;
    nup = nz + (int)(3.0 * sigmaz / dz) ;      /* min FFT length */
    nup = csfft_nextup_one35(nup) ; nby2 = nup / 2 ;
 
-   GET_AS_BIG(cx,complex,nup) ; GET_AS_BIG(gg,float,nup) ;
+   if( nup > ncg ){
+     cx = (complex *)realloc(cx,sizeof(complex)*nup) ;
+     gg = (float   *)realloc(gg,sizeof(float  )*nup) ; ncg = nup ;
+   }
 
    dk    = (2.0*PI) / (nup * dz) ;
    fac   = 1.0 / nup ;
@@ -572,6 +564,8 @@ STATUS("start z FFTs") ;
 
    /*** done! ***/
 
+   if( cx != NULL ) free(cx) ;
+   if( gg != NULL ) free(gg) ;
    EXRETURN ;
 }
 

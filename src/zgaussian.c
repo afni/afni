@@ -143,7 +143,7 @@ static const float wtab[128] = {
 # define INLINE /*nada*/
 #endif
 
-static INLINE float zgaussian(void)  /* return one Gaussian random deviate */
+INLINE float zgaussian(void)  /* return one Gaussian random deviate */
 {
   unsigned long  U, sgn, i, j;
   float  x, y;
@@ -164,6 +164,33 @@ static INLINE float zgaussian(void)  /* return one Gaussian random deviate */
     } else {
       x = PARAM_R - log(1.0-drand48())/PARAM_R;
       y = exp(-PARAM_R*(x-0.5*PARAM_R))*drand48();
+    }
+    if( y < expf(-0.5f*x*x) ) break;
+  }
+  return (sgn ? x : -x) ;
+}
+
+INLINE float zgaussian_sss( unsigned short xi[] )
+{
+  unsigned long  U, sgn, i, j;
+  float  x, y;
+
+  while (1) {
+    U   = (unsigned long)jrand48(xi) ;
+    i   = U & 0x0000007F;  /* 7 bit to choose the step */
+    sgn = U & 0x00000080;  /* 1 bit for the sign */
+    j   = U>>8;            /* 24 bit for the x-value */
+
+    x = j*wtab[i]; if( j < ktab[i] ) break;
+
+    if( i < 127 ){
+      float  y0, y1;
+      y0 = ytab[i];
+      y1 = ytab[i+1];
+      y = y1+(y0-y1)*erand48(xi);
+    } else {
+      x = PARAM_R - log(1.0-erand48(xi))/PARAM_R;
+      y = exp(-PARAM_R*(x-0.5*PARAM_R))*erand48(xi);
     }
     if( y < expf(-0.5f*x*x) ) break;
   }
