@@ -7,9 +7,9 @@
 /*
   This program estimates the statistical significance levels and statistical
   power of FMRI datasets by Monte Carlo simulation of random image generation,
-  Gaussian filtering, intensity thresholding, and minimum cluster size 
+  Gaussian filtering, intensity thresholding, and minimum cluster size
   thresholding.
-  
+
   File:    AlphaSim.c
   Author:  B. D. Ward
   Date:    18 June 1997
@@ -42,6 +42,9 @@
   Mod:     Add -fast and -nxyz and -dxyz options.
   Date:    10 Jan 2008 [RWC]
 
+  Mod:     Modify to use OpenMP to parallelize simulations.
+  Date     09 Jun 2009 [RWC]
+
 */
 
 
@@ -49,12 +52,16 @@
 
 #define PROGRAM_NAME "AlphaSim"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_INITIAL "18 June 1997"    /* date of initial program release */
-#define PROGRAM_LATEST  "10 Jan 2008"    /* date of latest program revision */
+#define PROGRAM_INITIAL "18 Jun 1997"     /* date of initial program release */
+#define PROGRAM_LATEST  "09 Jun 2009"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
 #include "mrilib.h"
+
+#ifdef USE_OMP
+#include <omp.h>
+#endif
 
 #include <time.h>
 #include <sys/types.h>
@@ -65,7 +72,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Global data 
+  Global data
 */
 
 static char * mask_filename = NULL;  /* file containing the mask */
@@ -76,6 +83,8 @@ static int g_max_cluster_size = MAX_CLUSTER_SIZE;
 
 static int use_zg = 0 ;  /* 10 Jan 2008 */
 
+static unsigned int gseed ;
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to display AlphaSim help menu.
@@ -83,7 +92,7 @@ static int use_zg = 0 ;  /* 10 Jan 2008 */
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
      "This program performs alpha probability simulations.  \n\n"
      "Usage: \n"
@@ -169,7 +178,10 @@ void display_help_menu()
    " in the simulations.\n"
    "\n"
   ) ;
-  
+
+  PRINT_AFNI_OMP_USAGE("AlphaSim",
+                       "* OpenMP compilation implies '-fast'\n" ) ;
+
   exit(0);
 }
 
@@ -193,16 +205,16 @@ void AlphaSim_error (char * message)
 /*
   Routine to initialize the input options.
 */
- 
-void initialize_options ( 
-		 int * nx, int * ny, int * nz, 
+
+void initialize_options (
+		 int * nx, int * ny, int * nz,
 		 float * dx, float * dy, float * dz,
 		 int * filter, float * sigmax, float * sigmay, float * sigmaz,
-		 int * egfw, 
-		 int * power, int * ax, int * ay, int * az, float * zsep, 
-		 float * rmm, float * pthr, int * niter, int * quiet, 
+		 int * egfw,
+		 int * power, int * ax, int * ay, int * az, float * zsep,
+		 float * rmm, float * pthr, int * niter, int * quiet,
 	         char ** outfilename, int * seed)
- 
+
 {
   *nx = 0;                   /* number of voxels along x-axis */
   *ny = 0;                   /* number of voxels along y-axis */
@@ -235,33 +247,33 @@ void initialize_options (
 */
 
 void get_options (int argc, char ** argv,
-		  int * nx, int * ny, int * nz, 
+		  int * nx, int * ny, int * nz,
 		  float * dx, float * dy, float * dz,
 		  int * filter, float * sigmax, float * sigmay, float * sigmaz,
-		  int * egfw, 
-		  int * power, int * ax, int * ay, int * az, float * zsep, 
-		  float * rmm, float * pthr, int * niter, int * quiet, 
+		  int * egfw,
+		  int * power, int * ax, int * ay, int * az, float * zsep,
+		  float * rmm, float * pthr, int * niter, int * quiet,
 		  char ** outfilename, int * seed)
 {
   int nopt = 1;                  /* input option argument counter */
   int ival;                      /* integer input */
   float fval;                    /* float input */
   int mask_nx, mask_ny, mask_nz, mask_nvox;   /* mask dimensions */
-  float  mask_dx, mask_dy, mask_dz;            
+  float  mask_dx, mask_dy, mask_dz;
 
-  
+
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
-  
-  
+  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
+
+
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- initialize the input options -----*/
   initialize_options (nx, ny, nz, dx, dy, dz, filter, sigmax, sigmay, sigmaz,
 		      egfw, power, ax, ay, az, zsep, rmm, pthr, niter, quiet,
-		      outfilename, seed); 
+		      outfilename, seed);
 
   /*----- main loop over input options -----*/
   while (nopt < argc )
@@ -295,7 +307,7 @@ void get_options (int argc, char ** argv,
         *dz = strtod(argv[nopt++],NULL); if( *dz <= 0 ) AlphaSim_error("illegal d3 value") ;
         continue ;
       }
-      
+
       /*-----   -nx n  -----*/
       if (strncmp(argv[nopt], "-nx", 3) == 0)
 	{
@@ -365,7 +377,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -dz d   -----*/
       if (strncmp(argv[nopt], "-dz", 3) == 0)
 	{
@@ -378,7 +390,7 @@ void get_options (int argc, char ** argv,
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /**** -mask mset [14 June 2000] ****/
 
@@ -388,7 +400,7 @@ void get_options (int argc, char ** argv,
 	  nopt++ ;
 	  if (nopt >= argc)  AlphaSim_error ("need argument after -mask!") ;
 	  mask_filename = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
-	  if (mask_filename == NULL)  
+	  if (mask_filename == NULL)
 	    AlphaSim_error ("unable to allocate memory");
 	  strcpy (mask_filename, argv[nopt]);
 	  mset = THD_open_dataset (mask_filename);
@@ -430,8 +442,8 @@ void get_options (int argc, char ** argv,
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -fwhmx sx   -----*/
       if (strncmp(argv[nopt], "-fwhmx", 6) == 0)
 	{
@@ -446,7 +458,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -fwhmy sy   -----*/
       if (strncmp(argv[nopt], "-fwhmy", 6) == 0)
 	{
@@ -461,7 +473,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -fwhmz sz   -----*/
       if (strncmp(argv[nopt], "-fwhmz", 6) == 0)
 	{
@@ -476,7 +488,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -sigma s   -----*/
       if (strncmp(argv[nopt], "-sigma", 7) == 0)
 	{
@@ -493,7 +505,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -sigmax sx   -----*/
       if (strncmp(argv[nopt], "-sigmax", 7) == 0)
 	{
@@ -508,7 +520,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -sigmay sy   -----*/
       if (strncmp(argv[nopt], "-sigmay", 7) == 0)
 	{
@@ -523,7 +535,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -sigmaz sz   -----*/
       if (strncmp(argv[nopt], "-sigmaz", 7) == 0)
 	{
@@ -538,7 +550,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -egfw   -----*/
       if (strncmp(argv[nopt], "-egfw", 5) == 0)
 	{
@@ -612,7 +624,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -rmm r   -----*/
       if (strncmp(argv[nopt], "-rmm", 4) == 0)
 	{
@@ -639,7 +651,7 @@ void get_options (int argc, char ** argv,
 	  continue;
 	}
 
-      
+
       /*-----   -iter n  -----*/
       if (strncmp(argv[nopt], "-iter", 5) == 0 || strcmp(argv[nopt],"-niter") == 0 )
 	{
@@ -664,7 +676,7 @@ void get_options (int argc, char ** argv,
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -max_clust_size size   -----*/
       if (strncmp(argv[nopt], "-max_clust_size", 10) == 0)
@@ -684,7 +696,7 @@ void get_options (int argc, char ** argv,
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -seed S  -----*/
       if (strncmp(argv[nopt], "-seed", 5) == 0)
@@ -701,7 +713,7 @@ void get_options (int argc, char ** argv,
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*----- unknown command -----*/
       ERROR_exit("AlphaSim -- unknown option '%s'",argv[nopt]) ;
@@ -722,12 +734,12 @@ void get_options (int argc, char ** argv,
 /*
   Routine to check for valid inputs.
 */
-  
-void check_for_valid_inputs (int nx,  int ny,  int nz, 
+
+void check_for_valid_inputs (int nx,  int ny,  int nz,
 			     float dx,  float dy,  float dz,  int filter,
 			     float sigmax,  float sigmay,  float sigmaz,
-			     int power, int ax,  int ay,  int az,  float zsep, 
-			     float rmm,  float pthr,  int niter, 
+			     int power, int ax,  int ay,  int az,  float zsep,
+			     float rmm,  float pthr,  int niter,
 			     char * outfilename)
 {
   FILE * fout = NULL;
@@ -747,7 +759,7 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
   if ( (rmm < dx) && (rmm < dy) && (rmm < dz) ){
      rmm = -1.0f ; INFO_message("default NN connectivity being used") ;
   }
-  if ((pthr <= 0.0) || (pthr >= 1.0))  
+  if ((pthr <= 0.0) || (pthr >= 1.0))
     AlphaSim_error ("Illegal value for pthr ");
   if (niter <= 0)  AlphaSim_error ("Illegal value for niter ");
 
@@ -758,7 +770,7 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
       if (fout != NULL)
 	{
      fclose(fout) ;
-	  sprintf (message, "Output file %s already exists. ", outfilename); 
+	  sprintf (message, "Output file %s already exists. ", outfilename);
 	  AlphaSim_error (message);
 	}
     }
@@ -779,16 +791,16 @@ void check_for_valid_inputs (int nx,  int ny,  int nz,
   Routine to perform program initialization.
 */
 
-void initialize (int argc, char ** argv, 
-		 int * nx, int * ny, int * nz, 
+void initialize (int argc, char ** argv,
+		 int * nx, int * ny, int * nz,
 		 float * dx, float * dy, float * dz,
 		 int * filter, float * sigmax, float * sigmay, float * sigmaz,
-		 int * egfw, float * avgsx, float * avgsy, float * avgsz, 
-		 int * power, int * ax, int * ay, int * az, float * zsep, 
-		 float * rmm, float * pthr, int * niter, int * quiet, 
-	         char ** outfilename, long * count, 
-		 double * sum, double * sumsq, float * power_thr, 
-		 float ** fim, float ** arfim, 
+		 int * egfw, float * avgsx, float * avgsy, float * avgsz,
+		 int * power, int * ax, int * ay, int * az, float * zsep,
+		 float * rmm, float * pthr, int * niter, int * quiet,
+	         char ** outfilename, long * count,
+		 double * sum, double * sumsq, float * power_thr,
+		 float ** fim, float ** arfim,
 		 long ** freq_table, long ** max_table)
 
 {
@@ -802,27 +814,32 @@ void initialize (int argc, char ** argv,
 
 
   /*----- get command line inputs -----*/
-  get_options(argc, argv, 
+  get_options(argc, argv,
 	      nx, ny, nz, dx, dy, dz, filter, sigmax, sigmay, sigmaz,
-	      egfw, power, ax, ay, az, zsep, rmm, pthr, niter, quiet, 
+	      egfw, power, ax, ay, az, zsep, rmm, pthr, niter, quiet,
 	      outfilename, &seed);
 
 
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (*nx,  *ny,  *nz,  *dx,  *dy,  *dz,  *filter,
 			  *sigmax,  *sigmay,  *sigmaz,
-			  *power, *ax,  *ay,  *az,  *zsep, 
+			  *power, *ax,  *ay,  *az,  *zsep,
 			  *rmm,  *pthr,  *niter,  *outfilename);
 
 
+  /** 09 Jun 2009: for OpenMP, have moved allocation of fim/arfim to main() **/
+
   /*----- allocate memory space for image data -----*/
-  nxyz = (*nx) * (*ny) * (*nz); 
+#if 0
+  nxyz = (*nx) * (*ny) * (*nz);
   *fim = (float *) malloc(nxyz * sizeof(float));
   if (*fim == NULL)
     AlphaSim_error ("memory allocation error");
+#endif
 
 
   /*-- if power calculation, allocate memory space for activation region --*/
+#if 0
   if (*power)
     {
       nxyz = (*ax) * (*ay) * (*az);
@@ -830,17 +847,19 @@ void initialize (int argc, char ** argv,
       if (*arfim == NULL)
 	AlphaSim_error ("memory allocation error");
     }
+#endif
 
-  
-  /*----- allocate memory space and initialize frequency table -----*/   
+  /** 09 Jun 2009: however, the _table variables are common to all threads **/
+
+  /*----- allocate memory space and initialize frequency table -----*/
   *freq_table = (long *) malloc( g_max_cluster_size * sizeof(long) );
   if (*freq_table == NULL)
     AlphaSim_error ("memory allocation error");
   for (i = 0;  i < g_max_cluster_size;  i++)
     (*freq_table)[i] = 0;
 
-  
-  /*----- allocate memory space and initialize max cluster size table -----*/  
+
+  /*----- allocate memory space and initialize max cluster size table -----*/
   *max_table = (long *) malloc( g_max_cluster_size * sizeof(long) );
   if (*max_table == NULL)
     AlphaSim_error ("memory allocation error");
@@ -850,9 +869,9 @@ void initialize (int argc, char ** argv,
 
   /*----- initialize voxel intensity sums -----*/
   *count = 0;
-  *sum = 0.0;  
+  *sum = 0.0;
   *sumsq = 0.0;
-       
+
 
   /*----- calculate power threshold -----*/
   if (*power)
@@ -872,17 +891,21 @@ void initialize (int argc, char ** argv,
 
 
   /*----- initialize ave. est. gaussian filter widths -----*/
-  if (*egfw) 
+  if (*egfw)
     {
       *avgsx = 0.0;   *avgsy = 0.0;   *avgsz = 0.0;
     }
 
   /*----- initialize random number generator -----*/
-  srand48 (seed);
+  srand48 (seed); gseed = (unsigned int)seed ;
 
 }
 
+/*---------------------------------------------------------------------------*/
+#include "zgaussian.c"
+/*---------------------------------------------------------------------------*/
 
+#ifndef USE_OMP
 /*---------------------------------------------------------------------------*/
 /*
   Routine to generate a uniform U(0,1) random variate.
@@ -899,17 +922,13 @@ float uniform ()
   Routine to generate a normal N(0,1) random variate.
 */
 
-#include "zgaussian.c"
-
 void normal (float * n1, float * n2)
 {
   float u1, u2;
   float r;
 
-  if( use_zg ){
-    *n1 = zgaussian() ; *n2 = zgaussian() ; return ;
-  }
-
+  /** the -fast way **/
+  if( use_zg ){ *n1 = zgaussian() ; *n2 = zgaussian() ; return ; }
 
   u1 = 0.0;
   while (u1 <= 0.0)
@@ -922,6 +941,7 @@ void normal (float * n1, float * n2)
   *n1 = r * cos(2.0*PI*u2);
   *n2 = r * sin(2.0*PI*u2);
 }
+#endif
 
 
 /*---------------------------------------------------------------------------*/
@@ -930,7 +950,7 @@ void normal (float * n1, float * n2)
 */
 
 void activation_region (int nx, int ny, int nz, int ax, int ay, int az,
-			int * xbot, int * xtop, int * ybot, int * ytop, 
+			int * xbot, int * xtop, int * ybot, int * ytop,
 			int * zbot, int * ztop)
 {
   *xbot = nx/2 - ax/2;
@@ -947,8 +967,9 @@ void activation_region (int nx, int ny, int nz, int ax, int ay, int az,
   Routine to generate volume of random voxel intensities.
 */
 
-void generate_image (int nx, int ny, int nz, int power, 
-		     int ax, int ay, int az, float zsep, float * fim)
+void generate_image (int nx, int ny, int nz, int power,
+		     int ax, int ay, int az, float zsep, float * fim,
+           unsigned short xran[] )
 {
   int nxy, nxyz;
   int nxyzdiv2;
@@ -956,7 +977,7 @@ void generate_image (int nx, int ny, int nz, int power,
   float n1, n2;
   int xbot, xtop, ybot, ytop, zbot, ztop;
   int ix, jy, kz;
-  
+
 
   /*----- initialize local variables -----*/
   nxy = nx * ny;
@@ -964,6 +985,7 @@ void generate_image (int nx, int ny, int nz, int power,
   nxyzdiv2 = nxyz / 2;
 
   /*----- generate random image -----*/
+#ifndef USE_OMP
   for (ixyz = 0;  ixyz < nxyzdiv2;  ixyz++)
     {
       normal(&n1, &n2);
@@ -972,12 +994,16 @@ void generate_image (int nx, int ny, int nz, int power,
     }
   normal(&n1, &n2);
   fim[nxyz-1] = n1;
+#else
+  for( ixyz=0 ; ixyz < nxyz ; ixyz++ )
+    fim[ixyz] = zgaussian_sss(xran) ;
+#endif
 
   /*----- if power calculation, generate "island" of activation -----*/
   if (power)
     {
       /*--- calculate dimensions of activation region ---*/
-      activation_region (nx, ny, nz, ax, ay, az, 
+      activation_region (nx, ny, nz, ax, ay, az,
 			 &xbot, &xtop, &ybot, &ytop, &zbot, &ztop);
 
       /*--- add z-score offset to voxels within activation region ---*/
@@ -992,7 +1018,7 @@ void generate_image (int nx, int ny, int nz, int power,
     }
 }
 
-      
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to apply Gaussian filter to the volume data.
@@ -1005,8 +1031,8 @@ void gaussian_filter (int nx, int ny, int nz, float dx, float dy, float dz,
 
   if( AFNI_yesenv("AFNI_BLUR_FFT") ) EDIT_blur_allow_fir(0) ;  /* 03 Apr 2007 */
 
-  /*----- use Gaussian blur routine -----*/ 
-  EDIT_blur_volume_3d (nx, ny, nz, dx, dy, dz, 
+  /*----- use Gaussian blur routine -----*/
+  EDIT_blur_volume_3d (nx, ny, nz, dx, dy, dz,
 		       MRI_float, fim, sigmax, sigmay, sigmaz);
 
 }
@@ -1016,9 +1042,9 @@ void gaussian_filter (int nx, int ny, int nz, float dx, float dy, float dz,
 /*
   Routine to estimate the Gaussian filter width required to generate the data.
 */
-   
+
 void estimate_gfw (int nx, int ny, int nz, float dx, float dy, float dz,
-		   int niter, int quiet, float * fim, 
+		   int niter, int quiet, float * fim,
 		   float * avgsx, float * avgsy, float * avgsz)
 {
   int nxy, nxyz;                /* total number of voxels */
@@ -1074,7 +1100,7 @@ void estimate_gfw (int nx, int ny, int nz, float dx, float dy, float dz,
 	  dfdysq  += dfdy * dfdy;
 	  county += 1;
 	}
-      
+
       if (kz+1 < nz)
 	{
 	  ixyz2 = THREE_TO_IJK (ix, jy, kz+1, nx, nxy);
@@ -1083,13 +1109,13 @@ void estimate_gfw (int nx, int ny, int nz, float dx, float dy, float dz,
 	  dfdzsq  += dfdz * dfdz;
 	  countz += 1;
 	}
-      
+
      }
- 
+
   /*----- estimate the variance of the partial derivatives -----*/
-  if (countx < 2)  
+  if (countx < 2)
     varxx = 0.0;
-  else  
+  else
     varxx = (dfdxsq - (dfdxsum * dfdxsum)/countx) / (countx-1);
 
   if (county < 2)
@@ -1123,12 +1149,15 @@ void estimate_gfw (int nx, int ny, int nz, float dx, float dy, float dz,
     sz = sqrt( -1.0 / (4.0*log(arg)) ) * dz;
 
   /*-----  save results  -----*/
+#pragma omp critical (AVG)
+ {
   *avgsx += sx / niter;
   *avgsy += sy / niter;
   *avgsz += sz / niter;
+ }
 
   /*-----  output results  -----*/
-  if (!quiet)  
+  if (!quiet)
     {
       printf ("var  =%f \n", var);
       printf ("varxx=%f varyy=%f varzz=%f \n", varxx, varyy, varzz);
@@ -1142,7 +1171,7 @@ void estimate_gfw (int nx, int ny, int nz, float dx, float dy, float dz,
   Routine to copy the activation region into a separate volume.
 */
 
-void get_activation_region (int nx, int ny, int nz, int ax, int ay, int az, 
+void get_activation_region (int nx, int ny, int nz, int ax, int ay, int az,
 			    float pthr, float zsep, float * fim, float * arfim)
 {
   int nxy, nxyz;
@@ -1150,7 +1179,7 @@ void get_activation_region (int nx, int ny, int nz, int ax, int ay, int az,
   int ixyz, ixyz2;
   int xbot, xtop, ybot, ytop, zbot, ztop;
   int ix, jy, kz;
-  
+
 
   /*----- initialize local variables -----*/
   nxy = nx * ny;
@@ -1160,7 +1189,7 @@ void get_activation_region (int nx, int ny, int nz, int ax, int ay, int az,
 
 
   /*--- calculate dimensions of activation region ---*/
-  activation_region (nx, ny, nz, ax, ay, az, 
+  activation_region (nx, ny, nz, ax, ay, az,
 		     &xbot, &xtop, &ybot, &ytop, &zbot, &ztop);
 
   /*--- copy activation region ---*/
@@ -1178,7 +1207,7 @@ void get_activation_region (int nx, int ny, int nz, int ax, int ay, int az,
 }
 
 
-      
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to calculate threshold probability.
@@ -1190,11 +1219,11 @@ float pcalc (int nx, int ny, int nz, float * fim, float zthr)
   int ixyz;
   int pcount;
   float p;
-  
-  
+
+
   /*----- initialize local variables -----*/
   nxyz = nx * ny * nz;
-    
+
   pcount = 0;
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     if (fim[ixyz] > zthr)  pcount ++;
@@ -1208,8 +1237,8 @@ float pcalc (int nx, int ny, int nz, float * fim, float zthr)
 /*
   Routine to apply threshold to volume data.
 */
-   
-void threshold_data (int nx, int ny, int nz, float * fim, 
+
+void threshold_data (int nx, int ny, int nz, float * fim,
 		     float pthr, long * count, double * sum, double * sumsq,
 		     int quiet, int iter)
 {
@@ -1248,8 +1277,8 @@ void threshold_data (int nx, int ny, int nz, float * fim,
   sd = sqrt(((*sumsq) - ((*sum) * (*sum))/(*count)) / ((*count)-1));
   cdfnor (&which, &p, &q, &z, &mean, &sd, &status, &bound);
   zthr = z;
-  
-  if (!quiet) 
+
+  if (!quiet)
     {
       pact = pcalc (nx, ny, nz, fim, zthr);
       printf ("pthr=%f  zthr=%f  pact=%f  ", pthr, zthr, pact);
@@ -1271,7 +1300,7 @@ void threshold_data (int nx, int ny, int nz, float * fim,
 /*
   Routine to apply mask to volume data.
 */
-   
+
 void apply_mask (int nx, int ny, int nz, float * fim)
 
 {
@@ -1296,20 +1325,20 @@ void apply_mask (int nx, int ny, int nz, float * fim)
 /*
   Routine to identify clusters.
 */
-   
-void identify_clusters (int nx,  int ny,  int nz, 
+
+void identify_clusters (int nx,  int ny,  int nz,
 			float dx,  float dy,  float dz,
 			float rmm,  float * fim,  int quiet,
 			long * freq_table,  long * max_table)
 /*
   where
-       rmm = cluster connection radius (mm) 
-       nx = number of voxels along x-axis 
-       ny = number of voxels along y-axis 
-       nz = number of voxels along z-axis 
-       dx = voxel size along x-axis 
-       dy = voxel size along y-axis 
-       dz = voxel size along z-axis 
+       rmm = cluster connection radius (mm)
+       nx = number of voxels along x-axis
+       ny = number of voxels along y-axis
+       nz = number of voxels along z-axis
+       dx = voxel size along x-axis
+       dy = voxel size along y-axis
+       dz = voxel size along z-axis
 */
 
 {
@@ -1332,46 +1361,41 @@ void identify_clusters (int nx,  int ny,  int nz,
     {
       if (!quiet) printf ("NumCl=%4d  MaxClSz=%4d\n", 0, 0);
       if (clar != NULL)  DESTROY_CLARR(clar);
-    }  
+    }
   else
     {
       max_size = 0;
       for (iclu = 0;  iclu < clar->num_clu;  iclu++)
 	{
 	  cl = clar->clar[iclu] ;
-	  if( cl == NULL ) continue ; 
+	  if( cl == NULL ) continue ;
 
 	  size = cl->num_pt;
 
-	  if (size < g_max_cluster_size)
-	    freq_table[size]++;
-	  else
-	    freq_table[g_max_cluster_size-1]++;
+	  if (size < g_max_cluster_size) freq_table[size]++;
+	  else                           freq_table[g_max_cluster_size-1]++;
 
-	  if (size > max_size)
-	    max_size = size;
+	  if (size > max_size) max_size = size;
 
 	}
 
-      if (max_size < g_max_cluster_size)
-	max_table[max_size]++;
-      else
-	max_table[g_max_cluster_size-1]++;
-      
-      if (!quiet)  
+      if (max_size < g_max_cluster_size) max_table[max_size]++;
+      else                               max_table[g_max_cluster_size-1]++;
+
+      if (!quiet)
 	printf ("NumCl=%4d  MaxClSz=%4d\n", clar->num_clu, max_size);
 
-      DESTROY_CLARR(clar);  
+      DESTROY_CLARR(clar);
     }
-  
+
 }
- 
-     
+
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to generate requested output.
 */
-  
+
 void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
 		     int filter, float sigmax, float sigmay, float sigmaz,
 		     int egfw, float avgsx, float avgsy, float avgsz,
@@ -1389,22 +1413,22 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   char message[MAX_NAME_LENGTH];     /* error message */
   FILE * fout=NULL;
 
-  
-  /*----- allocate memory space for probability table -----*/   
+
+  /*----- allocate memory space for probability table -----*/
   prob_table = (float *) malloc( g_max_cluster_size * sizeof(float) );
   if (prob_table == NULL)
     AlphaSim_error ("memory allocation error");
   for (i = 1;  i < g_max_cluster_size;  i++)
     prob_table[i] = 0.0;
-  
-  /*----- allocate memory space for alpha table -----*/   
+
+  /*----- allocate memory space for alpha table -----*/
   alpha_table = (float *) malloc( g_max_cluster_size * sizeof(float) );
   if (alpha_table == NULL)
     AlphaSim_error ("memory allocation error");
   for (i = 1;  i < g_max_cluster_size;  i++)
     alpha_table[i] = 0.0;
 
-  /*----- allocate memory space for cum. prop. of cluster size table  -----*/ 
+  /*----- allocate memory space for cum. prop. of cluster size table  -----*/
   cum_prop_table = (float *) malloc( g_max_cluster_size * sizeof(float) );
   if (cum_prop_table == NULL)
     AlphaSim_error ("memory allocation error");
@@ -1444,22 +1468,22 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
     fout = stdout;
   else
     {
-      
+
       if (!THD_ok_overwrite()) {
             /*----- see if output file already exists -----*/
             fout = fopen (outfilename, "r");
             if (fout != NULL)
 	      {
            fclose(fout) ;
-	        sprintf (message, "file %s already exists. ", outfilename); 
+	        sprintf (message, "file %s already exists. ", outfilename);
 	        AlphaSim_error (message);
 	      }
       }
-      
+
       /*----- open file for output -----*/
       fout = fopen (outfilename, "w");
       if (fout == NULL)
-	{ 
+	{
 	  AlphaSim_error ("unable to open output file ");
 	}
     }
@@ -1467,7 +1491,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   /*----- print out the results -----*/
   if(quiet<2)fprintf (fout, "\n\n");
   if(quiet<2)fprintf (fout, "Program:          %s \n", PROGRAM_NAME);
-  if(quiet<2)fprintf (fout, "Author:           %s \n", PROGRAM_AUTHOR); 
+  if(quiet<2)fprintf (fout, "Author:           %s \n", PROGRAM_AUTHOR);
   if(quiet<2)fprintf (fout, "Initial Release:  %s \n", PROGRAM_INITIAL);
   if(quiet<2)fprintf (fout, "Latest Revision:  %s \n", PROGRAM_LATEST);
   if(quiet<2)fprintf (fout, "\n");
@@ -1482,24 +1506,24 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
     if(quiet<2)fprintf (fout, "Voxels in mask = %5d \n", mask_ngood);
 
   if(quiet<2)fprintf (fout, "\nGaussian filter widths: \n");
-  if(quiet<2)fprintf (fout, "sigmax = %5.2f   FWHMx = %5.2f \n", 
+  if(quiet<2)fprintf (fout, "sigmax = %5.2f   FWHMx = %5.2f \n",
 	   sigmax, sigmax * 2.0*sqrt(2.0*log(2.0)));
-  if(quiet<2)fprintf (fout, "sigmay = %5.2f   FWHMy = %5.2f \n", 
+  if(quiet<2)fprintf (fout, "sigmay = %5.2f   FWHMy = %5.2f \n",
 	   sigmay, sigmay * 2.0*sqrt(2.0*log(2.0)));
-  if(quiet<2)fprintf (fout, "sigmaz = %5.2f   FWHMz = %5.2f \n\n", 
+  if(quiet<2)fprintf (fout, "sigmaz = %5.2f   FWHMz = %5.2f \n\n",
 	   sigmaz, sigmaz * 2.0*sqrt(2.0*log(2.0)));
 
   if (egfw)
     {
       if(quiet<2)fprintf (fout, "Estimated Gaussian filter widths: \n");
-      if(quiet<2)fprintf (fout, "Ave sx = %f   Ave sy = %f   Ave sz = %f \n\n", 
+      if(quiet<2)fprintf (fout, "Ave sx = %f   Ave sy = %f   Ave sz = %f \n\n",
 	       avgsx, avgsy, avgsz);
     }
 
   if (power)
     {
       if(quiet<2)fprintf (fout, "Activation Region for Power Calculations: \n");
-      if(quiet<2)fprintf (fout, "ax = %5d   ay = %5d   az = %5d   (voxels) \n", 
+      if(quiet<2)fprintf (fout, "ax = %5d   ay = %5d   az = %5d   (voxels) \n",
 	       ax, ay, az);
       if(quiet<2)fprintf (fout, "z separation = %f \n\n", zsep);
     }
@@ -1518,36 +1542,40 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   }
   else {
     if(quiet<2)fprintf (fout, "Cl Size     Frequency    CumuProp     p/Voxel"
-	     "   Max Freq       Power\n"); 
+	     "   Max Freq       Power\n");
   }
-	     
+	
   for (i = 1;  i < g_max_cluster_size;  i++) {
     if (alpha_table[i] < EPSILON)
       break;
     else
-      fprintf (fout, "%7d  %12ld  %10.6f  %10.8f    %7ld  %10.6f\n", 
-	       i, freq_table[i], cum_prop_table[i], prob_table[i], 
+      fprintf (fout, "%7d  %12ld  %10.6f  %10.8f    %7ld  %10.6f\n",
+	       i, freq_table[i], cum_prop_table[i], prob_table[i],
 	       max_table[i], alpha_table[i]);
   }
 
   if( fout != stdout ) fclose(fout);
 
 }
- 
- 
+
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to terminate program.
 */
-  
+
 void terminate (float ** fim,  float ** arfim,
 		long ** freq_table,  long ** max_table)
 {
+#if 0
   if (*fim != NULL)
     { free (*fim);  *fim = NULL; }
+#endif
 
+#if 0
   if (*arfim != NULL)
     { free (*arfim);  *arfim = NULL; }
+#endif
 
   if (*freq_table != NULL)
     { free (*freq_table);  *freq_table = NULL; }
@@ -1561,7 +1589,7 @@ void terminate (float ** fim,  float ** arfim,
 /*
   Alpha simulation.
 */
- 
+
 int main (int argc, char ** argv)
 {
   int nx;                  /* number of voxels along x-axis */
@@ -1587,24 +1615,26 @@ int main (int argc, char ** argv)
   float pthr;              /* individual voxel threshold probability */
   int niter;               /* number of Monte Carlo simulations */
   int quiet;               /* set to 1 to suppress screen output */
-  char * outfilename;      /* name of output file */
+  char *outfilename;      /* name of output file */
 
   long count;
   double sum, sumsq;
-  int iter;
   float power_thr;
 
-  float * fim = NULL;
-  float * arfim = NULL;
-  long * freq_table = NULL;
-  long * max_table = NULL;
+  float *fim = NULL;          /* won't be used in OpenMP version */
+  float *arfim = NULL;        /* won't be used in OpenMP version */
+  long  *freq_table = NULL;
+  long  *max_table = NULL;
+#ifdef USE_OMP
+  long **mtab=NULL , **ftab=NULL ; int nthr=1 ;
+#endif
 
-  
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -1614,46 +1644,84 @@ int main (int argc, char ** argv)
    mainENTRY("AlphaSim main") ; machdep() ;
 
   /*----- program initialization -----*/
-  initialize (argc, argv, 
+  initialize (argc, argv,
 	      &nx, &ny, &nz, &dx, &dy, &dz, &filter, &sigmax, &sigmay, &sigmaz,
-	      &egfw, &avgsx, &avgsy, &avgsz, &power, &ax, &ay, &az, &zsep, 
-	      &rmm, &pthr, &niter, &quiet, &outfilename, &count, &sum, &sumsq, 
+	      &egfw, &avgsx, &avgsy, &avgsz, &power, &ax, &ay, &az, &zsep,
+	      &rmm, &pthr, &niter, &quiet, &outfilename, &count, &sum, &sumsq,
 	      &power_thr, &fim, &arfim, &freq_table, &max_table);
 
 
+#pragma omp parallel if( niter > 666 )
+ {
+   int iter , qqq=quiet ; float *fim , *arfim=NULL ;
+   long count=0; double sum=0.0, sumsq=0.0 ;
+   long *mt , *ft ; int ithr=0 ; unsigned short xran[3] ;
+
+ AFNI_OMP_START ;
+
+#ifdef USE_OMP
+   ithr = omp_get_thread_num() ;
+   if( ithr > 0 ) qqq=1 ;  /* only master thread can be verbose */
+#pragma omp master
+ {
+   nthr = omp_get_num_threads() ;
+   mtab = (long **)malloc(sizeof(long *)*nthr) ;
+   ftab = (long **)malloc(sizeof(long *)*nthr) ;
+   INFO_message("Using %d OpenMP threads",nthr) ;
+ }
+#pragma omp barrier
+   mtab[ithr] = mt = (long *) calloc( g_max_cluster_size , sizeof(long) ) ;
+   ftab[ithr] = ft = (long *) calloc( g_max_cluster_size , sizeof(long) ) ;
+
+   xran[2] = ( gseed        & 0xffff) + (unsigned short)ithr ;
+   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)ithr ;
+   xran[0] = 0x330e                   + (unsigned short)ithr ;
+
+#else /* not OpenMP */
+   mt = max_table ;
+   ft = freq_table ;
+#endif
+
+   /** malloc of image space local to each thread [09 Jun 2009] **/
+
+   fim = (float *)malloc(sizeof(float)*nx*ny*nz) ;
+   if( power )
+     arfim = (float *)malloc(sizeof(float)*ax*ay*az) ;
+
   /*----- Monte Carlo iteration -----*/
+#pragma omp for
   for (iter = 1;  iter <= niter;  iter++)
     {
-      if (!quiet)  printf ("Iter =%5d  \n", iter);
+      if (!qqq)  printf ("Iter =%5d  \n", iter);
 
       /*----- generate volume of random voxel intensities -----*/
-      generate_image (nx, ny, nz, power, ax, ay, az, zsep, fim);
+      generate_image (nx, ny, nz, power, ax, ay, az, zsep, fim , xran );
 
-      
+
       /*----- apply gaussian filter to volume data -----*/
       if (filter)  gaussian_filter (nx, ny, nz, dx, dy, dz, rmm,
 				    sigmax, sigmay, sigmaz, fim);
 
 
       /*----- estimate equivalent gaussian filter width -----*/
-      if (egfw)  estimate_gfw (nx, ny, nz, dx, dy, dz, 
-			       niter, quiet, fim, &avgsx, &avgsy, &avgsz);
+      if (egfw)  estimate_gfw (nx, ny, nz, dx, dy, dz,
+			       niter, qqq, fim, &avgsx, &avgsy, &avgsz);
 
 
       /*----- if power calculation, get volume corresponding to   -----*/
       /*----- activation region and corresponding power threshold -----*/
-      if (power)  get_activation_region (nx, ny, nz, ax, ay, az, pthr, zsep, 
+      if (power)  get_activation_region (nx, ny, nz, ax, ay, az, pthr, zsep,
 					 fim, arfim);
 
 
       /*----- apply threshold to volume data -----*/
       if (power)  threshold_data (ax, ay, az,
-				  arfim, power_thr, &count, &sum, &sumsq, 
-				  quiet, iter);
+                    arfim, power_thr, &count, &sum, &sumsq,
+                    qqq, iter);
       else
-	threshold_data (nx, ny, nz, 
-			fim, pthr, &count, &sum, &sumsq, 
-			quiet, iter);	
+                  threshold_data (nx, ny, nz,
+                    fim, pthr, &count, &sum, &sumsq,
+                    qqq, iter);	
 
 
       /*----- apply mask to volume data -----*/
@@ -1662,17 +1730,38 @@ int main (int argc, char ** argv)
 
       /*----- identify clusters -----*/
       if (power)
-	identify_clusters (ax, ay, az, dx, dy, dz, rmm, arfim, quiet,
-			   freq_table, max_table);
+        identify_clusters (ax, ay, az, dx, dy, dz, rmm, arfim, qqq,
+                           ft, mt);
       else
-	identify_clusters (nx, ny, nz, dx, dy, dz, rmm, fim, quiet,
-			   freq_table, max_table);
+        identify_clusters (nx, ny, nz, dx, dy, dz, rmm, fim, qqq,
+                           ft, mt);
 
-    }
-  
+    } /* end of long iteration loop */
+
+    if( arfim != NULL ) free(arfim) ;  /* toss the local trash */
+    free(fim) ;
+
+ AFNI_OMP_END ;
+ } /* end OpenMP */
+
+#ifdef USE_OMP
+   if( nthr == 1 ){
+     memcpy(freq_table,ftab[0],sizeof(long)*g_max_cluster_size) ;
+     memcpy(max_table ,mtab[0],sizeof(long)*g_max_cluster_size) ;
+   } else {
+     int ithr , ii ; long *ft , *mt ;
+     for( ithr=0 ; ithr < nthr ; ithr++ ){
+       ft = ftab[ithr] ; mt = mtab[ithr] ;
+       for( ii=0 ; ii < g_max_cluster_size ; ii++ ){
+         freq_table[ii] += ft[ii] ; max_table[ii] += mt[ii] ;
+       }
+     }
+   }
+#endif
+
   /*----- generate requested output -----*/
   output_results (nx, ny, nz, dx, dy, dz, filter, sigmax, sigmay, sigmaz,
-		  egfw, avgsx, avgsy, avgsz, power, ax, ay, az, zsep, 
+		  egfw, avgsx, avgsy, avgsz, power, ax, ay, az, zsep,
 		  rmm, pthr, niter, outfilename, freq_table, max_table,quiet);
 
 
@@ -1681,8 +1770,3 @@ int main (int argc, char ** argv)
 
   exit(0);
 }
-
-
-
-
-
