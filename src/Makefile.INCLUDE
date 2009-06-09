@@ -889,10 +889,6 @@ RSFgen:RSFgen.o
 	$(RM) $@
 	$(CC) -o 3dTSgen 3dTSgen.o $(PLFLAGS) -lmri -lf2c $(LLIBS)
 
-AlphaSim:AlphaSim.o
-	$(RM) $@
-	$(CC) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
-
 3dFWHM:3dFWHM.o
 	$(RM) $@
 	$(CC) -o 3dFWHM 3dFWHM.o $(LFLAGS) $(LLIBS)
@@ -980,6 +976,14 @@ DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 	$(CC) -o DTIStudioFibertoSegments DTIStudioFibertoSegments.o $(LFLAGS) $(LLIBS)
 
 ## ------- Things to be compiled or linked with OpenMP -------
+
+AlphaSim.o:AlphaSim.c zgaussian.c
+	$(RM) $@
+	$(CCOMP) -c AlphaSim.c $(INFLAGS)
+
+AlphaSim:AlphaSim.o
+	$(RM) $@
+	$(CCOMP) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
 
 3dBlurInMask.o:3dBlurInMask.c
 	$(RM) $@

@@ -75,6 +75,8 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 #include "debugtrace.h"  /* 26 Jan 2001 addition */
 #include "Amalloc.h"     /* 09 Dec 2003 addition */
 
+/*------------- Macros to be used in OpenMP enabled AFNI code ----------------*/
+
 #if defined(USE_OMP) && defined(USE_TRACING)
 # define AFNI_OMP_START DBG_stoff++
 # define AFNI_OMP_END   DBG_stoff--
@@ -82,6 +84,27 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
 # define AFNI_OMP_START /*nada*/
 # define AFNI_OMP_END   /*nada*/
 #endif
+
+#ifdef USE_OMP
+# define PRINT_AFNI_OMP_USAGE(pnam,extra)                                          \
+  printf(                                                                          \
+    "\n"                                                                           \
+    " =========================================================================\n" \
+    "* This version of %s is compiled using OpenMP, a semi-automatic\n"            \
+    "   parallelizer software toolkit.  The number of CPU threads used will\n"     \
+    "   default to the maximum number on your system.  You can control this\n"     \
+    "   value by setting environment variable OMP_NUM_THREADS to some smaller\n"   \
+    "   value (including 1).  Un-setting OMP_NUM_THREADS resets OpenMP back\n"     \
+    "   to its default state of using all CPUs available.\n"                       \
+    "* The number of CPUs on this particular computer system is %d.\n"             \
+    "%s\n"                                                                         \
+    , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \
+  )
+#else
+# define PRINT_AFNI_OMP_USAGE(pnam) /*nada*/
+#endif
+
+/*----------------------------------------------------------------------------*/
 
 #ifndef PI
 #  define PI 3.14159265358979323846
@@ -1863,7 +1886,7 @@ extern RBF_knots * RBF_setup_knots( int, float, int, float *, float *, float * )
 extern int RBF_setup_evalues( RBF_knots *rbk, RBF_evalues *rbe ) ;
 extern int RBF_evaluate( RBF_knots *, RBF_evalues *, RBF_evalgrid *, float * ) ;
 extern void RBF_set_verbosity( int ) ;
-extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ; 
+extern void RBF_setup_kranges( RBF_knots *rbk , RBF_evalgrid *rbg ) ;
 
 /*----------------------------------------------------------------------------*/
 /** Test if a image is vector-valued (fvect, rgb, or complex) **/

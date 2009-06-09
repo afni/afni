@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , JUN , 2009 , RWC , "AlphaSim" , MICRO , TYPE_GENERAL ,
+   "Modify to use OpenMP (parallelize across iterations)" ,
+   NULL } ,
+
  { 3 , JUN , 2009 , RWC , "bbox.c" , MICRO , TYPE_MODIFY ,
    "Modify string list chooser to do Browse select callback via arrows" ,
    "To make consistent the ways of browsing thru the dataset choosers in\n"
