@@ -219,7 +219,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
         MCHECK ; if( DBG_fp==NULL ) DBG_fp=stdout;                         \
         fprintf(DBG_fp,"%*.*s%s -- %s\n",DBG_num,DBG_num," ",DBROUT,(str)); \
         fflush(DBG_fp) ; }                                                   \
-      strncpy(last_status,str,1023); last_status[1023]='\0';                  \
+      if(!DBG_stoff){strncpy(last_status,str,1023); last_status[1023]='\0';}  \
   } while(0)
 
 /*********************************************************************/

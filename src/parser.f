@@ -819,7 +819,7 @@ C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
-     X       MEAN , STDEV , SEM
+     X       MEAN , STDEV , SEM , POSVAL
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF
 C
 C  External library functions
@@ -1084,6 +1084,8 @@ C.......................................................................
             R8_EVAL(NEVAL) = RECT( R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'STEP' )THEN
             R8_EVAL(NEVAL) = STEP( R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'POSVAL' )THEN
+            R8_EVAL(NEVAL) = POSVAL( R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'TENT' )THEN
             R8_EVAL(NEVAL) = TENT( R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'BOOL' )THEN
@@ -1347,7 +1349,7 @@ C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
      X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD ,
-     X       MEAN , STDEV , SEM
+     X       MEAN , STDEV , SEM , POSVAL
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF
 C
 C  External library functions
@@ -1910,6 +1912,10 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'STEP' )THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = STEP( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'POSVAL' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = POSVAL( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
          ELSEIF( CNCODE .EQ. 'TENT' )THEN
             DO IV=IVBOT,IVTOP
@@ -2580,6 +2586,18 @@ C
          STEP = 0.D+0
       ELSE
          STEP = 1.D+0
+      ENDIF
+      RETURN
+      END
+C
+C
+C
+      FUNCTION POSVAL(X)
+      REAL*8 POSVAL , X
+      IF( X .LE. 0.D+0 )THEN
+         POSVAL = 0.D+0
+      ELSE
+         POSVAL = X
       ENDIF
       RETURN
       END

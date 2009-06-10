@@ -45,6 +45,9 @@
   Mod:     Modify to use OpenMP to parallelize simulations.
   Date     09 Jun 2009 [RWC]
 
+  Mod:     Modify to compute extreme value approximation to Alpha(i).
+  Date:    10 Jun 2009 [RWC]
+
 */
 
 
@@ -1413,6 +1416,8 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   char message[MAX_NAME_LENGTH];     /* error message */
   FILE * fout=NULL;
 
+  float afit=0.0f , bfit=0.0f , cfit=0.0f , cpow=-1.0f , ipow=1.0f , val ;  /* 10 Jun 2009 */
+  int ibot , ihigh , ilow , itop , ndim ;
 
   /*----- allocate memory space for probability table -----*/
   prob_table = (float *) malloc( g_max_cluster_size * sizeof(float) );
@@ -1490,72 +1495,197 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
 
   /*----- print out the results -----*/
   if(quiet<2)fprintf (fout, "\n\n");
-  if(quiet<2)fprintf (fout, "Program:          %s \n", PROGRAM_NAME);
-  if(quiet<2)fprintf (fout, "Author:           %s \n", PROGRAM_AUTHOR);
-  if(quiet<2)fprintf (fout, "Initial Release:  %s \n", PROGRAM_INITIAL);
-  if(quiet<2)fprintf (fout, "Latest Revision:  %s \n", PROGRAM_LATEST);
+  if(quiet<2)fprintf (fout, "# Program:          %s \n", PROGRAM_NAME);
+  if(quiet<2)fprintf (fout, "# Author:           %s \n", PROGRAM_AUTHOR);
+  if(quiet<2)fprintf (fout, "# Initial Release:  %s \n", PROGRAM_INITIAL);
+  if(quiet<2)fprintf (fout, "# Latest Revision:  %s \n", PROGRAM_LATEST);
   if(quiet<2)fprintf (fout, "\n");
 
-  if(quiet<2)fprintf (fout, "Data set dimensions: \n");
-  if(quiet<2)fprintf (fout, "nx = %5d   ny = %5d   nz = %5d   (voxels)\n",  nx, ny, nz);
-  if(quiet<2)fprintf (fout, "dx = %5.2f   dy = %5.2f   dz = %5.2f   (mm)\n", dx, dy, dz);
+  if(quiet<2)fprintf (fout, "# Data set dimensions: \n");
+  if(quiet<2)fprintf (fout, "# nx = %5d   ny = %5d   nz = %5d   (voxels)\n",  nx, ny, nz);
+  if(quiet<2)fprintf (fout, "# dx = %5.2f   dy = %5.2f   dz = %5.2f   (mm)\n", dx, dy, dz);
 
   if (mask_vol)
-    if(quiet<2)fprintf (fout, "\nMask filename = %s \n", mask_filename);
+    if(quiet<2)fprintf (fout, "\n# Mask filename = %s \n", mask_filename);
   if (mask_vol && !power)
-    if(quiet<2)fprintf (fout, "Voxels in mask = %5d \n", mask_ngood);
+    if(quiet<2)fprintf (fout, "# Voxels in mask = %5d \n", mask_ngood);
 
-  if(quiet<2)fprintf (fout, "\nGaussian filter widths: \n");
-  if(quiet<2)fprintf (fout, "sigmax = %5.2f   FWHMx = %5.2f \n",
+  if(quiet<2)fprintf (fout, "\n# Gaussian filter widths: \n");
+  if(quiet<2)fprintf (fout, "# sigmax = %5.2f   FWHMx = %5.2f \n",
 	   sigmax, sigmax * 2.0*sqrt(2.0*log(2.0)));
-  if(quiet<2)fprintf (fout, "sigmay = %5.2f   FWHMy = %5.2f \n",
+  if(quiet<2)fprintf (fout, "# sigmay = %5.2f   FWHMy = %5.2f \n",
 	   sigmay, sigmay * 2.0*sqrt(2.0*log(2.0)));
-  if(quiet<2)fprintf (fout, "sigmaz = %5.2f   FWHMz = %5.2f \n\n",
+  if(quiet<2)fprintf (fout, "# sigmaz = %5.2f   FWHMz = %5.2f \n\n",
 	   sigmaz, sigmaz * 2.0*sqrt(2.0*log(2.0)));
 
   if (egfw)
     {
-      if(quiet<2)fprintf (fout, "Estimated Gaussian filter widths: \n");
-      if(quiet<2)fprintf (fout, "Ave sx = %f   Ave sy = %f   Ave sz = %f \n\n",
+      if(quiet<2)fprintf (fout, "# Estimated Gaussian filter widths: \n");
+      if(quiet<2)fprintf (fout, "# Ave sx = %f   Ave sy = %f   Ave sz = %f \n\n",
 	       avgsx, avgsy, avgsz);
     }
 
   if (power)
     {
-      if(quiet<2)fprintf (fout, "Activation Region for Power Calculations: \n");
-      if(quiet<2)fprintf (fout, "ax = %5d   ay = %5d   az = %5d   (voxels) \n",
+      if(quiet<2)fprintf (fout, "# Activation Region for Power Calculations: \n");
+      if(quiet<2)fprintf (fout, "# ax = %5d   ay = %5d   az = %5d   (voxels) \n",
 	       ax, ay, az);
-      if(quiet<2)fprintf (fout, "z separation = %f \n\n", zsep);
+      if(quiet<2)fprintf (fout, "# z separation = %f \n\n", zsep);
     }
 
   if(quiet<2){
     if( rmm > 0.0f )
-      fprintf (fout, "Cluster connection radius: rmm = %5.2f \n\n", rmm);
+      fprintf (fout, "# Cluster connection radius: rmm = %5.2f \n\n", rmm);
     else
-      fprintf (fout, "Cluster connection = Nearest Neighbor\n") ;
+      fprintf (fout, "# Cluster connection = Nearest Neighbor\n") ;
   }
-  if(quiet<2)fprintf (fout, "Threshold probability: pthr = %e \n\n", pthr);
-  if(quiet<2)fprintf (fout, "Number of Monte Carlo iterations = %5d \n\n", niter);
-  if (!power){
-    if(quiet<2)fprintf (fout, "Cl Size     Frequency    CumuProp     p/Voxel"
-	     "   Max Freq       Alpha\n");
+  if(quiet<2)fprintf (fout, "# Threshold probability: pthr = %e \n\n", pthr);
+  if(quiet<2)fprintf (fout, "# Number of Monte Carlo iterations = %5d \n\n", niter);
+
+  /** estimate alpha[i] as an extreme value distribution [10 Jun 2009] **/
+
+  if( !power ){
+    int ii ;
+    float *zvec=NULL , yvec[4] , *rvec[3] , *iva,*ivb,*ivc , *ivz ;
+    float atop=0.98f, ahigh=0.3f, alow=0.03f, abot=4.0f/niter ;
+    float cout , pp , cbest ;
+
+    for( ibot=1 ;    /* find first value of alpha <= atop */
+         ibot < g_max_cluster_size && alpha_table[ibot] > atop ;
+         ibot++ ) ;  /*nada*/
+    if( ibot == g_max_cluster_size ) goto EXTREME_DONE ;
+
+    for( ihigh=ibot+1 ; /* find last value of alpha >= ahigh */
+         ihigh < g_max_cluster_size && alpha_table[ihigh] > ahigh ;
+         ihigh++ ) ; /*nada*/
+    ihigh-- ;
+    if( ihigh-ibot < 5 ) goto EXTREME_DONE ;
+
+    for( ilow=ihigh+1 ; /* find last value of alpha >= alow */
+         ilow < g_max_cluster_size && alpha_table[ilow] > alow ;
+         ilow++ ) ; /*nada*/
+    ilow-- ;
+    if( ilow-ihigh < 5 ) goto EXTREME_DONE ;
+
+    for( itop=ilow+1 ; /* find last value of alpha >= abot */
+         itop < g_max_cluster_size && alpha_table[itop] > abot ;
+         itop++ ) ;    /*nada*/
+    itop-- ;
+    if( itop-ilow < 5 ) goto EXTREME_DONE ;
+    ndim = itop-ibot+1 ;
+
+    iva     = (float *)malloc(sizeof(float)*ndim) ;
+    ivb     = (float *)malloc(sizeof(float)*ndim) ;
+    ivc     = (float *)malloc(sizeof(float)*ndim) ;
+    rvec[0] = (float *)malloc(sizeof(float)*ndim) ;
+    rvec[2] = (float *)malloc(sizeof(float)*ndim) ;
+    zvec    = (float *)malloc(sizeof(float)*ndim) ;
+    for( i=0 ; i < ndim ; i++ ){
+      ii         = i+ibot ;
+      rvec[0][i] = 1.0f ;
+      val        = (float)ii ;
+      iva[i]     = -powf(val,0.90f) ;
+      ivb[i]     = -powf(val,0.95f) ;
+      ivc[i]     = -val ;
+      zvec[i]    = logf( -logf( 1.0f - alpha_table[ii] ) ) ;
+    }
+
+    cbest = 1.e+38 ; cpow = -1.0f ;
+
+    yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = iva ;
+    cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
+INFO_message("ipow=0.90 cout=%g",cout) ;
+    if( cout >= 0.0f && cout < cbest ){
+      cbest = cout ; cpow = 1.0f ; afit = yvec[0] ; bfit = yvec[1] ; cfit = 0.0f ; ipow = 0.90f ;
+      ivz = iva ;
+    }
+
+    yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = ivb ;
+    cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
+INFO_message("ipow=0.95 cout=%g",cout) ;
+    if( cout >= 0.0f && cout < cbest ){
+      cbest = cout ; cpow = 1.0f ; afit = yvec[0] ; bfit = yvec[1] ; cfit = 0.0f ; ipow = 0.95f ;
+      ivz = ivb ;
+    }
+
+    yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = ivc ;
+    cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
+INFO_message("ipow=1.00 cout=%g",cout) ;
+    if( cout >= 0.0f && cout < cbest ){
+      cbest = cout ; cpow = 1.0f ; afit = yvec[0] ; bfit = yvec[1] ; cfit = 0.0f ; ipow = 1.00f ;
+      ivz = ivc ;
+    }
+    if( cpow > 0.0f ){ cbest *= 0.90f ; rvec[1] = ivz ; }
+    else             {                  rvec[1] = ivc ; }
+
+    for( pp=1.0f ; pp <= 2.501f ; pp+=0.1f ){
+      for( i=0 ; i < ndim ; i++ ){
+        ii  = i+ibot ;
+        val = (float)(ihigh-ii) ;
+        if( val <= 0.0f ) val = 0.0f ;
+        else              val = powf(val,pp) ;
+        rvec[2][i] = val ;
+      }
+      yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ;
+      cout = cl1_solve( ndim , 3 , zvec , rvec , yvec , 1 ) ;
+      if( cout >= 0.0f && cout < cbest ){
+        cbest = cout ; cpow = pp ; afit = yvec[0] ; bfit = yvec[1] ; cfit = yvec[2] ;
+      }
+    }
+
+    if( cfit != 0.0f )   /* complicated fit was best */
+      printf(
+         "# Alpha(i) approx 1-exp[-exp"
+         "(%.3f-%.4f*i^%.1f%+.4g*posval(%d-i)^%.1f)]\n" ,
+         afit , bfit , ipow , cfit , ihigh , cpow ) ;
+    else                 /* simple fit was best */
+      printf(
+         "# Alpha(i) approx 1-exp[-exp(%.3f-%.4f*i)]\n" ,
+         afit , bfit ) ;
+
+    EXTREME_DONE: ;
+    if( zvec != NULL ){
+      free(zvec); free(rvec[0]); free(rvec[2]); free(iva); free(ivb); free(ivc);
+    }
   }
-  else {
-    if(quiet<2)fprintf (fout, "Cl Size     Frequency    CumuProp     p/Voxel"
-	     "   Max Freq       Power\n");
+
+  /** print the tabular output **/
+
+  if( quiet < 2 ){
+    if (!power){
+      fprintf (fout, "# Cl Size   Frequency    CumuProp     p/Voxel"
+	                  "   Max Freq       Alpha");
+      if( bfit > 0.0f && cpow > 0.0f ) fprintf(fout , "    Approx") ;
+      fprintf(fout,"\n") ;
+    }
+    else {
+      fprintf (fout, "# Cl Size   Frequency    CumuProp     p/Voxel"
+	                  "   Max Freq       Power\n");
+    }
   }
-	
+
   for (i = 1;  i < g_max_cluster_size;  i++) {
     if (alpha_table[i] < EPSILON)
       break;
-    else
-      fprintf (fout, "%7d  %12ld  %10.6f  %10.8f    %7ld  %10.6f\n",
+    else {
+      fprintf (fout, "%7d  %12ld  %10.6f  %10.8f    %7ld  %10.6f",
 	       i, freq_table[i], cum_prop_table[i], prob_table[i],
 	       max_table[i], alpha_table[i]);
+      if( bfit > 0.0f && cpow > 0.0f ){
+        val = (float)(ihigh-i) ;
+        if( val < 0.0f ) val = 0.0f ;
+        else             val = powf(val,cpow) ;
+        val = afit - bfit*powf((float)i,ipow) + cfit * val ;
+        val = 1.0f - expf( -expf(val) ) ;
+        fprintf(fout,"%10.6f",val) ;
+      }
+      fprintf(fout,"\n") ;
+    }
   }
 
   if( fout != stdout ) fclose(fout);
 
+  return ;
 }
 
 
@@ -1721,7 +1851,7 @@ int main (int argc, char ** argv)
       else
                   threshold_data (nx, ny, nz,
                     fim, pthr, &count, &sum, &sumsq,
-                    qqq, iter);	
+                    qqq, iter);
 
 
       /*----- apply mask to volume data -----*/
