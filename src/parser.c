@@ -1,13 +1,6 @@
-/* parser.f -- translated by f2c (version 20031025).
-   You must link the resulting object file with libf2c:
-	on Microsoft Windows system, link with libf2c.lib;
-	on Linux or Unix systems, link with .../path/to/libf2c.a -lm
-	or, if you install libf2c.a in a standard place, with -lf2c -lm
-	-- in that order, at the end of the command line, as in
-		cc *.o -lf2c -lm
-	Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,
-
-		http://www.netlib.org/f2c/libf2c.zip
+/* parser.f -- translated by f2c (version 19961017).
+   You must link the resulting object file with the libraries:
+	-lf2c -lm   (in that order)
 */
 
 #include "f2c.h"
@@ -16,30 +9,30 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b402 = 0.;
-static doublereal c_b416 = 1.;
-static doublereal c_b417 = 2.;
-static doublereal c_b418 = 3.;
-static doublereal c_b419 = 4.;
-static doublereal c_b420 = 5.;
-static doublereal c_b421 = 6.;
-static doublereal c_b422 = 7.;
-static doublereal c_b423 = 8.;
-static doublereal c_b424 = 9.;
-static doublereal c_b425 = 10.;
-static doublereal c_b426 = 11.;
-static doublereal c_b427 = 12.;
+static doublereal c_b404 = 0.;
+static doublereal c_b418 = 1.;
+static doublereal c_b419 = 2.;
+static doublereal c_b420 = 3.;
+static doublereal c_b421 = 4.;
+static doublereal c_b422 = 5.;
+static doublereal c_b423 = 6.;
+static doublereal c_b424 = 7.;
+static doublereal c_b425 = 8.;
+static doublereal c_b426 = 9.;
+static doublereal c_b427 = 10.;
+static doublereal c_b428 = 11.;
+static doublereal c_b429 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
 {
     /* Initialized data */
 
-    static integer n_funcargs__[108] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
+    static integer n_funcargs__[109] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,
 	    1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,
 	    -1,4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1,-1,-1,
-	    2,1,1,1,1,-1,1,-1,-1,-1,1,1,2,1,1,-1,-1,-1,2,5,5,-1,-1,-1,1,3,2,2 
-	    };
+	    2,1,1,1,1,-1,1,-1,-1,-1,1,1,2,1,1,-1,-1,-1,2,5,5,-1,-1,-1,1,3,2,2,
+	    1 };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -57,19 +50,18 @@ static doublereal c_b427 = 12.;
 
     /* Local variables */
 #define r8_token__ (equiv_0)
-    static integer nextcode;
+    static integer narg, nlen, nerr, ipos, npos, nextcode, ncode;
     static char c_message__[30];
+    static integer nfunc, nused;
     extern /* Subroutine */ int get_token__(char *, integer *, doublereal *, 
 	    integer *, ftnlen);
     static doublereal val_token__;
-    static integer nf;
-    static char c_ch__[1];
-    static integer narg, nlen, nerr, ipos, npos, ncode, nfunc, nused;
     extern integer last_nonblank__(char *, ftnlen);
-    static integer n_code__[2048], n_func__[40], ntoken;
+    static integer nf, n_code__[2048], n_func__[40], ntoken;
     static char c_local__[10000];
     extern /* Subroutine */ int execute_(integer *, char *, ftnlen);
 #define c8_token__ ((char *)equiv_0)
+    static char c_ch__[1];
 
     /* Fortran I/O blocks */
     static cilist io___22 = { 0, 6, 0, fmt_9001, 0 };
@@ -82,11 +74,14 @@ static doublereal c_b427 = 12.;
 /*  an error occurred. On input, L_PRINT determines whether or not to */
 /*  print error messages. */
 
-/*  Modified 02/17/89 by RWCox from APEVAL subroutine in APFORT, for PC. */
+/*  Modified 02/17/89 by RWCox from APEVAL subroutine in APFORT, for PC. 
+*/
 /*  Modified 06/29/89 by RWCox for Sun Fortran. */
-/*  Modified 04/04/91 by RWCox to fix problem with -x**2 type operations. */
+/*  Modified 04/04/91 by RWCox to fix problem with -x**2 type operations. 
+*/
 /*  Modified 11/20/96 by RWCox to try to control errors in evaluation. */
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
 
 /*  Compilation, evaluation, and function stacks. */
@@ -98,26 +93,32 @@ static doublereal c_b427 = 12.;
 
 
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
 /*  Include file for PARSER.  This file must be kept with PARSER.FOR. */
 /*  It defines some symbolic constants that PARSER and its subsidiary */
 /*  routines use. */
-/* ....................................................................... */
+/* .......................................................................
+ */
 /* Define Token types and values */
 
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define the Nonterminals */
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define the Opcodes */
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define Function names, etc. */
 
 
@@ -127,7 +128,8 @@ static doublereal c_b427 = 12.;
 
     /* Function Body */
 
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
     nlen = last_nonblank__(c_expr__, c_expr_len);
     if (nlen <= 0 || nlen > 9999) {
 /* !no input, or too much */
@@ -156,7 +158,8 @@ static doublereal c_b427 = 12.;
 /* !tack 1 blank at the end */
     nlen = npos + 1;
     *(unsigned char *)&c_local__[nlen - 1] = ' ';
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  This routine parses expressions according to the grammar: */
 
 /*   EXPR  == E9 E8 E6 E4 $ */
@@ -187,7 +190,8 @@ static doublereal c_b427 = 12.;
 
 /*  02/17/89:  Now, when code is popped off the stack, it is just */
 /*             added to the output code list. */
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Prepare to process input string.  Initialize the stacks, etc. */
 
 /* !start scan at 1st character */
@@ -202,7 +206,8 @@ static doublereal c_b427 = 12.;
     n_code__[4] = 2004;
     ncode = 5;
     *num_code__ = 0;
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  1000 is the loop back point to process the next token in the input */
 /*  string. */
 
@@ -212,7 +217,7 @@ L1000:
 
     if (ntoken == 1999) {
 	nerr = 1;
-	s_copy(c_message__, "Can't interpret symbol", (ftnlen)30, (ftnlen)22);
+	s_copy(c_message__, "Can't interpret symbol", 30L, 22L);
 	goto L9000;
 /* !error exit */
     }
@@ -228,7 +233,7 @@ L2000:
 
     if (nextcode >= 3000 && nextcode <= 4999) {
 	++(*num_code__);
-	execute_(&nextcode, c_code__ + (*num_code__ << 3), (ftnlen)8);
+	execute_(&nextcode, c_code__ + (*num_code__ << 3), 8L);
 	--ncode;
 /* !remove opcode from compile stack */
 	goto L2000;
@@ -260,7 +265,7 @@ L2000:
 	i__2[0] = 12, a__1[0] = "Expected a \"";
 	i__2[1] = 1, a__1[1] = c_ch__;
 	i__2[2] = 1, a__1[2] = "\"";
-	s_cat(c_message__, a__1, i__2, &c__3, (ftnlen)30);
+	s_cat(c_message__, a__1, i__2, &c__3, 30L);
 	goto L9000;
 /* !error exit */
     }
@@ -269,7 +274,7 @@ L2000:
 
     if (nextcode < 2000 || nextcode > 2999) {
 	nerr = 3;
-	s_copy(c_message__, "Internal parser error", (ftnlen)30, (ftnlen)21);
+	s_copy(c_message__, "Internal parser error", 30L, 21L);
 	goto L9000;
 /* !error exit */
     }
@@ -291,8 +296,7 @@ L2000:
 /* !and try this token again */
 	}
 	nerr = 4;
-	s_copy(c_message__, "Unexpected end of input", (ftnlen)30, (ftnlen)23)
-		;
+	s_copy(c_message__, "Unexpected end of input", 30L, 23L);
 	goto L9000;
 /* !error exit */
     }
@@ -301,7 +305,7 @@ L2000:
 
     if (nextcode == 2000) {
 	nerr = 15;
-	s_copy(c_message__, "Expected end of input", (ftnlen)30, (ftnlen)21);
+	s_copy(c_message__, "Expected end of input", 30L, 21L);
 	goto L9000;
 /* !error exit */
     }
@@ -315,15 +319,12 @@ L2000:
 	if (nextcode == 2004) {
 /* !only legal time for a number */
 	    if (ntoken == 1007) {
-		s_copy(c_code__ + (*num_code__ + 1 << 3), "PUSHNUM", (ftnlen)
-			8, (ftnlen)7);
+		s_copy(c_code__ + (*num_code__ + 1 << 3), "PUSHNUM", 8L, 7L);
 	    } else {
-		s_copy(c_code__ + (*num_code__ + 1 << 3), "PUSHSYM", (ftnlen)
-			8, (ftnlen)7);
+		s_copy(c_code__ + (*num_code__ + 1 << 3), "PUSHSYM", 8L, 7L);
 	    }
 	    *r8_token__ = val_token__;
-	    s_copy(c_code__ + (*num_code__ + 2 << 3), c8_token__, (ftnlen)8, (
-		    ftnlen)8);
+	    s_copy(c_code__ + (*num_code__ + 2 << 3), c8_token__, 8L, 8L);
 	    *num_code__ += 2;
 	    --ncode;
 /* !pop E9 from compile stack */
@@ -331,7 +332,7 @@ L2000:
 /* !go to next token */
 	}
 	nerr = 5;
-	s_copy(c_message__, "Expected an operator", (ftnlen)30, (ftnlen)20);
+	s_copy(c_message__, "Expected an operator", 30L, 20L);
 	goto L9000;
 /* !error exit */
     }
@@ -361,7 +362,7 @@ L2000:
 /* !process next token */
 	}
 	nerr = 6;
-	s_copy(c_message__, "Expected an operator", (ftnlen)30, (ftnlen)20);
+	s_copy(c_message__, "Expected an operator", 30L, 20L);
 	goto L9000;
 /* !error exit */
     }
@@ -392,9 +393,11 @@ L2000:
 	} else if (nextcode == 2004) {
 /* !unary + or - */
 	    if (val_token__ == 2.) {
-/* !expand E9 into E9 E8 <unary minus> if addop is - otherwise leave E9 alone */
+/*!expand E9 into E9 E8 <unary minus> if addop is - otherwise 
+leave E9 alone*/
 /* [04/04/91 change: */
-/*  used to expand to E9 <unary minus>, which makes -x**2 become (-x)**2] */
+/*  used to expand to E9 <unary minus>, which makes -x**2 beco
+me (-x)**2] */
 		n_code__[ncode + 1] = 2004;
 		n_code__[ncode] = 2003;
 		n_code__[ncode - 1] = 3006;
@@ -404,8 +407,7 @@ L2000:
 /* !process next token */
 	}
 	nerr = 7;
-	s_copy(c_message__, "Illegal arithmetic syntax", (ftnlen)30, (ftnlen)
-		25);
+	s_copy(c_message__, "Illegal arithmetic syntax", 30L, 25L);
 	goto L9000;
 /* !error exit */
     }
@@ -433,8 +435,7 @@ L2000:
 	    goto L2000;
 	}
 	nerr = 8;
-	s_copy(c_message__, "Illegal arithmetic syntax", (ftnlen)30, (ftnlen)
-		25);
+	s_copy(c_message__, "Illegal arithmetic syntax", 30L, 25L);
 	goto L9000;
 /* !error exit */
     }
@@ -452,8 +453,7 @@ L2000:
 /* !process next token */
 	}
 	nerr = 9;
-	s_copy(c_message__, "Illegal arithmetic syntax", (ftnlen)30, (ftnlen)
-		25);
+	s_copy(c_message__, "Illegal arithmetic syntax", 30L, 25L);
 	goto L9000;
 /* !error exit */
     }
@@ -475,14 +475,14 @@ L2000:
 	    n_code__[ncode] = 2001;
 	    n_code__[ncode - 1] = 2005;
 	    ncode += 4;
-/* !add 1 to no. of args. encountered, and check if there are too many */
+/* !add 1 to no. of args. encountered, and check if there are too 
+many */
 	    ++n_func__[nfunc - 1];
 	    nf = n_func__[nfunc - 2];
 	    if (n_funcargs__[nf - 1] <= n_func__[nfunc - 1] && n_funcargs__[
 		    nf - 1] > 0) {
 		nerr = 12;
-		s_copy(c_message__, "Wrong number of arguments", (ftnlen)30, (
-			ftnlen)25);
+		s_copy(c_message__, "Wrong number of arguments", 30L, 25L);
 		goto L9000;
 /* !error exit */
 	    }
@@ -490,7 +490,7 @@ L2000:
 /* !process next token */
 	}
 	nerr = 10;
-	s_copy(c_message__, "Expected an expression", (ftnlen)30, (ftnlen)22);
+	s_copy(c_message__, "Expected an expression", 30L, 22L);
 	goto L9000;
 /* !error exit */
     }
@@ -510,7 +510,7 @@ L2000:
 /* !process next token */
 	}
 	nerr = 11;
-	s_copy(c_message__, "Expected an operator", (ftnlen)30, (ftnlen)20);
+	s_copy(c_message__, "Expected an operator", 30L, 20L);
 	goto L9000;
 /* !error exit */
     }
@@ -532,47 +532,49 @@ L2000:
 	    nf = n_func__[nfunc - 2];
 	    nfunc += -2;
 	    if (n_funcargs__[nf - 1] <= 0) {
-/* !variable # of args ==> push number of args on stack (Feb 1997) */
-		s_copy(c_code__ + (*num_code__ + 1 << 3), "PUSHNUM", (ftnlen)
-			8, (ftnlen)7);
+/* !variable # of args ==> push number of args on stack (Feb 1
+997) */
+		s_copy(c_code__ + (*num_code__ + 1 << 3), "PUSHNUM", 8L, 7L);
 		*r8_token__ = (doublereal) narg;
-		s_copy(c_code__ + (*num_code__ + 2 << 3), c8_token__, (ftnlen)
-			8, (ftnlen)8);
+		s_copy(c_code__ + (*num_code__ + 2 << 3), c8_token__, 8L, 8L);
 		*num_code__ += 2;
 	    } else if (n_funcargs__[nf - 1] != narg) {
 /* !illegal # of args */
 		nerr = 12;
-		s_copy(c_message__, "Wrong number of arguments", (ftnlen)30, (
-			ftnlen)25);
+		s_copy(c_message__, "Wrong number of arguments", 30L, 25L);
 		goto L9000;
 /* !error exit */
 	    }
 
 	    --ncode;
-/* !pop this nonterminal and try to match the ) with the next compile stack entry */
+/*!pop this nonterminal and try to match the ) with the next compi
+le stack entry*/
 	    goto L2000;
 	}
 	nerr = 13;
-	s_copy(c_message__, "Expected an expression", (ftnlen)30, (ftnlen)22);
+	s_copy(c_message__, "Expected an expression", 30L, 22L);
 	goto L9000;
 /* !error exit */
     }
     nerr = 14;
-    s_copy(c_message__, "Internal parser error", (ftnlen)30, (ftnlen)21);
+    s_copy(c_message__, "Internal parser error", 30L, 21L);
     goto L9000;
 /* !error exit */
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  At 5000, advance to the next token and loop back */
 
 L5000:
     npos += nused;
     goto L1000;
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  At 8000, exit */
 
 L8000:
     return 0;
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  At 9000, error exit */
 
 L9000:
@@ -582,15 +584,15 @@ L9000:
 	}
 	s_wsfe(&io___22);
 	do_fio(&c__1, (char *)&nerr, (ftnlen)sizeof(integer));
-	do_fio(&c__1, c_message__, (ftnlen)30);
+	do_fio(&c__1, c_message__, 30L);
 	do_fio(&c__1, c_local__, nlen);
 	i__1 = npos;
 	for (nf = 1; nf <= i__1; ++nf) {
-	    do_fio(&c__1, " ", (ftnlen)1);
+	    do_fio(&c__1, " ", 1L);
 	}
 	i__3 = nused;
 	for (nf = 1; nf <= i__3; ++nf) {
-	    do_fio(&c__1, "#", (ftnlen)1);
+	    do_fio(&c__1, "#", 1L);
 	}
 	e_wsfe();
 
@@ -614,7 +616,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*109] = "SIN                             " 
+    static char c_funcname__[32*110] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -673,79 +675,90 @@ L9000:
 	    "    " "PAIRMIN                         " "AMONGST               "
 	    "          " "CBRT                            " "RHDDC2          "
 	    "                " "HRFBK4                          " "HRFBK5    "
-	    "                      " "DUMMY                           ";
+	    "                      " "POSVAL                          " "DUMM"
+	    "Y                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
 
 
-/*  Execute the opcode on the evaluation stack.  Note that no attempt is */
+/*  Execute the opcode on the evaluation stack.  Note that no attempt is 
+*/
 /*  made to intercept errors, such as divide by zero, ACOS(2), etc. */
 
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
 /*  Branch to special code for function evaluations */
 
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
 /*  Include file for PARSER.  This file must be kept with PARSER.FOR. */
 /*  It defines some symbolic constants that PARSER and its subsidiary */
 /*  routines use. */
-/* ....................................................................... */
+/* .......................................................................
+ */
 /* Define Token types and values */
 
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define the Nonterminals */
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define the Opcodes */
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define Function names, etc. */
 
 
 
 
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
     if (*n_opcode__ >= 4000) {
 	goto L5000;
     }
-/* ....................................................................... */
+/* .......................................................................
+ */
     if (*n_opcode__ == 3006) {
 /* !unary minus, the only unary op. */
-	s_copy(c_code__, "--", (ftnlen)8, (ftnlen)2);
+	s_copy(c_code__, "--", 8L, 2L);
 
     } else {
 /* !a binary operation */
 	if (*n_opcode__ == 3001) {
 /* !add */
-	    s_copy(c_code__, "+", (ftnlen)8, (ftnlen)1);
+	    s_copy(c_code__, "+", 8L, 1L);
 	} else if (*n_opcode__ == 3002) {
 /* !subtract */
-	    s_copy(c_code__, "-", (ftnlen)8, (ftnlen)1);
+	    s_copy(c_code__, "-", 8L, 1L);
 	} else if (*n_opcode__ == 3003) {
 /* !multiply */
-	    s_copy(c_code__, "*", (ftnlen)8, (ftnlen)1);
+	    s_copy(c_code__, "*", 8L, 1L);
 	} else if (*n_opcode__ == 3004) {
 /* !divide */
-	    s_copy(c_code__, "/", (ftnlen)8, (ftnlen)1);
+	    s_copy(c_code__, "/", 8L, 1L);
 	} else if (*n_opcode__ == 3005) {
 /* !** */
-	    s_copy(c_code__, "**", (ftnlen)8, (ftnlen)2);
+	    s_copy(c_code__, "**", 8L, 2L);
 	}
     }
     goto L8000;
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Function evaluation */
 
 L5000:
-    s_copy(c_code__, c_funcname__ + (*n_opcode__ - 4001 << 5), (ftnlen)8, (
-	    ftnlen)32);
-/* ....................................................................... */
+    s_copy(c_code__, c_funcname__ + (*n_opcode__ - 4001 << 5), 8L, 32L);
+/* .......................................................................
+ */
 L8000:
     return 0;
 } /* execute_ */
@@ -758,7 +771,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*109] = "SIN                             " 
+    static char c_funcname__[32*110] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -817,7 +830,8 @@ L8000:
 	    "    " "PAIRMIN                         " "AMONGST               "
 	    "          " "CBRT                            " "RHDDC2          "
 	    "                " "HRFBK4                          " "HRFBK5    "
-	    "                      " "DUMMY                           ";
+	    "                      " "POSVAL                          " "DUMM"
+	    "Y                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -835,14 +849,13 @@ L8000:
 	    , s_rsfi(icilist *), e_rsfi(void);
 
     /* Local variables */
-    static char c_id__[32];
     static integer nlen, ipos, npos;
     static char c_val__[32];
     static integer ifunc;
 #define c8_val__ ((char *)equiv_0)
 #define r8_val__ (equiv_0)
     static integer io_code__;
-    static char c_first__[1];
+    static char c_first__[1], c_id__[32];
 
     /* Fortran I/O blocks */
     static icilist io___36 = { 0, c_val__, 0, fmt_5501, 32, 1 };
@@ -855,36 +868,44 @@ L8000:
 
 
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 /*  Statement function definitions */
 
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
 /*  Include file for PARSER.  This file must be kept with PARSER.FOR. */
 /*  It defines some symbolic constants that PARSER and its subsidiary */
 /*  routines use. */
-/* ....................................................................... */
+/* .......................................................................
+ */
 /* Define Token types and values */
 
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define the Nonterminals */
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define the Opcodes */
 
 
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  Define Function names, etc. */
 
 
 
 
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
 
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
     *ntype = 1000;
     *nused = 0;
@@ -912,7 +933,7 @@ L8000:
 	*ntype = 1002;
 	*value = 2.;
     } else if (*(unsigned char *)c_first__ == '*') {
-	if (s_cmp(c_input__, "**", (ftnlen)2, (ftnlen)2) == 0) {
+	if (s_cmp(c_input__, "**", 2L, 2L) == 0) {
 	    *ntype = 1003;
 	    *value = 1.;
 	    *nused = 2;
@@ -935,7 +956,8 @@ L8000:
 	goto L8000;
     }
 /* !exit if above was successful */
-/* ....................................................................... */
+/* .......................................................................
+ */
 /*  The only possibilities left are a variable name, a function name, */
 /*  or a number. */
 
@@ -957,26 +979,27 @@ L110:
 	goto L110;
 L120:
 	--npos;
-	s_copy(c_id__, c_input__, (ftnlen)32, npos);
+	s_copy(c_id__, c_input__, 32L, npos);
 
-/*  The name is now in C_ID.  Check to see if it is a function name. */
+/*  The name is now in C_ID.  Check to see if it is a function name. 
+*/
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 3456, c_id__, (ftnlen)32, (ftnlen)32);
+	s_copy(c_funcname__ + 3488, c_id__, 32L, 32L);
 L210:
-	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), (ftnlen)32, (
-		ftnlen)32) != 0)) {
+	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
+		 {
 	    goto L220;
 	}
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 108) {
+	if (ifunc <= 109) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
 	    *nused = npos;
-	} else if (s_cmp(c_id__, "PI", npos, (ftnlen)2) == 0) {
+	} else if (s_cmp(c_id__, "PI", npos, 2L) == 0) {
 /* !symbolic pi */
 	    *ntype = 1007;
 	    *value = 3.1415926535897932;
@@ -984,11 +1007,12 @@ L220:
 	} else {
 /* !must be a symbol */
 	    *ntype = 1009;
-	    s_copy(c8_val__, c_id__, (ftnlen)8, npos);
+	    s_copy(c8_val__, c_id__, 8L, npos);
 	    *value = *r8_val__;
 	    *nused = npos;
 	}
-/* ....................................................................... */
+/* ...................................................................
+.... */
 /*  try for a number */
 
     } else /* if(complicated condition) */ {
@@ -1091,7 +1115,8 @@ L100001:
 	    } else {
 		*ntype = 1999;
 	    }
-/* ....................................................................... */
+/* ...............................................................
+........ */
 /*  If not a number, an error! */
 
 	} else {
@@ -1099,7 +1124,8 @@ L100001:
 	    *nused = 1;
 	}
     }
-/* ....................................................................... */
+/* .......................................................................
+ */
 L8000:
     return 0;
 } /* get_token__ */
@@ -1126,11 +1152,14 @@ integer last_nonblank__(char *cline, ftnlen cline_len)
 
 /*  Return the position of the last nonblank character in the input */
 /*  character string.  CLINE is CHARACTER*(*).  Even if CLINE is all */
-/*  blanks, LAST_NONBLANK will be returned as 1 so that operations of the */
+/*  blanks, LAST_NONBLANK will be returned as 1 so that operations of the 
+*/
 /*  form CLINE(1:LAST_NONBLANK) won't be garbage. */
-/* ))).................................................................... */
+/* )))....................................................................
+ */
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
 /*  Start at the end and work backwards until a nonblank is found. */
 /*  Loop back to 100 to check position # NPOS each time. */
@@ -1149,7 +1178,8 @@ L100:
 /*  move back one position and try again */
     --npos;
     goto L100;
-/* ....................................................................... */
+/* .......................................................................
+ */
 L200:
     ret_val = npos;
     return ret_val;
@@ -1168,12 +1198,13 @@ integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen
     integer s_cmp(char *, char *, ftnlen, ftnlen);
 
     /* Local variables */
-    static char sss[1];
     static integer ncode;
+    static char sss[1];
 
 
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
     /* Parameter adjustments */
     c_code__ -= 8;
@@ -1187,8 +1218,7 @@ integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen
 
     i__1 = *num_code__;
     for (ncode = 1; ncode <= i__1; ++ncode) {
-	if (s_cmp(c_code__ + (ncode << 3), "PUSHSYM", (ftnlen)8, (ftnlen)7) ==
-		 0) {
+	if (s_cmp(c_code__ + (ncode << 3), "PUSHSYM", 8L, 7L) == 0) {
 	    if (*(unsigned char *)&c_code__[(ncode + 1) * 8] == *(unsigned 
 		    char *)sss) {
 		ret_val = 1;
@@ -1222,21 +1252,15 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	    ;
 
     /* Local variables */
-    extern doublereal legendre_(doublereal *, doublereal *);
-    static doublereal x, y;
-    extern doublereal qg_(doublereal *), dai_(doublereal *), dbi_(doublereal *
-	    , integer *), mad_(integer *, doublereal *), sem_(integer *, 
-	    doublereal *);
-    static integer itm;
-    extern doublereal lor_(integer *, doublereal *);
-    static integer ntm;
     extern doublereal land_(integer *, doublereal *), mean_(integer *, 
 	    doublereal *), derf_(doublereal *), eran_(doublereal *), gran_(
 	    doublereal *, doublereal *), iran_(doublereal *), bool_(
-	    doublereal *), lran_(doublereal *), rect_(doublereal *), uran_(
-	    doublereal *), tent_(doublereal *), step_(doublereal *), bell2_(
-	    doublereal *), derfc_(doublereal *);
+	    doublereal *), lran_(doublereal *), rect_(doublereal *), 
+	    legendre_(doublereal *, doublereal *), uran_(doublereal *), tent_(
+	    doublereal *), step_(doublereal *), bell2_(doublereal *), derfc_(
+	    doublereal *);
     static integer ncode;
+    static doublereal x, y;
     extern doublereal hmode_(integer *, doublereal *), lmode_(integer *, 
 	    doublereal *);
     static integer neval;
@@ -1253,7 +1277,7 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *);
 #define r8_val__ (equiv_0)
-    extern doublereal dgamma_(doublereal *);
+    extern doublereal dgamma_(doublereal *), qg_(doublereal *);
     static char cncode[8];
     extern doublereal median_(integer *, doublereal *);
     static integer ialpha;
@@ -1271,17 +1295,22 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	    fibtpt_(doublereal *, doublereal *, doublereal *), pairmx_(
 	    integer *, doublereal *), fibntz_(doublereal *, doublereal *, 
 	    doublereal *), fibttz_(doublereal *, doublereal *, doublereal *), 
-	    ficttz_(doublereal *, doublereal *), figttp_(doublereal *, 
-	    doublereal *, doublereal *), figtpt_(doublereal *, doublereal *, 
-	    doublereal *), fifttz_(doublereal *, doublereal *, doublereal *), 
-	    figttz_(doublereal *, doublereal *, doublereal *), fipttp_(
-	    doublereal *, doublereal *), fiptpt_(doublereal *, doublereal *), 
-	    fitttp_(doublereal *, doublereal *), fittpt_(doublereal *, 
-	    doublereal *), orstat_(integer *, integer *, doublereal *), 
-	    fizttp_(doublereal *), fiztpt_(doublereal *), fipttz_(doublereal *
-	    , doublereal *), fitttz_(doublereal *, doublereal *), fizttz_(
-	    doublereal *);
+	    ficttz_(doublereal *, doublereal *), posval_(doublereal *), 
+	    figttp_(doublereal *, doublereal *, doublereal *), fifttz_(
+	    doublereal *, doublereal *, doublereal *), figtpt_(doublereal *, 
+	    doublereal *, doublereal *), figttz_(doublereal *, doublereal *, 
+	    doublereal *), fitttp_(doublereal *, doublereal *), fittpt_(
+	    doublereal *, doublereal *), orstat_(integer *, integer *, 
+	    doublereal *), fipttp_(doublereal *, doublereal *), fiptpt_(
+	    doublereal *, doublereal *), fizttp_(doublereal *), fiztpt_(
+	    doublereal *), fipttz_(doublereal *, doublereal *), fitttz_(
+	    doublereal *, doublereal *), fizttz_(doublereal *);
     static doublereal r8_eval__[128];
+    extern doublereal dai_(doublereal *), dbi_(doublereal *, integer *), mad_(
+	    integer *, doublereal *), sem_(integer *, doublereal *);
+    static integer itm;
+    extern doublereal lor_(integer *, doublereal *);
+    static integer ntm;
 
 
 
@@ -1296,7 +1325,8 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 /*  Statistics functions (01 Mar 1999 - see parser_int.c) */
 
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
     /* Parameter adjustments */
     --r8val;
@@ -1307,188 +1337,229 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	ret_val = 0.;
 	goto L8000;
     }
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
     ialpha = 'A' - 1;
     neval = 0;
     ncode = 0;
 
 L1000:
     ++ncode;
-    s_copy(cncode, c_code__ + (ncode << 3), (ftnlen)8, (ftnlen)8);
-/* ....................................................................... */
-    if (s_cmp(cncode, "PUSHSYM", (ftnlen)8, (ftnlen)7) == 0) {
+    s_copy(cncode, c_code__ + (ncode << 3), 8L, 8L);
+/* .......................................................................
+ */
+    if (s_cmp(cncode, "PUSHSYM", 8L, 7L) == 0) {
 	++neval;
 	r8_eval__[neval - 1] = r8val[*(unsigned char *)&c_code__[(ncode + 1) *
 		 8] - ialpha];
 	++ncode;
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "PUSHNUM", (ftnlen)8, (ftnlen)7) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "PUSHNUM", 8L, 7L) == 0) {
 	++neval;
-	s_copy(c8_val__, c_code__ + (ncode + 1 << 3), (ftnlen)8, (ftnlen)8);
+	s_copy(c8_val__, c_code__ + (ncode + 1 << 3), 8L, 8L);
 	r8_eval__[neval - 1] = *r8_val__;
 	++ncode;
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "+", (ftnlen)8, (ftnlen)1) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "+", 8L, 1L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] += r8_eval__[neval];
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "-", (ftnlen)8, (ftnlen)1) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "-", 8L, 1L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] -= r8_eval__[neval];
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "*", (ftnlen)8, (ftnlen)1) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "*", 8L, 1L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] *= r8_eval__[neval];
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "/", (ftnlen)8, (ftnlen)1) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "/", 8L, 1L) == 0) {
 	--neval;
 	if (r8_eval__[neval] != 0.) {
 	    r8_eval__[neval - 1] /= r8_eval__[neval];
 	} else {
 	    r8_eval__[neval - 1] = 0.;
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "**", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "**", 8L, 2L) == 0) {
 	--neval;
 	if (r8_eval__[neval - 1] > 0. || r8_eval__[neval - 1] != 0. && 
 		r8_eval__[neval] == d_int(&r8_eval__[neval])) {
 	    r8_eval__[neval - 1] = pow_dd(&r8_eval__[neval - 1], &r8_eval__[
 		    neval]);
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "--", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "--", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = -r8_eval__[neval - 1];
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "SIN", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "SIN", 8L, 3L) == 0) {
 	r8_eval__[neval - 1] = sin(r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "SIND", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "SIND", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = sin(r8_eval__[neval - 1] * .01745329251994);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "COS", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "COS", 8L, 3L) == 0) {
 	r8_eval__[neval - 1] = cos(r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "COSD", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "COSD", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = cos(r8_eval__[neval - 1] * .01745329251994);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "TAN", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "TAN", 8L, 3L) == 0) {
 	r8_eval__[neval - 1] = tan(r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "TAND", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "TAND", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = tan(r8_eval__[neval - 1] * .01745329251994);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "SQRT", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "SQRT", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = sqrt((d__1 = r8_eval__[neval - 1], abs(d__1)));
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "CBRT", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "CBRT", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = cbrtff_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ABS", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ABS", 8L, 3L) == 0) {
 	r8_eval__[neval - 1] = (d__1 = r8_eval__[neval - 1], abs(d__1));
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "EXP", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "EXP", 8L, 3L) == 0) {
 /* Computing MIN */
 	d__1 = 87.5, d__2 = r8_eval__[neval - 1];
 	r8_eval__[neval - 1] = exp((min(d__1,d__2)));
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "LOG", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "LOG", 8L, 3L) == 0) {
 	if (r8_eval__[neval - 1] != 0.) {
 	    r8_eval__[neval - 1] = log((d__1 = r8_eval__[neval - 1], abs(d__1)
 		    ));
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "LOG10", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "LOG10", 8L, 5L) == 0) {
 	if (r8_eval__[neval - 1] != 0.) {
 	    d__2 = (d__1 = r8_eval__[neval - 1], abs(d__1));
 	    r8_eval__[neval - 1] = d_lg10(&d__2);
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "INT", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "INT", 8L, 3L) == 0) {
 	r8_eval__[neval - 1] = d_int(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "MAX", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "MAX", 8L, 3L) == 0) {
 	--neval;
 /* Computing MAX */
 	d__1 = r8_eval__[neval - 1], d__2 = r8_eval__[neval];
 	r8_eval__[neval - 1] = max(d__1,d__2);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "MIN", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "MIN", 8L, 3L) == 0) {
 	--neval;
 /* Computing MIN */
 	d__1 = r8_eval__[neval - 1], d__2 = r8_eval__[neval];
 	r8_eval__[neval - 1] = min(d__1,d__2);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ASIN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ASIN", 8L, 4L) == 0) {
 	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) <= 1.) {
 	    r8_eval__[neval - 1] = asin(r8_eval__[neval - 1]);
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ACOS", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ACOS", 8L, 4L) == 0) {
 	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) <= 1.) {
 	    r8_eval__[neval - 1] = acos(r8_eval__[neval - 1]);
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ATAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ATAN", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = atan(r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ATAN2", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ATAN2", 8L, 5L) == 0) {
 	--neval;
 	if (r8_eval__[neval - 1] != 0. || r8_eval__[neval] != 0.) {
 	    r8_eval__[neval - 1] = atan2(r8_eval__[neval - 1], r8_eval__[
 		    neval]);
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "GRAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "GRAN", 8L, 4L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = gran_(&r8_eval__[neval - 1], &r8_eval__[neval])
 		;
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "URAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "URAN", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = uran_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "IRAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "IRAN", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = iran_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ERAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ERAN", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = eran_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "LRAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "LRAN", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = lran_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "PLEG", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "PLEG", 8L, 4L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = legendre_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "HRFBK4", (ftnlen)8, (ftnlen)6) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "HRFBK4", 8L, 6L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = hrfbk4_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "HRFBK5", (ftnlen)8, (ftnlen)6) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "HRFBK5", 8L, 6L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = hrfbk5_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "RHDDC2", (ftnlen)8, (ftnlen)6) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "RHDDC2", 8L, 6L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = rhddc2_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "SINH", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "SINH", 8L, 4L) == 0) {
 	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) < 87.5f) {
 	    r8_eval__[neval - 1] = sinh(r8_eval__[neval - 1]);
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "COSH", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "COSH", 8L, 4L) == 0) {
 	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) < 87.5f) {
 	    r8_eval__[neval - 1] = cosh(r8_eval__[neval - 1]);
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "TANH", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "TANH", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = tanh(r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ASINH", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ASINH", 8L, 5L) == 0) {
 	x = (d__1 = r8_eval__[neval - 1], abs(d__1));
 	if (x <= 10.) {
 /* Computing 2nd power */
@@ -1505,8 +1576,9 @@ L1000:
 	} else {
 	    r8_eval__[neval - 1] = y;
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ACOSH", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ACOSH", 8L, 5L) == 0) {
 	x = r8_eval__[neval - 1];
 	if (x >= 1.) {
 	    if (x <= 10.) {
@@ -1520,285 +1592,312 @@ L1000:
 	    }
 	    r8_eval__[neval - 1] = log(y);
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ATANH", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ATANH", 8L, 5L) == 0) {
 	x = r8_eval__[neval - 1];
 	if (abs(x) < 1.) {
 	    r8_eval__[neval - 1] = log((x + 1.) / (1. - x)) * .5;
 	}
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "AI", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "AI", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dai_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "BI", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "BI", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbi_(&r8_eval__[neval - 1], &c__1);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "ERF", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "ERF", 8L, 3L) == 0) {
 	r8_eval__[neval - 1] = derf_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "ERFC", (ftnlen)8, (ftnlen)4) == 0) {
+    } else if (s_cmp(cncode, "ERFC", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = derfc_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "GAMMA", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "GAMMA", 8L, 5L) == 0) {
 	r8_eval__[neval - 1] = dgamma_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "I0", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "I0", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbesi0_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "I1", (ftnlen)8, (ftnlen)2) == 0) {
+    } else if (s_cmp(cncode, "I1", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbesi1_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "J0", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "J0", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbesj0_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "J1", (ftnlen)8, (ftnlen)2) == 0) {
+    } else if (s_cmp(cncode, "J1", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbesj1_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "K0", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "K0", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbesk0_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "K1", (ftnlen)8, (ftnlen)2) == 0) {
+    } else if (s_cmp(cncode, "K1", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbesk1_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "Y0", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "Y0", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbesy0_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "Y1", (ftnlen)8, (ftnlen)2) == 0) {
+    } else if (s_cmp(cncode, "Y1", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = dbesy1_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "QG", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "QG", 8L, 2L) == 0) {
 	r8_eval__[neval - 1] = qg_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "QGINV", (ftnlen)8, (ftnlen)5) == 0) {
+    } else if (s_cmp(cncode, "QGINV", 8L, 5L) == 0) {
 	r8_eval__[neval - 1] = qginv_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "BELL2", (ftnlen)8, (ftnlen)5) == 0) {
+    } else if (s_cmp(cncode, "BELL2", 8L, 5L) == 0) {
 	r8_eval__[neval - 1] = bell2_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "RECT", (ftnlen)8, (ftnlen)4) == 0) {
+    } else if (s_cmp(cncode, "RECT", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = rect_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "STEP", (ftnlen)8, (ftnlen)4) == 0) {
+    } else if (s_cmp(cncode, "STEP", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = step_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "TENT", (ftnlen)8, (ftnlen)4) == 0) {
+    } else if (s_cmp(cncode, "POSVAL", 8L, 6L) == 0) {
+	r8_eval__[neval - 1] = posval_(&r8_eval__[neval - 1]);
+    } else if (s_cmp(cncode, "TENT", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = tent_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "BOOL", (ftnlen)8, (ftnlen)4) == 0) {
+    } else if (s_cmp(cncode, "BOOL", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = bool_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "ZTONE", (ftnlen)8, (ftnlen)5) == 0) {
+    } else if (s_cmp(cncode, "ZTONE", 8L, 5L) == 0) {
 	r8_eval__[neval - 1] = ztone_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "CDF2STAT", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "CDF2STAT", 8L, 8L) == 0) {
 	neval += -4;
 	r8_eval__[neval - 1] = cdf2st_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2], &
 		r8_eval__[neval + 3]);
-    } else if (s_cmp(cncode, "STAT2CDF", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "STAT2CDF", 8L, 8L) == 0) {
 	neval += -4;
 	r8_eval__[neval - 1] = st2cdf_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2], &
 		r8_eval__[neval + 3]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "NOTZERO", (ftnlen)8, (ftnlen)7) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "NOTZERO", 8L, 7L) == 0) {
 	r8_eval__[neval - 1] = bool_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "ISZERO", (ftnlen)8, (ftnlen)6) == 0) {
+    } else if (s_cmp(cncode, "ISZERO", 8L, 6L) == 0) {
 	r8_eval__[neval - 1] = 1. - bool_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "EQUALS", (ftnlen)8, (ftnlen)6) == 0) {
+    } else if (s_cmp(cncode, "EQUALS", 8L, 6L) == 0) {
 	--neval;
 	d__1 = r8_eval__[neval - 1] - r8_eval__[neval];
 	r8_eval__[neval - 1] = 1. - bool_(&d__1);
-    } else if (s_cmp(cncode, "ISPOSITI", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "ISPOSITI", 8L, 8L) == 0) {
 	r8_eval__[neval - 1] = step_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "ISNEGATI", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "ISNEGATI", 8L, 8L) == 0) {
 	d__1 = -r8_eval__[neval - 1];
 	r8_eval__[neval - 1] = step_(&d__1);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "AND", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "AND", 8L, 3L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = land_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "MEDIAN", (ftnlen)8, (ftnlen)6) == 0) {
+    } else if (s_cmp(cncode, "MEDIAN", 8L, 6L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = median_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "MAD", (ftnlen)8, (ftnlen)3) == 0) {
+    } else if (s_cmp(cncode, "MAD", 8L, 3L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = mad_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "MEAN", (ftnlen)8, (ftnlen)4) == 0) {
+    } else if (s_cmp(cncode, "MEAN", 8L, 4L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = mean_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "STDEV", (ftnlen)8, (ftnlen)5) == 0) {
+    } else if (s_cmp(cncode, "STDEV", 8L, 5L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = stdev_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "SEM", (ftnlen)8, (ftnlen)3) == 0) {
+    } else if (s_cmp(cncode, "SEM", 8L, 3L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = sem_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "ORSTAT", (ftnlen)8, (ftnlen)6) == 0) {
+    } else if (s_cmp(cncode, "ORSTAT", 8L, 6L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	--ntm;
 	itm = (integer) r8_eval__[neval - 1];
 	r8_eval__[neval - 1] = orstat_(&itm, &ntm, &r8_eval__[neval]);
-    } else if (s_cmp(cncode, "HMODE", (ftnlen)8, (ftnlen)5) == 0) {
+    } else if (s_cmp(cncode, "HMODE", 8L, 5L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = hmode_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "LMODE", (ftnlen)8, (ftnlen)5) == 0) {
+    } else if (s_cmp(cncode, "LMODE", 8L, 5L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = lmode_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "OR", (ftnlen)8, (ftnlen)2) == 0) {
+    } else if (s_cmp(cncode, "OR", 8L, 2L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = lor_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "MOFN", (ftnlen)8, (ftnlen)4) == 0) {
+    } else if (s_cmp(cncode, "MOFN", 8L, 4L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	--ntm;
 	itm = (integer) r8_eval__[neval - 1];
 	r8_eval__[neval - 1] = lmofn_(&itm, &ntm, &r8_eval__[neval]);
-    } else if (s_cmp(cncode, "ASTEP", (ftnlen)8, (ftnlen)5) == 0) {
+    } else if (s_cmp(cncode, "ASTEP", 8L, 5L) == 0) {
 	--neval;
 	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) > r8_eval__[neval]) {
 	    r8_eval__[neval - 1] = 1.;
 	} else {
 	    r8_eval__[neval - 1] = 0.;
 	}
-    } else if (s_cmp(cncode, "ARGMAX", (ftnlen)8, (ftnlen)6) == 0) {
+    } else if (s_cmp(cncode, "ARGMAX", 8L, 6L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = argmax_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "ARGNUM", (ftnlen)8, (ftnlen)6) == 0) {
+    } else if (s_cmp(cncode, "ARGNUM", 8L, 6L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = argnum_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "PAIRMAX", (ftnlen)8, (ftnlen)7) == 0) {
+    } else if (s_cmp(cncode, "PAIRMAX", 8L, 7L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = pairmx_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "PAIRMIN", (ftnlen)8, (ftnlen)7) == 0) {
+    } else if (s_cmp(cncode, "PAIRMIN", 8L, 7L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = pairmn_(&ntm, &r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "AMONGST", (ftnlen)8, (ftnlen)7) == 0) {
+    } else if (s_cmp(cncode, "AMONGST", 8L, 7L) == 0) {
 	ntm = (integer) r8_eval__[neval - 1];
 	neval -= ntm;
 	r8_eval__[neval - 1] = amongf_(&ntm, &r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FICO_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FICO_T2P", 8L, 8L) == 0) {
 	neval += -3;
 	d__2 = (d__1 = r8_eval__[neval - 1], abs(d__1));
 	r8_eval__[neval - 1] = ficotp_(&d__2, &r8_eval__[neval], &r8_eval__[
 		neval + 1], &r8_eval__[neval + 2]);
-    } else if (s_cmp(cncode, "FICO_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FICO_P2T", 8L, 8L) == 0) {
 	neval += -3;
 	r8_eval__[neval - 1] = ficopt_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2]);
-    } else if (s_cmp(cncode, "FICO_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FICO_T2Z", 8L, 8L) == 0) {
 	neval += -3;
 	r8_eval__[neval - 1] = ficotz_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1], &r8_eval__[neval + 2]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FITT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FITT_T2P", 8L, 8L) == 0) {
 	--neval;
 	d__2 = (d__1 = r8_eval__[neval - 1], abs(d__1));
 	r8_eval__[neval - 1] = fitttp_(&d__2, &r8_eval__[neval]);
-    } else if (s_cmp(cncode, "FITT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FITT_P2T", 8L, 8L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = fittpt_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-    } else if (s_cmp(cncode, "FITT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FITT_T2Z", 8L, 8L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = fitttz_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FIFT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIFT_T2P", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fifttp_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-    } else if (s_cmp(cncode, "FIFT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIFT_P2T", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fiftpt_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-    } else if (s_cmp(cncode, "FIFT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIFT_T2Z", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fifttz_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FIZT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIZT_T2P", 8L, 8L) == 0) {
 	d__2 = (d__1 = r8_eval__[neval - 1], abs(d__1));
 	r8_eval__[neval - 1] = fizttp_(&d__2);
-    } else if (s_cmp(cncode, "FIZT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIZT_P2T", 8L, 8L) == 0) {
 	r8_eval__[neval - 1] = fiztpt_(&r8_eval__[neval - 1]);
-    } else if (s_cmp(cncode, "FIZT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIZT_T2Z", 8L, 8L) == 0) {
 	r8_eval__[neval - 1] = fizttz_(&r8_eval__[neval - 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FICT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FICT_T2P", 8L, 8L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = ficttp_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-    } else if (s_cmp(cncode, "FICT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FICT_P2T", 8L, 8L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = fictpt_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-    } else if (s_cmp(cncode, "FICT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FICT_T2Z", 8L, 8L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = ficttz_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FIBT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIBT_T2P", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fibttp_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-    } else if (s_cmp(cncode, "FIBT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIBT_P2T", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fibtpt_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-    } else if (s_cmp(cncode, "FIBT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIBT_T2Z", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fibttz_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FIBN_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIBN_T2P", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fibntp_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-    } else if (s_cmp(cncode, "FIBN_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIBN_P2T", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fibnpt_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-    } else if (s_cmp(cncode, "FIBN_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIBN_T2Z", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = fibntz_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FIGT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIGT_T2P", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = figttp_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-    } else if (s_cmp(cncode, "FIGT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIGT_P2T", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = figtpt_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-    } else if (s_cmp(cncode, "FIGT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIGT_T2Z", 8L, 8L) == 0) {
 	neval += -2;
 	r8_eval__[neval - 1] = figttz_(&r8_eval__[neval - 1], &r8_eval__[
 		neval], &r8_eval__[neval + 1]);
-/* ....................................................................... */
-    } else if (s_cmp(cncode, "FIPT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...................................................................
+.... */
+    } else if (s_cmp(cncode, "FIPT_T2P", 8L, 8L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = fipttp_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-    } else if (s_cmp(cncode, "FIPT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIPT_P2T", 8L, 8L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = fiptpt_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-    } else if (s_cmp(cncode, "FIPT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+    } else if (s_cmp(cncode, "FIPT_T2Z", 8L, 8L) == 0) {
 	--neval;
 	r8_eval__[neval - 1] = fipttz_(&r8_eval__[neval - 1], &r8_eval__[
 		neval]);
-/* ....................................................................... */
+/* ...................................................................
+.... */
     }
-/* ....................................................................... */
+/* .......................................................................
+ */
     if (ncode < *num_code__) {
 	goto L1000;
     }
     ret_val = r8_eval__[neval - 1];
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
 L8000:
     return ret_val;
 } /* pareval_ */
@@ -1835,26 +1934,18 @@ L8000:
 	    ;
 
     /* Local variables */
-    extern doublereal legendre_(doublereal *, doublereal *);
-    static doublereal x, y;
-    static integer jf, iv;
-    extern doublereal qg_(doublereal *), dai_(doublereal *), dbi_(doublereal *
-	    , integer *), mad_(integer *, doublereal *);
-    static integer ibv;
-    extern doublereal sem_(integer *, doublereal *);
-    static integer itm, jtm;
-    extern doublereal lor_(integer *, doublereal *);
-    static integer ntm;
     extern doublereal land_(integer *, doublereal *), mean_(integer *, 
 	    doublereal *), derf_(doublereal *), eran_(doublereal *), gran_(
 	    doublereal *, doublereal *), iran_(doublereal *), bool_(
 	    doublereal *), lran_(doublereal *), rect_(doublereal *);
     static doublereal scop[101];
-    extern doublereal uran_(doublereal *), tent_(doublereal *), step_(
-	    doublereal *), bell2_(doublereal *);
+    extern doublereal uran_(doublereal *), legendre_(doublereal *, doublereal 
+	    *), tent_(doublereal *), step_(doublereal *), bell2_(doublereal *)
+	    ;
     static doublereal r8val[1664]	/* was [64][26] */;
     extern doublereal derfc_(doublereal *);
     static integer ncode;
+    static doublereal x, y;
     extern doublereal hmode_(integer *, doublereal *), lmode_(integer *, 
 	    doublereal *);
     static integer neval;
@@ -1875,35 +1966,43 @@ L8000:
 	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *);
 #define r8_val__ (equiv_0)
+    static integer jf;
     extern doublereal dgamma_(doublereal *);
+    static integer ialpha, iv;
     static char cncode[8];
-    extern doublereal median_(integer *, doublereal *);
-    static integer ialpha;
-    extern doublereal cbrtff_(doublereal *), amongf_(integer *, doublereal *),
-	     argmax_(integer *, doublereal *), fibntp_(doublereal *, 
-	    doublereal *, doublereal *), fibnpt_(doublereal *, doublereal *, 
-	    doublereal *), ficotp_(doublereal *, doublereal *, doublereal *, 
-	    doublereal *), ficopt_(doublereal *, doublereal *, doublereal *, 
-	    doublereal *), pairmn_(integer *, doublereal *), fibttp_(
-	    doublereal *, doublereal *, doublereal *), argnum_(integer *, 
-	    doublereal *), ficttp_(doublereal *, doublereal *), fictpt_(
-	    doublereal *, doublereal *), fifttp_(doublereal *, doublereal *, 
-	    doublereal *), fiftpt_(doublereal *, doublereal *, doublereal *), 
-	    ficotz_(doublereal *, doublereal *, doublereal *, doublereal *), 
-	    fibtpt_(doublereal *, doublereal *, doublereal *), pairmx_(
-	    integer *, doublereal *), fibntz_(doublereal *, doublereal *, 
-	    doublereal *), fibttz_(doublereal *, doublereal *, doublereal *), 
-	    ficttz_(doublereal *, doublereal *), figttp_(doublereal *, 
-	    doublereal *, doublereal *), figtpt_(doublereal *, doublereal *, 
-	    doublereal *), fifttz_(doublereal *, doublereal *, doublereal *), 
-	    figttz_(doublereal *, doublereal *, doublereal *), fipttp_(
-	    doublereal *, doublereal *), fiptpt_(doublereal *, doublereal *), 
-	    fitttp_(doublereal *, doublereal *), fittpt_(doublereal *, 
-	    doublereal *), orstat_(integer *, integer *, doublereal *), 
-	    fizttp_(doublereal *), fiztpt_(doublereal *), fipttz_(doublereal *
-	    , doublereal *), fitttz_(doublereal *, doublereal *), fizttz_(
+    extern doublereal qg_(doublereal *), median_(integer *, doublereal *), 
+	    argmax_(integer *, doublereal *), pairmn_(integer *, doublereal *)
+	    , amongf_(integer *, doublereal *), argnum_(integer *, doublereal 
+	    *), ficotp_(doublereal *, doublereal *, doublereal *, doublereal *
+	    ), ficopt_(doublereal *, doublereal *, doublereal *, doublereal *)
+	    , fifttp_(doublereal *, doublereal *, doublereal *), fiftpt_(
+	    doublereal *, doublereal *, doublereal *), ficotz_(doublereal *, 
+	    doublereal *, doublereal *, doublereal *), ficttp_(doublereal *, 
+	    doublereal *), pairmx_(integer *, doublereal *), fictpt_(
+	    doublereal *, doublereal *), fibttp_(doublereal *, doublereal *, 
+	    doublereal *), ficttz_(doublereal *, doublereal *), posval_(
+	    doublereal *), fibtpt_(doublereal *, doublereal *, doublereal *), 
+	    fifttz_(doublereal *, doublereal *, doublereal *), fibttz_(
+	    doublereal *, doublereal *, doublereal *), fibntp_(doublereal *, 
+	    doublereal *, doublereal *), fitttp_(doublereal *, doublereal *), 
+	    fittpt_(doublereal *, doublereal *), orstat_(integer *, integer *,
+	     doublereal *), fibnpt_(doublereal *, doublereal *, doublereal *),
+	     fibntz_(doublereal *, doublereal *, doublereal *), figttp_(
+	    doublereal *, doublereal *, doublereal *), fizttp_(doublereal *), 
+	    fiztpt_(doublereal *), figtpt_(doublereal *, doublereal *, 
+	    doublereal *), figttz_(doublereal *, doublereal *, doublereal *), 
+	    fitttz_(doublereal *, doublereal *), fipttp_(doublereal *, 
+	    doublereal *), fiptpt_(doublereal *, doublereal *), fipttz_(
+	    doublereal *, doublereal *), cbrtff_(doublereal *), fizttz_(
 	    doublereal *);
     static doublereal r8_eval__[6464]	/* was [64][101] */;
+    extern doublereal dai_(doublereal *), dbi_(doublereal *, integer *), mad_(
+	    integer *, doublereal *);
+    static integer ibv;
+    extern doublereal sem_(integer *, doublereal *);
+    static integer itm, jtm;
+    extern doublereal lor_(integer *, doublereal *);
+    static integer ntm;
 
 
 /*  Vector version of PAREVAL, where VA..VZ with length LVEC */
@@ -1925,7 +2024,8 @@ L8000:
 /*  Statistics functions (01 Mar 1999 - see parser_int.c) */
 
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
     /* Parameter adjustments */
     c_code__ -= 8;
@@ -1963,7 +2063,8 @@ L8000:
     }
 
     ialpha = 'A' - 1;
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
     i__1 = *lvec - 1;
     for (ibv = 0; ibv <= i__1; ibv += 64) {
 	ivbot = ibv + 1;
@@ -2111,40 +2212,40 @@ L8000:
 
 L1000:
 	++ncode;
-	s_copy(cncode, c_code__ + (ncode << 3), (ftnlen)8, (ftnlen)8);
+	s_copy(cncode, c_code__ + (ncode << 3), 8L, 8L);
 /* cc         WRITE(*,9803) CNCODE */
 /* cc9803     FORMAT('   .. PAREVEC: opcode=',A) */
-/* ....................................................................... */
-	if (s_cmp(cncode, "PUSHSYM", (ftnlen)8, (ftnlen)7) == 0) {
+/* ...................................................................
+.... */
+	if (s_cmp(cncode, "PUSHSYM", 8L, 7L) == 0) {
 	    jf = *(unsigned char *)&c_code__[(ncode + 1) * 8] - ialpha;
 	    if (ncode + 2 <= *num_code__) {
-		s_copy(c2code, c_code__ + (ncode + 2 << 3), (ftnlen)8, (
-			ftnlen)8);
+		s_copy(c2code, c_code__ + (ncode + 2 << 3), 8L, 8L);
 	    } else {
-		s_copy(c2code, "q", (ftnlen)8, (ftnlen)1);
+		s_copy(c2code, "q", 8L, 1L);
 	    }
-	    if (s_cmp(c2code, "+", (ftnlen)8, (ftnlen)1) == 0) {
+	    if (s_cmp(c2code, "+", 8L, 1L) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] += r8val[iv - ibv 
 			    + (jf << 6) - 65];
 		}
-	    } else if (s_cmp(c2code, "-", (ftnlen)8, (ftnlen)1) == 0) {
+	    } else if (s_cmp(c2code, "-", 8L, 1L) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] -= r8val[iv - ibv 
 			    + (jf << 6) - 65];
 		}
-	    } else if (s_cmp(c2code, "*", (ftnlen)8, (ftnlen)1) == 0) {
+	    } else if (s_cmp(c2code, "*", 8L, 1L) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] *= r8val[iv - ibv 
 			    + (jf << 6) - 65];
 		}
-	    } else if (s_cmp(c2code, "/", (ftnlen)8, (ftnlen)1) == 0) {
+	    } else if (s_cmp(c2code, "/", 8L, 1L) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2164,35 +2265,34 @@ L1000:
 			    + (jf << 6) - 65];
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "PUSHNUM", (ftnlen)8, (ftnlen)7) == 0) {
-	    s_copy(c8_val__, c_code__ + (ncode + 1 << 3), (ftnlen)8, (ftnlen)
-		    8);
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "PUSHNUM", 8L, 7L) == 0) {
+	    s_copy(c8_val__, c_code__ + (ncode + 1 << 3), 8L, 8L);
 	    if (ncode + 2 <= *num_code__) {
-		s_copy(c2code, c_code__ + (ncode + 2 << 3), (ftnlen)8, (
-			ftnlen)8);
+		s_copy(c2code, c_code__ + (ncode + 2 << 3), 8L, 8L);
 	    } else {
-		s_copy(c2code, "q", (ftnlen)8, (ftnlen)1);
+		s_copy(c2code, "q", 8L, 1L);
 	    }
-	    if (s_cmp(c2code, "+", (ftnlen)8, (ftnlen)1) == 0) {
+	    if (s_cmp(c2code, "+", 8L, 1L) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] += *r8_val__;
 		}
-	    } else if (s_cmp(c2code, "-", (ftnlen)8, (ftnlen)1) == 0) {
+	    } else if (s_cmp(c2code, "-", 8L, 1L) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] -= *r8_val__;
 		}
-	    } else if (s_cmp(c2code, "*", (ftnlen)8, (ftnlen)1) == 0) {
+	    } else if (s_cmp(c2code, "*", 8L, 1L) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] *= *r8_val__;
 		}
-	    } else if (s_cmp(c2code, "/", (ftnlen)8, (ftnlen)1) == 0) {
+	    } else if (s_cmp(c2code, "/", 8L, 1L) == 0) {
 		ncode += 2;
 		if (*r8_val__ != 0.) {
 		    *r8_val__ = 1. / *r8_val__;
@@ -2214,32 +2314,36 @@ L1000:
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = *r8_val__;
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "+", (ftnlen)8, (ftnlen)1) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "+", 8L, 1L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] += r8_eval__[iv - ibv 
 			+ (neval + 1 << 6) - 65];
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "-", (ftnlen)8, (ftnlen)1) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "-", 8L, 1L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] -= r8_eval__[iv - ibv 
 			+ (neval + 1 << 6) - 65];
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "*", (ftnlen)8, (ftnlen)1) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "*", 8L, 1L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] *= r8_eval__[iv - ibv 
 			+ (neval + 1 << 6) - 65];
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "/", (ftnlen)8, (ftnlen)1) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "/", 8L, 1L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2250,8 +2354,9 @@ L1000:
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "**", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "**", 8L, 2L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2264,71 +2369,81 @@ L1000:
 			    r8_eval__[iv - ibv + (neval + 1 << 6) - 65]);
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "--", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "--", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = -r8_eval__[iv - ibv 
 			+ (neval << 6) - 65];
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "SIN", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "SIN", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = sin(r8_eval__[iv - 
 			ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "SIND", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "SIND", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = sin(r8_eval__[iv - 
 			ibv + (neval << 6) - 65] * .01745329251994);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "COS", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "COS", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = cos(r8_eval__[iv - 
 			ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "COSD", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "COSD", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = cos(r8_eval__[iv - 
 			ibv + (neval << 6) - 65] * .01745329251994);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "TAN", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "TAN", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = tan(r8_eval__[iv - 
 			ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "TAND", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "TAND", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = tan(r8_eval__[iv - 
 			ibv + (neval << 6) - 65] * .01745329251994);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "SQRT", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "SQRT", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = sqrt((d__1 = 
 			r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)));
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "CBRT", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "CBRT", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = cbrtff_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ABS", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ABS", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 /* cc               WRITE(*,9809) IV */
@@ -2336,8 +2451,9 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = (d__1 = r8_eval__[
 			iv - ibv + (neval << 6) - 65], abs(d__1));
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "EXP", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "EXP", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 /* Computing MIN */
@@ -2345,8 +2461,9 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = exp((min(d__1,d__2))
 			);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "LOG", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "LOG", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0.) {
@@ -2355,8 +2472,9 @@ L1000:
 			    ));
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "LOG10", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "LOG10", 8L, 5L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0.) {
@@ -2365,15 +2483,17 @@ L1000:
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = d_lg10(&d__2);
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "INT", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "INT", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = d_int(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "MAX", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "MAX", 8L, 3L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2382,8 +2502,9 @@ L1000:
 			r8_eval__[iv - ibv + (neval + 1 << 6) - 65];
 		r8_eval__[iv - ibv + (neval << 6) - 65] = max(d__1,d__2);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "MIN", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "MIN", 8L, 3L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2392,8 +2513,9 @@ L1000:
 			r8_eval__[iv - ibv + (neval + 1 << 6) - 65];
 		r8_eval__[iv - ibv + (neval << 6) - 65] = min(d__1,d__2);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ASIN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ASIN", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if ((d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)
@@ -2402,8 +2524,9 @@ L1000:
 			    iv - ibv + (neval << 6) - 65]);
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ACOS", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ACOS", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if ((d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)
@@ -2412,15 +2535,17 @@ L1000:
 			    iv - ibv + (neval << 6) - 65]);
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ATAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ATAN", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = atan(r8_eval__[iv - 
 			ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ATAN2", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ATAN2", 8L, 5L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2431,8 +2556,9 @@ L1000:
 			    + (neval + 1 << 6) - 65]);
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "GRAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "GRAN", 8L, 4L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2440,36 +2566,41 @@ L1000:
 			- ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "URAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "URAN", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = uran_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "IRAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "IRAN", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = iran_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ERAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ERAN", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = eran_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "LRAN", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "LRAN", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = lran_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "PLEG", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "PLEG", 8L, 4L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2477,8 +2608,9 @@ L1000:
 			r8_eval__[iv - ibv + (neval << 6) - 65], &r8_eval__[
 			iv - ibv + (neval + 1 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "HRFBK4", (ftnlen)8, (ftnlen)6) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "HRFBK4", 8L, 6L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2486,8 +2618,9 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "HRFBK5", (ftnlen)8, (ftnlen)6) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "HRFBK5", 8L, 6L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2495,8 +2628,9 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "RHDDC2", (ftnlen)8, (ftnlen)6) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "RHDDC2", 8L, 6L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2505,8 +2639,9 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "SINH", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "SINH", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if ((d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)
@@ -2515,8 +2650,9 @@ L1000:
 			    iv - ibv + (neval << 6) - 65]);
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "COSH", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "COSH", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if ((d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)
@@ -2525,15 +2661,17 @@ L1000:
 			    iv - ibv + (neval << 6) - 65]);
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "TANH", (ftnlen)8, (ftnlen)4) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "TANH", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = tanh(r8_eval__[iv - 
 			ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ASINH", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ASINH", 8L, 5L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		x = (d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)
@@ -2554,8 +2692,9 @@ L1000:
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = y;
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ACOSH", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ACOSH", 8L, 5L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		x = r8_eval__[iv - ibv + (neval << 6) - 65];
@@ -2572,8 +2711,9 @@ L1000:
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = log(y);
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ATANH", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ATANH", 8L, 5L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		x = r8_eval__[iv - ibv + (neval << 6) - 65];
@@ -2582,143 +2722,159 @@ L1000:
 			    1. - x)) * .5;
 		}
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "AI", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "AI", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dai_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "BI", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "BI", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbi_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65], &c__1);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "ERF", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "ERF", 8L, 3L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = derf_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "ERFC", (ftnlen)8, (ftnlen)4) == 0) {
+	} else if (s_cmp(cncode, "ERFC", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = derfc_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "GAMMA", (ftnlen)8, (ftnlen)5) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "GAMMA", 8L, 5L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dgamma_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "I0", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "I0", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbesi0_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "I1", (ftnlen)8, (ftnlen)2) == 0) {
+	} else if (s_cmp(cncode, "I1", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbesi1_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "J0", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "J0", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbesj0_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "J1", (ftnlen)8, (ftnlen)2) == 0) {
+	} else if (s_cmp(cncode, "J1", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbesj1_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "K0", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "K0", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbesk0_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "K1", (ftnlen)8, (ftnlen)2) == 0) {
+	} else if (s_cmp(cncode, "K1", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbesk1_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "Y0", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "Y0", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbesy0_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "Y1", (ftnlen)8, (ftnlen)2) == 0) {
+	} else if (s_cmp(cncode, "Y1", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = dbesy1_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "QG", (ftnlen)8, (ftnlen)2) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "QG", 8L, 2L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = qg_(&r8_eval__[iv - 
 			ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "QGINV", (ftnlen)8, (ftnlen)5) == 0) {
+	} else if (s_cmp(cncode, "QGINV", 8L, 5L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = qginv_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "BELL2", (ftnlen)8, (ftnlen)5) == 0) {
+	} else if (s_cmp(cncode, "BELL2", 8L, 5L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = bell2_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "RECT", (ftnlen)8, (ftnlen)4) == 0) {
+	} else if (s_cmp(cncode, "RECT", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = rect_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "STEP", (ftnlen)8, (ftnlen)4) == 0) {
+	} else if (s_cmp(cncode, "STEP", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = step_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "TENT", (ftnlen)8, (ftnlen)4) == 0) {
+	} else if (s_cmp(cncode, "POSVAL", 8L, 6L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = posval_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65]);
+	    }
+	} else if (s_cmp(cncode, "TENT", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = tent_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "BOOL", (ftnlen)8, (ftnlen)4) == 0) {
+	} else if (s_cmp(cncode, "BOOL", 8L, 4L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = bool_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "ZTONE", (ftnlen)8, (ftnlen)5) == 0) {
+	} else if (s_cmp(cncode, "ZTONE", 8L, 5L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = ztone_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "CDF2STAT", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "CDF2STAT", 8L, 8L) == 0) {
 	    neval += -4;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2728,7 +2884,7 @@ L1000:
 			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
 			- 65], &r8_eval__[iv - ibv + (neval + 4 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "STAT2CDF", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "STAT2CDF", 8L, 8L) == 0) {
 	    neval += -4;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2738,20 +2894,21 @@ L1000:
 			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
 			- 65], &r8_eval__[iv - ibv + (neval + 4 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "NOTZERO", (ftnlen)8, (ftnlen)7) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "NOTZERO", 8L, 7L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = bool_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "ISZERO", (ftnlen)8, (ftnlen)6) == 0) {
+	} else if (s_cmp(cncode, "ISZERO", 8L, 6L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = 1. - bool_(&
 			r8_eval__[iv - ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "EQUALS", (ftnlen)8, (ftnlen)6) == 0) {
+	} else if (s_cmp(cncode, "EQUALS", 8L, 6L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2759,20 +2916,21 @@ L1000:
 			- ibv + (neval + 1 << 6) - 65];
 		r8_eval__[iv - ibv + (neval << 6) - 65] = 1. - bool_(&d__1);
 	    }
-	} else if (s_cmp(cncode, "ISPOSITI", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "ISPOSITI", 8L, 8L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = step_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "ISNEGATI", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "ISNEGATI", 8L, 8L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		d__1 = -r8_eval__[iv - ibv + (neval << 6) - 65];
 		r8_eval__[iv - ibv + (neval << 6) - 65] = step_(&d__1);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "AND", (ftnlen)8, (ftnlen)3) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "AND", 8L, 3L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2784,7 +2942,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = land_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "MEDIAN", (ftnlen)8, (ftnlen)6) == 0) {
+	} else if (s_cmp(cncode, "MEDIAN", 8L, 6L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2796,7 +2954,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = median_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "MAD", (ftnlen)8, (ftnlen)3) == 0) {
+	} else if (s_cmp(cncode, "MAD", 8L, 3L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2808,7 +2966,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = mad_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "MEAN", (ftnlen)8, (ftnlen)4) == 0) {
+	} else if (s_cmp(cncode, "MEAN", 8L, 4L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2820,7 +2978,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = mean_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "STDEV", (ftnlen)8, (ftnlen)5) == 0) {
+	} else if (s_cmp(cncode, "STDEV", 8L, 5L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2832,7 +2990,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = stdev_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "SEM", (ftnlen)8, (ftnlen)3) == 0) {
+	} else if (s_cmp(cncode, "SEM", 8L, 3L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2844,7 +3002,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = sem_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "ORSTAT", (ftnlen)8, (ftnlen)6) == 0) {
+	} else if (s_cmp(cncode, "ORSTAT", 8L, 6L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    --ntm;
@@ -2859,7 +3017,7 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = orstat_(&itm, &ntm, 
 			scop);
 	    }
-	} else if (s_cmp(cncode, "HMODE", (ftnlen)8, (ftnlen)5) == 0) {
+	} else if (s_cmp(cncode, "HMODE", 8L, 5L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2871,7 +3029,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = hmode_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "LMODE", (ftnlen)8, (ftnlen)5) == 0) {
+	} else if (s_cmp(cncode, "LMODE", 8L, 5L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2883,7 +3041,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = lmode_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "OR", (ftnlen)8, (ftnlen)2) == 0) {
+	} else if (s_cmp(cncode, "OR", 8L, 2L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2895,7 +3053,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = lor_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "MOFN", (ftnlen)8, (ftnlen)4) == 0) {
+	} else if (s_cmp(cncode, "MOFN", 8L, 4L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    --ntm;
@@ -2910,7 +3068,7 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = lmofn_(&itm, &ntm, 
 			scop);
 	    }
-	} else if (s_cmp(cncode, "ASTEP", (ftnlen)8, (ftnlen)5) == 0) {
+	} else if (s_cmp(cncode, "ASTEP", 8L, 5L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2921,7 +3079,7 @@ L1000:
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
 		}
 	    }
-	} else if (s_cmp(cncode, "ARGMAX", (ftnlen)8, (ftnlen)6) == 0) {
+	} else if (s_cmp(cncode, "ARGMAX", 8L, 6L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2933,7 +3091,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = argmax_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "ARGNUM", (ftnlen)8, (ftnlen)6) == 0) {
+	} else if (s_cmp(cncode, "ARGNUM", 8L, 6L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2945,7 +3103,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = argnum_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "PAIRMAX", (ftnlen)8, (ftnlen)7) == 0) {
+	} else if (s_cmp(cncode, "PAIRMAX", 8L, 7L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2957,7 +3115,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = pairmx_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "PAIRMIN", (ftnlen)8, (ftnlen)7) == 0) {
+	} else if (s_cmp(cncode, "PAIRMIN", 8L, 7L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2969,7 +3127,7 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = pairmn_(&ntm, scop);
 	    }
-	} else if (s_cmp(cncode, "AMONGST", (ftnlen)8, (ftnlen)7) == 0) {
+	} else if (s_cmp(cncode, "AMONGST", 8L, 7L) == 0) {
 	    ntm = (integer) r8_eval__[(neval << 6) - 64];
 	    neval -= ntm;
 	    i__2 = ivtop;
@@ -2981,8 +3139,9 @@ L1000:
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = amongf_(&ntm, scop);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FICO_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FICO_T2P", 8L, 8L) == 0) {
 	    neval += -3;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2993,7 +3152,7 @@ L1000:
 			r8_eval__[iv - ibv + (neval + 2 << 6) - 65], &
 			r8_eval__[iv - ibv + (neval + 3 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FICO_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FICO_P2T", 8L, 8L) == 0) {
 	    neval += -3;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3003,7 +3162,7 @@ L1000:
 			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
 			- 65]);
 	    }
-	} else if (s_cmp(cncode, "FICO_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FICO_T2Z", 8L, 8L) == 0) {
 	    neval += -3;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3013,8 +3172,9 @@ L1000:
 			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
 			- 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FITT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FITT_T2P", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3023,7 +3183,7 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fitttp_(&d__2, &
 			r8_eval__[iv - ibv + (neval + 1 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FITT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FITT_P2T", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3031,7 +3191,7 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FITT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FITT_T2Z", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3039,8 +3199,9 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FIFT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIFT_T2P", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3049,7 +3210,7 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIFT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIFT_P2T", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3058,7 +3219,7 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIFT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIFT_T2Z", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3067,28 +3228,30 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FIZT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIZT_T2P", 8L, 8L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		d__2 = (d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(
 			d__1));
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fizttp_(&d__2);
 	    }
-	} else if (s_cmp(cncode, "FIZT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIZT_P2T", 8L, 8L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fiztpt_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIZT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIZT_T2Z", 8L, 8L) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fizttz_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FICT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FICT_T2P", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3096,7 +3259,7 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FICT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FICT_P2T", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3104,7 +3267,7 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FICT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FICT_T2Z", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3112,8 +3275,9 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FIBT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIBT_T2P", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3122,7 +3286,7 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIBT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIBT_P2T", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3131,7 +3295,7 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIBT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIBT_T2Z", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3140,8 +3304,9 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FIBN_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIBN_T2P", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3150,7 +3315,7 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIBN_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIBN_P2T", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3159,7 +3324,7 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIBN_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIBN_T2Z", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3168,8 +3333,9 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FIGT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIGT_T2P", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3178,7 +3344,7 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIGT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIGT_P2T", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3187,7 +3353,7 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIGT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIGT_T2Z", 8L, 8L) == 0) {
 	    neval += -2;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3196,8 +3362,9 @@ L1000:
 			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
 			2 << 6) - 65]);
 	    }
-/* ....................................................................... */
-	} else if (s_cmp(cncode, "FIPT_T2P", (ftnlen)8, (ftnlen)8) == 0) {
+/* ...............................................................
+........ */
+	} else if (s_cmp(cncode, "FIPT_T2P", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3205,7 +3372,7 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIPT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIPT_P2T", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3213,7 +3380,7 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "FIPT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
+	} else if (s_cmp(cncode, "FIPT_T2Z", 8L, 8L) == 0) {
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -3221,9 +3388,11 @@ L1000:
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
-/* ....................................................................... */
+/* ...............................................................
+........ */
 	}
-/* ---------------------------------------------------------------------- */
+/* ------------------------------------------------------------------
+---- */
 	if (ncode < *num_code__) {
 	    goto L1000;
 	}
@@ -3236,7 +3405,8 @@ L1000:
 
 /* L5000: */
     }
-/* ----------------------------------------------------------------------- */
+/* -----------------------------------------------------------------------
+ */
 L8000:
     return 0;
 } /* parevec_ */
@@ -3259,7 +3429,8 @@ doublereal ztone_(doublereal *x)
     /* Local variables */
     static doublereal y;
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
     if (*x <= 0.) {
 	ret_val = 0.;
@@ -3286,7 +3457,8 @@ doublereal qg_(doublereal *x)
 
 /*  Compute the reversed cdf of a Gaussian. */
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
     d__1 = *x / 1.414213562373095;
     ret_val = derfc_(&d__1) * .5;
@@ -3304,7 +3476,7 @@ doublereal qg_(doublereal *x)
 /* CC      PARAMETER ( IA = 99992 , IB = 12345 , IT = 99991 ) */
 /* CC      PARAMETER ( F  = 1.00009D-05 ) */
 /* CC      DATA IX / 271 / */
-/* CCC+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/*CCC+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 /* CC      IX = MOD( IA*IX+IB , IT ) */
 /* CC      UNIF = F * IX */
 /* CC      RETURN */
@@ -3331,7 +3503,7 @@ doublereal qg_(doublereal *x)
 /* CCC     WHERE IR MUST BE OF THE FORM  IR = 4*K+1. */
 /* CCC     THEN R ASSUMES ALL VALUES  0 < (4*K+1)/2**28 < 1 DURING */
 /* CCC     A FULL PERIOD 2**26 OF SUNIF. */
-/* CCC+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/*CCC+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 /* CCC */
 /* CC      IF( R .EQ. 0.D+00 ) R = 4000001.D+00 / TWO28 */
 /* CC      R    = DMOD(R*FACTOR,1.0D+00) */
@@ -3354,8 +3526,9 @@ doublereal iran_(doublereal *top)
 
 
 /*  Return an integer uniformly distributed among 0..TOP */
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-    d__1 = (*top + 1.) * unif_(&c_b402);
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
+    d__1 = (*top + 1.) * unif_(&c_b404);
     ret_val = d_int(&d__1);
     return ret_val;
 } /* iran_ */
@@ -3372,14 +3545,15 @@ doublereal eran_(doublereal *top)
     double log(doublereal);
 
     /* Local variables */
-    static doublereal u1;
     extern doublereal unif_(doublereal *);
+    static doublereal u1;
 
 
 /*  Return an exponentially distributed deviate: F(x) = 1-exp(-x/top) */
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 L100:
-    u1 = unif_(&c_b402);
+    u1 = unif_(&c_b404);
     if (u1 <= 0.) {
 	goto L100;
     }
@@ -3399,14 +3573,15 @@ doublereal lran_(doublereal *top)
     double log(doublereal);
 
     /* Local variables */
-    static doublereal u1;
     extern doublereal unif_(doublereal *);
+    static doublereal u1;
 
 
 /*  Return a logistically distributed deviate: F(x) = 1/[1+exp(-x/top)] */
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 L100:
-    u1 = unif_(&c_b402);
+    u1 = unif_(&c_b404);
     if (u1 <= 0. || u1 >= 1.) {
 	goto L100;
     }
@@ -3427,9 +3602,10 @@ doublereal uran_(doublereal *x)
 
 
 /*  Return a U(0,X) random variable. */
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
-    ret_val = *x * unif_(&c_b402);
+    ret_val = *x * unif_(&c_b404);
     return ret_val;
 } /* uran_ */
 
@@ -3450,21 +3626,22 @@ doublereal gran2_(doublereal *b, doublereal *s)
 	    ;
 
     /* Local variables */
-    static doublereal u1, u2;
     extern doublereal unif_(doublereal *);
+    static doublereal u1, u2;
 
 
 /*  Compute a Gaussian random deviate with mean B and stdev S */
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
     if (ip == 0) {
 L100:
-	u1 = unif_(&c_b402);
+	u1 = unif_(&c_b404);
 	if (u1 <= 0.) {
 	    goto L100;
 	}
-	u2 = unif_(&c_b402);
+	u2 = unif_(&c_b404);
 	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
 	ip = 1;
     } else {
@@ -3483,15 +3660,16 @@ doublereal gran1_(doublereal *b, doublereal *s)
     doublereal ret_val;
 
     /* Local variables */
-    static doublereal g;
     extern doublereal unif_(doublereal *);
+    static doublereal g;
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
-    g = unif_(&c_b416) - 6. + unif_(&c_b417) + unif_(&c_b418) + unif_(&c_b419)
-	     + unif_(&c_b420) + unif_(&c_b421) + unif_(&c_b422) + unif_(&
-	    c_b423) + unif_(&c_b424) + unif_(&c_b425) + unif_(&c_b426) + 
-	    unif_(&c_b427);
+    g = unif_(&c_b418) - 6. + unif_(&c_b419) + unif_(&c_b420) + unif_(&c_b421)
+	     + unif_(&c_b422) + unif_(&c_b423) + unif_(&c_b424) + unif_(&
+	    c_b425) + unif_(&c_b426) + unif_(&c_b427) + unif_(&c_b428) + 
+	    unif_(&c_b429);
     ret_val = *b + *s * g;
     return ret_val;
 } /* gran1_ */
@@ -3505,13 +3683,14 @@ doublereal gran_(doublereal *b, doublereal *s)
     doublereal ret_val;
 
     /* Local variables */
-    static doublereal uu;
     extern doublereal unif_(doublereal *), gran1_(doublereal *, doublereal *),
 	     gran2_(doublereal *, doublereal *);
+    static doublereal uu;
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
-    uu = unif_(&c_b402);
+    uu = unif_(&c_b404);
     if (uu <= .5) {
 	ret_val = gran1_(b, s);
     } else {
@@ -3532,14 +3711,15 @@ doublereal qginv_(doublereal *p)
     double log(doublereal), sqrt(doublereal), exp(doublereal);
 
     /* Local variables */
-    static doublereal dp, dq, dt, dx, ddq;
     static integer newt;
     extern doublereal derfc_(doublereal *);
+    static doublereal dp, dq, dt, dx, ddq;
 
 
 /*  Return x such that Q(x)=P, for 0 < P < 1.  Q=reversed Gaussian cdf. */
 
-/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
 
     dp = *p;
     if (dp > .5) {
@@ -3636,6 +3816,22 @@ doublereal step_(doublereal *x)
     }
     return ret_val;
 } /* step_ */
+
+
+
+
+doublereal posval_(doublereal *x)
+{
+    /* System generated locals */
+    doublereal ret_val;
+
+    if (*x <= 0.) {
+	ret_val = 0.;
+    } else {
+	ret_val = *x;
+    }
+    return ret_val;
+} /* posval_ */
 
 
 
@@ -3917,8 +4113,9 @@ doublereal stdev_(integer *n, doublereal *x)
     double sqrt(doublereal);
 
     /* Local variables */
+    static doublereal xbar;
     static integer it;
-    static doublereal tmp, xbar;
+    static doublereal tmp;
 
 
     /* Parameter adjustments */
@@ -3978,9 +4175,9 @@ doublereal median_(integer *n, doublereal *x)
     doublereal ret_val;
 
     /* Local variables */
+    extern /* Subroutine */ int bsort_(integer *, doublereal *);
     static integer it;
     static doublereal tmp;
-    extern /* Subroutine */ int bsort_(integer *, doublereal *);
 
 
     /* Parameter adjustments */
@@ -4035,9 +4232,9 @@ doublereal mad_(integer *n, doublereal *x)
     doublereal ret_val, d__1;
 
     /* Local variables */
+    extern doublereal median_(integer *, doublereal *);
     static integer it;
     static doublereal tmp;
-    extern doublereal median_(integer *, doublereal *);
 
 
     /* Parameter adjustments */
@@ -4144,11 +4341,12 @@ doublereal hmode_(integer *n, doublereal *x)
     doublereal ret_val;
 
     /* Local variables */
-    static integer i__, ib;
+    static integer i__;
+    extern /* Subroutine */ int bsort_(integer *, doublereal *);
+    static integer ib;
     static doublereal vb;
     static integer iv;
     static doublereal val;
-    extern /* Subroutine */ int bsort_(integer *, doublereal *);
 
 
     /* Parameter adjustments */
@@ -4196,11 +4394,12 @@ doublereal lmode_(integer *n, doublereal *x)
     doublereal ret_val;
 
     /* Local variables */
-    static integer i__, ib;
+    static integer i__;
+    extern /* Subroutine */ int bsort_(integer *, doublereal *);
+    static integer ib;
     static doublereal vb;
     static integer iv;
     static doublereal val;
-    extern /* Subroutine */ int bsort_(integer *, doublereal *);
 
 
     /* Parameter adjustments */
@@ -4332,7 +4531,7 @@ doublereal dbi_(doublereal *x, integer *i__)
 /* cc      CALL QQQERR */
 /* cc      DGAMMA = 0.D+0 */
 /* cc      RETURN */
-/* Main program */ int MAIN__(void)
+/* Main program */ MAIN__(void)
 {
     return 0;
 } /* MAIN__ */

@@ -149,6 +149,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   " The following functions are designed to help implement logical\n"          \
   " functions, such as masking of 3D volumes against some criterion:\n"        \
   "       step(x)    = {1 if x>0        , 0 if x<=0},\n"                       \
+  "       posval(x)  = {x if x>0        , 0 if x<=0},\n"                       \
   "       astep(x,y) = {1 if abs(x) > y , 0 otherwise} = step(abs(x)-y)\n"     \
   "       rect(x)    = {1 if abs(x)<=0.5, 0 if abs(x)>0.5},\n"                 \
   "       bool(x)    = {1 if x != 0.0   , 0 if x == 0.0},\n"                   \
