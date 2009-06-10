@@ -143,6 +143,9 @@ static const float wtab[128] = {
 # define INLINE /*nada*/
 #endif
 
+/*-------------------------------------------------------------------------*/
+/*! Return 1 Gaussian random deviate.  Uses mrand48() and drand48(). */
+
 INLINE float zgaussian(void)  /* return one Gaussian random deviate */
 {
   unsigned long  U, sgn, i, j;
@@ -169,6 +172,15 @@ INLINE float zgaussian(void)  /* return one Gaussian random deviate */
   }
   return (sgn ? x : -x) ;
 }
+
+/*-------------------------------------------------------------------------*/
+/*! Return 1 Gaussian random deviate.
+    * Uses jrand48() and erand48().
+    * Input is the length 3 array of unsigned shorts that provides the
+      seed for the random variable generation.
+    * This function is to be used in parallelized (OpenMP) code, where
+      each thread needs its own seed state to avoid conflicts and blocking.
+*//*-----------------------------------------------------------------------*/
 
 INLINE float zgaussian_sss( unsigned short xi[] )
 {
