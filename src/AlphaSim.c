@@ -1594,29 +1594,25 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
 
     yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = iva ;
     cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
-INFO_message("ipow=0.90 cout=%g",cout) ;
     if( cout >= 0.0f && cout < cbest ){
-      cbest = cout ; cpow = 1.0f ; afit = yvec[0] ; bfit = yvec[1] ; cfit = 0.0f ; ipow = 0.90f ;
-      ivz = iva ;
+      cbest = cout; cpow = 1.0f; afit = yvec[0]; bfit = yvec[1]; cfit = 0.0f;
+      ipow = 0.90f ; ivz = iva ;
     }
 
     yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = ivb ;
     cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
-INFO_message("ipow=0.95 cout=%g",cout) ;
     if( cout >= 0.0f && cout < cbest ){
-      cbest = cout ; cpow = 1.0f ; afit = yvec[0] ; bfit = yvec[1] ; cfit = 0.0f ; ipow = 0.95f ;
-      ivz = ivb ;
+      cbest = cout; cpow = 1.0f; afit = yvec[0]; bfit = yvec[1]; cfit = 0.0f;
+      ipow = 0.95f ; ivz = ivb ;
     }
 
     yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = ivc ;
     cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
-INFO_message("ipow=1.00 cout=%g",cout) ;
     if( cout >= 0.0f && cout < cbest ){
-      cbest = cout ; cpow = 1.0f ; afit = yvec[0] ; bfit = yvec[1] ; cfit = 0.0f ; ipow = 1.00f ;
-      ivz = ivc ;
+      cbest = cout; cpow = 1.0f; afit = yvec[0]; bfit = yvec[1]; cfit = 0.0f;
+      ipow = 1.00f ; ivz = ivc ;
     }
-    if( cpow > 0.0f ){ cbest *= 0.90f ; rvec[1] = ivz ; }
-    else             {                  rvec[1] = ivc ; }
+    if( cpow > 0.0f ) cbest *= 0.90f ;
 
     for( pp=1.0f ; pp <= 2.501f ; pp+=0.1f ){
       for( i=0 ; i < ndim ; i++ ){
@@ -1626,22 +1622,38 @@ INFO_message("ipow=1.00 cout=%g",cout) ;
         else              val = powf(val,pp) ;
         rvec[2][i] = val ;
       }
-      yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ;
+
+      yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ; rvec[1] = iva ;
       cout = cl1_solve( ndim , 3 , zvec , rvec , yvec , 1 ) ;
       if( cout >= 0.0f && cout < cbest ){
-        cbest = cout ; cpow = pp ; afit = yvec[0] ; bfit = yvec[1] ; cfit = yvec[2] ;
+        cbest = cout; cpow = pp; afit = yvec[0]; bfit = yvec[1]; cfit = yvec[2];
+        ipow = 0.90f ; ivz = iva ;
       }
-    }
 
-    if( cfit != 0.0f )   /* complicated fit was best */
+      yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ; rvec[1] = ivb ;
+      cout = cl1_solve( ndim , 3 , zvec , rvec , yvec , 1 ) ;
+      if( cout >= 0.0f && cout < cbest ){
+        cbest = cout; cpow = pp; afit = yvec[0]; bfit = yvec[1]; cfit = yvec[2];
+        ipow = 0.95f ; ivz = ivb ;
+      }
+
+      yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ; rvec[1] = ivc ;
+      cout = cl1_solve( ndim , 3 , zvec , rvec , yvec , 1 ) ;
+      if( cout >= 0.0f && cout < cbest ){
+        cbest = cout; cpow = pp; afit = yvec[0]; bfit = yvec[1]; cfit = yvec[2];
+        ipow = 1.00f ; ivz = ivc ;
+      }
+    } /* end of loop over pp power */
+
+    if( cfit != 0.0f )   /* two-part fit was best */
       printf(
          "# Alpha(i) approx 1-exp[-exp"
-         "(%.3f-%.4f*i^%.1f%+.4g*posval(%d-i)^%.1f)]\n" ,
+         "(%.3f-%.4f*i^%.2f%+.4g*posval(%d-i)^%.1f)]\n" ,
          afit , bfit , ipow , cfit , ihigh , cpow ) ;
-    else                 /* simple fit was best */
+    else                 /* simpler fit was best */
       printf(
-         "# Alpha(i) approx 1-exp[-exp(%.3f-%.4f*i)]\n" ,
-         afit , bfit ) ;
+         "# Alpha(i) approx 1-exp[-exp(%.3f-%.4f*i^%.2f)]\n" ,
+         afit , bfit , ipow ) ;
 
     EXTREME_DONE: ;
     if( zvec != NULL ){
