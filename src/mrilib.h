@@ -101,7 +101,7 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \
   )
 #else
-# define PRINT_AFNI_OMP_USAGE(pnam) /*nada*/
+# define PRINT_AFNI_OMP_USAGE(pnam,extra) /*nada*/
 #endif
 
 /*----------------------------------------------------------------------------*/

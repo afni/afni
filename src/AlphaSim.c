@@ -260,7 +260,7 @@ void display_help_menu()
    " Note that the breakpoint for the small i/large Alpha correction is\n"
    " set to be at the cluster size i where Alpha(i) is about 0.3\n"
    " [in the sample above, 'posval(16-i)'].  For larger i/smaller Alpha,\n"
-   " the approximation is of the form\n"
+   " the approximation is of the simple form\n"
    "   1-exp[-exp(a-b*i^p)]\n"
    " where a, b, p are constants. (For a pure extreme value distribution, p=1;\n"
    " I've found that allowing p < 1 gives slightly better fits in some cases.)\n"
