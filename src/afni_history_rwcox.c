@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , JUN , 2009 , RWC , "zgaussian" , MICRO , TYPE_BUG_FIX ,
+   "'long' should be 'int' on 64 bit systems, when doing bit twiddling" ,
+   NULL } ,
+
  { 11 , JUN , 2009 , RWC , "parser" , MICRO , TYPE_MODIFY ,
    "Added posval() function, and treat '[]' as '()' for clarity." ,
    NULL } ,
