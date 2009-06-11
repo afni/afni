@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, JUN, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added masking abilities",
+   "- in mask block, try to create anat and group masks\n"
+   "- added -mask_apply option, for choosing mask to apply to regression\n"
+   "- added -align_opts_aea, for extra opts to align_epi_anat.py"
+ } ,
+
  { 8, JUN, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "added -despike_mask, fixed missing block warning, reordered terminal opts",
    NULL
