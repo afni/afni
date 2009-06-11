@@ -92,14 +92,21 @@ def db_cmd_align(proc, block):
             return     # error message is printed
         basevol = proc.prev_prefix_form(rind+1, view=1)
 
+    # add any user-specified options
+    opt = block.opts.find_opt('-align_opts_aea')
+    if opt and opt.parlist: extra_opts = "       %s \\\n" % \
+                            ' '.join(UTIL.quotize_list(opt.parlist, '', 1))
+    else:   extra_opts = ''
+
     # write commands
     cmd =       '# -------------------------------------------------------\n' \
                 '# align anatomy to EPI registration base\n'
     cmd = cmd + 'align_epi_anat.py -anat2epi \\\n'                      \
                 '       -anat %s \\\n'                                  \
                 '       -epi %s \\\n'                                   \
+                '%s'                                                    \
                 '       -epi_base %d -volreg off -tshift off\n\n'       \
-                % (proc.anat.pv(), basevol, bind)
+                % (proc.anat.pv(), basevol, extra_opts, bind)
 
     # store alignment matrix file for possible later use
     proc.a2e_mat = "%s_al_mat.aff12.1D" % proc.anat.prefix
@@ -112,6 +119,9 @@ def db_cmd_align(proc, block):
         proc.anat.prefix = "%s_al" % proc.anat.prefix
         if proc.tlrcanat: proc.tlrcanat.prefix = "%s_al" % proc.tlrcanat.prefix
         proc.tlrc_ss = 0        # default to no skull-strip
+
+    # note the alignment in EPIs warp bitmap (2=a2e)
+    proc.warp_epi |= 2
 
     return cmd
 
@@ -282,7 +292,7 @@ def db_cmd_ricor(proc, block):
     if nsliregs * nslices != adata.nvec:
         print "** ERROR: ricor nsliregs x nslices != nvec (%d,%d,%d)\n" \
               "   (# slice 0 labels found = %d)"                        \
-              (nsliregs, nslices, adata.nvec, len(nsr_labs))
+              % (nsliregs, nslices, adata.nvec, len(nsr_labs))
         return
     if proc.verb > 1: print '-- ricor: nsliregs = %d, # slice 0 labels = %d' \
                             % (nsliregs, len(nsr_labs))
@@ -713,6 +723,12 @@ def db_cmd_volreg(proc, block):
     dowarp = block.opts.find_opt('-volreg_tlrc_warp') != None
     doe2a = block.opts.find_opt('-volreg_align_e2a') != None
 
+    # store these flags for other processing blocks
+    if dowarp: proc.warp_epi |= 1
+    if doe2a:  # if e2a, note it and clear any a2e
+        proc.warp_epi |= 4
+        proc.warp_epi &= ~2
+
     cur_prefix = proc.prefix_form_run(block)
     cstr   = '' # appended to comment string
     if dowarp or doe2a:
@@ -906,7 +922,14 @@ def db_mod_mask(block, proc, user_opts):
             block.valid = 0
             return 1
 
-    proc.mask = 'full_mask.$subj'  # note that we have a mask to apply
+    uopt = user_opts.find_opt('-mask_apply')
+    bopt = block.opts.find_opt('-mask_apply')
+    if uopt:
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-mask_apply', 1, uopt.parlist, setpar=1)
+
+    proc.mask_epi = BASE.afni_name('full_mask.$subj')
+    proc.mask = proc.mask_epi   # default to referring to EPI mask
 
     block.valid = 1
 
@@ -918,7 +941,7 @@ def db_mod_mask(block, proc, user_opts):
 # if possible: also make a group anatomical mask
 #    - only if tlrc block and -volreg_tlrc_warp
 #    - apply from -tlrc_base
-# add -mask_apply TYPE, TYPE in {epi, anat, standard}
+# add -mask_apply TYPE, TYPE in {epi, anat, group}
 #     (this would override -regress_apply_mask)
 def db_cmd_mask(proc, block):
     cmd = ''
@@ -926,6 +949,13 @@ def db_cmd_mask(proc, block):
     type = opt.parlist[0]
     if type == 'union': min = 0            # result must be greater than min
     else:               min = 0.999
+
+    # if we have an EPI mask, set the view here
+    if proc.mask_epi.view == '': proc.mask_epi.view = proc.view
+    if not proc.mask: proc.mask = proc.mask_epi
+    if not proc.mask:
+        print '** ERROR: no mask dset for mask block'
+        return
 
     opt = block.opts.find_opt('-mask_dilate')
     nsteps = opt.parlist[0]
@@ -942,14 +972,147 @@ def db_cmd_mask(proc, block):
         cmd = cmd + "# get mean and compare it to %s for taking '%s'\n"      \
                     "3dMean -datum short -prefix rm.mean rm.mask*.HEAD\n"    \
                     "3dcalc -a rm.mean%s -expr 'ispositive(a-%s)' "          \
-                    "-prefix full_mask.$subj\n\n" %                          \
-                    (str(min), type, proc.view, str(min))
+                    "-prefix %s\n\n" %                                       \
+                    (str(min), type, proc.view, str(min), proc.mask_epi.prefix)
     else:  # just copy the one
         cmd = cmd + "# only 1 run, so copy this to full_mask\n"              \
-                    "3dcopy rm.mask_r01%s full_mask.$subj\n\n"  % proc.view
+                    "3dcopy rm.mask_r01%s %s\n\n"                            \
+                    % (proc.view, proc.mask_epi.prefix)
+
+    # if possible make a subject anat mask, resampled to EPI
+    if proc.warp_epi:
+        mc = anat_mask_command(proc, block)
+        if mc == None: return
+        cmd = cmd + mc
+
+    # if possible make a group anat mask, resampled to EPI
+    if proc.warp_epi:
+        mc = group_mask_command(proc, block)
+        if mc == None: return
+        cmd = cmd + mc
+
+    # lastly, see if the user wants to choose which mask to apply
+    opt = block.opts.find_opt('-mask_apply')
+    if opt:
+        mtype = opt.parlist[0]
+        if   mtype == 'epi':   proc.mask = proc.mask_epi
+        elif mtype == 'anat':  proc.mask = proc.mask_anat
+        elif mtype == 'group': proc.mask = proc.mask_group
+        if proc.verb > 1: print "++ applying mask as '%s'" % mtype
+        if proc.mask: proc.regmask = 1 # apply, if it seems to exist
+        else:
+            print "** ERROR: cannot apply %s mask" % mtype
+            return
 
     # do not increment block index or set 'previous' block label,
     # as there are no datasets created here
+
+    return cmd
+
+# if possible: make a group anatomical mask (resampled to EPI)
+#    - only if tlrc block and -volreg_tlrc_warp
+#    - apply from -tlrc_base
+# return None on failure
+def group_mask_command(proc, block):
+    if not proc.warp_epi & 1 or not proc.tlrc_base:
+        if proc.verb>2: print "-- no group mask, warp_epi = %d" % proc.warp_epi
+        return ''
+
+    #--- first things first, see if we can locate the tlrc base
+
+    cmd = '@FindAfniDsetPath %s' % proc.tlrc_base.pv()
+    if proc.verb > 1: estr = 'echo'
+    else            : estr = ''
+    com = BASE.shell_com(cmd, estr, capture=1)
+    com.run()
+
+    if com.status or not com.so or len(com.so[0]) < 2:
+        # call this a non-fatal error for now
+        print "** failed to find tlrc_base '%s' for group mask"%proc.tlrc_base
+        if proc.verb > 2:
+           print '   status = %s' % com.status
+           print '   stdout = %s' % com.so
+           print '   stderr = %s' % com.se
+        return ''
+
+    proc.tlrc_base.path = com.so[0]
+    # nuke any newline character
+    newline = proc.tlrc_base.path.find('\n')
+    if newline > 1: proc.tlrc_base.path = proc.tlrc_base.path[0:newline]
+    print "-- masking: group anat = '%s', exists = %d"   \
+          % (proc.tlrc_base.pv(), proc.tlrc_base.exist())
+
+    if not proc.tlrc_base.exist():
+        print "** cannot create group mask"
+        return ''
+
+    #--- tlrc base exists, now resample and make a mask of it
+    proc.mask_group = proc.mask_epi.new('mask_group')
+    cmd = "# ---- create group anatomy mask, %s\n"       \
+          "#      (resampled from tlrc base anat, %s)\n" \
+          % (proc.mask_group.pv(), proc.tlrc_base.pv())
+
+    tanat = proc.mask_group.new('rm.resam.group') # temp resampled group dset
+    cmd = cmd + "3dresample -master %s -prefix ./%s \\\n" \
+                "           -input %s\n\n"                \
+                % (proc.mask_epi.pv(), tanat.prefix, proc.tlrc_base.ppv())
+
+    # and finally, convert to the binary mask of choice
+    cmd = cmd + "# convert resampled group brain to binary mask\n"  \
+                "3dcalc -a %s -expr 'ispositive(a)' -prefix %s\n\n" \
+                % (tanat.pv(), proc.mask_group.prefix)
+
+    return cmd
+
+# if possible make a subject anatomical mask (resampled to EPI)
+#    - if -volreg_tlrc_warp, apply from tlrc anat
+#    - if a2e, apply from anat_al
+#    - if e2a, apply from anat_al with inverted transform
+# return None on failure
+def anat_mask_command(proc, block):
+    if not proc.warp_epi: return ''
+
+    proc.mask_anat = proc.mask_epi.new('mask_anat.$subj')
+    cmd = "# ---- create subject anatomy mask, %s\n" % proc.mask_anat.pv()
+
+    if proc.verb > 2:
+        print '-- mask for anat based on warp_epi == %d\n'   \
+              '   (1==tlrc, 2=anat2epi, 4=epi2anat)'
+
+    # set anat, comment string text and temporary anat
+    if proc.warp_epi & 1:
+        anat = proc.tlrcanat
+        ss = 'tlrc'
+    elif proc.warp_epi & 2:
+        anat = proc.anat
+        ss = 'aligned'
+    elif proc.warp_epi & 4:
+        anat = proc.anat.new(proc.anat.prefix+'_al')
+        ss = 'aligned'
+    else: # should not happen
+        print '** anat_mask_command: invalid warp_epi = %x' % proc.warp_epi
+        return None
+    cmd = cmd + "#      (resampled from %s anat)\n" % ss
+    tanat = anat.new('rm.resam.anat')   # temporary resampled anat dset
+
+    # resample masked anat to epi dataset, output is temporary anat
+    if proc.warp_epi & 1 or proc.warp_epi & 2:
+        cmd = cmd + "3dresample -master %s -prefix %s \\\n"      \
+                    "           -input %s\n\n"                 \
+                    % (proc.mask_epi.pv(), tanat.prefix, anat.pv())
+    else: # warp_epi & 4
+        cmd = cmd + '\n'                                                     \
+              "# invert a2e matrix, and warp/resample skull-stripped anat\n" \
+              "cat_matvec -ONELINE %s -I > mat.a2e.inv.aff12.1D\n"           \
+              "3dAllineate -input %s -master %s \\\n"                        \
+              "            -1Dmatrix_apply mat.a2e.inv.aff12.1D \\\n"        \
+              "            -prefix %s\n\n"                                   \
+               % (proc.a2e_mat, anat.pv(), proc.mask_epi.pv(), tanat.prefix)
+
+    # and finally, convert to the binary mask of choice
+    cmd = cmd + "# convert resampled anat brain to binary mask\n"   \
+                "3dcalc -a %s -expr 'ispositive(a)' -prefix %s\n\n" \
+                % (tanat.pv(), proc.mask_anat.prefix)
 
     return cmd
 
@@ -983,7 +1146,7 @@ def db_cmd_scale(proc, block):
     else:         valstr = 'a/b*100'
 
     if proc.mask and proc.regmask:
-        mask_dset = '           -c %s%s \\\n' % (proc.mask, proc.view)
+        mask_dset = '           -c %s%s \\\n' % (proc.mask.prefix, proc.view)
         expr      = 'c * %s' % valstr
     else:
         mask_dset = ''
@@ -1189,7 +1352,7 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_fitts_prefix')
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0] + '.$subj'   # add $subj to prefix
-    elif not bopt: # maybe it was deleted previously (not currently possible)
+    elif uopt and not bopt: # maybe deleted previously (not currently possible)
         block.opts.add_opt('-regress_fitts_prefix', 1, uopt.parlist,setpar=1)
 
     # maybe the user wants to delete it
@@ -1317,7 +1480,7 @@ def db_cmd_regress(proc, block):
         cmd = cmd + newcmd
 
     if proc.mask and proc.regmask:
-        mask = '    -mask %s%s \\\n' % (proc.mask, proc.view)
+        mask = '    -mask %s%s \\\n' % (proc.mask.prefix, proc.view)
     else:
         mask = ''
 
@@ -1576,7 +1739,7 @@ def db_cmd_blur_est(proc, block):
 
     if aopt:
         bstr = blur_est_loop_str(proc, 'all_runs.$subj%s' % proc.view, 
-                    '%s%s' % (proc.mask, proc.view), 'epits', blur_file)
+                    '%s%s' % (proc.mask.prefix, proc.view), 'epits', blur_file)
         if not bstr: return
         cmd = cmd + bstr
 
@@ -1586,13 +1749,13 @@ def db_cmd_blur_est(proc, block):
 
     if eopt and not sopt: # want errts, but 3dD was not executed
         bstr = blur_est_loop_str(proc, '%s%s' % (errts_pre, proc.view), 
-                    '%s%s' % (proc.mask, proc.view), 'errts', blur_file)
+                    '%s%s' % (proc.mask.prefix, proc.view), 'errts', blur_file)
         if not bstr: return
         cmd = cmd + bstr
     if eopt and ropt: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
         bstr = blur_est_loop_str(proc, '%s\_REML%s' % (errts_pre, proc.view), 
-                    '%s%s' % (proc.mask, proc.view), 'err_reml', blur_file)
+                    '%s%s'%(proc.mask.prefix,proc.view), 'err_reml', blur_file)
         if not bstr: return
         cmd = cmd + bstr
     cmd = cmd + '\n'
@@ -1859,8 +2022,9 @@ g_help_string = """
 
     optional blocks (the default is to _not_ apply these blocks)
 
+        align       : align EPI anat anatomy (via align_epi_anat.py)
         despike     : truncate spikes in each voxel's time series
-        empty       : placehold for some user command (using 3dTcat as sample)
+        empty       : placeholder for some user command (uses 3dTcat as sample)
         ricor       : RETROICOR - removal of cardiac/respiratory regressors
         tlrc        : warp anat to standard space
 
@@ -1890,12 +2054,16 @@ g_help_string = """
                   - use quintic interpolation for time series resampling
                         (option: -tshift_interp -quintic)
 
+        align:    - align the anatomy to match the EPI
+                    (also required for the option of aligning EPI to anat)
+
         volreg:   - align to third volume of first run, -zpad 1
                         (option: -volreg_align_to third)
                         (option: -volreg_zpad 1)
                   - use cubic interpolation for volume resampling
                         (option: -volreg_interp -cubic)
                   - apply motion params as regressors across all runs at once
+                  - do not align EPI to anat
                   - do not warp to standard space
 
         blur:     - blur data using a 4 mm FWHM filter
@@ -1904,6 +2072,8 @@ g_help_string = """
 
         mask:     - create a union of masks from 3dAutomask on each run
                   - not applied in regression without -regress_apply_mask
+                  - if possible, create a subject anatomy mask
+                  - if possible, create a group anatomy mask (tlrc base)
 
         scale:    - scale each voxel to mean of 100, clip values at 200
 
@@ -2137,12 +2307,29 @@ g_help_string = """
 
     The default operation of afni_proc.py has changed (as of 24 Mar, 2009).
 
-    Now a mask dataset will be created but not actually applied at the
-    scaling step or in the regression.
+    Now an EPI mask dataset will be created but not actually applied at the
+    scaling step or in the regression.  This is still called 'full_mask'.
 
-    --> To apply the mask during regression, use -regress_apply_mask.
+    Also, if possible, a subject anatomy mask will be created.  This requires
+    either the 'align' block or a tlrc anatomy (from the 'tlrc' block, or just
+    copied in via '-copy_anat').  The anatomy mask will be created from the
+    appropriate skull-stripped anatomy, resampled to match the EPI and changed
+    into a binary mask.  The subject mask dataset is called 'mask_anat.$subj'.
 
-    **  Why has the default been changed?  **
+    Also, if possible, a group mask will be created.  This requires the 'tlrc'
+    block, from which the @auto_tlrc -base dataset is chosen as the group
+    anatomy.  It requires '-volreg_warp_epi' so that the EPI is in standard
+    space.  The group anatomy is then resampled to match the EPI and changed
+    into a binary mask.  The group mask dataset is called 'mask_group'.
+
+    --> To apply the mask during regression, use -mask_apply.
+
+    Note that it is still not a good idea to apply either the epi or anat masks
+    to the regression, as it would then be necessary to intersect the masks
+    across subjects.  Again, it may be better not to mask during single subject
+    processing, though applying a 'group' mask might be reasonable.
+
+ ** Why has the default been changed?
 
     It seems much better not to mask the regression data in the single-subject
     analysis at all, send _all_ of the results to group space, and apply an
@@ -2151,7 +2338,7 @@ g_help_string = """
 
     Since subjects have varying degrees of signal dropout in valid brain areas
     of the EPI data, the resulting intersection mask that would be required in
-    group space may exclude edge regions that people may be interested in.
+    group space may exclude edge regions that are otherwise desirable.
 
     Also, it is helpful to see if much 'activation' appears outside the brain.
     This could be due to scanner or interpolation artifacts, and is useful to
@@ -2161,6 +2348,11 @@ g_help_string = """
     considered valid, create a mask based on the anatomy _after_ the results
     have been warped to a standard group space.  Then perhaps dilate the mask
     by one voxel.  Example #11 from '3dcalc -help' shows how one might dilate.
+
+ ** Note that the EPI data can now be warped to standard space at the volreg
+    step.  In that case, it would be appropriate to mask the EPI data based
+    on the Talairach template, such as what is used for -base in @auto_tlrc.
+    This can be done via '-mask_apply group'.
 
     ---
 
@@ -2174,7 +2366,8 @@ g_help_string = """
 
     It might be okay to create the intersection mask from only those subjects
     which were masked in the regression, however one might say that biases the
-    voxel choices toward those subjects.  Maybe that does not matter.
+    voxel choices toward those subjects.  Maybe that does not matter.  Any
+    voxels used would still be across all subjects.
 
     ---
 
@@ -2198,7 +2391,7 @@ g_help_string = """
     of the volreg step via the option '-volreg_tlrc_warp'.  Note that it can
     also align the EPI and anatomy at the volreg step via '-volreg_align_e2a'.
 
-    This tlrc transformation is recommended for many reasons, though most are
+    This tlrc transformation is recommended for many reasons, though some are
     not yet implemented.  Advantages include:
 
         - single interpolation of the EPI data
@@ -2452,7 +2645,7 @@ g_help_string = """
         -blocks BLOCK1 ...      : specify the processing blocks to apply
 
                 e.g. -blocks volreg blur scale regress
-                e.g. -blocks despike tshift volreg blur scale regress
+                e.g. -blocks despike tshift align volreg blur scale regress
                 default: tshift volreg blur mask scale regress
 
             The user may apply this option to specify which processing blocks
@@ -2483,17 +2676,24 @@ g_help_string = """
 
         -do_block BLOCK_NAME ...: add extra blocks in their default positions
 
-                e.g. -do_block despike
+                e.g. -do_block despike ricor
+                e.g. -do_block align
 
-            Currently, the 'despike' block is the only block not applied by
-            default (in the processing script).  Any block not included in
-            the default list can be added via this option.
+            With this option, any 'optional block' can be applied in its
+            default position.  This includes the following blocks, along with
+            their default positions:
 
-            The default position for 'despike' is between 'tcat' and 'tshift'.
+                align   : after tlrc, before volreg
+                despike : first (between tcat and tshift)
+                empty   : NO DEFAULT, cannot be applied via -do_block
+                ricor   : just after despike (else first)
+                tlrc    : before volreg, after align
 
-            This option should not be used with '-blocks'.
+            Any block not included in -blocks can be added via this option
+            (except for 'empty').
 
-            See also '-blocks'.
+            See also '-blocks', as well as the "PROCESSING BLOCKS" section of
+            the -help output.
 
         -dsets dset1 dset2 ...  : (REQUIRED) specify EPI run datasets
 
@@ -2594,59 +2794,6 @@ g_help_string = """
             name (unless -out_dir is used).  This option allows the user to
             apply an appropriate naming convention.
 
-        -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
-
-                e.g. -tlrc_anat
-
-            After the regression block, run @auto_tlrc on the anatomical
-            dataset provided by '-copy_anat'.  By default, warp the anat to
-            align with TT_N27+tlrc, unless the '-tlrc_base' option is given.
-
-            The -copy_anat option specifies which anatomy to transform.
-
-            Please see '@auto_tlrc -help' for more information.
-            See also -copy_anat, -tlrc_base, -tlrc_no_ss.
-
-        -tlrc_base BASE_DSET    : run "@auto_tlrc -base BASE_DSET"
-
-                e.g. -tlrc_base TT_icbm452+tlrc
-                default: -tlrc_base TT_N27+tlrc
-
-            This option is used to supply an alternate -base dataset for
-            @auto_tlrc.  Otherwise, TT_N27+tlrc will be used.
-
-            Note that the default operation of @auto_tlrc is to "skull strip"
-            the input dataset.  If this is not appropriate, consider also the
-            '-tlrc_no_ss' option.
-
-            Please see '@auto_tlrc -help' for more information.
-            See also -tlrc_anat, -tlrc_no_ss.
-
-        -tlrc_no_ss             : add the -no_ss option to @auto_tlrc
-
-                e.g. -tlrc_no_ss
-
-            This option is used to tell @auto_tlrc not to perform the skull
-            strip operation.
-
-            Please see '@auto_tlrc -help' for more information.
-
-        -tlrc_rmode RMODE       : apply RMODE resampling in @auto_tlrc
-
-                e.g. -tlrc_rmode NN
-
-            This option is used to apply '-rmode RMODE' in @auto_tlrc.
-
-            Please see '@auto_tlrc -help' for more information.
-
-        -tlrc_suffix SUFFIX     : apply SUFFIX to result of @auto_tlrc
-
-                e.g. -tlrc_suffix auto_tlrc
-
-            This option is used to apply '-suffix SUFFIX' in @auto_tlrc.
-
-            Please see '@auto_tlrc -help' for more information.
-
         -verb LEVEL             : specify the verbosity of this script
 
                 e.g. -verb 2
@@ -2654,7 +2801,7 @@ g_help_string = """
 
             Print out extra information during execution.
 
-        ------------ block options ------------
+        ------------ block options (in default block order) ------------
 
         These options pertain to individual processing blocks.  Each option
         starts with the block name.
@@ -2828,6 +2975,94 @@ g_help_string = """
             which may be used for multiple 3dTshift options.
 
             Please see '3dTshift -help' for more information.
+
+        -tlrc_anat              : run @auto_tlrc on '-copy_anat' dataset
+
+                e.g. -tlrc_anat
+
+            After the regression block, run @auto_tlrc on the anatomical
+            dataset provided by '-copy_anat'.  By default, warp the anat to
+            align with TT_N27+tlrc, unless the '-tlrc_base' option is given.
+
+            The -copy_anat option specifies which anatomy to transform.
+
+         ** Note, use of this option has the same effect as application of the
+            'tlrc' block.
+
+            Please see '@auto_tlrc -help' for more information.
+            See also -copy_anat, -tlrc_base, -tlrc_no_ss and the 'tlrc' block.
+
+        -tlrc_base BASE_DSET    : run "@auto_tlrc -base BASE_DSET"
+
+                e.g. -tlrc_base TT_icbm452+tlrc
+                default: -tlrc_base TT_N27+tlrc
+
+            This option is used to supply an alternate -base dataset for
+            @auto_tlrc.  Otherwise, TT_N27+tlrc will be used.
+
+            Note that the default operation of @auto_tlrc is to "skull strip"
+            the input dataset.  If this is not appropriate, consider also the
+            '-tlrc_no_ss' option.
+
+            Please see '@auto_tlrc -help' for more information.
+            See also -tlrc_anat, -tlrc_no_ss.
+
+        -tlrc_no_ss             : add the -no_ss option to @auto_tlrc
+
+                e.g. -tlrc_no_ss
+
+            This option is used to tell @auto_tlrc not to perform the skull
+            strip operation.
+
+            Please see '@auto_tlrc -help' for more information.
+
+        -tlrc_rmode RMODE       : apply RMODE resampling in @auto_tlrc
+
+                e.g. -tlrc_rmode NN
+
+            This option is used to apply '-rmode RMODE' in @auto_tlrc.
+
+            Please see '@auto_tlrc -help' for more information.
+
+        -tlrc_suffix SUFFIX     : apply SUFFIX to result of @auto_tlrc
+
+                e.g. -tlrc_suffix auto_tlrc
+
+            This option is used to apply '-suffix SUFFIX' in @auto_tlrc.
+
+            Please see '@auto_tlrc -help' for more information.
+
+        -align_opts_aea OPTS ... : specify extra options for align_epi_anat.py
+
+                e.g. -align_opts_aea -big_move 
+                e.g. -align_opts_aea -giant_move -AddEdge -epi_strip 3dAutomask
+
+            This option allows the user to add extra options to the alignment
+            command, align_epi_anat.py.
+
+            Note that only one -align_opts_aea option should be given, with
+            possibly many parameters to be passed on to align_epi_anat.py.
+
+            Please see "align_epi_anat.py -help" for more information.
+
+        -volreg_align_e2a       : align EPI to anatomy at volreg step
+
+            This option is used to align the EPI data to match the anatomy.
+            It is done by applying the inverse of the anatomy to EPI alignment
+            matrix to the EPI data at the volreg step.  The 'align' processing
+            block is required.
+
+            At the 'align' block, the anatomy is aligned to the EPI data.
+            When applying the '-volreg_align_e2a' option, the inverse of that
+            a2e transfomation (so now e2a) is instead applied to the EPI data.
+
+            Note that this e2a transformation is catenated with the volume
+            registration transformations, so that the EPI data is still only
+            resampled the one time.  If the user requests -volreg_tlrc_warp,
+            the +tlrc transformation will also be applied at that step in a
+            single transformation.
+
+            See also the 'align' block and '-volreg_tlrc_warp'.
 
         -volreg_align_to POSN   : specify the base position for volume reg
 
@@ -3017,6 +3252,29 @@ g_help_string = """
 
             Please see '3dmerge -help' for more information.
 
+        -mask_apply TYPE        : specify which mask to apply in regression
+
+                e.g. -mask_apply group
+
+            If possible, masks will be made for the EPI data, the subject
+            anatomy and the group anatomy.  This option is used to specify
+            which of those masks to apply to the regression.
+
+            Valid choices: epi, anat, group.
+
+            A subject 'anat' mask will be created if the EPI anat anatomy are
+            aligned, or if the EPI data is warped to standard space via the
+            anat transformation.  In any case, a skull-stripped anat will exist.
+
+            A 'group' anat mask will be created if the 'tlrc' block is used
+            (via the -block or -tlrc_anat options).  In such a case, the anat
+            template will be made into a binary mask.
+
+            This option makes -regress_apply_mask obsolete.
+
+            See "MASKING NOTE" and "DEFAULTS" for details.
+            See also -blocks.
+
         -mask_type TYPE         : specify 'union' or 'intersection' mask type
 
                 e.g. -mask_type intersection
@@ -3092,8 +3350,11 @@ g_help_string = """
             By default, any created union mask is not applied to the analysis.
             Use this option to apply it.
 
+         ** This option is essentially obsolete.  Please consider -mask_apply
+            as a preferable option to choose which mask to apply.
+
             See "MASKING NOTE" and "DEFAULTS" for details.
-            See also -blocks.
+            See also -blocks, -mask_apply.
 
         -regress_basis BASIS    : specify the regression basis function
 
@@ -3496,7 +3757,7 @@ g_help_string = """
             See also -regress_stim_files, -regress_use_stim_files,
                      -tshift_align_to.
 
-        -regress_use_stim_times : use -stim_file in regression, not -stim_times
+        -regress_use_stim_files : use -stim_file in regression, not -stim_times
 
             The default operation of afni_proc.py is to convert TR-locked files
             for the 3dDeconvolve -stim_file option to timing files for the

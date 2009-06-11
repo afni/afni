@@ -135,10 +135,13 @@ g_history = """
     1.52 Jun 8 2009 :
         - added -despike_mask option
         - fixed missing block warning
-        - reordered terminal options
+    1.53 Jun 11 2009 :
+        - in mask block, try to create anat and group masks
+        - added -mask_apply option, for choosing mask to apply to regression
+        - added -align_opts_aea, for extra opts to align_epi_anat.py
 """
 
-g_version = "version 1.52, June 8, 2009"
+g_version = "version 1.53, June 11, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -198,6 +201,7 @@ class SubjProcSream:
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_ss    = 1             # whether to assume skull strip in tlrc
+        self.warp_epi   = 0             # xform bitmap: 1=tlrc, 2=a2e, 4=e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
@@ -219,7 +223,10 @@ class SubjProcSream:
         self.reps_vary  = 0             # do the repetitions vary
         self.datatype   = -1            # 1=short, 3=float, ..., -1=uninit
         self.scaled     = -1            # if shorts, are they scaled?
-        self.mask       = None          # mask dataset
+        self.mask       = None          # mask dataset: one of the following
+        self.mask_epi   = None          # mask dataset (from EPI)
+        self.mask_anat  = None          # mask dataset (from subject anat)
+        self.mask_group = None          # mask dataset (from tlrc base)
         self.exec_cmd   = ''            # script execution command string
         self.bash_cmd   = ''            # bash formatted exec_cmd
         self.tcsh_cmd   = ''            # tcsh formatted exec_cmd
@@ -320,17 +327,6 @@ class SubjProcSream:
         self.valid_opts.add_opt('-despike_opts_3dDes', -1, [],
                         helpstr='additional options directly for 3dDespike')
 
-        self.valid_opts.add_opt('-tlrc_anat', 0, [],
-                        helpstr='run @auto_tlrc on anat from -copy_anat')
-        self.valid_opts.add_opt('-tlrc_base', 1, [],
-                        helpstr='alternate @auto_tlrc base (not TT_N27, say)')
-        self.valid_opts.add_opt('-tlrc_no_ss', 0, [],
-                        helpstr='do not skull-strip during @auto_tlrc')
-        self.valid_opts.add_opt('-tlrc_rmode', 1, [],
-                        helpstr='resample mode applied in @auto_tlrc')
-        self.valid_opts.add_opt('-tlrc_suffix', 1, [],
-                        helpstr='suffix applied in @auto_tlrc (default: NONE)')
-
         self.valid_opts.add_opt('-ricor_datum', 1, [],
                         acplist=['short', 'float'],
                         helpstr='output datatype from ricor processing block')
@@ -352,6 +348,20 @@ class SubjProcSream:
                         helpstr='interpolation method used in 3dTshift')
         self.valid_opts.add_opt('-tshift_opts_ts', -1, [],
                         helpstr='additional options directly for 3dTshift')
+
+        self.valid_opts.add_opt('-tlrc_anat', 0, [],
+                        helpstr='run @auto_tlrc on anat from -copy_anat')
+        self.valid_opts.add_opt('-tlrc_base', 1, [],
+                        helpstr='alternate @auto_tlrc base (not TT_N27, say)')
+        self.valid_opts.add_opt('-tlrc_no_ss', 0, [],
+                        helpstr='do not skull-strip during @auto_tlrc')
+        self.valid_opts.add_opt('-tlrc_rmode', 1, [],
+                        helpstr='resample mode applied in @auto_tlrc')
+        self.valid_opts.add_opt('-tlrc_suffix', 1, [],
+                        helpstr='suffix applied in @auto_tlrc (default: NONE)')
+
+        self.valid_opts.add_opt('-align_opts_aea', -1, [],
+                        helpstr='additional options for align_epi_anat.py')
 
         self.valid_opts.add_opt('-volreg_align_e2a', 0, [],
                         helpstr="align EPI to anatomy (via align block)")
@@ -382,11 +392,14 @@ class SubjProcSream:
         self.valid_opts.add_opt('-blur_opts_merge', -1, [],
                         helpstr='additional options directly for 3dmerge')
 
+        self.valid_opts.add_opt('-mask_apply', 1, [],
+                        acplist=['epi', 'anat', 'group'],
+                        helpstr="select mask to apply in regression")
+        self.valid_opts.add_opt('-mask_dilate', 1, [],
+                        helpstr="dilation to be applied in automask")
         self.valid_opts.add_opt('-mask_type', 1, [],
                         acplist=['union','intersection'],
                         helpstr="specify a 'union' or 'intersection' mask type")
-        self.valid_opts.add_opt('-mask_dilate', 1, [],
-                        helpstr="dilation to be applied in automask")
 
         self.valid_opts.add_opt('-scale_max_val', 1, [],
                         helpstr="maximum value for scaled data (def: 200)")
@@ -791,11 +804,13 @@ class SubjProcSream:
         if self.verb > 0:
             # last warning, if user is masking EPI data...
             if self.mask != None:
-                if self.regmask and self.view == '+orig':
-                    print "** masking EPI is not recommended in +orig space"
+                if self.regmask:
+                  if self.mask != self.mask_group:
+                    print "** masking single subject EPI is not recommended"
+                    print "   (see 'MASKING NOTE' from the -help for details)"
                 else:
                     print "** masking EPI is no longer the default"
-                print "   (see 'MASKING NOTE' in the -help output for details)"
+                    print "   (see 'MASKING NOTE' from the -help for details)"
 
             if self.runs == 1:
                 print "\n-------------------------------------\n" \
