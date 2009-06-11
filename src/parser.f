@@ -607,9 +607,9 @@ C
       ELSEIF( C_FIRST .EQ. '^' )THEN
          NTYPE = NT_EXPOP
          VALUE = VT_STARS
-      ELSEIF( C_FIRST .EQ. '(' )THEN
+      ELSEIF( C_FIRST .EQ. '(' .OR. C_FIRST .EQ. '[' )THEN
          NTYPE = NT_OPEN
-      ELSEIF( C_FIRST .EQ. ')' )THEN
+      ELSEIF( C_FIRST .EQ. ')' .OR. C_FIRST .EQ. ']' )THEN
          NTYPE = NT_CLOSE
       ELSEIF( C_FIRST .EQ. ',' )THEN
          NTYPE = NT_COMMA
