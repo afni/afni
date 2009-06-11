@@ -9,19 +9,19 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b404 = 0.;
-static doublereal c_b418 = 1.;
-static doublereal c_b419 = 2.;
-static doublereal c_b420 = 3.;
-static doublereal c_b421 = 4.;
-static doublereal c_b422 = 5.;
-static doublereal c_b423 = 6.;
-static doublereal c_b424 = 7.;
-static doublereal c_b425 = 8.;
-static doublereal c_b426 = 9.;
-static doublereal c_b427 = 10.;
-static doublereal c_b428 = 11.;
-static doublereal c_b429 = 12.;
+static doublereal c_b406 = 0.;
+static doublereal c_b420 = 1.;
+static doublereal c_b421 = 2.;
+static doublereal c_b422 = 3.;
+static doublereal c_b423 = 4.;
+static doublereal c_b424 = 5.;
+static doublereal c_b425 = 6.;
+static doublereal c_b426 = 7.;
+static doublereal c_b427 = 8.;
+static doublereal c_b428 = 9.;
+static doublereal c_b429 = 10.;
+static doublereal c_b430 = 11.;
+static doublereal c_b431 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
@@ -944,9 +944,11 @@ L8000:
     } else if (*(unsigned char *)c_first__ == '^') {
 	*ntype = 1003;
 	*value = 1.;
-    } else if (*(unsigned char *)c_first__ == '(') {
+    } else if (*(unsigned char *)c_first__ == '(' || *(unsigned char *)
+	    c_first__ == '[') {
 	*ntype = 1004;
-    } else if (*(unsigned char *)c_first__ == ')') {
+    } else if (*(unsigned char *)c_first__ == ')' || *(unsigned char *)
+	    c_first__ == ']') {
 	*ntype = 1005;
     } else if (*(unsigned char *)c_first__ == ',') {
 	*ntype = 1006;
@@ -3528,7 +3530,7 @@ doublereal iran_(doublereal *top)
 /*  Return an integer uniformly distributed among 0..TOP */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-    d__1 = (*top + 1.) * unif_(&c_b404);
+    d__1 = (*top + 1.) * unif_(&c_b406);
     ret_val = d_int(&d__1);
     return ret_val;
 } /* iran_ */
@@ -3553,7 +3555,7 @@ doublereal eran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b404);
+    u1 = unif_(&c_b406);
     if (u1 <= 0.) {
 	goto L100;
     }
@@ -3581,7 +3583,7 @@ doublereal lran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b404);
+    u1 = unif_(&c_b406);
     if (u1 <= 0. || u1 >= 1.) {
 	goto L100;
     }
@@ -3605,7 +3607,7 @@ doublereal uran_(doublereal *x)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    ret_val = *x * unif_(&c_b404);
+    ret_val = *x * unif_(&c_b406);
     return ret_val;
 } /* uran_ */
 
@@ -3637,11 +3639,11 @@ doublereal gran2_(doublereal *b, doublereal *s)
 
     if (ip == 0) {
 L100:
-	u1 = unif_(&c_b404);
+	u1 = unif_(&c_b406);
 	if (u1 <= 0.) {
 	    goto L100;
 	}
-	u2 = unif_(&c_b404);
+	u2 = unif_(&c_b406);
 	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
 	ip = 1;
     } else {
@@ -3666,10 +3668,10 @@ doublereal gran1_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    g = unif_(&c_b418) - 6. + unif_(&c_b419) + unif_(&c_b420) + unif_(&c_b421)
-	     + unif_(&c_b422) + unif_(&c_b423) + unif_(&c_b424) + unif_(&
-	    c_b425) + unif_(&c_b426) + unif_(&c_b427) + unif_(&c_b428) + 
-	    unif_(&c_b429);
+    g = unif_(&c_b420) - 6. + unif_(&c_b421) + unif_(&c_b422) + unif_(&c_b423)
+	     + unif_(&c_b424) + unif_(&c_b425) + unif_(&c_b426) + unif_(&
+	    c_b427) + unif_(&c_b428) + unif_(&c_b429) + unif_(&c_b430) + 
+	    unif_(&c_b431);
     ret_val = *b + *s * g;
     return ret_val;
 } /* gran1_ */
@@ -3690,7 +3692,7 @@ doublereal gran_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    uu = unif_(&c_b404);
+    uu = unif_(&c_b406);
     if (uu <= .5) {
 	ret_val = gran1_(b, s);
     } else {
