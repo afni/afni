@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , JUN , 2009 , RWC , "parser" , MICRO , TYPE_MODIFY ,
+   "Added posval() function, and treat '[]' as '()' for clarity." ,
+   NULL } ,
+
+ { 11 , JUN , 2009 , RWC , "AlphaSim" , MINOR , TYPE_MODIFY ,
+   "Added computation of analytic approximation of Alpha(i) for large i" ,
+   "Uses a modified extreme value distribution, which looks pretty good." } ,
+
  { 9 , JUN , 2009 , RWC , "AlphaSim" , MICRO , TYPE_GENERAL ,
    "Modify to use OpenMP (parallelize across iterations)" ,
    NULL } ,

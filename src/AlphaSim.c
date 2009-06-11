@@ -87,6 +87,7 @@ static int g_max_cluster_size = MAX_CLUSTER_SIZE;
 static int use_zg = 0 ;  /* 10 Jan 2008 */
 
 static unsigned int gseed ;
+static int gdo_approx = 0 ;
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -143,6 +144,17 @@ void display_help_menu()
      "                Can speed program up by about a factor of 2,\n"
      "                but detailed results will differ slightly since\n"
      "                a different sequence of random values will be used.\n"
+     "[-approx]     Compute an analytic approximation to the Alpha(i)\n"
+     "                result for cluster size i, and print a column of that\n"
+     "                value in the output (only if '-power' is NOT used)\n"
+     "            ** This analytic approximation is a way to extrapolate\n"
+     "                the alpha value for cluster sizes beyond the\n"
+     "                reaches of the simulation. The formula for it is\n"
+     "                printed above the output table; see the example below.\n"
+     "            ** The analytic approximation is only computed if the\n"
+     "                table of cluster size vs. alpha is 'large enough'.\n"
+     "            ** The approximation formula is of 'extreme value' type,\n"
+     "                possibly with an adjustment for smaller i and larger Alpha.\n"
      "\n"
      "Unix environment variables you can use:\n"
      "---------------------------------------\n"
@@ -159,26 +171,91 @@ void display_help_menu()
   printf("\n"
    "SAMPLE OUTPUT:\n"
    "--------------\n"
-   " AlphaSim -nxyz 64 64 10 -dxyz 3 3 3 -iter 10000 -pthr 0.004 -fwhm 3 -quiet -fast\n"
-   "\n"
-   "Cl Size     Frequency    CumuProp     p/Voxel   Max Freq       Alpha\n"
-   "      1       1316125    0.898079  0.00401170          0    1.000000\n"
-   "      2        126353    0.984298  0.00079851       1023    1.000000\n"
-   "      3         18814    0.997136  0.00018155       5577    0.897700\n"
-   "      4          3317    0.999400  0.00004375       2557    0.340000\n"
-   "      5           688    0.999869  0.00001136        653    0.084300\n"
-   "      6           150    0.999971  0.00000296        148    0.019000\n"
-   "      7            29    0.999991  0.00000076         29    0.004200\n"
-   "      8             8    0.999997  0.00000027          8    0.001300\n"
-   "      9             5    1.000000  0.00000011          5    0.000500\n"
+   " AlphaSim -nxyz 64 64 20 -dxyz 3 3 3 -iter 10000 -pthr 0.004 -fwhm 5 \\\n"
+   "          -quiet -fast -approx\n"
+   "# Alpha(i) approx 1-exp[-exp(5.190-0.5049*i^0.90+0.02553*posval(16-i)^1.0)]\n"
+   "# Cl Size   Frequency    CumuProp     p/Voxel   Max Freq       Alpha    Approx\n"
+   "      1       1665555    0.553803  0.00772359          0    1.000000  1.000000\n"
+   "      2        635321    0.765049  0.00569044          0    1.000000  1.000000\n"
+   "      3        265068    0.853185  0.00413937          0    1.000000  1.000000\n"
+   "      4        167524    0.908888  0.00316866          0    1.000000  1.000000\n"
+   "      5         93875    0.940101  0.00235067          0    1.000000  1.000000\n"
+   "      6         60457    0.960204  0.00177770          0    1.000000  1.000000\n"
+   "      7         38647    0.973054  0.00133490          2    1.000000  0.999995\n"
+   "      8         26662    0.981919  0.00100467         56    0.999800  0.999745\n"
+   "      9         17179    0.987631  0.00074430        178    0.994200  0.996261\n"
+   "     10         11878    0.991581  0.00055556        522    0.976400  0.977408\n"
+   "     11          7934    0.994219  0.00041057       1004    0.924200  0.924200\n"
+   "     12          5290    0.995978  0.00030403       1202    0.823800  0.828212\n"
+   "     13          3642    0.997189  0.00022654       1328    0.703600  0.700723\n"
+   "     14          2536    0.998032  0.00016875       1273    0.570800  0.563274\n"
+   "     15          1816    0.998636  0.00012541       1117    0.443500  0.434664\n"
+   "     16          1231    0.999045  0.00009215        832    0.331800  0.325341\n"
+   "     17           825    0.999319  0.00006811        625    0.248600  0.243599\n"
+   "     18           638    0.999532  0.00005099        543    0.186100  0.180001\n"
+   "     19           419    0.999671  0.00003697        378    0.131800  0.131800\n"
+   "     20           282    0.999765  0.00002725        261    0.094000  0.095917\n"
+   "     21           204    0.999832  0.00002037        188    0.067900  0.069526\n"
+   "     22           141    0.999879  0.00001514        135    0.049100  0.050273\n"
+   "     23           103    0.999914  0.00001135        101    0.035600  0.036302\n"
+   "     24            69    0.999937  0.00000846         67    0.025500  0.026197\n"
+   "     25            54    0.999954  0.00000644         52    0.018800  0.018903\n"
+   "     26            36    0.999966  0.00000479         36    0.013600  0.013644\n"
+   "     27            29    0.999976  0.00000365         29    0.010000  0.009853\n"
+   "     28            27    0.999985  0.00000269         26    0.007100  0.007120\n"
+   "     29            12    0.999989  0.00000177         12    0.004500  0.005149\n"
+   "     30             6    0.999991  0.00000135          6    0.003300  0.003727\n"
+   "     31             5    0.999993  0.00000113          5    0.002700  0.002700\n"
+   "     32             6    0.999995  0.00000094          6    0.002200  0.001958\n"
+   "     33             4    0.999996  0.00000070          4    0.001600  0.001421\n"
+   "     34             5    0.999998  0.00000054          5    0.001200  0.001032\n"
+   "     35             1    0.999998  0.00000033          1    0.000700  0.000750\n"
+   "     36             1    0.999998  0.00000029          1    0.000600  0.000546\n"
+   "     37             1    0.999999  0.00000025          1    0.000500  0.000398\n"
+   "     38             0    0.999999  0.00000020          0    0.000400  0.000290\n"
+   "     39             1    0.999999  0.00000020          1    0.000400  0.000211\n"
+   "     40             0    0.999999  0.00000016          0    0.000300  0.000154\n"
+   "     41             0    0.999999  0.00000016          0    0.000300  0.000113\n"
+   "     42             2    1.000000  0.00000016          2    0.000300  0.000082\n"
+   "     43             1    1.000000  0.00000005          1    0.000100  0.000060\n"
    "\n"
    " That is, thresholded random noise alone (no signal) would produce a\n"
-   " cluster of size 6 or larger 1.9%% (Alpha) of the time, in a 64x64x64\n"
-   " volume with cubical 3 mm voxels and a FHWM noise smoothness of 3 mm.\n"
+   " cluster of size 23 or larger 3.56%% (Alpha) of the time, in a 64x64x20\n"
+   " volume with cubical 3 mm voxels and a FHWM noise smoothness of 5 mm,\n"
+   " and an uncorrected (per voxel) p-value of 0.004.\n"
    "\n"
-   "N.B.: If you run the exact command above, you will get slightly\n"
-   " different results, due to variations in the random numbers generated\n"
-   " in the simulations.\n"
+   " If you run the exact command above, you will get slightly different\n"
+   " results, due to variations in the random numbers generated in the\n"
+   " simulations.\n"
+   "\n"
+   " To visualize the approximation, if the above file is stored as alp.1D,\n"
+   " then the following commands can be used:\n"
+   "   1deval -a alp.1D'[5]' -expr 'log(-log(1-a))' > ee.1D\n"
+   "   1deval -a alp.1D'[6]' -expr 'log(-log(1-a))' > ff.1D\n"
+   "   1dplot -start 1 -one ee.1D ff.1D\n"
+   " These will plot the log(log) transformed Alpha(i) and the log(log)\n"
+   " transformed approximation together, so you can see how they fit,\n"
+   " especially for large i and small Alpha cases.\n"
+   "\n"
+   " The analytic approximation formula above uses the function 'posval(x)',\n"
+   " which is defined to be 'max(x,0)' -- this is the correction for small i\n"
+   " (in this case, i < 16).  The syntax is compatible with 1deval and 3dcalc.\n"
+   "\n"
+   " The analytic approximation above, from 10,000 iterations, is\n"
+   " # Alpha(i) approx 1-exp[-exp(5.190-0.5049*i^0.90+0.02553*posval(16-i)^1.0)]\n"
+   " Repeating the calculation with 1,000,000 iterations, which runs out\n"
+   " to larger values of the cluster size i (up to 55, instead of 43), gives\n"
+   " # Alpha(i) approx 1-exp[-exp(5.247-0.5070*i^0.90+0.01294*posval(16-i)^1.1)]\n"
+   " The similarity between the analytic approximations between AlphaSim runs\n"
+   " with vastly different numbers of iterations gives some confidence that\n"
+   " the analytic approximation has some validity for extrapolating Alpha(i).\n"
+   "\n"
+   " For example, the last line in the table above has Alpha(43)=0.0001\n"
+   " (1 cluster that large occured out of 10,000 trials), while the approximation\n"
+   " is Approx(43)=0.00006.  From the simulation with 1,000,000 iterations,\n"
+   " the result is Alpha(43)=0.00006 (60 clusters that big or bigger out of\n"
+   " 1 million trials), which matches the Approx(43) value from the smaller\n"
+   " simulation.\n"
    "\n"
   ) ;
 
@@ -289,6 +366,9 @@ void get_options (int argc, char ** argv,
       }
       if( strcmp(argv[nopt],"-nozg") == 0 || strcmp(argv[nopt],"-nofast") == 0 ){
         use_zg = 0 ; nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-approx") == 0 ){
+        gdo_approx = 1 ; nopt++ ; continue ;
       }
 
       /*-----  -nxyz n1 n2 n3 [10 Jan 2008: RWC] -----*/
@@ -729,6 +809,8 @@ void get_options (int argc, char ** argv,
       *nx = mask_nx;  *ny = mask_ny;  *nz = mask_nz;
       *dx = fabs(mask_dx);  *dy = fabs(mask_dy);  *dz = fabs(mask_dz);
     }
+
+  if( *power ) gdo_approx = 0 ;
 
 }
 
@@ -1559,19 +1641,19 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
          ihigh < g_max_cluster_size && alpha_table[ihigh] > ahigh ;
          ihigh++ ) ; /*nada*/
     ihigh-- ;
-    if( ihigh-ibot < 5 ) goto EXTREME_DONE ;
+    if( ihigh-ibot < 4 ) goto EXTREME_DONE ;
 
     for( ilow=ihigh+1 ; /* find last value of alpha >= alow */
          ilow < g_max_cluster_size && alpha_table[ilow] > alow ;
          ilow++ ) ; /*nada*/
     ilow-- ;
-    if( ilow-ihigh < 5 ) goto EXTREME_DONE ;
+    if( ilow-ihigh < 4 ) goto EXTREME_DONE ;
 
     for( itop=ilow+1 ; /* find last value of alpha >= abot */
          itop < g_max_cluster_size && alpha_table[itop] > abot ;
          itop++ ) ;    /*nada*/
     itop-- ;
-    if( itop-ilow < 5 ) goto EXTREME_DONE ;
+    if( itop-ilow < 4 ) goto EXTREME_DONE ;
     ndim = itop-ibot+1 ;
 
     iva     = (float *)malloc(sizeof(float)*ndim) ;
@@ -1667,7 +1749,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
     if (!power){
       fprintf (fout, "# Cl Size   Frequency    CumuProp     p/Voxel"
 	                  "   Max Freq       Alpha");
-      if( bfit > 0.0f && cpow > 0.0f ) fprintf(fout , "    Approx") ;
+      if( gdo_approx && bfit > 0.0f && cpow > 0.0f ) fprintf(fout , "    Approx") ;
       fprintf(fout,"\n") ;
     }
     else {
@@ -1683,7 +1765,7 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
       fprintf (fout, "%7d  %12ld  %10.6f  %10.8f    %7ld  %10.6f",
 	       i, freq_table[i], cum_prop_table[i], prob_table[i],
 	       max_table[i], alpha_table[i]);
-      if( bfit > 0.0f && cpow > 0.0f ){
+      if( gdo_approx && bfit > 0.0f && cpow > 0.0f ){
         val = (float)(ihigh-i) ;
         if( val < 0.0f ) val = 0.0f ;
         else             val = powf(val,cpow) ;
