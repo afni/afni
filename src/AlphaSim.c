@@ -1368,13 +1368,14 @@ void threshold_data (int nx, int ny, int nz, float * fim,
   q = pthr;
   mean = (*sum) / (*count);
   sd = sqrt(((*sumsq) - ((*sum) * (*sum))/(*count)) / ((*count)-1));
+
   cdfnor (&which, &p, &q, &z, &mean, &sd, &status, &bound);
   zthr = z;
 
   if (!quiet)
     {
       pact = pcalc (nx, ny, nz, fim, zthr);
-      printf ("pthr=%f  zthr=%f  pact=%f  ", pthr, zthr, pact);
+      printf ("pthr=%f zthr=%f pact=%f mean=%f sd=%f ", pthr, zthr, pact,mean,sd);
     }
 
 
