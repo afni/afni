@@ -79,7 +79,7 @@ static const float ytab[128] = {
 /* tabulated values for 2^24 times x[i]/x[i+1],
  * used to accept for U*x[i+1]<=x[i] without any floating point operations */
 
-static const unsigned long ktab[128] = {
+static const unsigned int ktab[128] = {
   0, 12590644, 14272653, 14988939,
   15384584, 15635009, 15807561, 15933577, 16029594, 16105155, 16166147, 16216399,
   16258508, 16294295, 16325078, 16351831, 16375291, 16396026, 16414479, 16431002,
@@ -136,23 +136,16 @@ static const float wtab[128] = {
   1.83813550477e-07, 1.92166040885e-07, 2.05295471952e-07, 2.22600839893e-07
 };
 
-#undef INLINE
-#ifdef __GNUC__
-# define INLINE __inline__
-#else
-# define INLINE /*nada*/
-#endif
-
 /*-------------------------------------------------------------------------*/
 /*! Return 1 Gaussian random deviate.  Uses mrand48() and drand48(). */
 
-INLINE float zgaussian(void)  /* return one Gaussian random deviate */
+float zgaussian(void)  /* return one Gaussian random deviate */
 {
-  unsigned long  U, sgn, i, j;
+  unsigned int  U, sgn, i, j;
   float  x, y;
 
   while (1) {
-    U   = (unsigned long)mrand48() ;
+    U   = (unsigned int)mrand48() ;
     i   = U & 0x0000007F;  /* 7 bit to choose the step */
     sgn = U & 0x00000080;  /* 1 bit for the sign */
     j   = U>>8;            /* 24 bit for the x-value */
@@ -170,6 +163,17 @@ INLINE float zgaussian(void)  /* return one Gaussian random deviate */
     }
     if( y < expf(-0.5f*x*x) ) break;
   }
+
+#if 0
+  {static FILE *fp=NULL ;    /** for debugging **/
+   if( fp == NULL ){
+     fp = fopen("zzz.1D","w") ;
+     fprintf(fp,"#  x  U  i  j\n") ;
+   }
+   fprintf(fp,"%f %u %u %u\n",(sgn ? x : -x),U,i,j) ;
+  }
+#endif
+
   return (sgn ? x : -x) ;
 }
 
@@ -182,13 +186,13 @@ INLINE float zgaussian(void)  /* return one Gaussian random deviate */
       each thread needs its own seed state to avoid conflicts and blocking.
 *//*-----------------------------------------------------------------------*/
 
-INLINE float zgaussian_sss( unsigned short xi[] )
+float zgaussian_sss( unsigned short xi[] )
 {
-  unsigned long  U, sgn, i, j;
+  unsigned int  U, sgn, i, j;
   float  x, y;
 
   while (1) {
-    U   = (unsigned long)jrand48(xi) ;
+    U   = (unsigned int)jrand48(xi) ;
     i   = U & 0x0000007F;  /* 7 bit to choose the step */
     sgn = U & 0x00000080;  /* 1 bit for the sign */
     j   = U>>8;            /* 24 bit for the x-value */
