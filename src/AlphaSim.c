@@ -246,7 +246,7 @@ void display_help_menu()
    " Repeating the calculation with 1,000,000 iterations, which runs out\n"
    " to larger values of the cluster size i (up to 55, instead of 43), gives\n"
    " # Alpha(i) approx 1-exp[-exp(5.247-0.5070*i^0.90+0.01294*posval(16-i)^1.1)]\n"
-   " The similarity between the analytic approximations between AlphaSim runs\n"
+   " The similarity between the analytic approximations from two AlphaSim runs\n"
    " with vastly different numbers of iterations gives some confidence that\n"
    " the analytic approximation has some validity for extrapolating Alpha(i).\n"
    "\n"
