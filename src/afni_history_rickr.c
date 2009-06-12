@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, JUN, 2009, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
+   "used some wx IDs, per Daniel's suggestion",
+   NULL
+ } ,
+
  { 11, JUN, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added masking abilities",
    "- in mask block, try to create anat and group masks\n"

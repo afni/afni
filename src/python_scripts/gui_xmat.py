@@ -45,15 +45,26 @@ import ui_xmat as UIX
 
 # --------------------------------------------------
 # global widget IDs
-ID_CLOSE            = 111
-ID_EXIT             = 112
-ID_ABOUT            = 121
-ID_HELP             = 122
-ID_HELP_CMD         = 123
-ID_HIST             = 131
-ID_SAVE             = 151
 
-ID_LOAD_XMAT        = 201
+def set_wx_id(idstr, defval):
+    """set idstr as a variable to wx.idstr
+       if that fails, use the integer 'defval'"""
+    try:    exec('val = wx.%s' % idstr)
+    except: val = defval
+    return val
+
+# try to get some IDs from wx
+ID_EXIT = set_wx_id('ID_EXIT', 101 )
+ID_ABOUT = set_wx_id('ID_ABOUT', 102 )
+ID_CLOSE = set_wx_id('ID_CLOSE', 103 )
+ID_SAVE = set_wx_id('ID_SAVEAS', 105 )
+ID_HELP = set_wx_id('ID_HELP', 104 )
+ID_HELP_CMD = set_wx_id('ID_HELP_COMMANDS', 106 )
+ID_APPLY_CHOICE = set_wx_id('ID_APPLY', 111 )
+ID_LOAD_XMAT = set_wx_id('ID_OPEN', 201 )
+
+ID_HIST             = 131
+
 ID_LOAD_1D          = 202
 
 ID_SHOW_XMAT        = 301
@@ -69,8 +80,6 @@ ID_PLOT_XMAT        = 401
 ID_PLOT_1D          = 402
 ID_PLOT_BEST_FIT    = 403
 ID_PLOT_CORMAT      = 411
-
-ID_APPLY_CHOICE     = 501
 
 ID_OPT_CORMAT_CUT   = 601
 ID_OPT_COSMAT_CUT   = 602
