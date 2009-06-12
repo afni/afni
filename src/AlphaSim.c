@@ -86,8 +86,8 @@ static int g_max_cluster_size = MAX_CLUSTER_SIZE;
 
 static int use_zg = 0 ;  /* 10 Jan 2008 */
 
-static unsigned int gseed ;
-static int gdo_approx = 0 ;
+static unsigned int gseed ;  /* global copy of seed */
+static int gdo_approx = 0 ;  /* print out Approx in output table? */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -138,7 +138,7 @@ void display_help_menu()
      "[-out file]   file = name of output file [default value = screen]     \n"
      "[-max_clust_size size]  size = maximum allowed voxels in a cluster    \n"
      "[-seed S]     S  = random number seed\n"
-     "                   default seed = 1234567\n"
+     "                   default seed = 123456789\n"
      "                   if seed=0, then program will randomize it\n"
      "[-fast]       Use a faster random number generator:\n"
      "                Can speed program up by about a factor of 2,\n"
@@ -173,51 +173,49 @@ void display_help_menu()
    "--------------\n"
    " AlphaSim -nxyz 64 64 20 -dxyz 3 3 3 -iter 10000 -pthr 0.004 -fwhm 5 \\\n"
    "          -quiet -fast -approx\n"
-   "# Alpha(i) approx 1-exp[-exp(4.406-0.5555*i^0.90+0.08207*posval(12-i)^1.0)]\n"
+   "# Alpha(i) approx 1-exp[-exp(8.720-2.2166*i^0.58-0.05743*posval(12-i)^1.0)]\n"
    "# Cl Size   Frequency    CumuProp     p/Voxel   Max Freq       Alpha    Approx\n"
-   "      1       1021442    0.583242  0.00415378          0    1.000000  1.000000\n"
-   "      2        358698    0.788058  0.00290690          0    1.000000  1.000000\n"
-   "      3        157164    0.877799  0.00203118          0    1.000000  1.000000\n"
-   "      4         87791    0.927927  0.00145562          0    1.000000  1.000000\n"
-   "      5         48858    0.955825  0.00102696          4    1.000000  0.999999\n"
-   "      6         29248    0.972526  0.00072875         66    0.999600  0.999744\n"
-   "      7         17712    0.982639  0.00051453        434    0.993000  0.993474\n"
-   "      8         11337    0.989113  0.00036318        999    0.949600  0.954051\n"
-   "      9          6855    0.993027  0.00025247       1458    0.849700  0.849700\n"
-   "     10          4347    0.995509  0.00017716       1567    0.703900  0.690006\n"
-   "     11          2715    0.997059  0.00012410       1402    0.547200  0.516499\n"
-   "     12          1793    0.998083  0.00008764       1199    0.407000  0.363975\n"
-   "     13          1163    0.998747  0.00006138        900    0.287100  0.264262\n"
-   "     14           760    0.999181  0.00004292        644    0.197100  0.188391\n"
-   "     15           464    0.999446  0.00002993        402    0.132700  0.132700\n"
-   "     16           324    0.999631  0.00002144        296    0.092500  0.092764\n"
-   "     17           219    0.999756  0.00001511        210    0.062900  0.064549\n"
-   "     18           129    0.999830  0.00001056        124    0.041900  0.044803\n"
-   "     19            85    0.999878  0.00000773         85    0.029500  0.031060\n"
-   "     20            74    0.999921  0.00000576         73    0.021000  0.021528\n"
-   "     21            51    0.999950  0.00000395         50    0.013700  0.014926\n"
-   "     22            25    0.999964  0.00000264         24    0.008700  0.010356\n"
-   "     23            13    0.999971  0.00000197         13    0.006300  0.007192\n"
-   "     24            16    0.999981  0.00000161         16    0.005000  0.005000\n"
-   "     25             8    0.999985  0.00000114          8    0.003400  0.003480\n"
-   "     26             6    0.999989  0.00000089          6    0.002600  0.002425\n"
-   "     27             6    0.999992  0.00000070          6    0.002000  0.001692\n"
-   "     28             3    0.999994  0.00000051          3    0.001400  0.001182\n"
-   "     29             5    0.999997  0.00000040          5    0.001100  0.000827\n"
-   "     30             3    0.999998  0.00000023          3    0.000600  0.000579\n"
-   "     31             1    0.999999  0.00000012          1    0.000300  0.000406\n"
-   "     32             2    1.000000  0.00000008          2    0.000200  0.000285\n"
+   "      1       1024002    0.584689  0.00414373          0    1.000000  1.000000\n"
+   "      2        358143    0.789183  0.00289373          0    1.000000  1.000000\n"
+   "      3        156346    0.878455  0.00201936          0    1.000000  1.000000\n"
+   "      4         87554    0.928447  0.00144680          0    1.000000  1.000000\n"
+   "      5         48445    0.956108  0.00101929          6    1.000000  1.000000\n"
+   "      6         29126    0.972738  0.00072361         81    0.999400  0.999736\n"
+   "      7         17743    0.982869  0.00051028        407    0.991300  0.992216\n"
+   "      8         11220    0.989276  0.00035867       1082    0.950600  0.948274\n"
+   "      9          6722    0.993114  0.00024910       1453    0.842400  0.844084\n"
+   "     10          4251    0.995541  0.00017525       1564    0.697100  0.697100\n"
+   "     11          2708    0.997087  0.00012336       1426    0.540700  0.543212\n"
+   "     12          1736    0.998079  0.00008700       1132    0.398100  0.407466\n"
+   "     13          1164    0.998743  0.00006157        875    0.284900  0.284900\n"
+   "     14           744    0.999168  0.00004309        615    0.197400  0.195818\n"
+   "     15           485    0.999445  0.00003038        434    0.135900  0.133634\n"
+   "     16           324    0.999630  0.00002150        302    0.092500  0.091099\n"
+   "     17           213    0.999752  0.00001517        196    0.062300  0.062256\n"
+   "     18           140    0.999832  0.00001075        136    0.042700  0.042736\n"
+   "     19            87    0.999881  0.00000767         84    0.029100  0.029499\n"
+   "     20            62    0.999917  0.00000566         61    0.020700  0.020485\n"
+   "     21            49    0.999945  0.00000414         49    0.014600  0.014314\n"
+   "     22            31    0.999962  0.00000289         31    0.009700  0.010064\n"
+   "     23            16    0.999971  0.00000205         16    0.006600  0.007119\n"
+   "     24            10    0.999977  0.00000161         10    0.005000  0.005065\n"
+   "     25            11    0.999983  0.00000131         11    0.004000  0.003624\n"
+   "     26            12    0.999990  0.00000098         12    0.002900  0.002607\n"
+   "     27             3    0.999992  0.00000060          3    0.001700  0.001885\n"
+   "     28             4    0.999994  0.00000050          4    0.001400  0.001370\n"
+   "     29             7    0.999998  0.00000036          7    0.001000  0.001000\n"
+   "     30             1    0.999999  0.00000011          1    0.000300  0.000733\n"
+   "     31             2    1.000000  0.00000008          2    0.000200  0.000540\n"
    "\n"
-   " That is, thresholded random noise alone (no signal) would produce a\n"
-   " cluster of size 18 or larger 4.19%% (Alpha) of the time, in a 64x64x20\n"
-   " volume with cubical 3 mm voxels and a FHWM noise smoothness of 5 mm,\n"
-   " and an uncorrected (per voxel) p-value of 0.004 -- this combination\n"
-   " of voxel-wise and cluster-size thresholds would be a logical one\n"
-   " to use for a functional map that had these parameters.\n"
+   " That is, thresholded random noise alone (no signal) would produce a cluster\n"
+   " of size 18 or larger about 4.27%% (Alpha) of the time, in a 64x64x20 volume\n"
+   " with cubical 3 mm voxels and a FHWM noise smoothness of 5 mm, and an uncorrected\n"
+   " uncorrected (per voxel) p-value of 0.004 -- this combination of voxel-wise and\n"
+   " cluster-size thresholds would be a logical one to use for a functional map that\n"
+   " had these parameters.\n"
    "\n"
-   " If you run the exact command above, you will get slightly different\n"
-   " results, due to variations in the random numbers generated in the\n"
-   " simulations.\n"
+   " If you run the exact command above, you will get slightly different results,\n"
+   " due to variations in the random numbers generated in the simulations.\n"
    "\n"
    " To visualize the approximation, if the above file is stored as alp.1D,\n"
    " then the following commands can be used:\n"
@@ -226,28 +224,18 @@ void display_help_menu()
    "   1dplot -start 1 -one ee.1D ff.1D\n"
    " These will plot the log(log) transformed Alpha(i) and the log(log)\n"
    " transformed approximation together, so you can see how they fit,\n"
-   " especially for large i and small Alpha cases.\n"
+   " especially for large i and small Alpha cases.  Another comparison\n"
+   " technique is to plot the ratio of Approx(i) to Alpha(i):\n"
+   "   1deval -a alp.1D'[5]' -b alp.1D'[6]' -expr 'b/a' | 1dplot -start 1 -stdin\n"
+   " (Since Alpha(i) is always > 0 in the table, there is no division by zero.)\n"
    "\n"
    " The analytic approximation formula above uses the function 'posval(x)',\n"
    " which is defined to be 'max(x,0)' -- this is the correction for small i\n"
-   " (in this case, i < 16).  The syntax is compatible with 1deval and 3dcalc.\n"
-   "\n"
-   " The analytic approximation above, from 10,000 iterations, is\n"
-   " # Alpha(i) approx 1-exp[-exp(4.406-0.5555*i^0.90+0.08207*posval(12-i)^1.0)]\n"
-   " Repeating the calculation with 1,000,000 iterations, which runs out\n"
-   " to larger values of the cluster size i (up to 52, instead of 32), gives\n"
-   " # Alpha(i) approx 1-exp[-exp(4.645-0.5745*i^0.90+0.05278*posval(12-i)^1.0)]\n"
-   " The similarity between the analytic approximations from two AlphaSim runs\n"
-   " with vastly different numbers of iterations gives some confidence that\n"
-   " the analytic approximation has validity for extrapolating Alpha(i).\n"
-   " Another confidence-building datum is that the first approximation\n"
-   " formula (from the shorter run) extrapolates to Alpha(40)=1.74e-5 and the\n"
-   " actual value from the longer run is Alpha(40)=1.70e-5 -- not too shabby!\n"
-   "\n"
-   " Note that the breakpoint for the small i/large Alpha correction is\n"
-   " set to be at the cluster size i where Alpha(i) is about 0.3\n"
-   " [in the sample above, 'posval(12-i)'].  For larger i/smaller Alpha,\n"
-   " the approximation is of the simple form Alpha(i) = 1-exp[-exp(a-b*i^p)]\n"
+   " (in this example, i < 12).  The syntax is compatible with 1deval and 3dcalc.\n"
+   " The breakpoint for the small i/large Alpha correction is set to be at the\n"
+   " cluster size i where Alpha(i) is about 0.3 [in the sample above, 'posval(12-i)'].\n"
+   " For larger i/smaller Alpha, the approximation is of the simple form\n"
+   "   Alpha(i) = 1-exp[-exp(a-b*i^p)]\n"
    " where a, b, p are constants. (For a pure extreme value distribution, p=1;\n"
    " I've found that allowing p < 1 gives slightly better fits in some cases.)\n"
    "\n"
@@ -311,7 +299,7 @@ void initialize_options (
   *niter = 0;                /* number of Monte Carlo simulations  */
   *quiet = 0;                /* generate screen output (default)  */
   *outfilename = NULL;       /* name of output file */
-  *seed = 1234567;           /* random number seed - user can override */
+  *seed = 123456789 ;        /* random number seed - user can override */
 }
 
 
@@ -981,10 +969,10 @@ void initialize (int argc, char ** argv,
 }
 
 /*---------------------------------------------------------------------------*/
-#include "zgaussian.c"
+#include "zgaussian.c"  /** Ziggurat Gaussian random number generator **/
 /*---------------------------------------------------------------------------*/
 
-#ifndef USE_OMP
+#ifndef USE_OMP  /* these RNGs are not used in the OpenMP code */
 /*---------------------------------------------------------------------------*/
 /*
   Routine to generate a uniform U(0,1) random variate.
@@ -1074,7 +1062,7 @@ void generate_image (int nx, int ny, int nz, int power,
   normal(&n1, &n2);
   fim[nxyz-1] = n1;
 #else
-  for( ixyz=0 ; ixyz < nxyz ; ixyz++ )
+  for( ixyz=0 ; ixyz < nxyz ; ixyz++ )  /* OpenMP always uses zgaussian */
     fim[ixyz] = zgaussian_sss(xran) ;
 #endif
 
@@ -1236,12 +1224,14 @@ void estimate_gfw (int nx, int ny, int nz, float dx, float dy, float dz,
  }
 
   /*-----  output results  -----*/
-  if (!quiet)
+  if (!quiet){
+#pragma critical (PRINTF)
     {
       printf ("var  =%f \n", var);
       printf ("varxx=%f varyy=%f varzz=%f \n", varxx, varyy, varzz);
       printf ("   sx=%f    sy=%f    sz=%f \n", sx, sy, sz);
     }
+  }
 }
 
 
@@ -1336,7 +1326,7 @@ void threshold_data (int nx, int ny, int nz, float * fim,
   nxyz = nx * ny * nz;
 
 
-  /*----- update sums -----*/
+  /*----- update statistical sums -----*/
   if (*count < 1.0e+09)
     {
       *count += nxyz;
@@ -1348,7 +1338,7 @@ void threshold_data (int nx, int ny, int nz, float * fim,
     }
 
 
-  /*----- calculate z-threshold -----*/
+  /*----- calculate z-threshold from statistical sums -----*/
   which = 2;
   p = 1.0 - pthr;
   q = pthr;
@@ -1359,10 +1349,13 @@ void threshold_data (int nx, int ny, int nz, float * fim,
   zthr = z;
 
   if (!quiet)
+  {
+#pragma critical (PRINTF)
     {
       pact = pcalc (nx, ny, nz, fim, zthr);
       printf ("pthr=%f zthr=%f pact=%f mean=%f sd=%f ", pthr, zthr, pact,mean,sd);
     }
+  }
 
 
   /*----- apply threshold to image data -----*/
@@ -1439,7 +1432,10 @@ void identify_clusters (int nx,  int ny,  int nz,
   /*----- record cluster sizes -----*/
   if ((clar == NULL) || (clar->num_clu == 0))
     {
-      if (!quiet) printf ("NumCl=%4d  MaxClSz=%4d\n", 0, 0);
+      if (!quiet){
+#pragma critical (PRINTF)
+        printf ("NumCl=%4d  MaxClSz=%4d\n", 0, 0);
+      }
       if (clar != NULL)  DESTROY_CLARR(clar);
     }
   else
@@ -1462,8 +1458,10 @@ void identify_clusters (int nx,  int ny,  int nz,
       if (max_size < g_max_cluster_size) max_table[max_size]++;
       else                               max_table[g_max_cluster_size-1]++;
 
-      if (!quiet)
+      if (!quiet){
+#pragma critical (PRINTF)
 	printf ("NumCl=%4d  MaxClSz=%4d\n", clar->num_clu, max_size);
+      }
 
       DESTROY_CLARR(clar);
     }
@@ -1622,8 +1620,11 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   /** estimate alpha[i] as an extreme value distribution [10 Jun 2009] **/
 
   if( !power ){
+#define NIPOW 31
+#define DIPOW 0.02f
     int ii ;
-    float *zvec=NULL , yvec[4] , *rvec[3] , *iva,*ivb,*ivc , *ivz ;
+    float *zvec=NULL , yvec[4] , *rvec[3] ;
+    float *ivv[NIPOW] , ipp[NIPOW] ; int kpp ;
     float atop=0.98f, ahigh=0.3f, alow=0.03f, abot=4.0f/niter ;
     float cout , pp , cbest ;
 
@@ -1651,48 +1652,46 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
     if( itop-ilow < 4 ) goto EXTREME_DONE ;
     ndim = itop-ibot+1 ;
 
-    iva     = (float *)malloc(sizeof(float)*ndim) ;
-    ivb     = (float *)malloc(sizeof(float)*ndim) ;
-    ivc     = (float *)malloc(sizeof(float)*ndim) ;
-    rvec[0] = (float *)malloc(sizeof(float)*ndim) ;
-    rvec[2] = (float *)malloc(sizeof(float)*ndim) ;
-    zvec    = (float *)malloc(sizeof(float)*ndim) ;
+    /** setup different powers of i^ipow where ipow is stored in ipp[] */
+
+    for( kpp=0 ; kpp < NIPOW ; kpp++ ){
+      ipp[kpp] = 1.0f - kpp*DIPOW ;
+      ivv[kpp] = (float *)malloc(sizeof(float)*ndim) ;
+      for( i=0 ; i < ndim ; i++ ){
+        val = (float)(i+ibot) ; ivv[kpp][i] = -powf(val,ipp[kpp]) ;
+      }
+    }
+
+    /** setup other regressors and data **/
+
+    rvec[0] = (float *)malloc(sizeof(float)*ndim) ;  /* regressor = 1 */
+    rvec[2] = (float *)malloc(sizeof(float)*ndim) ;  /* posfunc(ihigh-i)^cpow */
+    zvec    = (float *)malloc(sizeof(float)*ndim) ;  /* 'data' */
     for( i=0 ; i < ndim ; i++ ){
       ii         = i+ibot ;
-      rvec[0][i] = 1.0f ;
       val        = (float)ii ;
-      iva[i]     = -powf(val,0.90f) ;
-      ivb[i]     = -powf(val,0.95f) ;
-      ivc[i]     = -val ;
+      rvec[0][i] = 1.0f ;
       zvec[i]    = logf( -logf( 1.0f - alpha_table[ii] ) ) ;
     }
 
     cbest = 1.e+38 ; cpow = -1.0f ;
 
-    yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = iva ;
-    cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
-    if( cout >= 0.0f && cout < cbest ){
-      cbest = cout; cpow = 1.0f; afit = yvec[0]; bfit = yvec[1]; cfit = 0.0f;
-      ipow = 0.90f ; ivz = iva ;
+    /** do fits without the posfunc() component, keep best one **/
+
+    for( kpp=0 ; kpp < NIPOW ; kpp++ ){
+      yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = ivv[kpp] ;
+      cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
+      if( cout >= 0.0f && cout < cbest ){
+        cbest = cout; cpow = 1.0f; afit = yvec[0]; bfit = yvec[1]; cfit = 0.0f; ipow = ipp[kpp];
+      }
     }
 
-    yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = ivb ;
-    cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
-    if( cout >= 0.0f && cout < cbest ){
-      cbest = cout; cpow = 1.0f; afit = yvec[0]; bfit = yvec[1]; cfit = 0.0f;
-      ipow = 0.95f ; ivz = ivb ;
-    }
+    cbest *= 0.90f ;  /* bias results towards no small i correction */
 
-    yvec[0] = 0.0f ; yvec[1] = 1.0f ; rvec[1] = ivc ;
-    cout = cl1_solve( ndim , 2 , zvec , rvec , yvec , 1 ) ;
-    if( cout >= 0.0f && cout < cbest ){
-      cbest = cout; cpow = 1.0f; afit = yvec[0]; bfit = yvec[1]; cfit = 0.0f;
-      ipow = 1.00f ; ivz = ivc ;
-    }
-    if( cpow > 0.0f ) cbest *= 0.90f ;
+    /** now loop over powers pp for correction for small i values = posfunc(ihigh-i)^pp **/
 
     for( pp=1.0f ; pp <= 2.501f ; pp+=0.1f ){
-      for( i=0 ; i < ndim ; i++ ){
+      for( i=0 ; i < ndim ; i++ ){      /* setup rvec[2] regressor */
         ii  = i+ibot ;
         val = (float)(ihigh-ii) ;
         if( val <= 0.0f ) val = 0.0f ;
@@ -1700,27 +1699,16 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
         rvec[2][i] = val ;
       }
 
-      yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ; rvec[1] = iva ;
-      cout = cl1_solve( ndim , 3 , zvec , rvec , yvec , 1 ) ;
-      if( cout >= 0.0f && cout < cbest ){
-        cbest = cout; cpow = pp; afit = yvec[0]; bfit = yvec[1]; cfit = yvec[2];
-        ipow = 0.90f ; ivz = iva ;
-      }
+      for( kpp=0 ; kpp < NIPOW ; kpp++ ){  /* loop over powers for the large i fit */
+        yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ; rvec[1] = ivv[kpp] ;
+        cout = cl1_solve( ndim , 3 , zvec , rvec , yvec , 1 ) ;
+        if( cout >= 0.0f && cout < cbest ){
+          cbest = cout; cpow = pp; afit = yvec[0]; bfit = yvec[1]; cfit = yvec[2]; ipow = ipp[kpp];
+        }
+      } /* of loop over ipow power */
+    } /* end of loop over cpow=pp power */
 
-      yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ; rvec[1] = ivb ;
-      cout = cl1_solve( ndim , 3 , zvec , rvec , yvec , 1 ) ;
-      if( cout >= 0.0f && cout < cbest ){
-        cbest = cout; cpow = pp; afit = yvec[0]; bfit = yvec[1]; cfit = yvec[2];
-        ipow = 0.95f ; ivz = ivb ;
-      }
-
-      yvec[0] = 0.0f ; yvec[1] = 1.0f ; yvec[2] = 0.0f ; rvec[1] = ivc ;
-      cout = cl1_solve( ndim , 3 , zvec , rvec , yvec , 1 ) ;
-      if( cout >= 0.0f && cout < cbest ){
-        cbest = cout; cpow = pp; afit = yvec[0]; bfit = yvec[1]; cfit = yvec[2];
-        ipow = 1.00f ; ivz = ivc ;
-      }
-    } /* end of loop over pp power */
+    /** print Approx formula **/
 
     if( cfit != 0.0f )   /* two-part fit was best */
       printf(
@@ -1732,9 +1720,10 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
          "# Alpha(i) approx 1-exp[-exp(%.3f-%.4f*i^%.2f)]\n" ,
          afit , bfit , ipow ) ;
 
-    EXTREME_DONE: ;
+    EXTREME_DONE:        /** toss the trash **/
     if( zvec != NULL ){
-      free(zvec); free(rvec[0]); free(rvec[2]); free(iva); free(ivb); free(ivc);
+      free(zvec); free(rvec[0]); free(rvec[2]);
+      for( kpp=0 ; kpp < NIPOW ; kpp++ ) free(ivv[kpp]) ;
     }
   }
 
@@ -1845,7 +1834,7 @@ int main (int argc, char ** argv)
   long  *freq_table = NULL;
   long  *max_table = NULL;
 #ifdef USE_OMP
-  long **mtab=NULL , **ftab=NULL ; int nthr=1 ;
+  long **mtab=NULL , **ftab=NULL ; int nthr=1 ;  /* arrays of tables */
 #endif
 
 
@@ -1870,7 +1859,7 @@ int main (int argc, char ** argv)
 	      &power_thr, &fim, &arfim, &freq_table, &max_table);
 
 
-#pragma omp parallel if( niter > 666 )
+#pragma omp parallel if( niter > 99 )
  {
    int iter , qqq=quiet ; float *fim , *arfim=NULL ;
    long count=0; double sum=0.0, sumsq=0.0 ;
@@ -1878,25 +1867,27 @@ int main (int argc, char ** argv)
 
  AFNI_OMP_START ;
 
+  /* create separate tables for each thread, if using OpenMP */
 #ifdef USE_OMP
    ithr = omp_get_thread_num() ;
-   if( ithr > 0 ) qqq=1 ;  /* only master thread can be verbose */
-#pragma omp master
+#pragma omp master  /* only in the master thread */
  {
    nthr = omp_get_num_threads() ;
-   mtab = (long **)malloc(sizeof(long *)*nthr) ;
+   mtab = (long **)malloc(sizeof(long *)*nthr) ;  /* arrays of tables */
    ftab = (long **)malloc(sizeof(long *)*nthr) ;
    INFO_message("Using %d OpenMP threads",nthr) ;
  }
-#pragma omp barrier
+#pragma omp barrier  /* all threads wait until the above is finished */
+   /* create tables for each thread separately */
    mtab[ithr] = mt = (long *) calloc( g_max_cluster_size , sizeof(long) ) ;
    ftab[ithr] = ft = (long *) calloc( g_max_cluster_size , sizeof(long) ) ;
 
+   /* initialize random seed array for each thread separately */
    xran[2] = ( gseed        & 0xffff) + (unsigned short)ithr ;
    xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)ithr ;
    xran[0] = 0x330e                   + (unsigned short)ithr ;
 
-#else /* not OpenMP */
+#else /* not OpenMP ==> only one set of tables */
    mt = max_table ;
    ft = freq_table ;
 #endif
@@ -1907,11 +1898,14 @@ int main (int argc, char ** argv)
    if( power )
      arfim = (float *)malloc(sizeof(float)*ax*ay*az) ;
 
-  /*----- Monte Carlo iteration -----*/
+  /*----- Monte Carlo iterations -----*/
 #pragma omp for
   for (iter = 1;  iter <= niter;  iter++)
     {
-      if (!qqq)  printf ("Iter =%5d  \n", iter);
+      if (!qqq){
+#pragma critical (PRINTF)
+       printf ("Iter =%5d  \n", iter);
+      }
 
       /*----- generate volume of random voxel intensities -----*/
       generate_image (nx, ny, nz, power, ax, ay, az, zsep, fim , xran );
@@ -1947,7 +1941,7 @@ int main (int argc, char ** argv)
       if (mask_vol && (!power))  apply_mask (nx, ny, nz, fim);
 
 
-      /*----- identify clusters -----*/
+      /*----- identify clusters, add to tables ft[] and mt[] -----*/
       if (power)
         identify_clusters (ax, ay, az, dx, dy, dz, rmm, arfim, qqq,
                            ft, mt);
@@ -1961,9 +1955,9 @@ int main (int argc, char ** argv)
     free(fim) ;
 
  AFNI_OMP_END ;
- } /* end OpenMP */
+ } /* end OpenMP parallelization */
 
-#ifdef USE_OMP
+#ifdef USE_OMP      /* sum tables from various threads into one result */
    if( nthr == 1 ){
      memcpy(freq_table,ftab[0],sizeof(long)*g_max_cluster_size) ;
      memcpy(max_table ,mtab[0],sizeof(long)*g_max_cluster_size) ;
