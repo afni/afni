@@ -352,9 +352,11 @@ xmat_tool.py: GUI help
       0. Download the X-matrix and sample time series from the AFNI_data4
          class data (from the "Soup to Nuts" hands-on class).
 
-         wget http://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded/AFNI_data4/misc_files/X.AD4.xmat.1D
+         from:     http://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded
+         download: AFNI_data4/misc_files/X.AD4.xmat.1D
 
-         wget http://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded/AFNI_data4/misc_files/norm.022_043_012.1D
+         from:     http://afni.nimh.nih.gov/pub/dist/edu/data/CD.expanded
+         download  AFNI_data4/misc_files/norm.022_043_012.1D
 
          Note that norm.022_043_012.1D file was created from the all_runs
          dataset via the commands:
@@ -475,11 +477,11 @@ g_history = """
    1.0  Nov 21 2008: initial release
         - added Options menu and Show Cosmat
         - added GUI help
-
    1.1  Dec 08 2008: allow -test_libs to proceed without numpy
+   1.2  Jun 12 2009: used some wx IDs
 """
 
-g_version = "xmat_tool.py version 1.1, December 8, 2008"
+g_version = "xmat_tool.py version 1.2, June 12, 2009"
 
 g_cormat_cut = 0.4
 g_cosmat_cut = 0.3827
