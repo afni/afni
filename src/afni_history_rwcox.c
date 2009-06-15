@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , JUN , 2009 , RWC , "AlphaSim" , MICRO , TYPE_BUG_FIX ,
+   "OpenMP: cdfnor() and other functions are not thread-safe" ,
+   "Make use of cdfnor() 'critical'.  Longer term: should patch the nifti\n"
+   "CDF functions to avoid static variables where possible." } ,
+
  { 11 , JUN , 2009 , RWC , "zgaussian" , MICRO , TYPE_BUG_FIX ,
    "'long' should be 'int' on 64 bit systems, when doing bit twiddling" ,
    NULL } ,

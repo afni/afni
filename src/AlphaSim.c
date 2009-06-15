@@ -89,6 +89,21 @@ static int use_zg = 0 ;  /* 10 Jan 2008 */
 static unsigned int gseed ;  /* global copy of seed */
 static int gdo_approx = 0 ;  /* print out Approx in output table? */
 
+/*----------------------------------------------------------------------------*/
+/*! Function to replace use of cdfnor(), which is not thread-safe (not used). */
+
+double zthresh( double mn , double sd , double pval )
+{
+   double z ;
+
+        if( pval <= 0.0 ) pval = 1.e-15 ;
+   else if( pval >= 1.0 ) pval = 1.0 - 1.e-15 ;
+   z = qginv(pval) ;
+
+   if( sd > 0.0 ) z = sd*z + mn ;
+   return z ;
+}
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to display AlphaSim help menu.
@@ -771,7 +786,7 @@ void get_options (int argc, char ** argv,
              AlphaSim_error ("need argument after -seed ");
 	  *seed = atoi(argv[nopt]);
      if( *seed == 0 ){
-       *seed = (int)time(NULL) + (int)getpid() ;
+       *seed = ((int)time(NULL))<<2 + 7*(int)getpid() ;
        if( *seed < 0 ) *seed = -*seed ;
        INFO_message("-seed 0 resets to %d",*seed) ;
      }
@@ -1320,6 +1335,7 @@ void threshold_data (int nx, int ny, int nz, float * fim,
   double p, q, z, mean, sd;
   int status;
   double bound;
+  int nzzz=0 ;
 
 
   /*----- initialize local variables -----*/
@@ -1345,6 +1361,7 @@ void threshold_data (int nx, int ny, int nz, float * fim,
   mean = (*sum) / (*count);
   sd = sqrt(((*sumsq) - ((*sum) * (*sum))/(*count)) / ((*count)-1));
 
+#pragma omp critical (CDFNOR)
   cdfnor (&which, &p, &q, &z, &mean, &sd, &status, &bound);
   zthr = z;
 
@@ -1360,11 +1377,19 @@ void threshold_data (int nx, int ny, int nz, float * fim,
 
   /*----- apply threshold to image data -----*/
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+#if 1
     if (fim[ixyz] > zthr)
       fim[ixyz] = 1.0;
     else
       fim[ixyz] = 0.0;
+#else
+    if( fim[ixyz] <= zthr ){ fim[ixyz] = 0.0f ; nzzz++; }
+#endif
 
+#if 0
+#pragma omp critical (PRINTF)
+   if( nzzz < 0.05f*nxyz ) WARNING_message("nzzz=%d mean=%f sd=%f zthr=%f p=%f q=%f",nzzz,mean,sd,zthr,p,q) ;
+#endif
 
 }
 
@@ -1420,6 +1445,7 @@ void identify_clusters (int nx,  int ny,  int nz,
   int nxy;
   int iclu;
   int size, max_size;
+  int do_save=0 ;
 
 
   /*----- initialize local variables -----*/
@@ -1449,7 +1475,8 @@ void identify_clusters (int nx,  int ny,  int nz,
 	  size = cl->num_pt;
 
 	  if (size < g_max_cluster_size) freq_table[size]++;
-	  else                           freq_table[g_max_cluster_size-1]++;
+	  else                          {freq_table[g_max_cluster_size-1]++;
+                                    WARNING_message("Cluster size = %d",size); }
 
 	  if (size > max_size) max_size = size;
 
@@ -1462,6 +1489,26 @@ void identify_clusters (int nx,  int ny,  int nz,
 #pragma critical (PRINTF)
 	printf ("NumCl=%4d  MaxClSz=%4d\n", clar->num_clu, max_size);
       }
+
+#if 0
+      if( do_save ){
+        for (iclu = 0;  iclu < clar->num_clu;  iclu++){
+          cl = clar->clar[iclu] ; if( cl == NULL ) continue ;
+          MCW_cluster_to_vol( nx,ny,nz , MRI_float , fim , cl ) ;
+        }
+#pragma critical (DO_SAVE)
+        { char fname[32] ; FILE *fp ;
+          for( iclu=0 ; ; iclu++ ){
+            sprintf(fname,"Clu%06d",iclu) ;
+            if( !THD_is_file(fname) ) break ;
+          }
+          fp = fopen(fname,"w") ;
+          fwrite( fim , sizeof(float) , nx*ny*nz , fp ) ;
+          fclose(fp) ;
+          WARNING_message("Wrote file %s",fname) ;
+        }
+      }
+#endif
 
       DESTROY_CLARR(clar);
     }
