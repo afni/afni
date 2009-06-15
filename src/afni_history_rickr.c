@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, JUN, 2009, RCR, "3dmerge", MINOR, TYPE_MODIFY,
+   "allowed short/byte datasets to use FIR blur, so no Fourier interpolation",
+   "Also added Y/N AFNI_BLUR_INTS_AS_OLD env var to use previous method."
+ } ,
+
  { 12, JUN, 2009, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
    "used some wx IDs, per Daniel's suggestion",
    NULL
