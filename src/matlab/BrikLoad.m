@@ -507,7 +507,7 @@ end
 
 %NNO
 if DoVect,
-    V = reshape(V, numpixX * numpPixY * numslices, numframes);
+    V = reshape(V, numpixX * numpixY * numslices, numframes);
 else
     V = reshape(V, numpixX, numpixY, numslices, numframes);
 end

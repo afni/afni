@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 15 , JUN , 2009 , DRG , "BrikLoad.m" , 
+    MINOR , TYPE_BUG_FIX, "Typo in BrikLoad",
+    "Gremlin got to Pixy"
+} ,
 
 { 1 , MAY , 2009 , DRG , "1dSEM" , 
     MINOR , TYPE_BUG_FIX, "Tree growth fix",
