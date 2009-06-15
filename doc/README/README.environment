@@ -2727,6 +2727,15 @@ this variable to YES.  Since the FDR computations are the slowest part of the
 operation, the default (if this variable is not YES) is that FDR curves are
 NOT computed.
 
+----------------------------------
+Variable: AFNI_BLUR_INTS_AS_OLD
+----------------------------------
+As of 15 June 2009, the FIR (finite implulse response) method is applid to
+byte and short data.  Previously, 3dmerge had used FIR only on float data,
+meaning shorts and floats would be applied via Fourier interpolation.
+Setting AFNI_BLUR_INTS_AS_OLD to YES will revert to the Fourier method for
+such data.
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
