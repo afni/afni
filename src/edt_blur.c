@@ -74,6 +74,10 @@ void EDIT_blur_volume_3d( int   nx, int   ny, int   nz,
    float fir_wt[FIR_MAX+1] ;
    int all_fir=0 ;            /* 06 Oct 2005 */
 
+   int as_float = 0 ;   /* process as float (to apply FIR) 15 Jun 2009 [rickr] */
+                        /* - convert short/byte to float, blur, convert back   */
+   int dtype = ftype ;  /* processing datatype (ftype, if no conversion)       */
+
    double sfac = AFNI_numenv("AFNI_BLUR_FIRFAC") ;
    if( sfac < 2.0 ) sfac = 2.5 ;
 
@@ -105,6 +109,16 @@ ENTRY("EDIT_blur_volume_3d") ;
      jj = (int) ceil( sfac * sigmay / dy ) ;
      kk = (int) ceil( sfac * sigmaz / dz ) ;
      if( ii <= FIR_MAX && jj <= FIR_MAX && kk <= FIR_MAX ) all_fir = 1 ;
+
+     /* try to process most data using Finite Impule Response, not with Fourier
+        interpolation (leads to ringing problems both inside and outside a mask)
+        - set AFNI_BLUR_INTS_AS_OLD=YES to use old method    15 Jun 2009 [rickr] */
+     if( (ftype == MRI_short || ftype == MRI_byte) &&
+         ! AFNI_yesenv("AFNI_BLUR_INTS_AS_OLD") ) {
+        ffim = (float *)malloc(nxyz * sizeof(float));
+        as_float = 1;           /* flag, redundant but clear */
+        dtype = MRI_float;      /* process data as float */
+     }
    }
    if( ftype != MRI_float ) all_fir = 0 ;  /* 17 Nov 2005: oopsie */
 
@@ -116,9 +130,11 @@ ENTRY("EDIT_blur_volume_3d") ;
 
      case MRI_short:
        fbot = ftop = sfim[0] ;
-       for( ii=1 ; ii < nxyz ; ii++ )
+       for( ii=1 ; ii < nxyz ; ii++ ) {
               if( sfim[ii] < fbot ) fbot = sfim[ii] ;
          else if( sfim[ii] > ftop ) ftop = sfim[ii] ;
+         if( as_float ) ffim[ii] = (float)sfim[ii] ; /* copy data as int */
+       }
      break ;
 
      case MRI_float:
@@ -130,9 +146,11 @@ ENTRY("EDIT_blur_volume_3d") ;
 
      case MRI_byte:
        fbot = ftop = bfim[0] ;
-       for( ii=1 ; ii < nxyz ; ii++ )
+       for( ii=1 ; ii < nxyz ; ii++ ) {
               if( bfim[ii] < fbot ) fbot = bfim[ii] ;
          else if( bfim[ii] > ftop ) ftop = bfim[ii] ;
+         if( as_float ) ffim[ii] = (float)bfim[ii] ; /* copy data as int */
+       }
      break ;
     }
    }
@@ -146,7 +164,7 @@ ENTRY("EDIT_blur_volume_3d") ;
    }
 
    fir_m = (int) ceil( sfac * sigmax / dx ) ;
-   if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
+   if( allow_fir && dtype == MRI_float && fir_m <= FIR_MAX ){
      STATUS("start x FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
      fir_gaussian_load( fir_m , dx/sigmax , fir_wt ) ;
@@ -183,7 +201,7 @@ STATUS("start x FFTs") ;
    /** Feb  09: extend to other data types besides shorts;
                 doubling up does not apply to complex data! **/
 
-   switch( ftype ){
+   switch( dtype ){
       case MRI_short:{
          register short *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
@@ -281,7 +299,7 @@ STATUS("start x FFTs") ;
    }
 
    fir_m = (int) ceil( sfac * sigmay / dy ) ;
-   if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
+   if( allow_fir && dtype == MRI_float && fir_m <= FIR_MAX ){
      STATUS("start y FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
      fir_gaussian_load( fir_m , dy/sigmay , fir_wt ) ;
@@ -314,7 +332,7 @@ STATUS("start y FFTs") ;
    gg[0] = fac ;
    for( ii=1 ; ii<=nby2 ; ii++ ){ k=ii*dk; gg[nup-ii]=gg[ii]=fac*exp(-aa*k*k); }
 
-   switch( ftype ){
+   switch( dtype ){
       case MRI_short:{
          register short *qfim ;
          for( kk=0 ; kk < nz ; kk++ ){
@@ -412,7 +430,7 @@ STATUS("start y FFTs") ;
    }
 
    fir_m = (int) ceil( sfac * sigmaz / dz ) ;
-   if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
+   if( allow_fir && dtype == MRI_float && fir_m <= FIR_MAX ){
      STATUS("start z FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
      fir_gaussian_load( fir_m , dz/sigmaz , fir_wt ) ;
@@ -445,7 +463,7 @@ STATUS("start z FFTs") ;
    gg[0] = fac ;
    for( ii=1 ; ii<=nby2 ; ii++ ){ k=ii*dk; gg[nup-ii]=gg[ii]=fac*exp(-aa*k*k); }
 
-   switch( ftype ){
+   switch( dtype ){
       case MRI_short:{
          register short *qfim ;
          for( kk=0 ; kk < ny ; kk++ ){
@@ -538,14 +556,19 @@ STATUS("start z FFTs") ;
 
  ALL_DONE_NOW:
 
-   if( !all_fir && fir_num < 3 ){
+   if( !all_fir && (fir_num < 3 || as_float) ){
      STATUS("clipping results") ;
      switch( ftype ){
 
        case MRI_short:
-         for( ii=0 ; ii < nxyz ; ii++ )
+         for( ii=0 ; ii < nxyz ; ii++ ) {
+           if( as_float ) {  /* return floats to rounded shorts */
+              if( ffim[ii] >= 0.0f ) sfim[ii] = (short)(ffim[ii]+0.5) ;
+              else                   sfim[ii] = (short)(ffim[ii]-0.5) ;
+           }
                 if( sfim[ii] < fbot ) sfim[ii] = fbot ;
            else if( sfim[ii] > ftop ) sfim[ii] = ftop ;
+         }
        break ;
 
        case MRI_float:
@@ -555,9 +578,11 @@ STATUS("start z FFTs") ;
        break ;
 
        case MRI_byte:
-         for( ii=0 ; ii < nxyz ; ii++ )
+         for( ii=0 ; ii < nxyz ; ii++ ) {
+           if( as_float ) bfim[ii] = (byte)(ffim[ii]+0.5) ; /* return to byte */
                 if( bfim[ii] < fbot ) bfim[ii] = fbot ;
            else if( bfim[ii] > ftop ) bfim[ii] = ftop ;
+         }
        break ;
      }
    }
@@ -566,6 +591,7 @@ STATUS("start z FFTs") ;
 
    if( cx != NULL ) free(cx) ;
    if( gg != NULL ) free(gg) ;
+   if( as_float && ffim ) free(ffim) ;
    EXRETURN ;
 }
 
