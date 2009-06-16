@@ -539,6 +539,8 @@ int main( int argc , char *argv[] )
    char **eglt_sym = NULL ;
    int    oglt_num = 0    ;   /* number of 'original' GLTs */
 
+   int maxthr = 1 ;  /* 16 Jun 2009 */
+
    /**------- Get by with a little help from your friends? -------**/
 
    Argc = argc ; Argv = argv ;
@@ -1096,9 +1098,15 @@ int main( int argc , char *argv[] )
 #if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
    enable_mcw_malloc() ;
 #endif
+
    PRINT_VERSION("3dREMLfit"); mainENTRY("3dREMLfit main"); machdep();
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
    (void)COX_clock_time() ;
+
+#ifdef USE_OMP
+  omp_set_nested(0) ;
+  maxthr = omp_get_max_threads() ;
+#endif
 
    /**------- scan command line --------**/
 
@@ -1374,6 +1382,10 @@ STATUS("options done") ;
    dx = fabsf(DSET_DX(inset)) ; nx = DSET_NX(inset) ;
    dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ; nxy = nx*ny ;
    dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
+
+   if( maxthr > 1 ){  /* disable threads for some options [16 Jun 2009] */
+     if( usetemp ) maxthr = 1 ;
+   }
 
 #if 0
    if( nelmat == NULL ) ERROR_exit("No -matrix file?!") ;
