@@ -64,7 +64,8 @@ int main( int argc , char *argv[] )
    int nnax=0,mmax=0 , nnay=0,mmay=0 ;
    float xbot,xtop   , ybot,ytop ; float thik=0.0f ;
    int skip_x11=0 , imsave=0 ; char *imfile=NULL ;
-   int do_norm=0 ; /* 26 Mar 2008 */
+   int do_norm=0 ;   /* 26 Mar 2008 */
+   char *ytran=NULL; /* 16 Jun 2009 */
 
    /*-- help? --*/
 
@@ -149,47 +150,65 @@ int main( int argc , char *argv[] )
             "               * PNG output requires that the netpbm program\n"
             "                 pnmtopng be installed somewhere in your PATH.\n"
             "\n"
-            " -xaxis b:t:n:m    = Set the x-axis to run from value 'b' to\n"
-            "                     value 't', with 'n' major divisions and\n"
-            "                     'm' minor tic marks per major division.\n"
-            "                     For example:\n"
-            "                       -xaxis 0:100:5:20\n"
-            "                     Setting 'n' to 0 means no tic marks or labels.\n"
+            "-ytran 'expr'    = Transform the data along the y-axis by\n"
+            "                   applying the expression to each input value.\n"
+            "                   For example:\n"
+            "                     -ytran 'log10(z)'\n"
+            "                   will take log10 of each input time series value\n"
+            "                   before plotting it.\n"
+            "                 * The expression should have one variable (any letter\n"
+            "                   from a-z will do), which stands for the time series\n"
+            "                   data to be transformed.\n"
+            "                 * An expression such as 'sqrt(x*x+i)' will use 'x'\n"
+            "                   for the time series value and use 'i' for the time\n"
+            "                   index (starting at 0) -- in this way, you can use\n"
+            "                   time-dependent transformations, if needed.\n"
+            "                 * This transformation applies to all input time series\n"
+            "                   (at present, there is no way to transform different\n"
+            "                   time series in distinct ways inside 1dplot).\n"
+            "                 * '-ytran' is applied BEFORE the various '-norm' options.\n"
             "\n"
-            " -yaxis b:t:n:m    = Similar to above, for the y-axis.  These\n"
-            "                     options override the normal autoscaling\n"
-            "                     of their respective axes.\n"
+            " -xaxis b:t:n:m  = Set the x-axis to run from value 'b' to\n"
+            "                   value 't', with 'n' major divisions and\n"
+            "                   'm' minor tic marks per major division.\n"
+            "                   For example:\n"
+            "                     -xaxis 0:100:5:20\n"
+            "                   Setting 'n' to 0 means no tic marks or labels.\n"
             "\n"
-            " -ynames aa bb ... = Use the strings 'aa', 'bb', etc., as\n"
-            "                     labels to the right of the graphs,\n"
-            "                     corresponding to each input column.\n"
-            "                     These strings CANNOT start with the\n"
-            "                     '-' character.\n"
-            "               N.B.: Each separate string after '-ynames'\n"
-            "                     is taken to be a new label, until the\n"
-            "                     end of the command line or until some\n"
-            "                     string starts with a '-'.  In particular,\n"
-            "                     This means you CANNOT do something like\n"
-            "                       1dplot -ynames a b c file.1D\n"
-            "                     since the input filename 'file.1D' will\n"
-            "                     be used as a label string, not a filename.\n"
-            "                     Instead, you must put another option between\n"
-            "                     the end of the '-ynames' label list, OR you\n"
-            "                     can put a single '-' at the end of the label\n"
-            "                     list to signal its end:\n"
-            "                       1dplot -ynames a b c - file.1D\n"
+            " -yaxis b:t:n:m  = Similar to above, for the y-axis.  These\n"
+            "                   options override the normal autoscaling\n"
+            "                   of their respective axes.\n"
             "\n"
-            " -volreg           = Makes the 'ynames' be the same as the\n"
-            "                     6 labels used in plug_volreg for\n"
-            "                     Roll, Pitch, Yaw, I-S, R-L, and A-P\n"
-            "                     movements, in that order.\n"
+            " -ynames a b ... = Use the strings 'a', 'b', etc., as\n"
+            "                   labels to the right of the graphs,\n"
+            "                   corresponding to each input column.\n"
+            "                   These strings CANNOT start with the\n"
+            "                   '-' character.\n"
+            "             N.B.: Each separate string after '-ynames'\n"
+            "                   is taken to be a new label, until the\n"
+            "                   end of the command line or until some\n"
+            "                   string starts with a '-'.  In particular,\n"
+            "                   This means you CANNOT do something like\n"
+            "                     1dplot -ynames a b c file.1D\n"
+            "                   since the input filename 'file.1D' will\n"
+            "                   be used as a label string, not a filename.\n"
+            "                   Instead, you must put another option between\n"
+            "                   the end of the '-ynames' label list, OR you\n"
+            "                   can put a single '-' at the end of the label\n"
+            "                   list to signal its end:\n"
+            "                     1dplot -ynames a b c - file.1D\n"
             "\n"
-            " -thick            = Each time you give this, it makes the line\n"
-            "                     thickness used for plotting a little larger.\n"
-            "                     [An alternative to using '-DAFNI_1DPLOT_THIK=...']\n"
+            " -volreg         = Makes the 'ynames' be the same as the\n"
+            "                   6 labels used in plug_volreg for\n"
+            "                   Roll, Pitch, Yaw, I-S, R-L, and A-P\n"
+            "                   movements, in that order.\n"
             "\n"
-            " -Dname=val        = Set environment variable 'name' to 'val'\n"
-            "                     for this run of the program only:\n"
+            " -thick          = Each time you give this, it makes the line\n"
+            "                   thickness used for plotting a little larger.\n"
+            "                   [An alternative to using '-DAFNI_1DPLOT_THIK=...']\n"
+            "\n"
+            " -Dname=val      = Set environment variable 'name' to 'val'\n"
+            "                   for this run of the program only:\n"
             " 1dplot -DAFNI_1DPLOT_THIK=0.01 -DAFNI_1DPLOT_COLOR_01=blue '1D:3 4 5 3 1 0'\n"
             "\n"
             "You may also select a subset of columns to display using\n"
@@ -308,6 +327,10 @@ int main( int argc , char *argv[] )
 
        plot_ts_yfix( nnay,mmay , ybot,ytop ) ;
        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-ytran") == 0 ){   /* 16 Jun 2009 */
+       ytran = strdup(argv[++iarg]) ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-nopush") == 0 ){  /* 12 Mar 2003 */
@@ -585,7 +608,19 @@ int main( int argc , char *argv[] )
 
    if( use > 1 && nx > use ) nx = use ;  /* 29 Nov 1999 */
 
-   switch( do_norm ){  /* 26 Mar 2008 */
+   /*--- 16 Jun 2009: -ytran transformation? ---*/
+
+   if( ytran != NULL && *ytran != '\0' ){
+     int cc ;
+     for( ii=0 ; ii < ny ; ii++ ){
+       cc = PARSER_1dtran( ytran , nx , yar[ii] ) ;
+       if( cc <= 0 ) ERROR_exit("Can't evaluate -ytran expression '%s'",ytran) ;
+     }
+   }
+
+   /*--- 26 Mar 2008: normalize time series? ---*/
+
+   switch( do_norm ){
      case 2:
       for( ii=0 ; ii < ny ; ii++ ) THD_normalize(nx,yar[ii]) ;
      break ;
