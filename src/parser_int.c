@@ -205,6 +205,43 @@ int PARSER_1deval( char * expr, int nt, float tz, float dt, float * vec )
    free(pcode) ; return 1 ;
 }
 
+/*----------------------------------------------------------------------*/
+
+int PARSER_1dtran( char *expr , int nt , float *vec )  /* 16 Jun 2009 */
+{
+   PARSER_code *pcode = NULL ;
+   char sym[4] ;
+   double atoz[26] ;
+   int ii , kvar ;
+
+   if( expr == NULL || nt <= 0 || vec == NULL ) return 0 ;  /* bad */
+
+   pcode = PARSER_generate_code( expr ) ;        /* compile */
+   if( pcode == NULL ) return 0 ;                /* bad news */
+
+   kvar = -1 ;                                   /* find symbol */
+   for( ii=0 ; ii < 26 ; ii++ ){
+      if( ii == 8 ) continue ;            /* check 'I' last */
+      sym[0] = 'A' + ii ; sym[1] = '\0' ;
+      if( PARSER_has_symbol(sym,pcode) ){ kvar = ii ; break ; }
+   }
+   if( kvar < 0 ){                        /* check for 'I' now */
+     sym[0] = 'I' ; sym[1] = '\0' ;
+     if( PARSER_has_symbol(sym,pcode) ) kvar = 8 ;
+   }
+   if( kvar < 0 ) return 0 ;                     /* bad news */
+
+   for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ; /* initialize */
+
+   for( ii=0 ; ii < nt ; ii++ ){
+     atoz[kvar] = (double)vec[ii] ;
+     if( kvar != 8 ) atoz[8] = (double)ii ;
+     vec[ii]  = PARSER_evaluate_one( pcode , atoz ) ;
+   }
+
+   free(pcode) ; return 1 ;
+}
+
 /*------------------------------------------------------------------------*/
 /*! Sort of like strtod(), but with arithmetic -- 03 Sep 2002 - RWCox.
 --------------------------------------------------------------------------*/

@@ -37,6 +37,9 @@ extern int PARSER_has_symbol( char * sym , PARSER_code * pc ) ;
 extern void PARSER_mark_symbols( PARSER_code * pc , int * sl ) ;
 
 extern int PARSER_1deval( char *, int, float, float, float * ) ; /* 17 Nov 1999 */
+extern int PARSER_1dtran( char *, int, float * ) ;               /* 16 Jun 2009 */
+
+extern double PARSER_strtod( char *expr ) ;
 
 #ifdef  __cplusplus
 }
