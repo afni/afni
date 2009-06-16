@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , JUN , 2009 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
+   "Add '-ytran' option" ,
+   "Apply an expression to the time series, to transform it prior to\n"
+   "plotting.  To elide the use of 1deval." } ,
+
  { 15 , JUN , 2009 , RWC , "AlphaSim" , MICRO , TYPE_BUG_FIX ,
    "OpenMP: cdfnor() and other functions are not thread-safe" ,
    "Make use of cdfnor() 'critical'.  Longer term: should patch the nifti\n"
