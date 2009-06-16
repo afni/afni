@@ -12,9 +12,9 @@
     integer a_dim1, a_offset, z_dim1, z_offset, i__1, i__2, i__3;
 
     /* Local variables */
-    static integer i__, j;
-    static doublereal x;
-    static integer la, mm, mp, kp1, mp1;
+    integer i__, j;
+    doublereal x;
+    integer la, mm, mp, kp1, mp1;
 
 
 

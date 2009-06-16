@@ -23,16 +23,16 @@ static doublereal c_b49 = 0.;
     /* Local variables */
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    static doublereal norm;
-    static integer i__, j, k, l, m;
-    static doublereal p, q, r__, s, t, w, x, y;
-    static integer na, ii, en, jj;
-    static doublereal ra, sa;
-    static integer ll, mm, nn;
-    static doublereal vi, vr, zz;
-    static logical notlas;
-    static integer mp2, itn, its, enm2;
-    static doublereal tst1, tst2;
+    doublereal norm;
+    integer i__, j, k, l, m;
+    doublereal p, q, r__, s, t, w, x, y;
+    integer na, ii, en, jj;
+    doublereal ra, sa;
+    integer ll, mm, nn;
+    doublereal vi, vr, zz;
+    logical notlas;
+    integer mp2, itn, its, enm2;
+    doublereal tst1, tst2;
 
 
 

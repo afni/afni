@@ -13,12 +13,12 @@
     doublereal d__1;
 
     /* Local variables */
-    static integer iexc;
-    static doublereal c__, f, g;
-    static integer i__, j, k, l, m;
-    static doublereal r__, s, radix, b2;
-    static integer jj;
-    static logical noconv;
+    integer iexc;
+    doublereal c__, f, g;
+    integer i__, j, k, l, m;
+    doublereal r__, s, radix, b2;
+    integer jj;
+    logical noconv;
 
 
 

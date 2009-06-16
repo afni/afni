@@ -19,7 +19,7 @@
 	    doublereal *), elmhes_(integer *, integer *, integer *, integer *,
 	     doublereal *, integer *), eltran_(integer *, integer *, integer *
 	    , integer *, doublereal *, integer *, doublereal *);
-    static integer is1, is2;
+    integer is1, is2;
     extern /* Subroutine */ int hqr_(integer *, integer *, integer *, integer 
 	    *, doublereal *, doublereal *, doublereal *, integer *), hqr2_(
 	    integer *, integer *, integer *, integer *, doublereal *, 

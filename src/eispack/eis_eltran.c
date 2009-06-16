@@ -12,7 +12,7 @@
     integer a_dim1, a_offset, z_dim1, z_offset, i__1, i__2;
 
     /* Local variables */
-    static integer i__, j, kl, mm, mp, mp1;
+    integer i__, j, kl, mm, mp, mp1;
 
 
 

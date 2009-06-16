@@ -12,7 +12,7 @@
     doublereal d__1, d__2;
 
     /* Local variables */
-    static doublereal s, ais, bis, ars, brs;
+    doublereal s, ais, bis, ars, brs;
 
 
 /*     COMPLEX DIVISION, (CR,CI) = (AR,AI)/(BR,BI) */

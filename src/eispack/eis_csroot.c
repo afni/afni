@@ -12,7 +12,7 @@
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal s, ti, tr;
+    doublereal s, ti, tr;
     extern doublereal pythag_(doublereal *, doublereal *);
 
 

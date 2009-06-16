@@ -99,6 +99,8 @@ static void init_colors(void)
          ccc[ii][0] = 0.8f; ccc[ii][1] = 0.0f; ccc[ii][2] = 0.8f; NCLR = ii+1;
        } else if( strcasecmp(eee,"gold") == 0 || strcasecmp(eee,"yellow") == 0 ){
          ccc[ii][0] = 0.8f; ccc[ii][1] = 0.6f; ccc[ii][2] = 0.0f; NCLR = ii+1;
+       } else if( strcasecmp(eee,"pink") == 0 ){
+         ccc[ii][0] = 0.9f; ccc[ii][1] = 0.3f; ccc[ii][2] = 0.5f; NCLR = ii+1;
        } else if( *eee == '#' && *(eee+1) != '\0' ){
          int le=strlen(eee+1) , val , bas , rr,gg,bb ;
          val = (int)strtol( eee+1 , NULL , 16 ) ;

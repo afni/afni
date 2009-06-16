@@ -21,14 +21,14 @@ static doublereal c_b8 = 1.;
     double d_sign(doublereal *, doublereal *), sqrt(doublereal);
 
     /* Local variables */
-    static doublereal f, g;
-    static integer i__, j, k, l, m;
-    static doublereal q, s, scale;
-    static integer imult, m1, m2, m3, m4, m21, m31, ii, ik, jk, kj, jm, kk, 
+    doublereal f, g;
+    integer i__, j, k, l, m;
+    doublereal q, s, scale;
+    integer imult, m1, m2, m3, m4, m21, m31, ii, ik, jk, kj, jm, kk, 
 	    km, ll, mk, mn, ni, mz;
     extern doublereal pythag_(doublereal *, doublereal *);
-    static integer kj1, its;
-    static doublereal tst1, tst2;
+    integer kj1, its;
+    doublereal tst1, tst2;
 
 
 

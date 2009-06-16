@@ -21,25 +21,25 @@ static doublereal c_b5 = 1.;
     double sqrt(doublereal), d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal epsa, epsb;
-    static integer i__, j, k, l;
-    static doublereal r__, s, t, anorm, bnorm;
-    static integer enorn;
-    static doublereal a1, a2, a3;
-    static integer k1, k2, l1;
-    static doublereal u1, u2, u3, v1, v2, v3, a11, a12, a21, a22, a33, a34, 
+    doublereal epsa, epsb;
+    integer i__, j, k, l;
+    doublereal r__, s, t, anorm, bnorm;
+    integer enorn;
+    doublereal a1, a2, a3;
+    integer k1, k2, l1;
+    doublereal u1, u2, u3, v1, v2, v3, a11, a12, a21, a22, a33, a34, 
 	    a43, a44, b11, b12, b22, b33;
-    static integer na, ld;
-    static doublereal b34, b44;
-    static integer en;
-    static doublereal ep;
-    static integer ll;
-    static doublereal sh;
+    integer na, ld;
+    doublereal b34, b44;
+    integer en;
+    doublereal ep;
+    integer ll;
+    doublereal sh;
     extern doublereal epslon_(doublereal *);
-    static logical notlas;
-    static integer km1, lm1;
-    static doublereal ani, bni;
-    static integer ish, itn, its, enm2, lor1;
+    logical notlas;
+    integer km1, lm1;
+    doublereal ani, bni;
+    integer ish, itn, its, enm2, lor1;
 
 
 

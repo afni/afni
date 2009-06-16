@@ -16,14 +16,14 @@
     double sqrt(doublereal), d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal norm;
-    static integer i__, j, k, l, m;
-    static doublereal p, q, r__, s, t, w, x, y;
-    static integer na, en, ll, mm;
-    static doublereal zz;
-    static logical notlas;
-    static integer mp2, itn, its, enm2;
-    static doublereal tst1, tst2;
+    doublereal norm;
+    integer i__, j, k, l, m;
+    doublereal p, q, r__, s, t, w, x, y;
+    integer na, en, ll, mm;
+    doublereal zz;
+    logical notlas;
+    integer mp2, itn, its, enm2;
+    doublereal tst1, tst2;
 
 
 

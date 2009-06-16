@@ -17,19 +17,19 @@
     double sqrt(doublereal), d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal epsb, c__, d__, e;
-    static integer i__, j;
-    static doublereal r__, s, t, a1, a2, u1, u2, v1, v2, a11, a12, a21, a22, 
+    doublereal epsb, c__, d__, e;
+    integer i__, j;
+    doublereal r__, s, t, a1, a2, u1, u2, v1, v2, a11, a12, a21, a22, 
 	    b11, b12, b22, di, ei;
-    static integer na;
-    static doublereal an, bn;
-    static integer en;
-    static doublereal cq, dr;
-    static integer nn;
-    static doublereal cz, ti, tr, a1i, a2i, a11i, a12i, a22i, a11r, a12r, 
+    integer na;
+    doublereal an, bn;
+    integer en;
+    doublereal cq, dr;
+    integer nn;
+    doublereal cz, ti, tr, a1i, a2i, a11i, a12i, a22i, a11r, a12r, 
 	    a22r, sqi, ssi;
-    static integer isw;
-    static doublereal sqr, szi, ssr, szr;
+    integer isw;
+    doublereal sqr, szi, ssr, szr;
 
 
 
