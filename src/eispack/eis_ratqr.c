@@ -14,14 +14,14 @@
     doublereal d__1, d__2, d__3;
 
     /* Local variables */
-    static integer jdef;
-    static doublereal f;
-    static integer i__, j, k;
-    static doublereal p, q, r__, s, delta;
-    static integer k1, ii, jj;
-    static doublereal ep, qp;
+    integer jdef;
+    doublereal f;
+    integer i__, j, k;
+    doublereal p, q, r__, s, delta;
+    integer k1, ii, jj;
+    doublereal ep, qp;
     extern doublereal epslon_(doublereal *);
-    static doublereal err, tot;
+    doublereal err, tot;
 
 
 

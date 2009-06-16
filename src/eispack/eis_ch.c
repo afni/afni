@@ -14,7 +14,7 @@
 	    zi_dim1, zi_offset, i__1, i__2;
 
     /* Local variables */
-    static integer i__, j;
+    integer i__, j;
     extern /* Subroutine */ int htridi_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *), htribk_(integer *, integer *, doublereal *, 

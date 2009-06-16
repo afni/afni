@@ -18,14 +18,14 @@
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal alfm, almi, betm, epsb, almr, d__;
-    static integer i__, j, k, m;
-    static doublereal q, r__, s, t, w, x, y, t1, t2, w1, x1, z1, di;
-    static integer na, ii, en, jj;
-    static doublereal ra, dr, sa;
-    static integer nn;
-    static doublereal ti, rr, tr, zz;
-    static integer isw, enm2;
+    doublereal alfm, almi, betm, epsb, almr, d__;
+    integer i__, j, k, m;
+    doublereal q, r__, s, t, w, x, y, t1, t2, w1, x1, z1, di;
+    integer na, ii, en, jj;
+    doublereal ra, dr, sa;
+    integer nn;
+    doublereal ti, rr, tr, zz;
+    integer isw, enm2;
 
 
 

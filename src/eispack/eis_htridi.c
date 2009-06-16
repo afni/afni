@@ -17,13 +17,13 @@
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal f, g, h__;
-    static integer i__, j, k, l;
-    static doublereal scale, fi, gi, hh;
-    static integer ii;
-    static doublereal si;
+    doublereal f, g, h__;
+    integer i__, j, k, l;
+    doublereal scale, fi, gi, hh;
+    integer ii;
+    doublereal si;
     extern doublereal pythag_(doublereal *, doublereal *);
-    static integer jp1;
+    integer jp1;
 
 
 

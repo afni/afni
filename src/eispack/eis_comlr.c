@@ -16,15 +16,15 @@
     /* Local variables */
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    static integer i__, j, l, m, en, ll, mm;
-    static doublereal si, ti, xi, yi, sr, tr, xr, yr;
-    static integer im1;
+    integer i__, j, l, m, en, ll, mm;
+    doublereal si, ti, xi, yi, sr, tr, xr, yr;
+    integer im1;
     extern /* Subroutine */ int csroot_(doublereal *, doublereal *, 
 	    doublereal *, doublereal *);
-    static integer mp1, itn, its;
-    static doublereal zzi, zzr;
-    static integer enm1;
-    static doublereal tst1, tst2;
+    integer mp1, itn, its;
+    doublereal zzi, zzr;
+    integer enm1;
+    doublereal tst1, tst2;
 
 
 

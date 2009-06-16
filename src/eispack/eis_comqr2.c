@@ -16,19 +16,19 @@
     doublereal d__1, d__2, d__3, d__4;
 
     /* Local variables */
-    static integer iend;
+    integer iend;
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    static doublereal norm;
-    static integer i__, j, k, l, m, ii, en, jj, ll, nn;
-    static doublereal si, ti, xi, yi, sr, tr, xr, yr;
+    doublereal norm;
+    integer i__, j, k, l, m, ii, en, jj, ll, nn;
+    doublereal si, ti, xi, yi, sr, tr, xr, yr;
     extern doublereal pythag_(doublereal *, doublereal *);
     extern /* Subroutine */ int csroot_(doublereal *, doublereal *, 
 	    doublereal *, doublereal *);
-    static integer ip1, lp1, itn, its;
-    static doublereal zzi, zzr;
-    static integer enm1;
-    static doublereal tst1, tst2;
+    integer ip1, lp1, itn, its;
+    doublereal zzi, zzr;
+    integer enm1;
+    doublereal tst1, tst2;
 
 
 

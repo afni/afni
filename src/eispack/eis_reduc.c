@@ -15,9 +15,9 @@
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, j, k;
-    static doublereal x, y;
-    static integer i1, j1, nn;
+    integer i__, j, k;
+    doublereal x, y;
+    integer i1, j1, nn;
 
 
 

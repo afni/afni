@@ -17,18 +17,18 @@
     double sqrt(doublereal), d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static integer maxj, maxk;
-    static doublereal norm;
-    static integer i__, j, k, r__;
-    static doublereal u, v, order;
-    static integer group, m1;
-    static doublereal x0, x1;
-    static integer mb, m21, ii, ij, jj, kj;
-    static doublereal uk, xu;
+    integer maxj, maxk;
+    doublereal norm;
+    integer i__, j, k, r__;
+    doublereal u, v, order;
+    integer group, m1;
+    doublereal x0, x1;
+    integer mb, m21, ii, ij, jj, kj;
+    doublereal uk, xu;
     extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
 	    *);
-    static integer ij1, kj1, its;
-    static doublereal eps2, eps3, eps4;
+    integer ij1, kj1, its;
+    doublereal eps2, eps3, eps4;
 
 
 

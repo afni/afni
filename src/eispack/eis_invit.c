@@ -21,21 +21,21 @@
     /* Local variables */
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    static doublereal norm;
-    static integer i__, j, k, l, s;
-    static doublereal t, w, x, y;
-    static integer n1;
-    static doublereal normv;
-    static integer ii;
-    static doublereal ilambd;
-    static integer ip, mp, ns, uk;
-    static doublereal rlambd;
+    doublereal norm;
+    integer i__, j, k, l, s;
+    doublereal t, w, x, y;
+    integer n1;
+    doublereal normv;
+    integer ii;
+    doublereal ilambd;
+    integer ip, mp, ns, uk;
+    doublereal rlambd;
     extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
 	    *);
-    static integer km1, ip1;
-    static doublereal growto, ukroot;
-    static integer its;
-    static doublereal eps3;
+    integer km1, ip1;
+    doublereal growto, ukroot;
+    integer its;
+    doublereal eps3;
 
 
 

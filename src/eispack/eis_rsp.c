@@ -15,7 +15,7 @@
     /* Local variables */
     extern /* Subroutine */ int tred3_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *);
-    static integer i__, j;
+    integer i__, j;
     extern /* Subroutine */ int trbak3_(integer *, integer *, integer *, 
 	    doublereal *, integer *, doublereal *), tqlrat_(integer *, 
 	    doublereal *, doublereal *, integer *), tql2_(integer *, integer *

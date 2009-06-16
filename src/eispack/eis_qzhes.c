@@ -17,12 +17,12 @@
     double sqrt(doublereal), d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static integer i__, j, k, l;
-    static doublereal r__, s, t;
-    static integer l1;
-    static doublereal u1, u2, v1, v2;
-    static integer lb, nk1, nm1, nm2;
-    static doublereal rho;
+    integer i__, j, k, l;
+    doublereal r__, s, t;
+    integer l1;
+    doublereal u1, u2, v1, v2;
+    integer lb, nk1, nm1, nm2;
+    doublereal rho;
 
 
 

@@ -21,13 +21,13 @@ static doublereal c_b11 = 1.;
     double d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static doublereal b, c__, f, g;
-    static integer i__, j, k, l, m;
-    static doublereal p, r__, s;
-    static integer ii;
+    doublereal b, c__, f, g;
+    integer i__, j, k, l, m;
+    doublereal p, r__, s;
+    integer ii;
     extern doublereal pythag_(doublereal *, doublereal *);
-    static integer tag, mml;
-    static doublereal tst1, tst2;
+    integer tag, mml;
+    doublereal tst1, tst2;
 
 
 

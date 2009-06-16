@@ -14,10 +14,10 @@
 	    zi_dim1, zi_offset, i__1, i__2, i__3;
 
     /* Local variables */
-    static doublereal h__;
-    static integer i__, j, la;
-    static doublereal gi, gr;
-    static integer mm, mp, kp1, mp1;
+    doublereal h__;
+    integer i__, j, la;
+    doublereal gi, gr;
+    integer mm, mp, kp1, mp1;
 
 
 

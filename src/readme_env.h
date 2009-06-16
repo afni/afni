@@ -1873,9 +1873,10 @@ static char * readme_env[] = {
    "colors will be fuliginous.\n" ,
    "\n" ,
    "[Dec 2007] You can now specify the colors by using the special names 'green',\n" ,
-   "'red', 'blue', 'gold', and 'purple'.  Also, by using 3 or 6 digit hexadecimal\n" ,
-   "notation as in '#8888aa' for a blueish-gray color (6 digits) or '#0ac' for a\n" ,
-   "cyanish color (3 digits).  These are intended to make life a little simpler.\n" ,
+   "'red', 'blue', 'gold', 'pink', and 'purple'.  Also, by using 3 or 6 digit\n" ,
+   "hexadecimal notation as in '#8888aa' for a blueish-gray color (6 digits) or\n" ,
+   "'#0ac' for a cyanish color (3 digits).  These are intended to make life a\n" ,
+   "little simpler.\n" ,
    "\n" ,
    "--------------------------\n" ,
    "Variable: AFNI_1DPLOT_THIK (editable)\n" ,
@@ -2952,4 +2953,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 2952
+#define NUM_readme_env 2953

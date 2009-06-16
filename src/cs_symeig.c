@@ -388,6 +388,28 @@ void symeigval_double( int n , double *a , double *e )
 }
 
 /*--------------------------------------------------------------------*/
+/*! Return the largest m out of n eigenvalues/eigenvectors. */
+
+#if 0
+void symeig_top( int n , int m , double *a , double *e )
+{
+   integer nm , matz , ierr ;
+   double *fv1 , *fv2 , *fv3 ;
+
+   if( n < 1 || m < 1 || m > n || a == NULL || e == NULL ) return ;
+
+   if( m == n ){ symeig_double( n , a , e ) ; return ; }
+
+   fv1 = (double *) malloc(sizeof(double)*(n+9)) ;  /* workspaces */
+   fv2 = (double *) malloc(sizeof(double)*(n+9)) ;
+   fv3 = (double *) malloc(sizeof(double)*(n+9)) ;
+
+   /** incomplete **/
+}
+#endif
+
+
+/*--------------------------------------------------------------------*/
 
 #define CHECK_SVD
 
@@ -568,6 +590,7 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
     a -1.0 in case of error.
 
 */
+
 double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, int num_rows,
                int num_cols, int norm, int remove_mean, int be_quiet)
 {
@@ -644,6 +667,7 @@ double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, in
 
    return(atrace);
 }
+
 /*!
    Principal Component calculation by doing SVD on the
    covariance matrix of the data.

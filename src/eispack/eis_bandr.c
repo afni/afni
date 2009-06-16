@@ -18,16 +18,16 @@
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal dmin__;
-    static integer maxl, maxr;
-    static doublereal g;
-    static integer j, k, l, r__;
-    static doublereal u, b1, b2, c2, f1, f2;
-    static integer i1, i2, j1, j2, m1, n2, r1;
-    static doublereal s2;
-    static integer kr, mr;
-    static doublereal dminrt;
-    static integer ugl;
+    doublereal dmin__;
+    integer maxl, maxr;
+    doublereal g;
+    integer j, k, l, r__;
+    doublereal u, b1, b2, c2, f1, f2;
+    integer i1, i2, j1, j2, m1, n2, r1;
+    doublereal s2;
+    integer kr, mr;
+    doublereal dminrt;
+    integer ugl;
 
 
 

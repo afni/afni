@@ -12,7 +12,7 @@
     integer z_dim1, z_offset, i__1, i__2;
 
     /* Local variables */
-    static integer i__, j;
+    integer i__, j;
     extern /* Subroutine */ int imtql1_(integer *, doublereal *, doublereal *,
 	     integer *), imtql2_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, integer *);

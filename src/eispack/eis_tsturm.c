@@ -23,17 +23,17 @@ static doublereal c_b26 = 1.;
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal norm;
-    static integer i__, j, k, p, q, r__, s;
-    static doublereal u, v;
-    static integer group, m1, m2;
-    static doublereal t1, t2, x0, x1;
-    static integer ii, jj, ip;
-    static doublereal uk, xu;
+    doublereal norm;
+    integer i__, j, k, p, q, r__, s;
+    doublereal u, v;
+    integer group, m1, m2;
+    doublereal t1, t2, x0, x1;
+    integer ii, jj, ip;
+    doublereal uk, xu;
     extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
 	    *);
-    static integer isturm, its;
-    static doublereal eps2, eps3, eps4, tst1, tst2;
+    integer isturm, its;
+    doublereal eps2, eps3, eps4, tst1, tst2;
 
 
 
