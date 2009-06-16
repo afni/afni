@@ -25,7 +25,7 @@
 	    comqr2_(integer *, integer *, integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, integer *);
-    static integer is1, is2;
+    integer is1, is2;
 
 
 

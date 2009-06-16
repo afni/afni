@@ -14,9 +14,9 @@
 	    zi_dim1, zi_offset, i__1, i__2, i__3;
 
     /* Local variables */
-    static integer i__, j, la, mm, mp;
-    static doublereal xi, xr;
-    static integer kp1, mp1;
+    integer i__, j, la, mm, mp;
+    doublereal xi, xr;
+    integer kp1, mp1;
 
 
 

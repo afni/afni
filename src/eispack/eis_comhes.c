@@ -15,9 +15,9 @@
     /* Local variables */
     extern /* Subroutine */ int cdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    static integer i__, j, m, la;
-    static doublereal xi, yi, xr, yr;
-    static integer mm1, kp1, mp1;
+    integer i__, j, m, la;
+    doublereal xi, yi, xr, yr;
+    integer mm1, kp1, mp1;
 
 
 

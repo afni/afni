@@ -16,7 +16,7 @@
     extern /* Subroutine */ int bandr_(integer *, integer *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, logical *,
 	     doublereal *);
-    static logical tf;
+    logical tf;
     extern /* Subroutine */ int tqlrat_(integer *, doublereal *, doublereal *,
 	     integer *), tql2_(integer *, integer *, doublereal *, doublereal 
 	    *, doublereal *, integer *);

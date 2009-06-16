@@ -13,9 +13,9 @@
     doublereal d__1;
 
     /* Local variables */
-    static integer i__, j, m;
-    static doublereal x, y;
-    static integer la, mm1, kp1, mp1;
+    integer i__, j, m;
+    doublereal x, y;
+    integer la, mm1, kp1, mp1;
 
 
 

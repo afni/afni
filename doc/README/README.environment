@@ -1872,9 +1872,10 @@ numbering (e.g., you define color 07 but not 05 or 06), then the undefined
 colors will be fuliginous.
 
 [Dec 2007] You can now specify the colors by using the special names 'green',
-'red', 'blue', 'gold', and 'purple'.  Also, by using 3 or 6 digit hexadecimal
-notation as in '#8888aa' for a blueish-gray color (6 digits) or '#0ac' for a
-cyanish color (3 digits).  These are intended to make life a little simpler.
+'red', 'blue', 'gold', 'pink', and 'purple'.  Also, by using 3 or 6 digit
+hexadecimal notation as in '#8888aa' for a blueish-gray color (6 digits) or
+'#0ac' for a cyanish color (3 digits).  These are intended to make life a
+little simpler.
 
 --------------------------
 Variable: AFNI_1DPLOT_THIK (editable)

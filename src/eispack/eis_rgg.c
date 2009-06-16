@@ -25,7 +25,7 @@ static doublereal c_b5 = 0.;
 	    doublereal *), qzval_(integer *, integer *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, logical *,
 	     doublereal *);
-    static logical tf;
+    logical tf;
 
 
 

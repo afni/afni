@@ -18,17 +18,17 @@
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal norm;
-    static integer i__, j, p, q, r__, s;
-    static doublereal u, v, order;
-    static integer group;
-    static doublereal x0, x1;
-    static integer ii, jj, ip;
-    static doublereal uk, xu;
+    doublereal norm;
+    integer i__, j, p, q, r__, s;
+    doublereal u, v, order;
+    integer group;
+    doublereal x0, x1;
+    integer ii, jj, ip;
+    doublereal uk, xu;
     extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
 	    *);
-    static integer tag, its;
-    static doublereal eps2, eps3, eps4;
+    integer tag, its;
+    doublereal eps2, eps3, eps4;
 
 
 

@@ -11,7 +11,7 @@ doublereal epslon_(doublereal *x)
     doublereal ret_val, d__1;
 
     /* Local variables */
-    static doublereal a, b, c__, eps;
+    doublereal a, b, c__, eps;
 
 
 /*     ESTIMATE UNIT ROUNDOFF IN QUANTITIES OF SIZE X. */
@@ -49,4 +49,3 @@ L10:
     ret_val = eps * abs(*x);
     return ret_val;
 } /* epslon_ */
-
