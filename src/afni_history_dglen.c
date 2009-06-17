@@ -49,6 +49,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 17 , JUN , 2009 , DRG , "RetroTS.m" , 
+    MINOR , TYPE_BUG_FIX, "Number of TRs found incorrectly because of rounding",
+} ,
+
 { 15 , JUN , 2009 , DRG , "BrikLoad.m" , 
     MINOR , TYPE_BUG_FIX, "Typo in BrikLoad",
     "Gremlin got to Pixy"

@@ -93,7 +93,7 @@ else, %phase based on amplitude
 end
 
 for (icol=1:1:length(R)),
-   R(icol).tst = [0:Opt.VolTR:max(R(icol).t)-Opt.VolTR]; %time series time vector
+   R(icol).tst = [0:Opt.VolTR:max(R(icol).t)-0.5*Opt.VolTR]; %time series time vector
    R(icol).phz_slc = zeros(length(R(icol).tst),Opt.Nslices);
    R(icol).phz_slc_reg = zeros(length(R(icol).tst),4,Opt.Nslices);
    for (isl=1:1:Opt.Nslices),
