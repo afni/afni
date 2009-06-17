@@ -48,6 +48,14 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, JUN, 2009, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
+   "version 2.0 : call e2a alignment and warp to standard space ready",
+   "- mask warped EPI by its extents (at volreg step)\n"
+   "- added -volreg_no_extent_mask, to block this masking\n"
+   "- added 'extents' to list of mask in -mask_apply\n"
+   "- change block dividers to more visual '===' with block names"
+ } ,
+
  { 15, JUN, 2009, RCR, "3dmerge", MINOR, TYPE_MODIFY,
    "allowed short/byte datasets to use FIR blur, so no Fourier interpolation",
    "Also added Y/N AFNI_BLUR_INTS_AS_OLD env var to use previous method."
