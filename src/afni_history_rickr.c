@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, JUN, 2009, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "added -make_3dd_contrasts and used general accuracy in block durations",
+   NULL
+ } ,
+
  { 17, JUN, 2009, RCR, "afni_proc.py", MAJOR, TYPE_NEW_OPT,
    "version 2.0 : call e2a alignment and warp to standard space ready",
    "- mask warped EPI by its extents (at volreg step)\n"

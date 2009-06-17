@@ -421,6 +421,15 @@ optional arguments:
         over 3 runs, for an average of 8 per run (though there will probably
         not be exactly 8 in every run).
 
+    -make_3dd_contrasts         : add all pairwise contrasts to 3dDeconvolve
+
+        This option is particularly useful if make_random_timing.py is part of
+        an experiment design search script.  In any case, this option can be
+        used to add all possible pairwise contrasts to the 3dDeonvolve command
+        specified by -save_3dd_cmd.
+
+        Options -save_3dd_cmd and -stim_labels are also required.
+
     -min_rest REST_TIME         : specify extra rest after each stimulus
 
         e.g. -min_rest 0.320
@@ -617,9 +626,12 @@ g_history = """
     0.7  Dec 24, 2008: redefine 'sum' for old python versions
     0.8  Feb 05, 2009: added timing_tool.py use to catch trial example
     0.9  Apr 17, 2009: added -ordered_stimuli
+    0.10 Jun 17, 2009:
+         - print block durations with general decimal accuracy
+         - added -make_3dd_contrasts
 """
 
-g_version = "version 0.7, April 17, 2009"
+g_version = "version 0.10, June 17, 2009"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -666,6 +678,7 @@ class RandTiming:
         self.control_breaks = 1         # flag: across runs, add max stim time
                                         # to post_stim_rest
         self.file_3dd_cmd   = None      # file for 3dD -nodata command
+        self.make_3dd_contr = 0         # flag to make all 3dD contrasts
 
         # statistics
         self.show_timing_stats = 0      # do we show ISI statistics?
@@ -706,6 +719,8 @@ class RandTiming:
         # optional arguments
         self.valid_opts.add_opt('-across_runs', 0, [],
                         helpstr='distribute stim reps across all runs')
+        self.valid_opts.add_opt('-make_3dd_contrasts', 0, [],
+                        helpstr='add contrasts pairs to 3dDeconvolve script')
         self.valid_opts.add_opt('-min_rest', 1, [],
                         helpstr='minimum rest time after each stimulus')
         self.valid_opts.add_opt('-offset', 1, [],
@@ -829,6 +844,9 @@ class RandTiming:
         opt = self.user_opts.find_opt('-across_runs')
         if opt: self.across_runs = 1
 
+        opt = self.user_opts.find_opt('-make_3dd_contrasts')
+        if opt: self.make_3dd_contr = 1
+
         self.pre_stim_rest, err = self.user_opts.get_type_opt(float,
                                                               '-pre_stim_rest')
         if self.pre_stim_rest == None: self.pre_stim_rest = 0.0
@@ -908,6 +926,14 @@ class RandTiming:
 
         self.file_3dd_cmd, err = self.user_opts.get_string_opt('-save_3dd_cmd')
         if err: return 1
+
+        if self.make_3dd_contr:
+            if not self.file_3dd_cmd:
+                print '** cannot use -make_3dd_contrasts without -save_3dd_cmd'
+                return 1
+            elif not self.labels:
+                print '** cannot use -make_3dd_contrasts without -stim_labels'
+                return 1
 
         if self.verb > 1:
             print '-- pre_stim_rest=%.1f, post_stim_rest=%.1f, seed=%s'     \
@@ -1080,6 +1106,11 @@ class RandTiming:
         for ind in range(len(self.fnames)):
             c2 += '    -stim_times %d %s %s    \\\n' %          \
                   (ind+1,self.fnames[ind],basis_from_time(self.stim_dur[ind]))
+            # add labels, but play it safe
+            if self.labels and len(self.labels) == len(self.fnames):
+                c2 += '    -stim_label %d %s \\\n' % (ind+1,self.labels[ind])
+        if self.make_3dd_contr and self.labels:
+            c2 += self.make_3dd_contr_str(prefix='    ')
         c2 += '    -x1D X.xmat.1D\n\n'
 
         if len(self.run_time) > 1:
@@ -1108,6 +1139,24 @@ class RandTiming:
 
         fp.write(cmd)
         fp.close()
+
+    def make_3dd_contr_str(self, prefix=''):
+        """return a string with all pairwise contrasts"""
+        if not self.labels: return ''
+        cstr = ''
+        cind = 0
+        llist = self.labels # just to make shorter
+        for first in range(len(llist)-1):
+            for next in range(first+1,len(llist)):
+                cstr += "%s-gltsym 'SYM: %s -%s' -glt_label %d %s-%s \\\n" % \
+                        (prefix, llist[first], llist[next],
+                         cind+1, llist[first], llist[next])
+                cind += 1
+
+        if cind > 0:
+            nstr = "%s-num_glt %d \\\n" % (prefix, cind)
+            return nstr + cstr
+        return ''
 
     def disp_time_stats(self):
         """display statistics of ISIs (inter-stimulus intervals)"""
@@ -1476,7 +1525,7 @@ class RandTiming:
         return 0, elist
 
 def basis_from_time(stim_len):
-    if stim_len > 1.0: return "'BLOCK(%.1f,1)'" % stim_len
+    if stim_len > 1.0: return "'BLOCK(%g,1)'" % stim_len
     else: return 'GAM'
 
 def make_concat_from_times(run_times, tr):
