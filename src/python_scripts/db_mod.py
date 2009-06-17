@@ -2451,7 +2451,7 @@ g_help_string = """
        an entire cluster of false activation, large enough to survive multiple
        comparison corrections.
 
-       This problem was first encountered by Laura Thomas and Brian Bones.
+       Thanks to Laura Thomas and Brian Bones for finding this artifact.
 
    --> To deal with this, a time series of all 1s is created on the original
        EPI grid space.  Then for each run it is warped with to the same list of
