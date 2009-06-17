@@ -36,9 +36,9 @@ def db_cmd_tcat(proc, block):
     opt = block.opts.find_opt('-tcat_remove_first_trs')
     first = opt.parlist[0]
 
-    cmd = cmd + "# -------------------------------------------------------\n" \
-              + "# apply 3dTcat to copy input dsets to results dir, while\n"  \
-              + "# removing the first %d TRs\n" % first
+    cmd = cmd + "# %s\n"                                                      \
+                "# apply 3dTcat to copy input dsets to results dir, while\n"  \
+                "# removing the first %d TRs\n" % (block_header('tcat'), first)
     for run in range(0, proc.runs):
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..$]'\n" %              \
                     (proc.od_var, proc.prefix_form(block,run+1),
@@ -99,8 +99,9 @@ def db_cmd_align(proc, block):
     else:   extra_opts = ''
 
     # write commands
-    cmd =       '# -------------------------------------------------------\n' \
-                '# align anatomy to EPI registration base\n'
+    cmd =       '# %s\n'                                        \
+                '# align anatomy to EPI registration base\n'    \
+                % block_header('align')
     cmd = cmd + 'align_epi_anat.py -anat2epi \\\n'                      \
                 '       -anat %s \\\n'                                  \
                 '       -epi %s \\\n'                                   \
@@ -159,11 +160,11 @@ def db_cmd_despike(proc, block):
     else:                                         mstr = ' -nomask'
 
     # write commands
-    cmd = cmd + '# -------------------------------------------------------\n' \
-              + '# apply 3dDespike to each run\n'
-    cmd = cmd + 'foreach run ( $runs )\n'                                     \
-                '    3dDespike%s%s -prefix %s %s\n'                           \
-                'end\n\n' %                                                   \
+    cmd = cmd + '# %s\n'                                \
+                '# apply 3dDespike to each run\n' % block_header('despike')
+    cmd = cmd + 'foreach run ( $runs )\n'               \
+                '    3dDespike%s%s -prefix %s %s\n'     \
+                'end\n\n' %                             \
                 (other_opts, mstr, prefix, prev)
 
     proc.bindex += 1            # increment block index
@@ -353,10 +354,10 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
     proc.ricor_nreg = nsliregs
 
-    cmd = '# -------------------------------------------------------\n' \
+    cmd = '# %s\n'                                                      \
           '# RETROICOR - remove cardiac and respiratory signals\n'      \
           '#           - across runs: catenate regressors across runs\n'\
-          'foreach run ( $runs )\n'
+          'foreach run ( $runs )\n' % block_header('ricor')
 
     cmd = cmd +                                                         \
         "    # detrend regressors (make orthogonal to poly baseline)\n" \
@@ -448,10 +449,10 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
     proc.ricor_nreg = proc.runs * nsliregs
 
-    cmd = '# -------------------------------------------------------\n' \
+    cmd = '# %s\n'                                                      \
           '# RETROICOR - remove cardiac and respiratory signals\n'      \
           '#           - per run: each run uses separate regressors\n'  \
-          'foreach run ( $runs )\n'
+          'foreach run ( $runs )\n' % block_header('ricor')
 
     cmd = cmd +                                                            \
         "    # detrend regressors (make orthogonal to poly baseline)\n"    \
@@ -560,8 +561,9 @@ def db_cmd_tshift(proc, block):
     else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
     # write commands
-    cmd = cmd + '# -------------------------------------------------------\n' \
-              + '# run 3dToutcount and 3dTshift for each run\n'
+    cmd = cmd + '# %s\n'                                        \
+                '# run 3dToutcount and 3dTshift for each run\n' \
+                % block_header('tshift')
     cmd = cmd + 'foreach run ( $runs )\n'                                     \
                 '    3dToutcount -automask %s > outcount_r$run.1D\n'          \
                 '\n'                                                          \
@@ -577,7 +579,7 @@ def db_cmd_tshift(proc, block):
     return cmd
 
 def db_mod_volreg(block, proc, user_opts):
-    if len(block.opts.olist) == 0:    # then init dset/brick indices to defaults
+    if len(block.opts.olist) == 0:   # init dset/brick indices to defaults
         block.opts.add_opt('-volreg_base_ind', 2, [0, 2], setpar=1)
         block.opts.add_opt('-volreg_interp', 1, ['-cubic'], setpar=1)
         block.opts.add_opt('-volreg_opts_vr', -1, [])
@@ -660,6 +662,11 @@ def db_mod_volreg(block, proc, user_opts):
     if uopt and not bopt:
         block.opts.add_opt('-volreg_tlrc_warp', 0, [])
 
+    uopt = user_opts.find_opt('-volreg_no_extent_mask')
+    bopt = block.opts.find_opt('-volreg_no_extent_mask')
+    if uopt and not bopt:
+        block.opts.add_opt('-volreg_no_extent_mask', 0, [])
+
     uopt = user_opts.find_opt('-volreg_align_e2a')
     bopt = block.opts.find_opt('-volreg_align_e2a')
     if uopt and not bopt:
@@ -729,6 +736,11 @@ def db_cmd_volreg(proc, block):
         proc.warp_epi |= 4
         proc.warp_epi &= ~2
 
+    # determine whether we will limit warped EPI to its extents
+    if dowarp or doe2a:                               do_extents = 1
+    else:                                             do_extents = 0
+    if block.opts.find_opt('-volreg_no_extent_mask'): do_extents = 0
+
     cur_prefix = proc.prefix_form_run(block)
     cstr   = '' # appended to comment string
     if dowarp or doe2a:
@@ -749,20 +761,30 @@ def db_cmd_volreg(proc, block):
         matstr = ''
     prev_prefix = proc.prev_prefix_form_run(view=1)
 
-    cmd = cmd + "# -------------------------------------------------------\n" \
-                "# align each dset to base volume%s\n" % cstr
+    cmd = cmd + "# %s\n" \
+                "# align each dset to base volume%s\n" \
+                % (block_header('volreg'), cstr)
 
     if dowarp:
         cmd = cmd + '\n' + \
-                "# verify that we have a +tlrc warp dataset\n"          \
-                "if ( ! -f %s.HEAD ) then\n"                            \
-                '    echo "** missing +tlrc warp dataset: %s.HEAD" \n'  \
-                '    exit\n'                                            \
-                'endif\n\n'                                             \
-                '# register and warp\n'                                 \
-                % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
+            "# verify that we have a +tlrc warp dataset\n"          \
+            "if ( ! -f %s.HEAD ) then\n"                            \
+            '    echo "** missing +tlrc warp dataset: %s.HEAD" \n'  \
+            '    exit\n'                                            \
+            'endif\n\n'                                             \
+            % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
+
+    if do_extents:
+        cmd = cmd + \
+            "# create an all-1 dataset to mask the extents of the warp\n" \
+            "3dcalc -a %s -expr 1 -prefix rm.epi.all1\n\n"                \
+            % proc.prev_prefix_form(1, view=1)
+        all1_input = 'rm.epi.all1' + proc.view
+
+    if dowarp: cmd = cmd + '# register and warp\n'
 
     cmd = cmd + "foreach run ( $runs )\n"                                     \
+                "    # register each volume to the base\n"                    \
                 "    3dvolreg -verbose -zpad %d -base %s \\\n"                \
                 "             -1Dfile dfile.r$run.1D -prefix %s \\\n"         \
                 "             %s \\\n"                                        \
@@ -812,14 +834,32 @@ def db_cmd_volreg(proc, block):
         cmd = cmd +                                     \
             '               mat.r$run.vr.aff12.1D > mat.r$run.warp.aff12.1D\n'
 
-        cmd = cmd + '\n' +                                              \
-            '    # apply catenated xform : %s\n'                        \
-            '    3dAllineate -base %s \\\n'                             \
-            '                -input %s \\\n'                            \
+        
+        if do_extents: wprefix = "rm.epi.nomask.r$run"
+        else:          wprefix = cur_prefix
+        cmd = cmd + '\n' +                                                 \
+            '    # apply catenated xform : %s\n'                           \
+            '    3dAllineate -base %s \\\n'                                \
+            '                -input %s \\\n'                               \
             '                -1Dmatrix_apply mat.r$run.warp.aff12.1D \\\n' \
-            '                -mast_dxyz %g\\\n'                         \
-            '                -prefix %s \n'                             \
-            % (cstr, allinbase, prev_prefix, dim, cur_prefix)
+            '                -mast_dxyz %g\\\n'                            \
+            '                -prefix %s \n'                                \
+            % (cstr, allinbase, prev_prefix, dim, wprefix)
+
+        if do_extents:      # then warp the all data and intersect over the run
+           cmd = cmd + '\n' +                                                 \
+               '    # warp the all-1 dataset to mask \n'                      \
+               '    3dAllineate -base %s \\\n'                                \
+               '                -input %s \\\n'                               \
+               '                -1Dmatrix_apply mat.r$run.warp.aff12.1D \\\n' \
+               '                -mast_dxyz %g -final NN -quiet \\\n'          \
+               '                -prefix rm.epi.1.r$run \n'                    \
+               % (allinbase, all1_input, dim)
+
+           cmd = cmd + '\n' +                                                 \
+               '    # make an extent intersection mask of each run\n'         \
+               '    3dTstat -min -prefix rm.epi.min.r$run rm.epi.1.r$run%s\n' \
+               % proc.view
 
     # if we want to regress motion files per run, create them and add to list
     if block.opts.find_opt('-volreg_regress_per_run'):
@@ -838,6 +878,21 @@ def db_cmd_volreg(proc, block):
     cmd = cmd + "end\n\n"                                                     \
                 "# make a single file of registration params\n"               \
                 "cat dfile.r??.1D > dfile.rall.1D\n\n"
+
+    if do_extents:
+        proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
+        cmd = cmd +                                                          \
+            "# intersect the per-run extent masks \n"                        \
+            "3dMean -datum short -prefix rm.epi.mean rm.epi.min.r*.HEAD \n"  \
+            "3dcalc -a rm.epi.mean%s -expr 'step(a-0.999)' -prefix %s\n\n"   \
+             % (proc.view, proc.mask_extents.prefix)
+
+        cmd = cmd +                                                     \
+            "# finally, apply the extent mask to the EPI data \n"       \
+            "foreach run ( $runs )\n"                                   \
+            "    3dcalc -a rm.epi.nomask.r$run%s -b %s \\\n"            \
+            "           -expr 'a*b' -prefix %s\n"                       \
+            "end\n\n" % (proc.view, proc.mask_extents.pv(), cur_prefix)
 
     # used 3dvolreg, so have these labels
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
@@ -888,13 +943,14 @@ def db_cmd_blur(proc, block):
     if not opt or not opt.parlist: other_opts = ''
     else: other_opts = '             %s \\\n' % ' '.join(opt.parlist)
 
-    cmd = cmd + "# -------------------------------------------------------\n" \
-                "# blur each volume\n"                                        \
-                "foreach run ( $runs )\n"                                     \
-                "    3dmerge %s %s -doall -prefix %s \\\n"                    \
-                "%s"                                                          \
-                "            %s\n"                                            \
-                "end\n\n" % (filter, str(size), prefix, other_opts, prev)
+    cmd = cmd + "# %s\n"                                        \
+                "# blur each volume\n"                          \
+                "foreach run ( $runs )\n"                       \
+                "    3dmerge %s %s -doall -prefix %s \\\n"      \
+                "%s"                                            \
+                "            %s\n"                              \
+                "end\n\n" % (block_header('blur'), filter, str(size),
+                             prefix, other_opts, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -941,7 +997,7 @@ def db_mod_mask(block, proc, user_opts):
 # if possible: also make a group anatomical mask
 #    - only if tlrc block and -volreg_tlrc_warp
 #    - apply from -tlrc_base
-# add -mask_apply TYPE, TYPE in {epi, anat, group}
+# add -mask_apply TYPE, TYPE in {epi, anat, group, extents}
 #     (this would override -regress_apply_mask)
 def db_cmd_mask(proc, block):
     cmd = ''
@@ -961,11 +1017,11 @@ def db_cmd_mask(proc, block):
     nsteps = opt.parlist[0]
 
     prev = proc.prev_prefix_form_run(view=1)
-    cmd = cmd + "# -------------------------------------------------------\n" \
-                "# create 'full_mask' dataset (%s mask)\n"                    \
-                "foreach run ( $runs )\n"                                     \
-                "    3dAutomask -dilate %d -prefix rm.mask_r$run %s\n"        \
-                "end\n\n" % (type, nsteps, prev)
+    cmd = cmd + "# %s\n"                                                \
+                "# create 'full_mask' dataset (%s mask)\n"              \
+                "foreach run ( $runs )\n"                               \
+                "    3dAutomask -dilate %d -prefix rm.mask_r$run %s\n"  \
+                "end\n\n" % (block_header('mask'), type, nsteps, prev)
     proc.have_rm = 1            # rm.* files exist
 
     if proc.runs > 1:  # if more than 1 run, create union mask
@@ -995,9 +1051,10 @@ def db_cmd_mask(proc, block):
     opt = block.opts.find_opt('-mask_apply')
     if opt:
         mtype = opt.parlist[0]
-        if   mtype == 'epi':   proc.mask = proc.mask_epi
-        elif mtype == 'anat':  proc.mask = proc.mask_anat
-        elif mtype == 'group': proc.mask = proc.mask_group
+        if   mtype == 'epi':     proc.mask = proc.mask_epi
+        elif mtype == 'anat':    proc.mask = proc.mask_anat
+        elif mtype == 'group':   proc.mask = proc.mask_group
+        elif mtype == 'extents': proc.mask = proc.mask_extents
         if proc.verb > 1: print "++ applying mask as '%s'" % mtype
         if proc.mask: proc.regmask = 1 # apply, if it seems to exist
         else:
@@ -1048,7 +1105,7 @@ def group_mask_command(proc, block):
 
     #--- tlrc base exists, now resample and make a mask of it
     proc.mask_group = proc.mask_epi.new('mask_group')
-    cmd = "# ---- create group anatomy mask, %s\n"       \
+    cmd = "# ---- create group anatomy mask, %s ----\n"  \
           "#      (resampled from tlrc base anat, %s)\n" \
           % (proc.mask_group.pv(), proc.tlrc_base.pv())
 
@@ -1073,7 +1130,7 @@ def anat_mask_command(proc, block):
     if not proc.warp_epi: return ''
 
     proc.mask_anat = proc.mask_epi.new('mask_anat.$subj')
-    cmd = "# ---- create subject anatomy mask, %s\n" % proc.mask_anat.pv()
+    cmd = "# ---- create subject anatomy mask, %s ----\n" % proc.mask_anat.pv()
 
     if proc.verb > 2:
         print '-- mask for anat based on warp_epi == %d\n'   \
@@ -1157,17 +1214,18 @@ def db_cmd_scale(proc, block):
 
     prev = proc.prev_prefix_form_run(view=1)
     prefix = proc.prefix_form_run(block)
-    cmd = cmd + "# -------------------------------------------------------\n" \
-                "# scale each voxel time series to have a mean of 100\n"      \
-                "%s"                                                          \
-                "foreach run ( $runs )\n"                                     \
-                "    3dTstat -prefix rm.mean_r$run %s\n"                      \
-                "    3dcalc -a %s -b rm.mean_r$run%s \\\n"                    \
-                "%s"                                                          \
-                "           -expr '%s' \\\n"                                  \
-                "           -prefix %s\n"                                     \
-                "end\n\n" %     \
-                (maxstr, prev, prev, proc.view, mask_dset, expr, prefix)
+    cmd = cmd + "# %s\n"                                                \
+                "# scale each voxel time series to have a mean of 100\n"\
+                "%s"                                                    \
+                "foreach run ( $runs )\n"                               \
+                "    3dTstat -prefix rm.mean_r$run %s\n"                \
+                "    3dcalc -a %s -b rm.mean_r$run%s \\\n"              \
+                "%s"                                                    \
+                "           -expr '%s' \\\n"                            \
+                "           -prefix %s\n"                               \
+                "end\n\n" %                                             \
+                (block_header('scale'), maxstr, prev, prev, proc.view,
+                 mask_dset, expr, prefix)
     proc.have_rm = 1            # rm.* files exist
 
     proc.bindex += 1            # increment block index
@@ -1467,8 +1525,8 @@ def db_cmd_regress(proc, block):
     #     block.valid = 0
     #    return
 
-    cmd = cmd + "# -------------------------------------------------------\n" \
-                "# run the regression analysis\n"
+    cmd = cmd + "# %s\n" \
+                "# run the regression analysis\n" % block_header('regress')
 
     # possibly add a make_stim_times.py command
     opt = block.opts.find_opt('-regress_stim_times')
@@ -1733,9 +1791,10 @@ def db_cmd_blur_est(proc, block):
     blur_file = 'blur_est.$subj.1D'
 
     # call this a new sub-block
-    cmd = cmd + '# -------------------------------------------------------\n'\
-                '# compute blur estimates\n'                                 \
-                'touch %s   # start with empty file\n\n' % blur_file
+    cmd = cmd + '# %s\n'                                \
+                '# compute blur estimates\n'            \
+                'touch %s   # start with empty file\n\n'\
+                % (block_header('blur estimation'), blur_file)
 
     if aopt:
         bstr = blur_est_loop_str(proc, 'all_runs.$subj%s' % proc.view, 
@@ -1925,7 +1984,7 @@ def db_cmd_tlrc(proc, block):
     proc.tlrcanat = proc.anat.new(proc.anat.prefix+suf, '+tlrc')
 
     # start with block separator
-    cmd = "# %s\n" % (55*'-')
+    cmd = "# %s\n" % block_header('tlrc')
 
     cmd += "# warp anatomy to standard space\n"                          \
            "@auto_tlrc -base %s -input %s%s%s%s\n\n"                     \
@@ -1944,11 +2003,11 @@ def db_cmd_empty(proc, block):
     prefix = proc.prefix_form_run(block)
     prev   = proc.prev_prefix_form_run(view=1)
 
-    cmd = "# -------------------------------------------------------\n" \
+    cmd = "# %s\n"                                                      \
           "# empty block: use '3dTcat' as a placeholder command\n"      \
           "foreach run ( $runs )\n"                                     \
           "    3dTcat -prefix %s %s\n"                                  \
-          "end\n\n" % (prefix, prev)
+          "end\n\n" % (block_header('empty'), prefix, prev)
 
     proc.bindex += 1            # increment block index
     proc.pblabel = block.label  # set 'previous' block label
@@ -1961,13 +2020,27 @@ def db_cmd_gen_review(proc):
 
     tblk = proc.find_block('tcat')
 
-    cmd = "# -------------------------------------------------------\n" \
+    cmd = "# %s\n"                                                      \
           "# generate a review script for the unprocessed EPI data\n"   \
           "gen_epi_review.py -script %s \\\n"                           \
-          "    -dsets %s\n\n" % \
-          (proc.gen_review, proc.dset_form_wild('tcat',proc.origview))
+          "    -dsets %s\n\n" % (block_header('gen_epi_review.py'),
+               proc.gen_review, proc.dset_form_wild('tcat',proc.origview))
 
     return cmd
+
+def block_header(hname, maxlen=70, hchar='='):
+    """return a title string of 'hchar's with the middle chars set to 'name'"""
+    if len(hname) > 0: name = ' %s ' % hname
+    else:              name = ''
+
+    rmlen = len(name) + 2
+    if rmlen >= maxlen:
+        print "** block_header, rmlen=%d exceeds maxlen=%d" % (rmlen, maxlen)
+        return name
+    prelen  = (maxlen - rmlen) // 2     # basically half the chars
+    postlen = maxlen - rmlen - prelen   # other 'half'
+
+    return prelen*hchar + name + postlen*hchar
 
 # ----------------------------------------------------------------------
 # global help string (see end global help string)
@@ -2306,28 +2379,93 @@ g_help_string = """
     MASKING NOTE:
 
     The default operation of afni_proc.py has changed (as of 24 Mar, 2009).
+    Prior to that date, the default was to apply the 'epi' mask.  As of
+    17 Jun 2009, only the 'extents' mask is, if appropriate.
 
-    Now an EPI mask dataset will be created but not actually applied at the
-    scaling step or in the regression.  This is still called 'full_mask'.
+    ---
 
-    Also, if possible, a subject anatomy mask will be created.  This requires
-    either the 'align' block or a tlrc anatomy (from the 'tlrc' block, or just
-    copied in via '-copy_anat').  The anatomy mask will be created from the
-    appropriate skull-stripped anatomy, resampled to match the EPI and changed
-    into a binary mask.  The subject mask dataset is called 'mask_anat.$subj'.
+    There may be 4 masks created by default, 3 for user evaluation and all for
+    possible application to the EPI data (though it may not be recommended).
+    The 4th mask (extents) is a special one that will be applied at volreg when
+    appropriate, unless the user specifies otherwise.
 
-    Also, if possible, a group mask will be created.  This requires the 'tlrc'
-    block, from which the @auto_tlrc -base dataset is chosen as the group
-    anatomy.  It requires '-volreg_warp_epi' so that the EPI is in standard
-    space.  The group anatomy is then resampled to match the EPI and changed
-    into a binary mask.  The group mask dataset is called 'mask_group'.
+    If the user chooses to apply one of the masks to the EPI regression (again,
+    not necessarily recommended), it is done via the option -mask_apply while
+    providing the given mask type (epi, anat, group or extents).
 
-    --> To apply the mask during regression, use -mask_apply.
+    --> To apply a mask during regression, use -mask_apply.
 
-    Note that it is still not a good idea to apply either the epi or anat masks
-    to the regression, as it would then be necessary to intersect the masks
-    across subjects.  Again, it may be better not to mask during single subject
-    processing, though applying a 'group' mask might be reasonable.
+    Mask descriptions (afni_proc.py name, dataset name, short description):
+
+    1. epi ("full_mask") : EPI Automask
+
+       An EPI mask dataset will be created by running '3dAutomask -dilate 1'
+       on the EPI data after blurring.  The 3dAutomask command is executed per
+       run, after which the masks are combined via a union operation.
+
+    2. anat ("mask_anat.$subj") : anatomical skull-stripped mask
+
+       If possible, a subject anatomy mask will be created.  This anatomical
+       mask will be created from the appropriate skull-stripped anatomy,
+       resampled to match the EPI (that is output by 3dvolreg) and changed into
+       a binary mask.
+
+       This requires either the 'align' block or a tlrc anatomy (from the
+       'tlrc' block, or just copied via '-copy_anat').  Basically, it requires
+       afni_proc.py to know of a skull-stripped anatomical dataset.
+
+    3. group ("mask_group") : skull-stripped @auto_tlrc base
+
+       If possible, a group mask will be created.  This requires the 'tlrc'
+       block, from which the @auto_tlrc -base dataset is chosen as the group
+       anatomy.  It also requires '-volreg_warp_epi' so that the EPI is in
+       standard space.  The group anatomy is then resampled to match the EPI
+       and changed into a binary mask.
+
+    4. extents ("mask_extents") : mask based on warped EPI extents
+
+       In the case of transforming the EPI volumes to match the anatomical
+       volume (via either -volreg_align_e2a or -volreg_tlrc_warp), an extents
+       mask will be created.  This is to avoid a motion artifact that arises
+       when transforming from a smaller volume (EPI) to a larger one (anat).
+
+    ** Danger Will Robinson! **
+
+       This mask is considered necessary because the align/warp transformation
+       that is applied on top of the volreg alignment transformation (applied
+       at once), meaning the transformation from the EPI grid to the anatomy
+       grid will vary per TR.
+
+       The effect of this is seen at the edge voxels (extent edge), where a
+       time series could be zero for many of the TRs, but have valid data for
+       the rest of them.  If this timing just happens to correlate with any
+       regressor, the result could be a strong "activation" for that regressor,
+       but which would be just a motion based artifact.
+
+       What makes this particularly bad is that if it does happen, it tends to
+       happen for *a cluster* of many voxels at once, possibly an entire slice.
+       Such an effect is compounded by any additional blur.  The result can be
+       an entire cluster of false activation, large enough to survive multiple
+       comparison corrections.
+
+       This problem was first seen with data from Laura Thomas and Brian Bones.
+
+   --> To deal with this, a time series of all 1s is created on the original
+       EPI grid space.  Then for each run it is warped with to the same list of
+       transformations that is applied to the EPI data in the volreg step
+       (volreg xform and either alignment to anat or warp to standard space).
+       The result is a time series of extents of each original volume within
+       the new grid.
+
+       These volumes are then intersected over all TRs of all runs.  The final
+       mask is the set of voxels that have valid data at every TR of every run.
+       Yay.
+
+    --- masking, continued...
+
+    Note that it may still not be a good idea to apply any of the masks to the
+    regression, as it would then be necessary to intersect the masks across all
+    subjects, though applying the 'group' mask might be reasonable.
 
  ** Why has the default been changed?
 
@@ -2337,8 +2475,8 @@ g_help_string = """
     reference dataset or from the union of skull-stripped subject anatomies.
 
     Since subjects have varying degrees of signal dropout in valid brain areas
-    of the EPI data, the resulting intersection mask that would be required in
-    group space may exclude edge regions that are otherwise desirable.
+    of the EPI data, the resulting EPI intersection mask that would be required
+    in group space may exclude edge regions that are otherwise desirable.
 
     Also, it is helpful to see if much 'activation' appears outside the brain.
     This could be due to scanner or interpolation artifacts, and is useful to
@@ -2350,13 +2488,13 @@ g_help_string = """
     by one voxel.  Example #11 from '3dcalc -help' shows how one might dilate.
 
  ** Note that the EPI data can now be warped to standard space at the volreg
-    step.  In that case, it would be appropriate to mask the EPI data based
+    step.  In that case, it might be appropriate to mask the EPI data based
     on the Talairach template, such as what is used for -base in @auto_tlrc.
     This can be done via '-mask_apply group'.
 
     ---
 
- ** For those who have processed some of their data with the older versions:
+ ** For those who have processed some of their data with the older method:
 
     Note that this change should not be harmful to those who have processed
     data with older versions of afni_proc.py, as it only adds non-zero voxel
@@ -2366,8 +2504,8 @@ g_help_string = """
 
     It might be okay to create the intersection mask from only those subjects
     which were masked in the regression, however one might say that biases the
-    voxel choices toward those subjects.  Maybe that does not matter.  Any
-    voxels used would still be across all subjects.
+    voxel choices toward those subjects, though maybe that does not matter.
+    Any voxels used would still be across all subjects.
 
     ---
 
@@ -2593,7 +2731,7 @@ g_help_string = """
            be able to tell any difference between those file streams on the
            screen, but since programs write to both, we want to capture both.
 
-        e. tee output.SCRTPT
+        e. tee output.SCRIPT
 
            Where do we want to send this captured stdout and stderr text?  Send
            it to the 'tee' program.  Like a plumber's tee, the 'tee' program
@@ -3054,7 +3192,7 @@ g_help_string = """
 
             At the 'align' block, the anatomy is aligned to the EPI data.
             When applying the '-volreg_align_e2a' option, the inverse of that
-            a2e transfomation (so now e2a) is instead applied to the EPI data.
+            a2e transformation (so now e2a) is instead applied to the EPI data.
 
             Note that this e2a transformation is catenated with the volume
             registration transformations, so that the EPI data is still only
@@ -3257,10 +3395,10 @@ g_help_string = """
                 e.g. -mask_apply group
 
             If possible, masks will be made for the EPI data, the subject
-            anatomy and the group anatomy.  This option is used to specify
-            which of those masks to apply to the regression.
+            anatomy, the group anatomy and EPI warp extents.  This option is
+            used to specify which of those masks to apply to the regression.
 
-            Valid choices: epi, anat, group.
+            Valid choices: epi, anat, group, extents.
 
             A subject 'anat' mask will be created if the EPI anat anatomy are
             aligned, or if the EPI data is warped to standard space via the

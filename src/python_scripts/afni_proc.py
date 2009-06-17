@@ -139,9 +139,14 @@ g_history = """
         - in mask block, try to create anat and group masks
         - added -mask_apply option, for choosing mask to apply to regression
         - added -align_opts_aea, for extra opts to align_epi_anat.py
+    2.0  Jun 17 2009 : process method update: suggest processing in group space
+        - mask warped EPI by its extents (at volreg step)
+        - added -volreg_no_extent_mask, to block this masking
+        - added 'extents' to list of mask in -mask_apply
+        - change block dividers to more visual '===' with block names
 """
 
-g_version = "version 1.53, June 11, 2009"
+g_version = "version 2.0, June 17, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -227,6 +232,7 @@ class SubjProcSream:
         self.mask_epi   = None          # mask dataset (from EPI)
         self.mask_anat  = None          # mask dataset (from subject anat)
         self.mask_group = None          # mask dataset (from tlrc base)
+        self.mask_extents = None        # mask dataset (of EPI extents)
         self.exec_cmd   = ''            # script execution command string
         self.bash_cmd   = ''            # bash formatted exec_cmd
         self.tcsh_cmd   = ''            # tcsh formatted exec_cmd
@@ -374,6 +380,8 @@ class SubjProcSream:
                         helpstr='run/sub-brick indices for volreg')
         self.valid_opts.add_opt('-volreg_interp', 1, [],
                         helpstr='interpolation method used in volreg')
+        self.valid_opts.add_opt('-volreg_no_extent_mask', 0, [],
+                        helpstr='do not restrict warped EPI to extents')
         self.valid_opts.add_opt('-volreg_opts_vr', -1, [],
                         helpstr='additional options directly for 3dvolreg')
         self.valid_opts.add_opt('-volreg_regress_per_run', 0, [],
@@ -393,7 +401,7 @@ class SubjProcSream:
                         helpstr='additional options directly for 3dmerge')
 
         self.valid_opts.add_opt('-mask_apply', 1, [],
-                        acplist=['epi', 'anat', 'group'],
+                        acplist=['epi', 'anat', 'group', 'extents'],
                         helpstr="select mask to apply in regression")
         self.valid_opts.add_opt('-mask_dilate', 1, [],
                         helpstr="dilation to be applied in automask")
@@ -1010,25 +1018,25 @@ class SubjProcSream:
         if not self.check_setup_errors: stat_inc = ''
         else: stat_inc = '@ nerrors += $status      # accumulate error count\n'
 
-        self.fp.write('# --------------------------------------------------\n'
-                      '# script setup\n\n')
+        self.fp.write('# %s\n'
+                      '# script setup\n\n' % block_header('setup'))
 
         if len(stat_inc) > 0:
             self.fp.write("# prepare to count setup errors\n"
                           "set nerrors = 0\n\n")
 
-        self.fp.write('# the user may specify a single subject to run with\n'
-                      'if ( $#argv > 0 ) then  \n'
-                      '    set subj = $argv[1] \n'
-                      'else                    \n'
-                      '    set subj = %s       \n'
+        self.fp.write('# the user may specify a single subject to run with\n'   \
+                      'if ( $#argv > 0 ) then\n'                                \
+                      '    set subj = $argv[1]\n'                               \
+                      'else\n'                                                  \
+                      '    set subj = %s\n'                                     \
                       'endif\n\n' % self.subj_id )
         self.fp.write('# assign output directory name\n'
                       'set output_dir = %s\n\n' % self.out_dir)
-        self.fp.write('# verify that the results directory does not yet exist\n'
-                      'if ( -d %s ) then \n'
-                      '    echo output dir "$subj.results" already exists\n'
-                      '    exit                     \n'
+        self.fp.write('# verify that the results directory does not yet exist\n'\
+                      'if ( -d %s ) then\n'                                     \
+                      '    echo output dir "$subj.results" already exists\n'    \
+                      '    exit\n'                                              \
                       'endif\n\n' % self.od_var)
         self.fp.write('# set list of runs\n')
         self.fp.write('set runs = (`count -digits 2 1 %d`)\n\n' % self.runs)
@@ -1092,7 +1100,7 @@ class SubjProcSream:
 
     # and last steps
     def finalize_script(self):
-        str = '# -------------------------------------------------------\n\n'
+        str = '# %s\n\n' % block_header('cleanup')
         self.fp.write(str)
 
         if self.rm_rm and self.have_rm:
@@ -1116,11 +1124,12 @@ class SubjProcSream:
 
         opt = self.user_opts.find_opt('-no_proc_command')
         if not opt:
-            str = '\n\n\n'                                                   \
-              '# -------------------------------------------------------\n'  \
-              '# script generated by the command:\n'                         \
-              '#\n'                                                          \
-              '# %s %s\n' % (os.path.basename(sys.argv[0]),
+            str = '\n\n\n'                              \
+              '# %s\n'                                  \
+              '# script generated by the command:\n'    \
+              '#\n'                                     \
+              '# %s %s\n' %                             \
+                (block_header(''), os.path.basename(sys.argv[0]),
                                  ' '.join(quotize_list(sys.argv[1:],'')))
             self.fp.write(add_line_wrappers(str))
 
