@@ -851,7 +851,7 @@ def db_cmd_volreg(proc, block):
 
         if do_extents:      # then warp the all data and intersect over the run
            cmd = cmd + '\n' +                                                 \
-               '    # warp the all-1 dataset to mask \n'                      \
+               '    # warp the all-1 dataset for extents masking \n'          \
                '    3dAllineate -base %s \\\n'                                \
                '                -input %s \\\n'                               \
                '                -1Dmatrix_apply mat.r$run.warp.aff12.1D \\\n' \
