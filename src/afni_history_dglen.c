@@ -49,8 +49,15 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 17 , JUN , 2009 , DRG , "McRetroTS.m" , 
+    MINOR , TYPE_NEW_PROG, "Matlab Compilable version of RetroTS.m",
+    "This version calls the RetroTS function, but can be compiled\n"
+    "for users that either do not have Matlab, a required toolbox\n"
+    "or want to use this function in a shell script more easily." 
+} ,
+
 { 17 , JUN , 2009 , DRG , "RetroTS.m" , 
-    MINOR , TYPE_BUG_FIX, "Number of TRs found incorrectly because of rounding",
+    MINOR , TYPE_BUG_FIX, "Number of TRs found incorrectly because of rounding"
 } ,
 
 { 15 , JUN , 2009 , DRG , "BrikLoad.m" , 
