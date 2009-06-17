@@ -765,23 +765,26 @@ def db_cmd_volreg(proc, block):
                 "# align each dset to base volume%s\n" \
                 % (block_header('volreg'), cstr)
 
-    if dowarp:
-        cmd = cmd + '\n' + \
-            "# verify that we have a +tlrc warp dataset\n"          \
-            "if ( ! -f %s.HEAD ) then\n"                            \
-            '    echo "** missing +tlrc warp dataset: %s.HEAD" \n'  \
-            '    exit\n'                                            \
-            'endif\n\n'                                             \
-            % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
+    if dowarp or do_extents:
+        cmd = cmd + '\n'
 
-    if do_extents:
-        cmd = cmd + \
-            "# create an all-1 dataset to mask the extents of the warp\n" \
-            "3dcalc -a %s -expr 1 -prefix rm.epi.all1\n\n"                \
-            % proc.prev_prefix_form(1, view=1)
-        all1_input = 'rm.epi.all1' + proc.view
+        if dowarp:
+            cmd = cmd + \
+                "# verify that we have a +tlrc warp dataset\n"          \
+                "if ( ! -f %s.HEAD ) then\n"                            \
+                '    echo "** missing +tlrc warp dataset: %s.HEAD" \n'  \
+                '    exit\n'                                            \
+                'endif\n\n'                                             \
+                % (proc.tlrcanat.pv(), proc.tlrcanat.pv())
 
-    if dowarp: cmd = cmd + '# register and warp\n'
+        if do_extents:
+            cmd = cmd + \
+                "# create an all-1 dataset to mask the extents of the warp\n" \
+                "3dcalc -a %s -expr 1 -prefix rm.epi.all1\n\n"                \
+                % proc.prev_prefix_form(1, view=1)
+            all1_input = 'rm.epi.all1' + proc.view
+
+        cmd = cmd + '# register and warp\n'
 
     cmd = cmd + "foreach run ( $runs )\n"                                     \
                 "    # register each volume to the base\n"                    \
