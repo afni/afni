@@ -24,12 +24,12 @@ void PARSER_set_printout( int p ){ printout = p ; }
             if NULL is returned, an error occurred.
 --------------------------------------------------------------------*/
 
-PARSER_code * PARSER_generate_code( char * expression )
+PARSER_code * PARSER_generate_code( char *expression )
 {
    logical pr ;
    integer num_code ;
    int nexp ;
-   PARSER_code * pc ;
+   PARSER_code *pc ;
    char *exp,cc ; int ii,jj ;  /* 22 Jul 2003 */
    static first=1 ;
 
@@ -67,7 +67,7 @@ PARSER_code * PARSER_generate_code( char * expression )
    atoz = double [26] containing values for variables A,B,...,Z
 -----------------------------------------------------------------*/
 
-double PARSER_evaluate_one( PARSER_code * pc , double atoz[] )
+double PARSER_evaluate_one( PARSER_code *pc , double atoz[] )
 {
    integer num_code ;
    double  value ;
@@ -89,7 +89,7 @@ double PARSER_evaluate_one( PARSER_code * pc , double atoz[] )
 extern integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen
         sym_len, ftnlen c_code_len) ;
 
-int PARSER_has_symbol( char * sym , PARSER_code * pc )
+int PARSER_has_symbol( char *sym , PARSER_code *pc )
 {
    int hh ;
    char sss[8] ;
@@ -107,7 +107,7 @@ int PARSER_has_symbol( char * sym , PARSER_code * pc )
    return hh ;
 }
 
-void PARSER_mark_symbols( PARSER_code * pc , int * sl )
+void PARSER_mark_symbols( PARSER_code *pc , int *sl )
 {
    int ii ;
    static char abet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
@@ -131,31 +131,37 @@ void PARSER_mark_symbols( PARSER_code * pc , int * sl )
    PARSER_evaluate_one nv different times is efficiency.
 ------------------------------------------------------------------------*/
 
-void PARSER_evaluate_vector( PARSER_code * pc , double* atoz[] ,
+void PARSER_evaluate_vector( PARSER_code *pc , double* atoz[] ,
                              int nv , double vout[] )
 {
    integer num_code , nvar , ivar , lvec , ldvec ;
+   int aa ; doublereal *zerovec=NULL , *myatoz[26] ;
 
    if( pc == NULL || pc->num_code <= 0 ) return ;
 
    num_code = (integer) pc->num_code ;
    lvec     = (integer) nv ;
 
+   for( aa=0 ; aa < 26 ; aa++ ){
+     if( atoz[aa] != NULL ){
+       myatoz[aa] = (doublereal *)atoz[aa] ;
+     } else {
+       if( zerovec == NULL ) zerovec = (doublereal *)calloc(sizeof(doublereal),nv) ;
+       myatoz[aa] = zerovec ;
+     }
+   }
+
    parevec_( &num_code , pc->c_code ,
-             (doublereal *) atoz[0]  , (doublereal *) atoz[1] ,
-             (doublereal *) atoz[2]  , (doublereal *) atoz[3] ,
-             (doublereal *) atoz[4]  , (doublereal *) atoz[5] ,
-             (doublereal *) atoz[6]  , (doublereal *) atoz[7] ,
-             (doublereal *) atoz[8]  , (doublereal *) atoz[9] ,
-             (doublereal *) atoz[10] , (doublereal *) atoz[11] ,
-             (doublereal *) atoz[12] , (doublereal *) atoz[13] ,
-             (doublereal *) atoz[14] , (doublereal *) atoz[15] ,
-             (doublereal *) atoz[16] , (doublereal *) atoz[17] ,
-             (doublereal *) atoz[18] , (doublereal *) atoz[19] ,
-             (doublereal *) atoz[20] , (doublereal *) atoz[21] ,
-             (doublereal *) atoz[22] , (doublereal *) atoz[23] ,
-             (doublereal *) atoz[24] , (doublereal *) atoz[25] ,
-         &lvec , (doublereal *) vout , (ftnlen) 8 ) ;
+             myatoz[0]  , myatoz[1]  , myatoz[2]  , myatoz[3]  ,
+             myatoz[4]  , myatoz[5]  , myatoz[6]  , myatoz[7]  ,
+             myatoz[8]  , myatoz[9]  , myatoz[10] , myatoz[11] ,
+             myatoz[12] , myatoz[13] , myatoz[14] , myatoz[15] ,
+             myatoz[16] , myatoz[17] , myatoz[18] , myatoz[19] ,
+             myatoz[20] , myatoz[21] , myatoz[22] , myatoz[23] ,
+             myatoz[24] , myatoz[25] ,
+         &lvec , (doublereal *)vout , (ftnlen)8 ) ;
+
+   if( zerovec != NULL ) free(zerovec) ;
 
    return ;
 }
@@ -172,9 +178,9 @@ void PARSER_evaluate_vector( PARSER_code * pc , double* atoz[] ,
    17 Nov 1999 - RW Cox - adapted from 1deval.c [hence the name]
 ------------------------------------------------------------------------*/
 
-int PARSER_1deval( char * expr, int nt, float tz, float dt, float * vec )
+int PARSER_1deval( char *expr, int nt, float tz, float dt, float *vec )
 {
-   PARSER_code * pcode = NULL ;
+   PARSER_code *pcode = NULL ;
    char sym[4] ;
    double atoz[26] ;
    int ii , kvar ;
@@ -248,7 +254,7 @@ int PARSER_1dtran( char *expr , int nt , float *vec )  /* 16 Jun 2009 */
 
 double PARSER_strtod( char *expr )
 {
-   PARSER_code * pcode = NULL ;
+   PARSER_code *pcode = NULL ;
    double atoz[26] , val ;
    int ii ;
 
@@ -267,38 +273,38 @@ double PARSER_strtod( char *expr )
 /********************************************************************/
 /*** use the C math library to provide Bessel and error functions ***/
 
-doublereal dbesj0_( doublereal * x )
+doublereal dbesj0_( doublereal *x )
 { return (doublereal) j0( (double) *x ) ; }
 
-doublereal dbesj1_( doublereal * x )
+doublereal dbesj1_( doublereal *x )
 { return (doublereal) j1( (double) *x ) ; }
 
-doublereal dbesy0_( doublereal * x )
+doublereal dbesy0_( doublereal *x )
 { return (doublereal) (*x>0) ? y0( (double) *x ) : 0.0 ; }
 
-doublereal dbesy1_( doublereal * x )
+doublereal dbesy1_( doublereal *x )
 { return (doublereal) (*x>0) ? y1( (double) *x ) : 0.0 ; }
 
-doublereal derf_ ( doublereal * x )
+doublereal derf_ ( doublereal *x )
 { return (doublereal) erf( (double) *x ) ; }
 
-doublereal derfc_( doublereal * x )
+doublereal derfc_( doublereal *x )
 { return (doublereal) erfc( (double) *x ) ; }
 
-doublereal unif_( doublereal * x )  /* 04 Feb 2000 */
+doublereal unif_( doublereal *x )  /* 04 Feb 2000 */
 {
    doublereal val ;
    val = (doublereal) drand48() ;
    return val ;
 }
 
-doublereal dgamma_( doublereal * x )
+doublereal dgamma_( doublereal *x )
 { double lg,g ;
   lg = lgamma((double)(*x)); g = signgam*exp(lg);
   return (doublereal)g ;
 }
 
-doublereal cbrtff_( doublereal * x )
+doublereal cbrtff_( doublereal *x )
 { return (doublereal) cbrt( (double) *x ) ; }
 
 /********************************************************************/
@@ -576,7 +582,7 @@ doublereal rhddc2_( doublereal *x, doublereal *y, doublereal *z )
    ISWAP(zz,xx) ; ISWAP(yy,xx) ;
 
    /* Entezari paper gives things in terms of RHDD(4), so scale up by 2 */
- 
+
    xx *= 2.0 ;  yy *= 2.0 ; zz *= 2.0 ;
    tt = xx+yy-4.0 ;
    if( tt >= 0.0 ) return 0.0 ;  /* outside RHDD(4) */
