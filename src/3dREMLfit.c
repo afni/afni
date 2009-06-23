@@ -539,7 +539,7 @@ int main( int argc , char *argv[] )
    char **eglt_sym = NULL ;
    int    oglt_num = 0    ;   /* number of 'original' GLTs */
 
-   int maxthr = 1 ;  /* 16 Jun 2009 */
+   int maxthr = 1 ;  /* max number of threads [16 Jun 2009] */
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -695,6 +695,9 @@ int main( int argc , char *argv[] )
 #ifdef USING_MCW_MALLOC
       "              * If you use '-verb', then memory usage is printed out\n"
       "                  at various points along the way.\n"
+#endif
+#ifdef USE_OMP
+      "              * '-usetemp' disables OpenMP multi-threading.\n"
 #endif
       "\n"
       " -nodmbase   = By default, baseline columns added to the matrix\n"
@@ -1103,11 +1106,6 @@ int main( int argc , char *argv[] )
    AFNI_logger("3dREMLfit",argc,argv); AUTHOR("RWCox");
    (void)COX_clock_time() ;
 
-#ifdef USE_OMP
-  omp_set_nested(0) ;
-  maxthr = omp_get_max_threads() ;
-#endif
-
    /**------- scan command line --------**/
 
    if( AFNI_yesenv("AFNI_3dDeconvolve_GOFORIT") ) goforit++ ;
@@ -1383,9 +1381,20 @@ STATUS("options done") ;
    dy = fabsf(DSET_DY(inset)) ; ny = DSET_NY(inset) ; nxy = nx*ny ;
    dz = fabsf(DSET_DZ(inset)) ; nz = DSET_NZ(inset) ;
 
+#ifdef USE_OMP
+  omp_set_nested(0) ;
+  maxthr = omp_get_max_threads() ;
    if( maxthr > 1 ){  /* disable threads for some options [16 Jun 2009] */
-     if( usetemp ) maxthr = 1 ;
+     if( usetemp ){
+       maxthr = 1 ;
+       WARNING_message("-usetemp disables OpenMP multi-threading") ;
+     } else if( nvox < 999 ){
+       maxthr = 1 ;
+       WARNING_message("only %d voxels: disables OpenMP multi-threading",nvox) ;
+     }
    }
+   INFO_message("Number of OpenMP threads = %d",maxthr) ;
+#endif
 
 #if 0
    if( nelmat == NULL ) ERROR_exit("No -matrix file?!") ;
@@ -2108,6 +2117,13 @@ STATUS("make GLTs from matrix file") ;
      if( nmask < 1 ) ERROR_exit("Can't continue after mask shrinks to nothing!") ;
    }
 
+#ifdef USE_OMP
+   if( maxthr > 1 && nmask < 999 ){
+     maxthr = 1 ;
+     WARNING_message("only %d voxels in mask: disables OpenMP multi-threading",nmask) ;
+   }
+#endif
+
    /* 05 Nov 2008: convert input to a vector image struct, if it saves memory */
 
    { float vsiz = (float)THD_vectim_size( inset , mask ) ;
@@ -2128,7 +2144,8 @@ STATUS("make GLTs from matrix file") ;
    /**---------------------- set up for REML estimation ---------------------**/
 
    if( verb ){
-     INFO_message("starting REML setup calculations") ;
+     INFO_message("starting REML setup calculations; total CPU=%.2f Elapsed=%.2f",
+                  COX_cpu_time(),COX_clock_time() ) ;
      if( abfixed ) ININFO_message(" using fixed a=%.4f b=%.4f lam=%.4f",
                                   afix,bfix,LAMBDA(afix,bfix) ) ;
    }
@@ -2137,11 +2154,12 @@ STATUS("make GLTs from matrix file") ;
 
    if( !usetemp_rcol ){  /* set up them all */
 
-     for( ss=0 ; ss < nsli ; ss++ ){  /* takes a while */
+     for( ss=0 ; ss < nsli ; ss++ ){  /* might take a while */
        if( abfixed )
          rrcol = REML_setup_all( Xsli[ss] , tau , 0     , afix  ,bfix ) ;
        else {
-         if( verb && nsli > 1 ) ININFO_message(" start setup for slice #%d",ss) ;
+         if( verb && nsli > 1 && ntime*nrega > 9999 )
+           ININFO_message(" start setup for slice #%d",ss) ;
          rrcol = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
        }
        if( rrcol == NULL ) ERROR_exit("REML setup fails at ss=%d?!",ss ) ;
@@ -2151,8 +2169,8 @@ STATUS("make GLTs from matrix file") ;
      if( verb > 1 ){
        float avg=0.0f ;
        ININFO_message(
-        "REML setup finished: matrix rows=%d cols=%d; %d*%d cases; total CPU=%.2f s",
-        ntime,nrega,RCsli[0]->nset,nsli,COX_cpu_time()) ;
+        "REML setup finished: matrix rows=%d cols=%d; %d*%d cases; total CPU=%.2f Elapsed=%.2f",
+        ntime,nrega,RCsli[0]->nset,nsli,COX_cpu_time(),COX_clock_time()) ;
        for( ss=0 ; ss < nsli ; ss++ ) avg += RCsli[ss]->avglen ;
        avg /= nsli ; ININFO_message(" average case bandwidth = %.2f",avg) ;
      }
@@ -2166,8 +2184,8 @@ STATUS("make GLTs from matrix file") ;
 
      if( verb > 1 )
        ININFO_message(
-        "REML setup #0 finished: matrix rows=%d cols=%d; %d cases; total CPU=%.2f s",
-        ntime,nrega,RCsli[0]->nset,COX_cpu_time()) ;
+        "REML setup #0 finished: matrix rows=%d cols=%d; %d cases; total CPU=%.2f Elapsed=%.2f",
+        ntime,nrega,RCsli[0]->nset,COX_cpu_time(),COX_clock_time()) ;
      MEMORY_CHECK ;
 
    }
@@ -2189,7 +2207,8 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-  { int ss,rv,vv,ssold,ii ;
+  if( maxthr <= 1 ){
+    int ss,rv,vv,ssold,ii,kbest ;
 
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -2207,10 +2226,49 @@ STATUS("make GLTs from matrix file") ;
          RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
          if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ;
        }
-       (void)REML_find_best_case( &y , RCsli[ss] ) ;
-       aar[vv] = REML_best_rho ; bar[vv] = REML_best_bb ;
+       kbest = REML_find_best_case( &y , RCsli[ss] ) ;
+       aar[vv] = RCsli[ss]->rs[kbest]->rho ;
+       bar[vv] = RCsli[ss]->rs[kbest]->barm ;
      } /* end of REML loop over voxels */
 
+  } else {                    /** Parallelized **/
+    int *vvar ;
+    vvar = (int *)malloc(sizeof(int)*nmask) ;
+    for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
+#ifdef USE_OMP
+#pragma omp parallel
+  {
+    int ss,rv,vv,uu,ii,ithr,kbest ;
+    float *iv ; vector y ;  /* private to each thread */
+  AFNI_OMP_START ;
+   ithr = omp_get_thread_num() ;
+   iv   = (float *)malloc(sizeof(float)*(niv+1)) ;
+   vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
+
+#pragma omp for schedule(guided,9)
+     for( uu=0 ; uu < nmask ; uu++ ){
+       vv = vvar[uu] ;
+       if( inset_mrv != NULL ){
+         rv = THD_vectim_ifind( vv , inset_mrv ) ; if( rv < 0 ) continue ;
+         VECTIM_extract( inset_mrv , rv , iv ) ;
+       } else
+         (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+       for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
+       ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
+       if( RCsli[ss] == NULL )
+         ERROR_exit("NULL slice setup inside OpenMP loop!!!") ;
+       kbest = REML_find_best_case( &y , RCsli[ss] ) ;
+       aar[vv] = RCsli[ss]->rs[kbest]->rho ;
+       bar[vv] = RCsli[ss]->rs[kbest]->barm ;
+     } /* end of REML loop over voxels */
+
+     free(iv) ; vector_destroy(&y) ;  /* destroy private copies */
+  AFNI_OMP_END ;
+  } /* end OpenMP */
+#else
+  ERROR_exit("This code should never be executed!!!") ;
+#endif
+    free(vvar) ;
   }
 
      if( vstep ) fprintf(stderr,"\n") ;
@@ -2235,7 +2293,8 @@ STATUS("make GLTs from matrix file") ;
 
      if( verb )
        ININFO_message(
-         "ARMA voxel parameters estimated: total CPU=%.2f s",COX_cpu_time()) ;
+         "ARMA voxel parameters estimated: total CPU=%.2f Elapsed=%.2f",
+         COX_cpu_time(),COX_clock_time() ) ;
      MEMORY_CHECK ;
 
    } /***** end of REML estimation *****/
@@ -2535,7 +2594,8 @@ STATUS("setting up Rglt") ;
      if( vstep ) fprintf(stderr,"\n") ;
      reml_collection_destroy( RCsli[nsli-1] , 1 ) ;
      if( verb )
-       ININFO_message("GLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
+       ININFO_message("GLSQ regression done: total CPU=%.2f Elapsed=%.2f",
+                      COX_cpu_time(),COX_clock_time() ) ;
      MEMORY_CHECK ;
    }
 
@@ -2797,7 +2857,8 @@ STATUS("setting up Rglt") ;
      } /* end of voxel loop */
      if( vstep ) fprintf(stderr,"\n") ;
      if( verb > 1 )
-       ININFO_message("OLSQ regression done: total CPU=%.2f s",COX_cpu_time()) ;
+       ININFO_message("OLSQ regression done: total CPU=%.2f Elapsed=%.2f",
+                      COX_cpu_time(),COX_clock_time() ) ;
    }
 
    /*----------------- done with the input dataset -----------------*/
@@ -2853,7 +2914,7 @@ STATUS("setting up Rglt") ;
 
    /*----------------------------- Free at last ----------------------------*/
 
-   INFO_message("3dREMLfit is all done! total CPU=%.2f s  Elapsed=%.2f",
+   INFO_message("3dREMLfit is all done! total CPU=%.2f Elapsed=%.2f",
                 COX_cpu_time() , COX_clock_time() ) ;
    if( gmask != NULL && gmask != mask ) free(gmask) ;  /* 27 Mar 2009 */
    free(mask) ; MEMORY_CHECK ;
