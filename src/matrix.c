@@ -62,11 +62,6 @@
   Mod:      Freed memory for an orphaned matrix in matrix_sqrt function
   Date:     26 Mar 2008 - drg
 
-  Mod:      Add OpenMP 'critical' #pragmas for malloc/free usage.
-            This is only needed because of mcw_malloc() not being re-entrant,
-            and in case matrix.c is #included into some OpenMP-enabled program.
-  Date      19 May 2009 - RWCox
-
 */
 
 /*---------------------------------------------------------------------*/
@@ -184,8 +179,6 @@ void matrix_initialize (matrix *m)
 
 void matrix_destroy (matrix *m)
 {
-#pragma omp critical (MALLOC)
- {
   if (m->elts != NULL){
 #ifdef DONT_USE_MATRIX_MAT
     int i ;
@@ -197,7 +190,6 @@ void matrix_destroy (matrix *m)
 #ifndef DONT_USE_MATRIX_MAT
   if( m->mat  != NULL) free (m->mat ) ;
 #endif
- }
   matrix_initialize (m);
 }
 
@@ -220,19 +212,16 @@ void matrix_create (int rows, int cols, matrix * m)
   m->cols = cols;
   if ((rows < 1) || (cols < 1))  return;
 
-#pragma omp critical (MALLOC)
   m->elts = (double **) malloc (sizeof(double *) * rows);
   if (m->elts == NULL)
     matrix_error ("Memory allocation error");
 
 #ifdef DONT_USE_MATRIX_MAT
   for (i = 0;  i < rows;  i++){
-#pragma omp critical (MALLOC)
     m->elts[i] = (double *) calloc (sizeof(double) , cols);
     if (m->elts[i] == NULL) matrix_error ("Memory allocation error");
   }
 #else
-#pragma omp critical (MALLOC)
   m->mat  = (double *) calloc( sizeof(double) , rows*cols ) ;
   if( m->mat == NULL )
     matrix_error ("Memory allocation error");
@@ -418,7 +407,6 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
       m->elts[i][j] = far[i + j*rows];
 
 
-#pragma omp critical (MALLOC)
   { mri_free (flim);  flim = NULL; }
 
 }
@@ -487,7 +475,6 @@ void matrix_enlarge( int nradd , int ncadd , matrix *a )
 
   /* create bigger matrix with extra rows/columns */
 
-#pragma omp critical (MALLOC)
   b = (matrix *)malloc(sizeof(matrix)) ;
   matrix_initialize( b ) ;
   matrix_create( rows+nradd , cols+ncadd, b ) ;  /* zero-filled */
@@ -804,7 +791,6 @@ int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
 
   n = a.rows;
   matrix_equate (a, &atmp);
-#pragma omp critical (MALLOC)
   diag = (double *)malloc( sizeof(double)*n ) ;
   for( i=0 ; i < n ; i++ ){
     diag[i] = fabs(atmp.elts[i][i]) ;
@@ -823,7 +809,6 @@ int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
     ainv->elts[i][j] *= diag[i]*diag[j] ;
 
   matrix_destroy (&atmp);
-#pragma omp critical (MALLOC)
   free((void *)diag) ;
 #ifdef ENABLE_FLOPS
   flops += 4.0*n*n + 4.0*n ;
@@ -918,8 +903,7 @@ void vector_initialize (vector * v)
 
 void vector_destroy (vector * v)
 {
-#pragma omp critical (MALLOC)
-  { if (v->elts != NULL) free (v->elts); }
+  if (v->elts != NULL) free (v->elts);
   vector_initialize (v);
 }
 
@@ -938,7 +922,6 @@ void vector_create (int dim, vector * v)
   v->dim = dim;
   if (dim < 1)  return;
 
-#pragma omp critical (MALLOC)
   v->elts = (double *) calloc (sizeof(double) , dim);
   if (v->elts == NULL)
     matrix_error ("Memory allocation error");
@@ -955,7 +938,6 @@ void vector_create_noinit(int dim, vector * v)  /* 28 Dec 2001: RWCox */
   v->dim = dim;
   if (dim < 1)  return;
 
-#pragma omp critical (MALLOC)
   v->elts = (double *) malloc (sizeof(double) * dim);
   if (v->elts == NULL)
     matrix_error ("Memory allocation error");
@@ -1362,7 +1344,6 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 
 #ifdef DOTP                                      /* vectorized */
   aa = a.elts ; dd = d->elts ; cc = c.elts ;
-#pragma omp critical (MALLOC)
   ee = (double *)malloc(sizeof(double)*rows) ;
   i  = rows%2 ;
   if( i == 1 ) DOTP(cols,aa[0],bb,ee) ;
@@ -1372,7 +1353,6 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   }
   VSUB(rows,cc,ee,dd) ;
   DOTP(rows,dd,dd,&qsum) ;
-#pragma omp critical (MALLOC)
   free((void *)ee) ;
 #else
 
@@ -1567,7 +1547,6 @@ int * matrix_check_columns( matrix a , double eps )  /* 14 Jul 2004 */
      sumi = 0.0 ;
      for( k=0 ; k < rows ; k++ ) sumi += a.elts[k][i] * a.elts[k][i] ;
      if( sumi <= 0.0 ){
-#pragma omp critical (MALLOC)
        iar = (int *)realloc( (void *)iar , sizeof(int)*2*(nar+1) ) ;
        iar[2*nar] = i ; iar[2*nar+1] = -1 ; nar++ ;
        continue ;                           /* skip to next column i */
@@ -1581,7 +1560,6 @@ int * matrix_check_columns( matrix a , double eps )  /* 14 Jul 2004 */
        if( sumj > 0.0 ){
          sumd = fabs(sumd) / sqrt(sumi*sumj) ;
          if( sumd >= 1.0-eps ){
-#pragma omp critical (MALLOC)
            iar = (int *)realloc( (void *)iar , sizeof(int)*2*(nar+1) ) ;
            iar[2*nar] = i ; iar[2*nar+1] = j ; nar++ ;
          }
@@ -1590,7 +1568,6 @@ int * matrix_check_columns( matrix a , double eps )  /* 14 Jul 2004 */
    }
 
    if( iar != NULL ){
-#pragma omp critical (MALLOC)
      iar = (int *)realloc( (void *)iar , sizeof(int)*2*(nar+1) ) ;
      iar[2*nar] = iar[2*nar+1] = -1 ;
    }
@@ -1609,9 +1586,8 @@ double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
    int i,j,k , M=X.rows , N=X.cols ;
    double *a , *e , sum ;
 
-#pragma omp critical (MALLOC)
-   { a = (double *) malloc( sizeof(double)*N*N ) ;
-     e = (double *) malloc( sizeof(double)*N   ) ; }
+   a = (double *) malloc( sizeof(double)*N*N ) ;
+   e = (double *) malloc( sizeof(double)*N   ) ;
 
    for( i=0 ; i < N ; i++ ){
      for( j=0 ; j <= i ; j++ ){
@@ -1631,7 +1607,6 @@ double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
    }
 
    symeigval_double( N , a , e ) ;
-#pragma omp critical (MALLOC)
    free( (void *)a ) ;
 #ifdef ENABLE_FLOPS
    flops += (M+N+2.0)*N*N ;
@@ -1664,14 +1639,11 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 
    if( m < 1 || n < 1 || m < n || (XtXinv == NULL && XtXinvXt == NULL) ) return;
 
-#pragma omp critical (MALLOC)
-  {
    amat = (double *)calloc( sizeof(double),m*n ) ;  /* input matrix */
    umat = (double *)calloc( sizeof(double),m*n ) ;  /* left singular vectors */
    vmat = (double *)calloc( sizeof(double),n*n ) ;  /* right singular vectors */
    sval = (double *)calloc( sizeof(double),n   ) ;  /* singular values */
    xfac = (double *)calloc( sizeof(double),n   ) ;  /* column norms of [a] */
-  }
 
 #undef  A
 #undef  U
@@ -1699,7 +1671,6 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 
    svd_double( m , n , amat , sval , umat , vmat ) ;
 
-#pragma omp critical (MALLOC)
    free((void *)amat) ;  /* done with this */
 
    /* find largest singular value */
@@ -1709,9 +1680,8 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
      if( sval[ii] > smax ) smax = sval[ii] ;
 
    if( smax <= 0.0 ){                        /* this is bad */
-#pragma omp critical (MALLOC)
-     { free((void *)xfac); free((void *)sval);
-       free((void *)vmat); free((void *)umat); }
+     free((void *)xfac); free((void *)sval);
+     free((void *)vmat); free((void *)umat);
      return;
    }
 
@@ -1761,9 +1731,8 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 #ifdef ENABLE_FLOPS
    flops += n*n*(n+2.0*m+2.0) ;
 #endif
-#pragma omp critical (MALLOC)
-   { free((void *)xfac); free((void *)sval);
-     free((void *)vmat); free((void *)umat); }
+   free((void *)xfac); free((void *)sval);
+   free((void *)vmat); free((void *)umat);
    return;
 }
 
@@ -1781,14 +1750,11 @@ int matrix_collinearity_fixup( matrix X , matrix *Xa )
 
    if( m < 1 || n < 1 || m < n ) return (-1) ;
 
-#pragma omp critical (MALLOC)
-  {
    amat = (double *)calloc( sizeof(double),m*n ) ; /* input matrix */
    umat = (double *)calloc( sizeof(double),m*n ) ; /* left singular vectors */
    vmat = (double *)calloc( sizeof(double),n*n ) ; /* right singular vectors */
    sval = (double *)calloc( sizeof(double),n   ) ; /* singular values */
    xfac = (double *)calloc( sizeof(double),n   ) ; /* column norms of [a] */
-  }
 
 #undef  A
 #undef  U
@@ -1818,7 +1784,6 @@ int matrix_collinearity_fixup( matrix X , matrix *Xa )
 
    svd_double( m , n , amat , sval , umat , vmat ) ;
 
-#pragma omp critical (MALLOC)
    free((void *)amat) ;  /* done with this */
 
    /* find largest singular value */
@@ -1831,10 +1796,8 @@ int matrix_collinearity_fixup( matrix X , matrix *Xa )
    }
 
    if( smax == 0.0 ){                        /* this is bad */
-#pragma omp critical (MALLOC)
-     { free((void *)xfac); free((void *)sval);
-       free((void *)vmat); free((void *)umat);
-     }
+     free((void *)xfac); free((void *)sval);
+     free((void *)vmat); free((void *)umat);
      return (-1);
    }
 
@@ -1847,10 +1810,8 @@ int matrix_collinearity_fixup( matrix X , matrix *Xa )
    /* if all were OK, then nothing more needs to be done */
 
    if( nbad == 0 || Xa == NULL ){
-#pragma omp critical (MALLOC)
-     { free((void *)xfac); free((void *)sval);
-       free((void *)vmat); free((void *)umat);
-     }
+     free((void *)xfac); free((void *)sval);
+     free((void *)vmat); free((void *)umat);
      return (nbad);
    }
 
@@ -1867,10 +1828,8 @@ int matrix_collinearity_fixup( matrix X , matrix *Xa )
      }
    }
 
-#pragma omp critical (MALLOC)
-   { free((void *)xfac); free((void *)sval);
-     free((void *)vmat); free((void *)umat);
-   }
+   free((void *)xfac); free((void *)sval);
+   free((void *)vmat); free((void *)umat);
    return (nbad);
 }
 #endif
@@ -1894,11 +1853,8 @@ int matrix_qrr( matrix X , matrix *R )
 #undef  A
 #define A(i,j) amat[(i)+(j)*m]
 
-#pragma omp critical (MALLOC)
-  {
    amat = (double *)malloc( sizeof(double)*m*n ) ;  /* copy input matrix */
    uvec = (double *)malloc( sizeof(double)*m   ) ;  /* Householder vector */
-  }
 
    /* copy input matrix into amat == A */
 
@@ -1967,8 +1923,7 @@ fprintf(stderr,"\n") ;
    flops += n*n*(2*m-0.666*n) ;
 #endif
 
-#pragma omp critical (MALLOC)
-   { free((void *)uvec) ; free((void *)amat) ; }
+   free((void *)uvec) ; free((void *)amat) ;
    return (0) ;
 }
 

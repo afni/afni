@@ -1172,11 +1172,11 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 
 3dREMLfit.o: 3dREMLfit.c remla.c matrix.c rcmat.c
 	$(RM) $@
-	$(CCFAST) -c 3dREMLfit.c $(INFLAGS)
+	$(CCOMP) -c 3dREMLfit.c $(INFLAGS)
 
 3dREMLfit:3dREMLfit.o
 	$(RM) $@
-	$(CCFAST) -o 3dREMLfit 3dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
+	$(CCOMP) -o 3dREMLfit 3dREMLfit.o $(LFLAGS) $(LLIBS) -lf2c
 
 mri_blur3d_variable.o:mri_blur3d_variable.c
 	$(RM) $@

@@ -60,6 +60,7 @@ int main( int argc , char *argv[] )
    char *Zprefix=NULL ; THD_3dim_dataset *Zset=NULL ; float *Zar=NULL ;
    char *Qprefix=NULL ; THD_3dim_dataset *Qset=NULL ; float *Qar=NULL ;
    char *Tprefix=NULL ; THD_3dim_dataset *Tset=NULL ; float *Tar=NULL ;
+   char *Pprefix=NULL ; THD_3dim_dataset *Pset=NULL ; float *Par=NULL ;
       float Thresh=0.0f ;
    char *Tvprefix=NULL ; THD_3dim_dataset *Tvset=NULL ;
       float **Tvar=NULL ; float  *Threshv=NULL, *Tvcount=NULL ;
@@ -69,6 +70,7 @@ int main( int argc , char *argv[] )
    struct  timeval  tt;
    float dtt=0.0;
    float *ccar=NULL ; /* 29 Apr 2009: for OpenMP usage */
+   float Pcsum ; int nPcsum ;  /* 23 Jun 2009 */
 
    /*----*/
 
@@ -86,10 +88,26 @@ int main( int argc , char *argv[] )
        "  -Mean pp  = Save average correlations into dataset prefix 'pp'\n"
        "  -Zmean pp = Save tanh of mean arctanh(correlation) into 'pp'\n"
        "  -Qmean pp = Save RMS(correlation) into 'pp'\n"
+       "  -Pmean pp = Save average of squared positive correlations into 'pp'\n"
+       "              (negative correlations don't count in this calculation)\n"
        "  -Thresh tt pp\n"
        "            = Save the COUNT of how many voxels survived thresholding\n"
-       "              at level abs(rho) >= tt.\n"
-       "  [At least one of these output options must be given]\n"
+       "              at level abs(correlation) >= tt.\n"
+       "\n"
+       "  -VarThresh t0 t1 dt pp\n"
+       "            = Save the COUNT of how many voxels survive thresholding\n"
+       "              at several levels abs(correlation) >= tt, for\n"
+       "              tt = t0, t0+dt, ..., t1.  This option produces\n"
+       "              a multi-volume dataset, with prefix 'pp'.\n"
+       "  -VarThreshN t0 t1 dt pp\n"
+       "            = Like '-VarThresh', but the output counts are\n"
+       "              'Normalized' (divided) by the expected number\n"
+       "              of such supra-threshold voxels that would occur\n"
+       "              from white noise timeseries.\n"
+       "           ** N.B.: You can't use '-VarThresh' and '-VarThreshN'\n"
+       "                    in the same run of the program!\n"
+       "\n"
+       "  *** At least one of the above output options must be given!!! ***\n"
        "\n"
        "  -polort m = Remove polynomical trend of order 'm', for m=-1..19.\n"
        "               [default is m=1; removal is by least squares].\n"
@@ -102,7 +120,7 @@ int main( int argc , char *argv[] )
        "  -automask = Create a mask from the input dataset.\n"
        "\n"
        "-- This purely experimental program is somewhat slow.\n"
-       "-- For Kyle, AKA the new Pat.\n"
+       "-- For Kyle, AKA the new Pat (if such a thing were possible).\n"
        "-- RWCox - August 2008.\n"
             ) ;
 #ifdef USE_OMP
@@ -167,6 +185,11 @@ int main( int argc , char *argv[] )
          if( !THD_filename_ok(Qprefix) ) ERROR_exit("Illegal prefix after -Qmean!\n") ;
          nopt++ ; continue ;
       }
+      if( strcasecmp(argv[nopt],"-Pmean") == 0 ){
+         Pprefix = argv[++nopt] ; nout++ ;
+         if( !THD_filename_ok(Pprefix) ) ERROR_exit("Illegal prefix after -Pmean!\n") ;
+         nopt++ ; continue ;
+      }
       if( strcasecmp(argv[nopt],"-Thresh") == 0 ){
          Thresh = (float)strtod(argv[++nopt],NULL) ;
          if( Thresh <= 0.0f || Thresh >= 0.99f ) ERROR_exit("Illegal -Thresh value %g",Thresh) ;
@@ -195,16 +218,20 @@ int main( int argc , char *argv[] )
             ERROR_exit("Illegal 3rd value of %g after -VarThresh* ",ti) ;
          if (N_iv <= 0)
             ERROR_exit("Bad combination of values after -VarThresh* ") ;
+
          Threshv = (float *)calloc(N_iv+1, sizeof(float));
-         for (iv=0; iv<N_iv; ++iv) {
-            Threshv[iv] = t0 + (float)iv*ti;
-         }
+         for (iv=0; iv < N_iv; ++iv)
+           Threshv[iv] = t0 + (float)iv*ti;
 
          Tvprefix = argv[++nopt] ; nout++ ;
          if( !THD_filename_ok(Tvprefix) )
-            ERROR_exit("Illegal prefix after -VarThresh*!\n") ;
+            ERROR_exit("Illegal prefix after %s",argv[nopt-4]) ;
+         if( Tvprefix[0] == '-' )
+            WARNING_message("%s prefix '%s' starts with '-' :: is this a mistake?",
+                           argv[nopt-4] , Tvprefix ) ;
 
-         INFO_message("VarThresh mode with %d levels\n", N_iv);
+         INFO_message("VarThresh mode with %d levels: %.3f .. %.3f\n",
+                      N_iv , Threshv[0] , Threshv[N_iv-1] ) ;
 
          nopt++ ; continue ;
       }
@@ -253,7 +280,9 @@ int main( int argc , char *argv[] )
      xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
    }
    ntime = DSET_NVALS(xset) ;
-   if( ntime < 9 ) ERROR_exit("Input dataset is too short!") ;
+   if( ntime < 9 )
+     ERROR_exit("Input dataset '%s' is too short: %d time points" ,
+                DSET_HEADNAME(xset) , ntime ) ;
    if( ortim != NULL && ortim->nx < ntime )
      ERROR_exit("-ort file is shorter than input dataset!") ;
 
@@ -311,6 +340,25 @@ int main( int argc , char *argv[] )
        ERROR_exit("Output dataset %s already exists!",
                   DSET_HEADNAME(Mset)) ;
      tross_Make_History( "3dTcorrMap" , argc,argv , Mset ) ;
+   }
+
+   if( Pprefix != NULL ){
+     Pset = EDIT_empty_copy( xset ) ;
+     EDIT_dset_items( Pset ,
+                        ADN_prefix    , Pprefix        ,
+                        ADN_nvals     , 1              ,
+                        ADN_ntt       , 0              ,
+                        ADN_brick_fac , NULL           ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( Pset , 0 , MRI_float , NULL ) ;
+     Par = DSET_ARRAY(Pset,0) ;  /* get array  */
+     EDIT_BRICK_TO_NOSTAT(Pset,0) ;
+     if( THD_deathcon() && THD_is_file(DSET_HEADNAME(Pset)) )
+       ERROR_exit("Output dataset %s already exists!",
+                  DSET_HEADNAME(Pset)) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , Pset ) ;
    }
 
    if( Zprefix != NULL ){
@@ -373,8 +421,8 @@ int main( int argc , char *argv[] )
    if( Tvprefix != NULL ){
      Tvset = EDIT_empty_copy( xset ) ;
      EDIT_dset_items( Tvset ,
-                        ADN_prefix    , Tvprefix        ,
-                        ADN_nvals     , N_iv              ,
+                        ADN_prefix    , Tvprefix       ,
+                        ADN_nvals     , N_iv           ,
                         ADN_ntt       , 0              ,
                         ADN_brick_fac , NULL           ,
                         ADN_type      , HEAD_FUNC_TYPE ,
@@ -387,7 +435,7 @@ int main( int argc , char *argv[] )
       Tvar[iv] = DSET_ARRAY(Tvset,iv) ;  /* get array  */
       EDIT_BRICK_TO_NOSTAT(Tvset,iv) ;
       if (Tbone) sprintf(stmp,"nTc%.3f", Threshv[iv]);
-      else sprintf(stmp,"Tc%.3f", Threshv[iv]);
+      else       sprintf(stmp,"Tc%.3f" , Threshv[iv]);
       EDIT_BRICK_LABEL(Tvset, iv, stmp);
      }
      if( THD_deathcon() && THD_is_file(DSET_HEADNAME(Tvset)) )
@@ -516,6 +564,7 @@ int main( int argc , char *argv[] )
 
      Tcount = Mcsum = Zcsum = Qcsum = 0.0f ;
      for( iv=0 ; iv < N_iv ; ++iv ) Tvcount[iv] = 0.0f ;
+     Pcsum = 0.0f ; nPcsum = 0 ;
 
      for( jj=0 ; jj < nmask ; jj++ ){
        if( jj == ii ) continue ;
@@ -523,6 +572,7 @@ int main( int argc , char *argv[] )
        Mcsum += cc ;
        Zcsum += 0.5f * logf((1.0001f+cc)/(1.0001f-cc));
        Qcsum += cc*cc ;
+       if( cc > 0.0f ){ Pcsum += cc*cc ; nPcsum++ ; }
        acc = (cc < 0) ? -cc : cc ;
        if( acc >= Thresh ) Tcount++ ;
        if( Threshv ){
@@ -542,6 +592,10 @@ int main( int argc , char *argv[] )
      if( Tar != NULL ) Tar[indx[ii]] = Tcount ;
      if( Tvar != NULL ){
        for(iv=0 ; iv < N_iv ; ++iv ) Tvar[iv][indx[ii]] = Tvcount[iv] ;
+     }
+     if( Par != NULL ){
+       if( nPcsum > 0 ) Pcsum = Pcsum / nPcsum ;
+       Par[indx[ii]] = Pcsum ;
      }
 
    } /* end of outer loop over voxels (ii) */
@@ -577,6 +631,9 @@ int main( int argc , char *argv[] )
 
    if( Mset != NULL ){
      DSET_write(Mset) ; WROTE_DSET(Mset) ; DSET_delete(Mset) ;
+   }
+   if( Pset != NULL ){
+     DSET_write(Pset) ; WROTE_DSET(Pset) ; DSET_delete(Pset) ;
    }
    if( Zset != NULL ){
      DSET_write(Zset) ; WROTE_DSET(Zset) ; DSET_delete(Zset) ;
