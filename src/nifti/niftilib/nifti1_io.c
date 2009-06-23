@@ -328,9 +328,10 @@ static char * gni_history[] =
   "1.38 28 Apr 2009 [rickr]\n",
   "   - uppercase extensions are now valid (requested by M. Coursolle)\n"
   "   - nifti_set_allow_upper_fext controls this option (req by C. Ooi)\n"
+  "1.39 23 Jun 2009 [rickr]: added 4 checks of alloc() returns\n",
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.38 (28 April, 2009)";
+static char gni_version[] = "nifti library version 1.39 (23 June, 2009)";
 
 /*! global nifti options structure - init with defaults */
 static nifti_global_options g_opts = { 
@@ -1148,8 +1149,17 @@ int nifti_disp_matrix_orient( const char * mesg, mat44 mat )
 *//*--------------------------------------------------------------------*/
 char *nifti_strdup(const char *str)
 {
-  char *dup= (char *)malloc( strlen(str)+1 );
-  if (dup) strcpy(dup,str);
+  char *dup;
+
+  if( !str ) return NULL;       /* allow calls passing NULL */
+
+  dup = (char *)malloc(strlen(str) + 1);
+
+  /* check for failure */
+  if( dup ) strcpy(dup, str);
+  else      fprintf(stderr,"** nifti_strdup: failed to alloc %u bytes\n", 
+                    (unsigned int)strlen(str)+1);
+
   return dup;
 }
 
@@ -3559,7 +3569,7 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
    int   is_nifti , is_onefile ;
    nifti_image *nim;
 
-   nim = (nifti_image *) calloc( 1 , sizeof(nifti_image) ) ;
+   nim = (nifti_image *)calloc( 1 , sizeof(nifti_image) ) ;
    if( !nim ) ERREX("failed to allocate nifti image");
 
    /* be explicit with pointers */
@@ -6326,7 +6336,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
 
    /* create empty image struct */
 
-   nim = (nifti_image *) calloc( 1 , sizeof(nifti_image) ) ;
+   nim = (nifti_image *)calloc( 1 , sizeof(nifti_image) ) ;
    if( !nim ){
       fprintf(stderr,"** NIFA: failed to alloc nifti_image\n");
       return NULL;
@@ -7170,7 +7180,11 @@ int * nifti_get_intlist( int nvals , const char * str )
    if( str == NULL || str[0] == '\0' ) return NULL ;
 
    /* skip initial '[' or '{' */
-   subv    = (int *) malloc( sizeof(int) * 2 ) ;
+   subv = (int *)malloc( sizeof(int) * 2 ) ;
+   if( !subv ) {
+      fprintf(stderr,"** nifti_get_intlist: failed alloc of 2 ints\n");
+      return NULL;
+   }
    subv[0] = nout = 0 ;
 
    ipos = 0 ;
@@ -7217,7 +7231,12 @@ int * nifti_get_intlist( int nvals , const char * str )
 
       if( str[ipos] == ',' || ISEND(str[ipos]) ){
          nout++ ;
-         subv = (int *) realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv = (int *)realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         if( !subv ) {
+            fprintf(stderr,"** nifti_get_intlist: failed realloc of %d ints\n",
+                    nout+1);
+            return NULL;
+         }
          subv[0]    = nout ;
          subv[nout] = ibot ;
          if( ISEND(str[ipos]) ) break ; /* done */
@@ -7264,7 +7283,7 @@ int * nifti_get_intlist( int nvals , const char * str )
 
       istep = (ibot <= itop) ? 1 : -1 ;
 
-      while( isspace((int) str[ipos]) ) ipos++ ;                  /* skip blanks */
+      while( isspace((int) str[ipos]) ) ipos++ ;            /* skip blanks */
 
       /**- check if we have a non-default loop step */
 
@@ -7288,14 +7307,19 @@ int * nifti_get_intlist( int nvals , const char * str )
 
       for( ii=ibot ; (ii-itop)*istep <= 0 ; ii += istep ){
          nout++ ;
-         subv = (int *) realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv = (int *)realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         if( !subv ) {
+            fprintf(stderr,"** nifti_get_intlist: failed realloc of %d ints\n",
+                    nout+1);
+            return NULL;
+         }
          subv[0]    = nout ;
          subv[nout] = ii ;
       }
 
       /**- check if we have a comma to skip over */
 
-      while( isspace((int) str[ipos]) ) ipos++ ;                  /* skip blanks */
+      while( isspace((int) str[ipos]) ) ipos++ ;            /* skip blanks */
       if( str[ipos] == ',' ) ipos++ ;                       /* skip commas */
 
    }  /* end of loop through selector string */
