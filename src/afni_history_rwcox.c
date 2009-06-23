@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , JUN , 2009 , RWC , "3dTcorrMap" , MICRO , TYPE_NEW_OPT ,
+   "Add -Pmean option, based on poster I saw at HBM." ,
+   NULL } ,
+
+ { 17 , JUN , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_GENERAL ,
+   "OpenMP-ization" ,
+   "Some speedup, but need to work on not doing malloc/free so much in the\n"
+   "REML_func function!" } ,
+
  { 16 , JUN , 2009 , RWC , "1dplot" , MICRO , TYPE_NEW_OPT ,
    "Add '-ytran' option" ,
    "Apply an expression to the time series, to transform it prior to\n"

@@ -481,6 +481,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
        ERROR_message("matrix_qrr fails?! a=%.3f lam=%.3f",rho,lam) ;
      matrix_destroy(D) ; free((void *)D) ; rcmat_destroy(rcm) ; return NULL ;
    } else if( ii > 0 ){
+#ifndef USE_OMP
      static int iold=0 ;
      if( ii != iold ){
        WARNING_message("-----") ;
@@ -491,6 +492,7 @@ reml_setup * setup_arma11_reml( int nt, int *tau,
        WARNING_message("-----") ;
        iold = ii ;
      }
+#endif
    }
 
    /* create the setup struct, save stuff into it */
@@ -575,19 +577,17 @@ ENTRY("REML_func") ;
    }
 
    if( qq1 == NULL ){
-#pragma omp critical (MALLOC)
-     { qq1 = (vector *)malloc(sizeof(vector)) ;
-       qq2 = (vector *)malloc(sizeof(vector)) ;
-       qq3 = (vector *)malloc(sizeof(vector)) ;
-       qq4 = (vector *)malloc(sizeof(vector)) ;
-       qq5 = (vector *)malloc(sizeof(vector)) ;
-       qq6 = (vector *)malloc(sizeof(vector)) ;
-       qq7 = (vector *)malloc(sizeof(vector)) ;
-     }
+     qq1 = (vector *)malloc(sizeof(vector)) ;
+     qq2 = (vector *)malloc(sizeof(vector)) ;
+     qq3 = (vector *)malloc(sizeof(vector)) ;
+     qq4 = (vector *)malloc(sizeof(vector)) ;
+     qq5 = (vector *)malloc(sizeof(vector)) ;
+     qq6 = (vector *)malloc(sizeof(vector)) ;
+     qq7 = (vector *)malloc(sizeof(vector)) ;
      vector_initialize(qq1) ; vector_initialize(qq2) ;
      vector_initialize(qq3) ; vector_initialize(qq4) ;
      vector_initialize(qq5) ; vector_initialize(qq6) ;
-     vector_initialize(qq7) ; 
+     vector_initialize(qq7) ;
 #ifndef USE_OMP
      bb1 = qq1 ; bb2 = qq2 ; bb3 = qq3 ; bb4 = qq4 ;
      bb5 = qq5 ; bb6 = qq6 ; bb7 = qq7 ;
@@ -642,15 +642,13 @@ ENTRY("REML_func") ;
      bbsumq = qsumq ;
 #ifdef USE_OMP
    { if( bb1 == NULL ){
-#pragma omp critical (MALLOC)
-       { bb1 = (vector *)malloc(sizeof(vector)) ;
-         bb2 = (vector *)malloc(sizeof(vector)) ;
-         bb3 = (vector *)malloc(sizeof(vector)) ;
-         bb4 = (vector *)malloc(sizeof(vector)) ;
-         bb5 = (vector *)malloc(sizeof(vector)) ;
-         bb6 = (vector *)malloc(sizeof(vector)) ;
-         bb7 = (vector *)malloc(sizeof(vector)) ;
-       }
+       bb1 = (vector *)malloc(sizeof(vector)) ;
+       bb2 = (vector *)malloc(sizeof(vector)) ;
+       bb3 = (vector *)malloc(sizeof(vector)) ;
+       bb4 = (vector *)malloc(sizeof(vector)) ;
+       bb5 = (vector *)malloc(sizeof(vector)) ;
+       bb6 = (vector *)malloc(sizeof(vector)) ;
+       bb7 = (vector *)malloc(sizeof(vector)) ;
        vector_initialize(bb1) ; vector_initialize(bb2) ;
        vector_initialize(bb3) ; vector_initialize(bb4) ;
        vector_initialize(bb5) ; vector_initialize(bb6) ;
@@ -668,8 +666,7 @@ ENTRY("REML_func") ;
    vector_destroy(qq1) ; vector_destroy(qq2) ; vector_destroy(qq3) ;
    vector_destroy(qq4) ; vector_destroy(qq5) ; vector_destroy(qq6) ;
    vector_destroy(qq7) ;
-#pragma omp critical (MALLOC)
-   { free(qq1); free(qq2); free(qq3); free(qq4); free(qq5); free(qq6); free(qq7); }
+   free(qq1); free(qq2); free(qq3); free(qq4); free(qq5); free(qq6); free(qq7);
 #endif
 
    RETURN(val) ;
@@ -952,44 +949,68 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 
    } else {          /* general setup case with an (a,b) grid of cases */
 
-     for( ii=0 ; ii <= na ; ii++ ){
-       aa = ii*da + abot ;                    /* AR parameter */
-       for( jj=0 ; jj <= nb ; jj++ ){
-         bb  = jj*db + bbot ;                 /* MA parameter */
-         lam = LAMBDA(aa,bb) ;                /* +1 super-diagonal element */
-         kk  = ii + (1+na)*jj ;
-         if( kk != rrcol->izero &&
-             ( lam >= corcut || (lam <= -corcut && allow_negative_cor) ) ){
-           rrcol->rs[kk] = setup_arma11_reml( nt,tau, aa,lam , X ) ;
-           if( rrcol->rs[kk] != NULL ){
-             rrcol->rs[kk]->barm = bb ; nset++ ;
-             avglen += rcmat_avglen( rrcol->rs[kk]->cc ) ;
-           }
+#ifdef USE_OMP
+    int nthr , *nset_th ; float *avg_th ;
+    nthr    = omp_get_max_threads() ;
+    nset_th = (int   *)calloc(sizeof(int)  ,nthr) ;
+    avg_th  = (float *)calloc(sizeof(float),nthr) ;
+#endif
+
+#pragma omp parallel
+ { int iab , nab , ii,jj,kk , ithr=0 ;
+   MTYPE bb,aa, lam ; float avg ;
+  AFNI_OMP_START ;
+#ifdef USE_OMP
+   ithr = omp_get_thread_num() ;
+#endif
+   nab = rrcol->nab ;
+#pragma omp for
+     for( iab=0 ; iab < nab ; iab++ ){ /* loop over (aa,bb) pairs */
+       ii  = iab % (na+1) ;
+       jj  = iab / (na+1) ;
+       aa  = ii*da + abot ;                 /* AR parameter */
+       bb  = jj*db + bbot ;                 /* MA parameter */
+       lam = LAMBDA(aa,bb) ;                /* +1 super-diagonal element */
+       kk  = ii + (1+na)*jj ;
+       if( kk != rrcol->izero &&
+           ( lam >= corcut || (lam <= -corcut && allow_negative_cor) ) ){
+         rrcol->rs[kk] = setup_arma11_reml( nt,tau, aa,lam , X ) ;
+         if( rrcol->rs[kk] != NULL ){
+           rrcol->rs[kk]->barm = bb ;
+           avg = rcmat_avglen( rrcol->rs[kk]->cc ) ;
+#ifdef USE_OMP
+           nset_th[ithr]++ ; avg_th[ithr] += avg ;
+#else
+           nset++ ; avglen += avg ;
+#endif
          }
        }
-     }
+     } /* end loop over (aa,bb) pairs */
 
+  AFNI_OMP_END ;
+ } /* end OpenMP */
+
+#ifdef USE_OMP
+   for( ii=0 ; ii < nthr ; ii++ ){
+     nset += nset_th[ii] ; avglen += avg_th[ii] ;
    }
+   free(avg_th) ; free(nset_th) ;
+#endif
+
+   } /* end general setup */
+
+   /* fix a couple of details and vamoose */
 
    rrcol->nset = nset ; rrcol->savfil = NULL ; rrcol->avglen = avglen/nset ;
    return rrcol ;
 }
 
 /*--------------------------------------------------------------------------*/
-
-static int    REML_status   = -1 ;
-
-static MTYPE  REML_best_rho = 0.0 ;
-static MTYPE  REML_best_lam = 0.0 ;
-static MTYPE  REML_best_bb  = 0.0 ;
-static int    REML_best_ind = 0   ;
-
-/*--------------------------------------------------------------------------*/
 /* Inputs: y=data vector, rrcol=collection of REML setup stuff.
    Output: stored in static data defined just above.
 *//*------------------------------------------------------------------------*/
 
-MTYPE REML_find_best_case( vector *y , reml_collection *rrcol )
+int REML_find_best_case( vector *y , reml_collection *rrcol )
 {
    MTYPE rbest , rval ;
    int   na,nb , pna,pnb , ltop ;
@@ -1001,10 +1022,8 @@ ENTRY("REML_find_best_case") ;
 
    if( y == NULL ){  /* memory cleanup */
      REML_func( NULL,NULL,NULL,NULL ) ;
-     REML_status = -1 ; RETURN(-666.0) ;
+     RETURN(-666) ;
    }
-
-   REML_status = 0 ;
 
    /* copy (a,b) grid parameters to local variables */
 
@@ -1045,15 +1064,11 @@ ENTRY("REML_find_best_case") ;
 
      /** However, OpenMP makes things slower, but why? why? why? **/
 
-#pragma omp parallel if( nkl > 3 && bbsave == 0 )
    { int mm , kk ;
-   AFNI_OMP_START ;
-#pragma omp for schedule(static)
      for( mm=0 ; mm < nkl ; mm++ ){  /* this takes a lot of CPU time */
        kk = klist[mm] ;
        rvab[kk] = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
      }
-   AFNI_OMP_END ;
    } /* end OpenMP */
 
      /* find the best one so far seen */
@@ -1080,12 +1095,7 @@ ENTRY("REML_find_best_case") ;
 
    /*** deal with the winner ***/
 
-   REML_best_rho = rrcol->rs[kbest]->rho ;
-   REML_best_lam = rrcol->rs[kbest]->lam ;
-   REML_best_bb  = rrcol->rs[kbest]->barm;
-   REML_best_ind = kbest ;
-
-   REML_status = 1 ; RETURN(rbest) ;
+   RETURN(kbest) ;
 }
 
 /*--------------------------------------------------------------------------*/
