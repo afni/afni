@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, JUN, 2009, RCR, "NIFTI", MINOR, TYPE_BUG_FIX,
+   "added 4 checks of alloc() returns",
+   NULL
+ } ,
+
  { 17, JUN, 2009, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "added -make_3dd_contrasts and used general accuracy in block durations",
    NULL
