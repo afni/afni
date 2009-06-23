@@ -8,6 +8,8 @@
 #include <omp.h>
 #endif
 
+#include "parser.h"
+
 /*----------------------------------------------------------------------------*/
 static float etime (struct  timeval  *t, int Report  )
 {/*etime*/
@@ -70,7 +72,14 @@ int main( int argc , char *argv[] )
    struct  timeval  tt;
    float dtt=0.0;
    float *ccar=NULL ; /* 29 Apr 2009: for OpenMP usage */
+
    float Pcsum ; int nPcsum ;  /* 23 Jun 2009 */
+
+   char        *expr_string=NULL , expr_type='\0' ;  /* 23 Jun 2009 */
+   PARSER_code *expr_code=NULL ;
+   char *Eprefix=NULL ; THD_3dim_dataset *Eset=NULL ; float *Ear=NULL ;
+   double *atoz[26] ;
+   double *eear=NULL ; float Esum ; int nEsum ;
 
    /*----*/
 
@@ -106,6 +115,28 @@ int main( int argc , char *argv[] )
        "              from white noise timeseries.\n"
        "           ** N.B.: You can't use '-VarThresh' and '-VarThreshN'\n"
        "                    in the same run of the program!\n"
+       "\n"
+       "  -Aexpr expr ppp\n"
+       "            = For each correlation 'r', compute the calc-style\n"
+       "              expression 'expr', and average these values to get\n"
+       "              the output that goes into dataset 'ppp'.\n"
+       "  -Cexpr expr ppp\n"
+       "            = As in '-Aexpr', but only average together nonzero\n"
+       "              values computed by 'expr'.  Example:\n"
+       "                -Cexpr 'step(r-0.3)*r' TCa03\n"
+       "              would compute (for each voxel) the average of all\n"
+       "              correlation coefficients larger than 0.3.\n"
+       "  -Sexpr expr ppp\n"
+       "            = As above, but the sum of the expressions is computed\n"
+       "              rather than the average.  Example:\n"
+       "                -Sexpr 'step(r-0.3)' TCn03\n"
+       "              would compute the number of voxels with correlation\n"
+       "              coefficients larger than 0.3.\n"
+       "           ** N.B.: At most one '-?expr' option can be used in\n"
+       "                    the same run of the program!\n"
+       "           ** N.B.: Only the symbol 'r' has any meaning in the\n"
+       "                    expression; all other symbols will be treated\n"
+       "                    as zeroes.\n"
        "\n"
        "  *** At least one of the above output options must be given!!! ***\n"
        "\n"
@@ -192,9 +223,11 @@ int main( int argc , char *argv[] )
       }
       if( strcasecmp(argv[nopt],"-Thresh") == 0 ){
          Thresh = (float)strtod(argv[++nopt],NULL) ;
-         if( Thresh <= 0.0f || Thresh >= 0.99f ) ERROR_exit("Illegal -Thresh value %g",Thresh) ;
+         if( Thresh <= 0.0f || Thresh >= 0.99f )
+           ERROR_exit("Illegal -Thresh value %g",Thresh) ;
          Tprefix = argv[++nopt] ; nout++ ;
-         if( !THD_filename_ok(Tprefix) ) ERROR_exit("Illegal prefix after -Thresh!\n") ;
+         if( !THD_filename_ok(Tprefix) )
+           ERROR_exit("Illegal prefix after -Thresh!\n") ;
          nopt++ ; continue ;
       }
       if( strcasecmp(argv[nopt],"-VarThresh") == 0 ||
@@ -234,6 +267,25 @@ int main( int argc , char *argv[] )
                       N_iv , Threshv[0] , Threshv[N_iv-1] ) ;
 
          nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-Aexpr") == 0 ||
+          strcasecmp(argv[nopt],"-Cexpr") == 0 ||
+          strcasecmp(argv[nopt],"-Sexpr") == 0   ){
+
+        if( expr_type != '\0' ) ERROR_exit("Can't have 2 'expr' options!") ;
+        expr_type   = argv[nopt][1] ; nopt++ ;
+        expr_string = strdup(argv[nopt]) ;
+        expr_code   = PARSER_generate_code( expr_string ) ;
+        if( expr_code == NULL )
+          ERROR_exit("Illegal expression in option '%s'",argv[nopt-1]) ;
+        if( !PARSER_has_symbol("r",expr_code) )
+          ERROR_exit("Expression doesn't contain 'r' symbol!") ;
+        Eprefix = argv[++nopt] ; nout++ ;
+        if( !THD_filename_ok(Eprefix) )
+          ERROR_exit("Illegal prefix after '%s'",argv[nopt-2]) ;
+        for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = NULL ;
+        nopt++ ; continue ;
       }
 
       if( strcasecmp(argv[nopt],"-polort") == 0 ){
@@ -359,6 +411,25 @@ int main( int argc , char *argv[] )
        ERROR_exit("Output dataset %s already exists!",
                   DSET_HEADNAME(Pset)) ;
      tross_Make_History( "3dTcorrMap" , argc,argv , Pset ) ;
+   }
+
+   if( Eprefix != NULL ){
+     Eset = EDIT_empty_copy( xset ) ;
+     EDIT_dset_items( Eset ,
+                        ADN_prefix    , Eprefix        ,
+                        ADN_nvals     , 1              ,
+                        ADN_ntt       , 0              ,
+                        ADN_brick_fac , NULL           ,
+                        ADN_type      , HEAD_FUNC_TYPE ,
+                        ADN_func_type , FUNC_BUCK_TYPE ,
+                      ADN_none ) ;
+     EDIT_substitute_brick( Eset , 0 , MRI_float , NULL ) ;
+     Ear = DSET_ARRAY(Eset,0) ;  /* get array  */
+     EDIT_BRICK_TO_NOSTAT(Eset,0) ;
+     if( THD_deathcon() && THD_is_file(DSET_HEADNAME(Eset)) )
+       ERROR_exit("Output dataset %s already exists!",
+                  DSET_HEADNAME(Eset)) ;
+     tross_Make_History( "3dTcorrMap" , argc,argv , Eset ) ;
    }
 
    if( Zprefix != NULL ){
@@ -506,6 +577,11 @@ int main( int argc , char *argv[] )
    isodd = (ntime%2 == 1) ;
    ccar = (float *)malloc(sizeof(float)*nmask) ;  /* 29 Apr 2009 */
 
+   if( expr_type != '\0' ){  /* 23 Jun 2009 */
+     atoz[17] = (double *)malloc(sizeof(double)*nmask) ;
+     eear     = (double *)malloc(sizeof(double)*nmask) ;
+   }
+
    /* initialize timer */
    etime(&tt,0);
 
@@ -593,9 +669,23 @@ int main( int argc , char *argv[] )
      if( Tvar != NULL ){
        for(iv=0 ; iv < N_iv ; ++iv ) Tvar[iv][indx[ii]] = Tvcount[iv] ;
      }
-     if( Par != NULL ){
-       if( nPcsum > 0 ) Pcsum = Pcsum / nPcsum ;
-       Par[indx[ii]] = Pcsum ;
+
+     if( Par != NULL )  /* 23 Jun 2009 */
+       Par[indx[ii]] = Pcsum / MAX(1,nPcsum) ;
+
+     if( expr_type != '\0' ){  /* 23 Jun 2009 */
+       for( jj=0 ; jj < nmask ; jj++ ) atoz[17][jj] = (double)ccar[jj] ;
+       PARSER_evaluate_vector( expr_code , atoz , nmask, eear ) ;
+       Esum = 0.0f ; nEsum = 0.0f ;
+       for( jj=0 ; jj < nmask ; jj++ ){
+         if( jj == ii ) continue ;
+         Esum += eear[jj] ; if( eear[jj] != 0.0 ) nEsum++ ;
+       }
+       switch( expr_type ){
+         case 'A': Ear[indx[ii]] = Esum / (nmask-1.0f) ; break ;
+         case 'C': Ear[indx[ii]] = Esum / MAX(1,nEsum) ; break ;
+         case 'S': Ear[indx[ii]] = Esum ;                break ;
+       }
      }
 
    } /* end of outer loop over voxels (ii) */
@@ -646,6 +736,9 @@ int main( int argc , char *argv[] )
    }
    if( Tvset != NULL ){
      DSET_write(Tvset) ; WROTE_DSET(Tvset) ; DSET_delete(Tvset) ;
+   }
+   if( Eset != NULL ){
+     DSET_write(Eset) ; WROTE_DSET(Eset) ; DSET_delete(Eset) ;
    }
 
    INFO_message("total CPU time = %.2f s",COX_cpu_time()) ; exit(0) ;
