@@ -145,6 +145,164 @@ void vector_spc_multiply_transpose( sparmat *a , MTYPE *b , MTYPE *c )
 
 /*--------------------------------------------------------------------------*/
 
+void vector_full_multiply( matrix *a , MTYPE *b , MTYPE *c )
+{
+   int rows=a->rows , cols=a->cols , i ;
+   register int j ; register MTYPE sum , *aa ;
+
+   switch( cols%4 ){
+     case 0:
+     for( i=0 ; i < rows ; i++ ){
+       aa = a->elts[i] ; sum = 0.0 ;
+       for( j=0;  j < cols;  j+=4 )
+          sum += aa[j]*b[j]+aa[j+1]*b[j+1]+aa[j+2]*b[j+2]+aa[j+3]*b[j+3];
+       c[i] = sum ;
+     }
+     break ;
+
+     case 1:
+     for( i=0 ; i < rows ; i++ ){
+       aa = a->elts[i] ; sum = aa[0]*b[0] ;
+       for( j=1;  j < cols;  j+=4 )
+          sum += aa[j]*b[j]+aa[j+1]*b[j+1]+aa[j+2]*b[j+2]+aa[j+3]*b[j+3];
+       c[i] = sum ;
+     }
+     break ;
+
+     case 2:
+     for( i=0 ; i < rows ; i++ ){
+       aa = a->elts[i] ; sum = aa[0]*b[0]+aa[1]*b[1] ;
+       for( j=2;  j < cols;  j+=4 )
+          sum += aa[j]*b[j]+aa[j+1]*b[j+1]+aa[j+2]*b[j+2]+aa[j+3]*b[j+3];
+       c[i] = sum ;
+     }
+     break ;
+
+     case 3:
+     for( i=0 ; i < rows ; i++ ){
+       aa = a->elts[i] ; sum = aa[0]*b[0]+aa[1]*b[1]+aa[2]*b[2] ;
+       for( j=3;  j < cols;  j+=4 )
+          sum += aa[j]*b[j]+aa[j+1]*b[j+1]+aa[j+2]*b[j+2]+aa[j+3]*b[j+3];
+       c[i] = sum ;
+     }
+     break ;
+   }
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void vector_full_multiply_transpose( matrix *a , MTYPE *b , MTYPE *c )
+{
+   int rows=a->rows , cols=a->cols , j ;
+   register int i ; register MTYPE bj , *aa ;
+
+   for( i=0 ; i < cols ; i++ ) c[i] = 0.0 ;
+
+   switch( cols%4 ){
+     case 0:
+     for( j=0 ; j < rows ; j++ ){
+       aa = a->elts[j] ; bj = b[j] ;
+       for( i=0 ; i < cols ; i+=4 ){
+         c[i]   += aa[i  ]*bj ; c[i+1] += aa[i+1]*bj ;
+         c[i+2] += aa[i+2]*bj ; c[i+3] += aa[i+3]*bj ;
+       }
+     }
+     break ;
+
+     case 1:
+     for( j=0 ; j < rows ; j++ ){
+       aa = a->elts[j] ; bj = b[j] ;
+       c[0] += aa[0]*bj ;
+       for( i=1 ; i < cols ; i+=4 ){
+         c[i]   += aa[i  ]*bj ; c[i+1] += aa[i+1]*bj ;
+         c[i+2] += aa[i+2]*bj ; c[i+3] += aa[i+3]*bj ;
+       }
+     }
+     break ;
+
+     case 2:
+     for( j=0 ; j < rows ; j++ ){
+       aa = a->elts[j] ; bj = b[j] ;
+       c[0] += aa[0]*bj ; c[1] += aa[1]*bj ;
+       for( i=2 ; i < cols ; i+=4 ){
+         c[i]   += aa[i  ]*bj ; c[i+1] += aa[i+1]*bj ;
+         c[i+2] += aa[i+2]*bj ; c[i+3] += aa[i+3]*bj ;
+       }
+     }
+     break ;
+
+     case 3:
+     for( j=0 ; j < rows ; j++ ){
+       aa = a->elts[j] ; bj = b[j] ;
+       c[0] += aa[0]*bj ; c[1] += aa[1]*bj ; c[2] += aa[2]*bj ;
+       for( i=3 ; i < cols ; i+=4 ){
+         c[i]   += aa[i  ]*bj ; c[i+1] += aa[i+1]*bj ;
+         c[i+2] += aa[i+2]*bj ; c[i+3] += aa[i+3]*bj ;
+       }
+     }
+     break ;
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Solve [R] [x] = [b] for [x] where R is upper triangular. */
+
+void vector_full_rr_solve( matrix *R , MTYPE *b , MTYPE *x )
+{
+   register int n , ii,jj , n1 ;
+   register MTYPE sum , *rr ;
+
+   n = R->rows ; n1 = n-1 ;
+
+   /* backwards loop, from last element to first */
+
+   for( ii=n1 ; ii >= 0 ; ii-- ){
+     rr = R->elts[ii] ; sum = b[ii] ;
+     for( jj=ii+1 ; jj < n1 ; jj+=2 )         /* unrolled by 2 */
+       sum -= rr[jj] * x[jj] + rr[jj+1] * x[jj+1] ;
+     if( jj == n1 ) sum -= rr[jj] * x[jj] ;  /* fix unroll if odd length */
+     x[ii] = sum / rr[ii] ;
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Solve [R]' [x] = [b] for [x] where R is upper triangular. */
+
+void vector_full_rrtran_solve( matrix *R , MTYPE *b , MTYPE *x )
+{
+   register int n , ii,jj , n1 ;
+   register MTYPE sum , *rr ;
+
+   n = R->rows ; n1 = n-1 ;
+
+#if 0             /* the obvious way, but is slower */
+   for( ii=0 ; ii < n ; ii++ ){
+     for( sum=b[ii],jj=0 ; jj < ii ; jj++ )
+       sum -= R->elts[jj][ii] * x[jj] ;
+     x[ii] = sum / R->elts[ii][ii] ;
+   }
+#else             /* the row ordered way, which is faster in cache */
+   for( ii=0 ; ii < n ; ii++ ) x[ii] = b[ii] ;
+   for( ii=0 ; ii < n ; ii++ ){
+     rr = R->elts[ii] ; sum = x[ii] = x[ii] / rr[ii] ;
+     for( jj=ii+1 ; jj < n1 ; jj+=2 ){     /* unrolled by 2 */
+       x[jj] -= rr[jj]*sum ; x[jj+1] -= rr[jj+1]*sum ;
+     }
+     if( jj == n1 ) x[jj] -= rr[jj]*sum ; /* fix unroll if odd length */
+   }
+#endif
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 MTYPE sparsity_fraction( matrix a )
 {
    int rows=a.rows , cols=a.cols , i,j,k=0 ; MTYPE val ;
@@ -540,138 +698,80 @@ reml_setup * REML_setup_one( matrix *X , int *tau , MTYPE rho , MTYPE bb )
    return rset ;
 }
 
-/*--------------------------------------------------------------------------*/
-
-/** intermediate vectors to be saved in case of later need **/
-
-static vector *bb1=NULL,*bb2,*bb3,*bb4,*bb5,*bb6,*bb7 ;
-static MTYPE bbsumq=0.0 ;  /* sum of squares of residual */
-static int   bbsave=0 ;    /* save results in bb* ? */
-
+/*==========================================================================*/
 /*--------------------------------------------------------------------------*/
 /*! Compute the REML -log(likelihood) function for a particular case,
-    given the case's setup and the data and the regression matrix X. */
+    given the case's setup and the data and the regression matrix X.
 
-MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs )
+    [24 Jun 2009] Modified to use workspace vectors passed in via bbar[],
+                  rather than static or malloc-ed vectors, for OpenMP's sake.
+*//*------------------------------------------------------------------------*/
+
+MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,
+                 MTYPE *bbar[7] , MTYPE *bbsumq )
 {
-   int n , ii ;
-   MTYPE val , qsumq ;
-#ifdef USE_OMP
-   vector *qq1=NULL,*qq2,*qq3,*qq4,*qq5,*qq6,*qq7 ;
-#else
-   static vector *qq1=NULL,*qq2,*qq3,*qq4,*qq5,*qq6,*qq7 ;
-#endif
+   int n ; size_t rowd ;
+   MTYPE val ;
+   MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+   register MTYPE qsumq ; register int ii ;
 
 ENTRY("REML_func") ;
 
-   if( y == NULL || rset == NULL || X == NULL ){
-     if( bb1 != NULL ){
-       vector_destroy(bb1) ; bb1 = NULL ;
-       vector_destroy(bb2) ; vector_destroy(bb3) ; vector_destroy(bb4) ;
-       vector_destroy(bb5) ; vector_destroy(bb6) ; vector_destroy(bb7) ;
-#ifndef USE_OMP
-       qq1 = NULL ;
-#endif
-     }
-     RETURN(-666.0) ;
-   }
+   if( y == NULL || rset == NULL || X == NULL || bbar[0] == NULL ) RETURN(-666.0) ;
 
-   if( qq1 == NULL ){
-     qq1 = (vector *)malloc(sizeof(vector)) ;
-     qq2 = (vector *)malloc(sizeof(vector)) ;
-     qq3 = (vector *)malloc(sizeof(vector)) ;
-     qq4 = (vector *)malloc(sizeof(vector)) ;
-     qq5 = (vector *)malloc(sizeof(vector)) ;
-     qq6 = (vector *)malloc(sizeof(vector)) ;
-     qq7 = (vector *)malloc(sizeof(vector)) ;
-     vector_initialize(qq1) ; vector_initialize(qq2) ;
-     vector_initialize(qq3) ; vector_initialize(qq4) ;
-     vector_initialize(qq5) ; vector_initialize(qq6) ;
-     vector_initialize(qq7) ;
-#ifndef USE_OMP
-     bb1 = qq1 ; bb2 = qq2 ; bb3 = qq3 ; bb4 = qq4 ;
-     bb5 = qq5 ; bb6 = qq6 ; bb7 = qq7 ;
-#endif
-   }
+   /* assign pointers to workspace vectors */
 
-   n = rset->neq ;
+   bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
+   bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
 
-   /** Seven steps to compute the prewhitened residuals */
+   n = rset->neq ; rowd = sizeof(MTYPE)*n ;
 
-   vector_equate( *y , qq1 ) ;
-   rcmat_lowert_solve( rset->cc , qq1->elts ) ;      /* qq1 = C^(-T) y */
+   /** Seven matrix-vector steps to compute the prewhitened residuals **/
+
+   memcpy( bb1 , y->elts , rowd ) ;
+   rcmat_lowert_solve( rset->cc , bb1 ) ;            /* bb1 = C^(-T) y */
                                                      /* prewhitened data */
-   vector_equate( *qq1 , qq2 ) ;
-   rcmat_uppert_solve( rset->cc , qq2->elts ) ;      /* qq2 = C^(-1) qq1 */
+   memcpy( bb2 , bb1 , rowd ) ;
+   rcmat_uppert_solve( rset->cc , bb2 ) ;            /* bb2 = C^(-1) bb1 */
 
    if( Xs != NULL ){
-     vector_create_noinit( Xs->cols , qq3 ) ;
-     vector_spc_multiply_transpose( Xs , qq2->elts , qq3->elts ) ;
+     vector_spc_multiply_transpose( Xs , bb2, bb3 );
    } else {
-     vector_multiply_transpose( *X , *qq2 , qq3 ) ;  /* qq3 = X^T qq2 */
+     vector_full_multiply_transpose( X , bb2, bb3 ); /* bb3 = X^T bb2 */
    }
 
-   vector_rrtran_solve( *(rset->dd) , *qq3 , qq4 ) ; /* qq4 = D^(-T) qq3 */
+   vector_full_rrtran_solve( rset->dd , bb3 , bb4 ); /* bb4 = D^(-T) bb3 */
 
-   vector_rr_solve( *(rset->dd) , *qq4 , qq5 ) ;     /* qq5 = D^(-1) qq4 */
+   vector_full_rr_solve(     rset->dd , bb4 , bb5 ); /* bb5 = D^(-1) bb4 */
                                                      /*     = beta_hat  */
 
    if( Xs != NULL ){
-     vector_create_noinit( Xs->rows , qq6 ) ;
-     vector_spc_multiply( Xs , qq5->elts , qq6->elts ) ;
+     vector_spc_multiply( Xs , bb5 , bb6 ) ;
    } else {
-     vector_multiply( *X , *qq5 , qq6 ) ;            /* qq6 = X qq5 */
+     vector_full_multiply( X , bb5 , bb6 ) ;         /* bb6 = X bb5 */
    }                                                 /* fitted model */
 
-   vector_equate( *qq6 , qq7 ) ;
-   rcmat_lowert_solve( rset->cc , qq7->elts ) ;      /* qq7 = C^(-T) qq6 */
+   memcpy( bb7 , bb6 , rowd ) ;
+   rcmat_lowert_solve( rset->cc , bb7 ) ;            /* bb7 = C^(-T) bb6 */
                                                      /* prewhitened fit */
-   vector_subtract( *qq1 , *qq7 , qq2 ) ;            /* result = qq1 - qq7 */
-                                                     /* prewhitened residual */
-   qsumq = vector_dotself(*qq2) ;                    /* sum of squares */
+   qsumq = 0.0 ;
+   for( ii=0 ; ii < n ; ii++ ){
+     bb2[ii] = bb1[ii] - bb7[ii] ;                   /* result = qq1 - qq7 */
+     qsumq += bb2[ii]*bb2[ii] ;                      /* =prewhitened residual */
+   }                                                 /* qsumq = sum of sqrs */
+
+   if( bbsumq != NULL ) *bbsumq = qsumq ;   /* output sum of residual squares */
 
    if( qsumq > 0.0 )
      val = (n - rset->mreg) * log(qsumq)             /* the REML function! */
           + rset->dd_logdet + rset->cc_logdet ;      /* -log(likelihood) */
    else
-     val = 0.0 ;
-
-   /* save internal values to static variables? */
-
-   if( bbsave ){
-     bbsumq = qsumq ;
-#ifdef USE_OMP
-   { if( bb1 == NULL ){
-       bb1 = (vector *)malloc(sizeof(vector)) ;
-       bb2 = (vector *)malloc(sizeof(vector)) ;
-       bb3 = (vector *)malloc(sizeof(vector)) ;
-       bb4 = (vector *)malloc(sizeof(vector)) ;
-       bb5 = (vector *)malloc(sizeof(vector)) ;
-       bb6 = (vector *)malloc(sizeof(vector)) ;
-       bb7 = (vector *)malloc(sizeof(vector)) ;
-       vector_initialize(bb1) ; vector_initialize(bb2) ;
-       vector_initialize(bb3) ; vector_initialize(bb4) ;
-       vector_initialize(bb5) ; vector_initialize(bb6) ;
-       vector_initialize(bb7) ;
-     }
-   }
-   vector_equate( *qq1 , bb1 ) ; vector_equate( *qq2 , bb2 ) ;
-   vector_equate( *qq3 , bb3 ) ; vector_equate( *qq4 , bb4 ) ;
-   vector_equate( *qq5 , bb5 ) ; vector_equate( *qq6 , bb6 ) ;
-   vector_equate( *qq7 , bb7 ) ;
-#endif
-   }
-
-#ifdef USE_OMP
-   vector_destroy(qq1) ; vector_destroy(qq2) ; vector_destroy(qq3) ;
-   vector_destroy(qq4) ; vector_destroy(qq5) ; vector_destroy(qq6) ;
-   vector_destroy(qq7) ;
-   free(qq1); free(qq2); free(qq3); free(qq4); free(qq5); free(qq6); free(qq7);
-#endif
+     val = 0.0 ;                                     /* should not happen */
 
    RETURN(val) ;
 }
 
+/*==========================================================================*/
 /*--------------------------------------------------------------------------*/
 
 void gltfactors_destroy( gltfactors *gf )
@@ -1007,7 +1107,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
 
 /*--------------------------------------------------------------------------*/
 /* Inputs: y=data vector, rrcol=collection of REML setup stuff.
-   Output: stored in static data defined just above.
+   Output: index of best case in the REML seteup stuff.
 *//*------------------------------------------------------------------------*/
 
 int REML_find_best_case( vector *y , reml_collection *rrcol )
@@ -1017,13 +1117,16 @@ int REML_find_best_case( vector *y , reml_collection *rrcol )
    int   nab, lev, dab, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
    MTYPE *rvab ;
    int   klist[666] , nkl ;
+   MTYPE *bbar[7] ;
 
 ENTRY("REML_find_best_case") ;
 
-   if( y == NULL ){  /* memory cleanup */
-     REML_func( NULL,NULL,NULL,NULL ) ;
-     RETURN(-666) ;
-   }
+   if( y == NULL ) RETURN(-666) ;
+
+   /* make workspace arrays for REML_func() [24 Jun 2009] */
+
+   for( ia=0 ; ia < 7 ; ia++ )
+     bbar[ia] = (MTYPE *)malloc(sizeof(MTYPE)*(2*y->dim+66)) ;
 
    /* copy (a,b) grid parameters to local variables */
 
@@ -1035,7 +1138,7 @@ ENTRY("REML_find_best_case") ;
    kbest = rrcol->izero ;
    jbest = kbest / (1+na) ;
    ibest = kbest % (1+na) ;
-   rbest = REML_func( y , rrcol->rs[kbest] , rrcol->X,rrcol->Xs ) ;
+   rbest = REML_func( y, rrcol->rs[kbest], rrcol->X,rrcol->Xs, bbar,NULL ) ;
 
    /** do power-of-2 descent through the (a,b) grid to find the best pair **/
 
@@ -1059,17 +1162,16 @@ ENTRY("REML_find_best_case") ;
      }}
      if( nkl == 0 ) continue ; /* should never happen */
 
-     /* the reason the loop above is separate is to make the loop below
-        be 1D rather than 2D, hoping that OpenMP will parallelize it better. */
-
-     /** However, OpenMP makes things slower, but why? why? why? **/
+     /* The reason the loop above is separate is to make the loop below
+        be 1D rather than 2D, hoping that OpenMP would parallelize it better.
+        However, this didn't work out, but the code is left the way it is */
 
    { int mm , kk ;
      for( mm=0 ; mm < nkl ; mm++ ){  /* this takes a lot of CPU time */
        kk = klist[mm] ;
-       rvab[kk] = REML_func( y , rrcol->rs[kk] , rrcol->X,rrcol->Xs ) ;
+       rvab[kk] = REML_func( y, rrcol->rs[kk], rrcol->X,rrcol->Xs , bbar,NULL ) ;
      }
-   } /* end OpenMP */
+   }
 
      /* find the best one so far seen */
 
@@ -1092,6 +1194,7 @@ ENTRY("REML_find_best_case") ;
    } /* end of scan descent through different levels */
 
    free(rvab) ;
+   for( ia=0 ; ia < 7 ; ia++ ) free(bbar[ia]) ;
 
    /*** deal with the winner ***/
 

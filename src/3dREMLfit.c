@@ -539,7 +539,11 @@ int main( int argc , char *argv[] )
    char **eglt_sym = NULL ;
    int    oglt_num = 0    ;   /* number of 'original' GLTs */
 
+#ifdef USE_OMP
    int maxthr = 1 ;  /* max number of threads [16 Jun 2009] */
+#else
+# define maxthr 1    /* no OpenMP ==> 1 thread by definition */
+#endif
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -2118,7 +2122,7 @@ STATUS("make GLTs from matrix file") ;
    }
 
 #ifdef USE_OMP
-   if( maxthr > 1 && nmask < 999 ){
+   if( maxthr > 1 && nmask < 99*maxthr ){
      maxthr = 1 ;
      WARNING_message("only %d voxels in mask: disables OpenMP multi-threading",nmask) ;
    }
@@ -2196,8 +2200,6 @@ STATUS("make GLTs from matrix file") ;
 
    vstep = (verb && nvox > 999) ? nvox/50 : 0 ;
 
-   bbsave = 0 ;
-
    if( aim == NULL && !abfixed ){ /*--- if don't have (a,b) via -ABfile ---*/
 
      aim = mri_new_vol( nx,ny,nz , MRI_float ) ;
@@ -2207,7 +2209,7 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-  if( maxthr <= 1 ){
+  if( maxthr <= 1 ){                 /** serial computation (no threads) **/
     int ss,rv,vv,ssold,ii,kbest ;
 
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
@@ -2231,7 +2233,7 @@ STATUS("make GLTs from matrix file") ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
      } /* end of REML loop over voxels */
 
-  } else {                    /** Parallelized **/
+  } else {                    /** Parallelized (not paralyzed) **/
     int *vvar ;
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
@@ -2242,10 +2244,11 @@ STATUS("make GLTs from matrix file") ;
     float *iv ; vector y ;  /* private to each thread */
   AFNI_OMP_START ;
    ithr = omp_get_thread_num() ;
+   printf("thread#%d ",ithr) ;
    iv   = (float *)malloc(sizeof(float)*(niv+1)) ;
    vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
 
-#pragma omp for schedule(guided,9)
+#pragma omp for
      for( uu=0 ; uu < nmask ; uu++ ){
        vv = vvar[uu] ;
        if( inset_mrv != NULL ){
@@ -2303,8 +2306,6 @@ STATUS("make GLTs from matrix file") ;
    /*------- (either from -ABfile or from REML loop just done above) -------*/
 
    /*-- set up indexing and labels needed for bucket dataset creation --*/
-
-   bbsave = 1 ;
 
    if( (do_buckt || do_eglt) && glt_num > 0 ){
      int ibot ;
@@ -2437,6 +2438,16 @@ STATUS("setting up Rglt") ;
    /*---------------- and do the second (GLSQ) voxel loop ----------------*/
 
    if( do_Rstuff ){
+     MTYPE *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
+     MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+     vector qq5 ;
+
+     for( ii=0 ; ii < 7 ; ii++ )
+       bbar[ii] = (MTYPE *)malloc(sizeof(MTYPE)*(2*ntime+66)) ;
+     bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
+     bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
+     vector_initialize(&qq5) ; vector_create_noinit(nrega,&qq5) ;
+
      if( vstep ) fprintf(stderr,"++ GLSQ voxel loop: ") ;
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -2495,38 +2506,39 @@ STATUS("setting up Rglt") ;
        } else {
 
          /*--- do the fitting; various results are in the bb? vectors:
-                bb5 = estimated betas
-                bb6 = fitted model
-                bb7 = whitened fitted model [not used below]
-                bb1 = whitened data [not used below]
-                bb2 = whitened residuals
-                      (sum of squares of bb2 ==> noise variance) -------------*/
+                bb5 = estimated betas       (nrega)
+                bb6 = fitted model          (ntime)
+                bb7 = whitened fitted model (ntime) [not used below]
+                bb1 = whitened data         (ntime) [not used below]
+                bb2 = whitened residuals    (ntime)
+                      (sum of squares of bb2 = bbsumq = noise variance) ------*/
 
-         (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ) ;
+         (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
+                          bbar , &bbsumq ) ;
 
          /*--------- scatter the results to various datasets ---------*/
 
          if( Rfitts_dset != NULL ){  /* note that iv still contains original data */
-           for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6->elts[ii] ;
+           for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
            save_series( vv , Rfitts_dset , nfull , iv , Rfitts_fp ) ;
          }
 
          if( Rerrts_dset != NULL ){  /* jv contains copy of original data */
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
-             iv[goodlist[ii]] = jv[goodlist[ii]] - bb6->elts[ii] ;
+             iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
            save_series( vv , Rerrts_dset , nfull , iv , Rerrts_fp ) ;
          }
 
          if( Rwherr_dset != NULL ){  /* note there is no Owherr dataset! */
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
-             iv[goodlist[ii]] = bb2->elts[ii] ;
+             iv[goodlist[ii]] = bb2[ii] ;
            save_series( vv , Rwherr_dset , nfull , iv , Rwherr_fp ) ;
          }
 
          if( Rbeta_dset != NULL ){
-           for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5->elts[betaset[ii]] ;
+           for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5[betaset[ii]] ;
            save_series( vv , Rbeta_dset , nbetaset , iv , Rbeta_fp ) ;
          }
 
@@ -2536,13 +2548,15 @@ STATUS("setting up Rglt") ;
            save_series( vv , Rvar_dset , 4 , iv , Rvar_fp ) ;
          }
 
+         memcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
+
          if( glt_num > 0 && Rbuckt_dset != NULL ){
            MTYPE gv ; GLT_index *gin ; int nr ;
            memset( iv , 0 , sizeof(float)*niv ) ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , bb5 , bbsumq ,
+             gv = REML_compute_gltstat( &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2569,7 +2583,7 @@ STATUS("setting up Rglt") ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , bb5 , bbsumq ,
+             gv = REML_compute_gltstat( &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2591,8 +2605,12 @@ STATUS("setting up Rglt") ;
 
        }
      } /* end of voxel loop */
-     if( vstep ) fprintf(stderr,"\n") ;
+
      reml_collection_destroy( RCsli[nsli-1] , 1 ) ;
+     for( ii=0 ; ii < 7 ; ii++ ) free(bbar[ii]) ;
+     vector_destroy(&qq5) ;
+
+     if( vstep ) fprintf(stderr,"\n") ;
      if( verb )
        ININFO_message("GLSQ regression done: total CPU=%.2f Elapsed=%.2f",
                       COX_cpu_time(),COX_clock_time() ) ;
@@ -2745,6 +2763,16 @@ STATUS("setting up Rglt") ;
    /*---------------- and do the third (OLSQ) voxel loop ----------------*/
 
    if( do_Ostuff ){
+     MTYPE *bbar[7] , bbsumq ;  /* workspace for REML_func() [24 Jun 2009] */
+     MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
+     vector qq5 ;
+
+     for( ii=0 ; ii < 7 ; ii++ )
+       bbar[ii] = (MTYPE *)malloc(sizeof(MTYPE)*(2*ntime+66)) ;
+     bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
+     bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
+     vector_initialize(&qq5) ; vector_create_noinit(nrega,&qq5) ;
+
      if( vstep ) fprintf(stderr,"++ OLSQ voxel loop: ") ;
      for( rv=vv=0 ; vv < nvox ; vv++ ){
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -2776,22 +2804,23 @@ STATUS("setting up Rglt") ;
                              DSET_index_to_kz(inset,vv) , jj ) ;
        } else {
 
-         (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ) ;
+         (void)REML_func( &y , RCsli[ss]->rs[jj] , RCsli[ss]->X , RCsli[ss]->Xs ,
+                          bbar , &bbsumq ) ;
 
          if( Ofitts_dset != NULL ){
-           for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6->elts[ii] ;
+           for( ii=0 ; ii < ntime ; ii++ ) iv[goodlist[ii]] = bb6[ii] ;
            save_series( vv , Ofitts_dset , nfull , iv , Ofitts_fp ) ;
          }
 
          if( Oerrts_dset != NULL ){  /* jv contains copy of original data */
            if( ntime < nfull ) for( ii=0 ; ii < nfull ; ii++ ) iv[ii] = 0.0f ;
            for( ii=0 ; ii < ntime ; ii++ )
-             iv[goodlist[ii]] = jv[goodlist[ii]] - bb6->elts[ii] ;
+             iv[goodlist[ii]] = jv[goodlist[ii]] - bb6[ii] ;
            save_series( vv , Oerrts_dset , nfull , iv , Oerrts_fp ) ;
          }
 
          if( Obeta_dset != NULL ){
-           for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5->elts[betaset[ii]] ;
+           for( ii=0 ; ii < nbetaset ; ii++ ) iv[ii] = bb5[betaset[ii]] ;
            save_series( vv , Obeta_dset , nbetaset , iv , Obeta_fp ) ;
          }
 
@@ -2800,13 +2829,15 @@ STATUS("setting up Rglt") ;
            save_series( vv , Ovar_dset , 1 , iv , Ovar_fp ) ;
          }
 
+         memcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
+
          if( glt_num > 0 && Obuckt_dset != NULL ){
            MTYPE gv ; GLT_index *gin ; int nr ;
            memset( iv , 0 , sizeof(float)*niv ) ;
            for( kk=0 ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , bb5 , bbsumq ,
+             gv = REML_compute_gltstat( &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2833,7 +2864,7 @@ STATUS("setting up Rglt") ;
            for( kk=oglt_num ; kk < glt_num ; kk++ ){
              gin = glt_ind[kk] ; if( gin == NULL ) continue ; /* skip this'n */
              nr = gin->nrow ;
-             gv = REML_compute_gltstat( &y , bb5 , bbsumq ,
+             gv = REML_compute_gltstat( &y , &qq5 , bbsumq ,
                                         RCsli[ss]->rs[jj], RCsli[ss]->rs[jj]->glt[kk],
                                         glt_mat[kk] , glt_smat[kk] ,
                                         RCsli[ss]->X , RCsli[ss]->Xs        ) ;
@@ -2855,6 +2886,10 @@ STATUS("setting up Rglt") ;
 
        }
      } /* end of voxel loop */
+
+     for( ii=0 ; ii < 7 ; ii++ ) free(bbar[ii]) ;
+     vector_destroy(&qq5) ;
+
      if( vstep ) fprintf(stderr,"\n") ;
      if( verb > 1 )
        ININFO_message("OLSQ regression done: total CPU=%.2f Elapsed=%.2f",
@@ -2862,6 +2897,8 @@ STATUS("setting up Rglt") ;
    }
 
    /*----------------- done with the input dataset -----------------*/
+
+   /* delete lots of memory that's no longer needed */
 
    MEMORY_CHECK ;
    if( verb > 1 ) ININFO_message("unloading input dataset and REML matrices");
@@ -2874,7 +2911,6 @@ STATUS("setting up Rglt") ;
         if( abset != NULL ) DSET_delete(abset) ;
    else if( aim   != NULL ) { mri_free(aim) ; mri_free(bim) ; }
    KILL_ALL_GLTS ;
-   (void)REML_func(NULL,NULL,NULL,NULL) ;
    MEMORY_CHECK ;
 
    /*-------------- write output OLSQ datasets to disk --------------*/
