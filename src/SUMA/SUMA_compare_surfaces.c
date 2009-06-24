@@ -65,9 +65,9 @@ int main (int argc,char *argv[])
   FILE *colorfile;
   FILE *distancefile;
   FILE *segfile1, *segfile2, *segfile3,*trianglesfile;
-  char colorfilename[1000];
-  char distancefilename[1000];
-  char segmentfilename1[1000],segmentfilename2[1000],segmentfilename3[1000],trianglesfilename[1000];
+  char colorfilename[SUMA_MAX_FILENAME_LENGTH];
+  char distancefilename[SUMA_MAX_FILENAME_LENGTH];
+  char segmentfilename1[SUMA_MAX_FILENAME_LENGTH],segmentfilename2[SUMA_MAX_FILENAME_LENGTH],segmentfilename3[SUMA_MAX_FILENAME_LENGTH],trianglesfilename[SUMA_MAX_FILENAME_LENGTH];
   char *tag1 = NULL;
   char *tag2 = NULL;
   char *state1 = NULL;

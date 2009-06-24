@@ -2,6 +2,8 @@
 #include "matrix.h"
 #include "SUMA_SurfWarp.h"
 
+extern SUMA_SurfaceViewer *SUMAg_SVv;
+
 /******************* Begin optimizing functions here ************************************************/
 /* DON'T FORGET TO ADD FUNCTIONS TO THE SUMA_SURFWARP.H FILE!!! */
 

@@ -74,9 +74,9 @@ int main (int argc, char *argv[])
    int NumOnly, ToSphere;
    SUMA_Boolean LocalHead = NOPE;
    char *histnote=NULL;
-   char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char  outSpecFileNm[1000], *fouts=NULL;
+   char fout[SUMA_MAX_FILENAME_LENGTH];
+   char bin[SUMA_MAX_FILENAME_LENGTH];
+   char  outSpecFileNm[SUMA_MAX_FILENAME_LENGTH], *fouts=NULL;
    SUMA_SurfSpecFile *stdSpec = NULL;
    void *vbufp=NULL;
    SUMA_SO_File_Format FileFormat = SUMA_ASCII;

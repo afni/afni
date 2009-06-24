@@ -179,9 +179,9 @@ int main (int argc, char *argv[])
 
    static char FuncName[]={"MapIcosahedron"};
    SUMA_Boolean brk, smooth=NOPE, verb=NOPE, all_surfs_spec=NOPE;
-   char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char icoFileNm[10000], outSpecFileNm[10000];
-   char bin[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH], *histnote=NULL;
+   char fout[SUMA_MAX_FILENAME_LENGTH];
+   char icoFileNm[SUMA_MAX_FILENAME_LENGTH], outSpecFileNm[SUMA_MAX_FILENAME_LENGTH];
+   char bin[SUMA_MAX_FILENAME_LENGTH], *histnote=NULL;
    int numTriBin=0, numTriLin=0, numIt=0;
 
    int kar, i, j, k, p, kspec=0, depth, found = 0;

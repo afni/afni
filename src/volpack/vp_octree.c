@@ -1190,7 +1190,7 @@ int max_level;
     /* error checks */
     if (vpc->mm_octree == NULL)
 	return(VPSetError(vpc, VPERROR_BAD_SIZE));
-    if ((retcode = VPCheckClassifier(vpc)) == NULL)
+    if ((retcode = VPCheckClassifier(vpc)) == VP_OK)
 	return(retcode);
     if (array_size != vpc->xlen*vpc->ylen*vpc->zlen)
 	return(VPSetError(vpc, VPERROR_BAD_SIZE));

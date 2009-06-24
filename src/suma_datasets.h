@@ -30,6 +30,7 @@ typedef struct {
 
 #define SUMA_MAX_NAME_LENGTH 500   /*!< Maximum number of characters in a filename */
 #define SUMA_MAX_DIR_LENGTH 2000    /*!< Maximum number of characters in a directory name */
+#define SUMA_MAX_FILENAME_LENGTH (SUMA_MAX_NAME_LENGTH+SUMA_MAX_DIR_LENGTH+1)
 #ifndef SUMA_IDCODE_LENGTH
    #define SUMA_IDCODE_LENGTH 50
 #endif

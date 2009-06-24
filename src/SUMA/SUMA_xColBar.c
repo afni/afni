@@ -5861,12 +5861,6 @@ static int      xim_hh = 0 ;
 
 
 /*-------------------------------------------------------------------*/
-#ifdef __GNUC__
-# define INLINE inline
-#else
-# define INLINE /*nada*/
-#endif
-/*-------------------------------------------------------------------*/
 /*! Local copy of function from display.c (and from xim.c)
 ---------------------------------------------------------------------*/
 static INLINE Pixel SUMA_tc_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )

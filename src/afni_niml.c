@@ -440,7 +440,7 @@ ENTRY("AFNI_niml_workproc") ;
                "drive_afni cmd='stuff'"  ==> execute a DRIVE_AFNI command right now */
 
            if(PRINT_TRACING){
-             char sss[256]; sprintf("Processing instruction: '%s'",npi->name);
+             char sss[256]; sprintf(sss,"Processing instruction: '%s'",npi->name);
              STATUS(sss) ;
            }
            if( strcasecmp(npi->name,"keep_reading") == 0 )

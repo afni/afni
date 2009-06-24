@@ -108,12 +108,10 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
    for (i = 0;  i < ref_ts->num;  i++)
      if (ref_ts->tsarr[i]->len < DSET_NUM_TIMES(dset_time))
        { 
-	 char str[256] ;
-	 sprintf (str,
+	 fprintf (stderr,
 	   "Error:  ideal time series is too short: ntime=%d num_ts=%d \n",
 		  DSET_NUM_TIMES(dset_time), 
 		  ref_ts->tsarr[i]->len);
-	 fprintf (stderr, str) ;    
 	 RETURN (NULL) ;
        }
 
@@ -129,12 +127,10 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
 	   nx_ort = ort_ts->tsarr[i]->len ;
 	   if (nx_ort < DSET_NUM_TIMES(dset_time))   /* 14 Jan 1998 */
 	     { 
-	       char str[256] ;
-	       sprintf (str,
+	       fprintf (stderr,
 		 "Error:  ort time series is too short: ntime=%d ort_ts=%d \n",
 			DSET_NUM_TIMES(dset_time), 
 			ort_ts->tsarr[i]->len);
-	       fprintf (stderr, str) ;    
 	       RETURN (NULL) ;
 	     }	   
 	 }
