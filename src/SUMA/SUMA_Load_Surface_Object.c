@@ -2273,7 +2273,7 @@ SUMA_Boolean SUMA_Write_SpecFile ( SUMA_SurfSpecFile * Spec,
    static char FuncName[]={"SUMA_Write_SpecFile"};
    FILE *outFile=NULL;
    int i=0, k=0, tag=0, ifSmwm=0, p=0;
-   char writename[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+3]={""};
+   char writename[SUMA_MAX_FILENAME_LENGTH+3]={""};
    char *specFileNm=NULL;
    
    SUMA_ENTRY;

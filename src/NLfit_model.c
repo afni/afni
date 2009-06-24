@@ -54,9 +54,7 @@ ENTRY("NLFIT_get_all_MODELs") ;
 
    if (NL_DEBUG)
      { 
-       char str[256] ; 
-       sprintf (str,"scanning directory %s \n",dname) ; 
-       printf (str) ; 
+       printf ("scanning directory %s \n",dname) ; 
      }
 
    /*----- find all filenames -----*/
@@ -78,9 +76,7 @@ ENTRY("NLFIT_get_all_MODELs") ;
 
   if (NL_DEBUG)
     { 
-      char str[256] ; 
-      sprintf(str,"%d files to scan \n",rlist->num) ; 
-      printf (str) ; 
+      printf("%d files to scan \n",rlist->num) ; 
     }
 
 
@@ -99,9 +95,7 @@ ENTRY("NLFIT_get_all_MODELs") ;
 
   if (NL_DEBUG)
     { 
-      char str[256] ;
-      sprintf (str,"directory %s has %d MODELs \n",dname,outar->num) ; 
-      printf (str) ; 
+      printf ("directory %s has %d MODELs \n",dname,outar->num) ; 
     }
 
 
@@ -153,10 +147,8 @@ ENTRY("NLFIT_read_MODEL") ;
 
    if (NL_DEBUG)
      { 
-       char str[256] ;
-       sprintf (str,"opened library %s with handle %p \n" , 
+       printf ("opened library %s with handle %p \n" , 
 	       fname,model->libhandle ) ;
-       printf (str) ; 
      }
 
 
@@ -196,10 +188,8 @@ ENTRY("NLFIT_read_MODEL") ;
 
    if (NL_DEBUG)
      { 
-       char str[256] ;
-       sprintf (str,"Interface created for %s model\n",
+       printf ("Interface created for %s model\n",
 		model->interface->label) ; 
-       printf (str) ; 
      }
 
    /*----- done -----*/
@@ -297,9 +287,7 @@ ENTRY("NLFIT_get_many_MODELs") ;
 
    if (NL_DEBUG)
      { 
-       char str[256] ; 
-       sprintf (str,"found %d MODELs \n",outar->num) ; 
-       printf (str) ; 
+       printf ("found %d MODELs \n",outar->num) ; 
      }
 
    if( outar->num == 0 ) DESTROY_MODEL_ARRAY(outar) ;

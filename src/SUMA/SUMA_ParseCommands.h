@@ -8,6 +8,7 @@
 #define SUMA_MAX_SURF_ON_COMMAND 100
 #define SUMA_MAX_DSET_ON_COMMAND 1000
 #define SUMA_N_ARGS_MAX 1000
+#define SUMA_VIEW_LENGTH 5
 
 typedef struct {
    /* spec related input */
@@ -121,13 +122,13 @@ typedef struct {
    char *surftype; /* do not free, argv[.] copy */
    char *out_prefix;   /* this one's dynamically allocated so you'll have to free it yourself */
    char *out_vol_prefix; /* this one's dynamically allocated so you'll have to free it yourself */
-   char out_vol_view[5];
+   char out_vol_view[SUMA_VIEW_LENGTH];
    int out_vol_exists;
    char *out_grid_prefix; /* this one's dynamically allocated so you'll have to free it yourself */
-   char out_grid_view[5];
+   char out_grid_view[SUMA_VIEW_LENGTH];
    int out_grid_exists;
    char *in_vol_prefix; /* this one's dynamically allocated so you'll have to free it yourself */
-   char in_vol_view[5];
+   char in_vol_view[SUMA_VIEW_LENGTH];
    int in_vol_exists;
    int MaskMode;
    char *cmask;

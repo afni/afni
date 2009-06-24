@@ -384,10 +384,11 @@ int process_opts(options_t * opts, int argc, char * argv[] )
          RETURN(1);
       } else if( strcmp(argv[ac],"-hist") == 0 ) {
          int c, len = sizeof(g_history)/sizeof(char *);
-         for( c = 0; c < len; c++) printf(g_history[c]);
+         for( c = 0; c < len; c++) fputs(g_history[c], stdout);
+         putchar('\n');
          RETURN(1);
       } else if( strcmp(argv[ac],"-ver") == 0 ) {
-         printf(g_version); putchar('\n');
+         puts(g_version);
          RETURN(1);
       }
 

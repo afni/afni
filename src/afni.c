@@ -91,7 +91,7 @@
 #  define REPORT_PROGRESS(str)  /* nada */
 #else
 #  define REPORT_PROGRESS(str)  \
-    do{ if(AFNI_VERBOSE){fprintf(stderr,str);fflush(stderr);} } while(0)
+    do{ if(AFNI_VERBOSE){fputs(str,stderr);fflush(stderr);} } while(0)
 #endif
 
 #define EMPTY_STRING(str) ((str)[0] = '\0')

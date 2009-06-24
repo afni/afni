@@ -950,7 +950,8 @@ static int show_hist(void)
 {
     int c, len = sizeof(g_history)/sizeof(char *);
     for( c = 0; c < len; c++)
-        printf(g_history[c]);
+        fputs(g_history[c], stdout);
+    fputc('\n');
     return 0;
 }
 

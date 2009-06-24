@@ -223,7 +223,7 @@ int main (int argc,char *argv[])
    /* some checks ...*/
    if (!Opt->out_vol_prefix) { 
       Opt->out_vol_prefix = SUMA_AfniPrefix("Surf2VolCoord_demo", NULL, NULL, &(Opt->out_vol_exists)); 
-      sprintf(Opt->out_vol_view, Opt->out_grid_view); 
+      strncpy(Opt->out_vol_view, Opt->out_grid_view, SUMA_VIEW_LENGTH);
    }
    
    if (SUMA_AfniExistsView(Opt->out_vol_exists, Opt->out_vol_view)) {

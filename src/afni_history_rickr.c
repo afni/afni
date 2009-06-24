@@ -48,6 +48,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, JUN, 2009, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "applied print changes from B Feige (26 files):",
+   "3dfim.c afni.c afni_niml.c mri_free.c mrilib.h 3dmatmult.c NLfit_model.c\n"
+   "suma_datasets.h gifti/gifti_tool.c rickr/serial_helper.c\n"
+   "SUMA/  SUMA_3dSurfMask.c SUMA_ConvertSurface.c SUMA_CreateIcosahedron.c\n"
+   "       SUMA_Load_Surface_Object.c SUMA_MapIcosahedron.c SUMA_NikoMap.c\n"
+   "       SUMA_ParseCommands.h SUMA_SphericalMapping.c\n"
+   "       SUMA_Surf2VolCoord_demo.c SUMA_Surface_IO.c SUMA_SurfWarp.c\n"
+   "       SUMA_compare_surfaces.c SUMA_xColBar.c\n"
+   "svm/3dsvm.c svm/3dsvm_common.c volpack/vp_octree.c"
+ } ,
+
  { 23, JUN, 2009, RCR, "NIFTI", MINOR, TYPE_BUG_FIX,
    "added 4 checks of alloc() returns",
    NULL
