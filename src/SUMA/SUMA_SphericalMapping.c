@@ -2656,11 +2656,11 @@ int main (int argc, char *argv[])
    static char FuncName[]={"SUMA_Map_SurfacetoSurface-main"};
 
    char *input=NULL;
-   char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char surfState_1[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char surfState_2[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
+   char fout[SUMA_MAX_FILENAME_LENGTH];
+   char surfState_1[SUMA_MAX_FILENAME_LENGTH];
+   char surfState_2[SUMA_MAX_FILENAME_LENGTH];
    SUMA_SurfSpecFile spec;  
-   char surfFileNm[1000], outSpecFileNm[1000];
+   char surfFileNm[SUMA_MAX_FILENAME_LENGTH], outSpecFileNm[SUMA_MAX_FILENAME_LENGTH];
  
    int kar, i, j, verb = 1;
    SUMA_SurfaceObject **surfaces_orig=NULL, *currSurf=NULL;
@@ -2870,7 +2870,7 @@ int main (int argc, char *argv[])
       strcpy (spec_info[2*i].dim, "3");
       strcpy (spec_info[2*i].mapRef, "SAME");
       strcpy (spec_info[2*i].state, surfaces_orig[i]->State);
-      sprintf (spec_info[2*i].fileToRead, surfaces_orig[i]->Name.FileName);
+      strncpy(spec_info[2*i].fileToRead, surfaces_orig[i]->Name.FileName, SUMA_MAX_FILENAME_LENGTH);
    }
  
    /*set spec info for mapped surface*/
@@ -2879,7 +2879,7 @@ int main (int argc, char *argv[])
    sprintf (spec_info[1].state, "%s_map", spec_info[0].state);
    strcpy (spec_info[1].dim, "3");
    strcpy (spec_info[1].mapRef, "SAME");
-   strcpy (spec_info[1].fileToRead, surfFileNm);
+   strncpy(spec_info[1].fileToRead, surfFileNm, SUMA_MAX_FILENAME_LENGTH);
 
 
 
@@ -3694,8 +3694,8 @@ int main (int argc, char *argv[])
    float *cutRng=NULL, *valsRng=NULL;
    float tmpValRng, tmp1, tmp2;
    SUMA_FileName *mapFiles=NULL;
-   char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char avgFileNm[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
+   char fout[SUMA_MAX_FILENAME_LENGTH];
+   char avgFileNm[SUMA_MAX_FILENAME_LENGTH];
    char *input;
    SUMA_Boolean brk, LocalHead=NOPE, cut, tmpCut;
    
@@ -4040,8 +4040,8 @@ int main (int argc, char *argv[])
    int clmn, nodeClmn, *numRng=NULL;
    char *input=NULL;
    SUMA_FileName file;
-   char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
-   char colFileNm[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
+   char fout[SUMA_MAX_FILENAME_LENGTH];
+   char colFileNm[SUMA_MAX_FILENAME_LENGTH];
    SUMA_Boolean brk, LocalHead=NOPE;
 
    int i, j, kar, numSeg, numCol;

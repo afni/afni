@@ -33,7 +33,7 @@ int main( int argc, char *argv[] )
   strcpy(errorString,"OK");
   input_parse(argc,argv,&verbosity,&kernel_cache_size,&learn_parm,&kernel_parm,&options,&mode,&errorString[0]);
   if( !strcmp(errorString,"OK") == 0 ) {
-    fprintf(stderr,errorString);
+    fputs(errorString,stderr);
     exit(0);
   }
 

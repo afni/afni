@@ -1774,7 +1774,7 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
     if( !strcmp(argv[i],"-testlabels") )    { parseFlag = 1; ++i; strcpy(optionsData->testLabelFile, argv[i]); }
     if( !strcmp(argv[i],"-predictions") )   { parseFlag = 1; ++i; strcpy(optionsData->predFile, argv[i]); }
     if( !strcmp(argv[i],"-help") ) { 
-      printf( cl_helpstring ); 
+      printf("%s", cl_helpstring); 
       printf("\n\n-------------------- SVM-light learn help -----------------------------\n");
       print_help_learn();
       printf("\n\n-------------------- SVM-light classify help -----------------------------\n");
@@ -1795,7 +1795,7 @@ void input_parse(int argc,char *argv[],long *main_verbosity,
       exit(0); 
     }
     if( !strcmp(argv[i],"-change_summary") ) {
-      printf( change_string ); 
+      printf("%s", change_string); 
       
       exit(0); 
     }

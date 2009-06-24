@@ -967,7 +967,7 @@ int read_socket(optiondata * opt, port_list * plist, motparm * mp)
         }
 
         /* will probably want to send elsewhere, later */
-        fprintf(stderr,outstring);
+        fputs(outstring,stderr);
         fflush(stderr);  /* may get buffered */
     }
 
