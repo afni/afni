@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
 print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.2,  June 17, 2009")
+print("Version 0.0.3,  June 24, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website: http://afni.nimh.nih.gov/sscc/gangc/3dMetaAna.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -707,7 +707,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    } else nCov <- 0
    print("-----------------")
    print("The Z-score of residuals indicates the significance level a subject is an outlier at a voxel.")
-   print("Turn off this option if memory allocation occurs laater on.")
+   print("Turn off this option and select 0 if memory allocation problem occurs later on.")
    resZout <- as.integer(readline("Want residuals Z-score for each subject (0: no; 1: yes)? "))
    if(resZout==1) {
    outFNexist <- TRUE
@@ -883,13 +883,15 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    rm(comArr)
    #outArr[outArr[1:(2*sum(nSubj))]>tTop] <- tTop  # Avoid outflow!!!!
    #outArr[outArr[1:(2*sum(nSubj))] < (-tTop)] <- -tTop  # Avoid outflow!!!!
-   write.AFNI(outFN, outArr[,,,1:nBrick0], outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
-   write.AFNI(resFN, outArr[,,,(nBrick0+1):nBrick], resLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
-   
+   write.AFNI(outFN, outArr[,,,1:nBrick0], outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")   
    statpar <- paste(statpar, " -view tlrc -addFDR -newid ", outFN)  # assume tlrc space: wrong for money study, for example
-   statparRes <- paste(statparRes, " -view tlrc -addFDR -newid ", resFN)
    system(statpar)
-   system(statparRes)
+
+   if(resZout==1) {
+      write.AFNI(resFN, outArr[,,,(nBrick0+1):nBrick], resLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
+      statparRes <- paste(statparRes, " -view tlrc -addFDR -newid ", resFN)
+      system(statparRes)
+   }
    geterrmessage()
 
  
