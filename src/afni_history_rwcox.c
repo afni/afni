@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , JUN , 2009 , RWC , "3dREMLfit" , MINOR , TYPE_GENERAL ,
+   "Modify to use OpenMP more effectively." ,
+   "Have to avoid use of Doug's matrix.c functions in the main loops, since\n"
+   "they do so much malloc/free, which blocks other threads from running. \n"
+   "Instead, rewrote versions of the needed functions that use pre-allocated\n"
+   "workspace arrays.  Speedup is very good now for the REML setup and REML\n"
+   "voxel loops.  Haven't decided whether to OpenMP-ize the GLSQ or OLSQ\n"
+   "loops, since these usually take much less time." } ,
+
  { 23 , JUN , 2009 , RWC , "3dTcorrMap" , MICRO , TYPE_NEW_OPT ,
    "Add -Pmean option, based on poster I saw at HBM." ,
    NULL } ,
