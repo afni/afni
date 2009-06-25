@@ -148,7 +148,7 @@ void vector_spc_multiply_transpose( sparmat *a , MTYPE *b , MTYPE *c )
 void vector_full_multiply( matrix *a , MTYPE *b , MTYPE *c )
 {
    int rows=a->rows , cols=a->cols , i ;
-   register int j ; register MTYPE sum , *aa ;
+   int j ; MTYPE sum , *aa ;
 
    switch( cols%4 ){
      case 0:
@@ -196,7 +196,7 @@ void vector_full_multiply( matrix *a , MTYPE *b , MTYPE *c )
 void vector_full_multiply_transpose( matrix *a , MTYPE *b , MTYPE *c )
 {
    int rows=a->rows , cols=a->cols , j ;
-   register int i ; register MTYPE bj , *aa ;
+   int i ; MTYPE bj , *aa ;
 
    for( i=0 ; i < cols ; i++ ) c[i] = 0.0 ;
 
@@ -253,8 +253,8 @@ void vector_full_multiply_transpose( matrix *a , MTYPE *b , MTYPE *c )
 
 void vector_full_rr_solve( matrix *R , MTYPE *b , MTYPE *x )
 {
-   register int n , ii,jj , n1 ;
-   register MTYPE sum , *rr ;
+   int n , ii,jj , n1 ;
+   MTYPE sum , *rr ;
 
    n = R->rows ; n1 = n-1 ;
 
@@ -276,8 +276,8 @@ void vector_full_rr_solve( matrix *R , MTYPE *b , MTYPE *x )
 
 void vector_full_rrtran_solve( matrix *R , MTYPE *b , MTYPE *x )
 {
-   register int n , ii,jj , n1 ;
-   register MTYPE sum , *rr ;
+   int n , ii,jj , n1 ;
+   MTYPE sum , *rr ;
 
    n = R->rows ; n1 = n-1 ;
 
@@ -713,7 +713,7 @@ MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,
    int n ; size_t rowd ;
    MTYPE val ;
    MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
-   register MTYPE qsumq ; register int ii ;
+   MTYPE qsumq ; int ii ;
 
 ENTRY("REML_func") ;
 
@@ -999,9 +999,11 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    matrix_equate( *X , rrcol->X ) ;
 
    if( !AFNI_noenv("AFNI_REML_USE_SPARSITY") ){
+     double spcut = AFNI_numenv("AFNI_REML_SPARSITY_THRESHOLD") ;
+     if( spcut <= 0.0 ) spcut = 0.30 ;
      lam = sparsity_fraction( *X ) ;
-     if( lam <= 0.30 ) rrcol->Xs = matrix_to_sparmat( *X ) ;
-     else              rrcol->Xs = NULL ;
+     if( lam <= spcut ) rrcol->Xs = matrix_to_sparmat( *X ) ;
+     else               rrcol->Xs = NULL ;
 #if 1
      if( verb > 1 ){
        static int first=1 ;
@@ -1052,13 +1054,17 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    } else {          /* general setup case with an (a,b) grid of cases */
 
 #ifdef USE_OMP
-    int nthr , *nset_th ; float *avg_th ;
+    int nthr , *nset_th ; float *avg_th ; static int first=1 ;
     nthr    = omp_get_max_threads() ;
     nset_th = (int   *)calloc(sizeof(int)  ,nthr) ;
     avg_th  = (float *)calloc(sizeof(float),nthr) ;
+    if( first && verb && nthr > 1 ){
+      ININFO_message("starting %d OpenMP threads for REML setup",nthr) ;
+      first = 0 ;
+    }
 #endif
 
-#pragma omp parallel
+#pragma omp parallel if( maxthr > 1 )
  { int iab , nab , ii,jj,kk , ithr=0 ;
    MTYPE bb,aa, lam ; float avg ;
   AFNI_OMP_START ;
@@ -1196,6 +1202,7 @@ ENTRY("REML_find_best_case") ;
      }}
 
      /* at the next level down, scan near the best so far seen */
+
      if( lev > 0 ){
        ibot = ibest-dab ; if( ibot < 0  ) ibot = 0  ;
        itop = ibest+dab ; if( itop > na ) itop = na ;
