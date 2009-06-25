@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, JUN, 2009, RCR, "3dretroicor", MICRO, TYPE_BUG_FIX,
+   "pass MRI_IMAGE structs without const",
+   NULL
+ } ,
+
  { 24, JUN, 2009, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "applied print changes from B Feige (26 files):",
    "3dfim.c afni.c afni_niml.c mri_free.c mrilib.h 3dmatmult.c NLfit_model.c\n"

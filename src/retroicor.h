@@ -53,7 +53,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
    Note that in this implementation the start and end of the card data are
    considered to be R-wave peaks (see above P_c formula for why).
 */
-MRI_IMAGE * RIC_ToCardiacPhase(const MRI_IMAGE * card, float threshold);
+MRI_IMAGE * RIC_ToCardiacPhase(MRI_IMAGE * card, float threshold);
 
 /* Transform resp waveform to resp phase:
 
@@ -86,7 +86,7 @@ MRI_IMAGE * RIC_ToCardiacPhase(const MRI_IMAGE * card, float threshold);
    1/2 the sampling rate of resp in Herz. The size of the histogram H is
    defined in RIC_HISTSIZE.
 */
-MRI_IMAGE * RIC_ToRespPhase(const MRI_IMAGE * resp, int winsize);
+MRI_IMAGE * RIC_ToRespPhase(MRI_IMAGE * resp, int winsize);
 
 /* Calculates the average value for each voxel in dset across all timepoints.
 
@@ -146,7 +146,7 @@ double * RIC_CalcVoxelMeans(const THD_3dim_dataset * dset, int ignore);
    The complex datatype is not supported, and any such bricks will result in
    an error (return value -1).
 */
-int RIC_CalcCoeffAB(THD_3dim_dataset * dset, const MRI_IMAGE * phase,
+int RIC_CalcCoeffAB(THD_3dim_dataset * dset, MRI_IMAGE * phase,
 		    const double * avg, double ** a, double ** b,
 		    int M, int ignore);
 
@@ -180,7 +180,7 @@ int RIC_CalcCoeffAB(THD_3dim_dataset * dset, const MRI_IMAGE * phase,
    The correction is made to dset "in-place" so if you want to keep the
    original dataset, COPY it and pass the copy to this function.
 */
-int RIC_CorrectDataset(THD_3dim_dataset * dset, const MRI_IMAGE * phase,
+int RIC_CorrectDataset(THD_3dim_dataset * dset, MRI_IMAGE * phase,
 		       const double * a, const double * b,
 		       int M, int ignore);
 
