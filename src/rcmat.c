@@ -272,6 +272,9 @@ void rcmat_uppert_solve( rcmat *rcm , double *vec )
 }
 
 /*--------------------------------------------------------------------------*/
+/* The code below is not good for use inside OpenMP, since it
+   uses static variables, and also uses malloc/free repeatedly.
+*//*------------------------------------------------------------------------*/
 
 #undef  EPS
 #define EPS 1.e-12

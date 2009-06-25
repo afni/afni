@@ -1097,6 +1097,16 @@ int main( int argc , char *argv[] )
 
       , corcut
      ) ;
+     PRINT_AFNI_OMP_USAGE("3dREMLfit",
+         "* The REML matrix setup and REML voxel ARMA(1,1) estimation loops are\n"
+         "   parallelized.\n"
+         "* The GLSQ and OLSQ loops are not parallelized. They are usually much\n"
+         "   faster than the REML voxel loop, and so I made no effort to speed\n"
+         "   these up (yet).\n"
+         "* '-usetemp' disables OpenMP multi-threading, since the file I/O for\n"
+         "   saving and restoring various matrices and results is not easily\n"
+         "   parallelized.\n"
+       ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -2228,25 +2238,28 @@ STATUS("make GLTs from matrix file") ;
          RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
          if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ;
        }
-       kbest = REML_find_best_case( &y , RCsli[ss] ) ;
+       kbest = REML_find_best_case( &y , RCsli[ss] , 0,NULL ) ;
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
      } /* end of REML loop over voxels */
 
   } else {                    /** Parallelized (not paralyzed) **/
-    int *vvar ;
+    int *vvar , nws ;
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
+    nws = (RCsli[0]->na+1)*(RCsli[0]->nb+1) + 7*(2*niv+32) + 32 ;
+    if( vstep ) fprintf(stderr,"start %d OpenMP threads",maxthr) ;
 #ifdef USE_OMP
 #pragma omp parallel
   {
     int ss,rv,vv,uu,ii,ithr,kbest ;
     float *iv ; vector y ;  /* private to each thread */
+    MTYPE *ws ;
   AFNI_OMP_START ;
    ithr = omp_get_thread_num() ;
-   printf("thread#%d ",ithr) ;
    iv   = (float *)malloc(sizeof(float)*(niv+1)) ;
    vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
+   ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
 
 #pragma omp for
      for( uu=0 ; uu < nmask ; uu++ ){
@@ -2260,12 +2273,12 @@ STATUS("make GLTs from matrix file") ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( RCsli[ss] == NULL )
          ERROR_exit("NULL slice setup inside OpenMP loop!!!") ;
-       kbest = REML_find_best_case( &y , RCsli[ss] ) ;
+       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
      } /* end of REML loop over voxels */
 
-     free(iv) ; vector_destroy(&y) ;  /* destroy private copies */
+     free(ws) ; free(iv) ; vector_destroy(&y) ;  /* destroy private copies */
   AFNI_OMP_END ;
   } /* end OpenMP */
 #else

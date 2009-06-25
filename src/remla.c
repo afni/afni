@@ -728,10 +728,10 @@ ENTRY("REML_func") ;
 
    /** Seven matrix-vector steps to compute the prewhitened residuals **/
 
-   memcpy( bb1 , y->elts , rowd ) ;
+   for( ii=0 ; ii < n ; ii++ ) bb1[ii] = y->elts[ii] ;
    rcmat_lowert_solve( rset->cc , bb1 ) ;            /* bb1 = C^(-T) y */
                                                      /* prewhitened data */
-   memcpy( bb2 , bb1 , rowd ) ;
+   for( ii=0 ; ii < n ; ii++ ) bb2[ii] = bb1[ii] ;
    rcmat_uppert_solve( rset->cc , bb2 ) ;            /* bb2 = C^(-1) bb1 */
 
    if( Xs != NULL ){
@@ -744,19 +744,18 @@ ENTRY("REML_func") ;
 
    vector_full_rr_solve(     rset->dd , bb4 , bb5 ); /* bb5 = D^(-1) bb4 */
                                                      /*     = beta_hat  */
-
    if( Xs != NULL ){
      vector_spc_multiply( Xs , bb5 , bb6 ) ;
    } else {
      vector_full_multiply( X , bb5 , bb6 ) ;         /* bb6 = X bb5 */
    }                                                 /* fitted model */
 
-   memcpy( bb7 , bb6 , rowd ) ;
+   for( ii=0 ; ii < n ; ii++ ) bb7[ii] = bb6[ii] ;
    rcmat_lowert_solve( rset->cc , bb7 ) ;            /* bb7 = C^(-T) bb6 */
                                                      /* prewhitened fit */
    qsumq = 0.0 ;
    for( ii=0 ; ii < n ; ii++ ){
-     bb2[ii] = bb1[ii] - bb7[ii] ;                   /* result = qq1 - qq7 */
+     bb2[ii] = bb1[ii] - bb7[ii] ;                   /* result = bb1 - bb7 */
      qsumq += bb2[ii]*bb2[ii] ;                      /* =prewhitened residual */
    }                                                 /* qsumq = sum of sqrs */
 
@@ -999,21 +998,24 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    rrcol->X = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(rrcol->X) ;
    matrix_equate( *X , rrcol->X ) ;
 
-   lam = sparsity_fraction( *X ) ;
-   if( lam <= 0.30 ) rrcol->Xs = matrix_to_sparmat( *X ) ;
-   else              rrcol->Xs = NULL ;
-
+   if( !AFNI_noenv("AFNI_REML_USE_SPARSITY") ){
+     lam = sparsity_fraction( *X ) ;
+     if( lam <= 0.30 ) rrcol->Xs = matrix_to_sparmat( *X ) ;
+     else              rrcol->Xs = NULL ;
 #if 1
-   if( verb > 1 ){
-     static int first=1 ;
-     if( first )
-       ININFO_message("X matrix fullness = %.1f%% ==> sparsity %s",
-                      100.0*lam ,
-                      (rrcol->Xs==NULL) ? "NOT USED for speedup"
-                                        : "USED for speedup"    ) ;
-     first = 0 ;
-   }
+     if( verb > 1 ){
+       static int first=1 ;
+       if( first )
+         ININFO_message("X matrix fullness = %.1f%% ==> sparsity %s",
+                        100.0*lam ,
+                        (rrcol->Xs==NULL) ? "NOT USED for speedup"
+                                          : "USED for speedup"    ) ;
+       first = 0 ;
+     }
 #endif
+   } else {
+     rrcol->Xs = NULL ;  /* this case is just for testing [25 Jun 2009] */
+   }
 
    if( nlev > 0 ){
      rrcol->nab   = (nb+1)*(na+1) ;  /* number of cases to create */
@@ -1110,28 +1112,39 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    Output: index of best case in the REML seteup stuff.
 *//*------------------------------------------------------------------------*/
 
-int REML_find_best_case( vector *y , reml_collection *rrcol )
+int REML_find_best_case( vector *y , reml_collection *rrcol ,
+                         int nws , MTYPE *ws )
 {
    MTYPE rbest , rval ;
    int   na,nb , pna,pnb , ltop ;
    int   nab, lev, dab, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
-   MTYPE *rvab ;
-   int   klist[666] , nkl ;
-   MTYPE *bbar[7] ;
+   int   klist[666] , nkl , needed_ws,bb_ws=0,rv_ws=0 ;
+   MTYPE *bbar[7] , *rvab ;
 
 ENTRY("REML_find_best_case") ;
 
    if( y == NULL ) RETURN(-666) ;
 
-   /* make workspace arrays for REML_func() [24 Jun 2009] */
-
-   for( ia=0 ; ia < 7 ; ia++ )
-     bbar[ia] = (MTYPE *)malloc(sizeof(MTYPE)*(2*y->dim+66)) ;
-
    /* copy (a,b) grid parameters to local variables */
 
    na = rrcol->na ; pna = rrcol->pna ;
    nb = rrcol->nb ; pnb = rrcol->pnb ;
+
+   /* make workspace arrays for REML_func() [24 Jun 2009] */
+
+   bb_ws     = 2*y->dim      + 16 ;
+   rv_ws     = (na+1)*(nb+1) + 16 ;
+   needed_ws = 7*bb_ws + rv_ws ;
+   if( nws >= needed_ws && ws != NULL ){
+     rvab    = ws ;
+     bbar[0] = ws + rv_ws ;
+     for( ia=1 ; ia < 7 ; ia++ ) bbar[ia] = bbar[ia-1] + bb_ws ;
+     bb_ws = rv_ws = 0 ;
+   } else {
+     rvab = (MTYPE *)malloc(sizeof(MTYPE)*rv_ws) ;
+     for( ia=0 ; ia < 7 ; ia++ )
+       bbar[ia] = (MTYPE *)malloc(sizeof(MTYPE)*bb_ws) ;
+   }
 
    /** do the Ordinary Least Squares (olsq) case, mark it as best so far **/
 
@@ -1142,7 +1155,6 @@ ENTRY("REML_find_best_case") ;
 
    /** do power-of-2 descent through the (a,b) grid to find the best pair **/
 
-   rvab = (MTYPE *)malloc(sizeof(MTYPE)*(na+1)*(nb+1)) ;
    for( kk=0 ; kk < (na+1)*(nb+1) ; kk++ ) rvab[kk] = BIGVAL ;
    rvab[kbest] = rbest ;
 
@@ -1193,8 +1205,10 @@ ENTRY("REML_find_best_case") ;
 
    } /* end of scan descent through different levels */
 
-   free(rvab) ;
-   for( ia=0 ; ia < 7 ; ia++ ) free(bbar[ia]) ;
+   if( bb_ws ){
+     free(rvab) ;
+     for( ia=0 ; ia < 7 ; ia++ ) free(bbar[ia]) ;
+   }
 
    /*** deal with the winner ***/
 
