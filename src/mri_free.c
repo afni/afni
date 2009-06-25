@@ -12,7 +12,7 @@
 /*! Return the pointer to the data array in an MRI_IMAGE struct.
 ---------------------------------------------------------------------------*/
 
-void *mri_data_pointer(const MRI_IMAGE *im )
+void *mri_data_pointer(MRI_IMAGE *im )
 {
    void *data ;
 
