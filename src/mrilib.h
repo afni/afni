@@ -720,7 +720,7 @@ extern void csfft_use_fftw( int ) ;     /* 20 Oct 2000 */
 
 extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003 */
 
-extern void * mri_data_pointer(const MRI_IMAGE *) ;
+extern void * mri_data_pointer(MRI_IMAGE *) ;
 extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_clear( MRI_IMAGE * ) ;  /* 31 Jan 2007 */
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;

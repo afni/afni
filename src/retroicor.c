@@ -93,7 +93,7 @@ int _RIC_findNextCardiacPeak(const float * cdata,
    factored out, but I choose not to for clarity. This is all O(N) in the
    number of timepoints anyways (I think).
 */
-MRI_IMAGE * RIC_ToCardiacPhase(const MRI_IMAGE * card, float threshold) {
+MRI_IMAGE * RIC_ToCardiacPhase(MRI_IMAGE * card, float threshold) {
 
     int numSamps;            /* Number of samples in vector */
     MRI_IMAGE * cardphase;   /* The cardiac phase vector to return */
@@ -144,7 +144,7 @@ MRI_IMAGE * RIC_ToCardiacPhase(const MRI_IMAGE * card, float threshold) {
     return cardphase;
 }
 
-MRI_IMAGE * RIC_ToRespPhase(const MRI_IMAGE * resp, int winsize) {
+MRI_IMAGE * RIC_ToRespPhase(MRI_IMAGE * resp, int winsize) {
 
     int numSamps;           /* Number of samples in input vector */
     MRI_IMAGE * respphase;    /* The resp phase vector to return */
@@ -416,7 +416,7 @@ double * RIC_CalcVoxelMeans(const THD_3dim_dataset * dset, int ignore) {
     }									      \
 }
 
-int RIC_CalcCoeffAB(THD_3dim_dataset * dset, const MRI_IMAGE * phase,
+int RIC_CalcCoeffAB(THD_3dim_dataset * dset, MRI_IMAGE * phase,
 		    const double * avg, double ** a, double ** b,
 		    int M, int ignore) {
 
@@ -585,7 +585,7 @@ int RIC_CalcCoeffAB(THD_3dim_dataset * dset, const MRI_IMAGE * phase,
     }									      \
 }
 
-int RIC_CorrectDataset(THD_3dim_dataset * dset, const MRI_IMAGE * phase,
+int RIC_CorrectDataset(THD_3dim_dataset * dset, MRI_IMAGE * phase,
 		       const double * a, const double * b,
 		       int M, int ignore) {
 
