@@ -6,6 +6,12 @@
 
 /***** 3dREMLfit.c *****/
 
+#ifdef USE_OMP
+   int maxthr = 1 ;  /* max number of threads [16 Jun 2009] */
+#else
+# define maxthr 1    /* no OpenMP ==> 1 thread by definition */
+#endif
+
 static int verb=1 ;
 static int goforit=0 ;
 
@@ -16,7 +22,7 @@ static int goforit=0 ;
 #define INMASK(i) ( mask[i] != 0 )
 
 #undef MEMORY_CHECK
-#ifdef USING_MCW_MALLOC
+#if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
 # define MEMORY_CHECK                                                  \
    do{ long long nb = mcw_malloc_total() ;                             \
        if( nb > 0 && verb > 1 )                                        \
@@ -538,12 +544,6 @@ int main( int argc , char *argv[] )
    char **eglt_lab = NULL ;
    char **eglt_sym = NULL ;
    int    oglt_num = 0    ;   /* number of 'original' GLTs */
-
-#ifdef USE_OMP
-   int maxthr = 1 ;  /* max number of threads [16 Jun 2009] */
-#else
-# define maxthr 1    /* no OpenMP ==> 1 thread by definition */
-#endif
 
    /**------- Get by with a little help from your friends? -------**/
 
@@ -1407,7 +1407,14 @@ STATUS("options done") ;
        WARNING_message("only %d voxels: disables OpenMP multi-threading",nvox) ;
      }
    }
-   INFO_message("Number of OpenMP threads = %d",maxthr) ;
+#if 1
+   if( maxthr > 1 ){
+     WARNING_message("OpenMP threads disabled at this time -- sorry") ;
+     maxthr = 1 ;
+   }
+#else
+   if( maxthr > 1 ) INFO_message("Number of OpenMP threads = %d",maxthr) ;
+#endif
 #endif
 
 #if 0
@@ -2244,19 +2251,22 @@ STATUS("make GLTs from matrix file") ;
      } /* end of REML loop over voxels */
 
   } else {                    /** Parallelized (not paralyzed) **/
+
     int *vvar , nws ;
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
     nws = (RCsli[0]->na+1)*(RCsli[0]->nb+1) + 7*(2*niv+32) + 32 ;
     if( vstep ) fprintf(stderr,"start %d OpenMP threads",maxthr) ;
+
 #ifdef USE_OMP
 #pragma omp parallel
   {
-    int ss,rv,vv,uu,ii,ithr,kbest ;
+    int ss,rv,vv,uu,ii,kbest ;
     float *iv ; vector y ;  /* private to each thread */
     MTYPE *ws ;
+
   AFNI_OMP_START ;
-   ithr = omp_get_thread_num() ;
+
    iv   = (float *)malloc(sizeof(float)*(niv+1)) ;
    vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
    ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
@@ -2273,12 +2283,20 @@ STATUS("make GLTs from matrix file") ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( RCsli[ss] == NULL )
          ERROR_exit("NULL slice setup inside OpenMP loop!!!") ;
+#if 0
        kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;
-       aar[vv] = RCsli[ss]->rs[kbest]->rho ;
+#else
+       kbest = REML_find_best_case( &y , RCsli[ss] , 0,NULL ) ;
+#endif
+#pragma omp critical (AABBAR)
+     { aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
+     }
      } /* end of REML loop over voxels */
 
-     free(ws) ; free(iv) ; vector_destroy(&y) ;  /* destroy private copies */
+#pragma omp critical (MALLOC)
+   { free(ws) ; free(iv) ; vector_destroy(&y) ; } /* destroy private copies */
+
   AFNI_OMP_END ;
   } /* end OpenMP */
 #else

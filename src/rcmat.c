@@ -133,10 +133,10 @@ int rcmat_choleski( rcmat *rcm )
 
 void rcmat_lowert_solve( rcmat *rcm , double *vec )
 {
-   int nn , jbot ; LENTYP *len ; register int ii,jj ;
-   double **rc ; register double *rii , sum , *vv ;
+   int nn , jbot ; LENTYP *len ; int ii,jj ;
+   double **rc ; double *rii , sum , *vv ;
 #ifdef UNROLL
-   register int im1 ;
+   int im1 ;
 #endif
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
@@ -174,8 +174,8 @@ void rcmat_lowert_solve( rcmat *rcm , double *vec )
 
 void rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec )
 {
-   int nn , jbot ; LENTYP *len ; register int ii,jj,ll ;
-   double **rc ; register double *rii , sum , *vv ;
+   int nn , jbot ; LENTYP *len ; int ii,jj,ll ;
+   double **rc ; double *rii , sum , *vv ;
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
 
@@ -240,10 +240,10 @@ void rcmat_lowert_solve_unrolled( rcmat *rcm , double *vec )
 
 void rcmat_uppert_solve( rcmat *rcm , double *vec )
 {
-   int nn , ibot ; LENTYP *len ; register int ii,jj ;
-   double **rc ; register double *rjj , *vv , xj ;
+   int nn , ibot ; LENTYP *len ; int ii,jj ;
+   double **rc ; double *rjj , *vv , xj ;
 #ifdef UNROLL
-   register int jm1 ;
+   int jm1 ;
 #endif
 
    if( !ISVALID_RCMAT(rcm) || vec == NULL ) return ;
@@ -298,7 +298,7 @@ static void free_rbotop(void)
 
 static void set_rbotop( int npt , int nref , float *ref[] )
 {
-   int jj , ii , nerr ; float *rj ; register double sum ;
+   int jj , ii , nerr ; float *rj ; double sum ;
 
    free_rbotop() ;
    if( npt < 1 || nref < 1 || ref == NULL ) return ;
@@ -343,9 +343,9 @@ rcmat * rcmat_normeqn( int npt , int nref , float *ref[] )
    rcmat  *rcm=NULL ;
    LENTYP *len ;
    double **rc ;
-   int jj,kk , kbot,ibot,itop,rjb,rjt,rkb,rkt ; register int ii ;
-   register float *rj, *rk ;
-   register double sum , *rcjj ;
+   int jj,kk , kbot,ibot,itop,rjb,rjt,rkb,rkt ; int ii ;
+   float *rj, *rk ;
+   double sum , *rcjj ;
 
 ENTRY("rcmat_normeqn") ;
 
