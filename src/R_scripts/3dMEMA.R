@@ -2,9 +2,9 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
 print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.3,  June 24, 2009")
+print("Version 0.0.4,  June 25, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
-print("Website: http://afni.nimh.nih.gov/sscc/gangc/3dMetaAna.html")
+print("Website - http://afni.nimh.nih.gov/sscc/gangc/3dMetaAna.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -512,6 +512,7 @@ tTop <- 100   # upper bound for t-statistic
 print("################################################################")
 print("Please consider citing the following if this program is useful for you:")
 cat("\n\tGang Chen et al., hopefully something coming soon...\n")
+cat("\n\thttp://afni.nimh.nih.gov/sscc/gangc/MEMA.html\n")
 #cat("\n\tGang Chen, J. Paul Hamilton, Moriah E. Thomason, Ian H. Gotlib, Ziad S. Saad\n")
 #cat("\tRobert W. Cox, Granger causality via vector auto-regression (VAR) attuned for\n")
 #cat("\tFMRI data analysis. ISMRM 17th Scientific Meeting, Hawaii, 2009.\n\n")
@@ -617,8 +618,8 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    nNonzero <- as.integer(readline(sprintf("Number of subjects with non-zero t-statistic? (0-%i) ", sum(nSubj))))
    print("Masking is optional, but will alleviate unnecessary penalty on q values of FDR correction.")
    # Hartung-Knapp method with t-test? 
-   #KHtest <- as.logical(as.integer(readline("Z- or t-statistic for the output? (0: Z; 1: t) ")))
-   KHtest <- FALSE
+   KHtest <- as.logical(as.integer(readline("Z- or t-statistic for the output? (0: Z; 1: t) ")))
+   #KHtest <- FALSE
    
    masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
    if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
@@ -704,7 +705,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       }
       #browser()
       xMat <- as.matrix(cbind(xMat, covData))           
-   } else nCov <- 0
+   } else {nCov <- 0; xMat <- as.matrix(xMat)}
    print("-----------------")
    print("The Z-score of residuals indicates the significance level a subject is an outlier at a voxel.")
    print("Turn off this option and select 0 if memory allocation problem occurs later on.")
