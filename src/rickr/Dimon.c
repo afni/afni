@@ -43,10 +43,11 @@ static char * g_history[] =
     " 2.15 Aug 18, 2008 [rickr] - suggest -num_slices with -sleep_init\n"
     " 2.16 Sep  3, 2008 [rickr] - added -drive_wait option\n"
     " 2.17 Nov 24, 2008 [rickr] - added -infile_list and -show_sorted_list\n"
+    " 2.18 Jun 25, 2009 [rickr] - fixed dz sent to RT plugin for oblique data\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.17 (Nov 24, 2008)"
+#define DIMON_VERSION "version 2.18 (Jun 25, 2009)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -297,12 +298,6 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                     disp_ftype("-d ftype: ", p->ftype);
                 }
             }
-
-            mri_read_dicom_get_obliquity(ac->oblique_xform, gD.level>1);
-            ac->is_oblique = data_is_oblique();
-            if( gD.level > 1 )
-                fprintf(stderr,"-- data is %soblique\n",
-                        ac->is_oblique ? "" : "not ");
 
             /* make sure there is enough memory for bad volumes */
             if ( p->nalloc < (4 * v->nim) )
@@ -595,6 +590,9 @@ static int volume_search(
     {
         /* One volume exists from slice 'first' to slice 'last'. */
 
+        /* note obliquity */
+        mri_read_dicom_get_obliquity(gAC.oblique_xform, gD.level>1);
+
         V->geh      = p->flist[first].geh;         /* copy GE structure  */
         V->gex      = p->flist[first].gex;         /* copy GE extras     */
         V->nim      = last - first + 1;
@@ -606,8 +604,16 @@ static int volume_search(
         V->z_first  = p->flist[first].geh.zoff;
         V->z_last   = p->flist[last].geh.zoff;
         V->z_delta  = delta;
+        V->image_dz = V->geh.dz;
+        V->oblique  = data_is_oblique();
         V->seq_num  = -1;                               /* uninitialized */
         V->run      = V->geh.uv17;
+
+        /* store obliquity */
+        if( gD.level > 0 && V->oblique != gAC.is_oblique ) {
+            fprintf(stderr,"-- data is %soblique\n", V->oblique ? "" : "not ");
+            gAC.is_oblique = V->oblique;
+        }
 
         return 1;
     }
@@ -780,7 +786,7 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     *r_delta = delta;
 
     if( gD.level > 1 )
-        fprintf(stderr,"+d cov: returning first, last, delta = %d, %d, %f\n",
+        fprintf(stderr,"+d cov: returning first, last, delta = %d, %d, %g\n",
                 first, last, delta);
 
     /* If we have found the same slice location, we are done. */
@@ -1028,6 +1034,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
     vout->z_first  = vin->z_first;
     vout->z_last   = vin->z_last;
     vout->z_delta  = vin->z_delta;
+    vout->image_dz = vout->geh.dz;
     vout->seq_num  = -1;                                /* uninitialized */
     vout->run      = vout->geh.uv17;
 
@@ -2066,7 +2073,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             p->opts.tr = atof(argv[ac]);
             if ( p->opts.tr <= 0 || p->opts.tr > 30 )
             {
-                fprintf(stderr,"bad value for -tr: %f (from '%s')\n",
+                fprintf(stderr,"bad value for -tr: %g (from '%s')\n",
                         p->opts.tr, argv[ac]);
                 return 1;
             }
@@ -2811,10 +2818,10 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sp                 = %s\n"
             "   gert_outdir        = %s\n"
             "   (argv, argc)       = (%p, %d)\n"
-            "   tr, ep             = %f, %f\n"
+            "   tr, ep             = %g, %g\n"
             "   nt, num_slices     = %d, %d\n"
             "   nice, pause        = %d, %d\n"
-            "   sleep_frac         = %f\n"
+            "   sleep_frac         = %g\n"
             "   sleep_init         = %d\n"
             "   sleep_vol          = %d\n"
             "   debug              = %d\n"
@@ -2911,12 +2918,13 @@ static int idisp_vol_t( char * info, vol_t * v )
             "   (fl_1, fn_1, fn_n)  = (%d, %d, %d)\n"
             "   first_file          = %s\n"
             "   last_file           = %s\n"
-            "   (z_first, z_last)   = (%f, %f)\n"
-            "   z_delta             = %f\n"
+            "   (z_first, z_last)   = (%g, %g)\n"
+            "   z_delta, image_dz   = (%g, %g)\n"
+            "   oblique             = %d\n"
             "   (seq_num, run)      = (%d, %d)\n",
             v, v->nim, v->fl_1, v->fn_1, v->fn_n,
             v->first_file, v->last_file,
-            v->z_first, v->z_last, v->z_delta,
+            v->z_first, v->z_last, v->z_delta, v->image_dz, v->oblique,
             v->seq_num, v->run );
 
     idisp_ge_header_info( info, &v->geh );
@@ -2949,11 +2957,11 @@ static int idisp_ge_extras( char * info, ge_extras * E )
             "    skip             = %d\n"
             "    swap             = %d\n"
             "    kk               = %d\n"
-            "    xorg             = %f\n"
-            "    yorg             = %f\n"
-            "    (xyz0,xyz1,xyz2) = (%f,%f,%f)\n"
-            "    (xyz3,xyz4,xyz5) = (%f,%f,%f)\n"
-            "    (xyz6,xyz7,xyz8) = (%f,%f,%f)\n",
+            "    xorg             = %g\n"
+            "    yorg             = %g\n"
+            "    (xyz0,xyz1,xyz2) = (%g,%g,%g)\n"
+            "    (xyz3,xyz4,xyz5) = (%g,%g,%g)\n"
+            "    (xyz6,xyz7,xyz8) = (%g,%g,%g)\n",
             E, E->bpp, E->cflag, E->hdroff, E->skip, E->swap, E->kk,
             E->xorg,   E->yorg,
             E->xyz[0], E->xyz[1], E->xyz[2],
@@ -2984,9 +2992,9 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
             "    (nx,ny)     = (%d,%d)\n"
             "    uv17        = %d\n"
             "    index        = %d\n"
-            "    (dx,dy,dz)  = (%f,%f,%f)\n"
-            "    zoff        = %f\n"
-            "    (tr,te)     = (%f,%f)\n"
+            "    (dx,dy,dz)  = (%g,%g,%g)\n"
+            "    zoff        = %g\n"
+            "    (tr,te)     = (%g,%g)\n"
             "    orients     = %-8s\n",
             I, I->good, I->nx, I->ny, I->uv17, I->index,
             I->dx, I->dy, I->dz, I->zoff, I->tr, I->te,
@@ -3832,14 +3840,16 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
         }
 
         /* first time caller - fill initial stats info */
-        s->slices  = v->nim;
-        s->z_first = v->z_first;
-        s->z_last  = v->z_last;
-        s->z_delta = v->z_delta;
+        s->slices   = v->nim;
+        s->z_first  = v->z_first;
+        s->z_last   = v->z_last;
+        s->z_delta  = v->z_delta;
+        s->image_dz = v->image_dz;
 
         s->nalloc  = IFM_STAT_ALLOC;
         s->nused   = 0;
         s->nvols   = gP.opts.nt;        /* init with any user input value */
+        s->oblique = v->oblique;
 
         if ( gD.level > 1 )
             fprintf( stderr, "\n-- svs: init alloc - vol %d, run %d, file %s\n",
@@ -4202,13 +4212,15 @@ static int show_run_stats( stats_t * s )
 
     printf( "\n\n"
             "final run statistics:\n"
-            "    volume info :\n"
-            "        slices  : %d\n"
-            "        z_first : %.4f\n"
-            "        z_last  : %.4f\n"
-            "        z_delta : %.4f\n"
-            "\n",
-            s->slices, s->z_first, s->z_last, s->z_delta );
+            "    volume info  :\n"
+            "        slices   : %d\n"
+            "        z_first  : %.4g\n"
+            "        z_last   : %.4g\n"
+            "        z_delta  : %.4g\n"
+            "        oblique  : %s\n\n",  /* display obliquity  25 Jun 2009 */
+            s->slices, s->z_first, s->z_last,
+            s->oblique ? s->image_dz : s->z_delta,
+            s->oblique ? "yes" : "no" );
 
     for ( c = 0; c < s->nused; c++ )
     {

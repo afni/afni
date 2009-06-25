@@ -407,9 +407,15 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
     /* volume dimensions */
-    sprintf( tbuf, "XYFOV %f %f %f", fabs(v->geh.nx * v->geh.dx),
-                                     fabs(v->geh.ny * v->geh.dy),
-                                     fabs(v->nim    * v->z_delta) );
+    /* if the data is oblique, get dz directly from the image structure */
+    /*                                             2009 June 25 [rickr] */
+    {
+       float dz = v->z_delta;
+       if( ac->is_oblique && v->image_dz > 0.0 ) dz = v->image_dz;
+       sprintf( tbuf, "XYFOV %f %f %f", fabs(v->geh.nx * v->geh.dx),
+                                        fabs(v->geh.ny * v->geh.dy),
+                                        fabs(v->nim    * dz       ) );
+    }
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
     /* matrix sizes */

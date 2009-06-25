@@ -166,11 +166,12 @@ typedef struct                  /* used to output statistics at the end */
 {
     int     slices;             /* the number of slices in each volume  */
     float   z_first, z_last;    /* bounding range for slice locations   */
-    float   z_delta;            /* slice thickness                      */
+    float   z_delta, image_dz;  /* slice thickness (and from image)     */
 
     int     nalloc;             /* number of run_t structures allocated */
     int     nused;              /* number of run_t structures in use    */
     int     nvols;              /* number of volumes in a run           */
+    int     oblique;            /* is the data oblique                  */
     run_t * runs;               /* array of run_t strcutrues            */
 } stats_t;
 
@@ -186,6 +187,8 @@ typedef struct
     float          z_first;              /* z location of first slice image  */
     float          z_last;               /* z location of last slice image   */
     float          z_delta;              /* signed slice thickness           */
+    float          image_dz;             /* dz from image (maybe oblique dz) */
+    int            oblique;              /* data is oblique                  */
     int            seq_num;              /* sequence number in TRs (1-based) */
     int            run;                  /* run number                       */
 } vol_t;
