@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, JUN, 2009, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "fixed dz sent to RT plugin for oblique datasets",
+   NULL
+ } ,
+
  { 25, JUN, 2009, RCR, "3dretroicor", MICRO, TYPE_BUG_FIX,
    "pass MRI_IMAGE structs without const",
    NULL
