@@ -9040,7 +9040,7 @@ ENTRY("AFNI_jumpto_ijk") ;
 void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
-   int ii,jj,kk ;
+   int ii=-1,jj=-1,kk=-1 ;
    int nn ;
    char dum1[32],dum2[32];
 
@@ -9053,7 +9053,12 @@ ENTRY("AFNI_jumpto_ijk_CB") ;
    last_jumpto_ijk_string = strdup(cbs->cval) ;
 
    nn = sscanf( cbs->cval , "%d%[ ,]%d%[ ,]%d" , &ii,dum1,&jj,dum2,&kk ) ;
-   if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+   if( nn > 0 && nn < 3 && ii >= 0 ){  /* 1D index jump [26 Jun 2009] */
+     nn = ii ;
+     ii = DSET_index_to_ix(im3d->anat_now,nn) ;
+     jj = DSET_index_to_jy(im3d->anat_now,nn) ;
+     kk = DSET_index_to_kz(im3d->anat_now,nn) ;
+   } else if( nn != 5 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
 
    nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
    if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;

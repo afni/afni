@@ -710,21 +710,21 @@ reml_setup * REML_setup_one( matrix *X , int *tau , MTYPE rho , MTYPE bb )
 MTYPE REML_func( vector *y , reml_setup *rset , matrix *X , sparmat *Xs ,
                  MTYPE *bbar[7] , MTYPE *bbsumq )
 {
-   int n ; size_t rowd ;
+   int n , ii ;
    MTYPE val ;
    MTYPE *bb1 , *bb2 , *bb3 , *bb4 , *bb5 , *bb6 , *bb7 ;
-   MTYPE qsumq ; int ii ;
+   MTYPE qsumq ;
 
 ENTRY("REML_func") ;
 
-   if( y == NULL || rset == NULL || X == NULL || bbar[0] == NULL ) RETURN(-666.0) ;
+   if( y == NULL || rset == NULL || X == NULL || bbar[0] == NULL ) RETURN(BIGVAL) ;
 
    /* assign pointers to workspace vectors */
 
    bb1 = bbar[0] ; bb2 = bbar[1] ; bb3 = bbar[2] ;
    bb4 = bbar[3] ; bb5 = bbar[4] ; bb6 = bbar[5] ; bb7 = bbar[6] ;
 
-   n = rset->neq ; rowd = sizeof(MTYPE)*n ;
+   n = rset->neq ;
 
    /** Seven matrix-vector steps to compute the prewhitened residuals **/
 
@@ -1122,9 +1122,9 @@ int REML_find_best_case( vector *y , reml_collection *rrcol ,
                          int nws , MTYPE *ws )
 {
    MTYPE rbest , rval ;
-   int   na,nb , pna,pnb , ltop ;
+   int   na,nb , pna,pnb , ltop , mm ;
    int   nab, lev, dab, ia,jb,kk, ibot,itop, jbot,jtop, ibest,jbest,kbest ;
-   int   klist[666] , nkl , needed_ws,bb_ws=0,rv_ws=0 ;
+   int   klist[128] , nkl , needed_ws,bb_ws=0,rv_ws=0 ;
    MTYPE *bbar[7] , *rvab ;
 
 ENTRY("REML_find_best_case") ;
@@ -1142,8 +1142,8 @@ ENTRY("REML_find_best_case") ;
    rv_ws     = (na+1)*(nb+1) + 16 ;
    needed_ws = 7*bb_ws + rv_ws ;
    if( nws >= needed_ws && ws != NULL ){
-     rvab    = ws ;
-     bbar[0] = ws + rv_ws ;
+     rvab    = ws+1 ;
+     bbar[0] = rvab + rv_ws ;
      for( ia=1 ; ia < 7 ; ia++ ) bbar[ia] = bbar[ia-1] + bb_ws ;
      bb_ws = rv_ws = 0 ;
    } else {
@@ -1184,12 +1184,10 @@ ENTRY("REML_find_best_case") ;
         be 1D rather than 2D, hoping that OpenMP would parallelize it better.
         However, this didn't work out, but the code is left the way it is */
 
-   { int mm , kk ;
-     for( mm=0 ; mm < nkl ; mm++ ){  /* this takes a lot of CPU time */
+     for( mm=0 ; mm < nkl ; mm++ ){  /* this usually takes a lot of CPU time */
        kk = klist[mm] ;
        rvab[kk] = REML_func( y, rrcol->rs[kk], rrcol->X,rrcol->Xs , bbar,NULL ) ;
      }
-   }
 
      /* find the best one so far seen */
 
@@ -1216,6 +1214,8 @@ ENTRY("REML_find_best_case") ;
      free(rvab) ;
      for( ia=0 ; ia < 7 ; ia++ ) free(bbar[ia]) ;
    }
+
+   if( ws != NULL ) ws[0] = rbest ;
 
    /*** deal with the winner ***/
 

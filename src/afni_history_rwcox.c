@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , JUN , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Add 1D index jumping to \"Jump to (ijk)\"" ,
+   NULL } ,
+
  { 25 , JUN , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_MODIFY ,
    "More tweaks to the OpenMP-ization.  Only slightly better." ,
    NULL } ,
