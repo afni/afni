@@ -860,7 +860,7 @@ def db_cmd_volreg(proc, block):
                % (allinbase, all1_input, dim)
 
            cmd = cmd + '\n' +                                                 \
-               '    # make an extent intersection mask of each run\n'         \
+               '    # make an extents intersection mask of this run\n'        \
                '    3dTstat -min -prefix rm.epi.min.r$run rm.epi.1.r$run%s\n' \
                % proc.view
 
@@ -885,16 +885,18 @@ def db_cmd_volreg(proc, block):
     if do_extents:
         proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
         cmd = cmd +                                                          \
-            "# intersect the per-run extent masks \n"                        \
+            "# create the extents mask: %s\n"                                \
+            "# (this is a mask of voxels that have valid data at every TR)\n"\
             "3dMean -datum short -prefix rm.epi.mean rm.epi.min.r*.HEAD \n"  \
             "3dcalc -a rm.epi.mean%s -expr 'step(a-0.999)' -prefix %s\n\n"   \
-             % (proc.view, proc.mask_extents.prefix)
+             % (proc.mask_extents.pv(), proc.view, proc.mask_extents.prefix)
 
-        cmd = cmd +                                                     \
-            "# finally, apply the extent mask to the EPI data \n"       \
-            "foreach run ( $runs )\n"                                   \
-            "    3dcalc -a rm.epi.nomask.r$run%s -b %s \\\n"            \
-            "           -expr 'a*b' -prefix %s\n"                       \
+        cmd = cmd +                                                          \
+            "# finally, apply the extents mask to the EPI data \n"           \
+            "# (delete any time series with missing data)\n"                 \
+            "foreach run ( $runs )\n"                                        \
+            "    3dcalc -a rm.epi.nomask.r$run%s -b %s \\\n"                 \
+            "           -expr 'a*b' -prefix %s\n"                            \
             "end\n\n" % (proc.view, proc.mask_extents.pv(), cur_prefix)
 
     # used 3dvolreg, so have these labels
@@ -2031,12 +2033,12 @@ def db_cmd_gen_review(proc):
 
     return cmd
 
-def block_header(hname, maxlen=70, hchar='='):
+def block_header(hname, maxlen=74, hchar='='):
     """return a title string of 'hchar's with the middle chars set to 'name'"""
     if len(hname) > 0: name = ' %s ' % hname
     else:              name = ''
 
-    rmlen = len(name) + 2
+    rmlen = len(name)
     if rmlen >= maxlen:
         print "** block_header, rmlen=%d exceeds maxlen=%d" % (rmlen, maxlen)
         return name

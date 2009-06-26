@@ -566,7 +566,8 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n'):
 
             lposn = find_last_space(command, cur, endposn, maxlen)
 
-            if nfirst+cur < lposn:   # woohoo, wrap away (at lposn)
+            # if the last space is farther in than next indent, wrap
+            if nfirst+plen+cur < lposn:   # woohoo, wrap away (at lposn)
                 newcmd = newcmd + command[cur:lposn+1] + wstring
                 # modify command to add prefix, reset end and cur
                 command = prefix + command[lposn+1:]
