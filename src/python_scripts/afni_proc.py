@@ -139,14 +139,14 @@ g_history = """
         - in mask block, try to create anat and group masks
         - added -mask_apply option, for choosing mask to apply to regression
         - added -align_opts_aea, for extra opts to align_epi_anat.py
-    2.0  Jun 17 2009 : process method update: suggest processing in group space
+    2.0  Jun 26 2009 : process method update: suggest processing in group space
         - mask warped EPI by its extents (at volreg step)
         - added -volreg_no_extent_mask, to block this masking
         - added 'extents' to list of mask in -mask_apply
         - change block dividers to more visual '===' with block names
 """
 
-g_version = "version 2.0, June 17, 2009"
+g_version = "version 2.0, June 26, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
