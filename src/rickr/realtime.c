@@ -683,18 +683,20 @@ void ART_exit( void )
 */
 int ART_idisp_ART_comm( char * info, ART_comm * ac )
 {
+    FILE * fp = stderr;
     int i, j;
 
     if ( info )
-        fputs( info, stdout );
+        fputs( info, fp );
 
     if ( ac == NULL )
     {
-        printf( "ART_idisp_ART_comm: ac == NULL\n" );
+        fprintf( fp, "ART_idisp_ART_comm: ac == NULL\n" );
         return -1;
     }
 
-    printf( "ART_comm struct at %p :\n"
+    fprintf( fp,
+            "ART_comm struct at %p :\n"
             "   (state, mode)   = (%d, %d)\n"
             "   (use_tcp, swap) = (%d, %d)\n"
             "   byte_order      = %d\n"
@@ -709,12 +711,12 @@ int ART_idisp_ART_comm( char * info, ART_comm * ac )
             CHECK_NULL_STR(ac->ioc_name), ac->ioc, ac->param );
 
     if( ac->is_oblique ) {
-        printf("   oblique_xform:\n");
+        fprintf(fp, "   oblique_xform:\n");
         for(i = 0; i < 4; i++) {
-            printf("       ");
+            fprintf(fp, "       ");
             for(j=0; j<4; j++)
-                fprintf(stderr,"%10.4f  ", ac->oblique_xform[4*i+j]);
-            fputc('\n', stderr);
+                fprintf(fp,"%10.4f  ", ac->oblique_xform[4*i+j]);
+            fputc('\n', fp);
         }
     }
 
