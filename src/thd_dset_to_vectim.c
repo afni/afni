@@ -148,7 +148,7 @@ int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask )
 
 int bsearch_int( int tt , int nar , int *ar )
 {
-   register int targ , ii , jj , kk , nn ;
+   int targ , ii , jj , kk , nn ;
 
    if( nar == 0 || ar == NULL ) return -1 ; /* bad inputs */
 

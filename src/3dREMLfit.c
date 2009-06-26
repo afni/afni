@@ -484,6 +484,7 @@ int main( int argc , char *argv[] )
    MRI_vectim   *inset_mrv=NULL ; /* 05 Nov 2008 */
    THD_3dim_dataset *abset=NULL ; int abfixed=0 ; float afix,bfix ;
    MRI_IMAGE *aim=NULL, *bim=NULL ; float *aar=NULL, *bar=NULL ;
+   MRI_IMAGE *rim=NULL ;            float *rar=NULL ;
    byte *mask=NULL,*gmask=NULL ;
    int mask_nx=0,mask_ny=0,mask_nz=0, automask=0, nmask=0;
    float *iv , *jv ; int niv ;
@@ -2223,11 +2224,21 @@ STATUS("make GLTs from matrix file") ;
      aim->dx = dx ; aim->dy = dy ; aim->dz = dz ; aar = MRI_FLOAT_PTR(aim) ;
      bim = mri_new_vol( nx,ny,nz , MRI_float ) ;
      bim->dx = dx ; bim->dy = dy ; bim->dz = dz ; bar = MRI_FLOAT_PTR(bim) ;
+     rim = mri_new_vol( nx,ny,nz , MRI_float ) ;
+     rim->dx = dx ; rim->dy = dy ; rim->dz = dz ; rar = MRI_FLOAT_PTR(rim) ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
   if( maxthr <= 1 ){                 /** serial computation (no threads) **/
     int ss,rv,vv,ssold,ii,kbest ;
+
+    char *fff ; FILE *fpp=NULL ;
+    int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
+    int   nws = nab + 7*(2*niv+32) + 32 ;
+    MTYPE *ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
+
+    fff = getenv("REML_DEBUG") ;
+    if( fff != NULL ) fpp = fopen( fff , "w" ) ;
 
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -2245,23 +2256,43 @@ STATUS("make GLTs from matrix file") ;
          RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
          if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ;
        }
-       kbest = REML_find_best_case( &y , RCsli[ss] , 0,NULL ) ;
+       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
+       rar[vv] = ws[0] ;
+
+       if( fpp != NULL ){
+         int qq ;
+         fprintf(fpp,"%d %d %d ", DSET_index_to_ix(inset,vv),
+                                  DSET_index_to_jy(inset,vv),
+                                  DSET_index_to_kz(inset,vv) ) ;
+         for( qq=1 ; qq <= nab ; qq++ ) fprintf(fpp," %g",ws[qq]) ;
+         fprintf(fpp,"\n") ;
+       }
+
      } /* end of REML loop over voxels */
+
+     free(ws) ; if( fpp != NULL ) fclose(fpp) ;
 
   } else {                    /** Parallelized (not paralyzed) **/
 
-    int *vvar , nws ;
+    int *vvar ;
+
+    char *fff ; FILE *fpp=NULL ;
+    int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
+    int   nws = nab + 7*(2*niv+32) + 32 ;
+
+    fff = getenv("REML_DEBUG") ;
+    if( fff != NULL ) fpp = fopen( fff , "w" ) ;
+
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
-    nws = (RCsli[0]->na+1)*(RCsli[0]->nb+1) + 7*(2*niv+32) + 32 ;
     if( vstep ) fprintf(stderr,"start %d OpenMP threads",maxthr) ;
 
 #ifdef USE_OMP
 #pragma omp parallel
   {
-    int ss,rv,vv,uu,ii,kbest ;
+    int ss,rv,vv,uu,ii,kbest , ithr ;
     float *iv ; vector y ;  /* private to each thread */
     MTYPE *ws ;
 
@@ -2270,6 +2301,7 @@ STATUS("make GLTs from matrix file") ;
    iv   = (float *)malloc(sizeof(float)*(niv+1)) ;
    vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
    ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
+   ithr = omp_get_thread_num() ;
 
 #pragma omp for
      for( uu=0 ; uu < nmask ; uu++ ){
@@ -2283,26 +2315,30 @@ STATUS("make GLTs from matrix file") ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( RCsli[ss] == NULL )
          ERROR_exit("NULL slice setup inside OpenMP loop!!!") ;
-#if 0
        kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;
-#else
-       kbest = REML_find_best_case( &y , RCsli[ss] , 0,NULL ) ;
-#endif
-#pragma omp critical (AABBAR)
-     { aar[vv] = RCsli[ss]->rs[kbest]->rho ;
+       aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
-     }
+       rar[vv] = ws[0] ;
+
+#pragma omp critical (FPP)
+     { if( fpp != NULL ){
+         int qq ;
+         fprintf(fpp,"%d %d %d ", DSET_index_to_ix(inset,vv),
+                                  DSET_index_to_jy(inset,vv),
+                                  DSET_index_to_kz(inset,vv) ) ;
+         for( qq=1 ; qq <= nab ; qq++ ) fprintf(fpp," %g",ws[qq]) ;
+         fprintf(fpp,"\n") ;
+       } }
      } /* end of REML loop over voxels */
 
-#pragma omp critical (MALLOC)
-   { free(ws) ; free(iv) ; vector_destroy(&y) ; } /* destroy private copies */
+   free(ws) ; free(iv) ; vector_destroy(&y) ;  /* destroy private copies */
 
   AFNI_OMP_END ;
   } /* end OpenMP */
 #else
   ERROR_exit("This code should never be executed!!!") ;
 #endif
-    free(vvar) ;
+    free(vvar) ; if( fpp != NULL ) fclose(fpp) ;
   }
 
      if( vstep ) fprintf(stderr,"\n") ;
@@ -2377,7 +2413,7 @@ STATUS("labelizing Rbeta") ;
        EDIT_BRICK_LABEL( Rbeta_dset , ii , beta_lab[betaset[ii]] ) ;
    }
 
-   Rvar_dset  = create_float_dataset( inset , 4    , Rvar_prefix,1 , NULL,NULL ) ;
+   Rvar_dset  = create_float_dataset( inset , 5    , Rvar_prefix,1 , NULL,NULL ) ;
    if( Rvar_dset != NULL ){
      float abar[3] ;
 STATUS("labelizing Rvar") ;
@@ -2385,6 +2421,7 @@ STATUS("labelizing Rvar") ;
      EDIT_BRICK_LABEL( Rvar_dset , 1 , "b" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 2 , "lam" ) ;
      EDIT_BRICK_LABEL( Rvar_dset , 3 , "StDev" ) ;
+     EDIT_BRICK_LABEL( Rvar_dset , 4 , "-LogLik") ;
      abar[0] = rhomax ; abar[1] = bmax ; abar[2] = (float)nlevab ;
      THD_set_float_atr( Rvar_dset->dblk , "REMLFIT_abmax" , 3 , abar ) ;
    }
@@ -2576,7 +2613,8 @@ STATUS("setting up Rglt") ;
          if( Rvar_dset != NULL ){
            iv[0] = RCsli[ss]->rs[jj]->rho ; iv[1] = RCsli[ss]->rs[jj]->barm ;
            iv[2] = RCsli[ss]->rs[jj]->lam ; iv[3] = sqrt( bbsumq / ddof ) ;
-           save_series( vv , Rvar_dset , 4 , iv , Rvar_fp ) ;
+           iv[4] = (rar != NULL) ? rar[vv] : 0.0f ;
+           save_series( vv , Rvar_dset , 5 , iv , Rvar_fp ) ;
          }
 
          memcpy( qq5.elts , bb5 , sizeof(MTYPE)*nrega ) ; /* 24 Jun 2009 */
