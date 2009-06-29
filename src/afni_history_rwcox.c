@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , JUN , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
+   "Fix memcpy bug in data extraction when using OpenMP.  Ugghh." ,
+   NULL } ,
+
  { 26 , JUN , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Add 1D index jumping to \"Jump to (ijk)\"" ,
    NULL } ,

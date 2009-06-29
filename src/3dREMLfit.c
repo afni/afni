@@ -34,6 +34,7 @@ static int goforit=0 ;
 #endif
 
 #undef PATCHX
+#undef REML_DEBUG
 
 /*---------------------------------------------------------------------------*/
 /*! Check matrix condition number.  Return value is the
@@ -2229,15 +2230,13 @@ STATUS("make GLTs from matrix file") ;
 
      if( vstep ) fprintf(stderr,"++ REML voxel loop: ") ;
 
-  if( maxthr <= 1 ){                 /** serial computation (no threads) **/
+  if( maxthr <= 1 ){             /**---- serial computation (no threads) ----**/
     int ss,rv,vv,ssold,ii,kbest ;
-
-    char *fff ; FILE *fpp=NULL ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
     int   nws = nab + 7*(2*niv+32) + 32 ;
     MTYPE *ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
-
-#if 0
+#ifdef REML_DEBUG
+    char *fff ; FILE *fpp=NULL ;
     fff = getenv("REML_DEBUG") ;
     if( fff != NULL ) fpp = fopen( fff , "w" ) ;
 #endif
@@ -2263,16 +2262,10 @@ STATUS("make GLTs from matrix file") ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
        rar[vv] = ws[0] ;
 
-#if 0
+#ifdef REML_DEBUG
        if( fpp != NULL ){
          int qq ;
-#if 1
          fprintf(fpp,"%d ",vv) ;
-#else
-         fprintf(fpp,"%d %d %d ", DSET_index_to_ix(inset,vv),
-                                  DSET_index_to_jy(inset,vv),
-                                  DSET_index_to_kz(inset,vv) ) ;
-#endif
          fprintf(fpp," y=") ;
          for( qq=0 ; qq < ntime ; qq++ ) fprintf(fpp," %g",y.elts[qq]) ;
          fprintf(fpp,"  R=") ;
@@ -2283,17 +2276,18 @@ STATUS("make GLTs from matrix file") ;
 
      } /* end of REML loop over voxels */
 
-     free(ws) ; if( fpp != NULL ) fclose(fpp) ;
+     free(ws) ;
+#ifdef REML_DEBUG
+     if( fpp != NULL ) fclose(fpp) ;
+#endif
 
-  } else {                    /** Parallelized (not paralyzed) **/
+  } else {  /**---------------- Parallelized (not paralyzed) ----------------**/
 
     int *vvar ;
-
-    char *fff ; FILE *fpp=NULL ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
     int   nws = nab + 7*(2*niv+32) + 32 ;
-
-#if 0
+#ifdef REML_DEBUG
+    char *fff ; FILE *fpp=NULL ;
     fff = getenv("REML_DEBUG") ;
     if( fff != NULL ) fpp = fopen( fff , "w" ) ;
 #endif
@@ -2306,7 +2300,7 @@ STATUS("make GLTs from matrix file") ;
 #pragma omp parallel
   {
     int ss,vv,rv,ii,kbest , ithr ;
-    float *iv ; vector y ;  /* private to each thread */
+    float *iv ; vector y ;  /* private arrays for each thread */
     MTYPE *ws ;
 
   AFNI_OMP_START ;
@@ -2338,17 +2332,11 @@ STATUS("make GLTs from matrix file") ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
        rar[vv] = ws[0] ;
 
-#if 0
+#ifdef REML_DEBUG
 #pragma omp critical (FPP)
      { if( fpp != NULL ){
          int qq ;
-#if 1
          fprintf(fpp,"%d ",vv) ;
-#else
-         fprintf(fpp,"%d %d %d ", DSET_index_to_ix(inset,vv),
-                                  DSET_index_to_jy(inset,vv),
-                                  DSET_index_to_kz(inset,vv) ) ;
-#endif
          fprintf(fpp," y=") ;
          for( qq=0 ; qq < ntime ; qq++ ) fprintf(fpp," %g",y.elts[qq]) ;
          fprintf(fpp,"  R=") ;
@@ -2367,7 +2355,10 @@ STATUS("make GLTs from matrix file") ;
 #else
   ERROR_exit("This code should never be executed!!!") ;
 #endif
-    free(vvar) ; if( fpp != NULL ) fclose(fpp) ;
+    free(vvar) ;
+#ifdef REML_DEBUG
+    if( fpp != NULL ) fclose(fpp) ;
+#endif
   }
 
      if( vstep ) fprintf(stderr,"\n") ;

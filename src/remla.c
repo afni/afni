@@ -336,11 +336,17 @@ sparmat * matrix_to_sparmat( matrix a )
        }
      }
      sa->cnum[j] = k ;
-     if( k < rows ){
+
+     if( k < (int)(0.7*rows+1) ){  /* column is sparse: truncate arrays */
        sa->cii[j] = (int *)  realloc( (void *)sa->cii[j] , sizeof(int)  *k ) ;
        sa->cee[j] = (MTYPE *)realloc( (void *)sa->cee[j] , sizeof(MTYPE)*k ) ;
-     } else {
-       free(sa->cii[j]); sa->cii[j] = NULL;  /* not needed if column is full */
+
+     } else if( k < rows ){        /* column is nearly full: re-create as full */
+       free(sa->cii[j]); sa->cii[j] = NULL; sa->cnum[j] = rows;
+       for( i=0 ; i < rows ; i++ ) sa->cee[j][i] = a.elts[i][j] ;
+
+     } else {                      /* column is completely full */
+       free(sa->cii[j]); sa->cii[j] = NULL;
      }
    }
    return sa ;
@@ -970,6 +976,7 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    MTYPE da,db, bb,aa, lam , bbot,abot ;
    reml_collection *rrcol=NULL ;
    float avglen=0.0f ;
+   double spcut ;
 
    if( X == NULL ) return rrcol ;              /* bad */
 
@@ -999,26 +1006,19 @@ reml_collection * REML_setup_all( matrix *X , int *tau ,
    rrcol->X = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(rrcol->X) ;
    matrix_equate( *X , rrcol->X ) ;
 
-   if( !AFNI_noenv("AFNI_REML_USE_SPARSITY") ){
-     double spcut = AFNI_numenv("AFNI_REML_SPARSITY_THRESHOLD") ;
-     if( spcut <= 0.0 ) spcut = 0.30 ;
-     lam = sparsity_fraction( *X ) ;
-     if( lam <= spcut ) rrcol->Xs = matrix_to_sparmat( *X ) ;
-     else               rrcol->Xs = NULL ;
+   spcut = AFNI_numenv("AFNI_REML_SPARSITY_THRESHOLD") ;
+   if( spcut <= 0.0 ) spcut = 1.01 ;  /* always use sparmat [29 Jun 2009] */
+   lam = sparsity_fraction( *X ) ;
+   if( lam <= spcut ) rrcol->Xs = matrix_to_sparmat( *X ) ;
+   else               rrcol->Xs = NULL ;
 #if 1
-     if( verb > 1 ){
-       static int first=1 ;
-       if( first )
-         ININFO_message("X matrix fullness = %.1f%% ==> sparsity %s",
-                        100.0*lam ,
-                        (rrcol->Xs==NULL) ? "NOT USED for speedup"
-                                          : "USED for speedup"    ) ;
-       first = 0 ;
-     }
-#endif
-   } else {
-     rrcol->Xs = NULL ;  /* this case is just for testing [25 Jun 2009] */
+   if( verb > 1 ){
+     static int first=1 ;
+     if( first ) ININFO_message("X matrix: %.3f%% of elements are nonzero" ,
+                                100.0*lam ) ;
+     first = 0 ;
    }
+#endif
 
    if( nlev > 0 ){
      rrcol->nab   = (nb+1)*(na+1) ;  /* number of cases to create */
