@@ -6629,6 +6629,8 @@ ENTRY("AFNI_crosshair_label") ;
                   "1234567890123456789"  ) ;
 
    } else if( im3d->type == AFNI_IMAGES_VIEW || im3d->vinfo->show_voxind ){
+      int ixyz = DSET_ixyz_to_index( im3d->anat_now ,
+                                     im3d->vinfo->i1, im3d->vinfo->j2, im3d->vinfo->k3 ) ;
 
 STATUS("voxel indexes") ;
 
@@ -6636,7 +6638,7 @@ STATUS("voxel indexes") ;
           im3d->vinfo->func_visible && DSET_INMEMORY(im3d->fim_now) ){
          THD_fvec3 fv ;
          THD_ivec3 iv ;
-         int flag ;
+         int flag , fxyz ;
 
          flag = im3d->fim_now->wod_flag ;
          im3d->fim_now->wod_flag = False ;
@@ -6644,16 +6646,18 @@ STATUS("voxel indexes") ;
          fv = THD_dicomm_to_3dmm( im3d->fim_now ,
                                   TEMP_FVEC3(im3d->vinfo->xi,im3d->vinfo->yj,im3d->vinfo->zk) ) ;
          iv = THD_3dmm_to_3dind( im3d->fim_now , fv ) ;
+         fxyz = DSET_ixyz_to_index( im3d->fim_now , iv.ijk[0],iv.ijk[1],iv.ijk[2] ) ;
 
          im3d->fim_now->wod_flag = flag ;
 
-         sprintf( buf , "x: an=%4d fun=%4d\ny: an=%4d fun=%4d\nz: an=%4d fun=%4d" ,
+         sprintf( buf , "Ul=%d Ol=%d\nx: Ul=%4d Ol=%4d\ny: Ul=%4d Ol=%4d\nz: Ul=%4d Ol=%4d" ,
+                  ixyz , fxyz ,
                   im3d->vinfo->i1,iv.ijk[0] ,
                   im3d->vinfo->j2,iv.ijk[1] ,
                   im3d->vinfo->k3,iv.ijk[2]  ) ;
       } else {
-         sprintf( buf , "voxel x = %4d\nvoxel y = %4d\nvoxel z = %4d" ,
-                  im3d->vinfo->i1 , im3d->vinfo->j2 , im3d->vinfo->k3  ) ;
+         sprintf( buf , "index %d:\nvoxel x = %4d\nvoxel y = %4d\nvoxel z = %4d" ,
+                  ixyz , im3d->vinfo->i1 , im3d->vinfo->j2 , im3d->vinfo->k3  ) ;
       }
    } else {
       char bxyz[3][32] , *cname ;

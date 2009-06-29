@@ -1,8 +1,8 @@
-#include "mrilib.h"
-
 #ifdef USE_OMP
 #include <omp.h>
 #endif
+
+#include "mrilib.h"
 
 /***** 3dREMLfit.c *****/
 
@@ -1408,7 +1408,7 @@ STATUS("options done") ;
        WARNING_message("only %d voxels: disables OpenMP multi-threading",nvox) ;
      }
    }
-#if 1
+#if 0
    if( maxthr > 1 ){
      WARNING_message("OpenMP threads disabled at this time -- sorry") ;
      maxthr = 1 ;
@@ -2237,8 +2237,10 @@ STATUS("make GLTs from matrix file") ;
     int   nws = nab + 7*(2*niv+32) + 32 ;
     MTYPE *ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
 
+#if 0
     fff = getenv("REML_DEBUG") ;
     if( fff != NULL ) fpp = fopen( fff , "w" ) ;
+#endif
 
      for( ss=-1,rv=vv=0 ; vv < nvox ; vv++ ){    /* this will take a long time */
        if( vstep && vv%vstep==vstep-1 ) vstep_print() ;
@@ -2261,14 +2263,23 @@ STATUS("make GLTs from matrix file") ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
        rar[vv] = ws[0] ;
 
+#if 0
        if( fpp != NULL ){
          int qq ;
+#if 1
+         fprintf(fpp,"%d ",vv) ;
+#else
          fprintf(fpp,"%d %d %d ", DSET_index_to_ix(inset,vv),
                                   DSET_index_to_jy(inset,vv),
                                   DSET_index_to_kz(inset,vv) ) ;
+#endif
+         fprintf(fpp," y=") ;
+         for( qq=0 ; qq < ntime ; qq++ ) fprintf(fpp," %g",y.elts[qq]) ;
+         fprintf(fpp,"  R=") ;
          for( qq=1 ; qq <= nab ; qq++ ) fprintf(fpp," %g",ws[qq]) ;
          fprintf(fpp,"\n") ;
        }
+#endif
 
      } /* end of REML loop over voxels */
 
@@ -2282,8 +2293,10 @@ STATUS("make GLTs from matrix file") ;
     int   na = RCsli[0]->na , nb = RCsli[0]->nb , nab = (na+1)*(nb+1) ;
     int   nws = nab + 7*(2*niv+32) + 32 ;
 
+#if 0
     fff = getenv("REML_DEBUG") ;
     if( fff != NULL ) fpp = fopen( fff , "w" ) ;
+#endif
 
     vvar = (int *)malloc(sizeof(int)*nmask) ;
     for( vv=ii=0 ; vv < nvox ; vv++ ) if( INMASK(vv) ) vvar[ii++] = vv ;
@@ -2292,46 +2305,62 @@ STATUS("make GLTs from matrix file") ;
 #ifdef USE_OMP
 #pragma omp parallel
   {
-    int ss,rv,vv,uu,ii,kbest , ithr ;
+    int ss,vv,rv,ii,kbest , ithr ;
     float *iv ; vector y ;  /* private to each thread */
     MTYPE *ws ;
 
   AFNI_OMP_START ;
 
+#pragma omp critical (MALLOC)
+ {
    iv   = (float *)malloc(sizeof(float)*(niv+1)) ;
    vector_initialize(&y) ; vector_create_noinit(ntime,&y) ;
    ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
+ }
    ithr = omp_get_thread_num() ;
 
 #pragma omp for
-     for( uu=0 ; uu < nmask ; uu++ ){
-       vv = vvar[uu] ;
+     for( rv=0 ; rv < nmask ; rv++ ){
+       vv = vvar[rv] ;
+#pragma omp critical (MEMCPY)
+ {
        if( inset_mrv != NULL ){
-         rv = THD_vectim_ifind( vv , inset_mrv ) ; if( rv < 0 ) continue ;
          VECTIM_extract( inset_mrv , rv , iv ) ;
        } else
          (void)THD_extract_array( vv , inset , 0 , iv ) ;  /* data vector */
+ }
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( RCsli[ss] == NULL )
          ERROR_exit("NULL slice setup inside OpenMP loop!!!") ;
-       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;
+       kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;  /* the work */
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
        rar[vv] = ws[0] ;
 
+#if 0
 #pragma omp critical (FPP)
      { if( fpp != NULL ){
          int qq ;
+#if 1
+         fprintf(fpp,"%d ",vv) ;
+#else
          fprintf(fpp,"%d %d %d ", DSET_index_to_ix(inset,vv),
                                   DSET_index_to_jy(inset,vv),
                                   DSET_index_to_kz(inset,vv) ) ;
+#endif
+         fprintf(fpp," y=") ;
+         for( qq=0 ; qq < ntime ; qq++ ) fprintf(fpp," %g",y.elts[qq]) ;
+         fprintf(fpp,"  R=") ;
          for( qq=1 ; qq <= nab ; qq++ ) fprintf(fpp," %g",ws[qq]) ;
          fprintf(fpp,"\n") ;
        } }
+#endif
+
      } /* end of REML loop over voxels */
 
-   free(ws) ; free(iv) ; vector_destroy(&y) ;  /* destroy private copies */
+#pragma omp critical (MALLOC)
+   { free(ws) ; free(iv) ; vector_destroy(&y) ; } /* destroy private copies */
 
   AFNI_OMP_END ;
   } /* end OpenMP */

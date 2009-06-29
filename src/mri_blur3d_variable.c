@@ -83,7 +83,9 @@ ENTRY("mri_blur3D_variable") ;
        qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */
    }}}
 
-   memcpy(iar,qar,sizeof(float)*nxyz) ; free((void *)qar) ;
+#pragma omp critical (MEMCPY)
+   memcpy(iar,qar,sizeof(float)*nxyz) ;
+   free((void *)qar) ;
    EXRETURN ;
 }
 
@@ -112,6 +114,7 @@ ENTRY("mri_blur3D_inmask") ;
    vz  = 2.0f * fz ; if( nz < 2 ) vz = 0.0f ;
    if( vx <= 0.0f && vy <= 0.0f && vz <= 0.0f ) EXRETURN ;
 
+#pragma omp critical (MALLOC)
    qar = (float *)calloc(sizeof(float),nxyz) ;
 
    for( nn=0 ; nn < nrep ; nn++ ){
@@ -147,10 +150,15 @@ ENTRY("mri_blur3D_inmask") ;
 
          qar[ijk] += vout ;  /* whatever wasn't diffused away from this voxel */
      }}}
+#pragma omp critical (MEMCPY)
      memcpy(iar,qar,sizeof(float)*nxyz) ;
-     if( nn != nrep-1 ) memset(qar,0,sizeof(float)*nxyz) ;
+     if( nn != nrep-1 ){
+#pragma omp critical (MEMSET)
+       memset(qar,0,sizeof(float)*nxyz) ;
+     }
    }
 
+#pragma omp critical (MALLOC)
    free((void *)qar) ;
    EXRETURN ;
 }
@@ -254,6 +262,7 @@ ENTRY("mri_blur3d_vectim") ;
 
 #pragma omp for
    for( iv=0 ; iv < vim->nvals ; iv++ ){
+#pragma omp critical (MEMSET)
      memset( qar , 0 , sizeof(float)*nvox ) ;
      for( jj=0 ; jj < vim->nvec ; jj++ ){
        var = VECTIM_PTR(vim,jj) ; qar[ivar[jj]] = var[iv] ;
