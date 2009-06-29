@@ -25,6 +25,7 @@
 #define RETURN(x) return(x)
 #define EXRETURN  return
 #include "matrix.c"
+#include "rcmat.c"
 #endif
 
 /*****

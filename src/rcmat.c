@@ -70,9 +70,11 @@ rcmat * rcmat_copy( rcmat *rcm )
 
    nn  = rcm->nrc ;
    qcm = rcmat_init(nn) ;
+#pragma omp critical (MEMCPY)
    memcpy( qcm->len , rcm->len , sizeof(LENTYP)*nn ) ;
    for( ii=0 ; ii < nn ; ii++ ){
      qcm->rc[ii] = malloc( sizeof(double)*qcm->len[ii] ) ;
+#pragma omp critical (MEMCPY)
      memcpy( qcm->rc[ii] , rcm->rc[ii] , sizeof(double)*qcm->len[ii] ) ;
    }
    return qcm ;
