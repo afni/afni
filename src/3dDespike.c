@@ -423,6 +423,7 @@ int main( int argc , char *argv[] )
           }
         break ;
       }
+#pragma omp critical (MEMCPY)
       memcpy(dar,far,sizeof(float)*nuse) ;   /* copy time series into dar[] */
 
       /*** solve for L1 fit ***/

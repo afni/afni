@@ -67,6 +67,7 @@ ENTRY("THD_dset_to_vectim") ;
      mrv->ivec[kk] = iv ;
      if( ignore > 0 ){
        (void)THD_extract_array( iv , dset , 0 , var ) ;
+#pragma omp critical (MEMCPY)
        memcpy( VECTIM_PTR(mrv,kk) , var+ignore , sizeof(float)*nvals ) ;
      } else {
        (void)THD_extract_array( iv , dset , 0 , VECTIM_PTR(mrv,kk) ) ;
@@ -207,9 +208,12 @@ ENTRY("THD_vectim_to_dset") ;
        THD_insert_series( mrv->ivec[kk] , dset ,
                           nvals , MRI_float , VECTIM_PTR(mrv,kk) , 0 ) ;
    } else {
-     float *var = (float *)malloc(sizeof(float)*(nvals+ign)) ;
+     float *var ;
+#pragma omp critical (MALLOC)
+     var = (float *)malloc(sizeof(float)*(nvals+ign)) ;
      for( kk=0 ; kk < nvec ; kk++ ){
        (void)THD_extract_array( mrv->ivec[kk] , dset , 0 , var ) ;
+#pragma omp critical (MEMCPY)
        memcpy( var+ign , VECTIM_PTR(mrv,kk) , sizeof(float)*nvals ) ;
        THD_insert_series( mrv->ivec[kk] , dset ,
                           nvals , MRI_float , var , 0 ) ;
