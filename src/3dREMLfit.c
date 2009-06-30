@@ -2149,9 +2149,10 @@ STATUS("make GLTs from matrix file") ;
 
    /* 05 Nov 2008: convert input to a vector image struct, if it saves memory */
 
-   { float vsiz = (float)THD_vectim_size( inset , mask ) ;
-     float dsiz = (float)DSET_TOTALBYTES(inset) ;
-     if( vsiz < 0.9f*dsiz && vsiz > 10.0e+6 ){
+   if( !AFNI_noenv("AFNI_REML_ALLOW_VECTIM") ){
+     double vsiz = (double)THD_vectim_size( inset , mask ) ;
+     double dsiz = (double)DSET_TOTALBYTES( inset ) ;
+     if( vsiz < 0.9*dsiz && vsiz > 10.0e+6 ){
        if( verb ){
          INFO_message("Converting dataset to vector image to save memory") ;
          ININFO_message(" dataset = %s bytes",approximate_number_string(dsiz)) ;
