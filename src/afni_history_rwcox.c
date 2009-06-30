@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , JUN , 2009 , RWC , "various 3D programs" , MICRO , TYPE_BUG_FIX ,
+   "Remove keywords propagation stuff" ,
+   "e.g., 3dTcat and 3dbucket\n"
+   "Also, fix keywords printout buffer overflow in thd_info.c" } ,
+
  { 29 , JUN , 2009 , RWC , "3dREMLfit" , MICRO , TYPE_BUG_FIX ,
    "Fix memcpy bug in data extraction when using OpenMP.  Ugghh." ,
    NULL } ,

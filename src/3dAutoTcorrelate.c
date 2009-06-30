@@ -1,3 +1,7 @@
+#ifdef USE_OMP
+#include <omp.h>
+#endif
+
 #include "mrilib.h"
 
 #define SPEARMAN 1
@@ -60,6 +64,7 @@ int main( int argc , char *argv[] )
              "\n"
              "-- RWCox - Jan 31 2002\n"
             ) ;
+      PRINT_AFNI_OMP_USAGE("3dAutoTcorrelate",NULL) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -95,7 +100,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          prefix = argv[++nopt] ;
          if( !THD_filename_ok(prefix) ){
-            fprintf(stderr,"** Illegal value after -prefix!\n");exit(1);
+            ERROR_exit("Illegal value after -prefix!") ;
          }
          nopt++ ; continue ;
       }
@@ -104,24 +109,21 @@ int main( int argc , char *argv[] )
          char *cpt ;
          int val = strtod(argv[++nopt],&cpt) ;
          if( *cpt != '\0' || val < -1 || val > 3 ){
-            fprintf(stderr,"** Illegal value after -polort!\n");exit(1);
+            ERROR_exit("Illegal value after -polort!") ;
          }
          polort = val ; nopt++ ; continue ;
       }
 
-      fprintf(stderr,"** Illegal option: %s\n",argv[nopt]) ; exit(1) ;
+      ERROR_exit("Illegal option: %s",argv[nopt]) ;
    }
 
    /*-- open dataset, check for legality --*/
 
-   if( nopt >= argc ){
-      fprintf(stderr,"*** Need a dataset on command line!?\n"); exit(1);
-   }
+   if( nopt >= argc ) ERROR_exit("Need a dataset on command line!?") ;
 
    xset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(xset,argv[nopt]);
-   if( DSET_NUM_TIMES(xset) < 2 ){
-      fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]); exit(1);
-   }
+   if( DSET_NVALS(xset) < 3 )
+      ERROR_exit("Input dataset %s does not have 3 or more sub-bricks!",argv[nopt]) ;
    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
 
    /*-- compute mask array, if desired --*/
@@ -131,11 +133,11 @@ int main( int argc , char *argv[] )
    if( do_autoclip ){
       mmm   = THD_automask( xset ) ;
       nmask = THD_countmask( nvox , mmm ) ;
-      fprintf(stderr,"++ %d voxels survive -autoclip\n",nmask) ;
+      INFO_message("%d voxels survive -autoclip",nmask) ;
       if( nmask < 2 ) exit(1) ;
    } else {
       nmask = nvox ;
-      fprintf(stderr,"++ computing for all %d voxels\n",nmask) ;
+      INFO_message("computing for all %d voxels",nmask) ;
    }
 
    /*-- create output dataset --*/
@@ -162,21 +164,16 @@ int main( int argc , char *argv[] )
                       ADN_none ) ;
    }
 
-   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) ){
-      fprintf(stderr,"** Output dataset %s already exists!\n",
-              DSET_HEADNAME(cset)) ;
-      exit(1) ;
-   }
+   if( THD_deathcon() && THD_is_file(DSET_HEADNAME(cset)) )
+      ERROR_exit("Output dataset %s already exists!",DSET_HEADNAME(cset)) ;
 
    { double nb = (double)(xset->dblk->total_bytes) ;
      nb += (double)(nmask) * (double)(nvox) * sizeof(short) ;
      nb /= (1024.0*1024.0) ;
-     fprintf(stderr,
-       "++ Memory required = %.1f Mbytes for %d output sub-bricks\n",nb,nmask);
-     if( nb > 2000.0 ){
-       fprintf(stderr,"** ERROR: can't use more than 2000 Mbytes of memory!\n");
-       exit(1) ;
-     }
+     INFO_message(
+       "++ Memory required = %.1f Mbytes for %d output sub-bricks",nb,nmask);
+     if( nb > 2000.0 )
+       ERROR_exit("Can't use more than 2000 Mbytes of memory!");
    }
 
    tross_Make_History( "3dAutoTcorrelate" , argc,argv , cset ) ;
@@ -249,8 +246,7 @@ int main( int argc , char *argv[] )
 
    /* finito */
 
-
    DSET_write(cset) ;
-   fprintf(stderr,"++ Wrote output: %s\n",DSET_BRIKNAME(cset)) ;
+   WROTE_DSET(cset) ;
    exit(0) ;
 }

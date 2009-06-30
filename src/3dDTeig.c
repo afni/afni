@@ -250,7 +250,7 @@ int output_datum;
 
    THD_init_datablock_keywords( out_dset->dblk ) ;
    THD_init_datablock_stataux( out_dset->dblk ) ; /* for some reason, need to do this for 
-                                                    single brick NIFTI files */
+                                                     single brick NIFTI files */
  
    /* attach brick, factors and labels to new dataset using existing brick pointers */
    for(i=0;i<nbriks;i++) {
