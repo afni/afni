@@ -88,7 +88,7 @@ int main( int argc , char * argv[] )
 
       cpt = DSET_KEYWORDS(dset) ;
       if( cpt != NULL && cpt[0] != '\0' )
-         printf("Keywords:        %s\n" , cpt ) ;
+         printf("Keywords:        %.99s\n" , cpt ) ;
 
 #ifdef OMIT_DATASET_IDCODES
       if( strlen(dset->anat_parent_name) > 0 )
@@ -224,7 +224,7 @@ int main( int argc , char * argv[] )
 
          cpt = DSET_BRICK_KEYWORDS(dset,ival) ;
          if( cpt != NULL && cpt[0] != '\0' )
-            printf("     keywords = %s\n",cpt) ;
+            printf("     keywords = %.66s\n",cpt) ;
       }
 
       /** print out dataset global statistical parameters **/
