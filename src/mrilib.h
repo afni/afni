@@ -90,12 +90,22 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
   printf(                                                                          \
     "\n"                                                                           \
     " =========================================================================\n" \
-    "* This version of %s is compiled using OpenMP, a semi-automatic\n"            \
-    "   parallelizer software toolkit.  The number of CPU threads used will\n"     \
-    "   default to the maximum number on your system.  You can control this\n"     \
-    "   value by setting environment variable OMP_NUM_THREADS to some smaller\n"   \
-    "   value (including 1).  Un-setting OMP_NUM_THREADS resets OpenMP back\n"     \
-    "   to its default state of using all CPUs available.\n"                       \
+    "* This version of %s is compiled using OpenMP, a semi-\n"                     \
+    "   automatic parallelizer software toolkit, which splits the work across\n"   \
+    "   multiple CPUs/cores on the same shared memory computer.\n"                 \
+    "* For implementation details, please see\n"                                   \
+    "   http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                  \
+    "* The number of CPU threads used will default to the maximum number on\n"     \
+    "  your system.  You can control this value by setting environment variable\n" \
+    "  OMP_NUM_THREADS to some smaller value (including 1).\n"                     \
+    "* Un-setting OMP_NUM_THREADS resets OpenMP back to its default state of\n"    \
+    "  using all CPUs available.\n"                                                \
+    "* You must set OMP_NUM_THREADS in the shell BEFORE running the program,\n"    \
+    "  since OpenMP queries this variable before the program actually is started\n"\
+    "  -- you can't usefully set this variable in your ~/.afnirc file or on the\n" \
+    "  command line with the '-D' option.\n"                                       \
+    "* In my limited experience with OpenMP, using more than 4 threads doesn't\n"  \
+    "  give much gain, even on an 8 CPU system.\n"                                 \
     "* The number of CPUs on this particular computer system is %d.\n"             \
     "%s\n"                                                                         \
     , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \
