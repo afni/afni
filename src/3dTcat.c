@@ -680,14 +680,18 @@ int main( int argc , char *argv[] )
          sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
             EDIT_dset_items( new_dset, ADN_brick_label_one+ivout, buf, ADN_none );
 
+#if 0
             sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;
             EDIT_dset_items(
               new_dset, ADN_brick_keywords_replace_one+ivout, buf, ADN_none ) ;
+#endif
 
             EDIT_dset_items(
               new_dset ,
                 ADN_brick_fac_one            +ivout, DSET_BRICK_FACTOR(dset,jv),
+#if 0
                 ADN_brick_keywords_append_one+ivout, DSET_BRICK_KEYWORDS(dset,jv),
+#endif
               ADN_none ) ;
 
             /** possibly write statistical parameters for this sub-brick **/

@@ -34,7 +34,7 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
                *PP="[P]" , *AA="[A]" ,
                *SS="[S]" , *II="[I]" , *ZZ="   " ;
    char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop , *cpt ;
-   char str[256], soblq[256] ;
+   char str[1024], soblq[1024] ;
    int nstr , obliquity;
 
    char *outbuf = NULL ;
@@ -143,9 +143,19 @@ ENTRY("THD_dataset_info") ;
    /*-- keywords --*/
 
    if( verbose >= 0 ){
-    cpt = DSET_KEYWORDS(dset) ;
-    if( cpt != NULL && cpt[0] != '\0' )
-       outbuf = THD_zzprintf(outbuf,"Keywords:        %s\n" , cpt ) ;
+     cpt = DSET_KEYWORDS(dset) ;
+     if( cpt != NULL && cpt[0] != '\0' ){
+       int j = strlen(cpt) ;
+       if( j < 99 ){
+         outbuf = THD_zzprintf(outbuf,"Keywords:        %s\n" , cpt ) ;
+       } else {
+        int k ;
+        outbuf = THD_zzprintf(outbuf,"\n----- KEYWORDS -----\n") ;
+        for( k=0 ; k < j ; k += ZMAX )
+          outbuf = THD_zzprintf(outbuf,SZMAX,cpt+k) ;
+         outbuf = THD_zzprintf(outbuf,"\n") ;
+       }
+     }
    }
 
    /*-- idcodes --*/
@@ -303,7 +313,7 @@ ENTRY("THD_dataset_info") ;
 
    for( ival=0 ; ival < nval_per ; ival++ ){
 
-     STATUS("ival") ;
+     STATUS("ival a") ;
 
       sprintf( str ,
                "  -- At sub-brick #%d '%s' datum type is %s" ,
@@ -332,12 +342,14 @@ ENTRY("THD_dataset_info") ;
       } else {
          sprintf( str+nstr , "\n") ;
       }
+     STATUS("ival b") ;
       outbuf = THD_zzprintf(outbuf,"%s",str) ;
 
       /** 30 Nov 1997: print sub-brick stat params **/
 
       kv = DSET_BRICK_STATCODE(dset,ival) ;
       if( FUNC_IS_STAT(kv) ){
+     STATUS("ival c") ;
          outbuf = THD_zzprintf(outbuf,"     statcode = %s",FUNC_prefixstr[kv] ) ;
          npar = FUNC_need_stat_aux[kv] ;
          if( npar > 0 ){
@@ -346,11 +358,15 @@ ENTRY("THD_dataset_info") ;
                outbuf = THD_zzprintf(outbuf," %g",DSET_BRICK_STATPAR(dset,ival,kv)) ;
          }
          outbuf = THD_zzprintf(outbuf,"\n") ;
+     STATUS("ival d") ;
       }
 
       cpt = DSET_BRICK_KEYWORDS(dset,ival) ;
-      if( cpt != NULL && cpt[0] != '\0' )
-         outbuf = THD_zzprintf(outbuf,"     keywords = %s\n",cpt) ;
+      if( cpt != NULL && cpt[0] != '\0' ){
+        outbuf = THD_zzprintf(outbuf,"     keywords = %.66s\n",cpt) ;
+      }
+
+     STATUS("ival z") ;
    }
    if( verbose < 0 && nval_per < dset->dblk->nvals )  /* 21 Sep 2007 */
      outbuf = THD_zzprintf(outbuf,
@@ -418,6 +434,8 @@ char * THD_zzprintf( char *sss , char *fmt , ... )
    int   nzz , nsbuf ;
    va_list vararg_ptr ;
 
+ENTRY("THD_zzprintf") ;
+
    va_start( vararg_ptr , fmt ) ;
 
    if( sbuf == NULL ) sbuf = AFMALL(char, ZMAX+90) ;
@@ -425,7 +443,7 @@ char * THD_zzprintf( char *sss , char *fmt , ... )
    sbuf[0] = '\0' ;
    vsprintf( sbuf , fmt , vararg_ptr ) ;
    nsbuf = strlen(sbuf) ;
-   if( nsbuf == 0 ) return sss ;
+   if( nsbuf == 0 ) RETURN(sss) ;
 
    if( sss == NULL ){
       zz = (char *) malloc( sizeof(char)*(nsbuf+2) ) ;
@@ -436,5 +454,5 @@ char * THD_zzprintf( char *sss , char *fmt , ... )
       strcpy(zz,sss) ; strcat(zz,sbuf) ;
       free(sss) ;
    }
-   return zz ;
+   RETURN(zz) ;
 }
