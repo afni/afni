@@ -111,6 +111,8 @@ int main( int argc , char *argv[] )
              "   registration!\n"
              "   [Hint: open 2 AFNI controllers, and turn Time Lock on.]\n"
             ) ;
+
+      PRINT_AFNI_OMP_USAGE("3dDespike",NULL) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 

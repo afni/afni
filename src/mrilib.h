@@ -90,7 +90,7 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
   printf(                                                                          \
     "\n"                                                                           \
     " =========================================================================\n" \
-    "* This version of %s is compiled using OpenMP, a semi-\n"                     \
+    "* This binary version of %s is compiled using OpenMP, a semi-\n"              \
     "   automatic parallelizer software toolkit, which splits the work across\n"   \
     "   multiple CPUs/cores on the same shared memory computer.\n"                 \
     "* For implementation details, please see\n"                                   \
@@ -111,7 +111,20 @@ extern AFD_dicom_header **MRILIB_dicom_header ;
     , (pnam) , omp_get_num_procs() , (extra==NULL) ? "\0" : extra                  \
   )
 #else
-# define PRINT_AFNI_OMP_USAGE(pnam,extra) /*nada*/
+# define PRINT_AFNI_OMP_USAGE(pnam,extra)                                          \
+  printf(                                                                          \
+    "\n"                                                                           \
+    " =========================================================================\n" \
+    "* This binary version of %s is NOT compiled using OpenMP, a\n"                \
+    "   semi-automatic parallelizer software toolkit, which splits the work\n"     \
+    "   across multiple CPUs/cores on the same shared memory computer.\n"          \
+    "* However, the source code is modified for OpenMP, and can be compiled\n"     \
+    "   with an OpenMP-capable compiler, such as gcc 4.2, Intel's icc, and\n"      \
+    "   Sun Studio.\n"                                                             \
+    "* If you wish to compile this program with OpenMP, see the man page for\n"    \
+    "   your C compiler, and (if needed) consult the AFNI message board, and\n"    \
+    "    http://afni.nimh.nih.gov/pub/dist/doc/misc/OpenMP.html\n"                 \
+    , (pnam) )
 #endif
 
 /*----------------------------------------------------------------------------*/

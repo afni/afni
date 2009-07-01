@@ -154,23 +154,8 @@ int main( int argc , char *argv[] )
        "-- For Kyle, AKA the new Pat (if such a thing were possible).\n"
        "-- RWCox - August 2008.\n"
             ) ;
-#ifdef USE_OMP
-     printf(
-       "\n"
-       " *************************************************************************\n"
-       "* This version of 3dTcorrMap is compiled using OpenMP, a semi-automatic\n"
-       "   parallelizer software toolkit.  The number of CPU threads used will\n"
-       "   default to the maximum number on your system.  You can control this\n"
-       "   value by setting environment variable OMP_NUM_THREADS to some smaller\n"
-       "   value (including 1).  Setting OMP_NUM_THREADS to 0 resets OpenMP back\n"
-       "   to its default state of using all CPUs available.\n"
-       "* OpenMP may or may not speed up the program significantly.\n"
-       "* The number of CPUs on this particular computer system is %d.\n"
-       " *************************************************************************\n"
-       , omp_get_num_procs()
-     ) ;
-#endif
 
+      PRINT_AFNI_OMP_USAGE("3dTcorrMap",NULL) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
