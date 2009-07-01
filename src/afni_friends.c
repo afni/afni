@@ -412,7 +412,7 @@ static mday holiday[] = {
    {JUN,26,"Malagasy Republic Independence Day"                      } ,
    {JUN,27,"Djibouti Independence Day"                               } ,
 
-   {JUL, 1,"Canada Day"                                              } ,  /* WW */
+   {JUL, 1,"Canada Day -- O Canada!"                                 } ,  /* WW */
    {JUL, 1,"Anniversary of Battle of the Somme"                      } ,
    {JUL, 1,"Gottfried Wilhelm Leibniz's birthday"                    } ,
    {JUL, 1,"Burundi Independence Day"                                } ,
