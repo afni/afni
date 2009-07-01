@@ -1232,12 +1232,18 @@ cases, but please verify this.
 Variable: AFNI_START_SMALL
 --------------------------
 If this YES/NO variable is set to YES, then when AFNI starts, it will
-look for the smallest datasets in the first session, and choose these
+look for the smallest dataset in the first session, and choose this
 as its starting point.  This can be useful if you also use the layout
 feature to pop open an image window on startup; in that case, if the
 default starting dataset (the first alphabetical) is huge, you won't
 see anything while the program reads all of into memory before displaying
 the first image.
+
+The old behavior of this variable was to set the smallest dataset
+marked as 'Anatomical' to be the underlay, and the smallest dataset
+marked as 'Functional' to be the overlay.  The new behavior just
+sets both the underlay and overlay to be the smallest dataset.
+If you want the old behavior, set this variable to the string 'OLD'.
 
 ---------------------------
 Variable: AFNI_MENU_COLSIZE
