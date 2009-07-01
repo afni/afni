@@ -1233,12 +1233,18 @@ static char * readme_env[] = {
    "Variable: AFNI_START_SMALL\n" ,
    "--------------------------\n" ,
    "If this YES/NO variable is set to YES, then when AFNI starts, it will\n" ,
-   "look for the smallest datasets in the first session, and choose these\n" ,
+   "look for the smallest dataset in the first session, and choose this\n" ,
    "as its starting point.  This can be useful if you also use the layout\n" ,
    "feature to pop open an image window on startup; in that case, if the\n" ,
    "default starting dataset (the first alphabetical) is huge, you won't\n" ,
    "see anything while the program reads all of into memory before displaying\n" ,
    "the first image.\n" ,
+   "\n" ,
+   "The old behavior of this variable was to set the smallest dataset\n" ,
+   "marked as 'Anatomical' to be the underlay, and the smallest dataset\n" ,
+   "marked as 'Functional' to be the overlay.  The new behavior just\n" ,
+   "sets both the underlay and overlay to be the smallest dataset.\n" ,
+   "If you want the old behavior, set this variable to the string 'OLD'.\n" ,
    "\n" ,
    "---------------------------\n" ,
    "Variable: AFNI_MENU_COLSIZE\n" ,
@@ -2953,4 +2959,4 @@ static char * readme_env[] = {
    "behavior, set this variable to YES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_readme_env 2953
+#define NUM_readme_env 2959

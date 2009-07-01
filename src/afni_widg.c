@@ -5243,8 +5243,8 @@ static float DSET_bigositiness( THD_3dim_dataset *dset ) /* 07 Dec 2001 */
 
 void AFNI_initialize_controller( Three_D_View *im3d )
 {
-   int ii ;
-   char ttl[16] ;
+   int ii , sss=0 ;
+   char ttl[16] , *eee ;
 
 ENTRY("AFNI_initialize_controller") ;
 
@@ -5275,33 +5275,42 @@ ENTRY("AFNI_initialize_controller") ;
 
    /* 07 Dec 2001: find "smallest" datasets for startup */
 
-   if( im3d->brand_new && AFNI_yesenv("AFNI_START_SMALL") ){
+   eee = my_getenv("AFNI_START_SMALL") ;
+   if( eee != NULL ){
+     char ccc = toupper(eee[0]) ;
+     sss = (ccc == 'Y') ? 1
+          :(ccc == 'O') ? 2 : 0 ;
+   }
+   if( im3d->brand_new && sss ){
      int jj,jb=0,qb=0 ; float bb,mm ;
-#if 0
-     for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
-       if( ISANAT(im3d->ss_now->dsset[jj][0]) ){
-         bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
-         if( bb > 0 && bb < mm ){ mm = bb; jb = jj; }
-       }
-     }
-     if( mm < 1.e+33 ) im3d->vinfo->anat_num = qb = jb ;
+     switch( sss ){
+       case 2:       /* the OLD way */
+         for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
+           if( ISANAT(im3d->ss_now->dsset[jj][0]) ){
+             bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
+             if( bb > 0 && bb < mm ){ mm = bb; jb = jj; }
+           }
+         }
+         if( mm < 1.e+33 ) im3d->vinfo->anat_num = qb = jb ;
+         for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
+           if( ISFUNC(im3d->ss_now->dsset[jj][0]) ){
+             bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
+             if( jj != qb && bb > 0 && bb < mm ){ mm = bb; jb = jj; }
+           }
+         }
+         if( mm < 1.e+33 ) im3d->vinfo->func_num = jb ;
+       break ;
 
-     for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
-       if( ISFUNC(im3d->ss_now->dsset[jj][0]) ){
-         bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
-         if( jj != qb && bb > 0 && bb < mm ){ mm = bb; jb = jj; }
-       }
+       case 1:
+         for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
+           if( ISVALID_DSET(im3d->ss_now->dsset[jj][0]) ){
+             bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
+             if( bb > 0.0f && bb < mm ){ mm = bb; jb = jj; }
+           }
+         }
+         if( mm < 1.e+33 ) im3d->vinfo->func_num = im3d->vinfo->anat_num = jb ;
+       break ;
      }
-     if( mm < 1.e+33 ) im3d->vinfo->func_num = jb ;
-#else
-     for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
-       if( ISVALID_DSET(im3d->ss_now->dsset[jj][0]) ){
-         bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
-         if( bb > 0.0f && bb < mm ){ mm = bb; jb = jj; }
-       }
-     }
-     if( mm < 1.e+33 ) im3d->vinfo->func_num = im3d->vinfo->anat_num = jb ;
-#endif
 
    } else if( im3d->brand_new ){  /* 29 Jul 2003 */
      int jj ;

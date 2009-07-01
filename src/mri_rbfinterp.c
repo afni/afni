@@ -489,8 +489,7 @@ ENTRY("RBF_setup_kranges") ;
        xk = xt-xx[jj]; rr =xk*xk; if( rr >= rqq ) continue;
        yk = yt-yy[jj]; rr+=yk*yk; if( rr >= rqq ) continue;
        zk = zt-zz[jj]; rr+=zk*zk; if( rr >= rqq ) continue;
-       ktop = jj ;
-       if( kbot < 0 ) kbot = jj ;
+       ktop = jj ; if( kbot < 0 ) kbot = jj ;
      }
      if( kbot >= 0 ){
        kfirst[ii] = (RBFKINT)kbot ;
