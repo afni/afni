@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 1 , JUL , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Modify AFNI_START_SMALL to pick smallest dataset of all." ,
+   "Rather than the smallest 'anat' and smallest 'func', separately." } ,
+
  { 30 , JUN , 2009 , RWC , "various 3D programs" , MICRO , TYPE_BUG_FIX ,
    "Remove keywords propagation stuff" ,
    "e.g., 3dTcat and 3dbucket\n"
