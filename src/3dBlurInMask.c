@@ -76,13 +76,8 @@ int main( int argc , char *argv[] )
       " * The minimum number of voxels in the mask is %d\n",MASK_MIN) ;
      printf(
       " * Isolated voxels will be removed from the mask!\n") ;
-#ifdef USE_OMP
-     printf(
-      " * This version of the program is compiled with OpenMP support, which\n"
-      "     will multi-thread the blurring across sub-bricks, for speed.\n"
-      " * To disable multi-threading, 'setenv OMP_NUM_THREADS 1'\n"
-     ) ;
-#endif
+
+     PRINT_AFNI_OMP_USAGE("3dBlurInMask",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 

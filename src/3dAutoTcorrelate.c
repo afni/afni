@@ -64,7 +64,7 @@ int main( int argc , char *argv[] )
              "\n"
              "-- RWCox - Jan 31 2002\n"
             ) ;
-      PRINT_AFNI_OMP_USAGE("3dAutoTcorrelate",NULL) ;
+      /** PRINT_AFNI_OMP_USAGE("3dAutoTcorrelate",NULL) ; **/
       PRINT_COMPILE_DATE ; exit(0) ;
    }
 
