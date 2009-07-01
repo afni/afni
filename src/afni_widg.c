@@ -5199,8 +5199,8 @@ ENTRY("new_AFNI_controller") ;
    /* set up which datasets to deal with (defaults) */
 
    im3d->vinfo->sess_num = 0 ;  /* 1st session */
-   im3d->vinfo->anat_num = 0 ;  /* 1st anatomy */
-   im3d->vinfo->func_num = 0 ;  /* 1st function */
+   im3d->vinfo->anat_num = 0 ;  /* 1st dataset */
+   im3d->vinfo->func_num = 0 ;  /* 1st dataset */
 
    AFNI_make_widgets( im3d ) ;  /* rest of the widgets */
 
@@ -5232,7 +5232,7 @@ static float DSET_bigness( THD_3dim_dataset *dset ) /* 07 Dec 2001 */
        * DSET_NVALS(dset)
        * mri_datum_size(DSET_BRICK_TYPE(dset,0)) ;
 
-   if( DSET_COMPRESSED(dset) || DSET_IS_MINC(dset) ) bb *= 1.5 ;
+   if( DSET_COMPRESSED(dset) || DSET_IS_MINC(dset) ) bb *= 1.666f ;
 
    return bb ;
 }
@@ -5251,17 +5251,12 @@ ENTRY("AFNI_initialize_controller") ;
    /*--- check for various criminal behavior;
          the sentence for anything illegal is death ---*/
 
-   if( ! IM3D_VALID(im3d) ){
-      fprintf(stderr,
-              "\n** AFNI_initialize_controller: invalid input **\n") ;
-      EXIT(1) ;
-   }
+   if( ! IM3D_VALID(im3d) )
+     ERROR_exit("\n** AFNI_initialize_controller: invalid input **\n") ;
 
-   if( GLOBAL_library.sslist == NULL ){  /* any data to use? */
-      fprintf(stderr,
+   if( GLOBAL_library.sslist == NULL )  /* any data to use? */
+      ERROR_exit(
               "\n** AFNI_initialize_controller: no sessions to view **\n") ;
-      EXIT(1) ;
-   }
 
    im3d->ss_now = GLOBAL_library.sslist->ssar[ im3d->vinfo->sess_num ] ;
 
@@ -5273,17 +5268,16 @@ ENTRY("AFNI_initialize_controller") ;
 
       im3d->ss_now = GLOBAL_library.sslist->ssar[ im3d->vinfo->sess_num ] ;
 
-      if( im3d->ss_now == NULL ){  /* still no data? */
-        fprintf(stderr,
+      if( im3d->ss_now == NULL )  /* still no data? */
+        ERROR_exit(
                 "\n** AFNI_initialize_controller: illegal initial session **\n") ;
-        EXIT(1) ;
-      }
    }
 
-   /* 07 Dec 2001: find "smallest" datasets */
+   /* 07 Dec 2001: find "smallest" datasets for startup */
 
    if( im3d->brand_new && AFNI_yesenv("AFNI_START_SMALL") ){
      int jj,jb=0,qb=0 ; float bb,mm ;
+#if 0
      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
        if( ISANAT(im3d->ss_now->dsset[jj][0]) ){
          bb = DSET_bigness(im3d->ss_now->dsset[jj][0]) ;
@@ -5299,6 +5293,15 @@ ENTRY("AFNI_initialize_controller") ;
        }
      }
      if( mm < 1.e+33 ) im3d->vinfo->func_num = jb ;
+#else
+     for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
+       if( ISVALID_DSET(im3d->ss_now->dsset[jj][0]) ){
+         bb = DSET_bigness(im3d->ss_now->dsset[jj][0]) ;
+         if( bb > 0.0f && bb < mm ){ mm = bb; jb = jj; }
+       }
+     }
+     if( mm < 1.e+33 ) im3d->vinfo->func_num = im3d->vinfo->anat_num = jb ;
+#endif
 
    } else if( im3d->brand_new ){  /* 29 Jul 2003 */
      int jj ;
@@ -5320,21 +5323,21 @@ ENTRY("AFNI_initialize_controller") ;
         initial setup (to allow for input of datasets w/o +orig view) */
 
    for( ii=0 ; ii <= LAST_VIEW_TYPE ; ii++ )
-      if( ISVALID_3DIM_DATASET(im3d->anat_dset[ii]) ) break ;
+      if( ISVALID_DSET(im3d->anat_dset[ii]) ) break ;
 
-   if( ii > LAST_VIEW_TYPE ){
-      fprintf(stderr,"\n** AFNI_initialize_controller: cannot initialize view **\n") ;
-      EXIT(1) ;
-   }
+   if( ii > LAST_VIEW_TYPE )
+      ERROR_exit("\n   AFNI_initialize_controller: cannot initialize view **\n") ;
+
    im3d->vinfo->view_type = ii ;  /* first view with a good anat */
 
    /* now find a function that can be viewed here */
 
-   if( !ISVALID_3DIM_DATASET(im3d->ss_now->dsset[im3d->vinfo->func_num][ii]) ){
-      for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ )
-         if(ISVALID_3DIM_DATASET(im3d->ss_now->dsset[ii][im3d->vinfo->view_type])){
-            im3d->vinfo->func_num = ii ; break ;
-         }
+   if( !ISVALID_DSET(im3d->ss_now->dsset[im3d->vinfo->func_num][ii]) ){
+     for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
+       if(ISVALID_DSET(im3d->ss_now->dsset[ii][im3d->vinfo->view_type])){
+          im3d->vinfo->func_num = ii ; break ;
+       }
+     }
    }
 
    for( ii=0 ; ii <= LAST_VIEW_TYPE ; ii++ )
