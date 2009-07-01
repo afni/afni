@@ -5222,7 +5222,7 @@ ENTRY("new_AFNI_controller") ;
 
 /*---------------------------------------------------------------*/
 
-static float DSET_bigness( THD_3dim_dataset *dset ) /* 07 Dec 2001 */
+static float DSET_bigositiness( THD_3dim_dataset *dset ) /* 07 Dec 2001 */
 {
    float bb ;
 
@@ -5280,7 +5280,7 @@ ENTRY("AFNI_initialize_controller") ;
 #if 0
      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
        if( ISANAT(im3d->ss_now->dsset[jj][0]) ){
-         bb = DSET_bigness(im3d->ss_now->dsset[jj][0]) ;
+         bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
          if( bb > 0 && bb < mm ){ mm = bb; jb = jj; }
        }
      }
@@ -5288,7 +5288,7 @@ ENTRY("AFNI_initialize_controller") ;
 
      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
        if( ISFUNC(im3d->ss_now->dsset[jj][0]) ){
-         bb = DSET_bigness(im3d->ss_now->dsset[jj][0]) ;
+         bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
          if( jj != qb && bb > 0 && bb < mm ){ mm = bb; jb = jj; }
        }
      }
@@ -5296,7 +5296,7 @@ ENTRY("AFNI_initialize_controller") ;
 #else
      for( mm=1.e+33,jb=jj=0 ; jj < im3d->ss_now->num_dsset ; jj++ ){
        if( ISVALID_DSET(im3d->ss_now->dsset[jj][0]) ){
-         bb = DSET_bigness(im3d->ss_now->dsset[jj][0]) ;
+         bb = DSET_bigositiness(im3d->ss_now->dsset[jj][0]) ;
          if( bb > 0.0f && bb < mm ){ mm = bb; jb = jj; }
        }
      }
