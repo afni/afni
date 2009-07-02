@@ -4511,6 +4511,10 @@ extern void mri_3dalign_cleanup( MRI_3dalign_basis * ) ;
 
 extern void mri_3dalign_initvals( float,float,float,float,float,float ) ;
 
+extern MRI_IMARR * mri_3dalign_oneplus( MRI_3dalign_basis * , MRI_IMARR * ,
+                                        float *, float *, float *,
+                                        float *, float *, float * ) ;
+
 /*---------------------------------------------------------------------*/
 
   /*-- see mri_warp3D_align.c for these routines --*/
