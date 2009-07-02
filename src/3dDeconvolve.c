@@ -3120,7 +3120,7 @@ ENTRY("read_input_data") ;
 
       for (is = 0;  is < num_stimts;  is++)
       {
-        if( basis_stim[is] != NULL ) continue ;  /* 11 Aug 2004: skip thisn */
+        if( basis_stim[is] != NULL ) continue ;  /* 11 Aug 2004: skip this'n */
 
         if( !option_data->slice_base[is] ){  /**** ordinary input file ****/
 
@@ -4427,6 +4427,11 @@ void check_for_valid_inputs
           }
           stim_length[is] = nlen ; nerr++ ;
 #endif
+      } else if( stim_length[is] > nt*nptr[is] ){ /* 02 Jul 2009 */
+
+        WARNING_message(
+          "-stim_file %d: file length is %d, longer than expected %d (from dataset)",
+          is+1 , stim_length[is] , nt*nptr[is] ) ;
       }
     }
 #ifdef ALLOW_EXTEND
