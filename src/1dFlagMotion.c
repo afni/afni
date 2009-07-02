@@ -45,14 +45,30 @@ int main( int argc , char *argv[] )
      printf(
      "Usage: 1dFlagMotion [options] MotionParamsFile \n"
      "\n"
-     "      Produces an list of time points that have more than a \n"                  
+     "   Produces an list of time points that have more than a \n"                  
      "   user specified amount of motion relative to the previous \n"
      "   time point. \n " 
      "Options:\n"
      "  -MaxTrans    maximum translation allowed in any direction \n"
-     " 			defaults to 1.5mm \n"
+     "                 [defaults to 1.5mm]\n"
      "  -MaxRot      maximum rotation allowed in any direction \n "
-     "			defaults to 1.25 degrees\n"
+     "                 [defaults to 1.25 degrees]\n"
+     "\n"
+     "** The input file must have EXACTLY 6 columns of input, in the order:\n"
+     "     roll pitch yaw delta-SI delta-LR delta-AP\n"
+     "   (angles in degrees first, then translations in mm)\n"
+     "\n"
+     "** The program does NOT accept column '[...]' selectors on the input\n"
+     "   file name, or comments in the file itself.  As a palliative, if the\n"
+     "   input file name is '-', then the input numbers are read from stdin,\n"
+     "   so you could do something like the following:\n"
+     "     1dcat mfile.1D'[1..6]' | 1dFlagMotion -\n"
+     "   e.g., to work with the output from 3dvolreg's '-dfile' option\n"
+     "   (where the first column is just the time index).\n"
+     "\n"
+     "** The output is in a 1D format, with comments on '#' comment lines,\n"
+     "   and the list of points exceeding the motion bounds listed being\n"
+     "   intercalated on normal (non-comment) lines.\n"
      ) ;
 
      PRINT_COMPILE_DATE ; exit(0) ;
@@ -61,7 +77,7 @@ int main( int argc , char *argv[] )
 /*** read arguments ***/
 
    narg      = 1 ;	/*  start with the first argument */
-   while( narg < argc && argv[narg][0] == '-') { 
+   while( narg < argc && argv[narg][0] == '-' && argv[narg][1] != '\0' ) { 
 
    /*** switches ***/
 
@@ -82,6 +98,8 @@ int main( int argc , char *argv[] )
  	 }
          narg++; continue; 
       }
+
+    ERROR_exit("Unknown option: '%s'",argv[narg]) ;
   } 
   
   /* open input file */
@@ -94,7 +112,7 @@ int main( int argc , char *argv[] )
   printf("#Max Translation in mm: %f\n", MaxTrans);
   printf("#Max Rotation in Degrees: %f\n", MaxRot);
   
-  #if 0  /* ZSS: reading 1D file tools. 
+#if 0  /* ZSS: reading 1D file tools. 
                   Some 1D files have comments and evil formatting gmmicks */
   {  
    float *far=NULL, *fff=NULL;
@@ -161,12 +179,12 @@ int main( int argc , char *argv[] )
    }
    if (im) mri_free(im); im = NULL; far = NULL; 
   } 
-  #else 
-  fp=fopen(argv[narg], "r");
-  
-  if(fp==NULL) {
-    fprintf( stderr, "Can't open motion params file! \n");
-    exit(1);
+#else 
+  if( strcmp(argv[narg],"-") == 0 ){
+    fp = stdin ;
+  } else {
+    fp = fopen(argv[narg], "r");
+    if(fp==NULL) ERROR_exit("Can't open motion params file!") ;
   } 
   
   /* start reading in motion params */ 
@@ -178,12 +196,12 @@ int main( int argc , char *argv[] )
   dL = (float *)malloc((imgcntr+1)*sizeof(float)); 
   dP = (float *)malloc((imgcntr+1)*sizeof(float)); 
 
-  ex=fscanf(fp, "%f %f %f %f %f %f ", &roll[imgcntr], &pitch[imgcntr], &yaw[imgcntr], &dS[imgcntr], &dL[imgcntr], &dP[imgcntr]);
-
+  ex = fscanf(fp, "%f %f %f %f %f %f",
+         &roll[imgcntr], &pitch[imgcntr], &yaw[imgcntr], &dS[imgcntr], &dL[imgcntr], &dP[imgcntr]);
 
   imgcntr=1;
 
-  while (ex != EOF) { 		/*  open loop to read in motion parameter file */ 
+  while (ex > 0 ) { 		/*  open loop to read in motion parameter file */ 
    
     roll = (float *)realloc( (void *)roll, (imgcntr+1)*sizeof(float)); 
     pitch = (float *)realloc( (void *)pitch, (imgcntr+1)*sizeof(float)); 
@@ -192,14 +210,14 @@ int main( int argc , char *argv[] )
     dL = (float *)realloc( (void *)dL, (imgcntr+1)*sizeof(float)); 
     dP = (float *)realloc( (void *)dP, (imgcntr+1)*sizeof(float)); 
 
-    ex = fscanf(fp, "%f %f %f %f %f %f ", &roll[imgcntr], &pitch[imgcntr], &yaw[imgcntr], &dS[imgcntr], &dL[imgcntr], &dP[imgcntr]);
-
+    ex = fscanf(fp, "%f %f %f %f %f %f",
+           &roll[imgcntr], &pitch[imgcntr], &yaw[imgcntr], &dS[imgcntr], &dL[imgcntr], &dP[imgcntr]);
 
     ++imgcntr;
 
   }
    nTR = imgcntr-1;
-   fclose(fp);
+   if( fp != stdin ) fclose(fp);
 
 #endif
    /* now do the checking */
