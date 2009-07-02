@@ -196,20 +196,23 @@ typedef struct {
 
    /*-- 07 Apr and 01 Aug 1998: real-time image registration stuff --*/
 
-   THD_3dim_dataset * reg_dset ;      /* registered dataset, if any */
-   MRI_2dalign_basis ** reg_2dbasis ; /* stuff for each slice */
+   THD_3dim_dataset *reg_dset ;       /* registered dataset, if any */
+   MRI_2dalign_basis **reg_2dbasis ;  /* stuff for each slice */
    int reg_base_index ;               /* where to start? */
    int reg_mode ;                     /* how to register? */
    int reg_status ;                   /* does AFNI know about this dataset yet? */
    int reg_nvol ;                     /* number of volumes registered so far */
    int reg_graph ;                    /* 17 Aug 1998: to graph, or not to graph */
    int reg_nest ;                     /* number of estimated parameters */
-   float * reg_tim , * reg_dx  ,
-         * reg_dy  , * reg_phi  ;     /* estimated motion parameters */
+   float *reg_tim , *reg_dx  ,
+         *reg_dy  , *reg_phi  ;       /* estimated motion parameters */
+
+   THD_3dim_dataset *reg_basis_dset ; /* 02 Jul 2009 */
+   int              *reg_basis_nvol ;
 
    /*--  Oct 1998: more stuff for 3D registration --*/
 
-   float * reg_dz , * reg_theta , * reg_psi , * reg_rep ;
+   float *reg_dz , *reg_theta , *reg_psi , *reg_rep ;
    MRI_3dalign_basis * reg_3dbasis ;
    int iha , ax1,hax1 , ax2,hax2 , ax3,hax3 ;
    MEM_topshell_data * mp ;
@@ -448,12 +451,12 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 #define RT_CHMER_L1NORM    2
 #define RT_CHMER_L2NORM    3
 #define N_RT_CHMER_MODES   4
-   static char *RT_chmer_strings[N_RT_CHMER_MODES] =
+   static char *RT_chmrg_strings[N_RT_CHMER_MODES] =
                 { "none" , "sum" , "L1 norm" , "L2 norm" } ;
-   static char *RT_chmer_labels[N_RT_CHMER_MODES] =
+   static char *RT_chmrg_labels[N_RT_CHMER_MODES] =
                 { "none" , "sum" , "L1" , "L2" } ;
-   static int RT_chmer_mode  = 0 ;
-   static int RT_chmer_datum = -1 ;
+   static int RT_chmrg_mode  = 0 ;
+   static int RT_chmrg_datum = -1 ;
 
    MRI_IMAGE * RT_mergerize( int , THD_3dim_dataset ** , int ) ;
 
@@ -732,10 +735,10 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /* channel merge modes: 02 Jun 2009 */
 
-   RT_chmer_mode = (int)AFNI_numenv("AFNI_REALTIME_CHMERMODE") ;
-   if( RT_chmer_mode < 0 || RT_chmer_mode >= N_RT_CHMER_MODES ) RT_chmer_mode = 0 ;
+   RT_chmrg_mode = (int)AFNI_numenv("AFNI_REALTIME_CHMERMODE") ;
+   if( RT_chmrg_mode < 0 || RT_chmrg_mode >= N_RT_CHMER_MODES ) RT_chmrg_mode = 0 ;
    PLUTO_add_string( plint , "ChannelMerge" , N_RT_CHMER_MODES ,
-                              RT_chmer_strings , RT_chmer_mode ) ;
+                              RT_chmrg_strings , RT_chmrg_mode ) ;
 
    /***** Register a work process *****/
 
@@ -873,8 +876,8 @@ char * RT_main( PLUGIN_interface * plint )
          RTdatamode = PLUTO_string_index( str , N_RT_WRITE_MODES,
                                                 RT_write_strings ) ;
          str           = PLUTO_get_string(plint) ;
-         RT_chmer_mode = PLUTO_string_index( str , N_RT_CHMER_MODES,
-                                                   RT_chmer_strings ) ;
+         RT_chmrg_mode = PLUTO_string_index( str , N_RT_CHMER_MODES,
+                                                   RT_chmrg_strings ) ;
          continue ;
       }
 
@@ -1707,6 +1710,9 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->reg_2dbasis    = NULL ;
    rtin->reg_status     = 0 ;        /* AFNI knows nothing. NOTHING.     */
    rtin->reg_nvol       = 0 ;        /* number volumes registered so far */
+
+   rtin->reg_basis_dset = NULL ;     /* 02 Jul 2009 */
+   rtin->reg_basis_nvol = NULL ;
 
    rtin->reg_nest  = 0 ;
    rtin->reg_tim   = (float *) malloc( sizeof(float) ) ;
@@ -3448,7 +3454,45 @@ void RT_start_dataset( RT_input * rtin )
       DSET_lock(rtin->dset[cc]) ;  /* 20 Mar 1998 */
    }
 
+   /*---- 02 Jun 2009: make a dataset for merger, if need be ----*/
+
+   if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) )
+     RT_chmrg_mode = 0 ;  /* disable merger */
+
+   if( RT_chmrg_mode > 0 ){
+     char qbuf[128] ; int mdatum=MRI_float ; /* default merge datum is float */
+
+     rtin->mrg_dset = EDIT_empty_copy( rtin->dset[0] ) ;
+     sprintf(qbuf,"plug_realtime: merger %s",RT_chmrg_strings[RT_chmrg_mode]) ;
+     tross_Append_History( rtin->mrg_dset , qbuf ) ;
+
+     strcpy(ccpr,npr) ; strcat(ccpr,"%mrg_") ;
+     strcat(ccpr,RT_chmrg_labels[RT_chmrg_mode]) ;
+     EDIT_dset_items( rtin->mrg_dset , ADN_prefix , ccpr , ADN_none ) ;
+     DSET_lock(rtin->mrg_dset) ;
+
+     if( rtin->datum == MRI_complex && RT_chmrg_mode == RT_CHMER_SUM )
+       mdatum = MRI_complex ;
+     EDIT_dset_items( rtin->mrg_dset , ADN_datum_all , mdatum , ADN_none ) ;
+     RT_chmrg_datum = mdatum ;
+
+     if( rtin->num_note > 0 && rtin->note != NULL ){
+       for( ii=0 ; ii < rtin->num_note ; ii++ )
+         tross_Add_Note( rtin->mrg_dset , rtin->note[ii] ) ;
+     }
+   }
+
    /*---- Make a dataset for registration, if need be ----*/
+
+   if( rtin->reg_mode != REGMODE_NONE ){       /* 02 Jul 2009 */
+     if( rtin->mrg_dset != NULL && RT_chmrg_datum == MRI_float ){
+       rtin->reg_basis_dset = rtin->mrg_dset ;
+       rtin->reg_basis_nvol = &(rtin->mrg_nvol) ;
+     } else {
+       rtin->reg_basis_dset = rtin->dset[0] ;
+       rtin->reg_basis_nvol = &(rtin->nvol[0]) ;
+     }
+   }
 
    if( REG_MAKE_DSET(rtin->reg_mode) &&
        ((rtin->dtype==DTYPE_2DZT) || (rtin->dtype==DTYPE_3DT)) ){
@@ -3477,34 +3521,6 @@ void RT_start_dataset( RT_input * rtin )
     *                                      *** 29 Jan 2004 [rickr] ***
     *  rtin->reg_graph_xr *= rtin->tr ;    *** scale to time units ***
     */
-
-   /*---- 02 Jun 2009: similarly, make a dataset for merger, if need be ----*/
-
-   if( rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) )
-     RT_chmer_mode = 0 ;  /* disable merger */
-
-   if( RT_chmer_mode > 0 ){
-     char qbuf[128] ; int mdatum=MRI_float ;
-
-     rtin->mrg_dset = EDIT_empty_copy( rtin->dset[0] ) ;
-     sprintf(qbuf,"plug_realtime: merger %s",RT_chmer_strings[RT_chmer_mode]) ;
-     tross_Append_History( rtin->mrg_dset , qbuf ) ;
-
-     strcpy(ccpr,npr) ; strcat(ccpr,"%mrg_") ;
-     strcat(ccpr,RT_chmer_labels[RT_chmer_mode]) ;
-     EDIT_dset_items( rtin->mrg_dset , ADN_prefix , ccpr , ADN_none ) ;
-     DSET_lock(rtin->mrg_dset) ;
-
-     if( rtin->datum == MRI_complex && RT_chmer_mode == RT_CHMER_SUM )
-       mdatum = MRI_complex ;
-     EDIT_dset_items( rtin->mrg_dset , ADN_datum_all , mdatum , ADN_none ) ;
-     RT_chmer_datum = mdatum ;
-
-     if( rtin->num_note > 0 && rtin->note != NULL ){  /* 01 Oct 2002 */
-       for( ii=0 ; ii < rtin->num_note ; ii++ )
-         tross_Add_Note( rtin->mrg_dset , rtin->note[ii] ) ;
-     }
-   }
 
    /***********************************************/
    /** now prepare space for incoming image data **/
@@ -3892,7 +3908,7 @@ void RT_process_image( RT_input * rtin )
       /** 02 Jun 2009: merger operations?
                        if have completed a full set of channels, that is **/
 
-      if( cc+1 == rtin->num_chan && RT_chmer_mode > 0 ){
+      if( cc+1 == rtin->num_chan && RT_chmrg_mode > 0 ){
         int iv = rtin->nvol[cc]-1 ;  /* sub-brick index */
         MRI_IMAGE *mrgim ;
 
@@ -4138,7 +4154,7 @@ void RT_tell_afni( RT_input *rtin , int mode )
      if( ISVALID_DSET(rtin->mrg_dset) ){
        sprintf( zbuf ,
                 " Merger%4.4s: dataset %s has %d sub-bricks\n" ,
-                RT_chmer_labels[RT_chmer_mode] ,
+                RT_chmrg_labels[RT_chmrg_mode] ,
                 DSET_FILECODE(rtin->mrg_dset) , DSET_NVALS(rtin->mrg_dset) ) ;
        strcat( qbuf , zbuf ) ; qq++ ;
      }
@@ -4980,7 +4996,7 @@ void RT_registration_2D_onevol( RT_input * rtin , int tt )
    Called when the user kills the realtime graph of motion parameters
 -----------------------------------------------------------------------------*/
 
-void MTD_killfunc( MEM_topshell_data * mp )
+void MTD_killfunc( MEM_topshell_data *mp )
 {
    /* if mp is for active input, then set the active one to nada */
 
@@ -5000,7 +5016,7 @@ void MTD_killfunc( MEM_topshell_data * mp )
   Do pieces of 3D registration during realtime.
 -----------------------------------------------------------------------------*/
 
-void RT_registration_3D_realtime( RT_input * rtin )
+void RT_registration_3D_realtime( RT_input *rtin )
 {
    int tt , ntt , ttbot ;
 
@@ -5272,10 +5288,10 @@ void RT_registration_3D_close( RT_input * rtin )
 #  define R2DFAC (180.0/PI)
 #endif
 
-void RT_registration_3D_onevol( RT_input * rtin , int tt )
+void RT_registration_3D_onevol( RT_input *rtin , int tt )
 {
-   MRI_IMAGE * rim , * qim ;
-   char * qar ;
+   MRI_IMAGE *rim , *qim ;
+   char *qar ;
    float dx,dy,dz , roll,pitch,yaw , ddx=0.0,ddy=0.0,ddz=0.0 ;
    int   nest ;
 
@@ -6061,12 +6077,12 @@ MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
    /* make output image/array */
 
    nvox  = DSET_NVOX(ds[0]) ;
-   mrgim = mri_new_conforming( DSET_BRICK(ds[0],iv) , RT_chmer_datum ) ;
+   mrgim = mri_new_conforming( DSET_BRICK(ds[0],iv) , RT_chmrg_datum ) ;
    if( mrgim == NULL ) return NULL ;  /* should never happen */
 
    /* get pointer to output array */
 
-   switch( RT_chmer_datum ){
+   switch( RT_chmrg_datum ){
      default: mri_free(mrgim) ; return NULL ; /* should never happen */
      case MRI_float:   fmar = MRI_FLOAT_PTR  (mrgim) ; break ;
      case MRI_complex: cmar = MRI_COMPLEX_PTR(mrgim) ; break ;
@@ -6074,7 +6090,7 @@ MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
 
    /*** do the mergerizing ***/
 
-   switch( RT_chmer_mode ){
+   switch( RT_chmrg_mode ){
 
      default: mri_free(mrgim) ; return NULL ; /* should never happen */
 
