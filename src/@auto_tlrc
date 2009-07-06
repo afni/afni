@@ -573,7 +573,13 @@ AUTO_TLRC_MODE:
          goto END
       endif
       #check for convergence
-      set res = "`cat ${ns_pref}_WarpDrive.log | grep 'RMS\[0\]'`"
+      # this one fails when there is a # in the name! 
+          #set res = "`cat ${ns_pref}_WarpDrive.log | grep 'RMS\[0\]'`"
+      # this should do it:
+         cat "${ns_pref}_WarpDrive.log" > ___cat.tmp
+         set res = "`grep 'RMS\[0\]' ___cat.tmp`"
+         rm -f ___cat.tmp >& /dev/null 
+
       echo "$res"
       set rms_i = `echo "$res" | cut -d ' ' -f3`
       set rms_f = `echo "$res" | cut -d ' ' -f4`

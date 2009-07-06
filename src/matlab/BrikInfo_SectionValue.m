@@ -41,8 +41,12 @@ err = 1;
 	
 	N_BRIKinfo = length(BRIKinfo);
 
-	itmp = findstr (BRIKinfo, sSection);
-	
+	%itmp = findstr (BRIKinfo, sSection); This fails if sSection appears in places
+	%like History note and history note appears first.
+   %Nick OOsterhof suggested the following fix:
+   htmp = regexp (BRIKinfo, ['name\s*=\s*' sSection]);
+   if (isempty(htmp) | length(htmp) > 1), v = []; return; end
+   itmp = findstr(BRIKinfo(htmp:N_BRIKinfo),sSection)+htmp-1;
 	if (isempty(itmp)), v = []; return; end
 	
 	%findout where this section ends
