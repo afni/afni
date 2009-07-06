@@ -249,26 +249,61 @@ if (is1D), % 1D land
    return;
 end
 
-if (isNIFTI),
-   [St, xtr] = RemoveNiftiExtension(BrikName); 
-   NiftiPref = St;          
-   %create a BRIK version
-   otmp = sprintf('./____tmp_%s', St);
-   stmp = sprintf('3dcopy %s %s', BrikName, otmp);
-   [us, uw] = unix(stmp);
-   if (us),
-      ErrMessage = sprintf ('%s: Failed to create afni brick:\n%s',...
-                            FuncName, uw);
-      err = ErrEval(FuncName,'Err_Could not create afni brick');
-      return;
+if (0), %fails with NIFTI names including paths, 
+        %delete this section in near future 
+   if (isNIFTI),
+      [St, xtr] = RemoveNiftiExtension(BrikName); 
+      NiftiPref = St;          
+      %create a BRIK version
+      otmp = sprintf('./____tmp_%s', St);
+      stmp = sprintf('3dcopy %s %s', BrikName, otmp);
+      [us, uw] = unix(stmp);
+      if (us),
+         ErrMessage = sprintf ('%s: Failed to create afni brick:\n%s',...
+                               FuncName, uw);
+         err = ErrEval(FuncName,'Err_Could not create afni brick');
+         return;
+      end
+      obrik = dir(sprintf('%s+*',otmp));
+      if (length(obrik) ~= 2),
+         ErrMessage = sprintf ('%s: Failed to find afni brick', FuncName);
+         err = ErrEval(FuncName,'Err_Could not find afni brick');
+         return;
+      end
+      BrikName = obrik(1).name;
    end
-   obrik = dir(sprintf('%s+*',otmp));
-   if (length(obrik) ~= 2),
-      ErrMessage = sprintf ('%s: Failed to find afni brick', FuncName);
-      err = ErrEval(FuncName,'Err_Could not find afni brick');
-      return;
+else, %Greg Stark's fix for cases with directory names 
+   if (isNIFTI)
+      [St, xtr] = RemoveNiftiExtension(BrikName); 
+      NiftiPref = St;          
+      %create a BRIK version
+      subdir = '';
+      if ~isempty(strfind(St,'/')) % We have a directory name in here
+         dir_pos = strfind(St,'/');
+         dir_pos = dir_pos(length(dir_pos)); % Get the last /
+         subdir = St(1:dir_pos);
+         otmp = sprintf('./%s____tmp_%s',subdir,St((dir_pos+1):length(St)));
+      else
+         otmp = sprintf('./____tmp_%s', St);
+      end
+      stmp = sprintf('3dcopy %s %s', BrikName, otmp);
+      [us, uw] = unix(stmp);
+      if (us),
+         ErrMessage = sprintf ('%s: Failed to create afni brick:\n%s',...
+                               FuncName, uw);
+         err = ErrEval(FuncName,'Err_Could not create afni brick');
+         return;
+      end
+      obrik = dir(sprintf('%s+*',otmp));
+      if (length(obrik) ~= 2),
+         ErrMessage = sprintf ('%s: Failed to find afni brick', FuncName);
+         err = ErrEval(FuncName,'Err_Could not find afni brick');
+         return;
+      end
+      obrik(1).name = sprintf('%s%s',subdir,obrik(1).name);
+      obrik(2).name = sprintf('%s%s',subdir,obrik(2).name);
+      BrikName = obrik(1).name;
    end
-   BrikName = obrik(1).name;
 end
 
 %assume you have a brik format and proceed as usual 
@@ -328,7 +363,7 @@ end
       err = ErrEval(FuncName,sprintf ('Err_HEAD file %s not found', sHead));
       return;
    end
-   sBRIK_gz = sprintf('%s.BRIK.gz', BrikName);
+   sBRIK_gz = sprintf('%s.BRIK.gz', BrikName);   
    if (filexist(sBRIK_gz)),
       fprintf(2,'Unzipping %s...\n', sBRIK_gz);
       unix(sprintf('gzip -d %s', sBRIK_gz)); %matlab gunzip version requires Java
@@ -514,7 +549,11 @@ end
     
     
 if (isNIFTI),
-   delete(obrik(1).name);
+   if (filexist(obrik(1).name)) delete(obrik(1).name);
+   else
+      tmpname = RemoveExtension(obrik(1).name, '.gz');
+      delete(tmpname);
+   end
    delete(obrik(2).name);
    Info.RootName = NiftiPref;
 end
