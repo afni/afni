@@ -29,7 +29,7 @@ set nbin = 1000
             -stat mean -stat stdev \
             -nbhd 'SPHERE(4)' \
             -datum short   \
-            $ap$av 
+            $in 
 
 if ($DoEight) then
    #Also do this one, looks promising might want it later
@@ -37,17 +37,17 @@ if ($DoEight) then
                -stat mean -stat stdev \
                -nbhd 'SPHERE(8)' \
                -datum short   \
-               $ap$av
+               $in
    3dcalc   -a $t"_ls"8+orig'[0]' -b $t"_ls"8+orig'[1]' \
             -expr 'a/b' -prefix $t_"ir"
    #top 75% is brainy 
 
 endif
 
-set mma = `3dBrickStat -non-zero -mean $ap$av `
+set mma = `3dBrickStat -non-zero -mean $in `
 set mm  = `3dBrickStat -non-zero -mean $t"_ls"$av'[0]'`
 3dcalc   -a $t"_ls"$av'[0]' -b $t"_ls"$av'[1]'   \
-         -c $ap$av   \
+         -c $in   \
          -expr "a*b/$mm"   \
          -datum short   \
          -overwrite -prefix $t"_p"
@@ -77,7 +77,7 @@ set th = `1dcat $t"_h.1D[0]{$ith}"`
 echo "Threshold value is: $th"
 
 #create masked version of input
-3dcalc -a $ap$av  \
+3dcalc -a $in  \
        -b $t"_p"$av \
        -prefix $ap.air \
        -expr "a*(1-step(b-$th))"  \
@@ -89,7 +89,7 @@ echo "Threshold value is: $th"
 set pt = 97
 set pth = `3dBrickStat -percentile $pt 1 $pt  $t"_p"$av`
 set pth = $pth[2]
-3dcalc -a $ap$av  \
+3dcalc -a $in  \
        -b $t"_p"$av \
        -prefix $ap.skl \
        -expr "a*(step(b-$pth))"  \
@@ -97,7 +97,7 @@ set pth = $pth[2]
 
 
 #create masked version of input (took unreliable *(1-step(c)) out )
-3dcalc -a $ap$av  \
+3dcalc -a $in  \
        -b $ap.air$av \
        -c $ap.skl$av \
        -prefix $ap.ma \
@@ -115,7 +115,7 @@ set echo
                -input $ap.ma$av \
                -prefix $ap.nsm \
                -mask_vol
-3dcalc   -a $ap$av   \
+3dcalc   -a $in   \
          -b $ap.nsm$av   \
          -expr "a*step(b-1)" \
          -prefix $ap.ns \
@@ -128,7 +128,7 @@ if ($symm) then
    3dLRflip -overwrite -prefix ${t}_LRFns $ap.ns$av      
    3dcalc   -a $ap.ns$av \
             -b ${t}_LRFns$av \
-            -c $ap$av \
+            -c $in \
             -expr 'c*step((a+b)/2)' \
             -overwrite  \
             -prefix $ap.ns.sym
@@ -205,7 +205,10 @@ PARSE_COMMAND:
 
    set ap = `@GetAfniPrefix $in`
    set av = `@GetAfniView $in`
-
+   #to deal with cases when input is something like volumne.mnc ...
+   if ("$av" == '') then 
+      set av = "+orig"
+   endif
 goto Ret_PARSE_COMMAND
 
 USAGE:
