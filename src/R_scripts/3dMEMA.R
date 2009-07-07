@@ -740,12 +740,12 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    
    rm(tList)
    
-   #if(anaType==4) nBrick <- 4*nGrp+(anyCov)*2*nCov+2+2*sum(nSubj)*resZout else nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout
+   #if(anaType==4) nBrick  <- 4*nGrp+(anyCov)*2*nCov+2+2*sum(nSubj)*resZout else nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout
    # each subject has two number: one for lamda, and the other, deviation, for outlier identificaiton - need to do the same for type 4
    
-   nBrick <- 4*nGrp+(anyCov)*2*nCov   # no. sub-bricks in the main output
-   #nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout  # total sub-bricks in all output
-   if(anaType==4) nBrick <- nBrick+2; #nBrick <- nBrick+2  # two more for anaType==4
+   nBrick0 <- 4*nGrp+(anyCov)*2*nCov   # no. sub-bricks in the main output
+   nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout  # total sub-bricks in all output
+   if(anaType==4) {nBrick0 <- nBrick0+2; nBrick <- nBrick+2}  # two more for anaType==4
       
    if(anaType==1 | anaType==2 | anaType==4) comArr <- array(c(unlist(c(bList)), unlist(c(varList))), dim=c(myDim[1:3], sum(nFiles)))
    if(anaType==3) comArr <- array(c(unlist(c(contrBList)), unlist(c(contrVarList))), dim=c(myDim[1:3], sum(nFiles)))
