@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 7, JUL, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "warn users to modify script for _AM1 in case of basis function dmBLOCK",
+   NULL
+ } ,
+
  { 26, JUN, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "comment changes and mod to afni_util.py for line wrapping",
    NULL

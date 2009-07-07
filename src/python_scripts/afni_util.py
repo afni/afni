@@ -154,10 +154,19 @@ def list_to_datasets(words):
     return dsets
 
 
-def basis_has_known_response(basis):
+def basis_has_known_response(basis, warn=0):
     """given a string, if the prefix is either GAM or BLOCK, then the basis
-       function has a known response curve"""
+       function has a known response curve
+
+       if warn, warn users about any basis function peculiarities"""
     if not basis: return 0
+
+    if warn and basis == 'dbBLOCK':
+        print '** basis function is dmBLOCK  ==>  script must be edited'
+        print '   ---> please change -stim_times to either'
+        print '        -stim_times_AM1 or -stim_times_AM2'
+        print '   (please mention this on the AFNI message board)'
+
     if basis[0:3] == 'GAM' or basis[0:5] == 'BLOCK': return 1
     else:                                            return 0
 
