@@ -161,7 +161,7 @@ def basis_has_known_response(basis, warn=0):
        if warn, warn users about any basis function peculiarities"""
     if not basis: return 0
 
-    if warn and basis == 'dbBLOCK':
+    if warn and basis == 'dmBLOCK':
         print '** basis function is dmBLOCK  ==>  script must be edited'
         print '   ---> please change -stim_times to either'
         print '        -stim_times_AM1 or -stim_times_AM2'
