@@ -132,7 +132,7 @@ g_history = """
     1.51 May 29 2009 :
         - added -execute option (to execute processing script)
         - fail on block options that have no such block applied
-    1.52 Jun 8 2009 :
+    1.52 Jun 08 2009 :
         - added -despike_mask option
         - fixed missing block warning
     1.53 Jun 11 2009 :
@@ -144,9 +144,10 @@ g_history = """
         - added -volreg_no_extent_mask, to block this masking
         - added 'extents' to list of mask in -mask_apply
         - change block dividers to more visual '===' with block names
+    2.01 Jul 07 2009 : warn user about use of dmBLOCK
 """
 
-g_version = "version 2.0, June 26, 2009"
+g_version = "version 2.1, July 7, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

@@ -1264,7 +1264,7 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_basis')
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
-        if not UTIL.basis_has_known_response(bopt.parlist[0]):
+        if not UTIL.basis_has_known_response(bopt.parlist[0], warn=1):
             if not user_opts.find_opt('-regress_iresp_prefix'):
                 block.opts.add_opt('-regress_iresp_prefix',1,['iresp'],setpar=1)
         uopt = user_opts.find_opt('-regress_make_ideal_sum')
@@ -3510,6 +3510,11 @@ g_help_string = """
             in the regression step.  This basis function will be applied to
             all user-supplied regressors (please let me know if there is need
             to apply different basis functions to different regressors).
+
+         ** Note that use of dmBLOCK requires -stim_times_AM1 (or AM2).  Until
+            that is handled properly by afni_proc.py, users will need to edit
+            the processing script, chaning -stim_times to the appropriate
+            _AM1 or _AM2.
         
             Please see '3dDeconvolve -help' for more information, or the link:
                 http://afni.nimh.nih.gov/afni/doc/misc/3dDeconvolveSummer2004
