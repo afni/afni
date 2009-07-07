@@ -163,7 +163,7 @@ def basis_has_known_response(basis, warn=0):
 
     if warn and basis == 'dmBLOCK':
         print '** basis function is dmBLOCK  ==>  script must be edited'
-        print '   ---> please change -stim_times to either'
+        print '   --> please change -stim_times to either'
         print '        -stim_times_AM1 or -stim_times_AM2'
         print '   (please mention this on the AFNI message board)'
 
