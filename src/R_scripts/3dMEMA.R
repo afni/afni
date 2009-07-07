@@ -1,12 +1,18 @@
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("          ================== Welcome to 3dMEMA.R ==================          ")
-print("AFNI Mixed-Effects Meta Analysis Modeling Package!")
+print("          ================== Welcome to 3dMetaAna.R ==================          ")
+print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.1,  July 3, 2009")
+print("Version 0.0.5,  June 7, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
-print("Website: http://afni.nimh.nih.gov/sscc/gangc/3dMetaAna.html")
+print("Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
+#########
+##  Working version for handling covariates and residual statistics which are saved as a separate output file. 
+##  type 4 (two groups with heteroskedasticity) should NOT be used when modeling with different slope across groups
+#########
+
 
 libLoad <- function(myLib) {
    sucLoad <- FALSE
@@ -92,7 +98,7 @@ read.AFNI <- function(filename) {
     conbrik <- file(filename.brik,"rb")
   # modified below by GC 12/2/2008
   if (all(values$BRICK_TYPES==0) | all(values$BRICK_TYPES==1)) myttt<- readBin(conbrik, "int", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # unsigned charater or short
-  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz*dt, size=size, signed=TRUE, endian=endian) # float        
+  if (all(values$BRICK_TYPES==3)) myttt<- readBin(conbrik, "numeric", n=dx*dy*dz, size=size, signed=TRUE, endian=endian) # float        
     close(conbrik)
     dim(myttt) <- c(dx,dy,dz,dt)
 #    for (k in 1:dt) {
@@ -184,191 +190,220 @@ write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4
 ### modified rma version 0.562 by Wolfgang Viechtbauer, Department of Methodology and Statistics, University of Maastricht
 # Further modifications
 
-rma <- function(yi, vi, mods=NULL, method="REML", addint=TRUE, ci=95, digits=4, btt=NULL, tau2=NULL, knha=FALSE, subset=NULL, ll=FALSE, control = list()) {
+# handles one group or two groups with homogeneity assumption
+rmaB <- function(yi, vi, n, p, X, resOut, knha=FALSE, con=list(thr=10^-8, maxiter=50)) {
 
-# addint: add intercept? (yes)
-# btt: ??? part of regressors for computing QME?
-# knha: Knapp & Hartung method
-# subset: only analyze part of the data; can be dropped for my case
+# yi: vector of dependent variable values
+# vi: corresponding variances of yi 
+# n: number of rows
+# p: number of regressors (columns in design matrix X) including covariates   
+# X: fixed effects matrix including covariates 
+# knha: adopting knha t-test?
+# con$thr: converging threshold for REML
+# con$maxiter: maximum # of converging iterations for REML
 
-
-   k     <- length(yi)   # number of data points
-   ids   <- 1:k
-   
-   ########## in case mods is a vector!!! But I'll REMOVE this when dealing with those 0s!!!!!!!!!!!!!!! $$$$$$$$$$$$$
-#   mods <- as.matrix(mods)   
-
-   #browser()
-   if (sum(vi <= 0) > 0) {  # take it out of the rma?
-      null.ids <- which(vi<=0)
-      yi    <- yi[-c(null.ids)]
-      vi    <- vi[-c(null.ids)]
-      mods  <- mods[-c(null.ids), , drop=FALSE]
-      ids   <- ids[-c(null.ids)]
-      k     <- length(yi)   
-#      warning("Outcomes with non-positive sampling variances have been excluded from the analysis.")
-   }
-  
-#   if (is.null(mods) && addint == FALSE) {
-#      warning("Must either include an intercept (addint=TRUE) and/or moderators in model. Coerced intercept into the model.")
-#      addint <- TRUE
-#   }
-   
 	Y <- as.matrix(yi)
-	
-	if (addint == TRUE) {
-      X <- cbind(intrcpt=rep(1,k), mods)
-   } else {
-      X <- mods
-   }
-   # browser()
-   p <- dim(X)[2]   # number of regressors (fixed effects): excluding the intercept
-
-   if ( (p == 1) && (sum(X == 1) == k) ) {
-      int.only <- TRUE
-   } else {
-      int.only <- FALSE
-   }
-   
+	   
 	tr <- function(X) {
 		sum(diag(X))
 	}
 
-   con <- list(tau2.init=NULL, threshold=10^-5, maxiter=50, maxtau2=50, verbose=FALSE)
-   con[names(control)] <- control
+   s2w      <- NA      
+	conv		<- 1
+	change	<- 1000
+	iter		<- 0
+   tau2     <- max(0, var(yi) - mean(vi))
 
-#   se.tau2  <- NA
-   I2       <- NA
+	while (change > con$thr) {
+		iter     <- iter + 1
+		tau2.old <- tau2
+		W		   <- diag(1/(vi + tau2))
+      vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
+      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X 
+		#P		   <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
+		adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
+		while (tau2 + adj < 0) adj <- adj / 2
+		tau2		<- tau2 + adj
+		change	<- abs(tau2.old - tau2)
+		if (iter > con$maxiter) {  # REML fails
+			conv    <- 0
+			break
+		}
+	}
+
+   W0     <- diag(1/vi)
+   P0     <- W0 - W0 %*% X %*% solve(t(X) %*% W0 %*% X) %*% t(X) %*% W0
+   QE    <- t(Y) %*% P0 %*% Y
+   
+   if (conv == 0) {  # try DSL if REML fails
+      #wi     <- 1/vi
+      #W      <- diag(wi)
+      #P      <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+      RSS    <- t(Y) %*% P0 %*% Y
+      tau2   <- ( RSS - (n-p) ) / tr(P0)
+      tau2 <- max(0, c(tau2))
+      W   <- diag(1/(vi + tau2))
+      vb  <- solve(t(X) %*% W %*% X)
+      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
+      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
+      #b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
+                
+	} else tau2 <- max(0, c(tau2))  # for REML
+
+   
+   #W   <- diag(1/(vi + tau2))
+   #b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
+   #vb  <- solve(t(X) %*% W %*% X)
+   
+   b    <- R %*% Y
+
+	if (knha == TRUE) {  # Knapp & Hartung method
+      #P     <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+      s2w   <- c( t(Y) %*% P %*% Y ) / (n-p)
+      vb    <- s2w * vb
+  }
+	
+   se    <- sqrt(diag(vb))
+#   z     <- b / sqrt(diag(vb))
+   z     <- ifelse(se>con$thr, b/se, 0)
+#   tau <- sqrt(tau2)
+      
+   if(resOut==1) { # residual statistics requested
+      vTot <- tau2+vi  # total variance
+      lamc <- ifelse(vTot>con$thr, vi/vTot, 0)  # Like ICC, lamda shows percent of variation at group level   
+      # need to scale this for Knapp & Hartung method as done above by s2w <- c( t(Y) %*% P %*% Y ) / (n-p)?
+      resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(vTot), P)))
+   
+      res         <- list(b, se, z, tau2, QE, lamc, resZ)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "lamc", "resZ")
+   } else {  # no residual statistics
+      res         <- list(b, se, z, tau2, QE)
+      names(res)  <- c("b", "se", "z", "tau2", "QE")
+   }
+   res
+}
+
+# two groups with heterogeneity assumption
+rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, knha=FALSE, con=list(thr=10^-8, maxiter=50)) {
+
+	Y <- as.matrix(yi)
+   #browser()
+   Y1 <- as.matrix(Y[1:n1,]); Y2 <- as.matrix(Y[(n1+1):nT,])
+   v1 <- vi[1:n1]; v2 <- vi[(n1+1):nT]
+   #mods1 <- as.matrix(mods[1:n1,]); mods2 <- as.matrix(mods[(n1+1):nT,])
+      
+   X1 <- X[1:n1,-2]; X2 <- X[(n1+1):nT,-2]
+   # This should be part of arguments!!!!!!!!!
+  
+	tr <- function(X) sum(diag(X))
+
    s2w      <- NA
       
-   if (is.null(tau2) == TRUE) {
+	conv1		<- 1
+	change	<- 1000
+	iter		<- 0
+   tau12    <- max(0, var(Y1) - mean(v1))  # tau^2 for group 1
 
-#   	if (method == "HE") {
-#   		P      <- diag(k) - X %*% solve(t(X) %*% X) %*% t(X)
-#   		RSS    <- t(Y) %*% P %*% Y
-#   		tau2   <- ( RSS - tr( P %*% diag(vi) ) ) / (k-p)
-#   	}
+	while(change > con$thr) {
+		iter     <- iter + 1  # iteration counter
+      tau12.old <- tau12
+		W1		   <- diag(1/(v1 + tau12))
+      #browser()
+      vb1  <- solve(t(X1) %*% W1 %*% X1)   # variance-covariance matrix
+      R1   <- vb1 %*% t(X1) %*% W1  # projection of Y to space spanned by X
+      P1 <- W1 - W1 %*% X1 %*% R1
+      #browser()
+      adj1	<- solve( tr(P1%*%P1) ) %*% ( t(Y1)%*%P1%*%P1%*%Y1 - tr(P1) )
+      #browser()
+      #while (tau2 + adj1 < 0) adj <- adj / 2
+      while (tau12 + adj1 < 0) adj1 <- adj1 / 2
+		tau12		<- tau12 + adj1
+		change	<- abs(tau12.old - tau12)
+		if (iter > con$maxiter) {
+			conv1    <- 0
+         #print("REML failed on me!!!")
+			break
+		}
+	}
    
-     if (method == "DL") {
-        wi     <- 1/vi
-        W      <- diag(wi)
-        P      <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-        RSS    <- t(Y) %*% P %*% Y
-        tau2   <- ( RSS - (k-p) ) / tr(P)
-     }
-  
-#     if (method == "SJ") {
-#        tau2.0 <- var(yi) * (k-1)/k
-#        wi     <- 1/(vi + tau2.0)
-#        W      <- diag(wi)
-#        P      <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-#        tau2   <- (tau2.0/(k-p)) * t(Y) %*% P %*% Y
-#     }
-  
-   	if (is.element(method, c("ML", "REML", "EB"))) {
+   conv2		<- 1
+	change	<- 1000
+	iter		<- 0
+   tau22    <- max(0, var(Y2) - mean(v2))  # tau^2 for group 2
+
+	while (change > con$thr) {
+		iter     <- iter + 1  # iteration counter
+		tau22.old <- tau22
+      W2		   <- diag(1/(v2 + tau12))
+      #browser()
+      vb2  <- solve(t(X2) %*% W2 %*% X2)
+      R2   <- vb2 %*% t(X2) %*% W2
+      P2 <- W2 - W2 %*% X2 %*% R2
+      #browser()
+		adj2	<- solve( tr(P2%*%P2) ) %*% ( t(Y2)%*%P2%*%P2%*%Y2 - tr(P2) )
+      #browser()
+      while (tau22 + adj2 < 0) adj2 <- adj2 / 2
+		tau22 <- tau22 + adj2
+		change	<- abs(tau22.old - tau22)
+		if (iter > con$maxiter) {
+			conv2    <- 0
+         #print("REML failed on me!!!")
+			break
+		}
+	}   
    
-   		conv		<- 1
-   		change	<- 1000
-   		iter		<- 0
+   W01		   <- diag(1/v1)
+   W02		   <- diag(1/v2)
+   P01 <- W01 - W01 %*% X1 %*% solve(t(X1) %*% W01 %*% X1) %*% t(X1) %*% W01
+   P02 <- W02 - W02 %*% X2 %*% solve(t(X2) %*% W02 %*% X2) %*% t(X2) %*% W02
+   QE1    <- t(Y1) %*% P1 %*% Y1
+   QE2    <- t(Y2) %*% P2 %*% Y2
+
+	#need to modify this part
+   if (conv1 == 0 | conv2 == 0) {  # try DSL if REML fails
+      RSS1    <- t(Y1) %*% P01 %*% Y1   
+      RSS2    <- t(Y2) %*% P02 %*% Y2
+      tau12   <- ( RSS1 - (n1-p+1) ) / tr(P1)
+      tau22   <- ( RSS2 - (nT-n1-p+1) ) / tr(P2)
+	} 
    
-         if (is.null(con$tau2.init)) {
-            tau2 <- max(0, var(yi) - mean(vi))
-         } else {
-            tau2 <- con$tau2.init
-         }
+   tau12 <- max(0, c(tau12)); tau22 <- max(0, c(tau22))
 
-   		while (change > con$threshold) {
-   			iter     <- iter + 1
-   			tau2.old <- tau2
-   			wi       <- 1/(vi + tau2)
-   			W		   <- diag(wi)
-   			P		   <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-   			if (method == "REML") {
-   				adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
-   			}
-   			while (tau2 + adj < 0) {
-   				adj <- adj / 2
-   			}
-   			tau2		<- tau2 + adj
-   			change	<- abs(tau2.old - tau2)
-   			if (iter > con$maxiter) {
-   				conv    <- 0
-   				break
-   			}
-   		}
-   
-   		if (conv == 0) {
-   			stop("Fisher scoring algorithm did not converge. Try increasing the number of iterations (maxiter), lowering the threshold (threshold), or use a different estimation method.")
-   		}
-
-         if (method == "REML") {
-            se.tau2 <- sqrt( 2/tr(P%*%P) )
-         }
-   	
-      }
-   
-   	tau2 <- max(0, c(tau2))
-
-   }
-
-   wi    <- 1/vi
-   W     <- diag(wi)
-   P     <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-   QE    <- t(Y) %*% P %*% Y
-
-   if (int.only == TRUE) {
-      s2  <- (k-1)*sum(wi) / ( sum(wi)^2 - sum(wi^2) )
-      I2  <- 100 * tau2 / (tau2 + s2)
-   }
-
-      wi  <- 1/(vi + tau2)
-   	W   <- diag(wi)
-   	b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
-   	vb  <- solve(t(X) %*% W %*% X)
+   wi <- vector(mode="numeric", length= nT)
+   wi[1:n1]  <- 1/(vi[1:n1] + tau12)
+   wi[(n1+1):nT] <- 1/(vi[(n1+1):nT] + tau22)
+	W	 <- diag(wi)
+   #browser()
+   b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
+   vb  <- solve(t(X) %*% W %*% X)
 
 	if (knha == TRUE) {  # Knapp & Hartung method
       P     <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-      s2w   <- c( t(Y) %*% P %*% Y ) / (k-p)
-     vb    <- s2w * vb
+      s2w   <- c( t(Y) %*% P %*% Y ) / (nT-p)
+      vb    <- s2w * vb
   }
-
-#  if (is.null(btt)) {
-#     if (p > 1) {
-#        if (addint == TRUE) {
-#           btt <- 2:p
-#        } else {
-#           btt <- 1:p
-#        }
-#     } else {
-#         btt <- 1
-#      }
-#   }
-
-#   m <- length(btt)
-
-#	QME <- t(b)[btt] %*% solve(vb[btt,btt]) %*% b[btt]
-	
-#	if (knha == FALSE) {
-#	  QMEp <- 1 - pchisq(QME, df=m)
-#	} else {
-#	  QMEp <- 1 - pf( QME/m, df1=m, df2=k-p )
-#	}
    
    se    <- sqrt(diag(vb))
-	z     <- b / se
+#	z     <- b / se
+   z     <- ifelse(se>con$thr, b/se, 0)
 
-
-#   res         <- list(b, se, z, zp, ci.lb, ci.ub, vb, tau2, se.tau2, k, p, m, fit.stats, QE, QEp, QME, QMEp, s2w, I2, int.only, yi, vi, X, ids, method, knha, btt, addint, digits, ci, ll, control)
-   res         <- list(b, se, z, tau2, QE)
-
-#   names(res)  <- c("b", "se", "z", "zp", "ci.lb", "ci.ub", "vb", "tau2", "se.tau2", "k", "p", "m", "fit.stats", "QE", "QEp", "QME", "QMEp", "s2w", "I2", "int.only", "yi", "vi", "X", "ids", "method", "knha", "btt", "addint", "digits", "ci", "ll", "control")
-   names(res)  <- c("b", "se", "z", "tau2", "QE")
-
-   class(res)  <- c("rma")
+   if(resOut==1) {  # residual statistics requested
+      vTot1 <- tau12+v1  # total variance for group1
+      vTot2 <- tau22+v2  # total variance for group1
+      lamc1 <- ifelse(vTot1>con$thr, v1/vTot1, 0)  # Like ICC, lamda shows percent of variation at group level
+      lamc2 <- ifelse(vTot2>con$thr, v2/vTot2, 0)
+      resZ1 <- P1 %*% Y1/sqrt(diag(P1 %*% tcrossprod(diag(vTot1), P1)))
+      resZ2 <- P2 %*% Y2/sqrt(diag(P2 %*% tcrossprod(diag(vTot2), P2)))
+ 
+      res         <- list(b, se, z, tau12, tau22, QE1, QE2, lamc1, lamc2, resZ1, resZ2)
+      names(res)  <- c("b", "se", "z", "tau12", "tau22", "QE1", "QE2", "lamc1", "lamc2", "resZ1", "resZ2")
+   } else {  # no residual statistics requested
+      res         <- list(b, se, z, tau12, tau22, QE1, QE2)
+      names(res)  <- c("b", "se", "z", "tau12", "tau22", "QE1", "QE2")
+   }
    res
-
 }
-
 
 readMultiFiles <- function(nFiles, dim, type) {
    inFile <- vector('list', nFiles) # list of file names with path attached
@@ -386,20 +421,17 @@ readMultiFiles <- function(nFiles, dim, type) {
 }
 
 
-tolL <- 1e-7 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
-tolU <- 1e6  # upper tolerance for those variances of 0
-tTop <- 100   # upper bound for t-statistic
 
-#options(show.error.messages = FALSE)  # suppress error message when running with single processor
 
-runRMA <- function(inData, dummy, nGrp, outData, rma, KHtest, nNonzero, nCov, nBrick, tol) {  
+runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, KHtest, nNonzero, nCov, nBrick, anaType, resZout, tol) {  
+   
+   # n[1]: # subjects in group1; n[2]: total # subjects in both groups; n[2]-n[1]: # subjects in group2   
    fullLen <- length(inData); halfLen <- fullLen/2  # remove this line by providing halfLen as function argument later?
    Y <- inData[1: halfLen]; V <- inData[(halfLen +1): fullLen]
-   if((sum(abs(Y)>tol)>2) & (sum(abs(V)>tol)>nNonzero)) {  # run only when there are more than 2 non-zeros in both Y and V
-   #if((sum(abs(Y)>tol)>2) & (all(abs(V)>tol))) {  # run only when there are more than 2 non-zeros in Y
+   if(sum(abs(Y)>tol)>nNonzero) {  # run only when there are more than 2 non-zeros in both Y and V
    tag <- TRUE
-   try(resList <- rma(Y, V, mods=dummy, method="REML", knha=KHtest), tag <- FALSE)
-   if(!tag) {tag <- TRUE; try(resList <- rma(Y, V, mods=dummy, method="DL", knha=KHtest), tag <- FALSE)}  # if REML fails, try 2nd chance with Hedges   
+   if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, knha=KHtest), tag <- FALSE) else
+      try(resList <- mema(Y, V, n, p, X=xMat, resZout, knha=KHtest), tag <- FALSE)
 
    if (tag) {
    if (nGrp==1) {
@@ -410,37 +442,92 @@ runRMA <- function(inData, dummy, nGrp, outData, rma, KHtest, nNonzero, nCov, nB
          outData[2*ii+1] <- resList$b[ii+1]
          outData[2*ii+2] <- resList$z[ii+1]   
       } # for(ii in 1:nCov)
-   } # fif (nGrp==1)
+   } # if (nGrp==1)
    if (nGrp==2) {
       outData[1] <- resList$b[1]  # beta of group1, intercept
       outData[2] <- resList$z[1]  # z score of group1
       outData[5] <- resList$b[2]  # beta of group2-group1
       outData[6] <- resList$z[2]  # z score of group2-group1
       outData[3] <- outData[1]+outData[5]  # beta of group2
-      outData[4] <- outData[3]/sqrt(resList$se[2]^2-resList$se[1]^2) # z-score of group2
+      tmp <- sqrt(resList$se[2]^2-resList$se[1]^2)
+      outData[4] <- ifelse(tmp>tol, outData[3]/tmp, 0) # z-score of group2
       
       if(nCov>0) for(ii in 1:nCov) {  # covariates
          outData[2*ii+5] <- resList$b[ii+2]
          outData[2*ii+6] <- resList$z[ii+2]   
       } # for(ii in 1:nCov)
    } # if (nGrp==2)
-    
-   outData[nBrick-1] <- resList$tau2
-   outData[nBrick] <- resList$QE
+
+   if(anaType==4) {
+   if(resZout==0) {
+   outData[nBrick-3] <- resList$QE1
+   outData[nBrick-2]   <- resList$QE2
+   outData[nBrick-1] <- ifelse(resList$tau22 > tol, resList$tau12/resList$tau22, 0)
+   outData[nBrick]   <- ifelse(resList$tau12 > tol, resList$tau22/resList$tau12, 0)
+   } else {
+   
+   outData[nBrick-2*n[2]-3] <- resList$QE1
+   outData[nBrick-2*n[2]-2]   <- resList$QE2
+   outData[nBrick-2*n[2]-1] <- ifelse(resList$tau22 > tol, resList$tau12/resList$tau22, 0)
+   outData[nBrick-2*n[2]]   <- ifelse(resList$tau12 > tol, resList$tau22/resList$tau12, 0)
+   
+   for(ii in 1:n[1]) {
+      outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc1[ii]   # lamda = 1-I^2
+      outData[nBrick-2*(n[2]-ii)]   <- resList$resZ1[ii]    # Z-score for residuals
+   } # from nBrick-2*n[2]+1 to nBrick-2*(n[2]-n[1])
+   
+   for(ii in 1:(n[2]-n[1])) {
+      outData[nBrick-2*(n[2]-n[1]-ii)-1] <- resList$lamc2[ii]   # lamda = 1-I^2
+      outData[nBrick-2*(n[2]-n[1]-ii)]   <- resList$resZ2[ii]    # Z-score for residuals
+   } # from nBrick-2*(n[2]-n[1])+1 to nBrick
+   } # if(resZout==0)
+   } else {  # not anaType==4
+   if(resZout==0) {
+      outData[nBrick-1] <- resList$tau2
+      outData[nBrick]   <- resList$QE
+   } else {
+      outData[nBrick-2*n-1] <- resList$tau2
+      outData[nBrick-2*n]   <- resList$QE
+      for(ii in 1:n) {
+      outData[nBrick-2*(n-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
+      outData[nBrick-2*(n-ii)]   <- resList$resZ[ii]    # Z-score for residuals
+   }
+   }
+   }  # if(anaType==4)
    }  # if(tag)
    }  # not all 0's
    return(outData)
-} # end of runRMAt
+} # end of runRMA
+
+
+tolL <- 1e-7 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
+tolU <- 1e8  # upper tolerance for those variances of 0
+tTop <- 100   # upper bound for t-statistic
+
+#options(show.error.messages = FALSE)  # suppress error message when running with single processor
+
+
 print("################################################################")
 print("Please consider citing the following if this program is useful for you:")
-cat("\n\tGang Chen, Manual or manuscript coming soon. \n") 
+cat("\n\tGang Chen et al., hopefully something coming soon...\n")
+cat("\n\thttp://afni.nimh.nih.gov/sscc/gangc/MEMA.html\n")
+#cat("\n\tGang Chen, J. Paul Hamilton, Moriah E. Thomason, Ian H. Gotlib, Ziad S. Saad\n")
+#cat("\tRobert W. Cox, Granger causality via vector auto-regression (VAR) attuned for\n")
+#cat("\tFMRI data analysis. ISMRM 17th Scientific Meeting, Hawaii, 2009.\n\n")
 print("################################################################")
 
 
 print("Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.")
 
-outFN <- readline("Output file name (just prefix, no view+suffix needed, e.g., myOutput): ")
+outFNexist <- TRUE
+while (outFNexist) {
+   outFN <- readline("Output file name (just prefix, no view+suffix needed, e.g., myOutput): ")
+   if(file.exists(paste(outFN,"+orig.HEAD", sep="")) || file.exists(paste(outFN,"+tlrc.HEAD", sep=""))) {
+      print("File exsists! Try a different name.")
+      outFNexist <- TRUE
+   } else outFNexist <- FALSE }
 outFN <- paste(outFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
+
 
 print("On a multi-processor machine, parallel computing will speed up the program significantly.")
 print("Choose 1 for a single-processor computer.")
@@ -454,13 +541,15 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    print("-----------------")
    print("The following types of group analysis are currently available:")
    print("1: one condition with one group;")
-   print("2: one condition with two groups;")
-   print("3: two conditions with one group.")
-   anaType <- as.integer(readline("Which analysis type (1, 2, 3): "))
+   print("2: one condition across 2 groups with homoskedasticity (same variability);")
+   print("3: two conditions with one group;")
+   print("4: one condition across 2 groups with heteroskedasticity (different variability).")
+   anaType <- as.integer(readline("Which analysis type (1, 2, 3, 4): "))
    
-   if(anaType==1 | anaType==2) {
+   if(anaType==1 | anaType==2 | anaType==4) {
       bFN <- vector('list', nGrp)
       tFN <- vector('list', nGrp)
+      subjLab <- vector('list', nGrp)
       bList <- vector('list', nGrp)
       tList <- vector('list', nGrp) 
       varList <- vector('list', nGrp)
@@ -471,13 +560,17 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
          grpLab[[ii]] <- readline(sprintf("Label for group %i? ", ii))
   	   nSubj[ii] <- as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", grpLab[[ii]])))
   	   nFiles[ii] <- 2*nSubj[ii]
+      subjLab[[ii]] <- vector('list', nSubj[ii])
   	   bFN[[ii]] <- vector('integer', nSubj[ii]) # list of beta file names
   	   tFN[[ii]] <- vector('integer', nSubj[ii]) # list of t-stat file names
   	   #print("Provide beta or linear combination of betas files first. Only one sub-brick input files are accepted!")
+      
+      for(jj in 1:nSubj[ii]) subjLab[[ii]][[jj]] <- readline(sprintf("No. %i subject label in group %s: ", jj, grpLab[[ii]]))
+      
       for(jj in 1:nSubj[ii]) {
-         bFN[[ii]][[jj]] <- readline(sprintf("No. %i subject file for beta or linear combination of betas in group %s: ", jj, grpLab[[ii]]))
+         bFN[[ii]][[jj]] <- readline(sprintf("No. %i subject (%s) file for beta or linear combination of betas in group %s: ", jj, subjLab[[ii]][[jj]], grpLab[[ii]]))
       # print("Now provide the corresponding t-statistic files in SAME subject order as beta files. Only one sub-brick input files are accepted!")
-         tFN[[ii]][[jj]] <- readline(sprintf("No. %i subject file for the corresponding t-statistic in group %s: ", jj, grpLab[[ii]]))
+         tFN[[ii]][[jj]] <- readline(sprintf("No. %i subject (%s) file for the corresponding t-statistic in group %s: ", jj, subjLab[[ii]][[jj]], grpLab[[ii]]))
       print("-----------------")
       }
       bList[[ii]] <- lapply(bFN[[ii]], read.AFNI); tList[[ii]] <- lapply(tFN[[ii]], read.AFNI)
@@ -486,11 +579,11 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       lapply(lapply(tList[[ii]], function(x) x$dim), function(x) if(!all(x==myDim)) stop("Dimension mismatch between beta and t-statistic files!"))
 
    } # for(ii in 1:nGrp)
-   } # if(anaType==1 | anaType==2)
+   } # if(anaType==1 | anaType==2 | anaType==4)
    
    if(anaType==3) {
       
-      nLevel <- 2
+      nLevel <- 2   
       bFN <- vector('list', nLevel)
       tFN <- vector('list', nLevel)
       conLab <- vector('list', nLevel)
@@ -519,25 +612,34 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    
    } # if(anaType==3)
    
+   #print("-----------------")
    nNonzero <- as.integer(readline(sprintf("Number of subjects with non-zero t-statistic? (0-%i) ", sum(nSubj))))
    print("Masking is optional, but will alleviate unnecessary penalty on q values of FDR correction.")
    # Hartung-Knapp method with t-test? 
    KHtest <- as.logical(as.integer(readline("Z- or t-statistic for the output? (0: Z; 1: t) ")))
+   #KHtest <- FALSE
    
    masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
    if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
    if(masked) if(!all(dim(maskData[,,,1])==myDim[1:3])) stop("Mask dimensions don't match the input files!")
+
+   if(nGrp==1) xMat <- rep(1, sum(nSubj))      
+   if(nGrp==2) xMat <- cbind(rep(1, sum(nSubj)), c(rep(0, nSubj[1]), rep(1, nSubj[2]))) # dummy variable for two groups
    
    print("Covariates are continuous variables (e.g., age, behavioral data) that can be partialled out in the model.")
-   #anyCov <- as.logical(as.integer(readline("Any covariates (0: no; 1: yes)? ")))
-   anyCov <- 0
+   anyCov <- as.logical(as.integer(readline("Any covariates (0: no; 1: yes)? ")))
    if(anyCov) {
-      nCov <- as.integer(readline("Number of covariates (0: no; 1: yes)? "))
-      print("Each subject is assumed to have one number per covariate. Covariates as input files can be")
-      print("in multi-column or one-column format. Header with the 1st line as labels is optional in")
-      print("multi-column files, but NOT allowed in one-column files. Vertically the sequence in each")
-      print("column has to follow the same order as the beta/t-statistic files.")
-      covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE multi-column file)? "))
+      nCov <- as.integer(readline("Number of covariates (e.g., 1)? "))
+      #print("Each subject is assumed to have one number per covariate. Covariates as input files can be")
+      #print("in multi-column or one-column format. Header with the 1st line as labels is optional in")
+      #print("multi-column files. The vertical sequence in each column has to follow the same subject order")
+      #print("as the beta/t-statistic input files listed above.")
+      print("Each subject is assumed to have one number per covariate. All covariates should be put into one")
+      print("file in one- or multi-column format. Header at the 1st line as labels is optional. The vertical")
+      print("sequence in each column has to follow the same subject order as the beta/t-statistic input files")
+      print("listed above.")
+      #covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE single/multi-column file)? "))
+      covForm <- 1
       if (covForm) {
          covFN <- readline("Covariates file name: ")
          covHeader <- as.integer(readline("Does this multi-column file have a header (0: no; 1: yes)? "))
@@ -546,21 +648,84 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
             if(nCov!=dim(covData)[2]) stop(sprintf("Mismatch: file %s has %i column while you said %i covariate(s)!", covFN, dim(covData)[2], nCov)) else
             for (ii in 1:nCov) names(covData)[ii] <- readline(sprintf("Name for covariate number %i? ", ii))
          } # if(covHeader == 1)
+         covName <- names(covData)
       } else {
          covData <- data.frame(matrix(data=NA, nrow=sum(nSubj), ncol=nCov, dimnames = NULL))
          covData <- readMultiFiles(nCov, 1, "covariate")  # 1: assuming no header   
       }
-   } else nCov <- 0
-   
-   
-   exclude <- FALSE  # exclude those voxels with 0 variance
+      print("Each covariate should be centered around its mean or some other meaningful value so that group effect")
+      print("can be interpreted with the covariate being at the mean or other user-specified value. Otherwise")
+      print("the interpretation would be with the covariate being at 0!")
+      centerType <- as.integer(readline("What value will covariate(s) be centered around (0: mean; 1: other value)? "))
+      
+      if(nGrp == 1) {
+         if(centerType == 0) covData <- apply(covData, 2, scale, scale=F)  # center around mean for each covariate (column)
+         if(centerType == 1) {  # center around a user-specified value
+            centerVal <- vector(mode = "numeric", length = nCov)
+            for(ii in 1:nCov) centerVal[ii] <- as.numeric(readline(sprintf("Centering value for covariate no. %i (%s): ? ", ii, names(covData)[ii])))
+            covData <- t(apply(covData, 1, "-", centerVal))
+         }
+      } # if(nGrp == 1)
+
+      if (nGrp == 2) {
+         centerType2 <- as.integer(readline("How to model covariate(s) across groups (0: same center & slope; 1: same center but different slope; 
+            2: different center but same slope; 3: different center & slope)? "))
+         if(centerType2 == 0 | centerType2 == 1) {   # same center 
+            if(centerType == 0) covData <- apply(covData, 2, scale, scale=F)  # center around mean for each covariate (column)
+            if(centerType == 1) {  # center around other value for each covariate (column)
+               centerVal <- vector(mode = "numeric", length = nCov)
+               for(jj in 1:nCov) centerVal[jj] <- as.numeric(readline(sprintf(
+                  "Centering value for covariate no. %i (%s) for both groups: ? ", jj, names(covData)[jj])))
+               covData <- t(apply(covData, 1, "-", centerVal))
+            }
+         } # if(centerType2 == 0 | centerType2 == 1)
+        
+         if(centerType2 == 2 | centerType2 == 3) {  # different center 
+            if(centerType == 0) covData <- rbind(apply(as.matrix(covData[1:nSubj[1],]), 2, scale, scale=F), 
+               apply(as.matrix(covData[(nSubj[1]+1):(nSubj[1]+nSubj[2]),]), 2, scale, scale=F))
+            if(centerType == 1) {
+               covList <- vector('list', nGrp)               
+               for(ii in 1:nGrp) {
+                  centerVal <- vector(mode = "numeric", length = nCov)
+                  for(jj in 1:nCov) centerVal[jj] <- as.numeric(readline(sprintf(
+                     "Centering value for covariate no. %i (%s) in group %i (%s): ? ", jj, names(covData)[jj], ii, grpLab[[ii]])))
+                  covList[[ii]] <- t(apply(as.matrix(covData[((ii-1)*nSubj[1]+1):(nSubj[1]+(ii-1)*nSubj[2]),]), 1, "-", centerVal))
+               }
+               covData <- rbind(t(covList[[1]]), t(covList[[2]]))
+            } # if(centerType == 1)
+         } # if(centerType2 == 3)
+         
+         if(centerType2 == 1 | centerType2 == 3) { # different slope
+            covData <- cbind(covData, covData*xMat[,2])  # add one column per covariate for interaction
+            nCov <- 2*nCov # double number of covariates due to interactions
+            covName<-c(covName, paste(covName, "X", sep=''))  # add names for those interactions
+         }
+      }
+      #browser()
+      xMat <- as.matrix(cbind(xMat, covData))           
+   } else {nCov <- 0; xMat <- as.matrix(xMat)}
+   print("-----------------")
+   print("The Z-score of residuals indicates the significance level a subject is an outlier at a voxel.")
+   print("Turn off this option and select 0 if memory allocation problem occurs later on.")
+   resZout <- as.integer(readline("Want residuals Z-score for each subject (0: no; 1: yes)? "))
+   if(resZout==1) {
+   outFNexist <- TRUE
+   while (outFNexist) {
+      resFN <- readline("Output file name for residuals Z-score (just prefix, no view+suffix needed, e.g., myOutput): ")
+      if(file.exists(paste(resFN,"+orig.HEAD", sep="")) || file.exists(paste(resFN,"+tlrc.HEAD", sep=""))) {
+         print("File exsists! Try a different name.")
+         outFNexist <- TRUE
+      } else outFNexist <- FALSE }
+      resFN <- paste(resFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
+   }
+
+   exclude <- TRUE  # exclude those voxels with 0 variance
    
    # Maybe I should avoid doing this below part for those voxels in the mask!!!
-   if(anaType==1 | anaType==2) for(ii in 1:nGrp) {
+   if(anaType==1 | anaType==2 | anaType==4) for(ii in 1:nGrp) {
       bList[[ii]] <- lapply(bList[[ii]], function(x) x$ttt); tList[[ii]] <- lapply(tList[[ii]], function(x) x$ttt)
       varList[[ii]] <- mapply(function(x, y) ifelse((abs(x)<tolL) | (abs(y)<tolL), 0, (x/y)^2), bList[[ii]], tList[[ii]], SIMPLIFY = FALSE)  # variances
       if(exclude) for (jj in 1:nSubj[ii]) varList[[ii]][[jj]][varList[[ii]][[jj]] < tolL] <- tolU  # replace those 0 variances with a big number
-      #vv[[ii]][[jj]][vv[[ii]][[jj]] < tolL] <- tolL 
    }
    
    if(anaType==3) {
@@ -573,63 +738,81 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       contrVarList <- mapply("+", varList[[1]], varList[[2]], SIMPLIFY = FALSE)
    }
    
-   nBrick <- 4*nGrp+(anyCov)*2*nCov
-   outArr <- array(0, dim=c(myDim[1:3], nBrick))  
-   outData<-vector(mode="numeric", length= nBrick)  # initialization for use in runRMA: 3 beta's + 3 z-scores
-
-   #bListC <- c(bList[[1]], bList[[2]]); varListC <- c(varList[[1]], varList[[2]])  # two groups combined   
-   #bListC <- array(unlist(c(bList[[1]], bList[[2]])), dim=c(myDim[1:3], nSubj[[1]]+nSubj[[2]]))
-   #varListC <- array(unlist(c(varList[[1]], varList[[2]])), dim=c(myDim[1:3], nSubj[[1]]+nSubj[[2]]))  
+   rm(tList)
    
-   #two groups combined, and beta and var also combined since parApply can only take one array as argument
-   #len1 <- 2*nSubj[1]
-   #if (nGrp==2) {
-      #len2 <- 2*nSubj[2]; len <- len1+len2
-      #comArr <- array(c(unlist(c(bList[[1]], bList[[2]])), unlist(c(varList[[1]], varList[[2]]))), dim=c(myDim[1:3], sum(nFiles)))
-   if(anaType==1 | anaType==2) comArr <- array(c(unlist(c(bList)), unlist(c(varList))), dim=c(myDim[1:3], sum(nFiles)))
+   #if(anaType==4) nBrick <- 4*nGrp+(anyCov)*2*nCov+2+2*sum(nSubj)*resZout else nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout
+   # each subject has two number: one for lamda, and the other, deviation, for outlier identificaiton - need to do the same for type 4
+   
+   nBrick <- 4*nGrp+(anyCov)*2*nCov   # no. sub-bricks in the main output
+   #nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout  # total sub-bricks in all output
+   if(anaType==4) nBrick <- nBrick+2; #nBrick <- nBrick+2  # two more for anaType==4
+      
+   if(anaType==1 | anaType==2 | anaType==4) comArr <- array(c(unlist(c(bList)), unlist(c(varList))), dim=c(myDim[1:3], sum(nFiles)))
    if(anaType==3) comArr <- array(c(unlist(c(contrBList)), unlist(c(contrVarList))), dim=c(myDim[1:3], sum(nFiles)))
 
-   #rm(bList, tList, varList)
-   # mask out the junk: one slice at a time due to potential memory issue
+   rm(bList, varList)
    
+   # mask out the junk: one slice at a time due to potential memory issue  
    if(as.logical(masked)) { for (kk in 1:myDim[3]) 
       comArr[,,kk,] <- array(apply(comArr[,,kk,], 3, function(x) x*maskData[,,kk,1]), dim=c(myDim[1:2],sum(nFiles)))
       rm(maskData)
    }
 
-   if(nGrp==1) if(anyCov) myMods <- as.matrix(covData) else myMods <- NULL      
-   if(nGrp==2) if(anyCov) myMods <- as.matrix(cbind(c(rep(0, nSubj[1]), rep(1, nSubj[2]))), covData) else 
-      myMods <- cbind(c(rep(0, nSubj[1]), rep(1, nSubj[2]))) # dummy variable for two groups
-   #}
+   outArr <- array(0, dim=c(myDim[1:3], nBrick))
+   #outArr <- array(0, dim=c(myDim[1:3], nBrick0)) 
+   #if(resZout==1) outArrRes <- array(0, dim=c(myDim[1:3], 2*sum(nSubj)))
+   outData<-vector(mode="numeric", length= nBrick)  # initialization for use in runRMA: 3 beta's + 3 z-scores
+
+   print("-----------------")
+#   oTh <- as.numeric(readline("Outlier definition: how much in unit of standard deviation (e.g., 1, 1.5, 2)? ")) 
    
    print("-----------------")
    print(sprintf("Totally %i slices in the data.", myDim[3]))
    print("-----------------")
    # single processor
    
-   if(nNodes==1) for (ii in 1:myDim[3]) {
-      outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, dummy=myMods, nGrp=nGrp, outData=outData, 
-         rma=rma, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, tol=tolL), c(2,3,1))
-      cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
+   if(anaType==4) {
+      if(nNodes==1) for (ii in 1:myDim[3]) {
+         outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=c(nSubj[1], sum(nSubj)), p=dim(xMat)[2], xMat=xMat, outData=outData, 
+            mema=rmaB2, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
+         cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
    
-   # multi-processing
-   if(nNodes>1) {
-   libLoad('snow')
-   cl <- makeCluster(nNodes, type = "SOCK")
-   for(ii in 1:myDim[3]) {
-      outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, dummy=myMods, nGrp=nGrp, outData=outData, 
-         rma=rma, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, tol=tolL), c(2,3,1))
-      cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
-   }
-   stopCluster(cl)
-   }  # if(nNodes>1)
- 
+      # multi-processing
+      if(nNodes>1) {
+         libLoad('snow')
+         cl <- makeCluster(nNodes, type = "SOCK")
+         for(ii in 1:myDim[3]) {
+            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=c(nSubj[1], sum(nSubj)), p=dim(xMat)[2], xMat=xMat, outData=outData, 
+               mema=rmaB2, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
+            cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+         stopCluster(cl)
+      }  # if(nNodes>1)
+   } else {
+      if(nNodes==1) for (ii in 1:myDim[3]) {
+         outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=sum(nSubj), p=dim(xMat)[2], xMat=xMat, outData=outData, 
+            mema=rmaB, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
+         cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+      }
+   
+      # multi-processing
+      if(nNodes>1) {
+         libLoad('snow')
+         cl <- makeCluster(nNodes, type = "SOCK")
+         for(ii in 1:myDim[3]) {
+            outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=sum(nSubj), p=dim(xMat)[2], xMat=xMat, outData=outData, 
+               mema=rmaB, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
+            cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
+         }
+         stopCluster(cl)
+      }  # if(nNodes>1)
+   } # if(anaType==4)
+
    print(sprintf("Analysis finished: %s", format(Sys.time(), "%D %H:%M:%OS3")))
    
    print("#++++++++++++++++++++++++++++++++++++++++++++")
 
-#   if (nGrp==2) {
    for(ii in 1:nGrp) {
       if(ii==1) outLabel <- paste(sprintf("%s:b", grpLab[[ii]])) else
          outLabel <- append(outLabel, sprintf("%s:b", grpLab[[ii]]))
@@ -641,14 +824,35 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       if(KHtest) outLabel <- append(outLabel, sprintf("%s-%s:t", grpLab[[2]],grpLab[[1]])) else
       outLabel <- append(outLabel, sprintf("%s-%s:Z", grpLab[[2]],grpLab[[1]]))
    } # if (nGrp==2)
+   
    if(anyCov) for(ii in 1:nCov) {
-      outLabel <- append(outLabel, sprintf("%s:b", names(covData)[ii]))
-      if(KHtest) outLabel <- append(outLabel, sprintf("%s:t", names(covData)[ii])) else
-      outLabel <- append(outLabel, sprintf("%s:Z", names(covData)[ii]))
+      outLabel <- append(outLabel, sprintf("%s:b", covName[ii]))
+      if(KHtest) outLabel <- append(outLabel, sprintf("%s:t", covName[ii])) else
+      outLabel <- append(outLabel, sprintf("%s:Z", covName[ii]))
    } 
    
-   outLabel <- append(outLabel, "tau^2")
-   outLabel <- append(outLabel, "QE:Chisq")
+   if(anaType==4) {for(ii in 1:nGrp) {
+      #outLabel <- append(outLabel, "tau1^2")
+      #outLabel <- append(outLabel, "tau2^2")
+      #outLabel <- append(outLabel, sprintf("%s:tau^2", grpLab[[ii]]))
+      outLabel <- append(outLabel, sprintf("%s:QE", grpLab[[ii]]))
+      }
+      outLabel <- append(outLabel, "tau1^2>tau2^2")
+      outLabel <- append(outLabel, "tau2^2>tau1^2")
+   } else {
+      outLabel <- append(outLabel, "tau^2")
+      outLabel <- append(outLabel, "QE:Chisq")  
+   }
+   
+   if(resZout==1) for(ii in 1:nGrp) for(jj in 1:nSubj[ii]) {
+      if(ii==1 & jj==1) {
+         resLabel <- paste(sprintf("%s-lamda", subjLab[[ii]][[jj]])) 
+         resLabel <- append(resLabel, sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
+      } else {
+         resLabel <- append(resLabel, sprintf("%s-lamda", subjLab[[ii]][[jj]]))
+         resLabel <- append(resLabel, sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
+      }  
+   }   
 
    ############ NEED TO MODIFY HERE!!!!!!!!!!!!!!!!!!############################
    # t and chi-sq for QE with df = sum(nFiles)/2 - nGrp (need changes later with more complicated models
@@ -659,17 +863,34 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    if (KHtest) for (ii in 1:(2*nGrp-1)) statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fitt ", nDF) else
       for (ii in 1:(2*nGrp-1)) statpar <- paste(statpar, " -substatpar ", 2*(ii-1)+1, " fizt")
    
-   if(anyCov) if (KHtest) for(ii in 1:nCov) statpar <- paste(statpar, " -substatpar ", nBrick-3-2*(nCov-ii), " fitt ", nDF) else
-      for(ii in 1:nCov) statpar <- paste(statpar, " -substatpar ", nBrick-3-2*(nCov-ii), " fizt")
+   if(anyCov) if (KHtest) for(ii in 1:nCov) statpar <- paste(statpar, " -substatpar ", nBrick0-3-2*(nCov-ii), " fitt ", nDF) else
+      for(ii in 1:nCov) statpar <- paste(statpar, " -substatpar ", nBrick0-3-2*(nCov-ii), " fizt")
    
-   statpar <- paste(statpar, " -substatpar ", nBrick-1, " fict ", nDF)  # last brick: QE with chi-sq
+   if(anaType==4) {
+      statpar <- paste(statpar, " -substatpar ", nBrick0-3, " fict ", nSubj[1]-nCov) # Chi-sq for QE: group 1
+      statpar <- paste(statpar, " -substatpar ", nBrick0-2, " fict ", nSubj[2]-nCov) # Chi-sq for QE: group 2
+   } else statpar <- paste(statpar, " -substatpar ", nBrick0-1, " fict ", nDF)
+   
+   # last brick: QE with chi-sq
+ 
+   # Z-score for residuals
+   if(resZout==1) {
+      statparRes <- "3drefit"
+      for(ii in 1:sum(nSubj)) statparRes <- paste(statparRes, " -substatpar ", 2*ii-1, " fizt")
+   }
 
-   outArr[outArr>tTop] <- tTop  # Avoid outflow!!!!
-   outArr[outArr < (-tTop)] <- -tTop  # Avoid outflow!!!!
-   write.AFNI(outFN, outArr, outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
-   
-   statpar <- paste(statpar, " -view tlrc -addFDR -newid ", outFN)  # assume tlrc space
+   #rm(comArr)
+   #outArr[outArr[1:(2*sum(nSubj))]>tTop] <- tTop  # Avoid outflow!!!!
+   #outArr[outArr[1:(2*sum(nSubj))] < (-tTop)] <- -tTop  # Avoid outflow!!!!
+   write.AFNI(outFN, outArr[,,,1:nBrick0], outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")   
+   statpar <- paste(statpar, " -view tlrc -addFDR -newid ", outFN)  # assume tlrc space: wrong for money study, for example
    system(statpar)
+
+   if(resZout==1) {
+      write.AFNI(resFN, outArr[,,,(nBrick0+1):nBrick], resLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
+      statparRes <- paste(statparRes, " -view tlrc -addFDR -newid ", resFN)
+      system(statparRes)
+   }
    geterrmessage()
 
  
