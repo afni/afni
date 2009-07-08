@@ -436,6 +436,7 @@ static mday holiday[] = {
    {JUL, 9,"Palau Constitution Day"                                  } ,
    {JUL,10,"Bahamas Independence Day"                                } ,
    {JUL,11,"Mongolia Revolution Day"                                 } ,
+   {JUL,11,"Birthday of Tenzin Gyatso"                               } ,
    {JUL,12,"Sao Tome & Principe Independence Day"                    } ,
    {JUL,13,"Gaius Julius Caesar's birthday"                          } ,
    {JUL,14,"Bastille Day"                                            } ,
