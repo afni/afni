@@ -949,7 +949,7 @@ if (runMeta) {
 	print("-----------------")	
 	saveRMat <- as.integer(readline("Save the above path matrix (0: no; 1: yes)? "))
       if (saveRMat) {
-         matTName <- as.character(readline("File name prefix for path matrix? "))
+         matRName <- as.character(readline("File name prefix for path matrix? "))
          write.table(grpR, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
 	print("-----------------")
@@ -1122,7 +1122,7 @@ if (runMeta) {
       print("-----------------")
       saveRMat <- as.integer(readline("Save Group1 path matrix (0: no; 1: yes)? "))
          if (saveRMat) {
-            matTName <- as.character(readline("File name prefix for path matrix? "))
+            matRName <- as.character(readline("File name prefix for path matrix? "))
             write.table(grp1R, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
          }
       print("-----------------")   
@@ -1131,7 +1131,7 @@ if (runMeta) {
       print("-----------------")
       saveRMat <- as.integer(readline("Save Group2 path matrix (0: no; 1: yes)? "))
       if (saveRMat) {
-         matTName <- as.character(readline("File name prefix for path matrix? "))
+         matRName <- as.character(readline("File name prefix for path matrix? "))
          write.table(grp2R, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }
       print("-----------------")
@@ -1141,7 +1141,7 @@ if (runMeta) {
 	print("-----------------")	
 	saveRMat <- as.integer(readline("Save Group2-Group1 path matrix (0: no; 1: yes)? "))
       if (saveRMat) {
-         matTName <- as.character(readline("File name prefix for path matrix? "))
+         matRName <- as.character(readline("File name prefix for path matrix? "))
          write.table(grpR, file=sprintf("%s.1D", matRName), append=FALSE, row.names=TRUE, col.names=TRUE)
       }	
 	print("-----------------")
