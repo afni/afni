@@ -88,8 +88,10 @@ static int estimate_m1( int nq , float *qq )
             p==1 voxels at all, which will make the z-scores larger
           - since this function actually sorts the p-values while 3dFDR
             just bins them, small differences will be present anyhoo
+          - also, in '-old' mode, the m0 correction will not be made
       - if flags&2==1, then the q-values are corrected for arbitrary
-        correlation structure -- this is not usually necessary for FMRI data!
+        correlation structure -- this is not usually necessary for FMRI
+        task activation data 
       - if flags&4==1, then the output is q-values, not z-values
       - to mask, set input values to a statistic that will give p==1
         (e.g., 0.0 for t, F, or rho; 1.0 for p) -- and set flags=0;
