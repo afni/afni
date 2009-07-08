@@ -89,7 +89,7 @@ static int estimate_m1( int nq , float *qq )
           - since this function actually sorts the p-values while 3dFDR
             just bins them, small differences will be present anyhoo
       - if flags&2==1, then the q-values are corrected for arbitrary
-        correlation structure -- this is not necessary for FMRI data!
+        correlation structure -- this is not usually necessary for FMRI data!
       - if flags&4==1, then the output is q-values, not z-values
       - to mask, set input values to a statistic that will give p==1
         (e.g., 0.0 for t, F, or rho; 1.0 for p) -- and set flags=0;
@@ -178,7 +178,7 @@ STATUS("convert to q") ;
 
     /** estimate number of true positives into mone (m1) **/
 
-    if( qsmal && qq[0] > 0.0f ) mone = (float)estimate_m1(nq,qq) ;
+    if( qsmal && qq[0] > 0.0f && (flags&1)==0 ) mone = (float)estimate_m1(nq,qq) ;
 
     /* 26 Mar 2009: scale q down using m1 estimate above */
 

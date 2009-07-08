@@ -291,8 +291,8 @@ printf(
 "\n"
 "* changes above by RWCox -- 18 Jan 2008 == Cary Grant's Birthday!\n"
 "\n"
-"26 Mar 2009 -- Another Change [RWCox]\n"
-"-------------------------------------\n"
+"26 Mar 2009 -- Yet Another Change [RWCox]\n"
+"-----------------------------------------\n"
 "* FDR calculations in AFNI now 'adjust' the q-values downwards by\n"
 "   estimating the number of true negatives [m0 in the statistics\n"
 "   literature], and then reporting\n"
@@ -303,11 +303,11 @@ printf(
 "\n"
 "For Further Reading\n"
 "-------------------\n"
-"* cf. http://en.wikipedia.org/wiki/False_discovery_rate\n"
+"* cf. http://en.wikipedia.org/wiki/False_discovery_rate [Easy overview]\n"
+"* cf. http://dx.doi.org/10.1093/bioinformatics/bti448   [False Negative Rate]\n"
+"* cf. http://dx.doi.org/10.1093/biomet/93.3.491         [m0 adjustment]\n"
+"* cf. C implementation in mri_fdrize.c                  [trust in the Source]\n"
 "* cf. http://afni.nimh.nih.gov/pub/dist/doc/misc/FDR/FDR_Jan2008.pdf\n"
-"* cf. http://dx.doi.org/10.1093/bioinformatics/bti448\n"
-"* cf. http://dx.doi.org/10.1093/biomet/93.3.491\n"
-"* cf. C implementation in mri_fdrize.c [trust in the source]\n"
 ) ;
 
    PRINT_COMPILE_DATE ;
@@ -1330,8 +1330,3 @@ int main( int argc , char * argv[] )
   
   exit(0) ;
 }
-
-
-/*---------------------------------------------------------------------------*/
-
-
