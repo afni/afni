@@ -157,7 +157,7 @@ if (!is.na(mask)) {
 }
 
 runAna2 <- function(myData, Model, ModelForm, dof, tag) {
-   browser()
+   #browser()
    myStat<-vector(mode="numeric", length=3)
    if (!all(myData == 0)) {	
 	Model$Beta<-myData
