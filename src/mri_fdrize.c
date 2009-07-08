@@ -45,9 +45,10 @@ static int estimate_m1( int nq , float *qq )
 {
    int jj , kk , nh=0 , hist[16] , ma,mb, mone ;
 
-   if( nq < 299 || qq == NULL ) return -1 ;  /* not enuf data to bother with */
+   if( nq < 233 || qq == NULL ) return -1 ;  /* not enuf data to bother with */
 
-   /* build histogram with 16 bins of length 0.05 */
+   /* build histogram with 16 bins of length 0.05,
+      to count p-values ranging from 0.15 to 0.95  */
 
    for( kk=0 ; kk < 16 ; kk++ ) hist[kk] = 0.0f ;
    for( jj=0 ; jj < nq ; jj++ ){ /* jj-th point is in the kk-th bin */
@@ -177,7 +178,7 @@ STATUS("convert to q") ;
 
     /** estimate number of true positives into mone (m1) **/
 
-    if( qsmal && nq > 199 && qq[0] > 0.0f ) mone = (float)estimate_m1(nq,qq) ;
+    if( qsmal && qq[0] > 0.0f ) mone = (float)estimate_m1(nq,qq) ;
 
     /* 26 Mar 2009: scale q down using m1 estimate above */
 
