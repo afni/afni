@@ -438,11 +438,13 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
 #define RT_WRITE_NOTHING       0
 #define RT_WRITE_ACQUIRED      1
 #define RT_WRITE_REGISTERED    2
-#define N_RT_WRITE_MODES       3
+#define RT_WRITE_MERGED        3  /* 10 Jul 2009 */
+#define N_RT_WRITE_MODES       4
   static char * RT_write_strings[N_RT_WRITE_MODES] = {"Off", "Acquired",
-                                                      "Registered"};
+                                                      "Registered", "Merged"};
   static int    RTdatamode = 0 ;      /* mode of writing to disk in real time */
   static int    RT_written[MAX_CHAN]; /* num time points already written out */
+  static int    RT_written_mrg = 0 ;  /* 10 Jul 2009 - RWCox */
 
 /* Variables for multi-channel merger operation (if any) */
 
@@ -3551,6 +3553,7 @@ void RT_start_dataset( RT_input * rtin )
 
      RT_written[cc] = 0 ;              /* for real time data writing to disk */
    }
+   RT_written_mrg = 0 ;
 
    /** if there is already data stored in the temporary buffer
        (acquired before this routine was called), then we want
@@ -3983,7 +3986,7 @@ void RT_process_image( RT_input * rtin )
             }
          }
 
-         if ( RTdatamode == RT_WRITE_REGISTERED )   /* write registered data */
+         else if ( RTdatamode == RT_WRITE_REGISTERED )   /* write registered data */
          {
             /* check to make sure we are past the base registration brik */
             if ( rtin->reg_dset->dblk->nvals >= rtin->reg_base_index )
@@ -4012,6 +4015,35 @@ void RT_process_image( RT_input * rtin )
                }
             }
          }
+
+         /* 10 Jul 2009: write merged dataset brick -- RWCox */
+
+         else if( RTdatamode == RT_WRITE_MERGED && rtin->mrg_dset != NULL ){
+ 
+            for ( ; RT_written_mrg < rtin->mrg_dset->dblk->nvals ; )
+               {
+                  RT_sub_brick_id[1] = RT_written_mrg ;
+
+                  /* copy acquired data sets for writing now */
+                  tmp_dset = THD_copy_dset_subs(rtin->mrg_dset,RT_sub_brick_id);
+
+                  /* add channel and rep index to the name of the written *
+                   * RT data sets                                         */
+                  sprintf ( RT_prefix, "%s_mrg_nr_%06d",
+                            rtin->mrg_dset->dblk->diskptr->prefix,
+                            RT_sub_brick_id[1] ) ;
+                  EDIT_dset_items(tmp_dset, ADN_prefix, RT_prefix, ADN_none);
+
+                  if( verbose > 0 )
+                     fprintf(stderr,"RT: writing merged volume %s\n",RT_prefix);
+
+                  DSET_overwrite ( tmp_dset ) ; /* write...        */
+                  DSET_delete( tmp_dset ) ;     /* and delete copy */
+                  tmp_dset = NULL ;
+
+                  RT_written_mrg += 1;
+               }
+            }
       }
 
       /** compute function, maybe? **/
