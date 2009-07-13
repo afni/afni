@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , JUL , 2009 , RWC , "3dLocalstat" , MINOR , TYPE_MODIFY ,
+   "OpenMP" ,
+   "Also added option '-use_nonmask' to allow statistics to be computed for\n"
+   "voxels not in the mask (but presumably whose neighbors are in the mask)." } ,
+
  { 1 , JUL , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Modify AFNI_START_SMALL to pick smallest dataset of all." ,
    "Rather than the smallest 'anat' and smallest 'func', separately." } ,
