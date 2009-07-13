@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include "mri_nstats.c"
+#endif
+
 /* #defines moved to editvol.h */
 
 /*-----------------------------------------------------------------------*/
