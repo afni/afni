@@ -145,7 +145,7 @@ int main( int argc , char *argv[] )
       "                          step of Pstep.\n"
       "                          Default P1 is equal to P0 and default P2 = 1\n"
       "               * ALL    = all of the above, in that order \n"
-      "                         (except FWHMbar and perc).\n"
+      "                         (except for FWHMbar and perc).\n"
       "               More than one '-stat' option can be used.\n"
       "\n"
       " -mask mset  = Read in dataset 'mset' and use the nonzero voxels\n"
@@ -156,6 +156,15 @@ int main( int argc , char *argv[] )
       " -automask   = Compute the mask as in program 3dAutomask.\n"
       "               -mask and -automask are mutually exclusive: that is,\n"
       "               you can only specify one mask.\n"
+      "\n"
+      " -use_nonmask = Just above, I said that voxels NOT in the mask will\n"
+      "                not have their local statistics computed.  This option\n"
+      "                will make it so that voxels not in the mask WILL have\n"
+      "                their local statistics computed from all voxels in\n"
+      "                their neighborhood that ARE in the mask.\n"
+      "               * You could use '-use_nonmask' to compute the average\n"
+      "                 local white matter time series, for example, even at\n"
+      "                 non-WM voxels.\n"
       "\n"
       " -prefix ppp = Use string 'ppp' as the prefix for the output dataset.\n"
       "               The output dataset is normally stored as floats.\n"
@@ -168,10 +177,15 @@ int main( int argc , char *argv[] )
       "\n"
       "Author: RWCox - August 2005.  Instigator: ZSSaad.\n"
      ) ;
+     PRINT_AFNI_OMP_USAGE("3dLocalstat",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
    /*---- official startup ---*/
+
+#if defined(USING_MCW_MALLOC) && !defined(USE_OMP)
+   enable_mcw_malloc() ;
+#endif
 
    PRINT_VERSION("3dLocalstat"); mainENTRY("3dLocalstat main"); machdep();
    AFNI_logger("3dLocalstat",argc,argv); AUTHOR("Emperor Zhark");
@@ -217,6 +231,10 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-prefix'") ;
        prefix = strdup(argv[iarg]) ;
        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-use_nonmask") == 0 ){        /* 13 Jul 2009 */
+       SetSearchAboutMaskedVoxel(1) ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-mask") == 0 ){

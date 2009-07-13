@@ -1,5 +1,10 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include <omp.h>
+#include "cs_qmed.c"
+#endif
+
 /*--------------------------------------------------------------------------*/
 /*! Input = 1D image, and an NSTAT_ code to compute some statistic.
    Output = statistic's value.
@@ -220,6 +225,7 @@ float mri_nstat_fwhmbar( int xx, int yy, int zz,
    return sum ;
 }
 
+#if 0
 /*--------------------------------------------------------------------------*/
 /*! Compute a local statistic at each voxel of an image, possibly with
     a mask; 'local' is defined with a neighborhood; 'statistic' is defined
@@ -250,6 +256,7 @@ ENTRY("mri_localstat") ;
 
    RETURN(outim) ;
 }
+#endif
 
 /*--------------------------------------------------------------------------*/
 
@@ -270,6 +277,7 @@ void THD_localstat_datum(int i) {
 
 void THD_localstat_verb(int i){ verb=i; vn=0; }
 
+#ifndef USE_OMP
 static void vstep_print(void)
 {
    static char xx[10] = "0123456789" ;
@@ -277,7 +285,7 @@ static void vstep_print(void)
    if( vn%10 == 9) fprintf(stderr,".") ;
    vn++ ;
 }
-
+#endif
 
 /*--------------------------------------------------------------------------*/
 
@@ -286,13 +294,13 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
                                   float codeparam[][MAX_CODE_PARAMS+1] )
 {
    THD_3dim_dataset *oset ;
-   MRI_IMAGE *nbim=NULL ;
-   int iv,cc , nvin,nvout , nx,ny,nz,nxyz , ii,jj,kk,ijk ;
+   int iv,cc , nvin,nvout , nx,ny,nz,nxyz ;
    float **aar ;
-   int vstep ;
-   THD_fvec3 fwv ;
    MRI_IMAGE *dsim=NULL;
    int need_dsim, need_nbim; float dx,dy,dz ;
+#ifndef USE_OMP
+   int vstep ;
+#endif
 
 ENTRY("THD_localstat") ;
 
@@ -312,105 +320,158 @@ ENTRY("THD_localstat") ;
    nx = DSET_NX(dset) ;
    ny = DSET_NY(dset) ;
    nz = DSET_NZ(dset) ; nxyz = nx*ny*nz ;
-   dx = fabs(DSET_DX(dset)) ; if( dx <= 0.0f ) dx = 1.0f ;
-   dy = fabs(DSET_DY(dset)) ; if( dy <= 0.0f ) dy = 1.0f ;
-   dz = fabs(DSET_DZ(dset)) ; if( dz <= 0.0f ) dz = 1.0f ;
+   dx = fabsf(DSET_DX(dset)) ; if( dx <= 0.0f ) dx = 1.0f ;
+   dy = fabsf(DSET_DY(dset)) ; if( dy <= 0.0f ) dy = 1.0f ;
+   dz = fabsf(DSET_DZ(dset)) ; if( dz <= 0.0f ) dz = 1.0f ;
 
-   vstep = (verb && nxyz > 99999) ? nxyz/50 : 0 ;
+#ifndef USE_OMP
+   vstep = (verb && nxyz > 9999) ? nxyz/50 : 0 ;
+#endif
 
-   aar = (float **)malloc(sizeof(float *)*ncode) ;
+   aar = (float **)malloc(sizeof(float *)*ncode) ;  /* output array of arrays */
 
    need_dsim = need_nbim = 0 ;
-   for( cc=0 ; cc < ncode ; cc++ )
-          if( code[cc] >= NSTAT_FWHMx ) need_dsim = 1;
-     else if( code[cc] <  NSTAT_FWHMx ) need_nbim = 1;
+   for( cc=0 ; cc < ncode ; cc++ ){
+          if( code[cc] >= NSTAT_FWHMx ) need_dsim = 1;  /* need dataset image */
+     else if( code[cc] <  NSTAT_FWHMx ) need_nbim = 1;  /* need nbhd image */
+   }
+
+   /** loop over input sub-bricks **/
 
    for( iv=0 ; iv < nvin ; iv++ ){
-     for( cc=0 ; cc < ncode ; cc++ ){
+
+#ifdef USE_OMP
+     if( verb && nxyz > 999 ) INFO_message("Start sub-brick [%d]",iv) ;
+#endif
+
+     for( cc=0 ; cc < ncode ; cc++ ){     /* create output sub-bricks */
        aar[cc] = (float *)malloc(sizeof(float)*nxyz) ;
        if( aar[cc] == NULL )
          ERROR_exit("THD_localstat: out of memory at iv=%d cc=%d",iv,cc);
      }
-     if( need_dsim ){
+
+     if( need_dsim ){             /* extract dataset image for this sub-brick */
        float fac = DSET_BRICK_FACTOR(dset,iv) ;
        if( fac <= 0.0f ) fac = 1.0f ;
        dsim = mri_scale_to_float( fac , DSET_BRICK(dset,iv) ) ;
        dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
      }
 
+     /** loop over voxels **/
+
+#ifndef USE_OMP
      if( vstep ) fprintf(stderr,"++ voxel loop [%d]:",iv) ;
-     for( ijk=kk=0 ; kk < nz ; kk++ ){
-      for( jj=0 ; jj < ny ; jj++ ){
-       for( ii=0 ; ii < nx ; ii++,ijk++ ){
-         if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
-         if( need_nbim ) {
-           nbim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
+#endif
+
+#pragma omp parallel if( nxyz > 3333 )    /* parallelization: 13 Jul 2009 */
+ {
+   int ijk,kk,jj,ii,cc ;
+   MRI_IMAGE *nbim=NULL ;
+   THD_fvec3 fwv ;
+   double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
+
+ AFNI_OMP_START ;
+
+#pragma omp for
+     for( ijk=0 ; ijk < nxyz ; ijk++ ){
+       ii = DSET_index_to_ix(dset,ijk) ;  /* convert ijk to voxel indexes */
+       jj = DSET_index_to_jy(dset,ijk) ;
+       kk = DSET_index_to_kz(dset,ijk) ;
+
+#ifndef USE_OMP
+       if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
+#endif
+
+       if( need_nbim ){  /* extract vector of data from voxel neighborhood */
+         MRI_IMAGE *qim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
+         if( qim != NULL && qim->kind != MRI_float ){
+           nbim = mri_to_float(qim); mri_free(qim);
+         } else {
+           nbim = qim ;
          }
-         for( cc=0 ; cc < ncode ; cc++ ){
-           if( code[cc] == NSTAT_FWHMbar ){
-             aar[cc][ijk] = mri_nstat_fwhmbar( ii,jj,kk , dsim,mask,nbhd ) ;
-           } else if( code[cc] == NSTAT_FWHMx ){
-             fwv = mri_nstat_fwhmxyz( ii,jj,kk , dsim,mask,nbhd ) ;
-             UNLOAD_FVEC3( fwv, aar[cc][ijk],aar[cc+1][ijk],aar[cc+2][ijk] ) ;
-             cc += 2 ;  /* skip FWHMy and FWHMz codes */
-           } else if( code[cc] == NSTAT_PERCENTILE ){
-             static double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS];
-             int N_mp, pp;
-             float *sfar=NULL;
-             MRI_IMAGE *fim=NULL;
-                if (codeparam[cc][0] < 1) {
-                  ERROR_exit("THD_localstat: No percentile parameters set."); }
-                N_mp = (int) codeparam[cc][0];
-                if (N_mp >  MAX_CODE_PARAMS) {
-                  ERROR_exit( "THD_localstat: Cannot exceed %d params.\n"
-                              "Have %d\n",
-                              MAX_CODE_PARAMS, N_mp);
-                }
-                for (pp=0; pp<N_mp; ++pp) {
-                  mpv[pp] = (double) codeparam[cc][1+pp]/100.0;
-                }
-                if (nbim) {
-                  if( nbim->kind != MRI_float ) fim = mri_to_float(nbim) ;
-                  else                          fim = nbim ;
+       }
 
-                   sfar = MRI_FLOAT_PTR(fim);
-                   if (!(sfar = (float *)Percentate ( MRI_FLOAT_PTR(fim),
-                                                      NULL, fim->nvox,
-                                                      MRI_float, mpv, N_mp,
-                                                      0, perc,
-                                                      1, 1, 1 ))) {
+       for( cc=0 ; cc < ncode ; cc++ ){ /* loop over desired statistics */
 
-                     ERROR_exit("Failed to compute percentiles.");
-                  }
-                  /*
+         if( code[cc] == NSTAT_FWHMbar ){       /* 1 FWHM measurement */
+
+           aar[cc][ijk] = mri_nstat_fwhmbar( ii,jj,kk , dsim,mask,nbhd ) ;
+
+         } else if( code[cc] == NSTAT_FWHMx ){  /* 3 FWHM measurements */
+
+           fwv = mri_nstat_fwhmxyz( ii,jj,kk , dsim,mask,nbhd ) ;
+           UNLOAD_FVEC3( fwv, aar[cc][ijk],aar[cc+1][ijk],aar[cc+2][ijk] ) ;
+           cc += 2 ;  /* skip FWHMy and FWHMz codes */
+
+         } else if( code[cc] == NSTAT_PERCENTILE ){  /* percentiles */
+
+           int N_mp, pp;
+           float *sfar=NULL;
+
+           if( codeparam[cc][0] < 1 )
+             ERROR_exit("THD_localstat: No percentile parameters set!");
+           N_mp = (int)codeparam[cc][0];
+           if( N_mp > MAX_CODE_PARAMS )
+             ERROR_exit( "THD_localstat: Cannot exceed %d params but have %d!" ,
+                         MAX_CODE_PARAMS, N_mp);
+
+           for (pp=0; pp<N_mp; ++pp)
+             mpv[pp] = (double)codeparam[cc][1+pp]/100.0;
+
+           if (nbim) {
+
+             if( !(sfar = (float *)Percentate( MRI_FLOAT_PTR(nbim) ,
+                                               NULL , nbim->nvox ,
+                                               MRI_float , mpv , N_mp ,
+                                               0 , perc , 1, 1, 1 ) ) ) {
+
+               ERROR_exit("Failed to compute percentiles.");
+             }
+                /***
                   fprintf(stderr,"sar=[");
-                  for (pp=0; pp<fim->nvox; ++pp) fprintf(stderr,"%f,", sfar[pp]);
+                  for (pp=0; pp<nbim->nvox; ++pp) fprintf(stderr,"%f,", sfar[pp]);
                   fprintf(stderr,"];\nperc=[");
                   for (pp=0; pp<N_mp; ++pp) fprintf(stderr,"%f,", perc[pp]);
                   fprintf(stderr,"];\n");
-                  */
-                  for (pp=0; pp<N_mp; ++pp) aar[cc+pp][ijk] = (float)perc[pp];
-                  if( fim != nbim  ) mri_free(fim) ; fim = NULL;
-               } else {
-                  for (pp=0; pp<N_mp; ++pp) aar[cc+pp][ijk] = 0.0;
-               }
+                ***/
 
-               cc += (N_mp-1);
-           } else {
-             aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
-           }
+             for (pp=0; pp<N_mp; ++pp) aar[cc+pp][ijk] = (float)perc[pp];
+          } else {
+             for( pp=0 ; pp < N_mp; ++pp ) aar[cc+pp][ijk] = 0.0;
+          }
+
+          cc += (N_mp-1) ; /* number of sub-bricks added, minus 1 */
+
+         } else {   /* the "usual" (catchall) case */
+
+           aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
+
          }
-         if( nbim != NULL ){ mri_free(nbim); nbim = NULL; }
-     }}}
 
+       } /* end of loop over cc */
+
+       if( nbim != NULL ){ mri_free(nbim); nbim = NULL; }
+
+     } /** end of voxel loop **/
+
+ AFNI_OMP_END ;
+ } /* end OpenMP */
+
+#ifndef USE_OMP
      if( vstep ) fprintf(stderr,"\n") ;
+#endif
 
      if( dsim != NULL ){ mri_free(dsim); dsim = NULL; }
+
+     /* put data arrays from aar into the dataset */
+
      for( cc=0 ; cc < ncode ; cc++ ) {
        /* EDIT_substitute_brick( oset , iv*ncode+cc , MRI_float , aar[cc] ) ; */
        EDIT_substscale_brick( oset , iv*ncode+cc , MRI_float , aar[cc], localstat_datum, -1.0);
+       if( localstat_datum != MRI_float ) free(aar[cc]) ;  /* 13 Jul 2009 */
      }
-   }
+
+   } /** end of sub-brick loop **/
 
    free((void *)aar) ;
    RETURN(oset) ;

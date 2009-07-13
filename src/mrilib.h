@@ -689,22 +689,23 @@ extern void mri_add_name( char * , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 
-#define NSTAT_MEAN     0
-#define NSTAT_SUM      1
-#define NSTAT_SIGMA    2
-#define NSTAT_CVAR     3
-#define NSTAT_MEDIAN   4
-#define NSTAT_MAD      5
-#define NSTAT_MAX      6
-#define NSTAT_MIN      7
-#define NSTAT_ABSMAX  13
-#define NSTAT_VAR     17
-#define NSTAT_NUM     18
+#define NSTAT_MEAN        0
+#define NSTAT_SUM         1
+#define NSTAT_SIGMA       2
+#define NSTAT_CVAR        3
+#define NSTAT_MEDIAN      4
+#define NSTAT_MAD         5
+#define NSTAT_MAX         6
+#define NSTAT_MIN         7
+#define NSTAT_ABSMAX      13
+#define NSTAT_VAR         17
+#define NSTAT_NUM         18
 #define NSTAT_PERCENTILE 19
-#define NSTAT_FWHMx   63
-#define NSTAT_FWHMy   64
-#define NSTAT_FWHMz   65
-#define NSTAT_FWHMbar 66
+
+#define NSTAT_FWHMx      63   /* these should be after all other NSTAT_* values */
+#define NSTAT_FWHMy      64
+#define NSTAT_FWHMz      65
+#define NSTAT_FWHMbar    66
 
 #define NBISTAT_BASE               66601
 #define NBISTAT_SPEARMAN_CORR      66601
