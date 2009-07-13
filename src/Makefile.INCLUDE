@@ -971,11 +971,11 @@ DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 	$(RM) $@
 	$(CC) -o DTIStudioFibertoSegments DTIStudioFibertoSegments.o $(LFLAGS) $(LLIBS)
 
-## ------- Things to be compiled or linked with OpenMP -------
-
 mri_nstats.o:mri_nstats.c
 	$(RM) $@
-	$(CCOMP) -c mri_nstats.c $(INFLAGS)
+	$(CCFAST) -c mri_nstats.c $(INFLAGS)
+
+## ------- Things to be compiled or linked with OpenMP -------
 
 3dLocalstat.o:3dLocalstat.c mri_nstats.c
 	$(RM) $@
