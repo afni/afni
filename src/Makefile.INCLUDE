@@ -82,7 +82,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
-           3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dUndump 3dREMLfit            \
+           3dLocalSVD               3dErrtsCormat 3dUndump 3dREMLfit            \
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
            3dBlurInMask 3dRank                                                  \
            $(EXTRAS)
@@ -112,7 +112,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
-                  3dLocalSVD 3dLocalCormat 3dErrtsCormat 3dREMLfit 3dTcorrMap       \
+                  3dLocalSVD               3dErrtsCormat 3dREMLfit 3dTcorrMap       \
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
                   3dmaskSVD 3dRank $(EXTRAS)
 
@@ -496,10 +496,6 @@ dsetdup:dsetdup.o
 3dTsort:3dTsort.o
 	$(RM) $@
 	$(CC) -o 3dTsort 3dTsort.o $(LFLAGS) $(LLIBS)
-
-3dLocalstat:3dLocalstat.o
-	$(RM) $@
-	$(CC) -o 3dLocalstat 3dLocalstat.o $(LFLAGS) $(LLIBS)
 
 3dLocalBistat:3dLocalBistat.o
 	$(RM) $@
@@ -976,6 +972,18 @@ DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 	$(CC) -o DTIStudioFibertoSegments DTIStudioFibertoSegments.o $(LFLAGS) $(LLIBS)
 
 ## ------- Things to be compiled or linked with OpenMP -------
+
+mri_nstats.o:mri_nstats.c
+	$(RM) $@
+	$(CCOMP) -c mri_nstats.c $(INFLAGS)
+
+3dLocalstat.o:3dLocalstat.c mri_nstats.c
+	$(RM) $@
+	$(CCOMP) -c 3dLocalstat.c $(INFLAGS)
+
+3dLocalstat:3dLocalstat.o
+	$(RM) $@
+	$(CCOMP) -o 3dLocalstat 3dLocalstat.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 
 AlphaSim.o:AlphaSim.c zgaussian.c
 	$(RM) $@
@@ -1507,10 +1515,6 @@ mri_warpfield.o:mri_warpfield.c
 edt_clustalpha.o:AlphaTab64.h edt_clustalpha.c
 	$(RM) $@
 	$(CCFAST) -c edt_clustalpha.c $(INFLAGS)
-
-mri_nstats.o:mri_nstats.c
-	$(RM) $@
-	$(CCFAST) -c mri_nstats.c $(INFLAGS)
 
 afni_pplug_instacorr.o:afni_pplug_instacorr.c
 	$(RM) $@
