@@ -23,8 +23,6 @@ void qsrec_pair ( int , float * , int * , int ) ;
 #define QS_STACK      4096     /* qsort stack size */
 #define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp)
 
-static int stack[QS_STACK] ;  /* stack for qsort "recursion" */
-
 /***************************************************************************
      Each qsort_TYPE routine (TYPE=short, int, float, or pair) has two
      pieces.  The isort_TYPE routine does an insertion sort routine,
@@ -79,6 +77,7 @@ void qsrec_short( int n , short * ar , int cutoff )
    register short * a = ar ;
 
    int left , right , mst ;
+   int stack[QS_STACK] ;  /* stack for qsort "recursion" */
 
    /* return if too short (insertion sort will clean up) */
 
@@ -179,6 +178,7 @@ void qsrec_int( int n , int * ar , int cutoff )
    register int * a = ar ;
 
    int left , right , mst ;
+   int stack[QS_STACK] ;  /* stack for qsort "recursion" */
 
    /* return if too short (insertion sort will clean up) */
 
@@ -279,6 +279,7 @@ void qsrec_float( int n , float * ar , int cutoff )
    register float * a = ar ;
 
    int left , right , mst ;
+   int stack[QS_STACK] ;  /* stack for qsort "recursion" */
 
    /* return if too short (insertion sort will clean up) */
 
@@ -395,6 +396,7 @@ void qsrec_pair( int n , float * ar , int * iar , int cutoff )
    register int   *ia = iar ;
 
    int left , right , mst ;
+   int stack[QS_STACK] ;  /* stack for qsort "recursion" */
 
    /* return if too short (insertion sort will clean up) */
 

@@ -145,6 +145,7 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
    if( (med == NULL && mad == NULL) || n <= 0 || ar == NULL ) return ;
 
    q = (float *)malloc(sizeof(float)*n) ;
+#pragma omp critical (MEMCPY)
    memcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
    me = qmed_float( n , q ) ;      /* compute median */
 
@@ -371,16 +372,13 @@ void *Percentate (void *vec, byte *mm, int nxyz,
    ENTRY("Percentate");
 
    if (!perc || !N_mp) {
-      ERROR_message("No return carrier or no values.");
-      RETURN(NULL);
+      ERROR_message("No return carrier or no values."); RETURN(NULL);
    }
    if (!vec || !nxyz) {
-      ERROR_message("Null input or nxyz = 0.");
-      RETURN(NULL);
+      ERROR_message("Null input or nxyz = 0."); RETURN(NULL);
    }
    if (option < 0 || option > 2) {
-      ERROR_message("RTFM");
-      RETURN(NULL);
+      ERROR_message("RTFM please"); RETURN(NULL);
    }
 
    /* prep input */
@@ -392,46 +390,45 @@ void *Percentate (void *vec, byte *mm, int nxyz,
          case MRI_byte:
             vvec = (void *)malloc(sizeof(byte)*nxyz);
             if (!vvec) {
-               ERROR_message("Failed to allocate 1.");
-               RETURN(NULL);
+               ERROR_message("Failed to allocate 1."); RETURN(NULL);
             }
+#pragma omp critical (MEMCPY)
             memcpy(vvec, vec, nxyz*sizeof(byte));
             break;
          case MRI_short:
             vvec = (void *)malloc(sizeof(short)*nxyz);
             if (!vvec) {
-               ERROR_message("Failed to allocate 2.");
-               RETURN(NULL);
+               ERROR_message("Failed to allocate 2."); RETURN(NULL);
             }
+#pragma omp critical (MEMCPY)
             memcpy(vvec, vec, nxyz*sizeof(short));
             break;
          case MRI_int:
             vvec = (void *)malloc(sizeof(int)*nxyz);
             if (!vvec) {
-               ERROR_message("Failed to allocate 3.");
-               RETURN(NULL);
+               ERROR_message("Failed to allocate 3."); RETURN(NULL);
             }
+#pragma omp critical (MEMCPY)
             memcpy(vvec, vec, nxyz*sizeof(int));
             break;
          case MRI_float:
             vvec = (void *)malloc(sizeof(float)*nxyz);
             if (!vvec) {
-               ERROR_message("Failed to allocate 4.");
-               RETURN(NULL);
+               ERROR_message("Failed to allocate 4."); RETURN(NULL);
             }
+#pragma omp critical (MEMCPY)
             memcpy(vvec, vec, nxyz*sizeof(float));
             break;
          case MRI_double:
             vvec = (void *)malloc(sizeof(double)*nxyz);
             if (!vvec) {
-               ERROR_message("Failed to allocate 5.");
-               RETURN(NULL);
+               ERROR_message("Failed to allocate 5."); RETURN(NULL);
             }
+#pragma omp critical (MEMCPY)
             memcpy(vvec, vec, nxyz*sizeof(double));
             break;
          default:
-            ERROR_message("Data type not supported.");
-            RETURN(NULL);
+            ERROR_message("Data type not supported."); RETURN(NULL);
       }
    }
 
@@ -441,15 +438,13 @@ void *Percentate (void *vec, byte *mm, int nxyz,
    if (zero_flag == 1 || positive_flag == 1 || negative_flag == 1) {
       mmf = (byte *)calloc(nxyz, sizeof(byte));/* everything is rejected at first */
       if (!mmf) {
-         ERROR_message("Failed to allocate for mmf.\nOh misery.");
-         RETURN(NULL);
+         ERROR_message("Failed to allocate for mmf -- Oh misery."); RETURN(NULL);
       }
    }
 
    if (zero_flag == 1 && positive_flag == 1 && negative_flag == 1) {
-      for (i=0; i<nxyz; ++i) {
-         mmf[i] = 1;
-      }
+      for (i=0; i<nxyz; ++i) mmf[i] = 1;
+
    } else if (positive_flag == 1 && negative_flag == 1) {
       switch (type) {
          case MRI_byte:
@@ -567,9 +562,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
    /* include mm, if needed */
    if (mm) {
       if (mmf) {
-         for (i=0; i<nxyz; ++i) {
-            mmf[i] = mmf[i]*mm[i];
-         }
+         for (i=0; i<nxyz; ++i) mmf[i] = mmf[i]*mm[i];
       } else {
          mmf = mm;
       }
@@ -611,7 +604,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             }
             break;
          default:
-            ERROR_message("Bad type! Should bot be here hon.");
+            ERROR_message("Bad type! Should not be here hon.");
             RETURN(NULL);
       }
       if (mmf != mm) free(mmf); mmf = NULL;
@@ -625,13 +618,21 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             qsort(vvec, mmvox, sizeof(byte), (int(*) (const void *, const void *))compare_char);
             break;
          case MRI_short:
+#if 0
             qsort(vvec, mmvox, sizeof(short), (int(*) (const void *, const void *))compare_short);
+#else
+            qsort_short( mmvox , vvec ) ;  /* 13 Jul 2009 */
+#endif
             break;
          case MRI_int:
             qsort(vvec, mmvox, sizeof(int), (int(*) (const void *, const void *))compare_int);
             break;
          case MRI_float:
+#if 0
             qsort(vvec, mmvox, sizeof(float), (int(*) (const void *, const void *))compare_float);
+#else
+            qsort_float( mmvox , vvec ) ;  /* 13 Jul 2009 */
+#endif
             break;
          case MRI_double:
             qsort(vvec, mmvox, sizeof(double), (int(*) (const void *, const void *))compare_double);

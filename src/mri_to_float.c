@@ -51,7 +51,7 @@ ENTRY("mri_to_float") ;
 
       case MRI_float:{
          float *qar = MRI_FLOAT_PTR(oldim) ;
-         (void) memcpy( far , qar , sizeof(float) * npix ) ;
+         for( ii=0 ; ii < npix ; ii++ ) far[ii] = qar[ii] ;
       }
       break ;
 
