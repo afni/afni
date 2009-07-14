@@ -51,11 +51,9 @@
 afni_history_struct dglen_history[] = {
 { 14 , JUL , 2009 , DRG , "afni" , 
     MINOR , TYPE_NEW_ENV, 
-    "Added AFNI_ONE_OBLIQUE_WARNING and AFNI_GRAPH_FORCE_AUTO_SCALE",
+    "Added AFNI_ONE_OBLIQUE_WARNING",
     "AFNI_ONE_OBLIQUE_WARNING = YES makes interactive spit out ONE warning\n"
-    "about obliquity per session then go quiet.\n"
-    "AFNI_GRAPH_FORCE_AUTO_SCALE = YES, performs autoscaling with each \n"
-    "graph update."
+    "about obliquity per session then go quiet."
 } ,
 
 { 17 , JUN , 2009 , DRG , "McRetroTS.m" , 
