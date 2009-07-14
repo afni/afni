@@ -177,7 +177,8 @@ examples:
             make_random_timing.py -num_stim 3 -num_runs 4 -run_time 200  \\
                 -stim_dur 3.5 -num_reps 8 -prefix stimesE                \\
                 -pre_stim_rest 20 -post_stim_rest 20                     \\
-                -min_rest 0.7 -t_gran 0.001 -seed 31415 -verb 2          \\
+                -min_rest 0.7 -max_rest 7.0                              \\
+                -t_gran 0.001 -seed 31415 -verb 2                        \\
                 -show_timing_stats -save_3dd_cmd @cmd.3dd
 
     6. Example with varying number of events, durations and run times.
@@ -430,6 +431,15 @@ optional arguments:
 
         Options -save_3dd_cmd and -stim_labels are also required.
 
+    -max_rest REST_TIME         : specify maximum rest between stimuli
+
+        e.g. -max_rest 7.25
+
+        This option applies a second phase in ordering events.  After events
+        have been randomized, non-pre- and non-post-stim rest periods are
+        limited to the max_rest duration.  Any rest intervals exceeding this
+        duration are distributed randomly into intervals below this maximum.
+
     -min_rest REST_TIME         : specify extra rest after each stimulus
 
         e.g. -min_rest 0.320
@@ -629,9 +639,11 @@ g_history = """
     0.10 Jun 17, 2009:
          - print block durations with general decimal accuracy
          - added -make_3dd_contrasts
+    1.0  Jul 14, 2009: call this a release version
+         - added -max_rest for Steffen S (see message board post 30189)
 """
 
-g_version = "version 0.10, June 17, 2009"
+g_version = "version 1.0, July 14, 2009"
 
 gDEF_VERB       = 1      # default verbose level
 gDEF_T_GRAN     = 0.1    # default time granularity, in seconds
@@ -665,6 +677,7 @@ class RandTiming:
         self.across_runs    = 0         # flag: stimuli span all runs
         self.pre_stim_rest  = 0         # seconds before first stim
         self.post_stim_rest = 0         # seconds after last stim
+        self.max_rest = 0.0             # maximum rest after each stimulus
         self.min_rest = 0.0             # minimum rest after each stimulus
         self.offset   = 0.0             # offset for all stimulus times
         self.seed     = None            # random number seed
@@ -721,6 +734,8 @@ class RandTiming:
                         helpstr='distribute stim reps across all runs')
         self.valid_opts.add_opt('-make_3dd_contrasts', 0, [],
                         helpstr='add contrasts pairs to 3dDeconvolve script')
+        self.valid_opts.add_opt('-max_rest', 1, [],
+                        helpstr='maximum rest time after each stimulus')
         self.valid_opts.add_opt('-min_rest', 1, [],
                         helpstr='minimum rest time after each stimulus')
         self.valid_opts.add_opt('-offset', 1, [],
@@ -857,6 +872,10 @@ class RandTiming:
         if self.post_stim_rest == None: self.post_stim_rest = 0.0
         elif err: return 1
 
+        self.max_rest, err = self.user_opts.get_type_opt(float,'-max_rest')
+        if self.max_rest == None: self.max_rest = 0
+        elif err: return 1
+
         self.min_rest, err = self.user_opts.get_type_opt(float,'-min_rest')
         if self.min_rest == None: self.min_rest = 0
         elif err: return 1
@@ -936,10 +955,12 @@ class RandTiming:
                 return 1
 
         if self.verb > 1:
-            print '-- pre_stim_rest=%.1f, post_stim_rest=%.1f, seed=%s'     \
+            print '-- pre_stim_rest=%g, post_stim_rest=%g, seed=%s'     \
                   % (self.pre_stim_rest, self.post_stim_rest, self.seed)
-            print '   min_rest=%.3f, offset=%.3f, t_gran=%.3f, t_digits=%d' \
-                  % (self.min_rest, self.offset, self.t_gran, self.t_digits)
+            print '   min_rest=%g, max_rest=%g,'        \
+                  % (self.min_rest, self.max_rest),     \
+                  'offset=%g, t_gran=%g, t_digits=%d'   \
+                  % (self.offset, self.t_gran, self.t_digits)
             if self.labels: print '   labels are: %s' % ', '.join(self.labels)
 
     def create_timing(self):
@@ -1233,12 +1254,12 @@ class RandTiming:
 
         if verb > 2:
             print '-- make_rand_timing: nruns = %d' % nruns
-            print '   rtime, offset, tinit, tfinal = %.1f, %.1f, %.1f, %.1f' \
+            print '   rtime, offset, tinit, tfinal = %g, %g, %g, %g' \
                       % (run_time, offset, tinitial, tfinal)
             print '   reps_list  = %s' % reps_list
             print UTIL.gen_float_list_string(sdur_list,'   sdur_list = ')
             # print '   sdur_list = %s' % sdur_list
-            print '   tgran = %.3f, verb = %d' % (tgran, verb)
+            print '   tgran = %.4f, verb = %d' % (tgran, verb)
 
         # verify inputs
         if nruns <= 0:
@@ -1246,7 +1267,7 @@ class RandTiming:
             return
         if run_time <= 0.0 or nstim <= 0 or tinitial < 0 or tfinal < 0:
             print '** bad rand_timing inputs: rtime, nstim, tinit, tfinal = '+ \
-                  '%.1f, %d, %.1f, %.1f' % (run_time, nstim, tinitial, tfinal)
+                  '%g, %d, %g, %g' % (run_time, nstim, tinitial, tfinal)
             return
         if tgran < gDEF_MIN_T_GRAN:
             print '** time granularity (%f) below minimum (%f)' %   \
@@ -1302,6 +1323,9 @@ class RandTiming:
         # make a random events list, based on reps_list[] and nrest
         err, elist = self.randomize_events(nrest)
         if err: return
+
+        if self.max_rest > 0:
+            if self.apply_max_rest(elist): return
             
         # convert the event list into a list of stimulus lists
         slist = [[[] for i in range(nruns)] for j in range(nstim)]
@@ -1523,6 +1547,106 @@ class RandTiming:
                 print '   number of type %d = %d' % (stim+1,elist.count(stim+1))
 
         return 0, elist
+
+    def apply_max_rest(self, eventlist):
+        """modify eventlist so that there is never more than max_rest rest
+           before any event"""
+
+        if self.max_rest <= 0: return
+
+        max_rest = self.max_rest
+        if self.min_rest > 0:
+            max_rest -= self.min_rest
+            if self.verb > 2: print '-- updating max_rest from %g to %g' \
+                                    % (self.max_rest, max_rest)
+
+        # note the maximum rest as a number of intervals
+        maxnrest = int(max_rest/self.t_gran)
+
+        # create a list of stim index, post-stim rest count, stim type lists
+        rlist = []
+        elist = [-1, 0, 0]      # pre-event rest 'event'
+        rlist.append(elist)
+        for ind in range(len(eventlist)):
+            val = eventlist[ind]
+            if val > 0:         # non-rest event, add new elist to rlist
+                elist = [ind, 0, val]
+                rlist.append(elist)
+            else: elist[1] += 1
+
+        if self.verb > 3: print '++ event rlist', rlist
+
+        # make extendable and fix lists
+        elist = []              # extend list (space to add rest)
+        flist = []              # fix list (need to remove space)
+        tot = 0
+        for ind in range(len(rlist)):
+            if rlist[ind][1] > maxnrest:
+                flist.append(ind)
+                tot += (rlist[ind][1] - maxnrest)
+            elif rlist[ind][1] < maxnrest:
+                elist.append(ind)
+
+        if self.verb > 4:
+            print '-- maxrest extendable lists:', elist
+            print '-- maxrest fix lists:', flist
+
+        # maybe there is nothing to do
+        if len(flist) < 1:
+            if self.verb > 1: print '-- no event block exceeds max rest'
+            return
+        # note how much rest we need to move around
+        ftotal = UTIL.loc_sum([rlist[flist[i]][1]-maxnrest
+                                for i in range(len(flist))])
+        etotal = UTIL.loc_sum([maxnrest-rlist[elist[i]][1]
+                                for i in range(len(elist))])
+
+        if self.verb > 1:
+            print '-- shifting %g seconds of excessive rest' \
+                  % (ftotal*self.t_gran)
+            if self.verb > 3:
+                print '== excessive rest exeeds %d events...' % maxnrest
+                print '-- elist:', elist
+                print '-- flist:', flist
+
+        if etotal < ftotal:
+            print "** max_rest too small to adjust (%g < %g)" % (etotal, ftotal)
+            return
+        elif self.verb > 3:
+            print '--> distributing %d rest events among %d slots' \
+                  % (ftotal, etotal)
+
+        for fix in flist:
+            nshift = rlist[fix][1] - maxnrest
+            for count in range(nshift):
+                if len(elist) <= 0:
+                    print '** panic: empty elist but rest to shift'
+                    sys.exit(1)
+                # choose where to shift rest to and shift it
+                rind = int(len(elist)*random.random())
+                # shift: insert (at rlist[elist[rind]]+1 and remove
+                roff = rlist[elist[rind]][0]+1  # new rest offset
+                eventlist[roff:roff] = [0]      # insert the rest
+                for iind in range(elist[rind]+1, len(rlist)): # adjust rlist
+                    rlist[iind][0] += 1
+                # maybe we are out of rest for this elist element
+                rlist[elist[rind]][1] += 1
+                if rlist[elist[rind]][1] >= maxnrest:
+                    elist[rind:rind+1] = []     # then remove from elist
+            # delete the extra rest from this event
+            rlist[fix][1] -= nshift
+            roff = rlist[fix][0] + 1            # rest to delete
+            eventlist[roff:roff+nshift] = []    # actual deletion
+            # and drop fix rest down by nshift
+            for iind in range(fix+1, len(rlist)): # adjust rlist
+                rlist[iind][0] -= nshift
+                
+        if self.verb > 3:
+            print '++ fixed event rlist', rlist
+            if self.verb > 4: print '++ updated eventlist', eventlist
+            etotal = UTIL.loc_sum([maxnrest-rlist[elist[i]][1]
+                                  for i in range(len(elist))])
+            print '-- updated etotal = %d' % etotal
 
 def basis_from_time(stim_len):
     if stim_len > 1.0: return "'BLOCK(%g,1)'" % stim_len
