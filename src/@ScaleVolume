@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/bin/tcsh -fe
 
 
 PARSE: 
@@ -10,6 +10,7 @@ PARSE:
    set max = 255
    set invol = ""
    set opref = ""
+   set scale = range
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -17,6 +18,17 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
          goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-scale_by_mean") then
+         set pLoc = $cnt 
+         set scale = 'mean'
+         set donext = 0     
+      endif
+      if ($donext && "$argv[$cnt]" == "-scale_by_median") then
+         set pLoc = $cnt 
+         set scale = 'median'
+         set donext = 0     
       endif
       
       if ($donext && "$argv[$cnt]" == "-perc_clip") then
@@ -96,52 +108,98 @@ if ($invol == "") then
    goto END
 endif
 
-if (`3dnvals $invol` > 1) then
-   echo "Error `basename $0`
+if (`3dnvals $invol` > 1 && "$scale" == 'range') then
+   echo "Error `basename $0`"
    echo "Script operates on datasets with one input only"
    echo ""
    goto END
 endif
 
+if ($scale == 'range') then
+   goto DOIT
+else
+   goto DOIT_DIV
+endif
 
 DOIT:
-set perc = `3dBrickStat -non-zero -percentile $p0 $ps $p1 $invol`
-echo $perc
-set v0 = $perc[2]
-set v1 = $perc[4]
+   set nvals = `3dnvals -all $invol`
+   if ($nvals[4] > 1) then
+      echo "Not ready to deal with multiple sub-bricks"
+      goto END
+   endif
+   set perc = `3dBrickStat -non-zero -percentile $p0 $ps $p1 $invol`
+   echo $perc
+   set v0 = $perc[2]
+   set v1 = $perc[4]
 
-#In one step
-3dcalc   -a $invol -prefix $opref  \
-         -expr "step(a) * \
-                ( \
-                  ( ($v0 * (1-step(a-$v0)) + \
-                     $v1 * (  step(a-$v1)) + \
-                     step(a-$v0)*(1-step(a-$v1))*a) - $v0 ) / \
-                  ($v1-$v0)*($max-$min)+$min \
-                )    "
-                
-goto END
+   #In one step
+   3dcalc   -a $invol -prefix $opref  \
+            -expr "step(a) * \
+                   ( \
+                     ( ($v0 * (1-step(a-$v0)) + \
+                        $v1 * (  step(a-$v1)) + \
+                        step(a-$v0)*(1-step(a-$v1))*a) - $v0 ) / \
+                     ($v1-$v0)*($max-$min)+$min \
+                   )    "
 
-#Two steps would be
-3dcalc   -a $invol -prefix sss  \
-         -expr "step(a) * \
-                ( $v0 * (step($v0-a)) + \
-                  $v1 * (step(a-$v1)) + \
-                  step(a-$v0)*step($v1-a)*a )"  
-3dcalc   -a sss+orig  \
-         -expr "step(a) * \
-                ( (a - $v0)/($v1-$v0)*($max-$min)+$min )"   \
-         -overwrite -prefix sss
+   goto END
+
+   #Two steps would be
+   3dcalc   -a $invol -prefix sss  \
+            -expr "step(a) * \
+                   ( $v0 * (step($v0-a)) + \
+                     $v1 * (step(a-$v1)) + \
+                     step(a-$v0)*step($v1-a)*a )"  
+   3dcalc   -a sss+orig  \
+            -expr "step(a) * \
+                   ( (a - $v0)/($v1-$v0)*($max-$min)+$min )"   \
+            -overwrite -prefix sss
+
+   goto END
+
+DOIT_DIV:
+   set nvals = `3dnvals -all $invol`
+   set cnt = 0
+   rm -f scl.$opref.1D >& /dev/null &
+   if ("$scale" == "mean") then
+      while ($cnt < $nvals[4])
+       set scl = `3dBrickStat -non-zero -mean $invol"[$cnt]"`
+       echo $scl
+       echo $scl[1] >> scl.$opref.1D
+       @ cnt ++
+      end
+   else
+      while ($cnt < $nvals[4])
+       set scl = `3dBrickStat -non-zero -median $invol"[$cnt]"`
+       echo $scl
+       echo $scl[2] >> scl.$opref.1D
+       @ cnt ++
+      end
+   endif
+   3dcalc   -a $invol -prefix $opref  \
+            -b scl.$opref.1D   \
+            -expr "a/b"
+   
+   goto END
+   
 HELP:
    echo ""
    echo "Usage: `basename $0` <-input DSET> <-prefix PREFIX>"
-   echo "                     [-perc_clip P0 P1] [-val_clip V0 V1]"    
-   echo "Scale a voume so that its values range between V0 and V1"
+   echo "                     [-perc_clip P0 P1] [-val_clip V0 V1]"
+   echo "                     [-scale_by_mean] [-scale_by_median]"    
+   echo "Method 1: (default)"
+   echo "Scale a vloume so that its values range between V0 and V1"
    echo "-val_clip V0 V1: Min and Max of output dset"
    echo "                 Default V0 = $min and V1 = $max"
    echo "-perc_clip P0 P1: Set lowest P0 percentile to Min "
    echo "                  and highest P1 percentile to Max"
    echo "                  Default P0 = $p0 and P1 = $p1"
+   echo ""
+   echo "At the moment, Method 1 only operates on volumes with one sub-brick"
+   echo ""
+   echo "Method 2:"
+   echo "-scale_by_mean: Divide each sub-brick by mean of non-zero voxels"
+   echo "-scale_by_median: Divide each sub-brick by median of non-zero voxels"
    echo ""
    goto END
          
