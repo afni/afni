@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, JUL, 2009, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "added -max_rest, to limit the maximum duration of rest periods",
+   NULL
+ } ,
+
  { 7, JUL, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "warn users to modify script for _AM1 in case of basis function dmBLOCK",
    NULL
