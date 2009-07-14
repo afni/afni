@@ -195,8 +195,9 @@ goto L_PARSE_COMMAND_DONE
 L_VERIFY_PROGRAMS:
 
     set caret_convert = ""
+    set caret_command = ""
     set failed_pgms = 0
-    foreach test_command ( afni suma caret_file_convert)
+    foreach test_command ( afni suma caret_file_convert caret_command)
 
 	(which $test_command) >& /dev/null
 
@@ -207,6 +208,8 @@ L_VERIFY_PROGRAMS:
 	else
       if ("$test_command" == "caret_file_convert") then
          set caret_convert = "$test_command"
+      else if ("$test_command" == "caret_command") then
+         set caret_command = "$test_command"
       endif
    endif
     end
@@ -651,7 +654,7 @@ L_CREATE_SPEC:
 		    set s_state = ''
           set i_state = 1
           while ($i_state <= $#surf_attribs )
-            set gr = `echo $NoExt | grep .{$surf_attribs[$i_state]}.`
+            set gr = `echo $NoExt | grep .{$surf_attribs[$i_state]}`
             if ("$gr" != "") then
                set s_state = $surf_attribs[$i_state]
                set i_state = $#surf_attribs
@@ -698,9 +701,15 @@ L_CREATE_SPEC:
             if ($caret_convert != "") then
                echo "Running caret_file_convert -text $surf ..."
                caret_file_convert -text $surf $list_topo_cur[$cnt]
+            else if ($caret_command != "") then
+               echo "Running caret_command -file-convert -format-convert ASCII $surf ..."
+               caret_command  -file-convert \
+                              -format-convert ASCII $surf $list_topo_cur[$cnt]
             else
-               echo "caret_file_convert not found, need to run:"
+               echo "neither caret_file_convert nor caret_command found, need to run:"
                echo "caret_file_convert -text $surf $list_topo_cur[$cnt]"
+               echo "or"
+               echo "caret_command  -file-convert -format-convert ASCII $surf $list_topo_cur[$cnt]"
                echo "before running SUMA."
             endif
           endif

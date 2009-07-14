@@ -49,6 +49,15 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 14 , JUL , 2009 , DRG , "afni" , 
+    MINOR , TYPE_NEW_ENV, 
+    "Added AFNI_ONE_OBLIQUE_WARNING and AFNI_GRAPH_FORCE_AUTO_SCALE",
+    "AFNI_ONE_OBLIQUE_WARNING = YES makes interactive spit out ONE warning\n"
+    "about obliquity per session then go quiet.\n"
+    "AFNI_GRAPH_FORCE_AUTO_SCALE = YES, performs autoscaling with each \n"
+    "graph update."
+} ,
+
 { 17 , JUN , 2009 , DRG , "McRetroTS.m" , 
     MINOR , TYPE_NEW_PROG, "Matlab Compilable version of RetroTS.m",
     "This version calls the RetroTS function, but can be compiled\n"

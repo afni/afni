@@ -199,3 +199,7 @@
 // AFNI_ALLOW_MILLISECONDS    = NO   // YES==allow 'ms' time units in to3d
 
 // AFNI_STARTUP_SCRIPT        = /home/rwcox/.afni_script // script to run at AFNI start
+
+AFNI_ONE_OBLIQUE_WARNING      = YES // In AFNI interface, mention oblique warnings just once
+
+AFNI_GRAPH_FORCE_AUTO_SCALE   = YES // Autoscale graphs each time they are redrawn
