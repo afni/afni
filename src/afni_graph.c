@@ -1365,6 +1365,12 @@ ENTRY("redraw_graph") ;
 
    erase_fdw  ( grapher ) ;
    draw_grids ( grapher ) ;
+   
+   if (code == 0 && AFNI_yesenv("AFNI_GRAPH_FORCE_AUTO_SCALE")) 
+      code = PLOTCODE_AUTOSCALE; /* Daniel Glen   
+                                    July 14th Allons enfants de la patrie,
+                                    la guillottine est arrivee */
+                                    
    plot_graphs( grapher , code ) ;
 
    DC_fg_color( grapher->dc , TEXT_COLOR(grapher) ) ;

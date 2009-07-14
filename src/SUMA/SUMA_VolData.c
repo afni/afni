@@ -985,7 +985,8 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                SO->NodeList[id] = -SO->NodeList[id];
                SO->NodeList[id+1] = -SO->NodeList[id+1];
             }
-            SUMA_LHv("Node 0 RAI:     [%f, %f, %f]\n",
+            
+            SUMA_LHv("Node 0 RAI          :     [%f, %f, %f]\n",
                      SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]);  
          }
          break;

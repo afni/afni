@@ -2695,27 +2695,43 @@ void AFNI_check_obliquity(Widget w, THD_3dim_dataset *dset)
 {
    double angle;
    char str[1024];
-
+   static int num_warn = 0;
+   
    ENTRY("AFNI_check_obliquity");
    if( !ISVALID_DSET(dset) ) EXRETURN ;
 
    if(AFNI_yesenv("AFNI_NO_OBLIQUE_WARNING")) EXRETURN;
 
+   if(AFNI_yesenv("AFNI_ONE_OBLIQUE_WARNING") && num_warn) EXRETURN;
+   
    THD_check_oblique_field(dset);
 
    angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
    if(angle == 0.0) EXRETURN ;
 
-   sprintf( str,
-      " You have selected an oblique dataset (%s).\n"
-      "  If you are performing spatial transformations on an oblique dset, \n"
-      "  or viewing/combining it with volumes of differing obliquity,\n"
-      "  you should consider running: \n"
-      "     3dWarp -deoblique \n"
-      "  on this and other oblique datasets in the same session.\n",
-      DSET_BRIKNAME(dset));
-
+   if (AFNI_yesenv("AFNI_ONE_OBLIQUE_WARNING")) {
+      sprintf( str,
+         " You have selected an oblique dataset (%s).\n"
+         "  If you are performing spatial transformations on an oblique dset, \n"
+         "  or viewing/combining it with volumes of differing obliquity,\n"
+         "  you should consider running: \n"
+         "     3dWarp -deoblique \n"
+         "  on this and other oblique datasets in the same session.\n"
+         " Similar warnings will be muted for the rest of this session.\n", 
+         DSET_BRIKNAME(dset) );
+   } else {
+      sprintf( str,
+         " You have selected an oblique dataset (%s).\n"
+         "  If you are performing spatial transformations on an oblique dset, \n"
+         "  or viewing/combining it with volumes of differing obliquity,\n"
+         "  you should consider running: \n"
+         "     3dWarp -deoblique \n"
+         "  on this and other oblique datasets in the same session.\n",
+         DSET_BRIKNAME(dset));
+   }
    (void) MCW_popup_message( w , str, MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   
+   ++num_warn;
    EXRETURN ;
 }
 
