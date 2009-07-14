@@ -19,6 +19,7 @@
 
 static int show_grapher_pixmap = 1 ;
 static void fd_line( MCW_grapher *, int,int,int,int ) ;
+static byte PLOT_FORCE_AUTOSCALE = 0;
 
 /*------------------------------------------------------------*/
 /*! Macro to call the getser function with correct prototype. */
@@ -519,6 +520,7 @@ ENTRY("new_MCW_grapher") ;
    OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_up_pb    ,"Up   [+]","Increase graph heights");
    OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_choose_pb,"Choose"  ,"Set vertical scale"    );
    OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_auto_pb  ,"Auto [a]","Scale automatically"   );
+   OPT_MENU_PULL_BUT(opt_scale_menu,opt_scale_AUTO_pb  ,"AUTO [A]","Always autoscale"   );
 
    OPT_MENU_PULLRIGHT(opt_mat_menu,opt_mat_cbut      ,"Matrix"  , "Change number of graphs"   ) ;
    OPT_MENU_PULL_BUT( opt_mat_menu,opt_mat_down_pb   ,"Down [m]", "Reduce number of graphs"   ) ;
@@ -1366,7 +1368,7 @@ ENTRY("redraw_graph") ;
    erase_fdw  ( grapher ) ;
    draw_grids ( grapher ) ;
    
-   if (code == 0 && AFNI_yesenv("AFNI_GRAPH_FORCE_AUTO_SCALE")) 
+   if (code == 0 && PLOT_FORCE_AUTOSCALE) 
       code = PLOTCODE_AUTOSCALE; /* Daniel Glen   
                                     July 14th Allons enfants de la patrie,
                                     la guillottine est arrivee */
@@ -3289,6 +3291,13 @@ STATUS(str); }
         redraw_graph( grapher , 0 ) ;
       break;
 
+      case 'A':
+        PLOT_FORCE_AUTOSCALE = !PLOT_FORCE_AUTOSCALE;
+        if (PLOT_FORCE_AUTOSCALE) fprintf(stdout,"++ Force Autoscale: ON\n");
+        else fprintf(stdout,"++ Force Autoscale: OFF\n");
+        redraw_graph( grapher , 0);
+      break;
+      
       case 'a':
         redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;         /* 03 Feb 1998 */
       break ;
@@ -3564,6 +3573,11 @@ ENTRY("GRA_opt_CB") ;
       EXRETURN ;
    }
 
+   if( w == grapher->opt_scale_AUTO_pb ){
+      GRA_handle_keypress( grapher , "A" , NULL ) ;
+      EXRETURN ;
+   }
+   
    if( w == grapher->opt_scale_auto_pb ){
       GRA_handle_keypress( grapher , "a" , NULL ) ;
       EXRETURN ;
