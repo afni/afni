@@ -1433,6 +1433,7 @@ class RegWrap:
          if (ps.anat2epi):
             for child_anat_name in ps.child_anats.parlist:
                child_anat = afni_name(child_anat_name) 
+
                # skip the parent if it's included
                if(child_anat.input()==ps.anat0.input()) :
                   child_anat_out = afni_name("%s_child%s" % \
@@ -1440,13 +1441,19 @@ class RegWrap:
                else:
                   child_anat_out=afni_name("%s%s" % \
                     (child_anat.out_prefix(),suf))               
-               self.info_msg("Processing child anat: %s" % child_anat.out_prefix())
+               child_anat_out.view = child_anat.view
+               self.info_msg("Processing child anat: %s" % child_anat.ppv())
+               if (ps.rewrite) :
+                  overwritestr = "-overwrite"
+                  child_anat_out.delete(ps.oexec)
+               else :
+                  overwritestr = ""
                com = shell_com(  \
                      "3dAllineate -base %s -1Dmatrix_apply %s "          \
-                     "-prefix %s -input %s  %s "   %                     \
+                     "-prefix %s -input %s  %s %s"   %                     \
                      ( e.input(), e2a_mat, child_anat_out.out_prefix(),  \
                        child_anat.input(),                               \
-                       self.master_anat_3dAl_option ), ps.oexec)
+                       self.master_anat_3dAl_option, overwritestr), ps.oexec)
 
                com.run()
       return o, ow
