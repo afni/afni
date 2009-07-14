@@ -121,8 +121,11 @@ void symeig_3( double *a , double *e , int dovec )
 
    if( qq <= 0.0 ){       /*** This should never happen!!! ***/
      static int nerr=0 ;
+#pragma omp critical (STDERR)
+     {
      if( ++nerr < 4 )
        fprintf(stderr,"** ERROR in symeig_3: discrim=%g numer=%g\n",qq,rr) ;
+     }
      qs = qq = rr = 0.0 ;
    } else {
      qs = sqrt(qq) ; rr = rr / (qs*qq) ;
@@ -388,23 +391,136 @@ void symeigval_double( int n , double *a , double *e )
 }
 
 /*--------------------------------------------------------------------*/
-/*! Return the largest m out of n eigenvalues/eigenvectors. */
+/*! Return eigenvalues/eigenvectors indexed from bb to tt (bb <= tt),
+    where index #0 = smallest eigenvalue, index #n-1 = largest
+     n = order of matrix
+     a = on input: matrix(i,j) is in a[i+n*j] for i=0..n-1 , j=0..n-1
+           output: a[i+n*j] has the i'th component of the j'th
+                   eigenvector, for j=0..tt-bb.
+     e = on input: not used (but the calling program must
+                             allocate the space for e[0..tt-bb])
+           output: e[j] has the j'th eigenvalue, ordered so that
+           e[0] <= e[1] <= ... <= e[tt-bb]
 
-#if 0
-void symeig_top( int n , int m , double *a , double *e )
+    Return value is 0 for all being done OK, nonzero for error.
+*//*------------------------------------------------------------------*/
+
+int symeig_irange( int n , double *a , double *e , int bb, int tt )
 {
-   integer nm , matz , ierr ;
-   double *fv1 , *fv2 , *fv3 ;
+   integer nm , m11,mmm , ierr , *ind ;
+   double *fv1, *fv2, *fv3, eps1, lb,ub, *rv4,*rv5,*rv6,*rv7,*rv8, *zzz ;
+   int ii , nval ;
 
-   if( n < 1 || m < 1 || m > n || a == NULL || e == NULL ) return ;
+   if( n < 1 || a == NULL || e == NULL || bb < 0 || tt < bb || tt >= n )
+     return -66666 ;
 
-   if( m == n ){ symeig_double( n , a , e ) ; return ; }
+   if( bb==0 && tt==n-1 ){ symeig_double( n , a , e ) ; return 0 ; }
 
+   /* reduction to tridiagonal form (stored in fv1..3) */
+
+   nm  = n ;
    fv1 = (double *) malloc(sizeof(double)*(n+9)) ;  /* workspaces */
    fv2 = (double *) malloc(sizeof(double)*(n+9)) ;
    fv3 = (double *) malloc(sizeof(double)*(n+9)) ;
 
-   /** incomplete **/
+   tred1_( &nm , &nm , a , fv1,fv2,fv3 ) ;
+
+   /* determination of the desired eigenvalues of the tridiagonal matrix */
+
+   eps1 = 0.0 ;
+   m11  = bb+1 ;
+   mmm  = tt-bb+1 ;
+   ierr = 0 ;
+   ind  = (integer *)malloc(sizeof(integer)*(n+9)) ;
+   rv4  = (double *) malloc(sizeof(double) *(n+9)) ;
+   rv5  = (double *) malloc(sizeof(double) *(n+9)) ;
+
+   tridib_( &nm , &eps1 , fv1,fv2,fv3 , &lb,&ub , &m11,&mmm , e ,
+            ind , &ierr , rv4,rv5 ) ;
+
+   if( ierr != 0 ){
+     free(rv5); free(rv4); free(ind); free(fv3); free(fv2); free(fv1);
+     return -ierr ;
+   }
+
+   /* determination of the eigenvectors of the tridiagonal matrix */
+
+   nval = nm * mmm ;
+   zzz  = (double *) malloc(sizeof(double) *nval ) ;
+   rv6  = (double *) malloc(sizeof(double) *(n+9)) ;
+   rv7  = (double *) malloc(sizeof(double) *(n+9)) ;
+   rv8  = (double *) malloc(sizeof(double) *(n+9)) ;
+
+   tinvit_( &nm , &nm , fv1,fv2,fv3 , &mmm , e ,
+            ind , zzz , &ierr , rv4,rv5,rv6,rv7,rv8 ) ;
+
+   if( ierr != 0 ){
+     free(rv8); free(rv7); free(rv6); free(zzz);
+     free(rv5); free(rv4); free(ind); free(fv3); free(fv2); free(fv1);
+     return ierr ;
+   }
+
+   /* transform eigenvectors back to original space */
+
+   trbak1_( &nm , &nm , a , fv2 , &mmm , zzz ) ;
+
+   /* copy output eigenvectors into a */
+
+   for( ii=0 ; ii < nval ; ii++ ) a[ii] = zzz[ii] ;
+
+   free(rv8); free(rv7); free(rv6); free(zzz);
+   free(rv5); free(rv4); free(ind); free(fv3); free(fv2); free(fv1);
+   return 0 ;
+}
+
+#if 0
+/*--------------------------------------------------------------------*/
+
+#undef  X
+#define X(i,j) xx[(i)+(j)*nn]
+
+#undef  A
+#define A(i,j) asym[(i)+(j)*nsym]
+
+int principal_vectors( int n , int m , float *xx ,
+                       int nvec , float *eval , float *uvec )
+{
+   int nn=n , mm=m , nsym , ii,jj,kk ;
+   double *asym , *deval ;
+   register double sum ;
+
+   nsym = MIN(nn,mm) ;
+
+   if( nn   < 1    || mm   <  1    || xx   == NULL ) return -66666 ;
+   if( nvec > nsym || eval == NULL || uvec == NULL ) return -66666 ;
+
+   asym  = (double *)malloc(sizeof(double)*nsym*nsym) ;
+   deval = (double *)malloc(sizeof(double)*nsym) ;
+
+   if( nn >= mm ){
+     for( jj=0 ; jj < mm ; jj++ ){
+       for( kk=0 ; kk <= jj ; kk++ ){
+         sum = 0.0 ;
+         for( ii=0 ; ii < nn ; ii++ ) sum += X(ii,jj)*X(ii,kk) ;
+         A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
+       }
+     }
+   } else {
+     for( jj=0 ; jj < nn ; jj++ ){
+       for( kk=0 ; kk < nn ; kk++ ){
+         sum = 0.0 ;
+         for( ii=0 ; ii < mm ; ii++ ) sum += X(jj,ii)*X(kk,ii) ;
+         A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
+       }
+     }
+   }
+
+   ii = symeig_irange( nsym , asym , deval , nsym-nvec , nsym-1 ) ;
+
+   if( ii != 0 ){
+     free(deval) ; free(asym) ; return -1 ;
+   }
+
 }
 #endif
 
@@ -540,18 +656,22 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
      qsort_doubleint( n , sv , iv ) ;
      if( u != NULL ){
        double *cc = (double *)malloc(sizeof(double)*m*n) ;
+#pragma omp critical (MEMCPY)
        (void)memcpy( cc , u , sizeof(double)*m*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
          kk = iv[jj] ;  /* where the new jj-th col came from */
+#pragma omp critical (MEMCPY)
          (void)memcpy( u+jj*m , cc+kk*m , sizeof(double)*m ) ;
        }
        free((void *)cc) ;
      }
      if( v != NULL ){
        double *cc = (double *)malloc(sizeof(double)*n*n) ;
+#pragma omp critical (MEMCPY)
        (void)memcpy( cc , v , sizeof(double)*n*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
          kk = iv[jj] ;
+#pragma omp critical (MEMCPY)
          (void)memcpy( v+jj*n , cc+kk*n , sizeof(double)*n ) ;
        }
        free((void *)cc) ;
@@ -584,15 +704,16 @@ void svd_double( int m, int n, double *a, double *s, double *u, double *v )
    remove_mean: 0  : do nothing
                 1  : remove the mean of each column in data_mat (like -dmean in 3dpc)
 
-   To match matlab's cov function, you need to remove the mean of each column and set norm to 0 (default for matlab) or 1
+   To match matlab's cov function, you need to remove the mean of each column
+   and set norm to 0 (default for matlab) or 1
 
-   the function returns the trace of the covariance matrix if all went well.
-    a -1.0 in case of error.
+   the function returns the trace of the covariance matrix if all went well;
+   returns -1.0 in case of error.
 
 */
 
-double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask, int num_rows,
-               int num_cols, int norm, int remove_mean, int be_quiet)
+double covariance(float *data_mat, double *cov_mat, unsigned char * row_mask,
+                  int num_rows, int num_cols, int norm, int remove_mean, int be_quiet)
 {
    double atrace, dsum, normval=0.0;
    int idel, jj, nn, mm, ifirst, ilast, ii, PC_be_quiet, kk, nsum;
