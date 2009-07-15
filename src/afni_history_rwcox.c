@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , JUL , 2009 , RWC , "3dLocalSVD" , MICRO , TYPE_GENERAL ,
+   "Modify to use more efficient SVD routine" ,
+   NULL } ,
+
  { 13 , JUL , 2009 , RWC , "3dLocalstat" , MINOR , TYPE_MODIFY ,
    "OpenMP" ,
    "Also added option '-use_nonmask' to allow statistics to be computed for\n"

@@ -42,11 +42,13 @@ int main( int argc , char *argv[] )
        " -mask mset           = restrict operations to this mask\n"
        " -automask            = create a mask from time series dataset\n"
        " -prefix ppp          = save SVD vector result in this dataset\n"
+#if 0
        " -evprefix ppp        = save eigenvalues in this dataset\n"
+#endif
        " -input inputdataset  = input time series dataset\n"
-       " -nbhd nnn            = e.g., 'SPHERE(5)'\n"
+       " -nbhd nnn            = e.g., 'SPHERE(5)' 'TOHD(7)' etc.\n"
        " -polort p [+]        = detrending ['+' means to add trend back]\n"
-       " -vnorm               = normalize vectors [strongly recommended]\n"
+       " -vnorm               = normalize data vectors [strongly recommended]\n"
        " -vproj [ndim]        = project data vectors onto subspace of dimension 'ndim'\n"
        "                        [default: just output principal singular vector]\n"
        "                        [for most purposes, '-vnorm -vproj 2' is a good idea]\n"
@@ -88,7 +90,6 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-
      if( strcmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL  ) ERROR_exit("Can't have two -input options") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-input'") ;
@@ -103,12 +104,13 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+#if 0
      if( strcmp(argv[iarg],"-evprefix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-evprefix'") ;
        evprefix = strdup(argv[iarg]) ;
        iarg++ ; continue ;
      }
-
+#endif
 
      if( strcmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ; int mmm ;
@@ -387,11 +389,11 @@ void mri_principal_setev(int n){
 
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 {
-   int nx , nvec , ii,jj , itop ;
-   double *amat , *umat , *vmat , *sval ;
+   int nx , nvec , ii,jj , itop , nev ;
+   float *amat , *umat , *sval ;
    float *far ; MRI_IMAGE *tim ;
    float *vnorm=NULL ;
-   register double sum ;
+   register float sum ;
 
    if( imar == NULL ) return NULL ;
    nvec = IMARR_COUNT(imar) ;       if( nvec < 1 ) return NULL ;
@@ -399,20 +401,17 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 
 #define A(i,j) amat[(i)+(j)*nx]     /* nx X nvec matrix */
 #define U(i,j) umat[(i)+(j)*nx]     /* ditto */
-#define V(i,j) vmat[(i)+(j)*nvec]   /* nvec X nvec matrix */
 #define X(i,j) amat[(i)+(j)*nvec]   /* nvec X nx matrix */
 
-   amat = (double *)malloc( sizeof(double)*nx*nvec ) ;
-   umat = (double *)malloc( sizeof(double)*nx*nvec ) ;
-   vmat = (double *)malloc( sizeof(double)*nvec*nvec ) ;
-   sval = (double *)malloc( sizeof(double)*nvec ) ;
+   amat = (float *)malloc( sizeof(float)*nx*nvec ) ;
+   sval = (float *)malloc( sizeof(float)*nvec ) ;
 
    /** assemble matrix for SVD-ization **/
 
    for( jj=0 ; jj < nvec ; jj++ ){
      tim = IMARR_SUBIM(imar,jj) ;
      far = MRI_FLOAT_PTR(tim) ;
-     for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = (double)far[ii] ;
+     for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = far[ii] ;
    }
 
    /** normalize columns? **/
@@ -420,11 +419,11 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    if( mpv_vnorm ){
      vnorm = (float *)calloc(sizeof(float),nvec) ;
      for( jj=0 ; jj < nvec ; jj++ ){
-       sum = 0.0 ;
+       sum = 0.0f ;
        for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
-       vnorm[jj] = sqrt(sum) ;
-       if( vnorm[jj] > 0.0 ){
-         sum = 1.0 / vnorm[jj] ;
+       vnorm[jj] = sqrtf(sum) ;
+       if( vnorm[jj] > 0.0f ){
+         sum = 1.0f / vnorm[jj] ;
          for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) *= sum ;
        }
      }
@@ -432,13 +431,21 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 
    /** all the CPU time dwells within **/
 
-   svd_double( nx , nvec , amat , sval , umat , vmat ) ;
+   nev  = (mpv_vproj <= 0) ? 1 : mpv_vproj ;
+   umat = (float *)malloc( sizeof(float)*nx*nev ) ;
+
+   jj = first_principal_vectors( nx , nvec , amat , nev , sval , umat ) ;
+
+   if( jj <= 0 ){ free(sval); free(umat); free(amat); return NULL; }
+   nev = jj ;
 
    /** save eigenvalues **/
 
+#if 0
    itop = MIN(nvec,mpv_evnum) ;
    for( ii=0 ; ii < itop      ; ii++ ) mpv_ev[ii] = (float)sval[ii] ;
    for(      ; ii < mpv_evnum ; ii++ ) mpv_ev[ii] = 0.0f ;
+#endif
 
    /** create output **/
 
@@ -454,7 +461,7 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 
    } else {  /* project input time series (1st column of A) onto subspace */
 
-     int nproj = mpv_vproj ;
+     int nproj = nev ;
      if( nproj > nvec ) nproj = nvec ;
      if( nproj > nx   ) nproj = nx ;
      for( jj=0 ; jj < nproj ; jj++ ){
@@ -469,7 +476,7 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    /** finito **/
 
    if( vnorm != NULL ) free(vnorm) ;
-   free(sval); free(vmat); free(umat); free(amat); return tim;
+   free(sval); free(umat); free(amat); return tim;
 }
 
 /*------------------------------------------------------------------------*/

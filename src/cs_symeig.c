@@ -397,6 +397,8 @@ void symeigval_double( int n , double *a , double *e )
      a = on input: matrix(i,j) is in a[i+n*j] for i=0..n-1 , j=0..n-1
            output: a[i+n*j] has the i'th component of the j'th
                    eigenvector, for j=0..tt-bb.
+         However, if novec!=0, then eigenvectors will not be computed;
+         only the eigenvalues will be output.
      e = on input: not used (but the calling program must
                              allocate the space for e[0..tt-bb])
            output: e[j] has the j'th eigenvalue, ordered so that
@@ -405,7 +407,7 @@ void symeigval_double( int n , double *a , double *e )
     Return value is 0 for all being done OK, nonzero for error.
 *//*------------------------------------------------------------------*/
 
-int symeig_irange( int n , double *a , double *e , int bb, int tt )
+int symeig_irange( int n, double *a, double *e, int bb, int tt, int novec )
 {
    integer nm , m11,mmm , ierr , *ind ;
    double *fv1, *fv2, *fv3, eps1, lb,ub, *rv4,*rv5,*rv6,*rv7,*rv8, *zzz ;
@@ -438,7 +440,7 @@ int symeig_irange( int n , double *a , double *e , int bb, int tt )
    tridib_( &nm , &eps1 , fv1,fv2,fv3 , &lb,&ub , &m11,&mmm , e ,
             ind , &ierr , rv4,rv5 ) ;
 
-   if( ierr != 0 ){
+   if( ierr != 0 || novec != 0 ){
      free(rv5); free(rv4); free(ind); free(fv3); free(fv2); free(fv1);
      return -ierr ;
    }
@@ -473,8 +475,7 @@ int symeig_irange( int n , double *a , double *e , int bb, int tt )
    return 0 ;
 }
 
-#if 0
-/*--------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 #undef  X
 #define X(i,j) xx[(i)+(j)*nn]
@@ -482,31 +483,47 @@ int symeig_irange( int n , double *a , double *e , int bb, int tt )
 #undef  A
 #define A(i,j) asym[(i)+(j)*nsym]
 
-int principal_vectors( int n , int m , float *xx ,
-                       int nvec , float *eval , float *uvec )
+/*----------------------------------------------------------------------------*/
+/*! Compute the nvec principal singular vectors of a set of m columns, each
+    of length n, stored in array xx[i+j*n] for i=0..n-1, j=0..m-1.
+    The singular values (largest to smallest) are stored in sval, and
+    the left singular vectors [first nvec columns of U in X = U S V'] are
+    stored into uvec[i+j*n] for i=0..n-1, j=0..nvec-1.
+
+    The return value is the number of vectors computed.  If the return
+    value is not positive, something bad happened.  Normally, the return
+    value would be the same as nvec, but it cannot be larger than MIN(n,m).
+*//*--------------------------------------------------------------------------*/
+
+int first_principal_vectors( int n , int m , float *xx ,
+                             int nvec , float *sval , float *uvec )
 {
-   int nn=n , mm=m , nsym , ii,jj,kk ;
+   int nn=n , mm=m , nsym , ii,jj,kk,qq ;
    double *asym , *deval ;
-   register double sum ;
+   register double sum , qsum ;
 
-   nsym = MIN(nn,mm) ;
+   nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
 
-   if( nn   < 1    || mm   <  1    || xx   == NULL ) return -66666 ;
-   if( nvec > nsym || eval == NULL || uvec == NULL ) return -66666 ;
+   if( nsym < 1 || xx == NULL || (uvec == NULL && sval == NULL) ) return -66666 ;
 
-   asym  = (double *)malloc(sizeof(double)*nsym*nsym) ;
-   deval = (double *)malloc(sizeof(double)*nsym) ;
+   if( nvec > nsym ) nvec = nsym ;  /* can't compute more vectors than nsym! */
 
-   if( nn >= mm ){
-     for( jj=0 ; jj < mm ; jj++ ){
+   asym  = (double *)malloc(sizeof(double)*nsym*nsym) ;  /* symmetric matrix */
+   deval = (double *)malloc(sizeof(double)*nsym) ;       /* its eigenvalues */
+
+   /** setup matrix to eigensolve: choose smaller of [X]'[X] and [X][X]' **/
+   /**     since [X] is n x m, [X]'[X] is m x m and [X][X]' is n x n     **/
+
+   if( nn > mm ){                       /* more rows than columns:  */
+     for( jj=0 ; jj < mm ; jj++ ){      /* so [A] = [X]'[X] = m x m */
        for( kk=0 ; kk <= jj ; kk++ ){
          sum = 0.0 ;
          for( ii=0 ; ii < nn ; ii++ ) sum += X(ii,jj)*X(ii,kk) ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
-   } else {
-     for( jj=0 ; jj < nn ; jj++ ){
+   } else {                             /* more columns than rows:  */
+     for( jj=0 ; jj < nn ; jj++ ){      /* so [A] = [X][X]' = n x n */
        for( kk=0 ; kk < nn ; kk++ ){
          sum = 0.0 ;
          for( ii=0 ; ii < mm ; ii++ ) sum += X(jj,ii)*X(kk,ii) ;
@@ -515,15 +532,78 @@ int principal_vectors( int n , int m , float *xx ,
      }
    }
 
-   ii = symeig_irange( nsym , asym , deval , nsym-nvec , nsym-1 ) ;
+   /** compute the nvec eigenvectors corresponding to largest eigenvalues **/
+   /** these eigenvectors are stored on top of first nvec columns of asym **/
+
+   ii = symeig_irange( nsym, asym, deval, nsym-nvec, nsym-1, (uvec==NULL) ) ;
 
    if( ii != 0 ){
-     free(deval) ; free(asym) ; return -1 ;
+     free(deval) ; free(asym) ; return -33333 ;  /* eigensolver failed!? */
    }
 
-}
-#endif
+   /** Store singular values (sqrt of eigenvalues), if desired:
+       Note that symeig_irange returns things smallest to largest,
+       but we want largest to smallest, so have to reverse the order **/
 
+   if( sval != NULL ){
+     for( jj=0 ; jj < nvec ; jj++ ){
+       sum = deval[nvec-1-jj] ;
+       sval[jj] = (sum <= 0.0) ? 0.0 : sqrt(sum) ;
+     }
+   }
+
+   /** if no output vectors desired, we are done done done!!! **/
+
+   if( uvec == NULL ){
+     free(deval) ; free(asym) ; return nvec ;
+   }
+
+   /** SVD is [X] = [U] [S] [V]', where [U] = desired output vectors
+
+       case n <= m: [A] = [X][X]' = [U] [S][S]' [U]'
+                    so [A][U] = [U] [S][S]'
+                    so eigenvectors of [A] are just [U]
+
+       case n > m:  [A] = [X]'[X] = [V] [S]'[S] [V]'
+                    so [A][V] = [V] [S'][S]
+                    so eigenvectors of [A] are [V], but we want [U]
+                    note that [X][V] = [U] [S]
+                    so pre-multiplying each column vector in [V] by matrix [X]
+                    will give the corresponding column in [U], but scaled;
+                    below, just L2-normalize the column to get output vector **/
+
+	if( nn <= mm ){                    /* copy eigenvectors into output directly */
+
+     for( jj=0 ; jj < nvec ; jj++ ){
+       qq = nvec-1-jj ;               /* eigenvalues are in reversed order */
+       for( ii=0 ; ii < nn ; ii++ )
+         uvec[ii+jj*nn] = (float)asym[ii+qq*nn] ;
+     }
+
+   } else {  /** n > m: transform eigenvectors to get left singular vectors */
+
+     for( jj=0 ; jj < nvec ; jj++ ){
+       qq = nvec-1-jj ; qsum = 0.0 ;  /* eigenvalues are in reversed order */
+       for( ii=0 ; ii < nn ; ii++ ){
+         sum = 0.0 ;
+         for( kk=0 ; kk < mm ; kk++ ) sum += xx[ii+kk*nn] * asym[kk+qq*mm] ;
+         uvec[ii+jj*nn] = sum ; qsum += sum*sum ;
+       }
+       if( qsum > 0.0 ){
+         register float fac ;
+         fac = (float)(1.0/sqrt(qsum)) ;
+         for( ii=0 ; ii < nn ; ii++ ) uvec[ii+jj*nn] *= fac ;
+       }
+     }
+   }
+
+   /** free at last!!! **/
+
+   free(deval) ; free(asym) ; return nvec ;
+}
+
+#undef X
+#undef A
 
 /*--------------------------------------------------------------------*/
 
