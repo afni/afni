@@ -439,7 +439,7 @@ static mday holiday[] = {
    {JUL,11,"Birthday of Tenzin Gyatso"                               } ,
    {JUL,12,"Sao Tome & Principe Independence Day"                    } ,
    {JUL,13,"Gaius Julius Caesar's birthday"                          } ,
-   {JUL,14,"Bastille Day"                                            } ,
+   {JUL,14,"Bastille Day - Vive la France!"                          } ,
    {JUL,14,"Iraq Republic Day"                                       } ,
    {JUL,14,"Gerald Ford's birthday"                                  } ,
    {JUL,15,"Anniversary of Battle of Grunwald"                       } ,
