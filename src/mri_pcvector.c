@@ -12,9 +12,8 @@
 MRI_IMAGE * mri_pcvector( MRI_IMARR *imar , int ibot, int itop )
 {
    int nx , nvec , ii,jj , npos,nneg ;
-   double *amat , *umat , *vmat , *sval , sum ;
+   float *amat , *umat , sum ;
    float *far ; MRI_IMAGE *tim ;
-
 
    if( imar == NULL ) return NULL ;
    nvec = IMARR_COUNT(imar) ;       if( nvec < 1 ) return NULL ;
@@ -24,43 +23,40 @@ MRI_IMAGE * mri_pcvector( MRI_IMARR *imar , int ibot, int itop )
    nx = itop-ibot+1 ;               if( nx   < 2 ) return NULL ;
 
 #define A(i,j) amat[(i)+(j)*nx]     /* nx X nvec matrix */
-#define U(i,j) umat[(i)+(j)*nx]     /* ditto */
-#define V(i,j) vmat[(i)+(j)*nvec]   /* nvec X nvec matrix */
-#define X(i,j) amat[(i)+(j)*nvec]   /* nvec X nx matrix */
 
-   amat = (double *)malloc( sizeof(double)*nx*nvec ) ;
-   umat = (double *)malloc( sizeof(double)*nx*nvec ) ;
-   vmat = (double *)malloc( sizeof(double)*nvec*nvec ) ;
-   sval = (double *)malloc( sizeof(double)*nvec ) ;
+   amat = (float *)malloc( sizeof(float)*nx*nvec ) ;
+   umat = (float *)malloc( sizeof(float)*nx      ) ;
 
    for( jj=0 ; jj < nvec ; jj++ ){
      tim = IMARR_SUBIM(imar,jj) ;
      far = MRI_FLOAT_PTR(tim) ;
      for( sum=ii=0 ; ii < nx ; ii++ ){
-       A(ii,jj) = (double)far[ii+ibot] ; sum += A(ii,jj) ;
+       A(ii,jj) = far[ii+ibot] ; sum += A(ii,jj) ;
      }
      sum /= nx ;  /* remove mean from each vector */
      for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) -= sum ;
    }
 
-   svd_double( nx , nvec , amat , sval , umat , vmat ) ;
+   jj = first_principal_vectors( nx , nvec , amat , 1 , NULL , umat ) ;
+
+   if( jj <= 0 ){ free(umat); free(amat); return NULL; } /* bad */
 
    tim = mri_new( nx , 1 , MRI_float ) ;  /* all zero */
    far = MRI_FLOAT_PTR(tim) ;
-   for( ii=0 ; ii < nx ; ii++ ) far[ii] = (float)U(ii,0) ;
+   for( ii=0 ; ii < nx ; ii++ ) far[ii] = umat[ii] ;
 
    /* compute dot products with original vectors,
       and flip sign if more of them are negative than positive */
 
    for( npos=nneg=jj=0 ; jj < nvec ; jj++ ){
      for( sum=ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj)*far[ii] ;
-     if( sum > 0.0 ) npos++ ; else if( sum < 0.0 ) nneg++ ;
+     if( sum > 0.0f ) npos++ ; else if( sum < 0.0f ) nneg++ ;
    }
    if( nneg > npos ){
      for( ii=0 ; ii < nx ; ii++ ) far[ii] = -far[ii] ;
    }
 
-   free(sval); free(vmat); free(umat); free(amat); return tim;
+   free(umat); free(amat); return tim;
 }
 
 /*------------------------------------------------------------------------*/
