@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
 print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.5,  June 7, 2009")
+print("Version 0.0.6,  July 16, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -638,8 +638,8 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       #print("as the beta/t-statistic input files listed above.")
       print("Each subject is assumed to have one number per covariate. All covariates should be put into one")
       print("file in one- or multi-column format. Header at the 1st line as labels is optional. The vertical")
-      print("sequence in each column has to follow the same subject order as the beta/t-statistic input files")
-      print("listed above.")
+      print("sequence in each column has to follow exactly the same subject order as the beta/t-statistic")
+      print("input files listed above.")
       #covForm <- as.integer(readline("Covariates data type (0: MULTIPLE one-column files; 1: ONE single/multi-column file)? "))
       covForm <- 1
       if (covForm) {
@@ -665,7 +665,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
          if(centerType == 1) {  # center around a user-specified value
             centerVal <- vector(mode = "numeric", length = nCov)
             for(ii in 1:nCov) centerVal[ii] <- as.numeric(readline(sprintf("Centering value for covariate no. %i (%s): ? ", ii, names(covData)[ii])))
-            covData <- t(apply(covData, 1, "-", centerVal))
+            covData <- as.matrix(apply(covData, 1, "-", centerVal))
          }
       } # if(nGrp == 1)
 
@@ -678,7 +678,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
                centerVal <- vector(mode = "numeric", length = nCov)
                for(jj in 1:nCov) centerVal[jj] <- as.numeric(readline(sprintf(
                   "Centering value for covariate no. %i (%s) for both groups: ? ", jj, names(covData)[jj])))
-               covData <- t(apply(covData, 1, "-", centerVal))
+               covData <- as.matrix(apply(covData, 1, "-", centerVal))
             }
          } # if(centerType2 == 0 | centerType2 == 1)
         
