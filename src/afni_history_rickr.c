@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, JUL, 2009, RCR, "realtime_receiver.py", MAJOR, TYPE_NEW_PROG,
+   "replacement for serial_helper",
+   NULL
+ } ,
+
  { 14, JUL, 2009, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "added -max_rest, to limit the maximum duration of rest periods",
    NULL
