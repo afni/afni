@@ -103,6 +103,17 @@ if ( $package == "" ) then
    endif
 endif
 
+# test for existence of wget
+which wget >& /dev/null
+if ( $status ) then
+    echo ""
+    echo "** program wget is missing, please install or"
+    echo "   look it up on the AFNI message board:"
+    echo "       http://afni.nimh.nih.gov/afni/community/board"
+    echo ""
+    exit
+endif
+
 echo "-- attempting to install package $package under $abin..."
 
 # ----------------------------------------------------------------------
