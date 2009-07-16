@@ -389,9 +389,11 @@ STATUS("Choleski") ;
      sum = V(ii,ii) ;
      for( kk=ibot ; kk < ii ; kk++ ) sum -= V(ii,kk) * V(ii,kk) ;
      if( sum < PSINV_EPS ){
-       static int first=1 ;
-       if( first ) WARNING_message("Choleski fails in mri_matrix_psinv()!\n");
-       first = 0 ; do_svd = 1 ; goto SVD_PLACE ;
+      static int first=1 ;
+#pragma omp critical (STDERR)
+      { if( first ) WARNING_message("Choleski fails in mri_matrix_psinv()!\n");
+        first = 0 ; do_svd = 1 ; }
+      goto SVD_PLACE ;
      }
      V(ii,ii) = sqrt(sum) ;
    }
@@ -454,8 +456,8 @@ STATUS("SVD") ;
 
      if( smax <= 0.0 ){                        /* this is bad */
        static int first = 1 ;
-       if( first )
-         ERROR_message("SVD fails in mri_matrix_psinv()!\n");
+#pragma omp critical (STDERR)
+       { if( first ) ERROR_message("SVD fails in mri_matrix_psinv()!\n"); }
        free((void *)xfac); free((void *)sval); first = 0;
        free((void *)vmat); free((void *)umat); RETURN( NULL);
      }
@@ -604,6 +606,27 @@ MRI_IMAGE * mri_matrix_sqrt( MRI_IMAGE *imc )  /* 30 Jul 2007 */
    ERROR_message("mri_matrix_sqrt() fails to converge: err=%g",fa/csiz);
 #endif
    mri_free(imz) ; mri_free(imy) ; RETURN(NULL) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! The first principal component (singular) vector of a matrix [16 Jul 2009] */
+
+MRI_IMAGE * mri_matrix_pcvector( MRI_IMAGE *imx )
+{
+   int jj ; MRI_IMAGE *imu ;
+
+ENTRY("mri_matrix_pcvector") ;
+
+   if( imx == NULL || imx->kind != MRI_float ) RETURN(NULL) ;
+
+   imu = mri_new( imx->nx , 1 , MRI_float ) ;
+
+   jj = first_principal_vectors( imx->nx , imx->ny , MRI_FLOAT_PTR(imx) ,
+                                 1 , NULL , MRI_FLOAT_PTR(imu)           ) ;
+
+   if( jj <= 0 ){ mri_free(imu) ; imu = NULL ; }
+
+   RETURN(imu) ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -775,11 +798,13 @@ static void matrix_name_assign( char *nam , MRI_IMAGE *ima )
 
    ii  = matrix_name_lookup( nam ) ;
    imb = mri_to_float(ima) ; mri_add_name(nam,imb) ;
-   if( ii < 0 ){
-     ADDTO_IMARR(matar,imb) ;
-   } else {
-     mri_free( IMARR_SUBIM(matar,ii) ) ;
-     IMARR_SUBIM(matar,ii) = imb ;
+#pragma omp critical (MATAR)
+   { if( ii < 0 ){
+       ADDTO_IMARR(matar,imb) ;
+     } else {
+       mri_free( IMARR_SUBIM(matar,ii) ) ;
+       IMARR_SUBIM(matar,ii) = imb ;
+     }
    }
    return ;
 }

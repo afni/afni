@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , JUL , 2009 , RWC , "3dmaskSVD" , MICRO , TYPE_MODIFY ,
+   "Speedup (a lot for large masks) by using new SVD routine." ,
+   NULL } ,
+
  { 15 , JUL , 2009 , RWC , "3dLocalSVD" , MICRO , TYPE_GENERAL ,
    "Modify to use more efficient SVD routine" ,
    NULL } ,

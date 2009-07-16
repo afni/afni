@@ -3,7 +3,7 @@
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
-void mri_principal_vector_params( int a , int b , int c , int d , int e ) ;
+void mri_principal_vector_params( int , int , int ) ;
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
 float     * mri_principal_getev(void) ;
 void        mri_principal_setev(int n) ;
@@ -18,7 +18,7 @@ int main( int argc , char *argv[] )
    int iarg=1 , verb=1 , ntype=0 , nev,kk,ii,nxyz,nt ;
    float na,nb,nc , dx,dy,dz ;
    MRI_IMARR *imar=NULL ; int *ivox ; MRI_IMAGE *pim ;
-   int do_vmean=0 , do_vnorm=0 , do_vproj=0 , sval_ibot=0 , sval_itop=0 ;
+   int do_vmean=0 , do_vnorm=0 , sval_itop=0 ;
    int polort=-1 ; float *ev ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -46,9 +46,9 @@ int main( int argc , char *argv[] )
        "     time series as the principal singular vector!\n"
        "* An alternative to this program would be 3dmaskdump followed\n"
        "    by 1dsvd, which could give you all the singular vectors you\n"
-       "    could ever want, and much more.\n"
+       "    could ever want, and much more -- enough to confuse you for days.\n"
        "  ++ In particular, although you COULD input a 1D file into\n"
-       "     3dmaskSVD, the 1dsvd program would probably make more sense.\n"
+       "     3dmaskSVD, the 1dsvd program would make much more sense.\n"
        "* This program will be pretty slow if there are over about 2000\n"
        "    voxels in the mask.  It could be made more efficient for\n"
        "    such cases, but you'll have to give Zhark some 'incentive'.\n"
@@ -61,10 +61,10 @@ int main( int argc , char *argv[] )
        "Options:\n"
        "-------\n"
        " -vnorm      = L2 normalize all time series before SVD [recommended!]\n"
-       " -sval a [b] = output singular vectors a..b [default a=b=0]\n"
+       " -sval a     = output singular vectors 0 .. a [default a=0 = first one only]\n"
        " -mask mset  = define the mask [default is entire dataset == slow!]\n"
        " -automask   = you'll have to guess what this option does\n"
-       " -polort p   = if you are lazy and didn't run 3dDetrend\n"
+       " -polort p   = if you are lazy and didn't run 3dDetrend (like Zhark)\n"
        " -input ddd  = alternative way to give the input dataset name\n"
        "\n"
        "-------\n"
@@ -123,14 +123,8 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-sval") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-sval'") ;
-       sval_ibot = (int)strtod(argv[iarg],NULL) ;
-       if( sval_ibot < 0 ) sval_ibot = 0 ;
-       if( iarg+1 < argc && isdigit(argv[iarg+1][0]) ){
-         sval_itop = (int)strtod(argv[++iarg],NULL) ;
-         if( sval_itop < sval_ibot ) sval_itop = sval_ibot ;
-       } else {
-         sval_itop = sval_ibot ;
-       }
+       sval_itop = (int)strtod(argv[iarg],NULL) ;
+       if( sval_itop < 0 ){ sval_itop = 0 ; WARNING_message("'-sval' reset to 0") ; }
        iarg++ ; continue ;
      }
 
@@ -198,11 +192,9 @@ int main( int argc , char *argv[] )
    nev = MIN(nt,masknum) ;  /* max number of eigenvalues */
    if( sval_itop >= nev ){
      sval_itop = nev-1 ;
-     if( sval_ibot >= nev ) sval_ibot = nev-1 ;
-     WARNING_message("-sval reset to '%d %d'",sval_ibot,sval_itop) ;
+     WARNING_message("'-sval' reset to '%d'",sval_itop) ;
    }
-   mri_principal_vector_params( 0 , do_vnorm , 0 , sval_ibot,sval_itop ) ;
-   set_svd_sort(-1) ;  /* largest singular values first */
+   mri_principal_vector_params( 0 , do_vnorm , sval_itop ) ;
    mri_principal_setev(nev) ;
 
    ivox = (int *)malloc(sizeof(int)*masknum) ;
@@ -225,9 +217,9 @@ int main( int argc , char *argv[] )
 
    INFO_message("Computing SVD") ;
    pim  = mri_principal_vector( imar ) ; DESTROY_IMARR(imar) ;
-   if( pim == NULL ) ERROR_exit("SVD failure!") ;
+   if( pim == NULL ) ERROR_exit("SVD failure!?!") ;
    ev = mri_principal_getev() ;
-   switch(nev){
+   switch(sval_itop+1){
      case 1:
        INFO_message("First singular value: %g",ev[0]) ; break ;
      case 2:
@@ -249,13 +241,11 @@ int main( int argc , char *argv[] )
 
 static int mpv_vmean = 0 ;
 static int mpv_vnorm = 0 ;
-static int mpv_vproj = 0 ;
-static int mpv_sibot = 0 ;
 static int mpv_sitop = 0 ;
 
-void mri_principal_vector_params( int a , int b , int c , int d , int e )
+void mri_principal_vector_params( int a , int b , int e )
 {
-   mpv_vmean = a; mpv_vnorm = b; mpv_vproj = c; mpv_sibot = d; mpv_sitop = e;
+   mpv_vmean = a; mpv_vnorm = b; mpv_sitop = e;
 }
 
 /*------------------------------------------------------------------------*/
@@ -274,11 +264,11 @@ void mri_principal_setev(int n){
 
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 {
-   int nx , nvec , ii,jj,kk ;
-   double *amat , *umat , *vmat , *sval ;
+   int nx , nvec , ii,jj,kk , nev ;
+   float *amat , *umat , *sval ;
    float *far , *tar ; MRI_IMAGE *tim ;
    float vmean=0.0f , vnorm=0.0f ;
-   register double sum , zum ; double qum ; int nsi ;
+   register float sum , zum ; float qum ;
 
    if( imar == NULL ) return NULL ;
    nvec = IMARR_COUNT(imar) ;       if( nvec < 1 ) return NULL ;
@@ -286,18 +276,18 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 
 #define A(i,j) amat[(i)+(j)*nx]     /* nx X nvec matrix */
 #define U(i,j) umat[(i)+(j)*nx]     /* ditto */
-#define V(i,j) vmat[(i)+(j)*nvec]   /* nvec X nvec matrix */
 #define X(i,j) amat[(i)+(j)*nvec]   /* nvec X nx matrix */
 
-   amat = (double *)malloc( sizeof(double)*nx*nvec ) ;
-   umat = (double *)malloc( sizeof(double)*nx*nvec ) ;
-   vmat = (double *)malloc( sizeof(double)*nvec*nvec ) ;
-   sval = (double *)malloc( sizeof(double)*nvec ) ;
+   nev  = mpv_sitop + 1 ;
+
+   amat = (float *)malloc( sizeof(float)*nx*nvec ) ;
+   umat = (float *)malloc( sizeof(float)*nx*nev  ) ;
+   sval = (float *)malloc( sizeof(float)*nev     ) ;
 
    for( jj=0 ; jj < nvec ; jj++ ){
      tim = IMARR_SUBIM(imar,jj) ;
      far = MRI_FLOAT_PTR(tim) ;
-     for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = (double)far[ii] ;
+     for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = far[ii] ;
    }
 
    if( mpv_vmean ){
@@ -310,53 +300,54 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    }
    if( mpv_vnorm ){
      for( jj=0 ; jj < nvec ; jj++ ){
-       sum = 0.0 ;
+       sum = 0.0f ;
        for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
-       if( sum > 0.0 ){
-         sum = 1.0 / sqrt(sum) ; if( jj == 0 ) vnorm = 1.0/sum ;
+       if( sum > 0.0f ){
+         sum = 1.0f / sqrtf(sum) ; if( jj == 0 ) vnorm = 1.0f/sum ;
          for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) *= sum ;
        }
      }
    }
 
-   svd_double( nx , nvec , amat , sval , umat , vmat ) ;
+   jj = first_principal_vectors( nx,nvec,amat , nev,sval,umat ) ;
+   if( jj <= 0 ){ free(sval); free(umat); free(amat); return NULL; }
+   nev = jj ;
 
    if( mpv_evnum > 0 ){
-     int itop = MIN(mpv_evnum,nvec) ;
-     for( ii=0 ; ii < itop      ; ii++ ) mpv_ev[ii] = (float)sval[ii] ;
+     int itop = MIN(mpv_evnum,nev) ;
+     for( ii=0 ; ii < itop      ; ii++ ) mpv_ev[ii] = sval[ii] ;
      for(      ; ii < mpv_evnum ; ii++ ) mpv_ev[ii] = 0.0f ;
    }
 
-   nsi = mpv_sitop - mpv_sibot + 1 ;
-   tim = mri_new( nx , nsi , MRI_float ) ;
+   tim = mri_new( nx , nev , MRI_float ) ;
    far = MRI_FLOAT_PTR(tim) ;
-   for( jj=mpv_sibot ; jj <= mpv_sitop ; jj++ ){
-     kk = jj - mpv_sibot ; tar = far + kk*nx ;
-     for( ii=0 ; ii < nx ; ii++ ) tar[ii] = (float)U(ii,jj) ;
+   for( jj=0 ; jj < nev ; jj++ ){
+     tar = far + jj*nx ;
+     for( ii=0 ; ii < nx ; ii++ ) tar[ii] = U(ii,jj) ;
    }
 
    /* select sign of result vector(s), then scale */
 
-   for( kk=0 ; kk < nsi ; kk++ ){  /* loop over multiple output vectors */
+   for( kk=0 ; kk < nev ; kk++ ){  /* loop over multiple output vectors */
      tar = far + kk*nx ;
-     qum = 0.0 ;
+     qum = 0.0f ;
      for( jj=0 ; jj < nvec ; jj++ ){
-       zum = sum = 0.0 ;
+       zum = sum = 0.0f ;
        for( ii=0 ; ii < nx ; ii++ ){ sum += A(ii,jj)*tar[ii]; zum += A(ii,jj)*A(ii,jj); }
-       if( zum > 0.0 ){
-         sum = sum / zum ; sum = MIN(sum,0.9999) ; sum = MAX(sum,-0.9999) ;
-         qum += atanh(sum) ;
+       if( zum > 0.0f ){
+         sum = sum / zum ; sum = MIN(sum,0.9999f) ; sum = MAX(sum,-0.9999f) ;
+         qum += atanhf(sum) ;
        }
      }
-     if( qum < 0.0 ){
+     if( qum < 0.0f ){
        for( ii=0 ; ii < nx ; ii++ ) tar[ii] = -tar[ii] ;
      }
-     sum = 0.0 ;
+     sum = 0.0f ;
      for( ii=0 ; ii < nx ; ii++ ) sum += tar[ii]*tar[ii] ;
-     if( sum > 0.0 && fabs(sum-1.0) > 1.e-5 ){
-       sum = 1.0 / sum ; for( ii=0 ; ii < nx ; ii++ ) tar[ii] *= sum ;
+     if( sum > 0.0f && fabs(sum-1.0f) > 1.e-5f ){
+       sum = 1.0f / sum ; for( ii=0 ; ii < nx ; ii++ ) tar[ii] *= sum ;
      }
    }
 
-   free(sval); free(vmat); free(umat); free(amat); return tim;
+   free(sval); free(umat); free(amat); return tim;
 }
