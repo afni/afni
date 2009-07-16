@@ -1,5 +1,7 @@
 #include "mrilib.h"
 
+/** if using OpenMP, this file should be #include-d into the main program! **/
+
 #ifdef USE_OMP
 #include <omp.h>
 #include "cs_qmed.c"
@@ -363,7 +365,7 @@ ENTRY("THD_localstat") ;
      if( vstep ) fprintf(stderr,"++ voxel loop [%d]:",iv) ;
 #endif
 
-#pragma omp parallel if( nxyz > 3333 )    /* parallelization: 13 Jul 2009 */
+#pragma omp parallel if( nxyz > 1111 )    /* parallelization: 13 Jul 2009 */
  {
    int ijk,kk,jj,ii,cc ;
    MRI_IMAGE *nbim=NULL ;

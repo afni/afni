@@ -303,6 +303,8 @@ static rgbyte tEMp_rgbyte_aAa ;
 #define INT_TO_RGB(q) ( tEMp_rgbyte_aAa.r = ((q) >> 16) & 0xff , \
                         tEMp_rgbyte_aAa.g = ((q) >>  8) & 0xff , \
                         tEMp_rgbyte_aAa.b = (q)         & 0xff , tEMp_rgbyte_aAa )
+
+#define RGB_TO_FLOAT(rgb) (0.299*(rgb).r+0.587*(rgb).g+0.114*(rgb).b)
 /*-------*/
 
 /** Mar 1996: Extended to images up to 7D;
