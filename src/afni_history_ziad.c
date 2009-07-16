@@ -65,6 +65,12 @@
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
+ { 16 , JUL , 2009 , ZSS , "afni" , MINOR , TYPE_NEW_OPT ,
+   "Added option to force autoscale on the graphing window",
+   "The option is accessible by pressing 'A' in the graph window\n"
+   "or under 'Graph->Opt->Scale->AUTO'. "
+ } ,
+
  { 22 , MAY , 2009 , ZSS , "@FS_roi_label" , MINOR , TYPE_NEW_PROG ,
    "A script to get FreeSurfer parcellation and annotation labels",
    "The script is used to return a label associated with a FreeSurfer\n"
