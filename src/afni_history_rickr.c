@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, JUL, 2009, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
+   "check for 'wget' and whine to user if missing",
+   NULL
+ } ,
+
  { 16, JUL, 2009, RCR, "realtime_receiver.py", MAJOR, TYPE_NEW_PROG,
    "replacement for serial_helper",
    NULL
