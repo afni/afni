@@ -348,7 +348,7 @@ void THD_generic_detrend_LSQ( int npt, float *far ,
        for( jj=0 ; jj < nref ; jj++ ) val -= qfit[jj] * ref[jj][ii] ;
        far[ii] = val ;
      }
-     if( fit != NULL ) memcpy(fit,qfit,sizeof(float)*nref) ;
+     if( fit != NULL ){ for( ii=0 ; ii < nref ; ii++ ) fit[ii] = qfit[ii] ; }
      free(qfit) ;
    } else {
      ERROR_message("THD_generic_detrend_LSQ: fit fails - no detrending!") ;
@@ -437,7 +437,7 @@ void THD_generic_detrend_L1( int npt, float *far ,
        for( jj=0 ; jj < nref ; jj++ ) val -= qfit[jj] * ref[jj][ii] ;
        far[ii] = val ;
      }
-     if( fit != NULL ) memcpy(fit,qfit,sizeof(float)*nref) ;
+     if( fit != NULL ){ for( ii=0 ; ii < nref ; ii++ ) fit[ii] = qfit[ii] ; }
    } else {
      ERROR_message("THD_generic_detrend_L1: fit fails - no detrending!") ;
      if( fit != NULL ) memset(fit,0,sizeof(float)*nref) ;

@@ -501,10 +501,6 @@ dsetdup:dsetdup.o
 	$(RM) $@
 	$(CC) -o 3dLocalBistat 3dLocalBistat.o $(LFLAGS) $(LLIBS)
 
-3dLocalSVD:3dLocalSVD.o
-	$(RM) $@
-	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS) -lf2c
-
 3dmaskSVD:3dmaskSVD.o
 	$(RM) $@
 	$(CC) -o 3dmaskSVD 3dmaskSVD.o $(LFLAGS) $(LLIBS) -lf2c
@@ -974,6 +970,14 @@ DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 mri_nstats.o:mri_nstats.c
 	$(RM) $@
 	$(CCFAST) -c mri_nstats.c $(INFLAGS)
+
+3dLocalSVD.o:3dLocalSVD.c
+	$(RM) $@
+	$(CC) -c 3dLocalSVD.c $(INFLAGS)
+
+3dLocalSVD:3dLocalSVD.o
+	$(RM) $@
+	$(CC) -o 3dLocalSVD 3dLocalSVD.o $(LFLAGS) $(LLIBS) -lf2c
 
 ## ------- Things to be compiled or linked with OpenMP -------
 

@@ -1,5 +1,9 @@
 #include "mrilib.h"
 
+#ifdef USE_OMP
+#include "omp.h"
+#endif
+
 #undef  INMASK
 #define INMASK(i) ( mask == NULL || mask[i] != 0 )
 
@@ -7,10 +11,18 @@ void mri_principal_vector_params( int a , int b ) ;
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
                                      int xx, int yy, int zz, MCW_cluster *nbhd ) ;
-float * mri_principal_getev(void) ;
-void    mri_principal_setev(int n) ;
 
-static void vstep_print(void) ;
+/*------------------------------------------------------------------------*/
+
+#ifndef USE_OMP
+static void vstep_print(void)
+{
+   static char xx[10] = "0123456789" ; static int vn=0 ;
+   fprintf(stderr , "%c" , xx[vn%10] ) ;
+   if( vn%10 == 9) fprintf(stderr,".") ;
+   vn++ ;
+}
+#endif
 
 /*------------------------------------------------------------------------*/
 /* Adapted from 3dLocalstat and 1dsvd */
@@ -22,29 +34,25 @@ int main( int argc , char *argv[] )
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , automask=0 ;
    char *prefix="./LocalSVD" ;
    char *evprefix=NULL ; int nev ;
-   int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , xx,yy,zz, vstep ;
+   int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , vstep=0 ;
    float na,nb,nc , dx,dy,dz ;
-   MRI_IMARR *imar=NULL ; MRI_IMAGE *pim=NULL ;
    int do_vnorm=0 , do_vproj=0 , polort=-1 ;
-   float **polyref , *tsar , *coef=NULL ; int vv,ii , rebase=0 ;
+   float **polyref ; int rebase=0 , nmask=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
        "Usage: 3dLocalSVD [options] inputdataset\n"
        "* You may want to use 3dDetrend before running this program,\n"
-       "   or use the '-polort' option.\n"
+       "   or at least use the '-polort' option.\n"
        "* This program is highly experimental.  And slowish.\n"
-       "* Computes the SVD of time series from a neighborhood of each\n"
+       "* Computes the SVD of the time series from a neighborhood of each\n"
        "   voxel.  An inricate way of 'smoothing' 3D+time datasets,\n"
-       "   in some sense.\n"
+       "   in some sense, maybe.\n"
        "\n"
        "Options:\n"
        " -mask mset           = restrict operations to this mask\n"
        " -automask            = create a mask from time series dataset\n"
        " -prefix ppp          = save SVD vector result in this dataset\n"
-#if 0
-       " -evprefix ppp        = save eigenvalues in this dataset\n"
-#endif
        " -input inputdataset  = input time series dataset\n"
        " -nbhd nnn            = e.g., 'SPHERE(5)' 'TOHD(7)' etc.\n"
        " -polort p [+]        = detrending ['+' means to add trend back]\n"
@@ -53,6 +61,7 @@ int main( int argc , char *argv[] )
        "                        [default: just output principal singular vector]\n"
        "                        [for most purposes, '-vnorm -vproj 2' is a good idea]\n"
      ) ;
+     PRINT_AFNI_OMP_USAGE("3dLocalSVD",NULL) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -104,16 +113,8 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-#if 0
-     if( strcmp(argv[iarg],"-evprefix") == 0 ){
-       if( ++iarg >= argc ) ERROR_exit("Need argument after '-evprefix'") ;
-       evprefix = strdup(argv[iarg]) ;
-       iarg++ ; continue ;
-     }
-#endif
-
      if( strcmp(argv[iarg],"-mask") == 0 ){
-       THD_3dim_dataset *mset ; int mmm ;
+       THD_3dim_dataset *mset ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
@@ -122,9 +123,9 @@ int main( int argc , char *argv[] )
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
        if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%s'",argv[iarg]) ;
-       mmm = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
-       INFO_message("Number of voxels in mask = %d",mmm) ;
-       if( mmm < 2 ) ERROR_exit("Mask is too small to process") ;
+       nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
+       INFO_message("Number of voxels in mask = %d",nmask) ;
+       if( nmask < 2 ) ERROR_exit("Mask is too small to process") ;
        iarg++ ; continue ;
      }
 
@@ -187,12 +188,15 @@ int main( int argc , char *argv[] )
 
    if( polort >= 0 ){
      polyref = THD_build_polyref( polort+1 , nt ) ;
-     if( rebase ) coef = (float *)malloc(sizeof(float)*(polort+1)) ;
    }
 
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
    /*-- deal with mask --*/
+
+   nx = DSET_NX(inset) ;
+   ny = DSET_NY(inset) ; nxy  = nx*ny  ;
+   nz = DSET_NZ(inset) ; nxyz = nxy*nz ;
 
    if( mask != NULL ){
      if( mask_nx != DSET_NX(inset) ||
@@ -201,13 +205,15 @@ int main( int argc , char *argv[] )
        ERROR_exit("-mask dataset grid doesn't match input dataset") ;
 
    } else if( automask ){
-     int mmm ;
      mask = THD_automask( inset ) ;
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset?") ;
-     mmm = THD_countmask( DSET_NVOX(inset) , mask ) ;
-     INFO_message("Number of voxels in automask = %d",mmm) ;
-     if( mmm < 2 ) ERROR_exit("Automask is too small to process") ;
+     nmask = THD_countmask( DSET_NVOX(inset) , mask ) ;
+     INFO_message("Number of voxels in automask = %d",nmask) ;
+     if( nmask < 2 ) ERROR_exit("Automask is too small to process") ;
+
+   } else {
+     nmask = nxyz ;  /* all voxels */
    }
 
    /*---- create neighborhood (as a cluster) -----*/
@@ -265,36 +271,35 @@ int main( int argc , char *argv[] )
      printf(" [%2d] = %2d %2d %2d\n",kk,nbhd->i[kk],nbhd->j[kk],nbhd->k[kk]) ;
 #endif
 
-   set_svd_sort(-1) ;  /* largest singular values first */
-
    /** create output dataset **/
 
    outset = EDIT_empty_copy(inset) ;
    EDIT_dset_items( outset, ADN_prefix,prefix, ADN_brick_fac,NULL, ADN_none );
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dLocalSVD" , argc,argv , outset ) ;
-   for( kk=0 ; kk < nt ; kk++ )
+   for( kk=0 ; kk < nt ; kk++ )                         /* create bricks */
      EDIT_substitute_brick( outset , kk , MRI_float , NULL ) ;
 
-   nev = nbhd->num_pt ; mri_principal_setev(nev) ;
-   if( evprefix != NULL ){
-     evset = EDIT_empty_copy(outset) ;
-     EDIT_dset_items( evset, ADN_prefix,evprefix, ADN_brick_fac,NULL, ADN_none );
-     EDIT_dset_items( evset, ADN_nvals,nev , ADN_ntt,nbhd->num_pt , ADN_none ) ;
-     for( kk=0 ; kk < nev ; kk++ )
-       EDIT_substitute_brick( evset , kk , MRI_float , NULL ) ;
-   }
-
-   nx = DSET_NX(outset) ;
-   ny = DSET_NY(outset) ; nxy  = nx*ny  ;
-   nz = DSET_NZ(outset) ; nxyz = nxy*nz ;
+#ifndef USE_OMP
    vstep = (verb && nxyz > 999) ? nxyz/50 : 0 ;
    if( vstep ) fprintf(stderr,"++ voxel loop: ") ;
+#endif
 
    /*** the real work now begins ***/
 
+#pragma omp parallel if( nmask > 666 )  /* parallelization 16 Jul 2009 */
+ { int kk , xx,yy,zz , vv,ii ;
+   MRI_IMARR *imar ; MRI_IMAGE *pim ;
+   float *tsar , *coef ;
+
+   if( rebase ) coef = (float *)malloc(sizeof(float)*(polort+1)) ;
+   else         coef = NULL ;
+
+ AFNI_OMP_START ;
    for( kk=0 ; kk < nxyz ; kk++ ){
+#ifndef USE_OMP
      if( vstep && kk%vstep==vstep-1 ) vstep_print() ;
+#endif
      if( !INMASK(kk) ) continue ;
      IJK_TO_THREE( kk , xx,yy,zz , nx,nxy ) ;
      imar = THD_get_dset_nbhd_array( inset , mask , xx,yy,zz , nbhd ) ;
@@ -317,19 +322,20 @@ int main( int argc , char *argv[] )
      }
      THD_insert_series( kk, outset, nt, MRI_float, MRI_FLOAT_PTR(pim), 0 ) ;
      mri_free(pim) ;
-     if( evset != NULL )
-       THD_insert_series( kk, evset, nev, MRI_float, mri_principal_getev(), 0 );
    }
+
+   if( coef != NULL ) free(coef) ;
+ AFNI_OMP_END ;
+ } /* end OpenMP */
+
+#ifdef USE_OMP
    if( vstep ) fprintf(stderr,"\n") ;
+#endif
 
    /*** cleanup and exit ***/
 
    DSET_delete(inset) ;
    DSET_write(outset) ; WROTE_DSET(outset) ; DSET_delete(outset) ;
-
-   if( evset != NULL ){
-     DSET_write(evset) ; WROTE_DSET(evset) ; DSET_delete(evset) ;
-   }
 
    exit(0) ;
 }
@@ -371,18 +377,6 @@ static int mpv_vproj = 0 ;
 void mri_principal_vector_params( int a , int b )
 {
    mpv_vnorm = a ; mpv_vproj = b ;
-}
-
-/*------------------------------------------------------------------------*/
-
-static int    mpv_evnum = 0 ;
-static float *mpv_ev    = NULL ;
-
-float * mri_principal_getev(void){ return mpv_ev ; }
-
-void mri_principal_setev(int n){
-   mpv_evnum = n ;
-   mpv_ev    = (float *)malloc(sizeof(float)*n) ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -439,14 +433,6 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
    if( jj <= 0 ){ free(sval); free(umat); free(amat); return NULL; }
    nev = jj ;
 
-   /** save eigenvalues **/
-
-#if 0
-   itop = MIN(nvec,mpv_evnum) ;
-   for( ii=0 ; ii < itop      ; ii++ ) mpv_ev[ii] = (float)sval[ii] ;
-   for(      ; ii < mpv_evnum ; ii++ ) mpv_ev[ii] = 0.0f ;
-#endif
-
    /** create output **/
 
    tim = mri_new( nx , 1 , MRI_float ) ;
@@ -477,14 +463,4 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 
    if( vnorm != NULL ) free(vnorm) ;
    free(sval); free(umat); free(amat); return tim;
-}
-
-/*------------------------------------------------------------------------*/
-
-static void vstep_print(void)
-{
-   static char xx[10] = "0123456789" ; static int vn=0 ;
-   fprintf(stderr , "%c" , xx[vn%10] ) ;
-   if( vn%10 == 9) fprintf(stderr,".") ;
-   vn++ ;
 }
