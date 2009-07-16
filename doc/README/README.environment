@@ -703,6 +703,13 @@ If this YES/NO variable is set to YES, then the AFNI GUI will skip the usual
 warning that it pops up in a message window when an oblique dataset is selected.
 (The warning will still be printed to stdout.)
 
+-----------------------------------
+Variable: AFNI_ONE_OBLIQUE_WARNING
+-----------------------------------
+If this YES/NO variable is set to YES, then the AFNI GUI will pop up a warning
+just ONCE when an oblique dataset is encountered.
+
+
 ----------------------
 Variable: AFNI_NO_XDBE
 ----------------------
