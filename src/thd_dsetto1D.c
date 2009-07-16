@@ -187,6 +187,76 @@ int THD_extract_array( int ind, THD_3dim_dataset *dset, int raw, void *uar )
    free(tar); return(0);
 }
 
+/*---------------------------------------------------------------------------
+  Return value is 0 for all is good, -1 for all is bad.
+  Data goes into a user-supplied array.
+-----------------------------------------------------------------------------*/
+
+int THD_extract_float_array( int ind, THD_3dim_dataset *dset, float *far )
+{
+   MRI_TYPE typ ;
+   int nv , ival , nb , nb1 ;
+   char  *iar ;      /* brick in the input */
+
+   if( ind < 0             || far == NULL           ||
+       !ISVALID_DSET(dset) || ind >= DSET_NVOX(dset)  ) return(-1) ;
+
+   nv  = dset->dblk->nvals ;
+   typ = DSET_BRICK_TYPE(dset,0) ;  /* raw data type */
+
+   switch( typ ){
+
+      default:           /* don't know what to do --> return nada */
+         return(-1);
+      break ;
+
+      case MRI_byte:{
+         byte *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (byte *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) far[ival] = bar[ind] ;
+         }
+      }
+      break ;
+
+      case MRI_short:{
+         short *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (short *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) far[ival] = bar[ind] ;
+         }
+      }
+      break ;
+
+      case MRI_float:{
+         float *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (float *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) far[ival] = bar[ind] ;
+         }
+      }
+      break ;
+
+      case MRI_complex:{
+         complex *bar ;
+         for( ival=0 ; ival < nv ; ival++ ){
+            bar = (complex *) DSET_ARRAY(dset,ival) ;
+            if( bar != NULL ) far[ival] = CABS(bar[ind]) ;
+         }
+      }
+      break ;
+
+   }
+
+   if( THD_need_brick_factor(dset) ){
+     for( ival=0 ; ival < nv ; ival++ )
+       if( DSET_BRICK_FACTOR(dset,ival) > 0.0 )
+         far[ival] *= DSET_BRICK_FACTOR(dset,ival) ;
+   }
+
+   return(0);
+}
+
 /*----------------------------------------------------------------------------*/
 
 int THD_voxel_is_constant( int ind , THD_3dim_dataset *dset )

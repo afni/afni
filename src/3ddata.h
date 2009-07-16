@@ -4174,7 +4174,8 @@ extern MRI_IMAGE * THD_instacorr        ( ICOR_setup *iset, int ijk, int ata ) ;
 
 /*---------------------------------------------------------------------------*/
 
-extern int THD_extract_array( int, THD_3dim_dataset *, int, void * ) ;
+extern int THD_extract_array      ( int, THD_3dim_dataset *, int, void * ) ;
+extern int THD_extract_float_array( int, THD_3dim_dataset *, float * ) ;
 
 extern MRI_IMAGE * THD_extract_float_brick( int , THD_3dim_dataset * ) ;
 
