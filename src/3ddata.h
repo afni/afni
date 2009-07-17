@@ -4131,7 +4131,7 @@ typedef struct {
      free((mv)); (mv) = NULL;                    \
  } while(0)
 
-extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset , byte *mask , int ignore ) ;
+extern MRI_vectim * THD_dset_to_vectim( THD_3dim_dataset *dset, byte *mask, int ignore );
 extern int64_t THD_vectim_size( THD_3dim_dataset *dset , byte *mask ) ;
 extern int THD_vectim_ifind( int iv , MRI_vectim *mrv ) ;
 extern int bsearch_int( int tt , int nar , int *ar ) ;
@@ -4140,6 +4140,8 @@ extern void THD_vectim_to_dset( MRI_vectim *mrv , THD_3dim_dataset *dset ) ;
 extern void mri_blur3D_vectim( MRI_vectim *vim , float fwhm ) ;
 extern void THD_vectim_normalize( MRI_vectim *mrv ) ;
 extern void THD_vectim_dotprod( MRI_vectim *mrv, float *vec, float *dp, int ata ) ;
+
+extern int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar );
 
 typedef struct {
   THD_3dim_dataset *dset , *mset ;
