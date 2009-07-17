@@ -879,7 +879,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    int i, ND, id;
    SUMA_SureFit_struct *SF;
    SUMA_FreeSurfer_struct *FS;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
