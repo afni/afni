@@ -23,6 +23,7 @@ int SUMA_F5_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F6_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F7_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
+int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_M_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);
 int SUMA_N_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode);

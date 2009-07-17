@@ -55,6 +55,10 @@ int SUMA_KeyPress(char *keyin, char *keynameback)
       c = keyname[0];
       SUMA_LHv("c now '%c'\n", c);
       switch(c) {
+         case 'a':
+            SUMA_RETURN(XK_a);
+         case 'A':
+            SUMA_RETURN(XK_A);
          case 'b':
             SUMA_RETURN(XK_b);
          case 'B':
@@ -836,6 +840,61 @@ int SUMA_F8_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
    SUMA_RETURN(1);
 }
+
+int SUMA_A_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
+{
+   static char FuncName[]={"SUMA_A_Key"};
+   char tk[]={"A"}, keyname[100];
+   int k, nc;
+   SUMA_EngineData *ED = NULL; 
+   DList *list = NULL;
+   DListElmt *NextElm= NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_KEY_COMMON;
+   
+   /* do the work */
+   switch (k) {
+      case XK_A:
+         if ((SUMA_CTRL_KEY(key))){ 
+            
+         } else {
+            
+         }
+         break;
+      case XK_a:
+         /* toggle background attenuation */
+         if (sv->Back_Modfact) {
+            fprintf (SUMA_STDOUT,
+                     "%s: Modulation by background intensity OFF.\n", FuncName);
+            sv->Back_Modfact = 0;
+         } else {
+            fprintf (SUMA_STDOUT,
+                     "%s: Modulation by background intensity ON.\n", FuncName);
+            sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+         }
+
+         /* set the remix flag */
+         if (!SUMA_SetShownLocalRemixFlag (sv)) {
+            fprintf (SUMA_STDERR,
+                     "Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n", 
+                     FuncName);
+            break;
+         }
+
+         SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
+         break;            
+      default:
+         SUMA_S_Err("Il ne faut pas ci dessous");
+         SUMA_RETURN(0);
+         break;
+   }
+
+   SUMA_RETURN(1);
+}
+
 
 int SUMA_B_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 {
@@ -2607,46 +2666,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_a:
-            /* toggle background attenuation */
-
-            if (sv->Back_Modfact) {
-               fprintf (SUMA_STDOUT,"%s: Modulation by background intensity OFF.\n", FuncName);
-               sv->Back_Modfact = 0;
-            } else {
-               fprintf (SUMA_STDOUT,"%s: Modulation by background intensity ON.\n", FuncName);
-               sv->Back_Modfact = SUMA_BACKGROUND_MODULATION_FACTOR;
+            if (!SUMA_A_Key(sv, "a", "interactive")) {
+               SUMA_S_Err("Failed in key func.");
             }
-            
-            /* set the remix flag */
-            if (!SUMA_SetShownLocalRemixFlag (sv)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SetShownLocalRemixFlag.\n", FuncName);
-               break;
-            }
-            
-            #if 0
-            {
-               SUMA_SurfaceObject *SO = NULL;
-
-               for (ii=0; ii< sv->N_DO; ++ii) {
-                  if (SUMA_isSO_G(SUMAg_DOv[sv->RegisteredDO[ii]], sv->Group)) {
-                     SO = (SUMA_SurfaceObject*)SUMAg_DOv[sv->RegisteredDO[ii]].OP;
-                     /* remix colors */
-                     glar_ColorList = SUMA_GetColorList (sv, SO->idcode_str);
-                     if (!glar_ColorList) {
-                        fprintf (SUMA_STDERR,"Error %s: NULL glar_ColorList.\n", FuncName);
-                        SUMA_RETURNe;
-                     }
-                     if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, glar_ColorList, SO->N_Node, \
-                        sv->Back_Modfact, sv->ShowBackground, sv->ShowForeground)) {
-                        fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
-                        SUMA_RETURNe;
-                     }
-                  }
-               }
-            }
-            #endif
-
-            SUMA_postRedisplay(w, clientData, callData);
             break;
 
          case XK_B:
