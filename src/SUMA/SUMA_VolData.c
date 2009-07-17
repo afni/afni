@@ -971,18 +971,16 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                      D[0], D[1], D[2],
                      SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]); 
             if (D[0] != 0.0 || D[1] != 0.0 ||D[2] != 0.0) {
-               fprintf (SUMA_STDERR,
-                        "Error %s: Shift Values: [%f, %f, %f]\n", 
-                        FuncName, D[0], D[1], D[2]);
-               fprintf (SUMA_STDERR,
-                        "Never encountered this case. "
-                        "Please notify authors and send sample data.\n");
-               SUMA_RETURN (NOPE); 
+               SUMA_S_Notev("Shift Values: [%f, %f, %f]\n", 
+                            D[0], D[1], D[2]);
+               SUMA_S_Note(  "If surface alignment is off"
+                              "Please notify authors and send sample data.\n");
+                
             }
             /* Caret, just LPI baby, take it to RAI*/
             for (i=0; i < SO->N_Node; ++i) {
                id = i * ND;
-               SO->NodeList[id] = -SO->NodeList[id];
+               SO->NodeList[id]   = -SO->NodeList[id];
                SO->NodeList[id+1] = -SO->NodeList[id+1];
             }
             

@@ -556,7 +556,7 @@ L_LOOK_FOR_VOLPARAMS:
 	end
 	
 	# try for afni data set used in creating surface
-   set candidate = `ls -t *.HEAD`
+   set candidate = `ls -t *.HEAD *.nii *.nii.gz`
 	#echo $#candidate $candidate
 	if ($#candidate == 0) then
 				#ignore, do not complain
