@@ -123,6 +123,32 @@ void THD_vectim_dotprod( MRI_vectim *mrv , float *vec , float *dp , int ata )
   return ;
 }
 
+/*----------------------------------------------------------------------------*/
+
+int THD_vectim_subset_average( MRI_vectim *mrv, int nind, int *ind, float *ar )
+{
+   int nvals , jj,kk,nkk ; register int ii ; float *fv ;
+
+   if( mrv == NULL || nind <= 0 || ind == NULL || ar == NULL ) return 0 ;
+
+   nvals = mrv->nvals ;
+
+   for( ii=0 ; ii < nvals ; ii++ ) ar[ii] = 0.0f ;
+
+   for( jj=0 ; jj < nind ; jj++ ){
+     kk = THD_vectim_ifind( ind[jj] , mrv ) ; if( kk < 0 ) continue ;
+     fv = VECTIM_PTR(mrv,kk) ;
+     for( ii=0 ; ii < nvals ; ii++ ) ar[ii] += fv[ii] ;
+     nkk++ ;
+   }
+   if( nkk > 1 ){
+     register float fac = 1.0f/nkk ;
+     for( ii=0 ; ii < nvals ; ii++ ) ar[ii] *= fac ;
+   }
+
+   return nkk ;
+}
+
 /*-----------------------------------------------------------*/
 /*! Determine size of a MRI_vectim struct from this dataset. */
 
