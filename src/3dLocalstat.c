@@ -223,6 +223,13 @@ int main( int argc , char *argv[] )
         iarg++ ; continue ;
      }
 
+     if( strncasecmp(argv[iarg],"-float",6) == 0 ){
+       datum = MRI_float ; iarg++ ; continue ;
+     }
+     if( strncasecmp(argv[iarg],"-short",6) == 0 ){
+       datum = MRI_short ; iarg++ ; continue ;
+     }
+
      if( strcmp(argv[iarg],"-input") == 0 ){
        if( inset != NULL  ) ERROR_exit("Can't have two -input options") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-input'") ;
