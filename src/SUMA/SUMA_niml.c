@@ -328,11 +328,12 @@ void SUMA_SetWriteCheckWaitMax(int val) {
    
    \sa SUMA_niml_hangup
 */
-SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUMA)
+SUMA_Boolean SUMA_niml_call ( SUMA_CommonFields *cf, int si, 
+                              SUMA_Boolean fromSUMA)
 {
    static char FuncName[]={"SUMA_niml_call"};
    int nn=-1, Wait_tot;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
