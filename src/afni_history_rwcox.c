@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , JUL , 2009 , RWC , "3dLocalstat" , MICRO , TYPE_MODIFY ,
+   "speedup for OpenMP" ,
+   "Modify mri_nstats.c to use pre-malloc-ed workspaces, instead of a new\n"
+   "one for each calculation, which makes a big difference in OpenMP." } ,
+
  { 16 , JUL , 2009 , RWC , "3dmaskSVD" , MICRO , TYPE_MODIFY ,
    "Speedup (a lot for large masks) by using new SVD routine." ,
    NULL } ,

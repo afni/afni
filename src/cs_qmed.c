@@ -144,10 +144,10 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
 
    if( (med == NULL && mad == NULL) || n <= 0 || ar == NULL ) return ;
 
-   q = (float *)malloc(sizeof(float)*n) ;
+   q = (float *)malloc(sizeof(float)*n) ;  /* workspace */
 #pragma omp critical (MEMCPY)
    memcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
-   me = qmed_float( n , q ) ;      /* compute median */
+   me = qmed_float( n , q ) ;      /* compute median (partially sorts q) */
 
    if( mad != NULL && n > 1 ){
      for( ii=0 ; ii < n ; ii++ )   /* subtract off median */
@@ -155,7 +155,7 @@ void qmedmad_float( int n, float *ar, float *med, float *mad )
      ma = qmed_float( n , q ) ;    /* MAD = median absolute deviation */
    }
 
-   free(q) ;                       /* 05 Nov 2001 - oops */
+   free(q) ;                       /* 05 Nov 2001 - oopsie */
 
    if( med != NULL ) *med = me ;   /* 19 Aug 2005 - assign only */
    if( mad != NULL ) *mad = ma ;   /*               if not NULL */
@@ -366,7 +366,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
    float *fv=NULL;
    double *dv=NULL;
    byte *mmf=NULL;
-   int i,n, mmvox;
+   int i,n, mmvox, doall=0 ;
    double di;
 
    ENTRY("Percentate");
@@ -383,7 +383,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 
    /* prep input */
    if (option == 0 || option == 2) {
-      vvec = vec;
+      vvec = vec;  /* use input vector directly (gets munged later) */
    } else {
       /* make copy */
       switch (type) {
@@ -435,15 +435,19 @@ void *Percentate (void *vec, byte *mm, int nxyz,
    /* From now on, work with vvec */
 
    /* do the flag masking */
-   if (zero_flag == 1 || positive_flag == 1 || negative_flag == 1) {
+
+   if( zero_flag == 1 && positive_flag == 1 && negative_flag == 1 ){
+     doall = 1 ; /* 17 Jul 2009: avoid malloc of mmf in this case */
+
+   } else if (zero_flag == 1 || positive_flag == 1 || negative_flag == 1) {
       mmf = (byte *)calloc(nxyz, sizeof(byte));/* everything is rejected at first */
       if (!mmf) {
-         ERROR_message("Failed to allocate for mmf -- Oh misery."); RETURN(NULL);
+         ERROR_message("Failed to allocate for mmf -- O misery"); RETURN(NULL);
       }
    }
 
    if (zero_flag == 1 && positive_flag == 1 && negative_flag == 1) {
-      for (i=0; i<nxyz; ++i) mmf[i] = 1;
+      doall = 1 ;  /* 17 Jul 2009 */
 
    } else if (positive_flag == 1 && negative_flag == 1) {
       switch (type) {
@@ -472,7 +476,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
             RETURN(NULL);
       }
    } else {
-      /* zeros ? */
+      /* do zeros ? */
       if (zero_flag == 1) {
          switch (type) {
             case MRI_byte:
@@ -500,7 +504,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
                RETURN(NULL);
          }
       }
-      /* positives ? */
+      /* do positives ? */
       if (positive_flag == 1) {
          switch (type) {
             case MRI_byte:
@@ -528,7 +532,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
                RETURN(NULL);
          }
       }
-      /* negatives ? */
+      /* do negatives ? */
       if (negative_flag == 1) {
          switch (type) {
             case MRI_byte:
@@ -559,15 +563,17 @@ void *Percentate (void *vec, byte *mm, int nxyz,
       }
    }
 
-   /* include mm, if needed */
+   /* include mm mask, if needed */
    if (mm) {
       if (mmf) {
          for (i=0; i<nxyz; ++i) mmf[i] = mmf[i]*mm[i];
       } else {
          mmf = mm;
       }
+      doall = 0 ;
    }
 
+   if( doall && mmf != NULL ){ free(mmf) ; mmf = NULL ; }  /* 17 Jul 2009 */
 
    /* mask vvec with final mask*/
    if (mmf) {
