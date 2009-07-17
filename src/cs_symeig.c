@@ -573,14 +573,15 @@ int first_principal_vectors( int n , int m , float *xx ,
                     below, just L2-normalize the column to get output vector **/
 
 	if( nn <= mm ){                    /* copy eigenvectors into output directly */
-
+                                      /* (e.g., more vectors than time points) */
      for( jj=0 ; jj < nvec ; jj++ ){
        qq = nvec-1-jj ;               /* eigenvalues are in reversed order */
        for( ii=0 ; ii < nn ; ii++ )
          uvec[ii+jj*nn] = (float)asym[ii+qq*nn] ;
      }
 
-   } else {  /** n > m: transform eigenvectors to get left singular vectors */
+   } else {  /* n > m: transform eigenvectors to get left singular vectors */
+             /* (e.g., more time points than vectors) */
 
      for( jj=0 ; jj < nvec ; jj++ ){
        qq = nvec-1-jj ; qsum = 0.0 ;  /* eigenvalues are in reversed order */
@@ -589,7 +590,7 @@ int first_principal_vectors( int n , int m , float *xx ,
          for( kk=0 ; kk < mm ; kk++ ) sum += xx[ii+kk*nn] * asym[kk+qq*mm] ;
          uvec[ii+jj*nn] = sum ; qsum += sum*sum ;
        }
-       if( qsum > 0.0 ){
+       if( qsum > 0.0 ){       /* L2 normalize */
          register float fac ;
          fac = (float)(1.0/sqrt(qsum)) ;
          for( ii=0 ; ii < nn ; ii++ ) uvec[ii+jj*nn] *= fac ;
