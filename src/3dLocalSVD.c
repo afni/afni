@@ -9,6 +9,7 @@
 
 void mri_principal_vector_params( int a , int b ) ;
 MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar ) ;
+MRI_IMAGE * mri_average_vector  ( MRI_IMARR *imar ) ;
 MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
                                      int xx, int yy, int zz, MCW_cluster *nbhd ) ;
 
@@ -37,7 +38,7 @@ int main( int argc , char *argv[] )
    int iarg=1 , verb=1 , ntype=0 , kk,nx,ny,nz,nxy,nxyz,nt , vstep=0 ;
    float na,nb,nc , dx,dy,dz ;
    int do_vnorm=0 , do_vproj=0 , polort=-1 ;
-   float **polyref ; int rebase=0 , nmask=0 ;
+   float **polyref ; int rebase=0 , nmask=0 , domean=0 , use_nonmask=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -52,16 +53,34 @@ int main( int argc , char *argv[] )
        "Options:\n"
        " -mask mset           = restrict operations to this mask\n"
        " -automask            = create a mask from time series dataset\n"
-       " -prefix ppp          = save SVD vector result in this dataset\n"
+       " -prefix ppp          = save SVD vector result into this new dataset\n"
        " -input inputdataset  = input time series dataset\n"
        " -nbhd nnn            = e.g., 'SPHERE(5)' 'TOHD(7)' etc.\n"
        " -polort p [+]        = detrending ['+' means to add trend back]\n"
-       " -vnorm               = normalize data vectors [strongly recommended]\n"
-       " -vproj [ndim]        = project data vectors onto subspace of dimension 'ndim'\n"
-       "                        [default: just output principal singular vector]\n"
-       "                        [for most purposes, '-vnorm -vproj 2' is a good idea]\n"
+       " -vnorm               = normalize data vectors\n"
+       "                         [strongly recommended]\n"
+       " -vproj [ndim]        = project central data time series onto local SVD subspace\n"
+       "                         of dimension 'ndim'\n"
+       "                         [default: just output principal singular vector]\n"
+       "                         [for 'smoothing' purposes, '-vnorm -vproj 2' is a good idea]\n"
+#if 0
+       "\n"
+       " -use_nonmask         = Allow the computation of the local SVD time series\n"
+       "                         even from voxels that are NOT in the mask, provided\n"
+       "                         that there are voxels IN the mask inside the local\n"
+       "                         neighborhood.\n"
+       "                        * You could use '-use_nonmask' to compute the principal\n"
+       "                           SVD vector of local white matter time series, for\n"
+       "                           example, even at non-WM voxels.\n"
+       "                        * '-vproj' is not allowed with '-use_nonmask'!\n"
+       "\n"
+       " -domean              = Instead of the SVD of the local vectors, compute the mean.\n"
+       "                        * Not exactly in keeping with the name of the program!\n"
+       "                        * Using '-vproj' is meaningless in this case!\n"
+       "                        * Using '-polort p +' makes no sense in this case!\n"
+#endif
      ) ;
-     PRINT_AFNI_OMP_USAGE("3dLocalSVD",NULL) ;
+     /** PRINT_AFNI_OMP_USAGE("3dLocalSVD",NULL) ; **/
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -74,6 +93,12 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     if( strcmp(argv[iarg],"-domean") == 0 ){  /* 17 Jul 2009 */
+       domean = 1 ; iarg++ ; continue ;
+     }
+     if( strcmp(argv[iarg],"-use_nonmask") == 0 ){  /* 17 Jul 2009 */
+       use_nonmask = 1 ; iarg++ ; continue ;
+     }
      if( strcmp(argv[iarg],"-vnorm") == 0 ){
        do_vnorm = 1 ; iarg++ ; continue ;
      }
@@ -167,6 +192,21 @@ int main( int argc , char *argv[] )
      ERROR_exit("Unknown option '%s'",argv[iarg]) ;
 
    } /*--- end of loop over options ---*/
+
+   if( domean ){
+     if( do_vproj ){
+       do_vproj = 0 ; WARNING_message("-domean disables -vproj") ;
+     }
+     if( polort >= 0 && rebase ){
+       polort = -1 ; rebase = 0 ;
+       WARNING_message("-domean disables '-polort' with the '+' option") ;
+     }
+   }
+   if( use_nonmask ){
+     if( do_vproj ){
+       do_vproj = 0 ; WARNING_message("-use_nonmask disables -vproj") ;
+     }
+   }
 
    /* send options to SVD routine below */
 
@@ -262,7 +302,8 @@ int main( int argc , char *argv[] )
      }
      break ;
    }
-   MCW_radsort_cluster( nbhd , dx,dy,dz ) ;  /* 26 Feb 2008 */
+   MCW_radsort_cluster( nbhd , dx,dy,dz ) ; /* 26 Feb 2008 */
+                                           /* ensures first value is centroid */
 
    INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
 #if 0
@@ -287,7 +328,7 @@ int main( int argc , char *argv[] )
 
    /*** the real work now begins ***/
 
-#pragma omp parallel if( nmask > 666 )  /* parallelization 16 Jul 2009 */
+#pragma omp parallel if( nmask > 666 )  /* parallelization 16 Jul 2009 [disabled] */
  { int kk , xx,yy,zz , vv,ii ;
    MRI_IMARR *imar ; MRI_IMAGE *pim ;
    float *tsar , *coef ;
@@ -300,10 +341,13 @@ int main( int argc , char *argv[] )
 #ifndef USE_OMP
      if( vstep && kk%vstep==vstep-1 ) vstep_print() ;
 #endif
-     if( !INMASK(kk) ) continue ;
+     if( !use_nonmask && !INMASK(kk) ) continue ;
      IJK_TO_THREE( kk , xx,yy,zz , nx,nxy ) ;
      imar = THD_get_dset_nbhd_array( inset , mask , xx,yy,zz , nbhd ) ;
-     if( imar == NULL ){ ERROR_message("get failure #%d",kk); continue; }
+     if( imar == NULL ){
+       if( !use_nonmask ) ERROR_message("get failure #%d",kk);
+       continue;
+     }
      if( polort >= 0 ){
        tsar = MRI_FLOAT_PTR(IMARR_SUBIM(imar,0)) ;
        THD_generic_detrend_LSQ( nt , tsar , -1 , polort+1 , polyref , coef ) ;
@@ -312,8 +356,14 @@ int main( int argc , char *argv[] )
          THD_generic_detrend_LSQ( nt , tsar , -1 , polort+1 , polyref , NULL ) ;
        }
      }
-     pim  = mri_principal_vector( imar ) ; DESTROY_IMARR(imar) ;
-     if( pim == NULL ){ ERROR_message("mpv failure #%d",kk); continue; }
+     if( domean ){
+       pim  = mri_average_vector( imar ) ;
+       if( pim == NULL ){ ERROR_message("mav failure #%d",kk); continue; }
+     } else {
+       pim  = mri_principal_vector( imar ) ;
+       if( pim == NULL ){ ERROR_message("mpv failure #%d",kk); continue; }
+     }
+     DESTROY_IMARR(imar) ;
      if( polort >= 0 && rebase && coef != NULL ){
        tsar = MRI_FLOAT_PTR(pim) ;
        for( vv=0 ; vv <= polort ; vv++ ){
@@ -328,7 +378,7 @@ int main( int argc , char *argv[] )
  AFNI_OMP_END ;
  } /* end OpenMP */
 
-#ifdef USE_OMP
+#ifndef USE_OMP
    if( vstep ) fprintf(stderr,"\n") ;
 #endif
 
@@ -352,8 +402,7 @@ MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
    ny = DSET_NY(dset) ; nxy  = nx*ny  ;
    nz = DSET_NZ(dset) ; nxyz = nxy*nz ; npt = nbhd->num_pt ;
 
-   kk = xx + yy*nx + zz*nxy ;
-   if( kk < 0 || kk >= nxyz || !INMASK(kk) ) return NULL ;
+   kk = xx + yy*nx + zz*nxy ; if( kk < 0 || kk >= nxyz ) return NULL ;
 
    ivox = (int *)malloc(sizeof(int)*npt) ; nvox = 0 ;
    for( ii=0 ; ii < npt ; ii++ ){
@@ -363,7 +412,7 @@ MRI_IMARR * THD_get_dset_nbhd_array( THD_3dim_dataset *dset, byte *mask,
      kk = aa + bb*nx + cc*nxy ;
      if( INMASK(kk) ) ivox[nvox++] = kk ;
    }
-   if( nvox == 0 ){ free(ivox) ; return NULL ; }
+   if( nvox == 0 ){ free(ivox) ; return NULL ; }  /* no voxels to extract */
 
    imar = THD_extract_many_series( nvox, ivox, dset ) ;
    free(ivox) ; return imar ;
@@ -463,4 +512,63 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
 
    if( vnorm != NULL ) free(vnorm) ;
    free(sval); free(umat); free(amat); return tim;
+}
+
+/*------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_average_vector( MRI_IMARR *imar )
+{
+   int nx , nvec , ii,jj , itop , nev ;
+   float *amat ;
+   float *far ; MRI_IMAGE *tim ;
+   register float sum ;
+
+   if( imar == NULL ) return NULL ;
+   nvec = IMARR_COUNT(imar) ;       if( nvec < 1 ) return NULL ;
+   nx   = IMARR_SUBIM(imar,0)->nx ; if( nx   < 1 ) return NULL ;
+
+#define A(i,j) amat[(i)+(j)*nx]     /* nx X nvec matrix */
+
+   amat = (float *)malloc( sizeof(float)*nx*nvec ) ;
+
+   /** assemble matrix for mean-ization **/
+
+   for( jj=0 ; jj < nvec ; jj++ ){
+     tim = IMARR_SUBIM(imar,jj) ;
+     far = MRI_FLOAT_PTR(tim) ;
+     for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = far[ii] ;
+   }
+
+   /** normalize columns? **/
+
+   if( mpv_vnorm ){
+     for( jj=0 ; jj < nvec ; jj++ ){
+       sum = 0.0f ;
+       for( ii=0 ; ii < nx ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
+       sum = sqrtf(sum) ;
+       if( sum > 0.0f ){
+         sum = 1.0f / sum ;
+         for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) *= sum ;
+       }
+     }
+   }
+
+   /** create output **/
+
+   tim = mri_new( nx , 1 , MRI_float ) ;
+   far = MRI_FLOAT_PTR(tim) ;            /* zero filled */
+
+   /** sum them up, then average **/
+
+   for( jj=0 ; jj < nvec ; jj++ ){
+     for( ii=0 ; ii < nx ; ii++ ) far[ii] += A(ii,jj) ;
+   }
+   if( nx > 1 ){
+     sum = 1.0f / nx ;
+     for( ii=0 ; ii < nx ; ii++ ) far[ii] *= sum ;
+   }
+
+   /** finito **/
+
+   free(amat); return tim;
 }
