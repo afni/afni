@@ -667,6 +667,9 @@ extern MRI_IMAGE * mri_get_nbhd( MRI_IMAGE *, byte *,
 extern MRI_IMARR * mri_get_indexed_nbhd( MRI_IMAGE *, byte *,
                                          int, int, int, MCW_cluster * ) ;
 
+extern int mri_get_nbhd_array( MRI_IMAGE *inim , byte *mask ,
+                               int xx, int yy, int zz, MCW_cluster *nbhd, float *nar ) ;
+
 extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
 extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
                                          MCW_cluster *, int, int *, float p[][MAX_CODE_PARAMS+1]) ;

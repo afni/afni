@@ -723,7 +723,7 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NBISTAT_NUM                66611
 #define NBISTAT_NCD                66612
 
-extern float mri_nstat  ( int , MRI_IMAGE * ) ;  /* 19 Aug 2005 */
+extern float mri_nstat  ( int , int , float * ) ;  /* 19 Aug 2005 */
 extern float mri_nbistat( int , MRI_IMAGE *, MRI_IMAGE * ) ; /* 26 Oct 2006 */
 extern void mri_nbistat_setclip( float, float , float, float ) ;
 extern void mri_bistat_setweight( MRI_IMAGE *wm ) ;  /* 14 Aug 2007 */

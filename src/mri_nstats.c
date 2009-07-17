@@ -8,24 +8,17 @@
 #endif
 
 /*--------------------------------------------------------------------------*/
-/*! Input = 1D image, and an NSTAT_ code to compute some statistic.
-   Output = statistic's value.
+/*! Input = 1D float array, and an NSTAT_ code to compute some statistic.
+    Output = statistic's value.
 *//*------------------------------------------------------------------------*/
 
-float mri_nstat( int code , MRI_IMAGE *im )
+float mri_nstat( int code , int npt , float *far )
 {
-   MRI_IMAGE *fim ;
-   float     *far , outval=0.0f ;
-   int npt ;
+   register float outval ; float val ;
 
-   if( im == NULL || im->nvox == 0 ) return outval ;
+   outval = 0.0f ;
 
-   /* convert input to float format, if not already there */
-
-   if( im->kind != MRI_float ) fim = mri_to_float(im) ;
-   else                        fim = im ;
-   far = MRI_FLOAT_PTR(fim) ;  /* array of values to statisticate */
-   npt = fim->nvox ;           /* number of values */
+   if( npt <= 0 || far == NULL ) return outval ;
 
    switch( code ){
 
@@ -56,11 +49,11 @@ float mri_nstat( int code , MRI_IMAGE *im )
      break ;
 
      case NSTAT_MEDIAN:
-       qmedmad_float( npt , far , &outval , NULL ) ;
+       qmedmad_float( npt , far , &val , NULL ) ; outval = val ;
      break ;
 
      case NSTAT_MAD:
-       qmedmad_float( npt , far , NULL , &outval ) ;
+       qmedmad_float( npt , far , NULL , &val ) ; outval = val ;
      break ;
 
      case NSTAT_MAX:{
@@ -87,9 +80,6 @@ float mri_nstat( int code , MRI_IMAGE *im )
      break ;
    }
 
-   /* cleanup and exit */
-
-   if( fim != im  ) mri_free(fim) ;
    return outval ;
 }
 
@@ -296,10 +286,10 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
                                   float codeparam[][MAX_CODE_PARAMS+1] )
 {
    THD_3dim_dataset *oset ;
-   int iv,cc , nvin,nvout , nx,ny,nz,nxyz ;
+   int iv,cc , nvin,nvout , nx,ny,nz,nxyz , need_nbar=0 , npt ;
    float **aar ;
-   MRI_IMAGE *dsim=NULL;
-   int need_dsim, need_nbim; float dx,dy,dz ;
+   MRI_IMAGE *dsim ;
+   float dx,dy,dz , fac ;
 #ifndef USE_OMP
    int vstep ;
 #endif
@@ -307,6 +297,7 @@ THD_3dim_dataset * THD_localstat( THD_3dim_dataset *dset , byte *mask ,
 ENTRY("THD_localstat") ;
 
    if( dset == NULL || nbhd == NULL || ncode < 1 || code == NULL ) RETURN(NULL);
+   npt = nbhd->num_pt ; if( npt == 0 )                             RETURN(NULL);
 
    oset  = EDIT_empty_copy( dset ) ;
    nvin  = DSET_NVALS( dset ) ;
@@ -332,10 +323,8 @@ ENTRY("THD_localstat") ;
 
    aar = (float **)malloc(sizeof(float *)*ncode) ;  /* output array of arrays */
 
-   need_dsim = need_nbim = 0 ;
    for( cc=0 ; cc < ncode ; cc++ ){
-          if( code[cc] >= NSTAT_FWHMx ) need_dsim = 1;  /* need dataset image */
-     else if( code[cc] <  NSTAT_FWHMx ) need_nbim = 1;  /* need nbhd image */
+     if( code[cc] <  NSTAT_FWHMx ){ need_nbar = 1; break;}  /* need nbhd image */
    }
 
    /** loop over input sub-bricks **/
@@ -352,12 +341,10 @@ ENTRY("THD_localstat") ;
          ERROR_exit("THD_localstat: out of memory at iv=%d cc=%d",iv,cc);
      }
 
-     if( need_dsim ){             /* extract dataset image for this sub-brick */
-       float fac = DSET_BRICK_FACTOR(dset,iv) ;
-       if( fac <= 0.0f ) fac = 1.0f ;
-       dsim = mri_scale_to_float( fac , DSET_BRICK(dset,iv) ) ;
-       dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
-     }
+     /* extract copy of float-ized brick */
+
+     dsim = THD_extract_float_brick( iv , dset ) ;
+     dsim->dx = dx ; dsim->dy = dy ; dsim->dz = dz ;
 
      /** loop over voxels **/
 
@@ -371,11 +358,16 @@ ENTRY("THD_localstat") ;
    MRI_IMAGE *nbim=NULL ;
    THD_fvec3 fwv ;
    double perc[MAX_CODE_PARAMS], mpv[MAX_CODE_PARAMS] ;  /* no longer static */
+   float *nbar ; int nbar_num ;
 
  AFNI_OMP_START ;
 
+   /* 17 Jul 2009: create workspace for neighborhood data */
+
+   nbar = (need_nbar) ? (float *)malloc(sizeof(float)*npt) : NULL ;
+
 #pragma omp for
-     for( ijk=0 ; ijk < nxyz ; ijk++ ){
+     for( ijk=0 ; ijk < nxyz ; ijk++ ){   /* parallelized loop */
        ii = DSET_index_to_ix(dset,ijk) ;  /* convert ijk to voxel indexes */
        jj = DSET_index_to_jy(dset,ijk) ;
        kk = DSET_index_to_kz(dset,ijk) ;
@@ -384,14 +376,8 @@ ENTRY("THD_localstat") ;
        if( vstep && ijk%vstep==vstep-1 ) vstep_print() ;
 #endif
 
-       if( need_nbim ){  /* extract vector of data from voxel neighborhood */
-         MRI_IMAGE *qim = THD_get_dset_nbhd( dset,iv , mask,ii,jj,kk , nbhd ) ;
-         if( qim != NULL && qim->kind != MRI_float ){
-           nbim = mri_to_float(qim); mri_free(qim);
-         } else {
-           nbim = qim ;
-         }
-       }
+       if( need_nbar )  /* extract vector of data from voxel neighborhood */
+         nbar_num = mri_get_nbhd_array( dsim , mask,ii,jj,kk , nbhd , nbar ) ;
 
        for( cc=0 ; cc < ncode ; cc++ ){ /* loop over desired statistics */
 
@@ -403,7 +389,7 @@ ENTRY("THD_localstat") ;
 
            fwv = mri_nstat_fwhmxyz( ii,jj,kk , dsim,mask,nbhd ) ;
            UNLOAD_FVEC3( fwv, aar[cc][ijk],aar[cc+1][ijk],aar[cc+2][ijk] ) ;
-           cc += 2 ;  /* skip FWHMy and FWHMz codes */
+           cc += 2 ;  /* skip FWHMy and FWHMz codes that follow */
 
          } else if( code[cc] == NSTAT_PERCENTILE ){  /* percentiles */
 
@@ -417,13 +403,13 @@ ENTRY("THD_localstat") ;
              ERROR_exit( "THD_localstat: Cannot exceed %d params but have %d!" ,
                          MAX_CODE_PARAMS, N_mp);
 
-           for (pp=0; pp<N_mp; ++pp)
+           for( pp=0 ; pp < N_mp ; ++pp )
              mpv[pp] = (double)codeparam[cc][1+pp]/100.0;
 
-           if (nbim) {
+           if( nbar != NULL && nbar_num > 0 ){
 
-             if( !(sfar = (float *)Percentate( MRI_FLOAT_PTR(nbim) ,
-                                               NULL , nbim->nvox ,
+             if( !(sfar = (float *)Percentate( nbar ,
+                                               NULL , nbar_num ,
                                                MRI_float , mpv , N_mp ,
                                                0 , perc , 1, 1, 1 ) ) ) {
 
@@ -446,15 +432,15 @@ ENTRY("THD_localstat") ;
 
          } else {   /* the "usual" (catchall) case */
 
-           aar[cc][ijk] = mri_nstat( code[cc] , nbim ) ;
+           aar[cc][ijk] = mri_nstat( code[cc] , nbar_num , nbar ) ;
 
          }
 
        } /* end of loop over cc */
 
-       if( nbim != NULL ){ mri_free(nbim); nbim = NULL; }
-
      } /** end of voxel loop **/
+
+     if( nbar != NULL ) free(nbar) ;
 
  AFNI_OMP_END ;
  } /* end OpenMP */
