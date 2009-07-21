@@ -52,38 +52,56 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset ;
    NI_element *nel ;
    MRI_IMAGE *fim ; float *far ;
+   char *targname="niml_feedme" ;
 
    /*-- help the ignorant user --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
         "Usage: niml_feedme [options] dataset\n"
-        "Sends volumes from the dataset to AFNI via the NIML socket interface.\n"
+        "\n"
+        "* Sends volumes from the dataset to AFNI via the NIML socket interface.\n"
+        "* You must run AFNI with the command 'afni -niml' so that the program\n"
+        "  will be listening for the socket connection.\n"
+        "* Inside AFNI, the transmitted dataset will be named 'niml_feedme'.\n"
+        "* This program is really just a demo; it has little practical use.\n"
+        "* For another way to send image data to AFNI, see progam rtfeedme.\n"
         "\n"
         "Options:\n"
         "  -host sname =  Send data, via TCP/IP, to AFNI running on the\n"
         "                 computer system 'sname'.  By default, uses the\n"
         "                 current system (localhost).\n"
         "\n"
-        "  -dt ms      =  Tries to maintain an inter-transmit interval of\n"
-        "                 'ms' milliseconds.  The default is 1000 ms.\n"
+        "  -dt ms      =  Tries to maintain an inter-transmit interval of 'ms'\n"
+        "                 milliseconds.  The default is 1000 msec per volume.\n"
         "\n"
-        "  -verb       =  Be talkative about actions.\n"
+        "  -verb       =  Be (very) talkative about actions.\n"
         "\n"
         "  -accum      =  Send sub-bricks so that they accumulate in AFNI.\n"
         "                 The default is to create only a 1 volume dataset\n"
         "                 inside AFNI, and each sub-brick just replaces\n"
         "                 that one dataset when it is received.\n"
         "\n"
-        "  -drive cmd  =  Send 'cmd' as a DRIVE_AFNI command; e.g.,\n"
-        "                   -drive 'OPEN_WINDOW A.axialimage'\n"
-        "                 If cmd contains blanks, it must be in 'quotes'.\n"
-        "                 Multiple -drive options may be used.\n"
-        "                 These commands will be sent to AFNI just after the\n"
-        "                 first volume is transmitted.  Examples:\n"
-        "                   -drive 'OPEN_WINDOW axialimage' \\\n"
-        "                   -drive 'SWITCH_UNDERLAY niml_feedme'\n"
+        "  -target nam =  Change the dataset name transmitted to AFNI from\n"
+        "                 'niml_feedme' to 'nam'\n"
+        "\n"
+        "  -drive cmd  =  Send 'cmd' as a DRIVE_AFNI command.\n"
+        "                * If cmd contains blanks, it must be in 'quotes'.\n"
+        "                * Multiple -drive options may be used.\n"
+        "                * These commands will be sent to AFNI just after\n"
+        "                  the first volume is transmitted.\n"
+        "                * See file README.driver for a list of commands.\n"
+        "\n"
+        "Example: Send volumes from a 3D+time dataset to AFNI:\n"
+        "  niml_feedme -dt 1000 -verb -accum -target Elvis \\\n"
+        "              -drive 'OPEN_WINDOW axialimage'     \\\n"
+        "              -drive 'OPEN_WINDOW axialgraph'     \\\n"
+        "              -drive 'SWITCH_UNDERLAY Elvis'      \\\n"
+        "              timeseries+orig\n"
+        "\n"
+        "Author: RW Cox -- July 2009\n"
       ) ;
+      PRINT_COMPILE_DATE ;
       exit(0) ;
    }
 
@@ -93,29 +111,29 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+      if( strncmp(argv[iarg],"-target",5) == 0 ){
+        targname = strdup(argv[++iarg]) ; iarg++ ; continue ;
+      }
+
       if( strcmp(argv[iarg],"-drive") == 0 ){
-         drive_afni[ndrive++] = argv[++iarg] ;
-         iarg++ ; continue ;
+        drive_afni[ndrive++] = argv[++iarg] ; iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-host") == 0 ){
-         strcpy( host , argv[++iarg] ) ;
-         iarg++ ; continue ;
+        strcpy( host , argv[++iarg] ) ; iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-dt") == 0 ){
-         dt = (int)strtod(argv[++iarg],NULL) ; if( dt < 9 ) dt = 9 ;
-         iarg++ ; continue ;
+        dt = (int)strtod(argv[++iarg],NULL) ; if( dt < 9 ) dt = 9 ;
+        iarg++ ; continue ;
       }
 
       if( strncmp(argv[iarg],"-verbose",4) == 0 ){
-         verbose = 1 ;
-         iarg++ ; continue ;
+        verbose = 1 ; iarg++ ; continue ;
       }
 
       if( strncmp(argv[iarg],"-accum",4) == 0 ){
-         do_accum = 1 ;
-         iarg++ ; continue ;
+        do_accum = 1 ; iarg++ ; continue ;
       }
 
       ERROR_exit("Unrecognized option: %s",argv[iarg]) ;
@@ -176,7 +194,7 @@ int main( int argc , char *argv[] )
    NI_set_attribute( nel , "geometry_string" , geomstr ) ;
 
      /* define the name of the dataset */
-   NI_set_attribute( nel , "target_name"     , "niml_feedme" ) ;
+   NI_set_attribute( nel , "target_name"     , targname ) ;
 
      /* all sub-bricks in the input dataset will be sent to be
         sub-brick #0 in the dataset inside AFNI
@@ -247,7 +265,7 @@ int main( int argc , char *argv[] )
        NI_sleep(1) ;    /* give AFNI a msec to digest the data */
        for( ii=0 ; ii < ndrive ; ii++ ){
          NI_set_attribute( npi , "cmd" , drive_afni[ii] ) ;
-         (void)NI_write_element( NF_stream , nel , NI_TEXT_MODE ) ;
+         (void)NI_write_element( NF_stream , npi , NI_TEXT_MODE ) ;
        }
        NI_free_element(npi) ; /* delete this struct from the world! */
      }
