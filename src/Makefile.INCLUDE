@@ -82,7 +82,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
-           3dLocalSVD               3dErrtsCormat 3dUndump 3dREMLfit            \
+           3dLocalSVD  niml_feedme  3dErrtsCormat 3dUndump 3dREMLfit            \
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
            3dBlurInMask 3dRank                                                  \
            $(EXTRAS)
@@ -834,6 +834,10 @@ rotcom:rotcom.o
 rtfeedme:rtfeedme.o
 	$(RM) $@
 	$(CC) -o rtfeedme rtfeedme.o $(LFLAGS) $(LLIBS)
+
+niml_feedme:niml_feedme.o
+	$(RM) $@
+	$(CC) -o niml_feedme niml_feedme.o $(LFLAGS) $(LLIBS)
 
 3dFDR:3dFDR.o
 	$(RM) $@

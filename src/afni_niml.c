@@ -516,11 +516,11 @@ ENTRY("AFNI_process_NIML_data") ;
 
        process_NIML_AFNI_dataset( ngr , ct_start ) ;   /* AFNI dataset header */
 
-     } else if( strncmp(ngr->name,"VOLUME_DATA",11) == 0 ){
+     } else if( strncmp(ngr->name,"VOLUME_DATA",11) == 0 ){ /* VOLUME_DATA or */
+                                                        /* VOLUME_DATA_SPARSE */
+       process_NIML_AFNI_volumedata( ngr , ct_start ) ; /* == AFNI sub-bricks */
 
-       process_NIML_AFNI_volumedata( ngr , ct_start ) ;    /* AFNI sub-bricks */
-
-     } else {                 /* the old way: we don't know about this group,
+     } else {             /* the old way: we don't know about this group name,
                                  so process the elements within it separately */
        int ii ;
        for( ii=0 ; ii < ngr->part_num ; ii++ )
@@ -2469,6 +2469,7 @@ ENTRY("process_NIML_AFNI_volumedata") ;
          ss->dsset[qs][vv] = dset ; ss->num_dsset++ ;
          INFO_message("Added dataset '%s' to controller %s",
                       DSET_FILECODE(dset), AFNI_controller_label(im3d) ) ;
+         UNDUMMYIZE ;
        } else {
          DSET_delete(dset) ;
          ERROR_message("Can't create dataset '%s': session array overflow",gidc);
@@ -2486,6 +2487,10 @@ ENTRY("process_NIML_AFNI_volumedata") ;
    (void)THD_add_bricks( dset , nini ) ;
    THD_update_statistics( dset ) ;
 
+   /** if anyone is looking at this dataset, need to change stuff **/
+
+   AFNI_update_dataset_viewing( dset ) ;  /* 21 Jul 2009 */
+
    /** wrapup **/
 
    if( ct_start >= 0 )                      /* keep track    */
@@ -2498,6 +2503,44 @@ ENTRY("process_NIML_AFNI_volumedata") ;
                             ct_read , ct_tot-ct_read ) ;
    SHOW_MESSAGE( msg ) ;
    EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+/* If any controller is viewing this dataset, update it's widgets. */
+
+void AFNI_update_dataset_viewing( THD_3dim_dataset *dset ) /* 21 Jul 2009 */
+{
+   Three_D_View *qq3d ;
+   int review , ii , kk ;
+   MCW_arrowval *tav ;
+
+   if( !ISVALID_DSET(dset) ) return ;
+
+   /* check all controllers to see if they are looking at this dataset **/
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( !IM3D_OPEN(qq3d) ) break ;  /* skip this one */
+
+     review = EQUIV_DSETS(dset,qq3d->anat_now) ||   /* same anat? */
+              ( qq3d->vinfo->func_visible &&        /* or same func? */
+                EQUIV_DSETS(dset,qq3d->fim_now) ) ;
+
+     if( review ){
+       DISABLE_LOCK ;
+       tav = qq3d->vwid->imag->time_index_av ;
+       kk  = DSET_NVALS(dset)-1 ;
+       if( kk > tav->imax ){
+         tav->fmax = tav->imax = qq3d->vinfo->time_index  = kk ;
+         qq3d->vinfo->top_index = kk+1 ;
+       }
+       AV_assign_ival( tav , kk ) ;
+       AFNI_time_index_CB( tav , (XtPointer)qq3d ) ;
+       ENABLE_LOCK ;
+     }
+   }
+
+   return ;
 }
 
 /*--------------------------------------------------------------------*/

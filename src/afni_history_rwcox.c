@@ -44,6 +44,18 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , JUL , 2009 , RWC , "niml_feedme" , MINOR , TYPE_NEW_PROG ,
+   "Test and demo program showing how to set datasets to AFNI via NIML" ,
+   "An analog to rtfeedme.  Sends volumes to AFNI using VOLUME_DATA\n"
+   "elements.  Pretty rudimentary." } ,
+
+ { 21 , JUL , 2009 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Update widgets and viewing when VOLUME_DATA is added to a dataset" ,
+   "* Fix AFNI_setup_viewing() to update widgets properly when dataset nvals\n"
+   "changes\n"
+   "* Add function AFNI_update_dataset_viewing() to deal with viewing\n"
+   "changes that might be needed if a dataset is altered" } ,
+
  { 17 , JUL , 2009 , RWC , "3dLocalstat" , MICRO , TYPE_MODIFY ,
    "speedup for OpenMP" ,
    "Modify mri_nstats.c to use pre-malloc-ed workspaces, instead of a new\n"
