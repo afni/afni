@@ -191,25 +191,25 @@ int THD_daxes_from_mat44( THD_dataxes *dax )
       column of ijk_to_dicom matrix (the shifts) along the
       direction of the first column of the matrix (the i-column) */
 
-   aa = dax->ijk_to_dicom.m[0][3] ;
+   aa = dax->ijk_to_dicom.m[0][3] ;  /* extract last column */
    bb = dax->ijk_to_dicom.m[1][3] ;
    cc = dax->ijk_to_dicom.m[2][3] ;
 
-   xx = dax->ijk_to_dicom.m[0][0] ;
+   xx = dax->ijk_to_dicom.m[0][0] ;  /* extract 1st column */
    yy = dax->ijk_to_dicom.m[1][0] ;
    zz = dax->ijk_to_dicom.m[2][0] ;
    ss = sqrt(xx*xx+yy*yy+zz*zz) ; if( ss == 0.0f ) ss = 1.0f ;
    dax->xxorg = (xx*aa+yy*bb+zz*cc) / ss ;
    if( ORIENT_sign[dax->xxorient] == '-' ) dax->xxorg = -dax->xxorg ;
 
-   xx = dax->ijk_to_dicom.m[0][1] ;
+   xx = dax->ijk_to_dicom.m[0][1] ;  /* extract 2nd column */
    yy = dax->ijk_to_dicom.m[1][1] ;
    zz = dax->ijk_to_dicom.m[2][1] ;
    ss = sqrt(xx*xx+yy*yy+zz*zz) ; if( ss == 0.0f ) ss = 1.0f ;
    dax->yyorg = (xx*aa+yy*bb+zz*cc) / ss ;
    if( ORIENT_sign[dax->yyorient] == '-' ) dax->yyorg = -dax->yyorg ;
 
-   xx = dax->ijk_to_dicom.m[0][2] ;
+   xx = dax->ijk_to_dicom.m[0][2] ;  /* extract 3rd column */
    yy = dax->ijk_to_dicom.m[1][2] ;
    zz = dax->ijk_to_dicom.m[2][2] ;
    ss = sqrt(xx*xx+yy*yy+zz*zz) ; if( ss == 0.0f ) ss = 1.0f ;
@@ -233,7 +233,7 @@ int THD_daxes_from_mat44( THD_dataxes *dax )
    dax->zzdel = sqrt( SQR(dax->ijk_to_dicom.m[0][2])
                      +SQR(dax->ijk_to_dicom.m[1][2])
                      +SQR(dax->ijk_to_dicom.m[2][2]) ) ;
-   if( ORIENT_sign[dax->zzorient] == '-' ) dax->zzdel = -dax->yydel ;
+   if( ORIENT_sign[dax->zzorient] == '-' ) dax->zzdel = -dax->zzdel ;
 
    /* to_dicomm orthogonal matrix:
       we make an orthogonal matrix out of the columns of ijk_to_dicom */

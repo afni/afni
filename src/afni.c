@@ -5332,7 +5332,7 @@ ENTRY("AFNI_time_index_CB") ;
 
    ipx = av->ival ;
    if( ipx >= im3d->vinfo->top_index )    /* don't let index be too big */
-      ipx = im3d->vinfo->top_index - 1 ;
+     ipx = im3d->vinfo->top_index - 1 ;
 
    im3d->vinfo->time_index = ipx ;        /* change time index */
 
@@ -7452,6 +7452,8 @@ void AFNI_setup_viewing( Three_D_View *im3d , Boolean rescaled )
    static THD_3dim_dataset *old_fim  = NULL ; /* 12 Dec 2001 */
    static Three_D_View     *old_im3d = NULL ; /* 29 Jan 2002 */
    static THD_3dim_dataset *old_anat = NULL ; /* 12 Dec 2001 */
+   static int         old_anat_nvals = -1 ;   /* 21 Jul 2009 */
+   static int         old_func_nvals = -1 ;   /* 21 Jul 2009 */
 
 ENTRY("AFNI_setup_viewing") ;
 
@@ -7758,7 +7760,9 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
 
       /** 12 Dec 2001: only refit menus if dataset has changed **/
 
-      if( have_fim && (im3d->fim_now != old_fim || im3d != old_im3d) ){
+      if( have_fim &&
+          (im3d->fim_now != old_fim || im3d != old_im3d ||
+           DSET_NVALS(im3d->fim_now) != old_func_nvals )  ){
         refit_MCW_optmenu( im3d->vwid->func->fim_buck_av ,
                            0 ,                            /* new minval */
                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
@@ -7777,7 +7781,8 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
                          ) ;
       }
 
-      if( im3d->anat_now != old_anat || im3d != old_im3d ){
+      if( im3d->anat_now != old_anat || im3d != old_im3d ||
+          DSET_NVALS(im3d->anat_now) != old_anat_nvals     ){
         refit_MCW_optmenu( im3d->vwid->func->anat_buck_av ,
                            0 ,                             /* new minval */
                            DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */
@@ -7918,9 +7923,15 @@ STATUS(" -- managing tal_to button, etc") ;
    /*--- May 1996: Time index control ---*/
    /*--- Mar 1997: Allow FIM also     ---*/
 
+#if 0
    top = DSET_NUM_TIMES(im3d->anat_now) ;
    if( ISVALID_3DIM_DATASET(im3d->fim_now) )
       top = MAX( top , DSET_NUM_TIMES(im3d->fim_now) ) ;
+#else
+   top = DSET_NVALS(im3d->anat_now) ;
+   if( ISVALID_3DIM_DATASET(im3d->fim_now) )
+      top = MAX( top , DSET_NVALS(im3d->fim_now) ) ;
+#endif
 
    if( top > 1 ){
      MCW_arrowval *tav = im3d->vwid->imag->time_index_av ;
@@ -7968,6 +7979,9 @@ STATUS(" -- turning time index control off") ;
    old_im3d = im3d ;
    old_fim  = im3d->fim_now ;   /* remembrance */
    old_anat = im3d->anat_now ;
+
+   old_anat_nvals = DSET_NVALS(im3d->anat_now) ; /* 21 Jul 2009 */
+   old_func_nvals = DSET_NVALS(im3d->fim_now) ;
 
    AFNI_sleep(13) ;             /* 18 Oct 2005: for luck */
    EXRETURN ;
