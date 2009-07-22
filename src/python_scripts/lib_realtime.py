@@ -478,8 +478,8 @@ class SerialInterface:
 
       return 0
 
-   def write_float_data(self, data):
-      """write all floats to the serial port"""
+   def write_4byte_data(self, data):
+      """write all floats/ints to the serial port"""
 
       if not self.data_port: return
       if not self.data_port.isOpen(): return

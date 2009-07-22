@@ -268,7 +268,7 @@ class ReceiverInterface:
       if rv == 0 and self.SER: 
          rv, data = compute_data_for_serial_port(self)  # PROCESS DATA HERE
          if rv == 0 and len(data) > 0:
-            self.SER.write_float_data(data)
+            self.SER.write_4byte_data(data)
 
       return rv
 

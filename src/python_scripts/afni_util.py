@@ -770,7 +770,7 @@ def lists_are_same(list1, list2):
 
    return 1
 
-def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg=''):
+def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg='', left=0):
    """return a string to display the floats:
         vals    : the list of float values
         nchar   : [7] number of characters to display per float
@@ -778,21 +778,28 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2, mesg=''):
         nspaces : [2] number of spaces between each float
    """
 
+   if left: format = '%-*.*f%*s'
+   else:    format = '%*.*f%*s'
+
    istr = mesg
-   for val in vals: istr += '%*.*f%*s' % (nchar, ndec, val, nspaces, '')
+   for val in vals: istr += format % (nchar, ndec, val, nspaces, '')
 
    return istr
 
-def gen_float_list_string(vals, mesg='', nchar=0):
+def gen_float_list_string(vals, mesg='', nchar=0, left=0):
    """mesg is printed first, if nchar>0, it is min char width"""
 
    istr = mesg
 
+   if left: format = '%-'
+   else:    format = '%'
+
    if nchar > 0:
-      for val in vals: istr += '%*g ' % (nchar, val)
+      format += '*g '
+      for val in vals: istr += format % (nchar, val)
    else:
-      for val in vals:
-         istr += '%g ' % val
+      format += 'g '
+      for val in vals: istr += format % val
 
    return istr
 
@@ -835,6 +842,29 @@ def is_valid_int_list(ldata, imin=0, imax=-1, whine=0):
             return 0
    return 1
 
+def data_to_hex_str(data):
+   """convert raw data to hex string in groups of 4 bytes"""
+
+   if not data: return ''
+
+   dlen = len(data)             # total length in bytes
+   groups = (dlen+3) // 4       # number of 4-byte blocks to create
+   remain = dlen
+   retstr = ''  # return string
+
+   for group in range(groups):
+      if group > 0: retstr += ' '
+      retstr += '0x'
+      if remain >= 4: llen = 4
+      else:           llen = remain
+
+      for ind in range(llen):
+         retstr += '%02x' % data[dlen-remain+ind]
+
+      remain -= llen
+
+   return retstr
+
 # ----------------------------------------------------------------------
 # matematical functions
 
@@ -846,6 +876,10 @@ def loc_sum(vals):
       tot = 0
       for val in vals: tot += val
    return tot
+
+def euclidean_norm(vals):
+
+   return math.sqrt(loc_sum([v*v for v in vals]))
 
 def min_mean_max_stdev(data):
     """return 4 values for data: min, max, mean, stdev (unbiased)"""
@@ -917,4 +951,33 @@ def shuffle(vlist):
             vlist[index] = val
 
     return
+
+def swap2(data):
+    """swap data elements in pairs"""
+    
+    size  = 2
+    nsets = len(data)//size
+    if nsets <= 0: return
+
+    for ind in range(nsets):
+        off = ind*size
+        v           = data[off]     # swap d[0] and d[1]
+        data[off]   = data[off+1]
+        data[off+1] = v
+
+def swap4(data):
+    """swap data elements in groups of 4"""
+    
+    size  = 4
+    nsets = len(data)//size
+    if nsets <= 0: return
+
+    for ind in range(nsets):
+        off = ind*size
+        v           = data[off]     # swap d[0] and d[3]
+        data[off]   = data[off+3]
+        data[off+3] = v
+        v           = data[off+1]   # swap d[1] and d[2]
+        data[off+1] = data[off+2]
+        data[off+2] = v
 
