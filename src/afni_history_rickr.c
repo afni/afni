@@ -48,6 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, JUL, 2009, RCR, "realtime_reaceiver.py", MAJOR, TYPE_NEW_PROG,
+   "python replacement for serial helper",
+   "New 'data_choice' options can be added to compute_data_for_serial_port\n"
+   "for sending results of a different computation to the serial port."
+ } ,
+
  { 16, JUL, 2009, RCR, "@update.afni.binaries", MICRO, TYPE_MODIFY,
    "check for 'wget' and whine to user if missing",
    NULL
