@@ -7,4 +7,7 @@ if ( $#argv < 2 ) then
     exit 1
 endif
 
-R --no-restore --save --no-readline < $1 >& $argv[$#argv]
+# note the second to last index
+@ penult = $#argv - 1
+
+R --no-restore --save --no-readline < $argv[1-$penult] >& $argv[$#argv]
