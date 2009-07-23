@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 23 , JUL , 2009 , DRG , "MEMRI models" , 
+    MINOR , TYPE_NEW_OPT, "Single and Dual exponential models",
+    "New models for 3dNLfim that use single and dual exponential models\n"
+    "that are appropriate for MEMRI (Manganese Enhanced MRI"
+
+} ,
+
 { 14 , JUL , 2009 , DRG , "afni" , 
     MINOR , TYPE_NEW_ENV, 
     "Added AFNI_ONE_OBLIQUE_WARNING",
