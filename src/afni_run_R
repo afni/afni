@@ -2,12 +2,15 @@
 
 setenv AFNI_R_DIR $0:h
 
-if ( $#argv < 2 ) then
-    echo "** afni_run_R: requires at least 2 args"
-    exit 1
-endif
-
 # note the second to last index
 @ penult = $#argv - 1
 
-R --no-restore --save --no-readline < $argv[1-$penult] >& $argv[$#argv]
+if ( $#argv > 2 ) then
+   R --no-restore --save --no-readline --args $argv[2-$penult]     \
+           < $argv[1] >& $argv[$#argv]
+else if ( $#argv == 2 ) then
+   R --no-restore --save --no-readline < $argv[1] >& $argv[2]
+else
+    echo "** afni_run_R: requires at least 2 args"
+    exit 1
+endif
