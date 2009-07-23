@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, JUL, 2009, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -partition option",
+   NULL
+ } ,
+
  { 22, JUL, 2009, RCR, "realtime_reaceiver.py", MAJOR, TYPE_NEW_PROG,
    "python replacement for serial helper",
    "New 'data_choice' options can be added to compute_data_for_serial_port\n"

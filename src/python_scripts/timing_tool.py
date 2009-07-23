@@ -90,6 +90,15 @@ examples:
                         -multi_stim_dur 3.5 4.5 3            \\
                         -multi_show_isi_stats
 
+   5. Partition the stimulus timing file 'response_times.1D' into multiple
+      timing files based on the labels in a partition file, partitions.1D.
+      If partitions.txt contains (0, correct, incorrect), there will be 2
+      output timing files, new_times_correct.1D and new_times_incorrect.1D.
+      Times where the partition label is '0' will be skipped.
+
+         timing_tool.py -timing response_times.1D       \\
+                        -partition partitions.txt new_times
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -218,6 +227,39 @@ action options (apply to single timing element, only):
 
             Consider '-sort' and '-write_timing'.
 
+   -partition PART_FILE PREFIX  : partition the stimulus timing file
+
+        e.g. -partition partitions.txt new_times
+
+        Use this option to partition the input timing file into multiple
+        timing files based on the labels in a partition file, PART_FILE.
+        The partition file would have the same number of rows and entries on
+        each row as the timing file, but would contain labels to use in
+        partitioning the times into multiple output files.
+
+        A label of 0 will cause that timing entry to be dropped.  Otherwise,
+        each distinct label will have those times put into its timing file.
+
+        e.g. 
+
+                timing file:
+                    23.5     46.0     79.3     84.9      116.2
+                    11.4     38.2     69.7     93.5      121.8
+
+                partition file:
+                    correct  0        0        incorrect incorrect
+                    0        correct  0        correct   correct
+
+            ==> results in new_times_good.1D and new_times_bad.1D
+
+                new_times_correct.1D:
+                    23.5     0        0        0         0
+                    0        38.2     0        93.5      121.8
+
+                new_times_incorrect.1D:
+                    0        0        0        84.9      116.2
+                    *
+
    -show_timing                 : display the current single timing data
 
         This prints the current (possibly modified) single timing data to the
@@ -304,9 +346,10 @@ g_history = """
    timing_tool.py history:
 
    1.0  Dec 01, 2008 - initial/release version
+   1.1  Jul 23, 2009 - added -partition option
 """
 
-g_version = "timing_tool.py version 1.0, December 1, 2008"
+g_version = "timing_tool.py version 1.1, July 23, 2009"
 
 
 class ATInterface:
@@ -493,6 +536,9 @@ class ATInterface:
 
       self.valid_opts.add_opt('-extend', 1, [], 
                          helpstr='extend the rows lengths from the given file')
+
+      self.valid_opts.add_opt('-partition', 2, [], 
+                         helpstr='partition the events into multiple files')
 
       self.valid_opts.add_opt('-show_timing', 0, [], 
                          helpstr='display timing contents')
@@ -692,6 +738,15 @@ class ATInterface:
             if not newrd.ready: return 1
 
             self.timing.extend_rows(newrd)
+
+         elif opt.name == '-partition':
+            if not self.timing:
+               print "** '%s' requires -timing" % opt.name
+               return 1
+            val, err = uopts.get_string_list('', opt=opt)
+            if val != None and err: return 1
+
+            if self.timing.partition(val[0], val[1]): return 1
 
          elif opt.name == '-add_offset':
             if not self.timing:
