@@ -92,6 +92,16 @@ def show_args_as_command(args, note='command:'):
      "\n----------------------------------------------------------------------"
      )
 
+def get_unique_sublist(inlist):
+    """return a copy of inlist, but where elements are unique"""
+
+    newlist = []
+
+    for val in inlist:
+        if not val in newlist: newlist.append(val)
+
+    return newlist
+
 def uniq_list_as_dsets(dsets, showerr=0):
     """given a list of text elements, create a list of afni_name elements,
        and check for unique prefixes"""

@@ -31,11 +31,13 @@ class AfniTiming:
       self.ready   = 0            # have a matrix
 
       self.nrows   = 0
+      self.rect    = 0            # same number of values per row?
 
       self.verb    = verb
 
       # initialize...
-      if filename: self.init_from_1D(filename)
+      if filename:   self.init_from_1D(filename)
+      elif from_a1d: self.init_from_a1d(a1d)
 
    def add_rows(self, brows):
       """add brows.nrows of data (additional runs), return 0 on success"""
@@ -69,7 +71,8 @@ class AfniTiming:
          else:        rstr += '*'
 
       for val in data:
-         rstr += '%.*f ' % (nplaces, val)
+         if nplaces >= 0: rstr += '%.*f ' % (nplaces, val)
+         else:            rstr += '%g ' % (val)
 
       return rstr + '\n'
 
@@ -89,11 +92,13 @@ class AfniTiming:
 
       return rstr
 
-   def write_times(self, fname, nplaces=3):
+   def write_times(self, fname='', nplaces=-1):
       """write the current timing out, with nplaces right of the decimal"""
       if not self.ready:
          print '** Timing: not ready to write'
          return 1
+
+      if fname == '': fname = self.fname
 
       fp = open(fname, 'w')
       if not fp:
@@ -124,6 +129,61 @@ class AfniTiming:
 
       for ind in range(self.nrows):
          self.data[ind].extend(brows.data[ind])
+
+      return 0
+
+   def partition(self, part_file, prefix):
+      """partition timing based on part_file labels, write each part to
+         prefix_label.1D"""
+
+      if not self.ready:
+         print '** Timing element not ready for partitioning'
+         return 1
+
+      labels = read_value_file(part_file)
+      if labels == None:
+         print "** failed to read partition label file '%s'" % part_file
+         return 1
+
+      nlabr = len(labels)
+
+      # first test nrows, then test lengths per row
+      if self.nrows != nlabr:
+         print '** Timing nrows differs from partition nrows (%d, %d)' % \
+               (self.nrows,nlabr)
+         return 1
+      for ind in range(self.nrows):
+         if len(self.data[ind]) != len(labels[ind]):
+            print "** timing and label row lengths differ at line %d"%ind+1
+            return 1
+
+      # make unique label list
+      ulabs = []
+      for line in labels:
+         ulabs.extend(line)
+      ulabs = UTIL.get_unique_sublist(ulabs)
+      if self.verb > 2: print '-- unique label list: %s' % ulabs
+      ulabs.remove('0')
+
+      if self.verb > 1: print '++ Timing: partitioning with %s' % part_file
+
+      # ------------------------------------------------------------
+      # do the work, starting with copy:
+      # for each label, extract those times and write out as timing file
+      dupe = AfniTiming(from_a1d=1, a1d=self)  # keep results in class instance
+      for lab in ulabs:
+         # extract timing for this label 'lab'
+         data = []
+         for r in range(nlabr):
+            drow = []           # make one row of times for this label
+            for c in range(len(labels[r])):
+               if labels[r][c] == lab: drow.append(self.data[r][c])
+            data.append(drow)   # and append the new row
+         del(dupe.data)         # out with the old,
+         dupe.data = data       # and in with the new
+         dupe.write_times('%s_%s.1D' % (prefix,lab))    # and write, yay
+
+      del(dupe)                 # nuke the temporary instance
 
       return 0
 
@@ -222,15 +282,22 @@ class AfniTiming:
       if not data: return
       self.data  = data
       self.nrows = len(data)
-      if self.nrows > 1:
-         length = len(data[0])
-         for ary in data:
-            if len(ary) != length:
-               break
       self.ready = 1
 
       if self.verb > 1:
          print '++ initialized timing from file %s' % fname
+         if self.verb > 3: self.show()
+
+   def init_from_a1d(self, dupe):
+      """initialize AfniTiming from another"""
+      self.fname  = 'none'
+      self.data  = copy.deepcopy(dupe.data)
+      self.nrows = len(self.data)
+      self.verb  = dupe.verb
+      self.ready = 1
+
+      if self.verb > 1:
+         print '++ initialized timing from A1D %s' % dupe.fname
          if self.verb > 3: self.show()
 
 def read_timing_file(fname):
@@ -265,7 +332,32 @@ def read_timing_file(fname):
          print "** failed to convert line to floats: %s" % line
          return None, None
 
+   fp.close()
+
    return data, clines
+
+def read_value_file(fname):
+   """read value file, returning generic values in a matrix (no comments)"""
+   try: fp = open(fname, 'r')
+   except:
+      print "** failed to open value file '%s'" % fname
+      return None
+
+   data = []         # data lines
+
+   lind = 0
+   for line in fp.readlines():
+      lind += 1
+      lary = line.split()
+      if len(lary) == 0: continue
+      if lary[0] == '#': continue
+
+      data.append([x for x in lary if x != '*'])
+
+   fp.close()
+
+   return data
+
 
 # AfniMarriedTiming class - for stim times that are married with
 #                           either time intervals or magnitudes
@@ -420,8 +512,14 @@ class AfniMarriedTiming:
       if self.mtype == MTYPE_INT: mch = ':'
 
       for val in data:
-         if simple: rstr += '%.*f ' % (nplaces, val[0])
-         else: rstr += '%.*f%s%.*f ' % (nplaces, val[0], mch, nplaces, val[1])
+         if simple:
+            if nplaces >= 0: rstr += '%.*f ' % (nplaces, val[0])
+            else:            rstr += '%g ' % (val[0])
+         else:
+            if nplaces >= 0:
+               rstr += '%.*f%s%.*f ' % (nplaces, val[0], mch, nplaces, val[1])
+            else:
+               rstr += '%g%s%g ' % (val[0], mch, val[1])
 
       return rstr + '\n'
 
@@ -452,11 +550,13 @@ class AfniMarriedTiming:
 
       return rstr
 
-   def write_times(self, fname, nplaces=3):
+   def write_times(self, fname='', nplaces=-1):
       """write the current M timing out, with nplaces right of the decimal"""
       if not self.ready:
          print '** M Timing: not ready to write'
          return 1
+
+      if fname == '': fname = self.fname
 
       fp = open(fname, 'w')
       if not fp:
