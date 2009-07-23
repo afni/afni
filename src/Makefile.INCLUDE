@@ -1838,7 +1838,8 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
         model_convgamma.$(SO) model_convgamma2a.$(SO)                  \
         model_michaelis_menton.$(SO) model_linplusort.$(SO)            \
         model_zero.$(SO) model_demri_3.$(SO) model_expr2.$(SO)         \
-        model_conv_diffgamma.$(SO)
+        model_conv_diffgamma.$(SO) model_expMEMRI.$(SO)                \
+        model_expMEMRI3.$(SO)
 
 # Contributed plugins go last, since they might not compile well
 
