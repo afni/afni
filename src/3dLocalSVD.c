@@ -306,6 +306,7 @@ int main( int argc , char *argv[] )
                                            /* ensures first value is centroid */
 
    INFO_message("Neighborhood comprises %d voxels",nbhd->num_pt) ;
+   INFO_message("Each time series has %d points",nt) ;
 #if 0
    printf("Neighborhood offsets:\n") ;
    for( kk=0 ; kk < nbhd->num_pt ; kk++ )
@@ -457,6 +458,18 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
      for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) = far[ii] ;
    }
 
+   /* create output = zero filled vector */
+
+   tim = mri_new( nx , 1 , MRI_float ) ;
+
+   /** check for constant matrix [23 Jul 2009] **/
+
+   nev = nx*nvec ;
+   for( jj=1 ; jj < nev && amat[jj] == amat[0] ; jj++ ) ;  /*nada*/
+   if( jj == nev ){
+     free(sval) ; free(amat) ; return tim ; /* all were the same */
+   }
+
    /** normalize columns? **/
 
    if( mpv_vnorm ){
@@ -469,6 +482,9 @@ MRI_IMAGE * mri_principal_vector( MRI_IMARR *imar )
          sum = 1.0f / vnorm[jj] ;
          for( ii=0 ; ii < nx ; ii++ ) A(ii,jj) *= sum ;
        }
+     }
+     if( mpv_vproj > 0 && vnorm[0] == 0.0f ){  /* central vector == 0  */
+       free(sval) ; free(amat) ; return tim ;  /* means can't do vproj */
      }
    }
 
