@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, JUL, 2009, RCR, "afni_run_R", MINOR, TYPE_MODIFY,
+   "allow any number of args, but where first is program, last is output",
+   NULL
+ } ,
+
  { 23, JUL, 2009, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "added -partition option",
    NULL
