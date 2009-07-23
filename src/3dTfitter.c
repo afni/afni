@@ -22,7 +22,7 @@ int main( int argc , char *argv[] )
    intvec *convec=NULL , *kvec=NULL ;
    byte *mask=NULL ; int mnx=0,mny=0,mnz=0 ;
    floatvec *bfit ;
-   float *dvec , **rvec=NULL , *cvec=NULL ;
+   float *dvec , **rvec=NULL , *cvec=NULL , *evec ;
    char **lab=NULL ; int nlab=0 ;
    int verb=1 ;
 
@@ -32,7 +32,9 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *defal_set=NULL ;
    int nvoff=0 ;
 
-   char *fitts_prefix=NULL ; THD_3dim_dataset *fitts_set=NULL ;
+   char *fitts_prefix=NULL; THD_3dim_dataset *fitts_set=NULL;
+   char *ersum_prefix=NULL; THD_3dim_dataset *ersum_set=NULL; /* 23 Jul 2009 */
+   int do_fitts=0 ;
 
    /*------- help the pitifully ignorant user? -------*/
 
@@ -272,6 +274,12 @@ int main( int argc , char *argv[] )
       "           *** If you want the residuals, subtract this time series\n"
       "               from the '-RHS' input using 3dcalc (or 1deval).\n"
       "\n"
+      "  -errsum e = Prefix filename for the error sums dataset, which\n"
+      "              is calculated from the difference between the input\n"
+      "              time series and the fitted time series (in each voxel):\n"
+      "             * Sub-brick #0 is the sum of squares of differences (L2 sum)\n"
+      "             * Sub-brick #1 is the sum of absolute differences (L1 sum)\n"
+      "\n"
       "  -mask ms  = Read in dataset 'ms' as a mask; only voxels with nonzero\n"
       "              values in the mask will be processed.  Voxels falling\n"
       "              outside the mask will be set to all zeros in the output.\n"
@@ -399,6 +407,33 @@ int main( int argc , char *argv[] )
       "                -FALTUNG '1D: 0 1 2 3 2 1' stdout 01 0.0 | 1dplot -stdin &\n"
       "  **N.B.: you can only use 'stdout' as an output filename\n"
       "          when the output will be written as a 1D file!\n"
+      "\n"
+      "--------------------------------\n"
+      "Correlation Coefficient Example:\n"
+      "--------------------------------\n"
+      "Suppose your initials are HJJ and you want to compute the partial\n"
+      "correlation coefficient of time series Seed.1D with every voxel in\n"
+      "a dataset Rest+orig once a spatially dependent 'artifact' time series\n"
+      "Art+orig has been projected out.  You can do this with TWO 3dTfitter\n"
+      "runs, plus 3dcalc:\n"
+      "\n"
+      "(1) Run 3dTfitter with ONLY the artifact time series and get the\n"
+      "    error sum dataset\n"
+      "       3dTfitter -RHS Rest+orig -LHS Art+orig -polort 2 -errsum Ebase\n"
+      "\n"
+      "(2) Run 3dTfitter again with the artifact PLUS the seed time series\n"
+      "    and get the error sum dataset and also the beta coefficents\n"
+      "       3dTfitter -RHS Rest+orig -LHS Seed.1D Art+orig -polort 2 \\\n"
+      "                 -errsum Eseed -prefix Bseed\n"
+      "\n"
+      "(3) Compute the correlation coefficient from the amount of variance\n"
+      "    reduction between cases 1 and 2, times the sign of the beta\n"
+      "       3dcalc -a Eseed+orig'[0]' -b Ebase+orig'[0]' -c Bseed+orig'[0]' \\\n"
+      "              -prefix CorrSeed -expr '(2*step(c)-1)*sqrt(1-a/b)'\n"
+      "       3drefit -fbuc -sublabel 0 'SeedCorrelation' CorrSeed+orig\n"
+      "\n"
+      "More cleverness could be used to compute t- or F-statistics in a\n"
+      "similar fashion, using the error sum of squares between 2 different fits.\n"
       "\n"
       "************************************************************************\n"
       "** RWCox - Feb 2008.                                                  **\n"
@@ -590,9 +625,18 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc )
          ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        fitts_prefix = argv[iarg] ;
-       if( !THD_filename_ok(prefix) )
-         ERROR_exit("Illegal string after -prefix: '%s'",prefix) ;
-       iarg++ ; continue ;
+       if( !THD_filename_ok(fitts_prefix) )
+         ERROR_exit("Illegal string after -fitts: '%s'",fitts_prefix) ;
+       do_fitts = 1 ; iarg++ ; continue ;
+     }
+
+     if( strncasecmp(argv[iarg],"-errsum",5) == 0 ){ /* 23 Jul 2009 */
+       if( ++iarg >= argc )
+         ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+       ersum_prefix = argv[iarg] ;
+       if( !THD_filename_ok(ersum_prefix) )
+         ERROR_exit("Illegal string after -ersum: '%s'",ersum_prefix) ;
+       do_fitts = 1 ; iarg++ ; continue ;
      }
 
      if( strncasecmp(argv[iarg],"-consign",7) == 0 ){
@@ -668,6 +712,7 @@ int main( int argc , char *argv[] )
    }
 
    dvec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
+   evec = (float * )malloc(sizeof(float)*ntime) ;  /* RHS vector */
    if( nvar > 0 )
      rvec = (float **)malloc(sizeof(float *)*nvar ) ;  /* LHS vectors */
 
@@ -794,6 +839,24 @@ int main( int argc , char *argv[] )
        EDIT_substitute_brick( fitts_set , jj , MRI_float , NULL ) ;
    }
 
+   if( ersum_prefix != NULL && strcmp(ersum_prefix,"NULL") != 0 ){ /** ersum */
+     ersum_set = EDIT_empty_copy(rhset) ;                     /* 23 Jul 2009 */
+     EDIT_dset_items( ersum_set ,
+                        ADN_datum_all , MRI_float      ,
+                        ADN_brick_fac , NULL           ,
+                        ADN_nvals     , 2              ,
+                        ADN_ntt       , 2              ,
+                        ADN_prefix    , ersum_prefix   ,
+                      ADN_none ) ;
+     tross_Copy_History( rhset , ersum_set ) ;
+     tross_Make_History( "3dTfitter" , argc,argv , ersum_set ) ;
+
+     EDIT_substitute_brick( ersum_set , 0 , MRI_float , NULL ) ;
+     EDIT_substitute_brick( ersum_set , 1 , MRI_float , NULL ) ;
+     EDIT_BRICK_LABEL     ( ersum_set , 0 , "errsum_L2"      ) ;
+     EDIT_BRICK_LABEL     ( ersum_set , 1 , "errsum_L1"      ) ;
+   }
+
    if( fal_klen > 0 && strcmp(fal_pre,"NULL") != 0 ){  /** deconvolution **/
      defal_set = EDIT_empty_copy(rhset) ;
      EDIT_dset_items( defal_set ,
@@ -813,7 +876,7 @@ int main( int argc , char *argv[] )
    if( verb && nvox > 499 ) vstep = nvox / 50 ;
    if( vstep > 0 ) fprintf(stderr,"++ voxel loop: ") ;
 
-   THD_fitter_do_fitts( (fitts_set != NULL) ) ;  /* 05 Mar 2008 */
+   THD_fitter_do_fitts( do_fitts ) ;  /* 05 Mar 2008 */
 
    for( ii=0 ; ii < nvox ; ii++ ){
 
@@ -825,6 +888,8 @@ int main( int argc , char *argv[] )
 
      for( jj=0 ; jj < ntime && dvec[jj]==0.0f ; jj++ ) ; /*nada*/
      if( jj == ntime ){ nskip++; continue; }   /*** skip all zero vector ***/
+
+     for( jj=0 ; jj < ntime ; jj++ ) evec[jj] = dvec[jj] ;  /* copy vector */
 
      THD_fitter_voxid(ii) ;             /* 10 Sep 2008: for error messages */
 
@@ -864,9 +929,18 @@ int main( int argc , char *argv[] )
      if( fal_klen > 0 && defal_set != NULL )
        THD_insert_series( ii , defal_set , ntime , MRI_float , bfit->ar , 1 ) ;
 
-     if( fitts_set != NULL ){                /* 05 Mar 2008 */
-       floatvec *fv = THD_retrieve_fitts() ;
-       THD_insert_series( ii , fitts_set , ntime , MRI_float , fv->ar , 1 ) ;
+     if( do_fitts ){
+       floatvec *fv = THD_retrieve_fitts() ; float *fvar = fv->ar ;
+       if( fitts_set != NULL )
+         THD_insert_series( ii , fitts_set , ntime , MRI_float , fvar , 1 ) ;
+       if( ersum_set != NULL ){                                /* 23 Jul 2009 */
+         float qsum=0.0f , asum=0.0f , val , ee[2] ;
+         for( jj=0 ; jj < ntime ; jj++ ){
+           val = fabsf(fvar[jj]-evec[jj]) ; qsum += val*val ; asum += val ;
+         }
+         ee[0] = qsum ; ee[1] = asum ;
+         THD_insert_series( ii , ersum_set , 2 , MRI_float , ee , 1 ) ;
+       }
      }
 
      KILL_floatvec(bfit) ; ngood++ ;
@@ -896,6 +970,11 @@ int main( int argc , char *argv[] )
    if( fitts_set != NULL ){
      if( verb ) ININFO_message("Writing fitts dataset: %s",fitts_prefix) ;
      DSET_write(fitts_set); DSET_unload(fitts_set);
+   }
+
+   if( ersum_set != NULL ){
+     if( verb ) ININFO_message("Writing errsum dataset: %s",ersum_prefix) ;
+     DSET_write(ersum_set); DSET_unload(ersum_set);
    }
 
    if( verb ) INFO_message("Total CPU time = %.1f s",COX_cpu_time()) ;
