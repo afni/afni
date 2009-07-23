@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , JUL , 2009 , RWC , "3dLocalSVD" , MICRO , TYPE_BUG_FIX ,
+   "Fix bug when all vectors are zero." ,
+   NULL } ,
+
  { 21 , JUL , 2009 , RWC , "niml_feedme" , MINOR , TYPE_NEW_PROG ,
    "Test and demo program showing how to set datasets to AFNI via NIML" ,
    "An analog to rtfeedme.  Sends volumes to AFNI using VOLUME_DATA\n"
