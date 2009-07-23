@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , JUL , 2009 , RWC , "3dTfitter" , MICRO , TYPE_NEW_OPT ,
+   "Added -errsum option, to save error sums per voxel." ,
+   "And a -help example showing how the error sum of squares can be used to\n"
+   "compute partial correlation coefficients of a fit." } ,
+
  { 23 , JUL , 2009 , RWC , "3dLocalSVD" , MICRO , TYPE_BUG_FIX ,
    "Fix bug when all vectors are zero." ,
    NULL } ,
