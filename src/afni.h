@@ -125,7 +125,7 @@ static char * UNDERLAY_typestr[] =
 #define TOPSIZE 2048
 
 #include "AFNI_label.h"
-#define VERSION AFNI_VERSION_LABEL    /* 21 chars long */
+#define AVERZHN AFNI_VERSION_LABEL    /* 21 chars long */
 
 #ifdef  __cplusplus
 extern "C" {
@@ -135,7 +135,7 @@ extern "C" {
 #define AFNI_about \
      "************************************************\n"  \
      "* GPL AFNI: Analysis of Functional NeuroImages *\n"  \
-     "*           Version " VERSION          "       *\n"  \
+     "*           Version " AVERZHN          "       *\n"  \
      "*                                              *\n"  \
      "* Major portions are Copyright 1994-2000,      *\n"  \
      "*   Medical College of Wisconsin               *\n"  \

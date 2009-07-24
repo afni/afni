@@ -51,7 +51,7 @@
 #ifdef SHSTRING
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
- "This is Version " VERSION               "\n"                                 \
+ "This is Version " AVERZHN               "\n"                                 \
  "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n\n"                       \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
@@ -71,7 +71,7 @@
 #else
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
- "This is Version " VERSION " -- compiled " __DATE__  "\n\n"                   \
+ "This is Version " AVERZHN " -- compiled " __DATE__  "\n\n"                   \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
  " ** This software comes with no warranties of any kind whatsoever,    **\n"  \
@@ -1255,7 +1255,7 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;
-   fprintf(stderr,"** AFNI version = " VERSION "  Compile date = " __DATE__ "\n" );
+   fprintf(stderr,"** AFNI version = " AVERZHN "  Compile date = " __DATE__ "\n" );
 #ifdef SHSTRING
    fprintf(stderr,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
 #endif
@@ -1361,7 +1361,7 @@ int main( int argc , char *argv[] )
    /** Check for -version [15 Aug 2003] **/
 
    if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ){
-     printf( "Version " VERSION  "\n" ) ;
+     printf( "Version " AVERZHN  "\n" ) ;
 #ifdef SHSTRING
      printf( "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n" ) ;
 #else

@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , JUL , 2009 , RWC , "afni.h" , MICRO , TYPE_GENERAL ,
+   "Replaced VERSION with AVERZHN to avoid conflicts with SVMlight" ,
+   "So AFNI doesn't have a VERSION any more, it has an AVERZHN." } ,
+
  { 23 , JUL , 2009 , RWC , "3dTfitter" , MICRO , TYPE_NEW_OPT ,
    "Added -errsum option, to save error sums per voxel." ,
    "And a -help example showing how the error sum of squares can be used to\n"

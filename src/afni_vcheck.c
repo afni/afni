@@ -27,7 +27,7 @@ int main( int argc , char *argv[] )
      if( fp == NULL ){
        fprintf(stderr,"** Failed to open %s!\n",VERSION_FILE); EXIT(1);
      }
-     fprintf( fp , "%s\n%s\n" , VERSION , "no date given" ) ;
+     fprintf( fp , "%s\n%s\n" , AVERZHN , "no date given" ) ;
      fclose(fp) ;
      fprintf(stderr,"Wrote out %s\n",VERSION_FILE) ;
      exit(0) ;
@@ -52,7 +52,7 @@ int main( int argc , char *argv[] )
    /*-- internal information --*/
 
    if( verb ) printf("This program was compiled with the following settings:\n"
-                     "  Version ID   = %s\n" , VERSION ) ;
+                     "  Version ID   = %s\n" , AVERZHN ) ;
 
    if( verb ) fprintf(stderr,"++ now fetching %s",VERSION_URL) ;
 
@@ -73,5 +73,5 @@ int main( int argc , char *argv[] )
 
    /* exit status is 0 if versions compare same, 1 if not the same */
 
-   exit( (strcmp(vv,VERSION) != 0) ) ;
+   exit( (strcmp(vv,AVERZHN) != 0) ) ;
 }
