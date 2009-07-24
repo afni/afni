@@ -100,9 +100,9 @@ void THD_check_AFNI_version( char *pname )
        if( jj >= 0 && ubuf.nodename[0] != '\0' )
          sprintf( ua ,
                  "%s (avers='%s'; prec='%s' node='%s'; sys='%s'; mach='%s')" ,
-                  pname,VERSION,PCLAB,ubuf.nodename,ubuf.sysname,ubuf.machine );
+                  pname,AVERZHN,PCLAB,ubuf.nodename,ubuf.sysname,ubuf.machine );
        else
-         sprintf( ua , "%s (avers='%s'; prec='%s')" , pname , VERSION , PCLAB );
+         sprintf( ua , "%s (avers='%s'; prec='%s')" , pname , AVERZHN , PCLAB );
 
        set_HTTP_10( 1 ) ;
        set_HTTP_user_agent( ua ) ;
@@ -129,13 +129,13 @@ void THD_check_AFNI_version( char *pname )
 
    /* compare with compiled-in version (from afni.h) */
 
-   if( strcmp(vv,VERSION) != 0 )
+   if( strcmp(vv,AVERZHN) != 0 )
     fprintf(stderr,"\n"
                    "++ VERSION CHECK!  This program = %s\n"
                    "++         Current AFNI website = %s\n" ,
-            VERSION , vv ) ;
+            AVERZHN , vv ) ;
 
-   /* record the current time and VERSION, so we don't check too often */
+   /* record the current time and AVERZHN, so we don't check too often */
 
    ns = NI_stream_open( mname , "w" ) ;
    if( ns != NULL ){
@@ -143,7 +143,7 @@ void THD_check_AFNI_version( char *pname )
      sprintf(rhs,"%d",(int)time(NULL)) ;
      NI_set_attribute( nel , "version_check_time" , rhs ) ;
      if( strcmp(vv,"none") != 0 )
-       NI_set_attribute( nel , "version_string" , VERSION ) ;
+       NI_set_attribute( nel , "version_string" , AVERZHN ) ;
      if( motd != NULL ){     /* 29 Nov 2005 */
        NI_set_attribute( nel , "motd" , motd ); free((void *)motd) ;
      }
