@@ -19,33 +19,35 @@ library(fastICA)
 meth <- "C"         # or "R"
 
 # Line 1: data type - volume or surface
-InFile <- unlist(strsplit(unlist(scan(file="par.txt", what= list(""), 
+parFile <- commandArgs()[6]
+#paste(commandArgs())
+InFile <- unlist(strsplit(unlist(scan(file=parFile, what= list(""), 
    skip=0, nline=1)), "\\:"))[2]
 	
 View <- unlist(strsplit(unlist(strsplit(InFile, "\\+"))[2], "\\."))[1]
 
 #  Line 2: Output filename for the components in 3D
 #how to check output filename?
-Out <- unlist(strsplit(unlist(scan(file="par.txt", what= list(""), 
+Out <- unlist(strsplit(unlist(scan(file=parFile, what= list(""), 
    skip=1, nline=1)), "\\:"))[2]
 OutFile <- paste(Out, "+orig", sep="")
 
 #  Line 3: Output filename for the mixing matrix in 1D. Transformed for 
 # easier handling when plotting with 1dplot
-OutTemp <- unlist(strsplit(unlist(scan(file="par.txt", what= list(""), 
+OutTemp <- unlist(strsplit(unlist(scan(file=parFile, what= list(""), 
    skip=2, nline=1)), "\\:"))[2]
 OutTempFile <- paste(OutTemp, ".1D", sep="")
 
 #  Line 4: Number of components
-NoComp <- as.integer(unlist(strsplit(unlist(scan(file="par.txt", 
+NoComp <- as.integer(unlist(strsplit(unlist(scan(file=parFile, 
    what= list(""), skip=3, nline=1)), "\\:"))[2])
 	
 #  Line 5: function for approximation to neg-antropy
-Func <- unlist(strsplit(unlist(scan(file="par.txt", 
+Func <- unlist(strsplit(unlist(scan(file=parFile, 
    what= list(""), skip=4, nline=1)), "\\:"))[2]
 	
 #  Line 6: extraction method
-Type <- unlist(strsplit(unlist(scan(file="par.txt", 
+Type <- unlist(strsplit(unlist(scan(file=parFile, 
    what= list(""), skip=5, nline=1)), "\\:"))[2]
 		
 
