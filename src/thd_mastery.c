@@ -116,7 +116,7 @@ ENTRY("THD_open_dataset") ;
    if( STRING_HAS_SUFFIX(dname,".mnc")    ||
        STRING_HAS_SUFFIX(dname,".mri")    ||
        STRING_HAS_SUFFIX(dname,".svl")      ){
-     fprintf(stderr,"** Can't use selectors on dataset: %s\n",pathname) ;
+     ERROR_message("Can't use selectors on dataset: %s",pathname) ;
      RETURN(NULL) ;
    }
 
@@ -137,8 +137,8 @@ ENTRY("THD_open_dataset") ;
    }
    if( ivlist == NULL ){
      if( cpt != NULL )
-       fprintf(stderr,"** WARNING: bad sub-brick selector => using [0..%d]\n",
-               DSET_NVALS(dset)-1) ;
+       WARNING_message("bad sub-brick selector => using [0..%d]",
+                       DSET_NVALS(dset)-1) ;
      ivlist = (int *) malloc(sizeof(int)*(DSET_NVALS(dset)+1)) ;
      ivlist[0] = DSET_NVALS(dset) ;
      for( kk=0 ; kk < ivlist[0] ; kk++ ) ivlist[kk+1] = kk ;
@@ -409,6 +409,7 @@ ENTRY("THD_setup_mastery") ;
 /*----------------------------------------------------------------------
    Run 3dcalc to create a dataset and read it in.
    -- RWCox - 17 Mar 2000
+   -- Modified 24 Jul 2009 to use unique name each time, fer shur
 ------------------------------------------------------------------------*/
 
 #include <sys/types.h>
@@ -418,16 +419,15 @@ static THD_3dim_dataset * THD_open_3dcalc( char *pname )
 {
    int    Argc=1               ,   newArgc=0 , ii,ll  ;
    char  *Argv[1]={ "3dcalc" } , **newArgv=NULL ;
-   char  *qname , *tdir , prefix[16] ;
+   char  *qname , *tdir , prefix[128] , *uuid ;
    pid_t  child_pid ;
    THD_3dim_dataset *dset ;
-   static int ibase=1 ;
 
 ENTRY("THD_open_3dcalc") ;
 
    /*-- remove the "3dcalc(" and the ")" from the input string --*/
 
-   qname = (char *) malloc(sizeof(char)*(strlen(pname)+1024)) ;
+   qname = (char *) malloc(sizeof(char)*(strlen(pname)+4096)) ;
    strcpy(qname,pname+7) ;
    ll = strlen(qname) ;
    for( ii=ll-1 ; ii > 0 && isspace(qname[ii]) ; ii-- ) ; /*nada*/
@@ -443,18 +443,17 @@ ENTRY("THD_open_3dcalc") ;
 
    /*-- add -prefix to command string --*/
 
-   for( ii=ibase ; ii < 9999 ; ii++ ){                    /* dataset name */
-     sprintf(prefix,"3dcalc#%04d",ii) ;
+   for( ii=0 ; ii < 9999 ; ii++ ){  /* create dataset name */
+     uuid = UNIQ_idcode() ;
+     sprintf(prefix,"3dcalc_%s",uuid) ; free(uuid) ;
      if( THD_is_dataset(tdir,prefix,-1) == -1 ) break ;
    }
-   if( ii > 9999 ){
-     fprintf(stderr,"*** Can't find unused 3dcalc# dataset name in %s!\n",tdir) ;
+   if( ii >= 9999 ){  /* should never happen */
+     ERROR_message("Can't find unused 3dcalc_ dataset name in %s!",tdir) ;
      free(qname) ; RETURN(NULL) ;
    }
-   ibase = ii+1 ;
 
    strcat(qname," -prefix ") ; strcat(qname,prefix) ;
-
    strcat(qname," -verbose") ;
 
    /*-- add a placeholder to be the last argument --*/
@@ -482,10 +481,13 @@ ENTRY("THD_open_3dcalc") ;
 
    /*-- fork and exec --*/
 
-   fprintf(stderr,"+++ Executing 3dcalc()\n") ;
-#if 0
-for(ii=0; ii< newArgc-1; ii++) fprintf(stderr," argv[%d]=%s\n",ii,newArgv[ii]);
+   INFO_message("Executing 3dcalc()") ;
+#if 1
+   for(ii=0; ii< newArgc-1; ii++)
+     fprintf(stderr," argv[%d]=%s",ii,newArgv[ii]);
+   fprintf(stderr,"\n") ;
 #endif
+
    child_pid = fork() ;
 
    if( child_pid == (pid_t)(-1) ){
@@ -504,11 +506,13 @@ for(ii=0; ii< newArgc-1; ii++) fprintf(stderr," argv[%d]=%s\n",ii,newArgv[ii]);
 
    /*-- I'm the parent --*/
 
+   STATUS("Waiting for 3dcalc() process to run") ;
+
    (void) waitpid( child_pid , NULL , 0 ) ; /* wait for child to exit */
 
    ii = THD_is_dataset( tdir , prefix , -1 ) ;
    if( ii == -1 ){
-     fprintf(stderr,"*** 3dcalc() failed - no dataset created\n") ;
+     ERROR_message("3dcalc() failed - no dataset created!") ;
      RETURN(NULL) ;
    }
    qname = THD_dataset_headname( tdir , prefix , ii ) ;
@@ -518,7 +522,7 @@ for(ii=0; ii< newArgc-1; ii++) fprintf(stderr," argv[%d]=%s\n",ii,newArgv[ii]);
    free(newArgv) ; free(qname) ;
 
    if( dset == NULL ){                          /* read failed */
-     fprintf(stderr,"*** 3dcalc() failed - can't read dataset\n") ;
+     ERROR_message("3dcalc() failed - can't read dataset!") ;
      RETURN(NULL) ;
    }
 
@@ -527,7 +531,7 @@ for(ii=0; ii< newArgc-1; ii++) fprintf(stderr," argv[%d]=%s\n",ii,newArgv[ii]);
    DSET_mallocize(dset) ; DSET_load(dset) ;
    if( !DSET_LOADED(dset) ){                   /* can't read it? */
      THD_delete_3dim_dataset( dset , True ) ; /* kill it dead */
-     fprintf(stderr,"*** 3dcalc() failed - can't load dataset\n") ;
+     ERROR_message("3dcalc() failed - can't load dataset!") ;
      RETURN(NULL) ;
    }
 
