@@ -85,10 +85,10 @@ void AFNI_start_version_check(void)
            }
          }
          rhs = NI_get_attribute(nel,"version_string") ;  /* 27 Jan 2003 */
-         if( rhs != NULL && strcmp(rhs,VERSION) != 0 ){
+         if( rhs != NULL && strcmp(rhs,AVERZHN) != 0 ){
            fprintf(stderr,
                    "\n** Your AFNI version changed from %s to %s since last check\n",
-                   rhs , VERSION ) ;
+                   rhs , AVERZHN ) ;
          }
          rhs = NI_get_attribute(nel,"motd") ;            /* 29 Nov 2005 */
          if( rhs != NULL ) motd_old = strdup(rhs) ;
@@ -162,9 +162,9 @@ void AFNI_start_version_check(void)
      if( jj >= 0 && ubuf.nodename[0] != '\0' )
        sprintf( ua ,
                "afni (avers='%s'; prec='%s' node='%s'; sys='%s'; mach='%s')" ,
-                VERSION, PCLAB, ubuf.nodename, ubuf.sysname, ubuf.machine   ) ;
+                AVERZHN, PCLAB, ubuf.nodename, ubuf.sysname, ubuf.machine   ) ;
      else
-       sprintf( ua , "afni (avers='%s'; prec='%s')" , VERSION , PCLAB ) ;
+       sprintf( ua , "afni (avers='%s'; prec='%s')" , AVERZHN , PCLAB ) ;
 
      set_HTTP_10( 1 ) ;
      set_HTTP_user_agent( ua ) ;
@@ -304,7 +304,7 @@ int AFNI_version_check(void)
        sprintf(rhs,"%d",(int)time(NULL)) ;
        NI_set_attribute( nel , "version_check_time" , rhs ) ;
        if( strcmp(vv,"none") != 0 )                            /* 27 Jan 2003 */
-         NI_set_attribute( nel , "version_string" , VERSION ) ;
+         NI_set_attribute( nel , "version_string" , AVERZHN ) ;
        if( motd_new != NULL )
          NI_set_attribute( nel , "motd" , motd_new ) ;         /* 29 Nov 2005 */
        NI_write_element( ns , nel , NI_TEXT_MODE ) ;
@@ -327,7 +327,7 @@ int AFNI_version_check(void)
 
    /* compare version strings */
 
-   if( strcmp(vv,VERSION) == 0 ){                    /* versions match */
+   if( strcmp(vv,AVERZHN) == 0 ){                    /* versions match */
      fprintf(stderr,"\n** Version check: you are up-to-date!\n"
                       "** To disable future version checks:\n"
                       "** set environment variable AFNI_VERSION_CHECK to NO.\n"
@@ -348,7 +348,7 @@ int AFNI_version_check(void)
                    " To disable future version checks:\n"
                    " set environment variable AFNI_VERSION_CHECK to NO\n"
                    "****************************************************\n"
-          , VERSION, AFNI_HOST , vv ) ;
+          , AVERZHN, AFNI_HOST , vv ) ;
 
    return 1 ;
 
