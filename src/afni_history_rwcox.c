@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , JUL , 2009 , RWC , "THD_open_3dcalc()" , MICRO , TYPE_GENERAL ,
+   "Modify to use globally unique filename every time, fer shur." ,
+   "cf. code in file thd_mastery.c, using the UNIQ_idcode() function in\n"
+   "niml_uuid.c to create a unique filename" } ,
+
  { 24 , JUL , 2009 , RWC , "afni.h" , MICRO , TYPE_GENERAL ,
    "Replaced VERSION with AVERZHN to avoid conflicts with SVMlight" ,
    "So AFNI doesn't have a VERSION any more, it has an AVERZHN." } ,
