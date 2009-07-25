@@ -28,7 +28,9 @@ source(file.path(Sys.getenv("AFNI_R_DIR"), "AFNIio.R"))
 libLoad("nlme")
 libLoad("contrast")
 
-modFile <- commandArgs()[6]
+comArgs <- commandArgs()
+if(length(comArgs)<6) modFile <- "model.txt" else
+modFile <- comArgs[6]
 #paste(commandArgs())
 
 # Line 1: data type - volume or surface

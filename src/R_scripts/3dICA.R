@@ -19,8 +19,11 @@ library(fastICA)
 meth <- "C"         # or "R"
 
 # Line 1: data type - volume or surface
-parFile <- commandArgs()[6]
-#paste(commandArgs())
+comArgs <- commandArgs()
+if(length(comArgs)<6) parFile <- "par.txt" else
+parFile <- comArgs[6]
+paste(comArgs)
+paste(parFile)
 InFile <- unlist(strsplit(unlist(scan(file=parFile, what= list(""), 
    skip=0, nline=1)), "\\:"))[2]
 	
