@@ -3250,8 +3250,9 @@ void RT_start_dataset( RT_input * rtin )
 
    for( ii=base_ind ; ; ii++ ){  /* will loop until it succeeds! */
 
-      /* use -001 etc., as '#' evaluates to a comment   27 Jul 2009 [rickr] */
-      sprintf( npr , "%.*s--%03d" , RT_MAX_PREFIX, rtin->root_prefix , ii ) ;
+      /* use __001 etc., as '#' evaluates to a comment and '-' is
+         used for options                     27 Jul 2009 [rickr] */
+      sprintf( npr , "%.*s__%03d" , RT_MAX_PREFIX, rtin->root_prefix , ii ) ;
 
       if( rtin->num_chan == 1 ){                  /* the old way */
 

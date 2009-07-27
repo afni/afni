@@ -50,7 +50,7 @@ afni_history_struct rickr_history[] = {
 
  { 27, JUL, 2009, RCR, "plug_realtime", MICRO, TYPE_NEW_OPT,
    "added Y/N AFNI_REALTIME_reset_output_index, to start each dset at 001",
-   NULL
+   "Also, changed prefix seperator to double underscore '__'.",
  } ,
 
  { 27, JUL, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
