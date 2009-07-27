@@ -90,6 +90,7 @@ if (~isstruct(SN)), %mode 1, toy mode
    Opt.PhysFS = 1000/str2num(strtok(s(regexp(s,pat,'end'):ns)));        
    Opt.Nslices = 20;
    Opt.VolTR = 2;
+   Opt.SliceMajor = 1;
    Opt.ResampFS = Opt.PhysFS; %upsampling frequency in Hz
    Opt.Quiet = 1;
    Opt.ResamKernel = 'linear';   %resampling filter for envelopes and phase
@@ -121,6 +122,9 @@ else,
    if ( ~isfield(Opt,'PhysFS') | isempty(Opt.PhysFS)),
       fprintf(2,'Missing field PhysFS\n');
       return;
+   end
+   if ( ~isfield(Opt,'SliceMajor') | isempty(Opt.SliceMajor)),
+      Opt.SliceMajor = 1;
    end
    if ( ~isfield(Opt,'Nslices') | isempty(Opt.Nslices)),
       fprintf(2,'Missing field Nslices\n');
@@ -236,7 +240,7 @@ tailclose = sprintf('# </RetoTSout>\n');
 
 label = head;
 
-if (0), %old approach, not handy for 3dREMLfit
+if (Opt.SliceMajor == 0), %old approach, not handy for 3dREMLfit
    %RVT
    for (j=1:1:size(R.RVTRS_slc,2)),
       for (i=1:1:Opt.Nslices),
