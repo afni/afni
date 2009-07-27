@@ -48,7 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 27, JUL, 2009, RCR, "afni-general", MINOR, TYPE_MODIFY,
+ { 27, JUL, 2009, RCR, "plug_realtime", MICRO, TYPE_NEW_OPT,
+   "added Y/N AFNI_REALTIME_reset_output_index, to start each dset at 001",
+   NULL
+ } ,
+
+ { 27, JUL, 2009, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "added SOLARIS_OLD atanhf #define to machdep.h",
    NULL
  } ,
