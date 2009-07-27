@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , JUL , 2009 , RWC , "libmri" , MICRO , TYPE_MODIFY ,
+   "Add function mri_get_tempfilename() to mri_purger.c" ,
+   "To return a unique filename in a temp directory.  Sort of like a fancy\n"
+   "version of the C library function tmpnam()." } ,
+
  { 24 , JUL , 2009 , RWC , "THD_open_3dcalc()" , MICRO , TYPE_GENERAL ,
    "Modify to use globally unique filename every time, fer shur." ,
    "cf. code in file thd_mastery.c, using the UNIQ_idcode() function in\n"

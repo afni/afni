@@ -18,7 +18,9 @@ static int test_tmpdir_write(void)
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Function to get name of the directory to store TIM_* mri_purge() files. */
+/*! Function to get name of the directory to store TIM_* mri_purge() files.
+    The return pointer should NOT be free()-ed!
+*//*--------------------------------------------------------------------------*/
 
 char * mri_purge_get_tmpdir(void)
 {
@@ -30,6 +32,34 @@ char * mri_purge_get_tmpdir(void)
    }
    return tmpdir ;
 }
+
+/*----------------------------------------------------------------------------*/
+/*! Function to return a unique name for temporary file, with the
+    given prefix attached (if it isn't NULL, that is).
+    The return pointer should be free()-ed when you are done with it.
+*//*--------------------------------------------------------------------------*/
+
+char * mri_get_tempfilename( char *pref )
+{
+   char *tdir , *unam , *fnam ; int nn ;
+
+   tdir = mri_purge_get_tmpdir() ;
+
+   do{
+     unam = UNIQ_idcode() ;                        /* unique part of filename */
+     nn   = (pref != NULL) ? strlen(pref) : 0 ;           /* length of prefix */
+     fnam = (char *)malloc(sizeof(char)*(strlen(tdir)+strlen(unam)+nn+4)) ;
+     strcpy(fnam,tdir) ;                    /* start with temp directory name */
+     nn = strlen(fnam) ; if( fnam[nn-1] != '/' ) strcat(fnam,"/") ;
+     if( pref != NULL ){ strcat(fnam,pref); strcat(fnam,"_"); } /* add prefix */
+     strcat(fnam,unam) ; free(unam) ;                 /* append unique string */
+     nn = THD_is_ondisk(fnam) ;                        /* should never happen */
+     if( nn ) free(fnam) ;
+   } while(nn) ;                                         /* should never loop */
+
+   return fnam ;
+}
+
 
 /*----------------------------------------------------------------------------*/
 static char tsuf[8] = "\0" ;
