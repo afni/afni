@@ -277,6 +277,7 @@ extern long   strtol() ;
 # define floorf floor
 # define ceilf  ceil
 # define expf   exp
+# define atanhf atanh         /* 27 Jul 2009 [rickr] */
 #endif
 
 #endif
