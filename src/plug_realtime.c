@@ -3132,7 +3132,7 @@ void RT_start_dataset( RT_input * rtin )
 {
    THD_ivec3 nxyz , orixyz ;
    THD_fvec3 dxyz , orgxyz ;
-   int nvox , n1 , ii , cc ;
+   int nvox , n1 , ii , cc, base_ind ;
    char npr[THD_MAX_PREFIX] , ccpr[THD_MAX_PREFIX] ;
 
    /*********************************************/
@@ -3243,9 +3243,15 @@ void RT_start_dataset( RT_input * rtin )
    /** make a good dataset prefix (somehow) **/
 
    num_runs++ ;  /* 20 May 2009 */
-   for( ii=num_runs ; ; ii++ ){  /* will loop until it succeeds! */
 
-      sprintf( npr , "%.*s#%03d" , RT_MAX_PREFIX, rtin->root_prefix , ii ) ;
+   /* maybe the user prefers to start each new prefix at --001 */
+   base_ind = num_runs;
+   if( AFNI_yesenv("AFNI_REALTIME_reset_output_index") ) base_ind = 1;
+
+   for( ii=base_ind ; ; ii++ ){  /* will loop until it succeeds! */
+
+      /* use -001 etc., as '#' evaluates to a comment   27 Jul 2009 [rickr] */
+      sprintf( npr , "%.*s--%03d" , RT_MAX_PREFIX, rtin->root_prefix , ii ) ;
 
       if( rtin->num_chan == 1 ){                  /* the old way */
 
