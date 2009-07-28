@@ -24,7 +24,7 @@ endif
 RENAME:
 foreach eee ($lll)
    if ( -f $eee ) then
-      set name2 = `echo "$eee" | sed 's/#/-/g'`
+      set name2 = `echo "$eee" | sed 's/#/__/g'`
       if ("$eee" != "$name2") then
          if ( -f $name2 ) then
             echo "ERROR:
