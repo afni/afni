@@ -657,6 +657,9 @@ int main( int argc , char *argv[] )
       "                     bb[3] --> slice #0 matrix\n"
       "                     bb[4] --> slice #1 matrix\n"
       "                     bb[5] --> slice #2 matrix\n"
+      "\n"
+      "              * If this order is not correct, consider -slibase_sm.\n"
+      "\n"
       "              * Intended to help model physiological noise in FMRI,\n"
       "                 or other effects you want to regress out that might\n"
       "                 change significantly in the inter-slice time intervals.\n"
@@ -673,6 +676,20 @@ int main( int argc , char *argv[] )
       "                  lot more memory (to hold all the matrix stuff).\n"
       "            *** At this time, 3dSynthesize has no way of incorporating\n"
       "                  the extra baseline timeseries from -addbase or -slibase.\n"
+      "\n"
+      " -slibase_sm bb = Similar to -slibase above, BUT each .1D file 'bb'\n"
+      "                 must be in slice major order (i.e. all slice0 columns\n"
+      "                 come first, then all slice1 columns, etc).\n"
+      "                 For example, if the dataset has 3 slices and file\n"
+      "                 'bb' has 6 columns, then the order of use is\n"
+      "                     bb[0] --> slice #0 matrix, regressor 0\n"
+      "                     bb[1] --> slice #0 matrix, regressor 1\n"
+      "                     bb[2] --> slice #1 matrix, regressor 0\n"
+      "                     bb[3] --> slice #1 matrix, regressor 1\n"
+      "                     bb[4] --> slice #2 matrix, regressor 0\n"
+      "                     bb[5] --> slice #2 matrix, regressor 1\n"
+      "\n"
+      "              * If this order is not correct, consider -slibase.\n"
       "\n"
       " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
       "                 Using this option might be necessary to run with\n"
@@ -1200,6 +1217,33 @@ int main( int argc , char *argv[] )
          im = mri_read_1D( argv[iarg] ) ;
          if( im == NULL ) ERROR_exit("Can't read -slibase file '%.33s'",argv[iarg]) ;
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
+         mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
+         ADDTO_IMARR( imar_slibase , im ) ;
+         nfile_slibase++ ;
+         iarg++ ;
+       } while( iarg < argc && argv[iarg][0] != '-' ) ;
+       WARNING_message("If your regressors are made via 'RetroTS',\n");
+       ININFO_message("evaluate whether -slibase_sm is more appropriate.");
+       continue ;
+     }
+
+     /**==========   -slibase_sm (slice-major order) ==========**/
+     /**                                   27 Jul 2009 [rickr] **/
+
+     if( strcasecmp(argv[iarg],"-slibase_sm") == 0 ){
+       MRI_IMAGE *im, *newim;
+       int       nz ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
+       if( !inset ) ERROR_exit("-slibase_sm must follow -input");
+       nz = DSET_NZ(inset);
+       do{
+         im = mri_read_1D( argv[iarg] ) ;
+         if( im == NULL )
+            ERROR_exit("Can't read -slibase_sm file '%.33s'", argv[iarg]) ;
+         if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
+         /* conver the slice-major column order to slice-minor */
+         if( (newim = mri_interleave_columns(im, nz) ) == NULL ) exit(1) ;
+         mri_free(im) ; im = newim ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
          ADDTO_IMARR( imar_slibase , im ) ;
          nfile_slibase++ ;

@@ -186,3 +186,73 @@ MRI_IMAGE * mri_transpose( MRI_IMAGE * im )
    }
    return NULL ;
 }
+
+
+/* Interleave the columns of data, given nfirst groups of nint columns
+ * (nfirst*nint = ny).  Return a new MRI_IMAGE (so we don't have to do
+ * this in place.
+ *
+ *     for ifirst = 0..nfirst
+ *        for iint = 0..nint
+ *           col[iint + ifirst*nint] <- col[ifirst + iint*nfirst]
+ *
+ * Each of the ny columns will keep the same nx values, except that
+ * they will be moved to a different column.       27 Jul 2009 [rickr]
+ */
+MRI_IMAGE * mri_interleave_columns( MRI_IMAGE * oldim, int nint )
+{
+   MRI_IMAGE *newim=NULL;
+   char      *dold, *dnew;
+   int       ifirst, iint, nfirst, colsize;
+    
+ENTRY("mri_interleave_columns") ;
+
+   /* check that the inputs seem good */
+   if( !oldim ) RETURN(NULL);
+   if( nint <= 0 || nint > oldim->ny ) {
+      fprintf(stderr,"** interleave_cols: invalid nint=%d (ny=%d)\n",
+              nint, oldim->ny);
+      RETURN(NULL);
+   }
+   if( oldim->pixel_size <= 0 || oldim->pixel_size > 8 ) {
+      fprintf(stderr,"** interleave_cols: invalid pixel_size %d\n",
+              oldim->pixel_size);
+      RETURN(NULL);
+   }
+
+   nfirst = oldim->ny / nint;
+   if( nint * nfirst != oldim->ny ) {
+      fprintf(stderr,"** interleave_cols: nint * nfirst != ny (%d,%d,%d)\n",
+              nint, nfirst, oldim->ny);
+      RETURN(NULL);
+   }
+   if( oldim->nx * oldim->ny != oldim->nvox ) {
+      fprintf(stderr,"** interleave_cols: nx*ny != nvox (%d,%d,%d)\n",
+              oldim->nx, oldim->ny, oldim->nvox);
+      RETURN(NULL);
+   }
+
+   /* all seems well, make a copy image and shuffle the data */
+   newim = mri_copy(oldim) ;
+   if( !newim ){
+      fprintf(stderr,"** mri_interleave_columns: failed to copy old image\n");
+      RETURN(NULL);
+   }
+
+   /* permute data, ignoring data type (except for pixel_size) */
+   dold = (char *)oldim->im;
+   dnew = (char *)newim->im;
+   colsize = oldim->nx * oldim->pixel_size;
+   for( ifirst=0; ifirst < nfirst; ifirst++ )
+      for( iint=0; iint < nint; iint++ ) {
+         memcpy(dnew + (iint   + ifirst * nint  )*colsize,
+                dold + (ifirst + iint   * nfirst)*colsize,
+                colsize);
+      }
+
+#ifdef USE_MRI_LABELS
+   fprintf(stderr,"** mri_interleave_columns: need to process labels\n");
+#endif
+
+   RETURN(newim);
+}
