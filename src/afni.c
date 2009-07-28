@@ -7981,9 +7981,25 @@ STATUS(" -- turning time index control off") ;
    old_anat = im3d->anat_now ;
 
    old_anat_nvals = DSET_NVALS(im3d->anat_now) ; /* 21 Jul 2009 */
+   /* This next line can fail if fim_now is NULL.
+   fim_now can be NULL if you switch to tlrc view and
+   for some reason, the transform fails on the fim image.
+   We have seen this happen when:
+      1st volume in list is anat and has a +orig only.
+      2nd volume in list is anat2 and has a +orig and +tlrc 
+      3rd volume in list is a functional dset  (selected as overlay)
+   You switch to anat2 and select TLRC view, BOOM.
+   Our guess is that since the first dset has no tlrc xform,
+   the third one, which is the overlay seems to get no TLRC daddy,
+   even if the second anat has a tlrc xform .
+   Should be able to test this hypothesis by expressly setting the 
+   anat parent of all volumes to that of the anat with the TLRC xform....
+   
+      ZSS, RICKR, with no time to fix this quite yet.    July 28 2009*/
    old_func_nvals = DSET_NVALS(im3d->fim_now) ;
 
    AFNI_sleep(13) ;             /* 18 Oct 2005: for luck */
+
    EXRETURN ;
 }
 
