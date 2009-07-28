@@ -162,7 +162,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition        
           @ShowDynamicRange AFNI_Batch_R @DO.examples demo.fixed.niml.do       \
           demo.mobile.niml.do @Spharm.examples @GetAfniBin @fast_roi           \
           @make_plug_diff @build_afni_Xlib @update.afni.binaries  \
-          @ROI_Corr_Mat @FS_roi_label @demo_prompt @ScriptCheck
+          @ROI_Corr_Mat @FS_roi_label @demo_prompt @ScriptCheck @NoPound 
 
 PY_DIR = python_scripts
 PY_SCRIPTS = afni_base.py @DoPerRoi.py

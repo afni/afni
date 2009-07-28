@@ -29,7 +29,7 @@ int main( int argc , char * argv[] )
    char *prefix  = "Synthesize" ;
    int   nselect = 0 ;
    char **select = NULL ;
-   char *cdt , *cgrp , *clab , *ccc , *cgl, *matname ;
+   char *cdt , *cgrp , *clab , *ccc , *cgl, *matname = NULL;
    float  dt=0.0f ;
    NI_str_array *clab_sar=NULL ;
    int          *cgrp_val=NULL ;
