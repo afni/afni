@@ -1212,19 +1212,32 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-slibase") == 0 ){
        MRI_IMAGE *im ;
+       int label_order ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        do{
          im = mri_read_1D( argv[iarg] ) ;
          if( im == NULL ) ERROR_exit("Can't read -slibase file '%.33s'",argv[iarg]) ;
+         /* if known, require slice-minor order of regressors 28 Jul 2009 [r] */
+         label_order = niml_get_major_label_order(argv[iarg]);
+         if( label_order != 2 ) {  /* not slice-minor order */
+           if( label_order == 1 ) {
+             ERROR_exit("Label ordering of -slibase dataset is slice-major,\n"
+                 "   for which -slibase_sm is more appropriate.  If this is\n"
+                 "   not clear, search for it on the AFNI Message Board:\n"
+                 "        http://afni.nimh.nih.gov/afni/community/board");
+           } else { /* order is unknown */
+             WARNING_message("If your regressors are made via 'RetroTS',\n"
+                 "   perhaps -slibase_sm is more appropriate than -slibase.\n"
+                 "   -> consider: 1d_tool.py -show_label_ordering"
+                 " -infile %s", argv[iarg]);
+           }
+         } /* end label_order check */
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
          ADDTO_IMARR( imar_slibase , im ) ;
          nfile_slibase++ ;
          iarg++ ;
        } while( iarg < argc && argv[iarg][0] != '-' ) ;
-       WARNING_message("If your regressors are made via 'RetroTS',\n");
-       ININFO_message("evaluate whether -slibase_sm is more appropriate.");
-       ININFO_message("(consider '1d_tool.py -show_label_ordering')");
        continue ;
      }
 
@@ -1233,7 +1246,7 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-slibase_sm") == 0 ){
        MRI_IMAGE *im, *newim;
-       int       nz ;
+       int       nz, label_order ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]);
        if( !inset ) ERROR_exit("-slibase_sm must follow -input");
        nz = DSET_NZ(inset);
@@ -1241,6 +1254,21 @@ int main( int argc , char *argv[] )
          im = mri_read_1D( argv[iarg] ) ;
          if( im == NULL )
             ERROR_exit("Can't read -slibase_sm file '%.33s'", argv[iarg]) ;
+         /* if known, require slice-major order of regressors 28 Jul 2009 [r] */
+         label_order = niml_get_major_label_order(argv[iarg]);
+         if( label_order != 1 ) {  /* not slice-major order */
+           if( label_order == 2 ) {
+             ERROR_exit("Label order of -slibase_sm dataset is slice-minor,\n"
+                 "   for which -slibase is more appropriate.  If this is\n"
+                 "   not clear, search for it on the AFNI Message Board:\n"
+                 "        http://afni.nimh.nih.gov/afni/community/board");
+           } else { /* order is unknown */
+             WARNING_message("If your regressors are made via 'RetroTS',\n"
+                 "   perhaps -slibase is more appropriate than -slibase_sm.\n"
+                 "   -> consider: 1d_tool.py -show_label_ordering"
+                 " -infile %s", argv[iarg]);
+           }
+         } /* end label_order check */
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
          /* conver the slice-major column order to slice-minor */
          if( (newim = mri_interleave_columns(im, nz) ) == NULL ) exit(1) ;
