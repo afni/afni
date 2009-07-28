@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, JUL, 2009, RCR, "3dREMLfit", MINOR, TYPE_MODIFY,
+   "if known, require proper slice regressor ordering in -slibase* opts\n",
+   NULL
+ } ,
+
  { 27, JUL, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "use -slibase_sm instead of -slibase in 3dREMLfit",
    NULL
