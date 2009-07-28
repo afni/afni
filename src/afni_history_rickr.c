@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, JUL, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "use -slibase_sm instead of -slibase in 3dREMLfit",
+   NULL
+ } ,
+
  { 27, JUL, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added -show_labels and -show_label_ordering",
    NULL
