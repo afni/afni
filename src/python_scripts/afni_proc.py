@@ -145,9 +145,10 @@ g_history = """
         - added 'extents' to list of mask in -mask_apply
         - change block dividers to more visual '===' with block names
     2.01 Jul 07 2009 : warn user about use of dmBLOCK
+    2.02 Jul 27 2009 : use -slibase_sm instead of -slibase in 3dREMLfit
 """
 
-g_version = "version 2.1, July 7, 2009"
+g_version = "version 2.02, July 27, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
