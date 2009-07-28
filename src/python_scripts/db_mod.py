@@ -340,7 +340,7 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
     """- for each run: 3dDetrend polort from regressors
        - 1dcat all s0 regressors together for "dummy" in regress process block
        - 3dD -input ALL -polort -x1D -x1D_stop
-       - 3dREMLfit -input -matrix -Rerrts -Rbeta? -slibase -verb?
+       - 3dREMLfit -input -matrix -Rerrts -Rbeta? -slibase_sm -verb?
        - 3dSynthesize -matrix -cbucket -select baseline -prefix
        - for each run: 3dcalc -a errts -b baseline -expr a+b -prefix pbXX.ricor
     """
@@ -395,7 +395,7 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "    -matrix %s \\\n"                                   \
         "    -%sbeta %s.betas \\\n"                             \
         "    -%serrts %s.errts \\\n"                            \
-        "    -slibase stimuli/ricor_det_rall.1D\n\n"            \
+        "    -slibase_sm stimuli/ricor_det_rall.1D\n\n"         \
         % (matrix, solver, prefix, solver, prefix)
 
     cmd = cmd +                                                 \
@@ -433,7 +433,7 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     """for each run:
          - 3dDetrend polort from regressors
          - 3dD -input -polort -x1D -x1D_stop
-         - 3dREMLfit -input -matrix -Rerrts -Rbeta? -slibase -verb?
+         - 3dREMLfit -input -matrix -Rerrts -Rbeta? -slibase_sm -verb?
          - 3dSynthesize -matrix -cbucket -select baseline -prefix
          - 3dcalc -a errts -b baseline -expr a+b -prefix pbXX.ricor
        - 1dcat all s0 regressors together for "dummy" in regress process block
@@ -477,7 +477,7 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
         "        -matrix %s \\\n"                               \
         "        -%sbeta %s.betas.r$run \\\n"                   \
         "        -%serrts %s.errts.r$run \\\n"                  \
-        "        -slibase stimuli/ricor_det_r$run.1D\n\n"       \
+        "        -slibase_sm stimuli/ricor_det_r$run.1D\n\n"    \
         % (prev_prefix, matrix, solver, prefix, solver, prefix)
     cmd = cmd +                                                 \
         "    # re-create polynomial baseline\n"                 \
