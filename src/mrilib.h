@@ -1032,6 +1032,8 @@ extern MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int,int ) ;
 extern MRI_IMAGE * mri_sobel( int , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen( float , int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_transpose( MRI_IMAGE * ) ;
+extern MRI_IMAGE * mri_interleave_columns(MRI_IMAGE *, int) ; /* 27 Jul 2009 */
+
 
 #define FILT_FFT_WRAPAROUND  1
 

@@ -48,6 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, JUL, 2009, RCR, "3dREMLfit", MINOR, TYPE_NEW_OPT,
+   "added -slibase_sm, for slice-major ordering of regressors",
+   "RetroTS and afni_proc.py were incorrectly using this ordering.\n"
+   "** Analysis done prior to this probably needs to be re-done."
+ } ,
+
  { 27, JUL, 2009, RCR, "plug_realtime", MICRO, TYPE_NEW_OPT,
    "added Y/N AFNI_REALTIME_reset_output_index, to start each dset at 001",
    "Also, changed prefix seperator to double underscore '__'.",
