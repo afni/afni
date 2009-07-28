@@ -1224,6 +1224,7 @@ int main( int argc , char *argv[] )
        } while( iarg < argc && argv[iarg][0] != '-' ) ;
        WARNING_message("If your regressors are made via 'RetroTS',\n");
        ININFO_message("evaluate whether -slibase_sm is more appropriate.");
+       ININFO_message("(consider '1d_tool.py -show_label_ordering')");
        continue ;
      }
 
