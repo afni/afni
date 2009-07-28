@@ -1,0 +1,72 @@
+#!/bin/tcsh -f
+if ("$1" == -help || "$1" == -h) then
+   goto HELP
+endif
+
+
+set demo = 0
+
+if ("$1" == "") then
+   set lll = (`ls *\#*.HEAD`)
+   if ($status) then
+      echo "Nothing to do, no *#*.HEAD files found"
+      goto END
+   endif
+else
+   set lll = ($*)
+endif
+
+if ($#lll < 1) then
+   echo "Have no files to work with"
+   goto END
+endif 
+
+RENAME:
+foreach eee ($lll)
+   if ( -f $eee ) then
+      set name2 = `echo "$eee" | sed 's/#/-/g'`
+      if ("$eee" != "$name2") then
+         if ( -f $name2 ) then
+            echo "ERROR:
+            echo "   Replacement name $name2 for $eee already exists!"
+            echo "   Rename failed for $eee!"
+            echo "   Script will stop"
+            goto END
+         endif
+         if ($demo) then
+            echo "Will do:    3drename "$eee" $name2"
+         else
+            3drename "$eee" $name2
+            set jjj = `@CheckForAfniDset $name2`
+            if ($status || jjj < 1) then
+               echo "3drename command failed:"
+               echo "    3drename "$eee" $name2"
+               echo "   Script will stop"
+               goto END
+            endif
+         endif 
+      else
+         echo "No pound in name: $eee"
+      endif
+   else
+      echo "Skipping $eee"
+   endif
+end
+
+goto END
+
+HELP:
+   echo ""
+   echo "`basename $0` [AFNI_FILES]"
+   echo "Replaces all # characters in AFNI names with a -"
+   echo ""
+   echo "Example 1 :"
+   echo " `basename $0` elvis#001+orig.HEAD '*rockand#orroll*.HEAD'"
+   echo ""
+   echo "Example 2 :"
+   echo " `basename $0` "
+   echo "    equivalent of `basename $0` *#*.HEAD"
+   echo ""            
+   goto END
+   
+END:
