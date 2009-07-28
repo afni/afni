@@ -63,6 +63,14 @@ examples (very basic for now):
       1d_tool.py -infile dfile.rall.1D -set_nruns 9 \\
                  -derivative -write motion.deriv.1D
 
+   8. Verify whether labels show slice-major ordering (where all slice0
+      regressors come first, then all slice1 regressors, etc).  Either
+      show the labels and verify visually, or print whether it is true.
+
+      1d_tool.py -infile scan_2.slibase.1D'[0..12]' -show_labels
+      1d_tool.py -infile scan_2.slibase.1D -show_labels
+      1d_tool.py -infile scan_2.slibase.1D -show_label_ordering
+
 ---------------------------------------------------------------------------
 basic informational options:
 
@@ -91,6 +99,8 @@ general options:
    -set_nruns NRUNS             : treat the input data as if it has nruns
                                   (applies to -derivative, for example)
    -show_cormat_warnings        : display correlation matrix warnings
+   -show_label_ordering         : display the labels
+   -show_labels                 : display the labels
    -show_rows_cols              : display the number of rows and columns
    -sort                        : sort data over time (smallest to largest)
                                   - sorts EVERY vector
@@ -119,9 +129,10 @@ g_history = """
    0.7  Apr 11, 2009
         - added -derivative and -set_nruns
         - fixed typo in use of -show_cormat_warnings
+   0.8  Jul 27, 2009 - added -show_labels and -show_label_ordering
 """
 
-g_version = "1d_tool.py version 0.7, Apr 11, 2009"
+g_version = "1d_tool.py version 0.8, Jul 27, 2009"
 
 
 class A1DInterface:
@@ -147,6 +158,8 @@ class A1DInterface:
 
       self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
       self.show_cormat_warn= 0          # show cormat warnings
+      self.show_label_ord  = 0          # show the label ordering
+      self.show_labels     = 0          # show the labels
       self.show_rows_cols  = 0          # show the number of rows and columns
 
       self.sort            = 0          # sort data over time
@@ -228,6 +241,12 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
+
+      self.valid_opts.add_opt('-show_label_ordering', 0, [], 
+                      helpstr='show whether labels are in slice-major order')
+
+      self.valid_opts.add_opt('-show_labels', 0, [], 
+                      helpstr='display the labels from the file')
 
       self.valid_opts.add_opt('-show_rows_cols', 0, [], 
                       helpstr='display the number of rows and columns')
@@ -340,6 +359,12 @@ class A1DInterface:
          elif opt.name == '-show_cormat_warnings':
             self.show_cormat_warn = 1
 
+         elif opt.name == '-show_label_ordering':
+            self.show_label_ord = 1
+
+         elif opt.name == '-show_labels':
+            self.show_labels = 1
+
          elif opt.name == '-show_rows_cols':
             self.show_rows_cols = 1
 
@@ -409,6 +434,9 @@ class A1DInterface:
          if self.adata.transpose(): return 1
 
       # ---- 'show' options come after all other processing ----
+
+      if self.show_label_ord: self.adata.show_major_order_of_labels()
+      if self.show_labels: self.adata.show_labels()
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
 

@@ -307,6 +307,33 @@ class Afni1D:
    def simplecopy(self):
       return Afni1D(from_mat=1, matrix=self.mat, verb=self.verb)
 
+   def show_labels(self):
+      print '++ labels are:', self.labels
+
+   def show_major_order_of_labels(self):
+      """be picky and verify that labels look like sSLICE.NAME, where
+         SLICE increments (slowly) over slice index"""
+
+      if not self.labels:
+         print '** no labels to test for ordering'
+         return
+
+      try:
+         # nuke '.' and leading 's', remainder should be sorted ints
+         vallist = [l.split('.')[0] for l in self.labels]
+         vallist = [l.split('s')[1] for l in vallist]
+         vallist = [int(i) for i in vallist]
+         sorted = 1
+         for ind in range(len(vallist)-1):
+            if vallist[ind] > vallist[ind+1]:
+               sorted = 0
+               break
+         if sorted: print '++ labels in row-major order: YES'
+         else:      print '++ labels in row-major order: NO'
+      except:
+         print '++ labels are not of expected format, cannot determine ordering'
+         self.show_labels()
+
    def set_cormat(self, update=0):
       """set cormat (the correlation matrix) and cormat.ready
 
