@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, JUL, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added -show_labels and -show_label_ordering",
+   NULL
+ } ,
+
  { 27, JUL, 2009, RCR, "3dREMLfit", MINOR, TYPE_NEW_OPT,
    "added -slibase_sm, for slice-major ordering of regressors",
    "RetroTS and afni_proc.py were incorrectly using this ordering.\n"
