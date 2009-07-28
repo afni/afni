@@ -1591,6 +1591,79 @@ NI_element * NI_find_element_by_aname(NI_group * ngr, char * ename,
     RETURN(nel);
 }
 
+/* Read the NIML file and determine the order of labels in the
+ * ColumnLabels element.
+ *
+ * return values are:
+ * 0 : unknown order (includes error conditions)
+ * 1 : slice-major order (labels are s0.*, s1,*, ...)
+ * 2 : slice-minor order (labels are s0.L0, s1.L0, ...)
+ */
+int niml_get_major_label_order(char * fname)
+{
+    NI_element   * nel=NULL;            /* main read element      */
+    NI_str_array * lablist=NULL;        /* array of parsed labels */
+    char         * labstr=NULL;         /* unparsed label string  */
+    int            c, order=0;          /* init order as unknown  */
+
+ENTRY("niml_get_major_label_order");
+
+    gni.debug = AFNI_numenv("AFNI_NIML_DEBUG"); /* maybe we want info */
+    if(gni.debug > 3) fprintf(stderr,"-- get_major_label_order\n");
+
+    /* check each step of the way ... */
+
+    if( !fname ) {
+        fprintf(stderr,"** major_label_order: fname is NULL\n");
+        RETURN(0);
+    } 
+    if ( (nel = (NI_element*)read_niml_file(fname, 0)) == NULL ) {
+        if( gni.debug )
+            fprintf(stderr,"** MLO: failed to read %s as NIML\n", fname);
+        RETURN(0);
+    }
+    if(gni.debug > 2) fprintf(stderr,"-- NGMLO: vec_num = %d, vec_len = %d\n",
+                              nel->vec_num, nel->vec_len);
+
+    labstr = NI_get_attribute(nel, "ColumnLabels");
+    if( !labstr ) {
+        if( gni.debug ) fprintf(stderr,"** MLO: no ColumnLabels in %s\n",fname);
+        RETURN(0);
+    }
+    if(gni.debug > 3) fprintf(stderr,"-- NGMLO: labstr = %-.66s...\n", labstr);
+    lablist = NI_decode_string_list(labstr, ";");
+    if( !lablist ) {
+        if(gni.debug) fprintf(stderr,"** MLO: bad ColumnLabels in %s\n",fname);
+        RETURN(0);
+    }
+    if( lablist->num < 3 ) {
+        if( gni.debug ) fprintf(stderr,"** MLO: vec_num = %d\n",nel->vec_num);
+        RETURN(0);
+    }
+
+    /* we have the label list, now just check the first 2 labels */
+    if(gni.debug > 2) fprintf(stderr,"== NGMLO: l[0]=%s, l[1]=%s, l[2]=%s\n",
+                          lablist->str[0], lablist->str[1], lablist->str[2]);
+
+    if( !strncmp(lablist->str[0], "s0", 2) &&
+        !strncmp(lablist->str[1], "s0", 2) ) {
+        if(gni.debug>1) fprintf(stderr,"-- %s is slice-major order\n",fname);
+        order = 1;
+    } else if( !strncmp(lablist->str[0], "s0", 2) &&
+               !strncmp(lablist->str[1], "s1", 2) ) {
+        if(gni.debug>1) fprintf(stderr,"-- %s is slice-minor order\n",fname);
+        order = 2;
+    } else {
+        if(gni.debug>1) fprintf(stderr,"-- %s has indeterminate order\n",fname);
+        order = 0;
+    }
+
+    NI_delete_str_array(lablist);
+    NI_free(nel);
+
+    RETURN(order);
+}
+
 int set_ni_globs_from_env(void)
 {
 ENTRY("set_ni_globs_from_env");

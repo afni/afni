@@ -3755,6 +3755,8 @@ extern THD_3dim_dataset * THD_niml_3D_to_dataset( NI_element *, char * ) ;
 extern THD_3dim_dataset * THD_ni_surf_dset_to_afni( NI_group *, int ) ;
 extern void * read_niml_file( char *, int ) ;
 extern int    storage_mode_from_niml( void * ) ;
+extern int    niml_get_major_label_order( char * ) ;        /* 28 Jul 2009 */
+
 
 extern int        NI_write_gifti( NI_group *, char * , int);
 extern NI_group * NI_read_gifti( char * , int ) ;
