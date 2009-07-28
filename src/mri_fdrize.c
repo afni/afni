@@ -39,6 +39,8 @@ floatvec *mri_fdr_getmdf(void){ return FDR_mdfv; }  /* 22 Oct 2008 */
    * Then multiply by the number of such bins (20) that would cover the
      entire p-range of 0..1 to get the m0 estimate.
    * If something bad happens, return value is -1.
+   * Note that this is the NUMBER of true positives, NOT the fraction
+     of true positives (which is how I use the symbol m_1 in presentations)
 ----------------------------------------------------------------------------*/
 
 static int estimate_m1( int nq , float *qq )
@@ -178,7 +180,7 @@ STATUS("convert to q") ;
       far[iq[jj]] = (float)qval ;   /* store q into result array */
     }
 
-    /** estimate number of true positives into mone (m1) **/
+    /** estimate NUMBER (not fraction) of true positives into mone (m1) **/
 
     if( qsmal && qq[0] > 0.0f && (flags&1)==0 ) mone = (float)estimate_m1(nq,qq) ;
 
