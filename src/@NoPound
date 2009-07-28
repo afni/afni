@@ -38,7 +38,7 @@ foreach eee ($lll)
          else
             3drename "$eee" $name2
             set jjj = `@CheckForAfniDset $name2`
-            if ($status || jjj < 1) then
+            if ($jjj < 1) then
                echo "3drename command failed:"
                echo "    3drename "$eee" $name2"
                echo "   Script will stop"
