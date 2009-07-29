@@ -884,12 +884,21 @@ def db_cmd_volreg(proc, block):
 
     if do_extents:
         proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
-        cmd = cmd +                                                          \
+
+        if proc.runs > 1:  # if more than 1 run, create union mask
+          cmd = cmd +                                                        \
             "# create the extents mask: %s\n"                                \
             "# (this is a mask of voxels that have valid data at every TR)\n"\
             "3dMean -datum short -prefix rm.epi.mean rm.epi.min.r*.HEAD \n"  \
             "3dcalc -a rm.epi.mean%s -expr 'step(a-0.999)' -prefix %s\n\n"   \
              % (proc.mask_extents.pv(), proc.view, proc.mask_extents.prefix)
+        else:  # just copy the one
+          cmd = cmd +                                                        \
+            "# create the extents mask: %s\n"                                \
+            "# (this is a mask of voxels that have valid data at every TR)\n"\
+            "# (only 1 run, so just use 3dcopy to keep naming straight)\n"   \
+            "3dcopy rm.epi.min.r01 %s\n\n"                                   \
+            % (proc.mask_extents.pv(), proc.mask_extents.prefix)
 
         cmd = cmd +                                                          \
             "# finally, apply the extents mask to the EPI data \n"           \

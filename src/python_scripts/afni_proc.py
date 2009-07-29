@@ -144,11 +144,12 @@ g_history = """
         - added -volreg_no_extent_mask, to block this masking
         - added 'extents' to list of mask in -mask_apply
         - change block dividers to more visual '===' with block names
-    2.01 Jul 07 2009 : warn user about use of dmBLOCK
-    2.02 Jul 27 2009 : use -slibase_sm instead of -slibase in 3dREMLfit
+    2.01 Jul 07 2009 : added warning to edit script on use of dmBLOCK
+    2.02 Jul 27 2009 : used -slibase_sm instead of -slibase in 3dREMLfit
+    2.03 Jul 29 2009 : fixed creation of extents mask when only 1 run
 """
 
-g_version = "version 2.02, July 27, 2009"
+g_version = "version 2.03, July 29, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
