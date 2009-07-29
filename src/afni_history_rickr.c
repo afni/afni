@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, JUL, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fixed creation of extents mask when only 1 run",
+   NULL
+ } ,
+
  { 28, JUL, 2009, RCR, "3dREMLfit", MINOR, TYPE_MODIFY,
    "if known, require proper slice regressor ordering in -slibase* opts\n",
    NULL
