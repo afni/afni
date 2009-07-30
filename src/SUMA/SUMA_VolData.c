@@ -879,7 +879,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
    int i, ND, id;
    SUMA_SureFit_struct *SF;
    SUMA_FreeSurfer_struct *FS;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
 
@@ -930,13 +930,17 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                      "AC_WholeVolume:  [%f %f %f]\n"
                      "AC:              [%f %f %f]\n"
                      "Shift Values:    [%f, %f, %f]\n"
-                     "Node 0 init:     [%f, %f, %f]\n", 
+                     "Node 0 init:     [%f, %f, %f]\n"
+                     "CropMin:         [%f, %f, %f]\n"
+                     "CropMax:         [%f, %f, %f]\n", 
                      SF->caret_version,
                      SF->AC_WholeVolume[0],SF->AC_WholeVolume[1], 
                                              SF->AC_WholeVolume[2],
                      SF->AC[0], SF->AC[1], SF->AC[2],
                      D[0], D[1], D[2],
-                     SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]); 
+                     SO->NodeList[0], SO->NodeList[1],SO->NodeList[2],
+                     SF->CropMin[0], SF->CropMin[1], SF->CropMin[2],
+                     SF->CropMax[0], SF->CropMax[1], SF->CropMax[2]); 
             for (i=0; i < SO->N_Node; ++i) {
                id = i * ND;
                /* change float indices to mm coords */
@@ -963,13 +967,17 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
                      "AC_WholeVolume:  [%f %f %f]\n"
                      "AC:              [%f %f %f]\n"
                      "Shift Values:    [%f, %f, %f]\n"
-                     "Node 0 init:     [%f, %f, %f]\n", 
+                     "Node 0 init:     [%f, %f, %f]\n"
+                     "CropMin:         [%f, %f, %f]\n"
+                     "CropMax:         [%f, %f, %f]\n", 
                      SF->caret_version,
                      SF->AC_WholeVolume[0],SF->AC_WholeVolume[1], 
                                              SF->AC_WholeVolume[2],
                      SF->AC[0], SF->AC[1], SF->AC[2],
                      D[0], D[1], D[2],
-                     SO->NodeList[0], SO->NodeList[1],SO->NodeList[2]); 
+                     SO->NodeList[0], SO->NodeList[1],SO->NodeList[2],
+                     SF->CropMin[0], SF->CropMin[1], SF->CropMin[2],
+                     SF->CropMax[0], SF->CropMax[1], SF->CropMax[2]); 
             if (D[0] != 0.0 || D[1] != 0.0 ||D[2] != 0.0) {
                SUMA_S_Notev("Shift Values: [%f, %f, %f]\n", 
                             D[0], D[1], D[2]);

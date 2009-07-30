@@ -169,10 +169,27 @@ double waveform_FILE( double t )   /* 23 Aug 2005 */
    nn = (int) tf ;
    tf = tf - (double)nn ;
    if( nn < 0 || nn > FILE_nval ) return 0.0 ;
+                  
+   /* Changed (tf < 0.0001) to (tf && tf < 0.0001)
+   Otherwise an extra repetition would occur if tf is exactly 0.
+   To illustrate:
+         waver -dt 1 -FILE 1 '1D:1 1' -tstim 0
+   used to return: 1 1 1 0 (bad)
+   and   waver -dt 1 -FILE 1 '1D:1 1' -tstim 0.001
+   used to return: 0 1 0.001 0 0 (which is OK)
+   With the new change:
+         waver -dt 1 -FILE 1 '1D:1 1' -tstim 0
+   returns: 1 1 0 0     (OK)
+   and   waver -dt 1 -FILE 1 '1D:1 1' -tstim 0.001
+   returns: 0 1 0.001 0 0 (OK)
+                                       R&Z   */ 
    if( nn == FILE_nval )
-     return (tf < 0.0001) ? (double)FILE_val[nn-1] : 0.0 ;
+     return (tf && tf < 0.0001) ? (double)FILE_val[nn-1] : 0.0 ;
 
-   return ( (1.0-tf)*FILE_val[nn] + tf*FILE_val[nn+1] ) ;
+   /* The if statement is to guard against reading nn+1 when 
+   nn is equal to FILE_nval -1            R&Z   */
+   if (nn == FILE_nval -1) return ((1.0-tf)*FILE_val[nn]);
+   else return ( (1.0-tf)*FILE_val[nn] + tf*FILE_val[nn+1] ) ;
 }
 
 /*----------------------------------------------------------------*/

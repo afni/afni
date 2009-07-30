@@ -1444,7 +1444,9 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 
 	/* read until you reach something you like */
 	SF->AC_WholeVolume[0] = SF->AC_WholeVolume[1] = SF->AC_WholeVolume[2] = 0.0f;
-	SF->AC[0] = SF->AC[1] = SF->AC[2] = 0.0f;
+	SF->AC[0] = SF->AC[1] = SF->AC[2] = 0.0f; 
+   SF->CropMax[0] = SF->CropMax[1] = SF->CropMax[2] = 0.0f;
+   SF->CropMin[0] = SF->CropMin[1] = SF->CropMin[2] = 0.0f;
    
    ex = 1;
 	Done = NOPE;			
@@ -1550,6 +1552,104 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
             if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
          }
          continue;
+		}
+		
+      sprintf(stmp,"CropMinX");
+		evl = SUMA_iswordin (s,stmp);
+		if (evl == 1) {
+			/* found  CropMinX */
+			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinX:");
+			/* go past the = sign and grab the value */
+			st = strtok(s, delimstr);
+			st = strtok(NULL, delimstr);
+			if (st) {
+            SF->CropMin[0] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMin[0]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+			continue;
+		}
+      sprintf(stmp,"CropMinY");
+		evl = SUMA_iswordin (s,stmp);
+		if (evl == 1) {
+			/* found  CropMinY */
+			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinY:");
+			/* go past the = sign and grab the value */
+			st = strtok(s, delimstr);
+			st = strtok(NULL, delimstr);
+			if (st) {
+            SF->CropMin[1] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMin[1]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+			continue;
+		}
+      sprintf(stmp,"CropMinZ");
+		evl = SUMA_iswordin (s,stmp);
+		if (evl == 1) {
+			/* found  CropMinZ */
+			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMinZ:");
+			/* go past the = sign and grab the value */
+			st = strtok(s, delimstr);
+			st = strtok(NULL, delimstr);
+			if (st) {
+            SF->CropMin[2] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMin[2]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+			continue;
+		}
+		
+      sprintf(stmp,"CropMaxX");
+		evl = SUMA_iswordin (s,stmp);
+		if (evl == 1) {
+			/* found  CropMaxX */
+			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxX:");
+			/* go past the = sign and grab the value */
+			st = strtok(s, delimstr);
+			st = strtok(NULL, delimstr);
+			if (st) {
+            SF->CropMax[0] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMax[0]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+			continue;
+		}
+      sprintf(stmp,"CropMaxY");
+		evl = SUMA_iswordin (s,stmp);
+		if (evl == 1) {
+			/* found  CropMaxY */
+			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxY:");
+			/* go past the = sign and grab the value */
+			st = strtok(s, delimstr);
+			st = strtok(NULL, delimstr);
+			if (st) {
+            SF->CropMax[1] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMax[1]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+			continue;
+		}
+      sprintf(stmp,"CropMaxZ");
+		evl = SUMA_iswordin (s,stmp);
+		if (evl == 1) {
+			/* found  CropMaxZ */
+			if (LocalHead) fprintf(SUMA_STDERR, "Found CropMaxZ:");
+			/* go past the = sign and grab the value */
+			st = strtok(s, delimstr);
+			st = strtok(NULL, delimstr);
+			if (st) {
+            SF->CropMax[2] = atof(st);
+            if (LocalHead) fprintf(SUMA_STDERR, " %f\n", SF->CropMax[2]);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR, "Empty field.\n"); 
+         }
+			continue;
 		}
 		
 	}
