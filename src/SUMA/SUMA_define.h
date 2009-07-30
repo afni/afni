@@ -2164,6 +2164,8 @@ typedef struct {
    char name_param[SUMA_MAX_NAME_LENGTH];
    float AC_WholeVolume[3]; /*!< XYZ (from .Orient.params file) of Anterior Comissure of whole volume */
    float AC[3]; /*!< XYZ of Anterior Comissure of cropped volume */
+   float CropMin[3];
+   float CropMax[3];
    float tag_version;
    float caret_version;
 } SUMA_SureFit_struct;
