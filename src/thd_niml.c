@@ -1664,6 +1664,46 @@ ENTRY("niml_get_major_label_order");
     RETURN(order);
 }
 
+/* apply any escape characters, and return a new string
+ *  * (which will not exceed the orignal string in length)
+ *   * 
+ *    * \n, \t, \b                   31 Jul 2009 */
+char * unescape_unix_str(const char * ustr)
+{
+    char * newstr = NULL;
+    int    len, c, nind;
+    if( !ustr ) return NULL;
+    len = strlen(ustr);
+    newstr = (char *)malloc(len+1);
+
+    for( c = 0, nind = 0; c < len; c++, nind++ ) {
+        if( ustr[c] == '\\' ) {
+            switch(ustr[c+1]) {
+                case 'n':
+                    newstr[nind] = '\n';
+                    c++;
+                    break;
+                case 't':
+                    newstr[nind] = '\t';
+                    c++;
+                    break;
+                case 'b':
+                    newstr[nind] = '\b';
+                    c++;
+                    break;
+                default:
+                    newstr[nind] = ustr[c]; /* no escape applied */
+                    break;
+            }
+        } else newstr[nind] = ustr[c];      /* no escape found */
+    }
+
+    newstr[nind] = '\0';
+
+    return newstr;
+}
+
+
 int set_ni_globs_from_env(void)
 {
 ENTRY("set_ni_globs_from_env");
