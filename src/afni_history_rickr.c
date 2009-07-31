@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 31, JUL, 2009, RCR, "prompt_user", MICRO, TYPE_MODIFY,
+   "apply some escape sequences, mostly to display newlines",
+   NULL
+ } ,
+
  { 29, JUL, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fixed creation of extents mask when only 1 run",
    NULL

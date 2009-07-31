@@ -93,6 +93,7 @@ int main (int argc,char *argv[])
    static char FuncName[]={"prompt_user"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
+   char * esc_str = NULL;
    int ii;
    Widget w=NULL;
    XtAppContext    app;
@@ -121,7 +122,9 @@ int main (int argc,char *argv[])
    
    switch (Opt->b1) {
       case 1:
-         ii = SUMA_PauseForUser(w, Opt->in_name, SWP_POINTER_OFF, &app, 1);
+         /* apply some escape characters     31 Jul 2009 [rickr] */
+         esc_str = unescape_unix_str(Opt->in_name);
+         ii = SUMA_PauseForUser(w, esc_str, SWP_POINTER_OFF, &app, 1);
          fprintf(SUMA_STDOUT,"%d\n", ii);
          break;
       default:
@@ -148,6 +151,8 @@ int main (int argc,char *argv[])
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) 
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+
+   if( esc_str ) free(esc_str);
    
    exit(0);
    
