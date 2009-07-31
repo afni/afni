@@ -7,6 +7,7 @@
 int r_sprintf_long_to_hex ( char * dest, unsigned long lsrc,
                             int bytes, int pad ); 
 unsigned long r_hex_str_to_long ( char * src, int hex_digits );
+char * unescape_unix_str(const char * ustr);
 
 /* -------------------------------------------------------------- */
 
