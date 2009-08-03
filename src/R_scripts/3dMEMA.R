@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
 print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.6,  July 16, 2009")
+print("Version 0.0.7,  August 3, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -11,6 +11,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #########
 ##  Working version for handling covariates and residual statistics which are saved as a separate output file. 
 ##  type 4 (two groups with heteroskedasticity) should NOT be used when modeling with different slope across groups
+##  Now trying to model outliers! 
 #########
 
 
@@ -191,7 +192,7 @@ write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4
 # Further modifications
 
 # handles one group or two groups with homogeneity assumption
-rmaB <- function(yi, vi, n, p, X, resOut, knha=FALSE, con=list(thr=10^-8, maxiter=50)) {
+rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr=10^-8, maxiter=50)) {
 
 # yi: vector of dependent variable values
 # vi: corresponding variances of yi 
@@ -202,41 +203,148 @@ rmaB <- function(yi, vi, n, p, X, resOut, knha=FALSE, con=list(thr=10^-8, maxite
 # con$thr: converging threshold for REML
 # con$maxiter: maximum # of converging iterations for REML
 
+   Laplace <- function(Y, vi, n, p, X, con=list(thr=2*10^-5, maxiter=50)) {
+### looks like you can't get the precision lower than con$thr = 10^-5!!!
+
+   conv		<- 1
+	change_b	<- 1000
+   change_nu	<- 1000
+	iter		<- 0
+   
+   nu       <- sqrt(max(0, var(Y) - mean(vi)))/sqrt(2)
+   if(nu < 10^-10) nu <- sqrt(max(0, var(Y) - mean(vi)/3))
+   W		   <- diag(1/(vi + 2*nu^2))  # need to deal with 0s' here?
+   b    <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
+   visr <- sqrt(vi)
+
+	# seems two ways to update beta (b): one through iterative WLS, while the other via its own iterations
+   
+   if(nu > 10^-10) {
+   while ((change_b > con$thr) & (change_nu > con$thr)) {
+		iter     <- iter + 1
+      if (iter > con$maxiter) {  # Laplace fails
+			conv    <- 0
+			break
+		}
+		b.old    <- b
+      nu.old   <- nu    # scalor
+      #browser()
+      ei <- Y - X %*% b.old    # n X 1 vector
+      Ei <- exp(ei/nu)       # n X 1 vector
+      temp1 <- visr/nu; temp2 <- ei/visr  # n X 1 vector: dealing 0s for visr?
+      Phi1 <- pnorm(-temp1 - temp2)   # n X 1 vector
+      Phi2 <- pnorm(temp2 - temp1)    # n X 1 vector
+      phi1 <- dnorm(-temp1 - temp2)   # n X 1 vector
+      phi2 <- dnorm(temp2 - temp1)    # n X 1 vector
+      Gi <- Phi1 * Ei + Phi2 / Ei     # n X 1 vector: dealing 0s for Ei?
+      
+      dLb <- vector(mode="numeric", length=p)
+      H <- matrix(data = 0, nrow = p+1, ncol = p+1, byrow = FALSE, dimnames = NULL)
+      g <- matrix(data = 0, nrow = p+1, ncol = 1, byrow = FALSE, dimnames = NULL)
+      for(ii in 1:n) { 
+         dLb  <- (phi1[ii]*t(X[ii,])*Ei[ii]/visr[ii] - t(X[ii,])*Ei[ii]*Phi1[ii]/nu
+                 + (t(X[ii,])*Phi2[ii]/Ei[ii])/nu - (phi2[ii]*t(X[ii,])/visr[ii])/Ei[ii])/Gi[ii]
+         dLnu <- -1/nu - vi[ii]/nu^3 + (Ei[ii]*ei[ii]*Phi1[ii]/nu^2 + visr[ii]*Ei[ii]*phi1[ii]/nu^2
+                 - (ei[ii]*Phi2[ii]/Ei[ii])/nu^2 + (visr[ii]*phi2[ii]/Ei[ii])/nu^2)/Gi[ii]        
+         ttemp <- t(dLb)*dLnu
+         H <- H + rbind(cbind(dLb %*% t(dLb), t(ttemp)), cbind(ttemp, dLnu^2))
+         g <- g + rbind(dLb, dLnu)
+      }      
+      
+      #print(H); print(g)
+      #browser()
+      if(any(is.infinite(H)) | any(is.infinite(H)) | any(is.infinite(g)) | any(is.infinite(g)) |
+         any(is.nan(H)) | any(is.nan(H)) | any(is.nan(g)) | any(is.nan(g))) { # failed because of infinity issue
+         conv    <- 0
+         break
+		}
+      
+      suc <- TRUE
+      tryCatch(adj <- solve(H) %*% g, error = function(w) suc <<- FALSE)   # (p+1) X 1 vector
+      if(!suc) {  # Laplace fails
+			conv    <- 0
+			break
+		}
+      
+      b  <- b.old + adj[1:p]
+      nu <- nu + adj[p+1]
+      change_b	   <- abs(b.old - b)
+      change_nu	<- abs(nu.old - nu)
+	}
+   } else conv <- 0
+
+   if(conv==0) {
+      out <- list(conv)
+      names(out) <- c("conv")
+   } else {   # Laplace succeeded
+      W		   <- diag(1/(vi + 2*nu^2))
+      vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
+      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
+      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
+      tau2 <- 2*nu^2
+      meth <- 0
+      out <- list(conv, vb, R, P, tau2, meth, iter)
+      names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
+   }
+   out
+   }  # end of Laplace
+
+
 	Y <- as.matrix(yi)
 	   
 	tr <- function(X) {
 		sum(diag(X))
 	}
-
-   s2w      <- NA      
-	conv		<- 1
-	change	<- 1000
-	iter		<- 0
-   tau2     <- max(0, var(yi) - mean(vi))
-
-	while (change > con$thr) {
-		iter     <- iter + 1
-		tau2.old <- tau2
+   
+   if(lapMod==1) {
+      out <- Laplace(Y, vi, n, p, X)
+      if(out$conv == 1) {
+      conv <- 1
+      vb   <- out$vb  
+      R    <- out$R
+      P    <- out$P   
+      tau2 <- out$tau2
+      meth <- out$meth
+      iter <- out$iter
+      } else lapMod <- 0  # switch to REML first here when Laplace fails
+   }
+   
+   if(lapMod==0) { # if Laplace is not selected or fails, try REML
+		conv		<- 1
+      change	<- 1000
+		iter		<- 0
+		tau2     <- max(0, var(yi) - mean(vi))
 		W		   <- diag(1/(vi + tau2))
-      vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
+		vb  <- solve(t(X) %*% W %*% X) # variance-covariance matrix
       R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X 
-		#P		   <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
+		P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
+		
+		while (change > con$thr) {
+		   iter     <- iter + 1
+         if (iter > con$maxiter) {  # REML fails
+			   conv    <- 0
+			   break
+		   }
+		tau2.old <- tau2
+      #browser()
 		adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
 		while (tau2 + adj < 0) adj <- adj / 2
 		tau2		<- tau2 + adj
 		change	<- abs(tau2.old - tau2)
-		if (iter > con$maxiter) {  # REML fails
-			conv    <- 0
-			break
-		}
+		W		   <- diag(1/(vi + tau2))
+      vb  <- solve(t(X) %*% W %*% X) # variance-covariance matrix
+      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X 
+      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals         
 	}
+   }
 
+   
    W0     <- diag(1/vi)
    P0     <- W0 - W0 %*% X %*% solve(t(X) %*% W0 %*% X) %*% t(X) %*% W0
    QE    <- t(Y) %*% P0 %*% Y
+   #browser()
    
-   if (conv == 0) {  # try DSL if REML fails
+   if (conv == 0) {  # try DSL if REML or Laplace+REML fails
       #wi     <- 1/vi
       #W      <- diag(wi)
       #P      <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
@@ -248,9 +356,12 @@ rmaB <- function(yi, vi, n, p, X, resOut, knha=FALSE, con=list(thr=10^-8, maxite
       R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
       P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
       #b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
-                
-	} else tau2 <- max(0, c(tau2))  # for REML
-
+      meth <- 2
+      iter <- 0                
+	} else if(lapMod==0) { # for REML
+      tau2 <- max(0, c(tau2))
+      meth <- 1
+   }
    
    #W   <- diag(1/(vi + tau2))
    #b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
@@ -268,90 +379,194 @@ rmaB <- function(yi, vi, n, p, X, resOut, knha=FALSE, con=list(thr=10^-8, maxite
 #   z     <- b / sqrt(diag(vb))
    z     <- ifelse(se>con$thr, b/se, 0)
 #   tau <- sqrt(tau2)
-      
+   #browser() 
    if(resOut==1) { # residual statistics requested
       vTot <- tau2+vi  # total variance
       lamc <- ifelse(vTot>con$thr, vi/vTot, 0)  # Like ICC, lamda shows percent of variation at group level   
       # need to scale this for Knapp & Hartung method as done above by s2w <- c( t(Y) %*% P %*% Y ) / (n-p)?
       resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(vTot), P)))
    
-      res         <- list(b, se, z, tau2, QE, lamc, resZ)
-      names(res)  <- c("b", "se", "z", "tau2", "QE", "lamc", "resZ")
+      res         <- list(b, se, z, tau2, QE, lamc, resZ, meth, iter)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "lamc", "resZ", "meth", "iter")
    } else {  # no residual statistics
-      res         <- list(b, se, z, tau2, QE)
-      names(res)  <- c("b", "se", "z", "tau2", "QE")
+      res         <- list(b, se, z, tau2, QE, meth, iter)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "meth", "iter")
    }
    res
 }
 
 # two groups with heterogeneity assumption
-rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, knha=FALSE, con=list(thr=10^-8, maxiter=50)) {
+rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8, maxiter=50)) {
+
+   Laplace <- function(Y, vi, n, p, X, con=list(thr=2*10^-5, maxiter=50)) {
+### looks like you can't get the precision lower than con$thr = 10^-5!!!
+
+   conv		<- 1
+	change_b	<- 1000
+   change_nu	<- 1000
+	iter		<- 0
+   
+   nu       <- sqrt(max(0, var(Y) - mean(vi)))/sqrt(2)
+   if(nu < 10^-10) nu <- sqrt(max(0, var(Y) - mean(vi)/3))
+   W		   <- diag(1/(vi + 2*nu^2))  # need to deal with 0s' here?
+   b    <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
+   visr <- sqrt(vi)
+
+	# seems two ways to update beta (b): one through iterative WLS, while the other via its own iterations
+   
+   if(nu > 10^-10) {
+   while ((change_b > con$thr) & (change_nu > con$thr)) {
+		iter     <- iter + 1
+      if (iter > con$maxiter) {  # Laplace fails
+			conv    <- 0
+			break
+		}
+		b.old    <- b
+      nu.old   <- nu    # scalor
+      #browser()
+      ei <- Y - X %*% b.old    # n X 1 vector
+      Ei <- exp(ei/nu)       # n X 1 vector
+      temp1 <- visr/nu; temp2 <- ei/visr  # n X 1 vector: dealing 0s for visr?
+      Phi1 <- pnorm(-temp1 - temp2)   # n X 1 vector
+      Phi2 <- pnorm(temp2 - temp1)    # n X 1 vector
+      phi1 <- dnorm(-temp1 - temp2)   # n X 1 vector
+      phi2 <- dnorm(temp2 - temp1)    # n X 1 vector
+      Gi <- Phi1 * Ei + Phi2 / Ei     # n X 1 vector: dealing 0s for Ei?
+      
+      dLb <- vector(mode="numeric", length=p)
+      H <- matrix(data = 0, nrow = p+1, ncol = p+1, byrow = FALSE, dimnames = NULL)
+      g <- matrix(data = 0, nrow = p+1, ncol = 1, byrow = FALSE, dimnames = NULL)
+      for(ii in 1:n) { 
+         dLb  <- (phi1[ii]*t(X[ii,])*Ei[ii]/visr[ii] - t(X[ii,])*Ei[ii]*Phi1[ii]/nu
+                 + (t(X[ii,])*Phi2[ii]/Ei[ii])/nu - (phi2[ii]*t(X[ii,])/visr[ii])/Ei[ii])/Gi[ii]
+         dLnu <- -1/nu - vi[ii]/nu^3 + (Ei[ii]*ei[ii]*Phi1[ii]/nu^2 + visr[ii]*Ei[ii]*phi1[ii]/nu^2
+                 - (ei[ii]*Phi2[ii]/Ei[ii])/nu^2 + (visr[ii]*phi2[ii]/Ei[ii])/nu^2)/Gi[ii]        
+         ttemp <- t(dLb)*dLnu
+         H <- H + rbind(cbind(dLb %*% t(dLb), t(ttemp)), cbind(ttemp, dLnu^2))
+         g <- g + rbind(dLb, dLnu)
+      }      
+      
+      #print(H); print(g)
+      #browser()
+      if(any(is.infinite(H)) | any(is.infinite(H)) | any(is.infinite(g)) | any(is.infinite(g)) |
+         any(is.nan(H)) | any(is.nan(H)) | any(is.nan(g)) | any(is.nan(g))) { # failed because of infinity issue
+         conv    <- 0
+         break
+		}
+      
+      suc <- TRUE
+      tryCatch(adj <- solve(H) %*% g, error = function(w) suc <<- FALSE)   # (p+1) X 1 vector
+      if(!suc) {  # Laplace fails
+			conv    <- 0
+			break
+		}
+      
+      b  <- b.old + adj[1:p]
+      nu <- nu + adj[p+1]
+      change_b	   <- abs(b.old - b)
+      change_nu	<- abs(nu.old - nu)
+	}
+   } else conv <- 0
+
+   if(conv==0) {
+      out <- list(conv)
+      names(out) <- c("conv")
+   } else {   # Laplace succeeded
+      W		   <- diag(1/(vi + 2*nu^2))
+      vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
+      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
+      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
+      tau2 <- 2*nu^2
+      meth <- 0
+      out <- list(conv, vb, R, P, tau2, meth, iter)
+      names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
+   }
+   out
+   }  # end of Laplace
 
 	Y <- as.matrix(yi)
    #browser()
    Y1 <- as.matrix(Y[1:n1,]); Y2 <- as.matrix(Y[(n1+1):nT,])
    v1 <- vi[1:n1]; v2 <- vi[(n1+1):nT]
+   n2 <- nT-n1
    #mods1 <- as.matrix(mods[1:n1,]); mods2 <- as.matrix(mods[(n1+1):nT,])
       
-   X1 <- X[1:n1,-2]; X2 <- X[(n1+1):nT,-2]
+   X1 <- as.matrix(X[1:n1,-2]); X2 <- as.matrix(X[(n1+1):nT,-2])
+   #browser()
    # This should be part of arguments!!!!!!!!!
   
 	tr <- function(X) sum(diag(X))
 
-   s2w      <- NA
-      
-	conv1		<- 1
-	change	<- 1000
-	iter		<- 0
-   tau12    <- max(0, var(Y1) - mean(v1))  # tau^2 for group 1
+   if(lapMod==1) {
+      out1 <- Laplace(Y1, v1, n1, p-1, X1)
+      out2 <- Laplace(Y2, v2, n2, p-1, X2)
+      if(out1$conv == 1 & out2$conv == 1) {
+      conv1 <- 1;         conv2 <- 1
+      vb1   <- out1$vb;   vb2   <- out2$vb
+      R1    <- out1$R;    R2    <- out2$R
+      P1    <- out1$P;    P2    <- out2$P   
+      tau12 <- out1$tau2; tau22 <- out2$tau2 
+      meth <- out1$meth
+      iter1 <- out1$iter; iter2 <- out2$iter
+      } else lapMod <- 0  # switch to REML first here when Laplace fails
+   }
 
-	while(change > con$thr) {
-		iter     <- iter + 1  # iteration counter
-      tau12.old <- tau12
-		W1		   <- diag(1/(v1 + tau12))
-      #browser()
-      vb1  <- solve(t(X1) %*% W1 %*% X1)   # variance-covariance matrix
-      R1   <- vb1 %*% t(X1) %*% W1  # projection of Y to space spanned by X
-      P1 <- W1 - W1 %*% X1 %*% R1
-      #browser()
-      adj1	<- solve( tr(P1%*%P1) ) %*% ( t(Y1)%*%P1%*%P1%*%Y1 - tr(P1) )
-      #browser()
-      #while (tau2 + adj1 < 0) adj <- adj / 2
-      while (tau12 + adj1 < 0) adj1 <- adj1 / 2
-		tau12		<- tau12 + adj1
-		change	<- abs(tau12.old - tau12)
-		if (iter > con$maxiter) {
-			conv1    <- 0
-         #print("REML failed on me!!!")
-			break
-		}
-	}
+
+   if(lapMod==0) { # if Laplace is not selected or fails, try REML      
+	
+      REML <- function(Y, X, v, con) {
+         conv		<- 1
+	      change	<- 1000
+         iter		<- 0
+         tau2    <- max(0, var(Y) - mean(v))  # tau^2 for group 1
+         W		   <- diag(1/(v + tau2))
+         vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
+         R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
+         P <- W - W %*% X %*% R
+         #browser()
+         while(change > con$thr) {
+            iter     <- iter + 1  # iteration counter
+            if (iter > con$maxiter) {
+               conv    <- 0
+               break
+            }
+            tau2.old <- tau2
+            adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
+            while (tau2 + adj < 0) adj <- adj / 2
+            tau2		<- tau2 + adj
+            change	<- abs(tau2.old - tau2)
+            W		   <- diag(1/(v + tau2))
+            vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
+            R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
+            P <- W - W %*% X %*% R
+            #browser()
+        }
+        #browser()
+        if(conv==0) { # REML failed
+            out <- list(conv)
+            names(out) <- c("conv")
+        } else {   # REML succeeded
+            meth <- 0
+            out <- list(conv, vb, R, P, tau2, meth, iter)
+            names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
+        }
+        out
+      }  # end of REML
+  
+      outREML1 <- REML(Y1, X1, v1, con)
+      outREML2 <- REML(Y2, X2, v2, con)
    
-   conv2		<- 1
-	change	<- 1000
-	iter		<- 0
-   tau22    <- max(0, var(Y2) - mean(v2))  # tau^2 for group 2
-
-	while (change > con$thr) {
-		iter     <- iter + 1  # iteration counter
-		tau22.old <- tau22
-      W2		   <- diag(1/(v2 + tau12))
-      #browser()
-      vb2  <- solve(t(X2) %*% W2 %*% X2)
-      R2   <- vb2 %*% t(X2) %*% W2
-      P2 <- W2 - W2 %*% X2 %*% R2
-      #browser()
-		adj2	<- solve( tr(P2%*%P2) ) %*% ( t(Y2)%*%P2%*%P2%*%Y2 - tr(P2) )
-      #browser()
-      while (tau22 + adj2 < 0) adj2 <- adj2 / 2
-		tau22 <- tau22 + adj2
-		change	<- abs(tau22.old - tau22)
-		if (iter > con$maxiter) {
-			conv2    <- 0
-         #print("REML failed on me!!!")
-			break
-		}
-	}   
+      if(outREML1$conv == 1 & outREML2$conv == 1) {
+         conv1 <- 1;         conv2 <- 1
+         vb1   <- outREML1$vb;   vb2   <- outREML2$vb
+         R1    <- outREML1$R;    R2    <- outREML2$R
+         P1    <- outREML1$P;    P2    <- outREML2$P   
+         tau12 <- outREML1$tau2; tau22 <- outREML2$tau2 
+         meth <-  outREML1$meth
+         iter1 <- outREML1$iter; iter2 <- outREML2$iter
+      } 
+   #browser()
+   } # if(lapMod==0)
    
    W01		   <- diag(1/v1)
    W02		   <- diag(1/v2)
@@ -366,9 +581,12 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, knha=FALSE, con=list(thr=10^-8, 
       RSS2    <- t(Y2) %*% P02 %*% Y2
       tau12   <- ( RSS1 - (n1-p+1) ) / tr(P1)
       tau22   <- ( RSS2 - (nT-n1-p+1) ) / tr(P2)
-	} 
-   
-   tau12 <- max(0, c(tau12)); tau22 <- max(0, c(tau22))
+      meth <- 2
+      iter1 <- 0; iter2 <- 0               
+	} else if(lapMod==0) { # for REML
+      tau12 <- max(0, c(tau12)); tau22 <- max(0, c(tau22))
+      meth <- 1
+   }   
 
    wi <- vector(mode="numeric", length= nT)
    wi[1:n1]  <- 1/(vi[1:n1] + tau12)
@@ -396,14 +614,15 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, knha=FALSE, con=list(thr=10^-8, 
       resZ1 <- P1 %*% Y1/sqrt(diag(P1 %*% tcrossprod(diag(vTot1), P1)))
       resZ2 <- P2 %*% Y2/sqrt(diag(P2 %*% tcrossprod(diag(vTot2), P2)))
  
-      res         <- list(b, se, z, tau12, tau22, QE1, QE2, lamc1, lamc2, resZ1, resZ2)
-      names(res)  <- c("b", "se", "z", "tau12", "tau22", "QE1", "QE2", "lamc1", "lamc2", "resZ1", "resZ2")
+      res         <- list(b, se, z, tau12, tau22, QE1, QE2, lamc1, lamc2, resZ1, resZ2, meth, iter1, iter2)
+      names(res)  <- c("b", "se", "z", "tau12", "tau22", "QE1", "QE2", "lamc1", "lamc2", "resZ1", "resZ2", "meth", "iter1", "iter2")
    } else {  # no residual statistics requested
-      res         <- list(b, se, z, tau12, tau22, QE1, QE2)
-      names(res)  <- c("b", "se", "z", "tau12", "tau22", "QE1", "QE2")
+      res         <- list(b, se, z, tau12, tau22, QE1, QE2, meth, iter1, iter2)
+      names(res)  <- c("b", "se", "z", "tau12", "tau22", "QE1", "QE2", "meth", "iter1", "iter2")
    }
    res
 }
+
 
 readMultiFiles <- function(nFiles, dim, type) {
    inFile <- vector('list', nFiles) # list of file names with path attached
@@ -421,17 +640,15 @@ readMultiFiles <- function(nFiles, dim, type) {
 }
 
 
-
-
-runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, KHtest, nNonzero, nCov, nBrick, anaType, resZout, tol) {  
+runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNonzero, nCov, nBrick, anaType, resZout, tol) {  
    
    # n[1]: # subjects in group1; n[2]: total # subjects in both groups; n[2]-n[1]: # subjects in group2   
    fullLen <- length(inData); halfLen <- fullLen/2  # remove this line by providing halfLen as function argument later?
    Y <- inData[1: halfLen]; V <- inData[(halfLen +1): fullLen]
    if(sum(abs(Y)>tol)>nNonzero) {  # run only when there are more than 2 non-zeros in both Y and V
    tag <- TRUE
-   if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, knha=KHtest), tag <- FALSE) else
-      try(resList <- mema(Y, V, n, p, X=xMat, resZout, knha=KHtest), tag <- FALSE)
+   if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
+      try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE)
 
    if (tag) {
    if (nGrp==1) {
@@ -617,7 +834,9 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    #print("-----------------")
    nNonzero <- as.integer(readline(sprintf("Number of subjects with non-zero t-statistic? (0-%i) ", sum(nSubj))))
    print("Masking is optional, but will alleviate unnecessary penalty on q values of FDR correction.")
-   # Hartung-Knapp method with t-test? 
+   # Hartung-Knapp method with t-test?
+   print("t-statistic is a little more conservative but also more appropriate for significance testing than Z")
+   print("especially when sample size, number of subjects, is relatively small.")
    KHtest <- as.logical(as.integer(readline("Z- or t-statistic for the output? (0: Z; 1: t) ")))
    #KHtest <- FALSE
    
@@ -707,6 +926,10 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
       xMat <- as.matrix(cbind(xMat, covData))           
    } else {nCov <- 0; xMat <- as.matrix(xMat)}
    print("-----------------")
+   print("If outliers exist at voxel/subject level, a special model can be adopted to account for outliers")
+   print("in the data, leading to increased statistical power at slightly higher computation cost.")
+   lapMod <- as.integer(readline("Model outliers (0: no; 1: yes)? "))
+   print("-----------------")
    print("The Z-score of residuals indicates the significance level a subject is an outlier at a voxel.")
    print("Turn off this option and select 0 if memory allocation problem occurs later on.")
    resZout <- as.integer(readline("Want residuals Z-score for each subject (0: no; 1: yes)? "))
@@ -771,12 +994,13 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    print("-----------------")
    print(sprintf("Totally %i slices in the data.", myDim[3]))
    print("-----------------")
+   print("Starting to analyze data slice by slice...")
    # single processor
    
    if(anaType==4) {
       if(nNodes==1) for (ii in 1:myDim[3]) {
          outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=c(nSubj[1], sum(nSubj)), p=dim(xMat)[2], xMat=xMat, outData=outData, 
-            mema=rmaB2, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
+            mema=rmaB2, lapMod=lapMod, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
          cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
    
@@ -786,7 +1010,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
          cl <- makeCluster(nNodes, type = "SOCK")
          for(ii in 1:myDim[3]) {
             outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=c(nSubj[1], sum(nSubj)), p=dim(xMat)[2], xMat=xMat, outData=outData, 
-               mema=rmaB2, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
+               mema=rmaB2, lapMod=lapMod, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
             cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
          }
          stopCluster(cl)
@@ -794,7 +1018,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    } else {
       if(nNodes==1) for (ii in 1:myDim[3]) {
          outArr[,,ii,] <- aperm(apply(comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=sum(nSubj), p=dim(xMat)[2], xMat=xMat, outData=outData, 
-            mema=rmaB, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
+            mema=rmaB, lapMod=lapMod, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
          cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
    
@@ -804,7 +1028,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
          cl <- makeCluster(nNodes, type = "SOCK")
          for(ii in 1:myDim[3]) {
             outArr[,,ii,] <- aperm(parApply(cl, comArr[,,ii,], c(1,2), runRMA, nGrp=nGrp, n=sum(nSubj), p=dim(xMat)[2], xMat=xMat, outData=outData, 
-               mema=rmaB, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
+               mema=rmaB, lapMod=lapMod, KHtest=KHtest, nNonzero=nNonzero, nCov=nCov, nBrick=nBrick, anaType=anaType, resZout=resZout, tol=tolL), c(2,3,1))
             cat("Z slice #", ii, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
          }
          stopCluster(cl)
