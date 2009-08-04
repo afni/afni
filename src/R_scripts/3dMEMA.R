@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
 print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.7,  August 3, 2009")
+print("Version 0.0.8,  August 4, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -287,7 +287,7 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
       names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
    }
    out
-   }  # end of Laplace
+   }
 
 
 	Y <- as.matrix(yi)
@@ -310,33 +310,57 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
    }
    
    if(lapMod==0) { # if Laplace is not selected or fails, try REML
-		conv		<- 1
-      change	<- 1000
-		iter		<- 0
-		tau2     <- max(0, var(yi) - mean(vi))
-		W		   <- diag(1/(vi + tau2))
-		vb  <- solve(t(X) %*% W %*% X) # variance-covariance matrix
-      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X 
-		P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
 		
-		while (change > con$thr) {
-		   iter     <- iter + 1
-         if (iter > con$maxiter) {  # REML fails
-			   conv    <- 0
-			   break
-		   }
-		tau2.old <- tau2
-      #browser()
-		adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
-		while (tau2 + adj < 0) adj <- adj / 2
-		tau2		<- tau2 + adj
-		change	<- abs(tau2.old - tau2)
-		W		   <- diag(1/(vi + tau2))
-      vb  <- solve(t(X) %*% W %*% X) # variance-covariance matrix
-      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X 
-      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals         
-	}
-   }
+      REML <- function(Y, X, v, con) {
+         conv		<- 1
+	      adj	<- 1000
+         iter		<- 0
+         tau2    <- max(0, var(Y) - mean(v))  # tau^2 for group 1
+         W		   <- diag(1/(v + tau2))
+         vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
+         R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
+         P <- W - W %*% X %*% R
+         #browser()
+         while(abs(adj) > con$thr) {
+            iter     <- iter + 1  # iteration counter
+            if (iter > con$maxiter) {
+               conv    <- 0
+               break
+            }
+            tau2.old <- tau2
+            adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
+            while (tau2 + adj < 0) adj <- adj / 2
+            tau2		<- tau2 + adj
+            #change	<- abs(tau2.old - tau2)
+            W		   <- diag(1/(v + tau2))
+            vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
+            R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
+            P <- W - W %*% X %*% R
+            #browser()
+        }
+        #browser()
+        if(conv==0) { # REML failed
+            out <- list(conv)
+            names(out) <- c("conv")
+        } else {   # REML succeeded
+            meth <- 0
+            out <- list(conv, vb, R, P, tau2, meth, iter)
+            names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
+        }
+        out
+      }  # end of REML
+      
+      outREML <- REML(yi, X, vi, con)
+      if(outREML$conv == 1) {
+         conv <- 1
+         vb   <- outREML$vb
+         R    <- outREML$R
+         P    <- outREML$P   
+         tau2 <- outREML$tau2 
+         meth <-  outREML$meth
+         iter <- outREML$iter
+      } else conv <- 0 
+   } # if(lapMod==0)
 
    
    W0     <- diag(1/vi)
@@ -516,7 +540,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
 	
       REML <- function(Y, X, v, con) {
          conv		<- 1
-	      change	<- 1000
+	      adj	<- 1000
          iter		<- 0
          tau2    <- max(0, var(Y) - mean(v))  # tau^2 for group 1
          W		   <- diag(1/(v + tau2))
@@ -524,7 +548,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
          R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
          P <- W - W %*% X %*% R
          #browser()
-         while(change > con$thr) {
+         while(abs(adj) > con$thr) {
             iter     <- iter + 1  # iteration counter
             if (iter > con$maxiter) {
                conv    <- 0
@@ -534,7 +558,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
             adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
             while (tau2 + adj < 0) adj <- adj / 2
             tau2		<- tau2 + adj
-            change	<- abs(tau2.old - tau2)
+            #change	<- abs(tau2.old - tau2)
             W		   <- diag(1/(v + tau2))
             vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
             R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
@@ -555,7 +579,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
   
       outREML1 <- REML(Y1, X1, v1, con)
       outREML2 <- REML(Y2, X2, v2, con)
-   
+      #browser()
       if(outREML1$conv == 1 & outREML2$conv == 1) {
          conv1 <- 1;         conv2 <- 1
          vb1   <- outREML1$vb;   vb2   <- outREML2$vb
@@ -564,7 +588,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
          tau12 <- outREML1$tau2; tau22 <- outREML2$tau2 
          meth <-  outREML1$meth
          iter1 <- outREML1$iter; iter2 <- outREML2$iter
-      } 
+      } else {conv1 <- outREML1$conv;  conv2 <- outREML2$conv} 
    #browser()
    } # if(lapMod==0)
    
@@ -572,15 +596,15 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
    W02		   <- diag(1/v2)
    P01 <- W01 - W01 %*% X1 %*% solve(t(X1) %*% W01 %*% X1) %*% t(X1) %*% W01
    P02 <- W02 - W02 %*% X2 %*% solve(t(X2) %*% W02 %*% X2) %*% t(X2) %*% W02
-   QE1    <- t(Y1) %*% P1 %*% Y1
-   QE2    <- t(Y2) %*% P2 %*% Y2
+   QE1    <- t(Y1) %*% P01 %*% Y1
+   QE2    <- t(Y2) %*% P02 %*% Y2
 
 	#need to modify this part
    if (conv1 == 0 | conv2 == 0) {  # try DSL if REML fails
       RSS1    <- t(Y1) %*% P01 %*% Y1   
       RSS2    <- t(Y2) %*% P02 %*% Y2
-      tau12   <- ( RSS1 - (n1-p+1) ) / tr(P1)
-      tau22   <- ( RSS2 - (nT-n1-p+1) ) / tr(P2)
+      tau12   <- ( RSS1 - (n1-p+1) ) / tr(P01)
+      tau22   <- ( RSS2 - (nT-n1-p+1) ) / tr(P02)
       meth <- 2
       iter1 <- 0; iter2 <- 0               
 	} else if(lapMod==0) { # for REML
@@ -833,13 +857,15 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    
    #print("-----------------")
    nNonzero <- as.integer(readline(sprintf("Number of subjects with non-zero t-statistic? (0-%i) ", sum(nSubj))))
-   print("Masking is optional, but will alleviate unnecessary penalty on q values of FDR correction.")
    # Hartung-Knapp method with t-test?
+   print("-----------------")
    print("t-statistic is a little more conservative but also more appropriate for significance testing than Z")
    print("especially when sample size, number of subjects, is relatively small.")
    KHtest <- as.logical(as.integer(readline("Z- or t-statistic for the output? (0: Z; 1: t) ")))
    #KHtest <- FALSE
    
+   print("-----------------")
+   print("Masking is optional, but will alleviate unnecessary penalty on q values of FDR correction.")
    masked <- as.integer(readline("Any mask (0: no; 1: yes)? "))
    if(masked) {maskFN <- readline("Mask file name (suffix unnecessary, e.g., mask+tlrc): "); maskData <- read.AFNI(maskFN)$ttt}
    if(masked) if(!all(dim(maskData[,,,1])==myDim[1:3])) stop("Mask dimensions don't match the input files!")
