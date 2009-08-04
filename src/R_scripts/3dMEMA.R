@@ -406,7 +406,7 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
    #browser() 
    if(resOut==1) { # residual statistics requested
       vTot <- tau2+vi  # total variance
-      lamc <- ifelse(vTot>con$thr, vi/vTot, 0)  # Like ICC, lamda shows percent of variation at group level   
+      lamc <- ifelse(vTot>con$thr, vi/vTot, 0)  # Like ICC, lambda shows percent of variation at group level   
       # need to scale this for Knapp & Hartung method as done above by s2w <- c( t(Y) %*% P %*% Y ) / (n-p)?
       resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(vTot), P)))
    
@@ -633,7 +633,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
    if(resOut==1) {  # residual statistics requested
       vTot1 <- tau12+v1  # total variance for group1
       vTot2 <- tau22+v2  # total variance for group1
-      lamc1 <- ifelse(vTot1>con$thr, v1/vTot1, 0)  # Like ICC, lamda shows percent of variation at group level
+      lamc1 <- ifelse(vTot1>con$thr, v1/vTot1, 0)  # Like ICC, lambda shows percent of variation at group level
       lamc2 <- ifelse(vTot2>con$thr, v2/vTot2, 0)
       resZ1 <- P1 %*% Y1/sqrt(diag(P1 %*% tcrossprod(diag(vTot1), P1)))
       resZ2 <- P2 %*% Y2/sqrt(diag(P2 %*% tcrossprod(diag(vTot2), P2)))
@@ -713,12 +713,12 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
    outData[nBrick-2*n[2]]   <- ifelse(resList$tau12 > tol, resList$tau22/resList$tau12, 0)
    
    for(ii in 1:n[1]) {
-      outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc1[ii]   # lamda = 1-I^2
+      outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc1[ii]   # lambda = 1-I^2
       outData[nBrick-2*(n[2]-ii)]   <- resList$resZ1[ii]    # Z-score for residuals
    } # from nBrick-2*n[2]+1 to nBrick-2*(n[2]-n[1])
    
    for(ii in 1:(n[2]-n[1])) {
-      outData[nBrick-2*(n[2]-n[1]-ii)-1] <- resList$lamc2[ii]   # lamda = 1-I^2
+      outData[nBrick-2*(n[2]-n[1]-ii)-1] <- resList$lamc2[ii]   # lambda = 1-I^2
       outData[nBrick-2*(n[2]-n[1]-ii)]   <- resList$resZ2[ii]    # Z-score for residuals
    } # from nBrick-2*(n[2]-n[1])+1 to nBrick
    } # if(resZout==0)
@@ -730,7 +730,7 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
       outData[nBrick-2*n-1] <- resList$tau2
       outData[nBrick-2*n]   <- resList$QE
       for(ii in 1:n) {
-      outData[nBrick-2*(n-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
+      outData[nBrick-2*(n-ii)-1] <- resList$lamc[ii]   # lambda = 1-I^2
       outData[nBrick-2*(n-ii)]   <- resList$resZ[ii]    # Z-score for residuals
    }
    }
@@ -992,7 +992,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    rm(tList)
    
    #if(anaType==4) nBrick  <- 4*nGrp+(anyCov)*2*nCov+2+2*sum(nSubj)*resZout else nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout
-   # each subject has two number: one for lamda, and the other, deviation, for outlier identificaiton - need to do the same for type 4
+   # each subject has two number: one for lambda, and the other, deviation, for outlier identificaiton - need to do the same for type 4
    
    nBrick0 <- 4*nGrp+(anyCov)*2*nCov   # no. sub-bricks in the main output
    nBrick <- 4*nGrp+(anyCov)*2*nCov+2*sum(nSubj)*resZout  # total sub-bricks in all output
@@ -1098,10 +1098,10 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    
    if(resZout==1) for(ii in 1:nGrp) for(jj in 1:nSubj[ii]) {
       if(ii==1 & jj==1) {
-         resLabel <- paste(sprintf("%s-lamda", subjLab[[ii]][[jj]])) 
+         resLabel <- paste(sprintf("%s-lambda", subjLab[[ii]][[jj]])) 
          resLabel <- append(resLabel, sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
       } else {
-         resLabel <- append(resLabel, sprintf("%s-lamda", subjLab[[ii]][[jj]]))
+         resLabel <- append(resLabel, sprintf("%s-lambda", subjLab[[ii]][[jj]]))
          resLabel <- append(resLabel, sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
       }  
    }   
