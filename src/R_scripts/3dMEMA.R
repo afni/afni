@@ -872,7 +872,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
 
    if(nGrp==1) xMat <- rep(1, sum(nSubj))      
    if(nGrp==2) xMat <- cbind(rep(1, sum(nSubj)), c(rep(0, nSubj[1]), rep(1, nSubj[2]))) # dummy variable for two groups
-   
+   print("-----------------")   
    print("Covariates are continuous variables (e.g., age, behavioral data) that can be partialled out in the model.")
    anyCov <- as.logical(as.integer(readline("Any covariates (0: no; 1: yes)? ")))
    if(anyCov) {
@@ -1135,7 +1135,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    #outArr[outArr[1:(2*sum(nSubj))]>tTop] <- tTop  # Avoid outflow!!!!
    #outArr[outArr[1:(2*sum(nSubj))] < (-tTop)] <- -tTop  # Avoid outflow!!!!
    write.AFNI(outFN, outArr[,,,1:nBrick0], outLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")   
-   statpar <- paste(statpar, " -view tlrc -addFDR -newid ", outFN)  # assume tlrc space: wrong for money study, for example
+   statpar <- paste(statpar, " -view tlrc -addFDR -newid ", outFN)  # assume tlrc space: wrong for monkey study, for example
    system(statpar)
 
    if(resZout==1) {
