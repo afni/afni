@@ -234,7 +234,7 @@ def read_options(argv, oplist, verb = -1):
     namelist = {}
     for co in oplist.olist:
         if co.name in namelist:   # complain if input list contains repeats
-            print "** RO warning: option '%s' appears more than once", co.name
+            print "** RO warning: option '%s' appears more than once"%co.name
         namelist[co.name] = 0
     if verb > 1 : print "-d namelist: ", namelist
 
