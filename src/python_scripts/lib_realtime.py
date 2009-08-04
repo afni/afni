@@ -11,9 +11,6 @@
 
 
 import sys, os
-if 1 :  # for testing, might add the current dir and ~/abin to the PATH
-   try:    sys.path.extend(['.', '%s/abin' % os.getenv('HOME')])
-   except: print '** cannot extend path!'
 
 # system libraries : test, then import as local symbols
 import module_test_lib
@@ -86,7 +83,7 @@ class RTInterface:
       errs = 0
 
       try: self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      except:
+      except(socket.error, socket.herror, socket.gaierror, socket.timeout):
          self.server_sock = None
          print '** failed to create incoming socket'
          errs = 1
@@ -94,14 +91,14 @@ class RTInterface:
 
       if self.verb > 2: print '-- bind()...'
       try: self.server_sock.bind((socket.gethostname(), self.server_port))
-      except:
+      except(socket.error, socket.herror, socket.gaierror, socket.timeout):
          print '** failed to bind incoming socket to port', self.server_port
          errs = 1
       if errs: return 1
 
       if self.verb > 2: print '-- listen()...'
       try: self.server_sock.listen(2)
-      except:
+      except(socket.error, socket.herror, socket.gaierror, socket.timeout):
          print '** failed to listen at incoming socket'
          errs = 1
       if errs: return 1
@@ -113,8 +110,11 @@ class RTInterface:
    def read_nbytes_from_data_socket(self, nbytes, flag=socket.MSG_WAITALL):
       """try to read nbytes from data socket, reporting any errors"""
       errs = 0
+
+      # It is important to specify the list of exceptions to trap here,
+      # otherwise it would catch a ctrl-c and continue after sys.exit().
       try: data = self.data_sock.recv(nbytes, flag)
-      except:
+      except(socket.error, socket.herror, socket.gaierror, socket.timeout):
          if self.verb > 0: print '** recv() exception on data socket'
          errs = 1
       if errs: return None
@@ -276,7 +276,7 @@ class RTInterface:
                % (hinfo[0], hinfo[1])
 
       if self.read_magic_hi():
-         print '** failed to read magic_hi, closing and restarting...'
+         print '** failed read magic_hi, closing and restarting...'
          return 1
 
       self.nconnects += 1       # we have a connection
@@ -406,7 +406,9 @@ class RTInterface:
    def close_data_ports(self):
 
       if self.data_sock != None:
-         self.data_sock.close()
+         try: self.data_sock.close()
+         except(socket.error, socket.herror, socket.gaierror, socket.timeout):
+            pass
          self.data_sock = None
 
       if self.verb > 3: print '-- socket has been closed'
@@ -427,7 +429,6 @@ class SerialInterface:
       # main variables
       self.verb         = verb          # verbose level
       self.port_file    = sport         # file for serial port
-      self.data_choice  = 'motion'      # choice of which data to send
       self.data_port    = None          # serial data port
       self.swap         = 0             # whether to swap serial bytes
 
@@ -450,14 +451,14 @@ class SerialInterface:
          port.setParity(g_SER.PARITY_NONE)
          port.setStopbits(g_SER.STOPBITS_ONE)
          port.setXonXoff(0)             # enable software flow control
-      except:
+      except(socket.error, socket.herror, socket.gaierror, socket.timeout):
          print sys.exc_info()[1]
          print '** failed to initialize serial port', self.port_file
          errs = 1
 
       if errs == 0:
          try: port.open()
-         except:
+         except(socket.error, socket.herror, socket.gaierror, socket.timeout):
             print sys.exc_info()[1]
             print '** failed to open serial port', self.port_file
             errs = 1
@@ -471,7 +472,9 @@ class SerialInterface:
    def close_data_ports(self):
 
       if self.data_port:
-         self.data_port.close()
+         try: self.data_port.close()
+         except(socket.error, socket.herror, socket.gaierror, socket.timeout):
+            pass
          self.data_port = None
 
       if self.verb > 2: print '-- serial port has been closed'

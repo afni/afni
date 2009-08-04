@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
 import sys, os
-if 1 :  # for testing, might add the current dir and ~/abin to the PATH
-   try:    sys.path.extend(['.', '%s/abin' % os.getenv('HOME')])
-   except: print '** cannot extend path!'
 
 # system libraries : test, then import as local symbols
 import module_test_lib
@@ -43,7 +40,13 @@ realtime_receiver.py - program to receive and display real-time plugin data
      2. Provide a serial port, sending the Euclidean norm of the motion params.
 
         realtime_receiver.py -show_data yes -serial_port /dev/ttyS0  \\
-                             -serial_data_choice motion_norm
+                             -data_choice motion_norm
+
+     3. Run a feedback demo.  Assume that the realtime plugin will send 2
+        values per TR.  Request the receiver to plot (a-b)/(a+b), scaled
+        to some small integral range.
+
+        realtime_receiver.py -show_demo_gui yes -data_choice diff_ratio
 
    TESTING NOTE:
 
@@ -81,7 +84,8 @@ realtime_receiver.py - program to receive and display real-time plugin data
    This program is based on the structure of serial_helper, but because
    it is meant as a replacement, it will have different options.
 
-------------------------------------------
+   ------------------------------------------
+   Options:
 
    terminal options:
 
@@ -91,6 +95,13 @@ realtime_receiver.py - program to receive and display real-time plugin data
       -ver                      : show current version
 
    other options
+      -data_choice CHOICE       : pick which data to send as feedback
+      -serial_port PORT         : specify serial port file for feedback data
+      -show_data yes/no         : display incoming data in terminal window
+      -show_demo_data           : display feedback data in terminal window
+      -show_demo_gui            : demonstrate a feedback GUI
+      -swap                     : swap bytes incoming data
+      -tcp_port PORT            : specify TCP port for incoming connections
       -verb LEVEL               : set the verbosity level
 
 -----------------------------------------------------------------------------
@@ -102,9 +113,10 @@ g_history = """
 
    0.0  Jul 06, 2009 : initial version (show data, no serial, little help)
    0.1  Jul 16, 2009 : includes optional serial connection
+   0.2  Aug 04, 2009 : added basic demo interface and itemized exception traps
 """
 
-g_version = "realtime_receiver.py version 0.1, Jul 16, 2009"
+g_version = "realtime_receiver.py version 0.2, Aug 4, 2009"
 
 g_RTinterface = None      # global reference to main class (for signal handler)
 
@@ -119,12 +131,19 @@ class ReceiverInterface:
 
       self.valid_opts      = None
       self.user_opts       = None
+      self.data_choice     = 'motion'
+      self.TR_data         = []            # store computed TR data
       self.verb            = 1
       self.serial_port     = None          # serial port (filename)
 
       # lib_realtime.py class instances
       self.RTI             = None          # real-time interface RTInterface
       self.SER             = None          # serial port interface Serial
+
+      # demo attributes
+      self.show_demo_data  = 0
+      self.demo_frame      = None          # for demo plot
+      self.wx_app          = None          # wx App for demo plot
 
       self.valid_opts = self.init_options()
 
@@ -147,13 +166,22 @@ class ReceiverInterface:
       valid_opts.add_opt('-verb', 1, [],
                       helpstr='set the verbose level (default is 1)')
 
-      valid_opts.add_opt('-serial_data_choice', 1, [],
+      valid_opts.add_opt('-data_choice', 1, [],
                       helpstr='which data to send (motion, motion_norm,...)')
       valid_opts.add_opt('-serial_port', 1, [],
                       helpstr='serial port filename (e.g. /dev/ttyS0 or COM1)')
       valid_opts.add_opt('-show_data', 1, [],
                       acplist=['no', 'yes'],
                       helpstr='whether to display received data in terminal')
+
+      # demo options
+      valid_opts.add_opt('-show_demo_data', 1, [],
+                      acplist=['no', 'yes'],
+                      helpstr='whether to display demo data in terminal')
+      valid_opts.add_opt('-show_demo_gui', 1, [],
+                      acplist=['no', 'yes'],
+                      helpstr='whether to display demo data in a GUI')
+
       valid_opts.add_opt('-swap', 0, [],
                       helpstr='byte-swap numerical reads')
       valid_opts.add_opt('-tcp_port', 1, [],
@@ -225,8 +253,8 @@ class ReceiverInterface:
          self.SER = RT.SerialInterface(val, verb=self.verb)
          if not self.SER: return 1
 
-      val, err = uopts.get_string_opt('-serial_data_choice')
-      if val != None and not err: self.SER.data_choice = val
+      val, err = uopts.get_string_opt('-data_choice')
+      if val != None and not err: self.data_choice = val
 
       # ==================================================
       # --- tcp options ---
@@ -241,7 +269,40 @@ class ReceiverInterface:
       val, err = uopts.get_type_opt(int, '-tcp_port')
       if val != None and not err: self.RTI.server_port = val
 
+      # ==================================================
+      # --- demo options ---
+
+      val, err = uopts.get_string_opt('-show_demo_data')
+      if val != None and not err:
+         if val == 'no': self.show_demo_data = 0
+         else:           self.show_demo_data = 1
+
+      val, err = uopts.get_string_opt('-show_demo_gui')
+      if val != None and not err:
+         if val == 'yes': self.set_demo_gui()
+
       return 0  # so continue and listen
+
+   def set_demo_gui(self):
+      """create the GUI for display of the demo data"""
+      testlibs = ['numpy', 'wx']
+      if module_test_lib.num_import_failures(testlibs): sys.exit(1)
+      import numpy as N, wx
+      import lib_RR_plot as LPLOT
+
+      self.wx_app = wx.App()
+      self.demo_frame = LPLOT.CanvasFrame(title='receiver demo')
+      self.demo_frame.EnableCloseButton(True)
+      self.demo_frame.Show(True)
+      self.demo_frame.style  = 'bar'
+      self.demo_frame.xlabel = 'most recent 10 TRs'
+      self.demo_frame.ylabel = 'scaled diff_ratio'
+
+      # for the current demo, set an ranges for 10 numbers in [0,10]
+      if self.demo_frame.style == 'graph':
+         self.demo_frame.set_limits(0,9.1,-0.1,10.1)
+      elif self.demo_frame.style == 'bar':
+         self.demo_frame.set_limits(0,10.1,-0.1,10.1)
 
    def set_signal_handlers(self):
       """capture common termination signals, to properly close ports"""
@@ -261,19 +322,47 @@ class ReceiverInterface:
       if self.RTI: self.RTI.close_data_ports()
       if self.SER: self.SER.close_data_ports()
 
+   def process_demo_data(self):
+
+      length = len(self.TR_data)
+      if length == 0: return
+
+      if self.show_demo_data:
+         print '-- TR %d, demo value: ' % length, self.TR_data[length-1][0]
+      if self.demo_frame:
+         if length > 10: bot = length-10
+         else: bot = 0
+         pdata = [self.TR_data[ind][0] for ind in range(bot,length)]
+         self.demo_frame.plot_data(pdata)
+
    def process_one_TR(self):
       """return 0 to continue, 1 on valid termination, -1 on error"""
 
+      if self.verb>2: print '-- process_one_TR, demo = %d,' % self.demo
+
       rv = self.RTI.read_TR_data()
-      if rv == 0 and self.SER: 
-         rv, data = compute_data_for_serial_port(self)  # PROCESS DATA HERE
-         if rv == 0 and len(data) > 0:
-            self.SER.write_4byte_data(data)
+      if rv:
+         if self.verb > 3: print '** process 1 TR: read data failure'
+         return rv
+
+      rv, data = compute_TR_data(self)  # PROCESS DATA HERE
+      if rv or len(data) == 0: return rv
+      self.TR_data.append(data)
+
+      if self.SER: self.SER.write_4byte_data(data)
+      if self.show_demo_data or self.demo_frame: self.process_demo_data()
 
       return rv
 
    def process_one_run(self):
-      """repeatedly: process all incoming data for a single run"""
+      """repeatedly: process all incoming data for a single run
+         return  0 on success and 1 on error
+      """
+
+      # clear any old data
+      if len(self.TR_data) > 0:
+         del(self.TR_data)
+         self.TR_data = []
 
       # wait for the real-time plugin to talk to us
       if self.RTI.wait_for_new_run(): return 1
@@ -306,11 +395,13 @@ def clean_n_exit(signum, frame):
    # at last, close server port
    if g_RTinterface.server_sock:
       if g_RTinterface.verb > 1: print 'closing server port...'
-      g_RTinterface.server_sock.close()
+      try: g_RTinterface.server_sock.close()
+      except (RT.socket.error, RT.socket.timeout): pass
 
+   if g_RTinterface.verb > 0: print '-- exiting on signal %d...' % signum
    sys.exit(signum)
 
-def compute_data_for_serial_port(rec):
+def compute_TR_data(rec):
    """If writing to the serial port, this is the main function to compute
       results from rec.motion and/or rec.extras for the current TR and 
       return it as an array of floats.
@@ -319,9 +410,9 @@ def compute_data_for_serial_port(rec):
       so processing a time series is easy, but a single TR requires extracting
       the data from the end of each list.
 
-      The possible computations is based on SER.data_choice, specified by the
-      user option -serial_data_choice.  If you want to send data that is not
-      listed, just add a condition.
+      The possible computations is based on data_choice, specified by the user
+      option -data_choice.  If you want to send data that is not listed, just
+      add a condition.
 
    ** Please add each data_choice to the -help.  Search for motion_norm to
       find all places to edit.
@@ -332,35 +423,62 @@ def compute_data_for_serial_port(rec):
    """
 
    rti = rec.RTI       # for convenience
-   ser = rec.SER       # for convenience
-
-   if not ser:             return 0, []
-   if not ser.data_port:   return 0, []
-   if not ser.data_choice: return 0, []
+   if not rec.data_choice: return 0, []
 
    # case 'motion': send all motion
-   if ser.data_choice == 'motion':
+   if rec.data_choice == 'motion':
       if rti.nread > 0:
          return 0, [rti.motion[ind][rti.nread-1] for ind in range(6)]
       else: return -1, []
 
    # case 'motion_norm': send Euclidean norm of motion params
    #                     --> sqrt(sum of squared motion params)
-   elif ser.data_choice == 'motion_norm':
+   elif rec.data_choice == 'motion_norm':
       if rti.nread > 0:
          motion = [rti.motion[ind][rti.nread-1] for ind in range(6)]
          return 0, [UTIL.euclidean_norm(motion)]
       else: return -1, []
 
    # case 'all_extras': send all extra data
-   elif ser.data_choice == 'all_extras':
+   elif rec.data_choice == 'all_extras':
       if rti.nextra > 0:
          return 0, [rti.extras[i][rti.nread-1] for i in range(rti.nextra)]
       else: return -1, []
 
+   # case 'diff_ratio': (a-b)/(abs(a)+abs(b))
+   elif rec.data_choice == 'diff_ratio':
+      npairs = rti.nextra//2
+      if npairs > 0:
+         vals = [rti.extras[i][rti.nread-1] for i in range(rti.nextra)]
+         # modify vals array, setting the first half to diff_ratio
+         for ind in range(npairs):
+            a = vals[2*ind]
+            b = vals[2*ind+1]
+            if a == 0 and b == 0: newval = 0.0
+            else: newval = (a-b)/float(abs(a)+abs(b))
+
+            # now scale [bot,inf) to {0..10}, where val>=top -> 10
+            bot = 0.008
+            top = 0.031 - bot
+            val = newval-bot
+            if val < 0.0: val = 0.0
+            ival = int((10*val/top))
+            if ival > 10: ival = 10
+
+            vals[ind] = ival
+
+            if rti.verb > 1: '++ diff_ratio: ival = %d (from %g)'%(ival,newval)
+
+            return 0, vals[0:npairs]    # return the partial list
+
+      else:
+         if rti.verb > 0 and rti.nread < 2:
+            print '** no pairs to compute diff_ratio from...'
+         return 0, []
+
    # failure!
    else:
-      print "** invalid data_choice '%s', shutting down ..." % ser.data_choice
+      print "** invalid data_choice '%s', shutting down ..." % rec.data_choice
       return -1, []
 
 def main():
@@ -385,13 +503,12 @@ def main():
 
    # repeatedly: process all incoming data for a single run
    while 1:
-      if receiver.process_one_run():
-         time.sleep(1)                  # on error, ponder life briefly
+      rv = receiver.process_one_run()
+      if rv: time.sleep(1)              # on error, ponder life briefly
       receiver.close_data_ports()
 
    return -1                            # should not be reached
 
 if __name__ == '__main__':
    sys.exit(main())
-
 

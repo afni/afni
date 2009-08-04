@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, AUG, 2009, RCR, "realtime_receiver.py", MINOR, TYPE_NEW_OPT,
+   "added basic demo interface and itemized exception traps",
+   NULL
+ } ,
+
  { 31, JUL, 2009, RCR, "prompt_user", MICRO, TYPE_MODIFY,
    "apply some escape sequences, mostly to display newlines",
    NULL
