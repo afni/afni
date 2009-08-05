@@ -10,8 +10,6 @@
 
 
 #include <stdio.h>
-#include <malloc.h>
-#include <string.h>
 #include "r_misc.h"
 
 /* -- locals */
