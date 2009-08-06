@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-
+set estat = 1
 set eee = `date '+%H %M %S'`
 goto PARSE
 
@@ -21,10 +21,19 @@ if ($ShowTime) echo "TLRC transformation at `date '+%H:%M:%S'`"
 if (`@CheckForAfniDset nosk.${inpref}+tlrc` < 2) then
    @auto_tlrc -base $basetlrc \
                   -input nosk.${inpref}+orig. \
-                  -no_ss -onepass -suffix NONE >>& log.tlrc.${prefix}
+                  -no_ss $npass -suffix NONE >>& log.tlrc.${prefix}
 else
    echo "Reusing nosk.${inpref}+tlrc.HEAD"
 endif
+
+if ( `@CheckForAfniDset nosk.${inpref}+tlrc` != 2 ) then
+   echo "Error: Failed to create tlrc anat"
+   echo "       see log.tlrc.${prefix} for details"
+   echo "If failure is due to lack of convergence, try"
+   echo "to add the -twopass option to @fast_roi"
+   echo ""
+   goto END
+endif 
 
 CALC_DEED:
 #Now create a mask of a particular region (see whereami -help for details):
@@ -55,7 +64,7 @@ set et[2] = `ccalc -fint " ( $etime - $et[1] * 3600 ) / 60"`
 set et[3] = `ccalc -fint " ( $etime - $et[1] * 3600 - $et[2] * 60 ) "`
 
 if ($ShowTime) echo "Elapsed time $et[1]h:$et[2]m:$et[3]s"
-
+set estat = 0
 goto END
 
 HELP:
@@ -63,7 +72,7 @@ HELP:
    echo  "                     <-base TLRC_BASE> <-anat ANAT> "
    echo  "                     <-roi_grid GRID >"
    echo  "                     <-prefix PREFIX >"
-   echo  "                     [-time] [-help]"
+   echo  "                     [-time] [-twopass] [-help]"
    echo  "Creates Atlas-based ROI masked in ANAT's original space."
    echo  "The script is meant to work rapidly for realtime fmri applications"
    echo  "Parameters:"
@@ -90,6 +99,8 @@ HELP:
    echo  "  -roi_grid GRID: The volume that defines the final ROI's grid."
    echo  "  -prefix PREFIX: PREFIX is used to tag the names the ROIs output."
    echo  "  -time: A flag to make the script output elapsed time reports."
+   echo  "  -twopass: Make TLRC transformation more robust. Use it if TLRC "
+   echo  "            transform step fails."
    echo  "  -help: Output this message."
    echo  ""
    echo  "The ROI of interest is in a volume called ROI.PREFIX+orig."
@@ -116,10 +127,12 @@ HELP:
    echo  "                 -base TT_N27_r2+tlrc. -anat anat1+orig.HEAD  \"
    echo  "                 -roi_grid epi_r1+orig -prefix toy -time"
    echo  ""
+   set estat = 0
    goto END
    
 PARSE:
    set cnum = 140
+   set npass = '-onepass'
    set input = ""
    set basetlrc = "TT_N27+tlrc"
    set region1 = 'CA_N27_ML::Amygda'
@@ -206,6 +219,11 @@ PARSE:
          set donext = 0   
       endif
       
+      if ($donext && "$argv[$cnt]" == "-twopass") then
+         set npass = '-twopass'
+         set donext = 0   
+      endif
+      
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
          goto END
@@ -217,3 +235,4 @@ PARSE:
    goto DEED
 
 END:
+exit $estat
