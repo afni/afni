@@ -147,9 +147,12 @@ g_history = """
     2.01 Jul 07 2009 : added warning to edit script on use of dmBLOCK
     2.02 Jul 27 2009 : used -slibase_sm instead of -slibase in 3dREMLfit
     2.03 Jul 29 2009 : fixed creation of extents mask when only 1 run
+    2.04 Jul 29 2009 : Ikuko noted a couple of problems
+        - fixed -volreg_align_to application in case of align_epi_anat
+        - fixed blur 'averages' computation when only one run
 """
 
-g_version = "version 2.03, July 29, 2009"
+g_version = "version 2.04, August 6, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -882,10 +885,12 @@ class SubjProcSream:
             return -1, -1
         opt = block.opts.find_opt('-volreg_base_ind')
 
-        if not opt: return proc.runs-1, proc.reps-1  # defaults
+        if not opt:
+            if self.verb > 2: print '-- no -volreg_base_ind opt for vr_base'
+            return proc.runs-1, proc.reps-1  # defaults
 
         # if parlist values are -1, set to last TR
-        if opt.parlist[0] < 0 or opt.parlist[1] < 1:
+        if opt.parlist[0] < 0 or opt.parlist[1] < 0:
             return self.runs-1, self.reps-1
 
         return opt.parlist[0], opt.parlist[1]
