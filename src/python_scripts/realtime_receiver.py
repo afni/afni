@@ -338,7 +338,8 @@ class ReceiverInterface:
    def process_one_TR(self):
       """return 0 to continue, 1 on valid termination, -1 on error"""
 
-      if self.verb>2: print '-- process_one_TR, demo = %d,' % self.demo
+      if self.verb>2:
+         print '-- process_one_TR, show_demo_data = %d,' % self.show_demo_data
 
       rv = self.RTI.read_TR_data()
       if rv:
