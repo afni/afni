@@ -22,9 +22,7 @@ DriveSuma   -com show_surf -label ${tmpico} \
             -com viewer_cont -viewer_size 1000 1000 \
                               -key m -key left
 
-echo ""
-echo ">>> Hit enter for node-based segments object"
-set kk = $<
+prompt_user -pause "Hit enter for node-based segments object"
 
 #node-based_segments  or #node-based_oriented_segments 
 set pr = '__nbs'
@@ -35,9 +33,7 @@ echo "554 634  1" >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do \
                            -key p
 
-echo ""
-echo ">>> Hit enter for node-based oriented segments"
-set kk = $<
+prompt_user -pause "Hit enter for node-based oriented segments"
 
 set pr = '__onbs'
 rm -f $pr.1D.do
@@ -46,9 +42,7 @@ echo "313 160    1 0 0 1" >> $pr.1D.do
 echo "314 331    1 1 0 1" >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do 
 
-echo ""
-echo ">>> Hit enter for node-based oriented segments with differing thickness"
-set kk = $<
+prompt_user -pause "Hit enter for node-based oriented segments with differing thickness"
 
 set pr = '__onbst'
 rm -f $pr.1D.do
@@ -57,9 +51,7 @@ echo "327 1    1 0 0 1 8" >> $pr.1D.do
 echo "116 532    1 1 0 1 2" >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do 
 
-echo ""
-echo ">>> Hit enter for coordinate-based segments"
-set kk = $<
+prompt_user -pause "Hit enter for coordinate-based segments"
 
 #oriented_segments  or #segments
 set pr = '__os'
@@ -69,9 +61,7 @@ echo "230.3 261.1 210.9  240 220.8 198.5  0 1 1 1" >> $pr.1D.do
 echo "240.1 280.2 185.23   240.9 250.1 180     0 1 0 1" >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do 
 
-echo ""
-echo ">>> Hit enter for spheres"
-set kk = $<
+prompt_user -pause "Hit enter for spheres"
 
 #spheres
 set pr = '__sp'
@@ -81,9 +71,7 @@ echo "240 230.8 208.5  1 1 1 1 15 1" >> $pr.1D.do
 echo "235  201  215    1 1  0 1 10 2 " >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do 
 
-echo ""
-echo ">>> Hit enter for vectors"
-set kk = $<
+prompt_user -pause "Hit enter for vectors"
 
 #vectors
 set pr = '__vec'
@@ -97,9 +85,7 @@ set nout = `ccalc -int $nout[1] - 1`
 
 DriveSuma   -com viewer_cont -load_do $pr.mini.TriNormSeg.1D
 
-echo ""
-echo ">>> Hit enter for planes"
-set kk = $<
+prompt_user -pause "Hit enter for planes"
 
 PLANES:
 set pr = '__pl'
@@ -108,9 +94,7 @@ echo "#planes" >> $pr.1D.do
 echo "1 1 1 0 286.766998, 281.160004, 236." >> $pr.1D.do
 DriveSuma   -com viewer_cont -load_do $pr.1D.do
 
-echo ""
-echo ">>> Hit enter for node path on surface"
-set kk = $<
+prompt_user -pause "Hit enter for node path on surface"
 
 DriveSuma   -com viewer_cont -key:r3:s0.8 p
 
@@ -127,9 +111,7 @@ SurfDist -i ${tmpico}.ply \
          -node_path_do $pr   > surfdist.1D
 DriveSuma   -com viewer_cont -load_do $pr.1D.do
 
-echo ""
-echo ">>> Hit enter for NIML displayable objects (NIDO)"
-set kk = $<
+prompt_user -pause "Hit enter for NIML displayable objects (NIDO)"
 
 NIDO:
 #Displayable objects (DO) action
@@ -142,9 +124,7 @@ if ( ! -f fixed.niml.do || ! -f mobile.niml.do ) then
    goto END
 endif
 
-echo ""
-echo ">>> Hit enter to see images, and text in fixed coord_type."
-set kk = $<
+prompt_user -pause "Hit enter to see images, and text in fixed coord_type."
 
 #Hide the textures
 sed "s;\<Tex;\<\#Tex;g" fixed.niml.do > __fixed.niml.do
@@ -153,13 +133,12 @@ DriveSuma -com viewer_cont -load_do __fixed.niml.do
 echo ""
 echo ">>> Hit enter to see texture images added, fixed coord_type."
 echo "    This may slow rendering speeds considerably on some machines." 
-set kk = $<
+prompt_user -pause "Hit enter to see texture images added, fixed coord_type."
+
 cp fixed.niml.do __fixed.niml.do
 DriveSuma -com viewer_cont -load_do __fixed.niml.do
 
-echo ""
-echo ">>> Hit enter to see images, texture and text in, mobile coord_type."
-set kk = $<
+prompt_user -pause "Hit enter to see images, texture and text in, mobile coord_type."
 
 #first hide all content of fixed, to reduce confusion
 sed "s;\<;\<#;g" fixed.niml.do > __fixed.niml.do
@@ -168,9 +147,7 @@ DriveSuma -com viewer_cont -load_do __fixed.niml.do
 #Now load the mobile one
 DriveSuma -com viewer_cont -load_do mobile.niml.do 
 
-echo ""
-echo ">>> Hit enter to see all NIDO elements together"
-set kk = $<
+prompt_user -pause "Hit enter to see all NIDO elements together"
 
 DriveSuma -com viewer_cont -load_do fixed.niml.do
 
