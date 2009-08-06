@@ -1872,12 +1872,16 @@ def blur_est_loop_str(proc, dname, mname, label, outfile):
         '    @ b0 += $reps  # first index for next run\n'       \
         'end\n\n'
 
+    # how to get the blurs differs if there is only 1 run
+    if proc.runs > 1: blur_str = "3dTstat -mean -prefix - %s\\\'" % tmpfile
+    else:             blur_str = "cat %s" % tmpfile
+
     cmd = cmd +                                                 \
         '# compute average blur and append\n'                   \
-        'set blurs = ( `3dTstat -mean -prefix - %s\\\'` )\n'    \
+        'set blurs = ( `%s` )\n'                                \
         'echo average %s blurs: $blurs\n'                       \
         'echo "$blurs   # %s blur estimates" >> %s\n\n'     %   \
-        (tmpfile, label, label, outfile)
+        (blur_str, label, label, outfile)
 
     return cmd
 

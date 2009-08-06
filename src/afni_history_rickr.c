@@ -48,6 +48,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
+   "fixed a couple of problems found by Ikuko",
+   "- fixed -volreg_align_to application in case of align_epi_anat\n"
+   "- fixed blur 'averages' computation when only one run"
+ } ,
+
  {  4, AUG, 2009, RCR, "realtime_receiver.py", MINOR, TYPE_NEW_OPT,
    "added basic demo interface and itemized exception traps",
    NULL
