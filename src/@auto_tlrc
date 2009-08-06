@@ -1,6 +1,9 @@
 #!/bin/tcsh -f
 
 PARSE: 
+   #exit status
+   set estat = 0
+   
    echo "Parsing ..."
    set Narg = $#
    
@@ -350,11 +353,13 @@ PARSE:
 IN_CHECK:
 if ("$suf" == '' && $KeepView == 1) then
    echo "Cannot use -keep_view and -suffix none"
+   set estat = 1
    goto END
 endif
 
 if ( `@CheckForAfniDset ${ref_in}` != 2 ) then
    echo "Error: Template dset ${ref_in} not found."
+   set estat = 1
    goto END
 endif
 set ttt_pref = "`@GetAfniPrefix ${ref_in}`"
@@ -365,6 +370,7 @@ if ("$ttt_pref" == "TT_avg152EPI") then
    echo "For an equivalent template in MNI space use MNI_EPI+tlrc"
    echo "For an equivalent template in TLRC space use TT_EPI+tlrc"
    echo ""
+   set estat = 1
    goto END
 endif
 
@@ -381,28 +387,33 @@ OK_notice:
 
 if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
    echo "Error: Anatomical dset ${anat_in} not found."
+   set estat = 1
    goto END
 endif 
 
 if ($KeepView == 1) then
    if ( `@CheckForAfniDset ${tt_pref}${anat_view}` != 0 ) then
       echo "Error: Output dset ${tt_pref}${anat_view} exists"
+      set estat = 1
       goto END
    endif
    if ($acpciate == 1) then
       if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${anat_view}` != 0 ) then
          echo "Error: Output dset ${tt_pref}.Xat.rigid${anat_view} exists"
+         set estat = 1
          goto END
       endif
    endif
 else
    if ( `@CheckForAfniDset ${tt_pref}${ref_view}` != 0 ) then
       echo "Error: Output dset ${tt_pref}${ref_view} exists"
+      set estat = 1
       goto END
    endif
    if ($acpciate == 1) then
       if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${ref_view}` != 0 ) then
          echo "Error: Output dset ${tt_pref}.Xat.rigid${ref_view} exists"
+         set estat = 1
          goto END
       endif
    endif
@@ -426,6 +437,7 @@ AUTO_TLRC_MODE:
       echo "       Input dataset has $nsb[4] sub-bricks. Use '[]' to "
       echo "       choose one sub-brick."
       echo ""
+      set estat = 1
       goto END
    endif
 
@@ -481,6 +493,7 @@ AUTO_TLRC_MODE:
                      -prefix ${ns_pref} ${ss_opt}
       if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 ) then
          echo "Error: Failed to create skull stripped brain"
+         set estat = 1
          goto END
       endif
    else
@@ -500,6 +513,7 @@ AUTO_TLRC_MODE:
       set ns_pref = ${ns_pref}_clpbel
       if (`@CheckForAfniDset ${ns_pref}${anat_view}` != 2) then 
 			echo "Error: Failed to clip below $clpbelow mm"
+         set estat = 1
          goto END
 		endif
    endif
@@ -527,6 +541,7 @@ AUTO_TLRC_MODE:
                -expr "a*step(b-5000)" -prefix ${tmppref}_resamp
       if ( `@CheckForAfniDset ${tmppref}_resamp${ref_view}` != 2 ) then
          echo "Error: Failed to create resampled volume"
+         set estat = 1
          goto END
       endif
       #clip values to range of input
@@ -543,6 +558,7 @@ AUTO_TLRC_MODE:
       if ( $KeepTmp == 0) rm -f ${tmppref}_resamp* >& /dev/null 
       if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
          echo "Error: Failed to change view of resampled volume"
+         set estat = 1
          goto END
       endif
    endif
@@ -570,6 +586,7 @@ AUTO_TLRC_MODE:
                   -input ${rs_pref}${anat_view}
       if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then
          echo "Error: Failed in 3dWarpDrive "
+         set estat = 1
          goto END
       endif
       #check for convergence
@@ -708,6 +725,7 @@ AUTO_TLRC_MODE:
             -expr "step(a-5000)*b" -prefix ${tt_prefpad}
    if ( `@CheckForAfniDset ${tt_prefpad}${anat_view}` != 2 ) then
       echo "Error: Failed to create tlrced brain"
+      set estat = 1
       goto END
    endif
    
@@ -793,6 +811,7 @@ APAR_MODE:
             -prefix ${tmppref}_warp_tmp -${rmode} ${tmppref}_ipad${anat_view}
    if ( `@CheckForAfniDset ${tmppref}_warp_tmp${anat_view}` != 2) then
       echo "Error: Failed to create tlrced dset"
+      set estat = 1
       goto END
    endif
    
@@ -858,12 +877,14 @@ if ( "$ref_path" == "$ref_in" ) then
    if ( "$ref_path" == '' ) then
       set ref_path = "."
       echo "Error: Template $ref_in could not be located"
+      set estat = 1
       goto END
    endif
    #echo "try finding ref_in in new ref_path"
    if ( `@CheckForAfniDset ${ref_path}/${ref_in}` != 2 ) then
       echo "Error: Template dset ${ref_in} not found"
       echo "   in afni's binaries directory"
+      set estat = 1
       goto END
    endif
    echo "Using template from ${ref_path} ..."
@@ -1151,3 +1172,4 @@ WARN_notice:
    endif
    
 END:
+   exit $estat

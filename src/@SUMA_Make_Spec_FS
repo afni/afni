@@ -764,7 +764,7 @@ L_CREATE_BRICK:
        foreach other ($other_mgz)
          #@SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
          #rm -f $start_dir/$suma_dir/COR-??? $start_dir/$suma_dir/COR-.info \
-                                                                     >& /dev/null
+         #                                                           >& /dev/null
          mri_convert -ot nii $other $start_dir/$suma_dir/${other:t:r}".nii"
          #Now shift the damned volumes to match the surface volumes
          cd $start_dir/$suma_dir/
