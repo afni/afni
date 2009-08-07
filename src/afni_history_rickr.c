@@ -49,8 +49,8 @@
 afni_history_struct rickr_history[] = {
 
  {  6, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
-   "fixed a couple of problems found by Ikuko",
-   "- fixed -volreg_align_to application in case of align_epi_anat\n"
+   "fixed problems found by I Mukai and K Bahadur",
+   "- fixed -volreg_align_to base as applied in align_epi_anat.py\n"
    "- fixed blur 'averages' computation when only one run"
  } ,
 

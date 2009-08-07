@@ -147,8 +147,8 @@ g_history = """
     2.01 Jul 07 2009 : added warning to edit script on use of dmBLOCK
     2.02 Jul 27 2009 : used -slibase_sm instead of -slibase in 3dREMLfit
     2.03 Jul 29 2009 : fixed creation of extents mask when only 1 run
-    2.04 Jul 29 2009 : Ikuko noted a couple of problems
-        - fixed -volreg_align_to application in case of align_epi_anat
+    2.04 Aug 06 2009 : fixed problems found by I Mukai and K Bahadur:
+        - fixed -volreg_align_to base as applied in align_epi_anat.py
         - fixed blur 'averages' computation when only one run
 """
 
