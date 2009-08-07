@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
 print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.8,  August 4, 2009")
+print("Version 0.0.9,  August 7, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -192,7 +192,7 @@ write.AFNI <- function(filename, ttt, label, note="", origin=c(0,0,0), delta=c(4
 # Further modifications
 
 # handles one group or two groups with homogeneity assumption
-rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr=10^-8, maxiter=50)) {
+rmaB <- function(yi, vi, n, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8, maxiter=50, thrZ=1.3)) {
 
 # yi: vector of dependent variable values
 # vi: corresponding variances of yi 
@@ -203,8 +203,43 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
 # con$thr: converging threshold for REML
 # con$maxiter: maximum # of converging iterations for REML
 
-   Laplace <- function(Y, vi, n, p, X, con=list(thr=2*10^-5, maxiter=50)) {
-### looks like you can't get the precision lower than con$thr = 10^-5!!!
+	Y <- as.matrix(yi)
+	   
+	tr <- function(X) sum(diag(X))
+
+   W0     <- diag(1/vi)
+   tmp0   <- t(X) %*% W0
+   P0     <- W0 - t(tmp0) %*% solve(tmp0 %*% X) %*% tmp0
+   QE     <- t(Y) %*% P0 %*% Y   
+   
+   collect <- function(Y, vb, R, P, n, p, knha, con) {
+      if(knha) vb <- (c( t(Y) %*% P %*% Y ) / (n-p)) * vb
+      se <- sqrt(diag(vb))
+      b    <- R %*% Y
+      z <- ifelse(se>con$thr, b/se, 0)
+      out <- list(se, b, z)
+      names(out) <- c("se", "b", "z")
+      out
+   }
+
+   MoM <- function(Y, vi, n, p, X, P0, QE, knha, con) {
+      #RSS    <- t(Y) %*% P0 %*% Y
+      tau2   <- ( QE - (n-p) ) / tr(P0)  # RSS = QE
+      tau2 <- max(0, c(tau2))
+      W   <- diag(1/(vi + tau2))
+      tmp <- t(X) %*% W
+      vb  <- solve(tmp %*% X)
+      R   <- vb %*% tmp  # projection of Y to space spanned by X
+      P   <- W - t(tmp) %*% R  # projection of Y to space spanned by residuals
+      stat <- collect(Y, vb, R, P, n, p, knha, con)
+      out <- list(stat$se, stat$b, stat$z, tau2, P, 0, 0)
+      names(out) <- c("se", "b", "z", "tau2", "P", "meth", "iter")
+      out
+   }                 
+
+   
+   Laplace <- function(Y, vi, n, p, X, knha, con=list(thr=2*10^-5, maxiter=50)) {
+   ### looks like you can't get the precision lower than con$thr = 10^-5!!!
 
    conv		<- 1
 	change_b	<- 1000
@@ -214,7 +249,8 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
    nu       <- sqrt(max(0, var(Y) - mean(vi)))/sqrt(2)
    if(nu < 10^-10) nu <- sqrt(max(0, var(Y) - mean(vi)/3))
    W		   <- diag(1/(vi + 2*nu^2))  # need to deal with 0s' here?
-   b    <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
+   tmp  <- t(X) %*% W
+   b    <- solve(tmp %*% X) %*% tmp %*% Y
    visr <- sqrt(vi)
 
 	# seems two ways to update beta (b): one through iterative WLS, while the other via its own iterations
@@ -228,7 +264,6 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
 		}
 		b.old    <- b
       nu.old   <- nu    # scalor
-      #browser()
       ei <- Y - X %*% b.old    # n X 1 vector
       Ei <- exp(ei/nu)       # n X 1 vector
       temp1 <- visr/nu; temp2 <- ei/visr  # n X 1 vector: dealing 0s for visr?
@@ -251,8 +286,6 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
          g <- g + rbind(dLb, dLnu)
       }      
       
-      #print(H); print(g)
-      #browser()
       if(any(is.infinite(H)) | any(is.infinite(H)) | any(is.infinite(g)) | any(is.infinite(g)) |
          any(is.nan(H)) | any(is.nan(H)) | any(is.nan(g)) | any(is.nan(g))) { # failed because of infinity issue
          conv    <- 0
@@ -277,138 +310,110 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
       out <- list(conv)
       names(out) <- c("conv")
    } else {   # Laplace succeeded
-      W		   <- diag(1/(vi + 2*nu^2))
-      vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
-      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
-      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
+      W	  <- diag(1/(vi + 2*nu^2))
+      tmp  <- t(X) %*% W
+      vb   <- solve(tmp %*% X)   # variance-covariance matrix
+      R    <- vb %*% tmp  # projection of Y to space spanned by X
+      P    <- W - t(tmp) %*% R  # projection of Y to space spanned by residuals
       tau2 <- 2*nu^2
-      meth <- 0
-      out <- list(conv, vb, R, P, tau2, meth, iter)
-      names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
+      
+      stat <- collect(Y, vb, R, P, n, p, knha, con)
+      out  <- list(stat$se, stat$b, stat$z, tau2, P, 1, 1, iter)
+      names(out) <- c("se", "b", "z", "tau2", "P", "conv", "meth", "iter")
    }
    out
-   }
+   } # end of Laplace
+   
+   REML <- function(Y, X, v, knha, n, p, con) {
+      conv		<- 1
+      adj	   <- 1000
+      iter		<- 0
+      tau2     <- max(0, var(Y) - mean(v))  # tau^2 for group 1
+      W		   <- diag(1/(v + tau2))
+      tmp      <- t(X) %*% W
+      vb       <- solve(tmp %*% X)   # variance-covariance matrix
+      R        <- vb %*% tmp  # projection of Y to space spanned by X
+      P        <- W - t(tmp) %*% R
+      while(abs(adj) > con$thr) {
+         iter     <- iter + 1  # iteration counter
+         if (iter > con$maxiter) {
+            conv    <- 0
+            break
+         }
+         tau2.old <- tau2
+         py    <- P%*%Y
+         adj	<- solve( tr(P%*%P) ) %*% ( t(py)%*%py - tr(P) )
+         while (tau2 + adj < 0) adj <- adj / 2
+         tau2		<- tau2 + adj
+         W		   <- diag(1/(v + tau2))
+         tmp <- t(X) %*% W
+         vb  <- solve(tmp %*% X)   # variance-covariance matrix
+         R   <- vb %*% tmp  # projection of Y to space spanned by X
+         P <- W - t(tmp) %*% R
+      }
 
+      if(conv==0) { # REML failed
+         out <- list(conv)
+         names(out) <- c("conv")
+      } else {   # REML succeeded         
+         stat <- collect(Y, vb, R, P, n, p, knha, con)
+         out <- list(stat$se, stat$b, stat$z, tau2, P, 1, 2, iter)
+         names(out) <- c("se", "b", "z", "tau2", "P", "conv", "meth", "iter")
+      }
+      out
+   }  # end of REML
 
-	Y <- as.matrix(yi)
-	   
-	tr <- function(X) {
-		sum(diag(X))
-	}
+   # try MoM first: if not significant for sure, then not worth trying other costy methods
+   outMoM <- MoM(Y, vi, n, p, X, P0, QE, knha, con)
+   se   <- outMoM$se
+   b    <- outMoM$b
+   z    <- outMoM$z
+   tau2 <- outMoM$tau2
+   P    <- outMoM$P
+   meth <- outMoM$meth
+   iter <- outMoM$iter   
    
    if(lapMod==1) {
-      out <- Laplace(Y, vi, n, p, X)
-      if(out$conv == 1) {
-      conv <- 1
-      vb   <- out$vb  
-      R    <- out$R
-      P    <- out$P   
-      tau2 <- out$tau2
-      meth <- out$meth
-      iter <- out$iter
-      } else lapMod <- 0  # switch to REML first here when Laplace fails
+      resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(tau2+vi), P)))
+      # try Laplace only if either likely significant or suspicious of outliers
+      #browser()
+      noMoM <- (abs(outMoM$z) > con$thrZ) | any(abs(resZ) > con$thrZ)
+      if(noMoM) {
+         outLap <- Laplace(Y, vi, n, p, X, knha)
+         if(outLap$conv == 1) {
+            se   <- outLap$se
+            b    <- outLap$b
+            z    <- outLap$z
+            tau2 <- outLap$tau2
+            P    <- outLap$P
+            meth <- outLap$meth
+            iter <- outLap$iter
+         } else lapMod <- 0  # switch to REML first here when Laplace fails
+      } 
    }
    
    if(lapMod==0) { # if Laplace is not selected or fails, try REML
-		
-      REML <- function(Y, X, v, con) {
-         conv		<- 1
-	      adj	<- 1000
-         iter		<- 0
-         tau2    <- max(0, var(Y) - mean(v))  # tau^2 for group 1
-         W		   <- diag(1/(v + tau2))
-         vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
-         R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
-         P <- W - W %*% X %*% R
-         #browser()
-         while(abs(adj) > con$thr) {
-            iter     <- iter + 1  # iteration counter
-            if (iter > con$maxiter) {
-               conv    <- 0
-               break
-            }
-            tau2.old <- tau2
-            adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
-            while (tau2 + adj < 0) adj <- adj / 2
-            tau2		<- tau2 + adj
-            #change	<- abs(tau2.old - tau2)
-            W		   <- diag(1/(v + tau2))
-            vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
-            R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
-            P <- W - W %*% X %*% R
-            #browser()
-        }
-        #browser()
-        if(conv==0) { # REML failed
-            out <- list(conv)
-            names(out) <- c("conv")
-        } else {   # REML succeeded
-            meth <- 0
-            out <- list(conv, vb, R, P, tau2, meth, iter)
-            names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
-        }
-        out
-      }  # end of REML
-      
-      outREML <- REML(yi, X, vi, con)
-      if(outREML$conv == 1) {
-         conv <- 1
-         vb   <- outREML$vb
-         R    <- outREML$R
-         P    <- outREML$P   
-         tau2 <- outREML$tau2 
-         meth <-  outREML$meth
-         iter <- outREML$iter
-      } else conv <- 0 
-   } # if(lapMod==0)
-
-   
-   W0     <- diag(1/vi)
-   P0     <- W0 - W0 %*% X %*% solve(t(X) %*% W0 %*% X) %*% t(X) %*% W0
-   QE    <- t(Y) %*% P0 %*% Y
-   #browser()
-   
-   if (conv == 0) {  # try DSL if REML or Laplace+REML fails
-      #wi     <- 1/vi
-      #W      <- diag(wi)
-      #P      <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-      RSS    <- t(Y) %*% P0 %*% Y
-      tau2   <- ( RSS - (n-p) ) / tr(P0)
-      tau2 <- max(0, c(tau2))
-      W   <- diag(1/(vi + tau2))
-      vb  <- solve(t(X) %*% W %*% X)
-      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
-      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
-      #b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
-      meth <- 2
-      iter <- 0                
-	} else if(lapMod==0) { # for REML
-      tau2 <- max(0, c(tau2))
-      meth <- 1
+      # try REML only if likely significant
+      noMoM <- (abs(outMoM$z) > con$thrZ) 
+      if(noMoM) {
+         outREML <- REML(yi, X, vi, knha, n, p, con)
+         if(outREML$conv == 1) {
+            se   <- outREML$se
+            b    <- outREML$b
+            z    <- outREML$z
+            tau2 <- outREML$tau2
+            P    <- outREML$P
+            meth <- outREML$meth
+            iter <- outREML$iter
+         }
+      }
    }
    
-   #W   <- diag(1/(vi + tau2))
-   #b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
-   #vb  <- solve(t(X) %*% W %*% X)
-   
-   b    <- R %*% Y
-
-	if (knha == TRUE) {  # Knapp & Hartung method
-      #P     <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-      s2w   <- c( t(Y) %*% P %*% Y ) / (n-p)
-      vb    <- s2w * vb
-  }
-	
-   se    <- sqrt(diag(vb))
-#   z     <- b / sqrt(diag(vb))
-   z     <- ifelse(se>con$thr, b/se, 0)
-#   tau <- sqrt(tau2)
-   #browser() 
    if(resOut==1) { # residual statistics requested
       vTot <- tau2+vi  # total variance
-      lamc <- ifelse(vTot>con$thr, vi/vTot, 0)  # Like ICC, lambda shows percent of variation at group level   
+      lamc <- ifelse(vTot>con$thr, vi/vTot, 0)  # Like ICC, lamda shows percent of variation at group level   
       # need to scale this for Knapp & Hartung method as done above by s2w <- c( t(Y) %*% P %*% Y ) / (n-p)?
-      resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(vTot), P)))
+      if((lapMod==0) | noMoM) resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(vTot), P)))
    
       res         <- list(b, se, z, tau2, QE, lamc, resZ, meth, iter)
       names(res)  <- c("b", "se", "z", "tau2", "QE", "lamc", "resZ", "meth", "iter")
@@ -420,10 +425,51 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod=FALSE, knha=FALSE, con=list(thr
 }
 
 # two groups with heterogeneity assumption
-rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8, maxiter=50)) {
+rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8, maxiter=50, thrZ=1.3)) {
 
-   Laplace <- function(Y, vi, n, p, X, con=list(thr=2*10^-5, maxiter=50)) {
-### looks like you can't get the precision lower than con$thr = 10^-5!!!
+	Y <- as.matrix(yi)
+   Y1 <- as.matrix(Y[1:n1,]); Y2 <- as.matrix(Y[(n1+1):nT,])
+   v1 <- vi[1:n1]; v2 <- vi[(n1+1):nT]
+   n2 <- nT-n1
+   X1 <- as.matrix(X[1:n1,-2]); X2 <- as.matrix(X[(n1+1):nT,-2])   
+	   
+	tr <- function(X) sum(diag(X))
+
+   W01	 <- diag(1/v1)
+   W02    <- diag(1/v2)
+   tmp01   <- t(X1) %*% W01
+   tmp02   <- t(X2) %*% W02
+   P01    <- W01 - t(tmp01) %*% solve(tmp01 %*% X1) %*% tmp01
+   P02    <- W02 - t(tmp02) %*% solve(tmp02 %*% X2) %*% tmp02
+   QE     <- c(t(Y1) %*% P01 %*% Y1, t(Y2) %*% P02 %*% Y2)
+
+   collect <- function(Y, vb, R, P, n, p, knha, con) {
+      if(knha) vb <- (c( t(Y) %*% P %*% Y ) / (n-p)) * vb
+      se <- sqrt(diag(vb))
+      b    <- R %*% Y
+      z <- ifelse(se>con$thr, b/se, 0)
+      out <- list(se, b, z)
+      names(out) <- c("se", "b", "z")
+      out
+   }
+   
+   MoM <- function(Y, vi, n, p, X, P0, QE, knha, con) {
+      #RSS    <- t(Y) %*% P0 %*% Y
+      tau2   <- ( QE - (n-p) ) / tr(P0)  # RSS = QE
+      tau2 <- max(0, c(tau2))
+      W   <- diag(1/(vi + tau2))
+      tmp <- t(X) %*% W
+      vb  <- solve(tmp %*% X)
+      R   <- vb %*% tmp  # projection of Y to space spanned by X
+      P   <- W - t(tmp) %*% R  # projection of Y to space spanned by residuals
+      stat <- collect(Y, vb, R, P, n, p, knha, con)
+      out <- list(stat$se, stat$b, stat$z, tau2, P, 0, 0)
+      names(out) <- c("se", "b", "z", "tau2", "P", "meth", "iter")
+      out
+   }                 
+
+   Laplace <- function(Y, vi, n, p, X, knha, con=list(thr=2*10^-5, maxiter=50)) {
+   ### looks like you can't get the precision lower than con$thr = 10^-5!!!
 
    conv		<- 1
 	change_b	<- 1000
@@ -433,7 +479,8 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
    nu       <- sqrt(max(0, var(Y) - mean(vi)))/sqrt(2)
    if(nu < 10^-10) nu <- sqrt(max(0, var(Y) - mean(vi)/3))
    W		   <- diag(1/(vi + 2*nu^2))  # need to deal with 0s' here?
-   b    <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
+   tmp  <- t(X) %*% W
+   b    <- solve(tmp %*% X) %*% tmp %*% Y
    visr <- sqrt(vi)
 
 	# seems two ways to update beta (b): one through iterative WLS, while the other via its own iterations
@@ -447,7 +494,6 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
 		}
 		b.old    <- b
       nu.old   <- nu    # scalor
-      #browser()
       ei <- Y - X %*% b.old    # n X 1 vector
       Ei <- exp(ei/nu)       # n X 1 vector
       temp1 <- visr/nu; temp2 <- ei/visr  # n X 1 vector: dealing 0s for visr?
@@ -470,8 +516,6 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
          g <- g + rbind(dLb, dLnu)
       }      
       
-      #print(H); print(g)
-      #browser()
       if(any(is.infinite(H)) | any(is.infinite(H)) | any(is.infinite(g)) | any(is.infinite(g)) |
          any(is.nan(H)) | any(is.nan(H)) | any(is.nan(g)) | any(is.nan(g))) { # failed because of infinity issue
          conv    <- 0
@@ -496,153 +540,135 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
       out <- list(conv)
       names(out) <- c("conv")
    } else {   # Laplace succeeded
-      W		   <- diag(1/(vi + 2*nu^2))
-      vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
-      R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
-      P   <- W - W %*% X %*% R  # projection of Y to space spanned by residuals
+      W	  <- diag(1/(vi + 2*nu^2))
+      tmp  <- t(X) %*% W
+      vb   <- solve(tmp %*% X)   # variance-covariance matrix
+      R    <- vb %*% tmp  # projection of Y to space spanned by X
+      P    <- W - t(tmp) %*% R  # projection of Y to space spanned by residuals
       tau2 <- 2*nu^2
-      meth <- 0
-      out <- list(conv, vb, R, P, tau2, meth, iter)
-      names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
+      
+      stat <- collect(Y, vb, R, P, n, p, knha, con)
+      out  <- list(stat$se, stat$b, stat$z, tau2, P, 1, 1, iter)
+      names(out) <- c("se", "b", "z", "tau2", "P", "conv", "meth", "iter")
    }
    out
-   }  # end of Laplace
+   } # end of Laplace
+ 
+   REML <- function(Y, X, v, knha, n, p, con) {
+      conv		<- 1
+      adj	   <- 1000
+      iter		<- 0
+      tau2     <- max(0, var(Y) - mean(v))  # tau^2 for group 1
+      W		   <- diag(1/(v + tau2))
+      tmp      <- t(X) %*% W
+      vb       <- solve(tmp %*% X)   # variance-covariance matrix
+      R        <- vb %*% tmp  # projection of Y to space spanned by X
+      P        <- W - t(tmp) %*% R
+      while(abs(adj) > con$thr) {
+         iter     <- iter + 1  # iteration counter
+         if (iter > con$maxiter) {
+            conv    <- 0
+            break
+         }
+         tau2.old <- tau2
+         py    <- P%*%Y
+         adj	<- solve( tr(P%*%P) ) %*% ( t(py)%*%py - tr(P) )
+         while (tau2 + adj < 0) adj <- adj / 2
+         tau2		<- tau2 + adj
+         W		   <- diag(1/(v + tau2))
+         tmp <- t(X) %*% W
+         vb  <- solve(tmp %*% X)   # variance-covariance matrix
+         R   <- vb %*% tmp  # projection of Y to space spanned by X
+         P <- W - t(tmp) %*% R
+      }
 
-	Y <- as.matrix(yi)
-   #browser()
-   Y1 <- as.matrix(Y[1:n1,]); Y2 <- as.matrix(Y[(n1+1):nT,])
-   v1 <- vi[1:n1]; v2 <- vi[(n1+1):nT]
-   n2 <- nT-n1
-   #mods1 <- as.matrix(mods[1:n1,]); mods2 <- as.matrix(mods[(n1+1):nT,])
-      
-   X1 <- as.matrix(X[1:n1,-2]); X2 <- as.matrix(X[(n1+1):nT,-2])
-   #browser()
-   # This should be part of arguments!!!!!!!!!
-  
-	tr <- function(X) sum(diag(X))
+      if(conv==0) { # REML failed
+         out <- list(conv)
+         names(out) <- c("conv")
+      } else {   # REML succeeded         
+         stat <- collect(Y, vb, R, P, n, p, knha, con)
+         out <- list(stat$se, stat$b, stat$z, tau2, P, 1, 2, iter)
+         names(out) <- c("se", "b", "z", "tau2", "P", "conv", "meth", "iter")
+      }
+      out
+   }  # end of REML
 
+   # try MoM first: if not significant for sure, then not worth trying other costy methods
+   # Be careful: p-1 here because each group has p-1 columns in the design matrix
+   outMoM1 <- MoM(Y1, v1, n1, p-1, X1, P01, QE[1], FALSE, con) # force knha FASLE so that modification happens later
+   outMoM2 <- MoM(Y2, v2, n2, p-1, X2, P02, QE[2], FALSE, con) # force knha FASLE
+   
+   se   <- c(outMoM1$se, outMoM2$se)
+   b    <- c(outMoM1$b, outMoM2$b)
+   z    <- c(outMoM1$z, outMoM2$z)
+   tau2 <- c(outMoM1$tau2, outMoM2$tau2)
+   #tau2 <- outMoM$tau2
+   P1    <- outMoM1$P; P2 <- outMoM2$P
+   meth <- outMoM1$meth
+   iter <- c(outMoM1$iter, outMoM2$iter)   
+   
    if(lapMod==1) {
-      out1 <- Laplace(Y1, v1, n1, p-1, X1)
-      out2 <- Laplace(Y2, v2, n2, p-1, X2)
-      if(out1$conv == 1 & out2$conv == 1) {
-      conv1 <- 1;         conv2 <- 1
-      vb1   <- out1$vb;   vb2   <- out2$vb
-      R1    <- out1$R;    R2    <- out2$R
-      P1    <- out1$P;    P2    <- out2$P   
-      tau12 <- out1$tau2; tau22 <- out2$tau2 
-      meth <- out1$meth
-      iter1 <- out1$iter; iter2 <- out2$iter
-      } else lapMod <- 0  # switch to REML first here when Laplace fails
+      resZ1 <- P1 %*% Y1 / sqrt(diag(P1 %*% tcrossprod(diag(tau2[1]+v1), P1)))
+      resZ2 <- P2 %*% Y2 / sqrt(diag(P2 %*% tcrossprod(diag(tau2[2]+v2), P2)))
+      noMoM <- (any(abs(z) > con$thrZ)) | any(abs(resZ1) > con$thrZ) | any(abs(resZ2) > con$thrZ)
+      if(noMoM) {
+         #browser()
+         outLap1 <- Laplace(Y1, v1, n1, p-1, X1, FALSE) # force knha FASLE
+         outLap2 <- Laplace(Y2, v2, n2, p-1, X2, FALSE) # force knha FASLE
+         if(outLap1$conv == 1 & outLap2$conv == 1) {
+            se   <- c(outLap1$se, outLap2$se)
+            b    <- c(outLap1$b, outLap2$b)
+            z    <- c(outLap1$z, outLap2$z)
+            tau2 <- c(outLap1$tau2, outLap2$tau2)
+            P1   <- outLap1$P; P2 <- outLap2$P
+            meth <- outLap1$meth
+            iter <- c(outLap1$iter, outLap2$iter)
+        } else lapMod <- 0  # switch to REML first here when Laplace fails
+      }
    }
 
-
    if(lapMod==0) { # if Laplace is not selected or fails, try REML      
-	
-      REML <- function(Y, X, v, con) {
-         conv		<- 1
-	      adj	<- 1000
-         iter		<- 0
-         tau2    <- max(0, var(Y) - mean(v))  # tau^2 for group 1
-         W		   <- diag(1/(v + tau2))
-         vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
-         R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
-         P <- W - W %*% X %*% R
-         #browser()
-         while(abs(adj) > con$thr) {
-            iter     <- iter + 1  # iteration counter
-            if (iter > con$maxiter) {
-               conv    <- 0
-               break
-            }
-            tau2.old <- tau2
-            adj	<- solve( tr(P%*%P) ) %*% ( t(Y)%*%P%*%P%*%Y - tr(P) )
-            while (tau2 + adj < 0) adj <- adj / 2
-            tau2		<- tau2 + adj
-            #change	<- abs(tau2.old - tau2)
-            W		   <- diag(1/(v + tau2))
-            vb  <- solve(t(X) %*% W %*% X)   # variance-covariance matrix
-            R   <- vb %*% t(X) %*% W  # projection of Y to space spanned by X
-            P <- W - W %*% X %*% R
-            #browser()
-        }
-        #browser()
-        if(conv==0) { # REML failed
-            out <- list(conv)
-            names(out) <- c("conv")
-        } else {   # REML succeeded
-            meth <- 0
-            out <- list(conv, vb, R, P, tau2, meth, iter)
-            names(out) <- c("conv", "vb", "R", "P", "tau2", "meth", "iter")
-        }
-        out
-      }  # end of REML
-  
-      outREML1 <- REML(Y1, X1, v1, con)
-      outREML2 <- REML(Y2, X2, v2, con)
+	   noMoM <- (any(abs(z) > con$thrZ))
+      if(noMoM) {
+         outREML1 <- REML(Y1, X1, v1, FALSE, n1, p-1, con)  # force knha FASLE
+         outREML2 <- REML(Y2, X2, v2, FALSE, n2, p-1, con)  # force knha FASLE
+         if(outREML1$conv == 1 & outREML2$conv == 1) {
+            se   <- c(outREML1$se, outREML2$se)
+            b    <- c(outREML1$b, outREML2$b)
+            z    <- c(outREML1$z, outREML2$z)
+            tau2 <- c(outREML1$tau2, outREML2$tau2)
+            P1   <- outREML1$P; P2 <- outREML2$P
+            meth <- outREML1$meth
+            iter <- c(outREML1$iter, outREML2$iter)
+         }
+      }
       #browser()
-      if(outREML1$conv == 1 & outREML2$conv == 1) {
-         conv1 <- 1;         conv2 <- 1
-         vb1   <- outREML1$vb;   vb2   <- outREML2$vb
-         R1    <- outREML1$R;    R2    <- outREML2$R
-         P1    <- outREML1$P;    P2    <- outREML2$P   
-         tau12 <- outREML1$tau2; tau22 <- outREML2$tau2 
-         meth <-  outREML1$meth
-         iter1 <- outREML1$iter; iter2 <- outREML2$iter
-      } else {conv1 <- outREML1$conv;  conv2 <- outREML2$conv} 
-   #browser()
    } # if(lapMod==0)
    
-   W01		   <- diag(1/v1)
-   W02		   <- diag(1/v2)
-   P01 <- W01 - W01 %*% X1 %*% solve(t(X1) %*% W01 %*% X1) %*% t(X1) %*% W01
-   P02 <- W02 - W02 %*% X2 %*% solve(t(X2) %*% W02 %*% X2) %*% t(X2) %*% W02
-   QE1    <- t(Y1) %*% P01 %*% Y1
-   QE2    <- t(Y2) %*% P02 %*% Y2
-
-	#need to modify this part
-   if (conv1 == 0 | conv2 == 0) {  # try DSL if REML fails
-      RSS1    <- t(Y1) %*% P01 %*% Y1   
-      RSS2    <- t(Y2) %*% P02 %*% Y2
-      tau12   <- ( RSS1 - (n1-p+1) ) / tr(P01)
-      tau22   <- ( RSS2 - (nT-n1-p+1) ) / tr(P02)
-      meth <- 2
-      iter1 <- 0; iter2 <- 0               
-	} else if(lapMod==0) { # for REML
-      tau12 <- max(0, c(tau12)); tau22 <- max(0, c(tau22))
-      meth <- 1
-   }   
-
-   wi <- vector(mode="numeric", length= nT)
-   wi[1:n1]  <- 1/(vi[1:n1] + tau12)
-   wi[(n1+1):nT] <- 1/(vi[(n1+1):nT] + tau22)
-	W	 <- diag(wi)
-   #browser()
-   b   <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% Y
-   vb  <- solve(t(X) %*% W %*% X)
-
-	if (knha == TRUE) {  # Knapp & Hartung method
-      P     <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
-      s2w   <- c( t(Y) %*% P %*% Y ) / (nT-p)
-      vb    <- s2w * vb
-  }
-   
-   se    <- sqrt(diag(vb))
-#	z     <- b / se
-   z     <- ifelse(se>con$thr, b/se, 0)
+   if(knha) {
+      scl <- c(sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1))),
+         sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1))))
+      W <- diag(c(1/(v1 + tau2[1]), 1/(v2 + tau2[2])))
+      tmp <- t(X) %*% W
+      P <- W - t(tmp) %*% solve(tmp %*% X) %*% tmp
+      scl <- c(scl, sqrt((c( t(Y) %*% P %*% Y ) / (nT-p))))
+   } else scl <- NA
 
    if(resOut==1) {  # residual statistics requested
-      vTot1 <- tau12+v1  # total variance for group1
-      vTot2 <- tau22+v2  # total variance for group1
-      lamc1 <- ifelse(vTot1>con$thr, v1/vTot1, 0)  # Like ICC, lambda shows percent of variation at group level
-      lamc2 <- ifelse(vTot2>con$thr, v2/vTot2, 0)
-      resZ1 <- P1 %*% Y1/sqrt(diag(P1 %*% tcrossprod(diag(vTot1), P1)))
-      resZ2 <- P2 %*% Y2/sqrt(diag(P2 %*% tcrossprod(diag(vTot2), P2)))
+      vTot1 <- tau2[1]+v1  # total variance for group1
+      vTot2 <- tau2[2]+v2  # total variance for group1
+      # Like ICC, lamda shows percent of variation at group lev
+      lamc <- c(ifelse(vTot1>con$thr, v1/vTot1, 0),
+         ifelse(vTot2>con$thr, v2/vTot2, 0))
+      
+      resZ <- c(P1 %*% Y1/sqrt(diag(P1 %*% tcrossprod(diag(vTot1), P1))),
+         P2 %*% Y2/sqrt(diag(P2 %*% tcrossprod(diag(vTot2), P2))))
  
-      res         <- list(b, se, z, tau12, tau22, QE1, QE2, lamc1, lamc2, resZ1, resZ2, meth, iter1, iter2)
-      names(res)  <- c("b", "se", "z", "tau12", "tau22", "QE1", "QE2", "lamc1", "lamc2", "resZ1", "resZ2", "meth", "iter1", "iter2")
+      res         <- list(b, se, z, tau2, QE, scl, lamc, resZ, meth, iter)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "scl", "lamc", "resZ", "meth", "iter")
    } else {  # no residual statistics requested
-      res         <- list(b, se, z, tau12, tau22, QE1, QE2, meth, iter1, iter2)
-      names(res)  <- c("b", "se", "z", "tau12", "tau22", "QE1", "QE2", "meth", "iter1", "iter2")
+      res         <- list(b, se, z, tau2, QE, mscl, eth, iter)
+      names(res)  <- c("b", "se", "z", "tau2", "QE", "scl", "meth", "iter")
    }
    res
 }
@@ -684,7 +710,7 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
          outData[2*ii+2] <- resList$z[ii+1]   
       } # for(ii in 1:nCov)
    } # if (nGrp==1)
-   if (nGrp==2) {
+   if (anaType==2) {
       outData[1] <- resList$b[1]  # beta of group1, intercept
       outData[2] <- resList$z[1]  # z score of group1
       outData[5] <- resList$b[2]  # beta of group2-group1
@@ -700,6 +726,19 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
    } # if (nGrp==2)
 
    if(anaType==4) {
+      outData[1] <- resList$b[1]  # beta of group1, intercept
+      outData[2] <- resList$z[1]  # z score of group1
+      outData[3] <- resList$b[2]  # beta of group2
+      outData[4] <- resList$z[2]  # z-score of group2
+      outData[5] <- resList$b[2]-resList$b[1]  # beta of group2-group1
+      tmp <- sqrt(resList$se[1]^2+resList$se[2]^2)
+      outData[6] <- ifelse(tmp>tol, outData[5]/tmp, 0) #z score of group2-group1
+      if(KHtest) {
+         outData[2] <- outData[2]/resList$scl[1]
+         outData[4] <- outData[4]/resList$scl[2]
+         outData[6] <- outData[6]/resList$scl[3]
+      }
+   
    if(resZout==0) {
    outData[nBrick-3] <- resList$QE1
    outData[nBrick-2]   <- resList$QE2
@@ -707,19 +746,19 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
    outData[nBrick]   <- ifelse(resList$tau12 > tol, resList$tau22/resList$tau12, 0)
    } else {
    
-   outData[nBrick-2*n[2]-3] <- resList$QE1
-   outData[nBrick-2*n[2]-2]   <- resList$QE2
-   outData[nBrick-2*n[2]-1] <- ifelse(resList$tau22 > tol, resList$tau12/resList$tau22, 0)
-   outData[nBrick-2*n[2]]   <- ifelse(resList$tau12 > tol, resList$tau22/resList$tau12, 0)
+   outData[nBrick-2*n[2]-3] <- resList$QE[1]
+   outData[nBrick-2*n[2]-2]   <- resList$QE[2]
+   outData[nBrick-2*n[2]-1] <- ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0)
+   outData[nBrick-2*n[2]]   <- ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0)
    
    for(ii in 1:n[1]) {
-      outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc1[ii]   # lambda = 1-I^2
-      outData[nBrick-2*(n[2]-ii)]   <- resList$resZ1[ii]    # Z-score for residuals
+      outData[nBrick-2*(n[2]-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
+      outData[nBrick-2*(n[2]-ii)]   <- resList$resZ[ii]    # Z-score for residuals
    } # from nBrick-2*n[2]+1 to nBrick-2*(n[2]-n[1])
    
    for(ii in 1:(n[2]-n[1])) {
-      outData[nBrick-2*(n[2]-n[1]-ii)-1] <- resList$lamc2[ii]   # lambda = 1-I^2
-      outData[nBrick-2*(n[2]-n[1]-ii)]   <- resList$resZ2[ii]    # Z-score for residuals
+      outData[nBrick-2*(n[2]-n[1]-ii)-1] <- resList$lamc[ii+n[1]]   # lamda = 1-I^2
+      outData[nBrick-2*(n[2]-n[1]-ii)]   <- resList$resZ[ii+n[1]]    # Z-score for residuals
    } # from nBrick-2*(n[2]-n[1])+1 to nBrick
    } # if(resZout==0)
    } else {  # not anaType==4
@@ -730,7 +769,7 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
       outData[nBrick-2*n-1] <- resList$tau2
       outData[nBrick-2*n]   <- resList$QE
       for(ii in 1:n) {
-      outData[nBrick-2*(n-ii)-1] <- resList$lamc[ii]   # lambda = 1-I^2
+      outData[nBrick-2*(n-ii)-1] <- resList$lamc[ii]   # lamda = 1-I^2
       outData[nBrick-2*(n-ii)]   <- resList$resZ[ii]    # Z-score for residuals
    }
    }
@@ -843,7 +882,7 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
          bFN[[ii]] <- vector('integer', nSubj[1]); tFN[[ii]] <- vector('integer', nSubj[1])
          for(jj in 1:nSubj[1]) {
             bFN[[ii]][[jj]] <- readline(sprintf("No. %i subject file for beta or linear combination of betas with condition %s: ", jj, conLab[[ii]]))
-            tFN[[ii]][[jj]] <- readline(sprintf("No. %i subject file for the corresponding t-statistic with condition %s: ", jj, conLab[[ii]]))
+            tFN[[ii]][[jj]] <- readline(sprintf("~/3dMEMA/test/No. %i subject file for the corresponding t-statistic with condition %s: ", jj, conLab[[ii]]))
             print("-----------------")
          }
          bList[[ii]] <- lapply(bFN[[ii]], read.AFNI); tList[[ii]] <- lapply(tFN[[ii]], read.AFNI)
@@ -1017,7 +1056,6 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    print("-----------------")
 #   oTh <- as.numeric(readline("Outlier definition: how much in unit of standard deviation (e.g., 1, 1.5, 2)? ")) 
    
-   print("-----------------")
    print(sprintf("Totally %i slices in the data.", myDim[3]))
    print("-----------------")
    print("Starting to analyze data slice by slice...")
