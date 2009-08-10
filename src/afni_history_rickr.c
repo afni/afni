@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "truncate min dim to 3 sig bits for -volreg_tlrc_warp/-volreg_align_e2s",
+   "The old default was 2 bits, -volreg_warp_dxyz overrides."
+ } ,
+
  { 10, AUG, 2009, RCR, "3dSurf2Vol", MINOR, TYPE_MODIFY,
    "allow processing of -overwrite and AFNI_DECONFLICT",
    NULL

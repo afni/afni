@@ -150,9 +150,12 @@ g_history = """
     2.04 Aug 06 2009 : fixed problems found by I Mukai and K Bahadur:
         - fixed -volreg_align_to base as applied in align_epi_anat.py
         - fixed blur 'averages' computation when only one run
+    2.05 Aug 10 2009 :
+        - Changed default min grid truncation from 2 significant bits to 3
+          when applying -volreg_tlrc_warp/-volreg_align_e2s.
 """
 
-g_version = "version 2.04, August 6, 2009"
+g_version = "version 2.05, August 10, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
