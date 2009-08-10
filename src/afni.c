@@ -7981,6 +7981,7 @@ STATUS(" -- turning time index control off") ;
    old_anat = im3d->anat_now ;
 
    old_anat_nvals = DSET_NVALS(im3d->anat_now) ; /* 21 Jul 2009 */
+
    /* This next line can fail if fim_now is NULL.
    fim_now can be NULL if you switch to tlrc view and
    for some reason, the transform fails on the fim image.
@@ -7995,8 +7996,14 @@ STATUS(" -- turning time index control off") ;
    Should be able to test this hypothesis by expressly setting the 
    anat parent of all volumes to that of the anat with the TLRC xform....
    
-      ZSS, RICKR, with no time to fix this quite yet.    July 28 2009*/
-   old_func_nvals = DSET_NVALS(im3d->fim_now) ;
+      ZSS, RICKR, with no time to fix this quite yet.    July 28 2009 */
+
+   /** 10 Aug 2009: the fix is below -- RWCox **/
+
+   if( ISVALID_DSET(im3d->fim_now) )
+     old_func_nvals = DSET_NVALS(im3d->fim_now) ;
+   else
+     old_func_nvals = -1 ;
 
    AFNI_sleep(13) ;             /* 18 Oct 2005: for luck */
 

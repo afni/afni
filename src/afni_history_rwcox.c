@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , AUG , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
+   "Fix crash reported by Ziad and Rick" ,
+   "In afni_setup_viewing(), fim_now might not be valid -- so allow for\n"
+   "that." } ,
+
  { 10 , AUG , 2009 , RWC , "3dABoverlap" , MICRO , TYPE_MODIFY ,
    "Modified to skip automask if dataset is byte-valued with 1 volume" ,
    NULL } ,
