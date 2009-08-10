@@ -42,6 +42,12 @@ int main( int argc , char * argv[] )
        "-------\n"
        " -verb  = print out some progress reports (to stderr)\n"
        " -quiet = be as quiet as possible (without being entirely mute)\n"
+       "\n"
+       "NOTES\n"
+       "-----\n"
+       " * If an input dataset is comprised of bytes and contains only one\n"
+       "   sub-brick, then this program assumes it is already an automask-\n"
+       "   generated dataset and the automask operation will be skipped.\n"
       ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -88,8 +94,22 @@ int main( int argc , char * argv[] )
 
    if( iarg < argc ) WARNING_message("Extra arguments?") ;
 
-   DSET_load(aset); CHECK_LOAD_ERROR(aset); amm = THD_automask(aset); DSET_unload(aset);
-   DSET_load(bset); CHECK_LOAD_ERROR(bset); bmm = THD_automask(bset); DSET_unload(bset);
+   DSET_load(aset); CHECK_LOAD_ERROR(aset);
+   DSET_load(bset); CHECK_LOAD_ERROR(bset);
+
+   /* 10 Aug 2009: keep input datasets without automask, if appropriate */
+
+   if( DSET_NVALS(aset) > 1 || DSET_BRICK_TYPE(aset,0) != MRI_byte ){
+     amm = THD_automask(aset); DSET_unload(aset);
+   } else {
+     amm = DSET_BRICK_ARRAY(aset,0) ;
+   }
+
+   if( DSET_NVALS(bset) > 1 || DSET_BRICK_TYPE(bset,0) != MRI_byte ){
+     bmm = THD_automask(bset); DSET_unload(bset);
+   } else {
+     bmm = DSET_BRICK_ARRAY(bset,0) ;
+   }
 
    naa   = mask_count          ( nvox , amm ) ;
    nbb   = mask_count          ( nvox , bmm ) ;
