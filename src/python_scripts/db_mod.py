@@ -3342,28 +3342,36 @@ g_help_string = """
         -volreg_warp_dxyz DXYZ  : grid dimensions for _align_e2a or _tlrc_warp
 
                 e.g. -volreg_warp_dxyz 3.5
-                default: min dim truncated to integer or 2 significant bits
+                default: min dim truncated to 3 significant bits
                          (see description, below)
 
             This option allows the user to specify the grid size for output
             datasets from the -volreg_tlrc_warp and -volreg_align_e2a options.
             In either case, the output grid will be isotropic voxels (cubes).
 
-            By default, DXYZ is the minimum input dimension, truncated to:
-                a. if >= 2.0: an integer, i.e. floor(min(dims))
-                b. otherwise: 2 significant bits
+            By default, DXYZ is the minimum input dimension, truncated to
+            3 significant bits (for integers, starts affecting them at 9, as
+            9 requires 4 bits to represent).
 
             Some examples:
-                ----------------------------  (integer truncation)
-                6.00   ...  6.99   --> 6.0
-                2.00   ...  2.99   --> 2.0
-                ----------------------------  (2 significant bits)
-                1.50   ...  1.99   --> 1.5
-                1.00   ...  1.49   --> 1.0
-                0.75   ...  0.99   --> 0.75
-                0.50   ...  0.74   --> 0.50
-                0.375  ...  0.49   --> 0.375
-                0.25   ...  0.374  --> 0.25
+                ----------------------------  (integer range, so >= 4)
+                8.00   ...  9.99   --> 8.0
+                ...
+                4.00   ...  4.99   --> 4.0
+                ----------------------------  (3 significant bits)
+                2.50   ...  2.99   --> 2.5
+                2.00   ...  2.49   --> 2.0
+                1.75   ...  1.99   --> 1.75
+                1.50   ...  1.74   --> 1.5
+                1.25   ...  1.49   --> 1.25
+                1.00   ...  1.24   --> 1.0
+                0.875  ...  0.99   --> 0.875
+                0.75   ...  0.874  --> 0.75
+                0.625  ...  0.74   --> 0.625
+                0.50   ...  0.624  --> 0.50
+                0.4375 ...  0.49   --> 0.4375
+                0.375  ...  0.4374 --> 0.375
+                ...
 
         -volreg_zpad N_SLICES   : specify number of slices for -zpad
 
