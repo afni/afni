@@ -228,13 +228,8 @@ ENTRY("write_output");
 
     EDIT_dset_items( p->oset, ADN_prefix, opts->oset_file, ADN_none );
 
-    if ( THD_is_file(DSET_HEADNAME(p->oset)) )
-    {
-        fprintf( stderr, "** cannot overwrite existing dataset '%s'\n",
-                 DSET_HEADNAME(p->oset) );
-        DSET_delete( p->oset );
-        RETURN(-1);
-    }
+    /* no longer check for output dataset, let it fail or succeed
+     *                          for Mike B    9 Aug, 2009 [rickr] */
 
     tross_Copy_History( p->gpar, p->oset );
     tross_Make_History( PROG_NAME, argc, argv, p->oset );
