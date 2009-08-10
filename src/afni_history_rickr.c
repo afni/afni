@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, AUG, 2009, RCR, "3dSurf2Vol", MINOR, TYPE_MODIFY,
+   "allow processing of -overwrite and AFNI_DECONFLICT",
+   NULL
+ } ,
+
  {  6, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fixed problems found by I Mukai and K Bahadur",
    "- fixed -volreg_align_to base as applied in align_epi_anat.py\n"
