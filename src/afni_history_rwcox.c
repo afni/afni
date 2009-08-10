@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , AUG , 2009 , RWC , "3dABoverlap" , MICRO , TYPE_MODIFY ,
+   "Modified to skip automask if dataset is byte-valued with 1 volume" ,
+   NULL } ,
+
  { 27 , JUL , 2009 , RWC , "libmri" , MICRO , TYPE_MODIFY ,
    "Add function mri_get_tempfilename() to mri_purger.c" ,
    "To return a unique filename in a temp directory.  Sort of like a fancy\n"
