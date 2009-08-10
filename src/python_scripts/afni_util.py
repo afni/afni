@@ -215,9 +215,8 @@ def get_typed_dset_attr_list(dset, attr, atype, verb=1):
 
 def get_truncated_grid_dim(dset, verb=1):
     """return a new (isotropic) grid dimension based on the current grid
-       - given md = min(DELTAS)
-             if md >= 2.0: return md: truncated to int: floor(md)
-             else:         return md: truncated to 2 significant bits
+       - given md = min(DELTAS), return md truncated to 3 significant bits
+                    (first integer this affects is 9->8, then 11->10, etc.)
        - return <= 0 on failure
     """
     err, dims = get_typed_dset_attr_list(dset, 'DELTA', float)
@@ -231,26 +230,48 @@ def get_truncated_grid_dim(dset, verb=1):
         print '** failed to get truncated grid dim from %s' % dims
         return 0
 
-    return truncate_to_2_bits(md, verb)
+    return truncate_to_N_bits(md, 3, verb=verb)
 
-def truncate_to_2_bits(val, verb):
-    """truncate the real value to most significant 2 bits
+def truncate_to_N_bits(val, bits, verb=1):
+    """truncate the real value to most significant N bits
+       allow for any real val and positive integer bits"""
 
-       val is required to be positive but less than 2.0"""
+    # allow any real val
+    if val == 0.0: return 0.0
+    if val < 0.0: sign, fval = -1, -float(val)
+    else:         sign, fval =  1,  float(val)
 
-    if val <= 0 or val > 2.0:
-        print '** T22B: illegal val to truncate: %g' % val
+    if verb > 2: print 'T2NB: applying sign=%d, fval=%g' % (sign,fval)
+
+    if bits <= 0 or type(bits) != type(1):
+        print "** truncate to N bits: bad bits = ", bits
         return 0.0
 
-    # find mult s.t.  2 <= mult*val < 4
+    # find integer m s.t.  2^(bits-1) <= 2^m * fval < 2^bits
     log2 = math.log(2.0)
-    l2 = math.ceil(1 - math.log(val)/log2)
-    mult = round(math.exp(l2 * log2))
-    val2 = val * mult
-    if verb > 2: print '-- GTGD: mult*val = %g*%g = %g' % (mult,val,val2)
+    m    = int(math.ceil(bits-1 - math.log(fval)/log2))
+    pm   = 2**m
 
-    # truncate and divide by mult
-    return math.floor(val2)/mult
+    # then truncate to an actual integer in that range and divide by 2^m
+    ival = math.floor(pm * fval)
+    retval = sign*float(ival)/pm
+    
+    if verb > 2:
+        print '-- T2NB: 2^%d <= 2^%d * %g < 2^%d' % (bits-1,m,fval,bits)
+        print '         ival = %g, returning %g' % (ival,retval)
+
+    return retval
+
+def test_truncation(top=10.0, bot=0.1, bits=3, e=0.0000001):
+    """starting at top, repeatedly truncate to bits bits, and subtract e,
+       while result is greater than bot"""
+
+    print '-- truncating from %g down to %g with %d bits' % (top,bot,bits)
+    val = top
+    while val > bot:
+        trunc = truncate_to_N_bits(val,bits)
+        print val, ' -> ', trunc
+        val = trunc - e
     
 def get_dset_reps_tr(dset, verb=1):
     """given an AFNI dataset, return err, reps, tr
