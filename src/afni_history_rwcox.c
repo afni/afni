@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , AUG , 2009 , RWC , "cs_symeig.c" , MICRO , TYPE_GENERAL ,
+   "Speedup first_principal_vectors() -- for 3dmaskSVD and 3dLocalSVD" ,
+   "By hand tweaking the normal matrix calculation loops" } ,
+
  { 11 , AUG , 2009 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
    "Make handedness warning more explicit" ,
    NULL } ,
