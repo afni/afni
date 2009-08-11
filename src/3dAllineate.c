@@ -2279,7 +2279,7 @@ int main( int argc , char *argv[] )
 
    /* warn the stoopid lusers out there [01 Jun 2009] */
 
-   if( (meth_code == GA_MATCH_PEARSON_LOCALS || GA_MATCH_PEARSON_LOCALA)
+   if( (meth_code == GA_MATCH_PEARSON_LOCALS || meth_code == GA_MATCH_PEARSON_LOCALA)
       && dset_weig == NULL ){
      WARNING_message(
       "A '-weight' volume is recommended when using the -lpc or -lpa cost functional;\n"
@@ -2648,13 +2648,29 @@ int main( int argc , char *argv[] )
    /* base coordinates are drawn from it's header, or are same as target */
 
    if( dset_base != NULL ){
+     float bdet , tdet ;
+
      if( !ISVALID_MAT44(dset_base->daxes->ijk_to_dicom) )
        THD_daxes_to_mat44(dset_base->daxes) ;
+
      stup.base_cmat = dset_base->daxes->ijk_to_dicom ;
 
-     if( MAT44_DET(stup.base_cmat) * MAT44_DET(stup.targ_cmat) < 0.0f ){
-       WARNING_message("base and source datasets have different handedness!") ;
-       WARNING_message("Alignment will proceed, but examine results carefully!");
+     /** check if handedness is the same **/
+
+     bdet = MAT44_DET(stup.base_cmat) ;
+     tdet = MAT44_DET(stup.targ_cmat) ;
+     if( bdet * tdet < 0.0f ){
+       INFO_message("NOTE: base and source coordinate systems have different handedness") ;
+       ININFO_message(
+         "      Orientations: base=%s handed (%c%c%c); source=%s handed (%c%c%c)" ,
+         (bdet < 0.0f) ? "Left" : "Right" ,
+           ORIENT_typestr[dset_base->daxes->xxorient][0] ,
+           ORIENT_typestr[dset_base->daxes->yyorient][0] ,
+           ORIENT_typestr[dset_base->daxes->zzorient][0] ,
+         (tdet < 0.0f) ? "Left" : "Right" ,
+           ORIENT_typestr[dset_targ->daxes->xxorient][0] ,
+           ORIENT_typestr[dset_targ->daxes->yyorient][0] ,
+           ORIENT_typestr[dset_targ->daxes->zzorient][0]  ) ;
      }
    } else {
      stup.base_cmat = stup.targ_cmat ;

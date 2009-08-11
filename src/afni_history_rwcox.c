@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , AUG , 2009 , RWC , "3dAllineate" , MICRO , TYPE_GENERAL ,
+   "Make handedness warning more explicit" ,
+   NULL } ,
+
  { 10 , AUG , 2009 , RWC , "afni" , MICRO , TYPE_GENERAL ,
    "Fix crash reported by Ziad and Rick" ,
    "In afni_setup_viewing(), fim_now might not be valid -- so allow for\n"
