@@ -477,9 +477,6 @@ int symeig_irange( int n, double *a, double *e, int bb, int tt, int novec )
 
 /*----------------------------------------------------------------------------*/
 
-#undef  X
-#define X(i,j) xx[(i)+(j)*nn]
-
 #undef  A
 #define A(i,j) asym[(i)+(j)*nsym]
 
@@ -500,11 +497,11 @@ int first_principal_vectors( int n , int m , float *xx ,
 {
    int nn=n , mm=m , nsym , ii,jj,kk,qq ;
    double *asym , *deval ;
-   register double sum , qsum ;
+   register double sum , qsum ; register float *xj , *xk ;
 
    nsym = MIN(nn,mm) ;  /* size of the symmetric matrix to create */
 
-   if( nsym < 1 || xx == NULL || (uvec == NULL && sval == NULL) ) return -66666 ;
+   if( nsym < 1 || xx == NULL || (uvec == NULL && sval == NULL) ) return -666 ;
 
    if( nvec > nsym ) nvec = nsym ;  /* can't compute more vectors than nsym! */
 
@@ -515,21 +512,34 @@ int first_principal_vectors( int n , int m , float *xx ,
    /**     since [X] is n x m, [X]'[X] is m x m and [X][X]' is n x n     **/
 
    if( nn > mm ){                       /* more rows than columns:  */
-     for( jj=0 ; jj < mm ; jj++ ){      /* so [A] = [X]'[X] = m x m */
+                                        /* so [A] = [X]'[X] = m x m */
+     for( jj=0 ; jj < mm ; jj++ ){
+       xj = xx + jj*nn ;
        for( kk=0 ; kk <= jj ; kk++ ){
-         sum = 0.0 ;
-         for( ii=0 ; ii < nn ; ii++ ) sum += X(ii,jj)*X(ii,kk) ;
+         sum = 0.0 ; xk = xx + kk*nn ;
+         for( ii=0 ; ii < nn ; ii++ ) sum += xj[ii]*xk[ii] ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
+
    } else {                             /* more columns than rows:  */
-     for( jj=0 ; jj < nn ; jj++ ){      /* so [A] = [X][X]' = n x n */
+                                        /* so [A] = [X][X]' = n x n */
+
+     float *xt = (float *)malloc(sizeof(float)*nn*mm) ;
+     for( jj=0 ; jj < mm ; jj++ ){      /* form [X]' into array xt */
+       for( ii=0 ; ii < nn ; ii++ ) xt[jj+ii*mm] = xx[ii+jj*nn] ;
+     }
+
+     for( jj=0 ; jj < nn ; jj++ ){
+       xj = xt + jj*mm ;
        for( kk=0 ; kk < nn ; kk++ ){
-         sum = 0.0 ;
-         for( ii=0 ; ii < mm ; ii++ ) sum += X(jj,ii)*X(kk,ii) ;
+         sum = 0.0 ; xk = xt + kk*mm ;
+         for( ii=0 ; ii < mm ; ii++ ) sum += xj[ii]*xk[ii] ;
          A(jj,kk) = sum ; if( kk < jj ) A(kk,jj) = sum ;
        }
      }
+
+     free(xt) ;  /* don't need this no more */
    }
 
    /** compute the nvec eigenvectors corresponding to largest eigenvalues **/
@@ -603,7 +613,6 @@ int first_principal_vectors( int n , int m , float *xx ,
    free(deval) ; free(asym) ; return nvec ;
 }
 
-#undef X
 #undef A
 
 /*--------------------------------------------------------------------*/
