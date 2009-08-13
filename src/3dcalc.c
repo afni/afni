@@ -482,7 +482,7 @@ void CALC_read_opts( int argc , char * argv[] )
            (ids > 2 && argv[nopt][2] >= '0' && argv[nopt][2] <= '9')) ){
 
          int ival , nxyz , isub , ll ;
-         THD_3dim_dataset * dset ;
+         THD_3dim_dataset *dset ;
 
          ival = argv[nopt][1] - 'a' ;
          if( VAR_DEFINED(ival) )
