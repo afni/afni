@@ -716,6 +716,8 @@ void display_help_menu()
 
   printf ("\n"
    "------------------------------------------------------------------------\n"
+   "-----                 DESCRIPTION and PROLEGOMENON                 -----\n"
+   "------------------------------------------------------------------------\n"
    "Program to calculate the deconvolution of a measurement 3D+time dataset \n"
    "with a specified input stimulus time series.  This program can also     \n"
    "perform multiple linear regression using multiple input stimulus time   \n"
@@ -742,22 +744,25 @@ void display_help_menu()
    "* Preprocessing of the time series input can be done with various AFNI  \n"
    "  programs, or with the 'uber-script' afni_proc.py:                     \n"
    "    http://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html\n"
+   "* The recommended way to use 3dDeconvolve is via afni_proc.py, especially\n"
+   "  if you are not familiar with its usage and its peculiarities.         \n"
    "------------------------------------------------------------------------\n"
    "Consider the time series model  Z(t) = K(t)*S(t) + baseline + noise,    \n"
    "where Z(t) = data                                                       \n"
-   "      K(t) = kernel (e.g., hemodynamic response function),              \n"
-   "      S(t) = stimulus                                                   \n"
+   "      K(t) = kernel (e.g., hemodynamic response function or HRF)        \n"
+   "      S(t) = stimulus time series                                       \n"
    "  baseline = constant, drift, etc. [regressors of no interest]          \n"
    "     and * = convolution                                                \n"
    "Then 3dDeconvolve solves for K(t) given S(t).  If you want to process   \n"
-   "the reverse problem and solve for S(t) given the kernel K(t),           \n"
-   "use the program 3dTfitter.  The difference between the two cases is     \n"
-   "that K(t) is presumed to be causal and have limited support, whereas    \n"
-   "S(t) is a full-length time series.  Note that program 3dTfitter does    \n"
-   "not have all the capabilities of 3dDeconvolve for calculating output    \n"
-   "statistics; on the other hand, 3dTfitter can solve the deconvolution    \n"
-   "problem (in either direction) with L1 or L2 regression, and with sign   \n"
-   "constraints on the computed values (e.g., requiring output K(t) >= 0):  \n"
+   "the reverse problem and solve for S(t) given the kernel K(t), use the   \n"
+   "program 3dTfitter with the '-FALTUNG' option.  The difference between   \n"
+   "the two cases is that K(t) is presumed to be causal and have limited    \n"
+   "support, whereas S(t) is a full-length time series.  Note that program  \n"
+   "3dTfitter does not have all the capabilities of 3dDeconvolve for        \n"
+   "calculating output statistics; on the other hand, 3dTfitter can solve   \n"
+   "a deconvolution problem (in either direction) with L1 or L2 regression, \n"
+   "and with sign constraints on the computed values (e.g., requiring that  \n"
+   "the output S(t) or K(t) be non-negative):                               \n"
    "  http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTfitter.html     \n"
    "------------------------------------------------------------------------\n"
    "The 'baseline model' in 3dDeconvolve (and 3dREMLfit) does not mean just \n"
@@ -766,9 +771,9 @@ void display_help_menu()
    "forms the null hypothesis.  The Full_Fstat result is the F-statistic    \n"
    "of the full model (all regressors) vs. the baseline model.  Thus, it    \n"
    "it common to include irregular time series, such as estimated motion    \n"
-   "parameters, in the baseline model via the -stim_base option.            \n"
+   "parameters, in the baseline model via the -stim_file/-stim_base options.\n"
    "------------------------------------------------------------------------\n"
-   "It is very important to realize that statistics (F, t, R^2) computed in \n"
+   "It is VERY important to realize that statistics (F, t, R^2) computed in \n"
    "3dDeconvolve are MARGINAL (or partial) statistics.  For example, the    \n"
    "t-statistic for a single beta coefficient measures the significance of  \n"
    "that beta value against the regression model where ONLY that one column \n"
@@ -777,8 +782,8 @@ void display_help_menu()
    "regressor.  Similarly, the F-statistic for a set of regressors measures \n"
    "the significance of that set of regressors (eg, a set of TENT functions)\n"
    "against the full model with just that set of regressors removed.  If    \n"
-   "this explanation is unclear, you need to consult with a statistician, or\n"
-   "with the AFNI message board gurus.                                      \n"
+   "this explanation or its consequences are unclear, you need to consult   \n"
+   "with a statistician, or with the AFNI message board guru entities.      \n"
    "------------------------------------------------------------------------\n"
   ) ;
   printf("\n"
@@ -791,10 +796,28 @@ void display_help_menu()
     "                       (here,   and  these  datasets  will  be)        \n"
     "                       (catenated  in time;   if you do this, )        \n"
     "                       ('-concat' is not needed and is ignored)        \n"
+    "                  ** You can input a 1D time series file here,         \n"
+    "                     but the time axis should run along the            \n"
+    "                     ROW direction, not the COLUMN direction as        \n"
+    "                     in the -input1D option.  You can automatically    \n"
+    "                     transpose a 1D file on input using the \\'        \n"
+    "                     operator at the end of the filename, as in        \n"
+    "                       -input fred.1D\\'                               \n"
+    "                   * This is the only way to use 3dDeconvolve          \n"
+    "                     with a multi-column 1D time series file.          \n"
+    "                   * The output datasets by default will then          \n"
+    "                     be in 1D format themselves.  To have them         \n"
+    "                     formatted as AFNI datasets instead, use           \n"
+    "                       -DAFNI_WRITE_1D_AS_PREFIX=YES                   \n"
+    "                     on the command line.                              \n"
+    "                   * You should use '-force_TR' to set the TR of       \n"
+    "                     the 1D 'dataset' if you use '-input' rather       \n"
+    "                     than '-input1D' [the default is 1.0 sec].         \n"
     "[-force_TR TR]       Use this value of TR instead of the one in        \n"
     "                     the -input dataset.                               \n"
     "                     (It's better to fix the input using 3drefit.)     \n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
+    "                             where time run downs the column.          \n"
     "[-TR_1D tr1d]        tr1d = TR for .1D time series [default 1.0 sec].  \n"
     "                     This option has no effect without -input1D        \n"
     "[-nodata [NT [TR]]   Evaluate experimental design only (no input data) \n"
@@ -3245,19 +3268,16 @@ ENTRY("read_input_data") ;
         if( verb ) MEM_MESSAGE ;
       }
 
-      if( option_data->force_TR > 0.0 ){   /* 18 Aug 2008 */
+      if( option_data->force_TR > 0.0 || (*dset_time)->taxis == NULL ){   /* 18 Aug 2008 */
+        float ttt = option_data->force_TR ; if( ttt <= 0.0 ) ttt = 1.0f ;
         EDIT_dset_items( *dset_time ,
-                           ADN_ttdel , option_data->force_TR ,
+                           ADN_ttdel , ttt ,
                            ADN_ntt   , DSET_NVALS(*dset_time) ,
                            ADN_tunits, UNITS_SEC_TYPE ,
                          ADN_none ) ;
-        INFO_message("-force_TR using TR=%.4f seconds for -input dataset" ,
+        INFO_message("forcibly using TR=%.4f seconds for -input dataset" ,
                      option_data->force_TR) ;
       }
-
-      if( (*dset_time)->taxis == NULL )
-        WARNING_message("dataset '%s' has no time axis in its header; cf. 3dinfo",
-                       option_data->input_filename) ;
 
       nt   = DSET_NUM_TIMES (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
@@ -4377,7 +4397,7 @@ void check_for_valid_inputs
   if (N == 0)  DC_error ("No usable time points?");
   if (N <= p)
     {
-       sprintf (message,  "Insufficient data for estimating %d parameters", p);
+       sprintf (message,  "Insufficient data (%d) for estimating %d parameters", N,p);
        DC_error (message);
    }
   option_data->N = N;
