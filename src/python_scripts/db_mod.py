@@ -3,6 +3,11 @@
 import math, os
 import afni_base as BASE, afni_util as UTIL
 
+WARP_EPI_TLRC_ADWARP    = 1
+WARP_EPI_TLRC_WARP      = 2
+WARP_EPI_ALIGN_A2E      = 4
+WARP_EPI_ALIGN_E2A      = 8
+
 # --------------- tcat ---------------
 
 # modify the tcat block options according to the user options
@@ -122,7 +127,7 @@ def db_cmd_align(proc, block):
         proc.tlrc_ss = 0        # default to no skull-strip
 
     # note the alignment in EPIs warp bitmap (2=a2e)
-    proc.warp_epi |= 2
+    proc.warp_epi |= WARP_EPI_ALIGN_A2E
 
     return cmd
 
@@ -657,10 +662,34 @@ def db_mod_volreg(block, proc, user_opts):
     if uopt and not bopt:
         block.opts.add_opt('-volreg_regress_per_run', 0, [])
 
-    uopt = user_opts.find_opt('-volreg_tlrc_warp')
-    bopt = block.opts.find_opt('-volreg_tlrc_warp')
+    # check for warp to tlrc space, from either auto or manual xform
+    uopt = user_opts.find_opt('-volreg_tlrc_adwarp')
+    bopt = block.opts.find_opt('-volreg_tlrc_adwarp')
     if uopt and not bopt:
+        block.opts.add_opt('-volreg_tlrc_adwarp', 0, [])
+
+    u2 = user_opts.find_opt('-volreg_tlrc_warp')
+    bopt = block.opts.find_opt('-volreg_tlrc_warp')
+    if u2 and not bopt:
         block.opts.add_opt('-volreg_tlrc_warp', 0, [])
+
+    # allow only 1 tlrc warp option
+    if uopt and u2:
+        print '** cannot use both -volreg_tlrc_adwarp and -volreg_tlrc_warp'
+        return 1
+    if uopt or u2:
+        if proc.origview == '+tlrc':
+           print '** already in tlrc space: -volreg_tlrc_* is not allowed'
+           return 1
+        exists = 0
+        # to get from -copy_anat, no view and +tlrc exists
+        if proc.anat and proc.tlrcanat and not proc.anat.view:
+           if proc.tlrcanat.exist(): exists = 1
+        if proc.verb > 1: print '++ -copy_anat +tlrc exists = ', exists
+        if not exists and not proc.find_block('tlrc'):
+           print "** cannot warp to tlrc space without +tlrc anat via"
+           print "   either -copy_anat or the 'tlrc' processing block"
+           return 1
 
     uopt = user_opts.find_opt('-volreg_no_extent_mask')
     bopt = block.opts.find_opt('-volreg_no_extent_mask')
@@ -727,14 +756,16 @@ def db_cmd_volreg(proc, block):
 
     # ---------------
     # note whether we warp to tlrc, and set the prefix and flags accordingly
+    doadwarp = block.opts.find_opt('-volreg_tlrc_adwarp') != None
     dowarp = block.opts.find_opt('-volreg_tlrc_warp') != None
     doe2a = block.opts.find_opt('-volreg_align_e2a') != None
 
     # store these flags for other processing blocks
-    if dowarp: proc.warp_epi |= 1
+    if dowarp: proc.warp_epi |= WARP_EPI_TLRC_WARP
+    if doadwarp: proc.warp_epi |= WARP_EPI_TLRC_ADWARP
     if doe2a:  # if e2a, note it and clear any a2e
-        proc.warp_epi |= 4
-        proc.warp_epi &= ~2
+        proc.warp_epi |= WARP_EPI_ALIGN_E2A
+        proc.warp_epi &= ~WARP_EPI_ALIGN_A2E
 
     # determine whether we will limit warped EPI to its extents
     if dowarp or doe2a:                               do_extents = 1
@@ -757,6 +788,7 @@ def db_cmd_volreg(proc, block):
         if doe2a:  cstr = cstr + ', align to anat'
         if dowarp: cstr = cstr + ', warp to tlrc space'
     else:
+        if doadwarp: cstr = cstr + ', adwarp to tlrc space'
         prefix = cur_prefix
         matstr = ''
     prev_prefix = proc.prev_prefix_form_run(view=1)
@@ -765,10 +797,10 @@ def db_cmd_volreg(proc, block):
                 "# align each dset to base volume%s\n" \
                 % (block_header('volreg'), cstr)
 
-    if dowarp or do_extents:
+    if dowarp or doadwarp or do_extents:
         cmd = cmd + '\n'
 
-        if dowarp:
+        if dowarp or doadwarp:
             cmd = cmd + \
                 "# verify that we have a +tlrc warp dataset\n"          \
                 "if ( ! -f %s.HEAD ) then\n"                            \
@@ -784,7 +816,7 @@ def db_cmd_volreg(proc, block):
                 % proc.prev_prefix_form(1, view=1)
             all1_input = 'rm.epi.all1' + proc.view
 
-        cmd = cmd + '# register and warp\n'
+        if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
     cmd = cmd + "foreach run ( $runs )\n"                                     \
                 "    # register each volume to the base\n"                    \
@@ -797,7 +829,7 @@ def db_cmd_volreg(proc, block):
                 (zpad, bstr, prefix, resam, other_opts, matstr, prev_prefix)
 
     # if warping, multiply matrices and apply
-    if dowarp or doe2a:
+    if doadwarp or dowarp or doe2a:
         opt = block.opts.find_opt('-volreg_warp_dxyz')
         if opt: dim = opt.parlist[0]
         else:
@@ -806,6 +838,8 @@ def db_cmd_volreg(proc, block):
                 print '** failed to get grid dim from %s' % proc.dsets[0].rpv()
                 return
 
+    # if warping, multiply matrices and apply
+    if dowarp or doe2a:
         # warn the user of output grid change
         print '++ volreg:',
         if doe2a and dowarp:
@@ -885,28 +919,47 @@ def db_cmd_volreg(proc, block):
     if do_extents:
         proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
 
+        cmd = cmd +                                             \
+            "# ----------------------------------------\n"      \
+            "# create the extents mask: %s\n"                   \
+            "# (this is a mask of voxels that have valid data at every TR)\n"\
+            % proc.mask_extents.pv()
+
         if proc.runs > 1:  # if more than 1 run, create union mask
           cmd = cmd +                                                        \
-            "# create the extents mask: %s\n"                                \
-            "# (this is a mask of voxels that have valid data at every TR)\n"\
             "3dMean -datum short -prefix rm.epi.mean rm.epi.min.r*.HEAD \n"  \
             "3dcalc -a rm.epi.mean%s -expr 'step(a-0.999)' -prefix %s\n\n"   \
-             % (proc.mask_extents.pv(), proc.view, proc.mask_extents.prefix)
+             % (proc.view, proc.mask_extents.prefix)
         else:  # just copy the one
           cmd = cmd +                                                        \
-            "# create the extents mask: %s\n"                                \
-            "# (this is a mask of voxels that have valid data at every TR)\n"\
             "# (only 1 run, so just use 3dcopy to keep naming straight)\n"   \
-            "3dcopy rm.epi.min.r01 %s\n\n"                                   \
-            % (proc.mask_extents.pv(), proc.mask_extents.prefix)
+            "3dcopy rm.epi.min.r01 %s\n\n" % (proc.mask_extents.prefix)
 
-        cmd = cmd +                                                          \
-            "# finally, apply the extents mask to the EPI data \n"           \
-            "# (delete any time series with missing data)\n"                 \
-            "foreach run ( $runs )\n"                                        \
-            "    3dcalc -a rm.epi.nomask.r$run%s -b %s \\\n"                 \
-            "           -expr 'a*b' -prefix %s\n"                            \
+        cmd = cmd +                                             \
+            "# and apply the extents mask to the EPI data \n"   \
+            "# (delete any time series with missing data)\n"    \
+            "foreach run ( $runs )\n"                           \
+            "    3dcalc -a rm.epi.nomask.r$run%s -b %s \\\n"    \
+            "           -expr 'a*b' -prefix %s\n"               \
             "end\n\n" % (proc.view, proc.mask_extents.pv(), cur_prefix)
+
+    # ---------------
+    # lastly, see if we want to apply a (manual) warp to tlrc space
+    if block.opts.find_opt('-volreg_tlrc_adwarp'):
+        if proc.view == '+tlrc':
+            print '** cannot apply -volreg_tlrc_adwarp: alread in tlrc space'
+            return
+        if not proc.tlrcanat:
+            print '** need -copy_anat with tlrc for -volreg_tlrc_adwarp'
+            return
+        cmd = cmd +                                                      \
+            "# ----------------------------------------\n"               \
+            "# apply manual Talairach transformation as separate step\n" \
+            "foreach run ( $runs )\n"                                    \
+            "    adwarp -apar %s -dpar %s%s \\\n"                        \
+            "           -dxyz %g -resam Cu\n"                            \
+            "end\n\n" % (proc.tlrcanat.pv(), cur_prefix, proc.view, dim)
+        proc.view = '+tlrc'  # and set a new current view
 
     # used 3dvolreg, so have these labels
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
@@ -1005,7 +1058,7 @@ def db_mod_mask(block, proc, user_opts):
 
 # in this block, automatically make an EPI mask via 3dAutomask
 # if possible: also make a subject anatomical mask (resampled to EPI)
-#    - if -volreg_tlrc_warp, apply from tlrc anat
+#    - if -volreg_tlrc_[ad]warp, apply from tlrc anat
 #    - if a2e, apply from anat_al
 #    - if e2a, apply from anat_al with inverted transform
 # if possible: also make a group anatomical mask
@@ -1056,7 +1109,7 @@ def db_cmd_mask(proc, block):
         cmd = cmd + mc
 
     # if possible make a group anat mask, resampled to EPI
-    if proc.warp_epi:
+    if proc.warp_epi & WARP_EPI_TLRC_WARP:
         mc = group_mask_command(proc, block)
         if mc == None: return
         cmd = cmd + mc
@@ -1085,7 +1138,7 @@ def db_cmd_mask(proc, block):
 #    - apply from -tlrc_base
 # return None on failure
 def group_mask_command(proc, block):
-    if not proc.warp_epi & 1 or not proc.tlrc_base:
+    if not proc.warp_epi & WARP_EPI_TLRC_WARP or not proc.tlrc_base:
         if proc.verb>2: print "-- no group mask, warp_epi = %d" % proc.warp_epi
         return ''
 
@@ -1147,31 +1200,27 @@ def anat_mask_command(proc, block):
     cmd = "# ---- create subject anatomy mask, %s ----\n" % proc.mask_anat.pv()
 
     if proc.verb > 2:
-        print '-- mask for anat based on warp_epi == %d\n'   \
-              '   (1==tlrc, 2=anat2epi, 4=epi2anat)'
+        print '-- mask for anat based on warp_epi == %d\n'                \
+              '   (1==tlrc_adwarp, 2==tlrc_warp, 4=anat2epi, 8=epi2anat)' \
+              % proc.warp_epi
 
     # set anat, comment string text and temporary anat
-    if proc.warp_epi & 1:
+    if proc.warp_epi & (WARP_EPI_TLRC_WARP | WARP_EPI_TLRC_ADWARP):
         anat = proc.tlrcanat
         ss = 'tlrc'
-    elif proc.warp_epi & 2:
+    elif proc.warp_epi & WARP_EPI_ALIGN_A2E:
         anat = proc.anat
         ss = 'aligned'
-    elif proc.warp_epi & 4:
+    elif proc.warp_epi & WARP_EPI_ALIGN_E2A:
         anat = proc.anat.new(proc.anat.prefix+'_al')
         ss = 'aligned'
     else: # should not happen
-        print '** anat_mask_command: invalid warp_epi = %x' % proc.warp_epi
+        print '** anat_mask_command: invalid warp_epi = %d' % proc.warp_epi
         return None
     cmd = cmd + "#      (resampled from %s anat)\n" % ss
     tanat = anat.new('rm.resam.anat')   # temporary resampled anat dset
 
-    # resample masked anat to epi dataset, output is temporary anat
-    if proc.warp_epi & 1 or proc.warp_epi & 2:
-        cmd = cmd + "3dresample -master %s -prefix %s \\\n"      \
-                    "           -input %s\n\n"                 \
-                    % (proc.mask_epi.pv(), tanat.prefix, anat.pv())
-    else: # warp_epi & 4
+    if proc.warp_epi == WARP_EPI_ALIGN_E2A:
         cmd = cmd + '\n'                                                     \
               "# invert a2e matrix, and warp/resample skull-stripped anat\n" \
               "cat_matvec -ONELINE %s -I > mat.a2e.inv.aff12.1D\n"           \
@@ -1179,6 +1228,11 @@ def anat_mask_command(proc, block):
               "            -1Dmatrix_apply mat.a2e.inv.aff12.1D \\\n"        \
               "            -prefix %s\n\n"                                   \
                % (proc.a2e_mat, anat.pv(), proc.mask_epi.pv(), tanat.prefix)
+    else:
+        # resample masked anat to epi grid, output is temp anat
+        cmd = cmd + "3dresample -master %s -prefix %s \\\n"             \
+                    "           -input %s\n\n"                          \
+                    % (proc.mask_epi.pv(), tanat.prefix, anat.pv())
 
     # and finally, convert to the binary mask of choice
     cmd = cmd + "# convert resampled anat brain to binary mask\n"   \
@@ -2260,7 +2314,7 @@ g_help_string = """
 
            Assuming the class data is for resting-state and that we have the
            appropriate slice-based regressors from RetroTS.m, apply the despike
-           and ricor procesing blocks.  Note that '-do_block' is used to add
+           and ricor processing blocks.  Note that '-do_block' is used to add
            non-default blocks into their default positions.  Here the 'despike'
            and 'ricor' processing blocks would come before 'tshift'.
 
@@ -2348,6 +2402,7 @@ g_help_string = """
                         -regress_est_blur_errts
 
            To process in orig space, remove -volreg_tlrc_warp.
+           To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
            To process as anat aligned to EPI, remove -volreg_align_e2a.
 
     --------------------------------------------------
@@ -2546,6 +2601,9 @@ g_help_string = """
     afni_proc.py can now apply a +tlrc transformation to the EPI data as part
     of the volreg step via the option '-volreg_tlrc_warp'.  Note that it can
     also align the EPI and anatomy at the volreg step via '-volreg_align_e2a'.
+
+    Manual Talairach transformations can also be applied, but separately, after
+    volreg.  See '-volreg_tlrc_adwarp'.
 
     This tlrc transformation is recommended for many reasons, though some are
     not yet implemented.  Advantages include:
@@ -3309,6 +3367,28 @@ g_help_string = """
             So more motion-correlated variance can be accounted for, at the
             cost of the extra degrees of freedom (6*(nruns-1)).
 
+        -volreg_tlrc_adwarp     : warp EPI to +tlrc space at end of volreg step
+
+                default: stay in +orig space
+
+            With this option, the EPI data will be warped to standard space
+            (via adwarp) at the end of the volreg processing block.  Further
+            processing through regression will be done in standard space.
+
+            This option is useful for applying a manual Talairach transform,
+            which does not work with -volreg_tlrc_warp.  To apply one from
+            @auto_tlrc, -volreg_tlrc_warp is recommended.
+
+            The resulting voxel grid is the minimum dimension, truncated to 3
+            significant bits.  See -volreg_warp_dxyz for details. 
+
+            Note: this step requires a transformed anatomy, which can come from
+            the -tlrc_anat option or from -copy_anat importing an existing one.
+
+            Please see 'WARP TO TLRC NOTE' above, for additional details.
+            See also -volreg_tlrc_warp, -volreg_warp_dxyz, -tlrc_anat,
+            -copy_anat.
+
         -volreg_tlrc_warp       : warp EPI to +tlrc space at volreg step
 
                 default: stay in +orig space
@@ -3327,17 +3407,18 @@ g_help_string = """
             the unregistered data.
 
             Note that this is only possible when using @auto_tlrc, not the 12
-            piece manual transformation.
+            piece manual transformation.  See -volreg_tlrc_adwarp for applying
+            a manual transformation.
 
-            The resulting voxel grid is the floor() of the minimum dimension,
-            if that minimum is greater than 1.0.  If less than 1.0, the minimum
-            is used unchanged.
+            The resulting voxel grid is the minimum dimension, truncated to 3
+            significant bits.  See -volreg_warp_dxyz for details. 
 
             Note: this step requires a transformed anatomy, which can come from
             the -tlrc_anat option or from -copy_anat importing an existing one.
 
             Please see 'WARP TO TLRC NOTE' above, for additional details.
-            See also -tlrc_anat, -copy_anat.
+            See also -volreg_tlrc_adwarp, -volreg_warp_dxyz, -tlrc_anat,
+            -copy_anat.
 
         -volreg_warp_dxyz DXYZ  : grid dimensions for _align_e2a or _tlrc_warp
 
@@ -3534,7 +3615,7 @@ g_help_string = """
 
          ** Note that use of dmBLOCK requires -stim_times_AM1 (or AM2).  Until
             that is handled properly by afni_proc.py, users will need to edit
-            the processing script, chaning -stim_times to the appropriate
+            the processing script, changing -stim_times to the appropriate
             _AM1 or _AM2.
         
             Please see '3dDeconvolve -help' for more information, or the link:
