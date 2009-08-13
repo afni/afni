@@ -41,32 +41,37 @@ def write_text_to_file(fname, text, mode='w', wrap=0, wrapstr='\n'):
     fp.write(text)
     fp.close()
 
-def quotize_list(list, opt_prefix, skip_first=0):
+def quotize_list(list, opt_prefix, skip_first=0, quote_wild=0):
     """given a list of text elements, return a new list where any existing
        quotes are escaped, and then if there are special characters, put the
        whole string in single quotes
 
        if the first character is '-', opt_prefix will be applied
-
        if skip_first, do not add initial prefix
+       if quote_wild, quotize any string with '*' or '?', too
     """
     if not list or len(list) < 1: return list
 
     # okay, we haven't yet escaped any existing quotes...
 
-    # qlist = "[({* "
+    # default to ignoring wildcards, can always double-nest if needed
+    if quote_wild: qlist = "[({*? "
+    else:          qlist = "[({ "
+
     newlist = []
     first = 1   # ugly, but easier for option processing
-    for string in list:
+    for qstr in list:
         prefix = ''
-        if skip_first and first:
-            first = 0       # use current (empty) prefix
-        else:
-            if string[0] == '-': prefix = opt_prefix
-        if '[' in string or '(' in string or '{' in string or ' ' in string:
-            newlist.append("'%s%s'" % (prefix,string))
-        else:
-            newlist.append("%s%s" % (prefix,string))
+        if skip_first and first: first = 0       # use current (empty) prefix
+        elif qstr[0] == '-':     prefix = opt_prefix
+
+        quotize = 0
+        for q in qlist:
+            if q in qstr:
+                quotize = 1
+                break
+        if quotize: newlist.append("'%s%s'" % (prefix,qstr))
+        else:       newlist.append("%s%s" % (prefix,qstr))
 
     return newlist
 

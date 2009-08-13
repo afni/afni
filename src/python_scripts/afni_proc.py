@@ -153,9 +153,10 @@ g_history = """
     2.05 Aug 10 2009 :
         - Changed default min grid truncation from 2 significant bits to 3
           when applying -volreg_tlrc_warp/-volreg_align_e2s.
+    2.06 Aug 13 2009 : added -volreg_tlrc_adwarp, to apply manual tlrc xform
 """
 
-g_version = "version 2.05, August 10, 2009"
+g_version = "version 2.06, August 13, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -215,7 +216,7 @@ class SubjProcSream:
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_ss    = 1             # whether to assume skull strip in tlrc
-        self.warp_epi   = 0             # xform bitmap: 1=tlrc, 2=a2e, 4=e2a
+        self.warp_epi   = 0             # xform bitmap: tlrc, adwarp, a2e, e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
@@ -395,6 +396,8 @@ class SubjProcSream:
                         helpstr='additional options directly for 3dvolreg')
         self.valid_opts.add_opt('-volreg_regress_per_run', 0, [],
                         helpstr='apply separate motion regressors per run')
+        self.valid_opts.add_opt('-volreg_tlrc_adwarp', 0, [],
+                        helpstr='apply adwarp tlrc transformation after volreg')
         self.valid_opts.add_opt('-volreg_tlrc_warp', 0, [],
                         helpstr='warp volreg data to standard space')
         self.valid_opts.add_opt('-volreg_warp_dxyz', 1, [],
@@ -606,7 +609,8 @@ class SubjProcSream:
         # allow for -tlrc_anat option
         opt = self.user_opts.find_opt('-tlrc_anat')
         if opt and not self.find_block('tlrc'):
-            if self.user_opts.find_opt('-volreg_tlrc_warp'):
+            if self.user_opts.find_opt('-volreg_tlrc_warp') or  \
+               self.user_opts.find_opt('-volreg_tlrc_adwarp') :
                 err, blocks = self.add_block_before_label(blocks,
                                         'tlrc', 'volreg')
             else: err, blocks = self.add_block_to_list(blocks, 'tlrc')
@@ -1036,19 +1040,20 @@ class SubjProcSream:
             self.fp.write("# prepare to count setup errors\n"
                           "set nerrors = 0\n\n")
 
-        self.fp.write('# the user may specify a single subject to run with\n'   \
-                      'if ( $#argv > 0 ) then\n'                                \
-                      '    set subj = $argv[1]\n'                               \
-                      'else\n'                                                  \
-                      '    set subj = %s\n'                                     \
+        self.fp.write('# the user may specify a single subject to run with\n'\
+                      'if ( $#argv > 0 ) then\n'                             \
+                      '    set subj = $argv[1]\n'                            \
+                      'else\n'                                               \
+                      '    set subj = %s\n'                                  \
                       'endif\n\n' % self.subj_id )
         self.fp.write('# assign output directory name\n'
                       'set output_dir = %s\n\n' % self.out_dir)
-        self.fp.write('# verify that the results directory does not yet exist\n'\
-                      'if ( -d %s ) then\n'                                     \
-                      '    echo output dir "$subj.results" already exists\n'    \
-                      '    exit\n'                                              \
-                      'endif\n\n' % self.od_var)
+        self.fp.write( \
+                '# verify that the results directory does not yet exist\n'\
+                'if ( -d %s ) then\n'                                     \
+                '    echo output dir "$subj.results" already exists\n'    \
+                '    exit\n'                                              \
+                'endif\n\n' % self.od_var)
         self.fp.write('# set list of runs\n')
         self.fp.write('set runs = (`count -digits 2 1 %d`)\n\n' % self.runs)
 
