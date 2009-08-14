@@ -195,6 +195,34 @@ def get_default_polort(tr, reps):
     run_time = tr * reps
     return 1+math.floor(run_time/150.0)
 
+def get_num_warp_pieces(dset, verb=1):
+    """return the number of pieces in the the WARP_DATA transformation
+       for this dataset
+
+       Note that 12 (30 float) pieces would imply manual tlrc, while 1 piece
+       would suggest auto, +acpc, or perhaps an external transform.
+
+       dset  : (string) name of afni dataset
+
+       if len is a multiple of 30, return len(WARP_DATA)//30
+       else return 0"""
+
+    err, result = get_typed_dset_attr_list(dset, 'WARP_DATA', float, verb=verb)
+
+    if err: return 0            # errors printed in called function
+
+    nvals = len(result)
+    npieces = nvals//30
+    if npieces * 30 != nvals:
+        print '** GNWP: invalid WARP_DATA length %d' % nvals
+        return 0
+
+    if verb > 1: print '-- dset %s has a %d-piece warp' % (dset, npieces)
+
+    del(result)
+
+    return npieces
+
 def get_typed_dset_attr_list(dset, attr, atype, verb=1):
     """given an AFNI dataset, return err (0=success), [typed attr list]
 

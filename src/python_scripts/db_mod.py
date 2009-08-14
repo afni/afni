@@ -690,6 +690,15 @@ def db_mod_volreg(block, proc, user_opts):
            print "** cannot warp to tlrc space without +tlrc anat via"
            print "   either -copy_anat or the 'tlrc' processing block"
            return 1
+        if exists:
+           wpieces = UTIL.get_num_warp_pieces(proc.tlrcanat.ppv(),proc.verb)
+           if uopt and wpieces == 1:    # warning
+              print "** have auto_tlrc anat, consider '-volreg_tlrc_warp'\n" \
+                    "   in place of '-volreg_tlrc_adwarp'"
+           elif u2 and wpieces == 12:   # error
+              print "** -volreg_tlrc_warp does not work with manual tlrc\n" \
+                    "   (consider -volreg_tlrc_adwarp instead)"
+              return 1
 
     uopt = user_opts.find_opt('-volreg_no_extent_mask')
     bopt = block.opts.find_opt('-volreg_no_extent_mask')
