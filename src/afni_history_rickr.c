@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -align_epi_ext_dset, to align anat to external EPI",
+   "This may be important for multi-channel coil EPI data with low internal\n"
+   "structural contrast.  Users might align to the first (pre-steady-state)\n"
+   "TR, even though that volume is not used in the analysis."
+ } ,
+
  { 13, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -volreg_tlrc_adwarp, to apply a manual Talairach transformation",
    NULL

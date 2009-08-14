@@ -74,6 +74,17 @@ def db_mod_align(block, proc, user_opts):
     bopt = block.opts.find_opt('-align_opts_aea')
     if uopt and bopt: bopt.parlist = uopt.parlist
 
+    # external EPI volume for align_epi_anat.py
+    uopt = user_opts.find_opt('-align_epi_ext_dset')
+    bopt = block.opts.find_opt('-align_epi_ext_dset')
+    if uopt and not bopt: 
+        block.opts.add_opt('-align_epi_ext_dset', 1, uopt.parlist, setpar=1)
+    elif uopt and bopt: bopt.parlist = uopt.parlist
+
+    # check base_dset (do not allow with selector options)
+    bopt = block.opts.find_opt('-align_epi_ext_dset')
+    if bopt: proc.align_ebase = bopt.parlist[0]
+
     block.valid = 1
 
 # align anat to epi -> anat gets _al suffix to its prefix
@@ -87,7 +98,12 @@ def db_cmd_align(proc, block):
         return
 
     # first note EPI alignment base and sub-brick, as done in volreg block
-    if proc.vr_ext_base != None:
+    # ## rcr: alignEA EPI and base might be given externally
+    #         via -align_epi_base_dset
+    if proc.align_ebase != None:
+        basevol = "%s%s" % (proc.align_epre,proc.view)
+        bind = 0
+    elif proc.vr_ext_base != None:
         basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
         bind = 0
     else:
@@ -731,6 +747,11 @@ def db_cmd_volreg(proc, block):
 
     if dset_ind == -1: dset_ind = proc.runs - 1  # may need updates
     if sub      == -1: sub = proc.reps_all[-1] - 1
+
+    # if ext aea base, expect sub to be small
+    if proc.align_ebase != None and sub > 3 and sub >= proc.reps_all[-1] - 3:
+        print '** have external align EPI volume, but seem to be\n'     \
+              '   aligning EPI to end the runs, this looks fishy...'
 
     # get any base_vol option
     if proc.vr_ext_base != None: basevol = "%s%s" % (proc.vr_ext_pre,proc.view)
@@ -3255,6 +3276,35 @@ g_help_string = """
 
             Please see '@auto_tlrc -help' for more information.
 
+        -align_epi_ext_dset DSET : specify dset/brick for align_epi_anat EPI
+
+                e.g. -align_epi_ext_dset subj10/epi_r01+orig'[0]'
+
+            This option allows the user to specify an external volume for the
+            EPI and base used in align_epi_anat.py in the align block.  The
+            user should apply sub-brick selection if the dataset has more than
+            one volume.  This volume would be used for both the -epi and the
+            -epi_base options in align_epi_anat.py.
+
+            This user might want to align to an EPI volume that is not in the
+            processing stream for the case where there is not sufficient EPI
+            contrast left after the magnitization has reached a steady state.
+            Perhaps volume 0 has sufficuent contrast for alignment, but is not
+            appropriate for analysis.  In such a case, the user may elect to
+            align to volume 0, while excluding it from the analysis as part of
+            the first volumes removed in -tcat_remove_first_trs.
+
+            e.g. -dsets subj10/epi_r*_orig.HEAD
+                 -tcat_remove_first_trs 3
+                 -align_epi_ext_dset subj10/epi_r01+orig'[0]'
+                 -volreg_align_to first
+
+            Note that if the anatomy were acquired after the EPI, the user may
+            want to still align it to the beginning of some run, and all the
+            EPIs to a time point close to that.
+
+            Please see "align_epi_anat.py -help" for more information.
+
         -align_opts_aea OPTS ... : specify extra options for align_epi_anat.py
 
                 e.g. -align_opts_aea -big_move 
@@ -3312,21 +3362,18 @@ g_help_string = """
 
         -volreg_base_dset DSET  : specify dset/sub-brick for volreg base
 
-                e.g. -volreg_base_dset /users/rickr/subj10/vreg_base+orig'[4]'
+                e.g. -volreg_base_dset subj10/vreg_base+orig'[4]'
 
-            This option allow the user to specify an external dataset for the
+            This option allows the user to specify an external dataset for the
             volreg base.  The user should apply sub-brick selection if the
             dataset has more than one volume.
-
-            Since this volume is (currently) not being copied to the results
-            directory, consider specifying it with a full pathname.
 
         -volreg_base_ind RUN SUB : specify run/sub-brick indices for base
 
                 e.g. -volreg_base_ind 10 123
                 default: 0 0
 
-            This option allow the user to specify exactly which dataset and
+            This option allows the user to specify exactly which dataset and
             sub-brick to use as the base registration image.  Note that the
             SUB index applies AFTER the removal of pre-steady state images.
 
