@@ -154,9 +154,10 @@ g_history = """
         - Changed default min grid truncation from 2 significant bits to 3
           when applying -volreg_tlrc_warp/-volreg_align_e2s.
     2.06 Aug 13 2009 : added -volreg_tlrc_adwarp, to apply manual tlrc xform
+    2.07 Aug 14 2009 : added -align_epi_ext_dset, to align anat to external EPI
 """
 
-g_version = "version 2.06, August 13, 2009"
+g_version = "version 2.07, August 14, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -218,6 +219,8 @@ class SubjProcSream:
         self.tlrc_ss    = 1             # whether to assume skull strip in tlrc
         self.warp_epi   = 0             # xform bitmap: tlrc, adwarp, a2e, e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
+        self.align_ebase= None          # external EPI for align_epi_anat.py
+        self.align_epre = 'ext_align_epi' # copied align epi base prefix
         self.rm_rm      = 1             # remove rm.* files (user option)
         self.have_rm    = 0             # have rm.* files (such files exist)
         self.gen_review = '@epi_review.$subj' # filename for gen_epi_review.py
@@ -378,6 +381,8 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-align_opts_aea', -1, [],
                         helpstr='additional options for align_epi_anat.py')
+        self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
+                        helpstr='external EPI volume for align_epi_anat.py')
 
         self.valid_opts.add_opt('-volreg_align_e2a', 0, [],
                         helpstr="align EPI to anatomy (via align block)")
@@ -1088,6 +1093,14 @@ class SubjProcSream:
             str = "# copy over the external volreg base\n"  \
                   "3dbucket -prefix %s/%s '%s'\n" %         \
                   (self.od_var, self.vr_ext_pre, self.vr_ext_base)
+            self.fp.write(add_line_wrappers(str))
+            self.fp.write("%s\n" % stat_inc)
+
+        # possibly copy over any align EPI base
+        if self.align_ebase != None:
+            str = "# copy over the external align_epi_anat.py EPI volume\n" \
+                  "3dbucket -prefix %s/%s '%s'\n" %         \
+                  (self.od_var, self.align_epre, self.align_ebase)
             self.fp.write(add_line_wrappers(str))
             self.fp.write("%s\n" % stat_inc)
 
