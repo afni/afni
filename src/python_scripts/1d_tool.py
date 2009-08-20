@@ -30,46 +30,64 @@ examples (very basic for now):
 
    1. Select by rows and columns, akin to 1dcat.
 
-      1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
+         1d_tool.py -infile 'data/X.xmat.1D[0..3]{0..5}' -write t1.1D
 
    2. Compare with selection by separate options.
 
-      1d_tool.py -infile data/X.xmat.1D                  \\
-                 -select_cols '0..3' -select_rows '0..5' \\
-                 -write t2.1D
-      diff t1.1D t2.1D
+         1d_tool.py -infile data/X.xmat.1D                  \\
+                    -select_cols '0..3' -select_rows '0..5' \\
+                    -write t2.1D
+         diff t1.1D t2.1D
 
    3. Transpose a dataset, akin to 1dtranspose.
 
-      1d_tool.py -infile t3.1D -transpose -write ttr.1D
+         1d_tool.py -infile t3.1D -transpose -write ttr.1D
 
    4. Pad a file of regressors for a single run (#2) with zeros, so
       that it becomes run 2 of 7 (runs are 1-based).
 
-      1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
-                 -write ricor_r02_all.1D
+         1d_tool.py -infile ricor_r02.1D -pad_into_many_runs 2 7 \\
+                    -write ricor_r02_all.1D
 
    5. Display rows and columns for a 1D dataset.
 
-      1d_tool.py -infile ricor_r02.1D -show_rows_cols
+         1d_tool.py -infile ricor_r02.1D -show_rows_cols
 
    6. Show correlation matrix warnings for this matrix.
 
-      1d_tool.py -infile X.xmat.1D -show_cormat_warnings
+         1d_tool.py -infile X.xmat.1D -show_cormat_warnings
 
    7. Output temporal derivative of motion regressors.  There are 9 runs in
       dfile.rall.1D, and derivatives are applied per run.
 
-      1d_tool.py -infile dfile.rall.1D -set_nruns 9 \\
-                 -derivative -write motion.deriv.1D
+         1d_tool.py -infile dfile.rall.1D -set_nruns 9 \\
+                    -derivative -write motion.deriv.1D
 
    8. Verify whether labels show slice-major ordering (where all slice0
       regressors come first, then all slice1 regressors, etc).  Either
       show the labels and verify visually, or print whether it is true.
 
-      1d_tool.py -infile scan_2.slibase.1D'[0..12]' -show_labels
-      1d_tool.py -infile scan_2.slibase.1D -show_labels
-      1d_tool.py -infile scan_2.slibase.1D -show_label_ordering
+         1d_tool.py -infile scan_2.slibase.1D'[0..12]' -show_labels
+         1d_tool.py -infile scan_2.slibase.1D -show_labels
+         1d_tool.py -infile scan_2.slibase.1D -show_label_ordering
+
+   9. Given motion.1D, create a censor file to use in 3dDeconvolve, where a
+      TR is censored if the derivative values have a Euclidean Norm above 1.2.
+
+         1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0     \\
+                    -derivative -collapse_cols euclidean_norm      \\
+                    -extreme_mask -1.2 1.2                         \\
+                    -write_censor subjA.censor.1D                  \\
+                    -write_CENSORTR subjA.CENSORTR.txt
+
+      The -censor_motion option is available, which implies '-derivative',
+      '-collapse_cols euclidean_norm', 'extreme_mask -LIMIT LIMIT', and the
+      prefix for '-write_censor' and '-write_CENSORTR' output files.
+
+         1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0  \\
+                    -censor_motion 1.2 subjA
+
+      Consider also '-censor_prev_TR'.
 
 ---------------------------------------------------------------------------
 basic informational options:
@@ -88,8 +106,41 @@ required input:
 general options:
 
    -add_cols NEW_DSET.1D        : extend dset to include these columns
+   -collapse_cols METHOD        : collapse multiple columns into one, where
+
+        METHOD is one of: min, max, minabs, maxabs, euclidean_norm.
+
+   -censor_motion LIMIT PREFIX  : create censorting files
+
+        This option implies '-derivative', '-collapse_cols euclidean_norm',
+        'extreme_mask -LIMIT LIMIT' and applies PREFIX for '-write_censor'
+        and '-write_CENSORTR' output files.
+
+        The temporal derivative is taken with run breaks applied (derivative
+        of the first run of a TR is 0), then the columns are collapsed into
+        one via each TR's vector length (Euclidean Norm: sqrt(sum of sqares)).
+        After that, a mask time series is made from TRs with values outside
+        (-LIMIT,LIMIT), i.e. if >= LIMIT or <= LIMIT, result is 1.
+
+        This binary time series is then written out in -CENSORTR format
+        (for 3dDeconvolve), and the moderate TRs are written in -censor
+        format.  The output files will be named PREFIX_censor.1D and
+        PREFIX_CENSORTR.txt (e.g. subj123_censor.1D, subj123_CENSORTR.txt).
+
+        The other information necessary besides an input motion file (-infile)
+        is the number of runs (-set_nruns) and the TR (-set_tr).
+
+        Consider also '-censor_prev_TR'.
+        See example 9.
+
+   -censor_prev_TR              : for each censored TR, also censor previous
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
    -derivative                  : take the temporal derivative of each vector
+   -extreme_mask MIN MAX        : mask extreme values
+
+        Convert to a 0/1 mask, where 1 means the given value is in [MIN,MAX],
+        and 0 means otherwise.  This is useful for censoring motion outliers.
+
    -overwrite                   : allow overwriting of any output dataset
    -reverse                     : reverse data over time
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
@@ -98,6 +149,7 @@ general options:
                                   e.g. '{5,0,7..21(2)}'
    -set_nruns NRUNS             : treat the input data as if it has nruns
                                   (applies to -derivative, for example)
+   -set_tr TR                   : set the TR (in seconds) for the data
    -show_cormat_warnings        : display correlation matrix warnings
    -show_label_ordering         : display the labels
    -show_labels                 : display the labels
@@ -107,6 +159,8 @@ general options:
                                   - consider the -reverse option
    -transpose                   : transpose the matrix (rows for columns)
    -write FILE                  : write the current 1D data to FILE
+   -write_censor FILE           : write as boolean censor.1D
+   -write_CENSORTR FILE         : write censor times as CENSORTR string
    -verb LEVEL                  : set the verbosity level
 
 -----------------------------------------------------------------------------
@@ -130,9 +184,13 @@ g_history = """
         - added -derivative and -set_nruns
         - fixed typo in use of -show_cormat_warnings
    0.8  Jul 27, 2009 - added -show_labels and -show_label_ordering
+   0.9  Aug 20, 2009
+        - added motion censoring, motivated by L Thomas and B Bones
+        - added -censor_motion, -censor_prev_TR,  -collapse_cols,
+                -extreme_mask, -set_tr, -write_censor, -write_CENSORTR
 """
 
-g_version = "1d_tool.py version 0.8, Jul 27, 2009"
+g_version = "1d_tool.py version 0.9, Aug 20, 2009"
 
 
 class A1DInterface:
@@ -143,18 +201,22 @@ class A1DInterface:
       self.valid_opts      = None
       self.user_opts       = None
 
+      self.infile          = None       # main input file
       self.adata           = None       # main Afni1D class instance
 
-      # general variables
-      self.infile          = None       # main input file
+      # action variables
       self.add_cols_file   = None       # filename to add cols from
-      self.set_nruns       = 0          # pretend the input is over N runs
+      self.censor_prev_TR  = 0          # if censor, also censor previous TR
+      self.collapse_method = ''         # method for collapsing columns
       self.derivative      = 0          # take temporal derivative
       self.overwrite       = 0          # whether to allow overwriting
       self.pad_to_runs     = []         # pad as run #A out of #B runs
       self.reverse         = 0          # reverse data over time
       self.select_cols     = ''         # column selection string
       self.select_rows     = ''         # row selection string
+      self.set_extremes    = 0          # apply extreme limits
+      self.set_nruns       = 0          # pretend the input is over N runs
+      self.set_tr          = 0          # set the TR of the data
 
       self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
       self.show_cormat_warn= 0          # show cormat warnings
@@ -164,7 +226,13 @@ class A1DInterface:
 
       self.sort            = 0          # sort data over time
       self.transpose       = 0          # transpose the matrix
+      self.censor_file     = None       # output as 1D censor file
+      self.censortr_file   = None       # output as CENSORTR string
       self.write_file      = None       # output filename
+
+      # general variables
+      self.extreme_min     = 0          # minimum for extreme limit
+      self.extreme_max     = 0          # maximum for extreme limit
       self.verb            = verb       # verbose level
 
       # initialize valid_opts
@@ -189,10 +257,19 @@ class A1DInterface:
 
    def write_1D(self, fname):
       """write the current 1D data out (return status)"""
+      if self.verb > 1: print '++ writing 1D file %s' % fname
       if not self.adata:
          print '** no 1D data to write'
          return 1
       return self.adata.write(fname, overwrite=self.overwrite)
+
+   def write_timing(self, fname, invert=0):
+      """write the current 1D data out as a timing file, where a time
+         is written if data at the current TR is set (non-zero)"""
+      if not self.adata:
+         print '** no 1D data to write as timing'
+         return 1
+      return self.adata.write_timing(fname, invert=invert)
 
    def init_options(self):
       self.valid_opts = OL.OptionList('valid opts')
@@ -215,11 +292,24 @@ class A1DInterface:
       self.valid_opts.add_opt('-add_cols', 1, [],
                       helpstr='extend dataset with columns from new file')
 
+      self.valid_opts.add_opt('-censor_motion', 2, [], 
+                      helpstr='censor motion data with LIMIT and PREFIX')
+
+      self.valid_opts.add_opt('-censor_prev_TR', 0, [], 
+                      helpstr='if censoring a TR, also censor previous one')
+
+      self.valid_opts.add_opt('-collapse_cols', 1, [], 
+                      acplist=['min','max','minabs','maxabs','euclidean_norm'],
+                      helpstr='collapse into one column via supplied METHOD')
+
       self.valid_opts.add_opt('-cormat_cutoff', 1, [], 
                       helpstr='set the cutoff for cormat warnings')
 
       self.valid_opts.add_opt('-derivative', 0, [], 
                       helpstr='take temporal derivative of each column')
+
+      self.valid_opts.add_opt('-extreme_mask', 2, [], 
+                      helpstr='create mask for when values are in [MIN,MAX]')
 
       self.valid_opts.add_opt('-overwrite', 0, [], 
                       helpstr='allow overwriting any output files')
@@ -237,7 +327,10 @@ class A1DInterface:
                       helpstr='select the list of rows from the dataset')
 
       self.valid_opts.add_opt('-set_nruns', 1, [], 
-                      helpstr='set the number of runs in the input')
+                      helpstr='specify the number of runs in the input')
+
+      self.valid_opts.add_opt('-set_tr', 1, [], 
+                      helpstr='specify the TR (in seconds) of the data')
 
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
@@ -259,6 +352,12 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-write', 1, [], 
                       helpstr='write 1D data to the given file')
+
+      self.valid_opts.add_opt('-write_censor', 1, [], 
+                      helpstr='write as 1D censor file')
+
+      self.valid_opts.add_opt('-write_CENSORTR', 1, [], 
+                      helpstr='write CENSORTR format string to file')
 
       self.valid_opts.add_opt('-verb', 1, [], 
                       helpstr='set the verbose level (default is 1)')
@@ -323,16 +422,77 @@ class A1DInterface:
             val, err = uopts.get_type_opt(int, '', opt=opt)
             if err: return 1
             if val > 0: self.set_nruns = val
-            else: print '** -set_nruns must be positive'
+            else:
+               print '** -set_nruns must be positive'
+               return 1
+
+         elif opt.name == '-set_tr':
+            val, err = uopts.get_type_opt(float, '', opt=opt)
+            if err: return 1
+            if val > 0: self.set_tr = val
+            else:
+               print '** -set_tr must be positive'
+               return 1
+
+         elif opt.name == '-censor_motion':
+            val, err = uopts.get_string_list('', opt=opt)
+            if err: return 1
+            try: limit = float(val[0])
+            except:
+               print "** -censor_motion: bad limit '%s'" % val[0]
+               return 1
+            if limit < 0:
+               print "** -censor_motion: LIMIT must be positive, have %g"%limit
+               return 1
+            # check for redundant options
+            errors = 0
+            olist = ['-derivative', '-collapse_cols', '-extreme_mask',
+                     '-write_censor', '-write_CENSORTR']
+            for oname in olist:
+               if uopts.find_opt(oname):
+                  print "** option %s is redundant with -censor_motion" % oname
+                  errors += 1
+            if errors:
+               ss = "\n** -censor_motion implies each of: %s"%', '.join(olist)
+               print UTIL.add_line_wrappers(ss, wrapstr='\n')
+               return 1
+            # set implied options
+            self.derivative = 1
+            self.collapse_method = 'euclidean_norm'
+            self.extreme_min = -limit
+            self.extreme_max = limit
+            self.censor_file = '%s_censor.1D' % val[1]
+            self.censortr_file = '%s_CENSORTR.txt' % val[1]
+
+         elif opt.name == '-censor_prev_TR':
+            self.censor_prev_TR = 1
+
+         elif opt.name == '-collapse_cols':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.collapse_method = val
 
          elif opt.name == '-cormat_cutoff':
             val, err = uopts.get_type_opt(float, '', opt=opt)
             if err: return 1
             if val >= 0 and val < 1.0: self.cormat_cutoff = val
-            else: print '** -cormat_cutoff must be in [0,1)'
+            else:
+               print '** -cormat_cutoff must be in [0,1)'
+               return 1
 
          elif opt.name == '-derivative':
             self.derivative = 1
+
+         elif opt.name == '-extreme_mask':
+            val, err = uopts.get_type_list(float, '', opt=opt)
+            if err: return 1
+            if val[0]<=val[1]:
+               self.set_extremes = 1
+               self.extreme_min = val[0]
+               self.extreme_max = val[1]
+            else:
+               print '** -extreme_mask: must have min <= max'
+               return 1
 
          elif opt.name == '-overwrite':
             self.overwrite = 1
@@ -379,6 +539,16 @@ class A1DInterface:
             if err: return 1
             self.write_file = val
 
+         elif opt.name == '-write_censor':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.censor_file = val
+
+         elif opt.name == '-write_CENSORTR':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.censortr_file = val
+
       return
 
    def process_data(self):
@@ -413,6 +583,8 @@ class A1DInterface:
       if self.set_nruns > 0:
          if self.adata.set_nruns(self.set_nruns): return 1
 
+      if self.set_tr > 0: self.adata.tr = self.set_tr
+
       if self.derivative:
          if self.adata.derivative(): return 1
 
@@ -433,6 +605,16 @@ class A1DInterface:
       if self.transpose:
          if self.adata.transpose(): return 1
 
+      if self.collapse_method:
+         if self.adata.collapse_cols(self.collapse_method): return 1
+
+      if self.set_extremes:
+         if self.adata.extreme_mask(self.extreme_min, self.extreme_max):
+            return 1
+
+      if self.censor_prev_TR:
+         if self.adata.mask_prior_TRs(): return 1
+
       # ---- 'show' options come after all other processing ----
 
       if self.show_label_ord: self.adata.show_major_order_of_labels()
@@ -446,6 +628,13 @@ class A1DInterface:
          print str
 
       # ---- possibly write: last option -----
+
+      if self.censortr_file:
+         if self.adata.write_censortr(self.censortr_file): return 1
+
+      if self.censor_file:
+         if self.adata.bool_negate(): return 1
+         if self.write_1D(self.censor_file): return 1
 
       if self.write_file:
          if self.write_1D(self.write_file): return 1
