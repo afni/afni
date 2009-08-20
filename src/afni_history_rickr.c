@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, AUG, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "added motion censoring, motivated by L Thomas and B Bones",
+   "Added -censor_motion, -censor_prev_TR,  -collapse_cols, -extreme_mask,\n"
+   "      -set_tr, -write_censor and -write_CENSORTR.\n"
+   "Also modified afni_util.py, lib_afni1D.py and option_list.py."
+ } ,
+
  { 14, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -align_epi_ext_dset, to align anat to external EPI",
    "This may be important for multi-channel coil EPI data with low internal\n"
