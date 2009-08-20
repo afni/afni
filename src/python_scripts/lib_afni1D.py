@@ -151,6 +151,125 @@ class Afni1D:
 
       return 0
 
+   def abs(self):
+      """take the absolute value of each entry
+         return 0 on success, 1 on error"""
+
+      if not self.ready:
+         print '** abs: Afni1D is not ready'
+         return 1
+
+      for ind in range(self.nvec):
+         newvec = []
+         for rind in range(self.nt):
+            self.mat[ind][rind] = abs(self.mat[ind][rind])
+
+      return 0
+
+   def bool_negate(self):
+      """set clear values and clear set values
+         return 0 on success, 1 on error"""
+
+      if not self.ready:
+         print '** bool_negate: Afni1D is not ready'
+         return 1
+
+      for v in range(self.nvec):
+         for t in range(self.nt):
+            if self.mat[v][t]: self.mat[v][t] = 0
+            else:              self.mat[v][t] = 1
+
+      return 0
+
+   def collapse_cols(self, method):
+      """collapsed the matrix to a single array of length nt (nvec will = 1)
+
+         collapsing will apply 'method' across the nvec per time point
+
+             method = 'min'             : min across nvec
+             method = 'minabs'          : min abs across nvec
+             method = 'max'             : max across nvec
+             method = 'maxabs'          : max abs across nvec
+             method = 'euclidean_norm'  : sqrt(sum squares)
+
+         Note: the result will still be a trivial 2-D array, where element 0
+               is the collapsed time series.  This allows other functionality
+               to still work.
+
+         return 0 on success, 1 on error"""
+
+      if not self.ready:
+         print '** collapse: Afni1D is not ready'
+         return 1
+
+      # either create a new mat and apply later, or modify mat and recur
+
+      if method == 'min':
+         mat = [min([self.mat[v][t] for v in range(self.nvec)]) \
+                                    for t in range(self.nt)]
+      elif method == 'max':
+         mat = [max([self.mat[v][t] for v in range(self.nvec)]) \
+                                    for t in range(self.nt)]
+      elif method == 'minabs':  # take abs and recur
+         if self.abs(): return 1
+         return self.collapse_cols('min')
+      elif method == 'maxabs':  # take abs and recur
+         if self.abs(): return 1
+         return self.collapse_cols('max')
+      elif method == 'euclidean_norm':
+         mat = [UTIL.euclidean_norm([self.mat[v][t] for v in range(self.nvec)])\
+                                                    for t in range(self.nt)]
+      else:
+         print "** collapse_cols: unknown method:", method
+         return 1
+
+      # note that there is only a single column left
+      self.nvec = 1
+      self.clear_cormat()
+
+      del(self.mat)
+      self.mat = [mat]
+      return 0
+
+   def extreme_mask(self, emin, emax, inclusive=1):
+      """convert to a time series mask of 0/1 values where the result is
+         1, if value is extreme (>emax or <emin, with = if inclusive)
+         0, otherwise (moderate)
+
+         For example, these would be the TRs to omit in a censor.1D file.
+        
+         return 0 on success"""
+
+      if not self.ready:
+         print '** extremem_mask: Afni1D is not ready'
+         return 1
+
+      if emin > emax:
+         print '** extreme_mask: emin > emax (', emin, emax, ')'
+         return 1
+
+      self.mat = [UTIL.vec_extremes(vec,emin,emax,inclusive)[1] \
+                        for vec in self.mat]
+
+      if self.verb > 1:
+         count = sum([val for val in self.mat[0] if val == 1])
+         print '++ extreme_mask: removing %d of %d vals' % (count,self.nt)
+
+      return 0
+
+   def mask_prior_TRs(self):
+      """if one TR is set, also set the prior one"""
+
+      if not self.ready:
+         print '** mask_prior_TRs: Afni1D is not ready'
+         return 1
+
+      for v in range(self.nvec):
+         for t in range(self.nt-1):
+            if self.mat[v][t+1] and not self.mat[v][t]: self.mat[v][t] = 1
+
+      return 0
+
    def pad_into_many_runs(self, rindex, nruns):
       """pad over time so that this is run #rindex out of nruns runs
          (rindex should be 1-based)
@@ -195,6 +314,8 @@ class Afni1D:
       for ind in range(self.nvec):
          self.mat[ind].sort(reverse=reverse)
 
+      return 0
+
    def reverse(self):
       """reverse data over time axis"""
       ilist = UTIL.decode_1D_ints('$..0(-1)',verb=self.verb,max=self.nt-1)
@@ -210,6 +331,7 @@ class Afni1D:
             overwrite   : whether to allow overwrite
 
          return status"""
+
       if not self.ready:
          print "** Afni1D not ready for write to '%s'" % fname
          return 1
@@ -232,6 +354,66 @@ class Afni1D:
       fp.close()
 
       return 0
+
+   def write_timing(self, fname, invert=0, column=0):
+      """write set TRs to a timing file, one run per run, using '*' for
+         empty runs (two for first run)
+
+         If multi-column data, can choose one.
+
+            fname    : required filename
+            invert   : write times for zero data TRs
+            column   : which column to write times as
+
+         return status"""
+
+      if not self.ready:
+         print "** Afni1D not ready for write_timing to '%s'" % fname
+         return 1
+
+      err, tstr = UTIL.make_timing_string(self.mat[column],
+                                          self.nruns, self.tr, invert)
+      if err: return 1
+
+      try: fp = open(fname, 'r')
+      except:
+         print "** failed to open file '%s'" % fname
+         return 1
+
+      fp.write(tstr)
+      fp.close()
+
+      return 0
+
+   def write_censortr(self, fname, invert=0, column=0):
+      """write set TRs to a timing file, one run per run, using '*' for
+         empty runs (two for first run)
+
+         If multi-column data, can choose one.
+
+            fname    : required filename
+            invert   : write times for zero data TRs
+            column   : which column to write times as
+
+         return status"""
+
+      if self.verb > 1: print '++ writing CENSORTR file %s' % fname
+
+      if not self.ready:
+         print "** Afni1D not ready for write_timing to '%s'" % fname
+         return 1
+
+      err,cstr = UTIL.make_CENSORTR_string(self.mat[column],self.nruns,asopt=1)
+
+      if err: return 1
+
+      try: fp = open(fname, 'w')
+      except:
+         print "** failed to open file '%s'" % fname
+         return 1
+
+      fp.write(cstr)
+      fp.close()
 
    def append_vecs(self, matlist, newname=''):
       """append each Afni1D to the current one"""
@@ -333,6 +515,15 @@ class Afni1D:
       except:
          print '++ labels are not of expected format, cannot determine ordering'
          self.show_labels()
+
+   def clear_cormat(self):
+      """nuke any existing cormat"""
+      if not self.ready: return
+      if self.cormat_ready:
+         if not update: return
+         del(self.cormat)
+         self.cormat = None
+         self.cormat_ready = 0
 
    def set_cormat(self, update=0):
       """set cormat (the correlation matrix) and cormat.ready
