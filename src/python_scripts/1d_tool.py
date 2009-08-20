@@ -110,7 +110,7 @@ general options:
 
         METHOD is one of: min, max, minabs, maxabs, euclidean_norm.
 
-   -censor_motion LIMIT PREFIX  : create censorting files
+   -censor_motion LIMIT PREFIX  : create censor files
 
         This option implies '-derivative', '-collapse_cols euclidean_norm',
         'extreme_mask -LIMIT LIMIT' and applies PREFIX for '-write_censor'
@@ -118,7 +118,7 @@ general options:
 
         The temporal derivative is taken with run breaks applied (derivative
         of the first run of a TR is 0), then the columns are collapsed into
-        one via each TR's vector length (Euclidean Norm: sqrt(sum of sqares)).
+        one via each TR's vector length (Euclidean Norm: sqrt(sum of squares)).
         After that, a mask time series is made from TRs with values outside
         (-LIMIT,LIMIT), i.e. if >= LIMIT or <= LIMIT, result is 1.
 

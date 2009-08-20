@@ -428,39 +428,132 @@ def transpose(matrix):
         newmat.append(newrow)
     return newmat
 
+def make_timing_string(data, nruns, tr, invert=0):
+   """evaluating the data array as boolean (zero or non-zero), return
+      non-zero entries in stim_times format
+
+      data      : single vector (length must be multiple of nruns)
+      nruns     : number of runs (must divide len(data))
+      tr        : TR in seconds, with data viewed as per TR
+
+      invert    : (optional) invert the boolean logic (write 0 times)
+
+      return err code (0 on success), stim_times string"""
+
+   if not data:
+      print "** make_timing_string: missing data"
+      return 1, ''
+   if not type(data) == type([]):
+      print "** make_timing_string: data is not a list"
+      return 1, ''
+
+   nvals = len(data)
+   rlen  = nvals // nruns
+
+   if nruns * rlen != nvals:
+      print "** make_timing_str: nruns %d does not divide nvals %d"%(rlen,nvals)
+      return 1, ''
+   if tr <= 0.0:
+      print "** make_timing_string: bad tr = %g" % tr
+      return 1, ''
+
+   rstr = ''
+
+   for run in range(nruns):
+      bot = run*rlen
+      if invert: rvals = [1*(data[i] == 0) for i in range(bot,bot+rlen)]
+      else:      rvals = [1*(data[i] != 0) for i in range(bot,bot+rlen)]
+      # if the run is empty, print 1 or 2 '*'
+      nzero = rvals.count(0)
+      if nzero == rlen:
+         if run == 0: rstr += '* *'
+         else:        rstr += '*'
+      else:
+         rstr += ' '.join(['%g'%(i*tr) for i in range(rlen) if rvals[i]])
+
+      # if run0 and exactly 1 non-zero value, print a trailing '*'
+      if run == 0 and nzero == rlen-1: rstr += ' *'
+      rstr += '\n'
+
+   return 0, rstr
+
+def make_CENSORTR_string(data, nruns, invert=0, asopt=0):
+   """evaluating the data array as boolean (zero or non-zero), return
+      non-zero entries in CENSORTR format
+
+      data      : single vector (length must be multiple of nruns)
+      nruns     : number of runs (must divide len(data))
+      asopt     : if set, return as complete -CENSORTR option
+
+      invert    : (optional) invert the boolean logic (write 0 TRs)
+
+      return err code (0 on success), CENSORTR string"""
+
+   if not data:
+      print "** CENSORTR_str: missing data"
+      return 1, ''
+   if not type(data) == type([]):
+      print "** CENSORTR_str: data is not a list"
+      return 1, ''
+
+   nvals = len(data)
+   rlen  = nvals // nruns
+
+   if nruns * rlen != nvals:
+      print "** CENSORTR_str: nruns %d does not divide nvals %d"%(rlen,nvals)
+      return 1, ''
+
+   rstr = ''
+
+   for run in range(nruns):
+      bot = run*rlen
+      if invert: rvals = [1*(data[i] == 0) for i in range(bot,bot+rlen)]
+      else:      rvals = [1*(data[i] != 0) for i in range(bot,bot+rlen)]
+      # if the run is empty, print 1 or 2 '*'
+      nzero = rvals.count(0)
+      if nzero == rlen: continue
+
+      rstr += "%d:%s "%(run+1,encode_1D_ints([i for i in range(rlen)    \
+                                                if rvals[i]]))
+
+   if asopt and rstr != '': rstr = "-CENSORTR '%s'" % rstr
+
+   return 0, rstr
+
+
 # end matrix functions
 # ----------------------------------------------------------------------
 # index encode/decode functions
 
-def encode_1D_ints(cols):
-   """convert a list of columns to a ',' and '..' separated string"""
-   if not cols: return ''
-   if len(cols) < 1: return ''
+def encode_1D_ints(ilist):
+   """convert a list of integers to a ',' and '..' separated string"""
+   if not ilist: return ''
+   if len(ilist) < 1: return ''
 
-   text = '%d' % cols[0]
-   prev = cols[0]
+   text = '%d' % ilist[0]
+   prev = ilist[0]
    ind  = 1
-   while ind < len(cols):
-      ncontinue = consec_len(cols, ind-1) - 1
+   while ind < len(ilist):
+      ncontinue = consec_len(ilist, ind-1) - 1
       if ncontinue <= 1:     # then no '..' continuation, use ','
-         text = text + ', %d' % cols[ind]
+         text = text + ',%d' % ilist[ind]
          ind += 1
       else:
-         text = text + '..%d' % cols[ind+ncontinue-1]
+         text = text + '..%d' % ilist[ind+ncontinue-1]
          ind += ncontinue
 
    return text
 
-def consec_len(cols, start):
-   """return the length of consecutive numbers - always at least 1"""
-   prev = cols[start]
-   length = len(cols)
+def consec_len(ilist, start):
+   """return the length of consecutive integers - always at least 1"""
+   prev = ilist[start]
+   length = len(ilist)
    ind  = start
    for ind in range(start+1, length+1):
       if ind == length: break
-      if cols[ind] != prev + 1:
+      if ilist[ind] != prev + 1:
          break
-      prev = cols[ind]
+      prev = ilist[ind]
    if ind == start:  length = 1
    else:             length = ind-start
 
@@ -1044,4 +1137,67 @@ def swap4(data):
         v           = data[off+1]   # swap d[1] and d[2]
         data[off+1] = data[off+2]
         data[off+2] = v
+
+def vec_extremes(vec, minv, maxv, inclusive=0):
+   """return a integer array where values outside bounds are 1, else 0
+
+      if inclusive, values will also be set if they equal a bound
+
+      return error code, new list
+             success: 0, list
+             error  : 1, None"""
+
+   if not vec: return 1, None
+
+   if minv > maxv:
+      print '** extremes: minv > maxv (', minv, maxv, ')' 
+      return 1, None
+
+   if inclusive:
+      elist = [1*(vec[t]>=maxv or vec[t]<=minv) for t in range(len(vec))]
+   else:
+      elist = [1*(vec[t]> maxv or vec[t]< minv) for t in range(len(vec))]
+
+   return 0, elist
+
+def vec_moderates(vec, minv, maxv, inclusive=1):
+   """return a integer array where values inside bounds are 1, else 0
+
+      if inclusive, values will also be set if they equal a bound
+
+      return error code, new list
+             success: 0, list
+             error  : 1, None"""
+
+   if not vec: return 1, None
+
+   if minv > maxv:
+      print '** moderates: minv > maxv (', minv, maxv, ')' 
+      return 1, None
+
+   if inclusive:
+      elist = [1*(vec[t]>=minv and vec[t]<=maxv) for t in range(len(vec))]
+   else:
+      elist = [1*(vec[t]> minv and vec[t]< maxv) for t in range(len(vec))]
+
+   return 0, elist
+
+def vec_range_limit(vec, minv, maxv):
+   """restrict the values to [minv, maxv]
+
+      This function modifies the past vector.
+
+      return 0 on success, 1 on error"""
+
+   if not vec: return 0
+
+   if minv > maxv:
+      print '** range_limit: minv > maxv (', minv, maxv, ')'
+      return 1
+
+   for ind in range(len(vec)):
+      if   vec[ind] < minv: vec[ind] = minv
+      elif vec[ind] > maxv: vec[ind] = maxv
+
+   return 0
 

@@ -115,8 +115,9 @@ class OptionList:
 
         if opt == None: opt = self.find_opt(opt_name)
         if not opt or not opt.parlist: return None, 0
+        if not opt_name: opt_name = opt.name
         if len(opt.parlist) != 1:
-            print '** option %s takes exactly 1 parameter, have: %s' % \
+            print "** expecting 1 parmeter for option '%s', have: %s" % \
                   (opt_name, opt.parlist)
             return None, 1
         return opt.parlist[0], 0
@@ -140,8 +141,9 @@ class OptionList:
         if opt == None: opt = self.find_opt(opt_name)
 
         if not opt or not opt.parlist: return None, 0
+        if not opt_name: opt_name = opt.name
         if len(opt.parlist) != 1:
-            print '** option %s takes exactly 1 parameter, have: %s' % \
+            print "** expectin 1 parameter for option '%s', have: %s" % \
                   (opt_name, opt.parlist)
             return None, 1
         try: val = type(opt.parlist[0])
@@ -171,6 +173,7 @@ class OptionList:
 
         if opt == None: opt = self.find_opt(opt_name)
         if not opt or not opt.parlist: return None, 0
+        if not opt_name: opt_name = opt.name
         olen = len(opt.parlist)
         if length > 0 and olen != 1 and olen != length:
             print '** %s takes 1 or %s (%d) values, have %d: %s' % \
