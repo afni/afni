@@ -124,6 +124,8 @@ class Afni1D:
 
          return 0 on success"""
 
+      if self.verb > 3: print '-- Afni1D derivative...'
+
       if not self.ready:
          print '** append: Afni1D is not ready'
          return 1
@@ -155,6 +157,8 @@ class Afni1D:
       """take the absolute value of each entry
          return 0 on success, 1 on error"""
 
+      if self.verb > 3: print '-- Afni1D abs...'
+
       if not self.ready:
          print '** abs: Afni1D is not ready'
          return 1
@@ -170,6 +174,9 @@ class Afni1D:
       """set clear values and clear set values
          return 0 on success, 1 on error"""
 
+      if self.verb > 3: print '-- bool_negate: old zeros = %d'  \
+                              % self.mat[0].count(0)
+
       if not self.ready:
          print '** bool_negate: Afni1D is not ready'
          return 1
@@ -178,6 +185,8 @@ class Afni1D:
          for t in range(self.nt):
             if self.mat[v][t]: self.mat[v][t] = 0
             else:              self.mat[v][t] = 1
+
+      if self.verb > 3: print '-- negate: new zeros = %d' % self.mat[0].count(0)
 
       return 0
 
@@ -197,6 +206,8 @@ class Afni1D:
                to still work.
 
          return 0 on success, 1 on error"""
+
+      if self.verb > 3: print '-- collapse cols, method = %s' % method
 
       if not self.ready:
          print '** collapse: Afni1D is not ready'
@@ -240,6 +251,10 @@ class Afni1D:
         
          return 0 on success"""
 
+      if self.verb > 3:
+         if inclusive: print '-- extreme_mask: excluding (%g,%g)'%(emin,emax)
+         else:         print '-- extreme_mask: excluding [%g,%g]'%(emin,emax)
+
       if not self.ready:
          print '** extremem_mask: Afni1D is not ready'
          return 1
@@ -260,6 +275,8 @@ class Afni1D:
    def mask_prior_TRs(self):
       """if one TR is set, also set the prior one"""
 
+      if self.verb > 3: print '-- masking prior TRs...'
+
       if not self.ready:
          print '** mask_prior_TRs: Afni1D is not ready'
          return 1
@@ -275,6 +292,9 @@ class Afni1D:
          (rindex should be 1-based)
      
          return 0 on success"""
+
+      if self.verb > 3: print '-- pad_into_many_runs: rindex=%d, nruns=%d' \
+                              % (rindex,nruns)
 
       if not self.ready:
          print '** pad into runs: Afni1D is not ready'
@@ -311,6 +331,9 @@ class Afni1D:
 
    def sort(self, reverse=0):
       """sort data over time axis (possibly reverse order)"""
+
+      if self.verb > 3: print '-- Afni1D sorting...'
+
       for ind in range(self.nvec):
          self.mat[ind].sort(reverse=reverse)
 
@@ -318,8 +341,35 @@ class Afni1D:
 
    def reverse(self):
       """reverse data over time axis"""
+
+      if self.verb > 3: print '-- Afni1D reverse...'
+
       ilist = UTIL.decode_1D_ints('$..0(-1)',verb=self.verb,max=self.nt-1)
       if self.reduce_by_tlist(ilist): return 1
+
+      return 0
+
+   def show_censor_count(self, invert=0, column=0):
+      """display the total number of TRs censored (set) in the given column
+
+         If multi-column data, can choose one.
+
+            invert   : invert column count
+            column   : which column to count values from
+
+         return status"""
+
+      if self.verb > 3:
+         print '++ showing censor count (inv=%d, col=%d)' % (invert, column)
+
+      if not self.ready:
+         print "** Afni1D not ready for write_timing to '%s'" % fname
+         return 1
+
+      total = self.mat[0].count(0)              # start with inverted count
+      if not invert: total = self.nt - total
+
+      print 'total number of censored TRs = %d' % total
 
       return 0
 
@@ -331,6 +381,8 @@ class Afni1D:
             overwrite   : whether to allow overwrite
 
          return status"""
+
+      if self.verb > 3: print '-- Afni1D write to %s, o=%d'%(fname,overwrite)
 
       if not self.ready:
          print "** Afni1D not ready for write to '%s'" % fname
@@ -367,6 +419,9 @@ class Afni1D:
 
          return status"""
 
+      if self.verb > 3: print '-- Afni1D write_timing to %s, inv=%d, col=%d' \
+                              %(fname, invert, column)
+
       if not self.ready:
          print "** Afni1D not ready for write_timing to '%s'" % fname
          return 1
@@ -397,7 +452,8 @@ class Afni1D:
 
          return status"""
 
-      if self.verb > 1: print '++ writing CENSORTR file %s' % fname
+      if self.verb > 3: print '-- Afni1D write_censortr to %s, inv=%d, col=%d' \
+                              %(fname, invert, column)
 
       if not self.ready:
          print "** Afni1D not ready for write_timing to '%s'" % fname
@@ -421,6 +477,8 @@ class Afni1D:
       if not self.ready:
          print '** append: Afni1D is not ready'
          return 1
+
+      if self.verb > 3: print '-- Afni1D append_vecs...'
 
       # allow matlist to be a simple mat
       if type(matlist) == type(self):
@@ -478,6 +536,7 @@ class Afni1D:
 
    def transpose(self):
       """transpose the matrix and swap nrows and ncols"""
+      if self.verb > 3: print '-- Afni1D transpose...'
       if not self.ready:
          print "** matrix '%s' is not ready for transposing" % self.name
          return
@@ -495,6 +554,8 @@ class Afni1D:
    def show_major_order_of_labels(self):
       """be picky and verify that labels look like sSLICE.NAME, where
          SLICE increments (slowly) over slice index"""
+
+      if self.verb > 3: print '-- Afni1D show_major_order_of_labels...'
 
       if not self.labels:
          print '** no labels to test for ordering'
@@ -518,6 +579,7 @@ class Afni1D:
 
    def clear_cormat(self):
       """nuke any existing cormat"""
+      if self.verb > 3: print '-- Afni1D clear_cormat...'
       if not self.ready: return
       if self.cormat_ready:
          if not update: return
@@ -533,6 +595,7 @@ class Afni1D:
 
          The cosine matrix might also be quite helpful.
       """
+      if self.verb > 3: print '-- Afni1D set_cormat...'
       if not self.ready: return
       if self.cormat_ready:
          if not update: return
@@ -583,6 +646,9 @@ class Afni1D:
             (anything below cut2 is ignored)
 
          return error code (0=success) and 'warnings' string"""
+
+      if self.verb > 3: print "-- make_cormat_warn_str for '%s', cut=%g" \
+                              % (name, cutoff)
 
       # assign base cutoff
       if cutoff < 0.0 or cutoff >= 1.0 : cutoff = 0.4
@@ -638,6 +704,8 @@ class Afni1D:
    def list_cormat_warnings(self, cutoff=0.4):
       """return an error code, error string and a list of corval, vec, index
          for each cormat value with abs() > cutoff"""
+
+      if self.verb > 3: print '-- Afni1D list_cormat_warnings, cut=%g'%cutoff
 
       if not self.ready:
          return 1, '** no X-matrix to compute correlation matrix from', None
@@ -716,6 +784,8 @@ class Afni1D:
             one run of 1s (with remaining 0s), and use it to set the length
          return 0 on success
       """
+
+      if self.verb > 3: print '-- Afni1D set_nruns (new nruns = %d)' % nruns
 
       # try to apply any passed nruns, first
       if nruns > 0:
@@ -863,13 +933,14 @@ class Afni1D:
    def init_from_general_name(self, name):
       """might contain [] or {} selection"""
       aname = BASE.afni_name(self.fname)
+
       if self.init_from_1D(aname.rpve()): return 1 # failure
 
       self.aname = aname
       self.fname = aname.rpve()
       self.name  = aname.pve()
 
-      if self.init_from_1D(self.fname): return 1
+      # rcr - nuke   if self.init_from_1D(self.fname): return 1
 
       # apply column and/or row selectors
       if aname.colsel:
@@ -886,6 +957,9 @@ class Afni1D:
 
    def init_from_1D(self, fname):
       """initialize Afni1D from a 1D file (return err code)"""
+
+      if self.verb > 3: print "-- Afni1D: init_from_1D '%s'" % fname
+
       mat, clines = read_1D_file(fname)
       if not mat: return 1
       self.mat   = mat
@@ -997,6 +1071,7 @@ def c1D_line2labelNdata(cline, verb=1):
 def read_1D_file(fname):
    """read 1D file, returning the data in a matrix, and comments in clines
       (matrix is transposed so the columns over time are stored as rows)"""
+
    try: fp = open(fname, 'r')
    except:
       print "** failed to open file '%s'" % fname

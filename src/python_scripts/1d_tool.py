@@ -71,20 +71,35 @@ examples (very basic for now):
          1d_tool.py -infile scan_2.slibase.1D -show_labels
          1d_tool.py -infile scan_2.slibase.1D -show_label_ordering
 
-   9. Given motion.1D, create a censor file to use in 3dDeconvolve, where a
+   9. Given motion.1D, take the derivative (ignoring run breaks) and the
+      Euclidean Norm, and write as e.norm.1D.  This might be plotted to show
+      show sudden motion as a single time series.
+
+         1d_tool.py -infile motion.1D -set_nruns 9              \\
+                    -derivative  -collapse_cols euclidean_norm  \\
+                    -write e.norm.1D
+
+  10. Given motion.1D, create censor files to use in 3dDeconvolve, where a
       TR is censored if the derivative values have a Euclidean Norm above 1.2.
+
+      The file created by -write_censor can be used with 3dD's -censor option.
+      The file created by -write_CENSORTR can be used with -CENSORTR.  They
+      should have the same effect in 3dDeconvolve.  The CENSORTR file is more
+      readable, but the censor file is better for plotting against the data.
 
          1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0     \\
                     -derivative -collapse_cols euclidean_norm      \\
                     -extreme_mask -1.2 1.2                         \\
-                    -write_censor subjA.censor.1D                  \\
-                    -write_CENSORTR subjA.CENSORTR.txt
+                    -show_censor_count                             \\
+                    -write_censor subjA_censor.1D                  \\
+                    -write_CENSORTR subjA_CENSORTR.txt
 
       The -censor_motion option is available, which implies '-derivative',
       '-collapse_cols euclidean_norm', 'extreme_mask -LIMIT LIMIT', and the
       prefix for '-write_censor' and '-write_CENSORTR' output files.
 
          1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0  \\
+                    -show_censor_count                          \\
                     -censor_motion 1.2 subjA
 
       Consider also '-censor_prev_TR'.
@@ -131,7 +146,7 @@ general options:
         is the number of runs (-set_nruns) and the TR (-set_tr).
 
         Consider also '-censor_prev_TR'.
-        See example 9.
+        See example 10.
 
    -censor_prev_TR              : for each censored TR, also censor previous
    -cormat_cutoff CUTOFF        : set cutoff for cormat warnings (in [0,1])
@@ -150,6 +165,7 @@ general options:
    -set_nruns NRUNS             : treat the input data as if it has nruns
                                   (applies to -derivative, for example)
    -set_tr TR                   : set the TR (in seconds) for the data
+   -show_censor_count           : display the total number of censored TRs
    -show_cormat_warnings        : display correlation matrix warnings
    -show_label_ordering         : display the labels
    -show_labels                 : display the labels
@@ -160,7 +176,37 @@ general options:
    -transpose                   : transpose the matrix (rows for columns)
    -write FILE                  : write the current 1D data to FILE
    -write_censor FILE           : write as boolean censor.1D
+
+        e.g. -write_censor subjA_censor.1D
+
+        This file can be given to 3dDeconvolve to censor TRs with excessive
+        motion, applied with the -censor option.
+
+            e.g. 3dDeconvolve -censor subjA_censor.1D
+
+        This file works well for plotting against the data, where the 0 entries
+        are removed from the regression of 3dDeconvolve.  Alternatively, the
+        file created with -write_CENSORTR is probably more human readable.
+
    -write_CENSORTR FILE         : write censor times as CENSORTR string
+
+        e.g. -write_CENSORTR subjA_CENSORTR.txt
+
+        This file can be given to 3dDeconvolve to censor TRs with excessive
+        motion, applied with the -CENSORTR option.
+
+            e.g. 3dDeconvolve -CENSORTR `cat subjA_CENSORTR.txt`
+
+        Which might expand to:
+
+                 3dDeconvolve -CENSORTR '1:16..19,44 3:28 4:19,37..39'
+
+        Note that the -CENSORTR option requires the text on the command line.
+
+        This file is in the easily readable format applied with -CENSORTR.
+        It has the same effect on 3dDeconvolve as the sister file from
+        -write_censor, above.
+
    -verb LEVEL                  : set the verbosity level
 
 -----------------------------------------------------------------------------
@@ -188,9 +234,10 @@ g_history = """
         - added motion censoring, motivated by L Thomas and B Bones
         - added -censor_motion, -censor_prev_TR,  -collapse_cols,
                 -extreme_mask, -set_tr, -write_censor, -write_CENSORTR
+   0.10 Aug 21, 2009 - added -show_censor_count
 """
 
-g_version = "1d_tool.py version 0.9, Aug 20, 2009"
+g_version = "1d_tool.py version 0.10, Aug 21, 2009"
 
 
 class A1DInterface:
@@ -219,6 +266,7 @@ class A1DInterface:
       self.set_tr          = 0          # set the TR of the data
 
       self.cormat_cutoff   = -1         # if > 0, apply to show_cormat_warns
+      self.show_censor_count= 0         # show count of censored TRs
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_label_ord  = 0          # show the label ordering
       self.show_labels     = 0          # show the labels
@@ -331,6 +379,9 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-set_tr', 1, [], 
                       helpstr='specify the TR (in seconds) of the data')
+
+      self.valid_opts.add_opt('-show_censor_count', 0, [], 
+                      helpstr='display the total number of censored TRs')
 
       self.valid_opts.add_opt('-show_cormat_warnings', 0, [], 
                       helpstr='display warnings for the correlation matrix')
@@ -459,10 +510,11 @@ class A1DInterface:
             # set implied options
             self.derivative = 1
             self.collapse_method = 'euclidean_norm'
-            self.extreme_min = -limit
-            self.extreme_max = limit
-            self.censor_file = '%s_censor.1D' % val[1]
-            self.censortr_file = '%s_CENSORTR.txt' % val[1]
+            self.set_extremes    = 1
+            self.extreme_min     = -limit
+            self.extreme_max     = limit
+            self.censor_file     = '%s_censor.1D' % val[1]
+            self.censortr_file   = '%s_CENSORTR.txt' % val[1]
 
          elif opt.name == '-censor_prev_TR':
             self.censor_prev_TR = 1
@@ -518,6 +570,9 @@ class A1DInterface:
 
          elif opt.name == '-show_cormat_warnings':
             self.show_cormat_warn = 1
+
+         elif opt.name == '-show_censor_count':
+            self.show_censor_count = 1
 
          elif opt.name == '-show_label_ordering':
             self.show_label_ord = 1
@@ -621,6 +676,8 @@ class A1DInterface:
       if self.show_labels: self.adata.show_labels()
 
       if self.show_rows_cols: self.adata.show_rows_cols(verb=self.verb)
+
+      if self.show_censor_count: self.adata.show_censor_count()
 
       if self.show_cormat_warn:
          err, str = self.adata.make_cormat_warnings_string(self.cormat_cutoff,
