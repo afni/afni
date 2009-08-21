@@ -48,13 +48,18 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_censor_motion and -regress_censor_prev",
+   "Motivated by L Thomas and B Bones."
+ } ,
+
  { 21, AUG, 2009, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
    "added -show_censor_count",
    NULL
  } ,
 
  { 20, AUG, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
-   "added motion censoring, motivated by L Thomas and B Bones",
+   "added motion censoring options",
    "Added -censor_motion, -censor_prev_TR,  -collapse_cols, -extreme_mask,\n"
    "      -set_tr, -write_censor and -write_CENSORTR.\n"
    "Also modified afni_util.py, lib_afni1D.py and option_list.py."

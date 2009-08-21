@@ -1334,6 +1334,7 @@ def db_cmd_scale(proc, block):
 def db_mod_regress(block, proc, user_opts):
     if len(block.opts.olist) == 0: # then init
         block.opts.add_opt('-regress_basis', 1, ['GAM'], setpar=1)
+        block.opts.add_opt('-regress_censor_prev', 1, ['yes'], setpar=1)
         block.opts.add_opt('-regress_polort', 1, [-1], setpar=1)
         block.opts.add_opt('-regress_stim_files', -1, [])
         block.opts.add_opt('-regress_stim_labels', -1, [])
@@ -1485,6 +1486,29 @@ def db_mod_regress(block, proc, user_opts):
         for file in proc.stims_orig:
             proc.stims.append('stimuli/%s' % os.path.basename(file))
 
+    # check for censoring of large motion
+    uopt = user_opts.find_opt('-regress_censor_motion')
+    bopt = block.opts.find_opt('-regress_censor_motion')
+    if uopt:
+      try: limit = float(uopt.parlist[0])
+      except:
+        print "** -regress_censor_motion limit must be float, have '%s'" \
+              % uopt.parlist[0]
+        return 1
+      if limit < 0.0:
+        print '** -regress_censor_motion limit must be positive, have %g'%limit
+        errs += 1
+      if bopt: bopt.parlist[0] = limit
+      else: block.opts.add_opt('-regress_censor_motion', 1, [limit], setpar=1)
+
+    # do we also censor the previous TR?
+    uopt = user_opts.find_opt('-regress_censor_prev')
+    bopt = block.opts.find_opt('-regress_censor_prev')
+    if uopt:
+        if bopt: bopt.parlist = uopt.parlist
+        else: block.opts.add_opt('-regress_censor_prev', 1,
+                                 uopt.parlist, setpar=1)
+
     # check for EPI blur estimate
     uopt = user_opts.find_opt('-regress_est_blur_epits')
     bopt = block.opts.find_opt('-regress_est_blur_epits')
@@ -1635,6 +1659,13 @@ def db_cmd_regress(proc, block):
         if not newcmd: return
         cmd = cmd + newcmd
 
+    # if the user wants to censor large motion, create a censor.1D file
+    if block.opts.find_opt('-regress_censor_motion'):
+        err, newcmd = db_cmd_regress_censor_motion(proc, block)
+        if err: return
+        if newcmd: cmd = cmd + newcmd
+
+    # possibly use a mask
     if proc.mask and proc.regmask:
         mask = '    -mask %s%s \\\n' % (proc.mask.prefix, proc.view)
     else:
@@ -1647,12 +1678,16 @@ def db_cmd_regress(proc, block):
     nmotion = len(proc.mot_labs) * len(proc.mot_files)
     total_nstim =  len(proc.stims) + len(proc.extra_stims) + \
                    nmotion + proc.ricor_nreg
+    if proc.regress_censor_file:
+        censor_str = '    -censor %s \\\n' % proc.regress_censor_file
+    else: censor_str = ''
     cmd = cmd + '3dDeconvolve -input %s \\\n'           \
+                '%s'                                    \
                 '    -polort %d %s\\\n'                 \
                 '%s%s'                                  \
                 '    -num_stimts %d \\\n'               \
-                % ( proc.prev_dset_form_wild(), polort, datum, mask, normall,
-                    total_nstim )
+                % ( proc.prev_dset_form_wild(), censor_str, polort, datum,
+                    mask, normall, total_nstim )
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -2002,6 +2037,61 @@ def db_cmd_regress_sfiles2times(proc, block):
 
     return cmd
 
+def db_cmd_regress_censor_motion(proc, block):
+    """return a command to create a censor.1D file
+
+       Require a non-negative LIMIT, consistent run length and a single
+       motion file.
+
+       As a side effect, set proc.regress_censor_file.
+
+       return an error code (0=success) and command string"""
+
+    # check for a stimulus timing offset
+    opt = block.opts.find_opt('-regress_censor_motion')
+    if opt and opt.parlist:
+        limit = opt.parlist[0]
+        if limit < 0.0:
+            print '** regress_censor_motion: have negative limit %g' % limit
+            return 1, ''
+    else: return 0, ''
+
+    # check that the run lengths are consistent
+    if proc.reps_vary:
+        print '** currently not able to censor motion with varying run lengths'
+        return 1, ''
+
+    if len(proc.mot_files) == 0: return 0, ''
+    elif len(proc.mot_files) > 1:       # okay if -volreg_regress_per_run
+        vblk = proc.find_block('volreg')
+        opt = None
+        mot_file = ''
+        if vblk: opt = vblk.find_opt('-volreg_regress_per_run')
+        if opt: mot_file = 'dfile.rall.1D'
+        if not mot_file:
+            print '** bad motion files for -regress_censor_motion'
+            return 1, ''
+    else: mot_file = proc.mot_files[0]  # there is only 1
+
+    # check for censor_prev_TR
+    opt = block.opts.find_opt('-regress_censor_prev')
+    if opt.parlist[0] == 'yes': prev_str = '-censor_prev_TR'
+    else:                       prev_str = ''
+
+    if proc.verb > 1:
+        print '-- creating motion censor command, file = %s' % mot_file
+
+    proc.regress_censor_file = '${subj}_censor.1D'
+    cmd = '\n# create censor file %s, for censoring motion \n' \
+          % proc.regress_censor_file
+                
+    cmd = cmd + '1d_tool.py -infile %s -set_nruns %d -set_tr %g \\\n'   \
+                '    -show_censor_count %s\\\n'                         \
+                '    -censor_motion %g $subj\n\n' \
+                % (mot_file, proc.runs, proc.tr, prev_str, limit)
+
+    return 0, cmd
+
 # --------------- tlrc (anat) ---------------
 
 def db_mod_tlrc(block, proc, user_opts):
@@ -2256,6 +2346,7 @@ g_help_string = """
                         (option: -regress_basis)
                   - compute the baseline polynomial degree, based on run length
                         (e.g. option: -regress_polort 2)
+                  - do not censor large motion
                   - output fit time series
                   - output ideal curves for GAM/BLOCK regressors
                   - output iresp curves for non-GAM/non-BLOCK regressors
@@ -2415,6 +2506,9 @@ g_help_string = """
            So add the 2 processing blocks and 2 extra volreg warps to #3 via
            '-do_block align tlrc', '-volreg_align_e2a', '-volreg_tlrc_warp'.
 
+            As an added bonus, censor TR pairs where the Euclidean Norm of the
+            motion derivative exceeds 1.0.
+
                 afni_proc.py -subj_id sb23.e6.align                        \\
                         -dsets sb23/epi_r??+orig.HEAD                      \\
                         -do_block align tlrc                               \\
@@ -2428,6 +2522,7 @@ g_help_string = """
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
                         -regress_basis 'BLOCK(30,1)'                       \\
+                        -regress_censor_motion 1.0                         \\
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
@@ -3689,6 +3784,51 @@ g_help_string = """
 
             Please see '3dDeconvolve -help' for more information.
             See also -regress_basis.
+
+        -regress_censor_motion LIMIT : censor TRs with excessive motion
+
+                e.g. -regress_censor_motion 1.0
+
+            This option is used to censor TRs where the subject moved too much.
+            "Too much" is decided by taking the derivative of the motion
+            parameters (ignoring shifts between runs) and the sqrt(sum squares)
+            per TR.  If this Euclidean Norm exceeds the given LIMIT, the TR
+            will be censored.
+
+            This option will result in the creation of $subj_censor.1D, a 0/1
+            columnar file to be applied via the -censor option of 3dDeconvolve.
+            A row with a 1 means to include that TR, while a 0 means to exclude
+            (censor) it.
+
+            This option will also result in the creation of $subj_CENSORTR.txt,
+            a short text file listing censored TRs, suitable for use with the
+            -CENSORTR option in 3dDeconvolve.  The -censor option is the one
+            applied however, so this file is not used, but may be preferable
+            for users to have a quick peek at.
+
+            By default, the TR prior to the large motion derivative will also
+            be censored.  To turn off that behavior, use -regress_censor_prev
+            with parameter 'no'.
+
+            Please see '1d_tool.py -help' for information on censoring motion.
+            See also -regress_censor_prev.
+
+        -regress_censor_prev yes/no  : censor TR preceeding large motion
+
+                default: -regress_censor_prev yes
+
+            Since motion spans two TRs, the derivative is not quite enough
+            information to decide whether it is more appropriate to censor
+            the earlier or later TR.  To error on the safe side, many users
+            choose to censor both.
+
+            Use this option to specify whether to inculde the previous TR
+            when censoring.
+
+            By default this option is applied as 'yes'.  Users may elect not
+            not to censor the previous TRs by setting this to 'no'.
+
+            See also -regress_censor_motion.
 
         -regress_est_blur_epits      : estimate the smoothness of the EPI data
 
