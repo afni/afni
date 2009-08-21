@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, AUG, 2009, RCR, "1d_tool.py", MICRO, TYPE_NEW_OPT,
+   "added -show_censor_count",
+   NULL
+ } ,
+
  { 20, AUG, 2009, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "added motion censoring, motivated by L Thomas and B Bones",
    "Added -censor_motion, -censor_prev_TR,  -collapse_cols, -extreme_mask,\n"
