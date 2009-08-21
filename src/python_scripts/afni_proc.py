@@ -155,9 +155,11 @@ g_history = """
           when applying -volreg_tlrc_warp/-volreg_align_e2s.
     2.06 Aug 13 2009 : added -volreg_tlrc_adwarp, to apply manual tlrc xform
     2.07 Aug 14 2009 : added -align_epi_ext_dset, to align anat to external EPI
+    2.08 Aug 21 2009 : added -regress_censor_motion and -regress_censor_prev
+                       motivated by L Thomas and B Bones
 """
 
-g_version = "version 2.07, August 14, 2009"
+g_version = "version 2.08, August 21, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -246,6 +248,7 @@ class SubjProcSream:
         self.mask_anat  = None          # mask dataset (from subject anat)
         self.mask_group = None          # mask dataset (from tlrc base)
         self.mask_extents = None        # mask dataset (of EPI extents)
+        self.regress_censor_file = ''   # for use as '-censor FILE' in 3dD
         self.exec_cmd   = ''            # script execution command string
         self.bash_cmd   = ''            # bash formatted exec_cmd
         self.tcsh_cmd   = ''            # tcsh formatted exec_cmd
@@ -439,6 +442,11 @@ class SubjProcSream:
                         helpstr="basis function to use in regression")
         self.valid_opts.add_opt('-regress_basis_normall', 1, [],
                         helpstr="specify magnitude of basis functions")
+        self.valid_opts.add_opt('-regress_censor_motion', 1, [],
+                        helpstr="censor TRs if motion derivative exceeds limit")
+        self.valid_opts.add_opt('-regress_censor_prev', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="set whether to censor previous motion TR")
         self.valid_opts.add_opt('-regress_polort', 1, [],
                         helpstr="baseline polynomial degree per run")
         self.valid_opts.add_opt('-regress_stim_files', -1, [],

@@ -469,6 +469,7 @@ class Afni1D:
          return 1
 
       fp.write(cstr)
+      fp.write('\n')    # add a newline
       fp.close()
 
    def append_vecs(self, matlist, newname=''):
@@ -939,8 +940,6 @@ class Afni1D:
       self.aname = aname
       self.fname = aname.rpve()
       self.name  = aname.pve()
-
-      # rcr - nuke   if self.init_from_1D(self.fname): return 1
 
       # apply column and/or row selectors
       if aname.colsel:
