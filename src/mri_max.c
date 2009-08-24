@@ -62,8 +62,8 @@ ENTRY("mri_max") ;
       case MRI_complex:{
          complex *qar = MRI_COMPLEX_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            float_max = MAX( float_max , CSQR(qar[ii]) ) ;
-         RETURN( sqrt(float_max) );
+            float_max = MAX( float_max , CABS(qar[ii]) ) ;
+         RETURN( float_max );
       }
 
       case MRI_rgb:{
@@ -135,8 +135,8 @@ ENTRY("mri_maxabs") ;
       case MRI_complex:{
          complex *qar = MRI_COMPLEX_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            double_max = MAX( double_max , CSQR(qar[ii]) ) ;
-         RETURN( sqrt(double_max) );
+            double_max = MAX( double_max , CABS(qar[ii]) ) ;
+         RETURN( double_max );
       }
 
       case MRI_rgb:
@@ -201,8 +201,8 @@ ENTRY("mri_min") ;
       case MRI_complex:{
          complex *qar = MRI_COMPLEX_PTR(im) ;
          for( ii=0 ; ii < npix ; ii++ )
-            float_min = MIN( float_min , CSQR(qar[ii]) ) ;
-         RETURN( sqrt(float_min) );
+            float_min = MIN( float_min , CABS(qar[ii]) ) ;
+         RETURN( float_min );
       }
 
       case MRI_rgb:{

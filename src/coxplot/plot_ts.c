@@ -6,6 +6,8 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
+/*------------------------------------------------------------------------*/
+
 #ifndef WAY_BIG
 #  define WAY_BIG 1.e+10
 #endif
@@ -253,6 +255,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
          ylo[jj] = yll ; yhi[jj] = yhh ;
       }
    }
+   floatfix(ybot) ; floatfix(ytop) ;
    if( ybot >= ytop ){                       /* shouldn't happen */
       ytop = ybot + 0.05*fabs(ybot) + 0.5 ;
       ybot = ybot - 0.05*fabs(ybot) - 0.5 ;
@@ -370,6 +373,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
       set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
       set_thick_memplot( 0.002f ) ;
+      floatfix(ybot) ; floatfix(ytop) ;
       plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
       plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
 
@@ -418,6 +422,7 @@ MEM_plotdata * plot_ts_mem( int nx , float *x , int ny , int ymask , float **y ,
 
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
+         floatfix(ylo[jj]) ; floatfix(yhi[jj]) ;
          plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ylo[jj],yhi[jj] , 1 ) ;
 
          if( nnay > 0 ){
@@ -643,6 +648,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
       /* plot axes */
 
       set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+      floatfix(ybot) ; floatfix(ytop) ;
       plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
       plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)+2*(nnay>0)] ) ;
 
@@ -684,6 +690,7 @@ MEM_topshell_data * plot_ts_init( Display * dpy ,
 
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
+         floatfix(ybot) ; floatfix(ytop) ;
          plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ybot,ytop , 1 ) ;
          set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
          plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;
@@ -736,6 +743,7 @@ void plot_ts_addto( MEM_topshell_data * mp ,
 
    if( yall ){  /*-- all in one big happy box --*/
 
+      floatfix(ybot) ; floatfix(ytop) ;
       plotpak_set( xobot,xotop , yobot,yotop , xbot,xtop , ybot,ytop , 1 ) ;
       set_thick_memplot( THIK ) ;
 
@@ -763,6 +771,7 @@ void plot_ts_addto( MEM_topshell_data * mp ,
 
       for( jj=ny-1 ; jj >= 0 ; jj-- ){
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
+         floatfix(ybot) ; floatfix(ytop) ;
          plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ybot,ytop , 1 ) ;
          set_color_memplot( ccc[jj%NCLR][0] , ccc[jj%NCLR][1] , ccc[jj%NCLR][2] ) ;
 

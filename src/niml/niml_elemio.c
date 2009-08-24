@@ -936,7 +936,7 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    int   bb=0 ,  cc=0 ;
 
    char *att_prefix , *att_equals , *att_trail ;
-   int header_only , header_sharp , outmode ;
+   int header_only , header_sharp , outmode=-1 ;
 
    /*--- 09 Mar 2005: outmode overrides tmode, if outmode is present ---*/
 
@@ -1100,6 +1100,15 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       /*- write the group parts (recursively) -*/
 
       for( ii=0 ; ii < ngr->part_num ; ii++ ){
+        if( outmode >= 0 ){
+          if( NI_element_type(ngr->part[ii]) == NI_ELEMENT_TYPE ){
+            NI_element *qel = (NI_element *)ngr->part[ii] ;
+            qel->outmode = outmode ;
+          } else if( NI_element_type(ngr->part[ii]) == NI_GROUP_TYPE ){
+            NI_group *qgr = (NI_group *)ngr->part[ii] ;
+            qgr->outmode = outmode ;
+          }
+        }
         nout = NI_write_element( ns , ngr->part[ii] , tmode ) ; ADDOUT ;
       }
 

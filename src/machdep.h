@@ -278,6 +278,7 @@ extern long   strtol() ;
 # define ceilf  ceil
 # define expf   exp
 # define atanhf atanh         /* 27 Jul 2009 [rickr] */
+# define atan2f atan2         /* 24 Aug 2009 [RWCox] */
 #endif
 
 #endif

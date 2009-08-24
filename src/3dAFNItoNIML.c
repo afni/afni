@@ -8,7 +8,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset ;
    NI_group *ngr ;
    NI_stream ns_out ;
-   int iarg=1 , dodata=0 , nout=0 ;
+   int iarg=1 , dodata=0 , nout=0 , doascii=0 ;
    char strname[256] = "stdout:" ;
 
    /*-- help me if you can --*/
@@ -21,6 +21,7 @@ int main( int argc , char *argv[] )
       "\n"
       " OPTIONS:\n"
       "  -data          == Also put the data into the output (will be huge).\n"
+      "  -ascii         == Format in ASCII, not binary (even huger).\n"
       "  -tcp:host:port == Instead of stdout, send the dataset to a socket.\n"
       "                    (implies '-data' as well)\n"
       "\n"
@@ -38,6 +39,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-data") == 0 ){
        dodata++ ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-ascii") == 0 ){
+       doascii = 1 ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-tcp:",5) == 0 ){
@@ -113,6 +118,7 @@ int main( int argc , char *argv[] )
    if( ngr != NULL ){
      NI_rename_group( ngr , "AFNI_dataset" ) ;
      NI_set_attribute( ngr , "self_prefix" , DSET_PREFIX(dset) ) ;
+     if( doascii ) ngr->outmode = NI_TEXT_MODE ;
      nout += NI_write_element( ns_out , ngr , NI_TEXT_MODE ) ;
      NI_free_element( ngr ) ;
    }
@@ -123,7 +129,11 @@ int main( int argc , char *argv[] )
      int iv ; NI_element *nel ;
      for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
        nel = THD_subbrick_to_niml( dset , iv , SBFLAG_INDEX ) ;
-       if( nel != NULL ) nout += NI_write_element( ns_out , nel , NI_BINARY_MODE ) ;
+       if( nel != NULL ){
+         if( doascii ) nel->outmode = NI_TEXT_MODE ;
+         nout += NI_write_element( ns_out , nel ,
+                                   (doascii) ? NI_TEXT_MODE : NI_BINARY_MODE ) ;
+       }
        NI_free_element(nel) ;
      }
    }

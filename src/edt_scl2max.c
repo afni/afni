@@ -64,12 +64,12 @@ ENTRY("MCW_scale_to_max") ;
       case MRI_complex:{
          register complex * cfar = (complex *) fim ;
          register float max , val ;
-         max = CSQR(cfar[0]) ;
+         max = CABS(cfar[0]) ;
          for( ii=1 ; ii < nxyz ; ii++ ){
-            val = CSQR(cfar[ii]) ; if( val > max ) max = val ;
+            val = CABS(cfar[ii]) ; if( val > max ) max = val ;
          }
          if( max == 0.0 ) EXRETURN ;
-         fac = 10000.0 / sqrt(max) ;
+         fac = 10000.0 / max ;
          for( ii=0 ; ii < nxyz ; ii++ ){
             cfar[ii].r *= fac ; cfar[ii].i *= fac ;
          }

@@ -90,7 +90,7 @@ ENTRY("mri_to_float") ;
         MRI_FATAL_ERROR ;
    }
 
-   MRI_COPY_AUX(newim,oldim) ;
+   MRI_COPY_AUX(newim,oldim) ; (void)mri_floatscan(newim) ;
    RETURN( newim );
 }
 
@@ -176,7 +176,7 @@ ENTRY("mri_scale_to_float") ;
          MRI_FATAL_ERROR ;
    }
 
-   MRI_COPY_AUX(newim,oldim) ;
+   MRI_COPY_AUX(newim,oldim) ; (void)mri_floatscan(newim) ;
    RETURN( newim );
 }
 
@@ -240,6 +240,6 @@ ENTRY("mri_mult_to_float") ;
          MRI_FATAL_ERROR ;
    }
 
-   MRI_COPY_AUX(newim,oldim) ;
+   MRI_COPY_AUX(newim,oldim) ; (void)mri_floatscan(newim) ;
    RETURN( newim );
 }
