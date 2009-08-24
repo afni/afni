@@ -78,6 +78,24 @@ MRI_IMAGE *mri_complex_phase( MRI_IMAGE *im )
    return newImg ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+float complex_abs( complex z )  /* 24 Aug 2009 */
+{
+   float x , y , val ;
+
+   x = fabsf(z.r) ; floatfix(x) ;
+   y = fabsf(z.i) ; floatfix(y) ;
+   if( x > y && x > 0.0f )
+     val = x*sqrtf(1.0f+(y*y)/(x*x)) ;
+   else if( y > x && y > 0.0f )
+     val = y*sqrtf(1.0f+(x*x)/(y*y)) ;
+   else
+     val = x*1.414214f ;  /* case x==y */
+
+   floatfix(val) ; return val ;
+}
+
 /***************************************************************************/
 
 MRI_IMAGE *mri_complex_abs( MRI_IMAGE *im )
@@ -96,7 +114,7 @@ MRI_IMAGE *mri_complex_abs( MRI_IMAGE *im )
    MRI_COPY_AUX( newImg , im ) ;
    iar = MRI_COMPLEX_PTR(im) ; nar = MRI_FLOAT_PTR(newImg) ;
 
-   for( ii=0 ; ii < npix ; ii++ ) nar[ii] = sqrt( CSQR( iar[ii] ) ) ;
+   for( ii=0 ; ii < npix ; ii++ ) nar[ii] = complex_abs(iar[ii]) ;
 
    return newImg ;
 }

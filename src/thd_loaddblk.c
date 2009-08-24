@@ -1032,10 +1032,8 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
            float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
            if( mfac == 0.0 ) mfac = 1.0 ;
            mbot = (bot/mfac) ; mtop = (top/mfac) ;
-           mbot = (mbot > 0) ? mbot*mbot : 0 ;
-           mtop = (mtop > 0) ? mtop*mtop : 0 ;
            for( ii=0 ; ii < nxyz ; ii++ ){
-              val = CSQR(mar[ii]) ;
+              val = CABS(mar[ii]) ;
               if( val < mbot || val > mtop ) mar[ii].r = mar[ii].i = 0 ;
            }
         }

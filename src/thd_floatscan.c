@@ -8,18 +8,18 @@
 #include <math.h>
 #include <stdlib.h>
 
-#if 0
-#ifdef isfinite
-# define IS_GOOD_FLOAT(x) isfinite(x) /* 28 Aug 2003: use C99 macro if exists */
+#if 1
+#  ifdef isfinite
+#    define IS_GOOD_FLOAT(x) isfinite(x) /* 28 Aug 2003: use C99 macro if exists */
+#  else
+#    define IS_GOOD_FLOAT(x) finite(x)
+#  endif
 #else
-# define IS_GOOD_FLOAT(x) finite(x)
+#    define IS_GOOD_FLOAT(x) finite(x)
 #endif
-#endif
-
-#define IS_GOOD_FLOAT(x) finite(x)
 
 #if 0
-# define IS_GOOD_FLOAT(x) isnan(x)
+# define IS_GOOD_FLOAT(x) isnan(x)  /* obsolete */
 #endif
 
 /*---------------------------------------------------------------------

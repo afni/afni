@@ -65,11 +65,11 @@ ENTRY("MCW_vol_amax") ;
       case MRI_complex:{
          register complex * cfar = (complex *) fim ;
          register float max , val ;
-         max = CSQR(cfar[0]) ;
+         max = CABS(cfar[0]) ;
          for( ii=1 ; ii < nxyz ; ii++ ){
-            val = CSQR(cfar[ii]) ; if( val > max ) max = val ;
+            val = CABS(cfar[ii]) ; if( val > max ) max = val ;
          }
-         RETURN( (float) sqrt(max) );
+         RETURN( max );
       }
       break ;
    }

@@ -1537,7 +1537,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_DECONFLICT","OVERWRITE") ; /* 24 Sep 2007 */
    PUTENV("AFNI_X11_REDECORATE","NO") ;
    PUTENV("AFNI_RESCAN_AT_SWITCH","YES") ; /* 16 Nov 2007 */
-   PUTENV("AFNI_VIDEO_DELAY",66) ;         /* 20 Aug 2009 */
+   PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
 
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;

@@ -2749,7 +2749,7 @@ MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq *seq , MRI_IMAGE *im )
 
 ENTRY("ISQ_process_mri") ;
 
-   seq->clbot = seq->cltop = 0.0 ; /* 29 Jul 2001 */
+   seq->clbot = seq->cltop = 0.0f ; /* 29 Jul 2001 */
 
    if( ! ISQ_VALID(seq) || im == NULL ) RETURN(NULL) ;
 
@@ -2788,6 +2788,8 @@ ENTRY("ISQ_process_mri") ;
             for( ii=0 ; ii < npix ; ii++ ) lar[ii] = cxar[ii].i ;
          break ;
       }
+
+      (void)thd_floatscan( npix , lar ) ;  /* 24 Aug 2009 */
    }
 
    have_transform = (seq->transform0D_func != NULL ||
@@ -3011,6 +3013,7 @@ ENTRY("ISQ_process_mri") ;
          }
          break ;  /* end of groupscaling */
       }  /* end of scaling */
+      floatfix(seq->clbot) ; floatfix(seq->cltop) ; /* 24 Aug 2009 */
 
       /* 11/30/94 fix: mri_to_short_sclip has problems with short overflow */
 
@@ -4881,6 +4884,8 @@ ENTRY("ISQ_set_barhint") ;
 
    if( !ISQ_REALZ(seq) ) EXRETURN ;            /* bad news */
 
+   floatfix(seq->barbot) ; floatfix(seq->bartop) ; /* 24 Aug 2009 */
+
    if( seq->barbot < seq->bartop ){            /* can make a hint */
       AV_fval_to_char( seq->barbot , sbot ) ;  /* convert to nice strings */
       AV_fval_to_char( seq->bartop , stop ) ;
@@ -6540,10 +6545,10 @@ ENTRY("ISQ_statistics_WP") ;
    collect statistics on an image and put into location n in table
 -------------------------------------------------------------------------*/
 
-void ISQ_statify_one( MCW_imseq * seq , int n , MRI_IMAGE * im )
+void ISQ_statify_one( MCW_imseq *seq , int n , MRI_IMAGE *im )
 {
-   ISQ_indiv_statistics * st ;
-   ISQ_glob_statistics *  gl ;
+   ISQ_indiv_statistics *st ;
+   ISQ_glob_statistics  *gl ;
    static int hist[NHISTOG] ; /* static to avoid create/destroy overhead */
 
 ENTRY("ISQ_statify_one") ;
@@ -6559,8 +6564,8 @@ ENTRY("ISQ_statify_one") ;
 
    if( ! st->one_done ){  /* must do individual statistics */
 
-      st->min = mri_min( im ) ;
-      st->max = mri_max( im ) ;
+      st->min = mri_min( im ) ; floatfix(st->min) ;
+      st->max = mri_max( im ) ; floatfix(st->max) ;
 
       ISQ_SCLEV( st->min , st->max ,
                  seq->dc->ncol_im , st->scl_mm , st->lev_mm ) ;
@@ -9475,8 +9480,10 @@ ENTRY("ISQ_rowgraph_draw") ;
    nx   = seq->orim->nx ;
    ny   = seq->orim->ny ;
 
-   for( jj=0 ; jj < nrow ; jj++ )
+   for( jj=0 ; jj < nrow ; jj++ ){
      yar[jj] = MRI_FLOAT_PTR(seq->orim) + (jbot-jj)*nx ;
+     (void)thd_floatscan( nx , yar[jj] ) ;
+   }
 
    /* make a plot in memory */
 
@@ -9861,6 +9868,9 @@ ENTRY("plot_image_surface") ;
 
    y = (float *) malloc( sizeof(float) * ny ) ;
    for( ii=0 ; ii < ny ; ii++ ) y[ii] = ii * dy ;
+
+   (void)thd_floatscan( nx , x ) ;
+   (void)thd_floatscan( ny , y ) ;
 
    /*-- scale image data --*/
 
