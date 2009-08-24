@@ -4268,6 +4268,13 @@ extern FD_brick * THD_oriented_brick( THD_3dim_dataset *, char *) ; /* 07 Dec 20
 extern int thd_floatscan  ( int , float *   ) ; /* 30 Jul 1999 */
 extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 
+#undef floatfix
+#ifdef isfinite
+# define floatfix(x) if( !isfinite(x) ) (x) = 0.0f ; else
+#else
+# define floatfix(x) if( !finite(x) ) (x) = 0.0f ; else
+#endif
+
 extern int mri_floatscan  ( MRI_IMAGE * ) ;     /* 22 Feb 2007 */
 extern int imarr_floatscan( MRI_IMARR * ) ;
 extern int dblk_floatscan ( THD_datablock * ) ;

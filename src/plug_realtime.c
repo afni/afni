@@ -6147,7 +6147,7 @@ MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
          case MRI_complex:
            for( cc=0 ; cc < nds ; cc++ ){
              ctar = car[cc] ;
-             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += sqrtf(CSQR(ctar[ii])) ;
+             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += CABS(ctar[ii]) ;
            }
          break ;
        }

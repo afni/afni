@@ -627,8 +627,8 @@ static int MRI_mm ;
 
 #define SQR(x)   ((x)*(x))
 #define CSQR(z)  (SQR(z.r)+SQR(z.i))
-#define CABS(z)  sqrt(CSQR(z))
-#define CARG(z)  ( ((z).r!=0.0 || (z).i!=0.0) ? atan2((z).i,(z).r) : 0.0 )
+#define CABS(z)  complex_abs(z)
+#define CARG(z)  ( ((z).r!=0.0 || (z).i!=0.0) ? atan2f((z).i,(z).r) : 0.0 )
 
 /*! complex z /= abs(z) */
 
@@ -928,6 +928,7 @@ extern MRI_IMAGE * mri_to_rgba( MRI_IMAGE * ) ;  /* 20 Mar 2002 */
 
 extern MRI_IMAGE *mri_pair_to_complex( MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMARR *mri_complex_to_pair( MRI_IMAGE * ) ;
+extern float complex_abs( complex z ) ;          /* 24 Aug 2009 */
 
 extern MRI_IMAGE *mri_to_complex_ext( MRI_IMAGE * , int , int , int ) ;
 

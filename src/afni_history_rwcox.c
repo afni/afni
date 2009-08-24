@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , AUG , 2009 , RWC , "mrilib.h" , MICRO , TYPE_BUG_FIX ,
+   "CABS macro fails if complex number has huge components" ,
+   "This is Larry Frank's fault, of course." } ,
+
+ { 24 , AUG , 2009 , RWC , "3dAFNItoNIML" , MICRO , TYPE_NEW_OPT ,
+   "Add -ascii option == way to dump dataset in plain text" ,
+   NULL } ,
+
  { 11 , AUG , 2009 , RWC , "cs_symeig.c" , MICRO , TYPE_GENERAL ,
    "Speedup first_principal_vectors() -- for 3dmaskSVD and 3dLocalSVD" ,
    "By hand tweaking the normal matrix calculation loops" } ,

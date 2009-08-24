@@ -55,6 +55,14 @@
 typedef void void_func() ;
 #endif
 
+#ifndef floatfix
+#ifdef isfinite
+# define floatfix(x) if( !isfinite(x) ) (x) = 0.0f ; else
+#else
+# define floatfix(x) if( !finite(x) ) (x) = 0.0f ; else
+#endif
+#endif
+
 /*----- data structure to hold a plot -----*/
 
 typedef struct {

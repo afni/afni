@@ -3,14 +3,14 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
-MRI_IMAGE * ts_to_ftime( int nwin , MRI_IMAGE * tim )
+MRI_IMAGE * ts_to_ftime( int nwin , MRI_IMAGE *tim )
 {
-   MRI_IMAGE * ftim ;
-   float * ftar , * tar , * xar , * win , val ;
-   complex * cxar ;
+   MRI_IMAGE *ftim ;
+   float *ftar , *tar , *xar , *win , val ;
+   complex *cxar ;
    int nt , nf , nw2 , nfft, nfft2 , ii,it,kf ;
 
    if( tim == NULL || tim->kind != MRI_float ||
@@ -53,9 +53,9 @@ fprintf(stderr,"nfft = %d\n",nfft) ;
    return ftim ;
 }
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
-   MRI_IMAGE * inim , * outim ;
+   MRI_IMAGE *inim , *outim ;
    int nopt,nwin;
 
    /*-- help? --*/
