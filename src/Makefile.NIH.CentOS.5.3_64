@@ -1,0 +1,129 @@
+# This Makefile works on Linux.
+# This is for compiling with xorg7, on a 64-bit CPU.
+
+# CPROF = -pg -g
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
+USE_GIFTI = -DHAVE_GIFTI
+LGIFTI    = /usr/lib64/libexpat.a
+
+# ----------------------------------------------------------------------
+# X configuration
+#
+# uncomment to build using local /usr/local/afniX 'X' tree
+# USE_LOCAL_X_TREE = 1
+ifdef USE_LOCAL_X_TREE
+    XROOT = /usr/local/afniX
+    XROOT_I = -I$(XROOT)/include
+else
+    XROOT = /usr
+endif
+
+# uncomment USE_LESSTIF to use lesstif instead of openmotif
+# USE_LESSTIF = 1
+ifdef USE_LESSTIF
+    LESSTIF_DEFS = -DUSING_LESSTIF
+
+    XLIBS = $(XROOT)/lib64/libXm.a $(XROOT)/lib64/libXt.a
+else
+    # default is static motif
+    XLIBS = $(XROOT)/lib64/libXm.a -lXt
+endif
+
+# in case user wants to override with system dynamic libs
+XLIBS = -lXm -lXt
+# ----------------------------------------------------------------------
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY $(LESSTIF_DEFS)
+
+CC     = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
+CCFAST = /usr/bin/gcc -O3 -m64 -fPIC -ffast-math -mmmx -DLINUX2 $(CEXTRA)
+
+# The following line includes compiling for the SSE operations.
+# However, I found that it actually makes things worse in some test code.
+# Your mileage may vary.
+
+# CCFAST = /usr/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 $(CEXTRA)
+
+CCMIN  = /usr/bin/gcc -m64 $(CPROF)
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. $(XROOT_I) -I/usr/include
+LFLAGS = -L. -L/usr/lib64
+
+CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared -fPIC
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -rdynamic -L. -L/usr/lib64
+
+SHOWOFF = -DSHOWOFF=NIH.CentOS.5.3_64
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+GZIP   = /bin/gzip
+LD     = /usr/bin/gcc $(CPROF)
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./NIH.CentOS.5.3_64
+LIBDIR = $(INSTALLDIR)
+
+#INSTALL_PREREQ = suma
+INSTALL_PREREQ = suma_gts
+# uncomment if the Gnu Scientific Library is installed (libgsl, libgslcblas)
+GSLPROGS = balloon
+EXPROGS = gifti_tool $(GSLPROGS)
+
+# for pure dynamic linking
+
+# LLIBS  = -lmri -lXm -lXft -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+
+# link choices are made above
+
+LLIBS  = -lmri $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+
+# for static linking, as far as possible
+
+# LLIBS = -lmri -ldl               \
+#        /usr/lib/libXm.a   \
+#        /usr/lib/libXpm.a  \
+#        /usr/lib/libXext.a \
+#        /usr/lib/libXmu.a  \
+#        /usr/lib/libXt.a   \
+#        /usr/lib/libSM.a   \
+#        /usr/lib/libICE.a  \
+#        /usr/lib/libX11.a  \
+#        /usr/lib/libm.a          \
+#        /usr/lib/libc.a
+
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# For suma (NO STATIC LINKING OF GL libs)
+SUMA_GLIB_VER = -2.0
+
+#use -lGLw if you have libGLw.a or libGLw.so* or 
+#  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
+GLw_IPATH  = -IGLw_local
+GLw_LIB = libGLws.a
+
+SUMA_INCLUDE_PATH = $(GLw_IPATH) $(IFLAGS) -I.. -I../niml -Igts/src -I/usr/include/glib-1.2 -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include -I/usr/local/include
+SUMA_LINK_PATH = -L.. $(LFLAGS)
+#use -lGLw if you have libGLw.a or libGLw.so* or 
+#  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
+SUMA_LINK_LIB = $(GLw_LIB) -lGLU -lGL $(LLIBS)
+SUMA_MAKEFILE_NAME = SUMA_Makefile
+SUMA_BIN_ARCHIVE = SUMA_Linux.tar
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+###############################################################
+
+MAKE = make
+include Makefile.INCLUDE
