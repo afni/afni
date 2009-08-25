@@ -865,7 +865,7 @@ ENTRY("AFNI_drive_open_window") ;
           else if( strncmp(cpt,"XK_F11"      , 6) == 0 ) key = XK_F11      ;
           else if( strncmp(cpt,"XK_F12"      , 6) == 0 ) key = XK_F12      ;
           else                                           key = *cpt        ;
-          ISQ_handle_keypress( isq , key ) ;
+          ISQ_handle_keypress( isq , key , 0 ) ;
         } else {
           break ;  /* break out of this while(1) loop */
         }
