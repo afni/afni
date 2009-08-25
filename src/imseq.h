@@ -554,6 +554,8 @@ extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_crop_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_actually_pan( MCW_imseq * , int , int ) ;
 extern int ISQ_show_zoom( MCW_imseq *seq )  ;
+extern void ISQ_adjust_crop( MCW_imseq *,int,int,int,int) ; /* 25 Aug 2009 */
+extern void ISQ_set_crop_hint( MCW_imseq *seq ) ;
 
 #define CURSOR_NORMAL    0                            /* 10 Mar 2003 */
 #define CURSOR_PENCIL    1
@@ -818,6 +820,7 @@ extern MEM_plotdata * ISQ_plot_label( MCW_imseq *, char * ) ; /* 20 Sep 2001 */
 extern void ISQ_record_button( MCW_imseq * ) ;
 extern void ISQ_record_CB( Widget,XtPointer,XtPointer ) ;
 extern void ISQ_butsave_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void ISQ_butcrop_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
 
 extern void ISQ_record_open( MCW_imseq * ) ;
 extern void ISQ_record_update( MCW_imseq * , int ) ;
@@ -842,7 +845,7 @@ extern void ISQ_snap_mpeg_rng( char *,int,int ) ;
 extern void ISQ_snap_jpeg_rng( char *,int,int ) ;
 extern void ISQ_snap_png_rng ( char *,int,int ) ;
 
-extern int ISQ_handle_keypress( MCW_imseq * , unsigned long ); /* 18 Feb 2005 */
+extern int ISQ_handle_keypress( MCW_imseq *, unsigned long, unsigned int ); /* 18 Feb 2005 */
 
 extern void mri_rgb_transform_nD( MRI_IMAGE *, int, generic_func * ) ;
 

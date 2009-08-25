@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , AUG , 2009 , RWC , "afni" , MINOR , TYPE_MODIFY ,
+   "Provide keystroke fine control over cropping in image viewer" ,
+   "Shift+arrowkey = scroll crop window\n"
+   "Ctrl+arrowkey  = resize crop window\n"
+   "Right-click on crop button = menu to set size exactly\n"
+   "Hint on crop button = shows crop parameters" } ,
+
  { 24 , AUG , 2009 , RWC , "mrilib.h" , MICRO , TYPE_BUG_FIX ,
    "CABS macro fails if complex number has huge components" ,
    "This is Larry Frank's fault, of course." } ,
