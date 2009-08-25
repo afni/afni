@@ -739,7 +739,7 @@ ENTRY("open_MCW_imseq") ;
 
    newseq = (MCW_imseq *) XtMalloc( sizeof(MCW_imseq) ) ;  /* new structure */
    memset(newseq, 0, sizeof(MCW_imseq));
-   
+
    newseq->dc     = dc ;               /* copy input pointers */
    newseq->getim  = get_image ;
    newseq->getaux = aux ;
@@ -1406,9 +1406,26 @@ if( PRINT_TRACING ){
                            "Another way to uncrop is to click\n"
                            "Shift+Button #2 in the image without\n"
                            "any dragging\n"
+                           "\n"
+                           "Button #3 (right-click) on this 'crop'\n"
+                           "pushbutton will popup a menu that lets\n"
+                           "you set the crop rectangle size exactly.\n"
+                           "\n"
+                           "You can scroll the crop window around\n"
+                           "using Shift + one of the keyboard arrows.\n"
+                           "You can resize the crop window using\n"
+                           "Ctrl + keyboard arrows."
                        ) ;
      MCW_register_hint( newseq->crop_drag_pb ,
                            "Crop image" );
+
+     XtInsertEventHandler( newseq->crop_drag_pb ,
+                           ButtonPressMask ,    /* button presses */
+                           FALSE ,              /* nonmaskable events? */
+                           ISQ_butcrop_EV ,     /* handler */
+                           (XtPointer) newseq , /* client data */
+                           XtListTail           /* last in queue */
+                          ) ;
 
      wtemp = newseq->crop_drag_pb ;
 
@@ -2225,7 +2242,7 @@ ENTRY("ISQ_actually_pan") ;
 
 void ISQ_crop_pb_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
 
 ENTRY("ISQ_crop_pb_CB") ;
 
@@ -2248,6 +2265,137 @@ ENTRY("ISQ_crop_pb_CB") ;
    }
 
    EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void ISQ_adjust_crop( MCW_imseq *seq ,
+                      int dxa , int dxb , int dya , int dyb )
+{
+   int new_xa , new_xb , new_ya , new_yb ;
+
+ENTRY("ISQ_adjust_crop") ;
+
+   if( !ISQ_REALZ(seq) || seq->cropit == 0 ) EXRETURN ;
+
+   new_xa = seq->crop_xa + dxa ; new_xb = seq->crop_xb + dxb ;
+   new_ya = seq->crop_ya + dya ; new_yb = seq->crop_yb + dyb ;
+
+   if( new_xa < 0 || new_ya < 0  ) EXRETURN ;  /* all these are bad */
+   if( new_xa+MINCROP >= new_xb  ) EXRETURN ;
+   if( new_ya+MINCROP >= new_yb  ) EXRETURN ;
+   if( new_xb >= seq->crop_nxorg ) EXRETURN ;
+   if( new_yb >= seq->crop_nyorg ) EXRETURN ;
+
+   seq->crop_xa = new_xa ; seq->crop_xb = new_xb ;
+   seq->crop_ya = new_ya ; seq->crop_yb = new_yb ;
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   EXRETURN ;
+}
+/*---------------------------------------------------------------------*/
+
+void ISQ_set_crop_hint( MCW_imseq *seq )
+{
+   if( !ISQ_REALZ(seq) ) return ;
+
+   if( !seq->cropit ){
+     MCW_register_hint( seq->crop_drag_pb , "Crop image" ) ;
+   } else {
+     static char str[256] ;
+     sprintf(str,"Crop image: %d..%d[w=%d] X %d..%d[h=%d]" ,
+             seq->crop_xa , seq->crop_xb , seq->crop_xb-seq->crop_xa+1 ,
+             seq->crop_ya , seq->crop_yb , seq->crop_yb-seq->crop_ya+1  ) ;
+     MCW_register_hint( seq->crop_drag_pb , str ) ;
+   }
+
+   return ;
+}
+
+/*---------------------------------------------------------------------
+   Handle the user's action on the Button 3 popup on the crop button
+-----------------------------------------------------------------------*/
+
+void ISQ_butcrop_choice_CB( Widget w , XtPointer client_data ,
+                                       MCW_choose_cbs *cbs   )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;
+   float *vec = (float *)(cbs->cval) ;
+   int ww , hh , new_xa , new_xb , new_ya , new_yb , oww,ohh ;
+
+   if( !ISQ_REALZ(seq) || vec == NULL ) return ;
+
+   ww = (int)vec[0] ; hh = (int)vec[1] ;
+
+   if( seq->cropit && seq->crop_nxorg > 0 ){
+     oww = seq->crop_nxorg ; ohh = seq->crop_nyorg ;
+   } else {
+     oww = seq->horig ; ohh = seq->vorig ;
+   }
+
+   if( ww < MINCROP || hh < MINCROP ) return ;
+   if( ww >= oww    || hh >= ohh    ) return ;
+
+   new_xa = (oww - ww) / 2 ; new_xb = new_xa + ww-1 ;
+   new_ya = (ohh - hh) / 2 ; new_yb = new_ya + hh-1 ;
+
+   if( new_xa         <  0      ) return ;
+   if( new_ya         <  0      ) return ;
+   if( new_xa+MINCROP >= new_xb ) return ;
+   if( new_ya+MINCROP >= new_yb ) return ;
+   if( new_xb         >= oww    ) return ;
+   if( new_yb         >= ohh    ) return ;
+
+   seq->crop_xa = new_xa ; seq->crop_xb = new_xb ;
+   seq->crop_ya = new_ya ; seq->crop_yb = new_yb ;
+   seq->cropit  = 1 ;
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------
+  make Button 3 popup for Crop button
+----------------------------------------------------------------------*/
+
+void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
+                     XEvent *ev , Boolean *continue_to_dispatch )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;
+
+   if( !ISQ_REALZ(seq) ) return ;
+
+   ISQ_timer_stop(seq) ;
+
+   switch( ev->type ){
+      case ButtonPress:{
+         XButtonEvent *event = (XButtonEvent *) ev ;
+         if( event->button == Button3 ){
+           char *lvec[2] = { "Width " , "Height" } ;
+           float fvec[2] ; int oww,ohh ;
+           if( seq->cropit && seq->crop_nxorg > 0 ){
+             oww = seq->crop_nxorg ; ohh = seq->crop_nyorg ;
+           } else {
+             oww = seq->horig ; ohh = seq->vorig ;
+           }
+           fvec[0] = oww/2 ; fvec[1] = ohh/2 ;
+           if( oww > MINCROP && ohh > MINCROP ){
+             MCW_choose_vector(
+                seq->crop_drag_pb ,
+                "--------------------------------------------\n"
+                "Choose width and height of image crop window\n"
+                "    (minimum allowed size is 9 pixels)\n"
+                "--------------------------------------------"  ,
+                2 , lvec , fvec , ISQ_butcrop_choice_CB , (XtPointer)seq ) ;
+           }
+                              
+         } else if( event->button == Button2 ){
+            XBell(XtDisplay(w),100) ;
+            MCW_popup_message( w, " \n Ooch! \n ", MCW_USER_KILL );
+            /** AFNI_speak( "Ouch!" , 0 ) ; **/
+         }
+      }
+      break ;
+   }
+   return ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -4435,6 +4583,7 @@ ENTRY("ISQ_redisplay") ;
    ISQ_show_image( seq ) ;
    ISQ_rowgraph_draw( seq ) ;
    ISQ_surfgraph_draw( seq ) ;  /* 21 Jan 1999 */
+   ISQ_set_crop_hint( seq ) ;   /* 25 Aug 2009 */
 
    if( seq->graymap_mtd != NULL ) ISQ_graymap_draw( seq ) ; /* 24 Oct 2003 */
 
@@ -5202,18 +5351,19 @@ STATUS(" .. KeyPress") ;
          ks     = 0 ;
          nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
 #if 0
-fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
+fprintf(stderr,"KeySym=%04x nbuf=%d state=%u\n",(unsigned int)ks,nbuf,event->state) ;
 #endif
 
          /* 24 Jan 2003: deal with special function keys */
 
          if( nbuf == 0 || ks > 255 ){
            if( seq->record_mode ){ busy=0; EXRETURN ; }
-           nbuf = ISQ_handle_keypress( seq , (unsigned long)ks ) ;
+           nbuf = ISQ_handle_keypress( seq , (unsigned long)ks ,
+                                             (unsigned int )event->state ) ;
            busy=0; EXRETURN ;
          }
 
-         nbuf = ISQ_handle_keypress( seq , (unsigned long)buf[0] ) ;
+         nbuf = ISQ_handle_keypress( seq , (unsigned long)buf[0] , 0 ) ;
          if( nbuf ){ busy=0; EXRETURN; }
 
          /* in special modes (record, Button2, zoom-pan) mode, this is bad */
@@ -7475,7 +7625,7 @@ static unsigned char record_bits[] = {
 
       case isqDR_keypress:{
         unsigned int key = (unsigned int)drive_data ;
-        (void )ISQ_handle_keypress( seq , key ) ;
+        (void )ISQ_handle_keypress( seq , key , 0 ) ;
         RETURN( True );
       }
       break ;
@@ -7717,6 +7867,7 @@ static unsigned char record_bits[] = {
             POPUP_cursorize( seq->wimage ) ;
             POPUP_cursorize( seq->wbar )   ;
             POPUP_cursorize( seq->wbut_bot[NBUT_SAVE] ) ;
+            POPUP_cursorize( seq->crop_drag_pb ) ;
             XmUpdateDisplay( seq->wtop )   ;
          }
 #ifndef DONT_ONOFF_ONE
@@ -10546,7 +10697,7 @@ ENTRY("ISQ_record_kill_CB") ;
 void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
                                        MCW_choose_cbs * cbs   )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
    int pp , agif_ind=0 , mpeg_ind=0 , nstr ;
 
    if( !ISQ_REALZ(seq)               ||
@@ -10581,9 +10732,9 @@ void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
 ----------------------------------------------------------------------*/
 
 void ISQ_butsave_EV( Widget w , XtPointer client_data ,
-                     XEvent * ev , Boolean * continue_to_dispatch )
+                     XEvent *ev , Boolean *continue_to_dispatch )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
 
    if( !ISQ_REALZ(seq) ) return ;
 
@@ -10591,7 +10742,7 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
 
    switch( ev->type ){
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          if( event->button == Button3 ){
             char **strlist ; int pp , nstr , agif_ind=0 , mpeg_ind=0 ;
             if( seq->dialog_starter==NBUT_DISP ){XBell(XtDisplay(w),100); return; }
@@ -11576,9 +11727,12 @@ ENTRY("ISQ_timer_stop") ;
     Return value is 1 if processed OK, 0 if not.
 ----------------------------------------------------------------------*/
 
-int ISQ_handle_keypress( MCW_imseq *seq , unsigned long key )
+int ISQ_handle_keypress( MCW_imseq *seq , unsigned long key , unsigned int state )
 {
    static int busy=0 ;   /* prevent recursion */
+
+   int shft = (state & ShiftMask) ;
+   int ctrl = (state & ControlMask) ;
 
 ENTRY("ISQ_handle_keypress") ;
 
@@ -11595,30 +11749,54 @@ ENTRY("ISQ_handle_keypress") ;
 
        case XK_Left:
        case XK_KP_Left:
-         seq->arrowpad->which_pressed = AP_LEFT ;
-         seq->arrowpad->xev.type = 0 ;
-         ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+         if( shft ){
+           ISQ_adjust_crop( seq , -1,-1 , 0,0 ) ;
+         } else if( ctrl ){
+           ISQ_adjust_crop( seq , +1,-1 , 0,0 ) ;
+         } else {
+           seq->arrowpad->which_pressed = AP_LEFT ;
+           seq->arrowpad->xev.type = 0 ;
+           ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+         }
        break ;
 
        case XK_Right:
        case XK_KP_Right:
-         seq->arrowpad->which_pressed = AP_RIGHT ;
-         seq->arrowpad->xev.type = 0 ;
-         ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+         if( shft ){
+           ISQ_adjust_crop( seq , +1,+1 , 0,0 ) ;
+         } else if( ctrl ){
+           ISQ_adjust_crop( seq , -1,+1 , 0,0 ) ;
+         } else {
+           seq->arrowpad->which_pressed = AP_RIGHT ;
+           seq->arrowpad->xev.type = 0 ;
+           ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+         }
        break ;
 
        case XK_Down:
        case XK_KP_Down:
-         seq->arrowpad->which_pressed = AP_DOWN ;
-         seq->arrowpad->xev.type = 0 ;
-         ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+         if( shft ){
+           ISQ_adjust_crop( seq , 0,0 , -1,-1 ) ;
+         } else if( ctrl ){
+           ISQ_adjust_crop( seq , 0,0 , -1,+1 ) ;
+         } else {
+           seq->arrowpad->which_pressed = AP_DOWN ;
+           seq->arrowpad->xev.type = 0 ;
+           ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+         }
        break ;
 
        case XK_Up:
        case XK_KP_Up:
-         seq->arrowpad->which_pressed = AP_UP ;
-         seq->arrowpad->xev.type = 0 ;
-         ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+         if( shft ){
+           ISQ_adjust_crop( seq , 0,0 , +1,+1 ) ;
+         } else if( ctrl ){
+           ISQ_adjust_crop( seq , 0,0 , +1,-1 ) ;
+         } else {
+           seq->arrowpad->which_pressed = AP_UP ;
+           seq->arrowpad->xev.type = 0 ;
+           ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+         }
        break ;
 
        case XK_Page_Up:

@@ -5405,7 +5405,10 @@ static char * AFNI_image_help =
  "Del = drawing undo       F2 = drawing pencil\n"
  "F3  = drawing value --   F4 = drawing value ++\n"
  "Left/Right/Up/Down arrow keys\n"
- "    = move crosshairs OR pan image\n" ;
+ "    = move crosshairs OR pan zoomed image\n"
+ "Shift+arrow keys = pan crop window\n"
+ "Ctrl+arrow keys  = expand/shrink crop window\n"
+;
 
 static char * AFNI_arrowpad_help =
    "Click arrows to scroll crosshair position\n"
