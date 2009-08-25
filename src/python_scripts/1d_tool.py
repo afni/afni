@@ -96,7 +96,9 @@ examples (very basic for now):
 
       The -censor_motion option is available, which implies '-derivative',
       '-collapse_cols euclidean_norm', 'extreme_mask -LIMIT LIMIT', and the
-      prefix for '-write_censor' and '-write_CENSORTR' output files.
+      prefix for '-write_censor' and '-write_CENSORTR' output files.  This
+      option will also result in subjA_enorm.1D being written, which is the
+      euclidean norm of the derivative, before the extreme mask is applied.
 
          1d_tool.py -infile motion.1D -set_nruns 9 -set_tr 3.0  \\
                     -show_censor_count                          \\
@@ -129,7 +131,8 @@ general options:
 
         This option implies '-derivative', '-collapse_cols euclidean_norm',
         'extreme_mask -LIMIT LIMIT' and applies PREFIX for '-write_censor'
-        and '-write_CENSORTR' output files.
+        and '-write_CENSORTR' output files.  It also outputs the derivative
+        of the euclidean norm, before the limit it applied.
 
         The temporal derivative is taken with run breaks applied (derivative
         of the first run of a TR is 0), then the columns are collapsed into
@@ -137,10 +140,11 @@ general options:
         After that, a mask time series is made from TRs with values outside
         (-LIMIT,LIMIT), i.e. if >= LIMIT or <= LIMIT, result is 1.
 
-        This binary time series is then written out in -CENSORTR format
-        (for 3dDeconvolve), and the moderate TRs are written in -censor
-        format.  The output files will be named PREFIX_censor.1D and
-        PREFIX_CENSORTR.txt (e.g. subj123_censor.1D, subj123_CENSORTR.txt).
+        This binary time series is then written out in -CENSORTR format, with
+        the moderate TRs written in -censor format (either can be applied in
+        3dDeconvolve).  The output files will be named PREFIX_censor.1D,
+        PREFIX_CENSORTR.txt and PREFIX_enorm.1D (e.g. subj123_censor.1D,
+        subj123_CENSORTR.txt and subj123_enorm.1D).
 
         The other information necessary besides an input motion file (-infile)
         is the number of runs (-set_nruns) and the TR (-set_tr).
@@ -235,9 +239,10 @@ g_history = """
         - added -censor_motion, -censor_prev_TR,  -collapse_cols,
                 -extreme_mask, -set_tr, -write_censor, -write_CENSORTR
    0.10 Aug 21, 2009 - added -show_censor_count
+   0.11 Aug 25, 2009 - with -censor_motion, also output PREFIX_enorm.1D
 """
 
-g_version = "1d_tool.py version 0.10, Aug 21, 2009"
+g_version = "1d_tool.py version 0.11, Aug 25, 2009"
 
 
 class A1DInterface:
@@ -276,6 +281,7 @@ class A1DInterface:
       self.transpose       = 0          # transpose the matrix
       self.censor_file     = None       # output as 1D censor file
       self.censortr_file   = None       # output as CENSORTR string
+      self.collapse_file   = None       # output as 1D collapse file
       self.write_file      = None       # output filename
 
       # general variables
@@ -515,6 +521,7 @@ class A1DInterface:
             self.extreme_max     = limit
             self.censor_file     = '%s_censor.1D' % val[1]
             self.censortr_file   = '%s_CENSORTR.txt' % val[1]
+            self.collapse_file   = '%s_enorm.1D' % val[1]
 
          elif opt.name == '-censor_prev_TR':
             self.censor_prev_TR = 1
@@ -662,6 +669,8 @@ class A1DInterface:
 
       if self.collapse_method:
          if self.adata.collapse_cols(self.collapse_method): return 1
+         if self.collapse_file:
+            if self.write_1D(self.collapse_file): return 1
 
       if self.set_extremes:
          if self.adata.extreme_mask(self.extreme_min, self.extreme_max):

@@ -157,9 +157,12 @@ g_history = """
     2.07 Aug 14 2009 : added -align_epi_ext_dset, to align anat to external EPI
     2.08 Aug 21 2009 : added -regress_censor_motion and -regress_censor_prev
                        motivated by L Thomas and B Bones
+    2.09 Aug 25 2009 :
+        - change the censor_motion prefix from '$subj' to 'motion_$subj'
+        - if volreg block, always create 'motion_${subj}_enorm.1D'
 """
 
-g_version = "version 2.08, August 21, 2009"
+g_version = "version 2.09, August 25, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
