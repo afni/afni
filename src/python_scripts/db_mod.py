@@ -948,11 +948,11 @@ def db_cmd_volreg(proc, block):
 
     # if not censoring motion, make a generic motion file
     if not proc.user_opts.find_opt('-regress_censor_motion'):
-        cmd = cmd +                                                          \
-            "# compute motion magnitude time series: the Euclidean norm \\\n"\
-            "# (sqrt(sum squares)) of the motion parameter derivatives\n"    \
-            "1d_tool.py -infile dfile.rall.1D -set_nruns %d \\\n"            \
-            "           -derivative  -collapse_cols euclidean_norm \\\n"     \
+        cmd = cmd +                                                         \
+            "# compute motion magnitude time series: the Euclidean norm\n"  \
+            "# (sqrt(sum squares)) of the motion parameter derivatives\n"   \
+            "1d_tool.py -infile dfile.rall.1D -set_nruns %d \\\n"           \
+            "           -derivative  -collapse_cols euclidean_norm \\\n"    \
             "           -write motion_${subj}_enorm.1D\n\n" % proc.runs
 
     if do_extents:
