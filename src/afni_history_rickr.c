@@ -48,6 +48,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "if volreg block, always create motion_${subj}_enorm.1D",
+   NULL
+ } ,
+
+ { 25, AUG, 2009, RCR, "1d_tool.py", MICRO, TYPE_MODIFY,
+   "with -censor_motion, also output PREFIX_enorm.1D",
+   NULL
+ } ,
+
  { 21, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_censor_motion and -regress_censor_prev",
    "Motivated by L Thomas and B Bones."
