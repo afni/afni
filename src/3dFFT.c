@@ -119,3 +119,44 @@ int main( int argc , char *argv[] )
    if( Lyy > 0 && Lyy < ny ) ERROR_exit("y-axis length mismatch!") ;
    if( Lzz > 0 && Lzz < nz ) ERROR_exit("z-axis length mismatch!") ;
 }
+
+/*----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim , int Lxx,int Lyy,int Lzz )
+{
+   MRI_IMAGE *iim , *oim ;
+   int ii,jj,kk , nx,ny,nxy,nz , nbig , ioff,joff,koff , fx,fy,fz,fxy ;
+   complex *cbig , *car , *far ;
+
+   if( inim->kind != MRI_complex ) return NULL ;
+   car = MRI_COMPLEX_PTR(inim) ;
+
+   nx = inim->nx ; ny = inim->ny ; nz = inim->nz ; nxy = nx*ny ;
+   nbig = MAX(nx,ny) ; nbig = MAX(nbig,nz) ;
+   nbig = MAX(nbig,Lxx) ; nbig = MAX(nbig,Lyy) ; nbig = MAX(nbig,Lzz) ;
+   nbig *= 3 ; cbig = (complex *)malloc(sizeof(complex)*nbig) ;
+
+   fx = (Lxx == 0) ? nx : (Lxx >= nx) ? Lxx : csfft_nextup(nx) ;
+   fy = (Lyy == 0) ? ny : (Lyy >= ny) ? Lyy : csfft_nextup(ny) ;
+   fz = (Lzz == 0) ? nz : (Lzz >= nz) ? Lzz : csfft_nextup(nz) ;
+   fxy = fx*fy ;
+
+   oim = mri_new_volume( fx,fy,fz , MRI_complex ) ;
+   far = MRI_COMPLEX_PTR(oim) ;
+
+   /* x-direction FFTs */
+
+   if( fx > 1 ){
+     for( kk=0 ; kk < nz ; kk++ ){
+       koff_i = kk*nxy ; koff_o = kk*fxy ;
+       for( jj=0 ; jj < nz ; jj++ ){
+         joff_i = koff_i + jj*nx ; joff_o = koff_o + jj*fx ;
+         for( ii=0 ; ii < nx ; ii++ ) cbig[ii] = car[ii+joff_i] ;
+         for(      ; ii < fx ; ii++ ) cbig[ii].r = cbig[ii].i = 0.0f ;
+         csfft_cox( Sign , fx , cbig ) ;
+         for( ii=0 ; ii < fx ; ii++ ) car[ii+joff_o] = cbig[ii] ;
+       }
+     }
+   }
+
+}
