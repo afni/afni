@@ -946,6 +946,15 @@ def db_cmd_volreg(proc, block):
                 "# make a single file of registration params\n"               \
                 "cat dfile.r??.1D > dfile.rall.1D\n\n"
 
+    # if not censoring motion, make a generic motion file
+    if not proc.user_opts.find_opt('-regress_censor_motion'):
+        cmd = cmd +                                                          \
+            "# compute motion magnitude time series: the Euclidean norm \\\n"\
+            "# (sqrt(sum squares)) of the motion parameter derivatives\n"    \
+            "1d_tool.py -infile dfile.rall.1D -set_nruns %d \\\n"            \
+            "           -derivative  -collapse_cols euclidean_norm \\\n"     \
+            "           -write motion_${subj}_enorm.1D\n\n" % proc.runs
+
     if do_extents:
         proc.mask_extents = BASE.afni_name('mask_epi_extents' + proc.view)
 
@@ -2087,7 +2096,7 @@ def db_cmd_regress_censor_motion(proc, block):
                 
     cmd = cmd + '1d_tool.py -infile %s -set_nruns %d -set_tr %g \\\n'   \
                 '    -show_censor_count %s\\\n'                         \
-                '    -censor_motion %g $subj\n\n' \
+                '    -censor_motion %g motion_$subj\n\n' \
                 % (mot_file, proc.runs, proc.tr, prev_str, limit)
 
     return 0, cmd
@@ -3795,16 +3804,25 @@ g_help_string = """
             per TR.  If this Euclidean Norm exceeds the given LIMIT, the TR
             will be censored.
 
-            This option will result in the creation of $subj_censor.1D, a 0/1
-            columnar file to be applied via the -censor option of 3dDeconvolve.
-            A row with a 1 means to include that TR, while a 0 means to exclude
-            (censor) it.
+            This option will result in the creation of 3 censor files:
 
-            This option will also result in the creation of $subj_CENSORTR.txt,
-            a short text file listing censored TRs, suitable for use with the
-            -CENSORTR option in 3dDeconvolve.  The -censor option is the one
-            applied however, so this file is not used, but may be preferable
-            for users to have a quick peek at.
+                motion_$subj_censor.1D
+                motion_$subj_CENSORTR.txt
+                motion_$subj_enorm.1D
+
+            motion_$subj_censor.1D is a 0/1 columnar file to be applied to
+            3dDeconvolve via -censor.  A row with a 1 means to include that TR,
+            while a 0 means to exclude (censor) it.
+
+            motion_$subj_CENSORTR.txt is a short text file listing censored
+            TRs, suitable for use with the -CENSORTR option in 3dDeconvolve.
+            The -censor option is the one applied however, so this file is not
+            used, but may be preferable for users to have a quick peek at.
+
+            motion_$subj_enorm.1D is the time series that the LIMIT is applied
+            to in deciding which TRs to censor.  It is the Euclidean norm of
+            the derivatives of the motion parameters.  Plotting this will give
+            users a visual indication of why TRs were censored.
 
             By default, the TR prior to the large motion derivative will also
             be censored.  To turn off that behavior, use -regress_censor_prev
