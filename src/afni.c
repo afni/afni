@@ -5406,8 +5406,8 @@ static char * AFNI_image_help =
  "F3  = drawing value --   F4 = drawing value ++\n"
  "Left/Right/Up/Down arrow keys\n"
  "    = move crosshairs OR pan zoomed image\n"
- "Shift+arrow keys = pan crop window\n"
- "Ctrl+arrow keys  = expand/shrink crop window\n"
+ "Shift+keyboard arrow keys = pan crop region\n"
+ "Ctrl+keyboard arrow keys  = expand/shrink crop region\n"
 ;
 
 static char * AFNI_arrowpad_help =
