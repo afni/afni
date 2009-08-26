@@ -160,9 +160,10 @@ g_history = """
     2.09 Aug 25 2009 :
         - change the censor_motion prefix from '$subj' to 'motion_$subj'
         - if volreg block, always create 'motion_${subj}_enorm.1D'
+    2.10 Aug 26 2009 : explicitly nuke negatives in scale block
 """
 
-g_version = "version 2.09, August 25, 2009"
+g_version = "version 2.10, August 26, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions

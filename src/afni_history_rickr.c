@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, AUG, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "in scaling block, explicitly remove any negative data values",
+   NULL
+ } ,
+
  { 25, AUG, 2009, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "if volreg block, always create motion_${subj}_enorm.1D",
    NULL
