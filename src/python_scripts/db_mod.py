@@ -1306,8 +1306,8 @@ def db_cmd_scale(proc, block):
     # check for max scale value 
     opt = block.opts.find_opt('-scale_max_val')
     max = opt.parlist[0]
-    if max > 100: valstr = 'min(%d, a/b*100)' % max
-    else:         valstr = 'a/b*100'
+    if max > 100: valstr = 'min(%d, a/b*100)*step(a)' % max
+    else:         valstr = 'a/b*100*step(a)'
 
     if proc.mask and proc.regmask:
         mask_dset = '           -c %s%s \\\n' % (proc.mask.prefix, proc.view)
@@ -1323,6 +1323,7 @@ def db_cmd_scale(proc, block):
     prefix = proc.prefix_form_run(block)
     cmd = cmd + "# %s\n"                                                \
                 "# scale each voxel time series to have a mean of 100\n"\
+                "# (be sure no negatives creep in)\n"                   \
                 "%s"                                                    \
                 "foreach run ( $runs )\n"                               \
                 "    3dTstat -prefix rm.mean_r$run %s\n"                \
