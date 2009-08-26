@@ -10,7 +10,7 @@ static MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *dset_in , *dset_out ;
+   THD_3dim_dataset *dset_in=NULL , *dset_out ;
    int Lxx=-1 , Lyy=-1 , Lzz=-1 , Mode=FFT_ABS , Sign=-1 , do_alt=0 ;
    char *prefix = "FFTout" ;
    int iarg ;
@@ -23,11 +23,15 @@ int main( int argc , char *argv[] )
        "\n"
        "* Does the FFT of the input dataset in 3 directions (x,y,z) and\n"
        "   produces the output dataset.\n"
+       "\n"
        "* Why you'd want to do this is an interesting question.\n"
+       "\n"
        "* Program 3dcalc can operate on complex-valued datasets, but\n"
        "   only on one component at a time (cf. the '-cx2r' option).\n"
+       "\n"
        "* Most other AFNI programs can only operate on real-valued\n"
        "   datasets.\n"
+       "\n"
        "* You could use 3dcalc (twice) to split a complex-valued dataset\n"
        "   into two real-valued datasets, do your will on those with other\n"
        "   AFNI programs, then merge the results back into a complex-valued\n"
@@ -39,10 +43,12 @@ int main( int argc , char *argv[] )
        " -phase     = Outputs the phase of the FFT (-PI..PI == no unwrapping!)\n"
        " -complex   = Outputs the complex-valued FFT\n"
        " -inverse   = Does the inverse FFT instead of the forward FFT\n"
+       "\n"
        " -Lx xx     = Use FFT of length 'xx' in the x-direction\n"
        " -Ly yy     = Use FFT of length 'yy' in the y-direction\n"
        " -Lz zz     = Use FFT of length 'zz' in the z-direction\n"
        "              * Set a length to 0 to skip the FFT in that direction\n"
+       "\n"
        " -altIN     = Alternate signs of input data before FFT, to bring\n"
        "               zero frequency from edge of FFT-space to center of grid\n"
        "               for cosmetic purposes.\n"
@@ -50,6 +56,11 @@ int main( int argc , char *argv[] )
        "               use '-altI' on the forward transform, then you should\n"
        "               use '-altO' an the inverse transform, to get the\n"
        "               signs of the recovered image correct.\n"
+       "      **N.B.: You cannot use '-altIN' and '-altOUT' in the same run!\n"
+       "\n"
+       " -input dd  = Read the input dataset from 'dd', instead of\n"
+       "               from the last argument on the command line.\n"
+       "\n"
        " -prefix pp = Use 'pp' for the output dataset prefix.\n"
        "\n"
        "Notes\n"
@@ -157,17 +168,28 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     if( strncasecmp(argv[iarg],"-input",4) == 0 ){
+       iarg++ ;
+       if( iarg >= argc )
+         ERROR_exit("need an argument after %s\n",argv[iarg-1]) ;
+       dset_in = THD_open_dataset(argv[iarg]); CHECK_OPEN_ERROR(dset_in,argv[iarg]);
+       iarg++ ; continue ;
+     }
+
      ERROR_exit("unknown option '%s'\n",argv[iarg]) ;
    }
 
-   if( iarg >= argc ) ERROR_exit("no input dataset on command line?!\n") ;
+   /* check for simple errors */
 
    if( Lxx == 0 && Lyy == 0 && Lzz == 0 )
      ERROR_exit("-Lx, -Ly, -Lz all given as zero?!") ;
 
    /* open input dataset */
 
-   dset_in = THD_open_dataset(argv[iarg]); CHECK_OPEN_ERROR(dset_in,argv[iarg]);
+   if( dset_in == NULL ){
+     if( iarg >= argc ) ERROR_exit("no input dataset on command line?!\n") ;
+     dset_in = THD_open_dataset(argv[iarg]); CHECK_OPEN_ERROR(dset_in,argv[iarg]);
+   }
 
    nx = DSET_NX(dset_in) ; ny = DSET_NY(dset_in) ; nz = DSET_NZ(dset_in) ;
 
