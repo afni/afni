@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , AUG , 2009 , RWC , "3dFFT" , MINOR , TYPE_NEW_PROG ,
+   "Compute spatial 3D FFT of a dataset" ,
+   "* This is for John Butman\n"
+   "* Was started a long time ago, but only finished today\n"
+   "* Probably useless" } ,
+
  { 25 , AUG , 2009 , RWC , "afni" , MINOR , TYPE_MODIFY ,
    "Provide keystroke fine control over cropping in image viewer" ,
    "Shift+arrowkey = scroll crop window\n"

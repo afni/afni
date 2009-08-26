@@ -36,7 +36,7 @@ void csfft_use_fftw( int uf ){ use_fftw = uf; return; }
  ***    Re-initializes itself only when idim changes from previous call. **
  ***=====================================================================**/
 
-void csfft_cox( int mode , int idim , complex * xc ) ;
+void csfft_cox( int mode , int idim , complex *xc ) ;
 int  csfft_nextup( int idim ) ;
 int  csfft_nextup_one35( int idim ) ;
 void csfft_scale_inverse( int scl ) ; /* scl=1 ==> force 1/N for mode=+1 **/
@@ -76,14 +76,14 @@ void csfft_scale_inverse( int scl ){ sclinv = scl; return; }
 /*-------------- For the unrolled FFT routines: November 1998 --------------*/
 
 #ifndef DONT_UNROLL_FFTS
-   static void fft8  ( int mode , complex * xc ) ; /* completely */
-   static void fft16 ( int mode , complex * xc ) ; /* unrolled   */
-   static void fft32 ( int mode , complex * xc ) ; /* routines   */
+   static void fft8  ( int mode , complex *xc ) ; /* completely */
+   static void fft16 ( int mode , complex *xc ) ; /* unrolled   */
+   static void fft32 ( int mode , complex *xc ) ; /* routines   */
 
-   static void fft64 ( int mode , complex * xc ) ; /* internal 2dec ->  32 */
-   static void fft128( int mode , complex * xc ) ; /* internal 4dec ->  32 */
-   static void fft256( int mode , complex * xc ) ; /* internal 4dec ->  64 */
-   static void fft512( int mode , complex * xc ) ; /* internal 4dec -> 128 */
+   static void fft64 ( int mode , complex *xc ) ; /* internal 2dec ->  32 */
+   static void fft128( int mode , complex *xc ) ; /* internal 4dec ->  32 */
+   static void fft256( int mode , complex *xc ) ; /* internal 4dec ->  64 */
+   static void fft512( int mode , complex *xc ) ; /* internal 4dec -> 128 */
 
    static void fft_4dec( int , int , complex * ) ; /* general 4dec */
 
@@ -100,7 +100,7 @@ void csfft_scale_inverse( int scl ){ sclinv = scl; return; }
 
 # define USE_FFT4_MACRO
 # ifndef USE_FFT4_MACRO
-   static void fft4( int mode , complex * xc ) ; /* unrolled routine */
+   static void fft4( int mode , complex *xc ) ; /* unrolled routine */
 # else
 #  define fft4(m,x) do{ float acpr,acmr,bdpr,bdmr, acpi,acmi,bdpi,bdmi; \
                         acpr = x[0].r + x[2].r; acmr = x[0].r - x[2].r; \
@@ -128,7 +128,7 @@ void csfft_scale_inverse( int scl ){ sclinv = scl; return; }
 
 /*----------------- the csfft trig constants tables ------------------*/
 
-static complex * csplus = NULL , * csminus = NULL ;
+static complex *csplus = NULL , *csminus = NULL ;
 static int nold = -666 ;
 
 /*--------------------------------------------------------------------
@@ -208,13 +208,15 @@ static void csfft_trigconsts( int idim )  /* internal function */
    register int qq ; register float ff = 1.0 / (float) idim ;  \
    for( qq=0 ; qq < idim ; qq++ ){ xc[qq].r *= ff ; xc[qq].i *= ff ; } }
 
-void csfft_cox( int mode , int idim , complex * xc )
+void csfft_cox( int mode , int idim , complex *xc )
 {
    register unsigned int  m, n, i0, i1, i2, i3, k;
    register complex       *r0, *r1, *csp;
    register float         co, si, f0, f1, f2, f3, f4;
 
    static int rec=0 ;  /* recursion level */
+
+   if( idim <= 1 ) return ;  /* stoopid inpoot */
 
    /*-- 20 Oct 2000: maybe use FFTW instead --*/
 
@@ -223,7 +225,7 @@ void csfft_cox( int mode , int idim , complex * xc )
      static int first=1 , oldmode=0, oldidim=0 ;
      static fftw_plan fpl ;
      if( first ){
-        char * env = getenv("AFNI_FFTW_WISDOM") ;
+        char *env = getenv("AFNI_FFTW_WISDOM") ;
         int gotit=0 ;
         first = 0 ;
         if( env != NULL ){
@@ -231,7 +233,7 @@ void csfft_cox( int mode , int idim , complex * xc )
            if( nw > 0 ){
               int fd = open( env , O_RDONLY ) ;
               if( fd >= 0 ){
-                 char * w = AFMALL( char, nw+4 ) ;
+                 char *w = AFMALL( char, nw+4 ) ;
                  int ii = read( fd , w , nw ) ;
                  close(fd) ;
                  if( ii > 0 ){
@@ -456,9 +458,9 @@ void csfft_many( int mode , int idim , int nvec , complex * xc )
 /**************************************/
 /* FFT routine unrolled of length   4 */
 
-static void fft4( int mode , complex * xc )
+static void fft4( int mode , complex *xc )
 {
-   register complex * csp , * xcx=xc;
+   register complex *csp , *xcx=xc;
    register float f1,f2,f3,f4 ;
 
    /** perhaps initialize **/
@@ -503,9 +505,9 @@ static void fft4( int mode , complex * xc )
 /**************************************/
 /* FFT routine unrolled of length   8 */
 
-static void fft8( int mode , complex * xc )
+static void fft8( int mode , complex *xc )
 {
-   register complex * csp , * xcx=xc;
+   register complex *csp , *xcx=xc;
    register float f1,f2,f3,f4 ;
 
    /** perhaps initialize **/
@@ -597,9 +599,9 @@ static void fft8( int mode , complex * xc )
 /**************************************/
 /* FFT routine unrolled of length  16 */
 
-static void fft16( int mode , complex * xc )
+static void fft16( int mode , complex *xc )
 {
-   register complex * csp , * xcx=xc;
+   register complex *csp , *xcx=xc;
    register float f1,f2,f3,f4 ;
 
    /** perhaps initialize **/
@@ -819,9 +821,9 @@ static void fft16( int mode , complex * xc )
 /**************************************/
 /* FFT routine unrolled of length  32 */
 
-static void fft32( int mode , complex * xc )
+static void fft32( int mode , complex *xc )
 {
-   register complex * csp , * xcx=xc;
+   register complex *csp , *xcx=xc;
    register float f1,f2,f3,f4 ;
 
    /** perhaps initialize **/
@@ -1338,9 +1340,9 @@ static void fft32( int mode , complex * xc )
    Do a 64 FFT using fft32 and decimation-by-2
 ------------------------------------------------------------------*/
 
-static void fft64( int mode , complex * xc )
+static void fft64( int mode , complex *xc )
 {
-   static complex * cs=NULL , * aa , * bb ;
+   static complex *cs=NULL , *aa , *bb ;
    register int k , i ;
    register float akr,aki , bkr,bki , tr,ti , t1,t2 ;
 
@@ -1414,9 +1416,9 @@ static void fft64( int mode , complex * xc )
 #define M   32
 #define M2  64
 #define M3  96
-static void fft128( int mode , complex * xc )
+static void fft128( int mode , complex *xc )
 {
-   static complex * cs=NULL , * aa , * bb , * cc , * dd ;
+   static complex *cs=NULL , *aa , *bb , *cc , *dd ;
    register int k , i ;
    register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
                   acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
@@ -1514,9 +1516,9 @@ static void fft128( int mode , complex * xc )
 #define M   64
 #define M2 128
 #define M3 192
-static void fft256( int mode , complex * xc )
+static void fft256( int mode , complex *xc )
 {
-   static complex * cs=NULL , * aa , * bb , * cc , * dd ;
+   static complex *cs=NULL , *aa , *bb , *cc , *dd ;
    register int k , i ;
    register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
                   acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
@@ -1614,9 +1616,9 @@ static void fft256( int mode , complex * xc )
 #define M  128
 #define M2 256
 #define M3 384
-static void fft512( int mode , complex * xc )
+static void fft512( int mode , complex *xc )
 {
-   static complex * cs=NULL , * aa , * bb , * cc , * dd ;
+   static complex *cs=NULL , *aa , *bb , *cc , *dd ;
    register int k , i ;
    register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
                   acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
@@ -1711,7 +1713,7 @@ static void fft512( int mode , complex * xc )
    At most RMAX levels of recursion are allowed.
 --------------------------------------------------------------------*/
 
-static void fft_4dec( int mode , int idim , complex * xc )
+static void fft_4dec( int mode , int idim , complex *xc )
 {
    static int rec=0 ;
    static int rmold[RMAX] = {-1,-1,-1} ;
@@ -1720,7 +1722,7 @@ static void fft_4dec( int mode , int idim , complex * xc )
 
    int N=idim , M=idim/4 , M2=2*M , M3=3*M ;
    int mold=-1 ;
-   complex * cs , * aa , * bb , * cc , * dd ;
+   complex *cs , *aa , *bb , *cc , *dd ;
    register int k , i ;
    register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
                   acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
@@ -1864,7 +1866,7 @@ static void fft_4dec( int mode , int idim , complex * xc )
 #define CC3 (-0.5)         /* cos(2*Pi/3) */
 #define SS3 (0.8660254038) /* sin(2*Pi/3) */
 
-static void fft_3dec( int mode , int idim , complex * xc )
+static void fft_3dec( int mode , int idim , complex *xc )
 {
    static int rec=0 ;
    static int rmold[RMAX] = {-1,-1,-1} ;
@@ -1873,7 +1875,7 @@ static void fft_3dec( int mode , int idim , complex * xc )
 
    int N=idim , M=idim/3 , M2=2*M ;
    int mold ;
-   complex * cs=NULL , * aa , * bb , * cc ;
+   complex *cs=NULL , *aa , *bb , *cc ;
    register int k , i ;
    register float aar,aai, tr,ti, bbr,bbi, ccr,cci,
                   t1,t2,t4,t5,t6,t8 ;
@@ -1997,7 +1999,7 @@ static void fft_3dec( int mode , int idim , complex * xc )
 #define COS72  0.30901699   /* cos(72 deg) */
 #define SIN72  0.95105652   /* sin(72 deg) */
 
-static void fft_5dec( int mode , int idim , complex * xc )
+static void fft_5dec( int mode , int idim , complex *xc )
 {
    static int rec=0 ;
    static int rmold[RMAX] = {-1,-1,-1} ;
@@ -2006,7 +2008,7 @@ static void fft_5dec( int mode , int idim , complex * xc )
 
    int N=idim , M=idim/5 , M2=2*M , M3=3*M , M4=4*M ;
    int mold ;
-   complex * cs, *aa, *bb, *cc, *dd, *ee ;
+   complex *cs, *aa, *bb, *cc, *dd, *ee ;
    register int k , i ;
    register float aar,aai,bbr,bbi,ccr,cci,ddr,ddi,eer,eei ;
    register float akp,akm,bkp,bkm , ajp,ajm,bjp,bjm ;
@@ -2164,7 +2166,7 @@ static void fft_5dec( int mode , int idim , complex * xc )
 
 int csfft_nextup( int idim )
 {
-   static int * tf = NULL , * dn = NULL ;
+   static int *tf = NULL , *dn = NULL ;
    int ibase , ii ;
 
    /*-- build table of allowable powers of 3 and 5 [tf],
@@ -2173,7 +2175,7 @@ int csfft_nextup( int idim )
         Then sort tf and dn to be increasing in rat.     --*/
 
    if( tf == NULL ){
-      int p , q , tt,ff , i=0 , j ; float * rat ; float r ;
+      int p , q , tt,ff , i=0 , j ; float *rat ; float r ;
 
       tf  = (int *)   malloc(sizeof(int)  *N35) ;
       dn  = (int *)   malloc(sizeof(int)  *N35) ;

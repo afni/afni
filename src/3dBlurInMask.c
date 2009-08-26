@@ -84,7 +84,7 @@ int main( int argc , char *argv[] )
    /*---- official startup ---*/
 
    PRINT_VERSION("3dBlurInMask"); mainENTRY("3dBlurInMask main"); machdep();
-   AFNI_logger("3dBlurInMask",argc,argv);
+   AFNI_logger("3dBlurInMask",argc,argv); AUTHOR("RW Cox") ;
 
    /*---- loop over options ----*/
 
