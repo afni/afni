@@ -84,7 +84,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
            3dLocalSVD  niml_feedme  3dErrtsCormat 3dUndump 3dREMLfit            \
            3dUpsample 3dTcorrMap 3dmatmult 3dABoverlap 3dmaskSVD 1dBandpass     \
-           3dBlurInMask 3dRank                                                  \
+           3dBlurInMask 3dRank 3dFFT                                            \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -112,7 +112,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter            \
-                  3dLocalSVD               3dErrtsCormat 3dREMLfit 3dTcorrMap       \
+                  3dLocalSVD 3dFFT         3dErrtsCormat 3dREMLfit 3dTcorrMap       \
                   afni_history 3dUpsample 1dUpsample 3dmatmult 3dABoverlap          \
                   3dmaskSVD 3dRank $(EXTRAS)
 
@@ -146,7 +146,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3danisosmooth 3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAllineate       \
                3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty      \
                1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample     \
-               3dTcorrMap 3dABoverlap 3dRank
+               3dTcorrMap 3dABoverlap 3dRank 3dFFT
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
           @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
@@ -1317,6 +1317,10 @@ iotest:iotest.o
 iochan_relay:iochan_relay.o
 	$(RM) $@
 	$(CC) -o iochan_relay iochan_relay.o $(LFLAGS) $(LLIBS)
+
+3dFFT:3dFFT.o
+	$(RM) $@
+	$(CCFAST) -o 3dFFT 3dFFT.o $(LFLAGS) $(LLIBS)
 
 ### These programs are from Tom Ross
 
