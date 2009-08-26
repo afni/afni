@@ -193,6 +193,9 @@ int main( int argc , char *argv[] )
 
    nx = DSET_NX(dset_in) ; ny = DSET_NY(dset_in) ; nz = DSET_NZ(dset_in) ;
 
+   if( DSET_NVALS(dset_in) > 1 )
+     WARNING_message("only 3dFFT-ing sub-brick #0 of input dataset") ;
+
    /* establish actual FFT lengths now (0 ==> no FFT) */
 
    if( nx == 1 ) Lxx = 0 ;  /* can't FFT if dataset is shrimpy! */
@@ -203,26 +206,26 @@ int main( int argc , char *argv[] )
    if( Lyy < 0 ) Lyy = csfft_nextup_even(ny) ;  /* dataset dimensions */
    if( Lzz < 0 ) Lzz = csfft_nextup_even(nz) ;
 
-   INFO_message("x-axis length = %d ; FFT length = %d %s",nx,Lxx,(Lxx==0)?"==> none":"\0") ;
-   INFO_message("y-axis length = %d ; FFT length = %d %s",ny,Lyy,(Lyy==0)?"==> none":"\0") ;
-   INFO_message("z-axis length = %d ; FFT length = %d %s",nz,Lzz,(Lzz==0)?"==> none":"\0") ;
+   INFO_message("x-axis length=%d ; FFT length=%d %s",nx,Lxx,(Lxx==0)?"==> none":"\0") ;
+   INFO_message("y-axis length=%d ; FFT length=%d %s",ny,Lyy,(Lyy==0)?"==> none":"\0") ;
+   INFO_message("z-axis length=%d ; FFT length=%d %s",nz,Lzz,(Lzz==0)?"==> none":"\0") ;
 
-   if( Lxx > 0 && Lxx < nx ) ERROR_exit("x-axis FFT length too short!") ;
-   if( Lyy > 0 && Lyy < ny ) ERROR_exit("y-axis FFT length too short!") ;
-   if( Lzz > 0 && Lzz < nz ) ERROR_exit("z-axis FFT length too short!") ;
+   if( Lxx > 0 && Lxx < nx ) ERROR_exit("x-axis FFT length too short for data!") ;
+   if( Lyy > 0 && Lyy < ny ) ERROR_exit("y-axis FFT length too short for data!") ;
+   if( Lzz > 0 && Lzz < nz ) ERROR_exit("z-axis FFT length too short for data!") ;
 
    /* extract sub-brick #0 */
 
    DSET_load(dset_in) ; CHECK_LOAD_ERROR(dset_in) ;
 
-   inim = mri_to_complex( DSET_BRICK(dset_in,0) ) ;
+   inim = mri_to_complex( DSET_BRICK(dset_in,0) ) ; /* convert input to complex */
    fac  = DSET_BRICK_FACTOR(dset_in,0) ;
-   if( fac > 0.0f && fac != 1.0f ){
+   if( fac > 0.0f && fac != 1.0f ){                 /* scale it if needed */
      int ii , nvox = nx*ny*nz ; complex *car = MRI_COMPLEX_PTR(inim) ;
      for( ii=0 ; ii < nvox ; ii++ ){ car[ii].r *= fac ; car[ii].i *= fac ; }
    }
 
-   DSET_unload(dset_in) ;
+   DSET_unload(dset_in) ;  /* input data is all copied now */
 
    /* FFT to get output image */
 
@@ -248,15 +251,17 @@ int main( int argc , char *argv[] )
      break ;
    }
 
-   /* create output dataset */
+   /* create and write output dataset */
 
    dset_out = EDIT_empty_copy( dset_in ) ;
+   tross_Copy_History( dset_in , dset_out ) ;
+   tross_Make_History( "3dFFT" , argc,argv , dset_out ) ;
    LOAD_IVEC3( iv , outim->nx , outim->ny , outim->nz ) ;
    EDIT_dset_items( dset_out ,
-                      ADN_nxyz   , iv ,
                       ADN_prefix , prefix ,
                       ADN_nvals  , 1 ,
                       ADN_ntt    , 0 ,
+                      ADN_nxyz   , iv ,  /* change dimensions, possibly */
                     ADN_none ) ;
    EDIT_BRICK_FACTOR( dset_out , 0 , 0.0 ) ;
    EDIT_substitute_brick( dset_out , 0 , outim->kind , mri_data_pointer(outim) ) ;
@@ -266,17 +271,21 @@ int main( int argc , char *argv[] )
 }
 
 /*----------------------------------------------------------------------------*/
+/* macro to alternate signs in workspace array */
+
+#undef  ALTERN
+#define ALTERN(nn)                                                                  \
+ do{ register int qq;                                                               \
+     for( qq=1; qq<(nn); qq+=2 ){ cbig[qq].r=-cbig[qq].r; cbig[qq].i=-cbig[qq].i; } \
+ } while(0)
+
+/*----------------------------------------------------------------------------*/
 /* FFT lengths are in Lxx, Lyy, Lzz; however,
      Lxx = 0 ==> no FFT in that direction (etc.).
 *//*--------------------------------------------------------------------------*/
 
-#undef  ALTERN
-#define ALTERN(nn)                                                                        \
- do{ register int qq;                                                                     \
-     for( qq=1; qq < (nn); qq+=2 ){ cbig[qq].r = -cbig[qq].r; cbig[qq].i = -cbig[qq].i; } \
- } while(0)
-
-static MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim, int Lxx,int Lyy,int Lzz, int alt )
+static MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim,
+                               int Lxx,int Lyy,int Lzz, int alt )
 {
    MRI_IMAGE *outim ;
    int ii,jj,kk , nx,ny,nxy,nz , nbig , fx,fy,fz,fxy , joff,koff ;
@@ -291,9 +300,9 @@ static MRI_IMAGE * mri_fft_3D( int Sign, MRI_IMAGE *inim, int Lxx,int Lyy,int Lz
 
    /* output dimensions and data */
 
-   fx = (Lxx == 0) ? nx : (Lxx > nx) ? csfft_nextup_even(Lxx) : csfft_nextup_even(nx) ;
-   fy = (Lyy == 0) ? ny : (Lyy > ny) ? csfft_nextup_even(Lyy) : csfft_nextup_even(ny) ;
-   fz = (Lzz == 0) ? nz : (Lzz > nz) ? csfft_nextup_even(Lzz) : csfft_nextup_even(nz) ;
+   fx = (Lxx == 0) ? nx : (Lxx > nx) ? csfft_nextup_even(Lxx) : csfft_nextup_even(nx);
+   fy = (Lyy == 0) ? ny : (Lyy > ny) ? csfft_nextup_even(Lyy) : csfft_nextup_even(ny);
+   fz = (Lzz == 0) ? nz : (Lzz > nz) ? csfft_nextup_even(Lzz) : csfft_nextup_even(nz);
    fxy = fx*fy ;
 
    outim = mri_new_vol( fx,fy,fz , MRI_complex ) ;  /* zero filled */
