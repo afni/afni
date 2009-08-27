@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , AUG , 2009 , RWC , "AFNI image viewer" , MICRO , TYPE_GENERAL ,
+   "Keyboard Home key centers zoom window at crosshairs" ,
+   "Doesn't work if cropping and zooming are mixed.  (The logistics are too\n"
+   "hard for my feeble brain.)" } ,
+
  { 27 , AUG , 2009 , RWC , "AFNI image viewer" , MICRO , TYPE_MODIFY ,
    "More crop region features" ,
    "* Shift+Home centers crop region on the crosshairs\n"

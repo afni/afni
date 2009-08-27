@@ -554,6 +554,8 @@ extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_crop_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_actually_pan( MCW_imseq * , int , int ) ;
 extern int ISQ_show_zoom( MCW_imseq *seq )  ;
+extern void ISQ_center_zoom( MCW_imseq *seq ) ; /* 27 Aug 2009 */
+
 extern void ISQ_adjust_crop( MCW_imseq *,int,int,int,int) ; /* 25 Aug 2009 */
 extern void ISQ_set_crop_hint( MCW_imseq *seq ) ;
 
@@ -737,6 +739,7 @@ extern MRI_IMAGE    * ISQ_getoverlay( int , MCW_imseq * ) ; /* 11 Jun 2002 */
 extern MEM_plotdata * ISQ_getmemplot( int , MCW_imseq * ) ;
 extern char         * ISQ_getlabel  ( int , MCW_imseq * ) ;
 extern MRI_IMAGE    * ISQ_getchecked( int nn , MCW_imseq *seq ) ;
+extern int_triple ISQ_get_crosshairs( MCW_imseq *seq ) ;    /* 27 Aug 2009 */
 
 extern void ISQ_free_alldata( MCW_imseq * ) ;
 
