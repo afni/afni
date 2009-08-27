@@ -294,6 +294,7 @@ static char *  ppmto_png_filter   = NULL ;  /* 07 Dec 2006 */
  } while(0)
 
 /*---- setup programs as filters: ppm stdin to some output file ----*/
+
 void ISQ_setup_ppmto_filters(void)
 {
    char *pg , *pg2 , *str , *eee ;
@@ -2071,6 +2072,19 @@ char * ISQ_opacity_label( int val ) /* 07 Mar 2001 */
 
 /*-----------------------------------------------------------------------*/
 
+int_triple ISQ_get_crosshairs( MCW_imseq *seq ) /* 27 Aug 2009 */
+{
+   int_triple xyn ; ISQ_cbs cbs ;
+
+   cbs.reason = isqCR_getxynim ;
+   cbs.xim = cbs.yim = cbs.nim = -666 ;  /* initialize to badness */
+   if( seq->status->send_CB != NULL ) SEND(seq,cbs) ;
+   xyn.i = cbs.xim ; xyn.j = cbs.yim ; xyn.k = cbs.nim ;
+   return xyn ;
+}
+
+/*-----------------------------------------------------------------------*/
+
 void ISQ_opacity_CB( MCW_arrowval *av , XtPointer cd ) /* 07 Mar 2001 */
 {
    MCW_imseq *seq = (MCW_imseq *) cd ;
@@ -2086,7 +2100,6 @@ void ISQ_opacity_CB( MCW_arrowval *av , XtPointer cd ) /* 07 Mar 2001 */
 }
 
 /*-----------------------------------------------------------------------*/
-
 /*! Callback for the zoom arrowval buttons */
 
 void ISQ_zoom_av_CB( MCW_arrowval *apv , XtPointer cd ) /* 11 Mar 2002 */
@@ -2094,28 +2107,25 @@ void ISQ_zoom_av_CB( MCW_arrowval *apv , XtPointer cd ) /* 11 Mar 2002 */
    MCW_imseq    *seq = (MCW_imseq *) cd ;
    MCW_arrowval *av  = seq->zoom_val_av ;
    XmString xstr ;
-   int zlev=av->ival , zold=seq->zoom_fac ;
+   int zlev=av->ival ,       /* new zoom level */
+       zold=seq->zoom_fac ;  /* old zoom level */
 
 ENTRY("ISQ_zoom_av_CB") ;
 
    if( !ISQ_REALZ(seq) || av != apv ) EXRETURN ;  /* bad */
 
+   /* don't allow zoom > 1 if montage-izing */
+
    if( seq->mont_nx > 1 || seq->mont_ny > 1 ){   /* 18 Nov 2003 */
-#if 0
-fprintf(stderr,"zoom: montage nx=%d ny=%d\n",seq->mont_nx,seq->mont_ny) ;
-#endif
      AV_assign_ival(av,ZOOM_BOT) ; seq->zoom_fac = 1 ;
      XBell(seq->dc->display,100); EXRETURN;
    }
    if( seq->dialog != NULL && seq->dialog_starter == NBUT_MONT ){
-#if 0
-fprintf(stderr,"zoom: dialog_starter = %d\n",seq->dialog_starter) ;
-#endif
      AV_assign_ival(av,ZOOM_BOT) ; seq->zoom_fac = 1 ;
      XBell(seq->dc->display,100); EXRETURN;
    }
 
-   /*-- change zoom factor --*/
+   /*-- change zoom factor (and label) --*/
 
    xstr = XmStringCreateLtoR( (zlev==1)?"z":"Z" , XmFONTLIST_DEFAULT_TAG );
    XtVaSetValues( av->wlabel , XmNlabelString , xstr , NULL ) ;
@@ -2123,11 +2133,11 @@ fprintf(stderr,"zoom: dialog_starter = %d\n",seq->dialog_starter) ;
 
    seq->zoom_fac = zlev ;   /* change recorded zoom factor */
    if( zlev == 1 ){
-      seq->zoom_hor_off = seq->zoom_ver_off = 0.0 ; /* no offsets */
+      seq->zoom_hor_off = seq->zoom_ver_off = 0.0 ; /* no image offsets */
    } else {
-      float mh = (zlev-1.001)/zlev ;        /* max offset allowed */
-      float dh = 0.5*(1.0/zold-1.0/zlev) ;  /* change in offset to */
-                                            /* keep current center */
+      float mh = (zlev-1.001f)/zlev ;          /* max offset allowed */
+      float dh = 0.5f*(1.0f/zold-1.0f/zlev) ;  /* change in offset to */
+                                               /* keep current center */
       seq->zoom_hor_off += dh ;
       seq->zoom_ver_off += dh ;
            if( seq->zoom_hor_off > mh  ) seq->zoom_hor_off = mh  ;
@@ -2211,7 +2221,7 @@ ENTRY("ISQ_actually_pan") ;
 
    if( !ISQ_REALZ(seq) || seq->zoom_fac == 1 || seq->zoom_xim == NULL ) EXRETURN;
 
-   mh = (seq->zoom_fac-1.001)/seq->zoom_fac ;  /* max offset    */
+   mh = (seq->zoom_fac-1.001f)/seq->zoom_fac ; /* max offset    */
    dh = 0.020/seq->zoom_fac ;                  /* delta offset   */
    hh=seq->zoom_hor_off ; hhold=hh ;           /* current offsets */
    vv=seq->zoom_ver_off ; vvold=vv ;
@@ -2274,16 +2284,11 @@ ENTRY("ISQ_adjust_crop") ;
    if( !ISQ_REALZ(seq) || seq->cropit == 0 ) EXRETURN ;
 
    if( dxa==0 && dxb==0 && dya==0 && dyb==0 ){  /* recenter */
-     ISQ_cbs cbs ;
-     int xcen,ycen , xwid,ywid ;
+     int_triple xyn ; int xcen,ycen , xwid,ywid ;
 
      /* find current location of crosshairs (if any) */
 
-     cbs.reason = isqCR_getxynim ;
-     cbs.xim = cbs.yim = cbs.nim = -666 ;  /* initialize to badness */
-     if( seq->status->send_CB != NULL )
-     SEND(seq,cbs) ;
-     xcen = cbs.xim ; ycen = cbs.yim ;     /* new center */
+     xyn = ISQ_get_crosshairs( seq ) ; xcen = xyn.i ; ycen = xyn.j ;
      if( xcen < 0 || ycen < 0 ) EXRETURN ; /* check for bad return */
 
      xwid = seq->crop_xb - seq->crop_xa ;  /* crop region sizes */
@@ -4740,6 +4745,41 @@ ENTRY("ISQ_set_image_number") ;
 static volatile int xwasbad ;
 typedef int (*xhandler)(Display *, XErrorEvent *) ;
 static int qhandler( Display *dpy , XErrorEvent *xev ){ xwasbad=1; return 0; }
+
+/*-----------------------------------------------------------------------*/
+
+void ISQ_center_zoom( MCW_imseq *seq ) /* 27 Aug 2009 */
+{
+   int zlev,xcen,ycen ; int_triple xyn ; float mh,zwid , xch,ych ;
+
+ENTRY("ISQ_center_zoom") ;
+
+   if( !ISQ_REALZ(seq) || seq->imim == NULL || seq->zoom_fac <= 1 ) EXRETURN ;
+
+   if( seq->cropit ) /* centering on crop region not implemented */ EXRETURN ;
+
+   xyn = ISQ_get_crosshairs(seq) ; xcen = xyn.i ; ycen = xyn.j ;
+   if( xcen < 0 || ycen < 0 )                                       EXRETURN ;
+   ISQ_unflipxy( seq , &xcen , &ycen ) ; /* flip to screen coord */
+   if( xcen < 0 || ycen < 0 )                                       EXRETURN ;
+   xch = xcen / (float)seq->imim->nx ; if( xch >= 1.0f )            EXRETURN ;
+   ych = ycen / (float)seq->imim->ny ; if( ych >= 1.0f )            EXRETURN ;
+
+   zlev = seq->zoom_fac ;
+   mh   = (zlev-1.001f)/zlev ; /* max offset allowed */
+   zwid = 0.5f / zlev ;
+
+   seq->zoom_hor_off = xch - zwid ;
+   seq->zoom_ver_off = ych - zwid ;
+        if( seq->zoom_hor_off > mh   ) seq->zoom_hor_off = mh  ;
+   else if( seq->zoom_hor_off < 0.0f ) seq->zoom_hor_off = 0.0f ;
+        if( seq->zoom_ver_off > mh   ) seq->zoom_ver_off = mh  ;
+   else if( seq->zoom_ver_off < 0.0f ) seq->zoom_ver_off = 0.0f ;
+
+   ISQ_redisplay( seq , -1 , isqDR_display ) ;
+
+   EXRETURN ;
+}
 
 /*-----------------------------------------------------------------------*/
 
@@ -11334,7 +11374,7 @@ ENTRY("ISQ_cropper") ;
        int xmid=(imx2+imx1)/2, xh=(imx2-imx1)/2, xhw=zlev*xh ;
        int ymid=(imy2+imy1)/2, yh=(imy2-imy1)/2, yhw=zlev*yh ;
        int nx,ny ;
-       float mh = (zlev-1.001)/zlev ;  /* max offset allowed */
+       float mh = (zlev-1.001f)/zlev ;  /* max offset allowed */
 
        /* set size of original image from which cropping will be done */
 
@@ -11816,9 +11856,13 @@ ENTRY("ISQ_handle_keypress") ;
      KeySym ks = (KeySym)key ;
      switch( ks ){
 
-       case XK_Home:       /* 27 Aug 2009 : center crop window at crosshairs */
+       case XK_Home:       /* 27 Aug 2009 : center crop or pan at crosshairs */
          if( shft ){
-           ISQ_adjust_crop( seq, 0,0,0,0 ) ;
+           ISQ_adjust_crop( seq, 0,0,0,0 ) ;  /* crop center */
+         } else if (ctrl ){
+           /* nada */
+         } else {
+           ISQ_center_zoom( seq ) ;           /* pan center */
          }
        break ;
 
