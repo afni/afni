@@ -2283,51 +2283,59 @@ ENTRY("ISQ_adjust_crop") ;
      cbs.xim = cbs.yim = cbs.nim = -666 ;  /* initialize to badness */
      if( seq->status->send_CB != NULL )
      SEND(seq,cbs) ;
-     xcen = cbs.xim ; ycen = cbs.yim ;
+     xcen = cbs.xim ; ycen = cbs.yim ;     /* new center */
      if( xcen < 0 || ycen < 0 ) EXRETURN ; /* check for bad return */
-     xwid = seq->crop_xb - seq->crop_xa ;
+
+     xwid = seq->crop_xb - seq->crop_xa ;  /* crop region sizes */
      ywid = seq->crop_yb - seq->crop_ya ;
+
+     /* compute new left-upper corner */
 
      new_xa = xcen - xwid/2 ; if( new_xa < 0 ) new_xa = 0 ;
      new_ya = ycen - ywid/2 ; if( new_ya < 0 ) new_ya = 0 ;
 
-     new_xb = new_xa + xwid-1 ;
+     /* compute new right-lower corner */
+
+     new_xb = new_xa + xwid ;
      if( new_xb >= seq->crop_nxorg ){
-       new_xb = seq->crop_nxorg - 1 ; new_xa = new_xb - (xwid-1) ;
+       new_xb = seq->crop_nxorg - 1 ; new_xa = new_xb - xwid ;
      }
 
-     new_yb = new_ya + ywid-1 ;
+     new_yb = new_ya + ywid ;
      if( new_yb >= seq->crop_nyorg ){
-       new_yb = seq->crop_nyorg - 1 ; new_ya = new_yb - (ywid-1) ;
+       new_yb = seq->crop_nyorg - 1 ; new_ya = new_yb - ywid ;
      }
 
    } else {  /* change one or more crop window coordinate manually */
+
+     /* get current corner coords */
 
      new_xa = seq->crop_xa ; new_xb = seq->crop_xb ;
      new_ya = seq->crop_ya ; new_yb = seq->crop_yb ;
 
      /* 27 Aug 2009: allow for flipped image,
                      to give the user a uniform experience */
-      
-     ISQ_unflipxy( seq , &new_xa , &new_ya ) ;
+
+     ISQ_unflipxy( seq , &new_xa , &new_ya ) ; /* flip to screen coords */
      ISQ_unflipxy( seq , &new_xb , &new_yb ) ;
 
-     ii = MIN(new_xa,new_xb) ; jj = MAX(new_xa,new_xb) ;
-     new_xa = ii ; new_xb = jj ;
-     ii = MIN(new_ya,new_yb) ; jj = MAX(new_ya,new_yb) ;
-     new_ya = ii ; new_yb = jj ;
+     /* make sure (xa,ya) is before (xb,yb) */
 
-     new_xa += dxa ; new_xb += dxb ;  /* adjust crop window coords */
-     new_ya += dya ; new_yb += dyb ;
+     ii = MIN(new_xa,new_xb); jj = MAX(new_xa,new_xb); new_xa = ii; new_xb = jj;
+     ii = MIN(new_ya,new_yb); jj = MAX(new_ya,new_yb); new_ya = ii; new_yb = jj;
 
-     ISQ_flipxy( seq , &new_xa , &new_ya ) ;
+     new_xa += dxa ; new_xb += dxb ;  /* NOW adjust crop window coords */
+     new_ya += dya ; new_yb += dyb ;  /*   in screen coords, not image */
+
+     ISQ_flipxy( seq , &new_xa , &new_ya ) ; /* flip back to image coords */
      ISQ_flipxy( seq , &new_xb , &new_yb ) ;
 
-     ii = MIN(new_xa,new_xb) ; jj = MAX(new_xa,new_xb) ;
-     new_xa = ii ; new_xb = jj ;
-     ii = MIN(new_ya,new_yb) ; jj = MAX(new_ya,new_yb) ;
-     new_ya = ii ; new_yb = jj ;
-   }
+     /* make sure (xa,ya) is before (xb,yb) */
+
+     ii = MIN(new_xa,new_xb); jj = MAX(new_xa,new_xb); new_xa = ii; new_xb = jj;
+     ii = MIN(new_ya,new_yb); jj = MAX(new_ya,new_yb); new_ya = ii; new_yb = jj;
+
+   } /* new_?? variables now contain image coords of new crop region */
 
    /* check for bad-ositiness */
 
