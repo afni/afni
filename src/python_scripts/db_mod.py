@@ -2114,14 +2114,15 @@ def db_cmd_regress_censor_motion(proc, block):
     if proc.verb > 1:
         print '-- creating motion censor command, file = %s' % mot_file
 
-    proc.regress_censor_file = '${subj}_censor.1D'
+    mot_prefix = 'motion_${subj}'
+    proc.regress_censor_file = '%s_censor.1D' % mot_prefix
     cmd = '\n# create censor file %s, for censoring motion \n' \
           % proc.regress_censor_file
                 
     cmd = cmd + '1d_tool.py -infile %s -set_nruns %d -set_tr %g \\\n'   \
                 '    -show_censor_count %s\\\n'                         \
-                '    -censor_motion %g motion_$subj\n\n' \
-                % (mot_file, proc.runs, proc.tr, prev_str, limit)
+                '    -censor_motion %g %s\n\n' \
+                % (mot_file, proc.runs, proc.tr, prev_str, limit, mot_prefix)
 
     return 0, cmd
 
