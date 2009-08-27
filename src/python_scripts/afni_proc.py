@@ -161,9 +161,10 @@ g_history = """
         - change the censor_motion prefix from '$subj' to 'motion_$subj'
         - if volreg block, always create 'motion_${subj}_enorm.1D'
     2.10 Aug 26 2009 : explicitly nuke negatives in scale block
+    2.11 Aug 27 2009 : added -regress_local_times/-regress_global_times
 """
 
-g_version = "version 2.10, August 26, 2009"
+g_version = "version 2.11, August 27, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
@@ -482,6 +483,10 @@ class SubjProcSream:
                         helpstr="prefix to use for fitts dataset")
         self.valid_opts.add_opt('-regress_iresp_prefix', 1, [],
                         helpstr="prefix to use for iresp datasets")
+        self.valid_opts.add_opt('-regress_global_times', 0, [],
+                        helpstr="apply -global_times option to 3dDeconvolve")
+        self.valid_opts.add_opt('-regress_local_times', 0, [],
+                        helpstr="apply -local_times option to 3dDeconvolve")
         self.valid_opts.add_opt('-regress_make_ideal_sum', 1, [],
                         helpstr="filename for sum of ideal regressors")
         self.valid_opts.add_opt('-regress_no_fitts', 0, [],
