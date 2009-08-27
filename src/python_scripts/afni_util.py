@@ -1038,8 +1038,16 @@ def euclidean_norm(vals):
 
    return math.sqrt(loc_sum([v*v for v in vals]))
 
+def dotprod(v1,v2):
+   """compute the dot product of 2 vectors"""
+   try: dsum = loc_sum([v1[i]*v2[i] for i in range(len(v1))])
+   except:
+      print '** cannot take dotprod() of these elements'
+      dsum = 0
+   return dsum
+
 def min_mean_max_stdev(data):
-    """return 4 values for data: min, max, mean, stdev (unbiased)"""
+    """return 4 values for data: min, mean, max, stdev (unbiased)"""
 
     if not data: return 0,0,0,0
     length = len(data)
