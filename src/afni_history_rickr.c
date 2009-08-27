@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, AUG, 2009, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "fixed motion_ prefix in '3dDeconvolve -censor'",
+   "Found by B Bones."
+ } ,
+
  { 27, AUG, 2009, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
    "added -regress_local_times, -regress_global_times",
    "Since the -local_times and -global_times options in 3dDeconvolve must be\n"
