@@ -630,7 +630,7 @@ class Afni1D:
             else:             cmat.mat[v][ind] /= norms[v]
 
       # finally, assign cormat
-      self.cormat = [[dotprod(r1,r2) for r2 in cmat.mat] for r1 in cmat.mat]
+      self.cormat =[[UTIL.dotprod(r1,r2) for r2 in cmat.mat] for r1 in cmat.mat]
       self.cormat_ready = 1
 
       # nuke temporary (normalized) matrices
@@ -1032,15 +1032,7 @@ def norm(vec):
    """return the euclidean norm"""
 
    if len(vec) < 1: return 0.0
-   return math.sqrt(dotprod(vec,vec))
-
-def dotprod(v1,v2):
-   """compute the dot product of 2 vectors"""
-   try: nsum = UTIL.loc_sum([v1[i]*v2[i] for i in range(len(v1))])
-   except:
-      print '** cannot take dotprod() of these elements'
-      nsum = 0
-   return nsum
+   return UTIL.euclidean_norm(vec)
 
 def c1D_line2labelNdata(cline, verb=1):
    """expect cline to be of the form: '# LABEL = "DATA"'
