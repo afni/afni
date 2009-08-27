@@ -48,6 +48,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, AUG, 2009, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "added -regress_local_times, -regress_global_times",
+   "Since the -local_times and -global_times options in 3dDeconvolve must be\n"
+   "processed before the stimuli they refer to, it does nothing to pass them\n"
+   "via -regress_opts_3dD.  Hence, the options are needed.\n"
+ } ,
+
  { 26, AUG, 2009, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "in scaling block, explicitly remove any negative data values",
    NULL

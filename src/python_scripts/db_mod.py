@@ -1580,6 +1580,22 @@ def db_mod_regress(block, proc, user_opts):
     uopt = user_opts.find_opt('-regress_apply_mask')
     if uopt: proc.regmask = 1
 
+    # check for global or local stim_times
+    uopt = user_opts.find_opt('-regress_global_times')
+    u2   = user_opts.find_opt('-regress_local_times')
+    bopt = block.opts.find_opt('-regress_global_times')
+    b2   = block.opts.find_opt('-regress_local_times')
+    if uopt or u2:
+      if uopt and u2:
+        print '** error: given -regress_global_times AND -regress_local_times'
+        errs += 1
+      elif uopt:
+        if b2: block.opts.del_opt('-regress_local_times')
+        block.opts.add_opt('-regress_global_times',0,[])
+      else: # u2
+        if b2: block.opts.del_opt('-regress_global_times')
+        block.opts.add_opt('-regress_local_times',0,[])
+
     # maybe the user does not want to regress the motion parameters
     # apply uopt to bopt
     uopt = user_opts.find_opt('-regress_no_motion')
@@ -1681,6 +1697,13 @@ def db_cmd_regress(proc, block):
     else:
         mask = ''
 
+    # maybe the user has specified global or local times
+    if block.opts.find_opt('-regress_global_times'):
+        times_type = '    -global_times \\\n'
+    elif block.opts.find_opt('-regress_local_times'):
+        times_type = '    -local_times \\\n' 
+    else: times_type=''
+
     # if the input datatype is float, force such output from 3dDeconvolve
     if proc.datatype == 3: datum = '-float '
     else:                  datum = ''
@@ -1694,10 +1717,10 @@ def db_cmd_regress(proc, block):
     cmd = cmd + '3dDeconvolve -input %s \\\n'           \
                 '%s'                                    \
                 '    -polort %d %s\\\n'                 \
-                '%s%s'                                  \
+                '%s%s%s'                                \
                 '    -num_stimts %d \\\n'               \
                 % ( proc.prev_dset_form_wild(), censor_str, polort, datum,
-                    mask, normall, total_nstim )
+                    mask, normall, times_type, total_nstim )
 
     # verify labels (now that we know the list of stimulus files)
     opt = block.opts.find_opt('-regress_stim_labels')
@@ -3913,6 +3936,41 @@ g_help_string = """
 
             Please see '3dDeconvolve -help' for more information.
             See also -regress_no_fitts.
+
+        -regress_global_times        : specify -stim_times as global times
+
+                default: 3dDeconvolve figures it out, if it can
+
+            By default, the 3dDeconvolve determines whether -stim_times files
+            are local or global times by the first line of the file.  If it
+            contains at least 2 times (which include '*' characters), it is
+            considered as local_times, otherwise as global_times.
+
+            The -regress_global_times option is mostly added to be symmetric
+            with -regress_local_times, as the only case where it would be
+            needed is when there are other times in the first row, but the
+            should still be viewed as global.
+
+            See also -regress_local_times.
+
+        -regress_local_times         : specify -stim_times as local times
+
+                default: 3dDeconvolve figures it out, if it can
+
+            By default, the 3dDeconvolve determines whether -stim_times files
+            are local or global times by the first line of the file.  If it
+            contains at least 2 times (which include '*' characters), it is
+            considered as local_times, otherwise as global_times.
+
+            In the case where the first run has only 1 stimulus (maybe even
+            every run), the user would need to put an extra '*' after the
+            first stimulus time.  If the first run has no stimuli, then two
+            would be needed ('* *'), but only for the first run.
+
+            Since this may get confusing, being explicit by adding this option
+            is a reasonable thing to do.
+
+            See also -regress_global_times.
 
         -regress_iresp_prefix PREFIX : specify a prefix for the -iresp option
 
