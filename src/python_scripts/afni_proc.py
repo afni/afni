@@ -162,9 +162,10 @@ g_history = """
         - if volreg block, always create 'motion_${subj}_enorm.1D'
     2.10 Aug 26 2009 : explicitly nuke negatives in scale block
     2.11 Aug 27 2009 : added -regress_local_times/-regress_global_times
+    2.12 Aug 27 2009 : fixed motion_ in '3dD -censor', found by B Bones
 """
 
-g_version = "version 2.11, August 27, 2009"
+g_version = "version 2.12, August 27, 2009"
 
 # ----------------------------------------------------------------------
 # dictionary of block types and modification functions
