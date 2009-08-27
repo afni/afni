@@ -2750,9 +2750,9 @@ meaning shorts and floats would be applied via Fourier interpolation.
 Setting AFNI_BLUR_INTS_AS_OLD to YES will revert to the Fourier method for
 such data.
 
-----------------------------
-Variable: AFNI_IMAGE_PANSTEP (editable)
-----------------------------
+-----------------------------
+Variable: AFNI_IMAGE_CROPSTEP (editable)
+-----------------------------
 Numeric value sets the size of the panning step using in the image viewer,
 when you are adjusting the cropping region using the Shift+Arrow keys
 on the keyboard.  Defaults to 1.  Legal values are -9..9 (inclusive).
