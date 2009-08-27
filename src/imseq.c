@@ -1907,7 +1907,7 @@ STATUS("creation: widgets created") ;
    if the image is a different size
 ------------------------------------------------------------------------*/
 
-void ISQ_reset_dimen( MCW_imseq * seq,  float new_width_mm, float new_height_mm )
+void ISQ_reset_dimen( MCW_imseq *seq,  float new_width_mm, float new_height_mm )
 {
    int xwide , yhigh , oldx,oldy ;
    float scale_x , scale_y ;
@@ -2172,7 +2172,7 @@ fprintf(stderr,"zoom: dialog_starter = %d\n",seq->dialog_starter) ;
 
 void ISQ_zoom_pb_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
 
 ENTRY("ISQ_zoom_pb_CB") ;
 
@@ -2267,20 +2267,77 @@ ENTRY("ISQ_crop_pb_CB") ;
 void ISQ_adjust_crop( MCW_imseq *seq ,
                       int dxa , int dxb , int dya , int dyb )
 {
-   int new_xa , new_xb , new_ya , new_yb ;
+   int new_xa, new_xb, new_ya, new_yb , ii,jj ;
 
 ENTRY("ISQ_adjust_crop") ;
 
    if( !ISQ_REALZ(seq) || seq->cropit == 0 ) EXRETURN ;
 
-   new_xa = seq->crop_xa + dxa ; new_xb = seq->crop_xb + dxb ;
-   new_ya = seq->crop_ya + dya ; new_yb = seq->crop_yb + dyb ;
+   if( dxa==0 && dxb==0 && dya==0 && dyb==0 ){  /* recenter */
+     ISQ_cbs cbs ;
+     int xcen,ycen , xwid,ywid ;
+
+     /* find current location of crosshairs (if any) */
+
+     cbs.reason = isqCR_getxynim ;
+     cbs.xim = cbs.yim = cbs.nim = -666 ;  /* initialize to badness */
+     if( seq->status->send_CB != NULL )
+     SEND(seq,cbs) ;
+     xcen = cbs.xim ; ycen = cbs.yim ;
+     if( xcen < 0 || ycen < 0 ) EXRETURN ; /* check for bad return */
+     xwid = seq->crop_xb - seq->crop_xa ;
+     ywid = seq->crop_yb - seq->crop_ya ;
+
+     new_xa = xcen - xwid/2 ; if( new_xa < 0 ) new_xa = 0 ;
+     new_ya = ycen - ywid/2 ; if( new_ya < 0 ) new_ya = 0 ;
+
+     new_xb = new_xa + xwid-1 ;
+     if( new_xb >= seq->crop_nxorg ){
+       new_xb = seq->crop_nxorg - 1 ; new_xa = new_xb - (xwid-1) ;
+     }
+
+     new_yb = new_ya + ywid-1 ;
+     if( new_yb >= seq->crop_nyorg ){
+       new_yb = seq->crop_nyorg - 1 ; new_ya = new_yb - (ywid-1) ;
+     }
+
+   } else {  /* change one or more crop window coordinate manually */
+
+     new_xa = seq->crop_xa ; new_xb = seq->crop_xb ;
+     new_ya = seq->crop_ya ; new_yb = seq->crop_yb ;
+
+     /* 27 Aug 2009: allow for flipped image,
+                     to give the user a uniform experience */
+      
+     ISQ_unflipxy( seq , &new_xa , &new_ya ) ;
+     ISQ_unflipxy( seq , &new_xb , &new_yb ) ;
+
+     ii = MIN(new_xa,new_xb) ; jj = MAX(new_xa,new_xb) ;
+     new_xa = ii ; new_xb = jj ;
+     ii = MIN(new_ya,new_yb) ; jj = MAX(new_ya,new_yb) ;
+     new_ya = ii ; new_yb = jj ;
+
+     new_xa += dxa ; new_xb += dxb ;  /* adjust crop window coords */
+     new_ya += dya ; new_yb += dyb ;
+
+     ISQ_flipxy( seq , &new_xa , &new_ya ) ;
+     ISQ_flipxy( seq , &new_xb , &new_yb ) ;
+
+     ii = MIN(new_xa,new_xb) ; jj = MAX(new_xa,new_xb) ;
+     new_xa = ii ; new_xb = jj ;
+     ii = MIN(new_ya,new_yb) ; jj = MAX(new_ya,new_yb) ;
+     new_ya = ii ; new_yb = jj ;
+   }
+
+   /* check for bad-ositiness */
 
    if( new_xa < 0 || new_ya < 0  ) EXRETURN ;  /* all these are bad */
    if( new_xa+MINCROP >= new_xb  ) EXRETURN ;
    if( new_ya+MINCROP >= new_yb  ) EXRETURN ;
    if( new_xb >= seq->crop_nxorg ) EXRETURN ;
    if( new_yb >= seq->crop_nyorg ) EXRETURN ;
+
+   /* now apply the new crop window coordinates */
 
    seq->crop_xa = new_xa ; seq->crop_xb = new_xb ;
    seq->crop_ya = new_ya ; seq->crop_yb = new_yb ;
@@ -2381,7 +2438,7 @@ void ISQ_butcrop_EV( Widget w , XtPointer client_data ,
                 "--------------------------------------------"  ,
                 2 , lvec , fvec , ISQ_butcrop_choice_CB , (XtPointer)seq ) ;
            }
-                              
+
          } else if( event->button == Button2 ){
             XBell(XtDisplay(w),100) ;
             MCW_popup_message( w, " \n Ooch! \n ", MCW_USER_KILL );
@@ -2577,11 +2634,11 @@ ENTRY("ISQ_overlay") ;
    Make a color bar "given" XImage
 -------------------------------------------------------------------------*/
 
-void ISQ_make_bar( MCW_imseq * seq )
+void ISQ_make_bar( MCW_imseq *seq )
 {
-   MRI_IMAGE * im ;
+   MRI_IMAGE *im ;
    int iy , ny ;
-   short * ar ;
+   short *ar ;
 
 ENTRY("ISQ_make_bar") ;
 
@@ -4119,12 +4176,12 @@ ENTRY("ISQ_saver_CB") ;
 
       } else { /** write color overlay and everything **/
 
-         MRI_IMAGE * ovim=NULL ;
+         MRI_IMAGE *ovim=NULL ;
          int ii , nx , ny , npix , bb , allgray , ncode,nout ;
-         byte * rgb ;   /* "byte" is defined in mrilib.h */
-         short * flar ;
-         XColor * ulc , * ovc , * xc ;
-         FILE * fd ;
+         byte *rgb ;   /* "byte" is defined in mrilib.h */
+         short *flar ;
+         XColor *ulc , *ovc , *xc ;
+         FILE *fd ;
          byte rrr,ggg,bbb ;
 
          /* process given image to make the grayscale index */
@@ -4159,7 +4216,7 @@ ENTRY("ISQ_saver_CB") ;
             if( flim == NULL ){ flim = tim ; }     /* shouldn't happen */
             else              { KILL_1MRI(tim) ; }
 #else
-            short * ovar ; int jj ;                /* the old way */
+            short *ovar ; int jj ;                /* the old way */
             ovar = mri_data_pointer(ovim) ;
             for( jj=0 ; jj < npix ; jj++ )
                if( ovar[jj] != 0 ) flar[jj] = -ovar[jj] ;
@@ -4261,7 +4318,7 @@ ENTRY("ISQ_saver_CB") ;
 void ISQ_but_save_CB( Widget w , XtPointer client_data ,
                                  XtPointer call_data    )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
 
 ENTRY("ISQ_but_save_CB") ;
 
@@ -4282,7 +4339,7 @@ ENTRY("ISQ_but_save_CB") ;
 --------------------------------------------------------------------------*/
 
 #ifdef REQUIRE_TWO_DONES
-void ISQ_but_done_reset( MCW_imseq * seq )
+void ISQ_but_done_reset( MCW_imseq *seq )
 {
    if( ! ISQ_VALID(seq) || seq->done_first ) return ;
 
@@ -4456,8 +4513,8 @@ ENTRY("ISQ_free_alldata") ;
 
 void ISQ_scale_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
-   MCW_imseq * seq             = (MCW_imseq *)             client_data ;
-   XmScaleCallbackStruct * cbs = (XmScaleCallbackStruct *) call_data ;
+   MCW_imseq *seq             = (MCW_imseq *)             client_data ;
+   XmScaleCallbackStruct *cbs = (XmScaleCallbackStruct *) call_data ;
 
 ENTRY("ISQ_scale_CB") ;
 
@@ -4624,7 +4681,7 @@ ENTRY("ISQ_redisplay") ;
    return value is 0 if this can't be done, 1 if things go OK
 --------------------------------------------------------------------------*/
 
-int ISQ_set_image_number( MCW_imseq * seq , int n )
+int ISQ_set_image_number( MCW_imseq *seq , int n )
 {
 ENTRY("ISQ_set_image_number") ;
 
@@ -5085,7 +5142,7 @@ fprintf(stderr,"ISQ_set_cursor_state: old=%d new=%d\n",seq->cursor_state,cstat);
   actually put the color bar into its window
 ---------------------------------------------------------------------*/
 
-void ISQ_show_bar( MCW_imseq * seq )
+void ISQ_show_bar( MCW_imseq *seq )
 {
    if( seq == NULL || seq->ignore_redraws ) return ;  /* 16 Aug 2002 */
 ENTRY("ISQ_show_bar") ;
@@ -5127,9 +5184,9 @@ STATUS("putting sized_xbar to screen");
 -------------------------------------------------------------------------*/
 
 void ISQ_drawing_EV( Widget w , XtPointer client_data ,
-                     XEvent * ev , Boolean * continue_to_dispatch )
+                     XEvent *ev , Boolean *continue_to_dispatch )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
    static ISQ_cbs cbs ;
    static int busy=0 ;   /* 23 Jan 2004: prevent recursion */
 
@@ -5155,7 +5212,7 @@ ENTRY("ISQ_drawing_EV") ;
       /*----- button release event -----*/
 
       case ButtonRelease:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          int but = event->button ;
 
          /** 03 Oct 2002: change Shift+Button1 into Button2, then send to that event handler **/
@@ -5209,7 +5266,7 @@ ENTRY("ISQ_drawing_EV") ;
       /*----- motion with Button #1 pressed down -----*/
 
       case MotionNotify:{
-        XMotionEvent * event = (XMotionEvent *) ev ;
+        XMotionEvent *event = (XMotionEvent *) ev ;
         int bx,by ;
 
         /** 03 Oct 2002: change Shift+Button1 into Button2, then send to that event handler **/
@@ -5291,7 +5348,7 @@ ENTRY("ISQ_drawing_EV") ;
       /*----- redraw -----*/
 
       case Expose:{
-         XExposeEvent * event = (XExposeEvent *) ev ;
+         XExposeEvent *event = (XExposeEvent *) ev ;
 
 DPRI(" .. Expose; count=",event->count) ;
 
@@ -5575,7 +5632,7 @@ STATUS(" .. ButtonPress") ;
       /*----- window changed size -----*/
 
       case ConfigureNotify:{
-         XConfigureEvent * event = (XConfigureEvent *) ev ;
+         XConfigureEvent *event = (XConfigureEvent *) ev ;
 
          static int am_active = 0  ;  /* 09 Oct 1999 */
 
@@ -5665,12 +5722,12 @@ else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 #define NPTS_MAX 4095  /* max # points in a single button2 operation */
 
 void ISQ_button2_EV( Widget w , XtPointer client_data ,
-                     XEvent * ev , Boolean * continue_to_dispatch )
+                     XEvent *ev , Boolean *continue_to_dispatch )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
    ISQ_cbs cbs ;
    static int nsav ;
-   static int * bxsav=NULL , *bysav=NULL , *xyout=NULL ;
+   static int *bxsav=NULL , *bysav=NULL , *xyout=NULL ;
 
 ENTRY("ISQ_button2_EV") ;
 
@@ -5728,7 +5785,7 @@ ENTRY("ISQ_button2_EV") ;
       /*----- take button release -----*/
 
       case ButtonRelease:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
          int bx,by ;
          int ii,nout , nim , xim,yim,zim ;
 
@@ -5815,7 +5872,7 @@ ENTRY("ISQ_button2_EV") ;
               this is minimal so as to keep up with mouse movements -----*/
 
       case MotionNotify:{
-         XMotionEvent * event = (XMotionEvent *) ev ;
+         XMotionEvent *event = (XMotionEvent *) ev ;
          int bx,by ;
 
          /* check for legality */
@@ -6539,7 +6596,7 @@ DPRI("set scale_range =",seq->opt.scale_range) ;
      ISQ_perpoints     -> get the percentage points for 2%-to-98% scaling
 ------------------------------------------------------------------------*/
 
-void ISQ_statify_all( MCW_imseq * seq , Boolean stop_on_minmax )
+void ISQ_statify_all( MCW_imseq *seq , Boolean stop_on_minmax )
 {
    Boolean done ;
    Widget wmsg ;
@@ -6597,7 +6654,7 @@ ENTRY("ISQ_statify_all") ;
 Boolean ISQ_statistics_WP( XtPointer client_data )
 {
    MCW_imseq *seq = (MCW_imseq *) client_data ;
-   ISQ_glob_statistics * gl ;
+   ISQ_glob_statistics *gl ;
 
    MRI_IMAGE *im=NULL ;
    register int ntot , nser , nn ;
@@ -6745,7 +6802,7 @@ ENTRY("ISQ_statify_one") ;
 /*-----------------------------------------------------------------------*/
 
 void ISQ_perpoints( float bot , float top ,
-                    int hist[] , float * per02 , float * per98 )
+                    int hist[] , float *per02 , float *per98 )
 {
    register int ih , nsum , ns02 , ns98 ;
    float prev , cur , frac , dbin ;
@@ -6793,9 +6850,9 @@ ENTRY("ISQ_perpoints") ;
    change the palette based on the arrow actions
 --------------------------------------------------------------------------*/
 
-void ISQ_arrow_CB( MCW_arrowval * av , XtPointer client_data )
+void ISQ_arrow_CB( MCW_arrowval *av , XtPointer client_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
    int ddd ;
 
 ENTRY("ISQ_arrow_CB") ;
@@ -7034,7 +7091,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
-Boolean drive_MCW_imseq( MCW_imseq * seq ,
+Boolean drive_MCW_imseq( MCW_imseq *seq ,
                          int drive_code , XtPointer drive_data )
 {
 ENTRY("drive_MCW_imseq") ;
@@ -7582,7 +7639,7 @@ static unsigned char record_bits[] = {
       /* [mostly copied from ISQ_arrow_CB()]  */
 
       case isqDR_setifrac:{
-         float * ff = (float *) drive_data ;
+         float *ff = (float *) drive_data ;
 
          if( ff == NULL || *ff < FRAC_MIN || *ff > 1.0 ) RETURN( False );
 
@@ -7628,7 +7685,7 @@ static unsigned char record_bits[] = {
       /*------- winfo extra text [07 Aug 1999] -------*/
 
       case isqDR_winfotext:{
-         char * wt = (char *) drive_data ;
+         char *wt = (char *) drive_data ;
 
          if( wt == NULL || wt[0] == '\0' ){
             seq->winfo_extra[0] = '\0' ;
@@ -7762,7 +7819,7 @@ static unsigned char record_bits[] = {
       /*------ get image number -----*/
 
       case isqDR_getimnr:{
-         int * retval = (int *) drive_data ;
+         int *retval = (int *) drive_data ;
 
          if( retval != NULL ) *retval = seq->im_nr ;
          RETURN( True );
@@ -7818,7 +7875,7 @@ static unsigned char record_bits[] = {
       /*------- title --------*/
 
       case isqDR_title:{
-         char * title = (char *) drive_data ;
+         char *title = (char *) drive_data ;
 
          if( title == NULL || strlen(title) == 0 ) title = "AFNI" ;
 
@@ -7878,7 +7935,7 @@ static unsigned char record_bits[] = {
       /*------- change helptext! -------*/
 
       case isqDR_imhelptext:{
-        char * newtxt = (char *) drive_data ;
+        char *newtxt = (char *) drive_data ;
         int ii ;
 
         if( newtxt == NULL ) RETURN( False );
@@ -7927,7 +7984,7 @@ static unsigned char record_bits[] = {
       /*------- new options -------*/
 
       case isqDR_options:{
-         ISQ_options * newopt = (ISQ_options *) drive_data ;
+         ISQ_options *newopt = (ISQ_options *) drive_data ;
          int sf=0 ;
 
          if( ppmto_num > 0 )           /* 27 Mar 2002: keep the old */
@@ -7951,7 +8008,7 @@ static unsigned char record_bits[] = {
       /*------- get current options [07 Aug 1999] -------*/
 
       case isqDR_getoptions:{
-         ISQ_options * opt = (ISQ_options *) drive_data ;
+         ISQ_options *opt = (ISQ_options *) drive_data ;
 
          if( opt == NULL ) RETURN( False );
          *opt = seq->opt ;
@@ -7961,12 +8018,12 @@ static unsigned char record_bits[] = {
       /*------- turn arrowpad on -------*/
 
       case isqDR_arrowpadon:{
-         char * helptext = (char *) drive_data ;
+         char *helptext = (char *) drive_data ;
 
          XtSetMappedWhenManaged( seq->arrowpad->wform , True ); /* on */
 
          if( helptext != NULL && strlen(helptext) > 0 ){
-            char * str = XtNewString( helptext ) ;
+            char *str = XtNewString( helptext ) ;
             MCW_reghelp_children( seq->arrowpad->wform , str ) ;
             XtFree(str) ;  /* 28 Sep 1998: via Purify */
          }
@@ -7999,7 +8056,7 @@ static unsigned char record_bits[] = {
          int newtot = (int) drive_data ,
              oldtot = seq->status->num_total ,
              numser = seq->status->num_series , ii ;
-         char * msg =
+         char *msg =
              "illegal change to image\n"
              "count from driver routine\n"
              "(press here to continue)" ;
@@ -8290,7 +8347,7 @@ ENTRY("ISQ_setup_new") ;
 
 void ISQ_wbar_plots_CB( Widget w , XtPointer cld , XtPointer cad ) /* 20 Sep 2001 */
 {
-   MCW_imseq * seq = (MCW_imseq *) cld ;
+   MCW_imseq *seq = (MCW_imseq *) cld ;
 
 ENTRY("ISQ_wbar_plots_CB") ;
 
@@ -8322,7 +8379,7 @@ ENTRY("ISQ_wbar_label_CB") ;
 void ISQ_wbar_menu_CB( Widget w , XtPointer client_data ,
                                   XtPointer call_data    )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
 
 ENTRY("ISQ_wbar_menu_CB") ;
 
@@ -8360,9 +8417,9 @@ ENTRY("ISQ_wbar_menu_CB") ;
 
 /*----------------------------------------------------------------------*/
 
-void ISQ_set_rng_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void ISQ_set_rng_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
 
 ENTRY("ISQ_set_rng_CB") ;
 
@@ -8378,9 +8435,9 @@ ENTRY("ISQ_set_rng_CB") ;
 
 /*----------------------------------------------------------------------*/
 
-void ISQ_set_zcol_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void ISQ_set_zcol_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
 
 ENTRY("ISQ_set_zcol_CB") ;
 
@@ -8393,9 +8450,9 @@ ENTRY("ISQ_set_zcol_CB") ;
 
 /*----------------------------------------------------------------------*/
 
-void ISQ_set_flat_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void ISQ_set_flat_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
 
 ENTRY("ISQ_set_flat_CB") ;
 
@@ -8419,9 +8476,9 @@ ENTRY("ISQ_set_flat_CB") ;
 
 /*----------------------------------------------------------------------*/
 
-void ISQ_set_sharp_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void ISQ_set_sharp_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
 
 ENTRY("ISQ_set_sharp_CB") ;
 
@@ -8463,7 +8520,7 @@ static MCW_action_item MONT_act[NUM_MONT_ACT] = {
 
 void ISQ_montage_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
    int ib ;
    Widget wrc ;
 
@@ -8669,9 +8726,9 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
 
 void ISQ_montage_action_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
-   XmAnyCallbackStruct * cbs = (XmAnyCallbackStruct *) call_data ;
-   char * wname ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data ;
+   char *wname ;
    int ib , close_window , new_mont ;
 
 ENTRY("ISQ_montage_action_CB") ;
@@ -8897,7 +8954,7 @@ ENTRY("ISQ_make_montage");
       float new_width_mm = 0.0 , new_height_mm = 0.0 ;
       int   nxim = 0 , nyim = 0 , nxyim = 0 ;
       int ij , nim , nmont = seq->mont_nx * seq->mont_ny , ijcen ;
-      MRI_IMARR * mar ;
+      MRI_IMARR *mar ;
 
       INIT_IMARR(mar) ;
 
@@ -8961,7 +9018,7 @@ DPRI(" Making underlay cat2D from",nxyim) ;
          for( ij=0 ; ij < nmont ; ij++ ){
             tim = IMARR_SUBIMAGE(mar,ij) ;
             if( tim != NULL && tim->kind != MRI_rgb ){
-               MRI_IMAGE * qim ;
+               MRI_IMAGE *qim ;
 
                if( tim->kind == MRI_short )
                   qim = ISQ_index_to_rgb( seq->dc , 0 , tim ) ; /* 07 Mar 2001 */
@@ -9028,7 +9085,7 @@ STATUS("Destroying underlay image array") ;
 
       ovim = seq->ovim ;
       if( ovim == NULL ){
-         MRI_IMARR * mar ;
+         MRI_IMARR *mar ;
 
          INIT_IMARR(mar) ;
 
@@ -9054,7 +9111,7 @@ DPRI(" Making overlay cat2D from",nov) ;
             for( ij=0 ; ij < nmont ; ij++ ){
                tim = IMARR_SUBIMAGE(mar,ij) ;
                if( tim != NULL && tim->kind != MRI_rgb ){
-                  MRI_IMAGE * qim ;
+                  MRI_IMAGE *qim ;
 
                   if( tim->kind == MRI_short )
                      qim = ISQ_index_to_rgb( seq->dc , 1 , tim ) ; /* 07 Mar 2001 */
@@ -9215,7 +9272,7 @@ STATUS("Destroying overlay image array") ;
 #else                                  /** the old way **/
    } else if( im->kind == MRI_short ){            /* process overlay onto shorts */
 
-      register short * tar , * oar , * iar ;
+      register short *tar , *oar , *iar ;
       register int ii , npix = im->nx * im->ny ;
 
       tim = mri_new( im->nx , im->ny , MRI_short ) ;
@@ -9229,9 +9286,9 @@ STATUS("Destroying overlay image array") ;
    } else if( im->kind == MRI_rgb ){                       /* 11 Feb 1999 */
 
       register int ii , npix = im->nx * im->ny ;
-      register short * oar = MRI_SHORT_PTR(ovim) ;
-      register byte * tar , * iar = MRI_RGB_PTR(im) ;
-      register Pixel * negpix = seq->dc->ovc->pix_ov ;
+      register short *oar = MRI_SHORT_PTR(ovim) ;
+      register byte *tar , *iar = MRI_RGB_PTR(im) ;
+      register Pixel *negpix = seq->dc->ovc->pix_ov ;
 
       tim = mri_to_rgb( im ) ; tar = MRI_RGB_PTR(tim) ;
 
@@ -9260,8 +9317,8 @@ STATUS("Destroying overlay image array") ;
     12 Jun 2002: allow for cropping
 -------------------------------------------------------------------------*/
 
-void ISQ_mapxy( MCW_imseq * seq, int xwin, int ywin,
-                int * xim, int * yim, int * nim )
+void ISQ_mapxy( MCW_imseq *seq, int xwin, int ywin,
+                int *xim, int *yim, int *nim )
 {
    int win_wide,win_high , nxim,nyim ;
    int monx,mony,monsk,mongap , win_wide_orig,win_high_orig ;
@@ -9355,9 +9412,11 @@ ENTRY("ISQ_mapxy") ;
 
    Note that these coordinates are relative to original (un-resized)
    image dimensions.
+
+   Also see ISQ_unflipxy().
 -----------------------------------------------------------------------*/
 
-void ISQ_flipxy( MCW_imseq * seq, int * xflip, int * yflip )
+void ISQ_flipxy( MCW_imseq *seq, int *xflip, int *yflip )
 {
    int fopt , xim , yim , nx,ny ;
 
@@ -9400,8 +9459,9 @@ ENTRY("ISQ_flipxy") ;
 }
 
 /*-------------------------------------------------------------------*/
+/* The inverse to ISQ_flipxy() */
 
-void ISQ_unflipxy( MCW_imseq * seq, int * xflip, int * yflip )
+void ISQ_unflipxy( MCW_imseq *seq, int *xflip, int *yflip )
 {
    int fopt , xim , yim , nx,ny ;
 
@@ -9447,9 +9507,9 @@ ENTRY("ISQ_unflipxy") ;
    Routines to handle transformations of an image.
 -------------------------------------------------------------------------------*/
 
-char * ISQ_transform_label( MCW_arrowval * av , XtPointer cd )
+char * ISQ_transform_label( MCW_arrowval *av , XtPointer cd )
 {
-   MCW_function_list * xforms = (MCW_function_list *) cd ;
+   MCW_function_list *xforms = (MCW_function_list *) cd ;
 
    if( av == NULL    || xforms == NULL        ||
        av->ival <= 0 || av->ival > xforms->num  ) return "-none-" ;
@@ -9459,9 +9519,9 @@ char * ISQ_transform_label( MCW_arrowval * av , XtPointer cd )
 
 /*-----------------------------------------------------------------------------*/
 
-void ISQ_transform_CB( MCW_arrowval * av , XtPointer cd )
+void ISQ_transform_CB( MCW_arrowval *av , XtPointer cd )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
 
 ENTRY("ISQ_transform_CB") ;
 
@@ -9512,9 +9572,9 @@ ENTRY("ISQ_transform_CB") ;
 
 /*-----------------------------------------------------------------------------*/
 
-void ISQ_slice_proj_CB( MCW_arrowval * av , XtPointer cd )
+void ISQ_slice_proj_CB( MCW_arrowval *av , XtPointer cd )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
 
 ENTRY("ISQ_slice_proj_CB") ;
 
@@ -9545,7 +9605,7 @@ ENTRY("ISQ_slice_proj_CB") ;
    30 Dec 1998:  Handle the row graphs
 ----------------------------------------------------------------------------*/
 
-char * ISQ_rowgraph_label( MCW_arrowval * av , XtPointer cd )
+char * ISQ_rowgraph_label( MCW_arrowval *av , XtPointer cd )
 {
    static char buf[16] ;
    sprintf(buf,"%2d  ",av->ival) ;
@@ -9554,9 +9614,9 @@ char * ISQ_rowgraph_label( MCW_arrowval * av , XtPointer cd )
 
 /*--------------------------------------------------------------------------*/
 
-void ISQ_rowgraph_CB( MCW_arrowval * av , XtPointer cd )
+void ISQ_rowgraph_CB( MCW_arrowval *av , XtPointer cd )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
 
 ENTRY("ISQ_rowgraph_CB") ;
 
@@ -9598,7 +9658,7 @@ ENTRY("ISQ_rowgraph_draw") ;
 
    if( seq->orim == NULL ) EXRETURN ;
 
-   /* find current location */
+   /* find current location of crosshairs (if any) */
 
    cbs.reason = isqCR_getxynim ;
    cbs.xim = cbs.yim = cbs.nim = -666 ;
@@ -9700,9 +9760,9 @@ ENTRY("ISQ_rowgraph_draw") ;
 /*-----------------------------------------------------------------------*/
 /*! This function is called when then rowgraph_mtd is killed.            */
 
-void ISQ_rowgraph_mtdkill( MEM_topshell_data * mp )
+void ISQ_rowgraph_mtdkill( MEM_topshell_data *mp )
 {
-   MCW_imseq * seq ;
+   MCW_imseq *seq ;
 
 ENTRY("ISQ_rowgraph_mtdkill") ;
 
@@ -9835,7 +9895,7 @@ ENTRY("ISQ_graymap_draw") ;
    21 Jan 1999: Handle the surface graph stuff
 -------------------------------------------------------------------------*/
 
-char * ISQ_surfgraph_label( MCW_arrowval * av , XtPointer cd )
+char * ISQ_surfgraph_label( MCW_arrowval *av , XtPointer cd )
 {
    switch( av->ival ){
       case 0:  return "No"  ;
@@ -9847,9 +9907,9 @@ char * ISQ_surfgraph_label( MCW_arrowval * av , XtPointer cd )
 
 /*-------- called when the user changes the SurfGraph menu button --------*/
 
-void ISQ_surfgraph_CB( MCW_arrowval * av , XtPointer cd )
+void ISQ_surfgraph_CB( MCW_arrowval *av , XtPointer cd )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
 
 ENTRY("ISQ_surfgraph_CB") ;
 
@@ -9868,9 +9928,9 @@ ENTRY("ISQ_surfgraph_CB") ;
 
 /*---------------- called to redraw the surface graph -------------------*/
 
-void ISQ_surfgraph_draw( MCW_imseq * seq )
+void ISQ_surfgraph_draw( MCW_imseq *seq )
 {
-   MEM_plotdata * mp ;
+   MEM_plotdata *mp ;
    ISQ_cbs cbs ;
    int ix , jy ;
 
@@ -9964,9 +10024,9 @@ ENTRY("ISQ_surfgraph_draw") ;
 /*-----------------------------------------------------------*/
 /*--- Called when the user kills the surface graph window ---*/
 
-void ISQ_surfgraph_mtdkill( MEM_topshell_data * mp )
+void ISQ_surfgraph_mtdkill( MEM_topshell_data *mp )
 {
-   MCW_imseq * seq ;
+   MCW_imseq *seq ;
 
 ENTRY("ISQ_surfgraph_mtdkill") ;
 
@@ -9985,12 +10045,12 @@ ENTRY("ISQ_surfgraph_mtdkill") ;
 
 /*--- actually draws an image to a wiremesh, in memory ---*/
 
-MEM_plotdata * plot_image_surface( MRI_IMAGE * im , float fac ,
+MEM_plotdata * plot_image_surface( MRI_IMAGE *im , float fac ,
                                    float theta , float phi , int ix , int jy )
 {
-   MRI_IMAGE * fim , * qim ;
-   MEM_plotdata * mp ;
-   float * x , * y , * z ;
+   MRI_IMAGE *fim , *qim ;
+   MEM_plotdata *mp ;
+   float *x , *y , *z ;
    float  dx ,  dy , zbot,ztop ;
    int ii , nx , ny , nxy ;
    char str[128] ;
@@ -10087,10 +10147,10 @@ ENTRY("plot_image_surface") ;
 
 /*--- called when the user presses a surface graph arrowpad button ---*/
 
-void ISQ_surfgraph_arrowpad_CB( MCW_arrowpad * apad , XtPointer client_data )
+void ISQ_surfgraph_arrowpad_CB( MCW_arrowpad *apad , XtPointer client_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
-   XButtonEvent * xev = (XButtonEvent *) &(apad->xev) ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
+   XButtonEvent *xev = (XButtonEvent *) &(apad->xev) ;
    float step = 10.0 ;
 
 ENTRY("ISQ_surfgraph_arrowpad_CB") ;
@@ -10128,7 +10188,7 @@ ENTRY("ISQ_surfgraph_arrowpad_CB") ;
                and permanently unmanage it (for the recorder)
 -------------------------------------------------------------------------*/
 
-void ISQ_remove_widget( MCW_imseq * seq , Widget w )
+void ISQ_remove_widget( MCW_imseq *seq , Widget w )
 {
    int ii ;
 ENTRY("ISQ_remove_onoff") ;
@@ -10158,7 +10218,7 @@ ENTRY("ISQ_remove_onoff") ;
   24 Apr 2001: recording button and accoutrements
 -------------------------------------------------------------------------*/
 
-void ISQ_record_button( MCW_imseq * seq )
+void ISQ_record_button( MCW_imseq *seq )
 {
    Widget rc , mbar , menu , cbut , wpar ;
    XmString xstr ;
@@ -10309,14 +10369,14 @@ ENTRY("ISQ_record_button") ;
 
    /*-- menu toggles switches --*/
 
-   {  static char * status_label[3] = { "Off" , "Next One" , "Stay On" } ;
-      static char * method_label[7] = { "After End"    ,
-                                        "Before Start" ,
-                                        "Insert --"    ,
-                                        "Insert ++"    ,
-                                        "OverWrite"    ,
-                                        "-- OverWrite" ,
-                                        "++ OverWrite"   } ;
+   {  static char *status_label[3] = { "Off" , "Next One" , "Stay On" } ;
+      static char *method_label[7] = { "After End"    ,
+                                       "Before Start" ,
+                                       "Insert --"    ,
+                                       "Insert ++"    ,
+                                       "OverWrite"    ,
+                                       "-- OverWrite" ,
+                                       "++ OverWrite"   } ;
 
       seq->record_status_bbox =
          new_MCW_bbox( menu , 3,status_label ,
@@ -10356,7 +10416,7 @@ ENTRY("ISQ_record_button") ;
 
 void ISQ_record_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
    int ib ;
 
 ENTRY("ISQ_record_CB") ;
@@ -10392,9 +10452,9 @@ ENTRY("ISQ_record_CB") ;
   The recorder is left positioned at the new image.
 ------------------------------------------------------------------------*/
 
-void ISQ_record_addim( MCW_imseq * seq , int pos , int meth )
+void ISQ_record_addim( MCW_imseq *seq , int pos , int meth )
 {
-   MRI_IMAGE * tim ;
+   MRI_IMAGE *tim ;
    int opos , ii,bot,top ;
 
 ENTRY("ISQ_record_addim") ;
@@ -10483,7 +10543,7 @@ ENTRY("ISQ_record_addim") ;
 
 /*-----------------------------------------------------------------------*/
 
-void ISQ_record_open( MCW_imseq * seq )
+void ISQ_record_open( MCW_imseq *seq )
 {
    int ntot ;
 
@@ -10519,7 +10579,7 @@ ENTRY("ISQ_record_open") ;
 
 /*-----------------------------------------------------------------------*/
 
-void ISQ_record_update( MCW_imseq * seq , int npos )
+void ISQ_record_update( MCW_imseq *seq , int npos )
 {
    int ntot , ii ;
 
@@ -10557,7 +10617,7 @@ ENTRY("ISQ_record_update") ;
 XtPointer ISQ_record_getim( int n , int type , XtPointer handle )
 {
    int ntot = 0 ;
-   MCW_imseq * seq = (MCW_imseq *) handle ;  /* parent of recorder */
+   MCW_imseq *seq = (MCW_imseq *) handle ;  /* parent of recorder */
 
 ENTRY("ISQ_record_getim") ;
 
@@ -10567,9 +10627,9 @@ ENTRY("ISQ_record_getim") ;
    /*--- send control info ---*/
 
    if( type == isqCR_getstatus ){
-      MCW_imseq_status * stat = myXtNew( MCW_imseq_status ); /* will be free-d */
-                                                             /* when imseq is */
-                                                             /* destroyed    */
+      MCW_imseq_status *stat = myXtNew( MCW_imseq_status ); /* will be free-d */
+                                                            /* when imseq is */
+                                                            /* destroyed    */
       stat->num_total  = ntot ;
       stat->num_series = stat->num_total ;
       stat->send_CB    = ISQ_record_send_CB ;
@@ -10617,7 +10677,7 @@ ENTRY("ISQ_record_getim") ;
    so that we can free some memory.
 -----------------------------------------------------------------------------*/
 
-void ISQ_record_send_CB( MCW_imseq * seq , XtPointer handle , ISQ_cbs * cbs )
+void ISQ_record_send_CB( MCW_imseq *seq , XtPointer handle , ISQ_cbs *cbs )
 {
 ENTRY("ISQ_record_send_CB") ;
 
@@ -10657,8 +10717,8 @@ ENTRY("ISQ_record_send_CB") ;
 
 void ISQ_record_kill_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
-   MCW_imseq * pseq ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
+   MCW_imseq *pseq ;
    int pos=-1 ;
 
 ENTRY("ISQ_record_kill_CB") ;
@@ -10690,7 +10750,7 @@ ENTRY("ISQ_record_kill_CB") ;
 -----------------------------------------------------------------------*/
 
 void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
-                                       MCW_choose_cbs * cbs   )
+                                       MCW_choose_cbs *cbs   )
 {
    MCW_imseq *seq = (MCW_imseq *) client_data ;
    int pp , agif_ind=0 , mpeg_ind=0 , nstr ;
@@ -11341,7 +11401,7 @@ CropDone:
 
 /*! Xt warning handler (to avoid messages to screen). */
 
-static void SNAP_warnhandler(char * msg){ return ; }
+static void SNAP_warnhandler(char *msg){ return ; }
 
 /*----------------------------------------------------------------------*/
 
@@ -11726,8 +11786,9 @@ int ISQ_handle_keypress( MCW_imseq *seq , unsigned long key , unsigned int state
 {
    static int busy=0 ;   /* prevent recursion */
 
-   int shft = (state & ShiftMask) ;
-   int ctrl = (state & ControlMask) ;
+   int shft = (state & ShiftMask) ;    /* 25 Aug 2009: stuff for  */
+   int ctrl = (state & ControlMask) ;  /* editing crop window via */
+   int astp ;                          /* arrow keypresses        */
 
 ENTRY("ISQ_handle_keypress") ;
 
@@ -11736,16 +11797,27 @@ ENTRY("ISQ_handle_keypress") ;
    if( busy || key == 0 ) RETURN(1) ;
    busy = 1 ;
 
+   astp = (int)AFNI_numenv("AFNI_IMAGE_CROPSTEP") ;
+        if( astp == 0 ) astp =  1 ;  /* default */
+   else if( astp >  9 ) astp =  9 ;  /* maximum */
+   else if( astp < -9 ) astp = -9 ;  /* minimum */
+
    /* 24 Jan 2003: deal with special function keys */
 
    if( key > 255 ){
      KeySym ks = (KeySym)key ;
      switch( ks ){
 
+       case XK_Home:       /* 27 Aug 2009 : center crop window at crosshairs */
+         if( shft ){
+           ISQ_adjust_crop( seq, 0,0,0,0 ) ;
+         }
+       break ;
+
        case XK_Left:
        case XK_KP_Left:
-         if( shft ){
-           ISQ_adjust_crop( seq , -1,-1 , 0,0 ) ;
+         if( shft ){                        /* 25 Aug 2009: edit crop window */
+           ISQ_adjust_crop( seq , +astp,+astp , 0,0 ) ;
          } else if( ctrl ){
            ISQ_adjust_crop( seq , +1,-1 , 0,0 ) ;
          } else {
@@ -11758,7 +11830,7 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_Right:
        case XK_KP_Right:
          if( shft ){
-           ISQ_adjust_crop( seq , +1,+1 , 0,0 ) ;
+           ISQ_adjust_crop( seq , -astp,-astp , 0,0 ) ;
          } else if( ctrl ){
            ISQ_adjust_crop( seq , -1,+1 , 0,0 ) ;
          } else {
@@ -11771,7 +11843,7 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_Down:
        case XK_KP_Down:
          if( shft ){
-           ISQ_adjust_crop( seq , 0,0 , -1,-1 ) ;
+           ISQ_adjust_crop( seq , 0,0 , -astp,-astp ) ;
          } else if( ctrl ){
            ISQ_adjust_crop( seq , 0,0 , -1,+1 ) ;
          } else {
@@ -11784,7 +11856,7 @@ ENTRY("ISQ_handle_keypress") ;
        case XK_Up:
        case XK_KP_Up:
          if( shft ){
-           ISQ_adjust_crop( seq , 0,0 , +1,+1 ) ;
+           ISQ_adjust_crop( seq , 0,0 , +astp,+astp ) ;
          } else if( ctrl ){
            ISQ_adjust_crop( seq , 0,0 , +1,-1 ) ;
          } else {
@@ -11856,7 +11928,6 @@ ENTRY("ISQ_handle_keypress") ;
        break ;
 
        default:
-       case XK_Home:
        case XK_F5:
        case XK_F6:
        case XK_F7:

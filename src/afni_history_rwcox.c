@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , AUG , 2009 , RWC , "AFNI image viewer" , MICRO , TYPE_MODIFY ,
+   "More crop region features" ,
+   "* Shift+Home centers crop region on the crosshairs\n"
+   "* Shift/Ctrl+arrow now respect image flip status\n"
+   "* Environment variable AFNI_IMAGE_CROPSTEP sets sign and size of crop\n"
+   "region shifting with Shift+arrow keys\n"
+   "* If this doesn't make John Butman happy, I don't know what will." } ,
+
  { 26 , AUG , 2009 , RWC , "3dFFT" , MINOR , TYPE_NEW_PROG ,
    "Compute spatial 3D FFT of a dataset" ,
    "* This is for John Butman\n"
