@@ -496,6 +496,11 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_INSTACORR_FDR" ,
                   "Compute FDR curve for InstaCorr correlations?" ) ;
 
+   /* 27 Aug 2009 [RWCox] */
+   ENV_add_numeric( "AFNI_IMAGE_CROPSTEP" ,
+                    "Cropped image panning step size" ,
+                    -9,9,0,1 , NULL ) ;
+
    /*--------- Sort list of variables [21 Feb 2007]  -----------*/
 
    if( !AFNI_yesenv("AFNI_DONT_SORT_ENVIRONMENT") )
