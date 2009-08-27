@@ -2750,6 +2750,18 @@ meaning shorts and floats would be applied via Fourier interpolation.
 Setting AFNI_BLUR_INTS_AS_OLD to YES will revert to the Fourier method for
 such data.
 
+----------------------------
+Variable: AFNI_IMAGE_PANSTEP (editable)
+----------------------------
+Numeric value sets the size of the panning step using in the image viewer,
+when you are adjusting the cropping region using the Shift+Arrow keys
+on the keyboard.  Defaults to 1.  Legal values are -9..9 (inclusive).
+Positive values means pressing Shift+LeftArrow causes the image in the
+crop window to appear to move to the left; negative values cause the
+crop window to move in the opposite direction, so the visible part of
+the image appears to move to the right.  (Mutatis mutandum for the
+other directions, of course.)
+
 ----------------------------------------------------------------------
 --- variables specific to NIML I/O
 ----------------------------------------------------------------------
