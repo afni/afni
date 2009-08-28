@@ -4756,7 +4756,9 @@ ENTRY("ISQ_center_zoom") ;
 
    if( !ISQ_REALZ(seq) || seq->imim == NULL || seq->zoom_fac <= 1 ) EXRETURN ;
 
+#if 0
    if( seq->cropit ) /* centering on crop region not implemented */ EXRETURN ;
+#endif
 
    xyn = ISQ_get_crosshairs(seq) ; xcen = xyn.i ; ycen = xyn.j ;
    if( xcen < 0 || ycen < 0 )                                       EXRETURN ;
@@ -4847,7 +4849,6 @@ STATUS("killing old XImage because have new image") ;
    /* scale up the given_xim, if needed;
       it will be save in the seq struct for next time,
       unless the image changes, in which case it will have been axed */
-
 
    if( seq->zoom_xim == NULL ){
      MRI_IMAGE *im , *tim ;
@@ -9362,7 +9363,7 @@ STATUS("Destroying overlay image array") ;
     that may vary with montaging.
 
     12 Mar 2002: modified to allow for possibility of zoom
-    12 Jun 2002: allow for cropping
+    12 Jun 2002: and to allow for cropping
 -------------------------------------------------------------------------*/
 
 void ISQ_mapxy( MCW_imseq *seq, int xwin, int ywin,
@@ -9398,11 +9399,6 @@ ENTRY("ISQ_mapxy") ;
    /* convert actual coordinates input to
       equivalent coordinates in the original (montaged) image */
 
-#if 0   /* old code, without zoom */
-   xorg = ( (float) xwin / win_wide ) * win_wide_orig /* + 0.49 */ ;
-   yorg = ( (float) ywin / win_high ) * win_high_orig /* + 0.49 */ ;
-#else
-
    /* conversion if zoom is not on */
 
    if( zlev == 1 || monx > 1 || mony > 1 ){
@@ -9421,7 +9417,6 @@ ENTRY("ISQ_mapxy") ;
      xorg = nxim * (xoff+xwin) / pw ;
      yorg = nyim * (yoff+ywin) / ph ;
    }
-#endif
 
    /* compute the coordinates within the sub-image (*xim and *yim),
       and the grid column and row number of the sub-image (xcol,yrow) */
