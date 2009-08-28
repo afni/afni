@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, AUG, 2009, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
+   "fixed make_CENSORTR_string, comma delimitation needs run: prefix",
+   NULL
+ } ,
+
  { 27, AUG, 2009, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "fixed motion_ prefix in '3dDeconvolve -censor'",
    "Found by B Bones."

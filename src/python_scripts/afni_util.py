@@ -513,10 +513,13 @@ def make_CENSORTR_string(data, nruns, invert=0, asopt=0):
       nzero = rvals.count(0)
       if nzero == rlen: continue
 
-      rstr += "%d:%s "%(run+1,encode_1D_ints([i for i in range(rlen)    \
-                                                if rvals[i]]))
+      # make a ',' and '..' string listing TR indices
+      estr = encode_1D_ints([i for i in range(rlen) if rvals[i]])
 
-   if asopt and rstr != '': rstr = "-CENSORTR '%s'" % rstr
+      # every ',' separated piece needs to be preceeded by RUN:
+      rstr += "%d:%s " % (run+1, estr.replace(',', ',%d:'%(run+1)))
+
+   if asopt and rstr != '': rstr = "-CENSORTR %s" % rstr
 
    return 0, rstr
 
