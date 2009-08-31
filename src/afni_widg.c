@@ -6266,6 +6266,12 @@ void AFNI_vedit_CB( MCW_arrowval *av , XtPointer cd )
 ENTRY("AFNI_vedit_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+   
+   if( ! im3d->vwid->imag->pop_instacorr_pb ||
+       ! im3d->vwid->imag->pop_icorrjump_pb ) {/*This happens when running afni
+                                                 with -im option ZSS Aug 31 09*/
+      EXRETURN ;
+   }                                                   
 
    XtUnmanageChild( im3d->vwid->func->vedit_frame ) ;
    switch( av->ival ){
