@@ -56,6 +56,8 @@ void THD_3tta_to_3mni( float *x , float *y , float *z )
    *x = mv.xyz[0] ; *y = mv.xyz[1] ; *z = mv.xyz[2] ; return ;
 }
 
+/*-----------------------------------------------------------------------*/
+
 void THD_3mni_to_3tta( float *x , float *y , float *z )
 {
    THD_fvec3 mv , tv ;

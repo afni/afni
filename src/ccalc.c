@@ -84,7 +84,7 @@ int main( int argc , char * argv[] )
  "        ccalc -form '**%%5d**' 3.3\n"
  "        ccalc -form '**%%-5d**' 3.3\n"
  "\n"
- "    SECRET: You don't need to use -eval if you are \n"
+ " ** SECRET: You don't need to use -eval if you are \n"
  "            not using any other options. I hate typing\n"
  "            it for quick command line calculations. \n"
  "            But that feature might be removed in the\n"
@@ -221,7 +221,7 @@ int main( int argc , char * argv[] )
          kvar = toupper(expr[0]) - 'A' ;
          cexp = strstr(expr,"=") + 1 ;
       } else {
-         kvar = -1 ;
+         kvar = 25 ;    /* assign result to letter Z */
          cexp = expr ;
       }
 
