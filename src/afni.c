@@ -1796,19 +1796,20 @@ STATUS("call 13") ;
         AFNI_register_0D_function( "Log10" , log10_func ) ;
         AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;
 
-        AFNI_register_1D_function( "Median3" , median3_func) ;
-        AFNI_register_1D_function( "OSfilt3" , osfilt3_func) ;
-        AFNI_register_1D_function( "|FFT()|" , absfft_func ) ;
+        AFNI_register_1D_function( "Median3"   , median3_func) ;
+        AFNI_register_1D_function( "OSfilt3"   , osfilt3_func) ;
+        AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
+        AFNI_register_1D_function( "ZeroToOne" , ztone_func  ) ;
 
         AFNI_register_2D_function( "Median9" , median9_box_func ) ;
         AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;
         AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;
 
-        AFNI_register_2D_function( "Median21", median21_box_func );
-        AFNI_register_2D_function( "Winsor21", winsor21_box_func );
+        AFNI_register_2D_function( "Median21" , median21_box_func );
+        AFNI_register_2D_function( "Winsor21" , winsor21_box_func );
 
-        AFNI_register_2D_function( "abs[FFT2D]", fft2D_absfunc   );
-        AFNI_register_2D_function( "arg[FFT2D]", fft2D_phasefunc );
+        AFNI_register_2D_function( "abs[FFT2D]" , fft2D_absfunc   );
+        AFNI_register_2D_function( "arg[FFT2D]" , fft2D_phasefunc );
 
         /* 01 Feb 2000: see afni_fimfunc.c */
 

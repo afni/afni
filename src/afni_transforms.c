@@ -116,6 +116,28 @@ void absfft_func( int num , double to,double dt, float *vec )
    return ;
 }
 
+/*---------------- Sample 1D function: 0..1 scaling [02 Sep 2009] ----------*/
+
+void ztone_func( int num , double to,double dt, float *vec )
+{
+   int ii ; float vbot,vtop ;
+
+   if( num < 2 || vec == NULL ) return ;
+   vbot = vtop = vec[0] ;
+   for( ii=1 ; ii < num ; ii++ ){
+          if( vec[ii] < vbot ) vbot = vec[ii] ;
+     else if( vec[ii] > vtop ) vtop = vec[ii] ;
+   }
+   if( vbot == vtop ){
+     for( ii=0 ; ii < num ; ii++ ) vec[ii] = 0.5f ;
+   } else {
+     float fac = 1.0f / (vtop-vbot) ;
+     for( ii=0 ; ii < num ; ii++ ) vec[ii] = (vec[ii]-vbot)*fac ;
+   }
+
+   return ;
+}
+
 /*----------- Sample slice projection functions [31 Jan 2002] -----------*/
 
 float min_proj( int n , float *ar )
