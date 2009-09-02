@@ -1778,6 +1778,7 @@ extern void ssqrt_func( int, float * ) ;
 extern void osfilt3_func( int, double,double, float * ) ;
 extern void median3_func( int, double,double, float * ) ;
 extern void absfft_func ( int, double,double, float * ) ;
+extern void ztone_func  ( int, double,double, float * ) ; /* 02 Sep 2009 */
 
 /* 31 Jan 2002: sample slice_proj transform functions */
 
