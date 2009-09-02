@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 2 , SEP , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
+   "Add ZeroToOne 1D transform function" ,
+   NULL } ,
+
  { 27 , AUG , 2009 , RWC , "AFNI image viewer" , MICRO , TYPE_GENERAL ,
    "Keyboard Home key centers zoom window at crosshairs" ,
    "Doesn't work if cropping and zooming are mixed.  (The logistics are too\n"
