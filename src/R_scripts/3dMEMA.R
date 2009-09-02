@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
 print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.0.9,  August 7, 2009")
+print("Version 1.0.0,  Sept. 2, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -645,7 +645,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
       #browser()
    } # if(lapMod==0)
    
-   if(knha) {
+   if(knha) { # scaling done in runRMA
       scl <- c(sqrt((c( t(Y1) %*% P1 %*% Y1 ) / (n1-p+1))),
          sqrt((c( t(Y2) %*% P2 %*% Y2 ) / (n2-p+1))))
       W <- diag(c(1/(v1 + tau2[1]), 1/(v2 + tau2[2])))
@@ -667,7 +667,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
       res         <- list(b, se, z, tau2, QE, scl, lamc, resZ, meth, iter)
       names(res)  <- c("b", "se", "z", "tau2", "QE", "scl", "lamc", "resZ", "meth", "iter")
    } else {  # no residual statistics requested
-      res         <- list(b, se, z, tau2, QE, mscl, eth, iter)
+      res         <- list(b, se, z, tau2, QE, scl, meth, iter)
       names(res)  <- c("b", "se", "z", "tau2", "QE", "scl", "meth", "iter")
    }
    res
@@ -740,10 +740,10 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
       }
    
    if(resZout==0) {
-   outData[nBrick-3] <- resList$QE1
-   outData[nBrick-2]   <- resList$QE2
-   outData[nBrick-1] <- ifelse(resList$tau22 > tol, resList$tau12/resList$tau22, 0)
-   outData[nBrick]   <- ifelse(resList$tau12 > tol, resList$tau22/resList$tau12, 0)
+   outData[nBrick-3] <- resList$QE[1]
+   outData[nBrick-2]   <- resList$QE[2]
+   outData[nBrick-1] <- ifelse(resList$tau2[2] > tol, resList$tau2[1]/resList$tau2[2], 0)
+   outData[nBrick]   <- ifelse(resList$tau2[1] > tol, resList$tau2[2]/resList$tau2[1], 0)
    } else {
    
    outData[nBrick-2*n[2]-3] <- resList$QE[1]
