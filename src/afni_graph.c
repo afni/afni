@@ -1466,7 +1466,7 @@ ENTRY("redraw_graph") ;
       }
    }
 
-   fd_txt( grapher , xxx , 21, strp) ;
+   fd_txt( grapher , xxx , 21, strp ) ;
 
    xxx = DC_text_width(grapher->dc,strp) ;           /* 19 Dec 2003 [rickr] */
 
@@ -1505,16 +1505,35 @@ ENTRY("redraw_graph") ;
    grapher->xx_text_3 = grapher->xx_text_2 + xxx + 15 ;
 
    if( !grapher->textgraph && !ISONE(grapher) ){
+      char *flab ;
+
       sprintf(strp,"Mean: %10s", MV_format_fval(grapher->tmean[xc][yc]) ) ;
 
       fd_txt( grapher , grapher->xx_text_3 ,  21, strp ) ;
+      xxx = DC_text_width(grapher->dc,strp) ;
 
       sprintf(strp,"Sigma:%10s", MV_format_fval(grapher->tstd[xc][yc]) ) ;
 
       fd_txt( grapher , grapher->xx_text_3 ,   7, strp ) ;
+      www = DC_text_width(grapher->dc,strp) ; xxx = MAX(xxx,www) ;
 
       fd_line( grapher , grapher->xx_text_3-7 , 31 , grapher->xx_text_3-7 , 5 ) ;
-   }
+
+      www = grapher->xx_text_3 + xxx + 7 ;
+      fd_line( grapher , www , 31 , www , 5 ) ;
+
+      flab = GRA_transform_label( grapher->transform0D_av ,
+                                  (XtPointer) grapher->status->transforms0D ) ;
+      sprintf(strp,"Tran 0D = %s",flab) ;
+      www = grapher->xx_text_3 + xxx + 15 ;
+      fd_txt( grapher , www , 21 , strp ) ;
+
+      flab = GRA_transform_label( grapher->transform1D_av ,
+                                  (XtPointer) grapher->status->transforms1D ) ;
+      sprintf(strp,"Tran 1D = %s",flab) ;
+      www = grapher->xx_text_3 + xxx + 15 ;
+      fd_txt( grapher , www , 7 , strp ) ;
+    }
 
    /*** flush the pixmap to the screen ***/
 
