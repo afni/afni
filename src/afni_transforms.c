@@ -138,6 +138,38 @@ void ztone_func( int num , double to,double dt, float *vec )
    return ;
 }
 
+/*---------------- Sample 1D function:  L1 normalize [03 Sep 2009] ----------*/
+
+void L1normalize_func( int num , double to,double dt, float *vec )
+{
+   int ii ; float vsum ;
+
+   if( num < 2 || vec == NULL ) return ;
+
+   vsum = 0.0f ;
+   for( ii=0 ; ii < num ; ii++ ) vsum += fabsf(vec[ii]) ;
+   if( vsum == 0.0f ) return ;
+   vsum = 1.0f / vsum ;
+   for( ii=0 ; ii < num ; ii++ ) vec[ii] *= vsum ;
+   return ;
+}
+
+/*---------------- Sample 1D function:  L2 normalize [03 Sep 2009] ----------*/
+
+void L2normalize_func( int num , double to,double dt, float *vec )
+{
+   int ii ; float vsum ;
+
+   if( num < 2 || vec == NULL ) return ;
+
+   vsum = 0.0f ;
+   for( ii=0 ; ii < num ; ii++ ) vsum += vec[ii]*vec[ii] ;
+   if( vsum <= 0.0f ) return ;
+   vsum = 1.0f / sqrtf(vsum) ;
+   for( ii=0 ; ii < num ; ii++ ) vec[ii] *= vsum ;
+   return ;
+}
+
 /*----------- Sample slice projection functions [31 Jan 2002] -----------*/
 
 float min_proj( int n , float *ar )

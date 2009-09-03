@@ -1780,6 +1780,9 @@ extern void median3_func( int, double,double, float * ) ;
 extern void absfft_func ( int, double,double, float * ) ;
 extern void ztone_func  ( int, double,double, float * ) ; /* 02 Sep 2009 */
 
+extern void L1normalize_func( int, double,double, float * ) ; /* 03 Sep 2009 */
+extern void L2normalize_func( int, double,double, float * ) ; /* 03 Sep 2009 */
+
 /* 31 Jan 2002: sample slice_proj transform functions */
 
 extern float max_proj ( int, float * ) ;

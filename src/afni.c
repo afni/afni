@@ -1799,7 +1799,9 @@ STATUS("call 13") ;
         AFNI_register_1D_function( "Median3"   , median3_func) ;
         AFNI_register_1D_function( "OSfilt3"   , osfilt3_func) ;
         AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
-        AFNI_register_1D_function( "ZeroToOne" , ztone_func  ) ;
+        AFNI_register_1D_function( "ZeroToOne" , ztone_func  ) ;       /* 02 Sep 2009 */
+        AFNI_register_1D_function( "Normlz_L1" , L1normalize_func  ) ; /* 03 Sep 2009 */
+        AFNI_register_1D_function( "Normlz_L2" , L2normalize_func  ) ; /* 03 Sep 2009 */
 
         AFNI_register_2D_function( "Median9" , median9_box_func ) ;
         AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;
