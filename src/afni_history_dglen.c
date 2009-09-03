@@ -49,6 +49,13 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 3 , SEP , 2009 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, "Bug fixes for certain combinations",
+    "Allowed BASE and SOURCE specification for oblique data\n"
+    "Allowed 3dWarpDrive volume registration with mean/max base\n"
+    "Removed anatomical output with oblique data and only epi2anat"
+} ,
+
 { 23 , JUL , 2009 , DRG , "MEMRI models" , 
     MINOR , TYPE_NEW_OPT, "Single and Dual exponential models",
     "New models for 3dNLfim that use single and dual exponential models\n"
