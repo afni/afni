@@ -380,7 +380,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.20" # software version (update for changes)
+      self.align_version = "1.21" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1229,7 +1229,14 @@ class RegWrap:
                  self.master_anat_3dAl_option = "-mast_dxyz %f" % min_d
                  self.info_msg("Spacing for anat to EPI obliquing is %f mm" % min_d)
               else:
-                 self.master_anat_option = "-gridset %s" % opt.parlist[0]
+                 if(opt.parlist[0]!='BASE') and (opt.parlist[0]!='SOURCE'):
+                    self.master_anat_option = "-gridset %s" % opt.parlist[0]
+                 else:
+                    self.info_msg("****master anat option is %s" 
+                                   % opt.parlist[0])
+                    self.info_msg(
+                    "****Can not apply BASE or SOURCE as master anat "
+                    "for deobliquing. Using default min dim spacing");
                  self.master_anat_3dAl_option = "-master %s" % opt.parlist[0]
                  
       #get deobliquing options
@@ -1387,6 +1394,10 @@ class RegWrap:
          com.run()
          e2a_mat = self.anat_mat
  
+         # if not doing alignment for anat2epi, just return now, and use the xform matrix computed later
+         if (not(ps.anat2epi)):
+            return o, ow
+
          if((ps.obl_a2e_mat!="")  or ps.edge ) :
             o = a.new("%s%s" % (ps.anat0.out_prefix(), suf)) # save the permanent data
             if (not o.exist() or ps.rewrite or ps.dry_run()):
@@ -1896,7 +1907,7 @@ class RegWrap:
          #   or (ps.volreg_base=='mean')):   
          # choose a statistic as representative
          # if an integer, choose a single sub-brick
-         if(childflag) or (vrcom != "3dvolreg") :
+         if(childflag) :   # or (vrcom != "3dvolreg") :
             base = "%s.'[%s]'"  %  (ps.epi.input(), ps.volreg_base)
          elif(ps.volreg_base.isdigit()):
             base = "%s" % ps.volreg_base
