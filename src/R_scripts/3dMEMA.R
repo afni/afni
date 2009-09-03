@@ -895,7 +895,10 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    } # if(anaType==3)
    
    #print("-----------------")
-   nNonzero <- as.integer(readline(sprintf("Number of subjects with non-zero t-statistic? (0-%i) ", sum(nSubj))))
+   print("There might have some missing t values at some voxels in some subjects.")
+   print("The following threshold would allow the program not waste runtime on those")
+   print("voxels where most subjects don't t-values.")
+   nNonzero <- as.integer(readline(sprintf("Minimum number of subjects with non-zero t-statistic? (0-%i) ", sum(nSubj))))
    # Hartung-Knapp method with t-test?
    print("-----------------")
    print("t-statistic is a little more conservative but also more appropriate for significance testing than Z")
