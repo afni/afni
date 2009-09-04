@@ -197,9 +197,11 @@ typedef struct {
    /*-- 07 Apr and 01 Aug 1998: real-time image registration stuff --*/
 
    THD_3dim_dataset *reg_dset ;       /* registered dataset, if any */
+   THD_3dim_dataset *reg_base_dset ;  /* registration base dataset */
    MRI_2dalign_basis **reg_2dbasis ;  /* stuff for each slice */
    int reg_base_index ;               /* where to start? */
    int reg_mode ;                     /* how to register? */
+   int reg_base_mode ;                /* how to apply registration base */
    int reg_status ;                   /* does AFNI know about this dataset yet? */
    int reg_nvol ;                     /* number of volumes registered so far */
    int reg_graph ;                    /* 17 Aug 1998: to graph, or not to graph */
@@ -319,8 +321,6 @@ static char helpstring[] =
    "                  done in realtime.\n"
    "                * If 3D realtime or estimate modes are chosen, the motion\n"
    "                  parameters can be graphed in realtime - see 'Graph' below.\n"
-   " Base Image   = The value sets the time index in the new dataset to which\n"
-   "                  the alignment will take place.\n"
    " Resampling   = Determines the interpolation method used:\n"
    "                  Cubic     = fastest, least accurate interpolation\n"
    "                  Quintic   = intermediate in speed and accuracy\n"
@@ -330,6 +330,23 @@ static char helpstring[] =
    "                              the final alignment\n"
    "              N.B.: Linear interpolation is always used for '3D: estimate'.\n"
    "                    Quintic/Heptic interpolation is only available for 3D.\n"
+   "\n"
+   " Reg Base     = If activated, the user choose the base dataset and image\n"
+   "                  for registration.  Reg Base allows 3 choices of which\n"
+   "                  choice the Base Image index applies to:\n"
+   "                    Current Run        : next RT dataset to be acquired\n"
+   "                    Current Run & Keep : same, and store for future runs\n"
+   "                    External Dataset   : choose a specific 'Extern Dset'\n"
+   "                  It is likely that one would choose Current & Keep, as\n"
+   "                  then all runs would be aligned to the first one, rather\n"
+   "                  than each run aligned to its own Base Image.\n"
+   "                * Note that using Current for the first run, and then\n"
+   "                  choosing that dataset as Extern for future runs should\n"
+   "                  be identical to using Current & Keep to begin with.\n"
+   " Extern Dset  = The dataset to apply if Reg Base is 'External Dataset'\n"
+   "                  For other Reg Base choices, this is ignored.\n"
+   " Base Image   = The value sets the time index in the Reg Base dataset to\n"
+   "                  which the alignment will take place.\n"
    "\n"
    " Graph        = If set to 'Yes', will display a graph of the estimated\n"
    "                  motion parameters at the end of the run.\n"
@@ -405,6 +422,10 @@ static int verbose = 1 ;
   static int regmode  = 0 ;  /* index into REG_strings */
   static int reggraph = 0 ;  /* graphing mode */
 
+  /* registriation base globals to apply in RT_main     27 Aug 2009 [rickr] */
+  static int g_reg_base_mode = 0 ;           /* index into REG_BASE_strings */
+  static THD_3dim_dataset * g_reg_base_dset = NULL ;  /* single volume dset */
+
   static int reg_resam = 1 ;    /* index into REG_resam_strings */
   static int   reg_nr  = 100 ;  /* units of TR */
   static float reg_yr  = 1.0 ;  /* mm and degrees */
@@ -426,6 +447,16 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
   static char * REG_strings_ENV[NREG] = { /* ' ' -> '_'  17 May 2005 [rickr] */
     "None" , "2D:_realtime" , "2D:_at_end"
            , "3D:_realtime" , "3D:_at_end" , "3D:_estimate" } ;
+
+# define RT_RBASE_MODE_CUR      0
+# define RT_RBASE_MODE_CUR_KEEP 1
+# define RT_RBASE_MODE_EXTERN   2
+# define NREG_BASE 3
+  static char * REG_BASE_strings[NREG_BASE] = {
+    "Current Run", "Current Run & Keep", "External Dataset" } ;
+
+  static char * REG_BASE_strings_ENV[NREG_BASE] = {
+    "Current_Run", "Current_Run_Keep", "External_Dataset" } ;
 
 #define N_RT_MASK_METHODS 4     /* 15 Jul 2008 [rickr] */
   static char * RT_mask_strings[N_RT_MASK_METHODS] = {
@@ -520,35 +551,39 @@ void RT_process_xevents( RT_input * ) ;  /* 13 Oct 2000 */
 
 void RT_tell_afni_one( RT_input * , int , int ) ;  /* 01 Aug 2002 */
 
-  void RT_registration_2D_atend( RT_input * rtin ) ;
-  void RT_registration_2D_setup( RT_input * rtin ) ;
-  void RT_registration_2D_close( RT_input * rtin ) ;
-  void RT_registration_2D_onevol( RT_input * rtin , int tt ) ;
-  void RT_registration_2D_realtime( RT_input * rtin ) ;
+/* registration, RT_mp and related */
+void RT_registration_2D_atend( RT_input * rtin ) ;
+void RT_registration_2D_setup( RT_input * rtin ) ;
+void RT_registration_2D_close( RT_input * rtin ) ;
+void RT_registration_2D_onevol( RT_input * rtin , int tt ) ;
+void RT_registration_2D_realtime( RT_input * rtin ) ;
 
-  void RT_registration_3D_atend( RT_input * rtin ) ;
-  void RT_registration_3D_setup( RT_input * rtin ) ;
-  void RT_registration_3D_close( RT_input * rtin ) ;
-  void RT_registration_3D_onevol( RT_input * rtin , int tt ) ;
-  void RT_registration_3D_realtime( RT_input * rtin ) ;
+void RT_registration_3D_atend( RT_input * rtin ) ;
+void RT_registration_3D_setup( RT_input * rtin ) ;
+void RT_registration_3D_close( RT_input * rtin ) ;
+void RT_registration_3D_onevol( RT_input * rtin , int tt ) ;
+void RT_registration_3D_realtime( RT_input * rtin ) ;
 
-  int  RT_mp_comm_alive       ( int, int, char * );
-  int  RT_mp_comm_close       ( RT_input * rtin, int );
-  int  RT_mp_getenv           ( void );
-  int  RT_mp_comm_init        ( RT_input * rtin );
-  int  RT_mp_comm_init_vars   ( RT_input * rtin );
-  int  RT_mp_comm_send_data   ( RT_input * rtin, float *mp[6], int nt, int sub);
-  int  RT_parser_init         ( RT_input * rtin );
-  void RT_set_grapher_pinnums ( int pinnum );
-  int  RT_mp_set_mask_data    ( RT_input * rtin, float * data, int sub );
-  int  RT_mask_free           ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
-  int  RT_get_mask_aves       ( RT_input * rtin, int sub );
+static int  RT_mp_comm_alive    ( int, int, char * );
+static int  RT_mp_comm_close    ( RT_input * rtin, int );
+static int  RT_mp_comm_init     ( RT_input * rtin );
+static int  RT_mp_comm_init_vars( RT_input * rtin );
+static int  RT_mp_comm_send_data( RT_input * rtin, float *mp[6],int nt,int sub);
 
-  int  RT_mp_show_time        ( char * mesg ) ;
+static int  RT_mp_get_mask_aves ( RT_input * rtin, int sub );
+static int  RT_mp_set_mask_data ( RT_input * rtin, float * data, int sub );
+static int  RT_mp_mask_free     ( RT_input * rtin );  /* 10 Nov 2006 [rickr] */
 
-  static int add_to_rt_slist    ( rt_string_list * slist, char * str );
-  static int free_rt_string_list( rt_string_list * slist );
-  static int rt_run_drive_wait_commands( rt_string_list * slist );
+static int  RT_mp_getenv        ( void );
+static int  RT_mp_show_time     ( char * mesg ) ;
+
+/* string list functions (used for DRIVE_WAIT commands) */
+static int add_to_rt_slist    ( rt_string_list * slist, char * str );
+static int free_rt_string_list( rt_string_list * slist );
+static int rt_run_drive_wait_commands( rt_string_list * slist );
+
+int  RT_parser_init         ( RT_input * rtin );
+void RT_set_grapher_pinnums ( int pinnum );
 
 void RT_test_callback(void *junk) ;      /* 01 Jun 2009 */
 
@@ -591,7 +626,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- set titles and call point --*/
 
-   plint = PLUTO_new_interface( "RT Options" , "Set Real-Time Acquisition Options" ,
+   plint = PLUTO_new_interface("RT Options","Set Real-Time Acquisition Options",
                                 helpstring , PLUGIN_CALL_VIA_MENU , RT_main  ) ;
 
    PLUTO_add_hint( plint , "Set Real-Time Acquisition Options" ) ;
@@ -664,12 +699,6 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       if( ii >= 0 && ii < NREG ) regmode = ii ;
    }
 
-   ept = getenv("AFNI_REALTIME_Base_Image") ;     /* 09 Oct 2000 */
-   if( ept != NULL ){
-      int ii = (int) rint(strtod(ept,NULL)) ;
-      if( ii >= 0 && ii <= 59 ) regtime = ii ;
-   }
-
    ept = getenv("AFNI_REALTIME_Resampling") ;    /* 09 Oct 2000 */
    if( ept != NULL ){
       int ii = PLUTO_string_index( ept , NRESAM , REG_resam_strings ) ;
@@ -678,8 +707,36 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint , "" , "Registration" , FALSE ) ;
    PLUTO_add_string( plint , "Registration" , NREG , REG_strings , regmode ) ;
-   PLUTO_add_number( plint , "Base Image" , 0,59,0 , regtime , FALSE ) ;
-   PLUTO_add_string( plint , "Resampling" , NRESAM , REG_resam_strings , reg_resam ) ;
+   PLUTO_add_string( plint , "Resampling",NRESAM, REG_resam_strings, reg_resam);
+   PLUTO_add_hint  ( plint , "resampling method for registered data");
+
+   /*-- registration base type, dset and index     27 Aug 2009 [rickr] --*/
+
+   ept = getenv("AFNI_REALTIME_Reg_Base_Mode") ;  /* 04 Sep 2009 [rickr] */
+   if( ept != NULL ){
+      int ii = PLUTO_string_index( ept , NREG_BASE , REG_BASE_strings ) ;
+      if (ii < 0) ii = PLUTO_string_index(ept, NREG_BASE, REG_BASE_strings_ENV);
+      if( ii >= 0 && ii < NREG_BASE ) g_reg_base_mode = ii ;
+   }
+
+   ept = getenv("AFNI_REALTIME_Base_Image") ;     /* 09 Oct 2000 */
+   if( ept != NULL ){
+      int ii = (int) rint(strtod(ept,NULL)) ;
+      if( ii >= 0 && ii <= 59 ) regtime = ii ;
+   }
+
+   PLUTO_add_option(plint, "" , "Registration Base" , FALSE ) ;
+   PLUTO_add_hint  (plint, "choose registration base dataset and sub-brick");
+   PLUTO_add_string(plint, "Reg Base", NREG_BASE, REG_BASE_strings,
+                           g_reg_base_mode );
+   PLUTO_add_hint  (plint, "registration base dataset, and whether to store");
+   PLUTO_add_dataset( plint , "Extern Dset", ANAT_ALL_MASK, FUNC_ALL_MASK,
+                                      DIMEN_ALL_MASK | BRICK_ALLREAL_MASK ) ;
+   PLUTO_add_hint( plint , "choose mask dataset for serial_helper" ) ;
+   PLUTO_add_number(plint, "Base Image" , 0,9999,0 , regtime , TRUE ) ;
+   PLUTO_add_hint  (plint, "registration base dataset index");
+
+
 
    /*-- next line of input: registration graphing --*/
 
@@ -826,10 +883,53 @@ char * RT_main( PLUGIN_interface * plint )
          str       = PLUTO_get_string(plint) ;
          regmode   = PLUTO_string_index( str , NREG , REG_strings ) ;
 
-         regtime   = PLUTO_get_number(plint) ;
+         /* regtime   = PLUTO_get_number(plint); moved to Reg Base below... */
 
          str       = PLUTO_get_string(plint) ;
          reg_resam = PLUTO_string_index( str , NRESAM , REG_resam_strings ) ;
+         continue ;
+      }
+
+      /* 2 Sep 2009 [rickr] */
+      if( strcmp(tag,"Registration Base") == 0 ){
+         MCW_idcode * idc ;
+         if( g_reg_base_dset ) { /* since changing: nuke any existing dset */
+            DSET_delete(g_reg_base_dset);
+            g_reg_base_dset = NULL;
+         }
+
+         str             = PLUTO_get_string(plint) ;
+         g_reg_base_mode = PLUTO_string_index(str, NREG_BASE, REG_BASE_strings);
+
+         idc = PLUTO_get_idcode(plint) ;
+         g_reg_base_dset = PLUTO_find_dset(idc);     /* might be NULL */
+
+         regtime = PLUTO_get_number(plint) ;
+
+         /* if extern dset, copy single volume */
+         if( g_reg_base_mode == RT_RBASE_MODE_EXTERN ) {
+            if( ! g_reg_base_dset )
+               return "**************************************\n"
+                      "RT_opts: choose Reg Base 'Extern Dset'\n"
+                      "**************************************" ;
+            g_reg_base_dset = THD_copy_one_sub(g_reg_base_dset, regtime);
+            if( ! g_reg_base_dset ) {
+               sprintf(buf, /* rely on being static */
+                "*********************************************\n"
+                "RT_opts: failed to load Extern Dset, index %d\n"
+                "*********************************************", regtime);
+               return buf;
+            }
+         } else if ( g_reg_base_dset ) {
+            fprintf(stderr,"** ignoring Reg Base Dset...\n");
+            g_reg_base_dset = NULL;
+         }
+
+         if (verbose)
+            fprintf(stderr,"RTM: reg base mode '%s', index %d, dset %s\n",
+                    REG_BASE_strings[g_reg_base_mode], regtime,
+                    g_reg_base_dset ? "<found>" : "<empty>");
+
          continue ;
       }
 
@@ -852,14 +952,14 @@ char * RT_main( PLUGIN_interface * plint )
       if( strcmp(tag,"Masking") == 0 ){
          MCW_idcode * idc = PLUTO_get_idcode(plint) ;
          g_mask_dset = PLUTO_find_dset(idc) ;
-         if ( !g_mask_dset )
-            return "*************************\n"
-                   "RT_opts: bad mask dataset\n"
-                   "*************************" ;
-
          str = PLUTO_get_string(plint) ;
          g_mask_val_type = PLUTO_string_index(str , N_RT_MASK_METHODS ,
                                                     RT_mask_strings ) ;
+
+         if ( g_mask_val_type > 1 && !g_mask_dset )
+            return "*************************\n"
+                   "RT_opts: bad mask dataset\n"
+                   "*************************" ;
 
          /* since this is now read from the env, we need to put it there */
          sprintf(buf, "AFNI_REALTIME_Mask_Vals %s",
@@ -867,8 +967,8 @@ char * RT_main( PLUGIN_interface * plint )
          AFNI_setenv(buf);
 
          if (verbose)
-            fprintf(stderr,"RTM: found mask dataset, method '%s'\n",
-                           RT_mask_strings[g_mask_val_type]);
+            fprintf(stderr,"RTM: %s mask dataset, method '%s'\n",
+                 g_mask_dset ? "found":"no", RT_mask_strings[g_mask_val_type]);
 
          continue ;
       }
@@ -1708,7 +1808,11 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
 
    rtin->reg_base_index = regtime ;  /* save these now, in case the evil */
    rtin->reg_mode       = regmode ;  /* user changes them on the fly!    */
+   rtin->reg_base_mode  = g_reg_base_mode ;
    rtin->reg_dset       = NULL ;
+   /* if dset to copy, dupe one vol                  04 Sep 2009 [rickr] */
+   if(g_reg_base_dset) rtin->reg_base_dset=THD_copy_one_sub(g_reg_base_dset,0);
+   else                rtin->reg_base_dset=NULL;
    rtin->reg_2dbasis    = NULL ;
    rtin->reg_status     = 0 ;        /* AFNI knows nothing. NOTHING.     */
    rtin->reg_nvol       = 0 ;        /* number volumes registered so far */
@@ -1955,7 +2059,7 @@ void RT_check_info( RT_input * rtin , int prt )
 }
 
 /* mostly allow for verbose output */
-int RT_mp_comm_alive(int sock, int verb, char * mesg)
+static int RT_mp_comm_alive(int sock, int verb, char * mesg)
 {
     char buf[4];
     int  wc, rc, ac, tr = -2;
@@ -1988,7 +2092,7 @@ int RT_mp_comm_alive(int sock, int verb, char * mesg)
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
-int RT_mp_comm_close( RT_input * rtin, int new_tcp_use )
+static int RT_mp_comm_close( RT_input * rtin, int new_tcp_use )
 {
     char magic_bye[] = { 0xde, 0xad, 0xde, 0xad, 0 };
     int  rv;
@@ -2015,7 +2119,7 @@ int RT_mp_comm_close( RT_input * rtin, int new_tcp_use )
     rtin->mp_nmsg    = 0;
 
     /* free up any mask memory */
-    RT_mask_free(rtin);
+    RT_mp_mask_free(rtin);
 
     return 0;
 }
@@ -2029,7 +2133,7 @@ int RT_mp_comm_close( RT_input * rtin, int new_tcp_use )
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
-int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
+static int RT_mp_comm_send_data(RT_input *rtin, float *mp[6], int nt, int sub)
 {
     static float * data = NULL;
     static int     dvals = 0;
@@ -2091,7 +2195,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 
             /* process mask, if desired (ROI averages or all set values) */
             if( g_mask_dset && g_mask_val_type == 2 ) {
-                if( ! RT_get_mask_aves(rtin, sub+mpindex) )
+                if( ! RT_mp_get_mask_aves(rtin, sub+mpindex) )
                     for ( c2 = 0; c2 < rtin->mask_nvals; c2++ )
                         data[bsize*c+6+c2] = (float)rtin->mask_aves[c2+1];
                 else {  /* bad failure, close socket */
@@ -2144,7 +2248,7 @@ int RT_mp_comm_send_data( RT_input * rtin, float * mp[6], int nt, int sub )
 
    return 0 on success
 -----------------------------------------------------------------------------*/
-int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
+static int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
 {
     THD_fvec3   fvec;
     THD_ivec3   ivec;
@@ -2154,13 +2258,13 @@ int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
     int         i, j, k, nx, nxy;
 
     if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
-        fprintf(stderr,"** RT_get_mask_aves: not set for sub-brick %d\n",sub);
-        return -1;
+       fprintf(stderr,"** RT_mp_get_mask_aves: not set for sub-brick %d\n",sub);
+       return -1;
     }
 
     if( !rtin->mask || !data || rtin->mask_nvals <= 0 ) {
-        fprintf(stderr,"** RT_get_mask_aves: no mask information to apply\n");
-        return -1;
+       fprintf(stderr,"** RT_mp_get_mask_aves: no mask information to apply\n");
+       return -1;
     }
 
     /* note dimensions */
@@ -2170,7 +2274,7 @@ int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
         fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
                        "   terminating mask processing...\n",
                 nvox, DSET_NVOX(rtin->reg_dset) );
-        return RT_mask_free(rtin);
+        return RT_mp_mask_free(rtin);
     }
     nx = DSET_NX(g_mask_dset);
     nxy = nx * DSET_NY(g_mask_dset);
@@ -2218,7 +2322,7 @@ int RT_mp_set_mask_data( RT_input * rtin, float * data, int sub )
 
    return 0 on success
 -----------------------------------------------------------------------------*/
-int RT_get_mask_aves( RT_input * rtin, int sub )
+static int RT_mp_get_mask_aves( RT_input * rtin, int sub )
 {
     static int * nvals = NULL;
     static int   nval_len = 0;
@@ -2227,13 +2331,13 @@ int RT_get_mask_aves( RT_input * rtin, int sub )
     int          c, nvox;
 
     if( !ISVALID_DSET(rtin->reg_dset) || DSET_NVALS(rtin->reg_dset) <= sub ){
-        fprintf(stderr,"** RT_get_mask_aves: not set for sub-brick %d\n",sub);
-        return -1;
+       fprintf(stderr,"** RT_mp_get_mask_aves: not set for sub-brick %d\n",sub);
+       return -1;
     }
 
     if( !rtin->mask || !rtin->mask_aves || rtin->mask_nvals <= 0 ) {
-        fprintf(stderr,"** RT_get_mask_aves: no mask information to apply\n");
-        return -1;
+       fprintf(stderr,"** RT_mp_get_mask_aves: no mask information to apply\n");
+       return -1;
     }
 
     nvox = DSET_NVOX(g_mask_dset);
@@ -2242,7 +2346,7 @@ int RT_get_mask_aves( RT_input * rtin, int sub )
         fprintf(stderr,"** nvox for mask (%d) != nvox for reg_dset (%d)\n"
                        "   terminating mask processing...\n",
                 nvox, DSET_NVOX(rtin->reg_dset) );
-        return RT_mask_free(rtin);
+        return RT_mp_mask_free(rtin);
     }
 
    /* verify local memory for sizes (mask is 0..nvals) */
@@ -2251,7 +2355,7 @@ int RT_get_mask_aves( RT_input * rtin, int sub )
         nvals = (int *)realloc(nvals, nval_len * sizeof(int));
         if( !nvals ){
             fprintf(stderr,"** GMA: failed alloc of %d ints\n",nval_len);
-            return RT_mask_free(rtin);
+            return RT_mp_mask_free(rtin);
         }
     }
 
@@ -2340,7 +2444,7 @@ int RT_get_mask_aves( RT_input * rtin, int sub )
     return 0;
 }
 
-int RT_mask_free( RT_input * rtin )
+static int RT_mp_mask_free( RT_input * rtin )
 {
     if( rtin->mask )     { free(rtin->mask);      rtin->mask      = NULL; }
     if( rtin->mask_aves ){ free(rtin->mask_aves); rtin->mask_aves = NULL; }
@@ -2351,7 +2455,7 @@ int RT_mask_free( RT_input * rtin )
 }
 
 /* show time at ms resolution, wrapping per hour */
-int RT_mp_show_time( char * mesg )
+static int RT_mp_show_time( char * mesg )
 {
    struct timeval  tval ;
    struct timezone tzone ;
@@ -2378,7 +2482,7 @@ int RT_mp_show_time( char * mesg )
 
    return 0 on success
 -----------------------------------------------------------------------------*/
-int RT_mp_getenv( void )
+static int RT_mp_getenv( void )
 {
     char * estr = NULL;
 
@@ -2415,7 +2519,7 @@ int RT_mp_getenv( void )
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
-int RT_mp_comm_init( RT_input * rtin )
+static int RT_mp_comm_init( RT_input * rtin )
 {
     struct sockaddr_in   sin;
     struct hostent     * hostp;
@@ -2531,7 +2635,7 @@ int RT_mp_comm_init( RT_input * rtin )
    return   0 : on success
           < 0 : on error
 -----------------------------------------------------------------------------*/
-int RT_mp_comm_init_vars( RT_input * rtin )
+static int RT_mp_comm_init_vars( RT_input * rtin )
 {
     char * ept, * cp;
     int    len;
@@ -4601,6 +4705,9 @@ void RT_finish_dataset( RT_input * rtin )
         if( rtin->reg_dset != NULL ){
            DSET_delete( rtin->reg_dset ) ; rtin->reg_dset = NULL ;
         }
+        if( rtin->reg_base_dset != NULL ){
+           DSET_delete( rtin->reg_base_dset ) ; rtin->reg_base_dset = NULL ;
+        }
         if( rtin->mrg_dset != NULL ){
            DSET_delete( rtin->mrg_dset ) ; rtin->mrg_dset = NULL ;
         }
@@ -4855,6 +4962,8 @@ void RT_registration_2D_setup( RT_input * rtin )
    MRI_IMAGE * im ;
    char * bar ;
 
+   if( RT_registration_set_vr_base(rtin) ) return;  /* 26 Aug 2009 [rickr] */
+
    nx   = DSET_NX( rtin->dset[0] ) ;
    ny   = DSET_NY( rtin->dset[0] ) ;
    nz   = DSET_NZ( rtin->dset[0] ) ;
@@ -4865,8 +4974,12 @@ void RT_registration_2D_setup( RT_input * rtin )
    rtin->reg_2dbasis = (MRI_2dalign_basis **)
                          malloc( sizeof(MRI_2dalign_basis *) * nz ) ;
 
-   im   = mri_new_vol_empty( nx,ny,1 , kind ) ;        /* fake image for slices */
-   bar  = DSET_BRICK_ARRAY( rtin->dset[0] , ibase ) ;  /* ptr to base volume    */
+   im   = mri_new_vol_empty( nx,ny,1 , kind ) ;     /* fake image for slices */
+
+   /* set pointer to base volume                         26 Aug 2009 [rickr] */
+   if( rtin->reg_base_dset ) bar = DSET_BRICK_ARRAY(rtin->reg_base_dset, 0);
+   else                      bar = DSET_BRICK_ARRAY(rtin->dset[0], ibase);
+
    nbar = im->nvox * im->pixel_size ;               /* offset for each slice */
 
    for( kk=0 ; kk < nz ; kk++ ){                         /* loop over slices */
@@ -5227,6 +5340,56 @@ void RT_registration_3D_atend( RT_input * rtin )
 }
 
 /*-----------------------------------------------------------------------
+   Verify and possibly store the volume registration base dataset.
+
+   The global g_reg_base_dset variable will be set anytime the base needs
+   to be stored, which is:
+        1. EXTERN: the base/index is from an External dataset
+           In RT_main: nuke and set g_reg_base_dset from the chosen dset.
+           In any case, apply any g_reg_base_dset in new_RT_input.
+        2. CUR_KEEP: from current run, keep for future
+           Here (set_vr_base), if g_reg_base_dset is NULL, set to current
+           dset and appropriate volume.  If g_reg_base_dset is not NULL,
+           it was done previously.
+           In the previous case, g_reg_base_dset will have been _copied_ to
+           rtin->reg_base_dset in new_RT_input.
+        *. NOT done for CUR: current run and index
+    So if rtin->reg_base_dset, either EXTERN or old CUR_KEEP cases.  Else
+    new CUR_KEEP or just CUR.  Note, rtin->reg_base_dset is always a copy.
+-------------------------------------------------------------------------*/
+int RT_registration_set_vr_base(RT_input * rtin)
+{
+   int code;
+
+   ENTRY("RT_registration_set_vr_base");
+
+   if( rtin->reg_base_mode == RT_RBASE_MODE_CUR ) RETURN(0); /* nothing to do */
+
+   /* If CUR_KEEP, create the global base dataset (deleting any old one).
+      Note that we still do not need to set rtin->reg_base_dset. */
+   if( rtin->reg_base_mode == RT_RBASE_MODE_CUR_KEEP && ! g_reg_base_dset ) {
+      g_reg_base_dset = THD_copy_one_sub(rtin->dset[0], rtin->reg_base_index);
+      if( ! g_reg_base_dset ) {
+         PLUTO_beep() ;
+         PLUTO_popup_transient( plint , "Failed to set volreg base dset!" );
+         RETURN(1);
+      }
+      RETURN(0);
+   }
+
+   /* CHOOSE dset, so verify grid, etc. */
+   code = THD_dataset_mismatch(rtin->reg_base_dset, rtin->dset[0]);
+   if( code ) {
+      PLUTO_beep() ;
+      PLUTO_popup_transient(plint , "Dataset mismatch with volreg base dset!");
+      fprintf(stderr, "** Dataset mismatch with volreg base: code = %d\n",code);
+      RETURN(1);
+   }
+
+   RETURN(0);
+}
+
+/*-----------------------------------------------------------------------
    Setup the 3D registration data
 -------------------------------------------------------------------------*/
 
@@ -5242,6 +5405,8 @@ void RT_registration_3D_setup( RT_input * rtin )
    MRI_IMAGE * im ;
    char * ept ;
 
+   if( RT_registration_set_vr_base(rtin) ) return;  /* failure */
+
    /*-- extract info about coordinate axes of dataset --*/
 
    rtin->iha  = THD_handedness( rtin->dset[0] )   ;  /* LH or RH? */
@@ -5255,7 +5420,9 @@ void RT_registration_3D_setup( RT_input * rtin )
    rtin->ax3  = THD_axcode( rtin->dset[0] , 'A' ) ;
    rtin->hax3 = rtin->ax3 * rtin->iha      ;      /* yaw */
 
-   im     = DSET_BRICK(rtin->dset[0],ibase) ;
+   if( rtin->reg_base_dset ) im = DSET_BRICK(rtin->reg_base_dset,0) ;
+   else                      im = DSET_BRICK(rtin->dset[0],ibase) ;
+
    im->dx = fabs( DSET_DX(rtin->dset[0]) ) ;  /* must set voxel dimensions */
    im->dy = fabs( DSET_DY(rtin->dset[0]) ) ;
    im->dz = fabs( DSET_DZ(rtin->dset[0]) ) ;
@@ -5272,10 +5439,10 @@ void RT_registration_3D_setup( RT_input * rtin )
             kk = strtol(ept,NULL,10) ; if( kk <= 0 ) kk = VL_MIT ;
          }
          mri_3dalign_params( kk , VL_DXY , VL_DPH , VL_DEL ,
-                             abs(rtin->ax1)-1 , abs(rtin->ax2)-1 , abs(rtin->ax3)-1 , -1 ) ;
+                 abs(rtin->ax1)-1 , abs(rtin->ax2)-1 , abs(rtin->ax3)-1 , -1 ) ;
 
                                                            /* noreg , clipit */
-         mri_3dalign_method( rtin->reg_resam , verbose==2 ,   0     , 1        ) ;
+         mri_3dalign_method( rtin->reg_resam , verbose==2 ,   0     , 1       );
 
          mri_3dalign_final_regmode( rtin->reg_final_resam ) ;
 
@@ -5290,7 +5457,7 @@ void RT_registration_3D_setup( RT_input * rtin )
          }
 
          mri_3dalign_params( kk , VL_DXY , VL_DPH , 2.0*VL_DEL ,
-                             abs(rtin->ax1)-1 , abs(rtin->ax2)-1 , abs(rtin->ax3)-1 , -1 ) ;
+                 abs(rtin->ax1)-1 , abs(rtin->ax2)-1 , abs(rtin->ax3)-1 , -1 ) ;
 
          kk = MRI_CUBIC ;                     /* noreg , clipit */
          mri_3dalign_method( kk , verbose==2 ,   1     , 0        ) ;
@@ -6147,7 +6314,7 @@ MRI_IMAGE * RT_mergerize( int nds , THD_3dim_dataset **ds , int iv )
          case MRI_complex:
            for( cc=0 ; cc < nds ; cc++ ){
              ctar = car[cc] ;
-             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += CABS(ctar[ii]) ;
+             for( ii=0 ; ii < nvox ; ii++ ) fmar[ii] += sqrtf(CSQR(ctar[ii])) ;
            }
          break ;
        }

@@ -553,10 +553,19 @@ ENTRY("THD_open_3dcalc") ;
 }
 
 /*-----------------------------------------------------------------
+   Convenience function, for copying only a single sub-brick.
+   Wrapper for THD_copy_dset_subs().
+-------------------------------------------------------------------*/
+THD_3dim_dataset * THD_copy_one_sub( THD_3dim_dataset * din, int sub )
+{
+    int sublist[2] = {1, sub};
+    return THD_copy_dset_subs(din, sublist);
+}
+
+/*-----------------------------------------------------------------
    Copy a list of sub-bricks from a dataset.    26 Jul 2004 [rickr]
    The first element of dlist is the number of sub-bricks to copy.
 -------------------------------------------------------------------*/
-
 THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * din, int * dlist )
 {
     THD_3dim_dataset * dout;
