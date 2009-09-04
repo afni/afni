@@ -3779,6 +3779,7 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
 /* copy a dataset, given a list of sub-bricks          [rickr] 26 Jul 2004 */
 extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
+extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
 
 /*! Help string to explain dataset "mastering" briefly. */
 

@@ -24,6 +24,9 @@ else
     set help = 0
 endif
 
+set testing = 0
+set use_curl = 0
+
 set ac = 1
 while ( $ac <= $#argv )
     if ( "$argv[$ac]" == "-bindir" ) then
@@ -33,6 +36,10 @@ while ( $ac <= $#argv )
             exit
         endif
         set abin = $argv[$ac]
+    else if ( "$argv[$ac]" == "-curl" ) then
+        set use_curl = 1
+    else if ( "$argv[$ac]" == "-test" ) then
+        set testing = 1
     else if ( "$argv[$ac]" == "-package" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -58,10 +65,15 @@ if ( $help ) then
     echo "examples:"
     echo ""
     echo "    $prog -defaults"
-    echo "    $prog -bindir ~/abin -package linux_xorg7"
+    echo "    $prog -package linux_xorg7"
+    echo "    $prog -package linux_xorg7 -bindir ~/abin"
     echo ""
     echo "options:"
     echo ""
+    echo "    -help                 : show this help"
+    echo ""
+    echo "    -bindir ABIN          : set AFNI binary directory to ABIN"
+    echo "    -curl                 : default to curl instead of wget"
     echo "    -defaults             : install current package into abin"
     echo ""
     echo "        This would be the method to 'update the package that I"
@@ -71,10 +83,8 @@ if ( $help ) then
     echo "        directory would come from 'which afni'.  If either of"
     echo "        these is not appropriate, please specify them as below."
     echo ""
-    echo "    -bindir ABIN          : set AFNI binary directory to ABIN"
     echo "    -package PACKAGE      : install distribution package PACKAGE"
-    echo ""
-    echo "    -help                 : show this help"
+    echo "    -testing              : just attempt the download and quit"
     echo ""
     echo "Note that the user must have write permissions in the ABIN"
     echo "directory."
@@ -103,16 +113,28 @@ if ( $package == "" ) then
    endif
 endif
 
-# test for existence of wget
+# test for existence of wget or curl
 which wget >& /dev/null
-if ( $status ) then
+set missing_wget = $status
+which curl >& /dev/null
+set missing_curl = $status
+if ( $testing ) echo "-- wget, curl status = $missing_wget, $missing_curl"
+
+if ( $missing_wget && $missing_curl ) then
     echo ""
-    echo "** program wget is missing, please install or"
-    echo "   look it up on the AFNI message board:"
+    echo "** programs wget and curl are missing, please install *either*,"
+    echo "   or look it up on the AFNI message board:"
     echo "       http://afni.nimh.nih.gov/afni/community/board"
     echo ""
     exit
 endif
+
+# default to wget, else use curl
+set prog = ( "wget" )
+if ( $use_curl || $missing_wget ) set prog = ( "curl" "-O" )
+
+# make sure package is set to the base name
+if ( $package =~ *.tgz ) set package = $package:r
 
 echo "-- attempting to install package $package under $abin..."
 
@@ -131,9 +153,14 @@ if ( -f $package.tgz || -d $package ) then
 endif
 
 echo "++ downloading package $package..."
-wget http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
+$prog http://afni.nimh.nih.gov/pub/dist/tgz/$package.tgz
 if ( $status ) then
     echo "** failed to download package $package.tgz"
+    exit
+endif
+
+if ( $testing ) then
+    echo "just testing download via '$prog' done"
     exit
 endif
 

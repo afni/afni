@@ -48,6 +48,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, SEP, 2009, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
+   "registration can now be consistent across runs",
+   "Reg Base can be 'Current': to set the base volume from the current run\n"
+   "(call this the old way), 'Current & Keep': use current run, but then\n"
+   "store that base and apply it to future runs, 'External Dataset': fix the\n"
+   "base from some chosen dataset.\n"
+   "\n"
+   "Using 'Current & Keep' makes sense for realtime registration.\n"
+ } ,
+
+ {  4, SEP, 2009, RCR, "@update.afni.binaries", MICRO, TYPE_NEW_OPT,
+   "if wget fails, try curl; added -curl and -testing options",
+   NULL
+ } ,
+
  { 28, AUG, 2009, RCR, "afni_util.py", MICRO, TYPE_BUG_FIX,
    "fixed make_CENSORTR_string, comma delimitation needs run: prefix",
    NULL
