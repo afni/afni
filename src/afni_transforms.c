@@ -65,9 +65,9 @@ float adaptive_weighted_mean( int num , float *x )
    else if( num == 2              ) return (0.5f*(x[0]+x[1])) ;
 
    qmedmad_float( num , x , &med , &mad ) ;
-   if( mad == 0.0f ) return x[0] ;
+   if( mad <= 0.0f ) return (med) ;
 
-   wsum = xsum = 0.0f ; mad = 0.4321f / mad ;
+   wsum = xsum = 0.0f ; mad = 0.4567f / mad ;
    for( ii=0 ; ii < num ; ii++ ){
      wt = fabsf( mad*fabsf(x[ii]-med) ); wt = 1.0f / (1.0f+wt*wt*wt); wsum += wt;
      xsum += wt * x[ii] ;
