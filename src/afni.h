@@ -1779,6 +1779,7 @@ extern void osfilt3_func( int, double,double, float * ) ;
 extern void median3_func( int, double,double, float * ) ;
 extern void absfft_func ( int, double,double, float * ) ;
 extern void ztone_func  ( int, double,double, float * ) ; /* 02 Sep 2009 */
+extern void adpt_wt_mn9 ( int, double,double, float * ) ; /* 04 Sep 2009 */
 
 extern void L1normalize_func( int, double,double, float * ) ; /* 03 Sep 2009 */
 extern void L2normalize_func( int, double,double, float * ) ; /* 03 Sep 2009 */
@@ -1793,6 +1794,8 @@ extern float extreme_proj( int, float * ) ;  /* 02 Feb 2002 */
 extern float osfilt_proj ( int, float * ) ;  /* 07 Dec 2007 */
 extern float mad_proj    ( int, float * ) ;  /* 07 Dec 2007 */
 
+extern float adaptive_weighted_mean( int , float * ) ;  /* 04 Sep 2009 */
+
 /* sample 2D transform functions */
 
 extern void median9_box_func ( int, int, double,double, float * ) ;
@@ -1802,6 +1805,7 @@ extern void fft2D_absfunc    ( int, int, double,double, float * ) ;
 extern void fft2D_phasefunc  ( int, int, double,double, float * ) ;
 extern void median21_box_func( int, int, double,double, float * ) ;
 extern void winsor21_box_func( int, int, double,double, float * ) ;
+extern void adapt_mean_21_box_func( int, int, double,double, float * ) ; /* 04 Sep 2009 */
 
 extern void AFNI_register_nD_function( int, char *, generic_func *, int ) ;
 extern void AFNI_register_nD_func_init( int nd , generic_func *fin ) ;

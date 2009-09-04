@@ -1798,6 +1798,7 @@ STATUS("call 13") ;
 
         AFNI_register_1D_function( "Median3"   , median3_func) ;
         AFNI_register_1D_function( "OSfilt3"   , osfilt3_func) ;
+        AFNI_register_1D_function( "AdptMean9" , adpt_wt_mn9 ) ;       /* 04 Sep 2009 */
         AFNI_register_1D_function( "|FFT()|"   , absfft_func ) ;
         AFNI_register_1D_function( "ZeroToOne" , ztone_func  ) ;       /* 02 Sep 2009 */
         AFNI_register_1D_function( "Normlz_L1" , L1normalize_func  ) ; /* 03 Sep 2009 */
@@ -1809,6 +1810,7 @@ STATUS("call 13") ;
 
         AFNI_register_2D_function( "Median21" , median21_box_func );
         AFNI_register_2D_function( "Winsor21" , winsor21_box_func );
+        AFNI_register_2D_function( "AdptMean21" , adapt_mean_21_box_func ); /* 04 Sep 2009 */
 
         AFNI_register_2D_function( "abs[FFT2D]" , fft2D_absfunc   );
         AFNI_register_2D_function( "arg[FFT2D]" , fft2D_phasefunc );
@@ -1828,6 +1830,8 @@ STATUS("call 13") ;
         AFNI_register_slice_proj( "OSfilt"  , osfilt_proj  ) ; /* 07 Dec 2007 */
         AFNI_register_slice_proj( "Extreme" , extreme_proj ) ; /* 02 Feb 2002 */
         AFNI_register_slice_proj( "MAD"     , mad_proj     ) ; /* 07 Dec 2007 */
+
+        AFNI_register_slice_proj( "AdptMean", adaptive_weighted_mean ) ; /* 04 Sep 2009 */
 
 #ifdef HUBERIZE
         AFNI_register_1D_funcstr( "Huber Fit" , huber_func ) ;
