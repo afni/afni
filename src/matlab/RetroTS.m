@@ -73,6 +73,8 @@ if (nargin < 1),
    fprintf(2,'Need some input.\n');
    return;
 end
+R = struct([]);
+E = struct([]);
 
 if (~isstruct(SN)), %mode 1, toy mode
    iscan = 12;
@@ -106,6 +108,7 @@ if (~isstruct(SN)), %mode 1, toy mode
    Opt.SliceOffset = ... 
       [0:Opt.VolTR./Opt.Nslices:Opt.VolTR-Opt.VolTR./Opt.Nslices]; 
    Opt.Prefix = sprintf('%d',iscan);
+   Opt.SepDups = 0;
    clear ('s');
    clear ('SN');
 else,
@@ -171,6 +174,9 @@ else,
    if ( ~isfield(Opt,'RVT_out') | isempty(Opt.RVT_out)),
       Opt.RVT_out = 1;
    end
+   if ( ~isfield(Opt,'SepDups') | isempty(Opt.SepDups)),
+      Opt.SepDups = 0;
+   end
    if ( ~isfield(Opt,'SliceOffset') | isempty(Opt.SliceOffset)),
       Opt.SliceOffset=zeros(Opt.Nslices,1);
       dtt = Opt.VolTR/Opt.Nslices; tt = 0.0;
@@ -182,6 +188,13 @@ else,
       end
    end   
 end
+
+if (Opt.SepDups), 
+   fprintf(1,'WARNING: SepDups should not be used\n');
+   fprintf(1,'         It is kept in the code for debugging\n');
+   fprintf(1,'         purposes.\n');
+end
+
 
 %create option copy for each type of signal
    OptR = Opt; 
@@ -196,8 +209,10 @@ end
    
 
 %Get the peaks for R and E
-R = PeakFinder(Opt.Respfile,OptR); 
-E = PeakFinder(Opt.Cardfile,OptE);
+[R,e]= PeakFinder(Opt.Respfile,OptR); 
+if (e), fprintf(2,'Died in PeakFinder\n'); return; end
+[E,e] = PeakFinder(Opt.Cardfile,OptE);
+if (e), fprintf(2,'Died in PeakFinder\n'); return; end
 %get the phase
 R = PhaseEstimator(R,OptR);
 E = PhaseEstimator(E,OptE);
