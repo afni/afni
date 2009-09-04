@@ -1842,19 +1842,19 @@ void get_options
             } else {
               r = (int)strtol(cpt,NULL,10) ;
               if( r <= 0 ){  /* skip out */
-                ERROR_message("-CENSORTR %s -- run index '%d' is bad!",nsar->str[ns],r);
+                ERROR_message("-CENSORTR %s -- run index '%d' is bad! [nopt=%d]",nsar->str[ns],r,nopt);
                 nerr++ ; continue ;
               }
             }
             cpt = dpt+1 ;  /* skip to character after ':' */
             if( *cpt == '\0' ){  /* skip out */
-              ERROR_message("-CENSORTR %s -- no data after run index!",nsar->str[ns]);
+              ERROR_message("-CENSORTR %s -- no data after run index! [nopt=%d]",nsar->str[ns],nopt);
               nerr++ ; continue ;
             }
           }
           a = (int)strtol(cpt,&dpt,10) ;    /* get first index number */
           if( a < 0 ){  /* skip out */
-            ERROR_message("-CENSORTR %s -- time index '%d' is bad!",nsar->str[ns],a);
+            ERROR_message("-CENSORTR %s -- time index '%d' is bad! [nopt=%d]",nsar->str[ns],a,nopt);
             nerr++ ; continue ;
           }
           if( *dpt == '\0' ){  /* no second number */
@@ -1863,8 +1863,8 @@ void get_options
             for( dpt++ ; *dpt != '\0' && !isdigit(*dpt) ; dpt++ ) ; /*nada*/
             b = (int)strtol(dpt,NULL,10) ;
             if( b < a || b < 0 ){  /* skip out */
-              ERROR_message("-CENSORTR %s -- time indexes '%d' to '%d' is bad!",
-                            nsar->str[ns],a,b);
+              ERROR_message("-CENSORTR %s -- time indexes '%d' to '%d' is bad! [nopt=%d]",
+                            nsar->str[ns],a,b,nopt);
               nerr++ ; continue ;
             }
           }
@@ -1872,7 +1872,7 @@ void get_options
                                               sizeof(int_triple)*(num_CENSOR+1) );
           rab.i = r; rab.j = a; rab.k = b; abc_CENSOR[num_CENSOR++] = rab ;
         } /* end of loop over -CENSORTR strings */
-        if( nerr > 0 ) ERROR_exit("Can't proceed after -CENSORTR errors!") ;
+        if( nerr > 0 ) ERROR_exit("Can't proceed after -CENSORTR errors! [nopt=%d]",nopt) ;
         NI_delete_str_array(nsar) ; free(src) ;
         continue ;  /* next option */
       }
@@ -2081,7 +2081,7 @@ void get_options
         if( nopt >= argc ) DC_error("need argument after -TR_times") ;
         basis_dtout = -1.0 ; sscanf( argv[nopt] , "%f" , &basis_dtout ) ;
         if( basis_dtout <= 0.0f )
-          ERROR_exit("-TR_times '%s' is illegal\n",argv[nopt]) ;
+          ERROR_exit("-TR_times '%s' is illegal [nopt=%d]\n",argv[nopt],nopt) ;
         nopt++ ; continue ;
       }
 
@@ -2091,7 +2091,7 @@ void get_options
         if( nopt >= argc ) DC_error("need argument after -TR_irc") ;
         irc_dt = -1.0 ; sscanf( argv[nopt] , "%f" , &irc_dt ) ;
         if( irc_dt <= 0.0f )
-          ERROR_exit("-TR_irc '%s' is illegal\n",argv[nopt]) ;
+          ERROR_exit("-TR_irc '%s' is illegal [nopt=%d]",argv[nopt],nopt) ;
         nopt++ ; continue ;
       }
 
@@ -2120,7 +2120,7 @@ void get_options
 
       if( strcmp(argv[nopt],"-stim_times_subtract") == 0 ){  /** 24 Mar 2009 **/
         char *ept ;
-        if( nopt+1 >= argc ) ERROR_exit("need 1 argument after %s",argv[nopt]) ;
+        if( nopt+1 >= argc ) ERROR_exit("need 1 argument after %s [nopt=%d]",argv[nopt],nopt) ;
         stime_sub = (float)strtod(argv[++nopt],&ept) ;
         if( ept == argv[nopt] ){
           WARNING_message("%s %s doesn't make sense!",argv[nopt-1],argv[nopt]) ;
@@ -2147,34 +2147,34 @@ void get_options
             strcmp(suf,"_AM2") != 0 &&
             strcmp(suf,"_AMx") != 0 &&
             strcmp(suf,"_IM" ) != 0   )
-          ERROR_exit("Unrecognized -stim_times variant: '%s'",sopt) ;
+          ERROR_exit("Unrecognized -stim_times variant: '%s' [nopt=%d]",sopt,nopt) ;
 
         if( nopt+2 >= argc )
-          ERROR_exit("need 3 arguments after %s",sopt) ;
+          ERROR_exit("need 3 arguments after %s [nopt=%d]",sopt,nopt) ;
 
         /* get stim number */
 
         ival = -1 ; sscanf( argv[nopt] , "%d" , &ival ) ;
 
         if( ival < 1 || ival > option_data->num_stimts )
-          ERROR_exit("'-stim_times %d' value out of range 1..%d\n",
-                     ival , option_data->num_stimts ) ;
+          ERROR_exit("'-stim_times %d' value out of range 1..%d [nopt=%d]\n",
+                     ival , option_data->num_stimts , nopt ) ;
 
         k = ival-1 ; nopt++ ;                         /* k = stim array index */
 
         /* get stim timing image */
 
         if( option_data->stim_filename[k] != NULL )
-          ERROR_exit("'%s %d' trying to over-write previous stimulus?!",
-                     sopt , ival ) ;
+          ERROR_exit("'%s %d' trying to over-write previous stimulus?! [nopt=%d]",
+                     sopt , ival , nopt ) ;
 
         option_data->stim_filename[k] = strdup( argv[nopt] ) ;
 
         basis_times[k] = mri_read_ascii_ragged_fvect(argv[nopt],basis_filler,0);
 
         if( basis_times[k] == NULL || basis_times[k]->vdim <= 0 )
-          ERROR_exit("'%s %d' can't read file '%s'\n",
-                     sopt , ival , argv[nopt] ) ;
+          ERROR_exit("'%s %d' can't read file '%s' [nopt=%d]\n",
+                     sopt , ival , argv[nopt] , nopt ) ;
 
         if( basis_times[k]->vdim == 1 ){      /* scalar image */
           basis_times[k]->vdim = 0 ;
@@ -2192,8 +2192,8 @@ void get_options
           WARNING_message("'%s %d' didn't read any good times from file '%s'",
                           sopt , ival , argv[nopt] ) ;
         else if( nc < 0 )
-          ERROR_exit("'%s %d' couldn't read valid times from file '%s'",
-                     sopt , ival , argv[nopt] ) ;
+          ERROR_exit("'%s %d' couldn't read valid times from file '%s' [nopt=%d]",
+                     sopt , ival , argv[nopt] , nopt ) ;
 
         if( tim != basis_times[k] ) mri_free(tim) ;
 
@@ -2202,8 +2202,8 @@ void get_options
         if( *suf == '\0' ){
 
           if( basis_times[k]->vdim > 0 )
-            ERROR_exit("'%s %d' file '%s' has %d auxiliary values per time point",
-                       sopt , ival , argv[nopt] , basis_times[k]->vdim-1 ) ;
+            ERROR_exit("'%s %d' file '%s' has %d auxiliary values per time point [nopt=%d]",
+                       sopt , ival , argv[nopt] , basis_times[k]->vdim-1 , nopt ) ;
 
 
         /** case: 1 or more numbers per time point: -stim_times_IM **/
@@ -2219,12 +2219,12 @@ void get_options
           vdim = basis_times[k]->vdim ;  /* number of values per point */
           if( vdim < 2 )                 /* need at least 2 (time and amplitude) */
             ERROR_exit(
-              "'%s %d' file '%s' doesn't have auxiliary values per time point!",
-              sopt , ival , argv[nopt] ) ;
+              "'%s %d' file '%s' doesn't have auxiliary values per time point! [nopt=%d]",
+              sopt , ival , argv[nopt] , nopt ) ;
           else if( vdim-1 > BASIS_MAX_VDIM ) /* over the limit */
             ERROR_exit(
-              "'%s %d' file '%s' has too many auxiliary values per time point!",
-              sopt , ival , argv[nopt] ) ;
+              "'%s %d' file '%s' has too many auxiliary values per time point! [nopt=%d]",
+              sopt , ival , argv[nopt] , nopt ) ;
           else                               /* juuusst right */
             INFO_message(
               "'%s %d %s' has %d auxiliary values per time point",
@@ -2232,7 +2232,7 @@ void get_options
 
         } else {  /* should not happen */
 
-          ERROR_exit("Unknown -stim_times type of option: '%s'",sopt) ;
+          ERROR_exit("Unknown -stim_times type of option: '%s' [nopt=%d]",sopt,nopt) ;
 
         }
 
@@ -2245,8 +2245,8 @@ void get_options
         basis_stim[k] = basis_parser( argv[nopt] ) ;
 
         if( basis_stim[k] == NULL )
-          ERROR_exit("'%s %d': don't understand basis function model '%s'\n",
-                     sopt , ival , argv[nopt] ) ;
+          ERROR_exit("'%s %d': don't understand basis function model '%s' [nopt=%d]",
+                     sopt , ival , argv[nopt] , nopt ) ;
 
         /** Allow for vfun parameters to basis function [05 Dec 2008], **/
         /** and then vmod = number of amplitude modulation parameters. **/
@@ -2264,18 +2264,18 @@ void get_options
           if( basis_stim[k]->vfun > BASIS_MAX_VFUN )  /* should not happen! */
             ERROR_exit(
               "'%s %d': basis function model '%s' uses %d parameters;\n"
-              "    which is more than maximum allowed %d -- internal error!!" ,
+              "    which is more than maximum allowed %d -- internal error!! [nopt=%d]" ,
               sopt , ival , argv[nopt] ,
-              basis_stim[k]->vfun , BASIS_MAX_VFUN ) ;
+              basis_stim[k]->vfun , BASIS_MAX_VFUN , nopt ) ;
 
           basis_stim[k]->vmod = vmod = vdim - 1 - basis_stim[k]->vfun ;
 
           if( vmod < 0 )
             ERROR_exit(
               "'%s %d': basis function model '%s' uses %d parameters,\n"
-              "    more than the %d found in timing file '%s'" ,
+              "    more than the %d found in timing file '%s' [nopt=%d]" ,
               sopt , ival , argv[nopt] ,
-              basis_stim[k]->vfun , vdim-1 , argv[nopt-1] ) ;
+              basis_stim[k]->vfun , vdim-1 , argv[nopt-1] , nopt ) ;
 
           INFO_message(
             "'%s %d': basis function model '%s' uses %d parameters,\n"
@@ -2311,11 +2311,11 @@ void get_options
                        sopt,ival,argv[nopt-1],basis_stim[k]->nparm) ;
 
           if( vmod != 0 )
-            ERROR_exit("'%s %d %s' has %d amplitude modulation parameters - not legal!",
-                       sopt,ival,argv[nopt-1],vmod) ;
+            ERROR_exit("'%s %d %s' has %d amplitude modulation parameters - not legal! [nopt=%d]",
+                       sopt,ival,argv[nopt-1],vmod,nopt) ;
           if( basis_stim[k]->vfun > 0 && basis_stim[k]->vfun != vdim-1 )
-            ERROR_exit("'%s %d %s' needs %d functional parameters but has %d",
-                       sopt,ival,argv[nopt-1],basis_stim[k]->vfun,vdim-1) ;
+            ERROR_exit("'%s %d %s' needs %d functional parameters but has %d [nopt=%d]",
+                       sopt,ival,argv[nopt-1],basis_stim[k]->vfun,vdim-1, nopt ) ;
 
         } else if( strcmp(suf,"_AM1") == 0 ){
                                                       /* amplitude */
@@ -2338,8 +2338,8 @@ void get_options
 
         } else {
 
-          ERROR_exit("'%s %d' -- unrecognized sub-type of '-stim_times' option!",
-                     sopt , ival ) ;
+          ERROR_exit("'%s %d' -- unrecognized sub-type of '-stim_times' option! [nopt=%d]",
+                     sopt , ival , nopt ) ;
 
         }
 
@@ -2363,8 +2363,8 @@ void get_options
         k = ival-1;
         nopt++;
         if( option_data->stim_filename[k] != NULL )
-          ERROR_exit("'-slice_base %d' trying to overwrite previous stimulus",
-                     ival ) ;
+          ERROR_exit("'-slice_base %d' trying to overwrite previous stimulus [nopt=%d]",
+                     ival , nopt ) ;
 
         option_data->stim_filename[k] = malloc(sizeof(char)*THD_MAX_NAME);
         MTEST(option_data->stim_filename[k]);
@@ -2387,8 +2387,8 @@ void get_options
         k = ival-1;
         nopt++;
           if( option_data->stim_filename[k] != NULL )
-            ERROR_exit("'-stim_file %d' trying to overwrite previous stimulus\n",
-                    ival ) ;
+            ERROR_exit("'-stim_file %d' trying to overwrite previous stimulus [nopt=%d]",
+                    ival , nopt ) ;
 
         option_data->stim_filename[k] = malloc (sizeof(char)*THD_MAX_NAME);
         MTEST (option_data->stim_filename[k]);
@@ -2922,7 +2922,7 @@ void get_options
 
       if( option_data->stim_nptr[k] != 1 ){
         ERROR_message(
-                "'-stim_nptr %d %d' illegal with '%s'\n",
+                "'-stim_nptr %d %d' illegal with '%s'",
                 k+1 , option_data->stim_nptr[k] , basis_stim[k]->option ) ;
         nerr++ ;
       }

@@ -54,6 +54,48 @@ void ssqrt_func( int num , float *vec )
    return ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+float adaptive_weighted_mean( int num , float *x )
+{
+   float med,mad, wt,wsum, xsum ; int ii ;
+
+        if( num <= 0 || x == NULL ) return (0.0f) ;
+   else if( num == 1              ) return (x[0]) ;
+   else if( num == 2              ) return (0.5f*(x[0]+x[1])) ;
+
+   qmedmad_float( num , x , &med , &mad ) ;
+   if( mad == 0.0f ) return x[0] ;
+
+   wsum = xsum = 0.0f ; mad = 0.4321f / mad ;
+   for( ii=0 ; ii < num ; ii++ ){
+     wt = fabsf( mad*fabsf(x[ii]-med) ); wt = 1.0f / (1.0f+wt*wt*wt); wsum += wt;
+     xsum += wt * x[ii] ;
+   }
+   return (xsum/wsum) ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void adpt_wt_mn9( int num , double to,double dt, float *vec )
+{
+   float x[9] , *nv ; int ii,jj,kk , n1=num-1 ;
+
+   nv = (float *)malloc(sizeof(float)*num) ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+
+     for( jj=-4 ; jj <= 4 ; jj++ ){
+       kk = ii+jj ; if( kk < 0 ) kk = 0 ; else if( kk > n1 ) kk = n1 ;
+       x[jj+4] = vec[kk] ;
+     }
+
+     nv[ii] = adaptive_weighted_mean( 9 , x ) ;
+   }
+
+   memcpy(vec,nv,sizeof(float)*num) ; free(nv) ; return ;
+}
+
 /*--------------- Sample 1D function: Order Statistics Filter -------------*/
 
 void osfilt3_func( int num , double to,double dt, float *vec )
@@ -534,6 +576,52 @@ void winsor21_box_func( int nx , int ny , double dx, double dy, float *ar )
          else if( ar[ii+joff] > aa[ktop] ) ar[ii+joff] = aa[ktop] ;
       }
 
+   }
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void adapt_mean_21_box_func( int nx, int ny, double dx, double dy, float *ar )
+{
+   int ii , jj , nxy , joff ;
+   float aa[21] ;
+   float *ajj , *ajm , *ajp , *ajmm , *ajpp ;
+
+   if( nx < 5 || ny < 5 ) return ;
+
+   /** make space and copy input into it **/
+
+   nxy = nx * ny ;
+   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
+   memcpy(atemp,ar,sizeof(float)*nxy) ;
+
+   /** process copy of input back into the input array **/
+
+   for( jj=1 ; jj < ny-1 ; jj++ ){
+
+      joff = jj * nx ;      /* offset into this row */
+      ajj  = atemp + joff ; /* pointer to this row */
+
+      ajm  = ajj-nx ;  /* pointer to last row */
+      ajp  = ajj+nx ;  /* pointer to next row */
+
+      ajmm = (jj == 1  ) ? ajm : ajm-nx ;  /* to last last row */
+      ajpp = (jj ==ny-2) ? ajp : ajp+nx ;  /* to next next row */
+
+      /* do interior points of this row */
+
+      for( ii=2 ; ii < nx-2 ; ii++ ){
+         aa[0]=ajmm[ii-1]; aa[1]=ajmm[ii]; aa[2]=ajmm[ii+1];
+
+         aa[ 3]=ajm[ii-2]; aa[ 4]=ajm[ii-1]; aa[ 5]=ajm[ii]; aa[ 6]=ajm[ii+1]; aa[ 7]=ajm[ii+2];
+         aa[ 8]=ajj[ii-2]; aa[ 9]=ajj[ii-1]; aa[10]=ajj[ii]; aa[11]=ajj[ii+1]; aa[12]=ajj[ii+2];
+         aa[13]=ajp[ii-2]; aa[14]=ajp[ii-1]; aa[15]=ajp[ii]; aa[16]=ajp[ii+1]; aa[17]=ajp[ii+2];
+
+         aa[18]=ajpp[ii-1]; aa[19]=ajpp[ii]; aa[20]=ajpp[ii+1];
+
+         ar[ii+joff] = adaptive_weighted_mean( 21 , aa ) ;
+      }
    }
    return ;
 }
