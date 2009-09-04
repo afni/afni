@@ -1,10 +1,12 @@
-function [R] = PeakFinder(vvec, Opt)
+function [R, e] = PeakFinder(vvec, Opt)
 %Example: PeakFinder('Resp*.1D');
 % or PeakFinder(v) where v is a column vector
 % if v is a matrix, each column is processed separately.
 %
 %clear all but vvec (useful if I run this function as as script)
 keep('vvec', 'Opt');
+e = 0;
+R = struct([]);
 
 if (nargin < 2) Opt = struct(); end
 if (~isfield(Opt,'PhysFS')  | isempty(Opt.PhysFS)),
@@ -63,11 +65,22 @@ NoDups = 1; % remove duplicates that might come up when improving peak location
 if (ischar(vvec)),
    l = zglobb(vvec);
    nl = length(l);
+   if (isnumeric(l)),
+      fprintf(2,'File (%s) not found\n', vvec);
+      e = 1;
+   return;
+   end
 else
    l = [];
    nl = size(vvec,2);
+   if (nl < 1),
+      fprintf(2,'No vectors\n', nl);
+      e = 1;
+      return;
+   end
 end
 
+clear R; %must clear it. Or next line fails
 R(nl) = struct( 'vname', '',...
             't', [], ...
             'X', [],...
@@ -109,7 +122,7 @@ for (icol = 1:1:nl),
          %in the lower envelope . 
          
    nt = length(R(icol).X);
-   R(icol).t = [0:1/Opt.PhysFS:(nt-1)/Opt.PhysFS];
+   R(icol).t = [0:1/Opt.PhysFS:(nt-1)/Opt.PhysFS]; % FIX FIX FIX
    iz = find( imag(R(icol).X(1:nt-1)).*imag(R(icol).X(2:nt)) <= 0);
    polall = -sign(imag(R(icol).X(1:nt-1)) - imag(R(icol).X(2:nt)));
 
@@ -182,15 +195,29 @@ for (icol = 1:1:nl),
       
       if (NoDups),
       %remove duplicates
-         [R(icol).tptrace, R(icol).ptrace] = ...
-                     remove_duplicates(R(icol).tptrace, R(icol).ptrace);
-         [R(icol).tntrace, R(icol).ntrace] = ...
-                     remove_duplicates(R(icol).tntrace, R(icol).ntrace);
+         if (Opt.SepDups), 
+            fprintf(2,'YOU SHOULD NOT BE USING THIS.\n');
+            fprintf(2,' left here for the record\n');
+            [R(icol).tptrace, R(icol).ptrace] = ...
+                        remove_duplicates(R(icol).tptrace, R(icol).ptrace, Opt);
+            [R(icol).tntrace, R(icol).ntrace] = ...
+                        remove_duplicates(R(icol).tntrace, R(icol).ntrace, Opt);
+         else,
+            [R(icol).tptrace, R(icol).ptrace,...
+             R(icol).tntrace, R(icol).ntrace] = ...
+                        remove_PNduplicates(R(icol).tptrace, R(icol).ptrace,...
+                        R(icol).tntrace, R(icol).ntrace, Opt);
+         end
+         if (length(R(icol).ptrace) ~= length(R(icol).ntrace)),
+            fprintf(1,'Bad news in tennis shoes. I''m outa here.\n');
+            e = 1;
+            return;
+         end
       end
       
       if (~Opt.Quiet),
          fprintf(2,[ '--> Improved peak location\n',...
-                     '--> Removed duplicates (not necessary)?\n',...
+                     '--> Removed duplicates \n',...
                      '\n']);
          subplot(211);
          plot( R(icol).tptrace, R(icol).ptrace,'r+',...
@@ -270,7 +297,7 @@ function v = clean_resamp(v)
    end
    return;
 
-function [t,v] =  remove_duplicates(t,v)
+function [t,v] =  remove_duplicates(t,v, Opt)
    j = 1;
    for (i=2:1:length(t)),
       if (  t(i) ~= t(i-1)  & ...
@@ -279,10 +306,37 @@ function [t,v] =  remove_duplicates(t,v)
          j = j + 1;
          t(j) = t(i);
          v(j) = v(i);
+      else,
+         if (~Opt.Quiet), 
+            fprintf(2,'Dropped peak at %g sec\n', t(i));
+         end
       end
    end
    t = t(1:j);
    v = v(1:j);
+   return;
+
+function [tp,vp, tn, vn] =  remove_PNduplicates(tp,vp, tn,vn, Opt)
+   
+   ok=zeros(1,length(tp));
+   ok(1) = 1; j = 1;
+   for (i=2:1:length(tp)),
+      if (  tp(i) ~= tp(i-1)  & ...
+            tp(i) - tp(i-1) > 0.3), %minimum time
+                                  %before next beat
+         j = j + 1;
+         ok(j) = i; 
+      else,
+         if (~Opt.Quiet), 
+            fprintf(2,'Dropped peak at %g sec\n', tp(i));
+         end
+      end
+   end
+   ok = ok(1:j);
+   tp = tp(ok);
+   vp = vp(ok);
+   tn = tn(ok);
+   vn = vn(ok);
    return;
 
 function h = analytic_signal(vi, windwidth, percover, win),
