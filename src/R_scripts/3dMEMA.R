@@ -2,7 +2,7 @@ print("#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
 print("AFNI Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 1.0.0,  Sept. 2, 2009")
+print("Version 0.1.0,  Sept. 4, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
@@ -256,7 +256,7 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8
 	# seems two ways to update beta (b): one through iterative WLS, while the other via its own iterations
    
    if(nu > 10^-10) {
-   while ((change_b > con$thr) & (change_nu > con$thr)) {
+   while (any(change_b > con$thr) & (change_nu > con$thr)) {
 		iter     <- iter + 1
       if (iter > con$maxiter) {  # Laplace fails
 			conv    <- 0
@@ -282,8 +282,9 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8
          dLnu <- -1/nu - vi[ii]/nu^3 + (Ei[ii]*ei[ii]*Phi1[ii]/nu^2 + visr[ii]*Ei[ii]*phi1[ii]/nu^2
                  - (ei[ii]*Phi2[ii]/Ei[ii])/nu^2 + (visr[ii]*phi2[ii]/Ei[ii])/nu^2)/Gi[ii]        
          ttemp <- t(dLb)*dLnu
-         H <- H + rbind(cbind(dLb %*% t(dLb), t(ttemp)), cbind(ttemp, dLnu^2))
-         g <- g + rbind(dLb, dLnu)
+         #H <- H + rbind(cbind(dLb %*% t(dLb), t(ttemp)), cbind(ttemp, dLnu^2))
+         H <- H + rbind(cbind(t(dLb) %*% dLb, ttemp), cbind(t(ttemp), dLnu^2))
+         g <- g + rbind(t(dLb), dLnu)
       }      
       
       if(any(is.infinite(H)) | any(is.infinite(H)) | any(is.infinite(g)) | any(is.infinite(g)) |
@@ -377,7 +378,7 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8
       resZ <- P %*% Y / sqrt(diag(P %*% tcrossprod(diag(tau2+vi), P)))
       # try Laplace only if either likely significant or suspicious of outliers
       #browser()
-      noMoM <- (abs(outMoM$z) > con$thrZ) | any(abs(resZ) > con$thrZ)
+      noMoM <- any(abs(outMoM$z) > con$thrZ) | any(abs(resZ) > con$thrZ)
       if(noMoM) {
          outLap <- Laplace(Y, vi, n, p, X, knha)
          if(outLap$conv == 1) {
@@ -394,7 +395,7 @@ rmaB <- function(yi, vi, n, p, X, resOut, lapMod, knha=FALSE, con=list(thr=10^-8
    
    if(lapMod==0) { # if Laplace is not selected or fails, try REML
       # try REML only if likely significant
-      noMoM <- (abs(outMoM$z) > con$thrZ) 
+      noMoM <- any(abs(outMoM$z) > con$thrZ) 
       if(noMoM) {
          outREML <- REML(yi, X, vi, knha, n, p, con)
          if(outREML$conv == 1) {
@@ -698,7 +699,8 @@ runRMA <- function(inData, nGrp, n, p, xMat, outData, mema, lapMod, KHtest, nNon
    if(sum(abs(Y)>tol)>nNonzero) {  # run only when there are more than 2 non-zeros in both Y and V
    tag <- TRUE
    if(anaType==4) try(resList <- mema(Y, V, n[1], n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
-      try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE)
+      if(length(n)==1) try(resList <- mema(Y, V, n, p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE) else
+      try(resList <- mema(Y, V, n[2], p, X=xMat, resZout, lapMod, knha=KHtest), tag <- FALSE)  # for the case of 2 groups with homoskedasticiy
 
    if (tag) {
    if (nGrp==1) {
@@ -895,10 +897,10 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    } # if(anaType==3)
    
    #print("-----------------")
-   print("There might have some missing t values at some voxels in some subjects.")
+   print("There may have some missing t values at some voxels in some subjects.")
    print("The following threshold would allow the program not waste runtime on those")
-   print("voxels where most subjects don't t-values.")
-   nNonzero <- as.integer(readline(sprintf("Minimum number of subjects with non-zero t-statistic? (0-%i) ", sum(nSubj))))
+   print("voxels where most subjects don't t-values. ")
+   nNonzero <- as.integer(readline(sprintf("Minimum number of subjects with non-zero t-statistic? (0-%i, e.g., 3/4 of total subjects) ", sum(nSubj))))
    # Hartung-Knapp method with t-test?
    print("-----------------")
    print("t-statistic is a little more conservative but also more appropriate for significance testing than Z")
