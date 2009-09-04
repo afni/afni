@@ -8,9 +8,9 @@ if ("$2" != '') then
    set PrefSuf = $2
 endif
 
+set noglob
 set cln = `echo "$1" | cut -d \[ -f1`
 
-set noglob
 #remove path
 set Nom = $cln:t
 #remove extension .HEAD or .BRIK
@@ -43,12 +43,12 @@ if ("$ext" == "HEAD" || "$ext" == "BRIK") then
    set Nom = $Nom:r
 endif
 #remove +orig or whatever it is
-set Nom = `echo $Nom | sed 's/+orig.//'`
-set Nom = `echo $Nom | sed 's/+acpc.//'`
-set Nom = `echo $Nom | sed 's/+tlrc.//'`
-set Nom = `echo $Nom | sed 's/+orig//'`
-set Nom = `echo $Nom | sed 's/+acpc//'`
-set Nom = `echo $Nom | sed 's/+tlrc//'`
+set Nom = `echo $Nom | sed 's/+orig.$//'`
+set Nom = `echo $Nom | sed 's/+acpc.$//'`
+set Nom = `echo $Nom | sed 's/+tlrc.$//'`
+set Nom = `echo $Nom | sed 's/+orig$//'`
+set Nom = `echo $Nom | sed 's/+acpc$//'`
+set Nom = `echo $Nom | sed 's/+tlrc$//'`
 set Nom = $Nom$PrefSuf
 goto ECHO
 
