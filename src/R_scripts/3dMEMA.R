@@ -487,7 +487,7 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
 	# seems two ways to update beta (b): one through iterative WLS, while the other via its own iterations
    
    if(nu > 10^-10) {
-   while ((change_b > con$thr) & (change_nu > con$thr)) {
+   while (any(change_b > con$thr) & (change_nu > con$thr)) {
 		iter     <- iter + 1
       if (iter > con$maxiter) {  # Laplace fails
 			conv    <- 0
@@ -513,8 +513,10 @@ rmaB2 <- function(yi, vi, n1, nT, p, X, resOut, lapMod, knha=FALSE, con=list(thr
          dLnu <- -1/nu - vi[ii]/nu^3 + (Ei[ii]*ei[ii]*Phi1[ii]/nu^2 + visr[ii]*Ei[ii]*phi1[ii]/nu^2
                  - (ei[ii]*Phi2[ii]/Ei[ii])/nu^2 + (visr[ii]*phi2[ii]/Ei[ii])/nu^2)/Gi[ii]        
          ttemp <- t(dLb)*dLnu
-         H <- H + rbind(cbind(dLb %*% t(dLb), t(ttemp)), cbind(ttemp, dLnu^2))
-         g <- g + rbind(dLb, dLnu)
+         #H <- H + rbind(cbind(dLb %*% t(dLb), t(ttemp)), cbind(ttemp, dLnu^2))
+         H <- H + rbind(cbind(t(dLb) %*% dLb, ttemp), cbind(t(ttemp), dLnu^2))
+         g <- g + rbind(t(dLb), dLnu)
+         
       }      
       
       if(any(is.infinite(H)) | any(is.infinite(H)) | any(is.infinite(g)) | any(is.infinite(g)) |
