@@ -8,6 +8,14 @@
 
 #include "afni.h"
 
+#undef  STAMPER
+#define STAMPER(ar,ww) \
+  do{ (ar)->last_why = (ww); (ar)->last_when = NI_clock_time(); } while(0)
+
+#undef  STAMPCHECK
+#define STAMPCHECK(ar,ww) \
+ ( (ar) != NULL && (ar)->last_why != (ww) || NI_clock_time() != (ar)->last_when )
+
 /*---------------------------------------------------------------------------*/
 /*! Set up to have AFNI send data to a receiver (callback function):
 
@@ -119,6 +127,8 @@ fprintf(stderr,"AFNI_receive_init AFREALL() with ir=%d num_receiver=%d\n",
    im3d->vinfo->receiver[ir]->receiver_func = cb ;
    im3d->vinfo->receiver[ir]->receiver_mask = rmask ;
    im3d->vinfo->receiver[ir]->receiver_data = cb_data ;
+   im3d->vinfo->receiver[ir]->last_why      = 
+    im3d->vinfo->receiver[ir]->last_when    = -666 ;  /* 08 Sep 2009 */
 
    im3d->vinfo->receiver[ir]->receiver_funcname =
      strdup( (cbname != NULL && *cbname != '\0') ? cbname : "[unknown func]" ) ;
@@ -434,7 +444,7 @@ ENTRY("AFNI_process_alteration") ;
                             im3d->vinfo->num_receiver == 0   ) EXRETURN ;
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
-      if( im3d->vinfo->receiver[ir] != NULL ){
+      if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_ALTERATION) ){
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
 #if 0
          im3d->vinfo->receiver[ir]->receiver_func(
@@ -446,6 +456,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,NULL ,
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
+         STAMPER(im3d->vinfo->receiver[ir],RECEIVE_ALTERATION) ;
       }
    }
 
@@ -468,7 +479,7 @@ ENTRY("AFNI_process_drawnotice") ;
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
 
-      if( im3d->vinfo->receiver[ir] != NULL &&
+      if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_DRAWNOTICE) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DRAWNOTICE_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
@@ -482,6 +493,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,NULL ,
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
+         STAMPER(im3d->vinfo->receiver[ir],RECEIVE_DRAWNOTICE) ;
       }
    }
 
@@ -503,7 +515,7 @@ ENTRY("AFNI_process_dsetchange") ;
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
 
-      if( im3d->vinfo->receiver[ir] != NULL &&
+      if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_DSETCHANGE) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DSETCHANGE_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
@@ -517,6 +529,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,NULL ,
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
+         STAMPER(im3d->vinfo->receiver[ir],RECEIVE_DSETCHANGE) ;
       }
    }
 
@@ -541,7 +554,7 @@ ENTRY("AFNI_process_viewpoint") ;
    ijk[2] = im3d->vinfo->k3 ;
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
-      if( im3d->vinfo->receiver[ir] != NULL &&
+      if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_VIEWPOINT) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_VIEWPOINT_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
@@ -555,6 +568,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,ijk ,
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
+         STAMPER(im3d->vinfo->receiver[ir],RECEIVE_VIEWPOINT) ;
       }
    }
 
@@ -575,7 +589,7 @@ ENTRY("AFNI_process_timeindex") ;
                             im3d->vinfo->num_receiver == 0   ) EXRETURN ;
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
-      if( im3d->vinfo->receiver[ir] != NULL &&
+      if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_TIMEINDEX) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_TIMEINDEX_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
@@ -589,6 +603,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,NULL ,
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
+         STAMPER(im3d->vinfo->receiver[ir],RECEIVE_TIMEINDEX) ;
       }
    }
 
@@ -609,7 +624,7 @@ ENTRY("AFNI_process_redisplay") ;
                             im3d->vinfo->num_receiver == 0   ) EXRETURN ;
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
-      if( im3d->vinfo->receiver[ir] != NULL &&
+      if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_REDISPLAY) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_REDISPLAY_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
@@ -623,6 +638,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,NULL ,
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
+         STAMPER(im3d->vinfo->receiver[ir],RECEIVE_REDISPLAY) ;
       }
    }
 
@@ -643,7 +659,7 @@ ENTRY("AFNI_process_funcdisplay") ;
                             im3d->vinfo->num_receiver == 0   ) EXRETURN ;
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
-      if( im3d->vinfo->receiver[ir] != NULL &&
+      if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_FUNCDISPLAY) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_FUNCDISPLAY_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
@@ -657,6 +673,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,NULL ,
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
+         STAMPER(im3d->vinfo->receiver[ir],RECEIVE_FUNCDISPLAY) ;
       }
    }
 
@@ -738,7 +755,7 @@ fprintf(stderr,"Sending %d points to receiver\n",nn) ;
 
    for( nsent=ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
 
-      if( im3d->vinfo->receiver[ir] != NULL &&
+      if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_POINTS) &&
           (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DRAWING_MASK) ){
 
 STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
@@ -753,6 +770,7 @@ STATUS(im3d->vinfo->receiver[ir]->receiver_funcname) ;
                               void *,im3d->vinfo->receiver[ir]->receiver_data ) ;
 #endif
          nsent++ ;
+         STAMPER(im3d->vinfo->receiver[ir],RECEIVE_POINTS) ;
       }
    }
 
