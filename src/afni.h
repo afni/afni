@@ -204,12 +204,32 @@ extern char AFNI_abohelp[1024] ;
 #define ORIMASK_AP_IS (ORIMASK_AP | ORIMASK_IS)
 #define ORIMASK_ALL   (ORIMASK_LR | ORIMASK_AP | ORIMASK_IS)
 
-typedef struct {                           /* 29 Mar 1999 */
+/*-- callbacks to receive various kinds of transactions --*/
+
+/* whys for input to the receiver routine */
+
+#define RECEIVE_POINTS         101
+#define RECEIVE_VIEWPOINT      102
+#define RECEIVE_OVERLAY        103
+#define RECEIVE_CLOSURE        104
+#define RECEIVE_ALTERATION     105
+#define RECEIVE_DRAWNOTICE     106  /* 30 Mar 1999 */
+#define RECEIVE_DSETCHANGE     107  /* 31 Mar 1999 */
+#define RECEIVE_TTATLAS        108  /* 12 Jul 2001 */
+#define RECEIVE_REDISPLAY      109  /* 04 Mar 2002 */
+#define RECEIVE_FUNCDISPLAY    110  /* 04 Mar 2002 */
+#define RECEIVE_TIMEINDEX      111  /* 29 Jan 2003 */
+
+#define RECEIVE_BASEVAL        101
+#define RECEIVE_LASTVAL        111
+#define RECEIVE_NUMVAL         (RECEIVE_LASTVAL-RECEIVE_BASEVAL+1)
+
+typedef struct {                             /* 29 Mar 1999 */
       gen_func * receiver_func ;
       void *     receiver_data ;
       int        receiver_mask ;
-      char *     receiver_funcname ;       /* 20 Feb 2003 */
-      int        last_why , last_when ;    /* 08 Sep 2009 */
+      char *     receiver_funcname ;         /* 20 Feb 2003 */
+      int        last_when[RECEIVE_NUMVAL] ; /* 08 Sep 2009 */
 } AFNI_receiver ;
 
 typedef struct {
@@ -1609,7 +1629,6 @@ extern void AFNI_xyz_to_dicomm( THD_3dim_dataset * ,
 extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
                                 float,float,float , float *,float *,float *) ;
 
-
 /* masks for input to AFNI_receive_init */
 
 #define RECEIVE_DRAWING_MASK     1
@@ -1668,20 +1687,6 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define TIMEINDEX_SHUTDOWN      99
 
 #define EVERYTHING_SHUTDOWN    666
-
-/* whys for input to the receiver routine */
-
-#define RECEIVE_POINTS         101
-#define RECEIVE_VIEWPOINT      102
-#define RECEIVE_OVERLAY        103
-#define RECEIVE_CLOSURE        104
-#define RECEIVE_ALTERATION     105
-#define RECEIVE_DRAWNOTICE     106  /* 30 Mar 1999 */
-#define RECEIVE_DSETCHANGE     107  /* 31 Mar 1999 */
-#define RECEIVE_TTATLAS        108  /* 12 Jul 2001 */
-#define RECEIVE_REDISPLAY      109  /* 04 Mar 2002 */
-#define RECEIVE_FUNCDISPLAY    110  /* 04 Mar 2002 */
-#define RECEIVE_TIMEINDEX      111  /* 29 Jan 2003 */
 
 /* modes for the process_drawing routine */
 
