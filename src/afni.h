@@ -209,6 +209,7 @@ typedef struct {                           /* 29 Mar 1999 */
       void *     receiver_data ;
       int        receiver_mask ;
       char *     receiver_funcname ;       /* 20 Feb 2003 */
+      int        last_why , last_when ;    /* 08 Sep 2009 */
 } AFNI_receiver ;
 
 typedef struct {
@@ -257,10 +258,10 @@ typedef struct {
       /** Feb 1998: stuff for the "receive" modules **/
       /** Mar 1999: modified to allow for more than one receiver **/
 
-      AFNI_receiver ** receiver ;
-      int              num_receiver ;
-      int              drawing_enabled , drawing_mode ;
-      Pixel            drawing_pixel ;
+      AFNI_receiver **receiver ;
+      int             num_receiver ;
+      int             drawing_enabled , drawing_mode ;
+      Pixel           drawing_pixel ;
 
       int writeownsize ; /* 01 Aug 1999 */
 
