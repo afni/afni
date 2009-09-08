@@ -904,9 +904,11 @@ AFNI_REALTIME_Verbose      = "No", "Yes", or "Very"
 AFNI_REALTIME_Registration = "None", "2D:_realtime", "2D:_at_end",
                              "3D:_realtime", "3D:_at_end",
                              or "3D:_estimate"
-AFNI_REALTIME_Base_Image   = an integer from 0 to 59
 AFNI_REALTIME_Resampling   = "Cubic", "Quintic", "Heptic", "Fourier",
                              or "Hept+Four"
+AFNI_REALTIME_Reg_Base_Mode= "Current_Run", "Current_Run_Keep", or
+                             "External_Dataset"
+AFNI_REALTIME_Base_Image   = an integer from 0 to 9999
 AFNI_REALTIME_Graph        = "No", "Yes", or "Realtime"
 AFNI_REALTIME_NR           = an integer from 5 to 9999
 AFNI_REALTIME_YR           = a floating point number from 0.1 to 10.0
