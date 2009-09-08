@@ -9,12 +9,11 @@
 #include "afni.h"
 
 #undef  STAMPER
-#define STAMPER(ar,ww) \
-  do{ (ar)->last_why = (ww); (ar)->last_when = NI_clock_time(); } while(0)
+#define STAMPER(ar,ww) (ar)->last_when[(ww)-RECEIVE_BASEVAL] = NI_clock_time()
 
 #undef  STAMPCHECK
 #define STAMPCHECK(ar,ww) \
- ( (ar) != NULL && (ar)->last_why != (ww) || NI_clock_time() != (ar)->last_when )
+ ( (ar) != NULL && NI_clock_time() != (ar)->last_when[(ww)-RECEIVE_BASEVAL] )
 
 /*---------------------------------------------------------------------------*/
 /*! Set up to have AFNI send data to a receiver (callback function):
@@ -101,7 +100,7 @@
 int AFNI_receive_init( Three_D_View *im3d , int rmask ,
                        gen_func *cb , void *cb_data  , char *cbname )
 {
-   int ir ;
+   int ir , kk ;
 
 ENTRY("AFNI_receive_init") ;
 
@@ -127,8 +126,8 @@ fprintf(stderr,"AFNI_receive_init AFREALL() with ir=%d num_receiver=%d\n",
    im3d->vinfo->receiver[ir]->receiver_func = cb ;
    im3d->vinfo->receiver[ir]->receiver_mask = rmask ;
    im3d->vinfo->receiver[ir]->receiver_data = cb_data ;
-   im3d->vinfo->receiver[ir]->last_why      = 
-    im3d->vinfo->receiver[ir]->last_when    = -666 ;  /* 08 Sep 2009 */
+   for( kk=0 ; kk < RECEIVE_NUMVAL ; kk++ )
+     im3d->vinfo->receiver[ir]->last_when[kk] = -666 ;  /* 08 Sep 2009 */
 
    im3d->vinfo->receiver[ir]->receiver_funcname =
      strdup( (cbname != NULL && *cbname != '\0') ? cbname : "[unknown func]" ) ;
@@ -657,6 +656,8 @@ ENTRY("AFNI_process_funcdisplay") ;
 
    if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
                             im3d->vinfo->num_receiver == 0   ) EXRETURN ;
+
+if( AFNI_yesenv("BOBCOX") ) INFO_message("AFNI_process_funcdisplay") ;
 
    for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
       if( STAMPCHECK(im3d->vinfo->receiver[ir],RECEIVE_FUNCDISPLAY) &&
