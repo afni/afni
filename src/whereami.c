@@ -116,9 +116,9 @@ void whereami_usage(void)
 "       AFNI_ORIENT environment variable. If it is not set, then the default \n"
 "       is RAI/DICOM\n"
 " -space SPC: Space of input coordinates.\n"
-"       SPC can be either MNI or TLRC which is the default.\n"
-"       If SPC is the MNI space, the x,y,z coordinates are transformed to\n"
-"       TLRC space prior to whereami query.\n"
+"       SPC can be MNI, MNI_ANAT or TLRC which is the default.\n"
+"       If SPC is either MNI or MNI_ANAT space, the x,y,z coordinates are\n"
+"       transformed to TLRC space prior to whereami query.\n"
 " -classic: Classic output format (output_format = 0).\n"
 " -tab: Tab delimited output (output_format = 1). \n"
 "       Useful for spreadsheeting.\n"
@@ -483,6 +483,8 @@ int main(int argc, char **argv)
             }
             if (strcmp(argv[iarg],"MNI") == 0 || strcmp(argv[iarg],"mni") == 0) {
                mni = 1; 
+            } else if (strcasecmp(argv[iarg],"MNI_ANAT") == 0){
+               mni = 2;
             } else if (strcmp(argv[iarg],"TLRC") == 0 || strcmp(argv[iarg],"tlrc") == 0) {
                mni = 0; 
             } else {
@@ -847,6 +849,8 @@ int main(int argc, char **argv)
       fprintf(stdout,"++ Input coordinates space set by user to TLRC\n");
    } else if (mni == 1) {
       fprintf(stdout,"++ Input coordinates space set by user to MNI\n");
+   } else if (mni == 2) {
+      fprintf(stdout,"++ Input coordinates space set by user to MNI_ANAT\n");
    } else {
       fprintf(stderr,"** Error: Should not happen!\n"); return(1);
    }
@@ -1197,6 +1201,18 @@ int main(int argc, char **argv)
          m = THD_mni_to_tta( tv );  /* m units are in RAI */
          if (ixyz == 0) {
             fprintf(stdout,"++ Input coordinates being transformed from MNI  RAI ([%.2f %.2f %.2f]) \n"
+                           "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
+                                                               x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
+         }
+         x = m.xyz[0]; y = m.xyz[1]; z = m.xyz[2];
+      }
+
+      if (mni == 2) { /* go from mni anat to tlrc */
+         LOAD_FVEC3( tv , -x, -y, z ) ; /* next call expects input in MNI, LPI*/
+         tv.xyz[2] = z - 8; /* 8mm I-S shift relative to mni - to use mni xform */
+         m = THD_mni_to_tta( tv ); /* m units are in RAI */
+         if (ixyz == 0) {
+            fprintf(stdout,"++ Input coordinates being transformed from MNI_ANAT RAI ([%.2f %.2f %.2f]) \n"
                            "                                         to TLRC RAI ([%.2f %.2f %.2f]).\n", 
                                                                x, y, z, m.xyz[0],  m.xyz[1], m.xyz[2]);
          }
