@@ -114,9 +114,10 @@ g_history = """
    0.0  Jul 06, 2009 : initial version (show data, no serial, little help)
    0.1  Jul 16, 2009 : includes optional serial connection
    0.2  Aug 04, 2009 : added basic demo interface and itemized exception traps
+   0.3  Sep 08, 2009 : bind to open host (so /etc/hosts entry is not required)
 """
 
-g_version = "realtime_receiver.py version 0.2, Aug 4, 2009"
+g_version = "realtime_receiver.py version 0.3, Sep 8, 2009"
 
 g_RTinterface = None      # global reference to main class (for signal handler)
 
