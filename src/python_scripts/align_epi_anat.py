@@ -380,7 +380,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.21" # software version (update for changes)
+      self.align_version = "1.22" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -1650,21 +1650,28 @@ class RegWrap:
                tlrc_dset.view = '+tlrc'
                if tlrc_dset.exist():
                   tlrc_dset.delete(ps.oexec)
-               atlrcpost =  tlrc_dset
-               self.info_msg("Applying transformation of epi to anat tlrc parent")
+               atlrcpost = tlrc_dset
+               self.info_msg(  \
+                  "Applying transformation of epi to anat tlrc parent")
+               com = shell_com( \
+                 "3dAllineate -base %s -1Dmatrix_apply %s " \
+                 "-prefix %s -input %s -verb %s" % \
+                 ( ps.tlrc_apar.input(), epi_mat, atlrcpost.input(),e.input(),\
+                   ps.master_tlrc_option), ps.oexec)
+
             else:
                tlrc_orig_dset = afni_name("%s_post%s" % (self.epi.out_prefix(), suf))
                tlrc_orig_dset.view = '+orig'
                if tlrc_orig_dset.exist():
                   tlrc_orig_dset.delete(ps.oexec)
-               atlrcpost =  tlrc_orig_dset
+               atlrcpost = tlrc_orig_dset
                self.info_msg("Applying post transformation matrix to epi");
+               com = shell_com( \
+                 "3dAllineate -1Dmatrix_apply %s " \
+                 "-prefix %s -input %s -verb %s" % \
+                 ( epi_mat, atlrcpost.input(), e.input(),\
+                   ps.master_tlrc_option), ps.oexec)
 
-            com = shell_com(  \
-                   "3dAllineate -base %s -1Dmatrix_apply %s " \
-                   "-prefix %s -input %s  -verb  %s"   %  \
-                   ( ps.tlrc_apar.input(), epi_mat, atlrcpost.input(), e.input(),\
-                     ps.master_tlrc_option), ps.oexec)
             com.run()
 
             # remove obliquity from output
