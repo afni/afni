@@ -90,7 +90,7 @@ class RTInterface:
       if errs: return 1         # let's not return from within 'except'
 
       if self.verb > 2: print '-- bind()...'
-      try: self.server_sock.bind((socket.gethostname(), self.server_port))
+      try: self.server_sock.bind(('', self.server_port))
       except(socket.error, socket.herror, socket.gaierror, socket.timeout):
          print '** failed to bind incoming socket to port', self.server_port
          errs = 1

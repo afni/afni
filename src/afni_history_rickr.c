@@ -48,6 +48,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, SEP, 2009, RCR, "realtime_receiver.py", MICRO, TYPE_MODIFY,
+   "bind to open host, so a /etc/hosts entry is not required",
+   NULL
+ } ,
+
  {  4, SEP, 2009, RCR, "plug_realtime", MINOR, TYPE_NEW_OPT,
    "registration can now be consistent across runs",
    "Reg Base can be 'Current': to set the base volume from the current run\n"
