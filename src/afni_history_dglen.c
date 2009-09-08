@@ -49,6 +49,9 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 8 , SEP , 2009 , DRG , "align_epi_anat.py" , 
+    MINOR , TYPE_BUG_FIX, "Properly allows post-transformation matrix"
+} ,
 
 { 8 , SEP , 2009 , DRG , "whereami" , 
     MINOR , TYPE_MODIFY, "Allows MNI_ANAT space for whereami",
