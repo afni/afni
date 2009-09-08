@@ -49,6 +49,12 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 8 , SEP , 2009 , DRG , "whereami" , 
+    MINOR , TYPE_MODIFY, "Allows MNI_ANAT space for whereami",
+    "Subtracts 8mm I-S and uses MNI space transform to TTA"
+} ,
+
 { 3 , SEP , 2009 , DRG , "align_epi_anat.py" , 
     MINOR , TYPE_BUG_FIX, "Bug fixes for certain combinations",
     "Allowed BASE and SOURCE specification for oblique data\n"
