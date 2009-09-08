@@ -722,7 +722,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    ept = getenv("AFNI_REALTIME_Base_Image") ;     /* 09 Oct 2000 */
    if( ept != NULL ){
       int ii = (int) rint(strtod(ept,NULL)) ;
-      if( ii >= 0 && ii <= 59 ) regtime = ii ;
+      if( ii >= 0 && ii <= 9999 ) regtime = ii ;
    }
 
    PLUTO_add_option(plint, "" , "Registration Base" , FALSE ) ;
