@@ -30,15 +30,22 @@ int main( int argc , char * argv[] )
    int nout ; char **bout , *niml_name="maskdump" ;
    int nrand = -1;
 
-#define BOXLEN   7
+#define BOXLEN   7  /* number of values to define a box */
 #define BOX_XYZ  1
 #define BOX_DIC  2
 #define BOX_NEU  3
 #define BOX_IJK  4
+
+#define BALLEN    5 /* number of values to define a ball */
+#define BALL_XYZ 11
+#define BALL_DIC 12
+#define BALL_NEU 13
+
    int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 - RWCox */
+   int ball_num=0; float *ball_dat=NULL;   /* 09 Sep 2009 - RWCox */
    int nx,ny,nz,nxy,nxyz ;
    unsigned int nrandseed = 1234u ;
-   
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf(
 "Usage: 3dmaskdump [options] dataset dataset ...\n"
@@ -118,7 +125,7 @@ int main( int argc , char * argv[] )
  "                  with the coordinates. If you see RAI/DICOM, then use \n"
  "                  -dbox. If you see LPI/SPM then use -nbox. \n"
  "\n"
- "  -nbox x y z   Means the same as -xbot, but the coordinates are in\n"
+ "  -nbox x y z   Means the same as -xbox, but the coordinates are in\n"
  "                  LPI/SPM or 'neuroscience' order where the signs of the\n"
  "                  x and y coordinates are reversed relative to RAI/DICOM.\n"
  "                  (+x=Right, +y=Anterior, +z=Superior)\n"
@@ -140,6 +147,11 @@ int main( int argc , char * argv[] )
  "              * Coordinates (for -xbox, -dbox, and -nbox) are relative\n"
  "                  to the first dataset on the command line.\n"
  "\n"
+ "  -xball x y z r  Means to put a ball (sphere) mask down at dataset\n"
+ "                    coordinates (x,y,z) with radius r.\n"
+ "  -dball x y z r  Same, but (x,y,z) are in RAI/DICOM order.\n"
+ "  -nball x y z r  Same, but (x,y,z) are in LPI/SPM order.\n"
+ "\n"
  "  -nozero       Means to skip output of any voxel where all the\n"
  "                  data values are zero.\n"
  "\n"
@@ -147,7 +159,7 @@ int main( int argc , char * argv[] )
  "                 voxels from what would have been the output.\n"
  "\n"
  "  -n_randseed SEED  Seed the random number generator with SEED,\n"
- "                    instead of the default seed of %d\n"  
+ "                    instead of the default seed of %d\n"
  "\n"
  "  -niml name    Means to output data in the XML/NIML format that\n"
  "                  is compatible with input back to AFNI via\n"
@@ -213,11 +225,11 @@ int main( int argc , char * argv[] )
       }
 
 
-      if( strcmp(argv[narg],"-quiet") == 0 ){                /* 09 May 2003 - RWC */
+      if( strcmp(argv[narg],"-quiet") == 0 ){            /* 09 May 2003 - RWC */
         verb = 0 ; narg++ ; continue ;
       }
 
-      if( strcmp(argv[narg]+2,"box") == 0 ){                 /* 09 May 2003 - RWC */
+      if( strcmp(argv[narg]+2,"box") == 0 ){             /* 09 May 2003 - RWC */
         float xbot,xtop , ybot,ytop , zbot,ztop , btyp ;
         int nn ;
         char code = *(argv[narg]+1) ;   /* should be 'x', 'd' , 'n', or 'i' */
@@ -256,7 +268,36 @@ int main( int argc , char * argv[] )
         narg += 4 ; continue ;
       }
 
+      if( strcmp(argv[narg]+2,"ball") == 0 ){            /* 09 Sep 2009 - RWC */
+        float xcen,ycen,zcen,rad , btyp ;
+        char code = *(argv[narg]+1) ;   /* should be 'x', 'd' , or 'n' */
+        switch( code ){
+          case 'x': btyp = BOX_XYZ ; break ;
+          case 'd': btyp = BOX_DIC ; break ;
+          case 'n': btyp = BOX_NEU ; break ;
+          default:  ERROR_exit("Unknown 'ball' option %s",argv[narg]) ;
+        }
+        if( narg+4 >= argc )
+          ERROR_exit("need 4 arguments after %s\n",argv[narg]);
+        xcen = strtod( argv[++narg] , NULL ) ;
+        ycen = strtod( argv[++narg] , NULL ) ;
+        zcen = strtod( argv[++narg] , NULL ) ;
+        rad  = strtod( argv[++narg] , NULL ) ;
+        if( rad <= 0.0f ){
+          WARNING_message("%s radius=%s !?",argv[narg-4],argv[narg]) ; rad = 0.0f;
+        }
+
+        ball_dat = (float *) realloc( ball_dat , sizeof(float)*BALLEN*(ball_num+1) ) ;
+        ball_dat[0+BALLEN*ball_num] = xcen ;
+        ball_dat[1+BALLEN*ball_num] = ycen ;
+        ball_dat[2+BALLEN*ball_num] = zcen ;
+        ball_dat[3+BALLEN*ball_num] = rad  ;
+        ball_dat[4+BALLEN*ball_num] = btyp ; ball_num++ ; narg++ ;
+        continue ;
+      }
+
       /*-- 09 May 2003: option to output index value (for Mike B) [rickr] --*/
+
       if( strcmp(argv[narg],"-index") == 0 ){
         yes_index = 1 ;
         narg++ ; continue ;
@@ -302,7 +343,7 @@ int main( int argc , char * argv[] )
            ERROR_exit("-mrange inputs are illegal!\n") ;
          narg++ ; continue ;
       }
-      
+
       if( strcmp(argv[narg],"-n_rand") == 0 ){
          if( narg+1 >= argc )
            ERROR_exit("-n_rand option requires 1 argument!\n");
@@ -319,13 +360,13 @@ int main( int argc , char * argv[] )
          nrandseed = (unsigned int)strtod( argv[++narg] , NULL ) ;
          narg++ ; continue ;
       }
-      
+
       if( strcmp(argv[narg],"-o") == 0 ){
          if( narg+1 >= argc )
            ERROR_exit("-o needs an argument after it!\n");
          oname = argv[++narg] ;
          if( ! THD_filename_ok(oname) )
-           ERROR_exit("name after -o is illegal!\n"); 
+           ERROR_exit("name after -o is illegal!\n");
          if( THD_is_file(oname) )
            ERROR_exit("file %s already exists!\n",oname);
          narg++ ; continue ;
@@ -467,7 +508,10 @@ int main( int argc , char * argv[] )
        for( kk=kbot ; kk <= ktop ; kk++ )
         for( jj=jbot ; jj <= jtop ; jj++ )
          for( ii=ibot ; ii <= itop ; ii++ ) bmask[ii+jj*nx+kk*nxy] = 1 ;
-     }
+
+     } /* end of loop over list of boxes */
+
+     /* merge boxes mask with any other mask we have now */
 
      mcount = THD_countmask( nvox , bmask ) ;
      if( verb ) INFO_message("%d voxels in the boxes\n",mcount) ;
@@ -484,6 +528,77 @@ int main( int argc , char * argv[] )
        mmm = bmask ;
      }
    } /* end of box mask */
+
+   /* 09 Sep 2009: make a mask corresponding to the balls - RWC */
+
+   if( ball_num > 0 ){
+     byte *bmask = calloc(1,nvox) ;
+     int bb, ibot,itop, jbot,jtop, kbot,ktop , btyp , ii,jj,kk ;
+     float   xcen,ycen,zcen , rad , xx,yy,zz , dist , icen,jcen,kcen ;
+     THD_fvec3 dv,xv ;
+     THD_3dim_dataset *dset = input_dset[0] ;
+     float xmin=dset->daxes->xxmin , xmax=dset->daxes->xxmax ;
+     float ymin=dset->daxes->yymin , ymax=dset->daxes->yymax ;
+     float zmin=dset->daxes->zzmin , zmax=dset->daxes->zzmax ;
+
+     /* loop over list of balls */
+
+     for( bb=0 ; bb < ball_num ; bb++ ){
+       xcen = ball_dat[0+BALLEN*bb] ; ycen = ball_dat[1+BALLEN*bb] ;
+       zcen = ball_dat[2+BALLEN*bb] ; rad  = ball_dat[3+BALLEN*bb] ;
+       btyp = ball_dat[4+BALLEN*bb] ;
+
+       /* convert center coords to dataset indexes */
+
+       if( btyp == BALL_NEU ){                    /* coords from Neuroscience to DICOM */
+         xcen = -xcen; ycen = -ycen; btyp = BALL_DIC;
+       }
+       if( btyp == BOX_DIC ){                    /* coords from DICOM to dataset */
+         LOAD_FVEC3(dv,xcen,ycen,zcen) ;
+         xv = THD_dicomm_to_3dmm( dset , dv ) ;
+         UNLOAD_FVEC3(xv,xcen,ycen,zcen) ;
+       }
+       if( xcen < xmin || xcen > xmax ) continue ;  /* skip ball if outside */
+       if( ycen < ymin || ycen > ymax ) continue ;
+       if( zcen < zmin || zcen > zmax ) continue ;
+       LOAD_FVEC3(dv,xcen,ycen,zcen) ;
+       xv = THD_3dmm_to_3dfind( dset , dv ) ;   /* coords from dataset to index */
+       UNLOAD_FVEC3(xv,icen,jcen,kcen) ;
+
+       ibot = rint(icen-rad) ; itop = rint(icen+rad) ; /* box around ball */
+       jbot = rint(jcen-rad) ; jtop = rint(jcen+rad) ;
+       kbot = rint(kcen-rad) ; ktop = rint(kcen+rad) ;
+
+       rad = rad*rad ;
+
+       for( kk=kbot ; kk <= ktop ; kk++ ){
+        for( jj=jbot ; jj <= jtop ; jj++ ){
+         for( ii=ibot ; ii <= itop ; ii++ ){
+            LOAD_FVEC3( dv , ii,jj,kk ) ;          /* convert to xyz coords */
+            xv = THD_3dfind_to_3dmm( dset , dv ) ; /* then test distance^2 */
+            UNLOAD_FVEC3( xv , xx,yy,zz ) ;        /* xyz of ball center. */
+            dist = SQR(xx-xcen) + SQR(yy-ycen) + SQR(zz-zcen) ;
+            if( dist <= rad ) bmask[ii+jj*nx+kk*nxy] = 1 ;
+       }}}
+     } /* end of loop over list of balls */
+
+     /* merge ball mask with any other mask */
+
+     mcount = THD_countmask( nvox , bmask ) ;
+     if( verb ) INFO_message("%d voxels in the balls\n",mcount) ;
+     if( mcount == 0 )
+       ERROR_exit("Can't continue with no voxels insides balls!\n");
+     if( mmm != NULL ){
+       for( ii=0 ; ii < nvox ; ii++ )
+          mmm[ii] = (mmm[ii] && bmask[ii]) ;
+       free(bmask) ;
+       mcount = THD_countmask( nvox , mmm ) ;
+       if( mcount <= 0 ) ERROR_exit("No voxels in the mask+balls!\n") ;
+       if( verb ) INFO_message("%d voxels in the mask+balls\n",mcount) ;
+     } else {
+       mmm = bmask ;
+     }
+   } /* end of ball mask */
 
    /* read in input dataset bricks */
 
@@ -510,7 +625,7 @@ int main( int argc , char * argv[] )
       int *iok = (int *)calloc(nvox, sizeof(int));
       int *ranorder=NULL;
       int cnt=0;
-      
+
       cnt = 0;
       for( ii=0 ; ii < nvox ; ii++ ){
          if( mmm == NULL || mmm[ii]) {
@@ -518,21 +633,21 @@ int main( int argc , char * argv[] )
             ++cnt;
          }
       }
-      if( verb ) 
+      if( verb )
          INFO_message("Dumping %d randomly selected voxels \n"
-                      "out of %d originally in the mask.\n", 
+                      "out of %d originally in the mask.\n",
                       ( (cnt<nrand) ? cnt : nrand ), cnt);
 
       ranorder = z_rand_order(0, cnt-1, nrandseed);
       if (mmm) free(mmm); mmm = (byte *)calloc(nvox, sizeof(byte));
       for (ii=0; ii < ( (cnt<nrand) ? cnt : nrand ); ++ii) {
-         mmm[iok[ranorder[ii]]] = 1; 
+         mmm[iok[ranorder[ii]]] = 1;
       }
-      
+
       free(iok); iok = NULL;
       free(ranorder); ranorder = NULL;
    }
-    
+
    /* loop over voxels */
 
    nout = 0 ; bout = NULL ;
