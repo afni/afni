@@ -31,17 +31,6 @@ int main( int argc , char * argv[] )
    int nrand = -1;
    byte *bmask = NULL ;      /*-- box+ball mask: moved here 09 Sep 2009 --*/
 
-#define BOXLEN   7  /* number of values to define a box */
-#define BOX_XYZ  1
-#define BOX_DIC  2
-#define BOX_NEU  3
-#define BOX_IJK  4
-
-#define BALLEN    5 /* number of values to define a ball */
-#define BALL_XYZ 11
-#define BALL_DIC 12
-#define BALL_NEU 13
-
    int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 - RWCox */
    int ball_num=0; float *ball_dat=NULL;   /* 09 Sep 2009 - RWCox */
    int nx,ny,nz,nxy,nxyz ;
@@ -263,23 +252,23 @@ int main( int argc , char * argv[] )
         else if( nn == 1 )
           ztop=zbot ;
         box_dat = (float *) realloc( box_dat , sizeof(float)*BOXLEN*(box_num+1) ) ;
-        box_dat[0+BOXLEN*box_num] = xbot ;
-        box_dat[1+BOXLEN*box_num] = xtop ;
-        box_dat[2+BOXLEN*box_num] = ybot ;
-        box_dat[3+BOXLEN*box_num] = ytop ;
-        box_dat[4+BOXLEN*box_num] = zbot ;
-        box_dat[5+BOXLEN*box_num] = ztop ;
-        box_dat[6+BOXLEN*box_num] = btyp ; box_num++ ;
-        narg += 4 ; continue ;
+        box_dat[0+BOXLEN*box_num] = btyp ;
+        box_dat[1+BOXLEN*box_num] = xbot ;
+        box_dat[2+BOXLEN*box_num] = xtop ;
+        box_dat[3+BOXLEN*box_num] = ybot ;
+        box_dat[4+BOXLEN*box_num] = ytop ;
+        box_dat[5+BOXLEN*box_num] = zbot ;
+        box_dat[6+BOXLEN*box_num] = ztop ;
+        box_num++ ; narg += 4 ; continue ;
       }
 
       if( strcmp(argv[narg]+2,"ball") == 0 ){            /* 09 Sep 2009 - RWC */
         float xcen,ycen,zcen,rad , btyp ;
         char code = *(argv[narg]+1) ;   /* should be 'x', 'd' , or 'n' */
         switch( code ){
-          case 'x': btyp = BOX_XYZ ; break ;
-          case 'd': btyp = BOX_DIC ; break ;
-          case 'n': btyp = BOX_NEU ; break ;
+          case 'x': btyp = BALL_XYZ ; break ;
+          case 'd': btyp = BALL_DIC ; break ;
+          case 'n': btyp = BALL_NEU ; break ;
           default:  ERROR_exit("Unknown 'ball' option %s",argv[narg]) ;
         }
         if( narg+4 >= argc )
@@ -292,12 +281,13 @@ int main( int argc , char * argv[] )
           WARNING_message("%s radius=%s !?",argv[narg-4],argv[narg]) ; rad = 0.0f;
         }
 
-        ball_dat = (float *) realloc( ball_dat , sizeof(float)*BALLEN*(ball_num+1) ) ;
-        ball_dat[0+BALLEN*ball_num] = xcen ;
-        ball_dat[1+BALLEN*ball_num] = ycen ;
-        ball_dat[2+BALLEN*ball_num] = zcen ;
-        ball_dat[3+BALLEN*ball_num] = rad  ;
-        ball_dat[4+BALLEN*ball_num] = btyp ; ball_num++ ; narg++ ;
+        ball_dat = (float *) realloc( ball_dat , sizeof(float)*BOXLEN*(ball_num+1) ) ;
+        ball_dat[0+BOXLEN*ball_num] = btyp ;
+        ball_dat[1+BOXLEN*ball_num] = xcen ;
+        ball_dat[2+BOXLEN*ball_num] = ycen ;
+        ball_dat[3+BOXLEN*ball_num] = zcen ;
+        ball_dat[4+BOXLEN*ball_num] = rad  ;
+        ball_num++ ; narg++ ;
         continue ;
       }
 
@@ -464,10 +454,10 @@ int main( int argc , char * argv[] )
      if( bmask == NULL ) bmask = calloc(1,nvox) ;
 
      for( bb=0 ; bb < box_num ; bb++ ){
-       xbot = box_dat[0+BOXLEN*bb]; xtop = box_dat[1+BOXLEN*bb];
-       ybot = box_dat[2+BOXLEN*bb]; ytop = box_dat[3+BOXLEN*bb];
-       zbot = box_dat[4+BOXLEN*bb]; ztop = box_dat[5+BOXLEN*bb];
-       btyp = box_dat[6+BOXLEN*bb];
+       btyp = box_dat[0+BOXLEN*bb];
+       xbot = box_dat[1+BOXLEN*bb]; xtop = box_dat[2+BOXLEN*bb];
+       ybot = box_dat[3+BOXLEN*bb]; ytop = box_dat[4+BOXLEN*bb];
+       zbot = box_dat[5+BOXLEN*bb]; ztop = box_dat[6+BOXLEN*bb];
 
        if( btyp != BOX_IJK ){                      /* convert coords to indexes */
 
@@ -535,16 +525,16 @@ int main( int argc , char * argv[] )
      /* loop over list of balls */
 
      for( bb=0 ; bb < ball_num ; bb++ ){
-       xcen = ball_dat[0+BALLEN*bb] ; ycen = ball_dat[1+BALLEN*bb] ;
-       zcen = ball_dat[2+BALLEN*bb] ; rad  = ball_dat[3+BALLEN*bb] ;
-       btyp = ball_dat[4+BALLEN*bb] ;
+       btyp = ball_dat[0+BOXLEN*bb] ;
+       xcen = ball_dat[1+BOXLEN*bb] ; ycen = ball_dat[2+BOXLEN*bb] ;
+       zcen = ball_dat[3+BOXLEN*bb] ; rad  = ball_dat[4+BOXLEN*bb] ;
 
        /* convert center coords to dataset indexes */
 
-       if( btyp == BALL_NEU ){                    /* coords from Neuroscience to DICOM */
+       if( btyp == BALL_NEU ){          /* coords from Neuroscience to DICOM */
          xcen = -xcen; ycen = -ycen; btyp = BALL_DIC;
        }
-       if( btyp == BOX_DIC ){                    /* coords from DICOM to dataset */
+       if( btyp == BALL_DIC ){          /* coords from DICOM to dataset */
          LOAD_FVEC3(dv,xcen,ycen,zcen) ;
          xv = THD_dicomm_to_3dmm( dset , dv ) ;
          UNLOAD_FVEC3(xv,xcen,ycen,zcen) ;

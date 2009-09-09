@@ -53,6 +53,9 @@ int main( int argc , char * argv[] )
    char *sname = "Average" ;                  /* 06 Jul 2003 */
    int self_mask = 0 ;                        /* 06 Dec 2004 */
 
+   int    boxball_num=0 ;                     /* 09 Sep 2009 */
+   float *boxball_dat=NULL ;
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskave [options] dataset\n"
              "\n"
@@ -95,6 +98,15 @@ int main( int argc , char * argv[] )
              "                 all nonzero values from 'mset' are used.\n"
              "                 Note that if a voxel is zero in 'mset', then\n"
              "                 it won't be included, even if a < 0 < b.\n"
+             "\n"
+             "  -xbox x y z     } These options are the same as in\n"
+             "  -dbox x y z     } program 3dmaskdump:\n"
+             "  -nbox x y z     } They create a mask by putting down boxes\n"
+             "  -ibox x y z     } or balls (filled spheres) at the specified\n"
+             "  -xball x y z r  } locations.  See the output of\n"
+             "  -dball x y z r  }   3dmaskdump -help\n"
+             "  -nball x y z r  } for the gruesome and tedious details.\n"
+             "   http://afni.nimh.nih.gov/pub/dist/doc/program_help/3dmaskdump.html\n"
              "\n"
              "  -dindex div  Means to use sub-brick #'div' from the dataset.\n"
              "                 If not given, all sub-bricks will be processed.\n"
@@ -151,6 +163,14 @@ int main( int argc , char * argv[] )
 
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
+
+      if( strcmp(argv[narg]+2,"box")  == 0 ||    /* 09 Sep 2009 */
+          strcmp(argv[narg]+2,"ball") == 0   ){
+
+        int nuse = THD_parse_boxball( &boxball_num , &boxball_dat , argv+narg ) ;
+        if( nuse <= 0 ) ERROR_exit("Can't interpret '%s' values",argv[narg]) ;
+        narg += nuse ; continue ;
+      }
 
       if( strcmp(argv[narg],"-q") == 0 || strcmp(argv[narg],"-quiet") == 0 ){
          quiet++ ;
@@ -310,7 +330,7 @@ int main( int argc , char * argv[] )
 
    input_dset = THD_open_dataset( argv[narg] ) ;
    if( input_dset == NULL ){
-     fprintf(stderr,"*** Cannot open input dataset!\n") ; exit(1) ;
+     fprintf(stderr,"*** Cannot open input dataset %s!\n",argv[narg]) ; exit(1) ;
    }
    if( self_mask ) mask_dset = input_dset ;  /* 06 Dec 2004 */
 
@@ -461,17 +481,35 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"+++ %d voxels survive the slicing\n",mcount) ;
    }
 
+   /*----- 09 Sep 2009: ball and box masks? -----*/
+
+   if( boxball_num > 0 ){
+     byte *bmask = THD_boxballmask( input_dset , boxball_num , boxball_dat ) ;
+     if( bmask != NULL ){
+       int bm = THD_countmask( nvox , bmask ) ;
+       INFO_message("%d voxels in the boxes+balls",bm) ;
+       if( bm == 0 ) ERROR_exit("Can't continue!!") ;
+       for( ii=0 ; ii < nvox ; ii++ )
+         mmm[ii] = (mmm[ii] && bmask[ii]) ;  /* intersection */
+       free(bmask) ;
+       mcount = THD_countmask( nvox , mmm ) ;
+       if( mcount <= 0 ) ERROR_exit("No voxels in the mask INTERSECT boxes+balls!") ;
+       INFO_message("%d voxels in the mask INTERSECT boxes+balls",mcount) ;
+     }
+   }
+
+   /*-- check errors --*/
+
    if( mcount < 2 && sigmait ){
-      fprintf(stderr,"+++ [too few voxels; cannot compute sigma]\n") ;
-      sigmait = 0 ;
+     WARNING_message("too few voxels; cannot compute sigma") ;
+     sigmait = 0 ;
    }
 
    DSET_load(input_dset) ;
-   if( DSET_ARRAY(input_dset,0) == NULL ){
-      fprintf(stderr,"*** Cannot read in input dataset BRIK!\n") ; exit(1) ;
-   }
+   if( DSET_ARRAY(input_dset,0) == NULL )
+      ERROR_exit("Cannot read in input dataset BRIK!\n") ;
 
-   /* loop over input sub-bricks */
+   /*-- loop over input sub-bricks --*/
 
    if( div < 0 ){
       div_bot = 0 ; div_top = DSET_NVALS(input_dset) ;
