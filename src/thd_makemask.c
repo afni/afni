@@ -585,6 +585,208 @@ int THD_countmask( int nvox , byte *mmm )
    return mc ;
 }
 
+/*---------------------------------------------------------------------*/
+
+int THD_parse_boxball( int *boxball_num , float **boxball_dat , char **argv )
+{
+   int bnum , narg=0 ; float *bdat ;
+
+   if( boxball_num == NULL || boxball_dat == NULL || argv == NULL ) return 0 ;
+
+   bnum = *boxball_num ; if( bnum < 0 ) bnum = 0 ;
+   bdat = *boxball_dat ;
+
+   if( strcmp(argv[narg]+2,"box") == 0 ){
+     float xbot,xtop , ybot,ytop , zbot,ztop , btyp ; int nn ;
+     char code = *(argv[narg]+1) ;   /* should be 'x', 'd' , 'n', or 'i' */
+     switch( code ){
+       case 'x': btyp = BOX_XYZ ; break ;
+       case 'd': btyp = BOX_DIC ; break ;
+       case 'n': btyp = BOX_NEU ; break ;
+       case 'i': btyp = BOX_IJK ; break ;
+       default:  WARNING_message("Unknown 'box' option %s\n",argv[narg]) ; return 0 ;
+     }
+     nn = sscanf( argv[narg+1] , "%f:%f" , &xbot , &xtop ) ;
+     if( nn < 1 ){
+       WARNING_message("Can't decode %s after %s\n",argv[narg+1],argv[narg]); return 0 ;
+     }
+     else if( nn == 1 ) xtop=xbot ;
+     nn = sscanf( argv[narg+2] , "%f:%f" , &ybot , &ytop ) ;
+     if( nn < 1 ){
+       WARNING_message("Can't decode %s after %s\n",argv[narg+2],argv[narg]); return 0 ;
+     }
+     else if( nn == 1 ) ytop=ybot ;
+     nn = sscanf( argv[narg+3] , "%f:%f" , &zbot , &ztop ) ;
+     if( nn < 1 ){
+       WARNING_message("Can't decode %s after %s\n",argv[narg+3],argv[narg]); return 0 ;
+     }
+     else if( nn == 1 ) ztop=zbot ;
+     bdat = (float *) realloc( bdat , sizeof(float)*BOXLEN*(bnum+1) ) ;
+     bdat[0+BOXLEN*bnum] = btyp ;
+     bdat[1+BOXLEN*bnum] = xbot ;
+     bdat[2+BOXLEN*bnum] = xtop ;
+     bdat[3+BOXLEN*bnum] = ybot ;
+     bdat[4+BOXLEN*bnum] = ytop ;
+     bdat[5+BOXLEN*bnum] = zbot ;
+     bdat[6+BOXLEN*bnum] = ztop ;
+     bnum++ ; narg = 4 ;
+
+   } else if( strcmp(argv[narg]+2,"ball") == 0 ){
+     float xcen,ycen,zcen,rad , btyp ;
+     char code = *(argv[narg]+1) ;   /* should be 'x', 'd' , or 'n' */
+     switch( code ){
+       case 'x': btyp = BALL_XYZ ; break ;
+       case 'd': btyp = BALL_DIC ; break ;
+       case 'n': btyp = BALL_NEU ; break ;
+       default:  WARNING_message("Unknown 'ball' option %s",argv[narg]) ; return 0 ;
+     }
+     xcen = strtod( argv[narg+1] , NULL ) ;
+     ycen = strtod( argv[narg+2] , NULL ) ;
+     zcen = strtod( argv[narg+3] , NULL ) ;
+     rad  = strtod( argv[narg+4] , NULL ) ;
+     if( rad <= 0.0f ){
+       WARNING_message("%s radius=%s !?",argv[narg],argv[narg+4]) ; rad = 0.0f;
+     }
+
+     bdat = (float *) realloc( bdat , sizeof(float)*BOXLEN*(bnum+1) ) ;
+     bdat[0+BOXLEN*bnum] = btyp ;
+     bdat[1+BOXLEN*bnum] = xcen ;
+     bdat[2+BOXLEN*bnum] = ycen ;
+     bdat[3+BOXLEN*bnum] = zcen ;
+     bdat[4+BOXLEN*bnum] = rad  ;
+     bnum++ ; narg = 5 ;
+   }
+
+   *boxball_num = bnum ; *boxball_dat = bdat ; return narg ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+byte * THD_boxballmask( THD_3dim_dataset *dset ,
+                        int boxball_num , float *boxball_dat )
+{
+   int nx,ny,nz , nxy,nxyz , ii,jj,kk ;
+   byte *bmask ;
+   int bb, ibot,itop, jbot,jtop, kbot,ktop , btyp ;
+   float xbot,xtop, ybot,ytop, zbot,ztop ;
+   float xcen,ycen,zcen , icen,jcen,kcen ;
+   float xmin,xmax , ymin,ymax , zmin,zmax , rad,dist , xx,yy,zz ;
+   THD_fvec3 dv,xv ;
+
+ENTRY("THD_boxballmask") ;
+
+   if( !ISVALID_DSET(dset) || boxball_num <= 0 || boxball_dat == NULL ) RETURN(NULL) ;
+
+   xmin=dset->daxes->xxmin ; xmax=dset->daxes->xxmax ;
+   ymin=dset->daxes->yymin ; ymax=dset->daxes->yymax ;
+   zmin=dset->daxes->zzmin ; zmax=dset->daxes->zzmax ;
+
+   nx = DSET_NX(dset) ;
+   ny = DSET_NY(dset) ; nxy  = nx*ny ;
+   nz = DSET_NZ(dset) ; nxyz = nxy*nz ;
+
+   bmask = (byte *)calloc(sizeof(byte),nxyz) ;
+
+   for( bb=0 ; bb < boxball_num ; bb++ ){
+
+     btyp = boxball_dat[0+BOXLEN*bb] ;
+
+     if( btyp < BALL_XYZ ){  /*---- box ----*/
+
+       xbot = boxball_dat[1+BOXLEN*bb]; xtop = boxball_dat[2+BOXLEN*bb];
+       ybot = boxball_dat[3+BOXLEN*bb]; ytop = boxball_dat[4+BOXLEN*bb];
+       zbot = boxball_dat[5+BOXLEN*bb]; ztop = boxball_dat[6+BOXLEN*bb];
+
+       if( btyp != BOX_IJK ){            /* convert coords to indexes */
+
+         if( btyp == BOX_NEU ){          /* coords from Neuroscience to DICOM */
+           xbot = -xbot; xtop = -xtop; ybot = -ybot; ytop = -ytop; btyp = BOX_DIC;
+         }
+         if( btyp == BOX_DIC ){          /* coords from DICOM to dataset */
+           LOAD_FVEC3(dv,xbot,ybot,zbot) ;
+           xv = THD_dicomm_to_3dmm( dset , dv ) ;
+           UNLOAD_FVEC3(xv,xbot,ybot,zbot) ;
+           LOAD_FVEC3(dv,xtop,ytop,ztop) ;
+           xv = THD_dicomm_to_3dmm( dset , dv ) ;
+           UNLOAD_FVEC3(xv,xtop,ytop,ztop) ;
+         }
+         if( xbot < xmin && xtop < xmin ) continue ; /* skip box if outside dataset */
+         if( xbot > xmax && xtop > xmax ) continue ;
+         if( ybot < ymin && ytop < ymin ) continue ;
+         if( ybot > ymax && ytop > ymax ) continue ;
+         if( zbot < zmin && ztop < zmin ) continue ;
+         if( zbot > zmax && ztop > zmax ) continue ;
+         LOAD_FVEC3(dv,xbot,ybot,zbot) ;
+         xv = THD_3dmm_to_3dfind( dset , dv ) ;   /* coords from dataset to index */
+         UNLOAD_FVEC3(xv,xbot,ybot,zbot) ;
+         LOAD_FVEC3(dv,xtop,ytop,ztop) ;
+         xv = THD_3dmm_to_3dfind( dset , dv ) ;
+         UNLOAD_FVEC3(xv,xtop,ytop,ztop) ;
+       }
+       ibot = rint(xbot) ; jbot = rint(ybot) ; kbot = rint(zbot) ;  /* round */
+       itop = rint(xtop) ; jtop = rint(ytop) ; ktop = rint(ztop) ;
+       if( ibot > itop ){ btyp = ibot; ibot = itop; itop = btyp; }  /* flip? */
+       if( jbot > jtop ){ btyp = jbot; jbot = jtop; jtop = btyp; }
+       if( kbot > ktop ){ btyp = kbot; kbot = ktop; ktop = btyp; }
+
+       /* skip box if outside dataset */
+       if ( itop < 0 || ibot >= nx ) continue;
+       if ( jtop < 0 || jbot >= ny ) continue;
+       if ( ktop < 0 || kbot >= nz ) continue;
+
+       /* constrain values to dataset dimensions */
+       if ( ibot < 0 ) ibot = 0;  if ( itop >= nx ) itop = nx-1;
+       if ( jbot < 0 ) jbot = 0;  if ( jtop >= ny ) jtop = ny-1;
+       if ( kbot < 0 ) kbot = 0;  if ( ktop >= nz ) ktop = nz-1;
+
+       for( kk=kbot ; kk <= ktop ; kk++ )
+        for( jj=jbot ; jj <= jtop ; jj++ )
+         for( ii=ibot ; ii <= itop ; ii++ ) bmask[ii+jj*nx+kk*nxy] = 1 ;
+
+     } else {  /*---- ball ----*/
+
+       xcen = boxball_dat[1+BOXLEN*bb] ; ycen = boxball_dat[2+BOXLEN*bb] ;
+       zcen = boxball_dat[3+BOXLEN*bb] ; rad  = boxball_dat[4+BOXLEN*bb] ;
+
+       /* convert center coords to dataset indexes */
+
+       if( btyp == BALL_NEU ){          /* coords from Neuroscience to DICOM */
+         xcen = -xcen; ycen = -ycen; btyp = BALL_DIC;
+       }
+       if( btyp == BALL_DIC ){          /* coords from DICOM to dataset */
+         LOAD_FVEC3(dv,xcen,ycen,zcen) ;
+         xv = THD_dicomm_to_3dmm( dset , dv ) ;
+         UNLOAD_FVEC3(xv,xcen,ycen,zcen) ;
+       }
+       if( xcen < xmin || xcen > xmax ) continue ;  /* skip ball if outside */
+       if( ycen < ymin || ycen > ymax ) continue ;
+       if( zcen < zmin || zcen > zmax ) continue ;
+       LOAD_FVEC3(dv,xcen,ycen,zcen) ;
+       xv = THD_3dmm_to_3dfind( dset , dv ) ;   /* coords from dataset to index */
+       UNLOAD_FVEC3(xv,icen,jcen,kcen) ;
+
+       ibot = rint(icen-rad) ; itop = rint(icen+rad) ; /* box around ball */
+       jbot = rint(jcen-rad) ; jtop = rint(jcen+rad) ;
+       kbot = rint(kcen-rad) ; ktop = rint(kcen+rad) ;
+
+       rad = rad*rad ;
+
+       for( kk=kbot ; kk <= ktop ; kk++ ){
+        for( jj=jbot ; jj <= jtop ; jj++ ){
+         for( ii=ibot ; ii <= itop ; ii++ ){
+            LOAD_FVEC3( dv , ii,jj,kk ) ;          /* convert to xyz coords */
+            xv = THD_3dfind_to_3dmm( dset , dv ) ; /* then test distance^2 */
+            UNLOAD_FVEC3( xv , xx,yy,zz ) ;        /* xyz of ball center. */
+            dist = SQR(xx-xcen) + SQR(yy-ycen) + SQR(zz-zcen) ;
+            if( dist <= rad ) bmask[ii+jj*nx+kk*nxy] = 1 ;
+       }}}
+     }
+
+   } /*----- end of loop over box/ball list -----*/
+
+   RETURN(bmask) ;
+}
+
 /*------- functions moved from vol2surf.c ------------- 13 Nov 2006 [rickr] */
 
 /*----------------------------------------------------------------------

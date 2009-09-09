@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , SEP , 2009 , RWC , "3dmaskave" , MICRO , TYPE_NEW_OPT ,
+   "Add box and ball options to this program, per Kyle Simmons" ,
+   NULL } ,
+
  { 9 , SEP , 2009 , RWC , "3dmaskdump" , MINOR , TYPE_NEW_OPT ,
    "Add 'ball' options for mask generation" ,
    NULL } ,

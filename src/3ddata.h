@@ -4284,6 +4284,18 @@ extern int dset_floatscan ( THD_3dim_dataset * ) ;
 #undef  BAD_FLOAT
 #define BAD_FLOAT(xx) thd_floatscan(1,&(xx))    /* 31 Dec 2008 */
 
+#define BOXLEN    7  /* number of values to define a box */
+#define BOX_XYZ   1
+#define BOX_DIC   2
+#define BOX_NEU   3
+#define BOX_IJK   4
+#define BALL_XYZ 11
+#define BALL_DIC 12
+#define BALL_NEU 13
+
+extern int THD_parse_boxball( int *, float **, char **) ;
+extern byte * THD_boxballmask( THD_3dim_dataset *, int, float * ) ;
+
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_makedsetmask( THD_3dim_dataset *, int,float,float, byte* ) ;
 extern int *THD_unique_vals( THD_3dim_dataset *mask_dset, int miv,
