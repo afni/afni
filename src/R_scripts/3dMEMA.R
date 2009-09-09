@@ -1006,8 +1006,8 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    print("Turn off this option and select 0 if memory allocation problem occurs later on.")
    resZout <- as.integer(readline("Want residuals Z-score for each subject (0: no; 1: yes)? "))
    if(resZout==1) {
-      icc_FN  <- paste(outFN, "_ICC+orig", sep="")
-      resZ_FN <- paste(outFN, "_resZ+orig", sep="") # write.AFNI doesn't handle tlrc yet
+      icc_FN  <- paste(strsplit(outFN, "\\+")[[1]][1], "_ICC+orig", sep="")
+      resZ_FN <- paste(strsplit(outFN, "\\+")[[1]][1], "_resZ+orig", sep="") # write.AFNI doesn't handle tlrc yet
    }
 
    exclude <- TRUE  # exclude those voxels with 0 variance
