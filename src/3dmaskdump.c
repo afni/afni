@@ -29,6 +29,7 @@ int main( int argc , char * argv[] )
    int yes_niml=0 , no_zero=0 , numz ;   /* 04 Feb 2008 */
    int nout ; char **bout , *niml_name="maskdump" ;
    int nrand = -1;
+   byte *bmask = NULL ;      /*-- box+ball mask: moved here 09 Sep 2009 --*/
 
 #define BOXLEN   7  /* number of values to define a box */
 #define BOX_XYZ  1
@@ -137,7 +138,7 @@ int main( int argc , char * argv[] )
  "       Notes: * Boxes are cumulative; that is, if you specify more\n"
  "                  than 1 box, you'll get more than one region.\n"
  "              * If a -mask and/or -cmask option is used, then\n"
- "                  the intersection of the boxes with these masks\n"
+ "                  the INTERSECTION of the boxes with these masks\n"
  "                  determines which voxels are output; that is,\n"
  "                  a voxel must be inside some box AND inside the\n"
  "                  mask in order to be selected for output.\n"
@@ -151,6 +152,10 @@ int main( int argc , char * argv[] )
  "                    coordinates (x,y,z) with radius r.\n"
  "  -dball x y z r  Same, but (x,y,z) are in RAI/DICOM order.\n"
  "  -nball x y z r  Same, but (x,y,z) are in LPI/SPM order.\n"
+ "       Notes: * The combined (set UNION) of all ball and/or box masks\n"
+ "                is created first.  Then, if a -mask and/or -cmask\n"
+ "                option was used, then the ball+box mask will be\n"
+ "                INTERSECTED with the existing mask.\n"
  "\n"
  "  -nozero       Means to skip output of any voxel where all the\n"
  "                  data values are zero.\n"
@@ -445,10 +450,9 @@ int main( int argc , char * argv[] )
       }
    }
 
-   /* 09 May 2003: make a mask corresponding to the boxen - RWC */
+   /*-- 09 May 2003: make a mask corresponding to the boxen - RWC --*/
 
    if( box_num > 0 ){
-     byte *bmask = calloc(1,nvox) ;
      int bb, ibot,itop, jbot,jtop, kbot,ktop , btyp , ii,jj,kk ;
      float   xbot,xtop, ybot,ytop, zbot,ztop ;
      THD_fvec3 dv,xv ;
@@ -456,6 +460,8 @@ int main( int argc , char * argv[] )
      float xmin=dset->daxes->xxmin , xmax=dset->daxes->xxmax ;
      float ymin=dset->daxes->yymin , ymax=dset->daxes->yymax ;
      float zmin=dset->daxes->zzmin , zmax=dset->daxes->zzmax ;
+
+     if( bmask == NULL ) bmask = calloc(1,nvox) ;
 
      for( bb=0 ; bb < box_num ; bb++ ){
        xbot = box_dat[0+BOXLEN*bb]; xtop = box_dat[1+BOXLEN*bb];
@@ -511,28 +517,11 @@ int main( int argc , char * argv[] )
 
      } /* end of loop over list of boxes */
 
-     /* merge boxes mask with any other mask we have now */
-
-     mcount = THD_countmask( nvox , bmask ) ;
-     if( verb ) INFO_message("%d voxels in the boxes\n",mcount) ;
-     if( mcount == 0 )
-       ERROR_exit("Can't continue with no voxels insides boxes!\n");
-     if( mmm != NULL ){
-       for( ii=0 ; ii < nvox ; ii++ )
-          mmm[ii] = (mmm[ii] && bmask[ii]) ;
-       free(bmask) ;
-       mcount = THD_countmask( nvox , mmm ) ;
-       if( mcount <= 0 ) ERROR_exit("No voxels in the mask+boxes!\n") ;
-       if( verb ) INFO_message("%d voxels in the mask+boxes\n",mcount) ;
-     } else {
-       mmm = bmask ;
-     }
    } /* end of box mask */
 
-   /* 09 Sep 2009: make a mask corresponding to the balls - RWC */
+   /*-- 09 Sep 2009: make a mask corresponding to the balls - RWC --*/
 
    if( ball_num > 0 ){
-     byte *bmask = calloc(1,nvox) ;
      int bb, ibot,itop, jbot,jtop, kbot,ktop , btyp , ii,jj,kk ;
      float   xcen,ycen,zcen , rad , xx,yy,zz , dist , icen,jcen,kcen ;
      THD_fvec3 dv,xv ;
@@ -540,6 +529,8 @@ int main( int argc , char * argv[] )
      float xmin=dset->daxes->xxmin , xmax=dset->daxes->xxmax ;
      float ymin=dset->daxes->yymin , ymax=dset->daxes->yymax ;
      float zmin=dset->daxes->zzmin , zmax=dset->daxes->zzmax ;
+
+     if( bmask == NULL ) bmask = calloc(1,nvox) ;  /* will include boxes */
 
      /* loop over list of balls */
 
@@ -582,31 +573,35 @@ int main( int argc , char * argv[] )
        }}}
      } /* end of loop over list of balls */
 
-     /* merge ball mask with any other mask */
+   } /* end of ball maskology */
 
+   /*--- intersect boxes+balls mask with any other mask we have now ---*/
+
+   if( bmask != NULL ){
      mcount = THD_countmask( nvox , bmask ) ;
-     if( verb ) INFO_message("%d voxels in the balls\n",mcount) ;
+     if( verb ) INFO_message("%d voxels in the boxes and/or balls\n",mcount) ;
      if( mcount == 0 )
-       ERROR_exit("Can't continue with no voxels insides balls!\n");
+       ERROR_exit("Can't continue with no voxels insides boxes+balls!\n");
      if( mmm != NULL ){
        for( ii=0 ; ii < nvox ; ii++ )
-          mmm[ii] = (mmm[ii] && bmask[ii]) ;
+          mmm[ii] = (mmm[ii] && bmask[ii]) ;  /* intersection */
        free(bmask) ;
        mcount = THD_countmask( nvox , mmm ) ;
-       if( mcount <= 0 ) ERROR_exit("No voxels in the mask+balls!\n") ;
-       if( verb ) INFO_message("%d voxels in the mask+balls\n",mcount) ;
+       if( mcount <= 0 ) ERROR_exit("No voxels in the mask INTERSECT boxes+balls!\n") ;
+       if( verb ) INFO_message("%d voxels in the mask INTERSECT boxes+balls\n",mcount) ;
      } else {
        mmm = bmask ;
+       if( verb ) INFO_message("Using only the boxes+balls mask") ;
      }
-   } /* end of ball mask */
+   }
 
-   /* read in input dataset bricks */
+   /*----- read in input dataset bricks -----*/
 
    for( ii=0 ; ii < ndset ; ii++ ){
      DSET_load(input_dset[ii]) ;  CHECK_LOAD_ERROR(input_dset[ii]) ;
    }
 
-   /* open the output file */
+   /*--- open the output file ---*/
 
    if( oname != NULL ){
      ofile = fopen( oname , "w" ) ;
@@ -615,7 +610,7 @@ int main( int argc , char * argv[] )
      ofile = stdout ;
    }
 
-   /* output string buffers */
+   /*--- output string buffers ---*/
 
    /*-- 09 May 2003: add room for the index (9 -> 10)    [rickr] --*/
    obuf = (char *) malloc( sizeof(char) * (ndval+10) * 16 ) ;
@@ -648,7 +643,7 @@ int main( int argc , char * argv[] )
       free(ranorder); ranorder = NULL;
    }
 
-   /* loop over voxels */
+   /*------- loop over voxels -------*/
 
    nout = 0 ; bout = NULL ;
    for( ii=0 ; ii < nvox ; ii++ ){
@@ -707,7 +702,7 @@ int main( int argc , char * argv[] )
         fprintf(ofile,"%s\n",obuf) ;  /* regular output */
       }
 
-   } /* end of loop over voxels */
+   } /*--- end of loop over voxels ---*/
 
    if( yes_niml ){  /*----- 04 Feb 2008: NIML formatted output -----*/
      if( nout > 0 ){
