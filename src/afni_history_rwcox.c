@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 9 , SEP , 2009 , RWC , "3dmaskdump" , MINOR , TYPE_NEW_OPT ,
+   "Add 'ball' options for mask generation" ,
+   NULL } ,
+
  { 2 , SEP , 2009 , RWC , "afni" , MICRO , TYPE_MODIFY ,
    "Add ZeroToOne 1D transform function" ,
    NULL } ,
