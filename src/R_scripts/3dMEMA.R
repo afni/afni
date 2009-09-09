@@ -1,17 +1,17 @@
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 print("          ================== Welcome to 3dMetaAna.R ==================          ")
-print("AFNI Meta-Analysis Modeling Package!")
+print("AFNI Mixed-Effects Meta-Analysis Modeling Package!")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-print("Version 0.1.0,  Sept. 4, 2009")
+print("Version 0.1.1,  Sept. 9, 2009")
 print("Author: Gang Chen (gangchen@mail.nih.gov)")
 print("Website - http://afni.nimh.nih.gov/sscc/gangc/MEMA.html")
 print("SSCC/NIMH, National Institutes of Health, Bethesda MD 20892")
 print("#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
 #########
-##  Working version for handling covariates and residual statistics which are saved as a separate output file. 
+##  Working version for handling covariates and residual statistics which are saved as 2 separate output file. 
 ##  type 4 (two groups with heteroskedasticity) should NOT be used when modeling with different slope across groups
-##  Now trying to model outliers! 
+##  Outliers can be modeled now! 
 #########
 
 
@@ -1002,18 +1002,12 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    print("in the data, leading to increased statistical power at slightly higher computation cost.")
    lapMod <- as.integer(readline("Model outliers (0: no; 1: yes)? "))
    print("-----------------")
-   print("The Z-score of residuals indicates the significance level a subject is an outlier at a voxel.")
+   print("The Z-score of residuals for a subject indicates the significance level the subject is an outlier at a voxel.")
    print("Turn off this option and select 0 if memory allocation problem occurs later on.")
    resZout <- as.integer(readline("Want residuals Z-score for each subject (0: no; 1: yes)? "))
    if(resZout==1) {
-   outFNexist <- TRUE
-   while (outFNexist) {
-      resFN <- readline("Output file name for residuals Z-score (just prefix, no view+suffix needed, e.g., myOutput): ")
-      if(file.exists(paste(resFN,"+orig.HEAD", sep="")) || file.exists(paste(resFN,"+tlrc.HEAD", sep=""))) {
-         print("File exsists! Try a different name.")
-         outFNexist <- TRUE
-      } else outFNexist <- FALSE }
-      resFN <- paste(resFN, "+orig", sep="") # write.AFNI doesn't handle tlrc yet
+      icc_FN  <- paste(outFN, "_ICC+orig", sep="")
+      resZ_FN <- paste(outFN, "_resZ+orig", sep="") # write.AFNI doesn't handle tlrc yet
    }
 
    exclude <- TRUE  # exclude those voxels with 0 variance
@@ -1143,11 +1137,11 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    
    if(resZout==1) for(ii in 1:nGrp) for(jj in 1:nSubj[ii]) {
       if(ii==1 & jj==1) {
-         resLabel <- paste(sprintf("%s-lambda", subjLab[[ii]][[jj]])) 
-         resLabel <- append(resLabel, sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
+         iccLabel  <- paste(sprintf("%s-lambda", subjLab[[ii]][[jj]])) 
+         resZLabel <- paste(sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
       } else {
-         resLabel <- append(resLabel, sprintf("%s-lambda", subjLab[[ii]][[jj]]))
-         resLabel <- append(resLabel, sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
+         iccLabel  <- append(iccLabel, sprintf("%s-lambda", subjLab[[ii]][[jj]]))
+         resZLabel <- append(resZLabel, sprintf("%s-Res:Z", subjLab[[ii]][[jj]]))
       }  
    }   
 
@@ -1172,8 +1166,8 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
  
    # Z-score for residuals
    if(resZout==1) {
-      statparRes <- "3drefit"
-      for(ii in 1:sum(nSubj)) statparRes <- paste(statparRes, " -substatpar ", 2*ii-1, " fizt")
+      statparICC <- "3drefit"; statparResZ <- "3drefit"
+      for(ii in 1:sum(nSubj)) statparResZ <- paste(statparResZ, " -substatpar ", ii-1, " fizt")
    }
 
    #rm(comArr)
@@ -1183,11 +1177,21 @@ nGrp <- as.integer(readline("Number of groups (1 or 2)? "))
    statpar <- paste(statpar, " -view tlrc -addFDR -newid ", outFN)  # assume tlrc space: wrong for monkey study, for example
    system(statpar)
 
+   #if(resZout==1) {
+   #   write.AFNI(resFN, outArr[,,,(nBrick0+1):nBrick], resLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
+   #   statparRes <- paste(statparRes, " -view tlrc -addFDR -newid ", resFN)
+   #   system(statparRes)
+   #}
+   
    if(resZout==1) {
-      write.AFNI(resFN, outArr[,,,(nBrick0+1):nBrick], resLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
-      statparRes <- paste(statparRes, " -view tlrc -addFDR -newid ", resFN)
-      system(statparRes)
+      write.AFNI(icc_FN, outArr[,,,seq((nBrick0+1), nBrick, by=2)], iccLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
+      write.AFNI(resZ_FN, outArr[,,,seq((nBrick0+2), nBrick, by=2)], resZLabel, note=myNote, origin=myOrig, delta=myDelta, idcode="whatever")
+      statparICC  <- paste(statparICC, " -view tlrc -newid ", icc_FN)
+      statparResZ <- paste(statparResZ, " -view tlrc -addFDR -newid ", resZ_FN)
+      system(statparICC)
+      system(statparResZ)
    }
+   
    geterrmessage()
 
  
