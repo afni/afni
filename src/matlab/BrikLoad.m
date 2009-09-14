@@ -450,6 +450,8 @@ end
    if allpixels
        numpixX=Info.DATASET_DIMENSIONS(1);
        numpixY=Info.DATASET_DIMENSIONS(2);
+       Opt.PixX = [1:1:Info.DATASET_DIMENSIONS(1)];
+       Opt.PixY = [1:1:Info.DATASET_DIMENSIONS(2)];
    else
        numpixX=length(Opt.PixX);
        numpixY=length(Opt.PixY);
